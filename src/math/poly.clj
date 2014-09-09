@@ -1,13 +1,24 @@
 (ns math.poly
-  (:refer-clojure :exclude [merge])
+  (:refer-clojure :exclude [merge] :rename {map core-map})
   (:gen-class))
 
-(def make sorted-map)
+(defn make [& oc-pairs]
+  (with-meta 
+    (into (sorted-map) (filter (fn [[o c]] (not= c 0)) oc-pairs))
+    {:type :poly}))
 
-(defn map-poly [f p]
-  (into (empty p) (map #(vector (first %) (f (second %))) p)))
+;; should we rely on the constructors and manipulators never to allow
+;; a zero coefficient into the list, or should we change degree to
+;; scan for nonzero coefficients? In the normal case, there would be
+;; none, but in corner cases it would still be robust.
 
-(def neg (partial map-poly -))
+(defn degree [p]
+  (or (first (first (rseq p))) 0))
+
+(defn- map [f p]
+  (into (empty p) (core-map #(vector (first %) (f (second %))) p)))
+
+(def neg (partial map -))
 
 ;;
 ;; this is ok so far as it doesn't generate an intermediate,
@@ -37,8 +48,7 @@
                                    (assoc R op v)
                                    R)))
               (< op oq) (recur (rest P) Q (assoc R op (f cp)))
-              :else (recur P (rest Q) (assoc R oq (f cq)))))
-     )))
+              :else (recur P (rest Q) (assoc R oq (f cq))))))))
 
 (def add (partial merge +))
 (def sub (partial merge -))

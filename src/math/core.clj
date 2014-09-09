@@ -3,8 +3,8 @@
   (:gen-class))
 
 (def p0 (poly/make))
-(def p1 (poly/make 2 1 0 1))
-(def p2 (poly/make 2 2 1 3))
+(def p1 (poly/make [2 1] [0 1]))
+(def p2 (poly/make [2 2] [1 3]))
 
 (defn modular
   "Arithmetic with op (mod n)"
