@@ -13,4 +13,6 @@
     (is (= (make) (add (make [2 2]) (make [2 -2]))))
     (is (= (make [1 1] [0 -1]) (add (make [1 1]) (make [0 -1]))))
     (is (= (make) (sub (make [2 2]) (make [2 2])))))
+  (testing "mul"
+    (is (= (make [2 1] [0 -1]) (mul (make [1 1] [0 1]) (make [1 1] [0 -1])))))
  )

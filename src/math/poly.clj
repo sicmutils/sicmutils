@@ -33,8 +33,8 @@
 ;;
 
 (defn- merge [f p q]
-  (loop [P (seq p)
-         Q (seq q)
+  (loop [P p
+         Q q
          R (make)]
     (cond
      (empty? P) (into R Q)
@@ -50,6 +50,10 @@
               (< op oq) (recur (rest P) Q (assoc R op (f cp)))
               :else (recur P (rest Q) (assoc R oq (f cq))))))))
 
+
 (def add (partial merge +))
 (def sub (partial merge -))
+
+(defn mul [p q]
+  (reduce add (make) (for [[op cp] p [oq cq] q] [[(+ op oq) (* cp cq)]])))
 

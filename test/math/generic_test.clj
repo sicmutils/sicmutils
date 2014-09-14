@@ -18,42 +18,52 @@
     (is (not (dtree-lookup T1 [])))
     (is (not (dtree-lookup T1 [#{:p2}#{:p2}])))))
 
-(defhandler '+ [integer? integer?] :intint)
-(defhandler '+ [integer? float?]   :intfloat)
-(defhandler '+ [string? string?]   :strstr)
-(defhandler 'z [number? string?]   :numstr)
+(defhandler :y [integer? integer?] :intint)
+(defhandler :y [integer? float?]   :intfloat)
+(defhandler :y [string? string?]   :strstr)
+(defhandler :z [number? string?]   :numstr)
 
 (deftest handler-map
   (testing "lookup"
-    (is (= :intint (findhandler '+ [1 1])))
-    (is (not (findhandler '+ [1 "2"])))
-    (is (= :intfloat (findhandler '+ [1 3.13])))
-    (is (= :strstr (findhandler '+ ["foo" "bar"])))
-    (is (= :numstr (findhandler 'z [1e10, "baz"])))
-    (is (not (findhandler '+ [1e10, "baz"])))))
+    (is (= :intint (findhandler :y [1 1])))
+    (is (not (findhandler :y [1 "2"])))
+    (is (= :intfloat (findhandler :y [1 3.13])))
+    (is (= :numstr (findhandler :z [1e10, "baz"])))
+    (is (not (findhandler :y [1e10, "baz"])))))
 
 (defn multiply-string
   [n s]
-  (let [sb (StringBuilder.)]
-    (dotimes [_ n]
-      (.append sb s))
-    (.toString sb)))
+  (apply str (repeat n s)))
 
-(defhandler '* [number? string?] multiply-string)
-(def star (make-operation '*))
+(defn product-string
+  [s t]
+  (apply str(for [cs s ct t] (str cs ct))))
+
+(defhandler :* [number? string?] multiply-string)
+(defhandler :* [string? string?] product-string)
+(defhandler :+ [string? string?] str)
+(defhandler :+ [number? number?] +)
+(def star (make-operation :*))
+(def plus (make-operation :+))
 
 (deftest handler-fn
   (testing "multiply-string"
-    (is (= "foofoofoo") (multiply-string 3 "foo"))
-    (is (= "") (multiply-string 0 "bar"))
-    (is (= "") (multiply-string -2 "bar"))
+    (is (= "foofoofoo" (multiply-string 3 "foo")))
+    (is (= "" (multiply-string 0 "bar")))
+    (is (= "" (multiply-string -2 "bar")))
     (is (= "barbarbar" (let [args [3 "bar"]
-                             h (findhandler '* args)]
+                             h (findhandler :* args)]
                          (apply h args)))))
   (testing "star"
     (is (= "bazbaz" (star 2 "baz")))
     (is (= "quxquxqux" (star 3 "qux")))
     (is (thrown? IllegalArgumentException
                  (star "qux" 3)))
+    (is (= "cecrcicnoeoroionlelrlilnieiriiinnenrninn" (star "colin" "erin"))))
+  (testing "plus"
+    (is (= "foobar" (plus "foo" "bar")))
+    (is (= 4 (plus 2 2)))
+    (is (= 3.5 (plus 1.5 2)))
+    (is (= 13/40 (plus 1/5 1/8)))
     ))
 
