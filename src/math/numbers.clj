@@ -11,6 +11,8 @@
 (g/defhandler :- [symbol? number?] (fn [a b] `(g/sub ~b ~a)))
 (g/defhandler :- [number? symbol?] (fn [a b] `(g/sub ~a ~b)))
 (g/defhandler :* [number? number?] *)
+(g/defhandler :* [symbol? number?] (fn [a b] `(g/mul ~b ~a)))
+(g/defhandler :* [number? symbol?] (fn [a b] `(g/mul ~a ~b)))
 
 
 
