@@ -1,10 +1,13 @@
 (ns math.generic
-  (:refer-clojure :rename {type core-type})
   (:gen-class))
 
 (def empty-dtree {:steps {} :stop nil})
 
 (def the-operator-table (atom {}))
+
+
+;; or how about something like
+;; (assoc (assoc-in dtree (mapcat (fn [x] [:step x]) p))
 
 (defn dtree-insert [{:keys [steps stop] :as dtree} op [predicate & predicates]]
   (if predicate
@@ -16,7 +19,7 @@
              (assoc steps predicate (dtree-insert next-dtree op predicates))))
     ;; no more predicates? store the current stop function.
     (do
-      (if stop (prn "overwriting a binding!!"))
+      (if stop (prn "overwriting a binding!!" stop op dtree))
       (assoc dtree :stop op))))
 
 (defn dtree-lookup [{:keys [steps stop]} [argument & arguments]]
@@ -47,12 +50,17 @@
     (if-let [h (findhandler operator args)]
       (apply h args)
       (throw (IllegalArgumentException.
-              "no version of that operator works for those args.")))))
+              (str "no version of " operator
+                   " will work for " args))))))
 
 ;; belongs to generic
 ;; XXX: have type return a predicate discriminating the type.
 ;; XXX: eventually: define a total order on types for canonicalization
-(defn type [a]
+(defn typeof [a]
   (or (:type (meta a))
-      (core-type a)))
+      (type a)))
+
+(def mul (make-operation :*))
+(def add (make-operation :+))
+(def sub (make-operation :-))
 

@@ -2,7 +2,6 @@
   (:require [clojure.test :refer :all]
             [math.generic :refer :all]))
 
-
 (def T1 (dtree-insert
          (dtree-insert
           (dtree-insert empty-dtree :op1 [:p1 :p2])
@@ -42,9 +41,6 @@
 (defhandler :* [number? string?] multiply-string)
 (defhandler :* [string? string?] product-string)
 (defhandler :+ [string? string?] str)
-(defhandler :+ [number? number?] +)
-(def star (make-operation :*))
-(def plus (make-operation :+))
 
 (deftest handler-fn
   (testing "multiply-string"
@@ -54,16 +50,13 @@
     (is (= "barbarbar" (let [args [3 "bar"]
                              h (findhandler :* args)]
                          (apply h args)))))
-  (testing "star"
-    (is (= "bazbaz" (star 2 "baz")))
-    (is (= "quxquxqux" (star 3 "qux")))
+  (testing "mul"
+    (is (= "bazbaz" (mul 2 "baz")))
+    (is (= "quxquxqux" (mul 3 "qux")))
     (is (thrown? IllegalArgumentException
-                 (star "qux" 3)))
-    (is (= "cecrcicnoeoroionlelrlilnieiriiinnenrninn" (star "colin" "erin"))))
-  (testing "plus"
-    (is (= "foobar" (plus "foo" "bar")))
-    (is (= 4 (plus 2 2)))
-    (is (= 3.5 (plus 1.5 2)))
-    (is (= 13/40 (plus 1/5 1/8)))
+                 (mul "qux" 3)))
+    (is (= "cecrcicnoeoroionlelrlilnieiriiinnenrninn" (mul "colin" "erin"))))
+  (testing "add"
+    (is (= "foobar" (add "foo" "bar")))
     ))
 
