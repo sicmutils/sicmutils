@@ -7,6 +7,7 @@
 
 (defn row? [s] (= (g/typeof s) :down))
 (defn column? [s] (= (g/typeof s) :up))
+(defn structure? [s]  (or (row? s) (column? s)))
 
 ;; (defn compatible-for-elementwise? [s t]
 ;;   "Given two structs, true iff the two structs are of the same
@@ -21,10 +22,14 @@
     (throw (IllegalArgumentException.
             (str op " provided arguments of differing length")))))
 
+(defn scalar-multiply [a s]
+  (map #(g/mul a %) s))
+
 (g/defhandler :+ [row? row?] (partial elementwise g/add))
 (g/defhandler :+ [column? column?] (partial elementwise g/add)) 
 (g/defhandler :- [row? row?] (partial elementwise g/sub))
-(g/defhandler :- [column? column?] (partial elementwise g/sub)) 
+(g/defhandler :- [column? column?] (partial elementwise g/sub))
+(g/defhandler :* [number? structure?] scalar-multiply)
 
 ;(def operations {:add :up :up add})
 
