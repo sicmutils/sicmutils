@@ -61,13 +61,6 @@
     (is (= "eceoeleienrcrorlrirnicioiliiinncnonlninn" (mul "erin" "colin"))))
   (testing "add"
     (is (= "foobar" (add "foo" "bar")))
-    (is (= 4 (add 2 2)))
-    (is (= 3.5 (add 1.5 2)))
-    (is (= 13/40 (add 1/5 1/8))))
-  (testing "symbol"
-    (is (= '(add 3 x) (add 3 'x)))
-    (is (= '(add x 4.8) (add 'x 4.8)))
-    (is (= '(add x y) (add 'x 'y)))
-    (is (= '(add (mul 3 x) (mul y 4)) (add (mul 3 'x) (mul 'y 4))))
+    (is (= "zzz" (add "" "zzz")))
     ))
 

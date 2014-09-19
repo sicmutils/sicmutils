@@ -1,10 +1,13 @@
-(ns math.generic
-  (:gen-class))
+(ns math.generic)
+
+(defprotocol Value
+  (additive-identity? [this])
+  (multiplicative-identity? [this]))
+
+(defn flip [f] (fn [a b] (f b a)))
 
 (def empty-dtree {:steps {} :stop nil})
-
 (def the-operator-table (atom {}))
-
 
 ;; or how about something like
 ;; (assoc (assoc-in dtree (mapcat (fn [x] [:step x]) p))

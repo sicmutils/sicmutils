@@ -1,6 +1,5 @@
 (ns math.core
-  (:require [math.poly :as poly])
-  (:gen-class))
+  (:require [math.poly :as poly]))
 
 (def p0 (poly/make))
 (def p1 (poly/make [2 1] [0 1]))

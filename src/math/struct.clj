@@ -1,6 +1,5 @@
 (ns math.struct
-  (:require [math.generic :as g])
-  (:gen-class))
+  (:require [math.generic :as g]))
 
 (defn up [& xs] (with-meta (apply vector xs) {:type :up}))
 (defn down [& xs] (with-meta (apply vector xs) {:type :down}))
@@ -8,13 +7,6 @@
 (defn row? [s] (= (g/typeof s) :down))
 (defn column? [s] (= (g/typeof s) :up))
 (defn structure? [s]  (or (row? s) (column? s)))
-
-;; (defn compatible-for-elementwise? [s t]
-;;   "Given two structs, true iff the two structs are of the same
-;;    orientation and length."
-;;   (and (= (g/type s) (g/type t))
-;;        (= (count s) (count t))))
-
 
 (defn elementwise [op s t]
   (if (= (count s) (count t))
@@ -25,10 +17,10 @@
 (defn scalar-multiply [a s]
   (map #(g/mul a %) s))
 
-(g/defhandler :+ [row? row?] (partial elementwise g/add))
-(g/defhandler :+ [column? column?] (partial elementwise g/add)) 
-(g/defhandler :- [row? row?] (partial elementwise g/sub))
-(g/defhandler :- [column? column?] (partial elementwise g/sub))
+(g/defhandler :+ [row? row?]          (partial elementwise g/add))
+(g/defhandler :+ [column? column?]    (partial elementwise g/add)) 
+(g/defhandler :- [row? row?]          (partial elementwise g/sub))
+(g/defhandler :- [column? column?]    (partial elementwise g/sub))
 (g/defhandler :* [number? structure?] scalar-multiply)
 (g/defhandler :* [structure? number?] (fn [s n] (scalar-multiply n s)))
 (g/defhandler :/ [structure? number?] (fn [s n] (scalar-multiply (/ n) s)))

@@ -1,6 +1,5 @@
 (ns math.poly
-  (:refer-clojure :exclude [merge] :rename {map core-map})
-  (:gen-class))
+  (:refer-clojure :exclude [merge] :rename {map core-map}))
 
 (defn make [& oc-pairs]
   (with-meta 

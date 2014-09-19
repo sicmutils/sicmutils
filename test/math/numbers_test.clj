@@ -3,7 +3,6 @@
             [math.generic :refer :all]
             [math.numbers]))
 
-(prn (add 4 'x))
 (deftest arithmetic
   (testing "with-numbers"
     (is (= 4 (add 2 2)))
@@ -16,6 +15,17 @@
   (testing "with-symbols"
     (is (= '(math.generic/add 4 x) (add 4 'x)))
     (is (= '(math.generic/add 5 y) (add 'y 5)))
-    (is (= '(math.generic/div 5 y) (div 5 'y)))
+    (is (= '(math.generic/div 5 y) (div 5 'y))))
+  (testing "zero/one elimination"
+    (is (= 'x (add 0 'x)))
+    (is (= 'x (mul 1 'x)))
+    (is (= '(math.generic/sub x) (sub 0 'x)))
+    (is (= 'x (add 'x 0)))
+    (is (= 'x (mul 'x 1)))
+    (is (= 'x (sub 'x 0)))
+    (is (= 'x (add 0.0 'x)))
+    (is (= 'x (mul 1.0 'x)))
+    (is (= 'x (add 'x 0.0)))
+    (is (= 'x (mul 'x 1.0)))
     ))
 
