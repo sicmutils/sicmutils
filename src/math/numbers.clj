@@ -13,6 +13,11 @@
 (g/defhandler :* [number? number?] *)
 (g/defhandler :* [symbol? number?] (fn [a b] `(g/mul ~b ~a)))
 (g/defhandler :* [number? symbol?] (fn [a b] `(g/mul ~a ~b)))
+(g/defhandler :/ [number? number?] /)
+(g/defhandler :/ [symbol? number?] (fn [a b] `(g/div ~a ~b)))
+(g/defhandler :/ [number? symbol?] (fn [a b] `(g/div ~a ~b)))
+(g/defhandler :/ [number?] /)
+(g/defhandler :/ [symbol?] (fn [a] `(g/div ~a)))
 
 
 

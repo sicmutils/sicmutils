@@ -30,6 +30,8 @@
 (g/defhandler :- [row? row?] (partial elementwise g/sub))
 (g/defhandler :- [column? column?] (partial elementwise g/sub))
 (g/defhandler :* [number? structure?] scalar-multiply)
+(g/defhandler :* [structure? number?] (fn [s n] (scalar-multiply n s)))
+(g/defhandler :/ [structure? number?] (fn [s n] (scalar-multiply (/ n) s)))
 
 ;(def operations {:add :up :up add})
 

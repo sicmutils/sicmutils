@@ -63,4 +63,5 @@
 (def mul (make-operation :*))
 (def add (make-operation :+))
 (def sub (make-operation :-))
+(def div (make-operation :/))
 

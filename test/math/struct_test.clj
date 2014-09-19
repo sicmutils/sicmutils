@@ -18,6 +18,8 @@
   (testing "a*s"
     (is (= (up 2 4 6) (g/mul 2 (up 1 2 3))))
     (is (= (down 3 6 9) (g/mul 3 (down 1 2 3)))))
+  (testing "s/a"
+    (is (= (up 1 2 -3) (g/div (up 2 4 -6) 2))))
   (testing "a*s with literals"
     (is (= (up 2 (g/mul 2 't) 6) (g/mul 2 (up 1 't 3))))
     (is (= (down (g/mul 3 'x_0) (g/mul 3 'x_1)) (g/mul 3 (down 'x_0 'x_1))))))
