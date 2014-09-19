@@ -43,13 +43,6 @@
 (defhandler :* [number? string?] multiply-string)
 (defhandler :* [string? string?] product-string)
 (defhandler :+ [string? string?] str)
-(defhandler :+ [number? number?] +)
-(defhandler :+ [symbol? any?] (fn [s x] (list 'add s x)))
-(defhandler :+ [any? symbol?] (fn [x s] (list 'add x s)))
-(defhandler :* [symbol? any?] (fn [s x] (list 'mul s x)))
-(defhandler :* [any? symbol?] (fn [x s] (list 'mul x s)))
-(def mul (make-operation :*))
-(def add (make-operation :+))
 
 (deftest handler-fn
   (testing "multiply-string"
