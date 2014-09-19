@@ -2,7 +2,6 @@
   (:require [clojure.test :refer :all]
             [math.generic :refer :all]))
 
-
 (def T1 (dtree-insert
          (dtree-insert
           (dtree-insert empty-dtree :op1 [:p1 :p2])
@@ -39,12 +38,18 @@
   [s t]
   (apply str(for [cs s ct t] (str cs ct))))
 
+(def any? (constantly true))
+
 (defhandler :* [number? string?] multiply-string)
 (defhandler :* [string? string?] product-string)
 (defhandler :+ [string? string?] str)
 (defhandler :+ [number? number?] +)
-(def star (make-operation :*))
-(def plus (make-operation :+))
+(defhandler :+ [symbol? any?] (fn [s x] (list 'add s x)))
+(defhandler :+ [any? symbol?] (fn [x s] (list 'add x s)))
+(defhandler :* [symbol? any?] (fn [s x] (list 'mul s x)))
+(defhandler :* [any? symbol?] (fn [x s] (list 'mul x s)))
+(def mul (make-operation :*))
+(def add (make-operation :+))
 
 (deftest handler-fn
   (testing "multiply-string"
@@ -54,16 +59,22 @@
     (is (= "barbarbar" (let [args [3 "bar"]
                              h (findhandler :* args)]
                          (apply h args)))))
-  (testing "star"
-    (is (= "bazbaz" (star 2 "baz")))
-    (is (= "quxquxqux" (star 3 "qux")))
+  (testing "mul"
+    (is (= "bazbaz" (mul 2 "baz")))
+    (is (= "quxquxqux" (mul 3 "qux")))
     (is (thrown? IllegalArgumentException
-                 (star "qux" 3)))
-    (is (= "cecrcicnoeoroionlelrlilnieiriiinnenrninn" (star "colin" "erin"))))
-  (testing "plus"
-    (is (= "foobar" (plus "foo" "bar")))
-    (is (= 4 (plus 2 2)))
-    (is (= 3.5 (plus 1.5 2)))
-    (is (= 13/40 (plus 1/5 1/8)))
+                 (mul "qux" 3)))
+    (is (= "cecrcicnoeoroionlelrlilnieiriiinnenrninn" (mul "colin" "erin")))
+    (is (= "eceoeleienrcrorlrirnicioiliiinncnonlninn" (mul "erin" "colin"))))
+  (testing "add"
+    (is (= "foobar" (add "foo" "bar")))
+    (is (= 4 (add 2 2)))
+    (is (= 3.5 (add 1.5 2)))
+    (is (= 13/40 (add 1/5 1/8))))
+  (testing "symbol"
+    (is (= '(add 3 x) (add 3 'x)))
+    (is (= '(add x 4.8) (add 'x 4.8)))
+    (is (= '(add x y) (add 'x 'y)))
+    (is (= '(add (mul 3 x) (mul y 4)) (add (mul 3 'x) (mul 'y 4))))
     ))
 

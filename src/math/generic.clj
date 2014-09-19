@@ -21,22 +21,22 @@
 
 (defn dtree-lookup [{:keys [steps stop]} [argument & arguments]]
   (if argument
-    ;; take a step, if we can...that means finding a predicate
-    ;; that matches at this step and seeing if the subordinate dtree
-    ;; also matches. The first binding that matches this pair of
-    ;; conditions is chosen.
-    (some identity (map (fn [[step dtree]]
-                          (and (step argument)
-                               (dtree-lookup dtree arguments))) steps))
+    ;; take a step: that means finding a predicate that matches at
+    ;; this step and seeing if the subordinate dtree also matches. The
+    ;; first step that matches this pair of conditions is chosen.
+    (some identity
+          (map (fn [[step dtree]]
+                 (and (step argument)
+                      (dtree-lookup dtree arguments))) steps))
     ;; otherwise we stop here.
     stop))
 
 (defn defhandler [operator predicates f]
-  ;; what to do here? install ourselves in the global dtree.
-  (swap! the-operator-table (fn [operator-table]
-                              (let [dtree (get operator-table operator empty-dtree)]
-                                (assoc operator-table operator
-                                       (dtree-insert dtree f predicates))))))
+  (swap! the-operator-table
+         (fn [operator-table]
+           (let [dtree (get operator-table operator empty-dtree)]
+             (assoc operator-table operator
+                    (dtree-insert dtree f predicates))))))
 
 (defn findhandler [operator arguments]
   (if-let [dtree (@the-operator-table operator)]
@@ -47,7 +47,7 @@
     (if-let [h (findhandler operator args)]
       (apply h args)
       (throw (IllegalArgumentException.
-              "no version of that operator works for those args.")))))
+             (str "no version of the operator works for these args: " args))))))
 
 ;; belongs to generic
 ;; XXX: have type return a predicate discriminating the type.
