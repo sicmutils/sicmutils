@@ -19,7 +19,7 @@
   (testing "zero/one elimination"
     (is (= 'x (add 0 'x)))
     (is (= 'x (mul 1 'x)))
-    (is (= '(math.generic/sub x) (sub 0 'x)))
+    (is (= '(math.generic/neg x) (sub 0 'x)))
     (is (= 'x (add 'x 0)))
     (is (= 'x (mul 'x 1)))
     (is (= 'x (sub 'x 0)))
@@ -27,5 +27,10 @@
     (is (= 'x (mul 1.0 'x)))
     (is (= 'x (add 'x 0.0)))
     (is (= 'x (mul 'x 1.0)))
+    )
+  (testing "neg"
+    (is (= -4 (sub 0 4)))
+    (is (= -4 (sub 4)))
+    (is (= -4.2 (neg 4.2)))
     ))
 

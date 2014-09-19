@@ -1,8 +1,8 @@
 (ns math.generic)
 
 (defprotocol Value
-  (additive-identity? [this])
-  (multiplicative-identity? [this]))
+  (id+? [this])
+  (id*? [this]))
 
 (defn flip [f] (fn [a b] (f b a)))
 
@@ -53,7 +53,7 @@
     (if-let [h (findhandler operator args)]
       (apply h args)
       (throw (IllegalArgumentException.
-              (str "no version of " operator
+              (str "no variant of " operator
                    " will work for " args))))))
 
 ;; belongs to generic
@@ -67,4 +67,4 @@
 (def add (make-operation :+))
 (def sub (make-operation :-))
 (def div (make-operation :/))
-
+(def neg (make-operation :neg))
