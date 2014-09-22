@@ -4,40 +4,54 @@
 ;; still to be done: constant folding across expressions
 
 (extend-protocol g/Value
-  java.lang.Long
+  Long
   (id+? [x] (zero? x))
   (id*? [x] (= x 1))
-  java.lang.Double
+  Double
   (id+? [x] (zero? x))
   (id*? [x] (= x 1.0))
   )
 
-(defn- numeric-add [n x]
+(defn- n-plus-x [n x]
   (if (g/id+? n) x `(g/add ~n ~x)))
 
-(defn- numeric-sub1 [n x]
+(defn- n-minus-x [n x]
   (if (g/id+? n) (g/sub x) `(g/sub ~n ~x)))
 
-(defn- numeric-sub2 [x n]
+(defn- x-minus-n [x n]
   (if (g/id+? n) x `(g/sub ~x ~n)))
 
-(defn- numeric-mul [n x]
+(defn- n-times-x [n x]
   (if (g/id*? n) x `(g/mul ~n ~x)))
 
+(defn- x-div-n [x n]
+  (cond (g/id*? n) x
+        (g/id+? n) (throw (IllegalArgumentException. "division by zero"))
+        :else `(g/div ~x ~n)))
+
+(defn- n-div-x [n x]
+  (if (g/id+? n) 0 `(g/div ~n ~x)))
+
 (g/defhandler :+   [number? number?] +)
-(g/defhandler :+   [symbol? number?] (g/flip numeric-add))
-(g/defhandler :+   [number? symbol?] numeric-add)
+(g/defhandler :+   [symbol? number?] (g/flip n-plus-x))
+(g/defhandler :+   [number? symbol?] n-plus-x)
+(g/defhandler :+   [symbol? symbol?] n-plus-x)
 (g/defhandler :-   [number? number?] -)
-(g/defhandler :-   [symbol? number?] numeric-sub2)
-(g/defhandler :-   [number? symbol?] numeric-sub1)
+(g/defhandler :-   [symbol? number?] x-minus-n)
+(g/defhandler :-   [number? symbol?] n-minus-x)
+(g/defhandler :-   [symbol? symbol?] n-minus-x)
 (g/defhandler :-   [number?]         -)
 (g/defhandler :neg [number?]         -)
 (g/defhandler :-   [symbol?]         (fn [x] `(g/neg ~x)))
 (g/defhandler :*   [number? number?] *)
-(g/defhandler :*   [symbol? number?] (g/flip numeric-mul))
-(g/defhandler :*   [number? symbol?] numeric-mul)
+(g/defhandler :*   [symbol? number?] (g/flip n-times-x))
+(g/defhandler :*   [number? symbol?] n-times-x)
+(g/defhandler :*   [symbol? symbol?] n-times-x)
 (g/defhandler :/   [number? number?] /)
-(g/defhandler :/   [symbol? number?] (fn [a b] `(g/div ~a ~b)))
-(g/defhandler :/   [number? symbol?] (fn [a b] `(g/div ~a ~b)))
+(g/defhandler :/   [symbol? number?] x-div-n)
+(g/defhandler :/   [number? symbol?] n-div-x)
+(g/defhandler :/   [symbol? symbol?] x-div-n)
 (g/defhandler :/   [number?]         /)
 (g/defhandler :/   [symbol?]         (fn [x] `(g/div ~x)))
+
+(println "numbers initialized")

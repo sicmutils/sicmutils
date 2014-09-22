@@ -4,6 +4,11 @@
   (id+? [this])
   (id*? [this]))
 
+(extend-protocol Value
+  Object
+  (id+? [x] false)
+  (id*? [x] false))
+
 (defn flip [f] (fn [a b] (f b a)))
 
 (def empty-dtree {:steps {} :stop nil})
