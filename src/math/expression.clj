@@ -1,7 +1,7 @@
 (ns math.expression
   (:require [math.generic :as g]))
 
-(defn make-literal [type expression] expression)
+(defn make-literal [type expression] (with-meta expression {:type :number}))
 
 ;; this guy goes in here. metadata? or a Value?
 ;; expression of type T? predicate for experssionator?

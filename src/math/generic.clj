@@ -94,9 +94,11 @@
 (defn g:+ [& args]
   (reduce g:+:bin 0 args))
 
+(defn literal-number? [x]
+  (= :number (:type (meta x))))
 
 (defn abstract-number? [x]
-  (symbol? x))
+  (or (symbol? x) (literal-number? x)))
 
 ;; we also have this to contend with:
 
