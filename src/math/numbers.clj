@@ -1,5 +1,6 @@
 (ns math.numbers
-  (:require [math.generic :as g]))
+  (:require [math.generic :as g]
+            [math.numsymb :as ns]))
 
 ;; still to be done: constant folding across expressions
 
@@ -32,10 +33,27 @@
 (defn- n-div-x [n x]
   (if (g/id+? n) 0 `(g/div ~n ~x)))
 
+;; this one belongs here
+
+;; (define (make-numerical-combination operator #!optional reverse?)
+;;   (if (default-object? reverse?)
+;;       (lambda operands 
+;; 	(make-numsymb-expression operator operands))
+;;       (lambda operands 
+;; 	(make-numsymb-expression operator (reverse operands)))))
+
+(defn- make-numerical-combination [operator]
+  (fn [& operands]
+    (ns/make-numsymb-expression operator operands)))
+
 (g/defhandler :+   [number? number?] +)
 (g/defhandler :+   [symbol? number?] (g/flip n-plus-x))
 (g/defhandler :+   [number? symbol?] n-plus-x)
 (g/defhandler :+   [symbol? symbol?] n-plus-x)
+(g/defhandler :+   [g/abstract-number? g/abstract-number?] (make-numerical-combination :+)     )
+(g/defhandler :+   [number?          g/abstract-number?] (make-numerical-combination :+)     )
+;(g/defhandler :+   [g/abstract-number? number?]          (make-numerical-combination :+ 'r)  ) 
+
 (g/defhandler :-   [number? number?] -)
 (g/defhandler :-   [symbol? number?] x-minus-n)
 (g/defhandler :-   [number? symbol?] n-minus-x)

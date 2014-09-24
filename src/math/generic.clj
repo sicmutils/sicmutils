@@ -73,3 +73,43 @@
 (def sub (make-operation :-))
 (def div (make-operation :/))
 (def neg (make-operation :neg))
+
+;; (defn g:+ [& args]
+;;   (cond (empty? args) 0
+;;         (empty? (rest args)) (first args)
+;;         (loop [args (rest (rest args))
+;;                (sum (g:+:bin (first args) (first (rest args))))]
+;;           (if (empty? args)
+;;             sum
+;;             (recur (rest args) (g:+:bin sum (first args)))))))
+
+(defn- g:+:bin [a b]
+  (cond (and (number? a) (number? b)) (+ a b) ;; XXX an optimization?
+        ;; should we delete [number, number] from the generic ops of add?
+        (id+? a) b
+        (id+? b) a
+        :else (add a b))
+  )
+
+(defn g:+ [& args]
+  (reduce g:+:bin 0 args))
+
+
+(defn abstract-number? [x]
+  (symbol? x))
+
+;; we also have this to contend with:
+
+;; (define (abstract-number? x)
+;;   (or (literal-number? x)
+;;       (symbol? x)))
+
+;; (define (literal-number? x)
+;;   (and (pair? x)
+;;        (eq? (car x) number-type-tag)))
+
+
+
+
+
+
