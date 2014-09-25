@@ -15,7 +15,7 @@
             (str op " provided arguments of differing length")))))
 
 (defn- scalar-multiply [a s]
-  (with-meta (vec (map #(g/mul a %) s)) {:type (:type (meta s))}))
+  (with-meta (vec (map #(g/* a %) s)) {:type (:type (meta s))}))
 
 (g/defhandler :+   [row? row?]          (partial elementwise g/+))
 (g/defhandler :+   [column? column?]    (partial elementwise g/+)) 

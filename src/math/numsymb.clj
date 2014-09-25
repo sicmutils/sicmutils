@@ -9,15 +9,21 @@
 (declare symbolic-operator-table)
 (defn- numerical-expression [expr] expr)
 
+;; XXX use if-let here
 (defn make-numsymb-expression [operator operands]
   (let [operand-exprs (map numerical-expression operands)
         v (operator symbolic-operator-table)]
     (if v
       (let [newexp (apply v operand-exprs)]
-        (x/make-literal :number newexp)))))
+        (x/make-numeric-literal newexp))
+      (throw (IllegalArgumentException.
+              (str "unknown numeric operator " operator))))))
 
 (defn- sum? [x]
   (and (seq? x) (= (first x) (symbol "math.generic" "+"))))
+
+(defn- product? [x]
+  (and (seq? x) (= (first x) (symbol "math.generic" "*"))))
 
 (defn- operands [x]
   (rest x))
@@ -38,33 +44,56 @@
         (sum? b) `(g/+ ~a ~@(operands b))
         :else `(g/+ ~a ~b)))
 
+(defn add-n [& args]
+  (reduce add 0 args))
+
+;; XXX can these g/ just be the core function in the number, number
+;; case?
+
 (defn- sub [a b]
   (cond (and (number? a) (number? b)) (g/- a b)
         (number? a) (if (zero? a) `(g/- ~b) `(g/- ~a ~b))
         (number? b) (if (zero? b) a `(g/- ~a ~b))
         :else `(- ~a ~b)))
 
-;; (defn mul [a b]
-;;   (cond ((and (number? a) (number? b)) (g/* a b))
-;;         ((number? m1)
-;;          (cond ((zero? m1) m1)
-;;                ((one? m1) m2)
-;; 	       ((product? m2)
-;; 		`(* ,m1 ,@(operands m2)))
-;;                (else `(* ,m1 ,m2))))
-;;         ((number? m2)
-;;          (cond ((zero? m2) m2)
-;;                ((one? m2) m1)
-;; 	       ((product? m1)
-;; 		`(* ,m2 ,@(operands m1)))
-;;                (else `(* ,m2 ,m1))))
-;; 	((product? m1)
-;; 	 (cond ((product? m2)
-;; 		`(* ,@(operands m1) ,@(operands m2)))
-;; 	       (else `(* ,@(operands m1) ,m2))))
-;; 	((product? m2)
-;; 	 `(* ,m1 ,@(operands m2)))
-;;         (else `(* ,m1 ,m2))))
+(defn sub-n [& args]
+  (cond (empty? args) 0
+        (empty? (rest args)) (sub 0 (first args))
+        :else (sub (first args) (add-n (rest args)))))
+
+;; XXX the g/*'s need to become g/*'s
+(defn- mul [a b]
+  (cond (and (number? a) (number? b)) (g/* a b)
+        (number? a) (cond (zero? a) a
+                          (g/id*? a) b
+                          (product? b) `(g/* ~a ~@(operands b))
+                          :else `(g/* ~a ~b))
+        (number? b) (cond (zero? b) b
+                          (g/id*? b) a
+                          (product? a) `(g/* ~b ~@(operands a))
+                          :else `(g/* ~b ~a))
+        (product? a) (cond (product? b) `(g/* ~@(operands a) ~@(operands b))
+                           :else `(g/* ~@(operands a) ~b))
+        (product? b) `(g/* ~a ~@(operands b))
+        :else `(g/* ~a ~b)))
+
+(defn- mul-n [& args]
+  (reduce mul 1 args))
+
+(defn- div [a b]
+  (cond (and (number? a) (number? b)) (/ a b)
+        (number? a) (if (zero? a) a `(g// ~a ~b))
+        (number? b) (cond (zero? b) (throw (IllegalArgumentException.
+                                            "division by zero"))
+                          (g/id*? b) a
+                          :else `(g// ~a ~b))
+        :else `(g// ~a ~b)))
+
+(defn div-n [& args]
+  (cond (empty? args) 1
+        (empty? (rest args)) (div 1 (first args))
+        :else (div (first args) (apply mul-n (rest args)))))
+
 
 ;; END
 
@@ -78,17 +107,11 @@
             `(g/sub ;; this isn't finished!!!
               )))))))
 
-(defn add-n [& args]
-  (reduce add 0 args))
-
-(defn sub-n [& args]
-  (cond (empty? args) 0
-        (empty? (rest args)) (sub 0 (first args))
-        :else (sub (first args) (add-n (rest args)))))
-
 (def ^:private symbolic-operator-table {:+ add-n
                                         :- sub-n
-                                        :negate (fn [x] (sub 0 x))})
+                                        :* mul-n
+                                        :negate (fn [x] (sub 0 x))
+                                        :/ div-n})
 
 ;; (define (sum? x)
 ;;   (and (pair? x) (eq? (car x) '+)))

@@ -8,22 +8,11 @@
   Long
   (id+? [x] (zero? x))
   (id*? [x] (= x 1))
+  (zero-like [x] 0)
   Double
   (id+? [x] (zero? x))
   (id*? [x] (= x 1.0))
-  )
-
-;; nb. these become obsolete when make-numerical-computation is deployed!
-(defn- n-times-x [n x]
-  (if (g/id*? n) x `(g/mul ~n ~x)))
-
-(defn- x-div-n [x n]
-  (cond (g/id*? n) x
-        (g/id+? n) (throw (IllegalArgumentException. "division by zero"))
-        :else `(g/div ~x ~n)))
-
-(defn- n-div-x [n x]
-  (if (g/id+? n) 0 `(g/div ~n ~x)))
+  (zero-like [x] 0.0))
 
 ;; this one belongs here
 
@@ -45,23 +34,26 @@
 (g/defhandler :+   [g/abstract-number? g/abstract-number?] (make-numerical-combination :+))
 (g/defhandler :+   [number? g/abstract-number?] (make-numerical-combination :+))
 (g/defhandler :+   [g/abstract-number? number?] (make-numerical-combination :+ :reversed))
+
 (g/defhandler :-   [number? number?] -)
 (g/defhandler :-   [g/abstract-number? g/abstract-number?] (make-numerical-combination :-))
 (g/defhandler :-   [number? g/abstract-number?] (make-numerical-combination :-))
 (g/defhandler :-   [g/abstract-number? number?] (make-numerical-combination :- :reversed))
+
 (g/defhandler :neg [g/abstract-number?] (make-numerical-combination :negate))
-;;(g/defhandler :-   [number?]         -)
-(g/defhandler :neg [number?]         -)
-(g/defhandler :inv [number?]         /)
+(g/defhandler :neg [number?] -)
+
+(g/defhandler :inv [number?] /)
+;; still need g/flip? XXX
+
 (g/defhandler :*   [number? number?] *)
-(g/defhandler :*   [symbol? number?] (g/flip n-times-x))
-(g/defhandler :*   [number? symbol?] n-times-x)
-(g/defhandler :*   [symbol? symbol?] n-times-x)
+(g/defhandler :*   [g/abstract-number? g/abstract-number?] (make-numerical-combination :*))
+(g/defhandler :*   [number? g/abstract-number?] (make-numerical-combination :*))
+(g/defhandler :*   [g/abstract-number? number?] (make-numerical-combination :* :reversed))
+
 (g/defhandler :/   [number? number?] /)
-(g/defhandler :/   [symbol? number?] x-div-n)
-(g/defhandler :/   [number? symbol?] n-div-x)
-(g/defhandler :/   [symbol? symbol?] x-div-n)
-(g/defhandler :/   [number?]         /)
-(g/defhandler :/   [symbol?]         (fn [x] `(g/div ~x)))
+(g/defhandler :/   [g/abstract-number? g/abstract-number?] (make-numerical-combination :/))
+(g/defhandler :/   [number? g/abstract-number?] (make-numerical-combination :/))
+(g/defhandler :/   [g/abstract-number? number?] (make-numerical-combination :/))
 
 (println "numbers initialized")

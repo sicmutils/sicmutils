@@ -1,16 +1,24 @@
 (ns math.generic
   (:refer-clojure :rename {+ core-+
                            - core--
-                           / core-div}))
+                           / core-div
+                           * core-*}))
 
 (defprotocol Value
   (id+? [this])
-  (id*? [this]))
+  (id*? [this])
+  (zero-like [this]))
 
 (extend-protocol Value
   Object
   (id+? [x] false)
-  (id*? [x] false))
+  (id*? [x] false)
+  (zero-like [x] (throw (IllegalArgumentException.
+                         (str "nothing zero-like for " x))))
+  clojure.lang.Symbol
+  (id+? [x] false)
+  (id*? [x] false)
+  (zero-like [x] 0))
 
 (defn flip [f] (fn [a b] (f b a)))
 
@@ -71,7 +79,7 @@
   (or (:type (meta a))
       (type a)))
 
-(def mul (make-operation :*))
+(def ^:private mul (make-operation :*))
 (def ^:private add (make-operation :+))
 (def ^:private sub (make-operation :-))
 (def ^:private div (make-operation :/))
@@ -101,26 +109,37 @@
     (neg (first args))
     (reduce bin- args)))
 
+(defn bin* [a b]
+  (cond (and (number? a) (number? b)) (core-* a b)
+        (and (number? a) (zero? a)) (zero-like b)
+        (and (number? b) (zero? b)) (zero-like a)
+        (id*? a) b
+        (id*? b) a
+        :else (mul a b)))
+
+;;; In bin* we test for exact (numerical) zero 
+;;; because it is possible to produce a wrong-type 
+;;; zero here, as follows:
+;;;
+;;;		  |0|             |0|
+;;;	  |a b c| |0|   |0|       |0|
+;;;	  |d e f| |0| = |0|, not  |0|
+;;;
+;;; We are less worried about the zero? below,
+;;; because any invertible matrix is square.
+
+(defn * [& args]
+  (reduce bin* 1 args))
+
 (defn bin-div [a b]
   (cond (and (number? a) (number? b)) (core-div a b)
         (id*? b) a
         :else (div a b)))
 
 (defn / [& args]
-  (if (= (count args) 1)
-    (inv (first args))
-    (reduce bin-div args)))
-
-  ;; (cond ((and (number? x) (number? y)) (/ x y))
-  ;;       ;; ((g:zero? x) (g:zero-like y))  ; Ancient bug!  No consequence.
-  ;;       ;; ((g:zero? x) x)
-  ;;       ((g:one? y) x)
-  ;;       (else (generic:/ x y))))
-
-;; (defn bin/ [a b]
-;;   (cond (and (number? x) (number? y) (core-/ a b))
-;;         ())
-;;   )
+  (cond (empty? args) 1
+        (empty? (rest args)) (inv (first args))
+        :else (bin-div (first args) (apply * (rest args)))))
 
 (defn literal-number? [x]
   (= :number (:type (meta x))))

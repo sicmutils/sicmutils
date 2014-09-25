@@ -3,12 +3,14 @@
 
 (defn make-literal [type expression] (with-meta expression {:type :number}))
 
+(defn make-numeric-literal [expression]
+  (if (number? expression)
+    expression
+    (make-literal '*number* expression)))
+
 ;; this guy goes in here. metadata? or a Value?
 ;; expression of type T? predicate for experssionator?
 ;;
-;; (define (make-numerical-literal expression)
-;;   (make-literal '*number* expression))
-
 ;; (define (make-real-literal expression)
 ;;   (let ((e (make-numerical-literal expression)))
 ;;     (add-property! e 'real #t)

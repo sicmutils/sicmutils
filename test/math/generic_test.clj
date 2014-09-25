@@ -1,5 +1,5 @@
 (ns math.generic-test
-  (:refer-clojure :exclude [+ -])
+  (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer :all]
             [math.generic :refer :all]))
 
@@ -54,12 +54,12 @@
                              h (findhandler :* args)]
                          (apply h args)))))
   (testing "mul"
-    (is (= "bazbaz" (mul 2 "baz")))
-    (is (= "quxquxqux" (mul 3 "qux")))
+    (is (= "bazbaz" (* 2 "baz")))
+    (is (= "quxquxqux" (* 3 "qux")))
     (is (thrown? IllegalArgumentException
-                 (mul "qux" 3)))
-    (is (= "cecrcicnoeoroionlelrlilnieiriiinnenrninn" (mul "colin" "erin")))
-    (is (= "eceoeleienrcrorlrirnicioiliiinncnonlninn" (mul "erin" "colin"))))
+                 (* "qux" 3)))
+    (is (= "cecrcicnoeoroionlelrlilnieiriiinnenrninn" (* "colin" "erin")))
+    (is (= "eceoeleienrcrorlrirnicioiliiinncnonlninn" (* "erin" "colin"))))
   (testing "add"
     (is (= "foobar" (+ "foo" "bar")))
     (is (= "zzz" (+ "" "zzz")))
