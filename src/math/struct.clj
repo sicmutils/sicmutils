@@ -44,15 +44,15 @@
   (and (= (count s) (count t))
        (not= (orientation s) (orientation t))))
 
-(defn contract [s t]
-  false)
+(defn inner-product [s t]
+  (apply g/+ (map g/* s t)))
 
 (defn outer-product [s t]
   (with-orientation-of t (vec (map #(g/* s %) t))))
 
 (defn- mul [s t]
   (if (compatible-for-contraction? s t)
-    (contract s t)
+    (inner-product s t)
     (outer-product s t)))
 
 ;;(defn- )
