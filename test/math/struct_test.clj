@@ -26,9 +26,21 @@
     (is (= (up 1 2 -3) (g// (up 2 4 -6) 2))))
   (testing "neg"
     (is (= (up -1 2 -3) (g/- (up 1 -2 3))))
-    (is (= (up -1 2 -3) (g/neg (up 1 -2 3)))))
+    (is (= (up -1 2 -3) (g/negate (up 1 -2 3))))
+    )
   (testing "a*s with literals"
     (is (= (up 2 (g/* 2 't) 6) (g/* 2 (up 1 't 3))))
-    (is (= (down (g/* 3 'x_0) (g/* 3 'x_1)) (g/* 3 (down 'x_0 'x_1))))))
+    (is (= (down (g/* 3 'x_0) (g/* 3 'x_1)) (g/* 3 (down 'x_0 'x_1))))
+    )
+  (testing "s*t outer simple"
+    (is (= (up (up 3 6) (up 4 8))
+           (g/* (up 1 2) (up 3 4))))
+    (is (= (down (down 3 6) (down 4 8))
+           (g/* (down 1 2) (down 3 4))))
+    (is (= (down (up 3 6) (up 4 8) (up 5 10))
+           (g/* (up 1 2) (down 3 4 5))))
+    )
+  )
+
 
 

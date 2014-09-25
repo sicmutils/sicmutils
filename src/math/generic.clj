@@ -23,7 +23,7 @@
 (defn flip [f] (fn [a b] (f b a)))
 
 (def empty-dtree {:steps {} :stop nil})
-(def the-operator-table (atom {}))
+(def ^:private the-operator-table (atom {}))
 
 ;; or how about something like
 ;; (assoc (assoc-in dtree (mapcat (fn [x] [:step x]) p))
@@ -72,19 +72,12 @@
               (str "no variant of " operator
                    " will work for " args))))))
 
-;; belongs to generic
-;; XXX: have type return a predicate discriminating the type.
-;; XXX: eventually: define a total order on types for canonicalization
-(defn typeof [a]
-  (or (:type (meta a))
-      (type a)))
-
 (def ^:private mul (make-operation :*))
 (def ^:private add (make-operation :+))
 (def ^:private sub (make-operation :-))
 (def ^:private div (make-operation :/))
-(def neg (make-operation :neg))
-(def inv (make-operation :inv))
+(def negate (make-operation :negate))
+(def invert (make-operation :invert))
 
 (defn- bin+ [a b]
   (cond (and (number? a) (number? b)) (core-+ a b)
@@ -101,12 +94,12 @@
 (defn- bin- [a b]
   (cond (and (number? a) (number? b)) (core-- a b)
         (id+? b) a
-        (id+? a) (neg b)
+        (id+? a) (negate b)
         :else (sub a b)))
 
 (defn - [& args]
   (if (= (count args) 1)
-    (neg (first args))
+    (negate (first args))
     (reduce bin- args)))
 
 (defn bin* [a b]
@@ -138,7 +131,7 @@
 
 (defn / [& args]
   (cond (empty? args) 1
-        (empty? (rest args)) (inv (first args))
+        (empty? (rest args)) (invert (first args))
         :else (bin-div (first args) (apply * (rest args)))))
 
 (defn literal-number? [x]

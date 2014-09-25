@@ -32,8 +32,8 @@
 (make-binary-operation :- - false)
 (make-binary-operation :/ / false)
 
-(g/defhandler :neg [g/abstract-number?] (make-numerical-combination :negate))
-(g/defhandler :neg [number?] -)
-(g/defhandler :inv [number?] /)
+(g/defhandler :negate [g/abstract-number?] (make-numerical-combination :negate))
+(g/defhandler :negate [number?] -)
+(g/defhandler :invert [number?] /)
 
 (println "numbers initialized")
