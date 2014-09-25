@@ -1,4 +1,5 @@
 (ns math.generic-test
+  (:refer-clojure :exclude [+ -])
   (:require [clojure.test :refer :all]
             [math.generic :refer :all]))
 
@@ -60,16 +61,16 @@
     (is (= "cecrcicnoeoroionlelrlilnieiriiinnenrninn" (mul "colin" "erin")))
     (is (= "eceoeleienrcrorlrirnicioiliiinncnonlninn" (mul "erin" "colin"))))
   (testing "add"
-    (is (= "foobar" (add "foo" "bar")))
-    (is (= "zzz" (add "" "zzz")))
+    (is (= "foobar" (+ "foo" "bar")))
+    (is (= "zzz" (+ "" "zzz")))
     ))
 
 (deftest generic-plus
   (testing "simple"
-    (is (= 0 (g:+)))
-    (is (= 7 (g:+ 7)))
-    (is (= 7 (g:+ 3 4))))
+    (is (= 0 (+)))
+    (is (= 7 (+ 7)))
+    (is (= 7 (+ 3 4))))
   (testing "many"
-    (is (= 33 (g:+ 3 4 5 6 7 8))))
+    (is (= 33 (+ 3 4 5 6 7 8))))
   )
 

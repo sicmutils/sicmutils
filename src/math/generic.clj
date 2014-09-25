@@ -1,4 +1,6 @@
-(ns math.generic)
+(ns math.generic
+  (:refer-clojure :rename {+ core-+
+                           - core--}))
 
 (defprotocol Value
   (id+? [this])
@@ -69,30 +71,33 @@
       (type a)))
 
 (def mul (make-operation :*))
-(def add (make-operation :+))
-(def sub (make-operation :-))
+(def ^:private add (make-operation :+))
+(def ^:private sub (make-operation :-))
 (def div (make-operation :/))
 (def neg (make-operation :neg))
 
-;; (defn g:+ [& args]
-;;   (cond (empty? args) 0
-;;         (empty? (rest args)) (first args)
-;;         (loop [args (rest (rest args))
-;;                (sum (g:+:bin (first args) (first (rest args))))]
-;;           (if (empty? args)
-;;             sum
-;;             (recur (rest args) (g:+:bin sum (first args)))))))
-
-(defn- g:+:bin [a b]
-  (cond (and (number? a) (number? b)) (+ a b) ;; XXX an optimization?
+(defn- bin+ [a b]
+  (cond (and (number? a) (number? b)) (core-+ a b)
+        ;; XXX an optimization? where is this useful?
         ;; should we delete [number, number] from the generic ops of add?
         (id+? a) b
         (id+? b) a
         :else (add a b))
   )
 
-(defn g:+ [& args]
-  (reduce g:+:bin 0 args))
+(defn + [& args]
+  (reduce bin+ 0 args))
+
+(defn- bin- [a b]
+  (cond (and (number? a) (number? b)) (core-- a b)
+        (id+? b) a
+        (id+? a) (neg b)
+        :else (sub a b)))
+
+(defn - [& args]
+  (if (= (count args) 1)
+    (neg (first args))
+    (reduce bin- args)))
 
 (defn literal-number? [x]
   (= :number (:type (meta x))))

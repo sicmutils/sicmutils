@@ -17,10 +17,10 @@
 (defn- scalar-multiply [a s]
   (with-meta (vec (map #(g/mul a %) s)) {:type (:type (meta s))}))
 
-(g/defhandler :+   [row? row?]          (partial elementwise g/add))
-(g/defhandler :+   [column? column?]    (partial elementwise g/add)) 
-(g/defhandler :-   [row? row?]          (partial elementwise g/sub))
-(g/defhandler :-   [column? column?]    (partial elementwise g/sub))
+(g/defhandler :+   [row? row?]          (partial elementwise g/+))
+(g/defhandler :+   [column? column?]    (partial elementwise g/+)) 
+(g/defhandler :-   [row? row?]          (partial elementwise g/-))
+(g/defhandler :-   [column? column?]    (partial elementwise g/-))
 (g/defhandler :*   [number? structure?] scalar-multiply)
 (g/defhandler :*   [structure? number?] (g/flip scalar-multiply))
 (g/defhandler :/   [structure? number?] (fn [s n] (scalar-multiply (/ n) s)))

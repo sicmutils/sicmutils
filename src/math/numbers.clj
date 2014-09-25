@@ -14,12 +14,6 @@
   )
 
 ;; nb. these become obsolete when make-numerical-computation is deployed!
-(defn- n-minus-x [n x]
-  (if (g/id+? n) (g/sub x) `(g/sub ~n ~x)))
-
-(defn- x-minus-n [x n]
-  (if (g/id+? n) x `(g/sub ~x ~n)))
-
 (defn- n-times-x [n x]
   (if (g/id*? n) x `(g/mul ~n ~x)))
 
@@ -52,12 +46,12 @@
 (g/defhandler :+   [number? g/abstract-number?] (make-numerical-combination :+))
 (g/defhandler :+   [g/abstract-number? number?] (make-numerical-combination :+ :reversed))
 (g/defhandler :-   [number? number?] -)
-(g/defhandler :-   [symbol? number?] x-minus-n)
-(g/defhandler :-   [number? symbol?] n-minus-x)
-(g/defhandler :-   [symbol? symbol?] n-minus-x)
-(g/defhandler :-   [number?]         -)
+(g/defhandler :-   [g/abstract-number? g/abstract-number?] (make-numerical-combination :-))
+(g/defhandler :-   [number? g/abstract-number?] (make-numerical-combination :-))
+(g/defhandler :-   [g/abstract-number? number?] (make-numerical-combination :- :reversed))
+(g/defhandler :neg [g/abstract-number?] (make-numerical-combination :negate))
+;;(g/defhandler :-   [number?]         -)
 (g/defhandler :neg [number?]         -)
-(g/defhandler :-   [symbol?]         (fn [x] `(g/neg ~x)))
 (g/defhandler :*   [number? number?] *)
 (g/defhandler :*   [symbol? number?] (g/flip n-times-x))
 (g/defhandler :*   [number? symbol?] n-times-x)

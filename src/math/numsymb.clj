@@ -16,30 +16,56 @@
         (x/make-literal :number newexp)))))
 
 (defn- sum? [x]
-  (and (seq? x) (= (first x) (symbol "math.generic" "add"))))
+  (and (seq? x) (= (first x) (symbol "math.generic" "+"))))
 
 (defn- operands [x]
   (rest x))
 
-;; this is without constructor simplifications!
+;; BEGIN
+;; these are without constructor simplifications!
 
 (defn- add [a b]
   (cond (and (number? a) (number? b)) (+ a b)
         (number? a) (cond (zero? a) b
-                          (sum? b) `(g/add ~a ~@(operands b))
-                          :else `(g/add ~a ~b))
+                          (sum? b) `(g/+ ~a ~@(operands b))
+                          :else `(g/+ ~a ~b))
         (number? b) (cond (zero? b) a
-                          (sum? a) `(g/add ,b ~@(operands a))
-                          :else `(g/add ~b, ~a))
-        (sum? a) (cond (sum? b) `(g/add ~@(operands a) ~@(operands b))
-                       :else `(g/add ~@(operands a) ~b))
-        (sum? b) `(g/add ~a ~@(operands b))
-        :else `(g/add ~a ~b)))
+                          (sum? a) `(g/+ ,b ~@(operands a))
+                          :else `(g/+ ~b, ~a))
+        (sum? a) (cond (sum? b) `(g/+ ~@(operands a) ~@(operands b))
+                       :else `(g/+ ~@(operands a) ~b))
+        (sum? b) `(g/+ ~a ~@(operands b))
+        :else `(g/+ ~a ~b)))
+
+(defn- sub [a b]
+  (cond (and (number? a) (number? b)) (g/- a b)
+        (number? a) (if (zero? a) `(g/- ~b) `(g/- ~a ~b))
+        (number? b) (if (zero? b) a `(g/- ~a ~b))
+        :else `(- ~a ~b)))
+
+;; END
+
+(defn- addup-args-notfinished [pos neg]
+  (defn make-answer [sum pos neg]
+    (if (zero? sum)
+      (if (empty? pos)
+        (if (empty? neg)
+          0
+          (if (empty? (rest neg))
+            `(g/sub ;; this isn't finished!!!
+              )))))))
 
 (defn add-n [& args]
   (reduce add 0 args))
 
-(def ^:private symbolic-operator-table {:+ add-n})
+(defn sub-n [& args]
+  (cond (empty? args) 0
+        (empty? (rest args)) (sub 0 (first args))
+        :else (sub (first args) (add-n (rest args)))))
+
+(def ^:private symbolic-operator-table {:+ add-n
+                                        :- sub-n
+                                        :negate (fn [x] (sub 0 x))})
 
 ;; (define (sum? x)
 ;;   (and (pair? x) (eq? (car x) '+)))
