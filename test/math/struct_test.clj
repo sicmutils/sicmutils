@@ -13,10 +13,15 @@
   ;; something to think about.)
   (testing "s-t"
       (is (= (g/- (up 1 2) (up 2 3)) (up -1 -1)))
-      (is (= (g/- (down 8 5) (down 4 -1)) (down 4 6))))
+      (is (= (g/- (down 8 5) (down 4 -1)) (down 4 6)))
+      (is (= (g/- (down 8 5)) (down -8 -5)))
+      (is (= (g/- (up 10 10) (up 2 3) (up 3 4)) (up 5 3)))
+      )
   (testing "a*s"
     (is (= (up 2 4 6) (g/* 2 (up 1 2 3))))
-    (is (= (down 3 6 9) (g/* 3 (down 1 2 3)))))
+    (is (= (down 3 6 9) (g/* 3 (down 1 2 3))))
+    (is (= (down 12 24 36) (g/* 3 4 (down 1 2 3))))
+    )
   (testing "s/a"
     (is (= (up 1 2 -3) (g// (up 2 4 -6) 2))))
   (testing "neg"

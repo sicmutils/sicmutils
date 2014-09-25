@@ -1,6 +1,7 @@
-(ns math.expression
-  (:require [math.generic :as g]))
+(ns math.expression)
 
+;; NB: we aren't wrapping literals with (expression ...) as GJS does.
+;; might come back to bite us.
 (defn make-literal [type expression] (with-meta expression {:type :number}))
 
 (defn make-numeric-literal [expression]

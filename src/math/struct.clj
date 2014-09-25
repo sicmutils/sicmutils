@@ -24,7 +24,6 @@
 (g/defhandler :*   [number? structure?] scalar-multiply)
 (g/defhandler :*   [structure? number?] (g/flip scalar-multiply))
 (g/defhandler :/   [structure? number?] (fn [s n] (scalar-multiply (/ n) s)))
-(g/defhandler :-   [structure?]         g/neg)
 (g/defhandler :neg [structure?]
   (fn [s] (with-meta (vec (map g/neg s)) {:type (:type (meta s))})))
 

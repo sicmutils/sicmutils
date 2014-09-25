@@ -47,11 +47,8 @@
 (defn add-n [& args]
   (reduce add 0 args))
 
-;; XXX can these g/ just be the core function in the number, number
-;; case?
-
 (defn- sub [a b]
-  (cond (and (number? a) (number? b)) (g/- a b)
+  (cond (and (number? a) (number? b)) (- a b)
         (number? a) (if (zero? a) `(g/- ~b) `(g/- ~a ~b))
         (number? b) (if (zero? b) a `(g/- ~a ~b))
         :else `(- ~a ~b)))
@@ -61,9 +58,8 @@
         (empty? (rest args)) (sub 0 (first args))
         :else (sub (first args) (add-n (rest args)))))
 
-;; XXX the g/*'s need to become g/*'s
 (defn- mul [a b]
-  (cond (and (number? a) (number? b)) (g/* a b)
+  (cond (and (number? a) (number? b)) (* a b)
         (number? a) (cond (zero? a) a
                           (g/id*? a) b
                           (product? b) `(g/* ~a ~@(operands b))

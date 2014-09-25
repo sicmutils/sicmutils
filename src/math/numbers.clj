@@ -14,46 +14,26 @@
   (id*? [x] (= x 1.0))
   (zero-like [x] 0.0))
 
-;; this one belongs here
+(defn- make-numerical-combination
+  ([operator] (make-numerical-combination operator identity))
+  ([operator transform-operands]
+     (fn [& operands]
+       (ns/make-numsymb-expression operator (transform-operands operands)))))
 
-;; (define (make-numerical-combination operator #!optional reverse?)
-;;   (if (default-object? reverse?)
-;;       (lambda operands 
-;; 	(make-numsymb-expression operator operands))
-;;       (lambda operands 
-;; 	(make-numsymb-expression operator (reverse operands)))))
+(defn- make-binary-operation [key operation commutative?]
+  (g/defhandler key [number? number?] operation)
+  (g/defhandler key [g/abstract-number? g/abstract-number?] (make-numerical-combination key))
+  (g/defhandler key [number? g/abstract-number?] (make-numerical-combination key))
+  (g/defhandler key [g/abstract-number? number?]
+    (make-numerical-combination key (if commutative? reverse identity))))
 
-(defn- make-numerical-combination [operator & reversed]
-  (if reversed
-    (fn [& operands]
-      (ns/make-numsymb-expression operator (reverse operands)))
-    (fn [& operands]
-      (ns/make-numsymb-expression operator operands))))
-
-(g/defhandler :+   [number? number?] +)
-(g/defhandler :+   [g/abstract-number? g/abstract-number?] (make-numerical-combination :+))
-(g/defhandler :+   [number? g/abstract-number?] (make-numerical-combination :+))
-(g/defhandler :+   [g/abstract-number? number?] (make-numerical-combination :+ :reversed))
-
-(g/defhandler :-   [number? number?] -)
-(g/defhandler :-   [g/abstract-number? g/abstract-number?] (make-numerical-combination :-))
-(g/defhandler :-   [number? g/abstract-number?] (make-numerical-combination :-))
-(g/defhandler :-   [g/abstract-number? number?] (make-numerical-combination :- :reversed))
+(make-binary-operation :+ + true)
+(make-binary-operation :* * true)
+(make-binary-operation :- - false)
+(make-binary-operation :/ / false)
 
 (g/defhandler :neg [g/abstract-number?] (make-numerical-combination :negate))
 (g/defhandler :neg [number?] -)
-
 (g/defhandler :inv [number?] /)
-;; still need g/flip? XXX
-
-(g/defhandler :*   [number? number?] *)
-(g/defhandler :*   [g/abstract-number? g/abstract-number?] (make-numerical-combination :*))
-(g/defhandler :*   [number? g/abstract-number?] (make-numerical-combination :*))
-(g/defhandler :*   [g/abstract-number? number?] (make-numerical-combination :* :reversed))
-
-(g/defhandler :/   [number? number?] /)
-(g/defhandler :/   [g/abstract-number? g/abstract-number?] (make-numerical-combination :/))
-(g/defhandler :/   [number? g/abstract-number?] (make-numerical-combination :/))
-(g/defhandler :/   [g/abstract-number? number?] (make-numerical-combination :/))
 
 (println "numbers initialized")
