@@ -1,6 +1,7 @@
 (ns math.generic
   (:refer-clojure :rename {+ core-+
-                           - core--}))
+                           - core--
+                           / core-div}))
 
 (defprotocol Value
   (id+? [this])
@@ -73,8 +74,9 @@
 (def mul (make-operation :*))
 (def ^:private add (make-operation :+))
 (def ^:private sub (make-operation :-))
-(def div (make-operation :/))
+(def ^:private div (make-operation :/))
 (def neg (make-operation :neg))
+(def inv (make-operation :inv))
 
 (defn- bin+ [a b]
   (cond (and (number? a) (number? b)) (core-+ a b)
@@ -99,6 +101,27 @@
     (neg (first args))
     (reduce bin- args)))
 
+(defn bin-div [a b]
+  (cond (and (number? a) (number? b)) (core-div a b)
+        (id*? b) a
+        :else (div a b)))
+
+(defn / [& args]
+  (if (= (count args) 1)
+    (inv (first args))
+    (reduce bin-div args)))
+
+  ;; (cond ((and (number? x) (number? y)) (/ x y))
+  ;;       ;; ((g:zero? x) (g:zero-like y))  ; Ancient bug!  No consequence.
+  ;;       ;; ((g:zero? x) x)
+  ;;       ((g:one? y) x)
+  ;;       (else (generic:/ x y))))
+
+;; (defn bin/ [a b]
+;;   (cond (and (number? x) (number? y) (core-/ a b))
+;;         ())
+;;   )
+
 (defn literal-number? [x]
   (= :number (:type (meta x))))
 
@@ -106,10 +129,6 @@
   (or (symbol? x) (literal-number? x)))
 
 ;; we also have this to contend with:
-
-;; (define (abstract-number? x)
-;;   (or (literal-number? x)
-;;       (symbol? x)))
 
 ;; (define (literal-number? x)
 ;;   (and (pair? x)

@@ -5,6 +5,7 @@
 ;; N.B.: (define numerical-expression-canonicalizer #f)
 ;;       (define heuristic-number-canonicalizer #f)
 ;;       (define incremental-simplifier #f)
+
 (declare symbolic-operator-table)
 (defn- numerical-expression [expr] expr)
 
@@ -42,6 +43,28 @@
         (number? a) (if (zero? a) `(g/- ~b) `(g/- ~a ~b))
         (number? b) (if (zero? b) a `(g/- ~a ~b))
         :else `(- ~a ~b)))
+
+;; (defn mul [a b]
+;;   (cond ((and (number? a) (number? b)) (g/* a b))
+;;         ((number? m1)
+;;          (cond ((zero? m1) m1)
+;;                ((one? m1) m2)
+;; 	       ((product? m2)
+;; 		`(* ,m1 ,@(operands m2)))
+;;                (else `(* ,m1 ,m2))))
+;;         ((number? m2)
+;;          (cond ((zero? m2) m2)
+;;                ((one? m2) m1)
+;; 	       ((product? m1)
+;; 		`(* ,m2 ,@(operands m1)))
+;;                (else `(* ,m2 ,m1))))
+;; 	((product? m1)
+;; 	 (cond ((product? m2)
+;; 		`(* ,@(operands m1) ,@(operands m2)))
+;; 	       (else `(* ,@(operands m1) ,m2))))
+;; 	((product? m2)
+;; 	 `(* ,m1 ,@(operands m2)))
+;;         (else `(* ,m1 ,m2))))
 
 ;; END
 

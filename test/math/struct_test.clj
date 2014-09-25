@@ -18,7 +18,7 @@
     (is (= (up 2 4 6) (g/mul 2 (up 1 2 3))))
     (is (= (down 3 6 9) (g/mul 3 (down 1 2 3)))))
   (testing "s/a"
-    (is (= (up 1 2 -3) (g/div (up 2 4 -6) 2))))
+    (is (= (up 1 2 -3) (g// (up 2 4 -6) 2))))
   (testing "neg"
     (is (= (up -1 2 -3) (g/- (up 1 -2 3))))
     (is (= (up -1 2 -3) (g/neg (up 1 -2 3)))))

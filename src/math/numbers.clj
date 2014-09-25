@@ -52,6 +52,7 @@
 (g/defhandler :neg [g/abstract-number?] (make-numerical-combination :negate))
 ;;(g/defhandler :-   [number?]         -)
 (g/defhandler :neg [number?]         -)
+(g/defhandler :inv [number?]         /)
 (g/defhandler :*   [number? number?] *)
 (g/defhandler :*   [symbol? number?] (g/flip n-times-x))
 (g/defhandler :*   [number? symbol?] n-times-x)
