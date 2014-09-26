@@ -102,15 +102,86 @@
           (if (empty? (rest neg))
             `(g/sub ;; this isn't finished!!!
               )))))))
+;;
+;; TRIG
+;;
+
+(def ^:private machine-epsilon
+  (loop [e 1.0]
+    (if (not= 1.0 (+ 1.0 (/ e 2.0)))
+      (recur (/ e 2.0))
+      e)))
+
+(def ^:private relative-integer-tolerance (* 100 machine-epsilon))
+(def ^:private absolute-integer-tolerance 1e-20)
+
+(defn almost-integer? [x] ;; XXX make this private
+  (or (integer? x)
+      (and (float? x)
+           (let [z (Math/round x)]
+             (if (zero? z)
+               (< (Math/abs x) absolute-integer-tolerance)
+               (< (Math/abs (/ (- x z) z)) relative-integer-tolerance))))))
+
+;; (define (n:zero-mod-pi? x) (almost-integer? (/ x n:pi)))
+;; (define (symb:zero-mod-pi? x) (memq x '(:-pi :pi :+pi :-2pi :2pi)))
+
+;; (define (n:pi/2-mod-2pi? x) (almost-integer? (/ (- x n:pi/2) n:2pi)))
+;; (define (symb:pi/2-mod-2pi? x) (memq x '(:pi/2 :+pi/2)))
+
+;; (define (n:-pi/2-mod-2pi? x) (almost-integer? (/ (+ x n:pi/2) n:2pi)))
+;; (define (symb:-pi/2-mod-2pi? x) (memq x '(:-pi/2)))
+
+;; (define (n:pi/2-mod-pi? x) (almost-integer? (/ (- x n:pi/2) n:pi)))
+;; (define (symb:pi/2-mod-pi? x) (memq x '(:-pi/2 :pi/2 :+pi/2)))
+
+;; (define (n:zero-mod-2pi? x) (almost-integer? (/ x n:2pi)))
+;; (define (symb:zero-mod-2pi? x) (memq x '(:-2pi :2pi :+2pi)))
+
+;; (define (n:pi-mod-2pi? x) (almost-integer? (/ (- x n:pi) n:2pi)))
+;; (define (symb:pi-mod-2pi? x) (memq x '(:-pi :pi :+pi)))
+
+;; (define (n:pi/4-mod-pi? x) (almost-integer? (/ (- x n:pi/4) n:pi)))
+;; (define (symb:pi/4-mod-pi? x) (memq x '(:pi/4 :+pi/4)))
+
+;; (define (n:-pi/4-mod-pi? x) (almost-integer? (/ (+ x n:pi/4) :pi)))
+;; (define (symb:-pi/4-mod-pi? x) (memq x '(:-pi/4)))
+
+
+;; (define (symb:sin x)
+;;   (cond ((number? x)
+;;       	 (if (exact? x)
+;; 	     (if (zero? x) 0 `(sin ,x))
+;; 	     (cond ((n:zero-mod-pi? x) 0.)
+;; 		   ((n:pi/2-mod-2pi? x) +1.)
+;; 		   ((n:-pi/2-mod-2pi? x) -1.)
+;; 		   (else (sin x)))))
+;; 	((symbol? x)
+;; 	 (cond ((symb:zero-mod-pi? x) 0)
+;; 	       ((symb:pi/2-mod-2pi? x) +1)
+;; 	       ((symb:-pi/2-mod-2pi? x) -1)
+;; 	       (else `(sin ,x))))
+;; 	(else `(sin ,x))))
+
+(defn- exact? [x] (not (float? x)))
+;; are there any other non-exact native types in clojure?
+
+(defn- sine [x]
+  (cond (number? x) (if (exact? x)
+                      (if (zero? x) 0 `(g/sin ~x)) 
+                      ;; this is where we would detect combinations of
+                      ;; π.
+                      (Math/sin x)
+                      )
+        (symbol? x) `(g/sin ~x) ;; also would look for π here. 
+        :else `(g/sin ~x)))
 
 (def ^:private symbolic-operator-table {:+ add-n
                                         :- sub-n
                                         :* mul-n
                                         :negate (fn [x] (sub 0 x))
-                                        :/ div-n})
-
-;; (define (sum? x)
-;;   (and (pair? x) (eq? (car x) '+)))
+                                        :/ div-n
+                                        :sin sine})
 
 ;; (define (symb:addends expr) (cdr expr))
 

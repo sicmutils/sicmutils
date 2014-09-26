@@ -27,13 +27,15 @@
   (g/defhandler key [g/abstract-number? number?]
     (make-numerical-combination key (if commutative? reverse identity))))
 
+(g/defhandler :negate [g/abstract-number?] (make-numerical-combination :negate))
+(g/defhandler :negate [number?] -)
+(g/defhandler :invert [number?] /)
+(g/defhandler :sin [number?] #(Math/sin %))
+(g/defhandler :sin [g/abstract-number?] (make-numerical-combination :sin))
+
 (make-binary-operation :+ + true)
 (make-binary-operation :* * true)
 (make-binary-operation :- - false)
 (make-binary-operation :/ / false)
-
-(g/defhandler :negate [g/abstract-number?] (make-numerical-combination :negate))
-(g/defhandler :negate [number?] -)
-(g/defhandler :invert [number?] /)
 
 (println "numbers initialized")

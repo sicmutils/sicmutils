@@ -78,6 +78,7 @@
 (def ^:private div (make-operation :/))
 (def negate (make-operation :negate))
 (def invert (make-operation :invert))
+(def sin (make-operation :sin))
 
 (defn- bin+ [a b]
   (cond (and (number? a) (number? b)) (core-+ a b)
