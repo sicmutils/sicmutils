@@ -161,11 +161,8 @@
 
 
 
-(defn- exact? [x] (not (float? x)))
-;; are there any other non-exact native types in clojure?
-
 (defn- sine [x]
-  (cond (number? x) (if (exact? x)
+  (cond (number? x) (if (g/exact? x)
                       (if (zero? x) 0 `(g/sin ~x))
                       (cond (n:zero-mod-pi? x) 0.0
                             (n:pi-over-2-mod-2pi? x) 1.0

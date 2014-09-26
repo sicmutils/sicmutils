@@ -14,7 +14,8 @@
   clojure.lang.PersistentVector
   (zero? [x] (every? g/zero? x))
   (one? [x] false)
-  (zero-like [x] (with-orientation-of x (vec (repeat (count x) 0)))))
+  (zero-like [x] (with-orientation-of x (vec (repeat (count x) 0))))
+  (exact? [x] (every? g/exact? x)))
 
 (def ^:private structure? vector?)
 

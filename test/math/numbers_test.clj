@@ -58,5 +58,20 @@
     (is (= '(math.generic/- x) (g/- 0 'x)))
     (is (= -4 (g/- 4)))
     (is (= -4.2 (g/- 4.2)))
-    ))
+    )
+  (testing "zero?"
+    (is (g/zero? 0))
+    (is (not (g/zero? 1)))
+    (is (g/zero? 0.0))
+    (is (not (g/zero? 1.0)))
+    (is (g/one? 1))
+    (is (not (g/one? 2)))
+    (is (g/one? 1.0))
+    (is (not (g/one? 0.0)))
+    )
+  (testing "zero-like"
+    (is (= 0 (g/zero-like 2)))
+    (is (= 0.0 (g/zero-like 3.14)))
+    )
+  )
 

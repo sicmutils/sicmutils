@@ -8,7 +8,8 @@
 (defprotocol Value
   (zero? [this])
   (one? [this])
-  (zero-like [this]))
+  (zero-like [this])
+  (exact? [this]))
 
 (extend-protocol Value
   Object
@@ -16,10 +17,12 @@
   (one? [x] false)
   (zero-like [x] (throw (IllegalArgumentException.
                          (str "nothing zero-like for " x))))
+  (exact? [x] false)
   clojure.lang.Symbol
   (zero? [x] false)
   (one? [x] false)
-  (zero-like [x] 0))
+  (zero-like [x] 0)
+  )
 
 (defn flip [f] (fn [a b] (f b a)))
 

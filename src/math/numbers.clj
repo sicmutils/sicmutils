@@ -10,10 +10,13 @@
   (zero? [x] (= x 0))
   (one? [x] (= x 1))
   (zero-like [x] 0)
+  (exact? [x] true)
   Double
   (zero? [x] (= x 0.0))
   (one? [x] (= x 1.0))
-  (zero-like [x] 0.0))
+  (zero-like [x] 0.0)
+  (exact? [x] false)
+  )
 
 (defn- make-numerical-combination
   ([operator] (make-numerical-combination operator identity))
