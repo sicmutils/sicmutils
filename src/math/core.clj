@@ -21,7 +21,7 @@
   (println "boo")
   ;(println (map #(vector (first %) (- (second %)))  p2))   
   ;(println (map (fn [[k v]] [k (- 0 v)])  p2))   
-  (println (poly/neg p2))
+  (println (poly/negate p2))
   (println (+m12 13 4))
   (println (-m12 (*m12 (+m12 5 8) 3) 7))
   (println ((partial modular 17 +) 13 11))

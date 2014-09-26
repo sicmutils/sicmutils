@@ -1,4 +1,5 @@
 (ns math.numbers
+  (:refer-clojure :rename {zero? core-zero?})
   (:require [math.generic :as g]
             [math.numsymb :as ns]))
 
@@ -6,12 +7,12 @@
 
 (extend-protocol g/Value
   Long
-  (id+? [x] (zero? x))
-  (id*? [x] (= x 1))
+  (zero? [x] (= x 0))
+  (one? [x] (= x 1))
   (zero-like [x] 0)
   Double
-  (id+? [x] (zero? x))
-  (id*? [x] (= x 1.0))
+  (zero? [x] (= x 0.0))
+  (one? [x] (= x 1.0))
   (zero-like [x] 0.0))
 
 (defn- make-numerical-combination
@@ -30,8 +31,13 @@
 (g/defhandler :negate [g/abstract-number?] (make-numerical-combination :negate))
 (g/defhandler :negate [number?] -)
 (g/defhandler :invert [number?] /)
+;; interestingly, if we were to use :sin for number? we get the
+;; heuristic simplificatins, which seem useful; but GJS's distribution
+;; doesn't do this
 (g/defhandler :sin [number?] #(Math/sin %))
 (g/defhandler :sin [g/abstract-number?] (make-numerical-combination :sin))
+
+(g/defhandler :zero? [number?] #(core-zero? %))
 
 (make-binary-operation :+ + true)
 (make-binary-operation :* * true)

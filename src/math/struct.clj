@@ -7,6 +7,15 @@
 (defn- orientation [s]
   (or (:orientation (meta s)) :up))
 
+(defn- with-orientation-of [s t]
+  (with-meta t {:orientation (orientation s)}))
+
+(extend-protocol g/Value
+  clojure.lang.PersistentVector
+  (zero? [x] (every? g/zero? x))
+  (one? [x] false)
+  (zero-like [x] (with-orientation-of x (vec (repeat (count x) 0)))))
+
 (def ^:private structure? vector?)
 
 (defn- row? [s]
@@ -14,9 +23,6 @@
 
 (defn- column? [s]
   (and (structure? s) (= (orientation s) :up)))
-
-(defn- with-orientation-of [s t]
-  (with-meta t {:orientation (orientation s)}))
 
 (defn- elementwise [op s t]
   (if (= (count s) (count t))

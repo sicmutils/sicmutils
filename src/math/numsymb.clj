@@ -60,12 +60,12 @@
 
 (defn- mul [a b]
   (cond (and (number? a) (number? b)) (* a b)
-        (number? a) (cond (zero? a) a
-                          (g/id*? a) b
+        (number? a) (cond (g/zero? a) a
+                          (g/one? a) b
                           (product? b) `(g/* ~a ~@(operands b))
                           :else `(g/* ~a ~b))
-        (number? b) (cond (zero? b) b
-                          (g/id*? b) a
+        (number? b) (cond (g/zero? b) b
+                          (g/one? b) a
                           (product? a) `(g/* ~b ~@(operands a))
                           :else `(g/* ~b ~a))
         (product? a) (cond (product? b) `(g/* ~@(operands a) ~@(operands b))
@@ -81,7 +81,7 @@
         (number? a) (if (zero? a) a `(g// ~a ~b))
         (number? b) (cond (zero? b) (throw (IllegalArgumentException.
                                             "division by zero"))
-                          (g/id*? b) a
+                          (g/one? b) a
                           :else `(g// ~a ~b))
         :else `(g// ~a ~b)))
 
@@ -123,17 +123,29 @@
                (< (Math/abs x) absolute-integer-tolerance)
                (< (Math/abs (/ (- x z) z)) relative-integer-tolerance))))))
 
-;; (define (n:zero-mod-pi? x) (almost-integer? (/ x n:pi)))
-;; (define (symb:zero-mod-pi? x) (memq x '(:-pi :pi :+pi :-2pi :2pi)))
+(def ^:private pi Math/PI)
+(def ^:private pi-over-4 (/ pi 4))
+(def ^:private two-pi (* 2 pi))
+(def ^:private pi-over-2 (* 2 pi-over-4))
+(def ^:private pi-over-3 (/ pi 3))
+(def ^:private pi-over-6 (/ pi-over-2 3))
 
-;; (define (n:pi/2-mod-2pi? x) (almost-integer? (/ (- x n:pi/2) n:2pi)))
-;; (define (symb:pi/2-mod-2pi? x) (memq x '(:pi/2 :+pi/2)))
+(defn- n:zero-mod-pi? [x]
+  (almost-integer? (/ x pi)))
+(defn- symb:zero-mod-pi? [s]
+  (#{'-pi 'pi '+pi '-two-pi 'two-pi} s))
+(defn- n:pi-over-2-mod-2pi? [x]
+  (almost-integer? (/ (- x pi-over-2 two-pi))))
+(defn- symb:pi-over-2-mod-2pi? [s]
+  (#{'pi-over-2 '+pi-over-2} s))
+(defn- n:-pi-over-2-mod-2pi? [x]
+  (almost-integer? (/ (+ x pi-over-2) two-pi)))
+(defn- symb:-pi-over-2-mod-2pi? [s]
+  (#{'-pi-over-2} s))
 
-;; (define (n:-pi/2-mod-2pi? x) (almost-integer? (/ (+ x n:pi/2) n:2pi)))
-;; (define (symb:-pi/2-mod-2pi? x) (memq x '(:-pi/2)))
-
-;; (define (n:pi/2-mod-pi? x) (almost-integer? (/ (- x n:pi/2) n:pi)))
-;; (define (symb:pi/2-mod-pi? x) (memq x '(:-pi/2 :pi/2 :+pi/2)))
+;; (define (n:pi-over-2-mod-2pi? x) (almost-integer? (/ (- x n:pi-over-2) n:2pi)
+;; (define (n:pi-over-2-mod-pi? x) (almost-integer? (/ (- x n:pi-over-2) n:pi)))
+;; (define (symb:pi-over-2-mod-pi? x) (memq x '(:-pi-over-2 :pi-over-2 :+pi-over-2)))
 
 ;; (define (n:zero-mod-2pi? x) (almost-integer? (/ x n:2pi)))
 ;; (define (symb:zero-mod-2pi? x) (memq x '(:-2pi :2pi :+2pi)))
@@ -141,39 +153,28 @@
 ;; (define (n:pi-mod-2pi? x) (almost-integer? (/ (- x n:pi) n:2pi)))
 ;; (define (symb:pi-mod-2pi? x) (memq x '(:-pi :pi :+pi)))
 
-;; (define (n:pi/4-mod-pi? x) (almost-integer? (/ (- x n:pi/4) n:pi)))
-;; (define (symb:pi/4-mod-pi? x) (memq x '(:pi/4 :+pi/4)))
+;; (define (n:pi-over-4-mod-pi? x) (almost-integer? (/ (- x n:pi-over-4) n:pi)))
+;; (define (symb:pi-over-4-mod-pi? x) (memq x '(:pi-over-4 :+pi-over-4)))
 
-;; (define (n:-pi/4-mod-pi? x) (almost-integer? (/ (+ x n:pi/4) :pi)))
-;; (define (symb:-pi/4-mod-pi? x) (memq x '(:-pi/4)))
+;; (define (n:-pi-over-4-mod-pi? x) (almost-integer? (/ (+ x n:pi-over-4) :pi)))
+;; (define (symb:-pi-over-4-mod-pi? x) (memq x '(:-pi-over-4)))
 
 
-;; (define (symb:sin x)
-;;   (cond ((number? x)
-;;       	 (if (exact? x)
-;; 	     (if (zero? x) 0 `(sin ,x))
-;; 	     (cond ((n:zero-mod-pi? x) 0.)
-;; 		   ((n:pi/2-mod-2pi? x) +1.)
-;; 		   ((n:-pi/2-mod-2pi? x) -1.)
-;; 		   (else (sin x)))))
-;; 	((symbol? x)
-;; 	 (cond ((symb:zero-mod-pi? x) 0)
-;; 	       ((symb:pi/2-mod-2pi? x) +1)
-;; 	       ((symb:-pi/2-mod-2pi? x) -1)
-;; 	       (else `(sin ,x))))
-;; 	(else `(sin ,x))))
 
 (defn- exact? [x] (not (float? x)))
 ;; are there any other non-exact native types in clojure?
 
 (defn- sine [x]
   (cond (number? x) (if (exact? x)
-                      (if (zero? x) 0 `(g/sin ~x)) 
-                      ;; this is where we would detect combinations of
-                      ;; π.
-                      (Math/sin x)
-                      )
-        (symbol? x) `(g/sin ~x) ;; also would look for π here. 
+                      (if (zero? x) 0 `(g/sin ~x))
+                      (cond (n:zero-mod-pi? x) 0.0
+                            (n:pi-over-2-mod-2pi? x) 1.0
+                            (n:-pi-over-2-mod-2pi? x) -1.0
+                            :else (Math/sin x)))
+        (symbol? x) (cond (symb:zero-mod-pi? x) 0
+                          (symb:pi-over-2-mod-2pi? x) 1
+                          (symb:-pi-over-2-mod-2pi? x) -1
+                          :else `(g/sin ~x))
         :else `(g/sin ~x)))
 
 (def ^:private symbolic-operator-table {:+ add-n
@@ -183,79 +184,7 @@
                                         :/ div-n
                                         :sin sine})
 
-;; (define (symb:addends expr) (cdr expr))
-
-;; (define (symb:+ a1 a2)
-;;   (cond ((and (number? a1) (number? a2)) (+ a1 a2))
-;;         ((number? a1)
-;; 	 (cond ((zero? a1) a2)
-;; 	       ((sum? a2)
-;; 		`(+ ,a1 ,@(operands a2)))
-;; 	       (else `(+ ,a1 ,a2))))
-;;         ((number? a2)
-;; 	 (cond ((zero? a2) a1)
-;; 	       ((sum? a1)
-;; 		`(+ ,a2 ,@(operands a1)))
-;; 	       (else `(+ ,a2 ,a1))))
-;; 	((sum? a1)
-;; 	 (cond ((sum? a2)
-;; 		`(+ ,@(operands a1) ,@(operands a2)))
-;; 	       (else `(+ ,@(operands a1) ,a2))))
-;; 	((sum? a2)
-;; 	 `(+ ,a1 ,@(operands a2)))
-;;         (else `(+ ,a1 ,a2))))
-
-;; (define (symb:add x y)
-;;   (if enable-constructor-simplifications?
-;;       (symb1:+ x y)
-;;       (symb:+ x y)))
-
-;; (define (symb:add:n args)
-;;   (cond ((null? args) :zero)
-;; 	((null? (cdr args)) (car args))
-;; 	(else
-;; 	 (let lp ((args (cddr args))
-;; 		  (ans (symb:add (car args) (cadr args))))
-;; 	   (if (null? args)
-;; 	       ans
-;; 	       (lp (cdr args)
-;; 		   (symb:add ans (car args))))))))
-
-;; (define (symb:sum . args)
-;;   (symb:add:n args))
-    
-;; (addto-symbolic-operator-table '+ symb:sum)
-
-;; (define (make-numsymb-expression operator-symbol operands)
-;;   (let ((operand-expressions (map numerical-expression operands)))
-;;     (let ((v (hash-table/get symbolic-operator-table operator-symbol #f)))
-;;       (if v
-;; 	  (let ((newexp (apply v operand-expressions)))
-;; 	    (make-literal number-type-tag
-;; 			  (if incremental-simplifier
-;; 			      (incremental-simplifier newexp)
-;; 			      newexp)))
-;; 	  (make-combination number-type-tag operator-symbol operands)))))
-
-
 ;; (define (numerical-expression expr)
-;;   (cond ((number? expr) ;; ok.
-;; 	 (if (and (inexact? expr) heuristic-number-canonicalizer)
-;; 	     (heuristic-number-canonicalizer expr)
-;; 	     expr)) ;; but h-n-c is false, so expr.
-;; 	((symbol? expr) expr) ;; ok, expr
-;; 	((literal-number? expr) 
-;; 	 (if numerical-expression-canonicalizer
-;; 	     (numerical-expression-canonicalizer (expression-of expr))
-;; 	     (expression-of expr)) 
-;; 	 (expression-of expr)) ;; but n-e-c is false, so (expression-of expr)
-;; 	((pair? expr) ;; works out to expr.
-;; 	 (cond ((memq (car expr) type-tags) expr)
-;; 	       (numerical-expression-canonicalizer
-;; 		(numerical-expression-canonicalizer expr))
-;; 	       (else expr)))
-;; 	(else expr)))
-;;
 ;; so this works out to expr, unless literal-number? expr, in which
 ;; case (expression-of expr).
 

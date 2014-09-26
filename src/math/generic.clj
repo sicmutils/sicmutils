@@ -2,22 +2,23 @@
   (:refer-clojure :rename {+ core-+
                            - core--
                            / core-div
-                           * core-*}))
+                           * core-*
+                           zero? core-zero?}))
 
 (defprotocol Value
-  (id+? [this])
-  (id*? [this])
+  (zero? [this])
+  (one? [this])
   (zero-like [this]))
 
 (extend-protocol Value
   Object
-  (id+? [x] false)
-  (id*? [x] false)
+  (zero? [x] false)
+  (one? [x] false)
   (zero-like [x] (throw (IllegalArgumentException.
                          (str "nothing zero-like for " x))))
   clojure.lang.Symbol
-  (id+? [x] false)
-  (id*? [x] false)
+  (zero? [x] false)
+  (one? [x] false)
   (zero-like [x] 0))
 
 (defn flip [f] (fn [a b] (f b a)))
@@ -84,8 +85,8 @@
   (cond (and (number? a) (number? b)) (core-+ a b)
         ;; XXX an optimization? where is this useful?
         ;; should we delete [number, number] from the generic ops of add?
-        (id+? a) b
-        (id+? b) a
+        (zero? a) b
+        (zero? b) a
         :else (add a b))
   )
 
@@ -94,8 +95,8 @@
 
 (defn- bin- [a b]
   (cond (and (number? a) (number? b)) (core-- a b)
-        (id+? b) a
-        (id+? a) (negate b)
+        (zero? b) a
+        (zero? a) (negate b)
         :else (sub a b)))
 
 (defn - [& args]
@@ -107,8 +108,8 @@
   (cond (and (number? a) (number? b)) (core-* a b)
         (and (number? a) (zero? a)) (zero-like b)
         (and (number? b) (zero? b)) (zero-like a)
-        (id*? a) b
-        (id*? b) a
+        (one? a) b
+        (one? b) a
         :else (mul a b)))
 
 ;;; In bin* we test for exact (numerical) zero 
@@ -127,7 +128,7 @@
 
 (defn bin-div [a b]
   (cond (and (number? a) (number? b)) (core-div a b)
-        (id*? b) a
+        (one? b) a
         :else (div a b)))
 
 (defn / [& args]
@@ -136,7 +137,7 @@
         :else (bin-div (first args) (apply * (rest args)))))
 
 (defn literal-number? [x]
-  (= :number (:type (meta x))))
+  (= :number (:generic-type (meta x))))
 
 (defn abstract-number? [x]
   (or (symbol? x) (literal-number? x)))

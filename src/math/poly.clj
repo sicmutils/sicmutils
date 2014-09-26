@@ -4,7 +4,7 @@
 (defn make [& oc-pairs]
   (with-meta 
     (into (sorted-map) (filter (fn [[o c]] (not= c 0)) oc-pairs))
-    {:type :poly}))
+    {:generic-type :poly}))
 
 ;; should we rely on the constructors and manipulators never to allow
 ;; a zero coefficient into the list, or should we change degree to
@@ -17,7 +17,7 @@
 (defn- map [f p]
   (into (empty p) (core-map #(vector (first %) (f (second %))) p)))
 
-(def neg (partial map -))
+(def negate (partial map -))
 
 ;;
 ;; this is ok so far as it doesn't generate an intermediate,
