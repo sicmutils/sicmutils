@@ -86,6 +86,9 @@
 (def cos (make-operation :cos))
 (def square (make-operation :square))
 (def cube (make-operation :cube))
+(def abs (make-operation :abs))
+(def sqrt (make-operation :sqrt))
+(def expt (make-operation :expt))
 
 (defn- bin+ [a b]
   (cond (and (number? a) (number? b)) (core-+ a b)

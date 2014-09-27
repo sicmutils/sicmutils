@@ -1,7 +1,8 @@
 (ns math.numbers
   (:refer-clojure :rename {zero? core-zero?})
   (:require [math.generic :as g]
-            [math.numsymb :as ns]))
+            [math.numsymb :as ns]
+            [clojure.math.numeric-tower :as nt]))
 
 ;; still to be done: constant folding across expressions
 
@@ -31,29 +32,28 @@
 
 (defn- make-binary-operation [key operation commutative?]
   (g/defhandler key [number? number?] operation)
-  (g/defhandler key [g/abstract-number? g/abstract-number?] (make-numerical-combination key))
-  (g/defhandler key [number? g/abstract-number?] (make-numerical-combination key))
+  (g/defhandler key [g/abstract-number? g/abstract-number?]
+    (make-numerical-combination key))
+  (g/defhandler key [number? g/abstract-number?]
+    (make-numerical-combination key))
   (g/defhandler key [g/abstract-number? number?]
     (make-numerical-combination key (if commutative? reverse identity))))
 
-(g/defhandler :negate [g/abstract-number?] (make-numerical-combination :negate))
-(g/defhandler :negate [number?] -)
-(g/defhandler :invert [number?] /)
-;; interestingly, if we were to use :sin for number? we get the
-;; heuristic simplificatins, which seem useful; but GJS's distribution
-;; doesn't do this
-(g/defhandler :sin [number?] #(Math/sin %))
-(g/defhandler :sin [g/abstract-number?] (make-numerical-combination :sin))
-(g/defhandler :cos [number?] #(Math/cos %))
-(g/defhandler :cos [g/abstract-number?] (make-numerical-combination :cos))
-(g/defhandler :square [number?] #(* % %))
-(g/defhandler :square [g/abstract-number?] (make-numerical-combination :square))
-(g/defhandler :cube [number?] #(* % % %))
-(g/defhandler :cube [g/abstract-number?] (make-numerical-combination :cube))
+(defn- make-unary-operation [key operation]
+  (g/defhandler key [number?] operation)
+  (g/defhandler key [g/abstract-number?] (make-numerical-combination key)))
 
 (make-binary-operation :+ + true)
 (make-binary-operation :* * true)
 (make-binary-operation :- - false)
 (make-binary-operation :/ / false)
+(make-unary-operation :sin #(Math/sin %))
+(make-unary-operation :cos #(Math/cos %))
+(make-unary-operation :square #(* % %))
+(make-unary-operation :cube #(* % % %))
+(make-unary-operation :abs nt/abs)
+(make-unary-operation :negate -)
+(make-unary-operation :invert /)
+(make-unary-operation :sqrt nt/sqrt)
 
 (println "numbers initialized")

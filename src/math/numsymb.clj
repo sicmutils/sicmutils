@@ -1,6 +1,7 @@
 (ns math.numsymb
   (:require [math.generic :as g]
-            [math.expression :as x]))
+            [math.expression :as x]
+            [clojure.math.numeric-tower :as nt]))
 
 ;; N.B.: (define numerical-expression-canonicalizer #f)
 ;;       (define heuristic-number-canonicalizer #f)
@@ -194,15 +195,34 @@
 (defn- square [x]
   (g/* x x))
 
+(defn- abs [x]
+  (cond (number? x) (Math/abs x)
+	:else `(g/abs ~x)))
+
+(defn sqrt [s]
+  (if (number? s)
+    (if (not (g/exact? s))
+      (nt/sqrt s)
+      (cond (g/zero? s) s
+            (g/one? s) :one
+            :else (let [q (nt/sqrt s)]
+                    (if (g/exact? q)
+                      q
+                      `(g/sqrt ~s)))))
+      `(g/sqrt ~s)))
+
 (def ^:private symbolic-operator-table {:+ add-n
                                         :- sub-n
                                         :* mul-n
                                         :negate (fn [x] (sub 0 x))
+                                        :invert (fn [x] (div 1 x))
                                         :/ div-n
                                         :sin sine
                                         :cos cosine
                                         :cube cube
-                                        :square square})
+                                        :square square
+                                        :abs abs
+                                        :sqrt sqrt})
 
 ;; (define (numerical-expression expr)
 ;; so this works out to expr, unless literal-number? expr, in which

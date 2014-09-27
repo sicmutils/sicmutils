@@ -83,5 +83,15 @@
     (is (= 0 (g/zero-like 2)))
     (is (= 0.0 (g/zero-like 3.14)))
     )
+  (testing "abs"
+    (is (= 1 (g/abs -1)))
+    (is (= 1 (g/abs 1)))
+    (is (= '(math.generic/abs x) (g/abs 'x)))
+    )
+  (testing "sqrt"
+    (is (= 9 (g/sqrt 81)))
+    (is (= '(math.generic/sqrt x) (g/sqrt 'x)))
+    )
   )
+  
 
