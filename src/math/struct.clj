@@ -7,7 +7,7 @@
 (defn- orientation [s]
   (or (:orientation (meta s)) :up))
 
-(defn- with-orientation-of [s t]
+(defn with-orientation-of [s t]
   (with-meta t {:orientation (orientation s)}))
 
 (extend-protocol g/Value

@@ -39,8 +39,10 @@
 ;; doesn't do this
 (g/defhandler :sin [number?] #(Math/sin %))
 (g/defhandler :sin [g/abstract-number?] (make-numerical-combination :sin))
-
-(g/defhandler :zero? [number?] #(core-zero? %))
+(g/defhandler :cos [number?] #(Math/cos %))
+(g/defhandler :cos [g/abstract-number?] (make-numerical-combination :cos))
+(g/defhandler :square [number?] #(* % %))
+(g/defhandler :square [g/abstract-number?] #(g/* % %))
 
 (make-binary-operation :+ + true)
 (make-binary-operation :* * true)

@@ -17,6 +17,20 @@
       (is (= (g/- (down 8 5)) (down -8 -5)))
       (is (= (g/- (up 10 10) (up 2 3) (up 3 4)) (up 5 3)))
       )
+  (testing "s +/- t mixed"
+    (is (= (g/+ (up (down 1 2) (down 3 4))
+                (up (down 2 3) (down -7 2)))
+           (up (down 3 5) (down -4 6))))
+    (is (= (g/- (up (down 1 2) (down 3 4))
+                (up (down 2 3) (down -7 2)))
+           (up (down -1 -1) (down 10 2))))
+    (is (= (g/+ (down (up 1 2) (up 3 4))
+                (down (up 2 3) (up -7 2)))
+           (down (up 3 5) (up -4 6))))
+    (is (= (g/- (down (up 1 2) (up 3 4))
+                (down (up 2 3) (up -7 2)))
+           (down (up -1 -1) (up 10 2))))
+    )
   (testing "a*s"
     (is (= [2 4 6] (g/* 2 [1 2 3])))
     (is (= (down 3 6 9) (g/* 3 (down 1 2 3))))
@@ -52,7 +66,7 @@
                     (down (down 13 17) (up 19 23 29)))))
     (is (= [[10 15] [14 21] [22 33]] (g/* (up 2 3) (up 5 7 11))))
     (is (= [[10 14 22] [15 21 33]] (g/* (up 5 7 11) (up 2 3)))))
-  (testing "zero/one"
+  (testing "zero?"
     (is (g/zero? (up)))
     (is (g/zero? (up 0)))
     (is (g/zero? (up 0 0)))
@@ -70,7 +84,19 @@
     (is (= [] (g/zero-like (down))))
     )
   (testing "exact?"
-    (is (exact? (up 0 0 0)))
-    (is (not (exact? (up 0 0 0.00001))))
+    (is (g/exact? (up 0 0 0)))
+    (is (not (g/exact? (up 0 0 0.00001))))
+    )
+  (testing "function"
+    (defn Rx [angle]
+      (fn [[x y z]]
+        (let [ca (g/cos angle)
+              sa (g/sin angle)]
+          (up x
+              (g/- (g/* ca y) (g/* sa z))
+              (g/+ (g/* sa y) (g/* ca z))))))
+    (is (= [0 0 1] ((Rx 'pi-over-2) [0 1 0])))
+    (is (= '[x (math.generic/- z) y] ((Rx 'pi-over-2) (up 'x 'y 'z))))
     )
   )
+

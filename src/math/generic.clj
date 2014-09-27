@@ -83,6 +83,7 @@
 (def negate (make-operation :negate))
 (def invert (make-operation :invert))
 (def sin (make-operation :sin))
+(def cos (make-operation :cos))
 
 (defn- bin+ [a b]
   (cond (and (number? a) (number? b)) (core-+ a b)

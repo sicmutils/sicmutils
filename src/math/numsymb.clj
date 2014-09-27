@@ -33,10 +33,10 @@
 
 (defn- add [a b]
   (cond (and (number? a) (number? b)) (+ a b)
-        (number? a) (cond (zero? a) b
+        (number? a) (cond (g/zero? a) b
                           (sum? b) `(g/+ ~a ~@(operands b))
                           :else `(g/+ ~a ~b))
-        (number? b) (cond (zero? b) a
+        (number? b) (cond (g/zero? b) a
                           (sum? a) `(g/+ ,b ~@(operands a))
                           :else `(g/+ ~b, ~a))
         (sum? a) (cond (sum? b) `(g/+ ~@(operands a) ~@(operands b))
@@ -49,8 +49,8 @@
 
 (defn- sub [a b]
   (cond (and (number? a) (number? b)) (- a b)
-        (number? a) (if (zero? a) `(g/- ~b) `(g/- ~a ~b))
-        (number? b) (if (zero? b) a `(g/- ~a ~b))
+        (number? a) (if (g/zero? a) `(g/- ~b) `(g/- ~a ~b))
+        (number? b) (if (g/zero? b) a `(g/- ~a ~b))
         :else `(- ~a ~b)))
 
 (defn sub-n [& args]
@@ -78,8 +78,8 @@
 
 (defn- div [a b]
   (cond (and (number? a) (number? b)) (/ a b)
-        (number? a) (if (zero? a) a `(g// ~a ~b))
-        (number? b) (cond (zero? b) (throw (IllegalArgumentException.
+        (number? a) (if (g/zero? a) a `(g// ~a ~b))
+        (number? b) (cond (g/zero? b) (throw (IllegalArgumentException.
                                             "division by zero"))
                           (g/one? b) a
                           :else `(g// ~a ~b))
@@ -127,39 +127,40 @@
 (def ^:private pi-over-4 (/ pi 4))
 (def ^:private two-pi (* 2 pi))
 (def ^:private pi-over-2 (* 2 pi-over-4))
-(def ^:private pi-over-3 (/ pi 3))
-(def ^:private pi-over-6 (/ pi-over-2 3))
+;; (def ^:private pi-over-3 (/ pi 3))
+;; (def ^:private pi-over-6 (/ pi-over-2 3))
 
 (defn- n:zero-mod-pi? [x]
   (almost-integer? (/ x pi)))
 (defn- symb:zero-mod-pi? [s]
-  (#{'-pi 'pi '+pi '-two-pi 'two-pi} s))
+  (#{'-pi 'pi '-two-pi 'two-pi} s))
 (defn- n:pi-over-2-mod-2pi? [x]
   (almost-integer? (/ (- x pi-over-2 two-pi))))
 (defn- symb:pi-over-2-mod-2pi? [s]
-  (#{'pi-over-2 '+pi-over-2} s))
+  (#{'pi-over-2} s))
 (defn- n:-pi-over-2-mod-2pi? [x]
   (almost-integer? (/ (+ x pi-over-2) two-pi)))
 (defn- symb:-pi-over-2-mod-2pi? [s]
   (#{'-pi-over-2} s))
-
-;; (define (n:pi-over-2-mod-2pi? x) (almost-integer? (/ (- x n:pi-over-2) n:2pi)
-;; (define (n:pi-over-2-mod-pi? x) (almost-integer? (/ (- x n:pi-over-2) n:pi)))
-;; (define (symb:pi-over-2-mod-pi? x) (memq x '(:-pi-over-2 :pi-over-2 :+pi-over-2)))
-
-;; (define (n:zero-mod-2pi? x) (almost-integer? (/ x n:2pi)))
-;; (define (symb:zero-mod-2pi? x) (memq x '(:-2pi :2pi :+2pi)))
-
-;; (define (n:pi-mod-2pi? x) (almost-integer? (/ (- x n:pi) n:2pi)))
-;; (define (symb:pi-mod-2pi? x) (memq x '(:-pi :pi :+pi)))
+(defn- n:pi-mod-2pi? [x]
+  (almost-integer? (/ (- x pi) two-pi)))
+(defn- symb:pi-mod-2pi? [s]
+  (#{'-pi 'pi} s))
+(defn- n:pi-over-2-mod-pi? [x]
+  (almost-integer? (/ (- x pi-over-2) pi)))
+(defn- symb:pi-over-2-mod-pi? [s]
+  (#{'-pi-over-2 'pi-over-2} s))
+(defn- n:zero-mod-2pi? [x]
+  (almost-integer? (/ x two-pi)))
+(defn- symb:zero-mod-2pi? [s]
+  (#{'-two-pi 'two-pi} s))
+(defn- n:-pi-over-4-mod-pi? [x]
+  (almost-integer? (/ (+ x pi-over-4) pi)))
+(defn- symb:-pi-over-4-mod-pi? [s]
+  (#{'-pi-over-4} s))
 
 ;; (define (n:pi-over-4-mod-pi? x) (almost-integer? (/ (- x n:pi-over-4) n:pi)))
 ;; (define (symb:pi-over-4-mod-pi? x) (memq x '(:pi-over-4 :+pi-over-4)))
-
-;; (define (n:-pi-over-4-mod-pi? x) (almost-integer? (/ (+ x n:pi-over-4) :pi)))
-;; (define (symb:-pi-over-4-mod-pi? x) (memq x '(:-pi-over-4)))
-
-
 
 (defn- sine [x]
   (cond (number? x) (if (g/exact? x)
@@ -174,12 +175,27 @@
                           :else `(g/sin ~x))
         :else `(g/sin ~x)))
 
+(defn cosine [x]
+  (cond (number? x) (if (g/exact? x)
+                      (if (zero? x) 1 `(g/cos ~x))
+                      (cond (n:pi-over-2-mod-pi? x) 0.0
+                            (n:zero-mod-2pi? x) 1.0
+                            (n:pi-mod-2pi? x) -1.0
+                            :else (Math/cos x)))
+	(symbol? x) (cond (symb:pi-over-2-mod-pi? x) 0
+                          (symb:zero-mod-2pi? x) +1
+                          (symb:pi-mod-2pi? x) -1
+                          :else `(g/cos ~x))
+	:else `(g/cos ~x)))
+
+
 (def ^:private symbolic-operator-table {:+ add-n
                                         :- sub-n
                                         :* mul-n
                                         :negate (fn [x] (sub 0 x))
                                         :/ div-n
-                                        :sin sine})
+                                        :sin sine
+                                        :cos cosine})
 
 ;; (define (numerical-expression expr)
 ;; so this works out to expr, unless literal-number? expr, in which
