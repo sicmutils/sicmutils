@@ -175,7 +175,7 @@
                           :else `(g/sin ~x))
         :else `(g/sin ~x)))
 
-(defn cosine [x]
+(defn- cosine [x]
   (cond (number? x) (if (g/exact? x)
                       (if (zero? x) 1 `(g/cos ~x))
                       (cond (n:pi-over-2-mod-pi? x) 0.0
@@ -188,6 +188,11 @@
                           :else `(g/cos ~x))
 	:else `(g/cos ~x)))
 
+(defn- cube [x]  ;; XXX redo with expt
+  (g/* x x x))
+
+(defn- square [x]
+  (g/* x x))
 
 (def ^:private symbolic-operator-table {:+ add-n
                                         :- sub-n
@@ -195,7 +200,9 @@
                                         :negate (fn [x] (sub 0 x))
                                         :/ div-n
                                         :sin sine
-                                        :cos cosine})
+                                        :cos cosine
+                                        :cube cube
+                                        :square square})
 
 ;; (define (numerical-expression expr)
 ;; so this works out to expr, unless literal-number? expr, in which

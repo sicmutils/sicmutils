@@ -16,6 +16,11 @@
   (one? [x] (= x 1.0))
   (zero-like [x] 0.0)
   (exact? [x] false)
+  clojure.lang.Ratio
+  (zero? [x] (= x 0))
+  (one? [x] (= x 1))
+  (zero-like [x] 0)
+  (exact? [x] true)
   )
 
 (defn- make-numerical-combination
@@ -42,7 +47,9 @@
 (g/defhandler :cos [number?] #(Math/cos %))
 (g/defhandler :cos [g/abstract-number?] (make-numerical-combination :cos))
 (g/defhandler :square [number?] #(* % %))
-(g/defhandler :square [g/abstract-number?] #(g/* % %))
+(g/defhandler :square [g/abstract-number?] (make-numerical-combination :square))
+(g/defhandler :cube [number?] #(* % % %))
+(g/defhandler :cube [g/abstract-number?] (make-numerical-combination :cube))
 
 (make-binary-operation :+ + true)
 (make-binary-operation :* * true)

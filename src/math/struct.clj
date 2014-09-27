@@ -58,6 +58,10 @@
 (g/defhandler :/   [structure? number?] (fn [s n] (scalar-multiply (/ n) s)))
 (g/defhandler :*   [structure? structure?] mul)
 
+(g/defhandler :square [structure?]
+  (fn [s] (inner-product s s)))
+(g/defhandler :cube [structure?]  ; XXX redo with expt?
+  (fn [s] (g/* s s s))) 
 (g/defhandler :negate [structure?]
   (fn [s] (with-orientation-of s (vec (map g/negate s)))))
 

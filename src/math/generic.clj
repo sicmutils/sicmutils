@@ -84,6 +84,8 @@
 (def invert (make-operation :invert))
 (def sin (make-operation :sin))
 (def cos (make-operation :cos))
+(def square (make-operation :square))
+(def cube (make-operation :cube))
 
 (defn- bin+ [a b]
   (cond (and (number? a) (number? b)) (core-+ a b)

@@ -30,7 +30,12 @@
   (testing "trig"
     (is (= 1.0 (g/cos 0)))
     (is (= 0.0 (g/sin 0)))
-    
+    )
+  (testing "square/cube"
+    (is (= 4 (g/square 2)))
+    (is (= 4 (g/square -2)))
+    (is (= 27 (g/cube 3)))
+    (is (= -27 (g/cube -3)))
     )
   (testing "with-symbols"
     (is (= '(math.generic/+ 4 x) (g/+ 4 'x)))
