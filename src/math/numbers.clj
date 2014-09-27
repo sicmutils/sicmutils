@@ -55,5 +55,7 @@
 (make-unary-operation :negate -)
 (make-unary-operation :invert /)
 (make-unary-operation :sqrt nt/sqrt)
+(make-unary-operation :log #(Math/log %))
+(make-unary-operation :exp #(Math/exp %))
 
 (println "numbers initialized")

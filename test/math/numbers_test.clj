@@ -92,6 +92,13 @@
     (is (= 9 (g/sqrt 81)))
     (is (= '(math.generic/sqrt x) (g/sqrt 'x)))
     )
-  )
+  (testing "exp/log"
+    (is (= 1.0 (g/exp 0)))
+    (is (= '(math.generic/exp x) (g/exp 'x)))
+    (is (= 0.0 (g/log 1)))
+    (is (= '(math.generic/log x) (g/log 'x)))
+    (is (= 0.0 (g/log (g/exp 0))))
+    )
+)
   
 

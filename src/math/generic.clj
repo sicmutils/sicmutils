@@ -89,6 +89,8 @@
 (def abs (make-operation :abs))
 (def sqrt (make-operation :sqrt))
 (def expt (make-operation :expt))
+(def exp (make-operation :exp))
+(def log (make-operation :log))
 
 (defn- bin+ [a b]
   (cond (and (number? a) (number? b)) (core-+ a b)

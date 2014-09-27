@@ -209,7 +209,21 @@
                     (if (g/exact? q)
                       q
                       `(g/sqrt ~s)))))
-      `(g/sqrt ~s)))
+    `(g/sqrt ~s)))
+
+(defn log [s]
+  (if (number? s)
+    (if (not (g/exact? s))
+      (Math/log s)
+      (if (g/one? s) 0 `(g/log ~s)))
+    `(g/log ~s)))
+
+(defn exp [s]
+  (if (number? s)
+    (if (not (g/exact? s))
+      (Math/exp s)
+      (if (g/zero? s) 1 `(g/exp ~s)))
+    `(g/exp ~s)))
 
 (def ^:private symbolic-operator-table {:+ add-n
                                         :- sub-n
@@ -222,7 +236,9 @@
                                         :cube cube
                                         :square square
                                         :abs abs
-                                        :sqrt sqrt})
+                                        :sqrt sqrt
+                                        :log log
+                                        :exp exp})
 
 ;; (define (numerical-expression expr)
 ;; so this works out to expr, unless literal-number? expr, in which
