@@ -45,7 +45,7 @@
         (sum? b) `(g/+ ~a ~@(operands b))
         :else `(g/+ ~a ~b)))
 
-(defn add-n [& args]
+(defn- add-n [& args]
   (reduce add 0 args))
 
 (defn- sub [a b]
@@ -54,7 +54,7 @@
         (number? b) (if (g/zero? b) a `(g/- ~a ~b))
         :else `(- ~a ~b)))
 
-(defn sub-n [& args]
+(defn- sub-n [& args]
   (cond (empty? args) 0
         (empty? (rest args)) (sub 0 (first args))
         :else (sub (first args) (add-n (rest args)))))
@@ -81,12 +81,12 @@
   (cond (and (number? a) (number? b)) (/ a b)
         (number? a) (if (g/zero? a) a `(g// ~a ~b))
         (number? b) (cond (g/zero? b) (throw (IllegalArgumentException.
-                                            "division by zero"))
+                                              "division by zero"))
                           (g/one? b) a
                           :else `(g// ~a ~b))
         :else `(g// ~a ~b)))
 
-(defn div-n [& args]
+(defn- div-n [& args]
   (cond (empty? args) 1
         (empty? (rest args)) (div 1 (first args))
         :else (div (first args) (apply mul-n (rest args)))))
@@ -116,7 +116,7 @@
 (def ^:private relative-integer-tolerance (* 100 machine-epsilon))
 (def ^:private absolute-integer-tolerance 1e-20)
 
-(defn almost-integer? [x] ;; XXX make this private
+(defn- almost-integer? [x] ;; XXX make this private
   (or (integer? x)
       (and (float? x)
            (let [z (Math/round x)]
@@ -199,9 +199,9 @@
   (cond (number? x) (Math/abs x)
 	:else `(g/abs ~x)))
 
-(defn sqrt [s]
+(defn- sqrt [s]
   (if (number? s)
-    (if (not (g/exact? s))
+    (if-not (g/exact? s)
       (nt/sqrt s)
       (cond (g/zero? s) s
             (g/one? s) :one
@@ -211,16 +211,16 @@
                       `(g/sqrt ~s)))))
     `(g/sqrt ~s)))
 
-(defn log [s]
+(defn- log [s]
   (if (number? s)
-    (if (not (g/exact? s))
+    (if-not (g/exact? s)
       (Math/log s)
       (if (g/one? s) 0 `(g/log ~s)))
     `(g/log ~s)))
 
-(defn exp [s]
+(defn- exp [s]
   (if (number? s)
-    (if (not (g/exact? s))
+    (if-not (g/exact? s)
       (Math/exp s)
       (if (g/zero? s) 1 `(g/exp ~s)))
     `(g/exp ~s)))
