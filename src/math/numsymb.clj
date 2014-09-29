@@ -55,9 +55,9 @@
         :else `(- ~a ~b)))
 
 (defn- sub-n [& args]
-  (cond (empty? args) 0
-        (empty? (rest args)) (sub 0 (first args))
-        :else (sub (first args) (add-n (rest args)))))
+  (cond (nil? args) 0
+        (nil? (next args)) (sub 0 (first args))
+        :else (sub (first args) (add-n (next args)))))
 
 (defn- mul [a b]
   (cond (and (number? a) (number? b)) (* a b)
@@ -87,9 +87,9 @@
         :else `(g// ~a ~b)))
 
 (defn- div-n [& args]
-  (cond (empty? args) 1
-        (empty? (rest args)) (div 1 (first args))
-        :else (div (first args) (apply mul-n (rest args)))))
+  (cond (nil? args) 1
+        (nil? (next args)) (div 1 (first args))
+        :else (div (first args) (apply mul-n (next args)))))
 
 
 ;; END

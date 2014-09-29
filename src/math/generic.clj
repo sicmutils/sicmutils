@@ -143,9 +143,9 @@
         :else (div a b)))
 
 (defn / [& args]
-  (cond (empty? args) 1
-        (empty? (rest args)) (invert (first args))
-        :else (bin-div (first args) (apply * (rest args)))))
+  (cond (nil? args) 1
+        (nil? (next args)) (invert (first args))
+        :else (bin-div (first args) (apply * (next args)))))
 
 (defn literal-number? [x]
   (= :number (:generic-type (meta x))))

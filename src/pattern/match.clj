@@ -1,5 +1,22 @@
 (ns pattern.match)
 
+(def ^:private zero [{} nil])
+
+(defn match-one-monadic [thing]
+  (fn [frame [x & xs]]
+    (if (= x thing) [frame xs] zero)))
+
+(defn match-var-monadic [var]
+  (fn [frame [x & xs]]
+    (let [binding (frame var)]
+      (if binding
+        (if (= binding x) [frame xs] zero)
+        [(assoc frame var x) xs]))))
+
+(defn match-segment-monadic [var]
+  (fn [frame [x & xs]] 'foo)
+  ) 
+
 (defn match-one [thing]
   (fn [[x & xs] frame succeed]
     (and (= x thing)
@@ -45,4 +62,3 @@
                     (empty? x) (succeed frame x)
                     :else false))]
       (step x matchers frame))))
-
