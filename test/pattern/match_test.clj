@@ -5,7 +5,7 @@
 (defn- receive [frame xs] [frame xs])
 (defn- collect-all-results [matcher input & tails] 
   (let [results (atom [])]
-    (matcher {} input (fn [frame xs]
+    (matcher (sorted-map) input (fn [frame xs]
                         (swap! results conj
                                (if tails [frame xs] frame))
                         false))
@@ -98,13 +98,37 @@
     (is (= [[{:x :a} nil]] ((match-var-monadic :x) [{} [:a]])))
     (is (= [[{:x :b} [:a]]] ((match-var-monadic :x) [{} [:b :a]])))
     (is (= [[{:x :b} [:a]]] ((match-var-monadic :x) [{:x :b} [:b :a]])))
-    (is (= nil ((match-var-monadic :x) [{:x :a} [:b :a]])))
+    (is (empty? ((match-var-monadic :x) [{:x :a} [:b :a]])))
     )
   (testing "match-segment-monadic"
     (is (= '[[{:x []} (a b c)]
              [{:x [a]} (b c)]
              [{:x [a b]} (c)]
              [{:x [a b c]} ()]] ((match-segment-monadic :x) [{} '(a b c)])))
+    )
+  (testing "match-list-monadic"
+    (is (empty? ((match-list-monadic) [{} '(a b)])))
+    (is (= [[{:a :x :b :y} nil]] ((match-list-monadic) [{:a :x :b :y} nil])))
+    (is (= '[[{:y [a b a b a b a b], :x [], :w []} ()]
+             [{:y [a b a b], :x [a b], :w []} ()]
+             [{:y [], :x [a b a b], :w []} nil]
+             [{:y [b a b a b a b], :x [], :w [a]} ()]
+             [{:y [b a b], :x [b a], :w [a]} ()]
+             [{:y [a b a b a b], :x [], :w [a b]} ()]
+             [{:y [a b], :x [a b], :w [a b]} ()]
+             [{:y [b a b a b], :x [], :w [a b a]} ()]
+             [{:y [b], :x [b a], :w [a b a]} ()]
+             [{:y [a b a b], :x [], :w [a b a b]} ()]
+             [{:y [], :x [a b], :w [a b a b]} nil]
+             [{:y [b a b], :x [], :w [a b a b a]} ()]
+             [{:y [a b], :x [], :w [a b a b a b]} ()]
+             [{:y [b], :x [], :w [a b a b a b a]} ()]
+             [{:y [], :x [], :w [a b a b a b a b]} ()]]
+           ((match-list-monadic (match-segment-monadic :w)
+                                (match-segment-monadic :x)
+                                (match-segment-monadic :x)
+                                (match-segment-monadic :y))
+            [{} '(a b a b a b a b)])))
     )
   )
 
