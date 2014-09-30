@@ -5,7 +5,7 @@
 (defn- receive [frame xs] [frame xs])
 (defn- collect-all-results [matcher input & tails] 
   (let [results (atom [])]
-    (matcher input {} (fn [frame xs]
+    (matcher {} input (fn [frame xs]
                         (swap! results conj
                                (if tails [frame xs] frame))
                         false))
@@ -13,16 +13,16 @@
 
 (deftest matchers
   (testing "match-one"
-    (is (= false ((match-one 'a) nil {} receive)))
-    (is (= false ((match-one 'a) [] {} receive)))
-    (is (= [{} nil] ((match-one 'a) '(a) {} receive)))
-    (is (= [{} '(b c d e)] ((match-one 'a) '(a b c d e) {} receive)))
-    (is (= false ((match-one 'a) '(e d c b a) {} receive)))
+    (is (= false ((match-one 'a) {} nil receive)))
+    (is (= false ((match-one 'a) {} [] receive)))
+    (is (= [{} nil] ((match-one 'a) {} '(a) receive)))
+    (is (= [{} '(b c d e)] ((match-one 'a) {} '(a b c d e) receive)))
+    (is (= false ((match-one 'a) {} '(e d c b a) receive)))
     )
   (testing "match-var"
-    (is (= [{:x 'a} nil] ((match-var :x) '(a) {} receive)))
-    (is (= [{:x 'a} '(b)] ((match-var :x) '(a b) {} receive)))
-    (is (= [{:x '(a b)} '(c)] ((match-var :x) '((a b) c) {} receive)))
+    (is (= [{:x 'a} nil] ((match-var :x) {} '(a) receive)))
+    (is (= [{:x 'a} '(b)] ((match-var :x) {} '(a b) receive)))
+    (is (= [{:x '(a b)} '(c)] ((match-var :x) {} '((a b) c) receive)))
     )
   (testing "match-segment"
     (is (= [[{:x []} '(a b c)]
@@ -41,9 +41,9 @@
                                             (match-segment :x)
                                             (match-segment :x)
                                             (match-segment :y))]
-      (is (= [{:x '[a b c]} ()] (twin-segments '(a b c a b c) {} receive)))
-      (is (= nil (twin-segments '(a b c a b d) {} receive)))
-      (is (= nil (twin-segments '(a b c a b c d e) {} receive)))
+      (is (= [{:x '[a b c]} ()] (twin-segments {} '(a b c a b c) receive)))
+      (is (= nil (twin-segments {} '(a b c a b d) receive)))
+      (is (= nil (twin-segments {} '(a b c a b c d e) receive)))
       (is (= [{:x [] :y '[a b c a b c d e]}
               {:x '[a b c] :y '[d e]} ]
              (collect-all-results twin-segments-etc '(a b c a b c d e))))

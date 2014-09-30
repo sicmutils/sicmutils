@@ -57,19 +57,19 @@
    (reduce (fn [c m] (comp (partial mapcat m) c)) list matchers)))
 
 (defn match-one [thing]
-  (fn [[x & xs] frame succeed]
+  (fn [frame [x & xs] succeed]
     (and (= x thing)
          (succeed frame xs))))
 
 (defn match-var [var]
-  (fn [[x & xs] frame succeed]
+  (fn [frame [x & xs] succeed]
     (let [binding (frame var)]
       (if binding
         (and (= binding x) (succeed frame xs))
         (succeed (assoc frame var x) xs)))))
 
 (defn match-segment [var]
-  (fn [xs frame succeed]
+  (fn [frame xs succeed]
     (let [binding (frame var)]
       (if binding
         ;; the segment value is bound. Ensure that what follows in the
@@ -92,16 +92,16 @@
         ))))
 
 (defn match-list [& matchers]
-  (fn [x frame succeed]
-    (letfn [(step [x matchers frame]
+  (fn [frame xs succeed]
+    (letfn [(step [xs matchers frame]
               (cond (not (empty? matchers))
-                    ((first matchers) x frame
+                    ((first matchers) frame xs
                      (fn [new-frame new-xs]
                        (step new-xs (rest matchers) new-frame)))
-                    (not (empty? x)) false
-                    (empty? x) (succeed frame x)
+                    (not (empty? xs)) false
+                    (empty? xs) (succeed frame xs)
                     :else false))]
-      (step x matchers frame))))
+      (step xs matchers frame))))
 
 
 
