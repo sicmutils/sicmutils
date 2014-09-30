@@ -63,8 +63,8 @@
 (g/defhandler :-   [row? row?]          (partial elementwise g/-))
 (g/defhandler :-   [column? column?]    (partial elementwise g/-))
 (g/defhandler :*   [number? structure?] scalar-multiply)
-(g/defhandler :*   [structure? number?] (g/flip scalar-multiply))
-(g/defhandler :/   [structure? number?] (fn [s n] (scalar-multiply (/ n) s)))
+(g/defhandler :*   [structure? number?] #(scalar-multiply %2 %1))
+(g/defhandler :/   [structure? number?] #(scalar-multiply (/ %2) %1))
 (g/defhandler :*   [structure? structure?] mul)
 
 (g/defhandler :negate [structure?]

@@ -20,8 +20,6 @@
   (id*? [x] false)
   (zero-like [x] 0))
 
-(defn flip [f] (fn [a b] (f b a)))
-
 (def empty-dtree {:steps {} :stop nil})
 (def ^:private the-operator-table (atom {}))
 
@@ -81,8 +79,6 @@
 
 (defn- bin+ [a b]
   (cond (and (number? a) (number? b)) (core-+ a b)
-        ;; XXX an optimization? where is this useful?
-        ;; should we delete [number, number] from the generic ops of add?
         (id+? a) b
         (id+? b) a
         :else (add a b))

@@ -15,17 +15,22 @@
   (zero-like [x] 0.0))
 
 (defn- make-numerical-combination
-  ([operator] (make-numerical-combination operator identity))
-  ([operator transform-operands]
+  ([operator] (make-numerical-combination operator false))
+  ([operator commutative?]
      (fn [& operands]
-       (ns/make-numsymb-expression operator (transform-operands operands)))))
+       (ns/make-numsymb-expression operator
+                                   (if commutative?
+                                     (reverse operands)
+                                     operands)))))
 
 (defn- make-binary-operation [key operation commutative?]
   (g/defhandler key [number? number?] operation)
-  (g/defhandler key [g/abstract-number? g/abstract-number?] (make-numerical-combination key))
-  (g/defhandler key [number? g/abstract-number?] (make-numerical-combination key))
+  (g/defhandler key [g/abstract-number? g/abstract-number?]
+    (make-numerical-combination key))
+  (g/defhandler key [number? g/abstract-number?]
+    (make-numerical-combination key))
   (g/defhandler key [g/abstract-number? number?]
-    (make-numerical-combination key (if commutative? reverse identity))))
+    (make-numerical-combination key commutative?)))
 
 (make-binary-operation :+ + true)
 (make-binary-operation :* * true)
