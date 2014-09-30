@@ -52,31 +52,31 @@
               {:x '[a b a b] :y '[]}]
              (collect-all-results twin-segments-etc
                                   '(a b a b a b a b))))
-      (is (= [{:y '[a b a b a b a b], :x [], :w []}
-              {:y '[a b a b], :x '[a b], :w []}
-              {:y [], :x '[a b a b], :w []}
-              {:y '[b a b a b a b], :x [], :w '[a]}
-              {:y '[b a b], :x '[b a], :w '[a]}
-              {:y '[a b a b a b], :x [], :w '[a b]}
-              {:y '[a b], :x '[a b], :w '[a b]}
-              {:y '[b a b a b], :x [], :w '[a b a]}
-              {:y '[b], :x '[b a], :w '[a b a]}
-              {:y '[a b a b], :x [], :w '[a b a b]}
-              {:y [], :x '[a b], :w '[a b a b]}
-              {:y '[b a b], :x [], :w '[a b a b a]}
-              {:y '[a b], :x [], :w '[a b a b a b]}
-              {:y '[b], :x [], :w '[a b a b a b a]}
-              {:y [], :x [], :w '[a b a b a b a b]}]
+      (is (= '[{:y [a b a b a b a b], :x [], :w []}
+               {:y [a b a b], :x [a b], :w []}
+               {:y [], :x [a b a b], :w []}
+               {:y [b a b a b a b], :x [], :w [a]}
+               {:y [b a b], :x [b a], :w [a]}
+               {:y [a b a b a b], :x [], :w [a b]}
+               {:y [a b], :x [a b], :w [a b]}
+               {:y [b a b a b], :x [], :w [a b a]}
+               {:y [b], :x [b a], :w [a b a]}
+               {:y [a b a b], :x [], :w [a b a b]}
+               {:y [], :x [a b], :w [a b a b]}
+               {:y [b a b], :x [], :w [a b a b a]}
+               {:y [a b], :x [], :w [a b a b a b]}
+               {:y [b], :x [], :w [a b a b a b a]}
+               {:y [], :x [], :w [a b a b a b a b]}]
              (collect-all-results etc-twin-segments-etc '(a b a b a b a b))))
       ))
   ;; XXX redo this one once we have the pattern compiler implemented.
   ;; XXX interesting to note: difference between nil and () in this
   ;; example vs. the others.
   (testing "example-from-6.945-notes"
-    (is (= [{:y '[b b b b b b] :x []} 
-            {:y '[b b b b] :x '[b]} 
-            {:y '[b b] :x '[b b]} 
-            {:y [] :x '[b b b]}]
+    (is (= '[{:y [b b b b b b] :x []} 
+             {:y [b b b b] :x [b]} 
+             {:y [b b] :x [b b]} 
+             {:y [] :x [b b b]}]
            (collect-all-results (match-list (match-one 'a)
                                             (match-segment :x)
                                             (match-segment :y)
@@ -88,18 +88,26 @@
 
 (deftest monadic-matchers
   (testing "match-one-monadic"
-    (is (= [{} nil] ((match-one-monadic :a) {} [:a])))
-    (is (= [{} [:b]] ((match-one-monadic :a) {} [:a :b])))
-    (is (= [{} nil] ((match-one-monadic :a) {} [:c :b])))
-    (is (= [{} nil] ((match-one-monadic :a) {} [])))
-    (is (= [{} nil] ((match-one-monadic :a) {} nil)))
+    (is (= [[{} nil]] ((match-one-monadic :a) [{} [:a]])))
+    (is (= [[{} [:b]]] ((match-one-monadic :a) [{} [:a :b]])))
+    (is (= nil ((match-one-monadic :a) [{} [:c :b]])))
+    (is (= nil ((match-one-monadic :a) [{} []])))
+    (is (= nil ((match-one-monadic :a) [{} nil])))
     )
   (testing "match-var-monadic"
-    (is (= [{:x :a} nil] ((match-var-monadic :x) {} [:a])))
-    (is (= [{:x :b} [:a]] ((match-var-monadic :x) {} [:b :a])))
-    (is (= [{:x :b} [:a]] ((match-var-monadic :x) {:x :b} [:b :a])))
-    (is (= [{} nil] ((match-var-monadic :x) {:x :a} [:b :a])))
+    (is (= [[{:x :a} nil]] ((match-var-monadic :x) [{} [:a]])))
+    (is (= [[{:x :b} [:a]]] ((match-var-monadic :x) [{} [:b :a]])))
+    (is (= [[{:x :b} [:a]]] ((match-var-monadic :x) [{:x :b} [:b :a]])))
+    (is (= nil ((match-var-monadic :x) [{:x :a} [:b :a]])))
     )
   (testing "match-segment-monadic"
+    (is (= '[[{:x []} (a b c)]
+             [{:x [a]} (b c)]
+             [{:x [a b]} (c)]
+             [{:x [a b c]} ()]] ((match-segment-monadic :x) [{} '(a b c)])))
     )
   )
+
+
+
+
