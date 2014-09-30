@@ -1,6 +1,7 @@
 (ns math.numsymb
   (:require [math.generic :as g]
-            [math.expression :as x]))
+            [math.expression :as x]
+            [clojure.math.numeric-tower :as nt]))
 
 ;; N.B.: (define numerical-expression-canonicalizer #f)
 ;;       (define heuristic-number-canonicalizer #f)
@@ -33,10 +34,10 @@
 
 (defn- add [a b]
   (cond (and (number? a) (number? b)) (+ a b)
-        (number? a) (cond (zero? a) b
+        (number? a) (cond (g/zero? a) b
                           (sum? b) `(g/+ ~a ~@(operands b))
                           :else `(g/+ ~a ~b))
-        (number? b) (cond (zero? b) a
+        (number? b) (cond (g/zero? b) a
                           (sum? a) `(g/+ ,b ~@(operands a))
                           :else `(g/+ ~b, ~a))
         (sum? a) (cond (sum? b) `(g/+ ~@(operands a) ~@(operands b))
@@ -44,28 +45,28 @@
         (sum? b) `(g/+ ~a ~@(operands b))
         :else `(g/+ ~a ~b)))
 
-(defn add-n [& args]
+(defn- add-n [& args]
   (reduce add 0 args))
 
 (defn- sub [a b]
   (cond (and (number? a) (number? b)) (- a b)
-        (number? a) (if (zero? a) `(g/- ~b) `(g/- ~a ~b))
-        (number? b) (if (zero? b) a `(g/- ~a ~b))
+        (number? a) (if (g/zero? a) `(g/- ~b) `(g/- ~a ~b))
+        (number? b) (if (g/zero? b) a `(g/- ~a ~b))
         :else `(- ~a ~b)))
 
-(defn sub-n [& args]
-  (cond (empty? args) 0
-        (empty? (rest args)) (sub 0 (first args))
-        :else (sub (first args) (add-n (rest args)))))
+(defn- sub-n [& args]
+  (cond (nil? args) 0
+        (nil? (next args)) (sub 0 (first args))
+        :else (sub (first args) (add-n (next args)))))
 
 (defn- mul [a b]
   (cond (and (number? a) (number? b)) (* a b)
-        (number? a) (cond (zero? a) a
-                          (g/id*? a) b
+        (number? a) (cond (g/zero? a) a
+                          (g/one? a) b
                           (product? b) `(g/* ~a ~@(operands b))
                           :else `(g/* ~a ~b))
-        (number? b) (cond (zero? b) b
-                          (g/id*? b) a
+        (number? b) (cond (g/zero? b) b
+                          (g/one? b) a
                           (product? a) `(g/* ~b ~@(operands a))
                           :else `(g/* ~b ~a))
         (product? a) (cond (product? b) `(g/* ~@(operands a) ~@(operands b))
@@ -78,17 +79,17 @@
 
 (defn- div [a b]
   (cond (and (number? a) (number? b)) (/ a b)
-        (number? a) (if (zero? a) a `(g// ~a ~b))
-        (number? b) (cond (zero? b) (throw (IllegalArgumentException.
-                                            "division by zero"))
-                          (g/id*? b) a
+        (number? a) (if (g/zero? a) a `(g// ~a ~b))
+        (number? b) (cond (g/zero? b) (throw (IllegalArgumentException.
+                                              "division by zero"))
+                          (g/one? b) a
                           :else `(g// ~a ~b))
         :else `(g// ~a ~b)))
 
-(defn div-n [& args]
-  (cond (empty? args) 1
-        (empty? (rest args)) (div 1 (first args))
-        :else (div (first args) (apply mul-n (rest args)))))
+(defn- div-n [& args]
+  (cond (nil? args) 1
+        (nil? (next args)) (div 1 (first args))
+        :else (div (first args) (apply mul-n (next args)))))
 
 
 ;; END
@@ -102,89 +103,144 @@
           (if (empty? (rest neg))
             `(g/sub ;; this isn't finished!!!
               )))))))
+;;
+;; TRIG
+;;
+
+(def ^:private machine-epsilon
+  (loop [e 1.0]
+    (if (not= 1.0 (+ 1.0 (/ e 2.0)))
+      (recur (/ e 2.0))
+      e)))
+
+(def ^:private relative-integer-tolerance (* 100 machine-epsilon))
+(def ^:private absolute-integer-tolerance 1e-20)
+
+(defn- almost-integer? [x] ;; XXX make this private
+  (or (integer? x)
+      (and (float? x)
+           (let [z (Math/round x)]
+             (if (zero? z)
+               (< (Math/abs x) absolute-integer-tolerance)
+               (< (Math/abs (/ (- x z) z)) relative-integer-tolerance))))))
+
+(def ^:private pi Math/PI)
+(def ^:private pi-over-4 (/ pi 4))
+(def ^:private two-pi (* 2 pi))
+(def ^:private pi-over-2 (* 2 pi-over-4))
+;; (def ^:private pi-over-3 (/ pi 3))
+;; (def ^:private pi-over-6 (/ pi-over-2 3))
+
+(defn- n:zero-mod-pi? [x]
+  (almost-integer? (/ x pi)))
+(defn- symb:zero-mod-pi? [s]
+  (#{'-pi 'pi '-two-pi 'two-pi} s))
+(defn- n:pi-over-2-mod-2pi? [x]
+  (almost-integer? (/ (- x pi-over-2 two-pi))))
+(defn- symb:pi-over-2-mod-2pi? [s]
+  (#{'pi-over-2} s))
+(defn- n:-pi-over-2-mod-2pi? [x]
+  (almost-integer? (/ (+ x pi-over-2) two-pi)))
+(defn- symb:-pi-over-2-mod-2pi? [s]
+  (#{'-pi-over-2} s))
+(defn- n:pi-mod-2pi? [x]
+  (almost-integer? (/ (- x pi) two-pi)))
+(defn- symb:pi-mod-2pi? [s]
+  (#{'-pi 'pi} s))
+(defn- n:pi-over-2-mod-pi? [x]
+  (almost-integer? (/ (- x pi-over-2) pi)))
+(defn- symb:pi-over-2-mod-pi? [s]
+  (#{'-pi-over-2 'pi-over-2} s))
+(defn- n:zero-mod-2pi? [x]
+  (almost-integer? (/ x two-pi)))
+(defn- symb:zero-mod-2pi? [s]
+  (#{'-two-pi 'two-pi} s))
+(defn- n:-pi-over-4-mod-pi? [x]
+  (almost-integer? (/ (+ x pi-over-4) pi)))
+(defn- symb:-pi-over-4-mod-pi? [s]
+  (#{'-pi-over-4} s))
+
+;; (define (n:pi-over-4-mod-pi? x) (almost-integer? (/ (- x n:pi-over-4) n:pi)))
+;; (define (symb:pi-over-4-mod-pi? x) (memq x '(:pi-over-4 :+pi-over-4)))
+
+(defn- sine [x]
+  (cond (number? x) (if (g/exact? x)
+                      (if (zero? x) 0 `(g/sin ~x))
+                      (cond (n:zero-mod-pi? x) 0.0
+                            (n:pi-over-2-mod-2pi? x) 1.0
+                            (n:-pi-over-2-mod-2pi? x) -1.0
+                            :else (Math/sin x)))
+        (symbol? x) (cond (symb:zero-mod-pi? x) 0
+                          (symb:pi-over-2-mod-2pi? x) 1
+                          (symb:-pi-over-2-mod-2pi? x) -1
+                          :else `(g/sin ~x))
+        :else `(g/sin ~x)))
+
+(defn- cosine [x]
+  (cond (number? x) (if (g/exact? x)
+                      (if (zero? x) 1 `(g/cos ~x))
+                      (cond (n:pi-over-2-mod-pi? x) 0.0
+                            (n:zero-mod-2pi? x) 1.0
+                            (n:pi-mod-2pi? x) -1.0
+                            :else (Math/cos x)))
+	(symbol? x) (cond (symb:pi-over-2-mod-pi? x) 0
+                          (symb:zero-mod-2pi? x) +1
+                          (symb:pi-mod-2pi? x) -1
+                          :else `(g/cos ~x))
+	:else `(g/cos ~x)))
+
+(defn- cube [x]  ;; XXX redo with expt
+  (g/* x x x))
+
+(defn- square [x]
+  (g/* x x))
+
+(defn- abs [x]
+  (cond (number? x) (Math/abs x)
+	:else `(g/abs ~x)))
+
+(defn- sqrt [s]
+  (if (number? s)
+    (if-not (g/exact? s)
+      (nt/sqrt s)
+      (cond (g/zero? s) s
+            (g/one? s) :one
+            :else (let [q (nt/sqrt s)]
+                    (if (g/exact? q)
+                      q
+                      `(g/sqrt ~s)))))
+    `(g/sqrt ~s)))
+
+(defn- log [s]
+  (if (number? s)
+    (if-not (g/exact? s)
+      (Math/log s)
+      (if (g/one? s) 0 `(g/log ~s)))
+    `(g/log ~s)))
+
+(defn- exp [s]
+  (if (number? s)
+    (if-not (g/exact? s)
+      (Math/exp s)
+      (if (g/zero? s) 1 `(g/exp ~s)))
+    `(g/exp ~s)))
 
 (def ^:private symbolic-operator-table {:+ add-n
                                         :- sub-n
                                         :* mul-n
                                         :negate (fn [x] (sub 0 x))
-                                        :/ div-n})
-
-;; (define (sum? x)
-;;   (and (pair? x) (eq? (car x) '+)))
-
-;; (define (symb:addends expr) (cdr expr))
-
-;; (define (symb:+ a1 a2)
-;;   (cond ((and (number? a1) (number? a2)) (+ a1 a2))
-;;         ((number? a1)
-;; 	 (cond ((zero? a1) a2)
-;; 	       ((sum? a2)
-;; 		`(+ ,a1 ,@(operands a2)))
-;; 	       (else `(+ ,a1 ,a2))))
-;;         ((number? a2)
-;; 	 (cond ((zero? a2) a1)
-;; 	       ((sum? a1)
-;; 		`(+ ,a2 ,@(operands a1)))
-;; 	       (else `(+ ,a2 ,a1))))
-;; 	((sum? a1)
-;; 	 (cond ((sum? a2)
-;; 		`(+ ,@(operands a1) ,@(operands a2)))
-;; 	       (else `(+ ,@(operands a1) ,a2))))
-;; 	((sum? a2)
-;; 	 `(+ ,a1 ,@(operands a2)))
-;;         (else `(+ ,a1 ,a2))))
-
-;; (define (symb:add x y)
-;;   (if enable-constructor-simplifications?
-;;       (symb1:+ x y)
-;;       (symb:+ x y)))
-
-;; (define (symb:add:n args)
-;;   (cond ((null? args) :zero)
-;; 	((null? (cdr args)) (car args))
-;; 	(else
-;; 	 (let lp ((args (cddr args))
-;; 		  (ans (symb:add (car args) (cadr args))))
-;; 	   (if (null? args)
-;; 	       ans
-;; 	       (lp (cdr args)
-;; 		   (symb:add ans (car args))))))))
-
-;; (define (symb:sum . args)
-;;   (symb:add:n args))
-    
-;; (addto-symbolic-operator-table '+ symb:sum)
-
-;; (define (make-numsymb-expression operator-symbol operands)
-;;   (let ((operand-expressions (map numerical-expression operands)))
-;;     (let ((v (hash-table/get symbolic-operator-table operator-symbol #f)))
-;;       (if v
-;; 	  (let ((newexp (apply v operand-expressions)))
-;; 	    (make-literal number-type-tag
-;; 			  (if incremental-simplifier
-;; 			      (incremental-simplifier newexp)
-;; 			      newexp)))
-;; 	  (make-combination number-type-tag operator-symbol operands)))))
-
+                                        :invert (fn [x] (div 1 x))
+                                        :/ div-n
+                                        :sin sine
+                                        :cos cosine
+                                        :cube cube
+                                        :square square
+                                        :abs abs
+                                        :sqrt sqrt
+                                        :log log
+                                        :exp exp})
 
 ;; (define (numerical-expression expr)
-;;   (cond ((number? expr) ;; ok.
-;; 	 (if (and (inexact? expr) heuristic-number-canonicalizer)
-;; 	     (heuristic-number-canonicalizer expr)
-;; 	     expr)) ;; but h-n-c is false, so expr.
-;; 	((symbol? expr) expr) ;; ok, expr
-;; 	((literal-number? expr) 
-;; 	 (if numerical-expression-canonicalizer
-;; 	     (numerical-expression-canonicalizer (expression-of expr))
-;; 	     (expression-of expr)) 
-;; 	 (expression-of expr)) ;; but n-e-c is false, so (expression-of expr)
-;; 	((pair? expr) ;; works out to expr.
-;; 	 (cond ((memq (car expr) type-tags) expr)
-;; 	       (numerical-expression-canonicalizer
-;; 		(numerical-expression-canonicalizer expr))
-;; 	       (else expr)))
-;; 	(else expr)))
-;;
 ;; so this works out to expr, unless literal-number? expr, in which
 ;; case (expression-of expr).
 

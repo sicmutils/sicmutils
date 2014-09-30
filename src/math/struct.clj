@@ -7,6 +7,16 @@
 (defn- orientation [s]
   (or (:orientation (meta s)) :up))
 
+(defn with-orientation-of [s t]
+  (with-meta t {:orientation (orientation s)}))
+
+(extend-protocol g/Value
+  clojure.lang.PersistentVector
+  (zero? [x] (every? g/zero? x))
+  (one? [x] false)
+  (zero-like [x] (with-orientation-of x (vec (repeat (count x) 0))))
+  (exact? [x] (every? g/exact? x)))
+
 (def ^:private structure? vector?)
 
 (defn- row? [s]
@@ -14,9 +24,6 @@
 
 (defn- column? [s]
   (and (structure? s) (= (orientation s) :up)))
-
-(defn- with-orientation-of [s t]
-  (with-meta t {:orientation (orientation s)}))
 
 (defn- elementwise [op s t]
   (if (= (count s) (count t))
@@ -26,19 +33,6 @@
 
 (defn- scalar-multiply [a s]
   (with-orientation-of s (vec (map #(g/* a %) s))))
-
-;; (* <s1> <s2>) ==> <s> or <x> , a structure or a number
-
-;; magically does what you want: If the structures are compatible for
-;; contraction the product is the contraction (the sum of the products of
-;; the corresponding components.)  If the structures are not compatible
-;; for contraction the product is the structure of the shape and length
-;; of <s2> whose components are the products of <s1> with the
-;; corresponding components of <s2>.  
-
-;; Structures are compatible for contraction if they are of the same
-;; length, of opposite type, and if their corresponding elements are
-;; compatible for contraction.
 
 (defn- compatible-for-contraction? [s t]
   (and (= (count s) (count t))
@@ -55,9 +49,6 @@
     (inner-product s t)
     (outer-product s t)))
 
-;;(defn- )
-
-
 (g/defhandler :+   [row? row?]          (partial elementwise g/+))
 (g/defhandler :+   [column? column?]    (partial elementwise g/+)) 
 (g/defhandler :-   [row? row?]          (partial elementwise g/-))
@@ -67,6 +58,10 @@
 (g/defhandler :/   [structure? number?] #(scalar-multiply (/ %2) %1))
 (g/defhandler :*   [structure? structure?] mul)
 
+(g/defhandler :square [structure?]
+  (fn [s] (inner-product s s)))
+(g/defhandler :cube [structure?]  ; XXX redo with expt?
+  (fn [s] (g/* s s s))) 
 (g/defhandler :negate [structure?]
   (fn [s] (with-orientation-of s (vec (map g/negate s)))))
 

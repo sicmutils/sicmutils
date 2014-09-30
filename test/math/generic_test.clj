@@ -1,5 +1,5 @@
 (ns math.generic-test
-  (:refer-clojure :exclude [+ - * /])
+  (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.test :refer :all]
             [math.generic :refer :all]))
 
@@ -39,7 +39,11 @@
   [s t]
   (apply str(for [cs s ct t] (str cs ct))))
 
-(def any? (constantly true))
+(extend-protocol Value
+  java.lang.String
+  (zero? [x] (= x ""))
+  (one? [x] false)
+  (zero-like [x] ""))
 
 (defhandler :* [number? string?] multiply-string)
 (defhandler :* [string? string?] product-string)

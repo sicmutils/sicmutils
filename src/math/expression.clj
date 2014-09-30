@@ -2,12 +2,13 @@
 
 ;; NB: we aren't wrapping literals with (expression ...) as GJS does.
 ;; might come back to bite us.
-(defn make-literal [type expression] (with-meta expression {:type :number}))
+(defn make-literal [type expression]
+  (with-meta expression {:generic-type :number}))
 
 (defn make-numeric-literal [expression]
   (if (number? expression)
     expression
-    (make-literal '*number* expression)))
+    (make-literal :number expression)))
 
 ;; this guy goes in here. metadata? or a Value?
 ;; expression of type T? predicate for experssionator?

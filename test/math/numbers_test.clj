@@ -27,6 +27,16 @@
     (is (= 1/4 (g// 1 2 2)))
     (is (= 1/8 (g// 1 2 2 2)))
     (is (= 2.14 (g/- 3.14 1))))
+  (testing "trig"
+    (is (= 1.0 (g/cos 0)))
+    (is (= 0.0 (g/sin 0)))
+    )
+  (testing "square/cube"
+    (is (= 4 (g/square 2)))
+    (is (= 4 (g/square -2)))
+    (is (= 27 (g/cube 3)))
+    (is (= -27 (g/cube -3)))
+    )
   (testing "with-symbols"
     (is (= '(math.generic/+ 4 x) (g/+ 4 'x)))
     (is (= '(math.generic/+ 5 y) (g/+ 'y 5)))
@@ -58,5 +68,37 @@
     (is (= '(math.generic/- x) (g/- 0 'x)))
     (is (= -4 (g/- 4)))
     (is (= -4.2 (g/- 4.2)))
-    ))
+    )
+  (testing "zero?"
+    (is (g/zero? 0))
+    (is (not (g/zero? 1)))
+    (is (g/zero? 0.0))
+    (is (not (g/zero? 1.0)))
+    (is (g/one? 1))
+    (is (not (g/one? 2)))
+    (is (g/one? 1.0))
+    (is (not (g/one? 0.0)))
+    )
+  (testing "zero-like"
+    (is (= 0 (g/zero-like 2)))
+    (is (= 0.0 (g/zero-like 3.14)))
+    )
+  (testing "abs"
+    (is (= 1 (g/abs -1)))
+    (is (= 1 (g/abs 1)))
+    (is (= '(math.generic/abs x) (g/abs 'x)))
+    )
+  (testing "sqrt"
+    (is (= 9 (g/sqrt 81)))
+    (is (= '(math.generic/sqrt x) (g/sqrt 'x)))
+    )
+  (testing "exp/log"
+    (is (= 1.0 (g/exp 0)))
+    (is (= '(math.generic/exp x) (g/exp 'x)))
+    (is (= 0.0 (g/log 1)))
+    (is (= '(math.generic/log x) (g/log 'x)))
+    (is (= 0.0 (g/log (g/exp 0))))
+    )
+)
+  
 

@@ -2,23 +2,27 @@
   (:refer-clojure :rename {+ core-+
                            - core--
                            / core-div
-                           * core-*}))
+                           * core-*
+                           zero? core-zero?}))
 
 (defprotocol Value
-  (id+? [this])
-  (id*? [this])
-  (zero-like [this]))
+  (zero? [this])
+  (one? [this])
+  (zero-like [this])
+  (exact? [this]))
 
 (extend-protocol Value
   Object
-  (id+? [x] false)
-  (id*? [x] false)
+  (zero? [x] false)
+  (one? [x] false)
   (zero-like [x] (throw (IllegalArgumentException.
                          (str "nothing zero-like for " x))))
+  (exact? [x] false)
   clojure.lang.Symbol
-  (id+? [x] false)
-  (id*? [x] false)
-  (zero-like [x] 0))
+  (zero? [x] false)
+  (one? [x] false)
+  (zero-like [x] 0)
+  )
 
 (def empty-dtree {:steps {} :stop nil})
 (def ^:private the-operator-table (atom {}))
@@ -76,11 +80,20 @@
 (def ^:private div (make-operation :/))
 (def negate (make-operation :negate))
 (def invert (make-operation :invert))
+(def sin (make-operation :sin))
+(def cos (make-operation :cos))
+(def square (make-operation :square))
+(def cube (make-operation :cube))
+(def abs (make-operation :abs))
+(def sqrt (make-operation :sqrt))
+(def expt (make-operation :expt))
+(def exp (make-operation :exp))
+(def log (make-operation :log))
 
 (defn- bin+ [a b]
   (cond (and (number? a) (number? b)) (core-+ a b)
-        (id+? a) b
-        (id+? b) a
+        (zero? a) b
+        (zero? b) a
         :else (add a b))
   )
 
@@ -89,8 +102,8 @@
 
 (defn- bin- [a b]
   (cond (and (number? a) (number? b)) (core-- a b)
-        (id+? b) a
-        (id+? a) (negate b)
+        (zero? b) a
+        (zero? a) (negate b)
         :else (sub a b)))
 
 (defn - [& args]
@@ -102,8 +115,8 @@
   (cond (and (number? a) (number? b)) (core-* a b)
         (and (number? a) (zero? a)) (zero-like b)
         (and (number? b) (zero? b)) (zero-like a)
-        (id*? a) b
-        (id*? b) a
+        (one? a) b
+        (one? b) a
         :else (mul a b)))
 
 ;;; In bin* we test for exact (numerical) zero 
@@ -122,16 +135,16 @@
 
 (defn bin-div [a b]
   (cond (and (number? a) (number? b)) (core-div a b)
-        (id*? b) a
+        (one? b) a
         :else (div a b)))
 
 (defn / [& args]
-  (cond (empty? args) 1
-        (empty? (rest args)) (invert (first args))
-        :else (bin-div (first args) (apply * (rest args)))))
+  (cond (nil? args) 1
+        (nil? (next args)) (invert (first args))
+        :else (bin-div (first args) (apply * (next args)))))
 
 (defn literal-number? [x]
-  (= :number (:type (meta x))))
+  (= :number (:generic-type (meta x))))
 
 (defn abstract-number? [x]
   (or (symbol? x) (literal-number? x)))
