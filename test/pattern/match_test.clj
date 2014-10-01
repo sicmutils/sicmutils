@@ -111,7 +111,7 @@
     (is (= [[{:a :x :b :y} nil]] ((match-list-monadic) [{:a :x :b :y} nil])))
     (is (= '[[{:y [a b a b a b a b], :x [], :w []} ()]
              [{:y [a b a b], :x [a b], :w []} ()]
-             [{:y [], :x [a b a b], :w []} nil]
+             [{:y [], :x [a b a b], :w []} ()]
              [{:y [b a b a b a b], :x [], :w [a]} ()]
              [{:y [b a b], :x [b a], :w [a]} ()]
              [{:y [a b a b a b], :x [], :w [a b]} ()]
@@ -119,7 +119,7 @@
              [{:y [b a b a b], :x [], :w [a b a]} ()]
              [{:y [b], :x [b a], :w [a b a]} ()]
              [{:y [a b a b], :x [], :w [a b a b]} ()]
-             [{:y [], :x [a b], :w [a b a b]} nil]
+             [{:y [], :x [a b], :w [a b a b]} ()]
              [{:y [b a b], :x [], :w [a b a b a]} ()]
              [{:y [a b], :x [], :w [a b a b a b]} ()]
              [{:y [b], :x [], :w [a b a b a b a]} ()]

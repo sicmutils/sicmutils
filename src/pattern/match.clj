@@ -27,21 +27,14 @@
 
 (defn match-segment-monadic [var]
   (fn [[frame xs]]
-    (let [binding (frame var)]
+    (let [binding (frame var)
+          binding-count (count binding)]
       (if binding
-        ;; segement value is bound; succeed if it recurs here
-        (loop [xs xs
-               binding binding]
-          (if (empty? binding)
-            ;; xxx redo this with and 
-            [[frame xs]]
-            (if (some? xs)
-              (if (= (first xs) (first binding))
-                (recur (next xs) (next binding))
-                ))
-            ))
-        ;; segment value is unbound. generate a lazy sequence
-        ;; of possible parses
+        ;; segment value is bound; succeed if segment matches binding
+        (if (and (>= (count xs) binding-count)
+                 (every? identity (map = binding xs)))
+          [[frame (drop binding-count xs)]])
+        ;; unbound; succeed with set of matches avaialable here
         (map (fn [[before after]]
                [(assoc frame var before) after])
              (segments xs))
