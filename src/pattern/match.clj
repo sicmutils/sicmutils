@@ -12,10 +12,9 @@
 
 (defn match-var-monadic [var]
   (fn [[frame [x & xs]]]
-    (let [binding (frame var)]
-      (if binding
-        (if (= binding x) [[frame xs]])
-        [[(assoc frame var x) xs]]))))
+    (if-let [binding (frame var)]
+      (if (= binding x) [[frame xs]])
+      [[(assoc frame var x) xs]])))
 
 (defn segments [xs]
   (defn step [l r]
@@ -27,25 +26,24 @@
 
 (defn match-segment-monadic [var]
   (fn [[frame xs]]
-    (let [binding (frame var)]
-      (if binding
-        ;; segement value is bound; succeed if it recurs here
-        (loop [xs xs
-               binding binding]
-          (if (empty? binding)
-            ;; xxx redo this with and 
-            [[frame xs]]
-            (if (some? xs)
-              (if (= (first xs) (first binding))
-                (recur (next xs) (next binding))
-                ))
-            ))
-        ;; segment value is unbound. generate a lazy sequence
-        ;; of possible parses
-        (map (fn [[before after]]
-               [(assoc frame var before) after])
-             (segments xs))
-        ))
+    (if-let [binding (frame var)]
+      ;; segement value is bound; succeed if it recurs here
+      (loop [xs xs
+             binding binding]
+        (if (empty? binding)
+          ;; xxx redo this with and 
+          [[frame xs]]
+          (if (some? xs)
+            (if (= (first xs) (first binding))
+              (recur (next xs) (next binding))
+              ))
+          ))
+      ;; segment value is unbound. generate a lazy sequence
+      ;; of possible parses
+      (map (fn [[before after]]
+             [(assoc frame var before) after])
+           (segments xs))
+      )
     )
   )
 
@@ -63,10 +61,9 @@
 
 (defn match-var [var]
   (fn [frame [x & xs] succeed]
-    (let [binding (frame var)]
-      (if binding
-        (and (= binding x) (succeed frame xs))
-        (succeed (assoc frame var x) xs)))))
+    (if-let [binding (frame var)]
+      (and (= binding x) (succeed frame xs))
+      (succeed (assoc frame var x) xs))))
 
 (defn match-segment [var]
   (fn [frame xs succeed]
