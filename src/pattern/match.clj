@@ -12,10 +12,9 @@
 
 (defn match-var-monadic [var]
   (fn [[frame [x & xs]]]
-    (let [binding (frame var)]
-      (if binding
-        (if (= binding x) [[frame xs]])
-        [[(assoc frame var x) xs]]))))
+    (if-let [binding (frame var)]
+      (if (= binding x) [[frame xs]])
+      [[(assoc frame var x) xs]])))
 
 (defn segments [xs]
   (defn step [l r]
@@ -27,20 +26,16 @@
 
 (defn match-segment-monadic [var]
   (fn [[frame xs]]
-    (let [binding (frame var)
-          binding-count (count binding)]
-      (if binding
-        ;; segment value is bound; succeed if segment matches binding
+    (if-let [binding (frame var)]
+      ;; segement value is bound; succeed if it recurs here
+      (let [binding-count (count binding)]
         (if (and (>= (count xs) binding-count)
                  (every? identity (map = binding xs)))
-          [[frame (drop binding-count xs)]])
-        ;; unbound; succeed with set of matches avaialable here
-        (map (fn [[before after]]
-               [(assoc frame var before) after])
-             (segments xs))
-        ))
-    )
-  )
+          [[frame (drop binding-count xs)]]))
+      ;; segment value unbound; bind it to all segments beginning here
+      (map (fn [[before after]]
+             [(assoc frame var before) after])
+             (segments xs)))))
 
 ;; TODO: partial applications of map & filter! these should be
 ;; reconsidered when we get to Clojure 1.7.
@@ -56,10 +51,9 @@
 
 (defn match-var [var]
   (fn [frame [x & xs] succeed]
-    (let [binding (frame var)]
-      (if binding
-        (and (= binding x) (succeed frame xs))
-        (succeed (assoc frame var x) xs)))))
+    (if-let [binding (frame var)]
+      (and (= binding x) (succeed frame xs))
+      (succeed (assoc frame var x) xs))))
 
 (defn match-segment [var]
   (fn [frame xs succeed]

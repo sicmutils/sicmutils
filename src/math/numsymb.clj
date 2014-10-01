@@ -10,7 +10,6 @@
 (declare symbolic-operator-table)
 (defn- numerical-expression [expr] expr)
 
-;; XXX use if-let here
 (defn make-numsymb-expression [operator operands]
   (let [operand-exprs (map numerical-expression operands)
         v (operator symbolic-operator-table)]
@@ -240,27 +239,6 @@
                                         :log log
                                         :exp exp})
 
-;; (define (numerical-expression expr)
-;; so this works out to expr, unless literal-number? expr, in which
-;; case (expression-of expr).
-
-;; (define (literal-number? x)
-;;   (and (pair? x)
-;;        (eq? (car x) number-type-tag)))
-
-;; this comes from: express.scm
-
-;; (define (expression-of abstract-quantity)
-;;   (cond ((pair? abstract-quantity)
-;; 	 (let ((v (assq 'expression (cdr abstract-quantity))))
-;; 	   (if v
-;; 	       (cadr v)
-;; 	       (error "No expression for abstract quantity"
-;; 		      abstract-quantity))))
-;; 	((symbol? abstract-quantity)
-;; 	 abstract-quantity)
-;; 	(else
-;; 	 (error "Bad abstract quantity"))))
 
 
 
