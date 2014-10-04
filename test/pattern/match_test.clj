@@ -115,13 +115,26 @@
 
 (deftest subsitutions
   (testing "simple"
+    (is (= 99 (substitute {:x 11 :y 22} 99)))
     (is (= [11 33 22]
            (substitute {:x 11 :y 22}
                        '([:! :x] 33 [:! :y]) )))
+
+    )
+  (testing "splicing"
     (is (= '[a b c d [e f]]
            (substitute {:x 'a :ys '[b c d] :z '[e f]}
                        '([:! :x] [:!! :ys] [:! :z]))) )
-    (is (= '[a b [c 88 77 66 k] c]
-           (substitute {:x 88 :y [77 66] :z 'c}
-                       '(a b [c [:! :x] [:!! :y] k] [:! :z]))))
-    ))
+    (is (= '[a b c d e f]
+           (substitute {:x '[a b] :y '[c d] :z '[e f]}
+                       '([:!! :x] [:!! :y] [:!! :z]))) )
+    (is (= '[0 a b 1 c d 2 e f 3]
+           (substitute {:x '[a b] :y '[c d] :z '[e f]}
+                       '(0 [:!! :x] 1 [:!! :y] 2 [:!! :z] 3))))
+    )
+  )
+
+(deftest match-and-substitute
+  (testing "manually"
+    (let [])
+          ))

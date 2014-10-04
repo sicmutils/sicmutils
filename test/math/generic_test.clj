@@ -43,11 +43,15 @@
   java.lang.String
   (zero? [x] (= x ""))
   (one? [x] false)
-  (zero-like [x] ""))
+  (zero-like [x] "")
+  (sort-key [x] 25))
 
 (defhandler :* [number? string?] multiply-string)
-(defhandler :* [string? string?] product-string)
-(defhandler :+ [string? string?] str)
+(defhandler :s* [string? string?] product-string)
+(defhandler :s+ [string? string?] str)
+
+(def s+ (make-operation :s+))
+(def s* (make-operation :s*))
 
 (deftest handler-fn
   (testing "multiply-string"
@@ -60,13 +64,13 @@
   (testing "mul"
     (is (= "bazbaz" (* 2 "baz")))
     (is (= "quxquxqux" (* 3 "qux")))
-    (is (thrown? IllegalArgumentException
+    (is (= "quxquxqux"
                  (* "qux" 3)))
-    (is (= "cecrcicnoeoroionlelrlilnieiriiinnenrninn" (* "colin" "erin")))
-    (is (= "eceoeleienrcrorlrirnicioiliiinncnonlninn" (* "erin" "colin"))))
+    (is (= "cecrcicnoeoroionlelrlilnieiriiinnenrninn" (s* "colin" "erin")))
+    (is (= "eceoeleienrcrorlrirnicioiliiinncnonlninn" (s* "erin" "colin"))))
   (testing "add"
-    (is (= "foobar" (+ "foo" "bar")))
-    (is (= "zzz" (+ "" "zzz")))
+    (is (= "foobar" (s+ "foo" "bar")))
+    (is (= "zzz" (s+ "" "zzz")))
     ))
 
 (deftest generic-plus
@@ -77,4 +81,3 @@
   (testing "many"
     (is (= 33 (+ 3 4 5 6 7 8))))
   )
-

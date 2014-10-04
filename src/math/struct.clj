@@ -15,7 +15,8 @@
   (zero? [x] (every? g/zero? x))
   (one? [x] false)
   (zero-like [x] (with-orientation-of x (vec (repeat (count x) 0))))
-  (exact? [x] (every? g/exact? x)))
+  (exact? [x] (every? g/exact? x))
+  (sort-key [x] 20))
 
 (def ^:private structure? vector?)
 
@@ -50,7 +51,7 @@
     (outer-product s t)))
 
 (g/defhandler :+   [row? row?]          (partial elementwise g/+))
-(g/defhandler :+   [column? column?]    (partial elementwise g/+)) 
+(g/defhandler :+   [column? column?]    (partial elementwise g/+))
 (g/defhandler :-   [row? row?]          (partial elementwise g/-))
 (g/defhandler :-   [column? column?]    (partial elementwise g/-))
 (g/defhandler :*   [number? structure?] scalar-multiply)
@@ -61,10 +62,8 @@
 (g/defhandler :square [structure?]
   (fn [s] (inner-product s s)))
 (g/defhandler :cube [structure?]  ; XXX redo with expt?
-  (fn [s] (g/* s s s))) 
+  (fn [s] (g/* s s s)))
 (g/defhandler :negate [structure?]
   (fn [s] (with-orientation-of s (vec (map g/negate s)))))
 
 (println "struct initialized")
-
-

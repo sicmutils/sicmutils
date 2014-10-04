@@ -9,7 +9,9 @@
   (zero? [this])
   (one? [this])
   (zero-like [this])
-  (exact? [this]))
+  (exact? [this])
+  (sort-key [this])
+  )
 
 (extend-protocol Value
   Object
@@ -18,10 +20,12 @@
   (zero-like [x] (throw (IllegalArgumentException.
                          (str "nothing zero-like for " x))))
   (exact? [x] false)
+  (sort-key [x] 99)
   clojure.lang.Symbol
   (zero? [x] false)
   (one? [x] false)
   (zero-like [x] 0)
+  (sort-key [x] 90)
   )
 
 (def empty-dtree {:steps {} :stop nil})
@@ -90,6 +94,9 @@
 (def exp (make-operation :exp))
 (def log (make-operation :log))
 
+(defn canonical-order [args]
+  (sort-by sort-key args))
+
 (defn- bin+ [a b]
   (cond (and (number? a) (number? b)) (core-+ a b)
         (zero? a) b
@@ -98,7 +105,7 @@
   )
 
 (defn + [& args]
-  (reduce bin+ 0 args))
+  (reduce bin+ 0 (canonical-order args)))
 
 (defn- bin- [a b]
   (cond (and (number? a) (number? b)) (core-- a b)
@@ -119,19 +126,19 @@
         (one? b) a
         :else (mul a b)))
 
-;;; In bin* we test for exact (numerical) zero 
-;;; because it is possible to produce a wrong-type 
+;;; In bin* we test for exact (numerical) zero
+;;; because it is possible to produce a wrong-type
 ;;; zero here, as follows:
 ;;;
-;;;		  |0|             |0|
-;;;	  |a b c| |0|   |0|       |0|
-;;;	  |d e f| |0| = |0|, not  |0|
+;;;               |0|             |0|
+;;;       |a b c| |0|   |0|       |0|
+;;;       |d e f| |0| = |0|, not  |0|
 ;;;
 ;;; We are less worried about the zero? below,
 ;;; because any invertible matrix is square.
 
 (defn * [& args]
-  (reduce bin* 1 args))
+  (reduce bin* 1 (canonical-order args)))
 
 (defn bin-div [a b]
   (cond (and (number? a) (number? b)) (core-div a b)
@@ -148,15 +155,3 @@
 
 (defn abstract-number? [x]
   (or (symbol? x) (literal-number? x)))
-
-;; we also have this to contend with:
-
-;; (define (literal-number? x)
-;;   (and (pair? x)
-;;        (eq? (car x) number-type-tag)))
-
-
-
-
-
-

@@ -90,7 +90,6 @@
         (nil? (next args)) (div 1 (first args))
         :else (div (first args) (apply mul-n (next args)))))
 
-
 ;; END
 
 (defn- addup-args-notfinished [pos neg]
@@ -182,11 +181,11 @@
                             (n:zero-mod-2pi? x) 1.0
                             (n:pi-mod-2pi? x) -1.0
                             :else (Math/cos x)))
-	(symbol? x) (cond (symb:pi-over-2-mod-pi? x) 0
+        (symbol? x) (cond (symb:pi-over-2-mod-pi? x) 0
                           (symb:zero-mod-2pi? x) +1
                           (symb:pi-mod-2pi? x) -1
                           :else `(g/cos ~x))
-	:else `(g/cos ~x)))
+        :else `(g/cos ~x)))
 
 (defn- cube [x]  ;; XXX redo with expt
   (g/* x x x))
@@ -196,7 +195,7 @@
 
 (defn- abs [x]
   (cond (number? x) (Math/abs x)
-	:else `(g/abs ~x)))
+        :else `(g/abs ~x)))
 
 (defn- sqrt [s]
   (if (number? s)
@@ -238,10 +237,3 @@
                                         :sqrt sqrt
                                         :log log
                                         :exp exp})
-
-
-
-
-
-
-

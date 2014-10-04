@@ -12,16 +12,19 @@
   (one? [x] (= x 1))
   (zero-like [x] 0)
   (exact? [x] true)
+  (sort-key [x] 10)
   Double
   (zero? [x] (= x 0.0))
   (one? [x] (= x 1.0))
   (zero-like [x] 0.0)
   (exact? [x] false)
+  (sort-key [x] 10)
   clojure.lang.Ratio
   (zero? [x] (= x 0))
   (one? [x] (= x 1))
   (zero-like [x] 0)
   (exact? [x] true)
+  (sort-key [x] 10)
   )
 
 (defn- make-numerical-combination
