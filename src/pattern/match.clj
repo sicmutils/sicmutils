@@ -34,7 +34,7 @@
                       ((first matchers) frame as
                        (fn [new-frame new-as]
                          (step new-as (rest matchers) new-frame)))
-                      (not (empty? as)) false
+                      (not (empty? as)) false ;; XXX test comment delete me
                       (empty? as) (succeed frame (rest xs))
                       :else false))]
         (step (first xs) matchers frame)))))
@@ -46,9 +46,23 @@
           :else (apply match-list (map pattern->matcher pattern)))
     (match-one pattern)))
 
+(defn- variable-reference? [x]
+  (and (sequential? x)
+       (= (first x) :!)))
 
+(defn- segment-reference? [x]
+  (and (sequential? x)
+       (= (first x) :!!)))
 
-
-
-
-
+(defn substitute [frame form]
+  (if (sequential? form)
+    (loop [result []
+           [x & xs] form]
+      (if x
+        (cond (variable-reference? x) (recur (conj result (frame (second x))) xs)
+              (segment-reference? x) (recur (into result (frame (second x))) xs)
+              :else (recur (conj result (substitute frame x)) xs)
+              )
+        result))
+    form
+    ))

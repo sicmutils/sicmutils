@@ -7,7 +7,7 @@
     (matcher {} (list data) receive)))
 
 (defn- receive [frame xs] [frame xs])
-(defn- collect-all-results [matcher input & tails] 
+(defn- collect-all-results [matcher input & tails]
   (let [results (atom [])]
     (matcher (sorted-map) input (fn [frame xs]
                         (swap! results conj
@@ -75,9 +75,9 @@
       ))
   ;; XXX redo this one once we have the pattern compiler implemented.
   (testing "example-from-6.945-notes"
-    (is (= '[{:y [b b b b b b] :x []} 
-             {:y [b b b b] :x [b]} 
-             {:y [b b] :x [b b]} 
+    (is (= '[{:y [b b b b b b] :x []}
+             {:y [b b b b] :x [b]}
+             {:y [b b] :x [b b]}
              {:y [] :x [b b b]}]
            (collect-all-results (match-list (match-one 'a)
                                             (match-segment :x)
@@ -113,3 +113,15 @@
       (is (not (test-match match-x-ys-x [2 3 4 5 6]))))
     ))
 
+(deftest subsitutions
+  (testing "simple"
+    (is (= [11 33 22]
+           (substitute {:x 11 :y 22}
+                       '([:! :x] 33 [:! :y]) )))
+    (is (= '[a b c d [e f]]
+           (substitute {:x 'a :ys '[b c d] :z '[e f]}
+                       '([:! :x] [:!! :ys] [:! :z]))) )
+    (is (= '[a b [c 88 77 66 k] c]
+           (substitute {:x 88 :y [77 66] :z 'c}
+                       '(a b [c [:! :x] [:!! :y] k] [:! :z]))))
+    ))
