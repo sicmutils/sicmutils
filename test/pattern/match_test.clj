@@ -2,6 +2,10 @@
   (:require [clojure.test :refer :all]
             [pattern.match :refer :all]))
 
+(defn- test-match [matcher data]
+  (let [receive (fn [frame data] frame)]
+    (matcher {} (list data) receive)))
+
 (defn- receive [frame xs] [frame xs])
 (defn- collect-all-results [matcher input & tails] 
   (let [results (atom [])]
@@ -41,17 +45,17 @@
                                             (match-segment :x)
                                             (match-segment :x)
                                             (match-segment :y))]
-      (is (= [{:x '[a b c]} ()] (twin-segments {} '(a b c a b c) receive)))
-      (is (= nil (twin-segments {} '(a b c a b d) receive)))
-      (is (= nil (twin-segments {} '(a b c a b c d e) receive)))
+      (is (= {:x '[a b c]} (test-match twin-segments '(a b c a b c))))
+      (is (= nil (test-match twin-segments '(a b c a b d))))
+      (is (= nil (test-match twin-segments '(a b c a b c d e))))
       (is (= [{:x [] :y '[a b c a b c d e]}
               {:x '[a b c] :y '[d e]} ]
-             (collect-all-results twin-segments-etc '(a b c a b c d e))))
+             (collect-all-results twin-segments-etc '((a b c a b c d e)))))
       (is (= [{:x [] :y '[a b a b a b a b]}
               {:x '[a b] :y '[a b a b]}
               {:x '[a b a b] :y '[]}]
              (collect-all-results twin-segments-etc
-                                  '(a b a b a b a b))))
+                                  '((a b a b a b a b)))))
       (is (= '[{:y [a b a b a b a b], :x [], :w []}
                {:y [a b a b], :x [a b], :w []}
                {:y [], :x [a b a b], :w []}
@@ -67,11 +71,9 @@
                {:y [a b], :x [], :w [a b a b a b]}
                {:y [b], :x [], :w [a b a b a b a]}
                {:y [], :x [], :w [a b a b a b a b]}]
-             (collect-all-results etc-twin-segments-etc '(a b a b a b a b))))
+             (collect-all-results etc-twin-segments-etc '((a b a b a b a b)))))
       ))
   ;; XXX redo this one once we have the pattern compiler implemented.
-  ;; XXX interesting to note: difference between nil and () in this
-  ;; example vs. the others.
   (testing "example-from-6.945-notes"
     (is (= '[{:y [b b b b b b] :x []} 
              {:y [b b b b] :x [b]} 
@@ -82,56 +84,17 @@
                                             (match-segment :y)
                                             (match-segment :x)
                                             (match-one 'c))
-                                '(a b b b b b b c))))
+                                '((a b b b b b b c)))))
+    )
+  (testing "an expression"
+    (let [expr (match-list (match-list (match-one '*)
+                                       (match-var :a)
+                                       (match-var :c))
+                           (match-list (match-one '*)
+                                       (match-var :b)
+                                       (match-var :c)))]
+      (is (= '{:a 3 :b 4 :c x} (test-match expr '((* 3 x) (* 4 x)))))
+      )
     )
   )
-
-(deftest monadic-matchers
-  (testing "match-one-monadic"
-    (is (= [[{} nil]] ((match-one-monadic :a) [{} [:a]])))
-    (is (= [[{} [:b]]] ((match-one-monadic :a) [{} [:a :b]])))
-    (is (= nil ((match-one-monadic :a) [{} [:c :b]])))
-    (is (= nil ((match-one-monadic :a) [{} []])))
-    (is (= nil ((match-one-monadic :a) [{} nil])))
-    )
-  (testing "match-var-monadic"
-    (is (= [[{:x :a} nil]] ((match-var-monadic :x) [{} [:a]])))
-    (is (= [[{:x :b} [:a]]] ((match-var-monadic :x) [{} [:b :a]])))
-    (is (= [[{:x :b} [:a]]] ((match-var-monadic :x) [{:x :b} [:b :a]])))
-    (is (empty? ((match-var-monadic :x) [{:x :a} [:b :a]])))
-    )
-  (testing "match-segment-monadic"
-    (is (= '[[{:x []} (a b c)]
-             [{:x [a]} (b c)]
-             [{:x [a b]} (c)]
-             [{:x [a b c]} ()]] ((match-segment-monadic :x) [{} '(a b c)])))
-    )
-  (testing "match-list-monadic"
-    (is (empty? ((match-list-monadic) [{} '(a b)])))
-    (is (= [[{:a :x :b :y} nil]] ((match-list-monadic) [{:a :x :b :y} nil])))
-    (is (= '[[{:y [a b a b a b a b], :x [], :w []} ()]
-             [{:y [a b a b], :x [a b], :w []} ()]
-             [{:y [], :x [a b a b], :w []} ()]
-             [{:y [b a b a b a b], :x [], :w [a]} ()]
-             [{:y [b a b], :x [b a], :w [a]} ()]
-             [{:y [a b a b a b], :x [], :w [a b]} ()]
-             [{:y [a b], :x [a b], :w [a b]} ()]
-             [{:y [b a b a b], :x [], :w [a b a]} ()]
-             [{:y [b], :x [b a], :w [a b a]} ()]
-             [{:y [a b a b], :x [], :w [a b a b]} ()]
-             [{:y [], :x [a b], :w [a b a b]} ()]
-             [{:y [b a b], :x [], :w [a b a b a]} ()]
-             [{:y [a b], :x [], :w [a b a b a b]} ()]
-             [{:y [b], :x [], :w [a b a b a b a]} ()]
-             [{:y [], :x [], :w [a b a b a b a b]} ()]]
-           ((match-list-monadic (match-segment-monadic :w)
-                                (match-segment-monadic :x)
-                                (match-segment-monadic :x)
-                                (match-segment-monadic :y))
-            [{} '(a b a b a b a b)])))
-    )
-  )
-
-
-
 
