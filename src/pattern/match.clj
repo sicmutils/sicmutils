@@ -24,8 +24,7 @@
       (loop [before [] after xs]
         (or (succeed (assoc frame var before) after)
             (if-not (empty? after)
-              (recur (conj before (first after)) (rest after)))))
-      )))
+              (recur (conj before (first after)) (rest after))))))))
 
 (defn match-list [& matchers]
   (fn [frame xs succeed]
@@ -39,6 +38,13 @@
                       (empty? as) (succeed frame (rest xs))
                       :else false))]
         (step (first xs) matchers frame)))))
+
+(defn pattern->matcher [pattern]
+  (if (sequential? pattern)
+    (cond (= (first pattern) :?) (match-var (second pattern))
+          (= (first pattern) :??) (match-segment (second pattern))
+          :else (apply match-list (map pattern->matcher pattern)))
+    (match-one pattern)))
 
 
 
