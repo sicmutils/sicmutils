@@ -6,6 +6,12 @@
   (let [receive (fn [frame data] (if (empty? data) frame))]
     (matcher {} (list data) receive)))
 
+(defn match-and-substitute [pattern consequence]
+  (let [matcher (pattern->matcher pattern)]
+    (fn [data]
+      (if-let [frame (match matcher data)]
+        (substitute frame consequence)))))
+
 (defn- receive [frame xs] [frame xs])
 (defn- collect-all-results [matcher input & tails]
   (let [results (atom [])]
@@ -36,25 +42,25 @@
            (collect-all-results (match-segment :x) '(a b c) true)))
     )
   (testing "twin-segments"
-    (let [twin-segments (match-list (match-segment :x)
-                                    (match-segment :x))
-          twin-segments-etc (match-list (match-segment :x)
-                                        (match-segment :x)
-                                        (match-segment :y))
-          etc-twin-segments-etc (match-list (match-segment :w)
-                                            (match-segment :x)
-                                            (match-segment :x)
-                                            (match-segment :y))]
-      (is (= {:x '[a b c]} (match twin-segments '(a b c a b c))))
-      (is (not (match twin-segments '(a b c a b d))))
-      (is (not (match twin-segments '(a b c a b c d e))))
+    (let [xs-xs (match-list (match-segment :x)
+                            (match-segment :x))
+          xs-xs-etc (match-list (match-segment :x)
+                                (match-segment :x)
+                                (match-segment :y))
+          etc-xs-xs-etc (match-list (match-segment :w)
+                                    (match-segment :x)
+                                    (match-segment :x)
+                                    (match-segment :y))]
+      (is (= {:x '[a b c]} (match xs-xs '(a b c a b c))))
+      (is (not (match xs-xs '(a b c a b d))))
+      (is (not (match xs-xs '(a b c a b c d e))))
       (is (= [{:x [] :y '[a b c a b c d e]}
               {:x '[a b c] :y '[d e]} ]
-             (collect-all-results twin-segments-etc '((a b c a b c d e)))))
+             (collect-all-results xs-xs-etc '((a b c a b c d e)))))
       (is (= [{:x [] :y '[a b a b a b a b]}
               {:x '[a b] :y '[a b a b]}
               {:x '[a b a b] :y '[]}]
-             (collect-all-results twin-segments-etc
+             (collect-all-results xs-xs-etc
                                   '((a b a b a b a b)))))
       (is (= '[{:y [a b a b a b a b], :x [], :w []}
                {:y [a b a b], :x [a b], :w []}
@@ -71,7 +77,7 @@
                {:y [a b], :x [], :w [a b a b a b]}
                {:y [b], :x [], :w [a b a b a b a]}
                {:y [], :x [], :w [a b a b a b a b]}]
-             (collect-all-results etc-twin-segments-etc '((a b a b a b a b)))))
+             (collect-all-results etc-xs-xs-etc '((a b a b a b a b)))))
       ))
   ;; XXX redo this one once we have the pattern compiler implemented.
   (testing "example-from-6.945-notes"
@@ -118,9 +124,7 @@
     (is (= 99 (substitute {:x 11 :y 22} 99)))
     (is (= [11 33 22]
            (substitute {:x 11 :y 22}
-                       '([:! :x] 33 [:! :y]) )))
-
-    )
+                       '([:! :x] 33 [:! :y]) ))))
   (testing "splicing"
     (is (= '[a b c d [e f]]
            (substitute {:x 'a :ys '[b c d] :z '[e f]}
@@ -134,10 +138,17 @@
     )
   )
 
-(deftest match-and-substitute
-  (testing "manually"
-    (let [distribute (pattern->matcher '[* [:? a] [+ [:? b] [:? c]]])
-          consequence '[+ [* [:! a] [:! b]] [* [:! a] [:! c]]]]
-      (is  (= '[+ [* x y] [* x z]]
-              (substitute (match distribute '[* x [+ y z]]) consequence))))
-          ))
+(deftest test-match-and-substitute
+  (let [pattern '[* [:? a] [+ [:? b] [:? c]]]
+        consequence '[+ [* [:! a] [:! b]] [* [:! a] [:! c]]]
+        data '[* x [+ y z]]
+        expected-result '[+ [* x y] [* x z]]]
+    (testing "manually"
+      (let [distribute (pattern->matcher pattern)]
+        (is (= expected-result (substitute (match distribute data) consequence))))
+      )
+    (testing "match-and-substitute"
+      (let [m+s (match-and-substitute pattern consequence)]
+        (is (= expected-result (m+s data))))
+      )
+    ))
