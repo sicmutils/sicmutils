@@ -95,6 +95,8 @@
 (def log (make-operation :log))
 
 (defn canonical-order [args]
+  ;; NB: we are relying on the fact that this sort is stable, although
+  ;; the Clojure documentation does not explicity guarantee this
   (sort-by sort-key args))
 
 (defn- bin+ [a b]

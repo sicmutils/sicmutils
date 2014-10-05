@@ -1,0 +1,7 @@
+- repl needs to connect to simplifier somehow
+- expt
+- polynomials over different types
+- comment about our type-sorting canonicalizaztion (something to think about)
+- how about modular arithmetic once we have polynomials
+- need to handle =. currently we're devolving to native, which works pretty well, 
+- but not for things constructed with deftype.

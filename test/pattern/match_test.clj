@@ -10,7 +10,8 @@
   (let [matcher (pattern->matcher pattern)]
     (fn [data]
       (if-let [frame (match matcher data)]
-        (substitute frame consequence)))))
+        (substitute frame consequence)
+        data))))
 
 (defn- receive [frame xs] [frame xs])
 (defn- collect-all-results [matcher input & tails]
@@ -142,13 +143,16 @@
   (let [pattern '[* [:? a] [+ [:? b] [:? c]]]
         consequence '[+ [* [:! a] [:! b]] [* [:! a] [:! c]]]
         data '[* x [+ y z]]
+        notmatching-data '[* x [* y z]]
         expected-result '[+ [* x y] [* x z]]]
     (testing "manually"
       (let [distribute (pattern->matcher pattern)]
-        (is (= expected-result (substitute (match distribute data) consequence))))
+        (is (= expected-result (substitute (match distribute data) consequence)))
       )
     (testing "match-and-substitute"
       (let [m+s (match-and-substitute pattern consequence)]
-        (is (= expected-result (m+s data))))
+        (is (= expected-result (m+s data)))
+        (is (= notmatching-data (m+s notmatching-data)))))
       )
-    ))
+    )
+  )

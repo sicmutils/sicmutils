@@ -1,8 +1,9 @@
 (ns math.poly
-  (:refer-clojure :exclude [merge] :rename {map core-map}))
+  (:refer-clojure :exclude [merge] :rename {map core-map})
+  (:require [math.generic :as g]))
 
 (defn make [& oc-pairs]
-  (with-meta 
+  (with-meta
     (into (sorted-map) (filter (fn [[o c]] (not= c 0)) oc-pairs))
     {:generic-type :poly}))
 
@@ -50,9 +51,8 @@
               :else (recur P (rest Q) (assoc R oq (f cq))))))))
 
 
-(def add (partial merge +))
-(def sub (partial merge -))
+(def add (partial merge g/+))
+(def sub (partial merge g/-))
 
 (defn mul [p q]
-  (reduce add (make) (for [[op cp] p [oq cq] q] [[(+ op oq) (* cp cq)]])))
-
+  (reduce add (make) (for [[op cp] p [oq cq] q] [[(g/+ op oq) (g/* cp cq)]])))

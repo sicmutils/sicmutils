@@ -2,7 +2,7 @@
   (:require [clojure.test :refer :all]
             [math.poly :refer :all]))
 
-(deftest poly
+(deftest poly-core
   (testing "degree"
     (is (= (degree (make)) 0))
     (is (= (degree (make [1 1] [0 -1])) 1))
