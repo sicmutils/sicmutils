@@ -13,9 +13,11 @@
   (equals [x y] (and (= (.m x) (.m y)) (= (.a x) (.a y))))
   )
 
-(defn make [a m] (ModInt. (mod a m) m))
+(defn make [a m]
+  (ModInt. (mod a m) m))
 
-(defn modint? [x] (instance? ModInt x))
+(defn modint? [x]
+  (instance? ModInt x))
 
 (defn modular-op [op]
   (fn [a b]

@@ -5,3 +5,5 @@
 - how about modular arithmetic once we have polynomials
 - need to handle =. currently we're devolving to native, which works pretty well, 
 - but not for things constructed with deftype.
+- make polynomials useful: allow them to be applied to entities.
+- but that opens up the question of literal functions...

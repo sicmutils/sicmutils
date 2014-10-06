@@ -1,4 +1,4 @@
-(ns pattern.match)
+ (ns pattern.match)
 
 (def ^:private zero [{} nil])
 
@@ -39,30 +39,44 @@
                       :else false))]
         (step (first xs) matchers frame)))))
 
-(defn pattern->matcher [pattern]
-  (if (sequential? pattern)
-    (cond (= (first pattern) :?) (match-var (second pattern))
-          (= (first pattern) :??) (match-segment (second pattern))
-          :else (apply match-list (map pattern->matcher pattern)))
-    (match-one pattern)))
-
 (defn- variable-reference? [x]
   (and (sequential? x)
-       (= (first x) :!)))
+       (= (first x) :?)))
 
 (defn- segment-reference? [x]
   (and (sequential? x)
-       (= (first x) :!!)))
+       (= (first x) :??)))
+
+(defn- variable [x]
+  (second x))
+
+(defn pattern->matcher [pattern]
+  (if (sequential? pattern)
+    (cond (variable-reference? pattern) (match-var (variable pattern))
+          (segment-reference? pattern) (match-segment (variable pattern))
+          :else (apply match-list (map pattern->matcher pattern)))
+    (match-one pattern)))
+
+(defn match [matcher data]
+  (let [receive (fn [frame data] (if (empty? data) frame))]
+    (matcher {} (list data) receive)))
 
 (defn substitute [frame form]
   (if (sequential? form)
     (loop [result []
            [x & xs] form]
       (if x
-        (cond (variable-reference? x) (recur (conj result (frame (second x))) xs)
-              (segment-reference? x) (recur (into result (frame (second x))) xs)
+        (cond (variable-reference? x) (recur (conj result (frame (variable x))) xs)
+              (segment-reference? x) (recur (into result (frame (variable x))) xs)
               :else (recur (conj result (substitute frame x)) xs)
               )
         result))
     form
     ))
+
+(defn match-and-substitute [pattern consequence]
+  (let [matcher (pattern->matcher pattern)]
+    (fn [data]
+      (if-let [frame (match matcher data)]
+        (substitute frame consequence)
+        data))))

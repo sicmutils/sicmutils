@@ -2,17 +2,6 @@
   (:require [clojure.test :refer :all]
             [pattern.match :refer :all]))
 
-(defn- match [matcher data]
-  (let [receive (fn [frame data] (if (empty? data) frame))]
-    (matcher {} (list data) receive)))
-
-(defn match-and-substitute [pattern consequence]
-  (let [matcher (pattern->matcher pattern)]
-    (fn [data]
-      (if-let [frame (match matcher data)]
-        (substitute frame consequence)
-        data))))
-
 (defn- receive [frame xs] [frame xs])
 (defn- collect-all-results [matcher input & tails]
   (let [results (atom [])]
@@ -125,23 +114,23 @@
     (is (= 99 (substitute {:x 11 :y 22} 99)))
     (is (= [11 33 22]
            (substitute {:x 11 :y 22}
-                       '([:! :x] 33 [:! :y]) ))))
+                       '([:? :x] 33 [:? :y]) ))))
   (testing "splicing"
     (is (= '[a b c d [e f]]
            (substitute {:x 'a :ys '[b c d] :z '[e f]}
-                       '([:! :x] [:!! :ys] [:! :z]))) )
+                       '([:? :x] [:?? :ys] [:? :z]))) )
     (is (= '[a b c d e f]
            (substitute {:x '[a b] :y '[c d] :z '[e f]}
-                       '([:!! :x] [:!! :y] [:!! :z]))) )
+                       '([:?? :x] [:?? :y] [:?? :z]))) )
     (is (= '[0 a b 1 c d 2 e f 3]
            (substitute {:x '[a b] :y '[c d] :z '[e f]}
-                       '(0 [:!! :x] 1 [:!! :y] 2 [:!! :z] 3))))
+                       '(0 [:?? :x] 1 [:?? :y] 2 [:?? :z] 3))))
     )
   )
 
 (deftest test-match-and-substitute
   (let [pattern '[* [:? a] [+ [:? b] [:? c]]]
-        consequence '[+ [* [:! a] [:! b]] [* [:! a] [:! c]]]
+        consequence '[+ [* [:? a] [:? b]] [* [:? a] [:? c]]]
         data '[* x [+ y z]]
         notmatching-data '[* x [* y z]]
         expected-result '[+ [* x y] [* x z]]]
