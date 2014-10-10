@@ -1,4 +1,5 @@
- (ns pattern.match)
+(ns pattern.match
+  (:require [clojure.walk :refer [postwalk-replace]]))
 
 (def ^:private zero [{} nil])
 
@@ -80,3 +81,25 @@
       (if-let [frame (match matcher data)]
         (substitute frame consequence)
         data))))
+
+(defn subst-one [thing] (fn [frame] thing))
+(defn subst-var [var] (fn [frame] (frame var)))
+
+(defn compile-consequence [dict-symbol consequence]
+  (cond (variable-reference? consequence)
+        `(list (~dict-symbol '~(variable consequence)))
+        (segment-reference? consequence)
+        (list dict-symbol (variable consequence))
+        (seq? consequence)
+        `(concat ~@(map (partial compile-consequence dict-symbol) consequence))
+        :else `(list '~consequence)
+        ))
+
+(defmacro rule [pattern consequence]
+  (let [dict-symbol (gensym)
+        compiled-consequence (compile-consequence dict-symbol consequence)]
+    `(let [matcher# (pattern->matcher '~pattern)]
+       (fn [data#]
+         (if-let [~dict-symbol (match matcher# data#)]
+           ~compiled-consequence
+           data#)))))

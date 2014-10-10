@@ -145,3 +145,11 @@
       )
     )
   )
+
+(deftest test-rule
+  (testing "simple"
+    (let [R (rule ((:? a) (:? b) (:?? cs))
+                  (a b c (:? a) (:? b) y z))]
+      (is (= '(a b c 9 8 y z) (R '(9 8 7 6 5)))))
+    )
+  )
