@@ -1,5 +1,6 @@
 (ns math.modint
-  (:require [math.generic :as g]))
+  (:require [math.generic :as g]
+            [math.euclid :as e]))
 
 (deftype ModInt [^BigInteger a ^BigInteger m]
   g/Value
@@ -19,17 +20,23 @@
 (defn modint? [x]
   (instance? ModInt x))
 
-(defn modular-op [op]
+(defn- modular-binop [op]
   (fn [a b]
     (if-not (= (.m a) (.m b))
       (throw (IllegalArgumentException. "unequal moduli"))
       (make (op (.a a) (.a b)) (.m a)))))
 
-(g/defhandler :+ [modint? modint?] (modular-op +))
+(defn- modular-inv [m]
+  (let [modulus (.m m)
+        [g a b] (e/extended-euclid (.a m) modulus)]
+    (make a modulus)))
+
+(g/defhandler :+ [modint? modint?] (modular-binop +))
 (g/defhandler :+ [integer? modint?] (fn [i m] (make (+ i (.a m)) (.m m))))
-(g/defhandler :- [modint? modint?] (modular-op -))
-(g/defhandler :* [modint? modint?] (modular-op *))
+(g/defhandler :- [modint? modint?] (modular-binop -))
+(g/defhandler :* [modint? modint?] (modular-binop *))
 (g/defhandler :negate [modint?] (fn [m] (make (- (.a m)) (.m m))))
-;; TODO: modular multiplicative inverses
+(g/defhandler :invert [modint?] modular-inv)
+
 
 (println "modint initialized")
