@@ -2,6 +2,8 @@
   (:require [math.generic :as g]))
 
 (defn extended-euclid
+  "The extended Euclidean algorithm
+  (see http://en.wikipedia.org/wiki/Extended_Euclidean_algorithm)"
   [a b]
   (loop [s 0 s0 1 t 1 t0 0 r b r0 a]
     (if (zero? r)

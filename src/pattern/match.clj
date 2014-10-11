@@ -1,5 +1,4 @@
-(ns pattern.match
-  (:require [clojure.walk :refer [postwalk-replace]]))
+(ns pattern.match)
 
 (def ^:private zero [{} nil])
 
@@ -51,19 +50,19 @@
                       :else false))]
         (step (first xs) matchers frame)))))
 
-(defn- variable-reference?
+(defn variable-reference?
   "True if x is a variable reference (i.e., it looks like (:? ...))"
   [x]
   (and (sequential? x)
        (= (first x) :?)))
 
-(defn- segment-reference?
+(defn segment-reference?
   "True if x is a segment reference (i.e., it looks like (:?? ...))"
   [x]
   (and (sequential? x)
        (= (first x) :??)))
 
-(defn- variable
+(defn variable
   "Return the variable contained in a variable or segment reference
   form"
   [x]
@@ -88,42 +87,3 @@
   [matcher data]
   (let [receive (fn [frame data] (if (empty? data) frame))]
     (matcher {} (list data) receive)))
-
-(defn compile-consequence
-  "Compiles a consequence (written as a pattern), by returnin a code
-  fragment which will replace instances of variable and segment
-  references in the consequence with values provided by the frame
-  referred to by frame-symbol. The form is meant to be evaluated in an
-  environment where frame-symbol is bound to a mapping of pattern
-  variables to their desired substitutions."
-  [frame-symbol consequence]
-  (cond (variable-reference? consequence)
-        `(list (~frame-symbol '~(variable consequence)))
-        (segment-reference? consequence)
-        `(~frame-symbol '~(variable consequence))
-        (seq? consequence)
-        `(list (concat ~@(map
-                   (partial compile-consequence frame-symbol)
-                   consequence)))
-        :else `(list '~consequence)
-        ))
-
-(defmacro rule
-  "Rule takes a match pattern and substitution pattern, compiles each
-  of these and returns a function which may be applied to a form
-  and (optionally) a success continuation. The function will try to
-  match the pattern and, if successful, will call the continuation
-  with the result of the substituion."
-  [pattern consequence]
-  (let [frame-symbol (gensym)
-        compiled-consequence (compile-consequence frame-symbol consequence)]
-    `(let [matcher# (pattern->matcher '~pattern)]
-       (fn apply#
-         ([data#] (apply# data# identity))
-         ([data# continue#]
-            (if-let [~frame-symbol (match matcher# data#)]
-              (continue# (first ~compiled-consequence))))
-         ))))
-
-(defn ruleset [& patterns-and-consequences]
-  )
