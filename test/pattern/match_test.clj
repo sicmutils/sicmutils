@@ -110,48 +110,25 @@
       (is (not (match match-xy [2]))))
     ))
 
-(deftest subsitutions
-  (testing "simple"
-    (is (= 99 (substitute {:x 11 :y 22} 99)))
-    (is (= [11 33 22]
-           (substitute {:x 11 :y 22}
-                       '([:? :x] 33 [:? :y]) ))))
-  (testing "splicing"
-    (is (= '[a b c d [e f]]
-           (substitute {:x 'a :ys '[b c d] :z '[e f]}
-                       '([:? :x] [:?? :ys] [:? :z]))) )
-    (is (= '[a b c d e f]
-           (substitute {:x '[a b] :y '[c d] :z '[e f]}
-                       '([:?? :x] [:?? :y] [:?? :z]))) )
-    (is (= '[0 a b 1 c d 2 e f 3]
-           (substitute {:x '[a b] :y '[c d] :z '[e f]}
-                       '(0 [:?? :x] 1 [:?? :y] 2 [:?? :z] 3))))
-    )
-  )
-
-(deftest test-match-and-substitute
-  (let [pattern '[* [:? a] [+ [:? b] [:? c]]]
-        consequence '[+ [* [:? a] [:? b]] [* [:? a] [:? c]]]
-        data '[* x [+ y z]]
-        notmatching-data '[* x [* y z]]
-        expected-result '[+ [* x y] [* x z]]]
-    (testing "manually"
-      (let [distribute (pattern->matcher pattern)]
-        (is (= expected-result (substitute (match distribute data) consequence)))
-      )
-    (testing "match-and-substitute"
-      (let [m+s (match-and-substitute pattern consequence)]
-        (is (= expected-result (m+s data)))
-        (is (= notmatching-data (m+s notmatching-data)))))
-      )
-    )
-  )
-
 (deftest test-rule
   (testing "simple"
     (let [R (rule ((:? a) (:? b) (:?? cs))
                   (a b c (:? a) (:? b) y z))]
       (is (= '(a b c 9 8 y z) (R '(9 8 7 6 5) identity)))
       (is (nil? (R '(9) identity))))
+    )
+  (testing "simple2"
+    (let [R (rule ((:? a) (:?? b) (:? a))
+                  (2 (:? a) (:?? b)))]
+      (is (= '(2 a x y z) (R '(a x y z a) identity)))
+      (is (= '(2 a) (R '(a a) identity)))
+      (is (= '(2 a b) (R '(a b a) identity)))
+      )
+    )
+  (testing "simple3"
+    (let [R (rule (+ (:?? b1) (:? a) (:?? b2) (:? a) (:?? b3))
+                  (+ (* 2 (:? a)) (:?? b1) (:?? b2) (:?? b3)))]
+      (is (= '(+ (* 2 a) b c d e) (R '(+ a b c d a e) identity)))
+      )
     )
   )

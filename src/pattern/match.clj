@@ -63,33 +63,15 @@
   (let [receive (fn [frame data] (if (empty? data) frame))]
     (matcher {} (list data) receive)))
 
-(defn substitute [frame form]
-  (if (sequential? form)
-    (loop [result []
-           [x & xs] form]
-      (if x
-        (cond (variable-reference? x) (recur (conj result (frame (variable x))) xs)
-              (segment-reference? x) (recur (into result (frame (variable x))) xs)
-              :else (recur (conj result (substitute frame x)) xs)
-              )
-        result))
-    form
-    ))
-
-(defn match-and-substitute [pattern consequence]
-  (let [matcher (pattern->matcher pattern)]
-    (fn [data]
-      (if-let [frame (match matcher data)]
-        (substitute frame consequence)
-        data))))
-
 (defn compile-consequence [dict-symbol consequence]
   (cond (variable-reference? consequence)
         `(list (~dict-symbol '~(variable consequence)))
         (segment-reference? consequence)
-        (list dict-symbol (variable consequence))
+        `(~dict-symbol '~(variable consequence))
         (seq? consequence)
-        `(concat ~@(map (partial compile-consequence dict-symbol) consequence))
+        `(list (concat
+                ~@(map
+                   (partial compile-consequence dict-symbol) consequence)))
         :else `(list '~consequence)
         ))
 
@@ -99,4 +81,4 @@
     `(let [matcher# (pattern->matcher '~pattern)]
        (fn [data# continue#]
          (if-let [~dict-symbol (match matcher# data#)]
-           (continue# ~compiled-consequence))))))
+           (continue# (first ~compiled-consequence)))))))
