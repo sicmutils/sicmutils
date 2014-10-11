@@ -106,7 +106,8 @@
       (is (not (match match-xx [2 3])))
       (is (= '{:x 2 :y 3} (match match-xy [2 3])))
       (is (= '{:x 2 :ys [3 4 5]} (match match-x-ys-x [2 3 4 5 2])))
-      (is (not (match match-x-ys-x [2 3 4 5 6]))))
+      (is (not (match match-x-ys-x [2 3 4 5 6])))
+      (is (not (match match-xy [2]))))
     ))
 
 (deftest subsitutions
@@ -150,6 +151,7 @@
   (testing "simple"
     (let [R (rule ((:? a) (:? b) (:?? cs))
                   (a b c (:? a) (:? b) y z))]
-      (is (= '(a b c 9 8 y z) (R '(9 8 7 6 5)))))
+      (is (= '(a b c 9 8 y z) (R '(9 8 7 6 5) identity)))
+      (is (nil? (R '(9) identity))))
     )
   )

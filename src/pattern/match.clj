@@ -10,9 +10,10 @@
 
 (defn match-var [var]
   (fn [frame [x & xs] succeed]
-    (if-let [binding (frame var)]
-      (and (= binding x) (succeed frame xs))
-      (succeed (assoc frame var x) xs))))
+    (if x
+      (if-let [binding (frame var)]
+       (and (= binding x) (succeed frame xs))
+       (succeed (assoc frame var x) xs)))))
 
 (defn match-segment [var]
   (fn [frame xs succeed]
@@ -82,9 +83,6 @@
         (substitute frame consequence)
         data))))
 
-(defn subst-one [thing] (fn [frame] thing))
-(defn subst-var [var] (fn [frame] (frame var)))
-
 (defn compile-consequence [dict-symbol consequence]
   (cond (variable-reference? consequence)
         `(list (~dict-symbol '~(variable consequence)))
@@ -99,7 +97,6 @@
   (let [dict-symbol (gensym)
         compiled-consequence (compile-consequence dict-symbol consequence)]
     `(let [matcher# (pattern->matcher '~pattern)]
-       (fn [data#]
+       (fn [data# continue#]
          (if-let [~dict-symbol (match matcher# data#)]
-           ~compiled-consequence
-           data#)))))
+           (continue# ~compiled-consequence))))))
