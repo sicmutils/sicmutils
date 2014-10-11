@@ -114,21 +114,23 @@
   (testing "simple"
     (let [R (rule ((:? a) (:? b) (:?? cs))
                   (a b c (:? a) (:? b) y z))]
-      (is (= '(a b c 9 8 y z) (R '(9 8 7 6 5) identity)))
-      (is (nil? (R '(9) identity))))
+      (is (= '(a b c 9 8 y z) (R '(9 8 7 6 5))))
+      (is (nil? (R '(9)))))
     )
   (testing "simple2"
     (let [R (rule ((:? a) (:?? b) (:? a))
                   (2 (:? a) (:?? b)))]
-      (is (= '(2 a x y z) (R '(a x y z a) identity)))
-      (is (= '(2 a) (R '(a a) identity)))
-      (is (= '(2 a b) (R '(a b a) identity)))
+      (is (= '(2 a x y z) (R '(a x y z a))))
+      (is (= '(2 a) (R '(a a))))
+      (is (= '(2 a b) (R '(a b a))))
       )
     )
   (testing "simple3"
     (let [R (rule (+ (:?? b1) (:? a) (:?? b2) (:? a) (:?? b3))
                   (+ (* 2 (:? a)) (:?? b1) (:?? b2) (:?? b3)))]
-      (is (= '(+ (* 2 a) b c d e) (R '(+ a b c d a e) identity)))
+      (is (= '(+ (* 2 a) b c d e) (R '(+ a b c d a e))))
+      (is (= '(+ (* 2 a) b c d e) (R '(+ a a b c d e))))
+      (is (= '(+ (* 2 a) b c d e) (R '(+ b c d e a a))))
       )
     )
   )
