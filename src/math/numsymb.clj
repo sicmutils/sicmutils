@@ -19,11 +19,16 @@
       (throw (IllegalArgumentException.
               (str "unknown numeric operator " operator))))))
 
-(defn- sum? [x]
-  (and (seq? x) (= (first x) (symbol "math.generic" "+"))))
+(defmacro is-expression?
+  "True if the expression is a form with head corresponding to
+  the math.generic operator with the given name."
+  [name]
+  `(fn [x#] (and (seq? x#) (= (first x#) (symbol "math.generic" ~name)))))
 
-(defn- product? [x]
-  (and (seq? x) (= (first x) (symbol "math.generic" "*"))))
+(def ^:private sum? (is-expression? "+"))
+(def ^:private product? (is-expression? "*"))
+(def ^:private sqrt? (is-expression? "sqrt"))
+(def ^:private expt? (is-expression? "expt"))
 
 (defn- operands [x]
   (rest x))
@@ -187,8 +192,8 @@
                           :else `(g/cos ~x))
         :else `(g/cos ~x)))
 
-(defn- cube [x]  ;; XXX redo with expt
-  (g/* x x x))
+(defn- cube [x]
+  (g/expt x 3))
 
 (defn- square [x]
   (g/* x x))
@@ -223,6 +228,24 @@
       (if (g/zero? s) 1 `(g/exp ~s)))
     `(g/exp ~s)))
 
+(defn- expt [b e]
+  (cond (and (number? b) (number? e)) (nt/expt b e)
+        (number? b) (cond (g/one? b) 1
+                          :else `(g/expt ~b ~e))
+        (number? e) (cond (g/zero? e) 1
+                          (g/one? e) b
+                          (and (integer? e) (even? e) (sqrt? b))
+                          (expt (first (operands b)) (quot e 2))
+                          (and (expt? b)
+                               (number? (second (operands b)))
+                               (integer? (* (second (operands b)) e)))
+                          (expt (first (operands b))
+                                (* (second (operands b)) e))
+                          (< e 0) (div-n 1 (expt b (- e)))
+                          :else `(g/expt ~b ~e))
+        :else `(g/expt ~b ~e)
+        ))
+
 (def ^:private symbolic-operator-table {:+ add-n
                                         :- sub-n
                                         :* mul-n
@@ -236,4 +259,5 @@
                                         :abs abs
                                         :sqrt sqrt
                                         :log log
-                                        :exp exp})
+                                        :exp exp
+                                        :** expt})

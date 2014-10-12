@@ -3,12 +3,14 @@
                            - core--
                            / core-div
                            * core-*
-                           zero? core-zero?}))
+                           zero? core-zero?})
+  (:require [clojure.math.numeric-tower :as nt]))
 
 (defprotocol Value
   (zero? [this])
   (one? [this])
   (zero-like [this])
+  (one-like [this])
   (exact? [this])
   (sort-key [this])
   )
@@ -19,12 +21,15 @@
   (one? [x] false)
   (zero-like [x] (throw (IllegalArgumentException.
                          (str "nothing zero-like for " x))))
+  (one-like [x] (throw (IllegalArgumentException.
+                        (str "nothing one-like for " x))))
   (exact? [x] false)
   (sort-key [x] 99)
   clojure.lang.Symbol
   (zero? [x] false)
   (one? [x] false)
   (zero-like [x] 0)
+  (one-like [x] 1)
   (sort-key [x] 90)
   )
 
@@ -82,6 +87,8 @@
 (def ^:private add (make-operation :+))
 (def ^:private sub (make-operation :-))
 (def ^:private div (make-operation :/))
+
+(def expt (make-operation :**))
 (def negate (make-operation :negate))
 (def invert (make-operation :invert))
 (def sin (make-operation :sin))
@@ -90,7 +97,6 @@
 (def cube (make-operation :cube))
 (def abs (make-operation :abs))
 (def sqrt (make-operation :sqrt))
-(def expt (make-operation :expt))
 (def exp (make-operation :exp))
 (def log (make-operation :log))
 
