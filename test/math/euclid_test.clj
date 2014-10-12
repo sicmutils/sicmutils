@@ -2,7 +2,6 @@
   (:require [clojure.test :refer :all]
             [math.euclid :refer :all]))
 
-
 (defn- ok
   "Compute the extended Euclid data; ensure that the gcd returned
   divides x and y, and that the GCD is the linear combination of x and
@@ -24,5 +23,6 @@
     (is (= (ok 927 632) 1))
     (is (= (ok 934132 (* 934132 71)) 934132))
     (is (= [2 -9 47] (extended-euclid 240 46)))
+    (is (= [2 1 0] (extended-euclid 2 4)))
     )
   )

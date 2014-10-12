@@ -12,7 +12,8 @@
         m5_7b (make 5 7)
         m2_7 (make 2 7)
         m5_13 (make 5 13)
-        m2_4 (make 2 4)]
+        m2_4 (make 2 4)
+        m3_4 (make 3 4)]
    (testing "easy"
      (is (= m5_7 m5_7))
      (is (= m12_7 m5_7))
@@ -33,5 +34,7 @@
      (is (= m5_7 (g/invert m3_7)))
      (is (= m4_7 (g/invert m2_7)))
      (is (= m2_7 (g/invert m4_7)))
+     (is (thrown? IllegalArgumentException (g/invert m2_4)))
+     (is (= m3_4 (g/invert m3_4)))
      )
    ))

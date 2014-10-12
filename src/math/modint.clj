@@ -28,8 +28,10 @@
 
 (defn- modular-inv [m]
   (let [modulus (.m m)
-        [g a b] (e/extended-euclid (.a m) modulus)]
-    (make a modulus)))
+        [g a b invertible] (e/extended-euclid (.a m) modulus)]
+    (if (< g 2) (make a modulus)
+        (throw (IllegalArgumentException.
+                (str m " is not invertible mod " modulus))))))
 
 (g/defhandler :+ [modint? modint?] (modular-binop +))
 (g/defhandler :+ [integer? modint?] (fn [i m] (make (+ i (.a m)) (.m m))))
