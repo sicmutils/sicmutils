@@ -1,5 +1,6 @@
 (ns pattern.rule
-  (require [pattern.match :refer :all]))
+  (require [pattern.match :refer :all]
+           [clojure.walk :as w])) ; XXX
 
 (defn compile-consequence
   "Compiles a consequence (written as a pattern), by returnin a code
@@ -15,10 +16,11 @@
         `(~frame-symbol '~(variable consequence))
         (seq? consequence)
         `(list (concat ~@(map
-                   (partial compile-consequence frame-symbol)
-                   consequence)))
+                          (partial compile-consequence frame-symbol)
+                          consequence)))
         :else `(list '~consequence)
         ))
+
 
 (defmacro rule
   "Rule takes a match pattern and substitution pattern, compiles each
@@ -36,14 +38,21 @@
             (if-let [~frame-symbol (match matcher# data#)]
               (continue# (first ~compiled-consequence))))))))
 
-(defn ruleset [& patterns-and-consequences]
-  (if-let [[pattern consequence & etc] patterns-and-consequences]
-    (let [r (rule pattern consequence)]
-      ;; if r matches, then continue with its consequence; else
-      ;; try to find another match.
-      (fn apply
-        ([data] (apply data identity))
-        ([data continue]
-           (or (r data continue)
-               ((ruleset etc) data continue)))
-        ))))
+(defmacro ruleset
+  "Ruleset compiles rules and consequences (pairwise) into a function
+  which can be applied to a form and continuation and applies each
+  given rule in sequence, invoking the continuation on the first
+  success."
+  [& patterns-and-consequences]
+  (let [[p c & pcs] patterns-and-consequences]
+    (if p
+      `(fn apply#
+         ([data#] (apply# data# identity))
+         ([data# continue#]
+         (let [R# (rule ~p ~c)]
+           (or (R# data# continue#)
+               ((ruleset ~@pcs) data# continue#)))))
+      `(fn [data# continue#]
+         nil)
+      )
+    ))

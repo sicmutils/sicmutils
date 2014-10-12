@@ -19,6 +19,15 @@
      )
    )
 
+ (testing "two"
+   (let [R (rule ((:? a) (:? b)) ((:? b) (:? a)))]
+     (is (= [20 10] (R [10 20])))
+     (is (not (R [10 20 30])))
+     (is (not (R [10])))
+     (is (not (R [])))
+     (is (not (R nil)))
+     (is (not (R "")))))
+
  (testing "simple3"
    (let [R (rule (+ (:?? b1) (:? a) (:?? b2) (:? a) (:?? b3))
                  (+ (* 2 (:? a)) (:?? b1) (:?? b2) (:?? b3)))]
@@ -33,3 +42,17 @@
      )
    )
 )
+
+(deftest ruleset-test
+  (testing "simple"
+    (let [RS (ruleset
+              ((:? a) (:? b))
+              ((:? b) (:? a))
+              ((:? a) (:? b) (:? c))
+              ((:? c) (:? b) (:? a)))]
+      (is (= '(4 3) (RS '(3 4))))
+      (is (= '(8 7 6) (RS '(6 7 8))))
+      (is (not (RS '(4))))
+      (is (not (RS '(5 6 7 8))))
+      ))
+  )
