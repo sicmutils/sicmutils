@@ -45,19 +45,23 @@
   (let [[p c & pcs] patterns-and-consequences]
     (if p
       `(fn apply#
-         ([data#] (apply# data# identity))
-         ([data# continue#]
+         ([data#] (apply# data# identity identity))
+         ([data# continue#] (apply# data# continue# identity))
+         ([data# continue# fail#]
          (let [R# (rule ~p ~c)]
            (or (R# data# continue#)
-               ((ruleset ~@pcs) data# continue#)))))
-      `(fn [data# continue#]
-         data#)
-      )
-    ))
+               ((ruleset ~@pcs) data# continue# fail#)
+               (fail# data#)))))
+      `(fn [data# continue# fail#]
+         (fail# data#)))))
 
-(defn rule-simplifier [ruleset]
+(defn rule-simplifier [& rulesets]
+  (defn try-rulesets [[ruleset & rulesets] expression succeed]
+    (if ruleset
+      (ruleset expression succeed #(try-rulesets rulesets % succeed))
+      expression))
   (fn simplifier [expression]
     (let [simplified (if (seq? expression)
                        (map simplifier expression)
                        expression)]
-      (ruleset simplified #(simplifier %)))))
+      (try-rulesets rulesets simplified #(simplifier %)))))
