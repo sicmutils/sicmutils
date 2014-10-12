@@ -50,6 +50,15 @@
     (inner-product s t)
     (outer-product s t)))
 
+;; hmmm. why not do the repeated-squaring trick here?
+;; perhaps structures are not typically raised to high
+;; exponents.
+
+(defn- expt [s n]
+  (cond (= n 1) s
+        (> n 1) (g/* s (g/expt s (- n 1)))
+        :else (throw (IllegalArgumentException. (str "Cannot: " `(expt ~s ~n))))))
+
 (g/defhandler :+   [row? row?]          (partial elementwise g/+))
 (g/defhandler :+   [column? column?]    (partial elementwise g/+))
 (g/defhandler :-   [row? row?]          (partial elementwise g/-))
@@ -58,6 +67,7 @@
 (g/defhandler :*   [structure? number?] #(scalar-multiply %2 %1))
 (g/defhandler :/   [structure? number?] #(scalar-multiply (/ %2) %1))
 (g/defhandler :*   [structure? structure?] mul)
+(g/defhandler :**  [structure? number?] expt)
 
 (g/defhandler :square [structure?]
   (fn [s] (inner-product s s)))
