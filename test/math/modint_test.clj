@@ -6,12 +6,13 @@
 
 (deftest modint
   (let [m3_7 (make 3 7)
-       m5_7 (make 5 7)
-       m4_7 (make 4 7)
-       m12_7 (make 12 7)
-       m5_7b (make 5 7)
-       m2_7 (make 2 7)
-       m5_13 (make 5 13)]
+        m5_7 (make 5 7)
+        m4_7 (make 4 7)
+        m12_7 (make 12 7)
+        m5_7b (make 5 7)
+        m2_7 (make 2 7)
+        m5_13 (make 5 13)
+        m2_4 (make 2 4)]
    (testing "easy"
      (is (= m5_7 m5_7))
      (is (= m12_7 m5_7))
@@ -31,5 +32,6 @@
      (is (= m3_7 (g/invert m5_7)))
      (is (= m5_7 (g/invert m3_7)))
      (is (= m4_7 (g/invert m2_7)))
-     (is (= m2_7 (g/invert m4_7))))
+     (is (= m2_7 (g/invert m4_7)))
+     )
    ))

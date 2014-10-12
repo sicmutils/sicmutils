@@ -6,9 +6,10 @@
   "Combinator which succeeds iff the head of the data is equal to
   thing. The frame is not modified."
   [thing]
-  (fn [frame [x & xs] succeed]
-    (and (= x thing)
-         (succeed frame xs))))
+  (fn [frame xs succeed]
+    (and (sequential? xs)
+         (= (first xs) thing)
+         (succeed frame (next xs)))))
 
 (defn match-var
   "If the variable is not bound in the frame, and there is more

@@ -1,8 +1,7 @@
 (ns pattern.rule
-  (require [pattern.match :refer :all]
-           [clojure.walk :as w])) ; XXX
+  (require [pattern.match :refer :all]))
 
-(defn compile-consequence
+(defn- compile-consequence
   "Compiles a consequence (written as a pattern), by returnin a code
   fragment which will replace instances of variable and segment
   references in the consequence with values provided by the frame
@@ -20,7 +19,6 @@
                           consequence)))
         :else `(list '~consequence)
         ))
-
 
 (defmacro rule
   "Rule takes a match pattern and substitution pattern, compiles each
@@ -40,9 +38,9 @@
 
 (defmacro ruleset
   "Ruleset compiles rules and consequences (pairwise) into a function
-  which can be applied to a form and continuation and applies each
-  given rule in sequence, invoking the continuation on the first
-  success."
+  which acts like a single rule (as rule would produce) which acts by
+  returning the consequence of the first successful rule, or nil if
+  none are applicable."
   [& patterns-and-consequences]
   (let [[p c & pcs] patterns-and-consequences]
     (if p
@@ -53,6 +51,13 @@
            (or (R# data# continue#)
                ((ruleset ~@pcs) data# continue#)))))
       `(fn [data# continue#]
-         nil)
+         data#)
       )
     ))
+
+(defn rule-simplifier [ruleset]
+  (fn simplifier [expression]
+    (let [simplified (if (seq? expression)
+                       (map simplifier expression)
+                       expression)]
+      (ruleset simplified #(simplifier %)))))
