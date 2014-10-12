@@ -7,7 +7,7 @@
 (defn- orientation [s]
   (or (:orientation (meta s)) :up))
 
-(defn with-orientation-of [s t]
+(defn- with-orientation-of [s t]
   (with-meta t {:orientation (orientation s)}))
 
 (extend-protocol g/Value
@@ -39,10 +39,10 @@
   (and (= (count s) (count t))
        (not= (orientation s) (orientation t))))
 
-(defn inner-product [s t]
+(defn- inner-product [s t]
   (apply g/+ (map g/* s t)))
 
-(defn outer-product [s t]
+(defn- outer-product [s t]
   (with-orientation-of t (vec (map #(g/* s %) t))))
 
 (defn- mul [s t]
