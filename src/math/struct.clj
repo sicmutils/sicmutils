@@ -59,19 +59,19 @@
         (> n 1) (g/* s (g/expt s (- n 1)))
         :else (throw (IllegalArgumentException. (str "Cannot: " `(expt ~s ~n))))))
 
-(g/defhandler :+   [row? row?]          (partial elementwise g/+))
-(g/defhandler :+   [column? column?]    (partial elementwise g/+))
-(g/defhandler :-   [row? row?]          (partial elementwise g/-))
-(g/defhandler :-   [column? column?]    (partial elementwise g/-))
-(g/defhandler :*   [number? structure?] scalar-multiply)
-(g/defhandler :*   [structure? number?] #(scalar-multiply %2 %1))
-(g/defhandler :/   [structure? number?] #(scalar-multiply (/ %2) %1))
-(g/defhandler :*   [structure? structure?] mul)
-(g/defhandler :**  [structure? number?] expt)
+(g/defhandler :+  [row?       row?]       (partial elementwise g/+))
+(g/defhandler :+  [column?    column?]    (partial elementwise g/+))
+(g/defhandler :-  [row?       row?]       (partial elementwise g/-))
+(g/defhandler :-  [column?    column?]    (partial elementwise g/-))
+(g/defhandler :*  [number?    structure?] scalar-multiply)
+(g/defhandler :*  [structure? number?]    #(scalar-multiply %2 %1))
+(g/defhandler :/  [structure? number?]    #(scalar-multiply (/ %2) %1))
+(g/defhandler :*  [structure? structure?] mul)
+(g/defhandler :** [structure? integer?]   expt)
 
 (g/defhandler :square [structure?]
   (fn [s] (inner-product s s)))
-(g/defhandler :cube [structure?]  ; XXX redo with expt?
+(g/defhandler :cube [structure?]
   (fn [s] (g/* s s s)))
 (g/defhandler :negate [structure?]
   (fn [s] (with-orientation-of s (vec (map g/negate s)))))
