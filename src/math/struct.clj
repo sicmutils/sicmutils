@@ -14,7 +14,7 @@
   clojure.lang.PersistentVector
   (zero? [x] (every? g/zero? x))
   (one? [x] false)
-  (zero-like [x] (with-orientation-of x (vec (repeat (count x) 0))))
+  (zero-like [x] (with-orientation-of x (-> x count (repeat 0) vec)))
   (exact? [x] (every? g/exact? x))
   (sort-key [x] 20))
 

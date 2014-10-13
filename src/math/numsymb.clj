@@ -97,15 +97,6 @@
 
 ;; END
 
-(defn- addup-args-notfinished [pos neg]
-  (defn make-answer [sum pos neg]
-    (if (zero? sum)
-      (if (empty? pos)
-        (if (empty? neg)
-          0
-          (if (empty? (rest neg))
-            `(g/sub ;; this isn't finished!!!
-              )))))))
 ;;
 ;; TRIG
 ;;
