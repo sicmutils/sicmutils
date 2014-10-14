@@ -32,15 +32,15 @@
     (throw (IllegalArgumentException.
             (str op " provided arguments of differing length")))))
 
-(defn- scalar-multiply [a s]
-  (with-orientation-of s (vec (map #(g/* a %) s))))
-
 (defn- compatible-for-contraction? [s t]
   (and (= (count s) (count t))
        (not= (orientation s) (orientation t))))
 
 (defn- inner-product [s t]
   (apply g/+ (map g/* s t)))
+
+(defn- scalar-multiply [a s]
+  (with-orientation-of s (vec (map #(g/* a %) s))))
 
 (defn- outer-product [s t]
   (with-orientation-of t (vec (map #(g/* s %) t))))
@@ -62,15 +62,15 @@
         (> n 1) (g/* s (g/expt s (- n 1)))
         :else (throw (IllegalArgumentException. (str "Cannot: " `(expt ~s ~n))))))
 
-(g/defhandler :+   [down? down?]           (partial elementwise g/+))
-(g/defhandler :+   [up? up?]               (partial elementwise g/+))
-(g/defhandler :-   [down? down?]           (partial elementwise g/-))
-(g/defhandler :-   [up? up?]               (partial elementwise g/-))
-(g/defhandler :*   [number? structure?]    scalar-multiply)
-(g/defhandler :*   [structure? scalar?]    #(scalar-multiply %2 %1))
-(g/defhandler :/   [structure? scalar?]    #(scalar-multiply (/ %2) %1))
-(g/defhandler :*   [structure? structure?] mul)
-(g/defhandler :**  [structure? integer?]   expt)
+(g/defhandler :+  [down? down?]           (partial elementwise g/+))
+(g/defhandler :+  [up? up?]               (partial elementwise g/+))
+(g/defhandler :-  [down? down?]           (partial elementwise g/-))
+(g/defhandler :-  [up? up?]               (partial elementwise g/-))
+(g/defhandler :*  [number? structure?]    scalar-multiply)
+(g/defhandler :*  [structure? scalar?]    #(scalar-multiply %2 %1))
+(g/defhandler :/  [structure? scalar?]    #(scalar-multiply (/ %2) %1))
+(g/defhandler :*  [structure? structure?] mul)
+(g/defhandler :** [structure? integer?]   expt)
 
 (g/defhandler :square [structure?]
   (fn [s] (inner-product s s)))

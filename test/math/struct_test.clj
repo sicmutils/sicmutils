@@ -89,13 +89,12 @@
     (is (not (exact? (up 0 0 0.00001))))
     )
   (testing "function - rotate about x axis"
-    (defn Rx [angle]
+    (defn Rx [θ]
       (fn [[x y z]]
-        (let [ca (cos angle)
-              sa (sin angle)]
+        (let [c (cos θ) s (sin θ)]
           (up x
-              (- (* ca y) (* sa z))
-              (+ (* sa y) (* ca z))))))
+              (- (* c y) (* s z))
+              (+ (* s y) (* c z))))))
     (is (= [0 0 1] ((Rx 'pi-over-2) [0 1 0])))
     (is (= '[x (math.generic/- z) y] ((Rx 'pi-over-2) (up 'x 'y 'z))))
     )
@@ -120,8 +119,11 @@
                        (+ (* 'b 'c) (* 'd 'd)))) (* M M))))
     )
   (testing "fibonacci-matrix"
-    (let [M (down (up 1 1) (up 1 0))]
-      (is (= 6765 (-> (expt M 20) first second)))))
+    (let [n 20
+          fibs (map first (iterate (fn [[a b]] [b (+ a b)]) [0 1]))
+          fib (fn [i] (nth fibs i))
+          M (down (up 1 1) (up 1 0))]
+      (is (= (fib n) (-> (expt M n) first second)))))
   (testing "expt"
     (is (= [[[[1 2] [2 4]] [[2 4] [4 8]]] [[[2 4] [4 8]] [[4 8] [8 16]]]]
            (expt (up 1 2) 4)))
