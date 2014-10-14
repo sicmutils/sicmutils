@@ -92,6 +92,18 @@
     (is (= 9 (g/sqrt 81)))
     (is (= '(math.generic/sqrt x) (g/sqrt 'x)))
     )
+  (testing "expt"
+    (is (= 32 (g/expt 2 5)))
+    (is (= '(math.generic/expt x y) (g/expt 'x 'y)))
+    (is (= '(math.generic/expt 2 y) (g/expt 2 'y)))
+    (is (= 1 (g/expt 1 'x)))
+    (is (= 1 (g/expt 'x 0)))
+    (is (= 'x (g/expt 'x 1)))
+    (is (= 'x (g/expt (g/sqrt 'x) 2)))
+    (is (= '(math.generic/expt x 3) (g/expt (g/sqrt 'x) 6)))
+    (is (= '(math.generic/expt x 12) (g/expt (g/expt 'x 4) 3)))
+    (is (= '(math.generic// 1 (math.generic/expt x 3)) (g/expt 'x -3)))
+    )
   (testing "exp/log"
     (is (= 1.0 (g/exp 0)))
     (is (= '(math.generic/exp x) (g/exp 'x)))

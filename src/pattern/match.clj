@@ -41,15 +41,14 @@
 (defn match-list [& matchers]
   (fn [frame xs succeed]
     (if (seq? xs)
-      (letfn [(step [as matchers frame]
+      (letfn [(step [frame as matchers]
                 (cond (not (empty? matchers))
                       ((first matchers) frame as
-                       (fn [new-frame new-as]
-                         (step new-as (rest matchers) new-frame)))
-                      (not (empty? as)) false ;; XXX test comment delete me
+                       #(step %1 %2 (rest matchers)))
+                      (not (empty? as)) false
                       (empty? as) (succeed frame (rest xs))
                       :else false))]
-        (step (first xs) matchers frame)))))
+        (step frame (first xs) matchers)))))
 
 (defn variable-reference?
   "True if x is a variable reference (i.e., it looks like (:? ...))"

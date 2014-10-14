@@ -7,14 +7,14 @@
 (defn- orientation [s]
   (or (:orientation (meta s)) :up))
 
-(defn with-orientation-of [s t]
+(defn- with-orientation-of [s t]
   (with-meta t {:orientation (orientation s)}))
 
 (extend-protocol g/Value
   clojure.lang.PersistentVector
   (zero? [x] (every? g/zero? x))
   (one? [x] false)
-  (zero-like [x] (with-orientation-of x (vec (repeat (count x) 0))))
+  (zero-like [x] (with-orientation-of x (-> x count (repeat 0) vec)))
   (exact? [x] (every? g/exact? x))
   (sort-key [x] 20))
 
@@ -39,10 +39,10 @@
   (and (= (count s) (count t))
        (not= (orientation s) (orientation t))))
 
-(defn inner-product [s t]
+(defn- inner-product [s t]
   (apply g/+ (map g/* s t)))
 
-(defn outer-product [s t]
+(defn- outer-product [s t]
   (with-orientation-of t (vec (map #(g/* s %) t))))
 
 (defn- mul [s t]
@@ -53,6 +53,15 @@
 (defn- scalar? [s]
   (or (number? s) (g/abstract-number? s)))
 
+;; hmmm. why not do the repeated-squaring trick here?
+;; perhaps structures are not typically raised to high
+;; exponents.
+
+(defn- expt [s n]
+  (cond (= n 1) s
+        (> n 1) (g/* s (g/expt s (- n 1)))
+        :else (throw (IllegalArgumentException. (str "Cannot: " `(expt ~s ~n))))))
+
 (g/defhandler :+   [down? down?]           (partial elementwise g/+))
 (g/defhandler :+   [up? up?]               (partial elementwise g/+))
 (g/defhandler :-   [down? down?]           (partial elementwise g/-))
@@ -61,10 +70,11 @@
 (g/defhandler :*   [structure? scalar?]    #(scalar-multiply %2 %1))
 (g/defhandler :/   [structure? scalar?]    #(scalar-multiply (/ %2) %1))
 (g/defhandler :*   [structure? structure?] mul)
+(g/defhandler :**  [structure? integer?]   expt)
 
 (g/defhandler :square [structure?]
   (fn [s] (inner-product s s)))
-(g/defhandler :cube [structure?]  ; XXX redo with expt?
+(g/defhandler :cube [structure?]
   (fn [s] (g/* s s s)))
 (g/defhandler :negate [structure?]
   (fn [s] (with-orientation-of s (vec (map g/negate s)))))
