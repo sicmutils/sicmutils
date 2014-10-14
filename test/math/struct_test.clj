@@ -109,10 +109,19 @@
           x (up 'x 'y)]
       (is (= (up (+ (* 'x 'a) (* 'y 'b))
                  (+ (* 'x 'c) (* 'y 'd))) (* M x))))
-    (let [M (up (down 'a 'c) (down 'b 'd))
+    (let [M (up (down 'a 'b) (down 'c 'd))
           x (down 'x 'y)]
-      (is (= (down (+ (* 'x 'a) (* 'y 'b))
-                   (+ (* 'x 'c) (* 'y 'd))) (* x M)))))
+      (is (= (down (+ (* 'x 'a) (* 'y 'c))
+                   (+ (* 'x 'b) (* 'y 'd))) (* M x))))
+    (let [M (up (down 'a 'c) (down 'b 'd))]
+      (is (= (up (down (+ (* 'a 'a) (* 'c 'b))
+                       (+ (* 'a 'c) (* 'c 'd)))
+                 (down (+ (* 'b 'a) (* 'd 'b))
+                       (+ (* 'b 'c) (* 'd 'd)))) (* M M))))
+    )
+  (testing "fibonacci-matrix"
+    (let [M (down (up 1 1) (up 1 0))]
+      (is (= 6765 (-> (expt M 20) first second)))))
   (testing "expt"
     (is (= [[[[1 2] [2 4]] [[2 4] [4 8]]] [[[2 4] [4 8]] [[4 8] [8 16]]]]
            (expt (up 1 2) 4)))
