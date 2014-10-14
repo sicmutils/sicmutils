@@ -105,13 +105,19 @@
             [[3 6 9] [6 12 18] [9 18 27]]] (cube (up 1 2 3)))))
   (testing "matrix-like"
     (let [M (down (up 'a 'c) (up 'b 'd))
-          x (up 'x 'y)]
+          x (up 'x 'y)
+          xt (down 'x 'y)]
       (is (= (up (+ (* 'x 'a) (* 'y 'b))
-                 (+ (* 'x 'c) (* 'y 'd))) (* M x))))
-    (let [M (up (down 'a 'b) (down 'c 'd))
-          x (down 'x 'y)]
+                 (+ (* 'x 'c) (* 'y 'd))) (* M x)))
       (is (= (down (+ (* 'x 'a) (* 'y 'c))
-                   (+ (* 'x 'b) (* 'y 'd))) (* M x))))
+                 (+ (* 'x 'b) (* 'y 'd))) (* xt M))))
+    (let [M (up (down 'a 'b) (down 'c 'd))
+          x (down 'x 'y)
+          xt (up 'x 'y)]
+      (is (= (down (+ (* 'x 'a) (* 'y 'c))
+                   (+ (* 'x 'b) (* 'y 'd))) (* M x)))
+      (is (= (down (+ (* 'x 'a) (* 'y 'c))
+                   (+ (* 'x 'b) (* 'y 'd))) (* x M))))
     (let [M (up (down 'a 'c) (down 'b 'd))]
       (is (= (up (down (+ (* 'a 'a) (* 'c 'b))
                        (+ (* 'a 'c) (* 'c 'd)))
