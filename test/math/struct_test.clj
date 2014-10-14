@@ -104,5 +104,13 @@
     (is (= [[[1 2 3] [2 4 6] [3 6 9]]
             [[2 4 6] [4 8 12] [6 12 18]]
             [[3 6 9] [6 12 18] [9 18 27]]] (cube (up 1 2 3)))))
+  (testing "matrix-like"
+    (let [M (down (up 'a 'c) (up 'b 'd))
+          x (up 'x 'y)]
+      (is (= (up (+ (* 'x 'a) (* 'y 'b))
+                 (+ (* 'x 'c) (* 'y 'd))) (* M x))))
+    (let [M (up (down 'a 'c) (down 'b 'd))
+          x (down 'x 'y)]
+      (is (= (down (+ (* 'x 'a) (* 'y 'b))
+                   (+ (* 'x 'c) (* 'y 'd))) (* x M)))))
   )
-

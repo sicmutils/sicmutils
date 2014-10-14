@@ -20,10 +20,10 @@
 
 (def ^:private structure? vector?)
 
-(defn- row? [s]
+(defn- down? [s]
   (and (structure? s) (= (orientation s) :down)))
 
-(defn- column? [s]
+(defn- up? [s]
   (and (structure? s) (= (orientation s) :up)))
 
 (defn- elementwise [op s t]
@@ -50,13 +50,16 @@
     (inner-product s t)
     (outer-product s t)))
 
-(g/defhandler :+   [row? row?]          (partial elementwise g/+))
-(g/defhandler :+   [column? column?]    (partial elementwise g/+))
-(g/defhandler :-   [row? row?]          (partial elementwise g/-))
-(g/defhandler :-   [column? column?]    (partial elementwise g/-))
-(g/defhandler :*   [number? structure?] scalar-multiply)
-(g/defhandler :*   [structure? number?] #(scalar-multiply %2 %1))
-(g/defhandler :/   [structure? number?] #(scalar-multiply (/ %2) %1))
+(defn- scalar? [s]
+  (or (number? s) (g/abstract-number? s)))
+
+(g/defhandler :+   [down? down?]           (partial elementwise g/+))
+(g/defhandler :+   [up? up?]               (partial elementwise g/+))
+(g/defhandler :-   [down? down?]           (partial elementwise g/-))
+(g/defhandler :-   [up? up?]               (partial elementwise g/-))
+(g/defhandler :*   [number? structure?]    scalar-multiply)
+(g/defhandler :*   [structure? scalar?]    #(scalar-multiply %2 %1))
+(g/defhandler :/   [structure? scalar?]    #(scalar-multiply (/ %2) %1))
 (g/defhandler :*   [structure? structure?] mul)
 
 (g/defhandler :square [structure?]
