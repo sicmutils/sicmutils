@@ -110,7 +110,9 @@
       (is (= (up (+ (* 'x 'a) (* 'y 'b))
                  (+ (* 'x 'c) (* 'y 'd))) (* M x)))
       (is (= (down (+ (* 'x 'a) (* 'y 'c))
-                 (+ (* 'x 'b) (* 'y 'd))) (* xt M))))
+                 (+ (* 'x 'b) (* 'y 'd))) (* xt M)))
+      (is (= (+ (* 'x (+ (* 'x 'a) (* 'y 'c)))
+                (* 'y (+ (* 'x 'b) (* 'y 'd)))) (* xt M x))))
     (let [M (up (down 'a 'b) (down 'c 'd))
           x (down 'x 'y)
           xt (up 'x 'y)]

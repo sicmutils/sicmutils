@@ -23,12 +23,12 @@
   "True if the expression is a form with head corresponding to
   the math.generic operator with the given name."
   [name]
-  `(fn [x#] (and (seq? x#) (= (first x#) (symbol "math.generic" ~name)))))
+  `(fn [x#] (and (seq? x#) (= (first x#) (symbol "math.generic" ~(str name))))))
 
-(def ^:private sum? (is-expression? "+"))
-(def ^:private product? (is-expression? "*"))
-(def ^:private sqrt? (is-expression? "sqrt"))
-(def ^:private expt? (is-expression? "expt"))
+(def ^:private sum? (is-expression? +))
+(def ^:private product? (is-expression? *))
+(def ^:private sqrt? (is-expression? sqrt))
+(def ^:private expt? (is-expression? expt))
 
 (defn- operands [x]
   (rest x))
@@ -240,8 +240,8 @@
 (def ^:private symbolic-operator-table {:+ add-n
                                         :- sub-n
                                         :* mul-n
-                                        :negate (fn [x] (sub 0 x))
-                                        :invert (fn [x] (div 1 x))
+                                        :negate #(sub 0 %)
+                                        :invert #(div 1 %)
                                         :/ div-n
                                         :sin sine
                                         :cos cosine
