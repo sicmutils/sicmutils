@@ -13,11 +13,11 @@
 
 (defn match-var
   "If the variable is not bound in the frame, and there is more
-  matchable data, this combinator will succeed by consuming the next
-  item in the data and produces a frame in which the data seen is
-  bound to the pattern variable. If the variable is bound, then the
-  value seen must match the binding to succeed (the frame is not
-  modified in this case)."
+  matchable data (that satisfies the optional constraint predicate),
+  this combinator will succeed by consuming the next item in the data
+  and produces a frame in which the data seen is bound to the pattern
+  variable. If the variable is bound, then the value seen must match
+  the binding to succeed (the frame is not modified in this case)."
   ([var]
      (match-var var (constantly true)))
   ([var predicate?]

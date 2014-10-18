@@ -43,8 +43,11 @@
                                     (match-segment :ys)
                                     (match-var :j integer?)
                                     (match-segment :zs))]
-      (is (= {:i 3 :j 4 :xs [1.1 [1 3] 2.3] :ys '[6.5 x [3 5]] :zs [22]}
-             (match find-two-ints '(1.1 [1 3] 2.3 3 6.5 x [3 5] 4 22)))))
+      (is (= '[{:i 3 :j 4 :xs [1.1 [1 3] 2.3] :ys [6.5 x [3 5]] :zs [22]}
+               {:i 3 :j 22 :xs [1.1 [1 3] 2.3] :ys [6.5 x [3 5] 4] :zs []}
+               {:i 4 :j 22 :xs [1.1 [1 3] 2.3 3 6.5 x [3 5]] :ys [] :zs []}]
+             (collect-all-results find-two-ints
+                                  '((1.1 [1 3] 2.3 3 6.5 x [3 5] 4 22))))))
     )
   (testing "twin-segments"
     (let [xs-xs (match-list (match-segment :x)
