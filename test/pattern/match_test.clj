@@ -24,12 +24,27 @@
     (is (= [{:x 'a} '(b)] ((match-var :x) {} '(a b) receive)))
     (is (= [{:x '(a b)} '(c)] ((match-var :x) {} '((a b) c) receive)))
     )
+  (testing "match-var-constraint"
+    (is (= [{:x 6} nil] ((match-var :x integer?) {} '(6) receive)))
+    (is (= nil ((match-var :x integer?) {} '(6.0) receive)))
+    (is (= [{:x 6.0} nil] ((match-var :x float?) {} '(6.0) receive)))
+    (is (= [{:x 6.0} '(7.0)] ((match-var :x float?) {} '(6.0 7.0) receive)))
+    )
   (testing "match-segment"
     (is (= [[{:x []} '(a b c)]
             [{:x '[a]} '(b c)]
             [{:x '[a b]} '(c)]
             [{:x '[a b c]} ()]]
            (collect-all-results (match-segment :x) '(a b c) true)))
+    )
+  (testing "match-segment-constraint"
+    (let [find-two-ints (match-list (match-segment :xs)
+                                    (match-var :i integer?)
+                                    (match-segment :ys)
+                                    (match-var :j integer?)
+                                    (match-segment :zs))]
+      (is (= {:i 3 :j 4 :xs [1.1 [1 3] 2.3] :ys '[6.5 x [3 5]] :zs [22]}
+             (match find-two-ints '(1.1 [1 3] 2.3 3 6.5 x [3 5] 4 22)))))
     )
   (testing "twin-segments"
     (let [xs-xs (match-list (match-segment :x)
