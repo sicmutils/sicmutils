@@ -18,12 +18,15 @@
   bound to the pattern variable. If the variable is bound, then the
   value seen must match the binding to succeed (the frame is not
   modified in this case)."
-  [var]
-  (fn [frame [x & xs] succeed]
-    (if x
-      (if-let [binding (frame var)]
-       (and (= binding x) (succeed frame xs))
-       (succeed (assoc frame var x) xs)))))
+  ([var]
+     (match-var var (constantly true)))
+  ([var predicate?]
+     (fn [frame [x & xs] succeed]
+       (if x
+         (if-let [binding (frame var)]
+           (and (= binding x) (succeed frame xs))
+           (if (or (not predicate?) (predicate? x))
+             (succeed (assoc frame var x) xs)))))))
 
 (defn match-segment [var]
   (fn [frame xs succeed]
@@ -68,14 +71,20 @@
   [x]
   (second x))
 
+(defn variable-constraint
+  [x]
+  (nth x 2 nil))
+
 (defn pattern->matcher
   "Given a pattern (which is essentially a form consisting of
   constants mixed with pattern variables) returns a match combinator
   for the pattern."
   [pattern]
   (if (sequential? pattern)
-    (cond (variable-reference? pattern) (match-var (variable pattern))
-          (segment-reference? pattern) (match-segment (variable pattern))
+    (cond (variable-reference? pattern) (match-var (variable pattern)
+                                                   (variable-constraint pattern))
+          (segment-reference? pattern)
+          (match-segment (variable pattern))
           :else (apply match-list (map pattern->matcher pattern)))
     (match-one pattern)))
 
