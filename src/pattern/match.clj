@@ -25,7 +25,7 @@
        (if x
          (if-let [binding (frame var)]
            (and (= binding x) (succeed frame xs))
-           (if (or (not predicate?) (predicate? x))
+           (if (predicate? x)
              (succeed (assoc frame var x) xs)))))))
 
 (defn match-segment [var]
@@ -73,7 +73,7 @@
 
 (defn variable-constraint
   [x]
-  (nth x 2 nil))
+  (nth x 2 (constantly true)))
 
 (defn pattern->matcher
   "Given a pattern (which is essentially a form consisting of
