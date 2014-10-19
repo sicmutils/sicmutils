@@ -1,41 +1,91 @@
 (ns math.poly
-  (:refer-clojure :exclude [merge] :rename {map core-map})
-  (:require [math.generic :as g]))
+  (:refer-clojure :rename {zero? core-zero?})
+  (:require [clojure.set :as set]
+            [math.expression :as x]
+            [math.generic :as g]
+            ))
+
+(declare operator-table operators-known)
+
+;; format in scheme:
+;; (*dense* arity termlist)
+
+;; bit of tension here: why does this library not participate in generic
+;; arithmetic? Wouldn't it be fun to have polynomials with coefficients
+;; from exotic rings? Or does this conflict with the goal to use this
+;; canonical form for simplification?
+
+;; XXX s.b. (not (g/zero? c)) ??
+
+(defn make-with-arity [a & oc-pairs]
+  (let [ocs (into (sorted-map) (filter (fn [[o c]] (not= c 0)) oc-pairs))]
+    (if (empty? ocs) 0
+        (with-meta ocs {:generic-type :poly :arity a}))))
 
 (defn make [& oc-pairs]
-  (with-meta
-    (into (sorted-map) (filter (fn [[o c]] (not= c 0)) oc-pairs))
-    {:generic-type :poly}))
+  (apply make-with-arity 1 oc-pairs))
 
 ;; should we rely on the constructors and manipulators never to allow
 ;; a zero coefficient into the list, or should we change degree to
 ;; scan for nonzero coefficients? In the normal case, there would be
 ;; none, but in corner cases it would still be robust.
 
+(defn make-identity
+  "Produce the identity polynomial of the given arity."
+  [arity]
+  (make-with-arity arity [1 1]))
+
+(def ^:private poly-identity
+  "The univariate identity polynomial p(x) = x"
+  (make-identity 1))
+
+(defn poly-extend
+  "Interpolates a variable at position n in polynomial p."
+  [n p]
+  nil)
+
+(defn- zero? [p]
+  (and (number? p) (core-zero? p)))
+
+(defn- one? [p]
+  (and (number? p) (= 1 p)))
+
 (defn degree [p]
-  (or (first (first (rseq p))) 0))
+  (cond (zero? p) -1
+        (number? p) 0
+        :else (first (first (rseq p)))))
 
-(defn- map [f p]
-  (into (empty p) (core-map #(vector (first %) (f (second %))) p)))
+;; ARITY
 
-(def negate (partial map -))
+(defn arity [p]
+  (if (number? p)
+    0
+    (-> p meta :arity)))
 
-;;
-;; this is ok so far as it doesn't generate an intermediate,
-;; but yucky in that it will freeze and reconstitute the sorted
-;; map on each step. would be nicer to accumulate a list of pairs
-;; and then return (into (sorted-map) R).
-;; that should be easy to arrange.
-;;
-;; or maybe could use merge-with from core. But that doesn't take
-;; advantage of sorted-ness, which I think we still want.
-;; But its implementation does point to ways this could be simpler.
-;;
+(defn- check-same-arity [p q]
+  (let [ap (arity p)
+        aq (arity q)]
+    (cond (number? p) aq
+          (number? q) ap
+          (= ap aq) ap
+          :else (throw (IllegalArgumentException. "mismatched polynomial arity")))))
 
-(defn- merge [f p q]
+(defn- normalize-with-arity [a p]
+  (if (number? p) p
+      (let [fp (->> p (filter #(not (zero? (second %)))) (into (sorted-map)))]
+        (if-let [[order coef] (first fp)]
+         (if (and (= (count p) 1) (= order 0)) coef
+             (with-meta fp {:generic-type :poly :arity a}))
+         0))))
+
+(defn- poly-map [f p]
+  (normalize-with-arity (arity p) (into (empty p) (map #(vector (first %) (f (second %))) p))))
+
+;; XXX needs to work for constant polys
+(defn- poly-merge [f p q]
   (loop [P p
          Q q
-         R (make)]
+         R (sorted-map)]
     (cond
      (empty? P) (into R Q)
      (empty? Q) (into R P)
@@ -50,9 +100,86 @@
               (< op oq) (recur (rest P) Q (assoc R op (f cp)))
               :else (recur P (rest Q) (assoc R oq (f cq))))))))
 
+;; (define (poly/make-vars arity)
+;;   (if (fix:= arity 0)
+;;     '()
+;;     (let lp1 ((n 1) (l (list poly/identity)))
+;;          (if (fix:= n arity)
+;;            l
+;;            (lp1 (fix:+ n 1)
+;;                 (cons (poly/make-identity (fix:+ n 1))
+;;                       (map (lambda (c)
+;;                                    (poly/extend 0 c))
+;;                            l)))))))
 
-(def add (partial merge g/+))
-(def sub (partial merge g/-))
+(defn make-vars [arity]
+  (if (= arity 0) ()
+      (loop [n 1 l (list poly-identity)]
+        (if (= n arity) l
+            (recur (inc n)
+                   (cons (make-identity (inc n))
+                         (map (fn [c] (poly-extend 0 c)) l)))))))
+
+(def ^:private negate (partial poly-map -))
+
+(defn- add-constant [poly c]
+  (if (number? poly) (+ poly c)
+      (normalize-with-arity (arity poly)
+                            (assoc poly 0 (+ (get poly 0 0) c)))))
+
+(defn add [p q]
+  (cond (and (number? p) (number? q)) (+ p q)
+        (zero? p) q
+        (zero? q) p
+        (number? p) (add-constant q p)
+        (number? q) (add-constant p q)
+        :else (let [a (check-same-arity p q)
+                    sum (poly-merge g/+ p q)]
+                (normalize-with-arity a sum))))
+
+(defn- add-denormal [p [o c]]
+  (assoc p o (+ (get p o 0) c)))
+
+(defn sub [p q]
+  (cond (and (number? p) (number? q)) (- p q)
+        (zero? p) (negate q)
+        (zero? q) p
+        ;; (number? p)  an interesting case: k - p(x)
+        ;; another question: should merge normalize
+        :else (let [a (check-same-arity p q)
+                    diff (poly-merge g/- p q)]
+                (normalize-with-arity a diff))))
 
 (defn mul [p q]
-  (reduce add (make) (for [[op cp] p [oq cq] q] [[(g/+ op oq) (g/* cp cq)]])))
+  (cond (and (number? p) (number? q)) (* p q)
+        (zero? p) 0
+        (zero? q) 0
+        (one? p) q
+        (one? q) p
+        (number? p) (poly-map #(* p %) q)
+        (number? q) (poly-map #(* % q) p)
+        :else (let [a (check-same-arity p q)]
+                (normalize-with-arity a (reduce add-denormal (sorted-map)
+                                                (for [[op cp] p [oq cq] q]
+                                                  [(g/+ op oq) (g/* cp cq)]))))))
+
+(defn expression->
+  [expr cont]
+  (let [expression-vars (set/difference (x/variables-in expr) operators-known)
+        new-bindings (into {} (map vector
+                                   expression-vars
+                                   (make-vars (count expression-vars))))
+        environment (into operator-table new-bindings)]
+    (cont (x/walk-expression environment expr) expression-vars)))
+
+(def ^:private operator-table
+  {'math.generic/+ add
+   'math.generic/- sub
+   'math.generic/* mul
+   'math.generic/negate negate
+   ;g/expt expt
+   ;g/square square
+   ;g/gcd gcd
+   })
+
+(def ^:private operators-known (into #{} (keys operator-table)))

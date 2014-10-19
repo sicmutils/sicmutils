@@ -21,7 +21,7 @@
   (instance? ModInt x))
 
 (defn- modular-binop [op]
-  (fn [a b]
+  (fn [^ModInt a ^ModInt b]
     (if-not (= (.m a) (.m b))
       (throw (IllegalArgumentException. "unequal moduli"))
       (make (op (.a a) (.a b)) (.m a)))))

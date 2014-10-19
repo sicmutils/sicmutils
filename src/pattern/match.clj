@@ -1,4 +1,5 @@
-(ns pattern.match)
+(ns pattern.match
+  (:require [clojure.walk :refer :all]))
 
 (def ^:private zero [{} nil])
 

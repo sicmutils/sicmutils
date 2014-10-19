@@ -1,14 +1,33 @@
-(ns math.expression)
+(ns math.expression
+  (:require [math.generic :as g]
+            [clojure.walk :refer :all]))
 
 ;; NB: we aren't wrapping literals with (expression ...) as GJS does.
 ;; might come back to bite us.
 (defn make-literal [type expression]
-  (with-meta expression {:generic-type :number}))
+  (g/with-type :number expression))
 
 (defn make-numeric-literal [expression]
   (if (number? expression)
     expression
     (make-literal :number expression)))
+
+(defn variables-in [expression]
+  (->> expression flatten (filter symbol?) (into #{})))
+
+(defn walk-expression [environment expr]
+  (postwalk (fn [a]
+              (cond (number? a) a
+                    (symbol? a) (if-let [binding (a environment)]
+                                  binding
+                                  (throw (IllegalArgumentException.
+                                          (str "no binding for " a " " (type a)
+                                               " " (namespace a) " in "
+                                               environment))))
+                    (sequential? a) (apply (first a) (rest a))
+                    :else (throw (IllegalArgumentException.
+                                  (str "unknown expression type " a)))))
+            expr))
 
 ;; this guy goes in here. metadata? or a Value?
 ;; expression of type T? predicate for experssionator?
@@ -23,7 +42,7 @@
 
 ;; property management: plan: do this with metadata ?
 
-;; 
+;;
 ;; (define (add-property! abstract-quantity property-name property-value)
 ;;   (if (pair? abstract-quantity)
 ;;       (set-cdr! (last-pair abstract-quantity)
@@ -51,4 +70,3 @@
 ;; 	     default))
 ;; 	(else
 ;; 	 (error "Bad abstract quantity"))))
-	 

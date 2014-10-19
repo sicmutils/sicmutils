@@ -163,3 +163,6 @@
 
 (defn abstract-number? [x]
   (or (symbol? x) (literal-number? x)))
+
+(defn with-type [t x]
+  (with-meta x {:generic-type t}))
