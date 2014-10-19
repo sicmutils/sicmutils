@@ -64,11 +64,13 @@
   (testing "expr"
     (let [exp1 (g/* (g/+ 1 'x) (g/+ -3 'x))
           exp2 (g/expt (g/+ 1 'y) 5)
+          exp3 (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5))
           receive (fn [a b] [a b])]
       (is (= '#{math.generic/* math.generic/+ x} (x/variables-in exp1)))
       (is (= [(make -3 -2 1) '#{x}] (expression-> exp1 receive)))
       (is (= [(make -3 -2 1) '#{x}] (expression-> exp1 receive)))
       (is (= [(make 1 5 10 10 5 1) '#{y}] (expression-> exp2 receive)))
+      (is (= [(make 0 -11 5 -30 10 -7 1) '#{y}] (expression-> exp3 receive)))
       ))
 
   )

@@ -169,8 +169,8 @@
   (cond (and (number? p) (number? q)) (- p q)
         (zero? p) (negate q)
         (zero? q) p
-        ;; (number? p)  an interesting case: k - p(x)
-        ;; another question: should merge normalize
+        (number? p) (add-constant (negate q) p)
+        (number? q) (add-constant p q)
         :else (let [a (check-same-arity p q)
                     diff (poly-merge g/- p q)]
                 (normalize-with-arity a diff))))

@@ -48,7 +48,7 @@
   (testing "zero/one elimination"
     (is (= 'x (g/+ 0 'x)))
     (is (= 'x (g/* 1 'x)))
-    (is (= '(math.generic/- x) (g/- 0 'x)))
+    (is (= (g/negate 'x) (g/- 0 'x)))
     (is (= 'x (g/+ 'x 0)))
     (is (= 'x (g/* 'x 1)))
     (is (= 'x (g/- 'x 0)))
@@ -65,7 +65,7 @@
     )
   (testing "neg"
     (is (= -4 (g/- 0 4)))
-    (is (= '(math.generic/- x) (g/- 0 'x)))
+    (is (= (g/negate 'x) (g/- 0 'x)))
     (is (= -4 (g/- 4)))
     (is (= -4.2 (g/- 4.2)))
     )
