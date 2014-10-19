@@ -122,9 +122,9 @@
         :else (sub a b)))
 
 (defn - [& args]
-  (if (= (count args) 1)
-    (negate (first args))
-    (reduce bin- args)))
+  (cond (empty? args) 0
+        (= (count args) 1) (negate (first args))
+        :else (bin- (first args) (apply + (next args)))))
 
 (defn bin* [a b]
   (cond (and (number? a) (number? b)) (core-* a b)
@@ -163,3 +163,6 @@
 
 (defn abstract-number? [x]
   (or (symbol? x) (literal-number? x)))
+
+(defn with-type [t x]
+  (with-meta x {:generic-type t}))

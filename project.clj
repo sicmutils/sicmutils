@@ -11,5 +11,6 @@
                  :init-ns math.generic
                  :init (require '[math.numbers]
                                 '[math.struct :refer :all])}
+  :plugins [[cider/cider-nrepl "0.8.0-SNAPSHOT"]]
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})

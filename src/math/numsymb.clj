@@ -56,12 +56,12 @@
   (cond (and (number? a) (number? b)) (- a b)
         (number? a) (if (g/zero? a) `(g/- ~b) `(g/- ~a ~b))
         (number? b) (if (g/zero? b) a `(g/- ~a ~b))
-        :else `(- ~a ~b)))
+        :else `(g/- ~a ~b)))
 
 (defn- sub-n [& args]
   (cond (nil? args) 0
-        (nil? (next args)) (sub 0 (first args))
-        :else (sub (first args) (add-n (next args)))))
+        (nil? (next args)) (g/negate (first args))
+        :else (sub (first args) (apply add-n (next args)))))
 
 (defn- mul [a b]
   (cond (and (number? a) (number? b)) (* a b)

@@ -55,11 +55,12 @@
       `(fn [data# continue# fail#]
          (fail# data#)))))
 
+(defn- try-rulesets [[ruleset & rulesets] expression succeed]
+  (if ruleset
+    (ruleset expression succeed #(try-rulesets rulesets % succeed))
+    expression))
+
 (defn rule-simplifier [& rulesets]
-  (defn try-rulesets [[ruleset & rulesets] expression succeed]
-    (if ruleset
-      (ruleset expression succeed #(try-rulesets rulesets % succeed))
-      expression))
   (fn simplifier [expression]
     (let [simplified (if (seq? expression)
                        (map simplifier expression)
