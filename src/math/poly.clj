@@ -1,9 +1,13 @@
 (ns math.poly
   (:refer-clojure :rename {zero? core-zero?})
-  (:require [clojure.set :as set]
+  (:require [clojure.math.numeric-tower :as nt]
+            [clojure.set :as set]
             [math.expression :as x]
             [math.generic :as g]
             ))
+
+;; Hmm. I sort of think this should become a deftype. Doing so might help
+;; the arithmetic become genericized in the event that were ever useful.
 
 (declare operator-table operators-known)
 
@@ -151,7 +155,14 @@
                     sum (poly-merge g/+ p q)]
                 (normalize-with-arity a sum))))
 
-(defn- add-denormal [p [o c]]
+(defn- add-denormal
+  "Add-denormal adds the (order, coefficient) pair to the polynomial p,
+  expecting that p is currently in sparse form (i.e., not a primitive number)
+  and without normalizing the result (e.g., to see if the polynomial has
+  become constant or a term has dropped out). Useful in intermediate steps
+  of polynomial computations."
+  [p [o c]]
+
   (assoc p o (+ (get p o 0) c)))
 
 (defn sub [p q]
@@ -177,6 +188,25 @@
                                                 (for [[op cp] p [oq cq] q]
                                                   [(g/+ op oq) (g/* cp cq)]))))))
 
+(defn- square [p]
+  (mul p p))
+
+(defn expt [p n]
+  (cond (number? p) (nt/expt p n)
+        (or
+         (not (integer? n))
+         (< n 0)) (throw (IllegalArgumentException. (str "can't raise poly to " n)))
+        (one? p) p
+        (zero? p) (if (zero? n)
+                    (throw (IllegalArgumentException. "poly 0^0"))
+                    p)
+        (zero? n) 1
+        :else (loop [x p c n a 1]
+                (if (zero? c) a
+                    (if (even? c)
+                      (recur (square x) (quot c 2) a)
+                      (recur x (dec c) (mul x a)))))))
+
 (defn expression->
   [expr cont]
   (let [expression-vars (set/difference (x/variables-in expr) operators-known)
@@ -191,8 +221,8 @@
    'math.generic/- sub
    'math.generic/* mul
    'math.generic/negate negate
-   ;g/expt expt
-   ;g/square square
+   'math.generic/expt expt
+   'math.generic/square square
    ;g/gcd gcd
    })
 

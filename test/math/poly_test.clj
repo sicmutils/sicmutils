@@ -27,7 +27,27 @@
     (is (= 0 (sub (make 0 0 2) (make 0 0 2))))
     (is (= -3 (sub (make 0 0 2) (make 3 0 2)))))
   (testing "mul"
-    (is (= (make -1 0 1) (mul (make 1 1) (make -1 1)))))
+    (is (= 0 (mul (make 1 2 3) 0)))
+    (is (= 0 (mul 0 (make 1 2 3))))
+    (is (= 0 (mul (make) (make 1 2 3))))
+    (is (= (make 1 2 3) (mul (make 1 2 3) 1)))
+    (is (= (make 1 2 3) (mul 1 (make 1 2 3))))
+    (is (= (make 3 6 9) (mul (make 1 2 3) 3)))
+    (is (= (make 0 1 2 3) (mul (make 0 1) (make 1 2 3))))
+    (is (= (make 0 -1 -2 -3) (mul (make 0 -1) (make 1 2 3))))
+    (is (= (make -1 0 1) (mul (make 1 1) (make -1 1))))
+    (is (= (make 1 3 3 1) (mul (make 1 1) (mul (make 1 1) (make 1 1)))))
+    (is (= (make 1 -4 6 -4 1) (mul (mul (make -1 1) (make -1 1))
+                                   (mul (make -1 1) (make -1 1))))))
+  (testing "expt"
+    (let [x+1 (make 1 1)]
+      (is (= 1 (expt x+1 0)))
+      (is (= x+1 (expt x+1 1)))
+      (is (= (make 1 2 1) (expt x+1 2)))
+      (is (= (make 1 3 3 1) (expt x+1 3)))
+      (is (= (make 1 4 6 4 1) (expt x+1 4)))
+      (is (= (make 1 5 10 10 5 1) (expt x+1 5)))
+      ))
   (testing "identity"
     (is (= (make 0 1) (make-identity 1)))
     ;; what we want to test is that identity is the identity function
@@ -42,9 +62,13 @@
     ;(is (= 'bar (make-vars 2)))
     )
   (testing "expr"
-    (let [exp (g/* (g/+ 1 'x) (g/+ -3 'x))]
-      (is (= '#{math.generic/* math.generic/+ x} (x/variables-in exp)))
-      (is (= [(make -3 -2 1) '#{x}] (expression-> exp (fn [a b] [a b]))))
+    (let [exp1 (g/* (g/+ 1 'x) (g/+ -3 'x))
+          exp2 (g/expt (g/+ 1 'y) 5)
+          receive (fn [a b] [a b])]
+      (is (= '#{math.generic/* math.generic/+ x} (x/variables-in exp1)))
+      (is (= [(make -3 -2 1) '#{x}] (expression-> exp1 receive)))
+      (is (= [(make -3 -2 1) '#{x}] (expression-> exp1 receive)))
+      (is (= [(make 1 5 10 10 5 1) '#{y}] (expression-> exp2 receive)))
       ))
 
   )
