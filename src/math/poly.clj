@@ -22,8 +22,23 @@
     (if (empty? ocs) 0
         (with-meta ocs {:generic-type :poly :arity a}))))
 
-(defn make [& oc-pairs]
+(defn make-sparse
+  "Create a polynomial specifying the terms in sparse form: supplying
+  pairs of [order, coefficient]. For example, x^2 - 1 can be
+  constructed by (make-sparse [2 1] [0 -1]). The order of the pairs
+  doesn't matter."
+  [& oc-pairs]
   (apply make-with-arity 1 oc-pairs))
+
+(defn make
+  "Create a polynomial specifying the terms in dense form, supplying
+  the coefficients of the terms starting with the constant term and
+  proceeding as far as needed. For example, x^2 - 1 can be constructed
+  by (make -1 0 1). The order of the coefficients corresponds to the
+  order of the terms, and zeros must be filled in to get to higher
+  powers."
+  [& coefs]
+  (apply make-sparse (map vector (iterate inc 0) coefs)))
 
 ;; should we rely on the constructors and manipulators never to allow
 ;; a zero coefficient into the list, or should we change degree to
@@ -81,7 +96,6 @@
 (defn- poly-map [f p]
   (normalize-with-arity (arity p) (into (empty p) (map #(vector (first %) (f (second %))) p))))
 
-;; XXX needs to work for constant polys
 (defn- poly-merge [f p q]
   (loop [P p
          Q q
