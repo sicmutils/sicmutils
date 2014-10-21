@@ -56,7 +56,7 @@
     (is (= (make 0 0 0 0 4 5) (mul (make-identity 1) (make 0 0 0 4 5))))
     )
   (testing "arity"
-    (is (= 1 (arity (make 0 1)))))
+    (is (= 1 (.arity (make 0 1)))))
   (testing "make-vars"
     (is (= (list (make 0 1)) (make-vars 1)))
     ;(is (= 'bar (make-vars 2)))

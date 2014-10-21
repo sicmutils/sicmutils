@@ -11,20 +11,33 @@
 
 (declare operator-table operators-known)
 
-;; format in scheme:
-;; (*dense* arity termlist)
+(deftype Poly [^long arity ^clojure.lang.PersistentTreeMap oc]
+  g/Value
+  ;; theoretically, we would like to maintain the invariant
+  ;; that in normalized form a constant polynomial is represented
+  ;; in the base ring, so these next two can never be true
+  (zero? [x] false)
+  (one? [x] false)
+  (zero-like [x] 0)
+  ;; a poly could be exact if its coefficents were exact... but
+  ;; we are conservative for now
+  (exact? [x] false)
+  (sort-key [x] 25)
+  Object
+  (equals [x y] (and (= (.arity x) (.arity y)) (= (.oc x) (.oc y))))
+  )
 
-;; bit of tension here: why does this library not participate in generic
-;; arithmetic? Wouldn't it be fun to have polynomials with coefficients
-;; from exotic rings? Or does this conflict with the goal to use this
-;; canonical form for simplification?
+;; ultimately this should be more sensitive, and allow the use of
+;; generic types. Might be nice to have a ring-of-coefficients type
+;; too, but it's not obvious at this point that this would fly with
+;; the architecture of this system
 
-;; XXX s.b. (not (g/zero? c)) ??
+(def ^:private base? number?)
 
 (defn- make-with-arity [a & oc-pairs]
   (let [ocs (into (sorted-map) (filter (fn [[o c]] (not= c 0)) oc-pairs))]
     (if (empty? ocs) 0
-        (with-meta ocs {:generic-type :poly :arity a}))))
+        (Poly. a ocs))))
 
 (defn- make-sparse
   "Create a polynomial specifying the terms in sparse form: supplying
@@ -63,46 +76,43 @@
   [n p]
   nil)
 
-(defn- zero? [p]
-  (and (number? p) (core-zero? p)))
-
-(defn- one? [p]
-  (and (number? p) (= 1 p)))
-
 (defn degree [p]
-  (cond (zero? p) -1
-        (number? p) 0
-        :else (first (first (rseq p)))))
+  (cond (g/zero? p) -1
+        (base? p) 0
+        :else (first (first (rseq (.oc p))))))
 
 ;; ARITY
 
 (defn- arity [p]
-  (if (number? p)
+  (if (base? p)
     0
-    (-> p meta :arity)))
+    ;;(-> p meta :arity))
+    ;; XXX: as we hesitate between the FPF apd PCF forms, arity is not
+    ;; really well defined XXX
+    (.arity p)))
 
 (defn- check-same-arity [p q]
   (let [ap (arity p)
         aq (arity q)]
-    (cond (number? p) aq
-          (number? q) ap
+    (cond (base? p) aq
+          (base? q) ap
           (= ap aq) ap
           :else (throw (IllegalArgumentException. "mismatched polynomial arity")))))
 
 (defn- normalize-with-arity [a p]
-  (if (number? p) p
-      (let [fp (->> p (filter #(not (zero? (second %)))) (into (sorted-map)))]
+  (if (base? p) p
+      (let [fp (->> p (filter #(not (g/zero? (second %)))) (into (sorted-map)))]
         (if-let [[order coef] (first fp)]
          (if (and (= (count p) 1) (= order 0)) coef
-             (with-meta fp {:generic-type :poly :arity a}))
+             (Poly. a fp))
          0))))
 
 (defn- poly-map [f p]
-  (normalize-with-arity (arity p) (into (empty p) (map #(vector (first %) (f (second %))) p))))
+  (normalize-with-arity (.arity p) (into (sorted-map) (map #(vector (first %) (f (second %))) (.oc p)))))
 
 (defn- poly-merge [f p q]
-  (loop [P p
-         Q q
+  (loop [P (.oc p)
+         Q (.oc q)
          R (sorted-map)]
     (cond
      (empty? P) (into R Q)
@@ -141,16 +151,17 @@
 (def ^:private negate (partial poly-map -))
 
 (defn- add-constant [poly c]
-  (if (number? poly) (+ poly c)
-      (normalize-with-arity (arity poly)
-                            (assoc poly 0 (+ (get poly 0 0) c)))))
+  (if (base? poly) (g/+ poly c)
+      (normalize-with-arity (.arity poly)
+                            ;; there's XXX probably some kind of number form that would work here.
+                            (assoc (.oc poly) 0 (+ (get (.oc poly) 0 0) c)))))
 
 (defn add [p q]
-  (cond (and (number? p) (number? q)) (+ p q)
-        (zero? p) q
-        (zero? q) p
-        (number? p) (add-constant q p)
-        (number? q) (add-constant p q)
+  (cond (and (base? p) (base? q)) (g/+ p q)
+        (g/zero? p) q
+        (g/zero? q) p
+        (base? p) (add-constant q p)
+        (base? q) (add-constant p q)
         :else (let [a (check-same-arity p q)
                     sum (poly-merge g/+ p q)]
                 (normalize-with-arity a sum))))
@@ -161,48 +172,47 @@
   and without normalizing the result (e.g., to see if the polynomial has
   become constant or a term has dropped out). Useful in intermediate steps
   of polynomial computations."
-  [p [o c]]
-
-  (assoc p o (+ (get p o 0) c)))
+  [ocs [o c]]
+  (assoc ocs o (+ (get ocs o 0) c)))
 
 (defn sub [p q]
-  (cond (and (number? p) (number? q)) (- p q)
-        (zero? p) (negate q)
-        (zero? q) p
-        (number? p) (add-constant (negate q) p)
-        (number? q) (add-constant p q)
+  (cond (and (base? p) (base? q)) (g/- p q)
+        (g/zero? p) (g/negate q)
+        (g/zero? q) p
+        (base? p) (add-constant (negate q) p)
+        (base? q) (add-constant p q)
         :else (let [a (check-same-arity p q)
                     diff (poly-merge g/- p q)]
                 (normalize-with-arity a diff))))
 
 (defn mul [p q]
-  (cond (and (number? p) (number? q)) (* p q)
-        (zero? p) 0
-        (zero? q) 0
-        (one? p) q
-        (one? q) p
-        (number? p) (poly-map #(* p %) q)
-        (number? q) (poly-map #(* % q) p)
+  (cond (and (base? p) (base? q)) (g/* p q)
+        (g/zero? p) 0
+        (g/zero? q) 0
+        (g/one? p) q
+        (g/one? q) p
+        (base? p) (poly-map #(* p %) q)
+        (base? q) (poly-map #(* % q) p)
         :else (let [a (check-same-arity p q)]
                 (normalize-with-arity a (reduce add-denormal (sorted-map)
-                                                (for [[op cp] p [oq cq] q]
+                                                (for [[op cp] (.oc p) [oq cq] (.oc q)]
                                                   [(g/+ op oq) (g/* cp cq)]))))))
 
 (defn- square [p]
   (mul p p))
 
 (defn expt [p n]
-  (cond (number? p) (nt/expt p n)
+  (cond (base? p) (g/expt p n)
         (or
          (not (integer? n))
          (< n 0)) (throw (IllegalArgumentException. (str "can't raise poly to " n)))
-        (one? p) p
-        (zero? p) (if (zero? n)
+        (g/one? p) p
+        (g/zero? p) (if (core-zero? n)
                     (throw (IllegalArgumentException. "poly 0^0"))
                     p)
-        (zero? n) 1
+        (core-zero? n) 1
         :else (loop [x p c n a 1]
-                (if (zero? c) a
+                (if (core-zero? c) a
                     (if (even? c)
                       (recur (square x) (quot c 2) a)
                       (recur x (dec c) (mul x a)))))))
