@@ -1,7 +1,6 @@
 (ns math.poly
   (:refer-clojure :rename {zero? core-zero?})
-  (:require [clojure.math.numeric-tower :as nt]
-            [clojure.set :as set]
+  (:require [clojure.set :as set]
             [math.expression :as x]
             [math.generic :as g]
             ))
@@ -11,19 +10,7 @@
 
 (declare operator-table operators-known)
 
-(defrecord Poly [^long arity ^clojure.lang.PersistentTreeMap oc]
-  g/Value
-  ;; theoretically, we would like to maintain the invariant
-  ;; that in normalized form a constant polynomial is represented
-  ;; in the base ring, so these next two can never be true
-  (zero? [x] false)
-  (one? [x] false)
-  (zero-like [x] 0)
-  ;; a poly could be exact if its coefficents were exact... but
-  ;; we are conservative for now
-  (exact? [x] false)
-  (sort-key [x] 25)
-  )
+(defrecord Poly [^long arity ^clojure.lang.PersistentTreeMap oc])
 
 ;; ultimately this should be more sensitive, and allow the use of
 ;; generic types. Might be nice to have a ring-of-coefficients type
@@ -121,7 +108,7 @@
              (cond
               (= op oq) (let [v (f cp cq)]
                           (recur (rest P) (rest Q)
-                                 (if (not= v 0)
+                                 (if (not (g/zero? v))
                                    (assoc R op v)
                                    R)))
               (< op oq) (recur (rest P) Q (assoc R op (f cp)))
