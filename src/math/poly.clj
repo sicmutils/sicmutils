@@ -21,12 +21,12 @@
 
 ;; XXX s.b. (not (g/zero? c)) ??
 
-(defn make-with-arity [a & oc-pairs]
+(defn- make-with-arity [a & oc-pairs]
   (let [ocs (into (sorted-map) (filter (fn [[o c]] (not= c 0)) oc-pairs))]
     (if (empty? ocs) 0
         (with-meta ocs {:generic-type :poly :arity a}))))
 
-(defn make-sparse
+(defn- make-sparse
   "Create a polynomial specifying the terms in sparse form: supplying
   pairs of [order, coefficient]. For example, x^2 - 1 can be
   constructed by (make-sparse [2 1] [0 -1]). The order of the pairs
@@ -58,7 +58,7 @@
   "The univariate identity polynomial p(x) = x"
   (make-identity 1))
 
-(defn poly-extend
+(defn- poly-extend
   "Interpolates a variable at position n in polynomial p."
   [n p]
   nil)
@@ -76,7 +76,7 @@
 
 ;; ARITY
 
-(defn arity [p]
+(defn- arity [p]
   (if (number? p)
     0
     (-> p meta :arity)))
