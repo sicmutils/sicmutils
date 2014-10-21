@@ -11,7 +11,7 @@
 
 (declare operator-table operators-known)
 
-(deftype Poly [^long arity ^clojure.lang.PersistentTreeMap oc]
+(defrecord Poly [^long arity ^clojure.lang.PersistentTreeMap oc]
   g/Value
   ;; theoretically, we would like to maintain the invariant
   ;; that in normalized form a constant polynomial is represented
@@ -23,8 +23,6 @@
   ;; we are conservative for now
   (exact? [x] false)
   (sort-key [x] 25)
-  Object
-  (equals [x y] (and (= (.arity x) (.arity y)) (= (.oc x) (.oc y))))
   )
 
 ;; ultimately this should be more sensitive, and allow the use of
@@ -149,12 +147,12 @@
                    (cons (make-identity (inc n))
                          (map (fn [c] (poly-extend 0 c)) l)))))))
 
-(def ^:private negate (partial poly-map -))
+(def ^:private negate (partial poly-map g/negate))
 
 (defn- add-constant [poly c]
   (if (base? poly) (g/+ poly c)
       (normalize-with-arity (.arity poly)
-                            ;; there's XXX probably some kind of number form that would work here.
+                            ;; there's XXX probably some kind of update form that would work here.
                             (assoc (.oc poly) 0 (+ (get (.oc poly) 0 0) c)))))
 
 (defn add [p q]
@@ -192,8 +190,8 @@
         (g/zero? q) 0
         (g/one? p) q
         (g/one? q) p
-        (base? p) (poly-map #(* p %) q)
-        (base? q) (poly-map #(* % q) p)
+        (base? p) (poly-map #(g/* p %) q)
+        (base? q) (poly-map #(g/* % q) p)
         :else (let [a (check-same-arity p q)]
                 (normalize-with-arity a (reduce add-denormal (sorted-map)
                                                 (for [[op cp] (.oc p) [oq cq] (.oc q)]

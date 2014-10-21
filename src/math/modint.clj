@@ -2,16 +2,13 @@
   (:require [math.generic :as g]
             [math.euclid :as e]))
 
-(deftype ModInt [^BigInteger a ^BigInteger m]
+(defrecord ModInt [^BigInteger a ^BigInteger m]
   g/Value
   (zero? [x] (= a 0))
   (one? [x] (= a 1))
   (zero-like [x] (ModInt. 0 a))
   (exact? [x] true)
   (sort-key [x] 15)
-  Object
-  (toString [x] (str (.a x) " mod " (.m x)))
-  (equals [x y] (and (= (.m x) (.m y)) (= (.a x) (.a y))))
   )
 
 (defn make [a m]
