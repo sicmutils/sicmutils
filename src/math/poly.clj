@@ -36,8 +36,9 @@
 
 (defn- make-with-arity [a & oc-pairs]
   (let [ocs (into (sorted-map) (filter (fn [[o c]] (not= c 0)) oc-pairs))]
-    (if (empty? ocs) 0
-        (Poly. a ocs))))
+    (cond (empty? ocs) 0
+          (and (= (count ocs) 1) (= (first (first ocs)) 0)) (second (first ocs))
+          :else (Poly. a ocs))))
 
 (defn- make-sparse
   "Create a polynomial specifying the terms in sparse form: supplying

@@ -55,6 +55,9 @@
     ;; we need apply
     (is (= (make 0 0 0 0 4 5) (mul (make-identity 1) (make 0 0 0 4 5))))
     )
+  (testing "equals"
+    (is (not= 22 (make 2 2)))
+    (is (= 22 (make 22))))
   (testing "arity"
     (is (= 1 (.arity (make 0 1)))))
   (testing "make-vars"
