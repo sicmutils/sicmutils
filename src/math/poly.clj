@@ -33,7 +33,7 @@
 (def ^:private base? number?)
 
 (defn- make-with-arity [a & oc-pairs]
-  (let [ocs (into (sorted-map) (filter (fn [[o c]] (not= c 0)) oc-pairs))]
+  (let [ocs (into (sorted-map) (filter (fn [[o c]] (not (g/zero? c))) oc-pairs))]
     (cond (empty? ocs) 0
           (and (= (count ocs) 1) (= (first (first ocs)) 0)) (second (first ocs))
           :else (Poly. a ocs))))
@@ -153,7 +153,7 @@
   (if (base? poly) (g/+ poly c)
       (normalize-with-arity (.arity poly)
                             ;; there's XXX probably some kind of update form that would work here.
-                            (assoc (.oc poly) 0 (+ (get (.oc poly) 0 0) c)))))
+                            (assoc (.oc poly) 0 (g/+ (get (.oc poly) 0 0) c)))))
 
 (defn add [p q]
   (cond (and (base? p) (base? q)) (g/+ p q)
@@ -172,7 +172,7 @@
   become constant or a term has dropped out). Useful in intermediate steps
   of polynomial computations."
   [ocs [o c]]
-  (assoc ocs o (+ (get ocs o 0) c)))
+  (assoc ocs o (g/+ (get ocs o 0) c)))
 
 (defn sub [p q]
   (cond (and (base? p) (base? q)) (g/- p q)
