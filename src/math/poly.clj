@@ -121,7 +121,7 @@
              (cond
               (= op oq) (let [v (f cp cq)]
                           (recur (rest P) (rest Q)
-                                 (if (not= v 0)
+                                 (if (not (g/zero? v))
                                    (assoc R op v)
                                    R)))
               (< op oq) (recur (rest P) Q (assoc R op (f cp)))

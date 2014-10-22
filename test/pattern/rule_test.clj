@@ -4,11 +4,11 @@
 
 (deftest rule-test
   (testing "simple"
-   (let [R (rule ((:? a) (:? b) (:?? cs))
-                 (a b c (:? a) (:? b) y z))]
-     (is (= '(a b c 9 8 y z) (R '(9 8 7 6 5))))
-     (is (nil? (R '(9)))))
-   )
+    (let [R (rule ((:? a) (:? b) (:?? cs))
+                  (a b c (:? a) (:? b) y z))]
+      (is (= '(a b c 9 8 y z) (R '(9 8 7 6 5))))
+      (is (nil? (R '(9))))
+      ))
 
   (testing "simple2"
     (let [R (rule ((:? a) (:?? b) (:? a))
@@ -16,15 +16,13 @@
       (is (= '(2 a x y z) (R '(a x y z a))))
       (is (= '(2 a) (R '(a a))))
       (is (= '(2 a b) (R '(a b a))))
-      )
-    )
+      ))
 
   (testing "simple3"
     (let [R (rule (+ (:? a))
                   (:? a))]
       (is (= 3 (R '(+ 3))))
-      )
-    )
+      ))
 
  (testing "two"
    (let [R (rule ((:? a) (:? b)) ((:? b) (:? a)))]
@@ -46,8 +44,13 @@
      (is (not (R '(+ a b c d e))))
      (is (= '(+ (* 2 b) a a b a) (R '(+ b a b a b a))))
      (is (= '(+ (* 2 a) b b a b) (R '(+ a b a b a b))))
-     )
-   )
+     ))
+
+ ;; (testing "constraint"
+ ;;   (let [R (rule ((:? a) (:? b integer?)) (list (:? a) (:? b)))
+ ;;         ]
+ ;;     (is (= 'foo (R [3.14 22])))
+ ;;     ))
 )
 
 (deftest ruleset-test
