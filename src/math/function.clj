@@ -1,7 +1,7 @@
 (ns math.function
   (:require [math.generic :as g]))
 
-(deftype Fn [name]
+(defrecord Fn [name]
   g/Value
   (zero? [x] false)
   (one? [x] false)

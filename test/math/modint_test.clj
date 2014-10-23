@@ -6,6 +6,7 @@
 
 (deftest modint
   (let [m3_7 (make 3 7)
+        m0_7 (make 0 7)
         m5_7 (make 5 7)
         m4_7 (make 4 7)
         m12_7 (make 12 7)
@@ -29,6 +30,8 @@
      )
    (testing "neg"
      (is (= m2_7 (g/negate m5_7))))
+   (testing "zero?"
+     (is (g/zero? m0_7)))
    (testing "inv"
      (is (= m3_7 (g/invert m5_7)))
      (is (= m5_7 (g/invert m3_7)))

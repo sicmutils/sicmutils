@@ -2,7 +2,8 @@
   (:require [clojure.test :refer :all]
             [math.poly :refer :all]
             [math.generic :as g]
-            [math.expression :as x] ;; XXX
+            [math.expression :as x] ;; XXX do we want to test this here?
+            [math.modint]
             ))
 
 (deftest poly-core
@@ -55,8 +56,21 @@
     ;; we need apply
     (is (= (make 0 0 0 0 4 5) (mul (make-identity 1) (make 0 0 0 4 5))))
     )
+  (testing "equals"
+    (is (not= 22 (make 2 2)))
+    (is (= 22 (make 22))))
+  (testing "other coefficient rings: GF(2)"
+    (let [x0 (math.modint/make 0 2)
+          x1 (math.modint/make 1 2)
+          P (make x1 x0 x1)]
+      (is (= (make x1 x0 x0 x0 x1) (expt P 2)))
+      (is (= (make x1 x0 x1 x0 x1 x0 x1) (expt P 3)))
+      (is (= (make x1 x0 x0 x0 x0 x0 x0 x0 x1) (mul (expt P 3) P)))
+      (is (= (make) (sub P P)))
+      (is (= (make) (add P P)))
+      (is (= (make x0 x0 x1) (add P 1)))))
   (testing "arity"
-    (is (= 1 (arity (make 0 1)))))
+    (is (= 1 (.arity (make 0 1)))))
   (testing "make-vars"
     (is (= (list (make 0 1)) (make-vars 1)))
     ;(is (= 'bar (make-vars 2)))
