@@ -162,7 +162,6 @@
   become constant or a term has dropped out). Useful in intermediate steps
   of polynomial computations."
   [p [o c]]
-
   (assoc p o (+ (get p o 0) c)))
 
 (defn sub [p q]
@@ -186,7 +185,7 @@
         :else (let [a (check-same-arity p q)]
                 (normalize-with-arity a (reduce add-denormal (sorted-map)
                                                 (for [[op cp] p [oq cq] q]
-                                                  [(g/+ op oq) (g/* cp cq)]))))))
+                                                  [(+ op oq) (g/* cp cq)]))))))
 
 (defn- square [p]
   (mul p p))

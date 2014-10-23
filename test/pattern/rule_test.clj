@@ -92,17 +92,17 @@
       (is (= '(* (+ y z w) x) (S '(* (+ y (+ z w)) x))))
       ))
 
-  (testing "associative"
+  (testing "associative (multiple rulesets)"
     (let [R1 (ruleset
               (+ (:?? as) (+ (:?? bs)) (:?? cs))
               (+ (:?? as) (:?? bs) (:?? cs)))
-          S1 (rule-simplifier R1)
           R2 (ruleset
               (* (:?? as) (* (:?? bs)) (:?? cs))
               (* (:?? as) (:?? bs) (:?? cs))
 
               (* (:?? as) 1 (:?? bs))
               (* (:?? as) (:?? bs)))
+          S1 (rule-simplifier R1)
           S2 (rule-simplifier R2)
           S12 (rule-simplifier R1 R2)]
       (is (= '(+ 1 2 3 4 5 6) (S1 '(+ 1 (+ 2 3) (+ 4 (+ 5 6))))))
@@ -121,4 +121,15 @@
       (is (= '(* 3 4 5 6) (S12 '(* 1 (* 1 3) (* 4 (* 5 6))))))
       (is (= '(* (+ 2 3) 4 5 6) (S12 '(* 1 (+ 2 3) (* 4 (* 5 6))))))
       ))
+  ;; Hm. This is less than ideal. Can we get the constraint to apply without
+  ;; resorting to eval ?
+  ;;
+  ;; (testing "rules with constraints"
+  ;;   (let [x:int `(:? x ~integer?)
+  ;;         y:int `(:? y ~integer?)
+  ;;         R `(ruleset
+  ;;             (a ~x:int ~y:int)
+  ;;             (b ~y:int ~x:int))]
+  ;;     (is (= '(b 4 3) (R '(a 3 4)))))
+  ;;   )
   )
