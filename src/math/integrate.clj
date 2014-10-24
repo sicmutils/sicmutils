@@ -1,8 +1,8 @@
-(ns math.integral)
+(ns math.integrate)
 
 ;; simple Simpson's rule to get things off the ground
 
-(defn- simpson-rule [n a b f]
+(defn- simpson-rule [n f a b]
   (let [h (/ (- b a) n)
         s (+ (f a) (f b))
         fi (fn [i] (f (+ a (* i h))))
@@ -11,5 +11,5 @@
     (/ (* h (+ s t u)) 3)
    ))
 
-(defn integrate [a b f]
-  (simpson-rule 1000 a b f))
+(defn integrate [f a b]
+  (simpson-rule 1000 f a b))
