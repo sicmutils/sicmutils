@@ -139,7 +139,6 @@
 (defn- add-constant [poly c]
   (if (base? poly) (g/+ poly c)
       (normalize-with-arity (.arity poly)
-                            ;; there's XXX probably some kind of update form that would work here.
                             (assoc (.oc poly) 0 (g/+ (get (.oc poly) 0 0) c)))))
 
 (defn add [p q]
@@ -182,7 +181,7 @@
         :else (let [a (check-same-arity p q)]
                 (normalize-with-arity a (reduce add-denormal (sorted-map)
                                                 (for [[op cp] (.oc p) [oq cq] (.oc q)]
-                                                  [(g/+ op oq) (g/* cp cq)]))))))
+                                                  [(+ op oq) (g/* cp cq)]))))))
 
 (defn- square [p]
   (mul p p))
