@@ -16,7 +16,12 @@
   (one? [x] false)
   (zero-like [x] (with-orientation-of x (-> x count (repeat 0) vec)))
   (exact? [x] (every? g/exact? x))
-  (sort-key [x] 20))
+  (sort-key [x] 20)
+  clojure.lang.IFn
+  (invoke [s x]
+    (prn "invoking a struct")
+    (with-orientation-of s (map #(% x) s)))
+  )
 
 (def ^:private structure? vector?)
 

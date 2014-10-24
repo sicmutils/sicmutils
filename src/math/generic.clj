@@ -13,6 +13,8 @@
   (one-like [this])
   (exact? [this])
   (sort-key [this])
+  ;; should we do this or have applicables extend IFn?
+  ;; (apply-to [this these])
   )
 
 (extend-protocol Value
