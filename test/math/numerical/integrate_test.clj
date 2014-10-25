@@ -1,6 +1,6 @@
-(ns math.integrate-test
+(ns math.numerical.integrate-test
   (:require [clojure.test :refer :all]
-            [math.integrate :refer :all]
+            [math.numerical.integrate :refer :all]
             ))
 
 (defn- within [ε]

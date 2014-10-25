@@ -1,4 +1,4 @@
-(ns math.integrate)
+(ns math.numerical.integrate)
 
 ;; simple Simpson's rule to get things off the ground
 
