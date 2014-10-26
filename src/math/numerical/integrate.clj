@@ -2,7 +2,10 @@
 
 ;; simple Simpson's rule to get things off the ground
 
-(defn- simpson-rule [n f a b]
+(defn- simpson-rule
+  "Break the interval of integration [a,b] into n intervals, then
+  apply Simpsons's rule to integrate the function f"
+  [n f a b]
   (let [h (/ (- b a) n)
         s (+ (f a) (f b))
         fi (fn [i] (f (+ a (* i h))))
