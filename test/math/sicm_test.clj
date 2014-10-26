@@ -17,8 +17,6 @@
       (literal-function 'y)
       (literal-function 'z)))
 
-;; next step: q must be applicable!
-
-;; (deftest sicm
-;;   (testing "a"
-;;     (is (= 'foo (q 't)))))
+(deftest sicm
+  (testing "apply-struct"
+    (is (= (up '(x t) '(y t) '(z t)) (q 't)))))

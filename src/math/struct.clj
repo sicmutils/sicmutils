@@ -9,11 +9,16 @@
   (exact? [x] (every? g/exact? (.v x)))
   (sort-key [x] 18)
   Object
-  (equals [a b] (and (= (.orientation a) (.orientation b))
-                     (= (.v a) (.v b))))
+  (equals [a b]
+    (and (= (.orientation a) (.orientation b))
+         (= (.v a) (.v b))))
+  (toString [a] (str (cons (.orientation a) (.v a))))
   clojure.lang.Sequential
   clojure.lang.Seqable
   (seq [x] (-> x .v seq))
+  clojure.lang.IFn
+  (invoke [s x]
+    (Struct. (.orientation s) (vec (map #(% x) (.v s)))))
   )
 
 (defn up [& xs]
