@@ -9,9 +9,7 @@
     (is (= (+ (up 1 2) (up 2 3)) (up 3 5)))
     (is (= (+ (down 3 4) (down 1 2)) (down 4 6)))
     (is (= (down (+ 4 'u) (+ 2 'v)) (+ (down 'u 2) (down 4 'v))))
-    (is (= (+ (up 1 2) (up 2 3)) (down 3 5))))
-  ;; ruh-roh. an up and a down shouldn't be equal, should they?
-  ;; something to think about.)
+    )
   (testing "s-t"
       (is (= (- (up 1 2) (up 2 3)) (up -1 -1)))
       (is (= (- (down 8 5) (down 4 -1)) (down 4 6)))
@@ -33,14 +31,14 @@
            (down (up -1 -1) (up 10 2))))
     )
   (testing "a*s"
-    (is (= [2 4 6] (* 2 [1 2 3])))
+    (is (= (up 2 4 6) (* 2 [1 2 3])))
     (is (= (down 3 6 9) (* 3 (down 1 2 3))))
     (is (= (down 12 24 36) (* 3 4 (down 1 2 3))))
     )
   (testing "s/a"
     (is (= (up 1 2 -3) (/ (up 2 4 -6) 2))))
   (testing "neg"
-    (is (= [-1 2 -3] (- (up 1 -2 3))))
+    (is (= (up -1 2 -3) (- (up 1 -2 3))))
     (is (= (up -1 2 -3) (negate (up 1 -2 3))))
     )
   (testing "a*s with literals"
@@ -48,11 +46,11 @@
     (is (= (down (* 3 'x_0) (* 3 'x_1)) (* 3 (down 'x_0 'x_1))))
     )
   (testing "s*t outer simple"
-    (is (= (up [3 6] [4 8])
+    (is (= (up (up 3 6) (up 4 8))
            (* (up 1 2) (up 3 4))))
     (is (= (down (down 3 6) (down 4 8))
            (* (down 1 2) (down 3 4))))
-    (is (= (down [3 6] [4 8] [5 10])
+    (is (= (down (up 3 6) (up 4 8) (up 5 10))
            (* (up 1 2) (down 3 4 5))))
     )
   (testing "s*t inner simple"
@@ -65,8 +63,8 @@
   (testing "examples from refman"
     (is (= 652 (* (up (up 2 3) (down 5 7 11))
                     (down (down 13 17) (up 19 23 29)))))
-    (is (= [[10 15] [14 21] [22 33]] (* (up 2 3) (up 5 7 11))))
-    (is (= [[10 14 22] [15 21 33]] (* (up 5 7 11) (up 2 3)))))
+    (is (= (up (up 10 15) (up 14 21) (up 22 33)) (* (up 2 3) (up 5 7 11))))
+    (is (= (up (up 10 14 22) (up 15 21 33)) (* (up 5 7 11) (up 2 3)))))
   (testing "zero?"
     (is (zero? (up)))
     (is (zero? (up 0)))
@@ -80,9 +78,9 @@
     )
   (testing "zero-like"
     (is (= (up 0 0 0) (zero-like (up 1 2 3))))
-    (is (= [] (zero-like (up))))
+    (is (= (up) (zero-like (up))))
     (is (= (down 0 0 0) (zero-like (down 1 2 3))))
-    (is (= [] (zero-like (down))))
+    (is (= (down) (zero-like (down))))
     )
   (testing "exact?"
     (is (exact? (up 0 1 3/2)))
@@ -95,14 +93,14 @@
           (up x
               (- (* c y) (* s z))
               (+ (* s y) (* c z))))))
-    (is (= [0 0 1] ((Rx 'pi-over-2) [0 1 0])))
-    (is (= '[x (math.generic/- z) y] ((Rx 'pi-over-2) (up 'x 'y 'z))))
+    (is (= (up 0 0 1) ((Rx 'pi-over-2) (up 0 1 0))))
+    (is (= (up 'x (math.generic/- 'z) 'y) ((Rx 'pi-over-2) (up 'x 'y 'z))))
     )
   (testing "square/cube"
     (is (= 14 (square (up 1 2 3))))
-    (is (= [[[1 2 3] [2 4 6] [3 6 9]]
-            [[2 4 6] [4 8 12] [6 12 18]]
-            [[3 6 9] [6 12 18] [9 18 27]]] (cube (up 1 2 3)))))
+    (is (= (up (up (up 1 2 3) (up 2 4 6) (up 3 6 9))
+               (up (up 2 4 6) (up 4 8 12) (up 6 12 18))
+               (up (up 3 6 9) (up 6 12 18) (up 9 18 27))) (cube (up 1 2 3)))))
   (testing "matrix-like"
     (let [M (down (up 'a 'c) (up 'b 'd))
           x (up 'x 'y)
@@ -133,7 +131,13 @@
           M (down (up 1 1) (up 1 0))]
       (is (= (fib n) (-> (expt M n) first second)))))
   (testing "expt"
-    (is (= [[[[1 2] [2 4]] [[2 4] [4 8]]] [[[2 4] [4 8]] [[4 8] [8 16]]]]
+    (is (= (up
+            (up
+             (up (up 1 2) (up 2 4))
+             (up (up 2 4) (up 4 8)))
+            (up
+             (up (up 2 4) (up 4 8))
+             (up (up 4 8) (up 8 16))))
            (expt (up 1 2) 4)))
     (is (= (* (up 1 2) (up 1 2) (up 1 2) (up 1 2))
            (expt (up 1 2) 4))))

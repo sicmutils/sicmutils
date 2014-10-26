@@ -1,54 +1,78 @@
 (ns math.struct
   (:require [math.generic :as g]))
 
-(defn up [& xs] (with-meta (apply vector xs) {:orientation :up}))
-(defn down [& xs] (with-meta (apply vector xs) {:orientation :down}))
+(deftype Struct [orientation v]
+  g/Value
+  (zero? [x] (every? g/zero? (.v x)))
+  (one? [x] false)
+  (zero-like [x] (Struct. (.orientation x) (-> x .v count (repeat 0) vec)))
+  (exact? [x] (every? g/exact? (.v x)))
+  (sort-key [x] 18)
+  Object
+  (equals [a b] (and (= (.orientation a) (.orientation b))
+                     (= (.v a) (.v b))))
+  clojure.lang.Sequential
+  clojure.lang.Seqable
+  (seq [x] (-> x .v seq))
+  )
 
-(defn- orientation [s]
-  (or (:orientation (meta s)) :up))
+(defn up [& xs]
+  (Struct. :up (apply vector xs)))
 
-(defn- with-orientation-of [s t]
-  (with-meta t {:orientation (orientation s)}))
+(defn down [& xs]
+  (Struct. :down (apply vector xs)))
 
 (extend-protocol g/Value
   clojure.lang.PersistentVector
   (zero? [x] (every? g/zero? x))
   (one? [x] false)
-  (zero-like [x] (with-orientation-of x (-> x count (repeat 0) vec)))
+  (zero-like [x] (-> x count (repeat 0) vec))
   (exact? [x] (every? g/exact? x))
   (sort-key [x] 20)
-  clojure.lang.IFn
-  (invoke [s x]
-    (prn "invoking a struct")
-    (with-orientation-of s (map #(% x) s)))
   )
 
-(def ^:private structure? vector?)
+(defn- structure? [s]
+  (or (instance? Struct s)
+      (vector? s)
+      (list? s)))
 
 (defn- down? [s]
-  (and (structure? s) (= (orientation s) :down)))
+  (and (instance? Struct s) (= (.orientation s) :down)))
 
 (defn- up? [s]
-  (and (structure? s) (= (orientation s) :up)))
+  (or (vector? s)
+      (list? s)
+      (and (instance? Struct s) (= (.orientation s) :up))))
+
+(defn- elements [s]
+  (if (instance? Struct s) (.v s)
+      s))
+
+(defn- size [s]
+  (count (elements s)))
+
+(defn- orientation [s]
+  (if (instance? Struct s) (.orientation s) :up))
 
 (defn- elementwise [op s t]
-  (if (= (count s) (count t))
-    (with-orientation-of s (vec (map op s t)))
+  (if (= (size s) (size t))
+    (Struct. (orientation s) (vec (map op (elements s) (elements t))))
     (throw (IllegalArgumentException.
             (str op " provided arguments of differing length")))))
 
 (defn- compatible-for-contraction? [s t]
-  (and (= (count s) (count t))
+  (and (= (size s) (size t))
        (not= (orientation s) (orientation t))))
 
 (defn- inner-product [s t]
-  (apply g/+ (map g/* s t)))
+  (apply g/+ (map g/* (elements s) (elements t))))
 
 (defn- scalar-multiply [a s]
-  (with-orientation-of s (vec (map #(g/* a %) s))))
+  (Struct. (orientation s) (vec (map #(g/* a %) (elements s)))))
 
+;; Hmmm. these look the same!
 (defn- outer-product [s t]
-  (with-orientation-of t (vec (map #(g/* s %) t))))
+  (Struct. (orientation t) (vec (map #(g/* s %) (elements t)))))
 
 (defn- mul [s t]
   (if (compatible-for-contraction? s t)
@@ -82,6 +106,6 @@
 (g/defhandler :cube [structure?]
   (fn [s] (g/* s s s)))
 (g/defhandler :negate [structure?]
-  (fn [s] (with-orientation-of s (vec (map g/negate s)))))
+  (fn [s] (Struct. (orientation s) (vec (map g/negate (elements s))))))
 
 (println "struct initialized")
