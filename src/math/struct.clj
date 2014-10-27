@@ -36,7 +36,7 @@
   (sort-key [x] 20)
   )
 
-(defn- structure? [s]
+(defn structure? [s]
   (or (instance? Struct s)
       (vector? s)
       (list? s)))
