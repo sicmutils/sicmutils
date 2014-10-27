@@ -65,6 +65,15 @@
     (throw (IllegalArgumentException.
             (str op " provided arguments of differing length")))))
 
+(defn mapr
+  "Return a structure with the same shape as s but with f applied to
+  each primitive (that is, not structural) component."
+  [f s]
+  (cond (instance? Struct s) (Struct. (.orientation s) (map #(mapr f %) (.v s)))
+        (sequential? s) (map f s)
+        :else (f s))
+  )
+
 (defn- compatible-for-contraction? [s t]
   (and (= (size s) (size t))
        (not= (orientation s) (orientation t))))
@@ -76,8 +85,8 @@
   (Struct. (orientation s) (vec (map #(g/* a %) (elements s)))))
 
 ;; Hmmm. these look the same!
-(defn- outer-product [s t]
-  (Struct. (orientation t) (vec (map #(g/* s %) (elements t)))))
+(defn- outer-product [a s]
+  (Struct. (orientation s) (vec (map #(g/* a %) (elements s)))))
 
 (defn- mul [s t]
   (if (compatible-for-contraction? s t)

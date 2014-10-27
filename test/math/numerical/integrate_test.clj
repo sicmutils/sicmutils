@@ -7,8 +7,11 @@
   (fn [x y] (< (Math/abs (- x y)) ε)))
 
 (def ^:private near (within 1e-6))
+
 (def ^:private natural-log (partial integrate / 1.))
+
 (def ^:private sine (partial integrate #(Math/cos %) 0.))
+
 (defn bessel-j0 [x]
   (/ (integrate #(Math/cos (- (* x (Math/sin %)))) 0. Math/PI) Math/PI))
 

@@ -141,4 +141,14 @@
            (expt (up 1 2) 4)))
     (is (= (* (up 1 2) (up 1 2) (up 1 2) (up 1 2))
            (expt (up 1 2) 4))))
+  (testing "mapr"
+    (let [S0 (up 2)
+          S1 (up 2 3)
+          S2 (down (up 1 2) (up 3 4))
+          S3 (up (down 1 2) (down 3 4))]
+      (is (= (up 4) (mapr square S0)))
+      (is (= (up 4 9) (mapr square S1)))
+      (is (= (down (up 1 4) (up 9 16)) (mapr square S2)))
+      (is (= (up (down 1 4) (down 9 16)) (mapr square S3)))
+      ))
   )
