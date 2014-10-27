@@ -25,7 +25,7 @@
   )
 
 (defn- make-differential [terms]
-  (Differential. (sort-by #(.tags %) terms)))
+  (Differential. (sort-by #(-> % .tags seq) terms)))
 
 
 (defn add [u v]
@@ -45,7 +45,7 @@
                                  (if (not (g/zero? r-coef))
                                    (conj rs (DifferentialTerm. a-tags r-coef))
                                    rs)))
-              (< a-tags b-tags) (recur (rest as) bs (conj rs a))
+              (< (seq a-tags) (seq b-tags)) (recur (rest as) bs (conj rs a))
               :else (recur as (rest bs) (conj rs b)))))))
 
 ;; the basic arithmetic of differentials
@@ -66,7 +66,7 @@
   representing d with an empty tag list"
   [d]
   (if (instance? Differential d) (.terms d)
-      [(DifferentialTerm. [] d)]))
+      [(DifferentialTerm. (sorted-set) d)]))
 
 (defn add-differential [a b]
   (terms->differential
@@ -94,7 +94,7 @@
 
 
 (defn- make-x+dx [x dx]
-  (add x (Differential. [(DifferentialTerm. [dx] 1)])))
+  (add x (Differential. [(DifferentialTerm. (sorted-set dx) 1)])))
 
 (defn- terms->differential-collapse [& args] false) ; XXX
 (defn- hide-tag-in-procedure [& args] false) ; XXX
