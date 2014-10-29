@@ -25,7 +25,7 @@
   )
 
 (defn- make-differential [terms]
-  (Differential. (sort-by #(-> % .tags seq) terms)))
+  (Differential. (sort-by #(-> % .tags vec) terms)))
 
 
 (defn add [u v]
@@ -47,6 +47,20 @@
                                    rs)))
               (< (seq a-tags) (seq b-tags)) (recur (rest as) bs (conj rs a))
               :else (recur as (rest bs) (conj rs b)))))))
+
+(defn mul-term-by-termlist
+  [{:keys [tags coefficient] :as term} termlist]
+  ;; XXX
+  )
+
+(defn mul-differential-termlists
+  [as bs]
+  (if (empty? as) []
+      (add-differential-term-lists
+       (mul-term-by-termlist (first as) bs)
+       (mul-differential-termlists (next as) bs))))
+
+
 
 ;; the basic arithmetic of differentials
 
