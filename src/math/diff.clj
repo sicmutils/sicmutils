@@ -1,6 +1,7 @@
 (ns math.diff
-  (:require [math.generic :as g]
-            [math.struct :as s]
+  (:require [clojure.set :as set]
+            [math.generic :as g]
+            [math.struct :as struct]
             [math.function :as f]
             ))
 
@@ -24,14 +25,14 @@
 (defrecord DifferentialTerm [tags coefficient]
   )
 
-(defn- make-differential [terms]
+(defn make-differential [terms]
+  ;; kind of sad to call vec here. Why aren't the seqs comparable?
   (Differential. (sort-by #(-> % .tags vec) terms)))
 
+(defn make-differential-term [dxs coefficient]
+  (DifferentialTerm. (apply sorted-set dxs) coefficient))
 
-(defn add [u v]
-  )
-
-(defn add-differential-term-lists
+(defn dxs+dys
   [as bs]
   (loop [as as bs bs rs []]
     (cond
@@ -45,29 +46,53 @@
                                  (if (not (g/zero? r-coef))
                                    (conj rs (DifferentialTerm. a-tags r-coef))
                                    rs)))
-              (< (seq a-tags) (seq b-tags)) (recur (rest as) bs (conj rs a))
+              ;; kind of sad to call vec here.
+              (< 0 (compare (vec a-tags) (vec b-tags))) (recur (rest as) bs (conj rs a))
               :else (recur as (rest bs) (conj rs b)))))))
 
-(defn mul-term-by-termlist
-  [{:keys [tags coefficient] :as term} termlist]
-  ;; XXX
-  )
+(defn dx*dys
+  [{:keys [tags coefficient] :as dx} dys]
+  (loop [dys dys result []]
+    (if (nil? dys) result
+        (let [y1 (first dys) y-tags (.tags y1)]
+          (recur (next dys)
+                 (if (empty? (set/intersection tags y-tags))
+                   (conj result (DifferentialTerm.
+                                 (set/union tags y-tags)
+                                 (g/* coefficient (.coefficient y1))))
+                   result))))))
 
-(defn mul-differential-termlists
+;; (define (dtl:* xlist ylist)
+;;   (if (null? xlist)
+;;     '()
+;;     (dtl:+ (tdtl:* (car xlist) ylist)
+;;            (dtl:* (cdr xlist) ylist))))
+
+;; (define (tdtl:* term terms)
+;;   (let ((tags (differential-tags term))
+;; 	(coeff (differential-coefficient term)))
+;;     (let lp ((terms terms))
+;;          (if (null? terms)
+;;            '()
+;;            (let ((tags1 (differential-tags (car terms))))
+;;              (if (null? (intersect-differential-tags tags tags1))
+;;                (cons (make-differential-term
+;;                       (union-differential-tags tags tags1)
+;;                       (g:* coeff
+;;                            (differential-coefficient (car terms))))
+;;                      (lp (cdr terms)))
+;;                (lp (cdr terms))))))))
+
+
+(defn dxs*dys
   [as bs]
   (if (empty? as) []
-      (add-differential-term-lists
-       (mul-term-by-termlist (first as) bs)
-       (mul-differential-termlists (next as) bs))))
+      (dxs+dys
+       (dx*dys (first as) bs)
+       (dxs*dys (next as) bs))))
 
-
-
-;; the basic arithmetic of differentials
-
-;; (define (d:+ u v)
-;;   (terms->differential
-;;    (dtl:+ (differential->terms u)
-;;        (differential->terms v))))
+;; Question: do we really need these, or would it be better to condition the
+;; inputs to dx+dy, etc.?
 
 (defn- terms->differential [terms]
   (cond (empty? terms) 0
@@ -82,33 +107,22 @@
   (if (instance? Differential d) (.terms d)
       [(DifferentialTerm. (sorted-set) d)]))
 
-(defn add-differential [a b]
+(defn dx+dy [a b]
   (terms->differential
-   (add-differential-term-lists (differential->terms a) (differential->terms b))))
+   (dxs+dys (differential->terms a) (differential->terms b))))
 
-;; (define (differential->terms diff)
-;;   (if (differential? diff)
-;;     (differential-term-list diff)
-;;     (list
-;;      (make-differential-term '() diff))))
-
-;; (define (terms->differential terms)
-;;   (cond ((null? terms) :zero)
-;;      ((and (null? (cdr terms))
-;;            (null? (differential-tags (car terms))))
-;;       (differential-coefficient (car terms)))
-;;      (else
-;;       (make-differential terms))))
-
+(defn dx*dy [a b]
+  (terms->differential
+   (dxs*dys (differential->terms a) (differential->terms b))))
 
 (def ^:private next-differential-tag (atom 0))
 
 (defn- make-differential-tag []
   (swap! next-differential-tag inc))
 
-
 (defn- make-x+dx [x dx]
-  (add x (Differential. [(DifferentialTerm. (sorted-set dx) 1)])))
+  (Differential. [(DifferentialTerm. (sorted-set) x)
+                  (DifferentialTerm. (sorted-set dx) 1)]))
 
 (defn- terms->differential-collapse [& args] false) ; XXX
 (defn- hide-tag-in-procedure [& args] false) ; XXX
@@ -125,7 +139,7 @@
                 (.terms obj)))
               0))
           (dist [obj]
-            (cond (s/structure? obj) (s/mapr dist obj)
+            (cond (struct/structure? obj) (struct/mapr dist obj)
                   ;(matrix? obj) (m:elementwise dist obj) XXX
                   ;(quaternion? obj) XXX
                   (instance? clojure.lang.IFn obj) (hide-tag-in-procedure dx (comp dist obj))
@@ -140,6 +154,10 @@
 
 (defn derivative [f]
   (partial simple-derivative-internal f))
+
+(g/defhandler :+ [differential? differential?] dx+dy)
+(g/defhandler :* [differential? differential?] dx*dy)
+
 ;; why doesn't simple-derivative-internal just return a
 ;; function?
 

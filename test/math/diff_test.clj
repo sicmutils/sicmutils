@@ -2,15 +2,23 @@
   (:require [clojure.test :refer :all]
             [math.diff :refer :all]
             [math.generic :as g]
-            )
-  (:import [math.diff Differential DifferentialTerm]))
+            ))
 
 (deftest diff-test-1
   (testing "add-dtl"
-    (let [d (Differential. [(DifferentialTerm. (sorted-set 0) 'foo)
-                              (DifferentialTerm. (sorted-set 1) 'bar)])
-          d2 (Differential. [(DifferentialTerm. (sorted-set 0) (g/+ 'foo 'foo))
-                             (DifferentialTerm. (sorted-set 1) (g/+ 'bar 'bar))])]
-      (is (= d2 (add-differential d d)))
+    (let [dx_ (make-differential-term [0] 1)
+          dy_ (make-differential-term [1] 1)
+          dz_ (make-differential-term [2] 1)
+          dx (make-differential [dx_])
+          dy (make-differential [dy_])
+          dz (make-differential [dz_])
+          dxdy (make-differential [(make-differential-term [0 1] 1)])
+          dx+dy (make-differential [dx_ dy_])
+          dx+dz (make-differential [dx_ dz_])
+          ]
+      (is (= dx+dy (g/+ dx dy)))
+      (is (= dx+dz (g/+ dx dz)))
+      (is (= dxdy (g/* dx dy)))
+      (is (zero? (g/* dx dx)))
       )
     ))
