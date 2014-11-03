@@ -62,28 +62,6 @@
                                  (g/* coefficient (.coefficient y1))))
                    result))))))
 
-;; (define (dtl:* xlist ylist)
-;;   (if (null? xlist)
-;;     '()
-;;     (dtl:+ (tdtl:* (car xlist) ylist)
-;;            (dtl:* (cdr xlist) ylist))))
-
-;; (define (tdtl:* term terms)
-;;   (let ((tags (differential-tags term))
-;; 	(coeff (differential-coefficient term)))
-;;     (let lp ((terms terms))
-;;          (if (null? terms)
-;;            '()
-;;            (let ((tags1 (differential-tags (car terms))))
-;;              (if (null? (intersect-differential-tags tags tags1))
-;;                (cons (make-differential-term
-;;                       (union-differential-tags tags tags1)
-;;                       (g:* coeff
-;;                            (differential-coefficient (car terms))))
-;;                      (lp (cdr terms)))
-;;                (lp (cdr terms))))))))
-
-
 (defn dxs*dys
   [as bs]
   (if (empty? as) []
@@ -155,24 +133,60 @@
 (defn derivative [f]
   (partial simple-derivative-internal f))
 
+;; XXX in scmutils these combine with "not-compound?" instead of
+;; another differential
+;;
+;; might make sense to have a compound? representative of the Value protocol
+;;
+;; (define compound-type-tags
+;;   (list vector-type-tag
+;;      ;;column-type-tag
+;;      quaternion-type-tag
+;;      row-type-tag
+;;      matrix-type-tag
+;;      series-type-tag
+;;      abstract-matrix-type-tag))
+
+;;; To turn a unary function into one that operates on differentials
+;;; we must supply the derivative.  This is the essential chain rule.
+
+(defn- finite-and-infinitesimal-parts
+  [x]
+  (if (differential? x)
+    (let [dts (differential->terms x)
+          ]
+      )
+    [x 0]))
+
+(defn- unary-op
+  [f df:dx]
+  (fn [x]
+    (let [[finite-part infinitesimal-part] (finite-and-infinitesimal-parts x)]
+      (dx+dy (f finite-part)
+             (dx*dy (df:dx finite-part)
+                    (infinitesimal-part))))))
+
+
+;; XXX unary-op is memoized in scmutils. But rather than memoizing that,
+;; it might be better just to memoize entire simplications.
+
+(def ^:private sin
+  (unary-op g/sin g/cos))
+
+(def ^:private cos
+  (unary-op g/cos #(g/* -1 (g/sin %))))
+
 (g/defhandler :+ [differential? differential?] dx+dy)
 (g/defhandler :* [differential? differential?] dx*dy)
+(g/defhandler :sin [differential?] sin)
+
+;; (define (not-compound? x)
+;;   (not (or (vector? x)
+;;         (and (pair? x)
+;;              (compound-type-tag? (car x))))))
 
 ;; why doesn't simple-derivative-internal just return a
 ;; function?
-
-;; (defn terms->differential [terms]
-;;   (cond (empty? terms) 0
-;;         ))
-
-;; (define (terms->differential terms)
-;;   (cond ((null? terms) :zero)
-;;      ((and (null? (cdr terms))
-;;            (null? (differential-tags (car terms))))
-;;       (differential-coefficient (car terms)))
-;;      (else
-;;       (make-differential terms))))
-
 
 ;;; SIMPLE-DERIVATIVE-INTERNAL represents the essential computation.
 ;;; To compute the derivative of function f at point x, make a new
@@ -181,7 +195,7 @@
 ;;; this through the function f, and then extract the terms which
 ;;; contain the the differential tag dx, removing that tag.  This
 ;;; leaves the derivative.
-
+;;;
 ;;;                           f
 ;;;                 x + dx |----> f(x) + Df(x)*dx
 ;;;                  \                  /
