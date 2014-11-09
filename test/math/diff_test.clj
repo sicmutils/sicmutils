@@ -2,6 +2,7 @@
   (:require [clojure.test :refer :all]
             [math.diff :refer :all]
             [math.generic :as g]
+            [math.struct :as s]
             ))
 
 (deftest diff-test-1
@@ -41,8 +42,7 @@
 
       (is (= (make-differential [zero_ dxdy_]) (g/* dx dy)))
       (is (= 0 (g/* dx dx)))
-      )
-    )
+      ))
   (testing "some simple functions"
     (is (= 2 ((derivative #(g/* 2 %)) 1)))
     (is (= 2 ((derivative #(g/* 2 %)) 'y)))
@@ -50,4 +50,13 @@
     (is (= (g/* 3 (g/expt 'y 2))
            ((derivative #(g/expt % 3)) 'y)))
     (is (= (g/* 2 (g/cos (g/* 2 'y))) ((derivative #(g/sin (g/* 2 %))) 'y)))
+    ;; hm. pretty quickly we find that canonicalization is
+    ;; important. Why are the expressions produced by derivative not
+    ;; canonical? Probably because they are built in pieces. We have reached the
+    ;; frontier where simplification will be necessary to determine whether two
+    ;; expressions are equivalent. The good news is that differentiation is
+    ;; working modulo canonicalization.
+    ;;(is (= (g/* (g/cos (g/cos 'x)) -1 (g/sin 'x)) ((derivative #(g/sin (g/cos %))) 'x)))
+    (is (= (s/up 2 (g/+ 't 't)) ((derivative #(s/up (g/* 2 %) (g/* % %))) 't)))
+    (is (= (s/up (g/* -1 (g/sin 't)) (g/cos 't)) ((derivative #(s/up (g/cos %) (g/sin %))) 't)))
     ))

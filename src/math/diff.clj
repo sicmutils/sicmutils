@@ -7,14 +7,14 @@
 
 ;; If you construct one of these directly, make sure tags
 ;; is sorted correctly; if in doubt, use make-differential-term
-
 (defrecord DifferentialTerm [tags coefficient]
   )
-;; If you construct one of these directly, make sure terms
-;; is appropriately sorted. If in doubt, use make-differential
 
 (declare make-differential)
 (declare differential->terms)
+
+;; If you construct one of these directly, make sure terms
+;; is appropriately sorted. If in doubt, use make-differential
 (defrecord Differential [terms]
   g/Value
   (zero? [x]
@@ -34,8 +34,7 @@
   ;;         (differential->terms d))))
   )
 
-(def differential? (partial instance? Differential))
-
+(def ^:private differential? (partial instance? Differential))
 
 (defn make-differential
   "Constructs a differential from a list of terms. If the list is empty,
@@ -54,7 +53,7 @@
 (defn make-differential-term [dxs coefficient]
   (DifferentialTerm. (apply sorted-set dxs) coefficient))
 
-(defn dxs+dys
+(defn- dxs+dys
   [as bs]
   (loop [as as bs bs rs []]
     (cond
@@ -64,10 +63,10 @@
                  {b-tags :tags b-coef :coefficient :as b} (first bs)]
              (cond
               (= a-tags b-tags) (let [r-coef (g/+ a-coef b-coef)]
-                          (recur (rest as) (rest bs)
-                                 (if (not (g/zero? r-coef))
-                                   (conj rs (DifferentialTerm. a-tags r-coef))
-                                   rs)))
+                                  (recur (rest as) (rest bs)
+                                         (if (not (g/zero? r-coef))
+                                           (conj rs (DifferentialTerm. a-tags r-coef))
+                                           rs)))
               ;; kind of sad to call vec here.
               (< (compare (vec a-tags) (vec b-tags)) 0) (recur (rest as) bs (conj rs a))
               :else (recur as (rest bs) (conj rs b)))))))
@@ -90,14 +89,6 @@
       (dxs+dys
        (dx*dys (first as) bs)
        (dxs*dys (next as) bs))))
-
-;; Question: do we really need these, or would it be better to condition the
-;; inputs to dx+dy, etc.?
-
-;; (defn- terms->differential [terms]
-;;   (cond (empty? terms) 0
-;;         (and (= (count terms) 1) (-> terms first .tags empty?)) (-> terms first .coefficient)
-;;         :else (make-differential terms)))
 
 (defn- differential->terms
   "Given a differential, returns the vector of DifferentialTerms
@@ -135,7 +126,7 @@
   (Differential. [(DifferentialTerm. (sorted-set) x)
                   (DifferentialTerm. (sorted-set dx) 1)]))
 
-(defn terms->differential-collapse
+(defn- terms->differential-collapse
   [terms]
   (make-differential (reduce dxs+dys [] (map vector terms))))
 
@@ -147,36 +138,35 @@
               (terms->differential-collapse
                (mapcat
                 (fn [term]
-                  (let [tags (.tags term)]; XXX convert to if-let
+                  (let [tags (.tags term)]
                     (if (tags dx)
                       [(DifferentialTerm. (disj tags dx) (.coefficient term))])))
                 (.terms obj)))
               0))
           (dist [obj]
             (cond (struct/structure? obj) (struct/mapr dist obj)
-                  ;(matrix? obj) (m:elementwise dist obj) XXX
-                  ;(quaternion? obj) XXX
-                  ; Is this latter one causing trouble with invokable derivatives?
-                  ; yes it is. A function? is not something that simply implements IFn;
-                  ; we will have to be more delicate.
-                  ;(instance? clojure.lang.IFn obj) (hide-tag-in-procedure dx (comp dist obj))
-                  ;(operator? obj) XXX
-                  ;(series? obj) XXX
+                  ;; (matrix? obj) (m:elementwise dist obj) XXX
+                  ;; (quaternion? obj) XXX
+                  ;;
+                  ;; Is this latter one causing trouble with invokable derivatives?
+                  ;; yes it is. A function? is not something that simply implements IFn;
+                  ;; we will have to be more delicate. Er, or else we will have to
+                  ;; implement hide-tag-in-procedure. Until we do this, we may be
+                  ;; susceptible to the "amazing bug."
+                  ;;
+                  ;; (instance? clojure.lang.IFn obj) (hide-tag-in-procedure dx (comp dist obj))
+                  ;;
+                  ;; (operator? obj) XXX
+                  ;; (series? obj) XXX
                   :else (extract obj)))]
     (dist obj)))
 
-(defn- simple-derivative-internal [f x]
-  (let [dx (make-differential-tag)]
-    (extract-dx-part dx (f (make-x+dx x dx)))))
+(defn derivative
+  [f]
+  (fn [x]
+    (let [dx (make-differential-tag)]
+      (extract-dx-part dx (f (make-x+dx x dx))))))
 
-(defn derivative [f]
-  (partial simple-derivative-internal f))
-
-;; XXX in scmutils these combine with "not-compound?" instead of
-;; another differential
-;;
-;; might make sense to have a compound? representative of the Value protocol
-;;
 ;; (define compound-type-tags
 ;;   (list vector-type-tag
 ;;      ;;column-type-tag
@@ -207,8 +197,7 @@
 (defn- finite-and-infinitesimal-parts
   "Partition the terms of the given differential into the finite and
   infinite parts. XXX we aren't using terms->differential-collapse
-  because it doesn't seem like we need to. Alert.
-  "
+  because it doesn't seem like we need to. Alert."
   [x]
   (if (differential? x)
     (let [dts (differential->terms x)
@@ -267,29 +256,6 @@
              (fn [x y] x)))
 
 
-;; (define (diff:binary-op f df/dx df/dy)
-;;   (define (bop x y)
-;;     (let ((mt (max-order-tag x y)))
-;;       (let ((dx (with-tag x mt))
-;;             (dy (with-tag y mt))
-;;             (xe (without-tag x mt))
-;;             (ye (without-tag y mt)))
-;;         (let ((a (f xe ye)))
-;;           (let ((b
-;;                  (if (and (number? dx) (zero? dx))
-;;                    a
-;;                    (d:+ a (d:* dx (df/dx xe ye))))))
-;;             (let ((c
-;;                    (if (and (number? dy) (zero? dy))
-;;                      b
-;;                      (d:+ b (d:* (df/dy xe ye) dy)))))
-;;               c))))))
-;;   (diff-memoize-2arg bop))
-
-
-;; XXX we're not using terms->differential-collapse ... because we don't think
-;; we need to.
-
 ;; XXX unary-op is memoized in scmutils. But rather than memoizing that,
 ;; it might be better just to memoize entire simplications.
 
@@ -322,14 +288,7 @@
 (g/defhandler :**  [differential? (complement differential?)] power)
 (g/defhandler :sin [differential?] sin)
 (g/defhandler :cos [differential?] cos)
-
-;; (define (not-compound? x)
-;;   (not (or (vector? x)
-;;         (and (pair? x)
-;;              (compound-type-tag? (car x))))))
-
-;; why doesn't simple-derivative-internal just return a
-;; function?
+(println "diff initialized")
 
 ;;; SIMPLE-DERIVATIVE-INTERNAL represents the essential computation.
 ;;; To compute the derivative of function f at point x, make a new
