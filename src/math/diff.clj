@@ -18,11 +18,9 @@
 (defrecord Differential [terms]
   g/Value
   (zero? [x]
-    (prn "ZERO?" x "->" (every? g/zero? (map #(.coefficient %) (.terms x))))
     (every? g/zero? (map #(.coefficient %) (.terms x))))
   (one? [x]
-    (prn "ONE?" x)
-    false)
+    false) ;; XXX! this needs to be fixed
   (zero-like [d] 0)
   (exact? [d] false)
   (compound? [d] false)
@@ -58,15 +56,12 @@
 
 (defn dxs+dys
   [as bs]
-  (prn "DXS+DYS" as bs)
   (loop [as as bs bs rs []]
-    (prn "as" as "bs" bs "rs" rs)
     (cond
      (empty? as) (into rs bs)
      (empty? bs) (into rs as)
      :else (let [{a-tags :tags a-coef :coefficient :as a} (first as)
                  {b-tags :tags b-coef :coefficient :as b} (first bs)]
-             (prn "a-tags" a-tags "b-tags" b-tags "eq" (= a-tags b-tags) "compare" (compare (vec a-tags) (vec b-tags)))
              (cond
               (= a-tags b-tags) (let [r-coef (g/+ a-coef b-coef)]
                           (recur (rest as) (rest bs)
@@ -136,22 +131,18 @@
   (swap! next-differential-tag inc))
 
 (defn- make-x+dx [x dx]
-  (prn "MAKE-X+DX" x dx)
   ;; warning: this is not quite what GJS dopes ...
   (Differential. [(DifferentialTerm. (sorted-set) x)
                   (DifferentialTerm. (sorted-set dx) 1)]))
 
 (defn terms->differential-collapse
   [terms]
-  (prn "MAKE-DIFF-COLLAPSE" terms "->" (reduce dxs+dys [] (map vector terms)))
   (make-differential (reduce dxs+dys [] (map vector terms))))
 
 (defn- hide-tag-in-procedure [& args] false) ; XXX
 
 (defn- extract-dx-part [dx obj]
-  (prn "EXTRACT-DX-PART" dx obj)
   (letfn [(extract [obj]
-            (prn "EXTRACT" obj)
             (if (differential? obj)
               (terms->differential-collapse
                (mapcat
@@ -162,7 +153,6 @@
                 (.terms obj)))
               0))
           (dist [obj]
-            (prn "DIST" obj)
             (cond (struct/structure? obj) (struct/mapr dist obj)
                   ;(matrix? obj) (m:elementwise dist obj) XXX
                   ;(quaternion? obj) XXX
@@ -176,9 +166,7 @@
     (dist obj)))
 
 (defn- simple-derivative-internal [f x]
-  (prn "SIMPLE-DERIVATIVE-INTERNAL" f x)
   (let [dx (make-differential-tag)]
-    (prn "WITH-TAG" dx)
     (extract-dx-part dx (f (make-x+dx x dx)))))
 
 (defn derivative [f]
@@ -222,7 +210,6 @@
   because it doesn't seem like we need to. Alert.
   "
   [x]
-  (prn "FINITE AND INFINITESIMAL" x)
   (if (differential? x)
     (let [dts (differential->terms x)
           keytag (-> dts last .tags last)
@@ -238,16 +225,14 @@
     (let [[finite-part infinitesimal-part] (finite-and-infinitesimal-parts x)]
       (dx+dy (f finite-part)
              (dx*dy (df:dx finite-part)
-                    (infinitesimal-part x))))))
+                    infinitesimal-part)))))
 
 (defn- max-order-tag [& ds]
-  (prn "MAX-ORDER-TAG" ds)
   (last (apply set/union (map #(-> % differential->terms last .tags) ds))))
 
 (defn- binary-op
   [f df:dx df:dy]
   (fn [x y]
-    (prn "BINARY-OP-FN" x y)
     (let [mt (max-order-tag x y)
           {xe-terms false dx-terms true} (group-by #(-> % .tags (contains? mt)) (differential->terms x))
           {ye-terms false dy-terms true} (group-by #(-> % .tags (contains? mt)) (differential->terms y))
@@ -263,11 +248,6 @@
           c (if (and (number? dy) (zero? dy))
               b
               (dx+dy b (dx*dy (df:dy xe ye) dy)))]
-      (prn "XE, DX" xe dx)
-      (prn "YE, DY" ye dy)
-      (prn "A" a)
-      (prn "B" b)
-      (prn "BINARY-OP-PRODUCES" c)
       c)))
 
 

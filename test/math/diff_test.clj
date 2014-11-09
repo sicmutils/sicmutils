@@ -49,5 +49,5 @@
     (is (= (g/+ 'y 'y) ((derivative #(g/* % %)) 'y)))
     (is (= (g/* 3 (g/expt 'y 2))
            ((derivative #(g/expt % 3)) 'y)))
-    ;(is (= 'foo ((derivative #(g/sin (g/* 2 %))) 'y)))
+    (is (= (g/* 2 (g/cos (g/* 2 'y))) ((derivative #(g/sin (g/* 2 %))) 'y)))
     ))
