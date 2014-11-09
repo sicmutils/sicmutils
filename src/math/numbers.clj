@@ -13,6 +13,7 @@
   (zero-like [x] 0)
   (one-like [x] 1)
   (exact? [x] true)
+  (compound? [x] false)
   (sort-key [x] 10)
   Double
   (zero? [x] (= x 0.0))
@@ -20,6 +21,7 @@
   (zero-like [x] 0.0)
   (one-like [x] 1.0)
   (exact? [x] false)
+  (compound? [x] false)
   (sort-key [x] 10)
   clojure.lang.Ratio
   (zero? [x] (= x 0))
@@ -27,6 +29,7 @@
   (zero-like [x] 0)
   (one-like [x] 1)
   (exact? [x] true)
+  (compound? [x] false)
   (sort-key [x] 10)
   )
 

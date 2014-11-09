@@ -12,6 +12,7 @@
   (zero-like [this])
   (one-like [this])
   (exact? [this])
+  (compound? [this])
   (sort-key [this])
   ;; should we do this or have applicables extend IFn?
   ;; (apply-to [this these])
@@ -26,12 +27,15 @@
   (one-like [x] (throw (IllegalArgumentException.
                         (str "nothing one-like for " x))))
   (exact? [x] false)
+  (compound? [x] false)
   (sort-key [x] 99)
   clojure.lang.Symbol
   (zero? [x] false)
   (one? [x] false)
   (zero-like [x] 0)
   (one-like [x] 1)
+  (exact? [x] false) ;; XXX maybe true?
+  (compound? [x] false)
   (sort-key [x] 90)
   )
 

@@ -7,6 +7,7 @@
   (one? [x] false)
   (zero-like [x] (Struct. (.orientation x) (-> x .v count (repeat 0) vec)))
   (exact? [x] (every? g/exact? (.v x)))
+  (compound? [x] true)
   (sort-key [x] 18)
   Object
   (equals [a b]
@@ -33,6 +34,7 @@
   (one? [x] false)
   (zero-like [x] (-> x count (repeat 0) vec))
   (exact? [x] (every? g/exact? x))
+  (compund? [x] true)
   (sort-key [x] 20)
   )
 
