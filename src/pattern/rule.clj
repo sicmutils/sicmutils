@@ -24,9 +24,10 @@
   "Rule takes a match pattern and substitution pattern, compiles each
   of these and returns a function which may be applied to a form
   and (optionally) a success continuation. The function will try to
-  match the pattern and, if successful, will call the continuation
-  with the result of the substituion."
-  [pattern consequence]
+  match the pattern and, if successful, _and_ the bindings satisfy the
+  supplied predicate, will call the continuation with the result of
+  the substituion."
+  [pattern predicate? consequence]
   (let [frame-symbol (gensym)
         compiled-consequence (compile-consequence frame-symbol consequence)]
     `(let [matcher# (pattern->matcher '~pattern)]
@@ -34,21 +35,23 @@
          ([data#] (apply# data# identity))
          ([data# continue#]
             (if-let [~frame-symbol (match matcher# data#)]
-              (continue# (first ~compiled-consequence))))))))
+              (if (~predicate? ~frame-symbol)
+                (continue# (first ~compiled-consequence)))))))))
 
 (defmacro ruleset
-  "Ruleset compiles rules and consequences (pairwise) into a function
-  which acts like a single rule (as rule would produce) which acts by
-  returning the consequence of the first successful rule, or nil if
-  none are applicable."
+  "Ruleset compiles rules, predicates and consequences (triplet-wise)
+  into a function which acts like a single rule (as rule would
+  produce) which acts by returning the consequence of the first
+  successful rule, whose pattern-matches satisfy the predicate,
+  or nil if none are applicable."
   [& patterns-and-consequences]
-  (let [[p c & pcs] patterns-and-consequences]
+  (let [[p pred c & pcs] patterns-and-consequences]
     (if p
       `(fn apply#
          ([data#] (apply# data# identity identity))
          ([data# continue#] (apply# data# continue# identity))
          ([data# continue# fail#]
-         (let [R# (rule ~p ~c)]
+         (let [R# (rule ~p ~pred ~c)]
            (or (R# data# continue#)
                ((ruleset ~@pcs) data# continue# fail#)
                (fail# data#)))))
@@ -65,4 +68,4 @@
     (let [simplified (if (seq? expression)
                        (map simplifier expression)
                        expression)]
-      (try-rulesets rulesets simplified #(simplifier %)))))
+      (try-rulesets rulesets simplified simplifier))))

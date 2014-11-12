@@ -2,16 +2,19 @@
   (:require [clojure.test :refer :all]
             [pattern.rule :refer :all]))
 
+(def ^:private => (constantly true))
+(def ^:private !=> (constantly false))
+
 (deftest rule-test
   (testing "simple"
-    (let [R (rule ((:? a) (:? b) (:?? cs))
+    (let [R (rule ((:? a) (:? b) (:?? cs)) =>
                   (a b c (:? a) (:? b) y z))]
       (is (= '(a b c 9 8 y z) (R '(9 8 7 6 5))))
       (is (nil? (R '(9))))
       ))
 
   (testing "simple2"
-    (let [R (rule ((:? a) (:?? b) (:? a))
+    (let [R (rule ((:? a) (:?? b) (:? a)) =>
                   (2 (:? a) (:?? b)))]
       (is (= '(2 a x y z) (R '(a x y z a))))
       (is (= '(2 a) (R '(a a))))
@@ -19,13 +22,18 @@
       ))
 
   (testing "simple3"
-    (let [R (rule (+ (:? a))
-                  (:? a))]
+    (let [R (rule (+ (:? a)) => (:? a))
+          notR (rule (+ (:? a)) !=> (:? a))
+          evenR (rule (+ (:? a)) #(even? ('a %)) (:? a))]
       (is (= 3 (R '(+ 3))))
+      (is (nil? (notR '(+ 3))))
+      (is (nil? (notR '(+ 8))))
+      (is (nil? (evenR '(+ 3))))
+      (is (= 8 (evenR '(+ 8))))
       ))
 
  (testing "two"
-   (let [R (rule ((:? a) (:? b)) ((:? b) (:? a)))]
+   (let [R (rule ((:? a) (:? b)) => ((:? b) (:? a)))]
      (is (= [20 10] (R [10 20])))
      (is (not (R [10 20 30])))
      (is (not (R [10])))
@@ -34,7 +42,7 @@
      (is (not (R "")))))
 
  (testing "simple3"
-   (let [R (rule (+ (:?? b1) (:? a) (:?? b2) (:? a) (:?? b3))
+   (let [R (rule (+ (:?? b1) (:? a) (:?? b2) (:? a) (:?? b3)) =>
                  (+ (* 2 (:? a)) (:?? b1) (:?? b2) (:?? b3)))]
      (is (= '(+ (* 2 a) b c d e) (R '(+ a b c d a e))))
      (is (= '(+ (* 2 a) b c d e) (R '(+ a a b c d e))))
@@ -56,12 +64,9 @@
 (deftest ruleset-test
   (testing "simple"
     (let [RS (ruleset
-              ((:? a) (:? a))
-              (* 2 (:? a))
-              ((:? a) (:? b))
-              ((:? b) (:? a))
-              ((:? a) (:? b) (:? c))
-              ((:? c) (:? b) (:? a)))]
+              ((:? a) (:? a)) => (* 2 (:? a))
+              ((:? a) (:? b)) => ((:? b) (:? a))
+              ((:? a) (:? b) (:? c)) => ((:? c) (:? b) (:? a)))]
       (is (= '(4 3) (RS '(3 4))))
       (is (= '(8 7 6) (RS '(6 7 8))))
       (is (= '(* 2 5) (RS '(5 5))))
@@ -75,13 +80,13 @@
 
   (testing "algebra-1"
     (let [RS (ruleset
-              (+ (:? a) (+ (:? b) (:? c)))
+              (+ (:? a) (+ (:? b) (:? c))) =>
               (+ (+ (:? a) (:? b) (:? c)))
 
-              (+ (:? a))
+              (+ (:? a)) =>
               (:? a)
 
-              (* (:? a) (+ (:? b) (:?? c)))
+              (* (:? a) (+ (:? b) (:?? c))) =>
               (+ (* (:? a) (:? b)) (* (:? a) (:?? c))))
           S (rule-simplifier RS)]
       (is (= 3 (S '(+ 3))))
@@ -97,13 +102,13 @@
 
   (testing "associative (multiple rulesets)"
     (let [R1 (ruleset
-              (+ (:?? as) (+ (:?? bs)) (:?? cs))
+              (+ (:?? as) (+ (:?? bs)) (:?? cs)) =>
               (+ (:?? as) (:?? bs) (:?? cs)))
           R2 (ruleset
-              (* (:?? as) (* (:?? bs)) (:?? cs))
+              (* (:?? as) (* (:?? bs)) (:?? cs)) =>
               (* (:?? as) (:?? bs) (:?? cs))
 
-              (* (:?? as) 1 (:?? bs))
+              (* (:?? as) 1 (:?? bs)) =>
               (* (:?? as) (:?? bs)))
           S1 (rule-simplifier R1)
           S2 (rule-simplifier R2)
