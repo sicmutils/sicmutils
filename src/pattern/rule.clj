@@ -17,8 +17,7 @@
         `(list (concat ~@(map
                           (partial compile-consequence frame-symbol)
                           consequence)))
-        :else `(list '~consequence)
-        ))
+        :else `(list '~consequence)))
 
 (defn- expose-predicate
   "This is currently a little tricky to explain. A variable pattern in

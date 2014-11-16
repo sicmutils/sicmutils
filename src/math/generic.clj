@@ -132,7 +132,7 @@
         (= (count args) 1) (negate (first args))
         :else (bin- (first args) (apply + (next args)))))
 
-(defn bin* [a b]
+(defn- bin* [a b]
   (cond (and (number? a) (number? b)) (core-* a b)
         (and (number? a) (zero? a)) (zero-like b)
         (and (number? b) (zero? b)) (zero-like a)
@@ -154,7 +154,7 @@
 (defn * [& args]
   (reduce bin* 1 (canonical-order args)))
 
-(defn bin-div [a b]
+(defn- bin-div [a b]
   (cond (and (number? a) (number? b)) (core-div a b)
         (one? b) a
         :else (div a b)))

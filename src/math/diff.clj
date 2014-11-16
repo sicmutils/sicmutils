@@ -24,7 +24,7 @@
   (zero-like [d] 0)
   (exact? [d] false)
   (compound? [d] false)
-  (sort-key [d] 35)
+  (sort-key [d] 80)
   ;; this isn't quite right: it "applies" things which aren't functions
   ;; clojure.lang.IFn
   ;; (invoke [d xs]

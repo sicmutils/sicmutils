@@ -53,12 +53,6 @@
      (is (= '(+ (* 2 b) a a b a) (R '(+ b a b a b a))))
      (is (= '(+ (* 2 a) b b a b) (R '(+ a b a b a b))))
      ))
-
- ;; (testing "constraint"
- ;;   (let [R (rule ((:? a) (:? b integer?)) (list (:? a) (:? b)))
- ;;         ]
- ;;     (is (= 'foo (R [3.14 22])))
- ;;     ))
 )
 
 (deftest ruleset-test
