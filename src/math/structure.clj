@@ -64,7 +64,7 @@
 (defn- elementwise [op s t]
   (if (= (size s) (size t))
     (Struct. (orientation s) (vec (map op (elements s) (elements t))))
-    (throw (IllegalArgumentException.
+    (throw (ArithmeticException.
             (str op " provided arguments of differing length")))))
 
 (defn mapr
@@ -105,7 +105,7 @@
 (defn- expt [s n]
   (cond (= n 1) s
         (> n 1) (g/* s (g/expt s (- n 1)))
-        :else (throw (IllegalArgumentException. (str "Cannot: " `(expt ~s ~n))))))
+        :else (throw (ArithmeticException. (str "Cannot: " `(expt ~s ~n))))))
 
 (g/defhandler :+  [down? down?]           (partial elementwise g/+))
 (g/defhandler :+  [up? up?]               (partial elementwise g/+))

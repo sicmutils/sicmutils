@@ -94,8 +94,7 @@
 (defn- div [a b]
   (cond (and (number? a) (number? b)) (/ a b)
         (number? a) (if (g/zero? a) a `(g// ~a ~b))
-        (number? b) (cond (g/zero? b) (throw (IllegalArgumentException.
-                                              "division by zero"))
+        (number? b) (cond (g/zero? b) (throw (ArithmeticException. "division by zero"))
                           (g/one? b) a
                           :else `(g// ~a ~b))
         :else `(g// ~a ~b)))

@@ -37,7 +37,7 @@
      (is (= m5_7 (g/invert m3_7)))
      (is (= m4_7 (g/invert m2_7)))
      (is (= m2_7 (g/invert m4_7)))
-     (is (thrown? IllegalArgumentException (g/invert m2_4)))
+     (is (thrown? ArithmeticException (g/invert m2_4)))
      (is (= m3_4 (g/invert m3_4)))
      )
    ))

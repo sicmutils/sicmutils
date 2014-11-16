@@ -31,9 +31,8 @@
   `(list :? '~(second form) ~(nth form 2)))
 
 (defn- prepare-pattern
-  "prepare-pattern replaces form with code that will construct the
-  equivalent form with variable predicate values exposed to evaluation
-  (see above)."
+  "Replace form with code that will construct the equivalent form with
+  variable predicate values exposed to evaluation (see above)."
   [form]
   (cond (variable-reference-with-predicate? form) (expose-predicate form)
         (list? form) (cons 'list (map prepare-pattern form))
@@ -80,12 +79,23 @@
       `(fn [data# continue# fail#]
          (fail# data#)))))
 
-(defn- try-rulesets [[ruleset & rulesets] expression succeed]
+(defn- try-rulesets
+  "Execute the supplied rulesets against expression in order. The
+  first ruleset to succeed in rewriting an expression will cause
+  the success continuation to be invoked and the process will stop.
+  If no ruleset succeeds, the original expression is returned."
+  [[ruleset & rulesets] expression succeed]
   (if ruleset
     (ruleset expression succeed #(try-rulesets rulesets % succeed))
     expression))
 
-(defn rule-simplifier [& rulesets]
+(defn rule-simplifier
+  "Transform the supplied rulesets into a function of expressions
+  which will arrange to apply each of the rules in the ruleset to all
+  the component parts of the expression in depth order, then
+  simplifies the result; the process is continued until a fixed point
+  of the simplification process is achieved."
+  [& rulesets]
   (fn simplifier [expression]
     (let [simplified (if (seq? expression)
                        (map simplifier expression)

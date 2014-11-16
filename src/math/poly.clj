@@ -83,7 +83,7 @@
     (cond (base? p) aq
           (base? q) ap
           (= ap aq) ap
-          :else (throw (IllegalArgumentException. "mismatched polynomial arity")))))
+          :else (throw (ArithmeticException. "mismatched polynomial arity")))))
 
 (defn- normalize-with-arity [a p]
   (if (base? p) p
@@ -190,10 +190,10 @@
   (cond (base? p) (g/expt p n)
         (or
          (not (integer? n))
-         (< n 0)) (throw (IllegalArgumentException. (str "can't raise poly to " n)))
+         (< n 0)) (throw (ArithmeticException. (str "can't raise poly to " n)))
         (g/one? p) p
         (g/zero? p) (if (core-zero? n)
-                    (throw (IllegalArgumentException. "poly 0^0"))
+                      (throw (ArithmeticException. "poly 0^0"))
                     p)
         (core-zero? n) 1
         :else (loop [x p c n a 1]

@@ -20,14 +20,14 @@
 (defn- modular-binop [op]
   (fn [^ModInt a ^ModInt b]
     (if-not (= (.m a) (.m b))
-      (throw (IllegalArgumentException. "unequal moduli"))
+      (throw (ArithmeticException. "unequal moduli"))
       (make (op (.a a) (.a b)) (.m a)))))
 
 (defn- modular-inv [^ModInt m]
   (let [modulus (.m m)
         [g a b invertible] (e/extended-euclid (.a m) modulus)]
     (if (< g 2) (make a modulus)
-        (throw (IllegalArgumentException.
+        (throw (ArithmeticException.
                 (str m " is not invertible mod " modulus))))))
 
 (g/defhandler :+ [modint? modint?] (modular-binop +))

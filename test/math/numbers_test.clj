@@ -61,7 +61,7 @@
     (is (= 0 (g// 0 'x)))
     (is (= 0 (g/* 0 'x)))
     (is (= 0 (g/* 'x 0)))
-    (is (thrown? IllegalArgumentException (g// 'x 0)))
+    (is (thrown? ArithmeticException (g// 'x 0)))
     )
   (testing "neg"
     (is (= -4 (g/- 0 4)))
