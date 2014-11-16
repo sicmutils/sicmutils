@@ -3,7 +3,8 @@
   (:require [clojure.test :refer :all]
             [math.generic :refer :all]
             [math.struct :refer :all]
-            [math.function :refer :all]))
+            [math.function :refer :all]
+            [math.diff :refer :all]))
 
 (defn velocity [local] (nth 2 local))
 
@@ -17,6 +18,15 @@
       (literal-function 'y)
       (literal-function 'z)))
 
+(defn Γ [q]
+  (fn [t]
+    (up t (q t) ((derivative q) t))))
+
 (deftest sicm
   (testing "apply-struct"
-    (is (= (up '(x t) '(y t) '(z t)) (q 't)))))
+    (is (= (up '(x t) '(y t) '(z t)) (q 't)))
+    ;; not quite there! need a way to differentiate
+    ;; a literal function before this can work.
+    ;;(is (= 'bar ((derivative q) 't)))
+    ;;(is (= 'foo ((Γ q) 't)))
+    ))

@@ -14,3 +14,14 @@
   )
 
 (defn literal-function [f] (Fn. f))
+
+;; what literal functions work out to in scmutils:
+
+;; 1 ]=> (define f (literal-function 'x))
+;; #| f |#
+
+;; 1 ]=> (display f)
+;; #[apply-hook 14]
+
+;; 1 ]=> (display (f 't))
+;; (*number* (expression (x t)) (literal-function #[apply-hook 14]) (type-expression Real))
