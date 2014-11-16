@@ -1,5 +1,4 @@
-(ns pattern.match
-  (:require [clojure.walk :refer :all]))
+(ns pattern.match)
 
 (def ^:private zero [{} nil])
 
@@ -60,11 +59,20 @@
   (and (sequential? x)
        (= (first x) :?)))
 
+(defn variable-reference-with-predicate?
+  "True if x is a variable reference and is also equipped with a
+  constraint on matched values"
+  [x]
+  (and (variable-reference? x)
+       (> (count x) 2)))
+
 (defn segment-reference?
   "True if x is a segment reference (i.e., it looks like (:?? ...))"
   [x]
   (and (sequential? x)
        (= (first x) :??)))
+
+(def ^:private no-constraint (constantly true))
 
 (defn variable
   "Return the variable contained in a variable or segment reference
@@ -72,9 +80,12 @@
   [x]
   (second x))
 
-(defn variable-constraint
+(defn- variable-constraint
+  "If x is a variable reference in a pattern with a constraint,
+  returns that constraint; else returns a stock function which
+  enforces no constraint at all."
   [x]
-  (nth x 2 (constantly true)))
+  (nth x 2 no-constraint))
 
 (defn pattern->matcher
   "Given a pattern (which is essentially a form consisting of
@@ -84,8 +95,7 @@
   (if (sequential? pattern)
     (cond (variable-reference? pattern) (match-var (variable pattern)
                                                    (variable-constraint pattern))
-          (segment-reference? pattern)
-          (match-segment (variable pattern))
+          (segment-reference? pattern) (match-segment (variable pattern))
           :else (apply match-list (map pattern->matcher pattern)))
     (match-one pattern)))
 

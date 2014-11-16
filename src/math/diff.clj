@@ -220,12 +220,11 @@
   (last (apply set/union (map #(-> % differential->terms last .tags) ds))))
 
 (defn- binary-op
-  [f df:dx df:dy]
+  [f ∂f:∂x ∂f:∂y]
   (fn [x y]
     (let [mt (max-order-tag x y)
           {xe-terms false dx-terms true} (group-by #(-> % .tags (contains? mt)) (differential->terms x))
           {ye-terms false dy-terms true} (group-by #(-> % .tags (contains? mt)) (differential->terms y))
-          ;; XXX we are not using terms->differential-collapse here... or are we? should we?
           xe (terms->differential-collapse xe-terms)
           dx (terms->differential-collapse dx-terms)
           ye (terms->differential-collapse ye-terms)
@@ -233,10 +232,10 @@
           a (f xe ye)
           b (if (and (number? dx) (zero? dx))
               a
-              (dx+dy a (dx*dy dx (df:dx xe ye))))
+              (dx+dy a (dx*dy dx (∂f:∂x xe ye))))
           c (if (and (number? dy) (zero? dy))
               b
-              (dx+dy b (dx*dy (df:dy xe ye) dy)))]
+              (dx+dy b (dx*dy (∂f:∂y xe ye) dy)))]
       c)))
 
 

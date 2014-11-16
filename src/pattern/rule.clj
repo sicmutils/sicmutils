@@ -20,6 +20,27 @@
         :else `(list '~consequence)
         ))
 
+(defn- expose-predicate
+  "This is currently a little tricky to explain. A variable pattern in
+  a ruleset might be written (:? 'a integer?). If we were to quote the
+  entire ruleset, then the constraint part--integer?--would have the
+  form of a symbol, and not what we want, which is the function object
+  bound to integer?. Expose-predicate processes a form into code that
+  will return the variable pattern in a form in which the predicate
+  function is 'exposed' to evaluation."
+  [form]
+  `(list :? '~(second form) ~(nth form 2)))
+
+(defn- prepare-pattern
+  "prepare-pattern replaces form with code that will construct the
+  equivalent form with variable predicate values exposed to evaluation
+  (see above)."
+  [form]
+  (cond (variable-reference-with-predicate? form) (expose-predicate form)
+        (list? form) (cons 'list (map prepare-pattern form))
+        (symbol? form) `(quote ~form)
+        :else form))
+
 (defmacro rule
   "Rule takes a match pattern and substitution pattern, compiles each
   of these and returns a function which may be applied to a form
@@ -28,9 +49,10 @@
   supplied predicate, will call the continuation with the result of
   the substituion."
   [pattern predicate? consequence]
-  (let [frame-symbol (gensym)
+  (let [prepared-pattern (prepare-pattern pattern)
+        frame-symbol (gensym)
         compiled-consequence (compile-consequence frame-symbol consequence)]
-    `(let [matcher# (pattern->matcher '~pattern)]
+    `(let [matcher# (pattern->matcher ~prepared-pattern)]
        (fn apply#
          ([data#] (apply# data# identity))
          ([data# continue#]
@@ -47,14 +69,15 @@
   [& patterns-and-consequences]
   (let [[p pred c & pcs] patterns-and-consequences]
     (if p
-      `(fn apply#
-         ([data#] (apply# data# identity identity))
-         ([data# continue#] (apply# data# continue# identity))
-         ([data# continue# fail#]
-         (let [R# (rule ~p ~pred ~c)]
-           (or (R# data# continue#)
-               ((ruleset ~@pcs) data# continue# fail#)
-               (fail# data#)))))
+      (let [prepared-pattern  p]
+        `(fn apply#
+          ([data#] (apply# data# identity identity))
+          ([data# continue#] (apply# data# continue# identity))
+          ([data# continue# fail#]
+             (let [R# (rule ~prepared-pattern ~pred ~c)]
+               (or (R# data# continue#)
+                   ((ruleset ~@pcs) data# continue# fail#)
+                   (fail# data#))))))
       `(fn [data# continue# fail#]
          (fail# data#)))))
 
