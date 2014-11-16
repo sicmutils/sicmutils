@@ -1,6 +1,6 @@
-(ns math.diff-test
+(ns math.calculus.derivative-test
   (:require [clojure.test :refer :all]
-            [math.diff :refer :all]
+            [math.calculus.derivative :refer :all]
             [math.generic :as g]
             [math.struct :as s]
             ))

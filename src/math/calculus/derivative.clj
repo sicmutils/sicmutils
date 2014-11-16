@@ -1,4 +1,4 @@
-(ns math.diff
+(ns math.calculus.derivative
   (:require [clojure.set :as set]
             [math.generic :as g]
             [math.struct :as struct]

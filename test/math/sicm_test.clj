@@ -4,7 +4,7 @@
             [math.generic :refer :all]
             [math.struct :refer :all]
             [math.function :refer :all]
-            [math.diff :refer :all]))
+            [math.calculus.derivative :refer :all]))
 
 (defn velocity [local] (nth 2 local))
 
