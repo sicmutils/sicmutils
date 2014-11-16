@@ -1,7 +1,7 @@
-(ns math.struct-test
+(ns math.structure-test
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.test :refer :all]
-            [math.struct :refer :all]
+            [math.structure :refer :all]
             [math.generic :refer :all]))
 
 (deftest structures

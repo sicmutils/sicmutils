@@ -1,4 +1,4 @@
-(ns math.struct
+(ns math.structure
   (:require [math.generic :as g]))
 
 (deftype Struct [orientation v]

@@ -1,7 +1,7 @@
 (ns math.calculus.derivative
   (:require [clojure.set :as set]
             [math.generic :as g]
-            [math.struct :as struct]
+            [math.structure :as struct]
             [math.function :as f]
             ))
 
@@ -287,7 +287,7 @@
 (g/defhandler :**  [differential? (complement differential?)] power)
 (g/defhandler :sin [differential?] sin)
 (g/defhandler :cos [differential?] cos)
-(println "diff initialized")
+(println "derivative initialized")
 
 ;;; SIMPLE-DERIVATIVE-INTERNAL represents the essential computation.
 ;;; To compute the derivative of function f at point x, make a new

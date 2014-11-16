@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.test :refer :all]
             [math.generic :refer :all]
-            [math.struct :refer :all]
+            [math.structure :refer :all]
             [math.function :refer :all]
             [math.calculus.derivative :refer :all]))
 

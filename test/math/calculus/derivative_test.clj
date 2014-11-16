@@ -2,7 +2,7 @@
   (:require [clojure.test :refer :all]
             [math.calculus.derivative :refer :all]
             [math.generic :as g]
-            [math.struct :as s]
+            [math.structure :as s]
             ))
 
 (deftest diff-test-1
