@@ -212,13 +212,13 @@
     (cont (x/walk-expression environment expr) expression-vars)))
 
 (def ^:private operator-table
-  {'math.generic/+ add
-   'math.generic/- sub
-   'math.generic/* mul
-   'math.generic/negate negate
-   'math.generic/expt expt
-   'math.generic/square square
-   ;g/gcd gcd
+  {`g/+ add
+   `g/- sub
+   `g/* mul
+   `g/negate negate
+   `g/expt expt
+   `g/square square
+   ;`'g/gcd gcd
    })
 
 (def ^:private operators-known (into #{} (keys operator-table)))

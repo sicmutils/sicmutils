@@ -20,15 +20,14 @@
               (str "unknown numeric operator " operator))))))
 
 (defmacro is-expression?
-  "True if the expression is a form with head corresponding to
-  the math.generic operator with the given name."
-  [name]
-  `(fn [x#] (and (seq? x#) (= (first x#) (symbol "math.generic" ~(str name))))))
+  "True if the expression is a form with symbol at its head."
+  [symbol]
+  `(fn [x#] (and (seq? x#) (= (first x#) ~symbol))))
 
-(def ^:private sum? (is-expression? +))
-(def ^:private product? (is-expression? *))
-(def ^:private sqrt? (is-expression? sqrt))
-(def ^:private expt? (is-expression? expt))
+(def ^:private sum? (is-expression? `g/+))
+(def ^:private product? (is-expression? `g/*))
+(def ^:private sqrt? (is-expression? `g/sqrt))
+(def ^:private expt? (is-expression? `g/expt))
 
 (defn- operands [x]
   (rest x))
