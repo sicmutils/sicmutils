@@ -1,6 +1,7 @@
 (ns math.structure-test
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.test :refer :all]
+            [math.value :as v]
             [math.structure :refer :all]
             [math.generic :refer :all]))
 
@@ -66,25 +67,25 @@
     (is (= (up (up 10 15) (up 14 21) (up 22 33)) (* (up 2 3) (up 5 7 11))))
     (is (= (up (up 10 14 22) (up 15 21 33)) (* (up 5 7 11) (up 2 3)))))
   (testing "zero?"
-    (is (zero? (up)))
-    (is (zero? (up 0)))
-    (is (zero? (up 0 0)))
-    (is (zero? (down)))
-    (is (zero? (down 0)))
-    (is (zero? (down 0 0)))
-    (is (zero? []))
-    (is (zero? [0]))
-    (is (zero? [0 0]))
+    (is (v/zero? (up)))
+    (is (v/zero? (up 0)))
+    (is (v/zero? (up 0 0)))
+    (is (v/zero? (down)))
+    (is (v/zero? (down 0)))
+    (is (v/zero? (down 0 0)))
+    (is (v/zero? []))
+    (is (v/zero? [0]))
+    (is (v/zero? [0 0]))
     )
   (testing "zero-like"
-    (is (= (up 0 0 0) (zero-like (up 1 2 3))))
-    (is (= (up) (zero-like (up))))
-    (is (= (down 0 0 0) (zero-like (down 1 2 3))))
-    (is (= (down) (zero-like (down))))
+    (is (= (up 0 0 0) (v/zero-like (up 1 2 3))))
+    (is (= (up) (v/zero-like (up))))
+    (is (= (down 0 0 0) (v/zero-like (down 1 2 3))))
+    (is (= (down) (v/zero-like (down))))
     )
   (testing "exact?"
-    (is (exact? (up 0 1 3/2)))
-    (is (not (exact? (up 0 0 0.00001))))
+    (is (v/exact? (up 0 1 3/2)))
+    (is (not (v/exact? (up 0 0 0.00001))))
     )
   (testing "function - rotate about x axis"
     (defn Rx [θ]

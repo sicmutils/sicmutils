@@ -1,9 +1,10 @@
 (ns math.modint
-  (:require [math.generic :as g]
+  (:require [math.value :as v]
+            [math.generic :as g]
             [math.euclid :as e]))
 
 (defrecord ModInt [^BigInteger a ^BigInteger m]
-  g/Value
+  v/Value
   (zero? [x] (= a 0))
   (one? [x] (= a 1))
   (zero-like [x] (ModInt. 0 a))

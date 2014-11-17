@@ -1,12 +1,13 @@
 (ns math.structure
-  (:require [math.generic :as g]))
+  (:require [math.value :as v]
+            [math.generic :as g]))
 
 (deftype Struct [orientation v]
-  g/Value
-  (zero? [x] (every? g/zero? (.v x)))
+  v/Value
+  (zero? [x] (every? v/zero? (.v x)))
   (one? [x] false)
   (zero-like [x] (Struct. (.orientation x) (-> x .v count (repeat 0) vec)))
-  (exact? [x] (every? g/exact? (.v x)))
+  (exact? [x] (every? v/exact? (.v x)))
   (compound? [x] true)
   (sort-key [x] 18)
   Object
@@ -28,12 +29,12 @@
 (defn down [& xs]
   (Struct. :down (apply vector xs)))
 
-(extend-protocol g/Value
+(extend-protocol v/Value
   clojure.lang.PersistentVector
-  (zero? [x] (every? g/zero? x))
+  (zero? [x] (every? v/zero? x))
   (one? [x] false)
   (zero-like [x] (-> x count (repeat 0) vec))
-  (exact? [x] (every? g/exact? x))
+  (exact? [x] (every? v/exact? x))
   (compund? [x] true)
   (sort-key [x] 20)
   )

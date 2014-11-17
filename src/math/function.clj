@@ -1,8 +1,9 @@
 (ns math.function
-  (:require [math.generic :as g]))
+  (:require [math.value :as v]
+            [math.generic :as g]))
 
 (defrecord Fn [name]
-  g/Value
+  v/Value
   (zero? [x] false)
   (one? [x] false)
   (zero-like [x] false)

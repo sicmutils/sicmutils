@@ -1,19 +1,31 @@
 (ns math.expression
-  (:require [math.generic :as g]
+  (:require [math.value :as v]
             [clojure.walk :refer :all]))
 
-;; NB: we aren't wrapping literals with (expression ...) as GJS does.
-;; might come back to bite us.
-(defn make-literal [type expression]
-  (g/with-type :number expression))
+(defrecord Expression [type expression]
+  v/Value
+  (zero? [x] false)
+  (one? [x] false)
+  (zero-like [x] false)
+  (exact? [x] false)
+  (sort-key [x] 17)
+  ;; clojure.lang.IFn
+  ;; (invoke [f x] ...)
+  )
+
+(defn make-expression [x]
+  (Expression. :number x))
+
+(defn expression? [x]
+  (instance? Expression x))
 
 (defn make-numeric-literal [expression]
   (if (number? expression)
     expression
-    (make-literal :number expression)))
+    (Expression. :number expression)))
 
-(defn variables-in [expression]
-  (->> expression flatten (filter symbol?) (into #{})))
+(defn variables-in [expr]
+  (->> (.expression expr) flatten (filter symbol?) (into #{})))
 
 (defn walk-expression [environment expr]
   (postwalk (fn [a]
@@ -27,7 +39,7 @@
                     (sequential? a) (apply (first a) (rest a))
                     :else (throw (IllegalArgumentException.
                                   (str "unknown expression type " a)))))
-            expr))
+            (.expression expr)))
 
 ;; this guy goes in here. metadata? or a Value?
 ;; expression of type T? predicate for experssionator?

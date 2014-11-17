@@ -1,6 +1,7 @@
 (ns math.generic-test
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.test :refer :all]
+            [math.value :as v]
             [math.generic :refer :all]))
 
 (def T1 (dtree-insert
@@ -39,7 +40,7 @@
   [s t]
   (apply str(for [cs s ct t] (str cs ct))))
 
-(extend-protocol Value
+(extend-protocol v/Value
   java.lang.String
   (zero? [x] (= x ""))
   (one? [x] false)

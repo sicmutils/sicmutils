@@ -1,12 +1,13 @@
 (ns math.numbers
   (:refer-clojure :rename {zero? core-zero?})
-  (:require [math.generic :as g]
+  (:require [math.value :as v]
+            [math.generic :as g]
             [math.numsymb :as ns]
             [clojure.math.numeric-tower :as nt]))
 
 ;; still to be done: constant folding across expressions
 
-(extend-protocol g/Value
+(extend-protocol v/Value
   Long
   (zero? [x] (= x 0))
   (one? [x] (= x 1))

@@ -1,5 +1,6 @@
 (ns math.modint-test
   (:require [clojure.test :refer :all]
+            [math.value :as v]
             [math.generic :as g]
             [math.modint :refer :all]
             ))
@@ -31,7 +32,7 @@
    (testing "neg"
      (is (= m2_7 (g/negate m5_7))))
    (testing "zero?"
-     (is (g/zero? m0_7)))
+     (is (v/zero? m0_7)))
    (testing "inv"
      (is (= m3_7 (g/invert m5_7)))
      (is (= m5_7 (g/invert m3_7)))

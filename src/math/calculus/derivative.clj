@@ -1,6 +1,7 @@
 (ns math.calculus.derivative
-  (:require [clojure.set :as set]
+  (:require [math.value :as v]
             [math.generic :as g]
+            [clojure.set :as set]
             [math.structure :as struct]
             [math.function :as f]
             ))
@@ -16,9 +17,9 @@
 ;; If you construct one of these directly, make sure terms
 ;; is appropriately sorted. If in doubt, use make-differential
 (defrecord Differential [terms]
-  g/Value
+  v/Value
   (zero? [x]
-    (every? g/zero? (map #(.coefficient %) (.terms x))))
+    (every? v/zero? (map #(.coefficient %) (.terms x))))
   (one? [x]
     false) ;; XXX! this needs to be fixed
   (zero-like [d] 0)
@@ -64,7 +65,7 @@
              (cond
               (= a-tags b-tags) (let [r-coef (g/+ a-coef b-coef)]
                                   (recur (rest as) (rest bs)
-                                         (if (not (g/zero? r-coef))
+                                         (if (not (v/zero? r-coef))
                                            (conj rs (DifferentialTerm. a-tags r-coef))
                                            rs)))
               ;; kind of sad to call vec here.
@@ -274,8 +275,8 @@
 
 (defn- not-compound?
   [x]
-  (if (satisfies? g/Value x)
-    (not (g/compound? x))
+  (if (satisfies? v/Value x)
+    (not (v/compound? x))
     true))
 
 (g/defhandler :+ [differential? not-compound?] diff-+)

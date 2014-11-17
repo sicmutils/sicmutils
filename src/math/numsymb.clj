@@ -1,5 +1,6 @@
 (ns math.numsymb
-  (:require [math.generic :as g]
+  (:require [math.value :as v]
+            [math.generic :as g]
             [math.expression :as x]
             [clojure.math.numeric-tower :as nt]))
 
@@ -8,7 +9,12 @@
 ;;       (define incremental-simplifier #f)
 
 (declare symbolic-operator-table)
-(defn- numerical-expression [expr] expr)
+(defn- numerical-expression
+  [expr]
+  (cond (number? expr) expr
+        (symbol? expr) expr
+        (g/literal-number? expr) (x/.expression expr)
+        :else (throw (IllegalArgumentException. (str "unknown numerical expression type " expr)))))
 
 (defn make-numsymb-expression [operator operands]
   (let [operand-exprs (map numerical-expression operands)
@@ -43,10 +49,10 @@
 (defn- add [a b]
   (let [sum (partial canonically-ordered-operation `g/+)]
     (cond (and (number? a) (number? b)) (+ a b)
-         (number? a) (cond (g/zero? a) b
+         (number? a) (cond (v/zero? a) b
                            (sum? b) (sum (cons a (operands b)))
                            :else (sum (list a b)))
-         (number? b) (cond (g/zero? b) a
+         (number? b) (cond (v/zero? b) a
                            (sum? a) (sum (cons b (operands a)))
                            :else (sum (list b a)))
          (sum? a) (cond (sum? b) (sum (concat (operands a) (operands b)))
@@ -59,8 +65,8 @@
 
 (defn- sub [a b]
   (cond (and (number? a) (number? b)) (- a b)
-        (number? a) (if (g/zero? a) `(g/- ~b) `(g/- ~a ~b))
-        (number? b) (if (g/zero? b) a `(g/- ~a ~b))
+        (number? a) (if (v/zero? a) `(g/- ~b) `(g/- ~a ~b))
+        (number? b) (if (v/zero? b) a `(g/- ~a ~b))
         :else `(g/- ~a ~b)))
 
 (defn- sub-n [& args]
@@ -71,13 +77,13 @@
 (defn- mul [a b]
   (let [product (partial canonically-ordered-operation `g/*)]
     (cond (and (number? a) (number? b)) (* a b)
-         (number? a) (cond (g/zero? a) a
-                           (g/one? a) b
+         (number? a) (cond (v/zero? a) a
+                           (v/one? a) b
                            (product? b) (product (cons a (operands b)))
                            :else (product (list a b));
                            )
-         (number? b) (cond (g/zero? b) b
-                           (g/one? b) a
+         (number? b) (cond (v/zero? b) b
+                           (v/one? b) a
                            (product? a) (product (cons b (operands a))) ;`(g/* ~b ~@(operands a))
                            :else (product (list b a))
                            )
@@ -92,9 +98,9 @@
 
 (defn- div [a b]
   (cond (and (number? a) (number? b)) (/ a b)
-        (number? a) (if (g/zero? a) a `(g// ~a ~b))
-        (number? b) (cond (g/zero? b) (throw (ArithmeticException. "division by zero"))
-                          (g/one? b) a
+        (number? a) (if (v/zero? a) a `(g// ~a ~b))
+        (number? b) (cond (v/zero? b) (throw (ArithmeticException. "division by zero"))
+                          (v/one? b) a
                           :else `(g// ~a ~b))
         :else `(g// ~a ~b)))
 
@@ -166,7 +172,7 @@
 ;; (define (symb:pi-over-4-mod-pi? x) (memq x '(:pi-over-4 :+pi-over-4)))
 
 (defn- sine [x]
-  (cond (number? x) (if (g/exact? x)
+  (cond (number? x) (if (v/exact? x)
                       (if (zero? x) 0 `(g/sin ~x))
                       (cond (n:zero-mod-pi? x) 0.0
                             (n:pi-over-2-mod-2pi? x) 1.0
@@ -179,7 +185,7 @@
         :else `(g/sin ~x)))
 
 (defn- cosine [x]
-  (cond (number? x) (if (g/exact? x)
+  (cond (number? x) (if (v/exact? x)
                       (if (zero? x) 1 `(g/cos ~x))
                       (cond (n:pi-over-2-mod-pi? x) 0.0
                             (n:zero-mod-2pi? x) 1.0
@@ -203,36 +209,36 @@
 
 (defn- sqrt [s]
   (if (number? s)
-    (if-not (g/exact? s)
+    (if-not (v/exact? s)
       (nt/sqrt s)
-      (cond (g/zero? s) s
-            (g/one? s) :one
+      (cond (v/zero? s) s
+            (v/one? s) :one
             :else (let [q (nt/sqrt s)]
-                    (if (g/exact? q)
+                    (if (v/exact? q)
                       q
                       `(g/sqrt ~s)))))
     `(g/sqrt ~s)))
 
 (defn- log [s]
   (if (number? s)
-    (if-not (g/exact? s)
+    (if-not (v/exact? s)
       (Math/log s)
-      (if (g/one? s) 0 `(g/log ~s)))
+      (if (v/one? s) 0 `(g/log ~s)))
     `(g/log ~s)))
 
 (defn- exp [s]
   (if (number? s)
-    (if-not (g/exact? s)
+    (if-not (v/exact? s)
       (Math/exp s)
-      (if (g/zero? s) 1 `(g/exp ~s)))
+      (if (v/zero? s) 1 `(g/exp ~s)))
     `(g/exp ~s)))
 
 (defn- expt [b e]
   (cond (and (number? b) (number? e)) (nt/expt b e)
-        (number? b) (cond (g/one? b) 1
+        (number? b) (cond (v/one? b) 1
                           :else `(g/expt ~b ~e))
-        (number? e) (cond (g/zero? e) 1
-                          (g/one? e) b
+        (number? e) (cond (v/zero? e) 1
+                          (v/one? e) b
                           (and (integer? e) (even? e) (sqrt? b))
                           (expt (first (operands b)) (quot e 2))
                           (and (expt? b)

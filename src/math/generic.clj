@@ -4,19 +4,9 @@
                            / core-div
                            * core-*
                            zero? core-zero?})
-  (:require [clojure.math.numeric-tower :as nt]))
-
-(defprotocol Value
-  (zero? [this])
-  (one? [this])
-  (zero-like [this])
-  (one-like [this])
-  (exact? [this])
-  (compound? [this])
-  (sort-key [this])
-  ;; should we do this or have applicables extend IFn?
-  ;; (apply-to [this these])
-  )
+  (:require [clojure.math.numeric-tower :as nt]
+            [math.expression :as x]
+            [math.value :refer :all]))
 
 (extend-protocol Value
   Object
@@ -164,11 +154,10 @@
         (nil? (next args)) (invert (first args))
         :else (bin-div (first args) (apply * (next args)))))
 
+;; XXX move these to expression?
 (defn literal-number? [x]
-  (= :number (:generic-type (meta x))))
+  (and (x/expression? x)
+       (= :number (x/.type x))))
 
 (defn abstract-number? [x]
   (or (symbol? x) (literal-number? x)))
-
-(defn with-type [t x]
-  (with-meta x {:generic-type t}))
