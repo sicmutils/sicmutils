@@ -4,13 +4,13 @@
 
 (deftest expressions
   (testing "variables-in"
-    (is (= '#{a b c d x y * +} (variables-in (make-expression '(+ x (* 3 y) [a [b 9 c] [3 4 5 d]])))))
+    (is (= '#{a b c d x y * +} (variables-in (make '(+ x (* 3 y) [a [b 9 c] [3 4 5 d]])))))
     )
   (testing "walk"
-    (is (= 12 (walk-expression {'+ + 'x 5} (make-expression '(+ 3 4 x)))))
-    (is (= 0 (walk-expression {'* * '+ + 'x 5 'y -2} (make-expression '(+ 3 (* 4 y) x)))))
+    (is (= 12 (walk-expression {'+ + 'x 5} (make '(+ 3 4 x)))))
+    (is (= 0 (walk-expression {'* * '+ + 'x 5 'y -2} (make '(+ 3 (* 4 y) x)))))
     (is (thrown? IllegalArgumentException
-                 (walk-expression {'+ + 'x 5 'y -2} (make-expression '(+ 3 (* 4 y) x)))))
+                 (walk-expression {'+ + 'x 5 'y -2} (make '(+ 3 (* 4 y) x)))))
     )
  )
 

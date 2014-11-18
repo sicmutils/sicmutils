@@ -13,7 +13,7 @@
   ;; (invoke [f x] ...)
   )
 
-(defn make-expression [x]
+(defn make [x]
   (Expression. :number x))
 
 (defn expression? [x]

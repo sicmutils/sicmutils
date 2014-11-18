@@ -5,7 +5,7 @@
             [math.expression :as x]
             [math.numbers]))
 
-(defmacro mx [x] `(x/make-expression '~x))
+(defmacro mx [x] `(x/make '~x))
 
 
 (deftest arithmetic
