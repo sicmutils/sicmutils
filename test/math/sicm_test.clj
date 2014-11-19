@@ -3,6 +3,7 @@
   (:require [clojure.test :refer :all]
             [math.generic :refer :all]
             [math.structure :refer :all]
+            [math.expression :refer :all]
             [math.function :refer :all]
             [math.calculus.derivative :refer :all]))
 
@@ -24,7 +25,10 @@
 
 (deftest sicm
   (testing "apply-struct"
-    (is (= (up '(x t) '(y t) '(z t)) (q 't)))
+    (is (= (up (literal-number '(x t))
+               (literal-number '(y t))
+               (literal-number '(z t)))
+           (q 't)))
     ;; not quite there! need a way to differentiate
     ;; a literal function before this can work.
     ;;(is (= 'bar ((derivative q) 't)))

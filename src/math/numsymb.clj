@@ -21,7 +21,7 @@
         v (operator symbolic-operator-table)]
     (if v
       (let [newexp (apply v operand-exprs)]
-        (x/make-numeric-literal newexp))
+        (x/literal-number newexp))
       (throw (IllegalArgumentException.
               (str "unknown numeric operator " operator))))))
 

@@ -272,12 +272,19 @@
              (fn [x y]
                (throw (java.lang.IllegalArgumentException. "can't get there from here")))))
 
+(defn multivariate-derivative
+  [f selectors]
+  )
 
 (defn- not-compound?
   [x]
   (if (satisfies? v/Value x)
     (not (v/compound? x))
     true))
+
+;; we note that: (D f) where f is a literal function returns
+;; 'a-euclidean-derivative', which when applied to 'x gives
+;; ((D f) x). So, we have to define D.
 
 (g/defhandler :+ [differential? not-compound?] diff-+)
 (g/defhandler :+ [not-compound? differential?] diff-+)
@@ -288,6 +295,8 @@
 (g/defhandler :**  [differential? (complement differential?)] power)
 (g/defhandler :sin [differential?] sin)
 (g/defhandler :cos [differential?] cos)
+(g/defhandler :∂ [#(or (instance? clojure.lang.IFn %) (struct/structure? %))
+                  (constantly true)] multivariate-derivative)
 (println "derivative initialized")
 
 ;;; SIMPLE-DERIVATIVE-INTERNAL represents the essential computation.

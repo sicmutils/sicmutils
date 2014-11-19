@@ -7,7 +7,6 @@
 
 (defmacro mx [x] `(x/make '~x))
 
-
 (deftest arithmetic
   (testing "with-numbers"
     (is (= 4 (g/+ 2 2)))

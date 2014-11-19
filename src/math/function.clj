@@ -1,5 +1,6 @@
 (ns math.function
   (:require [math.value :as v]
+            [math.expression :as x]
             [math.generic :as g]))
 
 (defrecord Fn [name]
@@ -10,7 +11,7 @@
   (exact? [x] false)
   (sort-key [x] 35)
   clojure.lang.IFn
-  (invoke [f x] (list (.name f) x))
+  (invoke [f x] (x/literal-number (list (.name f) x)))
   ;;(applyTo [this args] (clojure.lang.AFn/applyToHelper this args))
   )
 
