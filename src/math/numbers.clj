@@ -14,6 +14,7 @@
   (zero-like [x] 0)
   (one-like [x] 1)
   (exact? [x] true)
+  (numerical? [x] true)
   (compound? [x] false)
   (sort-key [x] 10)
   Double
@@ -21,6 +22,7 @@
   (one? [x] (= x 1.0))
   (zero-like [x] 0.0)
   (one-like [x] 1.0)
+  (numerical? [x] true)
   (exact? [x] false)
   (compound? [x] false)
   (sort-key [x] 10)
@@ -30,6 +32,7 @@
   (zero-like [x] 0)
   (one-like [x] 1)
   (exact? [x] true)
+  (numerical? [x] true)
   (compound? [x] false)
   (sort-key [x] 10)
   )

@@ -6,7 +6,8 @@
                            zero? core-zero?})
   (:require [clojure.math.numeric-tower :as nt]
             [math.expression :as x]
-            [math.value :refer :all]))
+            [math.value :refer :all])
+  (:import [math.expression Expression]))
 
 (extend-protocol Value
   Object
@@ -19,6 +20,7 @@
   (exact? [x] false)
   (compound? [x] false)
   (sort-key [x] 99)
+  (numerical? [x] false)
   clojure.lang.Symbol
   (zero? [x] false)
   (one? [x] false)
@@ -27,6 +29,7 @@
   (exact? [x] false) ;; XXX maybe true?
   (compound? [x] false)
   (sort-key [x] 90)
+  (numerical? [x] false)
   )
 
 (def empty-dtree {:steps {} :stop nil})
@@ -155,9 +158,28 @@
         :else (bin-div (first args) (apply * (next args)))))
 
 ;; XXX move these to expression?
-(defn literal-number? [x]
-  (and (x/expression? x)
-       (= :number (x/.type x))))
 
-(defn abstract-number? [x]
-  (or (symbol? x) (literal-number? x)))
+
+(defn literal-number?
+  [x]
+  (and (instance? Expression x)
+       (numerical? x)))
+
+(defn abstract-number?
+  [x]
+  (or (symbol? x)
+      (literal-number? x)))
+
+(defn abstract-quantity?
+  [x]
+  (and (instance? Expression x)
+       ;; TODO: these type symbols might not correspond to what
+       ;; we do in the future, so these should be checked.
+       ((.type x) #{:number :up :down :matrix})))
+
+(defn numerical-quantity?
+  [x]
+  (or (number? x)
+      (abstract-number? x)
+      (and (instance? Value x)
+           (numerical? x))))

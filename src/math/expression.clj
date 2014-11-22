@@ -7,6 +7,7 @@
   (zero? [x] false)
   (one? [x] false)
   (zero-like [x] false)
+  (numerical? [x] (= (.type x) :number))
   (exact? [x] false)
   (sort-key [x] 17)
   ;; clojure.lang.IFn
@@ -15,9 +16,6 @@
 
 (defn make [x]
   (Expression. :number x))
-
-(defn expression? [x]
-  (instance? Expression x))
 
 (defn literal-number
   [expression]

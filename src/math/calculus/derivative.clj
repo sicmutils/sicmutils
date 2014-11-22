@@ -54,6 +54,12 @@
 (defn make-differential-term [dxs coefficient]
   (DifferentialTerm. (apply sorted-set dxs) coefficient))
 
+(defn differential-of [dx]
+  (loop [dx dx]
+    (if (instance? Differential dx)
+      (recur (.coefficient (first (.terms dx))))
+      dx)))
+
 (defn- dxs+dys
   [as bs]
   (loop [as as bs bs rs []]
@@ -148,6 +154,7 @@
             (cond (struct/structure? obj) (struct/mapr dist obj)
                   ;; (matrix? obj) (m:elementwise dist obj) XXX
                   ;; (quaternion? obj) XXX
+                  ;; (operator? obj) XXX
                   ;;
                   ;; Is this latter one causing trouble with invokable derivatives?
                   ;; yes it is. A function? is not something that simply implements IFn;
@@ -157,7 +164,6 @@
                   ;;
                   ;; (instance? clojure.lang.IFn obj) (hide-tag-in-procedure dx (comp dist obj))
                   ;;
-                  ;; (operator? obj) XXX
                   ;; (series? obj) XXX
                   :else (extract obj)))]
     (dist obj)))
