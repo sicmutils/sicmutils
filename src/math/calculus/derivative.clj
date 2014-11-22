@@ -246,31 +246,11 @@
       c)))
 
 
-(def ^:private diff-+
-  (binary-op g/+
-             (fn [x y] 1)
-             (fn [x y] 1)))
-
-(def ^:private diff--
-  (binary-op g/-
-             (fn [x y] 1)
-             (fn [x y] -1)))
-
-(def ^:private diff-*
-  (binary-op g/*
-             (fn [x y] y)
-             (fn [x y] x)))
-
-
-;; XXX unary-op is memoized in scmutils. But rather than memoizing that,
-;; it might be better just to memoize entire simplications.
-
-(def ^:private sin
-  (unary-op g/sin g/cos))
-
-(def ^:private cos
-  (unary-op g/cos #(g/* -1 (g/sin %))))
-
+(def ^:private diff-+ (binary-op g/+ (constantly 1) (constantly 1)))
+(def ^:private diff-- (binary-op g/- (constantly 1) (constantly -1)))
+(def ^:private diff-* (binary-op g/* (fn [x y] y)   (fn [x y] x)))
+(def ^:private sin    (unary-op g/sin g/cos))
+(def ^:private cos    (unary-op g/cos #(g/* -1 (g/sin %))))
 (def ^:private power
   (binary-op g/expt
              (fn [x y]
@@ -278,9 +258,37 @@
              (fn [x y]
                (throw (java.lang.IllegalArgumentException. "can't get there from here")))))
 
-(defn multivariate-derivative
+;; XXX unary-op is memoized in scmutils. But rather than memoizing that,
+;; it might be better just to memoize entire simplications.
+
+(defn- euclidean-structure
   [f selectors]
-  )
+  (prn "EUCLIDEAN-STRUCTURE" f selectors)
+  (letfn [(sd [g v]
+            (cond (struct/structure? v) :???
+                  (or (g/numerical-quantity? v)
+                      (g/abstract-quantity? v)) (derivative g v)
+                      :else (throw (IllegalArgumentException. (str "Can't differentiate " g v)))))
+          (a-euclidean-derivative [v]
+            (cond (struct/structure? v)
+                  (sd (fn [w]
+                        (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
+                      (struct/structure-get-in v selectors))
+                  (empty? selectors)
+                  (derivative f v)
+                  :else
+                  (throw (IllegalArgumentException. (str "Bad selectors " f selectors v)))))]))
+
+
+(defn- multivariate-derivative
+  [f selectors]
+  (let [a (f/arity f)
+        d (fn [f] (euclidean-structure f selectors))]
+    (cond (= a 0) (constantly 0)
+          (= a 1) (d f)
+          :else (throw (IllegalArgumentException. "Haven't implemented this yet!")))))
+
+(def D multivariate-derivative)
 
 (defn- not-compound?
   [x]

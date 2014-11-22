@@ -152,4 +152,21 @@
       (is (= (down (up 1 4) (up 9 16)) (mapr square S2)))
       (is (= (up (down 1 4) (down 9 16)) (mapr square S3)))
       ))
+  (testing "a structure has a nth element"
+    (is (= 5 (nth (up 4 5 6) 1)))
+    (is (thrown? IndexOutOfBoundsException (nth (up 4 5 6) 4))))
+  (testing "a structure can produce a seq"
+    (is (= [1 2 3] (seq (up 1 2 3))))
+    (is (= [4 5 6] (seq (down 4 5 6))))
+    (is (= [(up 1 2) (up 3 4)] (seq (down (up 1 2) (up 3 4)))))
+    (is (= [1 2 3 4] (flatten (down (up 1 2) (up 3 4)))))
+    )
+  (testing "get-in"
+    (is (= 5 (structure-get-in (up 4 5 6) [1])))
+    (is (= 4 (structure-get-in (up 4 5 6) [0])))
+    (is (= 4 (structure-get-in (down (up 1 2) (up 3 4)) [1 1])))
+    (is (= 2 (structure-get-in (down (up 1 2) (up 3 4)) [0 1]))))
+  (testing "assoc-in"
+    (is (= (up 4 55 6) (structure-assoc-in (up 4 5 6) [1] 55)))
+    (is (= (down (up 1 22) (up 3 4)) (structure-assoc-in (down (up 1 2) (up 3 4)) [0 1] 22))))
   )

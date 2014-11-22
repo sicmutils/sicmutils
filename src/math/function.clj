@@ -3,7 +3,7 @@
             [math.expression :as x]
             [math.generic :as g]))
 
-(defrecord Fn [name]
+(defrecord Fn [name arity]
   v/Value
   (zero? [x] false)
   (one? [x] false)
@@ -12,10 +12,18 @@
   (sort-key [x] 35)
   clojure.lang.IFn
   (invoke [f x] (x/literal-number (list (.name f) x)))
-  ;;(applyTo [this args] (clojure.lang.AFn/applyToHelper this args))
+  ;; XXX (applyTo [this args] (clojure.lang.AFn/applyToHelper this args))
   )
 
-(defn literal-function [f] (Fn. f))
+(defn literal-function [f] (Fn. f 1))
+
+(defn arity
+  [f]
+  ;; XXX: we need a way to find the arity of something
+  ;; besides a gn
+  (cond (instance? Fn f) (.arity f)
+        (instance? clojure.lang.IFn f) 1
+        :else 0))
 
 ;; what literal functions work out to in scmutils:
 

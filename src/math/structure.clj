@@ -77,6 +77,22 @@
         :else (f s))
   )
 
+(defn structure-assoc-in
+  "Like assoc-in, but works for structures. At this writing we're not
+  sure if we to overwrite the stock definition of assoc-in to
+  something that would fall through for standard clojure data types"
+  [s keys value]
+  (if (empty? keys) value
+      (let [w (.v s)
+            k1 (first keys)]
+        (assoc w k1 (structure-assoc-in (w k1) (next keys) value)))))
+
+(defn structure-get-in
+  "Like get-in, but for structures. See structure-assoc-in"
+  [s keys]
+  (if (empty? keys) s
+      (recur (-> s .v (get (first keys))) (next keys))))
+
 (defn- compatible-for-contraction? [s t]
   (and (= (size s) (size t))
        (not= (orientation s) (orientation t))))
@@ -84,10 +100,6 @@
 (defn- inner-product [s t]
   (apply g/+ (map g/* (elements s) (elements t))))
 
-(defn- scalar-multiply [a s]
-  (Struct. (orientation s) (vec (map #(g/* a %) (elements s)))))
-
-;; Hmmm. these look the same!
 (defn- outer-product [a s]
   (Struct. (orientation s) (vec (map #(g/* a %) (elements s)))))
 
@@ -112,9 +124,9 @@
 (g/defhandler :+  [up? up?]               (partial elementwise g/+))
 (g/defhandler :-  [down? down?]           (partial elementwise g/-))
 (g/defhandler :-  [up? up?]               (partial elementwise g/-))
-(g/defhandler :*  [number? structure?]    scalar-multiply)
-(g/defhandler :*  [structure? scalar?]    #(scalar-multiply %2 %1))
-(g/defhandler :/  [structure? scalar?]    #(scalar-multiply (/ %2) %1))
+(g/defhandler :*  [number? structure?]    outer-product)
+(g/defhandler :*  [structure? scalar?]    #(outer-product %2 %1))
+(g/defhandler :/  [structure? scalar?]    #(outer-product (/ %2) %1))
 (g/defhandler :*  [structure? structure?] mul)
 (g/defhandler :** [structure? integer?]   expt)
 
