@@ -263,7 +263,6 @@
 
 (defn- euclidean-structure
   [f selectors]
-  (prn "EUCLIDEAN-STRUCTURE" f selectors)
   (letfn [(sd [g v]
             (cond (struct/structure? v) :???
                   (or (g/numerical-quantity? v)
@@ -275,9 +274,10 @@
                         (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
                       (struct/structure-get-in v selectors))
                   (empty? selectors)
-                  (derivative f v)
+                  ((derivative f) v)
                   :else
-                  (throw (IllegalArgumentException. (str "Bad selectors " f selectors v)))))]))
+                  (throw (IllegalArgumentException. (str "Bad selectors " f selectors v)))))]
+    a-euclidean-derivative))
 
 
 (defn- multivariate-derivative
@@ -287,8 +287,6 @@
     (cond (= a 0) (constantly 0)
           (= a 1) (d f)
           :else (throw (IllegalArgumentException. "Haven't implemented this yet!")))))
-
-(def D multivariate-derivative)
 
 (defn- not-compound?
   [x]

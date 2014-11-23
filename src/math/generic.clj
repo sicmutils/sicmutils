@@ -6,6 +6,7 @@
                            zero? core-zero?})
   (:require [clojure.math.numeric-tower :as nt]
             [math.expression :as x]
+            [math.operator :as o]
             [math.value :refer :all])
   (:import [math.expression Expression]))
 
@@ -98,6 +99,7 @@
 (def sqrt (make-operation :sqrt))
 (def exp (make-operation :exp))
 (def log (make-operation :log))
+(def ∂ (make-operation #_(2) :∂))
 
 (defn canonical-order [args]
   ;; NB: we are relying on the fact that this sort is stable, although
@@ -183,3 +185,9 @@
       (abstract-number? x)
       (and (instance? Value x)
            (numerical? x))))
+
+(def D
+  (o/make-operator
+   (fn [f]
+     (∂ f []))
+   :derivative))
