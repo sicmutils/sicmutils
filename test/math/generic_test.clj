@@ -45,7 +45,8 @@
   (zero? [x] (= x ""))
   (one? [x] false)
   (zero-like [x] "")
-  (sort-key [x] 25))
+  (sort-key [x] 25)
+  (compound? [x] false))
 
 (defhandler :* [number? string?] multiply-string)
 (defhandler :s* [string? string?] product-string)

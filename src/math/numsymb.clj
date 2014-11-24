@@ -33,7 +33,7 @@
 (def ^:private sum? (is-expression? `g/+))
 (def ^:private product? (is-expression? `g/*))
 (def ^:private sqrt? (is-expression? `g/sqrt))
-(def ^:private expt? (is-expression? `g/expt))
+(def expt? (is-expression? `g/expt))
 
 (defn- operands [x]
   (rest x))
@@ -233,7 +233,7 @@
       (if (v/zero? s) 1 `(g/exp ~s)))
     `(g/exp ~s)))
 
-(defn- expt [b e]
+(defn expt [b e]
   (cond (and (number? b) (number? e)) (nt/expt b e)
         (number? b) (cond (v/one? b) 1
                           :else `(g/expt ~b ~e))

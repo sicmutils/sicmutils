@@ -8,6 +8,7 @@
             [math.calculus.derivative :refer :all]))
 
 (defn velocity [local] (nth 2 local))
+(defmacro mx [x] `(make '~x))
 
 (defn L-free-particle [mass]
   (fn [local]
@@ -21,7 +22,7 @@
 
 (defn Γ [q]
   (fn [t]
-    (up t (q t) ((derivative q) t))))
+    (up t (q t) ((D q) t))))
 
 (deftest sicm
   (testing "apply-struct"
@@ -29,8 +30,22 @@
                (literal-number '(y t))
                (literal-number '(z t)))
            (q 't)))
-    ;; not quite there! need a way to differentiate
-    ;; a literal function before this can work.
-    ;;(is (= 'bar ((derivative q) 't)))
-    ;;(is (= 'foo ((Γ q) 't)))
+    (is (= (up (mx ((math.generic/D x) t))
+               (mx ((math.generic/D y) t))
+               (mx ((math.generic/D z) t)))
+           ((D q) 't)))
+    ;; need to get exponentiation of operators before we can
+    ;; do this.
+    ;; (is (= (up (literal-number (((expt D 2) 'x) 't))
+    ;;            (literal-number (((expt D 2) 'y) 't))
+    ;;            (literal-number (((expt D 2) 'z) 't)))
+    ;;        ((D (D q)) 't)))
+    (is (= (up 't
+               (up (mx (x t))
+                   (mx (y t))
+                   (mx (z t)))
+               (up (mx ((math.generic/D x) t))
+                   (mx ((math.generic/D y) t))
+                   (mx ((math.generic/D z) t))))
+           ((Γ q) 't)))
     ))

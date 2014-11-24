@@ -31,6 +31,11 @@
   (compound? [x] false)
   (sort-key [x] 90)
   (numerical? [x] false)
+  clojure.lang.IFn
+  (arity [f]
+    (let [m (first (.getDeclaredMethods (class f)))
+          p (.getParameterTypes m)]
+      (alength p)))
   )
 
 (def empty-dtree {:steps {} :stop nil})
@@ -99,7 +104,7 @@
 (def sqrt (make-operation :sqrt))
 (def exp (make-operation :exp))
 (def log (make-operation :log))
-(def ∂ (make-operation #_(2) :∂))
+(def partial-derivative (make-operation #_(2) :∂))
 
 (defn canonical-order [args]
   ;; NB: we are relying on the fact that this sort is stable, although
@@ -183,11 +188,20 @@
   [x]
   (or (number? x)
       (abstract-number? x)
-      (and (instance? Value x)
-           (numerical? x))))
+      (numerical? x)))
 
 (def D
   (o/make-operator
    (fn [f]
-     (∂ f []))
+     (partial-derivative f []))
    :derivative))
+
+(defn pd
+  [& selectors]
+  (o/make-operator
+   (fn [f]
+     (prn "in PD function" f selectors)
+     (partial-derivative f selectors))
+   :partial-derivative))
+
+(println "generic initialized")

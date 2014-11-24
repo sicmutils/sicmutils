@@ -1,8 +1,9 @@
 (ns math.calculus.derivative-test
+  (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer :all]
             [math.calculus.derivative :refer :all]
-            [math.generic :as g]
-            [math.structure :as s]
+            [math.generic :refer :all]
+            [math.structure :refer :all]
             ))
 
 (deftest diff-test-1
@@ -22,8 +23,8 @@
           dx-plus-dz (make-differential [dx_ dz_])
           ]
       (is (= 1 one))
-      (is (= dx-plus-dy (g/+ dx dy)))
-      (is (= dx-plus-dz (g/+ dx dz)))
+      (is (= dx-plus-dy (+ dx dy)))
+      (is (= dx-plus-dz (+ dx dz)))
       (is (= (make-differential [(make-differential-term [0] 0)]) (dx*dy dx 0)))
       (let [b (dx+dy 0 (dx*dy dx 0))
             c (dx*dy 0 dx)]
@@ -40,17 +41,22 @@
       (is (= [] (dx*dys dx_ [dx_])))
       (is (= [dxdy_] (dx*dys dx_ [dy_])))
 
-      (is (= (make-differential [zero_ dxdy_]) (g/* dx dy)))
-      (is (= 0 (g/* dx dx)))
+      (is (= (make-differential [zero_ dxdy_]) (* dx dy)))
+      (is (= 0 (* dx dx)))
       ))
   (testing "some simple functions"
-    ;(is (= 'foo (g/D #(g/* 2 %))))
-    (is (= 2 ((g/D #(g/* 2 %)) 1)))
-    (is (= 2 ((g/D #(g/* 2 %)) 'y)))
-    (is (= (g/+ 'y 'y) ((g/D #(g/* % %)) 'y)))
-    (is (= (g/* 3 (g/expt 'y 2))
-           ((g/D #(g/expt % 3)) 'y)))
-    (is (= (g/* 2 (g/cos (g/* 2 'y))) ((g/D #(g/sin (g/* 2 %))) 'y)))
-    (is (= (s/up 2 (g/+ 't 't)) ((g/D #(s/up (g/* 2 %) (g/* % %))) 't)))
-    (is (= (s/up (g/* -1 (g/sin 't)) (g/cos 't)) ((g/D #(s/up (g/cos %) (g/sin %))) 't)))
-    ))
+    (is (= 2 ((D #(* 2 %)) 1)))
+    (is (= 2 ((D #(* 2 %)) 'y)))
+    (is (= (+ 'y 'y) ((D #(* % %)) 'y)))
+    (is (= (* 3 (expt 'y 2))
+           ((D #(expt % 3)) 'y)))
+    (is (= (* 2 (cos (* 2 'y))) ((D #(sin (* 2 %))) 'y)))
+    (is (= (up 2 (+ 't 't)) ((D #(up (* 2 %) (* % %))) 't)))
+    (is (= (up (* -1 (sin 't)) (cos 't)) ((D #(up (cos %) (sin %))) 't)))
+    )
+
+  (testing "partial derivatives"
+    (let [f (fn [x y] (+ (* x x) (* y y)))]
+      (is (= 4 (((pd 0) f) 2 3)))
+      (is (= 6 (((pd 1) f) 2 3)))))
+  )

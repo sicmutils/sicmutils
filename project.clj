@@ -9,8 +9,7 @@
   :repl-options {:prompt (fn [ns]  (str "algebra [" ns "] > "))
                  :welcome "clojure algebra system"
                  :init-ns math.generic
-                 :init (require '[math.numbers]
-                                '[math.struct :refer :all])}
-  :plugins [[cider/cider-nrepl "0.8.0"]]
+                 }
+  :plugins [[cider/cider-nrepl "0.8.1"]]
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})

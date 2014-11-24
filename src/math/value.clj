@@ -10,6 +10,7 @@
   (one-like [this])
   (exact? [this])
   (compound? [this])
+  (arity [this])
   (sort-key [this])
   ;; should we do this or have applicables extend IFn?
   ;; (apply-to [this these])

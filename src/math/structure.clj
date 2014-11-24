@@ -4,12 +4,13 @@
 
 (deftype Struct [orientation v]
   v/Value
-  (zero? [x] (every? v/zero? (.v x)))
-  (one? [x] false)
-  (zero-like [x] (Struct. (.orientation x) (-> x .v count (repeat 0) vec)))
-  (exact? [x] (every? v/exact? (.v x)))
-  (compound? [x] true)
-  (sort-key [x] 18)
+  (zero? [s] (every? v/zero? (.v s)))
+  (one? [s] false)
+  (zero-like [s] (Struct. (.orientation s) (-> s .v count (repeat 0) vec)))
+  (exact? [s] (every? v/exact? (.v s)))
+  (compound? [s] true)
+  (sort-key [s] 18)
+  (arity [s] 1)
   Object
   (equals [a b]
     (and (= (.orientation a) (.orientation b))
@@ -73,7 +74,7 @@
   each primitive (that is, not structural) component."
   [f s]
   (cond (instance? Struct s) (Struct. (.orientation s) (map #(mapr f %) (.v s)))
-        (sequential? s) (map f s)
+        (sequential? s) (map f s)  ;; XXX what happens if we don't do this?
         :else (f s))
   )
 
@@ -120,6 +121,17 @@
         (> n 1) (g/* s (g/expt s (- n 1)))
         :else (throw (ArithmeticException. (str "Cannot: " `(expt ~s ~n))))))
 
+(defn- matrix->structure "TODO: implement" [m] m)
+
+(defn seq->
+  "Convert a sequence (typically, of function arguments) to an up-structure.
+  GJS: Any matrix in the argument list wants to be converted to a row of
+  columns (TODO: this is not implemented yet)"
+  [s]
+  (prn "struct->seq" s (apply up (map matrix->structure s)))
+  (apply up (map matrix->structure s))
+  )
+
 (g/defhandler :+  [down? down?]           (partial elementwise g/+))
 (g/defhandler :+  [up? up?]               (partial elementwise g/+))
 (g/defhandler :-  [down? down?]           (partial elementwise g/-))
@@ -129,6 +141,7 @@
 (g/defhandler :/  [structure? scalar?]    #(outer-product (/ %2) %1))
 (g/defhandler :*  [structure? structure?] mul)
 (g/defhandler :** [structure? integer?]   expt)
+(g/defhandler :∂  [structure? (constantly true)] (fn [a b] (throw (IllegalArgumentException. "OUCH"))))
 
 (g/defhandler :square [structure?]
   (fn [s] (inner-product s s)))

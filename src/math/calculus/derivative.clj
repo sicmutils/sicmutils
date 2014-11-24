@@ -3,7 +3,6 @@
             [math.generic :as g]
             [clojure.set :as set]
             [math.structure :as struct]
-            [math.function :as f]
             ))
 
 ;; If you construct one of these directly, make sure tags
@@ -13,6 +12,7 @@
 
 (declare make-differential)
 (declare differential->terms)
+(declare differential-of)
 
 ;; If you construct one of these directly, make sure terms
 ;; is appropriately sorted. If in doubt, use make-differential
@@ -25,6 +25,9 @@
   (zero-like [d] 0)
   (exact? [d] false)
   (compound? [d] false)
+  (numerical? [d]
+    (prn "diff-numerical?" d "diff-of" (differential-of d) "num" (g/numerical-quantity? (differential-of d)))
+    (g/numerical-quantity? (differential-of d)))
   (sort-key [d] 80)
   ;; this isn't quite right: it "applies" things which aren't functions
   ;; clojure.lang.IFn
@@ -35,7 +38,7 @@
   ;;         (differential->terms d))))
   )
 
-(def ^:private differential? (partial instance? Differential))
+(def differential? (partial instance? Differential))
 
 (defn make-differential
   "Constructs a differential from a list of terms. If the list is empty,
@@ -165,6 +168,7 @@
                   ;; (instance? clojure.lang.IFn obj) (hide-tag-in-procedure dx (comp dist obj))
                   ;;
                   ;; (series? obj) XXX
+
                   :else (extract obj)))]
     (dist obj)))
 
@@ -223,19 +227,43 @@
              (dx*dy (df:dx finite-part)
                     infinitesimal-part)))))
 
-(defn- max-order-tag [& ds]
-  (last (apply set/union (map #(-> % differential->terms last .tags) ds))))
+;; (defn max-order-tag [& ds]
+;;   (last (apply set/union (map #(-> % differential->terms last .tags) ds))))
+
+(defn max-order-tag
+  "From each of the differentials in the sequence ds, find the highest
+  order term; then return the greatest tag found in any of these
+  terms; i.e., the highest-numbered tag of the highest-order term."
+  [ds]
+  (->> ds (map #(-> % differential->terms last .tags)) (apply set/union) last))
+
+(defn with-tag
+  "XXX doc and decide if we need the two infra"
+  [tag dx]
+  (->> dx .terms (filter #(-> % .tags (contains? tag))) terms->differential-collapse))
+
+(defn without-tag
+  "A real differential is expected here. document this and the above and below,
+  if we turn out to keep all three of them. It seems there must be a better way
+  to do this..."
+  [tag dx]
+  (->> dx .terms (filter #(-> % .tags (contains? tag) not)) terms->differential-collapse))
+
+(defn with-and-without-tag
+  "XXX doc and decide if we need above two"
+  [tag dx]
+  (prn "with-and-without-tag" tag dx)
+  (let [{finite-terms false infinitesimal-terms true}
+        (group-by #(-> % .tags (contains? tag)) (differential->terms dx))]
+    [(terms->differential-collapse infinitesimal-terms)
+     (terms->differential-collapse finite-terms)]))
 
 (defn- binary-op
   [f ∂f:∂x ∂f:∂y]
   (fn [x y]
-    (let [mt (max-order-tag x y)
-          {xe-terms false dx-terms true} (group-by #(-> % .tags (contains? mt)) (differential->terms x))
-          {ye-terms false dy-terms true} (group-by #(-> % .tags (contains? mt)) (differential->terms y))
-          xe (terms->differential-collapse xe-terms)
-          dx (terms->differential-collapse dx-terms)
-          ye (terms->differential-collapse ye-terms)
-          dy (terms->differential-collapse dy-terms)
+    (let [mt (max-order-tag [x y])
+          [dx xe] (with-and-without-tag mt x)
+          [dy ye] (with-and-without-tag mt y)
           a (f xe ye)
           b (if (and (number? dx) (zero? dx))
               a
@@ -262,30 +290,34 @@
 ;; it might be better just to memoize entire simplications.
 
 (defn- euclidean-structure
-  [f selectors]
+  [selectors f]
   (letfn [(sd [g v]
-            (cond (struct/structure? v) :???
-                  (or (g/numerical-quantity? v)
-                      (g/abstract-quantity? v)) (derivative g v)
-                      :else (throw (IllegalArgumentException. (str "Can't differentiate " g v)))))
+            (prn "SD" g v selectors)
+            (cond (struct/structure? v) (throw (IllegalArgumentException. "oops"))
+                  (or (g/numerical-quantity? v) (g/abstract-quantity? v)) ((derivative g) v)
+                  :else (throw (IllegalArgumentException. (str "bad structure " g v)))))
           (a-euclidean-derivative [v]
+            (prn "a-e-d" v selectors)
             (cond (struct/structure? v)
-                  (sd (fn [w]
-                        (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
-                      (struct/structure-get-in v selectors))
+                  (do (prn "making sd") (sd (fn [w]
+                         (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
+                       (struct/structure-get-in v selectors)))
                   (empty? selectors)
-                  ((derivative f) v)
+                  (do (prn "empty selectors so derivative of" f "on" v) ((derivative f) v))
                   :else
                   (throw (IllegalArgumentException. (str "Bad selectors " f selectors v)))))]
     a-euclidean-derivative))
 
-
 (defn- multivariate-derivative
   [f selectors]
-  (let [a (f/arity f)
-        d (fn [f] (euclidean-structure f selectors))]
+  (let [a (v/arity f)
+        d (fn [f] (euclidean-structure selectors f))] ;; partial application opportunity
+    (prn "MV DERIV" f selectors a d)
     (cond (= a 0) (constantly 0)
           (= a 1) (d f)
+          (= a 2) (fn [x y]
+                    ((d (fn [s] (apply f (seq s))))
+                     (struct/seq-> [x y])))
           :else (throw (IllegalArgumentException. "Haven't implemented this yet!")))))
 
 (defn- not-compound?

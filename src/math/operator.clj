@@ -11,7 +11,7 @@
   clojure.lang.IFn
   (invoke [operator function]
     (let [operated-function ((.f operator) function)]
-      (fn [x] (operated-function x))))
+      (fn [& xs] (prn "applying operated-function" operated-function "to" xs "giving" (apply operated-function xs)) (apply operated-function xs))))
   )
 
 (defn make-operator
