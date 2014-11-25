@@ -63,8 +63,16 @@
       (recur (.coefficient (first (.terms dx))))
       dx)))
 
+(defn- differential-term-list?
+  [as]
+  (or (nil? as)
+      (and (sequential? as)
+           (every? #(instance? DifferentialTerm %) as))))
+
 (defn- dxs+dys
   [as bs]
+  {:pre [(differential-term-list? as)
+         (differential-term-list? bs)]}
   (loop [as as bs bs rs []]
     (cond
      (empty? as) (into rs bs)
@@ -83,6 +91,8 @@
 
 (defn dx*dys
   [{:keys [tags coefficient] :as dx} dys]
+  {:pre [(instance? DifferentialTerm dx)
+         (differential-term-list? dys)]}
   (loop [dys dys result []]
     (if (nil? dys) result
         (let [y1 (first dys) y-tags (.tags y1)]
@@ -95,6 +105,9 @@
 
 (defn dxs*dys
   [as bs]
+  (prn "AS=" as "BS=" bs)
+  {:pre [(differential-term-list? as)
+         (differential-term-list? bs)]}
   (if (empty? as) []
       (dxs+dys
        (dx*dys (first as) bs)

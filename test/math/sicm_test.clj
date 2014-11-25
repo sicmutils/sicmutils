@@ -30,9 +30,9 @@
                (literal-number '(y t))
                (literal-number '(z t)))
            (q 't)))
-    (is (= (up (mx ((math.generic/D x) t))
-               (mx ((math.generic/D y) t))
-               (mx ((math.generic/D z) t)))
+    (is (= (up (mx ((D x) t))
+               (mx ((D y) t))
+               (mx ((D z) t)))
            ((D q) 't)))
     ;; need to get exponentiation of operators before we can
     ;; do this.
