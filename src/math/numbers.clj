@@ -17,6 +17,7 @@
   (numerical? [x] true)
   (compound? [x] false)
   (sort-key [x] 10)
+  (freeze [x] x)
   Double
   (zero? [x] (= x 0.0))
   (one? [x] (= x 1.0))
@@ -26,6 +27,7 @@
   (exact? [x] false)
   (compound? [x] false)
   (sort-key [x] 10)
+  (freeze [x] x)
   clojure.lang.Ratio
   (zero? [x] (= x 0))
   (one? [x] (= x 1))
@@ -35,6 +37,7 @@
   (numerical? [x] true)
   (compound? [x] false)
   (sort-key [x] 10)
+  (freeze [x] x)
   )
 
 (defn- make-numerical-combination

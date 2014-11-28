@@ -266,3 +266,5 @@
                                         :log log
                                         :exp exp
                                         :** expt})
+
+(println "numsymb initialized")

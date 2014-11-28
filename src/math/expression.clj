@@ -2,6 +2,8 @@
   (:require [math.value :as v]
             [clojure.walk :refer :all]))
 
+(declare freeze-expression)
+
 (defrecord Expression [type expression]
   v/Value
   (zero? [x] false)
@@ -10,6 +12,7 @@
   (numerical? [x] (= (.type x) :number))
   (exact? [x] false)
   (sort-key [x] 17)
+  (freeze [x] (-> x .expression freeze-expression))
   ;; clojure.lang.IFn
   ;; (invoke [f x] ...)
   )
@@ -39,6 +42,26 @@
                     :else (throw (IllegalArgumentException.
                                   (str "unknown expression type " a)))))
             (.expression expr)))
+
+(defn freeze-expression
+  "Freezing an expression means removing wrappers and other metadata
+  from subexpressions, so that the result is basically a pure
+  S-expression with the same structure as the input. Doing this will
+  rob an expression of useful information fur further computation; so
+  this is intended to be done just before printing or rendering, to
+  simplify those processes."
+  [x]
+  (prn "FREEZING" x "SAT" (satisfies? v/Value x))
+  (cond (keyword? x) x  ;; XXX: but why does Keyword satisfy Value?
+        (satisfies? v/Value x) (v/freeze x)
+        (sequential? x) (map freeze-expression x)
+        :else (do (prn "WHAT?" x "TYPE" (type x) "LIST?" (list? x)) x))
+  )
+
+
+
+
+(println "expression initialized")
 
 ;; this guy goes in here. metadata? or a Value?
 ;; expression of type T? predicate for experssionator?

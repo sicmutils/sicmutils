@@ -12,6 +12,9 @@
   (compound? [this])
   (arity [this])
   (sort-key [this])
+  (freeze [this])
   ;; should we do this or have applicables extend IFn?
   ;; (apply-to [this these])
   )
+
+(println "value initialized")

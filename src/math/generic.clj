@@ -11,17 +11,6 @@
   (:import [math.expression Expression]))
 
 (extend-protocol Value
-  Object
-  (zero? [x] false)
-  (one? [x] false)
-  (zero-like [x] (throw (IllegalArgumentException.
-                         (str "nothing zero-like for " x))))
-  (one-like [x] (throw (IllegalArgumentException.
-                        (str "nothing one-like for " x))))
-  (exact? [x] false)
-  (compound? [x] false)
-  (sort-key [x] 99)
-  (numerical? [x] false)
   clojure.lang.Symbol
   (zero? [x] false)
   (one? [x] false)
@@ -31,6 +20,9 @@
   (compound? [x] false)
   (sort-key [x] 90)
   (numerical? [x] false)
+  (freeze [x]
+    ;; to freeze a symbol we drop its namespace component if it has one.
+    (symbol (name x)))
   clojure.lang.IFn
   (arity [f]
     (let [m (first (.getDeclaredMethods (class f)))
@@ -109,7 +101,7 @@
 (defn canonical-order [args]
   ;; NB: we are relying on the fact that this sort is stable, although
   ;; the Clojure documentation does not explicity guarantee this
-  (sort-by sort-key args))
+  (sort-by #(if (satisfies? Value %) (sort-key %) 99) args))
 
 (defn- bin+ [a b]
   (cond (and (number? a) (number? b)) (core-+ a b)

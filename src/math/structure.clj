@@ -1,5 +1,6 @@
 (ns math.structure
   (:require [math.value :as v]
+            [math.expression :as x]
             [math.generic :as g]))
 
 (deftype Struct [orientation v]
@@ -10,6 +11,10 @@
   (exact? [s] (every? v/exact? (.v s)))
   (compound? [s] true)
   (sort-key [s] 18)
+  (freeze [s] (prn "Struct freeze" s)
+    (let [result  `(~((.orientation s) {:up 'up :down 'down}) ~@(map x/freeze-expression (.v s)))]
+      (prn "struct freeze result" result)
+      result))
   (arity [s] 1)
   Object
   (equals [a b]

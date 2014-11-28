@@ -17,3 +17,5 @@
 (defn make-operator
   [f name]
   (Operator. f name))
+
+(println "operator initialized")

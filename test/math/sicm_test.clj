@@ -26,14 +26,14 @@
 
 (deftest sicm
   (testing "apply-struct"
-    (is (= (up (literal-number '(x t))
-               (literal-number '(y t))
-               (literal-number '(z t)))
-           (q 't)))
-    (is (= (up (mx ((D x) t))
-               (mx ((D y) t))
-               (mx ((D z) t)))
-           ((D q) 't)))
+    (is (= '(up (x t)
+               (y t)
+               (z t))
+           (freeze-expression (q 't))))
+    (is (= '(up ((D x) t)
+                ((D y) t)
+                ((D z) t))
+           (freeze-expression ((D q) 't))))
     ;; need to get exponentiation of operators before we can
     ;; do this.
     ;; (is (= (up (literal-number (((expt D 2) 'x) 't))

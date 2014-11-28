@@ -10,8 +10,6 @@
 (defrecord DifferentialTerm [tags coefficient]
   )
 
-(declare make-differential)
-(declare differential->terms)
 (declare differential-of)
 
 ;; If you construct one of these directly, make sure terms
@@ -29,30 +27,9 @@
     (prn "diff-numerical?" d "diff-of" (differential-of d) "num" (g/numerical-quantity? (differential-of d)))
     (g/numerical-quantity? (differential-of d)))
   (sort-key [d] 80)
-  ;; this isn't quite right: it "applies" things which aren't functions
-  ;; clojure.lang.IFn
-  ;; (invoke [d xs]
-  ;;   (prn "INVOKING" d "ON" xs)
-  ;;   (make-differential
-  ;;    (map #(DifferentialTerm. (.tags %) ((.coefficient %) xs))
-  ;;         (differential->terms d))))
   )
 
 (def differential? (partial instance? Differential))
-
-(defn make-differential
-  "Constructs a differential from a list of terms. If the list is empty,
-  you get plain old 0. If there is just one term and it does not
-  contain any differential tags, then you get the coefficient of the
-  term (i.e., things that aren't differential anymore as a result of
-  derivative computation get folded town to their plain
-  values). Otherwise a Differential object containing the terms is
-  returned."
-  [terms]
-  (cond (empty? terms) 0
-        (and (= (count terms) 1) (-> terms first .tags empty?)) (-> terms first .coefficient)
-        ;; kind of sad to call vec here. Why aren't the seqs comparable?
-        :else (Differential. (sort-by #(-> % .tags vec) terms))))
 
 (defn make-differential-term [dxs coefficient]
   (DifferentialTerm. (apply sorted-set dxs) coefficient))
@@ -65,9 +42,24 @@
 
 (defn- differential-term-list?
   [as]
-  (or (nil? as)
+  (or (empty? as)
       (and (sequential? as)
            (every? #(instance? DifferentialTerm %) as))))
+
+(defn make-differential
+  "Constructs a differential from a list of terms. If the list is empty,
+  you get plain old 0. If there is just one term and it does not
+  contain any differential tags, then you get the coefficient of the
+  term (i.e., things that aren't differential anymore as a result of
+  derivative computation get folded town to their plain
+  values). Otherwise a Differential object containing the terms is
+  returned."
+  [terms]
+  {:pre [(differential-term-list? terms)]}
+  (cond (empty? terms) 0
+        (and (= (count terms) 1) (-> terms first .tags empty?)) (-> terms first .coefficient)
+        ;; kind of sad to call vec here. Why aren't the seqs comparable?
+        :else (Differential. (sort-by #(-> % .tags vec) terms))))
 
 (defn- dxs+dys
   [as bs]
@@ -105,7 +97,6 @@
 
 (defn dxs*dys
   [as bs]
-  (prn "AS=" as "BS=" bs)
   {:pre [(differential-term-list? as)
          (differential-term-list? bs)]}
   (if (empty? as) []
@@ -151,6 +142,7 @@
 
 (defn- terms->differential-collapse
   [terms]
+  {:pre [(differential-term-list? terms)]}
   (make-differential (reduce dxs+dys [] (map vector terms))))
 
 (defn- hide-tag-in-procedure [& args] false) ; XXX

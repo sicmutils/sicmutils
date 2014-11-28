@@ -5,11 +5,12 @@
             :url "http://www.opensource.org/licenses/MIT"}
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/math.numeric-tower "0.0.4"]]
-  :main ^:skip-aot pattern.match
   :repl-options {:prompt (fn [ns]  (str "algebra [" ns "] > "))
                  :welcome "clojure algebra system"
                  :init-ns math.generic
+                 :init (do (require ['math 'numbers 'function]
+                                    ['math.calculus 'derivative]))
                  }
-  :plugins [[cider/cider-nrepl "0.8.1"]]
   :target-path "target/%s"
-  :profiles {:uberjar {:aot :all}})
+  :profiles {:uberjar {:aot :all}
+             :repl {:plugins [[cider/cider-nrepl "0.8.1"]]}})

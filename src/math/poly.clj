@@ -11,7 +11,15 @@
 
 (declare operator-table operators-known)
 
-(defrecord Poly [^long arity ^clojure.lang.PersistentTreeMap oc])
+(defrecord Poly [^long arity ^clojure.lang.PersistentTreeMap oc]
+  v/Value
+  (zero? [p] (empty? (.oc p)))
+  (arity [p] (:arity p))
+  (one? [p] (and (= (count (.oc p)) 1)
+                 (let [[order coef] (first (.oc p))]
+                   (and (core-zero? order)
+                        (v/one? coef)))))
+  )
 
 ;; ultimately this should be more sensitive, and allow the use of
 ;; generic types. Might be nice to have a ring-of-coefficients type
