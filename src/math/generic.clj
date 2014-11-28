@@ -192,7 +192,6 @@
   [& selectors]
   (o/make-operator
    (fn [f]
-     (prn "in PD function" f selectors)
      (partial-derivative f selectors))
    :partial-derivative))
 

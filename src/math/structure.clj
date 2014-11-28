@@ -11,10 +11,8 @@
   (exact? [s] (every? v/exact? (.v s)))
   (compound? [s] true)
   (sort-key [s] 18)
-  (freeze [s] (prn "Struct freeze" s)
-    (let [result  `(~((.orientation s) {:up 'up :down 'down}) ~@(map x/freeze-expression (.v s)))]
-      (prn "struct freeze result" result)
-      result))
+  (freeze [s]
+    `(~((.orientation s) {:up 'up :down 'down}) ~@(map x/freeze-expression (.v s))))
   (arity [s] 1)
   Object
   (equals [a b]
@@ -133,9 +131,7 @@
   GJS: Any matrix in the argument list wants to be converted to a row of
   columns (TODO: this is not implemented yet)"
   [s]
-  (prn "struct->seq" s (apply up (map matrix->structure s)))
-  (apply up (map matrix->structure s))
-  )
+  (apply up (map matrix->structure s)))
 
 (g/defhandler :+  [down? down?]           (partial elementwise g/+))
 (g/defhandler :+  [up? up?]               (partial elementwise g/+))

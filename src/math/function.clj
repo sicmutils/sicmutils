@@ -18,8 +18,8 @@
   (sort-key [x] 35)
   (arity [x] (:arity x))
   clojure.lang.IFn
-  (invoke [f x] (do (prn "literal-applying" (.expr f) "to" x)) (literal-apply f [x]))
-  (applyTo [f xs] (do (prn "literal-applying*" (.expr f) "to" xs) (literal-apply f xs)))
+  (invoke [f x] (literal-apply f [x]))
+  (applyTo [f xs] (literal-apply f xs))
   )
 
 (defn literal-function [f] (Fn. f 1 [:real] :real))
@@ -28,7 +28,6 @@
 
 (defn symbolic-derivative?
   [expr]
-  #_(prn "SYMB-DER" expr (first expr) (= (first expr) derivative-symbol) (list? expr) (type expr))
   (and (sequential? expr)
        ;; XXX GJS uses 'derivative here; should we? doesn't he just
        ;; have to change it back to D when printing?
@@ -57,9 +56,7 @@
   ;; GJS calls this function (the loop below) "fd"; we have no idea
   ;; what that stands for or what
   ;; is being attempted here
-  (prn "make-partials" "f" f "v")
   (letfn [(fd [indices vv]
-            (prn "fd" "indices" indices "vv" vv)
             (cond (s/structure? vv)
                   (Struct. (.orientation vv)
                            (map-indexed (fn [i element]
@@ -85,8 +82,6 @@
         maxtag (->> v flatten d/max-order-tag)
         ve (->> v (s/mapr #(d/without-tag maxtag %)) seq)
         dv (->> v (s/mapr #(d/with-tag maxtag %)))]
-    (prn "LIT-DERIV" "v" v "maxtag" maxtag "ve" ve "dv" dv)
-    (prn "make-partials" "f" f "v" v "->" (make-partials f v) "flattened" (flatten (make-partials f v)))
     (d/dx+dy (apply f ve)
              (reduce d/dx+dy (map (fn [partialx dx]
                                     (d/dx*dy (apply partialx ve) dx))

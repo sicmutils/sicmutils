@@ -24,7 +24,6 @@
   (exact? [d] false)
   (compound? [d] false)
   (numerical? [d]
-    (prn "diff-numerical?" d "diff-of" (differential-of d) "num" (g/numerical-quantity? (differential-of d)))
     (g/numerical-quantity? (differential-of d)))
   (sort-key [d] 80)
   )
@@ -257,7 +256,6 @@
 (defn with-and-without-tag
   "XXX doc and decide if we need above two"
   [tag dx]
-  (prn "with-and-without-tag" tag dx)
   (let [{finite-terms false infinitesimal-terms true}
         (group-by #(-> % .tags (contains? tag)) (differential->terms dx))]
     [(terms->differential-collapse infinitesimal-terms)
@@ -297,18 +295,16 @@
 (defn- euclidean-structure
   [selectors f]
   (letfn [(sd [g v]
-            (prn "SD" g v selectors)
             (cond (struct/structure? v) (throw (IllegalArgumentException. "oops"))
                   (or (g/numerical-quantity? v) (g/abstract-quantity? v)) ((derivative g) v)
                   :else (throw (IllegalArgumentException. (str "bad structure " g v)))))
           (a-euclidean-derivative [v]
-            (prn "a-e-d" v selectors)
             (cond (struct/structure? v)
-                  (do (prn "making sd") (sd (fn [w]
-                         (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
-                       (struct/structure-get-in v selectors)))
+                  (sd (fn [w]
+                        (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
+                      (struct/structure-get-in v selectors))
                   (empty? selectors)
-                  (do (prn "empty selectors so derivative of" f "on" v) ((derivative f) v))
+                  ((derivative f) v)
                   :else
                   (throw (IllegalArgumentException. (str "Bad selectors " f selectors v)))))]
     a-euclidean-derivative))
@@ -317,7 +313,6 @@
   [f selectors]
   (let [a (v/arity f)
         d (fn [f] (euclidean-structure selectors f))] ;; partial application opportunity
-    (prn "MV DERIV" f selectors a d)
     (cond (= a 0) (constantly 0)
           (= a 1) (d f)
           (= a 2) (fn [x y]

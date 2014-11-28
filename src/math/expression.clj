@@ -51,11 +51,10 @@
   this is intended to be done just before printing or rendering, to
   simplify those processes."
   [x]
-  (prn "FREEZING" x "SAT" (satisfies? v/Value x))
   (cond (keyword? x) x  ;; XXX: but why does Keyword satisfy Value?
         (satisfies? v/Value x) (v/freeze x)
         (sequential? x) (map freeze-expression x)
-        :else (do (prn "WHAT?" x "TYPE" (type x) "LIST?" (list? x)) x))
+        :else x)
   )
 
 
