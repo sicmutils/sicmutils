@@ -1,5 +1,5 @@
 (ns math.numerical.minimize
-  (:require [math.numsymb :as ns]))
+  (:require [math.value :as v]))
 
 (defn- sign
   [a b]
@@ -17,7 +17,7 @@
   [ax bx cx f tol]
   (let [itmax 100
         cgold 0.3819660
-        zeps (* ns/machine-epsilon 1.0e-3)
+        zeps (* v/machine-epsilon 1.0e-3)
         fx (f bx)]
     (loop [iter 0
            a (if (< ax cx) ax cx)

@@ -1,12 +1,10 @@
 (ns math.numerical.integrate-test
   (:require [clojure.test :refer :all]
+            [math.value :as v]
             [math.numerical.integrate :refer :all]
             ))
 
-(defn- within [ε]
-  (fn [x y] (< (Math/abs (- x y)) ε)))
-
-(def ^:private near (within 1e-6))
+(def ^:private near (v/within 1e-6))
 
 (def ^:private natural-log (partial integrate / 1.))
 

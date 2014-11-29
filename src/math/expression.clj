@@ -13,8 +13,6 @@
   (exact? [x] false)
   (sort-key [x] 17)
   (freeze [x] (-> x .expression freeze-expression))
-  ;; clojure.lang.IFn
-  ;; (invoke [f x] ...)
   )
 
 (defn make [x]

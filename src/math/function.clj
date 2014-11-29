@@ -5,7 +5,8 @@
             [math.numsymb :as ns]
             [math.calculus.derivative :as d]
             [math.generic :as g])
-  (:import [math.structure Struct]))
+  (:import [math.structure Struct]
+           [math.operator Operator]))
 
 (declare literal-apply)
 
@@ -16,7 +17,6 @@
   (zero-like [x] false)
   (exact? [x] false)
   (sort-key [x] 35)
-  (arity [x] (:arity x))
   clojure.lang.IFn
   (invoke [f x] (literal-apply f [x]))
   (applyTo [f xs] (literal-apply f xs))
@@ -25,6 +25,43 @@
 (defn literal-function [f] (Fn. f 1 [:real] :real))
 (def ^:private derivative-symbol `g/D)
 
+;; --------------------
+;; Algebra of functions
+;;
+
+(defn- function?
+  [x]
+  (and (ifn? x)
+       (not (instance? Struct x))
+       (not (symbol? x))))
+
+(defn- cofunction?
+  "True if f may be combined with a function."
+  [f]
+  (not (instance? Operator f)))
+
+(defn- unary-operation
+  [operator]
+  (fn [f]
+    (comp operator f)))
+
+(g/defhandler :negate [function?] (unary-operation g/negate))
+(g/defhandler :invert [function?] (unary-operation g/invert))
+(g/defhandler :sqrt   [function?] (unary-operation g/sqrt))
+(g/defhandler :square [function?] (unary-operation g/square))
+(g/defhandler :exp    [function?] (unary-operation g/exp))
+(g/defhandler :log    [function?] (unary-operation g/log))
+(g/defhandler :sin    [function?] (unary-operation g/sin))
+(g/defhandler :cos    [function?] (unary-operation g/cos))
+;; (g/defhandler :asin   [function?] (unary-operation g/asin))
+;; (g/defhandler :acos   [function?] (unary-operation g/acos))
+;; (g/defhandler :sinh   [function?] (unary-operation g/sinh))
+;; (g/defhandler :cosh   [function?] (unary-operation g/cosh))
+(g/defhandler :abs    [function?] (unary-operation g/abs))
+
+;; ------------------------------------
+;; Differentiation of literal functions
+;;
 
 (defn symbolic-derivative?
   [expr]

@@ -13,7 +13,6 @@
   (sort-key [s] 18)
   (freeze [s]
     `(~((.orientation s) {:up 'up :down 'down}) ~@(map x/freeze-expression (.v s))))
-  (arity [s] 1)
   Object
   (equals [a b]
     (and (= (.orientation a) (.orientation b))

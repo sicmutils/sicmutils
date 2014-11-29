@@ -1,15 +1,12 @@
 (ns math.numerical.minimize-test
   (:require [clojure.test :refer :all]
-            [math.numsymb :as ns]
+            [math.value :as v]
             [math.numerical.minimize :refer :all]
             ))
 
-(def tol (* 10 ns/machine-epsilon))
+(def tol (* 10 v/machine-epsilon))
 
-(defn- within [ε]
-  (fn [x y] (< (Math/abs (- x y)) ε)))
-
-(def ^:private near (within 1e-6))
+(def ^:private near (v/within 1e-6))
 
 (deftest minima
   (testing "easy"

@@ -14,7 +14,6 @@
 (defrecord Poly [^long arity ^clojure.lang.PersistentTreeMap oc]
   v/Value
   (zero? [p] (empty? (.oc p)))
-  (arity [p] (:arity p))
   (one? [p] (and (= (count (.oc p)) 1)
                  (let [[order coef] (first (.oc p))]
                    (and (core-zero? order)
