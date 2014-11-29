@@ -36,6 +36,18 @@
       (+ (* 3 t) 5)
       (+ (* 2 t) 1)))
 
+(defn make-η
+  [ν t1 t2]
+  (fn [t]
+    (* (- t t1) (- t t2) (ν t))))
+
+(defn varied-free-particle-action
+  [mass q ν t1 t2]
+  (fn [ε]
+    (let [η (make-η ν t1 t2)]
+      (Lagrangian-action (L-free-particle mass)
+                         (+ q (* ε η)) t1 t2))))
+
 (deftest sicm
   (testing "apply-struct"
     (is (= '(up (x t)
@@ -74,4 +86,6 @@
     ;; at this point in the text we should be able to show-expression
     ;; in TeX form XXX.
     (is (= 435.0 (Lagrangian-action (L-free-particle 3.0) test-path 0.0 10.0)))
+    ;; not quite ready for this: don't know how to multiply functions yet.
+    ;; (is (= 999 ((varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) 0.001)))
     ))

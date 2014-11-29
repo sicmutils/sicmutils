@@ -7,7 +7,7 @@
     (if (>= a 0) a (- a))
     (if (>= a 0) (- a) a)))
 
-(defn brent-minimize
+(defn- brent-minimize
   "Given a function f, and given a bracketing triplet of abscissas ax, bx, cx
   (such that bx is between ax and cs, and (f bx) is less than both (f ax) and
   (f cx)), this function isolates the minimum to a fractional precision
@@ -36,7 +36,7 @@
             tol2 (* 2.0 tol1)
             ]
         (cond (<= (Math/abs (- x xm)) (- tol2 (* 0.5 (- b a))))
-              [x fx]
+              [x fx iter]
               (> iter itmax)
               (throw (RuntimeException. "minimization failed to converge"))
               :else
@@ -86,3 +86,7 @@
                              d e
                              new-v new-w x
                              new-fv new-fw fx))))))))))
+
+(defn minimize
+  [f a b]
+  (brent-minimize a (* (+ a b) 0.5) b f 1e-6))
