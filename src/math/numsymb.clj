@@ -115,7 +115,7 @@
 ;; TRIG
 ;;
 
-(def ^:private machine-epsilon
+(def  machine-epsilon
   (loop [e 1.0]
     (if (not= 1.0 (+ 1.0 (/ e 2.0)))
       (recur (/ e 2.0))
