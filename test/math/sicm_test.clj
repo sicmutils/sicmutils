@@ -6,11 +6,15 @@
             [math.numbers :refer :all]
             [math.expression :refer :all]
             [math.numerical.integrate :refer :all]
+            [math.numerical.minimize :refer :all]
             [math.function :refer :all]
+            [math.operator :refer :all]
+            [math.value :as v]
             [math.calculus.derivative :refer :all]))
 
 (defn velocity [local] (nth local 2))
-(defmacro mx [x] `(make '~x))
+
+(def ^:private near (v/within 1e-6))
 
 (defn L-free-particle [mass]
   (fn [local]
@@ -100,11 +104,18 @@
       (is (= (up 0 0 0) (η2 0.0)))
       (is (= (up 0 0 0) (η2 1.0)))
       (is (= (up (* -1/4 (sin 0.5)) (* -1/4 (cos 0.5)) (/ 1. -16.)) (η2 0.5)))
-      ;; Here is where we leave off. Gamma q works, Gamma eta does not. So it
-      ;; seems like q and eta are not seen as objects of the same effective
-      ;; type, which they should be.
-      ;;(is (= 'foo (Γη2 0.0)))
+      (is (= (up 0 0 0) ((Γ η) 0)))
+      (is (= (up 1 0 1) ((Γ η) 1)))
+      ;; the following two are pre-simplification
+      (is (= '(* t t t (- t 1)) (freeze-expression (η 't))))
+      (is (= '(+ (* t t (+ t (- t 1))) (* t (+ t t) (- t 1))) (freeze-expression ((D η) 't))))
+      (is (= '(up t (* t t t (- t 1)) (+ (* t t (+ t (- t 1))) (* t (+ t t) (- t 1)))) (freeze-expression ((Γ η) 't))))
+      (is (= '(up (+ (* t (sin t)) (* (- t 1) (+ (sin t) (* t (cos t)))))
+                  (+ (* t (cos t)) (* (- t 1) (+ (cos t) (* -1 t (sin t)))))
+                  (+ (* t t t) (* (- t 1) (+ (* t t) (* t (+ t t))))))
+             (freeze-expression ((D η2) 't))))
       )
 
-    ;;(is (= 999 ((varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) 0.001)))
+    (is (near 436.2912143 ((varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) 0.001)))
+    (is (= 999 (minimize (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) -2.0 1.0)))
     ))

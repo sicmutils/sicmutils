@@ -25,11 +25,39 @@
     (symbol (name x)))
   )
 
-(def empty-dtree {:steps {} :stop nil})
-(def ^:private the-operator-table (atom {}))
+(defn literal-number?
+  [x]
+  (and (instance? Expression x)
+       (numerical? x)))
+
+(defn abstract-number?
+  [x]
+  (or (symbol? x)
+      (literal-number? x)))
+
+(defn abstract-quantity?
+  [x]
+  (and (instance? Expression x)
+       ;; TODO: these type symbols might not correspond to what
+       ;; we do in the future, so these should be checked.
+       ((.type x) #{:number :up :down :matrix})))
+
+(defn numerical-quantity?
+  [x]
+  (or (number? x)
+      (abstract-number? x)
+      (numerical? x)))
+
+(defn scalar? [s]
+  (or (numerical-quantity? s)
+      (not (or (compound? s)
+               (ifn? s)))))
 
 ;; or how about something like
 ;; (assoc (assoc-in dtree (mapcat (fn [x] [:step x]) p))
+
+(def empty-dtree {:steps {} :stop nil})
+(def ^:private the-operator-table (atom {}))
 
 (defn dtree-insert [{:keys [steps stop] :as dtree} op [predicate & predicates]]
   (if predicate
@@ -73,7 +101,7 @@
       (apply h args)
       (throw (IllegalArgumentException.
               (str "no variant of " operator
-                   " will work for " args))))))
+                   " will work for " args "\n" (count args) "\n" (apply list (map type args)) "\n" ))))))
 
 (def ^:private mul (make-operation :*))
 (def ^:private add (make-operation :+))
@@ -153,29 +181,6 @@
 
 ;; XXX move these to expression?
 
-
-(defn literal-number?
-  [x]
-  (and (instance? Expression x)
-       (numerical? x)))
-
-(defn abstract-number?
-  [x]
-  (or (symbol? x)
-      (literal-number? x)))
-
-(defn abstract-quantity?
-  [x]
-  (and (instance? Expression x)
-       ;; TODO: these type symbols might not correspond to what
-       ;; we do in the future, so these should be checked.
-       ((.type x) #{:number :up :down :matrix})))
-
-(defn numerical-quantity?
-  [x]
-  (or (number? x)
-      (abstract-number? x)
-      (numerical? x)))
 
 (def D
   (o/make-operator

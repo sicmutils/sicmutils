@@ -1,8 +1,9 @@
 (ns math.calculus.derivative
   (:require [math.value :as v]
             [math.generic :as g]
-            [clojure.set :as set]
+            [math.operator :as o]
             [math.structure :as struct]
+            [clojure.set :as set]
             ))
 
 ;; If you construct one of these directly, make sure tags
@@ -159,6 +160,7 @@
               0))
           (dist [obj]
             (cond (struct/structure? obj) (struct/mapr dist obj)
+                  (o/operator? obj) (do (prn "DIFF AN OPERATOR" obj) (extract obj))
                   ;; (matrix? obj) (m:elementwise dist obj) XXX
                   ;; (quaternion? obj) XXX
                   ;; (operator? obj) XXX

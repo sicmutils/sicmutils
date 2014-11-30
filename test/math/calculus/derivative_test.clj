@@ -3,6 +3,7 @@
   (:require [clojure.test :refer :all]
             [math.calculus.derivative :refer :all]
             [math.generic :refer :all]
+            [math.expression :refer :all]
             [math.structure :refer :all]
             ))
 
@@ -54,6 +55,8 @@
     (is (= (up 2 (+ 't 't)) ((D #(up (* 2 %) (* % %))) 't)))
     (is (= (up (* -1 (sin 't)) (cos 't)) ((D #(up (cos %) (sin %))) 't)))
     )
+  (testing "structural-functions"
+    (is (= '(up (cos t) (* -1 (sin t))) (freeze-expression ((D (up sin cos)) 't)))))
 
   (testing "partial derivatives"
     (let [f (fn [x y] (+ (* x x) (* y y)))]

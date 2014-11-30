@@ -112,9 +112,6 @@
     (inner-product s t)
     (outer-product s t)))
 
-(defn- scalar? [s]
-  (or (number? s) (g/abstract-number? s)))
-
 ;; hmmm. why not do the repeated-squaring trick here?
 ;; perhaps structures are not typically raised to high
 ;; exponents.
@@ -138,8 +135,8 @@
 (g/defhandler :-  [down? down?]           (partial elementwise g/-))
 (g/defhandler :-  [up? up?]               (partial elementwise g/-))
 (g/defhandler :*  [number? structure?]    outer-product)
-(g/defhandler :*  [structure? scalar?]    #(outer-product %2 %1))
-(g/defhandler :/  [structure? scalar?]    #(outer-product (/ %2) %1))
+(g/defhandler :*  [structure? g/scalar?]    #(outer-product %2 %1))
+(g/defhandler :/  [structure? g/scalar?]    #(outer-product (/ %2) %1))
 (g/defhandler :*  [structure? structure?] mul)
 (g/defhandler :** [structure? integer?]   expt)
 (g/defhandler :∂  [structure? (constantly true)] (fn [a b] (throw (IllegalArgumentException. "OUCH"))))

@@ -12,6 +12,7 @@
   (numerical? [x] (= (.type x) :number))
   (exact? [x] false)
   (sort-key [x] 17)
+  (compound? [x] false)
   (freeze [x] (-> x .expression freeze-expression))
   )
 
