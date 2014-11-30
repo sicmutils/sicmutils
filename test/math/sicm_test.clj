@@ -3,6 +3,7 @@
   (:require [clojure.test :refer :all]
             [math.generic :refer :all]
             [math.structure :refer :all]
+            [math.numbers :refer :all]
             [math.expression :refer :all]
             [math.numerical.integrate :refer :all]
             [math.function :refer :all]
@@ -86,6 +87,24 @@
     ;; at this point in the text we should be able to show-expression
     ;; in TeX form XXX.
     (is (= 435.0 (Lagrangian-action (L-free-particle 3.0) test-path 0.0 10.0)))
-    ;; not quite ready for this: don't know how to multiply functions yet.
-    ;; (is (= 999 ((varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) 0.001)))
+    (is (= (up (sin 2.0) (cos 2.0) (square 2.0)) ((up sin cos square) 2.0)))
+    (let [η (make-η #(* % %) 0 1)
+          ε 1/1000
+          f (* η ε)
+          η2 (make-η (up sin cos square) 0 1)
+          Γη2 (Γ η2)]
+      (is (= 0.0 (η 0.0)))
+      (is (= 0.0 (η 1.0)))
+      (is (= -1/16 (η 1/2)))
+      (is (= -1/16000 (f 1/2)))
+      (is (= (up 0 0 0) (η2 0.0)))
+      (is (= (up 0 0 0) (η2 1.0)))
+      (is (= (up (* -1/4 (sin 0.5)) (* -1/4 (cos 0.5)) (/ 1. -16.)) (η2 0.5)))
+      ;; Here is where we leave off. Gamma q works, Gamma eta does not. So it
+      ;; seems like q and eta are not seen as objects of the same effective
+      ;; type, which they should be.
+      ;;(is (= 'foo (Γη2 0.0)))
+      )
+
+    ;;(is (= 999 ((varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) 0.001)))
     ))

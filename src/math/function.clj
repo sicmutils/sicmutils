@@ -22,6 +22,19 @@
   (applyTo [f xs] (literal-apply f xs))
   )
 
+(extend-protocol v/Value
+  clojure.lang.IFn
+  (zero? [f] false)
+  (one? [f] false)
+  (zero-like [x] (constantly 0))
+  (one-like [x] identity)
+  (exact? [x] false) ;; XXX maybe true?
+  (numerical? [f] false)
+  (compound? [f] false)
+  (sort-key [x] 90)
+  )
+
+
 (defn literal-function [f] (Fn. f 1 [:real] :real))
 (def ^:private derivative-symbol `g/D)
 
@@ -33,7 +46,8 @@
   [x]
   (and (ifn? x)
        (not (instance? Struct x))
-       (not (symbol? x))))
+       (not (symbol? x))
+       (not (vector? x))))
 
 (defn- cofunction?
   "True if f may be combined with a function."
@@ -41,14 +55,30 @@
   (not (instance? Operator f)))
 
 (defn- unary-operation
+  "For a unary operator (like sqrt), returns a function of one function
+  which when called will apply the operation to the result of the
+  original function (so that ((unary-operation sqrt) f) x) will return
+  (sqrt (f x))."
   [operator]
-  (fn [f]
-    (comp operator f)))
+  (partial comp operator))
+
+(defn- binary-operation
+  "For a given binary operator (like +), returns a function of two
+  functions which will produce the pointwise operation of the results
+  of applying the two functions to the input. That
+  is, (binary-operation +) applied to f and g will produce a function
+  which computes (+ (f x) (g x)) given x as input."
+  [operator]
+  (fn [f g]
+    (let [f1 (if (g/numerical-quantity? f) (constantly f) f)
+          g1 (if (g/numerical-quantity? g) (constantly g) g)]
+      #(operator (f1 %) (g1 %)))))
 
 (g/defhandler :negate [function?] (unary-operation g/negate))
 (g/defhandler :invert [function?] (unary-operation g/invert))
 (g/defhandler :sqrt   [function?] (unary-operation g/sqrt))
 (g/defhandler :square [function?] (unary-operation g/square))
+(g/defhandler :abs    [function?] (unary-operation g/abs))
 (g/defhandler :exp    [function?] (unary-operation g/exp))
 (g/defhandler :log    [function?] (unary-operation g/log))
 (g/defhandler :sin    [function?] (unary-operation g/sin))
@@ -57,7 +87,17 @@
 ;; (g/defhandler :acos   [function?] (unary-operation g/acos))
 ;; (g/defhandler :sinh   [function?] (unary-operation g/sinh))
 ;; (g/defhandler :cosh   [function?] (unary-operation g/cosh))
-(g/defhandler :abs    [function?] (unary-operation g/abs))
+
+(g/defhandler :+      [function? cofunction?] (binary-operation g/+))
+(g/defhandler :+      [cofunction? function?] (binary-operation g/+))
+(g/defhandler :-      [function? cofunction?] (binary-operation g/-))
+(g/defhandler :-      [cofunction? function?] (binary-operation g/-))
+(g/defhandler :*      [function? cofunction?] (binary-operation g/*))
+(g/defhandler :*      [cofunction? function?] (binary-operation g/*))
+(g/defhandler :/      [function? cofunction?] (binary-operation g//))
+(g/defhandler :/      [cofunction? function?] (binary-operation g//))
+(g/defhandler :expt   [function? cofunction?] (binary-operation g/expt))
+(g/defhandler :expt   [cofunction? function?] (binary-operation g/expt))
 
 ;; ------------------------------------
 ;; Differentiation of literal functions

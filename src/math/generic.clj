@@ -23,15 +23,6 @@
   (freeze [x]
     ;; to freeze a symbol we drop its namespace component if it has one.
     (symbol (name x)))
-  ;; clojure.lang.IFn
-  ;; (arity [f]
-  ;;   (let [m (first (.getDeclaredMethods (class f)))
-  ;;         p (.getParameterTypes m)]
-  ;;     (alength p)))
-  ;; (sort-key [f] 88)
-  ;; (one? [f] false)
-  ;; (zero? [f] false)
-  ;; (compound? [f] false)
   )
 
 (def empty-dtree {:steps {} :stop nil})

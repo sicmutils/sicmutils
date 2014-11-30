@@ -336,6 +336,7 @@
 (g/defhandler :- [not-compound? differential?] diff--)
 (g/defhandler :* [differential? not-compound?] diff-*)
 (g/defhandler :* [not-compound? differential?] diff-*)
+(g/defhandler :square [differential?] #(g/* % %))
 (g/defhandler :**  [differential? (complement differential?)] power)
 (g/defhandler :sin [differential?] sin)
 (g/defhandler :cos [differential?] cos)

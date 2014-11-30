@@ -40,6 +40,7 @@
   (exact? [x] (every? v/exact? x))
   (compund? [x] true)
   (sort-key [x] 20)
+  (numerical? [v] false)
   )
 
 (defn structure? [s]
