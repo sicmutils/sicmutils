@@ -31,6 +31,7 @@
            fw fx
            fx fx
            ]
+      #_(prn "brent-step" iter a b d e v w x fv fw fx)
       (let [xm (* 0.5 (+ a b))
             tol1 (+ zeps (* tol (Math/abs x)))
             tol2 (* 2.0 tol1)
@@ -46,24 +47,24 @@
                                   q (* (- x v) (- fx fw))
                                   p (- (* (- x v) q) (* (- x w) r))
                                   q (* 2.0 (- q r))
-                                  p (if (> q 0.0) p (- p))
-                                  q (Math/abs q)]
-                              (if (or (>= (Math/abs p) (Math/abs (* 0.5 q e)))
+                                  p (if (> q 0.0) (- p) p)
+                                  q (Math/abs q)
+                                  etemp e
+                                  e d]
+                              (if (or (>= (Math/abs p) (Math/abs (* 0.5 q etemp)))
                                       (<= p (* q (- a x)))
                                       (>= p (* q (- b x))))
                                 (let [e (if (>= x xm) (- a x) (- b x))]
                                   [(* cgold e) e])
                                 (let [d (/ p q)
                                       u (+ x d)
-                                      d (if (or (< (- u a) tol2)
-                                                (< (- b u) tol2))
+                                      d1 (if (or (< (- u a) tol2)
+                                                 (< (- b u) tol2))
                                           (sign tol1 (- xm x))
                                           d)]
-                                  [d e])))
+                                  [d1 e])))
                             (let [e (if (>= x xm) (- a x) (- b x))]
                               [(* cgold e) e]))]
-                ;; now we have updated d & e.
-                ;; so we have reached the starred line in the text.
                 (let [u (if (> (Math/abs d) tol1) (+ x d) (+ x (sign tol1 d)))
                       fu (f u)]
                   (if (<= fu fx)
@@ -89,4 +90,4 @@
 
 (defn minimize
   [f a b]
-  (brent-minimize a (* (+ a b) 0.5) b f 1e-6))
+  (brent-minimize a (* (+ a b) 0.5) b f 1e-5))

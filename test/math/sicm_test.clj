@@ -117,5 +117,7 @@
       )
 
     (is (near 436.2912143 ((varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) 0.001)))
-    (is (= 999 (minimize (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) -2.0 1.0)))
+    (let [m (minimize (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) -2.0 1.0)]
+      (is (near 0.0 (first m)))
+      (is (near 435 (second m))))
     ))
