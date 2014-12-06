@@ -199,7 +199,7 @@
   (g/* x x))
 
 (defn- abs [x]
-  (cond (number? x) (Math/abs x)
+  (cond (number? x) (if (< x 0) (- x) x)
         :else `(g/abs ~x)))
 
 (defn- sqrt [s]

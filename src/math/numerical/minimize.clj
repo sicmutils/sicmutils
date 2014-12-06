@@ -7,6 +7,9 @@
     (if (>= a 0) a (- a))
     (if (>= a 0) (- a) a)))
 
+(defn- ^double abs [^double x]
+  (if (< x 0) (- x) x))
+
 (defn- brent-minimize
   "Given a function f, and given a bracketing triplet of abscissas ax, bx, cx
   (such that bx is between ax and cs, and (f bx) is less than both (f ax) and
@@ -33,25 +36,27 @@
            ]
       #_(prn "brent-step" iter a b d e v w x fv fw fx)
       (let [xm (* 0.5 (+ a b))
-            tol1 (+ zeps (* tol (Math/abs x)))
+            tol1 (+ zeps (* tol (abs x)))
             tol2 (* 2.0 tol1)
             ]
-        (cond (<= (Math/abs (- x xm)) (- tol2 (* 0.5 (- b a))))
+        (cond (<= (abs (- x xm)) (- tol2 (* 0.5 (- b a))))
               [x fx iter]
               (> iter itmax)
               (throw (RuntimeException. "minimization failed to converge"))
               :else
-
-              (let [[d e] (if (> (Math/abs e) tol1)
+              ;; returning d & e in a vector is forcing their type back to Object,
+              ;; when we would prefer a primitive double. TODO: figure out a way
+              ;; around this!
+              (let [[d e] (if (> (abs e) tol1)
                             (let [r (* (- x w) (- fx fv))
                                   q (* (- x v) (- fx fw))
                                   p (- (* (- x v) q) (* (- x w) r))
                                   q (* 2.0 (- q r))
                                   p (if (> q 0.0) (- p) p)
-                                  q (Math/abs q)
+                                  q (abs q)
                                   etemp e
                                   e d]
-                              (if (or (>= (Math/abs p) (Math/abs (* 0.5 q etemp)))
+                              (if (or (>= (abs p) (abs (* 0.5 q etemp)))
                                       (<= p (* q (- a x)))
                                       (>= p (* q (- b x))))
                                 (let [e (if (>= x xm) (- a x) (- b x))]
@@ -65,7 +70,7 @@
                                   [d1 e])))
                             (let [e (if (>= x xm) (- a x) (- b x))]
                               [(* cgold e) e]))]
-                (let [u (if (> (Math/abs d) tol1) (+ x d) (+ x (sign tol1 d)))
+                (let [u (if (> (abs d) tol1) (+ x d) (+ x (sign tol1 d)))
                       fu (f u)]
                   (if (<= fu fx)
                     (recur (inc iter)

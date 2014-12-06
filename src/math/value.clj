@@ -17,7 +17,7 @@
 (defn arity
   [f]
   {:pre [(ifn? f)]}
-  (let [m (first (.getDeclaredMethods (class f)))
+  (let [^"java.lang.reflect.Method" m (first (.getDeclaredMethods (class f)))
         p (.getParameterTypes m)]
     (alength p)))
 
