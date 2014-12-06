@@ -13,7 +13,7 @@
   [expr]
   (cond (number? expr) expr
         (symbol? expr) expr
-        (g/literal-number? expr) (x/.expression expr)
+        (g/literal-number? expr) (:expression expr)
         :else (throw (IllegalArgumentException. (str "unknown numerical expression type " expr)))))
 
 (defn make-numsymb-expression [operator operands]
@@ -121,7 +121,8 @@
 (defn- almost-integer? [x] ;; XXX make this private
   (or (integer? x)
       (and (float? x)
-           (let [z (Math/round x)]
+           (let [x (double x)
+                 z (Math/round x)]
              (if (zero? z)
                (< (Math/abs x) absolute-integer-tolerance)
                (< (Math/abs (/ (- x z) z)) relative-integer-tolerance))))))

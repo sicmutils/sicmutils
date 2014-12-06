@@ -18,7 +18,7 @@
 (defrecord Differential [terms]
   v/Value
   (zero? [x]
-    (every? v/zero? (map #(.coefficient %) (.terms x))))
+    (every? v/zero? (map #(:coefficient %) (:terms x))))
   (one? [x]
     false) ;; XXX! this needs to be fixed
   (zero-like [d] 0)
@@ -37,7 +37,7 @@
 (defn differential-of [dx]
   (loop [dx dx]
     (if (instance? Differential dx)
-      (recur (.coefficient (first (.terms dx))))
+      (recur (:coefficient (first (:terms dx))))
       dx)))
 
 (defn- differential-term-list?
@@ -57,9 +57,9 @@
   [terms]
   {:pre [(differential-term-list? terms)]}
   (cond (empty? terms) 0
-        (and (= (count terms) 1) (-> terms first .tags empty?)) (-> terms first .coefficient)
+        (and (= (count terms) 1) (-> terms first :tags empty?)) (-> terms first :coefficient)
         ;; kind of sad to call vec here. Why aren't the seqs comparable?
-        :else (Differential. (sort-by #(-> % .tags vec) terms))))
+        :else (Differential. (sort-by #(-> % :tags vec) terms))))
 
 (defn- dxs+dys
   [as bs]
@@ -87,12 +87,12 @@
          (differential-term-list? dys)]}
   (loop [dys dys result []]
     (if (nil? dys) result
-        (let [y1 (first dys) y-tags (.tags y1)]
+        (let [y1 (first dys) y-tags (:tags y1)]
           (recur (next dys)
                  (if (empty? (set/intersection tags y-tags))
                    (conj result (DifferentialTerm.
                                  (set/union tags y-tags)
-                                 (g/* coefficient (.coefficient y1))))
+                                 (g/* coefficient (:coefficient y1))))
                    result))))))
 
 (defn dxs*dys
@@ -109,7 +109,7 @@
   within; otherwise, returns a singleton differential term
   representing d with an empty tag list"
   [d]
-  (if (instance? Differential d) (.terms d)
+  (if (instance? Differential d) (:terms d)
       [(DifferentialTerm. (sorted-set) d)]))
 
 ;; XXX: perhaps instead of differential->terms we should
@@ -153,10 +153,10 @@
               (terms->differential-collapse
                (mapcat
                 (fn [term]
-                  (let [tags (.tags term)]
+                  (let [tags (:tags term)]
                     (if (tags dx)
-                      [(DifferentialTerm. (disj tags dx) (.coefficient term))])))
-                (.terms obj)))
+                      [(DifferentialTerm. (disj tags dx) (:coefficient term))])))
+                (:terms obj)))
               0))
           (dist [obj]
             (cond (struct/structure? obj) (struct/mapr dist obj)
@@ -218,9 +218,9 @@
   [x]
   (if (differential? x)
     (let [dts (differential->terms x)
-          keytag (-> dts last .tags last)
+          keytag (-> dts last :tags last)
           {finite-part false
-           infinitesimal-part true} (group-by #(-> % .tags (contains? keytag)) dts)]
+           infinitesimal-part true} (group-by #(-> % :tags (contains? keytag)) dts)]
       [(make-differential finite-part)
        (make-differential infinitesimal-part)])
     [x 0]))
@@ -234,32 +234,32 @@
                     infinitesimal-part)))))
 
 ;; (defn max-order-tag [& ds]
-;;   (last (apply set/union (map #(-> % differential->terms last .tags) ds))))
+;;   (last (apply set/union (map #(-> % differential->terms last :tags) ds))))
 
 (defn max-order-tag
   "From each of the differentials in the sequence ds, find the highest
   order term; then return the greatest tag found in any of these
   terms; i.e., the highest-numbered tag of the highest-order term."
   [ds]
-  (->> ds (map #(-> % differential->terms last .tags)) (apply set/union) last))
+  (->> ds (map #(-> % differential->terms last :tags)) (apply set/union) last))
 
 (defn with-tag
   "XXX doc and decide if we need the two infra"
   [tag dx]
-  (->> dx .terms (filter #(-> % .tags (contains? tag))) terms->differential-collapse))
+  (->> dx :terms (filter #(-> % :tags (contains? tag))) terms->differential-collapse))
 
 (defn without-tag
   "A real differential is expected here. document this and the above and below,
   if we turn out to keep all three of them. It seems there must be a better way
   to do this..."
   [tag dx]
-  (->> dx .terms (filter #(-> % .tags (contains? tag) not)) terms->differential-collapse))
+  (->> dx :terms (filter #(-> % :tags (contains? tag) not)) terms->differential-collapse))
 
 (defn with-and-without-tag
   "XXX doc and decide if we need above two"
   [tag dx]
   (let [{finite-terms false infinitesimal-terms true}
-        (group-by #(-> % .tags (contains? tag)) (differential->terms dx))]
+        (group-by #(-> % :tags (contains? tag)) (differential->terms dx))]
     [(terms->differential-collapse infinitesimal-terms)
      (terms->differential-collapse finite-terms)]))
 

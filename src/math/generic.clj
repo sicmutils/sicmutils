@@ -40,7 +40,7 @@
   (and (instance? Expression x)
        ;; TODO: these type symbols might not correspond to what
        ;; we do in the future, so these should be checked.
-       ((.type x) #{:number :up :down :matrix})))
+       ((:type x) #{:number :up :down :matrix})))
 
 (defn numerical-quantity?
   [x]

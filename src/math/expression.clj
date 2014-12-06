@@ -9,11 +9,11 @@
   (zero? [x] false)
   (one? [x] false)
   (zero-like [x] false)
-  (numerical? [x] (= (.type x) :number))
+  (numerical? [x] (= (:type x) :number))
   (exact? [x] false)
   (sort-key [x] 17)
   (compound? [x] false)
-  (freeze [x] (-> x .expression freeze-expression))
+  (freeze [x] (-> x :expression freeze-expression))
   )
 
 (defn make [x]
@@ -26,7 +26,7 @@
     (Expression. :number expression)))
 
 (defn variables-in [expr]
-  (->> (.expression expr) flatten (filter symbol?) (into #{})))
+  (->> (:expression expr) flatten (filter symbol?) (into #{})))
 
 (defn walk-expression [environment expr]
   (postwalk (fn [a]
@@ -40,7 +40,7 @@
                     (sequential? a) (apply (first a) (rest a))
                     :else (throw (IllegalArgumentException.
                                   (str "unknown expression type " a)))))
-            (.expression expr)))
+            (:expression expr)))
 
 (defn freeze-expression
   "Freezing an expression means removing wrappers and other metadata

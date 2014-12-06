@@ -13,9 +13,9 @@
 
 (defrecord Poly [^long arity ^clojure.lang.PersistentTreeMap oc]
   v/Value
-  (zero? [p] (empty? (.oc p)))
-  (one? [p] (and (= (count (.oc p)) 1)
-                 (let [[order coef] (first (.oc p))]
+  (zero? [p] (empty? (:oc p)))
+  (one? [p] (and (= (count (:oc p)) 1)
+                 (let [[order coef] (first (:oc p))]
                    (and (core-zero? order)
                         (v/one? coef)))))
   )
@@ -73,7 +73,7 @@
 (defn degree [p]
   (cond (v/zero? p) -1
         (base? p) 0
-        :else (first (first (rseq (.oc p))))))
+        :else (first (first (rseq (:oc p))))))
 
 ;; ARITY
 
@@ -83,7 +83,7 @@
     ;;(-> p meta :arity))
     ;; XXX: as we hesitate between the FPF apd PCF forms, arity is not
     ;; really well defined XXX
-    (.arity p)))
+    (:arity p)))
 
 (defn- check-same-arity [p q]
   (let [ap (arity p)
@@ -102,11 +102,11 @@
          0))))
 
 (defn- poly-map [f p]
-  (normalize-with-arity (.arity p) (into (sorted-map) (map #(vector (first %) (f (second %))) (.oc p)))))
+  (normalize-with-arity (:arity p) (into (sorted-map) (map #(vector (first %) (f (second %))) (:oc p)))))
 
 (defn- poly-merge [f p q]
-  (loop [P (.oc p)
-         Q (.oc q)
+  (loop [P (:oc p)
+         Q (:oc q)
          R (sorted-map)]
     (cond
      (empty? P) (into R Q)
@@ -146,8 +146,8 @@
 
 (defn- add-constant [poly c]
   (if (base? poly) (g/+ poly c)
-      (normalize-with-arity (.arity poly)
-                            (assoc (.oc poly) 0 (g/+ (get (.oc poly) 0 0) c)))))
+      (normalize-with-arity (:arity poly)
+                            (assoc (:oc poly) 0 (g/+ (get (:oc poly) 0 0) c)))))
 
 (defn add [p q]
   (cond (and (base? p) (base? q)) (g/+ p q)
@@ -188,7 +188,7 @@
         (base? q) (poly-map #(g/* % q) p)
         :else (let [a (check-same-arity p q)]
                 (normalize-with-arity a (reduce add-denormal (sorted-map)
-                                                (for [[op cp] (.oc p) [oq cq] (.oc q)]
+                                                (for [[op cp] (:oc p) [oq cq] (:oc q)]
                                                   [(+ op oq) (g/* cp cq)]))))))
 
 (defn- square [p]

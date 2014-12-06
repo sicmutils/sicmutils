@@ -135,19 +135,20 @@
   ;; is being attempted here
   (letfn [(fd [indices vv]
             (cond (s/structure? vv)
-                  (Struct. (.orientation vv)
-                           (map-indexed (fn [i element]
-                                          (fd (conj indices i) element)) vv))
+                  (let [^Struct s vv]
+                    (Struct. (.orientation s)
+                             (map-indexed (fn [i element]
+                                            (fd (conj indices i) element)) s)))
                   (or (g/numerical-quantity? vv)
                       (g/abstract-quantity? vv))
                   (let [fexp (if (= (:arity f) 1)  ; univariate
                                (if (= (first indices) 0)
                                  (if (= (count indices) 1)
-                                   (symbolic-increase-derivative (.expr f))
+                                   (symbolic-increase-derivative (:expr f))
                                    `((partial-derivative ~@(next indices))))
                                  (throw (IllegalArgumentException. "wrong indices")))
-                               `((partial-derivative ~@indices) ~(.expr f)))]
-                    (Fn. fexp (:arity f) (.domain f) (.range f)))
+                               `((partial-derivative ~@indices) ~(:expr f)))]
+                    (Fn. fexp (:arity f) (:domain f) (:range f)))
                   :else
                   (throw (IllegalArgumentException. (str "make-partials WTF " vv)))))]
     (fd [] v)
@@ -169,7 +170,7 @@
   [f xs]
   (if (some d/differential? xs)
     (literal-derivative f xs)
-    (x/literal-number (list* (.expr f) xs)))) ;; XXX cons
+    (x/literal-number (list* (:expr f) xs)))) ;; XXX cons
 
 (println "function initialized")
 ;; what literal functions work out to in scmutils:

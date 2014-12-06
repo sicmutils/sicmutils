@@ -30,6 +30,6 @@
 (defn within
   "Returns a function that tests whether two values are within ε of each other."
   [^double ε]
-  (fn [x y] (< (Math/abs (- x y)) ε)))
+  (fn [^double x ^double y] (< (Math/abs (- x y)) ε)))
 
 (println "value initialized")

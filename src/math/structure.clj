@@ -15,8 +15,10 @@
     `(~((.orientation s) {:up 'up :down 'down}) ~@(map x/freeze-expression (.v s))))
   Object
   (equals [a b]
-    (and (= (.orientation a) (.orientation b))
-         (= (.v a) (.v b))))
+    (and (instance? Struct b)
+         (let [^Struct bs b]
+           (= (.orientation a) (.orientation bs))
+          (= (.v a) (.v bs)))))
   (toString [a] (str (cons (.orientation a) (.v a))))
   clojure.lang.Sequential
   clojure.lang.Seqable
@@ -48,22 +50,22 @@
       (vector? s)
       (list? s)))
 
-(defn- down? [s]
+(defn- down? [^Struct s]
   (and (instance? Struct s) (= (.orientation s) :down)))
 
-(defn- up? [s]
+(defn- up? [^Struct s]
   (or (vector? s)
       (list? s)
       (and (instance? Struct s) (= (.orientation s) :up))))
 
-(defn- elements [s]
+(defn- elements [^Struct s]
   (if (instance? Struct s) (.v s)
       s))
 
 (defn- size [s]
   (count (elements s)))
 
-(defn- orientation [s]
+(defn- orientation [^Struct s]
   (if (instance? Struct s) (.orientation s) :up))
 
 (defn- elementwise [op s t]
@@ -75,7 +77,7 @@
 (defn mapr
   "Return a structure with the same shape as s but with f applied to
   each primitive (that is, not structural) component."
-  [f s]
+  [f ^Struct s]
   (cond (instance? Struct s) (Struct. (.orientation s) (map #(mapr f %) (.v s)))
         (sequential? s) (map f s)  ;; XXX what happens if we don't do this?
         :else (f s))
@@ -85,7 +87,7 @@
   "Like assoc-in, but works for structures. At this writing we're not
   sure if we to overwrite the stock definition of assoc-in to
   something that would fall through for standard clojure data types"
-  [s keys value]
+  [^Struct s keys value]
   (if (empty? keys) value
       (let [w (.v s)
             k1 (first keys)]
@@ -93,7 +95,7 @@
 
 (defn structure-get-in
   "Like get-in, but for structures. See structure-assoc-in"
-  [s keys]
+  [^Struct s keys]
   (if (empty? keys) s
       (recur (-> s .v (get (first keys))) (next keys))))
 
