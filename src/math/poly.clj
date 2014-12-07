@@ -204,7 +204,7 @@
                       (throw (ArithmeticException. "poly 0^0"))
                     p)
         (core-zero? n) 1
-        :else (loop [x p c n a 1]
+        :else (loop [x p c n a (make 1)]
                 (if (core-zero? c) a
                     (if (even? c)
                       (recur (square x) (quot c 2) a)

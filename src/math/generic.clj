@@ -181,7 +181,6 @@
 
 ;; XXX move these to expression?
 
-
 (def D
   (o/make-operator
    (fn [f]

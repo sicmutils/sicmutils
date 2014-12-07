@@ -10,30 +10,15 @@
             [math.function :refer :all]
             [math.operator :refer :all]
             [math.value :as v]
-            [math.calculus.derivative :refer :all]))
-
-(defn velocity [local] (nth local 2))
+            [math.calculus.derivative :refer :all]
+            [math.mechanics.lagrange :refer :all]))
 
 (def ^:private near (v/within 1e-6))
-
-(defn L-free-particle [mass]
-  (fn [local]
-    (let [v (velocity local)]
-      (* 1/2 mass (square v)))))
 
 (def q
   (up (literal-function 'x)
       (literal-function 'y)
       (literal-function 'z)))
-
-(defn Γ
-  [q]
-  (fn [t]
-    (up t (q t) ((D q) t))))
-
-(defn Lagrangian-action
-  [L q t1 t2]
-  (integrate (comp L (Γ q)) t1 t2))
 
 (defn test-path
   [t]
@@ -53,8 +38,16 @@
       (Lagrangian-action (L-free-particle mass)
                          (+ q (* ε η)) t1 t2))))
 
+(defn make-path
+  [t0 q0 t1 q1 qs]
+  (let [n (count qs)
+        ts (linear-interpolants t0 t1 n)]
+    (Lagrange-interpolation-function
+     `[~q0 ~@qs ~q1]
+     `[~t0 ~@ts ~t1])))
+
 (deftest sicm
-  (testing "apply-struct"
+  (testing "Chapter 1"
     (is (= '(up (x t)
                (y t)
                (z t))
@@ -120,4 +113,14 @@
     (let [m (minimize (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) -2.0 1.0)]
       (is (near 0.0 (first m)))
       (is (near 435 (second m))))
+    (is (= [1/6 1/3 1/2 2/3 5/6] (linear-interpolants 0 1 5)))
+    (let [f (Lagrange-interpolation-function [3 2 5 1] [1 2 3 4])]
+      (is (= (f 1) 3))
+      (is (= (f 2) 2))
+      (is (= (f 3) 5))
+      (is (= (f 4) 1)))
+    ;; this works, but since we don't have simplification yet it leaves
+    ;; behind a horrible expression that works out to 'a.
+    ;; (let [f (Lagrange-interpolation-function '[a b c] '[w x y])]
+    ;;   (is (= 'a (f 'w))))
     ))

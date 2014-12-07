@@ -44,9 +44,9 @@
               (> iter itmax)
               (throw (RuntimeException. "minimization failed to converge"))
               :else
-              ;; returning d & e in a vector is forcing their type back to Object,
-              ;; when we would prefer a primitive double. TODO: figure out a way
-              ;; around this!
+              ;; returning d & e in a vector is forcing their type
+              ;; back to Object, when we would prefer a primitive
+              ;; double. TODO: figure out a way around this!
               (let [[d e] (if (> (abs e) tol1)
                             (let [r (* (- x w) (- fx fv))
                                   q (* (- x v) (- fx fw))
@@ -79,16 +79,17 @@
                            d e
                            w x u
                            fw fx fu)
-                    (let [[new-a new-b] (if (< u x) [u b] [a u])
-                          [new-v new-w new-fv new-fw] (cond (or (<= fu fw) (= w x))
+                    (let [u<x (< u x)
+                          fu<fw (< fu fw)
+                          [new-v new-w new-fv new-fw] (cond (or fu<fw (= w x))
                                                             [w u fw fu]
                                                             (or (<= fu fv) (= v x) (= v w))
                                                             [u w fu fw]
                                                             :else
                                                             [v w fv fw])]
                       (recur (inc iter)
-                             new-a
-                             new-b
+                             (if u<x u a)
+                             (if u<x b u)
                              d e
                              new-v new-w x
                              new-fv new-fw fx))))))))))
