@@ -17,11 +17,13 @@
   of about tol using Brent's method. The return value is [xmin, fmin];
   the minimum abscissa and function value there. [Numerical Recipes in
   C++: the art of scientific computing. Press [et al.] 2ed 2002]"
-  [ax bx cx f tol]
+  [^double ax ^double cx f ^double tol]
   (let [itmax 100
+        bx (* (+ ax cx) 0.5)
+        fx (f bx)
         cgold 0.3819660
         zeps (* v/machine-epsilon 1.0e-3)
-        fx (f bx)]
+        ]
     (loop [iter 0
            a (if (< ax cx) ax cx)
            b (if (> ax cx) ax cx)
@@ -32,13 +34,11 @@
            x bx
            fv fx
            fw fx
-           fx fx
-           ]
+           fx fx]
       #_(prn "brent-step" iter a b d e v w x fv fw fx)
       (let [xm (* 0.5 (+ a b))
             tol1 (+ zeps (* tol (abs x)))
-            tol2 (* 2.0 tol1)
-            ]
+            tol2 (* 2.0 tol1)]
         (cond (<= (abs (- x xm)) (- tol2 (* 0.5 (- b a))))
               [x fx iter]
               (> iter itmax)
@@ -81,19 +81,16 @@
                            fw fx fu)
                     (let [u<x (< u x)
                           fu<fw (< fu fw)
-                          [new-v new-w new-fv new-fw] (cond (or fu<fw (= w x))
-                                                            [w u fw fu]
-                                                            (or (<= fu fv) (= v x) (= v w))
-                                                            [u w fu fw]
-                                                            :else
-                                                            [v w fv fw])]
-                      (recur (inc iter)
-                             (if u<x u a)
-                             (if u<x b u)
-                             d e
-                             new-v new-w x
-                             new-fv new-fw fx))))))))))
+                          new-a (if u<x u a)
+                          new-b (if u<x b u)
+                          iter' (inc iter)]
+                      (cond (or fu<fw (= w x))
+                            (recur iter' new-a new-b d e w u x fw fu fx)
+                            (or (<= fu fv) (= v x) (= v w))
+                            (recur iter' new-a new-b d e u w x fu fw fx)
+                            :else
+                            (recur iter' new-a new-b d e v w x fv fw fx)))))))))))
 
 (defn minimize
   [f a b]
-  (brent-minimize a (* (+ a b) 0.5) b f 1e-5))
+  (brent-minimize a b f 1e-5))

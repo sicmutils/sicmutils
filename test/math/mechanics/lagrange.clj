@@ -44,5 +44,5 @@
                      (reduce * 1
                              (for [j (range n)]
                                (cond (< j i) (- (nth xs j) xi)
-                                     (= j i) (expt -1 i)
+                                     (= j i) (if (odd? i) -1 1)
                                      :else (- xi (nth xs j))))))))))))
