@@ -1,4 +1,5 @@
 (ns math.structure
+  (:import (clojure.lang Sequential Seqable IFn PersistentVector))
   (:require [math.value :as v]
             [math.expression :as x]
             [math.generic :as g]))
@@ -6,11 +7,11 @@
 (deftype Struct [orientation v]
   v/Value
   (zero? [s] (every? v/zero? (.v s)))
-  (one? [s] false)
+  (one? [_] false)
   (zero-like [s] (Struct. (.orientation s) (-> s .v count (repeat 0) vec)))
   (exact? [s] (every? v/exact? (.v s)))
-  (compound? [s] true)
-  (sort-key [s] 18)
+  (compound? [_] true)
+  (sort-key [_] 18)
   (freeze [s]
     `(~((.orientation s) {:up 'up :down 'down}) ~@(map x/freeze-expression (.v s))))
   Object
@@ -20,10 +21,10 @@
            (= (.orientation a) (.orientation bs))
           (= (.v a) (.v bs)))))
   (toString [a] (str (cons (.orientation a) (.v a))))
-  clojure.lang.Sequential
-  clojure.lang.Seqable
+  Sequential
+  Seqable
   (seq [x] (-> x .v seq))
-  clojure.lang.IFn
+  IFn
   (invoke [s x]
     (Struct. (.orientation s) (vec (map #(% x) (.v s)))))
   )
@@ -35,14 +36,14 @@
   (Struct. :down (apply vector xs)))
 
 (extend-protocol v/Value
-  clojure.lang.PersistentVector
-  (zero? [x] (every? v/zero? x))
-  (one? [x] false)
-  (zero-like [x] (-> x count (repeat 0) vec))
-  (exact? [x] (every? v/exact? x))
-  (compund? [x] true)
-  (sort-key [x] 20)
-  (numerical? [v] false)
+  PersistentVector
+  (zero? [v] (every? v/zero? v))
+  (one? [_] false)
+  (zero-like [v] (-> v count (repeat 0) vec))
+  (exact? [v] (every? v/exact? v))
+  (compound? [_] true)
+  (sort-key [_] 20)
+  (numerical? [_] false)
   )
 
 (defn structure? [s]

@@ -5,6 +5,14 @@
             [math.structure :as struct]
             [clojure.set :as set]
             ))
+;;
+;; some general thoughts on this module: we have observed,
+;; at various debugging times, intermediate values of
+;; differential containing coefficient-zero items. Where
+;; do these come from? We are also skeptical of the implementation
+;; of differential->terms-collapse. Maybe better done with a
+;; group-by, filter than a reduce over the addition.
+;;
 
 ;; If you construct one of these directly, make sure tags
 ;; is sorted correctly; if in doubt, use make-differential-term
@@ -19,14 +27,14 @@
   v/Value
   (zero? [x]
     (every? v/zero? (map #(:coefficient %) (:terms x))))
-  (one? [x]
+  (one? [_]
     false) ;; XXX! this needs to be fixed
-  (zero-like [d] 0)
-  (exact? [d] false)
-  (compound? [d] false)
+  (zero-like [_] 0)
+  (exact? [_] false)
+  (compound? [_] false)
   (numerical? [d]
     (g/numerical-quantity? (differential-of d)))
-  (sort-key [d] 80)
+  (sort-key [_] 80)
   )
 
 (def differential? (partial instance? Differential))
@@ -281,7 +289,7 @@
 
 (def ^:private diff-+ (binary-op g/+ (constantly 1) (constantly 1)))
 (def ^:private diff-- (binary-op g/- (constantly 1) (constantly -1)))
-(def ^:private diff-* (binary-op g/* (fn [x y] y)   (fn [x y] x)))
+(def ^:private diff-* (binary-op g/* (fn [_ y] y)   (fn [x _] x)))
 (def ^:private sin    (unary-op g/sin g/cos))
 (def ^:private cos    (unary-op g/cos #(g/* -1 (g/sin %))))
 (def ^:private power
@@ -289,7 +297,7 @@
              (fn [x y]
                (g/* y (g/expt x (g/- y 1))))
              (fn [x y]
-               (throw (java.lang.IllegalArgumentException. "can't get there from here")))))
+               (throw (IllegalArgumentException. "can't get there from here")))))
 
 ;; XXX unary-op is memoized in scmutils. But rather than memoizing that,
 ;; it might be better just to memoize entire simplications.
@@ -342,7 +350,7 @@
 (g/defhandler :**  [differential? (complement differential?)] power)
 (g/defhandler :sin [differential?] sin)
 (g/defhandler :cos [differential?] cos)
-(g/defhandler :∂ [#(or (instance? clojure.lang.IFn %) (struct/structure? %))
+(g/defhandler :∂ [#(or (ifn? %) (struct/structure? %))
                   (constantly true)] multivariate-derivative)
 (println "derivative initialized")
 

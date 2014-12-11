@@ -5,13 +5,13 @@
 
 (defrecord ModInt [^BigInteger a ^BigInteger m]
   v/Value
-  (zero? [m] (= a 0))
-  (one? [m] (= a 1))
-  (zero-like [m] (ModInt. 0 a))
-  (exact? [m] true)
-  (sort-key [m] 15)
-  (numerical? [m] true)
-  (compound? [m] false)
+  (zero? [m] (= (:a m) 0))
+  (one? [m] (= (:a m) 1))
+  (zero-like [m] (ModInt. 0 (:a m)))
+  (exact? [_] true)
+  (sort-key [_] 15)
+  (numerical? [_] true)
+  (compound? [_] false)
   )
 
 (defn make [a m]

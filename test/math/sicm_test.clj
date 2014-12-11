@@ -43,14 +43,14 @@
   (let [n (count qs)
         ts (linear-interpolants t0 t1 n)]
     (Lagrange-interpolation-function
-     `[~q0 ~@qs ~q1]
-     `[~t0 ~@ts ~t1])))
+      `[~q0 ~@qs ~q1]
+      `[~t0 ~@ts ~t1])))
 
 (deftest sicm
   (testing "Chapter 1"
     (is (= '(up (x t)
-               (y t)
-               (z t))
+                (y t)
+                (z t))
            (freeze-expression (q 't))))
     (is (= '(up ((D x) t)
                 ((D y) t)
@@ -74,12 +74,12 @@
     ;; deployed yet; the text has (expt ((D x) t) 2) where we have
     ;; literal multiplication.
     (is (= '(* 1/2 m (+
-                      (* ((D z) t)
-                         ((D z) t))
-                      (* ((D x) t)
-                         ((D x) t))
-                      (* ((D y) t)
-                         ((D y) t))))
+                       (* ((D z) t)
+                          ((D z) t))
+                       (* ((D x) t)
+                          ((D x) t))
+                       (* ((D y) t)
+                          ((D y) t))))
            (freeze-expression ((comp (L-free-particle 'm) (Γ q)) 't))))
     ;; at this point in the text we should be able to show-expression
     ;; in TeX form XXX.
@@ -113,14 +113,4 @@
     (let [m (minimize (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) -2.0 1.0)]
       (is (near 0.0 (first m)))
       (is (near 435 (second m))))
-    (is (= [1/6 1/3 1/2 2/3 5/6] (linear-interpolants 0 1 5)))
-    (let [f (Lagrange-interpolation-function [3 2 5 1] [1 2 3 4])]
-      (is (= (f 1) 3))
-      (is (= (f 2) 2))
-      (is (= (f 3) 5))
-      (is (= (f 4) 1)))
-    ;; this works, but since we don't have simplification yet it leaves
-    ;; behind a horrible expression that works out to 'a.
-    ;; (let [f (Lagrange-interpolation-function '[a b c] '[w x y])]
-    ;;   (is (= 'a (f 'w))))
     ))

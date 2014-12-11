@@ -3,7 +3,6 @@
 
 (defprotocol Value
   (numerical? [this])
-  (abstract? [this])
   (zero? [this])
   (one? [this])
   (zero-like [this])

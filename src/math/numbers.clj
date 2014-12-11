@@ -1,4 +1,5 @@
 (ns math.numbers
+  (:import (clojure.lang Ratio))
   (:refer-clojure :rename {zero? core-zero?})
   (:require [math.value :as v]
             [math.generic :as g]
@@ -21,22 +22,22 @@
   Double
   (zero? [x] (= x 0.0))
   (one? [x] (= x 1.0))
-  (zero-like [x] 0.0)
-  (one-like [x] 1.0)
-  (numerical? [x] true)
-  (exact? [x] false)
-  (compound? [x] false)
-  (sort-key [x] 10)
+  (zero-like [_] 0.0)
+  (one-like [_] 1.0)
+  (numerical? [_] true)
+  (exact? [_] false)
+  (compound? [_] false)
+  (sort-key [_] 10)
   (freeze [x] x)
-  clojure.lang.Ratio
+  Ratio
   (zero? [x] (= x 0))
   (one? [x] (= x 1))
-  (zero-like [x] 0)
-  (one-like [x] 1)
-  (exact? [x] true)
-  (numerical? [x] true)
-  (compound? [x] false)
-  (sort-key [x] 10)
+  (zero-like [_] 0)
+  (one-like [_] 1)
+  (exact? [_] true)
+  (numerical? [_] true)
+  (compound? [_] false)
+  (sort-key [_] 10)
   (freeze [x] x)
   )
 

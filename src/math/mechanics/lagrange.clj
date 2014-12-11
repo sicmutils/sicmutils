@@ -12,6 +12,9 @@
     (let [v (velocity local)]
       (* 1/2 mass (square v)))))
 
+;; XXX: GJS allows for a gamma procedure that contains higher
+;; derivatives
+
 (defn Γ
   [q]
   (fn [t]

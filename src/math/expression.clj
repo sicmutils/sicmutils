@@ -6,13 +6,13 @@
 
 (defrecord Expression [type expression]
   v/Value
-  (zero? [x] false)
-  (one? [x] false)
-  (zero-like [x] false)
+  (zero? [_] false)
+  (one? [_] false)
+  (zero-like [_] false)
   (numerical? [x] (= (:type x) :number))
-  (exact? [x] false)
-  (sort-key [x] 17)
-  (compound? [x] false)
+  (exact? [_] false)
+  (sort-key [_] 17)
+  (compound? [_] false)
   (freeze [x] (-> x :expression freeze-expression))
   )
 

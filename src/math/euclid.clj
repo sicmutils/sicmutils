@@ -1,5 +1,4 @@
-(ns math.euclid
-  (:require [math.generic :as g]))
+(ns math.euclid)
 
 (defn extended-euclid
   "The extended Euclidean algorithm
