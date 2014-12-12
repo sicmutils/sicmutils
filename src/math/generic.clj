@@ -10,13 +10,17 @@
   (:import [math.expression Expression]))
 
 ;;; classifiers
-
-(defn zero?
+(defn internal-zero?
   [x]
   (cond (number? x) (core-zero? x)
-        (vector? x) (every? zero? x)
+        (vector? x) (every? internal-zero? x)
         (satisfies? v/Value x) (v/nullity? x)
         :else false))
+
+(defn zero? [x]
+  (let [z (internal-zero? x)]
+    (prn x "->" z)
+    z))
 
 (defn one?
   [x]
