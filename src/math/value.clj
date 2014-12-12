@@ -6,7 +6,6 @@
   (nullity? [this])
   (unity? [this])
   (zero-like [this])
-  (one-like [this])
   (exact? [this])
   (compound? [this])
   (sort-key [this])

@@ -1,5 +1,5 @@
 (ns math.structure
-  (:import (clojure.lang Sequential Seqable IFn PersistentVector))
+  (:import (clojure.lang Sequential Seqable IFn))
   (:require [math.value :as v]
             [math.expression :as x]
             [math.generic :as g]))
@@ -34,17 +34,6 @@
 
 (defn down [& xs]
   (Struct. :down (apply vector xs)))
-
-(extend-protocol v/Value
-  PersistentVector
-  (nullity? [v] (every? g/zero? v))
-  (unity? [_] false)
-  (zero-like [v] (-> v count (repeat 0) vec))
-  (exact? [v] (every? v/exact? v))
-  (compound? [_] true)
-  (sort-key [_] 20)
-  (numerical? [_] false)
-  )
 
 (defn structure? [s]
   (or (instance? Struct s)

@@ -14,6 +14,7 @@
 (defn zero?
   [x]
   (cond (number? x) (core-zero? x)
+        (vector? x) (every? zero? x)
         (satisfies? v/Value x) (v/nullity? x)
         :else false))
 
