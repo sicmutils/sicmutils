@@ -82,8 +82,8 @@
     (is (not (g/one? 0.0)))
     )
   (testing "zero-like"
-    (is (= 0 (v/zero-like 2)))
-    (is (= 0.0 (v/zero-like 3.14)))
+    (is (= 0 (g/zero-like 2)))
+    (is (= 0 (g/zero-like 3.14)))
     )
   (testing "abs"
     (is (= 1 (g/abs -1)))

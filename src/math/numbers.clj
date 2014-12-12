@@ -8,38 +8,38 @@
 
 ;; still to be done: constant folding across expressions
 
-(extend-protocol v/Value
-  Long
-  (nullity? [x] (= x 0))
-  (unity? [x] (= x 1))
-  (zero-like [_] 0)
-  (one-like [_] 1)
-  (exact? [_] true)
-  (numerical? [_] true)
-  (compound? [_] false)
-  (sort-key [_] 10)
-  (freeze [x] x)
-  Double
-  (nullity? [x] (= x 0.0))
-  (unity? [x] (= x 1.0))
-  (zero-like [_] 0.0)
-  (one-like [_] 1.0)
-  (numerical? [_] true)
-  (exact? [_] false)
-  (compound? [_] false)
-  (sort-key [_] 10)
-  (freeze [x] x)
-  Ratio
-  (nullity? [x] (= x 0))
-  (unity? [x] (= x 1))
-  (zero-like [_] 0)
-  (one-like [_] 1)
-  (exact? [_] true)
-  (numerical? [_] true)
-  (compound? [_] false)
-  (sort-key [_] 10)
-  (freeze [x] x)
-  )
+;(extend-protocol v/Value
+;  Long
+;  (nullity? [x] (= x 0))
+;  (unity? [x] (= x 1))
+;  (zero-like [_] 0)
+;  (one-like [_] 1)
+;  (exact? [_] true)
+;  (numerical? [_] true)
+;  (compound? [_] false)
+;  (sort-key [_] 10)
+;  (freeze [x] x)
+;  Double
+;  (nullity? [x] (= x 0.0))
+;  (unity? [x] (= x 1.0))
+;  (zero-like [_] 0.0)
+;  (one-like [_] 1.0)
+;  (numerical? [_] true)
+;  (exact? [_] false)
+;  (compound? [_] false)
+;  (sort-key [_] 10)
+;  (freeze [x] x)
+;  Ratio
+;  (nullity? [x] (= x 0))
+;  (unity? [x] (= x 1))
+;  (zero-like [_] 0)
+;  (one-like [_] 1)
+;  (exact? [_] true)
+;  (numerical? [_] true)
+;  (compound? [_] false)
+;  (sort-key [_] 10)
+;  (freeze [x] x)
+;  )
 
 (defn- make-numerical-combination
   ([operator] (make-numerical-combination operator false))

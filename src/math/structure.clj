@@ -9,7 +9,7 @@
   (nullity? [s] (every? g/zero? (.v s)))
   (unity? [_] false)
   (zero-like [s] (Struct. (.orientation s) (-> s .v count (repeat 0) vec)))
-  (exact? [s] (every? v/exact? (.v s)))
+  (exact? [s] (every? g/exact? (.v s)))
   (compound? [_] true)
   (sort-key [_] 18)
   (freeze [s]

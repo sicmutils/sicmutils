@@ -25,7 +25,9 @@
 
 (defn exact?
   [x]
-  (cond (satisfies? v/Value x) (v/exact? x)
+  (cond (integer? x) true
+        (ratio? x) true
+        (satisfies? v/Value x) (v/exact? x)
         :else false))
 
 (defn numerical?
@@ -137,8 +139,9 @@
 
 (defn- sort-key
   [x]
-  (cond (satisfies? v/Value x) (v/sort-key x)
-        (symbol? x) 90
+  (cond (symbol? x) 90
+        (number? x) 10
+        (satisfies? v/Value x) (v/sort-key x)
         :else 99))
 
 (defn canonical-order [args]
