@@ -5,6 +5,7 @@
             :url "http://www.opensource.org/licenses/MIT"}
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/math.numeric-tower "0.0.4"]]
+  :main 'math.repl
   :repl-options {:prompt (fn [ns]  (str "algebra [" ns "] > "))
                  :welcome "clojure algebra system"
                  :init-ns math.repl}
