@@ -1,8 +1,8 @@
 (ns math.numsymb-test
   (:require [clojure.test :refer :all]
             [math.generic :as g]
-            [math.numbers :as n]
-            [math.numsymb :as ns]))
+            [math.numbers]
+            [math.numsymb]))
 
 (deftest numsymb-test
   (testing "+/- with vars"

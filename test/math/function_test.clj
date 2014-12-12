@@ -1,13 +1,11 @@
 (ns math.function-test
   (:require [clojure.test :refer :all]
             [math.generic :as g]
-            [math.numbers :as n]
+            [math.numbers]
             [math.value :as v]
             [math.expression :as x]
             [math.function :refer :all]
             ))
-
-(defmacro mx [x] `(x/make '~x))
 
 (def ^:private near (v/within 1.0e-6))
 

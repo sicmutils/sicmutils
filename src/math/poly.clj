@@ -4,8 +4,7 @@
   (:require [clojure.set :as set]
             [math.value :as v]
             [math.generic :as g]
-            [math.expression :as x]
-            ))
+            [math.expression :as x]))
 
 ;; Hmm. I sort of think this should become a deftype. Doing so might help
 ;; the arithmetic become genericized in the event that were ever useful.
@@ -29,7 +28,7 @@
 (def ^:private base? number?)
 
 (defn- make-with-arity [a & oc-pairs]
-  (let [ocs (into (sorted-map) (filter (fn [[o c]] (not (g/zero? c))) oc-pairs))]
+  (let [ocs (into (sorted-map) (filter (fn [[_ c]] (not (g/zero? c))) oc-pairs))]
     (cond (empty? ocs) 0
           (and (= (count ocs) 1) (= (first (first ocs)) 0)) (second (first ocs))
           :else (Poly. a ocs))))

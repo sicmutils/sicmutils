@@ -199,6 +199,8 @@
         (nil? (next args)) (invert (first args))
         :else (bin-div (first args) (apply * (next args)))))
 
+(def divide /)
+
 ;; XXX move these to expression?
 
 (def D

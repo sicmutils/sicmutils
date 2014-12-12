@@ -5,9 +5,9 @@
 
 (defrecord ModInt [^BigInteger a ^BigInteger m]
   v/Value
-  (nullity? [m] (= (:a m) 0))
-  (unity? [m] (= (:a m) 1))
-  (zero-like [m] (ModInt. 0 (:a m)))
+  (nullity? [i] (= (:a i) 0))
+  (unity? [i] (= (:a i) 1))
+  (zero-like [i] (ModInt. 0 (:a i)))
   (exact? [_] true)
   (sort-key [_] 15)
   (numerical? [_] true)
@@ -28,7 +28,7 @@
 
 (defn- modular-inv [^ModInt m]
   (let [modulus (.m m)
-        [g a b invertible] (e/extended-euclid (.a m) modulus)]
+        [g a _] (e/extended-euclid (:a m) modulus)]
     (if (< g 2) (make a modulus)
         (throw (ArithmeticException.
                 (str m " is not invertible mod " modulus))))))

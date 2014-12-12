@@ -19,7 +19,6 @@
           dx (make-differential [dx_])
           dy (make-differential [dy_])
           dz (make-differential [dz_])
-          dxdy (make-differential [(make-differential-term [0 1] 1)])
           dx-plus-dy (make-differential [dx_ dy_])
           dx-plus-dz (make-differential [dx_ dz_])
           ]

@@ -23,19 +23,6 @@
   (applyTo [f xs] (literal-apply f xs))
   )
 
-;; (extend-protocol v/Value
-;;   clojure.lang.IFn
-;;   (zero? [f] false)
-;;   (one? [f] false)
-;;   (zero-like [x] (do (prn "zero-fn!" x) (constantly 0)))
-;;   (one-like [x] identity)
-;;   (exact? [x] false) ;; XXX maybe true?
-;;   (numerical? [f] false)
-;;   (compound? [f] false)
-;;   (sort-key [x] 90)
-;;   )
-
-
 (defn literal-function [f] (Fn. f 1 [:real] :real))
 (def ^:private derivative-symbol `g/D)
 
@@ -84,10 +71,7 @@
 (g/defhandler :log    [function?] (unary-operation g/log))
 (g/defhandler :sin    [function?] (unary-operation g/sin))
 (g/defhandler :cos    [function?] (unary-operation g/cos))
-;; (g/defhandler :asin   [function?] (unary-operation g/asin))
-;; (g/defhandler :acos   [function?] (unary-operation g/acos))
-;; (g/defhandler :sinh   [function?] (unary-operation g/sinh))
-;; (g/defhandler :cosh   [function?] (unary-operation g/cosh))
+;; TODO asin acos sinh cosh ...
 
 (g/defhandler :+      [function? cofunction?] (binary-operation g/+))
 (g/defhandler :+      [cofunction? function?] (binary-operation g/+))
@@ -95,8 +79,8 @@
 (g/defhandler :-      [cofunction? function?] (binary-operation g/-))
 (g/defhandler :*      [function? cofunction?] (binary-operation g/*))
 (g/defhandler :*      [cofunction? function?] (binary-operation g/*))
-(g/defhandler :div    [function? cofunction?] (binary-operation g//))
-(g/defhandler :div    [cofunction? function?] (binary-operation g//))
+(g/defhandler :div    [function? cofunction?] (binary-operation g/divide))
+(g/defhandler :div    [cofunction? function?] (binary-operation g/divide))
 (g/defhandler :expt   [function? cofunction?] (binary-operation g/expt))
 (g/defhandler :expt   [cofunction? function?] (binary-operation g/expt))
 
@@ -146,9 +130,9 @@
                                (if (= (first indices) 0)
                                  (if (= (count indices) 1)
                                    (symbolic-increase-derivative (:expr f))
-                                   `((partial-derivative ~@(next indices))))
+                                   `((g/partial-derivative ~@(next indices))))
                                  (throw (IllegalArgumentException. "wrong indices")))
-                               `((partial-derivative ~@indices) ~(:expr f)))]
+                               `((g/partial-derivative ~@indices) ~(:expr f)))]
                     (Fn. fexp (:arity f) (:domain f) (:range f)))
                   :else
                   (throw (IllegalArgumentException. (str "make-partials WTF " vv)))))]

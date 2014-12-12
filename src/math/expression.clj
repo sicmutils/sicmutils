@@ -13,8 +13,7 @@
   (exact? [_] false)
   (sort-key [_] 17)
   (compound? [_] false)
-  (freeze [x] (-> x :expression freeze-expression))
-  )
+  (freeze [x] (-> x :expression freeze-expression)))
 
 (defn make [x]
   (Expression. :number x))
@@ -54,11 +53,7 @@
         (symbol? x) (symbol (name x))
         (satisfies? v/Value x) (v/freeze x)
         (sequential? x) (map freeze-expression x)
-        :else x)
-  )
-
-
-
+        :else x))
 
 (println "expression initialized")
 

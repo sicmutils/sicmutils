@@ -76,7 +76,7 @@
                (or (R# data# continue#)
                    ((ruleset ~@pcs) data# continue# fail#)
                    (fail# data#))))))
-      `(fn [data# continue# fail#]
+      `(fn [data# _# fail#]
          (fail# data#)))))
 
 (defn- try-rulesets
