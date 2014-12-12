@@ -5,8 +5,8 @@
 
 (defrecord ModInt [^BigInteger a ^BigInteger m]
   v/Value
-  (zero? [m] (= (:a m) 0))
-  (one? [m] (= (:a m) 1))
+  (nullity? [m] (= (:a m) 0))
+  (unity? [m] (= (:a m) 1))
   (zero-like [m] (ModInt. 0 (:a m)))
   (exact? [_] true)
   (sort-key [_] 15)

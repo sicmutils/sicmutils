@@ -25,9 +25,9 @@
 ;; is appropriately sorted. If in doubt, use make-differential
 (defrecord Differential [terms]
   v/Value
-  (zero? [x]
-    (every? v/zero? (map #(:coefficient %) (:terms x))))
-  (one? [_]
+  (nullity? [x]
+    (every? g/zero? (map #(:coefficient %) (:terms x))))
+  (unity? [_]
     false) ;; XXX! this needs to be fixed
   (zero-like [_] 0)
   (exact? [_] false)
@@ -82,7 +82,7 @@
              (cond
               (= a-tags b-tags) (let [r-coef (g/+ a-coef b-coef)]
                                   (recur (rest as) (rest bs)
-                                         (if (not (v/zero? r-coef))
+                                         (if (not (g/zero? r-coef))
                                            (conj rs (DifferentialTerm. a-tags r-coef))
                                            rs)))
               ;; kind of sad to call vec here.
@@ -153,7 +153,7 @@
   {:pre [(differential-term-list? terms)]}
   (make-differential (reduce dxs+dys [] (map vector terms))))
 
-(defn- hide-tag-in-procedure [& args] false) ; XXX
+;(defn- hide-tag-in-procedure [& args] false) ; XXX
 
 (defn- extract-dx-part [dx obj]
   (letfn [(extract [obj]
@@ -296,7 +296,7 @@
   (binary-op g/expt
              (fn [x y]
                (g/* y (g/expt x (g/- y 1))))
-             (fn [x y]
+             (fn [_ _]
                (throw (IllegalArgumentException. "can't get there from here")))))
 
 ;; XXX unary-op is memoized in scmutils. But rather than memoizing that,

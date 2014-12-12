@@ -6,8 +6,8 @@
 
 (defrecord Expression [type expression]
   v/Value
-  (zero? [_] false)
-  (one? [_] false)
+  (nullity? [_] false)                                      ;; XXX what if it's a wrapped zero? one?
+  (unity? [_] false)
   (zero-like [_] false)
   (numerical? [x] (= (:type x) :number))
   (exact? [_] false)
@@ -50,7 +50,8 @@
   this is intended to be done just before printing or rendering, to
   simplify those processes."
   [x]
-  (cond (keyword? x) x  ;; XXX: but why does Keyword satisfy Value?
+  (cond (keyword? x) x
+        (symbol? x) (symbol (name x))
         (satisfies? v/Value x) (v/freeze x)
         (sequential? x) (map freeze-expression x)
         :else x)

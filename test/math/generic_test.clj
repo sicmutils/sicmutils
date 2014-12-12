@@ -41,12 +41,12 @@
   (apply str(for [cs s ct t] (str cs ct))))
 
 (extend-protocol v/Value
-  java.lang.String
-  (zero? [x] (= x ""))
-  (one? [x] false)
-  (zero-like [x] "")
-  (sort-key [x] 25)
-  (compound? [x] false))
+  String
+  (nullity? [s] (= s ""))
+  (unity? [_] false)
+  (zero-like [_] "")
+  (sort-key [_] 25)
+  (compound? [_] false))
 
 (defhandler :* [number? string?] multiply-string)
 (defhandler :s* [string? string?] product-string)

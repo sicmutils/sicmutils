@@ -49,10 +49,10 @@
 (defn- add [a b]
   (let [sum (partial canonically-ordered-operation `g/+)]
     (cond (and (number? a) (number? b)) (+ a b)
-         (number? a) (cond (v/zero? a) b
+         (number? a) (cond (g/zero? a) b
                            (sum? b) (sum (cons a (operands b)))
                            :else (sum (list a b)))
-         (number? b) (cond (v/zero? b) a
+         (number? b) (cond (g/zero? b) a
                            (sum? a) (sum (cons b (operands a)))
                            :else (sum (list b a)))
          (sum? a) (cond (sum? b) (sum (concat (operands a) (operands b)))
@@ -65,8 +65,8 @@
 
 (defn- sub [a b]
   (cond (and (number? a) (number? b)) (- a b)
-        (number? a) (if (v/zero? a) `(g/- ~b) `(g/- ~a ~b))
-        (number? b) (if (v/zero? b) a `(g/- ~a ~b))
+        (number? a) (if (g/zero? a) `(g/- ~b) `(g/- ~a ~b))
+        (number? b) (if (g/zero? b) a `(g/- ~a ~b))
         :else `(g/- ~a ~b)))
 
 (defn- sub-n [& args]
@@ -77,13 +77,13 @@
 (defn- mul [a b]
   (let [product (partial canonically-ordered-operation `g/*)]
     (cond (and (number? a) (number? b)) (* a b)
-         (number? a) (cond (v/zero? a) a
-                           (v/one? a) b
+         (number? a) (cond (g/zero? a) a
+                           (g/one? a) b
                            (product? b) (product (cons a (operands b)))
                            :else (product (list a b));
                            )
-         (number? b) (cond (v/zero? b) b
-                           (v/one? b) a
+         (number? b) (cond (g/zero? b) b
+                           (g/one? b) a
                            (product? a) (product (cons b (operands a))) ;`(g/* ~b ~@(operands a))
                            :else (product (list b a))
                            )
@@ -98,11 +98,11 @@
 
 (defn- div [a b]
   (cond (and (number? a) (number? b)) (/ a b)
-        (number? a) (if (v/zero? a) a `(g// ~a ~b))
-        (number? b) (cond (v/zero? b) (throw (ArithmeticException. "division by zero"))
-                          (v/one? b) a
-                          :else `(g// ~a ~b))
-        :else `(g// ~a ~b)))
+        (number? a) (if (g/zero? a) a `(/ ~a ~b))
+        (number? b) (cond (g/zero? b) (throw (ArithmeticException. "division by zero"))
+                          (g/one? b) a
+                          :else `(/ ~a ~b))
+        :else `(/ ~a ~b)))
 
 (defn- div-n [& args]
   (cond (nil? args) 1
@@ -204,12 +204,12 @@
 
 (defn- sqrt [s]
   (if (number? s)
-    (if-not (v/exact? s)
+    (if-not (g/exact? s)
       (nt/sqrt s)
-      (cond (v/zero? s) s
-            (v/one? s) :one
+      (cond (g/zero? s) s
+            (g/one? s) :one
             :else (let [q (nt/sqrt s)]
-                    (if (v/exact? q)
+                    (if (g/exact? q)
                       q
                       `(g/sqrt ~s)))))
     `(g/sqrt ~s)))
@@ -218,22 +218,22 @@
   (if (number? s)
     (if-not (v/exact? s)
       (Math/log s)
-      (if (v/one? s) 0 `(g/log ~s)))
+      (if (g/one? s) 0 `(g/log ~s)))
     `(g/log ~s)))
 
 (defn- exp [s]
   (if (number? s)
     (if-not (v/exact? s)
       (Math/exp s)
-      (if (v/zero? s) 1 `(g/exp ~s)))
+      (if (g/zero? s) 1 `(g/exp ~s)))
     `(g/exp ~s)))
 
 (defn expt [b e]
   (cond (and (number? b) (number? e)) (nt/expt b e)
-        (number? b) (cond (v/one? b) 1
+        (number? b) (cond (g/one? b) 1
                           :else `(g/expt ~b ~e))
-        (number? e) (cond (v/zero? e) 1
-                          (v/one? e) b
+        (number? e) (cond (g/zero? e) 1
+                          (g/one? e) b
                           (and (integer? e) (even? e) (sqrt? b))
                           (expt (first (operands b)) (quot e 2))
                           (and (expt? b)
@@ -251,7 +251,7 @@
                                         :* mul-n
                                         :negate #(sub 0 %)
                                         :invert #(div 1 %)
-                                        :/ div-n
+                                        :div div-n
                                         :sin sine
                                         :cos cosine
                                         :cube cube

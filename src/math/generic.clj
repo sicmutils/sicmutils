@@ -4,31 +4,45 @@
                            / core-div
                            * core-*
                            zero? core-zero?})
-  (:require [clojure.math.numeric-tower :as nt]
-            [math.expression :as x]
+  (:require [math.expression]
             [math.operator :as o]
-            [math.value :refer :all])
+            [math.value :as v])
   (:import [math.expression Expression]))
 
-(extend-protocol Value
-  clojure.lang.Symbol
-  (zero? [x] false)
-  (one? [x] false)
-  (zero-like [x] 0)
-  (one-like [x] 1)
-  (exact? [x] false) ;; XXX maybe true?
-  (compound? [x] false)
-  (sort-key [x] 90)
-  (numerical? [x] false)
-  (freeze [x]
-    ;; to freeze a symbol we drop its namespace component if it has one.
-    (symbol (name x)))
-  )
+;;; classifiers
+
+(defn zero?
+  [x]
+  (cond (number? x) (core-zero? x)
+        (satisfies? v/Value x) (v/nullity? x)
+        :else false))
+
+(defn one?
+  [x]
+  (cond (number? x) (== x 1)
+        (satisfies? v/Value x) (v/unity? x)
+        :else false))
+
+(defn exact?
+  [x]
+  (cond (satisfies? v/Value x) (v/exact? x)
+        :else false))
+
+(defn numerical?
+  [x]
+  (cond (satisfies? v/Value x) (v/numerical? x)
+        :else false))
+
+(defn zero-like
+  [x]
+  (if (satisfies? v/Value x)
+    (v/zero-like x)
+    0))
 
 (defn literal-number?
   [x]
   (and (instance? Expression x)
-       (numerical? x)))
+       (v/numerical? x)))
 
 (defn abstract-number?
   [x]
@@ -50,7 +64,7 @@
 
 (defn scalar? [s]
   (or (numerical-quantity? s)
-      (not (or (compound? s)
+      (not (or (v/compound? s)
                (ifn? s)))))
 
 ;; or how about something like
@@ -106,7 +120,7 @@
 (def ^:private mul (make-operation :*))
 (def ^:private add (make-operation :+))
 (def ^:private sub (make-operation :-))
-(def ^:private div (make-operation :/))
+(def ^:private div (make-operation :div))
 
 (def expt (make-operation :**))
 (def negate (make-operation :negate))
@@ -121,10 +135,16 @@
 (def log (make-operation :log))
 (def partial-derivative (make-operation #_(2) :∂))
 
+(defn- sort-key
+  [x]
+  (cond (satisfies? v/Value x) (v/sort-key x)
+        (symbol? x) 90
+        :else 99))
+
 (defn canonical-order [args]
   ;; NB: we are relying on the fact that this sort is stable, although
   ;; the Clojure documentation does not explicity guarantee this
-  (sort-by #(if (satisfies? Value %) (sort-key %) 99) args))
+  (sort-by sort-key args))
 
 (defn- bin+ [a b]
   (cond (and (number? a) (number? b)) (core-+ a b)

@@ -1,5 +1,5 @@
 (ns math.calculus.derivative-test
-  (:refer-clojure :exclude [+ - * /])
+  (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.test :refer :all]
             [math.calculus.derivative :refer :all]
             [math.generic :refer :all]

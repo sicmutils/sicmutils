@@ -31,8 +31,8 @@
      )
    (testing "neg"
      (is (= m2_7 (g/negate m5_7))))
-   (testing "zero?"
-     (is (v/zero? m0_7)))
+   (testing "nullity?"
+     (is (v/nullity? m0_7)))
    (testing "inv"
      (is (= m3_7 (g/invert m5_7)))
      (is (= m5_7 (g/invert m3_7)))

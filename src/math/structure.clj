@@ -6,8 +6,8 @@
 
 (deftype Struct [orientation v]
   v/Value
-  (zero? [s] (every? v/zero? (.v s)))
-  (one? [_] false)
+  (nullity? [s] (every? g/zero? (.v s)))
+  (unity? [_] false)
   (zero-like [s] (Struct. (.orientation s) (-> s .v count (repeat 0) vec)))
   (exact? [s] (every? v/exact? (.v s)))
   (compound? [_] true)
@@ -37,8 +37,8 @@
 
 (extend-protocol v/Value
   PersistentVector
-  (zero? [v] (every? v/zero? v))
-  (one? [_] false)
+  (nullity? [v] (every? g/zero? v))
+  (unity? [_] false)
   (zero-like [v] (-> v count (repeat 0) vec))
   (exact? [v] (every? v/exact? v))
   (compound? [_] true)
@@ -133,16 +133,16 @@
   [s]
   (apply up (map matrix->structure s)))
 
-(g/defhandler :+  [down? down?]           (partial elementwise g/+))
-(g/defhandler :+  [up? up?]               (partial elementwise g/+))
-(g/defhandler :-  [down? down?]           (partial elementwise g/-))
-(g/defhandler :-  [up? up?]               (partial elementwise g/-))
-(g/defhandler :*  [number? structure?]    outer-product)
-(g/defhandler :*  [structure? g/scalar?]    #(outer-product %2 %1))
-(g/defhandler :/  [structure? g/scalar?]    #(outer-product (/ %2) %1))
-(g/defhandler :*  [structure? structure?] mul)
-(g/defhandler :** [structure? integer?]   expt)
-(g/defhandler :∂  [structure? (constantly true)] (fn [a b] (throw (IllegalArgumentException. "OUCH"))))
+(g/defhandler :+   [down? down?]           (partial elementwise g/+))
+(g/defhandler :+   [up? up?]               (partial elementwise g/+))
+(g/defhandler :-   [down? down?]           (partial elementwise g/-))
+(g/defhandler :-   [up? up?]               (partial elementwise g/-))
+(g/defhandler :*   [number? structure?]    outer-product)
+(g/defhandler :*   [structure? g/scalar?]    #(outer-product %2 %1))
+(g/defhandler :div [structure? g/scalar?]    #(outer-product (/ %2) %1))
+(g/defhandler :*   [structure? structure?] mul)
+(g/defhandler :**  [structure? integer?]   expt)
+(g/defhandler :∂   [structure? (constantly true)] (fn [a b] (throw (IllegalArgumentException. "OUCH"))))
 
 (g/defhandler :square [structure?]
   (fn [s] (inner-product s s)))

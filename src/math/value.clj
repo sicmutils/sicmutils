@@ -3,8 +3,8 @@
 
 (defprotocol Value
   (numerical? [this])
-  (zero? [this])
-  (one? [this])
+  (nullity? [this])
+  (unity? [this])
   (zero-like [this])
   (one-like [this])
   (exact? [this])

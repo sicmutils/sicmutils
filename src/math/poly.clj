@@ -1,4 +1,5 @@
 (ns math.poly
+  (:import (clojure.lang PersistentTreeMap))
   (:refer-clojure :rename {zero? core-zero?})
   (:require [clojure.set :as set]
             [math.value :as v]
@@ -11,13 +12,13 @@
 
 (declare operator-table operators-known)
 
-(defrecord Poly [^long arity ^clojure.lang.PersistentTreeMap oc]
+(defrecord Poly [^long arity ^PersistentTreeMap oc]
   v/Value
-  (zero? [p] (empty? (:oc p)))
-  (one? [p] (and (= (count (:oc p)) 1)
+  (nullity? [p] (empty? (:oc p)))
+  (unity? [p] (and (= (count (:oc p)) 1)
                  (let [[order coef] (first (:oc p))]
                    (and (core-zero? order)
-                        (v/one? coef)))))
+                        (g/one? coef)))))
   )
 
 ;; ultimately this should be more sensitive, and allow the use of
@@ -28,7 +29,7 @@
 (def ^:private base? number?)
 
 (defn- make-with-arity [a & oc-pairs]
-  (let [ocs (into (sorted-map) (filter (fn [[o c]] (not (v/zero? c))) oc-pairs))]
+  (let [ocs (into (sorted-map) (filter (fn [[o c]] (not (g/zero? c))) oc-pairs))]
     (cond (empty? ocs) 0
           (and (= (count ocs) 1) (= (first (first ocs)) 0)) (second (first ocs))
           :else (Poly. a ocs))))
@@ -67,11 +68,11 @@
 
 (defn- poly-extend
   "Interpolates a variable at position n in polynomial p."
-  [n p]
+  [_ _]
   nil)
 
 (defn degree [p]
-  (cond (v/zero? p) -1
+  (cond (g/zero? p) -1
         (base? p) 0
         :else (first (first (rseq (:oc p))))))
 
@@ -95,7 +96,7 @@
 
 (defn- normalize-with-arity [a p]
   (if (base? p) p
-      (let [fp (->> p (filter #(not (v/zero? (second %)))) (into (sorted-map)))]
+      (let [fp (->> p (filter #(not (g/zero? (second %)))) (into (sorted-map)))]
         (if-let [[order coef] (first fp)]
          (if (and (= (count p) 1) (= order 0)) coef
              (Poly. a fp))
@@ -116,7 +117,7 @@
              (cond
               (= op oq) (let [v (f cp cq)]
                           (recur (rest P) (rest Q)
-                                 (if (not (v/zero? v))
+                                 (if (not (g/zero? v))
                                    (assoc R op v)
                                    R)))
               (< op oq) (recur (rest P) Q (assoc R op (f cp)))
@@ -151,8 +152,8 @@
 
 (defn add [p q]
   (cond (and (base? p) (base? q)) (g/+ p q)
-        (v/zero? p) q
-        (v/zero? q) p
+        (g/zero? p) q
+        (g/zero? q) p
         (base? p) (add-constant q p)
         (base? q) (add-constant p q)
         :else (let [a (check-same-arity p q)
@@ -170,8 +171,8 @@
 
 (defn sub [p q]
   (cond (and (base? p) (base? q)) (g/- p q)
-        (v/zero? p) (g/negate q)
-        (v/zero? q) p
+        (g/zero? p) (g/negate q)
+        (g/zero? q) p
         (base? p) (add-constant (negate q) p)
         (base? q) (add-constant p q)
         :else (let [a (check-same-arity p q)
@@ -180,10 +181,10 @@
 
 (defn mul [p q]
   (cond (and (base? p) (base? q)) (g/* p q)
-        (v/zero? p) 0
-        (v/zero? q) 0
-        (v/one? p) q
-        (v/one? q) p
+        (g/zero? p) 0
+        (g/zero? q) 0
+        (g/one? p) q
+        (g/one? q) p
         (base? p) (poly-map #(g/* p %) q)
         (base? q) (poly-map #(g/* % q) p)
         :else (let [a (check-same-arity p q)]
@@ -199,8 +200,8 @@
         (or
          (not (integer? n))
          (< n 0)) (throw (ArithmeticException. (str "can't raise poly to " n)))
-        (v/one? p) p
-        (v/zero? p) (if (core-zero? n)
+        (g/one? p) p
+        (g/zero? p) (if (core-zero? n)
                       (throw (ArithmeticException. "poly 0^0"))
                     p)
         (core-zero? n) 1

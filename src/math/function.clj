@@ -6,33 +6,34 @@
             [math.calculus.derivative :as d]
             [math.generic :as g])
   (:import [math.structure Struct]
-           [math.operator Operator]))
+           [math.operator Operator]
+           (clojure.lang IFn)))
 
 (declare literal-apply)
 
 (defrecord Fn [expr arity domain range]
   v/Value
-  (zero? [x] false)
-  (one? [x] false)
-  (zero-like [x] false)
-  (exact? [x] false)
-  (sort-key [x] 35)
-  clojure.lang.IFn
+  (nullity? [_] false)
+  (unity? [_] false)
+  (zero-like [_] false)
+  (exact? [_] false)
+  (sort-key [_] 35)
+  IFn
   (invoke [f x] (literal-apply f [x]))
   (applyTo [f xs] (literal-apply f xs))
   )
 
-(extend-protocol v/Value
-  clojure.lang.IFn
-  (zero? [f] false)
-  (one? [f] false)
-  (zero-like [x] (constantly 0))
-  (one-like [x] identity)
-  (exact? [x] false) ;; XXX maybe true?
-  (numerical? [f] false)
-  (compound? [f] false)
-  (sort-key [x] 90)
-  )
+;; (extend-protocol v/Value
+;;   clojure.lang.IFn
+;;   (zero? [f] false)
+;;   (one? [f] false)
+;;   (zero-like [x] (do (prn "zero-fn!" x) (constantly 0)))
+;;   (one-like [x] identity)
+;;   (exact? [x] false) ;; XXX maybe true?
+;;   (numerical? [f] false)
+;;   (compound? [f] false)
+;;   (sort-key [x] 90)
+;;   )
 
 
 (defn literal-function [f] (Fn. f 1 [:real] :real))
@@ -94,8 +95,8 @@
 (g/defhandler :-      [cofunction? function?] (binary-operation g/-))
 (g/defhandler :*      [function? cofunction?] (binary-operation g/*))
 (g/defhandler :*      [cofunction? function?] (binary-operation g/*))
-(g/defhandler :/      [function? cofunction?] (binary-operation g//))
-(g/defhandler :/      [cofunction? function?] (binary-operation g//))
+(g/defhandler :div    [function? cofunction?] (binary-operation g//))
+(g/defhandler :div    [cofunction? function?] (binary-operation g//))
 (g/defhandler :expt   [function? cofunction?] (binary-operation g/expt))
 (g/defhandler :expt   [cofunction? function?] (binary-operation g/expt))
 
