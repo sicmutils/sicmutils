@@ -70,6 +70,7 @@
         :else (Differential. (sort-by #(-> % :tags vec) terms))))
 
 (defn- dxs+dys
+  ; TODO: solve the mystery of the zero coefficients.
   [as bs]
   {:pre [(differential-term-list? as)
          (differential-term-list? bs)]}
@@ -321,6 +322,7 @@
 
 (defn- multivariate-derivative
   [f selectors]
+  #_(prn "MVD" f selectors)
   (let [a (v/arity f)
         d (fn [f] (euclidean-structure selectors f))] ;; partial application opportunity
     (cond (= a 0) (constantly 0)

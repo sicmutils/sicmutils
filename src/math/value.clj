@@ -15,9 +15,14 @@
 (defn arity
   [f]
   {:pre [(ifn? f)]}
-  (let [^"java.lang.reflect.Method" m (first (.getDeclaredMethods (class f)))
-        p (.getParameterTypes m)]
-    (alength p)))
+  (or (:arity (meta f))
+      (let [^"java.lang.reflect.Method" ms (.getDeclaredMethods (class f))
+            m (first ms)
+            p (.getParameterTypes m)]
+        #_(prn "arity of" f "has" (alength ms) "declared methods ")
+        #_(doseq [m ms] (prn "method" m))
+        (alength p)
+        )))
 
 (def machine-epsilon
   (loop [e 1.0]

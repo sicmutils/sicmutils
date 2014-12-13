@@ -52,8 +52,8 @@
 (defhandler :s* [string? string?] product-string)
 (defhandler :s+ [string? string?] str)
 
-(def s+ (make-operation :s+))
-(def s* (make-operation :s*))
+(def s+ (make-operation :s+ 2))
+(def s* (make-operation :s* 2))
 
 (deftest handler-fn
   (testing "multiply-string"

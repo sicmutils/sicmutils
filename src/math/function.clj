@@ -48,7 +48,7 @@
   original function (so that ((unary-operation sqrt) f) x) will return
   (sqrt (f x))."
   [operator]
-  (partial comp operator))
+  (with-meta (partial comp operator) {:arity 1}))
 
 (defn- binary-operation
   "For a given binary operator (like +), returns a function of two
@@ -57,10 +57,11 @@
   is, (binary-operation +) applied to f and g will produce a function
   which computes (+ (f x) (g x)) given x as input."
   [operator]
-  (fn [f g]
-    (let [f1 (if (g/numerical-quantity? f) (constantly f) f)
-          g1 (if (g/numerical-quantity? g) (constantly g) g)]
-      #(operator (f1 %) (g1 %)))))
+  (with-meta (fn [f g]
+               (let [f1 (if (g/numerical-quantity? f) (constantly f) f)
+                     g1 (if (g/numerical-quantity? g) (constantly g) g)]
+                 #(operator (f1 %) (g1 %))))
+    {:arity 2}))
 
 (g/defhandler :negate [function?] (unary-operation g/negate))
 (g/defhandler :invert [function?] (unary-operation g/invert))

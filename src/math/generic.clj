@@ -19,7 +19,6 @@
 
 (defn zero? [x]
   (let [z (internal-zero? x)]
-    (prn x "->" z)
     z))
 
 (defn one?
@@ -116,31 +115,32 @@
   (if-let [dtree (@the-operator-table operator)]
     (dtree-lookup dtree arguments)))
 
-(defn make-operation [operator]
-  (fn [& args]
-    (if-let [h (findhandler operator args)]
-      (apply h args)
-      (throw (IllegalArgumentException.
-              (str "no variant of " operator
-                   " will work for " args "\n" (count args) "\n" (apply list (map type args)) "\n" ))))))
+(defn make-operation [operator arity]
+  (with-meta (fn [& args]
+               (if-let [h (findhandler operator args)]
+                 (apply h args)
+                 (throw (IllegalArgumentException.
+                         (str "no variant of " operator
+                              " will work for " args "\n" (count args) "\n" (apply list (map type args)) "\n" )))))
+    {:arity arity}))
 
-(def ^:private mul (make-operation :*))
-(def ^:private add (make-operation :+))
-(def ^:private sub (make-operation :-))
-(def ^:private div (make-operation :div))
+(def ^:private mul (make-operation :* 2))
+(def ^:private add (make-operation :+ 2))
+(def ^:private sub (make-operation :- 2))
+(def ^:private div (make-operation :div 2))
 
-(def expt (make-operation :**))
-(def negate (make-operation :negate))
-(def invert (make-operation :invert))
-(def sin (make-operation :sin))
-(def cos (make-operation :cos))
-(def square (make-operation :square))
-(def cube (make-operation :cube))
-(def abs (make-operation :abs))
-(def sqrt (make-operation :sqrt))
-(def exp (make-operation :exp))
-(def log (make-operation :log))
-(def partial-derivative (make-operation #_(2) :∂))
+(def expt (make-operation :** 2))
+(def negate (make-operation :negate 1))
+(def invert (make-operation :invert 1))
+(def sin (make-operation :sin 1))
+(def cos (make-operation :cos 1))
+(def square (make-operation :square 1))
+(def cube (make-operation :cube 1))
+(def abs (make-operation :abs 1))
+(def sqrt (make-operation :sqrt 1))
+(def exp (make-operation :exp 1 ))
+(def log (make-operation :log 1))
+(def partial-derivative (make-operation :∂ 2))
 
 (defn- sort-key
   [x]

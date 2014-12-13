@@ -12,8 +12,9 @@
   (freeze [o] (.name o))
   IFn
   (invoke [operator function]
-    (let [operated-function ((.f operator) function)]
-      (fn [& xs] (apply operated-function xs))))
+    (let [operated-function ((:f operator) function)]
+      (fn [& xs]
+        (apply operated-function xs))))
   )
 
 (defn make-operator
