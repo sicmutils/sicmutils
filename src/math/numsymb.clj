@@ -192,12 +192,6 @@
                           :else `(g/cos ~x))
         :else `(g/cos ~x)))
 
-(defn- cube [x]
-  (g/expt x 3))
-
-(defn- square [x]
-  (g/* x x))
-
 (defn- abs [x]
   (cond (number? x) (if (< x 0) (- x) x)
         :else `(g/abs ~x)))
@@ -246,20 +240,21 @@
         :else `(g/expt ~b ~e)
         ))
 
-(def ^:private symbolic-operator-table {:+ add-n
-                                        :- sub-n
-                                        :* mul-n
-                                        :negate #(sub 0 %)
-                                        :invert #(div 1 %)
-                                        :div div-n
-                                        :sin sine
-                                        :cos cosine
-                                        :cube cube
-                                        :square square
-                                        :abs abs
-                                        :sqrt sqrt
-                                        :log log
-                                        :exp exp
-                                        :** expt})
+(def ^:private symbolic-operator-table
+  {:+ add-n
+   :- sub-n
+   :* mul-n
+   :div div-n
+   :negate #(sub 0 %)
+   :invert #(div 1 %)
+   :sin sine
+   :cos cosine
+   :cube #(g/expt % 3)
+   :square #(g/expt % 2)
+   :abs abs
+   :sqrt sqrt
+   :log log
+   :exp exp
+   :** expt})
 
 (println "numsymb initialized")

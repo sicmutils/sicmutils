@@ -322,7 +322,6 @@
 
 (defn- multivariate-derivative
   [f selectors]
-  #_(prn "MVD" f selectors)
   (let [a (v/arity f)
         d (fn [f] (euclidean-structure selectors f))] ;; partial application opportunity
     (cond (= a 0) (constantly 0)

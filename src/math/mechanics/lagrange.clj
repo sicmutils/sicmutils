@@ -17,8 +17,9 @@
 
 (defn Γ
   [q]
-  (fn [t]
-    (up t (q t) ((D q) t))))
+  (let [dq (D q)]
+    (fn [t]
+      (up t (q t) (dq t)))))
 
 (defn Lagrangian-action
   [L q t1 t2]
