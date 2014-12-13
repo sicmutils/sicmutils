@@ -299,6 +299,7 @@
                (g/* y (g/expt x (g/- y 1))))
              (fn [_ _]
                (throw (IllegalArgumentException. "can't get there from here")))))
+(def ^:private sqrt (unary-op g/sqrt #(g/invert (g/* 2 (g/sqrt %)))))
 
 ;; XXX unary-op is memoized in scmutils. But rather than memoizing that,
 ;; it might be better just to memoize entire simplications.
@@ -341,18 +342,19 @@
 ;; 'a-euclidean-derivative', which when applied to 'x gives
 ;; ((D f) x). So, we have to define D.
 
-(g/defhandler :+ [differential? not-compound?] diff-+)
-(g/defhandler :+ [not-compound? differential?] diff-+)
-(g/defhandler :- [differential? not-compound?] diff--)
-(g/defhandler :- [not-compound? differential?] diff--)
-(g/defhandler :* [differential? not-compound?] diff-*)
-(g/defhandler :* [not-compound? differential?] diff-*)
+(g/defhandler :+      [differential? not-compound?] diff-+)
+(g/defhandler :+      [not-compound? differential?] diff-+)
+(g/defhandler :-      [differential? not-compound?] diff--)
+(g/defhandler :-      [not-compound? differential?] diff--)
+(g/defhandler :*      [differential? not-compound?] diff-*)
+(g/defhandler :*      [not-compound? differential?] diff-*)
 (g/defhandler :square [differential?] #(g/* % %))
-(g/defhandler :**  [differential? (complement differential?)] power)
-(g/defhandler :sin [differential?] sin)
-(g/defhandler :cos [differential?] cos)
-(g/defhandler :∂ [#(or (ifn? %) (struct/structure? %))
-                  (constantly true)] multivariate-derivative)
+(g/defhandler :sin    [differential?] sin)
+(g/defhandler :cos    [differential?] cos)
+(g/defhandler :sqrt   [differential?] sqrt)
+(g/defhandler :**     [differential? (complement differential?)] power)
+(g/defhandler :∂      [#(or (ifn? %) (struct/structure? %))
+                       (constantly true)] multivariate-derivative)
 (println "derivative initialized")
 
 ;;; SIMPLE-DERIVATIVE-INTERNAL represents the essential computation.

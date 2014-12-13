@@ -1,23 +1,23 @@
 (ns math.repl
   (:refer-clojure :exclude [+ - * / zero?])
-  (:require [clojure.main :as m])
+  (:require [clojure.main :as m]
+            [math.generic :refer :all]
+            [math.structure :refer :all]
+            [math.expression :refer :all]
+            [math.numbers]
+            [math.numsymb]
+            [math.function :refer :all]
+            [math.operator]
+            [math.numerical.integrate]
+            [math.numerical.minimize :refer :all]
+            [math.calculus.derivative]
+            [math.mechanics.lagrange :refer :all])
   (:gen-class))
 
-(defn- setup []
-  (prn "SETUP MATH")
-  ;(refer-clojure :exclude '[+ - * / zero?])
-  (require '[math generic structure expression numbers numsymb
-             function operator]
-           '[math.numerical integrate minimize]
-           '[math.calculus derivative]
-           '[math.mechanics lagrange])
-
-  (refer 'math.generic)
-  (refer 'math.structure))
-
 (defn -main
-  [& args]
-  (prn "welcome.")
+  [& _]
+  (println "Won't you sign in, stranger?")
   (m/with-bindings
-    ;(ns math.repl (:refer-clojure :exclude '[+ - * / zero?]))
-    (m/repl :init setup)))
+    (in-ns 'math.repl)
+    (m/repl)
+    (println "Home at last.")))

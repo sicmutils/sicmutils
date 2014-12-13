@@ -1,0 +1,25 @@
+(def q
+  (up (literal-function 'x)
+      (literal-function 'y)
+      (literal-function 'z)))
+
+(defn test-path
+  [t]
+  (up (+ (* 4 t) 7)
+      (+ (* 3 t) 5)
+      (+ (* 2 t) 1)))
+
+(defn make-η
+  [ν t1 t2]
+  (fn [t]
+    (* (- t t1) (- t t2) (ν t))))
+
+(defn varied-free-particle-action
+  [mass q ν t1 t2]
+  (fn [ε]
+    (let [η (make-η ν t1 t2)]
+      (Lagrangian-action (L-free-particle mass)
+                         (+ q (* ε η)) t1 t2))))
+(Lagrangian-action (L-free-particle 3.0) test-path 0.0 10.0)
+((varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) 0.001)
+(minimize (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) -2.0 1.0)
