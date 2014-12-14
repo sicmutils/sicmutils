@@ -6,28 +6,29 @@
 
 (deftype Struct [orientation v]
   v/Value
-  (nullity? [s] (every? g/zero? (.v s)))
+  (nullity? [s] (every? g/zero? v))
   (unity? [_] false)
-  (zero-like [s] (Struct. (.orientation s) (-> s .v count (repeat 0) vec)))
-  (exact? [s] (every? g/exact? (.v s)))
+  (zero-like [s] (Struct. orientation (-> v count (repeat 0) vec)))
+  (exact? [s] (every? g/exact? v))
   (numerical? [_] false)
   (compound? [_] true)
   (sort-key [_] 18)
   (freeze [s]
-    `(~((.orientation s) {:up 'up :down 'down}) ~@(map x/print-expression (.v s))))
+    `(~(orientation {:up 'up :down 'down}) ~@(map x/print-expression v)))
   Object
   (equals [a b]
     (and (instance? Struct b)
          (let [^Struct bs b]
-           (= (.orientation a) (.orientation bs))
-          (= (.v a) (.v bs)))))
-  (toString [a] (str (cons (.orientation a) (.v a))))
+           (= orientation (.orientation bs))
+          (= v (.v bs)))))
+  (toString [s] (str (cons orientation v)))
   Sequential
   Seqable
-  (seq [x] (-> x .v seq))
+                                        ;(seq [x] (-> x .v seq))
+  (seq [x] (seq v))
   IFn
   (invoke [s x]
-    (Struct. (.orientation s) (vec (map #(% x) (.v s)))))
+    (Struct. orientation (vec (map #(% x) v))))
   )
 
 (defn up [& xs]
