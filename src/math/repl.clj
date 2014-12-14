@@ -1,6 +1,7 @@
 (ns math.repl
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.main :as m]
+            [clojure.pprint :as pp]
             [math.generic :refer :all]
             [math.structure :refer :all]
             [math.expression :refer :all]
@@ -24,6 +25,6 @@
       (doseq [a args]
         (prn "arg" a)
         )
-      (m/repl)
+      (m/repl :print (comp pp/pprint print-expression))
       )
     (println "Home at last.")))

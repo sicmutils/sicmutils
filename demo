@@ -27,6 +27,8 @@
 ; this one takes a while
 ;(minimize (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) -2.0 1.0)
 
+;; Define the variation operator.
+
 (defn δ
   [η]
   (fn [f]
@@ -37,36 +39,35 @@
         
           ((D g) 0)))))
 
+;; Some generic path functions
+
 (defn F [q]
   (fn [t]
     ((literal-function 'f) (q t))))
 
-(def literal-eta (literal-function 'eta))
-(def literal-q (literal-function 'a))
+(defn G [q]
+  (fn [t]
+    ((literal-function 'g) (q t))))
 
-((((δ literal-eta) identity) literal-q) 't)
-((F literal-q) 't)
-((((δ literal-eta)        F) literal-q) 'y)
+(def literal-q (literal-function 'q))
+(defn φ [f]
+     (fn [q]
+         ((literal-function 'φ) (f q))))
 
-;(((Lagrange-equations (L-free-particle 'm)) test-path) 't)
+(defn phiF [q]
+  (fn [t]
+    ((literal-function 'phi) ((literal-function 'f) (q t)))))
 
+;; Verify some properties of the variation.
 
-(let [η (literal-function 'η)
-          q (literal-function 'q)
-          I (fn [q] (fn [t] (q t)))
-          f (literal-function 'f)
-          F (fn [q] (fn [t] (f (q t))))
-          q+εη (+ q (* 'ε η))
-          g (fn [ε] (+ q (* ε η)))
-          δη (δ η)
-          δηI (δη I)
-          δηIq (δηI q)
-          δηFq ((δη F) q)
-          ]
-      (doseq [i [(q+εη 't)
-                 ((g 'ε) 't)
-                 (((D g) 'dt) 'a)
-                 (δηIq 't)
-                 ((F q) 't)
-                 (δηFq 't)]]
-        (prn (freeze-expression i))))
+(def δ_η (δ (literal-function 'eta)))
+(((δ_η   identity) literal-q) 't)
+(((δ_η          F) literal-q) 't)
+(((δ_η          G) literal-q) 't)
+(((δ_η   (* 'c G)) literal-q) 't)
+(((δ_η    (* F G)) literal-q) 't)
+(((δ_η    (+ F G)) literal-q) 't)
+(((δ_η       phiF) literal-q) 't)
+
+(((Lagrange-equations (L-free-particle 'm)) test-path) 't)
+

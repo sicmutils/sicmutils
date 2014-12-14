@@ -53,12 +53,12 @@
     ;; Define g(ε) as in Eq. 1.22; then δ_η f[q] = Dg(0)
     (fn [q]
       (let [g (fn [ε] (+ q (* ε η)))]
-        (prn "g(ε)" (freeze-expression (g 'ε)))
-        (prn "g(ε+dε)" (freeze-expression (g (+ 'ε 'dε))))
-        (prn "g(ε+dε)(t)" (freeze-expression ((g (+ 'ε 'dε)) 't)))
-        (prn "g(ε)(t)" (freeze-expression ((g 'ε) 't)))
-        (prn "Dg(ε_0)" (freeze-expression ((D g) 'ε_0)))
-        (prn "Dg(0)" (freeze-expression ((D g) 0)))
+        (prn "g(ε)" (print-expression (g 'ε)))
+        (prn "g(ε+dε)" (print-expression (g (+ 'ε 'dε))))
+        (prn "g(ε+dε)(t)" (print-expression ((g (+ 'ε 'dε)) 't)))
+        (prn "g(ε)(t)" (print-expression ((g 'ε) 't)))
+        (prn "Dg(ε_0)" (print-expression ((D g) 'ε_0)))
+        (prn "Dg(0)" (print-expression ((D g) 0)))
         ((D g) 0)))))
 
 (deftest sicm
@@ -66,11 +66,11 @@
     (is (= '(up (x t)
                 (y t)
                 (z t))
-           (freeze-expression (q 't))))
+           (print-expression (q 't))))
     (is (= '(up ((D x) t)
                 ((D y) t)
                 ((D z) t))
-           (freeze-expression ((D q) 't))))
+           (print-expression ((D q) 't))))
     ;; need to get exponentiation of operators before we can
     ;; do this.
     ;; (is (= (up (literal-number (((expt D 2) 'x) 't))
@@ -84,7 +84,7 @@
                 (up ((D x) t)
                     ((D y) t)
                     ((D z) t)))
-           (freeze-expression ((Γ q) 't))))
+           (print-expression ((Γ q) 't))))
     ;; this is beginning to take shape... the simplifier is not
     ;; deployed yet; the text has (expt ((D x) t) 2) where we have
     ;; literal multiplication.
@@ -95,7 +95,7 @@
                           ((D x) t))
                        (* ((D y) t)
                           ((D y) t))))
-           (freeze-expression ((comp (L-free-particle 'm) (Γ q)) 't))))
+           (print-expression ((comp (L-free-particle 'm) (Γ q)) 't))))
     ;; at this point in the text we should be able to show-expression
     ;; in TeX form XXX.
     (is (= 435.0 (Lagrangian-action (L-free-particle 3.0) test-path 0.0 10.0)))
@@ -114,13 +114,13 @@
       (is (= (up 0 0 0) ((Γ η) 0)))
       (is (= (up 1 0 1) ((Γ η) 1)))
       ;; the following two are pre-simplification
-      (is (= '(* t t t (- t 1)) (freeze-expression (η 't))))
-      (is (= '(+ (* t t (+ t (- t 1))) (* t (+ t t) (- t 1))) (freeze-expression ((D η) 't))))
-      (is (= '(up t (* t t t (- t 1)) (+ (* t t (+ t (- t 1))) (* t (+ t t) (- t 1)))) (freeze-expression ((Γ η) 't))))
+      (is (= '(* t t t (- t 1)) (print-expression (η 't))))
+      (is (= '(+ (* t t (+ t (- t 1))) (* t (+ t t) (- t 1))) (print-expression ((D η) 't))))
+      (is (= '(up t (* t t t (- t 1)) (+ (* t t (+ t (- t 1))) (* t (+ t t) (- t 1)))) (print-expression ((Γ η) 't))))
       (is (= '(up (+ (* t (sin t)) (* (- t 1) (+ (sin t) (* t (cos t)))))
                   (+ (* t (cos t)) (* (- t 1) (+ (cos t) (* -1 t (sin t)))))
                   (+ (* t t t) (* (- t 1) (+ (* t t) (* t (+ t t))))))
-             (freeze-expression ((D η2) 't))))
+             (print-expression ((D η2) 't))))
       )
 
     (is (near 436.2912143 ((varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) 0.001)))

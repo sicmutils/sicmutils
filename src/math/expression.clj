@@ -2,7 +2,7 @@
   (:require [math.value :as v]
             [clojure.walk :refer :all]))
 
-(declare freeze-expression)
+(declare print-expression)
 
 (defrecord Expression [type expression]
   v/Value
@@ -13,7 +13,7 @@
   (exact? [_] false)
   (sort-key [_] 17)
   (compound? [_] false)
-  (freeze [x] (-> x :expression freeze-expression)))
+  (freeze [x] (-> x :expression print-expression)))
 
 (defn make [x]
   (Expression. :number x))
@@ -41,7 +41,7 @@
                                   (str "unknown expression type " a)))))
             (:expression expr)))
 
-(defn freeze-expression
+(defn print-expression
   "Freezing an expression means removing wrappers and other metadata
   from subexpressions, so that the result is basically a pure
   S-expression with the same structure as the input. Doing this will
@@ -52,7 +52,7 @@
   (cond (keyword? x) x
         (symbol? x) (symbol (name x))
         (satisfies? v/Value x) (v/freeze x)
-        (sequential? x) (map freeze-expression x)
+        (sequential? x) (map print-expression x)
         :else x))
 
 (println "expression initialized")

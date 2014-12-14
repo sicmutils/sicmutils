@@ -314,6 +314,13 @@
 ;; XXX unary-op is memoized in scmutils. But rather than memoizing that,
 ;; it might be better just to memoize entire simplications.
 
+
+;; (s:generate (s:length v) (s:opposite v)
+;;             (lambda (i)
+;;                     (sd (lambda (xi)
+;;                                 (g (s:with-substituted-coord v i xi)))
+;;                         (s:ref v i)))))
+
 (defn- euclidean-structure
   [selectors f]
   (letfn [(sd [g v]

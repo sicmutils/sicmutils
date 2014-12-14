@@ -12,8 +12,8 @@
 (deftest function-basic
   (let [f (literal-function 'F)]
     (testing "a"
-      (is (= '(F x) (x/freeze-expression (f 'x))))
-      (is (= '(F 7) (x/freeze-expression (f (g/+ 3 4)))))
+      (is (= '(F x) (x/print-expression (f 'x))))
+      (is (= '(F 7) (x/print-expression (f (g/+ 3 4)))))
       )
     )
   )

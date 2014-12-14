@@ -82,7 +82,7 @@
     )
 
   (testing "structural-functions"
-    (is (= '(up (cos t) (* -1 (sin t))) (freeze-expression ((D (up sin cos)) 't)))))
+    (is (= '(up (cos t) (* -1 (sin t))) (print-expression ((D (up sin cos)) 't)))))
 
   (testing "partial derivatives"
     (let [f (fn [x y] (+ (* x x) (* y y)))]
@@ -106,15 +106,15 @@
           δηIq (δηI q)
           δηFq ((δη F) q)
           ]
-      (is (= '(+ (q t) (* ε (η t))) (freeze-expression (q+εη 't))))
-      (is (= '(+ (q t) (* ε (η t))) (freeze-expression ((g 'ε) 't))))
-      (is (= '(η a) (freeze-expression (((D g) 'dt) 'a))))
-      (is (= '(η t) (freeze-expression (δηIq 't))))
-      (is (= '(f (q t)) (freeze-expression ((F q) 't))))
-      (is (= '(* ((D f) (q t)) (η t)) (freeze-expression (δηFq 't))))
+      (is (= '(+ (q t) (* ε (η t))) (print-expression (q+εη 't))))
+      (is (= '(+ (q t) (* ε (η t))) (print-expression ((g 'ε) 't))))
+      (is (= '(η a) (print-expression (((D g) 'dt) 'a))))
+      (is (= '(η t) (print-expression (δηIq 't))))
+      (is (= '(f (q t)) (print-expression ((F q) 't))))
+      (is (= '(* ((D f) (q t)) (η t)) (print-expression (δηFq 't))))
       ;; product rule for variation: δ(FG) = δF G + F δG
-      (is (= (freeze-expression (+ (* (((δη F) q) 't) ((G q) 't))
+      (is (= (print-expression (+ (* (((δη F) q) 't) ((G q) 't))
                                    (* ((F q) 't) (((δη G) q) 't))))
-             (freeze-expression (((δη (* F G)) q) 't))))
+             (print-expression (((δη (* F G)) q) 't))))
       )
     ))

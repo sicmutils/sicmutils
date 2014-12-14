@@ -14,7 +14,7 @@
   (compound? [_] true)
   (sort-key [_] 18)
   (freeze [s]
-    `(~((.orientation s) {:up 'up :down 'down}) ~@(map x/freeze-expression (.v s))))
+    `(~((.orientation s) {:up 'up :down 'down}) ~@(map x/print-expression (.v s))))
   Object
   (equals [a b]
     (and (instance? Struct b)
@@ -76,7 +76,7 @@
 
 (defn structure-assoc-in
   "Like assoc-in, but works for structures. At this writing we're not
-  sure if we to overwrite the stock definition of assoc-in to
+  sure if we want to overwrite the stock definition of assoc-in to
   something that would fall through for standard clojure data types"
   [^Struct s keys value]
   (if (empty? keys) value
