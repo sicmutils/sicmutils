@@ -4,7 +4,8 @@
             [math.operator :as o]
             [math.structure :as struct]
             [clojure.set :as set]
-            ))
+            )
+  (:import (math.structure Struct)))
 ;;
 ;; some general thoughts on this module: we have observed,
 ;; at various debugging times, intermediate values of
@@ -314,19 +315,17 @@
 ;; XXX unary-op is memoized in scmutils. But rather than memoizing that,
 ;; it might be better just to memoize entire simplications.
 
-
-;; (s:generate (s:length v) (s:opposite v)
-;;             (lambda (i)
-;;                     (sd (lambda (xi)
-;;                                 (g (s:with-substituted-coord v i xi)))
-;;                         (s:ref v i)))))
-
 (defn- euclidean-structure
   [selectors f]
   (letfn [(sd [g v]
-            ;; THIS IS WHERE WE LEFT OFF!
-            ;; I LOVE YOU ERIN!
-            (cond (struct/structure? v) (throw (IllegalArgumentException. "oops"))
+            (cond (struct/structure? v)
+                  (Struct. ((.orientation v) {:up :down :down :up})
+                           (vec (map-indexed (fn [i v_i]
+                                           (sd (fn [w]
+                                                 (g (struct/structure-assoc-in v [i] w)))
+                                               v_i))
+                                         v)))
+                  ;(throw (IllegalArgumentException. "oops"))
                   (or (g/numerical-quantity? v) (g/abstract-quantity? v)) ((derivative g) v)
                   :else (throw (IllegalArgumentException. (str "bad structure " g v)))))
           (a-euclidean-derivative [v]

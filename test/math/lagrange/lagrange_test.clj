@@ -1,7 +1,11 @@
 (ns math.lagrange.lagrange-test
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.test :refer :all]
-            [math.mechanics.lagrange :refer :all]))
+            [math.mechanics.lagrange :refer :all]
+            [math.function :refer :all]
+            [math.numbers]
+            [math.expression :refer :all]
+            [math.structure :refer :all]))
 
 (deftest interpolation
   (testing "lagrange interpolation"
@@ -16,3 +20,12 @@
     ;; (let [f (Lagrange-interpolation-function '[a b c] '[w x y])]
     ;;   (is (= 'a (f 'w))))
     ))
+
+(deftest lagrange-equations
+  (testing "basics"
+    (let [Le (Lagrange-equations (L-free-particle 'm))
+          generic-path (up (literal-function 'x)
+                           (literal-function 'y)
+                           (literal-function 'z))
+          LeP (Le generic-path)]
+      (is (= 'foo (print-expression (LeP 't)))))))

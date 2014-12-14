@@ -6,28 +6,28 @@
 
 (deftype Struct [orientation v]
   v/Value
-  (nullity? [s] (every? g/zero? v))
+  (nullity? [_] (every? g/zero? v))
   (unity? [_] false)
-  (zero-like [s] (Struct. orientation (-> v count (repeat 0) vec)))
-  (exact? [s] (every? g/exact? v))
+  (zero-like [_] (Struct. orientation (-> v count (repeat 0) vec)))
+  (exact? [_] (every? g/exact? v))
   (numerical? [_] false)
   (compound? [_] true)
   (sort-key [_] 18)
-  (freeze [s]
+  (freeze [_]
     `(~(orientation {:up 'up :down 'down}) ~@(map x/print-expression v)))
   Object
-  (equals [a b]
+  (equals [_ b]
     (and (instance? Struct b)
          (let [^Struct bs b]
            (= orientation (.orientation bs))
           (= v (.v bs)))))
-  (toString [s] (str (cons orientation v)))
+  (toString [_] (str (cons orientation v)))
   Sequential
   Seqable
                                         ;(seq [x] (-> x .v seq))
-  (seq [x] (seq v))
+  (seq [_] (seq v))
   IFn
-  (invoke [s x]
+  (invoke [_ x]
     (Struct. orientation (vec (map #(% x) v))))
   )
 
@@ -70,7 +70,7 @@
   "Return a structure with the same shape as s but with f applied to
   each primitive (that is, not structural) component."
   [f ^Struct s]
-  (cond (instance? Struct s) (Struct. (.orientation s) (map #(mapr f %) (.v s)))
+  (cond (instance? Struct s) (Struct. (.orientation s) (vec (map #(mapr f %) (.v s))))
         (sequential? s) (map f s)  ;; XXX what happens if we don't do this?
         :else (f s))
   )
@@ -83,7 +83,8 @@
   (if (empty? keys) value
       (let [w (.v s)
             k1 (first keys)]
-        (assoc w k1 (structure-assoc-in (w k1) (next keys) value)))))
+        (Struct. (.orientation s)
+                 (assoc w k1 (structure-assoc-in (nth w k1) (next keys) value))))))
 
 (defn structure-get-in
   "Like get-in, but for structures. See structure-assoc-in"

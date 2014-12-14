@@ -2,6 +2,7 @@
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.test :refer :all]
             [math.value :as v]
+            [math.numbers]
             [math.structure :refer :all]
             [math.generic :refer :all]))
 
