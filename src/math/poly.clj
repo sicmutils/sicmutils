@@ -14,6 +14,7 @@
 (defrecord Poly [^long arity ^PersistentTreeMap oc]
   v/Value
   (nullity? [p] (empty? (:oc p)))
+  (numerical? [_] false)
   (unity? [p] (and (= (count (:oc p)) 1)
                  (let [[order coef] (first (:oc p))]
                    (and (core-zero? order)

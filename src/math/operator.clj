@@ -4,10 +4,6 @@
 
 (defrecord Operator [f name]
   v/Value
-  (nullity? [_] false)
-  (unity? [_] false)
-  (zero-like [_] false)
-  (exact? [_] false)
   (sort-key [_] 45)
   (freeze [o] (.name o))
   IFn

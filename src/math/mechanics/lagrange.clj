@@ -2,8 +2,7 @@
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [math.generic :refer :all]
             [math.structure :refer :all]
-            [math.numerical.integrate :refer :all]
-            ))
+            [math.numerical.integrate :refer :all]))
 
 (defn velocity [local] (nth local 2))
 
@@ -50,3 +49,10 @@
                                (cond (< j i) (- (nth xs j) xi)
                                      (= j i) (if (odd? i) -1 1)
                                      :else (- xi (nth xs j))))))))))))
+
+
+(defn Lagrange-equations
+  [Lagrangian]
+    (fn [q]
+      (- (D (comp ((pd 2) Lagrangian) (Γ q)))
+         (comp ((pd 1) Lagrangian) (Γ q)))))

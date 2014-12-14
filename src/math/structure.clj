@@ -10,6 +10,7 @@
   (unity? [_] false)
   (zero-like [s] (Struct. (.orientation s) (-> s .v count (repeat 0) vec)))
   (exact? [s] (every? g/exact? (.v s)))
+  (numerical? [_] false)
   (compound? [_] true)
   (sort-key [_] 18)
   (freeze [s]
@@ -126,7 +127,9 @@
 (g/defhandler :+   [up? up?]               (partial elementwise g/+))
 (g/defhandler :-   [down? down?]           (partial elementwise g/-))
 (g/defhandler :-   [up? up?]               (partial elementwise g/-))
-(g/defhandler :*   [number? structure?]    outer-product)
+(g/defhandler :*   [g/scalar? structure?]    outer-product) ;; this was kind of a late thing to add: maybe we
+;; were depending on canonical order in the past to sort all scalars to the left of structures. That might
+;; be a useful idea to reconsider, or maybe not.
 (g/defhandler :*   [structure? g/scalar?]    #(outer-product %2 %1))
 (g/defhandler :div [structure? g/scalar?]    #(outer-product (/ %2) %1))
 (g/defhandler :*   [structure? structure?] mul)

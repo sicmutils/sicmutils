@@ -19,9 +19,7 @@
       (let [^"[java.lang.reflect.Method" ms (.getDeclaredMethods (class f))
             ^"java.lang.reflect.Method" m (first ms)
             p (.getParameterTypes m)]
-        (prn "shortcut arity failed on" f)
-        #_(prn "arity of" f "has" (alength ms) "declared methods ")
-        #_(doseq [m ms] (prn "method" m))
+        #_(prn "shortcut arity failed on" f "returning" (alength p))
         (alength p)
         )))
 

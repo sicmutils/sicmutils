@@ -14,9 +14,9 @@
 (defrecord Fn [expr arity domain range]
   v/Value
   (nullity? [_] false)
+  (compound? [_] false)
   (unity? [_] false)
-  (zero-like [_] false)
-  (exact? [_] false)
+  (numerical? [_] false)
   (sort-key [_] 35)
   IFn
   (invoke [f x] (literal-apply f [x]))
@@ -60,7 +60,7 @@
   (with-meta (fn [f g]
                (let [f1 (if (g/numerical-quantity? f) (constantly f) f)
                      g1 (if (g/numerical-quantity? g) (constantly g) g)]
-                 #(operator (f1 %) (g1 %))))
+                 (with-meta #(operator (f1 %) (g1 %)) {:arity 1})))
     {:arity 2}))
 
 (g/defhandler :negate [function?] (unary-operation g/negate))

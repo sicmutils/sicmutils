@@ -26,7 +26,7 @@
 (defrecord Differential [terms]
   v/Value
   (nullity? [x]
-    (every? g/zero? (map #(:coefficient %) (:terms x))))
+    (every? g/zero? (map :coefficient (:terms x))))
   (unity? [_]
     false) ;; XXX! this needs to be fixed
   (zero-like [_] 0)
@@ -169,10 +169,15 @@
               0))
           (dist [obj]
             (cond (struct/structure? obj) (struct/mapr dist obj)
-                  (o/operator? obj) (do (prn "DIFF AN OPERATOR" obj) (extract obj))
+                  (o/operator? obj) (extract obj)
                   ;; (matrix? obj) (m:elementwise dist obj) XXX
                   ;; (quaternion? obj) XXX
                   ;; (operator? obj) XXX
+                  ;;
+                  ;; ((operator? obj)
+                  ;;  (hide-tag-in-procedure dx
+                  ;;                         (g:* (make-operator dist 'extract (operator-subtype obj))
+                  ;;                              obj)))
                   ;;
                   ;; Is this latter one causing trouble with invokable derivatives?
                   ;; yes it is. A function? is not something that simply implements IFn;
@@ -183,6 +188,8 @@
                   ;; (instance? clojure.lang.IFn obj) (hide-tag-in-procedure dx (comp dist obj))
                   ;;
                   ;; (series? obj) XXX
+                  (ifn? obj) (comp dist obj)             ;; TODO: innocent of the tag-hiding business
+
 
                   :else (extract obj)))]
     (dist obj)))
@@ -291,6 +298,9 @@
 (def ^:private diff-+ (binary-op g/+ (constantly 1) (constantly 1)))
 (def ^:private diff-- (binary-op g/- (constantly 1) (constantly -1)))
 (def ^:private diff-* (binary-op g/* (fn [_ y] y)   (fn [x _] x)))
+(def ^:private diff-div (binary-op g/divide
+                                   (fn [_ y] (g/divide 1 y))
+                                   (fn [x y] (g/* -1 (g/divide x (g/square y))))))
 (def ^:private sin    (unary-op g/sin g/cos))
 (def ^:private cos    (unary-op g/cos #(g/* -1 (g/sin %))))
 (def ^:private power
@@ -307,6 +317,8 @@
 (defn- euclidean-structure
   [selectors f]
   (letfn [(sd [g v]
+            ;; THIS IS WHERE WE LEFT OFF!
+            ;; I LOVE YOU ERIN!
             (cond (struct/structure? v) (throw (IllegalArgumentException. "oops"))
                   (or (g/numerical-quantity? v) (g/abstract-quantity? v)) ((derivative g) v)
                   :else (throw (IllegalArgumentException. (str "bad structure " g v)))))
@@ -348,6 +360,8 @@
 (g/defhandler :-      [not-compound? differential?] diff--)
 (g/defhandler :*      [differential? not-compound?] diff-*)
 (g/defhandler :*      [not-compound? differential?] diff-*)
+(g/defhandler :div    [differential? not-compound?] diff-div)
+(g/defhandler :div    [not-compound? differential?] diff-div)
 (g/defhandler :square [differential?] #(g/* % %))
 (g/defhandler :sin    [differential?] sin)
 (g/defhandler :cos    [differential?] cos)

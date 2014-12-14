@@ -8,7 +8,7 @@
   v/Value
   (nullity? [_] false)                                      ;; XXX what if it's a wrapped zero? one?
   (unity? [_] false)
-  (zero-like [_] false)
+  (zero-like [_] 0)
   (numerical? [x] (= (:type x) :number))
   (exact? [_] false)
   (sort-key [_] 17)

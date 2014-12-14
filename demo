@@ -20,6 +20,53 @@
     (let [η (make-η ν t1 t2)]
       (Lagrangian-action (L-free-particle mass)
                          (+ q (* ε η)) t1 t2))))
+                         
 (Lagrangian-action (L-free-particle 3.0) test-path 0.0 10.0)
+
 ((varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) 0.001)
-(minimize (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) -2.0 1.0)
+; this one takes a while
+;(minimize (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) -2.0 1.0)
+
+(defn δ
+  [η]
+  (fn [f]
+    ;; Define g(ε) as in Eq. 1.22; then δ_η f[q] = Dg(0)
+    (fn [q]
+      (let [g (fn [ε]
+                (f (+ q (* ε η))))]
+        
+          ((D g) 0)))))
+
+(defn F [q]
+  (fn [t]
+    ((literal-function 'f) (q t))))
+
+(def literal-eta (literal-function 'eta))
+(def literal-q (literal-function 'a))
+
+((((δ literal-eta) identity) literal-q) 't)
+((F literal-q) 't)
+((((δ literal-eta)        F) literal-q) 'y)
+
+;(((Lagrange-equations (L-free-particle 'm)) test-path) 't)
+
+
+(let [η (literal-function 'η)
+          q (literal-function 'q)
+          I (fn [q] (fn [t] (q t)))
+          f (literal-function 'f)
+          F (fn [q] (fn [t] (f (q t))))
+          q+εη (+ q (* 'ε η))
+          g (fn [ε] (+ q (* ε η)))
+          δη (δ η)
+          δηI (δη I)
+          δηIq (δηI q)
+          δηFq ((δη F) q)
+          ]
+      (doseq [i [(q+εη 't)
+                 ((g 'ε) 't)
+                 (((D g) 'dt) 'a)
+                 (δηIq 't)
+                 ((F q) 't)
+                 (δηFq 't)]]
+        (prn (freeze-expression i))))

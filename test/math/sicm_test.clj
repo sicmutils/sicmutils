@@ -4,6 +4,7 @@
             [math.generic :refer :all]
             [math.structure :refer :all]
             [math.numbers :refer :all]
+            [math.numsymb]
             [math.expression :refer :all]
             [math.numerical.integrate :refer :all]
             [math.numerical.minimize :refer :all]
@@ -45,6 +46,20 @@
     (Lagrange-interpolation-function
       `[~q0 ~@qs ~q1]
       `[~t0 ~@ts ~t1])))
+
+(defn δ
+  [η]
+  (fn [f]
+    ;; Define g(ε) as in Eq. 1.22; then δ_η f[q] = Dg(0)
+    (fn [q]
+      (let [g (fn [ε] (+ q (* ε η)))]
+        (prn "g(ε)" (freeze-expression (g 'ε)))
+        (prn "g(ε+dε)" (freeze-expression (g (+ 'ε 'dε))))
+        (prn "g(ε+dε)(t)" (freeze-expression ((g (+ 'ε 'dε)) 't)))
+        (prn "g(ε)(t)" (freeze-expression ((g 'ε) 't)))
+        (prn "Dg(ε_0)" (freeze-expression ((D g) 'ε_0)))
+        (prn "Dg(0)" (freeze-expression ((D g) 0)))
+        ((D g) 0)))))
 
 (deftest sicm
   (testing "Chapter 1"
@@ -109,7 +124,8 @@
       )
 
     (is (near 436.2912143 ((varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) 0.001)))
-    (let [m (minimize (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) -2.0 1.0)]
-      (is (near 0.0 (first m)))
-      (is (near 435 (second m))))
+    ;; temporarily disabled because they take a long time
+    ;; (let [m (minimize (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) -2.0 1.0)]
+    ;;   (is (near 0.0 (first m)))
+    ;;   (is (near 435 (second m))))
     ))

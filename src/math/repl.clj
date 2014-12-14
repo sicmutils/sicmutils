@@ -12,12 +12,18 @@
             [math.numerical.minimize :refer :all]
             [math.calculus.derivative]
             [math.mechanics.lagrange :refer :all])
-  (:gen-class))
+  (:gen-class :main true))
 
 (defn -main
-  [& _]
+  [& args]
   (println "Won't you sign in, stranger?")
   (m/with-bindings
     (in-ns 'math.repl)
-    (m/repl)
+    (if args
+      ;; read and eval the contents of the supplied files
+      (doseq [a args]
+        (prn "arg" a)
+        )
+      (m/repl)
+      )
     (println "Home at last.")))

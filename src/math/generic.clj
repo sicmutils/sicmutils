@@ -23,21 +23,18 @@
 
 (defn one?
   [x]
-  (cond (number? x) (== x 1)
-        (satisfies? v/Value x) (v/unity? x)
-        :else false))
+  (or (and (number? x) (== x 1))
+      (and (satisfies? v/Value x) (v/unity? x))))
 
 (defn exact?
   [x]
-  (cond (integer? x) true
-        (ratio? x) true
-        (satisfies? v/Value x) (v/exact? x)
-        :else false))
+  (or (integer? x)
+      (ratio? x)
+      (and (satisfies? v/Value x) (v/exact? x))))
 
 (defn numerical?
   [x]
-  (cond (satisfies? v/Value x) (v/numerical? x)
-        :else false))
+  (and (satisfies? v/Value x) (v/numerical? x)))
 
 (defn zero-like
   [x]
@@ -47,13 +44,11 @@
 
 (defn literal-number?
   [x]
-  (and (instance? Expression x)
-       (v/numerical? x)))
+  (and (instance? Expression x) (v/numerical? x)))
 
 (defn abstract-number?
   [x]
-  (or (symbol? x)
-      (literal-number? x)))
+  (or (symbol? x) (literal-number? x)))
 
 (defn abstract-quantity?
   [x]
