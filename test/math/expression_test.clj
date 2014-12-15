@@ -12,7 +12,7 @@
     (is (thrown? IllegalArgumentException
                  (walk-expression {'+ + 'x 5 'y -2} (make '(+ 3 (* 4 y) x)))))
     )
-  (testing "freeze"
+  (testing "print"
     (is (= 3 (print-expression 3)))
     (is (= :x (print-expression :x))))
  )

@@ -91,4 +91,3 @@
 (velocity ((F->C p->r)
            (->local 't (up 'r 'phi) (up 'rdot 'phidot))))
 
-

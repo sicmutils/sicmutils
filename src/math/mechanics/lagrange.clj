@@ -4,18 +4,16 @@
             [math.structure :refer :all]
             [math.numerical.integrate :refer :all]))
 
-(defn coordinate [local] (nth local 1))
 (defn velocity [local] (nth local 2))
 
 (defn L-free-particle [mass]
   (fn [local]
-    (let [v (velocity local)]
+    (let [[_ _ v] local]
       (* 1/2 mass (square v)))))
 
 (defn L-harmonic [m k]
   (fn [local]
-    (let [q (coordinate local)
-          v (velocity local)]
+    (let [[_ q v] local]
       (- (* 1/2 m (square v)) (* 1/2 k (square q))))))
 
 (defn L-uniform-acceleration [m g]
@@ -32,7 +30,7 @@
 (defn L-central-polar [m U]
   (fn [local]
     (let [[_ q qdot] local
-          [r φ] q
+          [r] q
           [rdot φdot] qdot]
       (- (* 1/2 m
             (+ (square rdot)

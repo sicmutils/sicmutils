@@ -75,9 +75,7 @@
   (testing "chain rule"
     (let [s (fn [t] (sqrt t))
           u (fn [t] (expt (- (* 3 (s t)) 1) 2/3))
-          y (fn [t] (/ (+ (u t) 2) (- (u t) 1)))
-
-          ]
+          y (fn [t] (/ (+ (u t) 2) (- (u t) 1)))]
       (is ((v/within 1e-6) (/ -1 18.) ((D y) 9))))
     )
 
@@ -105,9 +103,7 @@
           δηI (δη I)
           δηIq (δηI q)
           δηFq ((δη F) q)
-          φ (fn [f] (fn [q] (fn [t] ((literal-function 'φ) ((f q) t)))))
-          ;φ (fn [f] (fn [q] (fn [t] (((comp (literal-function 'φ) f) q) t))))
-          ]
+          φ (fn [f] (fn [q] (fn [t] ((literal-function 'φ) ((f q) t)))))]
       (is (= '(+ (q t) (* ε (η t))) (pe (q+εη 't))))
       (is (= '(+ (q t) (* ε (η t))) (pe ((g 'ε) 't))))
       (is (= '(η a) (pe (((D g) 'dt) 'a))))
