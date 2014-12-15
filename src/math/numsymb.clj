@@ -249,8 +249,8 @@
    :invert #(div 1 %)
    :sin sine
    :cos cosine
-   :cube #(g/expt % 3)
-   :square #(g/expt % 2)
+   :cube #(expt % 3)
+   :square #(expt % 2)
    :abs abs
    :sqrt sqrt
    :log log

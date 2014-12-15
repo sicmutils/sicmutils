@@ -6,10 +6,10 @@
             [math.generic :refer :all]
             [math.value :as v]
             [math.numbers]
-            [math.expression :refer :all]
+            [math.expression :refer [print-expression] :rename {print-expression pe}]
             [math.structure :refer :all]
-            ))
-
+            )
+  )
 
 (def ^:private q
   (up (literal-function 'x)
@@ -82,7 +82,7 @@
     )
 
   (testing "structural-functions"
-    (is (= '(up (cos t) (* -1 (sin t))) (print-expression ((D (up sin cos)) 't)))))
+    (is (= '(up (cos t) (* -1 (sin t))) (pe ((D (up sin cos)) 't)))))
 
   (testing "partial derivatives"
     (let [f (fn [x y] (+ (* x x) (* y y)))]
@@ -105,16 +105,25 @@
           δηI (δη I)
           δηIq (δηI q)
           δηFq ((δη F) q)
+          φ (fn [f] (fn [q] (fn [t] ((literal-function 'φ) ((f q) t)))))
+          ;φ (fn [f] (fn [q] (fn [t] (((comp (literal-function 'φ) f) q) t))))
           ]
-      (is (= '(+ (q t) (* ε (η t))) (print-expression (q+εη 't))))
-      (is (= '(+ (q t) (* ε (η t))) (print-expression ((g 'ε) 't))))
-      (is (= '(η a) (print-expression (((D g) 'dt) 'a))))
-      (is (= '(η t) (print-expression (δηIq 't))))
-      (is (= '(f (q t)) (print-expression ((F q) 't))))
-      (is (= '(* ((D f) (q t)) (η t)) (print-expression (δηFq 't))))
+      (is (= '(+ (q t) (* ε (η t))) (pe (q+εη 't))))
+      (is (= '(+ (q t) (* ε (η t))) (pe ((g 'ε) 't))))
+      (is (= '(η a) (pe (((D g) 'dt) 'a))))
+      (is (= '(η t) (pe (δηIq 't))))
+      (is (= '(f (q t)) (pe ((F q) 't))))
+      (is (= '(* ((D f) (q t)) (η t)) (pe (δηFq 't))))
+      ;; sum rule for variation: δ(F+G) = δF + δG
+      (is (= '(+ (* ((D f) (q t)) (η t)) (* ((D g) (q t)) (η t))) (pe (((δη (+ F G)) q) 't))))
+      ;; scalar product rule for variation: δ(cF) = cδF
+      (is (= '(* c ((D f) (q t)) (η t)) (pe (((δη (* 'c F)) q) 't))))
       ;; product rule for variation: δ(FG) = δF G + F δG
-      (is (= (print-expression (+ (* (((δη F) q) 't) ((G q) 't))
+      (is (= (pe (+ (* (((δη F) q) 't) ((G q) 't))
                                    (* ((F q) 't) (((δη G) q) 't))))
-             (print-expression (((δη (* F G)) q) 't))))
+             (pe (((δη (* F G)) q) 't))))
+      ;; path-independent chain rule for variation
+      (is (= '(φ (f (q t))) (pe (((φ F) q) 't))))
+      (is (= '(* ((D φ) (f (q t))) ((D f) (q t)) (η t)) (pe (((δη (φ F)) q) 't))))
       )
     ))

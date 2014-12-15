@@ -4,12 +4,57 @@
             [math.structure :refer :all]
             [math.numerical.integrate :refer :all]))
 
+(defn coordinate [local] (nth local 1))
 (defn velocity [local] (nth local 2))
 
 (defn L-free-particle [mass]
   (fn [local]
     (let [v (velocity local)]
       (* 1/2 mass (square v)))))
+
+(defn L-harmonic [m k]
+  (fn [local]
+    (let [q (coordinate local)
+          v (velocity local)]
+      (- (* 1/2 m (square v)) (* 1/2 k (square q))))))
+
+(defn L-uniform-acceleration [m g]
+  (fn [local]
+    (let [[_ [_ y] v] local]
+      (- (* 1/2 m (square v)) (* m g y)))))
+
+(defn L-central-rectangular [m U]
+  (fn [local]
+    (let [[_ q v] local]
+      (- (* 1/2 m (square v))
+         (U (sqrt (square q)))))))
+
+(defn L-central-polar [m U]
+  (fn [local]
+    (let [[_ q qdot] local
+          [r φ] q
+          [rdot φdot] qdot]
+      (- (* 1/2 m
+            (+ (square rdot)
+               (square (* r φdot))))
+         (U r)))))
+
+(def ->local up)
+
+(defn F->C [F]
+  (fn [local]
+    (->local (first local)
+             (F local)
+             (+ (((pd 0) F) local)
+                (* (((pd 1) F) local)
+                   (velocity local))))))
+
+(defn p->r [local]
+  (let [[_ polar-tuple] local
+        [r φ] polar-tuple
+        x (* r (cos φ))
+        y (* r (sin φ))]
+    (up x y)))
 
 ;; XXX: GJS allows for a gamma procedure that contains higher
 ;; derivatives

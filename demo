@@ -69,5 +69,26 @@
 (((δ_η    (+ F G)) literal-q) 't)
 (((δ_η       phiF) literal-q) 't)
 
+(((Lagrange-equations (L-free-particle 'm)) (literal-function 'q)) 't)
 (((Lagrange-equations (L-free-particle 'm)) test-path) 't)
+
+
+(defn proposed-solution [t]
+  (* 'a (cos (+ (* 'omega t) 'phi))))
+
+(((Lagrange-equations (L-harmonic 'm 'k)) proposed-solution) 't)
+(((Lagrange-equations (L-uniform-acceleration 'm 'g)) (up (literal-function 'x) (literal-function 'y))) 't)
+(((Lagrange-equations (L-central-rectangular 'm (literal-function 'U)))
+  (up (literal-function 'x)
+      (literal-function 'y)))
+  't)
+
+(((Lagrange-equations (L-central-polar 'm (literal-function 'U)))
+  (up (literal-function 'r)
+      (literal-function 'phi)))
+  't)
+
+(velocity ((F->C p->r)
+           (->local 't (up 'r 'phi) (up 'rdot 'phidot))))
+
 
