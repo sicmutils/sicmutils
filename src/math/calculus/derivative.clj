@@ -17,8 +17,7 @@
 
 ;; If you construct one of these directly, make sure tags
 ;; is sorted correctly; if in doubt, use make-differential-term
-(defrecord DifferentialTerm [tags coefficient]
-  )
+(defrecord DifferentialTerm [tags coefficient])
 
 (declare differential-of)
 
@@ -77,19 +76,19 @@
          (differential-term-list? bs)]}
   (loop [as as bs bs rs []]
     (cond
-     (empty? as) (into rs bs)
-     (empty? bs) (into rs as)
-     :else (let [{a-tags :tags a-coef :coefficient :as a} (first as)
-                 {b-tags :tags b-coef :coefficient :as b} (first bs)]
-             (cond
-              (= a-tags b-tags) (let [r-coef (g/+ a-coef b-coef)]
-                                  (recur (rest as) (rest bs)
-                                         (if (not (g/zero? r-coef))
-                                           (conj rs (DifferentialTerm. a-tags r-coef))
-                                           rs)))
-              ;; kind of sad to call vec here.
-              (< (compare (vec a-tags) (vec b-tags)) 0) (recur (rest as) bs (conj rs a))
-              :else (recur as (rest bs) (conj rs b)))))))
+      (empty? as) (into rs bs)
+      (empty? bs) (into rs as)
+      :else (let [{a-tags :tags a-coef :coefficient :as a} (first as)
+                  {b-tags :tags b-coef :coefficient :as b} (first bs)]
+              (cond
+                (= a-tags b-tags) (let [r-coef (g/+ a-coef b-coef)]
+                                    (recur (rest as) (rest bs)
+                                           (if (not (g/zero? r-coef))
+                                             (conj rs (DifferentialTerm. a-tags r-coef))
+                                             rs)))
+                ;; kind of sad to call vec here.
+                (< (compare (vec a-tags) (vec b-tags)) 0) (recur (rest as) bs (conj rs a))
+                :else (recur as (rest bs) (conj rs b)))))))
 
 (defn dx*dys
   [{:keys [tags coefficient] :as dx} dys]
@@ -97,22 +96,22 @@
          (differential-term-list? dys)]}
   (loop [dys dys result []]
     (if (nil? dys) result
-        (let [y1 (first dys) y-tags (:tags y1)]
-          (recur (next dys)
-                 (if (empty? (set/intersection tags y-tags))
-                   (conj result (DifferentialTerm.
-                                 (set/union tags y-tags)
-                                 (g/* coefficient (:coefficient y1))))
-                   result))))))
+                   (let [y1 (first dys) y-tags (:tags y1)]
+                     (recur (next dys)
+                            (if (empty? (set/intersection tags y-tags))
+                              (conj result (DifferentialTerm.
+                                             (set/union tags y-tags)
+                                             (g/* coefficient (:coefficient y1))))
+                              result))))))
 
 (defn dxs*dys
   [as bs]
   {:pre [(differential-term-list? as)
          (differential-term-list? bs)]}
   (if (empty? as) []
-      (dxs+dys
-       (dx*dys (first as) bs)
-       (dxs*dys (next as) bs))))
+                  (dxs+dys
+                    (dx*dys (first as) bs)
+                    (dxs*dys (next as) bs))))
 
 (defn- differential->terms
   "Given a differential, returns the vector of DifferentialTerms
@@ -120,7 +119,7 @@
   representing d with an empty tag list"
   [d]
   (if (instance? Differential d) (:terms d)
-      [(DifferentialTerm. (sorted-set) d)]))
+                                 [(DifferentialTerm. (sorted-set) d)]))
 
 ;; XXX: perhaps instead of differential->terms we should
 ;; have a function which lifts a non-differential object into
@@ -134,11 +133,11 @@
   before the addition.)"
   [a b]
   (make-differential
-   (dxs+dys (differential->terms a) (differential->terms b))))
+    (dxs+dys (differential->terms a) (differential->terms b))))
 
 (defn dx*dy [a b]
   (make-differential
-   (dxs*dys (differential->terms a) (differential->terms b))))
+    (dxs*dys (differential->terms a) (differential->terms b))))
 
 (def ^:private next-differential-tag (atom 0))
 
@@ -159,40 +158,31 @@
 
 (defn- extract-dx-part [dx obj]
   (letfn [(extract [obj]
-            (if (differential? obj)
-              (terms->differential-collapse
-               (mapcat
-                (fn [term]
-                  (let [tags (:tags term)]
-                    (if (tags dx)
-                      [(DifferentialTerm. (disj tags dx) (:coefficient term))])))
-                (:terms obj)))
-              0))
+                   (if (differential? obj)
+                     (terms->differential-collapse
+                       (mapcat
+                         (fn [term]
+                           (let [tags (:tags term)]
+                             (if (tags dx)
+                               [(DifferentialTerm. (disj tags dx) (:coefficient term))])))
+                         (:terms obj)))
+                     0))
           (dist [obj]
-            (cond (struct/structure? obj) (struct/mapr dist obj)
-                  (o/operator? obj) (extract obj)
-                  ;; (matrix? obj) (m:elementwise dist obj) XXX
-                  ;; (quaternion? obj) XXX
-                  ;; (operator? obj) XXX
-                  ;;
-                  ;; ((operator? obj)
-                  ;;  (hide-tag-in-procedure dx
-                  ;;                         (g:* (make-operator dist 'extract (operator-subtype obj))
-                  ;;                              obj)))
-                  ;;
-                  ;; Is this latter one causing trouble with invokable derivatives?
-                  ;; yes it is. A function? is not something that simply implements IFn;
-                  ;; we will have to be more delicate. Er, or else we will have to
-                  ;; implement hide-tag-in-procedure. Until we do this, we may be
-                  ;; susceptible to the "amazing bug."
-                  ;;
-                  ;; (instance? clojure.lang.IFn obj) (hide-tag-in-procedure dx (comp dist obj))
-                  ;;
-                  ;; (series? obj) XXX
-                  (ifn? obj) (comp dist obj)             ;; TODO: innocent of the tag-hiding business
+                (cond (struct/structure? obj) (struct/mapr dist obj)
+                      (o/operator? obj) (extract obj)
+                      ;; (matrix? obj) (m:elementwise dist obj) XXX
+                      ;; (quaternion? obj) XXX
+                      ;; (operator? obj) XXX
+                      ;; (series? obj) XXX
+                      ;;
+                      ;; ((operator? obj)
+                      ;;  (hide-tag-in-procedure dx
+                      ;;                         (g:* (make-operator dist 'extract (operator-subtype obj))
+                      ;;                              obj)))
+                      (ifn? obj) (comp dist obj)             ;; TODO: innocent of the tag-hiding business
 
 
-                  :else (extract obj)))]
+                      :else (extract obj)))]
     (dist obj)))
 
 (defn derivative
@@ -200,33 +190,6 @@
   (fn [x]
     (let [dx (make-differential-tag)]
       (extract-dx-part dx (f (make-x+dx x dx))))))
-
-;; (define compound-type-tags
-;;   (list vector-type-tag
-;;      ;;column-type-tag
-;;      quaternion-type-tag
-;;      row-type-tag
-;;      matrix-type-tag
-;;      series-type-tag
-;;      abstract-matrix-type-tag))
-
-;;; To turn a unary function into one that operates on differentials
-;;; we must supply the derivative.  This is the essential chain rule.
-
-
-
-;;; The finite-part is all terms except for terms containing the
-;;; highest numbered differential tag in a term of highest order, and
-;;; infinitesimal-part is the remaining terms, all of which contain
-;;; that differential tag.  So:
-
-;;;                           f
-;;;    x + dx + dy + dx*dy |----> f(x+dx) + Df(x+dx)*(dy+dx*dy)
-;;; Alternatively, we might have computed the following, but we think
-;;; that the ultimate values of derivatives don't care, because mixed
-;;; partials of R^2 --> R commute.
-
-;;;    x + dx + dy + dx*dy |----> f(x+dy) + Df(x+dy)*(dx+dx*dy)
 
 (defn- finite-and-infinitesimal-parts
   "Partition the terms of the given differential into the finite and
@@ -318,25 +281,24 @@
 (defn- euclidean-structure
   [selectors f]
   (letfn [(sd [g v]
-            (cond (struct/structure? v)
-                  (Struct. ((.orientation v) {:up :down :down :up})
-                           (vec (map-indexed (fn [i v_i]
-                                           (sd (fn [w]
-                                                 (g (struct/structure-assoc-in v [i] w)))
-                                               v_i))
-                                         v)))
-                  ;(throw (IllegalArgumentException. "oops"))
-                  (or (g/numerical-quantity? v) (g/abstract-quantity? v)) ((derivative g) v)
-                  :else (throw (IllegalArgumentException. (str "bad structure " g v)))))
+              (cond (struct/structure? v)
+                    (Struct. ((.orientation v) {:up :down :down :up})
+                             (vec (map-indexed (fn [i v_i]
+                                                 (sd (fn [w]
+                                                       (g (struct/structure-assoc-in v [i] w)))
+                                                     v_i))
+                                               v)))
+                    (or (g/numerical-quantity? v) (g/abstract-quantity? v)) ((derivative g) v)
+                    :else (throw (IllegalArgumentException. (str "bad structure " g v)))))
           (a-euclidean-derivative [v]
-            (cond (struct/structure? v)
-                  (sd (fn [w]
-                        (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
-                      (struct/structure-get-in v selectors))
-                  (empty? selectors)
-                  ((derivative f) v)
-                  :else
-                  (throw (IllegalArgumentException. (str "Bad selectors " f selectors v)))))]
+                                  (cond (struct/structure? v)
+                                        (sd (fn [w]
+                                              (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
+                                            (struct/structure-get-in v selectors))
+                                        (empty? selectors)
+                                        ((derivative f) v)
+                                        :else
+                                        (throw (IllegalArgumentException. (str "Bad selectors " f selectors v)))))]
     a-euclidean-derivative))
 
 (defn- multivariate-derivative
@@ -347,7 +309,7 @@
           (= a 1) (d f)
           (= a 2) (fn [x y]
                     ((d (fn [s] (apply f (seq s))))
-                     (struct/seq-> [x y])))
+                      (struct/seq-> [x y])))
           :else (throw (IllegalArgumentException. "Haven't implemented this yet!")))))
 
 (defn- not-compound?

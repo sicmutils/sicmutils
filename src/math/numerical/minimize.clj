@@ -22,8 +22,9 @@
         bx (* (+ ax cx) 0.5)
         fx (f bx)
         cgold 0.3819660
-        zeps (* v/machine-epsilon 1.0e-3)
+        zeps v/machine-epsilon
         ]
+    (prn "ZEPS" zeps)
     (loop [iter 0
            a (if (< ax cx) ax cx)
            b (if (> ax cx) ax cx)
@@ -35,7 +36,7 @@
            fv fx
            fw fx
            fx fx]
-      #_(prn "brent-step" iter a b d e v w x fv fw fx)
+      (prn "brent" iter a b d e v w x fv fw fx)
       (let [xm (* 0.5 (+ a b))
             tol1 (+ zeps (* tol (abs x)))
             tol2 (* 2.0 tol1)]
@@ -60,15 +61,19 @@
                                       (<= p (* q (- a x)))
                                       (>= p (* q (- b x))))
                                 (let [e (if (>= x xm) (- a x) (- b x))]
+                                  (prn "golden step 1")
                                   [(* cgold e) e])
-                                (let [d (/ p q)
-                                      u (+ x d)
-                                      d1 (if (or (< (- u a) tol2)
-                                                 (< (- b u) tol2))
-                                          (sign tol1 (- xm x))
-                                          d)]
-                                  [d1 e])))
+                                (do
+                                  (prn "parabolic step")
+                                  (let [d (/ p q)
+                                       u (+ x d)
+                                       d1 (if (or (< (- u a) tol2)
+                                                  (< (- b u) tol2))
+                                            (sign tol1 (- xm x))
+                                            d)]
+                                   [d1 e]))))
                             (let [e (if (>= x xm) (- a x) (- b x))]
+                              (prn "golden step 2")
                               [(* cgold e) e]))]
                 (let [u (if (> (abs d) tol1) (+ x d) (+ x (sign tol1 d)))
                       fu (f u)]
@@ -80,11 +85,10 @@
                            w x u
                            fw fx fu)
                     (let [u<x (< u x)
-                          fu<fw (< fu fw)
                           new-a (if u<x u a)
                           new-b (if u<x b u)
                           iter' (inc iter)]
-                      (cond (or fu<fw (= w x))
+                      (cond (or (<= fu fw) (= w x))
                             (recur iter' new-a new-b d e w u x fw fu fx)
                             (or (<= fu fv) (= v x) (= v w))
                             (recur iter' new-a new-b d e u w x fu fw fx)

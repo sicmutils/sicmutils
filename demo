@@ -3,6 +3,8 @@
       (literal-function 'y)
       (literal-function 'z)))
 
+(def literal-q (literal-function 'q))
+
 (defn test-path
   [t]
   (up (+ (* 4 t) 7)
@@ -24,8 +26,9 @@
 (Lagrangian-action (L-free-particle 3.0) test-path 0.0 10.0)
 
 ((varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) 0.001)
+
 ; this one takes a while
-;(minimize (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) -2.0 1.0)
+(minimize (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) -2.0 1.0)
 
 ;; Define the variation operator.
 
@@ -49,14 +52,10 @@
   (fn [t]
     ((literal-function 'g) (q t))))
 
-(def literal-q (literal-function 'q))
 (defn φ [f]
-     (fn [q]
-         ((literal-function 'φ) (f q))))
-
-(defn phiF [q]
-  (fn [t]
-    ((literal-function 'phi) ((literal-function 'f) (q t)))))
+  (fn [q]
+    (fn [t]
+         ((literal-function 'φ) ((f q) t)))))
 
 ;; Verify some properties of the variation.
 
@@ -64,14 +63,15 @@
 (((δ_η   identity) literal-q) 't)
 (((δ_η          F) literal-q) 't)
 (((δ_η          G) literal-q) 't)
-(((δ_η   (* 'c G)) literal-q) 't)
-(((δ_η    (* F G)) literal-q) 't)
-(((δ_η    (+ F G)) literal-q) 't)
-(((δ_η       phiF) literal-q) 't)
+(((δ_η   (* 'c G)) literal-q) 't) ; scalar multiplication of variation
+(((δ_η    (* F G)) literal-q) 't) ; product rule for variation
+(((δ_η    (+ F G)) literal-q) 't) ; sum rule for variation
+(((δ_η      (φ F)) literal-q) 't) ; composition rule for variation
+
+;; Compute the Euler-Lagrange equations for several Lagrangians
 
 (((Lagrange-equations (L-free-particle 'm)) (literal-function 'q)) 't)
 (((Lagrange-equations (L-free-particle 'm)) test-path) 't)
-
 
 (defn proposed-solution [t]
   (* 'a (cos (+ (* 'omega t) 'phi))))
@@ -87,6 +87,8 @@
   (up (literal-function 'r)
       (literal-function 'phi)))
   't)
+
+;; Coordinate transformation
 
 (velocity ((F->C p->r)
            (->local 't (up 'r 'phi) (up 'rdot 'phidot))))
