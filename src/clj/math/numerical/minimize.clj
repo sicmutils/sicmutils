@@ -1,5 +1,4 @@
 (ns math.numerical.minimize
-  (:require [math.value :as v])
   (:import [math.numerical Brent Brent$Result]))
 
 (defn minimize

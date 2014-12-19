@@ -4,9 +4,6 @@
             [math.numerical.minimize :refer :all]
             ))
 
-
-(def tol (* 10 v/machine-epsilon))
-
 (def ^:private near (v/within 1e-5))
 
 (deftest minima

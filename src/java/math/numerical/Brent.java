@@ -19,7 +19,7 @@ public class Brent {
         }
     }
 
-    public static Result minimize(double a, double b, IFn f, double t) {
+    public static Result minimize(final double a, final double b, final IFn f, final double t) {
         int iter = 0;
         double d = 0.0, e = 0.0, fu, fv, fw, fx, m, p, q, r, tol, t2, u, v, w;
         double sa = a < b ? a : b;
@@ -31,12 +31,10 @@ public class Brent {
         fw = fx;
         fv = fw;
         while (true) {
-            //System.out.println("brent #" + iter + " " + sa + " " + sb + " " + x);
             m = 0.5 * (sa + sb);
             tol = eps * Math.abs(x) + t;
             t2 = 2.0 * tol;
             if (Math.abs(x-m) <= t2 - 0.5 * (sb - sa)) {
-                //System.out.println("x " + x + " fx " + fx + " iter " + iter);
                 return new Result(x, fx, iter);
             }
             if (iter > itmax) throw new IllegalArgumentException("Brent/minimize failed to converge");
