@@ -280,11 +280,11 @@
 
 (defn- euclidean-structure
   [selectors f]
-  (letfn [(sd [g v]
+  (letfn [(structural-derivative [g v]
               (cond (struct/structure? v)
                     (Struct. ((.orientation v) {:up :down :down :up})
                              (vec (map-indexed (fn [i v_i]
-                                                 (sd (fn [w]
+                                                 (structural-derivative (fn [w]
                                                        (g (struct/structure-assoc-in v [i] w)))
                                                      v_i))
                                                v)))
@@ -292,7 +292,7 @@
                     :else (throw (IllegalArgumentException. (str "bad structure " g v)))))
           (a-euclidean-derivative [v]
                                   (cond (struct/structure? v)
-                                        (sd (fn [w]
+                                        (structural-derivative (fn [w]
                                               (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
                                             (struct/structure-get-in v selectors))
                                         (empty? selectors)
