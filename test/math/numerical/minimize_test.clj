@@ -4,6 +4,7 @@
             [math.numerical.minimize :refer :all]
             ))
 
+
 (def tol (* 10 v/machine-epsilon))
 
 (def ^:private near (v/within 1e-5))
@@ -12,7 +13,6 @@
   (testing "easy"
     (let [B (fn [f a b]
               (let [m (minimize f a b)]
-                #_(prn "steps" (nth m 2))
                 (first m)))]
       ;; http://www.wolframalpha.com/input/?i=x%5E2+%2B+exp%28-x%29
       (is (near 0.351734  (B #(+ (* % %) (Math/exp (- %))) 0.0 1.0)))
