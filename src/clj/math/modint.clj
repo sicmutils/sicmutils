@@ -11,8 +11,7 @@
   (exact? [_] true)
   (sort-key [_] 15)
   (numerical? [_] true)
-  (compound? [_] false)
-  )
+  (compound? [_] false))
 
 (defn make [a m]
   (ModInt. (mod a m) m))

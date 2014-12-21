@@ -6,27 +6,21 @@
             [clojure.set :as set]
             )
   (:import (math.structure Struct)))
-;;
-;; some general thoughts on this module: we have observed,
-;; at various debugging times, intermediate values of
-;; differential containing coefficient-zero items. Where
-;; do these come from? We are also skeptical of the implementation
-;; of differential->terms-collapse. Maybe better done with a
-;; group-by, filter than a reduce over the addition.
-;;
 
-;; If you construct one of these directly, make sure tags
-;; is sorted correctly; if in doubt, use make-differential-term
-(defrecord DifferentialTerm [tags coefficient])
+;; A differential term is implemented as a two-element
+;; sequence whose first entry is a sorted set of tags,
+;; and whose second is the coefficient.
+(def ^:private tags first)
+(def ^:private coefficient second)
 
 (declare differential-of)
 
-;; If you construct one of these directly, make sure terms
-;; is appropriately sorted. If in doubt, use make-differential
+;; A differential is a map from (sorted) differential
+;; tag-sets to coefficients.
 (defrecord Differential [terms]
   v/Value
-  (nullity? [x]
-    (every? g/zero? (map :coefficient (:terms x))))
+  (nullity? [d]
+    (every? g/zero? (map coefficient d)))
   (unity? [_]
     false) ;; XXX! this needs to be fixed
   (zero-like [_] 0)
@@ -39,87 +33,115 @@
 
 (def differential? (partial instance? Differential))
 
-(defn make-differential-term [dxs coefficient]
-  (DifferentialTerm. (apply sorted-set dxs) coefficient))
-
-(defn differential-of [dx]
+(defn differential-of
+  "The differential of a quantity is, if we're a differential,
+  the differential of the coefficient of the highest-order
+  term part, or else the input itself."
+  [dx]
   (loop [dx dx]
     (if (instance? Differential dx)
-      (recur (:coefficient (first (:terms dx))))
+      (recur (coefficient (last (:terms dx))))
       dx)))
 
 (defn- differential-term-list?
+  "A laborious check that as is in fact a differential
+  term list, in the sense that it is a sequence of pairs.
+  Used in preconditions."
   [as]
   (or (empty? as)
+      (map? as)                                             ;; hmm
       (and (sequential? as)
-           (every? #(instance? DifferentialTerm %) as))))
+           (every? (fn [t]
+                     (and (sequential? t)
+                          (= (count t) 2)))
+                   as))))
+
+;; Kind of sad to call vec here. Why aren't sorted-sets comparable?
+;; Monitor this as Clojure evolves. Or submit a patch yourself!
+(def ^:private empty-differential (sorted-map-by #(compare (vec %1) (vec %2))))
+(def ^:private empty-tags (sorted-set))
+
+(defn- canonicalize-tag-sequences
+  [tags->coefs]
+  (map (fn [[k v]] [(apply sorted-set k) v]) tags->coefs))
+
+(defn- canonicalize-differential
+  [tags->coefs]
+  (cond (empty? tags->coefs) 0
+        (and (= (count tags->coefs) 1)
+             (empty? (tags (first tags->coefs)))) (coefficient (first tags->coefs))
+        :else (Differential. (into empty-differential tags->coefs))))
 
 (defn make-differential
-  "Constructs a differential from a list of terms. If the list is empty,
-  you get plain old 0. If there is just one term and it does not
-  contain any differential tags, then you get the coefficient of the
-  term (i.e., things that aren't differential anymore as a result of
-  derivative computation get folded town to their plain
-  values). Otherwise a Differential object containing the terms is
-  returned."
-  [terms]
-  {:pre [(differential-term-list? terms)]}
-  (cond (empty? terms) 0
-        (and (= (count terms) 1) (-> terms first :tags empty?)) (-> terms first :coefficient)
-        ;; kind of sad to call vec here. Why aren't the seqs comparable?
-        :else (Differential. (sort-by #(-> % :tags vec) terms))))
+  "The input here is a mapping (loosely defined) between sets of differential
+  tags and coefficients. The mapping can be an actual map, or just a sequence
+  of pairs. The differential tag sets can be actual sets of tags, or in fact
+  any kind of sequence of tags. This form of differential creation takes care
+  of everything, and canonicalizes the results. This process involves converting
+  the tag sets into sorted-sets, grouping the terms by tag-set value, summing
+  the corresponding entries, dropping zero-coefficient entries, and seeing
+  whether the resulting map is equivalent to a scalar; after all that either
+  a scalar or a Differential object is returned."
+  [tags->coefs]
+  (->> tags->coefs
+       canonicalize-tag-sequences
+       (group-by first)
+       (map (fn [[k vs]] [k (apply g/+ (map second vs))]))
+       (filter (fn [[_ v]] (not (g/zero? v))))
+       canonicalize-differential))
 
-(defn- dxs+dys
-  ; TODO: solve the mystery of the zero coefficients.
-  [as bs]
-  {:pre [(differential-term-list? as)
-         (differential-term-list? bs)]}
-  (loop [as as bs bs rs []]
-    (cond
-      (empty? as) (into rs bs)
-      (empty? bs) (into rs as)
-      :else (let [{a-tags :tags a-coef :coefficient :as a} (first as)
-                  {b-tags :tags b-coef :coefficient :as b} (first bs)]
-              (cond
-                (= a-tags b-tags) (let [r-coef (g/+ a-coef b-coef)]
-                                    (recur (rest as) (rest bs)
-                                           (if (not (g/zero? r-coef))
-                                             (conj rs (DifferentialTerm. a-tags r-coef))
-                                             rs)))
-                ;; kind of sad to call vec here.
-                (< (compare (vec a-tags) (vec b-tags)) 0) (recur (rest as) bs (conj rs a))
-                :else (recur as (rest bs) (conj rs b)))))))
-
-(defn dx*dys
-  [{:keys [tags coefficient] :as dx} dys]
-  {:pre [(instance? DifferentialTerm dx)
-         (differential-term-list? dys)]}
-  (loop [dys dys result []]
-    (if (nil? dys) result
-                   (let [y1 (first dys) y-tags (:tags y1)]
-                     (recur (next dys)
-                            (if (empty? (set/intersection tags y-tags))
-                              (conj result (DifferentialTerm.
-                                             (set/union tags y-tags)
-                                             (g/* coefficient (:coefficient y1))))
-                              result))))))
-
-(defn dxs*dys
-  [as bs]
-  {:pre [(differential-term-list? as)
-         (differential-term-list? bs)]}
-  (if (empty? as) []
-                  (dxs+dys
-                    (dx*dys (first as) bs)
-                    (dxs*dys (next as) bs))))
+(defn canonicalize-differential-terms [terms] (make-differential terms)) ;; XXX
 
 (defn- differential->terms
   "Given a differential, returns the vector of DifferentialTerms
   within; otherwise, returns a singleton differential term
-  representing d with an empty tag list"
-  [d]
-  (if (instance? Differential d) (:terms d)
-                                 [(DifferentialTerm. (sorted-set) d)]))
+  representing d with an empty tag list (unless d is zero, in
+  which case we return the empty term list)."
+  [dx]
+  (cond (instance? Differential dx) (:terms dx)
+        (g/zero? dx) empty-differential
+        :else (conj empty-differential [empty-tags dx])))
+
+(defn- dxs+dys
+  [dxs dys]
+  (loop [dxs dxs
+         dys dys
+         result empty-differential]
+    (cond
+      (empty? dxs) (into result dys)
+      (empty? dys) (into result dxs)
+      :else (let [[a-tags a-coef :as a] (first dxs)
+                  [b-tags b-coef :as b] (first dys)]
+              (cond
+                (= a-tags b-tags) (let [r-coef (g/+ a-coef b-coef)]
+                                    (recur (rest dxs) (rest dys)
+                                           (if (not (g/zero? r-coef))
+                                             (conj result [a-tags r-coef])
+                                             result)))
+                ;; kind of sad to call vec here.
+                (< (compare (vec a-tags) (vec b-tags)) 0) (recur (rest dxs) dys (conj result a))
+                :else (recur dxs (rest dys) (conj result b)))))))
+
+(defn- dx*dys
+  [[x-tags x-coef :as dx] dys]
+  {:pre [(differential-term-list? dys)]}
+  (loop [dys dys result empty-differential]
+    (if (nil? dys) result
+                   (let [y1 (first dys) y-tags (tags y1)]
+                     (recur (next dys)
+                            (if (empty? (set/intersection x-tags y-tags))
+                              (conj result [(set/union x-tags y-tags)
+                                            (g/* x-coef (second y1))])
+                              result))))))
+
+(defn- dxs*dys       [as bs]
+  {:pre [(differential-term-list? as)
+         (differential-term-list? bs)]}
+  (if (or (empty? as)
+          (empty? bs)) {}
+                       (dxs+dys
+                         (dx*dys (first as) bs)
+                         (dxs*dys (next as) bs))))
 
 ;; XXX: perhaps instead of differential->terms we should
 ;; have a function which lifts a non-differential object into
@@ -132,11 +154,11 @@
   differential; in which case we lift it into a trivial differential
   before the addition.)"
   [a b]
-  (make-differential
+  (canonicalize-differential-terms
     (dxs+dys (differential->terms a) (differential->terms b))))
 
 (defn dx*dy [a b]
-  (make-differential
+  (canonicalize-differential-terms
     (dxs*dys (differential->terms a) (differential->terms b))))
 
 (def ^:private next-differential-tag (atom 0))
@@ -146,26 +168,24 @@
 
 (defn- make-x+dx [x dx]
   ;; warning: this is not quite what GJS dopes ...
-  (Differential. [(DifferentialTerm. (sorted-set) x)
-                  (DifferentialTerm. (sorted-set dx) 1)]))
-
-(defn- terms->differential-collapse
-  [terms]
-  {:pre [(differential-term-list? terms)]}
-  (make-differential (reduce dxs+dys [] (map vector terms))))
+  (Differential. {(sorted-set) x
+                  (sorted-set dx) 1}))
 
 ;(defn- hide-tag-in-procedure [& args] false) ; XXX
 
 (defn- extract-dx-part [dx obj]
   (letfn [(extract [obj]
                    (if (differential? obj)
-                     (terms->differential-collapse
-                       (mapcat
-                         (fn [term]
-                           (let [tags (:tags term)]
-                             (if (tags dx)
-                               [(DifferentialTerm. (disj tags dx) (:coefficient term))])))
-                         (:terms obj)))
+                     ;; collect all the terms of the differential in which
+                     ;; dx is a member of the term's tag set; drop that
+                     ;; tag from each set and return the differential formed
+                     ;; from what remains.
+                     (make-differential
+                       (filter identity (map
+                                          (fn [[ts cs]]
+                                            (if (ts dx)
+                                              [(disj ts dx) cs]))
+                                          (:terms obj))))
                      0))
           (dist [obj]
                 (cond (struct/structure? obj) (struct/mapr dist obj)
@@ -193,16 +213,18 @@
 
 (defn- finite-and-infinitesimal-parts
   "Partition the terms of the given differential into the finite and
-  infinite parts. XXX we aren't using terms->differential-collapse
+  infinite parts. XXX we aren't using make-differential
   because it doesn't seem like we need to. Alert."
   [x]
   (if (differential? x)
     (let [dts (differential->terms x)
-          keytag (-> dts last :tags last)
+          keytag (-> dts last first last)
           {finite-part false
-           infinitesimal-part true} (group-by #(-> % :tags (contains? keytag)) dts)]
-      [(make-differential finite-part)
-       (make-differential infinitesimal-part)])
+           infinitesimal-part true} (group-by #(-> % first (contains? keytag)) dts)]
+      ;; if the input differential was well-formed, then it is safe to
+      ;; construct differential objects on the split parts.
+      [(canonicalize-differential finite-part)
+       (canonicalize-differential infinitesimal-part)])
     [x 0]))
 
 (defn- unary-op
@@ -221,27 +243,27 @@
   order term; then return the greatest tag found in any of these
   terms; i.e., the highest-numbered tag of the highest-order term."
   [ds]
-  (->> ds (map #(-> % differential->terms last :tags)) (apply set/union) last))
+  (->> ds (map #(-> % differential->terms last first)) (apply set/union) last))
 
 (defn with-tag
   "XXX doc and decide if we need the two infra"
   [tag dx]
-  (->> dx :terms (filter #(-> % :tags (contains? tag))) terms->differential-collapse))
+  (->> dx :terms (filter #(-> % first (contains? tag))) make-differential))
 
 (defn without-tag
   "A real differential is expected here. document this and the above and below,
   if we turn out to keep all three of them. It seems there must be a better way
   to do this..."
   [tag dx]
-  (->> dx :terms (filter #(-> % :tags (contains? tag) not)) terms->differential-collapse))
+  (->> dx :terms (filter #(-> % first (contains? tag) not)) make-differential))
 
 (defn with-and-without-tag
   "XXX doc and decide if we need above two"
   [tag dx]
   (let [{finite-terms false infinitesimal-terms true}
-        (group-by #(-> % :tags (contains? tag)) (differential->terms dx))]
-    [(terms->differential-collapse infinitesimal-terms)
-     (terms->differential-collapse finite-terms)]))
+        (group-by #(-> % tags (contains? tag)) (differential->terms dx))]
+    [(make-differential infinitesimal-terms)
+     (make-differential finite-terms)]))
 
 (defn- binary-op
   [f ∂f:∂x ∂f:∂y]
@@ -281,20 +303,20 @@
 (defn- euclidean-structure
   [selectors f]
   (letfn [(structural-derivative [g v]
-              (cond (struct/structure? v)
-                    (Struct. ((.orientation v) {:up :down :down :up})
-                             (vec (map-indexed (fn [i v_i]
-                                                 (structural-derivative (fn [w]
-                                                       (g (struct/structure-assoc-in v [i] w)))
-                                                     v_i))
-                                               v)))
-                    (or (g/numerical-quantity? v) (g/abstract-quantity? v)) ((derivative g) v)
-                    :else (throw (IllegalArgumentException. (str "bad structure " g v)))))
+                                 (cond (struct/structure? v)
+                                       (Struct. ((.orientation v) {:up :down :down :up})
+                                                (vec (map-indexed (fn [i v_i]
+                                                                    (structural-derivative (fn [w]
+                                                                                             (g (struct/structure-assoc-in v [i] w)))
+                                                                                           v_i))
+                                                                  v)))
+                                       (or (g/numerical-quantity? v) (g/abstract-quantity? v)) ((derivative g) v)
+                                       :else (throw (IllegalArgumentException. (str "bad structure " g v)))))
           (a-euclidean-derivative [v]
                                   (cond (struct/structure? v)
                                         (structural-derivative (fn [w]
-                                              (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
-                                            (struct/structure-get-in v selectors))
+                                                                 (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
+                                                               (struct/structure-get-in v selectors))
                                         (empty? selectors)
                                         ((derivative f) v)
                                         :else
