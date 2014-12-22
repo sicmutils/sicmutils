@@ -7,9 +7,8 @@
             )
   (:import (math.structure Struct)))
 
-;; A differential term is implemented as a two-element
-;; sequence whose first entry is a sorted set of tags,
-;; and whose second is the coefficient.
+;; A differential term is implemented as a map entry
+;; whose key is a set of tags and whose second is the coefficient.
 (def ^:private tags first)
 (def ^:private coefficient second)
 
@@ -43,27 +42,10 @@
       (recur (coefficient (last (:terms dx))))
       dx)))
 
-(defn- differential-term-list?
-  "A laborious check that as is in fact a differential
-  term list, in the sense that it is a sequence of pairs.
-  Used in preconditions."
-  [as]
-  (or (empty? as)
-      (map? as)                                             ;; hmm
-      (and (sequential? as)
-           (every? (fn [t]
-                     (and (sequential? t)
-                          (= (count t) 2)))
-                   as))))
-
 ;; Kind of sad to call vec here. Why aren't sorted-sets comparable?
 ;; Monitor this as Clojure evolves. Or submit a patch yourself!
 (def ^:private empty-differential (sorted-map-by #(compare (vec %1) (vec %2))))
 (def ^:private empty-tags (sorted-set))
-
-(defn- canonicalize-tag-sequences
-  [tags->coefs]
-  (map (fn [[k v]] [(apply sorted-set k) v]) tags->coefs))
 
 (defn- canonicalize-differential
   [tags->coefs]
@@ -84,10 +66,16 @@
   a scalar or a Differential object is returned."
   [tags->coefs]
   (->> tags->coefs
-       canonicalize-tag-sequences
-       (group-by first)
-       (map (fn [[k vs]] [k (apply g/+ (map second vs))]))
-       (filter (fn [[_ v]] (not (g/zero? v))))
+       ; force tag sequences into sorted set form
+       (map (fn [[tag-sequence coefficient]] [(apply sorted-set tag-sequence) coefficient]))
+       ; group by canonicalized tag-set
+       (group-by tags)
+       ; tag sets now map to [tag-set coefficient-list]. Sum the coefficients
+       ; and produce the map of canonicalized tag-set to coefficient-sum
+       (map (fn [[tag-set coefficients]] [tag-set (apply g/+ (map second coefficients))]))
+       ; drop tag-set:coefficient pairs where the coefficient is a zero object
+       (filter (fn [[_ coefficient]] (not (g/zero? coefficient))))
+       ; potentially demote the resulting diffferential object to a constant
        canonicalize-differential))
 
 (defn canonicalize-differential-terms [terms] (make-differential terms)) ;; XXX
@@ -123,9 +111,9 @@
                 :else (recur dxs (rest dys) (conj result b)))))))
 
 (defn- dx*dys
-  [[x-tags x-coef :as dx] dys]
-  {:pre [(differential-term-list? dys)]}
-  (loop [dys dys result empty-differential]
+  [[x-tags x-coef] dys]
+  (loop [dys dys
+         result empty-differential]
     (if (nil? dys) result
                    (let [y1 (first dys) y-tags (tags y1)]
                      (recur (next dys)
@@ -135,8 +123,6 @@
                               result))))))
 
 (defn- dxs*dys       [as bs]
-  {:pre [(differential-term-list? as)
-         (differential-term-list? bs)]}
   (if (or (empty? as)
           (empty? bs)) {}
                        (dxs+dys
@@ -174,35 +160,35 @@
 ;(defn- hide-tag-in-procedure [& args] false) ; XXX
 
 (defn- extract-dx-part [dx obj]
-  (letfn [(extract [obj]
-                   (if (differential? obj)
-                     ;; collect all the terms of the differential in which
-                     ;; dx is a member of the term's tag set; drop that
-                     ;; tag from each set and return the differential formed
-                     ;; from what remains.
-                     (make-differential
-                       (filter identity (map
-                                          (fn [[ts cs]]
-                                            (if (ts dx)
-                                              [(disj ts dx) cs]))
-                                          (:terms obj))))
-                     0))
-          (dist [obj]
-                (cond (struct/structure? obj) (struct/mapr dist obj)
-                      (o/operator? obj) (extract obj)
-                      ;; (matrix? obj) (m:elementwise dist obj) XXX
-                      ;; (quaternion? obj) XXX
-                      ;; (operator? obj) XXX
-                      ;; (series? obj) XXX
-                      ;;
-                      ;; ((operator? obj)
-                      ;;  (hide-tag-in-procedure dx
-                      ;;                         (g:* (make-operator dist 'extract (operator-subtype obj))
-                      ;;                              obj)))
-                      (ifn? obj) (comp dist obj)             ;; TODO: innocent of the tag-hiding business
+  (letfn [(extract
+            ;Collect all the terms of the differential in which
+            ;dx is a member of the term's tag set; drop that
+            ;tag from each set and return the differential formed
+            ;from what remains.
+            [obj]
+            (if (differential? obj)
 
-
-                      :else (extract obj)))]
+              (make-differential
+                (filter identity (map
+                                   (fn [[ts coef]]
+                                     (if (ts dx)
+                                       [(disj ts dx) coef]))
+                                   (:terms obj))))
+              0))
+          (dist
+            [obj]
+            (cond (struct/structure? obj) (struct/mapr dist obj)
+                  (o/operator? obj) (extract obj)           ;; TODO: tag-hiding
+                  ;; (matrix? obj) (m:elementwise dist obj) XXX
+                  ;; (quaternion? obj) XXX
+                  ;; (series? obj) XXX
+                  ;;
+                  ;; ((operator? obj)
+                  ;;  (hide-tag-in-procedure dx
+                  ;;                         (g:* (make-operator dist 'extract (operator-subtype obj))
+                  ;;                              obj)))
+                  (ifn? obj) (comp dist obj)             ;; TODO: innocent of the tag-hiding business
+                  :else (extract obj)))]
     (dist obj)))
 
 (defn derivative
@@ -213,8 +199,7 @@
 
 (defn- finite-and-infinitesimal-parts
   "Partition the terms of the given differential into the finite and
-  infinite parts. XXX we aren't using make-differential
-  because it doesn't seem like we need to. Alert."
+  infinite parts."
   [x]
   (if (differential? x)
     (let [dts (differential->terms x)
@@ -287,8 +272,8 @@
 (def ^:private diff-div (binary-op g/divide
                                    (fn [_ y] (g/divide 1 y))
                                    (fn [x y] (g/* -1 (g/divide x (g/square y))))))
-(def ^:private sin    (unary-op g/sin g/cos))
-(def ^:private cos    (unary-op g/cos #(g/* -1 (g/sin %))))
+(def ^:private sine    (unary-op g/sin g/cos))
+(def ^:private cosine  (unary-op g/cos #(g/* -1 (g/sin %))))
 (def ^:private power
   (binary-op g/expt
              (fn [x y]
@@ -302,31 +287,38 @@
 
 (defn- euclidean-structure
   [selectors f]
-  (letfn [(structural-derivative [g v]
-                                 (cond (struct/structure? v)
-                                       (Struct. ((.orientation v) {:up :down :down :up})
-                                                (vec (map-indexed (fn [i v_i]
-                                                                    (structural-derivative (fn [w]
-                                                                                             (g (struct/structure-assoc-in v [i] w)))
-                                                                                           v_i))
-                                                                  v)))
-                                       (or (g/numerical-quantity? v) (g/abstract-quantity? v)) ((derivative g) v)
-                                       :else (throw (IllegalArgumentException. (str "bad structure " g v)))))
-          (a-euclidean-derivative [v]
-                                  (cond (struct/structure? v)
-                                        (structural-derivative (fn [w]
-                                                                 (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
-                                                               (struct/structure-get-in v selectors))
-                                        (empty? selectors)
-                                        ((derivative f) v)
-                                        :else
-                                        (throw (IllegalArgumentException. (str "Bad selectors " f selectors v)))))]
+  (letfn [(structural-derivative
+            [g v]
+            (cond (struct/structure? v)
+                  (Struct. ((.orientation v) {:up :down :down :up})
+                           (vec (map-indexed
+                                  (fn [i v_i]
+                                    (structural-derivative
+                                      (fn [w]
+                                        (g (struct/structure-assoc-in v [i] w)))
+                                      v_i))
+                                  v)))
+                  (or (g/numerical-quantity? v) (g/abstract-quantity? v))
+                  ((derivative g) v)
+                  :else
+                  (throw (IllegalArgumentException. (str "bad structure " g v)))))
+          (a-euclidean-derivative
+            [v]
+            (cond (struct/structure? v)
+                  (structural-derivative
+                    (fn [w]
+                      (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
+                    (struct/structure-get-in v selectors))
+                  (empty? selectors)
+                  ((derivative f) v)
+                  :else
+                  (throw (IllegalArgumentException. (str "Bad selectors " f selectors v)))))]
     a-euclidean-derivative))
 
 (defn- multivariate-derivative
   [f selectors]
   (let [a (v/arity f)
-        d (fn [f] (euclidean-structure selectors f))] ;; partial application opportunity
+        d (partial euclidean-structure selectors)]
     (cond (= a 0) (constantly 0)
           (= a 1) (d f)
           (= a 2) (fn [x y]
@@ -353,8 +345,8 @@
 (g/defhandler :div    [differential? not-compound?] diff-div)
 (g/defhandler :div    [not-compound? differential?] diff-div)
 (g/defhandler :square [differential?] #(g/* % %))
-(g/defhandler :sin    [differential?] sin)
-(g/defhandler :cos    [differential?] cos)
+(g/defhandler :sin    [differential?] sine)
+(g/defhandler :cos    [differential?] cosine)
 (g/defhandler :sqrt   [differential?] sqrt)
 (g/defhandler :**     [differential? (complement differential?)] power)
 (g/defhandler :∂      [#(or (ifn? %) (struct/structure? %))
