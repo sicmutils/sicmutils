@@ -50,11 +50,14 @@
       (list? s)
       (and (instance? Struct s) (= (.orientation s) :up))))
 
+(defn opposite [s xs]
+  (Struct. (if (up? s) :down :up) (vec xs)))
+
 (defn- elements [^Struct s]
   (if (instance? Struct s) (.v s)
       s))
 
-(defn- size [s]
+(defn- size [^Struct s]
   (count (elements s)))
 
 (defn- orientation [^Struct s]

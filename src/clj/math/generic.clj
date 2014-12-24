@@ -136,6 +136,7 @@
 (def exp (make-operation :exp 1 ))
 (def log (make-operation :log 1))
 (def partial-derivative (make-operation :∂ 2))
+(def simplify (make-operation :simplify 1))
 
 (defn- sort-key
   [x]

@@ -9,20 +9,20 @@
   (nullity? [_] false)                                      ;; XXX what if it's a wrapped zero? one?
   (unity? [_] false)
   (zero-like [_] 0)
-  (numerical? [x] (= (:type x) :number))
+  (numerical? [x] (= (:type x) ::number))
   (exact? [_] false)
   (sort-key [_] 17)
   (compound? [_] false)
   (freeze [x] (-> x :expression print-expression)))
 
 (defn make [x]
-  (Expression. :number x))
+  (Expression. ::number x))
 
 (defn literal-number
   [expression]
   (if (number? expression)
     expression
-    (Expression. :number expression)))
+    (Expression. ::number expression)))
 
 (defn variables-in [expr]
   (->> (:expression expr) flatten (filter symbol?) (into #{})))
@@ -36,7 +36,7 @@
                                           (str "no binding for " a " " (type a)
                                                " " (namespace a) " in "
                                                environment))))
-                    (sequential? a) (apply (first a) (rest a))
+                    (sequential? a) (do (prn "f" (first a) "on" (rest a)) (apply (first a) (rest a)))
                     :else (throw (IllegalArgumentException.
                                   (str "unknown expression type " a)))))
             (:expression expr)))
@@ -98,3 +98,49 @@
 ;;           default))
 ;;      (else
 ;;       (error "Bad abstract quantity"))))
+
+
+;;
+;; general organization of simplification in scmutils from the top down
+;
+; first of all, there seems to be a generic simplification operator that we
+; will have to install. It takes care of things like propagating simplification
+; through structured objects. There's even a case for simplify-differential...
+; but when would a "final" value contain a differential? it's not obvious
+; that that would ever be called under normal circumstances. Maybe we'll leave
+; it out on the first go-round.
+;
+; Hmmm. insofar as GJS has (assign-operation 'simplify expression abstract-{column,row,matrix}?
+; perhaps he is using simplify to unwrap expression wrapping in certain circumstances. I wonder
+; if we should do the same?
+
+; a ha. perhaps the key is here:
+; (define (simplify-literal-number expr)
+;   (new-simplify (expression expr))
+;
+; that's how we get to the rules tables!
+; but within them, there's plenty of rcf:simplify, which we aren't anywhere clost
+; to having, but we might get fpf:simplify to work, if we can understand the
+; horrible statefulness of it: is it just to memorize previous simplifications?
+; that is probably a win, judging by the unsimplified output we're observing from
+; differentiations.
+;
+; (define fpf:simplify
+;(hash-memoize-1arg
+;  (compose canonical-copy
+;           (expression-simplifier fpf:analyzer)))
+; we don't need canonical-copy: that's some kind of structure-equality hack
+; in scmutils that we can almost certainly live without in Clojure.
+; expression-simplifier is where the hurt is.
+;
+; inside an analyzer of a given type (say, FPF, all we have)
+; there is base-simplify, which basically pumps an expression
+; through the lifting and lowering parts of the analyzer hoping
+; for a simplification.
+;
+; The idea being that like terms would be rounded up, I think.
+; let's begin there.
+
+;
+
+;

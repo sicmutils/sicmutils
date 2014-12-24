@@ -33,9 +33,8 @@
 (def differential? (partial instance? Differential))
 
 (defn differential-of
-  "The differential of a quantity is, if we're a differential,
-  the differential of the coefficient of the highest-order
-  term part, or else the input itself."
+  "The differential of a quantity is, if we're a differential, the differential
+  of the coefficient of the highest-order term part, or else the input itself."
   [dx]
   (loop [dx dx]
     (if (instance? Differential dx)
@@ -49,10 +48,13 @@
 
 (defn- canonicalize-differential
   [tags->coefs]
-  (cond (empty? tags->coefs) 0
-        (and (= (count tags->coefs) 1)
-             (empty? (tags (first tags->coefs)))) (coefficient (first tags->coefs))
-        :else (Differential. (into empty-differential tags->coefs))))
+  (if (empty? tags->coefs)
+    0
+    (let [tags->coef (first tags->coefs)]
+      (if (and (= (count tags->coefs) 1)
+               (empty? (tags tags->coef)))
+        (coefficient tags->coef)
+        (Differential. (into empty-differential tags->coefs))))))
 
 (defn make-differential
   "The input here is a mapping (loosely defined) between sets of differential
@@ -72,7 +74,7 @@
        (group-by tags)
        ; tag sets now map to [tag-set coefficient-list]. Sum the coefficients
        ; and produce the map of canonicalized tag-set to coefficient-sum
-       (map (fn [[tag-set coefficients]] [tag-set (apply g/+ (map second coefficients))]))
+       (map (fn [[tag-set coefficients]] [tag-set (apply g/+ (map coefficient coefficients))]))
        ; drop tag-set:coefficient pairs where the coefficient is a zero object
        (filter (fn [[_ coefficient]] (not (g/zero? coefficient))))
        ; potentially demote the resulting diffferential object to a constant
@@ -122,18 +124,13 @@
                                             (g/* x-coef (second y1))])
                               result))))))
 
-(defn- dxs*dys       [as bs]
+(defn- dxs*dys
+  [as bs]
   (if (or (empty? as)
           (empty? bs)) {}
                        (dxs+dys
                          (dx*dys (first as) bs)
                          (dxs*dys (next as) bs))))
-
-;; XXX: perhaps instead of differential->terms we should
-;; have a function which lifts a non-differential object into
-;; a trivial differential, or throws if this cannot be done.
-;; this might eliminate the need for the not-compound? tests
-;; in the GJS code. Might also simplify the adders!
 
 (defn dx+dy
   "Adds two objects differentially. (One of the objects might not be
@@ -290,14 +287,14 @@
   (letfn [(structural-derivative
             [g v]
             (cond (struct/structure? v)
-                  (Struct. ((.orientation v) {:up :down :down :up})
-                           (vec (map-indexed
-                                  (fn [i v_i]
-                                    (structural-derivative
-                                      (fn [w]
-                                        (g (struct/structure-assoc-in v [i] w)))
-                                      v_i))
-                                  v)))
+                  (struct/opposite v
+                                   (map-indexed
+                                     (fn [i v_i]
+                                       (structural-derivative
+                                         (fn [w]
+                                           (g (struct/structure-assoc-in v [i] w)))
+                                         v_i))
+                                     v))
                   (or (g/numerical-quantity? v) (g/abstract-quantity? v))
                   ((derivative g) v)
                   :else
