@@ -7,18 +7,15 @@
             [math.generic :as g]
             [math.expression :as x]))
 
-;; Hmm. I sort of think this should become a deftype. Doing so might help
-;; the arithmetic become genericized in the event that were ever useful.
-
 (declare operator-table operators-known)
 
-(defrecord Poly [^long arity ^PersistentTreeMap oc]
+(defrecord Poly [^long arity ^PersistentTreeMap xs->c]
   v/Value
-  (nullity? [p] (empty? (:oc p)))
+  (nullity? [p] (empty? (:xs->c p)))
   (numerical? [_] false)
-  (unity? [p] (and (= (count (:oc p)) 1)
-                 (let [[order coef] (first (:oc p))]
-                   (and (core-zero? order)
+  (unity? [p] (and (= (count (:xs->c p)) 1)
+                 (let [[exponents coef] (first (:xs->c p))]
+                   (and (every? core-zero? exponents)
                         (g/one? coef)))))
   )
 
@@ -29,11 +26,11 @@
 
 (def ^:private base? number?)
 
-(defn- make-with-arity [a & oc-pairs]
-  (let [ocs (into (sorted-map) (filter (fn [[_ c]] (not (g/zero? c))) oc-pairs))]
-    (cond (empty? ocs) 0
-          (and (= (count ocs) 1) (= (first (first ocs)) 0)) (second (first ocs))
-          :else (Poly. a ocs))))
+(defn- make-with-arity [a & xc-pairs]
+  (let [xs->c (into (sorted-map) (filter (fn [[_ c]] (not (g/zero? c))) xc-pairs))]
+    (cond (empty? xs->c) 0
+          (and (= (count xs->c) 1) (every? core-zero? (first (first xs->c)))) (second (first xs->c))
+          :else (Poly. a xs->c))))
 
 (defn- make-sparse
   "Create a polynomial specifying the terms in sparse form: supplying
@@ -51,7 +48,7 @@
   order of the terms, and zeros must be filled in to get to higher
   powers."
   [& coefs]
-  (apply make-sparse (map vector (iterate inc 0) coefs)))
+  (apply make-sparse (zipmap (map vector (iterate inc 0)) coefs)))
 
 ;; should we rely on the constructors and manipulators never to allow
 ;; a zero coefficient into the list, or should we change degree to
@@ -61,21 +58,12 @@
 (defn make-identity
   "Produce the identity polynomial of the given arity."
   [arity]
-  (make-with-arity arity [1 1]))
-
-(def ^:private poly-identity
-  "The univariate identity polynomial p(x) = x"
-  (make-identity 1))
-
-(defn- poly-extend
-  "Interpolates a variable at position n in polynomial p."
-  [_ _]
-  nil)
+  (make-with-arity arity [[1] 1]))
 
 (defn degree [p]
   (cond (g/zero? p) -1
         (base? p) 0
-        :else (first (first (rseq (:oc p))))))
+        :else (apply max (map #(reduce + 0 %) (keys (:xs->c p))))))
 
 ;; ARITY
 
@@ -95,31 +83,32 @@
 (defn- normalize-with-arity [a p]
   (if (base? p) p
       (let [fp (->> p (filter #(not (g/zero? (second %)))) (into (sorted-map)))]
-        (if-let [[order coef] (first fp)]
-         (if (and (= (count p) 1) (= order 0)) coef
+        (if-let [[xs coef] (first fp)]
+         (if (and (= (count p) 1) (every? core-zero? xs)) coef
              (Poly. a fp))
          0))))
 
 (defn- poly-map [f p]
-  (normalize-with-arity (:arity p) (into (sorted-map) (map #(vector (first %) (f (second %))) (:oc p)))))
+  (normalize-with-arity (:arity p) (into (sorted-map) (map #(vector (first %) (f (second %))) (:xs->c p)))))
 
 (defn- poly-merge [f p q]
-  (loop [P (:oc p)
-         Q (:oc q)
+  (loop [P (:xs->c p)
+         Q (:xs->c q)
          R (sorted-map)]
     (cond
-     (empty? P) (into R Q)
-     (empty? Q) (into R P)
-     :else (let [[op cp] (first P)
-                 [oq cq] (first Q)]
-             (cond
-              (= op oq) (let [v (f cp cq)]
-                          (recur (rest P) (rest Q)
-                                 (if (not (g/zero? v))
-                                   (assoc R op v)
-                                   R)))
-              (< op oq) (recur (rest P) Q (assoc R op (f cp)))
-              :else (recur P (rest Q) (assoc R oq (f cq))))))))
+      (empty? P) (into R Q)
+      (empty? Q) (into R P)
+      :else (let [[xp cp] (first P)
+                  [xq cq] (first Q)
+                  order (compare xp xq)]
+              (cond
+                (core-zero? order) (let [v (f cp cq)]
+                                     (recur (rest P) (rest Q)
+                                            (if (not (g/zero? v))
+                                              (assoc R xp v)
+                                              R)))
+                (< order 0) (recur (rest P) Q (assoc R xp (f cp)))
+                :else (recur P (rest Q) (assoc R xq (f cq))))))))
 
 (defn new-variables
   [arity]
@@ -130,10 +119,18 @@
 
 (def ^:private negate (partial poly-map g/negate))
 
+(defn- constant-term-of-arity
+  [a]
+  (vec (repeat a 0)))
+
 (defn- add-constant [poly c]
   (if (base? poly) (g/+ poly c)
-      (normalize-with-arity (:arity poly)
-                            (assoc (:oc poly) 0 (g/+ (get (:oc poly) 0 0) c)))))
+                   (let [a (:arity poly)
+                         constant-term (constant-term-of-arity a)]
+                     (normalize-with-arity a
+                                          (assoc (:xs->c poly)
+                                                 constant-term
+                                                 (g/+ (get (:xs->c poly) constant-term 0) c))))))
 
 (defn add [p q]
   (cond (and (base? p) (base? q)) (g/+ p q)
@@ -151,8 +148,8 @@
   and without normalizing the result (e.g., to see if the polynomial has
   become constant or a term has dropped out). Useful in intermediate steps
   of polynomial computations."
-  [ocs [o c]]
-  (assoc ocs o (g/+ (get ocs o 0) c)))
+  [ocs [exponents coefficient]]
+  (assoc ocs exponents (g/+ (get ocs exponents 0) coefficient)))
 
 (defn sub [p q]
   (cond (and (base? p) (base? q)) (g/- p q)
@@ -174,8 +171,9 @@
         (base? q) (poly-map #(g/* % q) p)
         :else (let [a (check-same-arity p q)]
                 (normalize-with-arity a (reduce add-denormal (sorted-map)
-                                                (for [[op cp] (:oc p) [oq cq] (:oc q)]
-                                                  [(+ op oq) (g/* cp cq)]))))))
+                                                (for [[xp cp] (:xs->c p)
+                                                      [xq cq] (:xs->c q)]
+                                                  [(vec (map + xp xq)) (g/* cp cq)]))))))
 
 (defn- square [p]
   (mul p p))

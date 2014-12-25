@@ -7,6 +7,7 @@
             [math.expression :refer :all]
             [math.numbers]
             [math.numsymb]
+            [math.poly :as poly]
             [math.function :refer :all]
             [math.operator]
             [math.numerical.integrate]

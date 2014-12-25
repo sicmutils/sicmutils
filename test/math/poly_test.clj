@@ -69,6 +69,9 @@
       (is (= (make) (sub P P)))
       (is (= (make) (add P P)))
       (is (= (make x0 x0 x1) (add P 1)))))
+  )
+
+(deftest poly-simplify
   (testing "arity"
     (is (= 1 (:arity (make 0 1)))))
   (testing "make-vars"
@@ -86,5 +89,4 @@
       (is (= [(make 1 5 10 10 5 1) '#{y}] (expression-> exp2 receive)))
       (is (= [(make 0 -11 5 -30 10 -7 1) '#{y}] (expression-> exp3 receive)))
       ))
-
   )
