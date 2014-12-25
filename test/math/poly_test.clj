@@ -3,7 +3,7 @@
             [math.poly :refer :all]
             [math.generic :as g]
             [math.expression :as x] ;; XXX do we want to test this here?
-            [math.modint]
+            [math.modint :as modular]
             ))
 
 (deftest poly-core
@@ -49,19 +49,13 @@
       (is (= (make 1 4 6 4 1) (expt x+1 4)))
       (is (= (make 1 5 10 10 5 1) (expt x+1 5)))
       ))
-  (testing "identity"
-    (is (= (make 0 1) (make-identity 1)))
-    ;; what we want to test is that identity is the identity function
-    ;; vs. application, not the multiplicative identity, but for that
-    ;; we need apply
-    (is (= (make 0 0 0 0 4 5) (mul (make-identity 1) (make 0 0 0 4 5))))
-    )
   (testing "equals"
     (is (not= 22 (make 2 2)))
     (is (= 22 (make 22))))
   (testing "other coefficient rings: GF(2)"
-    (let [x0 (math.modint/make 0 2)
-          x1 (math.modint/make 1 2)
+    (let [mod2 #(modular/make % 2)
+          x0 (mod2 0)
+          x1 (mod2 1)
           P (make x1 x0 x1)]
       (is (= (make x1 x0 x0 x0 x1) (expt P 2)))
       (is (= (make x1 x0 x1 x0 x1 x0 x1) (expt P 3)))

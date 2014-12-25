@@ -55,11 +55,6 @@
 ;; scan for nonzero coefficients? In the normal case, there would be
 ;; none, but in corner cases it would still be robust.
 
-(defn make-identity
-  "Produce the identity polynomial of the given arity."
-  [arity]
-  (make-with-arity arity [[1] 1]))
-
 (defn degree [p]
   (cond (g/zero? p) -1
         (base? p) 0
@@ -112,10 +107,8 @@
 
 (defn new-variables
   [arity]
-  ; temporary hack while we vectorize the coefficient lists
-  ; XXX: arity is ignored
-  [(make 0 1)]
-  )
+  (for [a (range arity)]
+    (make-with-arity arity [(vec (map #(if (= % a) 1 0) (range arity))) 1])))
 
 (def ^:private negate (partial poly-map g/negate))
 
