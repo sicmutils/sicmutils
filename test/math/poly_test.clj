@@ -2,7 +2,7 @@
   (:require [clojure.test :refer :all]
             [math.poly :refer :all]
             [math.generic :as g]
-            [math.expression :as x] ;; XXX do we want to test this here?
+            [math.expression :as x]
             [math.modint :as modular]
             ))
 
@@ -65,7 +65,7 @@
       (is (= (make x0 x0 x1) (add P 1)))))
   )
 
-(deftest poly-simplify
+(deftest poly-as-simplifier
   (testing "arity"
     (is (= 1 (:arity (make 0 1)))))
   (testing "make-vars"
@@ -82,5 +82,12 @@
       (is (= [(make -3 -2 1) '#{x}] (expression-> exp1 receive)))
       (is (= [(make 1 5 10 10 5 1) '#{y}] (expression-> exp2 receive)))
       (is (= [(make 0 -11 5 -30 10 -7 1) '#{y}] (expression-> exp3 receive)))
+      ))
+  (testing "expr-simplify"
+    (let [poly-simp #(-> % (expression-> ->expression) x/print-expression)
+          exp1 (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x))
+          exp2 (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/sin 'y) (g/* 'y 'y))]
+      (is (= '(+ (* 2 (expt x 2)) (expt x 3)) (poly-simp exp1)))
+      ;(is (= 'foo (poly-simp exp2)))
       ))
   )

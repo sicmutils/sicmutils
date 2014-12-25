@@ -36,7 +36,7 @@
                                           (str "no binding for " a " " (type a)
                                                " " (namespace a) " in "
                                                environment))))
-                    (sequential? a) (apply (first a) (rest a))
+                    (sequential? a) (do #_(prn "x-apply" (first a) (rest a)) (apply (first a) (rest a)))
                     :else (throw (IllegalArgumentException.
                                   (str "unknown expression type " a)))))
             (:expression expr)))

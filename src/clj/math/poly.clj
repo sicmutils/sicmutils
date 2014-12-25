@@ -5,6 +5,7 @@
             [math.value :as v]
             [math.numbers]
             [math.generic :as g]
+            [math.numbers]
             [math.expression :as x]))
 
 (declare operator-table operators-known)
@@ -20,7 +21,7 @@
   )
 
 ;; ultimately this should be more sensitive, and allow the use of
-;; generic types. Might be nice to have a ring-of-coefficients type
+;; generic types. Might be nice to  have a ring-of-coefficients type
 ;; too, but it's not obvious at this point that this would fly with
 ;; the architecture of this system
 
@@ -194,10 +195,24 @@
         environment (into operator-table new-bindings)]
     (cont (x/walk-expression environment expr) expression-vars)))
 
+(defn ->expression
+  [^Poly p vars]
+  #_(prn "->expr" p vars)
+  (if (base? p)
+    p
+    ; maybe get rid of 0/1 in reduce calls. Maybe use symb:+ instead of g/+.
+    (reduce g/+ 0 (map (fn [[exponents coefficient]]
+                         #_(prn "exponents" exponents "coefficient" coefficient)
+                         (g/* coefficient
+                              (reduce g/* 1 (map (fn [exponent var]
+                                                   (g/expt var exponent))
+                                                 exponents vars))))
+                       (:xs->c p)))))
+
 (def ^:private operator-table
-  {`g/+ add
-   `g/- sub
-   `g/* mul
+  {`g/+ #(reduce add 0 %&)
+   `g/- sub                                                 ;; TODO: make arbitrary arity
+   `g/* #(reduce mul 1 %&)
    `g/negate negate
    `g/expt expt
    `g/square square
