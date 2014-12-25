@@ -72,7 +72,7 @@
   (testing "arity"
     (is (= 1 (:arity (make 0 1)))))
   (testing "make-vars"
-    (is (= (list (make 0 1)) (make-vars 1)))
+    (is (= (list (make 0 1)) (new-variables 1)))
     ;(is (= 'bar (make-vars 2)))
     )
   (testing "expr"

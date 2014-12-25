@@ -3,6 +3,7 @@
   (:refer-clojure :rename {zero? core-zero?})
   (:require [clojure.set :as set]
             [math.value :as v]
+            [math.numbers]
             [math.generic :as g]
             [math.expression :as x]))
 
@@ -81,9 +82,6 @@
 (defn- arity [p]
   (if (base? p)
     0
-    ;;(-> p meta :arity))
-    ;; XXX: as we hesitate between the FPF apd PCF forms, arity is not
-    ;; really well defined XXX
     (:arity p)))
 
 (defn- check-same-arity [p q]
@@ -123,25 +121,12 @@
               (< op oq) (recur (rest P) Q (assoc R op (f cp)))
               :else (recur P (rest Q) (assoc R oq (f cq))))))))
 
-;; (define (poly/make-vars arity)
-;;   (if (fix:= arity 0)
-;;     '()
-;;     (let lp1 ((n 1) (l (list poly/identity)))
-;;          (if (fix:= n arity)
-;;            l
-;;            (lp1 (fix:+ n 1)
-;;                 (cons (poly/make-identity (fix:+ n 1))
-;;                       (map (lambda (c)
-;;                                    (poly/extend 0 c))
-;;                            l)))))))
-
-(defn make-vars [arity]
-  (if (= arity 0) ()
-      (loop [n 1 l (list poly-identity)]
-        (if (= n arity) l
-            (recur (inc n)
-                   (cons (make-identity (inc n))
-                         (map (fn [c] (poly-extend 0 c)) l)))))))
+(defn new-variables
+  [arity]
+  ; temporary hack while we vectorize the coefficient lists
+  ; XXX: arity is ignored
+  [(make 0 1)]
+  )
 
 (def ^:private negate (partial poly-map g/negate))
 
@@ -214,9 +199,7 @@
 (defn expression->
   [expr cont]
   (let [expression-vars (set/difference (x/variables-in expr) operators-known)
-        new-bindings (into {} (map vector
-                                   expression-vars
-                                   (make-vars (count expression-vars))))
+        new-bindings (zipmap expression-vars (new-variables (count expression-vars)))
         environment (into operator-table new-bindings)]
     (cont (x/walk-expression environment expr) expression-vars)))
 
