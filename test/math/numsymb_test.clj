@@ -1,8 +1,11 @@
 (ns math.numsymb-test
   (:require [clojure.test :refer :all]
             [math.generic :as g]
+            [math.value :as v]
             [math.numbers]
             [math.numsymb]))
+
+(def ^:private near (v/within 1e-12))
 
 (deftest numsymb-test
   (testing "+/- with vars"
@@ -27,17 +30,25 @@
     (is (= 0 (g/sin 'pi)))
     (is (= 0 (g/sin 'two-pi)))
     (is (= 0 (g/sin '-pi)))
-    ;(is (= 0.0 (g/sin Math/PI)))
-    ;(is (= 0.0 (g/sin (* 2 Math/PI))))
-    ;(is (= 0.0 (g/sin (- Math/PI))))
+    (is (near 0.0 (g/sin Math/PI)))
+    (is (near 0.0 (g/sin (* 2 Math/PI))))
+    (is (near 0.0 (g/sin (- Math/PI))))
     (is (= 1 (g/sin 'pi-over-2)))
     ;(is (= 1.0 (g/sin (/ Math/PI 2))))
     )
   (testing "trig shortcuts - cos"
     (is (= 1.0 (g/cos 0)))
     (is (= -1 (g/cos 'pi)))
+    (is (near -1.0 (g/cos Math/PI)))
     (is (= 1 (g/cos 'two-pi)))
+    (is (near 1.0 (g/cos (* 2 Math/PI))))
     (is (= -1 (g/cos '-pi)))
     (is (= 0 (g/cos 'pi-over-2)))
     )
+
+  (testing "trig shortcuts - tan"
+    (is (= 0.0 (g/tan 0)))
+    (is (= 1 (g/tan 'pi-over-4)))
+    (is (= -1 (g/tan '-pi-over-4)))
+    (is (thrown? IllegalArgumentException (g/tan 'pi-over-2))))
   )

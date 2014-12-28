@@ -24,7 +24,6 @@
   (toString [_] (str (cons orientation v)))
   Sequential
   Seqable
-                                        ;(seq [x] (-> x .v seq))
   (seq [_] (seq v))
   IFn
   (invoke [_ x]

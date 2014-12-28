@@ -129,6 +129,7 @@
 (def invert (make-operation :invert 1))
 (def sin (make-operation :sin 1))
 (def cos (make-operation :cos 1))
+(def tan (make-operation :tan 1))
 (def square (make-operation :square 1))
 (def cube (make-operation :cube 1))
 (def abs (make-operation :abs 1))

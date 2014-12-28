@@ -33,6 +33,7 @@
 (make-binary-operation :** nt/expt false)
 (make-unary-operation :sin #(Math/sin %))
 (make-unary-operation :cos #(Math/cos %))
+(make-unary-operation :tan #(Math/tan %))
 (make-unary-operation :square #(* % %))
 (make-unary-operation :cube #(* % % %))
 (make-unary-operation :abs nt/abs)

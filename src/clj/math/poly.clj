@@ -1,9 +1,8 @@
 (ns math.poly
-  (:import (clojure.lang PersistentTreeMap))
+  (:import (clojure.lang PersistentTreeMap IFn))
   (:refer-clojure :rename {zero? core-zero?})
   (:require [clojure.set :as set]
             [math.value :as v]
-            [math.numbers]
             [math.generic :as g]
             [math.numbers]
             [math.expression :as x]))
@@ -18,6 +17,8 @@
                  (let [[exponents coef] (first (:xs->c p))]
                    (and (every? core-zero? exponents)
                         (g/one? coef)))))
+  IFn
+  (applyTo [_ _] (throw (IllegalArgumentException. "how did we get here?")))
   )
 
 ;; ultimately this should be more sensitive, and allow the use of
@@ -35,8 +36,8 @@
 
 (defn- make-sparse
   "Create a polynomial specifying the terms in sparse form: supplying
-  pairs of [order, coefficient]. For example, x^2 - 1 can be
-  constructed by (make-sparse [2 1] [0 -1]). The order of the pairs
+  pairs of [[orders], coefficient]. For example, x^2 - 1 can be
+  constructed by (make-sparse [[2] 1] [[0] -1]). The order of the pairs
   doesn't matter."
   [& oc-pairs]
   (apply make-with-arity 1 oc-pairs))
@@ -48,22 +49,24 @@
   by (make -1 0 1). The order of the coefficients corresponds to the
   order of the terms, and zeros must be filled in to get to higher
   powers."
-  [& coefs]
-  (apply make-sparse (zipmap (map vector (iterate inc 0)) coefs)))
+  [& coefficients]
+  (apply make-sparse (zipmap (map vector (iterate inc 0)) coefficients)))
 
 ;; should we rely on the constructors and manipulators never to allow
 ;; a zero coefficient into the list, or should we change degree to
 ;; scan for nonzero coefficients? In the normal case, there would be
 ;; none, but in corner cases it would still be robust.
 
-(defn degree [p]
+(defn degree
+  [p]
   (cond (g/zero? p) -1
         (base? p) 0
         :else (apply max (map #(reduce + 0 %) (keys (:xs->c p))))))
 
 ;; ARITY
 
-(defn- arity [p]
+(defn- arity
+  [p]
   (if (base? p)
     0
     (:arity p)))
@@ -76,7 +79,8 @@
           (= ap aq) ap
           :else (throw (ArithmeticException. "mismatched polynomial arity")))))
 
-(defn- normalize-with-arity [a p]
+(defn- normalize-with-arity
+  [p a]
   (if (base? p) p
       (let [fp (->> p (filter #(not (g/zero? (second %)))) (into (sorted-map)))]
         (if-let [[xs coef] (first fp)]
@@ -84,10 +88,12 @@
              (Poly. a fp))
          0))))
 
-(defn- poly-map [f p]
-  (normalize-with-arity (:arity p) (into (sorted-map) (map #(vector (first %) (f (second %))) (:xs->c p)))))
+(defn- poly-map
+  [f p]
+  (normalize-with-arity (into (sorted-map) (map #(vector (first %) (f (second %))) (:xs->c p))) (:arity p)))
 
-(defn- poly-merge [f p q]
+(defn- poly-merge
+  [f p q]
   (loop [P (:xs->c p)
          Q (:xs->c q)
          R (sorted-map)]
@@ -113,20 +119,20 @@
 
 (def ^:private negate (partial poly-map g/negate))
 
-(defn- constant-term-of-arity
-  [a]
-  (vec (repeat a 0)))
+(defn- zero-term
+  [arity]
+  (vec (repeat arity 0)))
 
-(defn- add-constant [poly c]
+(defn- add-constant
+  [poly c]
   (if (base? poly) (g/+ poly c)
-                   (let [a (:arity poly)
-                         constant-term (constant-term-of-arity a)]
-                     (normalize-with-arity a
-                                          (assoc (:xs->c poly)
-                                                 constant-term
-                                                 (g/+ (get (:xs->c poly) constant-term 0) c))))))
+                   (let [{:keys [arity xs->c]} poly]
+                     (-> xs->c
+                         (update-in [(zero-term arity)] #(g/+ (or % 0) c))
+                         (normalize-with-arity arity)))))
 
-(defn add [p q]
+(defn add
+  [p q]
   (cond (and (base? p) (base? q)) (g/+ p q)
         (g/zero? p) q
         (g/zero? q) p
@@ -134,7 +140,7 @@
         (base? q) (add-constant p q)
         :else (let [a (check-same-arity p q)
                     sum (poly-merge g/+ p q)]
-                (normalize-with-arity a sum))))
+                (normalize-with-arity sum a))))
 
 (defn- add-denormal
   "Add-denormal adds the (order, coefficient) pair to the polynomial p,
@@ -145,7 +151,8 @@
   [ocs [exponents coefficient]]
   (assoc ocs exponents (g/+ (get ocs exponents 0) coefficient)))
 
-(defn sub [p q]
+(defn sub
+  [p q]
   (cond (and (base? p) (base? q)) (g/- p q)
         (g/zero? p) (g/negate q)
         (g/zero? q) p
@@ -153,9 +160,10 @@
         (base? q) (add-constant p q)
         :else (let [a (check-same-arity p q)
                     diff (poly-merge g/- p q)]
-                (normalize-with-arity a diff))))
+                (normalize-with-arity diff a))))
 
-(defn mul [p q]
+(defn mul
+  [p q]
   (cond (and (base? p) (base? q)) (g/* p q)
         (g/zero? p) 0
         (g/zero? q) 0
@@ -164,13 +172,11 @@
         (base? p) (poly-map #(g/* p %) q)
         (base? q) (poly-map #(g/* % q) p)
         :else (let [a (check-same-arity p q)]
-                (normalize-with-arity a (reduce add-denormal (sorted-map)
+                (normalize-with-arity (reduce add-denormal (sorted-map)
                                                 (for [[xp cp] (:xs->c p)
                                                       [xq cq] (:xs->c q)]
-                                                  [(vec (map + xp xq)) (g/* cp cq)]))))))
-
-(defn- square [p]
-  (mul p p))
+                                                  [(vec (map + xp xq)) (g/* cp cq)]))
+                                      a))))
 
 (defn expt [p n]
   (cond (base? p) (g/expt p n)
@@ -185,7 +191,7 @@
         :else (loop [x p c n a (make 1)]
                 (if (core-zero? c) a
                     (if (even? c)
-                      (recur (square x) (quot c 2) a)
+                      (recur (mul x x) (quot c 2) a)
                       (recur x (dec c) (mul x a)))))))
 
 (defn expression->
@@ -197,10 +203,9 @@
 
 (defn ->expression
   [^Poly p vars]
-  #_(prn "->expr" p vars)
   (if (base? p)
     p
-    ; maybe get rid of 0/1 in reduce calls. Maybe use symb:+ instead of g/+.
+    ; TODO: maybe get rid of 0/1 in reduce calls. Maybe use symb:+ instead of g/+.
     (reduce g/+ 0 (map (fn [[exponents coefficient]]
                          #_(prn "exponents" exponents "coefficient" coefficient)
                          (g/* coefficient
@@ -211,11 +216,11 @@
 
 (def ^:private operator-table
   {`g/+ #(reduce add 0 %&)
-   `g/- sub                                                 ;; TODO: make arbitrary arity
+   `g/- #(sub % (reduce add 0 %&))
    `g/* #(reduce mul 1 %&)
    `g/negate negate
    `g/expt expt
-   `g/square square
+   `g/square #(mul % %)
    ;`'g/gcd gcd
    })
 

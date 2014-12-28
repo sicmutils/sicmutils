@@ -72,8 +72,9 @@
     (is (= (* 3 (expt 'y 2))
            ((D #(expt % 3)) 'y)))
     (is (= (* 2 (cos (* 2 'y))) ((D #(sin (* 2 %))) 'y)))
+    (is (= (/ 1 (expt (cos 'x) 2)) ((D tan) 'x)))
     (is (= (up 2 (+ 't 't)) ((D #(up (* 2 %) (* % %))) 't)))
-    (is (= (up (* -1 (sin 't)) (cos 't)) ((D #(up (cos %) (sin %))) 't)))
+    (is (= (up (- (sin 't)) (cos 't)) ((D #(up (cos %) (sin %))) 't)))
     )
   (testing "chain rule"
     (let [s (fn [t] (sqrt t))
@@ -83,7 +84,7 @@
     )
 
   (testing "structural-functions"
-    (is (= '(up (cos t) (* -1 (sin t))) (pe ((D (up sin cos)) 't)))))
+    (is (= '(up (cos t) (- (sin t))) (pe ((D (up sin cos)) 't)))))
 
   (testing "partial derivatives"
     (let [f (fn [x y] (+ (* x x) (* y y)))]

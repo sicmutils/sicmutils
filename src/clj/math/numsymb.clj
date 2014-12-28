@@ -136,35 +136,28 @@
 
 (defn- n:zero-mod-pi? [x]
   (almost-integer? (/ x pi)))
-(defn- symb:zero-mod-pi? [s]
-  (#{'-pi 'pi '-two-pi 'two-pi} s))
+(def ^:private symb:zero-mod-pi? #{'-pi 'pi '-two-pi 'two-pi})
 (defn- n:pi-over-2-mod-2pi? [x]
   (almost-integer? (/ (- x pi-over-2 two-pi))))
-(defn- symb:pi-over-2-mod-2pi? [s]
-  (#{'pi-over-2} s))
+(def ^:private symb:pi-over-2-mod-2pi? #{'pi-over-2})
 (defn- n:-pi-over-2-mod-2pi? [x]
   (almost-integer? (/ (+ x pi-over-2) two-pi)))
-(defn- symb:-pi-over-2-mod-2pi? [s]
-  (#{'-pi-over-2} s))
+(def ^:private symb:-pi-over-2-mod-2pi? #{'-pi-over-2})
 (defn- n:pi-mod-2pi? [x]
   (almost-integer? (/ (- x pi) two-pi)))
-(defn- symb:pi-mod-2pi? [s]
-  (#{'-pi 'pi} s))
+(def ^:private symb:pi-mod-2pi? #{'-pi 'pi})
 (defn- n:pi-over-2-mod-pi? [x]
   (almost-integer? (/ (- x pi-over-2) pi)))
-(defn- symb:pi-over-2-mod-pi? [s]
-  (#{'-pi-over-2 'pi-over-2} s))
+(def ^:private symb:pi-over-2-mod-pi? #{'-pi-over-2 'pi-over-2})
 (defn- n:zero-mod-2pi? [x]
   (almost-integer? (/ x two-pi)))
-(defn- symb:zero-mod-2pi? [s]
-  (#{'-two-pi 'two-pi} s))
+(def ^:private symb:zero-mod-2pi? #{'-two-pi 'two-pi})
 (defn- n:-pi-over-4-mod-pi? [x]
   (almost-integer? (/ (+ x pi-over-4) pi)))
-(defn- symb:-pi-over-4-mod-pi? [s]
-  (#{'-pi-over-4} s))
-
-;; (define (n:pi-over-4-mod-pi? x) (almost-integer? (/ (- x n:pi-over-4) n:pi)))
-;; (define (symb:pi-over-4-mod-pi? x) (memq x '(:pi-over-4 :+pi-over-4)))
+(def ^:private symb:-pi-over-4-mod-pi? #{'-pi-over-4})
+(defn- n:pi-over-4-mod-pi? [x]
+  (almost-integer? (/ (- x pi-over-4) pi)))
+(def ^:private symb:pi-over-4-mod-pi? #{'pi-over-4 '+pi-over-4})
 
 (defn- sine [x]
   (cond (number? x) (if (v/exact? x)
@@ -191,6 +184,22 @@
                           (symb:pi-mod-2pi? x) -1
                           :else `(g/cos ~x))
         :else `(g/cos ~x)))
+
+(defn- tangent [x]
+  (cond (number? x) (if (v/exact? x)
+                      (if (zero? x) 0 `(g/tan ~x))
+                      (cond (n:zero-mod-pi? x) 0.
+                            (n:pi-over-4-mod-pi? x) 1.
+                            (n:-pi-over-4-mod-pi? x) -1.
+                            (n:pi-over-2-mod-pi? x)
+                              (throw (IllegalArgumentException. "Undefined: tan"))
+                            :else `(g/tan ~x)))
+        (symbol? x) (cond (symb:zero-mod-pi? x) 0
+                          (symb:pi-over-4-mod-pi? x) 1
+                          (symb:-pi-over-4-mod-pi? x) -1
+                          (symb:pi-over-2-mod-pi? x)
+                            (throw (IllegalArgumentException. "Undefined: tan"))
+                          :else `(g/tan ~x))))
 
 (defn- abs [x]
   (cond (number? x) (if (< x 0) (- x) x)
@@ -249,6 +258,7 @@
    :invert #(div 1 %)
    :sin sine
    :cos cosine
+   :tan tangent
    :cube #(expt % 3)
    :square #(expt % 2)
    :abs abs

@@ -118,7 +118,7 @@
       (is (= '(+ (* t t (+ t (- t 1))) (* t (+ t t) (- t 1))) (print-expression ((D η) 't))))
       (is (= '(up t (* t t t (- t 1)) (+ (* t t (+ t (- t 1))) (* t (+ t t) (- t 1)))) (print-expression ((Γ η) 't))))
       (is (= '(up (+ (* t (sin t)) (* (- t 1) (+ (sin t) (* t (cos t)))))
-                  (+ (* t (cos t)) (* (- t 1) (+ (cos t) (* -1 t (sin t)))))
+                  (+ (* t (cos t)) (* (- t 1) (+ (cos t) (* t (- (sin t))))))
                   (+ (* t t t) (* (- t 1) (+ (* t t) (* t (+ t t))))))
              (print-expression ((D η2) 't))))
       )

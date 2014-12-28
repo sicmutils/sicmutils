@@ -2,6 +2,7 @@
   (:require [clojure.test :refer :all]
             [math.poly :refer :all]
             [math.generic :as g]
+            [math.numbers]
             [math.expression :as x]
             [math.modint :as modular]
             ))
@@ -26,7 +27,9 @@
     (is (= (make -1 1) (add (make 0 1) (make -1))))
     (is (= (make) (sub (make 0 0 2) (make 0 0 2))))
     (is (= 0 (sub (make 0 0 2) (make 0 0 2))))
-    (is (= -3 (sub (make 0 0 2) (make 3 0 2)))))
+    (is (= -3 (sub (make 0 0 2) (make 3 0 2))))
+    )
+
   (testing "mul"
     (is (= 0 (mul (make 1 2 3) 0)))
     (is (= 0 (mul 0 (make 1 2 3))))
@@ -86,8 +89,7 @@
   (testing "expr-simplify"
     (let [poly-simp #(-> % (expression-> ->expression) x/print-expression)
           exp1 (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x))
-          exp2 (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/sin 'y) (g/* 'y 'y))]
+          exp2 (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y))]
       (is (= '(+ (* 2 (expt x 2)) (expt x 3)) (poly-simp exp1)))
-      ;(is (= 'foo (poly-simp exp2)))
-      ))
+      (is (= '(+ (expt x 3) (* 2 (expt y 2)) (* 2 (expt x 2))) (poly-simp exp2)))))
   )

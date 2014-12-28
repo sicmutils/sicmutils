@@ -4,8 +4,7 @@
             [math.operator :as o]
             [math.structure :as struct]
             [clojure.set :as set]
-            )
-  (:import (math.structure Struct)))
+            ))
 
 ;; A differential term is implemented as a map entry
 ;; whose key is a set of tags and whose second is the coefficient.
@@ -263,14 +262,16 @@
       c)))
 
 
-(def ^:private diff-+ (binary-op g/+ (constantly 1) (constantly 1)))
-(def ^:private diff-- (binary-op g/- (constantly 1) (constantly -1)))
-(def ^:private diff-* (binary-op g/* (fn [_ y] y)   (fn [x _] x)))
+(def ^:private diff-+   (binary-op g/+ (constantly 1) (constantly 1)))
+(def ^:private diff--   (binary-op g/- (constantly 1) (constantly -1)))
+(def ^:private diff-*   (binary-op g/* (fn [_ y] y)   (fn [x _] x)))
 (def ^:private diff-div (binary-op g/divide
                                    (fn [_ y] (g/divide 1 y))
                                    (fn [x y] (g/* -1 (g/divide x (g/square y))))))
-(def ^:private sine    (unary-op g/sin g/cos))
-(def ^:private cosine  (unary-op g/cos #(g/* -1 (g/sin %))))
+(def ^:private sine     (unary-op g/sin g/cos))
+(def ^:private cosine   (unary-op g/cos #(-> % g/sin g/negate)))
+(def ^:private tangent  (unary-op g/tan #(-> % g/cos g/square g/invert)))
+(def ^:private negate   (unary-op #(g/* -1 %) (constantly -1)))
 (def ^:private power
   (binary-op g/expt
              (fn [x y]
@@ -342,8 +343,10 @@
 (g/defhandler :div    [differential? not-compound?] diff-div)
 (g/defhandler :div    [not-compound? differential?] diff-div)
 (g/defhandler :square [differential?] #(g/* % %))
+(g/defhandler :negate [differential?] negate)
 (g/defhandler :sin    [differential?] sine)
 (g/defhandler :cos    [differential?] cosine)
+(g/defhandler :tan    [differential?] tangent)
 (g/defhandler :sqrt   [differential?] sqrt)
 (g/defhandler :**     [differential? (complement differential?)] power)
 (g/defhandler :∂      [#(or (ifn? %) (struct/structure? %))
