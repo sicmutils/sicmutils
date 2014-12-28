@@ -5,6 +5,7 @@
 (deftest expressions
   (testing "variables-in"
     (is (= '#{a b c d x y * +} (variables-in (make '(+ x (* 3 y) [a [b 9 c] [3 4 5 d]])))))
+    (is (= '#{x} (variables-in (make 'x))))
     )
   (testing "walk"
     (is (= 12 (walk-expression {'+ + 'x 5} (make '(+ 3 4 x)))))

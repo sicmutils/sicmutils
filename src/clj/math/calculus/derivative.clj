@@ -267,7 +267,7 @@
 (def ^:private diff-*   (binary-op g/* (fn [_ y] y)   (fn [x _] x)))
 (def ^:private diff-div (binary-op g/divide
                                    (fn [_ y] (g/divide 1 y))
-                                   (fn [x y] (g/* -1 (g/divide x (g/square y))))))
+                                   (fn [x y] (g/negate (g/divide x (g/square y))))))
 (def ^:private sine     (unary-op g/sin g/cos))
 (def ^:private cosine   (unary-op g/cos #(-> % g/sin g/negate)))
 (def ^:private tangent  (unary-op g/tan #(-> % g/cos g/square g/invert)))

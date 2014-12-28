@@ -87,9 +87,17 @@
       (is (= [(make 0 -11 5 -30 10 -7 1) '#{y}] (expression-> exp3 receive)))
       ))
   (testing "expr-simplify"
-    (let [poly-simp #(-> % (expression-> ->expression) x/print-expression)
+    (let [pe x/print-expression
+          poly-simp #(-> % (expression-> ->expression) pe)
           exp1 (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x))
-          exp2 (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y))]
+          exp2 (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y))
+          exp3 (x/make 'y)]
       (is (= '(+ (* 2 (expt x 2)) (expt x 3)) (poly-simp exp1)))
-      (is (= '(+ (expt x 3) (* 2 (expt y 2)) (* 2 (expt x 2))) (poly-simp exp2)))))
+      (is (= '(+ (expt x 3) (* 2 (expt y 2)) (* 2 (expt x 2))) (poly-simp exp2)))
+      (is (= 'y (poly-simp exp3)))
+      (let [g1 (gensym)
+            g2 (gensym)]
+        (is (= (pe (g/+ g1 g2)) (poly-simp (g/+ g1 g2))))
+        (is (= (pe (g/* 2 g1)) (poly-simp (g/+ g1 g1)))))
+      ))
   )

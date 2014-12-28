@@ -6,7 +6,8 @@
                            zero? core-zero?})
   (:require [math.expression]
             [math.operator :as o]
-            [math.value :as v])
+            [math.value :as v]
+            [math.expression :as x])
   (:import [math.expression Expression]))
 
 ;;; classifiers
@@ -53,9 +54,7 @@
 (defn abstract-quantity?
   [x]
   (and (instance? Expression x)
-       ;; TODO: these type symbols might not correspond to what
-       ;; we do in the future, so these should be checked.
-       ((:type x) #{:number :up :down :matrix})))
+       (x/abstract? x)))
 
 (defn numerical-quantity?
   [x]

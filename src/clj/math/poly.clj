@@ -196,9 +196,11 @@
 
 (defn expression->
   [expr cont]
+  (prn "x->" expr)
   (let [expression-vars (set/difference (x/variables-in expr) operators-known)
         new-bindings (zipmap expression-vars (new-variables (count expression-vars)))
         environment (into operator-table new-bindings)]
+    (prn "xvi" (x/variables-in expr) "xvars" expression-vars "new-b" new-bindings "envt" environment)
     (cont (x/walk-expression environment expr) expression-vars)))
 
 (defn ->expression
@@ -207,7 +209,7 @@
     p
     ; TODO: maybe get rid of 0/1 in reduce calls. Maybe use symb:+ instead of g/+.
     (reduce g/+ 0 (map (fn [[exponents coefficient]]
-                         #_(prn "exponents" exponents "coefficient" coefficient)
+                         (prn "exponents" exponents "coefficient" coefficient)
                          (g/* coefficient
                               (reduce g/* 1 (map (fn [exponent var]
                                                    (g/expt var exponent))

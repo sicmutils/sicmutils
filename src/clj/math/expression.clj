@@ -24,22 +24,30 @@
     expression
     (Expression. ::number expression)))
 
-(defn variables-in [expr]
-  (->> (:expression expr) flatten (filter symbol?) (into #{})))
+(defn abstract? [^Expression x]
+  ;; TODO: GJS also allows for up, down, matrix here. We do not yet have
+  ;; abstract structures.
+  (= (:type x) ::number))
 
-(defn walk-expression [environment expr]
+(defn variables-in [{expr :expression}]
+  (if (symbol? expr) #{expr}
+                     (->> expr flatten (filter symbol?) (into #{}))))
+
+(defn walk-expression [environment {expr :expression}]
+  (prn "walk-x envt" environment "expr" expr)
   (postwalk (fn [a]
+              (prn "postwalking" a)
               (cond (number? a) a
                     (symbol? a) (if-let [binding (a environment)]
                                   binding
                                   (throw (IllegalArgumentException.
-                                          (str "no binding for " a " " (type a)
-                                               " " (namespace a) " in "
-                                               environment))))
+                                           (str "no binding for " a " " (type a)
+                                                " " (namespace a) " in "
+                                                environment))))
                     (sequential? a) (apply (first a) (rest a))
                     :else (throw (IllegalArgumentException.
-                                  (str "unknown expression type " a)))))
-            (:expression expr)))
+                                   (str "unknown expression type foo" (type a))))))
+            expr))
 
 (defn print-expression
   "Freezing an expression means removing wrappers and other metadata
