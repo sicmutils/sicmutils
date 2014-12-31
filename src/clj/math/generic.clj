@@ -206,7 +206,9 @@
 
 (def divide /)
 
-;; XXX move these to expression?
-
+(doseq [predicate [number?
+                   symbol?
+                   nil?]]
+  (defhandler :simplify [predicate] identity))
 
 (println "generic initialized")

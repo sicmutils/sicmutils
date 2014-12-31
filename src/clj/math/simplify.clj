@@ -1,8 +1,5 @@
 (ns math.simplify
-  (:require [clojure.walk :as w]
-            [math.numsymb :as sym]
-            [math.expression :as x]
-            [math.generic :as g]))
+  (:require [math.numsymb :as sym]))
 
 (defn symbol-generator
   "Returns a function which generates a sequence of symbols
@@ -13,58 +10,65 @@
 
 (defn analyzer
   [symbol-generator expr-> ->expr known-operations]
-  (let [base-simplify #(expr-> % ->expr)
-        printing-base-simplify (fn [x]
-                                 (prn "into simp" x)
-                                 (let [s (base-simplify x)]
-                                   (prn "out of simp" s)
-                                   s))
-        ]
+  (let [base-simplify #(expr-> % ->expr)]
     (fn [expr]
       ; "if a tree falls in the forest" functional code
       (let [xmap (transient {})
-           mapx (transient {})
-           auxorder (transient [])
-           auxiliarize (fn [node]
-                         (prn "auxiliarize" node)
-                         (cond (vector? node) node
-                               (seq? node) (let [v (xmap node)]
-                                             (cond (false? v) node
-                                                   (some? v) v
-                                                   :else
-                                                   ; at this point, we have not
-                                                   ; seen the expression, so we
-                                                   ; have to decide if we want
-                                                   ; to assign an aux variable to
-                                                   ; it.
-                                                   (if (known-operations (first node))
-                                                     ; if the head of the expr
-                                                     ; is one of the known functions
-                                                     ; then this node is ok so we
-                                                     ; set it to false in the map.
-                                                     ; TODO: this does not take into account the "no nonintgegral exponents" rule
-                                                     ; TODO: which might also have to deal w/ negative exponents... does our poly
-                                                     ; TODO: library even handle that? some unit tests would be helpful.
-                                                     (do
-                                                       (conj! xmap [node false])
-                                                       node)
+            mapx (transient {})
+            auxorder (transient []) #_"needed?" ]
+        (letfn [(simplify-expression
+                  [expr]
+                  (backsubstitute (analyze-expression expr)))
+                (analyze-expression
+                  [expr]
+                  (base-simplify (analyze expr)))
+                (analyze
+                  [expr]
+                  (ianalyze expr))
+                (ianalyze
+                  [expr]
+                  (if (and (sequential? expr)
+                           (not (= (first expr) 'quote)))
+                    (let [sexpr (map ianalyze expr)]
+                      ;; at this point all subexpressions are canonical
+                      (if (and (known-operations (sym/operator sexpr))
+                               true #_"this is where the exponent integrality test would go")
+                        sexpr
+                        (or (xmap sexpr) (new-kernels sexpr))))
+                    expr))
+                (new-kernels
+                  [expr]
+                  (let [sexpr (map base-simplify expr)]
+                    (if-let [v (sym/symbolic-operator (sym/operator sexpr))]
+                      (let [w (apply v (sym/operands sexpr))]
+                        (if (and (sequential? w)
+                                 (= (sym/operator w) (sym/operator sexpr)))
+                          (add-symbols! w)
+                          (ianalyze w)))
+                      (add-symbols! sexpr))
+                    ))
+                (add-symbols!
+                  [expr]
+                  (let [new (map add-symbol! expr)]
+                    (add-symbol! new)))
+                (add-symbol!
+                  [expr]
+                  (if (and (sequential? expr)
+                           (doall expr)
+                           (not (= (first expr) 'quote)))
+                    (or (xmap expr)
+                        (let [newvar (symbol-generator)]
+                          (conj! xmap [expr newvar])
+                          (conj! mapx [newvar expr])
+                          (conj! auxorder newvar)
+                          newvar))
+                    expr))
+                (backsubstitute
+                  [expr]
+                  expr)
+                ]
+          ;; TODO: note that we only return the vector for debugging & testing.
+          ;; once backsubstitute is implemented, we won't need this and can
+          ;; perhaps get rid of the call to (doall) in (add-symbol!).
+          [(simplify-expression expr) (persistent! xmap) (persistent! mapx)])))))
 
-                                                     (let [g (symbol-generator)
-                                                           simpx (map printing-base-simplify node)
-                                                           ; XXX doall is only for debugging
-                                                           rhs (doall (sym/apply-by-symbol (first simpx) (rest simpx)))]
-                                                       (prn "mapping" g "to" rhs)
-                                                       (prn )
-                                                       (conj! xmap [node g])
-                                                       (conj! mapx [g rhs])
-                                                       (conj! auxorder g)
-                                                       g))))
-                               :else node))
-           simplified-auxiliaries true]
-        (prn "analyzing" expr)
-       [(w/postwalk auxiliarize expr) (persistent! xmap) (persistent! mapx)]))))
-
-(doseq [predicate [number?
-                   symbol?
-                   nil?]]
-  (g/defhandler :simplify [predicate] identity))

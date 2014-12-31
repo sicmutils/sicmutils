@@ -35,8 +35,8 @@
 (def ^:private sqrt? (is-expression? `g/sqrt))
 (def expt? (is-expression? `g/expt))
 
-(defn- operands [x]
-  (rest x))
+(def operator first)
+(def operands rest)
 
 (defn- canonically-ordered-operation
   [operator operands]
@@ -277,6 +277,12 @@
     (apply o args)
     ;(throw (IllegalArgumentException. (str "Unknown symbolic operation: " s)))
     (cons s args)))
+
+(defn symbolic-operator
+  "Given a symbol (like g/+) returns an applicable if there is a corresponding
+  symbolic operator construction available."
+  [s]
+  (-> s g-symbolic-operator-table symbolic-operator-table))
 
 (def ^:private symbolic-operator-table
   {:+ add-n
