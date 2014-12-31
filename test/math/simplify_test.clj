@@ -26,25 +26,12 @@
                                       poly/->expression
                                       poly/operators-known))
         A (fn [x]
-            (let [[simplified _ env] ((new-analyzer) x)
-                  ps (x/print-expression simplified)
-                  penv (into (empty env) (for [[k v] env] [k (pe v)]))]
-              [ps penv]))]
-    (is (= '[x {}] (A `(g/* 1/2 (g/+ x x)))))
-    (is (= '[(* y (cos (+ 1 (expt (sin y) 4) (* 2 (sin y)))) (sin y))
-             {k0 (sin y)
-              k1 (+ 1 (expt k0 4) (* 2 k0))
-              k2 (cos k1)}]
+            (x/print-expression ((new-analyzer) x)))]
+    (is (= 'x (A `(g/* 1/2 (g/+ x x)))))
+    (is (= '(* y (cos (+ 1 (expt (sin y) 4) (* 2 (sin y)))) (sin y))
            (A `(g/* y (g/sin y) (g/cos (g/+ 1 (g/sin y) (g/sin y) (g/expt (g/sin y) 4)))))))
-    (is (= '[(+ ((D U) (r t)) (* m (((expt D 2) r) t)) (* -1N m (r t) (expt ((D phi) t) 2)))
-             {k0 (expt D 2)
-              k1 (k0 r)
-              k2 (k1 t)
-              k3 (D phi)
-              k4 (k3 t)
-              k5 (r t)
-              k6 (D U)
-              k7 (k6 k5)}] (A `(g/- (g/* 1/2 m (g/+ (((g/expt D 2) r) t) (((g/expt D 2) r) t)))
+    (is (= '(+ ((D U) (r t)) (* m (((expt D 2) r) t)) (* -1N m (r t) (expt ((D phi) t) 2)))
+           (A `(g/- (g/* 1/2 m (g/+ (((g/expt D 2) r) t) (((g/expt D 2) r) t)))
                                     (g/+ (g/* 1/2 m (g/+ (g/* ((D phi) t) ((D phi) t) (r t))
                                                          (g/* ((D phi) t) ((D phi) t) (r t))))
                                          (g/* -1 ((D U) (r t))))))))

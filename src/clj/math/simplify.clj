@@ -13,11 +13,10 @@
   (let [base-simplify #(expr-> % ->expr)]
     (fn [expr]
       ; "if a tree falls in the forest" functional code
-      (let [xmap (transient {})
-            mapx (transient {})]
+      (let [xmap (transient {})]
         (letfn [(simplify-expression
                   [expr]
-                  (-> expr analyze base-simplify backsubstitute))
+                  (-> expr analyze base-simplify (backsubstitute (persistent! xmap))))
                 (analyze
                   [expr]
                   (if (and (sequential? expr)
@@ -52,17 +51,19 @@
                     (or (xmap expr)
                         (let [newvar (symbol-generator)]
                           (conj! xmap [expr newvar])
-                          (conj! mapx [newvar expr])
                           newvar))
                     expr))
                 (backsubstitute
-                  [expr]
-                  (cond (sequential? expr) (doall (map backsubstitute expr))
-                        (symbol? expr) (let [v (mapx expr)]
-                                         (if v (backsubstitute v) expr))
-                        :else expr))]
+                  [expr xmap]
+                  (let [mapx (into {} (for [[k v] xmap] [v k]))
+                        bsub (fn bsub [v]
+                               (cond (sequential? v) (doall (map bsub v))
+                                     (symbol? v) (let [w (mapx v)]
+                                                   (if w (bsub w) v))
+                                     :else v))]
+                    (bsub expr)))]
           ;; TODO: note that we only return the vector for debugging & testing.
           ;; once backsubstitute is implemented, we won't need this and can
           ;; perhaps get rid of the call to (doall) in (add-symbol!).
-          [(simplify-expression expr) (persistent! xmap) (persistent! mapx)])))))
+          (simplify-expression expr))))))
 
