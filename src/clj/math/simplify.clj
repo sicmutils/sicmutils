@@ -1,22 +1,32 @@
 (ns math.simplify
-  (:require [math.poly :as poly]
-            [clojure.walk :as w]
-            [clojure.pprint :as pp]))
+  (:require [clojure.walk :as w]
+            [math.numsymb :as sym]
+            [math.expression :as x]
+            [math.generic :as g]))
 
-(defn symbol-generator [k]
+(defn symbol-generator
+  "Returns a function which generates a sequence of symbols
+  staring with the initial prefix."
+  [k]
   (let [i (atom -1)]
     #(->> (swap! i inc) (str k) symbol)))
 
 (defn analyzer
   [symbol-generator expr-> ->expr known-operations]
-  ; "if a tree falls in the forest" functional code
-  (let [base-simplify                                       ;#(if (seq? %) (expr-> % ->expr) %)
-        (fn [f] (prn "bs" f) (if (seq? f) (-> f (expr-> ->expr)) f))]
+  (let [base-simplify #(expr-> % ->expr)
+        printing-base-simplify (fn [x]
+                                 (prn "into simp" x)
+                                 (let [s (base-simplify x)]
+                                   (prn "out of simp" s)
+                                   s))
+        ]
     (fn [expr]
-     (let [xmap (transient {})
+      ; "if a tree falls in the forest" functional code
+      (let [xmap (transient {})
            mapx (transient {})
            auxorder (transient [])
            auxiliarize (fn [node]
+                         (prn "auxiliarize" node)
                          (cond (vector? node) node
                                (seq? node) (let [v (xmap node)]
                                              (cond (false? v) node
@@ -27,33 +37,34 @@
                                                    ; have to decide if we want
                                                    ; to assign an aux variable to
                                                    ; it.
-                                                   (do (prn "fn" (first node) "ko" known-operations)
-                                                       (if (known-operations (first node))
-                                                         ; if the head of the expr
-                                                         ; is one of the known functions
-                                                         ; then this node is ok so we
-                                                         ; set it to false in the map.
-                                                         (do
-                                                           (conj! xmap [node false])
-                                                           node)
-                                                         (let [g (symbol-generator)
-                                                               simpx (map base-simplify (rest node))
-                                                               rhs (cons (first node) simpx)
-                                                               ;rhs node
-                                                               ]
-                                                           (do (prn "node" node)
-                                                               (prn "rest-node" (rest node))
-                                                               (prn "type simpx" (type simpx))
-                                                               (prn "tf" (type (first simpx)))
-                                                               (prn "simpx" simpx))
-                                                           (conj! xmap [node g])
-                                                           (conj! mapx [g rhs])
-                                                           (conj! auxorder g)
-                                                           g
-                                                           )
-                                                         ))
-                                                   ))
+                                                   (if (known-operations (first node))
+                                                     ; if the head of the expr
+                                                     ; is one of the known functions
+                                                     ; then this node is ok so we
+                                                     ; set it to false in the map.
+                                                     ; TODO: this does not take into account the "no nonintgegral exponents" rule
+                                                     ; TODO: which might also have to deal w/ negative exponents... does our poly
+                                                     ; TODO: library even handle that? some unit tests would be helpful.
+                                                     (do
+                                                       (conj! xmap [node false])
+                                                       node)
+
+                                                     (let [g (symbol-generator)
+                                                           simpx (map printing-base-simplify node)
+                                                           ; XXX doall is only for debugging
+                                                           rhs (doall (sym/apply-by-symbol (first simpx) (rest simpx)))]
+                                                       (prn "mapping" g "to" rhs)
+                                                       (prn )
+                                                       (conj! xmap [node g])
+                                                       (conj! mapx [g rhs])
+                                                       (conj! auxorder g)
+                                                       g))))
                                :else node))
            simplified-auxiliaries true]
-
+        (prn "analyzing" expr)
        [(w/postwalk auxiliarize expr) (persistent! xmap) (persistent! mapx)]))))
+
+(doseq [predicate [number?
+                   symbol?
+                   nil?]]
+  (g/defhandler :simplify [predicate] identity))

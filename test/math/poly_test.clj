@@ -76,9 +76,9 @@
     ;(is (= 'bar (make-vars 2)))
     )
   (testing "expr"
-    (let [exp1 (g/* (g/+ 1 'x) (g/+ -3 'x))
-          exp2 (g/expt (g/+ 1 'y) 5)
-          exp3 (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5))
+    (let [exp1 (:expression (g/* (g/+ 1 'x) (g/+ -3 'x)))
+          exp2 (:expression (g/expt (g/+ 1 'y) 5))
+          exp3 (:expression (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5)))
           receive (fn [a b] [a b])]
       (is (= '#{math.generic/* math.generic/+ x} (x/variables-in exp1)))
       (is (= [(make -3 -2 1) '#{x}] (expression-> exp1 receive)))
@@ -89,15 +89,13 @@
   (testing "expr-simplify"
     (let [pe x/print-expression
           poly-simp #(-> % (expression-> ->expression) pe)
-          exp1 (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x))
-          exp2 (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y))
-          exp3 (x/make 'y)]
+          exp1 (:expression (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))
+          exp2 (:expression (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
+          exp3 'y]
       (is (= '(+ (* 2 (expt x 2)) (expt x 3)) (poly-simp exp1)))
       (is (= '(+ (expt x 3) (* 2 (expt y 2)) (* 2 (expt x 2))) (poly-simp exp2)))
       (is (= 'y (poly-simp exp3)))
-      (let [g1 (gensym)
-            g2 (gensym)]
-        (is (= (pe (g/+ g1 g2)) (poly-simp (g/+ g1 g2))))
-        (is (= (pe (g/* 2 g1)) (poly-simp (g/+ g1 g1)))))
+      (is (= '(+ g1 g2) (poly-simp (:expression (g/+ 'g1 'g2)))))
+      (is (= '(* 2 g1) (poly-simp (:expression (g/+ 'g1 'g1)))))
       ))
   )

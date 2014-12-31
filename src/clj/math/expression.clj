@@ -29,14 +29,27 @@
   ;; abstract structures.
   (= (:type x) ::number))
 
-(defn variables-in [{expr :expression}]
-  (if (symbol? expr) #{expr}
-                     (->> expr flatten (filter symbol?) (into #{}))))
+(defn expression-of
+  [expr]
+  (cond (instance? Expression expr) (:expression expr)
+        (symbol? expr) expr
+        :else (throw (IllegalArgumentException. (str "unknown expression type:" expr)))))
 
-(defn walk-expression [environment {expr :expression}]
-  (prn "walk-x envt" environment "expr" expr)
+
+(defn variables-in
+  "Return the 'variabls' (e.g. symbols) found in the expression x,
+  which is an unwrapped expression."
+  [x]
+  (if (symbol? x) #{x}
+                  (->> x flatten (filter symbol?) (into #{}))))
+
+
+(defn walk-expression
+  "Walk the unwrapped expression x in postorder, replacing symbols found there
+  with their values in the map environment, if present; an unbound
+  symbol is an error. Function applications are applied."
+  [environment x]
   (postwalk (fn [a]
-              (prn "postwalking" a)
               (cond (number? a) a
                     (symbol? a) (if-let [binding (a environment)]
                                   binding
@@ -46,8 +59,8 @@
                                                 environment))))
                     (sequential? a) (apply (first a) (rest a))
                     :else (throw (IllegalArgumentException.
-                                   (str "unknown expression type foo" (type a))))))
-            expr))
+                                   (str "unknown expression type " a " " (type a))))))
+            x))
 
 (defn print-expression
   "Freezing an expression means removing wrappers and other metadata
@@ -58,7 +71,14 @@
   simplify those processes."
   [x]
   (cond (keyword? x) x
-        (symbol? x) (symbol (name x))
+        (symbol? x) (let [sym-ns (namespace x)
+                          sym-name (name x)]
+                      ; kind of a hack, but we don't want a circular dependency
+                      ; here.
+                      (if (and (= sym-ns "math.generic")
+                               (= sym-name "divide"))
+                        '/
+                        (symbol sym-name)))
         (satisfies? v/Value x) (v/freeze x)
         (sequential? x) (map print-expression x)
         :else x))

@@ -1,6 +1,7 @@
 (ns math.mechanics.lagrange
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [math.generic :refer :all]
+            [math.calculus.derivative :refer :all]
             [math.structure :refer :all]
             [math.numerical.integrate :refer :all]))
 

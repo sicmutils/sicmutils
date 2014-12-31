@@ -5,7 +5,6 @@
                            * core-*
                            zero? core-zero?})
   (:require [math.expression]
-            [math.operator :as o]
             [math.value :as v]
             [math.expression :as x])
   (:import [math.expression Expression]))
@@ -140,10 +139,12 @@
 
 (defn- sort-key
   [x]
-  (cond (symbol? x) 90
-        (number? x) 10
-        (satisfies? v/Value x) (v/sort-key x)
-        :else 99))
+  ;; WARNING: the second term of the seq is a temporary idea
+  ;; that we aren't sure we want
+  (cond (symbol? x) [90 0]
+        (number? x) [10 0]
+        (satisfies? v/Value x) [(v/sort-key x) 0]
+        :else [99 0]))
 
 (defn canonical-order [args]
   ;; NB: we are relying on the fact that this sort is stable, although
@@ -207,17 +208,5 @@
 
 ;; XXX move these to expression?
 
-(def D
-  (o/make-operator
-   (fn [f]
-     (partial-derivative f []))
-   :derivative))
-
-(defn pd
-  [& selectors]
-  (o/make-operator
-   (fn [f]
-     (partial-derivative f selectors))
-   :partial-derivative))
 
 (println "generic initialized")

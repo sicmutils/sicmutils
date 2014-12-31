@@ -46,7 +46,7 @@
 ;; BEGIN
 ;; these are without constructor simplifications!
 
-(defn- add [a b]
+(defn add [a b]
   (let [sum (partial canonically-ordered-operation `g/+)]
     (cond (and (number? a) (number? b)) (+ a b)
          (number? a) (cond (g/zero? a) b
@@ -74,7 +74,7 @@
         (nil? (next args)) (g/negate (first args))
         :else (sub (first args) (apply add-n (next args)))))
 
-(defn- mul [a b]
+(defn mul [a b]
   (let [product (partial canonically-ordered-operation `g/*)]
     (cond (and (number? a) (number? b)) (* a b)
          (number? a) (cond (g/zero? a) a
@@ -98,11 +98,11 @@
 
 (defn- div [a b]
   (cond (and (number? a) (number? b)) (/ a b)
-        (number? a) (if (g/zero? a) a `(/ ~a ~b))
+        (number? a) (if (g/zero? a) a `(g/divide ~a ~b))
         (number? b) (cond (g/zero? b) (throw (ArithmeticException. "division by zero"))
                           (g/one? b) a
-                          :else `(/ ~a ~b))
-        :else `(/ ~a ~b)))
+                          :else `(g/divide ~a ~b))
+        :else `(g/divide ~a ~b)))
 
 (defn- div-n [& args]
   (cond (nil? args) 1
@@ -248,6 +248,35 @@
                           :else `(g/expt ~b ~e))
         :else `(g/expt ~b ~e)
         ))
+
+(def ^:private g-symbolic-operator-table
+  {`g/+ :+
+   `g/- :-
+   `g/* :*
+   `g// :div
+   `g/negate :negate
+   `g/invert :invert
+   `g/sin :sin
+   `g/cos :cos
+   `g/tan :tan
+   `g/cube :cube
+   `g/square :square
+   `g/abs :abs
+   `g/sqrt :sqrt
+   `g/log :log
+   `g/exp :exp
+   `g/expt :**})
+
+;; TODO: We learn at long last why using keywords instead of symbols was going
+;; to wind up annoying us. (We chose them to kind of escape the symbol namespacing,
+;; since keywords don't have them, but now we have this duplication, and so we have
+;; to decide if we're going to stick with keywords or not.
+
+(defn apply-by-symbol [s args]
+  (if-let [o (-> s g-symbolic-operator-table symbolic-operator-table)]
+    (apply o args)
+    ;(throw (IllegalArgumentException. (str "Unknown symbolic operation: " s)))
+    (cons s args)))
 
 (def ^:private symbolic-operator-table
   {:+ add-n

@@ -1,6 +1,7 @@
 (ns math.operator
   (:import (clojure.lang IFn))
-  (:require [math.value :as v]))
+  (:require [math.value :as v]
+            [math.generic :as g]))
 
 (defrecord Operator [f name]
   v/Value
@@ -21,4 +22,7 @@
   [x]
   (instance? Operator x))
 
+(g/defhandler :simplify [#(instance? Operator %)] #(-> % :name g/simplify))
+
 (println "operator initialized")
+

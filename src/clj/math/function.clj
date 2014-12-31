@@ -158,6 +158,8 @@
     (literal-derivative f xs)
     (x/literal-number (list* (:expr f) xs)))) ;; XXX cons
 
+(g/defhandler :simplify [#(instance? Fn %)] #(-> % :expr g/simplify))
+
 (println "function initialized")
 ;; what literal functions work out to in scmutils:
 

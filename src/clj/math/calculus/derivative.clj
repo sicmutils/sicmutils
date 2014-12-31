@@ -271,6 +271,7 @@
 (def ^:private sine     (unary-op g/sin g/cos))
 (def ^:private cosine   (unary-op g/cos #(-> % g/sin g/negate)))
 (def ^:private tangent  (unary-op g/tan #(-> % g/cos g/square g/invert)))
+(def ^:private sqrt     (unary-op g/sqrt #(-> % g/sqrt (g/* 2) g/invert)))
 (def ^:private negate   (unary-op #(g/* -1 %) (constantly -1)))
 (def ^:private power
   (binary-op g/expt
@@ -278,7 +279,6 @@
                (g/* y (g/expt x (g/- y 1))))
              (fn [_ _]
                (throw (IllegalArgumentException. "can't get there from here")))))
-(def ^:private sqrt (unary-op g/sqrt #(g/invert (g/* 2 (g/sqrt %)))))
 
 ;; XXX unary-op is memoized in scmutils. But rather than memoizing that,
 ;; it might be better just to memoize entire simplications.
@@ -351,6 +351,14 @@
 (g/defhandler :**     [differential? (complement differential?)] power)
 (g/defhandler :∂      [#(or (ifn? %) (struct/structure? %))
                        (constantly true)] multivariate-derivative)
+
+(def D
+  (o/make-operator #(g/partial-derivative % []) :derivative))
+
+(defn pd
+  [& selectors]
+  (o/make-operator #(g/partial-derivative % selectors) :partial-derivative))
+
 (println "derivative initialized")
 
 ;;; SIMPLE-DERIVATIVE-INTERNAL represents the essential computation.

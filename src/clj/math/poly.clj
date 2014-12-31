@@ -4,6 +4,7 @@
   (:require [clojure.set :as set]
             [math.value :as v]
             [math.generic :as g]
+            [math.numsymb :as sym]
             [math.numbers]
             [math.expression :as x]))
 
@@ -196,25 +197,23 @@
 
 (defn expression->
   [expr cont]
-  (prn "x->" expr)
   (let [expression-vars (set/difference (x/variables-in expr) operators-known)
         new-bindings (zipmap expression-vars (new-variables (count expression-vars)))
         environment (into operator-table new-bindings)]
-    (prn "xvi" (x/variables-in expr) "xvars" expression-vars "new-b" new-bindings "envt" environment)
-    (cont (x/walk-expression environment expr) expression-vars)))
+   (cont (x/walk-expression environment expr) expression-vars)))
 
 (defn ->expression
   [^Poly p vars]
   (if (base? p)
     p
     ; TODO: maybe get rid of 0/1 in reduce calls. Maybe use symb:+ instead of g/+.
-    (reduce g/+ 0 (map (fn [[exponents coefficient]]
-                         (prn "exponents" exponents "coefficient" coefficient)
-                         (g/* coefficient
-                              (reduce g/* 1 (map (fn [exponent var]
-                                                   (g/expt var exponent))
-                                                 exponents vars))))
-                       (:xs->c p)))))
+    ; TODO: we switched to sym/ because we don't want wrapped expressions here!
+    (reduce sym/add 0 (map (fn [[exponents coefficient]]
+                             (sym/mul coefficient
+                                      (reduce sym/mul 1 (map (fn [exponent var]
+                                                               (sym/expt var exponent))
+                                                             exponents vars))))
+                           (:xs->c p)))))
 
 (def ^:private operator-table
   {`g/+ #(reduce add 0 %&)
@@ -226,4 +225,4 @@
    ;`'g/gcd gcd
    })
 
-(def ^:private operators-known (into #{} (keys operator-table)))
+(def operators-known (into #{} (keys operator-table)))
