@@ -14,38 +14,31 @@
     (fn [expr]
       ; "if a tree falls in the forest" functional code
       (let [xmap (transient {})
-            mapx (transient {})
-            auxorder (transient []) #_"needed?" ]
+            mapx (transient {})]
         (letfn [(simplify-expression
                   [expr]
-                  (backsubstitute (analyze-expression expr)))
-                (analyze-expression
-                  [expr]
-                  (base-simplify (analyze expr)))
+                  (-> expr analyze base-simplify backsubstitute))
                 (analyze
-                  [expr]
-                  (ianalyze expr))
-                (ianalyze
                   [expr]
                   (if (and (sequential? expr)
                            (not (= (first expr) 'quote)))
-                    (let [sexpr (map ianalyze expr)]
+                    (let [analyzed-expr (map analyze expr)]
                       ;; at this point all subexpressions are canonical
-                      (if (and (known-operations (sym/operator sexpr))
+                      (if (and (known-operations (sym/operator analyzed-expr))
                                true #_"this is where the exponent integrality test would go")
-                        sexpr
-                        (or (xmap sexpr) (new-kernels sexpr))))
+                        analyzed-expr
+                        (or (xmap analyzed-expr) (new-kernels analyzed-expr))))
                     expr))
                 (new-kernels
                   [expr]
-                  (let [sexpr (map base-simplify expr)]
-                    (if-let [v (sym/symbolic-operator (sym/operator sexpr))]
-                      (let [w (apply v (sym/operands sexpr))]
+                  (let [simplified-expr (map base-simplify expr)]
+                    (if-let [v (sym/symbolic-operator (sym/operator simplified-expr))]
+                      (let [w (apply v (sym/operands simplified-expr))]
                         (if (and (sequential? w)
-                                 (= (sym/operator w) (sym/operator sexpr)))
+                                 (= (sym/operator w) (sym/operator simplified-expr)))
                           (add-symbols! w)
-                          (ianalyze w)))
-                      (add-symbols! sexpr))
+                          (analyze w)))
+                      (add-symbols! simplified-expr))
                     ))
                 (add-symbols!
                   [expr]
@@ -60,13 +53,14 @@
                         (let [newvar (symbol-generator)]
                           (conj! xmap [expr newvar])
                           (conj! mapx [newvar expr])
-                          (conj! auxorder newvar)
                           newvar))
                     expr))
                 (backsubstitute
                   [expr]
-                  expr)
-                ]
+                  (cond (sequential? expr) (doall (map backsubstitute expr))
+                        (symbol? expr) (let [v (mapx expr)]
+                                         (if v (backsubstitute v) expr))
+                        :else expr))]
           ;; TODO: note that we only return the vector for debugging & testing.
           ;; once backsubstitute is implemented, we won't need this and can
           ;; perhaps get rid of the call to (doall) in (add-symbol!).

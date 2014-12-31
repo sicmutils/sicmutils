@@ -31,12 +31,12 @@
                   penv (into (empty env) (for [[k v] env] [k (pe v)]))]
               [ps penv]))]
     (is (= '[x {}] (A `(g/* 1/2 (g/+ x x)))))
-    (is (= '[(* y k2 k0)
+    (is (= '[(* y (cos (+ 1 (expt (sin y) 4) (* 2 (sin y)))) (sin y))
              {k0 (sin y)
               k1 (+ 1 (expt k0 4) (* 2 k0))
               k2 (cos k1)}]
            (A `(g/* y (g/sin y) (g/cos (g/+ 1 (g/sin y) (g/sin y) (g/expt (g/sin y) 4)))))))
-    (is (= '[(+ k7 (* m k2) (* -1 m k5 (expt k4 2)))
+    (is (= '[(+ ((D U) (r t)) (* m (((expt D 2) r) t)) (* -1N m (r t) (expt ((D phi) t) 2)))
              {k0 (expt D 2)
               k1 (k0 r)
               k2 (k1 t)
