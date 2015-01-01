@@ -5,7 +5,6 @@
             [math.value :as v]
             [math.generic :as g]
             [math.numsymb :as sym]
-            [math.numbers]
             [math.expression :as x]))
 
 (declare operator-table operators-known)

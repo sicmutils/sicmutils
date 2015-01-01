@@ -127,19 +127,20 @@
   [s]
   (apply up (map matrix->structure s)))
 
-(g/defhandler :+   [down? down?]           (partial elementwise g/+))
-(g/defhandler :+   [up? up?]               (partial elementwise g/+))
-(g/defhandler :-   [down? down?]           (partial elementwise g/-))
-(g/defhandler :-   [up? up?]               (partial elementwise g/-))
-(g/defhandler :*   [g/scalar? structure?]    outer-product) ;; this was kind of a late thing to add: maybe we
+(g/defhandler :+        [down? down?]           (partial elementwise g/+))
+(g/defhandler :+        [up? up?]               (partial elementwise g/+))
+(g/defhandler :-        [down? down?]           (partial elementwise g/-))
+(g/defhandler :-        [up? up?]               (partial elementwise g/-))
+(g/defhandler :*        [g/scalar? structure?]  outer-product)
+;; ^^^ this was kind of a late thing to add: maybe we
 ;; were depending on canonical order in the past to sort all scalars to the left of structures. That might
 ;; be a useful idea to reconsider, or maybe not.
-(g/defhandler :*   [structure? g/scalar?]    #(outer-product %2 %1))
-(g/defhandler :div [structure? g/scalar?]    #(outer-product (/ %2) %1))
-(g/defhandler :*   [structure? structure?] mul)
-(g/defhandler :**  [structure? integer?]   expt)
-(g/defhandler :∂   [structure? (constantly true)] (fn [_ _] (throw (IllegalArgumentException. "OUCH"))))
-
+(g/defhandler :*        [structure? g/scalar?]  #(outer-product %2 %1))
+(g/defhandler :div      [structure? g/scalar?]  #(outer-product (/ %2) %1))
+(g/defhandler :*        [structure? structure?] mul)
+(g/defhandler :**       [structure? integer?]   expt)
+(g/defhandler :∂        [structure? (constantly true)] (fn [_ _] (throw (IllegalArgumentException. "OUCH"))))
+(g/defhandler :simplify [structure?]            #(mapr g/simplify %))
 (g/defhandler :square [structure?]
   (fn [s] (inner-product s s)))
 (g/defhandler :cube [structure?]

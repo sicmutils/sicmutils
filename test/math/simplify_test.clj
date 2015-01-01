@@ -1,9 +1,10 @@
 (ns math.simplify-test
   (require [clojure.test :refer :all]
            [math.simplify :refer :all]
-           [math.generic :as g]
            [math.expression :as x]
+           [math.generic :as g]
            [math.structure :as s]
+           [math.numbers]
            [math.mechanics.lagrange :refer :all]
            [math.function :as f]
            [math.poly :as poly]))
@@ -20,13 +21,14 @@
     ))
 
 (deftest analyzer-test
-  (let [pe x/print-expression
-        new-analyzer (fn [] (analyzer (symbol-generator "k")
+  (let [new-analyzer (fn [] (analyzer (symbol-generator "k")
                                       poly/expression->
                                       poly/->expression
                                       poly/operators-known))
         A (fn [x]
             (x/print-expression ((new-analyzer) x)))]
+    (is (= '(+ 1 x) (A `(g/+ 1 x))))
+    (is (= '(+ 1 x) (A `[g/+ 1 x])))
     (is (= 'x (A `(g/* 1/2 (g/+ x x)))))
     (is (= '(* y (cos (+ 1 (expt (sin y) 4) (* 2 (sin y)))) (sin y))
            (A `(g/* y (g/sin y) (g/cos (g/+ 1 (g/sin y) (g/sin y) (g/expt (g/sin y) 4)))))))
@@ -38,8 +40,20 @@
 
     ))
 
-(deftest simplifier-test
+(deftest trivial-simplifications
+  (is (= 1 (g/simplify 1)))
+  (is (= 1.0 (g/simplify 1.0)))
+  (is (= 'foo (g/simplify 'foo)))
+  (is (= 3 (g/simplify (g/+ 1 2))))
+  (is (= 6 (g/simplify (g/+ 1 2 3))))
+  (is (= '(* 2 x) (x/print-expression (g/simplify (g/+ 'x 'x)))))
+  (is (= '(+ 1 x) (x/print-expression (g/simplify (g/+ 1 'x)))))
+  )
+
+#_(deftest simplifier-test
   (let [eqs (((Lagrange-equations (L-central-rectangular 'm (f/literal-function 'U)))
                (s/up (f/literal-function 'x)
                      (f/literal-function 'y)))
-              't)]))
+              't)
+        simp-eqs (g/simplify eqs)]
+    ))

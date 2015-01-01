@@ -4,8 +4,7 @@
                            / core-div
                            * core-*
                            zero? core-zero?})
-  (:require [math.expression]
-            [math.value :as v]
+  (:require [math.value :as v]
             [math.expression :as x])
   (:import [math.expression Expression]))
 
@@ -137,6 +136,7 @@
 (def partial-derivative (make-operation :∂ 2))
 (def simplify (make-operation :simplify 1))
 
+
 (defn- sort-key
   [x]
   ;; WARNING: the second term of the seq is a temporary idea
@@ -206,9 +206,7 @@
 
 (def divide /)
 
-(doseq [predicate [number?
-                   symbol?
-                   nil?]]
-  (defhandler :simplify [predicate] identity))
+;(g/defhandler :simplify [list?] simplify-expression)
+
 
 (println "generic initialized")

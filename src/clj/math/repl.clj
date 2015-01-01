@@ -7,9 +7,9 @@
             [math.expression :refer :all]
             [math.numbers]
             [math.numsymb]
-            [math.poly :as poly]
             [math.function :refer :all]
             [math.operator]
+            [math.simplify]
             [math.numerical.integrate]
             [math.numerical.minimize :refer :all]
             [math.calculus.derivative]
@@ -26,6 +26,6 @@
       (doseq [a args]
         (prn "arg" a)
         )
-      (m/repl :print (comp pp/pprint print-expression))
+      (m/repl :print (comp pp/pprint print-expression simplify))
       )
     (println "Home at last.")))

@@ -272,12 +272,6 @@
 ;; since keywords don't have them, but now we have this duplication, and so we have
 ;; to decide if we're going to stick with keywords or not.
 
-(defn apply-by-symbol [s args]
-  (if-let [o (-> s g-symbolic-operator-table symbolic-operator-table)]
-    (apply o args)
-    ;(throw (IllegalArgumentException. (str "Unknown symbolic operation: " s)))
-    (cons s args)))
-
 (defn symbolic-operator
   "Given a symbol (like g/+) returns an applicable if there is a corresponding
   symbolic operator construction available."

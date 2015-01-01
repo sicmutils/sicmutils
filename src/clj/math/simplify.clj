@@ -1,5 +1,10 @@
 (ns math.simplify
-  (:require [math.numsymb :as sym]))
+  (:require [math.numsymb :as sym]
+            [math.poly :as poly]
+            [math.generic :as g]
+            [math.expression :as x])
+  (:import (math.expression Expression))
+  )
 
 (defn symbol-generator
   "Returns a function which generates a sequence of symbols
@@ -8,16 +13,28 @@
   (let [i (atom -1)]
     #(->> (swap! i inc) (str k) symbol)))
 
+(defn- map-with-state
+  "Maps f over coll while maintaining state. The function
+  f is called with [state, v] for each value v in col, and
+  is expected to return a pair containing the new state and
+  (f v). The result is a pair with the final state and
+  the sequence of the values of (f v)."
+  [initial-state f coll]
+  (reduce
+    (fn [[state acc] val]
+      (let [[new-state f-val] (f state val)]
+        [new-state (conj acc f-val)]))
+    [initial-state []]
+    coll))
+
 (defn analyzer
   [symbol-generator expr-> ->expr known-operations]
   (let [base-simplify #(expr-> % ->expr)]
     (fn [expr]
-      (letfn [(simplify-expression
-                [expr]
+      (letfn [(simplify-expression [expr]
                 (let [[expr-map analyzed-expr] (analyze {} expr)]
                   (->> analyzed-expr base-simplify (backsubstitute expr-map))))
-              (analyze
-                [expr-map expr]
+              (analyze [expr-map expr]
                 (if (and (sequential? expr)
                          (not (= (first expr) 'quote)))
                   (let [[expr-map analyzed-expr] (map-with-state expr-map analyze expr)]
@@ -29,8 +46,7 @@
                         [expr-map existing-expr]
                         (new-kernels expr-map analyzed-expr))))
                   [expr-map expr]))
-              (new-kernels
-                [expr-map expr]
+              (new-kernels [expr-map expr]
                 (let [simplified-expr (map base-simplify expr)]
                   (if-let [v (sym/symbolic-operator (sym/operator simplified-expr))]
                     (let [w (apply v (sym/operands simplified-expr))]
@@ -40,42 +56,39 @@
                         (analyze expr-map w)))
                     (add-symbols expr-map simplified-expr))
                   ))
-              (add-symbols
-                [expr-map expr]
-                (let [[new-expr-map new-expr] (map-with-state expr-map add-symbol expr)]
-                  (add-symbol new-expr-map new-expr)))
-              (add-symbol
-                [expr-map expr]
+              (add-symbols [expr-map expr]
+                (apply add-symbol (map-with-state expr-map add-symbol expr)))
+              (add-symbol [expr-map expr]
                 (if (and (sequential? expr)
-                         (doall expr)
                          (not (= (first expr) 'quote)))
                   (if-let [existing-expr (expr-map expr)]
                     [expr-map existing-expr]
                     (let [newvar (symbol-generator)]
                       [(conj expr-map [expr newvar]) newvar]))
                   [expr-map expr]))
-              (backsubstitute
-                [expr-map expr]
+              (backsubstitute [expr-map expr]
                 (let [mapx (into {} (for [[k v] expr-map] [v k]))
                       bsub (fn bsub [v]
-                             (cond (sequential? v) (doall (map bsub v))
+                             (cond (sequential? v) (map bsub v)
                                    (symbol? v) (let [w (mapx v)]
                                                  (if w (bsub w) v))
                                    :else v))]
                   (bsub expr)))
-              (map-with-state
-                ;; Maps f over coll while maintaining state. The function
-                ;; f is called with [state, v] for each value v in col, and
-                ;; is expected to return a pair containing the new state and
-                ;; (f v). The result is a pair with the final state and
-                ;; the sequence of the values of (f v).
-                [initial-state f coll]
-                (reduce
-                  (fn [[state acc] val]
-                    (let [[new-state f-val] (f state val)]
-                      [new-state (conj acc f-val)]))
-                  [initial-state []]
-                  coll))
               ]
         (simplify-expression expr)))))
 
+(def ^:private poly-analyzer (analyzer gensym poly/expression-> poly/->expression poly/operators-known))
+(def simplify-expression poly-analyzer)
+
+(doseq [predicate [number?
+                   symbol?
+                   nil?]]
+  (g/defhandler :simplify [predicate] identity))
+(g/defhandler :simplify [#(instance? Expression %)] (comp simplify-expression x/expression-of))
+(g/defhandler :simplify [var?] #(g/simplify @%))
+
+;(g/defhandler :simplify [list?] simplify-expression)
+
+
+
+(println "simplify initialized")
