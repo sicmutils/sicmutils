@@ -84,15 +84,15 @@
       (if stop (prn "overwriting a binding!!" stop op dtree))
       (assoc dtree :stop op))))
 
-(defn dtree-lookup [{:keys [steps stop]} [argument & arguments]]
-  (if argument
+(defn dtree-lookup [{:keys [steps stop]} [& arguments]]
+  (if (some? arguments)
     ;; take a step: that means finding a predicate that matches at
     ;; this step and seeing if the subordinate dtree also matches. The
     ;; first step that matches this pair of conditions is chosen.
     (some identity
           (map (fn [[step dtree]]
-                 (and (step argument)
-                      (dtree-lookup dtree arguments))) steps))
+                 (and (step (first arguments))
+                      (dtree-lookup dtree (next arguments)))) steps))
     ;; otherwise we stop here.
     stop))
 
@@ -141,8 +141,8 @@
   [x]
   ;; WARNING: the second term of the seq is a temporary idea
   ;; that we aren't sure we want
-  (cond (symbol? x) [90 0]
-        (number? x) [10 0]
+  (cond (symbol? x) [11 x]
+        (number? x) [10 x]
         (satisfies? v/Value x) [(v/sort-key x) 0]
         :else [99 0]))
 

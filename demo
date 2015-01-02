@@ -68,21 +68,25 @@
 (((δ_η    (+ F G)) literal-q) 't) ; sum rule for variation
 (((δ_η      (φ F)) literal-q) 't) ; composition rule for variation
 
-;; Compute the Euler-Lagrange equations for several Lagrangians
-
+;; C
+(prn "lagrange literal")
 (((Lagrange-equations (L-free-particle 'm)) (literal-function 'q)) 't)
+(prn "lagrange test-path")
 (((Lagrange-equations (L-free-particle 'm)) test-path) 't)
 
 (defn proposed-solution [t]
   (* 'a (cos (+ (* 'omega t) 'phi))))
 
+(prn "harmonic proposed-solution")
 (((Lagrange-equations (L-harmonic 'm 'k)) proposed-solution) 't)
+(prn "harmonic uniform acceleration")
 (((Lagrange-equations (L-uniform-acceleration 'm 'g)) (up (literal-function 'x) (literal-function 'y))) 't)
+(prn "central rectangular")
 (((Lagrange-equations (L-central-rectangular 'm (literal-function 'U)))
   (up (literal-function 'x)
       (literal-function 'y)))
   't)
-
+(prn "central polar")
 (((Lagrange-equations (L-central-polar 'm (literal-function 'U)))
   (up (literal-function 'r)
       (literal-function 'phi)))
@@ -90,6 +94,7 @@
 
 ;; Coordinate transformation
 
+(prn "coord transform")
 (velocity ((F->C p->r)
            (->local 't (up 'r 'phi) (up 'rdot 'phidot))))
 

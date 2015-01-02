@@ -2,7 +2,7 @@
   (:require [math.value :as v]
             [clojure.walk :refer :all]))
 
-(declare print-expression)
+(declare freeze-expression)
 
 (defrecord Expression [type expression]
   v/Value
@@ -13,7 +13,7 @@
   (exact? [_] false)
   (sort-key [_] 17)
   (compound? [_] false)
-  (freeze [x] (-> x :expression print-expression)))
+  (freeze [x] (-> x :expression freeze-expression)))
 
 (defn make [x]
   (Expression. ::number x))
@@ -48,39 +48,45 @@
   "Walk the unwrapped expression x in postorder, replacing symbols found there
   with their values in the map environment, if present; an unbound
   symbol is an error. Function applications are applied."
-  [environment x]
-  (postwalk (fn [a]
-              (cond (number? a) a
-                    (symbol? a) (if-let [binding (a environment)]
-                                  binding
-                                  (throw (IllegalArgumentException.
-                                           (str "no binding for " a " " (type a)
-                                                " " (namespace a) " in "
-                                                environment))))
-                    (sequential? a) (apply (first a) (rest a))
-                    :else (throw (IllegalArgumentException.
-                                   (str "unknown expression type " a " " (type a))))))
-            x))
+  [environment]
+  (fn walk [x]
+    ;(prn "WALK" x environment)
+    (cond (number? x) x
+          (symbol? x) (if-let [binding (x environment)]
+                        binding
+                        (throw (IllegalArgumentException.
+                                 (str "no binding for " x " found."))))
+          (instance? Expression x) (walk (expression-of x))
+          (sequential? x) (apply (walk (first x)) (map walk (rest x)))
+
+          :else (throw (IllegalArgumentException. (str "unknown expression type " x))))))
 
 (defn print-expression
+  [x]
+  (postwalk
+    (fn [x]
+      (cond (symbol? x) (let [sym-ns (namespace x)
+                              sym-name (name x)]
+                          ; kind of a hack, but we don't want a circular dependency
+                          ; here.
+                          (if (and (= sym-ns "math.generic")
+                                   (= sym-name "divide"))
+                            '/
+                            (symbol sym-name)))
+            :else x))
+    (freeze-expression x)))
+
+(defn freeze-expression
   "Freezing an expression means removing wrappers and other metadata
   from subexpressions, so that the result is basically a pure
   S-expression with the same structure as the input. Doing this will
   rob an expression of useful information fur further computation; so
-  this is intended to be done just before printing or rendering, to
+  this is intended to be done just before simplification and printing, to
   simplify those processes."
   [x]
   (cond (keyword? x) x
-        (symbol? x) (let [sym-ns (namespace x)
-                          sym-name (name x)]
-                      ; kind of a hack, but we don't want a circular dependency
-                      ; here.
-                      (if (and (= sym-ns "math.generic")
-                               (= sym-name "divide"))
-                        '/
-                        (symbol sym-name)))
         (satisfies? v/Value x) (v/freeze x)
-        (sequential? x) (map print-expression x)
+        (sequential? x) (map freeze-expression x)
         :else x))
 
 (println "expression initialized")

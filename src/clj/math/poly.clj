@@ -196,10 +196,12 @@
 
 (defn expression->
   [expr cont]
-  (let [expression-vars (set/difference (x/variables-in expr) operators-known)
+  ;; TODO: if we had a variable sort ordering, that sort would go in place of the
+  ;; call to seq immediately below.
+  (let [expression-vars (seq (set/difference (x/variables-in expr) operators-known))
         new-bindings (zipmap expression-vars (new-variables (count expression-vars)))
         environment (into operator-table new-bindings)]
-   (cont (x/walk-expression environment expr) expression-vars)))
+   (cont ((x/walk-expression environment) expr) expression-vars)))
 
 (defn ->expression
   [^Poly p vars]

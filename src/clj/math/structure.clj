@@ -14,7 +14,7 @@
   (compound? [_] true)
   (sort-key [_] 18)
   (freeze [_]
-    `(~(orientation {:up 'up :down 'down}) ~@(map x/print-expression v)))
+    `(~(orientation {:up 'up :down 'down}) ~@(map x/freeze-expression v)))
   Object
   (equals [_ b]
     (and (instance? Struct b)

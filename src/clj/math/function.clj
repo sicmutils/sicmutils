@@ -18,6 +18,7 @@
   (unity? [_] false)
   (numerical? [_] false)
   (sort-key [_] 35)
+  (freeze [f] (-> f :expr x/freeze-expression))
   IFn
   (invoke [f x] (literal-apply f [x]))
   (applyTo [f xs] (literal-apply f xs))

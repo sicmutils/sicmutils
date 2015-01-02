@@ -12,7 +12,7 @@
             [math.simplify]
             [math.numerical.integrate]
             [math.numerical.minimize :refer :all]
-            [math.calculus.derivative]
+            [math.calculus.derivative :refer :all]
             [math.mechanics.lagrange :refer :all])
   (:gen-class :main true))
 

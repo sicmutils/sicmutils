@@ -47,7 +47,7 @@
              (((Lagrange-equations (L-free-particle 'm))
                 test-path)
                't))))
-    ;; for the present, we just ensure the following expressions
+    ;; TODO: for the present, we just ensure the following expressions
     ;; compile & execute without checking their values. This is because
     ;; simplification isn't online yet, so the values are going to change
     ;; soon enough, and the current forms of the values are pretty big.

@@ -9,9 +9,9 @@
 (defn symbol-generator
   "Returns a function which generates a sequence of symbols
   staring with the initial prefix."
-  [k]
+  [fmt]
   (let [i (atom -1)]
-    #(->> (swap! i inc) (str k) symbol)))
+    #(->> (swap! i inc) (format fmt) symbol)))
 
 (defn- map-with-state
   "Maps f over coll while maintaining state. The function
@@ -29,6 +29,9 @@
 
 (defn analyzer
   [symbol-generator expr-> ->expr known-operations]
+  ;; TODO: we haven't recorded variable order, so expressions can get scrambled
+  ;; as a result of sorting by generated-symbol-name. The solution is to communicate
+  ;; the existing order of subexpressions to the polynomial simplifier.
   (let [base-simplify #(expr-> % ->expr)]
     (fn [expr]
       (letfn [(simplify-expression [expr]
@@ -77,15 +80,18 @@
               ]
         (simplify-expression expr)))))
 
-(def ^:private poly-analyzer (analyzer gensym poly/expression-> poly/->expression poly/operators-known))
-(def simplify-expression poly-analyzer)
+(defn- poly-analyzer [] (analyzer (symbol-generator "-s-%05d") poly/expression-> poly/->expression poly/operators-known))
+(defn- simplify-expression [x] ((poly-analyzer) x))
 
 (doseq [predicate [number?
                    symbol?
-                   nil?]]
+                   nil?
+                   fn?]]
   (g/defhandler :simplify [predicate] identity))
-(g/defhandler :simplify [#(instance? Expression %)] (comp simplify-expression x/expression-of))
-(g/defhandler :simplify [var?] #(g/simplify @%))
+(g/defhandler :simplify [#(instance? Expression %)] #(-> % x/freeze-expression simplify-expression))
+
+;(g/defhandler :simplify [#(instance? Expression %)] x/print-expression)
+(g/defhandler :simplify [var?] #(-> % meta :name))
 
 ;(g/defhandler :simplify [list?] simplify-expression)
 
