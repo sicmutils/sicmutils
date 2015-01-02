@@ -28,6 +28,10 @@
     (is (= (make) (sub (make 0 0 2) (make 0 0 2))))
     (is (= 0 (sub (make 0 0 2) (make 0 0 2))))
     (is (= -3 (sub (make 0 0 2) (make 3 0 2))))
+    (is (= (make 0 1 2) (sub (make 3 1 2) 3)))
+    (is (= (make -2 -2 -1) (sub 1 (make 3 2 1))))
+    (is (= (make 0 0 1 0 1 -1) (sub (make 1 0 1 0 1) (make 1 0 0 0 0 1))))
+    (is (= (make 0 0 -1 0 -1 1) (sub (make 1 0 0 0 0 1) (make 1 0 1 0 1))))
     )
 
   (testing "mul"
@@ -97,5 +101,7 @@
       (is (= 'y (poly-simp exp3)))
       (is (= '(+ g1 g2) (poly-simp (:expression (g/+ 'g1 'g2)))))
       (is (= '(* 2 g1) (poly-simp (:expression (g/+ 'g1 'g1)))))
+      (is (= '(+ b (* -1 f)) (poly-simp `(g/- (g/+ a b c) (g/+ a c f)))))
+      (is (= '(+ f (* -1 b)) (poly-simp `(g/- (g/+ a c f) (g/+ c b a)))))
       ))
   )

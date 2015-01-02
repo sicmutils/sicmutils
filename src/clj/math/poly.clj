@@ -98,8 +98,8 @@
          Q (:xs->c q)
          R (sorted-map)]
     (cond
-      (empty? P) (into R Q)
-      (empty? Q) (into R P)
+      (empty? P) (into R (for [[xs c] Q] [xs (f 0 c)]))
+      (empty? Q) (into R (for [[xs c] P] [xs (f c 0)]))
       :else (let [[xp cp] (first P)
                   [xq cq] (first Q)
                   order (compare xp xq)]
@@ -109,8 +109,8 @@
                                             (if (not (g/zero? v))
                                               (assoc R xp v)
                                               R)))
-                (< order 0) (recur (rest P) Q (assoc R xp (f cp)))
-                :else (recur P (rest Q) (assoc R xq (f cq))))))))
+                (< order 0) (recur (rest P) Q (assoc R xp (f cp 0)))
+                :else (recur P (rest Q) (assoc R xq (f 0 cq))))))))
 
 (defn new-variables
   [arity]
@@ -157,7 +157,7 @@
         (g/zero? p) (g/negate q)
         (g/zero? q) p
         (base? p) (add-constant (negate q) p)
-        (base? q) (add-constant p q)
+        (base? q) (add-constant p (- q))
         :else (let [a (check-same-arity p q)
                     diff (poly-merge g/- p q)]
                 (normalize-with-arity diff a))))

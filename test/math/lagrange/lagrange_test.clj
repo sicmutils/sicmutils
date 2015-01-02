@@ -22,6 +22,11 @@
     ;;   (is (= 'a (f 'w))))
     ))
 
+(deftest gamma-test
+  (let [q (literal-function 'q)
+        Γq (Γ q)]
+    (is (= '(up t (q t) ((D q) t)) (print-expression (Γq 't))))))
+
 (deftest lagrange-equations
   (testing "basics"
     (let [Le (Lagrange-equations (L-free-particle 'm))

@@ -45,5 +45,6 @@
     (is (not (symbolic-derivative? '(e f))))
     (is (not (iterated-symbolic-derivative? `(g/expt g/D 2))))
     (is (iterated-symbolic-derivative? `((g/expt g/D 2) f)))
+    (is (= `((g/expt g/D 2) f) (symbolic-increase-derivative `(g/D f))))
     (is (= `((g/expt g/D 3) f) (symbolic-increase-derivative `((g/expt g/D 2) f))))
     ))
