@@ -62,8 +62,9 @@
 
 (defn scalar? [s]
   (or (numerical-quantity? s)
-      (not (or (v/compound? s)
-               (ifn? s)))))
+      (not (or (ifn? s)
+               (v/compound? s)
+               ))))
 
 ;; or how about something like
 ;; (assoc (assoc-in dtree (mapcat (fn [x] [:step x]) p))
@@ -84,15 +85,19 @@
       (if stop (prn "overwriting a binding!!" stop op dtree))
       (assoc dtree :stop op))))
 
-(defn dtree-lookup [{:keys [steps stop]} [& arguments]]
+(defn dtree-lookup [{:keys [steps stop]} operator [& arguments]]
   (if (some? arguments)
     ;; take a step: that means finding a predicate that matches at
     ;; this step and seeing if the subordinate dtree also matches. The
     ;; first step that matches this pair of conditions is chosen.
-    (some identity
-          (map (fn [[step dtree]]
-                 (and (step (first arguments))
-                      (dtree-lookup dtree (next arguments)))) steps))
+    (let [candidate-functions (filter identity
+                                    (map (fn [[step dtree]]
+                                           (and (step (first arguments))
+                                                (dtree-lookup dtree operator (next arguments)))) steps))
+          candidate-fnset (set candidate-functions)]
+      #_(if (> (count candidate-fnset) 1)
+        (prn "more than one choice for" operator arguments))
+      (first candidate-functions))
     ;; otherwise we stop here.
     stop))
 
@@ -105,7 +110,7 @@
 
 (defn findhandler [operator arguments]
   (if-let [dtree (@the-operator-table operator)]
-    (dtree-lookup dtree arguments)))
+    (dtree-lookup dtree operator arguments)))
 
 (defn make-operation [operator arity]
   (with-meta (fn [& args]

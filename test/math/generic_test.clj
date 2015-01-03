@@ -12,12 +12,12 @@
 
 (deftest dtree-1
   (testing "lookup"
-    (is (= :op1 (dtree-lookup T1 [#{:p1} #{:p2}])))
-    (is (= :op2 (dtree-lookup T1 [#{:p2} #{:p1}])))
-    (is (= :op3 (dtree-lookup T1 [#{:p2} #{:p1} #{:p3}])))
-    (is (not (dtree-lookup T1 [#{:p2} #{:p1} #{:p3} #{:p1}])))
-    (is (not (dtree-lookup T1 [])))
-    (is (not (dtree-lookup T1 [#{:p2}#{:p2}])))))
+    (is (= :op1 (dtree-lookup T1 :op [#{:p1} #{:p2}])))
+    (is (= :op2 (dtree-lookup T1 :op [#{:p2} #{:p1}])))
+    (is (= :op3 (dtree-lookup T1 :op [#{:p2} #{:p1} #{:p3}])))
+    (is (not (dtree-lookup T1 :op [#{:p2} #{:p1} #{:p3} #{:p1}])))
+    (is (not (dtree-lookup T1 :op [])))
+    (is (not (dtree-lookup T1 :op [#{:p2}#{:p2}])))))
 
 (defhandler :y [integer? integer?] :intint)
 (defhandler :y [integer? float?]   :intfloat)

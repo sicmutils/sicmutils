@@ -139,7 +139,6 @@
 (g/defhandler :div      [structure? g/scalar?]  #(outer-product (/ %2) %1))
 (g/defhandler :*        [structure? structure?] mul)
 (g/defhandler :**       [structure? integer?]   expt)
-(g/defhandler :∂        [structure? (constantly true)] (fn [_ _] (throw (IllegalArgumentException. "OUCH"))))
 (g/defhandler :simplify [structure?]            #(mapr g/simplify %))
 (g/defhandler :square [structure?]
   (fn [s] (inner-product s s)))

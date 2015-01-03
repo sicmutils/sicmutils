@@ -35,6 +35,7 @@
   [x]
   (and (ifn? x)
        (not (instance? Struct x))
+       (not (instance? Operator x))
        (not (symbol? x))
        (not (vector? x))))
 
