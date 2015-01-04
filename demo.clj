@@ -68,7 +68,7 @@
 (((Lagrange-equations (L-free-particle 'm)) test-path) 't)
 ;; p.36
 (defn proposed-solution [t]
-  (* 'a (cos (+ (* 'omega t) 'phi))))
+  (* 'a (cos (+ (* 'omega t) 'φ))))
 (((Lagrange-equations (L-harmonic 'm 'k)) proposed-solution) 't)
 ;; p. 40
 (((Lagrange-equations (L-uniform-acceleration 'm 'g)) (up (literal-function 'x) (literal-function 'y))) 't)
@@ -80,17 +80,24 @@
 ;; p. 43
 (((Lagrange-equations (L-central-polar 'm (literal-function 'U)))
   (up (literal-function 'r)
-      (literal-function 'phi)))
+      (literal-function 'φ)))
   't)
 ;; Coordinate transformation (p. 47)
-(prn "coord transform")
+(prn "central polar")
 (velocity ((F->C p->r)
-           (->local 't (up 'r 'phi) (up 'rdot 'phidot))))
+           (->local 't (up 'r 'φ) (up 'rdot 'φdot))))
 (defn L-alternate-central-polar
   [m U]
   (comp (L-central-rectangular m U) (F->C p->r)))
+(println "alternate central polar")
 ((L-alternate-central-polar 'm (literal-function 'U))
   (->local 't (up 'r 'φ) (up 'rdot 'φdot)))
+(println "alternate central polar Lagrangian")
+(((Lagrange-equations (L-alternate-central-polar 'm (literal-function 'U)))
+   (up (literal-function 'r)
+       (literal-function 'φ)))
+  't)
+(println "The Simple Pendulum")
 (defn T-pend
   [m l g ys]
   (fn [local]
@@ -113,14 +120,35 @@
         V (V-pend m l g ys)]
     #(- (T %) (V %))))
 
-(((Lagrange-equations (L-pend 'm 'l 'g (literal-function 'y_s)))
-   (literal-function 'theta))
-  't)
+(def θ (literal-function 'θ))
+(def y_s (literal-function 'y_s))
 
-77
-((T-pend 'm 'l 'g (literal-function 'y_s)) ((Γ (literal-function 'theta)) 't)  )
-55
-((V-pend 'm 'l 'g (literal-function 'y_s)) ((Γ (literal-function 'theta)) 't)  )
-66
-(- ((T-pend 'm 'l 'g (literal-function 'y_s)) ((Γ (literal-function 'theta)) 't)  )
-   ((V-pend 'm 'l 'g (literal-function 'y_s)) ((Γ (literal-function 'theta)) 't)  ))
+
+(((Lagrange-equations (L-pend 'm 'l 'g y_s)) θ) 't)
+
+
+(println "T-pend")
+((T-pend 'm 'l 'g y_s) ((Γ θ) 't))
+(println "V-pend")
+((V-pend 'm 'l 'g y_s) ((Γ θ) 't))
+(println "L-pend")
+(- ((T-pend 'm 'l 'g y_s) ((Γ θ) 't))
+   ((V-pend 'm 'l 'g y_s) ((Γ θ) 't)))
+(println "∂2 L-pend")
+(((pd 2) (L-pend 'm 'l 'g y_s)) ((Γ θ) 't))
+(println "∂1 L-pend")
+(((pd 1) (L-pend 'm 'l 'g y_s)) ((Γ θ) 't))
+(println "∂2 L-pend with function composition")
+((comp ((pd 2) (L-pend 'm 'l 'g y_s)) (Γ θ)) 't)
+(println "∂1 L-pend with function composition")
+((comp ((pd 1) (L-pend 'm 'l 'g y_s)) (Γ θ)) 't)
+(println "D ∂2")
+((D (comp ((pd 2) (L-pend 'm 'l 'g y_s)) (Γ θ))) 't)
+(println "Lagrange equations")
+(def b (D (comp ((pd 2) (L-pend 'm 'l 'g y_s)) (Γ θ))))
+(def a (comp ((pd 1) (L-pend 'm 'l 'g y_s)) (Γ θ)))
+(println "result")
+(println "b=" b)
+(println "a=" a)
+
+((- b a) 't)

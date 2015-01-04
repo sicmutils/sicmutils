@@ -322,7 +322,14 @@
           (= a 2) (fn [x y]
                     ((d (fn [s] (apply f (seq s))))
                       (struct/seq-> [x y])))
-          :else (throw (IllegalArgumentException. "Haven't implemented this yet!")))))
+          (= a 3) (fn [x y z]
+                    ((d (fn [s] (apply f (seq s))))
+                      (struct/seq-> [x y z])))
+          (= a 4) (fn [w x y z]
+                    ((d (fn [s] (apply f (seq s))))
+                      (struct/seq-> [w x y z])))
+
+          :else (throw (IllegalArgumentException. (str "Haven't implemented this yet: arity " a))))))
 
 (defn- not-compound?
   [x]

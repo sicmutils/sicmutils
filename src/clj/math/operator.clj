@@ -1,7 +1,7 @@
 (ns math.operator
-  (:import (clojure.lang IFn))
   (:require [math.value :as v]
-            [math.generic :as g]))
+            [math.generic :as g])
+  (:import (clojure.lang IFn AFn)))
 
 (defrecord Operator [f name]
   v/Value
@@ -12,6 +12,8 @@
     (let [operated-function ((:f operator) function)]
       (fn [& xs]
         (apply operated-function xs))))
+  (applyTo [operator fns]
+    (AFn/applyToHelper operator fns))
   )
 
 (defn make-operator

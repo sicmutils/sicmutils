@@ -32,6 +32,7 @@
     (is (= (make -2 -2 -1) (sub 1 (make 3 2 1))))
     (is (= (make 0 0 1 0 1 -1) (sub (make 1 0 1 0 1) (make 1 0 0 0 0 1))))
     (is (= (make 0 0 -1 0 -1 1) (sub (make 1 0 0 0 0 1) (make 1 0 1 0 1))))
+    (is (= (make -1 -2 -3) (negate (make 1 2 3))))
     )
 
   (testing "mul"

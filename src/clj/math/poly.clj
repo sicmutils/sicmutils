@@ -90,7 +90,7 @@
 
 (defn- poly-map
   [f p]
-  (normalize-with-arity (into (sorted-map) (map #(vector (first %) (f (second %))) (:xs->c p))) (:arity p)))
+  (normalize-with-arity (for [[xs c] (:xs->c p)] [xs (f c)]) (:arity p)))
 
 (defn- poly-merge
   [f p q]
@@ -117,7 +117,7 @@
   (for [a (range arity)]
     (make-with-arity arity [(vec (map #(if (= % a) 1 0) (range arity))) 1])))
 
-(def ^:private negate (partial poly-map g/negate))
+(def negate (partial poly-map g/negate))
 
 (defn- zero-term
   [arity]
@@ -218,7 +218,7 @@
 
 (def ^:private operator-table
   {`g/+ #(reduce add 0 %&)
-   `g/- #(sub % (reduce add 0 %&))
+   `g/- (fn [arg & args] (if (some? args) (sub arg (reduce add args)) (negate arg)))
    `g/* #(reduce mul 1 %&)
    `g/negate negate
    `g/expt expt
