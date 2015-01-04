@@ -59,6 +59,7 @@ Much remains to be done (see below).
 ## What's "working" now
 
 ```scheme
+; Scheme
 (define ((L-central-polar m U) local)
   (let ((q (coordinate local))
         (qdot (velocity local)))
@@ -67,15 +68,18 @@ Much remains to be done (see below).
       (- (* 1/2 m
            (+ (square rdot)
               (square (* r phidot))) )
-              (U r)))))```
+         (U r)))))
+```
 
 ```clojure
+; Clojure
 (defn L-central-polar [m U]
   (fn [[_ [r] [rdot φdot]]]
     (- (* 1/2 m
           (+ (square rdot)
              (square (* r φdot))))
-       (U r))))```
+       (U r))))
+```
 
 We can see a few things from this example. `L-central-polar` wants to compute
 a Lagrangian for a point mass `m` in a potential field `U`. In Scheme, it's
