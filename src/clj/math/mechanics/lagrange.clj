@@ -29,14 +29,11 @@
          (U (sqrt (square q)))))))
 
 (defn L-central-polar [m U]
-  (fn [local]
-    (let [[_ q qdot] local
-          [r] q
-          [rdot φdot] qdot]
-      (- (* 1/2 m
-            (+ (square rdot)
-               (square (* r φdot))))
-         (U r)))))
+  (fn [[_ [r] [rdot φdot]]]
+    (- (* 1/2 m
+          (+ (square rdot)
+             (square (* r φdot))))
+       (U r))))
 
 (def ->local up)
 
