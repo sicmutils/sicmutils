@@ -1,6 +1,9 @@
 (ns pattern.rule
   (require [pattern.match :refer :all]))
 
+;; Inspired by Gerald Jay Sussman's lecture notes for MIT 6.945
+;; http://groups.csail.mit.edu/mac/users/gjs/6.945/
+
 (defn- compile-consequence
   "Compiles a consequence (written as a pattern), by returnin a code
   fragment which will replace instances of variable and segment

@@ -4,10 +4,6 @@
             [math.expression :as x]
             [clojure.math.numeric-tower :as nt]))
 
-;; N.B.: (define numerical-expression-canonicalizer #f)
-;;       (define heuristic-number-canonicalizer #f)
-;;       (define incremental-simplifier #f)
-
 (declare symbolic-operator-table)
 (defn- numerical-expression
   [expr]

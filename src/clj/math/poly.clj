@@ -21,11 +21,6 @@
   (applyTo [_ _] (throw (IllegalArgumentException. "how did we get here?")))
   )
 
-;; ultimately this should be more sensitive, and allow the use of
-;; generic types. Might be nice to  have a ring-of-coefficients type
-;; too, but it's not obvious at this point that this would fly with
-;; the architecture of this system
-
 (def ^:private base? number?)
 
 (defn- make-with-arity [a & xc-pairs]

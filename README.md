@@ -42,7 +42,7 @@ Rather than just quasi-mechanically translate the Scheme to Clojure, I
 have studied the implementation of the system before bringing it to
 Clojure, and have used TDD throughout the project (which turned out to
 be absolutely essential as I considered various approaches to problems
-posed by the Scheme code base.  At this writing there are over 500
+posed by the Scheme code base. At this writing there are over 500
 unit tests, and there easily ought to be twice as many.
 
 The implementation is far from complete. My goal was to create a
@@ -97,7 +97,7 @@ a Lagrangian for a point mass `m` in a potential field `U`. In Scheme, it's
 possible to specify currying at the function site: `(L-central-polar m U)`
 returns a function of the `local` tuple (a sequence of time, generalized
 coordinates, and generalized velocities). We don't have that syntax in Clojure,
-but instead have something even more useful: argument destructuring: we can
+but instead have something even more useful: argument destructuring. We can
 pick out exactly the coordinates of the local tuple components directly.
 
 While function definitions cannot be typed directly from the book, function
@@ -253,6 +253,19 @@ techniques of [PDG], but at the moment, I have not gotten to the point
 of implementing any of the groundwork for that yet, as working through
 [SICM] has been challenge enough for me.
 
+### Derivatives of nested functions
+
+Or, what is described as "Alexey's Amazing Bug" in the Scmutils source
+code (and further described by Oleksandr Manzyuk [here][OM]. This should
+be straightforward to fix but hasn't been necessary for the work so far
+
+### Quaternions, Power Series...
+
+The Scmutils library is vast, and I don't pretend to have covered
+anywhere near all of it. The breadth-first approach I have used to get
+the textbook examples working has left many corners of the source
+library unexplored as of this writing.
+
 ## The experience of Clojure
 
 This is my first real attempt at a project in Clojure, so I can't say
@@ -271,11 +284,12 @@ other `O(n)` data structures have been replaced by maps and sets, and
 the sorted variants of those.
 
 Using `defrecord` and `deftype` simplified the handling of a lot of
-Scmutils objects that were simply the `cons` of a type tag and a value.
-Such types can implement `IFn` when they need to be callable, allowing
-me to completely dodge the `apply-hook` technique used in MIT/GNU Scheme,
-which is one of the main reasons the code would not have been easy to
-port to other variants of Scheme, let alone any other flavor of LISP.
+Scmutils objects that were simply the `cons` of a type tag and a
+value.  Such types can implement `IFn` when they need to be callable,
+allowing me to completely dodge the `apply-hook` technique used in
+MIT/GNU Scheme, which is one of the main reasons the code would not
+have been easy to port to other variants of Scheme, let alone any
+other flavor of LISP.
 
 The Scmutils code is essentially a monolith, given that Scheme has no
 module scoping. This Clojure implementation partitions the codebase
@@ -288,8 +302,6 @@ namespace-qualified generic equivalents exactly at the point where
 this is necessary; but also allows the generic operations to be mixed
 with the native operations when this is useful.
 
-
-
 ## Running the code
 
 Installation is simple if you have leiningen; this tool will arrange
@@ -300,7 +312,7 @@ $ brew install leiningen
 ~~~
 
 ought to get you started. Clone the repo. Then there are several ways
-you can run the code.  For example, to run the demonstration script in
+you can run the code. For example, to run the demonstration script in
 `demo.clj`, you can:
 
 ~~~ sh
@@ -314,6 +326,12 @@ $ lein uberjar
 $ java -jar target/uberjar/math-0.0.1-SNAPSHOT-standalone.jar < demo.clj
 ~~~
 
+To run the test suite:
+
+~~~ sh
+$ lein test
+~~~
+
 ## License
 
 The work this is based on has the MIT license, so I propose that this
@@ -322,5 +340,6 @@ work should carry the same.
 [SICM]: http://mitpress.mit.edu/books/structure-and-interpretation-classical-mechanics
 [FDG]: http://mitpress.mit.edu/books/functional-differential-geometry
 [SICP]: http://mitpress.mit.edu/sicp/
+[OM]: http://oleksandrmanzyuk.files.wordpress.com/2012/04/paper.pdf
 
 Copyright © 2014 Colin Smith

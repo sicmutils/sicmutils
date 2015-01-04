@@ -369,18 +369,3 @@
   (o/make-operator #(g/partial-derivative % selectors) :partial-derivative))
 
 (println "derivative initialized")
-
-;;; SIMPLE-DERIVATIVE-INTERNAL represents the essential computation.
-;;; To compute the derivative of function f at point x, make a new
-;;; differential object with incremental part 1 (the coefficient of
-;;; the new differential tag, dx) and with constant part x.  We pass
-;;; this through the function f, and then extract the terms which
-;;; contain the the differential tag dx, removing that tag.  This
-;;; leaves the derivative.
-;;;
-;;;                           f
-;;;                 x + dx |----> f(x) + Df(x)*dx
-;;;                  \                  /
-;;;                   \                /
-;;;                    \     Df       /
-;;;                      x |----> Df(x)

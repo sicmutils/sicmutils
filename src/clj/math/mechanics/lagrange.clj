@@ -52,9 +52,6 @@
         y (* r (sin φ))]
     (up x y)))
 
-
-
-
 ;; XXX: GJS allows for a gamma procedure that contains higher
 ;; derivatives
 

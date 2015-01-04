@@ -41,7 +41,7 @@
                 (if (and (sequential? expr)
                          (not (= (first expr) 'quote)))
                   (let [[expr-map analyzed-expr] (map-with-state expr-map analyze expr)]
-                    ;; at this point all subexpressions are canonical
+                    ;; at this point all subexpressions are canonical TODO: is this true?
                     (if (and (known-operations (sym/operator analyzed-expr))
                              true #_"this is where the exponent integrality test would go")
                       [expr-map analyzed-expr]
@@ -88,13 +88,8 @@
                    nil?
                    fn?]]
   (g/defhandler :simplify [predicate] identity))
+
 (g/defhandler :simplify [#(instance? Expression %)] #(-> % x/freeze-expression simplify-expression))
-
-;(g/defhandler :simplify [#(instance? Expression %)] x/print-expression)
 (g/defhandler :simplify [var?] #(-> % meta :name))
-
-;(g/defhandler :simplify [list?] simplify-expression)
-
-
 
 (println "simplify initialized")

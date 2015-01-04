@@ -1,5 +1,8 @@
 (ns pattern.match)
 
+;; Inspired by Gerald Jay Sussman's lecture notes for MIT 6.945
+;; http://groups.csail.mit.edu/mac/users/gjs/6.945/
+
 (def ^:private zero [{} nil])
 
 (defn match-one
