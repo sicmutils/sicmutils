@@ -152,3 +152,40 @@
 (println "a=" a)
 
 ((- b a) 't)
+; p. 61
+(defn Lf [m g]
+  (fn [[_ [_ y] v]]
+    (- (* 1/2 m (square v)) (* m g y))))
+
+(defn dp-coordinates [l y_s]
+  (fn [[t θ]]
+    (let [x (* l (sin θ))
+          y (- (y_s t) (* l (cos θ)))]
+      (up x y))))
+
+(defn L-pend2 [m l g y_s]
+  (comp (Lf m g)
+        (F->C (dp-coordinates l y_s))))
+
+((L-pend2 'm 'l 'g y_s) (->local 't 'θ 'θdot))
+
+; skipping ahead to p. 81
+
+(def V (literal-function 'V))
+(def spherical-state (up 't
+                         (up 'r 'θ 'φ)
+                         (up 'rdot 'θdot 'φdot)))
+(defn T3-spherical [m]
+  (fn [[t [r θ φ] [rdot θdot φdot]]]
+    (* 1/2 m (+ (square rdot)
+                (square (* r θdot))
+                (square (* r (sin θ) φdot))))))
+
+(defn L3-central [m Vr]
+  (let [Vs (fn [[_ [r]]] (Vr r))]
+    (- (T3-spherical m) Vs)))
+
+(((pd 1) (L3-central 'm V)) spherical-state)
+
+(((pd 2) (L3-central 'm V)) spherical-state)
+
