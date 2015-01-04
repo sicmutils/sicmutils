@@ -79,8 +79,6 @@
        ; potentially demote the resulting diffferential object to a constant
        canonicalize-differential))
 
-(defn canonicalize-differential-terms [terms] (make-differential terms)) ;; XXX
-
 (defn- differential->terms
   "Given a differential, returns the vector of DifferentialTerms
   within; otherwise, returns a singleton differential term
@@ -92,6 +90,8 @@
         :else (conj empty-differential [empty-tags dx])))
 
 (defn- dxs+dys
+  "Inputs are sequences of differential terms; returns the sequence of differential
+  terms representing the sum."
   [dxs dys]
   (loop [dxs dxs
          dys dys
@@ -112,6 +112,8 @@
                 :else (recur dxs (rest dys) (conj result b)))))))
 
 (defn- dx*dys
+  "Multiplies a Differential by a sequence of differential terms (differential-set,
+  coefficient) pairs. The result is a map of differential tag-sets to coefficients."
   [[x-tags x-coef] dys]
   (loop [dys dys
          result empty-differential]
@@ -136,11 +138,11 @@
   differential; in which case we lift it into a trivial differential
   before the addition.)"
   [a b]
-  (canonicalize-differential-terms
+  (make-differential
     (dxs+dys (differential->terms a) (differential->terms b))))
 
 (defn dx*dy [a b]
-  (canonicalize-differential-terms
+  (make-differential
     (dxs*dys (differential->terms a) (differential->terms b))))
 
 (def ^:private next-differential-tag (atom 0))
@@ -204,8 +206,8 @@
            infinitesimal-part true} (group-by #(-> % first (contains? keytag)) dts)]
       ;; if the input differential was well-formed, then it is safe to
       ;; construct differential objects on the split parts.
-      [(canonicalize-differential finite-part)
-       (canonicalize-differential infinitesimal-part)])
+      [(make-differential finite-part)
+       (make-differential infinitesimal-part)])
     [x 0]))
 
 (defn- unary-op

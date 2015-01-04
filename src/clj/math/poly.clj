@@ -89,17 +89,22 @@
          0))))
 
 (defn- poly-map
+  "Map the function f over the coefficients of p, returning a new Poly."
   [f p]
   (normalize-with-arity (for [[xs c] (:xs->c p)] [xs (f c)]) (:arity p)))
 
 (defn- poly-merge
+  "Merge the polynomials together, combining corresponding coefficients with f.
+  The result is not a polynomial object, but rather a sequence of [exponent, coefficient] pairs,
+  suitable for further processing or canonicalization. Merged monomials with zero coefficient
+  are dropped."
   [f p q]
   (loop [P (:xs->c p)
          Q (:xs->c q)
          R (sorted-map)]
     (cond
-      (empty? P) (into R (for [[xs c] Q] [xs (f 0 c)]))
-      (empty? Q) (into R (for [[xs c] P] [xs (f c 0)]))
+      (empty? P) (into R (for [[xs c] Q :let [c1 (f 0 c)] :when (not (core-zero? c1))] [xs c1]))
+      (empty? Q) (into R (for [[xs c] P :let [c1 (f c 0)] :when (not (core-zero? c1))] [xs c1]))
       :else (let [[xp cp] (first P)
                   [xq cq] (first Q)
                   order (compare xp xq)]
@@ -113,6 +118,7 @@
                 :else (recur P (rest Q) (assoc R xq (f 0 cq))))))))
 
 (defn new-variables
+  "Creates a sequence of identity (i.e., x) polynomials, one for each of arity indeterminates."
   [arity]
   (for [a (range arity)]
     (make-with-arity arity [(vec (map #(if (= % a) 1 0) (range arity))) 1])))
@@ -120,10 +126,12 @@
 (def negate (partial poly-map g/negate))
 
 (defn- zero-term
+  "Creates the key corresponding to the constant term of a polynomial with the given arity."
   [arity]
   (vec (repeat arity 0)))
 
 (defn- add-constant
+  "Adds the constant c to poly. "
   [poly c]
   (if (base? poly) (g/+ poly c)
                    (let [{:keys [arity xs->c]} poly]
@@ -152,6 +160,7 @@
   (assoc ocs exponents (g/+ (get ocs exponents 0) coefficient)))
 
 (defn sub
+  "Subtract the polynomial q from the polynomial p."
   [p q]
   (cond (and (base? p) (base? q)) (g/- p q)
         (g/zero? p) (g/negate q)
@@ -163,6 +172,7 @@
                 (normalize-with-arity diff a))))
 
 (defn mul
+  "Multiply polynomials p and q, and return the product."
   [p q]
   (cond (and (base? p) (base? q)) (g/* p q)
         (g/zero? p) 0
@@ -178,7 +188,9 @@
                                                   [(vec (map + xp xq)) (g/* cp cq)]))
                                       a))))
 
-(defn expt [p n]
+(defn expt
+  "Raise the polynomial p to the (integer) power n."
+  [p n]
   (cond (base? p) (g/expt p n)
         (or
          (not (integer? n))
@@ -195,6 +207,13 @@
                       (recur x (dec c) (mul x a)))))))
 
 (defn expression->
+  "Convert an expression into Flat Polynomial canonical form. The expression should
+  be an unwrapped expression, i.e., not an instance of the Expression type, nor
+  should subexpressions contain type information. This kind of simplification proceeds
+  purely symbolically over the known Flat Polynomial operations; other operations
+  outside the arithmetic available in polynomials over commutative rings should be
+  factored out by an expression analyzer before we get here. The result is a Poly
+  object representing the polynomial structure of the input over the unknowns."
   [expr cont]
   ;; TODO: if we had a variable sort ordering, that sort would go in place of the
   ;; call to seq immediately below.
@@ -204,11 +223,14 @@
    (cont ((x/walk-expression environment) expr) expression-vars)))
 
 (defn ->expression
+  "This is the output stage of Flat Polynomial canonical form simplification.
+  The input is a Poly object, and the output is an expression representing the
+  evaluation of that polynomial over the indeterminates extracted from the
+  expression at the start of this process."
   [^Poly p vars]
   (if (base? p)
     p
-    ; TODO: maybe get rid of 0/1 in reduce calls. Maybe use symb:+ instead of g/+.
-    ; TODO: we switched to sym/ because we don't want wrapped expressions here!
+    ; TODO: maybe get rid of 0/1 in reduce calls.
     (reduce sym/add 0 (map (fn [[exponents coefficient]]
                              (sym/mul coefficient
                                       (reduce sym/mul 1 (map (fn [exponent var]
@@ -216,6 +238,12 @@
                                                              exponents vars))))
                            (:xs->c p)))))
 
+;; The operator-table represents the operations that can be understood from the
+;; point of view of a polynomial over a commutative ring. The functions take
+;; polynomial inputs (perhaps simply elements of the base ring, in the case of
+;; constant polynomials) and return polynomials (again, it is possible for any
+;; arithmetic operation over the polynomial ring to have a value lying in the base
+;; ring; when this happens, the type is lowered to the base ring.
 (def ^:private operator-table
   {`g/+ #(reduce add 0 %&)
    `g/- (fn [arg & args] (if (some? args) (sub arg (reduce add args)) (negate arg)))
@@ -226,4 +254,4 @@
    ;`'g/gcd gcd
    })
 
-(def operators-known (into #{} (keys operator-table)))
+(def operators-known (set (keys operator-table)))
