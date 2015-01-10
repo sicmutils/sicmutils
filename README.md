@@ -42,7 +42,7 @@ Rather than just quasi-mechanically translate the Scheme to Clojure, I
 have studied the implementation of the system before bringing it to
 Clojure, and have used TDD throughout the project (which turned out to
 be absolutely essential as I considered various approaches to problems
-posed by the Scheme code base. At this writing there are over 500
+posed by the Scheme code base). At this writing there are over 500
 unit tests, and there easily ought to be twice as many.
 
 The implementation is far from complete. My goal was to create a
@@ -92,17 +92,19 @@ Much remains to be done (see below).
        (U r))))
 ```
 
-We can see a few things from this example. `L-central-polar` wants to compute
-a Lagrangian for a point mass `m` in a potential field `U`. In Scheme, it's
-possible to specify currying at the function site: `(L-central-polar m U)`
-returns a function of the `local` tuple (a sequence of time, generalized
-coordinates, and generalized velocities). We don't have that syntax in Clojure,
-but instead have something even more useful: argument destructuring. We can
-pick out exactly the coordinates of the local tuple components directly.
+We can see a few things from this example. `L-central-polar` wants to
+compute a Lagrangian for a point mass `m` in a potential field `U`. In
+Scheme, it's possible to specify currying at the site of a function's
+definition: `(L-central-polar m U)` returns a function of the `local`
+tuple (a sequence of time, generalized coordinates, and generalized
+velocities). We don't have that syntax in Clojure, but instead have
+something even more useful: argument destructuring. We can pick out
+exactly the coordinates we want out of the local tuple components
+directly.
 
-While function definitions cannot be typed directly from the book, function
-applications in Clojure and Scheme are the same. The following works in
-both systems:
+While function definitions cannot be typed directly from the book,
+function applications in Clojure and Scheme are the same. The
+following works in both systems:
 
 ```clojure
 (((Lagrange-equations (L-central-polar 'm (literal-function 'U)))
@@ -173,9 +175,7 @@ And in Clojure, using a couple of simplifying definitions:
 
 (((pd 1) (L3-central 'm V)) spherical-state)
 ```
-
-Yielding
-
+yielding
 ```clojure
 (down
  (* m rdot)
@@ -210,6 +210,12 @@ form at some point.
 While the rule simplifier has been implemented, it has not been linked to
 the REPL and FPF-based simplifications: this will probably be the next
 thing I work on.
+
+### TeX
+
+Scmutils can export its expressions in TeX format; this is very handy,
+but I haven't started that work yet as the necessary extensions to the
+simplification library to make that useful haven't happened yet.
 
 ### Numerical Methods
 
@@ -256,8 +262,8 @@ of implementing any of the groundwork for that yet, as working through
 ### Derivatives of nested functions
 
 Or, what is described as "Alexey's Amazing Bug" in the Scmutils source
-code (and further described by Oleksandr Manzyuk [here][OM]. This should
-be straightforward to fix but hasn't been necessary for the work so far
+code (and further described by Oleksandr Manzyuk [here][OM]). This should
+be straightforward to fix but hasn't been necessary for the work so far.
 
 ### Quaternions, Power Series...
 

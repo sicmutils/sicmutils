@@ -20,7 +20,7 @@
   [& args]
   (println "Won't you sign in, stranger?")
   (m/with-bindings
-    (in-ns 'math.repl)
+    (in-ns 'repl)
     (if args
       ;; read and eval the contents of the supplied files
       (doseq [a args]
