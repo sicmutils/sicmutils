@@ -27,7 +27,7 @@ public class Brent {
         double x = sa + cgold * (b-a);
         w = x;
         v = w;
-        fx = (double) f.invoke(x);
+        fx = (Double) f.invoke(x);
         fw = fx;
         fv = fw;
         while (true) {
@@ -70,7 +70,7 @@ public class Brent {
             } else {
                 u = x - tol;
             }
-            fu = (double) f.invoke(u);
+            fu = (Double) f.invoke(u);
             if (fu <= fx) {
                 if (u < x) sb = x; else sa = x;
                 v = w;
