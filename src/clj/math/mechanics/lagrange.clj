@@ -45,12 +45,8 @@
                 (* (((pd 1) F) local)
                    (velocity local))))))
 
-(defn p->r [local]
-  (let [[_ polar-tuple] local
-        [r φ] polar-tuple
-        x (* r (cos φ))
-        y (* r (sin φ))]
-    (up x y)))
+(defn p->r [[_ [r φ]]]
+  (up (* r (cos φ)) (* r (sin φ))))
 
 ;; XXX: GJS allows for a gamma procedure that contains higher
 ;; derivatives
