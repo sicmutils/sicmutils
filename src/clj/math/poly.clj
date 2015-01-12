@@ -202,13 +202,15 @@
                       (recur x (dec c) (mul x a)))))))
 
 (defn expression->
-  "Convert an expression into Flat Polynomial canonical form. The expression should
-  be an unwrapped expression, i.e., not an instance of the Expression type, nor
-  should subexpressions contain type information. This kind of simplification proceeds
-  purely symbolically over the known Flat Polynomial operations; other operations
-  outside the arithmetic available in polynomials over commutative rings should be
-  factored out by an expression analyzer before we get here. The result is a Poly
-  object representing the polynomial structure of the input over the unknowns."
+  "Convert an expression into Flat Polynomial canonical form. The
+  expression should be an unwrapped expression, i.e., not an instance
+  of the Expression type, nor should subexpressions contain type
+  information. This kind of simplification proceeds purely
+  symbolically over the known Flat Polynomial operations; other
+  operations outside the arithmetic available in polynomials over
+  commutative rings should be factored out by an expression analyzer
+  before we get here. The result is a Poly object representing the
+  polynomial structure of the input over the unknowns."
   [expr cont]
   ;; TODO: if we had a variable sort ordering, that sort would go in place of the
   ;; call to seq immediately below.
@@ -219,9 +221,10 @@
 
 (defn ->expression
   "This is the output stage of Flat Polynomial canonical form simplification.
-  The input is a Poly object, and the output is an expression representing the
-  evaluation of that polynomial over the indeterminates extracted from the
-  expression at the start of this process."
+  The input is a Poly object, and the output is an expression
+  representing the evaluation of that polynomial over the
+  indeterminates extracted from the expression at the start of this
+  process."
   [^Poly p vars]
   (if (base? p)
     p
@@ -233,12 +236,14 @@
                                                              exponents vars))))
                            (:xs->c p)))))
 
-;; The operator-table represents the operations that can be understood from the
-;; point of view of a polynomial over a commutative ring. The functions take
-;; polynomial inputs (perhaps simply elements of the base ring, in the case of
-;; constant polynomials) and return polynomials (again, it is possible for any
-;; arithmetic operation over the polynomial ring to have a value lying in the base
+;; The operator-table represents the operations that can be understood
+;; from the point of view of a polynomial over a commutative ring. The
+;; functions take polynomial inputs (perhaps simply elements of the
+;; base ring, in the case of constant polynomials) and return
+;; polynomials (again, it is possible for any arithmetic operation
+;; over the polynomial ring to have a value lying in the base
 ;; ring; when this happens, the type is lowered to the base ring.
+
 (def ^:private operator-table
   {`g/+ #(reduce add 0 %&)
    `g/- (fn [arg & args] (if (some? args) (sub arg (reduce add args)) (negate arg)))

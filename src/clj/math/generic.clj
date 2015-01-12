@@ -70,7 +70,7 @@
 ;; (assoc (assoc-in dtree (mapcat (fn [x] [:step x]) p))
 
 (def empty-dtree {:steps {} :stop nil})
-(def ^:private the-operator-table (atom {}))
+(defonce ^:private the-operator-table (atom {}))
 
 (defn dtree-insert [{:keys [steps stop] :as dtree} op [predicate & predicates]]
   (if predicate
