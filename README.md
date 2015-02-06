@@ -340,8 +340,7 @@ $ lein test
 
 ## License
 
-The work this is based on has the MIT license, so I propose that this
-work should carry the same.
+The work this is based on GPL code, and so carries the GPL v3 license.
 
 [SICM]: http://mitpress.mit.edu/books/structure-and-interpretation-classical-mechanics
 [FDG]: http://mitpress.mit.edu/books/functional-differential-geometry
