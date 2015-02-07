@@ -39,7 +39,7 @@
 
 (def ^:private base? number?)
 
-(defn- make-with-arity [a & xc-pairs]
+(defn- make-with-arity [a xc-pairs]
   (let [xs->c (into (sorted-map) (filter (fn [[_ c]] (not (g/zero? c))) xc-pairs))]
     (cond (empty? xs->c) 0
           (and (= (count xs->c) 1) (every? core-zero? (first (first xs->c)))) (second (first xs->c))
@@ -50,8 +50,8 @@
   pairs of [[orders], coefficient]. For example, x^2 - 1 can be
   constructed by (make-sparse [[2] 1] [[0] -1]). The order of the pairs
   doesn't matter."
-  [& oc-pairs]
-  (apply make-with-arity 1 oc-pairs))
+  [xc-pairs]
+  (make-with-arity 1 xc-pairs))
 
 (defn make
   "Create a polynomial specifying the terms in dense form, supplying
@@ -61,7 +61,7 @@
   order of the terms, and zeros must be filled in to get to higher
   powers."
   [& coefficients]
-  (apply make-sparse (zipmap (map vector (iterate inc 0)) coefficients)))
+  (make-sparse (zipmap (map vector (iterate inc 0)) coefficients)))
 
 ;; should we rely on the constructors and manipulators never to allow
 ;; a zero coefficient into the list, or should we change degree to
@@ -72,7 +72,7 @@
   [p]
   (cond (g/zero? p) -1
         (base? p) 0
-        :else (apply max (map #(reduce + 0 %) (keys (:xs->c p))))))
+        :else (reduce max (map #(reduce + 0 %) (keys (:xs->c p))))))
 
 ;; ARITY
 
@@ -132,7 +132,7 @@
   "Creates a sequence of identity (i.e., x) polynomials, one for each of arity indeterminates."
   [arity]
   (for [a (range arity)]
-    (make-with-arity arity [(vec (map #(if (= % a) 1 0) (range arity))) 1])))
+    (make-with-arity arity [[(vec (map #(if (= % a) 1 0) (range arity))) 1]])))
 
 (def negate (partial poly-map g/negate))
 

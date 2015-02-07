@@ -47,10 +47,10 @@
   )
 
 (defn up [& xs]
-  (Struct. :up (apply vector xs)))
+  (Struct. :up (vec xs)))
 
 (defn down [& xs]
-  (Struct. :down (apply vector xs)))
+  (Struct. :down (vec xs)))
 
 (defn structure? [s]
   (or (instance? Struct s)
@@ -115,7 +115,7 @@
        (not= (orientation s) (orientation t))))
 
 (defn- inner-product [s t]
-  (apply g/+ (map g/* (elements s) (elements t))))
+  (reduce g/+ 0 (map g/* (elements s) (elements t))))
 
 (defn- outer-product [a s]
   (Struct. (orientation s) (vec (map #(g/* a %) (elements s)))))
@@ -141,7 +141,7 @@
   GJS: Any matrix in the argument list wants to be converted to a row of
   columns (TODO: this is not implemented yet)"
   [s]
-  (apply up (map matrix->structure s)))
+  (Struct. :up (vec (map matrix->structure s))))
 
 (g/defhandler :+        [down? down?]           (partial elementwise g/+))
 (g/defhandler :+        [up? up?]               (partial elementwise g/+))

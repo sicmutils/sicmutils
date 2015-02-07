@@ -84,7 +84,7 @@
 (defn- sub-n [& args]
   (cond (nil? args) 0
         (nil? (next args)) (g/negate (first args))
-        :else (sub (first args) (apply add-n (next args)))))
+        :else (sub (first args) (reduce add (next args)))))
 
 (defn mul [a b]
   (let [product (partial canonically-ordered-operation `g/*)]
@@ -119,7 +119,7 @@
 (defn- div-n [& args]
   (cond (nil? args) 1
         (nil? (next args)) (div 1 (first args))
-        :else (div (first args) (apply mul-n (next args)))))
+        :else (div (first args) (reduce mul (next args)))))
 
 ;; END
 
