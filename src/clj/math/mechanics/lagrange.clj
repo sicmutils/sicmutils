@@ -24,25 +24,21 @@
 (defn velocity [local] (nth local 2))
 
 (defn L-free-particle [mass]
-  (fn [local]
-    (let [[_ _ v] local]
-      (* 1/2 mass (square v)))))
+  (fn [[_ _ v]]
+    (* 1/2 mass (square v))))
 
 (defn L-harmonic [m k]
-  (fn [local]
-    (let [[_ q v] local]
-      (- (* 1/2 m (square v)) (* 1/2 k (square q))))))
+  (fn [[_ q v]]
+    (- (* 1/2 m (square v)) (* 1/2 k (square q)))))
 
 (defn L-uniform-acceleration [m g]
-  (fn [local]
-    (let [[_ [_ y] v] local]
-      (- (* 1/2 m (square v)) (* m g y)))))
+  (fn [[_ [_ y] v]]
+    (- (* 1/2 m (square v)) (* m g y))))
 
 (defn L-central-rectangular [m U]
-  (fn [local]
-    (let [[_ q v] local]
-      (- (* 1/2 m (square v))
-         (U (sqrt (square q)))))))
+  (fn [[_ q v]]
+    (- (* 1/2 m (square v))
+       (U (sqrt (square q))))))
 
 (defn L-central-polar [m U]
   (fn [[_ [r] [rdot φdot]]]
@@ -54,12 +50,11 @@
 (def ->local up)
 
 (defn F->C [F]
-  (fn [local]
-    (->local (first local)
+  (fn [[t q v :as local]]
+    (->local t
              (F local)
              (+ (((pd 0) F) local)
-                (* (((pd 1) F) local)
-                   (velocity local))))))
+                (* (((pd 1) F) local) v)))))
 
 (defn p->r [[_ [r φ]]]
   (up (* r (cos φ)) (* r (sin φ))))
@@ -69,9 +64,9 @@
 
 (defn Γ
   [q]
-  (let [dq (D q)]
+  (let [Dq (D q)]
     (fn [t]
-      (up t (q t) (dq t)))))
+      (up t (q t) (Dq t)))))
 
 (defn Lagrangian-action
   [L q t1 t2]
