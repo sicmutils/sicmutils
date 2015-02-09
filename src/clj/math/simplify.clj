@@ -48,12 +48,18 @@
   ;; TODO: we haven't recorded variable order, so expressions can get scrambled
   ;; as a result of sorting by generated-symbol-name. The solution is to communicate
   ;; the existing order of subexpressions to the polynomial simplifier.
+  ;; TODO: we went through a lot of trouble to thread expr-map through all of
+  ;; these functions, but we notice that in 1.8 (volatile!) is coming to
+  ;; Clojure by way of stateful transducers, and I'd like to use that technique
+  ;; instead.
   (let [base-simplify #(expr-> % ->expr)]
     (fn [expr]
-      (letfn [(simplify-expression [expr]
+      (letfn [(simplify-expression
+                [expr]
                 (let [[expr-map analyzed-expr] (analyze {} expr)]
                   (->> analyzed-expr base-simplify (backsubstitute expr-map))))
-              (analyze [expr-map expr]
+              (analyze
+                [expr-map expr]
                 (if (and (sequential? expr)
                          (not (= (first expr) 'quote)))
                   (let [[expr-map analyzed-expr] (map-with-state expr-map analyze expr)]
@@ -65,7 +71,8 @@
                         [expr-map existing-expr]
                         (new-kernels expr-map analyzed-expr))))
                   [expr-map expr]))
-              (new-kernels [expr-map expr]
+              (new-kernels
+                [expr-map expr]
                 (let [simplified-expr (map base-simplify expr)]
                   (if-let [v (sym/symbolic-operator (sym/operator simplified-expr))]
                     (let [w (apply v (sym/operands simplified-expr))]
@@ -75,9 +82,11 @@
                         (analyze expr-map w)))
                     (add-symbols expr-map simplified-expr))
                   ))
-              (add-symbols [expr-map expr]
+              (add-symbols
+                [expr-map expr]
                 (apply add-symbol (map-with-state expr-map add-symbol expr)))
-              (add-symbol [expr-map expr]
+              (add-symbol
+                [expr-map expr]
                 (if (and (sequential? expr)
                          (not (= (first expr) 'quote)))
                   (if-let [existing-expr (expr-map expr)]
@@ -85,7 +94,8 @@
                     (let [newvar (symbol-generator)]
                       [(conj expr-map [expr newvar]) newvar]))
                   [expr-map expr]))
-              (backsubstitute [expr-map expr]
+              (backsubstitute
+                [expr-map expr]
                 (let [mapx (into {} (for [[k v] expr-map] [v k]))
                       bsub (fn bsub [v]
                              (cond (sequential? v) (map bsub v)
@@ -96,8 +106,10 @@
               ]
         (simplify-expression expr)))))
 
-(defn- poly-analyzer [] (analyzer (symbol-generator "-s-%05d") poly/expression-> poly/->expression poly/operators-known))
-(defn- simplify-expression [x] ((poly-analyzer) x))
+(def ^:private poly-analyzer
+  (analyzer (symbol-generator "-s-%05d") poly/expression-> poly/->expression poly/operators-known))
+
+(defn- simplify-expression [x] (poly-analyzer x))
 
 (doseq [predicate [number?
                    symbol?

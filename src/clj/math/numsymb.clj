@@ -51,6 +51,8 @@
 (def operands rest)
 
 (defn- canonically-ordered-operation
+  ; TODO: we should consider whether this is really necessary now that
+  ; the simplifier is oredering things.
   [operator operands]
   (cons operator (g/canonical-order operands))
   )
@@ -68,7 +70,7 @@
                            (sum? a) (sum (cons b (operands a)))
                            :else (sum (list b a)))
          (sum? a) (cond (sum? b) (sum (concat (operands a) (operands b)))
-                        :else (sum (cons b (operands a))))
+                        :else (sum (concat (operands a) [b]) ))
          (sum? b) (sum (cons a (operands b)))
          :else (sum (list a b)))))
 
@@ -100,7 +102,7 @@
                            :else (product (list b a))
                            )
          (product? a) (cond (product? b) (product (concat (operands a) (operands b)))
-                            :else (product (cons b (operands a)))); `(g/* ~@(operands a) ~b))
+                            :else (product (concat (operands a) [b]))); `(g/* ~@(operands a) ~b))
          (product? b) (product (cons a (operands b)))
          :else (product (list a b))
          )))

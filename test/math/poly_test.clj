@@ -113,8 +113,8 @@
           exp1 (:expression (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))
           exp2 (:expression (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
           exp3 'y]
-      (is (= '(+ (* 2 (expt x 2)) (expt x 3)) (poly-simp exp1)))
-      (is (= '(+ (expt x 3) (* 2 (expt y 2)) (* 2 (expt x 2))) (poly-simp exp2)))
+      (is (= '(+ (expt x 3) (* 2 (expt x 2))) (poly-simp exp1)))
+      (is (= '(+ (expt x 3) (* 2 (expt x 2)) (* 2 (expt y 2))) (poly-simp exp2)))
       (is (= 'y (poly-simp exp3)))
       (is (= '(+ g1 g2) (poly-simp (:expression (g/+ 'g1 'g2)))))
       (is (= '(* 2 g1) (poly-simp (:expression (g/+ 'g1 'g1)))))

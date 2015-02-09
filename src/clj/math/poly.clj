@@ -45,14 +45,6 @@
           (and (= (count xs->c) 1) (every? core-zero? (first (first xs->c)))) (second (first xs->c))
           :else (Poly. a xs->c))))
 
-(defn- make-sparse
-  "Create a polynomial specifying the terms in sparse form: supplying
-  pairs of [[orders], coefficient]. For example, x^2 - 1 can be
-  constructed by (make-sparse [[2] 1] [[0] -1]). The order of the pairs
-  doesn't matter."
-  [xc-pairs]
-  (make-with-arity 1 xc-pairs))
-
 (defn make
   "Create a polynomial specifying the terms in dense form, supplying
   the coefficients of the terms starting with the constant term and
@@ -61,7 +53,7 @@
   order of the terms, and zeros must be filled in to get to higher
   powers."
   [& coefficients]
-  (make-sparse (zipmap (map vector (iterate inc 0)) coefficients)))
+  (make-with-arity 1 (zipmap (map vector (iterate inc 0)) coefficients)))
 
 ;; should we rely on the constructors and manipulators never to allow
 ;; a zero coefficient into the list, or should we change degree to
@@ -235,6 +227,21 @@
         environment (into operator-table new-bindings)]
    (cont ((x/walk-expression environment) expr) expression-vars)))
 
+(defn- graded-reverse-lex-order
+  "An ordering on monomials. X < Y if X has higher total
+  degree than Y. In case of ties, X < Y if Y < X lexicographically.
+  This is intended, when used as the comparator in an ascending
+  sort, to produce an ordering like:
+     x^2 + xy + y^2 + x + y + 1.
+  "
+  [xs ys]
+  (let [deg (fn [xs] (if (= xs [0]) -1 (reduce + xs)))
+        xd (deg xs)
+        yd (deg ys)]
+    (cond (> xd yd) -1
+          (< xd yd) 1
+          :else (compare ys xs))))
+
 (defn ->expression
   "This is the output stage of Flat Polynomial canonical form simplification.
   The input is a Poly object, and the output is an expression
@@ -244,13 +251,12 @@
   [^Poly p vars]
   (if (base? p)
     p
-    ; TODO: maybe get rid of 0/1 in reduce calls.
     (reduce sym/add 0 (map (fn [[exponents coefficient]]
                              (sym/mul coefficient
                                       (reduce sym/mul 1 (map (fn [exponent var]
                                                                (sym/expt var exponent))
                                                              exponents vars))))
-                           (:xs->c p)))))
+                           (->> p :xs->c (sort-by first graded-reverse-lex-order))))))
 
 ;; The operator-table represents the operations that can be understood
 ;; from the point of view of a polynomial over a commutative ring. The

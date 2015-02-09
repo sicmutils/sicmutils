@@ -105,12 +105,12 @@
     ;; deployed yet; the text has (expt ((D x) t) 2) where we have
     ;; literal multiplication.
     (is (= '(* 1/2 m (+
-                       (* ((D z) t)
-                          ((D z) t))
                        (* ((D x) t)
                           ((D x) t))
                        (* ((D y) t)
-                          ((D y) t))))
+                          ((D y) t))
+                       (* ((D z) t)
+                          ((D z) t))))
            (print-expression ((comp (L-free-particle 'm) (Γ q)) 't))))
     ;; at this point in the text we should be able to show-expression
     ;; in TeX form XXX.
@@ -131,8 +131,8 @@
       (is (= (up 1 0 1) ((Γ η) 1)))
       ;; the following two are pre-simplification
       (is (= '(* t t t (- t 1)) (print-expression (η 't))))
-      (is (= '(+ (* t t (+ t (- t 1))) (* t (+ t t) (- t 1))) (print-expression ((D η) 't))))
-      (is (= '(up t (* t t t (- t 1)) (+ (* t t (+ t (- t 1))) (* t (+ t t) (- t 1)))) (print-expression ((Γ η) 't))))
+      (is (= '(+ (* t t (+ t (- t 1))) (* t (- t 1) (+ t t))) (print-expression ((D η) 't))))
+      (is (= '(up t (* t t t (- t 1)) (+ (* t t (+ t (- t 1))) (* t (- t 1) (+ t t)))) (print-expression ((Γ η) 't))))
       (is (= '(up (+ (* t (sin t)) (* (- t 1) (+ (sin t) (* t (cos t)))))
                   (+ (* t (cos t)) (* (- t 1) (+ (cos t) (* t (- (sin t))))))
                   (+ (* t t t) (* (- t 1) (+ (* t t) (* t (+ t t))))))
