@@ -43,12 +43,12 @@
                                       poly/operators-known))
         A (fn [x]
             (x/print-expression ((new-analyzer) x)))]
-    (is (= '(+ 1 x) (A `(g/+ 1 x))))
-    (is (= '(+ 1 x) (A `[g/+ 1 x])))
+    (is (= '(+ x 1) (A `(g/+ 1 x))))
+    (is (= '(+ x 1) (A `[g/+ 1 x])))
     (is (= 'x (A `(g/* 1/2 (g/+ x x)))))
-    (is (= '(* (sin y) (cos (+ 1 (expt (sin y) 4) (* 2 (sin y)))) y)
+    (is (= '(* (sin y) (cos (+ (expt (sin y) 4) (* 2 (sin y)) 1)) y)
            (A `(g/* y (g/sin y) (g/cos (g/+ 1 (g/sin y) (g/sin y) (g/expt (g/sin y) 4)))))))
-    (is (= '(+ ((D U) (r t)) (* -1  (r t) m (expt ((D phi) t) 2)) (* (((expt D 2) r) t) m))
+    (is (= '(+ (* -1N (expt ((D phi) t) 2) (r t) m) (* (((expt D 2) r) t) m) ((D U) (r t)))
            (A `(g/- (g/* 1/2 m (g/+ (((g/expt D 2) r) t) (((g/expt D 2) r) t)))
                     (g/+ (g/* 1/2 m (g/+ (g/* ((D phi) t) ((D phi) t) (r t))
                                          (g/* ((D phi) t) ((D phi) t) (r t))))
@@ -64,7 +64,7 @@
   (is (= 6 (g/simplify (g/+ 1 2 3))))
   (is (= nil (g/simplify nil)))
   (is (= '(* 2 x) (x/print-expression (g/simplify (g/+ 'x 'x)))))
-  (is (= '(+ 1 x) (x/print-expression (g/simplify (g/+ 1 'x)))))
+  (is (= '(+ x 1) (x/print-expression (g/simplify (g/+ 1 'x)))))
   )
 
 (deftest equations

@@ -21,6 +21,7 @@
             [math.structure :refer :all]
             [math.numbers :refer :all]
             [math.numsymb]
+            [math.simplify]
             [math.expression :refer :all]
             [math.numerical.integrate :refer :all]
             [math.numerical.minimize :refer :all]
@@ -28,7 +29,8 @@
             [math.operator :refer :all]
             [math.value :as v]
             [math.calculus.derivative :refer :all]
-            [math.mechanics.lagrange :refer :all]))
+            [math.mechanics.lagrange :refer :all]
+            [math.generic :as g]))
 
 (def ^:private near (v/within 1e-6))
 
@@ -116,7 +118,8 @@
     ;; in TeX form XXX.
     (is (= 435.0 (Lagrangian-action (L-free-particle 3.0) test-path 0.0 10.0)))
     (is (= (up (sin 2.0) (cos 2.0) (square 2.0)) ((up sin cos square) 2.0)))
-    (let [η (make-η #(* % %) 0 1)
+    (let [ps #(-> % g/simplify print-expression)
+          η (make-η #(* % %) 0 1)
           ε 1/1000
           f (* η ε)
           η2 (make-η (up sin cos square) 0 1)]
@@ -129,10 +132,9 @@
       (is (= (up (* -1/4 (sin 0.5)) (* -1/4 (cos 0.5)) (/ 1. -16.)) (η2 0.5)))
       (is (= (up 0 0 0) ((Γ η) 0)))
       (is (= (up 1 0 1) ((Γ η) 1)))
-      ;; the following two are pre-simplification
-      (is (= '(* t t t (- t 1)) (print-expression (η 't))))
-      (is (= '(+ (* t t (+ t (- t 1))) (* t (- t 1) (+ t t))) (print-expression ((D η) 't))))
-      (is (= '(up t (* t t t (- t 1)) (+ (* t t (+ t (- t 1))) (* t (- t 1) (+ t t)))) (print-expression ((Γ η) 't))))
+      (is (= '(+ (expt t 4) (* -1 (expt t 3))) (ps (η 't))))
+      (is (= '(+ (* 4 (expt t 3)) (* -3 (expt t 2))) (ps ((D η) 't))))
+      (is (= '(up t (+ (expt t 4) (* -1 (expt t 3))) (+ (* 4 (expt t 3)) (* -3 (expt t 2)))) (ps ((Γ η) 't))))
       (is (= '(up (+ (* t (sin t)) (* (- t 1) (+ (sin t) (* t (cos t)))))
                   (+ (* t (cos t)) (* (- t 1) (+ (cos t) (* t (- (sin t))))))
                   (+ (* t t t) (* (- t 1) (+ (* t t) (* t (+ t t))))))

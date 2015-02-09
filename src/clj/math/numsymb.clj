@@ -50,29 +50,21 @@
 (def operator first)
 (def operands rest)
 
-(defn- canonically-ordered-operation
-  ; TODO: we should consider whether this is really necessary now that
-  ; the simplifier is oredering things.
-  [operator operands]
-  (cons operator (g/canonical-order operands))
-  )
-
 ;; BEGIN
 ;; these are without constructor simplifications!
 
 (defn add [a b]
-  (let [sum (partial canonically-ordered-operation `g/+)]
-    (cond (and (number? a) (number? b)) (+ a b)
-         (number? a) (cond (g/zero? a) b
-                           (sum? b) (sum (cons a (operands b)))
-                           :else (sum (list a b)))
-         (number? b) (cond (g/zero? b) a
-                           (sum? a) (sum (cons b (operands a)))
-                           :else (sum (list b a)))
-         (sum? a) (cond (sum? b) (sum (concat (operands a) (operands b)))
-                        :else (sum (concat (operands a) [b]) ))
-         (sum? b) (sum (cons a (operands b)))
-         :else (sum (list a b)))))
+  (cond (and (number? a) (number? b)) (+ a b)
+        (number? a) (cond (g/zero? a) b
+                          (sum? b) `(g/+ ~a ~@(operands b))
+                          :else `(g/+ ~a ~b))
+        (number? b) (cond (g/zero? b) a
+                          (sum? a) `(g/+ ~@(operands a) ~b)
+                          :else `(g/+ ~a ~b))
+        (sum? a) (cond (sum? b) `(g/+ ~@(operands a) ~@(operands b))
+                       :else `(g/+ ~@(operands a) ~b))
+        (sum? b) `(g/+ ~a ~@(operands b))
+        :else `(g/+ ~a ~b)))
 
 (defn- add-n [& args]
   (reduce add 0 args))
@@ -89,23 +81,21 @@
         :else (sub (first args) (reduce add (next args)))))
 
 (defn mul [a b]
-  (let [product (partial canonically-ordered-operation `g/*)]
-    (cond (and (number? a) (number? b)) (* a b)
-         (number? a) (cond (g/zero? a) a
-                           (g/one? a) b
-                           (product? b) (product (cons a (operands b)))
-                           :else (product (list a b));
-                           )
-         (number? b) (cond (g/zero? b) b
-                           (g/one? b) a
-                           (product? a) (product (cons b (operands a))) ;`(g/* ~b ~@(operands a))
-                           :else (product (list b a))
-                           )
-         (product? a) (cond (product? b) (product (concat (operands a) (operands b)))
-                            :else (product (concat (operands a) [b]))); `(g/* ~@(operands a) ~b))
-         (product? b) (product (cons a (operands b)))
-         :else (product (list a b))
-         )))
+  (cond (and (number? a) (number? b)) (* a b)
+        (number? a) (cond (g/zero? a) a
+                          (g/one? a) b
+                          (product? b) `(g/* ~a ~@(operands b))
+                          :else `(g/* ~a ~b)
+                          )
+        (number? b) (cond (g/zero? b) b
+                          (g/one? b) a
+                          (product? a) `(g/* ~@(operands a) ~b)
+                          :else `(g/* ~a ~b)
+                          )
+        (product? a) (cond (product? b) `(g/* ~@(operands a) ~@(operands b))
+                           :else `(g/* ~@(operands a) ~b))
+        (product? b) `(g/* ~a ~@(operands b))
+        :else `(g/* ~a ~b)))
 
 (defn- mul-n [& args]
   (reduce mul 1 args))
