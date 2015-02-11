@@ -161,7 +161,7 @@
   (make-differential
     (dxs*dys (differential->terms a) (differential->terms b))))
 
-(def ^:private next-differential-tag (atom 0))
+(defonce ^:private next-differential-tag (atom 0))
 
 (defn- make-differential-tag []
   (swap! next-differential-tag inc))
@@ -181,7 +181,6 @@
             ;from what remains.
             [obj]
             (if (differential? obj)
-
               (make-differential
                 (filter identity (map
                                    (fn [[ts coef]]

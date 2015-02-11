@@ -23,7 +23,7 @@
             [math.generic :as g])
   (:import [math.structure Struct]
            [math.operator Operator]
-           (clojure.lang IFn)))
+           (clojure.lang IFn AFn)))
 
 (declare literal-apply)
 
@@ -37,7 +37,8 @@
   (freeze [f] (-> f :expr x/freeze-expression))
   IFn
   (invoke [f x] (literal-apply f [x]))
-  (applyTo [f xs] (literal-apply f xs))
+  (applyTo [f xs]
+    (AFn/applyToHelper f xs))
   )
 
 (defn literal-function [f] (Fn. f 1 [:real] :real))

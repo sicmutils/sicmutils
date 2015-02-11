@@ -31,11 +31,18 @@
 (defn arity
   [f]
   {:pre [(ifn? f)]}
+  ;; this whole function is deeply bogus. We will have to spend some time
+  ;; figuring out how to deal with arity in a more precise and defensive
+  ;; way. TODO: implement arity metadata for structs, and throw exceptions
+  ;; if reflection-determined arity for a function has any ambiguity at
+  ;; all.
+  #_(prn "seeking arity of" f (meta f))
   (or (:arity (meta f))
       (let [^"[java.lang.reflect.Method" ms (.getDeclaredMethods (class f))
             ^"java.lang.reflect.Method" m (first ms)
             p (.getParameterTypes m)]
         #_(prn "shortcut arity failed on" f "returning" (alength p))
+        #_(prn "methods" (map  #(alength (.getParameterTypes %)) ms))
         (alength p)
         )))
 

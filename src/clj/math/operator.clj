@@ -25,16 +25,14 @@
   (freeze [o] (.name o))
   IFn
   (invoke [operator function]
-    (let [operated-function ((:f operator) function)]
-      (fn [& xs]
-        (apply operated-function xs))))
+    ((:f operator) function))
   (applyTo [operator fns]
     (AFn/applyToHelper operator fns))
   )
 
 (defn make-operator
   [f name]
-  (Operator. f name))
+  (with-meta (Operator. f name) {:arity 1}))
 
 (defn operator?
   [x]
@@ -43,7 +41,9 @@
 (defn- expt
   [operator n]
   (if (= n 0) identity
-              (fn [f] (operator ((expt operator (dec n)) f)))))
+              (fn [f] (operator ((expt operator (dec n)) f)))
+              ; TODO: why can't we just write (operator (expt operator (dec n))) here?
+              ))
 
 (g/defhandler :simplify [operator?] #(-> % :name g/simplify))
 (g/defhandler :** [operator? integer?] expt)

@@ -15,7 +15,7 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
 (ns math.structure
-  (:import (clojure.lang Sequential Seqable IFn))
+  (:import (clojure.lang Sequential Seqable IFn AFn))
   (:require [math.value :as v]
             [math.expression :as x]
             [math.generic :as g]))
@@ -44,6 +44,8 @@
   IFn
   (invoke [_ x]
     (Struct. orientation (vec (map #(% x) v))))
+  (applyTo [s xs]
+    (AFn/applyToHelper s xs))
   )
 
 (defn up [& xs]

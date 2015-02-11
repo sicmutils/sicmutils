@@ -66,6 +66,13 @@
       `[~q0 ~@qs ~q1]
       `[~t0 ~@ts ~t1])))
 
+(deftest derivs
+  (is (= '(up (((expt D 2) x) t)
+              (((expt D 2) y) t)
+              (((expt D 2) z) t))
+         (pe ((D (D q)) 't))))
+  )
+
 (deftest sicm
   (testing "Chapter 1"
     (is (= '(up (x t)
@@ -76,10 +83,6 @@
                 ((D y) t)
                 ((D z) t))
            (pe ((D q) 't))))
-    (is (= '(up (((expt D 2) x) t)
-                (((expt D 2) y) t)
-                (((expt D 2) z) t))
-           (pe ((D (D q)) 't))))
     ;(is (= '(up (((expt D 2) x) t)
     ;            (((expt D 2) y) t)
     ;            (((expt D 2) z) t))
