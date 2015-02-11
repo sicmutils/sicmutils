@@ -25,16 +25,6 @@
 (Lagrangian-action (L-free-particle 3.0) test-path 0.0 10.0)
 ((varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) 0.001)
 ;(minimize (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) -2 1)
-(defn δ
-  "The variation operator (p. 28)."
-  [η]
-  (fn [f]
-    ;; Define g(ε) as in Eq. 1.22; then δ_η f[q] = Dg(0)
-    (fn [q]
-      (let [g (fn [ε]
-                (f (+ q (* ε η))))]
-        
-          ((D g) 0)))))
 
 (defn F
   "A generic path function."
@@ -99,7 +89,7 @@
   't)
 (println "The Simple Pendulum")
 (defn T-pend
-  [m l g ys]
+  [m l _ ys]
   (fn [local]
     (let [[t theta thetadot] local
           vys (D ys)]
@@ -176,7 +166,7 @@
                          (up 'r 'θ 'φ)
                          (up 'rdot 'θdot 'φdot)))
 (defn T3-spherical [m]
-  (fn [[t [r θ φ] [rdot θdot φdot]]]
+  (fn [[_ [r θ _] [rdot θdot φdot]]]
     (* 1/2 m (+ (square rdot)
                 (square (* r θdot))
                 (square (* r (sin θ) φdot))))))
@@ -188,4 +178,3 @@
 (((pd 1) (L3-central 'm V)) spherical-state)
 
 (((pd 2) (L3-central 'm V)) spherical-state)
-

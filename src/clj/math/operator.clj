@@ -40,7 +40,13 @@
   [x]
   (instance? Operator x))
 
-(g/defhandler :simplify [#(instance? Operator %)] #(-> % :name g/simplify))
+(defn- expt
+  [operator n]
+  (if (= n 0) identity
+              (fn [f] (operator ((expt operator (dec n)) f)))))
+
+(g/defhandler :simplify [operator?] #(-> % :name g/simplify))
+(g/defhandler :** [operator? integer?] expt)
 
 (println "operator initialized")
 

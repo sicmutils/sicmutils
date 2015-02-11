@@ -19,9 +19,11 @@
             [math.generic :as g]
             [math.numbers]
             [math.value :as v]
+            [math.operator :as o]
             [math.expression :as x]
             [math.function :refer :all]
-            ))
+            )
+  )
 
 (def ^:private near (v/within 1.0e-6))
 
@@ -54,6 +56,19 @@
       (is (= 10 ((g/+ mul3 4) 2))))
     )
   )
+
+(deftest operators
+  (let [f (fn [x] (+ x 5))
+        double (fn [f] (fn [x] (* 2 (f x))))
+        double-op (o/make-operator double "double")]
+    ;(is (= 8 ((double f) 1)))
+    ;(is (= 16 ((double (double f)) 1)))
+    ;(is (= 8 ((double-op f) 1)))
+    ;(is (= 16 ((double-op (double-op f)) 1)))
+    (is (= 2 ((double-op identity) 1)))
+    (is (= 6 (((g/expt double-op 0) f) 1)))
+    (is (= 12 (((g/expt double-op 1) f) 1)))
+    (is (= 24 (((g/expt double-op 2) f) 1)))))
 
 (deftest function-differential
   (testing "structural utilities"

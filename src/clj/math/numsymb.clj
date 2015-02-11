@@ -203,7 +203,8 @@
                           (symb:-pi-over-4-mod-pi? x) -1
                           (symb:pi-over-2-mod-pi? x)
                             (throw (IllegalArgumentException. "Undefined: tan"))
-                          :else `(g/tan ~x))))
+                          :else `(g/tan ~x))
+        :else `(g/tan ~x)))
 
 (defn- abs [x]
   (cond (number? x) (if (< x 0) (- x) x)

@@ -66,7 +66,6 @@
   symbol is an error. Function applications are applied."
   [environment]
   (fn walk [x]
-    ;(prn "WALK" x environment)
     (cond (number? x) x
           (symbol? x) (if-let [binding (x environment)]
                         binding

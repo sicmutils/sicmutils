@@ -369,6 +369,7 @@
 (g/defhandler :*      [not-compound? differential?] diff-*)
 (g/defhandler :div    [differential? not-compound?] diff-div)
 (g/defhandler :div    [not-compound? differential?] diff-div)
+(g/defhandler :invert [differential?] #(diff-div 1 %))
 (g/defhandler :square [differential?] #(g/* % %))
 (g/defhandler :negate [differential?] negate)
 (g/defhandler :sin    [differential?] sine)

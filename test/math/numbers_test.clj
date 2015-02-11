@@ -16,7 +16,6 @@
 
 (ns math.numbers-test
   (:require [clojure.test :refer :all]
-            [math.value :as v]
             [math.generic :as g]
             [math.expression :as x]
             [math.numbers]))

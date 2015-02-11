@@ -47,10 +47,21 @@
              (square (* r φdot))))
        (U r))))
 
+(defn δ
+  "The variation operator (p. 28)."
+  [η]
+  (fn [f]
+    ;; Define g(ε) as in Eq. 1.22; then δ_η f[q] = Dg(0)
+    (fn [q]
+      (let [g (fn [ε]
+                (f (+ q (* ε η))))]
+
+        ((D g) 0)))))
+
 (def ->local up)
 
 (defn F->C [F]
-  (fn [[t q v :as local]]
+  (fn [[t _ v :as local]]
     (->local t
              (F local)
              (+ (((pd 0) F) local)

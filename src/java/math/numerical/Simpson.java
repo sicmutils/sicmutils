@@ -19,7 +19,7 @@ package math.numerical;
 import clojure.lang.IFn;
 
 public class Simpson {
-    final static int jmax = 20;
+    private final static int jmax = 20;
 
     private static class Trapezoid {
         private double s = 0.0;
