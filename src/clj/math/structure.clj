@@ -20,17 +20,20 @@
             [math.expression :as x]
             [math.generic :as g]))
 
-(deftype Struct [orientation v]
+(declare make)
+
+(deftype Struct [orientation arity v]
   v/Value
   (nullity? [_] (every? g/zero? v))
   (unity? [_] false)
-  (zero-like [_] (Struct. orientation (-> v count (repeat 0) vec)))
+  (zero-like [_] (make orientation (-> v count (repeat 0))))
   (exact? [_] (every? g/exact? v))
   (numerical? [_] false)
   (compound? [_] true)
   (sort-key [_] 18)
   (freeze [_]
     `(~(orientation {:up 'up :down 'down}) ~@(map x/freeze-expression v)))
+  (arity-of [_] arity)
   Object
   (equals [_ b]
     (and (instance? Struct b)
@@ -43,16 +46,28 @@
   (seq [_] (seq v))
   IFn
   (invoke [_ x]
-    (Struct. orientation (vec (map #(% x) v))))
+    (make orientation (map #(% x) v)))
   (applyTo [s xs]
     (AFn/applyToHelper s xs))
   )
 
+(defn- joint-arity
+  [xs]
+  (let [as (into #{} (map v/arity xs))]
+    (cond (empty? as) 0
+          (= (count as) 1) (first as)
+          :else (throw (IllegalArgumentException.
+                         (str "Cannot build structure of elements with differing arity " as))))))
+
+(defn- make
+  [orientation xs]
+  (Struct. orientation (joint-arity xs) (vec xs)))
+
 (defn up [& xs]
-  (Struct. :up (vec xs)))
+  (make :up xs))
 
 (defn down [& xs]
-  (Struct. :down (vec xs)))
+  (make :down xs))
 
 (defn structure? [s]
   (or (instance? Struct s)
@@ -68,7 +83,10 @@
       (and (instance? Struct s) (= (.orientation s) :up))))
 
 (defn opposite [s xs]
-  (Struct. (if (up? s) :down :up) (vec xs)))
+  (make (if (up? s) :down :up) xs))
+
+(defn same [s xs]
+  (make (.orientation s) xs))
 
 (defn- elements [^Struct s]
   (if (instance? Struct s) (.v s)
@@ -82,7 +100,7 @@
 
 (defn- elementwise [op s t]
   (if (= (size s) (size t))
-    (Struct. (orientation s) (vec (map op (elements s) (elements t))))
+    (make (orientation s) (map op (elements s) (elements t)))
     (throw (ArithmeticException.
             (str op " provided arguments of differing length")))))
 
@@ -90,7 +108,7 @@
   "Return a structure with the same shape as s but with f applied to
   each primitive (that is, not structural) component."
   [f ^Struct s]
-  (cond (instance? Struct s) (Struct. (.orientation s) (vec (map #(mapr f %) (.v s))))
+  (cond (instance? Struct s) (make (.orientation s) (map #(mapr f %) (.v s)))
         (sequential? s) (map f s)  ;; XXX what happens if we don't do this?
         :else (f s))
   )
@@ -103,8 +121,8 @@
   (if (empty? keys) value
       (let [w (.v s)
             k1 (first keys)]
-        (Struct. (.orientation s)
-                 (assoc w k1 (structure-assoc-in (nth w k1) (next keys) value))))))
+        (make (.orientation s)
+              (assoc w k1 (structure-assoc-in (nth w k1) (next keys) value))))))
 
 (defn structure-get-in
   "Like get-in, but for structures. See structure-assoc-in"
@@ -120,7 +138,7 @@
   (reduce g/+ 0 (map g/* (elements s) (elements t))))
 
 (defn- outer-product [a s]
-  (Struct. (orientation s) (vec (map #(g/* a %) (elements s)))))
+  (make (orientation s) (map #(g/* a %) (elements s))))
 
 (defn- mul [s t]
   (if (compatible-for-contraction? s t)
@@ -143,7 +161,7 @@
   GJS: Any matrix in the argument list wants to be converted to a row of
   columns (TODO: this is not implemented yet)"
   [s]
-  (Struct. :up (vec (map matrix->structure s))))
+  (make :up (map matrix->structure s)))
 
 (g/defhandler :+        [down? down?]           (partial elementwise g/+))
 (g/defhandler :+        [up? up?]               (partial elementwise g/+))
@@ -163,6 +181,6 @@
 (g/defhandler :cube [structure?]
   (fn [s] (g/* s s s)))
 (g/defhandler :negate [structure?]
-  (fn [s] (Struct. (orientation s) (vec (map g/negate (elements s))))))
+  (fn [s] (make (orientation s) (map g/negate (elements s)))))
 
 (println "struct initialized")

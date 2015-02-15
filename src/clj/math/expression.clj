@@ -29,7 +29,8 @@
   (exact? [_] false)
   (sort-key [_] 17)
   (compound? [_] false)
-  (freeze [x] (-> x :expression freeze-expression)))
+  (freeze [x] (-> x :expression freeze-expression))
+  (arity-of [x] 0))
 
 (defn make [x]
   (Expression. ::number x))

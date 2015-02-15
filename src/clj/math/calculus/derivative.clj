@@ -43,6 +43,7 @@
   (numerical? [d]
     (g/numerical-quantity? (differential-of d)))
   (sort-key [_] 80)
+  (arity-of [d] 0)
   )
 
 (def differential? (partial instance? Differential))
@@ -200,7 +201,7 @@
                   ;;  (hide-tag-in-procedure dx
                   ;;                         (g:* (make-operator dist 'extract (operator-subtype obj))
                   ;;                              obj)))
-                  (ifn? obj) (comp dist obj)             ;; TODO: innocent of the tag-hiding business
+                  (ifn? obj) #(-> % obj dist)             ;; TODO: innocent of the tag-hiding business
                   :else (extract obj)))]
     (dist obj)))
 
@@ -337,16 +338,16 @@
   (let [a (v/arity f)
         d (partial euclidean-structure selectors)]
     (cond (= a 0) (constantly 0)
-          (= a 1) (d f)
-          (= a 2) (fn [x y]
-                    ((d (fn [s] (apply f (seq s))))
-                      (struct/seq-> [x y])))
-          (= a 3) (fn [x y z]
-                    ((d (fn [s] (apply f (seq s))))
-                      (struct/seq-> [x y z])))
-          (= a 4) (fn [w x y z]
-                    ((d (fn [s] (apply f (seq s))))
-                      (struct/seq-> [w x y z])))
+          (= a 1) (with-meta (d f) {:arity 1})
+          (= a 2) (with-meta (fn [x y]
+                     ((d (fn [s] (apply f (seq s))))
+                      (struct/seq-> [x y]))) {:arity 2})
+          (= a 3) (with-meta (fn [x y z]
+                     ((d (fn [s] (apply f (seq s))))
+                      (struct/seq-> [x y z]))) {:arity 3})
+          (= a 4) (with-meta (fn [w x y z]
+                     ((d (fn [s] (apply f (seq s))))
+                       (struct/seq-> [w x y z]))) {:arity 4})
 
           :else (throw (IllegalArgumentException. (str "Haven't implemented this yet: arity " a))))))
 

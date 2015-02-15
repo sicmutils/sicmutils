@@ -15,7 +15,8 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
 (ns math.value
-  (:refer-clojure :rename {zero? core-zero?}))
+  (:refer-clojure :rename {zero? core-zero?})
+  (:require [clojure.tools.logging :as log]))
 
 (defprotocol Value
   (numerical? [this])
@@ -26,25 +27,28 @@
   (compound? [this])
   (sort-key [this])
   (freeze [this])
+  (arity-of [this])
   )
 
 (defn arity
   [f]
-  {:pre [(ifn? f)]}
   ;; this whole function is deeply bogus. We will have to spend some time
   ;; figuring out how to deal with arity in a more precise and defensive
   ;; way. TODO: implement arity metadata for structs, and throw exceptions
   ;; if reflection-determined arity for a function has any ambiguity at
   ;; all.
-  #_(prn "seeking arity of" f (meta f))
-  (or (:arity (meta f))
-      (let [^"[java.lang.reflect.Method" ms (.getDeclaredMethods (class f))
-            ^"java.lang.reflect.Method" m (first ms)
-            p (.getParameterTypes m)]
-        #_(prn "shortcut arity failed on" f "returning" (alength p))
-        #_(prn "methods" (map  #(alength (.getParameterTypes %)) ms))
-        (alength p)
-        )))
+  (or (:arity f)
+      (:arity (meta f))
+      (cond (symbol? f) 0
+            (satisfies? Value f) (arity-of f)
+            (ifn? f) (let [^"[java.lang.reflect.Method" ms (.getDeclaredMethods (class f))
+                           arities (into #{} (map #(alength (.getParameterTypes %)) ms))]
+                       (if (> (count arities) 1)
+                         (do
+                           (log/info "can't deduce arity of " f arities " returning 1")
+                           1)
+                         (first arities)))
+            :else 0)))
 
 (def machine-epsilon
   (loop [e 1.0]

@@ -141,9 +141,8 @@
   (letfn [(fd [indices vv]
             (cond (s/structure? vv)
                   (let [^Struct s vv]
-                    (Struct. (.orientation s)
-                             (map-indexed (fn [i element]
-                                            (fd (conj indices i) element)) s)))
+                    (s/same s (map-indexed (fn [i element]
+                                             (fd (conj indices i) element)) s)))
                   (or (g/numerical-quantity? vv)
                       (g/abstract-quantity? vv))
                   (let [fexp (if (= (:arity f) 1)  ; univariate

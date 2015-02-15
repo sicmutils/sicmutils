@@ -19,7 +19,7 @@
             [math.generic :as g])
   (:import (clojure.lang IFn AFn)))
 
-(defrecord Operator [f name]
+(defrecord Operator [f arity name]
   v/Value
   (sort-key [_] 45)
   (freeze [o] (.name o))
@@ -32,7 +32,7 @@
 
 (defn make-operator
   [f name]
-  (with-meta (Operator. f name) {:arity 1}))
+  (Operator. f 1 name))
 
 (defn operator?
   [x]
@@ -49,4 +49,3 @@
 (g/defhandler :** [operator? integer?] expt)
 
 (println "operator initialized")
-
