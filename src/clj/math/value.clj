@@ -45,7 +45,7 @@
                            arities (into #{} (map #(alength (.getParameterTypes %)) ms))]
                        (if (> (count arities) 1)
                          (do
-                           (log/info "can't deduce arity of " f arities " returning 1")
+                           (log/warn "can't deduce arity of" f arities "returning 1")
                            1)
                          (first arities)))
             :else 0)))
