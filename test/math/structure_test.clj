@@ -190,3 +190,21 @@
     (is (= (up 4 55 6) (structure-assoc-in (up 4 5 6) [1] 55)))
     (is (= (down (up 1 22) (up 3 4)) (structure-assoc-in (down (up 1 2) (up 3 4)) [0 1] 22))))
   )
+
+(deftest matrices
+  (let [A (up (up 1 2) (up 3 4))
+        B (down (up 1 2 3) (up 3 4 5))
+        C (down (up 1 2 3) (up 4 5 6) (up 7 8 9))
+        D (up (down 1))
+        E (up 1)]
+    (testing "square?"
+      (is (= [2 :up :up] (square? A)))
+      (is (not (square? B)))
+      (is (= [3 :down :up] (square? C)))
+      (is (= [1 :up :down] (square? D)))
+      (is (thrown? UnsupportedOperationException (square? E))))
+    (testing "determinant"
+      (is (= -2 (determinant A))))
+    (testing "inverse"
+      (is (= (down (down -2 1) (down 3/2 -1/2)) (/ A)))))
+  )

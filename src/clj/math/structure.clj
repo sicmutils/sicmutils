@@ -84,6 +84,8 @@
       (list? s)
       (and (instance? Struct s) (= (.orientation s) :up))))
 
+(def ^:private opposite-orientation {:up :down :down :up})
+
 (defn opposite [s xs]
   (make (if (up? s) :down :up) xs))
 
@@ -143,6 +145,46 @@
   [a s]
   (make (orientation s) (map #(g/* a %) (elements s))))
 
+(defn square?
+  "Returns [dimension major-orientation minor-orientation] if s is a square structure, else nil."
+  [s]
+  (let [major-size (count s)
+        major-orientation (orientation s)
+        minor-sizes (map count s)
+        minor-orientations (map orientation s)
+        first-minor-orientation (first minor-orientations)]
+    (if (and (every? #(= major-size %) minor-sizes)
+             (every? #(= first-minor-orientation %) (rest minor-orientations)))
+      [major-size major-orientation first-minor-orientation])))
+
+(defn determinant
+  "Computes the determinant of s, which must have square shape. Generic
+  operations are used, so this works on symbolic square structures.
+  TODO: for now, it's 2x2 only."
+  [s]
+  (let [[d _ _] (square? s)]
+    (when-not d (throw (IllegalArgumentException. "not square")))
+    (if (= d 2)
+      (let [[[a b] [c d]] s]
+        (g/- (g/* a d) (g/* b c)))
+      (throw (IllegalArgumentException. "Lame: can only det 2x2 for now")))))
+
+(defn- invert
+  "Computes the inverse of s viewed as a square matrix.
+  TODO: more doc
+  TODO: more sizes"
+  [s]
+  (let [[d o1 o2] (square? s)]
+    (when-not d (throw (IllegalArgumentException. "not square")))
+    (when-not (= d 2) (throw (IllegalArgumentException. "Lame: only 2x2 for now")))
+    (let [[[a b] [c d]] s
+          invΔ (g/invert (determinant s))
+          major-orientation (if (= o1 o2) (opposite-orientation o1) o1)
+          minor-orientation (if (= o1 o2) (opposite-orientation o2) o2)]
+      (make major-orientation
+            [(make minor-orientation [(g/* invΔ d) (g/* invΔ (g/negate b))])
+             (make minor-orientation [(g/* invΔ (g/negate c)) (g/* invΔ a)])]))))
+
 (defn- mul
   "If s and t are compatible for contraction, returns their inner product,
   else their outer product."
@@ -181,6 +223,8 @@
 ;; be a useful idea to reconsider, or maybe not.
 (g/defhandler :*        [structure? g/scalar?]  #(outer-product %2 %1))
 (g/defhandler :div      [structure? g/scalar?]  #(outer-product (/ %2) %1))
+(g/defhandler :div      [structure? structure?] #(mul (invert %2) %1))
+(g/defhandler :invert   [structure?]            invert)
 (g/defhandler :*        [structure? structure?] mul)
 (g/defhandler :**       [structure? integer?]   expt)
 (g/defhandler :simplify [structure?]            #(mapr g/simplify %))
