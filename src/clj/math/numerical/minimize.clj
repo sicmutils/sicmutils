@@ -16,9 +16,10 @@
 
 (ns math.numerical.minimize
   (:import (org.apache.commons.math3.optim.univariate BrentOptimizer UnivariateObjectiveFunction SearchInterval)
-           (org.apache.commons.math3.analysis UnivariateFunction)
-           (org.apache.commons.math3.optim.nonlinear.scalar GoalType)
-           (org.apache.commons.math3.optim MaxEval OptimizationData)))
+           (org.apache.commons.math3.analysis UnivariateFunction MultivariateFunction)
+           (org.apache.commons.math3.optim.nonlinear.scalar GoalType ObjectiveFunction)
+           (org.apache.commons.math3.optim MaxEval OptimizationData InitialGuess)
+           (org.apache.commons.math3.optim.nonlinear.scalar.noderiv SimplexOptimizer NelderMeadSimplex)))
 
 (defn minimize
   [f a b]
@@ -30,4 +31,19 @@
                                   (MaxEval. 1000)
                                   (SearchInterval. a b)
                                   GoalType/MINIMIZE]))]
+    [(.getPoint p) (.getValue p)]))
+
+(defn multidimensional-minimize
+  [f qs]
+  (let [p (.optimize (SimplexOptimizer. 1e-10 1e-10)
+                     (into-array OptimizationData
+                                 [(NelderMeadSimplex. (count qs))
+                                  (ObjectiveFunction.
+                                    (proxy [MultivariateFunction] []
+                                      (value [xs]
+                                        (f xs))))
+                                  (MaxEval. 1000)
+                                  (InitialGuess. (double-array qs))
+                                  GoalType/MINIMIZE
+                                  ]))]
     [(.getPoint p) (.getValue p)]))
