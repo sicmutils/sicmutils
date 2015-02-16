@@ -23,27 +23,31 @@
 
 (defn minimize
   [f a b]
-  (let [p (.optimize (BrentOptimizer. 1e-5 1e-5)
-                     (into-array OptimizationData
-                                 [(UnivariateObjectiveFunction.
-                                    (proxy [UnivariateFunction] []
-                                      (value [x] (f x))))
-                                  (MaxEval. 1000)
-                                  (SearchInterval. a b)
-                                  GoalType/MINIMIZE]))]
+  (let [o (BrentOptimizer. 1e-5 1e-5)
+        args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
+             (into-array OptimizationData
+                         [(UnivariateObjectiveFunction.
+                            (proxy [UnivariateFunction] []
+                              (value [x] (f x))))
+                          (MaxEval. 1000)
+                          (SearchInterval. a b)
+                          GoalType/MINIMIZE])
+        p (.optimize o args)]
+    #_(prn "brent steps" (.getEvaluations o))
     [(.getPoint p) (.getValue p)]))
 
 (defn multidimensional-minimize
   [f qs]
-  (let [p (.optimize (SimplexOptimizer. 1e-10 1e-10)
-                     (into-array OptimizationData
-                                 [(NelderMeadSimplex. (count qs))
-                                  (ObjectiveFunction.
-                                    (proxy [MultivariateFunction] []
-                                      (value [xs]
-                                        (f xs))))
-                                  (MaxEval. 1000)
-                                  (InitialGuess. (double-array qs))
-                                  GoalType/MINIMIZE
-                                  ]))]
+  (let [o (SimplexOptimizer. 1e-10 1e-10)
+        args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
+             (into-array OptimizationData
+                         [(NelderMeadSimplex. (count qs))
+                          (ObjectiveFunction.
+                            (proxy [MultivariateFunction] []
+                              (value [xs]
+                                (f xs))))
+                          (MaxEval. 1000)
+                          (InitialGuess. (double-array qs))
+                          GoalType/MINIMIZE])
+        p (.optimize o args)]
     [(.getPoint p) (.getValue p)]))

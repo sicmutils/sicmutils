@@ -129,11 +129,14 @@
                   (+ (* 4 (expt t 3)) (* -3 (expt t 2))))
                (pe ((D η2) 't))))
         )
-      (let [minimal-q (find-path (L-harmonic 1.0 1.0) 0. 1. (/ Math/PI 2) 0. 3)
+      ;; This is fairly time consuming since every evaluation of a candidate point in the
+      ;; multidimensional minimization of find-path involves computing a numeric integration
+      ;; to find the Lagrangian of the path induced by the point. But it works.
+      (let [minimal-path (find-path (L-harmonic 1.0 1.0) 0. 1. (/ Math/PI 2) 0. 3)
             good? (partial (v/within 2e-4) 0)
-            errors (for [x (range 0.0 (/ Math/PI 2) 0.02)] (abs (- (Math/cos x) (minimal-q x))))]
+            errors (for [x (range 0.0 (/ Math/PI 2) 0.02)] (abs (- (Math/cos x) (minimal-path x))))]
         ;; the minimization is supposed to discover the cosine function in the interval [0..pi/2].
-        ;; Check that it has done so over a variety of points to within 1.0e04.
+        ;; Check that it has done so over a variety of points to within 2e-4.
         (is (every? good? errors))))
     ;; variation operator
     (let [F (fn [q] (fn [t] ((literal-function 'f) (q t))))
@@ -146,4 +149,12 @@
       (is (= '(* ((D g) (q t)) (η t)) (pe (((δ_η G) q) 't))))
       (is (= '(+ (* ((D f) (q t)) (η t) (g (q t))) (* (η t) (f (q t)) ((D g) (q t)))) (pe (((δ_η (* F G)) q) 't))))
       (is (= '(+ (* ((D f) (q t)) (η t) (g (q t))) (* (η t) (f (q t)) ((D g) (q t)))) (pe (((δ_η (* F G)) q) 't))))
-      (is (= '(* ((D φ) (f (q t))) ((D f) (q t)) (η t)) (pe (((δ_η (φ F)) q) 't)))))))
+      (is (= '(* ((D φ) (f (q t))) ((D f) (q t)) (η t)) (pe (((δ_η (φ F)) q) 't)))))
+    (testing "1.7 Evolution of Dynamical State"
+      (let [harmonic-state-derivative (fn [m k]
+                                        (Lagrangian->state-derivative (L-harmonic m k)))]
+        ;; nice try! to get this one we need division by a matrix == finding the inverse.
+        ;;(is (= 'foo ((harmonic-state-derivative 'm 'k)
+        ;;              (up 't (up 'x 'y) (up 'v_x 'v_y)))))
+        ))
+    ))

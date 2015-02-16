@@ -171,6 +171,10 @@
   (testing "a structure has a nth element"
     (is (= 5 (nth (up 4 5 6) 1)))
     (is (thrown? IndexOutOfBoundsException (nth (up 4 5 6) 4))))
+  (testing "can be counted"
+    (is (= 3 (count (up 4 5 6))))
+    (is (= 2 (count (down (up 1 2) (up 3 4)))))
+    (is (= [2 3] (map count (down (up 1 2) (up 3 4 5))))))
   (testing "a structure can produce a seq"
     (is (= [1 2 3] (seq (up 1 2 3))))
     (is (= [4 5 6] (seq (down 4 5 6))))

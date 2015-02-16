@@ -109,6 +109,21 @@
                                      (= j i) (if (odd? i) -1 1)
                                      :else (- xi (nth xs j))))))))))))
 
+(defn Lagrangian->acceleration
+  [L]
+  (let [P ((pd 2) L)
+        F ((pd 1) L)]
+    (/ (- F
+          (+ ((pd 0) P)
+             (* ((pd 1) P) velocity)))
+       ((pd 2) P))))
+
+(defn Lagrangian->state-derivative
+  [L]
+  (let [acceleration (Lagrangian->acceleration L)]
+    (fn [[_ _ v :as state]]
+      (up 1 v (acceleration state)))))
+
 
 (defn Lagrange-equations
   [Lagrangian]

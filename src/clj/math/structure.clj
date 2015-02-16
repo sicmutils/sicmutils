@@ -15,7 +15,7 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
 (ns math.structure
-  (:import (clojure.lang Sequential Seqable IFn AFn))
+  (:import (clojure.lang Sequential Seqable IFn AFn Counted))
   (:require [math.value :as v]
             [math.expression :as x]
             [math.generic :as g]))
@@ -42,6 +42,8 @@
           (= v (.v bs)))))
   (toString [_] (str (cons orientation v)))
   Sequential
+  Counted
+  (count [_] (count v))
   Seqable
   (seq [_] (seq v))
   IFn
@@ -92,14 +94,11 @@
   (if (instance? Struct s) (.v s)
       s))
 
-(defn- size [^Struct s]
-  (count (elements s)))
-
 (defn- orientation [^Struct s]
   (if (instance? Struct s) (.orientation s) :up))
 
 (defn- elementwise [op s t]
-  (if (= (size s) (size t))
+  (if (= (count s) (count t))
     (make (orientation s) (map op (elements s) (elements t)))
     (throw (ArithmeticException.
             (str op " provided arguments of differing length")))))
@@ -130,20 +129,29 @@
   (if (empty? keys) s
       (recur (-> s .v (get (first keys))) (next keys))))
 
-(defn- compatible-for-contraction? [s t]
-  (and (= (size s) (size t))
+(defn- compatible-for-contraction?
+  "True if s and t are equal in length but opposite in orientation"
+  [s t]
+  (and (= (count s) (count t))
        (not= (orientation s) (orientation t))))
 
-(defn- inner-product [s t]
+(defn- inner-product
+  [s t]
   (reduce g/+ 0 (map g/* (elements s) (elements t))))
 
-(defn- outer-product [a s]
+(defn- outer-product
+  [a s]
   (make (orientation s) (map #(g/* a %) (elements s))))
 
-(defn- mul [s t]
+(defn- mul
+  "If s and t are compatible for contraction, returns their inner product,
+  else their outer product."
+  [s t]
   (if (compatible-for-contraction? s t)
     (inner-product s t)
     (outer-product s t)))
+
+(defn- inverse [s])
 
 ;; hmmm. why not do the repeated-squaring trick here?
 ;; perhaps structures are not typically raised to high

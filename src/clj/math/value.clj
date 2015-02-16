@@ -34,9 +34,7 @@
   [f]
   ;; this whole function is deeply bogus. We will have to spend some time
   ;; figuring out how to deal with arity in a more precise and defensive
-  ;; way. TODO: implement arity metadata for structs, and throw exceptions
-  ;; if reflection-determined arity for a function has any ambiguity at
-  ;; all.
+  ;; way. TODO: there's some reflection going on in here we should get rid of
   (or (:arity f)
       (:arity (meta f))
       (cond (symbol? f) 0
