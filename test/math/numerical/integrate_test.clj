@@ -17,7 +17,6 @@
   (testing "easy"
     (is (near 0.333333 (integrate #(* % %) 0. 1.)))
     (is (near 0.5 (integrate identity 0. 1.)))
-    (is (near 0 (integrate identity 0 0)))
     (is (near 3 (integrate (constantly 1.0) 0. 3.)))
     (is (near 0 (integrate (constantly 0.0) 0. 1000.)))
     (is (near 1.0 (natural-log (Math/exp 1.))))

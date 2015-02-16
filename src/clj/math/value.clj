@@ -44,9 +44,9 @@
             (ifn? f) (let [^"[java.lang.reflect.Method" ms (.getDeclaredMethods (class f))
                            arities (into #{} (map #(alength (.getParameterTypes %)) ms))]
                        (if (> (count arities) 1)
-                         (do
-                           (log/warn "can't deduce arity of" f arities "returning 1")
-                           1)
+                         (let [smallest-nonzero-arity (reduce min (disj arities 0))]
+                           (log/warn "guessing that arity of" f "is" smallest-nonzero-arity)
+                           smallest-nonzero-arity)
                          (first arities)))
             :else 0)))
 

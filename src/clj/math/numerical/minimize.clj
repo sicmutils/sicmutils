@@ -15,9 +15,19 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
 (ns math.numerical.minimize
-  (:import [math.numerical Brent Brent$Result]))
+  (:import (org.apache.commons.math3.optim.univariate BrentOptimizer UnivariateObjectiveFunction SearchInterval)
+           (org.apache.commons.math3.analysis UnivariateFunction)
+           (org.apache.commons.math3.optim.nonlinear.scalar GoalType)
+           (org.apache.commons.math3.optim MaxEval OptimizationData)))
 
 (defn minimize
   [f a b]
-  (let [^Brent$Result m (Brent/minimize a b f 1e-5)]
-    [(.x m) (.fx m) (.iter m)]))
+  (let [p (.optimize (BrentOptimizer. 1e-5 1e-5)
+                     (into-array OptimizationData
+                                 [(UnivariateObjectiveFunction.
+                                    (proxy [UnivariateFunction] []
+                                      (value [x] (f x))))
+                                  (MaxEval. 1000)
+                                  (SearchInterval. a b)
+                                  GoalType/MINIMIZE]))]
+    [(.getPoint p) (.getValue p)]))

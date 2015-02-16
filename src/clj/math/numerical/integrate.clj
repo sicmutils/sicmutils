@@ -15,9 +15,11 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
 (ns math.numerical.integrate
-  (:import [math.numerical Simpson]))
+  (:import (org.apache.commons.math3.analysis UnivariateFunction)
+           (org.apache.commons.math3.analysis.integration RombergIntegrator)))
 
 ;; simple Simpson's rule to get things off the ground
 
 (defn integrate [f a b]
-  (Simpson/integrate 1e-8 f a b))
+  (.integrate (RombergIntegrator.) 10000 (proxy [UnivariateFunction] []
+                                           (value [x] (f x))) a b))

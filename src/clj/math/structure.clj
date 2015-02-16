@@ -85,7 +85,7 @@
 (defn opposite [s xs]
   (make (if (up? s) :down :up) xs))
 
-(defn same [s xs]
+(defn same [^Struct s xs]
   (make (.orientation s) xs))
 
 (defn- elements [^Struct s]
