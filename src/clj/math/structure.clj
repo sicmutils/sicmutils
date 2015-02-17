@@ -92,16 +92,12 @@
 (defn same [^Struct s xs]
   (make (.orientation s) xs))
 
-(defn- elements [^Struct s]
-  (if (instance? Struct s) (.v s)
-      s))
-
 (defn- orientation [^Struct s]
   (if (instance? Struct s) (.orientation s) :up))
 
 (defn- elementwise [op s t]
   (if (= (count s) (count t))
-    (make (orientation s) (map op (elements s) (elements t)))
+    (make (orientation s) (map op s t))
     (throw (ArithmeticException.
             (str op " provided arguments of differing length")))))
 
@@ -121,9 +117,9 @@
   [^Struct s keys value]
   (if (empty? keys) value
       (let [w (.v s)
-            k1 (first keys)]
+            k0 (first keys)]
         (make (.orientation s)
-              (assoc w k1 (structure-assoc-in (nth w k1) (next keys) value))))))
+              (assoc w k0 (structure-assoc-in (nth w k0) (next keys) value))))))
 
 (defn structure-get-in
   "Like get-in, but for structures. See structure-assoc-in"
@@ -139,11 +135,11 @@
 
 (defn- inner-product
   [s t]
-  (reduce g/+ 0 (map g/* (elements s) (elements t))))
+  (reduce g/+ 0 (map g/* s t)))
 
 (defn- outer-product
   [a s]
-  (make (orientation s) (map #(g/* a %) (elements s))))
+  (make (orientation s) (map #(g/* a %) s)))
 
 (defn square?
   "Returns [dimension major-orientation minor-orientation] if s is a square structure, else nil."
@@ -157,6 +153,27 @@
              (every? #(= first-minor-orientation %) (rest minor-orientations)))
       [major-size major-orientation first-minor-orientation])))
 
+(defn transpose
+  "The transpose of a structure s is just the same structure with the
+  outermost orientation reversed."
+  [s]
+  (opposite s (seq s)))
+
+(defn- without-index
+  "The structure s with element index i removed"
+  [s i]
+  (same s (into
+            (subvec (.v s) 0 i)
+            (subvec (.v s) (inc i)))))
+
+(defn substructure-without
+  "The structure with the i'th component removed at the top level and the j'th
+  component removed from each of the structures at the next level."
+  [s i j]
+  (let [a (map #(without-index % j) s)
+        b (concat (take i a) (drop (inc i) a))]
+    (same s b)))
+
 (defn determinant
   "Computes the determinant of s, which must have square shape. Generic
   operations are used, so this works on symbolic square structures.
@@ -164,10 +181,11 @@
   [s]
   (let [[d _ _] (square? s)]
     (when-not d (throw (IllegalArgumentException. "not square")))
-    (if (= d 2)
-      (let [[[a b] [c d]] s]
-        (g/- (g/* a d) (g/* b c)))
-      (throw (IllegalArgumentException. "Lame: can only det 2x2 for now")))))
+    (cond (= d 0) (throw (IllegalArgumentException. "zero size matrix has no determinant"))
+          (= d 1) (nth (nth s 0) 0)
+          (= d 2) (let [[[a b] [c d]] s]
+                    (g/- (g/* a d) (g/* b c)))
+          :else (throw (IllegalArgumentException. "Lame: can only det 2x2 for now")))))
 
 (defn- invert
   "Computes the inverse of s viewed as a square matrix.
@@ -176,14 +194,15 @@
   [s]
   (let [[d o1 o2] (square? s)]
     (when-not d (throw (IllegalArgumentException. "not square")))
-    (when-not (= d 2) (throw (IllegalArgumentException. "Lame: only 2x2 for now")))
-    (let [[[a b] [c d]] s
-          invΔ (g/invert (determinant s))
-          major-orientation (if (= o1 o2) (opposite-orientation o1) o1)
-          minor-orientation (if (= o1 o2) (opposite-orientation o2) o2)]
-      (make major-orientation
-            [(make minor-orientation [(g/* invΔ d) (g/* invΔ (g/negate b))])
-             (make minor-orientation [(g/* invΔ (g/negate c)) (g/* invΔ a)])]))))
+    (cond (= d 1) (make o1 [(make o2 [(g/invert (nth (nth s 0) 0))])])
+          (= d 2) (let [[[a b] [c d]] s
+                        Δ (determinant s)
+                        major-orientation (if (= o1 o2) (opposite-orientation o1) o1)
+                        minor-orientation (if (= o1 o2) (opposite-orientation o2) o2)]
+                    (make major-orientation
+                          [(make minor-orientation [(g/divide d Δ) (g/divide (g/negate b) Δ)])
+                           (make minor-orientation [(g/divide (g/negate c) Δ) (g/divide a Δ)])]))
+          :else (throw (IllegalArgumentException. "Lame: only 2x2 for now")))))
 
 (defn- mul
   "If s and t are compatible for contraction, returns their inner product,
@@ -192,8 +211,6 @@
   (if (compatible-for-contraction? s t)
     (inner-product s t)
     (outer-product s t)))
-
-(defn- inverse [s])
 
 ;; hmmm. why not do the repeated-squaring trick here?
 ;; perhaps structures are not typically raised to high
@@ -218,21 +235,15 @@
 (g/defhandler :-        [down? down?]           (partial elementwise g/-))
 (g/defhandler :-        [up? up?]               (partial elementwise g/-))
 (g/defhandler :*        [g/scalar? structure?]  outer-product)
-;; ^^^ this was kind of a late thing to add: maybe we
-;; were depending on canonical order in the past to sort all scalars to the left of structures. That might
-;; be a useful idea to reconsider, or maybe not.
 (g/defhandler :*        [structure? g/scalar?]  #(outer-product %2 %1))
-(g/defhandler :div      [structure? g/scalar?]  #(outer-product (/ %2) %1))
+(g/defhandler :div      [structure? g/scalar?]  #(outer-product (g/invert %2) %1))
 (g/defhandler :div      [structure? structure?] #(mul (invert %2) %1))
 (g/defhandler :invert   [structure?]            invert)
 (g/defhandler :*        [structure? structure?] mul)
 (g/defhandler :**       [structure? integer?]   expt)
 (g/defhandler :simplify [structure?]            #(mapr g/simplify %))
-(g/defhandler :square [structure?]
-  (fn [s] (inner-product s s)))
-(g/defhandler :cube [structure?]
-  (fn [s] (g/* s s s)))
-(g/defhandler :negate [structure?]
-  (fn [s] (make (orientation s) (map g/negate (elements s)))))
+(g/defhandler :square   [structure?]            #(inner-product % %))
+(g/defhandler :cube     [structure?]            #(g/* % % %))
+(g/defhandler :negate   [structure?]            #(same % (map g/negate %)))
 
 (println "struct initialized")

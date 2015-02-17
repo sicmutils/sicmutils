@@ -157,7 +157,6 @@
 (def partial-derivative (make-operation :∂ 2))
 (def simplify (make-operation :simplify 1))
 
-
 (defn- sort-key
   [x]
   ;; WARNING: the second term of the seq is a temporary idea
@@ -226,8 +225,5 @@
         :else (bin-div arg (->> args canonical-order (reduce bin*)))))
 
 (def divide /)
-
-;(g/defhandler :simplify [list?] simplify-expression)
-
 
 (println "generic initialized")
