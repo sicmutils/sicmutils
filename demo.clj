@@ -138,8 +138,6 @@
 (def b (D (comp ((pd 2) (L-pend 'm 'l 'g y_s)) (Γ θ))))
 (def a (comp ((pd 1) (L-pend 'm 'l 'g y_s)) (Γ θ)))
 (println "result")
-(println "b=" b)
-(println "a=" a)
 
 ((- b a) 't)
 ; p. 61
