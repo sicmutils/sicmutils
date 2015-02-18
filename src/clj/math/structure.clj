@@ -176,6 +176,16 @@
 
 (declare determinant)
 
+(defn- make-square
+  "Make a square structure of size n by n with outer and inner orientations as given,
+  whose elements are (f i j), where i and j range from [0..n)"
+  [outer-orientation inner-orientation n f]
+  (make outer-orientation
+        (for [i (range n)]
+          (make inner-orientation
+                (for [j (range n)]
+                  (f i j))))))
+
 (defn cofactors
   "Computes the matrix of cofactors of the given structure with the
   same shape, if s is square."
@@ -186,11 +196,8 @@
                     (make outer-orientation
                           [(make inner-orientation [d (g/negate c)])
                            (make inner-orientation [(g/negate b) a])]))
-          :else (make outer-orientation
-                      (for [i (range d)]
-                        (make inner-orientation
-                              (for [j (range d)]
-                                (-> s (substructure-without i j) determinant (g/* (if (even? (+ i j)) 1 -1))))))))))
+          :else (make-square outer-orientation inner-orientation d
+                             #(-> s (substructure-without %1 %2) determinant (g/* (if (even? (+ %1 %2)) 1 -1)))))))
 
 (defn determinant
   "Computes the determinant of s, which must have square shape. Generic
@@ -202,8 +209,6 @@
           (= d 1) (nth (nth s 0) 0)
           (= d 2) (let [[[a b] [c d]] s]
                     (g/- (g/* a d) (g/* b c)))
-          ;; want to take the first row and dot it with the corresponding
-          ;; subdeterminants
           :else (reduce g/+
                         (map g/*
                              (cycle [1 -1])
@@ -222,13 +227,10 @@
                                 (map g/*
                                      (nth s 0)
                                      (nth C 0)))
-                      major-orientation (if (= o1 o2) (opposite-orientation o1) o1)
-                      minor-orientation (if (= o1 o2) (opposite-orientation o2) o2)]
-                  (make major-orientation
-                        (for [i (range d)]
-                          (make minor-orientation
-                                (for [j (range d)]
-                                  (g/divide (nth (nth C j) i) Δ)))))))))
+                      outer-orientation (if (= o1 o2) (opposite-orientation o1) o1)
+                      inner-orientation (if (= o1 o2) (opposite-orientation o2) o2)]
+                  (make-square outer-orientation inner-orientation d
+                               #(g/divide (nth (nth C %2) %1) Δ))))))
 
 (defn- mul
   "If s and t are compatible for contraction, returns their inner product,

@@ -106,29 +106,7 @@
         (is (near 0.0 (first m)))
         (is (near 435 (second m))))
       (is (near 436.2912143 ((varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) 0.001)))
-      ;; some random tests around eta we used for diagnosing a bug; might as well leave the tests here
-      (let [η (make-η #(* % %) 0 1)
-            ε 1/1000
-            f (* η ε)
-            η2 (make-η (up sin cos square) 0 1)]
-        (is (= 0.0 (η 0.0)))
-        (is (= 0.0 (η 1.0)))
-        (is (= -1/16 (η 1/2)))
-        (is (= -1/16000 (f 1/2)))
-        (is (= (up 0 0 0) (η2 0.0)))
-        (is (= (up 0 0 0) (η2 1.0)))
-        (is (= (up (* -1/4 (sin 0.5)) (* -1/4 (cos 0.5)) (/ 1. -16.)) (η2 0.5)))
-        (is (= (up 0 0 0) ((Γ η) 0)))
-        (is (= (up 1 0 1) ((Γ η) 1)))
-        (is (= '(+ (expt t 4) (* -1 (expt t 3))) (pe (η 't))))
-        (is (= '(+ (* 4 (expt t 3)) (* -3 (expt t 2))) (pe ((D η) 't))))
-        (is (= '(up t (+ (expt t 4) (* -1 (expt t 3))) (+ (* 4 (expt t 3)) (* -3 (expt t 2)))) (pe ((Γ η) 't))))
-        (is (= '(up
-                  (+ (* (cos t) (expt t 2)) (* 2 (sin t) t) (* -1 (cos t) t) (* -1 (sin t)))
-                  (+ (* -1 (sin t) (expt t 2)) (* 2 (cos t) t) (* (sin t) t) (* -1 (cos t)))
-                  (+ (* 4 (expt t 3)) (* -3 (expt t 2))))
-               (pe ((D η2) 't))))
-        )
+
       ;; This is fairly time consuming since every evaluation of a candidate point in the
       ;; multidimensional minimization of find-path involves computing a numeric integration
       ;; to find the Lagrangian of the path induced by the point. But it works.
@@ -137,8 +115,10 @@
             errors (for [x (range 0.0 (/ Math/PI 2) 0.02)] (abs (- (Math/cos x) (minimal-path x))))]
         ;; the minimization is supposed to discover the cosine function in the interval [0..pi/2].
         ;; Check that it has done so over a variety of points to within 2e-4.
-        (is (every? good? errors))))
-    ;; variation operator
+        (is (every? good? errors)))))
+
+  ;; variation operator
+  (testing "1.5 Derivation of the Lagrange Equations"
     (let [F (fn [q] (fn [t] ((literal-function 'f) (q t))))
           G (fn [q] (fn [t] ((literal-function 'g) (q t))))
           δ_η (δ (literal-function 'η))
@@ -149,15 +129,25 @@
       (is (= '(* ((D g) (q t)) (η t)) (pe (((δ_η G) q) 't))))
       (is (= '(+ (* ((D f) (q t)) (η t) (g (q t))) (* (η t) (f (q t)) ((D g) (q t)))) (pe (((δ_η (* F G)) q) 't))))
       (is (= '(+ (* ((D f) (q t)) (η t) (g (q t))) (* (η t) (f (q t)) ((D g) (q t)))) (pe (((δ_η (* F G)) q) 't))))
-      (is (= '(* ((D φ) (f (q t))) ((D f) (q t)) (η t)) (pe (((δ_η (φ F)) q) 't)))))
-    (testing "1.7 Evolution of Dynamical State"
-      (let [harmonic-state-derivative (fn [m k]
-                                        (Lagrangian->state-derivative (L-harmonic m k)))]
-        ;; simplification isn't quite up to scratch here, but it's a proof of concept.
-        (is (= '(up 1
-                    (up v_x v_y)
-                    (up (* -1N (/ m (expt m 2)) k x) (* -1N (/ m (expt m 2)) k y)))
-               (pe ((harmonic-state-derivative 'm 'k)
-                       (up 't (up 'x 'y) (up 'v_x 'v_y))))))
-        ))
-    ))
+      (is (= '(* ((D φ) (f (q t))) ((D f) (q t)) (η t)) (pe (((δ_η (φ F)) q) 't))))))
+  (testing "1.7 Evolution of Dynamical State"
+    (let [harmonic-state-derivative (fn [m k]
+                                      (Lagrangian->state-derivative (L-harmonic m k)))]
+      ;; simplification isn't quite up to scratch here, but it's a proof of concept.
+      (is (= '(up 1
+                  (up v_x v_y)
+                  (up (* -1 (/ m (expt m 2)) k x) (* -1 (/ m (expt m 2)) k y)))
+             (pe ((harmonic-state-derivative 'm 'k)
+                   (up 't (up 'x 'y) (up 'v_x 'v_y))))))
+      ;; p. 71
+      (is (= '(up 0
+                  (up (+ ((D x) t) (* -1 (v_x t)))
+                      (+ ((D y) t) (* -1 (v_y t))))
+                  (up (+ (* (x t) (/ m (expt m 2)) k) ((D v_x) t))
+                      (+ (* (y t) (/ m (expt m 2)) k) ((D v_y) t))))
+             (pe (((Lagrange-equations-first-order (L-harmonic 'm 'k))
+                    (up (literal-function 'x)
+                        (literal-function 'y))
+                    (up (literal-function 'v_x)
+                        (literal-function 'v_y)))
+                   't)))))))

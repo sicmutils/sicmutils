@@ -22,6 +22,7 @@
            (org.apache.commons.math3.optim.nonlinear.scalar.noderiv SimplexOptimizer NelderMeadSimplex)))
 
 (defn minimize
+  "Find the minimum of the function f: R -> R in the interval [a,b]."
   [f a b]
   (let [o (BrentOptimizer. 1e-5 1e-5)
         args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
@@ -37,17 +38,18 @@
     [(.getPoint p) (.getValue p)]))
 
 (defn multidimensional-minimize
-  [f qs]
+  "Find the minimum of the function f: R^n -> R, given an initial point q ∈ R^n."
+  [f q]
   (let [o (SimplexOptimizer. 1e-10 1e-10)
         args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
              (into-array OptimizationData
-                         [(NelderMeadSimplex. (count qs))
+                         [(NelderMeadSimplex. (count q))
                           (ObjectiveFunction.
                             (proxy [MultivariateFunction] []
                               (value [xs]
                                 (f xs))))
                           (MaxEval. 1000)
-                          (InitialGuess. (double-array qs))
+                          (InitialGuess. (double-array q))
                           GoalType/MINIMIZE])
         p (.optimize o args)]
     [(.getPoint p) (.getValue p)]))

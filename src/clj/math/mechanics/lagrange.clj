@@ -83,6 +83,13 @@
   [L q t1 t2]
   (integrate (comp L (Γ q)) t1 t2))
 
+
+(defn Lagrange-equations
+  [Lagrangian]
+  (fn [q]
+    (- (D (comp ((pd 2) Lagrangian) (Γ q)))
+       (comp ((pd 1) Lagrangian) (Γ q)))))
+
 (defn linear-interpolants
   [x0 x1 n]
   (let [n+1 (inc n)
@@ -124,9 +131,16 @@
     (fn [[_ _ v :as state]]
       (up 1 v (acceleration state)))))
 
+(defn qv->state-path
+  [q v]
+  ;; or maybe (juxt identity q v)
+  #(up % (q %) (v %)))
 
-(defn Lagrange-equations
-  [Lagrangian]
-    (fn [q]
-      (- (D (comp ((pd 2) Lagrangian) (Γ q)))
-         (comp ((pd 1) Lagrangian) (Γ q)))))
+(defn Lagrange-equations-first-order
+  [L]
+  (fn [q v]
+    (let [state-path (qv->state-path q v)]
+      (- (D state-path)
+         (comp (Lagrangian->state-derivative L)
+               state-path)))))
+
