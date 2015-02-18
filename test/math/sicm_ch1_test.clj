@@ -156,7 +156,7 @@
         ;; simplification isn't quite up to scratch here, but it's a proof of concept.
         (is (= '(up 1
                     (up v_x v_y)
-                    (up (* -1N (/ 1 (expt m 2)) k m x) (* -1N (/ 1 (expt m 2)) k m y)))
+                    (up (* -1N (/ m (expt m 2)) k x) (* -1N (/ m (expt m 2)) k y)))
                (pe ((harmonic-state-derivative 'm 'k)
                        (up 't (up 'x 'y) (up 'v_x 'v_y))))))
         ))

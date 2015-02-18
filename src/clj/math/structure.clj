@@ -174,10 +174,27 @@
         b (concat (take i a) (drop (inc i) a))]
     (same s b)))
 
+(declare determinant)
+
+(defn cofactors
+  "Computes the matrix of cofactors of the given structure with the
+  same shape, if s is square."
+  [s]
+  (let [[d outer-orientation inner-orientation] (square? s)]
+    (cond (< d 2) s
+          (= d 2) (let [[[a b] [c d]] s]
+                    (make outer-orientation
+                          [(make inner-orientation [d (g/negate c)])
+                           (make inner-orientation [(g/negate b) a])]))
+          :else (make outer-orientation
+                      (for [i (range d)]
+                        (make inner-orientation
+                              (for [j (range d)]
+                                (-> s (substructure-without i j) determinant (g/* (if (even? (+ i j)) 1 -1))))))))))
+
 (defn determinant
   "Computes the determinant of s, which must have square shape. Generic
-  operations are used, so this works on symbolic square structures.
-  TODO: for now, it's 2x2 only."
+  operations are used, so this works on symbolic square structures."
   [s]
   (let [[d _ _] (square? s)]
     (when-not d (throw (IllegalArgumentException. "not square")))
@@ -185,24 +202,33 @@
           (= d 1) (nth (nth s 0) 0)
           (= d 2) (let [[[a b] [c d]] s]
                     (g/- (g/* a d) (g/* b c)))
-          :else (throw (IllegalArgumentException. "Lame: can only det 2x2 for now")))))
+          ;; want to take the first row and dot it with the corresponding
+          ;; subdeterminants
+          :else (reduce g/+
+                        (map g/*
+                             (cycle [1 -1])
+                             (nth s 0)
+                             (for [i (range d)] (determinant (substructure-without s 0 i))))))))
 
 (defn- invert
-  "Computes the inverse of s viewed as a square matrix.
-  TODO: more doc
-  TODO: more sizes"
+  "Computes the inverse of s viewed as a square matrix."
   [s]
   (let [[d o1 o2] (square? s)]
     (when-not d (throw (IllegalArgumentException. "not square")))
-    (cond (= d 1) (make o1 [(make o2 [(g/invert (nth (nth s 0) 0))])])
-          (= d 2) (let [[[a b] [c d]] s
-                        Δ (determinant s)
-                        major-orientation (if (= o1 o2) (opposite-orientation o1) o1)
-                        minor-orientation (if (= o1 o2) (opposite-orientation o2) o2)]
-                    (make major-orientation
-                          [(make minor-orientation [(g/divide d Δ) (g/divide (g/negate b) Δ)])
-                           (make minor-orientation [(g/divide (g/negate c) Δ) (g/divide a Δ)])]))
-          :else (throw (IllegalArgumentException. "Lame: only 2x2 for now")))))
+    (cond (= d 0) (throw (IllegalArgumentException. "zero size matrix has no inverse"))
+          (= d 1) (make o1 [(make o2 [(g/invert (nth (nth s 0) 0))])])
+          :else (let [C (cofactors s)
+                      Δ (reduce g/+
+                                (map g/*
+                                     (nth s 0)
+                                     (nth C 0)))
+                      major-orientation (if (= o1 o2) (opposite-orientation o1) o1)
+                      minor-orientation (if (= o1 o2) (opposite-orientation o2) o2)]
+                  (make major-orientation
+                        (for [i (range d)]
+                          (make minor-orientation
+                                (for [j (range d)]
+                                  (g/divide (nth (nth C j) i) Δ)))))))))
 
 (defn- mul
   "If s and t are compatible for contraction, returns their inner product,

@@ -183,10 +183,11 @@
 (deftest matrices
   (let [A (up (up 1 2) (up 3 4))
         B (down (up 1 2 3) (up 3 4 5))
-        C (down (up 1 2 3) (up 4 5 6) (up 7 8 9))
+        C (down (up 1 2 3) (up 0 4 5) (up 1 0 6))
         D (up (down 3))
         E (up 1)
-        F (down (up 1 2) (up 3 4))]
+        F (down (up 1 2) (up 3 4))
+        G (up (up 4 0 0 0) (up 0 0 2 0) (up 0 1 2 0) (up 1 0 0 1))]
     (testing "square?"
       (is (= [2 :up :up] (square? A)))
       (is (not (square? B)))
@@ -195,26 +196,32 @@
       (is (thrown? UnsupportedOperationException (square? E))))
     (testing "determinant"
       (is (= -2 (determinant A)))
+      (is (= 22 (determinant C)))
       (is (= 3 (determinant D)))
       (is (= -2 (determinant F))))
     (testing "inverse"
       (is (= (down (down -2 1) (down 3/2 -1/2)) (/ A)))
       (is (= 5/2 (* A (/ A))))
       (is (= 5/2 (* (/ A) A)))
+      (is (= (* 1/22 (down (up 24 -12 -2) (up 5 3 -5) (up -4 2 4)) (/ C))))
       (is (= (up (down 1/3)) (/ D)))
       (is (= (up (down 1)) (* D (/ D))))
       (is (= (down (up 1 0) (up 0 1)) (* F (/ F))))
-      (is (= (down (up 1 0) (up 0 1)) (* (/ F) F))))
+      (is (= (down (up 1 0) (up 0 1)) (* (/ F) F)))
+      (is (= (up (up 1/4 0 0 0) (up 0 -1 1 0) (up 0 1/2 0 0) (up -1/4 0 0 1)) (invert G))))
     (testing "transpose"
       (is (= (down (up 1 2) (up 3 4)) (transpose A)))
       (is (= (up (up 1 2 3) (up 3 4 5)) (transpose B)))
-      (is (= (up (up 1 2 3) (up 4 5 6) (up 7 8 9)) (transpose C)))
+      (is (= (up (up 1 2 3) (up 0 4 5) (up 1 0 6)) (transpose C)))
       (is (= (down (down 3)) (transpose D)))
       (is (= (down 1) (transpose E)))
       (is (= (up (up 1 2) (up 3 4)) (transpose F))))
-    (testing "xxx"
-      (let [A (down (up 1 2 3) (up 4 5 6) (up 7 8 9))]
-        (is (= (down (up 1 3) (up 7 9)) (substructure-without A 1 1)))
-        (is (= (down (up 5 6) (up 8 9)) (substructure-without A 0 0)))
-        (is (= (down (up 1 2) (up 7 8)) (substructure-without A 1 2)))))
+    (testing "substructure-without"
+      (is (= (down (up 1 3) (up 1 6)) (substructure-without C 1 1)))
+      (is (= (down (up 4 5) (up 0 6)) (substructure-without C 0 0)))
+      (is (= (down (up 1 2) (up 1 0)) (substructure-without C 1 2))))
+    (testing "cofactors"
+      (is (= (down (up 4 -3) (up -2 1)) (cofactors A)))
+      (is (= (down (up 24 5 -4) (up -12 3 2) (up -2 -5 4)) (cofactors C)))
+      (is (= (up (down 3)) (cofactors D))))
     ))
