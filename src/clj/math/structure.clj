@@ -206,13 +206,13 @@
   (let [[d _ _] (square? s)]
     (when-not d (throw (IllegalArgumentException. "not square")))
     (cond (= d 0) (throw (IllegalArgumentException. "zero size matrix has no determinant"))
-          (= d 1) (nth (nth s 0) 0)
+          (= d 1) (first (first s))
           (= d 2) (let [[[a b] [c d]] s]
                     (g/- (g/* a d) (g/* b c)))
           :else (reduce g/+
                         (map g/*
                              (cycle [1 -1])
-                             (nth s 0)
+                             (first s)
                              (for [i (range d)] (determinant (substructure-without s 0 i))))))))
 
 (defn- invert
@@ -221,16 +221,13 @@
   (let [[d o1 o2] (square? s)]
     (when-not d (throw (IllegalArgumentException. "not square")))
     (cond (= d 0) (throw (IllegalArgumentException. "zero size matrix has no inverse"))
-          (= d 1) (make o1 [(make o2 [(g/invert (nth (nth s 0) 0))])])
+          (= d 1) (make o1 [(make o2 [(g/invert (first (first s)))])])
           :else (let [C (cofactors s)
-                      Δ (reduce g/+
-                                (map g/*
-                                     (nth s 0)
-                                     (nth C 0)))
+                      Δ (reduce g/+ (map g/* (first s) (first C)))
                       outer-orientation (if (= o1 o2) (opposite-orientation o1) o1)
                       inner-orientation (if (= o1 o2) (opposite-orientation o2) o2)]
                   (make-square outer-orientation inner-orientation d
-                               #(g/divide (nth (nth C %2) %1) Δ))))))
+                               #(-> C (nth %2) (nth %1) (g/divide Δ)))))))
 
 (defn- mul
   "If s and t are compatible for contraction, returns their inner product,
