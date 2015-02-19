@@ -18,38 +18,64 @@
   (:import (org.apache.commons.math3.optim.univariate BrentOptimizer UnivariateObjectiveFunction SearchInterval)
            (org.apache.commons.math3.analysis UnivariateFunction MultivariateFunction)
            (org.apache.commons.math3.optim.nonlinear.scalar GoalType ObjectiveFunction)
-           (org.apache.commons.math3.optim MaxEval OptimizationData InitialGuess)
+           (org.apache.commons.math3.optim MaxEval OptimizationData InitialGuess ConvergenceChecker SimpleValueChecker PointValuePair)
            (org.apache.commons.math3.optim.nonlinear.scalar.noderiv SimplexOptimizer NelderMeadSimplex)))
 
 (defn minimize
-  "Find the minimum of the function f: R -> R in the interval [a,b]."
-  [f a b]
-  (let [o (BrentOptimizer. 1e-5 1e-5)
-        args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
-             (into-array OptimizationData
-                         [(UnivariateObjectiveFunction.
-                            (proxy [UnivariateFunction] []
-                              (value [x] (f x))))
-                          (MaxEval. 1000)
-                          (SearchInterval. a b)
-                          GoalType/MINIMIZE])
-        p (.optimize o args)]
-    #_(prn "brent steps" (.getEvaluations o))
-    [(.getPoint p) (.getValue p)]))
+  "Find the minimum of the function f: R -> R in the interval [a,b]. If
+  callback is supplied, will be invoked with the iteration count and the
+  values of x and f(x) at each search step."
+  ([f a b callback]
+   (let [rel 1e-5
+         abs 1e-5
+         o (BrentOptimizer. rel abs
+                            (proxy [ConvergenceChecker] []
+                              (converged [_ _ ^PointValuePair current]
+                                (when callback
+                                  (callback (.getPoint current) (.getValue current)))
+                                false)))
+         args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
+   (into-array OptimizationData
+               [(UnivariateObjectiveFunction.
+                  (proxy [UnivariateFunction] []
+                    (value [x] (f x))))
+                (MaxEval. 1000)
+                (SearchInterval. a b)
+                GoalType/MINIMIZE
+                ])
+         p (.optimize o args)]
+     (let [x (.getPoint p)
+           y (.getValue p)]
+       (when callback
+        (callback (dec (.getEvaluations o)) x y))
+       [x y])))
+  ([f a b]
+   (minimize f a b nil)))
 
 (defn multidimensional-minimize
-  "Find the minimum of the function f: R^n -> R, given an initial point q ∈ R^n."
-  [f q]
-  (let [o (SimplexOptimizer. 1e-10 1e-10)
-        args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
-             (into-array OptimizationData
-                         [(NelderMeadSimplex. (count q))
-                          (ObjectiveFunction.
-                            (proxy [MultivariateFunction] []
-                              (value [xs]
-                                (f xs))))
-                          (MaxEval. 1000)
-                          (InitialGuess. (double-array q))
-                          GoalType/MINIMIZE])
-        p (.optimize o args)]
-    [(.getPoint p) (.getValue p)]))
+  "Find the minimum of the function f: R^n -> R, given an initial point q ∈ R^n.
+  If callback is supplied, will be invoked with the iteration cound and the values
+  of X and f(X) at each search step."
+  ([f q callback]
+   (let [rel 1e-10
+         abs 1e-10
+         convergence-checker (SimpleValueChecker. rel abs)
+         o (SimplexOptimizer. (proxy [ConvergenceChecker] []
+                                (converged [iteration ^PointValuePair previous ^PointValuePair current]
+                                  (when callback
+                                    (callback (vec (.getPoint current)) (.getValue current)))
+                                  (.converged convergence-checker iteration previous current))))
+         args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
+   (into-array OptimizationData
+               [(NelderMeadSimplex. (count q))
+                (ObjectiveFunction.
+                  (proxy [MultivariateFunction] []
+                    (value [xs]
+                      (f xs))))
+                (MaxEval. 1000)
+                (InitialGuess. (double-array q))
+                GoalType/MINIMIZE])
+         p (.optimize o args)]
+     [(.getPoint p) (.getValue p)]))
+  ([f q]
+    (multidimensional-minimize f q nil)))

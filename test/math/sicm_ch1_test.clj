@@ -29,8 +29,7 @@
             [math.operator :refer :all]
             [math.value :as v]
             [math.calculus.derivative :refer :all]
-            [math.mechanics.lagrange :refer :all]
-            [math.generic :as g]))
+            [math.mechanics.lagrange :refer :all]))
 
 (def ^:private near (v/within 1e-6))
 (defn- pe [x] (-> x simplify print-expression))
@@ -64,12 +63,12 @@
                                    (fn [qs]
                                      (let [path (make-path t0 q0 t1 q1 qs)]
                                        (Lagrangian-action Lagrangian path t0 t1))))
-          find-path (fn [Lagrangian t0 q0 t1 q1 n]
+          find-path (fn [Lagrangian t0 q0 t1 q1 n values]
                       (let [initial-qs (linear-interpolants q0 q1 n)
                             minimizing-qs (first
                                             (multidimensional-minimize
                                               (parametric-path-action Lagrangian t0 q0 t1 q1)
-                                              initial-qs))]
+                                              initial-qs values))]
                         (make-path t0 q0 t1 q1 minimizing-qs)))]
 
       ;; p. 18
@@ -109,11 +108,14 @@
       ;; This is fairly time consuming since every evaluation of a candidate point in the
       ;; multidimensional minimization of find-path involves computing a numeric integration
       ;; to find the Lagrangian of the path induced by the point. But it works.
-      #_(let [minimal-path (find-path (L-harmonic 1.0 1.0) 0. 1. (/ Math/PI 2) 0. 3)
+      #_(let [values (atom [])
+            minimal-path (find-path (L-harmonic 1.0 1.0) 0. 1. (/ Math/PI 2) 0. 3
+                                    (fn [pt _] (swap! values conj pt)))
             good? (partial (v/within 2e-4) 0)
             errors (for [x (range 0.0 (/ Math/PI 2) 0.02)] (abs (- (Math/cos x) (minimal-path x))))]
         ;; the minimization is supposed to discover the cosine function in the interval [0..pi/2].
         ;; Check that it has done so over a variety of points to within 2e-4.
+        #_(prn values)
         (is (every? good? errors)))))
 
   ;; variation operator
@@ -193,8 +195,16 @@
              (pe ((L-alternate-central-polar 'm (literal-function 'U))
                    (->local 't (up 'r 'φ) (up 'rdot 'φdot))))))
       (is (= '(down
-                (+ (* -1N (expt (cos (φ t)) 2) (expt ((D φ) t) 2) (r t) m) (* -1N (expt (sin (φ t)) 2) (expt ((D φ) t) 2) (r t) m) (* 2 (expt (cos (φ t)) 2) (r t) ((D U) (sqrt (+ (* (expt (cos (φ t)) 2) (expt (r t) 2)) (* (expt (sin (φ t)) 2) (expt (r t) 2))))) (/ 1 (* 2 (sqrt (+ (* (expt (cos (φ t)) 2) (expt (r t) 2)) (* (expt (sin (φ t)) 2) (expt (r t) 2))))))) (* 2 (expt (sin (φ t)) 2) (r t) ((D U) (sqrt (+ (* (expt (cos (φ t)) 2) (expt (r t) 2)) (* (expt (sin (φ t)) 2) (expt (r t) 2))))) (/ 1 (* 2 (sqrt (+ (* (expt (cos (φ t)) 2) (expt (r t) 2)) (* (expt (sin (φ t)) 2) (expt (r t) 2))))))) (* (expt (cos (φ t)) 2) (((expt D 2) r) t) m) (* (((expt D 2) r) t) (expt (sin (φ t)) 2) m))
-                (+ (* (expt (r t) 2) (expt (sin (φ t)) 2) (((expt D 2) φ) t) m) (* (expt (r t) 2) (expt (cos (φ t)) 2) (((expt D 2) φ) t) m) (* 2N (r t) (expt (sin (φ t)) 2) ((D r) t) ((D φ) t) m) (* 2N (r t) (expt (cos (φ t)) 2) ((D r) t) ((D φ) t) m)))
+                (+ (* -1N (expt (cos (φ t)) 2) (expt ((D φ) t) 2) (r t) m)
+                   (* -1N (expt (sin (φ t)) 2) (expt ((D φ) t) 2) (r t) m)
+                   (* 2 (expt (cos (φ t)) 2) (r t) ((D U) (sqrt (+ (* (expt (cos (φ t)) 2) (expt (r t) 2)) (* (expt (sin (φ t)) 2) (expt (r t) 2))))) (/ 1 (* 2 (sqrt (+ (* (expt (cos (φ t)) 2) (expt (r t) 2)) (* (expt (sin (φ t)) 2) (expt (r t) 2)))))))
+                   (* 2 (expt (sin (φ t)) 2) (r t) ((D U) (sqrt (+ (* (expt (cos (φ t)) 2) (expt (r t) 2)) (* (expt (sin (φ t)) 2) (expt (r t) 2))))) (/ 1 (* 2 (sqrt (+ (* (expt (cos (φ t)) 2) (expt (r t) 2)) (* (expt (sin (φ t)) 2) (expt (r t) 2)))))))
+                   (* (expt (cos (φ t)) 2) (((expt D 2) r) t) m)
+                   (* (((expt D 2) r) t) (expt (sin (φ t)) 2) m))
+                (+ (* (expt (r t) 2) (expt (sin (φ t)) 2) (((expt D 2) φ) t) m)
+                   (* (expt (r t) 2) (expt (cos (φ t)) 2) (((expt D 2) φ) t) m)
+                   (* 2N (r t) (expt (sin (φ t)) 2) ((D r) t) ((D φ) t) m)
+                   (* 2N (r t) (expt (cos (φ t)) 2) ((D r) t) ((D φ) t) m)))
              (pe (((Lagrange-equations (L-alternate-central-polar 'm (literal-function 'U)))
                     (up (literal-function 'r)
                         (literal-function 'φ)))

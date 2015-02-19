@@ -161,7 +161,7 @@
 
 (defn- without-index
   "The structure s with element index i removed"
-  [s i]
+  [^Struct s i]
   (same s (into
             (subvec (.v s) 0 i)
             (subvec (.v s) (inc i)))))

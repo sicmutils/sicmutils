@@ -198,7 +198,8 @@
       (is (= -2 (determinant A)))
       (is (= 22 (determinant C)))
       (is (= 3 (determinant D)))
-      (is (= -2 (determinant F))))
+      (is (= -2 (determinant F)))
+      (is (= -8 (determinant G))))
     (testing "inverse"
       (is (= (down (down -2 1) (down 3/2 -1/2)) (/ A)))
       (is (= 5/2 (* A (/ A))))
