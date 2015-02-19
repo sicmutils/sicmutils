@@ -187,7 +187,7 @@
         D (up (down 3))
         E (up 1)
         F (down (up 1 2) (up 3 4))
-        G (up (up 4 0 0 0) (up 0 0 2 0) (up 0 1 2 0) (up 1 0 0 1))]
+        G (down (up 4 0 0 0) (up 0 0 2 0) (up 0 1 2 0) (up 1 0 0 1))]
     (testing "square?"
       (is (= [2 :up :up] (square? A)))
       (is (not (square? B)))
@@ -207,8 +207,11 @@
       (is (= (up (down 1/3)) (/ D)))
       (is (= (up (down 1)) (* D (/ D))))
       (is (= (down (up 1 0) (up 0 1)) (* F (/ F))))
+      (is (= (down (up 1 0) (up 0 1)) (/ F F)))
       (is (= (down (up 1 0) (up 0 1)) (* (/ F) F)))
-      (is (= (up (up 1/4 0 0 0) (up 0 -1 1 0) (up 0 1/2 0 0) (up -1/4 0 0 1)) (invert G))))
+      (is (= (down (up 1/4 0 0 0) (up 0 -1 1 0) (up 0 1/2 0 0) (up -1/4 0 0 1)) (invert G)))
+      (is (= (down (up 1/4 0 0 0) (up 0 -1 1 0) (up 0 1/2 0 0) (up -1/4 0 0 1)) (/ G)))
+      (is (= (down (up 1 0 0 0) (up 0 1 0 0) (up 0 0 1 0) (up 0 0 0 1)) (/ G G))))
     (testing "transpose"
       (is (= (down (up 1 2) (up 3 4)) (transpose A)))
       (is (= (up (up 1 2 3) (up 3 4 5)) (transpose B)))
