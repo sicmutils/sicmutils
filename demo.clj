@@ -103,43 +103,14 @@
     (let [[t theta _] local]
       (* m g (- (ys t) (* l (cos theta)))))))
 
-;(def L-pend (- T-pend V-pend))
-; the following is a hack until we can subtract functions of arity > 1:
-(defn L-pend [m l g ys]
-  (let [T (T-pend m l g ys)
-        V (V-pend m l g ys)]
-    #(- (T %) (V %))))
+
+(def L-pend (- T-pend V-pend))
 
 (def θ (literal-function 'θ))
 (def y_s (literal-function 'y_s))
 
-
 (((Lagrange-equations (L-pend 'm 'l 'g y_s)) θ) 't)
 
-
-(println "T-pend")
-((T-pend 'm 'l 'g y_s) ((Γ θ) 't))
-(println "V-pend")
-((V-pend 'm 'l 'g y_s) ((Γ θ) 't))
-(println "L-pend")
-(- ((T-pend 'm 'l 'g y_s) ((Γ θ) 't))
-   ((V-pend 'm 'l 'g y_s) ((Γ θ) 't)))
-(println "∂2 L-pend")
-(((pd 2) (L-pend 'm 'l 'g y_s)) ((Γ θ) 't))
-(println "∂1 L-pend")
-(((pd 1) (L-pend 'm 'l 'g y_s)) ((Γ θ) 't))
-(println "∂2 L-pend with function composition")
-((comp ((pd 2) (L-pend 'm 'l 'g y_s)) (Γ θ)) 't)
-(println "∂1 L-pend with function composition")
-((comp ((pd 1) (L-pend 'm 'l 'g y_s)) (Γ θ)) 't)
-(println "D ∂2")
-((D (comp ((pd 2) (L-pend 'm 'l 'g y_s)) (Γ θ))) 't)
-(println "Lagrange equations")
-(def b (D (comp ((pd 2) (L-pend 'm 'l 'g y_s)) (Γ θ))))
-(def a (comp ((pd 1) (L-pend 'm 'l 'g y_s)) (Γ θ)))
-(println "result")
-
-((- b a) 't)
 ; p. 61
 (defn Lf [m g]
   (fn [[_ [_ y] v]]
