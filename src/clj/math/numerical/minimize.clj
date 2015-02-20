@@ -23,16 +23,16 @@
 
 (defn minimize
   "Find the minimum of the function f: R -> R in the interval [a,b]. If
-  callback is supplied, will be invoked with the iteration count and the
+  observe is supplied, will be invoked with the iteration count and the
   values of x and f(x) at each search step."
-  ([f a b callback]
+  ([f a b observe]
    (let [rel 1e-5
          abs 1e-5
          o (BrentOptimizer. rel abs
                             (proxy [ConvergenceChecker] []
                               (converged [_ _ ^PointValuePair current]
-                                (when callback
-                                  (callback (.getPoint current) (.getValue current)))
+                                (when observe
+                                  (observe (.getPoint current) (.getValue current)))
                                 false)))
          args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
    (into-array OptimizationData
@@ -46,24 +46,24 @@
          p (.optimize o args)]
      (let [x (.getPoint p)
            y (.getValue p)]
-       (when callback
-        (callback (dec (.getEvaluations o)) x y))
+       (when observe
+         (observe (dec (.getEvaluations o)) x y))
        [x y])))
   ([f a b]
    (minimize f a b nil)))
 
 (defn multidimensional-minimize
   "Find the minimum of the function f: R^n -> R, given an initial point q ∈ R^n.
-  If callback is supplied, will be invoked with the iteration cound and the values
+  If observe is supplied, will be invoked with the iteration cound and the values
   of X and f(X) at each search step."
-  ([f q callback]
+  ([f q observe]
    (let [rel 1e-10
          abs 1e-10
          convergence-checker (SimpleValueChecker. rel abs)
          o (SimplexOptimizer. (proxy [ConvergenceChecker] []
                                 (converged [iteration ^PointValuePair previous ^PointValuePair current]
-                                  (when callback
-                                    (callback (vec (.getPoint current)) (.getValue current)))
+                                  (when observe
+                                    (observe (vec (.getPoint current)) (.getValue current)))
                                   (.converged convergence-checker iteration previous current))))
          args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
    (into-array OptimizationData
@@ -78,4 +78,4 @@
          p (.optimize o args)]
      [(.getPoint p) (.getValue p)]))
   ([f q]
-    (multidimensional-minimize f q nil)))
+   (multidimensional-minimize f q nil)))

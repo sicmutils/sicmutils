@@ -108,14 +108,14 @@
       ;; This is fairly time consuming since every evaluation of a candidate point in the
       ;; multidimensional minimization of find-path involves computing a numeric integration
       ;; to find the Lagrangian of the path induced by the point. But it works.
-      #_(let [values (atom [])
+      (let [values (atom [])
             minimal-path (find-path (L-harmonic 1.0 1.0) 0. 1. (/ Math/PI 2) 0. 3
                                     (fn [pt _] (swap! values conj pt)))
             good? (partial (v/within 2e-4) 0)
             errors (for [x (range 0.0 (/ Math/PI 2) 0.02)] (abs (- (Math/cos x) (minimal-path x))))]
         ;; the minimization is supposed to discover the cosine function in the interval [0..pi/2].
         ;; Check that it has done so over a variety of points to within 2e-4.
-        #_(prn values)
+        (prn values)
         (is (every? good? errors)))))
 
   ;; variation operator
@@ -156,12 +156,7 @@
                    (fn [local]
                      (let [[t theta _] local]
                        (* m g (- (ys t) (* l (cos theta)))))))
-          ;; HACK! We can't subtract functions of arity > 1 yet.
-          ;; We ought to be able to define L-pend as (- T-pend V-pend).
-          L-pend (fn [m l g ys]
-                   (let [T (T-pend m l g ys)
-                         V (V-pend m l g ys)]
-                     #(- (T %) (V %))))
+          L-pend (- T-pend V-pend)
           θ (literal-function 'θ)
           y_s (literal-function 'y_s)]
       (is (= '(down (* (((expt D 2) x) t) m) (+ (* (((expt D 2) y) t) m) (* g m)))

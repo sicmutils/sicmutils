@@ -54,8 +54,15 @@
       (is (= 12 ((g/+ add2 4) 6)))
       (is (= 14 ((g/+ add2 mul3) 3)))
       (is (= 10 ((g/+ mul3 4) 2))))
-    )
-  )
+    (testing "arity 2"
+      (let [f (fn [x y] (+ x y))
+            g (fn [x y] (* x y))
+            h (g/+ f g)
+            k (g/+ 4 (g/- f 2))
+            m (g/+ g (g/- f 2))]
+        (is (= 11 (h 2 3)))
+        (is (= 7 (k 2 3)))
+        (is (= 9 (m 2 3)))))))
 
 (deftest operators
   (let [f (fn [x] (+ x 5))

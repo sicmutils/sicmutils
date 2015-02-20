@@ -77,9 +77,20 @@
   which computes (+ (f x) (g x)) given x as input."
   [operator]
   (with-meta (fn [f g]
-               (let [f1 (if (g/numerical-quantity? f) (constantly f) f)
-                     g1 (if (g/numerical-quantity? g) (constantly g) g)]
-                 (with-meta #(operator (f1 %) (g1 %)) {:arity 1})))
+               (let [f-numeric (g/numerical-quantity? f)
+                     g-numeric (g/numerical-quantity? g)
+                     f-arity (if f-numeric (v/arity g) (v/arity f))
+                     g-arity (if g-numeric f-arity (v/arity g))
+                     f1 (if f-numeric (constantly f) f)
+                     g1 (if g-numeric (constantly g) g)]
+                 (if (not= f-arity g-arity)
+                   (throw (IllegalArgumentException. "cannot combine functions of differing arity"))
+                   (with-meta (cond (= f-arity 1) #(operator (f1 %) (g1 %))
+                                    (= f-arity 2) #(operator (f1 %1 %2) (g1 %1 %2))
+                                    (= f-arity 3) #(operator (f1 %1 %2 %3) (g1 %1 %2 %3))
+                                    (= f-arity 4) #(operator (f1 %1 %2 %3 %4) (g1 %1 %2 %3 %4))
+                                    :else (throw (IllegalArgumentException. "unsupported arity for function arithmetic")))
+                              {:arity f-arity}))))
     {:arity 2}))
 
 (g/defhandler :negate [function?] (unary-operation g/negate))
