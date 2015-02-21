@@ -265,12 +265,12 @@
 ;; ring; when this happens, the type is lowered to the base ring.
 
 (def ^:private operator-table
-  {`g/+ #(reduce add 0 %&)
-   `g/- (fn [arg & args] (if (some? args) (sub arg (reduce add args)) (negate arg)))
-   `g/* #(reduce mul 1 %&)
-   `g/negate negate
-   `g/expt expt
-   `g/square #(mul % %)
+  {'+ #(reduce add 0 %&)
+   '- (fn [arg & args] (if (some? args) (sub arg (reduce add args)) (negate arg)))
+   '* #(reduce mul 1 %&)
+   'negate negate
+   'expt expt
+   'square #(mul % %)
    ;`'g/gcd gcd
    })
 

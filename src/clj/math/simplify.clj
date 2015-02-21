@@ -18,7 +18,8 @@
   (:require [math.numsymb :as sym]
             [math.poly :as poly]
             [math.generic :as g]
-            [math.expression :as x])
+            [math.expression :as x]
+            [math.rules :as r])
   (:import (math.expression Expression))
   )
 
@@ -109,7 +110,16 @@
 (def ^:private poly-analyzer
   (analyzer (symbol-generator "-s-%05d") poly/expression-> poly/->expression poly/operators-known))
 
+;; so: the result of poly-simplification keeps the namespace
+;; tags on the symbols.
+
 (defn- simplify-expression [x] (poly-analyzer x))
+(defn- simplify-expression- [x]
+  (let [a (poly-analyzer x)
+        b (r/flush-obvious-ones a)]
+    (prn "A" a)
+    (prn "B" b)
+    b))
 
 (doseq [predicate [number?
                    symbol?

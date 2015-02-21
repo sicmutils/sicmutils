@@ -101,7 +101,7 @@
           exp2 (:expression (g/expt (g/+ 1 'y) 5))
           exp3 (:expression (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5)))
           receive (fn [a b] [a b])]
-      (is (= '#{math.generic/* math.generic/+ x} (x/variables-in exp1)))
+      (is (= '#{* + x} (x/variables-in exp1)))
       (is (= [(make -3 -2 1) '(x)] (expression-> exp1 receive)))
       (is (= [(make -3 -2 1) '(x)] (expression-> exp1 receive)))
       (is (= [(make 1 5 10 10 5 1) '(y)] (expression-> exp2 receive)))
@@ -118,7 +118,7 @@
       (is (= 'y (poly-simp exp3)))
       (is (= '(+ g1 g2) (poly-simp (:expression (g/+ 'g1 'g2)))))
       (is (= '(* 2 g1) (poly-simp (:expression (g/+ 'g1 'g1)))))
-      (is (= '(+ b (* -1 f)) (poly-simp `(g/- (g/+ a b c) (g/+ a c f)))))
-      (is (= '(+ (* -1 b) f) (poly-simp `(g/- (g/+ a c f) (g/+ c b a)))))
+      (is (= '(+ b (* -1 f)) (poly-simp '(- (+ a b c) (+ a c f)))))
+      (is (= '(+ (* -1 b) f) (poly-simp '(- (+ a c f) (+ c b a)))))
       ))
   )

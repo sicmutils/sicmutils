@@ -43,16 +43,16 @@
                                       poly/operators-known))
         A (fn [x]
             (x/print-expression ((new-analyzer) x)))]
-    (is (= '(+ x 1) (A `(g/+ 1 x))))
-    (is (= '(+ x 1) (A `[g/+ 1 x])))
-    (is (= 'x (A `(g/* 1/2 (g/+ x x)))))
+    (is (= '(+ x 1) (A '(+ 1 x))))
+    (is (= '(+ x 1) (A '[+ 1 x])))
+    (is (= 'x (A '(* 1/2 (+ x x)))))
     (is (= '(* (sin y) (cos (+ (expt (sin y) 4) (* 2 (sin y)) 1)) y)
-           (A `(g/* y (g/sin y) (g/cos (g/+ 1 (g/sin y) (g/sin y) (g/expt (g/sin y) 4)))))))
+           (A '(* y (sin y) (cos (+ 1 (sin y) (sin y) (expt (sin y) 4)))))))
     (is (= '(+ (* -1N (expt ((D phi) t) 2) (r t) m) (* (((expt D 2) r) t) m) ((D U) (r t)))
-           (A `(g/- (g/* 1/2 m (g/+ (((g/expt D 2) r) t) (((g/expt D 2) r) t)))
-                    (g/+ (g/* 1/2 m (g/+ (g/* ((D phi) t) ((D phi) t) (r t))
-                                         (g/* ((D phi) t) ((D phi) t) (r t))))
-                         (g/* -1 ((D U) (r t))))))))
+           (A '(- (* 1/2 m (+ (((expt D 2) r) t) (((expt D 2) r) t)))
+                    (+ (* 1/2 m (+ (* ((D phi) t) ((D phi) t) (r t))
+                                         (* ((D phi) t) ((D phi) t) (r t))))
+                         (* -1 ((D U) (r t))))))))
 
     ))
 

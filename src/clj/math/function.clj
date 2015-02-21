@@ -42,7 +42,7 @@
   )
 
 (defn literal-function [f] (Fn. f 1 [:real] :real))
-(def ^:private derivative-symbol `g/D)
+(def ^:private derivative-symbol 'D)
 
 ;; --------------------
 ;; Algebra of functions

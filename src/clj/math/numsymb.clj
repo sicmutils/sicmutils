@@ -42,10 +42,10 @@
   [symbol]
   `(fn [x#] (and (seq? x#) (= (first x#) ~symbol))))
 
-(def ^:private sum? (is-expression? `g/+))
-(def ^:private product? (is-expression? `g/*))
-(def ^:private sqrt? (is-expression? `g/sqrt))
-(def expt? (is-expression? `g/expt))
+(def ^:private sum? (is-expression? '+))
+(def ^:private product? (is-expression? '*))
+(def ^:private sqrt? (is-expression? 'sqrt))
+(def expt? (is-expression? 'expt))
 
 (def operator first)
 (def operands rest)
@@ -56,24 +56,24 @@
 (defn add [a b]
   (cond (and (number? a) (number? b)) (+ a b)
         (number? a) (cond (g/zero? a) b
-                          (sum? b) `(g/+ ~a ~@(operands b))
-                          :else `(g/+ ~a ~b))
+                          (sum? b) `(~'+ ~a ~@(operands b))
+                          :else `(~'+ ~a ~b))
         (number? b) (cond (g/zero? b) a
-                          (sum? a) `(g/+ ~@(operands a) ~b)
-                          :else `(g/+ ~a ~b))
-        (sum? a) (cond (sum? b) `(g/+ ~@(operands a) ~@(operands b))
-                       :else `(g/+ ~@(operands a) ~b))
-        (sum? b) `(g/+ ~a ~@(operands b))
-        :else `(g/+ ~a ~b)))
+                          (sum? a) `(~'+ ~@(operands a) ~b)
+                          :else `(~'+ ~a ~b))
+        (sum? a) (cond (sum? b) `(~'+ ~@(operands a) ~@(operands b))
+                       :else `(~'+ ~@(operands a) ~b))
+        (sum? b) `(~'+ ~a ~@(operands b))
+        :else `(~'+ ~a ~b)))
 
 (defn- add-n [& args]
   (reduce add 0 args))
 
 (defn- sub [a b]
   (cond (and (number? a) (number? b)) (- a b)
-        (number? a) (if (g/zero? a) `(g/- ~b) `(g/- ~a ~b))
-        (number? b) (if (g/zero? b) a `(g/- ~a ~b))
-        :else `(g/- ~a ~b)))
+        (number? a) (if (g/zero? a) `(~'- ~b) `(~'- ~a ~b))
+        (number? b) (if (g/zero? b) a `(~'- ~a ~b))
+        :else `(~'- ~a ~b)))
 
 (defn- sub-n [& args]
   (cond (nil? args) 0
@@ -84,29 +84,29 @@
   (cond (and (number? a) (number? b)) (* a b)
         (number? a) (cond (g/zero? a) a
                           (g/one? a) b
-                          (product? b) `(g/* ~a ~@(operands b))
-                          :else `(g/* ~a ~b)
+                          (product? b) `(~'* ~a ~@(operands b))
+                          :else `(~'* ~a ~b)
                           )
         (number? b) (cond (g/zero? b) b
                           (g/one? b) a
-                          (product? a) `(g/* ~@(operands a) ~b)
-                          :else `(g/* ~a ~b)
+                          (product? a) `(~'* ~@(operands a) ~b)
+                          :else `(~'* ~a ~b)
                           )
-        (product? a) (cond (product? b) `(g/* ~@(operands a) ~@(operands b))
-                           :else `(g/* ~@(operands a) ~b))
-        (product? b) `(g/* ~a ~@(operands b))
-        :else `(g/* ~a ~b)))
+        (product? a) (cond (product? b) `(~'* ~@(operands a) ~@(operands b))
+                           :else `(~'* ~@(operands a) ~b))
+        (product? b) `(~'* ~a ~@(operands b))
+        :else `(~'* ~a ~b)))
 
 (defn- mul-n [& args]
   (reduce mul 1 args))
 
 (defn- div [a b]
   (cond (and (number? a) (number? b)) (/ a b)
-        (number? a) (if (g/zero? a) a `(g/divide ~a ~b))
+        (number? a) (if (g/zero? a) a `(~'/ ~a ~b))
         (number? b) (cond (g/zero? b) (throw (ArithmeticException. "division by zero"))
                           (g/one? b) a
-                          :else `(g/divide ~a ~b))
-        :else `(g/divide ~a ~b)))
+                          :else `(~'/ ~a ~b))
+        :else `(~'/ ~a ~b)))
 
 (defn- div-n [& args]
   (cond (nil? args) 1
@@ -165,7 +165,7 @@
 
 (defn- sine [x]
   (cond (number? x) (if (v/exact? x)
-                      (if (zero? x) 0 `(g/sin ~x))
+                      (if (zero? x) 0 `(~'sin ~x))
                       (cond (n:zero-mod-pi? x) 0.0
                             (n:pi-over-2-mod-2pi? x) 1.0
                             (n:-pi-over-2-mod-2pi? x) -1.0
@@ -173,12 +173,12 @@
         (symbol? x) (cond (symb:zero-mod-pi? x) 0
                           (symb:pi-over-2-mod-2pi? x) 1
                           (symb:-pi-over-2-mod-2pi? x) -1
-                          :else `(g/sin ~x))
-        :else `(g/sin ~x)))
+                          :else `(~'sin ~x))
+        :else `(~'sin ~x)))
 
 (defn- cosine [x]
   (cond (number? x) (if (v/exact? x)
-                      (if (zero? x) 1 `(g/cos ~x))
+                      (if (zero? x) 1 `(~'cos ~x))
                       (cond (n:pi-over-2-mod-pi? x) 0.0
                             (n:zero-mod-2pi? x) 1.0
                             (n:pi-mod-2pi? x) -1.0
@@ -186,29 +186,29 @@
         (symbol? x) (cond (symb:pi-over-2-mod-pi? x) 0
                           (symb:zero-mod-2pi? x) +1
                           (symb:pi-mod-2pi? x) -1
-                          :else `(g/cos ~x))
-        :else `(g/cos ~x)))
+                          :else `(~'cos ~x))
+        :else `(~'cos ~x)))
 
 (defn- tangent [x]
   (cond (number? x) (if (v/exact? x)
-                      (if (zero? x) 0 `(g/tan ~x))
+                      (if (zero? x) 0 `(~'tan ~x))
                       (cond (n:zero-mod-pi? x) 0.
                             (n:pi-over-4-mod-pi? x) 1.
                             (n:-pi-over-4-mod-pi? x) -1.
                             (n:pi-over-2-mod-pi? x)
                               (throw (IllegalArgumentException. "Undefined: tan"))
-                            :else `(g/tan ~x)))
+                            :else `(~'tan ~x)))
         (symbol? x) (cond (symb:zero-mod-pi? x) 0
                           (symb:pi-over-4-mod-pi? x) 1
                           (symb:-pi-over-4-mod-pi? x) -1
                           (symb:pi-over-2-mod-pi? x)
                             (throw (IllegalArgumentException. "Undefined: tan"))
-                          :else `(g/tan ~x))
-        :else `(g/tan ~x)))
+                          :else `(~'tan ~x))
+        :else `(~'tan ~x)))
 
 (defn- abs [x]
   (cond (number? x) (if (< x 0) (- x) x)
-        :else `(g/abs ~x)))
+        :else `(~'abs ~x)))
 
 (defn- sqrt [s]
   (if (number? s)
@@ -219,27 +219,27 @@
             :else (let [q (nt/sqrt s)]
                     (if (g/exact? q)
                       q
-                      `(g/sqrt ~s)))))
-    `(g/sqrt ~s)))
+                      `(~'sqrt ~s)))))
+    `(~'sqrt ~s)))
 
 (defn- log [s]
   (if (number? s)
     (if-not (v/exact? s)
       (Math/log s)
-      (if (g/one? s) 0 `(g/log ~s)))
-    `(g/log ~s)))
+      (if (g/one? s) 0 `(~'log ~s)))
+    `(~'log ~s)))
 
 (defn- exp [s]
   (if (number? s)
     (if-not (v/exact? s)
       (Math/exp s)
-      (if (g/zero? s) 1 `(g/exp ~s)))
-    `(g/exp ~s)))
+      (if (g/zero? s) 1 `(~'exp ~s)))
+    `(~'exp ~s)))
 
 (defn expt [b e]
   (cond (and (number? b) (number? e)) (nt/expt b e)
         (number? b) (cond (g/one? b) 1
-                          :else `(g/expt ~b ~e))
+                          :else `(~'expt ~b ~e))
         (number? e) (cond (g/zero? e) 1
                           (g/one? e) b
                           (and (integer? e) (even? e) (sqrt? b))
@@ -250,27 +250,27 @@
                           (expt (first (operands b))
                                 (* (second (operands b)) e))
                           (< e 0) (div-n 1 (expt b (- e)))
-                          :else `(g/expt ~b ~e))
-        :else `(g/expt ~b ~e)
+                          :else `(~'expt ~b ~e))
+        :else `(~'expt ~b ~e)
         ))
 
 (def ^:private g-symbolic-operator-table
-  {`g/+ :+
-   `g/- :-
-   `g/* :*
-   `g// :div
-   `g/negate :negate
-   `g/invert :invert
-   `g/sin :sin
-   `g/cos :cos
-   `g/tan :tan
-   `g/cube :cube
-   `g/square :square
-   `g/abs :abs
-   `g/sqrt :sqrt
-   `g/log :log
-   `g/exp :exp
-   `g/expt :**})
+  {'+ :+
+   '- :-
+   '* :*
+   '/ :div
+   'negate :negate
+   'invert :invert
+   'sin :sin
+   'cos :cos
+   'tan :tan
+   'cube :cube
+   'square :square
+   'abs :abs
+   'sqrt :sqrt
+   'log :log
+   'exp :exp
+   'expt :**})
 
 ;; TODO: We learn at long last why using keywords instead of symbols was going
 ;; to wind up annoying us. (We chose them to kind of escape the symbol namespacing,
