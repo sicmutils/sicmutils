@@ -113,12 +113,12 @@
 ;; so: the result of poly-simplification keeps the namespace
 ;; tags on the symbols.
 
-(defn- simplify-expression [x] (poly-analyzer x))
-(defn- simplify-expression- [x]
+(defn- simplify-expression- [x] (poly-analyzer x))
+(defn- simplify-expression [x]
   (let [a (poly-analyzer x)
-        b (r/flush-obvious-ones a)]
-    (prn "A" a)
-    (prn "B" b)
+        b (r/sincos-flush-ones a)]
+    ;(prn "A" a)
+    ;(prn "B" b)
     b))
 
 (doseq [predicate [number?

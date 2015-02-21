@@ -3,7 +3,37 @@
 
 (def ^:private => (constantly true))
 
-(def flush-obvious-ones
+(def ^:private split-high-degree-cosines
+  (let [more-than-two? #(> % 2)]
+    (ruleset
+      (* (:?? f1) (expt (cos (:? x)) (:? n more-than-two?)) (:?? f2))
+      => (* (expt (cos (:? x)) 2)
+            (expt (cos (:? x)) (:? #(- (% 'n) 2)))
+            (:?? f1)
+            (:?? f2))
+
+      (+ (:?? a1) (expt (cos (:? x)) (:? n more-than-two?)) (:?? a2))
+      => (+ (* (expt (cos (:? x)) 2)
+               (expt (cos (:? x)) (:? #(- (% 'n) 2))))
+            (:?? a1)
+            (:?? a2)))))
+
+(def ^:private split-high-degree-sines
+  (let [more-than-two? #(> % 2)]
+    (ruleset
+      (* (:?? f1) (expt (sin (:? x)) (:? n more-than-two?)) (:?? f2))
+      => (* (expt (sin (:? x)) 2)
+            (expt (sin (:? x)) (:? #(- (% 'n) 2)))
+            (:?? f1)
+            (:?? f2))
+
+      (+ (:?? a1) (expt (sin (:? x)) (:? n more-than-two?)) (:?? a2))
+      => (+ (* (expt (sin (:? x)) 2)
+               (expt (sin (:? x)) (:? #(- (% 'n) 2))))
+            (:?? a1)
+            (:?? a2)))))
+
+(def ^:private flush-obvious-ones
   (ruleset
     (+ (:?? a1) (expt (sin (:? x)) 2) (:?? a2) (expt (cos (:? x)) 2) (:?? a3))
     => (+ 1 (:?? a1) (:?? a2) (:?? a3)))
@@ -15,3 +45,7 @@
   ;; pasting the value of a predicate into a rule, so this is far from
   ;; complete.
   )
+
+(def sincos-flush-ones (comp split-high-degree-cosines
+                             split-high-degree-sines
+                             flush-obvious-ones))

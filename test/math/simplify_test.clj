@@ -25,6 +25,9 @@
            [math.function :as f]
            [math.poly :as poly]))
 
+(defn- pe [x]
+  (-> x g/simplify x/print-expression))
+
 (deftest generator
   (let [g (symbol-generator "k%d")
         a (for [_ (range 5)] (g))
@@ -68,31 +71,23 @@
   )
 
 (deftest equations
-  (let [pes #(-> % g/simplify x/print-expression)
-        xy (s/up (f/literal-function 'x) (f/literal-function 'y))
+  (let [xy (s/up (f/literal-function 'x) (f/literal-function 'y))
         xyt (xy 't)
         U (f/literal-function 'U)
         xyt2 (g/square xyt)
         Uxyt2 (U xyt2)
         ]
-    (is (= '(up x y) (pes xy)))
-    (is (= '(up (x t) (y t)) (pes xyt)))
-    (is (= '(+ (expt (x t) 2) (expt (y t) 2)) (pes xyt2)))
-    (is (= '(U (+ (expt (x t) 2) (expt (y t) 2))) (pes Uxyt2)))))
+    (is (= '(up x y) (pe xy)))
+    (is (= '(up (x t) (y t)) (pe xyt)))
+    (is (= '(+ (expt (x t) 2) (expt (y t) 2)) (pe xyt2)))
+    (is (= '(U (+ (expt (x t) 2) (expt (y t) 2))) (pe Uxyt2)))
+    (is (= '(+ 1) (pe (g/+ (g/expt (g/sin 'x) 2) (g/expt (g/cos 'x) 2)))))))
 
 (deftest lagrange-equations-test
-  (let [pe x/print-expression
-        xy (s/up (f/literal-function 'x) (f/literal-function 'y))
+  (let [xy (s/up (f/literal-function 'x) (f/literal-function 'y))
         LE (((Lagrange-equations (L-central-rectangular 'm (f/literal-function 'U))) xy) 't)]
     (is (= '(up x y) (pe xy)))
-    (is (= '(down (-
-                    (* 1/2 m (+ (((expt D 2) x) t) (((expt D 2) x) t)))
-                    (* -1 ((D U) (sqrt (+ (* (y t) (y t)) (* (x t) (x t))))) (/ 1 (* 2 (sqrt (+ (* (y t) (y t)) (* (x t) (x t)))))) (+ (x t) (x t))))
-                  (-
-                    (* 1/2 m (+ (((expt D 2) y) t) (((expt D 2) y) t)))
-                    (* -1 ((D U) (sqrt (+ (* (x t) (x t)) (* (y t) (y t))))) (/ 1 (* 2 (sqrt (+ (* (x t) (x t)) (* (y t) (y t)))))) (+ (y t) (y t)))))
-           (pe LE)))
     (is (= '(down (+ (* 2 (x t) ((D U) (sqrt (+ (expt (y t) 2) (expt (x t) 2)))) (/ 1 (* 2 (sqrt (+ (expt (y t) 2) (expt (x t) 2)))))) (* (((expt D 2) x) t) m))
                   (+ (* 2 (y t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2)))) (/ 1 (* 2 (sqrt (+ (expt (x t) 2) (expt (y t) 2)))))) (* (((expt D 2) y) t) m)))
-           (pe (g/simplify LE))))
+           (pe LE)))
     ))

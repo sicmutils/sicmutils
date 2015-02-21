@@ -85,9 +85,7 @@
       (is (= '(5 6 7 8) (RS '(5 6 7 8))))
       (is (= -2 (RS '(10 8) #(apply - %))))
       (is (= 4/5 (RS '(10 8) #(apply / %))))
-      (is (= 3/40 (RS '(10 8 6) #(apply / %))))
-      ))
-
+      (is (= 3/40 (RS '(10 8 6) #(apply / %))))))
   (testing "algebra-1"
     (let [RS (ruleset
               (+ (:? a) (+ (:? b) (:? c))) =>
@@ -107,9 +105,7 @@
       ;; handle this. XXX come back to this when we see if that plan
       ;; works out. (Is simplification an output-only experience in
       ;; scmutils?)
-      (is (= '(* (+ y z w) x) (S '(* (+ y (+ z w)) x))))
-      ))
-
+      (is (= '(* (+ y z w) x) (S '(* (+ y (+ z w)) x))))))
   (testing "associative (multiple rulesets)"
     (let [R1 (ruleset
               (+ (:?? as) (+ (:?? bs)) (:?? cs)) =>
@@ -137,16 +133,23 @@
       (is (= '(* 2 3 4 5 6) (S12 '(* 1 (* 2 3) (* 4 (* 5 6))))))
       (is (= '(* 2 3 4 (+ 8 9 7 6) 5) (S12 '(* 1 2 3 (* 4 (+ (+ 8 9) (+ 7 6)) (* 5 1))))))
       (is (= '(* 3 4 5 6) (S12 '(* 1 (* 1 3) (* 4 (* 5 6))))))
-      (is (= '(* (+ 2 3) 4 5 6) (S12 '(* 1 (+ 2 3) (* 4 (* 5 6))))))
-      ))
+      (is (= '(* (+ 2 3) 4 5 6) (S12 '(* 1 (+ 2 3) (* 4 (* 5 6))))))))
   (testing "rules with constraints"
-    (let [R (ruleset
+    (let [more-than-two? #(> % 2)
+          subtract-from (fn [symbol amount] (fn [frame] (- (frame symbol) amount)))
+          R (ruleset
              (a (:? x integer?) (:? y)) => (b (:? y) (:? x))
              (a (:? x float?) (:? y)) => (c (:? y) (:? x))
+             (* (expt (cos (:? x)) (:? n more-than-two?))) => success
+             (* (expt (tan (:? x)) (:? n #(> % 2)))) => (:? n)
+             (* (expt (sin (:? x)) (:? n #(> % 2)))) => (:? #(- (% 'n) 2))
+             (* (expt (bzz (:? x)) (:? n #(> % 2)))) => (:? (subtract-from 'n -2))
              )
           ]
       (is (= '(b 4 3) (R '(a 3 4))))
       (is (= '(c 4 3.0) (R '(a 3.0 4))))
       (is (= '(a "foo" 4) (R '(a "foo" 4))))
-      ))
-  )
+      (is (= 'success (R '(* (expt (cos y) 3)))))
+      (is (= 4 (R '(* (expt (tan y) 4)))))
+      (is (= 3 (R '(* (expt (sin z) 5)))))
+      (is (= 6 (R '(* (expt (bzz t) 4))))))))
