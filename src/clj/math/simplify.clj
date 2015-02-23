@@ -114,12 +114,15 @@
 ;; tags on the symbols.
 
 (defn- simplify-expression- [x] (poly-analyzer x))
-(defn- simplify-expression [x]
+;; do we want this to be public? probably so, since we will want to write tests
+;; for simplification outside the generic arithmetic system
+(defn simplify-expression [x]
   (let [a (poly-analyzer x)
-        b (r/sincos-flush-ones a)]
+        b (r/sincos-flush-ones a)
+        c (r/divide-numbers-through b)]
     ;(prn "A" a)
     ;(prn "B" b)
-    b))
+    c))
 
 (doseq [predicate [number?
                    symbol?

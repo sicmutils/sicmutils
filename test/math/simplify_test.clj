@@ -17,6 +17,7 @@
 (ns math.simplify-test
   (require [clojure.test :refer :all]
            [math.simplify :refer :all]
+           [math.structure :refer :all]
            [math.expression :as x]
            [math.generic :as g]
            [math.structure :as s]
@@ -36,8 +37,7 @@
         c (for [_ (range 5)] (h))]
     (is (= '(k0 k1 k2 k3 k4) a))
     (is (= '(k5 k6 k7 k8 k9) b))
-    (is (= '(k0 k1 k2 k3 k4) c))
-    ))
+    (is (= '(k0 k1 k2 k3 k4) c))))
 
 (deftest analyzer-test
   (let [new-analyzer (fn [] (analyzer (symbol-generator "k%d")
@@ -55,9 +55,11 @@
            (A '(- (* 1/2 m (+ (((expt D 2) r) t) (((expt D 2) r) t)))
                     (+ (* 1/2 m (+ (* ((D phi) t) ((D phi) t) (r t))
                                          (* ((D phi) t) ((D phi) t) (r t))))
-                         (* -1 ((D U) (r t))))))))
+                         (* -1 ((D U) (r t))))))))))
 
-    ))
+(deftest simplify-expressions
+  (is (= 6 (simplify-expression '(* 1 2 3))))
+  (is (= 2/3 (simplify-expression '(/ 2 3)))))
 
 (deftest trivial-simplifications
   (is (= 1 (g/simplify 1)))
@@ -66,9 +68,8 @@
   (is (= 3 (g/simplify (g/+ 1 2))))
   (is (= 6 (g/simplify (g/+ 1 2 3))))
   (is (= nil (g/simplify nil)))
-  (is (= '(* 2 x) (x/print-expression (g/simplify (g/+ 'x 'x)))))
-  (is (= '(+ x 1) (x/print-expression (g/simplify (g/+ 1 'x)))))
-  )
+  (is (= '(* 2 x) (pe (g/+ 'x 'x))))
+  (is (= '(+ x 1) (pe (g/+ 1 'x)))))
 
 (deftest equations
   (let [xy (s/up (f/literal-function 'x) (f/literal-function 'y))
@@ -81,7 +82,18 @@
     (is (= '(up (x t) (y t)) (pe xyt)))
     (is (= '(+ (expt (x t) 2) (expt (y t) 2)) (pe xyt2)))
     (is (= '(U (+ (expt (x t) 2) (expt (y t) 2))) (pe Uxyt2)))
-    (is (= '(+ 1) (pe (g/+ (g/expt (g/sin 'x) 2) (g/expt (g/cos 'x) 2)))))))
+    (is (= '(+ 1) (pe (g/+ (g/expt (g/sin 'x) 2) (g/expt (g/cos 'x) 2)))))
+    ;; why doesn't the following work given that the rules are meant
+    ;; to pull sines to the left?
+    ;;(is (= '(+ 1) (pe (g/+ (g/expt (g/cos 'x) 2) (g/expt (g/sin 'x) 2)))))
+    ))
+
+(deftest structures
+  (let [A (up (up 1 2) (up 3 4))
+        C (down (up 1 2 3) (up 0 4 5) (up 1 0 6))]
+    (testing "characteristic polynomial"
+      (is (= '(+ (expt x 2) (* -5 x) -2) (pe (characteristic-polynomial A 'x))))
+      (is (= '(+ (expt y 3) (* -11 (expt y 2)) (* 31 y) -22) (pe (characteristic-polynomial C 'y)))))))
 
 (deftest lagrange-equations-test
   (let [xy (s/up (f/literal-function 'x) (f/literal-function 'y))
@@ -89,5 +101,4 @@
     (is (= '(up x y) (pe xy)))
     (is (= '(down (+ (* 2 (x t) ((D U) (sqrt (+ (expt (y t) 2) (expt (x t) 2)))) (/ 1 (* 2 (sqrt (+ (expt (y t) 2) (expt (x t) 2)))))) (* (((expt D 2) x) t) m))
                   (+ (* 2 (y t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2)))) (/ 1 (* 2 (sqrt (+ (expt (x t) 2) (expt (y t) 2)))))) (* (((expt D 2) y) t) m)))
-           (pe LE)))
-    ))
+           (pe LE)))))

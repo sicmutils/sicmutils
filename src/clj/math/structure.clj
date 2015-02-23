@@ -21,6 +21,7 @@
             [math.generic :as g]))
 
 (declare make)
+(declare make-identity-like)
 
 (deftype Struct [orientation arity v]
   v/Value
@@ -179,7 +180,7 @@
 (defn- make-square
   "Make a square structure of size n by n with outer and inner orientations as given,
   whose elements are (f i j), where i and j range from [0..n)"
-  [outer-orientation inner-orientation n f]
+  [n outer-orientation inner-orientation f]
   (make outer-orientation
         (for [i (range n)]
           (make inner-orientation
@@ -196,7 +197,7 @@
                     (make outer-orientation
                           [(make inner-orientation [d (g/negate c)])
                            (make inner-orientation [(g/negate b) a])]))
-          :else (make-square outer-orientation inner-orientation d
+          :else (make-square d outer-orientation inner-orientation
                              #(-> s (substructure-without %1 %2) determinant (g/* (if (even? (+ %1 %2)) 1 -1)))))))
 
 (defn determinant
@@ -226,8 +227,18 @@
                       Δ (reduce g/+ (map g/* (first s) (first C)))
                       outer-orientation (if (= o1 o2) (opposite-orientation o1) o1)
                       inner-orientation (if (= o1 o2) (opposite-orientation o2) o2)]
-                  (make-square outer-orientation inner-orientation d
+                  (make-square d outer-orientation inner-orientation
                                #(-> C (nth %2) (nth %1) (g/divide Δ)))))))
+
+(defn- make-identity-like
+  [s]
+  (let [[d outer-orientation inner-orientation] (square? s)]
+    (when-not d (throw (IllegalArgumentException. "cannot make non-square identity structure")))
+    (make-square d outer-orientation inner-orientation #(if (= %1 %2) 1 0))))
+
+(defn characteristic-polynomial
+  [s var]
+  (determinant (g/- (g/* var (make-identity-like s)) s)))
 
 (defn- mul
   "If s and t are compatible for contraction, returns their inner product,

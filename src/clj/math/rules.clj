@@ -3,35 +3,49 @@
 
 (def ^:private => (constantly true))
 
-(def ^:private split-high-degree-cosines
-  (let [more-than-two? #(> % 2)]
-    (ruleset
-      (* (:?? f1) (expt (cos (:? x)) (:? n more-than-two?)) (:?? f2))
-      => (* (expt (cos (:? x)) 2)
-            (expt (cos (:? x)) (:? #(- (% 'n) 2)))
-            (:?? f1)
-            (:?? f2))
+(defn- more-than-two? [x] (and (number? x) (> x 2)))
 
-      (+ (:?? a1) (expt (cos (:? x)) (:? n more-than-two?)) (:?? a2))
-      => (+ (* (expt (cos (:? x)) 2)
-               (expt (cos (:? x)) (:? #(- (% 'n) 2))))
-            (:?? a1)
-            (:?? a2)))))
+(def ^:private split-high-degree-cosines
+  (ruleset
+    (* (:?? f1) (expt (cos (:? x)) (:? n more-than-two?)) (:?? f2))
+    => (* (expt (cos (:? x)) 2)
+          (expt (cos (:? x)) (:? #(- (% 'n) 2)))
+          (:?? f1)
+          (:?? f2))
+
+    (+ (:?? a1) (expt (cos (:? x)) (:? n more-than-two?)) (:?? a2))
+    => (+ (* (expt (cos (:? x)) 2)
+             (expt (cos (:? x)) (:? #(- (% 'n) 2))))
+          (:?? a1)
+          (:?? a2))))
 
 (def ^:private split-high-degree-sines
-  (let [more-than-two? #(> % 2)]
-    (ruleset
-      (* (:?? f1) (expt (sin (:? x)) (:? n more-than-two?)) (:?? f2))
-      => (* (expt (sin (:? x)) 2)
-            (expt (sin (:? x)) (:? #(- (% 'n) 2)))
-            (:?? f1)
-            (:?? f2))
+  (ruleset
+    (* (:?? f1) (expt (sin (:? x)) (:? n more-than-two?)) (:?? f2))
+    => (* (expt (sin (:? x)) 2)
+          (expt (sin (:? x)) (:? #(- (% 'n) 2)))
+          (:?? f1)
+          (:?? f2))
 
-      (+ (:?? a1) (expt (sin (:? x)) (:? n more-than-two?)) (:?? a2))
-      => (+ (* (expt (sin (:? x)) 2)
-               (expt (sin (:? x)) (:? #(- (% 'n) 2))))
-            (:?? a1)
-            (:?? a2)))))
+    (+ (:?? a1) (expt (sin (:? x)) (:? n more-than-two?)) (:?? a2))
+    => (+ (* (expt (sin (:? x)) 2)
+             (expt (sin (:? x)) (:? #(- (% 'n) 2))))
+          (:?? a1)
+          (:?? a2))))
+
+(def divide-numbers-through
+  (ruleset
+    (* 1 (:? factor))
+    => (:? factor)
+
+    (* 1 (:?? factors))
+    => (* (:?? factors))
+
+    (/ (:? n number?) (:? d number?))
+    => (:? #(/ (% 'n) (% 'd)))
+
+    (/ (+ (:?? terms)) (:? d number?))
+    => (+ (:?? (fn [frame] (map #(`(~'/ % (frame 'd))) (frame 'terms)))))))
 
 (def ^:private flush-obvious-ones
   (ruleset
@@ -46,6 +60,6 @@
   ;; complete.
   )
 
-(def sincos-flush-ones (comp split-high-degree-cosines
+(def sincos-flush-ones (comp flush-obvious-ones
                              split-high-degree-sines
-                             flush-obvious-ones))
+                             split-high-degree-cosines))

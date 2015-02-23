@@ -227,5 +227,4 @@
     (testing "cofactors"
       (is (= (down (up 4 -3) (up -2 1)) (cofactors A)))
       (is (= (down (up 24 5 -4) (up -12 3 2) (up -2 -5 4)) (cofactors C)))
-      (is (= (up (down 3)) (cofactors D))))
-    ))
+      (is (= (up (down 3)) (cofactors D))))))
