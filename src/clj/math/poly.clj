@@ -134,7 +134,7 @@
   (vec (repeat arity 0)))
 
 (defn- add-constant
-  "Adds the constant c to poly. "
+  "Adds the constant c to poly. The result is normalized."
   [poly c]
   (if (base? poly) (g/+ poly c)
                    (let [{:keys [arity xs->c]} poly]
@@ -143,6 +143,10 @@
                          (normalize-with-arity arity)))))
 
 (defn add
+  "Adds the polynomials p and q (either or both of which might just be
+  constants in the base ring). The sum is canonicalized (so that zero
+  coefficients are dropped and if the sum lies in the base ring, then
+  the result will simply be a constant in that ring)."
   [p q]
   (cond (and (base? p) (base? q)) (g/+ p q)
         (g/zero? p) q
@@ -271,6 +275,7 @@
    'negate negate
    'expt expt
    'square #(mul % %)
+   'cube #(mul % (mul % %))
    ;`'g/gcd gcd
    })
 

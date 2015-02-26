@@ -122,7 +122,11 @@
   "Convenience function for applying a match combinator to some data.
   Primes the process with an empty frame and supplies a continuation
   which will return the pattern bindings if the match is successful,
-  nil otherwise."
-  [matcher data]
-  (let [receive (fn [frame data] (if (empty? data) frame))]
-    (matcher {} (list data) receive)))
+  nil otherwise. If predicate is supplied, then the resulting frame of
+  a match must satisfy this predicate; otherwise we continue searching."
+  ([matcher data]
+   (match matcher data (constantly true)))
+  ([matcher data predicate]
+   (let [receive (fn [frame data] (if (and (empty? data) (predicate frame)) frame))]
+     (matcher {} (list data) receive))))
+

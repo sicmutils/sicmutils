@@ -19,7 +19,8 @@
             [math.poly :as poly]
             [math.generic :as g]
             [math.expression :as x]
-            [math.rules :as r])
+            [math.rules :as rules]
+            [pattern.rule :as rule])
   (:import (math.expression Expression))
   )
 
@@ -36,7 +37,7 @@
   is expected to return a pair containing the new state and
   (f v). The result is a pair with the final state and
   the sequence of the values of (f v)."
-  [initial-state f coll]
+  [f initial-state coll]
   (reduce
     (fn [[state acc] val]
       (let [[new-state f-val] (f state val)]
@@ -53,8 +54,8 @@
   ;; these functions, but we notice that in 1.8 (volatile!) is coming to
   ;; Clojure by way of stateful transducers, and I'd like to use that technique
   ;; instead.
-  (let [base-simplify #(expr-> % ->expr)]
-    (fn [expr]
+  (fn [expr]
+    (let [variable-order (zipmap (sort (x/variables-in expr)) (range))]
       (letfn [(simplify-expression
                 [expr]
                 (let [[expr-map analyzed-expr] (analyze {} expr)]
@@ -63,7 +64,7 @@
                 [expr-map expr]
                 (if (and (sequential? expr)
                          (not (= (first expr) 'quote)))
-                  (let [[expr-map analyzed-expr] (map-with-state expr-map analyze expr)]
+                  (let [[expr-map analyzed-expr] (map-with-state analyze expr-map expr)]
                     ;; at this point all subexpressions are canonical TODO: is this true?
                     (if (and (known-operations (sym/operator analyzed-expr))
                              true #_"this is where the exponent integrality test would go")
@@ -81,11 +82,10 @@
                                (= (sym/operator w) (sym/operator simplified-expr)))
                         (add-symbols expr-map w)
                         (analyze expr-map w)))
-                    (add-symbols expr-map simplified-expr))
-                  ))
+                    (add-symbols expr-map simplified-expr))))
               (add-symbols
                 [expr-map expr]
-                (apply add-symbol (map-with-state expr-map add-symbol expr)))
+                (apply add-symbol (map-with-state add-symbol expr-map expr)))
               (add-symbol
                 [expr-map expr]
                 (if (and (sequential? expr)
@@ -97,32 +97,83 @@
                   [expr-map expr]))
               (backsubstitute
                 [expr-map expr]
-                (let [mapx (into {} (for [[k v] expr-map] [v k]))
+                (let [mapx (inverse-map expr-map)
                       bsub (fn bsub [v]
                              (cond (sequential? v) (map bsub v)
                                    (symbol? v) (let [w (mapx v)]
                                                  (if w (bsub w) v))
                                    :else v))]
                   (bsub expr)))
+              (base-simplify
+                [expr]
+                (expr-> expr ->expr))
+              (inverse-map
+                [m]
+                (into {} (for [[k v] m] [v k])))
               ]
         (simplify-expression expr)))))
 
 (def ^:private poly-analyzer
   (analyzer (symbol-generator "-s-%05d") poly/expression-> poly/->expression poly/operators-known))
 
-;; so: the result of poly-simplification keeps the namespace
-;; tags on the symbols.
+(def ^:private simplify-and-flatten poly-analyzer)
 
-(defn- simplify-expression- [x] (poly-analyzer x))
-;; do we want this to be public? probably so, since we will want to write tests
-;; for simplification outside the generic arithmetic system
-(defn simplify-expression [x]
-  (let [a (poly-analyzer x)
-        b (r/sincos-flush-ones a)
-        c (r/divide-numbers-through b)]
-    ;(prn "A" a)
-    ;(prn "B" b)
-    c))
+(defn- simplify-until-stable
+  [rule-simplify canonicalize]
+  (fn simplify [expression]
+    (let [new-expression (rule-simplify expression)]
+      (if (= expression new-expression)
+        expression
+        (let [canonicalized-expression (canonicalize new-expression)]
+          (cond (= canonicalized-expression expression) expression
+                (g/zero? (poly-analyzer `(- ~expression ~canonicalized-expression))) canonicalized-expression
+                :else (simplify canonicalized-expression)))))))
+
+(defn simplify-and-canonicalize
+  [rule-simplify canonicalize]
+  (fn simplify [expression]
+    (let [new-expression (rule-simplify expression)]
+      (if (= expression new-expression)
+        expression
+        (canonicalize new-expression)))))
+
+(def ^:private sin-sq->cos-sq-simplifier
+  (simplify-and-canonicalize rules/sin-sq->cos-sq simplify-and-flatten))
+(def ^:private sincos-simplifier
+  (simplify-and-canonicalize rules/sincos-flush-ones simplify-and-flatten))
+(def ^:private square-root-simplifier
+  (simplify-and-canonicalize rules/simplify-square-roots simplify-and-flatten))
+
+;; looks like we might have the modules inverted: rulesets will need some functions from the
+;; simplification library, so this one has to go here. Not ideal the way we have split things
+;; up, but at least things are beginning to simplify adequately.
+
+(def sincos-cleanup
+  (let [at-least-two? #(and (number? %) (>= % 2))]
+    (simplify-and-canonicalize
+      (rule/rule-simplifier
+        (rule/ruleset
+          (+ (:?? a1) (:? a) (:?? a2) (* (:?? b1) (expt (cos (:? x)) (:? n at-least-two?)) (:?? b2)) (:?? a3))
+          #(g/zero? (poly-analyzer `(~'+ (~'* ~@(% 'b1) ~@(% 'b2) (~'expt (~'cos ~(% 'x)) ~(- (% 'n) 2))) ~(% 'a))))
+          (+ (:?? a1) (:?? a2) (:?? a3) (* (:? a) (expt (sin (:? x)) 2)))
+
+          (+ (:?? a1) (* (:?? b1) (expt (cos (:? x)) (:? n at-least-two?)) (:?? b2)) (:?? a2) (:? a) (:?? a3))
+          #(g/zero? (poly-analyzer `(~'+ (~'* ~@(% 'b1) ~@(% 'b2) (~'expt (~'cos ~(% 'x)) ~(- (% 'n) 2))) ~(% 'a))))
+          (+ (:?? a1) (:?? a2) (:?? a3) (* (:? a) (expt (sin (:? x)) 2)))))
+      simplify-and-flatten)))
+
+(defn simplify-expression-1
+  [x]
+  (-> x
+      simplify-and-flatten
+      sin-sq->cos-sq-simplifier
+      sincos-simplifier
+      sincos-cleanup
+      square-root-simplifier
+      rules/divide-numbers-through
+      simplify-and-flatten))
+
+(def simplify-expression (simplify-until-stable simplify-expression-1 simplify-and-flatten))
 
 (doseq [predicate [number?
                    symbol?

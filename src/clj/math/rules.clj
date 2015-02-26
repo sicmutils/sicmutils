@@ -1,9 +1,18 @@
 (ns math.rules
-  (:require [pattern.rule :refer [ruleset]]))
+  (:require [pattern.rule :refer [ruleset rule-simplifier]]))
 
 (def ^:private => (constantly true))
 
 (defn- more-than-two? [x] (and (number? x) (> x 2)))
+(defn- at-least-two? [x] (and (number? x) (>= x 2)))
+(defn- even-integer? [x] (and (number? x) (even? x)))
+
+(def sin-sq->cos-sq
+  (rule-simplifier
+    (ruleset
+      (expt (sin (:? x)) (:? n at-least-two?))
+      => (* (expt (sin (:? x)) (:? #(- (% 'n) 2)))
+            (- 1 (expt (cos (:? x)) 2))))))
 
 (def ^:private split-high-degree-cosines
   (ruleset
@@ -33,6 +42,18 @@
           (:?? a1)
           (:?? a2))))
 
+(def simplify-square-roots
+  (rule-simplifier
+    (ruleset
+      (expt (sqrt (:? x)) (:? n even-integer?))
+      => (expt (:? x) (:? #(/ (% 'n) 2)))
+
+      (sqrt (expt (:? x) (:? n even-integer?)))
+      => (expt (:? x) (:? #(/ (% 'n) 2)))
+
+      ;; others to follow
+      )))
+
 (def divide-numbers-through
   (ruleset
     (* 1 (:? factor))
@@ -60,6 +81,6 @@
   ;; complete.
   )
 
-(def sincos-flush-ones (comp flush-obvious-ones
-                             split-high-degree-sines
-                             split-high-degree-cosines))
+(def sincos-flush-ones (rule-simplifier flush-obvious-ones
+                                        split-high-degree-sines
+                                        split-high-degree-cosines))

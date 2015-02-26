@@ -90,11 +90,11 @@
 (defn opposite [s xs]
   (make (if (up? s) :down :up) xs))
 
-(defn same [^Struct s xs]
-  (make (.orientation s) xs))
-
 (defn- orientation [^Struct s]
   (if (instance? Struct s) (.orientation s) :up))
+
+(defn same [s xs]
+  (make (orientation s) xs))
 
 (defn- elementwise [op s t]
   (if (= (count s) (count t))
@@ -140,7 +140,7 @@
 
 (defn- outer-product
   [a s]
-  (make (orientation s) (map #(g/* a %) s)))
+  (same s (map #(g/* a %) s)))
 
 (defn square?
   "Returns [dimension major-orientation minor-orientation] if s is a square structure, else nil."
@@ -231,14 +231,19 @@
                                #(-> C (nth %2) (nth %1) (g/divide Δ)))))))
 
 (defn- make-identity-like
+  "Produce a multiplicative identity with the same shape as the square structure s."
   [s]
   (let [[d outer-orientation inner-orientation] (square? s)]
     (when-not d (throw (IllegalArgumentException. "cannot make non-square identity structure")))
     (make-square d outer-orientation inner-orientation #(if (= %1 %2) 1 0))))
 
 (defn characteristic-polynomial
-  [s var]
-  (determinant (g/- (g/* var (make-identity-like s)) s)))
+  "Compute the characteristic polynomial of the square structure s, evaluated
+  at x. Typically x will be a dummy variable, but if you wanted to get the
+  value of the characteristic polynomial at some particular point, you could
+  supply a different expression."
+  [s x]
+  (determinant (g/- (g/* x (make-identity-like s)) s)))
 
 (defn- mul
   "If s and t are compatible for contraction, returns their inner product,
@@ -253,6 +258,7 @@
 ;; exponents.
 
 (defn- expt [s n]
+  "Raise the structure s to the nth power."
   (cond (= n 1) s
         (> n 1) (g/* s (g/expt s (- n 1)))
         :else (throw (ArithmeticException. (str "Cannot: " `(expt ~s ~n))))))

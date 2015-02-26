@@ -75,9 +75,8 @@
        (fn apply#
          ([data#] (apply# data# identity))
          ([data# continue#]
-            (if-let [~frame-symbol (match matcher# data#)]
-              (if (~predicate? ~frame-symbol)
-                (continue# (first ~compiled-consequence)))))))))
+            (if-let [~frame-symbol (match matcher# data# ~predicate?)]
+              (continue# (first ~compiled-consequence))))))))
 
 (defmacro ruleset
   "Ruleset compiles rules, predicates and consequences (triplet-wise)

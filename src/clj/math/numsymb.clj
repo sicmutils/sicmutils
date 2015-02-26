@@ -278,7 +278,7 @@
 ;; to decide if we're going to stick with keywords or not.
 
 (defn symbolic-operator
-  "Given a symbol (like g/+) returns an applicable if there is a corresponding
+  "Given a symbol (like '+) returns an applicable if there is a corresponding
   symbolic operator construction available."
   [s]
   (-> s g-symbolic-operator-table symbolic-operator-table))
