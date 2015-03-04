@@ -187,6 +187,13 @@
     (literal-derivative f xs)
     (x/literal-number (list* (:expr f) xs)))) ;; XXX cons
 
+;;; Utilities
+
+(defmacro with-literal-functions
+  [litfns & body]
+  `(let ~(vec (interleave litfns (map (fn [s] `(literal-function (quote ~s))) litfns)))
+     ~@body))
+
 (g/defhandler :simplify [#(instance? Fn %)] #(-> % :expr g/simplify))
 
 (println "function initialized")

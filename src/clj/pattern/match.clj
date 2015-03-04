@@ -125,8 +125,11 @@
   nil otherwise. If predicate is supplied, then the resulting frame of
   a match must satisfy this predicate; otherwise we continue searching."
   ([matcher data]
-   (match matcher data (constantly true)))
+   (match matcher data nil))
   ([matcher data predicate]
-   (let [receive (fn [frame data] (if (and (empty? data) (predicate frame)) frame))]
+   (let [receive (fn [frame data]
+                   (if (and (empty? data)
+                            (or (not predicate) (predicate frame)))
+                     frame))]
      (matcher {} (list data) receive))))
 

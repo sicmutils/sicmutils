@@ -108,10 +108,13 @@
                (up (up 3 6 9) (up 6 12 18) (up 9 18 27))) (cube (up 1 2 3)))))
   (testing "matrix-like"
     (let [M (down (up 'a 'c) (up 'b 'd))
+          S (up (down 'a 'b) (down 'c 'd))
           x (up 'x 'y)
           xt (down 'x 'y)]
       (is (= (up (+ (* 'x 'a) (* 'y 'b))
                  (+ (* 'x 'c) (* 'y 'd))) (* M x)))
+      (is (= (up (+ (* 'x 'a) (* 'y 'b))
+                 (+ (* 'x 'c) (* 'y 'd))) (* x S)))
       (is (= (down (+ (* 'x 'a) (* 'y 'c))
                  (+ (* 'x 'b) (* 'y 'd))) (* xt M)))
       (is (= (+ (* 'x (+ (* 'x 'a) (* 'y 'c)))

@@ -32,10 +32,7 @@
   (unity? [p] (and (= (count (:xs->c p)) 1)
                  (let [[exponents coef] (first (:xs->c p))]
                    (and (every? core-zero? exponents)
-                        (g/one? coef)))))
-  IFn
-  (applyTo [_ _] (throw (IllegalArgumentException. "how did we get here?")))
-  )
+                        (g/one? coef))))))
 
 (def ^:private base? number?)
 
@@ -213,6 +210,21 @@
                       (recur (mul x x) (quot c 2) a)
                       (recur x (dec c) (mul x a)))))))
 
+(defn- graded-reverse-lex-order
+  "An ordering on monomials. X < Y if X has higher total
+  degree than Y. In case of ties, X < Y if Y < X lexicographically.
+  This is intended, when used as the comparator in an ascending
+  sort, to produce an ordering like:
+  x^2 + xy + y^2 + x + y + 1.
+  "
+  [xs ys]
+  (let [deg (fn [xs] (if (= xs [0]) -1 (reduce + xs)))
+        xd (deg xs)
+        yd (deg ys)]
+    (cond (> xd yd) -1
+          (< xd yd) 1
+          :else (compare ys xs))))
+
 (defn expression->
   "Convert an expression into Flat Polynomial canonical form. The
   expression should be an unwrapped expression, i.e., not an instance
@@ -228,21 +240,6 @@
         new-bindings (zipmap expression-vars (new-variables (count expression-vars)))
         environment (into operator-table new-bindings)]
    (cont ((x/walk-expression environment) expr) expression-vars)))
-
-(defn- graded-reverse-lex-order
-  "An ordering on monomials. X < Y if X has higher total
-  degree than Y. In case of ties, X < Y if Y < X lexicographically.
-  This is intended, when used as the comparator in an ascending
-  sort, to produce an ordering like:
-     x^2 + xy + y^2 + x + y + 1.
-  "
-  [xs ys]
-  (let [deg (fn [xs] (if (= xs [0]) -1 (reduce + xs)))
-        xd (deg xs)
-        yd (deg ys)]
-    (cond (> xd yd) -1
-          (< xd yd) 1
-          :else (compare ys xs))))
 
 (defn ->expression
   "This is the output stage of Flat Polynomial canonical form simplification.

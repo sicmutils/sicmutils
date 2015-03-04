@@ -139,8 +139,8 @@
   (reduce g/+ 0 (map g/* s t)))
 
 (defn- outer-product
-  [a s]
-  (same s (map #(g/* a %) s)))
+  [s t]
+  (same t (map #(g/* s %) t)))
 
 (defn square?
   "Returns [dimension major-orientation minor-orientation] if s is a square structure, else nil."

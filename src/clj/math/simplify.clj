@@ -55,63 +55,62 @@
   ;; Clojure by way of stateful transducers, and I'd like to use that technique
   ;; instead.
   (fn [expr]
-    (let [variable-order (zipmap (sort (x/variables-in expr)) (range))]
-      (letfn [(simplify-expression
-                [expr]
-                (let [[expr-map analyzed-expr] (analyze {} expr)]
-                  (->> analyzed-expr base-simplify (backsubstitute expr-map))))
-              (analyze
-                [expr-map expr]
-                (if (and (sequential? expr)
-                         (not (= (first expr) 'quote)))
-                  (let [[expr-map analyzed-expr] (map-with-state analyze expr-map expr)]
-                    ;; at this point all subexpressions are canonical TODO: is this true?
-                    (if (and (known-operations (sym/operator analyzed-expr))
-                             true #_"this is where the exponent integrality test would go")
-                      [expr-map analyzed-expr]
-                      (if-let [existing-expr (expr-map analyzed-expr)]
-                        [expr-map existing-expr]
-                        (new-kernels expr-map analyzed-expr))))
-                  [expr-map expr]))
-              (new-kernels
-                [expr-map expr]
-                (let [simplified-expr (map base-simplify expr)]
-                  (if-let [v (sym/symbolic-operator (sym/operator simplified-expr))]
-                    (let [w (apply v (sym/operands simplified-expr))]
-                      (if (and (sequential? w)
-                               (= (sym/operator w) (sym/operator simplified-expr)))
-                        (add-symbols expr-map w)
-                        (analyze expr-map w)))
-                    (add-symbols expr-map simplified-expr))))
-              (add-symbols
-                [expr-map expr]
-                (apply add-symbol (map-with-state add-symbol expr-map expr)))
-              (add-symbol
-                [expr-map expr]
-                (if (and (sequential? expr)
-                         (not (= (first expr) 'quote)))
-                  (if-let [existing-expr (expr-map expr)]
-                    [expr-map existing-expr]
-                    (let [newvar (symbol-generator)]
-                      [(conj expr-map [expr newvar]) newvar]))
-                  [expr-map expr]))
-              (backsubstitute
-                [expr-map expr]
-                (let [mapx (inverse-map expr-map)
-                      bsub (fn bsub [v]
-                             (cond (sequential? v) (map bsub v)
-                                   (symbol? v) (let [w (mapx v)]
-                                                 (if w (bsub w) v))
-                                   :else v))]
-                  (bsub expr)))
-              (base-simplify
-                [expr]
-                (expr-> expr ->expr))
-              (inverse-map
-                [m]
-                (into {} (for [[k v] m] [v k])))
-              ]
-        (simplify-expression expr)))))
+    (letfn [(simplify-expression
+              [expr]
+              (let [[expr-map analyzed-expr] (analyze {} expr)]
+                (->> analyzed-expr base-simplify (backsubstitute expr-map))))
+            (analyze
+              [expr-map expr]
+              (if (and (sequential? expr)
+                       (not (= (first expr) 'quote)))
+                (let [[expr-map analyzed-expr] (map-with-state analyze expr-map expr)]
+                  ;; at this point all subexpressions are canonical TODO: is this true?
+                  (if (and (known-operations (sym/operator analyzed-expr))
+                           true #_"this is where the exponent integrality test would go")
+                    [expr-map analyzed-expr]
+                    (if-let [existing-expr (expr-map analyzed-expr)]
+                      [expr-map existing-expr]
+                      (new-kernels expr-map analyzed-expr))))
+                [expr-map expr]))
+            (new-kernels
+              [expr-map expr]
+              (let [simplified-expr (map base-simplify expr)]
+                (if-let [v (sym/symbolic-operator (sym/operator simplified-expr))]
+                  (let [w (apply v (sym/operands simplified-expr))]
+                    (if (and (sequential? w)
+                             (= (sym/operator w) (sym/operator simplified-expr)))
+                      (add-symbols expr-map w)
+                      (analyze expr-map w)))
+                  (add-symbols expr-map simplified-expr))))
+            (add-symbols
+              [expr-map expr]
+              (apply add-symbol (map-with-state add-symbol expr-map expr)))
+            (add-symbol
+              [expr-map expr]
+              (if (and (sequential? expr)
+                       (not (= (first expr) 'quote)))
+                (if-let [existing-expr (expr-map expr)]
+                  [expr-map existing-expr]
+                  (let [newvar (symbol-generator)]
+                    [(conj expr-map [expr newvar]) newvar]))
+                [expr-map expr]))
+            (backsubstitute
+              [expr-map expr]
+              (let [mapx (inverse-map expr-map)
+                    bsub (fn bsub [v]
+                           (cond (sequential? v) (map bsub v)
+                                 (symbol? v) (let [w (mapx v)]
+                                               (if w (bsub w) v))
+                                 :else v))]
+                (bsub expr)))
+            (base-simplify
+              [expr]
+              (expr-> expr ->expr))
+            (inverse-map
+              [m]
+              (into {} (for [[k v] m] [v k])))
+            ]
+      (simplify-expression expr))))
 
 (def ^:private poly-analyzer
   (analyzer (symbol-generator "-s-%05d") poly/expression-> poly/->expression poly/operators-known))
@@ -162,23 +161,19 @@
           (+ (:?? a1) (:?? a2) (:?? a3) (* (:? a) (expt (sin (:? x)) 2)))))
       simplify-and-flatten)))
 
-(defn simplify-expression-1
-  [x]
-  (-> x
-      simplify-and-flatten
-      sin-sq->cos-sq-simplifier
-      sincos-simplifier
-      sincos-cleanup
-      square-root-simplifier
-      rules/divide-numbers-through
-      simplify-and-flatten))
+(def simplify-expression-1
+  #(-> %
+       simplify-and-flatten
+       sin-sq->cos-sq-simplifier
+       sincos-simplifier
+       sincos-cleanup
+       square-root-simplifier
+       rules/divide-numbers-through
+       simplify-and-flatten))
 
 (def simplify-expression (simplify-until-stable simplify-expression-1 simplify-and-flatten))
 
-(doseq [predicate [number?
-                   symbol?
-                   nil?
-                   fn?]]
+(doseq [predicate [number? symbol? nil? fn?]]
   (g/defhandler :simplify [predicate] identity))
 
 (g/defhandler :simplify [#(instance? Expression %)] #(-> % x/freeze-expression simplify-expression))
