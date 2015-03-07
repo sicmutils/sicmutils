@@ -1,8 +1,7 @@
 (ns math.numerical.integrate-test
   (:require [clojure.test :refer :all]
             [math.value :as v]
-            [math.numerical.integrate :refer :all]
-            ))
+            [math.numerical.integrate :refer :all]))
 
 (def ^:private near (v/within 1e-6))
 

@@ -273,18 +273,18 @@
   (make :up (map matrix->structure s)))
 
 (defn unflatten
-  [struct values]
-  (letfn [(u [struct values]
+  [values struct]
+  (letfn [(u [values struct]
             (if (structure? struct)
-              (let [[struct' values']
-                    (reduce (fn [[struct values] element]
-                              (let [[struct' values'] (u element values)]
-                                [(conj struct struct') values']))
-                            [[] values]
+              (let [[values' struct']
+                    (reduce (fn [[values struct] element]
+                              (let [[values' struct'] (u values element)]
+                                [values' (conj struct struct')]))
+                            [values []]
                             struct)]
-                [(same struct struct') values'])
-              [(first values) (rest values)]))]
-    (first (u struct values))))
+                [values' (same struct struct')])
+              [(rest values) (first values)]))]
+    (second (u values struct))))
 
 (g/defhandler :+        [down? down?]           (partial elementwise g/+))
 (g/defhandler :+        [up? up?]               (partial elementwise g/+))

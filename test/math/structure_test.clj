@@ -176,10 +176,12 @@
     (is (= [1 2 3 4] (flatten (down (up 1 2) (up 3 4))))))
   (testing "unflatten"
     (is (= (up (down 0 1) (down 2 3))
-           (unflatten (up (down 'x 'y) (down 'z 't)) (range))))
+           (unflatten (range) (up (down 'x 'y) (down 'z 't)))))
     (is (= (down 3 (up 4 5) (down (up (down 6 7) (up 8 9) 10)) 11)
-           (unflatten (down 'a (up 'b 'c) (down (up (down 'd 'e) (up 'f 'g) 'h)) 'i)
-                      (range 3 12)))))
+           (unflatten (range 3 12)
+                      (down 'a (up 'b 'c) (down (up (down 'd 'e) (up 'f 'g) 'h)) 'i))))
+    (is (= 9 (unflatten [9] 3)))
+    (is (= (up 2) (unflatten [2] (up 0.0)))))
   (testing "get-in"
     (is (= 5 (structure-get-in (up 4 5 6) [1])))
     (is (= 4 (structure-get-in (up 4 5 6) [0])))
