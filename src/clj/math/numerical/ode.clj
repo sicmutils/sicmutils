@@ -23,23 +23,23 @@
 
 (defn state-advancer
   [state-derivative & state-derivative-args]
-  (let [system-derivative (apply state-derivative state-derivative-args)]
+  (let [d:dt (apply state-derivative state-derivative-args)]
     (fn [initial-state t epsilon]
-     (let [flattened-initial-state (flatten initial-state)
-           dimension (count flattened-initial-state)
-           initial-state-array (double-array flattened-initial-state)
-           I (GraggBulirschStoerIntegrator. 1e-2 t epsilon epsilon)
-           equations (proxy [FirstOrderDifferentialEquations] []
-                       (computeDerivatives
-                         [t y out]
-                         (let [y' (-> y
-                                      seq
-                                      (s/unflatten initial-state)
-                                      system-derivative
-                                      flatten
-                                      double-array)]
-                           (System/arraycopy y' 0 out 0 (alength y'))))
-                       (getDimension [] dimension))
-           y1 (double-array dimension)]
-       (.integrate I equations 0 initial-state-array 1 y1)
-       (-> y1 seq (s/unflatten initial-state))))))
+      (let [initial-state-array (-> initial-state flatten double-array)
+            dimension (alength initial-state-array)
+            integrator (GraggBulirschStoerIntegrator. 0. 1. epsilon epsilon)
+            equations (proxy [FirstOrderDifferentialEquations] []
+                        (computeDerivatives
+                          [t y out]
+                          (let [y' (-> y
+                                       seq
+                                       (s/unflatten initial-state)
+                                       d:dt
+                                       flatten
+                                       double-array)]
+                            (prn "ode-step" (seq y'))
+                            (System/arraycopy y' 0 out 0 (alength y'))))
+                        (getDimension [] dimension))
+            y1 (double-array dimension)]
+        (.integrate integrator equations 0 initial-state-array t y1)
+        (-> y1 seq (s/unflatten initial-state))))))

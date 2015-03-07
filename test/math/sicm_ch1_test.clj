@@ -25,6 +25,7 @@
             [math.expression :refer :all]
             [math.numerical.integrate :refer :all]
             [math.numerical.minimize :refer :all]
+            [math.numerical.ode :refer :all]
             [math.function :refer :all]
             [math.operator :refer :all]
             [math.value :as v]
@@ -240,7 +241,15 @@
               ((harmonic-state-derivative 2. 1.) (up 0 (up 1. 2.) (up 3. 4.)))))
        (is (= '(1 3.0 4.0 -0.5 -1.0)
               (flatten ((harmonic-state-derivative 2. 1.) (up 0 (up 1. 2.) (up 3. 4.))))))
-       )))
+       ;; p. 72
+       (let [answer ((state-advancer harmonic-state-derivative 2. 1.)
+                     (up 0. (up 1. 2.) (up 3. 4.))
+                     10.
+                     1e-12)
+             expected (up 10. (up 3.71279166 5.42062082) (up 1.61480309 1.81891037))
+             diff (- answer expected)
+             diff-max (reduce max (flatten diff))]
+         (is (< diff-max 1e-8))))))
   (testing "1.8 Conserved Quantities"
     (let [V (literal-function 'V)
           spherical-state (up 't
