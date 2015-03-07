@@ -34,13 +34,11 @@
                    (and (every? core-zero? exponents)
                         (g/one? coef))))))
 
-(def ^:private base? number?)
-
 (defn- make-with-arity [a xc-pairs]
-  (let [xs->c (into (sorted-map) (filter (fn [[_ c]] (not (g/zero? c))) xc-pairs))]
-    (cond (empty? xs->c) 0
-          (and (= (count xs->c) 1) (every? core-zero? (first (first xs->c)))) (second (first xs->c))
-          :else (Poly. a xs->c))))
+  (->> xc-pairs
+       (filter (fn [[_ c]] (not (g/zero? c))))
+       (into (sorted-map))
+       (Poly. a)))
 
 (defn make
   "Create a polynomial specifying the terms in dense form, supplying
@@ -59,39 +57,21 @@
 
 (defn degree
   [p]
-  (cond (g/zero? p) -1
-        (base? p) 0
-        :else (reduce max (map #(reduce + 0 %) (keys (:xs->c p))))))
+  (if (g/zero? p) -1
+      (reduce max (map #(reduce + 0 %) (keys (:xs->c p))))))
 
 ;; ARITY
 
-(defn- arity
-  [p]
-  (if (base? p)
-    0
-    (:arity p)))
-
 (defn- check-same-arity [p q]
-  (let [ap (arity p)
-        aq (arity q)]
-    (cond (base? p) aq
-          (base? q) ap
-          (= ap aq) ap
+  (let [ap (:arity p)
+        aq (:arity q)]
+    (cond (= ap aq) ap
           :else (throw (ArithmeticException. "mismatched polynomial arity")))))
-
-(defn- normalize-with-arity
-  [p a]
-  (if (base? p) p
-      (let [fp (->> p (filter #(not (g/zero? (second %)))) (into (sorted-map)))]
-        (if-let [[xs coef] (first fp)]
-         (if (and (= (count p) 1) (every? core-zero? xs)) coef
-             (Poly. a fp))
-         0))))
 
 (defn- poly-map
   "Map the function f over the coefficients of p, returning a new Poly."
   [f p]
-  (normalize-with-arity (for [[xs c] (:xs->c p)] [xs (f c)]) (:arity p)))
+  (make-with-arity (:arity p) (for [[xs c] (:xs->c p)] [xs (f c)])))
 
 (defn- poly-merge
   "Merge the polynomials together, combining corresponding coefficients with f.
@@ -103,8 +83,8 @@
          Q (:xs->c q)
          R (sorted-map)]
     (cond
-      (empty? P) (into R (for [[xs c] Q :let [c1 (f 0 c)] :when (not (core-zero? c1))] [xs c1]))
-      (empty? Q) (into R (for [[xs c] P :let [c1 (f c 0)] :when (not (core-zero? c1))] [xs c1]))
+      (empty? P) (into R (for [[xs c] Q :let [c1 (f 0 c)] :when (not (g/zero? c1))] [xs c1]))
+      (empty? Q) (into R (for [[xs c] P :let [c1 (f c 0)] :when (not (g/zero? c1))] [xs c1]))
       :else (let [[xp cp] (first P)
                   [xq cq] (first Q)
                   order (compare xp xq)]
@@ -125,34 +105,26 @@
 
 (def negate (partial poly-map g/negate))
 
-(defn- zero-term
-  "Creates the key corresponding to the constant term of a polynomial with the given arity."
-  [arity]
-  (vec (repeat arity 0)))
-
 (defn- add-constant
   "Adds the constant c to poly. The result is normalized."
   [poly c]
-  (if (base? poly) (g/+ poly c)
-                   (let [{:keys [arity xs->c]} poly]
-                     (-> xs->c
-                         (update-in [(zero-term arity)] #(g/+ (or % 0) c))
-                         (normalize-with-arity arity)))))
+  (let [{:keys [arity xs->c]} poly]
+    (make-with-arity arity (update-in xs->c [(vec (repeat arity 0))] #(g/+ (or % 0) c)))))
 
 (defn add
   "Adds the polynomials p and q (either or both of which might just be
-  constants in the base ring). The sum is canonicalized (so that zero
-  coefficients are dropped and if the sum lies in the base ring, then
-  the result will simply be a constant in that ring)."
+  constants in the base ring)."
   [p q]
-  (cond (and (base? p) (base? q)) (g/+ p q)
-        (g/zero? p) q
-        (g/zero? q) p
-        (base? p) (add-constant q p)
-        (base? q) (add-constant p q)
-        :else (let [a (check-same-arity p q)
-                    sum (poly-merge g/+ p q)]
-                (normalize-with-arity sum a))))
+  (let [p-base? (not (instance? Poly p))
+        q-base? (not (instance? Poly q))]
+    (cond (and p-base? q-base?) (g/+ p q)
+          p-base? (add-constant q p)
+          q-base? (add-constant p q)
+          (g/zero? p) q
+          (g/zero? q) p
+          :else (let [a (check-same-arity p q)
+                      sum (poly-merge g/+ p q)]
+                  (make-with-arity a sum)))))
 
 (defn- add-denormal
   "Add-denormal adds the (order, coefficient) pair to the polynomial p,
@@ -166,44 +138,46 @@
 (defn sub
   "Subtract the polynomial q from the polynomial p."
   [p q]
-  (cond (and (base? p) (base? q)) (g/- p q)
-        (g/zero? p) (g/negate q)
-        (g/zero? q) p
-        (base? p) (add-constant (negate q) p)
-        (base? q) (add-constant p (- q))
-        :else (let [a (check-same-arity p q)
-                    diff (poly-merge g/- p q)]
-                (normalize-with-arity diff a))))
+  (let [p-base? (not (instance? Poly p))
+        q-base? (not (instance? Poly q))]
+    (cond (and p-base? q-base?) (g/- p q)
+          p-base? (add-constant (negate q) p)
+          q-base? (add-constant p (- q))
+          (g/zero? p) (g/negate q)
+          (g/zero? q) p
+          :else (let [a (check-same-arity p q)
+                      diff (poly-merge g/- p q)]
+                  (make-with-arity a diff)))))
 
 (defn mul
   "Multiply polynomials p and q, and return the product."
   [p q]
-  (cond (and (base? p) (base? q)) (g/* p q)
-        (g/zero? p) 0
-        (g/zero? q) 0
-        (g/one? p) q
-        (g/one? q) p
-        (base? p) (poly-map #(g/* p %) q)
-        (base? q) (poly-map #(g/* % q) p)
-        :else (let [a (check-same-arity p q)]
-                (normalize-with-arity (reduce add-denormal (sorted-map)
+  (let [p-base? (not (instance? Poly p))
+        q-base? (not (instance? Poly q))]
+    (cond (and p-base? q-base?) (g/* p q)
+          (g/zero? p) 0
+          (g/zero? q) 0
+          p-base? (poly-map #(g/* p %) q)
+          q-base? (poly-map #(g/* % q) p)
+          (g/one? p) q
+          (g/one? q) p
+          :else (let [a (check-same-arity p q)]
+                  (make-with-arity a (reduce add-denormal (sorted-map)
                                                 (for [[xp cp] (:xs->c p)
                                                       [xq cq] (:xs->c q)]
-                                                  [(vec (map + xp xq)) (g/* cp cq)]))
-                                      a))))
+                                                  [(vec (map + xp xq)) (g/* cp cq)])))))))
 
 (defn expt
   "Raise the polynomial p to the (integer) power n."
   [p n]
-  (cond (base? p) (g/expt p n)
-        (or
-         (not (integer? n))
-         (< n 0)) (throw (ArithmeticException. (str "can't raise poly to " n)))
+  (cond (not (instance? Poly p)) (g/expt p n)
+        (or (not (integer? n))
+            (< n 0)) (throw (ArithmeticException. (str "can't raise poly to " n)))
         (g/one? p) p
         (g/zero? p) (if (core-zero? n)
                       (throw (ArithmeticException. "poly 0^0"))
                     p)
-        (core-zero? n) 1
+        (core-zero? n) (make 1)
         :else (loop [x p c n a (make 1)]
                 (if (core-zero? c) a
                     (if (even? c)
@@ -218,7 +192,7 @@
   x^2 + xy + y^2 + x + y + 1.
   "
   [xs ys]
-  (let [deg (fn [xs] (if (= xs [0]) -1 (reduce + xs)))
+  (let [deg #(reduce + %)
         xd (deg xs)
         yd (deg ys)]
     (cond (> xd yd) -1
@@ -248,27 +222,23 @@
   indeterminates extracted from the expression at the start of this
   process."
   [^Poly p vars]
-  (if (base? p)
-    p
-    (reduce sym/add 0 (map (fn [[exponents coefficient]]
-                             (sym/mul coefficient
-                                      (reduce sym/mul 1 (map (fn [exponent var]
-                                                               (sym/expt var exponent))
-                                                             exponents vars))))
-                           (->> p :xs->c (sort-by first graded-reverse-lex-order))))))
+  (if (not (instance? Poly p)) p
+      (reduce sym/add 0 (map (fn [[exponents coefficient]]
+                               (sym/mul coefficient
+                                        (reduce sym/mul 1 (map (fn [exponent var]
+                                                                 (sym/expt var exponent))
+                                                               exponents vars))))
+                             (->> p :xs->c (sort-by first graded-reverse-lex-order))))))
 
 ;; The operator-table represents the operations that can be understood
 ;; from the point of view of a polynomial over a commutative ring. The
-;; functions take polynomial inputs (perhaps simply elements of the
-;; base ring, in the case of constant polynomials) and return
-;; polynomials (again, it is possible for any arithmetic operation
-;; over the polynomial ring to have a value lying in the base
-;; ring; when this happens, the type is lowered to the base ring.
+;; functions take polynomial inputs and return
+;; polynomials.
 
 (def ^:private operator-table
-  {'+ #(reduce add 0 %&)
+  {'+ #(reduce add %&)
    '- (fn [arg & args] (if (some? args) (sub arg (reduce add args)) (negate arg)))
-   '* #(reduce mul 1 %&)
+   '* #(reduce mul %&)
    'negate negate
    'expt expt
    'square #(mul % %)

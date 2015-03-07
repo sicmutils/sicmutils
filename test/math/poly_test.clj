@@ -25,7 +25,7 @@
 
 (deftest poly-core
   (testing "zero"
-    (is (= 0 (make))))
+    (is (g/zero? (make))))
   (testing "degree"
     (is (= (degree (make)) -1))
     (is (= (degree (make -1 1)) 1))
@@ -34,18 +34,17 @@
     (is (= (degree (make -1 2 0)) 1))
     (is (= (degree (make 0 0)) -1)))
   (testing "add constant"
-    (is (= (make 3 0 2) (add (make 0 0 2) 3)))
-    (is (= (make 0 0 2) (add (make 2 0 2) -2))))
+    (is (= (make 3 0 2) (add (make 0 0 2) (make 3))))
+    (is (= (make 0 0 2) (add (make 2 0 2) (make -2)))))
   (testing "add/sub"
+    (is (g/zero? (add (make 0 0 2) (make 0 0 -2))))
     (is (= (make) (add (make 0 0 2) (make 0 0 -2))))
-    (is (= 0 (add (make 0 0 2) (make 0 0 -2))))
-    (is (= 3 (add (make 3 0 2) (make 0 0 -2))))
+    (is (= (make 3) (add (make 3 0 2) (make 0 0 -2))))
     (is (= (make -1 1) (add (make 0 1) (make -1))))
-    (is (= (make) (sub (make 0 0 2) (make 0 0 2))))
-    (is (= 0 (sub (make 0 0 2) (make 0 0 2))))
-    (is (= -3 (sub (make 0 0 2) (make 3 0 2))))
-    (is (= (make 0 1 2) (sub (make 3 1 2) 3)))
-    (is (= (make -2 -2 -1) (sub 1 (make 3 2 1))))
+    (is (g/zero? (sub (make 0 0 2) (make 0 0 2))))
+    (is (= (make -3) (sub (make 0 0 2) (make 3 0 2))))
+    (is (= (make 0 1 2) (sub (make 3 1 2) (make 3))))
+    (is (= (make -2 -2 -1) (sub (make 1) (make 3 2 1))))
     (is (= (make 0 0 1 0 1 -1) (sub (make 1 0 1 0 1) (make 1 0 0 0 0 1))))
     (is (= (make 0 0 -1 0 -1 1) (sub (make 1 0 0 0 0 1) (make 1 0 1 0 1))))
     (is (= (make -1 -2 -3) (negate (make 1 2 3))))
@@ -66,16 +65,13 @@
                                    (mul (make -1 1) (make -1 1))))))
   (testing "expt"
     (let [x+1 (make 1 1)]
-      (is (= 1 (expt x+1 0)))
+      (is (= (make 1) (expt x+1 0)))
       (is (= x+1 (expt x+1 1)))
       (is (= (make 1 2 1) (expt x+1 2)))
       (is (= (make 1 3 3 1) (expt x+1 3)))
       (is (= (make 1 4 6 4 1) (expt x+1 4)))
       (is (= (make 1 5 10 10 5 1) (expt x+1 5)))
       ))
-  (testing "equals"
-    (is (not= 22 (make 2 2)))
-    (is (= 22 (make 22))))
   (testing "other coefficient rings: GF(2)"
     (let [mod2 #(modular/make % 2)
           x0 (mod2 0)
@@ -86,7 +82,7 @@
       (is (= (make x1 x0 x0 x0 x0 x0 x0 x0 x1) (mul (expt P 3) P)))
       (is (= (make) (sub P P)))
       (is (= (make) (add P P)))
-      (is (= (make x0 x0 x1) (add P 1)))))
+      (is (= (make x0 x0 x1) (add P (make 1))))))
   )
 
 (deftest poly-as-simplifier
