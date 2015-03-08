@@ -17,29 +17,51 @@
 (ns math.numerical.ode
   (:require [math.structure :as s])
   (:import (org.apache.commons.math3.ode.nonstiff GraggBulirschStoerIntegrator)
-           (org.apache.commons.math3.ode FirstOrderDifferentialEquations)))
+           (org.apache.commons.math3.ode FirstOrderDifferentialEquations)
+           (org.apache.commons.math3.ode.sampling StepHandler StepInterpolator)))
 
-(println "hello")
+(defn- make-integrator
+  [d:dt]
+  (fn [initial-state observe step-size t ε]
+    (let [initial-state-array (-> initial-state flatten double-array)
+          array->state #(s/unflatten % initial-state)
+          dimension (alength initial-state-array)
+          integrator (GraggBulirschStoerIntegrator. 0. 1. (double ε) (double ε))
+          equations (proxy [FirstOrderDifferentialEquations] []
+                      (computeDerivatives
+                        [t y out]
+                        (let [y' (-> y array->state d:dt flatten double-array)]
+                          (System/arraycopy y' 0 out 0 (alength y'))))
+                      (getDimension [] dimension))
+          out (double-array dimension)]
+      (when observe
+        (.addStepHandler
+         integrator
+         (proxy [StepHandler] []
+           (handleStep
+             [^StepInterpolator interpolator is-last]
+             (let [it0 (.getPreviousTime interpolator)
+                   it1 (.getCurrentTime interpolator)
+                   adjust (mod it0 step-size)
+                   t0 (if (> adjust 0) (+ (- it0 adjust) step-size) it0)]
+               (doseq [t (range t0 it1 step-size)]
+                 (.setInterpolatedTime interpolator t)
+                 (observe t (array->state (.getInterpolatedState interpolator))))
+               (when is-last
+                 (.setInterpolatedTime interpolator it1)
+                 (observe it1 (array->state (.getInterpolatedState interpolator))))))
+           (init [_ _ _]))))
+      (.integrate integrator equations 0 initial-state-array t out)
+      (-> out array->state))))
 
 (defn state-advancer
   [state-derivative & state-derivative-args]
+  (let [d:dt (apply state-derivative state-derivative-args)
+        I (make-integrator d:dt)]
+    (fn [initial-state t ε]
+      (I initial-state nil 0 t ε))))
+
+(defn evolve
+  [state-derivative & state-derivative-args]
   (let [d:dt (apply state-derivative state-derivative-args)]
-    (fn [initial-state t epsilon]
-      (let [initial-state-array (-> initial-state flatten double-array)
-            dimension (alength initial-state-array)
-            integrator (GraggBulirschStoerIntegrator. 0. 1. epsilon epsilon)
-            equations (proxy [FirstOrderDifferentialEquations] []
-                        (computeDerivatives
-                          [t y out]
-                          (let [y' (-> y
-                                       seq
-                                       (s/unflatten initial-state)
-                                       d:dt
-                                       flatten
-                                       double-array)]
-                            (prn "ode-step" (seq y'))
-                            (System/arraycopy y' 0 out 0 (alength y'))))
-                        (getDimension [] dimension))
-            y1 (double-array dimension)]
-        (.integrate integrator equations 0 initial-state-array t y1)
-        (-> y1 seq (s/unflatten initial-state))))))
+    (make-integrator d:dt)))

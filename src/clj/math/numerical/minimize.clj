@@ -28,21 +28,21 @@
   ([f a b observe]
    (let [rel 1e-5
          abs 1e-5
-         o (BrentOptimizer. rel abs
-                            (proxy [ConvergenceChecker] []
-                              (converged [_ _ ^PointValuePair current]
-                                (when observe
-                                  (observe (.getPoint current) (.getValue current)))
-                                false)))
+         o (BrentOptimizer.
+            rel abs
+            (proxy [ConvergenceChecker] []
+              (converged [_ _ ^PointValuePair current]
+                (when observe
+                  (observe (.getPoint current) (.getValue current)))
+                false)))
          args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
-   (into-array OptimizationData
-               [(UnivariateObjectiveFunction.
-                  (proxy [UnivariateFunction] []
-                    (value [x] (f x))))
-                (MaxEval. 1000)
-                (SearchInterval. a b)
-                GoalType/MINIMIZE
-                ])
+         (into-array OptimizationData
+                     [(UnivariateObjectiveFunction.
+                       (proxy [UnivariateFunction] []
+                         (value [x] (f x))))
+                      (MaxEval. 1000)
+                      (SearchInterval. a b)
+                      GoalType/MINIMIZE])
          p (.optimize o args)]
      (let [x (.getPoint p)
            y (.getValue p)]
@@ -60,21 +60,22 @@
    (let [rel 1e-10
          abs 1e-10
          convergence-checker (SimpleValueChecker. rel abs)
-         o (SimplexOptimizer. (proxy [ConvergenceChecker] []
-                                (converged [iteration ^PointValuePair previous ^PointValuePair current]
-                                  (when observe
-                                    (observe (vec (.getPoint current)) (.getValue current)))
-                                  (.converged convergence-checker iteration previous current))))
+         o (SimplexOptimizer.
+            (proxy [ConvergenceChecker] []
+              (converged [iteration ^PointValuePair previous ^PointValuePair current]
+                (when observe
+                  (observe (vec (.getPoint current)) (.getValue current)))
+                (.converged convergence-checker iteration previous current))))
          args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
-   (into-array OptimizationData
-               [(NelderMeadSimplex. (count q))
-                (ObjectiveFunction.
-                  (proxy [MultivariateFunction] []
-                    (value [xs]
-                      (f xs))))
-                (MaxEval. 1000)
-                (InitialGuess. (double-array q))
-                GoalType/MINIMIZE])
+         (into-array OptimizationData
+                     [(NelderMeadSimplex. (count q))
+                      (ObjectiveFunction.
+                       (proxy [MultivariateFunction] []
+                         (value [xs]
+                           (f xs))))
+                      (MaxEval. 1000)
+                      (InitialGuess. (double-array q))
+                      GoalType/MINIMIZE])
          p (.optimize o args)]
      [(.getPoint p) (.getValue p)]))
   ([f q]

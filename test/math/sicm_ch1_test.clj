@@ -247,9 +247,8 @@
                      10.
                      1e-12)
              expected (up 10. (up 3.71279166 5.42062082) (up 1.61480309 1.81891037))
-             diff (- answer expected)
-             diff-max (reduce max (flatten diff))]
-         (is (< diff-max 1e-8))))))
+             delta (->> answer (- expected) flatten (map abs) (reduce max))]
+         (is (< delta 1e-8))))))
   (testing "1.8 Conserved Quantities"
     (let [V (literal-function 'V)
           spherical-state (up 't

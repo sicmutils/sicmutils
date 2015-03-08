@@ -105,6 +105,11 @@
 
 (def negate (partial poly-map g/negate))
 
+(defn- make-constant
+  "Return a constant polynomial of the given arity."
+  [arity c]
+  (make-with-arity arity [[(vec (repeat arity 0)) c]])
+  )
 (defn- add-constant
   "Adds the constant c to poly. The result is normalized."
   [poly c]
@@ -177,8 +182,8 @@
         (g/zero? p) (if (core-zero? n)
                       (throw (ArithmeticException. "poly 0^0"))
                     p)
-        (core-zero? n) (make 1)
-        :else (loop [x p c n a (make 1)]
+        (core-zero? n) (make-constant (:arity p) 1)
+        :else (loop [x p c n a (make-constant (:arity p) 1)]
                 (if (core-zero? c) a
                     (if (even? c)
                       (recur (mul x x) (quot c 2) a)
