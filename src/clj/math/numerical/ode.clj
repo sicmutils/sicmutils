@@ -25,13 +25,13 @@
   (fn [initial-state observe step-size t ε]
     (let [state->array #(-> % flatten double-array)
           array->state #(s/unflatten % initial-state)
-          initial-state-array (state->array initial-state)
+          initial-state-array (doubles (state->array initial-state))
           dimension (alength initial-state-array)
           integrator (GraggBulirschStoerIntegrator. 0. 1. (double ε) (double ε))
           equations (proxy [FirstOrderDifferentialEquations] []
                       (computeDerivatives
-                        [t y out]
-                        (let [y' (-> y array->state d:dt state->array)]
+                        [t ^doubles y ^doubles out]
+                        (let [y' (doubles (-> y array->state d:dt state->array))]
                           (System/arraycopy y' 0 out 0 (alength y'))))
                       (getDimension [] dimension))
           out (double-array dimension)]
@@ -44,13 +44,13 @@
              (let [it0 (.getPreviousTime interpolator)
                    it1 (.getCurrentTime interpolator)
                    adjust (mod it0 step-size)
-                   t0 (if (> adjust 0) (+ (- it0 adjust) step-size) it0)]
+                   t0 (if (> adjust 0) (+ (- it0 adjust) step-size) it0)
+                   last-state (when is-last (double-array (.getInterpolatedState interpolator)))]
                (doseq [t (range t0 it1 step-size)]
                  (.setInterpolatedTime interpolator t)
                  (observe t (-> interpolator .getInterpolatedState array->state)))
                (when is-last
-                 (.setInterpolatedTime interpolator it1)
-                 (observe it1 (-> interpolator .getInterpolatedState array->state)))))
+                 (observe it1 (array->state last-state)))))
            (init [_ _ _]))))
       (.integrate integrator equations 0 initial-state-array t out)
       (-> out array->state))))
