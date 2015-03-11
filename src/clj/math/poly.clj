@@ -34,21 +34,25 @@
                    (and (every? core-zero? exponents)
                         (g/one? coef))))))
 
-(defn- make-with-arity [a xc-pairs]
-  (->> xc-pairs
-       (filter (fn [[_ c]] (not (g/zero? c))))
-       (into (sorted-map))
-       (Poly. a)))
-
 (defn make
-  "Create a polynomial specifying the terms in dense form, supplying
-  the coefficients of the terms starting with the constant term and
-  proceeding as far as needed. For example, x^2 - 1 can be constructed
-  by (make -1 0 1). The order of the coefficients corresponds to the
-  order of the terms, and zeros must be filled in to get to higher
-  powers."
-  [& coefficients]
-  (make-with-arity 1 (zipmap (map vector (iterate inc 0)) coefficients)))
+  "When called with two arguments, the first is the arity
+  (number of indeterminates) of the polynomial followed by
+  a sequence of exponent-coefficient pairs. Each exponent
+  should be a vector with length equal to the arity, with
+  integer exponent values.
+
+  When called with one argument, the sequence is interepreted
+  as a dense sequence of coefficients of an arity-1 (univariate)
+  polynomial. The coefficients begin with the constant term
+  and proceed to each higher power of the indeterminate. For
+  example, x^2 - 1 can be constructed by (make -1 0 1)."
+  ([a xc-pairs]
+   (->> xc-pairs
+        (filter (fn [[_ c]] (not (g/zero? c))))
+        (into (sorted-map))
+        (Poly. a)))
+  ([coefficients]
+   (make 1 (zipmap (map vector (iterate inc 0)) coefficients))))
 
 ;; should we rely on the constructors and manipulators never to allow
 ;; a zero coefficient into the list, or should we change degree to
@@ -71,7 +75,7 @@
 (defn- poly-map
   "Map the function f over the coefficients of p, returning a new Poly."
   [f p]
-  (make-with-arity (:arity p) (for [[xs c] (:xs->c p)] [xs (f c)])))
+  (make (:arity p) (for [[xs c] (:xs->c p)] [xs (f c)])))
 
 (defn- poly-merge
   "Merge the polynomials together, combining corresponding coefficients with f.
@@ -101,20 +105,20 @@
   "Creates a sequence of identity (i.e., x) polynomials, one for each of arity indeterminates."
   [arity]
   (for [a (range arity)]
-    (make-with-arity arity [[(vec (map #(if (= % a) 1 0) (range arity))) 1]])))
+    (make arity [[(vec (map #(if (= % a) 1 0) (range arity))) 1]])))
 
 (def negate (partial poly-map g/negate))
 
 (defn- make-constant
   "Return a constant polynomial of the given arity."
   [arity c]
-  (make-with-arity arity [[(vec (repeat arity 0)) c]])
+  (make arity [[(vec (repeat arity 0)) c]])
   )
 (defn- add-constant
   "Adds the constant c to poly. The result is normalized."
   [poly c]
   (let [{:keys [arity xs->c]} poly]
-    (make-with-arity arity (update-in xs->c [(vec (repeat arity 0))] #(g/+ (or % 0) c)))))
+    (make arity (update-in xs->c [(vec (repeat arity 0))] #(g/+ (or % 0) c)))))
 
 (defn add
   "Adds the polynomials p and q (either or both of which might just be
@@ -129,7 +133,7 @@
           (g/zero? q) p
           :else (let [a (check-same-arity p q)
                       sum (poly-merge g/+ p q)]
-                  (make-with-arity a sum)))))
+                  (make a sum)))))
 
 (defn- add-denormal
   "Add-denormal adds the (order, coefficient) pair to the polynomial p,
@@ -152,7 +156,7 @@
           (g/zero? q) p
           :else (let [a (check-same-arity p q)
                       diff (poly-merge g/- p q)]
-                  (make-with-arity a diff)))))
+                  (make a diff)))))
 
 (defn mul
   "Multiply polynomials p and q, and return the product."
@@ -167,7 +171,7 @@
           (g/one? p) q
           (g/one? q) p
           :else (let [a (check-same-arity p q)]
-                  (make-with-arity a (reduce add-denormal (sorted-map)
+                  (make a (reduce add-denormal (sorted-map)
                                                 (for [[xp cp] (:xs->c p)
                                                       [xq cq] (:xs->c q)]
                                                   [(vec (map + xp xq)) (g/* cp cq)])))))))
