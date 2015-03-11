@@ -19,6 +19,7 @@
   (:require [math.generic :refer :all]
             [math.calculus.derivative :refer :all]
             [math.structure :refer :all]
+            [math.function :refer :all]
             [math.numerical.integrate :refer :all]))
 
 (defn velocity [local] (nth local 2))
@@ -81,14 +82,14 @@
 
 (defn Lagrangian-action
   [L q t1 t2]
-  (integrate (comp L (Γ q)) t1 t2))
+  (integrate (compose L (Γ q)) t1 t2))
 
 
 (defn Lagrange-equations
   [Lagrangian]
   (fn [q]
-    (- (D (comp ((pd 2) Lagrangian) (Γ q)))
-       (comp ((pd 1) Lagrangian) (Γ q)))))
+    (- (D (compose ((pd 2) Lagrangian) (Γ q)))
+       (compose ((pd 1) Lagrangian) (Γ q)))))
 
 (defn linear-interpolants
   [x0 x1 n]
@@ -141,6 +142,5 @@
   (fn [q v]
     (let [state-path (qv->state-path q v)]
       (- (D state-path)
-         (comp (Lagrangian->state-derivative L)
+         (compose (Lagrangian->state-derivative L)
                state-path)))))
-

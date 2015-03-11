@@ -66,7 +66,8 @@
                 (let [[expr-map analyzed-expr] (map-with-state analyze expr-map expr)]
                   ;; at this point all subexpressions are canonical TODO: is this true?
                   (if (and (known-operations (sym/operator analyzed-expr))
-                           true #_"this is where the exponent integrality test would go")
+                           (or (not (= 'expt (sym/operator analyzed-expr)))
+                               (integer? (second (sym/operands analyzed-expr)))))
                     [expr-map analyzed-expr]
                     (if-let [existing-expr (expr-map analyzed-expr)]
                       [expr-map existing-expr]

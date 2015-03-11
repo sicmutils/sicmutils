@@ -62,7 +62,12 @@
     (is (= (make [-1 0 1]) (mul (make [1 1]) (make [-1 1]))))
     (is (= (make [1 3 3 1]) (mul (make [1 1]) (mul (make [1 1]) (make [1 1])))))
     (is (= (make [1 -4 6 -4 1]) (mul (mul (make [-1 1]) (make [-1 1]))
-                                   (mul (make [-1 1]) (make [-1 1]))))))
+                                     (mul (make [-1 1]) (make [-1 1]))))))
+  #_(testing "div"
+      (is (= 'foo (div (make [-1 0 1]) (make [-1 1])))))
+  (testing "content"
+    (is (= 1 (content (make [1 2 3]))))
+    (is (= 3 (content (make [-3 6 9])))))
   (testing "expt"
     (let [x+1 (make [1 1])]
       (is (= (make [1]) (expt x+1 0)))

@@ -189,6 +189,16 @@
 
 ;;; Utilities
 
+(defn compose
+  "Compose is like Clojure's standard comp, but for this system we
+  like to know the arity of our functions, so that we can calculate
+  their derivatives with structure, etc. The arity of a composition is
+  simply the arity of its rightmost (that is, first to be applied)
+  function term."
+  [& fns]
+  (let [a (v/arity (last fns))]
+    (with-meta (apply comp fns) {:arity a})))
+
 (defmacro with-literal-functions
   [litfns & body]
   `(let ~(vec (interleave litfns (map (fn [s] `(literal-function (quote ~s))) litfns)))

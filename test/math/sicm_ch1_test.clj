@@ -95,7 +95,7 @@
        (is (= '(+ (* 1/2 (expt ((D x) t) 2) m)
                   (* 1/2 (expt ((D y) t) 2) m)
                   (* 1/2 (expt ((D z) t) 2) m))
-              (pe ((comp (L-free-particle 'm) (Γ q)) 't))))
+              (pe ((compose (L-free-particle 'm) (Γ q)) 't))))
        ;; at this point in the text we should be able to show-expression
        ;; in TeX form XXX.
        ;; p. 20
@@ -145,7 +145,7 @@
         (is (= '(+ (* -1 (cos (+ (* t ω) φ)) a m (expt ω 2)) (* (cos (+ (* t ω) φ)) a k))
                (pe (((Lagrange-equations (L-harmonic 'm 'k)) proposed-solution) 't)))))))
   (testing "1.6 How to Find Lagrangians"
-    (let [L-alternate-central-polar (fn [m U] (comp (L-central-rectangular m U) (F->C p->r)))
+    (let [L-alternate-central-polar (fn [m U] (compose (L-central-rectangular m U) (F->C p->r)))
           T-pend (fn [m l _ ys]
                    (fn [local]
                      (let [[t θ θdot] local
@@ -209,7 +209,7 @@
                                      y (- (y_s t) (* l (cos θ)))]
                                  (up x y))))
             L-pend2 (fn [m l g y_s]
-                      (comp (Lf m g)
+                      (compose (Lf m g)
                             (F->C (dp-coordinates l y_s))))]
         (is (= '(+ (* (sin θ) ((D y_s) t) l m θdot)
                    (* 1/2 (expt l 2) m (expt θdot 2))

@@ -14,7 +14,8 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
-(ns math.euclid)
+(ns math.euclid
+  (:require [clojure.math.numeric-tower :as nt]))
 
 (defn extended-euclid
   "The extended Euclidean algorithm
@@ -22,7 +23,7 @@
   Returns a list containing the GCD and the Bézout coefficients
   corresponding to the inputs."
   [a b]
-  (loop [s 0 s0 1 t 1 t0 0 r b r0 a]
+  (loop [s 0 s0 1 t 1 t0 0 r (nt/abs b) r0 (nt/abs a)]
     (if (zero? r)
       [r0 s0 t0]
       (let [q (quot r0 r)]

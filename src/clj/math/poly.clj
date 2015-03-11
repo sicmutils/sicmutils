@@ -16,9 +16,9 @@
 
 (ns math.poly
   (:import (clojure.lang PersistentTreeMap IFn))
-  (:refer-clojure :rename {zero? core-zero?})
   (:require [clojure.set :as set]
             [math.value :as v]
+            [math.euclid :refer :all]
             [math.generic :as g]
             [math.numsymb :as sym]
             [math.expression :as x]))
@@ -31,21 +31,22 @@
   (numerical? [_] false)
   (unity? [p] (and (= (count (:xs->c p)) 1)
                  (let [[exponents coef] (first (:xs->c p))]
-                   (and (every? core-zero? exponents)
+                   (and (every? zero? exponents)
                         (g/one? coef))))))
+
+(defn- base? [p] (not (instance? Poly p)))
 
 (defn make
   "When called with two arguments, the first is the arity
-  (number of indeterminates) of the polynomial followed by
-  a sequence of exponent-coefficient pairs. Each exponent
-  should be a vector with length equal to the arity, with
-  integer exponent values.
+  (number of indeterminates) of the polynomial followed by a sequence
+  of exponent-coefficient pairs. Each exponent should be a vector with
+  length equal to the arity, with integer exponent values.
 
-  When called with one argument, the sequence is interepreted
-  as a dense sequence of coefficients of an arity-1 (univariate)
-  polynomial. The coefficients begin with the constant term
-  and proceed to each higher power of the indeterminate. For
-  example, x^2 - 1 can be constructed by (make -1 0 1)."
+  When called with one argument, the sequence is interpreted as a
+  dense sequence of coefficients of an arity-1 (univariate)
+  polynomial. The coefficients begin with the constant term and
+  proceed to each higher power of the indeterminate. For example, x^2
+  - 1 can be constructed by (make -1 0 1)."
   ([a xc-pairs]
    (->> xc-pairs
         (filter (fn [[_ c]] (not (g/zero? c))))
@@ -54,17 +55,10 @@
   ([coefficients]
    (make 1 (zipmap (map vector (iterate inc 0)) coefficients))))
 
-;; should we rely on the constructors and manipulators never to allow
-;; a zero coefficient into the list, or should we change degree to
-;; scan for nonzero coefficients? In the normal case, there would be
-;; none, but in corner cases it would still be robust.
-
 (defn degree
   [p]
   (if (g/zero? p) -1
       (reduce max (map #(reduce + 0 %) (keys (:xs->c p))))))
-
-;; ARITY
 
 (defn- check-same-arity [p q]
   (let [ap (:arity p)
@@ -74,26 +68,31 @@
 
 (defn- poly-map
   "Map the function f over the coefficients of p, returning a new Poly."
-  [f p]
-  (make (:arity p) (for [[xs c] (:xs->c p)] [xs (f c)])))
+  [f {:keys [arity xs->c]}]
+  (make arity (for [[xs c] xs->c] [xs (f c)])))
 
 (defn- poly-merge
   "Merge the polynomials together, combining corresponding coefficients with f.
-  The result is not a polynomial object, but rather a sequence of [exponent, coefficient] pairs,
-  suitable for further processing or canonicalization. Merged monomials with zero coefficient
-  are dropped."
+  The result is not a polynomial object, but rather a sequence
+  of [exponent, coefficient] pairs, suitable for further processing or
+  canonicalization. Merged monomials with zero coefficient are
+  dropped."
   [f p q]
   (loop [P (:xs->c p)
          Q (:xs->c q)
          R (sorted-map)]
     (cond
-      (empty? P) (into R (for [[xs c] Q :let [c1 (f 0 c)] :when (not (g/zero? c1))] [xs c1]))
-      (empty? Q) (into R (for [[xs c] P :let [c1 (f c 0)] :when (not (g/zero? c1))] [xs c1]))
+      (empty? P) (into R (for [[xs c] Q
+                               :let [c1 (f 0 c)]
+                               :when (not (g/zero? c1))] [xs c1]))
+      (empty? Q) (into R (for [[xs c] P
+                               :let [c1 (f c 0)]
+                               :when (not (g/zero? c1))] [xs c1]))
       :else (let [[xp cp] (first P)
                   [xq cq] (first Q)
                   order (compare xp xq)]
               (cond
-                (core-zero? order) (let [v (f cp cq)]
+                (zero? order) (let [v (f cp cq)]
                                      (recur (rest P) (rest Q)
                                             (if (not (g/zero? v))
                                               (assoc R xp v)
@@ -102,7 +101,8 @@
                 :else (recur P (rest Q) (assoc R xq (f 0 cq))))))))
 
 (defn new-variables
-  "Creates a sequence of identity (i.e., x) polynomials, one for each of arity indeterminates."
+  "Creates a sequence of identity (i.e., x) polynomials, one for each
+  of arity indeterminates."
   [arity]
   (for [a (range arity)]
     (make arity [[(vec (map #(if (= % a) 1 0) (range arity))) 1]])))
@@ -124,8 +124,8 @@
   "Adds the polynomials p and q (either or both of which might just be
   constants in the base ring)."
   [p q]
-  (let [p-base? (not (instance? Poly p))
-        q-base? (not (instance? Poly q))]
+  (let [p-base? (base? p)
+        q-base? (base? q)]
     (cond (and p-base? q-base?) (g/+ p q)
           p-base? (add-constant q p)
           q-base? (add-constant p q)
@@ -147,8 +147,8 @@
 (defn sub
   "Subtract the polynomial q from the polynomial p."
   [p q]
-  (let [p-base? (not (instance? Poly p))
-        q-base? (not (instance? Poly q))]
+  (let [p-base? (base? p)
+        q-base? (base? q)]
     (cond (and p-base? q-base?) (g/- p q)
           p-base? (add-constant (negate q) p)
           q-base? (add-constant p (- q))
@@ -161,8 +161,8 @@
 (defn mul
   "Multiply polynomials p and q, and return the product."
   [p q]
-  (let [p-base? (not (instance? Poly p))
-        q-base? (not (instance? Poly q))]
+  (let [p-base? (base? p)
+        q-base? (base? q)]
     (cond (and p-base? q-base?) (g/* p q)
           (g/zero? p) 0
           (g/zero? q) 0
@@ -171,34 +171,59 @@
           (g/one? p) q
           (g/one? q) p
           :else (let [a (check-same-arity p q)]
-                  (make a (reduce add-denormal (sorted-map)
-                                                (for [[xp cp] (:xs->c p)
-                                                      [xq cq] (:xs->c q)]
-                                                  [(vec (map + xp xq)) (g/* cp cq)])))))))
+                  (make a (reduce add-denormal
+                                  (sorted-map)
+                                  (for [[xp cp] (:xs->c p)
+                                        [xq cq] (:xs->c q)]
+                                    [(vec (map + xp xq)) (g/* cp cq)])))))))
+
+(defn content [p]
+  (->> p :xs->c (map second) (reduce (comp first extended-euclid))))
+
+;; (defn div
+;;   "Divide polynomial p by q, and return the pair of [quotient, remainder]
+;;   polynomials."
+;;   [p q]
+;;   (let [p-base? (base? p)
+;;         q-base? (base? q)]
+;;     (cond (and p-base? q-base?) [(g/divide p q) 0]
+;;           q-base? [(poly-map #(g/divide % q) p) 0]
+;;           p-base? [0 q]
+;;           :else (let [p-terms (-> p :xs->c rseq)
+;;                       q-terms (-> q :xs->c rseq)
+;;                       highest-dividend-term (first (first q-terms))]
+;;                   (prn "hdt" highest-dividend-term)
+;;                   (prn "p" p-terms)
+;;                   (prn "q" q-terms)
+;;                   (loop [quotient [] remainder p-terms]
+;;                     ;; see if the lead term of q will fit in the lead term of p.
+;;                     (let [multiplier (map - (first (first p-terms)) highest-dividend-term)]
+;;                       (prn multiplier))
+;;                     )))))
 
 (defn expt
   "Raise the polynomial p to the (integer) power n."
   [p n]
-  (cond (not (instance? Poly p)) (g/expt p n)
+  (cond (base? p) (g/expt p n)
         (or (not (integer? n))
-            (< n 0)) (throw (ArithmeticException. (str "can't raise poly to " n)))
+            (< n 0)) (throw (ArithmeticException.
+                             (str "can't raise poly to " n)))
         (g/one? p) p
-        (g/zero? p) (if (core-zero? n)
+        (g/zero? p) (if (zero? n)
                       (throw (ArithmeticException. "poly 0^0"))
                     p)
-        (core-zero? n) (make-constant (:arity p) 1)
+        (zero? n) (make-constant (:arity p) 1)
         :else (loop [x p c n a (make-constant (:arity p) 1)]
-                (if (core-zero? c) a
+                (if (zero? c) a
                     (if (even? c)
                       (recur (mul x x) (quot c 2) a)
                       (recur x (dec c) (mul x a)))))))
 
 (defn- graded-reverse-lex-order
-  "An ordering on monomials. X < Y if X has higher total
-  degree than Y. In case of ties, X < Y if Y < X lexicographically.
-  This is intended, when used as the comparator in an ascending
-  sort, to produce an ordering like:
-  x^2 + xy + y^2 + x + y + 1.
+  "An ordering on monomials. X < Y if X has higher total degree than
+  Y. In case of ties, X < Y if Y < X lexicographically.  This is
+  intended, when used as the comparator in an ascending sort, to
+  produce an ordering like: x^2 + xy + y^2 + x + y + 1.
   "
   [xs ys]
   (let [deg #(reduce + %)
@@ -231,13 +256,15 @@
   indeterminates extracted from the expression at the start of this
   process."
   [^Poly p vars]
-  (if (not (instance? Poly p)) p
-      (reduce sym/add 0 (map (fn [[exponents coefficient]]
-                               (sym/mul coefficient
-                                        (reduce sym/mul 1 (map (fn [exponent var]
-                                                                 (sym/expt var exponent))
-                                                               exponents vars))))
-                             (->> p :xs->c (sort-by first graded-reverse-lex-order))))))
+  (if (base? p) p
+      (reduce
+       sym/add 0
+       (map (fn [[exponents coefficient]]
+              (sym/mul coefficient
+                       (reduce sym/mul 1 (map (fn [exponent var]
+                                                (sym/expt var exponent))
+                                              exponents vars))))
+            (->> p :xs->c (sort-by first graded-reverse-lex-order))))))
 
 ;; The operator-table represents the operations that can be understood
 ;; from the point of view of a polynomial over a commutative ring. The
@@ -246,7 +273,8 @@
 
 (def ^:private operator-table
   {'+ #(reduce add %&)
-   '- (fn [arg & args] (if (some? args) (sub arg (reduce add args)) (negate arg)))
+   '- (fn [arg & args]
+        (if (some? args) (sub arg (reduce add args)) (negate arg)))
    '* #(reduce mul %&)
    'negate negate
    'expt expt
