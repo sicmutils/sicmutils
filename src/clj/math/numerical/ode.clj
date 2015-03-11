@@ -53,7 +53,7 @@
                  (observe it1 (array->state last-state)))))
            (init [_ _ _]))))
       (.integrate integrator equations 0 initial-state-array t out)
-      (-> out array->state))))
+      (array->state out))))
 
 (defn state-advancer
   [state-derivative & state-derivative-args]
