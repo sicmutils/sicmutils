@@ -63,8 +63,10 @@
     (is (= (make [1 3 3 1]) (mul (make [1 1]) (mul (make [1 1]) (make [1 1])))))
     (is (= (make [1 -4 6 -4 1]) (mul (mul (make [-1 1]) (make [-1 1]))
                                      (mul (make [-1 1]) (make [-1 1]))))))
-  #_(testing "div"
-      (is (= 'foo (div (make [-1 0 1]) (make [-1 1])))))
+  (testing "div"
+    (is (= [(make [1 1]) (make [])] (divide (make [-1 0 1]) (make [-1 1]))))
+    (is (= [(make [-10 1]) (make [-32 -21])] (divide (make [-42 0 -12 1]) (make [1 -2 1]))))
+    (is (= [(make [3 1 1]) (make [5])] (divide (make [-4 0 -2 1]) (make [-3 1])))))
   (testing "content"
     (is (= 1 (content (make [1 2 3]))))
     (is (= 3 (content (make [-3 6 9])))))
@@ -88,8 +90,9 @@
       (is (= (make []) (sub P P)))
       (is (= (make []) (add P P)))
       (is (= (make [x0 x0 x1]) (add P (make [1]))))))
-  )
-
+  (testing "monomial order"
+    (is (= [[2 0 2] [1 2 1] [3 0 0] [0 0 2]]
+           (sort-by identity graded-lex-order [[1 2 1] [2 0 2] [0 0 2] [3 0 0]])))))
 (deftest poly-as-simplifier
   (testing "arity"
     (is (= 1 (:arity (make [0 1])))))

@@ -152,7 +152,7 @@
     (cond (and p-base? q-base?) (g/- p q)
           p-base? (add-constant (negate q) p)
           q-base? (add-constant p (- q))
-          (g/zero? p) (g/negate q)
+          (g/zero? p) (negate q)
           (g/zero? q) p
           :else (let [a (check-same-arity p q)
                       diff (poly-merge g/- p q)]
@@ -180,26 +180,32 @@
 (defn content [p]
   (->> p :xs->c (map second) (reduce (comp first extended-euclid))))
 
-;; (defn div
-;;   "Divide polynomial p by q, and return the pair of [quotient, remainder]
-;;   polynomials."
-;;   [p q]
-;;   (let [p-base? (base? p)
-;;         q-base? (base? q)]
-;;     (cond (and p-base? q-base?) [(g/divide p q) 0]
-;;           q-base? [(poly-map #(g/divide % q) p) 0]
-;;           p-base? [0 q]
-;;           :else (let [p-terms (-> p :xs->c rseq)
-;;                       q-terms (-> q :xs->c rseq)
-;;                       highest-dividend-term (first (first q-terms))]
-;;                   (prn "hdt" highest-dividend-term)
-;;                   (prn "p" p-terms)
-;;                   (prn "q" q-terms)
-;;                   (loop [quotient [] remainder p-terms]
-;;                     ;; see if the lead term of q will fit in the lead term of p.
-;;                     (let [multiplier (map - (first (first p-terms)) highest-dividend-term)]
-;;                       (prn multiplier))
-;;                     )))))
+(defn divide
+  "Divide polynomial u by v, and return the pair of [quotient, remainder]
+  polynomials. This assumes that the coefficients are drawn from a field,
+  and so support division."
+  [u v]
+  (let [u-base? (base? u)
+        v-base? (base? v)]
+    (cond (and u-base? v-base?) [(g/divide u v) 0]
+          v-base? [(poly-map #(g/divide % v) u) 0]
+          u-base? [0 v]
+          :else
+
+          (let [arity (check-same-arity u v)
+                v-terms (:xs->c v)
+                [vn-exponents vn-coefficient] (first (rseq v-terms))]
+            (loop [quotient (make arity []) remainder u]
+              ;; see if the lead term of v will fit in the lead term of remainder.
+              (let [highest-remainder-term (-> remainder :xs->c rseq first)
+                    q-exponents  (map - (first highest-remainder-term) vn-exponents)]
+                (if (and (not-empty q-exponents)
+                         (every? (complement neg?) q-exponents))
+                  (let [q-coefficient (g/divide (second highest-remainder-term) vn-coefficient)
+                        new-term (make arity [[(vec q-exponents) q-coefficient]])]
+                    (recur (add quotient new-term)
+                           (sub remainder (mul new-term v))))
+                  [quotient remainder])))))))
 
 (defn expt
   "Raise the polynomial p to the (integer) power n."
@@ -219,12 +225,12 @@
                       (recur (mul x x) (quot c 2) a)
                       (recur x (dec c) (mul x a)))))))
 
-(defn- graded-reverse-lex-order
+(defn graded-lex-order
   "An ordering on monomials. X < Y if X has higher total degree than
   Y. In case of ties, X < Y if Y < X lexicographically.  This is
   intended, when used as the comparator in an ascending sort, to
-  produce an ordering like: x^2 + xy + y^2 + x + y + 1.
-  "
+  produce an ordering like: x^2 + xy + y^2 + x + y + 1, when the monomials
+  are sorted in ascending order."
   [xs ys]
   (let [deg #(reduce + %)
         xd (deg xs)
@@ -264,7 +270,7 @@
                        (reduce sym/mul 1 (map (fn [exponent var]
                                                 (sym/expt var exponent))
                                               exponents vars))))
-            (->> p :xs->c (sort-by first graded-reverse-lex-order))))))
+            (->> p :xs->c (sort-by first graded-lex-order))))))
 
 ;; The operator-table represents the operations that can be understood
 ;; from the point of view of a polynomial over a commutative ring. The
