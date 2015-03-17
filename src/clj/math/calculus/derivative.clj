@@ -335,7 +335,7 @@
 
 (defn- multivariate-derivative
   [f selectors]
-  (let [a (v/arity f)
+  (let [a (v/arity-of f)
         d (partial euclidean-structure selectors)]
     (cond (= a 0) (constantly 0)
           (= a 1) (with-meta (d f) {:arity 1})
@@ -351,11 +351,7 @@
 
           :else (throw (IllegalArgumentException. (str "Haven't implemented this yet: arity " a))))))
 
-(defn- not-compound?
-  [x]
-  (if (satisfies? v/Value x)
-    (not (v/compound? x))
-    true))
+(def ^:private not-compound? (complement v/compound?))
 
 ;; we note that: (D f) where f is a literal function returns
 ;; 'a-euclidean-derivative', which when applied to 'x gives

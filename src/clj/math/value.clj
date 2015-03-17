@@ -27,10 +27,23 @@
   (compound? [this])
   (sort-key [this])
   (freeze [this])
-  (arity-of [this])
-  )
+  (arity-of [this]))
 
-(defn arity
+(declare primitive-arity)
+
+(extend-type Object
+  Value
+  (numerical? [_] false)
+  (nullity? [_] false)
+  (unity? [_] false)
+  (compound? [_] false)
+  (exact? [o] (or (integer? o) (ratio? o)))
+  (zero-like [z] 0)
+  (sort-key [_] 99)
+  (freeze [o] (cond (sequential? o) (map freeze o) (keyword? o) o :else o)) ;; WTF?
+  (arity-of [o] (primitive-arity o)))
+
+(defn- primitive-arity
   [f]
   ;; this whole function is deeply bogus. We will have to spend some time
   ;; figuring out how to deal with arity in a more precise and defensive
@@ -38,7 +51,6 @@
   (or (:arity f)
       (:arity (meta f))
       (cond (symbol? f) 0
-            (satisfies? Value f) (arity-of f)
             (ifn? f) (let [^"[java.lang.reflect.Method" ms (.getDeclaredMethods (class f))
                            arities (into #{} (map #(alength (.getParameterTypes %)) ms))]
                        (if (> (count arities) 1)
@@ -46,6 +58,7 @@
                            (log/warn "guessing that arity of" f "is" smallest-nonzero-arity)
                            smallest-nonzero-arity)
                          (first arities)))
+
             :else 0)))
 
 (def machine-epsilon

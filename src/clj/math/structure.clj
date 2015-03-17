@@ -22,19 +22,20 @@
 
 (declare make)
 (declare make-identity-like)
+(declare joint-arity)
 
-(deftype Struct [orientation arity v]
+(deftype Struct [orientation v]
   v/Value
   (nullity? [_] (every? g/zero? v))
   (unity? [_] false)
   (zero-like [_] (make orientation (-> v count (repeat 0))))
-  (exact? [_] (every? g/exact? v))
+  (exact? [_] (every? v/exact? v))
   (numerical? [_] false)
   (compound? [_] true)
   (sort-key [_] 18)
   (freeze [_]
     `(~(orientation {:up 'up :down 'down}) ~@(map x/freeze-expression v)))
-  (arity-of [_] arity)
+  (arity-of [_] (joint-arity v))
   Object
   (equals [_ b]
     (and (instance? Struct b)
@@ -56,15 +57,15 @@
 
 (defn- joint-arity
   [xs]
-  (let [as (into #{} (map v/arity xs))]
+  (let [as (into #{} (map v/arity-of xs))]
     (cond (empty? as) 0
           (= (count as) 1) (first as)
           :else (throw (IllegalArgumentException.
-                         (str "Cannot build structure of elements with differing arity " as))))))
+                         (str "Structure " xs "contains elements with differing arity " as))))))
 
 (defn- make
   [orientation xs]
-  (Struct. orientation (joint-arity xs) (vec xs)))
+  (Struct. orientation (vec xs)))
 
 (defn up [& xs]
   (make :up xs))

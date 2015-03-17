@@ -23,9 +23,7 @@
             [math.value :as v]
             [math.numbers]
             [math.expression :refer [print-expression] :rename {print-expression pe}]
-            [math.structure :refer :all]
-            )
-  )
+            [math.structure :refer :all]))
 
 (def ^:private q
   (up (literal-function 'x)

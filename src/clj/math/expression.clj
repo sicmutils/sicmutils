@@ -100,9 +100,6 @@
   this is intended to be done just before simplification and printing, to
   simplify those processes."
   [x]
-  (cond (keyword? x) x
-        (satisfies? v/Value x) (v/freeze x)
-        (sequential? x) (map freeze-expression x)
-        :else x))
+  (v/freeze x))
 
 (println "expression initialized")

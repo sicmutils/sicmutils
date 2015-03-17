@@ -25,37 +25,16 @@
   (:import [math.expression Expression]))
 
 ;;; classifiers
-(defn internal-zero?
+(defn zero?
   [x]
   (cond (number? x) (core-zero? x)
-        (vector? x) (every? internal-zero? x)
-        (satisfies? v/Value x) (v/nullity? x)
-        :else false))
-
-(defn zero? [x]
-  (let [z (internal-zero? x)]
-    z))
+        (vector? x) (every? zero? x)
+        :else (v/nullity? x)))
 
 (defn one?
   [x]
   (or (and (number? x) (== x 1))
-      (and (satisfies? v/Value x) (v/unity? x))))
-
-(defn exact?
-  [x]
-  (or (integer? x)
-      (ratio? x)
-      (and (satisfies? v/Value x) (v/exact? x))))
-
-(defn numerical?
-  [x]
-  (and (satisfies? v/Value x) (v/numerical? x)))
-
-(defn zero-like
-  [x]
-  (if (satisfies? v/Value x)
-    (v/zero-like x)
-    0))
+      (v/unity? x)))
 
 (defn literal-number?
   [x]
@@ -74,7 +53,7 @@
   [x]
   (or (number? x)
       (abstract-number? x)
-      (numerical? x)))
+      (v/numerical? x)))
 
 (defn scalar? [s]
   (or (numerical-quantity? s)
@@ -163,8 +142,7 @@
   ;; that we aren't sure we want
   (cond (symbol? x) [11 x]
         (number? x) [10 x]
-        (satisfies? v/Value x) [(v/sort-key x) 0]
-        :else [99 0]))
+        :else [(v/sort-key x) 0]))
 
 (defn canonical-order [args]
   ;; NB: we are relying on the fact that this sort is stable, although
@@ -194,8 +172,8 @@
 
 (defn- bin* [a b]
   (cond (and (number? a) (number? b)) (core-* a b)
-        (and (number? a) (zero? a)) (zero-like b)
-        (and (number? b) (zero? b)) (zero-like a)
+        (and (number? a) (zero? a)) (v/zero-like b)
+        (and (number? b) (zero? b)) (v/zero-like a)
         (one? a) b
         (one? b) a
         :else (mul a b)))

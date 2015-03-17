@@ -212,12 +212,12 @@
 
 (defn- sqrt [s]
   (if (number? s)
-    (if-not (g/exact? s)
+    (if-not (v/exact? s)
       (nt/sqrt s)
       (cond (g/zero? s) s
             (g/one? s) :one
             :else (let [q (nt/sqrt s)]
-                    (if (g/exact? q)
+                    (if (v/exact? q)
                       q
                       `(~'sqrt ~s)))))
     `(~'sqrt ~s)))

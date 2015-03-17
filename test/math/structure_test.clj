@@ -90,8 +90,8 @@
     (is (= (down 0 0 0) (v/zero-like (down 1 2 3))))
     (is (= (down) (v/zero-like (down)))))
   (testing "exact?"
-    (is (exact? (up 0 1 3/2)))
-    (is (not (exact? (up 0 0 0.00001)))))
+    (is (v/exact? (up 0 1 3/2)))
+    (is (not (v/exact? (up 0 0 0.00001)))))
   (testing "function - rotate about x axis"
     (defn Rx [θ]
       (fn [[x y z]]

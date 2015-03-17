@@ -47,9 +47,7 @@
     (is (= (make [-2 -2 -1]) (sub (make [1]) (make [3 2 1]))))
     (is (= (make [0 0 1 0 1 -1]) (sub (make [1 0 1 0 1]) (make [1 0 0 0 0 1]))))
     (is (= (make [0 0 -1 0 -1 1]) (sub (make [1 0 0 0 0 1]) (make [1 0 1 0 1]))))
-    (is (= (make [-1 -2 -3]) (negate (make [1 2 3]))))
-    )
-
+    (is (= (make [-1 -2 -3]) (negate (make [1 2 3])))))
   (testing "mul"
     (is (= 0 (mul (make [1 2 3]) 0)))
     (is (= 0 (mul 0 (make [1 2 3]))))
@@ -77,8 +75,7 @@
       (is (= (make [1 2 1]) (expt x+1 2)))
       (is (= (make [1 3 3 1]) (expt x+1 3)))
       (is (= (make [1 4 6 4 1]) (expt x+1 4)))
-      (is (= (make [1 5 10 10 5 1]) (expt x+1 5)))
-      ))
+      (is (= (make [1 5 10 10 5 1]) (expt x+1 5)))))
   (testing "other coefficient rings: GF(2)"
     (let [mod2 #(modular/make % 2)
           x0 (mod2 0)
@@ -93,6 +90,7 @@
   (testing "monomial order"
     (is (= [[2 0 2] [1 2 1] [3 0 0] [0 0 2]]
            (sort-by identity graded-lex-order [[1 2 1] [2 0 2] [0 0 2] [3 0 0]])))))
+
 (deftest poly-as-simplifier
   (testing "arity"
     (is (= 1 (:arity (make [0 1])))))
@@ -107,8 +105,7 @@
       (is (= [(make [-3 -2 1]) '(x)] (expression-> exp1 receive)))
       (is (= [(make [-3 -2 1]) '(x)] (expression-> exp1 receive)))
       (is (= [(make [1 5 10 10 5 1]) '(y)] (expression-> exp2 receive)))
-      (is (= [(make [0 -11 5 -30 10 -7 1]) '(y)] (expression-> exp3 receive)))
-      ))
+      (is (= [(make [0 -11 5 -30 10 -7 1]) '(y)] (expression-> exp3 receive)))))
   (testing "expr-simplify"
     (let [pe x/print-expression
           poly-simp #(-> % (expression-> ->expression) pe)
@@ -121,6 +118,4 @@
       (is (= '(+ g1 g2) (poly-simp (:expression (g/+ 'g1 'g2)))))
       (is (= '(* 2 g1) (poly-simp (:expression (g/+ 'g1 'g1)))))
       (is (= '(+ b (* -1 f)) (poly-simp '(- (+ a b c) (+ a c f)))))
-      (is (= '(+ (* -1 b) f) (poly-simp '(- (+ a c f) (+ c b a)))))
-      ))
-  )
+      (is (= '(+ (* -1 b) f) (poly-simp '(- (+ a c f) (+ c b a))))))))
