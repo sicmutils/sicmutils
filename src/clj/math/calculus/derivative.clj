@@ -43,7 +43,7 @@
   (numerical? [d]
     (g/numerical-quantity? (differential-of d)))
   (sort-key [_] 80)
-  (arity-of [d] 0)
+  (arity [d] 0)
   )
 
 (def differential? (partial instance? Differential))
@@ -335,7 +335,7 @@
 
 (defn- multivariate-derivative
   [f selectors]
-  (let [a (v/arity-of f)
+  (let [a (v/arity f)
         d (partial euclidean-structure selectors)]
     (cond (= a 0) (constantly 0)
           (= a 1) (with-meta (d f) {:arity 1})

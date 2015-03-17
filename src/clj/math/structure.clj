@@ -33,9 +33,8 @@
   (numerical? [_] false)
   (compound? [_] true)
   (sort-key [_] 18)
-  (freeze [_]
-    `(~(orientation {:up 'up :down 'down}) ~@(map x/freeze-expression v)))
-  (arity-of [_] (joint-arity v))
+  (freeze [_] `(~(orientation {:up 'up :down 'down}) ~@(map v/freeze v)))
+  (arity [_] (joint-arity v))
   Object
   (equals [_ b]
     (and (instance? Struct b)
@@ -57,7 +56,7 @@
 
 (defn- joint-arity
   [xs]
-  (let [as (into #{} (map v/arity-of xs))]
+  (let [as (into #{} (map v/arity xs))]
     (cond (empty? as) 0
           (= (count as) 1) (first as)
           :else (throw (IllegalArgumentException.

@@ -7,7 +7,7 @@
 ;; your option) any later version.
 
 ;; This software is distributed in the hope that it will be useful, but
-;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; WITpHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 ;; General Public License for more details.
 
@@ -26,8 +26,14 @@
   (exact? [this])
   (compound? [this])
   (sort-key [this])
+  ;; Freezing an expression means removing wrappers and other metadata
+  ;; from subexpressions, so that the result is basically a pure
+  ;; S-expression with the same structure as the input. Doing this will
+  ;; rob an expression of useful information fur further computation; so
+  ;; this is intended to be done just before simplification and printing, to
+  ;; simplify those processes.
   (freeze [this])
-  (arity-of [this]))
+  (arity [this]))
 
 (declare primitive-arity)
 
@@ -41,7 +47,7 @@
   (zero-like [z] 0)
   (sort-key [_] 99)
   (freeze [o] (cond (sequential? o) (map freeze o) (keyword? o) o :else o)) ;; WTF?
-  (arity-of [o] (primitive-arity o)))
+  (arity [o] (primitive-arity o)))
 
 (defn- primitive-arity
   [f]

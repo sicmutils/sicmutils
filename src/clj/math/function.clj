@@ -34,8 +34,8 @@
   (unity? [_] false)
   (numerical? [_] false)
   (sort-key [_] 35)
-  (freeze [f] (-> f :expr x/freeze-expression))
-  (arity-of [_] arity)
+  (freeze [f] (-> f :expr v/freeze))
+  (arity [_] arity)
   IFn
   (invoke [f x] (literal-apply f [x]))
   (applyTo [f xs]
@@ -80,8 +80,8 @@
   (with-meta (fn [f g]
                (let [f-numeric (g/numerical-quantity? f)
                      g-numeric (g/numerical-quantity? g)
-                     f-arity (if f-numeric (v/arity-of g) (v/arity-of f))
-                     g-arity (if g-numeric f-arity (v/arity-of g))
+                     f-arity (if f-numeric (v/arity g) (v/arity f))
+                     g-arity (if g-numeric f-arity (v/arity g))
                      f1 (if f-numeric (constantly f) f)
                      g1 (if g-numeric (constantly g) g)]
                  (if (not= f-arity g-arity)
@@ -197,7 +197,7 @@
   simply the arity of its rightmost (that is, first to be applied)
   function term."
   [& fns]
-  (let [a (v/arity-of (last fns))]
+  (let [a (v/arity (last fns))]
     (with-meta (apply comp fns) {:arity a})))
 
 (defmacro with-literal-functions

@@ -17,6 +17,7 @@
 (ns math.simplify
   (:require [math.numsymb :as sym]
             [math.poly :as poly]
+            [math.value :as v]
             [math.generic :as g]
             [math.expression :as x]
             [math.rules :as rules]
@@ -177,7 +178,7 @@
 (doseq [predicate [number? symbol? nil? fn?]]
   (g/defhandler :simplify [predicate] identity))
 
-(g/defhandler :simplify [#(instance? Expression %)] #(-> % x/freeze-expression simplify-expression))
+(g/defhandler :simplify [#(instance? Expression %)] #(-> % v/freeze simplify-expression))
 (g/defhandler :simplify [var?] #(-> % meta :name))
 
 (println "simplify initialized")

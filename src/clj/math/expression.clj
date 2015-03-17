@@ -18,8 +18,6 @@
   (:require [math.value :as v]
             [clojure.walk :refer :all]))
 
-(declare freeze-expression)
-
 (defrecord Expression [type expression]
   v/Value
   (nullity? [_] false)                                      ;; XXX what if it's a wrapped zero? one?
@@ -29,8 +27,8 @@
   (exact? [_] false)
   (sort-key [_] 17)
   (compound? [_] false)
-  (freeze [x] (-> x :expression freeze-expression))
-  (arity-of [x] 0))
+  (freeze [x] (-> x :expression v/freeze))
+  (arity [x] 0))
 
 (defn make [x]
   (Expression. ::number x))
@@ -90,16 +88,6 @@
                             '/
                             (symbol sym-name)))
             :else x))
-    (freeze-expression x)))
-
-(defn freeze-expression
-  "Freezing an expression means removing wrappers and other metadata
-  from subexpressions, so that the result is basically a pure
-  S-expression with the same structure as the input. Doing this will
-  rob an expression of useful information fur further computation; so
-  this is intended to be done just before simplification and printing, to
-  simplify those processes."
-  [x]
-  (v/freeze x))
+    (v/freeze x)))
 
 (println "expression initialized")
