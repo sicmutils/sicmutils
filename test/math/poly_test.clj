@@ -64,7 +64,9 @@
   (testing "div"
     (is (= [(make [1 1]) (make [])] (divide (make [-1 0 1]) (make [-1 1]))))
     (is (= [(make [-10 1]) (make [-32 -21])] (divide (make [-42 0 -12 1]) (make [1 -2 1]))))
-    (is (= [(make [3 1 1]) (make [5])] (divide (make [-4 0 -2 1]) (make [-3 1])))))
+    (is (= [(make [3 1 1]) (make [5])] (divide (make [-4 0 -2 1]) (make [-3 1]))))
+    (is (= [(make 2 [[[0 0] 1]]) (make 2 [[[2 1] 1]])]
+           (divide (make 2 [[[2 1] 1] [[1 2] 1]]) (make 2 [[[1 2] 1]])))))
   (testing "content"
     (is (= 1 (content (make [1 2 3]))))
     (is (= 3 (content (make [-3 6 9])))))

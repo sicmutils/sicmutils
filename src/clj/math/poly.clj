@@ -190,22 +190,22 @@
     (cond (and u-base? v-base?) [(g/divide u v) 0]
           v-base? [(poly-map #(g/divide % v) u) 0]
           u-base? [0 v]
-          :else
-
-          (let [arity (check-same-arity u v)
-                v-terms (:xs->c v)
-                [vn-exponents vn-coefficient] (first (rseq v-terms))]
-            (loop [quotient (make arity []) remainder u]
-              ;; see if the lead term of v will fit in the lead term of remainder.
-              (let [highest-remainder-term (-> remainder :xs->c rseq first)
-                    q-exponents  (map - (first highest-remainder-term) vn-exponents)]
-                (if (and (not-empty q-exponents)
-                         (every? (complement neg?) q-exponents))
-                  (let [q-coefficient (g/divide (second highest-remainder-term) vn-coefficient)
-                        new-term (make arity [[(vec q-exponents) q-coefficient]])]
-                    (recur (add quotient new-term)
-                           (sub remainder (mul new-term v))))
-                  [quotient remainder])))))))
+          :else (let [arity (check-same-arity u v)
+                      [vn-exponents vn-coefficient] (-> v :xs->c rseq first)]
+                  (loop [quotient (make arity []) remainder u]
+                    ;; find a term in the remainder into which the lead term of the
+                    ;; divisor can be divided.
+                    (let [good-terms (->> remainder
+                                          :xs->c rseq
+                                          (map (fn [[xs c]] [(map - xs vn-exponents) c]))
+                                          (filter (fn [[residues c]]
+                                                    (and (not-empty residues) (every? (complement neg?) residues)))))]
+                      (if-let [[residues coefficient] (first good-terms)]
+                        (let [new-coefficient (g/divide coefficient vn-coefficient)
+                              new-term (make arity [[(vec residues) new-coefficient]])]
+                          (recur (add quotient new-term)
+                                 (sub remainder (mul new-term v))))
+                        [quotient remainder])))))))
 
 (defn expt
   "Raise the polynomial p to the (integer) power n."
