@@ -41,7 +41,8 @@
 
 (deftest differentials
   (testing "add, mul differentials"
-    (let [dx (make-differential {[0] 1})
+    (let [zero-differential (make-differential [])
+          dx (make-differential {[0] 1})
           -dx (make-differential {[0] -1})
           dy (make-differential {[1] 1})
           dz (make-differential {[2] 1})
@@ -60,20 +61,20 @@
              (reduce dx+dy 0 [dx dy dz dy dz dx dz dx])))
       (is (= (make-differential {[] 1 [0] 1}) (dx+dy dx 1)))
       (is (= (make-differential {[] 'k [0] 1}) (dx+dy dx 'k)))
-      (is (= 0 (dx+dy dx -dx)))
-      (is (= 0 (dx+dy -dx dx)))
-      (is (= 0 (dx*dy dx 0)))
+      (is (= zero-differential (dx+dy dx -dx)))
+      (is (= zero-differential (dx+dy -dx dx)))
+      (is (= zero-differential (dx*dy dx 0)))
       (let [b (dx+dy 0 (dx*dy dx 0))
             c (dx*dy 0 dx)]
-        (is (= 0 b))
-        (is (= 0 c))
-        (is (= 0 (dx+dy b c))))
+        (is (= zero-differential b))
+        (is (= zero-differential c))
+        (is (= zero-differential (dx+dy b c))))
       (is (= dxdy (dx*dy dx dy)))
       (is (= dxdydz (dx*dy (dx*dy dx dy) dz)))
       (is (= dxdydz (dx*dy (dx*dy dz dx) dy)))
       (is (= dxdydz (dx*dy (dx*dy dy dz) dx)))
-      (is (= 0 (dx*dy dx dx)))
-      (is (= 0 (dx*dy dz (dx*dy dy dz))))
+      (is (= zero-differential (dx*dy dx dx)))
+      (is (= zero-differential (dx*dy dz (dx*dy dy dz))))
       (is (= 0 (* dx dx)))
       ))
   )
@@ -81,11 +82,11 @@
 (deftest diff-test-1
   (testing "some simple functions"
     (is (= 2 ((D #(* 2 %)) 1)))
-    (is (= 2 ((D #(* 2 %)) 'y)))
-    (is (= (+ 'y 'y) ((D #(* % %)) 'y)))
+    (is (= 2 ((D #(* 2 %)) 'w)))
+    (is (= (+ 'z 'z) ((D #(* % %)) 'z)))
     (is (= (* 3 (expt 'y 2))
            ((D #(expt % 3)) 'y)))
-    (is (= (* 2 (cos (* 2 'y))) ((D #(sin (* 2 %))) 'y)))
+    (is (= (* 2 (cos (* 2 'u))) ((D #(sin (* 2 %))) 'u)))
     (is (= (/ 1 (expt (cos 'x) 2)) ((D tan) 'x)))
     (is (= (up 2 (+ 't 't)) ((D #(up (* 2 %) (* % %))) 't)))
     (is (= (up (- (sin 't)) (cos 't)) ((D #(up (cos %) (sin %))) 't)))
@@ -94,17 +95,13 @@
     (let [s (fn [t] (sqrt t))
           u (fn [t] (expt (- (* 3 (s t)) 1) 2/3))
           y (fn [t] (/ (+ (u t) 2) (- (u t) 1)))]
-      (is ((v/within 1e-6) (/ -1 18.) ((D y) 9))))
-    )
-
+      (is ((v/within 1e-6) (/ -1 18.) ((D y) 9)))))
   (testing "structural-functions"
     (is (= '(up (cos t) (- (sin t))) (pe ((D (up sin cos)) 't)))))
-
   (testing "partial derivatives"
     (let [f (fn [x y] (+ (* x x) (* y y)))]
       (is (= 4 (((pd 0) f) 2 3)))
-      (is (= 6 (((pd 1) f) 2 3)))))
-  )
+      (is (= 6 (((pd 1) f) 2 3))))))
 
 (deftest diff-test-2
   (testing "delta-eta-test"
@@ -122,6 +119,7 @@
           δηIq (δηI q)
           δηFq ((δη F) q)
           φ (fn [f] (fn [q] (fn [t] ((literal-function 'φ) ((f q) t)))))]
+      (is (= '((D f) t) (pe ((D f) 't))))
       (is (= '(+ (q t) (* ε (η t))) (pe (q+εη 't))))
       (is (= '(+ (q t) (* ε (η t))) (pe ((g 'ε) 't))))
       (is (= '(η a) (pe (((D g) 'dt) 'a))))

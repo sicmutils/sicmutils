@@ -68,15 +68,16 @@
 (def ^:private empty-differential (sorted-map-by sorted-set-compare))
 (def ^:private empty-tags (sorted-set))
 
-(defn- canonicalize-differential
-  [tags->coefs]
-  (if (empty? tags->coefs)
+(defn canonicalize-differential
+  [{terms :terms}]
+  (if (empty? terms)
     0
-    (let [tags->coef (first tags->coefs)]
-      (if (and (= (count tags->coefs) 1)
+    (let [tags->coef (first terms)]
+      (if (and (= (count terms) 1)
                (empty? (tags tags->coef)))
         (coefficient tags->coef)
-        (Differential. (into empty-differential tags->coefs))))))
+        (Differential. (into empty-differential terms))))))
+
 
 (defn make-differential
   "The input here is a mapping (loosely defined) between sets of differential
@@ -91,16 +92,17 @@
   [tags->coefs]
   (->> tags->coefs
        ; force tag sequences into sorted set form
-       (map (fn [[tag-sequence coefficient]] [(apply sorted-set tag-sequence) coefficient]))
+       (map (fn [[tag-sequence coefficient]] [(into (sorted-set) tag-sequence) coefficient]))
        ; group by canonicalized tag-set
        (group-by tags)
        ; tag sets now map to [tag-set coefficient-list]. Sum the coefficients
        ; and produce the map of canonicalized tag-set to coefficient-sum
-       (map (fn [[tag-set coefficients]] [tag-set (apply g/+ (map coefficient coefficients))]))
+       (map (fn [[tag-set coefficients]] [tag-set (reduce g/+ 0 (map coefficient coefficients))]))
        ; drop tag-set:coefficient pairs where the coefficient is a zero object
-       (filter (fn [[_ coefficient]] (not (g/zero? coefficient))))
-       ; potentially demote the resulting diffferential object to a constant
-       canonicalize-differential))
+       (remove (fn [[_ coefficient]] (g/zero? coefficient)))
+       ; build the differential object
+       (into empty-differential)
+       Differential.))
 
 (defn- differential->terms
   "Given a differential, returns the vector of DifferentialTerms
@@ -161,11 +163,11 @@
   before the addition.)"
   [a b]
   (make-differential
-    (dxs+dys (differential->terms a) (differential->terms b))))
+   (dxs+dys (differential->terms a) (differential->terms b))))
 
 (defn dx*dy [a b]
   (make-differential
-    (dxs*dys (differential->terms a) (differential->terms b))))
+   (dxs*dys (differential->terms a) (differential->terms b))))
 
 (defonce ^:private next-differential-tag (atom 0))
 
@@ -174,8 +176,7 @@
 
 (defn- make-x+dx [x dx]
   ;; warning: this is not quite what GJS dopes ...
-  (Differential. {(sorted-set) x
-                  (sorted-set dx) 1}))
+  (Differential. (into empty-differential {(sorted-set) x (sorted-set dx) 1})))
 
 ;(defn- hide-tag-in-procedure [& args] false) ; XXX
 
@@ -187,12 +188,12 @@
             ;from what remains.
             [obj]
             (if (differential? obj)
-              (make-differential
+              (canonicalize-differential (make-differential
                 (filter identity (map
-                                   (fn [[ts coef]]
-                                     (if (ts dx)
-                                       [(disj ts dx) coef]))
-                                   (:terms obj))))
+                                  (fn [[ts coef]]
+                                    (if (ts dx)
+                                      [(disj ts dx) coef]))
+                                  (:terms obj)))))
               0))
           (dist
             [obj]
@@ -227,16 +228,17 @@
            infinitesimal-part true} (group-by #(-> % first (contains? keytag)) dts)]
       ;; if the input differential was well-formed, then it is safe to
       ;; construct differential objects on the split parts.
-      [(make-differential finite-part)
-       (make-differential infinitesimal-part)])
-    [x 0]))
+      [(-> finite-part make-differential)
+       (-> infinitesimal-part make-differential)])
+    [(into empty-differential [[] x]) empty-differential]))
 
 (defn- unary-op
   [f df:dx]
   (fn [x]
-    (let [[finite-part infinitesimal-part] (finite-and-infinitesimal-parts x)]
-      (dx+dy (f finite-part)
-             (dx*dy (df:dx finite-part)
+    (let [[finite-part infinitesimal-part] (finite-and-infinitesimal-parts x)
+          canonicalized-finite-part (canonicalize-differential finite-part)]
+      (dx+dy (f canonicalized-finite-part)
+             (dx*dy (df:dx canonicalized-finite-part)
                     infinitesimal-part)))))
 
 ;; (defn max-order-tag [& ds]
@@ -256,25 +258,31 @@
 (defn with-tag
   "XXX doc and decide if we need the two infra"
   [tag dx]
-  (->> dx :terms (filter #(-> % first (contains? tag))) make-differential))
+  (->> dx :terms
+       (filter #(-> % first (contains? tag)))
+       make-differential
+       canonicalize-differential))
 
 (defn without-tag
   "A real differential is expected here. document this and the above and below,
   if we turn out to keep all three of them. It seems there must be a better way
   to do this..."
   [tag dx]
-  (->> dx :terms (filter #(-> % first (contains? tag) not)) make-differential))
+  (->> dx :terms
+       (filter #(-> % first (contains? tag) not))
+       make-differential
+       canonicalize-differential))
 
 (defn with-and-without-tag
   "XXX doc and decide if we need above two"
   [tag dx]
   (let [{finite-terms false infinitesimal-terms true}
         (group-by #(-> % tags (contains? tag)) (differential->terms dx))]
-    [(make-differential infinitesimal-terms)
-     (make-differential finite-terms)]))
+    [(-> infinitesimal-terms make-differential canonicalize-differential)
+     (-> finite-terms make-differential canonicalize-differential)]))
 
 (defn- binary-op
-  [f ∂f:∂x ∂f:∂y]
+  [f ∂f:∂x ∂f:∂y kw]
   (fn [x y]
     (let [mt (max-order-tag [x y])
           [dx xe] (with-and-without-tag mt x)
@@ -286,15 +294,15 @@
           c (if (and (number? dy) (zero? dy))
               b
               (dx+dy b (dx*dy (∂f:∂y xe ye) dy)))]
-      c)))
+      (canonicalize-differential c))))
 
 
-(def ^:private diff-+   (binary-op g/+ (constantly 1) (constantly 1)))
-(def ^:private diff--   (binary-op g/- (constantly 1) (constantly -1)))
-(def ^:private diff-*   (binary-op g/* (fn [_ y] y)   (fn [x _] x)))
+(def ^:private diff-+   (binary-op g/+ (constantly 1) (constantly 1) :plus))
+(def ^:private diff--   (binary-op g/- (constantly 1) (constantly -1) :minus))
+(def ^:private diff-*   (binary-op g/* (fn [_ y] y) (fn [x _] x) :times))
 (def ^:private diff-div (binary-op g/divide
                                    (fn [_ y] (g/divide 1 y))
-                                   (fn [x y] (g/negate (g/divide x (g/square y))))))
+                                   (fn [x y] (g/negate (g/divide x (g/square y)))) :divide))
 (def ^:private sine     (unary-op g/sin g/cos))
 (def ^:private cosine   (unary-op g/cos #(-> % g/sin g/negate)))
 (def ^:private tangent  (unary-op g/tan #(-> % g/cos g/square g/invert)))
@@ -305,7 +313,7 @@
              (fn [x y]
                (g/* y (g/expt x (g/- y 1))))
              (fn [_ _]
-               (throw (IllegalArgumentException. "can't get there from here")))))
+               (throw (IllegalArgumentException. "can't get there from here"))) :expt))
 
 ;; XXX unary-op is memoized in scmutils. But rather than memoizing that,
 ;; it might be better just to memoize entire simplications.
@@ -347,14 +355,14 @@
     (cond (= a 0) (constantly 0)
           (= a 1) (with-meta (d f) {:arity 1})
           (= a 2) (with-meta (fn [x y]
-                     ((d (fn [s] (apply f (seq s))))
-                      (struct/seq-> [x y]))) {:arity 2})
+                               ((d (fn [[x y]] (f x y)))
+                                (struct/seq-> [x y]))) {:arity 2})
           (= a 3) (with-meta (fn [x y z]
-                     ((d (fn [s] (apply f (seq s))))
-                      (struct/seq-> [x y z]))) {:arity 3})
+                               ((d (fn [[x y z]] (f x y z)))
+                                (struct/seq-> [x y z]))) {:arity 3})
           (= a 4) (with-meta (fn [w x y z]
-                     ((d (fn [s] (apply f (seq s))))
-                       (struct/seq-> [w x y z]))) {:arity 4})
+                               ((d (fn [[w x y z]] (f w x y z)))
+                                (struct/seq-> [w x y z]))) {:arity 4})
 
           :else (throw (IllegalArgumentException. (str "Haven't implemented this yet: arity " a))))))
 

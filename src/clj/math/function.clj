@@ -172,15 +172,17 @@
 
 (defn- literal-derivative
   [f xs]
+  ;(prn "lit-derv" f xs)
   (let [v (s/seq-> xs)
         maxtag (->> v flatten d/max-order-tag)
         ve (->> v (s/mapr #(d/without-tag maxtag %)) seq)
         dv (->> v (s/mapr #(d/with-tag maxtag %)))]
-    (d/dx+dy (apply f ve)
-             (reduce d/dx+dy (map (fn [partialx dx]
-                                    (d/dx*dy (apply partialx ve) dx))
-                                  (flatten (make-partials f v))
-                                  (flatten dv))))))
+    (d/canonicalize-differential
+     (d/dx+dy (apply f ve)
+              (reduce d/dx+dy (map (fn [partialx dx]
+                                     (d/dx*dy (apply partialx ve) dx))
+                                   (flatten (make-partials f v))
+                                   (flatten dv)))))))
 
 (defn- literal-apply
   [f xs]
