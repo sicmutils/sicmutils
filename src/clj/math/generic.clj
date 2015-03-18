@@ -172,8 +172,8 @@
 
 (defn- bin* [a b]
   (cond (and (number? a) (number? b)) (core-* a b)
-        (and (number? a) (zero? a)) (v/zero-like b)
-        (and (number? b) (zero? b)) (v/zero-like a)
+        (and (zero? a)) (v/zero-like b)
+        (and (zero? b)) (v/zero-like a)
         (one? a) b
         (one? b) a
         :else (mul a b)))

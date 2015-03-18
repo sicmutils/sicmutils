@@ -130,9 +130,9 @@
                 (= a-tags b-tags) (let [r-coef (g/+ a-coef b-coef)]
                                     (recur (rest dxs) (rest dys)
                                            (if (not (g/zero? r-coef))
-                                             (conj result [a-tags r-coef])
+                                             (assoc result a-tags r-coef)
                                              result)))
-                (< (sorted-set-compare  a-tags  b-tags) 0) (recur (rest dxs) dys (conj result a))
+                (< (sorted-set-compare a-tags b-tags) 0) (recur (rest dxs) dys (conj result a))
                 :else (recur dxs (rest dys) (conj result b)))))))
 
 (defn- dx*dys
@@ -145,8 +145,9 @@
                    (let [y1 (first dys) y-tags (tags y1)]
                      (recur (next dys)
                             (if (empty? (set/intersection x-tags y-tags))
-                              (conj result [(set/union x-tags y-tags)
-                                            (g/* x-coef (coefficient y1))])
+                              (assoc result
+                                     (set/union x-tags y-tags)
+                                     (g/* x-coef (coefficient y1)))
                               result))))))
 
 (defn- dxs*dys
@@ -225,7 +226,7 @@
     (let [dts (differential->terms x)
           keytag (-> dts last first last)
           {finite-part false
-           infinitesimal-part true} (group-by #(-> % first (contains? keytag)) dts)]
+           infinitesimal-part true} (group-by #(-> % tags (contains? keytag)) dts)]
       ;; if the input differential was well-formed, then it is safe to
       ;; construct differential objects on the split parts.
       [(-> finite-part make-differential)
@@ -249,17 +250,13 @@
   order term; then return the greatest tag found in any of these
   terms; i.e., the highest-numbered tag of the highest-order term."
   [ds]
-  ;; XXX might consider a mapcat through reduce max here instead of
-  ;; building a new set just to find the max
-  (->> ds (map #(-> % differential->terms last first)) (reduce set/union (sorted-set)) last)
-  ;;(->> ds (map #(->> % differential->terms last first)) (reduce max))
-  )
+  (->> ds (mapcat #(-> % differential->terms last tags)) (reduce max)))
 
 (defn with-tag
   "XXX doc and decide if we need the two infra"
   [tag dx]
   (->> dx :terms
-       (filter #(-> % first (contains? tag)))
+       (filter #(-> % tags (contains? tag)))
        make-differential
        canonicalize-differential))
 
@@ -269,7 +266,7 @@
   to do this..."
   [tag dx]
   (->> dx :terms
-       (filter #(-> % first (contains? tag) not))
+       (remove #(-> % tags (contains? tag)))
        make-differential
        canonicalize-differential))
 

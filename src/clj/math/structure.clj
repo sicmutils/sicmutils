@@ -7,7 +7,8 @@
 ;; your option) any later version.
 
 ;; This software is distributed in the hope that it will be useful, but
-;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; WITHOUT ANY WARRAN
+;; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 ;; General Public License for more details.
 
@@ -49,7 +50,7 @@
   (seq [_] (seq v))
   IFn
   (invoke [_ x]
-    (make orientation (map #(% x) v)))
+    (Struct. orientation (mapv #(% x) v)))
   (applyTo [s xs]
     (AFn/applyToHelper s xs))
   )
@@ -64,7 +65,7 @@
 
 (defn- make
   [orientation xs]
-  (Struct. orientation (vec xs)))
+  (Struct. orientation (into [] xs)))
 
 (defn up [& xs]
   (make :up xs))
