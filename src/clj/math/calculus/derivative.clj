@@ -33,15 +33,12 @@
 ;; tag-sets to coefficients.
 (defrecord Differential [terms]
   v/Value
-  (nullity? [d]
-    (every? g/zero? (map coefficient d)))
-  (unity? [_]
-    false) ;; XXX! this needs to be fixed
+  (nullity? [d] (every? g/zero? (map coefficient terms)))
+  (unity? [_] false) ;; XXX! this needs to be fixed
   (zero-like [_] 0)
   (exact? [_] false)
   (compound? [_] false)
-  (numerical? [d]
-    (g/numerical-quantity? (differential-of d)))
+  (numerical? [d] (g/numerical-quantity? (differential-of d)))
   (sort-key [_] 80)
   (arity [d] 0)
   )
@@ -57,9 +54,18 @@
       (recur (coefficient (last (:terms dx))))
       dx)))
 
-;; Kind of sad to call vec here. Why aren't sorted-sets comparable?
-;; Monitor this as Clojure evolves. Or submit a patch yourself!
-(def ^:private empty-differential (sorted-map-by #(compare (vec %1) (vec %2))))
+(defn- sorted-set-compare
+  [xs ys]
+  (let [cc (compare (count xs) (count ys))]
+    (if (not= 0 cc) cc
+        (loop [xs xs ys ys]
+          (if (nil? xs) 0
+              (let [c (compare (first xs) (first ys))]
+                (if (zero? c)
+                  (recur (next xs) (next ys))
+                  c)))))))
+
+(def ^:private empty-differential (sorted-map-by sorted-set-compare))
 (def ^:private empty-tags (sorted-set))
 
 (defn- canonicalize-differential
@@ -124,12 +130,11 @@
                                            (if (not (g/zero? r-coef))
                                              (conj result [a-tags r-coef])
                                              result)))
-                ;; kind of sad to call vec here.
-                (< (compare (vec a-tags) (vec b-tags)) 0) (recur (rest dxs) dys (conj result a))
+                (< (sorted-set-compare  a-tags  b-tags) 0) (recur (rest dxs) dys (conj result a))
                 :else (recur dxs (rest dys) (conj result b)))))))
 
 (defn- dx*dys
-  "Multiplies a Differential by a sequence of differential terms (differential-set,
+  "Multiplies a differential term by a sequence of differential terms (differential-set,
   coefficient) pairs. The result is a map of differential tag-sets to coefficients."
   [[x-tags x-coef] dys]
   (loop [dys dys
@@ -139,7 +144,7 @@
                      (recur (next dys)
                             (if (empty? (set/intersection x-tags y-tags))
                               (conj result [(set/union x-tags y-tags)
-                                            (g/* x-coef (second y1))])
+                                            (g/* x-coef (coefficient y1))])
                               result))))))
 
 (defn- dxs*dys
@@ -242,9 +247,11 @@
   order term; then return the greatest tag found in any of these
   terms; i.e., the highest-numbered tag of the highest-order term."
   [ds]
-  ;; might consider a mapcat through reduce max here instead of
+  ;; XXX might consider a mapcat through reduce max here instead of
   ;; building a new set just to find the max
-  (->> ds (map #(-> % differential->terms last first)) (apply set/union) last))
+  (->> ds (map #(-> % differential->terms last first)) (reduce set/union (sorted-set)) last)
+  ;;(->> ds (map #(->> % differential->terms last first)) (reduce max))
+  )
 
 (defn with-tag
   "XXX doc and decide if we need the two infra"
@@ -292,7 +299,7 @@
 (def ^:private cosine   (unary-op g/cos #(-> % g/sin g/negate)))
 (def ^:private tangent  (unary-op g/tan #(-> % g/cos g/square g/invert)))
 (def ^:private sqrt     (unary-op g/sqrt #(-> % g/sqrt (g/* 2) g/invert)))
-(def ^:private negate   (unary-op #(g/* -1 %) (constantly -1)))
+(def ^:private negate   (unary-op g/negate (constantly -1)))
 (def ^:private power
   (binary-op g/expt
              (fn [x y]
@@ -366,7 +373,7 @@
 (g/defhandler :div    [differential? not-compound?] diff-div)
 (g/defhandler :div    [not-compound? differential?] diff-div)
 (g/defhandler :invert [differential?] #(diff-div 1 %))
-(g/defhandler :square [differential?] #(g/* % %))
+(g/defhandler :square [differential?] #(diff-* % %))
 (g/defhandler :negate [differential?] negate)
 (g/defhandler :sin    [differential?] sine)
 (g/defhandler :cos    [differential?] cosine)
