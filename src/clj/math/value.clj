@@ -72,7 +72,7 @@
 (defn- primitive-kind
   [a]
   ;; XXX: convert this to a hash map from (type) -> kind
-  (type a))
+  (if (fn? a) ::function (type a)))
 
 (defn argument-kind
   [a & as]

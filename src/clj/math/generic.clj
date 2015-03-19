@@ -117,7 +117,6 @@
     {:arity arity}))
 
 (def ^:private mul (make-operation :* 2))
-;(def ^:private add (make-operation :+ 2))
 (def ^:private sub (make-operation :- 2))
 (def ^:private div (make-operation :div 2))
 
@@ -126,7 +125,6 @@
 (def invert (make-operation :invert 1))
 (def sin (make-operation :sin 1))
 (def cos (make-operation :cos 1))
-; XXX (def tan (make-operation :tan 1))
 (def square (make-operation :square 1))
 (def cube (make-operation :cube 1))
 (def abs (make-operation :abs 1))

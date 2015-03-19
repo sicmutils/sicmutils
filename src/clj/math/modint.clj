@@ -19,44 +19,42 @@
             [math.generic :as g]
             [math.euclid :as e]))
 
-(defrecord ModInt [^BigInteger a ^BigInteger m]
+(defrecord ModInt [^BigInteger i ^BigInteger m]
   v/Value
-  (nullity? [i] (= (:a i) 0))
-  (unity? [i] (= (:a i) 1))
-  (zero-like [i] (ModInt. 0 (:a i)))
+  (nullity? [_] (zero? i))
+  (unity? [_] (= i 1))
+  (zero-like [_] (ModInt. 0 m))
   (exact? [_] true)
   (sort-key [_] 15)
   (numerical? [_] true)
   (compound? [_] false)
-  (kind [_] :v/modint))
+  (kind [_] ::modint))
 
-(defn make [a m]
-  (ModInt. (mod a m) m))
+(defn make [i m]
+  (ModInt. (mod i m) m))
 
 (defn modint? [x]
   (instance? ModInt x))
 
 (defn- modular-binop [op]
-  (fn [^ModInt a ^ModInt b]
-    (if-not (= (.m a) (.m b))
+  (fn [a b]
+    (if-not (= (:m a) (:m b))
       (throw (ArithmeticException. "unequal moduli"))
-      (make (op (.a a) (.a b)) (.m a)))))
+      (make (op (:i a) (:i b)) (:m a)))))
 
 (defn- modular-inv [^ModInt m]
-  (let [modulus (.m m)
-        [g a _] (e/extended-euclid (:a m) modulus)]
+  (let [modulus (:m m)
+        [g a _] (e/extended-euclid (:i m) modulus)]
     (if (< g 2) (make a modulus)
         (throw (ArithmeticException.
                 (str m " is not invertible mod " modulus))))))
 
-;;(g/defhandler :+ [modint? modint?] (modular-binop +))
-;;(g/defhandler :+ [integer? modint?] (fn [i ^ModInt m] (make (+ i (.a m)) (.m m))))
 (def ^:private mod-add (modular-binop +))
-;; XXX could use a macro here instead of bouncing to another function
-(defmethod g/add [:v/modint :v/modint] [a b] (mod-add a b))
+(defmethod g/add [::modint ::modint] [a b] (mod-add a b))
+(defmethod g/add [java.lang.Long ::modint] [a b] (make (+ a (:i b)) (:m b)))
 (g/defhandler :- [modint? modint?] (modular-binop -))
 (g/defhandler :* [modint? modint?] (modular-binop *))
-(g/defhandler :negate [modint?] (fn [^ModInt m] (make (- (.a m)) (.m m))))
+(g/defhandler :negate [modint?] (fn [m] (make (- (:i m)) (:m m))))
 (g/defhandler :invert [modint?] modular-inv)
 
 

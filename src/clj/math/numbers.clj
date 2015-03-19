@@ -44,32 +44,21 @@
   (g/defhandler key [number?] operation)
   (g/defhandler key [g/abstract-number?] (make-numerical-combination key)))
 
-(prn "HEY" :v/number)
-
-(defmethod g/tan :math.value/number [a] (Math/tan a))
+(defmethod g/tan java.lang.Number [a] (Math/tan a))
 (defmethod g/tan :math.expression/numerical-expression [a] (ns/make-numsymb-expression :tan [a]))
-;; XXX: a symbol is technically a numerical-expression, so this should be captured
-;; XXX: by inheritance in the hierarchy.
-(defmethod g/tan :math.value/symbol [a] (ns/make-numsymb-expression :tan [a]))
 (defmethod g/add [java.lang.Number java.lang.Number] [a b] (core-+ a b))
-(defmethod g/add [:math.expresssion/numerical-expression :math.expression/numerical-expression] [a b] (ns/make-numsymb-expression :+ [a b]))
+(defmethod g/add [:math.expression/numerical-expression
+                  :math.expression/numerical-expression] [a b] (ns/make-numsymb-expression :+ [a b]))
 (derive clojure.lang.Symbol :math.expression/numerical-expression)
 (derive java.lang.Number :math.expression/numerical-expression)
 (derive java.lang.Long :math.expression/numerical-expression)
 
-(prn "ADD" (methods g/add))
-(prn "parents long" (parents java.lang.Long))
-(prn "parents sym" (parents clojure.lang.Symbol))
-(prn "isa" (isa? [java.lang.Long clojure.lang.Symbol] [:math.expression/numerical-expression :math.expression/numerical-expression]))
-(prn "(+ 3 'x)" (g/add 3 'x))
-; XXX (make-binary-operation :+ + true)
 (make-binary-operation :* * true)
 (make-binary-operation :- - false)
 (make-binary-operation :div / false)
 (make-binary-operation :** nt/expt false)
 (make-unary-operation :sin #(Math/sin %))
 (make-unary-operation :cos #(Math/cos %))
-; XXX (make-unary-operation :tan #(Math/tan %))
 (make-unary-operation :square #(* % %))
 (make-unary-operation :cube #(* % % %))
 (make-unary-operation :abs nt/abs)

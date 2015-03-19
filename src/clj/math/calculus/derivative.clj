@@ -41,7 +41,7 @@
   (numerical? [d] (g/numerical-quantity? (differential-of d)))
   (sort-key [_] 80)
   (arity [d] 0)
-  (kind [_] :v/differential))
+  (kind [_] ::differential))
 
 (def differential? (partial instance? Differential))
 
@@ -371,8 +371,9 @@
 ;; 'a-euclidean-derivative', which when applied to 'x gives
 ;; ((D f) x). So, we have to define D.
 
-(g/defhandler :+      [differential? not-compound?] diff-+)
-(g/defhandler :+      [not-compound? differential?] diff-+)
+(defmethod g/add [::differential ::differential] [a b] (diff-+ a b))
+(defmethod g/add [:math.expression/numerical-expression ::differential] [a b] (diff-+ a b))
+
 (g/defhandler :-      [differential? not-compound?] diff--)
 (g/defhandler :-      [not-compound? differential?] diff--)
 (g/defhandler :*      [differential? not-compound?] diff-*)
@@ -384,8 +385,7 @@
 (g/defhandler :negate [differential?] negate)
 (g/defhandler :sin    [differential?] sine)
 (g/defhandler :cos    [differential?] cosine)
-;; XXX (g/defhandler :tan    [differential?] tangent)
-(defmethod g/tan :v/differential [a] (tangent a))
+(defmethod g/tan ::differential [a] (tangent a))
 (g/defhandler :sqrt   [differential?] sqrt)
 (g/defhandler :**     [differential? (complement differential?)] power)
 (g/defhandler :∂      [#(or (ifn? %) (struct/structure? %))

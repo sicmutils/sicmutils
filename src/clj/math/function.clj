@@ -36,7 +36,7 @@
   (sort-key [_] 35)
   (freeze [f] (-> f :expr v/freeze))
   (arity [_] arity)
-  (kind [_] :v/function)
+  (kind [_] ::function)
   IFn
   (invoke [f x] (literal-apply f [x]))
   (applyTo [f xs] (literal-apply f xs))
@@ -105,8 +105,15 @@
 (g/defhandler :cos    [function?] (unary-operation g/cos))
 ;; TODO asin acos sinh cosh ...
 
-(g/defhandler :+      [function? cofunction?] (binary-operation g/+))
-(g/defhandler :+      [cofunction? function?] (binary-operation g/+))
+;; XXX (g/defhandler :+      [function? cofunction?] (binary-operation g/+))
+;; XXX (g/defhandler :+      [cofunction? function?] (binary-operation g/+))
+(def ^:private add (binary-operation g/+))
+(defmethod g/add [::function ::function] [a b] (add a b))
+(defmethod g/add [::function ::cofunction] [a b] (add a b))
+(defmethod g/add [::cofunction ::function] [a b] (add a b))
+(derive java.lang.Number ::cofunction)
+(derive :math.value/function ::function)
+
 (g/defhandler :-      [function? cofunction?] (binary-operation g/-))
 (g/defhandler :-      [cofunction? function?] (binary-operation g/-))
 (g/defhandler :*      [function? cofunction?] (binary-operation g/*))
