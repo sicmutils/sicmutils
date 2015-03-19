@@ -38,8 +38,7 @@
   (arity [_] arity)
   IFn
   (invoke [f x] (literal-apply f [x]))
-  (applyTo [f xs]
-    (AFn/applyToHelper f xs))
+  (applyTo [f xs] (literal-apply f xs))
   )
 
 (defn literal-function [f] (Fn. f 1 [:real] :real))

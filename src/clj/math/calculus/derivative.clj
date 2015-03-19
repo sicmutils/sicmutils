@@ -90,19 +90,21 @@
   whether the resulting map is equivalent to a scalar; after all that either
   a scalar or a Differential object is returned."
   [tags->coefs]
-  (->> tags->coefs
-       ; force tag sequences into sorted set form
-       (map (fn [[tag-sequence coefficient]] [(into (sorted-set) tag-sequence) coefficient]))
-       ; group by canonicalized tag-set
-       (group-by tags)
-       ; tag sets now map to [tag-set coefficient-list]. Sum the coefficients
-       ; and produce the map of canonicalized tag-set to coefficient-sum
-       (map (fn [[tag-set coefficients]] [tag-set (reduce g/+ 0 (map coefficient coefficients))]))
-       ; drop tag-set:coefficient pairs where the coefficient is a zero object
-       (remove (fn [[_ coefficient]] (g/zero? coefficient)))
-       ; build the differential object
-       (into empty-differential)
-       Differential.))
+  (if (and (sorted? tags->coefs) (map? tags->coefs))
+    (Differential. tags->coefs)
+    (->> tags->coefs
+                                        ; force tag sequences into sorted set form
+        (map (fn [[tag-sequence coefficient]] [(into (sorted-set) tag-sequence) coefficient]))
+                                        ; group by canonicalized tag-set
+        (group-by tags)
+                                        ; tag sets now map to [tag-set coefficient-list]. Sum the coefficients
+                                        ; and produce the map of canonicalized tag-set to coefficient-sum
+        (map (fn [[tag-set coefficients]] [tag-set (reduce g/+ 0 (map coefficient coefficients))]))
+                                        ; drop tag-set:coefficient pairs where the coefficient is a zero object
+        (remove (fn [[_ coefficient]] (g/zero? coefficient)))
+                                        ; build the differential object
+        (into empty-differential)
+        Differential.)))
 
 (defn- differential->terms
   "Given a differential, returns the vector of DifferentialTerms
