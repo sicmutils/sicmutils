@@ -23,6 +23,9 @@
             [math.generic :refer :all]))
 
 (deftest structures
+  (testing "type"
+    (is (= :up (v/kind (up 1 2))))
+    (is (= :down (v/kind (down (up 1 2) (up 2 3))))))
   (testing "s+t"
     (is (= (+ (up 1 2) (up 2 3)) (up 3 5)))
     (is (= (+ (down 3 4) (down 1 2)) (down 4 6)))

@@ -27,7 +27,8 @@
   (exact? [_] true)
   (sort-key [_] 15)
   (numerical? [_] true)
-  (compound? [_] false))
+  (compound? [_] false)
+  (kind [_] :v/modint))
 
 (defn make [a m]
   (ModInt. (mod a m) m))
@@ -48,8 +49,11 @@
         (throw (ArithmeticException.
                 (str m " is not invertible mod " modulus))))))
 
-(g/defhandler :+ [modint? modint?] (modular-binop +))
-(g/defhandler :+ [integer? modint?] (fn [i ^ModInt m] (make (+ i (.a m)) (.m m))))
+;;(g/defhandler :+ [modint? modint?] (modular-binop +))
+;;(g/defhandler :+ [integer? modint?] (fn [i ^ModInt m] (make (+ i (.a m)) (.m m))))
+(def ^:private mod-add (modular-binop +))
+;; XXX could use a macro here instead of bouncing to another function
+(defmethod g/add [:v/modint :v/modint] [a b] (mod-add a b))
 (g/defhandler :- [modint? modint?] (modular-binop -))
 (g/defhandler :* [modint? modint?] (modular-binop *))
 (g/defhandler :negate [modint?] (fn [^ModInt m] (make (- (.a m)) (.m m))))

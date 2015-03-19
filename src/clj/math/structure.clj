@@ -36,6 +36,7 @@
   (sort-key [_] 18)
   (freeze [_] `(~(orientation {:up 'up :down 'down}) ~@(map v/freeze v)))
   (arity [_] (joint-arity v))
+  (kind [_] orientation)
   Object
   (equals [_ b]
     (and (instance? Struct b)
@@ -287,8 +288,12 @@
               [(rest values) (first values)]))]
     (second (u values struct))))
 
-(g/defhandler :+        [down? down?]           (partial elementwise g/+))
-(g/defhandler :+        [up? up?]               (partial elementwise g/+))
+;; XXX (g/defhandler :+        [down? down?]           (partial elementwise g/+))
+;; XXX (g/defhandler :+        [up? up?]               (partial elementwise g/+))
+
+(defmethod g/add [:down :down] [a b] (elementwise g/+ a b))
+(defmethod g/add [:up :up] [a b] (elementwise g/+ a b))
+
 (g/defhandler :-        [down? down?]           (partial elementwise g/-))
 (g/defhandler :-        [up? up?]               (partial elementwise g/-))
 (g/defhandler :*        [g/scalar? structure?]  outer-product)

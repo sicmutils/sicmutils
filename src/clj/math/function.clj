@@ -27,7 +27,7 @@
 
 (declare literal-apply)
 
-(defrecord Fn [expr arity domain range]
+(defrecord Function [expr arity domain range]
   v/Value
   (nullity? [_] false)
   (compound? [_] false)
@@ -36,12 +36,13 @@
   (sort-key [_] 35)
   (freeze [f] (-> f :expr v/freeze))
   (arity [_] arity)
+  (kind [_] :v/function)
   IFn
   (invoke [f x] (literal-apply f [x]))
   (applyTo [f xs] (literal-apply f xs))
   )
 
-(defn literal-function [f] (Fn. f 1 [:real] :real))
+(defn literal-function [f] (Function. f 1 [:real] :real))
 (def ^:private derivative-symbol 'D)
 
 ;; --------------------
@@ -163,7 +164,7 @@
                                    `((g/partial-derivative ~@(next indices))))
                                  (throw (IllegalArgumentException. "wrong indices")))
                                `((g/partial-derivative ~@indices) ~(:expr f)))]
-                    (Fn. fexp (:arity f) (:domain f) (:range f)))
+                    (Function. fexp (:arity f) (:domain f) (:range f)))
                   :else
                   (throw (IllegalArgumentException. (str "make-partials WTF " vv)))))]
     (fd [] v)
@@ -206,6 +207,6 @@
   `(let ~(vec (interleave litfns (map (fn [s] `(literal-function (quote ~s))) litfns)))
      ~@body))
 
-(g/defhandler :simplify [#(instance? Fn %)] #(-> % :expr g/simplify))
+(g/defhandler :simplify [#(instance? Function %)] #(-> % :expr g/simplify))
 
 (println "function initialized")

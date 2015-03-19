@@ -21,9 +21,7 @@
             [math.value :as v]
             [math.operator :as o]
             [math.expression :as x]
-            [math.function :refer :all]
-            )
-  )
+            [math.function :refer :all]))
 
 (def ^:private near (v/within 1.0e-6))
 
@@ -31,7 +29,9 @@
   (let [f (literal-function 'F)]
     (testing "a"
       (is (= '(F x) (x/print-expression (f 'x))))
-      (is (= '(F 7) (x/print-expression (f (g/+ 3 4))))))))
+      (is (= '(F 7) (x/print-expression (f (g/+ 3 4))))))
+    (testing "kind"
+      (is (= :math.value/function (v/kind f))))))
 
 (deftest function-algebra
   (let [add2 (fn [x] (g/+ x 2))
@@ -51,7 +51,8 @@
       (is (= 14 ((g/+ add2 mul3) 3)))
       (is (= 10 ((g/+ mul3 4) 2)))
       (is (= 32 ((g/expt 2 add2) 3)))
-      (is (= 25 ((g/expt add2 2) 3))))
+      (is (= 25 ((g/expt add2 2) 3)))
+      (is (= :math.value/function (v/kind (g/expt add2 2)))))
     (testing "arity 2"
       (let [f (fn [x y] (+ x y))
             g (fn [x y] (* x y))

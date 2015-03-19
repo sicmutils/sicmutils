@@ -97,5 +97,9 @@
     (is (= 7 (+ 7)))
     (is (= 7 (+ 3 4))))
   (testing "many"
-    (is (= 33 (+ 3 4 5 6 7 8))))
-  )
+    (is (= 33 (+ 3 4 5 6 7 8)))))
+
+(deftest type-assigner
+  (testing "types"
+    (is (= java.lang.Long (v/kind 9)))
+    (is (= java.lang.Double (v/kind 99.0)))))

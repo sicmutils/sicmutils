@@ -33,9 +33,10 @@
   ;; this is intended to be done just before simplification and printing, to
   ;; simplify those processes.
   (freeze [this])
-  (arity [this]))
+  (arity [this])
+  (kind [this]))
 
-(declare primitive-arity)
+(declare primitive-arity primitive-kind)
 
 (extend-type Object
   Value
@@ -47,7 +48,8 @@
   (zero-like [z] 0)
   (sort-key [_] 99)
   (freeze [o] (cond (sequential? o) (map freeze o) (keyword? o) o :else o)) ;; WTF?
-  (arity [o] (primitive-arity o)))
+  (arity [o] (primitive-arity o))
+  (kind [o] (primitive-kind o)))
 
 (defn- primitive-arity
   [f]
@@ -61,11 +63,20 @@
                            arities (into #{} (map #(alength (.getParameterTypes %)) ms))]
                        (if (> (count arities) 1)
                          (let [smallest-nonzero-arity (reduce min (disj arities 0))]
-                           (log/warn "guessing that arity of" f "is" smallest-nonzero-arity)
+                           (log/warn "guessing that arity of" f "is" smallest-nonzero-arity "out of" arities)
                            smallest-nonzero-arity)
                          (first arities)))
 
             :else 0)))
+
+(defn- primitive-kind
+  [a]
+  ;; XXX: convert this to a hash map from (type) -> kind
+  (type a))
+
+(defn argument-kind
+  [a & as]
+  (if (some? as) (mapv kind (cons a as)) (kind a)))
 
 (def machine-epsilon
   (loop [e 1.0]

@@ -28,7 +28,8 @@
   (sort-key [_] 17)
   (compound? [_] false)
   (freeze [x] (-> x :expression v/freeze))
-  (arity [x] 0))
+  (arity [x] 0)
+  (kind [x] (if (= type ::number) ::numerical-expression ::expression)))
 
 (defn make [x]
   (Expression. ::number x))

@@ -41,7 +41,7 @@
   (numerical? [d] (g/numerical-quantity? (differential-of d)))
   (sort-key [_] 80)
   (arity [d] 0)
-  )
+  (kind [_] :v/differential))
 
 (def differential? (partial instance? Differential))
 
@@ -384,7 +384,8 @@
 (g/defhandler :negate [differential?] negate)
 (g/defhandler :sin    [differential?] sine)
 (g/defhandler :cos    [differential?] cosine)
-(g/defhandler :tan    [differential?] tangent)
+;; XXX (g/defhandler :tan    [differential?] tangent)
+(defmethod g/tan :v/differential [a] (tangent a))
 (g/defhandler :sqrt   [differential?] sqrt)
 (g/defhandler :**     [differential? (complement differential?)] power)
 (g/defhandler :∂      [#(or (ifn? %) (struct/structure? %))

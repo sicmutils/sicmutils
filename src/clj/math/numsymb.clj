@@ -164,6 +164,7 @@
 (def ^:private symb:pi-over-4-mod-pi? #{'pi-over-4 '+pi-over-4})
 
 (defn- sine [x]
+  (when (number? x) (throw (IllegalArgumentException. "YIKES")))
   (cond (number? x) (if (v/exact? x)
                       (if (zero? x) 0 `(~'sin ~x))
                       (cond (n:zero-mod-pi? x) 0.0
@@ -177,6 +178,7 @@
         :else `(~'sin ~x)))
 
 (defn- cosine [x]
+  (when (number? x) (throw (IllegalArgumentException. "YIKES")))
   (cond (number? x) (if (v/exact? x)
                       (if (zero? x) 1 `(~'cos ~x))
                       (cond (n:pi-over-2-mod-pi? x) 0.0
