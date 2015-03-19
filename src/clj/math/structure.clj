@@ -99,7 +99,7 @@
 
 (defn- elementwise [op s t]
   (if (= (count s) (count t))
-    (make (orientation s) (map op s t))
+    (Struct. (orientation s) (mapv op s t))
     (throw (ArithmeticException.
             (str op " provided arguments of differing length")))))
 
@@ -107,7 +107,7 @@
   "Return a structure with the same shape as s but with f applied to
   each primitive (that is, not structural) component."
   [f ^Struct s]
-  (cond (instance? Struct s) (make (.orientation s) (map #(mapr f %) (.v s)))
+  (cond (instance? Struct s) (Struct. (.orientation s) (mapv #(mapr f %) (.v s)))
         (sequential? s) (map f s)  ;; XXX what happens if we don't do this?
         :else (f s))
   )
@@ -271,7 +271,7 @@
   GJS: Any matrix in the argument list wants to be converted to a row of
   columns (TODO: this is not implemented yet)"
   [s]
-  (make :up (map matrix->structure s)))
+  (Struct. :up (mapv matrix->structure s)))
 
 (defn unflatten
   [values struct]

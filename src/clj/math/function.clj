@@ -113,8 +113,8 @@
 (g/defhandler :*      [cofunction? function?] (binary-operation g/*))
 (g/defhandler :div    [function? cofunction?] (binary-operation g/divide))
 (g/defhandler :div    [cofunction? function?] (binary-operation g/divide))
-(g/defhandler :expt   [function? cofunction?] (binary-operation g/expt))
-(g/defhandler :expt   [cofunction? function?] (binary-operation g/expt))
+(g/defhandler :**     [function? cofunction?] (binary-operation g/expt))
+(g/defhandler :**     [cofunction? function?] (binary-operation g/expt))
 
 ;; ------------------------------------
 ;; Differentiation of literal functions

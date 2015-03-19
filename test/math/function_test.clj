@@ -31,10 +31,7 @@
   (let [f (literal-function 'F)]
     (testing "a"
       (is (= '(F x) (x/print-expression (f 'x))))
-      (is (= '(F 7) (x/print-expression (f (g/+ 3 4)))))
-      )
-    )
-  )
+      (is (= '(F 7) (x/print-expression (f (g/+ 3 4))))))))
 
 (deftest function-algebra
   (let [add2 (fn [x] (g/+ x 2))
@@ -48,12 +45,13 @@
       (is (= 1.0 (explog 1.0)))
       (is (near 99.0 (explog 99.0)))
       (is (near 20.08553692 ((g/exp add2) 1.0)))
-      (is (near 4.718281828 ((add2 g/exp) 1.0)))
-      )
+      (is (near 4.718281828 ((add2 g/exp) 1.0))))
     (testing "binary"
       (is (= 12 ((g/+ add2 4) 6)))
       (is (= 14 ((g/+ add2 mul3) 3)))
-      (is (= 10 ((g/+ mul3 4) 2))))
+      (is (= 10 ((g/+ mul3 4) 2)))
+      (is (= 32 ((g/expt 2 add2) 3)))
+      (is (= 25 ((g/expt add2 2) 3))))
     (testing "arity 2"
       (let [f (fn [x y] (+ x y))
             g (fn [x y] (* x y))
@@ -84,5 +82,4 @@
     (is (not (iterated-symbolic-derivative? '(expt D 2))))
     (is (iterated-symbolic-derivative? '((expt D 2) f)))
     (is (= '((expt D 2) f) (symbolic-increase-derivative '(D f))))
-    (is (= '((expt D 3) f) (symbolic-increase-derivative '((expt D 2) f))))
-    ))
+    (is (= '((expt D 3) f) (symbolic-increase-derivative '((expt D 2) f))))))
