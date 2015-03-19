@@ -51,7 +51,6 @@
                   :math.expression/numerical-expression] [a b] (ns/make-numsymb-expression :+ [a b]))
 (derive clojure.lang.Symbol :math.expression/numerical-expression)
 (derive java.lang.Number :math.expression/numerical-expression)
-(derive java.lang.Long :math.expression/numerical-expression)
 
 (make-binary-operation :* * true)
 (make-binary-operation :- - false)
