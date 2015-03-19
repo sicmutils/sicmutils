@@ -48,7 +48,7 @@
   (testing "trig"
     (is (= 1.0 (g/cos 0)))
     (is (= 0.0 (g/sin 0)))
-    )
+    (is (= '(tan x) (x/print-expression (g/tan 'x)))))
   (testing "square/cube"
     (is (= 4 (g/square 2)))
     (is (= 4 (g/square -2)))
@@ -82,11 +82,13 @@
     (is (thrown? ArithmeticException (g// 'x 0)))
     )
   (testing "neg"
+    (is (= '(- x) (x/print-expression (g/negate 'x))))
     (is (= -4 (g/- 0 4)))
+    (is (= -4 (g/negate 4)))
+    (is (= 4 (g/negate (g/- 4))))
     (is (= (g/negate 'x) (g/- 0 'x)))
     (is (= -4 (g/- 4)))
-    (is (= -4.2 (g/- 4.2)))
-    )
+    (is (= -4.2 (g/- 4.2))))
   (testing "zero? one?"
     (is (g/zero? 0))
     (is (not (g/zero? 1)))

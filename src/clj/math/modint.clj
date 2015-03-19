@@ -49,12 +49,13 @@
         (throw (ArithmeticException.
                 (str m " is not invertible mod " modulus))))))
 
-(def ^:private mod-add (modular-binop +))
-(defmethod g/add [::modint ::modint] [a b] (mod-add a b))
+(def ^:private add (modular-binop +))
+(def ^:private sub (modular-binop -))
+(defmethod g/add [::modint ::modint] [a b] (add a b))
 (defmethod g/add [java.lang.Long ::modint] [a b] (make (+ a (:i b)) (:m b)))
-(g/defhandler :- [modint? modint?] (modular-binop -))
+(defmethod g/sub [::modint ::modint] [a b] (sub a b))
+(defmethod g/negate ::modint [a] (make (- (:i a)) (:m a)))
 (g/defhandler :* [modint? modint?] (modular-binop *))
-(g/defhandler :negate [modint?] (fn [m] (make (- (:i m)) (:m m))))
 (g/defhandler :invert [modint?] modular-inv)
 
 

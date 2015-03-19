@@ -371,21 +371,49 @@
 ;; 'a-euclidean-derivative', which when applied to 'x gives
 ;; ((D f) x). So, we have to define D.
 
-(defmethod g/add [::differential ::differential] [a b] (diff-+ a b))
-(defmethod g/add [:math.expression/numerical-expression ::differential] [a b] (diff-+ a b))
+(defmethod g/add
+  [::differential ::differential]
+  [a b]
+  (diff-+ a b))
 
-(g/defhandler :-      [differential? not-compound?] diff--)
-(g/defhandler :-      [not-compound? differential?] diff--)
+(defmethod g/add
+  [:math.expression/numerical-expression ::differential]
+  [a b]
+  (diff-+ a b))
+
+(defmethod g/sub
+  [::differential ::differential]
+  [a b]
+  (diff-- a b))
+
+(defmethod g/sub
+  [:math.expression/numerical-expression ::differential]
+  [a b]
+  (diff-- a b))
+
+(defmethod g/sub
+  [::differential :math.expression/numerical-expression]
+  [a b]
+  (diff-- a b))
+
+(defmethod g/tan
+  ::differential
+  [a]
+  (tangent a))
+
+(defmethod g/negate
+  ::differential
+  [a]
+  (negate a))
+
 (g/defhandler :*      [differential? not-compound?] diff-*)
 (g/defhandler :*      [not-compound? differential?] diff-*)
 (g/defhandler :div    [differential? not-compound?] diff-div)
 (g/defhandler :div    [not-compound? differential?] diff-div)
 (g/defhandler :invert [differential?] #(diff-div 1 %))
 (g/defhandler :square [differential?] #(diff-* % %))
-(g/defhandler :negate [differential?] negate)
 (g/defhandler :sin    [differential?] sine)
 (g/defhandler :cos    [differential?] cosine)
-(defmethod g/tan ::differential [a] (tangent a))
 (g/defhandler :sqrt   [differential?] sqrt)
 (g/defhandler :**     [differential? (complement differential?)] power)
 (g/defhandler :∂      [#(or (ifn? %) (struct/structure? %))

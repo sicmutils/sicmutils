@@ -24,8 +24,8 @@
 
 (deftest structures
   (testing "type"
-    (is (= :up (v/kind (up 1 2))))
-    (is (= :down (v/kind (down (up 1 2) (up 2 3))))))
+    (is (= :math.structure/up (v/kind (up 1 2))))
+    (is (= :math.structure/down (v/kind (down (up 1 2) (up 2 3))))))
   (testing "s+t"
     (is (= (+ (up 1 2) (up 2 3)) (up 3 5)))
     (is (= (+ (down 3 4) (down 1 2)) (down 4 6)))
@@ -203,10 +203,10 @@
         F (down (up 1 2) (up 3 4))
         G (down (up 4 0 0 0) (up 0 0 2 0) (up 0 1 2 0) (up 1 0 0 1))]
     (testing "square?"
-      (is (= [2 :up :up] (square? A)))
+      (is (= [2 :math.structure/up :math.structure/up] (square? A)))
       (is (not (square? B)))
-      (is (= [3 :down :up] (square? C)))
-      (is (= [1 :up :down] (square? D)))
+      (is (= [3 :math.structure/down :math.structure/up] (square? C)))
+      (is (= [1 :math.structure/up :math.structure/down] (square? D)))
       (is (thrown? UnsupportedOperationException (square? E))))
     (testing "determinant"
       (is (= -2 (determinant A)))

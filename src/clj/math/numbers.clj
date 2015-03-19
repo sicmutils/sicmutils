@@ -16,7 +16,8 @@
 
 (ns math.numbers
   (:refer-clojure :rename {zero? core-zero?
-                           + core-+})
+                           + core-+
+                           - core--})
   (:require [math.generic :as g]
             [math.value :as v]
             [math.numsymb :as ns]
@@ -49,11 +50,15 @@
 (defmethod g/add [java.lang.Number java.lang.Number] [a b] (core-+ a b))
 (defmethod g/add [:math.expression/numerical-expression
                   :math.expression/numerical-expression] [a b] (ns/make-numsymb-expression :+ [a b]))
+(defmethod g/sub [java.lang.Number java.lang.Number] [a b] (core-- a b))
+(defmethod g/sub [:math.expression/numerical-expression
+                  :math.expression/numerical-expression] [a b] (ns/make-numsymb-expression :- [a b]))
+(defmethod g/negate java.lang.Number [a] (core-- a))
+(defmethod g/negate :math.expression/numerical-expression [a] (ns/make-numsymb-expression :negate [a]))
 (derive clojure.lang.Symbol :math.expression/numerical-expression)
 (derive java.lang.Number :math.expression/numerical-expression)
 
 (make-binary-operation :* * true)
-(make-binary-operation :- - false)
 (make-binary-operation :div / false)
 (make-binary-operation :** nt/expt false)
 (make-unary-operation :sin #(Math/sin %))
@@ -61,7 +66,6 @@
 (make-unary-operation :square #(* % %))
 (make-unary-operation :cube #(* % % %))
 (make-unary-operation :abs nt/abs)
-(make-unary-operation :negate -)
 (make-unary-operation :invert /)
 (make-unary-operation :sqrt nt/sqrt)
 (make-unary-operation :log #(Math/log %))

@@ -34,7 +34,7 @@
   (numerical? [_] false)
   (compound? [_] true)
   (sort-key [_] 18)
-  (freeze [_] `(~(orientation {:up 'up :down 'down}) ~@(map v/freeze v)))
+  (freeze [_] `(~(orientation {::up 'up ::down 'down}) ~@(map v/freeze v)))
   (arity [_] (joint-arity v))
   (kind [_] orientation)
   Object
@@ -69,10 +69,10 @@
   (Struct. orientation (into [] xs)))
 
 (defn up [& xs]
-  (make :up xs))
+  (make ::up xs))
 
 (defn down [& xs]
-  (make :down xs))
+  (make ::down xs))
 
 (defn structure? [s]
   (or (instance? Struct s)
@@ -80,20 +80,20 @@
       (list? s)))
 
 (defn- down? [^Struct s]
-  (and (instance? Struct s) (= (.orientation s) :down)))
+  (and (instance? Struct s) (= (.orientation s) ::down)))
 
 (defn- up? [^Struct s]
   (or (vector? s)
       (list? s)
-      (and (instance? Struct s) (= (.orientation s) :up))))
+      (and (instance? Struct s) (= (.orientation s) ::up))))
 
-(def ^:private opposite-orientation {:up :down :down :up})
+(def ^:private opposite-orientation {::up ::down ::down ::up})
 
 (defn opposite [s xs]
-  (make (if (up? s) :down :up) xs))
+  (make (if (up? s) ::down ::up) xs))
 
 (defn- orientation [^Struct s]
-  (if (instance? Struct s) (.orientation s) :up))
+  (if (instance? Struct s) (.orientation s) ::up))
 
 (defn same [s xs]
   (make (orientation s) xs))
@@ -272,7 +272,7 @@
   GJS: Any matrix in the argument list wants to be converted to a row of
   columns (TODO: this is not implemented yet)"
   [s]
-  (Struct. :up (mapv matrix->structure s)))
+  (Struct. ::up (mapv matrix->structure s)))
 
 (defn unflatten
   [values struct]
@@ -291,11 +291,14 @@
 ;; XXX (g/defhandler :+        [down? down?]           (partial elementwise g/+))
 ;; XXX (g/defhandler :+        [up? up?]               (partial elementwise g/+))
 
-(defmethod g/add [:down :down] [a b] (elementwise g/+ a b))
-(defmethod g/add [:up :up] [a b] (elementwise g/+ a b))
+(defmethod g/add [::down ::down] [a b] (elementwise g/+ a b))
+(defmethod g/add [::up ::up] [a b] (elementwise g/+ a b))
+(defmethod g/sub [::down ::down] [a b] (elementwise g/- a b))
+(defmethod g/sub [::up ::up] [a b] (elementwise g/- a b))
+(derive ::up ::structure)
+(derive ::down ::structure)
+(defmethod g/negate ::structure [a] (same a (mapv g/negate a)))
 
-(g/defhandler :-        [down? down?]           (partial elementwise g/-))
-(g/defhandler :-        [up? up?]               (partial elementwise g/-))
 (g/defhandler :*        [g/scalar? structure?]  outer-product)
 (g/defhandler :*        [structure? g/scalar?]  #(outer-product %2 %1))
 (g/defhandler :div      [structure? g/scalar?]  #(outer-product (g/invert %2) %1))
@@ -306,6 +309,5 @@
 (g/defhandler :simplify [structure?]            #(mapr g/simplify %))
 (g/defhandler :square   [structure?]            #(inner-product % %))
 (g/defhandler :cube     [structure?]            #(g/* % % %))
-(g/defhandler :negate   [structure?]            #(same % (map g/negate %)))
 
 (println "struct initialized")
