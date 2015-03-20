@@ -375,7 +375,6 @@
   [generic-operation differential-operation]
   (doseq [signature [[::differential ::differential]
                      [:math.expression/numerical-expression ::differential]
-                     [::differential :math.structure/structure]
                      [::differential :math.expression/numerical-expression]]]
     (defmethod generic-operation signature [a b] (differential-operation a b))))
 

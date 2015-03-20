@@ -126,17 +126,11 @@
 (def partial-derivative (make-operation :∂ 2))
 (def simplify (make-operation :simplify 1))
 
-(defmulti add v/argument-kind)
-(defmulti sub v/argument-kind)
-(defmulti mul v/argument-kind)
-(defmulti div v/argument-kind)
-(defmulti sin v/argument-kind)
-(defmulti cos v/argument-kind)
-(defmulti tan v/argument-kind)
-(defmulti expt v/argument-kind)
-(defmulti invert v/argument-kind)
-(defmulti negate v/argument-kind)
-(defmulti square v/argument-kind)
+(defmacro define-operations
+  [& ops]
+  `(do ~@(map (fn [o] `(defmulti ~o v/argument-kind)) ops)))
+
+(define-operations add sub mul div sin cos tan expt invert negate square)
 
 (defn- sort-key
   [x]
