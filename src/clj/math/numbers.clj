@@ -56,11 +56,10 @@
 (define-unary-operation g/cos #(Math/cos %))
 (define-unary-operation g/tan #(Math/tan %))
 (define-unary-operation g/square #(core-* % %))
-
-(make-unary-operation :cube #(core-* % % %))
-(make-unary-operation :abs nt/abs)
-(make-unary-operation :sqrt nt/sqrt)
-(make-unary-operation :log #(Math/log %))
-(make-unary-operation :exp #(Math/exp %))
+(define-unary-operation g/cube #(core-* % % %))
+(define-unary-operation g/abs nt/abs)
+(define-unary-operation g/sqrt nt/sqrt)
+(define-unary-operation g/log #(Math/log %))
+(define-unary-operation g/exp #(Math/exp %))
 
 (println "numbers initialized")

@@ -95,23 +95,23 @@
                               {:arity f-arity}))))
     {:arity 2}))
 
-(g/defhandler :sqrt   [function?] (unary-operation g/sqrt))
-(g/defhandler :square [function?] (unary-operation g/square))
-(g/defhandler :abs    [function?] (unary-operation g/abs))
-(g/defhandler :exp    [function?] (unary-operation g/exp))
-(g/defhandler :log    [function?] (unary-operation g/log))
-;; TODO asin acos sinh cosh ...
 
 (def ^:private add (binary-operation g/+))
 (def ^:private sub (binary-operation g/-))
 (def ^:private mul (binary-operation g/*))
 (def ^:private div (binary-operation g/divide))
 (def ^:private expt (binary-operation g/expt))
+
 (def ^:private negate (unary-operation g/-))
 (def ^:private invert (unary-operation g/divide))
-(def ^:private sin (unary-operation g/-))
-(def ^:private cos (unary-operation g/-))
-(def ^:private tan (unary-operation g/-))
+(def ^:private sin (unary-operation g/sin))
+(def ^:private cos (unary-operation g/cos))
+(def ^:private tan (unary-operation g/tan))
+(def ^:private sqrt (unary-operation g/sqrt))
+(def ^:private square (unary-operation g/square))
+(def ^:private abs (unary-operation g/abs))
+(def ^:private exp (unary-operation g/exp))
+(def ^:private log(unary-operation g/log))
 
 (defn- define-binary-operation
   [generic-operation function-operation]
@@ -128,6 +128,16 @@
 
 (defmethod g/negate ::function [a] (negate a))
 (defmethod g/invert ::function [a] (invert a))
+(defmethod g/sqrt   ::function [a] (sqrt a))
+(defmethod g/sin    ::function [a] (sin a))
+(defmethod g/cos    ::function [a] (cos a))
+(defmethod g/tan    ::function [a] (tan a))
+(defmethod g/square ::function [a] (square a))
+(defmethod g/abs    ::function [a] (abs a))
+(defmethod g/exp    ::function [a] (exp a))
+(defmethod g/log    ::function [a] (log a))
+
+;; TODO asin acos sinh cosh ...
 (derive :math.expression/numerical-expression ::cofunction)
 (derive :math.value/function ::function)
 

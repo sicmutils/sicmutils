@@ -71,7 +71,7 @@
 
 (defn- primitive-kind
   [a]
-  (if (fn? a) ::function (type a)))
+  (if (or (fn? a) (= (class a) clojure.lang.MultiFn)) ::function (type a)))
 
 (defn argument-kind
   [a & as]

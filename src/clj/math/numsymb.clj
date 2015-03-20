@@ -289,6 +289,10 @@
 (define-unary-operation g/cos cosine)
 (define-unary-operation g/tan tangent)
 (define-unary-operation g/square #(expt % 2))
+(define-unary-operation g/sqrt sqrt)
+(define-unary-operation g/exp exp)
+(define-unary-operation g/abs abs)
+(define-unary-operation g/log log)
 
 (def ^:private g-symbolic-operator-table
   {'+ :+

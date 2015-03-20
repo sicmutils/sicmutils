@@ -118,11 +118,6 @@
     {:arity arity}))
 
 
-(def cube (make-operation :cube 1))
-(def abs (make-operation :abs 1))
-(def sqrt (make-operation :sqrt 1))
-(def exp (make-operation :exp 1 ))
-(def log (make-operation :log 1))
 (def partial-derivative (make-operation :∂ 2))
 (def simplify (make-operation :simplify 1))
 
@@ -130,7 +125,10 @@
   [& ops]
   `(do ~@(map (fn [o] `(defmulti ~o v/argument-kind)) ops)))
 
-(define-operations add sub mul div sin cos tan expt invert negate square)
+(define-operations
+  add sub mul div invert negate square cube expt
+  exp log abs sqrt
+  sin cos tan)
 
 (defn- sort-key
   [x]

@@ -388,6 +388,7 @@
 (define-binary-operation g/sub diff--)
 (define-binary-operation g/mul diff-*)
 (define-binary-operation g/div diff-div)
+(define-unary-operation g/sqrt sqrt)
 (define-unary-operation g/sin sine)
 (define-unary-operation g/cos cosine)
 (define-unary-operation g/tan tangent)
@@ -396,8 +397,6 @@
 (define-unary-operation g/square #(diff-* % %))
 (derive ::differential :math.function/cofunction)
 
-
-(g/defhandler :sqrt   [differential?] sqrt)
 (g/defhandler :∂      [#(or (ifn? %) (struct/structure? %))
                        (constantly true)] multivariate-derivative)
 
