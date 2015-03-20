@@ -45,7 +45,7 @@
   (unity? [_] false)
   (compound? [_] false)
   (exact? [o] (or (integer? o) (ratio? o)))
-  (zero-like [z] 0)
+  (zero-like [_] 0)
   (sort-key [_] 99)
   (freeze [o] (cond (sequential? o) (map freeze o) (keyword? o) o :else o)) ;; WTF?
   (arity [o] (primitive-arity o))
@@ -71,7 +71,6 @@
 
 (defn- primitive-kind
   [a]
-  ;; XXX: convert this to a hash map from (type) -> kind
   (if (fn? a) ::function (type a)))
 
 (defn argument-kind

@@ -33,14 +33,14 @@
 ;; tag-sets to coefficients.
 (defrecord Differential [terms]
   v/Value
-  (nullity? [d] (every? g/zero? (map coefficient terms)))
+  (nullity? [_] (every? g/zero? (map coefficient terms)))
   (unity? [_] false) ;; XXX! this needs to be fixed
   (zero-like [_] 0)
   (exact? [_] false)
   (compound? [_] false)
   (numerical? [d] (g/numerical-quantity? (differential-of d)))
   (sort-key [_] 80)
-  (arity [d] 0)
+  (arity [_] 0)
   (kind [_] ::differential))
 
 (def differential? (partial instance? Differential))
@@ -371,49 +371,34 @@
 ;; 'a-euclidean-derivative', which when applied to 'x gives
 ;; ((D f) x). So, we have to define D.
 
-(defmethod g/add
-  [::differential ::differential]
-  [a b]
-  (diff-+ a b))
+(defn- define-binary-operation
+  [generic-operation differential-operation]
+  (doseq [signature [[::differential ::differential]
+                     [:math.expression/numerical-expression ::differential]
+                     ;[:math.structure/structure ::differential]
+                     [::differential :math.structure/structure]
+                     [::differential :math.expression/numerical-expression]
+                     ]
+          ]
+    (defmethod generic-operation signature [a b] (differential-operation a b))))
 
-(defmethod g/add
-  [:math.expression/numerical-expression ::differential]
-  [a b]
-  (diff-+ a b))
+(defn- define-unary-operation
+  [generic-operation differential-operation]
+  (defmethod generic-operation ::differential [a] (differential-operation a)))
 
-(defmethod g/sub
-  [::differential ::differential]
-  [a b]
-  (diff-- a b))
+(define-binary-operation g/add diff-+)
+(define-binary-operation g/sub diff--)
+(define-binary-operation g/mul diff-*)
+(define-binary-operation g/div diff-div)
+(define-unary-operation g/sin sine)
+(define-unary-operation g/cos cosine)
+(define-unary-operation g/tan tangent)
+(define-unary-operation g/negate negate)
+(define-unary-operation g/invert #(diff-div 1 %))
+(define-unary-operation g/square #(diff-* % %))
+(derive ::differential :math.function/cofunction)
 
-(defmethod g/sub
-  [:math.expression/numerical-expression ::differential]
-  [a b]
-  (diff-- a b))
 
-(defmethod g/sub
-  [::differential :math.expression/numerical-expression]
-  [a b]
-  (diff-- a b))
-
-(defmethod g/tan
-  ::differential
-  [a]
-  (tangent a))
-
-(defmethod g/negate
-  ::differential
-  [a]
-  (negate a))
-
-(g/defhandler :*      [differential? not-compound?] diff-*)
-(g/defhandler :*      [not-compound? differential?] diff-*)
-(g/defhandler :div    [differential? not-compound?] diff-div)
-(g/defhandler :div    [not-compound? differential?] diff-div)
-(g/defhandler :invert [differential?] #(diff-div 1 %))
-(g/defhandler :square [differential?] #(diff-* % %))
-(g/defhandler :sin    [differential?] sine)
-(g/defhandler :cos    [differential?] cosine)
 (g/defhandler :sqrt   [differential?] sqrt)
 (g/defhandler :**     [differential? (complement differential?)] power)
 (g/defhandler :∂      [#(or (ifn? %) (struct/structure? %))

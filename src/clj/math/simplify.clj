@@ -19,7 +19,6 @@
             [math.poly :as poly]
             [math.value :as v]
             [math.generic :as g]
-            [math.expression :as x]
             [math.rules :as rules]
             [pattern.rule :as rule])
   (:import (math.expression Expression))

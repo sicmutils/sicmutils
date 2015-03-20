@@ -18,7 +18,8 @@
   (:require [math.value :as v]
             [math.generic :as g]
             [math.expression :as x]
-            [clojure.math.numeric-tower :as nt]))
+            [clojure.math.numeric-tower :as nt])
+  (:import (clojure.lang Symbol)))
 
 (declare symbolic-operator-table)
 (defn- numerical-expression
@@ -36,6 +37,9 @@
         (x/literal-number newexp))
       (throw (IllegalArgumentException.
               (str "unknown numeric operator " operator))))))
+
+(defn make-numsymb-expression-NEW [operator operands]
+  (->> operands (map numerical-expression) (apply operator) x/literal-number))
 
 (defmacro is-expression?
   "True if the expression is a form with symbol at its head."
@@ -66,6 +70,7 @@
         (sum? b) `(~'+ ~a ~@(operands b))
         :else `(~'+ ~a ~b)))
 
+;; XXX do we even need this anymore?
 (defn- add-n [& args]
   (reduce add 0 args))
 
@@ -75,6 +80,7 @@
         (number? b) (if (g/zero? b) a `(~'- ~a ~b))
         :else `(~'- ~a ~b)))
 
+;; XXX do we even need this anymore?
 (defn- sub-n [& args]
   (cond (nil? args) 0
         (nil? (next args)) (g/negate (first args))
@@ -122,7 +128,7 @@
 (def ^:private relative-integer-tolerance (* 100 v/machine-epsilon))
 (def ^:private absolute-integer-tolerance 1e-20)
 
-(defn- almost-integer? [x] ;; XXX make this private
+(defn- almost-integer? [x]
   (or (integer? x)
       (and (float? x)
            (let [x (double x)
@@ -255,6 +261,33 @@
                           :else `(~'expt ~b ~e))
         :else `(~'expt ~b ~e)
         ))
+
+(defn- define-binary-operation
+  [generic-operation symbolic-operation]
+  (defmethod generic-operation [:math.expression/numerical-expression
+                                :math.expression/numerical-expression]
+    [a b]
+    (make-numsymb-expression-NEW symbolic-operation [a b])))
+
+(defn- define-unary-operation
+  [generic-operation symbolic-operation]
+  (defmethod generic-operation :math.expression/numerical-expression
+    [a]
+    (make-numsymb-expression-NEW symbolic-operation [a])))
+
+(derive Symbol :math.expression/numerical-expression)
+(derive Number :math.expression/numerical-expression)
+
+(define-binary-operation g/add add)
+(define-binary-operation g/sub sub)
+(define-binary-operation g/mul mul)
+(define-binary-operation g/div div)
+(define-unary-operation g/negate #(sub 0 %))
+(define-unary-operation g/invert #(div 1 %))
+(define-unary-operation g/sin sine)
+(define-unary-operation g/cos cosine)
+(define-unary-operation g/tan tangent)
+(define-unary-operation g/square #(expt % 2))
 
 (def ^:private g-symbolic-operator-table
   {'+ :+

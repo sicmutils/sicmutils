@@ -17,9 +17,10 @@
 (ns math.numbers
   (:refer-clojure :rename {zero? core-zero?
                            + core-+
-                           - core--})
+                           - core--
+                           * core-*
+                           / core-div})
   (:require [math.generic :as g]
-            [math.value :as v]
             [math.numsymb :as ns]
             [clojure.math.numeric-tower :as nt]))
 
@@ -45,28 +46,28 @@
   (g/defhandler key [number?] operation)
   (g/defhandler key [g/abstract-number?] (make-numerical-combination key)))
 
-(defmethod g/tan java.lang.Number [a] (Math/tan a))
-(defmethod g/tan :math.expression/numerical-expression [a] (ns/make-numsymb-expression :tan [a]))
-(defmethod g/add [java.lang.Number java.lang.Number] [a b] (core-+ a b))
-(defmethod g/add [:math.expression/numerical-expression
-                  :math.expression/numerical-expression] [a b] (ns/make-numsymb-expression :+ [a b]))
-(defmethod g/sub [java.lang.Number java.lang.Number] [a b] (core-- a b))
-(defmethod g/sub [:math.expression/numerical-expression
-                  :math.expression/numerical-expression] [a b] (ns/make-numsymb-expression :- [a b]))
-(defmethod g/negate java.lang.Number [a] (core-- a))
-(defmethod g/negate :math.expression/numerical-expression [a] (ns/make-numsymb-expression :negate [a]))
-(derive clojure.lang.Symbol :math.expression/numerical-expression)
-(derive java.lang.Number :math.expression/numerical-expression)
+(defn- define-binary-operation
+  [generic-operation core-operation]
+  (defmethod generic-operation [Number Number] [a b] (core-operation a b)))
 
-(make-binary-operation :* * true)
-(make-binary-operation :div / false)
+(defn define-unary-operation
+  [generic-operation core-operation]
+  (defmethod generic-operation Number [a] (core-operation a)))
+
+(define-binary-operation g/add core-+)
+(define-binary-operation g/sub core--)
+(define-binary-operation g/mul core-*)
+(define-binary-operation g/div core-div)
+(define-unary-operation g/negate core--)
+(define-unary-operation g/invert core-div)
+(define-unary-operation g/sin #(Math/sin %))
+(define-unary-operation g/cos #(Math/cos %))
+(define-unary-operation g/tan #(Math/tan %))
+(define-unary-operation g/square #(core-* % %))
+
 (make-binary-operation :** nt/expt false)
-(make-unary-operation :sin #(Math/sin %))
-(make-unary-operation :cos #(Math/cos %))
-(make-unary-operation :square #(* % %))
-(make-unary-operation :cube #(* % % %))
+(make-unary-operation :cube #(core-* % % %))
 (make-unary-operation :abs nt/abs)
-(make-unary-operation :invert /)
 (make-unary-operation :sqrt nt/sqrt)
 (make-unary-operation :log #(Math/log %))
 (make-unary-operation :exp #(Math/exp %))

@@ -30,7 +30,7 @@
           integrator (GraggBulirschStoerIntegrator. 0. 1. (double ε) (double ε))
           equations (proxy [FirstOrderDifferentialEquations] []
                       (computeDerivatives
-                        [t ^doubles y ^doubles out]
+                        [_ ^doubles y ^doubles out]
                         (let [y' (doubles (-> y array->state d:dt state->array))]
                           (System/arraycopy y' 0 out 0 (alength y'))))
                       (getDimension [] dimension))

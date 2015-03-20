@@ -15,7 +15,7 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
 (ns math.poly
-  (:import (clojure.lang PersistentTreeMap IFn))
+  (:import (clojure.lang PersistentTreeMap))
   (:require [clojure.set :as set]
             [math.value :as v]
             [math.euclid :refer :all]
@@ -198,7 +198,7 @@
                     (let [good-terms (->> remainder
                                           :xs->c rseq
                                           (map (fn [[xs c]] [(map - xs vn-exponents) c]))
-                                          (filter (fn [[residues c]]
+                                          (filter (fn [[residues _]]
                                                     (and (not-empty residues) (every? (complement neg?) residues)))))]
                       (if-let [[residues coefficient] (first good-terms)]
                         (let [new-coefficient (g/divide coefficient vn-coefficient)

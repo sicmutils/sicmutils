@@ -55,6 +55,7 @@
       (abstract-number? x)
       (v/numerical? x)))
 
+;; XXX do we need this?
 (defn scalar? [s]
   (or (numerical-quantity? s)
       (not (or (ifn? s)
@@ -116,14 +117,8 @@
                               " will work for " args "\n" (count args) "\n" (apply list (map type args)) "\n" )))))
     {:arity arity}))
 
-(def ^:private mul (make-operation :* 2))
-(def ^:private div (make-operation :div 2))
 
 (def expt (make-operation :** 2))
-(def invert (make-operation :invert 1))
-(def sin (make-operation :sin 1))
-(def cos (make-operation :cos 1))
-(def square (make-operation :square 1))
 (def cube (make-operation :cube 1))
 (def abs (make-operation :abs 1))
 (def sqrt (make-operation :sqrt 1))
@@ -134,8 +129,14 @@
 
 (defmulti add v/argument-kind)
 (defmulti sub v/argument-kind)
+(defmulti mul v/argument-kind)
+(defmulti div v/argument-kind)
+(defmulti sin v/argument-kind)
+(defmulti cos v/argument-kind)
 (defmulti tan v/argument-kind)
+(defmulti invert v/argument-kind)
 (defmulti negate v/argument-kind)
+(defmulti square v/argument-kind)
 
 (defn- sort-key
   [x]

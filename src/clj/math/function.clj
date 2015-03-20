@@ -23,7 +23,7 @@
             [math.generic :as g])
   (:import [math.structure Struct]
            [math.operator Operator]
-           (clojure.lang IFn AFn)))
+           (clojure.lang IFn)))
 
 (declare literal-apply)
 
@@ -57,6 +57,7 @@
        (not (symbol? x))
        (not (vector? x))))
 
+;; XXX needed?
 (defn- cofunction?
   "True if f may be combined with a function."
   [f]
@@ -94,35 +95,40 @@
                               {:arity f-arity}))))
     {:arity 2}))
 
-(g/defhandler :invert [function?] (unary-operation g/invert))
 (g/defhandler :sqrt   [function?] (unary-operation g/sqrt))
 (g/defhandler :square [function?] (unary-operation g/square))
 (g/defhandler :abs    [function?] (unary-operation g/abs))
 (g/defhandler :exp    [function?] (unary-operation g/exp))
 (g/defhandler :log    [function?] (unary-operation g/log))
-(g/defhandler :sin    [function?] (unary-operation g/sin))
-(g/defhandler :cos    [function?] (unary-operation g/cos))
 ;; TODO asin acos sinh cosh ...
 
-;; XXX (g/defhandler :+      [function? cofunction?] (binary-operation g/+))
-;; XXX (g/defhandler :+      [cofunction? function?] (binary-operation g/+))
 (def ^:private add (binary-operation g/+))
 (def ^:private sub (binary-operation g/-))
+(def ^:private mul (binary-operation g/*))
+(def ^:private div (binary-operation g/divide))
 (def ^:private negate (unary-operation g/-))
-(defmethod g/add [::function ::function] [a b] (add a b))
-(defmethod g/add [::function ::cofunction] [a b] (add a b))
-(defmethod g/add [::cofunction ::function] [a b] (add a b))
-(defmethod g/sub [::function ::function] [a b] (sub a b))
-(defmethod g/sub [::function ::cofunction] [a b] (sub a b))
-(defmethod g/sub [::cofunction ::function] [a b] (sub a b))
+(def ^:private invert (unary-operation g/divide))
+(def ^:private sin (unary-operation g/-))
+(def ^:private cos (unary-operation g/-))
+(def ^:private tan (unary-operation g/-))
+
+(defn- define-binary-operation
+  [generic-operation function-operation]
+  (doseq [signature [[::function ::function]
+                     [::function ::cofunction]
+                     [::cofunction ::function]]]
+    (defmethod generic-operation signature [a b] (function-operation a b))))
+
+(define-binary-operation g/add add)
+(define-binary-operation g/sub sub)
+(define-binary-operation g/mul mul)
+(define-binary-operation g/div div)
+
 (defmethod g/negate ::function [a] (negate a))
-(derive java.lang.Number ::cofunction)
+(defmethod g/invert ::function [a] (invert a))
+(derive :math.expression/numerical-expression ::cofunction)
 (derive :math.value/function ::function)
 
-(g/defhandler :*      [function? cofunction?] (binary-operation g/*))
-(g/defhandler :*      [cofunction? function?] (binary-operation g/*))
-(g/defhandler :div    [function? cofunction?] (binary-operation g/divide))
-(g/defhandler :div    [cofunction? function?] (binary-operation g/divide))
 (g/defhandler :**     [function? cofunction?] (binary-operation g/expt))
 (g/defhandler :**     [cofunction? function?] (binary-operation g/expt))
 
@@ -182,7 +188,6 @@
 
 (defn- literal-derivative
   [f xs]
-  ;(prn "lit-derv" f xs)
   (let [v (s/seq-> xs)
         maxtag (->> v flatten d/max-order-tag)
         ve (->> v (s/mapr #(d/without-tag maxtag %)) seq)

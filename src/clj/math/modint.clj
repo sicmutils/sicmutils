@@ -51,12 +51,13 @@
 
 (def ^:private add (modular-binop +))
 (def ^:private sub (modular-binop -))
+(def ^:private mul (modular-binop *))
+
 (defmethod g/add [::modint ::modint] [a b] (add a b))
-(defmethod g/add [java.lang.Long ::modint] [a b] (make (+ a (:i b)) (:m b)))
+(defmethod g/add [Long ::modint] [a b] (make (+ a (:i b)) (:m b)))
+(defmethod g/mul [::modint ::modint] [a b] (mul a b))
 (defmethod g/sub [::modint ::modint] [a b] (sub a b))
 (defmethod g/negate ::modint [a] (make (- (:i a)) (:m a)))
-(g/defhandler :* [modint? modint?] (modular-binop *))
-(g/defhandler :invert [modint?] modular-inv)
-
+(defmethod g/invert ::modint [a] (modular-inv a))
 
 (println "modint initialized")

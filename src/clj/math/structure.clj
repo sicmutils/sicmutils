@@ -18,7 +18,6 @@
 (ns math.structure
   (:import (clojure.lang Sequential Seqable IFn AFn Counted))
   (:require [math.value :as v]
-            [math.expression :as x]
             [math.generic :as g]))
 
 (declare make)
@@ -78,9 +77,6 @@
   (or (instance? Struct s)
       (vector? s)
       (list? s)))
-
-(defn- down? [^Struct s]
-  (and (instance? Struct s) (= (.orientation s) ::down)))
 
 (defn- up? [^Struct s]
   (or (vector? s)
@@ -288,26 +284,25 @@
               [(rest values) (first values)]))]
     (second (u values struct))))
 
-;; XXX (g/defhandler :+        [down? down?]           (partial elementwise g/+))
-;; XXX (g/defhandler :+        [up? up?]               (partial elementwise g/+))
-
 (defmethod g/add [::down ::down] [a b] (elementwise g/+ a b))
 (defmethod g/add [::up ::up] [a b] (elementwise g/+ a b))
 (defmethod g/sub [::down ::down] [a b] (elementwise g/- a b))
 (defmethod g/sub [::up ::up] [a b] (elementwise g/- a b))
 (derive ::up ::structure)
 (derive ::down ::structure)
+(derive clojure.lang.PersistentVector ::up)
+(defmethod g/mul [::structure ::structure] [a b] (mul a b))
+(defmethod g/mul [:math.expression/numerical-expression ::structure] [a b] (outer-product a b))
+(defmethod g/mul [::structure :math.calculus.derivative/differential] [a b] (outer-product b a))
+(defmethod g/mul [::structure :math.expression/numerical-expression] [a b] (outer-product b a))
+(defmethod g/div [::structure :math.expression/numerical-expression] [a b] (outer-product (g/invert b) a))
+(defmethod g/div [::structure ::structure] [a b] (mul (invert b) a))
 (defmethod g/negate ::structure [a] (same a (mapv g/negate a)))
+(defmethod g/invert ::structure [a] (invert a))
+(defmethod g/square ::structure [a] (inner-product a a))
 
-(g/defhandler :*        [g/scalar? structure?]  outer-product)
-(g/defhandler :*        [structure? g/scalar?]  #(outer-product %2 %1))
-(g/defhandler :div      [structure? g/scalar?]  #(outer-product (g/invert %2) %1))
-(g/defhandler :div      [structure? structure?] #(mul (invert %2) %1))
-(g/defhandler :invert   [structure?]            invert)
-(g/defhandler :*        [structure? structure?] mul)
 (g/defhandler :**       [structure? integer?]   expt)
 (g/defhandler :simplify [structure?]            #(mapr g/simplify %))
-(g/defhandler :square   [structure?]            #(inner-product % %))
 (g/defhandler :cube     [structure?]            #(g/* % % %))
 
 (println "struct initialized")

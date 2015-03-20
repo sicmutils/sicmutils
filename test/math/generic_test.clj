@@ -62,9 +62,11 @@
   (unity? [_] false)
   (zero-like [_] "")
   (sort-key [_] 25)
-  (compound? [_] false))
+  (compound? [_] false)
+  (kind [_] (class "")))
 
-(defhandler :* [number? string?] multiply-string)
+(defhandler :s* [number? string?] multiply-string)
+(defhandler :s* [string? number?] #(multiply-string %2 %1))
 (defhandler :s* [string? string?] product-string)
 (defhandler :s+ [string? string?] str)
 
@@ -77,13 +79,12 @@
     (is (= "" (multiply-string 0 "bar")))
     (is (= "" (multiply-string -2 "bar")))
     (is (= "barbarbar" (let [args [3 "bar"]
-                             h (findhandler :* args)]
+                             h (findhandler :s* args)]
                          (apply h args)))))
   (testing "mul"
-    (is (= "bazbaz" (* 2 "baz")))
-    (is (= "quxquxqux" (* 3 "qux")))
-    (is (= "quxquxqux"
-                 (* "qux" 3)))
+    (is (= "bazbaz" (s* 2 "baz")))
+    (is (= "quxquxqux" (s* 3 "qux")))
+    (is (= "quxquxqux" (s* "qux" 3)))
     (is (= "cecrcicnoeoroionlelrlilnieiriiinnenrninn" (s* "colin" "erin")))
     (is (= "eceoeleienrcrorlrirnicioiliiinncnonlninn" (s* "erin" "colin"))))
   (testing "add"
