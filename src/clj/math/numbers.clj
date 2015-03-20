@@ -33,15 +33,6 @@
                                      (reverse operands)
                                      operands)))))
 
-(defn- make-binary-operation [key operation commutative?]
-  (g/defhandler key [number? number?] operation)
-  (g/defhandler key [g/abstract-number? g/abstract-number?]
-    (make-numerical-combination key))
-  (g/defhandler key [number? g/abstract-number?]
-    (make-numerical-combination key))
-  (g/defhandler key [g/abstract-number? number?]
-    (make-numerical-combination key commutative?)))
-
 (defn- make-unary-operation [key operation]
   (g/defhandler key [number?] operation)
   (g/defhandler key [g/abstract-number?] (make-numerical-combination key)))
@@ -58,6 +49,7 @@
 (define-binary-operation g/sub core--)
 (define-binary-operation g/mul core-*)
 (define-binary-operation g/div core-div)
+(define-binary-operation g/expt nt/expt)
 (define-unary-operation g/negate core--)
 (define-unary-operation g/invert core-div)
 (define-unary-operation g/sin #(Math/sin %))
@@ -65,7 +57,6 @@
 (define-unary-operation g/tan #(Math/tan %))
 (define-unary-operation g/square #(core-* % %))
 
-(make-binary-operation :** nt/expt false)
 (make-unary-operation :cube #(core-* % % %))
 (make-unary-operation :abs nt/abs)
 (make-unary-operation :sqrt nt/sqrt)

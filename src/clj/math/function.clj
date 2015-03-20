@@ -106,6 +106,7 @@
 (def ^:private sub (binary-operation g/-))
 (def ^:private mul (binary-operation g/*))
 (def ^:private div (binary-operation g/divide))
+(def ^:private expt (binary-operation g/expt))
 (def ^:private negate (unary-operation g/-))
 (def ^:private invert (unary-operation g/divide))
 (def ^:private sin (unary-operation g/-))
@@ -123,14 +124,12 @@
 (define-binary-operation g/sub sub)
 (define-binary-operation g/mul mul)
 (define-binary-operation g/div div)
+(define-binary-operation g/expt expt)
 
 (defmethod g/negate ::function [a] (negate a))
 (defmethod g/invert ::function [a] (invert a))
 (derive :math.expression/numerical-expression ::cofunction)
 (derive :math.value/function ::function)
-
-(g/defhandler :**     [function? cofunction?] (binary-operation g/expt))
-(g/defhandler :**     [cofunction? function?] (binary-operation g/expt))
 
 ;; ------------------------------------
 ;; Differentiation of literal functions

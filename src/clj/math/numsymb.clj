@@ -282,6 +282,7 @@
 (define-binary-operation g/sub sub)
 (define-binary-operation g/mul mul)
 (define-binary-operation g/div div)
+(define-binary-operation g/expt expt)
 (define-unary-operation g/negate #(sub 0 %))
 (define-unary-operation g/invert #(div 1 %))
 (define-unary-operation g/sin sine)

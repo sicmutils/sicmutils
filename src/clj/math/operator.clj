@@ -23,6 +23,7 @@
   v/Value
   (sort-key [_] 45)
   (freeze [o] (.name o))
+  (kind [_] ::operator)
   IFn
   (invoke [operator function]
     ((:f operator) function)))
@@ -31,6 +32,7 @@
   [f name]
   (Operator. f 1 name))
 
+;; XXX needed?
 (defn operator?
   [x]
   (instance? Operator x))
@@ -42,7 +44,8 @@
               ; TODO: why can't we just write (operator (expt operator (dec n))) here?
               ))
 
+(defmethod g/expt [::operator Number] [o n] (expt o n))
+
 (g/defhandler :simplify [operator?] #(-> % :name g/simplify))
-(g/defhandler :** [operator? integer?] expt)
 
 (println "operator initialized")

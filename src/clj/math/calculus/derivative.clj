@@ -375,16 +375,15 @@
   [generic-operation differential-operation]
   (doseq [signature [[::differential ::differential]
                      [:math.expression/numerical-expression ::differential]
-                     ;[:math.structure/structure ::differential]
                      [::differential :math.structure/structure]
-                     [::differential :math.expression/numerical-expression]
-                     ]
-          ]
+                     [::differential :math.expression/numerical-expression]]]
     (defmethod generic-operation signature [a b] (differential-operation a b))))
 
 (defn- define-unary-operation
   [generic-operation differential-operation]
   (defmethod generic-operation ::differential [a] (differential-operation a)))
+
+(defmethod g/expt [::differential Number] [d n] (power d n))
 
 (define-binary-operation g/add diff-+)
 (define-binary-operation g/sub diff--)
@@ -400,7 +399,6 @@
 
 
 (g/defhandler :sqrt   [differential?] sqrt)
-(g/defhandler :**     [differential? (complement differential?)] power)
 (g/defhandler :∂      [#(or (ifn? %) (struct/structure? %))
                        (constantly true)] multivariate-derivative)
 

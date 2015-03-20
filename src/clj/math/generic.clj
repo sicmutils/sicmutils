@@ -118,7 +118,6 @@
     {:arity arity}))
 
 
-(def expt (make-operation :** 2))
 (def cube (make-operation :cube 1))
 (def abs (make-operation :abs 1))
 (def sqrt (make-operation :sqrt 1))
@@ -134,6 +133,7 @@
 (defmulti sin v/argument-kind)
 (defmulti cos v/argument-kind)
 (defmulti tan v/argument-kind)
+(defmulti expt v/argument-kind)
 (defmulti invert v/argument-kind)
 (defmulti negate v/argument-kind)
 (defmulti square v/argument-kind)

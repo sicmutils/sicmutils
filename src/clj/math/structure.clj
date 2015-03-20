@@ -297,11 +297,11 @@
 (defmethod g/mul [::structure :math.expression/numerical-expression] [a b] (outer-product b a))
 (defmethod g/div [::structure :math.expression/numerical-expression] [a b] (outer-product (g/invert b) a))
 (defmethod g/div [::structure ::structure] [a b] (mul (invert b) a))
+(defmethod g/expt [::structure Long] [a b] (expt a b))
 (defmethod g/negate ::structure [a] (same a (mapv g/negate a)))
 (defmethod g/invert ::structure [a] (invert a))
 (defmethod g/square ::structure [a] (inner-product a a))
 
-(g/defhandler :**       [structure? integer?]   expt)
 (g/defhandler :simplify [structure?]            #(mapr g/simplify %))
 (g/defhandler :cube     [structure?]            #(g/* % % %))
 
