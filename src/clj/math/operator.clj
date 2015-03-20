@@ -45,7 +45,7 @@
               ))
 
 (defmethod g/expt [::operator Number] [o n] (expt o n))
+(defmethod g/simplify ::operator [o] (-> o :name g/simplify))
 
-(g/defhandler :simplify [operator?] #(-> % :name g/simplify))
 
 (println "operator initialized")

@@ -75,7 +75,9 @@
 
 (defn argument-kind
   [a & as]
-  (if (some? as) (mapv kind (cons a as)) (kind a)))
+  (cond (some? as) (mapv kind (cons a as))
+        (nil? a) nil
+        :else (kind a)))
 
 (def machine-epsilon
   (loop [e 1.0]

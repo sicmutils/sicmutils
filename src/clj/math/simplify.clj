@@ -174,10 +174,12 @@
 
 (def simplify-expression (simplify-until-stable simplify-expression-1 simplify-and-flatten))
 
-(doseq [predicate [number? symbol? nil? fn?]]
-  (g/defhandler :simplify [predicate] identity))
+(defmethod g/simplify :math.expression/numerical-expression [a] (-> a v/freeze simplify-expression))
+(defmethod g/simplify java.lang.Number [a] a)
+(defmethod g/simplify clojure.lang.Symbol [a] a)
+(defmethod g/simplify nil [a] a)
+(defmethod g/simplify :math.function/function [a] a)
+(defmethod g/simplify clojure.lang.Var [a] (-> a meta :name))
 
-(g/defhandler :simplify [#(instance? Expression %)] #(-> % v/freeze simplify-expression))
-(g/defhandler :simplify [var?] #(-> % meta :name))
 
 (println "simplify initialized")

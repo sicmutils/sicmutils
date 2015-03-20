@@ -302,8 +302,6 @@
 (defmethod g/invert ::structure [a] (invert a))
 (defmethod g/square ::structure [a] (inner-product a a))
 (defmethod g/cube ::structure [a] (mul a (mul a a)))
-
-(g/defhandler :simplify [structure?]            #(mapr g/simplify %))
-
+(defmethod g/simplify ::structure [a] (mapr g/simplify a))
 
 (println "struct initialized")

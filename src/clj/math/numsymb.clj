@@ -21,7 +21,6 @@
             [clojure.math.numeric-tower :as nt])
   (:import (clojure.lang Symbol)))
 
-(declare symbolic-operator-table)
 (defn- numerical-expression
   [expr]
   (cond (number? expr) expr
@@ -29,16 +28,7 @@
         (g/literal-number? expr) (:expression expr)
         :else (throw (IllegalArgumentException. (str "unknown numerical expression type " expr)))))
 
-(defn make-numsymb-expression [operator operands]
-  (let [operand-exprs (map numerical-expression operands)
-        v (operator symbolic-operator-table)]
-    (if v
-      (let [newexp (apply v operand-exprs)]
-        (x/literal-number newexp))
-      (throw (IllegalArgumentException.
-              (str "unknown numeric operator " operator))))))
-
-(defn make-numsymb-expression-NEW [operator operands]
+(defn- make-numsymb-expression [operator operands]
   (->> operands (map numerical-expression) (apply operator) x/literal-number))
 
 (defmacro is-expression?
@@ -267,13 +257,13 @@
   (defmethod generic-operation [:math.expression/numerical-expression
                                 :math.expression/numerical-expression]
     [a b]
-    (make-numsymb-expression-NEW symbolic-operation [a b])))
+    (make-numsymb-expression symbolic-operation [a b])))
 
 (defn- define-unary-operation
   [generic-operation symbolic-operation]
   (defmethod generic-operation :math.expression/numerical-expression
     [a]
-    (make-numsymb-expression-NEW symbolic-operation [a])))
+    (make-numsymb-expression symbolic-operation [a])))
 
 (derive Symbol :math.expression/numerical-expression)
 (derive Number :math.expression/numerical-expression)
@@ -294,23 +284,23 @@
 (define-unary-operation g/abs abs)
 (define-unary-operation g/log log)
 
-(def ^:private g-symbolic-operator-table
-  {'+ :+
-   '- :-
-   '* :*
-   '/ :div
-   'negate :negate
-   'invert :invert
-   'sin :sin
-   'cos :cos
-   'tan :tan
-   'cube :cube
-   'square :square
-   'abs :abs
-   'sqrt :sqrt
-   'log :log
-   'exp :exp
-   'expt :**})
+(def ^:private symbolic-operator-table
+  {'+ add-n
+   '- sub-n
+   '* mul-n
+   '/ div-n
+   'negate #(sub 0 %)
+   'invert #(div 1 %)
+   'sin sine
+   'cos cosine
+   'tan tangent
+   'cube #(expt % 3)
+   'square #(expt % 2)
+   'abs abs
+   'sqrt sqrt
+   'log log
+   'exp exp
+   'expt expt})
 
 ;; TODO: We learn at long last why using keywords instead of symbols was going
 ;; to wind up annoying us. (We chose them to kind of escape the symbol namespacing,
@@ -321,24 +311,6 @@
   "Given a symbol (like '+) returns an applicable if there is a corresponding
   symbolic operator construction available."
   [s]
-  (-> s g-symbolic-operator-table symbolic-operator-table))
-
-(def ^:private symbolic-operator-table
-  {:+ add-n
-   :- sub-n
-   :* mul-n
-   :div div-n
-   :negate #(sub 0 %)
-   :invert #(div 1 %)
-   :sin sine
-   :cos cosine
-   :tan tangent
-   :cube #(expt % 3)
-   :square #(expt % 2)
-   :abs abs
-   :sqrt sqrt
-   :log log
-   :exp exp
-   :** expt})
+  (symbolic-operator-table s))
 
 (println "numsymb initialized")

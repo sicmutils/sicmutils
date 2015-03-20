@@ -396,9 +396,14 @@
 (define-unary-operation g/invert #(diff-div 1 %))
 (define-unary-operation g/square #(diff-* % %))
 (derive ::differential :math.function/cofunction)
-
-(g/defhandler :∂      [#(or (ifn? %) (struct/structure? %))
-                       (constantly true)] multivariate-derivative)
+(defmethod g/partial-derivative
+  [:math.function/function clojure.lang.Sequential]
+  [f selectors]
+  (multivariate-derivative f selectors))
+(defmethod g/partial-derivative
+  [:math.structure/structure clojure.lang.Sequential]
+  [f selectors]
+  (multivariate-derivative f selectors))
 
 (def D
   (o/make-operator #(g/partial-derivative % []) :derivative))

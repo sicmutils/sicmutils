@@ -136,6 +136,7 @@
 (defmethod g/abs    ::function [a] (abs a))
 (defmethod g/exp    ::function [a] (exp a))
 (defmethod g/log    ::function [a] (log a))
+(defmethod g/simplify Function [a] (-> a :expr g/simplify))
 
 ;; TODO asin acos sinh cosh ...
 (derive :math.expression/numerical-expression ::cofunction)
@@ -231,6 +232,5 @@
   `(let ~(vec (interleave litfns (map (fn [s] `(literal-function (quote ~s))) litfns)))
      ~@body))
 
-(g/defhandler :simplify [#(instance? Function %)] #(-> % :expr g/simplify))
 
 (println "function initialized")

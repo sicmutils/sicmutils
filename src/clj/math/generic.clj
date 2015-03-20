@@ -62,65 +62,6 @@
                (v/compound? s)
                ))))
 
-;; or how about something like
-;; (assoc (assoc-in dtree (mapcat (fn [x] [:step x]) p))
-
-(def empty-dtree {:steps {} :stop nil})
-(defonce ^:private the-operator-table (atom {}))
-
-(defn dtree-insert [{:keys [steps stop] :as dtree} op [predicate & predicates]]
-  (if predicate
-    ;; if there is another predicate, the next dtree is either the one
-    ;; that governs this predicate at this stage, or a new empty one.
-    (let [next-dtree (or (steps predicate) empty-dtree)]
-      ;; augment the binding at this level
-      (assoc dtree :steps
-             (assoc steps predicate (dtree-insert next-dtree op predicates))))
-    ;; no more predicates? store the current stop function.
-    (do
-      (if stop (prn "overwriting a binding!!" stop op dtree))
-      (assoc dtree :stop op))))
-
-(defn dtree-lookup [{:keys [steps stop]} operator [& arguments]]
-  (if (some? arguments)
-    ;; take a step: that means finding a predicate that matches at
-    ;; this step and seeing if the subordinate dtree also matches. The
-    ;; first step that matches this pair of conditions is chosen.
-    (let [candidate-functions (filter identity
-                                    (map (fn [[step dtree]]
-                                           (and (step (first arguments))
-                                                (dtree-lookup dtree operator (next arguments)))) steps))
-          candidate-fnset (set candidate-functions)]
-      #_(if (> (count candidate-fnset) 1)
-        (prn "more than one choice for" operator arguments))
-      (first candidate-functions))
-    ;; otherwise we stop here.
-    stop))
-
-(defn defhandler [operator predicates f]
-  (swap! the-operator-table
-         (fn [operator-table]
-           (let [dtree (get operator-table operator empty-dtree)]
-             (assoc operator-table operator
-                    (dtree-insert dtree f predicates))))))
-
-(defn findhandler [operator arguments]
-  (if-let [dtree (@the-operator-table operator)]
-    (dtree-lookup dtree operator arguments)))
-
-(defn make-operation [operator arity]
-  (with-meta (fn [& args]
-               (if-let [h (findhandler operator args)]
-                 (apply h args)
-                 (throw (IllegalArgumentException.
-                         (str "no variant of " operator
-                              " will work for " args "\n" (count args) "\n" (apply list (map type args)) "\n" )))))
-    {:arity arity}))
-
-
-(def partial-derivative (make-operation :∂ 2))
-(def simplify (make-operation :simplify 1))
-
 (defmacro define-operations
   [& ops]
   `(do ~@(map (fn [o] `(defmulti ~o v/argument-kind)) ops)))
@@ -128,7 +69,10 @@
 (define-operations
   add sub mul div invert negate square cube expt
   exp log abs sqrt
-  sin cos tan)
+  sin cos tan
+  partial-derivative
+  simplify
+  )
 
 (defn- sort-key
   [x]

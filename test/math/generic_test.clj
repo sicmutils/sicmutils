@@ -20,33 +20,8 @@
             [math.value :as v]
             [math.generic :refer :all]))
 
-(def T1 (dtree-insert
-         (dtree-insert
-          (dtree-insert empty-dtree :op1 [:p1 :p2])
-          :op2 [:p2 :p1])
-         :op3 [:p2 :p1 :p3]))
-
-(deftest dtree-1
-  (testing "lookup"
-    (is (= :op1 (dtree-lookup T1 :op [#{:p1} #{:p2}])))
-    (is (= :op2 (dtree-lookup T1 :op [#{:p2} #{:p1}])))
-    (is (= :op3 (dtree-lookup T1 :op [#{:p2} #{:p1} #{:p3}])))
-    (is (not (dtree-lookup T1 :op [#{:p2} #{:p1} #{:p3} #{:p1}])))
-    (is (not (dtree-lookup T1 :op [])))
-    (is (not (dtree-lookup T1 :op [#{:p2}#{:p2}])))))
-
-(defhandler :y [integer? integer?] :intint)
-(defhandler :y [integer? float?]   :intfloat)
-(defhandler :y [string? string?]   :strstr)
-(defhandler :z [number? string?]   :numstr)
-
-(deftest handler-map
-  (testing "lookup"
-    (is (= :intint (findhandler :y [1 1])))
-    (is (not (findhandler :y [1 "2"])))
-    (is (= :intfloat (findhandler :y [1 3.13])))
-    (is (= :numstr (findhandler :z [1e10, "baz"])))
-    (is (not (findhandler :y [1e10, "baz"])))))
+(defmulti s* v/argument-kind)
+(defmulti s+ v/argument-kind)
 
 (defn multiply-string
   [n s]
@@ -56,31 +31,16 @@
   [s t]
   (apply str(for [cs s ct t] (str cs ct))))
 
-(extend-protocol v/Value
-  String
-  (nullity? [s] (= s ""))
-  (unity? [_] false)
-  (zero-like [_] "")
-  (sort-key [_] 25)
-  (compound? [_] false)
-  (kind [_] (class "")))
-
-(defhandler :s* [number? string?] multiply-string)
-(defhandler :s* [string? number?] #(multiply-string %2 %1))
-(defhandler :s* [string? string?] product-string)
-(defhandler :s+ [string? string?] str)
-
-(def s+ (make-operation :s+ 2))
-(def s* (make-operation :s* 2))
+(defmethod s* [java.lang.Number java.lang.String] [n s] (multiply-string n s))
+(defmethod s* [java.lang.String java.lang.Number] [s n] (multiply-string n s))
+(defmethod s* [java.lang.String java.lang.String] [s t] (product-string s t))
+(defmethod s+ [java.lang.String java.lang.String] [s t] (str s t))
 
 (deftest handler-fn
   (testing "multiply-string"
     (is (= "foofoofoo" (multiply-string 3 "foo")))
     (is (= "" (multiply-string 0 "bar")))
-    (is (= "" (multiply-string -2 "bar")))
-    (is (= "barbarbar" (let [args [3 "bar"]
-                             h (findhandler :s* args)]
-                         (apply h args)))))
+    (is (= "" (multiply-string -2 "bar"))))
   (testing "mul"
     (is (= "bazbaz" (s* 2 "baz")))
     (is (= "quxquxqux" (s* 3 "qux")))

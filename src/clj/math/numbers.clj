@@ -24,19 +24,6 @@
             [math.numsymb :as ns]
             [clojure.math.numeric-tower :as nt]))
 
-(defn- make-numerical-combination
-  ([operator] (make-numerical-combination operator false))
-  ([operator commutative?]
-     (fn [& operands]
-       (ns/make-numsymb-expression operator
-                                   (if commutative?
-                                     (reverse operands)
-                                     operands)))))
-
-(defn- make-unary-operation [key operation]
-  (g/defhandler key [number?] operation)
-  (g/defhandler key [g/abstract-number?] (make-numerical-combination key)))
-
 (defn- define-binary-operation
   [generic-operation core-operation]
   (defmethod generic-operation [Number Number] [a b] (core-operation a b)))
