@@ -110,11 +110,11 @@
               (partition 2 generic-and-binary-ops))))
 
 (defmacro make-unary-operations
-  [& generic-and-unary-ops]
-  `(do ~@(map (fn [[generic-op unary-op]]
-                `(let [unop# (unary-operation ~unary-op)]
+  [& generic-ops]
+  `(do ~@(map (fn [generic-op]
+                `(let [unop# (unary-operation ~generic-op)]
                    (defmethod ~generic-op ::function [a#] (unop# a#))))
-              (partition 2 generic-and-unary-ops))))
+              generic-ops)))
 
 (make-binary-operations
  g/add g/+
@@ -124,16 +124,7 @@
  g/expt g/expt)
 
 (make-unary-operations
- g/negate g/-
- g/invert g/divide
- g/sqrt g/sqrt
- g/sin g/sin
- g/cos g/cos
- g/tan g/tan
- g/square g/square
- g/cube g/cube
- g/exp g/exp
- g/log g/log)
+ g/negate g/invert g/sqrt g/sin g/cos g/tan g/square g/cube g/exp g/log)
 ;; TODO asin acos sinh cosh ...
 
 (defmethod g/simplify Function [a] (-> a :expr g/simplify))
