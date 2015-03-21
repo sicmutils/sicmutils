@@ -71,6 +71,7 @@
   exp log abs sqrt
   sin cos tan
   partial-derivative
+  cross-product
   simplify
   )
 

@@ -129,6 +129,7 @@
 
 (defmethod g/simplify Function [a] (-> a :expr g/simplify))
 (derive :math.expression/numerical-expression ::cofunction)
+(derive :math.structure/structure ::cofunction)
 (derive :math.value/function ::function)
 
 ;; ------------------------------------

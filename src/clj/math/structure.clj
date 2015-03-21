@@ -228,6 +228,13 @@
                   (make-square d outer-orientation inner-orientation
                                #(-> C (nth %2) (nth %1) (g/divide Δ)))))))
 
+(defn- cross-product
+  [s t]
+  (when (or (not= (count s) 3) (not= (count t) 3))
+    (throw (IllegalArgumentException. "cross product only works on two elements of ^3")))
+  (let [[s0 s1 s2] s [t0 t1 t2] t]
+    (up (g/- (g/* s1 t2) (g/* t1 s2)) (g/- (g/* s2 t0) (g/* s0 t2)) (g/- (g/* s0 t1) (g/* t0 s1)))))
+
 (defn- make-identity-like
   "Produce a multiplicative identity with the same shape as the square structure s."
   [s]
@@ -288,6 +295,7 @@
 (defmethod g/add [::up ::up] [a b] (elementwise g/+ a b))
 (defmethod g/sub [::down ::down] [a b] (elementwise g/- a b))
 (defmethod g/sub [::up ::up] [a b] (elementwise g/- a b))
+(defmethod g/cross-product [::up ::up] [a b] (cross-product a b))
 (derive ::up ::structure)
 (derive ::down ::structure)
 (derive clojure.lang.PersistentVector ::up)

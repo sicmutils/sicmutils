@@ -240,9 +240,10 @@
   (fn [x]
     (let [[finite-part infinitesimal-part] (finite-and-infinitesimal-parts x)
           canonicalized-finite-part (canonicalize-differential finite-part)]
-      (dx+dy (f canonicalized-finite-part)
-             (dx*dy (df:dx canonicalized-finite-part)
-                    infinitesimal-part)))))
+      (canonicalize-differential
+       (dx+dy (f canonicalized-finite-part)
+              (dx*dy (df:dx canonicalized-finite-part)
+                     infinitesimal-part))))))
 
 ;; (defn max-order-tag [& ds]
 ;;   (last (apply set/union (map #(-> % differential->terms last :tags) ds))))

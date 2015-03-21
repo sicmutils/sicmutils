@@ -31,10 +31,10 @@
   [s t]
   (apply str(for [cs s ct t] (str cs ct))))
 
-(defmethod s* [java.lang.Number java.lang.String] [n s] (multiply-string n s))
-(defmethod s* [java.lang.String java.lang.Number] [s n] (multiply-string n s))
-(defmethod s* [java.lang.String java.lang.String] [s t] (product-string s t))
-(defmethod s+ [java.lang.String java.lang.String] [s t] (str s t))
+(defmethod s* [Number String] [n s] (multiply-string n s))
+(defmethod s* [String Number] [s n] (multiply-string n s))
+(defmethod s* [String String] [s t] (product-string s t))
+(defmethod s+ [String String] [s t] (str s t))
 
 (deftest handler-fn
   (testing "multiply-string"
@@ -62,5 +62,5 @@
 
 (deftest type-assigner
   (testing "types"
-    (is (= java.lang.Long (v/kind 9)))
-    (is (= java.lang.Double (v/kind 99.0)))))
+    (is (= Long (v/kind 9)))
+    (is (= Double (v/kind 99.0)))))

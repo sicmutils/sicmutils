@@ -22,6 +22,7 @@
             [math.function :refer :all]
             [math.numerical.integrate :refer :all]))
 
+(defn coordinate [local] (nth local 1))
 (defn velocity [local] (nth local 2))
 
 (defn L-free-particle [mass]
@@ -144,3 +145,40 @@
       (- (D state-path)
          (compose (Lagrangian->state-derivative L)
                state-path)))))
+
+(defn Lagrangian->energy
+  [L]
+  (let [P ((pd 2) L)]
+    (- (* P velocity) L)))
+
+(defn Rx
+  [angle]
+  (fn [[x y z]]
+    (prn "Rx" angle x y z)
+    (let [ca (cos angle)
+          sa (sin angle)]
+      (up x
+          (- (* ca y) (* sa z))
+          (+ (* sa y) (* ca z))))))
+
+(defn Ry
+  [angle]
+  (fn [[x y z]]
+    (let [ca (cos angle)
+          sa (sin angle)]
+      (up (+ (* ca x) (* sa z))
+          y
+          (- (* ca z) (* sa x))))))
+
+(defn Rz
+  [angle]
+  (fn [[x y z]]
+    (let [ca (cos angle)
+          sa (sin angle)]
+      (up (- (* ca x) (* sa y))
+          (+ (* sa x) (* ca y))
+          z))))
+
+(defn F-tilde
+  [angle-x angle-y angle-z]
+  (compose (Rx angle-x) (Ry angle-y) (Rz angle-z) coordinate))
