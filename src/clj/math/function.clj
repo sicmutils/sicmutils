@@ -95,50 +95,48 @@
                               {:arity f-arity}))))
     {:arity 2}))
 
+(defmacro make-binary-operations
+  "Given a sequence of alternating generic and binary operations,
+  define the multimethod necessary to introduce this operation
+  to function arguments."
+  [& generic-and-binary-ops]
+  `(do ~@(map (fn [[generic-op binary-op]]
+                `(let [binop# (binary-operation ~binary-op)]
+                   (doseq [signature# [[::function ::function]
+                                       [::function ::cofunction]
+                                       [::cofunction ::function]]]
+                     (defmethod ~generic-op signature# [a# b#] (binop# a# b#)))
+                   ))
+              (partition 2 generic-and-binary-ops))))
 
-(def ^:private add (binary-operation g/+))
-(def ^:private sub (binary-operation g/-))
-(def ^:private mul (binary-operation g/*))
-(def ^:private div (binary-operation g/divide))
-(def ^:private expt (binary-operation g/expt))
+(defmacro make-unary-operations
+  [& generic-and-unary-ops]
+  `(do ~@(map (fn [[generic-op unary-op]]
+                `(let [unop# (unary-operation ~unary-op)]
+                   (defmethod ~generic-op ::function [a#] (unop# a#))))
+              (partition 2 generic-and-unary-ops))))
 
-(def ^:private negate (unary-operation g/-))
-(def ^:private invert (unary-operation g/divide))
-(def ^:private sin (unary-operation g/sin))
-(def ^:private cos (unary-operation g/cos))
-(def ^:private tan (unary-operation g/tan))
-(def ^:private sqrt (unary-operation g/sqrt))
-(def ^:private square (unary-operation g/square))
-(def ^:private abs (unary-operation g/abs))
-(def ^:private exp (unary-operation g/exp))
-(def ^:private log(unary-operation g/log))
+(make-binary-operations
+ g/add g/+
+ g/sub g/-
+ g/mul g/*
+ g/div g/divide
+ g/expt g/expt)
 
-(defn- define-binary-operation
-  [generic-operation function-operation]
-  (doseq [signature [[::function ::function]
-                     [::function ::cofunction]
-                     [::cofunction ::function]]]
-    (defmethod generic-operation signature [a b] (function-operation a b))))
-
-(define-binary-operation g/add add)
-(define-binary-operation g/sub sub)
-(define-binary-operation g/mul mul)
-(define-binary-operation g/div div)
-(define-binary-operation g/expt expt)
-
-(defmethod g/negate ::function [a] (negate a))
-(defmethod g/invert ::function [a] (invert a))
-(defmethod g/sqrt   ::function [a] (sqrt a))
-(defmethod g/sin    ::function [a] (sin a))
-(defmethod g/cos    ::function [a] (cos a))
-(defmethod g/tan    ::function [a] (tan a))
-(defmethod g/square ::function [a] (square a))
-(defmethod g/abs    ::function [a] (abs a))
-(defmethod g/exp    ::function [a] (exp a))
-(defmethod g/log    ::function [a] (log a))
-(defmethod g/simplify Function [a] (-> a :expr g/simplify))
-
+(make-unary-operations
+ g/negate g/-
+ g/invert g/divide
+ g/sqrt g/sqrt
+ g/sin g/sin
+ g/cos g/cos
+ g/tan g/tan
+ g/square g/square
+ g/cube g/cube
+ g/exp g/exp
+ g/log g/log)
 ;; TODO asin acos sinh cosh ...
+
+(defmethod g/simplify Function [a] (-> a :expr g/simplify))
 (derive :math.expression/numerical-expression ::cofunction)
 (derive :math.value/function ::function)
 
