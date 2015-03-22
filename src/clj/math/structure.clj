@@ -104,10 +104,8 @@
   "Return a structure with the same shape as s but with f applied to
   each primitive (that is, not structural) component."
   [f ^Struct s]
-  (cond (instance? Struct s) (Struct. (.orientation s) (mapv #(mapr f %) (.v s)))
-        (sequential? s) (map f s)  ;; XXX what happens if we don't do this?
-        :else (f s))
-  )
+  (if (instance? Struct s) (Struct. (.orientation s) (mapv #(mapr f %) (.v s)))
+      (f s)))
 
 (defn structure-assoc-in
   "Like assoc-in, but works for structures. At this writing we're not

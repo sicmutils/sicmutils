@@ -43,7 +43,7 @@
       `[~q0 ~@qs ~q1]
       `[~t0 ~@ts ~t1])))
 
-(deftest section-1.4
+(deftest ^:long section-1.4
   (with-literal-functions [x y z]
     (let [q (up x y z)
           test-path (fn [t]
@@ -217,7 +217,7 @@
                  (* -1 (y_s t) g m))
              (pe ((L-pend2 'm 'l 'g y_s) (->local 't 'θ 'θdot))))))))
 
-(deftest section-1.7
+(deftest ^:long section-1.7
   (with-literal-functions [x y v_x v_y]
     (let [harmonic-state-derivative (fn [m k]
                                       (Lagrangian->state-derivative (L-harmonic m k)))]
