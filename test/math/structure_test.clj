@@ -29,7 +29,7 @@
   (testing "s+t"
     (is (= (+ (up 1 2) (up 2 3)) (up 3 5)))
     (is (= (+ (down 3 4) (down 1 2)) (down 4 6)))
-    (is (= (down (+ 4 'u) (+ 2 'v)) (+ (down 'u 2) (down 4 'v)))))
+    (is (= (down (+ 'u 4) (+ 2 'v)) (+ (down 'u 2) (down 4 'v)))))
   (testing "s-t"
       (is (= (- (up 1 2) (up 2 3)) (up -1 -1)))
       (is (= (- (down 8 5) (down 4 -1)) (down 4 6)))
@@ -120,8 +120,9 @@
                  (+ (* 'x 'c) (* 'y 'd))) (* x S)))
       (is (= (down (+ (* 'x 'a) (* 'y 'c))
                  (+ (* 'x 'b) (* 'y 'd))) (* xt M)))
-      (is (= (+ (* 'x (+ (* 'x 'a) (* 'y 'c)))
-                (* 'y (+ (* 'x 'b) (* 'y 'd)))) (* xt M x))))
+      (is (= (+ (* (+ (* 'x 'a) (* 'y 'c)) 'x)
+                (* (+ (* 'x 'b) (* 'y 'd)) 'y))
+             (* xt M x))))
     (let [M (up (down 'a 'b) (down 'c 'd))
           x (down 'x 'y)]
       (is (= (down (+ (* 'x 'a) (* 'y 'c))

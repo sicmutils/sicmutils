@@ -17,7 +17,7 @@
 (ns math.operator
   (:require [math.value :as v]
             [math.generic :as g])
-  (:import (clojure.lang IFn)))
+  (:import (clojure.lang IFn AFn)))
 
 (defrecord Operator [f arity name]
   v/Value

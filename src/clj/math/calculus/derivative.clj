@@ -201,7 +201,8 @@
           (dist
             [obj]
             (cond (struct/structure? obj) (struct/mapr dist obj)
-                  (o/operator? obj) (extract obj)           ;; TODO: tag-hiding
+                  (o/operator? obj) (do (throw (IllegalArgumentException. "can't differentiate an operator yet"))
+                                        (extract obj))           ;; TODO: tag-hiding
                   ;; (matrix? obj) (m:elementwise dist obj) XXX
                   ;; (quaternion? obj) XXX
                   ;; (series? obj) XXX
@@ -210,7 +211,9 @@
                   ;;  (hide-tag-in-procedure dx
                   ;;                         (g:* (make-operator dist 'extract (operator-subtype obj))
                   ;;                              obj)))
-                  (ifn? obj) #(-> % obj dist)             ;; TODO: innocent of the tag-hiding business
+                  ;; note: we had ifn? here, but this is bad, since symbols and
+                  ;; keywords implement IFn.
+                  (fn? obj) #(-> % obj dist)  ;; TODO: innocent of the tag-hiding business
                   :else (extract obj)))]
     (dist obj)))
 

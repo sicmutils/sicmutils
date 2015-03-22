@@ -75,28 +75,14 @@
   simplify
   )
 
-(defn- sort-key
-  [x]
-  ;; WARNING: the second term of the seq is a temporary idea
-  ;; that we aren't sure we want
-  (cond (symbol? x) [11 x]
-        (number? x) [10 x]
-        :else [(v/sort-key x) 0]))
-
-(defn canonical-order [args]
-  ;; NB: we are relying on the fact that this sort is stable, although
-  ;; the Clojure documentation does not explicity guarantee this
-  (sort-by sort-key args))
-
 (defn- bin+ [a b]
   (cond (and (number? a) (number? b)) (core-+ a b)
         (zero? a) b
         (zero? b) a
-        :else (add a b))
-  )
+        :else (add a b)))
 
 (defn + [& args]
-  (reduce bin+ 0 (canonical-order args)))
+  (reduce bin+ 0 args))
 
 (defn- bin- [a b]
   (cond (and (number? a) (number? b)) (core-- a b)
@@ -107,7 +93,7 @@
 (defn - [arg & args]
   (cond (nil? arg) 0
         (nil? args) (negate arg)
-        :else (bin- arg (->> args canonical-order (reduce bin+)))))
+        :else (bin- arg (reduce bin+ args))))
 
 (defn- bin* [a b]
   (cond (and (number? a) (number? b)) (core-* a b)
@@ -129,7 +115,7 @@
 ;;; because any invertible matrix is square.
 
 (defn * [& args]
-  (reduce bin* 1 (canonical-order args)))
+  (reduce bin* 1 args))
 
 (defn- bin-div [a b]
   (cond (and (number? a) (number? b)) (core-div a b)
@@ -139,7 +125,7 @@
 (defn / [arg & args]
   (cond (nil? arg) 1
         (nil? args) (invert arg)
-        :else (bin-div arg (->> args canonical-order (reduce bin*)))))
+        :else (bin-div arg (reduce bin* args))))
 
 (def divide /)
 

@@ -86,7 +86,7 @@
     (is (= (+ 'z 'z) ((D #(* % %)) 'z)))
     (is (= (* 3 (expt 'y 2))
            ((D #(expt % 3)) 'y)))
-    (is (= (* 2 (cos (* 2 'u))) ((D #(sin (* 2 %))) 'u)))
+    (is (= (* (cos (* 2 'u)) 2) ((D #(sin (* 2 %))) 'u)))
     (is (= (/ 1 (expt (cos 'x) 2)) ((D tan) 'x)))
     (is (= (up 2 (+ 't 't)) ((D #(up (* 2 %) (* % %))) 't)))
     (is (= (up (- (sin 't)) (cos 't)) ((D #(up (cos %) (sin %))) 't)))
@@ -97,11 +97,21 @@
           y (fn [t] (/ (+ (u t) 2) (- (u t) 1)))]
       (is ((v/within 1e-6) (/ -1 18.) ((D y) 9)))))
   (testing "structural-functions"
-    (is (= '(up (cos t) (- (sin t))) (pe ((D (up sin cos)) 't)))))
+    (is (= '(up (cos t) (- (sin t))) (pe ((D (up sin cos)) 't))))))
+
+(deftest partial-diff-test
   (testing "partial derivatives"
     (let [f (fn [x y] (+ (* x x) (* y y)))]
       (is (= 4 (((pd 0) f) 2 3)))
-      (is (= 6 (((pd 1) f) 2 3))))))
+      (is (= 6 (((pd 1) f) 2 3))))
+    (let [F (fn [a b]
+              (fn [[x y]]
+                (up (* a x) (* b y))))]
+      (is (= (up 'x 'y) ((F 1 1) (up 'x 'y))))
+      (is (= (up (* 2 'x) (* 3 'y)) ((F 2 3) (up 'x 'y))))
+      (is (= (up 'x 0)  ((((pd 0) F) 1 1) (up 'x 'y))))
+      (is (= (up 0 'y)  ((((pd 1) F) 1 1) (up 'x 'y))))
+      (is (= (down (up 'x 0) (up 0 'y)) (((D F) 1 1) (up 'x 'y)))))))
 
 (deftest diff-test-2
   (testing "delta-eta-test"

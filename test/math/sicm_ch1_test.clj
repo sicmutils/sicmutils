@@ -106,16 +106,16 @@
       ;; This is fairly time consuming since every evaluation of a candidate point in the
       ;; multidimensional minimization of find-path involves computing a numeric integration
       ;; to find the Lagrangian of the path induced by the point. But it works.
-      #_(let [values (atom [])
-              minimal-path (find-path (L-harmonic 1.0 1.0) 0. 1. (/ Math/PI 2) 0. 3
-                                      (fn [pt _] (swap! values conj pt)))
-              good? (partial (v/within 2e-4) 0)
-              errors (for [x (range 0.0 (/ Math/PI 2) 0.02)]
-                       (abs (- (Math/cos x) (minimal-path x))))]
-          ;; the minimization is supposed to discover the cosine function in the interval [0..pi/2].
-          ;; Check that it has done so over a variety of points to within 2e-4.
-          (prn values)
-          (is (every? good? errors))))))
+      (let [values (atom [])
+            minimal-path (find-path (L-harmonic 1.0 1.0) 0. 1. (/ Math/PI 2) 0. 3
+                                    (fn [pt _] (swap! values conj pt)))
+            good? (partial (v/within 2e-4) 0)
+            errors (for [x (range 0.0 (/ Math/PI 2) 0.02)]
+                     (abs (- (Math/cos x) (minimal-path x))))]
+        ;; the minimization is supposed to discover the cosine function in the interval [0..pi/2].
+        ;; Check that it has done so over a variety of points to within 2e-4.
+        ;; (prn values)
+        (is (every? good? errors))))))
 
 (deftest section-1.5
   (with-literal-functions [x f g q η φ]
@@ -292,11 +292,16 @@
              (pe ((Lagrangian->energy (L3-central 'm V)) spherical-state))))
       ;; there's a bug in differentiation of functions of several (non-tuple)
       ;; arguments...
-      #_(let [L (L-central-rectangular 'm U)
-              Noether-integral (* ((pd 2) L) ((D F-tilde) 0 0 0))
-              state (up 't (up 'x 'y 'z) (up 'vx 'vy 'vz))]
-          (is (= 'pd2L (pe (((pd 2) L) state))))
-          (is (= 'ft000 (pe ((F-tilde 0 0 0) state))))
-          (is (= 'dft000 (pe (((D F-tilde) 0 0 0) state))))
-          (is (= 'dft ((D F-tilde 0 0 0))))
-          (is (= 'foo (pe (Noether-integral state))))))))
+      (let [L (L-central-rectangular 'm U)
+            Noether-integral (* ((pd 2) L) ((D F-tilde) 0 0 0))
+            state (up 't (up 'x 'y 'z) (up 'vx 'vy 'vz))]
+        (is (= '(down (* m vx) (* m vy) (* m vz)) (pe (((pd 2) L) state))))
+        (is (= '(up x y z) (pe ((F-tilde 0 0 0) state))))
+        (is (= '(down (up 0 (* -1 z) y)
+                      (up z 0 (* -1 x))
+                      (up (* -1 y) x 0))
+               (pe (((D F-tilde) 0 0 0) state))))
+        (is (= '(down (+ (* -1N m vy z) (* m vz y))
+                      (+ (* m vx z) (* -1N m vz x))
+                      (+ (* -1N m vx y) (* m vy x)))
+               (pe (Noether-integral state))))))))

@@ -57,7 +57,7 @@
     )
   (testing "with-symbols"
     (is (= '(+ 4 x) (x/print-expression (g/+ 4 'x))))
-    (is (= '(+ 5 y) (x/print-expression (g/+ 'y 5))))
+    (is (= '(+ y 5) (x/print-expression (g/+ 'y 5))))
     (is (= '(/ 5 y) (x/print-expression (g// 5 'y))))
     (is (= '(* 5 y) (x/print-expression (g/* 5 'y))))
     (is (= '(/ x y) (x/print-expression (g// 'x 'y))))

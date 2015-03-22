@@ -55,6 +55,7 @@
 
 (defmethod g/add [::modint ::modint] [a b] (add a b))
 (defmethod g/add [Long ::modint] [a b] (make (+ a (:i b)) (:m b)))
+(defmethod g/add [::modint Long] [a b] (make (+ (:i a) b) (:m a)))
 (defmethod g/mul [::modint ::modint] [a b] (mul a b))
 (defmethod g/sub [::modint ::modint] [a b] (sub a b))
 (defmethod g/negate ::modint [a] (make (- (:i a)) (:m a)))

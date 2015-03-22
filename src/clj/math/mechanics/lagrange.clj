@@ -154,7 +154,6 @@
 (defn Rx
   [angle]
   (fn [[x y z]]
-    (prn "Rx" angle x y z)
     (let [ca (cos angle)
           sa (sin angle)]
       (up x
