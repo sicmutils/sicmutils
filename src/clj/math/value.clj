@@ -51,23 +51,23 @@
   (arity [o] (primitive-arity o))
   (kind [o] (primitive-kind o)))
 
-(defn- primitive-arity
-  [f]
+(def ^:private primitive-arity
   ;; this whole function is deeply bogus. We will have to spend some time
   ;; figuring out how to deal with arity in a more precise and defensive
   ;; way. TODO: there's some reflection going on in here we should get rid of
-  (or (:arity f)
-      (:arity (meta f))
-      (cond (symbol? f) 0
-            (ifn? f) (let [^"[java.lang.reflect.Method" ms (.getDeclaredMethods (class f))
-                           arities (into #{} (map #(alength (.getParameterTypes %)) ms))]
-                       (if (> (count arities) 1)
-                         (let [smallest-nonzero-arity (reduce min (disj arities 0))]
-                           (log/warn "guessing that arity of" f "is" smallest-nonzero-arity "out of" arities)
-                           smallest-nonzero-arity)
-                         (first arities)))
-
-            :else 0)))
+  (memoize
+   (fn [f]
+     (or (:arity f)
+               (:arity (meta f))
+               (cond (symbol? f) 0
+                     (fn? f) (let [^"[java.lang.reflect.Method" ms (.getDeclaredMethods (class f))
+                                   arities (into #{} (map #(alength (.getParameterTypes %)) ms))]
+                               (if (> (count arities) 1)
+                                 (let [smallest-nonzero-arity (reduce min (disj arities 0))]
+                                   (log/warn "guessing that arity of" f "is" smallest-nonzero-arity "out of" arities)
+                                   smallest-nonzero-arity)
+                                 (first arities)))
+                     :else 1)))))
 
 (defn- primitive-kind
   [a]
