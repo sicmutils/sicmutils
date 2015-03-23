@@ -22,7 +22,7 @@
             [math.function :refer :all]
             [math.numerical.integrate :refer :all]))
 
-(defn coordinate [local] (nth local 1))
+(defn- coordinate [local] (nth local 1))
 (defn velocity [local] (nth local 2))
 
 (defn L-free-particle [mass]
@@ -80,6 +80,17 @@
   (let [Dq (D q)]
     (fn [t]
       (up t (q t) (Dq t)))))
+
+;; XXX this is a hack just to keep the tests moving. Consider
+;; making the version of Gamma that takes a length argument produce
+;; a lazy sequence of ever-higher derivatives.
+
+(defn Γ4
+  [q]
+  (let [Dq (D q)
+        DDq (D Dq)]
+    (fn [t]
+      (up t (q t) (Dq t) (DDq t)))))
 
 (defn Lagrangian-action
   [L q t1 t2]
@@ -181,3 +192,31 @@
 (defn F-tilde
   [angle-x angle-y angle-z]
   (compose (Rx angle-x) (Ry angle-y) (Rz angle-z) coordinate))
+
+(defn osculating-path
+  [state0]
+  (let [[t0 q0] state0
+        k (count state0)]
+    (fn [t]
+      (let [dt (- t t0)]
+        (loop [n 2 sum q0 dt-n:n! dt]
+          (if (= n k)
+            sum
+            (recur (inc n)
+              (+ sum (* (nth state0 n) dt-n:n!))
+              (/ (* dt-n:n! dt) n))))))))
+
+(defn Γ-bar
+  [f]
+  (fn [local]
+    ((f (osculating-path local)) (nth local 0))))
+
+(defn Dt
+  [F]
+  (let [G-bar (fn [q]
+                (D (compose F (Γ q))))]
+    (Γ-bar G-bar)))
+
+(defn Euler-Lagrange-operator
+  [L]
+  (- (Dt ((pd 2) L)) ((pd 1) L)))

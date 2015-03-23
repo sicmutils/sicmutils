@@ -290,8 +290,6 @@
                  (* 1/2 m (expt r 2) (expt θdot 2))
                  (* 1/2 m (expt rdot 2)) (V r))
              (pe ((Lagrangian->energy (L3-central 'm V)) spherical-state))))
-      ;; there's a bug in differentiation of functions of several (non-tuple)
-      ;; arguments...
       (let [L (L-central-rectangular 'm U)
             Noether-integral (* ((pd 2) L) ((D F-tilde) 0 0 0))
             state (up 't (up 'x 'y 'z) (up 'vx 'vy 'vz))]
@@ -301,7 +299,27 @@
                       (up z 0 (* -1 x))
                       (up (* -1 y) x 0))
                (pe (((D F-tilde) 0 0 0) state))))
-        (is (= '(down (+ (* -1N m vy z) (* m vz y))
-                      (+ (* m vx z) (* -1N m vz x))
-                      (+ (* -1N m vx y) (* m vy x)))
+        (is (= '(down (+ (* -1 m vy z) (* m vz y))
+                      (+ (* m vx z) (* -1 m vz x))
+                      (+ (* -1 m vx y) (* m vy x)))
                (pe (Noether-integral state))))))))
+
+(deftest section-1.9
+  (let [F->C (fn [F]
+               (let [f-bar #(->> % Γ (compose F) Γ)]
+                (Γ-bar f-bar)))]
+    (is (= '(up t
+                (up (* (cos θ) r)
+                    (* (sin θ) r))
+                (up (+ (* -1 (sin θ) r θdot) (* (cos θ) rdot))
+                    (+ (* (cos θ) r θdot) (* (sin θ) rdot))))
+           (pe ((F->C p->r)
+                (->local 't (up 'r 'θ) (up 'rdot 'θdot)))))))
+  (is (= '(+ (* a m) (* k x))
+         (pe ((Euler-Lagrange-operator (L-harmonic 'm 'k))
+              (->local 't 'x 'v 'a)))))
+  (with-literal-functions [x]
+    (is (= '(+ (* (((expt D 2) x) t) m) (* (x t) k))
+           (pe ((compose
+                 (Euler-Lagrange-operator (L-harmonic 'm 'k))
+                 (Γ4 x)) 't))))))
