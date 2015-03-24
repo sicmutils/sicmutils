@@ -14,9 +14,9 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
-(ns math.poly-test
+(ns math.polynomial-test
   (:require [clojure.test :refer :all]
-            [math.poly :refer :all]
+            [math.polynomial :refer :all]
             [math.generic :as g]
             [math.numbers]
             [math.expression :as x]

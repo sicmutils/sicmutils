@@ -14,7 +14,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
-(ns math.poly
+(ns math.polynomial
   (:import (clojure.lang PersistentTreeMap))
   (:require [clojure.set :as set]
             [math.value :as v]
@@ -25,7 +25,7 @@
 
 (declare operator-table operators-known)
 
-(defrecord Poly [^long arity ^PersistentTreeMap xs->c]
+(defrecord Polynomial [^long arity ^PersistentTreeMap xs->c]
   v/Value
   (nullity? [p] (empty? (:xs->c p)))
   (numerical? [_] false)
@@ -34,7 +34,7 @@
                    (and (every? zero? exponents)
                         (g/one? coef))))))
 
-(defn- base? [p] (not (instance? Poly p)))
+(defn- base? [p] (not (instance? Polynomial p)))
 
 (defn make
   "When called with two arguments, the first is the arity
@@ -51,7 +51,7 @@
    (->> xc-pairs
         (filter (fn [[_ c]] (not (g/zero? c))))
         (into (sorted-map))
-        (Poly. a)))
+        (Polynomial. a)))
   ([coefficients]
    (make 1 (zipmap (map vector (iterate inc 0)) coefficients))))
 
@@ -67,7 +67,7 @@
           :else (throw (ArithmeticException. "mismatched polynomial arity")))))
 
 (defn- poly-map
-  "Map the function f over the coefficients of p, returning a new Poly."
+  "Map the function f over the coefficients of p, returning a new Polynomial."
   [f {:keys [arity xs->c]}]
   (make arity (for [[xs c] xs->c] [xs (f c)])))
 
@@ -180,6 +180,13 @@
 (defn content [p]
   (->> p :xs->c (map second) (reduce (comp first extended-euclid))))
 
+(defn- lead-term
+  "Return the leading (i.e., highest degree) term of the polynomial
+  p. The return value is [exponents coefficient]."
+  [p]
+  (-> p :xs->c rseq first))
+
+
 (defn divide
   "Divide polynomial u by v, and return the pair of [quotient, remainder]
   polynomials. This assumes that the coefficients are drawn from a field,
@@ -191,15 +198,17 @@
           v-base? [(poly-map #(g/divide % v) u) 0]
           u-base? [0 v]
           :else (let [arity (check-same-arity u v)
-                      [vn-exponents vn-coefficient] (-> v :xs->c rseq first)]
+                      [vn-exponents vn-coefficient] (lead-term v)]
                   (loop [quotient (make arity []) remainder u]
-                    ;; find a term in the remainder into which the lead term of the
-                    ;; divisor can be divided.
+                    ;; find a term in the remainder into which the
+                    ;; lead term of the divisor can be divided.
                     (let [good-terms (->> remainder
                                           :xs->c rseq
-                                          (map (fn [[xs c]] [(map - xs vn-exponents) c]))
+                                          (map (fn [[xs c]]
+                                                 [(map - xs vn-exponents) c]))
                                           (filter (fn [[residues _]]
-                                                    (and (not-empty residues) (every? (complement neg?) residues)))))]
+                                                    (and (not-empty residues)
+                                                         (every? (complement neg?) residues)))))]
                       (if-let [[residues coefficient] (first good-terms)]
                         (let [new-coefficient (g/divide coefficient vn-coefficient)
                               new-term (make arity [[(vec residues) new-coefficient]])]
@@ -247,7 +256,7 @@
   symbolically over the known Flat Polynomial operations; other
   operations outside the arithmetic available in polynomials over
   commutative rings should be factored out by an expression analyzer
-  before we get here. The result is a Poly object representing the
+  before we get here. The result is a Polynomial object representing the
   polynomial structure of the input over the unknowns."
   [expr cont]
   (let [expression-vars (sort (set/difference (x/variables-in expr) operators-known))
@@ -257,11 +266,11 @@
 
 (defn ->expression
   "This is the output stage of Flat Polynomial canonical form simplification.
-  The input is a Poly object, and the output is an expression
+  The input is a Polynomial object, and the output is an expression
   representing the evaluation of that polynomial over the
   indeterminates extracted from the expression at the start of this
   process."
-  [^Poly p vars]
+  [^Polynomial p vars]
   (if (base? p) p
       (reduce
        sym/add 0

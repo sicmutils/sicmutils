@@ -16,7 +16,7 @@
 
 (ns math.simplify
   (:require [math.numsymb :as sym]
-            [math.poly :as poly]
+            [math.polynomial :as poly]
             [math.value :as v]
             [math.generic :as g]
             [math.rules :as rules]
