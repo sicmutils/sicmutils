@@ -22,18 +22,44 @@
             [math.function :refer :all]
             [math.numerical.integrate :refer :all]))
 
-(defn- coordinate [local] (nth local 1))
-(defn velocity [local] (nth local 2))
+(defn coordinate
+  "A convenience function on local tuples. A local tuple describes
+  the state of a system at a particular time: [t, q, D q, D^2 q]
+  representing time, position, velocity (and optionally acceleration
+  etc.) Returns the q element, which is expected to be a mapping
+  from time to a structure of coordinates"
+  [local]
+  (nth local 1))
 
-(defn L-free-particle [mass]
+(defn velocity
+  "See coordinate: this returns the velocity element of a local
+  tuple (by convention, the 2nd element)."
+  [local]
+  (nth local 2))
+
+(defn L-free-particle
+  "The lagrangian of a free particle of mass m. The Lagrangian
+  returned is a function of the local tuple. Since the particle
+  is free, there is no potential energy, so the Lagrangian is
+  just the kinetic energy."
+  [mass]
+
   (fn [[_ _ v]]
     (* 1/2 mass (square v))))
 
-(defn L-harmonic [m k]
+(defn L-harmonic
+  "The Lagrangian of a simple harmonic oscillator (mass-spring
+  system). m is the mass and k is the spring constant used in
+  Hooke's law. The resulting Lagrangian is a function of the
+  local tuple of the system."
+  [m k]
   (fn [[_ q v]]
     (- (* 1/2 m (square v)) (* 1/2 k (square q)))))
 
-(defn L-uniform-acceleration [m g]
+(defn L-uniform-acceleration
+  "The Lagrangian of an object experiencing uniform acceleration
+  in the negative y direction, i.e. the acceleration due to gravity"
+  [m g]
   (fn [[_ [_ y] v]]
     (- (* 1/2 m (square v)) (* m g y))))
 
@@ -137,7 +163,6 @@
 
 (defn qv->state-path
   [q v]
-  ;; or maybe (juxt identity q v)
   #(up % (q %) (v %)))
 
 (defn Lagrange-equations-first-order
@@ -152,37 +177,6 @@
   [L]
   (let [P ((pd 2) L)]
     (- (* P velocity) L)))
-
-(defn Rx
-  [angle]
-  (fn [[x y z]]
-    (let [ca (cos angle)
-          sa (sin angle)]
-      (up x
-          (- (* ca y) (* sa z))
-          (+ (* sa y) (* ca z))))))
-
-(defn Ry
-  [angle]
-  (fn [[x y z]]
-    (let [ca (cos angle)
-          sa (sin angle)]
-      (up (+ (* ca x) (* sa z))
-          y
-          (- (* ca z) (* sa x))))))
-
-(defn Rz
-  [angle]
-  (fn [[x y z]]
-    (let [ca (cos angle)
-          sa (sin angle)]
-      (up (- (* ca x) (* sa y))
-          (+ (* sa x) (* ca y))
-          z))))
-
-(defn F-tilde
-  [angle-x angle-y angle-z]
-  (compose (Rx angle-x) (Ry angle-y) (Rz angle-z) coordinate))
 
 (defn osculating-path
   [state0]

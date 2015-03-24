@@ -14,7 +14,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
-(ns math.lagrange.lagrange-test
+(ns math.mechanics.lagrange-test
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.test :refer :all]
             [math.generic :refer :all]

@@ -30,7 +30,8 @@
             [math.operator :refer :all]
             [math.value :as v]
             [math.calculus.derivative :refer :all]
-            [math.mechanics.lagrange :refer :all]))
+            [math.mechanics.lagrange :refer :all]
+            [math.mechanics.rotation :refer :all]))
 
 (def ^:private near (v/within 1e-6))
 (defn- pe [x] (-> x simplify print-expression))
@@ -291,6 +292,11 @@
                  (* 1/2 m (expt rdot 2)) (V r))
              (pe ((Lagrangian->energy (L3-central 'm V)) spherical-state))))
       (let [L (L-central-rectangular 'm U)
+            F-tilde (fn [angle-x angle-y angle-z]
+                      (compose (Rx angle-x)
+                               (Ry angle-y)
+                               (Rz angle-z)
+                               coordinate))
             Noether-integral (* ((pd 2) L) ((D F-tilde) 0 0 0))
             state (up 't (up 'x 'y 'z) (up 'vx 'vy 'vz))]
         (is (= '(down (* m vx) (* m vy) (* m vz)) (pe (((pd 2) L) state))))
