@@ -40,8 +40,16 @@
 
 (deftest gamma-test
   (let [q (literal-function 'q)
-        Γq (Γ q)]
-    (is (= '(up t (q t) ((D q) t)) (print-expression (Γq 't))))))
+        Γq (Γ q)
+        Γq3 (Γ q 3)]
+    (is (= '(up t (q t) ((D q) t)) (print-expression (Γq 't))))
+    (is (= '(up t (q t) ((D q) t)) (print-expression (Γq3 't))))
+    (is (= '(up t
+                (q t)
+                ((D q) t)
+                (((expt D 2) q) t)
+                (((expt D 3) q) t))
+           (print-expression ((Γ q 5) 't))))))
 
 (deftest lagrange-equations
   (testing "basics"
@@ -95,4 +103,3 @@
     (is (velocity ((F->C p->r)
                     (->local 't (up 'r 'phi) (up 'rdot 'phidot)))))
     ))
-

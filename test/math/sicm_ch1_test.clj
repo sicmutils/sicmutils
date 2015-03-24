@@ -322,4 +322,4 @@
     (is (= '(+ (* (((expt D 2) x) t) m) (* (x t) k))
            (pe ((compose
                  (Euler-Lagrange-operator (L-harmonic 'm 'k))
-                 (Γ4 x)) 't))))))
+                 (Γ x 4)) 't))))))

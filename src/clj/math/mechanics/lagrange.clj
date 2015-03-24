@@ -72,25 +72,17 @@
 (defn p->r [[_ [r φ]]]
   (up (* r (cos φ)) (* r (sin φ))))
 
-;; XXX: GJS allows for a gamma procedure that contains higher
-;; derivatives
-
 (defn Γ
-  [q]
-  (let [Dq (D q)]
-    (fn [t]
-      (up t (q t) (Dq t)))))
+  ([q]
+   (let [Dq (D q)]
+     (fn [t]
+       (up t (q t) (Dq t)))))
+  ([q n]
+   (let [Dqs (->> q (iterate D) (take (- n 1)))]
+     (fn [t]
+       (->> Dqs (map #(% t)) (cons t) (apply up))
+       ))))
 
-;; XXX this is a hack just to keep the tests moving. Consider
-;; making the version of Gamma that takes a length argument produce
-;; a lazy sequence of ever-higher derivatives.
-
-(defn Γ4
-  [q]
-  (let [Dq (D q)
-        DDq (D Dq)]
-    (fn [t]
-      (up t (q t) (Dq t) (DDq t)))))
 
 (defn Lagrangian-action
   [L q t1 t2]
