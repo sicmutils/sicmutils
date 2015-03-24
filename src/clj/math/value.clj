@@ -25,7 +25,6 @@
   (zero-like [this])
   (exact? [this])
   (compound? [this])
-  (sort-key [this])
   ;; Freezing an expression means removing wrappers and other metadata
   ;; from subexpressions, so that the result is basically a pure
   ;; S-expression with the same structure as the input. Doing this will
@@ -46,7 +45,6 @@
   (compound? [_] false)
   (exact? [o] (or (integer? o) (ratio? o)))
   (zero-like [_] 0)
-  (sort-key [_] 99)
   (freeze [o] (cond (sequential? o) (map freeze o) (keyword? o) o :else o)) ;; WTF?
   (arity [o] (primitive-arity o))
   (kind [o] (primitive-kind o)))

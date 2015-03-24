@@ -25,7 +25,6 @@
   (unity? [_] (= i 1))
   (zero-like [_] (ModInt. 0 m))
   (exact? [_] true)
-  (sort-key [_] 15)
   (numerical? [_] true)
   (compound? [_] false)
   (kind [_] ::modint))

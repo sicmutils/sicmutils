@@ -39,7 +39,6 @@
   (exact? [_] false)
   (compound? [_] false)
   (numerical? [d] (g/numerical-quantity? (differential-of d)))
-  (sort-key [_] 80)
   (arity [_] 0)
   (kind [_] ::differential))
 

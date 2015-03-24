@@ -32,7 +32,6 @@
   (exact? [_] (every? v/exact? v))
   (numerical? [_] false)
   (compound? [_] true)
-  (sort-key [_] 18)
   (freeze [_] `(~(orientation {::up 'up ::down 'down}) ~@(map v/freeze v)))
   (arity [_] (joint-arity v))
   (kind [_] orientation)

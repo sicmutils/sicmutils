@@ -33,7 +33,6 @@
   (compound? [_] false)
   (unity? [_] false)
   (numerical? [_] false)
-  (sort-key [_] 35)
   (freeze [f] (-> f :expr v/freeze))
   (arity [_] arity)
   (kind [_] ::function)

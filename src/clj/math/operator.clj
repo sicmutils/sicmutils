@@ -21,7 +21,6 @@
 
 (defrecord Operator [f arity name]
   v/Value
-  (sort-key [_] 45)
   (freeze [o] (.name o))
   (kind [_] ::operator)
   IFn
