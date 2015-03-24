@@ -80,8 +80,7 @@
   ([q n]
    (let [Dqs (->> q (iterate D) (take (- n 1)))]
      (fn [t]
-       (->> Dqs (map #(% t)) (cons t) (apply up))
-       ))))
+       (->> Dqs (map #(% t)) (cons t) (apply up))))))
 
 
 (defn Lagrangian-action
@@ -201,7 +200,7 @@
 (defn Γ-bar
   [f]
   (fn [local]
-    ((f (osculating-path local)) (nth local 0))))
+    ((f (osculating-path local)) (first local))))
 
 (defn Dt
   [F]
