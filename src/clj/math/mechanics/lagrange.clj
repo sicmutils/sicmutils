@@ -101,8 +101,10 @@
 (defn Γ
   ([q]
    (let [Dq (D q)]
-     (fn [t]
-       (up t (q t) (Dq t)))))
+     (with-meta
+       (fn [t]
+         (up t (q t) (Dq t)))
+       {:arity 1})))
   ([q n]
    (let [Dqs (->> q (iterate D) (take (- n 1)))]
      (fn [t]
@@ -131,20 +133,22 @@
   [ys xs]
   (let [n (count ys)]
     (assert (= (count xs) n))
-    (fn [x]
-      (reduce + 0
-              (for [i (range n)]
-                (/ (reduce * 1
-                           (for [j (range n)]
-                             (if (= j i)
-                               (nth ys i)
-                               (- x (nth xs j)))))
-                   (let [xi (nth xs i)]
-                     (reduce * 1
-                             (for [j (range n)]
-                               (cond (< j i) (- (nth xs j) xi)
-                                     (= j i) (if (odd? i) -1 1)
-                                     :else (- xi (nth xs j))))))))))))
+    (with-meta
+      (fn [x]
+       (reduce + 0
+               (for [i (range n)]
+                 (/ (reduce * 1
+                            (for [j (range n)]
+                              (if (= j i)
+                                (nth ys i)
+                                (- x (nth xs j)))))
+                    (let [xi (nth xs i)]
+                      (reduce * 1
+                              (for [j (range n)]
+                                (cond (< j i) (- (nth xs j) xi)
+                                      (= j i) (if (odd? i) -1 1)
+                                      :else (- xi (nth xs j))))))))))
+      {:arity 1})))
 
 (defn Lagrangian->acceleration
   [L]

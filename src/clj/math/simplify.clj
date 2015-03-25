@@ -180,6 +180,3 @@
 (defmethod g/simplify nil [a] a)
 (defmethod g/simplify :math.function/function [a] a)
 (defmethod g/simplify clojure.lang.Var [a] (-> a meta :name))
-
-
-(println "simplify initialized")

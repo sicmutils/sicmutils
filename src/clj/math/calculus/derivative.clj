@@ -417,5 +417,3 @@
 (defn pd
   [& selectors]
   (o/make-operator #(g/partial-derivative % selectors) :partial-derivative))
-
-(println "derivative initialized")

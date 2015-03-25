@@ -220,6 +220,3 @@
   [litfns & body]
   `(let ~(vec (interleave litfns (map (fn [s] `(literal-function (quote ~s))) litfns)))
      ~@body))
-
-
-(println "function initialized")

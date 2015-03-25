@@ -59,5 +59,3 @@
 (defmethod g/sub [::modint ::modint] [a b] (sub a b))
 (defmethod g/negate ::modint [a] (make (- (:i a)) (:m a)))
 (defmethod g/invert ::modint [a] (modular-inv a))
-
-(println "modint initialized")

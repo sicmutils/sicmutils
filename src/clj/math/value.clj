@@ -56,16 +56,17 @@
   (memoize
    (fn [f]
      (or (:arity f)
-               (:arity (meta f))
-               (cond (symbol? f) 0
-                     (fn? f) (let [^"[java.lang.reflect.Method" ms (.getDeclaredMethods (class f))
-                                   arities (into #{} (map #(alength (.getParameterTypes %)) ms))]
-                               (if (> (count arities) 1)
-                                 (let [smallest-nonzero-arity (reduce min (disj arities 0))]
-                                   (log/warn "guessing that arity of" f "is" smallest-nonzero-arity "out of" arities)
-                                   smallest-nonzero-arity)
-                                 (first arities)))
-                     :else 1)))))
+         (:arity (meta f))
+         (cond (symbol? f) 0
+               (fn? f) (let [^"[java.lang.reflect.Method" ms (.getDeclaredMethods (class f))
+                             arities (into #{} (map #(alength (.getParameterTypes %)) ms))]
+                         #_(log/warn "reflecting to find arity of" f)
+                         (if (> (count arities) 1)
+                           (let [smallest-nonzero-arity (reduce min (disj arities 0))]
+                             (log/warn "guessing that arity of" f "is" smallest-nonzero-arity "out of" arities)
+                             smallest-nonzero-arity)
+                           (first arities)))
+               :else 1)))))
 
 (defn- primitive-kind
   [a]
@@ -87,5 +88,3 @@
   "Returns a function that tests whether two values are within ε of each other."
   [^double ε]
   (fn [^double x ^double y] (< (Math/abs (- x y)) ε)))
-
-(println "value initialized")

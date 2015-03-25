@@ -128,5 +128,3 @@
         :else (bin-div arg (reduce bin* args))))
 
 (def divide /)
-
-(println "generic initialized")

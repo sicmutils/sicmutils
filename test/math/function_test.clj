@@ -74,7 +74,9 @@
     (is (= 2 ((double-op identity) 1)))
     (is (= 6 (((g/expt double-op 0) f) 1)))
     (is (= 12 (((g/expt double-op 1) f) 1)))
-    (is (= 24 (((g/expt double-op 2) f) 1)))))
+    (is (= 24 (((g/expt double-op 2) f) 1)))
+    (is (= 18 (((g/+ double-op double-op double-op) identity) 3)))
+    (is (= 24 (((g/+ double-op 4 double-op) identity) 3)))))
 
 (deftest function-differential
   (testing "structural utilities"

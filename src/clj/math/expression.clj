@@ -89,5 +89,3 @@
                             (symbol sym-name)))
             :else x))
     (v/freeze x)))
-
-(println "expression initialized")

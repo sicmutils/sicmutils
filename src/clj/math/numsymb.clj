@@ -313,5 +313,3 @@
   symbolic operator construction available."
   [s]
   (symbolic-operator-table s))
-
-(println "numsymb initialized")

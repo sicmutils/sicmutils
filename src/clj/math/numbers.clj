@@ -48,5 +48,3 @@
 (define-unary-operation g/sqrt nt/sqrt)
 (define-unary-operation g/log #(Math/log %))
 (define-unary-operation g/exp #(Math/exp %))
-
-(println "numbers initialized")

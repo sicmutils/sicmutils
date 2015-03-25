@@ -4,6 +4,7 @@
   :license {:name "The MIT License"
             :url "http://www.opensource.org/licenses/MIT"}
   :dependencies [[org.clojure/clojure "1.6.0"]
+                 [org.clojure/data.json "0.2.6"]
                  [org.apache.commons/commons-math3 "3.4.1"]
                  [org.clojure/math.numeric-tower "0.0.4"]
                  [org.clojure/tools.logging "0.3.1"]]
