@@ -19,7 +19,6 @@
   (:require [clojure.test :refer :all]
             [math.generic :refer :all]
             [math.structure :refer :all]
-            [math.numbers :refer :all]
             [math.numsymb]
             [math.simplify]
             [math.expression :refer :all]
@@ -145,78 +144,78 @@
              (pe (((Lagrange-equations (L-harmonic 'm 'k)) proposed-solution) 't)))))))
 
 (deftest section-1.6
-  (let [L-alternate-central-polar (fn [m U] (compose (L-central-rectangular m U) (F->C p->r)))
-        T-pend (fn [m l _ ys]
-                 (fn [local]
-                   (let [[t θ θdot] local
-                         vys (D ys)]
-                     (* 1/2 m
-                        (+ (square (* l θdot))
-                           (square (vys t))
-                           (* 2 l (vys t) θdot (sin θ)))))))
-        V-pend (fn [m l g ys]
-                 (fn [local]
-                   (let [[t θ _] local]
-                     (* m g (- (ys t) (* l (cos θ)))))))
-        L-pend (- T-pend V-pend)
-        [x y r θ φ U y_s] (map literal-function '[x y r θ φ U y_s])]
-    (is (= '(down (* (((expt D 2) x) t) m) (+ (* (((expt D 2) y) t) m) (* g m)))
-           (pe (((Lagrange-equations (L-uniform-acceleration 'm 'g))
-                 (up x y)) 't))))
-    (is (= '(down (+ (* 2 (x t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
-                        (/ 1 (* 2 (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
-                     (* (((expt D 2) x) t) m))
-                  (+ (* 2 (y t) ((D U) (sqrt (+ (expt (y t) 2) (expt (x t) 2))))
-                        (/ 1 (* 2 (sqrt (+ (expt (y t) 2) (expt (x t) 2))))))
-                     (* (((expt D 2) y) t) m)))
-           (pe (((Lagrange-equations (L-central-rectangular 'm (literal-function 'U)))
-                 (up x y))
-                't))))
-    (is (= '(down
-             (+ (* -1N (expt ((D φ) t) 2) (r t) m) (* (((expt D 2) r) t) m) ((D U) (r t)))
-             (+ (* (expt (r t) 2) (((expt D 2) φ) t) m) (* 2N (r t) ((D r) t) ((D φ) t) m)))
-           (pe (((Lagrange-equations (L-central-polar 'm U))
-                 (up r φ))
-                't))))
-    (is (= '(up
-             (+ (* -1 (sin φ) r φdot) (* (cos φ) rdot))
-             (+ (* (cos φ) r φdot) (* (sin φ) rdot)))
-           (pe (velocity ((F->C p->r)
-                          (->local 't (up 'r 'φ) (up 'rdot 'φdot)))))))
-    (is (= '(+ (* 1/2 m (expt r 2) (expt φdot 2)) (* 1/2 m (expt rdot 2)) (* -1 (U r)))
-           (pe ((L-alternate-central-polar 'm U)
-                (->local 't (up 'r 'φ) (up 'rdot 'φdot))))))
-    (is (= '(down
-             (+ (* -1N (expt ((D φ) t) 2) (r t) m)
-                (* 2 (r t) ((D U) (r t)) (/ 1 (* 2 (r t))))
-                (* (((expt D 2) r) t) m))
-             (+ (* (expt (r t) 2) (((expt D 2) φ) t) m)
-                (* 2N (r t) ((D r) t) ((D φ) t) m)))
-           (pe (((Lagrange-equations (L-alternate-central-polar 'm U))
-                 (up r φ))
-                't))))
-    (is (= '(+ (* (((expt D 2) θ) t) (expt l 2) m)
-               (* (((expt D 2) y_s) t) (sin (θ t)) l m)
-               (* (sin (θ t)) g l m))
-           (pe (((Lagrange-equations (L-pend 'm 'l 'g y_s)) θ) 't))))
-    ;; p. 61
-    (let [Lf (fn [m g]
-               (fn [[_ [_ y] v]]
-                 (- (* 1/2 m (square v)) (* m g y))))
-          dp-coordinates (fn [l y_s]
-                           (fn [[t θ]]
-                             (let [x (* l (sin θ))
-                                   y (- (y_s t) (* l (cos θ)))]
-                               (up x y))))
-          L-pend2 (fn [m l g y_s]
-                    (compose (Lf m g)
-                             (F->C (dp-coordinates l y_s))))]
-      (is (= '(+ (* (sin θ) ((D y_s) t) l m θdot)
-                 (* 1/2 (expt l 2) m (expt θdot 2))
-                 (* (cos θ) g l m)
-                 (* 1/2 (expt ((D y_s) t) 2) m)
-                 (* -1 (y_s t) g m))
-             (pe ((L-pend2 'm 'l 'g y_s) (->local 't 'θ 'θdot))))))))
+  (with-literal-functions [x y r θ φ U y_s]
+    (let [L-alternate-central-polar (fn [m U] (compose (L-central-rectangular m U) (F->C p->r)))
+         T-pend (fn [m l _ ys]
+                  (fn [local]
+                    (let [[t θ θdot] local
+                          vys (D ys)]
+                      (* 1/2 m
+                         (+ (square (* l θdot))
+                            (square (vys t))
+                            (* 2 l (vys t) θdot (sin θ)))))))
+         V-pend (fn [m l g ys]
+                  (fn [local]
+                    (let [[t θ _] local]
+                      (* m g (- (ys t) (* l (cos θ)))))))
+         L-pend (- T-pend V-pend)]
+     (is (= '(down (* (((expt D 2) x) t) m) (+ (* (((expt D 2) y) t) m) (* g m)))
+            (pe (((Lagrange-equations (L-uniform-acceleration 'm 'g))
+                  (up x y)) 't))))
+     (is (= '(down (+ (* 2 (x t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
+                         (/ 1 (* 2 (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
+                      (* (((expt D 2) x) t) m))
+                   (+ (* 2 (y t) ((D U) (sqrt (+ (expt (y t) 2) (expt (x t) 2))))
+                         (/ 1 (* 2 (sqrt (+ (expt (y t) 2) (expt (x t) 2))))))
+                      (* (((expt D 2) y) t) m)))
+            (pe (((Lagrange-equations (L-central-rectangular 'm U))
+                  (up x y))
+                 't))))
+     (is (= '(down
+              (+ (* -1N (expt ((D φ) t) 2) (r t) m) (* (((expt D 2) r) t) m) ((D U) (r t)))
+              (+ (* (expt (r t) 2) (((expt D 2) φ) t) m) (* 2N (r t) ((D r) t) ((D φ) t) m)))
+            (pe (((Lagrange-equations (L-central-polar 'm U))
+                  (up r φ))
+                 't))))
+     (is (= '(up
+              (+ (* -1 (sin φ) r φdot) (* (cos φ) rdot))
+              (+ (* (cos φ) r φdot) (* (sin φ) rdot)))
+            (pe (velocity ((F->C p->r)
+                           (->local 't (up 'r 'φ) (up 'rdot 'φdot)))))))
+     (is (= '(+ (* 1/2 m (expt r 2) (expt φdot 2)) (* 1/2 m (expt rdot 2)) (* -1 (U r)))
+            (pe ((L-alternate-central-polar 'm U)
+                 (->local 't (up 'r 'φ) (up 'rdot 'φdot))))))
+     (is (= '(down
+              (+ (* -1N (expt ((D φ) t) 2) (r t) m)
+                 (* 2 (r t) ((D U) (r t)) (/ 1 (* 2 (r t))))
+                 (* (((expt D 2) r) t) m))
+              (+ (* (expt (r t) 2) (((expt D 2) φ) t) m)
+                 (* 2N (r t) ((D r) t) ((D φ) t) m)))
+            (pe (((Lagrange-equations (L-alternate-central-polar 'm U))
+                  (up r φ))
+                 't))))
+     (is (= '(+ (* (((expt D 2) θ) t) (expt l 2) m)
+                (* (((expt D 2) y_s) t) (sin (θ t)) l m)
+                (* (sin (θ t)) g l m))
+            (pe (((Lagrange-equations (L-pend 'm 'l 'g y_s)) θ) 't))))
+     ;; p. 61
+     (let [Lf (fn [m g]
+                (fn [[_ [_ y] v]]
+                  (- (* 1/2 m (square v)) (* m g y))))
+           dp-coordinates (fn [l y_s]
+                            (fn [[t θ]]
+                              (let [x (* l (sin θ))
+                                    y (- (y_s t) (* l (cos θ)))]
+                                (up x y))))
+           L-pend2 (fn [m l g y_s]
+                     (compose (Lf m g)
+                              (F->C (dp-coordinates l y_s))))]
+       (is (= '(+ (* (sin θ) ((D y_s) t) l m θdot)
+                  (* 1/2 (expt l 2) m (expt θdot 2))
+                  (* (cos θ) g l m)
+                  (* 1/2 (expt ((D y_s) t) 2) m)
+                  (* -1 (y_s t) g m))
+              (pe ((L-pend2 'm 'l 'g y_s) (->local 't 'θ 'θdot)))))))))
 
 (deftest ^:long section-1.7
   (with-literal-functions [x y v_x v_y]

@@ -23,6 +23,8 @@
   v/Value
   (freeze [o] (.name o))
   (kind [_] ::operator)
+  (nullity? [_] false)
+  (unity? [_] false)  ;; XXX check this
   IFn
   (invoke [operator function]
     ((:f operator) function)))
@@ -43,8 +45,31 @@
               ; TODO: why can't we just write (operator (expt operator (dec n))) here?
               ))
 
-(defmethod g/expt [::operator Number] [o n] (expt o n))
-(defmethod g/simplify ::operator [o] (-> o :name g/simplify))
+(defn- number->operator
+  [n]
+  (Operator. (fn [f] #(g/* n (f %))) 1 "#"))
 
+(defn- sub
+  [o p]
+  (Operator. (fn [f] #(g/- ((o f) %) ((p f) %))) 2 "sub"))
+
+(defn- add
+  [o p]
+  (Operator. (fn [f] #(g/+ ((o f) %) ((p f) %))) 2 "add"))
+
+;; multiplication of operators is treated like composition.
+(defn- mul
+  [o p]
+  (Operator. (fn [f] #((o (p f)) %)) 2 "mul"))
+
+(defmethod g/expt [::operator Number] [o n] (expt o n))
+;; When arithmetically combined with operators, a number is
+;; treated as an operator that multiplies its input by the
+;; number.
+(defmethod g/add [::operator Number] [o n] (add o (number->operator n)))
+(defmethod g/sub [::operator Number] [o n] (sub o (number->operator n)))
+(defmethod g/mul [::operator ::operator] [o p] (mul o p))
+(defmethod g/simplify ::operator [o] (-> o :name g/simplify))
+;; XXX: we need a bunch more of these, of course.
 
 (println "operator initialized")

@@ -65,3 +65,9 @@
   (let [c (cos α)
         s (sin α)]
     (down (up c s 0) (up (- s) c 0) (up 0 0 1))))
+
+(defn Euler->M
+  [[θ φ ψ]]
+  (* (rotate-z-matrix φ)
+     (rotate-x-matrix θ)
+     (rotate-z-matrix ψ)))

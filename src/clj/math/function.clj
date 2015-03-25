@@ -94,7 +94,7 @@
                               {:arity f-arity}))))
     {:arity 2}))
 
-(defmacro make-binary-operations
+(defmacro ^:private make-binary-operations
   "Given a sequence of alternating generic and binary operations,
   define the multimethod necessary to introduce this operation
   to function arguments."
@@ -108,7 +108,7 @@
                    ))
               (partition 2 generic-and-binary-ops))))
 
-(defmacro make-unary-operations
+(defmacro ^:private make-unary-operations
   [& generic-ops]
   `(do ~@(map (fn [generic-op]
                 `(let [unop# (unary-operation ~generic-op)]

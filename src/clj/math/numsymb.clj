@@ -279,6 +279,7 @@
 (define-unary-operation g/cos cosine)
 (define-unary-operation g/tan tangent)
 (define-unary-operation g/square #(expt % 2))
+(define-unary-operation g/cube #(expt % 3))
 (define-unary-operation g/sqrt sqrt)
 (define-unary-operation g/exp exp)
 (define-unary-operation g/abs abs)
