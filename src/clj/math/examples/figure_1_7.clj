@@ -1,20 +1,6 @@
-(ns math.examples.figure-1-7
-  (:refer-clojure :exclude [+ - * / zero?])
-  (:require [clojure.data.json :as json]
-            [math.generic :refer :all]
-            [math.structure :refer :all]
-            [math.numsymb]
-            [math.numbers]
-            [math.simplify]
-            [math.expression :refer :all]
-            [math.numerical.ode :refer :all]
-            [math.function :refer :all]
-            [math.operator :refer :all]
-            [math.value :as v]
-            [math.calculus.derivative :refer :all]
-            [math.mechanics.lagrange :refer :all]
-            [math.mechanics.rotation :refer :all])
-  (:gen-class))
+(require '[math.start :as m])
+(m/math-ns math.examples.figure-1-7
+           (:require [clojure.data.json :as json]))
 
 (defn- T-pend
   [m l _ ys]
@@ -48,8 +34,6 @@
   (Lagrangian->state-derivative
    (L-periodically-driven-pendulum m l g a ω)))
 
-
-
 (defn -main
   [& args]
   (let [state-history (atom [])]
@@ -64,6 +48,6 @@
          1e-10)
      (fn [t [_ q _]] (swap! state-history conj [t q]))
      0.01
-     100.0
+     5.0
      1.0e-13)
     (json/write @state-history *out*)))
