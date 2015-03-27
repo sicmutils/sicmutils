@@ -25,7 +25,6 @@
   (unity? [_] (= i 1))
   (zero-like [_] (ModInt. 0 m))
   (exact? [_] true)
-  (sort-key [_] 15)
   (numerical? [_] true)
   (compound? [_] false)
   (kind [_] ::modint))
@@ -60,5 +59,3 @@
 (defmethod g/sub [::modint ::modint] [a b] (sub a b))
 (defmethod g/negate ::modint [a] (make (- (:i a)) (:m a)))
 (defmethod g/invert ::modint [a] (modular-inv a))
-
-(println "modint initialized")

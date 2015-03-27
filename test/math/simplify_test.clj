@@ -24,7 +24,7 @@
            [math.numbers]
            [math.mechanics.lagrange :refer :all]
            [math.function :as f]
-           [math.poly :as poly]
+           [math.polynomial :as poly]
            [math.value :as v]))
 
 (defn- pe [x]

@@ -25,7 +25,6 @@
   (zero-like [this])
   (exact? [this])
   (compound? [this])
-  (sort-key [this])
   ;; Freezing an expression means removing wrappers and other metadata
   ;; from subexpressions, so that the result is basically a pure
   ;; S-expression with the same structure as the input. Doing this will
@@ -46,7 +45,6 @@
   (compound? [_] false)
   (exact? [o] (or (integer? o) (ratio? o)))
   (zero-like [_] 0)
-  (sort-key [_] 99)
   (freeze [o] (cond (sequential? o) (map freeze o) (keyword? o) o :else o)) ;; WTF?
   (arity [o] (primitive-arity o))
   (kind [o] (primitive-kind o)))
@@ -58,16 +56,17 @@
   (memoize
    (fn [f]
      (or (:arity f)
-               (:arity (meta f))
-               (cond (symbol? f) 0
-                     (fn? f) (let [^"[java.lang.reflect.Method" ms (.getDeclaredMethods (class f))
-                                   arities (into #{} (map #(alength (.getParameterTypes %)) ms))]
-                               (if (> (count arities) 1)
-                                 (let [smallest-nonzero-arity (reduce min (disj arities 0))]
-                                   (log/warn "guessing that arity of" f "is" smallest-nonzero-arity "out of" arities)
-                                   smallest-nonzero-arity)
-                                 (first arities)))
-                     :else 1)))))
+         (:arity (meta f))
+         (cond (symbol? f) 0
+               (fn? f) (let [^"[java.lang.reflect.Method" ms (.getDeclaredMethods (class f))
+                             arities (into #{} (map #(alength (.getParameterTypes %)) ms))]
+                         #_(log/warn "reflecting to find arity of" f)
+                         (if (> (count arities) 1)
+                           (let [smallest-nonzero-arity (reduce min (disj arities 0))]
+                             (log/warn "guessing that arity of" f "is" smallest-nonzero-arity "out of" arities)
+                             smallest-nonzero-arity)
+                           (first arities)))
+               :else 1)))))
 
 (defn- primitive-kind
   [a]
@@ -89,5 +88,3 @@
   "Returns a function that tests whether two values are within ε of each other."
   [^double ε]
   (fn [^double x ^double y] (< (Math/abs (- x y)) ε)))
-
-(println "value initialized")

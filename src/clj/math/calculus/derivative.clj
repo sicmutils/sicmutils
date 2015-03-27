@@ -39,7 +39,6 @@
   (exact? [_] false)
   (compound? [_] false)
   (numerical? [d] (g/numerical-quantity? (differential-of d)))
-  (sort-key [_] 80)
   (arity [_] 0)
   (kind [_] ::differential))
 
@@ -310,6 +309,7 @@
 (def ^:private cosine   (unary-op g/cos #(-> % g/sin g/negate)))
 (def ^:private tangent  (unary-op g/tan #(-> % g/cos g/square g/invert)))
 (def ^:private sqrt     (unary-op g/sqrt #(-> % g/sqrt (g/* 2) g/invert)))
+(def ^:private exp      (unary-op g/exp g/exp))
 (def ^:private negate   (unary-op g/negate (constantly -1)))
 (def ^:private power
   (binary-op g/expt
@@ -392,6 +392,7 @@
 (define-binary-operation g/sub diff--)
 (define-binary-operation g/mul diff-*)
 (define-binary-operation g/div diff-div)
+(define-unary-operation g/exp exp)
 (define-unary-operation g/sqrt sqrt)
 (define-unary-operation g/sin sine)
 (define-unary-operation g/cos cosine)
@@ -399,6 +400,7 @@
 (define-unary-operation g/negate negate)
 (define-unary-operation g/invert #(diff-div 1 %))
 (define-unary-operation g/square #(diff-* % %))
+(define-unary-operation g/cube #(diff-* % (diff-* % %)))
 (derive ::differential :math.function/cofunction)
 (defmethod g/partial-derivative
   [:math.function/function clojure.lang.Sequential]
@@ -415,5 +417,3 @@
 (defn pd
   [& selectors]
   (o/make-operator #(g/partial-derivative % selectors) :partial-derivative))
-
-(println "derivative initialized")

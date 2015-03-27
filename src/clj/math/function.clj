@@ -33,7 +33,6 @@
   (compound? [_] false)
   (unity? [_] false)
   (numerical? [_] false)
-  (sort-key [_] 35)
   (freeze [f] (-> f :expr v/freeze))
   (arity [_] arity)
   (kind [_] ::function)
@@ -95,7 +94,7 @@
                               {:arity f-arity}))))
     {:arity 2}))
 
-(defmacro make-binary-operations
+(defmacro ^:private make-binary-operations
   "Given a sequence of alternating generic and binary operations,
   define the multimethod necessary to introduce this operation
   to function arguments."
@@ -109,7 +108,7 @@
                    ))
               (partition 2 generic-and-binary-ops))))
 
-(defmacro make-unary-operations
+(defmacro ^:private make-unary-operations
   [& generic-ops]
   `(do ~@(map (fn [generic-op]
                 `(let [unop# (unary-operation ~generic-op)]
@@ -221,6 +220,3 @@
   [litfns & body]
   `(let ~(vec (interleave litfns (map (fn [s] `(literal-function (quote ~s))) litfns)))
      ~@body))
-
-
-(println "function initialized")

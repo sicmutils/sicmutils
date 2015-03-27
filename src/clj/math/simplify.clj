@@ -16,7 +16,7 @@
 
 (ns math.simplify
   (:require [math.numsymb :as sym]
-            [math.poly :as poly]
+            [math.polynomial :as poly]
             [math.value :as v]
             [math.generic :as g]
             [math.rules :as rules]
@@ -180,6 +180,3 @@
 (defmethod g/simplify nil [a] a)
 (defmethod g/simplify :math.function/function [a] a)
 (defmethod g/simplify clojure.lang.Var [a] (-> a meta :name))
-
-
-(println "simplify initialized")

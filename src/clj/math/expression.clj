@@ -25,7 +25,6 @@
   (zero-like [_] 0)
   (numerical? [x] (= (:type x) ::number))
   (exact? [_] false)
-  (sort-key [_] 17)
   (compound? [_] false)
   (freeze [x] (-> x :expression v/freeze))
   (arity [_] 0)
@@ -90,5 +89,3 @@
                             (symbol sym-name)))
             :else x))
     (v/freeze x)))
-
-(println "expression initialized")

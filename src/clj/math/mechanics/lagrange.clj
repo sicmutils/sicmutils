@@ -22,18 +22,44 @@
             [math.function :refer :all]
             [math.numerical.integrate :refer :all]))
 
-(defn coordinate [local] (nth local 1))
-(defn velocity [local] (nth local 2))
+(defn coordinate
+  "A convenience function on local tuples. A local tuple describes
+  the state of a system at a particular time: [t, q, D q, D^2 q]
+  representing time, position, velocity (and optionally acceleration
+  etc.) Returns the q element, which is expected to be a mapping
+  from time to a structure of coordinates"
+  [local]
+  (nth local 1))
 
-(defn L-free-particle [mass]
+(defn velocity
+  "See coordinate: this returns the velocity element of a local
+  tuple (by convention, the 2nd element)."
+  [local]
+  (nth local 2))
+
+(defn L-free-particle
+  "The lagrangian of a free particle of mass m. The Lagrangian
+  returned is a function of the local tuple. Since the particle
+  is free, there is no potential energy, so the Lagrangian is
+  just the kinetic energy."
+  [mass]
+
   (fn [[_ _ v]]
     (* 1/2 mass (square v))))
 
-(defn L-harmonic [m k]
+(defn L-harmonic
+  "The Lagrangian of a simple harmonic oscillator (mass-spring
+  system). m is the mass and k is the spring constant used in
+  Hooke's law. The resulting Lagrangian is a function of the
+  local tuple of the system."
+  [m k]
   (fn [[_ q v]]
     (- (* 1/2 m (square v)) (* 1/2 k (square q)))))
 
-(defn L-uniform-acceleration [m g]
+(defn L-uniform-acceleration
+  "The Lagrangian of an object experiencing uniform acceleration
+  in the negative y direction, i.e. the acceleration due to gravity"
+  [m g]
   (fn [[_ [_ y] v]]
     (- (* 1/2 m (square v)) (* m g y))))
 
@@ -72,14 +98,18 @@
 (defn p->r [[_ [r φ]]]
   (up (* r (cos φ)) (* r (sin φ))))
 
-;; XXX: GJS allows for a gamma procedure that contains higher
-;; derivatives
-
 (defn Γ
-  [q]
-  (let [Dq (D q)]
-    (fn [t]
-      (up t (q t) (Dq t)))))
+  ([q]
+   (let [Dq (D q)]
+     (with-meta
+       (fn [t]
+         (up t (q t) (Dq t)))
+       {:arity 1})))
+  ([q n]
+   (let [Dqs (->> q (iterate D) (take (- n 1)))]
+     (fn [t]
+       (->> Dqs (map #(% t)) (cons t) (apply up))))))
+
 
 (defn Lagrangian-action
   [L q t1 t2]
@@ -103,20 +133,22 @@
   [ys xs]
   (let [n (count ys)]
     (assert (= (count xs) n))
-    (fn [x]
-      (reduce + 0
-              (for [i (range n)]
-                (/ (reduce * 1
-                           (for [j (range n)]
-                             (if (= j i)
-                               (nth ys i)
-                               (- x (nth xs j)))))
-                   (let [xi (nth xs i)]
-                     (reduce * 1
-                             (for [j (range n)]
-                               (cond (< j i) (- (nth xs j) xi)
-                                     (= j i) (if (odd? i) -1 1)
-                                     :else (- xi (nth xs j))))))))))))
+    (with-meta
+      (fn [x]
+       (reduce + 0
+               (for [i (range n)]
+                 (/ (reduce * 1
+                            (for [j (range n)]
+                              (if (= j i)
+                                (nth ys i)
+                                (- x (nth xs j)))))
+                    (let [xi (nth xs i)]
+                      (reduce * 1
+                              (for [j (range n)]
+                                (cond (< j i) (- (nth xs j) xi)
+                                      (= j i) (if (odd? i) -1 1)
+                                      :else (- xi (nth xs j))))))))))
+      {:arity 1})))
 
 (defn Lagrangian->acceleration
   [L]
@@ -135,7 +167,6 @@
 
 (defn qv->state-path
   [q v]
-  ;; or maybe (juxt identity q v)
   #(up % (q %) (v %)))
 
 (defn Lagrange-equations-first-order
@@ -151,29 +182,30 @@
   (let [P ((pd 2) L)]
     (- (* P velocity) L)))
 
-(defn Rx
-  [angle]
-  (fn [[x y z]]
-    (let [ca (cos angle)
-          sa (sin angle)]
-      (up x
-          (- (* ca y) (* sa z))
-          (+ (* sa y) (* ca z))))))
+(defn osculating-path
+  [state0]
+  (let [[t0 q0] state0
+        k (count state0)]
+    (fn [t]
+      (let [dt (- t t0)]
+        (loop [n 2 sum q0 dt-n:n! dt]
+          (if (= n k)
+            sum
+            (recur (inc n)
+              (+ sum (* (nth state0 n) dt-n:n!))
+              (/ (* dt-n:n! dt) n))))))))
 
-(defn Ry
-  [angle]
-  (fn [[x y z]]
-    (let [ca (cos angle)
-          sa (sin angle)]
-      (up (+ (* ca x) (* sa z))
-          y
-          (- (* ca z) (* sa x))))))
+(defn Γ-bar
+  [f]
+  (fn [local]
+    ((f (osculating-path local)) (first local))))
 
-(defn Rz
-  [angle]
-  (fn [[x y z]]
-    (let [ca (cos angle)
-          sa (sin angle)]
-      (up (- (* ca x) (* sa y))
-          (+ (* sa x) (* ca y))
-          z))))
+(defn Dt
+  [F]
+  (let [G-bar (fn [q]
+                (D (compose F (Γ q))))]
+    (Γ-bar G-bar)))
+
+(defn Euler-Lagrange-operator
+  [L]
+  (- (Dt ((pd 2) L)) ((pd 1) L)))

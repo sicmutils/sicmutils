@@ -14,7 +14,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
-(ns math.lagrange.lagrange-test
+(ns math.mechanics.lagrange-test
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.test :refer :all]
             [math.generic :refer :all]
@@ -32,16 +32,26 @@
       (is (= (f 2) 2))
       (is (= (f 3) 5))
       (is (= (f 4) 1)))
-    ;; this works, but since we don't have simplification yet it leaves
-    ;; behind a horrible expression that works out to 'a.
+    ;; works, but simplification can't yet see that the answer is
+    ;; just "a".
     ;; (let [f (Lagrange-interpolation-function '[a b c] '[w x y])]
     ;;   (is (= 'a (f 'w))))
     ))
 
 (deftest gamma-test
-  (let [q (literal-function 'q)
-        Γq (Γ q)]
-    (is (= '(up t (q t) ((D q) t)) (print-expression (Γq 't))))))
+  (with-literal-functions [q]
+    (is (= '(up t (q t) ((D q) t)) (print-expression ((Γ q) 't))))
+    (is (= '(up t (q t) ((D q) t)) (print-expression ((Γ q 3) 't))))
+    (is (= '(up t
+                (q t)
+                ((D q) t)
+                (((expt D 2) q) t)
+                (((expt D 3) q) t))
+           (print-expression ((Γ q 5) 't))))
+    (is (= '(+ (q t)
+               (* ((D q) t) (- t1 t))
+               (* (((expt D 2) q) t) (/ (* (- t1 t) (- t1 t)) 2)))
+           (print-expression ((osculating-path ((Γ q 4) 't)) 't1))))))
 
 (deftest lagrange-equations
   (testing "basics"
@@ -95,4 +105,3 @@
     (is (velocity ((F->C p->r)
                     (->local 't (up 'r 'phi) (up 'rdot 'phidot)))))
     ))
-
