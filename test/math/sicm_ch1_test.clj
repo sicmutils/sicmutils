@@ -292,7 +292,12 @@
              (pe ((Lagrangian->energy (L3-central 'm V)) spherical-state))))
       ;; there's a bug in differentiation of functions of several (non-tuple)
       ;; arguments...
-      (let [L (L-central-rectangular 'm U)
+      (let [F-tilde (fn [angle-x angle-y angle-z]
+                      (compose (Rx angle-x)
+                               (Ry angle-y)
+                               (Rz angle-z)
+                               coordinate))
+            L (L-central-rectangular 'm U)
             Noether-integral (* ((pd 2) L) ((D F-tilde) 0 0 0))
             state (up 't (up 'x 'y 'z) (up 'vx 'vy 'vz))]
         (is (= '(down (* m vx) (* m vy) (* m vz)) (pe (((pd 2) L) state))))

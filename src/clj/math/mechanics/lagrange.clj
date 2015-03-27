@@ -177,7 +177,3 @@
       (up (- (* ca x) (* sa y))
           (+ (* sa x) (* ca y))
           z))))
-
-(defn F-tilde
-  [angle-x angle-y angle-z]
-  (compose (Rx angle-x) (Ry angle-y) (Rz angle-z) coordinate))
