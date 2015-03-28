@@ -21,6 +21,15 @@
            (org.apache.commons.math3.ode.sampling StepHandler StepInterpolator)))
 
 (defn- make-integrator
+  "make-integrator takes a state derivative function (which in this
+  system is assumed to be a map from a structure to a structure of the
+  same shape, as differentiating a function does not change its
+  shape), and returns an integrator, which is a function of several
+  arguments: the initial state, an intermediate-state observation
+  function, the step size desired, the final time to seek, and an
+  error tolerance. If the observation function is not nil, it will be
+  invoked with the time as first argument and integrated state as the
+  second."
   [d:dt]
   (fn [initial-state observe step-size t ε]
     (let [state->array #(-> % flatten double-array)
@@ -36,6 +45,13 @@
                       (getDimension [] dimension))
           out (double-array dimension)]
       (when observe
+        ;; We implement the observation callback by adding a StepHandler
+        ;; to the integration. The StepHandler is not invoked at every grid
+        ;; point; rather, it is invoked once in a while over a range of time
+        ;; within which the integrated function may be accurately evaluated.
+        ;; The handler we install does this, invoking the callback for
+        ;; each requested grid point within the valid range, ensuring that we
+        ;; also invoke the callback for the final point.
         (.addStepHandler
          integrator
          (proxy [StepHandler] []
@@ -56,6 +72,11 @@
       (array->state out))))
 
 (defn state-advancer
+  "state-advancer takes a state derivative function constructor
+  followed by the arguments to construct it with. The state derivative
+  function is constructed and an integrator is produced which takes
+  the initial state, target time, and error tolerance as
+  arguments. The final state is returned."
   [state-derivative & state-derivative-args]
   (let [d:dt (apply state-derivative state-derivative-args)
         I (make-integrator d:dt)]
@@ -63,6 +84,10 @@
       (I initial-state nil 0 t ε))))
 
 (defn evolve
+  "evolve takes a state derivative function constructor and its
+  arguments, and returns an integrator via make-integrator. In
+  particular, the returned function accepts a callback function which
+  will be invoked at intermediate grid points of the integration."
   [state-derivative & state-derivative-args]
   (let [d:dt (apply state-derivative state-derivative-args)]
     (make-integrator d:dt)))

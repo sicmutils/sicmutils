@@ -190,12 +190,11 @@
             ;from what remains.
             [obj]
             (if (differential? obj)
-              (canonicalize-differential (make-differential
-                (filter identity (map
-                                  (fn [[ts coef]]
-                                    (if (ts dx)
-                                      [(disj ts dx) coef]))
-                                  (:terms obj)))))
+              (->> obj :terms
+                   (map (fn [[ts coef]] (if (ts dx) [(disj ts dx) coef])))
+                   (filter some?)
+                   make-differential
+                   canonicalize-differential)
               0))
           (dist
             [obj]
@@ -366,7 +365,6 @@
           (= a 4) (with-meta (fn [w x y z]
                                ((d (fn [[w x y z]] (f w x y z)))
                                 (struct/seq-> [w x y z]))) {:arity 4})
-
           :else (throw (IllegalArgumentException. (str "Haven't implemented this yet: arity " a))))))
 
 (def ^:private not-compound? (complement v/compound?))

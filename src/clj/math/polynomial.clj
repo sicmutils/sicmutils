@@ -177,7 +177,11 @@
                                         [xq cq] (:xs->c q)]
                                     [(vec (map + xp xq)) (g/* cp cq)])))))))
 
-(defn content [p]
+(defn content
+  "The content of a polynomial p is the greatest common divisor of its
+  coefficients. The polynomial supplied should draw its components from
+  a Euclidean domain."
+  [p]
   (->> p :xs->c (map second) (reduce (comp first extended-euclid))))
 
 (defn- lead-term
@@ -238,8 +242,8 @@
   "An ordering on monomials. X < Y if X has higher total degree than
   Y. In case of ties, X < Y if Y < X lexicographically.  This is
   intended, when used as the comparator in an ascending sort, to
-  produce an ordering like: x^2 + xy + y^2 + x + y + 1, when the monomials
-  are sorted in ascending order."
+  produce an ordering like: x^2 + xy + y^2 + x + y + 1, when the
+  monomials are sorted in ascending order."
   [xs ys]
   (let [deg #(reduce + %)
         xd (deg xs)
@@ -256,8 +260,8 @@
   symbolically over the known Flat Polynomial operations; other
   operations outside the arithmetic available in polynomials over
   commutative rings should be factored out by an expression analyzer
-  before we get here. The result is a Polynomial object representing the
-  polynomial structure of the input over the unknowns."
+  before we get here. The result is a Polynomial object representing
+  the polynomial structure of the input over the unknowns."
   [expr cont]
   (let [expression-vars (sort (set/difference (x/variables-in expr) operators-known))
         new-bindings (zipmap expression-vars (new-variables (count expression-vars)))
