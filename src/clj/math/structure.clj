@@ -16,7 +16,7 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
 (ns math.structure
-  (:import (clojure.lang Sequential Seqable IFn AFn Counted))
+  (:import (clojure.lang Sequential Seqable IFn ILookup AFn Counted))
   (:require [math.value :as v]
             [math.generic :as g]))
 
@@ -47,6 +47,9 @@
   (count [_] (count v))
   Seqable
   (seq [_] (seq v))
+  ILookup
+  (valAt [_ key] (get v key))
+  (valAt [_ key default] (get v key default))
   IFn
   (invoke [_ x]
     (Struct. orientation (mapv #(% x) v)))
@@ -117,11 +120,11 @@
         (make (.orientation s)
               (assoc w k0 (structure-assoc-in (nth w k0) (next keys) value))))))
 
-(defn structure-get-in
-  "Like get-in, but for structures. See structure-assoc-in"
-  [^Struct s keys]
-  (if (empty? keys) s
-      (recur (-> s .v (get (first keys))) (next keys))))
+;; (defn structure-get-in
+;;   "Like get-in, but for structures. See structure-assoc-in"
+;;   [^Struct s keys]
+;;   (if (empty? keys) s
+;;       (recur (-> s .v (get (first keys))) (next keys))))
 
 (defn- compatible-for-contraction?
   "True if s and t are equal in length but opposite in orientation"

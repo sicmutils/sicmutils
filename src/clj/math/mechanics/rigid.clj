@@ -28,9 +28,9 @@
   return the column vector of its positive components."
   [a]
   ;; XXX: we should assert anstisymmetricity here
-  (up (structure-get-in a [2 1])
-      (structure-get-in a [0 2])
-      (structure-get-in a [1 0])))
+  (up (get-in a [2 1])
+      (get-in a [0 2])
+      (get-in a [1 0])))
 
 (defn M-of-q->omega-of-t
   [M-of-q]

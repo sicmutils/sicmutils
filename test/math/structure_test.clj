@@ -197,10 +197,10 @@
     (is (= 9 (unflatten [9] 3)))
     (is (= (up 2) (unflatten [2] (up 0.0)))))
   (testing "get-in"
-    (is (= 5 (structure-get-in (up 4 5 6) [1])))
-    (is (= 4 (structure-get-in (up 4 5 6) [0])))
-    (is (= 4 (structure-get-in (down (up 1 2) (up 3 4)) [1 1])))
-    (is (= 2 (structure-get-in (down (up 1 2) (up 3 4)) [0 1]))))
+    (is (= 5 (get-in (up 4 5 6) [1])))
+    (is (= 4 (get-in (up 4 5 6) [0])))
+    (is (= 4 (get-in (down (up 1 2) (up 3 4)) [1 1])))
+    (is (= 2 (get-in (down (up 1 2) (up 3 4)) [0 1]))))
   (testing "assoc-in"
     (is (= (up 4 55 6) (structure-assoc-in (up 4 5 6) [1] 55)))
     (is (= (down (up 1 22) (up 3 4)) (structure-assoc-in (down (up 1 2) (up 3 4)) [0 1] 22)))))

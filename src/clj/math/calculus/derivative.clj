@@ -343,7 +343,7 @@
                   (structural-derivative
                     (fn [w]
                       (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
-                    (struct/structure-get-in v selectors))
+                    (get-in v selectors))
                   (empty? selectors)
                   ((derivative f) v)
                   :else
