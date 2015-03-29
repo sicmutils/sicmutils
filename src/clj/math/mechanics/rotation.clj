@@ -18,55 +18,68 @@
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [math.generic :refer :all]
             [math.structure :refer :all]
+            [math.calculus.derivative :refer :all]
             [math.function :refer :all]))
 
 
+;; XXX: R[xyz] should not return an up; they should return a struct
+;; of the same shape they were given. But do rotations of covectors
+;; work that way? Maybe we should assert up-ness here rather than
+;; promise to be more general than we are.
+
 (defn Rx
-  [angle]
-  (fn [[x y z]]
-    (let [ca (cos angle)
-          sa (sin angle)]
+  "Returns a function which rotates a vector α radians about the x axis."
+  [α]
+  (fn [[x y z :as v]]
+    (let [c (cos α)
+          s (sin α)]
       (up x
-          (- (* ca y) (* sa z))
-          (+ (* sa y) (* ca z))))))
+          (- (* c y) (* s z))
+          (+ (* s y) (* c z))))))
 
 (defn Ry
-  [angle]
+  "Returns a function which rotates a vector α radians about the y axis."
+  [α]
   (fn [[x y z]]
-    (let [ca (cos angle)
-          sa (sin angle)]
-      (up (+ (* ca x) (* sa z))
+    (let [c (cos α)
+          s (sin α)]
+      (up (+ (* c x) (* s z))
           y
-          (- (* ca z) (* sa x))))))
+          (- (* c z) (* s x))))))
 
 (defn Rz
-  [angle]
+  "Returns a function which rotates a vector α radians about the z axis."
+  [α]
   (fn [[x y z]]
-    (let [ca (cos angle)
-          sa (sin angle)]
-      (up (- (* ca x) (* sa y))
-          (+ (* sa x) (* ca y))
+    (let [c (cos α)
+          s (sin α)]
+      (up (- (* c x) (* s y))
+          (+ (* s x) (* c y))
           z))))
 
 (defn rotate-x-matrix
+  "Produce the matrix of a rotation of α radians about the x axis."
   [α]
   (let [c (cos α)
         s (sin α)]
     (down (up 1 0 0) (up 0 c s) (up 0 (- s) c))))
 
 (defn rotate-y-matrix
+  "Produce the matrix of a rotation of α radians about the y axis."
   [α]
   (let [c (cos α)
         s (sin α)]
     (down (up c 0 (- s)) (up 0 1 0) (up s 0 c))))
 
 (defn rotate-z-matrix
+  "Produce the matrix of a rotation of α radians about the z axis."
   [α]
   (let [c (cos α)
         s (sin α)]
     (down (up c s 0) (up (- s) c 0) (up 0 0 1))))
 
 (defn Euler->M
+  "Compute the rotation matrix from a set of Euler angles."
   [[θ φ ψ]]
   (* (rotate-z-matrix φ)
      (rotate-x-matrix θ)

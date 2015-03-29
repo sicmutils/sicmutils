@@ -169,10 +169,20 @@
     (is (= [2 3] (map count (down (up 1 2) (up 3 4 5))))))
   (testing "support take"
     (is (= (up 1 2) (take 2 (up 1 2 3))))
-    (is (= (down (up 1 2) (up 3 4)) (take 2 (down (up 1 2) (up 3 4) (up 5 6))))))
+    (is (= (down (up 1 2)
+                 (up 3 4))
+           (take 2 (down (up 1 2)
+                         (up 3 4)
+                         (up 5 6))))))
   (testing "support drop"
     (is (= (up 3) (drop 2 (up 1 2 3))))
-    (is (= (down (up 3 4) (up 5 6)) (drop 1 (down (up 1 2) (up 3 4) (up 5 6))))))
+    (is (= (down (up 3 4)
+                 (up 5 6))
+           (drop 1 (down (up 1 2)
+                         (up 3 4)
+                         (up 5 6))))))
+  (testing "can be mapped"
+    (is (= (up 1 4 9) (map square (up 1 2 3)))))
   (testing "a structure can produce a seq"
     (is (= [1 2 3] (seq (up 1 2 3))))
     (is (= [4 5 6] (seq (down 4 5 6))))
