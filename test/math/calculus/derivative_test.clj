@@ -113,6 +113,18 @@
       (is (= (up 0 'y)  ((((pd 1) F) 1 1) (up 'x 'y))))
       (is (= (down (up 'x 0) (up 0 'y)) (((D F) 1 1) (up 'x 'y)))))))
 
+(deftest amazing-bug
+  (testing "1"
+    (let [f (fn [x]
+              (fn [g]
+                (fn [y]
+                  (g (+ x y)))))
+          f-hat ((D f) 3)]
+      (is ((v/within 1e-6) 2980.957987 ((f-hat exp) 5)))
+      ;; TODO: this is the amazing bug: bbb == 0 is wrong.
+      #_(is (= 'bbb ((f-hat (f-hat exp)) 5)))
+      )))
+
 (deftest diff-test-2
   (testing "delta-eta-test"
     (let [η (literal-function 'η)

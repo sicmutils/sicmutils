@@ -158,21 +158,23 @@
   [s]
   (opposite s (seq s)))
 
-#_(defn m:transpose
+(defn m:transpose
   "Transpose the structure s like a matrix. The result will have
   the same orientation at all levels."
   [^Struct s]
   (let [d1 (count s)
-        d2 (map count (.v s))
-        ragged (not (reduce = d2))
+        d2s (map count (.v s))
+        ragged (not (apply = d2s))
         o2s (map #(.orientation %) s)
-        weird (not (reduce = o2s))
+        weird (not (apply = o2s))
         o2 (first o2s)]
     (when (or ragged weird)
+      (prn "can't transpose" ragged weird d2s o2s)
       (throw (IllegalArgumentException.
               "a structure must be rectangular if it is to be transposed.")))
-    (same s (for [i (range d2)]
-              ))))
+    (same s (for [i (range (first d2s))]
+              (Struct. o2 (vec (for [j (range d1)]
+                                 (get (get s j) i))))))))
 
 (defn- without-index
   "The structure s with element index i removed"

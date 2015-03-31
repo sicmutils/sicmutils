@@ -33,5 +33,28 @@
 
 (deftest section-2.7
   (with-literal-functions [θ φ ψ]
-    #_(is (= 'foo (pe (((M-of-q->omega-body-of-t Euler->M)
-                      (up θ φ ψ)) 't))))))
+    (let [q (up θ φ ψ)
+          M-on-path (compose Euler->M q)]
+      (is (= '(down
+               (up (+ (* -1 (sin (ψ t)) (cos (θ t)) (sin (φ t))) (* (cos (ψ t)) (cos (φ t))))
+                   (+ (* (sin (ψ t)) (cos (θ t)) (cos (φ t))) (* (cos (ψ t)) (sin (φ t))))
+                   (* (sin (ψ t)) (sin (θ t))))
+               (up (+ (* -1 (cos (ψ t)) (cos (θ t)) (sin (φ t))) (* -1 (sin (ψ t)) (cos (φ t))))
+                   (+ (* (cos (ψ t)) (cos (θ t)) (cos (φ t))) (* -1 (sin (ψ t)) (sin (φ t))))
+                   (* (cos (ψ t)) (sin (θ t))))
+               (up (* (sin (θ t)) (sin (φ t)))
+                   (* -1 (sin (θ t)) (cos (φ t)))
+                   (cos (θ t))))
+             (pe (M-on-path 't))))
+      (is (= '(up (+ (* (sin (ψ t)) (sin (θ t)) ((D φ) t))
+                     (* (cos (ψ t)) ((D θ) t)))
+                  (+ (* (cos (ψ t)) (sin (θ t)) ((D φ) t))
+                     (* -1 ((D θ) t) (sin (ψ t))))
+                  (+ (* (cos (θ t)) ((D φ) t)) ((D ψ) t)))
+             (pe (((M-of-q->omega-body-of-t Euler->M) q) 't))))
+      (is (= '(up (+ (* (sin ψ) (sin θ) φdot) (* (cos ψ) θdot))
+                  (+ (* (cos ψ) (sin θ) φdot) (* -1 (sin ψ) θdot))
+                  (+ (* (cos θ) φdot) ψdot))
+             (pe ((M->omega-body Euler->M) (up 't
+                                               (up 'θ 'φ 'ψ)
+                                               (up 'θdot 'φdot 'ψdot)))))))))
