@@ -165,7 +165,7 @@
   (let [d1 (count s)
         d2s (map count (.v s))
         ragged (not (apply = d2s))
-        o2s (map #(.orientation %) s)
+        o2s (map (fn [^Struct t] (.orientation t)) s)
         weird (not (apply = o2s))
         o2 (first o2s)]
     (when (or ragged weird)
