@@ -83,5 +83,7 @@
 
 (defmethod g/mul [::operator ::operator] [o p] (mul o p))
 (defmethod g/add [::operator ::operator] [o p] (add o p))
+(defmethod g/square ::operator [o] (mul o o))
 (defmethod g/simplify ::operator [o] (-> o :name g/simplify))
+
 ;; XXX: we need a bunch more of these, of course.

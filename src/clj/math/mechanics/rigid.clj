@@ -58,7 +58,7 @@
   (-> M-of-q M-of-q->omega-body-of-t Γ-bar))
 
 (defn Euler-state->omega-body
-  [_ [θ φ ψ] [θdot φdot ψdot]]
+  [[_ [θ φ ψ] [θdot φdot ψdot]]]
   (let [ω-a (+ (* (sin ψ) (sin θ) φdot) (* (cos ψ) θdot))
         ω-b (+ (* (cos ψ) (sin θ) φdot) (* -1 (sin ψ) θdot))
         ω-c (+ (* (cos θ) φdot) ψdot)]
@@ -72,3 +72,21 @@
          (+ (* A (square ω0))
             (* B (square ω1))
             (* C (square ω2)))))))
+
+(defn rigid-sysder
+  [A B C]
+  (Lagrangian->state-derivative (T-rigid-body A B C)))
+
+(defn Euler-state->L-body
+  [A B C]
+  (fn [local]
+    (let [[ω0 ω1 ω2] (Euler-state->omega-body local)]
+      (up (* A ω0)
+          (* B ω1)
+          (* C ω2)))))
+
+(defn Euler-state->L-space
+  [A B C]
+  (fn [[_ angles _ :as local]]
+    (* (Euler->M angles)
+       ((Euler-state->L-body A B C) local))))

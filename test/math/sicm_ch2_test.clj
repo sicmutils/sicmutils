@@ -58,3 +58,23 @@
              (pe ((M->omega-body Euler->M) (up 't
                                                (up 'θ 'φ 'ψ)
                                                (up 'θdot 'φdot 'ψdot)))))))))
+
+(deftest section-2.9
+  (let [Euler-state (up 't
+                        (up 'θ 'φ 'ψ)
+                        (up 'θdot 'φdot 'ψdot))]
+    ;; this is almost what scmutils gives, except the first and third terms
+    ;; containing A φdot are reduced to sin^2 psi sin^2 theta, so that is
+    ;; a missing piece in our simplification. XXX
+    (is (= '(+ (* -1 (expt (sin ψ) 2) (expt (cos θ) 2) A φdot)
+               (* (expt (cos ψ) 2) (expt (sin θ) 2) B φdot)
+               (* (sin ψ) (cos ψ) (sin θ) A θdot)
+               (* -1N (sin ψ) (cos ψ) (sin θ) B θdot)
+               (* (expt (sin ψ) 2) A φdot)
+               (* (expt (cos θ) 2) C φdot)
+               (* (cos θ) C ψdot))
+           (pe (nth (((pd 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1))))
+    (is (zero? (pe (- (nth ((Euler-state->L-space 'A 'B 'C) Euler-state) 2)
+                      (nth (((pd 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1)))))
+    (is (= '(* (expt (sin θ) 2) A B C)
+           (pe (determinant (((square (pd 2)) (T-rigid-body 'A 'B 'C)) Euler-state)))))))
