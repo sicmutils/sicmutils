@@ -25,11 +25,15 @@
             [math.function :refer :all]
             [math.operator :refer :all]
             [math.value :as v]
+            [math.numerical.ode :refer :all]
             [math.calculus.derivative :refer :all]
             [math.mechanics.rigid :refer :all]
             [math.mechanics.rotation :refer :all]))
 
 (defn- pe [x] (-> x simplify print-expression))
+(def ^:private Euler-state (up 't
+                               (up 'θ 'φ 'ψ)
+                               (up 'θdot 'φdot 'ψdot)))
 
 (deftest section-2.7
   (with-literal-functions [θ φ ψ]
@@ -60,21 +64,59 @@
                                                (up 'θdot 'φdot 'ψdot)))))))))
 
 (deftest section-2.9
-  (let [Euler-state (up 't
-                        (up 'θ 'φ 'ψ)
-                        (up 'θdot 'φdot 'ψdot))]
-    ;; this is almost what scmutils gives, except the first and third terms
-    ;; containing A φdot are reduced to sin^2 psi sin^2 theta, so that is
-    ;; a missing piece in our simplification. XXX
-    (is (= '(+ (* -1 (expt (sin ψ) 2) (expt (cos θ) 2) A φdot)
-               (* (expt (cos ψ) 2) (expt (sin θ) 2) B φdot)
-               (* (sin ψ) (cos ψ) (sin θ) A θdot)
-               (* -1N (sin ψ) (cos ψ) (sin θ) B θdot)
-               (* (expt (sin ψ) 2) A φdot)
-               (* (expt (cos θ) 2) C φdot)
-               (* (cos θ) C ψdot))
-           (pe (nth (((pd 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1))))
-    (is (zero? (pe (- (nth ((Euler-state->L-space 'A 'B 'C) Euler-state) 2)
-                      (nth (((pd 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1)))))
-    (is (= '(* (expt (sin θ) 2) A B C)
-           (pe (determinant (((square (pd 2)) (T-rigid-body 'A 'B 'C)) Euler-state)))))))
+  ;; this is almost what scmutils gives, except the first and third terms
+  ;; containing A φdot are reduced to sin^2 psi sin^2 theta, so that is
+  ;; a missing piece in our simplification. XXX
+  (is (= '(+ (* -1 (expt (sin ψ) 2) (expt (cos θ) 2) A φdot)
+             (* (expt (cos ψ) 2) (expt (sin θ) 2) B φdot)
+             (* (sin ψ) (cos ψ) (sin θ) A θdot)
+             (* -1N (sin ψ) (cos ψ) (sin θ) B θdot)
+             (* (expt (sin ψ) 2) A φdot)
+             (* (expt (cos θ) 2) C φdot)
+             (* (cos θ) C ψdot))
+         (pe (nth (((pd 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1))))
+  (is (zero? (pe (- (nth ((Euler-state->L-space 'A 'B 'C) Euler-state) 2)
+                    (nth (((pd 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1)))))
+  (is (= '(* (expt (sin θ) 2) A B C)
+         (pe (determinant (((square (pd 2)) (T-rigid-body 'A 'B 'C)) Euler-state))))))
+
+(deftest ^:long section-2.9b
+  (let [relative-error (fn [value reference-value]
+                           (when (zero? reference-value)
+                             (throw (IllegalArgumentException. "zero reference value")))
+                           (/ (- value reference-value) reference-value))
+          points (atom [])
+          monitor-errors (fn [A B C L0 E0]
+                           (fn [t state]
+                             (let [L ((Euler-state->L-space A B C) state)
+                                   E ((T-rigid-body A B C) state)]
+                               (swap! points conj
+                                      [t
+                                       (relative-error (nth L 0) (nth L0 0))
+                                       (relative-error (nth L 1) (nth L0 1))
+                                       (relative-error (nth L 2) (nth L0 2))
+                                       (relative-error E E0)]))))
+          A 1. B (Math/sqrt 2.) C 2. ;; moments of inertia
+          state0 (up 0. (up 1. 0. 0.) (up 0.1 0.1 0.1)) ;; initial state
+          L0 ((Euler-state->L-space A B C) state0)
+          E0 ((T-rigid-body A B C) state0)]
+      ((evolve rigid-sysder A B C)
+       state0
+       (monitor-errors A B C L0 E0)
+       0.1
+       2.0
+       1.0e-12)
+      ;; check that all observed errors over the whole interval are small
+      (is (> 1e-10 (->> @points
+                        (map (comp (partial reduce max) (partial drop 1)))
+                        (reduce max))))))
+
+(deftest section-2.10
+  ;; simplification is a little off here: missing the extraction of a common
+  ;; factor (cos θ), but it's still pretty good.
+  (is (= '(+ (* 1/2 (expt (cos θ) 2) C (expt φdot 2))
+             (* 1/2 (expt (sin θ) 2) A (expt φdot 2))
+             (* (cos θ) C φdot ψdot)
+             (* 1/2 A (expt θdot 2))
+             (* 1/2 C (expt ψdot 2)))
+         (pe ((T-rigid-body 'A 'A 'C) Euler-state)))))
