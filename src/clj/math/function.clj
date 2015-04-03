@@ -38,10 +38,14 @@
   (kind [_] ::function)
   IFn
   (invoke [f x] (literal-apply f [x]))
+  (invoke [f x y] (literal-apply f [x y]))
+  (invoke [f x y z] (literal-apply f [x y z]))
+  (invoke [f w x y z] (literal-apply f [w x y z]))
   (applyTo [f xs] (literal-apply f xs))
   )
 
 (defn literal-function [f] (Function. f 1 [:real] :real))
+(defn literal-function2 [f] (Function. f 2 [:real :real] :real))
 (def ^:private derivative-symbol 'D)
 
 ;; --------------------
