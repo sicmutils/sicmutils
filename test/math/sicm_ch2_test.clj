@@ -59,9 +59,7 @@
       (is (= '(up (+ (* (sin ψ) (sin θ) φdot) (* (cos ψ) θdot))
                   (+ (* (cos ψ) (sin θ) φdot) (* -1 (sin ψ) θdot))
                   (+ (* (cos θ) φdot) ψdot))
-             (pe ((M->omega-body Euler->M) (up 't
-                                               (up 'θ 'φ 'ψ)
-                                               (up 'θdot 'φdot 'ψdot)))))))))
+             (pe ((M->omega-body Euler->M) Euler-state)))))))
 
 (deftest section-2.9
   ;; this is almost what scmutils gives, except the first and third terms
@@ -70,7 +68,7 @@
   (is (= '(+ (* -1 (expt (sin ψ) 2) (expt (cos θ) 2) A φdot)
              (* (expt (cos ψ) 2) (expt (sin θ) 2) B φdot)
              (* (sin ψ) (cos ψ) (sin θ) A θdot)
-             (* -1N (sin ψ) (cos ψ) (sin θ) B θdot)
+             (* -1 (sin ψ) (cos ψ) (sin θ) B θdot)
              (* (expt (sin ψ) 2) A φdot)
              (* (expt (cos θ) 2) C φdot)
              (* (cos θ) C ψdot))
@@ -107,6 +105,7 @@
        2.0
        1.0e-12)
       ;; check that all observed errors over the whole interval are small
+      ;; XXX use flatten here
       (is (> 1e-10 (->> @points
                         (map (comp (partial reduce max) (partial drop 1)))
                         (reduce max))))))

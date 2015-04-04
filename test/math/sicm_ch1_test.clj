@@ -180,10 +180,10 @@
                    (up x y))
                   't))))
       (is (= '(down
-               (+ (* -1N (expt ((D φ) t) 2) (r t) m)
+               (+ (* -1 (expt ((D φ) t) 2) (r t) m)
                   (* (((expt D 2) r) t) m) ((D U) (r t)))
                (+ (* (expt (r t) 2) (((expt D 2) φ) t) m)
-                  (* 2N (r t) ((D r) t) ((D φ) t) m)))
+                  (* 2 (r t) ((D r) t) ((D φ) t) m)))
              (pe (((Lagrange-equations (L-central-polar 'm U))
                    (up r φ))
                   't))))
@@ -197,11 +197,11 @@
              (pe ((L-alternate-central-polar 'm U)
                   (->local 't (up 'r 'φ) (up 'rdot 'φdot))))))
       (is (= '(down
-               (+ (* -1N (expt ((D φ) t) 2) (r t) m)
+               (+ (* -1 (expt ((D φ) t) 2) (r t) m)
                   (* 2 (r t) ((D U) (r t)) (/ 1 (* 2 (r t))))
                   (* (((expt D 2) r) t) m))
                (+ (* (expt (r t) 2) (((expt D 2) φ) t) m)
-                  (* 2N (r t) ((D r) t) ((D φ) t) m)))
+                  (* 2 (r t) ((D r) t) ((D φ) t) m)))
              (pe (((Lagrange-equations (L-alternate-central-polar 'm U))
                    (up r φ))
                   't))))
@@ -275,7 +275,7 @@
         pend-state-derivative (fn [m l g a ω]
                                 (Lagrangian->state-derivative
                                  (L-periodically-driven-pendulum m l g a ω)))]
-    (is (= '(+ (* -1N (cos (* t ω)) (sin (θ t)) a l m (expt ω 2))
+    (is (= '(+ (* -1 (cos (* t ω)) (sin (θ t)) a l m (expt ω 2))
                (* (sin (θ t)) g l m)
                (* (((expt D 2) θ) t) (expt l 2) m))
            (pe (((Lagrange-equations
