@@ -31,7 +31,10 @@
       (is (= '(F x) (x/print-expression (f 'x))))
       (is (= '(F 7) (x/print-expression (f (g/+ 3 4))))))
     (testing "kind"
-      (is (= :math.function/function (v/kind f))))))
+      (is (= :math.function/function (v/kind f))))
+    (testing "arity > 1"
+      (let [g (literal-function2 'g)]
+        (is (= '(g a b) (x/print-expression (g 'a 'b))))))))
 
 (deftest function-algebra
   (let [add2 (fn [x] (g/+ x 2))
