@@ -20,23 +20,21 @@
             [math.generic :refer :all]
             [math.function :refer :all]
             [math.numbers]
-            [math.expression :refer :all]
+            [math.simplify :refer [pe]]
             [math.mechanics.rotation :refer :all]
             [math.structure :refer :all]))
-
-(defn- pe [x] (-> x simplify print-expression))
 
 (deftest hello
   (let [P (up 'x 'y 'z)]
     (is (= '(up x
                 (+ (* (cos a) y) (* -1 (sin a) z))
                 (+ (* (sin a) y) (* (cos a) z)))
-           (pe ((Rx 'a) P))))
+           (simplify ((Rx 'a) P))))
     (is (= '(up x
                 (+ (* (cos a) y) (* -1 (sin a) z))
                 (+ (* (sin a) y) (* (cos a) z)))
-           (pe (* (rotate-x-matrix 'a) P))))
-    (is (= '(up 0 0 0) (pe (- ((Rx 'a) P) (* (rotate-x-matrix 'a) P)))))
-    (is (= '(up 0 0 0) (pe (- ((Ry 'a) P) (* (rotate-y-matrix 'a) P)))))
-    (is (= '(up 0 0 0) (pe (- ((Rz 'a) P) (* (rotate-z-matrix 'a) P)))))
+           (simplify (* (rotate-x-matrix 'a) P))))
+    (is (= '(up 0 0 0) (simplify (- ((Rx 'a) P) (* (rotate-x-matrix 'a) P)))))
+    (is (= '(up 0 0 0) (simplify (- ((Ry 'a) P) (* (rotate-y-matrix 'a) P)))))
+    (is (= '(up 0 0 0) (simplify (- ((Rz 'a) P) (* (rotate-z-matrix 'a) P)))))
     ))

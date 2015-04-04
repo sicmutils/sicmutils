@@ -249,8 +249,7 @@
                                 (* (second (operands b)) e))
                           (< e 0) (div-n 1 (expt b (- e)))
                           :else `(~'expt ~b ~e))
-        :else `(~'expt ~b ~e)
-        ))
+        :else `(~'expt ~b ~e)))
 
 (defn- define-binary-operation
   [generic-operation symbolic-operation]

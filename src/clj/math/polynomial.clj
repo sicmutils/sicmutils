@@ -94,7 +94,7 @@
               (cond
                 (zero? order) (let [v (f cp cq)]
                                      (recur (rest P) (rest Q)
-                                            (if (not (g/zero? v))
+                                            (if-not (g/zero? v)
                                               (assoc R xp v)
                                               R)))
                 (< order 0) (recur (rest P) Q (assoc R xp (f cp 0)))
@@ -266,7 +266,7 @@
   (let [expression-vars (sort (set/difference (x/variables-in expr) operators-known))
         new-bindings (zipmap expression-vars (new-variables (count expression-vars)))
         environment (into operator-table new-bindings)]
-   (cont ((x/walk-expression environment) expr) expression-vars)))
+    (cont ((x/walk-expression environment) expr) expression-vars)))
 
 (defn ->expression
   "This is the output stage of Flat Polynomial canonical form simplification.

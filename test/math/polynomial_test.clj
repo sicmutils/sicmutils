@@ -19,7 +19,8 @@
             [math.polynomial :refer :all]
             [math.generic :as g]
             [math.numbers]
-            [math.expression :as x]
+            [math.expression :refer [variables-in]]
+            [math.simplify]
             [math.modint :as modular]
             ))
 
@@ -103,14 +104,13 @@
           exp2 (:expression (g/expt (g/+ 1 'y) 5))
           exp3 (:expression (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5)))
           receive (fn [a b] [a b])]
-      (is (= '#{* + x} (x/variables-in exp1)))
+      (is (= '#{* + x} (variables-in exp1)))
       (is (= [(make [-3 -2 1]) '(x)] (expression-> exp1 receive)))
       (is (= [(make [-3 -2 1]) '(x)] (expression-> exp1 receive)))
       (is (= [(make [1 5 10 10 5 1]) '(y)] (expression-> exp2 receive)))
       (is (= [(make [0 -11 5 -30 10 -7 1]) '(y)] (expression-> exp3 receive)))))
   (testing "expr-simplify"
-    (let [pe x/print-expression
-          poly-simp #(-> % (expression-> ->expression) pe)
+    (let [poly-simp #(expression-> % ->expression)
           exp1 (:expression (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))
           exp2 (:expression (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
           exp3 'y]

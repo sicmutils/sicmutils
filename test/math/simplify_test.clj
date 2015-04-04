@@ -16,7 +16,7 @@
 
 (ns math.simplify-test
   (require [clojure.test :refer :all]
-           [math.simplify :refer :all]
+           [math.simplify :refer [symbol-generator analyzer simplify-expression]]
            [math.structure :refer :all]
            [math.expression :as x]
            [math.generic :as g]
@@ -26,9 +26,6 @@
            [math.function :as f]
            [math.polynomial :as poly]
            [math.value :as v]))
-
-(defn- pe [x]
-  (-> x g/simplify x/print-expression))
 
 (deftest generator
   (let [g (symbol-generator "k%d")
@@ -45,8 +42,7 @@
                                       poly/expression->
                                       poly/->expression
                                       poly/operators-known))
-        A (fn [x]
-            (x/print-expression ((new-analyzer) x)))]
+        A #((new-analyzer) %)]
     (is (= '(+ x 1) (A '(+ 1 x))))
     (is (= '(+ x 1) (A '[+ 1 x])))
     (is (= 'x (A '(* 1/2 (+ x x)))))
@@ -71,8 +67,8 @@
   (is (= 3 (g/simplify (g/+ 1 2))))
   (is (= 6 (g/simplify (g/+ 1 2 3))))
   (is (= nil (g/simplify nil)))
-  (is (= '(* 2 x) (pe (g/+ 'x 'x))))
-  (is (= '(+ x 1) (pe (g/+ 1 'x)))))
+  (is (= '(* 2 x) (g/simplify (g/+ 'x 'x))))
+  (is (= '(+ x 1) (g/simplify (g/+ 1 'x)))))
 
 (deftest equations
   (let [xy (s/up (f/literal-function 'x) (f/literal-function 'y))
@@ -81,28 +77,28 @@
         xyt2 (g/square xyt)
         Uxyt2 (U xyt2)
         ]
-    (is (= '(up x y) (pe xy)))
-    (is (= '(up (x t) (y t)) (pe xyt)))
-    (is (= '(+ (expt (x t) 2) (expt (y t) 2)) (pe xyt2)))
-    (is (= '(U (+ (expt (x t) 2) (expt (y t) 2))) (pe Uxyt2)))
-    (is (= 1 (pe (g/+ (g/expt (g/sin 'x) 2) (g/expt (g/cos 'x) 2)))))
+    (is (= '(up x y) (g/simplify xy)))
+    (is (= '(up (x t) (y t)) (g/simplify xyt)))
+    (is (= '(+ (expt (x t) 2) (expt (y t) 2)) (g/simplify xyt2)))
+    (is (= '(U (+ (expt (x t) 2) (expt (y t) 2))) (g/simplify Uxyt2)))
+    (is (= 1 (g/simplify (g/+ (g/expt (g/sin 'x) 2) (g/expt (g/cos 'x) 2)))))
     ;; why doesn't the following work given that the rules are meant
     ;; to pull sines to the left?
-    (is (= 1 (pe (g/+ (g/expt (g/cos 'x) 2) (g/expt (g/sin 'x) 2)))))
+    (is (= 1 (g/simplify (g/+ (g/expt (g/cos 'x) 2) (g/expt (g/sin 'x) 2)))))
     ))
 
 (deftest structures
   (let [A (up (up 1 2) (up 3 4))
         C (down (up 1 2 3) (up 0 4 5) (up 1 0 6))]
     (testing "characteristic polynomial"
-      (is (= '(+ (expt x 2) (* -5 x) -2) (pe (characteristic-polynomial A 'x))))
-      (is (= '(+ (expt y 3) (* -11 (expt y 2)) (* 31 y) -22) (pe (characteristic-polynomial C 'y))))
-      (is ((v/within 1e-12) 0.0 (pe (characteristic-polynomial A (g/divide (g/- 5 (g/sqrt 33)) 2))))))))
+      (is (= '(+ (expt x 2) (* -5 x) -2) (g/simplify (characteristic-polynomial A 'x))))
+      (is (= '(+ (expt y 3) (* -11 (expt y 2)) (* 31 y) -22) (g/simplify (characteristic-polynomial C 'y))))
+      (is ((v/within 1e-12) 0.0 (g/simplify (characteristic-polynomial A (g/divide (g/- 5 (g/sqrt 33)) 2))))))))
 
 (deftest lagrange-equations-test
   (let [xy (s/up (f/literal-function 'x) (f/literal-function 'y))
         LE (((Lagrange-equations (L-central-rectangular 'm (f/literal-function 'U))) xy) 't)]
-    (is (= '(up x y) (pe xy)))
+    (is (= '(up x y) (g/simplify xy)))
     (is (= '(down (+ (* 2 (x t)
                         ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
                         (/ 1 (* 2 (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
@@ -111,4 +107,4 @@
                         ((D U) (sqrt (+ (expt (y t) 2) (expt (x t) 2))))
                         (/ 1 (* 2 (sqrt (+ (expt (y t) 2) (expt (x t) 2))))))
                      (* (((expt D 2) y) t) m)))
-           (pe LE)))))
+           (g/simplify LE)))))

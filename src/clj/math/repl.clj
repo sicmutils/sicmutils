@@ -17,7 +17,6 @@
 (ns math.repl
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.main :as m]
-            [clojure.pprint :as pp]
             [math.generic :refer :all]
             [math.structure :refer :all]
             [math.expression :refer :all]
@@ -25,7 +24,7 @@
             [math.numsymb]
             [math.function :refer :all]
             [math.operator]
-            [math.simplify]
+            [math.simplify :refer [print-expression]]
             [math.numerical.integrate]
             [math.numerical.minimize :refer :all]
             [math.calculus.derivative :refer :all]
@@ -42,6 +41,6 @@
       (doseq [a args]
         (prn "arg" a)
         )
-      (m/repl :print (comp pp/pprint print-expression simplify))
+      (m/repl :print print-expression)
       )
     (println "Home at last.")))

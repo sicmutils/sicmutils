@@ -27,12 +27,7 @@
     (is (= 12 ((walk-expression {'+ + 'x 5}) '(+ 3 4 x))))
     (is (= 0 ((walk-expression {'* * '+ + 'x 5 'y -2}) '(+ 3 (* 4 y) x))))
     (is (thrown? IllegalArgumentException
-                 ((walk-expression {'+ + 'x 5 'y -2}) '(+ 3 (* 4 y) x))))
-    )
-  (testing "print"
-    (is (= 3 (print-expression 3)))
-    (is (= :x (print-expression :x))))
- )
+                 ((walk-expression {'+ + 'x 5 'y -2}) '(+ 3 (* 4 y) x))))))
 
 (deftest foo
   (testing "foo"

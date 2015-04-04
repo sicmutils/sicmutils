@@ -18,7 +18,7 @@
   (:require [clojure.test :refer :all]
             [math.generic :as g]
             [math.value :as v]
-            [math.expression :as x]
+            [math.simplify]
             [math.numbers]))
 
 (deftest arithmetic
@@ -48,7 +48,7 @@
   (testing "trig"
     (is (= 1.0 (g/cos 0)))
     (is (= 0.0 (g/sin 0)))
-    (is (= '(tan x) (x/print-expression (g/tan 'x)))))
+    (is (= '(tan x) (g/simplify (g/tan 'x)))))
   (testing "square/cube"
     (is (= 4 (g/square 2)))
     (is (= 4 (g/square -2)))
@@ -56,12 +56,12 @@
     (is (= -27 (g/cube -3)))
     )
   (testing "with-symbols"
-    (is (= '(+ 4 x) (x/print-expression (g/+ 4 'x))))
-    (is (= '(+ y 5) (x/print-expression (g/+ 'y 5))))
-    (is (= '(/ 5 y) (x/print-expression (g// 5 'y))))
-    (is (= '(* 5 y) (x/print-expression (g/* 5 'y))))
-    (is (= '(/ x y) (x/print-expression (g// 'x 'y))))
-    (is (= '(* x y) (x/print-expression (g/* 'x 'y))))
+    (is (= '(+ x 4) (g/simplify (g/+ 4 'x))))
+    (is (= '(+ y 5) (g/simplify (g/+ 'y 5))))
+    (is (= '(/ 5 y) (g/simplify (g// 5 'y))))
+    (is (= '(* 5 y) (g/simplify (g/* 5 'y))))
+    (is (= '(/ x y) (g/simplify (g// 'x 'y))))
+    (is (= '(* x y) (g/simplify (g/* 'x 'y))))
     )
   (testing "zero/one elimination"
     (is (= 'x (g/+ 0 'x)))
@@ -82,7 +82,7 @@
     (is (thrown? ArithmeticException (g// 'x 0)))
     )
   (testing "neg"
-    (is (= '(- x) (x/print-expression (g/negate 'x))))
+    (is (= '(* -1 x) (g/simplify (g/negate 'x))))
     (is (= -4 (g/- 0 4)))
     (is (= -4 (g/negate 4)))
     (is (= 4 (g/negate (g/- 4))))
@@ -105,29 +105,30 @@
   (testing "abs"
     (is (= 1 (g/abs -1)))
     (is (= 1 (g/abs 1)))
-    (is (= '(abs x) (x/print-expression (g/abs 'x))))
+    (is (= '(abs x) (g/simplify (g/abs 'x))))
     )
   (testing "sqrt"
     (is (= 9 (g/sqrt 81)))
-    (is (= '(sqrt x) (x/print-expression (g/sqrt 'x))))
+    (is (= '(sqrt x) (g/simplify (g/sqrt 'x))))
     )
   (testing "expt"
     (is (= 32 (g/expt 2 5)))
-    (is (= '(expt x y) (x/print-expression (g/expt 'x 'y))))
-    (is (= '(expt 2 y) (x/print-expression (g/expt 2 'y))))
+    (is (= '(expt x 2) (g/simplify (g/expt 'x 2))))
+    (is (= '(expt x y) (g/simplify (g/expt 'x 'y))))
+    (is (= '(expt 2 y) (g/simplify (g/expt 2 'y))))
     (is (= 1 (g/expt 1 'x)))
     (is (= 1 (g/expt 'x 0)))
-    (is (= 'x (x/print-expression (g/expt 'x 1))))
-    (is (= 'x (x/print-expression (g/expt (g/sqrt 'x) 2))))
-    (is (= '(expt x 3) (x/print-expression (g/expt (g/sqrt 'x) 6))))
-    (is (= '(expt x 12) (x/print-expression (g/expt (g/expt 'x 4) 3))))
-    (is (= '(/ 1 (expt x 3)) (x/print-expression (g/expt 'x -3))))
+    (is (= 'x (g/simplify (g/expt 'x 1))))
+    (is (= 'x (g/simplify (g/expt (g/sqrt 'x) 2))))
+    (is (= '(expt x 3) (g/simplify (g/expt (g/sqrt 'x) 6))))
+    (is (= '(expt x 12) (g/simplify (g/expt (g/expt 'x 4) 3))))
+    (is (= '(/ 1 (expt x 3)) (g/simplify (g/expt 'x -3))))
     )
   (testing "exp/log"
     (is (= 1.0 (g/exp 0)))
-    (is (= '(exp x) (x/print-expression (g/exp 'x))))
+    (is (= '(exp x) (g/simplify (g/exp 'x))))
     (is (= 0.0 (g/log 1)))
-    (is (= '(log x) (x/print-expression (g/log 'x))))
+    (is (= '(log x) (g/simplify (g/log 'x))))
     (is (= 0.0 (g/log (g/exp 0))))
     )
 )

@@ -329,4 +329,4 @@
 (defmethod g/invert ::structure [a] (invert a))
 (defmethod g/square ::structure [a] (inner-product a a))
 (defmethod g/cube ::structure [a] (mul a (mul a a)))
-(defmethod g/simplify ::structure [a] (mapr g/simplify a))
+(defmethod g/simplify ::structure [a] (->> a (mapr g/simplify) v/freeze))

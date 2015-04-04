@@ -21,7 +21,6 @@
             [math.structure :refer :all]
             [math.numsymb]
             [math.simplify]
-            [math.expression :refer :all]
             [math.function :refer :all]
             [math.operator :refer :all]
             [math.value :as v]
@@ -30,7 +29,6 @@
             [math.mechanics.rigid :refer :all]
             [math.mechanics.rotation :refer :all]))
 
-(defn- pe [x] (-> x simplify print-expression))
 (def ^:private Euler-state (up 't
                                (up 'θ 'φ 'ψ)
                                (up 'θdot 'φdot 'ψdot)))
@@ -49,17 +47,17 @@
                (up (* (sin (θ t)) (sin (φ t)))
                    (* -1 (sin (θ t)) (cos (φ t)))
                    (cos (θ t))))
-             (pe (M-on-path 't))))
+             (simplify (M-on-path 't))))
       (is (= '(up (+ (* (sin (ψ t)) (sin (θ t)) ((D φ) t))
                      (* (cos (ψ t)) ((D θ) t)))
                   (+ (* (cos (ψ t)) (sin (θ t)) ((D φ) t))
                      (* -1 ((D θ) t) (sin (ψ t))))
                   (+ (* (cos (θ t)) ((D φ) t)) ((D ψ) t)))
-             (pe (((M-of-q->omega-body-of-t Euler->M) q) 't))))
+             (simplify (((M-of-q->omega-body-of-t Euler->M) q) 't))))
       (is (= '(up (+ (* (sin ψ) (sin θ) φdot) (* (cos ψ) θdot))
                   (+ (* (cos ψ) (sin θ) φdot) (* -1 (sin ψ) θdot))
                   (+ (* (cos θ) φdot) ψdot))
-             (pe ((M->omega-body Euler->M) Euler-state)))))))
+             (simplify ((M->omega-body Euler->M) Euler-state)))))))
 
 (deftest section-2.9
   ;; this is almost what scmutils gives, except the first and third terms
@@ -72,11 +70,11 @@
              (* (expt (sin ψ) 2) A φdot)
              (* (expt (cos θ) 2) C φdot)
              (* (cos θ) C ψdot))
-         (pe (nth (((pd 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1))))
-  (is (zero? (pe (- (nth ((Euler-state->L-space 'A 'B 'C) Euler-state) 2)
-                    (nth (((pd 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1)))))
+         (simplify (nth (((pd 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1))))
+  (is (zero? (simplify (- (nth ((Euler-state->L-space 'A 'B 'C) Euler-state) 2)
+                          (nth (((pd 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1)))))
   (is (= '(* (expt (sin θ) 2) A B C)
-         (pe (determinant (((square (pd 2)) (T-rigid-body 'A 'B 'C)) Euler-state))))))
+         (simplify (determinant (((square (pd 2)) (T-rigid-body 'A 'B 'C)) Euler-state))))))
 
 (deftest ^:long section-2.9b
   (let [relative-error (fn [value reference-value]
@@ -119,4 +117,4 @@
              (* (cos θ) C φdot ψdot)
              (* 1/2 A (expt θdot 2))
              (* 1/2 C (expt ψdot 2)))
-         (pe ((T-rigid-body 'A 'A 'C) Euler-state)))))
+         (simplify ((T-rigid-body 'A 'A 'C) Euler-state)))))

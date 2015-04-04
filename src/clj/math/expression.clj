@@ -15,8 +15,7 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
 (ns math.expression
-  (:require [math.value :as v]
-            [clojure.walk :refer :all]))
+  (:require [math.value :as v]))
 
 (defrecord Expression [type expression]
   v/Value
@@ -52,11 +51,11 @@
 
 
 (defn variables-in
-  "Return the 'variabls' (e.g. symbols) found in the expression x,
+  "Return the 'variables' (e.g. symbols) found in the expression x,
   which is an unwrapped expression."
   [x]
   (if (symbol? x) #{x}
-                  (->> x flatten (filter symbol?) (into #{}))))
+      (->> x flatten (filter symbol?) (into #{}))))
 
 
 (defn walk-expression
@@ -67,25 +66,14 @@
   (fn walk [x]
     (cond (number? x) x
           (symbol? x) (if-let [binding (x environment)]
-                        binding
+                        (if-not (fn? binding) binding x)
                         (throw (IllegalArgumentException.
-                                 (str "no binding for " x " found."))))
+                                (str "no binding for " x " found."))))
           (instance? Expression x) (walk (expression-of x))
-          (sequential? x) (apply (walk (first x)) (map walk (rest x)))
+          (sequential? x) (let [f (environment (first x))]
+                            (when-not (fn? f)
+                              (throw (IllegalArgumentException.
+                                      (str "no function binding for " x " found."))))
+                            (apply f (map walk (rest x))))
 
           :else (throw (IllegalArgumentException. (str "unknown expression type " x))))))
-
-(defn print-expression
-  [x]
-  (postwalk
-    (fn [x]
-      (cond (symbol? x) (let [sym-ns (namespace x)
-                              sym-name (name x)]
-                          ; kind of a hack, but we don't want a circular dependency
-                          ; here.
-                          (if (and (= sym-ns "math.generic")
-                                   (= sym-name "divide"))
-                            '/
-                            (symbol sym-name)))
-            :else x))
-    (v/freeze x)))

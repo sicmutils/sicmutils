@@ -130,7 +130,7 @@
               (cond
                 (= a-tags b-tags) (let [r-coef (g/+ a-coef b-coef)]
                                     (recur (rest dxs) (rest dys)
-                                           (if (not (g/zero? r-coef))
+                                           (if-not (g/zero? r-coef)
                                              (assoc result a-tags r-coef)
                                              result)))
                 (< (sorted-set-compare a-tags b-tags) 0) (recur (rest dxs) dys (conj result a))

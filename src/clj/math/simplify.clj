@@ -15,10 +15,13 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
 (ns math.simplify
-  (:require [math.numsymb :as sym]
+  (:require [clojure.walk :refer [postwalk]]
+            [clojure.pprint :as pp]
+            [math.numsymb :as sym]
             [math.polynomial :as poly]
             [math.value :as v]
             [math.generic :as g]
+            [math.expression :as x]
             [math.rules :as rules]
             [pattern.rule :as rule])
   (:import (math.expression Expression))
@@ -174,9 +177,26 @@
 
 (def simplify-expression (simplify-until-stable simplify-expression-1 simplify-and-flatten))
 
-(defmethod g/simplify :math.expression/numerical-expression [a] (-> a v/freeze simplify-expression))
-(defmethod g/simplify java.lang.Number [a] a)
-(defmethod g/simplify clojure.lang.Symbol [a] a)
-(defmethod g/simplify nil [a] a)
-(defmethod g/simplify :math.function/function [a] a)
+
+
+(defn- fixup-symbols
+  [xs]
+  (postwalk (fn [x] (cond (symbol? x) (let [sym-ns (namespace x)
+                                            sym-name (name x)]
+                                        ;; kind of a hack, but we don't want a circular dependency
+                                        ;; here.
+                                        (if (and (= sym-ns "math.generic")
+                                                 (= sym-name "divide"))
+                                          '/
+                                          (symbol sym-name)))
+                          :else x)) xs))
+
+(defmethod g/simplify :math.expression/numerical-expression
+  [a]
+  (-> a v/freeze simplify-expression fixup-symbols))
+
+(defmethod g/simplify :default [a] a)
 (defmethod g/simplify clojure.lang.Var [a] (-> a meta :name))
+
+(def print-expression #(-> % g/simplify pp/pprint))
+(def pe print-expression)

@@ -20,11 +20,10 @@
             [math.generic :refer :all]
             [math.function :refer :all]
             [math.numbers]
+            [math.simplify :refer [pe]]
             [math.expression :refer :all]
             [math.mechanics.hamilton :refer :all]
             [math.structure :refer :all]))
-
-(defn- pe [x] (-> x simplify print-expression))
 
 (deftest section-3.1.1
   ;; To move into Hamiltonian mechanics, we must fix the fact that
@@ -43,10 +42,10 @@
                   (+ (* -2 (p_y t) (/ 1 (* 2 m))) ((D y) t)))
               (down (+ ((D p_x) t) (((partial-derivative 0) V) (x t) 0))
                     (+ ((D p_y) t) (((partial-derivative 1) V) 0 (y t)))))
-         (pe (((Hamilton-equations
-                     (H-rectangular
-                      'm
-                      (literal-function2 'V #_(-> (X Real Real) Real))))
-                    (up (literal-function 'x) (literal-function 'y))
-                    (down (literal-function 'p_x) (literal-function 'p_y)))
-                   't)))))
+         (simplify (((Hamilton-equations
+                      (H-rectangular
+                       'm
+                       (literal-function2 'V #_(-> (X Real Real) Real))))
+                     (up (literal-function 'x) (literal-function 'y))
+                     (down (literal-function 'p_x) (literal-function 'p_y)))
+                    't)))))

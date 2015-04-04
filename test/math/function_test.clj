@@ -20,7 +20,7 @@
             [math.numbers]
             [math.value :as v]
             [math.operator :as o]
-            [math.expression :as x]
+            [math.simplify]
             [math.function :refer :all]))
 
 (def ^:private near (v/within 1.0e-6))
@@ -28,13 +28,13 @@
 (deftest function-basic
   (let [f (literal-function 'F)]
     (testing "a"
-      (is (= '(F x) (x/print-expression (f 'x))))
-      (is (= '(F 7) (x/print-expression (f (g/+ 3 4))))))
+      (is (= '(F x) (g/simplify (f 'x))))
+      (is (= '(F 7) (g/simplify (f (g/+ 3 4))))))
     (testing "kind"
       (is (= :math.function/function (v/kind f))))
     (testing "arity > 1"
       (let [g (literal-function2 'g)]
-        (is (= '(g a b) (x/print-expression (g 'a 'b))))))))
+        (is (= '(g a b) (g/simplify (g 'a 'b))))))))
 
 (deftest function-algebra
   (let [add2 (fn [x] (g/+ x 2))
