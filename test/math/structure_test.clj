@@ -245,7 +245,8 @@
       (is (= (down (up 1 0) (up 0 1)) (* (/ F) F)))
       (is (= (down (up 1/4 0 0 0) (up 0 -1 1 0) (up 0 1/2 0 0) (up -1/4 0 0 1)) (invert G)))
       (is (= (down (up 1/4 0 0 0) (up 0 -1 1 0) (up 0 1/2 0 0) (up -1/4 0 0 1)) (/ G)))
-      (is (= (down (up 1 0 0 0) (up 0 1 0 0) (up 0 0 1 0) (up 0 0 0 1)) (/ G G))))
+      (is (= (down (up 1 0 0 0) (up 0 1 0 0) (up 0 0 1 0) (up 0 0 0 1)) (/ G G)))
+      (is (= (down (up 1/8)) (/ (down (up 8))))))
     (testing "transpose"
       (is (= (down (up 1 2) (up 3 4)) (transpose A)))
       (is (= (up (up 1 2 3) (up 3 4 5)) (transpose B)))

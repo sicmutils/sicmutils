@@ -19,6 +19,7 @@
   (:require [math.generic :refer :all]
             [math.calculus.derivative :refer :all]
             [math.structure :refer :all]
+            [math.value :refer :all]
             [math.function :refer :all]))
 
 (defn phase-space-derivative
@@ -46,3 +47,22 @@
   (fn [[_ [q0 q1] p]]  ;; H-state
     (+ (/ (square p) (* 2 m))
        (V q0 q1))))
+
+(defn dual-zero [z]
+  (if (structure? z) (-> z transpose zero-like) 0))
+
+(defn Legendre-transform
+  [F]
+  (let [w-of-v (D F)]
+    (fn [w]
+      (let [z (dual-zero w)
+            M ((D w-of-v) z)
+            b (w-of-v z)
+            v (/ (- w b) M)]
+        (- (* w v) (F v))))))
+
+(defn Lagrangian->Hamiltonian
+  [Lagrangian]
+  (fn [[t q p]]  ;; H-state
+    (let [L #(Lagrangian (up t q %))]
+      ((Legendre-transform L) p))))

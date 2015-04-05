@@ -23,29 +23,42 @@
             [math.simplify :refer [pe]]
             [math.expression :refer :all]
             [math.mechanics.hamilton :refer :all]
+            [math.mechanics.lagrange :refer [L-rectangular]]
             [math.structure :refer :all]))
 
 (deftest section-3.1.1
-  ;; To move into Hamiltonian mechanics, we must fix the fact that
-  ;; our literal functions currently support only arity 1. We won't
-  ;; get far without fixing that.
-  ;;
-  ;; OK, what we have here (using literal-function2 as a stopgap)
-  ;; doesn't quite give the right answer for the part containing
-  ;; the partials of V, but it's a step forward. Why did zeros
-  ;; enter the expansion? Also, should we copy the existing type
-  ;; notation or make up our own? I like the idea of type exemplars
-  ;; here: a type is either a thing, or [thing1 :to thing2], if it's
-  ;; a function between two other things.
-  (is (= '(up 0
-              (up (+ (* -2 (p_x t) (/ 1 (* 2 m))) ((D x) t))
-                  (+ (* -2 (p_y t) (/ 1 (* 2 m))) ((D y) t)))
-              (down (+ ((D p_x) t) (((partial-derivative 0) V) (x t) (y t)))
-                    (+ ((D p_y) t) (((partial-derivative 1) V) (x t) (y t)))))
-         (simplify (((Hamilton-equations
-                      (H-rectangular
-                       'm
-                       (literal-function 'V [0 0] 0)))
-                     (up (literal-function 'x) (literal-function 'y))
-                     (down (literal-function 'p_x) (literal-function 'p_y)))
-                    't)))))
+  ;; To move further into Hamiltonian mechanics, we will need
+  ;; literal functions mapping structures to structures.
+  (with-literal-functions [x y v_x v_y p_x p_y]
+    (let [V (literal-function 'V [0 0] 0)]
+      (is (= '(V x y) (simplify (V 'x 'y))))
+      (is (= '(up 0
+                  (up (+ (* -2 (p_x t) (/ 1 (* 2 m))) ((D x) t))
+                      (+ (* -2 (p_y t) (/ 1 (* 2 m))) ((D y) t)))
+                  (down (+ ((D p_x) t) (((partial-derivative 0) V) (x t) (y t)))
+                        (+ ((D p_y) t) (((partial-derivative 1) V) (x t) (y t)))))
+             (simplify (((Hamilton-equations
+                          (H-rectangular
+                           'm V))
+                         (up x y)
+                         (down p_x p_y))
+                        't))))
+      ;; this works out to y^2 / 4c, which we expect. But at this point
+      ;; our inability to simplify things with fractions is causing
+      ;; some trouble. Going further into the Hamilton material is
+      ;; going to need simplification that can handle rational functions.
+      (is (= '(+ (* -1 (expt (/ y (* 2 c)) 2) c)
+                 (* (/ y (* 2 c)) y))
+             (simplify ((Legendre-transform (fn [x] (* 'c x x))) 'y))))
+      (is (= '(+ (* 1/2 (expt (v_x t) 2) m) (* 1/2 (expt (v_y t) 2) m) (* -1 (V x y)))
+             (simplify (((L-rectangular 'm V) (up 't (up x y) (up v_x v_y))) 't))))
+      ;; correct, modulo the lame simplification that happens because we don't
+      ;; simplify fractions yet.
+      (is (= '(+ (* -1/2 (expt (/ m (expt m 2)) 2) m (expt p_x 2))
+                 (* -1/2 (expt (/ m (expt m 2)) 2) m (expt p_y 2))
+                 (* (/ m (expt m 2)) (expt p_x 2))
+                 (* (/ m (expt m 2)) (expt p_y 2))
+                 (V x y))
+             (simplify ((Lagrangian->Hamiltonian
+                         (L-rectangular 'm V))
+                        (up 't (up 'x 'y) (down 'p_x 'p_y)))))))))

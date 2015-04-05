@@ -26,7 +26,7 @@
   (exact? [_] false)
   (compound? [_] false)
   (freeze [x] (-> x :expression v/freeze))
-  (arity [_] 0)
+  (arity [_] 1)
   (kind [_] (if (= type ::number) ::numerical-expression ::expression)))
 
 (defn make [x]

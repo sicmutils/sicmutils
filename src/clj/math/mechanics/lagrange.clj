@@ -209,3 +209,10 @@
 (defn Euler-Lagrange-operator
   [L]
   (- (Dt ((pd 2) L)) ((pd 1) L)))
+
+(defn L-rectangular
+  "Lagrangian for a point mass on with the potential energy V(x, y)"
+  [m V]
+  (fn [[_ [q0 q1] qdot]]  ;; local
+    (- (* 1/2 m (square qdot))
+       (V q0 q1))))
