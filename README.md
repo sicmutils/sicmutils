@@ -1,4 +1,7 @@
-# math
+# math 
+[![Build Status](https://travis-ci.org/littleredcomputer/math.svg?branch=master)](https://travis-ci.org/littleredcomputer/math)
+
+
 
 A reimplementation of the Scmutils system for math and physics
 investigations in the Clojure language. Scmutils is extensively used
