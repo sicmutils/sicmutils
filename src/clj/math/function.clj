@@ -44,8 +44,10 @@
   (applyTo [f xs] (literal-apply f xs))
   )
 
-(defn literal-function [f] (Function. f 1 [:real] :real))
-(defn literal-function2 [f] (Function. f 2 [:real :real] :real))
+(defn literal-function
+  ([f] (Function. f 1 [0] 0))
+  ([f domain range] (Function. f (count domain) domain range)))
+
 (def ^:private derivative-symbol 'D)
 
 ;; --------------------
@@ -173,14 +175,15 @@
             (cond (s/structure? vv)
                   (let [^Struct s vv]
                     (s/same s (map-indexed (fn [i element]
-                                             (fd (conj indices i) element)) s)))
+                                             (fd (conj indices i) element))
+                                           s)))
                   (or (g/numerical-quantity? vv)
                       (g/abstract-quantity? vv))
                   (let [fexp (if (= (:arity f) 1)  ; univariate
                                (if (= (first indices) 0)
                                  (if (= (count indices) 1)
                                    (symbolic-increase-derivative (:expr f))
-                                   `((g/partial-derivative ~@(next indices))))
+                                   `((g/partial-derivative ~@(next indices)) ~(:expr f)))
                                  (throw (IllegalArgumentException. "wrong indices")))
                                `((g/partial-derivative ~@indices) ~(:expr f)))]
                     (Function. fexp (:arity f) (:domain f) (:range f)))

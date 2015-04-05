@@ -40,12 +40,12 @@
   (is (= '(up 0
               (up (+ (* -2 (p_x t) (/ 1 (* 2 m))) ((D x) t))
                   (+ (* -2 (p_y t) (/ 1 (* 2 m))) ((D y) t)))
-              (down (+ ((D p_x) t) (((partial-derivative 0) V) (x t) 0))
-                    (+ ((D p_y) t) (((partial-derivative 1) V) 0 (y t)))))
+              (down (+ ((D p_x) t) (((partial-derivative 0) V) (x t) (y t)))
+                    (+ ((D p_y) t) (((partial-derivative 1) V) (x t) (y t)))))
          (simplify (((Hamilton-equations
                       (H-rectangular
                        'm
-                       (literal-function2 'V #_(-> (X Real Real) Real))))
+                       (literal-function 'V [0 0] 0)))
                      (up (literal-function 'x) (literal-function 'y))
                      (down (literal-function 'p_x) (literal-function 'p_y)))
                     't)))))

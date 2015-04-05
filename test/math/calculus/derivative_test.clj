@@ -159,3 +159,15 @@
       ;; path-independent chain rule for variation
       (is (= '(φ (f (q t))) (simplify (((φ F) q) 't))))
       (is (= '(* ((D φ) (f (q t))) ((D f) (q t)) (η t)) (simplify (((δη (φ F)) q) 't)))))))
+
+(deftest literal-functions
+  (testing "R -> R"
+    (let [f (literal-function 'f)]
+      (is (= '((D f) x) (simplify ((D f) 'x))))
+      (is (= '((D f) (+ x y)) (simplify ((D f) (+ 'x 'y)))))))
+  (testing "R^2 -> R"
+    (let [g (literal-function 'g [0 0] 0)]
+      (is (= '(((partial-derivative 0) g) x y) (simplify (((pd 0) g) 'x 'y))))
+      (is (= '(((partial-derivative 1) g) x y) (simplify (((pd 1) g) 'x 'y))))
+      (is (= '(down (((partial-derivative 0) g) x y) (((partial-derivative 1) g) x y))
+             (simplify ((D g) 'x 'y)))))))

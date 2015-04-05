@@ -265,11 +265,11 @@
        canonicalize-differential))
 
 (defn without-tag
-  "A real differential is expected here. document this and the above and below,
-  if we turn out to keep all three of them. It seems there must be a better way
-  to do this..."
+  "Document this and the above and below, if we turn out to keep all
+  three of them. It seems there must be a better way to do this..."
   [tag dx]
-  (->> dx :terms
+  (->> dx
+       differential->terms
        (remove #(-> % tags (contains? tag)))
        make-differential
        canonicalize-differential))

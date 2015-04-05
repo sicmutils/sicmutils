@@ -33,7 +33,7 @@
     (testing "kind"
       (is (= :math.function/function (v/kind f))))
     (testing "arity > 1"
-      (let [g (literal-function2 'g)]
+      (let [g (literal-function 'g [0 0] 0)]
         (is (= '(g a b) (g/simplify (g 'a 'b))))))))
 
 (deftest function-algebra
