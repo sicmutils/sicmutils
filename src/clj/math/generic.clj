@@ -69,7 +69,7 @@
 (define-operations
   add sub mul div invert negate square cube expt
   exp log abs sqrt
-  sin cos tan
+  sin cos tan asin acos
   partial-derivative
   cross-product
   simplify

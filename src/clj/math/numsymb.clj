@@ -173,6 +173,10 @@
                           :else `(~'sin ~x))
         :else `(~'sin ~x)))
 
+(defn- arcsine
+  [x]
+  `(asin ,x))
+
 (defn- cosine [x]
   (when (number? x) (throw (IllegalArgumentException. "YIKES")))
   (cond (number? x) (if (v/exact? x)
@@ -186,6 +190,10 @@
                           (symb:pi-mod-2pi? x) -1
                           :else `(~'cos ~x))
         :else `(~'cos ~x)))
+
+(defn- arccosine
+  [x]
+  `(acos ,x))
 
 (defn- tangent [x]
   (cond (number? x) (if (v/exact? x)
@@ -275,7 +283,9 @@
 (define-unary-operation g/negate #(sub 0 %))
 (define-unary-operation g/invert #(div 1 %))
 (define-unary-operation g/sin sine)
+(define-unary-operation g/asin arcsine)
 (define-unary-operation g/cos cosine)
+(define-unary-operation g/acos arccosine)
 (define-unary-operation g/tan tangent)
 (define-unary-operation g/square #(expt % 2))
 (define-unary-operation g/cube #(expt % 3))
@@ -292,7 +302,9 @@
    'negate #(sub 0 %)
    'invert #(div 1 %)
    'sin sine
+   'asin arcsine
    'cos cosine
+   'acos arccosine
    'tan tangent
    'cube #(expt % 3)
    'square #(expt % 2)

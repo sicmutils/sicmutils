@@ -21,6 +21,8 @@
             [math.simplify]
             [math.numbers]))
 
+(def near (v/within 1e-12))
+
 (deftest arithmetic
   (testing "with-numbers"
     (is (= 4 (g/+ 2 2)))
@@ -48,6 +50,10 @@
   (testing "trig"
     (is (= 1.0 (g/cos 0)))
     (is (= 0.0 (g/sin 0)))
+    (is (near (/ (Math/PI) 4) (g/asin (/ (Math/sqrt 2) 2))))
+    (is (near (/ (Math/PI) 4) (g/acos (/ (Math/sqrt 2) 2))))
+    (is (zero? (g/asin 0)))
+    (is (near (/ (Math/PI) 2) (g/acos 0)))
     (is (= '(tan x) (g/simplify (g/tan 'x)))))
   (testing "square/cube"
     (is (= 4 (g/square 2)))
