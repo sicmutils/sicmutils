@@ -50,8 +50,10 @@
       (is (= '(+ (* -1 (expt (/ y (* 2 c)) 2) c)
                  (* (/ y (* 2 c)) y))
              (simplify ((Legendre-transform (fn [x] (* 'c x x))) 'y))))
-      (is (= '(+ (* 1/2 (expt (v_x t) 2) m) (* 1/2 (expt (v_y t) 2) m) (* -1 (V x y)))
-             (simplify (((L-rectangular 'm V) (up 't (up x y) (up v_x v_y))) 't))))
+      (is (= '(+ (* 1/2 m (expt v_x 2))
+                 (* 1/2 m (expt v_y 2))
+                 (* -1 (V x y)))
+             (simplify ((L-rectangular 'm V) (up 't (up 'x 'y) (up 'v_x 'v_y))))))
       ;; correct, modulo the lame simplification that happens because we don't
       ;; simplify fractions yet.
       (is (= '(+ (* -1/2 (expt (/ m (expt m 2)) 2) m (expt p_x 2))

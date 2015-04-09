@@ -28,6 +28,8 @@
 (declare literal-apply)
 
 (defrecord Function [expr arity domain range]
+  Object
+  (toString [_] (str expr ": " domain " → " range))
   v/Value
   (nullity? [_] false)
   (compound? [_] false)
@@ -41,8 +43,7 @@
   (invoke [f x y] (literal-apply f [x y]))
   (invoke [f x y z] (literal-apply f [x y z]))
   (invoke [f w x y z] (literal-apply f [w x y z]))
-  (applyTo [f xs] (literal-apply f xs))
-  )
+  (applyTo [f xs] (literal-apply f xs)))
 
 (defn literal-function
   ([f] (Function. f 1 [0] 0))
@@ -205,8 +206,26 @@
                                    (flatten (make-partials f v))
                                    (flatten dv)))))))
 
+(defn- check-argument-type
+  "Check that the argument provided at index i has the same type as
+  the exemplar expected."
+  [f provided expected i]
+  (cond (number? expected)
+        (when-not (g/numerical-quantity? provided)
+          (throw (IllegalArgumentException.
+                  (str "expected numerical quantity in argument " i
+                       " of function call " f
+                       " but got " provided))))))
+
 (defn- literal-apply
   [f xs]
+  ;; Check for matching arity.
+  (when-not (= (:arity f) (count xs))
+    (throw (IllegalArgumentException.
+            (str "arity mismatch: expected " (:arity f) " got " (count xs)))))
+  ;; Check for matching type.
+  (doseq [[provided expected i] (map list xs (:domain f) (range))]
+    (check-argument-type f provided expected i))
   (if (some d/differential? xs)
     (literal-derivative f xs)
     (x/literal-number (list* (:expr f) xs)))) ;; XXX cons
