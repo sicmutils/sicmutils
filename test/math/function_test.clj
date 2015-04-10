@@ -20,6 +20,7 @@
             [math.numbers]
             [math.value :as v]
             [math.operator :as o]
+            [math.structure :refer :all]
             [math.simplify]
             [math.function :refer :all]))
 
@@ -34,7 +35,8 @@
       (is (= :math.function/function (v/kind f))))
     (testing "arity > 1"
       (let [g (literal-function 'g [0 0] 0)]
-        (is (= '(g a b) (g/simplify (g 'a 'b))))))))
+        (is (= '(g a b) (g/simplify (g 'a 'b))))))
+    ))
 
 (deftest function-algebra
   (let [add2 (fn [x] (g/+ x 2))

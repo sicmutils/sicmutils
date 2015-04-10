@@ -20,6 +20,7 @@
             [math.generic :refer :all]
             [math.structure :refer :all]
             [math.numsymb]
+            [math.numbers]
             [math.simplify :refer [pe]]
             [math.function :refer :all]
             [math.operator :refer :all]
@@ -39,15 +40,22 @@
     (is (= 0 (simplify ((- (+ (square sin) (square cos)) 1) 'a))))
     (is (= '(f x) (simplify ((literal-function 'f) 'x))))
     (is (= '(f (g x))
-           (simplify ((compose (literal-function 'f) (literal-function 'g)) 'x))))
-    ;; need tests for function domain/range notation here, when we have it
-    ))
+           (simplify ((compose (literal-function 'f) (literal-function 'g)) 'x))))))
 
 (deftest section-2
   (let [g (literal-function 'g)]
-    ;; doesn't work yet; don't have literal functions of arity > 1
-    ;; (is (= '(g x y) (simplify (g 'x 'y))))
-    ))
+    (testing "literal functions"
+      (is (= '(g x y) (simplify ((literal-function 'g [0 0] 0) 'x 'y)))))
+    (testing "structured arguments"
+      (let [s (up 't (up 'x 'y) (down 'p_x 'p_y))
+            H (literal-function 'H [(up 0 (up 0 0) (down 0 0))] 0)]
+        (is (= '(H (up t (up x y) (down p_x p_y)))
+               (simplify (H s))))
+        (is (thrown? IllegalArgumentException (H (up 0 (up 1 2) (down 1 2 3)))))
+        (is (thrown? IllegalArgumentException (H (up 0 (up 1) (down 1 2)))))
+        (is (thrown? IllegalArgumentException (H (up (up 1 2) (up 1 2) (down 1 2)))))
+        ;; fix this when we get vector literal functions right
+        #_(is (= 'foo ((D H) s)))))))
 
 (deftest section-3
   (let [derivative-of-sine (D sin)]

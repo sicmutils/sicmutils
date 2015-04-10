@@ -209,22 +209,35 @@
 (defn- check-argument-type
   "Check that the argument provided at index i has the same type as
   the exemplar expected."
-  [f provided expected i]
+  [f provided expected indexes]
   (cond (number? expected)
         (when-not (g/numerical-quantity? provided)
           (throw (IllegalArgumentException.
-                  (str "expected numerical quantity in argument " i
+                  (str "expected numerical quantity in argument " indexes
                        " of function call " f
-                       " but got " provided))))))
+                       " but got " provided))))
+        (s/structure? expected)
+        (do (when-not (and (s/structure? provided)
+                           (= (s/orientation provided) (s/orientation expected))
+                           (= (count provided) (count expected)))
+              (throw (IllegalArgumentException.
+                      (str "expected structure matching " expected
+                           " but got " provided))))
+            (doseq [[provided expected sub-index] (map list provided expected (range))]
+              (check-argument-type f provided expected (conj indexes sub-index))))
+        :else (throw (IllegalArgumentException.
+                      (str "unexpected argument example " expected)))))
 
 (defn- literal-apply
   [f xs]
+  ;; Check argument types.
+  (check-argument-type f xs (:domain f) [0])
   ;; Check for matching arity.
-  (when-not (= (:arity f) (count xs))
+  #_(when-not (= (:arity f) (count xs))
     (throw (IllegalArgumentException.
             (str "arity mismatch: expected " (:arity f) " got " (count xs)))))
   ;; Check for matching type.
-  (doseq [[provided expected i] (map list xs (:domain f) (range))]
+  #_(doseq [[provided expected i] (map list xs (:domain f) (range))]
     (check-argument-type f provided expected i))
   (if (some d/differential? xs)
     (literal-derivative f xs)
