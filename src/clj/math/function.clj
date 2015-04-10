@@ -255,5 +255,20 @@
 
 (defmacro with-literal-functions
   [litfns & body]
-  `(let ~(vec (interleave litfns (map (fn [s] `(literal-function (quote ~s))) litfns)))
+  `(let ~(vec (interleave
+               (map (fn [s]
+                      (if (symbol? s) s (first s)))
+                    litfns)
+               (map (fn [s]
+                      (cond (symbol? s)
+                            `(literal-function (quote ~s))
+                            (and (sequential? s)
+                                 (= (count s) 3))
+                            `(literal-function (quote ~(first s))
+                                               ~(second s)
+                                               ~(nth s 2))
+                            :else (throw
+                                   (IllegalArgumentException.
+                                    (str "unknown literal function type" s)))))
+                    litfns)))
      ~@body))

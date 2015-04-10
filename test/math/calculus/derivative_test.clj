@@ -128,46 +128,42 @@
 
 (deftest diff-test-2
   (testing "delta-eta-test"
-    (let [η (literal-function 'η)
-          q (literal-function 'q)
-          I (fn [q] (fn [t] (q t)))
-          f (literal-function 'f)
-          g (literal-function 'g)
-          F (fn [q] (fn [t] (f (q t))))
-          G (fn [q] (fn [t] (g (q t))))
-          q+εη (+ q (* 'ε η))
-          g (fn [ε] (+ q (* ε η)))
-          δη (δ η)
-          δηI (δη I)
-          δηIq (δηI q)
-          δηFq ((δη F) q)
-          φ (fn [f] (fn [q] (fn [t] ((literal-function 'φ) ((f q) t)))))]
-      (is (= '((D f) t) (simplify ((D f) 't))))
-      (is (= '(+ (* (η t) ε) (q t)) (simplify (q+εη 't))))
-      (is (= '(+ (* (η t) ε) (q t)) (simplify ((g 'ε) 't))))
-      (is (= '(η a) (simplify (((D g) 'dt) 'a))))
-      (is (= '(η t) (simplify (δηIq 't))))
-      (is (= '(f (q t)) (simplify ((F q) 't))))
-      (is (= '(* ((D f) (q t)) (η t)) (simplify (δηFq 't))))
-      ;; sum rule for variation: δ(F+G) = δF + δG
-      (is (= '(+ (* ((D f) (q t)) (η t)) (* (η t) ((D g) (q t)))) (simplify (((δη (+ F G)) q) 't))))
-      ;; scalar product rule for variation: δ(cF) = cδF
-      (is (= '(* ((D f) (q t)) (η t) c) (simplify (((δη (* 'c F)) q) 't))))
-      ;; product rule for variation: δ(FG) = δF G + F δG
-      (is (= (simplify (+ (* (((δη F) q) 't) ((G q) 't))
-                                   (* ((F q) 't) (((δη G) q) 't))))
-             (simplify (((δη (* F G)) q) 't))))
-      ;; path-independent chain rule for variation
-      (is (= '(φ (f (q t))) (simplify (((φ F) q) 't))))
-      (is (= '(* ((D φ) (f (q t))) ((D f) (q t)) (η t)) (simplify (((δη (φ F)) q) 't)))))))
+    (with-literal-functions [η q f g]
+      (let [I (fn [q] (fn [t] (q t)))
+            F (fn [q] (fn [t] (f (q t))))
+            G (fn [q] (fn [t] (g (q t))))
+            q+εη (+ q (* 'ε η))
+            g (fn [ε] (+ q (* ε η)))
+            δη (δ η)
+            δηI (δη I)
+            δηIq (δηI q)
+            δηFq ((δη F) q)
+            φ (fn [f] (fn [q] (fn [t] ((literal-function 'φ) ((f q) t)))))]
+        (is (= '((D f) t) (simplify ((D f) 't))))
+        (is (= '(+ (* (η t) ε) (q t)) (simplify (q+εη 't))))
+        (is (= '(+ (* (η t) ε) (q t)) (simplify ((g 'ε) 't))))
+        (is (= '(η a) (simplify (((D g) 'dt) 'a))))
+        (is (= '(η t) (simplify (δηIq 't))))
+        (is (= '(f (q t)) (simplify ((F q) 't))))
+        (is (= '(* ((D f) (q t)) (η t)) (simplify (δηFq 't))))
+        ;; sum rule for variation: δ(F+G) = δF + δG
+        (is (= '(+ (* ((D f) (q t)) (η t)) (* (η t) ((D g) (q t)))) (simplify (((δη (+ F G)) q) 't))))
+        ;; scalar product rule for variation: δ(cF) = cδF
+        (is (= '(* ((D f) (q t)) (η t) c) (simplify (((δη (* 'c F)) q) 't))))
+        ;; product rule for variation: δ(FG) = δF G + F δG
+        (is (= (simplify (+ (* (((δη F) q) 't) ((G q) 't))
+                            (* ((F q) 't) (((δη G) q) 't))))
+               (simplify (((δη (* F G)) q) 't))))
+        ;; path-independent chain rule for variation
+        (is (= '(φ (f (q t))) (simplify (((φ F) q) 't))))
+        (is (= '(* ((D φ) (f (q t))) ((D f) (q t)) (η t)) (simplify (((δη (φ F)) q) 't))))))))
 
 (deftest literal-functions
-  (testing "R -> R"
-    (let [f (literal-function 'f)]
+  (with-literal-functions [f [g [0 0] 0]]
+    (testing "R -> R"
       (is (= '((D f) x) (simplify ((D f) 'x))))
-      (is (= '((D f) (+ x y)) (simplify ((D f) (+ 'x 'y)))))))
-  (testing "R^2 -> R"
-    (let [g (literal-function 'g [0 0] 0)]
+      (is (= '((D f) (+ x y)) (simplify ((D f) (+ 'x 'y))))))
+    (testing "R^2 -> R"
       (is (= '(((partial-derivative 0) g) x y) (simplify (((pd 0) g) 'x 'y))))
       (is (= '(((partial-derivative 1) g) x y) (simplify (((pd 1) g) 'x 'y))))
       (is (= '(down (((partial-derivative 0) g) x y) (((partial-derivative 1) g) x y))

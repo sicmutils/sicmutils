@@ -29,38 +29,37 @@
 (deftest section-3.1.1
   ;; To move further into Hamiltonian mechanics, we will need
   ;; literal functions mapping structures to structures.
-  (with-literal-functions [x y v_x v_y p_x p_y]
-    (let [V (literal-function 'V [0 0] 0)]
-      (is (= '(V x y) (simplify (V 'x 'y))))
-      (is (= '(up 0
-                  (up (+ (* -2 (p_x t) (/ 1 (* 2 m))) ((D x) t))
-                      (+ (* -2 (p_y t) (/ 1 (* 2 m))) ((D y) t)))
-                  (down (+ ((D p_x) t) (((partial-derivative 0) V) (x t) (y t)))
-                        (+ ((D p_y) t) (((partial-derivative 1) V) (x t) (y t)))))
-             (simplify (((Hamilton-equations
-                          (H-rectangular
-                           'm V))
-                         (up x y)
-                         (down p_x p_y))
-                        't))))
-      ;; this works out to y^2 / 4c, which we expect. But at this point
-      ;; our inability to simplify things with fractions is causing
-      ;; some trouble. Going further into the Hamilton material is
-      ;; going to need simplification that can handle rational functions.
-      (is (= '(+ (* -1 (expt (/ y (* 2 c)) 2) c)
-                 (* (/ y (* 2 c)) y))
-             (simplify ((Legendre-transform (fn [x] (* 'c x x))) 'y))))
-      (is (= '(+ (* 1/2 m (expt v_x 2))
-                 (* 1/2 m (expt v_y 2))
-                 (* -1 (V x y)))
-             (simplify ((L-rectangular 'm V) (up 't (up 'x 'y) (up 'v_x 'v_y))))))
-      ;; correct, modulo the lame simplification that happens because we don't
-      ;; simplify fractions yet.
-      (is (= '(+ (* -1/2 (expt (/ m (expt m 2)) 2) m (expt p_x 2))
-                 (* -1/2 (expt (/ m (expt m 2)) 2) m (expt p_y 2))
-                 (* (/ m (expt m 2)) (expt p_x 2))
-                 (* (/ m (expt m 2)) (expt p_y 2))
-                 (V x y))
-             (simplify ((Lagrangian->Hamiltonian
-                         (L-rectangular 'm V))
-                        (up 't (up 'x 'y) (down 'p_x 'p_y)))))))))
+  (with-literal-functions [x y v_x v_y p_x p_y [V [1 2] 3]]
+    (is (= '(V x y) (simplify (V 'x 'y))))
+    (is (= '(up 0
+                (up (+ (* -2 (p_x t) (/ 1 (* 2 m))) ((D x) t))
+                    (+ (* -2 (p_y t) (/ 1 (* 2 m))) ((D y) t)))
+                (down (+ ((D p_x) t) (((partial-derivative 0) V) (x t) (y t)))
+                      (+ ((D p_y) t) (((partial-derivative 1) V) (x t) (y t)))))
+           (simplify (((Hamilton-equations
+                        (H-rectangular
+                         'm V))
+                       (up x y)
+                       (down p_x p_y))
+                      't))))
+    ;; this works out to y^2 / 4c, which we expect. But at this point
+    ;; our inability to simplify things with fractions is causing
+    ;; some trouble. Going further into the Hamilton material is
+    ;; going to need simplification that can handle rational functions.
+    (is (= '(+ (* -1 (expt (/ y (* 2 c)) 2) c)
+               (* (/ y (* 2 c)) y))
+           (simplify ((Legendre-transform (fn [x] (* 'c x x))) 'y))))
+    (is (= '(+ (* 1/2 m (expt v_x 2))
+               (* 1/2 m (expt v_y 2))
+               (* -1 (V x y)))
+           (simplify ((L-rectangular 'm V) (up 't (up 'x 'y) (up 'v_x 'v_y))))))
+    ;; correct, modulo the lame simplification that happens because we don't
+    ;; simplify fractions yet.
+    (is (= '(+ (* -1/2 (expt (/ m (expt m 2)) 2) m (expt p_x 2))
+               (* -1/2 (expt (/ m (expt m 2)) 2) m (expt p_y 2))
+               (* (/ m (expt m 2)) (expt p_x 2))
+               (* (/ m (expt m 2)) (expt p_y 2))
+               (V x y))
+           (simplify ((Lagrangian->Hamiltonian
+                       (L-rectangular 'm V))
+                      (up 't (up 'x 'y) (down 'p_x 'p_y))))))))
