@@ -54,8 +54,12 @@
         (is (thrown? IllegalArgumentException (H (up 0 (up 1 2) (down 1 2 3)))))
         (is (thrown? IllegalArgumentException (H (up 0 (up 1) (down 1 2)))))
         (is (thrown? IllegalArgumentException (H (up (up 1 2) (up 1 2) (down 1 2)))))
-        ;; fix this when we get vector literal functions right
-        #_(is (= 'foo ((D H) s)))))))
+        (is (= '(down (((partial-derivative 0) H) (up t (up x y) (down p_x p_y)))
+                      (down (((partial-derivative 1 0) H) (up t (up x y) (down p_x p_y)))
+                            (((partial-derivative 1 1) H) (up t (up x y) (down p_x p_y))))
+                      (up (((partial-derivative 2 0) H) (up t (up x y) (down p_x p_y)))
+                          (((partial-derivative 2 1) H) (up t (up x y) (down p_x p_y)))))
+               (-> s ((D H)) simplify)))))))
 
 (deftest section-3
   (let [derivative-of-sine (D sin)]

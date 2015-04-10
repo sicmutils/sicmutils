@@ -47,7 +47,11 @@
 
 (defn literal-function
   ([f] (Function. f 1 [0] 0))
-  ([f domain range] (Function. f (count domain) domain range)))
+  ([f domain range]
+   (cond (vector? domain)
+         (Function. f (count domain) domain range)
+         :else
+         (throw (IllegalArgumentException. (str "WTF domain" domain))))))
 
 (def ^:private derivative-symbol 'D)
 
@@ -84,22 +88,24 @@
   is, (binary-operation +) applied to f and g will produce a function
   which computes (+ (f x) (g x)) given x as input."
   [operator]
-  (with-meta (fn [f g]
-               (let [f-numeric (g/numerical-quantity? f)
-                     g-numeric (g/numerical-quantity? g)
-                     f-arity (if f-numeric (v/arity g) (v/arity f))
-                     g-arity (if g-numeric f-arity (v/arity g))
-                     f1 (if f-numeric (constantly f) f)
-                     g1 (if g-numeric (constantly g) g)]
-                 (if (not= f-arity g-arity)
-                   (throw (IllegalArgumentException. "cannot combine functions of differing arity"))
-                   (with-meta (cond (= f-arity 1) #(operator (f1 %) (g1 %))
-                                    (= f-arity 2) #(operator (f1 %1 %2) (g1 %1 %2))
-                                    (= f-arity 3) #(operator (f1 %1 %2 %3) (g1 %1 %2 %3))
-                                    (= f-arity 4) #(operator (f1 %1 %2 %3 %4) (g1 %1 %2 %3 %4))
-                                    :else (throw (IllegalArgumentException. "unsupported arity for function arithmetic")))
-                              {:arity f-arity}))))
-    {:arity 2}))
+  (let [h (fn [f g]
+            (let [f-numeric (g/numerical-quantity? f)
+                  g-numeric (g/numerical-quantity? g)
+                  f-arity (if f-numeric (v/arity g) (v/arity f))
+                  g-arity (if g-numeric f-arity (v/arity g))
+                  f1 (if f-numeric (constantly f) f)
+                  g1 (if g-numeric (constantly g) g)]
+              (if (not= f-arity g-arity)
+                (throw (IllegalArgumentException.
+                        "cannot combine functions of differing arity"))
+                (let [h (cond (= f-arity 1) #(operator (f1 %) (g1 %))
+                              (= f-arity 2) #(operator (f1 %1 %2) (g1 %1 %2))
+                              (= f-arity 3) #(operator (f1 %1 %2 %3) (g1 %1 %2 %3))
+                              (= f-arity 4) #(operator (f1 %1 %2 %3 %4) (g1 %1 %2 %3 %4))
+                              :else (throw (IllegalArgumentException.
+                                            "unsupported arity for function arithmetic")))]
+                  (with-meta h {:arity f-arity})))))]
+    (with-meta h {:arity 2})))
 
 (defmacro ^:private make-binary-operations
   "Given a sequence of alternating generic and binary operations,
@@ -230,15 +236,7 @@
 
 (defn- literal-apply
   [f xs]
-  ;; Check argument types.
   (check-argument-type f xs (:domain f) [0])
-  ;; Check for matching arity.
-  #_(when-not (= (:arity f) (count xs))
-    (throw (IllegalArgumentException.
-            (str "arity mismatch: expected " (:arity f) " got " (count xs)))))
-  ;; Check for matching type.
-  #_(doseq [[provided expected i] (map list xs (:domain f) (range))]
-    (check-argument-type f provided expected i))
   (if (some d/differential? xs)
     (literal-derivative f xs)
     (x/literal-number (list* (:expr f) xs)))) ;; XXX cons
