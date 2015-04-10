@@ -45,13 +45,24 @@
   (invoke [f w x y z] (literal-apply f [w x y z]))
   (applyTo [f xs] (literal-apply f xs)))
 
+(def ^:private orientation->symbol {:math.structure/up "↑" :math.structure/down "_"})
+
 (defn literal-function
   ([f] (Function. f 1 [0] 0))
   ([f domain range]
-   (cond (vector? domain)
+   (cond (number? range)
          (Function. f (count domain) domain range)
+         (s/structure? range)
+         (s/same range (map-indexed (fn [index component]
+                                      (literal-function
+                                       (symbol (str f
+                                                    (orientation->symbol (s/orientation range))
+                                                    index))
+                                       domain
+                                       component))
+                                    range))
          :else
-         (throw (IllegalArgumentException. (str "WTF domain" domain))))))
+         (throw (IllegalArgumentException. (str "WTF range" domain))))))
 
 (def ^:private derivative-symbol 'D)
 
