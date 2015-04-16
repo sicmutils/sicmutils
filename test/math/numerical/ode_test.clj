@@ -1,6 +1,9 @@
 (ns math.numerical.ode-test
+  (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.test :refer :all]
             [math.structure :refer :all]
+            [math.generic :refer :all]
+            [math.numsymb]
             [math.value :as v]
             [math.numerical.ode :refer :all]))
 

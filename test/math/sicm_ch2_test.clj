@@ -20,6 +20,7 @@
             [math.generic :refer :all]
             [math.structure :refer :all]
             [math.numsymb]
+            [math.numbers]
             [math.simplify]
             [math.function :refer :all]
             [math.operator :refer :all]
@@ -75,6 +76,11 @@
                           (nth (((pd 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1)))))
   (is (= '(* (expt (sin θ) 2) A B C)
          (simplify (determinant (((square (pd 2)) (T-rigid-body 'A 'B 'C)) Euler-state))))))
+
+;; the output is too horrible to contemplate at this point
+;; (deftest secion-2.9b-simplify
+;;   (let [state' (simplify ((rigid-sysder 'A 'B 'C) Euler-state))]
+;;     (is (= 'foo state'))))
 
 (deftest ^:long section-2.9b
   (let [relative-error (fn [value reference-value]

@@ -15,7 +15,12 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
 (ns math.numerical.ode
-  (:require [math.structure :as s])
+  (:require [math.structure :as struct]
+            [math.generic :as g]
+            [clojure.walk :refer [postwalk-replace]]
+            [math.numbers]
+            [math.numsymb]
+            [math.simplify])
   (:import (org.apache.commons.math3.ode.nonstiff GraggBulirschStoerIntegrator)
            (org.apache.commons.math3.ode FirstOrderDifferentialEquations)
            (org.apache.commons.math3.ode.sampling StepHandler StepInterpolator)))
@@ -33,15 +38,37 @@
   [d:dt]
   (fn [initial-state observe step-size t ε]
     (let [state->array #(-> % flatten double-array)
-          array->state #(s/unflatten % initial-state)
+          array->state #(struct/unflatten % initial-state)
           initial-state-array (doubles (state->array initial-state))
+          generic-initial-state (struct/mapr (fn [_] (gensym)) initial-state)
+          derivative-expression (->> generic-initial-state
+                                     d:dt
+                                     g/simplify
+                                     (postwalk-replace {'up `struct/up
+                                                        'down `struct/down
+                                                        'cos `g/cos
+                                                        'sin `g/sin
+                                                        'tan `g/tan
+                                                        '+ `g/+
+                                                        '- `g/-
+                                                        '* `g/*
+                                                        '/ `g/divide
+                                                        'expt `g/expt
+                                                        'sqrt `g/sqrt}))
+          derivative-fnexp `(fn ~(-> generic-initial-state flatten vec) ~derivative-expression)
+          derivative-fn (eval derivative-fnexp)
           dimension (alength initial-state-array)
           integrator (GraggBulirschStoerIntegrator. 0. 1. (double ε) (double ε))
           equations (proxy [FirstOrderDifferentialEquations] []
                       (computeDerivatives
                         [_ ^doubles y ^doubles out]
-                        (let [y' (doubles (-> y array->state d:dt state->array))]
-                          (System/arraycopy y' 0 out 0 (alength y'))))
+                        ;; XXX the "safe" way
+                        ;; (let [y' (doubles (-> y array->state d:dt state->array))]
+                        ;;   (System/arraycopy y' 0 out 0 (alength y')))
+                        ;; following is the compiled way
+                        (let [y' (doubles (->> y  (apply derivative-fn) state->array))]
+                          (System/arraycopy y' 0 out 0 (alength y')))
+                        )
                       (getDimension [] dimension))
           out (double-array dimension)]
       (when observe
@@ -76,7 +103,9 @@
   followed by the arguments to construct it with. The state derivative
   function is constructed and an integrator is produced which takes
   the initial state, target time, and error tolerance as
-  arguments. The final state is returned."
+  arguments. The final state is returned. The state derivative is
+  expected to map a structure to a structure of the same shape,
+  and is required to have the time parameter as the first element."
   [state-derivative & state-derivative-args]
   (let [d:dt (apply state-derivative state-derivative-args)
         I (make-integrator d:dt)]
