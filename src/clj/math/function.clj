@@ -28,6 +28,8 @@
 (declare literal-apply)
 
 (defrecord Function [expr arity domain range]
+  Object
+  (toString [_] (str expr ": " domain " → " range))
   v/Value
   (nullity? [_] false)
   (compound? [_] false)
@@ -41,12 +43,26 @@
   (invoke [f x y] (literal-apply f [x y]))
   (invoke [f x y z] (literal-apply f [x y z]))
   (invoke [f w x y z] (literal-apply f [w x y z]))
-  (applyTo [f xs] (literal-apply f xs))
-  )
+  (applyTo [f xs] (literal-apply f xs)))
+
+(def ^:private orientation->symbol {:math.structure/up "↑" :math.structure/down "_"})
 
 (defn literal-function
   ([f] (Function. f 1 [0] 0))
-  ([f domain range] (Function. f (count domain) domain range)))
+  ([f domain range]
+   (cond (number? range)
+         (Function. f (count domain) domain range)
+         (s/structure? range)
+         (s/same range (map-indexed (fn [index component]
+                                      (literal-function
+                                       (symbol (str f
+                                                    (orientation->symbol (s/orientation range))
+                                                    index))
+                                       domain
+                                       component))
+                                    range))
+         :else
+         (throw (IllegalArgumentException. (str "WTF range" domain))))))
 
 (def ^:private derivative-symbol 'D)
 
@@ -83,22 +99,24 @@
   is, (binary-operation +) applied to f and g will produce a function
   which computes (+ (f x) (g x)) given x as input."
   [operator]
-  (with-meta (fn [f g]
-               (let [f-numeric (g/numerical-quantity? f)
-                     g-numeric (g/numerical-quantity? g)
-                     f-arity (if f-numeric (v/arity g) (v/arity f))
-                     g-arity (if g-numeric f-arity (v/arity g))
-                     f1 (if f-numeric (constantly f) f)
-                     g1 (if g-numeric (constantly g) g)]
-                 (if (not= f-arity g-arity)
-                   (throw (IllegalArgumentException. "cannot combine functions of differing arity"))
-                   (with-meta (cond (= f-arity 1) #(operator (f1 %) (g1 %))
-                                    (= f-arity 2) #(operator (f1 %1 %2) (g1 %1 %2))
-                                    (= f-arity 3) #(operator (f1 %1 %2 %3) (g1 %1 %2 %3))
-                                    (= f-arity 4) #(operator (f1 %1 %2 %3 %4) (g1 %1 %2 %3 %4))
-                                    :else (throw (IllegalArgumentException. "unsupported arity for function arithmetic")))
-                              {:arity f-arity}))))
-    {:arity 2}))
+  (let [h (fn [f g]
+            (let [f-numeric (g/numerical-quantity? f)
+                  g-numeric (g/numerical-quantity? g)
+                  f-arity (if f-numeric (v/arity g) (v/arity f))
+                  g-arity (if g-numeric f-arity (v/arity g))
+                  f1 (if f-numeric (constantly f) f)
+                  g1 (if g-numeric (constantly g) g)]
+              (if (not= f-arity g-arity)
+                (throw (IllegalArgumentException.
+                        "cannot combine functions of differing arity"))
+                (let [h (cond (= f-arity 1) #(operator (f1 %) (g1 %))
+                              (= f-arity 2) #(operator (f1 %1 %2) (g1 %1 %2))
+                              (= f-arity 3) #(operator (f1 %1 %2 %3) (g1 %1 %2 %3))
+                              (= f-arity 4) #(operator (f1 %1 %2 %3 %4) (g1 %1 %2 %3 %4))
+                              :else (throw (IllegalArgumentException.
+                                            "unsupported arity for function arithmetic")))]
+                  (with-meta h {:arity f-arity})))))]
+    (with-meta h {:arity 2})))
 
 (defmacro ^:private make-binary-operations
   "Given a sequence of alternating generic and binary operations,
@@ -205,8 +223,31 @@
                                    (flatten (make-partials f v))
                                    (flatten dv)))))))
 
+(defn- check-argument-type
+  "Check that the argument provided at index i has the same type as
+  the exemplar expected."
+  [f provided expected indexes]
+  (cond (number? expected)
+        (when-not (g/numerical-quantity? provided)
+          (throw (IllegalArgumentException.
+                  (str "expected numerical quantity in argument " indexes
+                       " of function call " f
+                       " but got " provided))))
+        (s/structure? expected)
+        (do (when-not (and (s/structure? provided)
+                           (= (s/orientation provided) (s/orientation expected))
+                           (= (count provided) (count expected)))
+              (throw (IllegalArgumentException.
+                      (str "expected structure matching " expected
+                           " but got " provided))))
+            (doseq [[provided expected sub-index] (map list provided expected (range))]
+              (check-argument-type f provided expected (conj indexes sub-index))))
+        :else (throw (IllegalArgumentException.
+                      (str "unexpected argument example " expected)))))
+
 (defn- literal-apply
   [f xs]
+  (check-argument-type f xs (:domain f) [0])
   (if (some d/differential? xs)
     (literal-derivative f xs)
     (x/literal-number (list* (:expr f) xs)))) ;; XXX cons
@@ -225,5 +266,20 @@
 
 (defmacro with-literal-functions
   [litfns & body]
-  `(let ~(vec (interleave litfns (map (fn [s] `(literal-function (quote ~s))) litfns)))
+  `(let ~(vec (interleave
+               (map (fn [s]
+                      (if (symbol? s) s (first s)))
+                    litfns)
+               (map (fn [s]
+                      (cond (symbol? s)
+                            `(literal-function (quote ~s))
+                            (and (sequential? s)
+                                 (= (count s) 3))
+                            `(literal-function (quote ~(first s))
+                                               ~(second s)
+                                               ~(nth s 2))
+                            :else (throw
+                                   (IllegalArgumentException.
+                                    (str "unknown literal function type" s)))))
+                    litfns)))
      ~@body))

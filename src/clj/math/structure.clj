@@ -24,6 +24,8 @@
 (declare make-identity-like)
 (declare joint-arity)
 
+(def ^:private orientation->symbol {::up 'up ::down 'down})
+
 (deftype Struct [orientation v]
   v/Value
   (nullity? [_] (every? g/zero? v))
@@ -32,7 +34,7 @@
   (exact? [_] (every? v/exact? v))
   (numerical? [_] false)
   (compound? [_] true)
-  (freeze [_] `(~(orientation {::up 'up ::down 'down}) ~@(map v/freeze v)))
+  (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
   (arity [_] (joint-arity v))
   (kind [_] orientation)
   Object
@@ -41,7 +43,7 @@
          (let [^Struct bs b]
            (= orientation (.orientation bs))
           (= v (.v bs)))))
-  (toString [_] (str (cons orientation v)))
+  (toString [_] (str (cons (orientation orientation->symbol) v)))
   Sequential
   Counted
   (count [_] (count v))
@@ -76,9 +78,7 @@
   (make ::down xs))
 
 (defn structure? [s]
-  (or (instance? Struct s)
-      (vector? s)
-      (list? s)))
+  (sequential? s))
 
 (defn- up? [^Struct s]
   (or (vector? s)
@@ -90,7 +90,7 @@
 (defn opposite [s xs]
   (make (if (up? s) ::down ::up) xs))
 
-(defn- orientation [^Struct s]
+(defn orientation [^Struct s]
   (if (instance? Struct s) (.orientation s) ::up))
 
 (defn same [s xs]

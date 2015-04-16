@@ -42,7 +42,11 @@
   (arity [_] 0)
   (kind [_] ::differential))
 
-(def differential? (partial instance? Differential))
+(defn differential?
+  [x]
+  (cond (instance? Differential x) true
+        (struct/structure? x) (some differential? x)
+        :else false))
 
 (defn differential-of
   "The differential of a quantity is, if we're a differential, the differential
