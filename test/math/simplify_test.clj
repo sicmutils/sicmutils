@@ -70,6 +70,12 @@
   (is (= '(* 2 x) (g/simplify (g/+ 'x 'x))))
   (is (= '(+ x 1) (g/simplify (g/+ 1 'x)))))
 
+(deftest divide-numbers-through
+  (is (= 'x (simplify-expression '(* 1 x))))
+  (is (= '(* x y z) (simplify-expression '(* 1 x y z))))
+  (is (= 2/3 (simplify-expression '(/ 2 3))))
+  (is (= '(+ (/ x 2) (/ y 2)) (simplify-expression '(/ (+ x y) 2)))))
+
 (deftest equations
   (let [xy (s/up (f/literal-function 'x) (f/literal-function 'y))
         xyt (xy 't)

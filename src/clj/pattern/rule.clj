@@ -33,7 +33,9 @@
               function-of-frame (if (symbol? v) `(quote ~v) v)]
           `(list (~function-of-frame ~frame-symbol)))
         (segment-reference? consequence)
-        `(~frame-symbol '~(variable consequence))
+        (let [v (variable consequence)
+              function-of-frame (if (symbol? v) `(quote ~v) v)]
+          `(~function-of-frame ~frame-symbol))
         (seq? consequence)
         `(list (concat ~@(map
                           (partial compile-consequence frame-symbol)

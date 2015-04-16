@@ -55,13 +55,6 @@
       (abstract-number? x)
       (v/numerical? x)))
 
-;; XXX do we need this?
-(defn scalar? [s]
-  (or (numerical-quantity? s)
-      (not (or (ifn? s)
-               (v/compound? s)
-               ))))
-
 (defmacro define-operations
   [& ops]
   `(do ~@(map (fn [o] `(defmulti ~o v/argument-kind)) ops)))

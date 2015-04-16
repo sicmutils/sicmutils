@@ -66,7 +66,7 @@
     => (:? #(/ (% 'n) (% 'd)))
 
     (/ (+ (:?? terms)) (:? d number?))
-    => (+ (:?? (fn [frame] (map #(`(~'/ % (frame 'd))) (frame 'terms)))))))
+    => (+ (:?? #(map (fn [n] `(~'/ ~n ~(% 'd))) (% 'terms))))))
 
 (def ^:private flush-obvious-ones
   (ruleset

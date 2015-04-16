@@ -291,10 +291,10 @@
 ;; polynomials.
 
 (def ^:private operator-table
-  {'+ #(reduce add %&)
+  {'+ #(reduce add 0 %&)
    '- (fn [arg & args]
         (if (some? args) (sub arg (reduce add args)) (negate arg)))
-   '* #(reduce mul %&)
+   '* #(reduce mul 1 %&)
    'negate negate
    'expt expt
    'square #(mul % %)
