@@ -256,7 +256,8 @@
         (let [answer ((state-advancer harmonic-state-derivative 2. 1.)
                       (up 0. (up 1. 2.) (up 3. 4.))
                       10.
-                      1e-12)
+                      1e-12
+                      {:compile true})
               expected (up 10.
                            (up 3.71279166 5.42062082)
                            (up 1.61480309 1.81891037))
@@ -300,7 +301,8 @@
                   (constantly nil)
                   0.01
                   1.0
-                  1.0e-13)
+                  1.0e-13
+                  {:compile true})
           expected (up 1.0 -1.030115687 -1.40985359)
           delta (->> answer (- expected) flatten (map abs) (reduce max))]
       (is (< delta 1e-8)))))

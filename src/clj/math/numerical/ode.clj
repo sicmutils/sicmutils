@@ -15,15 +15,47 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
 (ns math.numerical.ode
-  (:require [math.structure :as struct]
+  (:require [clojure.walk :refer [postwalk-replace]]
+            [clojure.tools.logging :as log]
+            [math.structure :as struct]
             [math.generic :as g]
-            [clojure.walk :refer [postwalk-replace]]
             [math.numbers]
             [math.numsymb]
             [math.simplify])
   (:import (org.apache.commons.math3.ode.nonstiff GraggBulirschStoerIntegrator)
            (org.apache.commons.math3.ode FirstOrderDifferentialEquations)
            (org.apache.commons.math3.ode.sampling StepHandler StepInterpolator)))
+
+(def ^:private compiled-function-whitelist {'up `struct/up
+                                            'down `struct/down
+                                            'cos #(Math/cos %)
+                                            'sin #(Math/sin %)
+                                            'tan #(Math/tan %)
+                                            '+ +
+                                            '- -
+                                            '* *
+                                            '/ /
+                                            'expt #(Math/pow %1 %2)
+                                            'sqrt #(Math/sqrt %)})
+
+(defn- construct-function-exp
+  "Given a state model (a structure which is in the domain and range
+  of the function) and its body, produce a function of the flattened
+  form of the argument structure as a sequence.
+  FIXME: give an example here, since nobody could figure out what's
+  going on just by reading this"
+  [state-model body]
+  `(fn ~(-> state-model flatten vec vector)
+     ~(postwalk-replace compiled-function-whitelist body)))
+
+(defn- compile-state-function
+  [initial-state f]
+  (let [generic-initial-state (struct/mapr (fn [_] (gensym)) initial-state)]
+    (->> generic-initial-state
+         f
+         g/simplify
+         (construct-function-exp generic-initial-state)
+         eval)))
 
 (defn- make-integrator
   "make-integrator takes a state derivative function (which in this
@@ -36,27 +68,13 @@
   invoked with the time as first argument and integrated state as the
   second."
   [d:dt]
-  (fn [initial-state observe step-size t ε]
+  (fn [initial-state observe step-size t ε & [options]]
     (let [state->array #(-> % flatten double-array)
           array->state #(struct/unflatten % initial-state)
           initial-state-array (doubles (state->array initial-state))
-          generic-initial-state (struct/mapr (fn [_] (gensym)) initial-state)
-          derivative-expression (->> generic-initial-state
-                                     d:dt
-                                     g/simplify
-                                     (postwalk-replace {'up `struct/up
-                                                        'down `struct/down
-                                                        'cos `g/cos
-                                                        'sin `g/sin
-                                                        'tan `g/tan
-                                                        '+ `g/+
-                                                        '- `g/-
-                                                        '* `g/*
-                                                        '/ `g/divide
-                                                        'expt `g/expt
-                                                        'sqrt `g/sqrt}))
-          derivative-fnexp `(fn ~(-> generic-initial-state flatten vec) ~derivative-expression)
-          derivative-fn (eval derivative-fnexp)
+          derivative-fn (if (:compile options)
+                          (compile-state-function initial-state d:dt)
+                          #(-> % array->state d:dt))
           dimension (alength initial-state-array)
           integrator (GraggBulirschStoerIntegrator. 0. 1. (double ε) (double ε))
           equations (proxy [FirstOrderDifferentialEquations] []
@@ -66,11 +84,13 @@
                         ;; (let [y' (doubles (-> y array->state d:dt state->array))]
                         ;;   (System/arraycopy y' 0 out 0 (alength y')))
                         ;; following is the compiled way
-                        (let [y' (doubles (->> y  (apply derivative-fn) state->array))]
+                        (let [y' (doubles (-> y derivative-fn state->array))]
                           (System/arraycopy y' 0 out 0 (alength y')))
                         )
                       (getDimension [] dimension))
           out (double-array dimension)]
+      (when-not (:compile options)
+        (log/warn "Not compiling function for ODE analysis"))
       (when observe
         ;; We implement the observation callback by adding a StepHandler
         ;; to the integration. The StepHandler is not invoked at every grid
@@ -109,8 +129,8 @@
   [state-derivative & state-derivative-args]
   (let [d:dt (apply state-derivative state-derivative-args)
         I (make-integrator d:dt)]
-    (fn [initial-state t ε]
-      (I initial-state nil 0 t ε))))
+    (fn [initial-state t ε & [options]]
+      (I initial-state nil 0 t ε options))))
 
 (defn evolve
   "evolve takes a state derivative function constructor and its

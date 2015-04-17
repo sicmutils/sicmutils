@@ -106,8 +106,9 @@
      state0
      (monitor-errors A B C L0 E0)
      0.1
-     2.0
-     1.0e-12)
+     10.0
+     1.0e-12
+     {:compile true})
     ;; check that all observed errors over the whole interval are small
     (is (> 1e-10 (->> @points
                       (mapcat #(drop 1 %))
