@@ -1,8 +1,8 @@
 (defproject math "0.0.1-SNAPSHOT"
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
-  :license {:name "The MIT License"
-            :url "http://www.opensource.org/licenses/MIT"}
+  :description "A port of the Scmutils computer algebra/mechanics system to Clojure"
+  :url "http://github.com/littleredcomputer/math"
+  :license {:name "GPLv3"
+            :url "http://www.opensource.org/licenses/GPL-3.0"}
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/data.json "0.2.6"]
                  [org.apache.commons/commons-math3 "3.4.1"]

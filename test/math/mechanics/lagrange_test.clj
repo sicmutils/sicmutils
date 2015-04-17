@@ -71,38 +71,50 @@
                (* (((expt D 2) z) t) m))
              (simplify (LeP 't))))))
   (testing "derivations"
-    (let [test-path (fn [t]
-                      (up (+ (* 'a t) 'a0)
-                          (+ (* 'b t) 'b0)
-                          (+ (* 'c t) 'c0)))]
-      (is (= (down 0 0 0)
-             (((Lagrange-equations (L-free-particle 'm))
-               test-path)
-              't))))
-    ;; TODO: for the present, we just ensure the following expressions
-    ;; compile & execute without checking their values. This is because
-    ;; simplification isn't online yet, so the values are going to change
-    ;; soon enough, and the current forms of the values are pretty big.
-    (is (((Lagrange-equations (L-free-particle 'm))
-          (literal-function 'q))
-         't))
-    (let [proposed-solution (fn [t]
-                              (* 'a (cos (+ (* 'omega t) 'phi))))]
-      (is (((Lagrange-equations (L-harmonic 'm 'k))
-            proposed-solution)
-           't)))
-    (is (((Lagrange-equations (L-uniform-acceleration 'm 'g))
-          (up (literal-function 'x) (literal-function 'y)))
-         't))
-    (is (((Lagrange-equations (L-central-rectangular 'm (literal-function 'U)))
-          (up (literal-function 'x)
-              (literal-function 'y)))
-         't))
-    (is (((Lagrange-equations (L-central-polar 'm (literal-function 'U)))
-          (up (literal-function 'r)
-              (literal-function 'phi)))
-         't))
+    (with-literal-functions [q x y U r φ]
+      (let [test-path (fn [t]
+                        (up (+ (* 'a t) 'a0)
+                            (+ (* 'b t) 'b0)
+                            (+ (* 'c t) 'c0)))]
+        (is (= (down 0 0 0)
+               (((Lagrange-equations (L-free-particle 'm))
+                 test-path)
+                't))))
+      ;; TODO: for the present, we just ensure the following expressions
+      ;; compile & execute without checking their values. This is because
+      ;; simplification isn't online yet, so the values are going to change
+      ;; soon enough, and the current forms of the values are pretty big.
+      (is (= '(* (((expt D 2) q) t) m)
+             (simplify (((Lagrange-equations (L-free-particle 'm)) q) 't))))
+      (let [proposed-solution (fn [t]
+                                (* 'a (cos (+ (* 'ω t) 'φ))))]
+        (is (= '(+ (* -1N (cos (+ (* t ω) φ)) a m (expt ω 2))
+                   (* (cos (+ (* t ω) φ)) a k))
+               (simplify (((Lagrange-equations (L-harmonic 'm 'k))
+                           proposed-solution)
+                          't)))))
+      (is (= '(down (* (((expt D 2) x) t) m)
+                    (+ (* (((expt D 2) y) t) m) (* g m)))
+             (simplify (((Lagrange-equations (L-uniform-acceleration 'm 'g))
+                         (up x y))
+                        't))))
+      (is (= '(down (+ (* 2 (x t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
+                          (/ 1 (* 2 (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
+                       (* (((expt D 2) x) t) m))
+                    (+ (* 2 (y t) ((D U) (sqrt (+ (expt (y t) 2) (expt (x t) 2))))
+                          (/ 1 (* 2 (sqrt (+ (expt (y t) 2) (expt (x t) 2))))))
+                       (* (((expt D 2) y) t) m)))
+             (simplify (((Lagrange-equations (L-central-rectangular 'm U))
+                         (up x y))
+                        't))))
+      (is (= '(down (+ (* -1N (expt ((D φ) t) 2) (r t) m) (* (((expt D 2) r) t) m) ((D U) (r t)))
+                    (+ (* (expt (r t) 2) (((expt D 2) φ) t) m) (* 2N (r t) ((D r) t) ((D φ) t) m)))
+             (simplify (((Lagrange-equations (L-central-polar 'm U))
+                         (up r φ))
+                        't))))
 
-    (is (velocity ((F->C p->r)
-                   (->local 't (up 'r 'phi) (up 'rdot 'phidot)))))
+      (is (= '(up (+ (* -1 (sin φ) r φdot) (* (cos φ) rdot))
+                  (+ (* (cos φ) r φdot) (* (sin φ) rdot)))
+             (simplify (velocity ((F->C p->r)
+                                  (->local 't (up 'r 'φ) (up 'rdot 'φdot))))))))
     ))

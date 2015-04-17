@@ -63,9 +63,16 @@
     (is (= (make [1 -4 6 -4 1]) (mul (mul (make [-1 1]) (make [-1 1]))
                                      (mul (make [-1 1]) (make [-1 1]))))))
   (testing "div"
-    (is (= [(make [1 1]) (make [])] (divide (make [-1 0 1]) (make [-1 1]))))
-    (is (= [(make [-10 1]) (make [-32 -21])] (divide (make [-42 0 -12 1]) (make [1 -2 1]))))
-    (is (= [(make [3 1 1]) (make [5])] (divide (make [-4 0 -2 1]) (make [-3 1]))))
+    (is (= [(make [1 1]) (make [])]
+           (divide (make [-1 0 1]) (make [-1 1]))))
+    (is (= [(make [-10 1]) (make [-32 -21])]
+           (divide (make [-42 0 -12 1]) (make [1 -2 1]))))
+    (is (= [(make [3 1 1]) (make [5])]
+           (divide (make [-4 0 -2 1]) (make [-3 1]))))
+    (is (= [(make [-5 0 3]) (make [60 -27 -11])]
+           (divide (make [-45 18 72 -27 -27 0 9]) (make [21 -9 -4 0 3]))))
+    (is (= [(make [-2/9 0 1/3]) (make [-1/3 0 1/9 0 -5/9])]
+           (divide (make [-5 2 8 -3 -3 0 1 0 1]) (make [21 -9 -4 0 5 0 3]))))
     (is (= [(make 2 [[[0 0] 1]]) (make 2 [[[2 1] 1]])]
            (divide (make 2 [[[2 1] 1] [[1 2] 1]]) (make 2 [[[1 2] 1]])))))
   (testing "content"

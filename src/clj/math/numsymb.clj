@@ -314,11 +314,6 @@
    'exp exp
    'expt expt})
 
-;; TODO: We learn at long last why using keywords instead of symbols was going
-;; to wind up annoying us. (We chose them to kind of escape the symbol namespacing,
-;; since keywords don't have them, but now we have this duplication, and so we have
-;; to decide if we're going to stick with keywords or not.
-
 (defn symbolic-operator
   "Given a symbol (like '+) returns an applicable if there is a corresponding
   symbolic operator construction available."
