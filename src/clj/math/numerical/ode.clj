@@ -15,47 +15,12 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
 (ns math.numerical.ode
-  (:require [clojure.walk :refer [postwalk-replace]]
-            [clojure.tools.logging :as log]
+  (:require [clojure.tools.logging :as log]
             [math.structure :as struct]
-            [math.generic :as g]
-            [math.numbers]
-            [math.numsymb]
-            [math.simplify])
+            [math.numerical.compile :refer :all])
   (:import (org.apache.commons.math3.ode.nonstiff GraggBulirschStoerIntegrator)
            (org.apache.commons.math3.ode FirstOrderDifferentialEquations)
            (org.apache.commons.math3.ode.sampling StepHandler StepInterpolator)))
-
-(def ^:private compiled-function-whitelist {'up `struct/up
-                                            'down `struct/down
-                                            'cos #(Math/cos %)
-                                            'sin #(Math/sin %)
-                                            'tan #(Math/tan %)
-                                            '+ +
-                                            '- -
-                                            '* *
-                                            '/ /
-                                            'expt #(Math/pow %1 %2)
-                                            'sqrt #(Math/sqrt %)})
-
-(defn- construct-function-exp
-  "Given a state model (a structure which is in the domain and range
-  of the function) and its body, produce a function of the flattened
-  form of the argument structure as a sequence.
-  FIXME: give an example here, since nobody could figure out what's
-  going on just by reading this"
-  [state-model body]
-  `(fn ~(-> state-model flatten vec vector)
-     ~(postwalk-replace compiled-function-whitelist body)))
-
-(defn- compile-state-function
-  [initial-state f]
-  (let [generic-initial-state (struct/mapr (fn [_] (gensym)) initial-state)]
-    (->> generic-initial-state
-         f
-         g/simplify
-         (construct-function-exp generic-initial-state)
-         eval)))
 
 (defn- make-integrator
   "make-integrator takes a state derivative function (which in this
@@ -80,13 +45,8 @@
           equations (proxy [FirstOrderDifferentialEquations] []
                       (computeDerivatives
                         [_ ^doubles y ^doubles out]
-                        ;; XXX the "safe" way
-                        ;; (let [y' (doubles (-> y array->state d:dt state->array))]
-                        ;;   (System/arraycopy y' 0 out 0 (alength y')))
-                        ;; following is the compiled way
                         (let [y' (doubles (-> y derivative-fn state->array))]
-                          (System/arraycopy y' 0 out 0 (alength y')))
-                        )
+                          (System/arraycopy y' 0 out 0 (alength y'))))
                       (getDimension [] dimension))
           out (double-array dimension)]
       (when-not (:compile options)

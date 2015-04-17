@@ -17,6 +17,7 @@
 (ns math.sicm-ch2-test
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.test :refer :all]
+            [clojure.pprint :as pp]
             [math.generic :refer :all]
             [math.structure :refer :all]
             [math.numsymb]
@@ -78,9 +79,9 @@
          (simplify (determinant (((square (pd 2)) (T-rigid-body 'A 'B 'C)) Euler-state))))))
 
 ;; the output is too horrible to contemplate at this point
-;; (deftest secion-2.9b-simplify
+;; (deftest section-2.9b-simplify
 ;;   (let [state' (simplify ((rigid-sysder 'A 'B 'C) Euler-state))]
-;;     (is (= 'foo state'))))
+;;     (pp/pprint state')))
 
 (deftest ^:long section-2.9b
   (let [relative-error (fn [value reference-value]
@@ -102,6 +103,7 @@
         state0 (up 0. (up 1. 0. 0.) (up 0.1 0.1 0.1)) ;; initial state
         L0 ((Euler-state->L-space A B C) state0)
         E0 ((T-rigid-body A B C) state0)]
+
     ((evolve rigid-sysder A B C)
      state0
      (monitor-errors A B C L0 E0)

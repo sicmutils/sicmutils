@@ -173,6 +173,7 @@
        sincos-cleanup
        square-root-simplifier
        rules/divide-numbers-through
+       rules/cancel-within-fractions
        simplify-and-flatten))
 
 (def simplify-expression (simplify-until-stable simplify-expression-1 simplify-and-flatten))
