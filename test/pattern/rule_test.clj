@@ -92,10 +92,8 @@
       (is (= '(+ 3 4 5) (S '(+ 3 (+ 4 5)))))
       (is (= '(+ (* 6 3) (* 6 4)) (S '(* 6 (+ 3 4)))))
       ;; note: we don't have the expr< feature alluded to in the problem
-      ;; set, since we plan to rely on constructor canonicalization to
-      ;; handle this. XXX come back to this when we see if that plan
-      ;; works out. (Is simplification an output-only experience in
-      ;; scmutils?)
+      ;; set, since we plan to rely on canonicalization to
+      ;; handle this.
       (is (= '(* (+ y z w) x) (S '(* (+ y (+ z w)) x))))))
   (testing "associative (multiple rulesets)"
     (let [R1 (ruleset

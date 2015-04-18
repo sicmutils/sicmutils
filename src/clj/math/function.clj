@@ -78,12 +78,6 @@
        (not (symbol? x))
        (not (vector? x))))
 
-;; XXX needed?
-(defn- cofunction?
-  "True if f may be combined with a function."
-  [f]
-  (not (instance? Operator f)))
-
 (defn- unary-operation
   "For a unary operator (like sqrt), returns a function of one function
   which when called will apply the operation to the result of the

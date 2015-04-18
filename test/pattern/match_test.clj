@@ -22,9 +22,9 @@
 (defn- collect-all-results [matcher input & tails]
   (let [results (atom [])]
     (matcher (sorted-map) input (fn [frame xs]
-                        (swap! results conj
-                               (if tails [frame xs] frame))
-                        false))
+                                  (swap! results conj
+                                         (if tails [frame xs] frame))
+                                  false))
     @results))
 
 (deftest matchers
@@ -103,19 +103,15 @@
                {:y [], :x [], :w [a b a b a b a b]}]
              (collect-all-results etc-xs-xs-etc '((a b a b a b a b)))))
       ))
-  ;; XXX redo this one once we have the pattern compiler implemented.
   (testing "example-from-6.945-notes"
-    (is (= '[{:y [b b b b b b] :x []}
-             {:y [b b b b] :x [b]}
-             {:y [b b] :x [b b]}
-             {:y [] :x [b b b]}]
-           (collect-all-results (match-list (match-one 'a)
-                                            (match-segment :x)
-                                            (match-segment :y)
-                                            (match-segment :x)
-                                            (match-one 'c))
-                                '((a b b b b b b c)))))
-    )
+    (is (= '[{y [b b b b b b] x []}
+             {y [b b b b] x [b]}
+             {y [b b] x [b b]}
+             {y [] x [b b b]}]
+           (collect-all-results
+            (pattern->matcher '(a (:?? x) (:?? y) (:?? x) c))
+            '((a b b b b b b c)))
+           )))
   (testing "an expression"
     (let [expr (match-list (match-list (match-one '*)
                                        (match-var :a)

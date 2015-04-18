@@ -60,17 +60,12 @@
         (sum? b) `(~'+ ~a ~@(operands b))
         :else `(~'+ ~a ~b)))
 
-;; XXX do we even need this anymore?
-(defn- add-n [& args]
-  (reduce add 0 args))
-
 (defn- sub [a b]
   (cond (and (number? a) (number? b)) (- a b)
         (number? a) (if (g/zero? a) `(~'- ~b) `(~'- ~a ~b))
         (number? b) (if (g/zero? b) a `(~'- ~a ~b))
         :else `(~'- ~a ~b)))
 
-;; XXX do we even need this anymore?
 (defn- sub-n [& args]
   (cond (nil? args) 0
         (nil? (next args)) (g/negate (first args))
@@ -92,9 +87,6 @@
                            :else `(~'* ~@(operands a) ~b))
         (product? b) `(~'* ~a ~@(operands b))
         :else `(~'* ~a ~b)))
-
-(defn- mul-n [& args]
-  (reduce mul 1 args))
 
 (defn- div [a b]
   (cond (and (number? a) (number? b)) (/ a b)
@@ -295,9 +287,9 @@
 (define-unary-operation g/log log)
 
 (def ^:private symbolic-operator-table
-  {'+ add-n
+  {'+ #(reduce add 0 %&)
    '- sub-n
-   '* mul-n
+   '* #(reduce mul 1 %&)
    '/ div-n
    'negate #(sub 0 %)
    'invert #(div 1 %)
