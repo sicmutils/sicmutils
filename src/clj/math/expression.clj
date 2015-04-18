@@ -61,19 +61,22 @@
 (defn walk-expression
   "Walk the unwrapped expression x in postorder, replacing symbols found there
   with their values in the map environment, if present; an unbound
-  symbol is an error. Function applications are applied."
-  [environment]
-  (fn walk [x]
-    (cond (number? x) x
-          (symbol? x) (if-let [binding (x environment)]
-                        (if-not (fn? binding) binding x)
-                        (throw (IllegalArgumentException.
-                                (str "no binding for " x " found."))))
-          (instance? Expression x) (walk (expression-of x))
-          (sequential? x) (let [f (environment (first x))]
-                            (when-not (fn? f)
-                              (throw (IllegalArgumentException.
-                                      (str "no function binding for " x " found."))))
-                            (apply f (map walk (rest x))))
+  symbol is an error. Function applications are applied. If things answering
+  to number? are found, they are passed through the function lift-constant."
+  ([environment lift-constant]
+   (fn walk [x]
+     (cond (number? x) (lift-constant x)
+           (symbol? x) (if-let [binding (x environment)]
+                         (if-not (fn? binding) binding x)
+                         (throw (IllegalArgumentException.
+                                 (str "no binding for " x " found."))))
+           (instance? Expression x) (walk (expression-of x))
+           (sequential? x) (let [f (environment (first x))]
+                             (when-not (fn? f)
+                               (throw (IllegalArgumentException.
+                                       (str "no function binding for " x " found."))))
+                             (apply f (map walk (rest x))))
 
-          :else (throw (IllegalArgumentException. (str "unknown expression type " x))))))
+           :else (throw (IllegalArgumentException. (str "unknown expression type " x))))))
+  ([environment]
+   (walk-expression environment identity)))

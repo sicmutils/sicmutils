@@ -80,10 +80,6 @@
                (((Lagrange-equations (L-free-particle 'm))
                  test-path)
                 't))))
-      ;; TODO: for the present, we just ensure the following expressions
-      ;; compile & execute without checking their values. This is because
-      ;; simplification isn't online yet, so the values are going to change
-      ;; soon enough, and the current forms of the values are pretty big.
       (is (= '(* (((expt D 2) q) t) m)
              (simplify (((Lagrange-equations (L-free-particle 'm)) q) 't))))
       (let [proposed-solution (fn [t]

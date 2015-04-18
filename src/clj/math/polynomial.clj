@@ -30,11 +30,9 @@
   (nullity? [p] (empty? (:xs->c p)))
   (numerical? [_] false)
   (unity? [p] (and (= (count (:xs->c p)) 1)
-                 (let [[exponents coef] (first (:xs->c p))]
-                   (and (every? zero? exponents)
-                        (g/one? coef))))))
-
-(defn- base? [p] (not (instance? Polynomial p)))
+                   (let [[exponents coef] (first (:xs->c p))]
+                     (and (every? zero? exponents)
+                          (g/one? coef))))))
 
 (defn make
   "When called with two arguments, the first is the arity
@@ -59,6 +57,14 @@
   [p]
   (if (g/zero? p) -1
       (reduce max (map #(reduce + 0 %) (keys (:xs->c p))))))
+
+(defn- constant?
+  "If p is a constant polynomial, return that constant, else nil"
+  [^Polynomial p]
+  (let [xs->c (:xs->c p)]
+    (cond (empty? xs->c) 0
+          (and (= (count xs->c) 1)
+               (every? zero? (first (first xs->c)))) (second (first xs->c)))))
 
 (defn- check-same-arity [p q]
   (let [ap (:arity p)
@@ -93,10 +99,10 @@
                   order (compare xp xq)]
               (cond
                 (zero? order) (let [v (f cp cq)]
-                                     (recur (rest P) (rest Q)
-                                            (if-not (g/zero? v)
-                                              (assoc R xp v)
-                                              R)))
+                                (recur (rest P) (rest Q)
+                                       (if-not (g/zero? v)
+                                         (assoc R xp v)
+                                         R)))
                 (< order 0) (recur (rest P) Q (assoc R xp (f cp 0)))
                 :else (recur P (rest Q) (assoc R xq (f 0 cq))))))))
 
@@ -124,16 +130,11 @@
   "Adds the polynomials p and q (either or both of which might just be
   constants in the base ring)."
   [p q]
-  (let [p-base? (base? p)
-        q-base? (base? q)]
-    (cond (and p-base? q-base?) (g/+ p q)
-          p-base? (add-constant q p)
-          q-base? (add-constant p q)
-          (g/zero? p) q
-          (g/zero? q) p
-          :else (let [a (check-same-arity p q)
-                      sum (poly-merge g/+ p q)]
-                  (make a sum)))))
+  (cond (g/zero? p) q
+        (g/zero? q) p
+        :else (let [a (check-same-arity p q)
+                    sum (poly-merge g/+ p q)]
+                (make a sum))))
 
 (defn- add-denormal
   "Add-denormal adds the (order, coefficient) pair to the polynomial p,
@@ -147,35 +148,25 @@
 (defn sub
   "Subtract the polynomial q from the polynomial p."
   [p q]
-  (let [p-base? (base? p)
-        q-base? (base? q)]
-    (cond (and p-base? q-base?) (g/- p q)
-          p-base? (add-constant (negate q) p)
-          q-base? (add-constant p (- q))
-          (g/zero? p) (negate q)
-          (g/zero? q) p
-          :else (let [a (check-same-arity p q)
-                      diff (poly-merge g/- p q)]
-                  (make a diff)))))
+  (cond (g/zero? p) (negate q)
+        (g/zero? q) p
+        :else (let [a (check-same-arity p q)
+                    diff (poly-merge g/- p q)]
+                (make a diff))))
 
 (defn mul
   "Multiply polynomials p and q, and return the product."
   [p q]
-  (let [p-base? (base? p)
-        q-base? (base? q)]
-    (cond (and p-base? q-base?) (g/* p q)
-          (g/zero? p) 0
-          (g/zero? q) 0
-          p-base? (poly-map #(g/* p %) q)
-          q-base? (poly-map #(g/* % q) p)
-          (g/one? p) q
-          (g/one? q) p
-          :else (let [a (check-same-arity p q)]
-                  (make a (reduce add-denormal
-                                  (sorted-map)
-                                  (for [[xp cp] (:xs->c p)
-                                        [xq cq] (:xs->c q)]
-                                    [(vec (map + xp xq)) (g/* cp cq)])))))))
+  (cond (g/zero? p) 0
+        (g/zero? q) 0
+        (g/one? p) q
+        (g/one? q) p
+        :else (let [a (check-same-arity p q)]
+                (make a (reduce add-denormal
+                                (sorted-map)
+                                (for [[xp cp] (:xs->c p)
+                                      [xq cq] (:xs->c q)]
+                                  [(vec (map + xp xq)) (g/* cp cq)]))))))
 
 (defn content
   "The content of a polynomial p is the greatest common divisor of its
@@ -194,19 +185,23 @@
 (defn divide
   "Divide polynomial u by v, and return the pair of [quotient, remainder]
   polynomials. This assumes that the coefficients are drawn from a field,
-  and so support division."
-  [u v]
-  (let [u-base? (base? u)
-        v-base? (base? v)]
-    (cond (and u-base? v-base?) [(g/divide u v) 0]
-          v-base? [(poly-map #(g/divide % v) u) 0]
-          u-base? [0 v]
-          :else (let [arity (check-same-arity u v)
-                      [vn-exponents vn-coefficient] (lead-term v)]
-                  (loop [quotient (make arity []) remainder u]
+  and so support division. If you want pseudo-division instead, you can
+  set {:pseudo true} in the options. In this case division is not done;
+  instead the divisor is multiplied by the leading coefficient of the
+  dividend before quotient terms are generated so that division will not
+  result in fractions. In that event, a third term is returned containing
+  the power of the leading coefficient needed to relate the pseudo-quotient
+  and pseudo-remainder returned in the first two terms.
+  TODO: pseudo-division is not working yet!"
+  [u v & [{:keys [pseudo]}]]
+  (let [[q r m] (let [arity (check-same-arity u v)
+                      [vn-exponents vn-coefficient] (lead-term v)
+                      vn-coef-poly (make-constant arity vn-coefficient)]
+                  (loop [quotient (make arity []) remainder u multiplier (v/one-like (lead-term v))]
                     ;; find a term in the remainder into which the
                     ;; lead term of the divisor can be divided.
-                    (let [good-terms (->> remainder
+                    (let [remainder (if pseudo (mul remainder vn-coef-poly) remainder)
+                          good-terms (->> remainder
                                           :xs->c rseq
                                           (map (fn [[xs c]]
                                                  [(map - xs vn-exponents) c]))
@@ -215,28 +210,34 @@
                                                          (every? (complement neg?) residues)))))]
                       (if-let [[residues coefficient] (first good-terms)]
                         (let [new-coefficient (g/divide coefficient vn-coefficient)
-                              new-term (make arity [[(vec residues) new-coefficient]])]
+                              new-term (make arity [[(vec residues) new-coefficient]])
+                              ]
                           (recur (add quotient new-term)
-                                 (sub remainder (mul new-term v))))
-                        [quotient remainder])))))))
+                                 (sub remainder (mul new-term v))
+                                 ;; change to *' when we figure out the bug
+                                 (if pseudo (* multiplier vn-coefficient) multiplier)))
+                        [quotient remainder multiplier]))))]
+    (if pseudo [q r m] [q r])))
 
 (defn expt
-  "Raise the polynomial p to the (integer) power n."
+  "Raise the polynomial p to the (integer) power n. Of course, n
+  is a polynomial, so it must be a constant integer polynomial."
   [p n]
-  (cond (base? p) (g/expt p n)
-        (or (not (integer? n))
-            (< n 0)) (throw (ArithmeticException.
-                             (str "can't raise poly to " n)))
-        (g/one? p) p
-        (g/zero? p) (if (zero? n)
-                      (throw (ArithmeticException. "poly 0^0"))
-                    p)
-        (zero? n) (make-constant (:arity p) 1)
-        :else (loop [x p c n a (make-constant (:arity p) 1)]
-                (if (zero? c) a
-                    (if (even? c)
-                      (recur (mul x x) (quot c 2) a)
-                      (recur x (dec c) (mul x a)))))))
+  (let [e (constant? n)]
+    (when-not (and (integer? e) (>= e 0))
+      (throw (ArithmeticException.
+              (str "can't raise poly to " e))))
+    (cond
+          (g/one? p) p
+          (g/zero? p) (if (zero? e)
+                        (throw (ArithmeticException. "poly 0^0"))
+                        p)
+          (zero? e) (make-constant (:arity p) 1)
+          :else (loop [x p c e a (make-constant (:arity p) 1)]
+                  (if (zero? c) a
+                      (if (even? c)
+                        (recur (mul x x) (quot c 2) a)
+                        (recur x (dec c) (mul x a))))))))
 
 (defn graded-lex-order
   "An ordering on monomials. X < Y if X has higher total degree than
@@ -264,9 +265,10 @@
   the polynomial structure of the input over the unknowns."
   [expr cont]
   (let [expression-vars (sort (set/difference (x/variables-in expr) operators-known))
-        new-bindings (zipmap expression-vars (new-variables (count expression-vars)))
+        arity (count expression-vars)
+        new-bindings (zipmap expression-vars (new-variables arity))
         environment (into operator-table new-bindings)]
-    (cont ((x/walk-expression environment) expr) expression-vars)))
+    (cont ((x/walk-expression environment #(make-constant arity %)) expr) expression-vars)))
 
 (defn ->expression
   "This is the output stage of Flat Polynomial canonical form simplification.
@@ -275,7 +277,12 @@
   indeterminates extracted from the expression at the start of this
   process."
   [^Polynomial p vars]
-  (if (base? p) p
+  ;; odd: this (i.e., (symbol? p))only happens in the case of
+  ;; something like (expt 'x 'y), where we can't treat it as a known
+  ;; expression because 'y is not an integer. Handling it here is easy
+  ;; enough, but it seems like an odd special case and perhaps should
+  ;; be treated at the level above.
+  (if (symbol? p) p
       (reduce
        sym/add 0
        (map (fn [[exponents coefficient]]
@@ -299,7 +306,7 @@
    'expt expt
    'square #(mul % %)
    'cube #(mul % (mul % %))
-   ;`'g/gcd gcd
+                                        ;`'g/gcd gcd
    })
 
 (def operators-known (set (keys operator-table)))

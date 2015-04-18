@@ -23,6 +23,7 @@
   (nullity? [this])
   (unity? [this])
   (zero-like [this])
+  (one-like [this])
   (exact? [this])
   (compound? [this])
   ;; Freezing an expression means removing wrappers and other metadata
@@ -45,6 +46,7 @@
   (compound? [_] false)
   (exact? [o] (or (integer? o) (ratio? o)))
   (zero-like [_] 0)
+  (one-like [_] 1)
   (freeze [o] (cond (sequential? o) (map freeze o) (keyword? o) o :else o)) ;; WTF?
   (arity [o] (primitive-arity o))
   (kind [o] (primitive-kind o)))

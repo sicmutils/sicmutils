@@ -33,11 +33,11 @@
   invoked with the time as first argument and integrated state as the
   second."
   [d:dt]
-  (fn [initial-state observe step-size t ε & [options]]
+  (fn [initial-state observe step-size t ε & [{:keys [compile]}]]
     (let [state->array #(-> % flatten double-array)
           array->state #(struct/unflatten % initial-state)
           initial-state-array (doubles (state->array initial-state))
-          derivative-fn (if (:compile options)
+          derivative-fn (if compile
                           (compile-state-function initial-state d:dt)
                           #(-> % array->state d:dt))
           dimension (alength initial-state-array)
@@ -49,7 +49,7 @@
                           (System/arraycopy y' 0 out 0 (alength y'))))
                       (getDimension [] dimension))
           out (double-array dimension)]
-      (when-not (:compile options)
+      (when-not compile
         (log/warn "Not compiling function for ODE analysis"))
       (when observe
         ;; We implement the observation callback by adding a StepHandler

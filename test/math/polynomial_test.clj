@@ -55,7 +55,7 @@
     (is (= 0 (mul (make []) (make [1 2 3]))))
     (is (= (make [1 2 3]) (mul (make [1 2 3]) 1)))
     (is (= (make [1 2 3]) (mul 1 (make [1 2 3]))))
-    (is (= (make [3 6 9]) (mul (make [1 2 3]) 3)))
+    (is (= (make [3 6 9]) (mul (make [1 2 3]) (make [3]))))
     (is (= (make [0 1 2 3]) (mul (make [0 1]) (make [1 2 3]))))
     (is (= (make [0 -1 -2 -3]) (mul (make [0 -1]) (make [1 2 3]))))
     (is (= (make [-1 0 1]) (mul (make [1 1]) (make [-1 1]))))
@@ -71,8 +71,16 @@
            (divide (make [-4 0 -2 1]) (make [-3 1]))))
     (is (= [(make [-5 0 3]) (make [60 -27 -11])]
            (divide (make [-45 18 72 -27 -27 0 9]) (make [21 -9 -4 0 3]))))
-    (is (= [(make [-2/9 0 1/3]) (make [-1/3 0 1/9 0 -5/9])]
-           (divide (make [-5 2 8 -3 -3 0 1 0 1]) (make [21 -9 -4 0 5 0 3]))))
+    (let [U (make [-5 2 8 -3 -3 0 1 0 1])
+          V (make [21 -9 -4 0 5 0 3])
+          [q r] (divide U V)
+          [pq pr d] (divide U V {:pseudo true})]
+      (is (= [(make [-2/9 0 1/3]) (make [-1/3 0 1/9 0 -5/9])] [q r]))
+      (is (= [(make [-2 0 1]) (make [-9 0 3 0 -15]) 9] [pq pr d]))
+      ;; not quite
+      ;;(is (= 'foo (sub (mul d U) (add (mul pq V) pr))))
+      ;;(is (= 'bar (add (mul pq V) pr)))
+      )
     (is (= [(make 2 [[[0 0] 1]]) (make 2 [[[2 1] 1]])]
            (divide (make 2 [[[2 1] 1] [[1 2] 1]]) (make 2 [[[1 2] 1]])))))
   (testing "content"
@@ -80,20 +88,20 @@
     (is (= 3 (content (make [-3 6 9])))))
   (testing "expt"
     (let [x+1 (make [1 1])]
-      (is (= (make [1]) (expt x+1 0)))
-      (is (= x+1 (expt x+1 1)))
-      (is (= (make [1 2 1]) (expt x+1 2)))
-      (is (= (make [1 3 3 1]) (expt x+1 3)))
-      (is (= (make [1 4 6 4 1]) (expt x+1 4)))
-      (is (= (make [1 5 10 10 5 1]) (expt x+1 5)))))
+      (is (= (make [1]) (expt x+1 (make []))))
+      (is (= x+1 (expt x+1 (make [1]))))
+      (is (= (make [1 2 1]) (expt x+1 (make [2]))))
+      (is (= (make [1 3 3 1]) (expt x+1 (make [3]))))
+      (is (= (make [1 4 6 4 1]) (expt x+1 (make [4]))))
+      (is (= (make [1 5 10 10 5 1]) (expt x+1 (make [5]))))))
   (testing "other coefficient rings: GF(2)"
     (let [mod2 #(modular/make % 2)
           x0 (mod2 0)
           x1 (mod2 1)
           P (make [x1 x0 x1])]
-      (is (= (make [x1 x0 x0 x0 x1]) (expt P 2)))
-      (is (= (make [x1 x0 x1 x0 x1 x0 x1]) (expt P 3)))
-      (is (= (make [x1 x0 x0 x0 x0 x0 x0 x0 x1]) (mul (expt P 3) P)))
+      (is (= (make [x1 x0 x0 x0 x1]) (expt P (make [2]))))
+      (is (= (make [x1 x0 x1 x0 x1 x0 x1]) (expt P (make [3]))))
+      (is (= (make [x1 x0 x0 x0 x0 x0 x0 x0 x1]) (mul (expt P (make [3])) P)))
       (is (= (make []) (sub P P)))
       (is (= (make []) (add P P)))
       (is (= (make [x0 x0 x1]) (add P (make [1]))))))
