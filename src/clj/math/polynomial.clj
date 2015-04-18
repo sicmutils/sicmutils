@@ -118,13 +118,7 @@
 (defn- make-constant
   "Return a constant polynomial of the given arity."
   [arity c]
-  (make arity [[(vec (repeat arity 0)) c]])
-  )
-(defn- add-constant
-  "Adds the constant c to poly. The result is normalized."
-  [poly c]
-  (let [{:keys [arity xs->c]} poly]
-    (make arity (update-in xs->c [(vec (repeat arity 0))] #(g/+ (or % 0) c)))))
+  (make arity [[(vec (repeat arity 0)) c]]))
 
 (defn add
   "Adds the polynomials p and q (either or both of which might just be
@@ -197,7 +191,9 @@
   (let [[q r m] (let [arity (check-same-arity u v)
                       [vn-exponents vn-coefficient] (lead-term v)
                       vn-coef-poly (make-constant arity vn-coefficient)]
-                  (loop [quotient (make arity []) remainder u multiplier (v/one-like (lead-term v))]
+                  (loop [quotient (make arity [])
+                         remainder u
+                         multiplier (v/one-like (lead-term v))]
                     ;; find a term in the remainder into which the
                     ;; lead term of the divisor can be divided.
                     (let [remainder (if pseudo (mul remainder vn-coef-poly) remainder)
@@ -210,8 +206,7 @@
                                                          (every? (complement neg?) residues)))))]
                       (if-let [[residues coefficient] (first good-terms)]
                         (let [new-coefficient (g/divide coefficient vn-coefficient)
-                              new-term (make arity [[(vec residues) new-coefficient]])
-                              ]
+                              new-term (make arity [[(vec residues) new-coefficient]])]
                           (recur (add quotient new-term)
                                  (sub remainder (mul new-term v))
                                  ;; change to *' when we figure out the bug
@@ -228,16 +223,16 @@
       (throw (ArithmeticException.
               (str "can't raise poly to " e))))
     (cond
-          (g/one? p) p
-          (g/zero? p) (if (zero? e)
-                        (throw (ArithmeticException. "poly 0^0"))
-                        p)
-          (zero? e) (make-constant (:arity p) 1)
-          :else (loop [x p c e a (make-constant (:arity p) 1)]
-                  (if (zero? c) a
-                      (if (even? c)
-                        (recur (mul x x) (quot c 2) a)
-                        (recur x (dec c) (mul x a))))))))
+      (g/one? p) p
+      (g/zero? p) (if (zero? e)
+                    (throw (ArithmeticException. "poly 0^0"))
+                    p)
+      (zero? e) (make-constant (:arity p) 1)
+      :else (loop [x p c e a (make-constant (:arity p) 1)]
+              (if (zero? c) a
+                  (if (even? c)
+                    (recur (mul x x) (quot c 2) a)
+                    (recur x (dec c) (mul x a))))))))
 
 (defn graded-lex-order
   "An ordering on monomials. X < Y if X has higher total degree than
@@ -267,8 +262,9 @@
   (let [expression-vars (sort (set/difference (x/variables-in expr) operators-known))
         arity (count expression-vars)
         new-bindings (zipmap expression-vars (new-variables arity))
-        environment (into operator-table new-bindings)]
-    (cont ((x/walk-expression environment #(make-constant arity %)) expr) expression-vars)))
+        environment (into operator-table new-bindings)
+        transformer (x/walk-expression environment #(make-constant arity %))]
+    (-> expr transformer (cont expression-vars))))
 
 (defn ->expression
   "This is the output stage of Flat Polynomial canonical form simplification.
@@ -306,7 +302,7 @@
    'expt expt
    'square #(mul % %)
    'cube #(mul % (mul % %))
-                                        ;`'g/gcd gcd
+   ;;`'g/gcd gcd
    })
 
 (def operators-known (set (keys operator-table)))
