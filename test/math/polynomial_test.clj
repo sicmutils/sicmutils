@@ -76,11 +76,8 @@
           [q r] (divide U V)
           [pq pr d] (divide U V {:pseudo true})]
       (is (= [(make [-2/9 0 1/3]) (make [-1/3 0 1/9 0 -5/9])] [q r]))
-      (is (= [(make [-2 0 1]) (make [-9 0 3 0 -15]) 9] [pq pr d]))
-      ;; not quite
-      ;;(is (= 'foo (sub (mul d U) (add (mul pq V) pr))))
-      ;;(is (= 'bar (add (mul pq V) pr)))
-      )
+      (is (= [(make [-2 0 3]) (make [-3 0 1 0 -5]) 9] [pq pr d]))
+      (is (= (make []) (sub (mul (make [d]) U) (add (mul pq V) pr)))))
     (is (= [(make 2 [[[0 0] 1]]) (make 2 [[[2 1] 1]])]
            (divide (make 2 [[[2 1] 1] [[1 2] 1]]) (make 2 [[[1 2] 1]])))))
   (testing "content"

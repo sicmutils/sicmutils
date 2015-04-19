@@ -196,8 +196,8 @@
                          multiplier (v/one-like (lead-term v))]
                     ;; find a term in the remainder into which the
                     ;; lead term of the divisor can be divided.
-                    (let [remainder (if pseudo (mul remainder vn-coef-poly) remainder)
-                          good-terms (->> remainder
+                    (let [remainder' (if pseudo (mul remainder vn-coef-poly) remainder)
+                          good-terms (->> remainder'
                                           :xs->c rseq
                                           (map (fn [[xs c]]
                                                  [(map - xs vn-exponents) c]))
@@ -207,9 +207,8 @@
                       (if-let [[residues coefficient] (first good-terms)]
                         (let [new-coefficient (g/divide coefficient vn-coefficient)
                               new-term (make arity [[(vec residues) new-coefficient]])]
-                          (recur (add quotient new-term)
-                                 (sub remainder (mul new-term v))
-                                 ;; change to *' when we figure out the bug
+                          (recur (add (if pseudo (mul quotient vn-coef-poly) quotient) new-term)
+                                 (sub remainder' (mul new-term v))
                                  (if pseudo (* multiplier vn-coefficient) multiplier)))
                         [quotient remainder multiplier]))))]
     (if pseudo [q r m] [q r])))
