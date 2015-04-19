@@ -77,9 +77,21 @@
           [pq pr d] (divide U V {:pseudo true})]
       (is (= [(make [-2/9 0 1/3]) (make [-1/3 0 1/9 0 -5/9])] [q r]))
       (is (= [(make [-2 0 3]) (make [-3 0 1 0 -5]) 9] [pq pr d]))
-      (is (= (make []) (sub (mul (make [d]) U) (add (mul pq V) pr)))))
+      (is (= (make []) (sub (mul (make [d]) U) (add (mul pq V) pr))))
+      (is (= (make [1]) (gcd U V))))
     (is (= [(make 2 [[[0 0] 1]]) (make 2 [[[2 1] 1]])]
            (divide (make 2 [[[2 1] 1] [[1 2] 1]]) (make 2 [[[1 2] 1]])))))
+  (testing "gcd"
+    (let [U (make [6 7 1])
+          V (make [-6 -5 1])]
+      (is (= (make [1 1]) (gcd U V))))
+    (let [x+1 (make [1 1])
+          x+2 (make [2 1])
+          x+3 (make [3 1])
+          x+4 (make [4 1])
+          U (mul x+1 (mul x+1 (mul x+2 x+4)))
+          V (mul x+1 (mul x+2 x+3))]
+      (is (= (make [-2 -3 -1]) (gcd U V)))))
   (testing "content"
     (is (= 1 (content (make [1 2 3]))))
     (is (= 3 (content (make [-3 6 9])))))

@@ -169,34 +169,42 @@
   [p]
   (->> p :xs->c (map second) (reduce (comp first extended-euclid))))
 
+(defn- primitive-part
+  [u]
+  (let [c (content u)]
+    (poly-map #(/ % c) u)))
+
 (defn- lead-term
   "Return the leading (i.e., highest degree) term of the polynomial
   p. The return value is [exponents coefficient]."
   [p]
   (-> p :xs->c rseq first))
 
-
 (defn divide
   "Divide polynomial u by v, and return the pair of [quotient, remainder]
   polynomials. This assumes that the coefficients are drawn from a field,
   and so support division. If you want pseudo-division instead, you can
-  set {:pseudo true} in the options. In this case division is not done;
+  set {:pseudo true} in the options. In this case fractions won't appear;
   instead the divisor is multiplied by the leading coefficient of the
   dividend before quotient terms are generated so that division will not
   result in fractions. In that event, a third term is returned containing
   the power of the leading coefficient needed to relate the pseudo-quotient
-  and pseudo-remainder returned in the first two terms.
-  TODO: pseudo-division is not working yet!"
+  and pseudo-remainder returned in the first two terms. Similar in spirit
+  to Knuth's algorithm 4.6.1R, except we don't multiply the remainder
+  through during gaps in the remainder. Since you don't know up front
+  how many times the integerizing multiplication will be done, we also return
+  the number m for which m * u = q * v + r."
   [u v & [{:keys [pseudo]}]]
   (let [[q r m] (let [arity (check-same-arity u v)
                       [vn-exponents vn-coefficient] (lead-term v)
-                      vn-coef-poly (make-constant arity vn-coefficient)]
+                      *vn (fn [p] (poly-map #(g/* % vn-coefficient) p))]
                   (loop [quotient (make arity [])
                          remainder u
                          multiplier (v/one-like (lead-term v))]
                     ;; find a term in the remainder into which the
                     ;; lead term of the divisor can be divided.
-                    (let [remainder' (if pseudo (mul remainder vn-coef-poly) remainder)
+                    (let [remainder' (if pseudo (*vn remainder)
+                                         remainder)
                           good-terms (->> remainder'
                                           :xs->c rseq
                                           (map (fn [[xs c]]
@@ -207,11 +215,23 @@
                       (if-let [[residues coefficient] (first good-terms)]
                         (let [new-coefficient (g/divide coefficient vn-coefficient)
                               new-term (make arity [[(vec residues) new-coefficient]])]
-                          (recur (add (if pseudo (mul quotient vn-coef-poly) quotient) new-term)
+                          (recur (add (if pseudo (*vn quotient) quotient) new-term)
                                  (sub remainder' (mul new-term v))
                                  (if pseudo (* multiplier vn-coefficient) multiplier)))
                         [quotient remainder multiplier]))))]
     (if pseudo [q r m] [q r])))
+
+(defn gcd
+  "Knuth's algorithm 4.6.1E"
+  [u v]
+  (let [arity (check-same-arity u v)
+        [d _ _] (extended-euclid (content u) (content v))]
+    (loop [u (primitive-part u)
+           v (primitive-part v)]
+      (let [[_ r _] (divide u v {:pseudo true})]
+        (cond (v/nullity? r) (poly-map #(* % d) v)
+              (zero? (degree r)) (make-constant arity d)
+              :else (recur v (primitive-part r)))))))
 
 (defn expt
   "Raise the polynomial p to the (integer) power n. Of course, n
