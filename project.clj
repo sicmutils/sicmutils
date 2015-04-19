@@ -17,5 +17,4 @@
                  :init-ns math.repl}
   :target-path "target/%s"
   :test-selectors {:default (complement :long)}
-  :profiles {:uberjar {:aot :all}
-             :repl {:plugins [[cider/cider-nrepl "0.8.2"]]}})
+  :profiles {:uberjar {:aot :all}})

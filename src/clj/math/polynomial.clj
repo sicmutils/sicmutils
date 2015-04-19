@@ -27,7 +27,7 @@
 
 (defrecord Polynomial [^long arity ^PersistentTreeMap xs->c]
   v/Value
-  (nullity? [p] (empty? (:xs->c p)))
+  (nullity? [_] (empty? xs->c))
   (numerical? [_] false)
   (unity? [p] (and (= (count (:xs->c p)) 1)
                    (let [[exponents coef] (first (:xs->c p))]
@@ -55,7 +55,7 @@
 
 (defn degree
   [p]
-  (if (g/zero? p) -1
+  (if (v/nullity? p) -1
       (reduce max (map #(reduce + 0 %) (keys (:xs->c p))))))
 
 (defn- constant?
@@ -66,7 +66,7 @@
           (and (= (count xs->c) 1)
                (every? zero? (first (first xs->c)))) (second (first xs->c)))))
 
-(defn- check-same-arity [p q]
+(defn check-same-arity [p q]
   (let [ap (:arity p)
         aq (:arity q)]
     (cond (= ap aq) ap
