@@ -22,11 +22,66 @@
 
 (defrecord RationalFunction [^long arity ^Polynomial p ^Polynomial q]
   v/Value
-  (nullity? [p] false) ;; XXX
-  (numerical? [_] false) ;; XXX
-  (unity? [p] false)) ;; XXX
+  (nullity? [_] (v/nullity? p))
+  (unity? [_] (and (v/unity? p) (v/unity? q))))
 
 (defn make
+  "Make the fraction of the two polynomials p and q, after dividing
+  out their greatest common divisor."
   [p q]
-  (let [arity (p/check-same-arity p q)]
-    (RationalFunction. arity p q)))
+  (when (v/nullity? q)
+    (throw (ArithmeticException. "Can't form rational function with zero denominator")))
+  (let [arity (p/check-same-arity p q)
+        g (p/gcd p q)
+        [p' pr] (p/divide p g)
+        [q' qr] (p/divide q g)]
+    (when-not (or (v/nullity? pr) (v/nullity? qr))
+      (throw (InternalError. "Bad polynomial GCD")))
+    (RationalFunction. arity p' q')))
+
+(defn add
+  "Add the ratiional functions r and s."
+  [r s]
+  (make (p/add (p/mul (:p r) (:q s)) (p/mul (:q r) (:p s))) (p/mul (:q r) (:q s)))
+  )
+
+(defn negate
+  [r]
+  (RationalFunction. (:arity r) (p/negate (:p r)) (:q r)))
+
+(defn sub
+  [r s]
+  (add r (negate s)))
+
+(defn mul
+  [r s]
+  (make (p/mul (:p r) (:p s)) (p/mul (:q r) (:q s))))
+
+(defn invert
+  [r]
+  (make (:q r) (:p r)))
+
+(defn div
+  [r s]
+  (mul r (invert s)))
+
+;; (defn expt
+;;   [r s]
+;;   (make (p/expt (:p))))
+
+(def ^:private operator-table
+  {'+ #(reduce add 0 %&)
+   '- (fn [arg & args]
+        (if (some? args) (sub arg (reduce add args)) (negate arg)))
+   '* #(reduce mul 1 %&)
+   'negate negate
+   'invert invert
+   ;;'expt expt
+   'square #(mul % %)
+   'cube #(mul % (mul % %))
+   '/ (fn [arg & args]
+        (if (some? args) (div arg (reduce mul args)) (invert arg)))
+   ;;`'g/gcd gcd
+   })
+
+(def operators-known (set (keys operator-table)))

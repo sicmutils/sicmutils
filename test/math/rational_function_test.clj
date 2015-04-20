@@ -18,9 +18,23 @@
   (:require [clojure.test :refer :all]
             [math.rational-function :refer :all]
             [math.generic :as g]
+            [math.value :as v]
             [math.polynomial :as p]
             [math.numbers]
             [math.simplify]))
 
 (deftest make-test
-  (is (make (p/make [2 1 3]) (p/make [1 1]))))
+  (let [R (make (p/make [2]) (p/make [3]))
+        S (make (p/make [4]) (p/make [2]))
+        x+1 (p/make [1 1])
+        x-1 (p/make [-1 1])
+        x+1:x-1 (make x+1 x-1)
+        x-1:x+1 (make x-1 x+1)
+        one (make (p/make [1]) (p/make [1]))]
+    (is (= one (make x+1 x+1)))
+    (is (= one (mul x+1:x-1 x-1:x+1)))
+    (is (= one (mul x-1:x+1 x+1:x-1)))
+    (is (= x+1:x-1 (invert x-1:x+1)))
+    (is (= one (mul x-1:x+1 (invert x-1:x+1))))
+    (is (= (make (p/make [2 0 2]) (p/make [-1 0 1])) (add x-1:x+1 x+1:x-1)))
+    (is (= (make (p/make [2 0 2]) (p/make [-1 0 1])) (add x+1:x-1 x-1:x+1)))))

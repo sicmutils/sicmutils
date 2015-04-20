@@ -54,18 +54,18 @@
     ;; others to follow
     )))
 
-(def cancel-within-fractions
-  ;; this is kind of a cheap hack until we get the rational function
-  ;; simplifier implemented. It just cancels things that appear on the
-  ;; top and bottom of a fraction. Perhaps this should be removed once
-  ;; we have done that. FIXME
-  (rule-simplifier
-   (ruleset
-    (/ (* (:?? as) (:? x) (:?? bs)) (* (:?? cs) (:? x) (:?? ds)))
-    => (/ (* (:?? as) (:?? bs)) (* (:?? cs) (:?? ds)))
+;; (def cancel-within-fractions
+;;   ;; this is kind of a cheap hack until we get the rational function
+;;   ;; simplifier implemented. It just cancels things that appear on the
+;;   ;; top and bottom of a fraction. Perhaps this should be removed once
+;;   ;; we have done that. FIXME
+;;   (rule-simplifier
+;;    (ruleset
+;;     (/ (* (:?? as) (:? x) (:?? bs)) (* (:?? cs) (:? x) (:?? ds)))
+;;     => (/ (* (:?? as) (:?? bs)) (* (:?? cs) (:?? ds)))
 
-    (* (:?? as) (:? x) (:?? bs) (/ (:?? cs) (:? x) (:?? ds)))
-    => (* (:?? as) (:?? bs) (/ (:?? cs) (:?? ds))))))
+;;     (* (:?? as) (:? x) (:?? bs) (/ (:?? cs) (:? x) (:?? ds)))
+;;     => (* (:?? as) (:?? bs) (/ (:?? cs) (:?? ds))))))
 
 (def divide-numbers-through
   (ruleset
