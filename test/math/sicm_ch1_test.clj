@@ -19,6 +19,7 @@
   (:require [clojure.test :refer :all]
             [math.generic :refer :all]
             [math.structure :refer :all]
+            [math.numbers]
             [math.numsymb]
             [math.simplify]
             [math.numerical.integrate :refer :all]

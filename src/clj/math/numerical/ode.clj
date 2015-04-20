@@ -17,6 +17,7 @@
 (ns math.numerical.ode
   (:require [clojure.tools.logging :as log]
             [math.structure :as struct]
+            [math.simplify]
             [math.numerical.compile :refer :all])
   (:import (org.apache.commons.math3.ode.nonstiff GraggBulirschStoerIntegrator)
            (org.apache.commons.math3.ode FirstOrderDifferentialEquations)
@@ -34,7 +35,10 @@
   second."
   [d:dt]
   (fn [initial-state observe step-size t ε & [{:keys [compile]}]]
-    (let [state->array #(-> % flatten double-array)
+    (let [initial-time (System/nanoTime)
+          evaluation-count (atom 0)
+          evaluation-time (atom 0)
+          state->array #(-> % flatten double-array)
           array->state #(struct/unflatten % initial-state)
           initial-state-array (doubles (state->array initial-state))
           derivative-fn (if compile
@@ -45,8 +49,11 @@
           equations (proxy [FirstOrderDifferentialEquations] []
                       (computeDerivatives
                         [_ ^doubles y ^doubles out]
-                        (let [y' (doubles (-> y derivative-fn state->array))]
-                          (System/arraycopy y' 0 out 0 (alength y'))))
+                        (let [initial-time (System/nanoTime)]
+                          (swap! evaluation-count inc)
+                          (let [y' (doubles (-> y derivative-fn state->array))]
+                            (System/arraycopy y' 0 out 0 (alength y')))
+                          (swap! evaluation-time #(+ % (- (System/nanoTime) initial-time)))))
                       (getDimension [] dimension))
           out (double-array dimension)]
       (when-not compile
@@ -76,6 +83,8 @@
                  (observe it1 (array->state last-state)))))
            (init [_ _ _]))))
       (.integrate integrator equations 0 initial-state-array t out)
+      (log/info "ODE integration complete in" (/ (- (System/nanoTime) initial-time) 1e6) "ms")
+      (log/info @evaluation-count "function evaluations, total duration" (/ @evaluation-time 1e6) "average duration" (/ @evaluation-time @evaluation-count 1e6) "ms")
       (array->state out))))
 
 (defn state-advancer
