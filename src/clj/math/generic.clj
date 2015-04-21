@@ -83,10 +83,10 @@
         (zero? a) (negate b)
         :else (sub a b)))
 
-(defn - [arg & args]
-  (cond (nil? arg) 0
-        (nil? args) (negate arg)
-        :else (bin- arg (reduce bin+ args))))
+(defn - [& args]
+  (cond (nil? args) 0
+        (nil? (next args)) (negate (first args))
+        :else (bin- (first args) (reduce bin+ (next args)))))
 
 (defn- bin* [a b]
   (cond (and (number? a) (number? b)) (core-* a b)
@@ -115,9 +115,9 @@
         (one? b) a
         :else (div a b)))
 
-(defn / [arg & args]
-  (cond (nil? arg) 1
-        (nil? args) (invert arg)
-        :else (bin-div arg (reduce bin* args))))
+(defn / [& args]
+  (cond (nil? args) 1
+        (nil? (next args)) (invert (first args))
+        :else (bin-div (first args) (reduce bin* (next args)))))
 
 (def divide /)

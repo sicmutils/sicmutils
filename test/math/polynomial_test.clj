@@ -91,10 +91,15 @@
           x+4 (make [4 1])
           U (mul x+1 (mul x+1 (mul x+2 x+4)))
           V (mul x+1 (mul x+2 x+3))]
-      (is (= (make [-2 -3 -1]) (gcd U V)))))
+      (is (= (make [-2 -3 -1]) (gcd U V)))
+      (is (= (make [4]) (gcd (make [8]) (make [4]))))
+      (is (= (make [1]) (gcd (make [7]) (make [11]))))
+      (is (= (make []) (gcd (make []) (make [11]))))))
   (testing "content"
     (is (= 1 (content (make [1 2 3]))))
-    (is (= 3 (content (make [-3 6 9])))))
+    (is (= 3 (content (make [-3 6 9]))))
+    (is (= 0 (content (make []))))
+    (is (= 3 (content (make [3])))))
   (testing "expt"
     (let [x+1 (make [1 1])]
       (is (= (make [1]) (expt x+1 (make []))))
