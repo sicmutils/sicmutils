@@ -51,8 +51,3 @@
                         (- 1 (expt (cos x) 2)))
                      (- 1 (expt (cos x) 2))) (- 1 (expt (cos x) 2))))
            (s '(+ 3 x (expt (sin x) 7)))))))
-
-;; (deftest cancel-within-fractions-test
-;;   (let [c cancel-within-fractions]
-;;     (is (= '(/ (* a c e) (*)) (c '(/ (* a b c d e f) (* b d f)))))
-;;     (is (= '(+ q (/ (* a c e) (*)) r) (c '(+ q (/ (* a b c d e f) (* b d f)) r))))))

@@ -23,10 +23,11 @@
   Returns a list containing the GCD and the Bézout coefficients
   corresponding to the inputs."
   [a b]
-  (loop [s 0 s0 1 t 1 t0 0 r (nt/abs b) r0 (nt/abs a)]
-    (if (zero? r)
-      [r0 s0 t0]
-      (let [q (quot r0 r)]
-        (recur (- s0 (* q s)) s
-               (- t0 (* q t)) t
-               (- r0 (* q r)) r)))))
+  (if (or (= a 0) (= b 0)) [0 0 0]
+      (loop [s 0 s0 1 t 1 t0 0 r (nt/abs b) r0 (nt/abs a)]
+        (if (zero? r)
+          [r0 s0 t0]
+          (let [q (quot r0 r)]
+            (recur (- s0 (* q s)) s
+                   (- t0 (* q t)) t
+                   (- r0 (* q r)) r))))))

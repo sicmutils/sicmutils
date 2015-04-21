@@ -19,6 +19,7 @@
             [clojure.pprint :as pp]
             [math.numsymb :as sym]
             [math.polynomial :as poly]
+            [math.rational-function :as rf]
             [math.value :as v]
             [math.generic :as g]
             [math.expression :as x]
@@ -118,6 +119,10 @@
 (def ^:private poly-analyzer
   (analyzer (symbol-generator "-s-%05d") poly/expression-> poly/->expression poly/operators-known))
 
+(def ^:private rational-function-analyzer
+  (analyzer (symbol-generator "-r-%05d") rf/expression-> rf/->expression rf/operators-known))
+
+;;(def ^:private simplify-and-flatten rational-function-analyzer)
 (def ^:private simplify-and-flatten poly-analyzer)
 
 (defn- simplify-until-stable
@@ -172,7 +177,6 @@
        sincos-cleanup
        square-root-simplifier
        rules/divide-numbers-through
-       ;rules/cancel-within-fractions
        simplify-and-flatten))
 
 (def simplify-expression (simplify-until-stable simplify-expression-1 simplify-and-flatten))

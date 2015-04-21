@@ -58,7 +58,7 @@
   (if (v/nullity? p) -1
       (reduce max (map #(reduce + 0 %) (keys (:xs->c p))))))
 
-(defn- constant?
+(defn constant?
   "If p is a constant polynomial, return that constant, else nil"
   [^Polynomial p]
   (let [xs->c (:xs->c p)]
@@ -115,7 +115,7 @@
 
 (def negate (partial poly-map g/negate))
 
-(defn- make-constant
+(defn make-constant
   "Return a constant polynomial of the given arity."
   [arity c]
   (make arity [[(vec (repeat arity 0)) c]]))
@@ -167,7 +167,10 @@
   coefficients. The polynomial supplied should draw its components from
   a Euclidean domain."
   [p]
-  (->> p :xs->c (map second) (reduce (comp first extended-euclid))))
+  (let [coefs (->> p :xs->c (map second) )]
+    (cond (empty? coefs) 0
+          (= (count coefs) 1) (first coefs)
+          :else (reduce (comp first extended-euclid) coefs))))
 
 (defn- primitive-part
   [u]
@@ -226,12 +229,13 @@
   [u v]
   (let [arity (check-same-arity u v)
         [d _ _] (extended-euclid (content u) (content v))]
-    (loop [u (primitive-part u)
-           v (primitive-part v)]
-      (let [[_ r _] (divide u v {:pseudo true})]
-        (cond (v/nullity? r) (poly-map #(* % d) v)
-              (zero? (degree r)) (make-constant arity d)
-              :else (recur v (primitive-part r)))))))
+    (if (zero? d) (make-constant arity 0)
+        (loop [u (primitive-part u)
+               v (primitive-part v)]
+          (let [[_ r _] (divide u v {:pseudo true})]
+            (cond (v/nullity? r) (poly-map #(* % d) v)
+                  (zero? (degree r)) (make-constant arity d)
+                  :else (recur v (primitive-part r))))))))
 
 (defn expt
   "Raise the polynomial p to the (integer) power n. Of course, n
@@ -241,17 +245,16 @@
     (when-not (and (integer? e) (>= e 0))
       (throw (ArithmeticException.
               (str "can't raise poly to " e))))
-    (cond
-      (g/one? p) p
-      (g/zero? p) (if (zero? e)
-                    (throw (ArithmeticException. "poly 0^0"))
-                    p)
-      (zero? e) (make-constant (:arity p) 1)
-      :else (loop [x p c e a (make-constant (:arity p) 1)]
-              (if (zero? c) a
-                  (if (even? c)
-                    (recur (mul x x) (quot c 2) a)
-                    (recur x (dec c) (mul x a))))))))
+    (cond (g/one? p) p
+          (g/zero? p) (if (zero? e)
+                        (throw (ArithmeticException. "poly 0^0"))
+                        p)
+          (zero? e) (make-constant (:arity p) 1)
+          :else (loop [x p c e a (make-constant (:arity p) 1)]
+                  (if (zero? c) a
+                      (if (even? c)
+                        (recur (mul x x) (quot c 2) a)
+                        (recur x (dec c) (mul x a))))))))
 
 (defn graded-lex-order
   "An ordering on monomials. X < Y if X has higher total degree than
@@ -313,10 +316,10 @@
 ;; polynomials.
 
 (def ^:private operator-table
-  {'+ #(reduce add 0 %&)
+  {'+ #(reduce add %&)
    '- (fn [arg & args]
         (if (some? args) (sub arg (reduce add args)) (negate arg)))
-   '* #(reduce mul 1 %&)
+   '* #(reduce mul %&)
    'negate negate
    'expt expt
    'square #(mul % %)

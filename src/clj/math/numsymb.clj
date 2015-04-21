@@ -88,7 +88,7 @@
         (product? b) `(~'* ~a ~@(operands b))
         :else `(~'* ~a ~b)))
 
-(defn- div [a b]
+(defn div [a b]
   (cond (and (number? a) (number? b)) (/ a b)
         (number? a) (if (g/zero? a) a `(~'/ ~a ~b))
         (number? b) (cond (g/zero? b) (throw (ArithmeticException. "division by zero"))
@@ -96,10 +96,10 @@
                           :else `(~'/ ~a ~b))
         :else `(~'/ ~a ~b)))
 
-(defn- div-n [& args]
-  (cond (nil? args) 1
-        (nil? (next args)) (div 1 (first args))
-        :else (div (first args) (reduce mul (next args)))))
+(defn- div-n [arg & args]
+  (cond (nil? arg) 1
+        (nil? args) (g/invert arg)
+        :else (div  arg (reduce mul args))))
 
 ;; END
 

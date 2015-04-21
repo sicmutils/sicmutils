@@ -26,6 +26,10 @@
 (deftest numsymb-test
   (testing "+/- with vars"
     (is (= (g/+ 15 'x) (g/+ 10 3 2 'x)))
+    (is (= 0 (g/+)))
+    (is (= 0 (g/-)))
+    (is (= 1 (g/*)))
+    (is (= 1 (g/divide)))
     (is (= (g/+ 10 'x 3 2) (g/+ 10 'x 3 2)))
     (is (= (g/+ 10 'x 3 2 1) (g/+ 10 'x 3 2 1)))
     (is (= (g/+ 30 'x 3 2 1) (g/+ 10 20 'x 3 2 1)))
