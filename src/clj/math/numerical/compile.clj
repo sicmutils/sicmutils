@@ -31,7 +31,7 @@
                                             'expt #(Math/pow %1 %2)
                                             'sqrt #(Math/sqrt %)})
 
-(defn- construct-function-exp
+(defn- construct-state-function-exp
   "Given a state model (a structure which is in the domain and range
   of the function) and its body, produce a function of the flattened
   form of the argument structure as a sequence.
@@ -47,5 +47,18 @@
     (->> generic-initial-state
          f
          g/simplify
-         (construct-function-exp generic-initial-state)
+         (construct-state-function-exp generic-initial-state)
+         eval)))
+
+(defn- construct-univariate-function-exp
+  [x body]
+  `(fn [~x] ~(postwalk-replace compiled-function-whitelist body)))
+
+(defn compile-univariate-function
+  [f]
+  (let [var (gensym)]
+    (->> var
+         f
+         g/simplify
+         (construct-univariate-function-exp var)
          eval)))

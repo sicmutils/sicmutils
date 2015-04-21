@@ -67,7 +67,6 @@
               (if (and (sequential? expr)
                        (not (= (first expr) 'quote)))
                 (let [[expr-map analyzed-expr] (map-with-state analyze expr-map expr)]
-                  ;; at this point all subexpressions are canonical TODO: is this true?
                   (if (and (known-operations (sym/operator analyzed-expr))
                            (or (not (= 'expt (sym/operator analyzed-expr)))
                                (integer? (second (sym/operands analyzed-expr)))))
