@@ -25,7 +25,9 @@
             [math.simplify]))
 
 (deftest make-test
-  (let [R (make (p/make [2]) (p/make [3]))
+  (let [zap #(p/make 0 [[[] %]])      ;; "zero-arity polynomial"
+        zarf #(make (zap %) (zap 1))  ;; "zero-arity rational function"
+        R (make (p/make [2]) (p/make [3]))
         S (make (p/make [4]) (p/make [2]))
         x+1 (p/make [1 1])
         x-1 (p/make [-1 1])
@@ -42,7 +44,10 @@
     (is (= (make (p/make [2 0 2]) (p/make [-1 0 1])) (add x-1:x+1 x+1:x-1)))
     (is (= (make (p/make [2 0 2]) (p/make [-1 0 1])) (add x+1:x-1 x-1:x+1)))
     (is (= (make (p/make [1 2 1]) (p/make [1 -2 1])) (expt x+1:x-1 S)))
-    (is (= (make (p/make [1 -2 1]) (p/make [1 2 1])) (expt x+1:x-1 (negate S))))))
+    (is (= (make (p/make [1 -2 1]) (p/make [1 2 1])) (expt x+1:x-1 (negate S))))
+    (is (= (zarf 5) (add (zarf 2) (zarf 3))))
+    (is (= (make (zap 5) (zap 3)) (div (zarf 5) (zarf 3))))
+    (is (= (zarf 4) (div (zarf 8) (zarf 2))))))
 
 (deftest rf-as-simplifier
   (testing "make-vars"
@@ -67,6 +72,7 @@
       (is (= '(+ (expt x 3) (* 2 (expt x 2)) (* 2 (expt y 2))) (rf-simp exp2)))
       (is (= 'y (rf-simp exp3)))
       (is (= '(+ g1 g2) (rf-simp (:expression (g/+ 'g1 'g2)))))
+      (is (= 12 (rf-simp '(+ 3 9))))
       (is (= '(* 2 g1) (rf-simp (:expression (g/+ 'g1 'g1)))))
       (is (= '(+ b (* -1 f)) (rf-simp '(- (+ a b c) (+ a c f)))))
       (is (= '(+ (* -1 b) f) (rf-simp '(- (+ a c f) (+ c b a)))))

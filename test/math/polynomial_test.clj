@@ -94,12 +94,29 @@
       (is (= (make [-2 -3 -1]) (gcd U V)))
       (is (= (make [4]) (gcd (make [8]) (make [4]))))
       (is (= (make [1]) (gcd (make [7]) (make [11]))))
-      (is (= (make []) (gcd (make []) (make [11]))))))
+      (is (= (make []) (gcd (make []) (make [11]))))
+      (let [zap #(make 0 [[[] %]])  ;; "zero-arity polynomial"
+            o (zap 0)
+            iii (zap 3)
+            vii (zap 7)
+            xiv (zap 14)
+            xxi (zap 21)]
+        (is (= (make 0 [[[] 7]]) (gcd xiv xxi)))
+        (is (= [iii o] (divide xxi vii))))
+      (let [x (make 2 [[[1 0] 1]])
+            y (make 2 [[[0 1] 1]])]
+        (is (= [(make 2 []) x] (divide x y)))
+        (is (= [(make 2 []) x 1] (divide x y {:pseudo true})))
+        (is (= [(make 2 []) y] (divide y x)))
+        (is (= [(make 2 []) y 1] (divide y x {:pseudo true})))
+        ;;(is (= 'foo (gcd x y)))
+        )))
   (testing "content"
     (is (= 1 (content (make [1 2 3]))))
     (is (= 3 (content (make [-3 6 9]))))
     (is (= 0 (content (make []))))
-    (is (= 3 (content (make [3])))))
+    (is (= 3 (content (make [3]))))
+    (is (= 4 (content (make 0 [[[] 4]])))))
   (testing "expt"
     (let [x+1 (make [1 1])]
       (is (= (make [1]) (expt x+1 (make []))))
@@ -148,5 +165,6 @@
       (is (= 'y (poly-simp exp3)))
       (is (= '(+ g1 g2) (poly-simp (:expression (g/+ 'g1 'g2)))))
       (is (= '(* 2 g1) (poly-simp (:expression (g/+ 'g1 'g1)))))
+      (is (= 3 (poly-simp '(+ 2 1))))
       (is (= '(+ b (* -1 f)) (poly-simp '(- (+ a b c) (+ a c f)))))
       (is (= '(+ (* -1 b) f) (poly-simp '(- (+ a c f) (+ c b a))))))))

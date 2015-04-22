@@ -104,13 +104,10 @@
   [expr cont]
   (let [expression-vars (sort (set/difference (x/variables-in expr) operators-known))
         arity (count expression-vars)]
-    (if (> arity 0)
-      (let [new-bindings (zipmap expression-vars (new-variables arity))
-            environment (into operator-table new-bindings)
-            transformer (x/walk-expression environment #(make-constant arity %))]
-        (-> expr transformer (cont expression-vars)))
-      (cont expr []))
-    ))
+    (let [new-bindings (zipmap expression-vars (new-variables arity))
+          environment (into operator-table new-bindings)
+          transformer (x/walk-expression environment #(make-constant arity %))]
+      (-> expr transformer (cont expression-vars)))))
 
 (defn ->expression
   "This is the output stage of Rational Function canonical form simplification.

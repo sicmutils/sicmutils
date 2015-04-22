@@ -56,7 +56,7 @@
 (defn degree
   [p]
   (if (v/nullity? p) -1
-      (reduce max (map #(reduce + 0 %) (keys (:xs->c p))))))
+      (reduce max 0 (map #(reduce + 0 %) (keys (:xs->c p))))))
 
 (defn constant?
   "If p is a constant polynomial, return that constant, else nil"
@@ -201,27 +201,34 @@
   (let [[q r m] (let [arity (check-same-arity u v)
                       [vn-exponents vn-coefficient] (lead-term v)
                       *vn (fn [p] (poly-map #(g/* % vn-coefficient) p))]
-                  (loop [quotient (make arity [])
-                         remainder u
-                         multiplier (v/one-like (lead-term v))]
-                    ;; find a term in the remainder into which the
-                    ;; lead term of the divisor can be divided.
-                    (let [remainder' (if pseudo (*vn remainder)
-                                         remainder)
-                          good-terms (->> remainder'
-                                          :xs->c rseq
-                                          (map (fn [[xs c]]
-                                                 [(map - xs vn-exponents) c]))
-                                          (filter (fn [[residues _]]
-                                                    (and (not-empty residues)
-                                                         (every? (complement neg?) residues)))))]
-                      (if-let [[residues coefficient] (first good-terms)]
-                        (let [new-coefficient (g/divide coefficient vn-coefficient)
-                              new-term (make arity [[(vec residues) new-coefficient]])]
-                          (recur (add (if pseudo (*vn quotient) quotient) new-term)
-                                 (sub remainder' (mul new-term v))
-                                 (if pseudo (* multiplier vn-coefficient) multiplier)))
-                        [quotient remainder multiplier]))))]
+                  (if (zero? arity)
+                    ;; XXX: we're sort of breaking the pseudo-division promise
+                    ;; in this case, but both of the polynomials were constant,
+                    ;; so what do they expect?
+                    [(make 0 [[[] (g/divide (second (lead-term u)) vn-coefficient)]])
+                     (make 0 [[[] 0]])
+                     1]
+                    (loop [quotient (make arity [])
+                          remainder u
+                          multiplier (v/one-like vn-coefficient)]
+                     ;; find a term in the remainder into which the
+                     ;; lead term of the divisor can be divided.
+                     (let [remainder' (if pseudo (*vn remainder)
+                                          remainder)
+                           good-terms (->> remainder'
+                                           :xs->c rseq
+                                           (map (fn [[xs c]]
+                                                  [(map - xs vn-exponents) c]))
+                                           (filter (fn [[residues _]]
+                                                     (and (not-empty residues)
+                                                          (every? (complement neg?) residues)))))]
+                       (if-let [[residues coefficient] (first good-terms)]
+                         (let [new-coefficient (g/divide coefficient vn-coefficient)
+                               new-term (make arity [[(vec residues) new-coefficient]])]
+                           (recur (add (if pseudo (*vn quotient) quotient) new-term)
+                                  (sub remainder' (mul new-term v))
+                                  (if pseudo (* multiplier vn-coefficient) multiplier)))
+                         [quotient remainder multiplier])))))]
     (if pseudo [q r m] [q r])))
 
 (defn gcd
@@ -233,8 +240,9 @@
         (loop [u (primitive-part u)
                v (primitive-part v)]
           (let [[_ r _] (divide u v {:pseudo true})]
-            (cond (v/nullity? r) (poly-map #(* % d) v)
-                  (zero? (degree r)) (make-constant arity d)
+            ;;(prn "GCD step" u v r)
+            (cond (v/nullity? r)  (poly-map #(* % d) v)
+                  (zero? (degree r))  (make-constant arity d)
                   :else (recur v (primitive-part r))))))))
 
 (defn expt
