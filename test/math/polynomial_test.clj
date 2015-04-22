@@ -78,7 +78,22 @@
       (is (= [(make [-2/9 0 1/3]) (make [-1/3 0 1/9 0 -5/9])] [q r]))
       (is (= [(make [-2 0 3]) (make [-3 0 1 0 -5]) 9] [pq pr d]))
       (is (= (make []) (sub (mul (make [d]) U) (add (mul pq V) pr))))
-      (is (= (make [1]) (gcd U V))))
+      (is (= (make [1]) (gcd U V)))
+      (is (= (make [1]) (gcd V U)))
+      (let [x (make [0 1])
+            x↑2 (mul x x)
+            x↑3 (mul x x↑2)
+            x↑3+x↑2+x (add x↑3 (add x↑2 x))]
+        (is (= x (gcd x↑3+x↑2+x x)))
+        (is (= x (gcd x x↑3+x↑2+x))))
+      (let [x+4 (make [4 1])
+            x+3 (make [3 1])
+            x-2 (make [-2 1])
+            U (reduce mul [x+4 x+4 x+3 x+3 x-2 x-2 x-2])
+            V (reduce mul [x+4 x+3 x+3 x+3 x-2 x-2])
+            W (reduce mul [x+4 x+3 x+3 x-2 x-2])]
+        (is (= W (gcd U V)))
+        (is (= W (gcd V U)))))
     (is (= [(make 2 [[[0 0] 1]]) (make 2 [[[2 1] 1]])]
            (divide (make 2 [[[2 1] 1] [[1 2] 1]]) (make 2 [[[1 2] 1]])))))
   (testing "gcd"
@@ -104,11 +119,14 @@
         (is (= (make 0 [[[] 7]]) (gcd xiv xxi)))
         (is (= [iii o] (divide xxi vii))))
       (let [x (make 2 [[[1 0] 1]])
-            y (make 2 [[[0 1] 1]])]
+            y (make 2 [[[0 1] 1]])
+            x↑2y (make 2 [[[2 1] 1]])
+            xy↑2 (make 2 [[[1 2] 1]])]
         (is (= [(make 2 []) x] (divide x y)))
         (is (= [(make 2 []) x 1] (divide x y {:pseudo true})))
         (is (= [(make 2 []) y] (divide y x)))
         (is (= [(make 2 []) y 1] (divide y x {:pseudo true})))
+        ;;(is (= 'foo (gcd x↑2y xy↑2)))
         ;;(is (= 'foo (gcd x y)))
         )))
   (testing "content"

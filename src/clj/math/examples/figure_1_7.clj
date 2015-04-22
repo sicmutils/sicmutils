@@ -1,6 +1,7 @@
 (require '[math.start :as m])
 (m/math-ns math.examples.figure-1-7
-           (:require [clojure.data.json :as json]))
+           (:require [clojure.data.json :as json])
+           :genclass)
 
 (defn- T-pend
   [m l _ ys]
@@ -49,5 +50,6 @@
      (fn [t [_ q _]] (swap! state-history conj [t q]))
      0.01
      5.0
-     1.0e-13)
+     1.0e-13
+     {:compile true})
     (json/write @state-history *out*)))
