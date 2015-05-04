@@ -181,8 +181,6 @@
 
 (def simplify-expression (simplify-until-stable simplify-expression-1 simplify-and-flatten))
 
-
-
 (defn- fixup-symbols
   [xs]
   (postwalk (fn [x] (cond (symbol? x) (let [sym-ns (namespace x)
