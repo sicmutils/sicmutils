@@ -8,6 +8,7 @@
                  [org.apache.commons/commons-math3 "3.4.1"]
                  [org.clojure/math.numeric-tower "0.0.4"]
                  [org.clojure/tools.logging "0.3.1"]
+                 [com.google.guava/guava "18.0"]
                  [log4j/log4j "1.2.17" :exclusions [javax.mail/mail
                                                     javax.jms/jms
                                                     com.sun.jdmk/jmxtools

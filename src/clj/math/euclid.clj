@@ -17,17 +17,22 @@
 (ns math.euclid
   (:require [clojure.math.numeric-tower :as nt]))
 
-(defn extended-euclid
+(defn extended-gcd
   "The extended Euclidean algorithm
   (see http://en.wikipedia.org/wiki/Extended_Euclidean_algorithm)
   Returns a list containing the GCD and the Bézout coefficients
   corresponding to the inputs."
   [a b]
-  (if (or (= a 0) (= b 0)) [0 0 0]
-      (loop [s 0 s0 1 t 1 t0 0 r (nt/abs b) r0 (nt/abs a)]
-        (if (zero? r)
-          [r0 s0 t0]
-          (let [q (quot r0 r)]
-            (recur (- s0 (* q s)) s
-                   (- t0 (* q t)) t
-                   (- r0 (* q r)) r))))))
+  (cond (= a 0) [(nt/abs b) 0 1]
+        (= b 0) [(nt/abs a) 1 0]
+        :else (loop [s 0 s0 1 t 1 t0 0 r (nt/abs b) r0 (nt/abs a)]
+                (if (zero? r)
+                  [r0 s0 t0]
+                  (let [q (quot r0 r)]
+                    (recur (- s0 (* q s)) s
+                           (- t0 (* q t)) t
+                           (- r0 (* q r)) r))))))
+
+(defn gcd
+  [a b]
+  (first (extended-gcd a b)))

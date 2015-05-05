@@ -24,7 +24,7 @@
             [math.numbers]
             [math.simplify]))
 
-(deftest make-test
+#_(deftest make-test
   (let [zap #(p/make 0 [[[] %]])      ;; "zero-arity polynomial"
         zarf #(make (zap %) (zap 1))  ;; "zero-arity rational function"
         R (make (p/make [2]) (p/make [3]))
@@ -49,7 +49,7 @@
     (is (= (make (zap 5) (zap 3)) (div (zarf 5) (zarf 3))))
     (is (= (zarf 4) (div (zarf 8) (zarf 2))))))
 
-(deftest rf-as-simplifier
+#_(deftest rf-as-simplifier
   (testing "make-vars"
     (is (= [(make (p/make [0 1]) (p/make [1]))] (new-variables 1)))
     (is (= [(make (p/make 2 [[[1 0] 1]]) (p/make 2 [[[0 0] 1]]))

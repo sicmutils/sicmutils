@@ -43,7 +43,7 @@
 
 (defn- modular-inv [^ModInt m]
   (let [modulus (:m m)
-        [g a _] (e/extended-euclid (:i m) modulus)]
+        [g a _] (e/extended-gcd (:i m) modulus)]
     (if (< g 2) (make a modulus)
         (throw (ArithmeticException.
                 (str m " is not invertible mod " modulus))))))

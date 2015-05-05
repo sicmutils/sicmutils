@@ -19,26 +19,26 @@
             [math.numerical.compile :refer :all]
             [math.numbers])
   (:import (org.apache.commons.math3.analysis UnivariateFunction)
+           (com.google.common.base Stopwatch)
            (org.apache.commons.math3.analysis.integration RombergIntegrator)))
 
 ;; simple Simpson's rule to get things off the ground
 
 (defn integrate [f a b & [{:keys [compile]}]]
-  (let [initial-time (System/nanoTime)
+  (let [total-time (Stopwatch/createStarted)
         evaluation-count (atom 0)
-        evaluation-time (atom 0)
+        evaluation-time (Stopwatch/createUnstarted)
         integrand (if compile (compile-univariate-function f) f)
         value (.integrate (RombergIntegrator.)
                           10000
                           (proxy [UnivariateFunction] []
                             (value [x]
-                              (let [initial-time (System/nanoTime)]
-                                (swap! evaluation-count inc)
-                                (let [fx (integrand x)]
-                                  (swap! evaluation-time #(+ % (- (System/nanoTime) initial-time)))
-                                  fx))))
-                          a b)
-        duration (- (System/nanoTime) initial-time)]
-    (log/info "integration complete" @evaluation-count "evaluations in" (/ duration 1e6) "ms; av"
-              (/ @evaluation-time @evaluation-count 1e6))
+                              (.start evaluation-time)
+                              (swap! evaluation-count inc)
+                              (let [fx (integrand x)]
+                                (.stop evaluation-time)
+                                fx)))
+                          a b)]
+    (.stop total-time)
+    (log/info "#" @evaluation-count "total" (str total-time) "f" (str evaluation-time))
     value))

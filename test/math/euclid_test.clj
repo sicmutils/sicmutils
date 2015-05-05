@@ -23,7 +23,7 @@
   divides x and y, and that the GCD is the linear combination of x and
   y with the returned Bézout coefficients"
   [x y]
-  (let [[g a b] (extended-euclid x y)]
+  (let [[g a b] (extended-gcd x y)]
     (and (= 0 (mod x g))
          (= 0 (mod y g))
          (= g (+ (* a x) (* b y)))
@@ -31,18 +31,18 @@
 
 (deftest euclid-test
   (testing "gcd"
-    (let [gcd (fn [x y] (first (extended-euclid x y)))]
+    (let [gcd (fn [x y] (first (extended-gcd x y)))]
       (is (= 1 (gcd 8 7)))
       (is (= 7 (gcd 21 35)))))
   (testing "extended-gcd"
     (is (= (ok 8 7) 1))
     (is (= (ok 927 632) 1))
-    (is (= [0 0 0] (extended-euclid 0 3)))
-    (is (= [0 0 0] (extended-euclid 323 0)))
+    (is (= [3 0 1] (extended-gcd 0 3)))
+    (is (= [323 1 0] (extended-gcd 323 0)))
     (is (= (ok 934132 (* 934132 71)) 934132))
     (is (= (ok 37279462087332 366983722766) 564958))
     (is (= (ok 4323874085395 586898689868986900219865) 85))
-    (is (= [2 -9 47] (extended-euclid 240 46)))
-    (is (= [2 1 0] (extended-euclid 2 4)))
+    (is (= [2 -9 47] (extended-gcd 240 46)))
+    (is (= [2 1 0] (extended-gcd 2 4)))
     )
   )
