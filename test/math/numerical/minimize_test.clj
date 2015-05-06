@@ -1,8 +1,7 @@
 (ns math.numerical.minimize-test
   (:require [clojure.test :refer :all]
             [math.value :as v]
-            [math.numerical.minimize :refer :all]
-            ))
+            [math.numerical.minimize :refer :all]))
 
 (def ^:private near (v/within 1e-5))
 

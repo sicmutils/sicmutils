@@ -4,18 +4,18 @@
            (:gen-class))
 
 (defn- T-pend
-  [m l _ ys]
-  (let [vys (D ys)]
+  [m l _ y]
+  (let [y' (D y)]
     (fn [[t θ θdot]]
       (* 1/2 m
          (+ (square (* l θdot))
-            (square (vys t))
-            (* 2 l (vys t) θdot (sin θ)))))))
+            (square (y' t))
+            (* 2 l (y' t) θdot (sin θ)))))))
 
 (defn- V-pend
-  [m l g ys]
+  [m l g y]
   (fn [[t θ _]]
-    (* m g (- (ys t) (* l (cos θ))))))
+    (* m g (- (y t) (* l (cos θ))))))
 
 (def L-pend (- T-pend V-pend))
 
