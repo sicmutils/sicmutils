@@ -1,7 +1,7 @@
-(require '[math.start :as m])
-(m/math-ns math.examples.figure-1-7
-           (:require [clojure.data.json :as json])
-           (:gen-class))
+(require '[math.start :as ms])
+(ms/math-ns math.examples.figure-1-7
+            (:require [clojure.data.json :as json])
+            (:gen-class))
 
 (defn- T-pend
   [m l _ ys]
@@ -28,13 +28,13 @@
    (L-pend m l g drive)))
 
 (defn evolve-pendulum
-  [t A ω θ0 θdot0]
+  [t A ω g θ0 θdot0]
   (let [drive (periodic-drive A ω 0)
         state-history (atom [])]
     ((evolve pend-state-derivative
              1.0 ;; mass of bob
              1.0 ;; length of rod
-             9.8 ;; acceleration due to gravity
+             g ;; acceleration due to gravity
              drive ;; motion of pendulum support
              )
      (up 0.0
@@ -49,7 +49,7 @@
 
 (defn -main
   [& args]
-  (let [[t A ω θ0 θdot0] (if args
+  (let [[t A ω g θ0 θdot0] (if args
                          (map #(Double/valueOf %) args)
-                         [1. 0.1 (* 2.0 (sqrt 9.8)) 1. 0.])]
-    (json/write (evolve-pendulum t A ω θ0 θdot0) *out*)))
+                         [1. 0.1 (* 2.0 (sqrt 9.8)) 9.8 1. 0.])]
+    (json/write (evolve-pendulum t A ω g θ0 θdot0) *out*)))
