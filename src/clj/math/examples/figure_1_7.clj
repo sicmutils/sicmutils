@@ -1,7 +1,8 @@
-(require '[math.start :as ms])
-(ms/math-ns math.examples.figure-1-7
-            (:require [clojure.data.json :as json])
-            (:gen-class))
+(ns math.examples.figure-1-7
+  (:refer-clojure :exclude [+ - * /])
+  (:require [math.env :refer :all]
+            [math.mechanics.lagrange :refer :all]
+            [clojure.data.json :as json]))
 
 (defn- T-pend
   [m l _ y]
