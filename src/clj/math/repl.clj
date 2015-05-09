@@ -28,8 +28,7 @@
             [math.numerical.integrate]
             [math.numerical.minimize :refer :all]
             [math.calculus.derivative :refer :all]
-            [math.mechanics.lagrange :refer :all])
-  (:gen-class :main true))
+            [math.mechanics.lagrange :refer :all]))
 
 (defn -main
   [& args]
@@ -39,8 +38,6 @@
     (if args
       ;; read and eval the contents of the supplied files
       (doseq [a args]
-        (prn "arg" a)
-        )
-      (m/repl :print print-expression)
-      )
+        (prn "arg" a))
+      (m/repl :print print-expression))
     (println "Home at last.")))
