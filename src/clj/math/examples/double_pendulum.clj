@@ -73,7 +73,8 @@
      (up 0.0
          (up θ0 φ0)
          (up θdot0 φdot0))
-     (fn [t [_ q _]] (swap! state-history conj [t q 0 (comment "that's the drive, 0 for now")]))
+     ;; not reporting drive for now
+     (fn [t [_ [θ φ] _]] (swap! state-history conj [t θ φ]))
      0.01
      t
      1.0e-6
