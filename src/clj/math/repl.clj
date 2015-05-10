@@ -28,7 +28,8 @@
             [math.numerical.integrate]
             [math.numerical.minimize :refer :all]
             [math.calculus.derivative :refer :all]
-            [math.mechanics.lagrange :refer :all]))
+            [math.mechanics.lagrange :refer :all])
+  (:gen-class))
 
 (defn -main
   [& args]
