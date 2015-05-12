@@ -17,18 +17,8 @@
 (ns math.repl
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.main :as m]
-            [math.generic :refer :all]
-            [math.structure :refer :all]
-            [math.expression :refer :all]
-            [math.numbers]
-            [math.numsymb]
-            [math.function :refer :all]
-            [math.operator]
-            [math.simplify :refer [print-expression]]
-            [math.numerical.integrate]
-            [math.numerical.minimize :refer :all]
-            [math.calculus.derivative :refer :all]
-            [math.mechanics.lagrange :refer :all])
+            [math.env :refer :all]
+            [math.simplify :as s])
   (:gen-class))
 
 (defn -main
@@ -40,5 +30,5 @@
       ;; read and eval the contents of the supplied files
       (doseq [a args]
         (prn "arg" a))
-      (m/repl :print print-expression))
+      (m/repl :print s/print-expression))
     (println "Home at last.")))

@@ -16,7 +16,6 @@
   :source-paths ["src/clj"]
   :java-source-paths ["src/java"]
   :jvm-opts ["-server"]
-  :main math.repl
   :repl-options {:prompt (fn [ns] (str "[" ns "] > "))
                  :welcome "clojure algebra system"
                  :init-ns math.repl}
