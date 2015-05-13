@@ -21,7 +21,6 @@
                            * core-*
                            / core-div})
   (:require [math.generic :as g]
-            [math.numsymb :as ns]
             [clojure.math.numeric-tower :as nt]))
 
 (defn- define-binary-operation
