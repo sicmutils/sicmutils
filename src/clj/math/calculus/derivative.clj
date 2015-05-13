@@ -20,7 +20,8 @@
             [math.operator :as o]
             [math.structure :as struct]
             [clojure.set :as set]
-            ))
+            )
+  (:import (clojure.lang Sequential)))
 
 ;; A differential term is implemented as a map entry
 ;; whose key is a set of tags and whose second is the coefficient.
@@ -287,7 +288,7 @@
      (-> finite-terms make-differential canonicalize-differential)]))
 
 (defn- binary-op
-  [f ∂f:∂x ∂f:∂y kw]
+  [f ∂f:∂x ∂f:∂y _kw]
   (fn [x y]
     (let [mt (max-order-tag [x y])
           [dx xe] (with-and-without-tag mt x)
@@ -409,11 +410,11 @@
 (define-unary-operation g/cube #(diff-* % (diff-* % %)))
 (derive ::differential :math.function/cofunction)
 (defmethod g/partial-derivative
-  [:math.function/function clojure.lang.Sequential]
+  [:math.function/function Sequential]
   [f selectors]
   (multivariate-derivative f selectors))
 (defmethod g/partial-derivative
-  [:math.structure/structure clojure.lang.Sequential]
+  [:math.structure/structure Sequential]
   [f selectors]
   (multivariate-derivative f selectors))
 

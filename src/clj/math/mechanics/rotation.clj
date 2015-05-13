@@ -30,7 +30,7 @@
 (defn Rx
   "Returns a function which rotates a vector α radians about the x axis."
   [α]
-  (fn [[x y z :as v]]
+  (fn [[x y z]]
     (let [c (cos α)
           s (sin α)]
       (up x

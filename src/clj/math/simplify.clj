@@ -24,9 +24,7 @@
             [math.generic :as g]
             [math.expression :as x]
             [math.rules :as rules]
-            [pattern.rule :as rule])
-  (:import (math.expression Expression))
-  )
+            [pattern.rule :as rule]))
 
 (defn symbol-generator
   "Returns a function which generates a sequence of symbols

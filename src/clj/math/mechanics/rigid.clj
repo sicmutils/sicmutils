@@ -58,7 +58,7 @@
   (-> M-of-q M-of-q->omega-body-of-t Γ-bar))
 
 (defn Euler-state->omega-body
-  [[_ [θ φ ψ] [θdot φdot ψdot]]]
+  [[_ [θ _ ψ] [θdot φdot ψdot]]]
   (let [ω-a (+ (* (sin ψ) (sin θ) φdot) (* (cos ψ) θdot))
         ω-b (+ (* (cos ψ) (sin θ) φdot) (* -1 (sin ψ) θdot))
         ω-c (+ (* (cos θ) φdot) ψdot)]
