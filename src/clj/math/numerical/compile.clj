@@ -17,7 +17,9 @@
 (ns math.numerical.compile
   (:require [clojure.walk :refer [postwalk-replace]]
             [math.structure :as struct]
-            [math.generic :as g]))
+            [math.generic :as g]
+            [clojure.tools.logging :as log])
+  (:import (com.google.common.base Stopwatch)))
 
 (def ^:private compiled-function-whitelist {'up `struct/up
                                             'down `struct/down
@@ -31,6 +33,8 @@
                                             'expt #(Math/pow %1 %2)
                                             'sqrt #(Math/sqrt %)})
 
+(def ^:private compiled-function-cache (atom {}))
+
 (defn- construct-state-function-exp
   "Given a state model (a structure which is in the domain and range
   of the function) and its body, produce a function of the flattened
@@ -41,24 +45,50 @@
   `(fn ~(-> state-model flatten vec vector)
      ~(postwalk-replace compiled-function-whitelist body)))
 
+(defn- compile-state-function2
+  [initial-state f]
+  (let [sw (Stopwatch/createStarted)
+        generic-initial-state (struct/mapr (fn [_] (gensym)) initial-state)
+        compiled-function (->> generic-initial-state
+                            f
+                            g/simplify
+                            (construct-state-function-exp generic-initial-state)
+                            eval)]
+    (log/info "compiled state function in" (str sw))
+    compiled-function))
+
 (defn compile-state-function
   [initial-state f]
-  (let [generic-initial-state (struct/mapr (fn [_] (gensym)) initial-state)]
-    (->> generic-initial-state
-         f
-         g/simplify
-         (construct-state-function-exp generic-initial-state)
-         eval)))
+  (if-let [cached (@compiled-function-cache f)]
+    (do
+      (log/info "compiled state function cache hit")
+      cached)
+    (let [compiled-function (compile-state-function2 initial-state f)]
+      (swap! compiled-function-cache assoc f compiled-function)
+      compiled-function)))
 
 (defn- construct-univariate-function-exp
   [x body]
   `(fn [~x] ~(postwalk-replace compiled-function-whitelist body)))
 
+(defn- compile-univariate-function2
+  [f]
+  (let [sw (Stopwatch/createStarted)
+        var (gensym)
+        compiled-function (->> var
+                            f
+                            g/simplify
+                            (construct-univariate-function-exp var)
+                            eval)]
+    (log/info "compiled univariate function in" (str sw))
+    compiled-function))
+
 (defn compile-univariate-function
   [f]
-  (let [var (gensym)]
-    (->> var
-         f
-         g/simplify
-         (construct-univariate-function-exp var)
-         eval)))
+  (if-let [cached (@compiled-function-cache f)]
+    (do
+      (log/info "compiled univariate function cache hit")
+      cached)
+    (let [compiled-function (compile-univariate-function2 f)]
+      (swap! compiled-function-cache assoc f compiled-function)
+      compiled-function)))
