@@ -45,6 +45,7 @@
 (def log g/log)
 (def expt g/expt)
 (def simplify g/simplify)
+(def print-expression math.simplify/print-expression)
 
 (defmacro with-literal-functions
   [& args]
