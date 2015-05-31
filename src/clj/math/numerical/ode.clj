@@ -34,7 +34,7 @@
   error tolerance. If the observation function is not nil, it will be
   invoked with the time as first argument and integrated state as the
   second."
-  [d:dt]
+  [state-derivative derivative-args]
   (fn [initial-state observe step-size t ε & [{:keys [compile]}]]
     (let [total-time (Stopwatch/createStarted)
           evaluation-count (atom 0)
@@ -43,16 +43,20 @@
           array->state #(struct/unflatten % initial-state)
           initial-state-array (doubles (state->array initial-state))
           derivative-fn (if compile
-                          (compile-state-function initial-state d:dt)
-                          #(-> % array->state d:dt))
+                          (compile-state-function state-derivative derivative-args initial-state)
+                          (let [d:dt (apply state-derivative derivative-args)]
+                            #(-> % array->state d:dt)))
           dimension (alength initial-state-array)
           integrator (GraggBulirschStoerIntegrator. 0. 1. (double ε) (double ε))
+          ;; where we left off: we probably shouldn't let the constants
+          ;; "inside" the differentiator. They don't belong there and
+          ;; are causing problems.
           equations (proxy [FirstOrderDifferentialEquations] []
                       (computeDerivatives
                         [_ ^doubles y ^doubles out]
                         (.start evaluation-time)
                         (swap! evaluation-count inc)
-                        (let [y' (doubles (-> y derivative-fn state->array))]
+                        (let [y' (doubles (-> y (concat derivative-args) derivative-fn state->array))]
                           (System/arraycopy y' 0 out 0 (alength y')))
                         (.stop evaluation-time))
                       (getDimension [] dimension))
@@ -96,8 +100,7 @@
   expected to map a structure to a structure of the same shape,
   and is required to have the time parameter as the first element."
   [state-derivative & state-derivative-args]
-  (let [d:dt (apply state-derivative state-derivative-args)
-        I (make-integrator d:dt)]
+  (let [I (make-integrator state-derivative state-derivative-args)]
     (fn [initial-state t ε & [options]]
       (I initial-state nil 0 t ε options))))
 
@@ -107,5 +110,4 @@
   particular, the returned function accepts a callback function which
   will be invoked at intermediate grid points of the integration."
   [state-derivative & state-derivative-args]
-  (let [d:dt (apply state-derivative state-derivative-args)]
-    (make-integrator d:dt)))
+  (make-integrator state-derivative state-derivative-args))

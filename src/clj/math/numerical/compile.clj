@@ -41,29 +41,38 @@
   form of the argument structure as a sequence.
   FIXME: give an example here, since nobody could figure out what's
   going on just by reading this"
-  [state-model body]
-  `(fn ~(-> state-model flatten vec vector)
+  [generic-parameters state-model body]
+  `(fn [~(into [] (concat (-> state-model flatten) generic-parameters))]
      ~(postwalk-replace compiled-function-whitelist body)))
 
 (defn- compile-state-function2
-  [initial-state f]
+  [f parameters initial-state]
   (let [sw (Stopwatch/createStarted)
+        generic-parameters (for [_ parameters] (gensym))
         generic-initial-state (struct/mapr (fn [_] (gensym)) initial-state)
+        ;;zz (construct-state-function-exp
+        ;;     (g/simplify ((f generic-parameters) generic-initial-state))
+        ;;     generic-parameters
+        ;;     generic-initial-state)
+        ;zz2 (prn zz)
+        g (apply f generic-parameters)
         compiled-function (->> generic-initial-state
-                            f
-                            g/simplify
-                            (construct-state-function-exp generic-initial-state)
-                            eval)]
+                               g
+                               g/simplify
+                               (construct-state-function-exp
+                                 generic-parameters
+                                 generic-initial-state)
+                               eval)]
     (log/info "compiled state function in" (str sw))
     compiled-function))
 
 (defn compile-state-function
-  [initial-state f]
+  [f parameters initial-state]
   (if-let [cached (@compiled-function-cache f)]
     (do
       (log/info "compiled state function cache hit")
       cached)
-    (let [compiled-function (compile-state-function2 initial-state f)]
+    (let [compiled-function (compile-state-function2 f parameters initial-state)]
       (swap! compiled-function-cache assoc f compiled-function)
       compiled-function)))
 
@@ -76,10 +85,10 @@
   (let [sw (Stopwatch/createStarted)
         var (gensym)
         compiled-function (->> var
-                            f
-                            g/simplify
-                            (construct-univariate-function-exp var)
-                            eval)]
+                               f
+                               g/simplify
+                               (construct-univariate-function-exp var)
+                               eval)]
     (log/info "compiled univariate function in" (str sw))
     compiled-function))
 
