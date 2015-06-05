@@ -48,13 +48,8 @@
 (defn- compile-state-function2
   [f parameters initial-state]
   (let [sw (Stopwatch/createStarted)
-        generic-parameters (for [_ parameters] (gensym))
-        generic-initial-state (struct/mapr (fn [_] (gensym)) initial-state)
-        ;;zz (construct-state-function-exp
-        ;;     (g/simplify ((f generic-parameters) generic-initial-state))
-        ;;     generic-parameters
-        ;;     generic-initial-state)
-        ;zz2 (prn zz)
+        generic-parameters (for [_ parameters] (gensym 'p))
+        generic-initial-state (struct/mapr (fn [_] (gensym 'y)) initial-state)
         g (apply f generic-parameters)
         compiled-function (->> generic-initial-state
                                g
@@ -83,7 +78,7 @@
 (defn- compile-univariate-function2
   [f]
   (let [sw (Stopwatch/createStarted)
-        var (gensym)
+        var (gensym 'x)
         compiled-function (->> var
                                f
                                g/simplify
