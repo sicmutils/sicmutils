@@ -22,7 +22,6 @@
             [math.numbers]
             [math.simplify]
             [math.expression]
-            [math.numerical.ode]
             [math.function :as f]
             [math.operator]
             [math.numerical.ode :as ode]
@@ -46,6 +45,7 @@
 (def expt g/expt)
 (def simplify g/simplify)
 (def print-expression math.simplify/print-expression)
+(def literal-function f/literal-function)
 
 (defmacro with-literal-functions
   [& args]
