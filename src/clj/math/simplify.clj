@@ -25,13 +25,6 @@
             [math.rules :as rules]
             [pattern.rule :as rule]))
 
-(defn symbol-generator
-  "Returns a function which generates a sequence of symbols
-  staring with the initial prefix."
-  [fmt]
-  (let [i (atom -1)]
-    #(->> (swap! i inc) (format fmt) symbol)))
-
 (defn- map-with-state
   "Maps f over coll while maintaining state. The function
   f is called with [state, v] for each value v in col, and
@@ -115,10 +108,10 @@
         (-> expr analyze base-simplify backsubstitute)))))
 
 (def ^:private poly-analyzer
-  (analyzer (symbol-generator "-s-%05d") poly/expression-> poly/->expression poly/operators-known))
+  (analyzer #(gensym "-s-") poly/expression-> poly/->expression poly/operators-known))
 
 (def ^:private rational-function-analyzer
-  (analyzer (symbol-generator "-r-%05d") rf/expression-> rf/->expression rf/operators-known))
+  (analyzer #(gensym "-r-") rf/expression-> rf/->expression rf/operators-known))
 
 ;;(def ^:private simplify-and-flatten rational-function-analyzer)
 (def ^:private simplify-and-flatten poly-analyzer)

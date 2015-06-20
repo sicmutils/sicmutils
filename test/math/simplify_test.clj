@@ -16,7 +16,7 @@
 
 (ns math.simplify-test
   (require [clojure.test :refer :all]
-           [math.simplify :refer [symbol-generator analyzer simplify-expression]]
+           [math.simplify :refer [analyzer simplify-expression]]
            [math.structure :refer :all]
            [math.expression :as x]
            [math.generic :as g]
@@ -26,6 +26,13 @@
            [math.function :as f]
            [math.polynomial :as poly]
            [math.value :as v]))
+
+(defn- symbol-generator
+  "Returns a function which generates a sequence of symbols
+  staring with the initial prefix."
+  [fmt]
+  (let [i (atom -1)]
+    #(->> (swap! i inc) (format fmt) symbol)))
 
 (deftest generator
   (let [g (symbol-generator "k%d")
@@ -81,8 +88,7 @@
         xyt (xy 't)
         U (f/literal-function 'U)
         xyt2 (g/square xyt)
-        Uxyt2 (U xyt2)
-        ]
+        Uxyt2 (U xyt2)]
     (is (= '(up x y) (g/simplify xy)))
     (is (= '(up (x t) (y t)) (g/simplify xyt)))
     (is (= '(+ (expt (x t) 2) (expt (y t) 2)) (g/simplify xyt2)))
