@@ -25,20 +25,6 @@
             [math.rules :as rules]
             [pattern.rule :as rule]))
 
-(defn- map-with-state
-  "Maps f over coll while maintaining state. The function
-  f is called with [state, v] for each value v in col, and
-  is expected to return a pair containicng the new state and
-  (f v). The result is a pair with the final state and
-  the sequence of the values of (f v)."
-  [f initial-state coll]
-  (reduce
-    (fn [[state acc] val]
-      (let [[new-state f-val] (f state val)]
-        [new-state (conj acc f-val)]))
-    [initial-state []]
-    coll))
-
 (defn analyzer
   [symbol-generator expr-> ->expr known-operations]
   ;; TODO: we haven't recorded variable order, so expressions can get scrambled
@@ -127,7 +113,7 @@
                 (g/zero? (poly-analyzer `(- ~expression ~canonicalized-expression))) canonicalized-expression
                 :else (simplify canonicalized-expression)))))))
 
-(defn simplify-and-canonicalize
+(defn- simplify-and-canonicalize
   [rule-simplify canonicalize]
   (fn simplify [expression]
     (let [new-expression (rule-simplify expression)]
@@ -146,7 +132,7 @@
 ;; simplification library, so this one has to go here. Not ideal the way we have split things
 ;; up, but at least things are beginning to simplify adequately.
 
-(def sincos-cleanup
+(def ^:private sincos-cleanup
   (let [at-least-two? #(and (number? %) (>= % 2))]
     (simplify-and-canonicalize
       (rule/rule-simplifier
@@ -160,7 +146,7 @@
           (+ (:?? a1) (:?? a2) (:?? a3) (* (:? a) (expt (sin (:? x)) 2)))))
       simplify-and-flatten)))
 
-(def simplify-expression-1
+(def ^:private simplify-expression-1
   #(-> %
        simplify-and-flatten
        sin-sq->cos-sq-simplifier
