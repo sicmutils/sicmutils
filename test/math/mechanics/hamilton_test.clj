@@ -32,8 +32,8 @@
   (with-literal-functions [x y v_x v_y p_x p_y [V [1 2] 3]]
     (is (= '(V x y) (simplify (V 'x 'y))))
     (is (= '(up 0
-                (up (+ (* -2 (p_x t) (/ 1 (* 2 m))) ((D x) t))
-                    (+ (* -2 (p_y t) (/ 1 (* 2 m))) ((D y) t)))
+                (up (+ (* -2 (/ 1 (* 2 m)) (p_x t)) ((D x) t))
+                    (+ (* -2 (/ 1 (* 2 m)) (p_y t)) ((D y) t)))
                 (down (+ ((D p_x) t) (((partial-derivative 0) V) (x t) (y t)))
                       (+ ((D p_y) t) (((partial-derivative 1) V) (x t) (y t)))))
            (simplify (((Hamilton-equations

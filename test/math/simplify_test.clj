@@ -105,11 +105,13 @@
   (let [xy (s/up (f/literal-function 'x) (f/literal-function 'y))
         LE (((Lagrange-equations (L-central-rectangular 'm (f/literal-function 'U))) xy) 't)]
     (is (= '(up x y) (g/simplify xy)))
-    (is (= '(down (+ (* 2 (x t)
+    (is (= '(down (+ (* 2
+                        (x t)
                         ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
                         (/ 1 (* 2 (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
                      (* (((expt D 2) x) t) m))
-                  (+ (* 2 (y t)
+                  (+ (* 2
+                        (y t)
                         ((D U) (sqrt (+ (expt (y t) 2) (expt (x t) 2))))
                         (/ 1 (* 2 (sqrt (+ (expt (y t) 2) (expt (x t) 2))))))
                      (* (((expt D 2) y) t) m)))

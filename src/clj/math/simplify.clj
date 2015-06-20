@@ -35,7 +35,7 @@
 (defn- map-with-state
   "Maps f over coll while maintaining state. The function
   f is called with [state, v] for each value v in col, and
-  is expected to return a pair containing the new state and
+  is expected to return a pair containicng the new state and
   (f v). The result is a pair with the final state and
   the sequence of the values of (f v)."
   [f initial-state coll]
@@ -51,67 +51,68 @@
   ;; TODO: we haven't recorded variable order, so expressions can get scrambled
   ;; as a result of sorting by generated-symbol-name. The solution is to communicate
   ;; the existing order of subexpressions to the polynomial simplifier.
-  ;; TODO: we went through a lot of trouble to thread expr-map through all of
-  ;; these functions, but we notice that in 1.8 (volatile!) is coming to
-  ;; Clojure by way of stateful transducers, and I'd like to use that technique
-  ;; instead.
+  ;; TODO: the atom-transient might be better represented as a volatile in a newer
+  ;; version of Clojure
   (fn [expr]
-    (letfn [(simplify-expression
-              [expr]
-              (let [[expr-map analyzed-expr] (analyze {} expr)]
-                (->> analyzed-expr base-simplify (backsubstitute expr-map))))
-            (analyze
-              [expr-map expr]
-              (if (and (sequential? expr)
-                       (not (= (first expr) 'quote)))
-                (let [[expr-map analyzed-expr] (map-with-state analyze expr-map expr)]
-                  (if (and (known-operations (sym/operator analyzed-expr))
-                           (or (not (= 'expt (sym/operator analyzed-expr)))
-                               (integer? (second (sym/operands analyzed-expr)))))
-                    [expr-map analyzed-expr]
-                    (if-let [existing-expr (expr-map analyzed-expr)]
-                      [expr-map existing-expr]
-                      (new-kernels expr-map analyzed-expr))))
-                [expr-map expr]))
-            (new-kernels
-              [expr-map expr]
-              (let [simplified-expr (map base-simplify expr)]
-                (if-let [v (sym/symbolic-operator (sym/operator simplified-expr))]
-                  (let [w (apply v (sym/operands simplified-expr))]
-                    (if (and (sequential? w)
-                             (= (sym/operator w) (sym/operator simplified-expr)))
-                      (add-symbols expr-map w)
-                      (analyze expr-map w)))
-                  (add-symbols expr-map simplified-expr))))
-            (add-symbols
-              [expr-map expr]
-              (apply add-symbol (map-with-state add-symbol expr-map expr)))
-            (add-symbol
-              [expr-map expr]
-              (if (and (sequential? expr)
-                       (not (= (first expr) 'quote)))
-                (if-let [existing-expr (expr-map expr)]
-                  [expr-map existing-expr]
-                  (let [newvar (symbol-generator)]
-                    [(conj expr-map [expr newvar]) newvar]))
-                [expr-map expr]))
-            (backsubstitute
-              [expr-map expr]
-              (let [mapx (inverse-map expr-map)
-                    bsub (fn bsub [v]
-                           (cond (sequential? v) (map bsub v)
-                                 (symbol? v) (let [w (mapx v)]
-                                               (if w (bsub w) v))
-                                 :else v))]
-                (bsub expr)))
-            (base-simplify
-              [expr]
-              (expr-> expr ->expr))
-            (inverse-map
-              [m]
-              (into {} (for [[k v] m] [v k])))
-            ]
-      (simplify-expression expr))))
+    (let [expr-map (atom (transient {}))]
+      (letfn [(analyze
+                [expr]
+                (if (and (sequential? expr)
+                         (not (= (first expr) 'quote)))
+                  (let [analyzed-expr (map analyze expr)]
+                    (if (and (known-operations (sym/operator analyzed-expr))
+                             (or (not (= 'expt (sym/operator analyzed-expr)))
+                                 (integer? (second (sym/operands analyzed-expr)))))
+                      analyzed-expr
+                      (if-let [existing-expr (@expr-map analyzed-expr)]
+                        existing-expr
+                        (new-kernels analyzed-expr))))
+                  expr))
+              (new-kernels
+                [expr]
+                (let [simplified-expr (map base-simplify expr)]
+                  (if-let [v (sym/symbolic-operator (sym/operator simplified-expr))]
+                    (let [w (apply v (sym/operands simplified-expr))]
+                      (if (and (sequential? w)
+                               (= (sym/operator w) (sym/operator simplified-expr)))
+                        (add-symbols! w)
+                        (analyze w)))
+                    (add-symbols! simplified-expr))))
+              (add-symbols!
+                [expr]
+                ;; doall is needed here because we need to have all the effects of
+                ;; add-symbol! accounted for strictly before the transient expr-map
+                ;; is made persistent in backsubstitute.
+                (add-symbol! (doall (map add-symbol! expr))))
+              (add-symbol!
+                [expr]
+                (if (and (sequential? expr)
+                         (not (= (first expr) 'quote)))
+                  (if-let [existing-expr (@expr-map expr)]
+                    existing-expr
+                    (let [newvar (symbol-generator)]
+                      (swap! expr-map assoc! expr newvar)
+                      newvar))
+                  expr))
+              (backsubstitute
+                ;; Finalize the expression map, invert it, and use it to perform the backsubstitution.
+                [expr]
+                (swap! expr-map persistent!)
+                (let [mapx (inverse-map @expr-map)
+                      bsub (fn bsub [v]
+                             (cond (sequential? v) (map bsub v)
+                                   (symbol? v) (let [w (mapx v)]
+                                                 (if w (bsub w) v))
+                                   :else v))]
+                  (bsub expr)))
+              (base-simplify
+                [expr]
+                (expr-> expr ->expr))
+              (inverse-map
+                [m]
+                (into {} (for [[k v] m] [v k])))
+              ]
+        (-> expr analyze base-simplify backsubstitute)))))
 
 (def ^:private poly-analyzer
   (analyzer (symbol-generator "-s-%05d") poly/expression-> poly/->expression poly/operators-known))

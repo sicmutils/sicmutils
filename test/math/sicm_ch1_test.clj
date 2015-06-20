@@ -179,10 +179,10 @@
                          (up x y))
                         't))))
       (is (= '(down
-               (+ (* -1 (expt ((D φ) t) 2) (r t) m)
+               (+ (* -1N (r t) (expt ((D φ) t) 2) m)
                   (* (((expt D 2) r) t) m) ((D U) (r t)))
                (+ (* (expt (r t) 2) (((expt D 2) φ) t) m)
-                  (* 2 (r t) ((D r) t) ((D φ) t) m)))
+                  (* 2N (r t) ((D r) t) ((D φ) t) m)))
              (simplify (((Lagrange-equations (L-central-polar 'm U))
                          (up r φ))
                         't))))
