@@ -241,8 +241,8 @@
       (is (= '(up 0
                   (up (+ ((D x) t) (* -1 (v_x t)))
                       (+ ((D y) t) (* -1 (v_y t))))
-                  (up (+ (* (x t) (/ m (expt m 2)) k) ((D v_x) t))
-                      (+ (* (y t) (/ m (expt m 2)) k) ((D v_y) t))))
+                  (up (+ (* (/ m (expt m 2)) (x t) k) ((D v_x) t))
+                      (+ (* (/ m (expt m 2)) (y t) k) ((D v_y) t))))
              (simplify (((Lagrange-equations-first-order (L-harmonic 'm 'k))
                          (up x y)
                          (up v_x v_y))
