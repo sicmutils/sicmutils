@@ -58,10 +58,10 @@
                         (analyze w)))
                     (add-symbols! simplified-expr))))
               (add-symbols!
-                [expr]
                 ;; doall is needed here because we need to have all the effects of
                 ;; add-symbol! accounted for strictly before the transient expr-map
                 ;; is made persistent in backsubstitute.
+                [expr]
                 (add-symbol! (doall (map add-symbol! expr))))
               (add-symbol!
                 [expr]
@@ -76,8 +76,7 @@
               (backsubstitute
                 ;; Finalize the expression map, invert it, and use it to perform the backsubstitution.
                 [expr]
-                (swap! expr-map persistent!)
-                (let [mapx (inverse-map @expr-map)
+                (let [mapx (-> expr-map (swap! persistent!) invert-map)
                       bsub (fn bsub [v]
                              (cond (sequential? v) (map bsub v)
                                    (symbol? v) (let [w (mapx v)]
@@ -87,7 +86,7 @@
               (base-simplify
                 [expr]
                 (expr-> expr ->expr))
-              (inverse-map
+              (invert-map
                 [m]
                 (into {} (for [[k v] m] [v k])))
               ]

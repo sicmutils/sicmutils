@@ -83,7 +83,6 @@
     (fn [q]
       (let [g (fn [ε]
                 (f (+ q (* ε η))))]
-
         ((D g) 0)))))
 
 (def ->local up)
