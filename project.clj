@@ -8,9 +8,8 @@
                  [com.google.guava/guava "18.0"]
                  [org.apache.commons/commons-math3 "3.4.1"]
                  [org.clojure/math.numeric-tower "0.0.4"]]
-  :source-paths ["src/clj"]
-  :java-source-paths ["src/java"]
-  :jvm-opts ["-server" "-Djava.util.logging.config.file=logging.properties"]
+  ;;:source-paths ["src/clj"]
+  :jvm-opts ["-Djava.util.logging.config.file=logging.properties"]
   :repl-options {:prompt (fn [ns] (str "[" ns "] > "))
                  :welcome "clojure algebra system"
                  :init-ns math.repl}
