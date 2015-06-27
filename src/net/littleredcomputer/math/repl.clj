@@ -17,7 +17,7 @@
 (ns net.littleredcomputer.math.repl
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.main :as m]
-            [net.littleredcomputer
+            [net.littleredcomputer.math
              [env :refer :all]
              [simplify :as s]])
   (:gen-class))
@@ -26,7 +26,7 @@
   [& args]
   (println "Won't you sign in, stranger?")
   (m/with-bindings
-    (in-ns 'math.repl)
+    (in-ns 'net.littleredcomputer.math.repl)
     (if args
       ;; read and eval the contents of the supplied files
       (doseq [a args]

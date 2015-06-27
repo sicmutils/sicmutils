@@ -44,7 +44,6 @@
   is free, there is no potential energy, so the Lagrangian is
   just the kinetic energy."
   [mass]
-
   (fn [[_ _ v]]
     (* 1/2 mass (square v))))
 

@@ -48,7 +48,7 @@
       (up 0.0
           (up θ0 φ0)
           (up θdot0 φdot0))
-      (fn [t [_ [θ φ] _]] (swap! state-history conj [t θ φ]))
+      (fn [t [_ q _]] (swap! state-history conj (into [t] q)))
       dt
       t
       1.0e-6
