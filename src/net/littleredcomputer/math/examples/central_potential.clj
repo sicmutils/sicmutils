@@ -19,7 +19,6 @@
   ;; for V we want each distinct pair
   (fn [[t x v]]
     (let [mass-position-pairs (->> x (partition 3) (map (fn [[m x y]] [m (up x y)])) pairs)]
-      (prn "mpp" mass-position-pairs)
       (reduce - 0
               (map (fn [[[m1 p1] [m2 p2]]]
                      (/ (* m1 m2) (sqrt (square (- p1 p2)))))
@@ -32,6 +31,7 @@
           velocities (->> v (partition 3) (map (fn [[mDot xDot yDot]] (up xDot yDot))))]
       (reduce + (map #(* 1/2 %1 (square %2)) masses velocities)))))
 
+(def L (- T V))
 
 (defn V-central
   "Potential energy of an object of mass M with state given by a local
@@ -102,6 +102,10 @@
   [m M1 x1 y1 M2 x2 y2 M3 x3 y3]
   (Lagrangian->state-derivative
    (L-central3 m M1 x1 y1 M2 x2 y2 M3 x3 y3)))
+
+(defn state-derivative
+  []
+  (Lagrangian->state-derivative (L)))
 
 (defn evolver
   [t dt m x0 y0 xDot0 yDot0]

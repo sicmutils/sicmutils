@@ -7,7 +7,7 @@
 
 (deftest equations
   (with-literal-functions
-    [x y]
+    [m M x y X Y]
     (let [state (up 't (up 'x 'y) (up 'xDot 'yDot))
           L (central/L-central 'M 'm 0 0)]
       (is (= '(+ (* 1/2 M (expt xDot 2))
@@ -22,6 +22,33 @@
       (is (= '(* -1 (/ (* m1 m2)
                        (sqrt (+ (expt x1 2) (expt y1 2)))))
              (simplify ((central/V) (up 0 (up 'm1 'x1 'y1 'm2 0 0) (up 0 'x1' 'y1' 0 'x2' 'y2'))))))
+      (is (= '(+ (* 1/2 m1 (expt x1' 2))
+                 (* 1/2 m1 (expt y1' 2))
+                 (* 1/2 m2 (expt x2' 2))
+                 (* 1/2 m2 (expt y2' 2))
+                 (/ (* m1 m2)
+                    (sqrt (+ (expt x1 2) (expt y1 2)))))
+             (simplify ((central/L) (up 0 (up 'm1 'x1 'y1 'm2 0 0) (up 0 'x1' 'y1' 0 'x2' 'y2'))))))
+      ;; weird. Should we let M, m enter the equations like this? What happens if we do?
+      (is (= '(down
+               (+ (* -1/2 (expt ((D x) t) 2))
+                  (* -1/2 (expt ((D y) t) 2))
+                  (* -1 (M t) (/ 1 (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
+               (+ (* 2 (x t)
+                     (/ 1 (* 2 (sqrt (+ (expt (x t) 2) (expt (y t) 2)))))
+                     (/ (* (m t) (M t)) (+ (expt (x t) 2) (expt (y t) 2))))
+                  (* (m t) (((expt D 2) x) t))
+                  (* ((D m) t) ((D x) t)))
+               (+ (* 2 (y t) (/ 1 (* 2 (sqrt (+ (expt (y t) 2) (expt (x t) 2)))))
+                     (/ (* (m t) (M t)) (+ (expt (y t) 2) (expt (x t) 2))))
+                  (* (m t)
+                     (((expt D 2) y) t))
+                  (* ((D m) t) ((D y) t)))
+               (* -1 (m t) (/ 1 (sqrt (+ (expt (x t) 2) (expt (y t) 2)))))
+               (* -2 (x t) (/ 1 (* 2 (sqrt (+ (expt (x t) 2) (expt (y t) 2))))) (/ (* (m t) (M t)) (+ (expt (x t) 2) (expt (y t) 2))))
+               (* -2 (y t) (/ 1 (* 2 (sqrt (+ (expt (y t) 2) (expt (x t) 2))))) (/ (* (m t) (M t)) (+ (expt (y t) 2) (expt (x t) 2)))))
+             (simplify (((Lagrange-equations (central/L))
+                         (up m x y M (constantly 0) (constantly 0))) 't))))
       (is (= '(down
                (+ (* -2 (x t)
                      (/ 1 (* 2 (sqrt (+ (expt (x t) 2) (expt (y t) 2)))))

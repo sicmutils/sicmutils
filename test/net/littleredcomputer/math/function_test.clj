@@ -74,7 +74,18 @@
             m (g/+ g (g/- f 2))]
         (is (= 11 (h 2 3)))
         (is (= 7 (k 2 3)))
-        (is (= 9 (m 2 3)))))))
+        (is (= 9 (m 2 3)))))
+    (testing "arity 0"
+      (let [f (fn [] 3)
+            g (fn [] 4)
+            h (g/+ f g)
+            k (g/- f g)
+            j (g/* f g)
+            q (g/divide f g)]
+        (is (= 7 (h)))
+        (is (= -1 (k)))
+        (is (= 12 (j)))
+        (is (= 3/4 (q)))))))
 
 (deftest operators
   (let [f (fn [x] (+ x 5))

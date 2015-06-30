@@ -105,7 +105,8 @@
               (if (not= f-arity g-arity)
                 (throw (IllegalArgumentException.
                         "cannot combine functions of differing arity"))
-                (let [h (cond (= f-arity 1) #(operator (f1 %) (g1 %))
+                (let [h (cond (= f-arity 0) #(operator (f1) (g1))
+                              (= f-arity 1) #(operator (f1 %) (g1 %))
                               (= f-arity 2) #(operator (f1 %1 %2) (g1 %1 %2))
                               (= f-arity 3) #(operator (f1 %1 %2 %3) (g1 %1 %2 %3))
                               (= f-arity 4) #(operator (f1 %1 %2 %3 %4) (g1 %1 %2 %3 %4))
