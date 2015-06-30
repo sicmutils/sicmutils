@@ -111,6 +111,10 @@
                               (= f-arity 4) #(operator (f1 %1 %2 %3 %4) (g1 %1 %2 %3 %4))
                               (= f-arity 5) #(operator (f1 %1 %2 %3 %4 %5) (g1 %1 %2 %3 %4 %5))
                               (= f-arity 6) #(operator (f1 %1 %2 %3 %4 %5 %6) (g1 %1 %2 %3 %4 %5 %6))
+                              (= f-arity 7) #(operator (f1 %1 %2 %3 %4 %5 %6 %7) (g1 %1 %2 %3 %4 %5 %6 %7))
+                              (= f-arity 8) #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8) (g1 %1 %2 %3 %4 %5 %6 %7 %8))
+                              (= f-arity 9) #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9))
+                              (= f-arity 10) #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10))
                               :else (throw (IllegalArgumentException.
                                             "unsupported arity for function arithmetic")))]
                   (with-meta h {:arity f-arity})))))]
