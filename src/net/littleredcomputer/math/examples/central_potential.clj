@@ -6,15 +6,32 @@
             [net.littleredcomputer.math.env :refer :all]
             [net.littleredcomputer.math.mechanics.lagrange :refer :all]))
 
-;; these are nice but they deal with fixed bodies.
-;; how to generalize this if the condition M_i >> m
-;; no longer holds?
-;;
-;; The kinetic energy part is always easy.
-;; We would have to come up with an expression for the
-;; potential of the system that took account of all
-;; the masses. Does it just add? Try to obtain mutually
-;; orbiting elliptical configuration
+(defn- pairs
+  "Return a sequence of pairs of different elements from the given sequence."
+  [[x & xs]]
+  (when xs
+    (concat
+     (for [y xs] [x y])
+     (pairs xs))))
+
+(defn V
+  []
+  ;; for V we want each distinct pair
+  (fn [[t x v]]
+    (let [mass-position-pairs (->> x (partition 3) (map (fn [[m x y]] [m (up x y)])) pairs)]
+      (prn "mpp" mass-position-pairs)
+      (reduce - 0
+              (map (fn [[[m1 p1] [m2 p2]]]
+                     (/ (* m1 m2) (sqrt (square (- p1 p2)))))
+                   mass-position-pairs)))))
+
+(defn T
+  []
+  (fn [[t x v]]
+    (let [masses (->> x (partition 3) (map first))
+          velocities (->> v (partition 3) (map (fn [[mDot xDot yDot]] (up xDot yDot))))]
+      (reduce + (map #(* 1/2 %1 (square %2)) masses velocities)))))
+
 
 (defn V-central
   "Potential energy of an object of mass M with state given by a local
