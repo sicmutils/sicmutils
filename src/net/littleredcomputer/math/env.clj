@@ -15,7 +15,7 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
 (ns net.littleredcomputer.math.env
-  (:refer-clojure :exclude [+ - * / zero?])
+  (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [net.littleredcomputer.math
              [generic :as g]
              [structure :as s]
@@ -58,3 +58,4 @@
 (def down s/down)
 
 (def D d/D)
+(def ∂ d/pd)

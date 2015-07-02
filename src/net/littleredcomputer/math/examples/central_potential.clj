@@ -116,14 +116,32 @@
              1000 20 0 ;; second planetary mass, x, y
              1000 0 20 ;; third planetary mass, x, y
              )
-      (up 0.0
-          (up x0 y0)
-          (up xDot0 yDot0))
-      (fn [t [_ q _]] (swap! state-history conj (into [t] q)))
-      dt
-      t
-      1.0e-6
-      {:compile true})
+     (up 0.0
+         (up x0 y0)
+         (up xDot0 yDot0))
+     (fn [t [_ q _]] (swap! state-history conj (into [t] q)))
+     dt
+     t
+     1.0e-6
+     {:compile true})
+    @state-history))
+
+(defn evolver2
+  [t dt m x0 y0 xDot0 yDot0]
+  (let [state-history (atom [])
+        initial-state (up 0.0
+                          (up m x0    y0     1000 0 0)
+                          (up 0 xDot0 yDot0  0    0 0))]
+    (prn "initial-state" initial-state)
+    ((evolve state-derivative)
+     initial-state
+     (fn [t [_ q _]]
+       (prn "state" t q)
+       (swap! state-history conj (into [t] q)))
+     dt
+     t
+     1.0e-6
+     {:compile true})
     @state-history))
 
 (defn- to-svg
@@ -131,9 +149,9 @@
   [:svg {:width 480 :height 480}
    [:rect {:width 480 :height 480 :fill "#330033"}]
    [:g {:transform "translate(240,240)"}
-    [:circle {:fill "green" :stroke "none" :r 5 :cx 0 :cy 0}]
-    [:circle {:fill "green" :stroke "none" :r 5 :cx 20 :cy 0}]
-    [:circle {:fill "green" :stroke "none" :r 5 :cx 0 :cy 20}]
+    ;;[:circle {:fill "green" :stroke "none" :r 5 :cx 0 :cy 0}]
+    ;;[:circle {:fill "green" :stroke "none" :r 5 :cx 20 :cy 0}]
+    ;;[:circle {:fill "green" :stroke "none" :r 5 :cx 0 :cy 20}]
     (for [[t x y] evolution]
       [:circle {:fill "orange" :stroke "none" :r 1 :cx x :cy y}])]])
 
@@ -141,13 +159,26 @@
 ;; x1=−x2=0.97000436−0.24308753i,x3=0; V~ = ˙x3=−2 ˙x1=−2 ˙x2=−0.93240737−0.86473146i
 ;; T =12T =6.32591398, I(0)=2, m1=m2=m3=1
 
-(defn -main
+(defn -main0
   [& args]
   (let [head [:head {:title "foo"}]
         counter (atom 0)
         body [:body
               (for [dy (range -16 -1 1/10) :when (not= dy -47/15)]
                 (let [svg (to-svg (evolver 400 1/3 1 50 50 dy 0))]
+                  (log/info (str "dy " dy))
+                  (spit (format "%03d.svg" @counter) (html svg))
+                  (swap! counter inc)
+                  svg))]]
+    (println (html5 head body))))
+
+(defn -main
+  [& args]
+  (let [head [:head {:title "foo"}]
+        counter (atom 0)
+        body [:body
+              (for [dy (range -10 -9)]
+                (let [svg (to-svg (evolver2 400 1/3 1 50 50 0 dy))]
                   (log/info (str "dy " dy))
                   (spit (format "%03d.svg" @counter) (html svg))
                   (swap! counter inc)
