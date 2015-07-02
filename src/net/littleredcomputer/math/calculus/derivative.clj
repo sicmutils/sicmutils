@@ -40,7 +40,6 @@
   (exact? [_] false)
   (compound? [_] false)
   (numerical? [d] (g/numerical-quantity? (differential-of d)))
-  (arity [_] 0)
   (kind [_] ::differential))
 
 (defn differential?
@@ -361,17 +360,17 @@
   [f selectors]
   (let [a (v/arity f)
         d (partial euclidean-structure selectors)]
-    (cond (= a 0) (constantly 0)
-          (= a 1) (with-meta (d f) {:arity 1})
-          (= a 2) (with-meta (fn [x y]
-                               ((d (fn [[x y]] (f x y)))
-                                (struct/seq-> [x y]))) {:arity 2})
-          (= a 3) (with-meta (fn [x y z]
-                               ((d (fn [[x y z]] (f x y z)))
-                                (struct/seq-> [x y z]))) {:arity 3})
-          (= a 4) (with-meta (fn [w x y z]
-                               ((d (fn [[w x y z]] (f w x y z)))
-                                (struct/seq-> [w x y z]))) {:arity 4})
+    (cond (= a [:exactly 0]) (constantly 0)
+          (= a [:exactly 1]) (with-meta (d f) {:arity a})
+          (= a [:exactly 2]) (with-meta (fn [x y]
+                                          ((d (fn [[x y]] (f x y)))
+                                           (struct/seq-> [x y]))) {:arity a})
+          (= a [:exactly 3]) (with-meta (fn [x y z]
+                                          ((d (fn [[x y z]] (f x y z)))
+                                           (struct/seq-> [x y z]))) {:arity a})
+          (= a [:exactly 4]) (with-meta (fn [w x y z]
+                                          ((d (fn [[w x y z]] (f w x y z)))
+                                           (struct/seq-> [w x y z]))) {:arity a})
           :else (throw (IllegalArgumentException. (str "Haven't implemented this yet: arity " a))))))
 
 (def ^:private not-compound? (complement v/compound?))

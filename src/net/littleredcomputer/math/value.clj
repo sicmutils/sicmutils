@@ -52,23 +52,44 @@
   (kind [o] (primitive-kind o)))
 
 (def ^:private primitive-arity
-  ;; this whole function is deeply bogus. We will have to spend some time
-  ;; figuring out how to deal with arity in a more precise and defensive
-  ;; way. TODO: there's some reflection going on in here we should get rid of
+  "Computing arities of clojure functions is a bit complicated.
+  It involves reflection, so the results are definitely worth
+  memoizing."
   (memoize
    (fn [f]
      (or (:arity f)
          (:arity (meta f))
-         (cond (symbol? f) 0
-               (fn? f) (let [^"[java.lang.reflect.Method" ms (.getDeclaredMethods (class f))
-                             arities (into #{} (map #(alength (.getParameterTypes %)) ms))]
-                         #_(log/warn "reflecting to find arity of" f)
-                         (if (> (count arities) 1)
-                           (let [smallest-nonzero-arity (reduce min (disj arities 0))]
-                             (log/warn "guessing that arity of" f "is" smallest-nonzero-arity "out of" arities)
-                             smallest-nonzero-arity)
-                           (first arities)))
-               :else 1)))))
+         (cond (symbol? f) [:exactly 0]
+               (fn? f) (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
+                             ;; tally up arities of invoke, doInvoke, and getRequiredArity methods
+                             facts (group-by first
+                                             (for [m methods]
+                                               (condp = (.getName m)
+                                                 "invoke" [:invoke (alength (.getParameterTypes m))]
+                                                 "doInvoke" [:doInvoke true]
+                                                 "getRequiredArity" [:getRequiredArity (.getRequiredArity f)])))]
+                         (cond
+                           ;; Rule one: if all we have is one single case of invoke, then the
+                           ;; arity is the arity of that method. This is the common case.
+                           (and (= 1 (count facts))
+                                (= 1 (count (:invoke facts))))
+                           [:exactly (second (first (:invoke facts)))]
+                           ;; Rule two: if we have exactly one doInvoke and getRequiredArity,
+                           ;; then the arity at least the result of .getRequiredArity.
+                           (and (= 2 (count facts))
+                                (= 1 (count (:doInvoke facts)))
+                                (= 1 (count (:getRequiredArity facts))))
+                           [:at-least (second (first (:getRequiredArity facts)))]
+                           ;; Rule three: if we have invokes for the arities 0..3, getRequiredArity
+                           ;; says 3, and we have doInvoke, then we consider that this function
+                           ;; was probably produced by Clojure's core "comp" function, and
+                           ;; we somewhat lamely consider the arity of the composed function 1.
+                           (and (= #{0 1 2 3} (into #{} (map second (:invoke facts))))
+                                (= 3 (second (first (:getRequiredArity facts))))
+                                (:doInvoke facts))
+                           [:exactly 1]
+                           :else (throw (IllegalArgumentException. (str "arity? " f " " facts)))))
+               :else [:exactly 1])))))
 
 (defn- primitive-kind
   [a]

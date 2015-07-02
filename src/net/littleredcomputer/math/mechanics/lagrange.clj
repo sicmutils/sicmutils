@@ -103,7 +103,7 @@
      (with-meta
        (fn [t]
          (up t (q t) (Dq t)))
-       {:arity 1})))
+       {:arity [:exactly 1]})))
   ([q n]
    (let [Dqs (->> q (iterate D) (take (- n 1)))]
      (fn [t]
@@ -145,7 +145,7 @@
                                 (cond (< j i) (- (nth xs j) xi)
                                       (= j i) (if (odd? i) -1 1)
                                       :else (- xi (nth xs j))))))))))
-      {:arity 1})))
+      {:arity [:exactly 1]})))
 
 (defn Lagrangian->acceleration
   [L]

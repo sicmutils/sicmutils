@@ -36,7 +36,7 @@
   (numerical? [_] false)
   (compound? [_] true)
   (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
-  (arity [_] (joint-arity v))
+  (arity [_] (joint-arity (map v/arity v)))
   (kind [_] orientation)
   Object
   (equals [_ b]
@@ -60,13 +60,28 @@
     (AFn/applyToHelper s xs))
   )
 
-(defn- joint-arity
-  [xs]
-  (let [as (into #{} (map v/arity xs))]
-    (cond (empty? as) 0
-          (= (count as) 1) (first as)
-          :else (throw (IllegalArgumentException.
-                         (str "Structure " xs "contains elements with differing arity " as))))))
+(defn joint-arity
+  "Find the most relaxed possible statement of the joint arity of the objects
+  xs. If they are incompatible, an exception is thrown."
+  [arities]
+  (let [arity-fail #(throw (IllegalArgumentException.
+                            (str "Incompatible arities: " arities)))]
+    (reduce (fn [[joint-qualifier joint-value] [qualifier value]]
+              (if (= joint-qualifier :exactly)
+                (if (= qualifier :exactly)
+                  (if (= joint-value value)  ;; exactly/exactly: counts must match
+                    [joint-qualifier joint-value]
+                    (arity-fail))
+                  (if (>= joint-value value) ;; exactly/at-least: exactly count must >= at-least
+                    [joint-qualifier joint-value]
+                    (arity-fail)))
+                (if (= qualifier :exactly)
+                  (if (>= value joint-value) ;; at-least/exactly
+                    [qualifier value]
+                    (arity-fail))
+                  [:at-least (max joint-value value)])))
+            [:at-least 0]
+            arities)))
 
 (defn- make
   [orientation xs]

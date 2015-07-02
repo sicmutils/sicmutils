@@ -31,18 +31,32 @@
                     (sqrt (+ (expt x1 2) (expt y1 2)))))
              (simplify ((central/L) (up 0 (up 'm1 'x1 'y1 'm2 0 0) (up 0 'x1' 'y1' 0 'x2' 'y2'))))))
       ;; haven't checked these; we're still debugging this
-      (is (= '(down
-               (+ (* (/ 1 (sqrt (+ (expt x1 2) (expt y1 2)))) m2) (* 1/2 (expt x1' 2)) (* 1/2 (expt y1' 2)))
-               (* -2 (/ 1 (* 2 (sqrt (+ (expt x1 2) (expt y1 2))))) (/ (* m1 m2) (+ (expt x1 2) (expt y1 2))) x1)
-               (* -2 (/ 1 (* 2 (sqrt (+ (expt x1 2) (expt y1 2))))) (/ (* m1 m2) (+ (expt x1 2) (expt y1 2))) y1)
-               (+ (* (/ 1 (sqrt (+ (expt x1 2) (expt y1 2)))) m1) (* 1/2 (expt x2' 2)) (* 1/2 (expt y2' 2)))
-               (* 2 (/ 1 (* 2 (sqrt (+ (expt x1 2) (expt y1 2))))) (/ (* m1 m2) (+ (expt x1 2) (expt y1 2))) x1)
-               (* 2 (/ 1 (* 2 (sqrt (+ (expt x1 2) (expt y1 2))))) (/ (* m1 m2) (+ (expt x1 2) (expt y1 2))) y1))
-             (simplify (((∂ 1) (central/L)) (up 0 (up 'm1 'x1 'y1 'm2 0 0) (up 0 'x1' 'y1' 0 'x2' 'y2'))))))
-      (is (= '(down 0 (* m1 x1') (* m1 y1') 0 (* m2 x2') (* m2 y2'))
-             (simplify (((∂ 2) (central/L)) (up 0 (up 'm1 'x1 'y1 'm2 0 0) (up 0 'x1' 'y1' 0 'x2' 'y2'))))))
+      (let [state (up 0 (up 'm1 'x1 'y1 'm2 0 0) (up 'm1' 'x1' 'y1' 'm2' 'x2' 'y2'))
+            F ((∂ 1) (central/L))
+            P ((∂ 2) (central/L))
+            A ((∂ 2) P)]
+        (is (= '(down
+                 (+ (* (/ 1 (sqrt (+ (expt x1 2) (expt y1 2)))) m2) (* 1/2 (expt x1' 2)) (* 1/2 (expt y1' 2)))
+                 (* -2 (/ 1 (* 2 (sqrt (+ (expt x1 2) (expt y1 2))))) (/ (* m1 m2) (+ (expt x1 2) (expt y1 2))) x1)
+                 (* -2 (/ 1 (* 2 (sqrt (+ (expt x1 2) (expt y1 2))))) (/ (* m1 m2) (+ (expt x1 2) (expt y1 2))) y1)
+                 (+ (* (/ 1 (sqrt (+ (expt x1 2) (expt y1 2)))) m1) (* 1/2 (expt x2' 2)) (* 1/2 (expt y2' 2)))
+                 (* 2 (/ 1 (* 2 (sqrt (+ (expt x1 2) (expt y1 2))))) (/ (* m1 m2) (+ (expt x1 2) (expt y1 2))) x1)
+                 (* 2 (/ 1 (* 2 (sqrt (+ (expt x1 2) (expt y1 2))))) (/ (* m1 m2) (+ (expt x1 2) (expt y1 2))) y1))
+               (simplify (F state))))
+        (is (= '(down 0 (* m1 x1') (* m1 y1') 0 (* m2 x2') (* m2 y2'))
+               (simplify (P state))))
+        ;; well, this is certainly a singular matrix. Adding mass derivatives doesn't help.
+        ;;
+        (is (= '(down
+                 (down 0 0 0 0 0 0)
+                 (down 0 m1 0 0 0 0)
+                 (down 0 0 m1 0 0 0)
+                 (down 0 0 0 0 0 0)
+                 (down 0 0 0 0 m2 0)
+                 (down 0 0 0 0 0 m2))
+               (simplify (A state)))))
       #_(is (= 'foo
-             (simplify ((central/state-derivative) state2))))
+               (simplify ((central/state-derivative) state2))))
       ;; weird. Should we let M, m enter the equations like this? What happens if we do?
       (is (= '(down
                (+ (* -1/2 (expt ((D x) t) 2))

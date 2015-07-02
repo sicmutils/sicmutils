@@ -19,7 +19,7 @@
   (:require [clojure.test :refer :all]
             [net.littleredcomputer.math
              [value :as v]
-             [numbers]
+             [numsymb]
              [structure :refer :all]
              [generic :refer :all]]))
 
@@ -213,6 +213,20 @@
   (testing "assoc-in"
     (is (= (up 4 55 6) (structure-assoc-in (up 4 5 6) [1] 55)))
     (is (= (down (up 1 22) (up 3 4)) (structure-assoc-in (down (up 1 2) (up 3 4)) [0 1] 22)))))
+
+(deftest joint-arities
+  (is (= [:exactly 1] (joint-arity [[:exactly 1] [:exactly 1]])))
+  (is (= [:exactly 5] (joint-arity [[:exactly 5] [:exactly 5]])))
+  (is (thrown? IllegalArgumentException (joint-arity [[:exactly 2] [:exactly 1]])))
+  (is (thrown? IllegalArgumentException (joint-arity [[:exactly 1] [:exactly 2]])))
+  (is (= [:exactly 3] (joint-arity [[:exactly 3] [:at-least 2]])))
+  (is (= [:exactly 3] (joint-arity [[:exactly 3] [:at-least 3]])))
+  (is (= [:exactly 3] (joint-arity [[:at-least 1] [:exactly 3]])))
+  (is (= [:exactly 3] (joint-arity [[:at-least 3] [:exactly 3]])))
+  (is (thrown? IllegalArgumentException (joint-arity [[:exactly 1] [:at-least 2]])))
+  (is (thrown? IllegalArgumentException (joint-arity [[:at-least 2] [:exactly 1]])))
+  (is (= [:at-least 3] (joint-arity [[:at-least 2] [:at-least 3]])))
+  (is (= [:at-least 3] (joint-arity [[:at-least 3] [:at-least 2]]))))
 
 (deftest matrices
   (let [A (up (up 1 2) (up 3 4))

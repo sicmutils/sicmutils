@@ -50,10 +50,10 @@
                                     :net.littleredcomputer.math.structure/down "_"})
 
 (defn literal-function
-  ([f] (Function. f 1 [0] 0))
+  ([f] (Function. f [:exactly 1] [0] 0))
   ([f domain range]
    (cond (number? range)
-         (Function. f (count domain) domain range)
+         (Function. f [:exactly (count domain)] domain range)
          (s/structure? range)
          (s/same range (map-indexed (fn [index component]
                                       (literal-function
@@ -86,7 +86,7 @@
   original function (so that ((unary-operation sqrt) f) x) will return
   (sqrt (f x))."
   [operator]
-  (with-meta (partial comp operator) {:arity 1}))
+  (with-meta (partial comp operator) {:arity [:exactly 1]}))
 
 (defn- binary-operation
   "For a given binary operator (like +), returns a function of two
@@ -105,21 +105,22 @@
               (if (not= f-arity g-arity)
                 (throw (IllegalArgumentException.
                         "cannot combine functions of differing arity"))
-                (let [h (cond (= f-arity 0) #(operator (f1) (g1))
-                              (= f-arity 1) #(operator (f1 %) (g1 %))
-                              (= f-arity 2) #(operator (f1 %1 %2) (g1 %1 %2))
-                              (= f-arity 3) #(operator (f1 %1 %2 %3) (g1 %1 %2 %3))
-                              (= f-arity 4) #(operator (f1 %1 %2 %3 %4) (g1 %1 %2 %3 %4))
-                              (= f-arity 5) #(operator (f1 %1 %2 %3 %4 %5) (g1 %1 %2 %3 %4 %5))
-                              (= f-arity 6) #(operator (f1 %1 %2 %3 %4 %5 %6) (g1 %1 %2 %3 %4 %5 %6))
-                              (= f-arity 7) #(operator (f1 %1 %2 %3 %4 %5 %6 %7) (g1 %1 %2 %3 %4 %5 %6 %7))
-                              (= f-arity 8) #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8) (g1 %1 %2 %3 %4 %5 %6 %7 %8))
-                              (= f-arity 9) #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9))
-                              (= f-arity 10) #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10))
+                (let [a (second f-arity)
+                      h (cond (= a 0) #(operator (f1) (g1))
+                              (= a 1) #(operator (f1 %) (g1 %))
+                              (= a 2) #(operator (f1 %1 %2) (g1 %1 %2))
+                              (= a 3) #(operator (f1 %1 %2 %3) (g1 %1 %2 %3))
+                              (= a 4) #(operator (f1 %1 %2 %3 %4) (g1 %1 %2 %3 %4))
+                              (= a 5) #(operator (f1 %1 %2 %3 %4 %5) (g1 %1 %2 %3 %4 %5))
+                              (= a 6) #(operator (f1 %1 %2 %3 %4 %5 %6) (g1 %1 %2 %3 %4 %5 %6))
+                              (= a 7) #(operator (f1 %1 %2 %3 %4 %5 %6 %7) (g1 %1 %2 %3 %4 %5 %6 %7))
+                              (= a 8) #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8) (g1 %1 %2 %3 %4 %5 %6 %7 %8))
+                              (= a 9) #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9))
+                              (= a 10) #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10))
                               :else (throw (IllegalArgumentException.
                                             "unsupported arity for function arithmetic")))]
                   (with-meta h {:arity f-arity})))))]
-    (with-meta h {:arity 2})))
+    (with-meta h {:arity [:exactly 2]})))
 
 (defmacro ^:private make-binary-operations
   "Given a sequence of alternating generic and binary operations,
@@ -200,7 +201,7 @@
                                            s)))
                   (or (g/numerical-quantity? vv)
                       (g/abstract-quantity? vv))
-                  (let [fexp (if (= (:arity f) 1)  ; univariate
+                  (let [fexp (if (= (:arity f) [:exactly 1])  ; univariate
                                (if (= (first indices) 0)
                                  (if (= (count indices) 1)
                                    (symbolic-increase-derivative (:expr f))
