@@ -85,7 +85,15 @@
         (is (= 7 (h)))
         (is (= -1 (k)))
         (is (= 12 (j)))
-        (is (= 3/4 (q)))))))
+        (is (= 3/4 (q)))))
+    (testing "at least 0 arity"
+      (let [add (fn [& xs] (reduce + 0 xs))
+            mul (fn [& xs] (reduce * 1 xs))
+            add+mul (g/+ add mul)]
+        (is (= [:at-least 0] (v/arity add)))
+        (is (= [:at-least 0] (v/arity mul)))
+        (is (= [:at-least 0] (v/arity add+mul)))
+        (is (= 33 (add+mul 2 3 4)))))))
 
 (deftest operators
   (let [f (fn [x] (+ x 5))
