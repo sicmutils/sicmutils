@@ -89,7 +89,32 @@
                                 (:doInvoke facts))
                            [:exactly 1]
                            :else (throw (IllegalArgumentException. (str "arity? " f " " facts)))))
+               ;; this isn't quite right: we are catching the case
+               ;; of MultiFn here.
                :else [:exactly 1])))))
+
+(defn joint-arity
+  "Find the most relaxed possible statement of the joint arity of the objects
+  xs. If they are incompatible, an exception is thrown."
+  [arities]
+  (let [arity-fail #(throw (IllegalArgumentException.
+                            (str "Incompatible arities: " arities)))]
+    (reduce (fn [[joint-qualifier joint-value] [qualifier value]]
+              (if (= joint-qualifier :exactly)
+                (if (= qualifier :exactly)
+                  (if (= joint-value value)  ;; exactly/exactly: counts must match
+                    [joint-qualifier joint-value]
+                    (arity-fail))
+                  (if (>= joint-value value) ;; exactly/at-least: exactly count must >= at-least
+                    [joint-qualifier joint-value]
+                    (arity-fail)))
+                (if (= qualifier :exactly)
+                  (if (>= value joint-value) ;; at-least/exactly
+                    [qualifier value]
+                    (arity-fail))
+                  [:at-least (max joint-value value)])))
+            [:at-least 0]
+            arities)))
 
 (defn- primitive-kind
   [a]

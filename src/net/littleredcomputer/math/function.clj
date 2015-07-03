@@ -100,26 +100,37 @@
                   g-numeric (g/numerical-quantity? g)
                   f-arity (if f-numeric (v/arity g) (v/arity f))
                   g-arity (if g-numeric f-arity (v/arity g))
+                  arity (v/joint-arity [f-arity g-arity])
                   f1 (if f-numeric (constantly f) f)
                   g1 (if g-numeric (constantly g) g)]
-              (if (not= f-arity g-arity)
-                (throw (IllegalArgumentException.
-                        "cannot combine functions of differing arity"))
-                (let [a (second f-arity)
-                      h (cond (= a 0) #(operator (f1) (g1))
-                              (= a 1) #(operator (f1 %) (g1 %))
-                              (= a 2) #(operator (f1 %1 %2) (g1 %1 %2))
-                              (= a 3) #(operator (f1 %1 %2 %3) (g1 %1 %2 %3))
-                              (= a 4) #(operator (f1 %1 %2 %3 %4) (g1 %1 %2 %3 %4))
-                              (= a 5) #(operator (f1 %1 %2 %3 %4 %5) (g1 %1 %2 %3 %4 %5))
-                              (= a 6) #(operator (f1 %1 %2 %3 %4 %5 %6) (g1 %1 %2 %3 %4 %5 %6))
-                              (= a 7) #(operator (f1 %1 %2 %3 %4 %5 %6 %7) (g1 %1 %2 %3 %4 %5 %6 %7))
-                              (= a 8) #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8) (g1 %1 %2 %3 %4 %5 %6 %7 %8))
-                              (= a 9) #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9))
-                              (= a 10) #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10))
-                              :else (throw (IllegalArgumentException.
-                                            "unsupported arity for function arithmetic")))]
-                  (with-meta h {:arity f-arity})))))]
+              (let [h (condp = arity
+                        [:exactly 0]
+                        #(operator (f1) (g1))
+                        [:exactly 1]
+                        #(operator (f1 %) (g1 %))
+                        [:exactly 2]
+                        #(operator (f1 %1 %2) (g1 %1 %2))
+                        [:exactly 3]
+                        #(operator (f1 %1 %2 %3) (g1 %1 %2 %3))
+                        [:exactly 4]
+                        #(operator (f1 %1 %2 %3 %4) (g1 %1 %2 %3 %4))
+                        [:exactly 5]
+                        #(operator (f1 %1 %2 %3 %4 %5) (g1 %1 %2 %3 %4 %5))
+                        [:exactly 6]
+                        #(operator (f1 %1 %2 %3 %4 %5 %6) (g1 %1 %2 %3 %4 %5 %6))
+                        [:exactly 7]
+                        #(operator (f1 %1 %2 %3 %4 %5 %6 %7) (g1 %1 %2 %3 %4 %5 %6 %7))
+                        [:exactly 8]
+                        #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8) (g1 %1 %2 %3 %4 %5 %6 %7 %8))
+                        [:exactly 9]
+                        #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9))
+                        [:exactly 10]
+                        #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10))
+                        [:at-least 0]
+                        #(operator (apply f1 %&) (apply g1 %&))
+                        (throw (IllegalArgumentException.
+                                (str  "unsupported arity for function arithmetic " arity))))]
+                (with-meta h {:arity f-arity}))))]
     (with-meta h {:arity [:exactly 2]})))
 
 (defmacro ^:private make-binary-operations

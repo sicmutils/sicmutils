@@ -23,7 +23,6 @@
 
 (declare make)
 (declare make-identity-like)
-(declare joint-arity)
 
 (def ^:private orientation->symbol {::up 'up ::down 'down})
 
@@ -36,7 +35,7 @@
   (numerical? [_] false)
   (compound? [_] true)
   (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
-  (arity [_] (joint-arity (map v/arity v)))
+  (arity [_] (v/joint-arity (map v/arity v)))
   (kind [_] orientation)
   Object
   (equals [_ b]
@@ -59,29 +58,6 @@
   (applyTo [s xs]
     (AFn/applyToHelper s xs))
   )
-
-(defn joint-arity
-  "Find the most relaxed possible statement of the joint arity of the objects
-  xs. If they are incompatible, an exception is thrown."
-  [arities]
-  (let [arity-fail #(throw (IllegalArgumentException.
-                            (str "Incompatible arities: " arities)))]
-    (reduce (fn [[joint-qualifier joint-value] [qualifier value]]
-              (if (= joint-qualifier :exactly)
-                (if (= qualifier :exactly)
-                  (if (= joint-value value)  ;; exactly/exactly: counts must match
-                    [joint-qualifier joint-value]
-                    (arity-fail))
-                  (if (>= joint-value value) ;; exactly/at-least: exactly count must >= at-least
-                    [joint-qualifier joint-value]
-                    (arity-fail)))
-                (if (= qualifier :exactly)
-                  (if (>= value joint-value) ;; at-least/exactly
-                    [qualifier value]
-                    (arity-fail))
-                  [:at-least (max joint-value value)])))
-            [:at-least 0]
-            arities)))
 
 (defn- make
   [orientation xs]
