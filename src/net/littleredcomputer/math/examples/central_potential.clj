@@ -15,20 +15,23 @@
      (pairs xs))))
 
 (defn V
-  []
+  [& masses]
   ;; for V we want each distinct pair
   (fn [[t x v]]
-    (let [mass-position-pairs (->> x (partition 3) (map (fn [[m x y]] [m (up x y)])) pairs)]
+    (let [mass-position-pairs (->> x
+                                   (partition 2)
+                                   (apply up)
+                                   (map (fn [m [x y]] [m (up x y)]) masses)
+                                   pairs)]
       (reduce - 0
               (map (fn [[[m1 p1] [m2 p2]]]
                      (/ (* m1 m2) (sqrt (square (- p1 p2)))))
                    mass-position-pairs)))))
 
 (defn T
-  []
+  [& masses]
   (fn [[t x v]]
-    (let [masses (->> x (partition 3) (map first))
-          velocities (->> v (partition 3) (map (fn [[mDot xDot yDot]] (up xDot yDot))))]
+    (let [velocities (->> v (partition 2) (map #(apply up %)))]
       (reduce + (map #(* 1/2 %1 (square %2)) masses velocities)))))
 
 (def L (- T V))
@@ -104,8 +107,8 @@
    (L-central3 m M1 x1 y1 M2 x2 y2 M3 x3 y3)))
 
 (defn state-derivative
-  []
-  (Lagrangian->state-derivative (L)))
+  [m M]
+  (Lagrangian->state-derivative (L m M)))
 
 (defn evolver
   [t dt m x0 y0 xDot0 yDot0]
@@ -127,16 +130,14 @@
     @state-history))
 
 (defn evolver2
-  [t dt m x0 y0 xDot0 yDot0]
+  [t dt m M x0 y0 xDot0 yDot0]
   (let [state-history (atom [])
         initial-state (up 0.0
-                          (up m x0    y0     1000 0 0)
-                          (up 0 xDot0 yDot0  0    0 0))]
-    (prn "initial-state" initial-state)
-    ((evolve state-derivative)
+                          (up x0    y0    0 0)
+                          (up xDot0 yDot0 0 0))]
+    ((evolve state-derivative m M)
      initial-state
      (fn [t [_ q _]]
-       (prn "state" t q)
        (swap! state-history conj (into [t] q)))
      dt
      t
@@ -152,8 +153,12 @@
     ;;[:circle {:fill "green" :stroke "none" :r 5 :cx 0 :cy 0}]
     ;;[:circle {:fill "green" :stroke "none" :r 5 :cx 20 :cy 0}]
     ;;[:circle {:fill "green" :stroke "none" :r 5 :cx 0 :cy 20}]
-    (for [[t x y] evolution]
-      [:circle {:fill "orange" :stroke "none" :r 1 :cx x :cy y}])]])
+    (for [[t x y X Y] evolution]
+      [:circle {:fill "orange" :stroke "none" :r 1 :cx x :cy y}]
+      )
+    (for [[t x y X Y] evolution]
+      [:circle {:fill "green" :stroke "none" :r 1 :cx X :cy Y}]
+      )]])
 
 ;; Simó's initial data
 ;; x1=−x2=0.97000436−0.24308753i,x3=0; V~ = ˙x3=−2 ˙x1=−2 ˙x2=−0.93240737−0.86473146i
@@ -177,8 +182,8 @@
   (let [head [:head {:title "foo"}]
         counter (atom 0)
         body [:body
-              (for [dy (range -10 -9)]
-                (let [svg (to-svg (evolver2 400 1/3 1 50 50 0 dy))]
+              (for [dy (range -10 -1 1/10)]
+                (let [svg (to-svg (evolver2 100 1/3 500 500 50 50 0 dy))]
                   (log/info (str "dy " dy))
                   (spit (format "%03d.svg" @counter) (html svg))
                   (swap! counter inc)
