@@ -227,7 +227,7 @@
       (is (not (square? B)))
       (is (= [3 :net.littleredcomputer.math.structure/down :net.littleredcomputer.math.structure/up] (square? C)))
       (is (= [1 :net.littleredcomputer.math.structure/up :net.littleredcomputer.math.structure/down] (square? D)))
-      (is (thrown? UnsupportedOperationException (square? E))))
+      (is (square? E)))
     (testing "determinant"
       (is (= -2 (determinant A)))
       (is (= 22 (determinant C)))

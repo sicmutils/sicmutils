@@ -137,7 +137,7 @@
   [s]
   (let [major-size (count s)
         major-orientation (orientation s)
-        minor-sizes (map count s)
+        minor-sizes (map #(if (structure? %) (count %) 1) s)
         minor-orientations (map orientation s)
         first-minor-orientation (first minor-orientations)]
     (if (and (every? #(= major-size %) minor-sizes)
