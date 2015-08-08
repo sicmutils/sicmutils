@@ -128,7 +128,13 @@
         XXY (make 2 [[[2 1] 1]])
         XYY (make 2 [[[1 2] 1]])
         XXY+XYY (add XXY XYY)
-        Q (make 2 [[[1 1] 4] [[3 0] 6] [[1 2] 6] [[3 1] 9]])];; "zero-arity polynomial"
+        Q (make 2 [[[1 1] 4] [[3 0] 6] [[1 2] 6] [[3 1] 9]])]
+    (testing "constant-term"
+      (is (= 6 (constant-term u)))
+      (is (= -6 (constant-term v)))
+      (is (= 0 (constant-term x)))
+      (is (= 5 (constant-term (zap 5))))
+      (is (= 0 (constant-term (make 4 [])))))
     (testing "coefficients"
       (is (thrown? IllegalArgumentException (coefficients (zap 9))))
       (is (= [(zap 6) (zap 7) (zap 1)] (coefficients u)))
@@ -137,6 +143,43 @@
       (is (= (repeat 3 (zap 1)) (coefficients xxx+xx+x)))
       (is (= [xx x] (coefficients XXY+XYY)))
       (is (= [(make [0 4 6]) (make [6 9])] (coefficients Q))))
+    (testing "coefficients2"
+      (let [X (fn [c e] (make 2 [[[e 0] c]]))
+            Y (fn [c e] (make 2 [[[0 e] c]]))
+            Q (reduce add
+                      [(mul (X 4 1) (Y 1 1))
+                       (X 6 3)
+                       (mul (X 1 1) (Y 6 2))
+                       (mul (X 9 3) (Y 1 1))])]
+        (is (= [(make [0 4 6]) (make [6 9])] (coefficients Q)))))
+    (testing "gcd1"
+      (let [x+1 (make [1 1])
+            x+2 (make [2 1])
+            x+3 (make [3 1])
+            x+4 (make [4 1])
+            U (mul x+1 (mul x+1 (mul x+2 x+4)))
+            V (mul x+1 (mul x+2 x+3))]
+        (is (= (make [2 3 1]) (gcd1 U V)))
+        (is (= (make [4]) (gcd1 (make [8]) (make [4]))))
+        (is (= (make [1]) (gcd1 (make [7]) (make [11]))))
+        (is (= (make [11]) (gcd1 (make []) (make [11])))))
+      (let [x+4 (make [4 1])
+            x+3 (make [3 1])
+            x-2 (make [-2 1])
+            U (reduce mul [x+4 x+4 x+3 x+3 x-2 x-2 x-2])
+            V (reduce mul [x+4 x+3 x+3 x+3 x-2 x-2])
+            W (reduce mul [x+4 x+3 x+3 x-2 x-2])
+            Z (make [])]
+        ;; XXX fix sign
+        (is (= W (gcd1 U V)))
+        (is (= W (gcd1 V U)))
+        (is (= U (gcd1 U U)))
+        (is (= V (gcd1 V V)))
+        (is (= W (gcd1 W W)))
+        (is (= U (gcd1 U Z)))
+        (is (= U (gcd1 Z U)))
+        (is (= V (gcd1 V Z)))
+        (is (= V (gcd1 Z V)))))
     #_(testing "content"
       (is (= (make []) (content (make []))))
       (is (= (make [3]) (content (make [3]))))
@@ -153,17 +196,7 @@
         ;;(is (= x (gcd x↑3+x↑2+x x)))
         ;;(is (= x (gcd x x↑3+x↑2+x)))
         )
-      (let [x+1 (make [1 1])
-            x+2 (make [2 1])
-            x+3 (make [3 1])
-            x+4 (make [4 1])
-            U (mul x+1 (mul x+1 (mul x+2 x+4)))
-            V (mul x+1 (mul x+2 x+3))]
-        ;;(is (= (make [-2 -3 -1]) (gcd U V)))
-        ;;(is (= (make [4]) (gcd (make [8]) (make [4]))))
-        ;;(is (= (make [1]) (gcd (make [7]) (make [11]))))
-        ;;(is (= (make []) (gcd (make []) (make [11]))))
-        )
+
       (let [o (zap 0)
             iii (zap 3)
             vii (zap 7)
@@ -177,16 +210,7 @@
       (is (= [(make 2 []) Y 1] (divide Y X {:pseudo true})))
       ;;(is (= 'foo (gcd x↑2y xy↑2)))
       ;;(is (= 'foo (gcd x y)))
-      (let [x+4 (make [4 1])
-            x+3 (make [3 1])
-            x-2 (make [-2 1])
-            U (reduce mul [x+4 x+4 x+3 x+3 x-2 x-2 x-2])
-            V (reduce mul [x+4 x+3 x+3 x+3 x-2 x-2])
-            W (reduce mul [x+4 x+3 x+3 x-2 x-2])]
-        ;; XXX fix sign
-        ;; (is (= W (gcd U V)))
-        ;; (is (= W (gcd V U)))
-        )
+
       )))
 
 (deftest poly-as-simplifier

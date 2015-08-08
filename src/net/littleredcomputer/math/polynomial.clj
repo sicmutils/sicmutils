@@ -73,6 +73,11 @@
           (and (= (count xs->c) 1)
                (every? zero? (exponents (first xs->c)))) (coefficient (first xs->c)))))
 
+(defn constant-term
+  "Return the constant term of the polynomial."
+  [{:keys [arity xs->c]}]
+  (or (xs->c (vec (repeat arity 0))) 0))
+
 (defn check-same-arity [p q]
   (let [ap (:arity p)
         aq (:arity q)]
@@ -303,6 +308,43 @@
   [p]
   (divide p (content p)))
 
+(defn gcd1
+  [u v]
+  "Knuth's algorithm 4.6.1E for UNIVARIATE polynomials"
+  (let [arity (check-same-arity u v)
+        content1 #(->> % coefficients (map constant-term) (reduce euclid/gcd))
+        attach-content1 (fn [p c] (poly-map #(g/* c %) p))
+        divide-coefs (fn [p c] (poly-map #(g/divide % c) p))]
+    (cond
+      (not= arity 1)
+      (throw (IllegalArgumentException. "gcd1 only handles arity 1"))
+
+      (v/nullity? u) v
+
+      (v/nullity? v) u
+
+      :else
+      (let [ku (content1 u)
+            kv (content1 v)
+            pu (divide-coefs u ku)   ;; this is a univariate assumption. can it be fixed?
+            pv (divide-coefs v kv)
+            d (euclid/gcd ku kv)            ;; ditto
+            ]
+        (loop [u pu
+               v pv]
+          (let [[_ r _] (divide u v {:pseudo true})]
+            (cond (v/nullity? r)
+                  (if (< (second (lead-term v)) 0)
+                    (attach-content1 (negate v) d)
+                    (attach-content1 v d))
+
+                  (zero? (degree r))
+                  (make-constant arity d)
+
+                  :else
+                  (recur v (divide-coefs r (content1 r)))
+                  )))))))
+
 (defn gcd
   "Knuth's algorithm 4.6.1E"
   [u v]
@@ -312,13 +354,13 @@
           (make 0 [[[] (first (euclid/gcd (constant? u) (constant? v)))]])
           ;; XXX
           true (let [d (gcd (content u) (content v))]
-                 ;(prn "found d" d )
+                                        ;(prn "found d" d )
                  (if (v/nullity? d) (make-constant arity 0) ;; XXX is this needed?
                      (loop [u (primitive-part u)
                             v (primitive-part v)]
-                       ;(prn "here")
+                                        ;(prn "here")
                        (let [[_ r _] (divide u v {:pseudo true})]
-                         ;(prn "GCD step" u v r)
+                                        ;(prn "GCD step" u v r)
                          (cond (v/nullity? r) (attach-content v d)
                                (zero? (degree r)) (make-constant arity d)
                                :else (recur v (primitive-part r))))))))))

@@ -32,8 +32,14 @@
 (deftest euclid-test
   (testing "gcd"
     (let [gcd (fn [x y] (first (extended-gcd x y)))]
+      (is (= 7 (gcd 21 35)))
+      (is (= 7 (gcd -21 35)))
+      (is (= 7 (gcd 21 -35)))
+      (is (= 7 (gcd -21 -35)))
       (is (= 1 (gcd 8 7)))
-      (is (= 7 (gcd 21 35)))))
+      (is (= 1 (gcd -8 7) 1))
+      (is (= 1 (gcd 8 -7) 1))
+      (is (= 1 (gcd -8 -7) 1))))
   (testing "extended-gcd"
     (is (= (ok 8 7) 1))
     (is (= (ok 927 632) 1))
