@@ -69,7 +69,8 @@
   "If p is a constant polynomial, return that constant, else nil"
   [^Polynomial p]
   (let [xs->c (:xs->c p)]
-    (cond (empty? xs->c) 0
+    (cond (nil? xs->c) nil
+          (empty? xs->c) 0
           (and (= (count xs->c) 1)
                (every? zero? (exponents (first xs->c)))) (coefficient (first xs->c)))))
 
@@ -189,11 +190,11 @@
   (when (< arity 1)
     (throw (IllegalArgumentException. "To have coefficients a polynomial must have arity > 0")))
   (let [arity-1 (dec arity)]
-       (->> xs->c
-            (group-by (comp first first))
-            (map (fn [[_ cs]]
-                   (make arity-1 (for [[xs c] cs]
-                                   [(vec (rest xs)) c])))))))
+    (->> xs->c
+         (group-by (comp first first))
+         (map (fn [[_ cs]]
+                (make arity-1 (for [[xs c] cs]
+                                [(vec (rest xs)) c])))))))
 
 (declare gcd)
 
@@ -206,42 +207,29 @@
 ;;  V
 ;;
 
-(defn content
-  [p]
-  (prn "content" p)
-  (prn "coefs" (coefficients p))
-  (reduce gcd (coefficients p)))
-
 (defn content1
   [{:keys [arity xs->c] :as p}] ;; XXX
   (if (empty? xs->c) (Polynomial. arity {})
       (let [c (->> xs->c vals (reduce euclid/gcd 0))
             xs (->> xs->c keys (reduce #(mapv min %1 %2)))]
-        ;(prn "content" p "is" xs c)
+                                        ;(prn "content" p "is" xs c)
         (make arity [[xs c]]))))
 
-(defn content2
-  "The content of a polynomial p is the greatest common divisor of its
-  coefficients. The polynomial supplied should draw its components from
-  a Euclidean domain."
-  [{:keys [arity xs->c] :as p}]
-  (cond (zero? arity) (throw (IllegalArgumentException. "Zero arity polynomial cannot have content"))
-        (= arity 1) (if (v/nullity? p) (make-constant 1 [0])  ;; XXX needed?
-                        (->> xs->c vals (reduce (comp first euclid/gcd)) (make-constant 1)))
-        :else (reduce gcd (coefficients p))))
-
-(defn content4
-  [p]
-  ;(prn "content" p (:arity p))
-  (let [c (content1 p)]
-    ;(prn "yields" c)
-    c))
+;; (defn content2
+;;   "The content of a polynomial p is the greatest common divisor of its
+;;   coefficients. The polynomial supplied should draw its components from
+;;   a Euclidean domain."
+;;   [{:keys [arity xs->c] :as p}]
+;;   (cond (zero? arity) (throw (IllegalArgumentException. "Zero arity polynomial cannot have content"))
+;;         (= arity 1) (if (v/nullity? p) (make-constant 1 [0])  ;; XXX needed?
+;;                         (->> xs->c vals (reduce (comp first euclid/gcd)) (make-constant 1)))
+;;         :else (reduce gcd (coefficients p))))
 
 (defn attach-content
   "Return the polynomial formed by multiplying the first polynomial
   argument by the monomial second argument."
   [p c]
-  ;(prn "attach content" p c)
+                                        ;(prn "attach content" p c)
                                         ;[{:keys [arity xs->c]} [[cxs cc]]]
                                         ;(make (+ arity (count cxs)))
                                         ;{:pre [(instance? Polynomial p)
@@ -300,70 +288,77 @@
                                 new-term (make arity [[(vec residues) new-coefficient]])]
                             (recur (add (if pseudo (*vn quotient) quotient) new-term)
                                    (sub remainder' (mul new-term v))
-                                   (if pseudo (* multiplier vn-coefficient) multiplier)))
+                                   (if pseudo (*' multiplier vn-coefficient) multiplier)))
                           [quotient remainder multiplier])))))]
     (if pseudo [q r m] [q r])))
 
-(defn- primitive-part
-  [p]
-  (divide p (content p)))
-
-(defn gcd1
+(defn ^:private evenly-divide
+  "Divides the polynomial u by the polynomial v. Throws an IllegalStateException
+  if the division leaves a remainder. Otherwise returns the quotient."
   [u v]
-  "Knuth's algorithm 4.6.1E for UNIVARIATE polynomials"
-  (let [arity (check-same-arity u v)
-        content1 #(->> % coefficients (map constant-term) (reduce euclid/gcd))
-        attach-content1 (fn [p c] (poly-map #(g/* c %) p))
-        divide-coefs (fn [p c] (poly-map #(g/divide % c) p))]
+  (let [[q r] (divide u v)]
+    (when-not (v/nullity? r)
+      (throw (IllegalStateException. "expected even division left a remainder!")))
+    q))
+
+(defn ^:private gcd1
+  [u v]
+  "Knuth's algorithm 4.6.1E for UNIVARIATE polynomials."
+  (let [arity (check-same-arity u v)]
     (cond
-      (not= arity 1)
-      (throw (IllegalArgumentException. "gcd1 only handles arity 1"))
-
+      (not= arity 1) (throw (IllegalArgumentException. "gcd1 only handles arity 1"))
       (v/nullity? u) v
-
       (v/nullity? v) u
+      :else (let [content1 #(->> % coefficients (map constant-term) (reduce euclid/gcd))
+                  attach-content1 (fn [p c] (poly-map #(g/* c %) p))
+                  divide-coefs (fn [p c] (poly-map #(g/divide % c) p))
+                  ku (content1 u)
+                  kv (content1 v)
+                  pu (divide-coefs u ku)   ;; this is a univariate assumption. can it be fixed?
+                  pv (divide-coefs v kv)
+                  d (euclid/gcd ku kv)            ;; ditto
+                  ]
+              (loop [u pu
+                     v pv]
+                (let [[_ r _] (divide u v {:pseudo true})]
+                  (cond (v/nullity? r)
+                        (if (< (second (lead-term v)) 0)
+                          (attach-content1 (negate v) d)
+                          (attach-content1 v d))
 
-      :else
-      (let [ku (content1 u)
-            kv (content1 v)
-            pu (divide-coefs u ku)   ;; this is a univariate assumption. can it be fixed?
-            pv (divide-coefs v kv)
-            d (euclid/gcd ku kv)            ;; ditto
-            ]
-        (loop [u pu
-               v pv]
-          (let [[_ r _] (divide u v {:pseudo true})]
-            (cond (v/nullity? r)
-                  (if (< (second (lead-term v)) 0)
-                    (attach-content1 (negate v) d)
-                    (attach-content1 v d))
+                        (zero? (degree r))
+                        (make-constant arity d)
 
-                  (zero? (degree r))
-                  (make-constant arity d)
-
-                  :else
-                  (recur v (divide-coefs r (content1 r)))
-                  )))))))
+                        :else
+                        (recur v (divide-coefs r (content1 r))))))))))
 
 (defn gcd
-  "Knuth's algorithm 4.6.1E"
+  "Knuth's algorithm 4.6.1E. Delegates to gcd1 for univariate polynomials."
   [u v]
-  ;(prn "gcd" u v (constant? u) (constant? v))
   (let [arity (check-same-arity u v)]
-    (cond (zero? arity)  ;; XXX needed?
-          (make 0 [[[] (first (euclid/gcd (constant? u) (constant? v)))]])
-          ;; XXX
-          true (let [d (gcd (content u) (content v))]
-                                        ;(prn "found d" d )
-                 (if (v/nullity? d) (make-constant arity 0) ;; XXX is this needed?
-                     (loop [u (primitive-part u)
-                            v (primitive-part v)]
-                                        ;(prn "here")
-                       (let [[_ r _] (divide u v {:pseudo true})]
-                                        ;(prn "GCD step" u v r)
-                         (cond (v/nullity? r) (attach-content v d)
-                               (zero? (degree r)) (make-constant arity d)
-                               :else (recur v (primitive-part r))))))))))
+    (cond
+      (< arity 1) (throw (IllegalArgumentException. "illegal arity for polynomial GCD"))
+      (= arity 1) (gcd1 u v)
+      (v/nullity? u) v
+      (v/nullity? v) u
+      :else (let [lift-arity (fn [p] (make arity (for [[xs c] (:xs->c p)] [(into [0] xs) c])))
+                  content #(->> % coefficients (reduce gcd))
+                  attach-content false ; XXX this is where we left off
+                  ku (content u)
+                  kv (content v)
+                  pu (evenly-divide u (lift-arity ku))
+                  pv (evenly-divide v (lift-arity kv))
+                  d (lift-arity (gcd ku kv))]
+              (loop [u pu
+                     v pv]
+                (let [[_ r _] (divide u v {:pseudo true})]
+                  (println "gcd step")
+                  (println "u: " u)
+                  (println "v: " v)
+                  (println "r: " r)
+                  (cond (v/nullity? r) (mul v d)
+                        (zero? (degree r)) d
+                        :else (recur v (evenly-divide r (lift-arity (content r)))))))))))
 
 (defn expt
   "Raise the polynomial p to the (integer) power n. Of course, n
@@ -372,7 +367,7 @@
   (let [e (constant? n)]
     (when-not (and (integer? e) (>= e 0))
       (throw (ArithmeticException.
-              (str "can't raise poly to " e))))
+              (str "can't raise poly to " n))))
     (cond (g/one? p) p
           (g/zero? p) (if (zero? e)
                         (throw (ArithmeticException. "poly 0^0"))

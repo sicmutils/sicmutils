@@ -33,7 +33,7 @@
                        (* (sin (θ t)) g l1 m1)
                        (* (sin (θ t)) g l1 m2))
                     (+ (* -1N (expt ((D θ) t) 2) (sin (+ (θ t) (* -1 (φ t)))) l1 l2 m2)
-                       (* (cos (+ (θ t) (* -1 (φ t)))) (((expt D 2) θ) t) l1 l2 m2)
+                       (* (((expt D 2) θ) t) (cos (+ (θ t) (* -1 (φ t)))) l1 l2 m2)
                        (* (((expt D 2) φ) t) (expt l2 2) m2)
                        (* (sin (φ t)) g l2 m2)))
              (simplify (((Lagrange-equations

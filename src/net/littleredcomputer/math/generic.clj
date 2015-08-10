@@ -15,10 +15,7 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
 (ns net.littleredcomputer.math.generic
-  (:refer-clojure :rename {+ core-+
-                           - core--
-                           / core-div
-                           * core-*
+  (:refer-clojure :rename {/ core-div
                            zero? core-zero?})
   (:require [net.littleredcomputer.math
              [value :as v]
@@ -70,7 +67,7 @@
   )
 
 (defn- bin+ [a b]
-  (cond (and (number? a) (number? b)) (core-+ a b)
+  (cond (and (number? a) (number? b)) (+' a b)
         (zero? a) b
         (zero? b) a
         :else (add a b)))
@@ -79,7 +76,7 @@
   (reduce bin+ 0 args))
 
 (defn- bin- [a b]
-  (cond (and (number? a) (number? b)) (core-- a b)
+  (cond (and (number? a) (number? b)) (-' a b)
         (zero? b) a
         (zero? a) (negate b)
         :else (sub a b)))
@@ -90,7 +87,7 @@
         :else (bin- (first args) (reduce bin+ (next args)))))
 
 (defn- bin* [a b]
-  (cond (and (number? a) (number? b)) (core-* a b)
+  (cond (and (number? a) (number? b)) (*' a b)
         (and (zero? a)) (v/zero-like b)
         (and (zero? b)) (v/zero-like a)
         (one? a) b
