@@ -28,10 +28,10 @@
     (with-literal-functions [θ φ]
       (is (= '(down (+ (* (expt ((D φ) t) 2) (sin (+ (θ t) (* -1 (φ t)))) l1 l2 m2)
                        (* (((expt D 2) φ) t) (cos (+ (θ t) (* -1 (φ t)))) l1 l2 m2)
-                       (* (((expt D 2) θ) t) (expt l1 2) m1)
-                       (* (((expt D 2) θ) t) (expt l1 2) m2)
                        (* (sin (θ t)) g l1 m1)
-                       (* (sin (θ t)) g l1 m2))
+                       (* (sin (θ t)) g l1 m2)
+                       (* (((expt D 2) θ) t) (expt l1 2) m1)
+                       (* (((expt D 2) θ) t) (expt l1 2) m2))
                     (+ (* -1N (expt ((D θ) t) 2) (sin (+ (θ t) (* -1 (φ t)))) l1 l2 m2)
                        (* (((expt D 2) θ) t) (cos (+ (θ t) (* -1 (φ t)))) l1 l2 m2)
                        (* (((expt D 2) φ) t) (expt l2 2) m2)

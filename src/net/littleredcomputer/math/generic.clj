@@ -16,7 +16,8 @@
 
 (ns net.littleredcomputer.math.generic
   (:refer-clojure :rename {/ core-div
-                           zero? core-zero?})
+                           zero? core-zero?}
+                  :exclude [+ - *])
   (:require [net.littleredcomputer.math
              [value :as v]
              [expression :as x]])

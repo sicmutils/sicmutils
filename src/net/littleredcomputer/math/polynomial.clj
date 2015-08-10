@@ -198,46 +198,6 @@
 
 (declare gcd)
 
-
-
-;; Where we left off: write content1 in terms of coefficients.
-;;
-;;  |
-;;  |
-;;  V
-;;
-
-(defn content1
-  [{:keys [arity xs->c] :as p}] ;; XXX
-  (if (empty? xs->c) (Polynomial. arity {})
-      (let [c (->> xs->c vals (reduce euclid/gcd 0))
-            xs (->> xs->c keys (reduce #(mapv min %1 %2)))]
-                                        ;(prn "content" p "is" xs c)
-        (make arity [[xs c]]))))
-
-;; (defn content2
-;;   "The content of a polynomial p is the greatest common divisor of its
-;;   coefficients. The polynomial supplied should draw its components from
-;;   a Euclidean domain."
-;;   [{:keys [arity xs->c] :as p}]
-;;   (cond (zero? arity) (throw (IllegalArgumentException. "Zero arity polynomial cannot have content"))
-;;         (= arity 1) (if (v/nullity? p) (make-constant 1 [0])  ;; XXX needed?
-;;                         (->> xs->c vals (reduce (comp first euclid/gcd)) (make-constant 1)))
-;;         :else (reduce gcd (coefficients p))))
-
-(defn attach-content
-  "Return the polynomial formed by multiplying the first polynomial
-  argument by the monomial second argument."
-  [p c]
-                                        ;(prn "attach content" p c)
-                                        ;[{:keys [arity xs->c]} [[cxs cc]]]
-                                        ;(make (+ arity (count cxs)))
-                                        ;{:pre [(instance? Polynomial p)
-                                        ;       (instance? Polynomial c)
-                                        ;       (= (count (:xs->c c)) 1)]}
-                                        ;
-  )
-
 (defn- lead-term
   "Return the leading (i.e., highest degree) term of the polynomial
   p. The return value is [exponents coefficient]."
@@ -343,7 +303,6 @@
       (v/nullity? v) u
       :else (let [lift-arity (fn [p] (make arity (for [[xs c] (:xs->c p)] [(into [0] xs) c])))
                   content #(->> % coefficients (reduce gcd))
-                  attach-content false ; XXX this is where we left off
                   ku (content u)
                   kv (content v)
                   pu (evenly-divide u (lift-arity ku))
@@ -352,13 +311,14 @@
               (loop [u pu
                      v pv]
                 (let [[_ r _] (divide u v {:pseudo true})]
-                  (println "gcd step")
-                  (println "u: " u)
-                  (println "v: " v)
-                  (println "r: " r)
                   (cond (v/nullity? r) (mul v d)
                         (zero? (degree r)) d
                         :else (recur v (evenly-divide r (lift-arity (content r)))))))))))
+
+;; where we left off: the euclid step in gcd, above, is not working because the
+;; pseudo-remainder algorithm finds that u/v and v/u both have zero quotient even
+;; when their gcd is nontrivial, perhaps because of our choice of the lead term
+;; and what we wish to accomplish in one division step.
 
 (defn expt
   "Raise the polynomial p to the (integer) power n. Of course, n
