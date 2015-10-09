@@ -17,6 +17,7 @@
 (ns net.littleredcomputer.math.polynomial
   (:import (clojure.lang PersistentTreeMap))
   (:require [clojure.set :as set]
+            [clojure.string]
             [net.littleredcomputer.math
              [value :as v]
              [euclid :as euclid]
@@ -33,10 +34,36 @@
   (nullity? [_] (empty? xs->c))
   (numerical? [_] false)
   (zero-like [_] (Polynomial. arity {}))
-  (unity? [p] (and (= (count (:xs->c p)) 1)
-                   (let [[xs c] (first (:xs->c p))]
+  (unity? [_] (and (= (count xs->c) 1)
+                   (let [[xs c] (first xs->c)]
                      (and (every? zero? xs)
-                          (g/one? c))))))
+                          (g/one? c)))))
+  Object
+  (toString [_]
+    (clojure.string/join ";"
+                         (for [[k v] xs->c]
+                           (str v "*" (clojure.string/join "," k))))))
+
+(defn graded-reverse-lex-order
+  "An ordering on monomials. X < Y if X has higher total degree than
+  Y. In case of ties, X < Y if Y < X lexicographically.  This is
+  intended, when used as the comparator in an ascending sort, to
+  produce an ordering like: x^2 + xy + y^2 + x + y + 1, when the
+  monomials are sorted in ascending order."
+  [xs ys]
+  (let [deg #(reduce + %)
+        xd (deg xs)
+        yd (deg ys)]
+    (cond (> xd yd) -1
+          (< xd yd) 1
+          :else (compare ys xs))))
+
+;;(def ^:private empty-coefficients (sorted-map-by #(graded-reverse-lex-order %2 %1)))
+;; question: why do things not work when we use graded order? probably because we
+;; don't have the "fit" relationship for division... but our division seems too
+;; strict anyway.
+
+(def ^:private empty-coefficients (sorted-map))
 
 (defn make
   "When called with two arguments, the first is the arity
@@ -55,7 +82,7 @@
   ([arity xc-pairs]
    (->> xc-pairs
         (filter (fn [[_ c]] (not (g/zero? c))))
-        (into (sorted-map))
+        (into empty-coefficients)
         (Polynomial. arity)))
   ([dense-coefficients]
    (make 1 (zipmap (map vector (iterate inc 0)) dense-coefficients))))
@@ -99,7 +126,7 @@
   [f p q]
   (loop [P (:xs->c p)
          Q (:xs->c q)
-         R (sorted-map)]
+         R empty-coefficients]
     (cond
       (empty? P) (into R (for [[xs c] Q
                                :let [c1 (f 0 c)]
@@ -177,7 +204,7 @@
           (g/one? q) p
           :else (let [a (check-same-arity p q)]
                   (make a (reduce add-denormal
-                                  (sorted-map)
+                                  empty-coefficients
                                   (for [[xp cp] (:xs->c p)
                                         [xq cq] (:xs->c q)]
                                     [(vec (map + xp xq)) (g/* cp cq)])))))))
@@ -296,6 +323,7 @@
   "Knuth's algorithm 4.6.1E. Delegates to gcd1 for univariate polynomials."
   [u v]
   (let [arity (check-same-arity u v)]
+    (println "hello arity" arity)
     (cond
       (< arity 1) (throw (IllegalArgumentException. "illegal arity for polynomial GCD"))
       (= arity 1) (gcd1 u v)
@@ -303,21 +331,39 @@
       (v/nullity? v) u
       :else (let [lift-arity (fn [p] (make arity (for [[xs c] (:xs->c p)] [(into [0] xs) c])))
                   content #(->> % coefficients (reduce gcd))
+                  __a (println "a")
                   ku (content u)
+                  __b (println "b'")
                   kv (content v)
+                  __c (println "ku" (str ku))
+                  __ (println "u" (str u))
+                  __ (println "la.ku" (str (lift-arity ku)))
                   pu (evenly-divide u (lift-arity ku))
+                  __d (println "d")
                   pv (evenly-divide v (lift-arity kv))
+                  __e (println "e")
                   d (lift-arity (gcd ku kv))]
-              (loop [u pu
-                     v pv]
-                (let [[_ r _] (divide u v {:pseudo true})]
-                  (cond (v/nullity? r) (mul v d)
-                        (zero? (degree r)) d
-                        :else (recur v (evenly-divide r (lift-arity (content r)))))))))))
+              (println "hello 2")
 
-;; where we left off: the euclid step in gcd, above, is not working because the
+              (loop [u pu
+                     v pv
+                     k 0]
+                (println "k = " k)
+                (println "LOOP u" (str pu))
+                (println "LOOP v" (str pv))
+                (if (> k 3) u
+                    (let [[_ r _] (divide u v {:pseudo true})]
+                      (println "R" (str r))
+                      (println "deg R" (degree r))
+                      (when-not (v/nullity? r)
+                        (println "content R" (content r)))
+                      (cond (v/nullity? r) (mul v d)
+                            (zero? (degree r)) d
+                            :else (recur v (evenly-divide r (lift-arity (content r))) (inc k))))))))))
+
+;; where we left off: the Euclid step in GCD, above, is not working because the
 ;; pseudo-remainder algorithm finds that u/v and v/u both have zero quotient even
-;; when their gcd is nontrivial, perhaps because of our choice of the lead term
+;; when their GCD is nontrivial, perhaps because of our choice of the lead term
 ;; and what we wish to accomplish in one division step.
 
 (defn expt
@@ -338,20 +384,6 @@
                       (if (even? c)
                         (recur (mul x x) (quot c 2) a)
                         (recur x (dec c) (mul x a))))))))
-
-(defn graded-lex-order
-  "An ordering on monomials. X < Y if X has higher total degree than
-  Y. In case of ties, X < Y if Y < X lexicographically.  This is
-  intended, when used as the comparator in an ascending sort, to
-  produce an ordering like: x^2 + xy + y^2 + x + y + 1, when the
-  monomials are sorted in ascending order."
-  [xs ys]
-  (let [deg #(reduce + %)
-        xd (deg xs)
-        yd (deg ys)]
-    (cond (> xd yd) -1
-          (< xd yd) 1
-          :else (compare ys xs))))
 
 (defn expression->
   "Convert an expression into Flat Polynomial canonical form. The
@@ -391,7 +423,7 @@
                        (reduce sym/mul 1 (map (fn [exponent var]
                                                 (sym/expt var exponent))
                                               xs vars))))
-            (->> p :xs->c (sort-by first graded-lex-order))))))
+            (->> p :xs->c (sort-by first graded-reverse-lex-order))))))
 
 ;; The operator-table represents the operations that can be understood
 ;; from the point of view of a polynomial over a commutative ring. The

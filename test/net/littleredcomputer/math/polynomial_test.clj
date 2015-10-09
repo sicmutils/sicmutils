@@ -111,7 +111,7 @@
       (is (= (make [x0 x0 x1]) (add P (make [1]))))))
   (testing "monomial order"
     (is (= [[2 0 2] [1 2 1] [3 0 0] [0 0 2]]
-           (sort-by identity graded-lex-order [[1 2 1] [2 0 2] [0 0 2] [3 0 0]])))))
+           (sort-by identity graded-reverse-lex-order [  [0 0 2] [3 0 0][2 0 2] [1 2 1]])))))
 
 (deftest poly-gcd
   (let [zap #(make 0 [[[] %]])  ;; zero-arity polynomial
@@ -196,22 +196,8 @@
             G (reduce mul [(expt X+1 II) (expt X+Y II) (expt Y+1 III)])]
         (is (= X+Y_2 (gcd X+Y_2 X+Y_3)))
         (is (= X+Y_3 (gcd X+Y_3 X+Y_3)))
-        (is (= G (gcd U V)))))
-    (testing "GJS cases (see sparse-gcd.scm:666)"
-      (let [gcd-test (fn [d f g]
-                       (is (= d (gcd (mul d f) (mul d g)))))
-            d1 (make 1 [[[0] 3] [[1] 1] [[2] 1]])
-            f1 (make 1 [[[0] 1] [[1] 2] [[2] 2]])
-            g1 (make 1 [[[0] 2] [[1] 2] [[2] 1]])
+        #_(is (= G (gcd U V)))))
 
-            d2 (make 2 [[[2 2] 2]])
-            f2 (make 2 [[[0 2] 1] [[2 1] 2] [[2 0] 1] [[0 0] 1]])
-            g2 (make 2 [[[2 2] 1] [[2 1] 1] [[1 1] 1] [[2 0] 1] [[1 0] 1]])]
-        (gcd-test d1 f1 g1)
-        ;; this one seems to suffer from the euclid remainder problem.
-        ;; more to learn!
-        #_(gcd-test d2 f2 g2)
-        ))
     #_(testing "GCD: arity 3 case"
       (let [I (make 3 [[[0 0 0] 1]])
             II (make 3 [[[0 0 0] 2]])
@@ -267,6 +253,35 @@
       ;;(is (= 'foo (gcd x y)))
 
       )))
+
+(deftest gjs
+  (testing "GJS cases (see sparse-gcd.scm:666)"
+   (let [gcd-test (fn [d f g]
+                    (is (= d (gcd (mul d f) (mul d g)))))
+         d1 (make 1 [[[0] 3] [[1] 1] [[2] 1]])
+         f1 (make 1 [[[0] 1] [[1] 2] [[2] 2]])
+         g1 (make 1 [[[0] 2] [[1] 2] [[2] 1]])
+
+         d2 (make 2 [[[2 2] 2] [[1 1] 1] [[1 0] 2]])
+         f2 (make 2 [[[0 2] 1] [[2 1] 2] [[2 0] 1] [[0 0] 1]])
+         g2 (make 2 [[[2 2] 1] [[2 1] 1] [[1 1] 1] [[2 0] 1] [[1 0] 1]])]
+     (gcd-test d1 f1 g1)
+     ;; this one seems to suffer from the euclid remainder problem.
+     ;; more to learn!
+     (println d2)
+     (println f2)
+     (println g2)
+
+     (let [df (mul d2 f2)
+           dg (mul d2 g2)]
+       (println "DF" (str df))
+       (println "DG" (str dg))
+       (println "DG/DF" (map str (divide dg df {:pseudo true})))
+       (println "DF/DF" (map str (divide df dg {:psuedo true})))
+       #_(println "GCD" (str (gcd dg df))))
+
+     #_(gcd-test d2 f2 g2)
+     )))
 
 (deftest poly-as-simplifier
   (testing "arity"

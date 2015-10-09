@@ -77,6 +77,7 @@
               (backsubstitute
                 ;; Finalize the expression map, invert it, and use it to perform the backsubstitution.
                 [expr]
+                ;(println "expr-map:" (count @expr-map))
                 (let [mapx (-> expr-map (swap! persistent!) invert-map)
                       bsub (fn bsub [v]
                              (cond (sequential? v) (map bsub v)
@@ -89,8 +90,7 @@
                 (expr-> expr ->expr))
               (invert-map
                 [m]
-                (into {} (for [[k v] m] [v k])))
-              ]
+                (into {} (for [[k v] m] [v k])))]
         (-> expr analyze base-simplify backsubstitute)))))
 
 (def ^:private poly-analyzer

@@ -53,8 +53,7 @@
           ;; "inside" the differentiator. They don't belong there and
           ;; are causing problems.
           equations (proxy [FirstOrderDifferentialEquations] []
-                      (computeDerivatives
-                        [_ ^doubles y ^doubles out]
+                      (computeDerivatives [_ ^doubles y ^doubles out]
                         (.start evaluation-time)
                         (swap! evaluation-count inc)
                         (let [y' (doubles (-> y (concat derivative-args) derivative-fn state->array))]
