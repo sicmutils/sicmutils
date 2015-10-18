@@ -1,4 +1,5 @@
 .#*
+/.vagrant
 /.idea
 math.iml
 /target
@@ -11,3 +12,4 @@ pom.xml.asc
 *.class
 /.lein-*
 /.nrepl-port
+plp

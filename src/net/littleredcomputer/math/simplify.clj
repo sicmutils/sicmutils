@@ -93,11 +93,24 @@
                 (into {} (for [[k v] m] [v k])))]
         (-> expr analyze base-simplify backsubstitute)))))
 
+(defn ^:private monotonic-symbol-generator
+  "Returns a function which generates a sequence of symbols with the given
+  prefix with the property that later symbols will sort after earlier symbols.
+  This is important for the stability of the simplifier. (If we just used
+  gensym, then a temporary symbol like G__1000 will sort earlier than G__999,
+  and this will happen at unpredictable times.)"
+  [prefix]
+
+  (let [count (atom 0)]
+    (fn [] (symbol (format "%s%016x" prefix (swap! count inc))))))
+
 (def ^:private poly-analyzer
-  (analyzer #(gensym "-s-") poly/expression-> poly/->expression poly/operators-known))
+  (analyzer (monotonic-symbol-generator "-s-")
+            poly/expression-> poly/->expression poly/operators-known))
 
 (def ^:private rational-function-analyzer
-  (analyzer #(gensym "-r-") rf/expression-> rf/->expression rf/operators-known))
+  (analyzer (monotonic-symbol-generator "-r-")
+            rf/expression-> rf/->expression rf/operators-known))
 
 ;;(def ^:private simplify-and-flatten rational-function-analyzer)
 (def ^:private simplify-and-flatten poly-analyzer)
