@@ -35,8 +35,7 @@
   ;; version of Clojure
   (fn [expr]
     (let [expr-map (atom (transient {}))]
-      (letfn [(analyze
-                [expr]
+      (letfn [(analyze [expr]
                 (if (and (sequential? expr)
                          (not (= (first expr) 'quote)))
                   (let [analyzed-expr (map analyze expr)]
@@ -48,8 +47,7 @@
                         existing-expr
                         (new-kernels analyzed-expr))))
                   expr))
-              (new-kernels
-                [expr]
+              (new-kernels [expr]
                 (let [simplified-expr (map base-simplify expr)]
                   (if-let [v (sym/symbolic-operator (sym/operator simplified-expr))]
                     (let [w (apply v (sym/operands simplified-expr))]
@@ -58,14 +56,12 @@
                         (add-symbols! w)
                         (analyze w)))
                     (add-symbols! simplified-expr))))
-              (add-symbols!
+              (add-symbols! [expr]
                 ;; doall is needed here because we need to have all the effects of
                 ;; add-symbol! accounted for strictly before the transient expr-map
                 ;; is made persistent in backsubstitute.
-                [expr]
-                (add-symbol! (doall (map add-symbol! expr))))
-              (add-symbol!
-                [expr]
+                (->> expr (map add-symbol!) doall add-symbol!))
+              (add-symbol! [expr]
                 (if (and (sequential? expr)
                          (not (= (first expr) 'quote)))
                   (if-let [existing-expr (@expr-map expr)]
@@ -74,9 +70,8 @@
                       (swap! expr-map assoc! expr newvar)
                       newvar))
                   expr))
-              (backsubstitute
+              (backsubstitute [expr]
                 ;; Finalize the expression map, invert it, and use it to perform the backsubstitution.
-                [expr]
                 (let [mapx (-> expr-map (swap! persistent!) invert-map)
                       bsub (fn bsub [v]
                              (cond (sequential? v) (map bsub v)
@@ -84,12 +79,8 @@
                                                  (if w (bsub w) v))
                                    :else v))]
                   (bsub expr)))
-              (base-simplify
-                [expr]
-                (expr-> expr ->expr))
-              (invert-map
-                [m]
-                (into {} (for [[k v] m] [v k])))
+              (base-simplify [expr] (expr-> expr ->expr))
+              (invert-map [m] (into {} (for [[k v] m] [v k])))
               ]
         (-> expr analyze base-simplify backsubstitute)))))
 
@@ -100,15 +91,17 @@
   gensym, then a temporary symbol like G__1000 will sort earlier than G__999,
   and this will happen at unpredictable times.)"
   [prefix]
-
-  (let [count (atom 0)]
+  (let [count (atom -1)]
     (fn [] (symbol (format "%s%016x" prefix (swap! count inc))))))
 
 (def ^:private poly-analyzer
+  "An analyzer capable of simplifying sums and products, but unable to
+  cancel across the fraction bar"
   (analyzer (monotonic-symbol-generator "-s-")
             poly/expression-> poly/->expression poly/operators-known))
 
 (def ^:private rational-function-analyzer
+  "WARNING! THIS IS NOT READY YET"
   (analyzer (monotonic-symbol-generator "-r-")
             rf/expression-> rf/->expression rf/operators-known))
 
@@ -148,16 +141,16 @@
 (def ^:private sincos-cleanup
   (let [at-least-two? #(and (number? %) (>= % 2))]
     (simplify-and-canonicalize
-      (rule/rule-simplifier
-        (rule/ruleset
-          (+ (:?? a1) (:? a) (:?? a2) (* (:?? b1) (expt (cos (:? x)) (:? n at-least-two?)) (:?? b2)) (:?? a3))
-          #(g/zero? (poly-analyzer `(~'+ (~'* ~@(% 'b1) ~@(% 'b2) (~'expt (~'cos ~(% 'x)) ~(- (% 'n) 2))) ~(% 'a))))
-          (+ (:?? a1) (:?? a2) (:?? a3) (* (:? a) (expt (sin (:? x)) 2)))
+     (rule/rule-simplifier
+      (rule/ruleset
+       (+ (:?? a1) (:? a) (:?? a2) (* (:?? b1) (expt (cos (:? x)) (:? n at-least-two?)) (:?? b2)) (:?? a3))
+       #(g/zero? (poly-analyzer `(~'+ (~'* ~@(% 'b1) ~@(% 'b2) (~'expt (~'cos ~(% 'x)) ~(- (% 'n) 2))) ~(% 'a))))
+       (+ (:?? a1) (:?? a2) (:?? a3) (* (:? a) (expt (sin (:? x)) 2)))
 
-          (+ (:?? a1) (* (:?? b1) (expt (cos (:? x)) (:? n at-least-two?)) (:?? b2)) (:?? a2) (:? a) (:?? a3))
-          #(g/zero? (poly-analyzer `(~'+ (~'* ~@(% 'b1) ~@(% 'b2) (~'expt (~'cos ~(% 'x)) ~(- (% 'n) 2))) ~(% 'a))))
-          (+ (:?? a1) (:?? a2) (:?? a3) (* (:? a) (expt (sin (:? x)) 2)))))
-      simplify-and-flatten)))
+       (+ (:?? a1) (* (:?? b1) (expt (cos (:? x)) (:? n at-least-two?)) (:?? b2)) (:?? a2) (:? a) (:?? a3))
+       #(g/zero? (poly-analyzer `(~'+ (~'* ~@(% 'b1) ~@(% 'b2) (~'expt (~'cos ~(% 'x)) ~(- (% 'n) 2))) ~(% 'a))))
+       (+ (:?? a1) (:?? a2) (:?? a3) (* (:? a) (expt (sin (:? x)) 2)))))
+     simplify-and-flatten)))
 
 (def ^:private simplify-expression-1
   #(-> %
