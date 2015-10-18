@@ -108,6 +108,18 @@
       (is (= '(+ (expt y 3) (* -11 (expt y 2)) (* 31 y) -22) (g/simplify (characteristic-polynomial C 'y))))
       (is ((v/within 1e-12) 0.0 (g/simplify (characteristic-polynomial A (g/divide (g/- 5 (g/sqrt 33)) 2))))))))
 
+(deftest native-clojure-things
+  (is (= "foo" (g/simplify "foo")))
+  (is (= '(2 3) (g/simplify '(2 3))))
+  (let [a (g/simplify [2 3])]
+    (is (= [2 3] a))
+    (is (vector? a)))
+  (is (= [] (g/simplify [])))
+  (is (= '[x y] (g/simplify '[x y])))
+  (let [a (g/simplify [(g/+ 'x 'x) (g/* 'y 'y)])]
+    (is (= '[(* 2 x) (expt y 2)] a))
+    (is (vector? a))))
+
 (deftest lagrange-equations-test
   (let [xy (s/up (f/literal-function 'x) (f/literal-function 'y))
         LE (((Lagrange-equations (L-central-rectangular 'm (f/literal-function 'U))) xy) 't)]
