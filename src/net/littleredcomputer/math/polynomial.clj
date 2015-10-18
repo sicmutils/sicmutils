@@ -36,7 +36,12 @@
   (unity? [p] (and (= (count (:xs->c p)) 1)
                    (let [[xs c] (first (:xs->c p))]
                      (and (every? zero? xs)
-                          (g/one? c))))))
+                          (g/one? c)))))
+  Object
+  (toString [_]
+    (clojure.string/join ";"
+                         (for [[k v] xs->c]
+                           (str v "*" (clojure.string/join "," k))))))
 
 (defn make
   "When called with two arguments, the first is the arity

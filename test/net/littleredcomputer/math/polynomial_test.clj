@@ -166,9 +166,6 @@
             V (reduce mul [x+4 x+3 x+3 x+3 x-2 x-2 x+1 x+1])
             W (reduce mul [x+4 x+3 x+3 x-2 x-2 x+1])
             Z (make [])]
-        (prn U)
-        (prn V)
-        (prn W)
         (is (= W (gcd U V)))
         (is (= W (gcd V U)))
         (is (= U (gcd U U)))

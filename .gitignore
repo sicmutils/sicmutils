@@ -1,4 +1,5 @@
 .#*
+/.vagrant
 /.idea
 math.iml
 /target
