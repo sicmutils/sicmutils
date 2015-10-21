@@ -62,12 +62,13 @@
          (cond (symbol? f) [:exactly 0]
                (fn? f) (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
                              ;; tally up arities of invoke, doInvoke, and getRequiredArity methods
+                             ^clojure.lang.RestFn rest-fn f
                              facts (group-by first
-                                             (for [m methods]
+                                             (for [^java.lang.reflect.Method m methods]
                                                (condp = (.getName m)
                                                  "invoke" [:invoke (alength (.getParameterTypes m))]
                                                  "doInvoke" [:doInvoke true]
-                                                 "getRequiredArity" [:getRequiredArity (.getRequiredArity f)])))]
+                                                 "getRequiredArity" [:getRequiredArity (.getRequiredArity rest-fn)])))]
                          (cond
                            ;; Rule one: if all we have is one single case of invoke, then the
                            ;; arity is the arity of that method. This is the common case.
