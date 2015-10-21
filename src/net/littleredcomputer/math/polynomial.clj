@@ -352,7 +352,7 @@
   [u v]
   (let [arity (check-same-arity u v)]
     (cond
-      (< arity 1) (throw (IllegalArgumentException. "illegal arity for polynomial GCD"))
+      (zero? arity) (make 0 [[[] (euclid/gcd (constant-term u) (constant-term v))]])
       (= arity 1) (gcd1 u v)
       (v/nullity? u) v
       (v/nullity? v) u

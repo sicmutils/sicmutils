@@ -154,6 +154,10 @@
         (is (= (make [2 3]) (reduce gcd (coefficients Q))))
         (is (= [(make 2 [[[1 1] 2] [[3 0] 3]]) (make 2 [])]
                (divide Q (make 2 [[[0 0] 2] [[0 1] 3]]))))))
+    (testing "GCD: arity 0 case"
+      (is (= (zap 3) (gcd (zap 12) (zap 15))))
+      (is (= (zap 1) (gcd (zap 7) (zap 11))))
+      (is (= (zap 5) (gcd (zap -15) (zap 20)))))
     (testing "GCD: arity 1 case"
       (let [x+1 (make [1 1])
             x+2 (make [2 1])
