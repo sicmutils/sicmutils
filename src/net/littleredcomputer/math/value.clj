@@ -47,7 +47,11 @@
   (exact? [o] (or (integer? o) (ratio? o)))
   (zero-like [_] 0)
   (one-like [_] 1)
-  (freeze [o] (cond (sequential? o) (map freeze o) (keyword? o) o :else o)) ;; WTF?
+  (freeze [o] (cond
+                (vector? o) (mapv freeze o)
+                (sequential? o) (map freeze o)
+                (keyword? o) o
+                :else o))
   (arity [o] (primitive-arity o))
   (kind [o] (primitive-kind o)))
 

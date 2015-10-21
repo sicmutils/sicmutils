@@ -98,8 +98,9 @@
   "Return a structure with the same shape as s but with f applied to
   each primitive (that is, not structural) component."
   [f ^Struct s]
-  (if (instance? Struct s) (Struct. (.orientation s) (mapv #(mapr f %) (.v s)))
-      (f s)))
+  (cond (instance? Struct s) (Struct. (.orientation s) (mapv #(mapr f %) (.v s)))
+        (vector? s) (mapv #(mapr f %) s)
+        :else (f s)))
 
 (defn structure-assoc-in
   "Like assoc-in, but works for structures. At this writing we're not

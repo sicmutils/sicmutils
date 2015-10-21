@@ -168,7 +168,10 @@
       (is (= (up 4) (mapr square S0)))
       (is (= (up 4 9) (mapr square S1)))
       (is (= (down (up 1 4) (up 9 16)) (mapr square S2)))
-      (is (= (up (down 1 4) (down 9 16)) (mapr square S3)))))
+      (is (= (up (down 1 4) (down 9 16)) (mapr square S3)))
+      (let [a (mapr square [2 3])]
+        (is (= [4 9] a))
+        (is (vector? a)))))
   (testing "a structure has a nth element"
     (is (= 5 (nth (up 4 5 6) 1)))
     (is (thrown? IndexOutOfBoundsException (nth (up 4 5 6) 4))))

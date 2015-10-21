@@ -97,17 +97,17 @@
     (Differential. tags->coefs)
     (->> tags->coefs
                                         ; force tag sequences into sorted set form
-        (map (fn [[tag-sequence coefficient]] [(into (sorted-set) tag-sequence) coefficient]))
+         (map (fn [[tag-sequence coefficient]] [(into (sorted-set) tag-sequence) coefficient]))
                                         ; group by canonicalized tag-set
-        (group-by tags)
+         (group-by tags)
                                         ; tag sets now map to [tag-set coefficient-list]. Sum the coefficients
                                         ; and produce the map of canonicalized tag-set to coefficient-sum
-        (map (fn [[tag-set coefficients]] [tag-set (reduce g/+ 0 (map coefficient coefficients))]))
+         (map (fn [[tag-set coefficients]] [tag-set (reduce g/+ 0 (map coefficient coefficients))]))
                                         ; drop tag-set:coefficient pairs where the coefficient is a zero object
-        (remove (fn [[_ coefficient]] (g/zero? coefficient)))
+         (remove (fn [[_ coefficient]] (g/zero? coefficient)))
                                         ; build the differential object
-        (into empty-differential)
-        Differential.)))
+         (into empty-differential)
+         Differential.)))
 
 (defn- differential->terms
   "Given a differential, returns the vector of DifferentialTerms
@@ -147,21 +147,21 @@
   (loop [dys dys
          result empty-differential]
     (if (nil? dys) result
-                   (let [y1 (first dys) y-tags (tags y1)]
-                     (recur (next dys)
-                            (if (empty? (set/intersection x-tags y-tags))
-                              (assoc result
-                                     (set/union x-tags y-tags)
-                                     (g/* x-coef (coefficient y1)))
-                              result))))))
+        (let [y1 (first dys) y-tags (tags y1)]
+          (recur (next dys)
+                 (if (empty? (set/intersection x-tags y-tags))
+                   (assoc result
+                          (set/union x-tags y-tags)
+                          (g/* x-coef (coefficient y1)))
+                   result))))))
 
 (defn- dxs*dys
   [as bs]
   (if (or (empty? as)
           (empty? bs)) {}
-                       (dxs+dys
-                         (dx*dys (first as) bs)
-                         (dxs*dys (next as) bs))))
+      (dxs+dys
+       (dx*dys (first as) bs)
+       (dxs*dys (next as) bs))))
 
 (defn dx+dy
   "Adds two objects differentially. (One of the objects might not be
@@ -184,15 +184,15 @@
   ;; warning: this is not quite what GJS dopes ...
   (Differential. (into empty-differential {(sorted-set) x (sorted-set dx) 1})))
 
-;(defn- hide-tag-in-procedure [& args] false) ; XXX
+                                        ;(defn- hide-tag-in-procedure [& args] false) ; XXX
 
 (defn- extract-dx-part [dx obj]
   (letfn [(extract
-            ;Collect all the terms of the differential in which
-            ;dx is a member of the term's tag set; drop that
-            ;tag from each set and return the differential formed
-            ;from what remains.
-            [obj]
+              ;; Collect all the terms of the differential in which
+              ;; dx is a member of the term's tag set; drop that
+              ;; tag from each set and return the differential formed
+              ;; from what remains.
+              [obj]
             (if (differential? obj)
               (->> obj :terms
                    (map (fn [[ts coef]] (if (ts dx) [(disj ts dx) coef])))
@@ -201,7 +201,7 @@
                    canonicalize-differential)
               0))
           (dist
-            [obj]
+              [obj]
             (cond (struct/structure? obj) (struct/mapr dist obj)
                   (o/operator? obj) (do (throw (IllegalArgumentException. "can't differentiate an operator yet"))
                                         (extract obj))           ;; TODO: tag-hiding
@@ -328,28 +328,26 @@
 
 (defn- euclidean-structure
   [selectors f]
-  (letfn [(structural-derivative
-            [g v]
+  (letfn [(structural-derivative [g v]
             (cond (struct/structure? v)
                   (struct/opposite v
                                    (map-indexed
-                                     (fn [i v_i]
-                                       (structural-derivative
-                                         (fn [w]
-                                           (g (struct/structure-assoc-in v [i] w)))
-                                         v_i))
-                                     v))
+                                    (fn [i v_i]
+                                      (structural-derivative
+                                       (fn [w]
+                                         (g (struct/structure-assoc-in v [i] w)))
+                                       v_i))
+                                    v))
                   (or (g/numerical-quantity? v) (g/abstract-quantity? v))
                   ((derivative g) v)
                   :else
                   (throw (IllegalArgumentException. (str "bad structure " g v)))))
-          (a-euclidean-derivative
-            [v]
+          (a-euclidean-derivative [v]
             (cond (struct/structure? v)
                   (structural-derivative
-                    (fn [w]
-                      (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
-                    (get-in v selectors))
+                   (fn [w]
+                     (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
+                   (get-in v selectors))
                   (empty? selectors)
                   ((derivative f) v)
                   :else

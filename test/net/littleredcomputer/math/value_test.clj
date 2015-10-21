@@ -34,6 +34,19 @@
         g (fn [y] (* y y))]
     (is (= [:exactly 1] (arity (comp f g))))))
 
+(deftest kinds
+  (is (= java.lang.Long (kind 1)))
+  (is (= java.lang.Double (kind 1.0)))
+  (is (= clojure.lang.PersistentVector (kind [1 2]))))
+
+(deftest argument-kinds
+  (let [L java.lang.Long
+        V clojure.lang.PersistentVector]
+    (is (= L (argument-kind 1)))
+    (is (= [L L L] (argument-kind 1 2 3)))
+    (is (= V (argument-kind [2 3])))
+    (is (= [V V] (argument-kind [1] [3 4])))))
+
 (deftest joint-arities
   (is (= [:exactly 1] (joint-arity [[:exactly 1] [:exactly 1]])))
   (is (= [:exactly 5] (joint-arity [[:exactly 5] [:exactly 5]])))
