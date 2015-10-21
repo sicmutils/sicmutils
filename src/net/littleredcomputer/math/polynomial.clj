@@ -179,7 +179,7 @@
   of arity indeterminates."
   [arity]
   (for [a (range arity)]
-    (make arity [[(vec (map #(if (= % a) 1 0) (range arity))) 1]])))
+    (make arity [[(mapv #(if (= % a) 1 0) (range arity)) 1]])))
 
 (def negate (partial poly-map g/negate))
 
@@ -235,7 +235,7 @@
                                   empty-coefficients
                                   (for [[xp cp] (:xs->c p)
                                         [xq cq] (:xs->c q)]
-                                    [(vec (map + xp xq)) (g/* cp cq)])))))))
+                                    [(mapv + xp xq) (g/* cp cq)])))))))
 
 (defn coefficients
   "Return the coefficients of p. These will themselves be polynomials,
@@ -249,7 +249,7 @@
          (group-by (comp first first))
          (map (fn [[_ cs]]
                 (make arity-1 (for [[xs c] cs]
-                                [(vec (rest xs)) c])))))))
+                                [(subvec xs 1) c])))))))
 
 (declare gcd)
 
@@ -370,8 +370,6 @@
                   pv (evenly-divide v (lift-arity kv))
                   __e (println "e")
                   d (lift-arity (gcd ku kv))]
-              (println "hello 2")
-
               (loop [u pu
                      v pv
                      k 0]
@@ -450,7 +448,7 @@
                        (reduce sym/mul 1 (map (fn [exponent var]
                                                 (sym/expt var exponent))
                                               xs vars))))
-            (->> p :xs->c (sort-by first #(graded-lex-order %2 %1)))))))
+            (->> p :xs->c (sort-by first #(monomial-order %2 %1)))))))
 
 ;; The operator-table represents the operations that can be understood
 ;; from the point of view of a polynomial over a commutative ring. The
