@@ -168,7 +168,7 @@
 
 (defn- arcsine
   [x]
-  `(asin ,x))
+  `(~'asin ,x))
 
 (defn- cosine [x]
   (when (number? x) (throw (IllegalArgumentException. "YIKES")))
@@ -186,7 +186,7 @@
 
 (defn- arccosine
   [x]
-  `(acos ,x))
+  `(~'acos ,x))
 
 (defn- tangent [x]
   (cond (number? x) (if (v/exact? x)

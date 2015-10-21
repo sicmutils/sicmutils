@@ -54,18 +54,27 @@
       (abstract-number? x)
       (v/numerical? x)))
 
-(defmacro define-operations
-  [& ops]
-  `(do ~@(map (fn [o] `(defmulti ~o v/argument-kind)) ops)))
-
-(define-operations
-  add sub mul div invert negate square cube expt
-  exp log abs sqrt
-  sin cos tan asin acos
-  partial-derivative
-  cross-product
-  simplify
-  )
+(defmulti add v/argument-kind)
+(defmulti mul v/argument-kind)
+(defmulti sub v/argument-kind)
+(defmulti div v/argument-kind)
+(defmulti invert v/argument-kind)
+(defmulti negate v/argument-kind)
+(defmulti square v/argument-kind)
+(defmulti cube v/argument-kind)
+(defmulti expt v/argument-kind)
+(defmulti exp v/argument-kind)
+(defmulti log v/argument-kind)
+(defmulti abs v/argument-kind)
+(defmulti sqrt v/argument-kind)
+(defmulti sin v/argument-kind)
+(defmulti cos v/argument-kind)
+(defmulti tan v/argument-kind)
+(defmulti asin v/argument-kind)
+(defmulti acos v/argument-kind)
+(defmulti partial-derivative v/argument-kind)
+(defmulti cross-product v/argument-kind)
+(defmulti simplify v/argument-kind)
 
 (defn- bin+ [a b]
   (cond (and (number? a) (number? b)) (+' a b)

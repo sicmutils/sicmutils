@@ -16,7 +16,7 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 
 (ns net.littleredcomputer.math.structure
-  (:import (clojure.lang Sequential Seqable IFn ILookup AFn Counted))
+  (:import (clojure.lang Sequential Seqable IFn ILookup AFn Counted PersistentVector))
   (:require [net.littleredcomputer.math
              [value :as v]
              [generic :as g]]))
@@ -309,7 +309,7 @@
 (defmethod g/cross-product [::up ::up] [a b] (cross-product a b))
 (derive ::up ::structure)
 (derive ::down ::structure)
-(derive clojure.lang.PersistentVector ::up)
+(derive PersistentVector ::up)
 (defmethod g/mul [::structure ::structure] [a b] (mul a b))
 (defmethod g/mul [::structure :net.littleredcomputer.math.expression/numerical-expression] [a b] (outer-product b a))
 (defmethod g/mul [:net.littleredcomputer.math.expression/numerical-expression ::structure] [a b] (outer-product a b))

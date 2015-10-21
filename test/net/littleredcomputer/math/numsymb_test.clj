@@ -63,9 +63,13 @@
     (is (near 1.0 (g/cos (* 2 Math/PI))))
     (is (= -1 (g/cos '-pi)))
     (is (= 0 (g/cos 'pi-over-2))))
-
   (testing "trig shortcuts - tan"
     (is (= 0.0 (g/tan 0)))
     (is (= 1 (g/tan 'pi-over-4)))
     (is (= -1 (g/tan '-pi-over-4)))
-    (is (thrown? IllegalArgumentException (g/tan 'pi-over-2)))))
+    (is (thrown? IllegalArgumentException (g/tan 'pi-over-2))))
+  (testing "misc trig"
+    (is (near (/ Math/PI 2) (g/asin 1)))
+    (is (near (/ Math/PI 2) (g/acos 0)))
+    (is (near (/ Math/PI 3) (g/acos 1/2)))
+    (is (near (/ Math/PI 6) (g/asin 0.5)))))

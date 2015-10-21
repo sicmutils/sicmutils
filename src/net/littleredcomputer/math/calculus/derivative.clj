@@ -371,8 +371,6 @@
                                            (struct/seq-> [w x y z]))) {:arity a})
           :else (throw (IllegalArgumentException. (str "Haven't implemented this yet: arity " a))))))
 
-(def ^:private not-compound? (complement v/compound?))
-
 ;; we note that: (D f) where f is a literal function returns
 ;; 'a-euclidean-derivative', which when applied to 'x gives
 ;; ((D f) x). So, we have to define D.

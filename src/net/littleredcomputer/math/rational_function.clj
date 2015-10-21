@@ -18,7 +18,6 @@
   (:require [clojure.set :as set]
             [net.littleredcomputer.math
              [expression :as x]
-             [generic :as g]
              [numsymb :as sym]
              [value :as v]
              [polynomial :as p]])

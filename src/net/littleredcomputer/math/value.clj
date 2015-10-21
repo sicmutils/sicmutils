@@ -16,7 +16,8 @@
 
 (ns net.littleredcomputer.math.value
   (:refer-clojure :rename {zero? core-zero?})
-  (:require [clojure.tools.logging :as log]))
+  (:import (clojure.lang RestFn MultiFn)
+           (java.lang.reflect Method)))
 
 (defprotocol Value
   (numerical? [this])
@@ -66,9 +67,9 @@
          (cond (symbol? f) [:exactly 0]
                (fn? f) (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
                              ;; tally up arities of invoke, doInvoke, and getRequiredArity methods
-                             ^clojure.lang.RestFn rest-fn f
+                             ^RestFn rest-fn f
                              facts (group-by first
-                                             (for [^java.lang.reflect.Method m methods]
+                                             (for [^Method m methods]
                                                (condp = (.getName m)
                                                  "invoke" [:invoke (alength (.getParameterTypes m))]
                                                  "doInvoke" [:doInvoke true]
@@ -123,7 +124,7 @@
 
 (defn- primitive-kind
   [a]
-  (if (or (fn? a) (= (class a) clojure.lang.MultiFn)) ::function (type a)))
+  (if (or (fn? a) (= (class a) MultiFn)) ::function (type a)))
 
 (defn argument-kind
   [a & as]
