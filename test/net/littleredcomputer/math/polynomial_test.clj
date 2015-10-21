@@ -200,9 +200,9 @@
             G (reduce mul [(expt X+1 II) (expt X+Y II) (expt Y+1 III)])]
         (is (= X+Y_2 (gcd X+Y_2 X+Y_3)))
         (is (= X+Y_3 (gcd X+Y_3 X+Y_3)))
-        #_(is (= G (gcd U V)))))
+        (is (= G (gcd U V)))))
 
-    #_(testing "GCD: arity 3 case"
+    (testing "GCD: arity 3 case"
       (let [I (make 3 [[[0 0 0] 1]])
             II (make 3 [[[0 0 0] 2]])
             III (make 3 [[[0 0 0] 3]])
@@ -221,42 +221,25 @@
             U (reduce mul [(expt X+1 III) (expt X+Y II) (expt Y+Z V)  (expt X+Y+Z IV) (expt Y+1 IV) (expt Z+1 III)])
             V (reduce mul [(expt X+1 II)  (expt X+Y V)  (expt Y+Z III) (expt X+Y+Z V) (expt Y+1 II) (expt Z+1 I) X+1])
             G (reduce mul [(expt X+1 II) (expt X+Y II) (expt Y+Z III) (expt X+Y+Z IV) (expt Y+1 II) Z+1])]
-        (println "U/G:" (divide U G))
-        (println "V/G:" (divide V G))
+        (println "U/G:" (str (divide U G)))
+        (println "V/G:" (str (divide V G)))
         (is (= [(reduce mul [X+1 (expt Y+Z II) (expt Y+1 II) (expt Z+1 II)]) (make 3 [])] (divide U G)))
         (is (= [(reduce mul [(expt X+Y III) X+Y+Z X+1]) (make 3 [])] (divide V G)))
-        (is (= 'foo (divide U V {:pseudo true})))
-        (is (= 'bar (divide V U {:pseudo true})))
-
+        #_(is (= 'foo (divide U V {:pseudo true})))
+        #_(is (= 'bar (divide V U {:pseudo true})))
         #_(is (= G (gcd U V)))
         ))
-    #_(testing "content"
-      (is (= (make []) (content (make []))))
-      (is (= (make [3]) (content (make [3]))))
-      (is (= (make [1]) (content u)))
-      (is (= (make [1]) (content v)))
-      (is (= (make [3]) (content w)))
-      (is (= (make [0 1]) (content x)))
-      (is (= (make [0 1]) (content (add x xx))))
-      (is (= (make [0 0 1]) (content (add xx xxx))))
-      (is (= XY (content XXY+XYY)))
-      (is (= (zap 5) (content (zap 4)))))
     (testing "division of zero arity polynomials (do we care?)"
       (let [o (zap 0)
             iii (zap 3)
             vii (zap 7)
             xiv (zap 14)
             xxi (zap 21)]
-        ;;(is (= (make 0 [[[] 7]]) (gcd xiv xxi)))
         (is (= [iii o] (divide xxi vii))))
       (is (= [(make 2 []) X] (divide X Y)))
       (is (= [(make 2 []) X 1] (divide X Y {:pseudo true})))
       (is (= [(make 2 []) Y] (divide Y X)))
-      (is (= [(make 2 []) Y 1] (divide Y X {:pseudo true})))
-      ;;(is (= 'foo (gcd x↑2y xy↑2)))
-      ;;(is (= 'foo (gcd x y)))
-
-      )))
+      (is (= [(make 2 []) Y 1] (divide Y X {:pseudo true}))))))
 
 (deftest gjs
   (testing "GJS cases (see sparse-gcd.scm:666)"
@@ -282,7 +265,7 @@
        (println "DG" (str dg))
        (println "DG/DF" (map str (divide dg df {:pseudo true})))
        (println "DF/DF" (map str (divide df dg {:psuedo true})))
-       #_(println "GCD" (str (gcd dg df))))
+       (println "GCD" (str (gcd dg df))))
 
      #_(gcd-test d2 f2 g2)
      )))

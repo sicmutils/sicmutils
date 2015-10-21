@@ -351,7 +351,6 @@
   "Knuth's algorithm 4.6.1E. Delegates to gcd1 for univariate polynomials."
   [u v]
   (let [arity (check-same-arity u v)]
-    (println "hello arity" arity)
     (cond
       (< arity 1) (throw (IllegalArgumentException. "illegal arity for polynomial GCD"))
       (= arity 1) (gcd1 u v)
