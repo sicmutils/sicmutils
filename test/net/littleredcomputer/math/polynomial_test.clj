@@ -110,8 +110,15 @@
       (is (= (make []) (add P P)))
       (is (= (make [x0 x0 x1]) (add P (make [1]))))))
   (testing "monomial order"
-    (is (= [[2 0 2] [1 2 1] [3 0 0] [0 0 2]]
-           (sort-by identity graded-reverse-lex-order [  [0 0 2] [3 0 0][2 0 2] [1 2 1]])))))
+    (let [x3 [3 0 0]
+          x2z2 [2 0 2]
+          xy2z [1 2 1]
+          z2 [0 0 2]
+          monomials [x3 x2z2 xy2z z2]
+          monomial-sort #(sort-by identity % monomials)]
+      (is (= [z2 xy2z x2z2 x3] (monomial-sort lex-order)))
+      (is (= [z2 x3 x2z2 xy2z] (monomial-sort graded-reverse-lex-order)))
+      (is (= [z2 x3 xy2z x2z2] (monomial-sort graded-lex-order))))))
 
 (deftest poly-gcd
   (let [zap #(make 0 [[[] %]])  ;; zero-arity polynomial
@@ -295,6 +302,24 @@
       (is (= [(make [-3 -2 1]) '(x)] (expression-> exp1 receive)))
       (is (= [(make [1 5 10 10 5 1]) '(y)] (expression-> exp2 receive)))
       (is (= [(make [0 -11 5 -30 10 -7 1]) '(y)] (expression-> exp3 receive)))))
+  (testing "monomial order"
+    (let [poly-simp #(expression-> (:expression %) ->expression)]
+      (is (= '(+ (expt x 2) x 1) (poly-simp (g/+ 'x (g/expt 'x 2) 1))))
+      (is (= '(+ (expt x 4) (* 4 (expt x 3)) (* 6 (expt x 2)) (* 4 x) 1) (poly-simp (g/expt (g/+ 1 'x) 4))))
+      (is (= '(+
+               (expt x 4)
+               (* 4 (expt x 3) y)
+               (* 6 (expt x 2) (expt y 2))
+               (* 4 x (expt y 3))
+               (expt y 4))
+             (poly-simp (g/expt (g/+ 'x 'y) 4))))
+      (is (= '(+
+               (expt x 4)
+               (* 4 (expt x 3) y)
+               (* 6 (expt x 2) (expt y 2))
+               (* 4 x (expt y 3))
+               (expt y 4))
+             (poly-simp (g/expt (g/+ 'y 'x) 4))))))
   (testing "expr-simplify"
     (let [poly-simp #(expression-> % ->expression)
           exp1 (:expression (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))

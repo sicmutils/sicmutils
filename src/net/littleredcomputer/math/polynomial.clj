@@ -44,21 +44,53 @@
                          (for [[k v] xs->c]
                            (str v "*" (clojure.string/join "," k))))))
 
-(defn graded-reverse-lex-order
-  "An ordering on monomials. X < Y if X has higher total degree than
-  Y. In case of ties, X < Y if Y < X lexicographically.  This is
-  intended, when used as the comparator in an ascending sort, to
-  produce an ordering like: x^2 + xy + y^2 + x + y + 1, when the
-  monomials are sorted in ascending order."
-  [xs ys]
-  (let [deg #(reduce + %)
-        xd (deg xs)
-        yd (deg ys)]
-    (cond (> xd yd) -1
-          (< xd yd) 1
-          :else (compare ys xs))))
+;; Monomials
+;;
+;; We represent a monomial as a vector of integers representing
+;; the exponents of the indeterminates over some ring. For example;
+;; we would represent x^2 as [2], and xy^2 as [1 2], though the
+;; indeterminates have no name. Polynomials are linear combinations
+;; of the monomials. When these are formed, it is important that the
+;; monomial vectors all contain the same number of slots, so that
+;; 3x + 2y^2 would be represented as: 3*[1 0] + 2*[0 2].
 
-;;(def ^:private empty-coefficients (sorted-map-by #(graded-reverse-lex-order %2 %1)))
+(defn ^:private monomial-degree
+  "Compute the degree of a monomial. This is just the sum of the exponents."
+  [m]
+  (reduce + m))
+
+;; Monomial Orderings
+;;
+;; These orderings are in the sense of Java: x.compareTo(y), so that
+;; this returns 1 if x > y, -1 if x < y, and 0 if x = y.
+
+(defn lex-order
+  "Lex order for monomials considers the power of x, then the power of y, etc."
+  [xs ys]
+  {:pre (= (count xs) (count ys))}
+  (compare xs ys))
+
+(defn graded-lex-order
+  ""
+  [xs ys]
+  {:pre (= (count xs) (count ys))}
+  (let [xd (monomial-degree xs)
+        yd (monomial-degree ys)]
+    (cond (> xd yd) 1
+          (< xd yd) -1
+          :else (lex-order xs ys))))
+
+(defn graded-reverse-lex-order
+  ""
+  [xs ys]
+  {:pre (= (count xs) (count ys))}
+  (let [xd (monomial-degree xs)
+        yd (monomial-degree ys)]
+    (cond (> xd yd) 1
+          (< xd yd) -1
+          :else (compare (vec (rseq ys)) (vec (rseq xs))))))
+
+;(def ^:private empty-coefficients (sorted-map-by compare))
 ;; question: why do things not work when we use graded order? probably because we
 ;; don't have the "fit" relationship for division... but our division seems too
 ;; strict anyway.
@@ -423,7 +455,7 @@
                        (reduce sym/mul 1 (map (fn [exponent var]
                                                 (sym/expt var exponent))
                                               xs vars))))
-            (->> p :xs->c (sort-by first graded-reverse-lex-order))))))
+            (->> p :xs->c (sort-by first #(graded-lex-order %2 %1)))))))
 
 ;; The operator-table represents the operations that can be understood
 ;; from the point of view of a polynomial over a commutative ring. The
