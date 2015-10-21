@@ -90,12 +90,8 @@
           (< xd yd) -1
           :else (compare (vec (rseq ys)) (vec (rseq xs))))))
 
-;(def ^:private empty-coefficients (sorted-map-by compare))
-;; question: why do things not work when we use graded order? probably because we
-;; don't have the "fit" relationship for division... but our division seems too
-;; strict anyway.
-
-(def ^:private empty-coefficients (sorted-map))
+(def ^:private monomial-order graded-lex-order)
+(def ^:private empty-coefficients (sorted-map-by monomial-order))
 
 (defn make
   "When called with two arguments, the first is the arity
@@ -168,7 +164,7 @@
                                :when (not (g/zero? c1))] [xs c1]))
       :else (let [[xp cp] (first P)
                   [xq cq] (first Q)
-                  order (compare xp xq)]
+                  order (monomial-order xp xq)]
               (cond
                 (zero? order) (let [v (f cp cq)]
                                 (recur (rest P) (rest Q)
