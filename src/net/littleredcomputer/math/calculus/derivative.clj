@@ -1,18 +1,20 @@
-;; Copyright (C) 2015 Colin Smith.
-;; This work is based on the Scmutils system of MIT/GNU Scheme.
-;;
-;; This is free software;  you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3 of the License, or (at
-;; your option) any later version.
-
-;; This software is distributed in the hope that it will be useful, but
-;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
-
-;; You should have received a copy of the GNU General Public License
-;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;
+; Copyright (C) 2015 Colin Smith.
+; This work is based on the Scmutils system of MIT/GNU Scheme.
+;
+; This is free software;  you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation; either version 3 of the License, or (at
+; your option) any later version.
+;
+; This software is distributed in the hope that it will be useful, but
+; WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+; General Public License for more details.
+;
+; You should have received a copy of the GNU General Public License
+; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;
 
 (ns net.littleredcomputer.math.calculus.derivative
   (:require [net.littleredcomputer.math
@@ -35,7 +37,7 @@
 (defrecord Differential [terms]
   v/Value
   (nullity? [_] (every? g/zero? (map coefficient terms)))
-  (unity? [_] false) ;; XXX! this needs to be fixed
+  (unity? [_] false)                                        ;; XXX! this needs to be fixed
   (zero-like [_] 0)
   (exact? [_] false)
   (compound? [_] false)
@@ -61,12 +63,12 @@
   [xs ys]
   (let [cc (compare (count xs) (count ys))]
     (if (not= 0 cc) cc
-        (loop [xs xs ys ys]
-          (if (nil? xs) 0
-              (let [c (compare (first xs) (first ys))]
-                (if (zero? c)
-                  (recur (next xs) (next ys))
-                  c)))))))
+                    (loop [xs xs ys ys]
+                      (if (nil? xs) 0
+                                    (let [c (compare (first xs) (first ys))]
+                                      (if (zero? c)
+                                        (recur (next xs) (next ys))
+                                        c)))))))
 
 (def ^:private empty-differential (sorted-map-by sorted-set-compare))
 (def ^:private empty-tags (sorted-set))
@@ -96,16 +98,16 @@
   (if (and (sorted? tags->coefs) (map? tags->coefs))
     (Differential. tags->coefs)
     (->> tags->coefs
-                                        ; force tag sequences into sorted set form
+         ; force tag sequences into sorted set form
          (map (fn [[tag-sequence coefficient]] [(into (sorted-set) tag-sequence) coefficient]))
-                                        ; group by canonicalized tag-set
+         ; group by canonicalized tag-set
          (group-by tags)
-                                        ; tag sets now map to [tag-set coefficient-list]. Sum the coefficients
-                                        ; and produce the map of canonicalized tag-set to coefficient-sum
+         ; tag sets now map to [tag-set coefficient-list]. Sum the coefficients
+         ; and produce the map of canonicalized tag-set to coefficient-sum
          (map (fn [[tag-set coefficients]] [tag-set (reduce g/+ 0 (map coefficient coefficients))]))
-                                        ; drop tag-set:coefficient pairs where the coefficient is a zero object
+         ; drop tag-set:coefficient pairs where the coefficient is a zero object
          (remove (fn [[_ coefficient]] (g/zero? coefficient)))
-                                        ; build the differential object
+         ; build the differential object
          (into empty-differential)
          Differential.)))
 
@@ -147,21 +149,21 @@
   (loop [dys dys
          result empty-differential]
     (if (nil? dys) result
-        (let [y1 (first dys) y-tags (tags y1)]
-          (recur (next dys)
-                 (if (empty? (set/intersection x-tags y-tags))
-                   (assoc result
-                          (set/union x-tags y-tags)
-                          (g/* x-coef (coefficient y1)))
-                   result))))))
+                   (let [y1 (first dys) y-tags (tags y1)]
+                     (recur (next dys)
+                            (if (empty? (set/intersection x-tags y-tags))
+                              (assoc result
+                                (set/union x-tags y-tags)
+                                (g/* x-coef (coefficient y1)))
+                              result))))))
 
 (defn- dxs*dys
   [as bs]
   (if (or (empty? as)
           (empty? bs)) {}
-      (dxs+dys
-       (dx*dys (first as) bs)
-       (dxs*dys (next as) bs))))
+                       (dxs+dys
+                         (dx*dys (first as) bs)
+                         (dxs*dys (next as) bs))))
 
 (defn dx+dy
   "Adds two objects differentially. (One of the objects might not be
@@ -169,11 +171,11 @@
   before the addition.)"
   [a b]
   (make-differential
-   (dxs+dys (differential->terms a) (differential->terms b))))
+    (dxs+dys (differential->terms a) (differential->terms b))))
 
 (defn dx*dy [a b]
   (make-differential
-   (dxs*dys (differential->terms a) (differential->terms b))))
+    (dxs*dys (differential->terms a) (differential->terms b))))
 
 (defonce ^:private next-differential-tag (atom 0))
 
@@ -184,15 +186,15 @@
   ;; warning: this is not quite what GJS dopes ...
   (Differential. (into empty-differential {(sorted-set) x (sorted-set dx) 1})))
 
-                                        ;(defn- hide-tag-in-procedure [& args] false) ; XXX
+;(defn- hide-tag-in-procedure [& args] false) ; XXX
 
 (defn- extract-dx-part [dx obj]
   (letfn [(extract
-              ;; Collect all the terms of the differential in which
-              ;; dx is a member of the term's tag set; drop that
-              ;; tag from each set and return the differential formed
-              ;; from what remains.
-              [obj]
+            ;; Collect all the terms of the differential in which
+            ;; dx is a member of the term's tag set; drop that
+            ;; tag from each set and return the differential formed
+            ;; from what remains.
+            [obj]
             (if (differential? obj)
               (->> obj :terms
                    (map (fn [[ts coef]] (if (ts dx) [(disj ts dx) coef])))
@@ -201,10 +203,10 @@
                    canonicalize-differential)
               0))
           (dist
-              [obj]
+            [obj]
             (cond (struct/structure? obj) (struct/mapr dist obj)
                   (o/operator? obj) (do (throw (IllegalArgumentException. "can't differentiate an operator yet"))
-                                        (extract obj))           ;; TODO: tag-hiding
+                                        (extract obj))      ;; TODO: tag-hiding
                   ;; (matrix? obj) (m:elementwise dist obj) XXX
                   ;; (quaternion? obj) XXX
                   ;; (series? obj) XXX
@@ -215,7 +217,7 @@
                   ;;                              obj)))
                   ;; note: we had ifn? here, but this is bad, since symbols and
                   ;; keywords implement IFn.
-                  (fn? obj) #(-> % obj dist)  ;; TODO: innocent of the tag-hiding business
+                  (fn? obj) #(-> % obj dist)                ;; TODO: innocent of the tag-hiding business
                   :else (extract obj)))]
     (dist obj)))
 
@@ -232,7 +234,7 @@
   (if (differential? x)
     (let [dts (differential->terms x)
           keytag (-> dts last first last)
-          {finite-part false
+          {finite-part        false
            infinitesimal-part true} (group-by #(-> % tags (contains? keytag)) dts)]
       ;; if the input differential was well-formed, then it is safe to
       ;; construct differential objects on the split parts.
@@ -246,9 +248,9 @@
     (let [[finite-part infinitesimal-part] (finite-and-infinitesimal-parts x)
           canonicalized-finite-part (canonicalize-differential finite-part)]
       (canonicalize-differential
-       (dx+dy (f canonicalized-finite-part)
-              (dx*dy (df:dx canonicalized-finite-part)
-                     infinitesimal-part))))))
+        (dx+dy (f canonicalized-finite-part)
+               (dx*dy (df:dx canonicalized-finite-part)
+                      infinitesimal-part))))))
 
 ;; (defn max-order-tag [& ds]
 ;;   (last (apply set/union (map #(-> % differential->terms last :tags) ds))))
@@ -302,20 +304,20 @@
       (canonicalize-differential c))))
 
 
-(def ^:private diff-+    (binary-op g/+ (constantly 1) (constantly 1) :plus))
-(def ^:private diff--    (binary-op g/- (constantly 1) (constantly -1) :minus))
-(def ^:private diff-*    (binary-op g/* (fn [_ y] y) (fn [x _] x) :times))
-(def ^:private diff-div  (binary-op g/divide
-                                    (fn [_ y] (g/divide 1 y))
-                                    (fn [x y] (g/negate (g/divide x (g/square y)))) :divide))
-(def ^:private sine      (unary-op g/sin g/cos))
-(def ^:private arcsine   (unary-op g/asin #(->> % g/square (g/- 1) g/sqrt (g/divide 1))))
-(def ^:private cosine    (unary-op g/cos #(-> % g/sin g/negate)))
+(def ^:private diff-+ (binary-op g/+ (constantly 1) (constantly 1) :plus))
+(def ^:private diff-- (binary-op g/- (constantly 1) (constantly -1) :minus))
+(def ^:private diff-* (binary-op g/* (fn [_ y] y) (fn [x _] x) :times))
+(def ^:private diff-div (binary-op g/divide
+                                   (fn [_ y] (g/divide 1 y))
+                                   (fn [x y] (g/negate (g/divide x (g/square y)))) :divide))
+(def ^:private sine (unary-op g/sin g/cos))
+(def ^:private arcsine (unary-op g/asin #(->> % g/square (g/- 1) g/sqrt (g/divide 1))))
+(def ^:private cosine (unary-op g/cos #(-> % g/sin g/negate)))
 (def ^:private arccosine (unary-op g/acos #(->> % g/square (g/- 1) g/sqrt (g/divide 1) (g/* -1))))
-(def ^:private tangent  (unary-op g/tan #(-> % g/cos g/square g/invert)))
-(def ^:private sqrt     (unary-op g/sqrt #(-> % g/sqrt (g/* 2) g/invert)))
-(def ^:private exp      (unary-op g/exp g/exp))
-(def ^:private negate   (unary-op g/negate (constantly -1)))
+(def ^:private tangent (unary-op g/tan #(-> % g/cos g/square g/invert)))
+(def ^:private sqrt (unary-op g/sqrt #(-> % g/sqrt (g/* 2) g/invert)))
+(def ^:private exp (unary-op g/exp g/exp))
+(def ^:private negate (unary-op g/negate (constantly -1)))
 (def ^:private power
   (binary-op g/expt
              (fn [x y]
@@ -329,29 +331,29 @@
 (defn- euclidean-structure
   [selectors f]
   (letfn [(structural-derivative [g v]
-            (cond (struct/structure? v)
-                  (struct/opposite v
-                                   (map-indexed
-                                    (fn [i v_i]
-                                      (structural-derivative
-                                       (fn [w]
-                                         (g (struct/structure-assoc-in v [i] w)))
-                                       v_i))
-                                    v))
-                  (or (g/numerical-quantity? v) (g/abstract-quantity? v))
-                  ((derivative g) v)
-                  :else
-                  (throw (IllegalArgumentException. (str "bad structure " g v)))))
+                                 (cond (struct/structure? v)
+                                       (struct/opposite v
+                                                        (map-indexed
+                                                          (fn [i v_i]
+                                                            (structural-derivative
+                                                              (fn [w]
+                                                                (g (struct/structure-assoc-in v [i] w)))
+                                                              v_i))
+                                                          v))
+                                       (or (g/numerical-quantity? v) (g/abstract-quantity? v))
+                                       ((derivative g) v)
+                                       :else
+                                       (throw (IllegalArgumentException. (str "bad structure " g v)))))
           (a-euclidean-derivative [v]
-            (cond (struct/structure? v)
-                  (structural-derivative
-                   (fn [w]
-                     (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
-                   (get-in v selectors))
-                  (empty? selectors)
-                  ((derivative f) v)
-                  :else
-                  (throw (IllegalArgumentException. (str "Bad selectors " f selectors v)))))]
+                                  (cond (struct/structure? v)
+                                        (structural-derivative
+                                          (fn [w]
+                                            (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
+                                          (get-in v selectors))
+                                        (empty? selectors)
+                                        ((derivative f) v)
+                                        :else
+                                        (throw (IllegalArgumentException. (str "Bad selectors " f selectors v)))))]
     a-euclidean-derivative))
 
 (defn- multivariate-derivative
@@ -362,13 +364,13 @@
           (= a [:exactly 1]) (with-meta (d f) {:arity a})
           (= a [:exactly 2]) (with-meta (fn [x y]
                                           ((d (fn [[x y]] (f x y)))
-                                           (struct/seq-> [x y]))) {:arity a})
+                                            (struct/seq-> [x y]))) {:arity a})
           (= a [:exactly 3]) (with-meta (fn [x y z]
                                           ((d (fn [[x y z]] (f x y z)))
-                                           (struct/seq-> [x y z]))) {:arity a})
+                                            (struct/seq-> [x y z]))) {:arity a})
           (= a [:exactly 4]) (with-meta (fn [w x y z]
                                           ((d (fn [[w x y z]] (f w x y z)))
-                                           (struct/seq-> [w x y z]))) {:arity a})
+                                            (struct/seq-> [w x y z]))) {:arity a})
           :else (throw (IllegalArgumentException. (str "Haven't implemented this yet: arity " a))))))
 
 ;; we note that: (D f) where f is a literal function returns
