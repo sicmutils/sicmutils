@@ -34,9 +34,9 @@
   shape), and returns an integrator, which is a function of several
   arguments: the initial state, an intermediate-state observation
   function, the step size desired, the final time to seek, and an
-  error tolerance. If the observation function is not nil, it will be
+  error tolerance. If the observe function is not nil, it will be
   invoked with the time as first argument and integrated state as the
-  second."
+  second, at each intermediate step."
   [state-derivative derivative-args]
   (fn [initial-state observe step-size t ε & [{:keys [compile]}]]
     (let [total-time (Stopwatch/createStarted)
@@ -51,9 +51,6 @@
                             #(-> % array->state d:dt)))
           dimension (alength initial-state-array)
           integrator (GraggBulirschStoerIntegrator. 0. 1. (double ε) (double ε))
-          ;; where we left off: we probably shouldn't let the constants
-          ;; "inside" the differentiator. They don't belong there and
-          ;; are causing problems.
           equations (proxy [FirstOrderDifferentialEquations] []
                       (computeDerivatives [_ ^doubles y ^doubles out]
                         (.start evaluation-time)

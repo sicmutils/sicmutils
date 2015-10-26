@@ -45,7 +45,7 @@
   Value
   (numerical? [_] false)
   (nullity? [_] false)
-  (unity? [_] false)
+  (unity? [o] (when (number? o) (== o 1)))
   (compound? [_] false)
   (exact? [o] (or (integer? o) (ratio? o)))
   (zero-like [_] 0)

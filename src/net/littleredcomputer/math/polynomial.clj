@@ -27,7 +27,7 @@
              [numsymb :as sym]
              [expression :as x]]))
 
-(declare operator-table operators-known)
+(declare operator-table operators-known make-constant)
 (def coefficient second)
 (def exponents first)
 
@@ -36,15 +36,19 @@
   (nullity? [_] (empty? xs->c))
   (numerical? [_] false)
   (zero-like [_] (Polynomial. arity {}))
+  (one-like [_] (make-constant arity (v/one-like (coefficient (first xs->c)))))
   (unity? [_] (and (= (count xs->c) 1)
                    (let [[xs c] (first xs->c)]
                      (and (every? zero? xs)
-                          (g/one? c)))))
+                          (v/unity? c)))))
+  (kind [_] ::polynomial)
   Object
   (toString [_]
-    (clojure.string/join ";"
-                         (for [[k v] xs->c]
-                           (str v "*" (clojure.string/join "," k))))))
+    (str "("
+         (clojure.string/join ";"
+                          (for [[k v] xs->c]
+                            (str v "*" (clojure.string/join "," k))))
+         ")")))
 
 ;; Monomials
 ;;
@@ -239,27 +243,37 @@
                                         [xq cq] (:xs->c q)]
                                     [(mapv + xp xq) (g/* cp cq)])))))))
 
-(defn coefficients
-  "Return the coefficients of p. These will themselves be polynomials,
-  of arity one less than that given. The coefficients of a zero-arity
-  polynomial do not exist; an exception is thrown in that case."
-  [{:keys [arity xs->c]}]
-  (when (< arity 1)
-    (throw (IllegalArgumentException. "To have coefficients a polynomial must have arity > 0")))
-  (let [arity-1 (dec arity)]
-    (->> xs->c
-         (group-by (comp first first))
-         (map (fn [[_ cs]]
-                (make arity-1 (for [[xs c] cs]
-                                [(subvec xs 1) c])))))))
-
-(declare gcd)
-
 (defn- lead-term
   "Return the leading (i.e., highest degree) term of the polynomial
   p. The return value is [exponents coefficient]."
   [p]
   (-> p :xs->c rseq first))
+
+(defn lower-arity
+  "Given a polynomial of arity A > 1, return an equivalent polynomial
+  of arity 1 whose coefficients are polynomials of arity A-1."
+  [p]
+  {:pre [(instance? Polynomial p)
+         (> (:arity p) 1)]}
+  (let [A (:arity p)]
+    (->> p
+         :xs->c
+         (group-by #(-> % exponents first))
+         (map (fn [[x cs]]
+                [[x] (make (dec A) (for [[xs c] cs]
+                                     [(subvec xs 1) c]))]))
+         (make 1))))
+
+(defn raise-arity
+  [p]
+  {:pre [(instance? Polynomial p)
+         (= (:arity p) 1)]}
+  (let [terms (for [[x q] (:xs->c p)
+                    [ys c] (:xs->c q)]
+                [(into x ys) c])]
+    (make (inc (:arity (coefficient (lead-term p)))) terms)))
+
+(declare gcd)
 
 (defn divide
   "Divide polynomial u by v, and return the pair of [quotient, remainder]
@@ -276,6 +290,8 @@
   how many times the integerizing multiplication will be done, we also return
   the number m for which m * u = q * v + r."
   [u v & [{:keys [pseudo]}]]
+  {:pre [(instance? Polynomial u)
+         (instance? Polynomial v)]}
   (let [[q r m] (let [arity (check-same-arity u v)
                       [vn-exponents vn-coefficient] (lead-term v)
                       *vn (fn [p] (poly-map #(g/* % vn-coefficient) p))]
@@ -300,12 +316,20 @@
                                             (filter (fn [[residues _]]
                                                       (and (not-empty residues)
                                                            (every? (complement neg?) residues)))))]
+                        ;; where we left off: g/divide is returning an array of [quotient, remainder]
+                        ;; so maybe we should try evenly-divide here for the generic op.
+                        ;; Maybe we want to special-case polynomials here. Maybe what we want is
+                        ;; a pseudo-division. I can't shake the feeling at this point that
+                        ;; we maybe shouldn't even be here. Or, that if we recurse on division,
+                        ;; we should carry the psuedo field along. g/divide seems to be
+                        ;; where it all goes wrong so we should be careful with the definition
+                        ;; of that.
                         (if-let [[residues c] (first good-terms)]
                           (let [new-coefficient (g/divide c vn-coefficient)
                                 new-term (make arity [[(vec residues) new-coefficient]])]
                             (recur (add (if pseudo (*vn quotient) quotient) new-term)
                                    (sub remainder' (mul new-term v))
-                                   (if pseudo (*' multiplier vn-coefficient) multiplier)))
+                                   (if pseudo (g/* multiplier vn-coefficient) multiplier)))
                           [quotient remainder multiplier])))))]
     (if pseudo [q r m] [q r])))
 
@@ -313,85 +337,76 @@
   "Divides the polynomial u by the polynomial v. Throws an IllegalStateException
   if the division leaves a remainder. Otherwise returns the quotient."
   [u v]
+  {:pre [(instance? Polynomial u)
+         (instance? Polynomial v)]}
   (let [[q r] (divide u v)]
     (when-not (v/nullity? r)
-      (throw (IllegalStateException. "expected even division left a remainder!")))
+      (throw (IllegalStateException. (str "expected even division left a remainder!" u " / " v " r " r))))
     q))
 
 (defn ^:private gcd1
-  [u v]
   "Knuth's algorithm 4.6.1E for UNIVARIATE polynomials."
-  (let [arity (check-same-arity u v)]
-    (cond
-      (not= arity 1) (throw (IllegalArgumentException. "gcd1 only handles arity 1"))
-      (v/nullity? u) v
-      (v/nullity? v) u
-      :else (let [content1 #(->> % coefficients (map constant-term) (reduce euclid/gcd))
-                  attach-content1 (fn [p c] (poly-map #(g/* c %) p))
-                  divide-coefs (fn [p c] (poly-map #(g/divide % c) p))
-                  ku (content1 u)
-                  kv (content1 v)
-                  pu (divide-coefs u ku)   ;; this is a univariate assumption. can it be fixed?
-                  pv (divide-coefs v kv)
-                  d (euclid/gcd ku kv)            ;; ditto
-                  ]
-              (loop [u pu
-                     v pv]
-                (let [[_ r _] (divide u v {:pseudo true})]
-                  (cond (v/nullity? r)
-                        (if (< (second (lead-term v)) 0)
-                          (attach-content1 (negate v) d)
-                          (attach-content1 v d))
+  [u v]
+  {:pre [(instance? Polynomial u)
+         (instance? Polynomial v)
+         (= (:arity u) 1)
+         (= (:arity v) 1)]}
+  (cond
+    (v/nullity? u) v
+    (v/nullity? v) u
+    :else (let [content1 #(->> % :xs->c vals (reduce euclid/gcd))
+                attach-content1 (fn [p c] (poly-map #(g/* c %) p))
+                divide-coefs (fn [p c] (poly-map #(g/divide % c) p))
+                ku (content1 u)
+                kv (content1 v)
+                pu (divide-coefs u ku)
+                pv (divide-coefs v kv)
+                d (euclid/gcd ku kv)]
+            (loop [u pu
+                   v pv]
+              (let [[_ r _] (divide u v {:pseudo true})]
+                (cond (v/nullity? r)
+                      (if (< (coefficient (lead-term v)) 0)
+                        (attach-content1 (negate v) d)
+                        (attach-content1 v d))
 
-                        (zero? (degree r))
-                        (make-constant arity d)
+                      (zero? (degree r))
+                      #_(make-constant arity d)
+                      (make [d])
 
-                        :else
-                        (recur v (divide-coefs r (content1 r))))))))))
+                      :else
+                      (recur v (divide-coefs r (content1 r)))))))))
 
 (defn gcd
   "Knuth's algorithm 4.6.1E. Delegates to gcd1 for univariate polynomials."
   [u v]
+  {:pre [(instance? Polynomial u)
+         (instance? Polynomial v)]}
   (let [arity (check-same-arity u v)]
     (cond
       (zero? arity) (make 0 [[[] (euclid/gcd (constant-term u) (constant-term v))]])
       (= arity 1) (gcd1 u v)
       (v/nullity? u) v
       (v/nullity? v) u
-      :else (let [lift-arity (fn [p] (make arity (for [[xs c] (:xs->c p)] [(into [0] xs) c])))
-                  content #(->> % coefficients (reduce gcd))
-                  __a (println "a")
-                  ku (content u)
-                  __b (println "b'")
-                  kv (content v)
-                  __c (println "ku" (str ku))
-                  __ (println "u" (str u))
-                  __ (println "la.ku" (str (lift-arity ku)))
-                  pu (evenly-divide u (lift-arity ku))
-                  __d (println "d")
-                  pv (evenly-divide v (lift-arity kv))
-                  __e (println "e")
-                  d (lift-arity (gcd ku kv))]
+      :else (let [u1 (lower-arity u)
+                  v1 (lower-arity v)
+                  content #(->> % :xs->c vals (reduce gcd))
+                  ku (content u1)
+                  kv (content v1)
+                  pu (poly-map #(evenly-divide % ku) u1)
+                  pv (poly-map #(evenly-divide % kv) v1)
+                  d (gcd ku kv)
+                  ]
               (loop [u pu
                      v pv
-                     k 0]
-                (println "k = " k)
-                (println "LOOP u" (str pu))
-                (println "LOOP v" (str pv))
-                (if (> k 3) u
-                    (let [[_ r _] (divide u v {:pseudo true})]
-                      (println "R" (str r))
-                      (println "deg R" (degree r))
-                      (when-not (v/nullity? r)
-                        (println "content R" (content r)))
-                      (cond (v/nullity? r) (mul v d)
-                            (zero? (degree r)) d
-                            :else (recur v (evenly-divide r (lift-arity (content r))) (inc k))))))))))
-
-;; where we left off: the Euclid step in GCD, above, is not working because the
-;; pseudo-remainder algorithm finds that u/v and v/u both have zero quotient even
-;; when their GCD is nontrivial, perhaps because of our choice of the lead term
-;; and what we wish to accomplish in one division step.
+                     k 0 ; XXX this is a hack
+                     ]
+                (when (> k 10)
+                  (throw (IllegalStateException. "too much recursion in GCD (debugging exception)")))
+                (let [[qq r mm] (divide u v {:pseudo true})]
+                  (cond (v/nullity? r) (raise-arity (poly-map #(g/* d %) v))
+                        (zero? (degree r))  (make-constant arity d)
+                        :else (recur v (evenly-divide r (content r)) (inc k)))))))))
 
 (defn expt
   "Raise the polynomial p to the (integer) power n. Of course, n
@@ -450,7 +465,7 @@
                        (reduce sym/mul 1 (map (fn [exponent var]
                                                 (sym/expt var exponent))
                                               xs vars))))
-            (->> p :xs->c (sort-by first #(monomial-order %2 %1)))))))
+            (->> p :xs->c (sort-by exponents #(monomial-order %2 %1)))))))
 
 ;; The operator-table represents the operations that can be understood
 ;; from the point of view of a polynomial over a commutative ring. The
@@ -470,3 +485,10 @@
    })
 
 (def operators-known (set (keys operator-table)))
+
+(defmethod g/add [::polynomial ::polynomial] [a b] (add a b))
+(defmethod g/mul [::polynomial ::polynomial] [a b] (mul a b))
+(defmethod g/sub [::polynomial ::polynomial] [a b] (sub a b))
+;(defmethod g/div [::polynomial ::polynomial] [a b] (evenly-divide a b))  ;; reconsider: is this right??? XXX
+;(defmethod g/div [::polynomial Number] [a b] (poly-map #(g/divide % b) a))  ;; questionable
+;(defmethod g/mul [::polynomial Number] [a b] (poly-map #(g/* % b) a))  ;; questionable
