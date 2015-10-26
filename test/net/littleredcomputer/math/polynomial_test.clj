@@ -236,7 +236,7 @@
             G (reduce mul [(expt X+1 II) (expt X+Y II) (expt Y+1 III)])]
         (is (= X+Y_2 (gcd X+Y_2 X+Y_3)))
         (is (= X+Y_3 (gcd X+Y_3 X+Y_3)))
-        #_(is (= G (gcd U V)))))
+        (is (= G (gcd U V)))))
 
     (testing "GCD: arity 3 case"
       (let [I (make 3 [[[0 0 0] 1]])
@@ -256,10 +256,13 @@
             Z+1 (add Z I)
             U (reduce mul [(expt X+1 III) (expt X+Y II) (expt Y+Z V)  (expt X+Y+Z IV) (expt Y+1 IV) (expt Z+1 III)])
             V (reduce mul [(expt X+1 II)  (expt X+Y V)  (expt Y+Z III) (expt X+Y+Z V) (expt Y+1 II) (expt Z+1 I) X+1])
-            G (reduce mul [(expt X+1 II) (expt X+Y II) (expt Y+Z III) (expt X+Y+Z IV) (expt Y+1 II) Z+1])]
-        (is (= [(reduce mul [X+1 (expt Y+Z II) (expt Y+1 II) (expt Z+1 II)]) (make 3 [])] (divide U G)))
-        (is (= [(reduce mul [(expt X+Y III) X+Y+Z X+1]) (make 3 [])] (divide V G)))
-        #_(is (= G (gcd U V)))
+            G (reduce mul [(expt X+1 III) (expt X+Y II) (expt Y+Z III) (expt X+Y+Z IV) (expt Y+1 II) Z+1])]
+        (is (= [(reduce mul [(expt Y+Z II) (expt Y+1 II) (expt Z+1 II)]) (make 3 [])] (divide U G)))
+        (is (= [(reduce mul [(expt X+Y III) X+Y+Z]) (make 3 [])] (divide V G)))
+        (is (= X+Z (gcd (mul X+Y X+Z) (mul Y+Z X+Z))))
+        (is (= (mul X+Z X+Y+Z) (gcd (reduce mul [X+Y X+Z X+Y+Z]) (reduce mul [X+Z X+Y+Z Y+Z]))))
+        (is (= (mul X+Z (mul X+Z X+Y)) (gcd (reduce mul [X+Z X+Z X+Y X+Y+Z Y+1]) (reduce mul [X+Z X+Z X+Y X+1 Z+1 X+Z]))))
+        (is (= G (gcd U V)))
         ))
     (testing "division of zero arity polynomials (do we care?)"
       (let [o (zap 0)
@@ -272,6 +275,18 @@
       (is (= [(make 2 []) X 1] (divide X Y {:pseudo true})))
       (is (= [(make 2 []) Y] (divide Y X)))
       (is (= [(make 2 []) Y 1] (divide Y X {:pseudo true}))))))
+
+(deftest simple-gcd-3
+  (testing "GCD: arity 3 case"
+      (let [X (make 3 [[[1 0 0] 1]])
+            Y (make 3 [[[0 1 0] 1]])
+            Z (make 3 [[[0 0 1] 1]])
+            X+Y (add X Y)
+            X+Z (add X Z)
+            Y+Z (add Y Z)]
+        (println "A" (mul X+Y X+Z))
+        (println "B" (mul Y+Z X+Z))
+        (is (= X+Z (gcd (mul X+Y X+Z) (mul Y+Z X+Z)))))))
 
 (deftest gjs
   (testing "GJS cases (see sparse-gcd.scm:666)"
@@ -308,7 +323,7 @@
                      (make [0 0 0 0 4 8])])
               (mul (lower-arity d2) (lower-arity df))))
        (is (= (mul d2 df) (raise-arity (mul (lower-arity d2) (lower-arity df)))))
-       #_(gcd-test d2 f2 g2)
+       (gcd-test d2 f2 g2)
        ))))
 
 (deftest poly-as-simplifier

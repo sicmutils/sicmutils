@@ -36,7 +36,7 @@
   (nullity? [_] (empty? xs->c))
   (numerical? [_] false)
   (zero-like [_] (Polynomial. arity {}))
-  (one-like [_] (make-constant arity (v/one-like (coefficient (first xs->c)))))
+  (one-like [o] (make-constant arity (v/one-like (coefficient (first xs->c)))))
   (unity? [_] (and (= (count xs->c) 1)
                    (let [[xs c] (first xs->c)]
                      (and (every? zero? xs)
@@ -384,29 +384,25 @@
          (instance? Polynomial v)]}
   (let [arity (check-same-arity u v)]
     (cond
-      (zero? arity) (make 0 [[[] (euclid/gcd (constant-term u) (constant-term v))]])
-      (= arity 1) (gcd1 u v)
-      (v/nullity? u) v
-      (v/nullity? v) u
-      :else (let [u1 (lower-arity u)
-                  v1 (lower-arity v)
-                  content #(->> % :xs->c vals (reduce gcd))
-                  ku (content u1)
-                  kv (content v1)
-                  pu (poly-map #(evenly-divide % ku) u1)
-                  pv (poly-map #(evenly-divide % kv) v1)
-                  d (gcd ku kv)
-                  ]
-              (loop [u pu
-                     v pv
-                     k 0 ; XXX this is a hack
-                     ]
-                (when (> k 10)
-                  (throw (IllegalStateException. "too much recursion in GCD (debugging exception)")))
-                (let [[qq r mm] (divide u v {:pseudo true})]
-                  (cond (v/nullity? r) (raise-arity (poly-map #(g/* d %) v))
-                        (zero? (degree r))  (make-constant arity d)
-                        :else (recur v (evenly-divide r (content r)) (inc k)))))))))
+              (zero? arity) (make 0 [[[] (euclid/gcd (constant-term u) (constant-term v))]])
+              (= arity 1) (gcd1 u v)
+              (v/nullity? u) v
+              (v/nullity? v) u
+              :else (let [u1 (lower-arity u)
+                          v1 (lower-arity v)
+                          content #(->> % :xs->c vals (reduce gcd))
+                          ku (content u1)
+                          kv (content v1)
+                          pu (poly-map #(evenly-divide % ku) u1)
+                          pv (poly-map #(evenly-divide % kv) v1)
+                          d (gcd ku kv)]
+                      (loop [u pu
+                             v pv]
+                        (let [[_ r _] (divide u v {:pseudo true})]
+                          (cond (v/nullity? r) (raise-arity (poly-map #(g/* d %) v))
+                                (zero? (degree r)) (raise-arity (make-constant 1 d))
+                                :else (let [cr (content r)]
+                                        (recur v (poly-map #(evenly-divide % cr) r))))))))))
 
 (defn expt
   "Raise the polynomial p to the (integer) power n. Of course, n
@@ -489,6 +485,5 @@
 (defmethod g/add [::polynomial ::polynomial] [a b] (add a b))
 (defmethod g/mul [::polynomial ::polynomial] [a b] (mul a b))
 (defmethod g/sub [::polynomial ::polynomial] [a b] (sub a b))
-;(defmethod g/div [::polynomial ::polynomial] [a b] (evenly-divide a b))  ;; reconsider: is this right??? XXX
-;(defmethod g/div [::polynomial Number] [a b] (poly-map #(g/divide % b) a))  ;; questionable
-;(defmethod g/mul [::polynomial Number] [a b] (poly-map #(g/* % b) a))  ;; questionable
+(defmethod g/div [::polynomial ::polynomial] [a b] (evenly-divide a b))  ;; reconsider: is this right??? XXX
+(defmethod g/negate ::polynomial [a] (negate a))
