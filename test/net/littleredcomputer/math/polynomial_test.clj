@@ -218,6 +218,11 @@
         (is (= U (gcd Z U)))
         (is (= V (gcd V Z)))
         (is (= V (gcd Z V)))))
+    (testing "divide constant arity 2"
+      (is (= [(make 2 []) X] (divide X Y)))
+      (is (= [(make 2 []) X 1] (divide X Y {:pseudo true})))
+      (is (= [(make 2 []) Y] (divide Y X)))
+      (is (= [(make 2 []) Y 1] (divide Y X {:pseudo true}))))
     (testing "GCD: arity 2 case"
       (let [I (make 2 [[[0 0] 1]])
             II (make 2 [[[0 0] 2]])
@@ -264,17 +269,18 @@
         (is (= (mul X+Z (mul X+Z X+Y)) (gcd (reduce mul [X+Z X+Z X+Y X+Y+Z Y+1]) (reduce mul [X+Z X+Z X+Y X+1 Z+1 X+Z]))))
         (is (= G (gcd U V)))
         ))
-    (testing "division of zero arity polynomials (do we care?)"
+    (testing "division of zero arity polynomials"
       (let [o (zap 0)
             iii (zap 3)
             vii (zap 7)
             xiv (zap 14)
             xxi (zap 21)]
-        (is (= [iii o] (divide xxi vii))))
-      (is (= [(make 2 []) X] (divide X Y)))
-      (is (= [(make 2 []) X 1] (divide X Y {:pseudo true})))
-      (is (= [(make 2 []) Y] (divide Y X)))
-      (is (= [(make 2 []) Y 1] (divide Y X {:pseudo true}))))))
+        (is (g/zero? o))
+        (is (v/nullity? o))
+        (is (= [iii o] (divide xxi vii)))
+        (is (= [o o] (divide o iii)))
+        (is (= [o o] (divide o iii {:pseudo true})))
+        (is (thrown? IllegalArgumentException (divide o o)))))))
 
 (deftest simple-gcd-3
   (testing "GCD: arity 3 case"
@@ -284,8 +290,6 @@
             X+Y (add X Y)
             X+Z (add X Z)
             Y+Z (add Y Z)]
-        (println "A" (mul X+Y X+Z))
-        (println "B" (mul Y+Z X+Z))
         (is (= X+Z (gcd (mul X+Y X+Z) (mul Y+Z X+Z)))))))
 
 (deftest gjs
