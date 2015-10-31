@@ -40,10 +40,8 @@
     (throw (ArithmeticException. "Can't form rational function with zero denominator")))
   (let [arity (p/check-same-arity p q)
         g (p/gcd p q)
-        [p' pr] (p/divide p g)
-        [q' qr] (p/divide q g)]
-    (when-not (or (v/nullity? pr) (v/nullity? qr))
-      (throw (InternalError.  "Bad polynomial GCD")))
+        p' (p/evenly-divide p g)
+        q' (p/evenly-divide q g)]
     (RationalFunction. arity p' q')))
 
 (defn add

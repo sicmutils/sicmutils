@@ -46,8 +46,8 @@
   (toString [_]
     (str "("
          (clojure.string/join ";"
-                          (for [[k v] xs->c]
-                            (str v "*" (clojure.string/join "," k))))
+                              (for [[k v] xs->c]
+                                (str v "*" (clojure.string/join "," k))))
          ")")))
 
 ;; Monomials
@@ -292,48 +292,42 @@
   [u v & [{:keys [pseudo]}]]
   {:pre [(instance? Polynomial u)
          (instance? Polynomial v)]}
-  (let [[q r m] (let [arity (check-same-arity u v)
-                      [vn-exponents vn-coefficient] (lead-term v)
-                      *vn (fn [p] (poly-map #(g/* % vn-coefficient) p))]
-                  (if (zero? arity)
-                    ;; XXX: we're sort of breaking the pseudo-division promise
-                    ;; in this case, but both of the polynomials were constant,
-                    ;; so what do they expect?
-                    [(make 0 [[[] (g/divide (coefficient (lead-term u)) vn-coefficient)]])
-                     (make 0 [[[] 0]])
-                     1]
-                    (loop [quotient (make arity [])
-                           remainder u
-                           multiplier (v/one-like vn-coefficient)]
-                      ;; find a term in the remainder into which the
-                      ;; lead term of the divisor can be divided.
-                      (let [remainder' (if pseudo (*vn remainder)
-                                           remainder)
-                            good-terms (->> remainder'
-                                            :xs->c rseq
-                                            (map (fn [[xs c]]
-                                                   [(map - xs vn-exponents) c]))
-                                            (filter (fn [[residues _]]
-                                                      (and (not-empty residues)
-                                                           (every? (complement neg?) residues)))))]
-                        ;; where we left off: g/divide is returning an array of [quotient, remainder]
-                        ;; so maybe we should try evenly-divide here for the generic op.
-                        ;; Maybe we want to special-case polynomials here. Maybe what we want is
-                        ;; a pseudo-division. I can't shake the feeling at this point that
-                        ;; we maybe shouldn't even be here. Or, that if we recurse on division,
-                        ;; we should carry the psuedo field along. g/divide seems to be
-                        ;; where it all goes wrong so we should be careful with the definition
-                        ;; of that.
-                        (if-let [[residues c] (first good-terms)]
-                          (let [new-coefficient (g/divide c vn-coefficient)
-                                new-term (make arity [[(vec residues) new-coefficient]])]
-                            (recur (add (if pseudo (*vn quotient) quotient) new-term)
-                                   (sub remainder' (mul new-term v))
-                                   (if pseudo (g/* multiplier vn-coefficient) multiplier)))
-                          [quotient remainder multiplier])))))]
-    (if pseudo [q r m] [q r])))
+  (cond (v/nullity? v) (throw (IllegalArgumentException. "internal polynomial division by zero"))
+        (v/nullity? u) [u u]
+        :else (let [[q r m] (let [arity (check-same-arity u v)
+                                  [vn-exponents vn-coefficient] (lead-term v)
+                                  *vn (fn [p] (poly-map #(g/* % vn-coefficient) p))]
+                              (if (zero? arity)
+                                ;; XXX: we're sort of breaking the pseudo-division promise
+                                ;; in this case, but both of the polynomials were constant,
+                                ;; so what do they expect?
+                                [(make 0 [[[] (g/divide (coefficient (lead-term u)) vn-coefficient)]])
+                                 (make 0 [[[] 0]])
+                                 1]
+                                (loop [quotient (make arity [])
+                                       remainder u
+                                       multiplier (v/one-like vn-coefficient)]
+                                  ;; find a term in the remainder into which the
+                                  ;; lead term of the divisor can be divided.
+                                  (let [remainder' (if pseudo (*vn remainder)
+                                                       remainder)
+                                        good-terms (->> remainder'
+                                                        :xs->c rseq
+                                                        (map (fn [[xs c]]
+                                                               [(map - xs vn-exponents) c]))
+                                                        (filter (fn [[residues _]]
+                                                                  (and (not-empty residues)
+                                                                       (every? (complement neg?) residues)))))]
+                                    (if-let [[residues c] (first good-terms)]
+                                      (let [new-coefficient (g/divide c vn-coefficient)
+                                            new-term (make arity [[(vec residues) new-coefficient]])]
+                                        (recur (add (if pseudo (*vn quotient) quotient) new-term)
+                                               (sub remainder' (mul new-term v))
+                                               (if pseudo (g/* multiplier vn-coefficient) multiplier)))
+                                      [quotient remainder multiplier])))))]
+                (if pseudo [q r m] [q r]))))
 
-(defn ^:private evenly-divide
+(defn evenly-divide
   "Divides the polynomial u by the polynomial v. Throws an IllegalStateException
   if the division leaves a remainder. Otherwise returns the quotient."
   [u v]
@@ -343,6 +337,10 @@
     (when-not (v/nullity? r)
       (throw (IllegalStateException. (str "expected even division left a remainder!" u " / " v " r " r))))
     q))
+
+;; TODO: now that we have finally gotten multivariate GCD to start
+;; working, we observe that gcd1 and gcd now have the same shape,
+;; so they should be unified.
 
 (defn ^:private gcd1
   "Knuth's algorithm 4.6.1E for UNIVARIATE polynomials."
@@ -384,25 +382,25 @@
          (instance? Polynomial v)]}
   (let [arity (check-same-arity u v)]
     (cond
-              (zero? arity) (make 0 [[[] (euclid/gcd (constant-term u) (constant-term v))]])
-              (= arity 1) (gcd1 u v)
-              (v/nullity? u) v
-              (v/nullity? v) u
-              :else (let [u1 (lower-arity u)
-                          v1 (lower-arity v)
-                          content #(->> % :xs->c vals (reduce gcd))
-                          ku (content u1)
-                          kv (content v1)
-                          pu (poly-map #(evenly-divide % ku) u1)
-                          pv (poly-map #(evenly-divide % kv) v1)
-                          d (gcd ku kv)]
-                      (loop [u pu
-                             v pv]
-                        (let [[_ r _] (divide u v {:pseudo true})]
-                          (cond (v/nullity? r) (raise-arity (poly-map #(g/* d %) v))
-                                (zero? (degree r)) (raise-arity (make-constant 1 d))
-                                :else (let [cr (content r)]
-                                        (recur v (poly-map #(evenly-divide % cr) r))))))))))
+      (zero? arity) (make 0 [[[] (euclid/gcd (constant-term u) (constant-term v))]])
+      (= arity 1) (gcd1 u v)
+      (v/nullity? u) v
+      (v/nullity? v) u
+      :else (let [u1 (lower-arity u)
+                  v1 (lower-arity v)
+                  content #(->> % :xs->c vals (reduce gcd))
+                  ku (content u1)
+                  kv (content v1)
+                  pu (poly-map #(evenly-divide % ku) u1)
+                  pv (poly-map #(evenly-divide % kv) v1)
+                  d (gcd ku kv)]
+              (loop [u pu
+                     v pv]
+                (let [[_ r _] (divide u v {:pseudo true})]
+                  (cond (v/nullity? r) (raise-arity (poly-map #(g/* d %) v))
+                        (zero? (degree r)) (raise-arity (make-constant 1 d))
+                        :else (let [cr (content r)]
+                                (recur v (poly-map #(evenly-divide % cr) r))))))))))
 
 (defn expt
   "Raise the polynomial p to the (integer) power n. Of course, n
@@ -485,5 +483,10 @@
 (defmethod g/add [::polynomial ::polynomial] [a b] (add a b))
 (defmethod g/mul [::polynomial ::polynomial] [a b] (mul a b))
 (defmethod g/sub [::polynomial ::polynomial] [a b] (sub a b))
-(defmethod g/div [::polynomial ::polynomial] [a b] (evenly-divide a b))  ;; reconsider: is this right??? XXX
+;; perhaps this should be a divide that throws away the remainder. But
+;; for the present, using evenly-divide (which throws on nonzero
+;; remainder) seems to be working, since it is only used on the
+;; results of a GCD. Since this choice is "stricter," it feels right
+;; if it continues to serve.
+(defmethod g/div [::polynomial ::polynomial] [a b] (evenly-divide a b))
 (defmethod g/negate ::polynomial [a] (negate a))
