@@ -1,3 +1,21 @@
+;
+; Copyright (C) 2015 Colin Smith.
+; This work is based on the Scmutils system of MIT/GNU Scheme.
+;
+; This is free software;  you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation; either version 3 of the License, or (at
+; your option) any later version.
+;
+; This software is distributed in the hope that it will be useful, but
+; WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+; General Public License for more details.
+;
+; You should have received a copy of the GNU General Public License
+; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;
+
 (ns net.littleredcomputer.math.examples.double-pendulum-test
   (:refer-clojure :exclude [+ - * /])
   (:require [net.littleredcomputer.math.env :refer :all]
@@ -26,34 +44,17 @@
                (* (cos θ) g l1 m1) (* (cos θ) g l1 m2) (* (cos φ) g l2 m2))
            (simplify (L state))))
     (with-literal-functions [θ φ]
-      (is (= '(down (+ (* (sin (+ (θ t) (* -1 (φ t)))) (expt ((D φ) t) 2) l1 l2 m2)
+      (is (= '(down (+ (* (expt ((D φ) t) 2) (sin (+ (θ t) (* -1 (φ t)))) l1 l2 m2)
                        (* (((expt D 2) φ) t) (cos (+ (θ t) (* -1 (φ t)))) l1 l2 m2)
                        (* (((expt D 2) θ) t) (expt l1 2) m1)
                        (* (((expt D 2) θ) t) (expt l1 2) m2)
-                       (* (sin (θ t)) g l1 m1) (* (sin (θ t)) g l1 m2))
+                       (* (sin (θ t)) g l1 m1)
+                       (* (sin (θ t)) g l1 m2))
                     (+ (* -1N (expt ((D θ) t) 2) (sin (+ (θ t) (* -1 (φ t)))) l1 l2 m2)
                        (* (((expt D 2) θ) t) (cos (+ (θ t) (* -1 (φ t)))) l1 l2 m2)
-                       (* (((expt D 2) φ) t) (expt l2 2) m2)
-                       (* (sin (φ t)) g l2 m2)))
+                       (* (((expt D 2) φ) t) (expt l2 2) m2) (* (sin (φ t)) g l2 m2)))
              (simplify (((Lagrange-equations
                           (double/L-double-pend 'm1 'm2 'l1 'l2 'g))
                          (up θ φ))
                         't)))))
     (is (double/evolver 1 1/60 9.8 1 0.4 1 0 2 0.6 -1 0))))
-
-(deftest eq2
-  (with-literal-functions [θ φ]
-    (is (= '(down (+ (* (expt ((D φ) t) 2) (sin (+ (θ t) (* -1 (φ t)))) l1 l2 m2)
-                     (* (((expt D 2) φ) t) (cos (+ (θ t) (* -1 (φ t)))) l1 l2 m2)
-                     (* (sin (θ t)) g l1 m1)
-                     (* (sin (θ t)) g l1 m2)
-                     (* (((expt D 2) θ) t) (expt l1 2) m1)
-                     (* (((expt D 2) θ) t) (expt l1 2) m2))
-                  (+ (* -1N (expt ((D θ) t) 2) (sin (+ (θ t) (* -1 (φ t)))) l1 l2 m2)
-                     (* (((expt D 2) θ) t) (cos (+ (θ t) (* -1 (φ t)))) l1 l2 m2)
-                     (* (((expt D 2) φ) t) (expt l2 2) m2)
-                     (* (sin (φ t)) g l2 m2)))
-           (simplify (((Lagrange-equations
-                        (double/L-double-pend 'm1 'm2 'l1 'l2 'g))
-                       (up θ φ))
-                      't))))))

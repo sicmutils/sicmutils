@@ -1,18 +1,20 @@
-;; Copyright (C) 2015 Colin Smith.
-;; This work is based on the Scmutils system of MIT/GNU Scheme.
-;;
-;; This is free software;  you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3 of the License, or (at
-;; your option) any later version.
-
-;; This software is distributed in the hope that it will be useful, but
-;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
-
-;; You should have received a copy of the GNU General Public License
-;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;
+; Copyright (C) 2015 Colin Smith.
+; This work is based on the Scmutils system of MIT/GNU Scheme.
+;
+; This is free software;  you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation; either version 3 of the License, or (at
+; your option) any later version.
+;
+; This software is distributed in the hope that it will be useful, but
+; WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+; General Public License for more details.
+;
+; You should have received a copy of the GNU General Public License
+; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;
 
 (ns net.littleredcomputer.math.rational-function-test
   (:require [clojure.test :refer :all]
@@ -25,7 +27,7 @@
              [numbers]
              [simplify]]))
 
-#_(deftest make-test
+(deftest make-test
   (let [zap #(p/make 0 [[[] %]])      ;; "zero-arity polynomial"
         zarf #(make (zap %) (zap 1))  ;; "zero-arity rational function"
         R (make (p/make [2]) (p/make [3]))
@@ -50,7 +52,7 @@
     (is (= (make (zap 5) (zap 3)) (div (zarf 5) (zarf 3))))
     (is (= (zarf 4) (div (zarf 8) (zarf 2))))))
 
-#_(deftest rf-as-simplifier
+(deftest rf-as-simplifier
   (testing "make-vars"
     (is (= [(make (p/make [0 1]) (p/make [1]))] (new-variables 1)))
     (is (= [(make (p/make 2 [[[1 0] 1]]) (p/make 2 [[[0 0] 1]]))

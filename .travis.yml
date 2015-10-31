@@ -1,2 +1,5 @@
 language: clojure
 script: lein test :all
+branches:
+  only:
+    - master

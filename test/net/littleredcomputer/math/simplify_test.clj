@@ -1,18 +1,20 @@
-;; Copyright (C) 2015 Colin Smith.
-;; This work is based on the Scmutils system of MIT/GNU Scheme.
-;;
-;; This is free software;  you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3 of the License, or (at
-;; your option) any later version.
-
-;; This software is distributed in the hope that it will be useful, but
-;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
-
-;; You should have received a copy of the GNU General Public License
-;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;
+; Copyright (C) 2015 Colin Smith.
+; This work is based on the Scmutils system of MIT/GNU Scheme.
+;
+; This is free software;  you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation; either version 3 of the License, or (at
+; your option) any later version.
+;
+; This software is distributed in the hope that it will be useful, but
+; WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+; General Public License for more details.
+;
+; You should have received a copy of the GNU General Public License
+; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;
 
 (ns net.littleredcomputer.math.simplify-test
   (require [clojure.test :refer :all]
@@ -107,6 +109,18 @@
       (is (= '(+ (expt x 2) (* -5 x) -2) (g/simplify (characteristic-polynomial A 'x))))
       (is (= '(+ (expt y 3) (* -11 (expt y 2)) (* 31 y) -22) (g/simplify (characteristic-polynomial C 'y))))
       (is ((v/within 1e-12) 0.0 (g/simplify (characteristic-polynomial A (g/divide (g/- 5 (g/sqrt 33)) 2))))))))
+
+(deftest native-clojure-things
+  (is (= "foo" (g/simplify "foo")))
+  (is (= '(2 3) (g/simplify '(2 3))))
+  (let [a (g/simplify [2 3])]
+    (is (= [2 3] a))
+    (is (vector? a)))
+  (is (= [] (g/simplify [])))
+  (is (= '[x y] (g/simplify '[x y])))
+  (let [a (g/simplify [(g/+ 'x 'x) (g/* 'y 'y)])]
+    (is (= '[(* 2 x) (expt y 2)] a))
+    (is (vector? a))))
 
 (deftest lagrange-equations-test
   (let [xy (s/up (f/literal-function 'x) (f/literal-function 'y))

@@ -1,22 +1,25 @@
-;; Copyright (C) 2015 Colin Smith.
-;; This work is based on the Scmutils system of MIT/GNU Scheme.
-;;
-;; This is free software;  you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3 of the License, or (at
-;; your option) any later version.
-
-;; This software is distributed in the hope that it will be useful, but
-;; WITpHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
-
-;; You should have received a copy of the GNU General Public License
-;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;
+; Copyright (C) 2015 Colin Smith.
+; This work is based on the Scmutils system of MIT/GNU Scheme.
+;
+; This is free software;  you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation; either version 3 of the License, or (at
+; your option) any later version.
+;
+; This software is distributed in the hope that it will be useful, but
+; WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+; General Public License for more details.
+;
+; You should have received a copy of the GNU General Public License
+; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;
 
 (ns net.littleredcomputer.math.value
   (:refer-clojure :rename {zero? core-zero?})
-  (:require [clojure.tools.logging :as log]))
+  (:import (clojure.lang RestFn MultiFn)
+           (java.lang.reflect Method)))
 
 (defprotocol Value
   (numerical? [this])
@@ -42,12 +45,16 @@
   Value
   (numerical? [_] false)
   (nullity? [_] false)
-  (unity? [_] false)
+  (unity? [o] (when (number? o) (== o 1)))
   (compound? [_] false)
   (exact? [o] (or (integer? o) (ratio? o)))
   (zero-like [_] 0)
   (one-like [_] 1)
-  (freeze [o] (cond (sequential? o) (map freeze o) (keyword? o) o :else o)) ;; WTF?
+  (freeze [o] (cond
+                (vector? o) (mapv freeze o)
+                (sequential? o) (map freeze o)
+                (keyword? o) o
+                :else o))
   (arity [o] (primitive-arity o))
   (kind [o] (primitive-kind o)))
 
@@ -62,12 +69,13 @@
          (cond (symbol? f) [:exactly 0]
                (fn? f) (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
                              ;; tally up arities of invoke, doInvoke, and getRequiredArity methods
+                             ^RestFn rest-fn f
                              facts (group-by first
-                                             (for [m methods]
+                                             (for [^Method m methods]
                                                (condp = (.getName m)
                                                  "invoke" [:invoke (alength (.getParameterTypes m))]
                                                  "doInvoke" [:doInvoke true]
-                                                 "getRequiredArity" [:getRequiredArity (.getRequiredArity f)])))]
+                                                 "getRequiredArity" [:getRequiredArity (.getRequiredArity rest-fn)])))]
                          (cond
                            ;; Rule one: if all we have is one single case of invoke, then the
                            ;; arity is the arity of that method. This is the common case.
@@ -118,7 +126,7 @@
 
 (defn- primitive-kind
   [a]
-  (if (or (fn? a) (= (class a) clojure.lang.MultiFn)) ::function (type a)))
+  (if (or (fn? a) (= (class a) MultiFn)) ::function (type a)))
 
 (defn argument-kind
   [a & as]

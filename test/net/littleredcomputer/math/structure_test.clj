@@ -1,18 +1,20 @@
-;; Copyright (C) 2015 Colin Smith.
-;; This work is based on the Scmutils system of MIT/GNU Scheme.
-;;
-;; This is free software;  you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3 of the License, or (at
-;; your option) any later version.
-
-;; This software is distributed in the hope that it will be useful, but
-;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
-
-;; You should have received a copy of the GNU General Public License
-;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;
+; Copyright (C) 2015 Colin Smith.
+; This work is based on the Scmutils system of MIT/GNU Scheme.
+;
+; This is free software;  you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation; either version 3 of the License, or (at
+; your option) any later version.
+;
+; This software is distributed in the hope that it will be useful, but
+; WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+; General Public License for more details.
+;
+; You should have received a copy of the GNU General Public License
+; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;
 
 (ns net.littleredcomputer.math.structure-test
   (:refer-clojure :exclude [+ - * / zero?])
@@ -168,7 +170,10 @@
       (is (= (up 4) (mapr square S0)))
       (is (= (up 4 9) (mapr square S1)))
       (is (= (down (up 1 4) (up 9 16)) (mapr square S2)))
-      (is (= (up (down 1 4) (down 9 16)) (mapr square S3)))))
+      (is (= (up (down 1 4) (down 9 16)) (mapr square S3)))
+      (let [a (mapr square [2 3])]
+        (is (= [4 9] a))
+        (is (vector? a)))))
   (testing "a structure has a nth element"
     (is (= 5 (nth (up 4 5 6) 1)))
     (is (thrown? IndexOutOfBoundsException (nth (up 4 5 6) 4))))

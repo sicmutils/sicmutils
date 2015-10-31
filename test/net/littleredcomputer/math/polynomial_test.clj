@@ -1,18 +1,20 @@
-;; Copyright (C) 2015 Colin Smith.
-;; This work is based on the Scmutils system of MIT/GNU Scheme.
-;;
-;; This is free software;  you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3 of the License, or (at
-;; your option) any later version.
-
-;; This software is distributed in the hope that it will be useful, but
-;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
-
-;; You should have received a copy of the GNU General Public License
-;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;
+; Copyright (C) 2015 Colin Smith.
+; This work is based on the Scmutils system of MIT/GNU Scheme.
+;
+; This is free software;  you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation; either version 3 of the License, or (at
+; your option) any later version.
+;
+; This software is distributed in the hope that it will be useful, but
+; WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+; General Public License for more details.
+;
+; You should have received a copy of the GNU General Public License
+; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;
 
 (ns net.littleredcomputer.math.polynomial-test
   (:require [clojure.test :refer :all]
@@ -26,8 +28,28 @@
              [modint :as modular]]))
 
 (deftest poly-core
+  (testing "kind"
+    (is (= :net.littleredcomputer.math.polynomial/polynomial (v/kind (make [])))))
   (testing "zero"
-    (is (g/zero? (make []))))
+    (is (g/zero? (make [])))
+    (is (g/zero? (make [0])))
+    (is (v/nullity? (make [])))
+    (is (g/zero? (make 2 [])))
+    (is (v/nullity? (make 2 [])))
+    (is (not (g/zero? (make [1])))))
+  (testing "unity"
+    (is (v/unity? (make [1])))
+    (is (v/unity? (make 2 [[[0 0] 1]])))
+    (is (v/unity? (make 3 [[[0 0 0] 1]])))
+    (is (not (v/unity? (make 3 [[[0 0 0] 1] [[0 0 1] 2]]))))
+    (is (not (v/unity? (make [1.1]))))
+    (is (v/unity? (make [1.0])))
+    (is (v/unity? (make [(make [1])])))
+    (is (not (v/unity? (make [(make [2])])))))
+  (testing "make-constant"
+    (is (= (make [99]) (make-constant 1 99)))
+    (is (= (make 2 [[[0 0] 88]]) (make-constant 2 88)))
+    (is (= (make 3 [[[0 0 0] 77]]) (make-constant 3 77))))
   (testing "degree"
     (is (= (degree (make [])) -1))
     (is (= (degree (make [-1 1])) 1))
@@ -39,6 +61,13 @@
     (is (= (make []) (v/zero-like (make [1 2 3]))))
     (is (= (make 2 []) (v/zero-like (make 2 [[[1 0] 1] [[2 1] 3]]))))
     (is (= (make 3 []) (v/zero-like (make 3 [[[1 2 1] 4] [[0 1 0] 5]])))))
+  (testing "one-like"
+    (is (= (make [1]) (v/one-like (make [1 2 3]))))
+    (is (= (make 2 [[[0 0] 1]]) (v/one-like (make 2 [[[1 0] 1] [[2 1] 3]]))))
+    (is (= (make 3 [[[0 0 0] 1]]) (v/one-like (make 3 [[[1 2 1] 4] [[0 1 0] 5]]))))
+    ;; we can't deduce the unit element from the zero polynomial over an
+    ;; "unknown" ring
+    (is (thrown? IllegalArgumentException (v/one-like (make 2 [])))))
   (testing "add constant"
     (is (= (make [3 0 2]) (add (make [0 0 2]) (make [3]))))
     (is (= (make [0 0 2]) (add (make [2 0 2]) (make [-2])))))
@@ -54,6 +83,8 @@
     (is (= (make [0 0 1 0 1 -1]) (sub (make [1 0 1 0 1]) (make [1 0 0 0 0 1]))))
     (is (= (make [0 0 -1 0 -1 1]) (sub (make [1 0 0 0 0 1]) (make [1 0 1 0 1]))))
     (is (= (make [-1 -2 -3]) (negate (make [1 2 3])))))
+  (testing "with symbols"
+    (is (= (make [(g/+ 'a 'c) (g/+ 'b 'd) 'c]) (add (make '[a b c]) (make '[c d])))))
   (testing "mul"
     (is (= (make []) (mul (make [1 2 3]) (make [0]))))
     (is (= (make []) (mul (make [0]) (make [1 2 3]))))
@@ -83,13 +114,26 @@
       (is (= [(make [-2/9 0 1/3]) (make [-1/3 0 1/9 0 -5/9])] [q r]))
       (is (= [(make [-2 0 3]) (make [-3 0 1 0 -5]) 9] [pq pr d]))
       (is (= (make []) (sub (mul (make [d]) U) (add (mul pq V) pr))))
-      ;;(is (= (make [1]) (gcd U V)))
-      ;;(is (= (make [1]) (gcd V U)))
-
-      )
+      (is (= (make [1]) (gcd U V)))
+      (is (= (make [1]) (gcd V U))))
+    ;; examples from http://www.mathworks.com/help/symbolic/mupad_ref/pdivide.html
+    (let [p (make [1 1 0 1])
+          q (make [1 1 3])]
+      (is (= [(make [-1 3]) (make [10 7]) 9] (divide p q {:pseudo true}))))
+    (let [p (make [3 0 4])
+          q (make [2 2])]
+      (is (= [(make [-8 8]) (make [28]) 4] (divide p q {:pseudo true}))))
     (is (= [(make 2 [[[0 0] 1]]) (make 2 [[[2 1] 1]])]
-           (divide (make 2 [[[2 1] 1] [[1 2] 1]]) (make 2 [[[1 2] 1]])))))
-
+           (divide (make 2 [[[2 1] 1] [[1 2] 1]]) (make 2 [[[1 2] 1]]))))
+    (let [a 2
+          p (make 2 [[[3 0] 1] [[1 0] 1] [[0 1] 1]])
+          q (make 2 [[[2 0] a] [[1 0] 1] [[0 0] 1]])]
+      (is (= [(make 2 [[[1 0] a] [[0 0] -1]])
+              (make 2 [[[0 1] (* a a)] [[1 0] (+ (* a a) (- a) 1)] [[0 0] 1]])
+              (* a a)]
+             (divide p q {:pseudo true}))))
+    (is (= [(make [1]) (make [])] (divide (make [3]) (make [3]))))
+    (is (= [(make [7]) (make [0]) 2] (divide (make [7]) (make [2]) {:pseudo true}))))
   (testing "expt"
     (let [x+1 (make [1 1])]
       (is (= (make [1]) (expt x+1 (make []))))
@@ -110,8 +154,15 @@
       (is (= (make []) (add P P)))
       (is (= (make [x0 x0 x1]) (add P (make [1]))))))
   (testing "monomial order"
-    (is (= [[2 0 2] [1 2 1] [3 0 0] [0 0 2]]
-           (sort-by identity graded-reverse-lex-order [  [0 0 2] [3 0 0][2 0 2] [1 2 1]])))))
+    (let [x3 [3 0 0]
+          x2z2 [2 0 2]
+          xy2z [1 2 1]
+          z2 [0 0 2]
+          monomials [x3 x2z2 xy2z z2]
+          monomial-sort #(sort-by identity % monomials)]
+      (is (= [z2 xy2z x2z2 x3] (monomial-sort lex-order)))
+      (is (= [z2 x3 x2z2 xy2z] (monomial-sort graded-reverse-lex-order)))
+      (is (= [z2 x3 xy2z x2z2] (monomial-sort graded-lex-order))))))
 
 (deftest poly-gcd
   (let [zap #(make 0 [[[] %]])  ;; zero-arity polynomial
@@ -135,18 +186,10 @@
       (is (= 0 (constant-term x)))
       (is (= 5 (constant-term (zap 5))))
       (is (= 0 (constant-term (make 4 [])))))
-    (testing "coefficients"
-      (let [X (fn [c e] (make 2 [[[e 0] c]]))
-            Y (fn [c e] (make 2 [[[0 e] c]]))
-            Q (reduce add
-                      [(mul (X 4 1) (Y 1 1))
-                       (X 6 3)
-                       (mul (X 1 1) (Y 6 2))
-                       (mul (X 9 3) (Y 1 1))])]
-        (is (= [(make [0 4 6]) (make [6 9])] (coefficients Q)))
-        (is (= (make [2 3]) (reduce gcd (coefficients Q))))
-        (is (= [(make 2 [[[1 1] 2] [[3 0] 3]]) (make 2 [])]
-               (divide Q (make 2 [[[0 0] 2] [[0 1] 3]]))))))
+    (testing "GCD: arity 0 case"
+      (is (= (zap 3) (gcd (zap 12) (zap 15))))
+      (is (= (zap 1) (gcd (zap 7) (zap 11))))
+      (is (= (zap 5) (gcd (zap -15) (zap 20)))))
     (testing "GCD: arity 1 case"
       (let [x+1 (make [1 1])
             x+2 (make [2 1])
@@ -166,9 +209,6 @@
             V (reduce mul [x+4 x+3 x+3 x+3 x-2 x-2 x+1 x+1])
             W (reduce mul [x+4 x+3 x+3 x-2 x-2 x+1])
             Z (make [])]
-        (prn U)
-        (prn V)
-        (prn W)
         (is (= W (gcd U V)))
         (is (= W (gcd V U)))
         (is (= U (gcd U U)))
@@ -196,9 +236,9 @@
             G (reduce mul [(expt X+1 II) (expt X+Y II) (expt Y+1 III)])]
         (is (= X+Y_2 (gcd X+Y_2 X+Y_3)))
         (is (= X+Y_3 (gcd X+Y_3 X+Y_3)))
-        #_(is (= G (gcd U V)))))
+        (is (= G (gcd U V)))))
 
-    #_(testing "GCD: arity 3 case"
+    (testing "GCD: arity 3 case"
       (let [I (make 3 [[[0 0 0] 1]])
             II (make 3 [[[0 0 0] 2]])
             III (make 3 [[[0 0 0] 3]])
@@ -216,78 +256,84 @@
             Z+1 (add Z I)
             U (reduce mul [(expt X+1 III) (expt X+Y II) (expt Y+Z V)  (expt X+Y+Z IV) (expt Y+1 IV) (expt Z+1 III)])
             V (reduce mul [(expt X+1 II)  (expt X+Y V)  (expt Y+Z III) (expt X+Y+Z V) (expt Y+1 II) (expt Z+1 I) X+1])
-            G (reduce mul [(expt X+1 II) (expt X+Y II) (expt Y+Z III) (expt X+Y+Z IV) (expt Y+1 II) Z+1])]
-        (println "U/G:" (divide U G))
-        (println "V/G:" (divide V G))
-        (is (= [(reduce mul [X+1 (expt Y+Z II) (expt Y+1 II) (expt Z+1 II)]) (make 3 [])] (divide U G)))
-        (is (= [(reduce mul [(expt X+Y III) X+Y+Z X+1]) (make 3 [])] (divide V G)))
-        (is (= 'foo (divide U V {:pseudo true})))
-        (is (= 'bar (divide V U {:pseudo true})))
-
-        #_(is (= G (gcd U V)))
+            G (reduce mul [(expt X+1 III) (expt X+Y II) (expt Y+Z III) (expt X+Y+Z IV) (expt Y+1 II) Z+1])]
+        (is (= [(reduce mul [(expt Y+Z II) (expt Y+1 II) (expt Z+1 II)]) (make 3 [])] (divide U G)))
+        (is (= [(reduce mul [(expt X+Y III) X+Y+Z]) (make 3 [])] (divide V G)))
+        (is (= X+Z (gcd (mul X+Y X+Z) (mul Y+Z X+Z))))
+        (is (= (mul X+Z X+Y+Z) (gcd (reduce mul [X+Y X+Z X+Y+Z]) (reduce mul [X+Z X+Y+Z Y+Z]))))
+        (is (= (mul X+Z (mul X+Z X+Y)) (gcd (reduce mul [X+Z X+Z X+Y X+Y+Z Y+1]) (reduce mul [X+Z X+Z X+Y X+1 Z+1 X+Z]))))
+        (is (= G (gcd U V)))
         ))
-    #_(testing "content"
-      (is (= (make []) (content (make []))))
-      (is (= (make [3]) (content (make [3]))))
-      (is (= (make [1]) (content u)))
-      (is (= (make [1]) (content v)))
-      (is (= (make [3]) (content w)))
-      (is (= (make [0 1]) (content x)))
-      (is (= (make [0 1]) (content (add x xx))))
-      (is (= (make [0 0 1]) (content (add xx xxx))))
-      (is (= XY (content XXY+XYY)))
-      (is (= (zap 5) (content (zap 4)))))
     (testing "division of zero arity polynomials (do we care?)"
       (let [o (zap 0)
             iii (zap 3)
             vii (zap 7)
             xiv (zap 14)
             xxi (zap 21)]
-        ;;(is (= (make 0 [[[] 7]]) (gcd xiv xxi)))
         (is (= [iii o] (divide xxi vii))))
       (is (= [(make 2 []) X] (divide X Y)))
       (is (= [(make 2 []) X 1] (divide X Y {:pseudo true})))
       (is (= [(make 2 []) Y] (divide Y X)))
-      (is (= [(make 2 []) Y 1] (divide Y X {:pseudo true})))
-      ;;(is (= 'foo (gcd x↑2y xy↑2)))
-      ;;(is (= 'foo (gcd x y)))
+      (is (= [(make 2 []) Y 1] (divide Y X {:pseudo true}))))))
 
-      )))
+(deftest simple-gcd-3
+  (testing "GCD: arity 3 case"
+      (let [X (make 3 [[[1 0 0] 1]])
+            Y (make 3 [[[0 1 0] 1]])
+            Z (make 3 [[[0 0 1] 1]])
+            X+Y (add X Y)
+            X+Z (add X Z)
+            Y+Z (add Y Z)]
+        (println "A" (mul X+Y X+Z))
+        (println "B" (mul Y+Z X+Z))
+        (is (= X+Z (gcd (mul X+Y X+Z) (mul Y+Z X+Z)))))))
 
 (deftest gjs
   (testing "GJS cases (see sparse-gcd.scm:666)"
    (let [gcd-test (fn [d f g]
                     (is (= d (gcd (mul d f) (mul d g)))))
-         d1 (make 1 [[[0] 3] [[1] 1] [[2] 1]])
-         f1 (make 1 [[[0] 1] [[1] 2] [[2] 2]])
-         g1 (make 1 [[[0] 2] [[1] 2] [[2] 1]])
+         d1 (make [3 1 2])
+         f1 (make [1 2 2])
+         g1 (make [2 2 1])
 
          d2 (make 2 [[[2 2] 2] [[1 1] 1] [[1 0] 2]])
          f2 (make 2 [[[0 2] 1] [[2 1] 2] [[2 0] 1] [[0 0] 1]])
          g2 (make 2 [[[2 2] 1] [[2 1] 1] [[1 1] 1] [[2 0] 1] [[1 0] 1]])]
      (gcd-test d1 f1 g1)
-     ;; this one seems to suffer from the euclid remainder problem.
-     ;; more to learn!
-     (println d2)
-     (println f2)
-     (println g2)
-
      (let [df (mul d2 f2)
            dg (mul d2 g2)]
-       (println "DF" (str df))
-       (println "DG" (str dg))
-       (println "DG/DF" (map str (divide dg df {:pseudo true})))
-       (println "DF/DF" (map str (divide df dg {:psuedo true})))
-       #_(println "GCD" (str (gcd dg df))))
-
-     #_(gcd-test d2 f2 g2)
-     )))
+       (is (= (make [0
+                     (make [2 1])
+                     (make [0 0 2])])
+              (lower-arity d2)))
+       (is (= d2 (raise-arity (lower-arity d2))))
+       (is (= (make [0
+                     (make [2 1 2 1])
+                     (make [0 0 2 0 2])
+                     (make [2 5 2])
+                     (make [0 0 2 4])])
+              (lower-arity df)))
+       (is (= df (raise-arity (lower-arity df))))
+       (is (= (make [0
+                     0
+                     (make [4 4 5 4 1])
+                     (make [0 0 8 4 8 4])
+                     (make [4 12 9 2 4 0 4])
+                     (make [0 0 8 20 8])
+                     (make [0 0 0 0 4 8])])
+              (mul (lower-arity d2) (lower-arity df))))
+       (is (= (mul d2 df) (raise-arity (mul (lower-arity d2) (lower-arity df)))))
+       (gcd-test d2 f2 g2)
+       ))))
 
 (deftest poly-as-simplifier
   (testing "arity"
     (is (= 1 (:arity (make [0 1])))))
   (testing "make-vars"
-    (is (= (list (make [0 1])) (new-variables 1))))
+    (is (= (list (make [0 1])) (new-variables 1)))
+    (is (= [(make 3 [[[1 0 0] 1]])
+            (make 3 [[[0 1 0] 1]])
+            (make 3 [[[0 0 1] 1]])] (new-variables 3))))
   (testing "expr"
     (let [exp1 (:expression (g/* (g/+ 1 'x) (g/+ -3 'x)))
           exp2 (:expression (g/expt (g/+ 1 'y) 5))
@@ -298,6 +344,24 @@
       (is (= [(make [-3 -2 1]) '(x)] (expression-> exp1 receive)))
       (is (= [(make [1 5 10 10 5 1]) '(y)] (expression-> exp2 receive)))
       (is (= [(make [0 -11 5 -30 10 -7 1]) '(y)] (expression-> exp3 receive)))))
+  (testing "monomial order"
+    (let [poly-simp #(expression-> (:expression %) ->expression)]
+      (is (= '(+ (expt x 2) x 1) (poly-simp (g/+ 'x (g/expt 'x 2) 1))))
+      (is (= '(+ (expt x 4) (* 4 (expt x 3)) (* 6 (expt x 2)) (* 4 x) 1) (poly-simp (g/expt (g/+ 1 'x) 4))))
+      (is (= '(+
+               (expt x 4)
+               (* 4 (expt x 3) y)
+               (* 6 (expt x 2) (expt y 2))
+               (* 4 x (expt y 3))
+               (expt y 4))
+             (poly-simp (g/expt (g/+ 'x 'y) 4))))
+      (is (= '(+
+               (expt x 4)
+               (* 4 (expt x 3) y)
+               (* 6 (expt x 2) (expt y 2))
+               (* 4 x (expt y 3))
+               (expt y 4))
+             (poly-simp (g/expt (g/+ 'y 'x) 4))))))
   (testing "expr-simplify"
     (let [poly-simp #(expression-> % ->expression)
           exp1 (:expression (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))

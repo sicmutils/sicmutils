@@ -1,3 +1,21 @@
+;
+; Copyright (C) 2015 Colin Smith.
+; This work is based on the Scmutils system of MIT/GNU Scheme.
+;
+; This is free software;  you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation; either version 3 of the License, or (at
+; your option) any later version.
+;
+; This software is distributed in the hope that it will be useful, but
+; WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+; General Public License for more details.
+;
+; You should have received a copy of the GNU General Public License
+; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;
+
 (ns net.littleredcomputer.math.examples.central-potential
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.tools.logging :as log]
@@ -17,7 +35,7 @@
 (defn V
   [& masses]
   ;; for V we want each distinct pair
-  (fn [[t x v]]
+  (fn [[_ x _]]
     (let [mass-position-pairs (->> x
                                    (partition 2)
                                    (apply up)
@@ -30,7 +48,7 @@
 
 (defn T
   [& masses]
-  (fn [[t x v]]
+  (fn [[_ _ v]]
     (let [velocities (->> v (partition 2) (map #(apply up %)))]
       (reduce + (map #(* 1/2 %1 (square %2)) masses velocities)))))
 
@@ -64,10 +82,10 @@
     ;;[:circle {:fill "green" :stroke "none" :r 5 :cx 0 :cy 0}]
     ;;[:circle {:fill "green" :stroke "none" :r 5 :cx 20 :cy 0}]
     ;;[:circle {:fill "green" :stroke "none" :r 5 :cx 0 :cy 20}]
-    (for [[t x y X Y] evolution]
+    (for [[_ x y _ _] evolution]
       [:circle {:fill "orange" :stroke "none" :r 1 :cx x :cy y}]
       )
-    (for [[t x y X Y] evolution]
+    (for [[_ _ _ X Y] evolution]
       [:circle {:fill "green" :stroke "none" :r 1 :cx X :cy Y}]
       )]])
 
@@ -76,7 +94,7 @@
 ;; T =12T =6.32591398, I(0)=2, m1=m2=m3=1
 
 (defn -main
-  [& args]
+  [& _]
   (let [head [:head {:title "foo"}]
         counter (atom 0)
         body [:body

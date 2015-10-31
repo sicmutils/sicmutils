@@ -1,18 +1,20 @@
-;; Copyright (C) 2015 Colin Smith.
-;; This work is based on the Scmutils system of MIT/GNU Scheme.
-;;
-;; This is free software;  you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3 of the License, or (at
-;; your option) any later version.
-
-;; This software is distributed in the hope that it will be useful, but
-;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
-
-;; You should have received a copy of the GNU General Public License
-;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;
+; Copyright (C) 2015 Colin Smith.
+; This work is based on the Scmutils system of MIT/GNU Scheme.
+;
+; This is free software;  you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation; either version 3 of the License, or (at
+; your option) any later version.
+;
+; This software is distributed in the hope that it will be useful, but
+; WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+; General Public License for more details.
+;
+; You should have received a copy of the GNU General Public License
+; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;
 
 (ns net.littleredcomputer.math.value-test
   (:require [clojure.test :refer :all]
@@ -33,6 +35,19 @@
   (let [f (fn [x] (+ x x))
         g (fn [y] (* y y))]
     (is (= [:exactly 1] (arity (comp f g))))))
+
+(deftest kinds
+  (is (= java.lang.Long (kind 1)))
+  (is (= java.lang.Double (kind 1.0)))
+  (is (= clojure.lang.PersistentVector (kind [1 2]))))
+
+(deftest argument-kinds
+  (let [L java.lang.Long
+        V clojure.lang.PersistentVector]
+    (is (= L (argument-kind 1)))
+    (is (= [L L L] (argument-kind 1 2 3)))
+    (is (= V (argument-kind [2 3])))
+    (is (= [V V] (argument-kind [1] [3 4])))))
 
 (deftest joint-arities
   (is (= [:exactly 1] (joint-arity [[:exactly 1] [:exactly 1]])))

@@ -1,18 +1,20 @@
-;; Copyright (C) 2015 Colin Smith.
-;; This work is based on the Scmutils system of MIT/GNU Scheme.
-;;
-;; This is free software;  you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3 of the License, or (at
-;; your option) any later version.
-
-;; This software is distributed in the hope that it will be useful, but
-;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
-
-;; You should have received a copy of the GNU General Public License
-;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;
+; Copyright (C) 2015 Colin Smith.
+; This work is based on the Scmutils system of MIT/GNU Scheme.
+;
+; This is free software;  you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation; either version 3 of the License, or (at
+; your option) any later version.
+;
+; This software is distributed in the hope that it will be useful, but
+; WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+; General Public License for more details.
+;
+; You should have received a copy of the GNU General Public License
+; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;
 
 (ns net.littleredcomputer.math.numerical.ode
   (:require [clojure.tools.logging :as log]
@@ -32,9 +34,9 @@
   shape), and returns an integrator, which is a function of several
   arguments: the initial state, an intermediate-state observation
   function, the step size desired, the final time to seek, and an
-  error tolerance. If the observation function is not nil, it will be
+  error tolerance. If the observe function is not nil, it will be
   invoked with the time as first argument and integrated state as the
-  second."
+  second, at each intermediate step."
   [state-derivative derivative-args]
   (fn [initial-state observe step-size t ε & [{:keys [compile]}]]
     (let [total-time (Stopwatch/createStarted)
@@ -49,9 +51,6 @@
                             #(-> % array->state d:dt)))
           dimension (alength initial-state-array)
           integrator (GraggBulirschStoerIntegrator. 0. 1. (double ε) (double ε))
-          ;; where we left off: we probably shouldn't let the constants
-          ;; "inside" the differentiator. They don't belong there and
-          ;; are causing problems.
           equations (proxy [FirstOrderDifferentialEquations] []
                       (computeDerivatives [_ ^doubles y ^doubles out]
                         (.start evaluation-time)
