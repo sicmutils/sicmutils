@@ -84,7 +84,8 @@
   (is (= 'x (simplify-expression '(* 1 x))))
   (is (= '(* x y z) (simplify-expression '(* 1 x y z))))
   (is (= 2/3 (simplify-expression '(/ 2 3))))
-  (is (= '(+ (/ x 2) (/ y 2)) (simplify-expression '(/ (+ x y) 2)))))
+  (is (= '(/ (+ x y) 2) (simplify-expression '(/ (+ x y) 2))))
+  (is (= '(+ x y) (simplify-expression '(/ (* 2 (+ x y)) 2)))))
 
 (deftest equations
   (let [xy (s/up (f/literal-function 'x) (f/literal-function 'y))
@@ -126,14 +127,10 @@
   (let [xy (s/up (f/literal-function 'x) (f/literal-function 'y))
         LE (((Lagrange-equations (L-central-rectangular 'm (f/literal-function 'U))) xy) 't)]
     (is (= '(up x y) (g/simplify xy)))
-    (is (= '(down (+ (* 2
-                        (x t)
-                        ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
-                        (/ 1 (* 2 (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
-                     (* (((expt D 2) x) t) m))
-                  (+ (* 2
-                        (y t)
-                        ((D U) (sqrt (+ (expt (y t) 2) (expt (x t) 2))))
-                        (/ 1 (* 2 (sqrt (+ (expt (y t) 2) (expt (x t) 2))))))
-                     (* (((expt D 2) y) t) m)))
+    (is (= '(down (/ (+ (* (sqrt (+ (expt (x t) 2) (expt (y t) 2))) (((expt D 2) x) t) m)
+                        (* (x t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
+                     (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
+                  (/ (+ (* (sqrt (+ (expt (x t) 2) (expt (y t) 2))) (((expt D 2) y) t) m)
+                        (* (y t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
+                     (sqrt (+ (expt (x t) 2) (expt (y t) 2)))))
            (g/simplify LE)))))

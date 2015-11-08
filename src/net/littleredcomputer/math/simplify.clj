@@ -17,8 +17,11 @@
 ;
 
 (ns net.littleredcomputer.math.simplify
+  (:import (java.util.concurrent TimeoutException))
   (:require [clojure.walk :refer [postwalk]]
+            [clojure.tools.logging :as log]
             [clojure.pprint :as pp]
+            [clojure.stacktrace :as st]
             [net.littleredcomputer.math
              [numsymb :as sym]
              [polynomial :as poly]
@@ -103,11 +106,16 @@
 
 (def ^:private rational-function-analyzer
   "WARNING! THIS IS NOT READY YET"
-  (analyzer (monotonic-symbol-generator "-r-")
-            rf/expression-> rf/->expression rf/operators-known))
+  (let [A (analyzer (monotonic-symbol-generator "-r-")
+                    rf/expression-> rf/->expression rf/operators-known)]
+    (fn [x]
+      (try (A x)
+           (catch TimeoutException e
+             (log/warn (str "simplifier timed out: must have been a complicated expression"))
+             x)))))
 
-;;(def ^:private simplify-and-flatten rational-function-analyzer)
-(def ^:private simplify-and-flatten poly-analyzer)
+(def ^:private simplify-and-flatten rational-function-analyzer)
+;;(def ^:private simplify-and-flatten poly-analyzer)
 
 (defn- simplify-until-stable
   [rule-simplify canonicalize]

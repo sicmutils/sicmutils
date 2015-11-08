@@ -94,7 +94,7 @@
     (is (= (up 2 (+ 't 't)) ((D #(up (* 2 %) (* % %))) 't)))
     (is (= (up (- (sin 't)) (cos 't)) ((D #(up (cos %) (sin %))) 't)))
     (is (= '(/ 1 (sqrt (+ (* -1 (expt x 2)) 1))) (simplify ((D asin) 'x))))
-    (is (= '(* -1 (/ 1 (sqrt (+ (* -1 (expt x 2)) 1)))) (simplify ((D acos) 'x)))))
+    (is (= '(/ -1 (sqrt (+ (* -1 (expt x 2)) 1))) (simplify ((D acos) 'x)))))
   (testing "chain rule"
     (let [s (fn [t] (sqrt t))
           u (fn [t] (expt (- (* 3 (s t)) 1) 2/3))

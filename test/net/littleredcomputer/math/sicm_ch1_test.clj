@@ -174,12 +174,12 @@
                     (+ (* (((expt D 2) y) t) m) (* g m)))
              (simplify (((Lagrange-equations (L-uniform-acceleration 'm 'g))
                          (up x y)) 't))))
-      (is (= '(down (+ (* 2 (x t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
-                          (/ 1 (* 2 (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
-                       (* (((expt D 2) x) t) m))
-                    (+ (* 2 (y t) ((D U) (sqrt (+ (expt (y t) 2) (expt (x t) 2))))
-                          (/ 1 (* 2 (sqrt (+ (expt (y t) 2) (expt (x t) 2))))))
-                       (* (((expt D 2) y) t) m)))
+      (is (= '(down (/ (+ (* (sqrt (+ (expt (x t) 2) (expt (y t) 2))) (((expt D 2) x) t) m)
+                          (* (x t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
+                       (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
+                    (/ (+ (* (sqrt (+ (expt (x t) 2) (expt (y t) 2))) (((expt D 2) y) t) m)
+                          (* (y t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
+                       (sqrt (+ (expt (x t) 2) (expt (y t) 2)))))
              (simplify (((Lagrange-equations (L-central-rectangular 'm U))
                          (up x y))
                         't))))
@@ -201,11 +201,11 @@
              (simplify ((L-alternate-central-polar 'm U)
                         (->local 't (up 'r 'φ) (up 'rdot 'φdot))))))
       (is (= '(down
-               (+ (* -1 (expt ((D φ) t) 2) (r t) m)
-                  (* 2 (r t) ((D U) (r t)) (/ 1 (* 2 (r t))))
-                  (* (((expt D 2) r) t) m))
+               (+ (* -1N (r t) (expt ((D φ) t) 2) m)
+                  (* (((expt D 2) r) t) m)
+                  ((D U) (r t)))
                (+ (* (expt (r t) 2) (((expt D 2) φ) t) m)
-                  (* 2 (r t) ((D r) t) ((D φ) t) m)))
+                  (* 2N (r t) ((D r) t) ((D φ) t) m)))
              (simplify (((Lagrange-equations (L-alternate-central-polar 'm U))
                          (up r φ))
                         't))))
@@ -239,15 +239,16 @@
       ;; simplification isn't quite up to scratch here, but it's a proof of concept.
       (is (= '(up 1
                   (up v_x v_y)
-                  (up (* -1 (/ m (expt m 2)) k x) (* -1 (/ m (expt m 2)) k y)))
+                  (up (/ (* -1N k x) m) (/ (* -1N k y) m)))
              (simplify ((harmonic-state-derivative 'm 'k)
                         (up 't (up 'x 'y) (up 'v_x 'v_y))))))
       ;; p. 71
-      (is (= '(up 0
-                  (up (+ ((D x) t) (* -1 (v_x t)))
-                      (+ ((D y) t) (* -1 (v_y t))))
-                  (up (+ (* (/ m (expt m 2)) (x t) k) ((D v_x) t))
-                      (+ (* (/ m (expt m 2)) (y t) k) ((D v_y) t))))
+      (is (= '(up
+               0
+               (up (+ ((D x) t) (* -1 (v_x t))) (+ ((D y) t) (* -1 (v_y t))))
+               (up
+                (/ (+ (* ((D v_x) t) m) (* (x t) k)) m)
+                (/ (+ (* ((D v_y) t) m) (* (y t) k)) m)))
              (simplify (((Lagrange-equations-first-order (L-harmonic 'm 'k))
                          (up x y)
                          (up v_x v_y))
@@ -258,7 +259,7 @@
              (flatten ((harmonic-state-derivative 2. 1.)
                        (up 0 (up 1. 2.) (up 3. 4.))))))
       ;; p. 72
-      (dotimes [_ 1]
+      (dotimes [_ 1]  ;; this is just here in case we want to watch in the profiler
         (let [answer ((state-advancer harmonic-state-derivative 2. 1.)
                       (up 0. (up 1. 2.) (up 3. 4.))
                       10.
@@ -290,9 +291,8 @@
     ;; NB. fraction simplification not happening here
     (is (= '(up 1
                 θdot
-                (/ (+ (* (sin θ) (cos (* t ω)) a l m (expt ω 2))
-                      (* -1 (sin θ) g l m))
-                   (* (expt l 2) m)))
+                (/ (+ (* (sin θ) (cos (* t ω)) a (expt ω 2)) (* -1N (sin θ) g))
+                   l))
            (simplify ((pend-state-derivative 'm 'l 'g 'a 'ω)
                       (up 't 'θ 'θdot)))))
     (let [answer ((evolve pend-state-derivative

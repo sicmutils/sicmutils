@@ -17,7 +17,9 @@
 ;
 
 (ns net.littleredcomputer.math.polynomial
-  (:import (clojure.lang PersistentTreeMap))
+  (:import (clojure.lang PersistentTreeMap)
+           (com.google.common.base Stopwatch)
+           (java.util.concurrent TimeUnit TimeoutException))
   (:require [clojure.set :as set]
             [clojure.string]
             [net.littleredcomputer.math
@@ -352,6 +354,7 @@
   (cond
     (v/nullity? u) v
     (v/nullity? v) u
+    (= u v) u
     :else (let [content1 #(->> % :xs->c vals (reduce euclid/gcd))
                 attach-content1 (fn [p c] (poly-map #(g/* c %) p))
                 divide-coefs (fn [p c] (poly-map #(g/divide % c) p))
@@ -375,32 +378,52 @@
                       :else
                       (recur v (divide-coefs r (content1 r)))))))))
 
-(defn gcd
-  "Knuth's algorithm 4.6.1E. Delegates to gcd1 for univariate polynomials."
-  [u v]
-  {:pre [(instance? Polynomial u)
-         (instance? Polynomial v)]}
-  (let [arity (check-same-arity u v)]
+(def ^:dynamic *poly-gcd-time-limit* [1 TimeUnit/SECONDS])
+
+(defn ^:private inner-gcd
+  "Knuth's algorithm 4.6.1E. Delegates to gcd1 for univariate polynomials.
+  This can take a long time, unfortunately, and so we bail if it seems to
+  be taking too long."
+  [u v clock]
+
+  (let [arity (check-same-arity u v)
+        too-slow? (fn []
+                    (when (> (.elapsed clock (second *poly-gcd-time-limit*))
+                             (first *poly-gcd-time-limit*))
+                      (throw (TimeoutException. "Took too long to find multivariate polynomial GCD."))))]
     (cond
       (zero? arity) (make 0 [[[] (euclid/gcd (constant-term u) (constant-term v))]])
       (= arity 1) (gcd1 u v)
       (v/nullity? u) v
       (v/nullity? v) u
-      :else (let [u1 (lower-arity u)
-                  v1 (lower-arity v)
-                  content #(->> % :xs->c vals (reduce gcd))
-                  ku (content u1)
-                  kv (content v1)
-                  pu (poly-map #(evenly-divide % ku) u1)
-                  pv (poly-map #(evenly-divide % kv) v1)
-                  d (gcd ku kv)]
-              (loop [u pu
-                     v pv]
-                (let [[_ r _] (divide u v {:pseudo true})]
-                  (cond (v/nullity? r) (raise-arity (poly-map #(g/* d %) v))
-                        (zero? (degree r)) (raise-arity (make-constant 1 d))
-                        :else (let [cr (content r)]
-                                (recur v (poly-map #(evenly-divide % cr) r))))))))))
+      (v/unity? u) u
+      (v/unity? v) v
+      (= u v) u
+      :else (do
+              (too-slow?)
+              (let [u1 (lower-arity u)
+                    v1 (lower-arity v)
+                    content #(->> % :xs->c vals (reduce (fn [u v] (inner-gcd u v clock))))
+                    ku (content u1)
+                    kv (content v1)
+                    pu (poly-map #(evenly-divide % ku) u1)
+                    pv (poly-map #(evenly-divide % kv) v1)
+                    d (inner-gcd ku kv clock)]
+                (loop [u pu
+                       v pv]
+                  (too-slow?)
+                  (let [[_ r _] (divide u v {:pseudo true})]
+                    (cond (v/nullity? r) (raise-arity (poly-map #(g/* d %) v))
+                          (zero? (degree r)) (raise-arity (make-constant 1 d))
+                          :else (let [cr (content r)]
+                                  (recur v (poly-map #(evenly-divide % cr) r)))))))))))
+
+(defn gcd
+  [u v]
+  {:pre [(instance? Polynomial u)
+         (instance? Polynomial v)]}
+  (let [clock (Stopwatch/createStarted)]
+    (inner-gcd u v clock)))
 
 (defn expt
   "Raise the polynomial p to the (integer) power n. Of course, n

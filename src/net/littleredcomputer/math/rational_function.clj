@@ -38,6 +38,15 @@
   [p q]
   (when (v/nullity? q)
     (throw (ArithmeticException. "Can't form rational function with zero denominator")))
+  ;;
+  ;; WHERE WE LEFT OFF:
+  ;; This is technically correct, but may be applying GCD more aggressively
+  ;; than we can afford.
+  ;;
+  ;; Look at scmutils for ways for the individual RF operations to be
+  ;; more sparing in their application of GCD.
+  ;;
+
   (let [arity (p/check-same-arity p q)
         g (p/gcd p q)
         p' (p/evenly-divide p g)
