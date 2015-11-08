@@ -253,6 +253,11 @@
       (is (= (down (up 1/4 0 0 0) (up 0 -1 1 0) (up 0 1/2 0 0) (up -1/4 0 0 1)) (/ G)))
       (is (= (down (up 1 0 0 0) (up 0 1 0 0) (up 0 0 1 0) (up 0 0 0 1)) (/ G G)))
       (is (= (down (up 1/8)) (/ (down (up 8))))))
+    (testing "invert-hilbert-matrix"
+      (let [N 3
+            H (apply up (for [i (range 1 (inc N))]
+                          (apply up (for [j (range 1 (inc N))] (/ 1 (+ i j -1))))))]
+        (is (= (down (down 9 -36 30) (down -36 192 -180) (down 30 -180 180)) (invert H)))))
     (testing "transpose"
       (is (= (down (up 1 2) (up 3 4)) (transpose A)))
       (is (= (up (up 1 2 3) (up 3 4 5)) (transpose B)))

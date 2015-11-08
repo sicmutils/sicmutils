@@ -20,6 +20,8 @@
   (:require [clojure.set :as set]
             [net.littleredcomputer.math
              [expression :as x]
+             [generic :as g]
+             [euclid :as e]
              [numsymb :as sym]
              [value :as v]
              [polynomial :as p]])
@@ -27,59 +29,89 @@
 
 (declare operator-table operators-known)
 
-(defrecord RationalFunction [^long arity ^Polynomial p ^Polynomial q]
+(defrecord RationalFunction [^long arity ^Polynomial u ^Polynomial v]
   v/Value
-  (nullity? [_] (v/nullity? p))
-  (unity? [_] (and (v/unity? p) (v/unity? q))))
+  (nullity? [_] (v/nullity? u))
+  (unity? [_] (and (v/unity? u) (v/unity? v)))
+  (kind [_] ::rational-function))
 
 (defn make
   "Make the fraction of the two polynomials p and q, after dividing
   out their greatest common divisor."
-  [p q]
-  (when (v/nullity? q)
+  [u v]
+  {:pre [(instance? Polynomial u)
+         (instance? Polynomial v)]}
+  (when (v/nullity? v)
     (throw (ArithmeticException. "Can't form rational function with zero denominator")))
-  ;;
-  ;; WHERE WE LEFT OFF:
-  ;; This is technically correct, but may be applying GCD more aggressively
-  ;; than we can afford.
-  ;;
-  ;; Look at scmutils for ways for the individual RF operations to be
-  ;; more sparing in their application of GCD.
-  ;;
+  ;; annoying: we are using native operations here for the base coefficients
+  ;; of the polynomial. Can we do better? That would involve exposing gcd as
+  ;; a generic operation (along with lcm), and binding the euclid implmentation
+  ;; in for language supported integral types. Perhaps also generalizing ratio?
+  ;; and denominator. TODO.
+  (let [arity (p/check-same-arity u v)
+        cv (p/coefficients v)
+        lcv (last cv)
+        cs (into (into #{} cv) (p/coefficients u))
+        integerizing-factor (*
+                             (if (< lcv 0) -1 1)
+                             (reduce e/lcm 1 (map denominator (filter ratio? cs))))
 
-  (let [arity (p/check-same-arity p q)
-        g (p/gcd p q)
-        p' (p/evenly-divide p g)
-        q' (p/evenly-divide q g)]
-    (RationalFunction. arity p' q')))
+        u' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) u) u)
+        v' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) v) v)
+        ]
+    (RationalFunction. arity u' v')))
+
+;;
+;; Rational arithmetic is from Knuth vol 2 section 4.5.1
+;;
 
 (defn add
   "Add the ratiional functions r and s."
-  [{pr :p qr :q} {ps :p qs :q}]
-  (make (p/add (p/mul pr qs) (p/mul qr ps)) (p/mul qr qs)))
+  [{u :u u' :v :as p} {v :u v' :v :as q}]
+  (let [a (p/check-same-arity p q)
+        d1 (p/gcd u' v')]
+    (if (v/unity? d1)
+      (RationalFunction. a (p/add (p/mul u v') (p/mul u' v)) (p/mul u' v'))
+      (let [t (p/add (p/mul u (p/evenly-divide v' d1))
+                     (p/mul v (p/evenly-divide u' d1)))
+            d2 (p/gcd t d1)]
+        (RationalFunction. a
+                           (p/evenly-divide t d2)
+                           (p/mul (p/evenly-divide u' d1)
+                                  (p/evenly-divide v' d2)))))))
 
 (defn negate
-  [{p :p q :q arity :arity}]
-  (RationalFunction. arity (p/negate p) q))
+  [{u :u v :v arity :arity}]
+  (RationalFunction. arity (p/negate u) v))
 
 (defn sub
   [r s]
   (add r (negate s)))
 
 (defn mul
-  [{pr :p qr :q} {ps :p qs :q}]
-  (make (p/mul pr ps) (p/mul qr qs)))
+  [{u :u u' :v :as U} {v :u v' :v :as V}]
+  (let [a (p/check-same-arity U V)]
+    (cond (v/nullity? U) U
+          (v/nullity? V) V
+          (v/unity? U) V
+          (v/unity? V) U
+          :else (let [d1 (p/gcd u v')
+                      d2 (p/gcd u' v)]
+                  (RationalFunction. a
+                                     (p/mul (p/evenly-divide u d1) (p/evenly-divide v d2))
+                                     (p/mul (p/evenly-divide u' d2) (p/evenly-divide v' d1)))))))
 
 (defn invert
-  [{p :p q :q}]
-  (make q p))
+  [{arity :arity u :u v :v}]
+  ;; use make so that the - sign will get flipped if needed
+  (make v u))
 
 (defn div
   [r s]
   (mul r (invert s)))
 
 (defn expt
-  [{pr :p qr :q :as r} {ps :p qs :q :as s}]
+  [{pr :u qr :v :as r} {ps :u qs :v :as s}]
   (let [arity (p/check-same-arity r s)
         n (p/constant? ps)
         d (p/constant? qs)
@@ -88,17 +120,17 @@
       (throw (IllegalArgumentException. (str "Can't raise rational function to " e))))
     (let [[top bottom e] (if (< e 0) [qr pr (- e)] [pr qr e])
           pexp (p/make-constant arity e)]
-      (make (p/expt top pexp) (p/expt bottom pexp)))))
+      (RationalFunction. arity (p/expt top pexp) (p/expt bottom pexp)))))
 
 (defn make-constant
   [arity c]
-  (make (p/make-constant arity c) (p/make-constant arity 1)))
+  (RationalFunction. arity (p/make-constant arity c) (p/make-constant arity 1)))
 
 (defn new-variables
   "Creates a sequence of identity (i.e., x) rational functions, one for each
   of arity indeterminates."
   [arity]
-  (map #(make % (p/make-constant arity 1)) (p/new-variables arity)))
+  (map #(RationalFunction. arity % (p/make-constant arity 1)) (p/new-variables arity)))
 
 (defn expression->
   "Convert an expression into Rational Function canonical form. The
@@ -131,7 +163,7 @@
   ;; enough, but it seems like an odd special case and perhaps should
   ;; be treated at the level above.
   (if (instance? RationalFunction r)
-    (sym/div (p/->expression (:p r) vars) (p/->expression (:q r) vars))
+    (sym/div (p/->expression (:u r) vars) (p/->expression (:v r) vars))
     r))
 
 (def ^:private operator-table
@@ -150,3 +182,9 @@
    })
 
 (def operators-known (set (keys operator-table)))
+
+(defmethod g/add [::rational-function ::rational-function] [a b] (add a b))
+(defmethod g/mul [::rational-function ::rational-function] [a b] (mul a b))
+(defmethod g/sub [::rational-function ::rational-function] [a b] (sub a b))
+(defmethod g/div [::rational-function ::rational-function] [a b] (div a b))
+(defmethod g/negate ::rational-function [a] (negate a))

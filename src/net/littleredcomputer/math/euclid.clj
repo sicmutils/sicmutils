@@ -38,3 +38,7 @@
 (defn gcd
   [a b]
   (first (extended-gcd a b)))
+
+(defn lcm
+  [a b]
+  (nt/abs (/ (* a b) (gcd a b))))

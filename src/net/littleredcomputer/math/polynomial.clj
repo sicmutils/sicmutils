@@ -137,6 +137,10 @@
           (and (= (count xs->c) 1)
                (every? zero? (exponents (first xs->c)))) (coefficient (first xs->c)))))
 
+(defn coefficients
+  [^Polynomial p]
+  (-> p :xs->c vals))
+
 (defn constant-term
   "Return the constant term of the polynomial."
   [{:keys [arity xs->c]}]
@@ -148,7 +152,7 @@
     (cond (= ap aq) ap
           :else (throw (ArithmeticException. "mismatched polynomial arity")))))
 
-(defn- poly-map
+(defn map-coefficients
   "Map the function f over the coefficients of p, returning a new Polynomial."
   [f {:keys [arity xs->c]}]
   (make arity (for [[xs c] xs->c] [xs (f c)])))
@@ -189,7 +193,7 @@
   (for [a (range arity)]
     (make arity [[(mapv #(if (= % a) 1 0) (range arity)) 1]])))
 
-(def negate (partial poly-map g/negate))
+(def negate (partial map-coefficients g/negate))
 
 (defn make-constant
   "Return a constant polynomial of the given arity."
@@ -298,7 +302,7 @@
         (v/nullity? u) [u u]
         :else (let [[q r m] (let [arity (check-same-arity u v)
                                   [vn-exponents vn-coefficient] (lead-term v)
-                                  *vn (fn [p] (poly-map #(g/* % vn-coefficient) p))]
+                                  *vn (fn [p] (map-coefficients #(g/* % vn-coefficient) p))]
                               (if (zero? arity)
                                 ;; XXX: we're sort of breaking the pseudo-division promise
                                 ;; in this case, but both of the polynomials were constant,
@@ -356,8 +360,8 @@
     (v/nullity? v) u
     (= u v) u
     :else (let [content1 #(->> % :xs->c vals (reduce euclid/gcd))
-                attach-content1 (fn [p c] (poly-map #(g/* c %) p))
-                divide-coefs (fn [p c] (poly-map #(g/divide % c) p))
+                attach-content1 (fn [p c] (map-coefficients #(g/* c %) p))
+                divide-coefs (fn [p c] (map-coefficients #(g/divide % c) p))
                 ku (content1 u)
                 kv (content1 v)
                 pu (divide-coefs u ku)
@@ -406,17 +410,17 @@
                     content #(->> % :xs->c vals (reduce (fn [u v] (inner-gcd u v clock))))
                     ku (content u1)
                     kv (content v1)
-                    pu (poly-map #(evenly-divide % ku) u1)
-                    pv (poly-map #(evenly-divide % kv) v1)
+                    pu (map-coefficients #(evenly-divide % ku) u1)
+                    pv (map-coefficients #(evenly-divide % kv) v1)
                     d (inner-gcd ku kv clock)]
                 (loop [u pu
                        v pv]
                   (too-slow?)
                   (let [[_ r _] (divide u v {:pseudo true})]
-                    (cond (v/nullity? r) (raise-arity (poly-map #(g/* d %) v))
+                    (cond (v/nullity? r) (raise-arity (map-coefficients #(g/* d %) v))
                           (zero? (degree r)) (raise-arity (make-constant 1 d))
                           :else (let [cr (content r)]
-                                  (recur v (poly-map #(evenly-divide % cr) r)))))))))))
+                                  (recur v (map-coefficients #(evenly-divide % cr) r)))))))))))
 
 (defn gcd
   [u v]

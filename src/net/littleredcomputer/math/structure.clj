@@ -201,14 +201,15 @@
   "Computes the matrix of cofactors of the given structure with the
   same shape, if s is square."
   [s]
-  (let [[d outer-orientation inner-orientation] (square? s)]
+  (let [[d outer-orientation inner-orientation] (square? s)
+        checkerboard-negate (fn [s i j] (if (even? (+ i j)) s (g/negate s)))]
     (cond (< d 2) s
           (= d 2) (let [[[a b] [c d]] s]
                     (make outer-orientation
                           [(make inner-orientation [d (g/negate c)])
                            (make inner-orientation [(g/negate b) a])]))
           :else (make-square d outer-orientation inner-orientation
-                             #(-> s (substructure-without %1 %2) determinant (g/* (if (even? (+ %1 %2)) 1 -1)))))))
+                             #(-> s (substructure-without %1 %2) determinant (checkerboard-negate %1 %2))))))
 
 (defn determinant
   "Computes the determinant of s, which must have square shape. Generic

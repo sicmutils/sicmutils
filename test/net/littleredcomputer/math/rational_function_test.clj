@@ -23,6 +23,7 @@
              [expression :as x]
              [generic :as g]
              [value :as v]
+             [structure :as s]
              [polynomial :as p]
              [numbers]
              [simplify]]))
@@ -38,21 +39,25 @@
   (let [zap #(p/make 0 [[[] %]])      ;; "zero-arity polynomial"
         zarf #(make (zap %) (zap 1))  ;; "zero-arity rational function"
         R (make (p/make [2]) (p/make [3]))
-        S (make (p/make [4]) (p/make [2]))
+        S (make (p/make [2]) (p/make [1]))
         x+1 (p/make [1 1])
         x-1 (p/make [-1 1])
         x+1:x-1 (make x+1 x-1)
         x-1:x+1 (make x-1 x+1)
         one (make (p/make [1]) (p/make [1]))]
-    (is (= one (make x+1 x+1)))
+    (is (= (make (p/make [-1 -2 -3]) (p/make [-4 -5 6]))
+           (make (p/make [1 2 3]) (p/make [4 5 -6]))))
     (is (= one (mul x+1:x-1 x-1:x+1)))
     (is (= one (mul x-1:x+1 x+1:x-1)))
+    (is (= (make (p/make [0 15 10]) (p/make [0 0 15 18]))
+           (make (p/make [0 1/2 1/3]) (p/make [0 0 1/2 3/5]))))
     (is (= (make (p/make [1 -1]) (p/make [1 1])) (negate x-1:x+1)))
     (is (= x+1:x-1 (invert x-1:x+1)))
     (is (= (make (p/make [3]) (p/make [1])) (make-constant 1 3)))
     (is (= one (mul x-1:x+1 (invert x-1:x+1))))
     (is (= (make (p/make [2 0 2]) (p/make [-1 0 1])) (add x-1:x+1 x+1:x-1)))
     (is (= (make (p/make [2 0 2]) (p/make [-1 0 1])) (add x+1:x-1 x-1:x+1)))
+    (println "S" S)
     (is (= (make (p/make [1 2 1]) (p/make [1 -2 1])) (expt x+1:x-1 S)))
     (is (= (make (p/make [1 -2 1]) (p/make [1 2 1])) (expt x+1:x-1 (negate S))))
     (is (= (zarf 5) (add (zarf 2) (zarf 3))))
@@ -60,6 +65,19 @@
     (is (= (zarf 4) (div (zarf 8) (zarf 2))))
     (is (= (zarf 1) (div (zarf 1) (zarf 1))))
     (is (= (zarf 0) (div (zarf 0) (zarf 1))))))
+
+(deftest rf-arithmetic
+  (testing "invert-hilbert-matrix"
+    (let [zap #(p/make 0 [[[] %]])        ;; "zero-arity polynomial"
+          zarf #(make (zap %1) (zap %2))  ;; "zero-arity rational function"
+          N 3
+          H (apply s/up (for [i (range 1 (inc N))]
+                        (apply s/up (for [j (range 1 (inc N))] (zarf 1 (+ i j -1))))))]
+      (is (= (s/mapr #(zarf % 1)
+                     (s/down (s/down 9 -36 30)
+                             (s/down -36 192 -180)
+                             (s/down 30 -180 180)))
+             (g/invert H))))))
 
 (deftest rf-as-simplifier
   (testing "make-vars"
