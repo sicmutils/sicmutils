@@ -21,5 +21,7 @@
   (:require [net.littleredcomputer.math.examples.rigid-rotation :as rigid]
             [clojure.test :refer :all]))
 
-(deftest smoke
+(deftest ^:long smoke
+  ;; this test is :long because of the simplification. Remove this
+  ;; tag when we fix that.
   (is (rigid/evolver 1 0.1 1 1.2 2 0.1 0.1 0.1 1 1 1)))

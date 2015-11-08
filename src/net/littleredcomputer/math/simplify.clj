@@ -114,6 +114,23 @@
              (log/warn (str "simplifier timed out: must have been a complicated expression"))
              x)))))
 
+(def ^:private twin-analyzer
+  (fn [x]
+    ;; kick off poly analyzer in a thread (the rational function analyzer
+    ;; should typically take longer, so by the time that's done the future
+    ;; should be fulfilled). We could decide to accept the poly analyzer's
+    ;; result in that case.
+    (let [pf (future (poly-analyzer x))
+          r (rational-function-analyzer x)
+          p @pf
+          lp (count (flatten @pf))
+          lr (count (flatten r))]
+      (when (< lp lr)
+        (log/warn (format "the poly analyzer did a better job %d %d" lp lr))
+        (log/warn (format "poly: %s" (seq p)))
+        (log/warn (format "rf: %s" (seq r))))
+      r)))
+
 (def ^:private simplify-and-flatten rational-function-analyzer)
 ;;(def ^:private simplify-and-flatten poly-analyzer)
 
