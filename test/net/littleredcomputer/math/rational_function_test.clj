@@ -47,6 +47,8 @@
         one (make (p/make [1]) (p/make [1]))]
     (is (= (make (p/make [-1 -2 -3]) (p/make [-4 -5 6]))
            (make (p/make [1 2 3]) (p/make [4 5 -6]))))
+    (is (= (make (p/make [1 2 3]) (p/make [-4 5 6]))
+           (make (p/make [1 2 3]) (p/make [-4 5 6]))))
     (is (= one (mul x+1:x-1 x-1:x+1)))
     (is (= one (mul x-1:x+1 x+1:x-1)))
     (is (= (make (p/make [0 15 10]) (p/make [0 0 15 18]))
@@ -57,9 +59,8 @@
     (is (= one (mul x-1:x+1 (invert x-1:x+1))))
     (is (= (make (p/make [2 0 2]) (p/make [-1 0 1])) (add x-1:x+1 x+1:x-1)))
     (is (= (make (p/make [2 0 2]) (p/make [-1 0 1])) (add x+1:x-1 x-1:x+1)))
-    (println "S" S)
-    (is (= (make (p/make [1 2 1]) (p/make [1 -2 1])) (expt x+1:x-1 S)))
-    (is (= (make (p/make [1 -2 1]) (p/make [1 2 1])) (expt x+1:x-1 (negate S))))
+    (is (= (make (p/make [1 2 1]) (p/make [1 -2 1])) (expt x+1:x-1 2)))
+    (is (= (make (p/make [1 -2 1]) (p/make [1 2 1])) (expt x+1:x-1 -2)))
     (is (= (zarf 5) (add (zarf 2) (zarf 3))))
     (is (= (make (zap 5) (zap 3)) (div (zarf 5) (zarf 3))))
     (is (= (zarf 4) (div (zarf 8) (zarf 2))))
@@ -79,20 +80,21 @@
                              (s/down 30 -180 180)))
              (g/invert H))))))
 
+(deftest rf-operations
+  (let [x+1 (p/make [1 1])
+        x-1 (p/make [-1 1])]
+    (= 'foo (g/mul x-1 (make x+1 x-1)))))
+
 (deftest rf-as-simplifier
-  (testing "make-vars"
-    (is (= [(make (p/make [0 1]) (p/make [1]))] (new-variables 1)))
-    (is (= [(make (p/make 2 [[[1 0] 1]]) (p/make 2 [[[0 0] 1]]))
-            (make (p/make 2 [[[0 1] 1]]) (p/make 2 [[[0 0] 1]]))] (new-variables 2))))
   (testing "expr"
     (let [exp1 (:expression (g/* (g/+ 1 'x) (g/+ -3 'x)))
           exp2 (:expression (g/expt (g/+ 1 'y) 5))
           exp3 (:expression (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5)))
           receive (fn [a b] [a b])]
-      (is (= [(make (p/make [-3 -2 1]) (p/make [1])) '(x)] (expression-> exp1 receive)))
-      (is (= [(make (p/make [-3 -2 1]) (p/make [1])) '(x)] (expression-> exp1 receive)))
-      (is (= [(make (p/make [1 5 10 10 5 1]) (p/make [1])) '(y)] (expression-> exp2 receive)))
-      (is (= [(make (p/make [0 -11 5 -30 10 -7 1]) (p/make [1])) '(y)] (expression-> exp3 receive)))))
+      (is (= [(p/make [-3 -2 1]) '(x)] (expression-> exp1 receive)))
+      (is (= [(p/make [-3 -2 1]) '(x)] (expression-> exp1 receive)))
+      (is (= [(p/make [1 5 10 10 5 1]) '(y)] (expression-> exp2 receive)))
+      (is (= [(p/make [0 -11 5 -30 10 -7 1]) '(y)] (expression-> exp3 receive)))))
   (testing "expr-simplify"
     (let [rf-simp #(expression-> % ->expression)
           exp1 (:expression (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))

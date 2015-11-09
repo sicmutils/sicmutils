@@ -102,7 +102,7 @@
 (defn- div-n [arg & args]
   (cond (nil? arg) 1
         (nil? args) (g/invert arg)
-        :else (div  arg (reduce mul args))))
+        :else (div arg (reduce mul args))))
 
 ;; END
 

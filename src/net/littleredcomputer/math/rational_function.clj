@@ -55,10 +55,8 @@
         integerizing-factor (*
                              (if (< lcv 0) -1 1)
                              (reduce e/lcm 1 (map denominator (filter ratio? cs))))
-
         u' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) u) u)
-        v' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) v) v)
-        ]
+        v' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) v) v)]
     (RationalFunction. arity u' v')))
 
 ;;
@@ -80,9 +78,31 @@
                            (p/mul (p/evenly-divide u' d1)
                                   (p/evenly-divide v' d2)))))))
 
+(defn addp
+  [{u :u u' :v :as r} v]
+  (let [a (p/check-same-arity u v)]
+    (cond
+      (v/nullity? v) r
+      :else (make (p/add u (p/mul u' v)) u'))))
+
+(defn subp
+  [{u :u u' :v :as r} v]
+  (let [a (p/check-same-arity u v)]
+    (cond
+      (v/nullity? v) r
+      :else (make (p/sub u (p/mul u' v)) u'))))
+
 (defn negate
   [{u :u v :v arity :arity}]
   (RationalFunction. arity (p/negate u) v))
+
+(defn square
+  [{u :u v :v arity :arity}]
+  (RationalFunction. arity (p/mul u u) (p/mul v v)))
+
+(defn cube
+  [{u :u v :v arity :arity}]
+  (RationalFunction. arity (p/mul u (p/mul u u)) (p/mul v (p/mul v v))))
 
 (defn sub
   [r s]
@@ -111,26 +131,13 @@
   (mul r (invert s)))
 
 (defn expt
-  [{pr :u qr :v :as r} {ps :u qs :v :as s}]
-  (let [arity (p/check-same-arity r s)
-        n (p/constant? ps)
-        d (p/constant? qs)
-        e (and (integer? n) (= d 1) n)]
-    (when-not e
-      (throw (IllegalArgumentException. (str "Can't raise rational function to " e))))
-    (let [[top bottom e] (if (< e 0) [qr pr (- e)] [pr qr e])
-          pexp (p/make-constant arity e)]
-      (RationalFunction. arity (p/expt top pexp) (p/expt bottom pexp)))))
+  [{pr :u qr :v arity :arity} n]
+  (let [[top bottom e] (if (< n 0) [qr pr (- n)] [pr qr n])]
+    (RationalFunction. arity (p/expt top e) (p/expt bottom e))))
 
 (defn make-constant
   [arity c]
   (RationalFunction. arity (p/make-constant arity c) (p/make-constant arity 1)))
-
-(defn new-variables
-  "Creates a sequence of identity (i.e., x) rational functions, one for each
-  of arity indeterminates."
-  [arity]
-  (map #(RationalFunction. arity % (p/make-constant arity 1)) (p/new-variables arity)))
 
 (defn expression->
   "Convert an expression into Rational Function canonical form. The
@@ -145,9 +152,9 @@
   [expr cont]
   (let [expression-vars (sort (set/difference (x/variables-in expr) operators-known))
         arity (count expression-vars)]
-    (let [new-bindings (zipmap expression-vars (new-variables arity))
+    (let [new-bindings (zipmap expression-vars (p/new-variables arity))
           environment (into operator-table new-bindings)
-          transformer (x/walk-expression environment #(make-constant arity %))]
+          transformer (x/walk-expression environment)]
       (-> expr transformer (cont expression-vars)))))
 
 (defn ->expression
@@ -157,34 +164,86 @@
   indeterminates extracted from the expression at the start of this
   process."
   [r vars]
-  ;; odd: this (i.e., (symbol? p)) only happens in the case of
-  ;; something like (expt 'x 'y), where we can't treat it as a known
-  ;; expression because 'y is not an integer. Handling it here is easy
-  ;; enough, but it seems like an odd special case and perhaps should
-  ;; be treated at the level above.
-  (if (instance? RationalFunction r)
-    (sym/div (p/->expression (:u r) vars) (p/->expression (:v r) vars))
-    r))
+  (cond (instance? RationalFunction r)
+        (sym/div (p/->expression (:u r) vars) (p/->expression (:v r) vars))
+
+        (instance? Polynomial r)
+        (p/->expression r vars)
+
+        :else r))
 
 (def ^:private operator-table
-  {'+ #(reduce add %&)
+  {'+ #(reduce g/add %&)
    '- (fn [arg & args]
-        (if (some? args) (sub arg (reduce add args)) (negate arg)))
-   '* #(reduce mul %&)
+        (if (some? args) (g/sub arg (reduce g/add args)) (g/negate arg)))
+   '* #(reduce g/mul %&)
    '/ (fn [arg & args]
-        (if (some? args) (div arg (reduce mul args)) (invert arg)))
+        (if (some? args) (g/div arg (reduce g/mul args)) (g/invert arg)))
    'negate negate
    'invert invert
-   'expt expt
-   'square #(mul % %)
-   'cube #(mul % (mul % %))
+   'expt g/expt
+   'square square
+   'cube cube
    ;;`'g/gcd gcd
    })
 
 (def operators-known (set (keys operator-table)))
 
 (defmethod g/add [::rational-function ::rational-function] [a b] (add a b))
+(defmethod g/add [::rational-function :net.littleredcomputer.math.polynomial/polynomial] [r p] (addp r p))
+(defmethod g/add [:net.littleredcomputer.math.polynomial/polynomial ::rational-function] [p r] (addp r p))
+
+(defmethod g/sub
+  [::rational-function :net.littleredcomputer.math.polynomial/polynomial]
+  [r p]
+  (addp r (g/negate p)))
+
+(defmethod g/sub
+  [:net.littleredcomputer.math.polynomial/polynomial ::rational-function]
+  [p r]
+  (addp (g/negate r) p))
+
 (defmethod g/mul [::rational-function ::rational-function] [a b] (mul a b))
+(defmethod g/mul [Number ::rational-function] [c {u :u v :v}] (make (g/mul c u) v))
+
+(defmethod g/mul
+  [::rational-function :net.littleredcomputer.math.polynomial/polynomial]
+  [{u :u u' :v :as U} v]
+  "Multiply the rational function U = u/u' by the polynomial v"
+  (cond (v/nullity? v) 0
+        (v/unity? v) U
+        :else (let [d (p/gcd u' v) ]
+                (if (v/unity? d)
+                  (make (p/mul u v) u')
+                  (make (p/mul u (p/evenly-divide v d))
+                        (p/evenly-divide u' d))))))
+
+(defmethod g/mul
+  [:net.littleredcomputer.math.polynomial/polynomial ::rational-function]
+  [u {v :u v' :v :as V}]
+  "Multiply the polynomial u by the rational function V = v/v'"
+  (cond (v/nullity? u) 0
+        (v/unity? u) V
+        :else (let [d (p/gcd u v') ]
+                (if (v/unity? d)
+                  (make (p/mul u v) v')
+                  (make (p/mul (p/evenly-divide u d) v)
+                        (p/evenly-divide v' d))))))
+
 (defmethod g/sub [::rational-function ::rational-function] [a b] (sub a b))
+(defmethod g/sub [::rational-function :net.littleredcomputer.math.polynomial/polynomial] [r p] (subp r p))
 (defmethod g/div [::rational-function ::rational-function] [a b] (div a b))
+
+(defmethod g/div
+  [:net.littleredcomputer.math.polynomial/polynomial :net.littleredcomputer.math.polynomial/polynomial]
+  [p q]
+  (let [g (p/gcd p q)]
+    (make (p/evenly-divide p g) (p/evenly-divide q g))))
+
+(defmethod g/div
+  [Number :net.littleredcomputer.math.polynomial/polynomial]
+  [c p]
+  (make (p/make-constant (:arity p) c) p))
+
+(defmethod g/expt [::rational-function Integer] [b x] (expt b x))
 (defmethod g/negate ::rational-function [a] (negate a))

@@ -99,8 +99,8 @@
     (is (= (make [1 -4 6 -4 1]) (mul (mul (make [-1 1]) (make [-1 1]))
                                      (mul (make [-1 1]) (make [-1 1]))))))
   (testing "coefficients"
-    (is (= [1 5 10 10 5 1] (coefficients (expt (make [1 1]) (make [5])))))
-    (is (= [1 5 10 10 5 1] (coefficients (expt (make 2 [[[1 0] 1] [[0 1] 1]]) (make 2 [[[0 0] 5]]))))))
+    (is (= [1 5 10 10 5 1] (coefficients (expt (make [1 1]) 5))))
+    (is (= [1 5 10 10 5 1] (coefficients (expt (make 2 [[[1 0] 1] [[0 1] 1]]) 5)))))
   (testing "div"
     (is (= [(make [1 1]) (make [])]
            (divide (make [-1 0 1]) (make [-1 1]))))
@@ -139,20 +139,20 @@
     (is (= [(make [7]) (make [0]) 2] (divide (make [7]) (make [2]) {:pseudo true}))))
   (testing "expt"
     (let [x+1 (make [1 1])]
-      (is (= (make [1]) (expt x+1 (make []))))
-      (is (= x+1 (expt x+1 (make [1]))))
-      (is (= (make [1 2 1]) (expt x+1 (make [2]))))
-      (is (= (make [1 3 3 1]) (expt x+1 (make [3]))))
-      (is (= (make [1 4 6 4 1]) (expt x+1 (make [4]))))
-      (is (= (make [1 5 10 10 5 1]) (expt x+1 (make [5]))))))
+      (is (= (make [1]) (expt x+1 0)))
+      (is (= x+1 (expt x+1 1)))
+      (is (= (make [1 2 1]) (expt x+1 2)))
+      (is (= (make [1 3 3 1]) (expt x+1 3)))
+      (is (= (make [1 4 6 4 1]) (expt x+1 4)))
+      (is (= (make [1 5 10 10 5 1]) (expt x+1 5)))))
   (testing "other coefficient rings: GF(2)"
     (let [mod2 #(modular/make % 2)
           x0 (mod2 0)
           x1 (mod2 1)
           P (make [x1 x0 x1])]
-      (is (= (make [x1 x0 x0 x0 x1]) (expt P (make [2]))))
-      (is (= (make [x1 x0 x1 x0 x1 x0 x1]) (expt P (make [3]))))
-      (is (= (make [x1 x0 x0 x0 x0 x0 x0 x0 x1]) (mul (expt P (make [3])) P)))
+      (is (= (make [x1 x0 x0 x0 x1]) (expt P 2)))
+      (is (= (make [x1 x0 x1 x0 x1 x0 x1]) (expt P 3)))
+      (is (= (make [x1 x0 x0 x0 x0 x0 x0 x0 x1]) (mul (expt P 3) P)))
       (is (= (make []) (sub P P)))
       (is (= (make []) (add P P)))
       (is (= (make [x0 x0 x1]) (add P (make [1]))))))
@@ -228,10 +228,6 @@
       (is (= [(make 2 []) Y 1] (divide Y X {:pseudo true}))))
     (testing "GCD: arity 2 case"
       (let [I (make 2 [[[0 0] 1]])
-            II (make 2 [[[0 0] 2]])
-            III (make 2 [[[0 0] 3]])
-            IV (make 2 [[[0 0] 4]])
-            V (make 2 [[[0 0] 5]])
             X (make 2 [[[1 0] 1]])
             Y (make 2 [[[0 1] 1]])
             X+Y (add X Y)
@@ -239,19 +235,15 @@
             Y+1 (add Y I)
             X+Y_2 (mul X+Y X+Y)
             X+Y_3 (mul X+Y_2 X+Y)
-            U (reduce mul [(expt X+1 III) (expt X+Y II) (expt Y+1 IV)])
-            V (reduce mul [(expt X+1 II) (expt X+Y V) (expt Y+1 III)])
-            G (reduce mul [(expt X+1 II) (expt X+Y II) (expt Y+1 III)])]
+            U (reduce mul [(expt X+1 3) (expt X+Y 2) (expt Y+1 4)])
+            V (reduce mul [(expt X+1 2) (expt X+Y 5) (expt Y+1 3)])
+            G (reduce mul [(expt X+1 2) (expt X+Y 2) (expt Y+1 3)])]
         (is (= X+Y_2 (gcd X+Y_2 X+Y_3)))
         (is (= X+Y_3 (gcd X+Y_3 X+Y_3)))
         (is (= G (gcd U V)))))
 
     (testing "GCD: arity 3 case"
       (let [I (make 3 [[[0 0 0] 1]])
-            II (make 3 [[[0 0 0] 2]])
-            III (make 3 [[[0 0 0] 3]])
-            IV (make 3 [[[0 0 0] 4]])
-            V (make 3 [[[0 0 0] 5]])
             X (make 3 [[[1 0 0] 1]])
             Y (make 3 [[[0 1 0] 1]])
             Z (make 3 [[[0 0 1] 1]])
@@ -262,11 +254,11 @@
             X+1 (add X I)
             Y+1 (add Y I)
             Z+1 (add Z I)
-            U (reduce mul [(expt X+1 III) (expt X+Y II) (expt Y+Z V)  (expt X+Y+Z IV) (expt Y+1 IV) (expt Z+1 III)])
-            V (reduce mul [(expt X+1 II)  (expt X+Y V)  (expt Y+Z III) (expt X+Y+Z V) (expt Y+1 II) (expt Z+1 I) X+1])
-            G (reduce mul [(expt X+1 III) (expt X+Y II) (expt Y+Z III) (expt X+Y+Z IV) (expt Y+1 II) Z+1])]
-        (is (= [(reduce mul [(expt Y+Z II) (expt Y+1 II) (expt Z+1 II)]) (make 3 [])] (divide U G)))
-        (is (= [(reduce mul [(expt X+Y III) X+Y+Z]) (make 3 [])] (divide V G)))
+            U (reduce mul [(expt X+1 3) (expt X+Y 2) (expt Y+Z 5) (expt X+Y+Z 4) (expt Y+1 4) (expt Z+1 3)])
+            V (reduce mul [(expt X+1 2)  (expt X+Y 5) (expt Y+Z 3) (expt X+Y+Z 5) (expt Y+1 2) (expt Z+1 1) X+1])
+            G (reduce mul [(expt X+1 3) (expt X+Y 2) (expt Y+Z 3) (expt X+Y+Z 4) (expt Y+1 2) Z+1])]
+        (is (= [(reduce mul [(expt Y+Z 2) (expt Y+1 2) (expt Z+1 2)]) (make 3 [])] (divide U G)))
+        (is (= [(reduce mul [(expt X+Y 3) X+Y+Z]) (make 3 [])] (divide V G)))
         (is (= X+Z (gcd (mul X+Y X+Z) (mul Y+Z X+Z))))
         (is (= (mul X+Z X+Y+Z) (gcd (reduce mul [X+Y X+Z X+Y+Z]) (reduce mul [X+Z X+Y+Z Y+Z]))))
         (is (= (mul X+Z (mul X+Z X+Y)) (gcd (reduce mul [X+Z X+Z X+Y X+Y+Z Y+1]) (reduce mul [X+Z X+Z X+Y X+1 Z+1 X+Z]))))

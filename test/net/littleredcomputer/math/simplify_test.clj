@@ -84,7 +84,7 @@
   (is (= 'x (simplify-expression '(* 1 x))))
   (is (= '(* x y z) (simplify-expression '(* 1 x y z))))
   (is (= 2/3 (simplify-expression '(/ 2 3))))
-  (is (= '(/ (+ x y) 2) (simplify-expression '(/ (+ x y) 2))))
+  (is (= '(+ (* 1/2 x) (* 1/2 y)) (simplify-expression '(/ (+ x y) 2))))
   (is (= '(+ x y) (simplify-expression '(/ (* 2 (+ x y)) 2)))))
 
 (deftest equations

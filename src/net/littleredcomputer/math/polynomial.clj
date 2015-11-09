@@ -17,7 +17,7 @@
 ;
 
 (ns net.littleredcomputer.math.polynomial
-  (:import (clojure.lang PersistentTreeMap)
+  (:import (clojure.lang PersistentTreeMap BigInt Ratio)
            (com.google.common.base Stopwatch)
            (java.util.concurrent TimeUnit TimeoutException))
   (:require [clojure.set :as set]
@@ -325,7 +325,7 @@
                                                                   (and (not-empty residues)
                                                                        (every? (complement neg?) residues)))))]
                                     (if-let [[residues c] (first good-terms)]
-                                      (let [new-coefficient (g/divide c vn-coefficient)
+                                      (let [new-coefficient ((if pseudo g/exact-div g/divide) c vn-coefficient)
                                             new-term (make arity [[(vec residues) new-coefficient]])]
                                         (recur (add (if pseudo (*vn quotient) quotient) new-term)
                                                (sub remainder' (mul new-term v))
@@ -358,6 +358,8 @@
   (cond
     (v/nullity? u) v
     (v/nullity? v) u
+    (v/unity? u) u
+    (v/unity? v) v
     (= u v) u
     :else (let [content1 #(->> % :xs->c vals (reduce euclid/gcd))
                 attach-content1 (fn [p c] (map-coefficients #(g/* c %) p))
@@ -370,19 +372,13 @@
             (loop [u pu
                    v pv]
               (let [[_ r _] (divide u v {:pseudo true})]
-                (cond (v/nullity? r)
-                      (if (< (coefficient (lead-term v)) 0)
-                        (attach-content1 (negate v) d)
-                        (attach-content1 v d))
+                (cond (v/nullity? r) (if (< (coefficient (lead-term v)) 0)
+                                       (attach-content1 (negate v) d)
+                                       (attach-content1 v d))
+                      (zero? (degree r)) (make [d])
+                      :else (recur v (divide-coefs r (content1 r)))))))))
 
-                      (zero? (degree r))
-                      #_(make-constant arity d)
-                      (make [d])
-
-                      :else
-                      (recur v (divide-coefs r (content1 r)))))))))
-
-(def ^:dynamic *poly-gcd-time-limit* [1 TimeUnit/SECONDS])
+(def ^:dynamic *poly-gcd-time-limit* [500 TimeUnit/MILLISECONDS])
 
 (defn ^:private inner-gcd
   "Knuth's algorithm 4.6.1E. Delegates to gcd1 for univariate polynomials.
@@ -430,23 +426,21 @@
     (inner-gcd u v clock)))
 
 (defn expt
-  "Raise the polynomial p to the (integer) power n. Of course, n
-  is a polynomial, so it must be a constant integer polynomial."
+  "Raise the polynomial p to the (integer) power n."
   [p n]
-  (let [e (constant? n)]
-    (when-not (and (integer? e) (>= e 0))
-      (throw (ArithmeticException.
-              (str "can't raise poly to " n))))
-    (cond (g/one? p) p
-          (g/zero? p) (if (zero? e)
-                        (throw (ArithmeticException. "poly 0^0"))
-                        p)
-          (zero? e) (make-constant (:arity p) 1)
-          :else (loop [x p c e a (make-constant (:arity p) 1)]
-                  (if (zero? c) a
-                      (if (even? c)
-                        (recur (mul x x) (quot c 2) a)
-                        (recur x (dec c) (mul x a))))))))
+  (when-not (and (integer? n) (>= n 0))
+    (throw (ArithmeticException.
+            (str "can't raise poly to " n))))
+  (cond (g/one? p) p
+        (g/zero? p) (if (zero? n)
+                      (throw (ArithmeticException. "poly 0^0"))
+                      p)
+        (zero? n) (make-constant (:arity p) 1)
+        :else (loop [x p c n a (make-constant (:arity p) 1)]
+                (if (zero? c) a
+                    (if (even? c)
+                      (recur (mul x x) (quot c 2) a)
+                      (recur x (dec c) (mul x a)))))))
 
 (defn expression->
   "Convert an expression into Flat Polynomial canonical form. The
@@ -463,7 +457,7 @@
         arity (count expression-vars)
         new-bindings (zipmap expression-vars (new-variables arity))
         environment (into operator-table new-bindings)
-        transformer (x/walk-expression environment #(make-constant arity %))]
+        transformer (x/walk-expression environment)]
     (-> expr transformer (cont expression-vars))))
 
 (defn ->expression
@@ -473,20 +467,16 @@
   indeterminates extracted from the expression at the start of this
   process."
   [^Polynomial p vars]
-  ;; odd: this (i.e., (symbol? p))only happens in the case of
-  ;; something like (expt 'x 'y), where we can't treat it as a known
-  ;; expression because 'y is not an integer. Handling it here is easy
-  ;; enough, but it seems like an odd special case and perhaps should
-  ;; be treated at the level above.
-  (if (symbol? p) p
-      (reduce
-       sym/add 0
-       (map (fn [[xs c]]
-              (sym/mul c
-                       (reduce sym/mul 1 (map (fn [exponent var]
-                                                (sym/expt var exponent))
-                                              xs vars))))
-            (->> p :xs->c (sort-by exponents #(monomial-order %2 %1)))))))
+  (if (instance? Polynomial p)
+    (reduce
+     sym/add 0
+     (map (fn [[xs c]]
+            (sym/mul c
+                     (reduce sym/mul 1 (map (fn [exponent var]
+                                              (sym/expt var exponent))
+                                            xs vars))))
+          (->> p :xs->c (sort-by exponents #(monomial-order %2 %1)))))
+    p))
 
 ;; The operator-table represents the operations that can be understood
 ;; from the point of view of a polynomial over a commutative ring. The
@@ -494,12 +484,12 @@
 ;; polynomials.
 
 (def ^:private operator-table
-  {'+ #(reduce add %&)
+  {'+ #(reduce g/add %&)
    '- (fn [arg & args]
-        (if (some? args) (sub arg (reduce add args)) (negate arg)))
-   '* #(reduce mul %&)
+        (if (some? args) (g/sub arg (reduce g/add args)) (g/negate arg)))
+   '* #(reduce g/mul %&)
    'negate negate
-   'expt expt
+   'expt g/expt
    'square #(mul % %)
    'cube #(mul % (mul % %))
    ;;`'g/gcd gcd
@@ -508,12 +498,44 @@
 (def operators-known (set (keys operator-table)))
 
 (defmethod g/add [::polynomial ::polynomial] [a b] (add a b))
+(defmethod g/add [Number ::polynomial] [n p] (add (make-constant (:arity p) n) p))
+(defmethod g/add [::polynomial Number] [p n] (add p (make-constant (:arity p) n)))
 (defmethod g/mul [::polynomial ::polynomial] [a b] (mul a b))
+(defmethod g/mul [Number ::polynomial] [c p] (map-coefficients #(g/* c %) p))
+(defmethod g/mul [::polynomial Number] [p c] (map-coefficients #(g/* % c) p))
 (defmethod g/sub [::polynomial ::polynomial] [a b] (sub a b))
+(defmethod g/sub [::polynomial Number] [p c] (sub p (make-constant (:arity p) c)))
+(defmethod g/sub [Number ::polynomial] [c p] (sub (make-constant (:arity p) c) p))
+(defmethod g/div [::polynomial Number] [p c] (map-coefficients #(g/divide % c) p))
 ;; perhaps this should be a divide that throws away the remainder. But
 ;; for the present, using evenly-divide (which throws on nonzero
 ;; remainder) seems to be working, since it is only used on the
 ;; results of a GCD. Since this choice is "stricter," it feels right
 ;; if it continues to serve.
-(defmethod g/div [::polynomial ::polynomial] [a b] (evenly-divide a b))
+;;
+;; now all hell is breaking loose as we try to fit rational functions
+;; in to this picture. we want to generate a rational function in this
+;; case. But if in all of the previous cases, the division was even,
+;; how are we getting here?
+
+;; (defmethod g/div [::polynomial ::polynomial] [a b] (evenly-divide a b))
+(defmethod g/expt [::polynomial Integer] [b x] (expt b x))
+(defmethod g/expt [::polynomial Long] [b x] (expt b x))
+
+(defn ^:private exact-integer-divide
+  [a b]
+  (let [q (/ a b)
+        r (mod a b)]
+    (when (not= r 0)
+      (throw (IllegalArgumentException. (str a " and " b " do not have an exact quotient."))))
+    q))
+
+(defmethod g/exact-div [Long Long] [a b] (exact-integer-divide a b))
+(defmethod g/exact-div [BigInt BigInt] [a b] (exact-integer-divide a b))
+(defmethod g/exact-div [Long BigInt] [a b] (exact-integer-divide a b))
+(defmethod g/exact-div [BigInt Long] [a b] (exact-integer-divide a b))
+(defmethod g/exact-div [Ratio Ratio] [a b] (/ a b))
+(defmethod g/exact-div [Ratio BigInt] [a b] (/ a b))
+(defmethod g/exact-div [::polynomial ::polynomial] [p q] (evenly-divide p q))
+
 (defmethod g/negate ::polynomial [a] (negate a))
