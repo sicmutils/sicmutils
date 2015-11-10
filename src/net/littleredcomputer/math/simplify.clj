@@ -104,7 +104,7 @@
   (analyzer (monotonic-symbol-generator "-s-")
             poly/expression-> poly/->expression poly/operators-known))
 
-(def ^:private rational-function-analyzer
+(def rational-function-analyzer
   "WARNING! THIS IS NOT READY YET"
   (let [A (analyzer (monotonic-symbol-generator "-r-")
                     rf/expression-> rf/->expression rf/operators-known)]
@@ -112,6 +112,7 @@
       (try (A x)
            (catch TimeoutException e
              (log/warn (str "simplifier timed out: must have been a complicated expression"))
+             (log/info (str "expression was: "(seq x)))
              x)))))
 
 (def ^:private twin-analyzer

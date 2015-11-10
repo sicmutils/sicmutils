@@ -27,6 +27,8 @@
              [simplify]
              [modint :as modular]]))
 
+(set! *warn-on-reflection* true)
+
 (deftest poly-core
   (testing "kind"
     (is (= :net.littleredcomputer.math.polynomial/polynomial (v/kind (make [])))))
@@ -126,7 +128,7 @@
     (let [p (make [3 0 4])
           q (make [2 2])]
       (is (= [(make [-8 8]) (make [28]) 4] (divide p q {:pseudo true}))))
-    (is (= [(make 2 [[[0 0] 1]]) (make 2 [[[2 1] 1]])]
+    (is (= [(make 2 []) (make 2 [[[2 1] 1] [[1 2] 1]])]
            (divide (make 2 [[[2 1] 1] [[1 2] 1]]) (make 2 [[[1 2] 1]]))))
     (let [a 2
           p (make 2 [[[3 0] 1] [[1 0] 1] [[0 1] 1]])
@@ -324,6 +326,27 @@
        (is (= (mul d2 df) (raise-arity (mul (lower-arity d2) (lower-arity df)))))
        (gcd-test d2 f2 g2)
        ))))
+
+(deftest ^:long big-gcd
+  (let [u (make 10 [[[0 0 1 0 0 0 1 1 0 1] 1]
+                    [[0 1 1 0 0 0 1 1 1 0] 2]
+                    [[0 0 1 2 0 1 0 1 0 1] 1]
+                    [[0 0 1 2 1 0 0 1 0 1] -1]
+                    [[1 1 0 1 0 1 0 2 0 0] 1]
+                    [[1 1 0 1 1 0 0 2 0 0] -1]
+                    [[2 0 1 0 0 1 0 1 0 1] -1]
+                    [[2 0 1 0 1 0 0 1 0 1] 1]
+                    [[0 1 1 2 0 1 0 1 1 0] -2]
+                    [[1 0 2 1 0 1 0 0 1 1] 2]
+                    [[1 0 2 1 1 0 0 0 1 1] -2]])
+        v (make 10 [[[0 0 1 4 1 1 0 0 0 0] 1]
+                    [[2 0 1 2 1 1 0 0 0 0] 2]
+                    [[4 0 1 0 1 1 0 0 0 0] 1]])
+        g (gcd u v)]
+
+    (is (= (make 10 [[[0 0 0 0 0 0 0 0 0 0] 1]]) g))
+    (dotimes [_ 1] (gcd u v))))
+
 
 (deftest poly-as-simplifier
   (testing "arity"

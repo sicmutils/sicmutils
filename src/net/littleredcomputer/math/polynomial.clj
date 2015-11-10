@@ -21,6 +21,7 @@
            (com.google.common.base Stopwatch)
            (java.util.concurrent TimeUnit TimeoutException))
   (:require [clojure.set :as set]
+            [clojure.tools.logging :as log]
             [clojure.string]
             [net.littleredcomputer.math
              [value :as v]
@@ -238,8 +239,8 @@
   {:pre [(instance? Polynomial p)
          (instance? Polynomial q)]}
   (let [arity (check-same-arity p q)]
-    (cond (g/zero? p) (make-constant arity 0)
-          (g/zero? q) (make-constant arity 0)
+    (cond (g/zero? p) p
+          (g/zero? q) q
           (g/one? p) q
           (g/one? q) p
           :else (let [a (check-same-arity p q)]
@@ -300,9 +301,14 @@
          (instance? Polynomial v)]}
   (cond (v/nullity? v) (throw (IllegalArgumentException. "internal polynomial division by zero"))
         (v/nullity? u) [u u]
+        ;(v/unity? v) [u (v/zero-like u)]
         :else (let [[q r m] (let [arity (check-same-arity u v)
                                   [vn-exponents vn-coefficient] (lead-term v)
-                                  *vn (fn [p] (map-coefficients #(g/* % vn-coefficient) p))]
+                                  *vn (fn [p] (map-coefficients #(g/* % vn-coefficient) p))
+                                  good? (fn [residues]
+                                         (and (not-empty residues)
+                                              (every? (complement neg?) residues)))
+                                  coefficient-divider (if pseudo g/exact-div g/divide)]
                               (if (zero? arity)
                                 ;; XXX: we're sort of breaking the pseudo-division promise
                                 ;; in this case, but both of the polynomials were constant,
@@ -317,16 +323,11 @@
                                   ;; lead term of the divisor can be divided.
                                   (let [remainder' (if pseudo (*vn remainder)
                                                        remainder)
-                                        good-terms (->> remainder'
-                                                        :xs->c rseq
-                                                        (map (fn [[xs c]]
-                                                               [(map - xs vn-exponents) c]))
-                                                        (filter (fn [[residues _]]
-                                                                  (and (not-empty residues)
-                                                                       (every? (complement neg?) residues)))))]
-                                    (if-let [[residues c] (first good-terms)]
-                                      (let [new-coefficient ((if pseudo g/exact-div g/divide) c vn-coefficient)
-                                            new-term (make arity [[(vec residues) new-coefficient]])]
+                                        remainder-lead-term (->> remainder' :xs->c rseq first)
+                                        residues (mapv - (exponents remainder-lead-term) vn-exponents)]
+                                    (if (good? residues)
+                                      (let [new-coefficient (coefficient-divider (coefficient remainder-lead-term) vn-coefficient)
+                                            new-term (make arity [[residues new-coefficient]])]
                                         (recur (add (if pseudo (*vn quotient) quotient) new-term)
                                                (sub remainder' (mul new-term v))
                                                (if pseudo (g/* multiplier vn-coefficient) multiplier)))
@@ -378,13 +379,13 @@
                       (zero? (degree r)) (make [d])
                       :else (recur v (divide-coefs r (content1 r)))))))))
 
-(def ^:dynamic *poly-gcd-time-limit* [500 TimeUnit/MILLISECONDS])
+(def ^:dynamic *poly-gcd-time-limit* [10000 TimeUnit/MILLISECONDS])
 
 (defn ^:private inner-gcd
   "Knuth's algorithm 4.6.1E. Delegates to gcd1 for univariate polynomials.
   This can take a long time, unfortunately, and so we bail if it seems to
   be taking too long."
-  [u v clock]
+  [u v ^Stopwatch clock]
 
   (let [arity (check-same-arity u v)
         too-slow? (fn []
@@ -422,8 +423,11 @@
   [u v]
   {:pre [(instance? Polynomial u)
          (instance? Polynomial v)]}
-  (let [clock (Stopwatch/createStarted)]
-    (inner-gcd u v clock)))
+  (log/info (str "gcd arity " (:arity u) " " u " " v))
+  (let [clock (Stopwatch/createStarted)
+        g (inner-gcd u v clock)]
+    (log/info (str "gcd took: " clock))
+    g))
 
 (defn expt
   "Raise the polynomial p to the (integer) power n."
