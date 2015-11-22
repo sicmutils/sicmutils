@@ -305,10 +305,10 @@
                          remainder u]
                     ;; find a term in the remainder into which the
                     ;; lead term of the divisor can be divided.
-                    (let [remainder-lead-term (lead-term remainder)
-                          residues (mapv - (exponents remainder-lead-term) vn-exponents)]
+                    (let [[r-xs r-c] (lead-term remainder)
+                          residues (mapv - r-xs vn-exponents)]
                       (if (good? residues)
-                        (let [new-coefficient (g/divide (coefficient remainder-lead-term) vn-coefficient)
+                        (let [new-coefficient (g/divide r-c vn-coefficient)
                               new-term (make arity [[residues new-coefficient]])]
                           (recur (add quotient new-term)
                                  (sub remainder (mul new-term v))))
@@ -344,10 +344,10 @@
                     ;; find a term in the remainder into which the
                     ;; lead term of the divisor can be divided.
                     (let [remainder' (*vn remainder)
-                          remainder-lead-term (lead-term remainder')
-                          residues (mapv - (exponents remainder-lead-term) vn-exponents)]
+                          [r-xs r-c] (lead-term remainder')
+                          residues (mapv - r-xs vn-exponents)]
                       (if (good? residues)
-                        (let [new-coefficient (g/exact-div (coefficient remainder-lead-term) vn-coefficient)
+                        (let [new-coefficient (g/exact-div r-c vn-coefficient)
                               new-term (make arity [[residues new-coefficient]])]
                           (recur (sub remainder' (mul new-term v))
                                  (g/* multiplier vn-coefficient)))
@@ -398,7 +398,7 @@
                       (zero? (degree r)) (make [d])
                       :else (recur v (divide-coefs r (content1 r)))))))))
 
-(def ^:dynamic *poly-gcd-time-limit* [2 TimeUnit/SECONDS])
+(def ^:dynamic *poly-gcd-time-limit* [2 TimeUnit/MINUTES])
 
 (defn ^:private inner-gcd
   "gcd is just a wrapper for this function, which does the real work of
