@@ -124,10 +124,16 @@
   ([dense-coefficients]
    (make 1 (zipmap (map vector (iterate inc 0)) dense-coefficients))))
 
+(defn- lead-term
+  "Return the leading (i.e., highest degree) term of the polynomial
+  p. The return value is [exponents coefficient]."
+  [p]
+  (-> p :xs->c rseq first))
+
 (defn degree
   [p]
   (if (v/nullity? p) -1
-      (reduce max 0 (map #(reduce + 0 %) (keys (:xs->c p))))))
+      (->> p lead-term exponents (reduce +))))
 
 (defn constant?
   "If p is a constant polynomial, return that constant, else nil"
@@ -250,12 +256,6 @@
                                         [xq cq] (:xs->c q)]
                                     [(mapv + xp xq) (g/* cp cq)])))))))
 
-(defn- lead-term
-  "Return the leading (i.e., highest degree) term of the polynomial
-  p. The return value is [exponents coefficient]."
-  [p]
-  (-> p :xs->c rseq first))
-
 (defn lower-arity
   "Given a polynomial of arity A > 1, return an equivalent polynomial
   of arity 1 whose coefficients are polynomials of arity A-1."
@@ -272,6 +272,7 @@
          (make 1))))
 
 (defn raise-arity
+  "The opposite of lower-arity."
   [p]
   {:pre [(instance? Polynomial p)
          (= (:arity p) 1)]}
@@ -285,54 +286,72 @@
 (defn divide
   "Divide polynomial u by v, and return the pair of [quotient, remainder]
   polynomials. This assumes that the coefficients are drawn from a field,
-  and so support division. If you want pseudo-division instead, you can
-  set {:pseudo true} in the options. In this case fractions won't appear;
-  instead the divisor is multiplied by the leading coefficient of the
-  dividend before quotient terms are generated so that division will not
-  result in fractions. In that event, a third term is returned containing
-  the power of the leading coefficient needed to relate the pseudo-quotient
-  and pseudo-remainder returned in the first two terms. Similar in spirit
-  to Knuth's algorithm 4.6.1R, except we don't multiply the remainder
-  through during gaps in the remainder. Since you don't know up front
-  how many times the integerizing multiplication will be done, we also return
-  the number m for which m * u = q * v + r."
-  [u v & [{:keys [pseudo]}]]
+  and so support division."
+  [u v]
   {:pre [(instance? Polynomial u)
          (instance? Polynomial v)]}
   (cond (v/nullity? v) (throw (IllegalArgumentException. "internal polynomial division by zero"))
         (v/nullity? u) [u u]
-        ;(v/unity? v) [u (v/zero-like u)]
-        :else (let [[q r m] (let [arity (check-same-arity u v)
-                                  [vn-exponents vn-coefficient] (lead-term v)
-                                  *vn (fn [p] (map-coefficients #(g/* % vn-coefficient) p))
-                                  good? (fn [residues]
-                                         (and (not-empty residues)
-                                              (every? (complement neg?) residues)))
-                                  coefficient-divider (if pseudo g/exact-div g/divide)]
-                              (if (zero? arity)
-                                ;; XXX: we're sort of breaking the pseudo-division promise
-                                ;; in this case, but both of the polynomials were constant,
-                                ;; so what do they expect?
-                                [(make 0 [[[] (g/divide (coefficient (lead-term u)) vn-coefficient)]])
-                                 (make 0 [[[] 0]])
-                                 1]
-                                (loop [quotient (make arity [])
-                                       remainder u
-                                       multiplier (v/one-like vn-coefficient)]
-                                  ;; find a term in the remainder into which the
-                                  ;; lead term of the divisor can be divided.
-                                  (let [remainder' (if pseudo (*vn remainder)
-                                                       remainder)
-                                        remainder-lead-term (->> remainder' :xs->c rseq first)
-                                        residues (mapv - (exponents remainder-lead-term) vn-exponents)]
-                                    (if (good? residues)
-                                      (let [new-coefficient (coefficient-divider (coefficient remainder-lead-term) vn-coefficient)
-                                            new-term (make arity [[residues new-coefficient]])]
-                                        (recur (add (if pseudo (*vn quotient) quotient) new-term)
-                                               (sub remainder' (mul new-term v))
-                                               (if pseudo (g/* multiplier vn-coefficient) multiplier)))
-                                      [quotient remainder multiplier])))))]
-                (if pseudo [q r m] [q r]))))
+        (v/unity? v) [u (v/zero-like u)]
+        :else (let [arity (check-same-arity u v)
+                    [vn-exponents vn-coefficient] (lead-term v)
+                    good? (fn [residues]
+                            (and (not-empty residues)
+                                 (every? (complement neg?) residues)))]
+                (if (zero? arity)
+                  [(make 0 [[[] (g/divide (coefficient (lead-term u)) vn-coefficient)]])
+                   (make 0 [[[] 0]])]
+                  (loop [quotient (make arity [])
+                         remainder u]
+                    ;; find a term in the remainder into which the
+                    ;; lead term of the divisor can be divided.
+                    (let [remainder-lead-term (lead-term remainder)
+                          residues (mapv - (exponents remainder-lead-term) vn-exponents)]
+                      (if (good? residues)
+                        (let [new-coefficient (g/divide (coefficient remainder-lead-term) vn-coefficient)
+                              new-term (make arity [[residues new-coefficient]])]
+                          (recur (add quotient new-term)
+                                 (sub remainder (mul new-term v))))
+                        [quotient remainder])))))))
+
+(defn pseudo-remainder
+  "Compute the pseudo-remainder of p by q. Fractions won't appear in
+  the result; instead the divisor is multiplied by the leading
+  coefficient of the dividend before quotient terms are generated so
+  that division will not result in fractions. Only the remainder is
+  returned, together with the integerizing factor needed to make this
+  happen. Similar in spirit to Knuth's algorithm 4.6.1R, except we
+  don't multiply the remainder through during gaps in the
+  remainder. Since you don't know up front how many times the
+  integerizing multiplication will be done, we also return the number
+  m for which m * u = q * v + r."
+  [u v]
+  {:pre [(instance? Polynomial u)
+         (instance? Polynomial v)]}
+  (cond (v/nullity? v) (throw (IllegalArgumentException. "internal polynomial division by zero"))
+        (v/nullity? u) [u 1]
+        (v/unity? v) [(v/zero-like u) 1]
+        :else (let [arity (check-same-arity u v)
+                    [vn-exponents vn-coefficient] (lead-term v)
+                    *vn (fn [p] (map-coefficients #(g/* % vn-coefficient) p))
+                    good? (fn [residues]
+                            (and (not-empty residues)
+                                 (every? (complement neg?) residues)))]
+                (if (zero? arity)
+                  (throw (IllegalArgumentException. "can't compute pseudo-remainder of zero-arity polynomial"))
+                  (loop [remainder u
+                         multiplier (v/one-like vn-coefficient)]
+                    ;; find a term in the remainder into which the
+                    ;; lead term of the divisor can be divided.
+                    (let [remainder' (*vn remainder)
+                          remainder-lead-term (lead-term remainder')
+                          residues (mapv - (exponents remainder-lead-term) vn-exponents)]
+                      (if (good? residues)
+                        (let [new-coefficient (g/exact-div (coefficient remainder-lead-term) vn-coefficient)
+                              new-term (make arity [[residues new-coefficient]])]
+                          (recur (sub remainder' (mul new-term v))
+                                 (g/* multiplier vn-coefficient)))
+                        [remainder multiplier])))))))
 
 (defn evenly-divide
   "Divides the polynomial u by the polynomial v. Throws an IllegalStateException
@@ -372,26 +391,22 @@
                 d (euclid/gcd ku kv)]
             (loop [u pu
                    v pv]
-              (let [[_ r _] (divide u v {:pseudo true})]
+              (let [[r _] (pseudo-remainder u v)]
                 (cond (v/nullity? r) (if (< (coefficient (lead-term v)) 0)
                                        (attach-content1 (negate v) d)
                                        (attach-content1 v d))
                       (zero? (degree r)) (make [d])
                       :else (recur v (divide-coefs r (content1 r)))))))))
 
-(def ^:dynamic *poly-gcd-time-limit* [10000 TimeUnit/MILLISECONDS])
+(def ^:dynamic *poly-gcd-time-limit* [2 TimeUnit/SECONDS])
 
 (defn ^:private inner-gcd
-  "Knuth's algorithm 4.6.1E. Delegates to gcd1 for univariate polynomials.
-  This can take a long time, unfortunately, and so we bail if it seems to
-  be taking too long."
-  [u v ^Stopwatch clock]
+  "gcd is just a wrapper for this function, which does the real work of
+  computing a polynomial gcd. The thunk too-slow? is invoked from time to
+  time to allow an early bail-out."
+  [u v too-slow?]
 
-  (let [arity (check-same-arity u v)
-        too-slow? (fn []
-                    (when (> (.elapsed clock (second *poly-gcd-time-limit*))
-                             (first *poly-gcd-time-limit*))
-                      (throw (TimeoutException. "Took too long to find multivariate polynomial GCD."))))]
+  (let [arity (check-same-arity u v)]
     (cond
       (zero? arity) (make 0 [[[] (euclid/gcd (constant-term u) (constant-term v))]])
       (= arity 1) (gcd1 u v)
@@ -404,29 +419,36 @@
               (too-slow?)
               (let [u1 (lower-arity u)
                     v1 (lower-arity v)
-                    content #(->> % :xs->c vals (reduce (fn [u v] (inner-gcd u v clock))))
+                    content #(->> % :xs->c vals (reduce (fn [u v] (inner-gcd u v too-slow?))))
                     ku (content u1)
                     kv (content v1)
                     pu (map-coefficients #(evenly-divide % ku) u1)
                     pv (map-coefficients #(evenly-divide % kv) v1)
-                    d (inner-gcd ku kv clock)]
+                    d (inner-gcd ku kv too-slow?)]
                 (loop [u pu
                        v pv]
                   (too-slow?)
-                  (let [[_ r _] (divide u v {:pseudo true})]
+                  (let [[r _] (pseudo-remainder u v)]
                     (cond (v/nullity? r) (raise-arity (map-coefficients #(g/* d %) v))
                           (zero? (degree r)) (raise-arity (make-constant 1 d))
                           :else (let [cr (content r)]
                                   (recur v (map-coefficients #(evenly-divide % cr) r)))))))))))
 
 (defn gcd
+  "Knuth's algorithm 4.6.1E. Delegates to gcd1 for univariate polynomials.
+  This can take a long time, unfortunately, and so we bail if it seems to
+  be taking too long."
   [u v]
   {:pre [(instance? Polynomial u)
          (instance? Polynomial v)]}
   (log/info (str "gcd arity " (:arity u) " " u " " v))
   (let [clock (Stopwatch/createStarted)
-        g (inner-gcd u v clock)]
-    (log/info (str "gcd took: " clock))
+        too-slow? (fn []
+                    (when (> (.elapsed clock (second *poly-gcd-time-limit*))
+                             (first *poly-gcd-time-limit*))
+                      (throw (TimeoutException. "Took too long to find multivariate polynomial GCD."))))
+        g (inner-gcd u v too-slow?)]
+    (log/info (str "gcd took: " clock " arity " (:arity u) " degrees " (degree u) " " (degree v) " : " (degree g)))
     g))
 
 (defn expt
@@ -511,28 +533,14 @@
 (defmethod g/sub [::polynomial Number] [p c] (sub p (make-constant (:arity p) c)))
 (defmethod g/sub [Number ::polynomial] [c p] (sub (make-constant (:arity p) c) p))
 (defmethod g/div [::polynomial Number] [p c] (map-coefficients #(g/divide % c) p))
-;; perhaps this should be a divide that throws away the remainder. But
-;; for the present, using evenly-divide (which throws on nonzero
-;; remainder) seems to be working, since it is only used on the
-;; results of a GCD. Since this choice is "stricter," it feels right
-;; if it continues to serve.
-;;
-;; now all hell is breaking loose as we try to fit rational functions
-;; in to this picture. we want to generate a rational function in this
-;; case. But if in all of the previous cases, the division was even,
-;; how are we getting here?
 
-;; (defmethod g/div [::polynomial ::polynomial] [a b] (evenly-divide a b))
 (defmethod g/expt [::polynomial Integer] [b x] (expt b x))
 (defmethod g/expt [::polynomial Long] [b x] (expt b x))
 
 (defn ^:private exact-integer-divide
   [a b]
-  (let [q (/ a b)
-        r (mod a b)]
-    (when (not= r 0)
-      (throw (IllegalArgumentException. (str a " and " b " do not have an exact quotient."))))
-    q))
+  {:pre [(zero? (mod a b))]}
+  (/ a b))
 
 (defmethod g/exact-div [Long Long] [a b] (exact-integer-divide a b))
 (defmethod g/exact-div [BigInt BigInt] [a b] (exact-integer-divide a b))

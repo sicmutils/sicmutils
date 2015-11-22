@@ -115,30 +115,29 @@
     (let [U (make [-5 2 8 -3 -3 0 1 0 1])
           V (make [21 -9 -4 0 5 0 3])
           [q r] (divide U V)
-          [pq pr d] (divide U V {:pseudo true})]
+          [pr d] (pseudo-remainder U V)]
       (is (= [(make [-2/9 0 1/3]) (make [-1/3 0 1/9 0 -5/9])] [q r]))
-      (is (= [(make [-2 0 3]) (make [-3 0 1 0 -5]) 9] [pq pr d]))
-      (is (= (make []) (sub (mul (make [d]) U) (add (mul pq V) pr))))
+      (is (= [(make [-3 0 1 0 -5]) 9] [pr d]))
+      (is (= (make []) (sub (mul (make [d]) U) (add (mul (make [-2 0 3]) V) pr))))
       (is (= (make [1]) (gcd U V)))
       (is (= (make [1]) (gcd V U))))
     ;; examples from http://www.mathworks.com/help/symbolic/mupad_ref/pdivide.html
     (let [p (make [1 1 0 1])
           q (make [1 1 3])]
-      (is (= [(make [-1 3]) (make [10 7]) 9] (divide p q {:pseudo true}))))
+      (is (= [(make [10 7]) 9] (pseudo-remainder p q))))
     (let [p (make [3 0 4])
           q (make [2 2])]
-      (is (= [(make [-8 8]) (make [28]) 4] (divide p q {:pseudo true}))))
+      (is (= [(make [28]) 4] (pseudo-remainder p q))))
     (is (= [(make 2 []) (make 2 [[[2 1] 1] [[1 2] 1]])]
            (divide (make 2 [[[2 1] 1] [[1 2] 1]]) (make 2 [[[1 2] 1]]))))
     (let [a 2
           p (make 2 [[[3 0] 1] [[1 0] 1] [[0 1] 1]])
           q (make 2 [[[2 0] a] [[1 0] 1] [[0 0] 1]])]
-      (is (= [(make 2 [[[1 0] a] [[0 0] -1]])
-              (make 2 [[[0 1] (* a a)] [[1 0] (+ (* a a) (- a) 1)] [[0 0] 1]])
+      (is (= [(make 2 [[[0 1] (* a a)] [[1 0] (+ (* a a) (- a) 1)] [[0 0] 1]])
               (* a a)]
-             (divide p q {:pseudo true}))))
+             (pseudo-remainder p q))))
     (is (= [(make [1]) (make [])] (divide (make [3]) (make [3]))))
-    (is (= [(make [7]) (make [0]) 2] (divide (make [7]) (make [2]) {:pseudo true}))))
+    (is (= [(make [0]) 2] (pseudo-remainder (make [7]) (make [2])))))
   (testing "expt"
     (let [x+1 (make [1 1])]
       (is (= (make [1]) (expt x+1 0)))
@@ -225,9 +224,9 @@
         (is (= V (gcd Z V)))))
     (testing "divide constant arity 2"
       (is (= [(make 2 []) X] (divide X Y)))
-      (is (= [(make 2 []) X 1] (divide X Y {:pseudo true})))
+      (is (= [X 1] (pseudo-remainder X Y)))
       (is (= [(make 2 []) Y] (divide Y X)))
-      (is (= [(make 2 []) Y 1] (divide Y X {:pseudo true}))))
+      (is (= [Y 1] (pseudo-remainder Y X))))
     (testing "GCD: arity 2 case"
       (let [I (make 2 [[[0 0] 1]])
             X (make 2 [[[1 0] 1]])
@@ -276,7 +275,7 @@
         (is (v/nullity? o))
         (is (= [iii o] (divide xxi vii)))
         (is (= [o o] (divide o iii)))
-        (is (= [o o] (divide o iii {:pseudo true})))
+        (is (= [o 1] (pseudo-remainder o iii)))
         (is (thrown? IllegalArgumentException (divide o o)))))))
 
 (deftest simple-gcd-3
