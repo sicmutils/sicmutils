@@ -112,7 +112,6 @@
       (try (A x)
            (catch TimeoutException e
              (log/warn (str "simplifier timed out: must have been a complicated expression"))
-             (log/info (str "expression was: "(seq x)))
              x)))))
 
 (def ^:private twin-analyzer

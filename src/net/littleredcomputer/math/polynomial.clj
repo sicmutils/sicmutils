@@ -305,10 +305,10 @@
                          remainder u]
                     ;; find a term in the remainder into which the
                     ;; lead term of the divisor can be divided.
-                    (let [[r-xs r-c] (lead-term remainder)
-                          residues (mapv - r-xs vn-exponents)]
+                    (let [[r-exponents r-coefficient] (lead-term remainder)
+                          residues (mapv - r-exponents vn-exponents)]
                       (if (good? residues)
-                        (let [new-coefficient (g/divide r-c vn-coefficient)
+                        (let [new-coefficient (g/divide r-coefficient vn-coefficient)
                               new-term (make arity [[residues new-coefficient]])]
                           (recur (add quotient new-term)
                                  (sub remainder (mul new-term v))))
@@ -344,10 +344,10 @@
                     ;; find a term in the remainder into which the
                     ;; lead term of the divisor can be divided.
                     (let [remainder' (*vn remainder)
-                          [r-xs r-c] (lead-term remainder')
-                          residues (mapv - r-xs vn-exponents)]
+                          [r-exponents r-coefficient] (lead-term remainder')
+                          residues (mapv - r-exponents vn-exponents)]
                       (if (good? residues)
-                        (let [new-coefficient (g/exact-div r-c vn-coefficient)
+                        (let [new-coefficient (g/exact-div r-coefficient vn-coefficient)
                               new-term (make arity [[residues new-coefficient]])]
                           (recur (sub remainder' (mul new-term v))
                                  (g/* multiplier vn-coefficient)))
@@ -398,41 +398,50 @@
                       (zero? (degree r)) (make [d])
                       :else (recur v (divide-coefs r (content1 r)))))))))
 
-(def ^:dynamic *poly-gcd-time-limit* [2 TimeUnit/MINUTES])
+(def ^:dynamic *poly-gcd-time-limit* [10 TimeUnit/SECONDS])
+(def ^:private gcd-memo (atom {}))
+(def ^:private gcd-cache-hit (atom 0))
+(def ^:private gcd-cache-miss (atom 0))
 
 (defn ^:private inner-gcd
   "gcd is just a wrapper for this function, which does the real work of
   computing a polynomial gcd. The thunk too-slow? is invoked from time to
   time to allow an early bail-out."
   [u v too-slow?]
-
   (let [arity (check-same-arity u v)]
-    (cond
-      (zero? arity) (make 0 [[[] (euclid/gcd (constant-term u) (constant-term v))]])
-      (= arity 1) (gcd1 u v)
-      (v/nullity? u) v
-      (v/nullity? v) u
-      (v/unity? u) u
-      (v/unity? v) v
-      (= u v) u
-      :else (do
-              (too-slow?)
-              (let [u1 (lower-arity u)
-                    v1 (lower-arity v)
-                    content #(->> % :xs->c vals (reduce (fn [u v] (inner-gcd u v too-slow?))))
-                    ku (content u1)
-                    kv (content v1)
-                    pu (map-coefficients #(evenly-divide % ku) u1)
-                    pv (map-coefficients #(evenly-divide % kv) v1)
-                    d (inner-gcd ku kv too-slow?)]
-                (loop [u pu
-                       v pv]
-                  (too-slow?)
-                  (let [[r _] (pseudo-remainder u v)]
-                    (cond (v/nullity? r) (raise-arity (map-coefficients #(g/* d %) v))
-                          (zero? (degree r)) (raise-arity (make-constant 1 d))
-                          :else (let [cr (content r)]
-                                  (recur v (map-coefficients #(evenly-divide % cr) r)))))))))))
+    (if-let [g (@gcd-memo [u v])]
+      (do
+        (swap! gcd-cache-hit inc)
+        g)
+      (let [g (cond
+                (zero? arity) (make 0 [[[] (euclid/gcd (constant-term u) (constant-term v))]])
+                (= arity 1) (gcd1 u v)
+                (v/nullity? u) v
+                (v/nullity? v) u
+                (v/unity? u) u
+                (v/unity? v) v
+                (= u v) u
+                :else (do
+                        (too-slow?)
+                        (let [u1 (lower-arity u)
+                              v1 (lower-arity v)
+                              content #(->> % :xs->c vals (reduce (fn [u v] (inner-gcd u v too-slow?))))
+                              ku (content u1)
+                              kv (content v1)
+                              pu (map-coefficients #(evenly-divide % ku) u1)
+                              pv (map-coefficients #(evenly-divide % kv) v1)
+                              d (inner-gcd ku kv too-slow?)]
+                          (loop [u pu
+                                 v pv]
+                            (too-slow?)
+                            (let [[r _] (pseudo-remainder u v)]
+                              (cond (v/nullity? r) (raise-arity (map-coefficients #(g/* d %) v))
+                                    (zero? (degree r)) (raise-arity (make-constant 1 d))
+                                    :else (let [cr (content r)]
+                                            (recur v (map-coefficients #(evenly-divide % cr) r)))))))))]
+        (swap! gcd-cache-miss inc)
+        (swap! gcd-memo assoc [u v] g)
+        g))))
 
 (defn gcd
   "Knuth's algorithm 4.6.1E. Delegates to gcd1 for univariate polynomials.
@@ -441,14 +450,14 @@
   [u v]
   {:pre [(instance? Polynomial u)
          (instance? Polynomial v)]}
-  (log/info (str "gcd arity " (:arity u) " " u " " v))
-  (let [clock (Stopwatch/createStarted)
+  (let [;_ (log/info (str "gcd arity " (:arity u) " " u " " v))
+        clock (Stopwatch/createStarted)
         too-slow? (fn []
                     (when (> (.elapsed clock (second *poly-gcd-time-limit*))
                              (first *poly-gcd-time-limit*))
                       (throw (TimeoutException. "Took too long to find multivariate polynomial GCD."))))
         g (inner-gcd u v too-slow?)]
-    (log/info (str "gcd took: " clock " arity " (:arity u) " degrees " (degree u) " " (degree v) " : " (degree g)))
+    ;(log/info (str "gcd took: " clock " arity " (:arity u) " degrees " (degree u) " " (degree v) " : " (degree g)))
     g))
 
 (defn expt
