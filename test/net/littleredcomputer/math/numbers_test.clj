@@ -140,4 +140,10 @@
     (is (= '(log x) (g/simplify (g/log 'x))))
     (is (= 0.0 (g/log (g/exp 0))))
     )
-)
+  (testing "quotient"
+    (is (= 2 (g/quotient 5 2)))
+    (is (= 2 (g/quotient 5N 2)))
+    (is (= 2 (g/quotient 5 2N)))
+    (is (= 2 (g/quotient 5N 2N)))
+    (is (= 2 (g/quotient (BigInteger/valueOf 5) 2)))
+    (is (= 2 (g/quotient 5 (BigInteger/valueOf 2))))))

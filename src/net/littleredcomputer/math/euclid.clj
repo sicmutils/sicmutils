@@ -17,7 +17,7 @@
 ;
 
 (ns net.littleredcomputer.math.euclid
-  (:require [clojure.math.numeric-tower :as nt]))
+  (:require [net.littleredcomputer.math.generic :as g]))
 
 (defn extended-gcd
   "The extended Euclidean algorithm
@@ -25,15 +25,15 @@
   Returns a list containing the GCD and the Bézout coefficients
   corresponding to the inputs."
   [a b]
-  (cond (= a 0) [(nt/abs b) 0 1]
-        (= b 0) [(nt/abs a) 1 0]
-        :else (loop [s 0 s0 1 t 1 t0 0 r (nt/abs b) r0 (nt/abs a)]
-                (if (zero? r)
+  (cond (g/zero? a) [(g/abs b) 0 1]
+        (g/zero? b) [(g/abs a) 1 0]
+        :else (loop [s 0 s0 1 t 1 t0 0 r (g/abs b) r0 (g/abs a)]
+                (if (g/zero? r)
                   [r0 s0 t0]
-                  (let [q (quot r0 r)]
-                    (recur (- s0 (* q s)) s
-                           (- t0 (* q t)) t
-                           (- r0 (* q r)) r))))))
+                  (let [q (g/quotient r0 r)]
+                    (recur (g/- s0 (g/* q s)) s
+                           (g/- t0 (g/* q t)) t
+                           (g/- r0 (g/* q r)) r))))))
 
 (defn gcd
   [a b]
@@ -41,4 +41,4 @@
 
 (defn lcm
   [a b]
-  (nt/abs (/ (* a b) (gcd a b))))
+  (g/abs (g/divide (g/* a b) (gcd a b))))

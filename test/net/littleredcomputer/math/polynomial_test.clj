@@ -157,6 +157,35 @@
       (is (= (make []) (sub P P)))
       (is (= (make []) (add P P)))
       (is (= (make [x0 x0 x1]) (add P (make [1]))))))
+  (testing "CRC polynomials"
+    ;; https://en.wikipedia.org/wiki/Computation_of_cyclic_redundancy_checks
+    ;; http://www.lammertbies.nl/comm/info/crc-calculation.html
+    (let [mod2 #(modular/make % 2)
+          o (mod2 0)
+          i (mod2 1)
+          x8 (make [o o o o o o o o i])
+          CRC-8-ATM (make [i i i o o o o o i])
+          M (make [i i i 0 i o i])
+          Mx8 (mul x8 M)
+          [q1 r1] (divide Mx8 CRC-8-ATM)
+          CRC-16-CCITT (make [i o o o o i o o o o o o i o o o i])
+          x16 (mul x8 x8)
+          T (make [o o i o i o i])
+          Tx16 (mul x16 T)
+          [q2 r2] (divide Tx16 CRC-16-CCITT)
+          ]
+      (is (= (make [o i o o o i o i]) r1))
+      (is (= (make [i o o o i i i o o i o i i]) r2))))
+  (testing "modular polynomial reduction"
+    (let [A (make [-360 -171 145 25 1])
+          B (make [-15 -14 -1 15 14 1])
+          Z5 #(modular/make % 5)
+          A:Z5 (map-coefficients Z5 A)
+          B:Z5 (map-coefficients Z5 B)
+          G5 (gcd A:Z5 B:Z5)]
+      (is (= (make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) A:Z5))
+      (is (= (make [(Z5 0) (Z5 1) (Z5 -1) (Z5 0) (Z5 -1) (Z5 1)]) B:Z5))
+      (is (= (make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) G5))))
   (testing "monomial order"
     (let [x3 [3 0 0]
           x2z2 [2 0 2]

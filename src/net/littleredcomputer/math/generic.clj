@@ -61,6 +61,7 @@
 (defmulti sub v/argument-kind)
 (defmulti div v/argument-kind)
 (defmulti exact-div v/argument-kind)
+(defmulti quotient v/argument-kind)
 (defmulti invert v/argument-kind)
 (defmulti negate v/argument-kind)
 (defmulti square v/argument-kind)
@@ -78,6 +79,7 @@
 (defmulti partial-derivative v/argument-kind)
 (defmulti cross-product v/argument-kind)
 (defmulti simplify v/argument-kind)
+(defmulti negative? v/argument-kind)
 
 (defn- bin+ [a b]
   (cond (and (number? a) (number? b)) (+' a b)

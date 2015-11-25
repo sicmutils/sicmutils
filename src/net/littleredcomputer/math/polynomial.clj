@@ -392,13 +392,13 @@
             (loop [u pu
                    v pv]
               (let [[r _] (pseudo-remainder u v)]
-                (cond (v/nullity? r) (if (< (coefficient (lead-term v)) 0)
+                (cond (v/nullity? r) (if (g/negative? (coefficient (lead-term v)))
                                        (attach-content1 (negate v) d)
                                        (attach-content1 v d))
                       (zero? (degree r)) (make [d])
                       :else (recur v (divide-coefs r (content1 r)))))))))
 
-(def ^:dynamic *poly-gcd-time-limit* [10 TimeUnit/SECONDS])
+(def ^:dynamic *poly-gcd-time-limit* [1 TimeUnit/SECONDS])
 (def ^:private gcd-memo (atom {}))
 (def ^:private gcd-cache-hit (atom 0))
 (def ^:private gcd-cache-miss (atom 0))
