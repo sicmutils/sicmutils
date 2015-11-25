@@ -317,93 +317,132 @@
             Y+Z (add Y Z)]
         (is (= X+Z (gcd (mul X+Y X+Z) (mul Y+Z X+Z)))))))
 
+(defn ^:private ->poly [x] (expression-> x (fn [p v] p)))
+(defn ^:private gcd-test [dx fx gx]
+  (let [d (->poly dx)
+        f (->poly fx)
+        g (->poly gx)]
+    (is (= d (gcd (mul d f) (mul d g))))))
+
 (deftest gjs
   (testing "GJS cases (see sparse-gcd.scm:666)"
-   (let [gcd-test (fn [d f g]
-                    (is (= d (gcd (mul d f) (mul d g)))))
-         d1 (make [3 1 2])
-         f1 (make [1 2 2])
-         g1 (make [2 2 1])
+    (let [d1 '(+ (expt x1 2) x1 3)
+          f1 '(+ (* 2 (expt x1 2)) (* 2 x1) 1)
+          g1 '(+ (expt x1 2) (* 2 x1) 2)
 
-         d2 (make 2 [[[2 2] 2] [[1 1] 1] [[1 0] 2]])
-         f2 (make 2 [[[0 2] 1] [[2 1] 2] [[2 0] 1] [[0 0] 1]])
-         g2 (make 2 [[[2 2] 1] [[2 1] 1] [[1 1] 1] [[2 0] 1] [[1 0] 1]])
+          d2 '(+ (* 2 (expt x1 2) (expt x2 2))
+                 (* x1 x2)
+                 (* 2 x1))
+          f2 '(+ (expt x2 2)
+                 (* 2 (expt x1 2) x2)
+                 (expt x1 2)
+                 1)
+          g2 '(+ (* (expt x1 2) (expt x2 2))
+                 (* (expt x1 2) x2)
+                 (* x1 x2)
+                 (expt x1 2)
+                 x1)
 
-         d3 (make 3 [[[0 2 2] 1]
-                     [[0 2 1] 1]
-                     [[2 1 1] 2]
-                     [[1 0 1] 1]])
-         f3 (make 3 [[[0 0 2] 1]
-                     [[0 2 1] 1]
-                     [[2 1 1] 1]
-                     [[1 0 1] 1]
-                     [[2 2 0] 1]])
-         g3 (make 3 [[[0 1 1] 1]
-                     [[1 0 1] 2]
-                     [[0 0 1] 1]
-                     [[1 0 0] 1]])
+          d3 '(+ (* x2 x2 x3 x3)
+                 (* x2 x2 x3)
+                 (* 2 x1 x1 x2 x3)
+                 (* x1 x3))
+          f3 '(+ (* x3 x3)
+                 (* x2 x2 x3)
+                 (* x1 x1 x2 x3)
+                 (* x1 x3)
+                 (* x1 x1 x2 x2))
+          g3 '(+ (* x2 x3)
+                 (* 2 x1 x3)
+                 x3
+                 x1)
 
-         d4 (make 4 [[[2 0 0 2] 1]
-                     [[0 2 1 1] 1]
-                     [[2 1 0 1] 1]
-                     [[0 1 0 1] 1]
-                     [[2 1 1 0] 1]])
-         f4 (make 4 [[[1 1 2 2] 1]
-                     [[1 0 2 2] 1]
-                     [[1 0 0 2] 1]
-                     [[0 0 0 2] 1]
-                     [[1 0 1 1] 1]])
-         g4 (make 4 [[[1 0 2 2] 1]
-                     [[0 0 2 2] 1]
-                     [[0 0 0 2] 1]
-                     [[1 2 1 1] 1]
-                     [[1 2 0 0] 1]])
+          d4 '(+ (* x1 x1 x4 x4)
+                 (* x2 x2 x3 x4)
+                 (* x1 x1 x2 x4)
+                 (* x2 x4)
+                 (* x1 x1 x2 x3))
+          f4 '(+ (* x1 x2 x3 x3 x4 x4)
+                 (* x1 x3 x3 x4 x4)
+                 (* x1 x4 x4)
+                 (* x4 x4)
+                 (* x1 x3 x4))
+          g4 '(+ (* x1 x3 x3 x4 x4)
+                 (* x3 x3 x4 x4)
+                 (* x4 x4)
+                 (* x1 x2 x2 x3 x4)
+                 (* x1 x2 x2))
 
-         d10 (make 10 [[[1 2 0 2 0 0 0 1 1 2] 1]
-                       [[0 2 0 1 2 1 1 0 1 2] 1]
-                       [[2 1 1 0 2 0 2 0 2 0] 1]
-                       [[1 0 2 2 0 0 2 0 2 0] 1]
-                       [[2 0 1 1 0 0 2 1 1 0] 1]])
-         f10 (make 10 [[[1 1 2 1 0 1 1 1 2 2] 1]
-                       [[0 2 2 2 0 2 0 0 1 2] 1]
-                       [[1 2 2 1 1 1 1 2 2 1] 1]
-                       [[2 1 0 2 2 0 0 2 2 1] 1]
-                       [[0 0 1 2 1 1 2 0 1 1] 1]])
-         g10 (make 10 [[[1 2 2 0 2 2 1 1 2 2] 1]
-                       [[0 0 1 0 0 0 0 1 2 2] 1]
-                       [[1 2 1 1 2 2 0 2 1 1] 1]
-                       [[1 0 1 0 0 1 1 1 0 1] 1]
-                       [[0 0 0 2 2 2 1 0 2 0] 1]])]
-     (gcd-test d1 f1 g1)
-     (let [df (mul d2 f2)
-           dg (mul d2 g2)]
-       (is (= (make [0
-                     (make [2 1])
-                     (make [0 0 2])])
-              (lower-arity d2)))
-       (is (= d2 (raise-arity (lower-arity d2))))
-       (is (= (make [0
-                     (make [2 1 2 1])
-                     (make [0 0 2 0 2])
-                     (make [2 5 2])
-                     (make [0 0 2 4])])
-              (lower-arity df)))
-       (is (= df (raise-arity (lower-arity df))))
-       (is (= (make [0
-                     0
-                     (make [4 4 5 4 1])
-                     (make [0 0 8 4 8 4])
-                     (make [4 12 9 2 4 0 4])
-                     (make [0 0 8 20 8])
-                     (make [0 0 0 0 4 8])])
-              (mul (lower-arity d2) (lower-arity df))))
-       (is (= (mul d2 df) (raise-arity (mul (lower-arity d2) (lower-arity df)))))
-       (gcd-test d2 f2 g2)
-       (gcd-test d3 f3 g3)
-       (gcd-test d4 f4 g4)
-       ;; this one still takes too long :(
-       #_(gcd-test d10 f10 g10)
-       ))))
+          d5 '(+ (* x1 x1 x1 x2 x2 x3 x3 x4 x5 x5)
+                 (* x1 x2 x2 x5 x5)
+                 (* x1 x1 x1 x3 x4 x4 x5)
+                 (* x1 x1 x1 x2 x3 x3 x4 x5)
+                 (* x1 x1 x2 x3 x3 x4 x4))
+          f5 '(+ (* x1 x2 x2 x5 x5)
+                 (* x1 x2 x3 x3 x4 x5)
+                 (* x1 x2 x3 x3 x4 x4)
+                 (* x1 x2 x2 x4 x4)
+                 1)
+          g5 '(+ (* x1 x3 x3 x4 x5 x5)
+                 (* x2 x5 x5)
+                 (* x1 x2 x4 x5)
+                 (* x2 x5)
+                 (* x1 x2 x3 x4 x4))]
+
+      (is (= (->poly d2) (-> d2 ->poly lower-arity raise-arity)))
+      (is (= (->poly d3) (-> d3 ->poly lower-arity raise-arity)))
+      (is (= (->poly d4) (-> d4 ->poly lower-arity raise-arity)))
+
+      (is (= (make [0
+                    (make [2 1])
+                    (make [0 0 2])])
+             (-> d2 ->poly lower-arity)))
+
+      (is (= (make [0
+                    (make [2 1 2 1])
+                    (make [0 0 2 0 2])
+                    (make [2 5 2])
+                    (make [0 0 2 4])])
+             (lower-arity (mul (->poly d2) (->poly f2)))))
+
+      (is (= (make [0
+                    0
+                    (make [4 4 5 4 1])
+                    (make [0 0 8 4 8 4])
+                    (make [4 12 9 2 4 0 4])
+                    (make [0 0 8 20 8])
+                    (make [0 0 0 0 4 8])])
+             (mul (lower-arity (->poly d2))
+                  (lower-arity (mul (->poly d2) (->poly f2))))))
+
+      (gcd-test d1 f1 g1)
+      (gcd-test d2 f2 g2)
+      (gcd-test d3 f3 g3)
+      (gcd-test d4 f4 g4)
+      (gcd-test d5 f5 g5)
+      (gcd-stats))))
+
+(deftest more-gjs
+  (testing "GJS cases (see sparse-gcd.scm)"
+    (let [
+          gcd-test (fn [dx fx gx]
+                     )]
+      (let [d6 '(+ (* x1 x2 x4 x4 x5 x5 x6 x6)
+                   (* x1 x2 x2 x3 x3 x4 x5 x5 x6 x6)
+                   (* x1 x1 x3 x6 x6)
+                   (* x1 x1 x2 x3 x3 x4 x5 x5 x6)
+                   (* x1 x1 x3 x5 x6))
+            f6 '(+ (* x1 x1 x2 x4 x5 x5 x6 x6)
+                   (* x1 x3 x5 x5 x6 x6)
+                   (* x1 x2 x2 x6 x6)
+                   (* x1 x1 x2 x2 x3 x3 x5 x6)
+                   (* x1 x3 x3 x4 x5))
+            g6 '(+ (* x2 x2 x3 x3 x4 x5 x5 x6)
+                   (* x1 x4 x4 x5 x6)
+                   (* x2 x2 x3 x3 x4 x5 x6)
+                   (* x1 x2 x2 x3 x4 x4 x6)
+                   (* x1 x1 x3 x5 x5))]
+        #_(gcd-test d6 f6 g6)))))
 
 (deftest ^:long big-gcd
   (let [u (make 10 [[[0 0 1 0 0 0 1 1 0 1] 1]

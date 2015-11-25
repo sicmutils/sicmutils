@@ -382,7 +382,7 @@
     (v/unity? v) v
     (= u v) u
     :else (let [content1 #(->> % :xs->c vals (reduce euclid/gcd))
-                attach-content1 (fn [p c] (map-coefficients #(g/* c %) p))
+                attach-content (fn [p c] (map-coefficients #(g/* c %) p))
                 divide-coefs (fn [p c] (map-coefficients #(g/divide % c) p))
                 ku (content1 u)
                 kv (content1 v)
@@ -392,9 +392,9 @@
             (loop [u pu
                    v pv]
               (let [[r _] (pseudo-remainder u v)]
-                (cond (v/nullity? r) (if (g/negative? (coefficient (lead-term v)))
-                                       (attach-content1 (negate v) d)
-                                       (attach-content1 v d))
+                (cond (v/nullity? r) (if (-> v lead-term coefficient g/negative?)
+                                       (attach-content (negate v) d)
+                                       (attach-content v d))
                       (zero? (degree r)) (make [d])
                       :else (recur v (divide-coefs r (content1 r)))))))))
 
@@ -403,10 +403,15 @@
 (def ^:private gcd-cache-hit (atom 0))
 (def ^:private gcd-cache-miss (atom 0))
 
+(defn gcd-stats []
+  (log/info (format "GCD cache hit rate %.2f%% (%d entries)"
+                    (* 100. (/ @gcd-cache-hit (+ @gcd-cache-hit @gcd-cache-miss)))
+                    (count @gcd-memo))))
+
 (defn ^:private inner-gcd
   "gcd is just a wrapper for this function, which does the real work of
   computing a polynomial gcd. The thunk too-slow? is invoked from time to
-  time to allow an early bail-out."
+  time to allow an early bail-out (by throwing an exception)."
   [u v too-slow?]
   (let [arity (check-same-arity u v)]
     (if-let [g (@gcd-memo [u v])]
@@ -452,13 +457,14 @@
          (instance? Polynomial v)]}
   (let [;_ (log/info (str "gcd arity " (:arity u) " " u " " v))
         clock (Stopwatch/createStarted)
-        too-slow? (fn []
-                    (when (> (.elapsed clock (second *poly-gcd-time-limit*))
-                             (first *poly-gcd-time-limit*))
-                      (throw (TimeoutException. "Took too long to find multivariate polynomial GCD."))))
+        too-slow? #(when (> (.elapsed clock (second *poly-gcd-time-limit*))
+                            (first *poly-gcd-time-limit*))
+                     (throw (TimeoutException. "Took too long to find multivariate polynomial GCD.")))
         g (inner-gcd u v too-slow?)]
     ;(log/info (str "gcd took: " clock " arity " (:arity u) " degrees " (degree u) " " (degree v) " : " (degree g)))
-    g))
+    (if (-> g lead-term coefficient g/negative?)
+      (negate g)
+      g)))
 
 (defn expt
   "Raise the polynomial p to the (integer) power n."
