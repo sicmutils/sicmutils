@@ -398,7 +398,7 @@
                       (zero? (degree r)) (make [d])
                       :else (recur v (divide-coefs r (content1 r)))))))))
 
-(def ^:dynamic *poly-gcd-time-limit* [1 TimeUnit/SECONDS])
+(def ^:dynamic *poly-gcd-time-limit* [2000 TimeUnit/MILLISECONDS])
 (def ^:private gcd-memo (atom {}))
 (def ^:private gcd-cache-hit (atom 0))
 (def ^:private gcd-cache-miss (atom 0))
