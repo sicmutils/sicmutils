@@ -409,10 +409,11 @@
                     (count @gcd-memo))))
 
 (defn ^:private inner-gcd
-  "gcd is just a wrapper for this function, which does the real work of
-  computing a polynomial gcd. The thunk too-slow? is invoked from time to
-  time to allow an early bail-out (by throwing an exception)."
-  [u v too-slow?]
+  "gcd is just a wrapper for this function, which does the real work
+  of computing a polynomial gcd. Delegates to gcd1 for univariate
+  polynomials. The thunk too-slow? is invoked from time to time to
+  allow an early bail-out (by throwing an exception)."
+  [u v level too-slow?]
   (let [arity (check-same-arity u v)]
     (if-let [g (@gcd-memo [u v])]
       (do
@@ -427,40 +428,49 @@
                 (v/unity? v) v
                 (= u v) u
                 :else (do
-                        (too-slow?)
-                        (let [u1 (lower-arity u)
-                              v1 (lower-arity v)
-                              content #(->> % :xs->c vals (reduce (fn [u v] (inner-gcd u v too-slow?))))
-                              ku (content u1)
-                              kv (content v1)
-                              pu (map-coefficients #(evenly-divide % ku) u1)
-                              pv (map-coefficients #(evenly-divide % kv) v1)
-                              d (inner-gcd ku kv too-slow?)]
-                          (loop [u pu
-                                 v pv]
-                            (too-slow?)
-                            (let [[r _] (pseudo-remainder u v)]
-                              (cond (v/nullity? r) (raise-arity (map-coefficients #(g/* d %) v))
-                                    (zero? (degree r)) (raise-arity (make-constant 1 d))
-                                    :else (let [cr (content r)]
-                                            (recur v (map-coefficients #(evenly-divide % cr) r)))))))))]
+                        (let [xs (concat (keys (:xs->c u)) (keys (:xs->c v)))
+                              m (reduce #(mapv min %1 %2) xs)
+                              ;; If there is a (monic) monomial which would
+                              ;; divide every term of u and v. Return a divider and multiplier
+                              ;; function to pre- and post-process the inputs.
+                              [pre post] (if (some #(> % 0) m)
+                                           (let [c (make arity [[m 1]])]
+                                             #_(log/info (str "at level " level " found a trivial monomial divisor: " m))
+                                             [#(evenly-divide % c) #(mul % c)])
+                                           [identity identity])]
+                          (too-slow?)
+                          (let [u1 (lower-arity (pre u))
+                                v1 (lower-arity (pre v))
+                                content #(->> % :xs->c vals (reduce (fn [u v] (inner-gcd u v (inc level) too-slow?))))
+                                ku (content u1)
+                                kv (content v1)
+                                pu (map-coefficients #(evenly-divide % ku) u1)
+                                pv (map-coefficients #(evenly-divide % kv) v1)
+                                d (inner-gcd ku kv (inc level) too-slow?)]
+                            (loop [u pu
+                                   v pv]
+                              (too-slow?)
+                              (let [[r _] (pseudo-remainder u v)]
+                                (cond (v/nullity? r) (post (raise-arity (map-coefficients #(g/* d %) v)))
+                                      (zero? (degree r)) (post (raise-arity (make-constant 1 d)))
+                                      :else (let [cr (content r)]
+                                              (recur v (map-coefficients #(evenly-divide % cr) r))))))))))]
         (swap! gcd-cache-miss inc)
         (swap! gcd-memo assoc [u v] g)
         g))))
 
 (defn gcd
-  "Knuth's algorithm 4.6.1E. Delegates to gcd1 for univariate polynomials.
+  "Knuth's algorithm 4.6.1E.
   This can take a long time, unfortunately, and so we bail if it seems to
   be taking too long."
   [u v]
   {:pre [(instance? Polynomial u)
          (instance? Polynomial v)]}
-  (let [;_ (log/info (str "gcd arity " (:arity u) " " u " " v))
-        clock (Stopwatch/createStarted)
+  (let [clock (Stopwatch/createStarted)
         too-slow? #(when (> (.elapsed clock (second *poly-gcd-time-limit*))
                             (first *poly-gcd-time-limit*))
                      (throw (TimeoutException. "Took too long to find multivariate polynomial GCD.")))
-        g (inner-gcd u v too-slow?)]
+        g (inner-gcd u v 0 too-slow?)]
     ;(log/info (str "gcd took: " clock " arity " (:arity u) " degrees " (degree u) " " (degree v) " : " (degree g)))
     (if (-> g lead-term coefficient g/negative?)
       (negate g)
@@ -552,17 +562,6 @@
 (defmethod g/expt [::polynomial Integer] [b x] (expt b x))
 (defmethod g/expt [::polynomial Long] [b x] (expt b x))
 
-(defn ^:private exact-integer-divide
-  [a b]
-  {:pre [(zero? (mod a b))]}
-  (/ a b))
-
-(defmethod g/exact-div [Long Long] [a b] (exact-integer-divide a b))
-(defmethod g/exact-div [BigInt BigInt] [a b] (exact-integer-divide a b))
-(defmethod g/exact-div [Long BigInt] [a b] (exact-integer-divide a b))
-(defmethod g/exact-div [BigInt Long] [a b] (exact-integer-divide a b))
-(defmethod g/exact-div [Ratio Ratio] [a b] (/ a b))
-(defmethod g/exact-div [Ratio BigInt] [a b] (/ a b))
 (defmethod g/exact-div [::polynomial ::polynomial] [p q] (evenly-divide p q))
 
 (defmethod g/negate ::polynomial [a] (negate a))

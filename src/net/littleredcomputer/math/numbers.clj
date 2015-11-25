@@ -52,11 +52,21 @@
 (define-unary-operation g/log #(Math/log %))
 (define-unary-operation g/exp #(Math/exp %))
 
+(defn ^:private exact-integer-divide
+  [a b]
+  {:pre [(core-zero? (mod a b))]}
+  (core-div a b))
+
 (let [integral-types [Long clojure.lang.BigInt java.math.BigInteger]]
   (doseq [lhs integral-types
           rhs integral-types]
     (defmethod g/quotient [lhs rhs] [a b] (quot a b))
-    (defmethod g/quotient [rhs lhs] [b a] (quot b a))))
+    (defmethod g/quotient [rhs lhs] [b a] (quot b a))
+    (defmethod g/exact-div [lhs rhs] [a b] (exact-integer-divide a b))
+    (defmethod g/exact-div [rhs lhs] [a b] (exact-integer-divide a b))))
+
+(defmethod g/exact-div [clojure.lang.Ratio clojure.lang.Ratio] [a b] (core-div a b))
+(defmethod g/exact-div [clojure.lang.Ratio clojure.lang.BigInt] [a b] (core-div a b))
 
 (defmethod g/negative? Long [a] (neg? a))
 (defmethod g/negative? clojure.lang.BigInt [a] (neg? a))

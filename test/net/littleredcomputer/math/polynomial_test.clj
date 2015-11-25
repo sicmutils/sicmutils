@@ -424,25 +424,38 @@
 
 (deftest more-gjs
   (testing "GJS cases (see sparse-gcd.scm)"
-    (let [
-          gcd-test (fn [dx fx gx]
-                     )]
-      (let [d6 '(+ (* x1 x2 x4 x4 x5 x5 x6 x6)
-                   (* x1 x2 x2 x3 x3 x4 x5 x5 x6 x6)
-                   (* x1 x1 x3 x6 x6)
-                   (* x1 x1 x2 x3 x3 x4 x5 x5 x6)
-                   (* x1 x1 x3 x5 x6))
-            f6 '(+ (* x1 x1 x2 x4 x5 x5 x6 x6)
-                   (* x1 x3 x5 x5 x6 x6)
-                   (* x1 x2 x2 x6 x6)
-                   (* x1 x1 x2 x2 x3 x3 x5 x6)
-                   (* x1 x3 x3 x4 x5))
-            g6 '(+ (* x2 x2 x3 x3 x4 x5 x5 x6)
-                   (* x1 x4 x4 x5 x6)
-                   (* x2 x2 x3 x3 x4 x5 x6)
-                   (* x1 x2 x2 x3 x4 x4 x6)
-                   (* x1 x1 x3 x5 x5))]
-        #_(gcd-test d6 f6 g6)))))
+    (let [d6 '(+ (* x1 x2 x4 x4 x5 x5 x6 x6)
+                 (* x1 x2 x2 x3 x3 x4 x5 x5 x6 x6)
+                 (* x1 x1 x3 x6 x6)
+                 (* x1 x1 x2 x3 x3 x4 x5 x5 x6)
+                 (* x1 x1 x3 x5 x6))
+          f6 '(+ (* x1 x1 x2 x4 x5 x5 x6 x6)
+                 (* x1 x3 x5 x5 x6 x6)
+                 (* x1 x2 x2 x6 x6)
+                 (* x1 x1 x2 x2 x3 x3 x5 x6)
+                 (* x1 x3 x3 x4 x5))
+          g6 '(+ (* x2 x2 x3 x3 x4 x5 x5 x6)
+                 (* x1 x4 x4 x5 x6)
+                 (* x2 x2 x3 x3 x4 x5 x6)
+                 (* x1 x2 x2 x3 x4 x4 x6)
+                 (* x1 x1 x3 x5 x5))
+          d7 '(+ (* x1 x2 x2 x4 x4 x6 x6 x7 x7)
+                 (* x1 x1 x3 x4 x6 x6 x7 x7)
+                 (* x3 x3 x4 x4 x7 x7)
+                 (* x1 x1 x2 x4 x4 x6)
+                 (* x3 x4 x5 x5))
+          f7 '(+ (* x1 x1 x2 x4 x4 x5 x6 x6 x7 x7)
+                 (* x1 x2 x3 x6 x7)
+                 (* x3 x4 x4 x5 x5 x7)
+                 (* x1 x1 x2 x3 x4 x4 x5 x6))
+          g7 '(+ (* x1 x3 x5 x6 x6 x7 x7)
+                 (* x2 x2 x3 x3 x4 x4 x5 x6 x7 x7)
+                 (* x4 x6 x7 x7)
+                 (* x1 x1 x2 x3 x5 x6 x7)
+                 (* x1 x1 x3 x3 x4 x5 x5))]
+      ;; aren't quite good enough for these yet.
+      #_(gcd-test d6 f6 g6)
+      #_(gcd-test d7 f7 g7))))
 
 (deftest ^:long big-gcd
   (let [u (make 10 [[[0 0 1 0 0 0 1 1 0 1] 1]
