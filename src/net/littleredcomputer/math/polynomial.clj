@@ -408,6 +408,34 @@
                     (* 100. (/ @gcd-cache-hit (+ @gcd-cache-hit @gcd-cache-miss)))
                     (count @gcd-memo))))
 
+(defn ^:private divide-out-trivial-monomial
+  "If there is a (monic) monomial which would
+  divide every term of u and v. Return a divider and multiplier
+  function to pre- and post-process the inputs."
+  [u v continue]
+  (let [xs (concat (keys (:xs->c u)) (keys (:xs->c v)))
+        m (reduce #(mapv min %1 %2) xs)]
+
+    (if (some #(> % 0) m)
+      (let [c (make (:arity u) [[m 1]])]
+        (do  #_(log/info (str "at level " level " found a trivial monomial divisor: " m))
+             (mul c (continue (evenly-divide u c) (evenly-divide v c))))))
+    (continue u v)))
+
+(defn ^:private divide-out-content
+  [u v gcd continue]
+  (let [u1 (lower-arity u)
+        v1 (lower-arity v)
+        content #(->> % :xs->c vals (reduce (fn [u v] (gcd u v))));; DRY
+        ku (content u1)
+        kv (content v1)
+        pu (map-coefficients #(evenly-divide % ku) u1)
+        pv (map-coefficients #(evenly-divide % kv) v1)
+        d (gcd ku kv)]
+    (continue pu pv
+              (fn [v] (raise-arity (map-coefficients #(g/* d %) v)))
+              (fn [] (raise-arity (make-constant 1 d))))))
+
 (defn ^:private inner-gcd
   "gcd is just a wrapper for this function, which does the real work
   of computing a polynomial gcd. Delegates to gcd1 for univariate
@@ -430,31 +458,23 @@
                 :else (do
                         (let [xs (concat (keys (:xs->c u)) (keys (:xs->c v)))
                               m (reduce #(mapv min %1 %2) xs)
-                              ;; If there is a (monic) monomial which would
-                              ;; divide every term of u and v. Return a divider and multiplier
-                              ;; function to pre- and post-process the inputs.
-                              [pre post] (if (some #(> % 0) m)
-                                           (let [c (make arity [[m 1]])]
-                                             #_(log/info (str "at level " level " found a trivial monomial divisor: " m))
-                                             [#(evenly-divide % c) #(mul % c)])
-                                           [identity identity])]
+                              content #(->> % :xs->c vals (reduce (fn [u v] (gcd u v)))) ;; DRY
+                              ]
                           (too-slow?)
-                          (let [u1 (lower-arity (pre u))
-                                v1 (lower-arity (pre v))
-                                content #(->> % :xs->c vals (reduce (fn [u v] (inner-gcd u v (inc level) too-slow?))))
-                                ku (content u1)
-                                kv (content v1)
-                                pu (map-coefficients #(evenly-divide % ku) u1)
-                                pv (map-coefficients #(evenly-divide % kv) v1)
-                                d (inner-gcd ku kv (inc level) too-slow?)]
-                            (loop [u pu
-                                   v pv]
-                              (too-slow?)
-                              (let [[r _] (pseudo-remainder u v)]
-                                (cond (v/nullity? r) (post (raise-arity (map-coefficients #(g/* d %) v)))
-                                      (zero? (degree r)) (post (raise-arity (make-constant 1 d)))
-                                      :else (let [cr (content r)]
-                                              (recur v (map-coefficients #(evenly-divide % cr) r))))))))))]
+                          (divide-out-trivial-monomial
+                           u v
+                           (fn [u v]
+                             (divide-out-content
+                              u v
+                              #(inner-gcd %1 %2 (inc level) too-slow?)
+                              (fn [u v succeed fail]
+                                (loop [u u v v]
+                                  (too-slow?)
+                                  (let [[r _] (pseudo-remainder u v)]
+                                    (cond (v/nullity? r) (succeed v)
+                                          (zero? (degree r)) (fail)
+                                          :else (let [cr (content r)]
+                                                  (recur v (map-coefficients #(evenly-divide % cr) r)))))))))))))]
         (swap! gcd-cache-miss inc)
         (swap! gcd-memo assoc [u v] g)
         g))))
