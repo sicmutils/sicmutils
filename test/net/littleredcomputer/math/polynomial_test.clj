@@ -100,9 +100,6 @@
     (is (= (make [1 3 3 1]) (mul (make [1 1]) (mul (make [1 1]) (make [1 1])))))
     (is (= (make [1 -4 6 -4 1]) (mul (mul (make [-1 1]) (make [-1 1]))
                                      (mul (make [-1 1]) (make [-1 1]))))))
-  (testing "coefficients"
-    (is (= [1 5 10 10 5 1] (coefficients (expt (make [1 1]) 5))))
-    (is (= [1 5 10 10 5 1] (coefficients (expt (make 2 [[[1 0] 1] [[0 1] 1]]) 5)))))
   (testing "div"
     (is (= [(make [1 1]) (make [])]
            (divide (make [-1 0 1]) (make [-1 1]))))

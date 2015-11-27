@@ -124,7 +124,7 @@
   ([dense-coefficients]
    (make 1 (zipmap (map vector (iterate inc 0)) dense-coefficients))))
 
-(defn- lead-term
+(defn ^:private lead-term
   "Return the leading (i.e., highest degree) term of the polynomial
   p. The return value is [exponents coefficient]."
   [p]
@@ -164,7 +164,7 @@
   [f {:keys [arity xs->c]}]
   (make arity (for [[xs c] xs->c] [xs (f c)])))
 
-(defn- poly-merge
+(defn ^:private poly-merge
   "Merge the polynomials together, combining corresponding coefficients with f.
   The result is not a polynomial object, but rather a sequence
   of [exponent, coefficient] pairs, suitable for further processing or
@@ -219,7 +219,7 @@
                     sum (poly-merge g/+ p q)]
                 (make a sum))))
 
-(defn- add-denormal
+(defn ^:private add-denormal
   "Add-denormal adds the (order, coefficient) pair to the polynomial p,
   expecting that p is currently in sparse form (i.e., not a primitive number)
   and without normalizing the result (e.g., to see if the polynomial has
@@ -364,6 +364,52 @@
       (throw (IllegalStateException. (str "expected even division left a remainder!" u " / " v " r " r))))
     q))
 
+(def ^:dynamic *poly-gcd-time-limit* [2000 TimeUnit/MILLISECONDS])
+(def ^:private gcd-memo (atom {}))
+(def ^:private gcd-cache-hit (atom 0))
+(def ^:private gcd-cache-miss (atom 0))
+
+(defn gcd-stats []
+  (log/info (format "GCD cache hit rate %.2f%% (%d entries)"
+                    (* 100. (/ @gcd-cache-hit (+ @gcd-cache-hit @gcd-cache-miss)))
+                    (count @gcd-memo))))
+
+(defn ^:private with-trivial-monomial-factor-removed
+  "If there is a (monic) monomial which would divide every term of u
+  and v, divide it out from both of them and invoke the continuation
+  with the reduced polynomials; otherwise just invoke the
+  continuation with u and v."
+  [u v continue]
+  (let [xs (concat (keys (:xs->c u)) (keys (:xs->c v)))
+        m (reduce #(mapv min %1 %2) xs)]
+    (if (some #(> % 0) m)
+      (let [c (make (:arity u) [[m 1]])]
+        (mul c (continue (evenly-divide u c) (evenly-divide v c)))))
+    (continue u v)))
+
+(defn ^:private with-content-removed
+  "For multivariate polynomials. u and v are considered here as
+  univariate polynomials with polynomial coefficients. Using the
+  supplied gcd function, the content of u and v is divided out and the
+  primitive parts are supplied to the continuation, along with two
+  callbacks: one for success (which will multiply back content into
+  the result of that callback) and one for failure (in which case the
+  content itself is returned.)"
+  [u v gcd continue]
+  (let [content #(->> % :xs->c vals (reduce gcd));; DRY
+        ku (content u)
+        kv (content v)
+        pu (map-coefficients #(g/exact-div % ku) u)
+        pv (map-coefficients #(g/exact-div % kv) v)
+        d (gcd ku kv)]
+    (continue pu pv
+              (fn [v] (map-coefficients #(g/* d %) v))
+              (fn [] (make-constant 1 d)))))
+
+(defn ^:private with-lower-arity
+  [u v continue]
+  (raise-arity (continue (lower-arity u) (lower-arity v))))
+
 ;; TODO: now that we have finally gotten multivariate GCD to start
 ;; working, we observe that gcd1 and gcd now have the same shape,
 ;; so they should be unified.
@@ -382,59 +428,14 @@
     (v/unity? v) v
     (= u v) u
     :else (let [content1 #(->> % :xs->c vals (reduce euclid/gcd))
-                attach-content (fn [p c] (map-coefficients #(g/* c %) p))
-                divide-coefs (fn [p c] (map-coefficients #(g/divide % c) p))
-                ku (content1 u)
-                kv (content1 v)
-                pu (divide-coefs u ku)
-                pv (divide-coefs v kv)
-                d (euclid/gcd ku kv)]
-            (loop [u pu
-                   v pv]
-              (let [[r _] (pseudo-remainder u v)]
-                (cond (v/nullity? r) (if (-> v lead-term coefficient g/negative?)
-                                       (attach-content (negate v) d)
-                                       (attach-content v d))
-                      (zero? (degree r)) (make [d])
-                      :else (recur v (divide-coefs r (content1 r)))))))))
-
-(def ^:dynamic *poly-gcd-time-limit* [2000 TimeUnit/MILLISECONDS])
-(def ^:private gcd-memo (atom {}))
-(def ^:private gcd-cache-hit (atom 0))
-(def ^:private gcd-cache-miss (atom 0))
-
-(defn gcd-stats []
-  (log/info (format "GCD cache hit rate %.2f%% (%d entries)"
-                    (* 100. (/ @gcd-cache-hit (+ @gcd-cache-hit @gcd-cache-miss)))
-                    (count @gcd-memo))))
-
-(defn ^:private divide-out-trivial-monomial
-  "If there is a (monic) monomial which would
-  divide every term of u and v. Return a divider and multiplier
-  function to pre- and post-process the inputs."
-  [u v continue]
-  (let [xs (concat (keys (:xs->c u)) (keys (:xs->c v)))
-        m (reduce #(mapv min %1 %2) xs)]
-
-    (if (some #(> % 0) m)
-      (let [c (make (:arity u) [[m 1]])]
-        (do  #_(log/info (str "at level " level " found a trivial monomial divisor: " m))
-             (mul c (continue (evenly-divide u c) (evenly-divide v c))))))
-    (continue u v)))
-
-(defn ^:private divide-out-content
-  [u v gcd continue]
-  (let [u1 (lower-arity u)
-        v1 (lower-arity v)
-        content #(->> % :xs->c vals (reduce (fn [u v] (gcd u v))));; DRY
-        ku (content u1)
-        kv (content v1)
-        pu (map-coefficients #(evenly-divide % ku) u1)
-        pv (map-coefficients #(evenly-divide % kv) v1)
-        d (gcd ku kv)]
-    (continue pu pv
-              (fn [v] (raise-arity (map-coefficients #(g/* d %) v)))
-              (fn [] (raise-arity (make-constant 1 d))))))
+                divide-coefs (fn [p c] (map-coefficients #(g/exact-div % c) p))]
+            (with-content-removed u v euclid/gcd
+              (fn [u v succeed fail]
+                (loop [u u v v]
+                  (let [[r _] (pseudo-remainder u v)]
+                    (cond (v/nullity? r) (succeed v)
+                          (zero? (degree r)) (fail)
+                          :else (recur v (divide-coefs r (content1 r)))))))))))
 
 (defn ^:private inner-gcd
   "gcd is just a wrapper for this function, which does the real work
@@ -448,33 +449,29 @@
         (swap! gcd-cache-hit inc)
         g)
       (let [g (cond
-                (zero? arity) (make 0 [[[] (euclid/gcd (constant-term u) (constant-term v))]])
-                (= arity 1) (gcd1 u v)
                 (v/nullity? u) v
                 (v/nullity? v) u
                 (v/unity? u) u
                 (v/unity? v) v
                 (= u v) u
-                :else (do
-                        (let [xs (concat (keys (:xs->c u)) (keys (:xs->c v)))
-                              m (reduce #(mapv min %1 %2) xs)
-                              content #(->> % :xs->c vals (reduce (fn [u v] (gcd u v)))) ;; DRY
-                              ]
-                          (too-slow?)
-                          (divide-out-trivial-monomial
-                           u v
-                           (fn [u v]
-                             (divide-out-content
-                              u v
-                              #(inner-gcd %1 %2 (inc level) too-slow?)
-                              (fn [u v succeed fail]
-                                (loop [u u v v]
-                                  (too-slow?)
-                                  (let [[r _] (pseudo-remainder u v)]
-                                    (cond (v/nullity? r) (succeed v)
-                                          (zero? (degree r)) (fail)
-                                          :else (let [cr (content r)]
-                                                  (recur v (map-coefficients #(evenly-divide % cr) r)))))))))))))]
+                (zero? arity) (make 0 [[[] (euclid/gcd (constant-term u) (constant-term v))]])
+                (= arity 1) (gcd1 u v)
+                :else (let [gcd-er #(inner-gcd %1 %2 (inc level) too-slow?)
+                            content #(->> % :xs->c vals (reduce gcd-er))] ;; DRY
+                        (too-slow?)
+                        (with-trivial-monomial-factor-removed u v
+                          (fn [u v]
+                            (with-lower-arity u v
+                              (fn [u v]
+                                (with-content-removed u v gcd-er
+                                  (fn [u v succeed fail]
+                                    (loop [u u v v]
+                                      (too-slow?)
+                                      (let [[r _] (pseudo-remainder u v)]
+                                        (cond (v/nullity? r) (succeed v)
+                                              (zero? (degree r)) (fail)
+                                              :else (let [cr (content r)]
+                                                      (recur v (map-coefficients #(g/exact-div % cr) r))))))))))))))]
         (swap! gcd-cache-miss inc)
         (swap! gcd-memo assoc [u v] g)
         g))))
@@ -491,7 +488,7 @@
                             (first *poly-gcd-time-limit*))
                      (throw (TimeoutException. "Took too long to find multivariate polynomial GCD.")))
         g (inner-gcd u v 0 too-slow?)]
-    ;(log/info (str "gcd took: " clock " arity " (:arity u) " degrees " (degree u) " " (degree v) " : " (degree g)))
+    ;;(log/info (str "gcd took: " clock " arity " (:arity u) " degrees " (degree u) " " (degree v) " : " (degree g)))
     (if (-> g lead-term coefficient g/negative?)
       (negate g)
       g)))
@@ -578,10 +575,7 @@
 (defmethod g/sub [::polynomial Number] [p c] (sub p (make-constant (:arity p) c)))
 (defmethod g/sub [Number ::polynomial] [c p] (sub (make-constant (:arity p) c) p))
 (defmethod g/div [::polynomial Number] [p c] (map-coefficients #(g/divide % c) p))
-
 (defmethod g/expt [::polynomial Integer] [b x] (expt b x))
 (defmethod g/expt [::polynomial Long] [b x] (expt b x))
-
 (defmethod g/exact-div [::polynomial ::polynomial] [p q] (evenly-divide p q))
-
 (defmethod g/negate ::polynomial [a] (negate a))
