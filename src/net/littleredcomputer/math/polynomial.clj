@@ -396,7 +396,7 @@
   the result of that callback) and one for failure (in which case the
   content itself is returned.)"
   [u v gcd continue]
-  (let [content #(->> % :xs->c vals (reduce gcd));; DRY
+  (let [content #(->> % :xs->c vals (reduce gcd))
         ku (content u)
         kv (content v)
         pu (map-coefficients #(g/exact-div % ku) u)
@@ -410,9 +410,19 @@
   [u v continue]
   (raise-arity (continue (lower-arity u) (lower-arity v))))
 
-;; TODO: now that we have finally gotten multivariate GCD to start
-;; working, we observe that gcd1 and gcd now have the same shape,
-;; so they should be unified.
+(defn ^:private euclid-inner-loop
+  [coefficient-gcd maybe-bail-out]
+  (let [content #(->> % :xs->c vals (reduce coefficient-gcd))]
+    (fn [u v succeed fail]
+      (loop [u u v v]
+        (maybe-bail-out)
+        (let [[r _] (pseudo-remainder u v)]
+          (cond (v/nullity? r) (succeed v)
+                (zero? (degree r)) (fail)
+                :else (recur v (map-coefficients #(g/exact-div % (content r)) r))))))))
+
+(def ^:private univariate-euclid-inner-loop
+  (euclid-inner-loop euclid/gcd (fn [])))
 
 (defn ^:private gcd1
   "Knuth's algorithm 4.6.1E for UNIVARIATE polynomials."
@@ -427,15 +437,7 @@
     (v/unity? u) u
     (v/unity? v) v
     (= u v) u
-    :else (let [content1 #(->> % :xs->c vals (reduce euclid/gcd))
-                divide-coefs (fn [p c] (map-coefficients #(g/exact-div % c) p))]
-            (with-content-removed u v euclid/gcd
-              (fn [u v succeed fail]
-                (loop [u u v v]
-                  (let [[r _] (pseudo-remainder u v)]
-                    (cond (v/nullity? r) (succeed v)
-                          (zero? (degree r)) (fail)
-                          :else (recur v (divide-coefs r (content1 r)))))))))))
+    :else (with-content-removed u v euclid/gcd univariate-euclid-inner-loop)))
 
 (defn ^:private inner-gcd
   "gcd is just a wrapper for this function, which does the real work
@@ -445,9 +447,7 @@
   [u v level too-slow?]
   (let [arity (check-same-arity u v)]
     (if-let [g (@gcd-memo [u v])]
-      (do
-        (swap! gcd-cache-hit inc)
-        g)
+      (do (swap! gcd-cache-hit inc) g)
       (let [g (cond
                 (v/nullity? u) v
                 (v/nullity? v) u
@@ -456,22 +456,14 @@
                 (= u v) u
                 (zero? arity) (make 0 [[[] (euclid/gcd (constant-term u) (constant-term v))]])
                 (= arity 1) (gcd1 u v)
-                :else (let [gcd-er #(inner-gcd %1 %2 (inc level) too-slow?)
-                            content #(->> % :xs->c vals (reduce gcd-er))] ;; DRY
+                :else (let [gcd-er #(inner-gcd %1 %2 (inc level) too-slow?)]
                         (too-slow?)
                         (with-trivial-monomial-factor-removed u v
                           (fn [u v]
                             (with-lower-arity u v
                               (fn [u v]
                                 (with-content-removed u v gcd-er
-                                  (fn [u v succeed fail]
-                                    (loop [u u v v]
-                                      (too-slow?)
-                                      (let [[r _] (pseudo-remainder u v)]
-                                        (cond (v/nullity? r) (succeed v)
-                                              (zero? (degree r)) (fail)
-                                              :else (let [cr (content r)]
-                                                      (recur v (map-coefficients #(g/exact-div % cr) r))))))))))))))]
+                                  (euclid-inner-loop gcd-er too-slow?))))))))]
         (swap! gcd-cache-miss inc)
         (swap! gcd-memo assoc [u v] g)
         g))))
