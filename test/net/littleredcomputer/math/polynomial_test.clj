@@ -470,9 +470,7 @@
                     [[2 0 1 2 1 1 0 0 0 0] 2]
                     [[4 0 1 0 1 1 0 0 0 0] 1]])
         g (gcd u v)]
-
-    (is (= (make 10 [[[0 0 0 0 0 0 0 0 0 0] 1]]) g))
-    (dotimes [_ 1] (gcd u v))))
+    (is (= (make 10 [[[0 0 0 0 0 0 0 0 0 0] 1]]) g))))
 
 
 (deftest poly-as-simplifier

@@ -34,25 +34,6 @@
 (def coefficient second)
 (def exponents first)
 
-(defrecord Polynomial [^long arity ^PersistentTreeMap xs->c]
-  v/Value
-  (nullity? [_] (empty? xs->c))
-  (numerical? [_] false)
-  (zero-like [_] (Polynomial. arity {}))
-  (one-like [o] (make-constant arity (v/one-like (coefficient (first xs->c)))))
-  (unity? [_] (and (= (count xs->c) 1)
-                   (let [[xs c] (first xs->c)]
-                     (and (every? zero? xs)
-                          (v/unity? c)))))
-  (kind [_] ::polynomial)
-  Object
-  (toString [_]
-    (str "("
-         (clojure.string/join ";"
-                              (for [[k v] xs->c]
-                                (str v "*" (clojure.string/join "," k))))
-         ")")))
-
 ;; Monomials
 ;;
 ;; We represent a monomial as a vector of integers representing
@@ -101,6 +82,25 @@
 
 (def ^:private monomial-order graded-lex-order)
 (def ^:private empty-coefficients (sorted-map-by monomial-order))
+
+(defrecord Polynomial [^long arity ^PersistentTreeMap xs->c]
+  v/Value
+  (nullity? [_] (-> xs->c .count zero?))
+  (numerical? [_] false)
+  (zero-like [_] (Polynomial. arity empty-coefficients))
+  (one-like [o] (make-constant arity (v/one-like (coefficient (first xs->c)))))
+  (unity? [_] (and (= (count xs->c) 1)
+                   (let [[xs c] (first xs->c)]
+                     (and (every? zero? xs)
+                          (v/unity? c)))))
+  (kind [_] ::polynomial)
+  Object
+  (toString [_]
+    (str "("
+         (clojure.string/join ";"
+                              (for [[k v] xs->c]
+                                (str v "*" (clojure.string/join "," k))))
+         ")")))
 
 (defn make
   "When called with two arguments, the first is the arity
@@ -162,7 +162,11 @@
 (defn map-coefficients
   "Map the function f over the coefficients of p, returning a new Polynomial."
   [f {:keys [arity xs->c]}]
-  (make arity (for [[xs c] xs->c] [xs (f c)])))
+  (let [m (into empty-coefficients (for [[xs c] xs->c
+                                         :let [fc (f c)]
+                                         :when (not (g/zero? fc))]
+                                     [xs fc]))]
+    (Polynomial. arity m)))
 
 (defn ^:private poly-merge
   "Merge the polynomials together, combining corresponding coefficients with f.
@@ -299,8 +303,10 @@
                             (and (not-empty residues)
                                  (every? (complement neg?) residues)))]
                 (if (zero? arity)
-                  [(make 0 [[[] (g/divide (coefficient (lead-term u)) vn-coefficient)]])
-                   (make 0 [[[] 0]])]
+                  (do
+                    (println "ding")
+                    [(make 0 [[[] (g/divide (coefficient (lead-term u)) vn-coefficient)]])
+                    (make 0 [[[] 0]])])
                   (loop [quotient (make arity [])
                          remainder u]
                     ;; find a term in the remainder into which the
@@ -362,9 +368,11 @@
   (let [[q r] (divide u v)]
     (when-not (v/nullity? r)
       (throw (IllegalStateException. (str "expected even division left a remainder!" u " / " v " r " r))))
-    q))
+     q))
 
-(def ^:dynamic *poly-gcd-time-limit* [2000 TimeUnit/MILLISECONDS])
+(def ^:dynamic *poly-gcd-time-limit* [5000 TimeUnit/MILLISECONDS])
+(def ^:dynamic *poly-gcd-bail-out* (fn []))
+(def ^:dynamic *poly-gcd-cache-enable* true)
 (def ^:private gcd-memo (atom {}))
 (def ^:private gcd-cache-hit (atom 0))
 (def ^:private gcd-cache-miss (atom 0))
@@ -411,18 +419,19 @@
   (raise-arity (continue (lower-arity u) (lower-arity v))))
 
 (defn ^:private euclid-inner-loop
-  [coefficient-gcd maybe-bail-out]
+  [coefficient-gcd]
   (let [content #(->> % :xs->c vals (reduce coefficient-gcd))]
     (fn [u v succeed fail]
       (loop [u u v v]
-        (maybe-bail-out)
+        (*poly-gcd-bail-out*)
         (let [[r _] (pseudo-remainder u v)]
           (cond (v/nullity? r) (succeed v)
                 (zero? (degree r)) (fail)
-                :else (recur v (map-coefficients #(g/exact-div % (content r)) r))))))))
+                :else (let [kr (content r)]
+                        (recur v (map-coefficients #(g/exact-div % kr) r)))))))))
 
 (def ^:private univariate-euclid-inner-loop
-  (euclid-inner-loop euclid/gcd (fn [])))
+  (euclid-inner-loop euclid/gcd))
 
 (defn ^:private gcd1
   "Knuth's algorithm 4.6.1E for UNIVARIATE polynomials."
@@ -439,12 +448,13 @@
     (= u v) u
     :else (with-content-removed u v euclid/gcd univariate-euclid-inner-loop)))
 
+(declare ^:private inner-gcd-fn)
+
 (defn ^:private inner-gcd
   "gcd is just a wrapper for this function, which does the real work
   of computing a polynomial gcd. Delegates to gcd1 for univariate
-  polynomials. The thunk too-slow? is invoked from time to time to
-  allow an early bail-out (by throwing an exception)."
-  [u v level too-slow?]
+  polynomials."
+  [u v]
   (let [arity (check-same-arity u v)]
     (if-let [g (@gcd-memo [u v])]
       (do (swap! gcd-cache-hit inc) g)
@@ -456,16 +466,17 @@
                 (= u v) u
                 (zero? arity) (make 0 [[[] (euclid/gcd (constant-term u) (constant-term v))]])
                 (= arity 1) (gcd1 u v)
-                :else (let [gcd-er #(inner-gcd %1 %2 (inc level) too-slow?)]
-                        (too-slow?)
+                :else (do
+                        (*poly-gcd-bail-out*)
                         (with-trivial-monomial-factor-removed u v
                           (fn [u v]
                             (with-lower-arity u v
                               (fn [u v]
-                                (with-content-removed u v gcd-er
-                                  (euclid-inner-loop gcd-er too-slow?))))))))]
-        (swap! gcd-cache-miss inc)
-        (swap! gcd-memo assoc [u v] g)
+                                (with-content-removed u v inner-gcd
+                                  (euclid-inner-loop inner-gcd))))))))]
+        (when *poly-gcd-cache-enable*
+          (swap! gcd-cache-miss inc)
+          (swap! gcd-memo assoc [u v] g))
         g))))
 
 (defn gcd
@@ -476,10 +487,12 @@
   {:pre [(instance? Polynomial u)
          (instance? Polynomial v)]}
   (let [clock (Stopwatch/createStarted)
-        too-slow? #(when (> (.elapsed clock (second *poly-gcd-time-limit*))
-                            (first *poly-gcd-time-limit*))
-                     (throw (TimeoutException. "Took too long to find multivariate polynomial GCD.")))
-        g (inner-gcd u v 0 too-slow?)]
+        g (binding [*poly-gcd-bail-out* #(when (> (.elapsed clock (second *poly-gcd-time-limit*))
+                                                  (first *poly-gcd-time-limit*))
+                                           (throw (TimeoutException.
+                                                   (str "Took too long to find multivariate polynomial GCD: "
+                                                        clock))))]
+            (inner-gcd u v))]
     ;;(log/info (str "gcd took: " clock " arity " (:arity u) " degrees " (degree u) " " (degree v) " : " (degree g)))
     (if (-> g lead-term coefficient g/negative?)
       (negate g)
