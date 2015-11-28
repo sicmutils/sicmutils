@@ -303,10 +303,8 @@
                             (and (not-empty residues)
                                  (every? (complement neg?) residues)))]
                 (if (zero? arity)
-                  (do
-                    (println "ding")
-                    [(make 0 [[[] (g/divide (coefficient (lead-term u)) vn-coefficient)]])
-                    (make 0 [[[] 0]])])
+                  [(make 0 [[[] (g/divide (coefficient (lead-term u)) vn-coefficient)]])
+                   (make 0 [[[] 0]])]
                   (loop [quotient (make arity [])
                          remainder u]
                     ;; find a term in the remainder into which the
