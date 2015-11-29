@@ -17,7 +17,10 @@
 ;
 
 (ns net.littleredcomputer.math.polynomial-test
+  (:import (com.google.common.base Stopwatch)
+           (java.util.concurrent TimeUnit))
   (:require [clojure.test :refer :all]
+
             [net.littleredcomputer.math
              [value :as v]
              [polynomial :refer :all]
@@ -195,8 +198,7 @@
       (is (= [z2 x3 xy2z x2z2] (monomial-sort graded-lex-order))))))
 
 (deftest poly-gcd
-  (let [zap #(make 0 [[[] %]])  ;; zero-arity polynomial
-        u (make [6 7 1])  ;; some polynomials of arity 1
+  (let [u (make [6 7 1])  ;; some polynomials of arity 1
         v (make [-6 -5 1])
         w (make [-3 -6 9])
         x (make [0 1])
@@ -214,12 +216,7 @@
       (is (= 6 (constant-term u)))
       (is (= -6 (constant-term v)))
       (is (= 0 (constant-term x)))
-      (is (= 5 (constant-term (zap 5))))
       (is (= 0 (constant-term (make 4 [])))))
-    (testing "GCD: arity 0 case"
-      (is (= (zap 3) (gcd (zap 12) (zap 15))))
-      (is (= (zap 1) (gcd (zap 7) (zap 11))))
-      (is (= (zap 5) (gcd (zap -15) (zap 20)))))
     (testing "GCD: arity 1 case"
       (let [x+1 (make [1 1])
             x+2 (make [2 1])
@@ -290,19 +287,7 @@
         (is (= (mul X+Z X+Y+Z) (gcd (reduce mul [X+Y X+Z X+Y+Z]) (reduce mul [X+Z X+Y+Z Y+Z]))))
         (is (= (mul X+Z (mul X+Z X+Y)) (gcd (reduce mul [X+Z X+Z X+Y X+Y+Z Y+1]) (reduce mul [X+Z X+Z X+Y X+1 Z+1 X+Z]))))
         (is (= G (gcd U V)))
-        ))
-    (testing "division of zero arity polynomials"
-      (let [o (zap 0)
-            iii (zap 3)
-            vii (zap 7)
-            xiv (zap 14)
-            xxi (zap 21)]
-        (is (g/zero? o))
-        (is (v/nullity? o))
-        (is (= [iii o] (divide xxi vii)))
-        (is (= [o o] (divide o iii)))
-        (is (= [o 1] (pseudo-remainder o iii)))
-        (is (thrown? IllegalArgumentException (divide o o)))))))
+        ))))
 
 (deftest simple-gcd-3
   (testing "GCD: arity 3 case"
@@ -468,10 +453,18 @@
                     [[1 0 2 1 1 0 0 0 1 1] -2]])
         v (make 10 [[[0 0 1 4 1 1 0 0 0 0] 1]
                     [[2 0 1 2 1 1 0 0 0 0] 2]
-                    [[4 0 1 0 1 1 0 0 0 0] 1]])
-        g (gcd u v)]
-    (is (= (make 10 [[[0 0 0 0 0 0 0 0 0 0] 1]]) g))))
-
+                    [[4 0 1 0 1 1 0 0 0 0] 1]])]
+    (let [t (fn []
+              (let [sw (Stopwatch/createStarted)
+                    g (gcd u v)]
+                (println sw)
+                (gcd-stats)
+                g))]
+      (binding [*poly-gcd-time-limit* [3 TimeUnit/SECONDS]]
+        (is (= (make 10 [[[0 0 0 0 0 0 0 0 0 0] 1]]) (t)))
+        ;; for profiling
+        (binding [*poly-gcd-cache-enable* false]
+          (dotimes [_ 1] (t)))))))
 
 (deftest poly-as-simplifier
   (testing "arity"

@@ -36,8 +36,8 @@
   (is (make-constant 0 0)))
 
 (deftest make-test
-  (let [zap #(p/make 0 [[[] %]])      ;; "zero-arity polynomial"
-        zarf #(make (zap %) (zap 1))  ;; "zero-arity rational function"
+  (let [p #(p/make 1 [[[0] %]])      ;; constant arity 1 polynomial
+        rf #(make (p %) (p 1))       ;; ratio of constant arity 1 polynomials
         R (make (p/make [2]) (p/make [3]))
         S (make (p/make [2]) (p/make [1]))
         x+1 (p/make [1 1])
@@ -61,20 +61,20 @@
     (is (= (make (p/make [2 0 2]) (p/make [-1 0 1])) (add x+1:x-1 x-1:x+1)))
     (is (= (make (p/make [1 2 1]) (p/make [1 -2 1])) (expt x+1:x-1 2)))
     (is (= (make (p/make [1 -2 1]) (p/make [1 2 1])) (expt x+1:x-1 -2)))
-    (is (= (zarf 5) (add (zarf 2) (zarf 3))))
-    (is (= (make (zap 5) (zap 3)) (div (zarf 5) (zarf 3))))
-    (is (= (zarf 4) (div (zarf 8) (zarf 2))))
-    (is (= (zarf 1) (div (zarf 1) (zarf 1))))
-    (is (= (zarf 0) (div (zarf 0) (zarf 1))))))
+    (is (= (rf 5) (add (rf 2) (rf 3))))
+    (is (= (make (p 5) (p 3)) (div (rf 5) (rf 3))))
+    (is (= (rf 4) (div (rf 8) (rf 2))))
+    (is (= (rf 1) (div (rf 1) (rf 1))))
+    (is (= (rf 0) (div (rf 0) (rf 1))))))
 
 (deftest rf-arithmetic
   (testing "invert-hilbert-matrix"
-    (let [zap #(p/make 0 [[[] %]])        ;; "zero-arity polynomial"
-          zarf #(make (zap %1) (zap %2))  ;; "zero-arity rational function"
+    (let [p #(p/make 1 [[[0] %]])         ;; constant arity 1 polynomial
+          rf #(make (p %1) (p %2))        ;; arity 1 rational function out of two constants
           N 3
           H (apply s/up (for [i (range 1 (inc N))]
-                        (apply s/up (for [j (range 1 (inc N))] (zarf 1 (+ i j -1))))))]
-      (is (= (s/mapr #(zarf % 1)
+                          (apply s/up (for [j (range 1 (inc N))] (rf 1 (+ i j -1))))))]
+      (is (= (s/mapr #(rf % 1)
                      (s/down (s/down 9 -36 30)
                              (s/down -36 192 -180)
                              (s/down 30 -180 180)))
