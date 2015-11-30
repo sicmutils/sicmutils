@@ -17,7 +17,7 @@
 ;
 
 (ns net.littleredcomputer.math.polynomial
-  (:import (clojure.lang PersistentTreeMap BigInt Ratio)
+  (:import (clojure.lang PersistentTreeMap BigInt Ratio IFn)
            (com.google.common.base Stopwatch)
            (java.util.concurrent TimeUnit TimeoutException))
   (:require [clojure.set :as set]
@@ -83,6 +83,12 @@
 (def ^:private monomial-order graded-lex-order)
 (def ^:private empty-coefficients (sorted-map-by monomial-order))
 
+;;
+;; Polynomials
+;;
+
+(declare eval1)
+
 (defrecord Polynomial [^long arity ^PersistentTreeMap xs->c]
   v/Value
   (nullity? [_] (-> xs->c .count zero?))
@@ -94,6 +100,8 @@
                      (and (every? zero? xs)
                           (v/unity? c)))))
   (kind [_] ::polynomial)
+  IFn
+  (invoke [p x] (eval1 p x))
   Object
   (toString [_]
     (str "("
@@ -101,6 +109,22 @@
                               (for [[k v] xs->c]
                                 (str v "*" (clojure.string/join "," k))))
          ")")))
+
+(defn eval1
+  "Evaluates a univariate polynomial p at x."
+  [p x]
+  (loop [xs->c (:xs->c p)
+         result 0
+         x**e 1
+         e 0]
+    (if xs->c
+      (let [[[e'] c] (first xs->c)
+            x**e' (g/* x**e (g/expt x (- e' e)))]
+        (recur (next xs->c)
+               (g/+ result (g/* c x**e'))
+               x**e'
+               e'))
+      result)))
 
 (defn make
   "When called with two arguments, the first is the arity
@@ -370,8 +394,8 @@
      q))
 
 (def ^:dynamic *poly-gcd-time-limit* [1000 TimeUnit/MILLISECONDS])
-(def ^:dynamic *poly-gcd-bail-out* (fn []))
 (def ^:dynamic *poly-gcd-cache-enable* true)
+(def ^:private ^:dynamic *poly-gcd-bail-out* (fn []))
 (def ^:private gcd-memo (atom {}))
 (def ^:private gcd-cache-hit (atom 0))
 (def ^:private gcd-cache-miss (atom 0))

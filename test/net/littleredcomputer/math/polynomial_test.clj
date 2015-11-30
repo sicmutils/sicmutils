@@ -286,8 +286,7 @@
         (is (= X+Z (gcd (mul X+Y X+Z) (mul Y+Z X+Z))))
         (is (= (mul X+Z X+Y+Z) (gcd (reduce mul [X+Y X+Z X+Y+Z]) (reduce mul [X+Z X+Y+Z Y+Z]))))
         (is (= (mul X+Z (mul X+Z X+Y)) (gcd (reduce mul [X+Z X+Z X+Y X+Y+Z Y+1]) (reduce mul [X+Z X+Z X+Y X+1 Z+1 X+Z]))))
-        (is (= G (gcd U V)))
-        ))))
+        (is (= G (gcd U V)))))))
 
 (deftest simple-gcd-3
   (testing "GCD: arity 3 case"
@@ -305,6 +304,13 @@
         f (->poly fx)
         g (->poly gx)]
     (is (= d (gcd (mul d f) (mul d g))))))
+
+(deftest poly-apply
+  (testing "trivial"
+    (let [p (->poly '(+ 2 (* x 3)))]
+      (is (= 14 (p 4))))
+    (is (= 256 ((->poly '(expt x 8)) 2)))
+    (is (= 272 ((->poly '(+ (expt x 4) (expt x 8))) 2)))))
 
 (deftest gjs
   (testing "GJS cases (see sparse-gcd.scm:666)"
@@ -465,6 +471,18 @@
         ;; for profiling
         (binding [*poly-gcd-cache-enable* false]
           (dotimes [_ 1] (t)))))))
+
+(deftest kuniaki-tsuji-examples
+  ;; (only have 1 of these, will add more)
+  ;; http://www.sciencedirect.com/science/article/pii/S0747717108001016
+  (testing "ex1"
+    (let [d (->poly '(+ (* x x) (* 2 (expt y 23) (expt z 24))))
+          p (mul d (->poly '(+ (* x x) (* (expt y 23) (expt z 22)))))
+          q (mul d (->poly '(+ (* y z (expt x 3))
+                               (* 2 (expt z 35) (expt y 41) (expt x 2))
+                               (* (expt z 3) (expt y 5) x)
+                               525)))]
+      (is (= d (gcd p q))))))
 
 (deftest poly-as-simplifier
   (testing "arity"

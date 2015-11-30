@@ -18,13 +18,15 @@
 
 (ns net.littleredcomputer.math.function
   (:require [net.littleredcomputer.math
+             [polynomial]
              [value :as v]
              [expression :as x]
              [structure :as s]
              [numsymb :as ns]
              [generic :as g]]
             [net.littleredcomputer.math.calculus.derivative :as d])
-  (:import [net.littleredcomputer.math.structure Struct]
+  (:import [net.littleredcomputer.math.polynomial Polynomial]
+           [net.littleredcomputer.math.structure Struct]
            [net.littleredcomputer.math.operator Operator]
            (clojure.lang IFn)))
 
@@ -79,6 +81,7 @@
   (and (ifn? x)
        (not (instance? Struct x))
        (not (instance? Operator x))
+       (not (instance? Polynomial x))
        (not (symbol? x))
        (not (vector? x))))
 

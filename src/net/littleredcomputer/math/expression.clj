@@ -66,12 +66,12 @@
   (fn walk [x]
     (cond (number? x) x
           (symbol? x) (if-let [binding (x environment)]
-                        (if-not (ifn? binding) binding x)
+                        (if-not (= :net.littleredcomputer.math.value/function (v/kind binding)) binding x)
                         (throw (IllegalArgumentException.
                                 (str "no binding for " x " found."))))
           (instance? Expression x) (walk (expression-of x))
           (sequential? x) (let [f (environment (first x))]
-                            (when-not (ifn? f)
+                            (when-not (= :net.littleredcomputer.math.value/function (v/kind f))
                               (throw (IllegalArgumentException.
                                       (str "no function binding for " x " found."))))
                             (apply f (map walk (rest x))))
