@@ -421,9 +421,7 @@
         pu (map-coefficients #(g/exact-div % ku) u)
         pv (map-coefficients #(g/exact-div % kv) v)
         d (gcd ku kv)]
-    (continue pu pv
-              (fn [v] (map-coefficients #(g/* d %) v))
-              (fn [] (make-constant 1 d)))))
+    (continue pu pv (fn [v] (map-coefficients #(g/* d %) v)))))
 
 (defn ^:private with-lower-arity
   [u v continue]
@@ -432,14 +430,13 @@
 (defn ^:private euclid-inner-loop
   [coefficient-gcd]
   (let [content #(->> % :xs->c vals (reduce coefficient-gcd))]
-    (fn [u v succeed fail]
+    (fn [u v continue]
       (loop [u u v v]
         (*poly-gcd-bail-out*)
         (let [[r _] (pseudo-remainder u v)]
-          (cond (v/nullity? r) (succeed v)
-                ;(zero? (degree r)) (fail)
-                :else (let [kr (content r)]
-                        (recur v (map-coefficients #(g/exact-div % kr) r)))))))))
+          (if (v/nullity? r) (continue v)
+              (let [kr (content r)]
+                (recur v (map-coefficients #(g/exact-div % kr) r)))))))))
 
 (def ^:private univariate-euclid-inner-loop
   (euclid-inner-loop euclid/gcd))
