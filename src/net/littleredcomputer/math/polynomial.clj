@@ -66,9 +66,7 @@
   {:pre (= (count xs) (count ys))}
   (let [xd (monomial-degree xs)
         yd (monomial-degree ys)]
-    (cond (> xd yd) 1
-          (< xd yd) -1
-          :else (lex-order xs ys))))
+    (if (= xd yd) (lex-order xs ys) (compare xd yd))))
 
 (defn graded-reverse-lex-order
   ""
@@ -76,9 +74,7 @@
   {:pre (= (count xs) (count ys))}
   (let [xd (monomial-degree xs)
         yd (monomial-degree ys)]
-    (cond (> xd yd) 1
-          (< xd yd) -1
-          :else (compare (vec (rseq ys)) (vec (rseq xs))))))
+    (if (= xd yd) (compare (vec (rseq ys)) (vec (rseq xs))) (compare xd yd))))
 
 (def ^:private monomial-order graded-lex-order)
 (def ^:private empty-coefficients (sorted-map-by monomial-order))
@@ -107,7 +103,7 @@
   (invoke [p x y z] (evaluate p x y z))
   (invoke [p w x y z] (evaluate p w x y z))
   (invoke [p v w x y z] (evaluate p v w x y z))
-  (applyTo [p xs] (apply (partial evaluate p) xs))
+  (applyTo [p xs] (apply evaluate p xs))
   Object
   (toString [_]
     (str "("
