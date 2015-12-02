@@ -66,7 +66,7 @@
   {:pre (= (count xs) (count ys))}
   (let [xd (monomial-degree xs)
         yd (monomial-degree ys)]
-    (if (= xd yd) (lex-order xs ys) (compare xd yd))))
+    (if (= xd yd) (lex-order xs ys) (- xd yd))))
 
 (defn graded-reverse-lex-order
   ""
@@ -74,7 +74,7 @@
   {:pre (= (count xs) (count ys))}
   (let [xd (monomial-degree xs)
         yd (monomial-degree ys)]
-    (if (= xd yd) (compare (vec (rseq ys)) (vec (rseq xs))) (compare xd yd))))
+    (if (= xd yd) (compare (vec (rseq ys)) (vec (rseq xs))) (- xd yd))))
 
 (def ^:private monomial-order graded-lex-order)
 (def ^:private empty-coefficients (sorted-map-by monomial-order))
