@@ -117,13 +117,9 @@
          result 0
          x**e 1
          e 0]
-    (if xs->c
-      (let [[[e'] c] (first xs->c)
-            x**e' (g/* x**e (g/expt x (- e' e)))]
-        (recur (next xs->c)
-               (g/+ result (g/* c x**e'))
-               x**e'
-               e'))
+    (if-let [[[e'] c] (first xs->c)]
+      (let [x**e' (g/* x**e (g/expt x (- e' e)))]
+        (recur (next xs->c) (g/+ result (g/* c x**e')) x**e' e'))
       result)))
 
 (defn make
@@ -391,7 +387,7 @@
   (let [[q r] (divide u v)]
     (when-not (v/nullity? r)
       (throw (IllegalStateException. (str "expected even division left a remainder!" u " / " v " r " r))))
-     q))
+    q))
 
 (def ^:dynamic *poly-gcd-time-limit* [1000 TimeUnit/MILLISECONDS])
 (def ^:dynamic *poly-gcd-cache-enable* true)
@@ -562,8 +558,7 @@
 
 ;; The operator-table represents the operations that can be understood
 ;; from the point of view of a polynomial over a commutative ring. The
-;; functions take polynomial inputs and return
-;; polynomials.
+;; functions take polynomial inputs and return polynomials.
 
 (def ^:private operator-table
   {'+ #(reduce g/add %&)
