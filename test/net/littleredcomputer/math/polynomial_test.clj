@@ -306,11 +306,30 @@
     (is (= d (gcd (mul d f) (mul d g))))))
 
 (deftest poly-apply
-  (testing "trivial"
+  (testing "arity 1"
     (let [p (->poly '(+ 2 (* x 3)))]
-      (is (= 14 (p 4))))
+      (is (= 14 (p 4)))
+      (is (thrown? IllegalArgumentException (p 3 2))))
     (is (= 256 ((->poly '(expt x 8)) 2)))
-    (is (= 272 ((->poly '(+ (expt x 4) (expt x 8))) 2)))))
+    (is (= 272 ((->poly '(+ (expt x 4) (expt x 8))) 2))))
+  (testing "arity 2"
+    (let [p (->poly '(expt (+ x y) 2))]
+      (is (= p (p)))
+      (is (= 25 (p 2 3)))
+      (let [q (p 3)]
+        (is (= 49 (q 4))))))
+  (testing "arity 3"
+    (let [p (->poly '(+ (expt x 3) (expt y 2) z 1))]
+      (is (= 19 (p 2 3 1)))))
+  (testing "arity 4"
+    (let [p (->poly '(expt (- w x y z) 2))]
+      (is (= 36 (p 10 1 2 1)))))
+  (testing "arity 5"
+    (let [p (->poly '(expt (- v w x y z) 2))]
+      (is (= 16 (p 10 1 2 1 2)))))
+  (testing "arity 10 (via apply)"
+    (let [p (->poly '(expt (- x0 x1 x2 x3 x4 x5 x6 x7 x8 x9) 3))]
+      (is (= 216 (apply p [10 1 2 1 2 -3 1 -2 -1 3]))))))
 
 (deftest gjs
   (testing "GJS cases (see sparse-gcd.scm:666)"

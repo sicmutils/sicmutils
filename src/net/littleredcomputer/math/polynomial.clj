@@ -66,9 +66,7 @@
   {:pre (= (count xs) (count ys))}
   (let [xd (monomial-degree xs)
         yd (monomial-degree ys)]
-    (cond (> xd yd) 1
-          (< xd yd) -1
-          :else (lex-order xs ys))))
+    (if (= xd yd) (lex-order xs ys) (- xd yd))))
 
 (defn graded-reverse-lex-order
   ""
@@ -76,9 +74,7 @@
   {:pre (= (count xs) (count ys))}
   (let [xd (monomial-degree xs)
         yd (monomial-degree ys)]
-    (cond (> xd yd) 1
-          (< xd yd) -1
-          :else (compare (vec (rseq ys)) (vec (rseq xs))))))
+    (if (= xd yd) (compare (vec (rseq ys)) (vec (rseq xs))) (- xd yd))))
 
 (def ^:private monomial-order graded-lex-order)
 (def ^:private empty-coefficients (sorted-map-by monomial-order))
@@ -87,7 +83,7 @@
 ;; Polynomials
 ;;
 
-(declare eval1)
+(declare evaluate)
 
 (defrecord Polynomial [^long arity ^PersistentTreeMap xs->c]
   v/Value
@@ -101,7 +97,13 @@
                           (v/unity? c)))))
   (kind [_] ::polynomial)
   IFn
-  (invoke [p x] (eval1 p x))
+  (invoke [p] (evaluate p))
+  (invoke [p x] (evaluate p x))
+  (invoke [p x y] (evaluate p x y))
+  (invoke [p x y z] (evaluate p x y z))
+  (invoke [p w x y z] (evaluate p w x y z))
+  (invoke [p v w x y z] (evaluate p v w x y z))
+  (applyTo [p xs] (apply evaluate p xs))
   Object
   (toString [_]
     (str "("
@@ -109,18 +111,6 @@
                               (for [[k v] xs->c]
                                 (str v "*" (clojure.string/join "," k))))
          ")")))
-
-(defn eval1
-  "Evaluates a univariate polynomial p at x."
-  [p x]
-  (loop [xs->c (:xs->c p)
-         result 0
-         x**e 1
-         e 0]
-    (if-let [[[e'] c] (first xs->c)]
-      (let [x**e' (g/* x**e (g/expt x (- e' e)))]
-        (recur (next xs->c) (g/+ result (g/* c x**e')) x**e' e'))
-      result)))
 
 (defn make
   "When called with two arguments, the first is the arity
@@ -305,6 +295,32 @@
                     [ys c] (:xs->c q)]
                 [(into x ys) c])]
     (make (inc (:arity (coefficient (lead-term p)))) terms)))
+
+(defn ^:private evaluate-1
+  "Evaluates a univariate polynomial p at x."
+  [p x]
+  (loop [xs->c (:xs->c p)
+         result 0
+         x**e 1
+         e 0]
+    (if-let [[[e'] c] (first xs->c)]
+      (let [x**e' (g/* x**e (g/expt x (- e' e)))]
+        (recur (next xs->c)
+               (g/+ result (g/* c x**e'))
+               x**e'
+               e'))
+      result)))
+
+(defn ^:private evaluate
+  "Evaluates a multivariate polynomial p at xs. Partial application
+  is supported. Supplying too many arguments will throw."
+  [p & xs]
+  (if-not xs p
+          (if (= (:arity p) 1)
+            (do (when-not (= (count xs) 1)
+                  (throw (IllegalArgumentException. "too many arguments for polynomial")))
+                (evaluate-1 p (first xs)))
+            (apply evaluate ((lower-arity p) (first xs)) (next xs)))))
 
 (declare gcd)
 
