@@ -62,6 +62,7 @@
 (defmulti div v/argument-kind)
 (defmulti exact-div v/argument-kind)
 (defmulti quotient v/argument-kind)
+(defmulti remainder v/argument-kind)
 (defmulti invert v/argument-kind)
 (defmulti negate v/argument-kind)
 (defmulti square v/argument-kind)

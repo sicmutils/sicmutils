@@ -60,10 +60,12 @@
 (let [integral-types [Long clojure.lang.BigInt java.math.BigInteger]]
   (doseq [lhs integral-types
           rhs integral-types]
+    (defmethod g/remainder [lhs rhs] [a b] (mod a b))
+    (defmethod g/remainder [rhs lhs] [b a] (mod b a))
     (defmethod g/quotient [lhs rhs] [a b] (quot a b))
     (defmethod g/quotient [rhs lhs] [b a] (quot b a))
     (defmethod g/exact-div [lhs rhs] [a b] (exact-integer-divide a b))
-    (defmethod g/exact-div [rhs lhs] [a b] (exact-integer-divide a b))))
+    (defmethod g/exact-div [rhs lhs] [b a] (exact-integer-divide b a))))
 
 (defmethod g/exact-div [clojure.lang.Ratio clojure.lang.Ratio] [a b] (core-div a b))
 (defmethod g/exact-div [clojure.lang.Ratio clojure.lang.BigInt] [a b] (core-div a b))
