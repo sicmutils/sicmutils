@@ -37,7 +37,12 @@
 
 (defn gcd
   [a b]
-  (first (extended-gcd a b)))
+  (cond (g/zero? a) (g/abs b)
+        (g/zero? b) (g/abs a)
+        :else (loop [a a b b]
+                (if (g/zero? b)
+                  a
+                  (recur b (g/remainder a b))))))
 
 (defn lcm
   [a b]
