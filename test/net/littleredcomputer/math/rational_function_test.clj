@@ -55,8 +55,7 @@
     (is (= (make (p/make [1 -2 1]) (p/make [1 2 1])) (expt x+1:x-1 -2)))
     (is (= (p 3) (add (rf 3 2) (rf 3 2))))
     (is (= (rf 5 3) (div (rf 5 2) (rf 3 2))))
-    (is (= (p 4) (div (rf 8 1) (rf 1))))
-    (is (= (rf 1 1) (div (rf 1 2) (rf 1 2))))))
+    (is (= (rf 14 3) (div (rf 8 3) (rf 4 7))))))
 
 (deftest rf-arithmetic
   (testing "invert-hilbert-matrix"

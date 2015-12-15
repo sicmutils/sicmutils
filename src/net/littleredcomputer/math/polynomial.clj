@@ -115,6 +115,22 @@
            (if (> c n) (format " ...and %d more terms" (- c n)))
            ")"))))
 
+(def ^:dynamic *poly-require-euclidean-coefficients* true)
+
+(defn ^:private euclidean?
+  "True if x is a member of a Euclidean domain. For us, this means any
+  kind of integer, or any kind of polynomial. This isn't airtight, as
+  we would allow a polynomial with non-Euclidean coefficients to slip
+  past us here. The real motivation is not mathematical purity but
+  debugging.  For the use of the polynomial library as the engine of
+  algebraic simplification, we don't want polynomials with rational
+  coefficients to be created, so we attempt to block it with this
+  function. Rational coefficients should instead be handled with
+  rational functions of polynomials with integer coefficients."
+  [x]
+  (or (integer? x)
+      (instance? Polynomial x)))
+
 (defn make
   "When called with two arguments, the first is the arity
   (number of indeterminates) of the polynomial followed by a sequence
@@ -131,7 +147,8 @@
   - 1 can be constructed by (make -1 0 1)."
   ([arity xc-pairs]
    {:pre [(->> xc-pairs (map first) (every? vector?))]}
-   (when (not (every? #(or (integer? %) (instance? Polynomial %)) (map second xc-pairs)))
+   (when (and *poly-require-euclidean-coefficients*
+              (not (every? euclidean? (map second xc-pairs))))
      (throw (IllegalArgumentException. (str "tried to make a funny polynomial " xc-pairs))))
    (Polynomial. arity (into empty-coefficients
                             (for [p xc-pairs :when (not (g/zero? (second p)))]

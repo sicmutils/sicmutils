@@ -226,11 +226,11 @@
         (v/unity? v) U
         :else (let [d (p/gcd u' v) ]
                 (if (v/unity? d)
-                  (RationalFunction. arity
-                                     (p/mul u v) u')
-                  (RationalFunction. arity
-                                     (p/mul u (p/evenly-divide v d))
-                                     (p/evenly-divide u' d))))))
+                  (make-reduced arity
+                                (p/mul u v) u')
+                  (make-reduced arity
+                                (p/mul u (p/evenly-divide v d))
+                                (p/evenly-divide u' d))))))
 
 (defmethod g/mul
   [:net.littleredcomputer.math.polynomial/polynomial ::rational-function]
