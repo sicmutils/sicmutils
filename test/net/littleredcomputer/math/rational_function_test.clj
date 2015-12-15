@@ -28,23 +28,16 @@
              [numbers]
              [simplify]]))
 
-(deftest properties
-  (is (v/nullity? (make-constant 1 0)))
-  (is (v/unity? (make-constant 1 1)))
-  (is (not (v/nullity? (make-constant 1 1))))
-  (is (not (v/unity? (make-constant 1 0))))
-  (is (make-constant 0 0)))
-
 (deftest make-test
   (let [p #(p/make 1 [[[0] %]])      ;; constant arity 1 polynomial
-        rf #(make (p %) (p 1))       ;; ratio of constant arity 1 polynomials
+        rf #(make (p %1) (p %2))       ;; ratio of constant arity 1 polynomials
         R (make (p/make [2]) (p/make [3]))
         S (make (p/make [2]) (p/make [1]))
         x+1 (p/make [1 1])
         x-1 (p/make [-1 1])
         x+1:x-1 (make x+1 x-1)
         x-1:x+1 (make x-1 x+1)
-        one (make (p/make [1]) (p/make [1]))]
+        one (p/make [1])]
     (is (= (make (p/make [-1 -2 -3]) (p/make [-4 -5 6]))
            (make (p/make [1 2 3]) (p/make [4 5 -6]))))
     (is (= (make (p/make [1 2 3]) (p/make [-4 5 6]))
@@ -55,17 +48,15 @@
            (make (p/make [0 1/2 1/3]) (p/make [0 0 1/2 3/5]))))
     (is (= (make (p/make [1 -1]) (p/make [1 1])) (negate x-1:x+1)))
     (is (= x+1:x-1 (invert x-1:x+1)))
-    (is (= (make (p/make [3]) (p/make [1])) (make-constant 1 3)))
     (is (= one (mul x-1:x+1 (invert x-1:x+1))))
     (is (= (make (p/make [2 0 2]) (p/make [-1 0 1])) (add x-1:x+1 x+1:x-1)))
     (is (= (make (p/make [2 0 2]) (p/make [-1 0 1])) (add x+1:x-1 x-1:x+1)))
     (is (= (make (p/make [1 2 1]) (p/make [1 -2 1])) (expt x+1:x-1 2)))
     (is (= (make (p/make [1 -2 1]) (p/make [1 2 1])) (expt x+1:x-1 -2)))
-    (is (= (rf 5) (add (rf 2) (rf 3))))
-    (is (= (make (p 5) (p 3)) (div (rf 5) (rf 3))))
-    (is (= (rf 4) (div (rf 8) (rf 2))))
-    (is (= (rf 1) (div (rf 1) (rf 1))))
-    (is (= (rf 0) (div (rf 0) (rf 1))))))
+    (is (= (p 3) (add (rf 3 2) (rf 3 2))))
+    (is (= (rf 5 3) (div (rf 5 2) (rf 3 2))))
+    (is (= (p 4) (div (rf 8 1) (rf 1))))
+    (is (= (rf 1 1) (div (rf 1 2) (rf 1 2))))))
 
 (deftest rf-arithmetic
   (testing "invert-hilbert-matrix"
@@ -85,19 +76,19 @@
         x-1 (p/make [-1 1])]
     (= 'foo (g/mul x-1 (make x+1 x-1)))))
 
+(def ^:private rf-simp #(expression-> % ->expression))
+
 (deftest rf-as-simplifier
   (testing "expr"
     (let [exp1 (:expression (g/* (g/+ 1 'x) (g/+ -3 'x)))
           exp2 (:expression (g/expt (g/+ 1 'y) 5))
-          exp3 (:expression (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5)))
-          receive (fn [a b] [a b])]
-      (is (= [(p/make [-3 -2 1]) '(x)] (expression-> exp1 receive)))
-      (is (= [(p/make [-3 -2 1]) '(x)] (expression-> exp1 receive)))
-      (is (= [(p/make [1 5 10 10 5 1]) '(y)] (expression-> exp2 receive)))
-      (is (= [(p/make [0 -11 5 -30 10 -7 1]) '(y)] (expression-> exp3 receive)))))
+          exp3 (:expression (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5)))]
+      (is (= [(p/make [-3 -2 1]) '(x)] (expression-> exp1 vector)))
+      (is (= [(p/make [-3 -2 1]) '(x)] (expression-> exp1 vector)))
+      (is (= [(p/make [1 5 10 10 5 1]) '(y)] (expression-> exp2 vector)))
+      (is (= [(p/make [0 -11 5 -30 10 -7 1]) '(y)] (expression-> exp3 vector)))))
   (testing "expr-simplify"
-    (let [rf-simp #(expression-> % ->expression)
-          exp1 (:expression (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))
+    (let [exp1 (:expression (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))
           exp2 (:expression (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
           exp3 'y]
       (is (= '(+ (expt x 3) (* 2 (expt x 2))) (rf-simp exp1)))
@@ -125,4 +116,8 @@
                              (* K (expt dx 2) m1)
                              (* K (expt dy 2) m1)
                              (* 2 K m1 m2))
-                          (* 2 K))))))))
+                          (* 2 K)))))))
+  (testing "quotients"
+    (is (= '(/ 1 (* 2 x)) (rf-simp (:expression (g/divide 1 (g/* 2 'x))))))
+    (is (= 4 (rf-simp (:expression (g/divide (g/* 28 'x) (g/* 7 'x))))))
+    (is (= '(/ 1 (expt x 21)) (rf-simp (:expression (g/divide (g/expt 'x 7) (g/expt 'x 28))))))))

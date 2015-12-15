@@ -72,3 +72,4 @@
 
 (defmethod g/negative? Long [a] (neg? a))
 (defmethod g/negative? clojure.lang.BigInt [a] (neg? a))
+(defmethod g/negative? BigInteger [a] (neg? a))

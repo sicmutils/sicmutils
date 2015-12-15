@@ -1,4 +1,4 @@
-# math 
+# math
 [![Build Status](https://travis-ci.org/littleredcomputer/math.svg?branch=master)](https://travis-ci.org/littleredcomputer/math) [![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/littleredcomputer/math/blob/master/LICENSE)
 
 
@@ -121,11 +121,11 @@ yielding
 (down
  (+
   ((D U) (r t))
-  (* -1N (r t) m (expt ((D φ) t) 2))
+  (* -1 (r t) m (expt ((D φ) t) 2))
   (* (((expt D 2) r) t) m))
  (+
   (* (((expt D 2) φ) t) m (expt (r t) 2))
-  (* 2N (r t) ((D r) t) ((D φ) t) m)))
+  (* 2 (r t) ((D r) t) ((D φ) t) m)))
 ```
 
 Which, modulo a few things, is what Scmutils would give. From later

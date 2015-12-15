@@ -20,7 +20,7 @@
   (:import (com.google.common.base Stopwatch)
            (java.util.concurrent TimeUnit))
   (:require [clojure.test :refer :all]
-
+            [clojure.math.numeric-tower :as nt]
             [net.littleredcomputer.math
              [value :as v]
              [polynomial :refer :all]
@@ -117,27 +117,21 @@
           [q r] (divide U V)
           [pr d] (pseudo-remainder U V)]
       (is (= [(make [-2/9 0 1/3]) (make [-1/3 0 1/9 0 -5/9])] [q r]))
-      (is (= [(make [-3 0 1 0 -5]) 9] [pr d]))
-      (is (= (make []) (sub (mul (make [d]) U) (add (mul (make [-2 0 3]) V) pr))))
+      (is (= [(make [-3 0 1 0 -5]) 2] [pr d]))
+      (is (= (make []) (sub (mul (make [(nt/expt 3 d)]) U) (add (mul (make [-2 0 3]) V) pr))))
       (is (= (make [1]) (gcd U V)))
       (is (= (make [1]) (gcd V U))))
     ;; examples from http://www.mathworks.com/help/symbolic/mupad_ref/pdivide.html
     (let [p (make [1 1 0 1])
           q (make [1 1 3])]
-      (is (= [(make [10 7]) 9] (pseudo-remainder p q))))
+      (is (= [(make [10 7]) 2] (pseudo-remainder p q))))
     (let [p (make [3 0 4])
           q (make [2 2])]
-      (is (= [(make [28]) 4] (pseudo-remainder p q))))
+      (is (= [(make [28]) 2] (pseudo-remainder p q))))
     (is (= [(make 2 []) (make 2 [[[2 1] 1] [[1 2] 1]])]
            (divide (make 2 [[[2 1] 1] [[1 2] 1]]) (make 2 [[[1 2] 1]]))))
-    (let [a 2
-          p (make 2 [[[3 0] 1] [[1 0] 1] [[0 1] 1]])
-          q (make 2 [[[2 0] a] [[1 0] 1] [[0 0] 1]])]
-      (is (= [(make 2 [[[0 1] (* a a)] [[1 0] (+ (* a a) (- a) 1)] [[0 0] 1]])
-              (* a a)]
-             (pseudo-remainder p q))))
     (is (= [(make [1]) (make [])] (divide (make [3]) (make [3]))))
-    (is (= [(make [0]) 2] (pseudo-remainder (make [7]) (make [2])))))
+    (is (= [(make [0]) 1] (pseudo-remainder (make [7]) (make [2])))))
   (testing "expt"
     (let [x+1 (make [1 1])]
       (is (= (make [1]) (expt x+1 0)))
@@ -247,9 +241,7 @@
         (is (= V (gcd Z V)))))
     (testing "divide constant arity 2"
       (is (= [(make 2 []) X] (divide X Y)))
-      (is (= [X 1] (pseudo-remainder X Y)))
-      (is (= [(make 2 []) Y] (divide Y X)))
-      (is (= [Y 1] (pseudo-remainder Y X))))
+      (is (= [(make 2 []) Y] (divide Y X))))
     (testing "GCD: arity 2 case"
       (let [I (make 2 [[[0 0] 1]])
             X (make 2 [[[1 0] 1]])
@@ -290,13 +282,18 @@
 
 (deftest simple-gcd-3
   (testing "GCD: arity 3 case"
-      (let [X (make 3 [[[1 0 0] 1]])
-            Y (make 3 [[[0 1 0] 1]])
-            Z (make 3 [[[0 0 1] 1]])
-            X+Y (add X Y)
-            X+Z (add X Z)
-            Y+Z (add Y Z)]
-        (is (= X+Z (gcd (mul X+Y X+Z) (mul Y+Z X+Z)))))))
+    (let [I (make 3 [[[0 0 0] 1]])
+          II (add I I)
+          X (make 3 [[[1 0 0] 1]])
+          Y (make 3 [[[0 1 0] 1]])
+          Z (make 3 [[[0 0 1] 1]])
+          X+Y (add X Y)
+          X+Z (add X Z)
+          Y+Z (add Y Z)]
+      (is (= X+Z (gcd (mul X+Y X+Z) (mul Y+Z X+Z))))
+      (is (= II (gcd II (add Z Z))))
+      (is (= II (gcd (add Z Z) II)))
+      (is (= II (gcd II (add (add X X) (add Z Z))))))))
 
 (defn ^:private ->poly [x] (expression-> x (fn [p v] p)))
 (defn ^:private gcd-test [dx fx gx]
@@ -329,7 +326,18 @@
       (is (= 16 (p 10 1 2 1 2)))))
   (testing "arity 10 (via apply)"
     (let [p (->poly '(expt (- x0 x1 x2 x3 x4 x5 x6 x7 x8 x9) 3))]
-      (is (= 216 (apply p [10 1 2 1 2 -3 1 -2 -1 3]))))))
+      (is (= 216 (apply p [10 1 2 1 2 -3 1 -2 -1 3])))))
+  (testing "constant polys"
+    (let [p1 (make [3])
+          p2 (make 2 [[[0 0] 5]])
+          p3 (make 3 [[[1 0 0] 1]])
+          p4 (make 3 [[[0 1 0] 1]])
+          p5 (make 3 [[[0 0 1] 1]])]
+      (is (= 3 (p1 99)))
+      (is (= 5 (p2 99 98)))
+      (is (= 7 (p3 7 8 9)))
+      (is (= 8 (p4 7 8 9)))
+      (is (= 9 (p5 7 8 9))))))
 
 (deftest gjs
   (testing "GJS cases (see sparse-gcd.scm:666)"
@@ -490,6 +498,45 @@
         ;; for profiling
         (binding [*poly-gcd-cache-enable* false]
           (dotimes [_ 1] (t)))))))
+
+(deftest ^:long troublesome-gcd
+  (let [u (make 10 [[[0 1 1 2 1 0 1 1 0 1] -1]
+                    [[2 1 1 0 0 1 1 1 0 1] -1]
+                    [[0 2 1 2 1 0 1 1 1 0] -2]
+                    [[1 1 2 1 0 1 1 0 1 1] 1]
+                    [[1 1 2 1 1 0 1 0 1 1] -1]
+                    [[2 2 1 0 0 1 1 1 1 0] -2]
+                    [[0 1 1 4 1 1 0 1 0 1] -1]
+                    [[0 1 1 4 2 0 0 1 0 1] 1]
+                    [[1 2 0 3 1 1 0 2 0 0] -1]
+                    [[1 2 0 3 2 0 0 2 0 0] 1]
+                    [[1 2 2 1 0 1 1 0 2 0] 1]
+                    [[1 2 2 1 1 0 1 0 2 0] -1]
+                    [[2 1 1 2 0 2 0 1 0 1] 1]
+                    [[2 1 1 2 1 1 0 1 0 1] -2]
+                    [[2 1 1 2 2 0 0 1 0 1] 1]
+                    [[3 2 0 1 0 2 0 2 0 0] -1]
+                    [[3 2 0 1 1 1 0 2 0 0] 1]
+                    [[4 1 1 0 0 2 0 1 0 1] 1]
+                    [[4 1 1 0 1 1 0 1 0 1] -1]
+                    [[0 2 1 4 1 1 0 1 1 0] 2]
+                    [[1 1 2 3 0 2 0 0 1 1] -1]
+                    [[1 1 2 3 2 0 0 0 1 1] 1]
+                    [[2 2 1 2 0 2 0 1 1 0] 2]
+                    [[2 2 1 2 2 0 0 1 1 0] 2]
+                    [[3 1 2 1 0 2 0 0 1 1] -1]
+                    [[3 1 2 1 2 0 0 0 1 1] 1]
+                    [[4 2 1 0 1 1 0 1 1 0] 2]
+                    [[1 2 2 3 0 2 0 0 2 0] -1]
+                    [[1 2 2 3 1 1 0 0 2 0] 1]
+                    [[3 2 2 1 1 1 0 0 2 0] -1]
+                    [[3 2 2 1 2 0 0 0 2 0] 1]])
+        v (make 10 [[[0 0 1 4 1 1 0 0 0 0] 1]
+                    [[2 0 1 2 1 1 0 0 0 0] 2]
+                    [[4 0 1 0 1 1 0 0 0 0] 1]])
+        g (binding [*poly-gcd-time-limit* [15 TimeUnit/SECONDS]
+                    *poly-gcd-debug* true]
+            (is (= 'foo (gcd u v))))]))
 
 (deftest kuniaki-tsuji-examples
   ;; (only have 1 of these, will add more)

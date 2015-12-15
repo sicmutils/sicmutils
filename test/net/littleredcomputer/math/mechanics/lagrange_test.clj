@@ -51,12 +51,15 @@
                 (((expt D 2) q) t)
                 (((expt D 3) q) t))
            (simplify ((Γ q 5) 't))))
-    (is (= '(+ (* 1/2 (((expt D 2) q) t) (expt t 2))
-               (* -1 (((expt D 2) q) t) t t1)
-               (* 1/2 (((expt D 2) q) t) (expt t1 2))
-               (* -1 ((D q) t) t)
-               (* ((D q) t) t1)
-               (q t))
+    (is (= '(/
+             (+
+              (* (((expt D 2) q) t) (expt t 2))
+              (* -2 (((expt D 2) q) t) t t1)
+              (* (((expt D 2) q) t) (expt t1 2))
+              (* -2 ((D q) t) t)
+              (* 2 ((D q) t) t1)
+              (* 2 (q t)))
+             2)
            (simplify ((osculating-path ((Γ q 4) 't)) 't1))))))
 
 (deftest lagrange-equations
@@ -89,7 +92,7 @@
              (simplify (((Lagrange-equations (L-free-particle 'm)) q) 't))))
       (let [proposed-solution (fn [t]
                                 (* 'a (cos (+ (* 'ω t) 'φ))))]
-        (is (= '(+ (* -1N (cos (+ (* t ω) φ)) a m (expt ω 2))
+        (is (= '(+ (* -1 (cos (+ (* t ω) φ)) a m (expt ω 2))
                    (* (cos (+ (* t ω) φ)) a k))
                (simplify (((Lagrange-equations (L-harmonic 'm 'k))
                            proposed-solution)
@@ -107,8 +110,8 @@
              (simplify (((Lagrange-equations (L-central-rectangular 'm U))
                          (up x y))
                         't))))
-      (is (= '(down (+ (* -1N (r t) (expt ((D φ) t) 2) m) (* (((expt D 2) r) t) m) ((D U) (r t)))
-                    (+ (* (expt (r t) 2) (((expt D 2) φ) t) m) (* 2N (r t) ((D r) t) ((D φ) t) m)))
+      (is (= '(down (+ (* -1 (r t) (expt ((D φ) t) 2) m) (* (((expt D 2) r) t) m) ((D U) (r t)))
+                    (+ (* (expt (r t) 2) (((expt D 2) φ) t) m) (* 2 (r t) ((D r) t) ((D φ) t) m)))
              (simplify (((Lagrange-equations (L-central-polar 'm U))
                          (up r φ))
                         't))))

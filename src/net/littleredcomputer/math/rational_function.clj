@@ -25,7 +25,8 @@
              [numsymb :as sym]
              [value :as v]
              [polynomial :as p]])
-  (:import [net.littleredcomputer.math.polynomial Polynomial]))
+  (:import [clojure.lang Ratio BigInt]
+           [net.littleredcomputer.math.polynomial Polynomial]))
 
 (declare operator-table operators-known)
 
@@ -56,8 +57,21 @@
                              (if (< lcv 0) -1 1)
                              (reduce e/lcm 1 (map denominator (filter ratio? cs))))
         u' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) u) u)
-        v' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) v) v)]
-    (RationalFunction. arity u' v')))
+        v' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) v) v)
+        g (p/gcd u' v')
+        u'' (p/evenly-divide u' g)
+        v'' (p/evenly-divide v' g)]
+    (if (v/unity? v'') u''
+        (do (when-not (and (instance? Polynomial u'')
+                           (instance? Polynomial v''))
+              (throw (IllegalArgumentException. (str "bad RF" u v u' v' u'' v''))))
+            (RationalFunction. arity  u'' v'')))))
+
+(defn ^:private make-reduced
+  [arity u v]
+  (if (v/unity? v)
+    u
+    (RationalFunction. arity u v)))
 
 ;;
 ;; Rational arithmetic is from Knuth vol 2 section 4.5.1
@@ -69,14 +83,14 @@
   (let [a (p/check-same-arity p q)
         d1 (p/gcd u' v')]
     (if (v/unity? d1)
-      (RationalFunction. a (p/add (p/mul u v') (p/mul u' v)) (p/mul u' v'))
+      (make-reduced  a (p/add (p/mul u v') (p/mul u' v)) (p/mul u' v'))
       (let [t (p/add (p/mul u (p/evenly-divide v' d1))
                      (p/mul v (p/evenly-divide u' d1)))
             d2 (p/gcd t d1)]
-        (RationalFunction. a
-                           (p/evenly-divide t d2)
-                           (p/mul (p/evenly-divide u' d1)
-                                  (p/evenly-divide v' d2)))))))
+        (make-reduced a
+                      (p/evenly-divide t d2)
+                      (p/mul (p/evenly-divide u' d1)
+                             (p/evenly-divide v' d2)))))))
 
 (defn addp
   [{u :u u' :v :as r} v]
@@ -116,10 +130,10 @@
           (v/unity? U) V
           (v/unity? V) U
           :else (let [d1 (p/gcd u v')
-                      d2 (p/gcd u' v)]
-                  (RationalFunction. a
-                                     (p/mul (p/evenly-divide u d1) (p/evenly-divide v d2))
-                                     (p/mul (p/evenly-divide u' d2) (p/evenly-divide v' d1)))))))
+                      d2 (p/gcd u' v)
+                      u'' (p/mul (p/evenly-divide u d1) (p/evenly-divide v d2))
+                      v'' (p/mul (p/evenly-divide u' d2) (p/evenly-divide v' d1))]
+                  (make-reduced a u'' v'')))))
 
 (defn invert
   [{arity :arity u :u v :v}]
@@ -128,16 +142,12 @@
 
 (defn div
   [r s]
-  (mul r (invert s)))
+  (g/mul r (invert s)))
 
 (defn expt
   [{pr :u qr :v arity :arity} n]
   (let [[top bottom e] (if (< n 0) [qr pr (- n)] [pr qr n])]
     (RationalFunction. arity (p/expt top e) (p/expt bottom e))))
-
-(defn make-constant
-  [arity c]
-  (RationalFunction. arity (p/make-constant arity c) (p/make-constant arity 1)))
 
 (defn expression->
   "Convert an expression into Rational Function canonical form. The
@@ -204,35 +214,60 @@
   (addp (g/negate r) p))
 
 (defmethod g/mul [::rational-function ::rational-function] [a b] (mul a b))
-(defmethod g/mul [Number ::rational-function] [c {u :u v :v}] (make (g/mul c u) v))
+(defmethod g/mul [Long ::rational-function] [c {u :u v :v}] (make (g/mul c u) v))
+(defmethod g/mul [::rational-function Long] [{u :u v :v} c] (make (g/mul u c) v))
+(defmethod g/mul [::rational-function Ratio] [{u :u v :v} r] (make (g/mul u (numerator r)) (g/mul v (denominator r))))
 
 (defmethod g/mul
   [::rational-function :net.littleredcomputer.math.polynomial/polynomial]
-  [{u :u u' :v :as U} v]
+  [{u :u u' :v arity :arity :as U} v]
   "Multiply the rational function U = u/u' by the polynomial v"
   (cond (v/nullity? v) 0
         (v/unity? v) U
         :else (let [d (p/gcd u' v) ]
                 (if (v/unity? d)
-                  (make (p/mul u v) u')
-                  (make (p/mul u (p/evenly-divide v d))
-                        (p/evenly-divide u' d))))))
+                  (RationalFunction. arity
+                                     (p/mul u v) u')
+                  (RationalFunction. arity
+                                     (p/mul u (p/evenly-divide v d))
+                                     (p/evenly-divide u' d))))))
 
 (defmethod g/mul
   [:net.littleredcomputer.math.polynomial/polynomial ::rational-function]
-  [u {v :u v' :v :as V}]
+  [u {v :u v' :v arity :arity :as V}]
   "Multiply the polynomial u by the rational function V = v/v'"
   (cond (v/nullity? u) 0
         (v/unity? u) V
         :else (let [d (p/gcd u v') ]
                 (if (v/unity? d)
-                  (make (p/mul u v) v')
-                  (make (p/mul (p/evenly-divide u d) v)
-                        (p/evenly-divide v' d))))))
+                  (RationalFunction. arity
+                                     (p/mul u v) v')
+                  (RationalFunction. arity
+                                     (p/mul (p/evenly-divide u d) v)
+                                     (p/evenly-divide v' d))))))
+
 
 (defmethod g/sub [::rational-function ::rational-function] [a b] (sub a b))
 (defmethod g/sub [::rational-function :net.littleredcomputer.math.polynomial/polynomial] [r p] (subp r p))
+(defmethod g/sub [::rational-function Long] [{u :u v :v} c] (make (g/sub u c) v))
 (defmethod g/div [::rational-function ::rational-function] [a b] (div a b))
+
+(defmethod g/div
+  [:net.littleredcomputer.math.polynomial/polynomial ::rational-function]
+  [p {u :u v :v arity :arity}]
+  (make (p/mul p v) u))
+
+(defmethod g/mul
+  [Ratio :net.littleredcomputer.math.polynomial/polynomial]
+  [r p]
+  (make (g/mul (numerator r) p)
+        (p/make-constant (:arity p) (denominator r))))
+
+(defmethod g/mul
+  [:net.littleredcomputer.math.polynomial/polynomial Ratio]
+  [p r]
+  (make (g/mul p (numerator r))
+        (p/make-constant (:arity p) (denominator r))))
 
 (defmethod g/div
   [:net.littleredcomputer.math.polynomial/polynomial :net.littleredcomputer.math.polynomial/polynomial]
@@ -241,9 +276,25 @@
     (make (p/evenly-divide p g) (p/evenly-divide q g))))
 
 (defmethod g/div
-  [Number :net.littleredcomputer.math.polynomial/polynomial]
+  [Long :net.littleredcomputer.math.polynomial/polynomial]
   [c p]
   (make (p/make-constant (:arity p) c) p))
+
+(defmethod g/div
+  [BigInt :net.littleredcomputer.math.polynomial/polynomial]
+  [c p]
+  (make (p/make-constant (:arity p) c) p))
+
+(defmethod g/div
+  [:net.littleredcomputer.math.polynomial/polynomial Long]
+  [p c]
+  (make p (p/make-constant (:arity p) c)))
+
+(defmethod g/div
+  [:net.littleredcomputer.math.polynomial/polynomial BigInt]
+  [p c]
+  (make p (p/make-constant (:arity p) c)))
+
 
 (defmethod g/expt [::rational-function Integer] [b x] (expt b x))
 (defmethod g/negate ::rational-function [a] (negate a))

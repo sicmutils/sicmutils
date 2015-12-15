@@ -68,7 +68,7 @@
   (is (= '(+ (* (expt (cos ψ) 2) (expt (sin θ) 2) B φdot)
              (* -1 (expt (sin ψ) 2) (expt (cos θ) 2) A φdot)
              (* (cos ψ) (sin θ) (sin ψ) A θdot)
-             (* -1N (cos ψ) (sin θ) (sin ψ) B θdot)
+             (* -1 (cos ψ) (sin θ) (sin ψ) B θdot)
              (* (expt (sin ψ) 2) A φdot)
              (* (expt (cos θ) 2) C φdot) (* (cos θ) C ψdot))
          (simplify (nth (((pd 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1))))
@@ -120,9 +120,10 @@
 (deftest section-2.10
   ;; simplification is a little off here: missing the extraction of a common
   ;; factor (cos θ), but it's still pretty good.
-  (is (= '(+ (* 1/2 (expt (cos θ) 2) C (expt φdot 2))
-             (* 1/2 (expt (sin θ) 2) A (expt φdot 2))
-             (* (cos θ) C φdot ψdot)
-             (* 1/2 A (expt θdot 2))
-             (* 1/2 C (expt ψdot 2)))
+  (is (= '(/ (+ (* (expt (cos θ) 2) C (expt φdot 2))
+                (* (expt (sin θ) 2) A (expt φdot 2))
+                (* 2N (cos θ) C φdot ψdot)
+                (* A (expt θdot 2))
+                (* C (expt ψdot 2)))
+             2)
          (simplify ((T-rigid-body 'A 'A 'C) Euler-state)))))
