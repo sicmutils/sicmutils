@@ -50,13 +50,22 @@
         (symbol? expr) expr
         :else (throw (IllegalArgumentException. (str "unknown expression type:" expr)))))
 
+(defn ^:private variable?
+  "A symbol... or a non-exact number. TODO: this is a bit iffy. The point
+  is not to allow polynomial arithmetic with coefficients drawn from
+  rings which are not Euclidean domains (for our purposes, fields do not
+  count as Euclidean domains). Rational numbers are OK: the polynomial
+  assembler knows how to construct rational functions to absorb them."
+  [v]
+  #_(or (symbol? v) (float? v))
+  (symbol? v))
 
 (defn variables-in
   "Return the 'variables' (e.g. symbols) found in the expression x,
   which is an unwrapped expression."
   [x]
-  (if (symbol? x) #{x}
-      (->> x flatten (filter symbol?) (into #{}))))
+  (if (variable? x) #{x}
+      (->> x flatten (filter variable?) (into #{}))))
 
 (defn walk-expression
   "Walk the unwrapped expression x in postorder, replacing symbols found there
@@ -64,11 +73,11 @@
   symbol is an error. Function applications are applied."
   [environment]
   (fn walk [x]
-    (cond (number? x) x
-          (symbol? x) (if-let [binding (x environment)]
+    (cond (variable? x) (if-let [binding (environment x)]
                         (if-not (= :net.littleredcomputer.math.value/function (v/kind binding)) binding x)
                         (throw (IllegalArgumentException.
                                 (str "no binding for " x " found."))))
+          (number? x) x
           (instance? Expression x) (walk (expression-of x))
           (sequential? x) (let [f (environment (first x))]
                             (when-not (= :net.littleredcomputer.math.value/function (v/kind f))

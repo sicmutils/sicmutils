@@ -806,6 +806,11 @@
                       (recur (mul x x) (quot c 2) a)
                       (recur x (dec c) (mul x a)))))))
 
+(defn variable-sort-key
+  [v]
+  (cond (symbol? v) [0 v]
+        :else [1 v]))
+
 (defn expression->
   "Convert an expression into Flat Polynomial canonical form. The
   expression should be an unwrapped expression, i.e., not an instance
@@ -817,7 +822,7 @@
   before we get here. The result is a Polynomial object representing
   the polynomial structure of the input over the unknowns."
   [expr cont]
-  (let [expression-vars (sort (set/difference (x/variables-in expr) operators-known))
+  (let [expression-vars (sort-by variable-sort-key (set/difference (x/variables-in expr) operators-known))
         arity (count expression-vars)
         new-bindings (zipmap expression-vars (new-variables arity))
         environment (into operator-table new-bindings)
@@ -859,9 +864,7 @@
    })
 
 (def operators-known (set (keys operator-table)))
-;;
-;; TODO: aha! all the uses of "number" below are suspicious.
-;;
+
 (defmethod g/add [::polynomial ::polynomial] [a b] (add a b))
 (defmethod g/add [Long ::polynomial] [n p] (add (make-constant (:arity p) n) p))
 (defmethod g/add [::polynomial Long] [p n] (add p (make-constant (:arity p) n)))
