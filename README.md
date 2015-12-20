@@ -19,6 +19,7 @@ Scmutils is an excellent system, but it is written in an older variant
 of LISP (Scheme) and is tied to a particular implementation of
 Scheme--MIT/GNU Scheme--for a variety of reasons, and to my knowledge
 has never successfully been executed on any other LISP-like system.
+[I have seen a port to guile, haven't examined it extensivey yet.  *AG* 20/12/15]
 
 Having the system in Clojure offers a number of advantages. It is not
 necessary to obtain or prepare a MIT/GNU Scheme executable to execute:
@@ -27,6 +28,9 @@ System for graphics, as MIT Scheme does. All of the standard tooling
 for Java and Clojure become available, and this is a lot compared to
 what get with MIT/GNU scheme: for example, in MIT you pretty much have
 to use an old clone of Emacs called edwin to interact with it.
+[MIT-Scheme with SCMUTILS will run happily under Emacs, Emacs24, XEmacs, etc. 
+as an inferior process, offering an acceptable REPL.  
+I assume edwin could also be thus configured.  *AG* 20/12/15]
 Clojure support is now extensive in any number of editors and IDEs.
 The MIT/Scheme distribution (apparently) must be rebuilt if you wish
 to hack on the Scheme code providing the mathematics implementation;
