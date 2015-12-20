@@ -49,9 +49,9 @@ posed by the Scheme code base). At this writing there are over 500
 unit tests, and there easily ought to be twice as many.
 
 The implementation is far from complete. My goal was to create a
-system that could execute the example code in SICM and PDG directly
+system that could execute the example code in SICM and FDG directly
 from the book, to the extent possible. I started with SICM, as the
-requirements seemed the lesser; PDG code is written at a higher level
+requirements seemed the lesser; FDG code is written at a higher level
 of abstraction. Starting with nothing, I tried to push the frontier of
 the new code ever closer to approaching being able to execute the book
 examples.
@@ -88,7 +88,7 @@ Much remains to be done (see below).
 ```clojure
 ; Clojure
 (defn L-central-polar [m U]
-  (fn [[_ [r] [rdot φdot]]]
+  (fn [[_ [r _] [rdot φdot]]] ;; [r _] corresponds to [r φ]
     (- (* 1/2 m
           (+ (square rdot)
              (square (* r φdot))))
