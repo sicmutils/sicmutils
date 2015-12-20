@@ -19,7 +19,7 @@ Scmutils is an excellent system, but it is written in an older variant
 of LISP (Scheme) and is tied to a particular implementation of
 Scheme--MIT/GNU Scheme--for a variety of reasons, and to my knowledge
 has never successfully been executed on any other LISP-like system.
-[I have seen a port to guile, haven't examined it extensivey yet.  *AG* 20/12/15]
+I have seen [a port to guile][guile-scmutils], haven't examined it extensivey yet.  *AG* 20/12/15]
 
 Having the system in Clojure offers a number of advantages. It is not
 necessary to obtain or prepare a MIT/GNU Scheme executable to execute:
@@ -353,5 +353,6 @@ The work this is based on GPL code, and so carries the GPL v3 license.
 [FDG]: http://mitpress.mit.edu/books/functional-differential-geometry
 [SICP]: http://mitpress.mit.edu/sicp/
 [OM]: http://oleksandrmanzyuk.files.wordpress.com/2012/04/paper.pdf
+[guile-scmutils]: http://www.cs.rochester.edu/~gildea/guile-scmutils/
 
 Copyright © 2014 Colin Smith
