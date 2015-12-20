@@ -115,8 +115,6 @@
            (if (> c n) (format " ...and %d more terms" (- c n)))
            ")"))))
 
-(def ^:dynamic *poly-require-euclidean-coefficients* true)
-
 (defn ^:private euclidean?
   "True if x is a member of a Euclidean domain. For us, this means any
   kind of integer, or any kind of polynomial. This isn't airtight, as
@@ -147,9 +145,6 @@
   - 1 can be constructed by (make -1 0 1)."
   ([arity xc-pairs]
    {:pre [(->> xc-pairs (map first) (every? vector?))]}
-   (when (and *poly-require-euclidean-coefficients*
-              (not (every? euclidean? (map second xc-pairs))))
-     (throw (IllegalArgumentException. (str "tried to make a funny polynomial " xc-pairs))))
    (Polynomial. arity (into empty-coefficients
                             (for [p xc-pairs :when (not (g/zero? (second p)))]
                               p))))
@@ -330,7 +325,7 @@
 
 (defn ^:private evaluate-1
   "Evaluates a univariate polynomial p at x."
-  [p x]
+  [^Polynomial p x]
   (loop [xs->c (:xs->c p)
          result 0
          x**e 1
@@ -769,6 +764,8 @@
   (let [clock (Stopwatch/createStarted)
         arity (check-same-arity u v)]
     (cond
+      (not (and (every? v/exact? (coefficients u))
+                (every? v/exact? (coefficients v)))) (v/one-like u)
       (v/nullity? u) v
       (v/nullity? v) u
       (v/unity? u) u
@@ -866,19 +863,39 @@
 (def operators-known (set (keys operator-table)))
 
 (defmethod g/add [::polynomial ::polynomial] [a b] (add a b))
-(defmethod g/add [Long ::polynomial] [n p] (add (make-constant (:arity p) n) p))
-(defmethod g/add [::polynomial Long] [p n] (add p (make-constant (:arity p) n)))
 (defmethod g/mul [::polynomial ::polynomial] [a b] (mul a b))
-(defmethod g/mul [Long ::polynomial] [c p] (map-coefficients #(g/* c %) p))
-(defmethod g/mul [BigInteger ::polynomial] [c p] (map-coefficients #(g/* c %) p))
-(defmethod g/mul [::polynomial BigInteger] [p c] (map-coefficients #(g/* % c) p))
-(defmethod g/mul [BigInt ::polynomial] [c p] (map-coefficients #(g/* c %) p))
-(defmethod g/mul [::polynomial BigInt] [p c] (map-coefficients #(g/* % c) p))
-(defmethod g/mul [::polynomial Long] [p c] (map-coefficients #(g/* % c) p))
 (defmethod g/sub [::polynomial ::polynomial] [a b] (sub a b))
-(defmethod g/sub [::polynomial Long] [p c] (sub p (make-constant (:arity p) c)))
-(defmethod g/sub [Long ::polynomial] [c p] (sub (make-constant (:arity p) c) p))
+(defmethod g/exact-div [::polynomial ::polynomial] [p q] (evenly-divide p q))
+
+(defmethod g/mul
+  [Number ::polynomial]
+  [c p]
+  (map-coefficients #(g/* c %) p))
+(defmethod g/mul
+  [::polynomial Number]
+  [p c]
+  (map-coefficients #(g/* % c) p))
+(defmethod g/add
+  [Number ::polynomial]
+  [c p]
+  (add (make-constant (:arity p) c) p))
+(defmethod g/add
+  [::polynomial Number]
+  [p c]
+  (add p (make-constant (:arity p) c)))
+(defmethod g/sub
+  [Number ::polynomial]
+  [c p]
+  (sub (make-constant (:arity p) c) p))
+(defmethod g/sub
+  [::polynomial Number]
+  [p c]
+  (sub p (make-constant (:arity p) c)))
+(defmethod g/div
+  [::polynomial Double]
+  [p c]
+  (map-coefficients #(g/divide % c) p))
+
 (defmethod g/expt [::polynomial Integer] [b x] (expt b x))
 (defmethod g/expt [::polynomial Long] [b x] (expt b x))
-(defmethod g/exact-div [::polynomial ::polynomial] [p q] (evenly-divide p q))
 (defmethod g/negate ::polynomial [a] (negate a))

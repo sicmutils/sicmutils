@@ -41,6 +41,16 @@
   (is (= java.lang.Double (kind 1.0)))
   (is (= clojure.lang.PersistentVector (kind [1 2]))))
 
+(deftest exactness
+  (is (exact? 1))
+  (is (exact? 3/2))
+  (is (exact? 4N))
+  (is (exact? (java.math.BigInteger/valueOf 111)))
+  (is (not (exact? 1.1)))
+  (is (not (exact? 'a)))
+  (is (not (exact? :a)))
+  (is (not (exact? "a"))))
+
 (deftest argument-kinds
   (let [L java.lang.Long
         V clojure.lang.PersistentVector]

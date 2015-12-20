@@ -38,6 +38,8 @@
   ;; the existing order of subexpressions to the polynomial simplifier.
   ;; TODO: the atom-transient might be better represented as a volatile in a newer
   ;; version of Clojure
+  ;; TODO: on closer examination of scmutils, it looks like analyzers are reused
+  ;; statefully. We should consider doing that.
   (fn [expr]
     (let [expr-map (atom (transient {}))]
       (letfn [(analyze [expr]

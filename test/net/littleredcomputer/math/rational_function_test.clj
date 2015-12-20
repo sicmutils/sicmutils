@@ -44,9 +44,8 @@
            (make (p/make [1 2 3]) (p/make [-4 5 6]))))
     (is (= one (mul x+1:x-1 x-1:x+1)))
     (is (= one (mul x-1:x+1 x+1:x-1)))
-    (binding [p/*poly-require-euclidean-coefficients* false]
-      (is (= (make (p/make [0 15 10]) (p/make [0 0 15 18]))
-            (make (p/make [0 1/2 1/3]) (p/make [0 0 1/2 3/5])))))
+    (is (= (make (p/make [0 15 10]) (p/make [0 0 15 18]))
+           (make (p/make [0 1/2 1/3]) (p/make [0 0 1/2 3/5]))))
     (is (= (make (p/make [1 -1]) (p/make [1 1])) (negate x-1:x+1)))
     (is (= x+1:x-1 (invert x-1:x+1)))
     (is (= one (mul x-1:x+1 (invert x-1:x+1))))

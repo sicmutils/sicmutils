@@ -47,9 +47,8 @@
     (is (v/unity? (make 2 [[[0 0] 1]])))
     (is (v/unity? (make 3 [[[0 0 0] 1]])))
     (is (not (v/unity? (make 3 [[[0 0 0] 1] [[0 0 1] 2]]))))
-    (binding [*poly-require-euclidean-coefficients* false]
-      (is (not (v/unity? (make [1.1]))))
-      (is (v/unity? (make [1.0]))))
+    (is (not (v/unity? (make [1.1]))))
+    (is (v/unity? (make [1.0])))
     (is (v/unity? (make [(make [1])])))
     (is (not (v/unity? (make [(make [2])])))))
   (testing "make-constant"
@@ -90,8 +89,7 @@
     (is (= (make [0 0 -1 0 -1 1]) (sub (make [1 0 0 0 0 1]) (make [1 0 1 0 1]))))
     (is (= (make [-1 -2 -3]) (negate (make [1 2 3])))))
   (testing "with symbols"
-    (binding [*poly-require-euclidean-coefficients* false]
-      (is (= (make [(g/+ 'a 'c) (g/+ 'b 'd) 'c]) (add (make '[a b c]) (make '[c d]))))))
+    (is (= (make [(g/+ 'a 'c) (g/+ 'b 'd) 'c]) (add (make '[a b c]) (make '[c d])))))
   (testing "mul"
     (is (= (make []) (mul (make [1 2 3]) (make [0]))))
     (is (= (make []) (mul (make [0]) (make [1 2 3]))))
@@ -117,8 +115,7 @@
     (let [U (make [-5 2 8 -3 -3 0 1 0 1])
           V (make [21 -9 -4 0 5 0 3])
           [pr d] (pseudo-remainder U V)]
-      (binding [*poly-require-euclidean-coefficients* false]
-        (is (= [(make [-2/9 0 1/3]) (make [-1/3 0 1/9 0 -5/9])] (divide U V))))
+      (is (= [(make [-2/9 0 1/3]) (make [-1/3 0 1/9 0 -5/9])] (divide U V)))
       (is (= [(make [-3 0 1 0 -5]) 2] [pr d]))
       (is (= (make []) (sub (mul (make [(nt/expt 3 d)]) U) (add (mul (make [-2 0 3]) V) pr))))
       (is (= (make [1]) (gcd U V)))
@@ -143,51 +140,45 @@
       (is (= (make [1 4 6 4 1]) (expt x+1 4)))
       (is (= (make [1 5 10 10 5 1]) (expt x+1 5)))))
   (testing "other coefficient rings: GF(2)"
-    (binding [*poly-require-euclidean-coefficients* false]
-      ;; XXX: the modular integers are certainly Euclidean.
-      ;; TODO: make euclidean? a member of the Value protocol.
-      (let [mod2 #(modular/make % 2)
-           x0 (mod2 0)
-           x1 (mod2 1)
-           P (make [x1 x0 x1])]
-       (is (= (make [x1 x0 x0 x0 x1]) (expt P 2)))
-       (is (= (make [x1 x0 x1 x0 x1 x0 x1]) (expt P 3)))
-       (is (= (make [x1 x0 x0 x0 x0 x0 x0 x0 x1]) (mul (expt P 3) P)))
-       (is (= (make []) (sub P P)))
-       (is (= (make []) (add P P)))
-       (is (= (make [x0 x0 x1]) (add P (make [1])))))))
+    (let [mod2 #(modular/make % 2)
+          x0 (mod2 0)
+          x1 (mod2 1)
+          P (make [x1 x0 x1])]
+      (is (= (make [x1 x0 x0 x0 x1]) (expt P 2)))
+      (is (= (make [x1 x0 x1 x0 x1 x0 x1]) (expt P 3)))
+      (is (= (make [x1 x0 x0 x0 x0 x0 x0 x0 x1]) (mul (expt P 3) P)))
+      (is (= (make []) (sub P P)))
+      (is (= (make []) (add P P)))
+      (is (= (make [x0 x0 x1]) (add P (make [1]))))))
   (testing "CRC polynomials"
     ;; https://en.wikipedia.org/wiki/Computation_of_cyclic_redundancy_checks
     ;; http://www.lammertbies.nl/comm/info/crc-calculation.html
-    (binding [*poly-require-euclidean-coefficients* false]
-      ;; XXX TODO: see above
-      (let [mod2 #(modular/make % 2)
-           o (mod2 0)
-           i (mod2 1)
-           x8 (make [o o o o o o o o i])
-           CRC-8-ATM (make [i i i o o o o o i])
-           M (make [i i i 0 i o i])
-           Mx8 (mul x8 M)
-           [q1 r1] (divide Mx8 CRC-8-ATM)
-           CRC-16-CCITT (make [i o o o o i o o o o o o i o o o i])
-           x16 (mul x8 x8)
-           T (make [o o i o i o i])
-           Tx16 (mul x16 T)
-           [q2 r2] (divide Tx16 CRC-16-CCITT)
-           ]
-       (is (= (make [o i o o o i o i]) r1))
-       (is (= (make [i o o o i i i o o i o i i]) r2)))))
+    (let [mod2 #(modular/make % 2)
+          o (mod2 0)
+          i (mod2 1)
+          x8 (make [o o o o o o o o i])
+          CRC-8-ATM (make [i i i o o o o o i])
+          M (make [i i i 0 i o i])
+          Mx8 (mul x8 M)
+          [q1 r1] (divide Mx8 CRC-8-ATM)
+          CRC-16-CCITT (make [i o o o o i o o o o o o i o o o i])
+          x16 (mul x8 x8)
+          T (make [o o i o i o i])
+          Tx16 (mul x16 T)
+          [q2 r2] (divide Tx16 CRC-16-CCITT)
+          ]
+      (is (= (make [o i o o o i o i]) r1))
+      (is (= (make [i o o o i i i o o i o i i]) r2))))
   (testing "modular polynomial reduction"
-    (binding [*poly-require-euclidean-coefficients* false]
-      (let [A (make [-360 -171 145 25 1])
-            B (make [-15 -14 -1 15 14 1])
-            Z5 #(modular/make % 5)
-            A:Z5 (map-coefficients Z5 A)
-            B:Z5 (map-coefficients Z5 B)
-            G5 (gcd A:Z5 B:Z5)]
-        (is (= (make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) A:Z5))
-        (is (= (make [(Z5 0) (Z5 1) (Z5 -1) (Z5 0) (Z5 -1) (Z5 1)]) B:Z5))
-        (is (= (make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) G5)))))
+    (let [A (make [-360 -171 145 25 1])
+          B (make [-15 -14 -1 15 14 1])
+          Z5 #(modular/make % 5)
+          A:Z5 (map-coefficients Z5 A)
+          B:Z5 (map-coefficients Z5 B)
+          G5 (gcd A:Z5 B:Z5)]
+      (is (= (make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) A:Z5))
+      (is (= (make [(Z5 0) (Z5 1) (Z5 -1) (Z5 0) (Z5 -1) (Z5 1)]) B:Z5))
+      (is (= (make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) G5))))
   (testing "monomial order"
     (let [x3 [3 0 0]
           x2z2 [2 0 2]
@@ -219,6 +210,8 @@
       (is (= -6 (constant-term v)))
       (is (= 0 (constant-term x)))
       (is (= 0 (constant-term (make 4 [])))))
+    (testing "inexact coefficients"
+      (is (= (make [1]) (gcd (make [0.2 0.4 0.6]) (make [0.4 0.6 0.8])))))
     (testing "GCD: arity 1 case"
       (let [x+1 (make [1 1])
             x+2 (make [2 1])
@@ -507,6 +500,9 @@
         (binding [*poly-gcd-cache-enable* false]
           (dotimes [_ 1] (t)))))))
 
+;; interesting. on scmutils, the FP numbers do not seem to
+;; enter the polynomials, but they're not variables either.
+;; I wonder what's going on.
 #_(deftest ^:long troublesome-gcd
   (let [u (make 10 [[[0 1 1 2 1 0 1 1 0 1] -1]
                     [[2 1 1 0 0 1 1 1 0 1] -1]
