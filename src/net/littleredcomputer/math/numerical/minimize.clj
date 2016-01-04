@@ -37,16 +37,16 @@
          abs 1e-5
          o (BrentOptimizer.
             rel abs
-            (proxy [ConvergenceChecker] []
-              (converged [_ _ ^PointValuePair current]
+            (reify ConvergenceChecker
+              (converged [this _ _ current]
                 (when observe
                   (observe (.getPoint current) (.getValue current)))
                 false)))
          args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
          (into-array OptimizationData
                      [(UnivariateObjectiveFunction.
-                       (proxy [UnivariateFunction] []
-                         (value [x]
+                       (reify UnivariateFunction
+                         (value [this x]
                            (.start evaluation-time)
                            (swap! evaluation-count inc)
                            (let [fx (f x)]
@@ -77,8 +77,8 @@
          abs 1e-10
          convergence-checker (SimpleValueChecker. rel abs)
          o (SimplexOptimizer.
-            (proxy [ConvergenceChecker] []
-              (converged [iteration ^PointValuePair previous ^PointValuePair current]
+            (reify ConvergenceChecker
+              (converged [this iteration previous current]
                 (when observe
                   (observe (vec (.getPoint current)) (.getValue current)))
                 (.converged convergence-checker iteration previous current))))
@@ -86,8 +86,8 @@
          (into-array OptimizationData
                      [(NelderMeadSimplex. (count q))
                       (ObjectiveFunction.
-                       (proxy [MultivariateFunction] []
-                         (value [xs]
+                       (reify MultivariateFunction
+                         (value [this xs]
                            (.start evaluation-time)
                            (swap! evaluation-count inc)
                            (let [fxs (f xs)]

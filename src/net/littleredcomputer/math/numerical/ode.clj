@@ -51,14 +51,14 @@
                             #(-> % array->state d:dt)))
           dimension (alength initial-state-array)
           integrator (GraggBulirschStoerIntegrator. 0. 1. (double ε) (double ε))
-          equations (proxy [FirstOrderDifferentialEquations] []
-                      (computeDerivatives [_ ^doubles y ^doubles out]
+          equations (reify FirstOrderDifferentialEquations
+                      (computeDerivatives [this _ y out]
                         (.start evaluation-time)
                         (swap! evaluation-count inc)
                         (let [y' (doubles (-> y (concat derivative-args) derivative-fn state->array))]
                           (System/arraycopy y' 0 out 0 (alength y')))
                         (.stop evaluation-time))
-                      (getDimension [] dimension))
+                      (getDimension [this] dimension))
           out (double-array dimension)]
       (when-not compile
         (log/warn "Not compiling function for ODE analysis"))
@@ -72,9 +72,9 @@
         ;; also invoke the callback for the final point.
         (.addStepHandler
          integrator
-         (proxy [StepHandler] []
+         (reify StepHandler
            (handleStep
-             [^StepInterpolator interpolator is-last]
+             [this interpolator is-last]
              (let [it0 (.getPreviousTime interpolator)
                    it1 (.getCurrentTime interpolator)
                    adjust (mod it0 step-size)
@@ -85,7 +85,7 @@
                  (observe t (-> interpolator .getInterpolatedState array->state)))
                (when is-last
                  (observe it1 (array->state last-state)))))
-           (init [_ _ _]))))
+           (init [this _ _ _]))))
       (.integrate integrator equations 0 initial-state-array t out)
       (log/info "#" @evaluation-count "total" (str total-time) "f" (str evaluation-time))
       (array->state out))))

@@ -33,8 +33,8 @@
         integrand (if compile (compile-univariate-function f) f)
         value (.integrate (RombergIntegrator.)
                           10000
-                          (proxy [UnivariateFunction] []
-                            (value [x]
+                          (reify UnivariateFunction
+                            (value [this x]
                               (.start evaluation-time)
                               (swap! evaluation-count inc)
                               (let [fx (integrand x)]
