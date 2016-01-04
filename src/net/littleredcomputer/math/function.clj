@@ -40,7 +40,7 @@
   (compound? [_] false)
   (unity? [_] false)
   (numerical? [_] false)
-  (freeze [f] (-> f :expr v/freeze))
+  (freeze [f] (v/freeze expr))
   (arity [_] arity)
   (kind [_] ::function)
   IFn

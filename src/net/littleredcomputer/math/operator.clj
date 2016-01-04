@@ -24,13 +24,12 @@
 
 (defrecord Operator [f arity name]
   v/Value
-  (freeze [o] (.name o))
+  (freeze [_] name)
   (kind [_] ::operator)
   (nullity? [_] false)
   (unity? [_] false)
   IFn
-  (invoke [operator function]
-    ((:f operator) function)))
+  (invoke [_ function] (f function)))
 
 (defn make-operator
   [f name]

@@ -41,8 +41,8 @@
            (s '(+ a b c (expt (sin x) 2) c d (expt (cos x) 2) e f g))))
     (is (= '(+ (* (expt (cos x) 2) (expt (cos x) 1)) c (expt (sin x) 2) d e)
            (s '(+ c (expt (sin x) 2)  d (expt (cos x) 3) e ))))
-    (is (= '(+ (* (expt (cos x) 2) (expt (cos x) 1))
-               (* (expt (sin x) 2) (expt (sin x) 1) (expt (sin x) 2))
+    (is (= '(+ (* (expt (sin x) 2) (expt (sin x) 1) (expt (sin x) 2))
+               (* (expt (cos x) 2) (expt (cos x) 1))
                c d e)
            (s '(+ c (expt (sin x) 5)  d (expt (cos x) 3) e ))))))
 

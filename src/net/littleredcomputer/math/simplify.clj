@@ -139,14 +139,14 @@
 
 (defn- simplify-until-stable
   [rule-simplify canonicalize]
-  (fn simplify [expression]
+  (fn [expression]
     (let [new-expression (rule-simplify expression)]
       (if (= expression new-expression)
         expression
         (let [canonicalized-expression (canonicalize new-expression)]
           (cond (= canonicalized-expression expression) expression
-                (g/zero? (poly-analyzer `(- ~expression ~canonicalized-expression))) canonicalized-expression
-                :else (simplify canonicalized-expression)))))))
+                (g/zero? (poly-analyzer `(~'- ~expression ~canonicalized-expression))) canonicalized-expression
+                :else (recur canonicalized-expression)))))))
 
 (defn- simplify-and-canonicalize
   [rule-simplify canonicalize]
@@ -168,8 +168,9 @@
 ;; up, but at least things are beginning to simplify adequately.
 
 (def ^:private sincos-cleanup
+  "This finds things like a - a cos^2 x and replaces them with a sin^2 x"
   (let [at-least-two? #(and (number? %) (>= % 2))]
-    (simplify-and-canonicalize
+    (simplify-until-stable
      (rule/rule-simplifier
       (rule/ruleset
        (+ (:?? a1) (:? a) (:?? a2) (* (:?? b1) (expt (cos (:? x)) (:? n at-least-two?)) (:?? b2)) (:?? a3))
@@ -184,8 +185,8 @@
 (def ^:private simplify-expression-1
   #(-> %
        simplify-and-flatten
-       sin-sq->cos-sq-simplifier
        sincos-simplifier
+       sin-sq->cos-sq-simplifier
        sincos-cleanup
        square-root-simplifier
        rules/divide-numbers-through
@@ -207,7 +208,7 @@
 
 (defmethod g/simplify :net.littleredcomputer.math.expression/numerical-expression
   [a]
-  (-> a v/freeze simplify-expression fixup-symbols))
+  (->> a v/freeze (postwalk simplify-expression) fixup-symbols))
 
 (defmethod g/simplify :default [a] a)
 (defmethod g/simplify clojure.lang.Var [a] (-> a meta :name))

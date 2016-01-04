@@ -500,9 +500,6 @@
         (binding [*poly-gcd-cache-enable* false]
           (dotimes [_ 1] (t)))))))
 
-;; interesting. on scmutils, the FP numbers do not seem to
-;; enter the polynomials, but they're not variables either.
-;; I wonder what's going on.
 #_(deftest ^:long troublesome-gcd
   (let [u (make 10 [[[0 1 1 2 1 0 1 1 0 1] -1]
                     [[2 1 1 0 0 1 1 1 0 1] -1]

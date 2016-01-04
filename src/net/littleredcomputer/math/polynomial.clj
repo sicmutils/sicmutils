@@ -280,17 +280,16 @@
   [p q]
   {:pre [(instance? Polynomial p)
          (instance? Polynomial q)]}
-  (let [arity (check-same-arity p q)]
-    (cond (g/zero? p) p
-          (g/zero? q) q
-          (g/one? p) q
-          (g/one? q) p
-          :else (let [a (check-same-arity p q)]
-                  (make a (reduce add-denormal
-                                  empty-coefficients
-                                  (for [[xp cp] (:xs->c p)
-                                        [xq cq] (:xs->c q)]
-                                    [(mapv + xp xq) (g/* cp cq)])))))))
+  (cond (g/zero? p) p
+        (g/zero? q) q
+        (g/one? p) q
+        (g/one? q) p
+        :else (let [a (check-same-arity p q)]
+                (make a (reduce add-denormal
+                                empty-coefficients
+                                (for [[xp cp] (:xs->c p)
+                                      [xq cq] (:xs->c q)]
+                                  [(mapv + xp xq) (g/* cp cq)]))))))
 
 (defn raise-arity
   "The opposite of lower-arity."

@@ -99,6 +99,6 @@
   ;; complete.
   )
 
-(def sincos-flush-ones (rule-simplifier flush-obvious-ones
+(def sincos-flush-ones (rule-simplifier split-high-degree-cosines
                                         split-high-degree-sines
-                                        split-high-degree-cosines))
+                                        flush-obvious-ones))

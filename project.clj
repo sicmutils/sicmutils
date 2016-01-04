@@ -3,7 +3,7 @@
   :url "http://github.com/littleredcomputer/math"
   :license {:name "GPLv3"
             :url "http://www.opensource.org/licenses/GPL-3.0"}
-  :dependencies [[org.clojure/clojure "1.6.0"]
+  :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/tools.logging "0.3.1"]
                  [hiccup "1.0.5"]
                  [com.google.guava/guava "18.0"]

@@ -204,12 +204,11 @@
                  2)
              (simplify ((L-alternate-central-polar 'm U)
                         (->local 't (up 'r 'φ) (up 'rdot 'φdot))))))
-      (is (= '(down
-               (+ (* -1 (r t) (expt ((D φ) t) 2) m)
-                  (* (((expt D 2) r) t) m)
-                  ((D U) (r t)))
-               (+ (* (expt (r t) 2) (((expt D 2) φ) t) m)
-                  (* 2 (r t) ((D r) t) ((D φ) t) m)))
+      (is (= '(down (+ (* -1 (r t) (expt ((D φ) t) 2) m)
+                       (* (((expt D 2) r) t) m)
+                       ((D U) (r t)))
+                    (+ (* (expt (r t) 2) (((expt D 2) φ) t) m)
+                       (* 2N (r t) ((D φ) t) ((D r) t) m)))
              (simplify (((Lagrange-equations (L-alternate-central-polar 'm U))
                          (up r φ))
                         't))))
@@ -229,7 +228,7 @@
             L-pend2 (fn [m l g y_s]
                       (compose (Lf m g)
                                (F->C (dp-coordinates l y_s))))]
-        (is (= '(/ (+ (* 2 (sin θ) ((D y_s) t) l m θdot)
+        (is (= '(/ (+ (* 2 ((D y_s) t) (sin θ) l m θdot)
                       (* (expt l 2) m (expt θdot 2))
                       (* 2 (cos θ) g l m)
                       (* (expt ((D y_s) t) 2) m)

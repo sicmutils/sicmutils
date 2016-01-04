@@ -24,10 +24,10 @@
   (nullity? [_] false)                                      ;; XXX what if it's a wrapped zero? one?
   (unity? [_] false)
   (zero-like [_] 0)
-  (numerical? [x] (= (:type x) ::number))
+  (numerical? [_] (= type ::number))
   (exact? [_] false)
   (compound? [_] false)
-  (freeze [x] (-> x :expression v/freeze))
+  (freeze [_] (v/freeze expression))
   (kind [_] (if (= type ::number) ::numerical-expression ::expression)))
 
 (defn make [x]
