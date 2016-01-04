@@ -208,7 +208,7 @@
 
 (defmethod g/simplify :net.littleredcomputer.math.expression/numerical-expression
   [a]
-  (->> a v/freeze (postwalk simplify-expression) fixup-symbols))
+  (->> a v/freeze simplify-expression fixup-symbols))
 
 (defmethod g/simplify :default [a] a)
 (defmethod g/simplify clojure.lang.Var [a] (-> a meta :name))
