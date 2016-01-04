@@ -269,6 +269,13 @@
   (make (g/mul p (numerator r))
         (p/make-constant (:arity p) (denominator r))))
 
+(defmethod g/add
+  [:net.littleredcomputer.math.polynomial/polynomial Ratio]
+  [p r]
+  (let [a (:arity p)]
+    (addp (make (p/make-constant a (numerator r))
+                (p/make-constant a (denominator r))) p)))
+
 (defmethod g/div
   [:net.littleredcomputer.math.polynomial/polynomial :net.littleredcomputer.math.polynomial/polynomial]
   [p q]

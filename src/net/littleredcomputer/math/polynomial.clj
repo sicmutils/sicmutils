@@ -866,30 +866,32 @@
 (defmethod g/sub [::polynomial ::polynomial] [a b] (sub a b))
 (defmethod g/exact-div [::polynomial ::polynomial] [p q] (evenly-divide p q))
 
-(defmethod g/mul
-  [Number ::polynomial]
-  [c p]
-  (map-coefficients #(g/* c %) p))
-(defmethod g/mul
-  [::polynomial Number]
-  [p c]
-  (map-coefficients #(g/* % c) p))
-(defmethod g/add
-  [Number ::polynomial]
-  [c p]
-  (add (make-constant (:arity p) c) p))
-(defmethod g/add
-  [::polynomial Number]
-  [p c]
-  (add p (make-constant (:arity p) c)))
-(defmethod g/sub
-  [Number ::polynomial]
-  [c p]
-  (sub (make-constant (:arity p) c) p))
-(defmethod g/sub
-  [::polynomial Number]
-  [p c]
-  (sub p (make-constant (:arity p) c)))
+(doseq [t [Long BigInt BigInteger Double]]
+  (defmethod g/mul
+    [t ::polynomial]
+    [c p]
+    (map-coefficients #(g/* c %) p))
+  (defmethod g/mul
+    [::polynomial t]
+    [p c]
+    (map-coefficients #(g/* % c) p))
+  (defmethod g/add
+    [t ::polynomial]
+    [c p]
+    (add (make-constant (:arity p) c) p))
+  (defmethod g/add
+    [::polynomial t]
+    [p c]
+    (add p (make-constant (:arity p) c)))
+  (defmethod g/sub
+    [t ::polynomial]
+    [c p]
+    (sub (make-constant (:arity p) c) p))
+  (defmethod g/sub
+    [::polynomial t]
+    [p c]
+    (sub p (make-constant (:arity p) c))))
+
 (defmethod g/div
   [::polynomial Double]
   [p c]
