@@ -40,7 +40,6 @@
   (unity? [_] false)                                        ;; XXX! this needs to be fixed
   (zero-like [_] 0)
   (exact? [_] false)
-  (compound? [_] false)
   (numerical? [d] (g/numerical-quantity? (differential-of d)))
   (kind [_] ::differential))
 

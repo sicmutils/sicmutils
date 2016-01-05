@@ -30,7 +30,6 @@
   (one-like [_] (ModInt. 1 m))
   (exact? [_] true)
   (numerical? [_] true)
-  (compound? [_] false)
   (kind [_] ::modint))
 
 (defn make [i m]

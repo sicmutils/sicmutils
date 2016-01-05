@@ -26,7 +26,6 @@
   (zero-like [_] 0)
   (numerical? [_] (= type ::number))
   (exact? [_] false)
-  (compound? [_] false)
   (freeze [_] (v/freeze expression))
   (kind [_] (if (= type ::number) ::numerical-expression ::expression)))
 

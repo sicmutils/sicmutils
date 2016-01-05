@@ -18,12 +18,13 @@
 
 (ns net.littleredcomputer.math.numbers
   (:refer-clojure :rename {zero? core-zero?
-                           + core-+
-                           - core--
-                           * core-*
-                           / core-div})
+                           +     core-+
+                           -     core--
+                           *     core-*
+                           /     core-div})
   (:require [net.littleredcomputer.math.generic :as g]
-            [clojure.math.numeric-tower :as nt]))
+            [clojure.math.numeric-tower :as nt])
+  (:import (clojure.lang BigInt Ratio)))
 
 (defn- define-binary-operation
   [generic-operation core-operation]
@@ -57,7 +58,7 @@
   {:pre [(core-zero? (mod a b))]}
   (core-div a b))
 
-(let [integral-types [Long clojure.lang.BigInt java.math.BigInteger]]
+(let [integral-types [Long BigInt BigInteger]]
   (doseq [lhs integral-types
           rhs integral-types]
     (defmethod g/remainder [lhs rhs] [a b] (mod a b))
@@ -67,9 +68,9 @@
     (defmethod g/exact-div [lhs rhs] [a b] (exact-integer-divide a b))
     (defmethod g/exact-div [rhs lhs] [b a] (exact-integer-divide b a))))
 
-(defmethod g/exact-div [clojure.lang.Ratio clojure.lang.Ratio] [a b] (core-div a b))
-(defmethod g/exact-div [clojure.lang.Ratio clojure.lang.BigInt] [a b] (core-div a b))
+(defmethod g/exact-div [Ratio Ratio] [a b] (core-div a b))
+(defmethod g/exact-div [Ratio BigInt] [a b] (core-div a b))
 
 (defmethod g/negative? Long [a] (neg? a))
-(defmethod g/negative? clojure.lang.BigInt [a] (neg? a))
+(defmethod g/negative? BigInt [a] (neg? a))
 (defmethod g/negative? BigInteger [a] (neg? a))

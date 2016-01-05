@@ -37,7 +37,6 @@
   (toString [_] (str expr ": " domain " → " range))
   v/Value
   (nullity? [_] false)
-  (compound? [_] false)
   (unity? [_] false)
   (numerical? [_] false)
   (freeze [f] (v/freeze expr))

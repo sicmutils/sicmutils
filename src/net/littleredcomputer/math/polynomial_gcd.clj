@@ -20,16 +20,13 @@
   (:import (com.google.common.base Stopwatch)
            (net.littleredcomputer.math.polynomial Polynomial)
            (java.util.concurrent TimeUnit TimeoutException))
-  (:require [clojure.set :as set]
-            [clojure.tools.logging :as log]
+  (:require [clojure.tools.logging :as log]
             [clojure.string]
             [net.littleredcomputer.math
              [value :as v]
              [euclid :as euclid]
              [generic :as g]
-             [numsymb :as sym]
-             [polynomial :refer :all]
-             [expression :as x]]))
+             [polynomial :refer :all]]))
 
 (def ^:dynamic *poly-gcd-time-limit* [1000 TimeUnit/MILLISECONDS])
 (def ^:dynamic *poly-gcd-cache-enable* true)

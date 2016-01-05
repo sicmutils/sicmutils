@@ -34,7 +34,6 @@
   (zero-like [_] (make orientation (-> v count (repeat 0))))
   (exact? [_] (every? v/exact? v))
   (numerical? [_] false)
-  (compound? [_] true)
   (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
   (arity [_] (v/joint-arity (map v/arity v)))
   (kind [_] orientation)

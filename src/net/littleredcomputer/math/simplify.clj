@@ -17,11 +17,11 @@
 ;
 
 (ns net.littleredcomputer.math.simplify
-  (:import (java.util.concurrent TimeoutException))
+  (:import (java.util.concurrent TimeoutException)
+           (clojure.lang Var))
   (:require [clojure.walk :refer [postwalk]]
             [clojure.tools.logging :as log]
             [clojure.pprint :as pp]
-            [clojure.stacktrace :as st]
             [net.littleredcomputer.math
              [numsymb :as sym]
              [polynomial :as poly]
@@ -112,7 +112,7 @@
                     rf/expression-> rf/->expression rf/operators-known)]
     (fn [x]
       (try (A x)
-           (catch TimeoutException e
+           (catch TimeoutException _
              (log/warn (str "simplifier timed out: must have been a complicated expression"))
              x)))))
 
@@ -211,7 +211,7 @@
   (->> a v/freeze simplify-expression fixup-symbols))
 
 (defmethod g/simplify :default [a] a)
-(defmethod g/simplify clojure.lang.Var [a] (-> a meta :name))
+(defmethod g/simplify Var [a] (-> a meta :name))
 
 (def print-expression #(-> % g/simplify pp/pprint))
 (def pe print-expression)

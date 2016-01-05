@@ -28,7 +28,6 @@
   (zero-like [this])
   (one-like [this])
   (exact? [this])
-  (compound? [this])
   ;; Freezing an expression means removing wrappers and other metadata
   ;; from subexpressions, so that the result is basically a pure
   ;; S-expression with the same structure as the input. Doing this will
@@ -46,7 +45,6 @@
   (numerical? [_] false)
   (nullity? [_] false)
   (unity? [o] (when (number? o) (== o 1)))
-  (compound? [_] false)
   (exact? [o] (or (integer? o) (ratio? o)))
   (zero-like [_] 0)
   (one-like [_] 1)

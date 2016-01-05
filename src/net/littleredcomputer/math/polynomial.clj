@@ -17,15 +17,11 @@
 ;
 
 (ns net.littleredcomputer.math.polynomial
-  (:import (clojure.lang PersistentTreeMap BigInt Ratio IFn)
-           (com.google.common.base Stopwatch)
-           (java.util.concurrent TimeUnit TimeoutException))
+  (:import (clojure.lang PersistentTreeMap BigInt IFn))
   (:require [clojure.set :as set]
-            [clojure.tools.logging :as log]
             [clojure.string]
             [net.littleredcomputer.math
              [value :as v]
-             [euclid :as euclid]
              [generic :as g]
              [numsymb :as sym]
              [expression :as x]]))
@@ -90,7 +86,7 @@
   (nullity? [_] (-> xs->c .count zero?))
   (numerical? [_] false)
   (zero-like [_] (Polynomial. arity empty-coefficients))
-  (one-like [o] (make-constant arity (v/one-like (coefficient (first xs->c)))))
+  (one-like [_] (make-constant arity (v/one-like (coefficient (first xs->c)))))
   (unity? [_] (and (= (.count xs->c) 1)
                    (let [[xs c] (first xs->c)]
                      (and (every? zero? xs)
@@ -147,15 +143,6 @@
   [p]
   (if (v/nullity? p) -1
       (->> p lead-term exponents (reduce +))))
-
-(defn constant?
-  "If p is a constant polynomial, return that constant, else nil"
-  [^Polynomial p]
-  (let [xs->c (:xs->c p)]
-    (cond (nil? xs->c) nil
-          (empty? xs->c) 0
-          (and (= (count xs->c) 1)
-               (every? zero? (exponents (first xs->c)))) (coefficient (first xs->c)))))
 
 (defn monomial?
   [p]
@@ -237,9 +224,7 @@
          (instance? Polynomial q)]}
   (cond (g/zero? p) q
         (g/zero? q) p
-        :else (let [a (check-same-arity p q)
-                    sum (poly-merge g/+ p q)]
-                (make a sum))))
+        :else (Polynomial. (check-same-arity p q) (poly-merge g/+ p q))))
 
 (defn ^:private add-denormal
   "Add-denormal adds the (order, coefficient) pair to the polynomial p,
@@ -257,9 +242,7 @@
          (instance? Polynomial q)]}
   (cond (g/zero? p) (negate q)
         (g/zero? q) p
-        :else (let [a (check-same-arity p q)
-                    diff (poly-merge g/- p q)]
-                (make a diff))))
+        :else (Polynomial. (check-same-arity p q) (poly-merge g/- p q))))
 
 (defn mul
   "Multiply polynomials p and q, and return the product."
