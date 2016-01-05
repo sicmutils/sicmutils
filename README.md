@@ -17,21 +17,21 @@ applied to differential geometry and physics is an irresistible lure.
 
 Scmutils is an excellent system, but it is written in an older variant
 of LISP (Scheme) and is tied to a particular implementation of
-Scheme--MIT/GNU Scheme--for a variety of reasons, and to my knowledge
-has never successfully been executed on any other LISP-like system.
+Scheme--MIT/GNU Scheme. (There is a [port to Guile][GSCM], but due to
+the fact that Guile does not support MIT Scheme's "apply hooks,"
+some glue code is required to run examples from the book in that
+environment.)
 
-Having the system in Clojure offers a number of advantages. It is not
-necessary to obtain or prepare a MIT/GNU Scheme executable to execute:
-only a Java runtime is required. It does not require the X Window
-System for graphics, as MIT Scheme does. All of the standard tooling
-for Java and Clojure become available, and this is a lot compared to
-what get with MIT/GNU scheme: for example, in MIT you pretty much have
-to use an old clone of Emacs called edwin to interact with it.
-Clojure support is now extensive in any number of editors and IDEs.
-The MIT/Scheme distribution (apparently) must be rebuilt if you wish
-to hack on the Scheme code providing the mathematics implementation;
-whereas in this Clojure implementation, you can test out new ideas
-and enhancements directly in the REPL (or a REPL server) at will.
+Having the system in Clojure offers a number of advantages. It is not necessary
+to obtain or prepare a MIT/GNU Scheme executable to execute: only a Java runtime
+is required. It does not require the X Window System for graphics, as MIT Scheme
+does. All of the standard tooling for Java and Clojure become available, and
+this is a lot compared to what get with MIT/GNU scheme.  Clojure support is now
+extensive in any number of editors and IDEs.  The MIT/Scheme distribution
+(apparently) must be rebuilt if you wish to hack on the Scheme code providing
+the mathematics implementation; whereas in this Clojure implementation, you can
+test out new ideas and enhancements directly in the REPL (or a REPL server) at
+will.
 
 You can invoke the system from within Java code or use any Java
 packages you like together with the mathematics system. It's my hope
@@ -45,7 +45,7 @@ Rather than just quasi-mechanically translate the Scheme to Clojure, I
 have studied the implementation of the system before bringing it to
 Clojure, and have used TDD throughout the project (which turned out to
 be absolutely essential as I considered various approaches to problems
-posed by the Scheme code base). At this writing there are over 500
+posed by the Scheme code base). At this writing there are over 1000
 unit tests, and there easily ought to be twice as many.
 
 The implementation is far from complete. My goal was to create a
@@ -198,21 +198,17 @@ decided to leave the Clojure definition of `partial` exposed.
 
 ### Rational function and rule-based simplification
 
-The Scmutils simplifier has three polynomial libraries, FPF, PCF, and
-RCF. The first, FPF or "flat polynomial form", is used to analyze an
-expression from the point of view of a polynomial over a commutative ring.
-PCF ("polynomial canonical form") works with polynomials over fields, and RCF
-("rational canonical form") works with quotients of PCFs. These polynomial
-libraries are used as simplification engines, especially for the grouping
-of like terms. The Clojure code only implements FPF at this point;
-expressions run through this simplifier are considerably simpler than the
-raw expressions computed by the system would be, but there are many
-simplifications (like canceling in fractions) that will require the RCF
-form at some point.
+The Scmutils simplifier has three engines: a polynomial-based simplifier
+useful for grouping like terms, a rational-function-based simplifier
+used for cancellation in fractional expressions, and a rule-based
+simplifier to apply identities like sin² x + cos² x = 1.
 
-While the rule simplifier has been implemented, it has not been linked to
-the REPL and FPF-based simplifications: this will probably be the next
-thing I work on.
+I have implemented all of these, but acceptable performance from the
+rational-function simplifier is waiting for an implementation of
+Zippel's algorithm for fast multivariate polynomial GCD operations.
+Currently we use a recursive Euclid algorithm, which gives acceptable
+results for expressions of medium complexity, but there is more to
+be done.
 
 ### TeX
 
@@ -222,38 +218,28 @@ simplification library to make that useful haven't happened yet.
 
 ### Numerical Methods
 
-The barest minimum of numerical methods are provided; enough to support
-the investigation of path action minimization early in Chapter 1. For
-one-variable integration, I use old-fashioned Simpson's rule; the Brent
-univariate minimizer for functions of one variable is provided as well.
-The missing pieces are a multivariate minimizer (which is only used once
-in the book) and a numerical ODE solver. The latter is more central to the
-effort of getting all the code in the book working, so it would take
-priority.
+This system uses the delightful [Apache Commons Math][ACM] library
+to implement the numerical methods needed for the book.
 
 ### Matrix methods
 
 The current implementation of arithmetic on `up` and `down` tuples is
 fairly complete; they can be nested and all the arithmetic rules for
-them are implemented except for those where nested structures are to
-be treated as matrices (i.e., for finding inverses, transposes, etc.)
+them are implemented.
 
 Scmutils provides a separate matrix "type" for these activities; in this
 work my plan is to see if it can all be done without introducing a separate
 type, forcing all matrix work to be "variance-labeled" by the use of
-`up` and `down` correctly at each level.
+`up` and `down` correctly at each level. So far, this has worked.
 
 ### General operators and functions
 
 In Scmutils, any object can be made callable by using a MIT/GNU Scheme
-feature called `apply-hook`s. They are used extensively. In the Clojure
-implementation, certain objects are defined to extend the interface
-`IFn` to achieve this. This works, but it is different enough to what
-Scmutils does that I have not carried the technique out very far, since
-I'm not certain I've hit on exactly the right way to organize these
-objects. That said, univariate functions and operators upon them work
-well enough, but I have not done a lot of work for functions of higher
-arity: caveat emptor.
+feature called `apply-hook`s. This is used, for example, to allow an
+up-tuple of functions to be applied to a compatible argument, yielding
+an up-tuple of values. In this implementation, this and other handy
+symbolic features of scmutils is implemented by having the relevant
+objects implement Clojure's `IFn` interface.
 
 ### Coordinates, patches, k-forms and all that
 
@@ -313,7 +299,7 @@ with the native operations when this is useful.
 
 ## Running the code
 
-Installation is simple if you have leiningen; this tool will arrange
+Installation is simple if you have [leiningen][LEIN]; this tool will arrange
 to retrieve everything else you need. On Mac OS, for example,
 
 ~~~ sh
@@ -325,7 +311,7 @@ you can run the code. For example, to run the demonstration script in
 `demo.clj`, you can:
 
 ~~~ sh
-$ lein run -m math.repl < demo.clj
+$ lein run -m net.littleredcomputer.math.repl < demo.clj
 ~~~
 
 If you want it to run faster, you can
@@ -349,5 +335,8 @@ The work this is based on GPL code, and so carries the GPL v3 license.
 [FDG]: http://mitpress.mit.edu/books/functional-differential-geometry
 [SICP]: http://mitpress.mit.edu/sicp/
 [OM]: http://oleksandrmanzyuk.files.wordpress.com/2012/04/paper.pdf
+[GSCM]: http://www.cs.rochester.edu/~gildea/guile-scmutils/
+[ACM]: https://commons.apache.org/proper/commons-math/
+[LEIN]: http://leiningen.org
 
 Copyright © 2014 Colin Smith

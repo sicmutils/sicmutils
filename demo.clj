@@ -1,3 +1,4 @@
+(require '[net.littleredcomputer.math.mechanics.lagrange :refer :all])
 (def q
   ; See p. 17
   (up (literal-function 'x)

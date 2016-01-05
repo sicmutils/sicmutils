@@ -61,3 +61,4 @@
 
 (def D d/D)
 (def ∂ d/pd)
+(def pd d/pd)
