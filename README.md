@@ -20,6 +20,8 @@ of LISP (Scheme) and is tied to a particular implementation of
 Scheme--MIT/GNU Scheme--for a variety of reasons, and to my knowledge
 has never successfully been executed on any other LISP-like system.
 
+«I have seen [a port to guile][guile-scmutils], haven't examined it extensivey yet.  [AG] 20/12/15 »
+
 Having the system in Clojure offers a number of advantages. It is not
 necessary to obtain or prepare a MIT/GNU Scheme executable to execute:
 only a Java runtime is required. It does not require the X Window
@@ -27,6 +29,9 @@ System for graphics, as MIT Scheme does. All of the standard tooling
 for Java and Clojure become available, and this is a lot compared to
 what get with MIT/GNU scheme: for example, in MIT you pretty much have
 to use an old clone of Emacs called edwin to interact with it.
+
+«MIT-Scheme with SCMUTILS will run happily under Emacs, Emacs24, XEmacs, etc. as an inferior process, offering an acceptable REPL. I assume edwin could also be thus configured.  [AG] 20/12/15 »
+
 Clojure support is now extensive in any number of editors and IDEs.
 The MIT/Scheme distribution (apparently) must be rebuilt if you wish
 to hack on the Scheme code providing the mathematics implementation;
@@ -49,9 +54,9 @@ posed by the Scheme code base). At this writing there are over 500
 unit tests, and there easily ought to be twice as many.
 
 The implementation is far from complete. My goal was to create a
-system that could execute the example code in SICM and PDG directly
+system that could execute the example code in SICM and FDG directly
 from the book, to the extent possible. I started with SICM, as the
-requirements seemed the lesser; PDG code is written at a higher level
+requirements seemed the lesser; FDG code is written at a higher level
 of abstraction. Starting with nothing, I tried to push the frontier of
 the new code ever closer to approaching being able to execute the book
 examples.
@@ -88,7 +93,7 @@ Much remains to be done (see below).
 ```clojure
 ; Clojure
 (defn L-central-polar [m U]
-  (fn [[_ [r] [rdot φdot]]]
+  (fn [[_ [r _] [rdot φdot]]] ;; [r _] corresponds to [r φ]
     (- (* 1/2 m
           (+ (square rdot)
              (square (* r φdot))))
@@ -349,5 +354,6 @@ The work this is based on GPL code, and so carries the GPL v3 license.
 [FDG]: http://mitpress.mit.edu/books/functional-differential-geometry
 [SICP]: http://mitpress.mit.edu/sicp/
 [OM]: http://oleksandrmanzyuk.files.wordpress.com/2012/04/paper.pdf
+[guile-scmutils]: http://www.cs.rochester.edu/~gildea/guile-scmutils/
 
 Copyright © 2014 Colin Smith
