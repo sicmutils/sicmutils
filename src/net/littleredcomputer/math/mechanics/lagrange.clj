@@ -87,6 +87,8 @@
                 (f (+ q (* ε η))))]
         ((D g) 0)))))
 
+(def delta δ)
+
 (def ->local up)
 
 (defn F->C [F]
@@ -110,6 +112,8 @@
    (let [Dqs (->> q (iterate D) (take (- n 1)))]
      (fn [t]
        (->> Dqs (map #(% t)) (cons t) (apply up))))))
+
+(def Gamma Γ)
 
 (defn Lagrangian-action
   [L q t1 t2]

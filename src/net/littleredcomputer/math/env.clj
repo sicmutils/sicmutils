@@ -28,7 +28,11 @@
              [function :as f]
              [operator]]
             [net.littleredcomputer.math.numerical.ode :as ode]
-            [net.littleredcomputer.math.calculus.derivative :as d]))
+            [net.littleredcomputer.math.calculus.derivative :as d]
+            [net.littleredcomputer.math.mechanics.lagrange :refer :all]
+            [net.littleredcomputer.math.mechanics.hamilton :refer :all]
+            [net.littleredcomputer.math.mechanics.rigid :refer :all]
+            [net.littleredcomputer.math.mechanics.rotation :refer :all]))
 
 (def + g/+)
 (def - g/-)
@@ -37,6 +41,16 @@
 (def square g/square)
 (def cube g/cube)
 (def sqrt g/sqrt)
+(def abs g/abs)
+(def negate g/negate)
+
+(def evolve ode/evolve)
+(def state-advancer ode/state-advancer)
+
+(def literal-function f/literal-function)
+(defmacro with-literal-functions
+  [& args]
+  `(f/with-literal-functions ~@args))
 
 (def sin g/sin)
 (def cos g/cos)
@@ -47,17 +61,13 @@
 (def log g/log)
 (def expt g/expt)
 (def simplify g/simplify)
+(def cross-product g/cross-product)
 (def print-expression simp/print-expression)
-(def literal-function f/literal-function)
-
-(defmacro with-literal-functions
-  [& args]
-  `(f/with-literal-functions ~@args))
-
-(def evolve ode/evolve)
 
 (def up s/up)
 (def down s/down)
+(def transpose s/transpose)
+(def determinant s/determinant)
 
 (def D d/D)
 (def ∂ d/pd)

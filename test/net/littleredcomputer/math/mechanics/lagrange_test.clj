@@ -60,7 +60,11 @@
               (* 2 ((D q) t) t1)
               (* 2 (q t)))
              2)
-           (simplify ((osculating-path ((Γ q 4) 't)) 't1))))))
+           (simplify ((osculating-path ((Γ q 4) 't)) 't1))))
+    (is (= '(up t (up t (x t) (y t)) (up 1 ((D x) t) ((D y) t)))
+           (simplify
+            (with-literal-functions [x y]
+              ((Gamma (up identity x y)) 't)))))))
 
 (deftest lagrange-equations
   (testing "basics"

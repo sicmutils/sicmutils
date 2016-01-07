@@ -14,7 +14,7 @@
   :jvm-opts ["-Djava.util.logging.config.file=logging.properties"]
   :repl-options {:prompt (fn [ns] (str "[" ns "] > "))
                  :welcome "clojure algebra system"
-                 :init-ns net.littleredcomputer.math.repl
+                 :init-ns net.littleredcomputer.math.env
                  :nrepl-middleware [net.littleredcomputer.math.repl/math-printer]}
   :target-path "target/%s"
   :test-selectors {:default (complement :long)}
