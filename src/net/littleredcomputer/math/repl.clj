@@ -59,6 +59,6 @@
   [& args]
   (println "Won't you sign in, stranger?")
   (main/with-bindings
-    (in-ns 'net.littleredcomputer.math.repl)
+    (in-ns 'net.littleredcomputer.math.env)
     (main/repl :print simp/print-expression)
     (println "Home at last.")))

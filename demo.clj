@@ -1,20 +1,23 @@
 (def q
-  ; See p. 17
-  (up (literal-function 'x)
-      (literal-function 'y)
-      (literal-function 'z)))
+  ;; See p. 17
+  (with-literal-functions [x y z]
+    (up x y z)))
+
 (def literal-q (literal-function 'q))
+
 (defn test-path
   "See p. 20"
   [t]
   (up (+ (* 4 t) 7)
       (+ (* 3 t) 5)
       (+ (* 2 t) 1)))
+
 (defn make-η
   "See p. 21"
   [ν t1 t2]
   (fn [t]
     (* (- t t1) (- t t2) (ν t))))
+
 (defn varied-free-particle-action
   "See p. 21"
   [mass q ν t1 t2]
@@ -22,9 +25,12 @@
     (let [η (make-η ν t1 t2)]
       (Lagrangian-action (L-free-particle mass)
                          (+ q (* ε η)) t1 t2))))
+
 (Lagrangian-action (L-free-particle 3.0) test-path 0.0 10.0)
+
 ((varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) 0.001)
-;(minimize (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) -2 1)
+
+(minimize (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) -2 1)
 
 (defn F
   "A generic path function."
@@ -37,12 +43,14 @@
   [q]
   (fn [t]
     ((literal-function 'g) (q t))))
+
 (defn φ
   "A path transformation function"
   [f]
   (fn [q]
     (fn [t]
          ((literal-function 'φ) ((f q) t)))))
+
 ;; Exercise 1.7
 (def δ_η (δ (literal-function 'eta)))
 (((δ_η   identity) literal-q) 't)
@@ -67,27 +75,36 @@
   (up (literal-function 'x)
       (literal-function 'y)))
   't)
+
 ;; p. 43
 (prn "central polar")
 (((Lagrange-equations (L-central-polar 'm (literal-function 'U)))
   (up (literal-function 'r)
       (literal-function 'φ)))
   't)
+
 ;; Coordinate transformation (p. 47)
 (velocity ((F->C p->r)
            (->local 't (up 'r 'φ) (up 'rdot 'φdot))))
+
 (defn L-alternate-central-polar
   [m U]
   (comp (L-central-rectangular m U) (F->C p->r)))
+
 (println "alternate central polar Lagrangian")
+
 ((L-alternate-central-polar 'm (literal-function 'U))
   (->local 't (up 'r 'φ) (up 'rdot 'φdot)))
+
 (println "alternate central polar Lagrange equations")
+
 (((Lagrange-equations (L-alternate-central-polar 'm (literal-function 'U)))
    (up (literal-function 'r)
        (literal-function 'φ)))
   't)
+
 (println "The Simple Pendulum")
+
 (defn T-pend
   [m l _ ys]
   (fn [local]
@@ -102,7 +119,6 @@
   (fn [local]
     (let [[t theta _] local]
       (* m g (- (ys t) (* l (cos theta)))))))
-
 
 (def L-pend (- T-pend V-pend))
 
