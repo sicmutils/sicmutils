@@ -96,16 +96,14 @@
 (defn addp
   [{u :u u' :v :as r} v]
   (let [a (p/check-same-arity u v)]
-    (cond
-      (v/nullity? v) r
-      :else (make (p/add u (p/mul u' v)) u'))))
+    (if (v/nullity? v) r
+        (make (p/add u (p/mul u' v)) u'))))
 
 (defn subp
   [{u :u u' :v :as r} v]
   (let [a (p/check-same-arity u v)]
-    (cond
-      (v/nullity? v) r
-      :else (make (p/sub u (p/mul u' v)) u'))))
+    (if (v/nullity? v) r
+        (make (p/sub u (p/mul u' v)) u'))))
 
 (defn negate
   [{u :u v :v arity :arity}]

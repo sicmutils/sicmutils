@@ -359,18 +359,19 @@
   [f selectors]
   (let [a (v/arity f)
         d (partial euclidean-structure selectors)]
-    (cond (= a [:exactly 0]) (constantly 0)
-          (= a [:exactly 1]) (with-meta (d f) {:arity a})
-          (= a [:exactly 2]) (with-meta (fn [x y]
-                                          ((d (fn [[x y]] (f x y)))
-                                            (struct/seq-> [x y]))) {:arity a})
-          (= a [:exactly 3]) (with-meta (fn [x y z]
-                                          ((d (fn [[x y z]] (f x y z)))
-                                            (struct/seq-> [x y z]))) {:arity a})
-          (= a [:exactly 4]) (with-meta (fn [w x y z]
-                                          ((d (fn [[w x y z]] (f w x y z)))
-                                            (struct/seq-> [w x y z]))) {:arity a})
-          :else (throw (IllegalArgumentException. (str "Haven't implemented this yet: arity " a))))))
+    (condp = a
+      [:exactly 0] (constantly 0)
+      [:exactly 1] (with-meta (d f) {:arity a})
+      [:exactly 2] (with-meta (fn [x y]
+                                ((d (fn [[x y]] (f x y)))
+                                 (struct/seq-> [x y]))) {:arity a})
+      [:exactly 3] (with-meta (fn [x y z]
+                                ((d (fn [[x y z]] (f x y z)))
+                                 (struct/seq-> [x y z]))) {:arity a})
+      [:exactly 4] (with-meta (fn [w x y z]
+                                ((d (fn [[w x y z]] (f w x y z)))
+                                 (struct/seq-> [w x y z]))) {:arity a})
+      (throw (IllegalArgumentException. (str "Haven't implemented this yet: arity " a))))))
 
 ;; we note that: (D f) where f is a literal function returns
 ;; 'a-euclidean-derivative', which when applied to 'x gives

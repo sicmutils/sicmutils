@@ -160,8 +160,8 @@
 (defn check-same-arity [p q]
   (let [ap (:arity p)
         aq (:arity q)]
-    (cond (= ap aq) ap
-          :else (throw (ArithmeticException. "mismatched polynomial arity")))))
+    (if (= ap aq) ap
+        (throw (ArithmeticException. "mismatched polynomial arity")))))
 
 (defn map-coefficients
   "Map the function f over the coefficients of p, returning a new Polynomial."

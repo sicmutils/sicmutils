@@ -196,15 +196,15 @@
 
 (defn- fixup-symbols
   [xs]
-  (postwalk (fn [x] (cond (symbol? x) (let [sym-ns (namespace x)
-                                            sym-name (name x)]
-                                        ;; kind of a hack, but we don't want a circular dependency
-                                        ;; here.
-                                        (if (and (= sym-ns "math.generic")
-                                                 (= sym-name "divide"))
-                                          '/
-                                          (symbol sym-name)))
-                          :else x)) xs))
+  (postwalk (fn [x] (if (symbol? x) (let [sym-ns (namespace x)
+                                          sym-name (name x)]
+                                      ;; kind of a hack, but we don't want a circular dependency
+                                      ;; here.
+                                      (if (and (= sym-ns "math.generic")
+                                               (= sym-name "divide"))
+                                        '/
+                                        (symbol sym-name)))
+                        x)) xs))
 
 (defmethod g/simplify :net.littleredcomputer.math.expression/numerical-expression
   [a]
