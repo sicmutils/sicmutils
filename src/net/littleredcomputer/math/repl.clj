@@ -18,20 +18,47 @@
 
 (ns net.littleredcomputer.math.repl
   (:refer-clojure :exclude [+ - * / zero?])
-  (:require [clojure.main :as m]
+  (:require [clojure.main :as main]
+            [clojure.tools.nrepl.transport :as t]
+            [clojure.tools.nrepl.middleware :as mw]
+            [clojure.tools.nrepl.middleware.pr-values :as pr-values]
             [net.littleredcomputer.math
              [env :refer :all]
-             [simplify :as s]])
+             [simplify :as simp]])
+  (:import [clojure.tools.nrepl.transport Transport])
   (:gen-class))
 
+(defn math-printer
+  "NRepl middleware to apply the simplifier and prettyprinter to print
+  values. See the documentation for the pr-values default middleware to
+  see how this is done by updating :value in a response object and
+  setting :printed-value."
+  [h]
+  (fn [{:keys [op ^Transport transport] :as msg}]
+    (h (assoc msg
+              :transport (reify Transport
+                           (recv [this] (.recv transport))
+                           (recv [this timeout] (.recv transport timeout))
+                           (send [this response]
+                             (.send transport
+                                    (if (find response :value)
+                                      (-> response
+                                          (update-in [:value] simp/expression->string)
+                                          (assoc :printed-value true))
+                                      response))
+                             this))))))
+
+;; Interpose our middleware between evaluation and printing.
+(mw/set-descriptor! #'math-printer
+                    {:requires #{#'pr-values/pr-values}
+                     :expects #{"eval"}
+                     :handles {}})
+
 (defn -main
+  "A simple main that runs Clojure's internal REPL in the math environment."
   [& args]
   (println "Won't you sign in, stranger?")
-  (m/with-bindings
+  (main/with-bindings
     (in-ns 'net.littleredcomputer.math.repl)
-    (if args
-      ;; read and eval the contents of the supplied files
-      (doseq [a args]
-        (prn "arg" a))
-      (m/repl :print s/print-expression))
+    (main/repl :print simp/print-expression)
     (println "Home at last.")))

@@ -213,5 +213,12 @@
 (defmethod g/simplify :default [a] a)
 (defmethod g/simplify Var [a] (-> a meta :name))
 
+(defn expression->string
+  "Renders an expression through the simplifier and into a string,
+  which is returned."
+  [expr]
+  (let [w (java.io.StringWriter.)]
+    (-> expr g/simplify (pp/write :stream w))
+    (str w)))
 (def print-expression #(-> % g/simplify pp/pprint))
 (def pe print-expression)

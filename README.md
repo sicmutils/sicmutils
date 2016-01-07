@@ -194,28 +194,6 @@ has already been defined to mean partial function application). Given
 the frequent use of functions returning functions of state in SICM, I've
 decided to leave the Clojure definition of `partial` exposed.
 
-## What's not there yet
-
-### Rational function and rule-based simplification
-
-The Scmutils simplifier has three engines: a polynomial-based simplifier
-useful for grouping like terms, a rational-function-based simplifier
-used for cancellation in fractional expressions, and a rule-based
-simplifier to apply identities like sin² x + cos² x = 1.
-
-I have implemented all of these, but acceptable performance from the
-rational-function simplifier is waiting for an implementation of
-Zippel's algorithm for fast multivariate polynomial GCD operations.
-Currently we use a recursive Euclid algorithm, which gives acceptable
-results for expressions of medium complexity, but there is more to
-be done.
-
-### TeX
-
-Scmutils can export its expressions in TeX format; this is very handy,
-but I haven't started that work yet as the necessary extensions to the
-simplification library to make that useful haven't happened yet.
-
 ### Numerical Methods
 
 This system uses the delightful [Apache Commons Math][ACM] library
@@ -240,6 +218,28 @@ up-tuple of functions to be applied to a compatible argument, yielding
 an up-tuple of values. In this implementation, this and other handy
 symbolic features of scmutils is implemented by having the relevant
 objects implement Clojure's `IFn` interface.
+
+## What's not there yet
+
+### Rational function and rule-based simplification
+
+The Scmutils simplifier has three engines: a polynomial-based simplifier
+useful for grouping like terms, a rational-function-based simplifier
+used for cancellation in fractional expressions, and a rule-based
+simplifier to apply identities like sin² x + cos² x = 1.
+
+I have implemented all of these, but acceptable performance from the
+rational-function simplifier is waiting for an implementation of
+Zippel's algorithm for fast multivariate polynomial GCD operations.
+Currently we use a recursive Euclid algorithm, which gives acceptable
+results for expressions of medium complexity, but there is more to
+be done.
+
+### TeX
+
+Scmutils can export its expressions in TeX format; this is very handy,
+but I haven't started that work yet as the necessary extensions to the
+simplification library to make that useful haven't happened yet.
 
 ### Coordinates, patches, k-forms and all that
 
@@ -306,26 +306,26 @@ to retrieve everything else you need. On Mac OS, for example,
 $ brew install leiningen
 ~~~
 
-ought to get you started. Clone the repo. Then there are several ways
-you can run the code. For example, to run the demonstration script in
+ought to get you started. Clone the repo. `lein repl` will start a REPL
+with the math symbols brought into scope and with command line editing
+capability. For example, to run the demonstration script in
 `demo.clj`, you can:
 
 ~~~ sh
-$ lein run -m net.littleredcomputer.math.repl < demo.clj
+$ lein repl < demo.clj
 ~~~
 
-If you want it to run faster, you can
-
-~~~ sh
-$ lein uberjar
-$ java -jar target/uberjar/math-0.0.1-SNAPSHOT-standalone.jar < demo.clj
-~~~
+You can also make an uberjar with `lein uberjar`, and then run it with
+`java -jar`. That will start a REPL, but not a fancy one with command editing
+like `lein repl` would provide.
 
 To run the test suite:
 
 ~~~ sh
 $ lein test
 ~~~
+
+`lein test :all` will run some additional tests that may take a while to execute.
 
 ## License
 
