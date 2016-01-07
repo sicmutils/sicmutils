@@ -28,6 +28,7 @@
              [function :as f]
              [operator]]
             [net.littleredcomputer.math.numerical.ode :as ode]
+            [net.littleredcomputer.math.numerical.minimize :refer :all]
             [net.littleredcomputer.math.calculus.derivative :as d]
             [net.littleredcomputer.math.mechanics.lagrange :refer :all]
             [net.littleredcomputer.math.mechanics.hamilton :refer :all]
