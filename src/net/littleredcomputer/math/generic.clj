@@ -135,3 +135,12 @@
         :else (bin-div (first args) (reduce bin* (next args)))))
 
 (def divide /)
+
+(v/add-object-symbols! {+ '+ * '* - '- / (symbol "/")
+                        exact-div 'exact-div quotient 'quotient remainder 'remainder
+                        invert 'invert negate 'negate square 'square cube 'cube
+                        expt 'expt exp 'exp log 'log sqrt 'sqrt abs 'abs negative? 'negative?
+                        sin 'sin cos 'cos tan 'tan asin 'asin acos 'acos
+                        partial-derivative 'pd
+                        cross-product 'cross-product
+                        simplify 'simplify})

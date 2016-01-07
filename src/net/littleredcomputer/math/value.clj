@@ -40,6 +40,8 @@
 
 (declare primitive-arity primitive-kind)
 
+(def ^:private object-name-map (atom {}))
+
 (extend-type Object
   Value
   (numerical? [_] false)
@@ -51,10 +53,17 @@
   (freeze [o] (cond
                 (vector? o) (mapv freeze o)
                 (sequential? o) (map freeze o)
-                (keyword? o) o
-                :else o))
+                :else (or (@object-name-map o) o)))
   (arity [o] (primitive-arity o))
   (kind [o] (primitive-kind o)))
+
+(extend-type nil
+  Value
+  (freeze [_] nil))
+
+(defn add-object-symbols!
+  [o->syms]
+  (swap! object-name-map into o->syms))
 
 (def ^:private primitive-arity
   "Computing arities of clojure functions is a bit complicated.

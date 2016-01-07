@@ -210,7 +210,7 @@
   [a]
   (->> a v/freeze simplify-expression fixup-symbols))
 
-(defmethod g/simplify :default [a] a)
+(defmethod g/simplify :default [a] (v/freeze a))
 (defmethod g/simplify Var [a] (-> a meta :name))
 
 (defn expression->string
