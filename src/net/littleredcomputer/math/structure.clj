@@ -70,7 +70,9 @@
   (make ::down xs))
 
 (defn structure? [s]
-  (sequential? s))
+  "True if s is a structure (as far as we're concerned.)"
+  (or (instance? Struct s)
+      (vector? s)))
 
 (defn- up? [^Struct s]
   (or (vector? s)
@@ -101,6 +103,29 @@
   (cond (instance? Struct s) (Struct. (.orientation s) (mapv #(mapr f %) (.v s)))
         (vector? s) (mapv #(mapr f %) s)
         :else (f s)))
+
+(defn structure->access-chains
+  [^Struct s]
+  (let [access (fn a [chain s]
+                 (make (.orientation s)
+                       (map-indexed (fn [i elt]
+                                      (if (structure? elt)
+                                        (a (conj chain i) elt)
+                                        ;; subtle (I'm afraid). Here is where we put
+                                        ;; the access chain into the new structure.
+                                        ;; But if we put it in as a vector, that would
+                                        ;; introduce a new layer of structure since
+                                        ;; vectors are considered up-tuples. So we
+                                        ;; have to turn it into a seq, which will
+                                        ;; forfeit structure-nature.
+                                        (seq (conj chain i))))
+                                    s)))]
+    (access [] s)))
+
+(defn component
+  [& indices]
+  (fn [x]
+    (get-in x indices)))
 
 (defn structure-assoc-in
   "Like assoc-in, but works for structures. At this writing we're not

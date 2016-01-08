@@ -69,6 +69,7 @@
 (def down s/down)
 (def transpose s/transpose)
 (def determinant s/determinant)
+(def component s/component)
 
 (def D d/D)
 (def ∂ d/pd)

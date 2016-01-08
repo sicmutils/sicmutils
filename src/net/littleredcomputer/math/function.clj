@@ -56,7 +56,7 @@
   ([f] (Function. f [:exactly 1] [0] 0))
   ([f domain range]
    (cond (number? range)
-         (Function. f [:exactly (count domain)] domain range)
+         (Function. f [:exactly (if (vector? domain) (count domain) 1)] domain range)
          (s/structure? range)
          (s/same range (map-indexed (fn [index component]
                                       (literal-function
@@ -253,7 +253,7 @@
                        " of function call " f
                        " but got " provided))))
         (s/structure? expected)
-        (do (when-not (and (s/structure? provided)
+        (do (when-not (and (or (s/structure? provided) (sequential? provided))
                            (= (s/orientation provided) (s/orientation expected))
                            (= (count provided) (count expected)))
               (throw (IllegalArgumentException.

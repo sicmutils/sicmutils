@@ -21,21 +21,38 @@
   (:require [net.littleredcomputer.math
              [generic :refer :all]
              [structure :refer :all]
+             [operator :refer [make-operator]]
              [value :refer :all]
              [function :refer :all]]
             [net.littleredcomputer.math.calculus.derivative :refer :all]))
 
-(defn phase-space-derivative
+(defn momentum-tuple
+  [& ps]
+  (apply down ps))
+
+(defn momentum
+  "See coordinate: this returns the momentum element of a
+  Hammilton state tuple (by convention, the element at index 2)."
+  [local]
+  (nth local 2))
+
+(defn ->H-state
+  [t q p]
+  (up t q p))
+
+(defn Hamiltonian->state-derivative
   [Hamiltonian]
   (fn [H-state]
-    (up 1
-        (((pd 2) Hamiltonian) H-state)
-        (- (((pd 1) Hamiltonian) H-state)))))
+    (->H-state 1
+               (((pd 2) Hamiltonian) H-state)
+               (- (((pd 1) Hamiltonian) H-state)))))
+
+(def phase-space-derivative Hamiltonian->state-derivative)
 
 (defn qp->H-state-path
   [q p]
   (fn [t]
-    (up t (q t) (p t))))
+    (->H-state t (q t) (p t))))
 
 (defn Hamilton-equations
   [Hamiltonian]
@@ -47,14 +64,14 @@
 
 (defn H-rectangular
   [m V]
-  (fn [[_ [q0 q1] p]]  ;; H-state
+  (fn [[_ q p]]  ;; H-state
     (+ (/ (square p) (* 2 m))
-       (V q0 q1))))
+       (apply V q))))
 
 (defn dual-zero [z]
   (if (structure? z) (-> z transpose zero-like) 0))
 
-(defn Legendre-transform
+(defn ^:private Legendre-transform-fn
   [F]
   (let [w-of-v (D F)]
     (fn [w]
@@ -64,8 +81,30 @@
             v (/ (- w b) M)]
         (- (* w v) (F v))))))
 
-(defn Lagrangian->Hamiltonian
+(def Legendre-transform (make-operator Legendre-transform-fn "Legendre-transform"))
+
+(defn ^:private Lagrangian->Hamiltonian-fn
   [Lagrangian]
   (fn [[t q p]]  ;; H-state
     (let [L #(Lagrangian (up t q %))]
       ((Legendre-transform L) p))))
+
+(def Lagrangian->Hamiltonian (make-operator Lagrangian->Hamiltonian-fn "Lagrangian->Hamiltonian"))
+
+(defn Poisson-bracket
+  [f g]
+  (fn [x]
+    (let [fx (f x)
+          gx (g x)]
+      (if (or (structure? fx) (structure? gx))
+        (mapr (fn [af]
+                (mapr (fn [ag]
+                        ((Poisson-bracket
+                          (comp (apply component af) f)
+                          (comp (apply component ag) g))
+                         x))
+                      (structure->access-chains gx)))
+              (structure->access-chains fx))
+        ((- (* ((pd 1) f) ((pd 2) g))
+            (* ((pd 2) f) ((pd 1) g)))
+         x)))))

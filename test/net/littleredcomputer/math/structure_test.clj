@@ -161,7 +161,9 @@
              (up (up 4 8) (up 8 16))))
            (expt (up 1 2) 4)))
     (is (= (* (up 1 2) (up 1 2) (up 1 2) (up 1 2))
-           (expt (up 1 2) 4))))
+           (expt (up 1 2) 4)))))
+
+(deftest structural-operations
   (testing "mapr"
     (let [S0 (up 2)
           S1 (up 2 3)
@@ -217,7 +219,14 @@
     (is (= 2 (get-in (down (up 1 2) (up 3 4)) [0 1]))))
   (testing "assoc-in"
     (is (= (up 4 55 6) (structure-assoc-in (up 4 5 6) [1] 55)))
-    (is (= (down (up 1 22) (up 3 4)) (structure-assoc-in (down (up 1 2) (up 3 4)) [0 1] 22)))))
+    (is (= (down (up 1 22) (up 3 4)) (structure-assoc-in (down (up 1 2) (up 3 4)) [0 1] 22))))
+  (testing "access-chains"
+    (is (= (up [0] [1] [2]) (structure->access-chains (up 1 2 3))))
+    (is (= (up [0] (up [1 0] [1 1]) (down [2 0] [2 1]))
+           (structure->access-chains (up 't (up 'x 'y) (down 'p_x 'p_y)))))
+    (is (= (up (down (up [0 0 0] [0 0 1]) (up [0 1 0] [0 1 1]))
+               (down (up [1 0 0] [1 0 1]) (up [1 1 0] [1 1 1])))
+           (structure->access-chains (up (down (up 1 2) (up 2 3)) (down (up 3 4) (up 4 5))))))))
 
 (deftest matrices
   (let [A (up (up 1 2) (up 3 4))

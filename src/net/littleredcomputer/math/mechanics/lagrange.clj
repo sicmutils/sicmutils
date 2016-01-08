@@ -34,6 +34,10 @@
   [local]
   (nth local 1))
 
+(defn coordinate-tuple
+  [& xs]
+  (apply up xs))
+
 (defn velocity
   "See coordinate: this returns the velocity element of a local
   tuple (by convention, the 2nd element)."

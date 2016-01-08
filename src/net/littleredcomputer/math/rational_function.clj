@@ -248,7 +248,8 @@
 
 (defmethod g/sub [::rational-function ::rational-function] [a b] (sub a b))
 (defmethod g/sub [::rational-function :net.littleredcomputer.math.polynomial/polynomial] [r p] (subp r p))
-(defmethod g/sub [::rational-function Long] [{u :u v :v} c] (make (g/sub u c) v))
+(defmethod g/sub [::rational-function Long] [{u :u v :v} c] (make (p/sub (g/mul c v) u) v))
+(defmethod g/add [Long ::rational-function] [c {u :u v :v}] (make (p/add u (g/mul c v)) v))
 (defmethod g/div [::rational-function ::rational-function] [a b] (div a b))
 
 (defmethod g/div
