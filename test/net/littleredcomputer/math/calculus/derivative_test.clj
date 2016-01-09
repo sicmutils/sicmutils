@@ -161,6 +161,30 @@
         (is (= '(φ (f (q t))) (simplify (((φ F) q) 't))))
         (is (= '(* ((D φ) (f (q t))) ((D f) (q t)) (η t)) (simplify (((δη (φ F)) q) 't))))))))
 
+(deftest derivatives-as-values
+  (let [cs0 (fn [x] (sin (cos x)))
+        cs1 (compose sin cos)
+        cs2 (comp sin cos)
+        y0 (D cs0)
+        y1 (D cs1)
+        y2 (D cs2)]
+    (is (= '(sin (cos x)) (simplify (cs0 'x))))
+    (is (= '(sin (cos x)) (simplify (cs1 'x))))
+    (is (= '(sin (cos x)) (simplify (cs2 'x))))
+    (is (= '(* -1 (cos (cos x)) (sin x)) (simplify ((D cs0) 'x))))
+    (is (= '(* -1 (cos (cos x)) (sin x)) (simplify ((D cs1) 'x))))
+    (is (= '(* -1 (cos (cos x)) (sin x)) (simplify ((D cs2) 'x))))
+    (is (= '(* -1 (cos (cos x)) (sin x)) (simplify (y0 'x))))
+    (is (= '(* -1 (cos (cos x)) (sin x)) (simplify (y1 'x))))
+    (is (= '(* -1 (cos (cos x)) (sin x)) (simplify (y2 'x)))))
+  (let [unity (reduce + (map square [sin cos]))
+        dU (D unity)]
+    (is (= 1 (simplify (unity 'x))))
+    (is (= 0 (simplify (dU 'x)))))
+  (let [odear (fn [z] ((D (compose sin cos)) z))]
+    (is (= '(* -1 (cos (cos x)) (sin x)) (simplify (odear 'x))))))
+
+
 (deftest literal-functions
   (with-literal-functions [f [g [0 0] 0]]
     (testing "R -> R"

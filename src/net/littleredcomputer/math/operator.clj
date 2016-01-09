@@ -22,18 +22,20 @@
              [generic :as g]])
   (:import (clojure.lang IFn)))
 
-(defrecord Operator [f arity name]
+(defrecord Operator [o arity name]
   v/Value
   (freeze [_] name)
   (kind [_] ::operator)
   (nullity? [_] false)
   (unity? [_] false)
   IFn
-  (invoke [_ function] (f function)))
+  (invoke [_ f] (o f))
+  (invoke [_ f g] (o f g))
+  (applyTo [_ fns] (apply o fns)))
 
 (defn make-operator
-  [f name]
-  (Operator. f 1 name))
+  [o name]
+  (Operator. o 1 name))
 
 ;; XXX needed?
 (defn operator?
