@@ -167,7 +167,7 @@
       (is (= '((D f) x) (simplify ((D f) 'x))))
       (is (= '((D f) (+ x y)) (simplify ((D f) (+ 'x 'y))))))
     (testing "R^2 -> R"
-      (is (= '(((partial-derivative 0) g) x y) (simplify (((pd 0) g) 'x 'y))))
-      (is (= '(((partial-derivative 1) g) x y) (simplify (((pd 1) g) 'x 'y))))
-      (is (= '(down (((partial-derivative 0) g) x y) (((partial-derivative 1) g) x y))
+      (is (= '(((∂ 0) g) x y) (simplify (((pd 0) g) 'x 'y))))
+      (is (= '(((∂ 1) g) x y) (simplify (((pd 1) g) 'x 'y))))
+      (is (= '(down (((∂ 0) g) x y) (((∂ 1) g) x y))
              (simplify ((D g) 'x 'y)))))))

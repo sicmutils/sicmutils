@@ -38,15 +38,34 @@
       (is (= :net.littleredcomputer.math.function/function (v/kind f))))
     (testing "arity > 1"
       (let [g (literal-function 'g [0 0] 0)]
-        (is (= '(g a b) (g/simplify (g 'a 'b))))))
-    (testing "structured range"
-      (let [h (literal-function 'h [0] (up 0 0 0))
-            k (literal-function 'k [0] (up 0 (up 0 0) (down 0 0)))]
-        (is (= '(up (h↑0 t) (h↑1 t) (h↑2 t)) (g/simplify (h 't))))
-        (is (= '(up (k↑0 t)
-                    (up (k↑1↑0 t) (k↑1↑1 t))
-                    (down (k↑2_0 t) (k↑2_1 t)))
-               (g/simplify (k 't))))))))
+        (is (= '(g a b) (g/simplify (g 'a 'b))))))))
+
+(deftest literal-functions
+  (testing "domain in Rⁿ, range R"
+    (let [f (literal-function 'f)             ;; f : R -> R
+         g (literal-function 'g [0 0] 0)]     ;; g : R x R -> R
+     (is (= '(f x) (g/simplify (f 'x))))
+     (is (= '(g x y) (g/simplify (g 'x 'y))))
+     (is (thrown? IllegalArgumentException (g/simplify (f 'x 'y))))
+     (is (thrown? IllegalArgumentException (g/simplify (g 'x))))
+     ))
+  (testing "structured range"
+    (let [h (literal-function 'h [0] (up 0 0 0))
+          k (literal-function 'k [0] (up 0 (up 0 0) (down 0 0)))
+          q (literal-function 'q [0] (down (up 0 1) (up 2 3)))]
+      (is (= '(up (h↑0 t) (h↑1 t) (h↑2 t)) (g/simplify (h 't))))
+      (is (= '(up (k↑0 t)
+                  (up (k↑1↑0 t) (k↑1↑1 t))
+                  (down (k↑2_0 t) (k↑2_1 t)))
+             (g/simplify (k 't))))
+      (is (= '(down (up (q_0↑0 t) (q_0↑1 t))
+                    (up (q_1↑0 t) (q_1↑1 t))) (g/simplify (q 't))))))
+  (testing "R^n -> structured range"
+    (let [h (literal-function 'h [0 1] 0)]
+      (is (= '(h x y) (g/simplify (h 'x 'y)))))
+    ;; this is the one we don't have: R^n -> struct
+    #_(let [m (literal-function 'm [0 1] 0)]
+        (is (= 99 (g/simplify (m 'x 'y)))))))
 
 (deftest function-algebra
   (let [add2 (fn [x] (g/+ x 2))

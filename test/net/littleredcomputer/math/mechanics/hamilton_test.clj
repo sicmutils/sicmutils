@@ -32,8 +32,8 @@
     (is (= '(up 0
                 (up (/ (+ (* ((D x) t) m) (* -1 (p_x t))) m)
                     (/ (+ (* ((D y) t) m) (* -1 (p_y t))) m))
-                (down (+ ((D p_x) t) (((partial-derivative 0) V) (x t) (y t)))
-                      (+ ((D p_y) t) (((partial-derivative 1) V) (x t) (y t)))))
+                (down (+ ((D p_x) t) (((∂ 0) V) (x t) (y t)))
+                      (+ ((D p_y) t) (((∂ 1) V) (x t) (y t)))))
            (simplify (((Hamilton-equations
                         (H-rectangular
                          'm V))
@@ -57,8 +57,8 @@
             (/ (+ (* ((D x) t) m) (* -1 (p_x t))) m)
             (/ (+ (* ((D y) t) m) (* -1 (p_y t))) m))
            (down
-            (+ ((D p_x) t) (((partial-derivative 0) V) (x t) (y t)))
-            (+ ((D p_y) t) (((partial-derivative 1) V) (x t) (y t)))))
+            (+ ((D p_x) t) (((∂ 0) V) (x t) (y t)))
+            (+ ((D p_y) t) (((∂ 1) V) (x t) (y t)))))
 
          (with-literal-functions [x y p_x p_y [V [0 1] 2]]
            (simplify (((Hamilton-equations
@@ -144,14 +144,34 @@
                     (comp (component 1) momentum)
                     (comp (component 2) momentum)))
              a-state))))
-    ;; Where we left off. Our literal funcitons of structured domain
-    ;; don't quite work because an extra layer of bracketing creeps
-    ;; in somewhere.
-    #_(with-literal-functions [[FF (up 0 (up 1 2) (down 3 4)) 5]
-                             [GG (up 0 (up 1 2) (down 3 4)) 5]]
-      (is (= 'foo (FF (up 't (up 'x 'y) (down 'pa 'pb)))))
-      (is (= 'foo ((D FF) (up 't (up 'x 'y (down 'pa 'pb))))))
-      (is (= 'foo
+    (with-literal-functions [[FF [(up 0 (up 1 2) (down 3 4))] 5]
+                             [GG [(up 0 (up 1 2) (down 3 4))] 5]]
+      (is (= '(FF (up t (up x y) (down pa pb)))
+             (simplify (FF (up 't (up 'x 'y) (down 'pa 'pb))))))
+      (is (= '(down
+               (((∂ 0) FF) (up t (up x y) (down pa pb)))
+               (down
+                (((∂ 1 0) FF) (up t (up x y) (down pa pb)))
+                (((∂ 1 1) FF) (up t (up x y) (down pa pb))))
+               (up
+                (((∂ 2 0) FF) (up t (up x y) (down pa pb)))
+                (((∂ 2 1) FF) (up t (up x y) (down pa pb)))))
+             (simplify ((D FF) (up 't (up 'x 'y) (down 'pa 'pb))))))
+      (is (= '(+
+               (*
+                -1
+                (((∂ 2 0) FF) (up t (up x y) (down p_x p_y)))
+                (((∂ 1 0) GG) (up t (up x y) (down p_x p_y))))
+               (*
+                -1
+                (((∂ 2 1) FF) (up t (up x y) (down p_x p_y)))
+                (((∂ 1 1) GG) (up t (up x y) (down p_x p_y))))
+               (*
+                (((∂ 1 0) FF) (up t (up x y) (down p_x p_y)))
+                (((∂ 2 0) GG) (up t (up x y) (down p_x p_y))))
+               (*
+                (((∂ 1 1) FF) (up t (up x y) (down p_x p_y)))
+                (((∂ 2 1) GG) (up t (up x y) (down p_x p_y)))))
              (simplify
               ((* (D FF)
                   (Poisson-bracket identity identity)

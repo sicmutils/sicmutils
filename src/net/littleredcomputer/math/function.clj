@@ -220,9 +220,9 @@
                                (if (= (first indices) 0)
                                  (if (= (count indices) 1)
                                    (symbolic-increase-derivative (:expr f))
-                                   `((g/partial-derivative ~@(next indices)) ~(:expr f)))
+                                   `((~'∂ ~@(next indices)) ~(:expr f)))
                                  (throw (IllegalArgumentException. "wrong indices")))
-                               `((g/partial-derivative ~@indices) ~(:expr f)))]
+                               `((~'∂ ~@indices) ~(:expr f)))]
                     (Function. fexp (:arity f) (:domain f) (:range f)))
                   :else
                   (throw (IllegalArgumentException. (str "make-partials WTF " vv)))))]
