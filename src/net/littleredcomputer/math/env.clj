@@ -52,6 +52,7 @@
 (defmacro with-literal-functions
   [& args]
   `(f/with-literal-functions ~@args))
+(def compose f/compose)
 
 (def sin g/sin)
 (def cos g/cos)
