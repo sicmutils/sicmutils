@@ -107,7 +107,7 @@
 (defn structure->access-chains
   [^Struct s]
   (let [access (fn a [chain s]
-                 (make (.orientation s)
+                 (make (orientation s)
                        (map-indexed (fn [i elt]
                                       (if (structure? elt)
                                         (a (conj chain i) elt)
