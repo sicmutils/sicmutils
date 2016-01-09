@@ -22,20 +22,21 @@ the fact that Guile does not support MIT Scheme's "apply hooks,"
 some glue code is required to run examples from the book in that
 environment.)
 
-Having the system in Clojure offers a number of advantages. It is not necessary
-to obtain or prepare a MIT/GNU Scheme executable to execute: only a Java runtime
-is required. It does not require the X Window System for graphics, as MIT Scheme
-does. All of the standard tooling for Java and Clojure become available, and
-this is a lot compared to what get with MIT/GNU scheme.  Clojure support is now
-extensive in any number of editors and IDEs.  The MIT/Scheme distribution
-(apparently) must be rebuilt if you wish to hack on the Scheme code providing
-the mathematics implementation; whereas in this Clojure implementation, you can
-test out new ideas and enhancements directly in the REPL (or a REPL server) at
-will.
+Having the system in Clojure offers a number of advantages. It is not
+necessary to obtain or prepare a MIT/GNU Scheme executable to execute:
+only a Java runtime is required. It does not require the X Window
+System for graphics, as MIT Scheme does. All of the standard tooling
+for Java and Clojure become available, and this is a lot compared to
+what we get with MIT/GNU scheme.  Clojure support is now extensive in
+any number of editors and IDEs.  The MIT/Scheme distribution
+(apparently) must be rebuilt if you wish to hack on the Scheme code
+providing the mathematics implementation; whereas in this Clojure
+implementation, you can test out new ideas and enhancements directly
+in the REPL (or a REPL server) at will.
 
 You can invoke the system from within Java code or use any Java
 packages you like together with the mathematics system. It's my hope
-that continuing this project will extend the reach of SICM and PDG by
+that continuing this project will extend the reach of SICM and FDG by
 allowing experimentation and collaboration with them in modern
 environments.
 
@@ -49,9 +50,9 @@ posed by the Scheme code base). At this writing there are over 1000
 unit tests, and there easily ought to be twice as many.
 
 The implementation is far from complete. My goal was to create a
-system that could execute the example code in SICM and PDG directly
+system that could execute the example code in SICM and FDG directly
 from the book, to the extent possible. I started with SICM, as the
-requirements seemed the lesser; PDG code is written at a higher level
+requirements seemed the lesser; FDG code is written at a higher level
 of abstraction. Starting with nothing, I tried to push the frontier of
 the new code ever closer to approaching being able to execute the book
 examples.
@@ -244,7 +245,7 @@ simplification library to make that useful haven't happened yet.
 ### Coordinates, patches, k-forms and all that
 
 I think the code here has the potential to quickly evolve to cover the
-techniques of [PDG], but at the moment, I have not gotten to the point
+techniques of [FDG], but at the moment, I have not gotten to the point
 of implementing any of the groundwork for that yet, as working through
 [SICM] has been challenge enough for me.
 
