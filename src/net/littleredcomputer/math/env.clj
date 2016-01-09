@@ -71,6 +71,9 @@
 (def transpose s/transpose)
 (def determinant s/determinant)
 (def component s/component)
+(def structure? s/structure?)
+(def orientation s/orientation)
+
 
 (def D d/D)
 (def ∂ d/pd)
