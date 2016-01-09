@@ -176,6 +176,13 @@
   [s]
   (opposite s (seq s)))
 
+(defn dot-product
+  [v w]
+  (when-not (and (= (orientation v) (orientation w))
+                 (= (count v) (count w)))
+    (throw (IllegalArgumentException. "arguments incompatible for dot product")))
+  (g/* v (transpose w)))
+
 (defn m:transpose
   "Transpose the structure s like a matrix. The result will have
   the same orientation at all levels."

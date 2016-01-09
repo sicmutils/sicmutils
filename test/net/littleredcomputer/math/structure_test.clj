@@ -107,6 +107,12 @@
               (+ (* s y) (* c z))))))
     (is (= (up 0 0 1) ((Rx 'pi-over-2) (up 0 1 0))))
     (is (= (up 'x (net.littleredcomputer.math.generic/- 'z) 'y) ((Rx 'pi-over-2) (up 'x 'y 'z)))))
+  (testing "dot-product"
+    (is (= 11 (dot-product [1 2] [3 4])))
+    (is (= 11 (dot-product (up 1 2) (up 3 4))))
+    (is (= 11 (dot-product (down 1 2) (down 3 4))))
+    (is (thrown? IllegalArgumentException (dot-product [1 2] [3 4 5])))
+    (is (thrown? IllegalArgumentException (dot-product (up 1 2) (down 3 4)))))
   (testing "square/cube"
     (is (= 14 (square (up 1 2 3))))
     (is (= (up (up (up 1 2 3) (up 2 4 6) (up 3 6 9))

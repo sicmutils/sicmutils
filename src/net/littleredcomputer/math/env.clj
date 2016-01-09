@@ -73,7 +73,7 @@
 (def component s/component)
 (def structure? s/structure?)
 (def orientation s/orientation)
-
+(def dot-product s/dot-product)
 
 (def D d/D)
 (def ∂ d/pd)
