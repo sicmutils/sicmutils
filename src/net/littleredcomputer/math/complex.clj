@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2015 Colin Smith.
+; Copyright (C) 2016 Colin Smith.
 ; This work is based on the Scmutils system of MIT/GNU Scheme.
 ;
 ; This is free software;  you can redistribute it and/or modify
@@ -20,8 +20,7 @@
   (:require [net.littleredcomputer.math
              [value :as v]
              [generic :as g]])
-  (:import [org.apache.commons.math3.complex Complex]
-           [clojure.lang ISeq]))
+  (:import [org.apache.commons.math3.complex Complex]))
 
 (extend-type Complex
   v/Value
@@ -35,6 +34,7 @@
   (kind [_] ::complex))
 
 (defn complex
+  "Construct a complex number from real, or real and imaginary, components."
   ([re]
    (Complex. re))
   ([re im]

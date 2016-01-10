@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2015 Colin Smith.
+; Copyright (C) 2016 Colin Smith.
 ; This work is based on the Scmutils system of MIT/GNU Scheme.
 ;
 ; This is free software;  you can redistribute it and/or modify
@@ -63,34 +63,45 @@
   [orientation xs]
   (Struct. orientation (into [] xs)))
 
-(defn up [& xs]
+(defn up
+  "Construct an up (contravariant) tuple from the arguments."
+  [& xs]
   (make ::up xs))
 
-(defn down [& xs]
+(defn down
+  "Construct a down (covariant) tuple from the arguments."
+  [& xs]
   (make ::down xs))
 
-(defn structure? [s]
+(defn structure?
   "True if s is a structure (as far as we're concerned.)"
+  [s]
   (or (instance? Struct s)
       (vector? s)))
 
-(defn- up? [^Struct s]
-  (or (vector? s)
-      (list? s)
-      (and (instance? Struct s) (= (.orientation s) ::up))))
-
 (def ^:private opposite-orientation {::up ::down ::down ::up})
 
-(defn opposite [s xs]
-  (make (if (up? s) ::down ::up) xs))
+(defn orientation
+  "Return the orientation of s, either ::up or ::down."
+  [^Struct s]
+  (if (instance? Struct s) (.orientation s)  ::up))
 
-(defn orientation [^Struct s]
-  (if (instance? Struct s) (.orientation s) ::up))
+(defn opposite
+  "Make a tuple containing xs with the orientation opposite to s."
+  [s xs]
+  (make (opposite-orientation (orientation s)) xs))
 
-(defn same [s xs]
+(defn same
+  "Make a tuple containing xs with the same orientation as s."
+  [s xs]
   (make (orientation s) xs))
 
-(defn- elementwise [op s t]
+(defn- elementwise
+  "Given a binary operator and two structures of the same size, return
+  a structure with the same orientation as the first formed from the
+  elementwise binary operation between corresponding elements of the
+  structures."
+  [op s t]
   (if (= (count s) (count t))
     (Struct. (orientation s) (mapv op s t))
     (throw (ArithmeticException.
@@ -105,6 +116,9 @@
         :else (f s)))
 
 (defn structure->access-chains
+  "Return a structure of the same shape as s whose elements are access
+  chains corresponding to position of each element (i.e., the sequence
+  of indices needed to address that element)."
   [^Struct s]
   (let [access (fn a [chain s]
                  (make (orientation s)
@@ -118,14 +132,15 @@
                                         ;; vectors are considered up-tuples. So we
                                         ;; have to turn it into a seq, which will
                                         ;; forfeit structure-nature.
-                                        (seq (conj chain i))))
+                                        (-> chain (conj i) seq)))
                                     s)))]
     (access [] s)))
 
 (defn component
+  "Given an access chain (a sequence of indices), return a function of
+  structures that will retrieve that corresponding element."
   [& indices]
-  (fn [x]
-    (get-in x indices)))
+  #(get-in % indices))
 
 (defn structure-assoc-in
   "Like assoc-in, but works for structures. At this writing we're not
@@ -138,12 +153,6 @@
         (make (.orientation s)
               (assoc w k0 (structure-assoc-in (nth w k0) (next keys) value))))))
 
-;; (defn structure-get-in
-;;   "Like get-in, but for structures. See structure-assoc-in"
-;;   [^Struct s keys]
-;;   (if (empty? keys) s
-;;       (recur (-> s .v (get (first keys))) (next keys))))
-
 (defn- compatible-for-contraction?
   "True if s and t are equal in length but opposite in orientation"
   [s t]
@@ -151,15 +160,21 @@
        (not= (orientation s) (orientation t))))
 
 (defn- inner-product
+  "The inner produce of compatible structures (opposite orientation, same
+  length)."
   [s t]
   (reduce g/+ 0 (map g/* s t)))
 
 (defn- outer-product
+  "The outer product of s and t is the structure s with each element at the
+  first level post-multiplied by all of t, following the usual structure
+  multiplication rules."
   [s t]
   (same t (map #(g/* s %) t)))
 
 (defn square?
-  "Returns [dimension major-orientation minor-orientation] if s is a square structure, else nil."
+  "Returns [dimension major-orientation minor-orientation] if s is a
+  square structure, else nil."
   [s]
   (let [major-size (count s)
         major-orientation (orientation s)
@@ -177,6 +192,7 @@
   (opposite s (seq s)))
 
 (defn dot-product
+  "Dot product of two structures of the same orientation and length."
   [v w]
   (when-not (and (= (orientation v) (orientation w))
                  (= (count v) (count w)))
@@ -275,6 +291,8 @@
                      #(-> C (nth %2) (nth %1) (g/divide Δ)))))))
 
 (defn- cross-product
+  "Cross product of structures of length 3. Input orientations are ignored;
+  result is an up-tuple."
   [s t]
   (when (or (not= (count s) 3) (not= (count t) 3))
     (throw (IllegalArgumentException. "cross product only works on two elements of ^3")))
@@ -308,8 +326,9 @@
 ;; perhaps structures are not typically raised to high
 ;; exponents.
 
-(defn- expt [s n]
+(defn- expt
   "Raise the structure s to the nth power."
+  [s n]
   (cond (= n 1) s
         (> n 1) (g/* s (g/expt s (- n 1)))
         :else (throw (ArithmeticException. (str "Cannot: " `(expt ~s ~n))))))
@@ -324,6 +343,8 @@
   (Struct. ::up (mapv matrix->structure s)))
 
 (defn unflatten
+  "Given a sequence of values and a model structure, unpack the values into
+  a structure with the same shape as the model."
   [values struct]
   (letfn [(u [values struct]
             (if (structure? struct)

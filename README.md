@@ -220,8 +220,6 @@ an up-tuple of values. In this implementation, this and other handy
 symbolic features of scmutils is implemented by having the relevant
 objects implement Clojure's `IFn` interface.
 
-## What's not there yet
-
 ### Rational function and rule-based simplification
 
 The Scmutils simplifier has three engines: a polynomial-based simplifier
@@ -235,6 +233,8 @@ Zippel's algorithm for fast multivariate polynomial GCD operations.
 Currently we use a recursive Euclid algorithm, which gives acceptable
 results for expressions of medium complexity, but there is more to
 be done.
+
+## What's not there yet
 
 ### TeX
 
@@ -318,7 +318,13 @@ $ lein repl < demo.clj
 
 You can also make an uberjar with `lein uberjar`, and then run it with
 `java -jar`. That will start a REPL, but not a fancy one with command editing
-like `lein repl` would provide.
+like `lein repl` would provide. It's faster, though, since all of the
+compilation has been done ahead of time.
+
+~~~ sh
+$ lein uberjar
+$ java -jar target/uberjar/math-0.0.1-SNAPSHOT-standalone.jar  < demo.clj
+~~~
 
 To run the test suite:
 
@@ -340,4 +346,4 @@ The work this is based on GPL code, and so carries the GPL v3 license.
 [ACM]: https://commons.apache.org/proper/commons-math/
 [LEIN]: http://leiningen.org
 
-Copyright © 2014 Colin Smith
+Copyright © 2016 Colin Smith

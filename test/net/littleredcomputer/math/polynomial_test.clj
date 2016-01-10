@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2015 Colin Smith.
+; Copyright (C) 2016 Colin Smith.
 ; This work is based on the Scmutils system of MIT/GNU Scheme.
 ;
 ; This is free software;  you can redistribute it and/or modify
