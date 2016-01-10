@@ -195,21 +195,9 @@
 
 (def simplify-expression (simplify-until-stable simplify-expression-1 simplify-and-flatten))
 
-(defn- fixup-symbols
-  [xs]
-  (postwalk (fn [x] (if (symbol? x) (let [sym-ns (namespace x)
-                                          sym-name (name x)]
-                                      ;; kind of a hack, but we don't want a circular dependency
-                                      ;; here.
-                                      (if (and (= sym-ns "math.generic")
-                                               (= sym-name "divide"))
-                                        '/
-                                        (symbol sym-name)))
-                        x)) xs))
-
 (defmethod g/simplify :net.littleredcomputer.math.expression/numerical-expression
   [a]
-  (->> a v/freeze simplify-expression fixup-symbols))
+  (->> a v/freeze simplify-expression))
 
 (defmethod g/simplify :default [a] (v/freeze a))
 (defmethod g/simplify Var [a] (-> a meta :name))
