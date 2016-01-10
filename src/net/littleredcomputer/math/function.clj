@@ -57,6 +57,7 @@
   ([f domain range]
    (cond (number? range)
          (Function. f [:exactly (if (vector? domain) (count domain) 1)] domain range)
+
          (s/structure? range)
          (s/same range (map-indexed (fn [index component]
                                       (literal-function
@@ -66,6 +67,7 @@
                                        domain
                                        component))
                                     range))
+
          :else
          (throw (IllegalArgumentException. (str "WTF range" domain))))))
 

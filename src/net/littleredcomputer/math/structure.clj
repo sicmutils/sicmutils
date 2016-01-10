@@ -55,6 +55,12 @@
   IFn
   (invoke [_ x]
     (Struct. orientation (mapv #(% x) v)))
+  (invoke [_ x y]
+    (Struct. orientation (mapv #(% x y) v)))
+  (invoke [_ x y z]
+    (Struct. orientation (mapv #(% x y z) v)))
+  (invoke [_ w x y z]
+    (Struct. orientation (mapv #(% w x y z) v)))
   (applyTo [s xs]
     (AFn/applyToHelper s xs))
   )

@@ -63,9 +63,31 @@
   (testing "R^n -> structured range"
     (let [h (literal-function 'h [0 1] 0)]
       (is (= '(h x y) (g/simplify (h 'x 'y)))))
-    ;; this is the one we don't have: R^n -> struct
-    #_(let [m (literal-function 'm [0 1] 0)]
-        (is (= 99 (g/simplify (m 'x 'y)))))))
+    (let [m (literal-function 'm [0 1] (up 1 2 3))]
+      (is (= '(up (m↑0 x y) (m↑1 x y) (m↑2 x y))
+             (g/simplify (m 'x 'y)))))
+    (let [z (literal-function 'm [0 1] (up (down 1 2) (down 3 4)))]
+      (is (= '(up (down (m↑0_0 x y) (m↑0_1 x y))
+                  (down (m↑1_0 x y) (m↑1_1 x y)))
+             (g/simplify (z 'x 'y)))))
+    (let [g (literal-function 'm [0 1 2] (down (down 1 2 3)
+                                               (down 4 5 6)
+                                               (down 7 8 9)))]
+      (is (= '(down
+               (down (m_0_0 x y z) (m_0_1 x y z) (m_0_2 x y z))
+               (down (m_1_0 x y z) (m_1_1 x y z) (m_1_2 x y z))
+               (down (m_2_0 x y z) (m_2_1 x y z) (m_2_2 x y z)))
+             (g/simplify (g 'x 'y 'z))))))
+  (testing "R -> Rⁿ"
+    ;; NB: GJS doesn't allow a function with vector range, because
+    ;; if this were parallel with structures this would mean
+    ;; having an applicable vector of functions, and such a thing
+    ;; isn't handy. This could probably be done, but for the time
+    ;; being it's easy enough just to make the range an up tuple,
+    ;; which is just as useful as well as being explicit about the
+    ;; variance.
+    #_(let [h (literal-function 'h [0] [0 1])]
+      (is (= 'foo (h 'x))))))
 
 (deftest function-algebra
   (let [add2 (fn [x] (g/+ x 2))
