@@ -22,7 +22,9 @@
                            -     core--
                            *     core-*
                            /     core-div})
-  (:require [net.littleredcomputer.math.generic :as g]
+  (:require [net.littleredcomputer.math
+             [generic :as g]
+             [complex :refer [complex]]]
             [clojure.math.numeric-tower :as nt])
   (:import (clojure.lang BigInt Ratio)))
 
@@ -42,16 +44,43 @@
 (define-unary-operation g/negate core--)
 (define-unary-operation g/invert core-div)
 (define-unary-operation g/sin #(Math/sin %))
-(define-unary-operation g/asin #(Math/asin %))
 (define-unary-operation g/cos #(Math/cos %))
-(define-unary-operation g/acos #(Math/acos %))
 (define-unary-operation g/tan #(Math/tan %))
 (define-unary-operation g/square #(core-* % %))
 (define-unary-operation g/cube #(core-* % % %))
 (define-unary-operation g/abs nt/abs)
-(define-unary-operation g/sqrt nt/sqrt)
-(define-unary-operation g/log #(Math/log %))
 (define-unary-operation g/exp #(Math/exp %))
+
+;; operations which allow promotion to complex numbers when their
+;; arguments would otherwise result in a NaN if computed on the real
+;; line
+(defmethod g/sqrt
+  Number
+  [a]
+  (if (< a 0)
+    (g/sqrt (complex a))
+    (nt/sqrt a)))
+
+(defmethod g/asin
+  Number
+  [a]
+  (if (> (nt/abs a) 1)
+    (g/asin (complex a))
+    (Math/asin a)))
+
+(defmethod g/acos
+  Number
+  [a]
+  (if (> (nt/abs a) 1)
+    (g/acos (complex a))
+    (Math/acos a)))
+
+(defmethod g/log
+  Number
+  [a]
+  (if (< a 0)
+    (g/log (complex a))
+    (Math/log a)))
 
 (defn ^:private exact-integer-divide
   [a b]

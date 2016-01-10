@@ -28,7 +28,7 @@
   (unity? [c] (= Complex/ONE c))
   (zero-like [_] Complex/ZERO)
   (one-like [_] Complex/ONE)
-  (freeze [c] (list (.getReal c) (.getImaginary c)))
+  (freeze [c] (list 'complex (.getReal c) (.getImaginary c)))
   (exact? [_] false)
   (numerical? [_] true)
   (kind [_] ::complex))
@@ -56,6 +56,7 @@
 (defmethod g/invert ::complex [^Complex a] (.reciprocal a))
 (defmethod g/abs ::complex [^Complex a] (.abs a))
 (defmethod g/exp ::complex [^Complex a] (.exp a))
+(defmethod g/log ::complex [^Complex a] (.log a))
 (defmethod g/square ::complex [^Complex a] (.multiply a a))
 (defmethod g/cube ::complex [^Complex a] (.pow a 3.0))
 (defmethod g/sqrt ::complex [^Complex a] (.sqrt a))
@@ -64,4 +65,5 @@
 (defmethod g/tan ::complex [^Complex a] (.tan a))
 (defmethod g/asin ::complex [^Complex a] (.asin a))
 (defmethod g/acos ::complex [^Complex a] (.acos a))
+
 ;;(defmethod g/atan ::complex [^Complex a] (.atan a))

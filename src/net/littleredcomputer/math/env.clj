@@ -26,6 +26,7 @@
              [simplify :as simp]
              [expression]
              [function :as f]
+             [complex :as c]
              [operator]]
             [net.littleredcomputer.math.numerical.ode :as ode]
             [net.littleredcomputer.math.numerical.minimize :refer :all]
@@ -44,6 +45,7 @@
 (def sqrt g/sqrt)
 (def abs g/abs)
 (def negate g/negate)
+(def complex c/complex)
 
 (def evolve ode/evolve)
 (def state-advancer ode/state-advancer)

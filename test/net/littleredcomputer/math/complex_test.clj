@@ -41,3 +41,9 @@
       (is (= (complex 1 3) (g/+ (complex 0 3) 1)))
       (is (near (complex 1.57079632679489 -0.443568254385115)
                 (g/asin (complex 1.1)))))))
+
+(deftest promotions-from-real
+  (is (= (complex 0 1) (g/sqrt -1)))
+  (is (near (complex 1.57079632679489 -0.443568254385115) (g/asin 1.1)))
+  (is (near (complex 0 0.4435682543851153) (g/acos 1.1)))
+  (is (near (complex 0 Math/PI) (g/log -1))))
