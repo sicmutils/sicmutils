@@ -185,6 +185,7 @@
 (def ^:private simplify-expression-1
   #(-> %
        simplify-and-flatten
+       rules/complex-trig
        sincos-simplifier
        sin-sq->cos-sq-simplifier
        sincos-cleanup

@@ -20,6 +20,7 @@
   (:require [net.littleredcomputer.math
              [value :as v]
              [generic :as g]
+             [complex :as c]
              [expression :as x]]
             [clojure.math.numeric-tower :as nt])
   (:import (clojure.lang Symbol)))
@@ -28,6 +29,7 @@
   [expr]
   (cond (number? expr) expr
         (symbol? expr) expr
+        (c/complex? expr) expr
         (g/literal-number? expr) (:expression expr)
         :else (throw (IllegalArgumentException. (str "unknown numerical expression type " expr)))))
 

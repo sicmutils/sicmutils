@@ -140,6 +140,11 @@
                      (sqrt (+ (expt (x t) 2) (expt (y t) 2)))))
            (g/simplify LE)))))
 
+(deftest complex-units
+  (is (= '(1 (complex 0.0 1.0) -1 (complex 0 -1) 1 (complex 0 1) -1 (complex 0 -1))
+         (for [n (range 8)]
+                (simplify-expression `(~'expt (~'complex 0.0 1.0) ~n))))))
+
 (deftest string-form-test
   (is (= "(up sin cos tan)" (expression->string (s/up g/sin g/cos g/tan))))
   (is (= "+" (expression->string g/+)))

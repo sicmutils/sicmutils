@@ -72,6 +72,21 @@
     ;; others to follow
     )))
 
+(def complex-trig
+  ;; TODO: clearly more of these are needed.
+  (rule-simplifier
+   (ruleset
+    (cos (* (complex 0.0 1.0) (:? z)))
+    => (cosh (:? z))
+
+    (sin (* (complex 0.0 1.0) (:? z)))
+    => (* (complex 0.0 1.0) (sinh z))
+
+    ;; Does this really belong here?
+    ;; It works by reducing n mod 4 and then indexing into [1 i -1 -i].
+    (expt (complex 0.0 1.0) (:? n integer?))
+    => (:? #([1 '(complex 0 1) -1 '(complex 0 -1)] (mod (% 'n) 4))))))
+
 (def divide-numbers-through
   (ruleset
    (* 1 (:? factor))

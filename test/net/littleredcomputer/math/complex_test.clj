@@ -30,6 +30,7 @@
   (testing "arithmetic"
     (let [i (complex 0 1)
           pi Math/PI]
+      (is (g/numerical-quantity? i))
       (is (= (complex 4 6) (g/+ (complex 1 2) (complex 3 4))))
       (is (= (complex -2 -2) (g/- (complex 1 2) (complex 3 4))))
       (is (= 5.0 (g/abs (complex 3 4))))
@@ -40,7 +41,8 @@
       (is (= (complex 2 2) (g/divide (complex 4 4) 2)))
       (is (= (complex 1 3) (g/+ (complex 0 3) 1)))
       (is (near (complex 1.57079632679489 -0.443568254385115)
-                (g/asin (complex 1.1)))))))
+                (g/asin (complex 1.1))))
+      (is (near -1 (g/expt (complex 0 1) 2))))))
 
 (deftest promotions-from-real
   (is (= (complex 0 1) (g/sqrt -1)))

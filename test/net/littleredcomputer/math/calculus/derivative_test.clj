@@ -22,6 +22,7 @@
             [net.littleredcomputer.math
              [function :refer :all]
              [generic :refer :all]
+             [complex :refer [complex]]
              [value :as v]
              [numbers]
              [simplify]
@@ -184,7 +185,6 @@
   (let [odear (fn [z] ((D (compose sin cos)) z))]
     (is (= '(* -1 (cos (cos x)) (sin x)) (simplify (odear 'x))))))
 
-
 (deftest literal-functions
   (with-literal-functions [f [g [0 0] 0]]
     (testing "R -> R"
@@ -195,3 +195,9 @@
       (is (= '(((∂ 1) g) x y) (simplify (((pd 1) g) 'x 'y))))
       (is (= '(down (((∂ 0) g) x y) (((∂ 1) g) x y))
              (simplify ((D g) 'x 'y)))))))
+
+(deftest complex-derivatives
+  (let [i (complex 0 1)
+        f (fn [z] (* i (sin (* i z))))]
+    (is (= '(* -1 (cosh z))
+           (simplify ((D f) 'z))))))
