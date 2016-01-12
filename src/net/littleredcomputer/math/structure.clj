@@ -27,7 +27,7 @@
 
 (def ^:private orientation->symbol {::up 'up ::down 'down})
 
-(deftype Struct [orientation v]
+(deftype Struct [orientation ^PersistentVector v]
   v/Value
   (nullity? [_] (every? g/zero? v))
   (unity? [_] false)
@@ -64,6 +64,23 @@
   (applyTo [s xs]
     (AFn/applyToHelper s xs))
   )
+
+(defn structure->vector
+  "Return the structure in unoriented vector form."
+  [^Struct s]
+  (.v s))
+
+(defn vector->up
+  "Form an up-tuple from a vector."
+  [v]
+  {:pre [(vector? v)]}
+  (Struct. ::up v))
+
+(defn vector->down
+  "Form a down-tuple from a vector."
+  [v]
+  {:pre [(vector? v)]}
+  (Struct. ::down v))
 
 (defn- make
   [orientation xs]

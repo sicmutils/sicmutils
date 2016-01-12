@@ -98,6 +98,16 @@
   (testing "exact?"
     (is (v/exact? (up 0 1 3/2)))
     (is (not (v/exact? (up 0 0 0.00001)))))
+  (testing "to vector"
+    (is (= [1 2 3] (structure->vector (up 1 2 3))))
+    (is (= [1 2 3] (structure->vector (down 1 2 3))))
+    (is (= (type []) (type (structure->vector (up 1 2 3)))))
+    (is (= (type []) (type (structure->vector (down 1 2 3)))))
+    (is (= [(up 1 2) (up 3 4)] (structure->vector (down (up 1 2) (up 3 4))))))
+  (testing "from vector"
+    (is (= (up 1 2 3) (vector->up [1 2 3])))
+    (is (= (down 4 5 6) (vector->down [4 5 6])))
+    (is (thrown? AssertionError (vector->up '(1 2 3)))))
   (testing "function - rotate about x axis"
     (defn Rx [θ]
       (fn [[x y z]]

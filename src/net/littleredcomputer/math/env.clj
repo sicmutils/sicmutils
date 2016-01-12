@@ -76,6 +76,9 @@
 (def structure? s/structure?)
 (def orientation s/orientation)
 (def dot-product s/dot-product)
+(def structure->vector s/structure->vector)
+(def vector->up s/vector->up)
+(def vector->down s/vector->down)
 
 (def D d/D)
 (def ∂ d/pd)
