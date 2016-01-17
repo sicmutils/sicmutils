@@ -71,7 +71,7 @@
 (defmethod g/acos ::complex [^Complex a] (.acos a))
 (defmethod g/expt [::complex ::complex] [^Complex a ^Complex b] (.pow a b))
 (defmethod g/expt [::complex Number] [^Complex a n] (.pow a (double n)))
-(defmethod g/expt [Number ::complex] [n ^Complex a] (.pow (complex n) a))
+(defmethod g/expt [Number ::complex] [n ^Complex a] (.pow ^Complex (complex n) a))
 
 (derive ::complex :net.littleredcomputer.math.expression/numerical-expression)
 

@@ -7,7 +7,7 @@
                  [org.clojure/tools.logging "0.3.1"]
                  [hiccup "1.0.5"]
                  [com.google.guava/guava "18.0"]
-                 [org.apache.commons/commons-math3 "3.4.1"]
+                 [org.apache.commons/commons-math3 "3.6"]
                  [org.clojure/math.numeric-tower "0.0.4"]
                  [org.clojure/tools.nrepl "0.2.11"]]
   :main net.littleredcomputer.math.repl
