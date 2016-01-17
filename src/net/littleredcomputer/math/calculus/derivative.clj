@@ -362,6 +362,7 @@
     (condp = a
       [:exactly 0] (constantly 0)
       [:exactly 1] (with-meta (d f) {:arity a})
+      [:at-least 0] (with-meta (d f) {:arity a})
       [:exactly 2] (with-meta (fn [x y]
                                 ((d (fn [[x y]] (f x y)))
                                  (struct/seq-> [x y]))) {:arity a})

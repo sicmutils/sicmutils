@@ -24,8 +24,6 @@
            (com.google.common.base Stopwatch)
            (org.apache.commons.math3.analysis.integration RombergIntegrator)))
 
-;; simple Simpson's rule to get things off the ground
-
 (defn integrate [f a b & [{:keys [compile]}]]
   (let [total-time (Stopwatch/createStarted)
         evaluation-count (atom 0)

@@ -185,6 +185,25 @@
   (let [odear (fn [z] ((D (compose sin cos)) z))]
     (is (= '(* -1 (cos (cos x)) (sin x)) (simplify (odear 'x))))))
 
+(deftest exponentiation-and-composition
+  (let [ff (fn [x y z] (+ (* x x y) (* y y z)(* z z x)))
+        ]
+    (is (= '(down
+             (down (* 2 y) (* 2 x) (* 2 z))
+             (down (* 2 x) (* 2 z) (* 2 y))
+             (down (* 2 z) (* 2 y) (* 2 x)))
+           (simplify (((expt D 2) ff) 'x 'y 'z))))
+    (is (= (((* D D) ff) 'x 'y 'z) (((expt D 2) ff) 'x 'y 'z)))
+    (is (= (((compose D D) ff) 'x 'y 'z) (((expt D 2) ff) 'x 'y 'z)))
+    (is (= (((* D D D) ff) 'x 'y 'z) (((expt D 3) ff) 'x 'y 'z)))
+    (is (= (((compose D D D) ff) 'x 'y 'z) (((expt D 3) ff) 'x 'y 'z)))
+    ;; multiple partial derivatives seem to be broken at present.
+    #_(is (= 'foo (simplify (((pd 1 0) ff) 'x 'y 'z))))
+    #_(is (= (((pd 0 1) ff 'x 'y 'z))
+           (((pd 1) ((pd 0) ff)) 'x 'y 'z)
+           ))
+    ))
+
 (deftest literal-functions
   (with-literal-functions [f [g [0 0] 0]]
     (testing "R -> R"
