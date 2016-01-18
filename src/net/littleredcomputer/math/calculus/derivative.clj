@@ -22,7 +22,8 @@
              [generic :as g]
              [operator :as o]
              [structure :as struct]]
-            [clojure.set :as set])
+            [clojure.set :as set]
+            [clojure.string :refer [join]])
   (:import (clojure.lang Sequential)))
 
 ;; A differential term is implemented as a map entry
@@ -35,6 +36,8 @@
 ;; A differential is a map from (sorted) differential
 ;; tag-sets to coefficients.
 (defrecord Differential [terms]
+  Object
+  (toString [_] (str "D[" (join " " (map #(join " → " %) terms)) "]"))
   v/Value
   (nullity? [_] (every? g/zero? (map coefficient terms)))
   (unity? [_] false)                                        ;; XXX! this needs to be fixed
@@ -120,6 +123,7 @@
         (g/zero? dx) empty-differential
         :else (conj empty-differential [empty-tags dx])))
 
+
 (defn- dxs+dys
   "Inputs are sequences of differential terms; returns the sequence of differential
   terms representing the sum."
@@ -131,14 +135,15 @@
       (empty? dxs) (into result dys)
       (empty? dys) (into result dxs)
       :else (let [[a-tags a-coef :as a] (first dxs)
-                  [b-tags b-coef :as b] (first dys)]
+                  [b-tags b-coef :as b] (first dys)
+                  c (sorted-set-compare a-tags b-tags)]
               (cond
-                (= a-tags b-tags) (let [r-coef (g/+ a-coef b-coef)]
-                                    (recur (rest dxs) (rest dys)
-                                           (if-not (g/zero? r-coef)
-                                             (assoc result a-tags r-coef)
-                                             result)))
-                (< (sorted-set-compare a-tags b-tags) 0) (recur (rest dxs) dys (conj result a))
+                (= c 0) (let [r-coef (g/+ a-coef b-coef)]
+                          (recur (rest dxs) (rest dys)
+                                 (if-not (g/zero? r-coef)
+                                   (assoc result a-tags r-coef)
+                                   result)))
+                (< c 0) (recur (rest dxs) dys (conj result a))
                 :else (recur dxs (rest dys) (conj result b)))))))
 
 (defn- dx*dys
@@ -159,7 +164,7 @@
 (defn- dxs*dys
   [as bs]
   (if (or (empty? as)
-          (empty? bs)) {}
+          (empty? bs)) empty-differential
                        (dxs+dys
                          (dx*dys (first as) bs)
                          (dxs*dys (next as) bs))))
@@ -176,14 +181,12 @@
   (make-differential
     (dxs*dys (differential->terms a) (differential->terms b))))
 
-(defonce ^:private next-differential-tag (atom 0))
+(def ^:private make-differential-tag
+  (let [next-differential-tag (atom 0)]
+    #(swap! next-differential-tag inc)))
 
-(defn- make-differential-tag []
-  (swap! next-differential-tag inc))
-
-(defn- make-x+dx [x dx]
-  ;; warning: this is not quite what GJS dopes ...
-  (Differential. (into empty-differential {(sorted-set) x (sorted-set dx) 1})))
+(defn ^:private make-x+dx [x dx]
+  (dx+dy x (Differential. (assoc empty-differential (sorted-set dx) 1))))
 
 ;(defn- hide-tag-in-procedure [& args] false) ; XXX
 
@@ -195,7 +198,8 @@
             ;; from what remains.
             [obj]
             (if (differential? obj)
-              (->> obj :terms
+              (->> obj
+                   :terms
                    (map (fn [[ts coef]] (if (ts dx) [(disj ts dx) coef])))
                    (filter some?)
                    make-differential
@@ -239,7 +243,7 @@
       ;; construct differential objects on the split parts.
       [(-> finite-part make-differential)
        (-> infinitesimal-part make-differential)])
-    [(into empty-differential [[] x]) empty-differential]))
+    [(assoc empty-differential (sorted-set) x) empty-differential]))
 
 (defn- unary-op
   [f df:dx]
@@ -302,7 +306,6 @@
               (dx+dy b (dx*dy (∂f:∂y xe ye) dy)))]
       (canonicalize-differential c))))
 
-
 (def ^:private diff-+ (binary-op g/+ (constantly 1) (constantly 1) :plus))
 (def ^:private diff-- (binary-op g/- (constantly 1) (constantly -1) :minus))
 (def ^:private diff-* (binary-op g/* (fn [_ y] y) (fn [x _] x) :times))
@@ -330,29 +333,29 @@
 (defn- euclidean-structure
   [selectors f]
   (letfn [(structural-derivative [g v]
-                                 (cond (struct/structure? v)
-                                       (struct/opposite v
-                                                        (map-indexed
-                                                          (fn [i v_i]
-                                                            (structural-derivative
-                                                              (fn [w]
-                                                                (g (struct/structure-assoc-in v [i] w)))
-                                                              v_i))
-                                                          v))
-                                       (or (g/numerical-quantity? v) (g/abstract-quantity? v))
-                                       ((derivative g) v)
-                                       :else
-                                       (throw (IllegalArgumentException. (str "bad structure " g v)))))
+            (cond (struct/structure? v)
+                  (struct/opposite v
+                                   (map-indexed
+                                    (fn [i v_i]
+                                      (structural-derivative
+                                       (fn [w]
+                                         (g (struct/structure-assoc-in v [i] w)))
+                                       v_i))
+                                    v))
+                  (or (g/numerical-quantity? v) (g/abstract-quantity? v))
+                  ((derivative g) v)
+                  :else
+                  (throw (IllegalArgumentException. (str "bad structure " g v)))))
           (a-euclidean-derivative [v]
-                                  (cond (struct/structure? v)
-                                        (structural-derivative
-                                          (fn [w]
-                                            (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
-                                          (get-in v selectors))
-                                        (empty? selectors)
-                                        ((derivative f) v)
-                                        :else
-                                        (throw (IllegalArgumentException. (str "Bad selectors " f selectors v)))))]
+            (cond (struct/structure? v)
+                  (structural-derivative
+                   (fn [w]
+                     (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
+                   (get-in v selectors))
+                  (empty? selectors)
+                  ((derivative f) v)
+                  :else
+                  (throw (IllegalArgumentException. (str "Bad selectors " f selectors v)))))]
     a-euclidean-derivative))
 
 (defn- multivariate-derivative

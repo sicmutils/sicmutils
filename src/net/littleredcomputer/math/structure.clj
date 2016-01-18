@@ -169,12 +169,11 @@
   "Like assoc-in, but works for structures. At this writing we're not
   sure if we want to overwrite the stock definition of assoc-in to
   something that would fall through for standard clojure data types"
-  [^Struct s keys value]
-  (if (empty? keys) value
-      (let [w (.v s)
-            k0 (first keys)]
-        (make (.orientation s)
-              (assoc w k0 (structure-assoc-in (nth w k0) (next keys) value))))))
+  [^Struct s [k & ks] value]
+  (let [v (.v s)]
+    (if ks
+      (same s (assoc v k (structure-assoc-in (v k) ks value)))
+      (same s (assoc v k value)))))
 
 (defn- compatible-for-contraction?
   "True if s and t are equal in length but opposite in orientation"

@@ -81,7 +81,35 @@
       (is (= zero-differential (dx*dy dz (dx*dy dy dz))))
       (is (= 0 (* dx dx)))
       ))
-  )
+  (testing "more terms"
+    (let [d-expr #(-> % :terms (get (sorted-set 0)))
+          d-simplify #(-> % d-expr simplify)]
+      (is (= '(* 3 (expt x 2))
+             (d-simplify (expt (+ 'x (make-differential {[0] 1})) 3))))
+      (is (= '(* 4 (expt x 3))
+             (d-simplify (expt (+ 'x (make-differential {[0] 1})) 4))))
+      (let [dx (make-differential {[0] 1})
+            x+dx (+ 'x dx)
+            f (fn [x] (* x x x x))]
+        (is (= '(* 4 (expt x 3))
+               (d-simplify (* x+dx x+dx x+dx x+dx))))
+        (is (= '(* 12 (expt x 2))
+               (d-simplify (+ (* (+ (* (+ x+dx x+dx) x+dx) (* x+dx x+dx)) x+dx) (* x+dx x+dx x+dx)))))
+        (is (= '(* 24 x) (d-simplify (+
+                                      (* (+ (* 2 x+dx) x+dx x+dx x+dx x+dx) x+dx)
+                                      (* (+ x+dx x+dx) x+dx)
+                                      (* x+dx x+dx)
+                                      (* (+ x+dx x+dx) x+dx)
+                                      (* x+dx x+dx)))))
+        (is (= 24 (d-expr (+ (* 6 x+dx)
+                             (* 2 x+dx)
+                             x+dx x+dx x+dx x+dx
+                             (* 2 x+dx)
+                             x+dx x+dx x+dx x+dx
+                             (* 2 x+dx)
+                             x+dx x+dx x+dx x+dx))))
+        (is (= '(* 4 (expt x 3))
+               (d-simplify (f x+dx))))))))
 
 (deftest diff-test-1
   (testing "some simple functions"
@@ -106,9 +134,22 @@
 
 (deftest partial-diff-test
   (testing "partial derivatives"
-    (let [f (fn [x y] (+ (* x x) (* y y)))]
-      (is (= 4 (((pd 0) f) 2 3)))
-      (is (= 6 (((pd 1) f) 2 3))))
+    (let [f (fn [x y] (+ (* 'a x x) (* 'b x y) (* 'c y y)))]
+      (is (= '(+ (* 4 a) (* 3 b)) (simplify (((pd 0) f) 2 3))))
+      (is (= '(+ (* 2 b) (* 6 c)) (simplify (((pd 1) f) 2 3))))
+      (is (= '(+ (* 2 a x) (* b y)) (simplify (((pd 0) f) 'x 'y))))
+      (is (= '(+ (* b x) (* 2 c y)) (simplify (((pd 1) f) 'x 'y))))
+      ;; matrix of 2nd partials
+      (is (= '[[(* 2 a) b]
+               [b (* 2 c)]]
+             (for [i (range 2)]
+               (for [j (range 2)]
+                 (simplify (((* (pd i) (pd j)) f) 'x 'y))))))
+      (is (= '[[(* 2 a) b]
+               [b (* 2 c)]]
+             (for [i (range 2)]
+               (for [j (range 2)]
+                 (simplify (((compose (pd i) (pd j)) f) 'x 'y)))))))
     (let [F (fn [a b]
               (fn [[x y]]
                 (up (* a x) (* b y))))]
@@ -196,13 +237,42 @@
     (is (= (((* D D) ff) 'x 'y 'z) (((expt D 2) ff) 'x 'y 'z)))
     (is (= (((compose D D) ff) 'x 'y 'z) (((expt D 2) ff) 'x 'y 'z)))
     (is (= (((* D D D) ff) 'x 'y 'z) (((expt D 3) ff) 'x 'y 'z)))
-    (is (= (((compose D D D) ff) 'x 'y 'z) (((expt D 3) ff) 'x 'y 'z)))
-    ;; multiple partial derivatives seem to be broken at present.
-    #_(is (= 'foo (simplify (((pd 1 0) ff) 'x 'y 'z))))
-    #_(is (= (((pd 0 1) ff 'x 'y 'z))
-           (((pd 1) ((pd 0) ff)) 'x 'y 'z)
-           ))
-    ))
+    (is (= (((compose D D D) ff) 'x 'y 'z) (((expt D 3) ff) 'x 'y 'z))))
+  (let [g (fn [z] (* z z z z))
+        f4 (fn [x] (+ (* x x x) (* x x x)))]
+    ;; issue #9 regression test
+    (is (= '(expt t 4) (simplify (g 't))))
+    (is (= '(* 4 (expt t 3)) (simplify ((D g) 't))))
+    (is (= '(* 12 (expt t 2)) (simplify ((D (D g)) 't))))
+    (is (= '(* 24 t) (simplify ((D (D (D g))) 't))))
+    (is (= '(* 24 z) (simplify (((expt D 3) g) 'z))))
+    (is (= '(* 2 (expt s 3)) (simplify (f4 's))))
+    (is (= '(* 6 (expt s 2)) (simplify ((D f4) 's))))
+    (is (= '(* 12 s) (simplify ((D (D f4)) 's))))
+    (is (= 12 (simplify ((D (D (D f4))) 's))))
+    (is (= 12 (simplify (((* D D D) f4) 's))))
+    (is (= 12 (simplify (((compose D D D) f4) 's)))))
+  (let [fff (fn [x y z] (+ (* x x y)(* y y y z)(* z z z z x)))]
+    (is (= '(+ (* x (expt z 4)) (* (expt y 3) z) (* (expt x 2) y))
+           (simplify (((expt D 0) fff) 'x 'y 'z))))
+    (is (= '(down
+             (+ (expt z 4) (* 2 x y))
+             (+ (* 3 (expt y 2) z) (expt x 2))
+             (+ (* 4 x (expt z 3)) (expt y 3)))
+           (simplify (((expt D 1) fff) 'x 'y 'z))))
+    (is (= '(down
+             (down (* 2 y) (* 2 x) (* 4 (expt z 3)))
+             (down (* 2 x) (* 6 y z) (* 3 (expt y 2)))
+             (down (* 4 (expt z 3)) (* 3 (expt y 2)) (* 12 x (expt z 2))))
+           (simplify (((expt D 2) fff) 'x 'y 'z))))
+    (is (= '(down
+             (down (down 0 2 0) (down 2 0 0) (down 0 0 (* 12 (expt z 2))))
+             (down (down 2 0 0) (down 0 (* 6 z) (* 6 y)) (down 0 (* 6 y) 0))
+             (down
+              (down 0 0 (* 12 (expt z 2)))
+              (down 0 (* 6 y) 0)
+              (down (* 12 (expt z 2)) 0 (* 24 x z))))
+           (simplify (((expt D 3) fff) 'x 'y 'z))))))
 
 (deftest literal-functions
   (with-literal-functions [f [g [0 0] 0]]
