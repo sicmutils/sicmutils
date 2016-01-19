@@ -207,19 +207,13 @@
              (every? #(= first-minor-orientation %) (rest minor-orientations)))
       [major-size major-orientation first-minor-orientation])))
 
-(defn transpose
-  "The transpose of a structure s is just the same structure with the
-  outermost orientation reversed."
-  [s]
-  (opposite s (seq s)))
-
 (defn dot-product
   "Dot product of two structures of the same orientation and length."
   [v w]
   (when-not (and (= (orientation v) (orientation w))
                  (= (count v) (count w)))
     (throw (IllegalArgumentException. "arguments incompatible for dot product")))
-  (g/* v (transpose w)))
+  (g/* v (g/transpose w)))
 
 (defn m:transpose
   "Transpose the structure s like a matrix. The result will have
@@ -401,3 +395,4 @@
 (defmethod g/square ::structure [a] (inner-product a a))
 (defmethod g/cube ::structure [a] (mul a (mul a a)))
 (defmethod g/simplify ::structure [a] (->> a (mapr g/simplify) v/freeze))
+(defmethod g/transpose ::structure [a] (opposite a (seq a)))

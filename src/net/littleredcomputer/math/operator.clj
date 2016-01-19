@@ -43,12 +43,16 @@
   [x]
   (instance? Operator x))
 
-(def ^:private identity-operator
+(def identity-operator
   (Operator. (fn [f] #(apply f %&)) 1 'identity))
 
 (defn- number->operator
   [n]
   (Operator. (fn [f] #(g/* n (apply f %&))) 1 'number))
+
+(defn ^:private function->operator
+  [f]
+  (Operator. (fn [g] #(g/* (apply f %&) (apply g %&))) 1 'fn))
 
 (defn- sub
   [o p]
@@ -79,6 +83,7 @@
   [o n]
   (add o (number->operator n)))
 
+(defmethod g/sub [::operator ::operator] [o p] (sub o p))
 (defmethod g/sub
   [::operator :net.littleredcomputer.math.expression/numerical-expression]
   [o n]
@@ -88,5 +93,26 @@
 (defmethod g/add [::operator ::operator] [o p] (add o p))
 (defmethod g/square ::operator [o] (mul o o))
 (defmethod g/simplify ::operator [o] (:name o))
+
+(defmethod g/transpose
+  ::operator
+  [o]
+  (Operator. (fn [f] #(g/transpose (apply (o f) %&))) 1 'transpose))
+
+(defmethod g/cross-product
+  [::operator ::operator]
+  [o p]
+  (fn [f]
+    #(g/cross-product (apply (o f) %&) (apply (p f) %&))))
+
+(defmethod g/mul
+  [::operator :net.littleredcomputer.math.function/function]
+  [o f]
+  (mul o (function->operator f)))
+
+(defmethod g/mul
+  [:net.littleredcomputer.math.function/function ::operator]
+  [f o]
+  (mul (function->operator f) o))
 
 ;; XXX: we need a bunch more of these, of course.

@@ -23,6 +23,7 @@
              [function :refer :all]
              [generic :refer :all]
              [complex :refer [complex]]
+             [operator :as o]
              [value :as v]
              [numbers]
              [simplify]
@@ -291,3 +292,21 @@
         f (fn [z] (* i (sin (* i z))))]
     (is (= '(* -1 (cosh z))
            (simplify ((D f) 'z))))))
+
+(deftest fun-with-operators
+  (let [f #(expt % 3)]
+    (is (= '(+ (* (cos t) (expt t 3)) (* 3 (sin t) (expt t 2)))
+           (simplify (((* D sin) f) 't))))
+    (is (= '(* 3 (sin t) (expt t 2))
+           (simplify (((* sin D) f) 't))))))
+
+(deftest vector-calculus
+  (let [f (up identity sin cos)
+        divergence #(fn [t] (reduce + ((D %) t)))
+        laplacian #(* (D %) ((transpose D) %))]
+    (is (= '(up 1 (cos t) (* -1 (sin t))) (simplify ((D f) 't))))
+    (is (= '(down 1 (cos t) (* -1 (sin t))) (simplify (((transpose D) f) 't))))
+    (is (= 2 (simplify (* ((D f) 't) (((transpose D) f) 't)))))
+    (is (= 2 (simplify ((laplacian (up identity sin cos)) 't))))
+    (is (= '(+ (cos t) (* -1 (sin t)) 1) (simplify ((divergence f) 't))))
+    ))

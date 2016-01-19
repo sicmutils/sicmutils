@@ -70,7 +70,7 @@
 
 (def up s/up)
 (def down s/down)
-(def transpose s/transpose)
+(def transpose g/transpose)
 (def determinant s/determinant)
 (def component s/component)
 (def structure? s/structure?)

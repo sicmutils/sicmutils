@@ -81,6 +81,7 @@
 (defmulti cross-product v/argument-kind)
 (defmulti simplify v/argument-kind)
 (defmulti negative? v/argument-kind)
+(defmulti transpose v/argument-kind)
 
 (defn- bin+ [a b]
   (cond (and (number? a) (number? b)) (+' a b)
