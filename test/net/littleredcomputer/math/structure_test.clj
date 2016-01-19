@@ -89,12 +89,14 @@
     (is (zero? (down 0 0)))
     (is (zero? []))
     (is (zero? [0]))
-    (is (zero? [0 0])))
+    (is (zero? [0 0]))
+    (is (zero? (up 0 (down (up 0 0) (up 0 0))))))
   (testing "zero-like"
     (is (= (up 0 0 0) (v/zero-like (up 1 2 3))))
     (is (= (up) (v/zero-like (up))))
     (is (= (down 0 0 0) (v/zero-like (down 1 2 3))))
-    (is (= (down) (v/zero-like (down)))))
+    (is (= (down) (v/zero-like (down))))
+    (is (= (up 0 (down (up 0 0) (up 0 0))) (v/zero-like (up 1 (down (up 2 3) (up 4 5)))))))
   (testing "exact?"
     (is (v/exact? (up 0 1 3/2)))
     (is (not (v/exact? (up 0 0 0.00001)))))

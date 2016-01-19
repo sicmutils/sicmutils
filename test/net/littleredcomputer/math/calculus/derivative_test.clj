@@ -238,41 +238,42 @@
     (is (= (((compose D D) ff) 'x 'y 'z) (((expt D 2) ff) 'x 'y 'z)))
     (is (= (((* D D D) ff) 'x 'y 'z) (((expt D 3) ff) 'x 'y 'z)))
     (is (= (((compose D D D) ff) 'x 'y 'z) (((expt D 3) ff) 'x 'y 'z))))
-  (let [g (fn [z] (* z z z z))
-        f4 (fn [x] (+ (* x x x) (* x x x)))]
-    ;; issue #9 regression test
-    (is (= '(expt t 4) (simplify (g 't))))
-    (is (= '(* 4 (expt t 3)) (simplify ((D g) 't))))
-    (is (= '(* 12 (expt t 2)) (simplify ((D (D g)) 't))))
-    (is (= '(* 24 t) (simplify ((D (D (D g))) 't))))
-    (is (= '(* 24 z) (simplify (((expt D 3) g) 'z))))
-    (is (= '(* 2 (expt s 3)) (simplify (f4 's))))
-    (is (= '(* 6 (expt s 2)) (simplify ((D f4) 's))))
-    (is (= '(* 12 s) (simplify ((D (D f4)) 's))))
-    (is (= 12 (simplify ((D (D (D f4))) 's))))
-    (is (= 12 (simplify (((* D D D) f4) 's))))
-    (is (= 12 (simplify (((compose D D D) f4) 's)))))
-  (let [fff (fn [x y z] (+ (* x x y)(* y y y z)(* z z z z x)))]
-    (is (= '(+ (* x (expt z 4)) (* (expt y 3) z) (* (expt x 2) y))
-           (simplify (((expt D 0) fff) 'x 'y 'z))))
-    (is (= '(down
-             (+ (expt z 4) (* 2 x y))
-             (+ (* 3 (expt y 2) z) (expt x 2))
-             (+ (* 4 x (expt z 3)) (expt y 3)))
-           (simplify (((expt D 1) fff) 'x 'y 'z))))
-    (is (= '(down
-             (down (* 2 y) (* 2 x) (* 4 (expt z 3)))
-             (down (* 2 x) (* 6 y z) (* 3 (expt y 2)))
-             (down (* 4 (expt z 3)) (* 3 (expt y 2)) (* 12 x (expt z 2))))
-           (simplify (((expt D 2) fff) 'x 'y 'z))))
-    (is (= '(down
-             (down (down 0 2 0) (down 2 0 0) (down 0 0 (* 12 (expt z 2))))
-             (down (down 2 0 0) (down 0 (* 6 z) (* 6 y)) (down 0 (* 6 y) 0))
-             (down
-              (down 0 0 (* 12 (expt z 2)))
-              (down 0 (* 6 y) 0)
-              (down (* 12 (expt z 2)) 0 (* 24 x z))))
-           (simplify (((expt D 3) fff) 'x 'y 'z))))))
+  (testing "issue #9 regression"
+    (let [g (fn [z] (* z z z z))
+          f4 (fn [x] (+ (* x x x) (* x x x)))]
+      (is (= '(expt t 4) (simplify (g 't))))
+      (is (= '(* 4 (expt t 3)) (simplify ((D g) 't))))
+      (is (= '(* 12 (expt t 2)) (simplify ((D (D g)) 't))))
+      (is (= '(* 24 t) (simplify ((D (D (D g))) 't))))
+      (is (= '(* 24 z) (simplify (((expt D 3) g) 'z))))
+      (is (= '(* 2 (expt s 3)) (simplify (f4 's))))
+      (is (= '(* 6 (expt s 2)) (simplify ((D f4) 's))))
+      (is (= '(* 12 s) (simplify ((D (D f4)) 's))))
+      (is (= 12 (simplify ((D (D (D f4))) 's))))
+      (is (= 12 (simplify (((* D D D) f4) 's))))
+      (is (= 12 (simplify (((compose D D D) f4) 's))))
+      (is (= 12 (simplify (((expt D 3) f4) 's)))))
+    (let [fff (fn [x y z] (+ (* x x y)(* y y y z)(* z z z z x)))]
+      (is (= '(+ (* x (expt z 4)) (* (expt y 3) z) (* (expt x 2) y))
+             (simplify (((expt D 0) fff) 'x 'y 'z))))
+      (is (= '(down
+               (+ (expt z 4) (* 2 x y))
+               (+ (* 3 (expt y 2) z) (expt x 2))
+               (+ (* 4 x (expt z 3)) (expt y 3)))
+             (simplify (((expt D 1) fff) 'x 'y 'z))))
+      (is (= '(down
+               (down (* 2 y) (* 2 x) (* 4 (expt z 3)))
+               (down (* 2 x) (* 6 y z) (* 3 (expt y 2)))
+               (down (* 4 (expt z 3)) (* 3 (expt y 2)) (* 12 x (expt z 2))))
+             (simplify (((expt D 2) fff) 'x 'y 'z))))
+      (is (= '(down
+               (down (down 0 2 0) (down 2 0 0) (down 0 0 (* 12 (expt z 2))))
+               (down (down 2 0 0) (down 0 (* 6 z) (* 6 y)) (down 0 (* 6 y) 0))
+               (down
+                (down 0 0 (* 12 (expt z 2)))
+                (down 0 (* 6 y) 0)
+                (down (* 12 (expt z 2)) 0 (* 24 x z))))
+             (simplify (((expt D 3) fff) 'x 'y 'z)))))))
 
 (deftest literal-functions
   (with-literal-functions [f [g [0 0] 0]]

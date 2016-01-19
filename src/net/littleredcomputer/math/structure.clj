@@ -31,7 +31,7 @@
   v/Value
   (nullity? [_] (every? g/zero? v))
   (unity? [_] false)
-  (zero-like [_] (make orientation (-> v count (repeat 0))))
+  (zero-like [_] (Struct. orientation (mapv v/zero-like v)))
   (exact? [_] (every? v/exact? v))
   (numerical? [_] false)
   (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
