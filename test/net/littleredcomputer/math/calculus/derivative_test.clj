@@ -308,5 +308,4 @@
     (is (= '(down 1 (cos t) (* -1 (sin t))) (simplify (((transpose D) f) 't))))
     (is (= 2 (simplify (* ((D f) 't) (((transpose D) f) 't)))))
     (is (= 2 (simplify ((laplacian (up identity sin cos)) 't))))
-    (is (= '(+ (cos t) (* -1 (sin t)) 1) (simplify ((divergence f) 't))))
-    ))
+    (is (= '(+ (cos t) (* -1 (sin t)) 1) (simplify ((divergence f) 't))))))

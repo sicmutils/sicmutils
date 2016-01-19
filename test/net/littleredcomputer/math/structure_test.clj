@@ -246,6 +246,23 @@
                (down (up [1 0 0] [1 0 1]) (up [1 1 0] [1 1 1])))
            (structure->access-chains (up (down (up 1 2) (up 2 3)) (down (up 3 4) (up 4 5))))))))
 
+(deftest some-tensors
+  (let [ε_ijk (down (down (down  0  0  0)
+                          (down  0  0  1)
+                          (down  0 -1  0))
+                    (down (down  0  0 -1)
+                          (down  0  0  0)
+                          (down  1  0  0))
+                    (down (down  0  1  0)
+                          (down -1  0  0)
+                          (down  0  0  0)))
+        δ-il (up (up 1 0 0)
+                 (up 0 1 0)
+                 (up 0 0 1))]
+
+    (is (= (down 0 0 0) (* δ-il ε_ijk)))
+    ))
+
 (deftest matrices
   (let [A (up (up 1 2) (up 3 4))
         B (down (up 1 2 3) (up 3 4 5))

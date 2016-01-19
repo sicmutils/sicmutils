@@ -185,7 +185,7 @@
   "The inner produce of compatible structures (opposite orientation, same
   length)."
   [s t]
-  (reduce g/+ 0 (map g/* s t)))
+  (reduce g/+ (map g/* s t)))
 
 (defn- outer-product
   "The outer product of s and t is the structure s with each element at the
