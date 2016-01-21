@@ -3,7 +3,7 @@
 
 
 
-A reimplementation of the Scmutils system for math and physics
+An implementation of the Scmutils system for math and physics
 investigations in the Clojure language. Scmutils is extensively used
 in the textbooks
 [The Structure and Interpretation of Classical Mechanics][SICM] and

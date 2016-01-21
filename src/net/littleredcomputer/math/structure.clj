@@ -18,7 +18,8 @@
 
 (ns net.littleredcomputer.math.structure
   (:import (clojure.lang Sequential Seqable IFn ILookup AFn Counted PersistentVector))
-  (:require [net.littleredcomputer.math
+  (:require [clojure.string :refer [join]]
+            [net.littleredcomputer.math
              [value :as v]
              [generic :as g]]))
 
@@ -43,7 +44,7 @@
          (let [^Struct bs b]
            (= orientation (.orientation bs))
           (= v (.v bs)))))
-  (toString [_] (str (cons (orientation orientation->symbol) v)))
+  (toString [_] (str "(" (orientation orientation->symbol) " " (join " " (map str v)) ")"))
   Sequential
   Counted
   (count [_] (count v))
