@@ -28,6 +28,7 @@
   (kind [_] ::operator)
   (nullity? [_] false)
   (unity? [_] false)
+  (arity [_] arity)
   IFn
   (invoke [_ f] (o f))
   (invoke [_ f g] (o f g))
@@ -42,36 +43,38 @@
   [x]
   (instance? Operator x))
 
-(defn- expt
-  [operator n]
-  (if (= n 0) identity
-              (fn [f] (operator ((expt operator (dec n)) f)))))
-
-;; XXX: we haven't dealt with functions of arity > 1 here; nor have
-;; we dealt with operators of arity > 1, but we haven't seen one of
-;; those in the wild yet.
+(def identity-operator
+  (Operator. (fn [f] #(apply f %&)) 1 'identity))
 
 (defn- number->operator
   [n]
-  (Operator. (fn [f] #(g/* n (f %))) 1 "#"))
+  (Operator. (fn [f] #(g/* n (apply f %&))) 1 'number))
+
+(defn ^:private function->operator
+  [f]
+  (Operator. (fn [g] #(g/* (apply f %&) (apply g %&))) 1 'fn))
 
 (defn- sub
   [o p]
-  (Operator. (fn [f] #(g/- ((o f) %) ((p f) %))) 2 "sub"))
+  (Operator. (fn [f] #(g/- (apply (o f) %&) (apply (p f) %&))) 2 'sub))
 
 (defn- add
   [o p]
-  (Operator. (fn [f] #(g/+ ((o f) %) ((p f) %))) 2 "add"))
+  (Operator. (fn [f] #(g/+ (apply (o f) %&) (apply (p f) %&))) 2 'add))
 
 ;; multiplication of operators is treated like composition.
 (defn- mul
   [o p]
-  (Operator. (fn [f] #((o (p f)) %)) 2 "mul"))
+  (Operator. (fn [f] #(apply (o (p f)) %&)) 2 'mul))
 
 (defmethod g/expt
-  [::operator :net.littleredcomputer.math.expression/numerical-expression]
+  [::operator Number]
   [o n]
-  (expt o n))
+  {:pre [(integer? n)
+         (not (neg? n))]}
+  (loop [e identity-operator
+         n n]
+    (if (= n 0) e (recur (mul e o) (dec n)))))
 
 ;; When arithmetically combined with operators, a number is
 ;; treated as an operator that multiplies its input by the
@@ -80,6 +83,7 @@
   [o n]
   (add o (number->operator n)))
 
+(defmethod g/sub [::operator ::operator] [o p] (sub o p))
 (defmethod g/sub
   [::operator :net.littleredcomputer.math.expression/numerical-expression]
   [o n]
@@ -88,6 +92,27 @@
 (defmethod g/mul [::operator ::operator] [o p] (mul o p))
 (defmethod g/add [::operator ::operator] [o p] (add o p))
 (defmethod g/square ::operator [o] (mul o o))
-(defmethod g/simplify ::operator [o] (-> o :name g/simplify))
+(defmethod g/simplify ::operator [o] (:name o))
+
+(defmethod g/transpose
+  ::operator
+  [o]
+  (Operator. (fn [f] #(g/transpose (apply (o f) %&))) 1 'transpose))
+
+(defmethod g/cross-product
+  [::operator ::operator]
+  [o p]
+  (fn [f]
+    #(g/cross-product (apply (o f) %&) (apply (p f) %&))))
+
+(defmethod g/mul
+  [::operator :net.littleredcomputer.math.function/function]
+  [o f]
+  (mul o (function->operator f)))
+
+(defmethod g/mul
+  [:net.littleredcomputer.math.function/function ::operator]
+  [f o]
+  (mul (function->operator f) o))
 
 ;; XXX: we need a bunch more of these, of course.

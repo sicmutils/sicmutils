@@ -168,7 +168,7 @@
  g/expt g/expt)
 
 (make-unary-operations
- g/negate g/invert g/sqrt g/sin g/asin g/cos g/acos g/tan g/square g/cube g/exp g/log)
+ g/negate g/invert g/sqrt g/sin g/asin g/cos g/acos g/tan g/square g/cube g/exp g/log g/transpose)
 ;; TODO asin acos sinh cosh ...
 
 (defmethod g/simplify Function [a] (-> a :expr g/simplify))

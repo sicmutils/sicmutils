@@ -18,11 +18,27 @@
 
 (ns net.littleredcomputer.math.numerical.minimize
   (:require [clojure.tools.logging :as log])
-  (:import (org.apache.commons.math3.optim.univariate BrentOptimizer UnivariateObjectiveFunction SearchInterval)
-           (org.apache.commons.math3.analysis UnivariateFunction MultivariateFunction)
-           (org.apache.commons.math3.optim.nonlinear.scalar GoalType ObjectiveFunction)
-           (org.apache.commons.math3.optim MaxEval OptimizationData InitialGuess ConvergenceChecker SimpleValueChecker PointValuePair)
-           (org.apache.commons.math3.optim.nonlinear.scalar.noderiv SimplexOptimizer NelderMeadSimplex)
+  (:import (org.apache.commons.math3.optim.univariate
+            BrentOptimizer
+            UnivariateObjectiveFunction
+            SearchInterval
+            UnivariatePointValuePair)
+           (org.apache.commons.math3.analysis
+            UnivariateFunction
+            MultivariateFunction)
+           (org.apache.commons.math3.optim.nonlinear.scalar
+            GoalType
+            ObjectiveFunction)
+           (org.apache.commons.math3.optim
+            MaxEval
+            OptimizationData
+            InitialGuess
+            ConvergenceChecker
+            SimpleValueChecker
+            PointValuePair)
+           (org.apache.commons.math3.optim.nonlinear.scalar.noderiv
+            SimplexOptimizer
+            NelderMeadSimplex)
            (com.google.common.base Stopwatch)))
 
 (defn minimize
@@ -40,7 +56,8 @@
             (reify ConvergenceChecker
               (converged [this _ _ current]
                 (when observe
-                  (observe (.getPoint current) (.getValue current)))
+                  (observe (.getPoint ^UnivariatePointValuePair current)
+                           (.getValue ^UnivariatePointValuePair current)))
                 false)))
          args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
          (into-array OptimizationData
@@ -67,7 +84,7 @@
 
 (defn multidimensional-minimize
   "Find the minimum of the function f: R^n -> R, given an initial point q ∈ R^n.
-  If observe is supplied, will be invoked with the iteration cound and the values
+  If observe is supplied, will be invoked with the iteration count and the values
   of X and f(X) at each search step."
   ([f q observe]
    (let [total-time (Stopwatch/createStarted)
@@ -80,7 +97,8 @@
             (reify ConvergenceChecker
               (converged [this iteration previous current]
                 (when observe
-                  (observe (vec (.getPoint current)) (.getValue current)))
+                  (observe (vec (.getPoint ^PointValuePair current))
+                           (.getValue ^PointValuePair current)))
                 (.converged convergence-checker iteration previous current))))
          args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
          (into-array OptimizationData

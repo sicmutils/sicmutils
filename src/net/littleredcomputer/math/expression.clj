@@ -20,6 +20,8 @@
   (:require [net.littleredcomputer.math.value :as v]))
 
 (defrecord Expression [type expression]
+  Object
+  (toString [_] (str expression))
   v/Value
   (nullity? [_] false)                                      ;; XXX what if it's a wrapped zero? one?
   (unity? [_] false)
