@@ -68,10 +68,10 @@
                                        (Lagrangian-action Lagrangian path t0 t1))))
           find-path (fn [Lagrangian t0 q0 t1 q1 n values]
                       (let [initial-qs (linear-interpolants q0 q1 n)
-                            minimizing-qs (first
-                                           (multidimensional-minimize
-                                            (parametric-path-action Lagrangian t0 q0 t1 q1)
-                                            initial-qs values))]
+                            minimizing-qs
+                            (multidimensional-minimize
+                             (parametric-path-action Lagrangian t0 q0 t1 q1)
+                             initial-qs values)]
                         (make-path t0 q0 t1 q1 minimizing-qs)))]
 
       ;; p. 18

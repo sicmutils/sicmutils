@@ -117,6 +117,6 @@
          p (.optimize o args)]
      (.stop total-time)
      (log/info "#" @evaluation-count "total" (str total-time) "f" (str evaluation-time))
-     [(.getPoint p) (.getValue p)]))
+     (.getPoint p)))
   ([f q]
    (multidimensional-minimize f q nil)))
