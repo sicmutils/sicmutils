@@ -80,8 +80,7 @@
       (is (= dxdydz (dx*dy (dx*dy dy dz) dx)))
       (is (= zero-differential (dx*dy dx dx)))
       (is (= zero-differential (dx*dy dz (dx*dy dy dz))))
-      (is (= 0 (* dx dx)))
-      ))
+      (is (= 0 (* dx dx)))))
   (testing "more terms"
     (let [d-expr #(-> % :terms (get (sorted-set 0)))
           d-simplify #(-> % d-expr simplify)]
@@ -169,8 +168,7 @@
           f-hat ((D f) 3)]
       (is ((v/within 1e-6) 2980.957987 ((f-hat exp) 5)))
       ;; TODO: this is the amazing bug: bbb == 0 is wrong.
-      #_(is (= 'bbb ((f-hat (f-hat exp)) 5)))
-      )))
+      #_(is (= 'bbb ((f-hat (f-hat exp)) 5))))))
 
 (deftest diff-test-2
   (testing "delta-eta-test"

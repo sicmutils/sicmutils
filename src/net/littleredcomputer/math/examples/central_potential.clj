@@ -17,7 +17,7 @@
 ;
 
 (ns net.littleredcomputer.math.examples.central-potential
-  (:refer-clojure :exclude [+ - * /])
+  (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.tools.logging :as log]
             [hiccup.core :refer :all]
             [hiccup.page :refer :all]

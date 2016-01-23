@@ -46,6 +46,7 @@
 (def abs g/abs)
 (def negate g/negate)
 (def complex c/complex)
+(def zero? g/zero?)
 
 (def evolve ode/evolve)
 (def state-advancer ode/state-advancer)

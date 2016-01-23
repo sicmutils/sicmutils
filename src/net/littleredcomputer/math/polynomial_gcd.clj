@@ -58,6 +58,10 @@
                (if (done? c) (reduced c) c)))]
     #(reduce rf %)))
 
+(def ^:private primitive-gcd
+  "A function which will return the gcd of a sequence of numbers."
+  (reduce-until v/unity? euclid/gcd))
+
 (defn ^:private with-content-removed
   "For multivariate polynomials. u and v are considered here as
   univariate polynomials with polynomial coefficients. Using the
@@ -242,26 +246,22 @@
     (continue u v)))
 
 (defn ^:private with-trivial-constant-gcd-check
-  "We consider the maximum exponent found for each variable in
-  any term of each polynomial. A nontrivial GCD would have to fit
-  in this exponent limit for both polynomials. This is basically
-  a test for a kind of disjointness of the variables. If it is
-  impossible for the GCD to be nonconstant, the continuation one
-  is invoked with no arguments; otherwise, continue is invoked
-  with u and v.
-
-  TODO: This is broken, and so temporarily short-circuited, b/c
-  we didn't consider the case where the GCD is a non-one constant!"
-  [u v continue one]
-  (if true
-    (continue u v)
-
-    (let [umax (reduce #(mapv max %1 %2) (keys (:xs->c u)))
-         vmax (reduce #(mapv max %1 %2) (keys (:xs->c v)))
-         maxd (mapv min umax vmax)]
-     (if (every? zero? maxd)
-       (do (swap! gcd-trivial-constant inc) (one))
-       (continue u v)))))
+  "We consider the maximum exponent found for each variable in any
+  term of each polynomial. A nontrivial GCD would have to fit in this
+  exponent limit for both polynomials. This is basically a test for a
+  kind of disjointness of the variables. If this happens we just
+  return the constant gcd and do not invoke the continuation."
+  [u v continue]
+  (let [umax (reduce #(mapv max %1 %2) (keys (:xs->c u)))
+        vmax (reduce #(mapv max %1 %2) (keys (:xs->c v)))
+        maxd (mapv min umax vmax)]
+    (if (every? zero? maxd)
+      (do
+        (swap! gcd-trivial-constant inc)
+        (->> (concat (coefficients u) (coefficients v))
+             primitive-gcd
+             (make-constant (:arity u))))
+      (continue u v))))
 
 (def ^:private univariate-euclid-inner-loop
   (euclid-inner-loop euclid/gcd))
@@ -362,8 +362,7 @@
                     fail (fn [] (v/one-like u))]
                 (with-trivial-constant-gcd-check u v
                   (fn [u v]
-                    (with-probabilistic-check u v continue fail))
-                  fail))))))
+                    (with-probabilistic-check u v continue fail))))))))
 
 ;; several observations. many of the gcds we find when attempting the troublesome
 ;; GCD are the case where we have two monomials. This can be done trivially

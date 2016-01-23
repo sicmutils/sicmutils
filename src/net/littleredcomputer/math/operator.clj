@@ -38,7 +38,6 @@
   [o name]
   (Operator. o 1 name))
 
-;; XXX needed?
 (defn operator?
   [x]
   (instance? Operator x))

@@ -17,7 +17,7 @@
 ;
 
 (ns net.littleredcomputer.math.examples.driven-pendulum-test
-  (:refer-clojure :exclude [+ - * /])
+  (:refer-clojure :exclude [+ - * / zero?])
   (:require [net.littleredcomputer.math.env :refer :all]
             [net.littleredcomputer.math.mechanics.lagrange :refer :all]
             [net.littleredcomputer.math.examples.driven-pendulum :as driven]

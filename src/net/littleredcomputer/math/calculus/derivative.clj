@@ -76,15 +76,14 @@
 (def ^:private empty-tags (sorted-set))
 
 (defn canonicalize-differential
-  [{terms :terms}]
+  [{terms :terms :as d}]
   (if (empty? terms)
     0
     (let [tags->coef (first terms)]
       (if (and (= (count terms) 1)
                (empty? (tags tags->coef)))
         (coefficient tags->coef)
-        (Differential. (into empty-differential terms))))))
-
+        d))))
 
 (defn make-differential
   "The input here is a mapping (loosely defined) between sets of differential
@@ -97,21 +96,19 @@
   whether the resulting map is equivalent to a scalar; after all that either
   a scalar or a Differential object is returned."
   [tags->coefs]
-  (if (and (sorted? tags->coefs) (map? tags->coefs))
-    (Differential. tags->coefs)
-    (->> tags->coefs
-         ; force tag sequences into sorted set form
-         (map (fn [[tag-sequence coefficient]] [(into (sorted-set) tag-sequence) coefficient]))
-         ; group by canonicalized tag-set
-         (group-by tags)
-         ; tag sets now map to [tag-set coefficient-list]. Sum the coefficients
-         ; and produce the map of canonicalized tag-set to coefficient-sum
-         (map (fn [[tag-set coefficients]] [tag-set (reduce g/+ 0 (map coefficient coefficients))]))
-         ; drop tag-set:coefficient pairs where the coefficient is a zero object
-         (remove (fn [[_ coefficient]] (g/zero? coefficient)))
-         ; build the differential object
-         (into empty-differential)
-         Differential.)))
+  (->> tags->coefs
+       ;; force tag sequences into sorted set form
+       (map (fn [[tag-sequence coefficient]] [(into (sorted-set) tag-sequence) coefficient]))
+       ;; group by canonicalized tag-set
+       (group-by tags)
+       ;; tag sets now map to [tag-set coefficient-list]. Sum the coefficients
+       ;; and produce the map of canonicalized tag-set to coefficient-sum
+       (map (fn [[tag-set coefficients]] [tag-set (reduce g/+ 0 (map coefficient coefficients))]))
+       ;; drop tag-set:coefficient pairs where the coefficient is a zero object
+       (remove (fn [[_ coefficient]] (g/zero? coefficient)))
+       ;; build the differential object
+       (into empty-differential)
+       Differential.))
 
 (defn- differential->terms
   "Given a differential, returns the vector of DifferentialTerms
@@ -121,8 +118,7 @@
   [dx]
   (cond (instance? Differential dx) (:terms dx)
         (g/zero? dx) empty-differential
-        :else (conj empty-differential [empty-tags dx])))
-
+        :else (assoc empty-differential empty-tags dx)))
 
 (defn- dxs+dys
   "Inputs are sequences of differential terms; returns the sequence of differential
