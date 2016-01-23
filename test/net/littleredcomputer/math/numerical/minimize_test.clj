@@ -39,7 +39,7 @@
       (is (near 0.703205 (M #(+ (/ 0.01 %) (- (Math/exp %) (* 2 %) (/ 0.000001 % %))) 0.001 1)))
       (is (near 0. (M #(+ 5 (* % %)) -2 2)))))
   (testing "multivariate"
-    (let [M (fn [f qs] (seq (multidimensional-minimize f qs)))]
+    (let [M (fn [f qs] (multidimensional-minimize f qs))]
       (let [p (M (fn [[x y]]
                    (let [x' (- x 3)
                          y' (+ y 4)]
