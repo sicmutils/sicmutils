@@ -39,14 +39,6 @@
 
 (def ^:private near (v/within 1e-6))
 
-(defn make-path
-  [t0 q0 t1 q1 qs]
-  (let [n (count qs)
-        ts (linear-interpolants t0 t1 n)]
-    (Lagrange-interpolation-function
-     `[~q0 ~@qs ~q1]
-     `[~t0 ~@ts ~t1])))
-
 (deftest ^:long section-1.4
   (with-literal-functions [x y z]
     (let [q (up x y z)
@@ -61,19 +53,7 @@
                                         (fn [ε]
                                           (let [η (make-η ν t1 t2)]
                                             (Lagrangian-action (L-free-particle mass)
-                                                               (+ q (* ε η)) t1 t2))))
-          parametric-path-action (fn [Lagrangian t0 q0 t1 q1]
-                                   (fn [qs]
-                                     (let [path (make-path t0 q0 t1 q1 qs)]
-                                       (Lagrangian-action Lagrangian path t0 t1))))
-          find-path (fn [Lagrangian t0 q0 t1 q1 n values]
-                      (let [initial-qs (linear-interpolants q0 q1 n)
-                            minimizing-qs
-                            (multidimensional-minimize
-                             (parametric-path-action Lagrangian t0 q0 t1 q1)
-                             initial-qs values)]
-                        (make-path t0 q0 t1 q1 minimizing-qs)))]
-
+                                                               (+ q (* ε η)) t1 t2))))]
       ;; p. 18
       (is (= '(up (x t)
                   (y t)
@@ -332,12 +312,7 @@
                          (- (T3-spherical m) Vs)))
           ang-mom-z (fn [m]
                       (fn  [[_ q v]]
-                        (nth (cross-product q (* m v)) 2)))
-          s->r (fn [[_ [r θ φ] _]]
-                 (let [x (* r (sin θ) (cos φ))
-                       y (* r (sin θ) (sin φ))
-                       z (* r (cos θ))]
-                   (up x y z)))]
+                        (nth (cross-product q (* m v)) 2)))]
       ;; p. 81
       (is (= '(down (+ (* (expt (sin θ) 2) m r (expt φdot 2))
                        (* m r (expt θdot 2))

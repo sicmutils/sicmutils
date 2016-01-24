@@ -23,6 +23,7 @@
              [structure :refer :all]
              [function :refer :all]]
             [net.littleredcomputer.math.numerical.integrate :refer :all]
+            [net.littleredcomputer.math.numerical.minimize :refer :all]
             [net.littleredcomputer.math.calculus.derivative :refer :all]))
 
 (defn coordinate
@@ -102,7 +103,9 @@
              (+ (((pd 0) F) local)
                 (* (((pd 1) F) local) v)))))
 
-(defn p->r [[_ [r φ]]]
+(defn p->r
+  "SICM p. 47"
+  [[_ [r φ]]]
   (up (* r (cos φ)) (* r (sin φ))))
 
 (defn Γ
@@ -223,3 +226,36 @@
   (fn [[_ [q0 q1] qdot]]  ;; local
     (- (* 1/2 m (square qdot))
        (V q0 q1))))
+
+(defn make-path
+  "SICM p. 23n"
+  [t0 q0 t1 q1 qs]
+  (let [n (count qs)
+        ts (linear-interpolants t0 t1 n)]
+    (Lagrange-interpolation-function
+     `[~q0 ~@qs ~q1]
+     `[~t0 ~@ts ~t1])))
+
+(defn parametric-path-action
+  "SICM p. 23"
+  [Lagrangian t0 q0 t1 q1]
+  (fn [qs]
+    (let [path (make-path t0 q0 t1 q1 qs)]
+      (Lagrangian-action Lagrangian path t0 t1))))
+
+(defn find-path
+  "SICM p. 23"
+  [Lagrangian t0 q0 t1 q1 n values]
+  (let [initial-qs (linear-interpolants q0 q1 n)
+        minimizing-qs
+        (multidimensional-minimize
+         (parametric-path-action Lagrangian t0 q0 t1 q1)
+         initial-qs values)]
+    (make-path t0 q0 t1 q1 minimizing-qs)))
+
+(defn s->r
+  "SICM p. 83"
+  [[_ [r θ φ] _]]
+  (up (* r (sin θ) (cos φ))
+      (* r (sin θ) (sin φ))
+      (* r (cos θ))))
