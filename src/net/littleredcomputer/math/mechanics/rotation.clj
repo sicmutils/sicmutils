@@ -17,7 +17,7 @@
 ;
 
 (ns net.littleredcomputer.math.mechanics.rotation
-  (:refer-clojure :exclude [+ - * / zero?])
+  (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [net.littleredcomputer.math
              [generic :refer :all]
              [structure :refer :all]

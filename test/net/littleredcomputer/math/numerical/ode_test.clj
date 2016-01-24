@@ -17,7 +17,7 @@
 ;
 
 (ns net.littleredcomputer.math.numerical.ode-test
-  (:refer-clojure :exclude [+ - * / zero?])
+  (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [clojure.test :refer :all]
             [net.littleredcomputer.math
              [structure :refer :all]

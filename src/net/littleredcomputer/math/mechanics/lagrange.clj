@@ -17,7 +17,7 @@
 ;
 
 (ns net.littleredcomputer.math.mechanics.lagrange
-  (:refer-clojure :exclude [+ - * / zero?])
+  (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [net.littleredcomputer.math
              [generic :refer :all]
              [structure :refer :all]
@@ -100,8 +100,8 @@
   (fn [[t _ v :as local]]
     (->local t
              (F local)
-             (+ (((pd 0) F) local)
-                (* (((pd 1) F) local) v)))))
+             (+ (((partial 0) F) local)
+                (* (((partial 1) F) local) v)))))
 
 (defn p->r
   "SICM p. 47"
@@ -129,8 +129,8 @@
 (defn Lagrange-equations
   [Lagrangian]
   (fn [q]
-    (- (D (compose ((pd 2) Lagrangian) (Γ q)))
-       (compose ((pd 1) Lagrangian) (Γ q)))))
+    (- (D (compose ((partial 2) Lagrangian) (Γ q)))
+       (compose ((partial 1) Lagrangian) (Γ q)))))
 
 (defn linear-interpolants
   [x0 x1 n]
@@ -162,12 +162,12 @@
 
 (defn Lagrangian->acceleration
   [L]
-  (let [P ((pd 2) L)
-        F ((pd 1) L)]
+  (let [P ((partial 2) L)
+        F ((partial 1) L)]
     (/ (- F
-          (+ ((pd 0) P)
-             (* ((pd 1) P) velocity)))
-       ((pd 2) P))))
+          (+ ((partial 0) P)
+             (* ((partial 1) P) velocity)))
+       ((partial 2) P))))
 
 (defn Lagrangian->state-derivative
   [L]
@@ -189,7 +189,7 @@
 
 (defn Lagrangian->energy
   [L]
-  (let [P ((pd 2) L)]
+  (let [P ((partial 2) L)]
     (- (* P velocity) L)))
 
 (defn osculating-path
@@ -218,7 +218,7 @@
 
 (defn Euler-Lagrange-operator
   [L]
-  (- (Dt ((pd 2) L)) ((pd 1) L)))
+  (- (Dt ((partial 2) L)) ((partial 1) L)))
 
 (defn L-rectangular
   "Lagrangian for a point mass on with the potential energy V(x, y)"

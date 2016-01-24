@@ -17,7 +17,7 @@
 ;
 
 (ns net.littleredcomputer.math.sicm-ch7-test
-  (:refer-clojure :exclude [+ - * / zero?])
+  (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [clojure.test :refer :all]
             [net.littleredcomputer.math
              [generic :refer :all]

@@ -17,7 +17,7 @@
 ;
 
 (ns net.littleredcomputer.math.env
-  (:refer-clojure :exclude [+ - * / zero?])
+  (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [net.littleredcomputer.math
              [generic :as g]
              [structure :as s]
@@ -82,6 +82,6 @@
 (def vector->down s/vector->down)
 
 (def D d/D)
-(def ∂ d/pd)
-(def pd d/pd)
+(def ∂ d/partial)
+(def partial d/partial)
 (def pi Math/PI)

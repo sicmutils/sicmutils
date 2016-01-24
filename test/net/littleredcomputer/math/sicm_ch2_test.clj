@@ -17,7 +17,7 @@
 ;
 
 (ns net.littleredcomputer.math.sicm-ch2-test
-  (:refer-clojure :exclude [+ - * / zero?])
+  (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [clojure.test :refer :all]
             [clojure.pprint :as pp]
             [net.littleredcomputer.math
@@ -70,11 +70,11 @@
              (* (cos ψ) (sin θ) (sin ψ) A θdot)
              (* -1N (cos ψ) (sin θ) (sin ψ) B θdot)
              (* (expt (cos θ) 2) C φdot) (* (cos θ) C ψdot))
-         (simplify (nth (((pd 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1))))
+         (simplify (nth (((partial 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1))))
   (is (zero? (simplify (- (nth ((Euler-state->L-space 'A 'B 'C) Euler-state) 2)
-                          (nth (((pd 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1)))))
+                          (nth (((partial 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1)))))
   (is (= '(* (expt (sin θ) 2) A B C)
-         (simplify (determinant (((square (pd 2)) (T-rigid-body 'A 'B 'C)) Euler-state))))))
+         (simplify (determinant (((square (partial 2)) (T-rigid-body 'A 'B 'C)) Euler-state))))))
 
 ;; the output is too horrible to contemplate at this point
 ;; (deftest section-2.9b-simplify

@@ -17,7 +17,7 @@
 ;
 
 (ns net.littleredcomputer.math.examples.rigid-rotation
-  (:refer-clojure :exclude [+ - * / zero?])
+  (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [net.littleredcomputer.math.env :refer :all]
             [net.littleredcomputer.math.mechanics.rigid :refer :all]))
 

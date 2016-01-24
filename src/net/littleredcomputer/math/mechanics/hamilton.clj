@@ -17,7 +17,7 @@
 ;
 
 (ns net.littleredcomputer.math.mechanics.hamilton
-  (:refer-clojure :exclude [+ - * / zero?])
+  (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [net.littleredcomputer.math
              [generic :refer :all]
              [structure :refer :all]
@@ -44,8 +44,8 @@
   [Hamiltonian]
   (fn [H-state]
     (->H-state 1
-               (((pd 2) Hamiltonian) H-state)
-               (- (((pd 1) Hamiltonian) H-state)))))
+               (((partial 2) Hamiltonian) H-state)
+               (- (((partial 1) Hamiltonian) H-state)))))
 
 (def phase-space-derivative Hamiltonian->state-derivative)
 
@@ -105,6 +105,6 @@
                          x))
                       (structure->access-chains gx)))
               (structure->access-chains fx))
-        ((- (* ((pd 1) f) ((pd 2) g))
-            (* ((pd 2) f) ((pd 1) g)))
+        ((- (* ((partial 1) f) ((partial 2) g))
+            (* ((partial 2) f) ((partial 1) g)))
          x)))))

@@ -17,6 +17,7 @@
 ;
 
 (ns net.littleredcomputer.math.calculus.derivative
+  (:refer-clojure :rename {partial core-partial})
   (:require [net.littleredcomputer.math
              [value :as v]
              [generic :as g]
@@ -354,6 +355,15 @@
                   (throw (IllegalArgumentException. (str "Bad selectors " f selectors v)))))]
     a-euclidean-derivative))
 
+(defn partial
+  "A shim. Dispatches to partial differentiation when all the arguments
+  are integers; falls back to the core meaning (partial function application)
+  otherwise."
+  [& selectors]
+  (if (every? integer? selectors)
+    (o/make-operator #(g/partial-derivative % selectors) :partial-derivative)
+    (apply core-partial selectors)))
+
 (defn- multivariate-derivative
   [f selectors]
   (let [a (v/arity f)
@@ -372,10 +382,6 @@
                                 ((d (fn [[w x y z]] (f w x y z)))
                                  (struct/seq-> [w x y z]))) {:arity a})
       (throw (IllegalArgumentException. (str "Haven't implemented this yet: arity " a))))))
-
-;; we note that: (D f) where f is a literal function returns
-;; 'a-euclidean-derivative', which when applied to 'x gives
-;; ((D f) x). So, we have to define D.
 
 (defn- define-binary-operation
   [generic-operation differential-operation]
@@ -406,10 +412,12 @@
 (define-unary-operation g/square #(diff-* % %))
 (define-unary-operation g/cube #(diff-* % (diff-* % %)))
 (derive ::differential :net.littleredcomputer.math.function/cofunction)
+
 (defmethod g/partial-derivative
   [:net.littleredcomputer.math.function/function Sequential]
   [f selectors]
   (multivariate-derivative f selectors))
+
 (defmethod g/partial-derivative
   [:net.littleredcomputer.math.structure/structure Sequential]
   [f selectors]
@@ -417,7 +425,3 @@
 
 (def D
   (o/make-operator #(g/partial-derivative % []) :derivative))
-
-(defn pd
-  [& selectors]
-  (o/make-operator #(g/partial-derivative % selectors) :partial-derivative))

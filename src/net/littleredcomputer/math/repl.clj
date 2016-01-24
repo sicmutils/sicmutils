@@ -17,7 +17,7 @@
 ;
 
 (ns net.littleredcomputer.math.repl
-  (:refer-clojure :exclude [+ - * / zero?])
+  (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [clojure.main :as main]
             [clojure.tools.nrepl.transport :as t]
             [clojure.tools.nrepl.middleware :as mw]

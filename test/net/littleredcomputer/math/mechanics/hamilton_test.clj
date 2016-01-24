@@ -17,7 +17,7 @@
 ;
 
 (ns net.littleredcomputer.math.mechanics.hamilton-test
-  (:refer-clojure :exclude [+ - * / zero?])
+  (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [clojure.test :refer :all]
             [net.littleredcomputer.math.env :refer :all]
             [net.littleredcomputer.math.mechanics

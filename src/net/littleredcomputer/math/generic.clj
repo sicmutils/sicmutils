@@ -142,6 +142,6 @@
                         invert 'invert negate 'negate square 'square cube 'cube
                         expt 'expt exp 'exp log 'log sqrt 'sqrt abs 'abs negative? 'negative?
                         sin 'sin cos 'cos tan 'tan asin 'asin acos 'acos
-                        partial-derivative 'pd
+                        partial-derivative 'partial
                         cross-product 'cross-product
                         simplify 'simplify})

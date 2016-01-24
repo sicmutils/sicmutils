@@ -17,7 +17,7 @@
 ;
 
 (ns net.littleredcomputer.math.calculus.derivative-test
-  (:refer-clojure :exclude [+ - * / zero?])
+  (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [clojure.test :refer :all]
             [net.littleredcomputer.math
              [function :refer :all]
@@ -135,29 +135,35 @@
 (deftest partial-diff-test
   (testing "partial derivatives"
     (let [f (fn [x y] (+ (* 'a x x) (* 'b x y) (* 'c y y)))]
-      (is (= '(+ (* 4 a) (* 3 b)) (simplify (((pd 0) f) 2 3))))
-      (is (= '(+ (* 2 b) (* 6 c)) (simplify (((pd 1) f) 2 3))))
-      (is (= '(+ (* 2 a x) (* b y)) (simplify (((pd 0) f) 'x 'y))))
-      (is (= '(+ (* b x) (* 2 c y)) (simplify (((pd 1) f) 'x 'y))))
+      (is (= '(+ (* 4 a) (* 3 b)) (simplify (((partial 0) f) 2 3))))
+      (is (= '(+ (* 2 b) (* 6 c)) (simplify (((partial 1) f) 2 3))))
+      (is (= '(+ (* 2 a x) (* b y)) (simplify (((partial 0) f) 'x 'y))))
+      (is (= '(+ (* b x) (* 2 c y)) (simplify (((partial 1) f) 'x 'y))))
       ;; matrix of 2nd partials
       (is (= '[[(* 2 a) b]
                [b (* 2 c)]]
              (for [i (range 2)]
                (for [j (range 2)]
-                 (simplify (((* (pd i) (pd j)) f) 'x 'y))))))
+                 (simplify (((* (partial i) (partial j)) f) 'x 'y))))))
       (is (= '[[(* 2 a) b]
                [b (* 2 c)]]
              (for [i (range 2)]
                (for [j (range 2)]
-                 (simplify (((compose (pd i) (pd j)) f) 'x 'y)))))))
+                 (simplify (((compose (partial i) (partial j)) f) 'x 'y)))))))
     (let [F (fn [a b]
               (fn [[x y]]
                 (up (* a x) (* b y))))]
       (is (= (up 'x 'y) ((F 1 1) (up 'x 'y))))
       (is (= (up (* 2 'x) (* 3 'y)) ((F 2 3) (up 'x 'y))))
-      (is (= (up 'x 0)  ((((pd 0) F) 1 1) (up 'x 'y))))
-      (is (= (up 0 'y)  ((((pd 1) F) 1 1) (up 'x 'y))))
+      (is (= (up 'x 0)  ((((partial 0) F) 1 1) (up 'x 'y))))
+      (is (= (up 0 'y)  ((((partial 1) F) 1 1) (up 'x 'y))))
       (is (= (down (up 'x 0) (up 0 'y)) (((D F) 1 1) (up 'x 'y)))))))
+
+(deftest partial-shim
+  (testing "partial also works the way Clojure defines it"
+    (is (= 10 ((partial + 9) 1)))
+    (is (= 5 ((partial max 4) 5)))
+    (is (= 4 ((partial max 4) 2)))))
 
 (deftest amazing-bug
   (testing "1"
@@ -280,8 +286,8 @@
       (is (= '((D f) x) (simplify ((D f) 'x))))
       (is (= '((D f) (+ x y)) (simplify ((D f) (+ 'x 'y))))))
     (testing "R^2 -> R"
-      (is (= '(((∂ 0) g) x y) (simplify (((pd 0) g) 'x 'y))))
-      (is (= '(((∂ 1) g) x y) (simplify (((pd 1) g) 'x 'y))))
+      (is (= '(((∂ 0) g) x y) (simplify (((partial 0) g) 'x 'y))))
+      (is (= '(((∂ 1) g) x y) (simplify (((partial 1) g) 'x 'y))))
       (is (= '(down (((∂ 0) g) x y) (((∂ 1) g) x y))
              (simplify ((D g) 'x 'y)))))))
 
