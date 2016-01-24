@@ -146,11 +146,16 @@
       (is (= II (gcd II (add (add X X) (add Z Z))))))))
 
 (defn ^:private ->poly [x] (expression-> x (fn [p v] p)))
-(defn ^:private gcd-test [dx fx gx]
+(defn ^:private gcd-test [name dx fx gx]
   (let [d (->poly dx)
         f (->poly fx)
-        g (->poly gx)]
-    (is (= d (gcd (mul d f) (mul d g))))))
+        g (->poly gx)
+        df (mul d f)
+        dg (mul d g)
+        sw (Stopwatch/createStarted)
+        a (gcd df dg)]
+    (println "gcd-test" name (str sw))
+    (is (= d a))))
 
 (deftest gjs
   (testing "GJS cases (see sparse-gcd.scm:666)"
@@ -215,44 +220,8 @@
                  (* x2 x5 x5)
                  (* x1 x2 x4 x5)
                  (* x2 x5)
-                 (* x1 x2 x3 x4 x4))]
-
-      (is (= (->poly d2) (-> d2 ->poly lower-arity raise-arity)))
-      (is (= (->poly d3) (-> d3 ->poly lower-arity raise-arity)))
-      (is (= (->poly d4) (-> d4 ->poly lower-arity raise-arity)))
-
-      (is (= (make [0
-                    (make [2 1])
-                    (make [0 0 2])])
-             (-> d2 ->poly lower-arity)))
-
-      (is (= (make [0
-                    (make [2 1 2 1])
-                    (make [0 0 2 0 2])
-                    (make [2 5 2])
-                    (make [0 0 2 4])])
-             (lower-arity (mul (->poly d2) (->poly f2)))))
-
-      (is (= (make [0
-                    0
-                    (make [4 4 5 4 1])
-                    (make [0 0 8 4 8 4])
-                    (make [4 12 9 2 4 0 4])
-                    (make [0 0 8 20 8])
-                    (make [0 0 0 0 4 8])])
-             (mul (lower-arity (->poly d2))
-                  (lower-arity (mul (->poly d2) (->poly f2))))))
-
-      (gcd-test d1 f1 g1)
-      (gcd-test d2 f2 g2)
-      (gcd-test d3 f3 g3)
-      (gcd-test d4 f4 g4)
-      (gcd-test d5 f5 g5)
-      (gcd-stats))))
-
-(deftest more-gjs
-  (testing "GJS cases (see sparse-gcd.scm)"
-    (let [d6 '(+ (* x1 x2 x4 x4 x5 x5 x6 x6)
+                 (* x1 x2 x3 x4 x4))
+          d6 '(+ (* x1 x2 x4 x4 x5 x5 x6 x6)
                  (* x1 x2 x2 x3 x3 x4 x5 x5 x6 x6)
                  (* x1 x1 x3 x6 x6)
                  (* x1 x1 x2 x3 x3 x4 x5 x5 x6)
@@ -281,9 +250,41 @@
                  (* x4 x6 x7 x7)
                  (* x1 x1 x2 x3 x5 x6 x7)
                  (* x1 x1 x3 x3 x4 x5 x5))]
-      ;; aren't quite good enough for these yet.
-      #_(gcd-test d6 f6 g6)
-      #_(gcd-test d7 f7 g7))))
+
+      (is (= (->poly d2) (-> d2 ->poly lower-arity raise-arity)))
+      (is (= (->poly d3) (-> d3 ->poly lower-arity raise-arity)))
+      (is (= (->poly d4) (-> d4 ->poly lower-arity raise-arity)))
+
+      (is (= (make [0
+                    (make [2 1])
+                    (make [0 0 2])])
+             (-> d2 ->poly lower-arity)))
+
+      (is (= (make [0
+                    (make [2 1 2 1])
+                    (make [0 0 2 0 2])
+                    (make [2 5 2])
+                    (make [0 0 2 4])])
+             (lower-arity (mul (->poly d2) (->poly f2)))))
+
+      (is (= (make [0
+                    0
+                    (make [4 4 5 4 1])
+                    (make [0 0 8 4 8 4])
+                    (make [4 12 9 2 4 0 4])
+                    (make [0 0 8 20 8])
+                    (make [0 0 0 0 4 8])])
+             (mul (lower-arity (->poly d2))
+                  (lower-arity (mul (->poly d2) (->poly f2))))))
+
+      (gcd-test "D1" d1 f1 g1)
+      (gcd-test "D2" d2 f2 g2)
+      (gcd-test "D3" d3 f3 g3)
+      (gcd-test "D4" d4 f4 g4)
+      (gcd-test "D5" d5 f5 g5)
+      #_(gcd-test "D6" d6 f6 g6)
+      #_(gcd-test "D7" d7 f7 g7)
+      (gcd-stats))))
 
 (deftest ^:long big-gcd
   (let [u (make 10 [[[0 0 1 0 0 0 1 1 0 1] 1]
@@ -303,7 +304,7 @@
     (let [t (fn []
               (let [sw (Stopwatch/createStarted)
                     g (gcd u v)]
-                (println sw)
+                (println (str sw))
                 (gcd-stats)
                 g))]
       (binding [*poly-gcd-time-limit* [3 TimeUnit/SECONDS]]

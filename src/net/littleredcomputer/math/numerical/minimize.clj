@@ -78,7 +78,7 @@
        (when observe
          (observe (dec (.getEvaluations o)) x y))
        (log/info "#" @evaluation-count "total" (str total-time) "f" (str evaluation-time))
-       [x y])))
+       [x y @evaluation-count])))
   ([f a b]
    (minimize f a b nil)))
 

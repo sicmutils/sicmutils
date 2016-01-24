@@ -237,12 +237,12 @@
                 false)))))))
 
 (defn ^:private with-probabilistic-check
-  [u v continue one]
+  [u v continue]
   (if (and
        ;false  ;; XXX
        (> (:arity u) 1)
        (probabilistic-unit-gcd u v))
-    (do (swap! gcd-probabilistic-unit inc) (one))
+    (do (swap! gcd-probabilistic-unit inc) (v/one-like u))
     (continue u v)))
 
 (defn ^:private with-trivial-constant-gcd-check
@@ -358,11 +358,11 @@
                                              (throw (TimeoutException.
                                                      (str "Took too long to find multivariate polynomial GCD: "
                                                           clock))))]
-              (let [continue (fn [u v] (abs (inner-gcd 0 u v)))
-                    fail (fn [] (v/one-like u))]
-                (with-trivial-constant-gcd-check u v
-                  (fn [u v]
-                    (with-probabilistic-check u v continue fail))))))))
+              (with-trivial-constant-gcd-check u v
+                (fn [u v]
+                  (with-probabilistic-check u v
+                    (fn [u v]
+                      (abs (inner-gcd 0 u v))))))))))
 
 ;; several observations. many of the gcds we find when attempting the troublesome
 ;; GCD are the case where we have two monomials. This can be done trivially
