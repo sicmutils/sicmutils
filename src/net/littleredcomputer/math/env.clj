@@ -17,7 +17,7 @@
 ;
 
 (ns net.littleredcomputer.math.env
-  (:refer-clojure :exclude [+ - * / zero? ])  ;; partial]) ;; I'm partial to it
+  (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [net.littleredcomputer.math
              [generic :as g]
              [structure :as s]
@@ -85,4 +85,4 @@
 (def ∂ d/pd)
 (def pd d/pd)
 
-(def Pi (* 2 (asin 1)))
+(def Pi (* 2 (asin 1)))  ;; used in SICM code - albeit as :pi
