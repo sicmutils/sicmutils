@@ -84,3 +84,5 @@
 (def D d/D)
 (def ∂ d/pd)
 (def pd d/pd)
+
+(def Pi (* 2 (asin 1)))  ;; used in SICM code - albeit as :pi

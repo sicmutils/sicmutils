@@ -22,6 +22,7 @@
              [generic :refer :all]
              [structure :refer :all]
              [function :refer :all]]
+            [net.littleredcomputer.math.numerical.minimize :refer :all]
             [net.littleredcomputer.math.numerical.integrate :refer :all]
             [net.littleredcomputer.math.calculus.derivative :refer :all]))
 
@@ -223,3 +224,32 @@
   (fn [[_ [q0 q1] qdot]]  ;; local
     (- (* 1/2 m (square qdot))
        (V q0 q1))))
+
+;; more functions from SICM, ch 1.4  
+
+(defn make-path 
+  "SICM 1st ed.  Ch 1.4 footnote #44 p.22"
+  [t0 q0 t1 q1 qs]
+  (let [ts (linear-interpolants t0 t1 (count qs))]
+    (Lagrange-interpolation-function
+      (concat (list q0) qs (list q1))
+      (concat (list t0) ts (list t1)))))
+  
+  
+(defn parametric-path-action 
+  "SICM 1st ed.  Ch 1.4 p.23"
+  [Lagrangian t0 q0 t1 q1]
+  (fn [qs]
+    (let [path (make-path t0 q0 t1 q1 qs)]
+      (Lagrangian-action Lagrangian path t0 t1))))
+      
+
+(defn find-path 
+  "SICM 1st ed.  Ch 1.4 p.23"
+  [Lagrangian t0 q0 t1 q1 n]
+  (let [initial-qs (linear-interpolants q0 q1 n)
+        minimizing-qs (multidimensional-minimize 
+                         (parametric-path-action Lagrangian t0 q0 t1 q1) 
+                         initial-qs)]
+    (make-path t0 q0 t1 q1 minimizing-qs)))
+     
