@@ -22,6 +22,7 @@
              [generic :refer :all]
              [structure :refer :all]
              [function :refer :all]]
+            [net.littleredcomputer.math.numerical.minimize :refer :all]
             [net.littleredcomputer.math.numerical.integrate :refer :all]
             [net.littleredcomputer.math.calculus.derivative :refer :all]))
 
