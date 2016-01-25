@@ -1,5 +1,5 @@
 # sicmutils
-[![Build Status](https://travis-ci.org/littleredcomputer/sicmutils.svg?branch=master)](https://travis-ci.org/littleredcomputer/sicmutils) [![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/littleredcomputer/sicmutils/blob/master/LICENSE) [![Clojars Project](https://img.shields.io/clojars/v/sicmutils.svg)](https://clojars.org/sicmutils)
+[![Build Status](https://travis-ci.org/littleredcomputer/sicmutils.svg?branch=master)](https://travis-ci.org/littleredcomputer/sicmutils) [![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/littleredcomputer/sicmutils/blob/master/LICENSE) [![Clojars Project](https://img.shields.io/clojars/v/net.littleredcomputer/sicmutils.svg)](https://clojars.org/net.littlredcomputer/sicmutils)
 
 A reimplementation of the Scmutils system for math and physics
 investigations in the Clojure language. Scmutils is extensively used
