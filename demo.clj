@@ -160,6 +160,6 @@
   (let [Vs (fn [[_ [r]]] (Vr r))]
     (- (T3-spherical m) Vs)))
 
-(((pd 1) (L3-central 'm V)) spherical-state)
+(((partial 1) (L3-central 'm V)) spherical-state)
 
-(((pd 2) (L3-central 'm V)) spherical-state)
+(((partial 2) (L3-central 'm V)) spherical-state)

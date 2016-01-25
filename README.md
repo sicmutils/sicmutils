@@ -1,7 +1,5 @@
-# math
-[![Build Status](https://travis-ci.org/littleredcomputer/math.svg?branch=master)](https://travis-ci.org/littleredcomputer/math) [![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/littleredcomputer/math/blob/master/LICENSE)
-
-
+# sicmutils
+[![Build Status](https://travis-ci.org/littleredcomputer/sicmutils.svg?branch=master)](https://travis-ci.org/littleredcomputer/sicmutils) [![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/littleredcomputer/sicmutils/blob/master/LICENSE) [![Clojars Project](https://img.shields.io/clojars/v/net.littleredcomputer/sicmutils.svg)](https://clojars.org/net.littleredcomputer/sicmutils)
 
 An implementation of the Scmutils system for math and physics
 investigations in the Clojure language. Scmutils is extensively used
@@ -177,7 +175,7 @@ And in Clojure, using a couple of simplifying definitions:
   (let [Vs (fn [[_ [r]]] (Vr r))]
     (- (T3-spherical m) Vs)))
 
-(((pd 1) (L3-central 'm V)) spherical-state)
+(((partial 1) (L3-central 'm V)) spherical-state)
 ```
 yielding
 ```clojure
@@ -189,11 +187,14 @@ yielding
 
 Which again agrees with Scmutils modulo notation. (These results are
 examples of "down tuples", or covariant vectors, since they represent
-derivatives of objects in primal space.) The partial derivative operation
-is called `partial` in Scmutils, but `pd` in Clojure (where `partial`
-has already been defined to mean partial function application). Given
-the frequent use of functions returning functions of state in SICM, I've
-decided to leave the Clojure definition of `partial` exposed.
+derivatives of objects in primal space.) The partial derivative
+operation is called `partial` in Scmutils, but Clojure defines
+`partial` to mean partial function application. In this system,
+we take a page from JavaScript and replace partial with a shim
+which will compute partial derivatives when all the arguments are
+integers and fall back to Clojure's definition of partial otherwise.
+Since it doesn't make sense to partially apply an integer, `partial`
+should just do the right thing.
 
 ### Numerical Methods
 
