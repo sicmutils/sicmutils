@@ -213,7 +213,7 @@
     (if (even? c) (+ c 1) c)))
 
 (defn probabilistic-unit-gcd
-  "Were a little skeptical of this: why doesn't GJS use prime numbers here?
+  "We're a little skeptical of this: why doesn't GJS use prime numbers here?
   In our observations, enough even numbers generate spurious content in the
   results. For the present we aren't using it."
   [u v]
@@ -229,7 +229,6 @@
               u:xs (apply u xs)
               v:xs (apply v xs)
               g (euclid/gcd u:xs v:xs)]
-          ;;(log/info (str "try " n " " u " " v " gcdc " " xs " (seq xs) " u@ " u:xs " v@ " v:xs " g " g))
           (if (= g 1)
             (recur (inc n))
             (do (when *poly-gcd-debug*
@@ -263,6 +262,31 @@
              (make-constant (:arity u))))
       (continue u v))))
 
+(defn ^:private sort->permutations
+  "Given a vector, returns a permutation function which would
+  sort that vector, and the inverse permutation. Each of these
+  functions expects a vector and returns one."
+  [xs]
+  (let [n (count xs)
+        order (vec (sort-by xs (range n)))
+        reverse-order (vec (sort-by order (range n)))]
+    [#(mapv % order)
+     #(mapv % reverse-order)]))
+
+(defn ^:private with-optimized-variable-order
+  "Rearrange the variables in u and v to make GCD go faster.
+  Calls the continuation with the rearranged polynomials.  Undoes the
+  rearrangement on return. Variables are sorted by increasing degree.
+  Discussed in 'Evaluation of the Heuristic Polynomial GCD', by Liao
+  and Fateman [1995]."
+  [u v continue]
+  (let [xs (reduce #(mapv max %1 %2) (concat (keys (:xs->c u))
+                                             (keys (:xs->c v))))
+        [sorter unsorter] (sort->permutations xs)]
+    (map-exponents unsorter
+                   (continue (map-exponents sorter u)
+                             (map-exponents sorter v)))))
+
 (def ^:private univariate-euclid-inner-loop
   (euclid-inner-loop euclid/gcd))
 
@@ -282,14 +306,15 @@
     :else (with-content-removed u v euclid/gcd univariate-euclid-inner-loop)))
 
 (defn ^:private monomial-gcd
-  "TODO doc"
-  [u v]
-  (let [[uxs uc] (-> u :xs->c first)
-        [vxs vc] (-> v :xs->c first)
-        xs (mapv min uxs vxs)
-        c (euclid/gcd uc vc)]
+  "Computing the GCD is easy if one of the polynomials is a monomial.
+  The monomial is the first argument."
+  [m p]
+  {:pre [(= (count (:xs->c m)) 1)]}
+  (let [[mxs mc] (-> m :xs->c first)
+        xs (reduce #(mapv min %1 %2) mxs (-> p :xs->c keys))
+        c (primitive-gcd (cons mc (-> p :xs->c vals)))]
     (swap! gcd-monomials inc)
-    (make (:arity u) [[xs c]])))
+    (make (:arity m) [[xs c]])))
 
 (defn ^:private println-indented
   [level & args]
@@ -317,8 +342,8 @@
                 (v/unity? u) u
                 (v/unity? v) v
                 (= u v) u
-                (and (monomial? u)
-                     (monomial? v)) (monomial-gcd u v)
+                (monomial? u) (monomial-gcd u v)
+                (monomial? v) (monomial-gcd v u)
                 :else (let [next-gcd #(inner-gcd (inc level) %1 %2)]
                         (*poly-gcd-bail-out*)
                         (with-lower-arity u v
@@ -331,7 +356,7 @@
         (when *poly-gcd-cache-enable*
           (swap! gcd-cache-miss inc)
           (swap! gcd-memo assoc [u v] g))
-        (dbg level "<-" u)
+        (dbg level "<-" g)
         g))))
 
 (defn gcd
@@ -362,7 +387,9 @@
                 (fn [u v]
                   (with-probabilistic-check u v
                     (fn [u v]
-                      (abs (inner-gcd 0 u v))))))))))
+                      (with-optimized-variable-order u v
+                        (fn [u v]
+                          (abs (inner-gcd 0 u v))))))))))))
 
 ;; several observations. many of the gcds we find when attempting the troublesome
 ;; GCD are the case where we have two monomials. This can be done trivially

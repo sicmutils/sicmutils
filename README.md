@@ -1,5 +1,6 @@
 # math
-[![Build Status](https://travis-ci.org/littleredcomputer/math.svg?branch=master)](https://travis-ci.org/littleredcomputer/math) [![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/littleredcomputer/math/blob/master/LICENSE)
+[![Build Status](https://travis-ci.org/littleredcomputer/math.svg?branch=master)](https://travis-ci.org/littleredcomputer/math) [![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/littleredcomputer/math/blob/master/LICENSE) [![Clojars Project](https://img.shields.io/clojars/v/net.littleredcomputer/math.svg)](https://clojars.org/net.littleredcomputer/math)
+
 
 
 

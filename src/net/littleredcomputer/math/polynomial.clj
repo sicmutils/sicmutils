@@ -172,6 +172,14 @@
                                      [xs fc]))]
     (Polynomial. arity m)))
 
+(defn map-exponents
+  "Map the function f over the exponents of each monomial in p,
+  returning a new Polynomial."
+  [f {:keys [arity xs->c]}]
+  (let [m (into empty-coefficients (for [[xs c] xs->c]
+                                     [(f xs) c]))]
+    (Polynomial. arity m)))
+
 (defn ^:private poly-merge
   "Merge the polynomials together, combining corresponding coefficients with f.
   The result is not a polynomial object, but rather a sequence

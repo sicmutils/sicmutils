@@ -38,9 +38,3 @@
      1.0e-6
      {:compile true})
     @state-history))
-
-;; (def equations
-;;   (simplify ((rigid-sysder 'A 'B 'C)
-;;              (up 't
-;;                  (up 'θ 'φ 'ψ)
-;;                  (up 'θdot 'φdot 'ψdot)))))

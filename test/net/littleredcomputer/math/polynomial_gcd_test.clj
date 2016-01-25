@@ -277,13 +277,16 @@
              (mul (lower-arity (->poly d2))
                   (lower-arity (mul (->poly d2) (->poly f2))))))
 
-      (gcd-test "D1" d1 f1 g1)
-      (gcd-test "D2" d2 f2 g2)
-      (gcd-test "D3" d3 f3 g3)
-      (gcd-test "D4" d4 f4 g4)
-      (gcd-test "D5" d5 f5 g5)
-      #_(gcd-test "D6" d6 f6 g6)
-      #_(gcd-test "D7" d7 f7 g7)
+      (binding [*poly-gcd-time-limit* [2 TimeUnit/SECONDS]
+                *poly-gcd-debug* false]
+        (gcd-test "D1" d1 f1 g1)
+        (gcd-test "D2" d2 f2 g2)
+        (gcd-test "D3" d3 f3 g3)
+        (gcd-test "D4" d4 f4 g4)
+        (gcd-test "D5" d5 f5 g5)
+        ;; the following are too big for our naive algorithm.
+        #_(gcd-test "D6" d6 f6 g6)
+        #_(gcd-test "D7" d7 f7 g7))
       (gcd-stats))))
 
 (deftest ^:long big-gcd
