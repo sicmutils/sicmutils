@@ -289,7 +289,7 @@
         #_(gcd-test "D7" d7 f7 g7))
       (gcd-stats))))
 
-(deftest ^:long big-gcd
+(deftest big-gcd
   (let [u (make 10 [[[0 0 1 0 0 0 1 1 0 1] 1]
                     [[0 1 1 0 0 0 1 1 1 0] 2]
                     [[0 0 1 2 0 1 0 1 0 1] 1]
@@ -307,16 +307,14 @@
     (let [t (fn []
               (let [sw (Stopwatch/createStarted)
                     g (gcd u v)]
-                (println (str sw))
                 (gcd-stats)
                 g))]
-      (binding [*poly-gcd-time-limit* [3 TimeUnit/SECONDS]]
-        (is (= (make 10 [[[0 0 0 0 0 0 0 0 0 0] 1]]) (t)))
-        ;; for profiling
-        (binding [*poly-gcd-cache-enable* false]
-          (dotimes [_ 1] (t)))))))
+      (is (= (make 10 [[[0 0 0 0 0 0 0 0 0 0] 1]]) (t)))
+      ;; for profiling
+      (binding [*poly-gcd-cache-enable* false]
+        (dotimes [_ 0] (t))))))
 
-#_(deftest ^:long troublesome-gcd
+(deftest ^:long troublesome-gcd
   (let [u (make 10 [[[0 1 1 2 1 0 1 1 0 1] -1]
                     [[2 1 1 0 0 1 1 1 0 1] -1]
                     [[0 2 1 2 1 0 1 1 1 0] -2]
@@ -350,19 +348,31 @@
                     [[3 2 2 1 2 0 0 0 2 0] 1]])
         v (make 10 [[[0 0 1 4 1 1 0 0 0 0] 1]
                     [[2 0 1 2 1 1 0 0 0 0] 2]
-                    [[4 0 1 0 1 1 0 0 0 0] 1]])
-        g (binding [*poly-gcd-time-limit* [5 TimeUnit/SECONDS]
-                    *poly-gcd-debug* true]
-            (is (= 'foo (gcd u v))))]))
+                    [[4 0 1 0 1 1 0 0 0 0] 1]])]
+    (is (= (make-constant 10 1) (gcd u v)))))
 
 (deftest kuniaki-tsuji-examples
-  ;; (only have 1 of these, will add more)
+  ;; (only have a few of these, will add more)
   ;; http://www.sciencedirect.com/science/article/pii/S0747717108001016
   (testing "ex1"
-    (let [d (->poly '(+ (* x x) (* 2 (expt y 23) (expt z 24))))
-          p (mul d (->poly '(+ (* x x) (* (expt y 23) (expt z 22)))))
-          q (mul d (->poly '(+ (* y z (expt x 3))
-                               (* 2 (expt z 35) (expt y 41) (expt x 2))
-                               (* (expt z 3) (expt y 5) x)
-                               525)))]
-      (is (= d (gcd p q))))))
+    (let [d '(+ (* x x) (* 2 (expt y 23) (expt z 24)))
+          p '(+ (* x x) (* (expt y 23) (expt z 22)))
+          q '(+ (* y z (expt x 3))
+                (* 2 (expt z 35) (expt y 41) (expt x 2))
+                (* (expt z 3) (expt y 5) x)
+                525)]
+      (gcd-test "K1" d p q)))
+  (testing "ex2"
+    ;; a hack, using (expt z 0) to make the arities equal
+    (let [d '(+ (expt x 3) (* 2 (expt z 0) (+ (expt y 34) (expt y 75)) (expt x 2)) (expt y 84))
+          p '(+ (expt x 2) (* (expt y 53) (expt z 62)))
+          q '(+ (* y (expt x 8))
+                (* 2 (expt y 47) (expt x 6))
+                (* (+ (expt y 20) (expt y 14)) (expt x 4))
+                (* (expt y 69) (expt x 3))
+                (* (expt y 55) (expt x 2))
+                (expt y 99)
+                (* (expt y 45) x)
+                54
+                (expt z 0))]
+      (gcd-test "K2" d p q))))
