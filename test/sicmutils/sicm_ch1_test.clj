@@ -95,7 +95,7 @@
       ;; to find the Lagrangian of the path induced by the point. But it works.
       (let [values (atom [])
             minimal-path (find-path (L-harmonic 1.0 1.0) 0. 1. (/ Math/PI 2) 0. 3
-                                    (fn [pt _] (swap! values conj pt)))
+                                    :observe (fn [pt _] (swap! values conj pt)))
             good? (partial (v/within 2e-4) 0)
             errors (for [x (range 0.0 (/ Math/PI 2) 0.02)]
                      (abs (- (Math/cos x) (minimal-path x))))]

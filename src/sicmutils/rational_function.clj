@@ -201,6 +201,7 @@
 (defmethod g/add [::rational-function ::rational-function] [a b] (add a b))
 (defmethod g/add [::rational-function :sicmutils.polynomial/polynomial] [r p] (addp r p))
 (defmethod g/add [:sicmutils.polynomial/polynomial ::rational-function] [p r] (addp r p))
+(defmethod g/add [::rational-function Double] [a b] (addp a (p/make-constant (:arity a) b)))
 
 (defmethod g/sub
   [::rational-function :sicmutils.polynomial/polynomial]
