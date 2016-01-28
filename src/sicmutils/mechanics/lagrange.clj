@@ -45,6 +45,11 @@
   [local]
   (nth local 2))
 
+;; The following are the functions that are defined in the SICM
+;; book, but NOT in MIT Scmutils.  Marked here for possible future
+;; relocation
+;; ---------------------------------------------------------------
+
 (defn L-free-particle
   "The lagrangian of a free particle of mass m. The Lagrangian
   returned is a function of the local tuple. Since the particle
@@ -93,6 +98,8 @@
         ((D g) 0)))))
 
 (def delta δ)
+
+;; ---- end of functions undefined in Scmutils --------
 
 (def ->local up)
 
@@ -209,6 +216,8 @@
   [f]
   (fn [local]
     ((f (osculating-path local)) (first local))))
+
+(def Gamma-bar  Γ-bar)
 
 (defn Dt
   [F]
