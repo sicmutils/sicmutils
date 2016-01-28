@@ -71,7 +71,7 @@
      dt
      t
      1.0e-6
-     {:compile true})
+     :compile true)
     @state-history))
 
 (defn- to-svg

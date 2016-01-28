@@ -38,7 +38,7 @@
   invoked with the time as first argument and integrated state as the
   second, at each intermediate step."
   [state-derivative derivative-args]
-  (fn [initial-state observe step-size t ε & [{:keys [compile]}]]
+  (fn [initial-state observe step-size t ε & {:keys [compile]}]
     (let [total-time (Stopwatch/createStarted)
           evaluation-count (atom 0)
           evaluation-time (Stopwatch/createUnstarted)
@@ -100,8 +100,8 @@
   and is required to have the time parameter as the first element."
   [state-derivative & state-derivative-args]
   (let [I (make-integrator state-derivative state-derivative-args)]
-    (fn [initial-state t ε & [options]]
-      (I initial-state nil 0 t ε options))))
+    (fn [initial-state t ε & options]
+      (apply I initial-state nil 0 t ε options))))
 
 (defn evolve
   "evolve takes a state derivative function constructor and its

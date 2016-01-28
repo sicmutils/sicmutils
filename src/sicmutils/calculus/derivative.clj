@@ -322,7 +322,21 @@
              (fn [x y]
                (g/* y (g/expt x (g/- y 1))))
              (fn [_ _]
-               (throw (IllegalArgumentException. "can't get there from here"))) :expt))
+               (throw (IllegalArgumentException. "can't get there from here")))
+             :expt))
+(def ^:private expt
+  (binary-op g/expt
+             (fn [x y]
+               (g/* y (g/expt x (g/- y 1))))
+             (fn [x y]
+               (if (and (number? x) (g/zero? y))
+                 (if (number? y)
+                   (if (pos? y)
+                     0
+                     (throw (IllegalArgumentException. "Derivative undefined: expt")))
+                   0)
+                 (g/* (g/log x) (g/expt x y))))
+             :expt))
 
 ;; XXX unary-op is memoized in scmutils. But rather than memoizing that,
 ;; it might be better just to memoize entire simplications.
@@ -395,6 +409,7 @@
   (defmethod generic-operation ::differential [a] (differential-operation a)))
 
 (defmethod g/expt [::differential Number] [d n] (power d n))
+(defmethod g/expt [::differential ::differential] [d e] (expt d e))
 
 (define-binary-operation g/add diff-+)
 (define-binary-operation g/sub diff--)

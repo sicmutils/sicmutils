@@ -63,14 +63,14 @@
              l2 ;; length of rod2
              g  ;; acceleration due to gravity
              )
-      (up 0.0
+     (up 0.0
           (up θ0 φ0)
           (up θdot0 φdot0))
-      (fn [t [_ q _]] (swap! state-history conj (into [t] q)))
-      dt
-      t
-      1.0e-6
-      {:compile true})
+     (fn [t [_ q _]] (swap! state-history conj (into [t] q)))
+     dt
+     t
+     1.0e-6
+     :compile true)
     @state-history))
 
 ;(def equations
