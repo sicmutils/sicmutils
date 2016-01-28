@@ -35,14 +35,14 @@
       (is ((v/within 1e-8) (Math/exp 1) (nth result 0))))
     (let [f (constantly identity)]
       (doseq [compile? [true false true true]]
-       (let [states (atom [])
+        (let [states (atom [])
              result ((evolve f)         ;; solve: y' = y
-                      (up 1.)                               ;;        y(0) = 1
-                      #(swap! states conj [%1 %2])          ;; accumulate results
-                      0.1                                   ;; ... with step size 0.1
-                      1                                     ;; solve until t = 1
-                      1e-10                                 ;; accuracy desired
-                      {:compile compile?})]
+                     (up 1.)                               ;;        y(0) = 1
+                     #(swap! states conj [%1 %2])          ;; accumulate results
+                     0.1                                   ;; ... with step size 0.1
+                     1                                     ;; solve until t = 1
+                     1e-10                                 ;; accuracy desired
+                     :compile compile?)]
          (is (= (count @states) 11))
          (is (near? (Math/exp 1) (first result)))))))
   (testing "y'' = -y"
@@ -52,12 +52,12 @@
              ;; let u = y', then we have the first-order system {y' = u, u' = -y}
              ;; with initial conditions y(0) = 0, y'(0) = 1; we expect y = sin(x).
              result ((evolve f)
-                      (up 0. 1.)                            ;; y(0) = 0, y'(0) = 1
-                      #(swap! states conj [%1 %2])          ;; accumulate results
-                      0.1                                   ;; ... with step size 0.1
-                      (* 2 (Math/PI))                       ;; over [0, 2π]
-                      1.e-10                                ;; accuracy desired
-                      {:compile compile?})]
+                     (up 0. 1.)                            ;; y(0) = 0, y'(0) = 1
+                     #(swap! states conj [%1 %2])          ;; accumulate results
+                     0.1                                   ;; ... with step size 0.1
+                     (* 2 (Math/PI))                       ;; over [0, 2π]
+                     1.e-10                                ;; accuracy desired
+                     :compile compile?)]
          (is (= 64 (count @states)))                        ;; 0.0 .. 6.2 by .1, plus 2π
          (is (near? 0 (first result)))
          (is (near? 1 (second result)))
@@ -73,10 +73,10 @@
     (let [f (fn [k] (fn [[y]] (up (* k y))))]
       (doseq [compile? [true false true]]
         (let [result ((evolve f 0.2)
-                       (up 1)
-                       nil
-                       0
-                       3
-                       1e-10
-                       {:compile compile?})]
+                      (up 1)
+                      nil
+                      0
+                      3
+                      1e-10
+                      :compile compile?)]
           (is (near? (Math/exp 0.6) (first result))))))))

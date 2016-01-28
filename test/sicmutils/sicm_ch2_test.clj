@@ -76,11 +76,6 @@
   (is (= '(* (expt (sin θ) 2) A B C)
          (simplify (determinant (((square (partial 2)) (T-rigid-body 'A 'B 'C)) Euler-state))))))
 
-;; the output is too horrible to contemplate at this point
-;; (deftest section-2.9b-simplify
-;;   (let [state' (simplify ((rigid-sysder 'A 'B 'C) Euler-state))]
-;;     (pp/pprint state')))
-
 (deftest ^:long section-2.9b
   (let [relative-error (fn [value reference-value]
                          (when (zero? reference-value)
@@ -108,7 +103,7 @@
      0.1
      10.0
      1.0e-12
-     {:compile true})
+     :compile true)
     ;; check that all observed errors over the whole interval are small
     (is (> 1e-10 (->> @points
                       (mapcat #(drop 1 %))
@@ -117,8 +112,6 @@
 
 
 (deftest section-2.10
-  ;; simplification is a little off here: missing the extraction of a common
-  ;; factor (cos θ), but it's still pretty good.
   (is (= '(/ (+ (* (expt (cos θ) 2) C (expt φdot 2))
                 (* (expt (sin θ) 2) A (expt φdot 2))
                 (* 2N (cos θ) C φdot ψdot)

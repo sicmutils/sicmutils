@@ -102,6 +102,8 @@
         ;; the minimization is supposed to discover the cosine function in the interval [0..pi/2].
         ;; Check that it has done so over a variety of points to within 2e-4.
         ;; (prn values)
+        (is ((v/within 1e-4) 1 (minimal-path 0)))
+        (is ((v/within 1e-5) 0 (minimal-path (/ Math/PI 2))))
         (is (every? good? errors))))))
 
 (deftest section-1.5
@@ -220,7 +222,6 @@
   (with-literal-functions [x y v_x v_y]
     (let [harmonic-state-derivative (fn [m k]
                                       (Lagrangian->state-derivative (L-harmonic m k)))]
-      ;; simplification isn't quite up to scratch here, but it's a proof of concept.
       (is (= '(up 1
                   (up v_x v_y)
                   (up (/ (* -1 k x) m) (/ (* -1 k y) m)))
@@ -248,7 +249,7 @@
                       (up 0. (up 1. 2.) (up 3. 4.))
                       10.
                       1e-12
-                      {:compile true})
+                      :compile true)
               expected (up 10.
                            (up 3.71279166 5.42062082)
                            (up 1.61480309 1.81891037))
@@ -292,7 +293,7 @@
                   0.01
                   1.0
                   1.0e-13
-                  {:compile true})
+                  :compile true)
           expected (up 1.0 -1.030115687 -1.40985359)
           delta (->> answer (- expected) flatten (map abs) (reduce max))]
       (is (< delta 1e-8)))))

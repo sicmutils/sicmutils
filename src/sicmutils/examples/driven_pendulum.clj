@@ -62,12 +62,12 @@
              ω   ;; frequency of drive
              0   ;; phase of drive
              )
-      (up 0.0
+     (up 0.0
           θ0
           θdot0)
-      (fn [t [_ q _]] (swap! state-history conj [t q (drive t)]))
-      dt
-      t
-      1.0e-6
-      {:compile true})
+     (fn [t [_ q _]] (swap! state-history conj [t q (drive t)]))
+     dt
+     t
+     1.0e-6
+     :compile true)
     @state-history))
