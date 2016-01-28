@@ -313,3 +313,15 @@
     (is (= 2 (simplify (* ((D f) 't) (((transpose D) f) 't)))))
     (is (= 2 (simplify ((laplacian (up identity sin cos)) 't))))
     (is (= '(+ (cos t) (* -1 (sin t)) 1) (simplify ((divergence f) 't))))))
+
+(deftest alexgian-examples
+  (let [g (literal-function 'g [0 0] 0)
+        h (literal-function 'h [0 0] 0)]
+    (is (= '(+ (((∂ 0) g) x y) (((∂ 0) h) x y))
+           (simplify (((partial 0) (+ g h)) 'x 'y))))
+    (is (= '(+ (* (((∂ 0) g) x y) (h x y)) (* (g x y) (((∂ 0) h) x y)))
+           (simplify (((partial 0) (* g h)) 'x 'y))))
+    (is (= '(+
+             (* (((∂ 0) g) x y) (h x y) (expt (g x y) (+ (h x y) -1)))
+             (* (log (g x y)) (expt (g x y) (h x y)) (((∂ 0) h) x y)))
+           (simplify (((partial 0) (expt g h)) 'x 'y))))))
