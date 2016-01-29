@@ -324,7 +324,7 @@ compilation has been done ahead of time.
 
 ~~~ sh
 $ lein uberjar
-$ java -jar target/uberjar/math-0.0.1-SNAPSHOT-standalone.jar  < demo.clj
+$ java -jar target/uberjar/sicmutils-0.9.2-SNAPSHOT-standalone.jar  < demo.clj
 ~~~
 
 To run the test suite:
