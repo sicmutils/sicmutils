@@ -385,7 +385,6 @@
     (condp = a
       [:exactly 0] (constantly 0)
       [:exactly 1] (with-meta (d f) {:arity a})
-      [:at-least 0] (with-meta (d f) {:arity a})
       [:exactly 2] (with-meta (fn [x y]
                                 ((d (fn [[x y]] (f x y)))
                                  (struct/seq-> [x y]))) {:arity a})
@@ -395,6 +394,11 @@
       [:exactly 4] (with-meta (fn [w x y z]
                                 ((d (fn [[w x y z]] (f w x y z)))
                                  (struct/seq-> [w x y z]))) {:arity a})
+      [:at-least 0] (with-meta
+                      (fn [& xs]
+                        ((d (fn [xs] (apply f xs)))
+                         (struct/seq-> xs)))
+                      {:arity a})
       (throw (IllegalArgumentException. (str "Haven't implemented this yet: arity " a))))))
 
 (defn- define-binary-operation
@@ -409,7 +413,7 @@
   (defmethod generic-operation ::differential [a] (differential-operation a)))
 
 (defmethod g/expt [::differential Number] [d n] (power d n))
-(defmethod g/expt [::differential ::differential] [d e] (expt d e))
+(define-binary-operation g/expt expt)
 
 (define-binary-operation g/add diff-+)
 (define-binary-operation g/sub diff--)

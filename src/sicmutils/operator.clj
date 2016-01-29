@@ -36,35 +36,55 @@
 
 (defn make-operator
   [o name]
-  (Operator. o 1 name))
+  (Operator. o [:exactly 1] name))
 
 (defn operator?
   [x]
   (instance? Operator x))
 
 (def identity-operator
-  (Operator. (fn [f] #(apply f %&)) 1 'identity))
+  (Operator. (fn [f] #(apply f %&)) [:at-least 0] 'identity))
 
 (defn- number->operator
   [n]
-  (Operator. (fn [f] #(g/* n (apply f %&))) 1 'number))
+  (Operator. (fn [f] (with-meta
+                       #(g/* n (apply f %&))
+                       {:arity (v/arity f)}))
+             [:at-least 0]
+             'number))
 
 (defn ^:private function->operator
   [f]
-  (Operator. (fn [g] #(g/* (apply f %&) (apply g %&))) 1 'fn))
+  (Operator. (fn [g] (with-meta
+                       #(g/* (apply f %&) (apply g %&))
+                       {:arity (v/arity g)}))
+             (v/arity f)
+             'fn))
 
 (defn- sub
   [o p]
-  (Operator. (fn [f] #(g/- (apply (o f) %&) (apply (p f) %&))) 2 'sub))
+  (Operator. (fn [f] (with-meta
+                       #(g/- (apply (o f) %&) (apply (p f) %&))
+                       {:arity (v/arity f)}))
+             (v/joint-arity [(v/arity o) (v/arity p)])
+             'sub))
 
 (defn- add
   [o p]
-  (Operator. (fn [f] #(g/+ (apply (o f) %&) (apply (p f) %&))) 2 'add))
+  (Operator. (fn [f] (with-meta
+                       #(g/+ (apply (o f) %&) (apply (p f) %&))
+                       {:arity (v/arity f)}))
+             (v/joint-arity [(v/arity o) (v/arity p)])
+             'add))
 
 ;; multiplication of operators is treated like composition.
 (defn- mul
   [o p]
-  (Operator. (fn [f] #(apply (o (p f)) %&)) 2 'mul))
+  (Operator. (fn [f] (with-meta
+                       #(apply (o (p f)) %&)
+                       {:arity (v/arity f)}))
+             (v/joint-arity [(v/arity o) (v/arity p)])
+             'mul))
 
 (defmethod g/expt
   [::operator Number]

@@ -315,13 +315,39 @@
     (is (= '(+ (cos t) (* -1 (sin t)) 1) (simplify ((divergence f) 't))))))
 
 (deftest alexgian-examples
-  (let [g (literal-function 'g [0 0] 0)
-        h (literal-function 'h [0 0] 0)]
-    (is (= '(+ (((∂ 0) g) x y) (((∂ 0) h) x y))
-           (simplify (((partial 0) (+ g h)) 'x 'y))))
-    (is (= '(+ (* (((∂ 0) g) x y) (h x y)) (* (g x y) (((∂ 0) h) x y)))
-           (simplify (((partial 0) (* g h)) 'x 'y))))
-    (is (= '(+
-             (* (((∂ 0) g) x y) (h x y) (expt (g x y) (+ (h x y) -1)))
-             (* (log (g x y)) (expt (g x y) (h x y)) (((∂ 0) h) x y)))
-           (simplify (((partial 0) (expt g h)) 'x 'y))))))
+  (testing "space"
+    (let [g (literal-function 'g [0 0] 0)
+         h (literal-function 'h [0 0] 0)]
+     (is (= '(+ (((∂ 0) g) x y) (((∂ 0) h) x y))
+            (simplify (((partial 0) (+ g h)) 'x 'y))))
+     (is (= '(+ (* (((∂ 0) g) x y) (h x y)) (* (g x y) (((∂ 0) h) x y)))
+            (simplify (((partial 0) (* g h)) 'x 'y))))
+     (is (= '(+
+              (* (((∂ 0) g) x y) (h x y) (expt (g x y) (+ (h x y) -1)))
+              (* (log (g x y)) (expt (g x y) (h x y)) (((∂ 0) h) x y)))
+            (simplify (((partial 0) (expt g h)) 'x 'y))))))
+  (testing "operators"
+    (is (= '(down 1 1 1 1 1 1 1 1 1 1)
+           (simplify ((D +) 'a 'b 'c 'd 'e 'f 'g 'h 'i 'j))))
+    (is (= '(down
+             (* b c d e f g h i j)
+             (* a c d e f g h i j)
+             (* a b d e f g h i j)
+             (* a b c e f g h i j)
+             (* a b c d f g h i j)
+             (* a b c d e g h i j)
+             (* a b c d e f h i j)
+             (* a b c d e f g i j)
+             (* a b c d e f g h j)
+             (* a b c d e f g h i))
+           (simplify ((D *) 'a 'b 'c 'd 'e 'f 'g 'h 'i 'j))))
+    (is (= '(down (* (expt x (+ y -1)) y)
+                  (* (log x) (expt x y)))
+           (simplify ((D expt) 'x 'y))))
+    (is (= '(* (expt x (+ y -1)) y)
+           (simplify (((partial 0) expt) 'x 'y))))
+    (is (= 2
+           (simplify (((partial 0) expt) 1 2))))
+    (let [pow (fn [x y] (apply * (repeat y x)))]
+      (is (= 8 (pow 2 3)))
+      (is (= '(expt x 8) (simplify (pow 'x 8)))))))

@@ -57,31 +57,80 @@
       (v/numerical? x)))
 
 (defmulti add v/argument-kind)
+(defmethod add :arity [_] [:exactly 2])
+
 (defmulti mul v/argument-kind)
+(defmethod mul :arity [_] [:exactly 2])
+
 (defmulti sub v/argument-kind)
+(defmethod sub :arity [_] [:exactly 2])
+
 (defmulti div v/argument-kind)
+(defmethod div :arity [_] [:exactly 2])
+
 (defmulti exact-div v/argument-kind)
+(defmethod exact-div :arity [_] [:exactly 2])
+
 (defmulti quotient v/argument-kind)
+(defmethod quotient :arity [_] [:exactly 2])
+
 (defmulti remainder v/argument-kind)
+(defmethod remainder :arity [_] [:exactly 2])
+
 (defmulti invert v/argument-kind)
+(defmethod invert :arity [_] [:exactly 1])
+
 (defmulti negate v/argument-kind)
+(defmethod negate :arity [_] [:exactly 1])
+
 (defmulti square v/argument-kind)
+(defmethod square :arity [_] [:exactly 1])
+
 (defmulti cube v/argument-kind)
+(defmethod cube :arity [_] [:exactly 1])
+
 (defmulti expt v/argument-kind)
+(defmethod expt :arity [_] [:exactly 2])
+
 (defmulti exp v/argument-kind)
+(defmethod exp :arity [_] [:exactly 1])
+
 (defmulti log v/argument-kind)
+(defmethod log :arity [_] [:exactly 1])
+
 (defmulti abs v/argument-kind)
+(defmethod abs :arity [_] [:exactly 1])
+
 (defmulti sqrt v/argument-kind)
+(defmethod sqrt :arity [_] [:exactly 1])
+
 (defmulti sin v/argument-kind)
+(defmethod sin :arity [_] [:exactly 1])
+
 (defmulti cos v/argument-kind)
+(defmethod cos :arity [_] [:exactly 1])
+
 (defmulti tan v/argument-kind)
+(defmethod tan :arity [_] [:exactly 1])
+
 (defmulti asin v/argument-kind)
+(defmethod asin :arity [_] [:exactly 1])
+
 (defmulti acos v/argument-kind)
+(defmethod acos :arity [_] [:exactly 1])
+
 (defmulti partial-derivative v/argument-kind)
+
 (defmulti cross-product v/argument-kind)
+(defmethod cross-product :arity [_] [:exactly 2])
+
 (defmulti simplify v/argument-kind)
+
 (defmulti negative? v/argument-kind)
+(defmethod negative? :arity [_] [:exactly 1])
+
 (defmulti transpose v/argument-kind)
+(defmethod transpose :arity [_] [:exactly 1])
 
 (defn- bin+ [a b]
   (cond (and (number? a) (number? b)) (+' a b)

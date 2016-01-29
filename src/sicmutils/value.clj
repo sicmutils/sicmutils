@@ -73,39 +73,44 @@
    (fn [f]
      (or (:arity f)
          (:arity (meta f))
-         (cond (symbol? f) [:exactly 0]
-               (fn? f) (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
-                             ;; tally up arities of invoke, doInvoke, and getRequiredArity methods
-                             ^RestFn rest-fn f
-                             facts (group-by first
-                                             (for [^Method m methods]
-                                               (condp = (.getName m)
-                                                 "invoke" [:invoke (alength (.getParameterTypes m))]
-                                                 "doInvoke" [:doInvoke true]
-                                                 "getRequiredArity" [:getRequiredArity (.getRequiredArity rest-fn)])))]
-                         (cond
-                           ;; Rule one: if all we have is one single case of invoke, then the
-                           ;; arity is the arity of that method. This is the common case.
-                           (and (= 1 (count facts))
-                                (= 1 (count (:invoke facts))))
-                           [:exactly (second (first (:invoke facts)))]
-                           ;; Rule two: if we have exactly one doInvoke and getRequiredArity,
-                           ;; then the arity at least the result of .getRequiredArity.
-                           (and (= 2 (count facts))
-                                (= 1 (count (:doInvoke facts)))
-                                (= 1 (count (:getRequiredArity facts))))
-                           [:at-least (second (first (:getRequiredArity facts)))]
-                           ;; Rule three: if we have invokes for the arities 0..3, getRequiredArity
-                           ;; says 3, and we have doInvoke, then we consider that this function
-                           ;; was probably produced by Clojure's core "comp" function, and
-                           ;; we somewhat lamely consider the arity of the composed function 1.
-                           (and (= #{0 1 2 3} (into #{} (map second (:invoke facts))))
-                                (= 3 (second (first (:getRequiredArity facts))))
-                                (:doInvoke facts))
-                           [:exactly 1]
-                           :else (throw (IllegalArgumentException. (str "arity? " f " " facts)))))
-               ;; this isn't quite right: we are catching the case
-               ;; of MultiFn here.
+         (cond (symbol? f)
+               [:exactly 0]
+
+               (fn? f)
+               (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
+                     ;; tally up arities of invoke, doInvoke, and getRequiredArity methods
+                     ^RestFn rest-fn f
+                     facts (group-by first
+                                     (for [^Method m methods]
+                                       (condp = (.getName m)
+                                         "invoke" [:invoke (alength (.getParameterTypes m))]
+                                         "doInvoke" [:doInvoke true]
+                                         "getRequiredArity" [:getRequiredArity (.getRequiredArity rest-fn)])))]
+                 (cond
+                   ;; Rule one: if all we have is one single case of invoke, then the
+                   ;; arity is the arity of that method. This is the common case.
+                   (and (= 1 (count facts))
+                        (= 1 (count (:invoke facts))))
+                   [:exactly (second (first (:invoke facts)))]
+                   ;; Rule two: if we have exactly one doInvoke and getRequiredArity,
+                   ;; then the arity at least the result of .getRequiredArity.
+                   (and (= 2 (count facts))
+                        (= 1 (count (:doInvoke facts)))
+                        (= 1 (count (:getRequiredArity facts))))
+                   [:at-least (second (first (:getRequiredArity facts)))]
+                   ;; Rule three: if we have invokes for the arities 0..3, getRequiredArity
+                   ;; says 3, and we have doInvoke, then we consider that this function
+                   ;; was probably produced by Clojure's core "comp" function, and
+                   ;; we somewhat lamely consider the arity of the composed function 1.
+                   (and (= #{0 1 2 3} (into #{} (map second (:invoke facts))))
+                        (= 3 (second (first (:getRequiredArity facts))))
+                        (:doInvoke facts))
+                   [:exactly 1]
+                   :else (throw (IllegalArgumentException. (str "arity? " f " " facts)))))
+
+               (instance? clojure.lang.MultiFn f)
+               (f :arity)
+
                :else [:exactly 1])))))
 
 (defn joint-arity
@@ -133,7 +138,10 @@
 
 (defn- primitive-kind
   [a]
-  (if (or (fn? a) (= (class a) MultiFn)) ::function (type a)))
+  (cond
+    (or (fn? a) (= (class a) MultiFn)) ::function
+    (keyword? a) a
+    :else (type a)))
 
 (defn argument-kind
   [a & as]
