@@ -312,9 +312,12 @@
   result is an up-tuple."
   [s t]
   (when (or (not= (count s) 3) (not= (count t) 3))
-    (throw (IllegalArgumentException. "cross product only works on two elements of ^3")))
+    (throw (IllegalArgumentException.
+            "cross product only works on two elements of ^3")))
   (let [[s0 s1 s2] s [t0 t1 t2] t]
-    (up (g/- (g/* s1 t2) (g/* t1 s2)) (g/- (g/* s2 t0) (g/* s0 t2)) (g/- (g/* s0 t1) (g/* t0 s1)))))
+    (up (g/- (g/* s1 t2) (g/* t1 s2))
+        (g/- (g/* s2 t0) (g/* s0 t2))
+        (g/- (g/* s0 t1) (g/* t0 s1)))))
 
 (defn- make-identity-like
   "Produce a multiplicative identity with the same shape as the square structure s."
@@ -380,15 +383,37 @@
 (defmethod g/sub [::down ::down] [a b] (elementwise g/- a b))
 (defmethod g/sub [::up ::up] [a b] (elementwise g/- a b))
 (defmethod g/cross-product [::up ::up] [a b] (cross-product a b))
+(defmethod g/mul [::structure ::structure] [a b] (mul a b))
+
 (derive ::up ::structure)
 (derive ::down ::structure)
 (derive PersistentVector ::up)
-(defmethod g/mul [::structure ::structure] [a b] (mul a b))
-(defmethod g/mul [::structure :sicmutils.expression/numerical-expression] [a b] (outer-product b a))
-(defmethod g/mul [:sicmutils.expression/numerical-expression ::structure] [a b] (outer-product a b))
-(defmethod g/mul [::structure :sicmutils.calculus.derivative/differential] [a b] (outer-product b a))
-(defmethod g/mul [:sicmutils.calculus.derivative/differential ::structure] [a b] (outer-product a b))
-(defmethod g/div [::structure :sicmutils.expression/numerical-expression] [a b] (outer-product (g/invert b) a))
+
+(defmethod g/mul
+  [::structure :sicmutils.expression/numerical-expression]
+  [a b]
+  (outer-product b a))
+
+(defmethod g/mul
+  [:sicmutils.expression/numerical-expression ::structure]
+  [a b]
+  (outer-product a b))
+
+(defmethod g/mul
+  [::structure :sicmutils.calculus.derivative/differential]
+  [a b]
+  (outer-product b a))
+
+(defmethod g/mul
+  [:sicmutils.calculus.derivative/differential ::structure]
+  [a b]
+  (outer-product a b))
+
+(defmethod g/div
+  [::structure :sicmutils.expression/numerical-expression]
+  [a b]
+  (outer-product (g/invert b) a))
+
 (defmethod g/div [::structure ::structure] [a b] (mul (invert b) a))
 (defmethod g/expt [::structure Long] [a b] (expt a b))
 (defmethod g/negate ::structure [a] (same a (mapv g/negate a)))
