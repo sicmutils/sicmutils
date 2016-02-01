@@ -20,56 +20,60 @@
   (:require [clojure.zip :as z]
             [clojure.string :as s]))
 
+(def ^:private precedence-map
+  {'D 1, :apply 2, '/ 5, '* 5, '+ 6, '- 6})
+
 (defn ^:private precedence
   [op]
-  (if (symbol? op)
-    (condp = op
-      '/ 5
-      '* 5
-      '+ 6
-      '- 6
-      1)
-    1))
+  (or (precedence-map op)
+      (cond (seq? op) (recur (first op))
+            (symbol? op) 2
+            :else 99)))
 
-(defn ^:private infix-operator?
-  [op]
-  (or (= op '*)
-      (= op '+)
-      (= op '-)))
+(def ^:private infix-operators #{'* '+ '- '/})
 
 (defn ^:private higher-precedence
   [a b]
   (< (precedence a) (precedence b)))
 
-(defn ^:private render-node [n]
-  (if (z/branch? n)
-    ;; then the first child is the function and the rest are the
-    ;; arguments.
-    (let [loc (loop [a (-> n z/next z/right)]
-                (let [a' (z/replace a (render-node a))]
-                  (if-let [r (z/right a')]
-                    (recur r)
-                    (z/up a'))))
-          node (z/node loc)
-          op (first node)
-          args (rest node)]
-      (if (infix-operator? op)
-        (let [need-parens (and (z/up loc)
-                               (let [upper-op (-> loc z/leftmost z/node)]
-                                 (and
-                                  (infix-operator? upper-op)
-                                  (higher-precedence upper-op op))))
-              base (s/join (if (= op '*) " " (str " " op " ")) args)]
-         (if need-parens
-           (str "(" base ")")
-           base))
-        (if (and (= op 'expt)
-                 (= 2 (second args)))
-          (str (first args) "²")
-          (str op "(" (s/join ", " args) ")"))))
+(defn ^:private parenthesize
+  [x]
+  (str "(" x ")"))
 
-    ;; primitive case
-    (z/node n)))
+(defn ^:private parenthesize-if
+  [b x]
+  (if b (parenthesize x) x))
 
-(defn ->infix [x]
-  (-> x z/seq-zip render-node))
+(defn ^:private make-renderer
+  [options]
+  (letfn [(render-node [n]
+            (if (z/branch? n)
+              ;; then the first child is the function and the rest are the
+              ;; arguments.
+              (let [loc (loop [a (-> n z/next z/right)]
+                          (let [a' (z/replace a (render-node a))]
+                            (if-let [r (z/right a')]
+                              (recur r)
+                              (z/up a'))))
+                    node (z/node loc)
+                    op (first node)
+                    args (rest node)
+                    upper-op (and (z/up loc)
+                                  (-> loc z/leftmost z/node))]
+                (if (infix-operators op)
+                  (parenthesize-if
+                   (and (infix-operators upper-op)
+                        (higher-precedence upper-op op))
+                   (s/join (if (= op '*) " " (str " " op " ")) args))
+                  (if (and (= op 'expt)
+                           (= 2 (second args)))
+                    (str (first args) "²")
+                    (let [r-op (render-node (z/next loc))]
+                      (str (parenthesize-if (higher-precedence :apply op) r-op)
+                           (parenthesize (s/join ", " args)))))))
+
+              ;; primitive case
+              (z/node n)))]
+    #(-> % z/seq-zip render-node)))
+
+(def ->infix (make-renderer {}))

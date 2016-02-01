@@ -95,12 +95,13 @@
       (is (= '(* (((expt D 2) q) t) m)
              (simplify (((Lagrange-equations (L-free-particle 'm)) q) 't))))
       (let [proposed-solution (fn [t]
-                                (* 'a (cos (+ (* 'ω t) 'φ))))]
+                                (* 'a (cos (+ (* 'ω t) 'φ))))
+            lagrange-eqns (simplify (((Lagrange-equations (L-harmonic 'm 'k))
+                                      proposed-solution)
+                                     't))]
         (is (= '(+ (* -1 (cos (+ (* t ω) φ)) a m (expt ω 2))
                    (* (cos (+ (* t ω) φ)) a k))
-               (simplify (((Lagrange-equations (L-harmonic 'm 'k))
-                           proposed-solution)
-                          't)))))
+               lagrange-eqns)))
       (is (= '(down (* (((expt D 2) x) t) m)
                     (+ (* (((expt D 2) y) t) m) (* g m)))
              (simplify (((Lagrange-equations (L-uniform-acceleration 'm 'g))
