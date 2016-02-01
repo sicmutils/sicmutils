@@ -17,8 +17,10 @@
 ;
 
 (ns sicmutils.infix-test
+  (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [clojure.test :refer :all]
             [sicmutils.infix :refer :all]
+            [sicmutils.env :refer :all]
             ))
 
 (deftest basic
@@ -28,6 +30,7 @@
   (is (= "a + b c" (->infix '(+ a (* b c)))))
   (is (= "a f(b, c)" (->infix '(* a (f b c)))))
   (is (= "a f(2 (h + k), c)" (->infix '(* a (f (* 2 (+ h k)) c)))))
+  (is (= "a * f(2 * (h + k), c)" ((make-renderer) '(* a (f (* 2 (+ h k)) c)))))
   (is (= "f(x, y)" (->infix '(f x y))))
   (is (= "D(f)(x, y)" (->infix '((D f) x y))))
   (is (= "(sin cos)(t)" (->infix '((* sin cos) t))))
@@ -42,3 +45,14 @@
   (is (= "a b (c + (f / g)(v))" (->infix '(* a b (+ c ((/ f g) v))))))
   (is (= "foo bar" (->infix '(* foo bar))))
   (is (= "a b (f / g)(v)" (->infix '(* a b ((/ f g) v))))))
+
+(deftest exponents
+  (is (= '"x⁴ + 4 x³ + 6 x² + 4 x + 1"
+         (->infix (simplify (expt (+ 1 'x) 4)))))
+  (is (= "x¹²" (->infix (simplify (expt 'x 12)))))
+  (is (= "y¹⁵ + 3 x⁴ y¹⁰ + 3 x⁸ y⁵ + x¹²"
+         (->infix (simplify (expt (+ (expt 'x 4) (expt 'y 5)) 3)))))
+  (is (= "expt(y, 10) + 2 expt(x, 4) expt(y, 5) + expt(x, 8)"
+         ((make-renderer :juxtapose-multiply true)
+          (simplify (expt (+ (expt 'x 4) (expt 'y 5)) 2)))))
+  (is (= "x² + expt(x, -2)" (->infix (simplify '(+ (expt x 2) (expt x -2)))))))
