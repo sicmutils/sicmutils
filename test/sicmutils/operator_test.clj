@@ -37,10 +37,10 @@
     )
   (testing "that they compose with other Operators"
     (is (every? operator? [(* D D)(* D (partial 0))(*(partial 0) D)(* (partial 0)(partial 1))])))
-  (testing "that their arithmetic operations compose correctly, as per SICM -  'Our Notation'"
+  (comment testing "that their arithmetic operations compose correctly, as per SICM -  'Our Notation'"
       (is (= (((* (+ D 1)(- D 1)) f) 'x) 
              (+ (((expt D 2) f) 'x) (* -1 (f 'x))) )))
-  (testing "that Operators compose correctly with functions"
+  (comment testing "that Operators compose correctly with functions"
       (is (= ((D ((* (- D g)(+ D 1)) f)) 'x)
 	     (+ (* -1 (((expt D 2) f) 'x) (g 'x))
 	        (* -1 (g 'x) ((D f) 'x))
@@ -48,7 +48,7 @@
 	        (* -1 ((D g) 'x) (f 'x))
 	        (((expt D 2) f) 'x)
 	        (((expt D 3) f) 'x)))))
-  (testing "that basic arithmetic operations work on multivariate literal functions"
+  (comment testing "that basic arithmetic operations work on multivariate literal functions"
       (is (= (((+  D  D) ff) 'x 'y)
              (down (* 2 (((partial 0) ff) 'x 'y)) (* 2 (((partial 1) ff) 'x 'y)))))
       (is (= (((-  D  D) ff) 'x 'y)
