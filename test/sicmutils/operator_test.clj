@@ -23,10 +23,10 @@
             [sicmutils.operator :refer :all]
             ))
 
-(def f (literal-function 'f))
-(def g (literal-function 'g))
-(def ff (literal-function 'ff [0 0] 0))
-(def gg (literal-function 'gg [0 0] 0))
+(def ^:private f (literal-function 'f))
+(def ^:private g (literal-function 'g))
+(def ^:private ff (literal-function 'ff [0 0] 0))
+(def ^:private gg (literal-function 'gg [0 0] 0))
 
             
 ;; Test operations with Operators            
@@ -37,9 +37,21 @@
     )
   (testing "that they compose with other Operators"
     (is (every? operator? [(* D D)(* D (partial 0))(*(partial 0) D)(* (partial 0)(partial 1))])))
+
+;; not run through Travis yet    
+    
+  (testing "that multiplication of Operators is equivalent to application/composition"           
+     (is (= (((* D D) ff) 'x 'y) 
+            ((D (D ff))'x 'y)))
+     (is (= (((* (partial 0)(partial 1)) ff)'x 'y) 
+            (((partial 0) ((partial 1) ff))'x 'y))))
+            
+;; ---------------------            
+
   (comment testing "that their arithmetic operations compose correctly, as per SICM -  'Our Notation'"
       (is (= (((* (+ D 1)(- D 1)) f) 'x) 
-             (+ (((expt D 2) f) 'x) (* -1 (f 'x))) )))
+             (+ (((expt D 2) f) 'x) (* -1 (f 'x))))))
+
   (comment testing "that Operators compose correctly with functions"
       (is (= ((D ((* (- D g)(+ D 1)) f)) 'x)
 	     (+ (* -1 (((expt D 2) f) 'x) (g 'x))
