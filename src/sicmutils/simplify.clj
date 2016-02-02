@@ -18,7 +18,7 @@
 
 (ns sicmutils.simplify
   (:import (java.util.concurrent TimeoutException)
-           (clojure.lang Var))
+           (clojure.lang Sequential Var))
   (:require [clojure.walk :refer [postwalk]]
             [clojure.tools.logging :as log]
             [clojure.pprint :as pp]
@@ -201,6 +201,8 @@
 
 (defmethod g/simplify :default [a] (v/freeze a))
 (defmethod g/simplify Var [a] (-> a meta :name))
+(defmethod g/simplify Sequential [a] (map g/simplify a))
+(prefer-method g/simplify :sicmutils.structure/structure Sequential)
 
 (defn expression->string
   "Renders an expression through the simplifier and into a string,

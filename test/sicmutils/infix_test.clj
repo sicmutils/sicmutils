@@ -28,7 +28,8 @@
 (deftest basic
   (testing "raw epxressions"
     (is (= "a * f(2 * (h + k), c)" ((make-renderer) '(* a (f (* 2 (+ h k)) c)))))
-    (is (= "D(f)(x, y)" (->infix '((D f) x y))))
+    (is (= "Df(x, y)" (->infix '((D f) x y))))
+    (is (= "D(f + g)(x, y)" (->infix '((D (+ f g)) x y))))
     (is (= "(sin cos)(t)" (->infix '((* sin cos) t))))
     (is (= "-1 cos(t ω + φ) a m ω² + cos(t ω + φ) a k"
            (->infix '(+ (* -1 (cos (+ (* t ω) φ)) a m (expt ω 2))

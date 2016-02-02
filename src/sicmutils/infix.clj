@@ -45,21 +45,23 @@
   (if b (parenthesize x) x))
 
 (defn make-renderer
-  [& {:keys [juxtapose-multiply exponent]}]
+  [& {:keys [juxtapose-multiply special-handlers]
+      :or {special-handlers {}}}]
   (letfn [(render-node [n]
             (if (z/branch? n)
               ;; then the first child is the function and the rest are the
               ;; arguments.
-              (let [loc (loop [a (-> n z/next z/right)]
+              (let [fn-loc (-> n z/next z/right)
+                    arg-loc (loop [a (-> n z/next z/right)]
                           (let [a' (z/replace a (render-node a))]
                             (if-let [r (z/right a')]
                               (recur r)
                               (z/up a'))))
-                    node (z/node loc)
+                    node (z/node arg-loc)
                     op (first node)
                     args (rest node)
-                    upper-op (and (z/up loc)
-                                  (-> loc z/leftmost z/node))]
+                    upper-op (and (z/up arg-loc)
+                                  (-> arg-loc z/leftmost z/node))]
                 (if (infix-operators op)
                   (parenthesize-if
                    (and (infix-operators upper-op)
@@ -68,12 +70,14 @@
                              " "
                              (str " " op " "))
                            args))
-                  (or (and (= op 'expt)
-                           exponent
-                           (exponent (first args) (second args)))
+                  (or (and (special-handlers op)
+                           ((special-handlers op) args))
                       (str (parenthesize-if (higher-precedence :apply op)
-                                            (render-node (z/next loc)))
-                           (parenthesize (s/join ", " args))))))
+                                            (render-node (z/next arg-loc)))
+                           (parenthesize-if (not (and (higher-precedence op :apply)
+                                                      (= (count args) 1)
+                                                      (not (z/branch? fn-loc))))
+                                            (s/join ", " args))))))
 
               ;; primitive case
               (z/node n)))]
@@ -84,8 +88,9 @@
 (def ->infix
   (make-renderer
    :juxtapose-multiply true
-   :exponent (fn [x e]
-               (when (and (integer? e) ((complement neg?) e))
-                 (apply str x
-                        (map #(-> % (Character/digit 10) decimal-superscripts)
-                             (str e)))))))
+   :special-handlers
+   {'expt (fn [[x e]]
+            (when (and (integer? e) ((complement neg?) e))
+              (apply str x
+                     (map #(-> % (Character/digit 10) decimal-superscripts)
+                          (str e)))))}))
