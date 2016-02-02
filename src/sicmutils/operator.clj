@@ -79,6 +79,7 @@
 
 ;; multiplication of operators is treated like composition.
 (defn- mul
+  "Multiplication of operators is defined as their composition"
   [o p]
   (Operator. (fn [f] (with-meta
                        #(apply (o (p f)) %&)
@@ -86,6 +87,8 @@
              (v/joint-arity [(v/arity o) (v/arity p)])
              'mul))
 
+;; Do we need to promote the second arg type (Number)
+;; to :sicmutils.expression/numerical-expression?? -- check this ***AG***
 (defmethod g/expt
   [::operator Number]
   [o n]
@@ -95,22 +98,65 @@
          n n]
     (if (= n 0) e (recur (mul e o) (dec n)))))
 
-;; When arithmetically combined with operators, a number is
-;; treated as an operator that multiplies its input by the
-;; number.
+
+(defmethod g/add [::operator ::operator] [o p] (add o p))
+;; In additive operation the value 1 is considered as the identity operator
 (defmethod g/add [::operator :sicmutils.expression/numerical-expression]
   [o n]
   (add o (number->operator n)))
+(defmethod g/add [:sicmutils.expression/numerical-expression ::operator]
+  [n o]
+  (add (number->operator n) o))
+(defmethod g/add
+  [::operator :sicmutils.function/function]
+  [o f]
+  (add o (function->operator f)))
+(defmethod g/add
+  [:sicmutils.function/function ::operator]
+  [f o]
+  (add (function->operator f) o))
 
 (defmethod g/sub [::operator ::operator] [o p] (sub o p))
 (defmethod g/sub
   [::operator :sicmutils.expression/numerical-expression]
   [o n]
   (sub o (number->operator n)))
+(defmethod g/sub
+  [:sicmutils.expression/numerical-expression ::operator]
+  [n o]
+  (sub (number->operator n) o))
+(defmethod g/sub
+  [::operator :sicmutils.function/function]
+  [o f]
+  (sub o (function->operator f)))
+(defmethod g/sub
+  [:sicmutils.function/function ::operator]
+  [f o]
+  (sub (function->operator f) o))
 
+;; Multiplication of operators is defined as their application (see mul, above)
 (defmethod g/mul [::operator ::operator] [o p] (mul o p))
-(defmethod g/add [::operator ::operator] [o p] (add o p))
+;; When multiplied with operators, a number is treated as an operator 
+;; that multiplies its input by the number.
+(defmethod g/mul
+  [::operator :sicmutils.function/function]
+  [o f]
+  (mul o (function->operator f)))
+(defmethod g/mul
+  [:sicmutils.function/function ::operator]
+  [f o]
+  (mul (function->operator f) o))
+(defmethod g/mul
+  [::operator :sicmutils.expression/numerical-expression]
+  [o n]
+  (mul o (number->operator n)))
+(defmethod g/mul
+  [:sicmutils.expression/numerical-expression ::operator]
+  [n o]
+  (mul o (number->operator n)))
+
 (defmethod g/square ::operator [o] (mul o o))
+
 (defmethod g/simplify ::operator [o] (:name o))
 
 (defmethod g/transpose
@@ -124,14 +170,5 @@
   (fn [f]
     #(g/cross-product (apply (o f) %&) (apply (p f) %&))))
 
-(defmethod g/mul
-  [::operator :sicmutils.function/function]
-  [o f]
-  (mul o (function->operator f)))
-
-(defmethod g/mul
-  [:sicmutils.function/function ::operator]
-  [f o]
-  (mul (function->operator f) o))
 
 ;; XXX: we need a bunch more of these, of course.
