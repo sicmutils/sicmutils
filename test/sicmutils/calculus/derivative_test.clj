@@ -351,3 +351,14 @@
     (let [pow (fn [x y] (apply * (repeat y x)))]
       (is (= 8 (pow 2 3)))
       (is (= '(expt x 8) (simplify (pow 'x 8)))))))
+
+(deftest deep-partials
+  (let [f (fn [x y] (+ (square x) (square (square y))))]
+    (is (= '((* 2 x)
+             (* 2 y)
+             (+ (* 4 (expt w 3)) (* 4 w (expt z 2)))
+             (+ (* 4 (expt w 2) z) (* 4 (expt z 3))))
+           (map simplify
+                (for [i (range 2)
+                      j (range 2)]
+                  (((partial i j) f) (up 'x 'y) (up 'w 'z))))))))
