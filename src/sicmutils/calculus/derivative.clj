@@ -356,7 +356,9 @@
                   (or (g/numerical-quantity? v) (g/abstract-quantity? v))
                   ((derivative g) v)
                   :else
-                  (throw (IllegalArgumentException. (str "bad structure " g v)))))
+                  (throw (IllegalArgumentException.
+                          (str "derivative argument not found for selectors "
+                               selectors)))))
           (a-euclidean-derivative [v]
             (cond (struct/structure? v)
                   (structural-derivative

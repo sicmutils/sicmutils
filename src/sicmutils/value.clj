@@ -46,6 +46,7 @@
   Value
   (numerical? [_] false)
   (nullity? [_] false)
+  (numerical? [_] false)
   (unity? [o] (when (number? o) (== o 1)))
   (exact? [o] (or (integer? o) (ratio? o)))
   (zero-like [_] 0)
@@ -59,7 +60,8 @@
 
 (extend-type nil
   Value
-  (freeze [_] nil))
+  (freeze [_] nil)
+  (numerical? [_] nil))
 
 (defn add-object-symbols!
   [o->syms]
