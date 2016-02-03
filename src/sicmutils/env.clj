@@ -17,7 +17,8 @@
 ;
 
 (ns sicmutils.env
-  (:refer-clojure :exclude [+ - * / zero? partial])
+  (:refer-clojure :exclude [+ - * / zero? partial]
+                  :rename {ref core-ref})
   (:require [sicmutils
              [generic :as g]
              [structure :as s]
@@ -69,6 +70,16 @@
 (def cross-product g/cross-product)
 (def print-expression simp/print-expression)
 
+(defn ref
+  "A shim so that ref can act like nth in SICM contexts, as clojure
+  core ref elsewhere."
+  [& args]
+  (if (and (> (count args) 1)
+           (sequential? (first args))
+           (every? integer? (rest args)))
+    (get-in (first args) (rest args))
+    (apply core-ref args)))
+
 (def up s/up)
 (def down s/down)
 (def transpose g/transpose)
@@ -80,6 +91,8 @@
 (def structure->vector s/structure->vector)
 (def vector->up s/vector->up)
 (def vector->down s/vector->down)
+(def m:transpose s/m:transpose)
+(def mapr s/mapr)
 
 (def D d/D)
 (def ∂ d/partial)

@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.numerical.ode-test
-  (:refer-clojure :exclude [+ - * / zero? partial])
+  (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
             [sicmutils
              [structure :refer :all]

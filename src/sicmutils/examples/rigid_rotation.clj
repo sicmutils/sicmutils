@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.examples.rigid-rotation
-  (:refer-clojure :exclude [+ - * / zero? partial])
+  (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [sicmutils.env :refer :all]
             [sicmutils.mechanics.rigid :refer :all]))
 

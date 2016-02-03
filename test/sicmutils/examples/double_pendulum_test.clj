@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.examples.double-pendulum-test
-  (:refer-clojure :exclude [+ - * / zero? partial])
+  (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [sicmutils.env :refer :all]
             [sicmutils.mechanics.lagrange :refer :all]
             [sicmutils.examples.double-pendulum :as double]

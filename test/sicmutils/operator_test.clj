@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.operator-test
-  (:refer-clojure :exclude [+ - * / zero? partial])
+  (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
             [sicmutils.operator :refer :all]
