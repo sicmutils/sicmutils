@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.generic-test
-  (:refer-clojure :exclude [+ - * / zero? partial ref])
+  (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.test :refer :all]
             [sicmutils
              [value :as v]

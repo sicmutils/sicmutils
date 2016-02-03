@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.sicm-ch2-test
-  (:refer-clojure :exclude [+ - * / zero? partial ref])
+  (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.test :refer :all]
             [clojure.pprint :as pp]
             [sicmutils
@@ -70,11 +70,11 @@
              (* (cos ψ) (sin θ) (sin ψ) A θdot)
              (* -1N (cos ψ) (sin θ) (sin ψ) B θdot)
              (* (expt (cos θ) 2) C φdot) (* (cos θ) C ψdot))
-         (simplify (nth (((partial 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1))))
+         (simplify (nth (((∂ 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1))))
   (is (zero? (simplify (- (nth ((Euler-state->L-space 'A 'B 'C) Euler-state) 2)
-                          (nth (((partial 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1)))))
+                          (nth (((∂ 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1)))))
   (is (= '(* (expt (sin θ) 2) A B C)
-         (simplify (determinant (((square (partial 2)) (T-rigid-body 'A 'B 'C)) Euler-state))))))
+         (simplify (determinant (((square (∂ 2)) (T-rigid-body 'A 'B 'C)) Euler-state))))))
 
 (deftest ^:long section-2.9b
   (let [relative-error (fn [value reference-value]

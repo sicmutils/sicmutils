@@ -315,14 +315,3 @@
       (is (= (down (up 4 -3) (up -2 1)) (s/cofactors A)))
       (is (= (down (up 24 5 -4) (up -12 3 2) (up -2 -5 4)) (s/cofactors C)))
       (is (= (up (down 3)) (s/cofactors D))))))
-
-(deftest ref-shim
-  (testing "works for structures"
-    (is (= 2 (ref (up 1 2 3) 1)))
-    (is (= 3 (ref (down (up 1 2) (up 3 4)) 1 0))))
-  (testing "works clojure-style"
-    (let [r (ref [])
-          s (ref {} :meta {:a "apple"})]
-      (is (= [] @r))
-      (is (= [99] (dosync (alter r conj 99))))
-      (is (= {:b 88} (dosync (alter s assoc :b 88)))))))

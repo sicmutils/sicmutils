@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.mechanics.rigid
-  (:refer-clojure :exclude [+ - * / zero? partial ref])
+  (:refer-clojure :exclude [+ - * / zero?])
   (:require [sicmutils
              [generic :refer :all]
              [structure :refer :all]

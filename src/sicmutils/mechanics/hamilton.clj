@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.mechanics.hamilton
-  (:refer-clojure :exclude [+ - * / zero? partial ref])
+  (:refer-clojure :exclude [+ - * / zero?])
   (:require [sicmutils
              [generic :refer :all]
              [structure :refer :all]
@@ -44,8 +44,8 @@
   [Hamiltonian]
   (fn [H-state]
     (->H-state 1
-               (((partial 2) Hamiltonian) H-state)
-               (- (((partial 1) Hamiltonian) H-state)))))
+               (((∂ 2) Hamiltonian) H-state)
+               (- (((∂ 1) Hamiltonian) H-state)))))
 
 (def phase-space-derivative Hamiltonian->state-derivative)
 
@@ -105,6 +105,6 @@
                          x))
                       (structure->access-chains gx)))
               (structure->access-chains fx))
-        ((- (* ((partial 1) f) ((partial 2) g))
-            (* ((partial 2) f) ((partial 1) g)))
+        ((- (* ((∂ 1) f) ((∂ 2) g))
+            (* ((∂ 2) f) ((∂ 1) g)))
          x)))))

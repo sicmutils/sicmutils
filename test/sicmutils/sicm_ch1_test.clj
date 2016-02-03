@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.sicm-ch1-test
-  (:refer-clojure :exclude [+ - * / zero? partial ref])
+  (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.test :refer :all]
             [sicmutils
              [generic :refer :all]
@@ -320,11 +320,11 @@
                        (* -1 ((D V) r)))
                     (* (cos θ) (sin θ) m (expt r 2) (expt φdot 2))
                     0)
-             (simplify (((partial 1) (L3-central 'm V)) spherical-state))))
+             (simplify (((∂ 1) (L3-central 'm V)) spherical-state))))
       (is (= '(down (* m rdot)
                     (* m (expt r 2) θdot)
                     (* (expt (sin θ) 2) m (expt r 2) φdot))
-             (simplify (((partial 2) (L3-central 'm V)) spherical-state))))
+             (simplify (((∂ 2) (L3-central 'm V)) spherical-state))))
       ;; p. 82
       (is (= '(* (expt (sin θ) 2) m (expt r 2) φdot)
              (simplify ((compose (ang-mom-z 'm) (F->C s->r)) spherical-state))))
@@ -341,9 +341,9 @@
                                (Ry angle-y)
                                (Rz angle-z)
                                coordinate))
-            Noether-integral (* ((partial 2) L) ((D F-tilde) 0 0 0))
+            Noether-integral (* ((∂ 2) L) ((D F-tilde) 0 0 0))
             state (up 't (up 'x 'y 'z) (up 'vx 'vy 'vz))]
-        (is (= '(down (* m vx) (* m vy) (* m vz)) (simplify (((partial 2) L) state))))
+        (is (= '(down (* m vx) (* m vy) (* m vz)) (simplify (((∂ 2) L) state))))
         (is (= '(up x y z) (simplify ((F-tilde 0 0 0) state))))
         (is (= '(down (up 0 (* -1 z) y)
                       (up z 0 (* -1 x))
