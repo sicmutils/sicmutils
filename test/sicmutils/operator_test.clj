@@ -41,10 +41,10 @@
             ))
 
 ; make private?            
-(def f (literal-function 'f))
-(def g (literal-function 'g))
-(def ff (literal-function 'ff [0 0] 0))
-(def gg (literal-function 'gg [0 0] 0))
+(def f ^:private (literal-function 'f))
+(def g ^:private (literal-function 'g))
+(def ff ^:private (literal-function 'ff [0 0] 0))
+(def gg ^:private (literal-function 'gg [0 0] 0))
 
 
 ;; Test operations with Operators
@@ -55,11 +55,13 @@
     )
   (testing "that they compose with other Operators"
     (is (every? operator? [(* D D)(* D (partial 0))(*(partial 0) D)(* (partial 0)(partial 1))])))
+        
   (testing "that multiplication of Operators is equivalent to application/composition"           
-     (is (= (((* D D) ff) 'x 'y) 
-            ((D (D ff))'x 'y)))
-     (is (= (((* (partial 0)(partial 1)) ff)'x 'y) 
-            (((partial 0) ((partial 1) ff))'x 'y))))
+     (is (= (((* D D) ff) 'x 'y)
+	    ((D (D ff)) 'x 'y)))
+     (is (= (((* (partial 0)(partial 1)) ff) 'x 'y)
+            (((partial 0) ((partial 1) ff)) 'x 'y))))
+            
   (testing "that their arithmetic operations compose correctly, as per SICM -  'Our Notation'"
     (is (= (simplify (((* (+ D 1)(- D 1)) f) 'x))
            '(+ (((expt D 2) f) x) (* -1 (f x))) )))
@@ -71,16 +73,18 @@
                (* -1 ((D g) x) (f x))
                (((expt D 2) f) x)
                (((expt D 3) f) x)))))
+
   (testing "that basic arithmetic operations work on multivariate literal functions"
     (is (= (simplify (((+  D  D) ff) 'x 'y))
            '(down (* 2 (((∂ 0) ff) x y)) (* 2 (((∂ 1) ff) x y)))))
     (is (= (simplify (((-  D  D) ff) 'x 'y))
-           '(down 0 0)))
+           '(down 0 0)))         
     (is (= (((*  D  D) ff) 'x 'y)
            (down
             (down (((partial 0) ((partial 0) ff)) 'x 'y) (((partial 0) ((partial 1) ff)) 'x 'y))
             (down (((partial 1) ((partial 0) ff)) 'x 'y) (((partial 1) ((partial 1) ff)) 'x 'y)))))
     (is (= (((*  (partial 1)  (partial 0)) ff) 'x 'y)
            (((partial 1) ((partial 0) ff)) 'x 'y)))))
-
+           
+           
     ;;; more testing to come as we implement multivariate literal functions that rely on operations on structures....
