@@ -17,7 +17,6 @@
 ;
 
 (ns sicmutils.calculus.derivative
-  (:refer-clojure :rename {partial core-partial})
   (:require [sicmutils
              [value :as v]
              [generic :as g]
@@ -371,15 +370,6 @@
                   (throw (IllegalArgumentException. (str "Bad selectors " f selectors v)))))]
     a-euclidean-derivative))
 
-(defn partial
-  "A shim. Dispatches to partial differentiation when all the arguments
-  are integers; falls back to the core meaning (partial function application)
-  otherwise."
-  [& selectors]
-  (if (every? integer? selectors)
-    (o/make-operator #(g/partial-derivative % selectors) :partial-derivative)
-    (apply core-partial selectors)))
-
 (defn- multivariate-derivative
   [f selectors]
   (let [a (v/arity f)
@@ -446,3 +436,7 @@
 
 (def D
   (o/make-operator #(g/partial-derivative % []) :derivative))
+
+(defn ∂
+  [& selectors]
+  (o/make-operator #(g/partial-derivative % selectors) :partial-derivative))

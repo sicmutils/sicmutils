@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.mechanics.lagrange
-  (:refer-clojure :exclude [+ - * / zero? partial ref])
+  (:refer-clojure :exclude [+ - * / zero?])
   (:require [sicmutils
              [generic :refer :all]
              [structure :refer :all]
@@ -107,8 +107,8 @@
   (fn [[t _ v :as local]]
     (->local t
              (F local)
-             (+ (((partial 0) F) local)
-                (* (((partial 1) F) local) v)))))
+             (+ (((∂ 0) F) local)
+                (* (((∂ 1) F) local) v)))))
 
 (defn p->r
   "SICM p. 47"
@@ -136,8 +136,8 @@
 (defn Lagrange-equations
   [Lagrangian]
   (fn [q]
-    (- (D (compose ((partial 2) Lagrangian) (Γ q)))
-       (compose ((partial 1) Lagrangian) (Γ q)))))
+    (- (D (compose ((∂ 2) Lagrangian) (Γ q)))
+       (compose ((∂ 1) Lagrangian) (Γ q)))))
 
 (defn linear-interpolants
   [x0 x1 n]
@@ -169,12 +169,12 @@
 
 (defn Lagrangian->acceleration
   [L]
-  (let [P ((partial 2) L)
-        F ((partial 1) L)]
+  (let [P ((∂ 2) L)
+        F ((∂ 1) L)]
     (/ (- F
-          (+ ((partial 0) P)
-             (* ((partial 1) P) velocity)))
-       ((partial 2) P))))
+          (+ ((∂ 0) P)
+             (* ((∂ 1) P) velocity)))
+       ((∂ 2) P))))
 
 (defn Lagrangian->state-derivative
   [L]
@@ -196,7 +196,7 @@
 
 (defn Lagrangian->energy
   [L]
-  (let [P ((partial 2) L)]
+  (let [P ((∂ 2) L)]
     (- (* P velocity) L)))
 
 (defn osculating-path
@@ -227,7 +227,7 @@
 
 (defn Euler-Lagrange-operator
   [L]
-  (- (Dt ((partial 2) L)) ((partial 1) L)))
+  (- (Dt ((∂ 2) L)) ((∂ 1) L)))
 
 (defn L-rectangular
   "Lagrangian for a point mass on with the potential energy V(x, y)"

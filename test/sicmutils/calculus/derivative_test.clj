@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.calculus.derivative-test
-  (:refer-clojure :exclude [+ - * / zero? partial ref])
+  (:refer-clojure :exclude [+ - * / zero? ref])
   (:require [clojure.test :refer :all]
             [sicmutils
              [function :refer :all]
@@ -135,35 +135,29 @@
 (deftest partial-diff-test
   (testing "partial derivatives"
     (let [f (fn [x y] (+ (* 'a x x) (* 'b x y) (* 'c y y)))]
-      (is (= '(+ (* 4 a) (* 3 b)) (simplify (((partial 0) f) 2 3))))
-      (is (= '(+ (* 2 b) (* 6 c)) (simplify (((partial 1) f) 2 3))))
-      (is (= '(+ (* 2 a x) (* b y)) (simplify (((partial 0) f) 'x 'y))))
-      (is (= '(+ (* b x) (* 2 c y)) (simplify (((partial 1) f) 'x 'y))))
+      (is (= '(+ (* 4 a) (* 3 b)) (simplify (((∂ 0) f) 2 3))))
+      (is (= '(+ (* 2 b) (* 6 c)) (simplify (((∂ 1) f) 2 3))))
+      (is (= '(+ (* 2 a x) (* b y)) (simplify (((∂ 0) f) 'x 'y))))
+      (is (= '(+ (* b x) (* 2 c y)) (simplify (((∂ 1) f) 'x 'y))))
       ;; matrix of 2nd partials
       (is (= '[[(* 2 a) b]
                [b (* 2 c)]]
              (for [i (range 2)]
                (for [j (range 2)]
-                 (simplify (((* (partial i) (partial j)) f) 'x 'y))))))
+                 (simplify (((* (∂ i) (∂ j)) f) 'x 'y))))))
       (is (= '[[(* 2 a) b]
                [b (* 2 c)]]
              (for [i (range 2)]
                (for [j (range 2)]
-                 (simplify (((compose (partial i) (partial j)) f) 'x 'y)))))))
+                 (simplify (((compose (∂ i) (∂ j)) f) 'x 'y)))))))
     (let [F (fn [a b]
               (fn [[x y]]
                 (up (* a x) (* b y))))]
       (is (= (up 'x 'y) ((F 1 1) (up 'x 'y))))
       (is (= (up (* 2 'x) (* 3 'y)) ((F 2 3) (up 'x 'y))))
-      (is (= (up 'x 0)  ((((partial 0) F) 1 1) (up 'x 'y))))
-      (is (= (up 0 'y)  ((((partial 1) F) 1 1) (up 'x 'y))))
+      (is (= (up 'x 0)  ((((∂ 0) F) 1 1) (up 'x 'y))))
+      (is (= (up 0 'y)  ((((∂ 1) F) 1 1) (up 'x 'y))))
       (is (= (down (up 'x 0) (up 0 'y)) (((D F) 1 1) (up 'x 'y)))))))
-
-(deftest partial-shim
-  (testing "partial also works the way Clojure defines it"
-    (is (= 10 ((partial + 9) 1)))
-    (is (= 5 ((partial max 4) 5)))
-    (is (= 4 ((partial max 4) 2)))))
 
 (deftest amazing-bug
   (testing "1"
@@ -286,8 +280,8 @@
       (is (= '((D f) x) (simplify ((D f) 'x))))
       (is (= '((D f) (+ x y)) (simplify ((D f) (+ 'x 'y))))))
     (testing "R^2 -> R"
-      (is (= '(((∂ 0) g) x y) (simplify (((partial 0) g) 'x 'y))))
-      (is (= '(((∂ 1) g) x y) (simplify (((partial 1) g) 'x 'y))))
+      (is (= '(((∂ 0) g) x y) (simplify (((∂ 0) g) 'x 'y))))
+      (is (= '(((∂ 1) g) x y) (simplify (((∂ 1) g) 'x 'y))))
       (is (= '(down (((∂ 0) g) x y) (((∂ 1) g) x y))
              (simplify ((D g) 'x 'y)))))))
 
@@ -319,13 +313,13 @@
     (let [g (literal-function 'g [0 0] 0)
          h (literal-function 'h [0 0] 0)]
      (is (= '(+ (((∂ 0) g) x y) (((∂ 0) h) x y))
-            (simplify (((partial 0) (+ g h)) 'x 'y))))
+            (simplify (((∂ 0) (+ g h)) 'x 'y))))
      (is (= '(+ (* (((∂ 0) g) x y) (h x y)) (* (g x y) (((∂ 0) h) x y)))
-            (simplify (((partial 0) (* g h)) 'x 'y))))
+            (simplify (((∂ 0) (* g h)) 'x 'y))))
      (is (= '(+
               (* (((∂ 0) g) x y) (h x y) (expt (g x y) (+ (h x y) -1)))
               (* (log (g x y)) (expt (g x y) (h x y)) (((∂ 0) h) x y)))
-            (simplify (((partial 0) (expt g h)) 'x 'y))))))
+            (simplify (((∂ 0) (expt g h)) 'x 'y))))))
   (testing "operators"
     (is (= '(down 1 1 1 1 1 1 1 1 1 1)
            (simplify ((D +) 'a 'b 'c 'd 'e 'f 'g 'h 'i 'j))))
@@ -345,9 +339,9 @@
                   (* (log x) (expt x y)))
            (simplify ((D expt) 'x 'y))))
     (is (= '(* (expt x (+ y -1)) y)
-           (simplify (((partial 0) expt) 'x 'y))))
+           (simplify (((∂ 0) expt) 'x 'y))))
     (is (= 2
-           (simplify (((partial 0) expt) 1 2))))
+           (simplify (((∂ 0) expt) 1 2))))
     (let [pow (fn [x y] (apply * (repeat y x)))]
       (is (= 8 (pow 2 3)))
       (is (= '(expt x 8) (simplify (pow 'x 8)))))))
@@ -361,5 +355,5 @@
            (map simplify
                 (for [i (range 2)
                       j (range 2)]
-                  (((partial i j) f) (up 'x 'y) (up 'w 'z))))))
-    (is (thrown? IllegalArgumentException (((partial 0 1) f) 'x 'y)))))
+                  (((∂ i j) f) (up 'x 'y) (up 'w 'z))))))
+    (is (thrown? IllegalArgumentException (((∂ 0 1) f) 'x 'y)))))

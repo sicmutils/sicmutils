@@ -17,8 +17,9 @@
 ;
 
 (ns sicmutils.env
-  (:refer-clojure :exclude [+ - * / zero? partial]
-                  :rename {ref core-ref})
+  (:refer-clojure :exclude [+ - * / zero?]
+                  :rename {ref core-ref
+                           partial core-partial})
   (:require [sicmutils
              [generic :as g]
              [structure :as s]
@@ -80,6 +81,15 @@
     (get-in (first args) (rest args))
     (apply core-ref args)))
 
+(defn partial
+  "A shim. Dispatches to partial differentiation when all the arguments
+  are integers; falls back to the core meaning (partial function application)
+  otherwise."
+  [& selectors]
+  (if (every? integer? selectors)
+    (apply d/∂ selectors)
+    (apply core-partial selectors)))
+
 (def up s/up)
 (def down s/down)
 (def transpose g/transpose)
@@ -95,6 +105,5 @@
 (def mapr s/mapr)
 
 (def D d/D)
-(def ∂ d/partial)
-(def partial d/partial)
+(def ∂ d/∂)
 (def pi Math/PI)
