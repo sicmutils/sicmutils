@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.examples.driven-pendulum
-  (:refer-clojure :exclude [+ - * / zero? partial])
+  (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [sicmutils.env :refer :all]
             [sicmutils.mechanics.lagrange :refer :all]))
 

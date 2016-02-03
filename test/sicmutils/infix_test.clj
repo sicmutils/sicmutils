@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.infix-test
-  (:refer-clojure :exclude [+ - * / zero? partial])
+  (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
             [sicmutils.infix :refer :all]
             [sicmutils.env :refer :all]

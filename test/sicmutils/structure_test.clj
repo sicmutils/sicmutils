@@ -17,13 +17,11 @@
 ;
 
 (ns sicmutils.structure-test
-  (:refer-clojure :exclude [+ - * / zero? partial])
+  (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
-            [sicmutils
-             [value :as v]
-             [numsymb]
-             [structure :refer :all]
-             [generic :refer :all]]))
+            [sicmutils.structure :as s]
+            [sicmutils.value :as v]
+            [sicmutils.env :refer :all]))
 
 (deftest structures
   (testing "type"
@@ -224,27 +222,27 @@
     (is (= [1 2 3 4] (flatten (down (up 1 2) (up 3 4))))))
   (testing "unflatten"
     (is (= (up (down 0 1) (down 2 3))
-           (unflatten (range) (up (down 'x 'y) (down 'z 't)))))
+           (s/unflatten (range) (up (down 'x 'y) (down 'z 't)))))
     (is (= (down 3 (up 4 5) (down (up (down 6 7) (up 8 9) 10)) 11)
-           (unflatten (range 3 12)
+           (s/unflatten (range 3 12)
                       (down 'a (up 'b 'c) (down (up (down 'd 'e) (up 'f 'g) 'h)) 'i))))
-    (is (= 9 (unflatten [9] 3)))
-    (is (= (up 2) (unflatten [2] (up 0.0)))))
+    (is (= 9 (s/unflatten [9] 3)))
+    (is (= (up 2) (s/unflatten [2] (up 0.0)))))
   (testing "get-in"
     (is (= 5 (get-in (up 4 5 6) [1])))
     (is (= 4 (get-in (up 4 5 6) [0])))
     (is (= 4 (get-in (down (up 1 2) (up 3 4)) [1 1])))
     (is (= 2 (get-in (down (up 1 2) (up 3 4)) [0 1]))))
   (testing "assoc-in"
-    (is (= (up 4 55 6) (structure-assoc-in (up 4 5 6) [1] 55)))
-    (is (= (down (up 1 22) (up 3 4)) (structure-assoc-in (down (up 1 2) (up 3 4)) [0 1] 22))))
+    (is (= (up 4 55 6) (s/structure-assoc-in (up 4 5 6) [1] 55)))
+    (is (= (down (up 1 22) (up 3 4)) (s/structure-assoc-in (down (up 1 2) (up 3 4)) [0 1] 22))))
   (testing "access-chains"
-    (is (= (up [0] [1] [2]) (structure->access-chains (up 1 2 3))))
+    (is (= (up [0] [1] [2]) (s/structure->access-chains (up 1 2 3))))
     (is (= (up [0] (up [1 0] [1 1]) (down [2 0] [2 1]))
-           (structure->access-chains (up 't (up 'x 'y) (down 'p_x 'p_y)))))
+           (s/structure->access-chains (up 't (up 'x 'y) (down 'p_x 'p_y)))))
     (is (= (up (down (up [0 0 0] [0 0 1]) (up [0 1 0] [0 1 1]))
                (down (up [1 0 0] [1 0 1]) (up [1 1 0] [1 1 1])))
-           (structure->access-chains (up (down (up 1 2) (up 2 3)) (down (up 3 4) (up 4 5))))))))
+           (s/structure->access-chains (up (down (up 1 2) (up 2 3)) (down (up 3 4) (up 4 5))))))))
 
 (deftest some-tensors
   (let [ε_ijk (down (down (down  0  0  0)
@@ -272,11 +270,11 @@
         F (down (up 1 2) (up 3 4))
         G (down (up 4 0 0 0) (up 0 0 2 0) (up 0 1 2 0) (up 1 0 0 1))]
     (testing "square?"
-      (is (= [2 :sicmutils.structure/up :sicmutils.structure/up] (square? A)))
-      (is (not (square? B)))
-      (is (= [3 :sicmutils.structure/down :sicmutils.structure/up] (square? C)))
-      (is (= [1 :sicmutils.structure/up :sicmutils.structure/down] (square? D)))
-      (is (square? E)))
+      (is (= [2 :sicmutils.structure/up :sicmutils.structure/up] (s/square? A)))
+      (is (not (s/square? B)))
+      (is (= [3 :sicmutils.structure/down :sicmutils.structure/up] (s/square? C)))
+      (is (= [1 :sicmutils.structure/up :sicmutils.structure/down] (s/square? D)))
+      (is (s/square? E)))
     (testing "determinant"
       (is (= -2 (determinant A)))
       (is (= 22 (determinant C)))
@@ -293,7 +291,7 @@
       (is (= (down (up 1 0) (up 0 1)) (* F (/ F))))
       (is (= (down (up 1 0) (up 0 1)) (/ F F)))
       (is (= (down (up 1 0) (up 0 1)) (* (/ F) F)))
-      (is (= (down (up 1/4 0 0 0) (up 0 -1 1 0) (up 0 1/2 0 0) (up -1/4 0 0 1)) (invert G)))
+      (is (= (down (up 1/4 0 0 0) (up 0 -1 1 0) (up 0 1/2 0 0) (up -1/4 0 0 1)) (/ G)))
       (is (= (down (up 1/4 0 0 0) (up 0 -1 1 0) (up 0 1/2 0 0) (up -1/4 0 0 1)) (/ G)))
       (is (= (down (up 1 0 0 0) (up 0 1 0 0) (up 0 0 1 0) (up 0 0 0 1)) (/ G G)))
       (is (= (down (up 1/8)) (/ (down (up 8))))))
@@ -301,7 +299,7 @@
       (let [N 3
             H (apply up (for [i (range 1 (inc N))]
                           (apply up (for [j (range 1 (inc N))] (/ 1 (+ i j -1))))))]
-        (is (= (down (down 9 -36 30) (down -36 192 -180) (down 30 -180 180)) (invert H)))))
+        (is (= (down (down 9 -36 30) (down -36 192 -180) (down 30 -180 180)) (/ H)))))
     (testing "transpose"
       (is (= (down (up 1 2) (up 3 4)) (transpose A)))
       (is (= (up (up 1 2 3) (up 3 4 5)) (transpose B)))
@@ -310,10 +308,21 @@
       (is (= (down 1) (transpose E)))
       (is (= (up (up 1 2) (up 3 4)) (transpose F))))
     (testing "substructure-without"
-      (is (= (down (up 1 3) (up 1 6)) (substructure-without C 1 1)))
-      (is (= (down (up 4 5) (up 0 6)) (substructure-without C 0 0)))
-      (is (= (down (up 1 2) (up 1 0)) (substructure-without C 1 2))))
+      (is (= (down (up 1 3) (up 1 6)) (s/substructure-without C 1 1)))
+      (is (= (down (up 4 5) (up 0 6)) (s/substructure-without C 0 0)))
+      (is (= (down (up 1 2) (up 1 0)) (s/substructure-without C 1 2))))
     (testing "cofactors"
-      (is (= (down (up 4 -3) (up -2 1)) (cofactors A)))
-      (is (= (down (up 24 5 -4) (up -12 3 2) (up -2 -5 4)) (cofactors C)))
-      (is (= (up (down 3)) (cofactors D))))))
+      (is (= (down (up 4 -3) (up -2 1)) (s/cofactors A)))
+      (is (= (down (up 24 5 -4) (up -12 3 2) (up -2 -5 4)) (s/cofactors C)))
+      (is (= (up (down 3)) (s/cofactors D))))))
+
+(deftest ref-shim
+  (testing "works for structures"
+    (is (= 2 (ref (up 1 2 3) 1)))
+    (is (= 3 (ref (down (up 1 2) (up 3 4)) 1 0))))
+  (testing "works clojure-style"
+    (let [r (ref [])
+          s (ref {} :meta {:a "apple"})]
+      (is (= [] @r))
+      (is (= [99] (dosync (alter r conj 99))))
+      (is (= {:b 88} (dosync (alter s assoc :b 88)))))))

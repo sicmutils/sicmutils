@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.sicm-ch7-test
-  (:refer-clojure :exclude [+ - * / zero? partial])
+  (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
             [sicmutils
              [generic :refer :all]

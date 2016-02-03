@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.examples.rigid-rotation-test
-  (:refer-clojure :exclude [+ - * / zero? partial])
+  (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
             [sicmutils.examples.rigid-rotation :as rigid-rotation]

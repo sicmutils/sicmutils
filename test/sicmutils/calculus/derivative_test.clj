@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.calculus.derivative-test
-  (:refer-clojure :exclude [+ - * / zero? partial])
+  (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
             [sicmutils
              [function :refer :all]
@@ -361,4 +361,5 @@
            (map simplify
                 (for [i (range 2)
                       j (range 2)]
-                  (((partial i j) f) (up 'x 'y) (up 'w 'z))))))))
+                  (((partial i j) f) (up 'x 'y) (up 'w 'z))))))
+    (is (thrown? IllegalArgumentException (((partial 0 1) f) 'x 'y)))))

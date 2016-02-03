@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.repl
-  (:refer-clojure :exclude [+ - * / zero? partial])
+  (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.main :as main]
             [clojure.tools.nrepl.transport :as t]
             [clojure.tools.nrepl.middleware :as mw]
