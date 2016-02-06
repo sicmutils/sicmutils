@@ -139,6 +139,13 @@
         (vector? s) (mapv #(mapr f %) s)
         :else (f s)))
 
+;; scmutils favours this (vector-map f struct) - might need to shim mapv, but acceptable for now
+;; currently used mainly in Operator ***AG***
+(defn map-struct
+  "return the result of a mapping onto a structure"
+  [f s]
+  (same s (map f s)))
+        
 (defn structure->access-chains
   "Return a structure of the same shape as s whose elements are access
   chains corresponding to position of each element (i.e., the sequence

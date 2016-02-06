@@ -19,7 +19,8 @@
 (ns sicmutils.operator
   (:require [sicmutils
              [value :as v]
-             [generic :as g]])
+             [generic :as g]
+             [structure :as s]])
   (:import (clojure.lang IFn)))
 
 (defrecord Operator [o arity name]
@@ -87,8 +88,6 @@
              (v/joint-arity [(v/arity o) (v/arity p)])
              'mul))
 
-;; Do we need to promote the second arg type (Number)
-;; to :sicmutils.expression/numerical-expression?? -- check this ***AG***
 (defmethod g/expt
   [::operator Number]
   [o n]
@@ -115,6 +114,23 @@
   [:sicmutils.function/function ::operator]
   [f o]
   (add (function->operator f) o))
+;; the following map operations on structures
+(defmethod g/add
+  [:sicmutils.structure/structure :sicmutils.expression/numerical-expression]
+  [s e]
+  (s/map-struct #(g/add % e) s))
+(defmethod g/add
+  [:sicmutils.expression/numerical-expression :sicmutils.structure/structure]
+  [e s]
+  (s/map-struct (partial g/add e) s))
+(defmethod g/add
+  [:sicmutils.structure/structure :sicmutils.calculus.derivative/differential]
+  [s d]
+  (s/map-struct #(g/add % d) s))
+(defmethod g/add
+  [:sicmutils.calculus.derivative/differential :sicmutils.structure/structure]
+  [d s]
+  (s/map-struct (partial g/add d) s))
 
 (defmethod g/sub [::operator ::operator] [o p] (sub o p))
 (defmethod g/sub
@@ -133,6 +149,23 @@
   [:sicmutils.function/function ::operator]
   [f o]
   (sub (function->operator f) o))
+;; the following map operations on structures
+(defmethod g/sub
+  [:sicmutils.structure/structure :sicmutils.expression/numerical-expression]
+  [s e]
+  (s/map-struct #(g/sub % e) s) )
+(defmethod g/sub
+  [:sicmutils.expression/numerical-expression :sicmutils.structure/structure]
+  [e s]
+  (s/map-struct (partial g/sub e) s))
+(defmethod g/sub
+  [:sicmutils.structure/structure :sicmutils.calculus.derivative/differential]
+  [s d]
+  (s/map-struct #(g/sub % d) s))
+(defmethod g/sub
+  [:sicmutils.calculus.derivative/differential :sicmutils.structure/structure]
+  [d s]
+  (s/map-struct (partial g/sub d) s))
 
 ;; Multiplication of operators is defined as their application (see mul, above)
 (defmethod g/mul [::operator ::operator] [o p] (mul o p))
@@ -154,6 +187,8 @@
   [:sicmutils.expression/numerical-expression ::operator]
   [n o]
   (mul o (number->operator n)))
+
+(defmethod g/negate ::operator [o] (g/mul -1 o))
 
 (defmethod g/square ::operator [o] (mul o o))
 
