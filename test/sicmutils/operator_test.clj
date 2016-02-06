@@ -84,7 +84,53 @@
             (down (((partial 0) ((partial 0) ff)) 'x 'y) (((partial 0) ((partial 1) ff)) 'x 'y))
             (down (((partial 1) ((partial 0) ff)) 'x 'y) (((partial 1) ((partial 1) ff)) 'x 'y)))))
     (is (= (((*  (partial 1)  (partial 0)) ff) 'x 'y)
-           (((partial 1) ((partial 0) ff)) 'x 'y)))))
+           (((partial 1) ((partial 0) ff)) 'x 'y))))
+           
+  (testing "negation of Operator"
+    (is (= (((* (- (- D))) ff) 'x 'y)  (((* (- (- D))) ff) 'x 'y))))
+
+  (testing "Addition of Operator and Structure (for multivariate literal-functions)"
+    (is (= (((+ (expt D 2) D 1) ff) 1 2)
+           (down
+             (down
+               (+ (((∂ 0) ((∂ 0) ff)) 1 2) (((∂ 0) ff) 1 2) (ff 1 2))
+               (+ (((∂ 0) ((∂ 1) ff)) 1 2) (((∂ 0) ff) 1 2) (ff 1 2)))
+             (down
+               (+ (((∂ 1) ((∂ 0) ff)) 1 2) (((∂ 1) ff) 1 2) (ff 1 2))
+               (+ (((∂ 1) ((∂ 1) ff)) 1 2) (((∂ 1) ff) 1 2) (ff 1 2))))))
+    (is (= (let [grfn (fn [x y] (+ (* x x)(* 3 y)))]  ;; test against a real function
+              (((+ (expt D 2) D 1) grfn) 1 2))
+           (down (down 11 9) 10))))
+    
+  (testing "Subtraction of Operator and Structure (for multivariate literal-functions)"
+    (is (= (simplify (((- (expt D 2) D) ff) 1 2))
+           '(down
+              (down
+                (+ (((∂ 0) ((∂ 0) ff)) 1 2) (* -1 (((∂ 0) ff) 1 2)))
+                (+ (((∂ 0) ((∂ 1) ff)) 1 2) (* -1 (((∂ 0) ff) 1 2))))
+              (down
+                (+ (((∂ 1) ((∂ 0) ff)) 1 2) (* -1 (((∂ 1) ff) 1 2)))
+                (+ (((∂ 1) ((∂ 1) ff)) 1 2) (* -1 (((∂ 1) ff) 1 2)))))))
+    (is (= (let [grfn (fn [x y] (+ (* x x)(* 3 y)))]  ;; test against a real function
+              (((- (expt D 2) D) grfn) 1 2))
+           (down (down 0 -2) -3))))
+        
+  (testing "Addition of Differential and Structure (for multivariate literal-functions)"
+    (is (= (simplify (((* (+ D 3)(+ D 2)) ff) 1 2))
+           (simplify (((+ (expt D 2) (* 5 D) 6) ff) 1 2)))
+           ))
+    
+  (testing "Subtraction of Differential to Structure (for multivariate literal-functions)"
+    (is (= (simplify (((* (+ D 1)(- D 1)) ff) 'x 'y))
+           (simplify (((+ (expt D 2) -1) ff) 'x 'y)))
+           )
+    (is (= (simplify (((* (+ D 3)(- D 2)) ff) 1 2))
+           (simplify (((+ (expt D 2) D -6) ff) 1 2)))
+           )
+    (is (= (let [grfn (fn [x y] (+ (* x x)(* 3 y)))]  ;; test against a real function
+              (((* (+ D 3)(- D 2)) grfn) 1 2))
+           (down (down -38 -40) (down -39 -39))))
+           )
+           )
            
            
-    ;;; more testing to come as we implement multivariate literal functions that rely on operations on structures....
