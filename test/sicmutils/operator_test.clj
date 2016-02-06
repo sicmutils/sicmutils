@@ -87,7 +87,7 @@
            (((partial 1) ((partial 0) ff)) 'x 'y))))
            
   (testing "negation of Operator"
-    (is (= (((* (- (- D))) ff) 'x 'y)  (((* (- (- D))) ff) 'x 'y))))
+    (is (= (((* (- (- D))) ff) 'x 'y)  (( D ff) 'x 'y))))
 
   (testing "Addition of Operator and Structure (for multivariate literal-functions)"
     (is (= (((+ (expt D 2) D 1) ff) 1 2)
