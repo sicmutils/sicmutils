@@ -27,6 +27,7 @@
              [value :as v]
              [numbers]
              [simplify]
+             [infix :refer [->infix]]
              [structure :refer :all]]
             [sicmutils.calculus.derivative :refer :all]))
 
@@ -357,3 +358,28 @@
                       j (range 2)]
                   (((∂ i j) f) (up 'x 'y) (up 'w 'z))))))
     (is (thrown? IllegalArgumentException (((∂ 0 1) f) 'x 'y)))))
+
+(deftest derivative-as-operator
+  (let [f (literal-function 'f [0 0] 0)
+        g (literal-function 'g [(up 0 0)] 0)
+        dX (up 'dx 'dy)]
+    (is (= '(f x y) (simplify (f 'x 'y))))
+    (is (= '(g (up (* 3 x) (* 3 y))) (simplify (g (* 3 (up 'x 'y))))))
+    (is (= '(down
+             (down (((∂ 0) ((∂ 0) f)) x y) (((∂ 0) ((∂ 1) f)) x y))
+             (down (((∂ 1) ((∂ 0) f)) x y) (((∂ 1) ((∂ 1) f)) x y)))
+           (simplify (((expt D 2) f) 'x 'y))))
+    (is (= '(down (((∂ 0) f) x y) (((∂ 1) f) x y))
+           (simplify ((D f) 'x 'y))))
+    (is (= '(+ (* (((∂ 0) f) x y) dx) (* (((∂ 1) f) x y) dy))
+           (simplify (* ((D f) 'x 'y) dX))))
+    (is (= '(+
+             (* (((∂ 0) ((∂ 0) f)) x y) (expt dx 2))
+             (* (((∂ 1) ((∂ 0) f)) x y) dx dy)
+             (* (((∂ 0) ((∂ 1) f)) x y) dx dy)
+             (* (((∂ 1) ((∂ 1) f)) x y) (expt dy 2)))
+           (simplify (* dX (((expt D 2) f) 'x 'y) dX))))
+    (is (= "(∂₀(∂₀(f))(x, y) dx² + ∂₁(∂₀(f))(x, y) dx dy + ∂₀(∂₁(f))(x, y) dx dy + ∂₁(∂₁(f))(x, y) dy² + 2 ∂₀(f)(x, y) dx + 2 ∂₁(f)(x, y) dy + 2 f(x, y)) / 2"
+           (->infix (simplify (+ (f 'x 'y)
+                                 (* ((D f) 'x 'y) dX)
+                                 (* 1/2 (((expt D 2) f) 'x 'y) dX dX))))))))

@@ -21,7 +21,7 @@
             [clojure.string :as s]))
 
 (def ^:private precedence-map
-  {'D 1, :apply 2, '/ 5, '* 5, '+ 6, '- 6})
+  {'∂ 1, 'D 1, :apply 2, '/ 5, '* 5, '+ 6, '- 6})
 
 (defn ^:private precedence
   [op]
@@ -79,6 +79,15 @@
     #(-> % z/seq-zip render-node)))
 
 (def ^:private decimal-superscripts [\⁰ \¹ \² \³ \⁴ \⁵ \⁶ \⁷ \⁸ \⁹])
+(def ^:private decimal-subscripts [\₀ \₁ \₂ \₃ \₄ \₅ \₆ \₇ \₈ \₉])
+
+(defn ^:private n->script
+  [n scripts]
+  (apply str (map #(-> % (Character/digit 10) scripts)
+                  (str n))))
+
+(def ^:private n->subscript #(n->script % decimal-subscripts))
+(def ^:private n->superscript #(n->script % decimal-superscripts))
 
 (def ->infix
   (make-renderer
@@ -86,6 +95,7 @@
    :special-handlers
    {'expt (fn [[x e]]
             (when (and (integer? e) ((complement neg?) e))
-              (apply str x
-                     (map #(-> % (Character/digit 10) decimal-superscripts)
-                          (str e)))))}))
+              (str x (n->superscript e))))
+    '∂ (fn [ds]
+         (when (every? #(and (integer? %) (>= % 0)) ds)
+           (str "∂" (s/join "," (map n->subscript ds)))))}))

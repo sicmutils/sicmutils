@@ -52,7 +52,7 @@
       (is (= "f(b, c) a" (s->infix (* 'a (f 'b 'c)))))
       (is (= "f(2 h + 2 k, c) a" (s->infix (* 'a (f (* 2 (+ 'h 'k)) 'c)))))
       (is (= "f(x, y)" (s->infix (f 'x 'y))))
-      (is (= "down(∂(0)(f)(x, y), ∂(1)(f)(x, y))" (s->infix ((D f) 'x 'y))))
+      (is (= "down(∂₀(f)(x, y), ∂₁(f)(x, y))" (s->infix ((D f) 'x 'y))))
       (is (= "sin(t) cos(t)" (s->infix ((* sin cos) 't)))))))
 
 (deftest exponents
