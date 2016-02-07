@@ -26,7 +26,7 @@
 (defn ^:private precedence
   [op]
   (or (precedence-map op)
-      (cond (seq? op) (recur (first op))
+      (cond (seq? op) (precedence-map :apply)
             (symbol? op) 2
             :else 99)))
 
@@ -36,13 +36,9 @@
   [a b]
   (< (precedence a) (precedence b)))
 
-(defn ^:private parenthesize
-  [x]
-  (str "(" x ")"))
-
 (defn ^:private parenthesize-if
   [b x]
-  (if b (parenthesize x) x))
+  (if b (str "(" x ")") x))
 
 (defn make-renderer
   [& {:keys [juxtapose-multiply special-handlers]
@@ -51,15 +47,13 @@
             (if (z/branch? n)
               ;; then the first child is the function and the rest are the
               ;; arguments.
-              (let [fn-loc (-> n z/next z/right)
+              (let [fn-loc (-> n z/next)
                     arg-loc (loop [a (-> n z/next z/right)]
-                          (let [a' (z/replace a (render-node a))]
-                            (if-let [r (z/right a')]
-                              (recur r)
-                              (z/up a'))))
-                    node (z/node arg-loc)
-                    op (first node)
-                    args (rest node)
+                              (let [a' (z/replace a (render-node a))]
+                                (if-let [r (z/right a')]
+                                  (recur r)
+                                  (z/up a'))))
+                    [op & args] (z/node arg-loc)
                     upper-op (and (z/up arg-loc)
                                   (-> arg-loc z/leftmost z/node))]
                 (if (infix-operators op)
@@ -72,11 +66,12 @@
                            args))
                   (or (and (special-handlers op)
                            ((special-handlers op) args))
-                      (str (parenthesize-if (higher-precedence :apply op)
+                      (str (parenthesize-if (and (z/branch? fn-loc)
+                                                 (higher-precedence :apply (z/node (z/next fn-loc))))
                                             (render-node (z/next arg-loc)))
-                           (parenthesize-if (not (and (higher-precedence op :apply)
-                                                      (= (count args) 1)
-                                                      (not (z/branch? fn-loc))))
+                           (parenthesize-if (or (not (higher-precedence op :apply))
+                                                (> (count args) 1)
+                                                (z/branch? (z/right fn-loc)))
                                             (s/join ", " args))))))
 
               ;; primitive case

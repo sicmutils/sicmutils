@@ -126,6 +126,7 @@
 (def y_s (literal-function 'y_s))
 
 (((Lagrange-equations (L-pend 'm 'l 'g y_s)) θ) 't)
+(->infix (simplify (((Lagrange-equations (L-pend 'm 'l 'g y_s)) θ) 't)))
 
 ; p. 61
 (defn Lf [m g]
@@ -143,6 +144,7 @@
         (F->C (dp-coordinates l y_s))))
 
 ((L-pend2 'm 'l 'g y_s) (->local 't 'θ 'θdot))
+(->infix (simplify ((L-pend2 'm 'l 'g y_s) (->local 't 'θ 'θdot))))
 
 ; skipping ahead to p. 81
 

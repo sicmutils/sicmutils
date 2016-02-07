@@ -19,7 +19,7 @@
 (ns sicmutils.infix-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
-            [sicmutils.infix :refer :all]
+            [sicmutils.infix :as i]
             [sicmutils.env :refer :all]
             ))
 
@@ -27,9 +27,10 @@
 
 (deftest basic
   (testing "raw epxressions"
-    (is (= "a * f(2 * (h + k), c)" ((make-renderer) '(* a (f (* 2 (+ h k)) c)))))
+    (is (= "a * f(2 * (h + k), c)" ((i/make-renderer) '(* a (f (* 2 (+ h k)) c)))))
     (is (= "Df(x, y)" (->infix '((D f) x y))))
     (is (= "D(f + g)(x, y)" (->infix '((D (+ f g)) x y))))
+    (is (= "D(f g)(x, y)" (->infix '((D (* f g)) x y))))
     (is (= "(sin cos)(t)" (->infix '((* sin cos) t))))
     (is (= "-1 cos(t ω + φ) a m ω² + cos(t ω + φ) a k"
            (->infix '(+ (* -1 (cos (+ (* t ω) φ)) a m (expt ω 2))
@@ -56,14 +57,25 @@
 
 (deftest exponents
   (is (= '"x⁴ + 4 x³ + 6 x² + 4 x + 1"
-         (->infix (simplify (expt (+ 1 'x) 4)))))
-  (is (= "x¹²" (->infix (simplify (expt 'x 12)))))
+         (s->infix (expt (+ 1 'x) 4))))
+  (is (= "x¹²" (s->infix (expt 'x 12))))
   (is (= "y¹⁵ + 3 x⁴ y¹⁰ + 3 x⁸ y⁵ + x¹²"
-         (->infix (simplify (expt (+ (expt 'x 4) (expt 'y 5)) 3)))))
+         (s->infix (expt (+ (expt 'x 4) (expt 'y 5)) 3))))
   (is (= "expt(y, 10) + 2 expt(x, 4) expt(y, 5) + expt(x, 8)"
-         ((make-renderer :juxtapose-multiply true)
+         ((i/make-renderer :juxtapose-multiply true)
           (simplify (expt (+ (expt 'x 4) (expt 'y 5)) 2)))))
-  (is (= "x² + expt(x, -2)" (->infix (simplify '(+ (expt x 2) (expt x -2)))))))
+  (is (= "x² + expt(x, -2)" (s->infix '(+ (expt x 2) (expt x -2))))))
+
+(deftest more-with-D
+  (with-literal-functions [f g [p [] 0]]
+    (is (= "f(s)" (s->infix (f 's))))
+    (is (= "(f + g)(x, y)" (->infix '((+ f g) x y))))
+    (is (= "f(x) g(x)" (s->infix ((* f g) 'x))))
+    (is (= "f(t)" (s->infix (f 't))))
+    (is (= "Df(s)" (s->infix ((D f) 's))))))
 
 (deftest structures
   (is (= "down(up(1, 2), up(3, 4))" (->infix (simplify (down (up 1 2) (up 3 4)))))))
+
+(deftest tmp
+  )

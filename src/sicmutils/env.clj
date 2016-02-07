@@ -29,7 +29,8 @@
              [expression]
              [function :as f]
              [complex :as c]
-             [operator]]
+             [operator]
+             [infix :as i]]
             [sicmutils.numerical.ode :as ode]
             [sicmutils.numerical.minimize :refer :all]
             [sicmutils.calculus.derivative :as d]
@@ -107,3 +108,5 @@
 (def D d/D)
 (def ∂ d/∂)
 (def pi Math/PI)
+
+(def ->infix i/->infix)
