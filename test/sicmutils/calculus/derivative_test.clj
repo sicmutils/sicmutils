@@ -383,3 +383,36 @@
            (->infix (simplify (+ (f 'x 'y)
                                  (* ((D f) 'x 'y) dX)
                                  (* 1/2 (((expt D 2) f) 'x 'y) dX dX))))))))
+
+(deftest taylor
+  (let [f sin]
+    (is (= '((sin x)
+             (* (cos x) dx)
+             (/ (* -1 (sin x) (expt dx 2)) 2)
+             (/ (* -1 (cos x) (expt dx 3)) 6)
+             (/ (* (sin x) (expt dx 4)) 24))
+           (simplify (take 5 (taylor-series-terms sin 'x 'dx)))))
+    (is (= '((f (up x y))
+             (+ (* (((∂ 0) f) (up x y)) dx) (* (((∂ 1) f) (up x y)) dy))
+             (/
+              (+
+               (* (((∂ 0) ((∂ 0) f)) (up x y)) (expt dx 2))
+               (* (((∂ 0) ((∂ 1) f)) (up x y)) dx dy)
+               (* (((∂ 1) ((∂ 0) f)) (up x y)) dx dy)
+               (* (((∂ 1) ((∂ 1) f)) (up x y)) (expt dy 2)))
+              2)
+             (/
+              (+
+               (* (((∂ 0) ((∂ 0) ((∂ 0) f))) (up x y)) (expt dx 3))
+               (* (((∂ 0) ((∂ 0) ((∂ 1) f))) (up x y)) (expt dx 2) dy)
+               (* (((∂ 0) ((∂ 1) ((∂ 0) f))) (up x y)) (expt dx 2) dy)
+               (* (((∂ 0) ((∂ 1) ((∂ 1) f))) (up x y)) dx (expt dy 2))
+               (* (((∂ 1) ((∂ 0) ((∂ 0) f))) (up x y)) (expt dx 2) dy)
+               (* (((∂ 1) ((∂ 0) ((∂ 1) f))) (up x y)) dx (expt dy 2))
+               (* (((∂ 1) ((∂ 1) ((∂ 0) f))) (up x y)) dx (expt dy 2))
+               (* (((∂ 1) ((∂ 1) ((∂ 1) f))) (up x y)) (expt dy 3)))
+              6))
+           (simplify
+            (take 4 (taylor-series-terms (literal-function 'f [(up 0 0)] 0)
+                                         (up 'x 'y)
+                                         (up 'dx 'dy))))))))

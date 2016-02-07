@@ -435,8 +435,22 @@
   (multivariate-derivative f selectors))
 
 (def D
+  "Derivative operator. Produces a function whose value at some poitn can
+  multiply an increment in the arguments, to produce the best linear estimate
+  of the increment in the function value."
   (o/make-operator #(g/partial-derivative % []) :derivative))
 
 (defn ∂
+  "Partial differentiation of a function at the (zero-based) slot index
+  provided."
   [& selectors]
   (o/make-operator #(g/partial-derivative % selectors) :partial-derivative))
+
+(defn taylor-series-terms
+  "The (infinite) sequence of terms of the taylor series of the function f
+  evaluated at x, with incremental quantity dx."
+  [f x dx]
+  (letfn [(step [f dxn q i]
+            (lazy-seq (cons (g/divide (g/* (f x) dxn) q)
+                            (step (D f) (g/* dxn dx) (* q (inc i)) (inc i)))))]
+    (step f 1 1 0)))
