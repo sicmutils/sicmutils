@@ -32,19 +32,17 @@
           L (driven/L-pend 'm 'l 'g y)]
       (is (= '(+ (* -1 (cos θ) g l m) (* (y t) g m))
              (simplify (V state))))
-      (is (= '(/
-               (+
-                (* 2 ((D y) t) (sin θ) l m θdot)
-                (* (expt l 2) m (expt θdot 2))
-                (* (expt ((D y) t) 2) m))
-               2)
+      (is (= '(+
+               (* ((D y) t) (sin θ) l m θdot)
+               (* 1/2 (expt l 2) m (expt θdot 2))
+               (* 1/2 (expt ((D y) t) 2) m))
              (simplify (T state))))
-      (is (= '(/ (+ (* 2N ((D y) t) (sin θ) l m θdot)
-                    (* (expt l 2) m (expt θdot 2))
-                    (* 2N (cos θ) g l m)
-                    (* (expt ((D y) t) 2) m)
-                    (* -2N (y t) g m))
-                 2N)
+      (is (= '(+
+               (* ((D y) t) (sin θ) l m θdot)
+               (* 1/2 (expt l 2) m (expt θdot 2))
+               (* (cos θ) g l m)
+               (* 1/2 (expt ((D y) t) 2) m)
+               (* -1 (y t) g m))
              (simplify (L state))))
       (is (= '(+ (* -1 (cos (+ (* t ω) φ)) (sin (θ t)) A l m (expt ω 2))
                  (* (sin (θ t)) g l m)

@@ -70,9 +70,6 @@
                              (s/down 30 -180 180)))
              (g/invert H))))))
 
-(deftest add-fraction
-  (is (= (make (p/make [3 0 2]) (p/make [2])) (g/add (p/make [1 0 1]) 1/2))))
-
 (deftest rf-operations
   (let [x+1 (p/make [1 1])
         x-1 (p/make [-1 1])]

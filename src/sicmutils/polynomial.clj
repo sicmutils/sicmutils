@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.polynomial
-  (:import (clojure.lang PersistentTreeMap BigInt IFn))
+  (:import (clojure.lang PersistentTreeMap BigInt IFn Ratio))
   (:require [clojure.set :as set]
             [clojure.string]
             [sicmutils
@@ -486,7 +486,7 @@
 (defmethod g/sub [::polynomial ::polynomial] [a b] (sub a b))
 (defmethod g/exact-div [::polynomial ::polynomial] [p q] (evenly-divide p q))
 
-(doseq [t [Long BigInt BigInteger Double]]
+(doseq [t [Long BigInt BigInteger Double Ratio]]
   (defmethod g/mul
     [t ::polynomial]
     [c p]

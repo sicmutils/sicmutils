@@ -75,12 +75,10 @@
                   (up (x t) (y t) (z t))
                   (up ((D x) t) ((D y) t) ((D z) t)))
              (simplify ((Γ q) 't))))
-      (is (= '(/
-               (+
-                (* (expt ((D x) t) 2) m)
-                (* (expt ((D y) t) 2) m)
-                (* (expt ((D z) t) 2) m))
-               2)
+      (is (= '(+
+               (* 1/2 (expt ((D x) t) 2) m)
+               (* 1/2 (expt ((D y) t) 2) m)
+               (* 1/2 (expt ((D z) t) 2) m))
              (simplify ((compose (L-free-particle 'm) (Γ q)) 't))))
       ;; at this point in the text we should be able to show-expression
       ;; in TeX form XXX.
@@ -181,9 +179,10 @@
                (+ (* (cos φ) r φdot) (* (sin φ) rdot)))
              (simplify (velocity ((F->C p->r)
                                   (->local 't (up 'r 'φ) (up 'rdot 'φdot)))))))
-      (is (= '(/ (+ (* m (expt r 2) (expt φdot 2))
-                    (* m (expt rdot 2)) (* -2N (U r)))
-                 2)
+      (is (= '(+
+               (* 1/2 m (expt r 2) (expt φdot 2))
+               (* 1/2 m (expt rdot 2))
+               (* -1 (U r)))
              (simplify ((L-alternate-central-polar 'm U)
                         (->local 't (up 'r 'φ) (up 'rdot 'φdot))))))
       (is (= '(down (+ (* -1 (r t) (expt ((D φ) t) 2) m)
@@ -210,12 +209,12 @@
             L-pend2 (fn [m l g y_s]
                       (compose (Lf m g)
                                (F->C (dp-coordinates l y_s))))]
-        (is (= '(/ (+ (* 2 (sin θ) ((D y_s) t) l m θdot)
-                      (* (expt l 2) m (expt θdot 2))
-                      (* 2 (cos θ) g l m)
-                      (* (expt ((D y_s) t) 2) m)
-                      (* -2 (y_s t) g m))
-                   2)
+        (is (= '(+
+                 (* (sin θ) ((D y_s) t) l m θdot)
+                 (* 1/2 (expt l 2) m (expt θdot 2))
+                 (* (cos θ) g l m)
+                 (* 1/2 (expt ((D y_s) t) 2) m)
+                 (* -1 (y_s t) g m))
                (simplify ((L-pend2 'm 'l 'g y_s) (->local 't 'θ 'θdot)))))))))
 
 (deftest ^:long section-1.7-1
@@ -329,11 +328,11 @@
       (is (= '(* (expt (sin θ) 2) m (expt r 2) φdot)
              (simplify ((compose (ang-mom-z 'm) (F->C s->r)) spherical-state))))
       ;; p. 84
-      (is (= '(/ (+ (* (expt (sin θ) 2) m (expt r 2) (expt φdot 2))
-                    (* m (expt r 2) (expt θdot 2))
-                    (* m (expt rdot 2))
-                    (* 2 (V r)))
-                 2)
+      (is (= '(+
+               (* 1/2 (expt (sin θ) 2) m (expt r 2) (expt φdot 2))
+               (* 1/2 m (expt r 2) (expt θdot 2))
+               (* 1/2 m (expt rdot 2))
+               (V r))
              (simplify ((Lagrangian->energy (L3-central 'm V)) spherical-state))))
       (let [L (L-central-rectangular 'm U)
             F-tilde (fn [angle-x angle-y angle-z]

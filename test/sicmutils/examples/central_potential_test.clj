@@ -27,11 +27,10 @@
   (with-literal-functions
     [m M x y X Y]
     (let [state (up 't (up 'x 'y 'X 'Y) (up 'dx 'dy 'dX 'dY))]
-      (is (= '(/ (+ (* (expt dX 2) m2)
-                    (* (expt dY 2) m2)
-                    (* (expt dx 2) m1)
-                    (* (expt dy 2) m1))
-                 2N)
+      (is (= '(+ (* 1/2 (expt dX 2) m2)
+                 (* 1/2 (expt dY 2) m2)
+                 (* 1/2 (expt dx 2) m1)
+                 (* 1/2 (expt dy 2) m1))
              (simplify ((central/T 'm1 'm2) state))))
       ;; NB: teach simplifier to recognize difference of squares below
       (is (= '(/ (* -1 m1 m2)
@@ -135,12 +134,12 @@
                     (up 0 0 0 (/ 1 m2)))
                (simplify (/ (A state))))))
       (is (= '(down (down (up (up (* (((expt D 2) x) t) m)
-                                  (/ (* (((expt D 2) y) t) m) 2N))
-                              (up (/ (* (((expt D 2) y) t) m) 2N)
+                                  (* 1/2 (((expt D 2) y) t) m))
+                              (up (* 1/2 (((expt D 2) y) t) m)
                                   0))
                           (up (up 0
-                                  (/ (* (((expt D 2) x) t) m) 2N))
-                              (up (/ (* (((expt D 2) x) t) m) 2N)
+                                  (* 1/2 (((expt D 2) x) t) m))
+                              (up (* 1/2 (((expt D 2) x) t) m)
                                   (* (((expt D 2) y) t) m))))
                     (down (up (up 0 0)
                               (up 0 0))

@@ -42,7 +42,7 @@
                       't))))
     (is (= '(/ (expt y 2) (* 4 c))
            (simplify ((Legendre-transform (fn [x] (* 'c x x))) 'y))))
-    (is (= '(/ (+ (* m (expt v_x 2)) (* m (expt v_y 2)) (* -2N (V x y))) 2)
+    (is (= '(+ (* 1/2 m (expt v_x 2)) (* 1/2 m (expt v_y 2)) (* -1 (V x y)))
            (simplify ((L-rectangular 'm V) (up 't (up 'x 'y) (up 'v_x 'v_y))))))
     (is (= '(/ (+ (* 2 (V x y) m) (expt p_x 2) (expt p_y 2))
                (* 2 m))

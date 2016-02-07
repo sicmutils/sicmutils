@@ -112,10 +112,10 @@
 
 
 (deftest section-2.10
-  (is (= '(/ (+ (* (expt (cos θ) 2) C (expt φdot 2))
-                (* (expt (sin θ) 2) A (expt φdot 2))
-                (* 2N (cos θ) C φdot ψdot)
-                (* A (expt θdot 2))
-                (* C (expt ψdot 2)))
-             2)
+  (is (= '(+
+           (* 1/2 (expt (cos θ) 2) C (expt φdot 2))
+           (* 1/2 (expt (sin θ) 2) A (expt φdot 2))
+           (* (cos θ) C φdot ψdot)
+           (* 1/2 A (expt θdot 2))
+           (* 1/2 C (expt ψdot 2)))
          (simplify ((T-rigid-body 'A 'A 'C) Euler-state)))))

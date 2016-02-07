@@ -359,6 +359,12 @@
         (dbg level "<-" g)
         g))))
 
+(def ^:private integral?
+  "A function returning true if the argument is exact but not a ratio.
+  Polynomials must have such coefficients if we are to find GCDs for them.
+  Note that a polynomial with integral coefficients is integral."
+  #(and (v/exact? %) (not (ratio? %))))
+
 (defn gcd
   "Knuth's algorithm 4.6.1E.
   This can take a long time, unfortunately, and so we bail if it seems to
@@ -369,8 +375,8 @@
   (let [clock (Stopwatch/createStarted)
         arity (check-same-arity u v)]
     (cond
-      (not (and (every? v/exact? (coefficients u))
-                (every? v/exact? (coefficients v)))) (v/one-like u)
+      (not (and (every? integral? (coefficients u))
+                (every? integral? (coefficients v)))) (v/one-like u)
       (v/nullity? u) v
       (v/nullity? v) u
       (v/unity? u) u

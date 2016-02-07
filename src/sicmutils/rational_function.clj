@@ -258,25 +258,6 @@
   [p {u :u v :v arity :arity}]
   (make (p/mul p v) u))
 
-(defmethod g/mul
-  [Ratio :sicmutils.polynomial/polynomial]
-  [r p]
-  (make (g/mul (numerator r) p)
-        (p/make-constant (:arity p) (denominator r))))
-
-(defmethod g/mul
-  [:sicmutils.polynomial/polynomial Ratio]
-  [p r]
-  (make (g/mul p (numerator r))
-        (p/make-constant (:arity p) (denominator r))))
-
-(defmethod g/add
-  [:sicmutils.polynomial/polynomial Ratio]
-  [p r]
-  (let [a (:arity p)]
-    (addp (make (p/make-constant a (numerator r))
-                (p/make-constant a (denominator r))) p)))
-
 (defmethod g/div
   [:sicmutils.polynomial/polynomial :sicmutils.polynomial/polynomial]
   [p q]
