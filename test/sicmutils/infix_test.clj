@@ -27,7 +27,6 @@
 
 (deftest basic
   (testing "raw epxressions"
-    (is (= "a * f(2 * (h + k), c)" ((i/make-renderer) '(* a (f (* 2 (+ h k)) c)))))
     (is (= "Df(x, y)" (->infix '((D f) x y))))
     (is (= "D(f + g)(x, y)" (->infix '((D (+ f g)) x y))))
     (is (= "D(f g)(x, y)" (->infix '((D (* f g)) x y))))
@@ -61,10 +60,14 @@
   (is (= "x¹²" (s->infix (expt 'x 12))))
   (is (= "y¹⁵ + 3 x⁴ y¹⁰ + 3 x⁸ y⁵ + x¹²"
          (s->infix (expt (+ (expt 'x 4) (expt 'y 5)) 3))))
-  (is (= "expt(y, 10) + 2 expt(x, 4) expt(y, 5) + expt(x, 8)"
-         ((i/make-renderer :juxtapose-multiply true)
-          (simplify (expt (+ (expt 'x 4) (expt 'y 5)) 2)))))
-  (is (= "x² + expt(x, -2)" (s->infix '(+ (expt x 2) (expt x -2))))))
+  (is (= "x² + x^-2" (s->infix '(+ (expt x 2) (expt x -2)))))
+  (is (= "sin²(x)" (->infix '((expt sin 2) x))))
+  (is (= "sin(x)²" (s->infix ((expt sin 2) 'x))))
+  (is (= "(a + b)²" (->infix '(expt (+ a b) 2))))
+  (is (= "(a + b)^(x + y)" (->infix '(expt (+ a b) (+ x y)))))
+  (is (= "(a + b)^x" (->infix '(expt (+ a b) x))))
+  (is (= "a^(x + y)" (->infix '(expt a (+ x y)))))
+  (is (= "x^y" (s->infix (expt 'x 'y)))))
 
 (deftest more-with-D
   (with-literal-functions [f g [p [] 0]]
@@ -72,10 +75,8 @@
     (is (= "(f + g)(x, y)" (->infix '((+ f g) x y))))
     (is (= "f(x) g(x)" (s->infix ((* f g) 'x))))
     (is (= "f(t)" (s->infix (f 't))))
-    (is (= "Df(s)" (s->infix ((D f) 's))))))
+    (is (= "Df(s)" (s->infix ((D f) 's))))
+    (is (= "D²(f)(s)" (s->infix (((expt D 2) f) 's))))))
 
 (deftest structures
   (is (= "down(up(1, 2), up(3, 4))" (->infix (simplify (down (up 1 2) (up 3 4)))))))
-
-(deftest tmp
-  )

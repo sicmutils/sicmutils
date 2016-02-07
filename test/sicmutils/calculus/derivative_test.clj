@@ -1,20 +1,20 @@
-;
-; Copyright (C) 2016 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme.
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+                                        ;
+                                        ; Copyright (C) 2016 Colin Smith.
+                                        ; This work is based on the Scmutils system of MIT/GNU Scheme.
+                                        ;
+                                        ; This is free software;  you can redistribute it and/or modify
+                                        ; it under the terms of the GNU General Public License as published by
+                                        ; the Free Software Foundation; either version 3 of the License, or (at
+                                        ; your option) any later version.
+                                        ;
+                                        ; This software is distributed in the hope that it will be useful, but
+                                        ; WITHOUT ANY WARRANTY; without even the implied warranty of
+                                        ; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+                                        ; General Public License for more details.
+                                        ;
+                                        ; You should have received a copy of the GNU General Public License
+                                        ; along with this code; if not, see <http://www.gnu.org/licenses/>.
+                                        ;
 
 (ns sicmutils.calculus.derivative-test
   (:refer-clojure :exclude [+ - * / zero? ref])
@@ -312,15 +312,15 @@
 (deftest alexgian-examples
   (testing "space"
     (let [g (literal-function 'g [0 0] 0)
-         h (literal-function 'h [0 0] 0)]
-     (is (= '(+ (((∂ 0) g) x y) (((∂ 0) h) x y))
-            (simplify (((∂ 0) (+ g h)) 'x 'y))))
-     (is (= '(+ (* (((∂ 0) g) x y) (h x y)) (* (g x y) (((∂ 0) h) x y)))
-            (simplify (((∂ 0) (* g h)) 'x 'y))))
-     (is (= '(+
-              (* (((∂ 0) g) x y) (h x y) (expt (g x y) (+ (h x y) -1)))
-              (* (log (g x y)) (expt (g x y) (h x y)) (((∂ 0) h) x y)))
-            (simplify (((∂ 0) (expt g h)) 'x 'y))))))
+          h (literal-function 'h [0 0] 0)]
+      (is (= '(+ (((∂ 0) g) x y) (((∂ 0) h) x y))
+             (simplify (((∂ 0) (+ g h)) 'x 'y))))
+      (is (= '(+ (* (((∂ 0) g) x y) (h x y)) (* (g x y) (((∂ 0) h) x y)))
+             (simplify (((∂ 0) (* g h)) 'x 'y))))
+      (is (= '(+
+               (* (((∂ 0) g) x y) (h x y) (expt (g x y) (+ (h x y) -1)))
+               (* (log (g x y)) (expt (g x y) (h x y)) (((∂ 0) h) x y)))
+             (simplify (((∂ 0) (expt g h)) 'x 'y))))))
   (testing "operators"
     (is (= '(down 1 1 1 1 1 1 1 1 1 1)
            (simplify ((D +) 'a 'b 'c 'd 'e 'f 'g 'h 'i 'j))))
@@ -385,37 +385,43 @@
                                  (* 1/2 (((expt D 2) f) 'x 'y) dX dX))))))))
 
 (deftest taylor
-  (let [f sin]
-    (is (= '(/
-             (+
-              (* (sin x) (expt dx 4))
-              (* -4 (cos x) (expt dx 3))
-              (* -12 (sin x) (expt dx 2))
-              (* 24 (cos x) dx)
-              (* 24 (sin x)))
-             24)
-           (simplify (reduce + (take 5 (taylor-series-terms sin 'x 'dx))))))
-    (is (= '(/
-             (+
-              (* (((∂ 0) ((∂ 0) ((∂ 0) f))) (up x y)) (expt dx 3))
-              (* (((∂ 0) ((∂ 0) ((∂ 1) f))) (up x y)) (expt dx 2) dy)
-              (* (((∂ 0) ((∂ 1) ((∂ 0) f))) (up x y)) (expt dx 2) dy)
-              (* (((∂ 0) ((∂ 1) ((∂ 1) f))) (up x y)) dx (expt dy 2))
-              (* (((∂ 1) ((∂ 0) ((∂ 0) f))) (up x y)) (expt dx 2) dy)
-              (* (((∂ 1) ((∂ 0) ((∂ 1) f))) (up x y)) dx (expt dy 2))
-              (* (((∂ 1) ((∂ 1) ((∂ 0) f))) (up x y)) dx (expt dy 2))
-              (* (((∂ 1) ((∂ 1) ((∂ 1) f))) (up x y)) (expt dy 3))
-              (* 3 (((∂ 0) ((∂ 0) f)) (up x y)) (expt dx 2))
-              (* 3 (((∂ 0) ((∂ 1) f)) (up x y)) dx dy)
-              (* 3 (((∂ 1) ((∂ 0) f)) (up x y)) dx dy)
-              (* 3 (((∂ 1) ((∂ 1) f)) (up x y)) (expt dy 2))
-              (* 6 (((∂ 0) f) (up x y)) dx)
-              (* 6 (((∂ 1) f) (up x y)) dy)
-              (* 6 (f (up x y))))
-             6)
-           (simplify
-            (reduce +
-                    (take 4 (taylor-series-terms
-                             (literal-function 'f [(up 0 0)] 0)
-                             (up 'x 'y)
-                             (up 'dx 'dy)))))))))
+  (is (= '(/
+           (+
+            (* (sin x) (expt dx 4))
+            (* -4 (cos x) (expt dx 3))
+            (* -12 (sin x) (expt dx 2))
+            (* 24 (cos x) dx)
+            (* 24 (sin x)))
+           24)
+         (simplify (reduce + (take 5 (taylor-series-terms sin 'x 'dx))))))
+  (is (= '(1
+           (* 1/2 dx)
+           (/ (* -1 (expt dx 2)) 8)
+           (/ (expt dx 3) 16)
+           (/ (* -5 (expt dx 4)) 128)
+           (/ (* 7 (expt dx 5)) 256))
+         (simplify (take 6 (taylor-series-terms #(sqrt (+ 1 %)) 0 'dx)))))
+  (is (= '(/
+           (+
+            (* (((∂ 0) ((∂ 0) ((∂ 0) f))) (up x y)) (expt dx 3))
+            (* (((∂ 0) ((∂ 0) ((∂ 1) f))) (up x y)) (expt dx 2) dy)
+            (* (((∂ 0) ((∂ 1) ((∂ 0) f))) (up x y)) (expt dx 2) dy)
+            (* (((∂ 0) ((∂ 1) ((∂ 1) f))) (up x y)) dx (expt dy 2))
+            (* (((∂ 1) ((∂ 0) ((∂ 0) f))) (up x y)) (expt dx 2) dy)
+            (* (((∂ 1) ((∂ 0) ((∂ 1) f))) (up x y)) dx (expt dy 2))
+            (* (((∂ 1) ((∂ 1) ((∂ 0) f))) (up x y)) dx (expt dy 2))
+            (* (((∂ 1) ((∂ 1) ((∂ 1) f))) (up x y)) (expt dy 3))
+            (* 3 (((∂ 0) ((∂ 0) f)) (up x y)) (expt dx 2))
+            (* 3 (((∂ 0) ((∂ 1) f)) (up x y)) dx dy)
+            (* 3 (((∂ 1) ((∂ 0) f)) (up x y)) dx dy)
+            (* 3 (((∂ 1) ((∂ 1) f)) (up x y)) (expt dy 2))
+            (* 6 (((∂ 0) f) (up x y)) dx)
+            (* 6 (((∂ 1) f) (up x y)) dy)
+            (* 6 (f (up x y))))
+           6)
+         (simplify
+          (reduce +
+                  (take 4 (taylor-series-terms
+                           (literal-function 'f [(up 0 0)] 0)
+                           (up 'x 'y)
+                           (up 'dx 'dy))))))))

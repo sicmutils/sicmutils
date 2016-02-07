@@ -21,7 +21,7 @@
             [clojure.string :as s]))
 
 (def ^:private precedence-map
-  {'∂ 1, 'D 1, :apply 2, '/ 5, '* 5, '+ 6, '- 6})
+  {'∂ 1, 'D 1, :apply 2, 'expt 2, '/ 5, '* 5, '+ 6, '- 6})
 
 (defn ^:private precedence
   [op]
@@ -30,19 +30,24 @@
             (symbol? op) 2
             :else 99)))
 
-(def ^:private infix-operators #{'* '+ '- '/})
+(def ^:private infix-operators #{'* '+ '- '/ 'expt})
 
-(defn ^:private higher-precedence
+(defn ^:private precedence>
   [a b]
   (< (precedence a) (precedence b)))
+
+(defn ^:private precedence<=
+  [a b]
+  (not (precedence> a b)))
 
 (defn ^:private parenthesize-if
   [b x]
   (if b (str "(" x ")") x))
 
-(defn make-renderer
-  [& {:keys [juxtapose-multiply special-handlers]
-      :or {special-handlers {}}}]
+(defn ^:private make-renderer
+  [& {:keys [juxtapose-multiply special-handlers infix?]
+      :or {special-handlers {}
+           infix? (constantly false)}}]
   (letfn [(render-node [n]
             (if (z/branch? n)
               ;; then the first child is the function and the rest are the
@@ -56,20 +61,23 @@
                     [op & args] (z/node arg-loc)
                     upper-op (and (z/up arg-loc)
                                   (-> arg-loc z/leftmost z/node))]
-                (if (infix-operators op)
+                (if (infix? op args)
                   (parenthesize-if
-                   (and (infix-operators upper-op)
-                        (higher-precedence upper-op op))
-                   (s/join (if (and (= op '*) juxtapose-multiply)
-                             " "
-                             (str " " op " "))
-                           args))
+                   (and (infix? upper-op nil)
+                        (precedence> upper-op op))
+                   (or (and (special-handlers op)
+                            ((special-handlers op) args))
+                       (s/join (cond
+                                 (and (= op '*) juxtapose-multiply) " "
+                                 (= op 'expt) "^"
+                                 :else (str " " op " "))
+                               args)))
                   (or (and (special-handlers op)
                            ((special-handlers op) args))
                       (str (parenthesize-if (and (z/branch? fn-loc)
-                                                 (higher-precedence :apply (z/node (z/next fn-loc))))
+                                                 (precedence> :apply (z/node (z/next fn-loc))))
                                             (render-node (z/next arg-loc)))
-                           (parenthesize-if (or (not (higher-precedence op :apply))
+                           (parenthesize-if (or (precedence<= op :apply)
                                                 (> (count args) 1)
                                                 (z/branch? (z/right fn-loc)))
                                             (s/join ", " args))))))
@@ -91,6 +99,8 @@
 
 (def ->infix
   (make-renderer
+   :infix? (fn [op args]
+             (#{'* '+ '- '/ 'expt} op))
    :juxtapose-multiply true
    :special-handlers
    {'expt (fn [[x e]]
