@@ -50,9 +50,9 @@
      (is (thrown? IllegalArgumentException (g/simplify (g 'x))))
      ))
   (testing "structured range"
-    (let [h (literal-function 'h [0] (up 0 0 0))
-          k (literal-function 'k [0] (up 0 (up 0 0) (down 0 0)))
-          q (literal-function 'q [0] (down (up 0 1) (up 2 3)))]
+    (let [h (literal-function 'h 0 (up 0 0 0))
+          k (literal-function 'k 0 (up 0 (up 0 0) (down 0 0)))
+          q (literal-function 'q 0 (down (up 0 1) (up 2 3)))]
       (is (= '(up (h↑0 t) (h↑1 t) (h↑2 t)) (g/simplify (h 't))))
       (is (= '(up (k↑0 t)
                   (up (k↑1↑0 t) (k↑1↑1 t))
@@ -86,7 +86,7 @@
     ;; being it's easy enough just to make the range an up tuple,
     ;; which is just as useful as well as being explicit about the
     ;; variance.
-    #_(let [h (literal-function 'h [0] [0 1])]
+    #_(let [h (literal-function 'h 0 [0 1])]
       (is (= 'foo (h 'x))))))
 
 (deftest function-algebra

@@ -51,7 +51,7 @@
       (is (= '(g x y) (simplify ((literal-function 'g [0 0] 0) 'x 'y)))))
     (testing "structured arguments"
       (let [s (up 't (up 'x 'y) (down 'p_x 'p_y))
-            H (literal-function 'H [(up 0 (up 0 0) (down 0 0))] 0)]
+            H (literal-function 'H (up 0 (up 0 0) (down 0 0)) 0)]
         (is (= '(H (up t (up x y) (down p_x p_y)))
                (simplify (H s))))
         (is (thrown? IllegalArgumentException (H (up 0 (up 1 2) (down 1 2 3)))))

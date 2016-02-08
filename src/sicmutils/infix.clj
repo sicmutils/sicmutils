@@ -30,8 +30,6 @@
             (symbol? op) 2
             :else 99)))
 
-(def ^:private infix-operators #{'* '+ '- '/ 'expt})
-
 (defn ^:private precedence>
   [a b]
   (< (precedence a) (precedence b)))

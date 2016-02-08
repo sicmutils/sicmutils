@@ -361,7 +361,7 @@
 
 (deftest derivative-as-operator
   (let [f (literal-function 'f [0 0] 0)
-        g (literal-function 'g [(up 0 0)] 0)
+        g (literal-function 'g (up 0 0) 0)
         dX (up 'dx 'dy)]
     (is (= '(f x y) (simplify (f 'x 'y))))
     (is (= '(g (up (* 3 x) (* 3 y))) (simplify (g (* 3 (up 'x 'y))))))
@@ -422,6 +422,6 @@
          (simplify
           (reduce +
                   (take 4 (taylor-series-terms
-                           (literal-function 'f [(up 0 0)] 0)
+                           (literal-function 'f (up 0 0) 0)
                            (up 'x 'y)
                            (up 'dx 'dy))))))))

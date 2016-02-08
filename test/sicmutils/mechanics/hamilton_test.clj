@@ -144,8 +144,8 @@
                     (comp (component 1) momentum)
                     (comp (component 2) momentum)))
              a-state))))
-    (with-literal-functions [[FF [(up 0 (up 1 2) (down 3 4))] 5]
-                             [GG [(up 0 (up 1 2) (down 3 4))] 5]]
+    (with-literal-functions [[FF (up 0 (up 1 2) (down 3 4)) 5]
+                             [GG (up 0 (up 1 2) (down 3 4)) 5]]
       (is (= '(FF (up t (up x y) (down pa pb)))
              (simplify (FF (up 't (up 'x 'y) (down 'pa 'pb))))))
       (is (= '(down

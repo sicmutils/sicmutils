@@ -56,7 +56,9 @@
   ([f] (Function. f [:exactly 1] [0] 0))
   ([f domain range]
    (cond (number? range)
-         (Function. f [:exactly (if (vector? domain) (count domain) 1)] domain range)
+         (Function. f [:exactly (if (vector? domain) (count domain) 1)]
+                    (if (vector? domain) domain [domain])
+                    range)
 
          (s/structure? range)
          (s/same range (map-indexed (fn [index component]
