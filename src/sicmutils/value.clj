@@ -80,11 +80,14 @@
 
                (fn? f)
                (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
-                     ;; tally up arities of invoke, doInvoke, and getRequiredArity methods
+                     ;; tally up arities of invoke, doInvoke, and
+                     ;; getRequiredArity methods. Filter out invokeStatic.
                      ^RestFn rest-fn f
                      facts (group-by first
-                                     (for [^Method m methods]
-                                       (condp = (.getName m)
+                                     (for [^Method m methods
+                                           :let [name (.getName m)]
+                                           :when (not= name "invokeStatic")]
+                                       (condp = name
                                          "invoke" [:invoke (alength (.getParameterTypes m))]
                                          "doInvoke" [:doInvoke true]
                                          "getRequiredArity" [:getRequiredArity (.getRequiredArity rest-fn)])))]
@@ -95,7 +98,8 @@
                         (= 1 (count (:invoke facts))))
                    [:exactly (second (first (:invoke facts)))]
                    ;; Rule two: if we have exactly one doInvoke and getRequiredArity,
-                   ;; then the arity at least the result of .getRequiredArity.
+                   ;; and possibly an invokeStatic, then the arity at
+                   ;; least the result of .getRequiredArity.
                    (and (= 2 (count facts))
                         (= 1 (count (:doInvoke facts)))
                         (= 1 (count (:getRequiredArity facts))))
@@ -115,28 +119,30 @@
 
                :else [:exactly 1])))))
 
+(defn ^:private arity-fail
+  [arities]
+  (throw (IllegalArgumentException. (str "Incompatible arities: " arities))))
+
 (defn joint-arity
   "Find the most relaxed possible statement of the joint arity of the objects
   xs. If they are incompatible, an exception is thrown."
   [arities]
-  (let [arity-fail #(throw (IllegalArgumentException.
-                            (str "Incompatible arities: " arities)))]
-    (reduce (fn [[joint-qualifier joint-value] [qualifier value]]
-              (if (= joint-qualifier :exactly)
-                (if (= qualifier :exactly)
-                  (if (= joint-value value)  ;; exactly/exactly: counts must match
-                    [joint-qualifier joint-value]
-                    (arity-fail))
-                  (if (>= joint-value value) ;; exactly/at-least: exactly count must >= at-least
-                    [joint-qualifier joint-value]
-                    (arity-fail)))
-                (if (= qualifier :exactly)
-                  (if (>= value joint-value) ;; at-least/exactly
-                    [qualifier value]
-                    (arity-fail))
-                  [:at-least (max joint-value value)])))
-            [:at-least 0]
-            arities)))
+  (reduce (fn [[joint-qualifier joint-value] [qualifier value]]
+            (if (= joint-qualifier :exactly)
+              (if (= qualifier :exactly)
+                (if (= joint-value value)  ;; exactly/exactly: counts must match
+                  [joint-qualifier joint-value]
+                  (arity-fail))
+                (if (>= joint-value value) ;; exactly/at-least: exactly count must >= at-least
+                  [joint-qualifier joint-value]
+                  (arity-fail)))
+              (if (= qualifier :exactly)
+                (if (>= value joint-value) ;; at-least/exactly
+                  [qualifier value]
+                  (arity-fail))
+                [:at-least (max joint-value value)])))
+          [:at-least 0]
+          arities))
 
 (defn- primitive-kind
   [a]
