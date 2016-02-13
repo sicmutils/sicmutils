@@ -144,7 +144,7 @@
           [:at-least 0]
           arities))
 
-(defn- primitive-kind
+(defn ^:private primitive-kind
   [a]
   (cond
     (or (fn? a) (= (class a) MultiFn)) ::function
