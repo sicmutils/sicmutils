@@ -59,15 +59,15 @@
   (Lagrangian->state-derivative (L m M)))
 
 (defn evolver
-  [& {:keys [t dt m M x0 y0 xdot0 ydot0 observe]
-      :or {t 1
-           dt 1
-           m 1
-           M 1
-           x0 1
-           y0 1
-           xdot0 0
-           ydot0 0}}]
+  [{:keys [t dt m M x0 y0 xdot0 ydot0 observe]
+    :or {t 1
+         dt 1
+         m 1
+         M 1
+         x0 1
+         y0 1
+         xdot0 0
+         ydot0 0}}]
   (let [initial-state (up 0.0
                           (up x0    y0    0 0)
                           (up xdot0 ydot0 0 0))]
@@ -78,6 +78,13 @@
      t
      1.0e-6
      :compile true)))
+
+(defn equations
+  []
+  (->infix (simplify ((state-derivative 'm 'M)
+                      (up 't
+                          (up 'x0 'y0 'x1 'y1)
+                          (up 'xdot0 'ydot0 'xdot1 'ydot1))))))
 
 (defn- to-svg
   [evolution]

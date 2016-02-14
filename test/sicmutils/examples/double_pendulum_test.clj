@@ -64,5 +64,5 @@
     (let [o (atom [])
           observe (fn [t q] (swap! o conj [t q]))]
       (do
-        (double/evolver :t 3/60 :dt 1/60 :observe observe)
+        (double/evolver {:t 3/60 :dt 1/60 :observe observe})
         (is (= 4 (count @o)))))))
