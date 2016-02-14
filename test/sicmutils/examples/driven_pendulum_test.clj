@@ -51,4 +51,8 @@
                            (driven/L-pend 'm 'l 'g (driven/periodic-drive 'A 'ω 'φ)))
                           θ)
                          't))))
-      (is (driven/evolver 1 1/60 0.2 3 9.8 1.57 0)))))
+      (let [o (atom [])
+            observe (fn [t q] (swap! o conj [t q]))]
+        (do
+          (driven/evolver :t 3/60 :dt 1/60 :observe observe)
+          (is (= 4 (count @o))))))))

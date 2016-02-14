@@ -51,23 +51,28 @@
 ;              (up 't 'θ_0 'θdot_0))))
 
 (defn evolver
-  [t dt A ω g θ0 θdot0]
-  (let [drive (periodic-drive A ω 0)
-        state-history (atom [])]
+  [& {:keys [t dt A omega g theta0 thetadot0 observe]
+      :or {t 1
+           dt 1/60
+           A 0
+           omega 0
+           g 9.8
+           theta0 (/ 2 pi)
+           thetadot0 0}}]
+  (let [drive (periodic-drive A omega 0)]
     ((evolve pend-state-derivative
-             1.0 ;; mass of bob
-             1.0 ;; length of rod
-             g   ;; acceleration due to gravity
-             A   ;; amplitude of drive
-             ω   ;; frequency of drive
-             0   ;; phase of drive
+             1.0   ;; mass of bob
+             1.0   ;; length of rod
+             g     ;; acceleration due to gravity
+             A     ;; amplitude of drive
+             omega ;; frequency of drive
+             0     ;; phase of drive
              )
      (up 0.0
-          θ0
-          θdot0)
-     (fn [t [_ q _]] (swap! state-history conj [t q (drive t)]))
+         theta0
+         thetadot0)
+     observe
      dt
      t
      1.0e-6
-     :compile true)
-    @state-history))
+     :compile true)))

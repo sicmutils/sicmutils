@@ -178,4 +178,8 @@
                             (* (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))) (expt x 2))
                             (* (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))) (expt y 2))))))
              (simplify ((central/state-derivative 'm 'M) state))))
-      (is (central/evolver 1 1/60 100 100 20 20 -2 0)))))
+      (let [o (atom [])
+            observe (fn [t q] (swap! o conj [t q]))]
+        (do
+          (central/evolver :t 3/60 :dt 1/60 :observe observe)
+          (is (= 4 (count @o))))))))

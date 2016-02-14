@@ -59,20 +59,25 @@
   (Lagrangian->state-derivative (L m M)))
 
 (defn evolver
-  [t dt m M x0 y0 xDot0 yDot0]
-  (let [state-history (atom [])
-        initial-state (up 0.0
+  [& {:keys [t dt m M x0 y0 xdot0 ydot0 observe]
+      :or {t 1
+           dt 1
+           m 1
+           M 1
+           x0 1
+           y0 1
+           xdot0 0
+           ydot0 0}}]
+  (let [initial-state (up 0.0
                           (up x0    y0    0 0)
-                          (up xDot0 yDot0 0 0))]
+                          (up xdot0 ydot0 0 0))]
     ((evolve state-derivative m M)
      initial-state
-     (fn [t [_ q _]]
-       (swap! state-history conj (into [t] q)))
+     observe
      dt
      t
      1.0e-6
-     :compile true)
-    @state-history))
+     :compile true)))
 
 (defn- to-svg
   [evolution]

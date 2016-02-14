@@ -61,4 +61,8 @@
                           (double/L-double-pend 'm1 'm2 'l1 'l2 'g))
                          (up θ φ))
                         't)))))
-    (is (double/evolver 1 1/60 9.8 1 0.4 1 0 2 0.6 -1 0))))
+    (let [o (atom [])
+          observe (fn [t q] (swap! o conj [t q]))]
+      (do
+        (double/evolver :t 3/60 :dt 1/60 :observe observe)
+        (is (= 4 (count @o)))))))
