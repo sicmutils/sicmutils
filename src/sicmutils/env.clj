@@ -110,3 +110,4 @@
 (def pi Math/PI)
 
 (def ->infix i/->infix)
+(def ->TeX i/->TeX)

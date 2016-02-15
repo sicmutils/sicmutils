@@ -54,18 +54,18 @@
     (L-double-pend m1 m2 l1 l2 g)))
 
 (defn evolver
-  [{:keys [t dt g m1 l1 theta0 thetadot0 m2 l2 phi0 phidot0 observe]
+  [{:keys [t dt g m1 l1 theta_0 thetadot_0 m2 l2 phi_0 phidot_0 observe]
     :or {t 1
          dt 1/60
          g 9.8
          m1 1
          l1 0.5
-         theta0 (/ pi 2)
-         thetadot0 0
+         theta_0 (/ pi 2)
+         thetadot_0 0
          m2 1
          l2 0.5
-         phi0 0
-         phidot0 0}}]
+         phi_0 0
+         phidot_0 0}}]
   ((evolve pend-state-derivative
            m1 ;; mass of bob1
            m2 ;; mass of bob2
@@ -74,8 +74,8 @@
            g  ;; acceleration due to gravity
            )
    (up 0.0
-       (up theta0 phi0)
-       (up thetadot0 phidot0))
+       (up theta_0 phi_0)
+       (up thetadot_0 phidot_0))
    observe
    dt
    t
@@ -84,7 +84,7 @@
 
 (defn equations
   []
-  (->infix (simplify ((pend-state-derivative 'm_1 'm_2 'l_1 'l_2 'g)
-                      (up 't
-                          (up 'θ0 'φ0)
-                          (up 'θdot0 'φdot0))))))
+  (simplify ((pend-state-derivative 'm_1 'm_2 'l_1 'l_2 'g)
+             (up 't
+                 (up 'θ_0 'φ_0)
+                 (up 'θdot_0 'φdot_0)))))

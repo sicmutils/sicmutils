@@ -24,6 +24,7 @@
             ))
 
 (def ^:private s->infix (compose ->infix simplify))
+(def ^:private s->TeX (compose ->TeX simplify))
 
 (deftest basic
   (testing "raw epxressions"
@@ -80,3 +81,13 @@
 
 (deftest structures
   (is (= "down(up(1, 2), up(3, 4))" (->infix (simplify (down (up 1 2) (up 3 4)))))))
+
+(deftest variable_subscripts
+  (is (= "x₀ + y₁ + z₂" (s->infix (+ 'x_0 'y_1 'z_2)))))
+
+(deftest TeX-easy
+  (is (= "a + b" (s->TeX (+ 'a 'b))))
+  (is (= "\\lambda + \\mu" (s->TeX (+ 'lambda 'mu))))
+  (is (= "x_0 + y_s" (s->TeX (+ 'x_0 'y_s))))
+  (is (= "1\\over x" (s->TeX (/ 1 'x))))
+  (is (= "{a + b}\\over {c + d}" (s->TeX (/ (+ 'a 'b) (+ 'c 'd))))))

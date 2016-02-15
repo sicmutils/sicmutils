@@ -38,33 +38,33 @@
 (def L-pend (- T-pend V-pend))
 
 (defn periodic-drive
-  [A ω φ]
-  #(-> % (* ω) (+ φ) cos (* A)))
+  [a ω φ]
+  #(-> % (* ω) (+ φ) cos (* a)))
 
 (defn pend-state-derivative
-  [m l g A ω φ]
+  [m l g a ω φ]
   (Lagrangian->state-derivative
-    (L-pend m l g (periodic-drive A ω φ))))
+    (L-pend m l g (periodic-drive a ω φ))))
 
 (defn equations
   []
-  (->infix (simplify ((pend-state-derivative 'm 'l 'g 'A 'ω 'φ)
-                      (up 't 'θ_0 'θdot_0)))))
+  (simplify ((pend-state-derivative 'm 'l 'g 'a 'ω 'φ)
+             (up 't 'θ_0 'θdot_0))))
 
 (defn evolver
-  [{:keys [t dt A omega g theta_0 thetadot_0 observe]
+  [{:keys [t dt a omega g theta_0 thetadot_0 observe]
     :or {t 1
          dt 1/60
-         A 0
+         a 0
          omega 0
          g 9.8
-         theta_0 (/ 2 pi)
+         theta_0 1
          thetadot_0 0}}]
   ((evolve pend-state-derivative
            1.0   ;; mass of bob
            1.0   ;; length of rod
            g     ;; acceleration due to gravity
-           A     ;; amplitude of drive
+           a     ;; amplitude of drive
            omega ;; frequency of drive
            0     ;; phase of drive
            )

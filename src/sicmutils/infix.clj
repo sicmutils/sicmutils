@@ -20,33 +20,20 @@
   (:require [clojure.zip :as z]
             [clojure.string :as s]))
 
-(def ^:private precedence-map
-  {'∂ 1, 'D 1, :apply 2, 'expt 2, '/ 5, '* 5, '+ 6, '- 6})
-
-(defn ^:private precedence
-  [op]
-  (or (precedence-map op)
-      (cond (seq? op) (precedence-map :apply)
-            (symbol? op) 2
-            :else 99)))
-
-(defn ^:private precedence>
-  [a b]
-  (< (precedence a) (precedence b)))
-
-(defn ^:private precedence<=
-  [a b]
-  (not (precedence> a b)))
-
-(defn ^:private parenthesize-if
-  [b x]
-  (if b (str "(" x ")") x))
-
 (defn ^:private make-renderer
-  [& {:keys [juxtapose-multiply special-handlers infix?]
+  [& {:keys [juxtapose-multiply special-handlers infix? render-variable parenthesize precedence-map]
       :or {special-handlers {}
            infix? (constantly false)}}]
-  (letfn [(render-node [n]
+  (letfn [(precedence [op] (or (precedence-map op)
+                               (cond (seq? op) (precedence-map :apply)
+                                     (symbol? op) 2
+                                     :else 99)))
+          ;; TODO: the names are wack; reverse them one way or the other
+          (precedence> [a b] (< (precedence a) (precedence b)))
+          (precedence<= [a b] (not (precedence> a b)))
+          (parenthesize-if [b x]
+            (if b (parenthesize x) x))
+          (render-node [n]
             (if (z/branch? n)
               ;; then the first child is the function and the rest are the
               ;; arguments.
@@ -59,9 +46,9 @@
                     [op & args] (z/node arg-loc)
                     upper-op (and (z/up arg-loc)
                                   (-> arg-loc z/leftmost z/node))]
-                (if (infix? op args)
+                (if (infix? op)
                   (parenthesize-if
-                   (and (infix? upper-op nil)
+                   (and (infix? upper-op)
                         (precedence> upper-op op))
                    (or (and (special-handlers op)
                             ((special-handlers op) args))
@@ -81,7 +68,9 @@
                                             (s/join ", " args))))))
 
               ;; primitive case
-              (z/node n)))]
+              (let [n (z/node n)]
+                (or (and render-variable (render-variable n))
+                    n))))]
     #(-> % z/seq-zip render-node)))
 
 (def ^:private decimal-superscripts [\⁰ \¹ \² \³ \⁴ \⁵ \⁶ \⁷ \⁸ \⁹])
@@ -97,13 +86,75 @@
 
 (def ->infix
   (make-renderer
-   :infix? (fn [op args]
-             (#{'* '+ '- '/ 'expt} op))
+   :precedence-map {'∂ 1, 'D 1, :apply 2, 'expt 2, '/ 5, '* 5, '+ 6, '- 6}
+   :parenthesize #(str "(" % ")")
+   :infix? #{'* '+ '- '/ 'expt}
    :juxtapose-multiply true
    :special-handlers
    {'expt (fn [[x e]]
             (when (and (integer? e) ((complement neg?) e))
               (str x (n->superscript e))))
     '∂ (fn [ds]
-         (when (every? #(and (integer? %) (>= % 0)) ds)
-           (str "∂" (s/join "," (map n->subscript ds)))))}))
+         (when (and (= (count ds) 1) (integer? (first ds)))
+           (str "∂" (n->subscript (first ds)))))}
+   :render-variable (fn r [v]
+                      (let [s (str v)
+                            [_ stem subscript] (re-find #"(.+)_(\d+)$" s)]
+                        (if stem
+                          (str stem (n->subscript subscript))
+                          v)))))
+
+(def ^:private TeX-greek-letters
+  #{"alpha" "beta" "gamma" "delta" "epsilon" "varepsilon" "zeta" "eta"
+    "theta" "vartheta" "kappa" "lambda" "mu" "nu" "xi" "pi" "varpi"
+    "rho" "varrho" "sigma" "varsigma" "tau" "upsilon" "phi" "varphi"
+    "chi" "psi" "omega" "Gamma" "Delta" "Theta" "Lambda" "Xi" "Pi" "Sigma"
+    "Upsilon" "Phi" "Psi" "Omega"})
+
+(def ^:private TeX-map
+  {"α" "\\alpha",
+   "ω" "\\omega",
+   "θ" "\\theta",
+   "φ" "\\varphi",
+   "sin" "\\sin",
+   "cos" "\\cos",
+   })
+
+(defn ^:private brace
+  [s]
+  (str "{" s "}"))
+
+(defn ^:private maybe-brace
+  [s]
+  (if (and (string? s) (> (count s) 1))
+    (brace s)
+    s))
+
+(def ->TeX
+  (make-renderer
+   ;; here we set / to a very low precedence because the fraction bar we will
+   ;; use in the rendering groups things very strongly.
+   :precedence-map {'∂ 1, 'D 1, :apply 2, 'expt 2, '* 5, '+ 6, '- 6, '/ 9}
+   :parenthesize #(str "\\left(" % "\\right)")
+   :infix? #{'* '+ '- '/ 'expt}
+   :juxtapose-multiply true
+   :special-handlers
+   {'expt (fn [[x e]] (str "{" x "}^{" e "}"))
+    '∂ (fn [ds] "\\partial_{" (s/join "," ds) "}")
+    '/ (fn [xs]
+         (when (= (count xs) 2)
+           (str (maybe-brace (first xs)) "\\over " (maybe-brace (second xs)))))
+    'up #(str "\\begin{pmatrix}" (s/join "\\\\" %) "\\end{pmatrix}")
+    'down #(str "\\begin{bmatrix}" (s/join "&" %) "\\end{bmatrix}")
+    'sqrt #(str "\\sqrt " (maybe-brace (first %)))}
+   :render-variable
+   (fn r [v]
+     (prn "V" v)
+     (let [s (str v)]
+       (cond (TeX-greek-letters s) (str "\\" s)
+             (TeX-map s) (TeX-map s)
+             :else (if-let [[_ stem subscript] (re-find #"(.+)_([0-9a-zA-Z]+)$" s)]
+                     (str (maybe-brace (r stem)) "_" (maybe-brace subscript))
+                     (do (prn "S " s)(if-let [[_ stem] (re-find #"(.+)dot$" s)]
+                        (str "\\dot " (maybe-brace (r stem)))
+                        v))))))))

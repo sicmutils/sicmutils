@@ -44,11 +44,11 @@
                (* 1/2 (expt ((D y) t) 2) m)
                (* -1 (y t) g m))
              (simplify (L state))))
-      (is (= '(+ (* -1 (cos (+ (* t ω) φ)) (sin (θ t)) A l m (expt ω 2))
+      (is (= '(+ (* -1 (cos (+ (* t ω) φ)) (sin (θ t)) a l m (expt ω 2))
                  (* (sin (θ t)) g l m)
                  (* (((expt D 2) θ) t) (expt l 2) m))
              (simplify (((Lagrange-equations
-                           (driven/L-pend 'm 'l 'g (driven/periodic-drive 'A 'ω 'φ)))
+                           (driven/L-pend 'm 'l 'g (driven/periodic-drive 'a 'ω 'φ)))
                           θ)
                          't))))
       (let [o (atom [])
