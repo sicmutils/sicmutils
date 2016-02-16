@@ -26,7 +26,7 @@
            infix? (constantly false)}}]
   (letfn [(precedence [op] (or (precedence-map op)
                                (cond (seq? op) (precedence-map :apply)
-                                     (symbol? op) 2
+                                     (symbol? op) (precedence-map :apply)
                                      :else 99)))
           ;; TODO: the names are wack; reverse them one way or the other
           (precedence> [a b] (< (precedence a) (precedence b)))
@@ -92,7 +92,7 @@
 (def ->infix
   "Converts an S-expression to infix form."
   (make-renderer
-   :precedence-map {'∂ 1, 'D 1, :apply 2, 'expt 2, '/ 5, '* 5, '+ 6, '- 6}
+   :precedence-map {'∂ 1, 'D 1, 'expt 2, :apply 3, '/ 5, '* 5, '+ 6, '- 6}
    :parenthesize #(str "(" % ")")
    :infix? #{'* '+ '- '/ 'expt}
    :juxtapose-multiply true
@@ -127,6 +127,9 @@
    "φ" "\\varphi",
    "sin" "\\sin",
    "cos" "\\cos",
+   "tan" "\\tan",
+   "asin" "\\arcsin",
+   "acos" "\\arccos",
    })
 
 (defn ^:private brace

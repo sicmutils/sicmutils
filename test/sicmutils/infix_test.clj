@@ -63,7 +63,10 @@
          (s->infix (expt (+ (expt 'x 4) (expt 'y 5)) 3))))
   (is (= "x² + x^-2" (s->infix '(+ (expt x 2) (expt x -2)))))
   (is (= "sin²(x)" (->infix '((expt sin 2) x))))
+  (is (= "(x y)²" (->infix '(expt (* x y) 2))))
+  ;; these are wrong: need extra parentheses
   (is (= "sin(x)²" (s->infix ((expt sin 2) 'x))))
+  (is (= "sin(x)^y" (s->infix (expt (sin 'x) 'y))))
   (is (= "(a + b)²" (->infix '(expt (+ a b) 2))))
   (is (= "(a + b)^(x + y)" (->infix '(expt (+ a b) (+ x y)))))
   (is (= "(a + b)^x" (->infix '(expt (+ a b) x))))
