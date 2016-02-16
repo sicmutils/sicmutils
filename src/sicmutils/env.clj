@@ -108,6 +108,7 @@
 (def D d/D)
 (def ∂ d/∂)
 (def pi Math/PI)
+(def taylor-series-terms d/taylor-series-terms)
 
 (def ->infix i/->infix)
 (def ->TeX i/->TeX)

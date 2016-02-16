@@ -89,5 +89,5 @@
   (is (= "a + b" (s->TeX (+ 'a 'b))))
   (is (= "\\lambda + \\mu" (s->TeX (+ 'lambda 'mu))))
   (is (= "x_0 + y_s" (s->TeX (+ 'x_0 'y_s))))
-  (is (= "1\\over x" (s->TeX (/ 1 'x))))
-  (is (= "{a + b}\\over {c + d}" (s->TeX (/ (+ 'a 'b) (+ 'c 'd))))))
+  (is (= "\\dfrac1x" (s->TeX (/ 1 'x))))
+  (is (= "\\dfrac{a + b}{c + d}" (s->TeX (/ (+ 'a 'b) (+ 'c 'd))))))

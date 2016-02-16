@@ -73,10 +73,15 @@
                     n))))]
     #(-> % z/seq-zip render-node)))
 
-(def ^:private decimal-superscripts [\⁰ \¹ \² \³ \⁴ \⁵ \⁶ \⁷ \⁸ \⁹])
-(def ^:private decimal-subscripts [\₀ \₁ \₂ \₃ \₄ \₅ \₆ \₇ \₈ \₉])
+(def ^:private decimal-superscripts
+  [\⁰ \¹ \² \³ \⁴ \⁵ \⁶ \⁷ \⁸ \⁹])
+(def ^:private decimal-subscripts
+  [\₀ \₁ \₂ \₃ \₄ \₅ \₆ \₇ \₈ \₉])
 
 (defn ^:private n->script
+  "Given an integer, returns a string where each digit of the
+  integer is used as the index into the replacement map scripts,
+  which is expected to be indexable by integers in the range [0..9]."
   [n scripts]
   (apply str (map #(-> % (Character/digit 10) scripts)
                   (str n))))
@@ -85,6 +90,7 @@
 (def ^:private n->superscript #(n->script % decimal-superscripts))
 
 (def ->infix
+  "Converts an S-expression to infix form."
   (make-renderer
    :precedence-map {'∂ 1, 'D 1, :apply 2, 'expt 2, '/ 5, '* 5, '+ 6, '- 6}
    :parenthesize #(str "(" % ")")
@@ -104,7 +110,9 @@
                           (str stem (n->subscript subscript))
                           v)))))
 
-(def ^:private TeX-greek-letters
+(def ^:private TeX-letters
+  "The set of names of TeX letters (e.g., the Greek letters). Symbols
+  whose names match this set are prefixed with \\, as in alpha -> \\alpha."
   #{"alpha" "beta" "gamma" "delta" "epsilon" "varepsilon" "zeta" "eta"
     "theta" "vartheta" "kappa" "lambda" "mu" "nu" "xi" "pi" "varpi"
     "rho" "varrho" "sigma" "varsigma" "tau" "upsilon" "phi" "varphi"
@@ -112,6 +120,7 @@
     "Upsilon" "Phi" "Psi" "Omega"})
 
 (def ^:private TeX-map
+  "Direct mapping of symbols to TeX."
   {"α" "\\alpha",
    "ω" "\\omega",
    "θ" "\\theta",
@@ -139,22 +148,40 @@
    :infix? #{'* '+ '- '/ 'expt}
    :juxtapose-multiply true
    :special-handlers
-   {'expt (fn [[x e]] (str "{" x "}^{" e "}"))
-    '∂ (fn [ds] "\\partial_{" (s/join "," ds) "}")
+   {'expt (fn [[x e]] (str (maybe-brace x) "^" (maybe-brace e)))
+    '∂ (fn [ds] (str "\\partial_" (maybe-brace (s/join "," ds))))
     '/ (fn [xs]
          (when (= (count xs) 2)
-           (str (maybe-brace (first xs)) "\\over " (maybe-brace (second xs)))))
+           (str "\\dfrac" (maybe-brace (first xs)) (maybe-brace (second xs)))))
     'up #(str "\\begin{pmatrix}" (s/join "\\\\" %) "\\end{pmatrix}")
     'down #(str "\\begin{bmatrix}" (s/join "&" %) "\\end{bmatrix}")
     'sqrt #(str "\\sqrt " (maybe-brace (first %)))}
    :render-variable
    (fn r [v]
-     (prn "V" v)
      (let [s (str v)]
-       (cond (TeX-greek-letters s) (str "\\" s)
+       (cond (TeX-letters s) (str "\\" s)
              (TeX-map s) (TeX-map s)
-             :else (if-let [[_ stem subscript] (re-find #"(.+)_([0-9a-zA-Z]+)$" s)]
-                     (str (maybe-brace (r stem)) "_" (maybe-brace subscript))
-                     (do (prn "S " s)(if-let [[_ stem] (re-find #"(.+)dot$" s)]
-                        (str "\\dot " (maybe-brace (r stem)))
-                        v))))))))
+             :else (condp re-find s
+                     #"(.+)_([0-9a-zA-Z]+)$"
+                     :>> (fn [[_ stem subscript]]
+                           (str (maybe-brace (r stem)) "_" (maybe-brace subscript)))
+
+                     ;; KaTeX doesn't do \dddot.
+                     ;; #"(.+)dotdotdot$"
+                     ;; :>> (fn [[_ stem]]
+                     ;;       (str "\\dddot " (maybe-brace (r stem))))
+
+                     #"(.+)dotdot$"
+                     :>> (fn [[_ stem]]
+                           (str "\\ddot " (maybe-brace (r stem))))
+
+                     #"(.+)dot$"
+                     :>> (fn [[_ stem]]
+                           (str "\\dot " (maybe-brace (r stem))))
+
+                     #"(.+)hat$"
+                     :>> (fn [[_ stem]]
+                           (str "\\hat " (maybe-brace (r stem))))
+
+                     ;; otherwise do nothing
+                     v))))))
