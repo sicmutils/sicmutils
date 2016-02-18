@@ -510,12 +510,11 @@
   (defmethod g/sub
     [::polynomial t]
     [p c]
-    (sub p (make-constant (:arity p) c))))
-
-(defmethod g/div
-  [::polynomial Double]
-  [p c]
-  (map-coefficients #(g/divide % c) p))
+    (sub p (make-constant (:arity p) c)))
+  (defmethod g/div
+    [::polynomial t]
+    [p c]
+    (map-coefficients #(g/divide % c) p)))
 
 (defmethod g/expt [::polynomial Integer] [b x] (expt b x))
 (defmethod g/expt [::polynomial Long] [b x] (expt b x))

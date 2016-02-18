@@ -51,15 +51,11 @@
                 (((expt D 2) q) t)
                 (((expt D 3) q) t))
            (simplify ((Γ q 5) 't))))
-    (is (= '(/
-             (+
-              (* (((expt D 2) q) t) (expt t 2))
-              (* -2 (((expt D 2) q) t) t t1)
-              (* (((expt D 2) q) t) (expt t1 2))
-              (* -2 ((D q) t) t)
-              (* 2 ((D q) t) t1)
-              (* 2 (q t)))
-             2)
+    (is (= '(+ (* 1/2 (((expt D 2) q) t) (expt t 2))
+               (* -1 (((expt D 2) q) t) t t1)
+               (* 1/2 (((expt D 2) q) t) (expt t1 2))
+               (* -1 ((D q) t) t)
+               (* ((D q) t) t1) (q t))
            (simplify ((osculating-path ((Γ q 4) 't)) 't1))))
     (is (= '(up t (up t (x t) (y t)) (up 1 ((D x) t) ((D y) t)))
            (simplify

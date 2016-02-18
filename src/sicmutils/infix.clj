@@ -21,7 +21,7 @@
             [clojure.string :as s]))
 
 (defn ^:private make-renderer
-  [& {:keys [juxtapose-multiply special-handlers infix? render-variable parenthesize precedence-map]
+  [& {:keys [juxtapose-multiply special-handlers infix? render-primitive parenthesize precedence-map]
       :or {special-handlers {}
            infix? (constantly false)}}]
   (letfn [(precedence [op] (or (precedence-map op)
@@ -69,7 +69,7 @@
 
               ;; primitive case
               (let [n (z/node n)]
-                (or (and render-variable (render-variable n))
+                (or (and render-primitive (render-primitive n))
                     n))))]
     #(-> % z/seq-zip render-node)))
 
@@ -103,7 +103,7 @@
     '∂ (fn [ds]
          (when (and (= (count ds) 1) (integer? (first ds)))
            (str "∂" (n->subscript (first ds)))))}
-   :render-variable (fn r [v]
+   :render-primitive (fn r [v]
                       (let [s (str v)
                             [_ stem subscript] (re-find #"(.+)_(\d+)$" s)]
                         (if stem
@@ -159,32 +159,36 @@
     'up #(str "\\begin{pmatrix}" (s/join "\\\\" %) "\\end{pmatrix}")
     'down #(str "\\begin{bmatrix}" (s/join "&" %) "\\end{bmatrix}")
     'sqrt #(str "\\sqrt " (maybe-brace (first %)))}
-   :render-variable
+   :render-primitive
    (fn r [v]
-     (let [s (str v)]
-       (cond (TeX-letters s) (str "\\" s)
-             (TeX-map s) (TeX-map s)
-             :else (condp re-find s
-                     #"(.+)_([0-9a-zA-Z]+)$"
-                     :>> (fn [[_ stem subscript]]
-                           (str (maybe-brace (r stem)) "_" (maybe-brace subscript)))
+     (cond (ratio? v)
+           (str "\\dfrac{" (numerator v) "}{" (denominator v) "}")
 
-                     ;; KaTeX doesn't do \dddot.
-                     ;; #"(.+)dotdotdot$"
-                     ;; :>> (fn [[_ stem]]
-                     ;;       (str "\\dddot " (maybe-brace (r stem))))
+           :else
+           (let [s (str v)]
+             (cond (TeX-letters s) (str "\\" s)
+                   (TeX-map s) (TeX-map s)
+                   :else (condp re-find s
+                           #"(.+)_([0-9a-zA-Z]+)$"
+                           :>> (fn [[_ stem subscript]]
+                                 (str (maybe-brace (r stem)) "_" (maybe-brace subscript)))
 
-                     #"(.+)dotdot$"
-                     :>> (fn [[_ stem]]
-                           (str "\\ddot " (maybe-brace (r stem))))
+                           ;; KaTeX doesn't do \dddot.
+                           ;; #"(.+)dotdotdot$"
+                           ;; :>> (fn [[_ stem]]
+                           ;;       (str "\\dddot " (maybe-brace (r stem))))
 
-                     #"(.+)dot$"
-                     :>> (fn [[_ stem]]
-                           (str "\\dot " (maybe-brace (r stem))))
+                           #"(.+)dotdot$"
+                           :>> (fn [[_ stem]]
+                                 (str "\\ddot " (maybe-brace (r stem))))
 
-                     #"(.+)hat$"
-                     :>> (fn [[_ stem]]
-                           (str "\\hat " (maybe-brace (r stem))))
+                           #"(.+)dot$"
+                           :>> (fn [[_ stem]]
+                                 (str "\\dot " (maybe-brace (r stem))))
 
-                     ;; otherwise do nothing
-                     v))))))
+                           #"(.+)hat$"
+                           :>> (fn [[_ stem]]
+                                 (str "\\hat " (maybe-brace (r stem))))
+
+                           ;; otherwise do nothing
+                           v)))))))

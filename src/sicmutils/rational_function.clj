@@ -275,17 +275,6 @@
   [c p]
   (make (p/make-constant (:arity p) c) p))
 
-(defmethod g/div
-  [:sicmutils.polynomial/polynomial Long]
-  [p c]
-  (make p (p/make-constant (:arity p) c)))
-
-(defmethod g/div
-  [:sicmutils.polynomial/polynomial BigInt]
-  [p c]
-  (make p (p/make-constant (:arity p) c)))
-
-
 (defmethod g/expt [::rational-function Integer] [b x] (expt b x))
 (defmethod g/expt [::rational-function Long] [b x] (expt b x))
 (defmethod g/negate ::rational-function [a] (negate a))
