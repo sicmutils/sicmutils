@@ -53,7 +53,7 @@
                    (or (and (special-handlers op)
                             ((special-handlers op) args))
                        (s/join (cond
-                                 (and (= op '*) juxtapose-multiply) " "
+                                 (= op '*) (or juxtapose-multiply " * ")
                                  (= op 'expt) "^"
                                  :else (str " " op " "))
                                args)))
@@ -95,10 +95,10 @@
    :precedence-map {'∂ 1, 'D 1, 'expt 2, :apply 3, '/ 5, '* 5, '+ 6, '- 6}
    :parenthesize #(str "(" % ")")
    :infix? #{'* '+ '- '/ 'expt}
-   :juxtapose-multiply true
+   :juxtapose-multiply " "
    :special-handlers
    {'expt (fn [[x e]]
-            (when (and (integer? e) ((complement neg?) e))
+            (if (and (integer? e) ((complement neg?) e))
               (str x (n->superscript e))))
     '∂ (fn [ds]
          (when (and (= (count ds) 1) (integer? (first ds)))
@@ -106,9 +106,8 @@
    :render-primitive (fn r [v]
                       (let [s (str v)
                             [_ stem subscript] (re-find #"(.+)_(\d+)$" s)]
-                        (if stem
-                          (str stem (n->subscript subscript))
-                          v)))))
+                        (when stem
+                          (str stem (n->subscript subscript)))))))
 
 (def ^:private TeX-letters
   "The set of names of TeX letters (e.g., the Greek letters). Symbols
@@ -117,7 +116,7 @@
     "theta" "vartheta" "kappa" "lambda" "mu" "nu" "xi" "pi" "varpi"
     "rho" "varrho" "sigma" "varsigma" "tau" "upsilon" "phi" "varphi"
     "chi" "psi" "omega" "Gamma" "Delta" "Theta" "Lambda" "Xi" "Pi" "Sigma"
-    "Upsilon" "Phi" "Psi" "Omega"})
+    "Upsilon" "Phi" "Psi" "Omega" "ell"})
 
 (def ^:private TeX-map
   "Direct mapping of symbols to TeX."
@@ -142,6 +141,19 @@
     (brace s)
     s))
 
+(declare ->TeX)
+
+(defn ^:private TeX-accent
+  [a]
+  (fn [[_ stem]]
+    (str "\\" a " " (maybe-brace (->TeX stem)))))
+(def ^:private dot (TeX-accent "dot"))
+(def ^:private ddot (TeX-accent "ddot"))
+(def ^:private hat (TeX-accent "hat"))
+(def ^:private bar (TeX-accent "bar"))
+(def ^:private vec (TeX-accent "vec"))
+(def ^:private tilde (TeX-accent "tilde"))
+
 (def ->TeX
   (make-renderer
    ;; here we set / to a very low precedence because the fraction bar we will
@@ -149,7 +161,7 @@
    :precedence-map {'∂ 1, 'D 1, :apply 2, 'expt 2, '* 5, '+ 6, '- 6, '/ 9}
    :parenthesize #(str "\\left(" % "\\right)")
    :infix? #{'* '+ '- '/ 'expt}
-   :juxtapose-multiply true
+   :juxtapose-multiply "\\,"
    :special-handlers
    {'expt (fn [[x e]] (str (maybe-brace x) "^" (maybe-brace e)))
     '∂ (fn [ds] (str "\\partial_" (maybe-brace (s/join "," ds))))
@@ -172,23 +184,13 @@
                            #"(.+)_([0-9a-zA-Z]+)$"
                            :>> (fn [[_ stem subscript]]
                                  (str (maybe-brace (r stem)) "_" (maybe-brace subscript)))
-
                            ;; KaTeX doesn't do \dddot.
-                           ;; #"(.+)dotdotdot$"
-                           ;; :>> (fn [[_ stem]]
-                           ;;       (str "\\dddot " (maybe-brace (r stem))))
-
-                           #"(.+)dotdot$"
-                           :>> (fn [[_ stem]]
-                                 (str "\\ddot " (maybe-brace (r stem))))
-
-                           #"(.+)dot$"
-                           :>> (fn [[_ stem]]
-                                 (str "\\dot " (maybe-brace (r stem))))
-
-                           #"(.+)hat$"
-                           :>> (fn [[_ stem]]
-                                 (str "\\hat " (maybe-brace (r stem))))
+                           #"(.+)dotdot$" :>> ddot
+                           #"(.+)dot$" :>> dot
+                           #"(.+)hat$" :>> hat
+                           #"(.+)bar$" :>> bar
+                           #"(.+)vec$" :>> vec
+                           #"(.+)tilde$" :>> tilde
 
                            ;; otherwise do nothing
                            v)))))))
