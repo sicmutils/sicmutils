@@ -20,8 +20,9 @@
   (:require [clojure.zip :as z]
             [clojure.string :as s]))
 
-(defn ^:private make-renderer
-  [& {:keys [juxtapose-multiply special-handlers infix? render-primitive parenthesize precedence-map]
+(defn ^:private make-infix-renderer
+  [& {:keys [juxtapose-multiply special-handlers infix? render-primitive
+             parenthesize precedence-map]
       :or {special-handlers {}
            infix? (constantly false)}}]
   (letfn [(precedence [op] (or (precedence-map op)
@@ -90,8 +91,9 @@
 (def ^:private n->superscript #(n->script % decimal-superscripts))
 
 (def ->infix
-  "Converts an S-expression to infix form."
-  (make-renderer
+  "Converts an S-expression to printable infix form. Numeric exponents are
+  written as superscripts. Partial derivatives get subscripts."
+  (make-infix-renderer
    :precedence-map {'∂ 1, 'D 1, 'expt 2, :apply 3, '/ 5, '* 5, '+ 6, '- 6}
    :parenthesize #(str "(" % ")")
    :infix? #{'* '+ '- '/ 'expt}
@@ -104,10 +106,10 @@
          (when (and (= (count ds) 1) (integer? (first ds)))
            (str "∂" (n->subscript (first ds)))))}
    :render-primitive (fn r [v]
-                      (let [s (str v)
-                            [_ stem subscript] (re-find #"(.+)_(\d+)$" s)]
-                        (when stem
-                          (str stem (n->subscript subscript)))))))
+                       (let [s (str v)
+                             [_ stem subscript] (re-find #"(.+)_(\d+)$" s)]
+                         (when stem
+                           (str stem (n->subscript subscript)))))))
 
 (def ^:private TeX-letters
   "The set of names of TeX letters (e.g., the Greek letters). Symbols
@@ -132,65 +134,64 @@
    })
 
 (defn ^:private brace
+  "Wrap the argument, as a string, in braces"
   [s]
   (str "{" s "}"))
 
 (defn ^:private maybe-brace
+  "Wrap the argument in braces, as a string, unless it's just a single character"
   [s]
   (if (and (string? s) (> (count s) 1))
     (brace s)
     s))
 
-(declare ->TeX)
-
-(defn ^:private TeX-accent
-  [a]
-  (fn [[_ stem]]
-    (str "\\" a " " (maybe-brace (->TeX stem)))))
-(def ^:private dot (TeX-accent "dot"))
-(def ^:private ddot (TeX-accent "ddot"))
-(def ^:private hat (TeX-accent "hat"))
-(def ^:private bar (TeX-accent "bar"))
-(def ^:private vec (TeX-accent "vec"))
-(def ^:private tilde (TeX-accent "tilde"))
-
 (def ->TeX
-  (make-renderer
-   ;; here we set / to a very low precedence because the fraction bar we will
-   ;; use in the rendering groups things very strongly.
-   :precedence-map {'∂ 1, 'D 1, :apply 2, 'expt 2, '* 5, '+ 6, '- 6, '/ 9}
-   :parenthesize #(str "\\left(" % "\\right)")
-   :infix? #{'* '+ '- '/ 'expt}
-   :juxtapose-multiply "\\,"
-   :special-handlers
-   {'expt (fn [[x e]] (str (maybe-brace x) "^" (maybe-brace e)))
-    '∂ (fn [ds] (str "\\partial_" (maybe-brace (s/join "," ds))))
-    '/ (fn [xs]
-         (when (= (count xs) 2)
-           (str "\\dfrac" (maybe-brace (first xs)) (maybe-brace (second xs)))))
-    'up #(str "\\begin{pmatrix}" (s/join "\\\\" %) "\\end{pmatrix}")
-    'down #(str "\\begin{bmatrix}" (s/join "&" %) "\\end{bmatrix}")
-    'sqrt #(str "\\sqrt " (maybe-brace (first %)))}
-   :render-primitive
-   (fn r [v]
-     (cond (ratio? v)
-           (str "\\dfrac{" (numerator v) "}{" (denominator v) "}")
+  "Convert the given (simplified) expression to TeX format, as a string."
+  (let [TeX-accent (fn [accent]
+                     (fn [[_ stem]]
+                       (str "\\" accent " " (maybe-brace (->TeX stem)))))
+        dot (TeX-accent "dot")
+        ddot (TeX-accent "ddot")
+        hat (TeX-accent "hat")
+        bar (TeX-accent "bar")
+        vec (TeX-accent "vec")
+        tilde (TeX-accent "tilde")]
+    (make-infix-renderer
+     ;; here we set / to a very low precedence because the fraction bar we will
+     ;; use in the rendering groups things very strongly.
+     :precedence-map {'∂ 1, 'D 1, :apply 2, 'expt 2, '* 5, '+ 6, '- 6, '/ 9}
+     :parenthesize #(str "\\left(" % "\\right)")
+     :infix? #{'* '+ '- '/ 'expt}
+     :juxtapose-multiply "\\,"
+     :special-handlers
+     {'expt (fn [[x e]] (str (maybe-brace x) "^" (maybe-brace e)))
+      '∂ (fn [ds] (str "\\partial_" (maybe-brace (s/join "," ds))))
+      '/ (fn [xs]
+           (when (= (count xs) 2)
+             (str "\\dfrac" (maybe-brace (first xs)) (maybe-brace (second xs)))))
+      'up #(str "\\begin{pmatrix}" (s/join "\\\\" %) "\\end{pmatrix}")
+      'down #(str "\\begin{bmatrix}" (s/join "&" %) "\\end{bmatrix}")
+      'sqrt #(str "\\sqrt " (maybe-brace (first %)))}
+     :render-primitive
+     (fn r [v]
+       (cond (ratio? v)
+             (str "\\dfrac" (brace (numerator v)) (brace (denominator v)))
 
-           :else
-           (let [s (str v)]
-             (cond (TeX-letters s) (str "\\" s)
-                   (TeX-map s) (TeX-map s)
-                   :else (condp re-find s
-                           #"(.+)_([0-9a-zA-Z]+)$"
-                           :>> (fn [[_ stem subscript]]
-                                 (str (maybe-brace (r stem)) "_" (maybe-brace subscript)))
-                           ;; KaTeX doesn't do \dddot.
-                           #"(.+)dotdot$" :>> ddot
-                           #"(.+)dot$" :>> dot
-                           #"(.+)hat$" :>> hat
-                           #"(.+)bar$" :>> bar
-                           #"(.+)vec$" :>> vec
-                           #"(.+)tilde$" :>> tilde
+             :else
+             (let [s (str v)]
+               (cond (TeX-letters s) (str "\\" s)
+                     (TeX-map s) (TeX-map s)
+                     :else (condp re-find s
+                             #"(.+)_([0-9a-zA-Z]+)$"
+                             :>> (fn [[_ stem subscript]]
+                                   (str (maybe-brace (r stem)) "_" (maybe-brace subscript)))
+                             ;; KaTeX doesn't do \dddot.
+                             #"(.+)dotdot$" :>> ddot
+                             #"(.+)dot$" :>> dot
+                             #"(.+)hat$" :>> hat
+                             #"(.+)bar$" :>> bar
+                             #"(.+)vec$" :>> vec
+                             #"(.+)tilde$" :>> tilde
 
-                           ;; otherwise do nothing
-                           v)))))))
+                             ;; otherwise do nothing
+                             v))))))))
