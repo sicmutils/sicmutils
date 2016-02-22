@@ -49,6 +49,7 @@
 (def abs g/abs)
 (def negate g/negate)
 (def complex c/complex)
+(def invert g/invert)
 (def zero? g/zero?)
 
 (def evolve ode/evolve)
