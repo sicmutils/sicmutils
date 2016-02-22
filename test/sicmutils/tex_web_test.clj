@@ -43,7 +43,8 @@
                                     'gammabar
                                     'mubardot
                                     'xivec
-                                    'Ftilde))]]]
+                                    'Ftilde))]
+            ["dcot" (simplify ((D (/ tan)) 'x))]]]
        (let [t (->TeX eqn)]
          [:div
           [:h3 name]

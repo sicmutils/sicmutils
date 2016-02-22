@@ -141,9 +141,9 @@
 (defn ^:private maybe-brace
   "Wrap the argument in braces, as a string, unless it's just a single character"
   [s]
-  (if (and (string? s) (> (count s) 1))
-    (brace s)
-    s))
+  (if (and (string? s) (= (count s) 1))
+    s
+    (brace s)))
 
 (def ->TeX
   "Convert the given (simplified) expression to TeX format, as a string."

@@ -312,6 +312,18 @@
 (deftest exp-and-log
   (is (= '(/ 1 x) (simplify ((D log) 'x)))))
 
+(deftest more-trig
+  (let [cot (/ cos sin)
+        sec (/ cos)
+        csc (/ sin)]
+    (is (= '(/ (cos x) (sin x)) (simplify (cot 'x))))
+    ;; the following three aren't great, because the simplification could
+    ;; be a lot better. They're here so that when we fix the simplifier we
+    ;; can correct these tests.
+    (is (= '(/ 1 (+ (expt (cos x) 2) -1)) (simplify ((D cot) 'x))))
+    (is (= '(/ (cos x) (+ (expt (cos x) 2) -1)) (simplify ((D csc) 'x))))
+    (is (= '(/ (sin x) (expt (cos x) 2)) (simplify ((D sec) 'x))))))
+
 (deftest alexgian-examples
   (testing "space"
     (let [g (literal-function 'g [0 0] 0)
