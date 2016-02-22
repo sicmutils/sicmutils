@@ -438,6 +438,8 @@
   before we get here. The result is a Polynomial object representing
   the polynomial structure of the input over the unknowns."
   [expr cont]
+  ;; XXX this is probably not the sort we want. We should sort when we assemble
+  ;; the factors in a product and the terms in a sum.
   (let [expression-vars (sort-by variable-sort-key (set/difference (x/variables-in expr) operators-known))
         arity (count expression-vars)
         new-bindings (zipmap expression-vars (new-variables arity))

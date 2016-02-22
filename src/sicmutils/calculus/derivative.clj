@@ -336,6 +336,7 @@
                    0)
                  (g/* (g/log x) (g/expt x y))))
              :expt))
+(def ^:private log (unary-op g/log g/invert))
 
 ;; XXX unary-op is memoized in scmutils. But rather than memoizing that,
 ;; it might be better just to memoize entire simplications.
@@ -411,6 +412,7 @@
 (define-binary-operation g/sub diff--)
 (define-binary-operation g/mul diff-*)
 (define-binary-operation g/div diff-div)
+(define-unary-operation g/log log)
 (define-unary-operation g/exp exp)
 (define-unary-operation g/sqrt sqrt)
 (define-unary-operation g/sin sine)

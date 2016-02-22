@@ -309,6 +309,9 @@
     (is (= 2 (simplify ((laplacian (up identity sin cos)) 't))))
     (is (= '(+ (cos t) (* -1 (sin t)) 1) (simplify ((divergence f) 't))))))
 
+(deftest exp-and-log
+  (is (= '(/ 1 x) (simplify ((D log) 'x)))))
+
 (deftest alexgian-examples
   (testing "space"
     (let [g (literal-function 'g [0 0] 0)
