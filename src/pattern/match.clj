@@ -66,9 +66,8 @@
   (fn [frame xs succeed]
     (if (seq? xs)
       (letfn [(step [frame as matchers]
-                (cond (not (empty? matchers))
-                      ((first matchers) frame as
-                       #(step %1 %2 (rest matchers)))
+                (cond (not (empty? matchers)) ((first matchers) frame as
+                                               #(step %1 %2 (rest matchers)))
                       (not (empty? as)) false
                       (empty? as) (succeed frame (rest xs))
                       :else false))]

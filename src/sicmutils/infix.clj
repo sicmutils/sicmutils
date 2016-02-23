@@ -17,6 +17,7 @@
 ;
 
 (ns sicmutils.infix
+  (:import [java.io StringWriter])
   (:require [clojure.zip :as z]
             [clojure.string :as s]))
 
@@ -34,13 +35,24 @@
           (precedence<= [a b] (not (precedence> a b)))
           (parenthesize-if [b x]
             (if b (parenthesize x) x))
-          (render-node [n]
-            (if (z/branch? n)
+          (maybe-rewrite-negation [loc]
+            (if (and (= (z/node (z/next loc)) '*)
+                     (= (z/node (z/next (z/next loc))) -1))
+              (z/replace loc `(~'- (~'* ~@(z/rights (z/next (z/next loc))))))
+              loc))
+          (render-unary-node [op args]
+            (let [a (first args)]
+              (case op
+                (+ *) (str a)
+                / (str "1 / " a)
+                (str op " " a))))
+          (render-loc [loc]
+            (if (z/branch? loc)
               ;; then the first child is the function and the rest are the
               ;; arguments.
-              (let [fn-loc (-> n z/next)
-                    arg-loc (loop [a (-> n z/next z/right)]
-                              (let [a' (z/replace a (render-node a))]
+              (let [fn-loc (-> loc maybe-rewrite-negation z/next)
+                    arg-loc (loop [a (-> fn-loc z/right)]
+                              (let [a' (z/replace a (render-loc a))]
                                 (if-let [r (z/right a')]
                                   (recur r)
                                   (z/up a'))))
@@ -53,26 +65,37 @@
                         (precedence> upper-op op))
                    (or (and (special-handlers op)
                             ((special-handlers op) args))
-                       (s/join (cond
-                                 (= op '*) (or juxtapose-multiply " * ")
-                                 (= op 'expt) "^"
-                                 :else (str " " op " "))
-                               args)))
+                       (and (= (count args) 1)
+                            (render-unary-node op args))
+                       (let [w (java.io.StringWriter.)
+                             sep (case op
+                                   * (or juxtapose-multiply " * ")
+                                   expt "^"
+                                   (str " " op " "))]
+                         (loop [a args]
+                           (.write w (str (first a)))
+                           (if-let [a' (next a)]
+                             (do
+                               (if-not (and (string? (first a')) (= (first (first a')) \-))
+                                 (.write w sep)
+                                 (.write w " "))
+                               (recur a'))
+                             (str w))))))
                   (or (and (special-handlers op)
                            ((special-handlers op) args))
                       (str (parenthesize-if (and (z/branch? fn-loc)
                                                  (precedence> :apply (z/node (z/next fn-loc))))
-                                            (render-node (z/next arg-loc)))
+                                            (render-loc (z/next arg-loc)))
                            (parenthesize-if (or (precedence<= op :apply)
                                                 (> (count args) 1)
                                                 (z/branch? (z/right fn-loc)))
                                             (s/join ", " args))))))
 
               ;; primitive case
-              (let [n (z/node n)]
+              (let [n (z/node loc)]
                 (or (and render-primitive (render-primitive n))
                     n))))]
-    #(-> % z/seq-zip render-node)))
+    #(-> % z/seq-zip render-loc)))
 
 (def ^:private decimal-superscripts
   [\⁰ \¹ \² \³ \⁴ \⁵ \⁶ \⁷ \⁸ \⁹])
