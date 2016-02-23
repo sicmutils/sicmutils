@@ -109,4 +109,5 @@
   (is (= "\\lambda + \\mu" (s->TeX (+ 'lambda 'mu))))
   (is (= "x_0 + y_s" (s->TeX (+ 'x_0 'y_s))))
   (is (= "\\dfrac{1}{x}" (s->TeX (/ 1 'x))))
-  (is (= "\\dfrac{a + b}{c + d}" (s->TeX (/ (+ 'a 'b) (+ 'c 'd))))))
+  (is (= "\\dfrac{a + b}{c + d}" (s->TeX (/ (+ 'a 'b) (+ 'c 'd)))))
+  (is (= "\\dfrac{a}{b}" (s->TeX (/ 'a 'b)))))

@@ -36,6 +36,9 @@
           (parenthesize-if [b x]
             (if b (parenthesize x) x))
           (maybe-rewrite-negation [loc]
+            ;; if the tree at loc looks like (* -1 xs...) replace the node with
+            ;; (- (* xs...)). This helps the renderer with sums of terms with
+            ;; varying sign and unary negation.
             (if (and (= (z/node (z/next loc)) '*)
                      (= (z/node (z/next (z/next loc))) -1))
               (z/replace loc `(~'- (~'* ~@(z/rights (z/next (z/next loc))))))
@@ -191,7 +194,7 @@
       '∂ (fn [ds] (str "\\partial_" (maybe-brace (s/join "," ds))))
       '/ (fn [xs]
            (when (= (count xs) 2)
-             (str "\\dfrac" (maybe-brace (first xs)) (maybe-brace (second xs)))))
+             (str "\\dfrac" (brace (first xs)) (brace (second xs)))))
       'up #(str "\\begin{pmatrix}" (s/join "\\\\" %) "\\end{pmatrix}")
       'down #(str "\\begin{bmatrix}" (s/join "&" %) "\\end{bmatrix}")
       'sqrt #(str "\\sqrt " (maybe-brace (first %)))}
