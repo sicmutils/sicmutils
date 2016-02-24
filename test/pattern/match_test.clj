@@ -52,15 +52,15 @@
     (is (= [[{:x []} '(a b c)]
             [{:x '[a]} '(b c)]
             [{:x '[a b]} '(c)]
-            [{:x '[a b c]} ()]]
+            [{:x '[a b c]} nil]]
            (collect-all-results (match-segment :x) '(a b c) true)))
     )
   (testing "match-segment-constraint"
-    (let [find-two-ints (match-list (match-segment :xs)
-                                    (match-var :i integer?)
-                                    (match-segment :ys)
-                                    (match-var :j integer?)
-                                    (match-segment :zs))]
+    (let [find-two-ints (match-list [(match-segment :xs)
+                                     (match-var :i integer?)
+                                     (match-segment :ys)
+                                     (match-var :j integer?)
+                                     (match-segment :zs)])]
       (is (= '[{:i 3 :j 4 :xs [1.1 [1 3] 2.3] :ys [6.5 x [3 5]] :zs [22]}
                {:i 3 :j 22 :xs [1.1 [1 3] 2.3] :ys [6.5 x [3 5] 4] :zs []}
                {:i 4 :j 22 :xs [1.1 [1 3] 2.3 3 6.5 x [3 5]] :ys [] :zs []}]
@@ -68,22 +68,22 @@
                                   '((1.1 [1 3] 2.3 3 6.5 x [3 5] 4 22))))))
     )
   (testing "twin-segments"
-    (let [xs-xs (match-list (match-segment :x)
-                            (match-segment :x))
-          xs-xs-etc (match-list (match-segment :x)
-                                (match-segment :x)
-                                (match-segment :y))
-          etc-xs-xs-etc (match-list (match-segment :w)
-                                    (match-segment :x)
-                                    (match-segment :x)
-                                    (match-segment :y))]
+    (let [xs-xs (match-list [(match-segment :x)
+                             (match-segment :x)])
+          xs-xs-etc (match-list [(match-segment :x)
+                                 (match-segment :x)
+                                 (match-segment :y)])
+          etc-xs-xs-etc (match-list [(match-segment :w)
+                                     (match-segment :x)
+                                     (match-segment :x)
+                                     (match-segment :y)])]
       (is (= {:x '[a b c]} (match xs-xs '(a b c a b c))))
       (is (not (match xs-xs '(a b c a b d))))
       (is (not (match xs-xs '(a b c a b c d e))))
       (is (= [{:x [] :y '[a b c a b c d e]}
               {:x '[a b c] :y '[d e]} ]
              (collect-all-results xs-xs-etc '((a b c a b c d e)))))
-      (is (= [{:x [] :y '[a b a b a b a b]}
+      (is (= [{:x [] :y '(a b a b a b a b)}
               {:x '[a b] :y '[a b a b]}
               {:x '[a b a b] :y '[]}]
              (collect-all-results xs-xs-etc
@@ -115,12 +115,12 @@
             '((a b b b b b b c)))
            )))
   (testing "an expression"
-    (let [expr (match-list (match-list (match-one '*)
-                                       (match-var :a)
-                                       (match-var :c))
-                           (match-list (match-one '*)
-                                       (match-var :b)
-                                       (match-var :c)))]
+    (let [expr (match-list [(match-list [(match-one '*)
+                                         (match-var :a)
+                                         (match-var :c)])
+                            (match-list [(match-one '*)
+                                         (match-var :b)
+                                         (match-var :c)])])]
       (is (= '{:a 3 :b 4 :c x} (match expr '((* 3 x) (* 4 x)))))
       (is (not (match expr '((* 3 x) (* 4 y)))))
       )

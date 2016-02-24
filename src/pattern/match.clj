@@ -60,17 +60,17 @@
       (loop [before [] after xs]
         (or (succeed (assoc frame var before) after)
             (if-not (empty? after)
-              (recur (conj before (first after)) (rest after))))))))
+              (recur (conj before (first after)) (next after))))))))
 
-(defn match-list [& matchers]
+(defn match-list [matchers]
   (fn [frame xs succeed]
     (if (seq? xs)
-      (letfn [(step [frame as matchers]
-                (cond (not (empty? matchers)) ((first matchers) frame as
-                                               #(step %1 %2 (rest matchers)))
-                      (not (empty? as)) false
-                      (empty? as) (succeed frame (rest xs))
-                      :else false))]
+      (let [step (fn step
+                   [frame as matchers]
+                   (cond matchers ((first matchers) frame as
+                                   #(step %1 %2 (next matchers)))
+                         (not (empty? as)) false
+                         :else (succeed frame (next xs))))]
         (step frame (first xs) matchers)))))
 
 (defn variable-reference?
@@ -116,7 +116,7 @@
     (cond (variable-reference? pattern) (match-var (variable pattern)
                                                    (variable-constraint pattern))
           (segment-reference? pattern) (match-segment (variable pattern))
-          :else (apply match-list (map pattern->matcher pattern)))
+          :else (match-list (map pattern->matcher pattern)))
     (match-one pattern)))
 
 (defn match
