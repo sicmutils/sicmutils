@@ -114,6 +114,28 @@
   ;; complete.
   )
 
+(def trig->sincos
+  (rule-simplifier
+   (ruleset
+    ;; GJS has other rules: to map cot, sec and csc to sin/cos, but
+    ;; I don't think we need those since we transform those to sin/cos
+    ;; in env.scm.
+    (tan (:? x)) => (/ (sin (:? x)) (cos (:? x))))))
+
+(def sincos->trig
+  (ruleset
+   ;; undoes the effect of trig->sincos
+   (/ (sin (:? x)) (cos (:? x)))
+   => (tan (:? x))
+
+   (/ (sin (:? x)) (* (:?? d1) (cos (:? x)) (:?? d2)))
+   => (/ (tan (:? x)) (* (:?? d1) (:?? d2)))
+
+   (/ (* (:?? n1) (sin (:? x)) (:?? n1))
+      (* (:?? d1) (cos (:? x)) (:?? d2)))
+   => (/ (* (:?? n1) (tan (:? x)) (:?? n2))
+         (* (:?? d1) (:?? d2)))))
+
 (def sincos-flush-ones (rule-simplifier split-high-degree-cosines
                                         split-high-degree-sines
                                         flush-obvious-ones))

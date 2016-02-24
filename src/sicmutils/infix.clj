@@ -36,9 +36,10 @@
           (parenthesize-if [b x]
             (if b (parenthesize x) x))
           (maybe-rewrite-negation [loc]
-            ;; if the tree at loc looks like (* -1 xs...) replace the node with
+            ;; if the tree at loc looks like (* -1 xs...) replace it with
             ;; (- (* xs...)). This helps the renderer with sums of terms with
-            ;; varying sign and unary negation.
+            ;; varying sign and unary negation. Otherwise return the loc
+            ;; unmodified.
             (if (and (= (z/node (z/next loc)) '*)
                      (= (z/node (z/next (z/next loc))) -1))
               (z/replace loc `(~'- (~'* ~@(z/rights (z/next (z/next loc))))))

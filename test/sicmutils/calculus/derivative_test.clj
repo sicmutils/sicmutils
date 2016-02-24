@@ -320,8 +320,9 @@
     ;; the following three aren't great, because the simplification could
     ;; be a lot better. They're here so that when we fix the simplifier we
     ;; can correct these tests.
-    (is (= '(/ 1 (+ (expt (cos x) 2) -1)) (simplify ((D cot) 'x))))
-    (is (= '(/ (cos x) (+ (expt (cos x) 2) -1)) (simplify ((D csc) 'x))))
+    (is (= '(/ -1 (expt (sin x) 2)) (simplify ((D cot) 'x))))
+    (is (= '(/ -1 (expt (sin x) 2)) (simplify ((D (/ tan)) 'x))))
+    (is (= '(/ (* -1 (cos x)) (expt (sin x) 2)) (simplify ((D csc) 'x))))
     (is (= '(/ (sin x) (expt (cos x) 2)) (simplify ((D sec) 'x))))))
 
 (deftest alexgian-examples

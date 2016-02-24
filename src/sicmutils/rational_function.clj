@@ -251,6 +251,7 @@
 (defmethod g/sub [::rational-function :sicmutils.polynomial/polynomial] [r p] (subp r p))
 (defmethod g/sub [::rational-function Long] [{u :u v :v} c] (make (p/sub (g/mul c v) u) v))
 (defmethod g/add [Long ::rational-function] [c {u :u v :v}] (make (p/add u (g/mul c v)) v))
+(defmethod g/add [::rational-function Long] [{u :u v :v} c] (make (p/add u (g/mul c v)) v))
 (defmethod g/div [::rational-function ::rational-function] [a b] (div a b))
 (defmethod g/div [::rational-function Long] [{u :u v :v} c] (make u (g/mul c v)))
 
@@ -274,6 +275,11 @@
   [BigInt :sicmutils.polynomial/polynomial]
   [c p]
   (make (p/make-constant (:arity p) c) p))
+
+(defmethod g/div
+  [Long ::rational-function]
+  [c r]
+  (g/divide (p/make-constant (:arity r) c) r))
 
 (defmethod g/expt [::rational-function Integer] [b x] (expt b x))
 (defmethod g/expt [::rational-function Long] [b x] (expt b x))

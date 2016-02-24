@@ -167,28 +167,46 @@
 ;; simplification library, so this one has to go here. Not ideal the way we have split things
 ;; up, but at least things are beginning to simplify adequately.
 
+(def ^:private simplify-zero
+  #(-> % poly-analyzer g/zero?))
+
 (def ^:private sincos-cleanup
   "This finds things like a - a cos^2 x and replaces them with a sin^2 x"
   (let [at-least-two? #(and (number? %) (>= % 2))]
     (simplify-until-stable
      (rule/rule-simplifier
       (rule/ruleset
+       ;;  ... + a + ... + cos^n x + ...   if a + cos^(n-2) x = 0: a sin^2 x
+       (+ (:?? a1) (:? a) (:?? a2) (expt (cos (:? x)) (:? n at-least-two?)) (:?? a3))
+       #(simplify-zero `(~'+ (~'expt (~'cos ~(% 'x)) ~(- (% 'n) 2)) ~(% 'a)))
+       (+ (:?? a1) (:?? a2) (:?? a3) (* (:? a) (expt (sin (:? x)) 2)))
+
+       (+ (:?? a1) (expt (cos (:? x)) (:? n at-least-two?)) (:?? a2) (:? a) (:?? a3))
+       #(simplify-zero `(~'+ (~'expt (~'cos ~(% 'x)) ~(- (% 'n) 2)) ~(% 'a)))
+       (+ (:?? a1) (:?? a2) (:?? a3) (* (:? a) (expt (sin (:? x)) 2)))
+
        (+ (:?? a1) (:? a) (:?? a2) (* (:?? b1) (expt (cos (:? x)) (:? n at-least-two?)) (:?? b2)) (:?? a3))
-       #(g/zero? (poly-analyzer `(~'+ (~'* ~@(% 'b1) ~@(% 'b2) (~'expt (~'cos ~(% 'x)) ~(- (% 'n) 2))) ~(% 'a))))
+       #(simplify-zero `(~'+ (~'* ~@(% 'b1) ~@(% 'b2) (~'expt (~'cos ~(% 'x)) ~(- (% 'n) 2))) ~(% 'a)))
        (+ (:?? a1) (:?? a2) (:?? a3) (* (:? a) (expt (sin (:? x)) 2)))
 
        (+ (:?? a1) (* (:?? b1) (expt (cos (:? x)) (:? n at-least-two?)) (:?? b2)) (:?? a2) (:? a) (:?? a3))
-       #(g/zero? (poly-analyzer `(~'+ (~'* ~@(% 'b1) ~@(% 'b2) (~'expt (~'cos ~(% 'x)) ~(- (% 'n) 2))) ~(% 'a))))
+       #(simplify-zero `(~'+ (~'* ~@(% 'b1) ~@(% 'b2) (~'expt (~'cos ~(% 'x)) ~(- (% 'n) 2))) ~(% 'a)))
        (+ (:?? a1) (:?? a2) (:?? a3) (* (:? a) (expt (sin (:? x)) 2)))))
      simplify-and-flatten)))
 
+;; (defn ^:private spy [x a]
+;;   (println a x)
+;;   x)
+
 (def ^:private simplify-expression-1
   #(-> %
+       rules/trig->sincos
        simplify-and-flatten
        rules/complex-trig
        sincos-simplifier
        sin-sq->cos-sq-simplifier
        sincos-cleanup
+       rules/sincos->trig
        square-root-simplifier
        ;;rules/divide-numbers-through
        simplify-and-flatten))
