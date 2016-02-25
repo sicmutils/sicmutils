@@ -198,12 +198,12 @@
 
 (defn symbolic-increase-derivative [expr]
   (cond (symbolic-derivative? expr)
-        (list (ns/expt derivative-symbol 2) (first (next expr)))
+        (list (ns/expt derivative-symbol 2) (fnext expr))
         (iterated-symbolic-derivative? expr)
         (list (ns/expt derivative-symbol
-                       (+ (first (next (next (first expr))))
+                       (+ (first (nnext (first expr)))
                           1))
-              (first (next expr)))
+              (fnext expr))
         :else
         (list derivative-symbol expr)))
 

@@ -107,7 +107,7 @@
             poly/expression-> poly/->expression poly/operators-known))
 
 (def rational-function-analyzer
-  "WARNING! THIS IS NOT READY YET"
+  "The heart of sicmutils simplification. Simplifies quotients of polynomials."
   (let [A (analyzer (monotonic-symbol-generator "-r-")
                     rf/expression-> rf/->expression rf/operators-known)]
     (fn [x]
@@ -133,9 +133,7 @@
         (log/warn (format "rf: %s" (seq r))))
       r)))
 
-;;(def ^:private simplify-and-flatten twin-analyzer)
 (def ^:private simplify-and-flatten rational-function-analyzer)
-;;(def ^:private simplify-and-flatten poly-analyzer)
 
 (defn- simplify-until-stable
   [rule-simplify canonicalize]

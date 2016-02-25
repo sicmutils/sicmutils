@@ -119,7 +119,7 @@
    (ruleset
     ;; GJS has other rules: to map cot, sec and csc to sin/cos, but
     ;; I don't think we need those since we transform those to sin/cos
-    ;; in env.scm.
+    ;; in the env namespace.
     (tan (:? x)) => (/ (sin (:? x)) (cos (:? x))))))
 
 (def sincos->trig
