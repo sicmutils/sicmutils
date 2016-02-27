@@ -116,3 +116,4 @@
 
 (def ->infix i/->infix)
 (def ->TeX i/->TeX)
+(def ->JavaScript i/->JavaScript)

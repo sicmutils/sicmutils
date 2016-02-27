@@ -50,10 +50,12 @@
      ~(postwalk-replace compiled-function-whitelist body)))
 
 (defn extract-common-subexpressions
-  "Given an S-expression, return a vector of subexpressions which occur
-  more than once within it. (Here, symbols and other primitive elements
-  do not count as subexpressions.)"
-  [x]
+  "Given an S-expression, return a map of subexpressions which occur
+  more than once within it to symbols provided by the
+  generator. (Here, symbols and other primitive elements do not count
+  as subexpressions.)"
+  [x & {:keys [symbol-generator]
+        :or {symbol-generator gensym}}]
   (let [cs (atom {})]
     ;; cs maps subexpressions to the number of times we have seen the
     ;; expression.
@@ -62,7 +64,7 @@
                     (swap! cs update-in [e] (fnil inc 0)))
                   e)
                 x)
-    (into [] (for [[k v] @cs :when (> v 1)] k))))
+    (into {} (for [[k v] @cs :when (> v 1)] [k (symbol-generator)]))))
 
 (defn ^:private initialize-cs-variables
   "Given a list of pairs of (symbol, expression) construct a
@@ -70,12 +72,6 @@
   input)."
   [syms]
   (reduce (fn [v [x sym]] (conj (conj v sym) x)) [] syms))
-
-(defn ^:private cs-body
-  [syms x]
-  (w/postwalk (fn [e]
-                (or (syms e) e))
-              x))
 
 (defn common-subexpression-elimination
   "Given an expression and a table of common subexpressions, create a
@@ -85,12 +81,12 @@
   replaced by the dummy variables."
   [x & {:keys [symbol-generator]
         :or {symbol-generator gensym}}]
-  (let [cs (extract-common-subexpressions x)]
-    (if (> (count cs) 0)
-      (let [syms (into {} (for [x cs] [x (symbol-generator)]))]
-        (log/info (format "common subexpression elimination: %d expressions" (count cs)))
+  (let [syms (extract-common-subexpressions x :symbol-generator symbol-generator)]
+    (if (> (count syms) 0)
+      (do
+        (log/info (format "common subexpression elimination: %d expressions" (count syms)))
         `(let ~(initialize-cs-variables syms)
-           ~(cs-body syms x)))
+           ~(w/postwalk-replace syms x)))
       x)))
 
 (defn- compile-state-function2

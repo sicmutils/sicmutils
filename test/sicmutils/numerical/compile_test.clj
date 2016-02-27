@@ -45,19 +45,22 @@
     (is (= 10 (cf (concat (flatten t) [1]))))
     (is (= 20 (cf [3 4 -1 2 2])))))
 
-(deftest subexp
-  (let [x '(* (+ x y) (+ x z) (+ x y))]
-    (is (= '[(+ x y)]
-           (extract-common-subexpressions x)))
-    (is (= '[(sin x) (cos x)]
-           (extract-common-subexpressions
-            '(+ (sin x) (expt (sin x) 2) (cos x) (sqrt (cos x))))))))
-
 (defn ^:private make-generator
   [s]
   (let [i (atom 0)]
     (fn []
       (symbol (format "%s%d" s (swap! i inc))))))
+
+(deftest subexp
+  (is (= '{(+ x y) g1}
+         (extract-common-subexpressions
+          '(* (+ x y) (+ x z) (+ x y))
+          :symbol-generator (make-generator "g"))))
+  (is (= '{(sin x) K1
+           (cos x) K2}
+         (extract-common-subexpressions
+          '(+ (sin x) (expt (sin x) 2) (cos x) (sqrt (cos x)))
+          :symbol-generator (make-generator "K")))))
 
 (deftest subexp-compile
   (let [x '(+ (sin x) (expt (sin x) 2) (cos x) (sqrt (cos x)) (tan x))

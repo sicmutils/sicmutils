@@ -19,12 +19,19 @@
 (ns sicmutils.infix
   (:import [java.io StringWriter])
   (:require [clojure.zip :as z]
-            [clojure.string :as s]))
+            [clojure.set :as set]
+            [clojure.string :as s]
+            [clojure.walk :as walk]
+            [sicmutils.expression :as x]
+            [sicmutils.numerical.compile :as compile]))
 
 (defn ^:private make-infix-renderer
   [& {:keys [juxtapose-multiply special-handlers infix? render-primitive
-             parenthesize precedence-map]
+             rename-functions parenthesize precedence-map]
       :or {special-handlers {}
+           parenthesize #(str "(" % ")")
+           juxtapose-multiply " * "
+           rename-functions {}
            infix? (constantly false)}}]
   (letfn [(precedence [op] (or (precedence-map op)
                                (cond (seq? op) (precedence-map :apply)
@@ -35,6 +42,8 @@
           (precedence<= [a b] (not (precedence> a b)))
           (parenthesize-if [b x]
             (if b (parenthesize x) x))
+          (maybe-rename-function [f]
+            (if-let [f' (rename-functions f)] f' f))
           (maybe-rewrite-negation [loc]
             ;; if the tree at loc looks like (* -1 xs...) replace it with
             ;; (- (* xs...)). This helps the renderer with sums of terms with
@@ -89,7 +98,7 @@
                            ((special-handlers op) args))
                       (str (parenthesize-if (and (z/branch? fn-loc)
                                                  (precedence> :apply (z/node (z/next fn-loc))))
-                                            (render-loc (z/next arg-loc)))
+                                            (maybe-rename-function (render-loc (z/next arg-loc))))
                            (parenthesize-if (or (precedence<= op :apply)
                                                 (> (count args) 1)
                                                 (z/branch? (z/right fn-loc)))
@@ -122,7 +131,6 @@
   written as superscripts. Partial derivatives get subscripts."
   (make-infix-renderer
    :precedence-map {'∂ 1, 'D 1, 'expt 2, :apply 3, '/ 5, '* 5, '+ 6, '- 6}
-   :parenthesize #(str "(" % ")")
    :infix? #{'* '+ '- '/ 'expt}
    :juxtapose-multiply " "
    :special-handlers
@@ -222,3 +230,45 @@
 
                              ;; otherwise do nothing
                              v))))))))
+
+(def ^:dynamic *javascript-symbol-generator* gensym)
+
+(def ->JavaScript
+  "Convert the given (simplified) expression to a JavaScript function."
+  (let [operators-known '#{sin cos tan asin acos sqrt abs pow + - * /
+                           expt exp log}
+        R (make-infix-renderer
+           :precedence-map {:apply 2, 'expt 2, '* 5, '/ 5, '- 6, '+ 6}
+           :infix? #{'* '+ '- '/}
+           :rename-functions {'sin "Math.sin",
+                              'cos "Math.cos",
+                              'tan "Math.tan",
+                              'asin "Math.asin",
+                              'acos "Math.acos",
+                              'sqrt "Math.sqrt",
+                              'abs "Math.abs",
+                              'expt "Math.pow",
+                              'log "Math.log",
+                              'exp "Math.exp"}
+           )]
+    (fn [x & {:keys [symbol-generator]}]
+      (let [params (set/difference (x/variables-in x) operators-known)
+            cs (compile/extract-common-subexpressions
+                x
+                :symbol-generator *javascript-symbol-generator*)
+            w (java.io.StringWriter.)]
+        (doto w
+          (.write "function(")
+          (.write (s/join ", " (sort params)))
+          (.write ") {\n"))
+        (doseq [[val var] cs]
+          (doto w
+            (.write "  let ")
+            (.write (str var " = "))
+            (.write (R val))
+            (.write ";\n")))
+        (doto w
+          (.write "  return ")
+          (.write (R (walk/postwalk-replace cs x)))
+          (.write ";\n}"))
+        (str w)))))

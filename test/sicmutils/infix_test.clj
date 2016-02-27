@@ -25,6 +25,7 @@
 
 (def ^:private s->infix (compose ->infix simplify))
 (def ^:private s->TeX (compose ->TeX simplify))
+(def ^:private s->JS (compose ->JavaScript simplify))
 
 (deftest basic
   (testing "raw epxressions"
@@ -111,3 +112,16 @@
   (is (= "\\dfrac{1}{x}" (s->TeX (/ 1 'x))))
   (is (= "\\dfrac{a + b}{c + d}" (s->TeX (/ (+ 'a 'b) (+ 'c 'd)))))
   (is (= "\\dfrac{a}{b}" (s->TeX (/ 'a 'b)))))
+
+(deftest JS
+  (is (= "function(a, b, theta) {\n  return Math.sin(theta) + a + b;\n}"
+         (s->JS (+ 'a 'b (sin 'theta)))))
+  (is (= "function(j) {\n  return 1 / j;\n}"
+         (s->JS (invert 'j))))
+  (is (= "function(y) {\n  return Math.pow(2.71828, y);\n}"
+         (s->JS (expt 2.71828 'y))))
+  (is (= "function(a, b, x) {\n  return Math.exp(Math.log(x) * b) * a;\n}"
+         (s->JS (* 'a (exp (* 'b (log 'x)))))))
+  (is (= "function(x) {\n  let K = Math.sin(x);\n  return Math.pow(K, 2) + K;\n}"
+         (binding [i/*javascript-symbol-generator* (fn [] "K")]
+           (s->JS (+ (sin 'x) (expt (sin 'x) 2)))))))
