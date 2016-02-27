@@ -21,6 +21,7 @@
             [sicmutils
              [structure :as struct]
              [generic :as g]]
+            [clojure.walk :as w]
             [clojure.tools.logging :as log])
   (:import (com.google.common.base Stopwatch)))
 
@@ -48,6 +49,50 @@
   `(fn [~(into [] (concat (-> state-model flatten) generic-parameters))]
      ~(postwalk-replace compiled-function-whitelist body)))
 
+(defn extract-common-subexpressions
+  "Given an S-expression, return a vector of subexpressions which occur
+  more than once within it. (Here, symbols and other primitive elements
+  do not count as subexpressions.)"
+  [x]
+  (let [cs (atom {})]
+    ;; cs maps subexpressions to the number of times we have seen the
+    ;; expression.
+    (w/postwalk (fn [e]
+                  (when (seq? e)
+                    (swap! cs update-in [e] (fnil inc 0)))
+                  e)
+                x)
+    (into [] (for [[k v] @cs :when (> v 1)] k))))
+
+(defn ^:private initialize-cs-variables
+  "Given a list of pairs of (symbol, expression) construct a
+  binding vector (this is just a one-level flattening of the
+  input)."
+  [syms]
+  (reduce (fn [v [x sym]] (conj (conj v sym) x)) [] syms))
+
+(defn ^:private cs-body
+  [syms x]
+  (w/postwalk (fn [e]
+                (or (syms e) e))
+              x))
+
+(defn common-subexpression-elimination
+  "Given an expression and a table of common subexpressions, create a
+  let statement which assigns the subexpressions to the values of
+  dummy variables generated for the purpose of holding these values;
+  the body of the let statement will be x with the subexpressions
+  replaced by the dummy variables."
+  [x & {:keys [symbol-generator]
+        :or {symbol-generator gensym}}]
+  (let [cs (extract-common-subexpressions x)]
+    (if (> (count cs) 0)
+      (let [syms (into {} (for [x cs] [x (symbol-generator)]))]
+        (log/info (format "common subexpression elimination: %d expressions" (count cs)))
+        `(let ~(initialize-cs-variables syms)
+           ~(cs-body syms x)))
+      x)))
+
 (defn- compile-state-function2
   [f parameters initial-state]
   (let [sw (Stopwatch/createStarted)
@@ -57,6 +102,7 @@
         compiled-function (->> generic-initial-state
                                g
                                g/simplify
+                               common-subexpression-elimination
                                (construct-state-function-exp
                                  generic-parameters
                                  generic-initial-state)
@@ -85,6 +131,7 @@
         compiled-function (->> var
                                f
                                g/simplify
+                               common-subexpression-elimination
                                (construct-univariate-function-exp var)
                                eval)]
     (log/info "compiled univariate function in" (str sw))

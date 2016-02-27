@@ -40,5 +40,4 @@
     (is (near 0 (sine Math/PI)))
     (is (near 1 (sine (/ Math/PI 2))))
     (is (near 0.7651976 (bessel-j0 1)))
-    (is (near -0.2459358 (bessel-j0 10)))
-    ))
+    (is (near -0.2459358 (bessel-j0 10)))))

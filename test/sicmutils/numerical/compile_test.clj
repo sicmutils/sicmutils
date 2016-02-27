@@ -44,3 +44,25 @@
     (is (= -4 (cf [2 3 4 5 2])))
     (is (= 10 (cf (concat (flatten t) [1]))))
     (is (= 20 (cf [3 4 -1 2 2])))))
+
+(deftest subexp
+  (let [x '(* (+ x y) (+ x z) (+ x y))]
+    (is (= '[(+ x y)]
+           (extract-common-subexpressions x)))
+    (is (= '[(sin x) (cos x)]
+           (extract-common-subexpressions
+            '(+ (sin x) (expt (sin x) 2) (cos x) (sqrt (cos x))))))))
+
+(defn ^:private make-generator
+  [s]
+  (let [i (atom 0)]
+    (fn []
+      (symbol (format "%s%d" s (swap! i inc))))))
+
+(deftest subexp-compile
+  (let [x '(+ (sin x) (expt (sin x) 2) (cos x) (sqrt (cos x)) (tan x))
+        cse (common-subexpression-elimination x :symbol-generator (make-generator "g"))]
+    (is (= '(clojure.core/let [g1 (sin x) g2 (cos x)]
+              (+ g1 (expt g1 2) g2 (sqrt g2) (tan x))) cse))
+    (is (= '(+ a b (sin x) (cos y))
+           (common-subexpression-elimination '(+ a b (sin x) (cos y)))))))
