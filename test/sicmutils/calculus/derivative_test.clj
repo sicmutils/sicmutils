@@ -361,7 +361,26 @@
            (simplify (((∂ 0) expt) 1 2))))
     (let [pow (fn [x y] (apply * (repeat y x)))]
       (is (= 8 (pow 2 3)))
-      (is (= '(expt x 8) (simplify (pow 'x 8)))))))
+      (is (= '(expt x 8) (simplify (pow 'x 8))))))
+  (testing "formatting"
+    (let [f2 (fn [x y] (* (sin x) (log y)))
+          f3 (fn [x y] (* (tan x) (log y)))
+          f4 (fn [x y] (* (tan x) (sin y)))
+          f5 (fn [x y] (/ (tan x) (sin y)))]
+      (is (= '(down (* (cos x) (log y))
+                    (/ (sin x) y))
+             (simplify ((D f2) 'x 'y))))
+      (is (= '(down (/ (log y) (expt (cos x) 2))
+                    (/ (tan x) y))
+             (simplify ((D f3) 'x 'y))))
+      (is (= '(down (/ (sin y) (expt (cos x) 2))
+                    (/ (* (cos y) (sin x)) (cos x)))
+             (simplify ((D f4) 'x 'y))))
+      (is (= '(down
+               (/ 1 (* (expt (cos x) 2) (sin y)))
+               (/ (* -1 (cos y) (sin x)) (* (expt (sin y) 2) (cos x))))
+             (simplify ((D f5) 'x 'y))))
+      )))
 
 (deftest deep-partials
   (let [f (fn [x y] (+ (square x) (square (square y))))]

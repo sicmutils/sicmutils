@@ -256,6 +256,11 @@
 (defmethod g/div [::rational-function Long] [{u :u v :v} c] (make u (g/mul c v)))
 
 (defmethod g/div
+  [::rational-function :sicmutils.polynomial/polynomial]
+  [{u :u v :v} p]
+  (make u (p/mul v p)))
+
+(defmethod g/div
   [:sicmutils.polynomial/polynomial ::rational-function]
   [p {u :u v :v arity :arity}]
   (make (p/mul p v) u))
