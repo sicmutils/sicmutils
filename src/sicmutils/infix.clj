@@ -81,10 +81,10 @@
                        (and (= (count args) 1)
                             (render-unary-node op args))
                        (let [w (java.io.StringWriter.)
-                             sep (case op
-                                   * (or juxtapose-multiply " * ")
-                                   expt "^"
-                                   (str " " op " "))]
+                             ^String sep (case op
+                                           * (or juxtapose-multiply " * ")
+                                           expt "^"
+                                           (str " " op " "))]
                          (loop [a args]
                            (.write w (str (first a)))
                            (if-let [a' (next a)]
@@ -115,12 +115,16 @@
 (def ^:private decimal-subscripts
   [\₀ \₁ \₂ \₃ \₄ \₅ \₆ \₇ \₈ \₉])
 
+(defn ^:private digit->int
+  [^Character d]
+  (Character/digit d 10))
+
 (defn ^:private n->script
   "Given an integer, returns a string where each digit of the
   integer is used as the index into the replacement map scripts,
   which is expected to be indexable by integers in the range [0..9]."
   [n scripts]
-  (apply str (map #(-> % (Character/digit 10) scripts)
+  (apply str (map #(-> % digit->int scripts)
                   (str n))))
 
 (def ^:private n->subscript #(n->script % decimal-subscripts))
@@ -249,8 +253,7 @@
                               'abs "Math.abs",
                               'expt "Math.pow",
                               'log "Math.log",
-                              'exp "Math.exp"}
-           )]
+                              'exp "Math.exp"})]
     (fn [x & {:keys [symbol-generator]}]
       (let [params (set/difference (x/variables-in x) operators-known)
             cs (compile/extract-common-subexpressions
@@ -265,10 +268,9 @@
           (doto w
             (.write "  var ")
             (.write (str var " = "))
-            (.write (R val))
+            (.write ^String (R val))
             (.write ";\n")))
-        (doto w
-          (.write "  return ")
-          (.write (R (walk/postwalk-replace cs x)))
-          (.write ";\n}"))
-        (str w)))))
+        (.toString (doto w
+                     (.write "  return ")
+                     (.write ^String (R (walk/postwalk-replace cs x)))
+                     (.write ";\n}")))))))
