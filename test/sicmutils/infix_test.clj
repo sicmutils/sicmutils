@@ -25,7 +25,9 @@
 
 (def ^:private s->infix (compose ->infix simplify))
 (def ^:private s->TeX (compose ->TeX simplify))
-(def ^:private s->JS (compose ->JavaScript simplify))
+(defn ^:private s->JS
+  [x & options]
+  (apply ->JavaScript (simplify x) options))
 
 (deftest basic
   (testing "raw epxressions"
@@ -113,6 +115,11 @@
   (is (= "\\dfrac{a + b}{c + d}" (s->TeX (/ (+ 'a 'b) (+ 'c 'd)))))
   (is (= "\\dfrac{a}{b}" (s->TeX (/ 'a 'b)))))
 
+(defn ^:private make-symbol-generator
+  [p]
+  (let [i (atom 0)]
+    (fn [] (format "%s%d" p (swap! i inc)))))
+
 (deftest JS
   (is (= "function(a, b, theta) {\n  return Math.sin(theta) + a + b;\n}"
          (s->JS (+ 'a 'b (sin 'theta)))))
@@ -122,6 +129,13 @@
          (s->JS (expt 2.71828 'y))))
   (is (= "function(a, b, x) {\n  return Math.exp(Math.log(x) * b) * a;\n}"
          (s->JS (* 'a (exp (* 'b (log 'x)))))))
-  (is (= "function(x) {\n  var K = Math.sin(x);\n  return Math.pow(K, 2) + K;\n}"
-         (binding [i/*javascript-symbol-generator* (fn [] "K")]
-           (s->JS (+ (sin 'x) (expt (sin 'x) 2)))))))
+  (is (= "function(x) {\n  var K1 = Math.sin(x);\n  return Math.pow(K1, 2) + K1;\n}"
+         (s->JS (+ (sin 'x) (expt (sin 'x) 2))
+                :symbol-generator (make-symbol-generator "K"))))
+  (is (= (str "function(x, dx) {\n"
+              "  var t1 = Math.sin(x);\n"
+              "  return -1/2 * t1 * Math.pow(dx, 2) + Math.cos(x) * dx + t1;\n"
+              "}")
+         (s->JS (reduce + (take 3 (taylor-series-terms sin 'x 'dx)))
+                :symbol-generator (make-symbol-generator "t")
+                :parameter-order '[x dx]))))

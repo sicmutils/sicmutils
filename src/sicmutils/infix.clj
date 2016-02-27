@@ -134,8 +134,8 @@
   "Converts an S-expression to printable infix form. Numeric exponents are
   written as superscripts. Partial derivatives get subscripts."
   (make-infix-renderer
-   :precedence-map {'∂ 1, 'D 1, 'expt 2, :apply 3, '/ 5, '* 5, '+ 6, '- 6}
-   :infix? #{'* '+ '- '/ 'expt}
+   :precedence-map '{∂ 1, D 1, expt 2, :apply 3, / 5, * 5, + 6, - 6}
+   :infix? '#{* + - / expt}
    :juxtapose-multiply " "
    :special-handlers
    {'expt (fn [[x e]]
@@ -198,9 +198,9 @@
     (make-infix-renderer
      ;; here we set / to a very low precedence because the fraction bar we will
      ;; use in the rendering groups things very strongly.
-     :precedence-map {'∂ 1, 'D 1, :apply 2, 'expt 2, '* 5, '+ 6, '- 6, '/ 9}
+     :precedence-map '{∂ 1, D 1, :apply 2, expt 2, * 5, + 6, - 6, / 9}
      :parenthesize #(str "\\left(" % "\\right)")
-     :infix? #{'* '+ '- '/ 'expt}
+     :infix? '#{* + - / expt}
      :juxtapose-multiply "\\,"
      :special-handlers
      {'expt (fn [[x e]] (str (maybe-brace x) "^" (maybe-brace e)))
@@ -235,15 +235,24 @@
                              ;; otherwise do nothing
                              v))))))))
 
-(def ^:dynamic *javascript-symbol-generator* gensym)
-
 (def ->JavaScript
-  "Convert the given (simplified) expression to a JavaScript function."
+  "Convert the given (simplified) expression to a JavaScript function.
+  Parameters to the function will be extracted from the symbols in the
+  expression. Common subexpression elimination will be performed and
+  auxiliary variables will be bound in the body of the function; the
+  names of these symbols are obtained from the nullary function
+  option :symbol-generator, which defaults to `gensym`. If
+  `:parameter-order is specified, it is used to determine function
+  parameter order in one of two ways: if it is set to a function, that
+  function will be called on the seqeunce of parameters and is
+  expected to return the parameters in the desired
+  sequence. Otherwise, it is interpreted as the sequence of parameters
+  itself. If not specified, the default behavior is `sort`."
   (let [operators-known '#{sin cos tan asin acos sqrt abs pow + - * /
                            expt exp log}
         R (make-infix-renderer
-           :precedence-map {:apply 2, 'expt 2, '* 5, '/ 5, '- 6, '+ 6}
-           :infix? #{'* '+ '- '/}
+           :precedence-map '{:apply 2, expt 2, * 5, / 5, - 6, + 6}
+           :infix? '#{* + - /}
            :rename-functions {'sin "Math.sin",
                               'cos "Math.cos",
                               'tan "Math.tan",
@@ -254,15 +263,20 @@
                               'expt "Math.pow",
                               'log "Math.log",
                               'exp "Math.exp"})]
-    (fn [x & {:keys [symbol-generator]}]
+    (fn [x & {:keys [symbol-generator parameter-order]
+              :or {symbol-generator gensym
+                   parameter-order sort}}]
       (let [params (set/difference (x/variables-in x) operators-known)
             cs (compile/extract-common-subexpressions
                 x
-                :symbol-generator *javascript-symbol-generator*)
-            w (java.io.StringWriter.)]
+                :symbol-generator symbol-generator)
+            w (java.io.StringWriter.)
+            ordered-params (if (fn? parameter-order)
+                             (parameter-order params)
+                             parameter-order)]
         (doto w
           (.write "function(")
-          (.write (s/join ", " (sort params)))
+          (.write (s/join ", " ordered-params))
           (.write ") {\n"))
         (doseq [[val var] cs]
           (doto w

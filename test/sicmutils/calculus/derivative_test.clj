@@ -379,8 +379,7 @@
       (is (= '(down
                (/ 1 (* (expt (cos x) 2) (sin y)))
                (/ (* -1 (cos y) (sin x)) (* (expt (sin y) 2) (cos x))))
-             (simplify ((D f5) 'x 'y))))
-      )))
+             (simplify ((D f5) 'x 'y)))))))
 
 (deftest deep-partials
   (let [f (fn [x y] (+ (square x) (square (square y))))]
