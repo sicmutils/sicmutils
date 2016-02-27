@@ -263,7 +263,7 @@
           (.write ") {\n"))
         (doseq [[val var] cs]
           (doto w
-            (.write "  let ")
+            (.write "  var ")
             (.write (str var " = "))
             (.write (R val))
             (.write ";\n")))

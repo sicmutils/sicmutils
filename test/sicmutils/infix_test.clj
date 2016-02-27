@@ -122,6 +122,6 @@
          (s->JS (expt 2.71828 'y))))
   (is (= "function(a, b, x) {\n  return Math.exp(Math.log(x) * b) * a;\n}"
          (s->JS (* 'a (exp (* 'b (log 'x)))))))
-  (is (= "function(x) {\n  let K = Math.sin(x);\n  return Math.pow(K, 2) + K;\n}"
+  (is (= "function(x) {\n  var K = Math.sin(x);\n  return Math.pow(K, 2) + K;\n}"
          (binding [i/*javascript-symbol-generator* (fn [] "K")]
            (s->JS (+ (sin 'x) (expt (sin 'x) 2)))))))
