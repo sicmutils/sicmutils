@@ -216,7 +216,10 @@
 (defmethod g/mul [::rational-function ::rational-function] [a b] (mul a b))
 (defmethod g/mul [Long ::rational-function] [c {u :u v :v}] (make (g/mul c u) v))
 (defmethod g/mul [::rational-function Long] [{u :u v :v} c] (make (g/mul u c) v))
+(defmethod g/mul [Double ::rational-function] [c {u :u v :v}] (make (g/mul c u) v))
+(defmethod g/mul [::rational-function Double] [{u :u v :v} c] (make (g/mul u c) v))
 (defmethod g/mul [::rational-function Ratio] [{u :u v :v} r] (make (g/mul u (numerator r)) (g/mul v (denominator r))))
+(defmethod g/mul [Ratio ::rational-function] [r {u :u v :v}] (make (g/mul (numerator r) u) (g/mul (denominator r) v)))
 
 (defmethod g/mul
   [::rational-function :sicmutils.polynomial/polynomial]
