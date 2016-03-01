@@ -26,6 +26,24 @@
             [sicmutils.numerical.compile :as compile]))
 
 (defn ^:private make-infix-renderer
+  "Base function for infix renderers. This is meant to be specialized via
+  options for the treatment desired. The options are:
+  - `precedence-map`: a map from (symbol or keyword) to numbers. Lower numbers
+    mean higher precedence. This guides parenthesization.
+  - `juxtapose-multiply`: a string that will be placed between factors in a
+    product. Defaults to `*`.
+  - `infix?` A function mapping symbols to boolean, used to decide if a function
+    application should be written as `x f y` or `f(x, y)`.
+  - `render-primitive` is a function used to render symbols, numeeric constants
+    etc. into string form.
+  - `parenthesize` is a function used to wrap parens around objects when
+    needed. It defaults to the obvious thing.
+  - `special-handlers` is a map from symbol to a function of operator and
+    arguments, used to provide custom rendering for things like exponentiation
+    which might not be rendered either as infix or prefix.
+  - `rename-functions` is a map supplying replacement function names to be used
+    just before the expression is written.
+  "
   [& {:keys [juxtapose-multiply special-handlers infix? render-primitive
              rename-functions parenthesize precedence-map]
       :or {special-handlers {}
@@ -244,7 +262,7 @@
   option :symbol-generator, which defaults to `gensym`. If
   `:parameter-order is specified, it is used to determine function
   parameter order in one of two ways: if it is set to a function, that
-  function will be called on the seqeunce of parameters and is
+  function will be called on the sequence of parameters and is
   expected to return the parameters in the desired
   sequence. Otherwise, it is interpreted as the sequence of parameters
   itself. If not specified, the default behavior is `sort`."
