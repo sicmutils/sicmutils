@@ -40,14 +40,14 @@
   variable. If the variable is bound, then the value seen must match
   the binding to succeed (the frame is not modified in this case)."
   ([var]
-     (match-var var (constantly true)))
+   (match-var var (constantly true)))
   ([var predicate?]
-     (fn [frame [x & xs] succeed]
-       (if x
-         (if-let [binding (frame var)]
-           (and (= binding x) (succeed frame xs))
-           (if (predicate? x)
-             (succeed (assoc frame var x) xs)))))))
+   (fn [frame [x & xs] succeed]
+     (if x
+       (if-let [binding (frame var)]
+         (and (= binding x) (succeed frame xs))
+         (if (predicate? x)
+           (succeed (assoc frame var x) xs)))))))
 
 (defn match-segment [var]
   (fn [frame xs succeed]
@@ -64,7 +64,7 @@
 
 (defn match-list [matchers]
   (fn [frame xs succeed]
-    (if (seq? xs)
+    (if (sequential? xs)
       (let [step (fn step
                    [frame as matchers]
                    (cond matchers ((first matchers) frame as
@@ -74,23 +74,31 @@
         (step frame (first xs) matchers)))))
 
 (defn variable-reference?
-  "True if x is a variable reference (i.e., it looks like (:? ...))"
+  "True if x is a variable reference (i.e., it looks like (:? ...)) or
+  is a simple keyword"
   [x]
-  (and (sequential? x)
-       (= (first x) :?)))
+  (or (keyword? x)
+      (and (sequential? x)
+           (= (first x) :?))))
 
 (defn variable-reference-with-predicate?
   "True if x is a variable reference and is also equipped with a
   constraint on matched values"
   [x]
   (and (variable-reference? x)
+       (sequential? x)
        (> (count x) 2)))
 
 (defn segment-reference?
-  "True if x is a segment reference (i.e., it looks like (:?? ...))"
+  "True if x is a segment reference (i.e., it looks like (:?? ...))
+  or is a keyword ending in `*`"
   [x]
-  (and (sequential? x)
-       (= (first x) :??)))
+  (or (and (keyword? x)
+           (let [s (name x)
+                 c (count s)]
+             (= \* (nth s (dec c)))))
+      (and (sequential? x)
+        (= (first x) :??))))
 
 (def ^:private no-constraint (constantly true))
 
@@ -98,26 +106,28 @@
   "Return the variable contained in a variable or segment reference
   form"
   [x]
-  (second x))
+  (if (keyword? x) x
+      (second x)))
 
 (defn- variable-constraint
   "If x is a variable reference in a pattern with a constraint,
   returns that constraint; else returns a stock function which
   enforces no constraint at all."
   [x]
-  (nth x 2 no-constraint))
+  (if (keyword? x) no-constraint
+      (nth x 2 no-constraint)))
 
 (defn pattern->matcher
   "Given a pattern (which is essentially a form consisting of
   constants mixed with pattern variables) returns a match combinator
   for the pattern."
   [pattern]
-  (if (sequential? pattern)
-    (cond (variable-reference? pattern) (match-var (variable pattern)
-                                                   (variable-constraint pattern))
-          (segment-reference? pattern) (match-segment (variable pattern))
-          :else (match-list (map pattern->matcher pattern)))
-    (match-one pattern)))
+  (cond
+    (segment-reference? pattern) (match-segment (variable pattern))
+    (variable-reference? pattern) (match-var (variable pattern)
+                                             (variable-constraint pattern))
+    (sequential? pattern) (match-list (map pattern->matcher pattern))
+    :else (match-one pattern)))
 
 (defn match
   "Convenience function for applying a match combinator to some data.

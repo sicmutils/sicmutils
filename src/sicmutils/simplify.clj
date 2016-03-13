@@ -175,21 +175,21 @@
      (rule/rule-simplifier
       (rule/ruleset
        ;;  ... + a + ... + cos^n x + ...   if a + cos^(n-2) x = 0: a sin^2 x
-       (+ (:?? a1) (:? a) (:?? a2) (expt (cos (:? x)) (:? n at-least-two?)) (:?? a3))
-       #(simplify-zero `(~'+ (~'expt (~'cos ~(% 'x)) ~(- (% 'n) 2)) ~(% 'a)))
-       (+ (:?? a1) (:?? a2) (:?? a3) (* (:? a) (expt (sin (:? x)) 2)))
+       (+ :a1* :a :a2* (expt (cos :x) (:? n at-least-two?)) :a3*)
+       #(simplify-zero `(~'+ (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2)) ~(% :a)))
+       (+ :a1* :a2* :a3* (* :a (expt (sin :x) 2)))
 
-       (+ (:?? a1) (expt (cos (:? x)) (:? n at-least-two?)) (:?? a2) (:? a) (:?? a3))
-       #(simplify-zero `(~'+ (~'expt (~'cos ~(% 'x)) ~(- (% 'n) 2)) ~(% 'a)))
-       (+ (:?? a1) (:?? a2) (:?? a3) (* (:? a) (expt (sin (:? x)) 2)))
+       (+ :a1* (expt (cos :x) (:? n at-least-two?)) :a2* :a :a3*)
+       #(simplify-zero `(~'+ (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2)) ~(% :a)))
+       (+ :a1* :a2* :a3* (* :a (expt (sin :x) 2)))
 
-       (+ (:?? a1) (:? a) (:?? a2) (* (:?? b1) (expt (cos (:? x)) (:? n at-least-two?)) (:?? b2)) (:?? a3))
-       #(simplify-zero `(~'+ (~'* ~@(% 'b1) ~@(% 'b2) (~'expt (~'cos ~(% 'x)) ~(- (% 'n) 2))) ~(% 'a)))
-       (+ (:?? a1) (:?? a2) (:?? a3) (* (:? a) (expt (sin (:? x)) 2)))
+       (+ :a1* :a :a2* (* :b1* (expt (cos :x) (:? n at-least-two?)) :b2*) :a3*)
+       #(simplify-zero `(~'+ (~'* ~@(% :b1*) ~@(% :b2*) (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2))) ~(% :a)))
+       (+ :a1* :a2* :a3* (* :a (expt (sin :x) 2)))
 
-       (+ (:?? a1) (* (:?? b1) (expt (cos (:? x)) (:? n at-least-two?)) (:?? b2)) (:?? a2) (:? a) (:?? a3))
-       #(simplify-zero `(~'+ (~'* ~@(% 'b1) ~@(% 'b2) (~'expt (~'cos ~(% 'x)) ~(- (% 'n) 2))) ~(% 'a)))
-       (+ (:?? a1) (:?? a2) (:?? a3) (* (:? a) (expt (sin (:? x)) 2)))))
+       (+ :a1* (* :b1* (expt (cos :x) (:? n at-least-two?)) :b2*) :a2* :a :a3*)
+       #(simplify-zero `(~'+ (~'* ~@(% :b1*) ~@(% :b2*) (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2))) ~(% :a)))
+       (+ :a1* :a2* :a3* (* :a (expt (sin :x) 2)))))
      simplify-and-flatten)))
 
 ;; (defn ^:private spy [x a]

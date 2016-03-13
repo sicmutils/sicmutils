@@ -28,46 +28,46 @@
 (def sin-sq->cos-sq
   (rule-simplifier
    (ruleset
-    (expt (sin (:? x)) (:? n at-least-two?))
-    => (* (expt (sin (:? x)) (:? #(- (% 'n) 2)))
-          (- 1 (expt (cos (:? x)) 2))))))
+    (expt (sin :x) (:? n at-least-two?))
+    => (* (expt (sin :x) (:? #(- (% 'n) 2)))
+          (- 1 (expt (cos :x) 2))))))
 
 (def ^:private split-high-degree-cosines
   (ruleset
-   (* (:?? f1) (expt (cos (:? x)) (:? n more-than-two?)) (:?? f2))
-   => (* (expt (cos (:? x)) 2)
-         (expt (cos (:? x)) (:? #(- (% 'n) 2)))
-         (:?? f1)
-         (:?? f2))
+   (* :f1* (expt (cos :x) (:? n more-than-two?)) :f2*)
+   => (* (expt (cos :x) 2)
+         (expt (cos :x) (:? #(- (% 'n) 2)))
+         :f1*
+         :f2*)
 
-   (+ (:?? a1) (expt (cos (:? x)) (:? n more-than-two?)) (:?? a2))
-   => (+ (* (expt (cos (:? x)) 2)
-            (expt (cos (:? x)) (:? #(- (% 'n) 2))))
-         (:?? a1)
-         (:?? a2))))
+   (+ :a1* (expt (cos :x) (:? n more-than-two?)) :a2*)
+   => (+ (* (expt (cos :x) 2)
+            (expt (cos :x) (:? #(- (% 'n) 2))))
+         :a1*
+         :a2*)))
 
 (def ^:private split-high-degree-sines
   (ruleset
-   (* (:?? f1) (expt (sin (:? x)) (:? n more-than-two?)) (:?? f2))
-   => (* (expt (sin (:? x)) 2)
-         (expt (sin (:? x)) (:? #(- (% 'n) 2)))
-         (:?? f1)
-         (:?? f2))
+   (* :f1* (expt (sin :x) (:? n more-than-two?)) :f2*)
+   => (* (expt (sin :x) 2)
+         (expt (sin :x) (:? #(- (% 'n) 2)))
+         :f1*
+         :f2*)
 
-   (+ (:?? a1) (expt (sin (:? x)) (:? n more-than-two?)) (:?? a2))
-   => (+ (* (expt (sin (:? x)) 2)
-            (expt (sin (:? x)) (:? #(- (% 'n) 2))))
-         (:?? a1)
-         (:?? a2))))
+   (+ :a1* (expt (sin :x) (:? n more-than-two?)) :a2*)
+   => (+ (* (expt (sin :x) 2)
+            (expt (sin :x) (:? #(- (% 'n) 2))))
+         :a1*
+         :a2*)))
 
 (def simplify-square-roots
   (rule-simplifier
    (ruleset
-    (expt (sqrt (:? x)) (:? n even-integer?))
-    => (expt (:? x) (:? #(/ (% 'n) 2)))
+    (expt (sqrt :x) (:? n even-integer?))
+    => (expt :x (:? #(/ (% 'n) 2)))
 
-    (sqrt (expt (:? x) (:? n even-integer?)))
-    => (expt (:? x) (:? #(/ (% 'n) 2)))
+    (sqrt (expt :x (:? n even-integer?)))
+    => (expt :x (:? #(/ (% 'n) 2)))
 
     ;; others to follow
     )))
@@ -76,11 +76,11 @@
   ;; TODO: clearly more of these are needed.
   (rule-simplifier
    (ruleset
-    (cos (* (complex 0.0 1.0) (:? z)))
-    => (cosh (:? z))
+    (cos (* (complex 0.0 1.0) :z))
+    => (cosh :z)
 
-    (sin (* (complex 0.0 1.0) (:? z)))
-    => (* (complex 0.0 1.0) (sinh z))
+    (sin (* (complex 0.0 1.0) :z))
+    => (* (complex 0.0 1.0) (sinh :z))
 
     ;; Does this really belong here?
     ;; It works by reducing n mod 4 and then indexing into [1 i -1 -i].
@@ -89,22 +89,22 @@
 
 (def divide-numbers-through
   (ruleset
-   (* 1 (:? factor))
-   => (:? factor)
+   (* 1 :factor)
+   => :factor
 
-   (* 1 (:?? factors))
-   => (* (:?? factors))
+   (* 1 :factors*)
+   => (* :factors*)
 
    (/ (:? n number?) (:? d number?))
    => (:? #(/ (% 'n) (% 'd)))
 
-   (/ (+ (:?? terms)) (:? d number?))
-   => (+ (:?? #(map (fn [n] `(~'/ ~n ~(% 'd))) (% 'terms))))))
+   (/ (+ :terms*) (:? d number?))
+   => (+ (:?? #(map (fn [n] `(~'/ ~n ~(% 'd))) (% :terms*))))))
 
 (def ^:private flush-obvious-ones
   (ruleset
-   (+ (:?? a1) (expt (sin (:? x)) 2) (:?? a2) (expt (cos (:? x)) 2) (:?? a3))
-   => (+ 1 (:?? a1) (:?? a2) (:?? a3)))
+   (+ :a1* (expt (sin :x) 2) :a2* (expt (cos :x) 2) :a3*)
+   => (+ 1 :a1* :a2* :a3*))
   ;; are sines always before cosines after we poly simplify?
   ;; they are in scmutils, so we should be alert for this.
   ;; in scmutils, there are a couple of others that involve rcf:simplify,
@@ -120,21 +120,21 @@
     ;; GJS has other rules: to map cot, sec and csc to sin/cos, but
     ;; I don't think we need those since we transform those to sin/cos
     ;; in the env namespace.
-    (tan (:? x)) => (/ (sin (:? x)) (cos (:? x))))))
+    (tan :x) => (/ (sin :x) (cos :x)))))
 
 (def sincos->trig
   (ruleset
    ;; undoes the effect of trig->sincos
-   (/ (sin (:? x)) (cos (:? x)))
-   => (tan (:? x))
+   (/ (sin :x) (cos :x))
+   => (tan :x)
 
-   (/ (sin (:? x)) (* (:?? d1) (cos (:? x)) (:?? d2)))
-   => (/ (tan (:? x)) (* (:?? d1) (:?? d2)))
+   (/ (sin :x) (* :d1* (cos :x) :d2*))
+   => (/ (tan :x) (* :d1* :d2*))
 
-   (/ (* (:?? n1) (sin (:? x)) (:?? n1))
-      (* (:?? d1) (cos (:? x)) (:?? d2)))
-   => (/ (* (:?? n1) (tan (:? x)) (:?? n2))
-         (* (:?? d1) (:?? d2)))))
+   (/ (* :n1* (sin :x) :n1*)
+      (* :d1* (cos :x) :d2*))
+   => (/ (* :n1* (tan :x) :n2*)
+         (* :d1* :d2*))))
 
 (def sincos-flush-ones (rule-simplifier split-high-degree-cosines
                                         split-high-degree-sines

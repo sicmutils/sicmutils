@@ -23,29 +23,30 @@
 ;; http://groups.csail.mit.edu/mac/users/gjs/6.945/
 
 (defn- compile-consequence
-  "Compiles a consequence (written as a pattern), by returnin a code
+  "Compiles a consequence (written as a pattern), by returning a code
   fragment which will replace instances of variable and segment
   references in the consequence with values provided by the frame
   referred to by frame-symbol. The form is meant to be evaluated in an
   environment where frame-symbol is bound to a mapping of pattern
   variables to their desired substitutions."
   [frame-symbol consequence]
-  (cond (variable-reference? consequence)
-        (let [v (variable consequence)
-              function-of-frame (if (symbol? v) `(quote ~v) v)]
-          `(list (~function-of-frame ~frame-symbol)))
+  (cond
+    (segment-reference? consequence)
+    (let [v (variable consequence)
+          function-of-frame (if (symbol? v) `(quote ~v) v)]
+      `(~function-of-frame ~frame-symbol))
 
-        (segment-reference? consequence)
-        (let [v (variable consequence)
-              function-of-frame (if (symbol? v) `(quote ~v) v)]
-          `(~function-of-frame ~frame-symbol))
+    (variable-reference? consequence)
+    (let [v (variable consequence)
+          function-of-frame (if (symbol? v) `(quote ~v) v)]
+      `(list (~function-of-frame ~frame-symbol)))
 
-        (seq? consequence)
-        `(list (concat ~@(map
-                          (partial compile-consequence frame-symbol)
-                          consequence)))
+    (seq? consequence)
+    `(list (concat ~@(map
+                      (partial compile-consequence frame-symbol)
+                      consequence)))
 
-        :else `(list '~consequence)))
+    :else `(list '~consequence)))
 
 (defn- expose-predicate
   "This is currently a little tricky to explain. A variable pattern in
