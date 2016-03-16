@@ -452,7 +452,7 @@
   "The (infinite) sequence of terms of the taylor series of the function f
   evaluated at x, with incremental quantity dx."
   [f x dx]
-  (letfn [(step [f dxn q i]
-            (lazy-seq (cons (g/divide (g/* (f x) dxn) q)
-                            (step (D f) (g/* dxn dx) (* q (inc i)) (inc i)))))]
-    (step f 1 1 0)))
+  (let [step (fn step [n n! Dnf dxn]
+               (lazy-seq (cons (g/divide (g/* (Dnf x) dxn) n!)
+                               (step (inc n) (* n! (inc n)) (D Dnf) (g/* dxn dx)))))]
+    (step 0 1 f 1)))

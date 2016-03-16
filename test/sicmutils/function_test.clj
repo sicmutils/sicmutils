@@ -87,60 +87,78 @@
     ;; which is just as useful as well as being explicit about the
     ;; variance.
     #_(let [h (literal-function 'h 0 [0 1])]
-      (is (= 'foo (h 'x))))))
+        (is (= 'foo (h 'x))))))
 
-(deftest function-algebra
-  (let [add2 (fn [x] (g/+ x 2))
-        explog (g/exp g/log)
-        mul3 #(* 3 %)]
-    (testing "unary"
-      (is (= 4 (add2 2)))
-      (is (= -4 ((g/- add2) 2)))
-      (is (= 9 ((g/sqrt add2) 79)))
-      (is (= 1/9 ((g/invert add2) 7)))
-      (is (= 1.0 (explog 1.0)))
-      (is (near 99.0 (explog 99.0)))
-      (is (near 20.08553692 ((g/exp add2) 1.0)))
-      (is (near 4.718281828 ((add2 g/exp) 1.0))))
-    (testing "binary"
-      (is (= 12 ((g/+ add2 4) 6)))
-      (is (= 14 ((g/+ add2 mul3) 3)))
-      (is (= 10 ((g/+ mul3 4) 2)))
-      (is (= 32 ((g/expt 2 add2) 3)))
-      (is (= 25 ((g/expt add2 2) 3)))
-      (is (= :sicmutils.value/function (v/kind (g/expt add2 2)))))
-    (testing "arity 2"
-      (let [f (fn [x y] (+ x y))
-            g (fn [x y] (* x y))
-            h (g/+ f g)
-            k (g/+ 4 (g/- f 2))
-            m (g/+ g (g/- f 2))]
-        (is (= 11 (h 2 3)))
-        (is (= 7 (k 2 3)))
-        (is (= 9 (m 2 3)))))
-    (testing "arity 0"
-      (let [f (fn [] 3)
-            g (fn [] 4)
-            h (g/+ f g)
-            k (g/- f g)
-            j (g/* f g)
-            q (g/divide f g)]
-        (is (= 7 (h)))
-        (is (= -1 (k)))
-        (is (= 12 (j)))
-        (is (= 3/4 (q)))))
-    (testing "at least 0 arity"
-      (let [add (fn [& xs] (reduce + 0 xs))
-            mul (fn [& xs] (reduce * 1 xs))
-            add+mul (g/+ add mul)
-            add-mul (g/- add mul)
-            mul-add (g/- mul add)]
-        (is (= [:at-least 0] (v/arity add)))
-        (is (= [:at-least 0] (v/arity mul)))
-        (is (= [:at-least 0] (v/arity add+mul)))
-        (is (= 33 (add+mul 2 3 4)))
-        (is (= -15 (add-mul 2 3 4)))
-        (is (= 15 (mul-add 2 3 4)))))))
+(deftest function-signature-conversion
+  (let [k sicm-signature->domain-range]
+    (is (= [[0] 0] (k '(-> Real Real))))
+    (is (= [[0 0] 0] (k '(-> (X Real Real) Real))))
+    (is (= [[0 0] 0] (k '(-> (X* Real 2) Real))))
+    (is (= [[0] [0 0]] (k '(-> Real (X Real Real)))))
+    (is (= [[0] [0 0]] (k '(-> Real (X* Real 2)))))
+    (is (= [[0 0] [0 0]] (k '(-> (X Real Real) (X Real Real)))))
+    (is (= [[0 0] [0 0]] (k '(-> (X* Real 2) (X* Real 2)))))
+    (is (= [[0] (up 0 0)] (k '(-> Real (UP Real Real)))))
+    (is (= [[0] (up 0 0)] (k '(-> Real (UP* Real 2)))))
+    (is (= [[(up 0 0)] 0] (k '(-> (UP Real Real) Real))))
+    (is (= [[(up 0 0)] 0] (k '(-> (UP* Real 2) Real))))
+    (is (= [[(up 0 0)] (up 0 0)] (k '(-> (UP Real Real) (UP Real Real)))))
+    (is (= [[(up 0 0)] (up 0 0)] (k '(-> (UP* Real 2) (UP* Real 2)))))
+    (is (= [[(up 0 (up 0 0) (down 0 0))] 0]
+           (k '(-> (UP Real (UP Real Real) (DOWN Real Real)) Real)))))
+
+  (deftest function-algebra
+    (let [add2 (fn [x] (g/+ x 2))
+          explog (g/exp g/log)
+          mul3 #(* 3 %)]
+      (testing "unary"
+        (is (= 4 (add2 2)))
+        (is (= -4 ((g/- add2) 2)))
+        (is (= 9 ((g/sqrt add2) 79)))
+        (is (= 1/9 ((g/invert add2) 7)))
+        (is (= 1.0 (explog 1.0)))
+        (is (near 99.0 (explog 99.0)))
+        (is (near 20.08553692 ((g/exp add2) 1.0)))
+        (is (near 4.718281828 ((add2 g/exp) 1.0))))
+      (testing "binary"
+        (is (= 12 ((g/+ add2 4) 6)))
+        (is (= 14 ((g/+ add2 mul3) 3)))
+        (is (= 10 ((g/+ mul3 4) 2)))
+        (is (= 32 ((g/expt 2 add2) 3)))
+        (is (= 25 ((g/expt add2 2) 3)))
+        (is (= :sicmutils.value/function (v/kind (g/expt add2 2)))))
+      (testing "arity 2"
+        (let [f (fn [x y] (+ x y))
+              g (fn [x y] (* x y))
+              h (g/+ f g)
+              k (g/+ 4 (g/- f 2))
+              m (g/+ g (g/- f 2))]
+          (is (= 11 (h 2 3)))
+          (is (= 7 (k 2 3)))
+          (is (= 9 (m 2 3)))))
+      (testing "arity 0"
+        (let [f (fn [] 3)
+              g (fn [] 4)
+              h (g/+ f g)
+              k (g/- f g)
+              j (g/* f g)
+              q (g/divide f g)]
+          (is (= 7 (h)))
+          (is (= -1 (k)))
+          (is (= 12 (j)))
+          (is (= 3/4 (q)))))
+      (testing "at least 0 arity"
+        (let [add (fn [& xs] (reduce + 0 xs))
+              mul (fn [& xs] (reduce * 1 xs))
+              add+mul (g/+ add mul)
+              add-mul (g/- add mul)
+              mul-add (g/- mul add)]
+          (is (= [:at-least 0] (v/arity add)))
+          (is (= [:at-least 0] (v/arity mul)))
+          (is (= [:at-least 0] (v/arity add+mul)))
+          (is (= 33 (add+mul 2 3 4)))
+          (is (= -15 (add-mul 2 3 4)))
+          (is (= 15 (mul-add 2 3 4))))))))
 
 (deftest operators
   (let [f (fn [x] (+ x 5))

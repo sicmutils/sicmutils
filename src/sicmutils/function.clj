@@ -32,6 +32,45 @@
 
 (declare literal-apply)
 
+(defn ^:private sicm-set->exemplar
+  "Convert a SICM-style set (e.g., Real or (UP Real Real)) to
+  an exemplar (an instance of the relevant type)."
+  [s]
+  (cond
+    (= s 'Real) 0
+
+    (sequential? s)
+    (let [[constructor & args] s]
+      (cond (= 'X constructor)
+            (mapv sicm-set->exemplar args)
+
+            (= 'UP constructor)
+            (apply s/up (map sicm-set->exemplar args))
+
+            (= 'DOWN constructor)
+            (apply s/down (map sicm-set->exemplar args))
+
+            (= 'UP* constructor)
+            (apply s/up (repeat (second args) (sicm-set->exemplar (first args))))
+
+            (= 'DOWN* constructor)
+            (apply s/down (repeat (second args) (sicm-set->exemplar (first args))))
+
+            (= 'X* constructor)
+            (into [] (repeat (second args) (sicm-set->exemplar (first args))))))))
+
+(defn sicm-signature->domain-range
+  "Convert a SICM-style literal function signature (e.g.,
+  '(-> Real (X Real Real)) ) to our 'exemplar' format."
+  [[arrow domain range]]
+  (when-not (and (= '-> arrow) domain range)
+    (throw (IllegalArgumentException.
+            "A SICM signature is of the form '(-> domain range)")))
+  [(let [d (sicm-set->exemplar domain)]
+     (if (vector? d) d [d]))
+   (sicm-set->exemplar range)])
+
+
 (defrecord Function [expr arity domain range]
   Object
   (toString [_] (str expr ": " domain " → " range))
@@ -151,8 +190,8 @@
                    (doseq [signature# [[::function ::function]
                                        [::function ::cofunction]
                                        [::cofunction ::function]]]
-                     (defmethod ~generic-op signature# [a# b#] (binop# a# b#)))
-                   ))
+                     (defmethod ~generic-op signature# [a# b#] (binop# a# b#)))))
+
               (partition 2 generic-and-binary-ops))))
 
 (defmacro ^:private make-unary-operations
@@ -230,8 +269,8 @@
                     (Function. fexp (:arity f) (:domain f) (:range f)))
                   :else
                   (throw (IllegalArgumentException. (str "make-partials WTF " vv)))))]
-    (fd [] v)
-    ))
+    (fd [] v)))
+
 
 (defn- literal-derivative
   [f xs]
