@@ -93,6 +93,9 @@
 
 (defn literal-function
   ([f] (Function. f [:exactly 1] [0] 0))
+  ([f signature]
+   (let [[domain range] (sicm-signature->domain-range signature)]
+     (literal-function f domain range)))
   ([f domain range]
    (cond (number? range)
          (Function. f [:exactly (if (vector? domain) (count domain) 1)]

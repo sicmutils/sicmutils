@@ -55,10 +55,15 @@
 (def evolve ode/evolve)
 (def state-advancer ode/state-advancer)
 
-(def literal-function f/literal-function)
+(defmacro literal-function
+  ([f] `(f/literal-function ~f))
+  ([f sicm-signature] `(f/literal-function ~f '~sicm-signature))
+  ([f domain range] `(f/literal-function ~f ~domain ~range)))
+
 (defmacro with-literal-functions
   [& args]
   `(f/with-literal-functions ~@args))
+
 (def compose f/compose)
 
 (def sin g/sin)
@@ -94,6 +99,10 @@
   (if (every? integer? selectors)
     (apply d/∂ selectors)
     (apply core-partial selectors)))
+
+
+
+
 
 (def up s/up)
 (def down s/down)

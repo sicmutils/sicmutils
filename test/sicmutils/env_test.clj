@@ -37,3 +37,17 @@
       (is (= [] @r))
       (is (= [99] (dosync (alter r conj 99))))
       (is (= {:b 88} (dosync (alter s assoc :b 88)))))))
+
+(deftest literal-function-shim
+  (testing "works for signatures"
+    (let [f1 (literal-function 'f)
+          f2 (literal-function 'f (-> Real Real))
+          f3 (literal-function 'f (-> Real (UP Real Real)))
+          f4 (literal-function 'f [0] (up 1 2))
+          f5 (literal-function 'f (-> (DOWN Real Real) (X Real Real)))]
+      (is (= '(f x) (simplify (f1 'x))))
+      (is (= '(f x) (simplify (f2 'x))))
+      (is (= '(up (f↑0 x) (f↑1 x)) (simplify (f3 'x))))
+      (is (= '(up (f↑0 x) (f↑1 x)) (simplify (f4 'x))))
+      (is (= '(up (f↑0 (down p_x p_y)) (f↑1 (down p_x p_y)))
+             (simplify (f5 (down 'p_x 'p_y))))))))
