@@ -35,10 +35,8 @@
       (is (= (f 2) 2))
       (is (= (f 3) 5))
       (is (= (f 4) 1)))
-    ;; works, but simplification can't yet see that the answer is
-    ;; just "a".
-    ;; (let [f (Lagrange-interpolation-function '[a b c] '[w x y])]
-    ;;   (is (= 'a (f 'w))))
+    (let [f (Lagrange-interpolation-function '[a b c] '[w x y])]
+      (is (= 'a (simplify (f 'w)))))
     ))
 
 (deftest gamma-test

@@ -317,9 +317,6 @@
         sec (/ cos)
         csc (/ sin)]
     (is (= '(/ (cos x) (sin x)) (simplify (cot 'x))))
-    ;; the following three aren't great, because the simplification could
-    ;; be a lot better. They're here so that when we fix the simplifier we
-    ;; can correct these tests.
     (is (= '(/ -1 (expt (sin x) 2)) (simplify ((D cot) 'x))))
     (is (= '(/ -1 (expt (sin x) 2)) (simplify ((D (/ tan)) 'x))))
     (is (= '(/ (* -1 (cos x)) (expt (sin x) 2)) (simplify ((D csc) 'x))))
