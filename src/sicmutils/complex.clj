@@ -69,6 +69,7 @@
 (defmethod g/tan ::complex [^Complex a] (.tan a))
 (defmethod g/asin ::complex [^Complex a] (.asin a))
 (defmethod g/acos ::complex [^Complex a] (.acos a))
+(defmethod g/atan ::complex [^Complex a] (.atan a))
 (defmethod g/expt [::complex ::complex] [^Complex a ^Complex b] (.pow a b))
 (defmethod g/expt [::complex Number] [^Complex a n] (.pow a (double n)))
 (defmethod g/expt [Number ::complex] [n ^Complex a] (.pow ^Complex (complex n) a))

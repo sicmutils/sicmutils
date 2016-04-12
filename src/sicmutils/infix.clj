@@ -188,6 +188,7 @@
    "tan" "\\tan",
    "asin" "\\arcsin",
    "acos" "\\arccos",
+   "atan" "\\arctan",
    })
 
 (defn ^:private brace
@@ -266,7 +267,7 @@
   expected to return the parameters in the desired
   sequence. Otherwise, it is interpreted as the sequence of parameters
   itself. If not specified, the default behavior is `sort`."
-  (let [operators-known '#{sin cos tan asin acos sqrt abs pow + - * /
+  (let [operators-known '#{sin cos tan asin acos atan sqrt abs pow + - * /
                            expt exp log}
         R (make-infix-renderer
            :precedence-map '{:apply 2, expt 2, * 5, / 5, - 6, + 6}
@@ -276,6 +277,7 @@
                               'tan "Math.tan",
                               'asin "Math.asin",
                               'acos "Math.acos",
+                              'atan "Math.atan",
                               'sqrt "Math.sqrt",
                               'abs "Math.abs",
                               'expt "Math.pow",

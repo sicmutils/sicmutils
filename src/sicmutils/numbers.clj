@@ -57,6 +57,13 @@
     (g/acos (complex a))
     (Math/acos a)))
 
+(defmethod g/atan
+  Number
+  [a]
+  (if (> (nt/abs a) 1)
+    (g/atan (complex a))
+    (Math/atan a)))
+
 (defmethod g/log
   Number
   [a]

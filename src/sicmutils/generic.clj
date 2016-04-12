@@ -119,6 +119,9 @@
 (defmulti acos v/argument-kind)
 (defmethod acos :arity [_] [:exactly 1])
 
+(defmulti atan v/argument-kind)
+(defmethod atan :arity [_] [:exactly 1])
+
 (defmulti partial-derivative v/argument-kind)
 
 (defmulti cross-product v/argument-kind)
@@ -190,7 +193,7 @@
                         exact-div 'exact-div quotient 'quotient remainder 'remainder
                         invert 'invert negate 'negate square 'square cube 'cube
                         expt 'expt exp 'exp log 'log sqrt 'sqrt abs 'abs negative? 'negative?
-                        sin 'sin cos 'cos tan 'tan asin 'asin acos 'acos
+                        sin 'sin cos 'cos tan 'tan asin 'asin acos 'acos atan 'atan
                         partial-derivative 'partial
                         cross-product 'cross-product
                         simplify 'simplify})
