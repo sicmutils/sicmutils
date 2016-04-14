@@ -71,6 +71,7 @@
 (def tan g/tan)
 (def asin g/asin)
 (def acos g/acos)
+(def atan g/atan)
 (def cot (g/divide g/cos g/sin))
 (def csc (g/invert g/sin))
 (def sec (g/invert g/cos))

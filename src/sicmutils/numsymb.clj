@@ -209,6 +209,10 @@
                           :else `(~'tan ~x))
         :else `(~'tan ~x)))
 
+(defn- arctangent
+  [x]
+  `(~'atan ~x))
+
 (defn- abs [x]
   (cond (number? x) (if (< x 0) (- x) x)
         :else `(~'abs ~x)))
@@ -284,6 +288,7 @@
 (define-unary-operation g/cos cosine)
 (define-unary-operation g/acos arccosine)
 (define-unary-operation g/tan tangent)
+(define-unary-operation g/atan arctangent)
 (define-unary-operation g/square #(expt % 2))
 (define-unary-operation g/cube #(expt % 3))
 (define-unary-operation g/sqrt sqrt)
@@ -303,6 +308,7 @@
    'cos cosine
    'acos arccosine
    'tan tangent
+   'atan arctangent
    'cube #(expt % 3)
    'square #(expt % 2)
    'abs abs
