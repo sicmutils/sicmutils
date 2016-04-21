@@ -25,6 +25,11 @@
             [sicmutils.expression :as x]
             [sicmutils.numerical.compile :as compile]))
 
+(defn ^:private make-symbol-generator
+  [p]
+  (let [i (atom 0)]
+    (fn [] (format "%s%d" p (swap! i inc)))))
+
 (defn ^:private make-infix-renderer
   "Base function for infix renderers. This is meant to be specialized via
   options for the treatment desired. The options are:
@@ -260,15 +265,16 @@
   expression. Common subexpression elimination will be performed and
   auxiliary variables will be bound in the body of the function; the
   names of these symbols are obtained from the nullary function
-  option :symbol-generator, which defaults to `gensym`. If
-  `:parameter-order is specified, it is used to determine function
-  parameter order in one of two ways: if it is set to a function, that
-  function will be called on the sequence of parameters and is
-  expected to return the parameters in the desired
+  option :symbol-generator, which defaults to a function yielding `_1,
+  ...`. If `:parameter-order is specified, it is used to determine
+  function parameter order in one of two ways: if it is set to a
+  function, that function will be called on the sequence of parameters
+  and is expected to return the parameters in the desired
   sequence. Otherwise, it is interpreted as the sequence of parameters
   itself. If not specified, the default behavior is `sort`."
   (let [operators-known '#{sin cos tan asin acos atan sqrt abs pow + - * /
-                           expt exp log}
+                           expt exp log up down}
+        make-js-vector #(str \[ (s/join ", " %) \])
         R (make-infix-renderer
            :precedence-map '{:apply 2, expt 2, * 5, / 5, - 6, + 6}
            :infix? '#{* + - /}
@@ -282,9 +288,11 @@
                               'abs "Math.abs",
                               'expt "Math.pow",
                               'log "Math.log",
-                              'exp "Math.exp"})]
+                              'exp "Math.exp"}
+           :special-handlers {'up make-js-vector
+                              'down make-js-vector})]
     (fn [x & {:keys [symbol-generator parameter-order]
-              :or {symbol-generator gensym
+              :or {symbol-generator (make-symbol-generator "_")
                    parameter-order sort}}]
       (let [params (set/difference (x/variables-in x) operators-known)
             cs (compile/extract-common-subexpressions

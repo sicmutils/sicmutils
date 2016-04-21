@@ -41,14 +41,14 @@
   [a ω φ]
   #(-> % (* ω) (+ φ) cos (* a)))
 
-(defn pend-state-derivative
+(defn state-derivative
   [m l g a ω φ]
   (Lagrangian->state-derivative
     (L-pend m l g (periodic-drive a ω φ))))
 
 (defn equations
   []
-  (simplify ((pend-state-derivative 'm 'l 'g 'a 'ω 'φ)
+  (simplify ((state-derivative 'm 'l 'g 'a 'ω 'φ)
              (up 't 'θ_0 'θdot_0))))
 
 (defn evolver
@@ -60,7 +60,7 @@
          g 9.8
          theta_0 1
          thetadot_0 0}}]
-  ((evolve pend-state-derivative
+  ((evolve state-derivative
            1.0   ;; mass of bob
            1.0   ;; length of rod
            g     ;; acceleration due to gravity

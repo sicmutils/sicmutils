@@ -56,3 +56,14 @@
         (do
           (driven/evolver {:t 3/60 :dt 1/60 :observe observe})
           (is (= 4 (count @o))))))))
+
+(deftest as-javascript
+  (let [eq (simplify
+            ((driven/state-derivative 'm 'l 'g 'a 'omega 'phi)
+             (up 't 'theta 'thetadot)))]
+    ;; Interesting. This isn't exactly what we want. We want the fixed parameters
+    ;; to be the parameters of a javascript outer function.
+    (is (= (str "function(t, theta, thetadot) {\n"
+                "  var _1 = Math.sin(theta);\n"
+                "  return [1, thetadot, (_1 * Math.cos(omega * t + phi) * a * Math.pow(omega, 2) - _1 * g) / l];\n}")
+           (->JavaScript eq :parameter-order '[t theta thetadot])))))

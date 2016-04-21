@@ -138,4 +138,6 @@
               "}")
          (s->JS (reduce + (take 3 (taylor-series-terms sin 'x 'dx)))
                 :symbol-generator (make-symbol-generator "t")
-                :parameter-order '[x dx]))))
+                :parameter-order '[x dx])))
+  (is (= "function(x, y) {\n  return [1, x + y, 2];\n}" (s->JS (up 1 (+ 'x 'y) 2))))
+  (is (= "function(a, b) {\n  return [[1, a], [b, 2]];\n}" (s->JS (down (up 1 'a) (up 'b 2))))))

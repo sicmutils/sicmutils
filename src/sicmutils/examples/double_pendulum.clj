@@ -49,7 +49,7 @@
 (def L-double-pend
   (- T-double-pend V-double-pend))
 
-(defn- pend-state-derivative  [m1 m2 l1 l2 g]
+(defn state-derivative  [m1 m2 l1 l2 g]
   (Lagrangian->state-derivative
     (L-double-pend m1 m2 l1 l2 g)))
 
@@ -66,7 +66,7 @@
          l2 0.5
          phi_0 0
          phidot_0 0}}]
-  ((evolve pend-state-derivative
+  ((evolve state-derivative
            m1 ;; mass of bob1
            m2 ;; mass of bob2
            l1 ;; length of rod1
@@ -84,7 +84,7 @@
 
 (defn equations
   []
-  (simplify ((pend-state-derivative 'm_1 'm_2 'l_1 'l_2 'g)
+  (simplify ((state-derivative 'm_1 'm_2 'l_1 'l_2 'g)
              (up 't
                  (up 'θ_0 'φ_0)
                  (up 'θdot_0 'φdot_0)))))

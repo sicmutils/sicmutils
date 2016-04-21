@@ -66,3 +66,20 @@
       (do
         (double/evolver {:t 3/60 :dt 1/60 :observe observe})
         (is (= 4 (count @o)))))))
+
+(deftest as-javascript
+  (let [eq (simplify
+            ((double/state-derivative 'm1 'm2 'l1 'l2 'g)
+             (up 't (up 'theta 'phi) (up 'thetadot 'phidot))))]
+    (is (= (str "function(t, theta, phi, thetadot, phidot) {\n"
+                "  var _1 = Math.cos(- phi + theta);\n"
+                "  var _2 = Math.pow(phidot, 2);\n"
+                "  var _3 = Math.sin(phi);\n"
+                "  var _4 = Math.sin(- phi + theta);\n"
+                "  var _5 = - phi;\n"
+                "  var _6 = Math.pow(Math.sin(- phi + theta), 2);\n"
+                "  var _7 = Math.sin(theta);\n"
+                "  var _8 = Math.pow(thetadot, 2);\n"
+                "  var _9 = - phi + theta;\n"
+                "  return [1, [thetadot, phidot], [(- Math.sin(_5 + theta) * Math.cos(_5 + theta) * l1 * m2 * _8 - Math.sin(_5 + theta) * l2 * m2 * _2 + Math.cos(_5 + theta) * _3 * g * m2 - _7 * g * m1 - _7 * g * m2) / (Math.pow(Math.sin(_5 + theta), 2) * l1 * m2 + l1 * m1), (Math.sin(_5 + theta) * Math.cos(_5 + theta) * l2 * m2 * _2 + Math.sin(_5 + theta) * l1 * m1 * _8 + Math.sin(_5 + theta) * l1 * m2 * _8 + Math.cos(_5 + theta) * _7 * g * m1 + Math.cos(_5 + theta) * _7 * g * m2 - _3 * g * m1 - _3 * g * m2) / (Math.pow(Math.sin(_5 + theta), 2) * l2 * m2 + l2 * m1)]];\n}" )
+           (->JavaScript eq :parameter-order '[t theta phi thetadot phidot])))))
