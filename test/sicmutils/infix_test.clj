@@ -129,9 +129,8 @@
          (s->JS (expt 2.71828 'y))))
   (is (= "function(a, b, x) {\n  return Math.exp(Math.log(x) * b) * a;\n}"
          (s->JS (* 'a (exp (* 'b (log 'x)))))))
-  (is (= "function(x) {\n  var K1 = Math.sin(x);\n  return Math.pow(K1, 2) + K1;\n}"
-         (s->JS (+ (sin 'x) (expt (sin 'x) 2))
-                :symbol-generator (make-symbol-generator "K"))))
+  (is (= "function(x) {\n  var _1 = Math.sin(x);\n  return Math.pow(_1, 2) + _1;\n}"
+         (s->JS (+ (sin 'x) (expt (sin 'x) 2)))))
   (is (= (str "function(x, dx) {\n"
               "  var t1 = Math.sin(x);\n"
               "  return -1/2 * t1 * Math.pow(dx, 2) + Math.cos(x) * dx + t1;\n"

@@ -67,8 +67,14 @@
   [o->syms]
   (swap! object-name-map into o->syms))
 
+;; we record arities as a vector with an initial keyword:
+;;   [:exactly m]
+;;   [:between m n]
+;;   [:at-least m]
+
 (def ^:private primitive-arity
-  "Computing arities of clojure functions is a bit complicated.
+  "Returns the arity of the function f.
+  Computing arities of clojure functions is a bit complicated.
   It involves reflection, so the results are definitely worth
   memoizing."
   (memoize
@@ -113,36 +119,59 @@
                         (:doInvoke facts))
                    [:exactly 1]
                    :else (throw (IllegalArgumentException. (str "arity? " f " " facts)))))
-
+               ;; If f is a multifunction, then we expect that it has a multimethod
+               ;; responding to the argument :arity, which returns the arity.
                (instance? clojure.lang.MultiFn f)
                (f :arity)
-
+               ;; Faute de mieux, we assume the function is unary. Most math functions are.
                :else [:exactly 1])))))
 
-(defn ^:private arity-fail
-  [arities]
-  (throw (IllegalArgumentException. (str "Incompatible arities: " arities))))
+(defn ^:private combine-arities
+  "Find the joint arity of arities a and b, i.e. the loosest possible arity specification
+  compatible with both. Throws if the arities are incompatible."
+  [a b]
+  (let [fail #(throw (IllegalArgumentException. (str "Incompatible arities: " a b)))]
+    ;; since the combination operation is symmetric, sort the arguments
+    ;; so that we only have to implement the upper triangle of the
+    ;; relation.
+    (if (< 0 (compare (first a) (first b)))
+     (combine-arities b a)
+     (case (first a)
+       :at-least (let [k (second a)]
+                   (case (first b)
+                    :at-least [:at-least (max k (second b))]
+                    :between (let [m (max k (second b))
+                                   n (nth b 2)]
+                               (cond (= m n) [:exactly m]
+                                     (< m n) [:between m n]
+                                     :else (fail)))
+                    :exactly (let [l (second b)]
+                               (if (>= l k)
+                                [:exactly l]
+                                (fail)))))
+       :between (let [[m n] (rest a)]
+                  (case (first b)
+                   :between (let [[m2 n2] (rest b)
+                                  m (max m m2)
+                                  n (min n n2)]
+                              (cond (= m n) [:exactly m]
+                                    (< m n) [:between m n]
+                                    :else (fail)))
+                   :exactly (let [k (second b)]
+                              (if (and (<= m k)
+                                       (<= k n))
+                                [:exactly k]
+                                (fail)))
+                   ))
+       :exactly (let [k1 (second a)
+                      k2 (second b)]
+                  (if (= k1 k2) [:exactly k1] (fail)))))))
 
 (defn joint-arity
-  "Find the most relaxed possible statement of the joint arity of the objects
-  xs. If they are incompatible, an exception is thrown."
+  "Find the most relaxed possible statement of the joint arity of the given arities.
+  If they are incompatible, an exception is thrown."
   [arities]
-  (reduce (fn [[joint-qualifier joint-value] [qualifier value]]
-            (if (= joint-qualifier :exactly)
-              (if (= qualifier :exactly)
-                (if (= joint-value value)  ;; exactly/exactly: counts must match
-                  [joint-qualifier joint-value]
-                  (arity-fail))
-                (if (>= joint-value value) ;; exactly/at-least: exactly count must >= at-least
-                  [joint-qualifier joint-value]
-                  (arity-fail)))
-              (if (= qualifier :exactly)
-                (if (>= value joint-value) ;; at-least/exactly
-                  [qualifier value]
-                  (arity-fail))
-                [:at-least (max joint-value value)])))
-          [:at-least 0]
-          arities))
+  (reduce combine-arities [:at-least 0] arities))
 
 (defn ^:private primitive-kind
   [a]

@@ -1,5 +1,5 @@
 .#*
-/.vagrant
+*.iml
 /.idea
 math.iml
 /target
@@ -7,9 +7,7 @@ math.iml
 /checkouts
 pom.xml
 pom.xml.asc
-*.jar
 *.swp
-*.class
 /.lein-*
 /.nrepl-port
-plp
+

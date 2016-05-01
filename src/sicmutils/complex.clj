@@ -75,5 +75,3 @@
 (defmethod g/expt [Number ::complex] [n ^Complex a] (.pow ^Complex (complex n) a))
 
 (derive ::complex :sicmutils.expression/numerical-expression)
-
-;;(defmethod g/atan ::complex [^Complex a] (.atan a))
