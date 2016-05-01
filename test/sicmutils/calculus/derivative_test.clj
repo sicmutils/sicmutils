@@ -320,7 +320,10 @@
     (is (= '(/ -1 (expt (sin x) 2)) (simplify ((D cot) 'x))))
     (is (= '(/ -1 (expt (sin x) 2)) (simplify ((D (/ tan)) 'x))))
     (is (= '(/ (* -1 (cos x)) (expt (sin x) 2)) (simplify ((D csc) 'x))))
-    (is (= '(/ (sin x) (expt (cos x) 2)) (simplify ((D sec) 'x))))))
+    (is (= '(/ (sin x) (expt (cos x) 2)) (simplify ((D sec) 'x))))
+    (is (= '(/ 1 (+ (expt x 2) 1)) (simplify ((D atan) 'x))))
+    (is (= '(down (/ x (+ (expt x 2) (expt y 2))) (/ (* -1 y) (+ (expt x 2) (expt y 2))))
+           (simplify ((D atan) 'y 'x))))))
 
 (deftest alexgian-examples
   (testing "space"

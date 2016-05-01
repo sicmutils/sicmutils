@@ -314,6 +314,16 @@
 (def ^:private arccosine (unary-op g/acos #(->> % g/square (g/- 1) g/sqrt (g/divide 1) (g/* -1))))
 (def ^:private tangent (unary-op g/tan #(-> % g/cos g/square g/invert)))
 (def ^:private arctangent (unary-op g/atan #(->> % g/square (g/+ 1) (g/divide 1))))
+(def ^:private arctangent2 (binary-op g/atan
+                                      (fn [y x]
+                                        (g/divide x
+                                                  (g/+ (g/square x)
+                                                       (g/square y))))
+                                      (fn [y x]
+                                        (g/divide (g/negate y)
+                                                  (g/+ (g/square x)
+                                                       (g/square y))))
+                                      :atan2))
 (def ^:private sqrt (unary-op g/sqrt #(-> % g/sqrt (g/* 2) g/invert)))
 (def ^:private exp (unary-op g/exp g/exp))
 (def ^:private negate (unary-op g/negate (constantly -1)))
@@ -388,6 +398,11 @@
       [:exactly 4] (with-meta (fn [w x y z]
                                 ((d (fn [[w x y z]] (f w x y z)))
                                  (struct/seq-> [w x y z]))) {:arity a})
+      [:between 1 2] (with-meta (fn [x & y]
+                                  (if (nil? y)
+                                    ((d f) x)
+                                    ((d (fn [[x y]] (f x y)))
+                                      (struct/seq-> (cons x y))))) {:arity a})
       [:at-least 0] (with-meta
                       (fn [& xs]
                         ((d (fn [xs] (apply f xs)))
@@ -413,6 +428,7 @@
 (define-binary-operation g/sub diff--)
 (define-binary-operation g/mul diff-*)
 (define-binary-operation g/div diff-div)
+(define-binary-operation g/atan arctangent2)
 (define-unary-operation g/log log)
 (define-unary-operation g/exp exp)
 (define-unary-operation g/sqrt sqrt)

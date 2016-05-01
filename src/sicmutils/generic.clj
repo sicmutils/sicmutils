@@ -120,7 +120,7 @@
 (defmethod acos :arity [_] [:exactly 1])
 
 (defmulti atan v/argument-kind)
-(defmethod atan :arity [_] [:exactly 1])
+(defmethod atan :arity [_] [:between 1 2])
 
 (defmulti partial-derivative v/argument-kind)
 

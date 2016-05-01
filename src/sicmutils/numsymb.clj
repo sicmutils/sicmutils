@@ -210,8 +210,10 @@
         :else `(~'tan ~x)))
 
 (defn- arctangent
-  [x]
-  `(~'atan ~x))
+  [y & x]
+  (if (nil? x)
+    `(~'atan ~y)
+    `(~'atan ~y ~x)))
 
 (defn- abs [x]
   (cond (number? x) (if (< x 0) (- x) x)
@@ -281,6 +283,7 @@
 (define-binary-operation g/mul mul)
 (define-binary-operation g/div div)
 (define-binary-operation g/expt expt)
+(define-binary-operation g/atan arctangent)
 (define-unary-operation g/negate #(sub 0 %))
 (define-unary-operation g/invert #(div 1 %))
 (define-unary-operation g/sin sine)

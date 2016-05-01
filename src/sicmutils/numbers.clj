@@ -62,6 +62,11 @@
   [a]
   (Math/atan a))
 
+(defmethod g/atan
+  [Number Number]
+  [y x]
+  (Math/atan2 y x))
+
 (defmethod g/log
   Number
   [a]
