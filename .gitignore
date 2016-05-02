@@ -1,13 +1,9 @@
 .#*
 *.iml
 /.idea
-math.iml
 /target
-/classes
-/checkouts
 pom.xml
 pom.xml.asc
-*.swp
 /.lein-*
 /.nrepl-port
 

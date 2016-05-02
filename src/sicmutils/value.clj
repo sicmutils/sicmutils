@@ -121,7 +121,7 @@
                    :else (throw (IllegalArgumentException. (str "arity? " f " " facts)))))
                ;; If f is a multifunction, then we expect that it has a multimethod
                ;; responding to the argument :arity, which returns the arity.
-               (instance? clojure.lang.MultiFn f)
+               (instance? MultiFn f)
                (f :arity)
                ;; Faute de mieux, we assume the function is unary. Most math functions are.
                :else [:exactly 1])))))

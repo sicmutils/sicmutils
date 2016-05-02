@@ -32,7 +32,7 @@
         value (.integrate (RombergIntegrator.)
                           10000
                           (reify UnivariateFunction
-                            (value [this x]
+                            (value [_ x]
                               (.start evaluation-time)
                               (swap! evaluation-count inc)
                               (let [fx (integrand x)]

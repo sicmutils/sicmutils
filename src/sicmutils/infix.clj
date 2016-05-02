@@ -17,13 +17,13 @@
 ;
 
 (ns sicmutils.infix
-  (:import [java.io StringWriter])
   (:require [clojure.zip :as z]
             [clojure.set :as set]
             [clojure.string :as s]
             [clojure.walk :as walk]
             [sicmutils.expression :as x]
-            [sicmutils.numerical.compile :as compile]))
+            [sicmutils.numerical.compile :as compile])
+  (:import (java.io StringWriter)))
 
 (defn ^:private make-symbol-generator
   [p]
@@ -103,7 +103,7 @@
                             ((special-handlers op) args))
                        (and (= (count args) 1)
                             (render-unary-node op args))
-                       (let [w (java.io.StringWriter.)
+                       (let [w (StringWriter.)
                              ^String sep (case op
                                            * (or juxtapose-multiply " * ")
                                            expt "^"
@@ -298,7 +298,7 @@
             cs (compile/extract-common-subexpressions
                 x
                 :symbol-generator symbol-generator)
-            w (java.io.StringWriter.)
+            w (StringWriter.)
             ordered-params (if (fn? parameter-order)
                              (parameter-order params)
                              parameter-order)]

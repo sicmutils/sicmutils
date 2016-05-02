@@ -95,15 +95,15 @@
 
 (defn addp
   [{u :u u' :v :as r} v]
-  (let [a (p/check-same-arity u v)]
-    (if (v/nullity? v) r
-        (make (p/add u (p/mul u' v)) u'))))
+  (if (v/nullity? v)
+    r
+    (make (p/add u (p/mul u' v)) u')))
 
 (defn subp
   [{u :u u' :v :as r} v]
-  (let [a (p/check-same-arity u v)]
-    (if (v/nullity? v) r
-        (make (p/sub u (p/mul u' v)) u'))))
+  (if (v/nullity? v)
+    r
+    (make (p/sub u (p/mul u' v)) u')))
 
 (defn negate
   [{u :u v :v arity :arity}]
@@ -135,7 +135,7 @@
                   (make-reduced a u'' v'')))))
 
 (defn invert
-  [{arity :arity u :u v :v}]
+  [{u :u v :v}]
   ;; use make so that the - sign will get flipped if needed
   (make v u))
 
@@ -265,7 +265,7 @@
 
 (defmethod g/div
   [:sicmutils.polynomial/polynomial ::rational-function]
-  [p {u :u v :v arity :arity}]
+  [p {u :u v :v}]
   (make (p/mul p v) u))
 
 (defmethod g/div

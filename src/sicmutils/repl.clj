@@ -19,7 +19,7 @@
 (ns sicmutils.repl
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.main :as main]
-            [clojure.tools.nrepl.transport :as t]
+            [clojure.tools.nrepl.transport]
             [clojure.tools.nrepl.middleware :as mw]
             [clojure.tools.nrepl.middleware.pr-values :as pr-values]
             [sicmutils
@@ -34,11 +34,11 @@
   see how this is done by updating :value in a response object and
   setting :printed-value."
   [h]
-  (fn [{:keys [op ^Transport transport] :as msg}]
+  (fn [{:keys [^Transport transport] :as msg}]
     (h (assoc msg
               :transport (reify Transport
-                           (recv [this] (.recv transport))
-                           (recv [this timeout] (.recv transport timeout))
+                           (recv [_] (.recv transport))
+                           (recv [_ timeout] (.recv transport timeout))
                            (send [this response]
                              (.send transport
                                     (if (find response :value)
@@ -56,7 +56,7 @@
 
 (defn -main
   "A simple main that runs Clojure's internal REPL in the math environment."
-  [& args]
+  [& _]
   (println "Won't you sign in, stranger?")
   (main/with-bindings
     (in-ns 'sicmutils.env)

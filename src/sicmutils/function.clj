@@ -78,7 +78,7 @@
   (nullity? [_] false)
   (unity? [_] false)
   (numerical? [_] false)
-  (freeze [f] (v/freeze expr))
+  (freeze [_] (v/freeze expr))
   (arity [_] arity)
   (kind [_] ::function)
   IFn

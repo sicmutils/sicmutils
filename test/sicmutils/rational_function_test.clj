@@ -31,8 +31,6 @@
 (deftest make-test
   (let [p #(p/make 1 [[[0] %]])      ;; constant arity 1 polynomial
         rf #(make (p %1) (p %2))       ;; ratio of constant arity 1 polynomials
-        R (make (p/make [2]) (p/make [3]))
-        S (make (p/make [2]) (p/make [1]))
         x+1 (p/make [1 1])
         x-1 (p/make [-1 1])
         x+1:x-1 (make x+1 x-1)

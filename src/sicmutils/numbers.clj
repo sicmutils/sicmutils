@@ -32,10 +32,13 @@
 (define-unary-operation g/cos #(Math/cos %))
 (define-unary-operation g/tan #(Math/tan %))
 (define-unary-operation g/exp #(Math/exp %))
+(define-unary-operation g/atan #(Math/atan %))
+(defmethod g/atan [Number Number] [y x] (Math/atan2 y x))
 
-;; operations which allow promotion to complex numbers when their
+;; Operations which allow promotion to complex numbers when their
 ;; arguments would otherwise result in a NaN if computed on the real
 ;; line
+
 (defmethod g/sqrt
   Number
   [a]
@@ -57,22 +60,14 @@
     (g/acos (complex a))
     (Math/acos a)))
 
-(defmethod g/atan
-  Number
-  [a]
-  (Math/atan a))
-
-(defmethod g/atan
-  [Number Number]
-  [y x]
-  (Math/atan2 y x))
-
 (defmethod g/log
   Number
   [a]
   (if (< a 0)
     (g/log (complex a))
     (Math/log a)))
+
+;; Operations defined only on integral types
 
 (defn ^:private exact-integer-divide
   [a b]

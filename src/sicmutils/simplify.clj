@@ -18,7 +18,8 @@
 
 (ns sicmutils.simplify
   (:import (java.util.concurrent TimeoutException)
-           (clojure.lang Sequential Var))
+           (clojure.lang Sequential Var)
+           (java.io StringWriter))
   (:require [clojure.walk :refer [postwalk]]
             [clojure.tools.logging :as log]
             [clojure.pprint :as pp]
@@ -224,7 +225,7 @@
   "Renders an expression through the simplifier and into a string,
   which is returned."
   [expr]
-  (let [w (java.io.StringWriter.)]
+  (let [w (StringWriter.)]
     (-> expr g/simplify (pp/write :stream w))
     (str w)))
 (def print-expression #(-> % g/simplify pp/pprint))

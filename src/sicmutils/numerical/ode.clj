@@ -24,7 +24,7 @@
             [sicmutils.numerical.compile :refer :all])
   (:import (org.apache.commons.math3.ode.nonstiff GraggBulirschStoerIntegrator)
            (org.apache.commons.math3.ode FirstOrderDifferentialEquations)
-           (org.apache.commons.math3.ode.sampling StepHandler StepInterpolator)
+           (org.apache.commons.math3.ode.sampling StepHandler)
            (com.google.common.base Stopwatch)))
 
 (defn- make-integrator
@@ -52,13 +52,13 @@
           dimension (alength initial-state-array)
           integrator (GraggBulirschStoerIntegrator. 0. 1. (double ε) (double ε))
           equations (reify FirstOrderDifferentialEquations
-                      (computeDerivatives [this _ y out]
+                      (computeDerivatives [_ _ y out]
                         (.start evaluation-time)
                         (swap! evaluation-count inc)
                         (let [y' (doubles (-> y (concat derivative-args) derivative-fn state->array))]
                           (System/arraycopy y' 0 out 0 (alength y')))
                         (.stop evaluation-time))
-                      (getDimension [this] dimension))
+                      (getDimension [_] dimension))
           out (double-array dimension)]
       (when-not compile
         (log/warn "Not compiling function for ODE analysis"))
@@ -74,7 +74,7 @@
          integrator
          (reify StepHandler
            (handleStep
-             [this interpolator is-last]
+             [_ interpolator is-last]
              (let [it0 (.getPreviousTime interpolator)
                    it1 (.getCurrentTime interpolator)
                    adjust (mod it0 step-size)
@@ -85,7 +85,7 @@
                  (observe t (-> interpolator .getInterpolatedState array->state)))
                (when is-last
                  (observe it1 (array->state last-state)))))
-           (init [this _ _ _]))))
+           (init [_ _ _ _]))))
       (.integrate integrator equations 0 initial-state-array t out)
       (log/info "#" @evaluation-count "total" (str total-time) "f" (str evaluation-time))
       (array->state out))))

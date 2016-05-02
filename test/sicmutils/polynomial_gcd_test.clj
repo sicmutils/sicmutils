@@ -33,18 +33,13 @@
 (deftest poly-gcd
   (let [u (make [6 7 1])  ;; some polynomials of arity 1
         v (make [-6 -5 1])
-        w (make [-3 -6 9])
         x (make [0 1])
         xx (mul x x)
         xxx (mul x xx)
-        xxx+xx+x (add xxx (add xx x))
         X (make 2 [[[1 0] 1]]) ;; some polynomials of arity 2
         Y (make 2 [[[0 1] 1]])
-        XY (mul X Y)
         XXY (make 2 [[[2 1] 1]])
-        XYY (make 2 [[[1 2] 1]])
-        XXY+XYY (add XXY XYY)
-        Q (make 2 [[[1 1] 4] [[3 0] 6] [[1 2] 6] [[3 1] 9]])]
+        XYY (make 2 [[[1 2] 1]])]
     (testing "constant-term"
       (is (= 6 (constant-term u)))
       (is (= -6 (constant-term v)))
@@ -146,7 +141,7 @@
       (is (= II (gcd (add Z Z) II)))
       (is (= II (gcd II (add (add X X) (add Z Z))))))))
 
-(defn ^:private ->poly [x] (expression-> x (fn [p v] p)))
+(defn ^:private ->poly [x] (expression-> x (fn [p _] p)))
 (defn ^:private gcd-test [name dx fx gx]
   (let [d (->poly dx)
         f (->poly fx)
@@ -306,8 +301,7 @@
                     [[2 0 1 2 1 1 0 0 0 0] 2]
                     [[4 0 1 0 1 1 0 0 0 0] 1]])]
     (let [t (fn []
-              (let [sw (Stopwatch/createStarted)
-                    g (gcd u v)]
+              (let [g (gcd u v)]
                 (gcd-stats)
                 g))]
       (is (= (make 10 [[[0 0 0 0 0 0 0 0 0 0] 1]]) (t)))

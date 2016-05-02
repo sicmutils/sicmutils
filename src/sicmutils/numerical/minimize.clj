@@ -54,7 +54,7 @@
          o (BrentOptimizer.
             rel abs
             (reify ConvergenceChecker
-              (converged [this _ _ current]
+              (converged [_ _ _ current]
                 (when observe
                   (observe (.getPoint ^UnivariatePointValuePair current)
                            (.getValue ^UnivariatePointValuePair current)))
@@ -63,7 +63,7 @@
          (into-array OptimizationData
                      [(UnivariateObjectiveFunction.
                        (reify UnivariateFunction
-                         (value [this x]
+                         (value [_ x]
                            (.start evaluation-time)
                            (swap! evaluation-count inc)
                            (let [fx (f x)]
@@ -95,7 +95,7 @@
          convergence-checker (SimpleValueChecker. rel abs)
          o (SimplexOptimizer.
             (reify ConvergenceChecker
-              (converged [this iteration previous current]
+              (converged [_ iteration previous current]
                 (when observe
                   (observe (vec (.getPoint ^PointValuePair current))
                            (.getValue ^PointValuePair current)))
@@ -105,7 +105,7 @@
                      [(NelderMeadSimplex. (count q))
                       (ObjectiveFunction.
                        (reify MultivariateFunction
-                         (value [this xs]
+                         (value [_ xs]
                            (.start evaluation-time)
                            (swap! evaluation-count inc)
                            (let [fxs (f xs)]

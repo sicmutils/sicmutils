@@ -18,7 +18,8 @@
 
 (ns sicmutils.value-test
   (:require [clojure.test :refer :all]
-            [sicmutils.value :refer :all]))
+            [sicmutils.value :refer :all])
+  (:import (clojure.lang PersistentVector)))
 
 (deftest arities
   (is (= [:exactly 0] (arity (fn [] 42))))
@@ -37,23 +38,23 @@
     (is (= [:exactly 1] (arity (comp f g))))))
 
 (deftest kinds
-  (is (= java.lang.Long (kind 1)))
-  (is (= java.lang.Double (kind 1.0)))
-  (is (= clojure.lang.PersistentVector (kind [1 2]))))
+  (is (= Long (kind 1)))
+  (is (= Double (kind 1.0)))
+  (is (= PersistentVector (kind [1 2]))))
 
 (deftest exactness
   (is (exact? 1))
   (is (exact? 3/2))
   (is (exact? 4N))
-  (is (exact? (java.math.BigInteger/valueOf 111)))
+  (is (exact? (BigInteger/valueOf 111)))
   (is (not (exact? 1.1)))
   (is (not (exact? 'a)))
   (is (not (exact? :a)))
   (is (not (exact? "a"))))
 
 (deftest argument-kinds
-  (let [L java.lang.Long
-        V clojure.lang.PersistentVector]
+  (let [L Long
+        V PersistentVector]
     (is (= L (argument-kind 1)))
     (is (= [L L L] (argument-kind 1 2 3)))
     (is (= V (argument-kind [2 3])))
@@ -73,9 +74,16 @@
   (is (= [:at-least 3] (joint-arity [[:at-least 2] [:at-least 3]])))
   (is (= [:at-least 3] (joint-arity [[:at-least 3] [:at-least 2]])))
   (is (= [:between 2 3] (joint-arity [[:between 1 3] [:between 2 5]])))
+  (is (= [:between 2 3] (joint-arity [[:between 2 5] [:between 1 3]])))
   (is (thrown? IllegalArgumentException (joint-arity [[:between 1 3] [:between 4 6]])))
+  (is (thrown? IllegalArgumentException (joint-arity [[:between 4 6] [:between 1 3]])))
   (is (= [:exactly 3] (joint-arity [[:between 1 3] [:between 3 4]])))
+  (is (= [:exactly 3] (joint-arity [[:between 3 4] [:between 1 3]])))
   (is (= [:between 2 4] (joint-arity [[:at-least 2] [:between 1 4]])))
+  (is (= [:between 2 4] (joint-arity [[:between 1 4] [:at-least 2]])))
   (is (thrown? IllegalArgumentException (joint-arity [[:at-least 4] [:between 1 3]])))
+  (is (thrown? IllegalArgumentException (joint-arity [[:between 1 3] [:at-least 4]])))
   (is (= [:exactly 2] (joint-arity [[:exactly 2] [:between 2 3]])))
-  (is (thrown? IllegalArgumentException (joint-arity [[:between 2 3] [:exactly 1]]))))
+  (is (= [:exactly 2] (joint-arity [[:between 2 3] [:exactly 2]])))
+  (is (thrown? IllegalArgumentException (joint-arity [[:between 2 3] [:exactly 1]])))
+  (is (thrown? IllegalArgumentException (joint-arity [[:exactly 1] [:between 2 3]]))))
