@@ -238,11 +238,35 @@
 (defn ^:private with-probabilistic-check
   [u v continue]
   (if (and
-       ;false  ;; XXX
+        ;false  ;; XXX
        (> (:arity u) 1)
        (probabilistic-unit-gcd u v))
     (do (swap! gcd-probabilistic-unit inc) (v/one-like u))
     (continue u v)))
+
+(defn ^:private joint-quotient
+  "If d evenly divides both u and v, then [u/d, v/d, d], else nil."
+  [u v d]
+  (let [[q1 r1] (divide u d)
+        [q2 r2] (divide v d)]
+    (if (and (v/nullity? r1) (v/nullity? r2))
+      [q1 q2 d])))
+
+(defn ^:private with-easy-factors-removed
+  "Try to depress the polynomials u, v by finding a common factor of
+  the form x ± 1 for each variable. NB: this turned out to be a
+  disastrous lose for some polynomials. Not obvious why, but I'm
+  leaving the code here for the time being."
+  [u v continue]
+  (let [a (:arity u)
+        candidates (for [i (range a)
+                         k [-1 1]]
+                     (make a [[(mapv #(if (= % i) 1 0) (range a)) k]]))
+        joint-quotients (map #(joint-quotient u v %) candidates)]
+    (let [[u' v' d] (some identity joint-quotients)]
+      (if u'
+        (mul d (with-easy-factors-removed u' v' continue))
+        (continue u v)))))
 
 (defn ^:private with-trivial-constant-gcd-check
   "We consider the maximum exponent found for each variable in any
@@ -365,6 +389,19 @@
   Note that a polynomial with integral coefficients is integral."
   #(and (v/exact? %) (not (ratio? %))))
 
+(defmacro gcd-continuation-chain
+  "Takes two polynomials and a chain of functions. Each function, except
+  the last, should have signature [p q k] where p and q are polynomials
+  and k is a continuation of the same type. The last function should have
+  signature [p q], without a continuation argument, since there's nowhere
+  to go from there."
+  [u v & fs]
+  (condp < (count fs)
+    2 `(~(first fs) ~u ~v
+       (fn [u# v#] (gcd-continuation-chain u# v# ~@(next fs))))
+    1 `(~(first fs) ~u ~v ~(second fs))
+    (throw (IllegalArgumentException. "invalid gcd-continuation-chain"))))
+
 (defn gcd
   "Knuth's algorithm 4.6.1E.
   This can take a long time, unfortunately, and so we bail if it seems to
@@ -385,17 +422,16 @@
       (= arity 1) (abs (gcd1 u v))
       :else (binding [*poly-gcd-bail-out* #(when (> (.elapsed clock (second *poly-gcd-time-limit*))
                                                     (first *poly-gcd-time-limit*))
-                                             (println "too long" (str u) (str v))
-                                             (throw (TimeoutException.
+                                            (println "too long" (str u) (str v))
+                                            (throw (TimeoutException.
                                                      (str "Took too long to find multivariate polynomial GCD: "
                                                           clock))))]
-              (with-trivial-constant-gcd-check u v
-                (fn [u v]
-                  (with-probabilistic-check u v
-                    (fn [u v]
-                      (with-optimized-variable-order u v
-                        (fn [u v]
-                          (abs (inner-gcd 0 u v))))))))))))
+              (abs (gcd-continuation-chain u v
+                                           with-trivial-constant-gcd-check
+                                           ;;with-easy-factors-removed (loses)
+                                           with-probabilistic-check
+                                           with-optimized-variable-order
+                                           #(inner-gcd 0 %1 %2)))))))
 
 ;; several observations. many of the gcds we find when attempting the troublesome
 ;; GCD are the case where we have two monomials. This can be done trivially

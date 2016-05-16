@@ -111,7 +111,7 @@
         counter (atom 0)
         body [:body
               (for [dy (range -10 -1 1/10)]
-                (let [svg (to-svg (evolver 100 1/3 500 500 50 50 0 dy))]
+                (let [svg (to-svg (evolver {:t 100 :dt 1/3 :M 500 :m 500 :x_0 50 :y_0 50 :xdot_0 0 :ydot_0 dy}))]
                   (log/info (str "dy " dy))
                   (spit (format "%03d.svg" @counter) (html svg))
                   (swap! counter inc)

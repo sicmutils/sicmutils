@@ -36,10 +36,11 @@
 (defn- make-numsymb-expression [operator operands]
   (->> operands (map numerical-expression) (apply operator) x/literal-number))
 
-(defmacro is-expression?
-  "True if the expression is a form with symbol at its head."
-  [symbol]
-  `(fn [x#] (and (seq? x#) (= (first x#) ~symbol))))
+(defn ^:private is-expression?
+  "Returns a function which will decide if its argument is a sequence
+  commencing with s."
+  [s]
+  (fn [x] (and (seq? x) (= (first x) s))))
 
 (def ^:private sum? (is-expression? '+))
 (def ^:private product? (is-expression? '*))
