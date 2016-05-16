@@ -68,7 +68,7 @@
   supplied gcd function, the content of u and v is divided out and the
   primitive parts are supplied to the continuation, the result of which
   has the content reattached and is returned."
-  [u v gcd continue]
+  [gcd u v continue]
   (let [gcd-reducer (reduce-until v/unity? gcd)
         content #(-> % :xs->c vals gcd-reducer)
         ku (content u)
@@ -327,7 +327,7 @@
     (v/unity? u) u
     (v/unity? v) v
     (= u v) u
-    :else (with-content-removed u v euclid/gcd univariate-euclid-inner-loop)))
+    :else (with-content-removed euclid/gcd u v univariate-euclid-inner-loop)))
 
 (defn ^:private monomial-gcd
   "Computing the GCD is easy if one of the polynomials is a monomial.
@@ -349,6 +349,19 @@
   `(when *poly-gcd-debug*
      (println-indented ~level ~where ~level ~@(map #(list 'str %) xs))))
 
+(defmacro gcd-continuation-chain
+  "Takes two polynomials and a chain of functions. Each function, except
+  the last, should have signature [p q k] where p and q are polynomials
+  and k is a continuation of the same type. The last function should have
+  signature [p q], without a continuation argument, since there's nowhere
+  to go from there."
+  [u v & fs]
+  (condp < (count fs)
+    2 `(~(first fs) ~u ~v
+         (fn [u# v#] (gcd-continuation-chain u# v# ~@(next fs))))
+    1 `(~(first fs) ~u ~v ~(second fs))
+    0 `(~(first fs) ~u ~v)))
+
 (defn ^:private inner-gcd
   "gcd is just a wrapper for this function, which does the real work
   of computing a polynomial gcd. Delegates to gcd1 for univariate
@@ -368,15 +381,13 @@
                 (= u v) u
                 (monomial? u) (monomial-gcd u v)
                 (monomial? v) (monomial-gcd v u)
-                :else (let [next-gcd #(inner-gcd (inc level) %1 %2)]
+                :else (let [next-gcd #(inner-gcd (inc level) %1 %2)
+                            content-remover #(with-content-removed next-gcd %1 %2 %3)]
                         (*poly-gcd-bail-out*)
-                        (with-lower-arity u v
-                          (fn [u v]
-                            (dbg level "LA" u v)
-                            (with-content-removed u v next-gcd
-                              (fn [u v] ;; TODO: remember to collapse, if we get rid of debugging
-                                (dbg level "WCR" u v)
-                                ((euclid-inner-loop next-gcd) u v)))))))]
+                        (gcd-continuation-chain u v
+                                                with-lower-arity
+                                                content-remover
+                                                #((euclid-inner-loop next-gcd) %1 %2))))]
         (when *poly-gcd-cache-enable*
           (swap! gcd-cache-miss inc)
           (swap! gcd-memo assoc [u v] g))
@@ -388,19 +399,6 @@
   Polynomials must have such coefficients if we are to find GCDs for them.
   Note that a polynomial with integral coefficients is integral."
   #(and (v/exact? %) (not (ratio? %))))
-
-(defmacro gcd-continuation-chain
-  "Takes two polynomials and a chain of functions. Each function, except
-  the last, should have signature [p q k] where p and q are polynomials
-  and k is a continuation of the same type. The last function should have
-  signature [p q], without a continuation argument, since there's nowhere
-  to go from there."
-  [u v & fs]
-  (condp < (count fs)
-    2 `(~(first fs) ~u ~v
-       (fn [u# v#] (gcd-continuation-chain u# v# ~@(next fs))))
-    1 `(~(first fs) ~u ~v ~(second fs))
-    (throw (IllegalArgumentException. "invalid gcd-continuation-chain"))))
 
 (defn gcd
   "Knuth's algorithm 4.6.1E.
