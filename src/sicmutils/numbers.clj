@@ -26,7 +26,7 @@
 
 (defn define-unary-operation
   [generic-operation core-operation]
-  (defmethod generic-operation Number [a] (core-operation a)))
+  (defmethod generic-operation [Number] [a] (core-operation a)))
 
 (define-unary-operation g/sin #(Math/sin %))
 (define-unary-operation g/cos #(Math/cos %))
@@ -40,28 +40,28 @@
 ;; line
 
 (defmethod g/sqrt
-  Number
+  [Number]
   [a]
   (if (< a 0)
     (g/sqrt (complex a))
     (nt/sqrt a)))
 
 (defmethod g/asin
-  Number
+  [Number]
   [a]
   (if (> (nt/abs a) 1)
     (g/asin (complex a))
     (Math/asin a)))
 
 (defmethod g/acos
-  Number
+  [Number]
   [a]
   (if (> (nt/abs a) 1)
     (g/acos (complex a))
     (Math/acos a)))
 
 (defmethod g/log
-  Number
+  [Number]
   [a]
   (if (< a 0)
     (g/log (complex a))
@@ -87,6 +87,6 @@
 (defmethod g/exact-div [Ratio Ratio] [a b] (core-div a b))
 (defmethod g/exact-div [Ratio BigInt] [a b] (core-div a b))
 
-(defmethod g/negative? Long [a] (neg? a))
-(defmethod g/negative? BigInt [a] (neg? a))
-(defmethod g/negative? BigInteger [a] (neg? a))
+(defmethod g/negative? [Long] [a] (neg? a))
+(defmethod g/negative? [BigInt] [a] (neg? a))
+(defmethod g/negative? [BigInteger] [a] (neg? a))

@@ -212,14 +212,14 @@
 
 (def simplify-expression (simplify-until-stable simplify-expression-1 simplify-and-flatten))
 
-(defmethod g/simplify :sicmutils.expression/numerical-expression
+(defmethod g/simplify [:sicmutils.expression/numerical-expression]
   [a]
   (->> a v/freeze simplify-expression))
 
 (defmethod g/simplify :default [a] (v/freeze a))
-(defmethod g/simplify Var [a] (-> a meta :name))
-(defmethod g/simplify Sequential [a] (map g/simplify a))
-(prefer-method g/simplify :sicmutils.structure/structure Sequential)
+(defmethod g/simplify [Var] [a] (-> a meta :name))
+(defmethod g/simplify [Sequential] [a] (map g/simplify a))
+(prefer-method g/simplify [:sicmutils.structure/structure] [Sequential])
 
 (defn expression->string
   "Renders an expression through the simplifier and into a string,

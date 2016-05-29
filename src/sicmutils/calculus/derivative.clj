@@ -419,7 +419,7 @@
 
 (defn- define-unary-operation
   [generic-operation differential-operation]
-  (defmethod generic-operation ::differential [a] (differential-operation a)))
+  (defmethod generic-operation [::differential] [a] (differential-operation a)))
 
 (defmethod g/expt [::differential Number] [d n] (power d n))
 (define-binary-operation g/expt expt)

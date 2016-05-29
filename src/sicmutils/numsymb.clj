@@ -272,7 +272,7 @@
 
 (defn- define-unary-operation
   [generic-operation symbolic-operation]
-  (defmethod generic-operation :sicmutils.expression/numerical-expression
+  (defmethod generic-operation [:sicmutils.expression/numerical-expression]
     [a]
     (make-numsymb-expression symbolic-operation [a])))
 

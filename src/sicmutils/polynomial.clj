@@ -520,4 +520,4 @@
 
 (defmethod g/expt [::polynomial Integer] [b x] (expt b x))
 (defmethod g/expt [::polynomial Long] [b x] (expt b x))
-(defmethod g/negate ::polynomial [a] (negate a))
+(defmethod g/negate [::polynomial] [a] (negate a))

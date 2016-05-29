@@ -201,7 +201,7 @@
   [& generic-ops]
   `(do ~@(map (fn [generic-op]
                 `(let [unop# (unary-operation ~generic-op)]
-                   (defmethod ~generic-op ::function [a#] (unop# a#))))
+                   (defmethod ~generic-op [::function] [a#] (unop# a#))))
               generic-ops)))
 
 (make-binary-operations

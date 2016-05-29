@@ -55,9 +55,9 @@
 (deftest argument-kinds
   (let [L Long
         V PersistentVector]
-    (is (= L (argument-kind 1)))
+    (is (= [L] (argument-kind 1)))
     (is (= [L L L] (argument-kind 1 2 3)))
-    (is (= V (argument-kind [2 3])))
+    (is (= [V] (argument-kind [2 3])))
     (is (= [V V] (argument-kind [1] [3 4])))))
 
 (deftest joint-arities

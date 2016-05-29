@@ -291,4 +291,4 @@
 
 (defmethod g/expt [::rational-function Integer] [b x] (expt b x))
 (defmethod g/expt [::rational-function Long] [b x] (expt b x))
-(defmethod g/negate ::rational-function [a] (negate a))
+(defmethod g/negate [::rational-function] [a] (negate a))

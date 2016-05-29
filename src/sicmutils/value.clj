@@ -61,7 +61,8 @@
 (extend-type nil
   Value
   (freeze [_] nil)
-  (numerical? [_] nil))
+  (numerical? [_] nil)
+  (kind [_] nil))
 
 (defn add-object-symbols!
   [o->syms]
@@ -180,11 +181,7 @@
     (keyword? a) a
     :else (type a)))
 
-(defn argument-kind
-  [a & as]
-  (cond (some? as) (mapv kind (cons a as))
-        (nil? a) nil
-        :else (kind a)))
+(def argument-kind #(mapv kind %&))
 
 (def machine-epsilon
   (loop [e 1.0]
