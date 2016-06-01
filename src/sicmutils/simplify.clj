@@ -39,8 +39,6 @@
   ;; the existing order of subexpressions to the polynomial simplifier.
   ;; TODO: the atom-transient might be better represented as a volatile in a newer
   ;; version of Clojure
-  ;; TODO: on closer examination of scmutils, it looks like analyzers are reused
-  ;; statefully. We should consider doing that.
   (fn [expr]
     (let [expr-map (atom (transient {}))]
       (letfn [(analyze [expr]
@@ -101,40 +99,34 @@
   (let [count (atom -1)]
     (fn [] (symbol (format "%s%016x" prefix (swap! count inc))))))
 
-(def ^:private poly-analyzer
+(defn ^:private unless-timeout
+  "Returns a function that invokes f, but catches TimeoutException;
+  if that exception is caught, then x is returned in lieu of (f x)."
+  [f]
+  (fn [x]
+    (try (f x)
+         (catch TimeoutException _
+           (log/warn (str "simplifier timed out: must have been a complicated expression"))
+           x))))
+
+(defn ^:private poly-analyzer
   "An analyzer capable of simplifying sums and products, but unable to
   cancel across the fraction bar"
+  []
   (analyzer (monotonic-symbol-generator "-s-")
             poly/expression-> poly/->expression poly/operators-known))
 
-(def rational-function-analyzer
-  "The heart of sicmutils simplification. Simplifies quotients of polynomials."
-  (let [A (analyzer (monotonic-symbol-generator "-r-")
-                    rf/expression-> rf/->expression rf/operators-known)]
-    (fn [x]
-      (try (A x)
-           (catch TimeoutException _
-             (log/warn (str "simplifier timed out: must have been a complicated expression"))
-             x)))))
+(defn ^:private rational-function-analyzer
+  "An analyzer capable of simplifying expressions built out of rational
+  functions."
+  []
+  (analyzer (monotonic-symbol-generator "-r-")
+            rf/expression-> rf/->expression rf/operators-known))
 
-(def ^:private twin-analyzer
-  "kick off poly analyzer in a thread (the rational function analyzer
-  should typically take longer, so by the time that's done the future
-  should be fulfilled). We could decide to accept the poly analyzer's
-  result in that case."
-  (fn [x]
-    (let [pf (future (poly-analyzer x))
-          r (rational-function-analyzer x)
-          p @pf
-          lp (count (flatten p))
-          lr (count (flatten r))]
-      (when (< lp lr)
-        (log/warn (format "the poly analyzer did a better job %d %d" lp lr))
-        (log/warn (format "poly: %s" (seq p)))
-        (log/warn (format "rf: %s" (seq r))))
-      r)))
+(def ^:dynamic *rf-analyzer* (memoize (unless-timeout (rational-function-analyzer))))
+(def ^:dynamic *poly-analyzer* (memoize (poly-analyzer)))
 
-(def ^:private simplify-and-flatten rational-function-analyzer)
+(def ^:private simplify-and-flatten *rf-analyzer*)
 
 (defn- simplify-until-stable
   [rule-simplify canonicalize]
@@ -144,7 +136,7 @@
         expression
         (let [canonicalized-expression (canonicalize new-expression)]
           (cond (= canonicalized-expression expression) expression
-                (g/zero? (poly-analyzer `(~'- ~expression ~canonicalized-expression))) canonicalized-expression
+                (g/zero? (*poly-analyzer* `(~'- ~expression ~canonicalized-expression))) canonicalized-expression
                 :else (recur canonicalized-expression)))))))
 
 (defn- simplify-and-canonicalize
@@ -167,7 +159,7 @@
 ;; up, but at least things are beginning to simplify adequately.
 
 (def ^:private simplify-zero
-  #(-> % poly-analyzer g/zero?))
+  #(-> % *poly-analyzer* g/zero?))
 
 (def ^:private sincos-cleanup
   "This finds things like a - a cos^2 x and replaces them with a sin^2 x"
