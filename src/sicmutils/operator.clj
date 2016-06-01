@@ -19,6 +19,7 @@
 (ns sicmutils.operator
   (:require [sicmutils
              [value :as v]
+             [expression :as x]
              [generic :as g]])
   (:import (clojure.lang IFn)))
 
@@ -88,7 +89,7 @@
              'mul))
 
 ;; Do we need to promote the second arg type (Number)
-;; to :sicmutils.expression/numerical-expression?? -- check this ***AG***
+;; to ::x/numerical-expression?? -- check this ***AG***
 (defmethod g/expt
   [::operator Number]
   [o n]
@@ -101,10 +102,10 @@
 
 (defmethod g/add [::operator ::operator] [o p] (add o p))
 ;; In additive operation the value 1 is considered as the identity operator
-(defmethod g/add [::operator :sicmutils.expression/numerical-expression]
+(defmethod g/add [::operator ::x/numerical-expression]
   [o n]
   (add o (number->operator n)))
-(defmethod g/add [:sicmutils.expression/numerical-expression ::operator]
+(defmethod g/add [::x/numerical-expression ::operator]
   [n o]
   (add (number->operator n) o))
 (defmethod g/add
@@ -118,11 +119,11 @@
 
 (defmethod g/sub [::operator ::operator] [o p] (sub o p))
 (defmethod g/sub
-  [::operator :sicmutils.expression/numerical-expression]
+  [::operator ::x/numerical-expression]
   [o n]
   (sub o (number->operator n)))
 (defmethod g/sub
-  [:sicmutils.expression/numerical-expression ::operator]
+  [::x/numerical-expression ::operator]
   [n o]
   (sub (number->operator n) o))
 (defmethod g/sub
@@ -147,11 +148,11 @@
   [f o]
   (mul (function->operator f) o))
 (defmethod g/mul
-  [::operator :sicmutils.expression/numerical-expression]
+  [::operator ::x/numerical-expression]
   [o n]
   (mul o (number->operator n)))
 (defmethod g/mul
-  [:sicmutils.expression/numerical-expression ::operator]
+  [::x/numerical-expression ::operator]
   [n o]
   (mul o (number->operator n)))
 

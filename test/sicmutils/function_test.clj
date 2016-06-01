@@ -164,10 +164,12 @@
   (let [f (fn [x] (+ x 5))
         double (fn [f] (fn [x] (* 2 (f x))))
         double-op (o/make-operator double "double")]
-    ;(is (= 8 ((double f) 1)))
-    ;(is (= 16 ((double (double f)) 1)))
-    ;(is (= 8 ((double-op f) 1)))
-    ;(is (= 16 ((double-op (double-op f)) 1)))
+    (is (= 12 ((double f) 1)))
+    (is (= 24 ((double (double f)) 1)))
+    (is (= 12 ((double-op f) 1)))
+    (is (= 24 ((double-op (double-op f)) 1)))
+    (is (= 24 (((g/* double-op double-op) f) 1)))           ;; * for operators is composition
+    (is (= 144 (((g/* double double) f) 1)))                ;; * for functions is pointwise multiply
     (is (= 2 ((double-op identity) 1)))
     (is (= 6 (((g/expt double-op 0) f) 1)))
     (is (= 12 (((g/expt double-op 1) f) 1)))

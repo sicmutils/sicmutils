@@ -265,19 +265,19 @@
 
 (defn- define-binary-operation
   [generic-operation symbolic-operation]
-  (defmethod generic-operation [:sicmutils.expression/numerical-expression
-                                :sicmutils.expression/numerical-expression]
+  (defmethod generic-operation [::x/numerical-expression
+                                ::x/numerical-expression]
     [a b]
     (make-numsymb-expression symbolic-operation [a b])))
 
 (defn- define-unary-operation
   [generic-operation symbolic-operation]
-  (defmethod generic-operation [:sicmutils.expression/numerical-expression]
+  (defmethod generic-operation [::x/numerical-expression]
     [a]
     (make-numsymb-expression symbolic-operation [a])))
 
-(derive Symbol :sicmutils.expression/numerical-expression)
-(derive Number :sicmutils.expression/numerical-expression)
+(derive Symbol ::x/numerical-expression)
+(derive Number ::x/numerical-expression)
 
 (define-binary-operation g/add add)
 (define-binary-operation g/sub sub)

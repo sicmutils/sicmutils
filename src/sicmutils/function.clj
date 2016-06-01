@@ -88,8 +88,7 @@
   (invoke [f w x y z] (literal-apply f [w x y z]))
   (applyTo [f xs] (literal-apply f xs)))
 
-(def ^:private orientation->symbol {:sicmutils.structure/up "↑"
-                                    :sicmutils.structure/down "_"})
+(def ^:private orientation->symbol {::s/up "↑" ::s/down "_"})
 
 (defn literal-function
   ([f] (Function. f [:exactly 1] [0] 0))
@@ -216,9 +215,9 @@
 ;; TODO asin acos sinh cosh ...
 
 (defmethod g/simplify Function [a] (-> a :expr g/simplify))
-(derive :sicmutils.expression/numerical-expression ::cofunction)
-(derive :sicmutils.structure/structure ::cofunction)
-(derive :sicmutils.value/function ::function)
+(derive ::x/numerical-expression ::cofunction)
+(derive ::s/structure ::cofunction)
+(derive ::v/function ::function)
 
 ;; ------------------------------------
 ;; Differentiation of literal functions

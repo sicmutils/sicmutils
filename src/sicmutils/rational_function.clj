@@ -199,17 +199,17 @@
 (def operators-known (set (keys operator-table)))
 
 (defmethod g/add [::rational-function ::rational-function] [a b] (add a b))
-(defmethod g/add [::rational-function :sicmutils.polynomial/polynomial] [r p] (addp r p))
-(defmethod g/add [:sicmutils.polynomial/polynomial ::rational-function] [p r] (addp r p))
+(defmethod g/add [::rational-function ::p/polynomial] [r p] (addp r p))
+(defmethod g/add [::p/polynomial ::rational-function] [p r] (addp r p))
 (defmethod g/add [::rational-function Double] [a b] (addp a (p/make-constant (:arity a) b)))
 
 (defmethod g/sub
-  [::rational-function :sicmutils.polynomial/polynomial]
+  [::rational-function ::p/polynomial]
   [r p]
   (addp r (g/negate p)))
 
 (defmethod g/sub
-  [:sicmutils.polynomial/polynomial ::rational-function]
+  [::p/polynomial ::rational-function]
   [p r]
   (addp (g/negate r) p))
 
@@ -222,7 +222,7 @@
 (defmethod g/mul [Ratio ::rational-function] [r {u :u v :v}] (make (g/mul (numerator r) u) (g/mul (denominator r) v)))
 
 (defmethod g/mul
-  [::rational-function :sicmutils.polynomial/polynomial]
+  [::rational-function ::p/polynomial]
   [{u :u u' :v arity :arity :as U} v]
   "Multiply the rational function U = u/u' by the polynomial v"
   (cond (v/nullity? v) 0
@@ -236,7 +236,7 @@
                                 (p/evenly-divide u' d))))))
 
 (defmethod g/mul
-  [:sicmutils.polynomial/polynomial ::rational-function]
+  [::p/polynomial ::rational-function]
   [u {v :u v' :v arity :arity :as V}]
   "Multiply the polynomial u by the rational function V = v/v'"
   (cond (v/nullity? u) 0
@@ -251,7 +251,7 @@
 
 
 (defmethod g/sub [::rational-function ::rational-function] [a b] (sub a b))
-(defmethod g/sub [::rational-function :sicmutils.polynomial/polynomial] [r p] (subp r p))
+(defmethod g/sub [::rational-function ::p/polynomial] [r p] (subp r p))
 (defmethod g/sub [::rational-function Long] [{u :u v :v} c] (make (p/sub (g/mul c v) u) v))
 (defmethod g/add [Long ::rational-function] [c {u :u v :v}] (make (p/add u (g/mul c v)) v))
 (defmethod g/add [::rational-function Long] [{u :u v :v} c] (make (p/add u (g/mul c v)) v))
@@ -259,28 +259,28 @@
 (defmethod g/div [::rational-function Long] [{u :u v :v} c] (make u (g/mul c v)))
 
 (defmethod g/div
-  [::rational-function :sicmutils.polynomial/polynomial]
+  [::rational-function ::p/polynomial]
   [{u :u v :v} p]
   (make u (p/mul v p)))
 
 (defmethod g/div
-  [:sicmutils.polynomial/polynomial ::rational-function]
+  [::p/polynomial ::rational-function]
   [p {u :u v :v}]
   (make (p/mul p v) u))
 
 (defmethod g/div
-  [:sicmutils.polynomial/polynomial :sicmutils.polynomial/polynomial]
+  [::p/polynomial ::p/polynomial]
   [p q]
   (let [g (gcd p q)]
     (make (p/evenly-divide p g) (p/evenly-divide q g))))
 
 (defmethod g/div
-  [Long :sicmutils.polynomial/polynomial]
+  [Long ::p/polynomial]
   [c p]
   (make (p/make-constant (:arity p) c) p))
 
 (defmethod g/div
-  [BigInt :sicmutils.polynomial/polynomial]
+  [BigInt ::p/polynomial]
   [c p]
   (make (p/make-constant (:arity p) c) p))
 

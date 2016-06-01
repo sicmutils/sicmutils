@@ -62,13 +62,13 @@
   [environment]
   (fn walk [x]
     (cond (symbol? x) (if-let [binding (environment x)]
-                        (if-not (= :sicmutils.value/function (v/kind binding)) binding x)
+                        (if-not (= ::v/function (v/kind binding)) binding x)
                         (throw (IllegalArgumentException.
                                 (str "no binding for " x " found."))))
           (number? x) x
           (instance? Expression x) (walk (expression-of x))
           (sequential? x) (let [f (environment (first x))]
-                            (when-not (= :sicmutils.value/function (v/kind f))
+                            (when-not (= ::v/function (v/kind f))
                               (throw (IllegalArgumentException.
                                       (str "no function binding for " x " found."))))
                             (apply f (map walk (rest x))))
