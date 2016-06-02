@@ -159,7 +159,7 @@
   result is a RationalFunction object representing the structure of
   the input over the unknowns."
   [expr cont]
-  (let [expression-vars (sort-by p/variable-sort-key (set/difference (x/variables-in expr) operators-known))
+  (let [expression-vars (sort (set/difference (x/variables-in expr) operators-known))
         arity (count expression-vars)]
     (let [new-bindings (zipmap expression-vars (p/new-variables arity))
           environment (into operator-table new-bindings)
