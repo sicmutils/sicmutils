@@ -30,17 +30,29 @@
              [value :as v]
              [generic :as g]
              [rules :as rules]]
-            [pattern.rule :as rule]))
+            [pattern.rule :as rule]
+            [sicmutils.expression :as x]))
+
+;; WHERE WE LEFT OFF:
+;;
+;; To avoid simplification oscillation syndrome, we need
+;; a hermetic simplify, which means we need (I think!) a
+;; simplify that clears the expr->var, var->expr maps before
+;; entering. (as we just proved by using reset!).
+;;
+;; how to proceed? two kinds of analyzer, or one kind with
+;; multiple entry points? Or imitate JSON and return an
+;; object with closures in it?
+;;
+;; There is a fairly subtle question here. We don't want
+;; the objects to be overly stateful. So maybe we want
+;; to allow the creation of two different kinds.
 
 (defn analyzer
   [symbol-generator expr-> ->expr known-operations]
-  ;; TODO: we haven't recorded variable order, so expressions can get scrambled
-  ;; as a result of sorting by generated-symbol-name. The solution is to communicate
-  ;; the existing order of subexpressions to the polynomial simplifier.
-  ;; TODO: the atom-transient might be better represented as a volatile in a newer
-  ;; version of Clojure
-  (fn [expr]
-    (let [expr-map (atom (transient {}))]
+  (let [expr->var (atom {})
+        var->expr (atom {})]
+    (fn [expr]
       (letfn [(analyze [expr]
                 (if (and (sequential? expr)
                          (not (= (first expr) 'quote)))
@@ -49,7 +61,7 @@
                              (or (not (= 'expt (sym/operator analyzed-expr)))
                                  (integer? (second (sym/operands analyzed-expr)))))
                       analyzed-expr
-                      (if-let [existing-expr (@expr-map analyzed-expr)]
+                      (if-let [existing-expr (@expr->var analyzed-expr)]
                         existing-expr
                         (new-kernels analyzed-expr))))
                   expr))
@@ -63,30 +75,22 @@
                         (analyze w)))
                     (add-symbols! simplified-expr))))
               (add-symbols! [expr]
-                ;; doall is needed here because we need to have all the effects of
-                ;; add-symbol! accounted for strictly before the transient expr-map
-                ;; is made persistent in backsubstitute.
-                (->> expr (map add-symbol!) doall add-symbol!))
+                (->> expr (map add-symbol!) add-symbol!))
               (add-symbol! [expr]
                 (if (and (sequential? expr)
                          (not (= (first expr) 'quote)))
-                  (if-let [existing-expr (@expr-map expr)]
+                  (if-let [existing-expr (@expr->var expr)]
                     existing-expr
                     (let [newvar (symbol-generator)]
-                      (swap! expr-map assoc! expr newvar)
+                      (swap! expr->var assoc expr newvar)
+                      (swap! var->expr assoc newvar expr)
                       newvar))
                   expr))
               (backsubstitute [expr]
-                ;; Finalize the expression map, invert it, and use it to perform the backsubstitution.
-                (let [mapx (-> expr-map (swap! persistent!) invert-map)
-                      bsub (fn bsub [v]
-                             (cond (sequential? v) (map bsub v)
-                                   (symbol? v) (let [w (mapx v)]
-                                                 (if w (bsub w) v))
-                                   :else v))]
-                  (bsub expr)))
-              (base-simplify [expr] (expr-> expr ->expr))
-              (invert-map [m] (into {} (for [[k v] m] [v k])))]
+                (cond (sequential? expr) (map backsubstitute expr)
+                      (symbol? expr) (if-let [w (@var->expr expr)] (backsubstitute w) expr)
+                      :else expr))
+              (base-simplify [expr] (expr-> expr ->expr))]
         (-> expr analyze base-simplify backsubstitute)))))
 
 (defn ^:private monotonic-symbol-generator
@@ -125,6 +129,12 @@
 
 (def ^:dynamic *rf-analyzer* (memoize (unless-timeout (rational-function-analyzer))))
 (def ^:dynamic *poly-analyzer* (memoize (poly-analyzer)))
+
+(defn hermetic-simplify
+  [x]
+  (binding [*rf-analyzer* (rational-function-analyzer)
+            *poly-analyzer* (poly-analyzer)]
+    (g/simplify x)))
 
 (def ^:private simplify-and-flatten *rf-analyzer*)
 

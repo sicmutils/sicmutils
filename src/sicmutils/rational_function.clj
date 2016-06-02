@@ -249,7 +249,6 @@
                                      (p/mul (p/evenly-divide u d) v)
                                      (p/evenly-divide v' d))))))
 
-
 (defmethod g/sub [::rational-function ::rational-function] [a b] (sub a b))
 (defmethod g/sub [::rational-function ::p/polynomial] [r p] (subp r p))
 (defmethod g/sub [::rational-function Long] [{u :u v :v} c] (make (p/sub (g/mul c v) u) v))

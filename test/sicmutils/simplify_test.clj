@@ -19,7 +19,7 @@
 (ns sicmutils.simplify-test
   (require [clojure.test :refer :all]
            [sicmutils
-            [simplify :refer [analyzer simplify-expression expression->string]]
+            [simplify :refer [hermetic-simplify analyzer simplify-expression expression->string]]
             [structure :refer :all]
             [expression :as x]
             [complex :as c]
@@ -159,7 +159,7 @@
   (is (= '(* -1 (expt (sin x) 2)) (g/simplify (g/+ (g/expt (g/cos 'x) 2) -1))))
   (is (= '(tan x) (g/simplify (g/tan 'x))))
   (is (= '(/ (+ (cos x) (sin x)) (cos x)) (g/simplify (g/+ 1 (g/tan 'x)))))
-  (is (= '(/ (+ (cos x) (sin x)) (cos x)) (g/simplify (g/+ (g/tan 'x) 1))))
+  (is (= '(/ (+ (cos x) (sin x)) (cos x)) (hermetic-simplify (g/+ (g/tan 'x) 1))))
   (is (= '(* -1 (expt (cos x) 2)) (g/simplify (g/+ (g/expt (g/sin 'x) 2) -1))))
   (is (= '(expt (cos x) 2) (g/simplify (g/- 1 (g/expt (g/sin 'x) 2)))))
   (is (= '(* -1 (expt (cos x) 2)) (g/simplify (g/+ (g/expt (g/sin 'x) 2) -1)))))

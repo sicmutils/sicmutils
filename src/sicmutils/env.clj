@@ -18,8 +18,7 @@
 
 (ns sicmutils.env
   (:refer-clojure :exclude [+ - * / zero?]
-                  :rename {ref core-ref
-                           partial core-partial})
+                  :rename {ref core-ref partial core-partial})
   (:require [sicmutils
              [generic :as g]
              [structure :as s]
@@ -31,13 +30,14 @@
              [complex :as c]
              [operator]
              [infix :as i]]
-            [sicmutils.numerical.ode :as ode]
-            [sicmutils.numerical.minimize :refer :all]
+            [sicmutils.numerical
+             [ode :as ode]]
             [sicmutils.calculus.derivative :as d]
-            [sicmutils.mechanics.lagrange :refer :all]
-            [sicmutils.mechanics.hamilton :refer :all]
-            [sicmutils.mechanics.rigid :refer :all]
-            [sicmutils.mechanics.rotation :refer :all]))
+            [sicmutils.mechanics
+             [hamilton :refer :all]
+             [lagrange :refer :all]
+             [rigid :refer :all]
+             [rotation :refer :all]]))
 
 (def + g/+)
 (def - g/-)
@@ -100,10 +100,6 @@
   (if (every? integer? selectors)
     (apply d/∂ selectors)
     (apply core-partial selectors)))
-
-
-
-
 
 (def up s/up)
 (def down s/down)

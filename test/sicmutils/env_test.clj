@@ -19,7 +19,8 @@
 (ns sicmutils.env-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
-            [sicmutils.env :refer :all]))
+            [sicmutils.env :refer :all])
+  (:import (org.apache.commons.math3.complex Complex)))
 
 (deftest partial-shim
   (testing "partial also works the way Clojure defines it"
@@ -51,3 +52,13 @@
       (is (= '(up (f↑0 x) (f↑1 x)) (simplify (f4 'x))))
       (is (= '(up (f↑0 (down p_x p_y)) (f↑1 (down p_x p_y)))
              (simplify (f5 (down 'p_x 'p_y))))))))
+
+(deftest shortcuts
+  (testing "cot"
+    (is (= '(/ (cos x) (sin x)) (simplify (cot 'x))))
+    (is (= '(/ 1 (sin x)) (simplify (csc 'x))))
+    (is (= '(/ 1 (cos x)) (simplify (sec 'x))))
+    (is (= (Complex. 1 2) (complex 1 2)))
+    (is (= :sicmutils.structure/up (orientation (up 1 2))))
+    (is (= "up(b z - c y, - a z + c x, a y - b x)"
+           (->infix (simplify (cross-product (up 'a 'b 'c) (up 'x 'y 'z))))))))
