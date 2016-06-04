@@ -20,9 +20,12 @@
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.mechanics
              [hamilton :refer :all]
              [lagrange :refer :all]]))
+
+(use-fixtures :once hermetic-simplify-fixture)
 
 (deftest section-3.1.1
   ;; To move further into Hamiltonian mechanics, we will need
@@ -80,21 +83,14 @@
              (->H-state 't
                         (coordinate-tuple 'r 'phi)
                         (momentum-tuple 'p_r 'p_phi)))))))
-  (is (= '(up
-           0
-           (up
-            (/ (+ (* ((D r) t) m) (* -1 (p_r t))) m)
-            (/
-             (+ (* ((D phi) t) (expt (r t) 2) m) (* -1 (p_phi t)))
-             (* (expt (r t) 2) m)))
-           (down
-            (/
-             (+
-              (* ((D p_r) t) (expt (r t) 3) m)
-              (* (expt (r t) 3) ((D V) (r t)) m)
-              (* -1 (expt (p_phi t) 2)))
-             (* (expt (r t) 3) m))
-            ((D p_phi) t)))
+  (is (= '(up 0
+              (up (/ (+ (* ((D r) t) m) (* -1N (p_r t))) m)
+                  (/ (+ (* (expt (r t) 2) ((D phi) t) m) (* -1N (p_phi t))) (* (expt (r t) 2) m)))
+              (down (/ (+ (* (expt (r t) 3) ((D p_r) t) m)
+                          (* (expt (r t) 3) ((D V) (r t)) m)
+                          (* -1N (expt (p_phi t) 2)))
+                       (* (expt (r t) 3) m))
+                    ((D p_phi) t)))
          (with-literal-functions [r phi p_r p_phi V]
            (simplify
             (((Hamilton-equations
@@ -103,21 +99,16 @@
               (coordinate-tuple r phi)
               (momentum-tuple p_r p_phi))
              't)))))
-  (is (= '(up
-           0
-           (up
-            (/ (+ (* ((D r) t) m) (* -1N (p_r t))) m)
-            (/
-             (+ (* ((D phi) t) (expt (r t) 2) m) (* -1N (p_phi t)))
-             (* (expt (r t) 2) m)))
-           (down
-            (/
-             (+
-              (* ((D p_r) t) (expt (r t) 3) m)
-              (* (r t) GM (expt m 2))
-              (* -1N (expt (p_phi t) 2)))
-             (* (expt (r t) 3) m))
-            ((D p_phi) t)))
+  (is (= '(up 0
+              (up (/ (+ (* ((D r) t) m) (* -1N (p_r t))) m)
+                  (/ (+ (* (expt (r t) 2) ((D phi) t) m)
+                        (* -1N (p_phi t)))
+                     (* (expt (r t) 2) m)))
+              (down (/ (+ (* (expt (r t) 3) ((D p_r) t) m)
+                          (* (r t) GM (expt m 2))
+                          (* -1N (expt (p_phi t) 2)))
+                       (* (expt (r t) 3) m))
+                    ((D p_phi) t)))
          (with-literal-functions [r phi p_r p_phi]
            (simplify
             (((Hamilton-equations

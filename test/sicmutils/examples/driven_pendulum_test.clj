@@ -21,7 +21,10 @@
   (:require [sicmutils.env :refer :all]
             [sicmutils.mechanics.lagrange :refer :all]
             [sicmutils.examples.driven-pendulum :as driven]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [clojure.test :refer :all]))
+
+(use-fixtures :once hermetic-simplify-fixture)
 
 (deftest equations
   (with-literal-functions
@@ -37,16 +40,15 @@
                (* 1/2 (expt l 2) m (expt θdot 2))
                (* 1/2 (expt ((D y) t) 2) m))
              (simplify (T state))))
-      (is (= '(+
-               (* ((D y) t) (sin θ) l m θdot)
-               (* 1/2 (expt l 2) m (expt θdot 2))
-               (* (cos θ) g l m)
-               (* 1/2 (expt ((D y) t) 2) m)
-               (* -1 (y t) g m))
+      (is (= '(+ (* ((D y) t) (sin θ) l m θdot)
+                 (* 1/2 (expt l 2) m (expt θdot 2))
+                 (* (cos θ) g l m)
+                 (* -1 (y t) g m)
+                 (* 1/2 (expt ((D y) t) 2) m))
              (simplify (L state))))
       (is (= '(+ (* -1 (cos (+ (* t ω) φ)) (sin (θ t)) a l m (expt ω 2))
-                 (* (sin (θ t)) g l m)
-                 (* (((expt D 2) θ) t) (expt l 2) m))
+                 (* (((expt D 2) θ) t) (expt l 2) m)
+                 (* (sin (θ t)) g l m))
              (simplify (((Lagrange-equations
                            (driven/L-pend 'm 'l 'g (driven/periodic-drive 'a 'ω 'φ)))
                           θ)

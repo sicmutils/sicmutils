@@ -24,7 +24,7 @@
              [structure :refer :all]
              [numbers]
              [numsymb]
-             [simplify]
+             [simplify :refer [hermetic-simplify-fixture]]
              [function :refer :all]
              [operator :refer :all]
              [value :as v]]
@@ -36,6 +36,8 @@
             [sicmutils.mechanics
              [lagrange :refer :all]
              [rotation :refer :all]]))
+
+(use-fixtures :once hermetic-simplify-fixture)
 
 (def ^:private near (v/within 1e-6))
 
@@ -116,13 +118,13 @@
           proposed-solution (fn [t] (* 'a (cos (+ (* 'ω t) 'φ))))]
       ;; p. 29
       (is (= '(η t) (simplify (((δ_η identity) q) 't))))
-      (is (= '(* ((D f) (q t)) (η t)) (simplify (((δ_η F) q) 't))))
-      (is (= '(* ((D g) (q t)) (η t)) (simplify (((δ_η G) q) 't))))
-      (is (= '(+ (* ((D f) (q t)) (η t) (g (q t))) (* (η t) (f (q t)) ((D g) (q t))))
+      (is (= '(* (η t) ((D f) (q t))) (simplify (((δ_η F) q) 't))))
+      (is (= '(* (η t) ((D g) (q t))) (simplify (((δ_η G) q) 't))))
+      (is (= '(+ (* (η t) ((D f) (q t)) (g (q t))) (* (η t) ((D g) (q t)) (f (q t))))
              (simplify (((δ_η (* F G)) q) 't))))
-      (is (= '(+ (* ((D f) (q t)) (η t) (g (q t))) (* (η t) (f (q t)) ((D g) (q t))))
+      (is (= '(+ (* (η t) ((D f) (q t)) (g (q t))) (* (η t) ((D g) (q t)) (f (q t))))
              (simplify (((δ_η (* F G)) q) 't))))
-      (is (= '(* ((D φ) (f (q t))) ((D f) (q t)) (η t)) (simplify (((δ_η (φ F)) q) 't))))
+      (is (= '(* (η t) ((D f) (q t)) ((D φ) (f (q t)))) (simplify (((δ_η (φ F)) q) 't))))
       ;; p. 35
       (is (= (down 0 0 0) (((Lagrange-equations (L-free-particle 'm)) test-path) 't)))
       (is (= '(* (((expt D 2) x) t) m)
@@ -157,20 +159,20 @@
                     (+ (* (((expt D 2) y) t) m) (* g m)))
              (simplify (((Lagrange-equations (L-uniform-acceleration 'm 'g))
                          (up x y)) 't))))
-      (is (= '(down (/ (+ (* (sqrt (+ (expt (x t) 2) (expt (y t) 2))) (((expt D 2) x) t) m)
+      (is (= '(down (/ (+ (* (((expt D 2) x) t) (sqrt (+ (expt (x t) 2) (expt (y t) 2))) m)
                           (* (x t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
                        (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
-                    (/ (+ (* (sqrt (+ (expt (x t) 2) (expt (y t) 2))) (((expt D 2) y) t) m)
+                    (/ (+ (* (((expt D 2) y) t) (sqrt (+ (expt (x t) 2) (expt (y t) 2))) m)
                           (* (y t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
                        (sqrt (+ (expt (x t) 2) (expt (y t) 2)))))
              (simplify (((Lagrange-equations (L-central-rectangular 'm U))
                          (up x y))
                         't))))
-      (is (= '(down
-               (+ (* -1 (r t) (expt ((D φ) t) 2) m)
-                  (* (((expt D 2) r) t) m) ((D U) (r t)))
-               (+ (* (expt (r t) 2) (((expt D 2) φ) t) m)
-                  (* 2 (r t) ((D r) t) ((D φ) t) m)))
+      (is (= '(down (+ (* -1 (expt ((D φ) t) 2) (r t) m)
+                       (* (((expt D 2) r) t) m)
+                       ((D U) (r t)))
+                    (+ (* 2 ((D φ) t) (r t) ((D r) t) m)
+                       (* (expt (r t) 2) (((expt D 2) φ) t) m)))
              (simplify (((Lagrange-equations (L-central-polar 'm U))
                          (up r φ))
                         't))))
@@ -185,16 +187,16 @@
                (* -1 (U r)))
              (simplify ((L-alternate-central-polar 'm U)
                         (->local 't (up 'r 'φ) (up 'rdot 'φdot))))))
-      (is (= '(down (+ (* -1 (r t) (expt ((D φ) t) 2) m)
+      (is (= '(down (+ (* -1 (expt ((D φ) t) 2) (r t) m)
                        (* (((expt D 2) r) t) m)
                        ((D U) (r t)))
-                    (+ (* (expt (r t) 2) (((expt D 2) φ) t) m)
-                       (* 2 (r t) ((D r) t) ((D φ) t) m)))
+                    (+ (* 2N ((D φ) t) (r t) ((D r) t) m)
+                       (* (expt (r t) 2) (((expt D 2) φ) t) m)))
              (simplify (((Lagrange-equations (L-alternate-central-polar 'm U))
                          (up r φ))
                         't))))
       (is (= '(+ (* (((expt D 2) θ) t) (expt l 2) m)
-                 (* (((expt D 2) y_s) t) (sin (θ t)) l m)
+                 (* (sin (θ t)) (((expt D 2) y_s) t) l m)
                  (* (sin (θ t)) g l m))
              (simplify (((Lagrange-equations (L-pend 'm 'l 'g y_s)) θ) 't))))
       ;; p. 61
@@ -227,12 +229,11 @@
              (simplify ((harmonic-state-derivative 'm 'k)
                         (up 't (up 'x 'y) (up 'v_x 'v_y))))))
       ;; p. 71
-      (is (= '(up
-               0
-               (up (+ ((D x) t) (* -1 (v_x t))) (+ ((D y) t) (* -1 (v_y t))))
-               (up
-                (/ (+ (* ((D v_x) t) m) (* (x t) k)) m)
-                (/ (+ (* ((D v_y) t) m) (* (y t) k)) m)))
+      (is (= '(up 0
+                  (up (+ ((D x) t) (* -1 (v_x t)))
+                      (+ ((D y) t) (* -1 (v_y t))))
+                  (up (/ (+ (* (x t) k) (* ((D v_x) t) m)) m)
+                      (/ (+ (* (y t) k) (* ((D v_y) t) m)) m)))
              (simplify (((Lagrange-equations-first-order (L-harmonic 'm 'k))
                          (up x y)
                          (up v_x v_y))
@@ -266,8 +267,8 @@
                                 (Lagrangian->state-derivative
                                  (L-periodically-driven-pendulum m l g a ω)))]
     (is (= '(+ (* -1 (cos (* t ω)) (sin (θ t)) a l m (expt ω 2))
-               (* (sin (θ t)) g l m)
-               (* (((expt D 2) θ) t) (expt l 2) m))
+               (* (((expt D 2) θ) t) (expt l 2) m)
+               (* (sin (θ t)) g l m))
            (simplify (((Lagrange-equations
                         (L-periodically-driven-pendulum 'm 'l 'g 'a 'ω))
                        (literal-function 'θ))
@@ -275,7 +276,7 @@
     ;; NB. fraction simplification not happening here
     (is (= '(up 1
                 θdot
-                (/ (+ (* (sin θ) (cos (* t ω)) a (expt ω 2)) (* -1 (sin θ) g))
+                (/ (+ (* (cos (* t ω)) (sin θ) a (expt ω 2)) (* -1 (sin θ) g))
                    l))
            (simplify ((pend-state-derivative 'm 'l 'g 'a 'ω)
                       (up 't 'θ 'θdot)))))

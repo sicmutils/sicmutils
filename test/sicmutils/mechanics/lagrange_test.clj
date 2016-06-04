@@ -23,9 +23,11 @@
              [generic :refer :all]
              [function :refer :all]
              [numbers]
-             [simplify]
+             [simplify :refer [hermetic-simplify-fixture]]
              [structure :refer :all]]
             [sicmutils.mechanics.lagrange :refer :all]))
+
+(use-fixtures :once hermetic-simplify-fixture)
 
 (deftest interpolation
   (testing "lagrange interpolation"
@@ -101,16 +103,20 @@
              (simplify (((Lagrange-equations (L-uniform-acceleration 'm 'g))
                          (up x y))
                         't))))
-      (is (= '(down (/ (+ (* (sqrt (+ (expt (x t) 2) (expt (y t) 2))) (((expt D 2) x) t) m)
+      (is (= '(down (/ (+ (* (((expt D 2) x) t) (sqrt (+ (expt (x t) 2) (expt (y t) 2))) m)
                           (* (x t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
                        (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
-                    (/ (+ (* (sqrt (+ (expt (x t) 2) (expt (y t) 2))) (((expt D 2) y) t) m)
-                          (* (y t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2)))))) (sqrt (+ (expt (x t) 2) (expt (y t) 2)))))
+                    (/ (+ (* (((expt D 2) y) t) (sqrt (+ (expt (x t) 2) (expt (y t) 2))) m)
+                          (* (y t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
+                       (sqrt (+ (expt (x t) 2) (expt (y t) 2)))))
              (simplify (((Lagrange-equations (L-central-rectangular 'm U))
                          (up x y))
                         't))))
-      (is (= '(down (+ (* -1 (r t) (expt ((D φ) t) 2) m) (* (((expt D 2) r) t) m) ((D U) (r t)))
-                    (+ (* (expt (r t) 2) (((expt D 2) φ) t) m) (* 2 (r t) ((D r) t) ((D φ) t) m)))
+      (is (= '(down (+ (* -1 (expt ((D φ) t) 2) (r t) m)
+                       (* (((expt D 2) r) t) m)
+                       ((D U) (r t)))
+                    (+ (* 2 ((D φ) t) (r t) ((D r) t) m)
+                       (* (expt (r t) 2) (((expt D 2) φ) t) m)))
              (simplify (((Lagrange-equations (L-central-polar 'm U))
                          (up r φ))
                         't))))

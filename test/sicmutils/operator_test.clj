@@ -21,13 +21,14 @@
   (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
             [sicmutils.operator :refer :all]
-            ))
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+
+(use-fixtures :once hermetic-simplify-fixture)
 
 (def f (literal-function 'f))
 (def g (literal-function 'g))
 (def ff (literal-function 'ff [0 0] 0))
 (def gg (literal-function 'gg [0 0] 0))
-
 
 ;; Test operations with Operators
 (deftest Operator-tests
@@ -41,13 +42,13 @@
     (is (= (simplify (((* (+ D 1)(- D 1)) f) 'x))
            '(+ (((expt D 2) f) x) (* -1 (f x))) )))
   (testing "that Operators compose correctly with functions"
-    (is (= (simplify ((D ((* (- D g)(+ D 1)) f)) 'x))
-           '(+ (* -1 (((expt D 2) f) x) (g x))
-               (* -1 (g x) ((D f) x))
+    (is (= '(+ (* -1 (((expt D 2) f) x) (g x))
                (* -1 ((D f) x) ((D g) x))
-               (* -1 ((D g) x) (f x))
+               (* -1 ((D f) x) (g x))
+               (* -1 (f x) ((D g) x))
                (((expt D 2) f) x)
-               (((expt D 3) f) x)))))
+               (((expt D 3) f) x))
+           (simplify ((D ((* (- D g) (+ D 1)) f)) 'x)))))
   (testing "that basic arithmetic operations work on multivariate literal functions"
     (is (= (simplify (((+  D  D) ff) 'x 'y))
            '(down (* 2 (((∂ 0) ff) x y)) (* 2 (((∂ 1) ff) x y)))))

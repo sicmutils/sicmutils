@@ -19,7 +19,7 @@
 (ns sicmutils.simplify-test
   (require [clojure.test :refer :all]
            [sicmutils
-            [simplify :refer [hermetic-simplify analyzer simplify-expression expression->string]]
+            [simplify :refer [hermetic-simplify-fixture analyzer simplify-expression expression->string]]
             [structure :refer :all]
             [expression :as x]
             [complex :as c]
@@ -31,7 +31,9 @@
             [value :as v]]
            [sicmutils.mechanics.lagrange :refer :all]))
 
-(defn- symbol-generator
+(use-fixtures :once hermetic-simplify-fixture)
+
+(defn ^:private symbol-generator
   "Returns a function which generates a sequence of symbols
   staring with the initial prefix."
   [fmt]
@@ -126,13 +128,13 @@
 
 (deftest sincos-oscillation
   (let [X '(- (expt (sin a) 2) (* (expt (cos b) 2) (expt (sin a) 2)))]
-    (is (= '(* (expt (sin b) 2) (expt (sin a) 2)) (simplify-expression X)))))
+    (is (= '(* (expt (sin a) 2) (expt (sin b) 2)) (simplify-expression X)))))
 
 (deftest lagrange-equations-test
   (let [xy (s/up (f/literal-function 'x) (f/literal-function 'y))
         LE (((Lagrange-equations (L-central-rectangular 'm (f/literal-function 'U))) xy) 't)]
     (is (= '(up x y) (g/simplify xy)))
-    (is (= '(down (/ (+ (* (sqrt (+ (expt (x t) 2) (expt (y t) 2))) (((expt D 2) x) t) m)
+    (is (= '(down (/ (+ (* (((expt D 2) x) t) (sqrt (+ (expt (x t) 2) (expt (y t) 2))) m)
                         (* (x t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
                      (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
                   (/ (+ (* (sqrt (+ (expt (x t) 2) (expt (y t) 2))) (((expt D 2) y) t) m)
@@ -158,8 +160,8 @@
 (deftest more-trig
   (is (= '(* -1 (expt (sin x) 2)) (g/simplify (g/+ (g/expt (g/cos 'x) 2) -1))))
   (is (= '(tan x) (g/simplify (g/tan 'x))))
-  (is (= '(/ (+ (cos x) (sin x)) (cos x)) (g/simplify (g/+ 1 (g/tan 'x)))))
-  (is (= '(/ (+ (cos x) (sin x)) (cos x)) (hermetic-simplify (g/+ (g/tan 'x) 1))))
+  (is (= '(/ (+ (sin x) (cos x)) (cos x)) (g/simplify (g/+ 1 (g/tan 'x)))))
+  (is (= '(/ (+ (sin x) (cos x)) (cos x)) (g/simplify (g/+ (g/tan 'x) 1))))
   (is (= '(* -1 (expt (cos x) 2)) (g/simplify (g/+ (g/expt (g/sin 'x) 2) -1))))
   (is (= '(expt (cos x) 2) (g/simplify (g/- 1 (g/expt (g/sin 'x) 2)))))
   (is (= '(* -1 (expt (cos x) 2)) (g/simplify (g/+ (g/expt (g/sin 'x) 2) -1)))))

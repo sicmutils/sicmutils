@@ -24,11 +24,13 @@
              [structure :refer :all]
              [numsymb]
              [numbers]
-             [simplify :refer [pe]]
+             [simplify :refer [pe hermetic-simplify-fixture]]
              [function :refer :all]
              [operator :refer :all]
              [value :as v]]
             [sicmutils.calculus.derivative :refer :all]))
+
+(use-fixtures :once hermetic-simplify-fixture)
 
 (def ^:private near (v/within 1.0e-6))
 

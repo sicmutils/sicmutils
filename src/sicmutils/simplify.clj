@@ -30,8 +30,7 @@
              [value :as v]
              [generic :as g]
              [rules :as rules]]
-            [pattern.rule :as rule]
-            [sicmutils.expression :as x]))
+            [pattern.rule :as rule]))
 
 ;; WHERE WE LEFT OFF:
 ;;
@@ -130,13 +129,14 @@
 (def ^:dynamic *rf-analyzer* (memoize (unless-timeout (rational-function-analyzer))))
 (def ^:dynamic *poly-analyzer* (memoize (poly-analyzer)))
 
-(defn hermetic-simplify
-  [x]
+(defn hermetic-simplify-fixture
+  [f]
+  (log/info "Setting up hermetic simplification fixture")
   (binding [*rf-analyzer* (rational-function-analyzer)
             *poly-analyzer* (poly-analyzer)]
-    (g/simplify x)))
+    (f)))
 
-(def ^:private simplify-and-flatten *rf-analyzer*)
+(def ^:private simplify-and-flatten #'*rf-analyzer*)
 
 (defn- simplify-until-stable
   [rule-simplify canonicalize]

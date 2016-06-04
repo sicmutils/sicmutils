@@ -26,10 +26,12 @@
              [operator :as o]
              [value :as v]
              [numbers]
-             [simplify]
+             [simplify :refer [hermetic-simplify-fixture]]
              [infix :refer [->infix]]
              [structure :refer :all]]
             [sicmutils.calculus.derivative :refer :all]))
+
+(use-fixtures :once hermetic-simplify-fixture)
 
 (def ^:private q
   (up (literal-function 'x)
@@ -190,18 +192,20 @@
         (is (= '(η a) (simplify (((D g) 'dt) 'a))))
         (is (= '(η t) (simplify (δηIq 't))))
         (is (= '(f (q t)) (simplify ((F q) 't))))
-        (is (= '(* ((D f) (q t)) (η t)) (simplify (δηFq 't))))
+        (is (= '(* (η t) ((D f) (q t))) (simplify (δηFq 't))))
         ;; sum rule for variation: δ(F+G) = δF + δG
-        (is (= '(+ (* ((D f) (q t)) (η t)) (* (η t) ((D g) (q t)))) (simplify (((δη (+ F G)) q) 't))))
+        (is (= '(+ (* (η t) ((D f) (q t)))
+                   (* (η t) ((D g) (q t))))
+               (simplify (((δη (+ F G)) q) 't))))
         ;; scalar product rule for variation: δ(cF) = cδF
-        (is (= '(* ((D f) (q t)) (η t) c) (simplify (((δη (* 'c F)) q) 't))))
+        (is (= '(* (η t) ((D f) (q t)) c) (simplify (((δη (* 'c F)) q) 't))))
         ;; product rule for variation: δ(FG) = δF G + F δG
         (is (= (simplify (+ (* (((δη F) q) 't) ((G q) 't))
                             (* ((F q) 't) (((δη G) q) 't))))
                (simplify (((δη (* F G)) q) 't))))
         ;; path-independent chain rule for variation
         (is (= '(φ (f (q t))) (simplify (((φ F) q) 't))))
-        (is (= '(* ((D φ) (f (q t))) ((D f) (q t)) (η t)) (simplify (((δη (φ F)) q) 't))))))))
+        (is (= '(* (η t) ((D f) (q t)) ((D φ) (f (q t)))) (simplify (((δη (φ F)) q) 't))))))))
 
 (deftest derivatives-as-values
   (let [cs0 (fn [x] (sin (cos x)))
@@ -213,18 +217,18 @@
     (is (= '(sin (cos x)) (simplify (cs0 'x))))
     (is (= '(sin (cos x)) (simplify (cs1 'x))))
     (is (= '(sin (cos x)) (simplify (cs2 'x))))
-    (is (= '(* -1 (cos (cos x)) (sin x)) (simplify ((D cs0) 'x))))
-    (is (= '(* -1 (cos (cos x)) (sin x)) (simplify ((D cs1) 'x))))
-    (is (= '(* -1 (cos (cos x)) (sin x)) (simplify ((D cs2) 'x))))
-    (is (= '(* -1 (cos (cos x)) (sin x)) (simplify (y0 'x))))
-    (is (= '(* -1 (cos (cos x)) (sin x)) (simplify (y1 'x))))
-    (is (= '(* -1 (cos (cos x)) (sin x)) (simplify (y2 'x)))))
+    (is (= '(* -1 (sin x) (cos (cos x))) (simplify ((D cs0) 'x))))
+    (is (= '(* -1 (sin x) (cos (cos x))) (simplify ((D cs1) 'x))))
+    (is (= '(* -1 (sin x) (cos (cos x))) (simplify ((D cs2) 'x))))
+    (is (= '(* -1 (sin x) (cos (cos x))) (simplify (y0 'x))))
+    (is (= '(* -1 (sin x) (cos (cos x))) (simplify (y1 'x))))
+    (is (= '(* -1 (sin x) (cos (cos x))) (simplify (y2 'x)))))
   (let [unity (reduce + (map square [sin cos]))
         dU (D unity)]
     (is (= 1 (simplify (unity 'x))))
     (is (= 0 (simplify (dU 'x)))))
   (let [odear (fn [z] ((D (compose sin cos)) z))]
-    (is (= '(* -1 (cos (cos x)) (sin x)) (simplify (odear 'x))))))
+    (is (= '(* -1 (sin x) (cos (cos x))) (simplify (odear 'x))))))
 
 (deftest exponentiation-and-composition
   (let [ff (fn [x y z] (+ (* x x y) (* y y z)(* z z x)))
@@ -331,11 +335,10 @@
           h (literal-function 'h [0 0] 0)]
       (is (= '(+ (((∂ 0) g) x y) (((∂ 0) h) x y))
              (simplify (((∂ 0) (+ g h)) 'x 'y))))
-      (is (= '(+ (* (((∂ 0) g) x y) (h x y)) (* (g x y) (((∂ 0) h) x y)))
+      (is (= '(+ (* (((∂ 0) g) x y) (h x y)) (* (((∂ 0) h) x y) (g x y)))
              (simplify (((∂ 0) (* g h)) 'x 'y))))
-      (is (= '(+
-               (* (((∂ 0) g) x y) (h x y) (expt (g x y) (+ (h x y) -1)))
-               (* (log (g x y)) (expt (g x y) (h x y)) (((∂ 0) h) x y)))
+      (is (= '(+ (* (((∂ 0) g) x y) (h x y) (expt (g x y) (+ (h x y) -1)))
+                 (* (((∂ 0) h) x y) (log (g x y)) (expt (g x y) (h x y))))
              (simplify (((∂ 0) (expt g h)) 'x 'y))))))
   (testing "operators"
     (is (= '(down 1 1 1 1 1 1 1 1 1 1)
@@ -374,11 +377,11 @@
                     (/ (tan x) y))
              (simplify ((D f3) 'x 'y))))
       (is (= '(down (/ (sin y) (expt (cos x) 2))
-                    (/ (* (cos y) (sin x)) (cos x)))
+                    (/ (* (sin x) (cos y)) (cos x)))
              (simplify ((D f4) 'x 'y))))
       (is (= '(down
-               (/ 1 (* (expt (cos x) 2) (sin y)))
-               (/ (* -1 (cos y) (sin x)) (* (expt (sin y) 2) (cos x))))
+                (/ 1 (* (expt (cos x) 2) (sin y)))
+                (/ (* -1 (sin x) (cos y)) (* (cos x) (expt (sin y) 2))))
              (simplify ((D f5) 'x 'y)))))))
 
 (deftest deep-partials
@@ -407,13 +410,12 @@
            (simplify ((D f) 'x 'y))))
     (is (= '(+ (* (((∂ 0) f) x y) dx) (* (((∂ 1) f) x y) dy))
            (simplify (* ((D f) 'x 'y) dX))))
-    (is (= '(+
-             (* (((∂ 0) ((∂ 0) f)) x y) (expt dx 2))
-             (* (((∂ 1) ((∂ 0) f)) x y) dx dy)
-             (* (((∂ 0) ((∂ 1) f)) x y) dx dy)
-             (* (((∂ 1) ((∂ 1) f)) x y) (expt dy 2)))
+    (is (= '(+ (* (((∂ 0) ((∂ 0) f)) x y) (expt dx 2))
+               (* (((∂ 0) ((∂ 1) f)) x y) dx dy)
+               (* (((∂ 1) ((∂ 0) f)) x y) dx dy)
+               (* (((∂ 1) ((∂ 1) f)) x y) (expt dy 2)))
            (simplify (* dX (((expt D 2) f) 'x 'y) dX))))
-    (is (= "1/2 ∂₀(∂₀(f))(x, y) dx² + 1/2 ∂₁(∂₀(f))(x, y) dx dy + 1/2 ∂₀(∂₁(f))(x, y) dx dy + 1/2 ∂₁(∂₁(f))(x, y) dy² + ∂₀(f)(x, y) dx + ∂₁(f)(x, y) dy + f(x, y)"
+    (is (= "1/2 ∂₀(∂₀(f))(x, y) dx² + 1/2 ∂₀(∂₁(f))(x, y) dx dy + 1/2 ∂₁(∂₀(f))(x, y) dx dy + 1/2 ∂₁(∂₁(f))(x, y) dy² + ∂₀(f)(x, y) dx + ∂₁(f)(x, y) dy + f(x, y)"
            (->infix (simplify (+ (f 'x 'y)
                                  (* ((D f) 'x 'y) dX)
                                  (* 1/2 (((expt D 2) f) 'x 'y) dX dX))))))))

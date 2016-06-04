@@ -19,13 +19,12 @@
 (ns sicmutils.sicm-ch2-test
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.test :refer :all]
-            [clojure.pprint :as pp]
             [sicmutils
              [generic :refer :all]
              [structure :refer :all]
              [numsymb]
              [numbers]
-             [simplify]
+             [simplify :refer [hermetic-simplify-fixture]]
              [function :refer :all]
              [operator :refer :all]
              [value :as v]]
@@ -35,6 +34,8 @@
              [rigid :refer :all]
              [rotation :refer :all]]))
 
+(use-fixtures :once hermetic-simplify-fixture)
+
 (def ^:private Euler-state (up 't
                                (up 'θ 'φ 'ψ)
                                (up 'θdot 'φdot 'ψdot)))
@@ -43,15 +44,18 @@
   (with-literal-functions [θ φ ψ]
     (let [q (up θ φ ψ)
           M-on-path (compose Euler->M q)]
-      (is (= '(down
-               (up (+ (* -1 (sin (ψ t)) (cos (θ t)) (sin (φ t))) (* (cos (ψ t)) (cos (φ t))))
-                   (+ (* (sin (ψ t)) (cos (θ t)) (cos (φ t))) (* (cos (ψ t)) (sin (φ t)))) (* (sin (ψ t)) (sin (θ t))))
-               (up (+ (* -1 (cos (ψ t)) (cos (θ t)) (sin (φ t))) (* -1 (cos (φ t)) (sin (ψ t))))
-                   (+ (* (cos (ψ t)) (cos (θ t)) (cos (φ t))) (* -1 (sin (φ t)) (sin (ψ t)))) (* (cos (ψ t)) (sin (θ t))))
-               (up (* (sin (θ t)) (sin (φ t))) (* -1 (cos (φ t)) (sin (θ t))) (cos (θ t))))
+      (is (= '(down (up (+ (* -1 (sin (ψ t)) (cos (θ t)) (sin (φ t))) (* (cos (ψ t)) (cos (φ t))))
+                        (+ (* (cos (φ t)) (sin (ψ t)) (cos (θ t))) (* (cos (ψ t)) (sin (φ t))))
+                        (* (sin (ψ t)) (sin (θ t))))
+                    (up (+ (* -1 (cos (ψ t)) (cos (θ t)) (sin (φ t))) (* -1 (cos (φ t)) (sin (ψ t))))
+                        (+ (* (cos (ψ t)) (cos (φ t)) (cos (θ t))) (* -1 (sin (ψ t)) (sin (φ t))))
+                        (* (cos (ψ t)) (sin (θ t))))
+                    (up (* (sin (φ t)) (sin (θ t)))
+                        (* -1 (cos (φ t)) (sin (θ t)))
+                        (cos (θ t))))
              (simplify (M-on-path 't))))
       (is (= '(up (+ (* (sin (ψ t)) (sin (θ t)) ((D φ) t)) (* (cos (ψ t)) ((D θ) t)))
-                  (+ (* (cos (ψ t)) (sin (θ t)) ((D φ) t)) (* -1 ((D θ) t) (sin (ψ t))))
+                  (+ (* (cos (ψ t)) (sin (θ t)) ((D φ) t)) (* -1 (sin (ψ t)) ((D θ) t)))
                   (+ (* (cos (θ t)) ((D φ) t)) ((D ψ) t)))
              (simplify (((M-of-q->omega-body-of-t Euler->M) q) 't))))
       (is (= '(up (+ (* (sin ψ) (sin θ) φdot)
@@ -66,10 +70,11 @@
   ;; containing A φdot are reduced to sin^2 psi sin^2 theta, so that is
   ;; a missing piece in our simplification. XXX
   (is (= '(+ (* (expt (cos ψ) 2) (expt (sin θ) 2) B φdot)
-             (* (expt (sin θ) 2) (expt (sin ψ) 2) A φdot)
-             (* (cos ψ) (sin θ) (sin ψ) A θdot)
-             (* -1N (cos ψ) (sin θ) (sin ψ) B θdot)
-             (* (expt (cos θ) 2) C φdot) (* (cos θ) C ψdot))
+             (* (expt (sin ψ) 2) (expt (sin θ) 2) A φdot)
+             (* (cos ψ) (sin ψ) (sin θ) A θdot)
+             (* -1 (cos ψ) (sin ψ) (sin θ) B θdot)
+             (* (expt (cos θ) 2) C φdot)
+             (* (cos θ) C ψdot))
          (simplify (nth (((∂ 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1))))
   (is (zero? (simplify (- (nth ((Euler-state->L-space 'A 'B 'C) Euler-state) 2)
                           (nth (((∂ 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1)))))

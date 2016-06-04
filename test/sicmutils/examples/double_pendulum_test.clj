@@ -21,7 +21,10 @@
   (:require [sicmutils.env :refer :all]
             [sicmutils.mechanics.lagrange :refer :all]
             [sicmutils.examples.double-pendulum :as double]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [clojure.test :refer :all]))
+
+(use-fixtures :once hermetic-simplify-fixture)
 
 (deftest equations
   (let [state (up 't (up 'θ 'φ) (up 'θdot 'φdot))
@@ -54,9 +57,10 @@
                        (* (((expt D 2) θ) t) (expt l1 2) m2)
                        (* (sin (θ t)) g l1 m1)
                        (* (sin (θ t)) g l1 m2))
-                    (+ (* -1 (expt ((D θ) t) 2) (sin (+ (θ t) (* -1 (φ t)))) l1 l2 m2)
+                    (+ (* -1 (sin (+ (θ t) (* -1 (φ t)))) (expt ((D θ) t) 2) l1 l2 m2)
                        (* (((expt D 2) θ) t) (cos (+ (θ t) (* -1 (φ t)))) l1 l2 m2)
-                       (* (((expt D 2) φ) t) (expt l2 2) m2) (* (sin (φ t)) g l2 m2)))
+                       (* (((expt D 2) φ) t) (expt l2 2) m2)
+                       (* (sin (φ t)) g l2 m2)))
              (simplify (((Lagrange-equations
                           (double/L-double-pend 'm1 'm2 'l1 'l2 'g))
                          (up θ φ))
@@ -69,8 +73,8 @@
 
 (deftest as-javascript
   (let [eq (simplify
-            ((double/state-derivative 'm1 'm2 'l1 'l2 'g)
-             (up 't (up 'theta 'phi) (up 'thetadot 'phidot))))]
+             ((double/state-derivative 'm1 'm2 'l1 'l2 'g)
+               (up 't (up 'theta 'phi) (up 'thetadot 'phidot))))]
     (is (= (str "function(t, theta, phi, thetadot, phidot) {\n"
                 "  var _1 = Math.cos(- phi + theta);\n"
                 "  var _2 = Math.pow(phidot, 2);\n"
@@ -80,6 +84,5 @@
                 "  var _6 = Math.pow(Math.sin(- phi + theta), 2);\n"
                 "  var _7 = Math.sin(theta);\n"
                 "  var _8 = Math.pow(thetadot, 2);\n"
-                "  var _9 = - phi + theta;\n"
-                "  return [1, [thetadot, phidot], [(- Math.sin(_5 + theta) * Math.cos(_5 + theta) * l1 * m2 * _8 - Math.sin(_5 + theta) * l2 * m2 * _2 + Math.cos(_5 + theta) * _3 * g * m2 - _7 * g * m1 - _7 * g * m2) / (Math.pow(Math.sin(_5 + theta), 2) * l1 * m2 + l1 * m1), (Math.sin(_5 + theta) * Math.cos(_5 + theta) * l2 * m2 * _2 + Math.sin(_5 + theta) * l1 * m1 * _8 + Math.sin(_5 + theta) * l1 * m2 * _8 + Math.cos(_5 + theta) * _7 * g * m1 + Math.cos(_5 + theta) * _7 * g * m2 - _3 * g * m1 - _3 * g * m2) / (Math.pow(Math.sin(_5 + theta), 2) * l2 * m2 + l2 * m1)]];\n}" )
+                "  var _9 = - phi + theta;\n  return [1, [thetadot, phidot], [(- Math.sin(_5 + theta) * Math.cos(_5 + theta) * l1 * m2 * _8 - Math.sin(_5 + theta) * l2 * m2 * _2 + Math.cos(_5 + theta) * _3 * g * m2 - _7 * g * m1 - _7 * g * m2) / (Math.pow(Math.sin(_5 + theta), 2) * l1 * m2 + l1 * m1), (Math.sin(_5 + theta) * Math.cos(_5 + theta) * l2 * m2 * _2 + Math.sin(_5 + theta) * l1 * m1 * _8 + Math.sin(_5 + theta) * l1 * m2 * _8 + _7 * Math.cos(_5 + theta) * g * m1 + _7 * Math.cos(_5 + theta) * g * m2 - _3 * g * m1 - _3 * g * m2) / (Math.pow(Math.sin(_5 + theta), 2) * l2 * m2 + l2 * m1)]];\n}")
            (->JavaScript eq :parameter-order '[t theta phi thetadot phidot])))))

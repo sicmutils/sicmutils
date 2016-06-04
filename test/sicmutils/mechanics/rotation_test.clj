@@ -23,19 +23,21 @@
              [generic :refer :all]
              [function :refer :all]
              [numbers]
-             [simplify :refer [pe]]
+             [simplify :refer [pe hermetic-simplify-fixture]]
              [structure :refer :all]]
             [sicmutils.mechanics.rotation :refer :all]))
+
+(use-fixtures :once hermetic-simplify-fixture)
 
 (deftest hello
   (let [P (up 'x 'y 'z)]
     (is (= '(up x
                 (+ (* (cos a) y) (* -1 (sin a) z))
-                (+ (* (sin a) y) (* (cos a) z)))
+                (+ (* (cos a) z) (* (sin a) y)))
            (simplify ((Rx 'a) P))))
     (is (= '(up x
                 (+ (* (cos a) y) (* -1 (sin a) z))
-                (+ (* (sin a) y) (* (cos a) z)))
+                (+ (* (cos a) z) (* (sin a) y)))
            (simplify (* (rotate-x-matrix 'a) P))))
     (is (= '(up 0 0 0) (simplify (- ((Rx 'a) P) (* (rotate-x-matrix 'a) P)))))
     (is (= '(up 0 0 0) (simplify (- ((Ry 'a) P) (* (rotate-y-matrix 'a) P)))))
