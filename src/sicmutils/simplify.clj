@@ -201,6 +201,7 @@
 
 (def ^:private simplify-expression-1
   #(-> %
+       rules/canonicalize-partials
        rules/trig->sincos
        simplify-and-flatten
        rules/complex-trig

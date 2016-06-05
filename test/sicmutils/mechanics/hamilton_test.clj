@@ -30,7 +30,9 @@
 (deftest section-3.1.1
   ;; To move further into Hamiltonian mechanics, we will need
   ;; literal functions mapping structures to structures.
-  (with-literal-functions [x y v_x v_y p_x p_y [V [1 2] 3]]
+
+  (with-literal-functions
+    [x y v_x v_y p_x p_y [V [1 2] 3]]
     (is (= '(V x y) (simplify (V 'x 'y))))
     (is (= '(up 0
                 (up (/ (+ (* ((D x) t) m) (* -1 (p_x t))) m)
@@ -45,6 +47,7 @@
                       't))))
     (is (= '(/ (expt y 2) (* 4 c))
            (simplify ((Legendre-transform (fn [x] (* 'c x x))) 'y))))
+    (is (= '(* 1/4 (expt p 2)) (simplify ((Legendre-transform square) 'p))))
     (is (= '(+ (* 1/2 m (expt v_x 2)) (* 1/2 m (expt v_y 2)) (* -1 (V x y)))
            (simplify ((L-rectangular 'm V) (up 't (up 'x 'y) (up 'v_x 'v_y))))))
     (is (= '(/ (+ (* 2 (V x y) m) (expt p_x 2) (expt p_y 2))
@@ -135,8 +138,10 @@
                     (comp (component 1) momentum)
                     (comp (component 2) momentum)))
              a-state))))
-    (with-literal-functions [[FF (up 0 (up 1 2) (down 3 4)) 5]
-                             [GG (up 0 (up 1 2) (down 3 4)) 5]]
+    (with-literal-functions
+      [[FF (up 0 (up 1 2) (down 3 4)) 5]
+       [GG (up 0 (up 1 2) (down 3 4)) 5]
+       [HH (up 0 (up 1 2) (down 3 4)) 5]]
       (is (= '(FF (up t (up x y) (down pa pb)))
              (simplify (FF (up 't (up 'x 'y) (down 'pa 'pb))))))
       (is (= '(down
@@ -167,4 +172,9 @@
               ((* (D FF)
                   (Poisson-bracket identity identity)
                   (D GG))
-               (up 't (up 'x 'y) (down 'p_x 'p_y)))))))))
+               (up 't (up 'x 'y) (down 'p_x 'p_y))))))
+      (testing "Jacobi identity"
+        (is (= 0 (simplify ((+ (Poisson-bracket FF (Poisson-bracket GG HH))
+                               (Poisson-bracket GG (Poisson-bracket HH FF))
+                               (Poisson-bracket HH (Poisson-bracket FF GG)))
+                             (up 't (up 'x 'y) (down 'p_x 'p_y))))))))))

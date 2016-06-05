@@ -23,7 +23,6 @@
              [function :refer :all]
              [generic :refer :all]
              [complex :refer [complex]]
-             [operator :as o]
              [value :as v]
              [numbers]
              [simplify :refer [hermetic-simplify-fixture]]
@@ -402,20 +401,21 @@
         dX (up 'dx 'dy)]
     (is (= '(f x y) (simplify (f 'x 'y))))
     (is (= '(g (up (* 3 x) (* 3 y))) (simplify (g (* 3 (up 'x 'y))))))
-    (is (= '(down
-             (down (((∂ 0) ((∂ 0) f)) x y) (((∂ 0) ((∂ 1) f)) x y))
-             (down (((∂ 1) ((∂ 0) f)) x y) (((∂ 1) ((∂ 1) f)) x y)))
+    (is (= '(down (down (((∂ 0) ((∂ 0) f)) x y)
+                        (((∂ 1) ((∂ 0) f)) x y))
+                  (down (((∂ 1) ((∂ 0) f)) x y)
+                        (((∂ 1) ((∂ 1) f)) x y)))
            (simplify (((expt D 2) f) 'x 'y))))
     (is (= '(down (((∂ 0) f) x y) (((∂ 1) f) x y))
            (simplify ((D f) 'x 'y))))
     (is (= '(+ (* (((∂ 0) f) x y) dx) (* (((∂ 1) f) x y) dy))
            (simplify (* ((D f) 'x 'y) dX))))
-    (is (= '(+ (* (((∂ 0) ((∂ 0) f)) x y) (expt dx 2))
-               (* (((∂ 0) ((∂ 1) f)) x y) dx dy)
-               (* (((∂ 1) ((∂ 0) f)) x y) dx dy)
+    (is (= '(+ (* (((∂ 0) ((∂ 0) f)) x y)
+                  (expt dx 2))
+               (* 2 (((∂ 1) ((∂ 0) f)) x y) dx dy)
                (* (((∂ 1) ((∂ 1) f)) x y) (expt dy 2)))
            (simplify (* dX (((expt D 2) f) 'x 'y) dX))))
-    (is (= "1/2 ∂₀(∂₀(f))(x, y) dx² + 1/2 ∂₀(∂₁(f))(x, y) dx dy + 1/2 ∂₁(∂₀(f))(x, y) dx dy + 1/2 ∂₁(∂₁(f))(x, y) dy² + ∂₀(f)(x, y) dx + ∂₁(f)(x, y) dy + f(x, y)"
+    (is (= "1/2 ∂₀(∂₀(f))(x, y) dx² + ∂₁(∂₀(f))(x, y) dx dy + 1/2 ∂₁(∂₁(f))(x, y) dy² + ∂₀(f)(x, y) dx + ∂₁(f)(x, y) dy + f(x, y)"
            (->infix (simplify (+ (f 'x 'y)
                                  (* ((D f) 'x 'y) dX)
                                  (* 1/2 (((expt D 2) f) 'x 'y) dX dX))))))))
@@ -436,15 +436,12 @@
          (simplify (take 6 (taylor-series-terms #(sqrt (+ 1 %)) 0 'dx)))))
   (is (= '(+ (* 1/6 (((∂ 0) ((∂ 0) ((∂ 0) f))) (up x y)) (expt dx 3))
              (* 1/6 (((∂ 0) ((∂ 0) ((∂ 1) f))) (up x y)) (expt dx 2) dy)
-             (* 1/6 (((∂ 0) ((∂ 1) ((∂ 0) f))) (up x y)) (expt dx 2) dy)
-             (* 1/6 (((∂ 0) ((∂ 1) ((∂ 1) f))) (up x y)) dx (expt dy 2))
-             (* 1/6 (((∂ 1) ((∂ 0) ((∂ 0) f))) (up x y)) (expt dx 2) dy)
-             (* 1/6 (((∂ 1) ((∂ 0) ((∂ 1) f))) (up x y)) dx (expt dy 2))
+             (* 1/3 (((∂ 1) ((∂ 0) ((∂ 0) f))) (up x y)) (expt dx 2) dy)
+             (* 1/3 (((∂ 1) ((∂ 0) ((∂ 1) f))) (up x y)) dx (expt dy 2))
              (* 1/6 (((∂ 1) ((∂ 1) ((∂ 0) f))) (up x y)) dx (expt dy 2))
              (* 1/6 (((∂ 1) ((∂ 1) ((∂ 1) f))) (up x y)) (expt dy 3))
              (* 1/2 (((∂ 0) ((∂ 0) f)) (up x y)) (expt dx 2))
-             (* 1/2 (((∂ 0) ((∂ 1) f)) (up x y)) dx dy)
-             (* 1/2 (((∂ 1) ((∂ 0) f)) (up x y)) dx dy)
+             (* (((∂ 1) ((∂ 0) f)) (up x y)) dx dy)
              (* 1/2 (((∂ 1) ((∂ 1) f)) (up x y)) (expt dy 2))
              (* (((∂ 0) f) (up x y)) dx)
              (* (((∂ 1) f) (up x y)) dy)

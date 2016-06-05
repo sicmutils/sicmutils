@@ -66,9 +66,6 @@
              (simplify ((M->omega-body Euler->M) Euler-state)))))))
 
 (deftest section-2.9
-  ;; this is almost what scmutils gives, except the first and third terms
-  ;; containing A φdot are reduced to sin^2 psi sin^2 theta, so that is
-  ;; a missing piece in our simplification. XXX
   (is (= '(+ (* (expt (cos ψ) 2) (expt (sin θ) 2) B φdot)
              (* (expt (sin ψ) 2) (expt (sin θ) 2) A φdot)
              (* (cos ψ) (sin ψ) (sin θ) A θdot)
