@@ -32,21 +32,6 @@
              [rules :as rules]]
             [pattern.rule :as rule]))
 
-;; WHERE WE LEFT OFF:
-;;
-;; To avoid simplification oscillation syndrome, we need
-;; a hermetic simplify, which means we need (I think!) a
-;; simplify that clears the expr->var, var->expr maps before
-;; entering. (as we just proved by using reset!).
-;;
-;; how to proceed? two kinds of analyzer, or one kind with
-;; multiple entry points? Or imitate JSON and return an
-;; object with closures in it?
-;;
-;; There is a fairly subtle question here. We don't want
-;; the objects to be overly stateful. So maybe we want
-;; to allow the creation of two different kinds.
-
 (defn analyzer
   [symbol-generator expr-> ->expr known-operations]
   (let [expr->var (atom {})

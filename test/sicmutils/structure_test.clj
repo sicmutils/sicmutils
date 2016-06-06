@@ -25,8 +25,8 @@
 
 (deftest structures
   (testing "type"
-    (is (= :sicmutils.structure/up (v/kind (up 1 2))))
-    (is (= :sicmutils.structure/down (v/kind (down (up 1 2) (up 2 3))))))
+    (is (= ::s/up (v/kind (up 1 2))))
+    (is (= ::s/down (v/kind (down (up 1 2) (up 2 3))))))
   (testing "s+t"
     (is (= (+ (up 1 2) (up 2 3)) (up 3 5)))
     (is (= (+ (down 3 4) (down 1 2)) (down 4 6)))
@@ -270,10 +270,10 @@
         F (down (up 1 2) (up 3 4))
         G (down (up 4 0 0 0) (up 0 0 2 0) (up 0 1 2 0) (up 1 0 0 1))]
     (testing "square?"
-      (is (= [2 :sicmutils.structure/up :sicmutils.structure/up] (s/square? A)))
+      (is (= [2 ::s/up ::s/up] (s/square? A)))
       (is (not (s/square? B)))
-      (is (= [3 :sicmutils.structure/down :sicmutils.structure/up] (s/square? C)))
-      (is (= [1 :sicmutils.structure/up :sicmutils.structure/down] (s/square? D)))
+      (is (= [3 ::s/down ::s/up] (s/square? C)))
+      (is (= [1 ::s/up ::s/down] (s/square? D)))
       (is (s/square? E)))
     (testing "determinant"
       (is (= -2 (determinant A)))

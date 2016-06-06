@@ -20,15 +20,18 @@
   (:import (com.google.common.base Stopwatch)
            (java.util.concurrent TimeUnit))
   (:require [clojure.test :refer :all]
+            [clojure.test.check.properties :as prop]
+            [clojure.test.check.clojure-test :refer [defspec]]
             [sicmutils
-             [value :as v]
              [polynomial :refer :all]
+             [polynomial-test :as p-test]
              [polynomial-gcd :refer :all]
-             [generic :as g]
              [numbers]
              [expression :refer [variables-in]]
              [modint :as modular]
-             [simplify]]))
+             [simplify]]
+            [clojure.test.check.generators :as gen]
+            [sicmutils.value :as v]))
 
 (deftest poly-gcd
   (let [u (make [6 7 1])  ;; some polynomials of arity 1
@@ -371,3 +374,19 @@
                 54
                 (expt z 0))]
       (gcd-test "K2" d p q))))
+
+(defspec g-divides-u-and-v
+         (prop/for-all [u p-test/generate-univariate-poly
+                        v p-test/generate-univariate-poly]
+                       (let [g (gcd u v)]
+                         (or (and (v/nullity? u)
+                                  (v/nullity? v)
+                                  (v/nullity? g))
+                             (and (evenly-divide u g)
+                                  (evenly-divide v g))))))
+
+(defspec d-divides-gcd-ud-vd
+         (prop/for-all [u p-test/generate-univariate-poly
+                        v p-test/generate-univariate-poly
+                        d p-test/generate-nonzero-univariate-poly]
+                       (evenly-divide (gcd (mul u d) (mul v d)) d)))

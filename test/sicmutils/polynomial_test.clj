@@ -18,6 +18,10 @@
 
 (ns sicmutils.polynomial-test
   (:require [clojure.test :refer :all]
+            [clojure.test.check :as tc]
+            [clojure.test.check.generators :as gen]
+            [clojure.test.check.properties :as prop]
+            [clojure.test.check.clojure-test :refer [defspec]]
             [clojure.math.numeric-tower :as nt]
             [sicmutils
              [value :as v]
@@ -263,3 +267,36 @@
       (is (= 3 (poly-simp '(+ 2 1))))
       (is (= '(+ b (* -1 f)) (poly-simp '(- (+ a b c) (+ a c f)))))
       (is (= '(+ (* -1 b) f) (poly-simp '(- (+ a c f) (+ c b a))))))))
+
+(def generate-univariate-poly
+  (gen/fmap make (gen/vector gen/int)))
+
+(def generate-nonzero-univariate-poly
+  (gen/such-that #(not (v/nullity? %)) generate-univariate-poly))
+
+(defspec p+p=2p
+         (prop/for-all [p generate-univariate-poly]
+                       (= (add p p) (mul p (make [2])))))
+
+(defspec p-p=0
+         (prop/for-all [p generate-univariate-poly]
+                       (v/nullity? (sub p p))))
+
+(defspec pq-div-p=q
+         (prop/for-all [p generate-univariate-poly
+                        q generate-nonzero-univariate-poly]
+                       (let [[Q R] (divide (mul p q) q)]
+                         (and (v/nullity? R)
+                              (= Q p)))))
+
+(defspec p+q=q+p
+         (prop/for-all [p generate-univariate-poly
+                        q generate-univariate-poly]
+                       (= (add p q) (add q p))))
+
+(defspec pq=qp
+         (prop/for-all [p generate-univariate-poly
+                        q generate-univariate-poly]
+                       (= (mul p q) (mul q p))))
+
+

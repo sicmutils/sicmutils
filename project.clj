@@ -9,6 +9,7 @@
                  [com.google.guava/guava "19.0"]
                  [org.apache.commons/commons-math3 "3.6"]
                  [org.clojure/math.numeric-tower "0.0.4"]
+                 [org.clojure/test.check "0.9.0"]
                  [org.clojure/tools.nrepl "0.2.12"]]
   :main sicmutils.repl
   :jvm-opts ["-Djava.util.logging.config.file=logging.properties"]
