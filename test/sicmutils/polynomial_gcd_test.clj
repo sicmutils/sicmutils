@@ -375,18 +375,26 @@
                 (expt z 0))]
       (gcd-test "K2" d p q))))
 
-(defspec g-divides-u-and-v
-         (prop/for-all [u p-test/generate-univariate-poly
-                        v p-test/generate-univariate-poly]
-                       (let [g (gcd u v)]
-                         (or (and (v/nullity? u)
-                                  (v/nullity? v)
-                                  (v/nullity? g))
-                             (and (evenly-divide u g)
-                                  (evenly-divide v g))))))
+;; Currently we only do GCD testing of univariate polynomials, because
+;; we find that unfortunately clojure.test.check is very good at finding
+;; polynomials even of degree 2 that will exceed the time allotment for
+;; findinig GCDs. Hopefully we can fix that, but for the  present this
+;; explains why we generate arities from the singleton set [1].
 
-(defspec d-divides-gcd-ud-vd
-         (prop/for-all [u p-test/generate-univariate-poly
-                        v p-test/generate-univariate-poly
-                        d p-test/generate-nonzero-univariate-poly]
-                       (evenly-divide (gcd (mul u d) (mul v d)) d)))
+(defspec ^:long g-divides-u-and-v
+         (gen/let [arity (gen/elements [1])]
+                  (prop/for-all [u (p-test/generate-poly arity)
+                                 v (p-test/generate-poly arity)]
+                                (let [g (gcd u v)]
+                                  (or (and (v/nullity? u)
+                                           (v/nullity? v)
+                                           (v/nullity? g))
+                                      (and (evenly-divide u g)
+                                           (evenly-divide v g)))))))
+
+(defspec ^:long d-divides-gcd-ud-vd
+         (gen/let [arity (gen/elements [1])]
+                  (prop/for-all [u (p-test/generate-poly arity)
+                                 v (p-test/generate-poly arity)
+                                 d (p-test/generate-nonzero-poly arity)]
+                                (evenly-divide (gcd (mul u d) (mul v d)) d))))

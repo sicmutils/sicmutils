@@ -268,35 +268,43 @@
       (is (= '(+ b (* -1 f)) (poly-simp '(- (+ a b c) (+ a c f)))))
       (is (= '(+ (* -1 b) f) (poly-simp '(- (+ a c f) (+ c b a))))))))
 
-(def generate-univariate-poly
-  (gen/fmap make (gen/vector gen/int)))
+(defn generate-poly
+  [arity]
+  (gen/fmap #(make arity %)
+            (gen/vector
+              (gen/tuple
+                (gen/vector gen/pos-int arity)
+                gen/int))))
 
-(def generate-nonzero-univariate-poly
-  (gen/such-that #(not (v/nullity? %)) generate-univariate-poly))
+(defn generate-nonzero-poly
+  [arity]
+  (gen/such-that (complement v/nullity?) (generate-poly arity)))
 
 (defspec p+p=2p
-         (prop/for-all [p generate-univariate-poly]
-                       (= (add p p) (mul p (make [2])))))
+         (prop/for-all [p (gen/bind gen/nat generate-poly)]
+                       (= (add p p) (mul p (make-constant (:arity p) 2)))))
 
 (defspec p-p=0
-         (prop/for-all [p generate-univariate-poly]
+         (prop/for-all [p (gen/bind gen/nat generate-poly)]
                        (v/nullity? (sub p p))))
 
 (defspec pq-div-p=q
-         (prop/for-all [p generate-univariate-poly
-                        q generate-nonzero-univariate-poly]
-                       (let [[Q R] (divide (mul p q) q)]
-                         (and (v/nullity? R)
-                              (= Q p)))))
+         (gen/let [arity gen/nat]
+                  (prop/for-all [p (generate-poly arity)
+                                 q (generate-nonzero-poly arity)]
+                                (let [[Q R] (divide (mul p q) q)]
+                                  (and (v/nullity? R)
+                                       (= Q p))))))
 
 (defspec p+q=q+p
-         (prop/for-all [p generate-univariate-poly
-                        q generate-univariate-poly]
-                       (= (add p q) (add q p))))
+         (gen/let [arity gen/nat]
+                  (prop/for-all [p (generate-poly arity)
+                                 q (generate-poly arity)]
+                                (= (add p q) (add q p)))))
 
 (defspec pq=qp
-         (prop/for-all [p generate-univariate-poly
-                        q generate-univariate-poly]
-                       (= (mul p q) (mul q p))))
-
+         (gen/let [arity gen/nat]
+                  (prop/for-all [p (generate-poly arity)
+                                 q (generate-poly arity)]
+                                (= (mul p q) (mul q p)))))
 
