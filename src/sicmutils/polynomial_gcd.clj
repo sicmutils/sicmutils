@@ -24,14 +24,13 @@
             [clojure.string]
             [sicmutils
              [value :as v]
-             [euclid :as euclid]
              [generic :as g]
              [polynomial :refer :all]]))
 
 (def ^:dynamic *poly-gcd-time-limit* [1000 TimeUnit/MILLISECONDS])
 (def ^:dynamic *poly-gcd-cache-enable* true)
-(def ^:private ^:dynamic *poly-gcd-bail-out* (fn []))
 (def ^:dynamic *poly-gcd-debug* false)
+(def ^:private ^:dynamic *poly-gcd-bail-out* (fn []))
 (def ^:private gcd-memo (atom {}))
 (def ^:private gcd-cache-hit (atom 0))
 (def ^:private gcd-cache-miss (atom 0))
@@ -43,11 +42,11 @@
   (when (> (count @gcd-memo) 0)
     (log/info (format "GCD cache hit rate %.2f%% (%d entries)"
                       (* 100. (/ @gcd-cache-hit (+ @gcd-cache-hit @gcd-cache-miss)))
-                      (count @gcd-memo)))
-    (log/info (format "GCD triv %d prob %d mono %d"
-                      @gcd-trivial-constant
-                      @gcd-probabilistic-unit
-                      @gcd-monomials))))
+                      (count @gcd-memo))))
+  (log/info (format "GCD triv %d prob %d mono %d"
+                    @gcd-trivial-constant
+                    @gcd-probabilistic-unit
+                    @gcd-monomials)))
 
 (defn ^:private reduce-until
   "Returns a reducer over the function f which will exit early
@@ -58,9 +57,13 @@
                (if (done? c) (reduced c) c)))]
     #(reduce rf %)))
 
+(defn ^:private native-gcd
+  [a b]
+  (.gcd (biginteger a) (biginteger b)))
+
 (def ^:private primitive-gcd
   "A function which will return the gcd of a sequence of numbers."
-  (reduce-until v/unity? euclid/gcd))
+  (reduce-until #(= % 1) native-gcd))
 
 (defn ^:private with-content-removed
   "For multivariate polynomials. u and v are considered here as
@@ -228,7 +231,7 @@
         (let [xs (repeatedly a gcd-heuristic-random-value)
               u:xs (evaluate u xs)
               v:xs (evaluate v xs)
-              g (euclid/gcd u:xs v:xs)]
+              g (native-gcd u:xs v:xs)]
           (if (= g 1)
             (recur (inc n))
             (do (when *poly-gcd-debug*
@@ -312,7 +315,7 @@
                              (map-exponents sorter v)))))
 
 (def ^:private univariate-euclid-inner-loop
-  (euclid-inner-loop euclid/gcd))
+  (euclid-inner-loop native-gcd))
 
 (defn ^:private gcd1
   "Knuth's algorithm 4.6.1E for UNIVARIATE polynomials."
@@ -327,7 +330,7 @@
     (v/unity? u) u
     (v/unity? v) v
     (= u v) u
-    :else (with-content-removed euclid/gcd u v univariate-euclid-inner-loop)))
+    :else (with-content-removed native-gcd u v univariate-euclid-inner-loop)))
 
 (defn ^:private monomial-gcd
   "Computing the GCD is easy if one of the polynomials is a monomial.
@@ -418,12 +421,12 @@
       (v/unity? v) v
       (= u v) u
       (= arity 1) (abs (gcd1 u v))
-      :else (binding [*poly-gcd-bail-out* #(when (> (.elapsed clock (second *poly-gcd-time-limit*))
-                                                    (first *poly-gcd-time-limit*))
-                                            (println "too long" (str u) (str v))
-                                            (throw (TimeoutException.
-                                                     (str "Took too long to find multivariate polynomial GCD: "
-                                                          clock))))]
+      :else (binding [*poly-gcd-bail-out* (fn [] (when (> (.elapsed clock (second *poly-gcd-time-limit*))
+                                                          (first *poly-gcd-time-limit*))
+                                                   (println "too long" (str u) (str v))
+                                                   (throw (TimeoutException.
+                                                            (str "Took too long to find multivariate polynomial GCD: "
+                                                                 clock)))))]
               (abs (gcd-continuation-chain u v
                                            with-trivial-constant-gcd-check
                                            ;;with-easy-factors-removed (loses)

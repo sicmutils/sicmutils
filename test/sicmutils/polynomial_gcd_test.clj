@@ -28,10 +28,11 @@
              [polynomial-gcd :refer :all]
              [numbers]
              [expression :refer [variables-in]]
-             [modint :as modular]
              [simplify]]
             [clojure.test.check.generators :as gen]
             [sicmutils.value :as v]))
+
+(use-fixtures :once (fn [f] (f) (gcd-stats)))
 
 (deftest poly-gcd
   (let [u (make [6 7 1])  ;; some polynomials of arity 1
@@ -114,7 +115,11 @@
          (is (= (mul X+Z X+Y+Z) (gcd (reduce mul [X+Y X+Z X+Y+Z]) (reduce mul [X+Z X+Y+Z Y+Z]))))
          (is (= (mul X+Z (mul X+Z X+Y)) (gcd (reduce mul [X+Z X+Z X+Y X+Y+Z Y+1]) (reduce mul [X+Z X+Z X+Y X+1 Z+1 X+Z]))))
          (is (= G (gcd U V))))))
-    (testing "modular polynomial reduction"
+    ;; this was sort of cool, but prevented us from using native BigInteger GCD.
+    ;; it could come back, but in order to do this right, we would need a way
+    ;; to specify the coefficient field when we create a polynomial so that we
+    ;; can efficiently dispatch to a GCD routine tailored to that field.
+    #_(testing "modular polynomial reduction"
       (let [A (make [-360 -171 145 25 1])
             B (make [-15 -14 -1 15 14 1])
             Z5 #(modular/make % 5)
