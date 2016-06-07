@@ -18,7 +18,6 @@
 
 (ns sicmutils.polynomial-test
   (:require [clojure.test :refer :all]
-            [clojure.test.check :as tc]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
@@ -181,42 +180,39 @@
       (is (= [z2 x3 xy2z x2z2] (monomial-sort graded-lex-order))))))
 
 (defn ^:private ->poly [x] (expression-> x (fn [p _] p)))
-(deftest poly-apply
+(deftest poly-evaluate
   (testing "arity 1"
     (let [p (->poly '(+ 2 (* x 3)))]
-      (is (= 14 (p 4)))
-      (is (thrown? IllegalArgumentException (p 3 2))))
-    (is (= 256 ((->poly '(expt x 8)) 2)))
-    (is (= 272 ((->poly '(+ (expt x 4) (expt x 8))) 2))))
+      (is (= 14 (evaluate p [4])))
+      (is (thrown? AssertionError (evaluate p [3 2]))))
+    (is (= 256 (evaluate (->poly '(expt x 8)) [2])))
+    (is (= 272 (evaluate (->poly '(+ (expt x 4) (expt x 8))) [2]))))
   (testing "arity 2"
     (let [p (->poly '(expt (+ x y) 2))]
-      (is (= p (p)))
-      (is (= 25 (p 2 3)))
-      (let [q (p 3)]
-        (is (= 49 (q 4))))))
+      (is (= 25 (evaluate p [2 3])))))
   (testing "arity 3"
     (let [p (->poly '(+ (expt x 3) (expt y 2) z 1))]
-      (is (= 19 (p 2 3 1)))))
+      (is (= 19 (evaluate p [2 3 1])))))
   (testing "arity 4"
     (let [p (->poly '(expt (- w x y z) 2))]
-      (is (= 36 (p 10 1 2 1)))))
+      (is (= 36 (evaluate p [10 1 2 1])))))
   (testing "arity 5"
     (let [p (->poly '(expt (- v w x y z) 2))]
-      (is (= 16 (p 10 1 2 1 2)))))
-  (testing "arity 10 (via apply)"
+      (is (= 16 (evaluate p [10 1 2 1 2])))))
+  (testing "arity 10"
     (let [p (->poly '(expt (- x0 x1 x2 x3 x4 x5 x6 x7 x8 x9) 3))]
-      (is (= 216 (apply p [10 1 2 1 2 -3 1 -2 -1 3])))))
+      (is (= 216 (evaluate p [10 1 2 1 2 -3 1 -2 -1 3])))))
   (testing "constant polys"
     (let [p1 (make [3])
           p2 (make 2 [[[0 0] 5]])
           p3 (make 3 [[[1 0 0] 1]])
           p4 (make 3 [[[0 1 0] 1]])
           p5 (make 3 [[[0 0 1] 1]])]
-      (is (= 3 (p1 99)))
-      (is (= 5 (p2 99 98)))
-      (is (= 7 (p3 7 8 9)))
-      (is (= 8 (p4 7 8 9)))
-      (is (= 9 (p5 7 8 9))))))
+      (is (= 3 (evaluate p1 [99])))
+      (is (= 5 (evaluate p2 [99 98])))
+      (is (= 7 (evaluate p3 [7 8 9])))
+      (is (= 8 (evaluate p4 [7 8 9])))
+      (is (= 9 (evaluate p5 [7 8 9]))))))
 
 (deftest poly-as-simplifier
   (testing "arity"
@@ -280,15 +276,17 @@
   [arity]
   (gen/such-that (complement v/nullity?) (generate-poly arity)))
 
-(defspec p+p=2p
+(def ^:private num-tests 50)
+
+(defspec ^:long p+p=2p num-tests
          (prop/for-all [p (gen/bind gen/nat generate-poly)]
                        (= (add p p) (mul p (make-constant (:arity p) 2)))))
 
-(defspec p-p=0
+(defspec ^:long p-p=0 num-tests
          (prop/for-all [p (gen/bind gen/nat generate-poly)]
                        (v/nullity? (sub p p))))
 
-(defspec pq-div-p=q
+(defspec ^:long pq-div-p=q num-tests
          (gen/let [arity gen/nat]
                   (prop/for-all [p (generate-poly arity)
                                  q (generate-nonzero-poly arity)]
@@ -296,15 +294,34 @@
                                   (and (v/nullity? R)
                                        (= Q p))))))
 
-(defspec p+q=q+p
+(defspec ^:long p+q=q+p num-tests
          (gen/let [arity gen/nat]
                   (prop/for-all [p (generate-poly arity)
                                  q (generate-poly arity)]
                                 (= (add p q) (add q p)))))
 
-(defspec pq=qp
+(defspec ^:long pq=qp num-tests
          (gen/let [arity gen/nat]
                   (prop/for-all [p (generate-poly arity)
                                  q (generate-poly arity)]
                                 (= (mul p q) (mul q p)))))
+
+(defspec ^:long p*_q+r_=p*q+p*r num-tests
+         (gen/let [arity gen/nat]
+                  (prop/for-all [p (generate-poly arity)
+                                 q (generate-poly arity)
+                                 r (generate-poly arity)]
+                                (= (mul p (add q r)) (add (mul p q) (mul p r))))))
+
+(defspec ^:long lower-and-raise-arity-are-inverse num-tests
+         (prop/for-all [p (gen/bind (gen/choose 2 10) generate-nonzero-poly)]
+                       (= p (raise-arity (lower-arity p)))))
+
+(defspec ^:long evaluation-homomorphism (/ num-tests 2)
+         (gen/let [arity (gen/choose 1 8)]
+                  (prop/for-all [p (generate-poly arity)
+                                 q (generate-poly arity)
+                                 xs (gen/vector gen/ratio arity)]
+                                (= (*' (evaluate p xs) (evaluate q xs))
+                                   (evaluate (mul p q) xs)))))
 

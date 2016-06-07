@@ -226,8 +226,8 @@
             (log/info (str "prob. test succeeded in " sw)))
           true)
         (let [xs (repeatedly a gcd-heuristic-random-value)
-              u:xs (apply u xs)
-              v:xs (apply v xs)
+              u:xs (evaluate u xs)
+              v:xs (evaluate v xs)
               g (euclid/gcd u:xs v:xs)]
           (if (= g 1)
             (recur (inc n))

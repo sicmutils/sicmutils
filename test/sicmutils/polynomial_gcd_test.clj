@@ -37,12 +37,8 @@
   (let [u (make [6 7 1])  ;; some polynomials of arity 1
         v (make [-6 -5 1])
         x (make [0 1])
-        xx (mul x x)
-        xxx (mul x xx)
         X (make 2 [[[1 0] 1]]) ;; some polynomials of arity 2
-        Y (make 2 [[[0 1] 1]])
-        XXY (make 2 [[[2 1] 1]])
-        XYY (make 2 [[[1 2] 1]])]
+        Y (make 2 [[[0 1] 1]])]
     (testing "constant-term"
       (is (= 6 (constant-term u)))
       (is (= -6 (constant-term v)))
@@ -375,13 +371,36 @@
                 (expt z 0))]
       (gcd-test "K2" d p q))))
 
+(deftest some-interesting-small-examples
+  "Clojure.test.check's awesome problem-shrinking feature found some
+  small examples of polynomials whose GCD is difficult to compute with
+  this code (at the time of this writing). Recording them here as they
+  should provide excellent examples for performance experiments."
+  (testing "ex1"
+    (let [u (make 3 {[0 0 0] -1, [0 0 3] 1})
+          v (make 3 {[0 0 0] 1, [2 3 0] 2, [0 8 1] 1, [7 0 5] -1})
+          sw (Stopwatch/createStarted)
+          g (binding [*poly-gcd-time-limit* [10 TimeUnit/SECONDS], *poly-gcd-debug* false]
+              (gcd u v))]
+      (println "S1 gcd" g sw)
+      ))
+  (testing "ex2"
+    (let [u (make 2 {[0 0] -1, [0 7] -1})
+          v (make 2 {[0 0] 1, [0 1] -1, [0 4] 1, [3 3] -11, [1 9] 8, [8 5] -9, [12 1] 1})
+          sw (Stopwatch/createStarted)
+          g (binding [*poly-gcd-time-limit* [10 TimeUnit/SECONDS]]
+              (gcd u v))]
+      (println "S2 gcd" g sw))))
+
 ;; Currently we only do GCD testing of univariate polynomials, because
 ;; we find that unfortunately clojure.test.check is very good at finding
-;; polynomials even of degree 2 that will exceed the time allotment for
+;; polynomials even of arity 2 that will exceed the time allotment for
 ;; findinig GCDs. Hopefully we can fix that, but for the  present this
-;; explains why we generate arities from the singleton set [1].
+;; explains why we draw arities from the singleton set [1].
 
-(defspec ^:long g-divides-u-and-v
+(def ^:private num-tests 20)
+
+(defspec ^:long g-divides-u-and-v num-tests
          (gen/let [arity (gen/elements [1])]
                   (prop/for-all [u (p-test/generate-poly arity)
                                  v (p-test/generate-poly arity)]
@@ -392,7 +411,7 @@
                                       (and (evenly-divide u g)
                                            (evenly-divide v g)))))))
 
-(defspec ^:long d-divides-gcd-ud-vd
+(defspec ^:long d-divides-gcd-ud-vd num-tests
          (gen/let [arity (gen/elements [1])]
                   (prop/for-all [u (p-test/generate-poly arity)
                                  v (p-test/generate-poly arity)

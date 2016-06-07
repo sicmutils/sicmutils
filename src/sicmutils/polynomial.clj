@@ -92,14 +92,6 @@
                      (and (every? zero? xs)
                           (v/unity? c)))))
   (kind [_] ::polynomial)
-  IFn
-  (invoke [p] (evaluate p))
-  (invoke [p x] (evaluate p x))
-  (invoke [p x y] (evaluate p x y))
-  (invoke [p x y z] (evaluate p x y z))
-  (invoke [p w x y z] (evaluate p w x y z))
-  (invoke [p v w x y z] (evaluate p v w x y z))
-  (applyTo [p xs] (apply evaluate p xs))
   Object
   (toString [_]
     (let [n 10
@@ -279,11 +271,12 @@
     (make (inc (:arity (coefficient (lead-term p)))) terms)))
 
 (defn lower-arity
-  "Given a polynomial of arity A > 1, return an equivalent polynomial
+  "Given a nonzero polynomial of arity A > 1, return an equivalent polynomial
   of arity 1 whose coefficients are polynomials of arity A-1."
   [p]
   {:pre [(instance? Polynomial p)
-         (> (:arity p) 1)]}
+         (> (:arity p) 1)
+         (not (v/nullity? p))]}
   ;; XXX observation:
   ;; XXX we often create polynomials of "one lower arity"
   ;; which are EFFECTIVELY UNIVARIATE. When this happens,
@@ -314,16 +307,17 @@
                e'))
       result)))
 
-(defn ^:private evaluate
-  "Evaluates a multivariate polynomial p at xs. Partial application
-  is supported. Supplying too many arguments will throw."
-  [p & xs]
-  (cond (not xs) p
-        (not (instance? Polynomial p)) p
-        (= (:arity p) 1) (do (when-not (= (count xs) 1)
-                               (throw (IllegalArgumentException. "too many arguments for polynomial")))
-                             (evaluate-1 p (first xs)))
-        :else (apply evaluate ((lower-arity p) (first xs)) (next xs))))
+(defn evaluate
+  "Evaluates a multivariate polynomial p at xs."
+  [p xs]
+  {:pre [(instance? Polynomial p)
+         (= (:arity p) (count xs))]}
+  (cond (v/nullity? p) 0
+        (= (:arity p) 1) (evaluate-1 p (first xs))
+        :else (let [L (evaluate-1 (lower-arity p) (first xs))]
+                (if (instance? Polynomial L)
+                  (recur L (next xs))
+                  L))))
 
 (defn divide
   "Divide polynomial u by v, and return the pair of [quotient, remainder]
