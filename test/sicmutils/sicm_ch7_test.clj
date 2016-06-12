@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.sicm-ch7-test
-  (:refer-clojure :exclude [+ - * / zero? ref])
+  (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
             [sicmutils.simplify :refer [pe hermetic-simplify-fixture]]
