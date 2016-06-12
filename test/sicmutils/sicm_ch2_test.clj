@@ -17,22 +17,12 @@
 ;
 
 (ns sicmutils.sicm-ch2-test
-  (:refer-clojure :exclude [+ - * / zero?])
+  (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer :all]
-            [sicmutils
-             [generic :refer :all]
-             [structure :refer :all]
-             [numsymb]
-             [numbers]
-             [simplify :refer [hermetic-simplify-fixture]]
-             [function :refer :all]
-             [operator :refer :all]
-             [value :as v]]
-            [sicmutils.numerical.ode :refer :all]
-            [sicmutils.calculus.derivative :refer :all]
-            [sicmutils.mechanics
-             [rigid :refer :all]
-             [rotation :refer :all]]))
+            [sicmutils.env :refer :all]
+            [sicmutils.mechanics.rotation :refer [Euler->M]]
+            [sicmutils.mechanics.rigid :refer :all]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 

@@ -164,8 +164,7 @@
           x16 (mul x8 x8)
           T (make [o o i o i o i])
           Tx16 (mul x16 T)
-          [_ r2] (divide Tx16 CRC-16-CCITT)
-          ]
+          [_ r2] (divide Tx16 CRC-16-CCITT)]
       (is (= (make [o i o o o i o i]) r1))
       (is (= (make [i o o o i i i o o i o i i]) r2))))
   (testing "monomial order"
@@ -180,6 +179,7 @@
       (is (= [z2 x3 xy2z x2z2] (monomial-sort graded-lex-order))))))
 
 (defn ^:private ->poly [x] (expression-> x (fn [p _] p)))
+
 (deftest poly-evaluate
   (testing "arity 1"
     (let [p (->poly '(+ 2 (* x 3)))]

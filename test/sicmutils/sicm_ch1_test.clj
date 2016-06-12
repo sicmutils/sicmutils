@@ -17,29 +17,17 @@
 ;
 
 (ns sicmutils.sicm-ch1-test
-  (:refer-clojure :exclude [+ - * / zero?])
+  (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer :all]
-            [sicmutils
-             [generic :refer :all]
-             [structure :refer :all]
-             [numbers]
-             [numsymb]
-             [simplify :refer [hermetic-simplify-fixture]]
-             [function :refer :all]
-             [operator :refer :all]
-             [value :as v]]
-            [sicmutils.numerical
-             [ode :refer :all]
-             [integrate :refer :all]
-             [minimize :refer :all]]
-            [sicmutils.calculus.derivative :refer :all]
-            [sicmutils.mechanics
-             [lagrange :refer :all]
-             [rotation :refer :all]]))
+            [sicmutils.env :refer :all :exclude []]
+            [sicmutils.mechanics.lagrange :refer :all]
+            [sicmutils.mechanics.rotation :refer [Rx Ry Rz]]
+            [sicmutils.value :refer [within]]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
-(def ^:private near (v/within 1e-6))
+(def ^:private near (within 1e-6))
 
 (deftest ^:long section-1.4
   (with-literal-functions [x y z]
@@ -96,14 +84,14 @@
       (let [values (atom [])
             minimal-path (find-path (L-harmonic 1.0 1.0) 0. 1. (/ Math/PI 2) 0. 3
                                     :observe (fn [pt _] (swap! values conj pt)))
-            good? (partial (v/within 2e-4) 0)
+            good? (partial (within 2e-4) 0)
             errors (for [x (range 0.0 (/ Math/PI 2) 0.02)]
                      (abs (- (Math/cos x) (minimal-path x))))]
         ;; the minimization is supposed to discover the cosine function in the interval [0..pi/2].
         ;; Check that it has done so over a variety of points to within 2e-4.
         ;; (prn values)
-        (is ((v/within 1e-4) 1 (minimal-path 0)))
-        (is ((v/within 1e-5) 0 (minimal-path (/ Math/PI 2))))
+        (is ((within 1e-4) 1 (minimal-path 0)))
+        (is ((within 1e-5) 0 (minimal-path (/ Math/PI 2))))
         (is (every? good? errors))))))
 
 (deftest section-1.5
@@ -132,23 +120,6 @@
       (is (= '(+ (* -1 (cos (+ (* t ω) φ)) a m (expt ω 2)) (* (cos (+ (* t ω) φ)) a k))
              (simplify (((Lagrange-equations (L-harmonic 'm 'k)) proposed-solution) 't)))))))
 
-(defn- T-pend
-  [m l _ ys]
-  (fn [local]
-    (let [[t θ θdot] local
-          vys (D ys)]
-      (* 1/2 m
-         (+ (square (* l θdot))
-            (square (vys t))
-            (* 2 l (vys t) θdot (sin θ)))))))
-
-(defn- V-pend
-  [m l g ys]
-  (fn [local]
-    (let [[t θ _] local]
-      (* m g (- (ys t) (* l (cos θ)))))))
-
-(def ^:private L-pend (- T-pend V-pend))
 
 (deftest section-1.6
   (with-literal-functions [x y r θ φ U y_s]
@@ -190,7 +161,7 @@
       (is (= '(down (+ (* -1 (expt ((D φ) t) 2) (r t) m)
                        (* (((expt D 2) r) t) m)
                        ((D U) (r t)))
-                    (+ (* 2N ((D φ) t) (r t) ((D r) t) m)
+                    (+ (* 2 ((D φ) t) (r t) ((D r) t) m)
                        (* (expt (r t) 2) (((expt D 2) φ) t) m)))
              (simplify (((Lagrange-equations (L-alternate-central-polar 'm U))
                          (up r φ))
@@ -198,7 +169,7 @@
       (is (= '(+ (* (((expt D 2) θ) t) (expt l 2) m)
                  (* (sin (θ t)) (((expt D 2) y_s) t) l m)
                  (* (sin (θ t)) g l m))
-             (simplify (((Lagrange-equations (L-pend 'm 'l 'g y_s)) θ) 't))))
+             (simplify (((Lagrange-equations (L-pendulum 'm 'l 'g y_s)) θ) 't))))
       ;; p. 61
       (let [Lf (fn [m g]
                  (fn [[_ [_ y] v]]
@@ -257,13 +228,7 @@
           (is (< delta 1e-8)))))))
 
 (deftest section-1.7-2
-  (let [periodic-drive (fn [amplitude frequency phase]
-                         (fn [t]
-                           (* amplitude (cos (+ (* frequency t) phase)))))
-        L-periodically-driven-pendulum (fn [m l g a ω]
-                                         (let [ys (periodic-drive a ω 0)]
-                                           (L-pend m l g ys)))
-        pend-state-derivative (fn [m l g a ω]
+  (let [pend-state-derivative (fn [m l g a ω]
                                 (Lagrangian->state-derivative
                                  (L-periodically-driven-pendulum m l g a ω)))]
     (is (= '(+ (* -1 (cos (* t ω)) (sin (θ t)) a l m (expt ω 2))

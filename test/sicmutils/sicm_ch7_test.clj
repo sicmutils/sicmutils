@@ -17,22 +17,15 @@
 ;
 
 (ns sicmutils.sicm-ch7-test
-  (:refer-clojure :exclude [+ - * / zero?])
+  (:refer-clojure :exclude [+ - * / zero? ref])
   (:require [clojure.test :refer :all]
-            [sicmutils
-             [generic :refer :all]
-             [structure :refer :all]
-             [numsymb]
-             [numbers]
-             [simplify :refer [pe hermetic-simplify-fixture]]
-             [function :refer :all]
-             [operator :refer :all]
-             [value :as v]]
-            [sicmutils.calculus.derivative :refer :all]))
+            [sicmutils.env :refer :all]
+            [sicmutils.simplify :refer [pe hermetic-simplify-fixture]]
+            [sicmutils.value :refer [within]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
-(def ^:private near (v/within 1.0e-6))
+(def ^:private near (within 1.0e-6))
 
 (deftest section-1
   (let [h (compose cube sin)

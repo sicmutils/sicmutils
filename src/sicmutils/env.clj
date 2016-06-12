@@ -31,13 +31,10 @@
              [operator]
              [infix :as i]]
             [sicmutils.numerical
+             [minimize :as min]
              [ode :as ode]]
             [sicmutils.calculus.derivative :as d]
-            [sicmutils.mechanics
-             [hamilton :refer :all]
-             [lagrange :refer :all]
-             [rigid :refer :all]
-             [rotation :refer :all]]))
+            ))
 
 (def + g/+)
 (def - g/-)
@@ -119,6 +116,8 @@
 (def ∂ d/∂)
 (def pi Math/PI)
 (def taylor-series-terms d/taylor-series-terms)
+
+(def minimize min/minimize)
 
 (def ->infix i/->infix)
 (def ->TeX i/->TeX)

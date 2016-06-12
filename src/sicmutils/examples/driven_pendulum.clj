@@ -21,30 +21,10 @@
   (:require [sicmutils.env :refer :all]
             [sicmutils.mechanics.lagrange :refer :all]))
 
-(defn T-pend
-  [m l _ y]
-  (let [y' (D y)]
-    (fn [[t θ θdot]]
-      (* 1/2 m
-         (+ (square (* l θdot))
-            (square (y' t))
-            (* 2 l (y' t) θdot (sin θ)))))))
-
-(defn V-pend
-  [m l g y]
-  (fn [[t θ _]]
-    (* m g (- (y t) (* l (cos θ))))))
-
-(def L-pend (- T-pend V-pend))
-
-(defn periodic-drive
-  [a ω φ]
-  #(-> % (* ω) (+ φ) cos (* a)))
-
 (defn state-derivative
-  [m l g a ω φ]
+  [m l g a ω]
   (Lagrangian->state-derivative
-    (L-pend m l g (periodic-drive a ω φ))))
+    (L-periodically-driven-pendulum m l g a ω)))
 
 (defn equations
   []
@@ -61,13 +41,11 @@
          theta_0 1
          thetadot_0 0}}]
   ((evolve state-derivative
-           1.0   ;; mass of bob
-           1.0   ;; length of rod
-           g     ;; acceleration due to gravity
-           a     ;; amplitude of drive
-           omega ;; frequency of drive
-           0     ;; phase of drive
-           )
+           1.0    ;; mass of bob
+           1.0    ;; length of rod
+           g      ;; acceleration due to gravity
+           a      ;; amplitude of drive
+           omega) ;; frequency of drive
    (up 0.0
        theta_0
        thetadot_0)

@@ -217,7 +217,7 @@
   (fn [local]
     ((f (osculating-path local)) (first local))))
 
-(def Gamma-bar  Γ-bar)
+(def Gamma-bar Γ-bar)
 
 (defn Dt
   [F]
@@ -235,6 +235,44 @@
   (fn [[_ [q0 q1] qdot]]  ;; local
     (- (* 1/2 m (square qdot))
        (V q0 q1))))
+
+(defn T-pendulum
+  [m l _ ys]
+  (fn [local]
+    (let [[t θ θdot] local
+          vys (D ys)]
+      (* 1/2 m
+         (+ (square (* l θdot))
+            (square (vys t))
+            (* 2 l (vys t) θdot (sin θ)))))))
+
+(defn V-pendulum
+  [m l g ys]
+  (fn [local]
+    (let [[t θ _] local]
+      (* m g (- (ys t) (* l (cos θ)))))))
+
+(def L-pendulum (- T-pendulum V-pendulum))
+
+(defn periodic-drive
+  [amplitude frequency phase]
+  (fn [t]
+    (* amplitude (cos (+ (* frequency t) phase)))))
+
+(defn L-periodically-driven-pendulum
+  [m l g a ω]
+  (let [ys (periodic-drive a ω 0)]
+    (L-pendulum m l g ys)))
+
+(defn L-axisymmetric-top
+  [A C gMR]
+  (fn [[t [theta phi psi] [thetadot phidot psidot]]]
+    (+ (* 1/2 A
+          (+ (square thetadot)
+             (square (* phidot (sin theta)))))
+       (* 1/2 C
+          (square (+ psidot (* phidot (cos theta)))))
+       (* -1 gMR (cos theta)))))
 
 (defn make-path
   "SICM p. 23n"

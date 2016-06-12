@@ -30,9 +30,9 @@
   (with-literal-functions
     [θ y]
     (let [state (up 't 'θ 'θdot)
-          V (driven/V-pend 'm 'l 'g y)
-          T (driven/T-pend 'm 'l 'g y)
-          L (driven/L-pend 'm 'l 'g y)]
+          V (V-pendulum 'm 'l 'g y)
+          T (T-pendulum 'm 'l 'g y)
+          L (L-pendulum 'm 'l 'g y)]
       (is (= '(+ (* -1 (cos θ) g l m) (* (y t) g m))
              (simplify (V state))))
       (is (= '(+
@@ -46,11 +46,11 @@
                  (* -1 (y t) g m)
                  (* 1/2 (expt ((D y) t) 2) m))
              (simplify (L state))))
-      (is (= '(+ (* -1 (cos (+ (* t ω) φ)) (sin (θ t)) a l m (expt ω 2))
+      (is (= '(+ (* -1 (cos (* t ω)) (sin (θ t)) a l m (expt ω 2))
                  (* (((expt D 2) θ) t) (expt l 2) m)
                  (* (sin (θ t)) g l m))
              (simplify (((Lagrange-equations
-                           (driven/L-pend 'm 'l 'g (driven/periodic-drive 'a 'ω 'φ)))
+                           (L-periodically-driven-pendulum 'm 'l 'g 'a 'ω))
                           θ)
                          't))))
       (let [o (atom [])
@@ -61,9 +61,9 @@
 
 (deftest as-javascript
   (let [eq (simplify
-            ((driven/state-derivative 'm 'l 'g 'a 'omega 'phi)
+            ((driven/state-derivative 'm 'l 'g 'a 'omega)
              (up 't 'theta 'thetadot)))]
     (is (= (str "function(t, theta, thetadot) {\n"
                 "  var _1 = Math.sin(theta);\n"
-                "  return [1, thetadot, (_1 * Math.cos(omega * t + phi) * a * Math.pow(omega, 2) - _1 * g) / l];\n}")
+                "  return [1, thetadot, (_1 * Math.cos(omega * t) * a * Math.pow(omega, 2) - _1 * g) / l];\n}")
            (->JavaScript eq :parameter-order '[t theta thetadot])))))

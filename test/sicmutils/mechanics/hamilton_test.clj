@@ -75,10 +75,10 @@
                       't)))))
   (is (= '(/
            (+
-            (* 2N (V r) m (expt r 2))
+            (* 2 (V r) m (expt r 2))
             (* (expt p_r 2) (expt r 2))
             (expt p_phi 2))
-           (* 2N m (expt r 2)))
+           (* 2 m (expt r 2)))
          (with-literal-functions [[V [0 1] 2]]
            (simplify
             ((Lagrangian->Hamiltonian
@@ -87,11 +87,11 @@
                         (coordinate-tuple 'r 'phi)
                         (momentum-tuple 'p_r 'p_phi)))))))
   (is (= '(up 0
-              (up (/ (+ (* ((D r) t) m) (* -1N (p_r t))) m)
-                  (/ (+ (* (expt (r t) 2) ((D phi) t) m) (* -1N (p_phi t))) (* (expt (r t) 2) m)))
+              (up (/ (+ (* ((D r) t) m) (* -1 (p_r t))) m)
+                  (/ (+ (* (expt (r t) 2) ((D phi) t) m) (* -1 (p_phi t))) (* (expt (r t) 2) m)))
               (down (/ (+ (* (expt (r t) 3) ((D p_r) t) m)
                           (* (expt (r t) 3) ((D V) (r t)) m)
-                          (* -1N (expt (p_phi t) 2)))
+                          (* -1 (expt (p_phi t) 2)))
                        (* (expt (r t) 3) m))
                     ((D p_phi) t)))
          (with-literal-functions [r phi p_r p_phi V]
@@ -103,13 +103,13 @@
               (momentum-tuple p_r p_phi))
              't)))))
   (is (= '(up 0
-              (up (/ (+ (* ((D r) t) m) (* -1N (p_r t))) m)
+              (up (/ (+ (* ((D r) t) m) (* -1 (p_r t))) m)
                   (/ (+ (* (expt (r t) 2) ((D phi) t) m)
-                        (* -1N (p_phi t)))
+                        (* -1 (p_phi t)))
                      (* (expt (r t) 2) m)))
               (down (/ (+ (* (expt (r t) 3) ((D p_r) t) m)
                           (* (r t) GM (expt m 2))
-                          (* -1N (expt (p_phi t) 2)))
+                          (* -1 (expt (p_phi t) 2)))
                        (* (expt (r t) 3) m))
                     ((D p_phi) t)))
          (with-literal-functions [r phi p_r p_phi]
