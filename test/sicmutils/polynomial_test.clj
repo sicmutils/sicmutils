@@ -318,10 +318,9 @@
                        (= p (raise-arity (lower-arity p)))))
 
 (defspec ^:long evaluation-homomorphism (/ num-tests 2)
-         (gen/let [arity (gen/choose 1 8)]
+         (gen/let [arity (gen/choose 1 5)]
                   (prop/for-all [p (generate-poly arity)
                                  q (generate-poly arity)
                                  xs (gen/vector gen/ratio arity)]
                                 (= (*' (evaluate p xs) (evaluate q xs))
                                    (evaluate (mul p q) xs)))))
-
