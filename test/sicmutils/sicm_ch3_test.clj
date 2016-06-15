@@ -117,7 +117,7 @@
       ;; odd that we have _1 here when it's not used ... must be a bug in the CSE
       ;; ah, we observe that _3 is omega*t, and we have a few examples of
       ;; the sine of that. So our algorithm is a little on the naive side o_o
-      (is (= (str "xfunction(a, g, l, m, omega, t, theta, p_theta) {\n"
+      (is (= (str "function(a, g, l, m, omega, p_theta, t, theta) {\n"
                   "  var _1 = Math.sin(omega * t);\n"
                   "  var _2 = Math.pow(l, 2);\n"
                   "  var _3 = omega * t;\n"
