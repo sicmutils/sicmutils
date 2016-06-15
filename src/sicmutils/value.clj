@@ -193,3 +193,16 @@
   "Returns a function that tests whether two values are within ε of each other."
   [^double ε]
   (fn [^double x ^double y] (< (Math/abs (- x y)) ε)))
+
+(def twopi (* 2 Math/PI))
+
+(defn principal-value
+  [cuthigh]
+  (let [cutlow (- cuthigh twopi)]
+    (fn [x]
+      (if (and (<= cutlow x) (< x cuthigh))
+        x
+        (let [y (- x (* twopi (Math/floor (/ x twopi))))]
+          (if (< y cuthigh)
+            y
+            (- y twopi)))))))

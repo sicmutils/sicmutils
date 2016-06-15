@@ -51,8 +51,12 @@
                        (up 't (up 'r 'phi) (down 'p_r 'p_phi))))))
     (is (= '(up 0
                 (up (/ (+ (* ((D r) t) m) (* -1 (p_r t))) m)
-                    (/ (+ (* (expt (r t) 2) ((D phi) t) m) (* -1 (p_phi t))) (* (expt (r t) 2) m)))
-                (down (/ (+ (* (expt (r t) 3) ((D p_r) t) m) (* (expt (r t) 3) ((D V) (r t)) m) (* -1 (expt (p_phi t) 2)))
+                    (/ (+ (* (expt (r t) 2) ((D phi) t) m)
+                          (* -1 (p_phi t)))
+                       (* (expt (r t) 2) m)))
+                (down (/ (+ (* (expt (r t) 3) ((D p_r) t) m)
+                            (* (expt (r t) 3) ((D V) (r t)) m)
+                            (* -1 (expt (p_phi t) 2)))
                          (* (expt (r t) 3) m))
                       ((D p_phi) t)))
            (simplify (((Hamilton-equations
@@ -79,22 +83,46 @@
 
 (deftest section-3.5
   (testing "p.221"
-    (is (= '(/ (+ (* -1 (expt (sin (* omega t)) 2)
-                     (expt (cos theta) 2)
-                     (expt a 2)
-                     (expt l 2)
-                     (expt m 2)
-                     (expt omega 2))
-                  (* 2 (sin (* omega t))
-                     (sin theta)
-                     a l m omega p_theta)
-                  (* 2 (cos (* omega t))
-                     a g (expt l 2) (expt m 2))
-                  (* -2 (cos theta)
-                     g (expt l 3)
-                     (expt m 2))
-                  (expt p_theta 2))
-               (* 2 (expt l 2) m))
-           (simplify ((Lagrangian->Hamiltonian
-                        (L-periodically-driven-pendulum 'm 'l 'g 'a 'omega))
-                       (up 't 'theta 'p_theta)))))))
+    (let [H ((Lagrangian->Hamiltonian
+              (L-periodically-driven-pendulum 'm 'l 'g 'a 'omega))
+             (up 't 'theta 'p_theta))]
+      (is (= '(/ (+ (* -1 (expt (sin (* omega t)) 2)
+                       (expt (cos theta) 2)
+                       (expt a 2)
+                       (expt l 2)
+                       (expt m 2)
+                       (expt omega 2))
+                    (* 2 (sin (* omega t))
+                       (sin theta)
+                       a l m omega p_theta)
+                    (* 2 (cos (* omega t))
+                       a g (expt l 2) (expt m 2))
+                    (* -2 (cos theta)
+                       g (expt l 3)
+                       (expt m 2))
+                    (expt p_theta 2))
+                 (* 2 (expt l 2) m))
+             (simplify H))))
+    (let [sysder (simplify
+                  ((Hamiltonian->state-derivative
+                    (Lagrangian->Hamiltonian
+                     (L-periodically-driven-pendulum 'm 'l 'g 'a 'omega)))
+                   (up 't 'theta 'p_theta)))]
+      (is (= '(up 1
+                  (/ (+ (* (sin (* omega t)) (sin theta) a l m omega) p_theta) (* (expt l 2) m))
+                  (/ (+ (* -1N (expt (sin (* omega t)) 2) (sin theta) (cos theta) (expt a 2) l m (expt omega 2))
+                        (* -1N (sin (* omega t)) (cos theta) a omega p_theta)
+                        (* -1N (sin theta) g (expt l 2) m)) l))
+             sysder))
+      ;; odd that we have _1 here when it's not used ... must be a bug in the CSE
+      ;; ah, we observe that _3 is omega*t, and we have a few examples of
+      ;; the sine of that. So our algorithm is a little on the naive side o_o
+      (is (= (str "xfunction(a, g, l, m, omega, t, theta, p_theta) {\n"
+                  "  var _1 = Math.sin(omega * t);\n"
+                  "  var _2 = Math.pow(l, 2);\n"
+                  "  var _3 = omega * t;\n"
+                  "  var _4 = Math.sin(theta);\n"
+                  "  var _5 = Math.cos(theta);\n"
+                  "  return [1, (Math.sin(_3) * _4 * a * l * m * omega + p_theta) / _2 * m, (- Math.pow(Math.sin(_3), 2) * _4 * _5 * Math.pow(a, 2) * l * m * Math.pow(omega, 2) - Math.sin(_3) * _5 * a * omega * p_theta - _4 * g * _2 * m) / l];\n"
+                  "}")
+             (->JavaScript sysder))))))

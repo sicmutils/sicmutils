@@ -34,7 +34,7 @@
              [minimize :as min]
              [ode :as ode]]
             [sicmutils.calculus.derivative :as d]
-            ))
+            [sicmutils.value :as v]))
 
 (def + g/+)
 (def - g/-)
@@ -122,3 +122,5 @@
 (def ->infix i/->infix)
 (def ->TeX i/->TeX)
 (def ->JavaScript i/->JavaScript)
+
+(def principal-value v/principal-value)

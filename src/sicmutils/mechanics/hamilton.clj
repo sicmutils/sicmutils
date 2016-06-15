@@ -108,3 +108,10 @@
         ((- (* ((∂ 1) f) ((∂ 2) g))
             (* ((∂ 2) f) ((∂ 1) g)))
          x)))))
+
+(defn standard-map
+  [K]
+  (fn [theta I return failure]
+    (let [nI (+ I (* K (sin theta)))]
+      (return ((principal-value twopi) (+ theta nI))
+              ((principal-value twopi) nI)))))
