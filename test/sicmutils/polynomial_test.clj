@@ -18,6 +18,7 @@
 
 (ns sicmutils.polynomial-test
   (:require [clojure.test :refer :all]
+            [clojure.tools.logging :as log]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
@@ -283,8 +284,11 @@
     (prop/for-all [p (generate-poly arity)
                    q (generate-poly arity)
                    xs (gen/vector gen/ratio arity)]
+                  (log/info (format "e %s %s %s" p q xs))
                   (= (*' (evaluate p xs) (evaluate q xs))
-                     (evaluate (mul p q) xs)))))(defspec ^:long p+p=2p num-tests
+                     (evaluate (mul p q) xs)))))
+
+(defspec ^:long p+p=2p num-tests
          (prop/for-all [p (gen/bind gen/nat generate-poly)]
                        (= (add p p) (mul p (make-constant (:arity p) 2)))))
 
