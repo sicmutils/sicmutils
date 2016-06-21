@@ -279,15 +279,6 @@
 
 (def ^:private num-tests 50)
 
-(defspec ^:long evaluation-homomorphism (/ num-tests 2)
-  (gen/let [arity (gen/choose 1 5)]
-    (prop/for-all [p (generate-poly arity)
-                   q (generate-poly arity)
-                   xs (gen/vector gen/ratio arity)]
-                  (log/info (format "e %s %s %s" p q xs))
-                  (= (*' (evaluate p xs) (evaluate q xs))
-                     (evaluate (mul p q) xs)))))
-
 (defspec ^:long p+p=2p num-tests
          (prop/for-all [p (gen/bind gen/nat generate-poly)]
                        (= (add p p) (mul p (make-constant (:arity p) 2)))))
@@ -326,3 +317,11 @@
 (defspec ^:long lower-and-raise-arity-are-inverse num-tests
          (prop/for-all [p (gen/bind (gen/choose 2 10) generate-nonzero-poly)]
                        (= p (raise-arity (lower-arity p)))))
+
+(defspec ^:long evaluation-homomorphism (/ num-tests 2)
+  (gen/let [arity (gen/choose 1 5)]
+    (prop/for-all [p (generate-poly arity)
+                   q (generate-poly arity)
+                   xs (gen/vector gen/ratio arity)]
+                  (= (*' (evaluate p xs) (evaluate q xs))
+                     (evaluate (mul p q) xs)))))
