@@ -3,3 +3,7 @@ script: lein test :all
 branches:
   only:
     - master
+jdk:
+  - oraclejdk7
+  - oraclejdk8
+  - openjdk7
