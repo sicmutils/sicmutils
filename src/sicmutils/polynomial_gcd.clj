@@ -423,7 +423,7 @@
       (= arity 1) (abs (gcd1 u v))
       :else (binding [*poly-gcd-bail-out* (fn [] (when (> (.elapsed clock (second *poly-gcd-time-limit*))
                                                           (first *poly-gcd-time-limit*))
-                                                   (println "too long" (str u) (str v))
+                                                   (log/warn (format "long polynomial GCD: %s" clock))
                                                    (throw (TimeoutException.
                                                             (str "Took too long to find multivariate polynomial GCD: "
                                                                  clock)))))]
