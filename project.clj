@@ -12,7 +12,8 @@
                  [org.clojure/test.check "0.9.0"]
                  [org.clojure/tools.nrepl "0.2.12"]]
   :main sicmutils.repl
-  :jvm-opts ["-Djava.util.logging.config.file=logging.properties"]
+  :jvm-opts ["-Djava.util.logging.config.file=logging.properties"
+             "-Xmx512M"]
   :repl-options {:prompt (fn [ns] (str "[" ns "] > "))
                  :welcome "clojure algebra system"
                  :init-ns sicmutils.env
