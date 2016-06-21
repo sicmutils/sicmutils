@@ -12,12 +12,12 @@
                  [org.clojure/test.check "0.9.0"]
                  [org.clojure/tools.nrepl "0.2.12"]]
   :main sicmutils.repl
-  :jvm-opts ["-Djava.util.logging.config.file=logging.properties"
-             "-Xmx512M"]
+  :jvm-opts ["-Djava.util.logging.config.file=logging.properties"]
   :repl-options {:prompt (fn [ns] (str "[" ns "] > "))
                  :welcome "clojure algebra system"
                  :init-ns sicmutils.env
                  :nrepl-middleware [sicmutils.repl/math-printer]}
   :target-path "target/%s"
   :test-selectors {:default (complement :long)}
-  :profiles {:uberjar {:aot :all}})
+  :profiles {:uberjar {:aot :all}
+             :travis {:jvm-opts ["-Xmx512M"]}})

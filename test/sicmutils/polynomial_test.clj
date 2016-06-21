@@ -318,10 +318,10 @@
          (prop/for-all [p (gen/bind (gen/choose 2 10) generate-nonzero-poly)]
                        (= p (raise-arity (lower-arity p)))))
 
-(defspec ^:long evaluation-homomorphism (/ num-tests 2)
-  (gen/let [arity (gen/choose 1 5)]
+(defspec ^:long evaluation-homomorphism num-tests
+  (gen/let [arity (gen/choose 1 6)]
     (prop/for-all [p (generate-poly arity)
                    q (generate-poly arity)
-                   xs (gen/vector gen/ratio arity)]
+                   xs (gen/vector gen/int arity)]
                   (= (*' (evaluate p xs) (evaluate q xs))
                      (evaluate (mul p q) xs)))))

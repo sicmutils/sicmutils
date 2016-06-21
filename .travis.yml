@@ -1,5 +1,5 @@
 language: clojure
-script: lein test :all
+script: lein with-profile travis test :all
 branches:
   only:
     - master

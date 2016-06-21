@@ -21,18 +21,16 @@
            (java.util.concurrent TimeUnit))
   (:require [clojure.test :refer :all]
             [clojure.test.check.properties :as prop]
-            [clojure.test.check.clojure-test :refer [defspec]]
+            [clojure.test.check.clojure-test :refer [defspec *report-trials*]]
             [sicmutils
              [polynomial :refer :all]
              [polynomial-test :as p-test]
              [polynomial-gcd :refer :all]
              [numbers]
-             [expression :refer [variables-in]]
-             [simplify]]
+             [expression :refer [variables-in]]]
+            [clojure.tools.logging :as log]
             [clojure.test.check.generators :as gen]
             [sicmutils.value :as v]))
-
-(use-fixtures :once (fn [f] (f) (gcd-stats)))
 
 (deftest poly-gcd
   (let [u (make [6 7 1])  ;; some polynomials of arity 1
@@ -154,7 +152,7 @@
         dg (mul d g)
         sw (Stopwatch/createStarted)
         a (gcd df dg)]
-    (println "gcd-test" name (str sw))
+    (log/info "gcd-test" name (str sw))
     (is (= d a))))
 
 (deftest gjs
@@ -387,7 +385,7 @@
           sw (Stopwatch/createStarted)
           g (binding [*poly-gcd-time-limit* [10 TimeUnit/SECONDS], *poly-gcd-debug* false]
               (gcd u v))]
-      (println "S1 gcd" g sw)
+      (log/info "S1 gcd" (str g) (str sw))
       ))
   (testing "ex2"
     (let [u (make 2 {[0 0] -1, [0 7] -1})
@@ -395,7 +393,7 @@
           sw (Stopwatch/createStarted)
           g (binding [*poly-gcd-time-limit* [10 TimeUnit/SECONDS]]
               (gcd u v))]
-      (println "S2 gcd" g sw))))
+      (log/info "S2 gcd" (str g) (str sw)))))
 
 ;; Currently we only do GCD testing of univariate polynomials, because
 ;; we find that unfortunately clojure.test.check is very good at finding
