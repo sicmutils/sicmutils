@@ -310,9 +310,9 @@
 (defn evaluate
   "Evaluates a multivariate polynomial p at xs."
   [p xs]
-  {:pre [(instance? Polynomial p)
-         (= (:arity p) (count xs))]}
-  (cond (v/nullity? p) 0
+  {:pre [(instance? Polynomial p)]}
+  (cond (nil? xs) p
+        (v/nullity? p) 0
         (= (:arity p) 1) (evaluate-1 p (first xs))
         :else (let [L (evaluate-1 (lower-arity p) (first xs))]
                 (if (instance? Polynomial L)

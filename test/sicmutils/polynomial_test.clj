@@ -185,7 +185,7 @@
   (testing "arity 1"
     (let [p (->poly '(+ 2 (* x 3)))]
       (is (= 14 (evaluate p [4])))
-      (is (thrown? AssertionError (evaluate p [3 2]))))
+      (is (= 11 (evaluate p [3 2]))))
     (is (= 256 (evaluate (->poly '(expt x 8)) [2])))
     (is (= 272 (evaluate (->poly '(+ (expt x 4) (expt x 8))) [2]))))
   (testing "arity 2"
@@ -213,7 +213,13 @@
       (is (= 5 (evaluate p2 [99 98])))
       (is (= 7 (evaluate p3 [7 8 9])))
       (is (= 8 (evaluate p4 [7 8 9])))
-      (is (= 9 (evaluate p5 [7 8 9]))))))
+      (is (= 9 (evaluate p5 [7 8 9])))))
+  (testing "partial application"
+    (let [P (->poly '(+ 1 (* 2 x) (* 3 x y) (* 4 x y z)))]
+      (is (= (->poly '(+ 3 (* 3 y) (* 4 y z))) (evaluate P [1])))
+      (is (= (->poly '(+ 9 (* 8 z))) (evaluate P [1 2])))
+      (is (= 33 (evaluate P [1 2 3])))
+      (is (= 33 (evaluate P [1 2 3 4]))))))
 
 (deftest poly-as-simplifier
   (testing "arity"
