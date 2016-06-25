@@ -21,7 +21,7 @@
            (java.util.concurrent TimeUnit))
   (:require [clojure.test :refer :all]
             [clojure.test.check.properties :as prop]
-            [clojure.test.check.clojure-test :refer [defspec *report-trials*]]
+            [clojure.test.check.clojure-test :refer [defspec]]
             [sicmutils
              [polynomial :refer :all]
              [polynomial-test :as p-test]
