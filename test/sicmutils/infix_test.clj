@@ -103,7 +103,7 @@
 (deftest structures
   (is (= "down(up(1, 2), up(3, 4))" (->infix (simplify (down (up 1 2) (up 3 4)))))))
 
-(deftest variable_subscripts
+(deftest variable-subscripts
   (is (= "x₀ + y₁ + z₂" (s->infix (+ 'x_0 'y_1 'z_2)))))
 
 (deftest TeX-easy

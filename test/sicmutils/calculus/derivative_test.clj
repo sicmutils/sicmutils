@@ -451,4 +451,8 @@
                   (take 4 (taylor-series-terms
                            (literal-function 'f (up 0 0) 0)
                            (up 'x 'y)
-                           (up 'dx 'dy))))))))
+                           (up 'dx 'dy)))))))
+  (testing "eq. 5.291"
+    (let [V (fn [[xi eta]] (sqrt (+ (square (+ xi 'R_0)) (square eta))))]
+      (is (= '[R_0 xi (/ (expt eta 2) (* 2 R_0))]
+             (take 3 (simplify (taylor-series-terms V (up 0 0) (up 'xi 'eta)))))))))

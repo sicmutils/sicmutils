@@ -29,7 +29,7 @@
 
 (def ^:private near (within 1e-6))
 
-(deftest ^:long section-1.4
+(deftest ^:long section-1-4
   (with-literal-functions [x y z]
     (let [q (up x y z)
           test-path (fn [t]
@@ -94,7 +94,7 @@
         (is ((within 1e-5) 0 (minimal-path (/ Math/PI 2))))
         (is (every? good? errors))))))
 
-(deftest section-1.5
+(deftest section-1-5
   (with-literal-functions [x f g q η φ]
     (let [F (fn [q] (fn [t] (f (q t))))
           G (fn [q] (fn [t] (g (q t))))
@@ -121,7 +121,7 @@
              (simplify (((Lagrange-equations (L-harmonic 'm 'k)) proposed-solution) 't)))))))
 
 
-(deftest section-1.6
+(deftest section-1-6
   (with-literal-functions [x y r θ φ U y_s]
     (let [L-alternate-central-polar (fn [m U]
                                       (compose (L-central-rectangular m U)
@@ -167,7 +167,7 @@
                          (up r φ))
                         't))))
       (is (= '(+ (* (((expt D 2) θ) t) (expt l 2) m)
-                 (* (sin (θ t)) (((expt D 2) y_s) t) l m)
+                 (* (((expt D 2) y_s) t) (sin (θ t)) l m)
                  (* (sin (θ t)) g l m))
              (simplify (((Lagrange-equations (L-pendulum 'm 'l 'g y_s)) θ) 't))))
       ;; p. 61
@@ -182,15 +182,14 @@
             L-pend2 (fn [m l g y_s]
                       (compose (Lf m g)
                                (F->C (dp-coordinates l y_s))))]
-        (is (= '(+
-                 (* (sin θ) ((D y_s) t) l m θdot)
-                 (* 1/2 (expt l 2) m (expt θdot 2))
-                 (* (cos θ) g l m)
-                 (* 1/2 (expt ((D y_s) t) 2) m)
-                 (* -1 (y_s t) g m))
+        (is (= '(+ (* ((D y_s) t) (sin θ) l m θdot)
+                   (* 1/2 (expt l 2) m (expt θdot 2))
+                   (* (cos θ) g l m)
+                   (* 1/2 (expt ((D y_s) t) 2) m)
+                   (* -1 (y_s t) g m))
                (simplify ((L-pend2 'm 'l 'g y_s) (->local 't 'θ 'θdot)))))))))
 
-(deftest ^:long section-1.7-1
+(deftest ^:long section-1-7-1
   (with-literal-functions [x y v_x v_y]
     (let [harmonic-state-derivative (fn [m k]
                                       (Lagrangian->state-derivative (L-harmonic m k)))]
@@ -227,11 +226,11 @@
               delta (->> answer (- expected) flatten (map abs) (reduce max))]
           (is (< delta 1e-8)))))))
 
-(deftest section-1.7-2
+(deftest section-1-7-2
   (let [pend-state-derivative (fn [m l g a ω]
                                 (Lagrangian->state-derivative
                                  (L-periodically-driven-pendulum m l g a ω)))]
-    (is (= '(+ (* -1 (cos (* t ω)) (sin (θ t)) a l m (expt ω 2))
+    (is (= '(+ (* -1 (sin (θ t)) (cos (* t ω)) a l m (expt ω 2))
                (* (((expt D 2) θ) t) (expt l 2) m)
                (* (sin (θ t)) g l m))
            (simplify (((Lagrange-equations
@@ -241,7 +240,7 @@
     ;; NB. fraction simplification not happening here
     (is (= '(up 1
                 θdot
-                (/ (+ (* (cos (* t ω)) (sin θ) a (expt ω 2)) (* -1 (sin θ) g))
+                (/ (+ (* (sin θ) (cos (* t ω)) a (expt ω 2)) (* -1N (sin θ) g))
                    l))
            (simplify ((pend-state-derivative 'm 'l 'g 'a 'ω)
                       (up 't 'θ 'θdot)))))
@@ -263,7 +262,7 @@
           delta (->> answer (- expected) flatten (map abs) (reduce max))]
       (is (< delta 1e-8)))))
 
-(deftest section-1.8
+(deftest section-1-8
   (with-literal-functions [U V]
     (let [spherical-state (up 't
                               (up 'r 'θ 'φ)
@@ -319,7 +318,7 @@
                       (+ (* -1 m vx y) (* m vy x)))
                (simplify (Noether-integral state))))))))
 
-(deftest section-1.9
+(deftest section-1-9
   (let [F->C (fn [F]
                (let [f-bar #(->> % Γ (compose F) Γ)]
                  (Γ-bar f-bar)))]

@@ -27,7 +27,7 @@
 
 (use-fixtures :once hermetic-simplify-fixture)
 
-(deftest section-3.1.1
+(deftest section-3-1-1
   ;; To move further into Hamiltonian mechanics, we will need
   ;; literal functions mapping structures to structures.
 

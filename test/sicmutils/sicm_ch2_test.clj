@@ -30,7 +30,7 @@
                                (up 'θ 'φ 'ψ)
                                (up 'θdot 'φdot 'ψdot)))
 
-(deftest section-2.7
+(deftest section-2-7
   (with-literal-functions [θ φ ψ]
     (let [q (up θ φ ψ)
           M-on-path (compose Euler->M q)]
@@ -55,7 +55,7 @@
                   (+ (* (cos θ) φdot) ψdot))
              (simplify ((M->omega-body Euler->M) Euler-state)))))))
 
-(deftest section-2.9
+(deftest section-2-9
   (is (= '(+ (* (expt (cos ψ) 2) (expt (sin θ) 2) B φdot)
              (* (expt (sin ψ) 2) (expt (sin θ) 2) A φdot)
              (* (cos ψ) (sin ψ) (sin θ) A θdot)
@@ -68,7 +68,7 @@
   (is (= '(* (expt (sin θ) 2) A B C)
          (simplify (determinant (((square (∂ 2)) (T-rigid-body 'A 'B 'C)) Euler-state))))))
 
-(deftest ^:long section-2.9b
+(deftest ^:long section-2-9b
   (let [relative-error (fn [value reference-value]
                          (when (zero? reference-value)
                            (throw (IllegalArgumentException. "zero reference value")))
@@ -103,7 +103,7 @@
                       (reduce max))))))
 
 
-(deftest section-2.10
+(deftest section-2-10
   (is (= '(+
            (* 1/2 (expt (cos θ) 2) C (expt φdot 2))
            (* 1/2 (expt (sin θ) 2) A (expt φdot 2))

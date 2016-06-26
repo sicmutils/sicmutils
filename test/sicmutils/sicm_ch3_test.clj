@@ -8,7 +8,7 @@
 
 (use-fixtures :once hermetic-simplify-fixture)
 
-(deftest section-3.1
+(deftest section-3-1
   (testing "p.189"
     (is (= '(up 0
                 (up (/ (+ (* ((D x) t) m) (* -1 (p_x t))) m)
@@ -30,7 +30,7 @@
                           'm (literal-function 'V (-> (X Real Real) Real))))
                        (up 't (up 'x 'y) (down 'p_x 'p_y))))))))
 
-(deftest section-3.2
+(deftest section-3-2
   (testing "p.205"
     (let [F (literal-function 'F (-> (UP Real (UP Real Real) (DOWN Real Real)) Real))
           G (literal-function 'G (-> (UP Real (UP Real Real) (DOWN Real Real)) Real))
@@ -40,15 +40,15 @@
                                (Poisson-bracket H (Poisson-bracket F G)))
                              (up 't (up 'x 'y) (down 'px 'py)))))))))
 
-(deftest section-3.4
+(deftest section-3-4
   (testing "p.212"
     (is (= '(/ (+ (* 2 (V r) m (expt r 2))
                   (* (expt p_r 2) (expt r 2))
                   (expt p_phi 2))
                (* 2 m (expt r 2)))
            (simplify ((Lagrangian->Hamiltonian
-                        (L-central-polar 'm (literal-function 'V)))
-                       (up 't (up 'r 'phi) (down 'p_r 'p_phi))))))
+                       (L-central-polar 'm (literal-function 'V)))
+                      (up 't (up 'r 'phi) (down 'p_r 'p_phi))))))
     (is (= '(up 0
                 (up (/ (+ (* ((D r) t) m) (* -1 (p_r t))) m)
                     (/ (+ (* (expt (r t) 2) ((D phi) t) m)
@@ -60,15 +60,32 @@
                          (* (expt (r t) 3) m))
                       ((D p_phi) t)))
            (simplify (((Hamilton-equations
-                         (Lagrangian->Hamiltonian
-                           (L-central-polar 'm (literal-function 'V))))
-                        (up (literal-function 'r)
-                            (literal-function 'phi))
-                        (down (literal-function 'p_r)
-                              (literal-function 'p_phi)))
-                       't)))))
+                        (Lagrangian->Hamiltonian
+                         (L-central-polar 'm (literal-function 'V))))
+                       (up (literal-function 'r)
+                           (literal-function 'phi))
+                       (down (literal-function 'p_r)
+                             (literal-function 'p_phi)))
+                      't)))))
   (testing "p.213"
-    (let []
+    (is (= '(/ (+ (* 2 (expt (sin theta) 2) (cos theta) A C gMR)
+                  (* (expt (sin theta) 2) A (expt p_psi 2))
+                  (* (expt (sin theta) 2) C (expt p_theta 2))
+                  (* (expt (cos theta) 2) C (expt p_psi 2))
+                  (* -2 (cos theta) C p_phi p_psi)
+                  (* C (expt p_phi 2)))
+               (* 2 (expt (sin theta) 2) A C))
+           (simplify ((Lagrangian->Hamiltonian (L-axisymmetric-top 'A 'C 'gMR))
+                      (up 't
+                          (up 'theta 'phi 'psi)
+                          (down 'p_theta 'p_phi 'p_psi)))))))
+  (testing "p.214"
+    (let [top-state (up 't
+                        (up 'theta 'phi 'psi)
+                        (down 'p_theta 'p_phi 'p_psi))
+          H (Lagrangian->Hamiltonian
+             (L-axisymmetric-top 'A 'C 'gMR))
+          sysder (Hamiltonian->state-derivative H)]
       (is (= '(/ (+ (* 2 (expt (sin theta) 2) (cos theta) A C gMR)
                     (* (expt (sin theta) 2) A (expt p_psi 2))
                     (* (expt (sin theta) 2) C (expt p_theta 2))
@@ -76,12 +93,40 @@
                     (* -2 (cos theta) C p_phi p_psi)
                     (* C (expt p_phi 2)))
                  (* 2 (expt (sin theta) 2) A C))
-             (simplify ((Lagrangian->Hamiltonian (L-axisymmetric-top 'A 'C 'gMR))
-                (up 't
-                    (up 'theta 'phi 'psi)
-                    (down 'p_theta 'p_phi 'p_psi)))))))))
+             (simplify (H top-state))))
+      (is (= '(up
+               1
+               (up
+                (/ p_theta A)
+                (/ (+ (* -1 (cos theta) p_psi) p_phi) (* (expt (sin theta) 2) A))
+                (/
+                 (+
+                  (* (expt (sin theta) 2) A p_psi)
+                  (* (expt (cos theta) 2) C p_psi)
+                  (* -1 (cos theta) C p_phi))
+                 (* (expt (sin theta) 2) A C)))
+               (down
+                (/
+                 (+
+                  (* (expt (cos theta) 4) A gMR)
+                  (* -2 (expt (cos theta) 2) A gMR)
+                  (* -1 (expt (cos theta) 2) p_phi p_psi)
+                  (* (cos theta) (expt p_phi 2))
+                  (* (cos theta) (expt p_psi 2))
+                  (* A gMR)
+                  (* -1 p_phi p_psi))
+                 (* (expt (sin theta) 3) A))
+                0
+                0)) (simplify (sysder top-state))))
+      (is (= (str "function(A, C, gMR, p_phi, p_psi, p_theta, theta) {\n"
+                  "  var _1 = Math.sin(theta);\n"
+                  "  var _2 = Math.pow(Math.cos(theta), 2);\n"
+                  "  var _3 = Math.pow(Math.sin(theta), 2);\n"
+                  "  var _4 = Math.cos(theta);\n"
+                  "  return [1, [p_theta / A, (- _4 * p_psi + p_phi) / Math.pow(_1, 2) * A, (Math.pow(_1, 2) * A * p_psi + Math.pow(_4, 2) * C * p_psi - _4 * C * p_phi) / Math.pow(_1, 2) * A * C], [(Math.pow(_4, 4) * A * gMR -2 * Math.pow(_4, 2) * A * gMR - Math.pow(_4, 2) * p_phi * p_psi + _4 * Math.pow(p_phi, 2) + _4 * Math.pow(p_psi, 2) + A * gMR - p_phi * p_psi) / Math.pow(_1, 3) * A, 0, 0]];\n}")
+             (-> top-state sysder simplify ->JavaScript))))))
 
-(deftest section-3.5
+(deftest section-3-5
   (testing "p.221"
     (let [H ((Lagrangian->Hamiltonian
               (L-periodically-driven-pendulum 'm 'l 'g 'a 'omega))
