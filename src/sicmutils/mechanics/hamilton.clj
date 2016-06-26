@@ -115,3 +115,18 @@
     (let [nI (+ I (* K (sin theta)))]
       (return ((principal-value twopi) (+ theta nI))
               ((principal-value twopi) nI)))))
+
+(defn iterated-map
+  [f n]
+  (let [lulz (constantly nil)]
+    (fn [x y continue fail]
+     (when (< n 0) (throw (IllegalArgumentException. "Cannot invert map")))
+     (loop [x x
+            y y
+            i n]
+       (if (= i 0)
+         (continue x y)
+         (let [step (f x y vector lulz)]
+           (if step
+             (recur (step 0) (step 1) (dec i))
+             (fail))))))))
