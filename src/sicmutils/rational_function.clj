@@ -215,6 +215,7 @@
 
 (defmethod g/mul [::rational-function ::rational-function] [a b] (mul a b))
 (defmethod g/mul [Long ::rational-function] [c {u :u v :v}] (make (g/mul c u) v))
+(defmethod g/mul [BigInt ::rational-function] [c {u :u v :v}] (make (g/mul c u) v))
 (defmethod g/mul [::rational-function Long] [{u :u v :v} c] (make (g/mul u c) v))
 (defmethod g/mul [Double ::rational-function] [c {u :u v :v}] (make (g/mul c u) v))
 (defmethod g/mul [::rational-function Double] [{u :u v :v} c] (make (g/mul u c) v))

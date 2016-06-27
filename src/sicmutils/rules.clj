@@ -24,6 +24,7 @@
 (defn- more-than-two? [x] (and (number? x) (> x 2)))
 (defn- at-least-two? [x] (and (number? x) (>= x 2)))
 (defn- even-integer? [x] (and (number? x) (even? x)))
+(defn- odd-integer? [x] (and (number? x) (not (even? x))))
 
 (def sin-sq->cos-sq
   (rule-simplifier
@@ -68,6 +69,24 @@
 
     (sqrt (expt :x (:? n even-integer?)))
     => (expt :x (:? #(/ (% 'n) 2)))
+
+    ;; Following are the new rules we added to approach
+    ;; the simplification of the time-invariant-canonical
+    ;; test.
+    (expt (sqrt :x) (:? n odd-integer?))
+    => (* (sqrt :x) (expt :x (:? #(/ (- (% 'n) 1) 2))))
+
+    ;; ... (sqrt a) ... (sqrt b) ... => ... (sqrt a b)
+    (* :f1* (sqrt :a) :f2* (sqrt :b) :f3*)
+    => (* :f1* :f2* :f3* (sqrt (* :a :b)))
+
+    ;; (/ (* ... (sqrt a) ...)
+    ;;    (* ... (sqrt b) ...)  => ... (sqrt (/ a b)) ... / ... ...
+    (/ (* :f1* (sqrt :a) :f2*)
+       (* :g1* (sqrt :b) :g2*))
+    => (/ (* :f1* :f2* (sqrt (/ :a :b)))
+          (* :g1* :g2*))
+
 
     ;; others to follow
     )))

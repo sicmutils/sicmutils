@@ -23,7 +23,7 @@
 (deftest simplify-square-roots-test
   (let [s simplify-square-roots]
     (is (= '(expt x 4) (s '(expt (sqrt x) 8))))
-    (is (= '(expt (sqrt x) 7) (s '(expt (sqrt x) 7))))
+    (is (= '(* (sqrt x) (expt x 3)) (s '(expt (sqrt x) 7))))
     (is (= '(expt x 4) (s '(sqrt (expt x 8)))))
     (is (= '(sqrt (expt x 7)) (s '(sqrt (expt x 7)))))))
 
