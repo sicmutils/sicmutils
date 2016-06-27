@@ -26,6 +26,11 @@
             [sicmutils.numerical.minimize :refer :all]
             [sicmutils.calculus.derivative :refer :all]))
 
+(defn state->t
+  "Extract the time slot from a state tuple"
+  [s]
+  (nth s 0))
+
 (defn coordinate
   "A convenience function on local tuples. A local tuple describes
   the state of a system at a particular time: [t, q, D q, D^2 q]

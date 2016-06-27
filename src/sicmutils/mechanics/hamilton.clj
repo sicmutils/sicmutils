@@ -33,8 +33,8 @@
 (defn momentum
   "See coordinate: this returns the momentum element of a
   Hammilton state tuple (by convention, the element at index 2)."
-  [local]
-  (nth local 2))
+  [H-state]
+  (nth H-state 2))
 
 (defn ->H-state
   [t q p]
@@ -117,6 +117,11 @@
               ((principal-value twopi) nI)))))
 
 (defn iterated-map
+  "f is a function of (x y continue fail), which calls continue with
+  the values of x' y' that follow x y in the mapping. Returns a map of
+  the same shape that iterates the iterated map n times before
+  invoking the continuation, or invokes the fail continuation if the
+  inner map fails."
   [f n]
   (let [lulz (constantly nil)]
     (fn [x y continue fail]
@@ -130,3 +135,53 @@
            (if step
              (recur (step 0) (step 1) (dec i))
              (fail))))))))
+
+(defn F->CT
+  "A transformation of configuration coordinates F to a procedure
+  implementing a transformation of phase-space coordinates (p. 320)"
+  [F]
+  (fn [[t q p :as H-state]]
+    (up t
+        (F H-state)
+        (* p (invert (((∂ 1) F) H-state))))))
+
+(defn H-central
+  [m V]
+  (fn [[t x p :as H-state]]
+    (+  (/ (square p) (* 2 m))
+        (V (sqrt (square x))))))
+
+;; page numbers here are references to the PDF; probably
+;; do not correspond to 1ed.
+
+(defn canonical?
+  "p.324"
+  [C H Hprime]
+  (- (compose (phase-space-derivative H) C)
+     (* (D C) (phase-space-derivative Hprime))))
+
+(defn compositional-canonical?
+  "p.324"
+  [C H]
+  (canonical? C H (compose H C)))
+
+(defn time-independent-canonical?
+  "p.326"
+  [C]
+  (let [J-func #(up 0 (nth % 2) (- (nth % 1)))
+        Phi (fn [A] #(* A %))
+        Phi* (fn [A] #(* % A))]
+    (fn [s]
+      ((- J-func
+          (compose (Phi ((D C) s))
+                   J-func
+                   (Phi* ((D C) s))))
+       (compatible-shape s)))))
+
+(defn polar-canonical
+  "p.327"
+  [alpha]
+  (fn [[t theta I]]
+    (let [x (* (sqrt (/ (* 2 I) alpha)) (sin theta))
+          p_x (* (sqrt (* 2 alpha I)) (cos theta))]
+      (up t x p_x))))

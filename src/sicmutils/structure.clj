@@ -378,6 +378,10 @@
               [(rest values) (first values)]))]
     (second (u values struct))))
 
+(defn compatible-shape
+  [s]
+  (unflatten (repeatedly gensym) s))
+
 (defmethod g/add [::down ::down] [a b] (elementwise g/+ a b))
 (defmethod g/add [::up ::up] [a b] (elementwise g/+ a b))
 (defmethod g/sub [::down ::down] [a b] (elementwise g/- a b))
