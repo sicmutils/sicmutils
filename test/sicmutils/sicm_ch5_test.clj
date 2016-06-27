@@ -31,10 +31,10 @@
                  (up 'r 'phi)
                  (down 'p_r 'p_phi))))))
     ;; We've moved the simplifier frontier back to this point.
-    ;; This should give (up 0 0 0), but returns a mess. Current
-    ;; theory is we need to allow dividing out terms so as to
-    ;; reduce the exponent in an (expt).
-    #_(is (= 'foo
+    ;; This should give (up 0 0 0). This is currently blocked
+    ;; on teaching the simplifier to reduce square roots of
+    ;; perfect squares.
+    (is (= 'foo
            (simplify
             ((time-independent-canonical? (polar-canonical 'alpha))
              (up 't 'theta 'I)))))))

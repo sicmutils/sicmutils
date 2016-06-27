@@ -365,22 +365,26 @@
 (defn unflatten
   "Given a sequence of values and a model structure, unpack the values into
   a structure with the same shape as the model."
-  [values struct]
-  (letfn [(u [values struct]
-            (if (structure? struct)
-              (let [[values' struct']
-                    (reduce (fn [[values struct] element]
-                              (let [[values' struct'] (u values element)]
-                                [values' (conj struct struct')]))
-                            [values []]
-                            struct)]
-                [values' (same struct struct')])
-              [(rest values) (first values)]))]
-    (second (u values struct))))
+  ([values struct]
+   (unflatten same values struct))
+  ([constructor values struct]
+   (letfn [(u [values struct]
+             (if (structure? struct)
+               (let [[values' struct']
+                     (reduce (fn [[values struct] element]
+                               (let [[values' struct'] (u values element)]
+                                 [values' (conj struct struct')]))
+                             [values []]
+                             struct)]
+                 [values' (constructor struct struct')])
+               [(rest values) (first values)]))]
+     (second (u values struct)))))
 
 (defn compatible-shape
+  "Return an object compatible for multiplication with the given one, with
+  the slots filled with gensyms."
   [s]
-  (unflatten (repeatedly gensym) s))
+  (unflatten opposite (repeatedly gensym) s))
 
 (defmethod g/add [::down ::down] [a b] (elementwise g/+ a b))
 (defmethod g/add [::up ::up] [a b] (elementwise g/+ a b))

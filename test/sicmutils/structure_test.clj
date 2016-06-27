@@ -19,9 +19,9 @@
 (ns sicmutils.structure-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
+            [sicmutils.env :refer :all]
             [sicmutils.structure :as s]
-            [sicmutils.value :as v]
-            [sicmutils.env :refer :all]))
+            [sicmutils.value :as v]))
 
 (deftest structures
   (testing "type"
@@ -242,7 +242,17 @@
            (s/structure->access-chains (up 't (up 'x 'y) (down 'p_x 'p_y)))))
     (is (= (up (down (up [0 0 0] [0 0 1]) (up [0 1 0] [0 1 1]))
                (down (up [1 0 0] [1 0 1]) (up [1 1 0] [1 1 1])))
-           (s/structure->access-chains (up (down (up 1 2) (up 2 3)) (down (up 3 4) (up 4 5))))))))
+           (s/structure->access-chains (up (down (up 1 2) (up 2 3)) (down (up 3 4) (up 4 5)))))))
+  ;; this is wrong and needs to be fixed.
+  (testing "compatible-shape"
+    (let [o (s/compatible-shape (up 1 2))]
+      (is (= ::s/down (v/kind o)))
+      (is (every? symbol? o)))
+    (let [o (s/compatible-shape (down 3 (up 1 2) (up 3 4)))]
+      (is (= ::s/up (v/kind o)))
+      (is (symbol? (ref o 0)))
+      (is (= ::s/down (v/kind (ref o 1))))
+      (is (= ::s/down (v/kind (ref o 2)))))))
 
 (deftest some-tensors
   (let [ε_ijk (down (down (down  0  0  0)
