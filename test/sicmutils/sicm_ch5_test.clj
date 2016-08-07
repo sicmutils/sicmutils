@@ -34,7 +34,9 @@
     ;; This should give (up 0 0 0). This is currently blocked
     ;; on teaching the simplifier to reduce square roots of
     ;; perfect squares.
-    (is (= 'foo
+    (is (= '(up 0
+                (/ (+ (* (sqrt (* 4N (expt I 2))) G__4770) (* -2N G__4770 I)) (sqrt (* 4N (expt I 2))))
+                (/ (+ (* -1N (sqrt (* 4N (expt I 2))) G__4769) (* 2N G__4769 I)) (sqrt (* 4N (expt I 2)))))
            (simplify
             ((time-independent-canonical? (polar-canonical 'alpha))
              (up 't 'theta 'I)))))))
