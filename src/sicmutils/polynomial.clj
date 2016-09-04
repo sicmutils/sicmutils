@@ -179,14 +179,20 @@
   [f p q]
   (loop [P (:xs->c p)
          Q (:xs->c q)
-         R empty-coefficients]
+         R (transient [])]
     (cond
-      (empty? P) (into R (for [[xs c] Q
-                               :let [c1 (f 0 c)]
-                               :when (not (g/zero? c1))] [xs c1]))
-      (empty? Q) (into R (for [[xs c] P
-                               :let [c1 (f c 0)]
-                               :when (not (g/zero? c1))] [xs c1]))
+      (empty? P) (if (empty? Q)
+                   (persistent! R)
+                   (let [[[xq cq] & qs] Q
+                         c' (f 0 cq)]
+                     (if (g/zero? c')
+                       (recur P qs R)
+                       (recur P qs (conj! R [xq c'])))))
+      (empty? Q) (let [[[xp cp] & ps] P
+                       c' (f cp 0)]
+                   (if (g/zero? c')
+                     (recur ps Q R)
+                     (recur ps Q (conj! R [xp c']))))
       :else (let [[xp cp] (first P)
                   [xq cq] (first Q)
                   order (monomial-order xp xq)]
@@ -194,10 +200,10 @@
                 (zero? order) (let [v (f cp cq)]
                                 (recur (rest P) (rest Q)
                                        (if-not (g/zero? v)
-                                         (conj R [xp v])
+                                         (conj! R [xp v])
                                          R)))
-                (< order 0) (recur (rest P) Q (conj R [xp (f cp 0)]))
-                :else (recur P (rest Q) (conj R [xq (f 0 cq)])))))))
+                (< order 0) (recur (rest P) Q (conj! R [xp (f cp 0)]))
+                :else (recur P (rest Q) (conj! R [xq (f 0 cq)])))))))
 
 (defn new-variables
   "Creates a sequence of identity (i.e., x) polynomials, one for each
