@@ -126,7 +126,6 @@
                      (sort-by exponents monomial-order)
                      (into empty-coefficients))))
   ([dense-coefficients]
-   ;; XXX revisit this: it can be done directly
    (make 1 (zipmap (map vector (iterate inc 0)) dense-coefficients))))
 
 (defn ^:private lead-term
@@ -157,11 +156,11 @@
 (defn map-coefficients
   "Map the function f over the coefficients of p, returning a new Polynomial."
   [f {:keys [arity xs->c]}]
-  (let [m (into empty-coefficients (for [[xs c] xs->c
-                                         :let [fc (f c)]
-                                         :when (not (g/zero? fc))]
-                                     [xs fc]))]
-    (Polynomial. arity m)))
+  (Polynomial. arity (into empty-coefficients
+                           (for [[xs c] xs->c
+                                 :let [fc (f c)]
+                                 :when (not (g/zero? fc))]
+                             [xs fc]))))
 
 (defn map-exponents
   "Map the function f over the exponents of each monomial in p,
@@ -169,41 +168,6 @@
   [f {:keys [arity xs->c]}]
   (make arity (for [[xs c] xs->c]
                 [(f xs) c])))
-
-(defn ^:private poly-merge
-  "Merge the polynomials together, combining corresponding coefficients with f.
-  The result is not a polynomial object, but rather a sequence
-  of [exponent, coefficient] pairs, suitable for further processing or
-  canonicalization. Merged monomials with zero coefficient are
-  dropped."
-  [f p q]
-  (loop [P (:xs->c p)
-         Q (:xs->c q)
-         R (transient [])]
-    (cond
-      (empty? P) (if (empty? Q)
-                   (persistent! R)
-                   (let [[[xq cq] & qs] Q
-                         c' (f 0 cq)]
-                     (if (g/zero? c')
-                       (recur P qs R)
-                       (recur P qs (conj! R [xq c'])))))
-      (empty? Q) (let [[[xp cp] & ps] P
-                       c' (f cp 0)]
-                   (if (g/zero? c')
-                     (recur ps Q R)
-                     (recur ps Q (conj! R [xp c']))))
-      :else (let [[xp cp] (first P)
-                  [xq cq] (first Q)
-                  order (monomial-order xp xq)]
-              (cond
-                (zero? order) (let [v (f cp cq)]
-                                (recur (rest P) (rest Q)
-                                       (if-not (g/zero? v)
-                                         (conj! R [xp v])
-                                         R)))
-                (< order 0) (recur (rest P) Q (conj! R [xp (f cp 0)]))
-                :else (recur P (rest Q) (conj! R [xq (f 0 cq)])))))))
 
 (defn new-variables
   "Creates a sequence of identity (i.e., x) polynomials, one for each
@@ -221,14 +185,13 @@
                          (conj empty-coefficients [(vec (repeat arity 0)) c]))))
 
 (defn add
-  "Adds the polynomials p and q (either or both of which might just be
-  constants in the base ring)."
+  "Adds the polynomials p and q"
   [p q]
   {:pre [(instance? Polynomial p)
          (instance? Polynomial q)]}
   (cond (g/zero? p) q
         (g/zero? q) p
-        :else (Polynomial. (check-same-arity p q) (poly-merge g/+ p q))))
+        :else (make (check-same-arity p q) (concat (:xs->c p) (:xs->c q)))))
 
 (defn sub
   "Subtract the polynomial q from the polynomial p."
@@ -237,7 +200,9 @@
          (instance? Polynomial q)]}
   (cond (g/zero? p) (negate q)
         (g/zero? q) p
-        :else (Polynomial. (check-same-arity p q) (poly-merge g/- p q))))
+        :else (make (check-same-arity p q)
+                    (concat (:xs->c p) (for [[xs c] (:xs->c q)]
+                                         [xs (g/negate c)])))))
 
 (defn mul
   "Multiply polynomials p and q, and return the product."
