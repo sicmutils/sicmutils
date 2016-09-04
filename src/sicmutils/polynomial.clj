@@ -73,7 +73,7 @@
     (if (= xd yd) (compare (vec (rseq ys)) (vec (rseq xs))) (- xd yd))))
 
 (def ^:private monomial-order graded-lex-order)
-(def ^:private empty-coefficients (sorted-map-by monomial-order))
+(def ^:private empty-coefficients [])
 
 ;;
 ;; Polynomials
@@ -81,12 +81,12 @@
 
 (declare evaluate)
 
-(defrecord Polynomial [^long arity ^PersistentTreeMap xs->c]
+(defrecord Polynomial [arity xs->c]
   v/Value
   (nullity? [_] (-> xs->c .count zero?))
   (numerical? [_] false)
   (zero-like [_] (Polynomial. arity empty-coefficients))
-  (one-like [_] (make-constant arity (v/one-like (coefficient (first xs->c)))))
+  (one-like [_] (make-constant arity (v/one-like (coefficient (exponents xs->c)))))
   (unity? [_] (and (= (.count xs->c) 1)
                    (let [[xs c] (first xs->c)]
                      (and (every? zero? xs)
@@ -118,18 +118,22 @@
   proceed to each higher power of the indeterminate. For example, x^2
   - 1 can be constructed by (make -1 0 1)."
   ([arity xc-pairs]
-   {:pre [(->> xc-pairs (map first) (every? vector?))]}
-   (Polynomial. arity (into empty-coefficients
-                            (for [p xc-pairs :when (not (g/zero? (second p)))]
-                              p))))
+   (Polynomial. arity
+                (->> (for [[xs cs] (group-by exponents xc-pairs)
+                           :let [sum-cs (reduce #(g/+ %1 (coefficient %2)) 0 cs)]
+                           :when (not (g/zero? sum-cs))]
+                       [xs sum-cs])
+                     (sort-by exponents monomial-order)
+                     (into empty-coefficients))))
   ([dense-coefficients]
+   ;; XXX revisit this: it can be done directly
    (make 1 (zipmap (map vector (iterate inc 0)) dense-coefficients))))
 
 (defn ^:private lead-term
   "Return the leading (i.e., highest degree) term of the polynomial
   p. The return value is [exponents coefficient]."
   [p]
-  (-> p :xs->c rseq first))
+  (-> p :xs->c peek))
 
 (defn degree
   [p]
@@ -142,12 +146,7 @@
 
 (defn coefficients
   [^Polynomial p]
-  (-> p :xs->c vals))
-
-(defn constant-term
-  "Return the constant term of the polynomial."
-  [{:keys [arity xs->c]}]
-  (or (xs->c (vec (repeat arity 0))) 0))
+  (->> p :xs->c (map coefficient)))
 
 (defn check-same-arity [p q]
   (let [ap (:arity p)
@@ -168,9 +167,8 @@
   "Map the function f over the exponents of each monomial in p,
   returning a new Polynomial."
   [f {:keys [arity xs->c]}]
-  (let [m (into empty-coefficients (for [[xs c] xs->c]
-                                     [(f xs) c]))]
-    (Polynomial. arity m)))
+  (make arity (for [[xs c] xs->c]
+                [(f xs) c])))
 
 (defn ^:private poly-merge
   "Merge the polynomials together, combining corresponding coefficients with f.
@@ -196,10 +194,10 @@
                 (zero? order) (let [v (f cp cq)]
                                 (recur (rest P) (rest Q)
                                        (if-not (g/zero? v)
-                                         (assoc R xp v)
+                                         (conj R [xp v])
                                          R)))
-                (< order 0) (recur (rest P) Q (assoc R xp (f cp 0)))
-                :else (recur P (rest Q) (assoc R xq (f 0 cq))))))))
+                (< order 0) (recur (rest P) Q (conj R [xp (f cp 0)]))
+                :else (recur P (rest Q) (conj R [xq (f 0 cq)])))))))
 
 (defn new-variables
   "Creates a sequence of identity (i.e., x) polynomials, one for each
@@ -226,15 +224,6 @@
         (g/zero? q) p
         :else (Polynomial. (check-same-arity p q) (poly-merge g/+ p q))))
 
-(defn ^:private add-denormal
-  "Add-denormal adds the (order, coefficient) pair to the polynomial p,
-  expecting that p is currently in sparse form (i.e., not a primitive number)
-  and without normalizing the result (e.g., to see if the polynomial has
-  become constant or a term has dropped out). Useful in intermediate steps
-  of polynomial computations."
-  [xs->c [xs c]]
-  (assoc xs->c xs (g/+ (get xs->c xs 0) c)))
-
 (defn sub
   "Subtract the polynomial q from the polynomial p."
   [p q]
@@ -254,11 +243,9 @@
         (g/one? p) q
         (g/one? q) p
         :else (let [a (check-same-arity p q)]
-                (make a (reduce add-denormal
-                                empty-coefficients
-                                (for [[xp cp] (:xs->c p)
-                                      [xq cq] (:xs->c q)]
-                                  [(mapv + xp xq) (g/* cp cq)]))))))
+                (make a (for [[xp cp] (:xs->c p)
+                              [xq cq] (:xs->c q)]
+                          [(mapv + xp xq) (g/* cp cq)])))))
 
 (defn raise-arity
   "The opposite of lower-arity."
@@ -379,7 +366,7 @@
         (if (< m n)
           [remainder d]
           (recur (sub (*vn remainder)
-                      (mul v (Polynomial. a (assoc empty-coefficients [(- m n)] c))))
+                      (mul v (Polynomial. a [[[(- m n)] c]])))
                  (inc d)))))))
 
 (defn evenly-divide

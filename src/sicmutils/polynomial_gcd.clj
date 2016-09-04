@@ -73,7 +73,7 @@
   has the content reattached and is returned."
   [gcd u v continue]
   (let [gcd-reducer (reduce-until v/unity? gcd)
-        content #(-> % :xs->c vals gcd-reducer)
+        content #(-> % coefficients gcd-reducer)
         ku (content u)
         kv (content v)
         pu (map-coefficients #(g/exact-div % ku) u)
@@ -87,7 +87,7 @@
 
 (defn ^:private euclid-inner-loop
   [coefficient-gcd]
-  (let [content #(->> % :xs->c vals (reduce coefficient-gcd))]
+  (let [content #(->> % coefficients (reduce coefficient-gcd))]
     (fn [u v]
       (loop [u u v v]
         (*poly-gcd-bail-out*)
@@ -213,7 +213,7 @@
   []
   (prime-collection (rand-int (count prime-collection)))
   #_(let [c (+ 1 (rand-int gcd-heuristic-trial-value-max))]
-    (if (even? c) (+ c 1) c)))
+      (if (even? c) (+ c 1) c)))
 
 (defn probabilistic-unit-gcd
   "We're a little skeptical of this: why doesn't GJS use prime numbers here?
@@ -241,7 +241,7 @@
 (defn ^:private with-probabilistic-check
   [u v continue]
   (if (and
-        ;false  ;; XXX
+                                        ;false  ;; XXX
        (> (:arity u) 1)
        (probabilistic-unit-gcd u v))
     (do (swap! gcd-probabilistic-unit inc) (v/one-like u))
@@ -278,8 +278,8 @@
   kind of disjointness of the variables. If this happens we just
   return the constant gcd and do not invoke the continuation."
   [u v continue]
-  (let [umax (reduce #(mapv max %1 %2) (keys (:xs->c u)))
-        vmax (reduce #(mapv max %1 %2) (keys (:xs->c v)))
+  (let [umax (reduce #(mapv max %1 %2) (map exponents (:xs->c u)))
+        vmax (reduce #(mapv max %1 %2) (map exponents (:xs->c v)))
         maxd (mapv min umax vmax)]
     (if (every? zero? maxd)
       (do
@@ -307,8 +307,8 @@
   Discussed in 'Evaluation of the Heuristic Polynomial GCD', by Liao
   and Fateman [1995]."
   [u v continue]
-  (let [xs (reduce #(mapv max %1 %2) (concat (keys (:xs->c u))
-                                             (keys (:xs->c v))))
+  (let [xs (reduce #(mapv max %1 %2) (concat (map exponents (:xs->c u))
+                                             (map exponents (:xs->c v))))
         [sorter unsorter] (sort->permutations xs)]
     (map-exponents unsorter
                    (continue (map-exponents sorter u)
@@ -338,8 +338,8 @@
   [m p]
   {:pre [(= (count (:xs->c m)) 1)]}
   (let [[mxs mc] (-> m :xs->c first)
-        xs (reduce #(mapv min %1 %2) mxs (-> p :xs->c keys))
-        c (primitive-gcd (cons mc (-> p :xs->c vals)))]
+        xs (reduce #(mapv min %1 %2) mxs (->> p :xs->c (map exponents)))
+        c (primitive-gcd (cons mc (coefficients p)))]
     (swap! gcd-monomials inc)
     (make (:arity m) [[xs c]])))
 
@@ -361,7 +361,7 @@
   [u v & fs]
   (condp < (count fs)
     2 `(~(first fs) ~u ~v
-         (fn [u# v#] (gcd-continuation-chain u# v# ~@(next fs))))
+        (fn [u# v#] (gcd-continuation-chain u# v# ~@(next fs))))
     1 `(~(first fs) ~u ~v ~(second fs))
     0 `(~(first fs) ~u ~v)))
 
@@ -425,8 +425,8 @@
                                                           (first *poly-gcd-time-limit*))
                                                    (log/warn (format "long polynomial GCD: %s" clock))
                                                    (throw (TimeoutException.
-                                                            (str "Took too long to find multivariate polynomial GCD: "
-                                                                 clock)))))]
+                                                           (str "Took too long to find multivariate polynomial GCD: "
+                                                                clock)))))]
               (abs (gcd-continuation-chain u v
                                            with-trivial-constant-gcd-check
                                            ;;with-easy-factors-removed (loses)

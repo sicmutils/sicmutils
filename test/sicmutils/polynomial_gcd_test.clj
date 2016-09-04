@@ -38,11 +38,6 @@
         x (make [0 1])
         X (make 2 [[[1 0] 1]]) ;; some polynomials of arity 2
         Y (make 2 [[[0 1] 1]])]
-    (testing "constant-term"
-      (is (= 6 (constant-term u)))
-      (is (= -6 (constant-term v)))
-      (is (= 0 (constant-term x)))
-      (is (= 0 (constant-term (make 4 [])))))
     (testing "inexact coefficients"
       (is (= (make [1]) (gcd (make [0.2 0.4 0.6]) (make [0.4 0.6 0.8])))))
     (testing "GCD: arity 1 case"
