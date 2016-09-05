@@ -257,7 +257,7 @@
          result 0
          x**e 1
          e 0]
-    (if-let [[[e'] c] (first xs->c)]
+    (if-let [[[e'] c] (exponents xs->c)]
       (let [x**e' (g/* x**e (g/expt x (- e' e)))]
         (recur (next xs->c)
                (g/+ result (g/* c x**e'))
@@ -373,6 +373,23 @@
                     (if (even? c)
                       (recur (mul x x) (quot c 2) a)
                       (recur x (dec c) (mul x a)))))))
+
+(defn partial-derivative
+  "The partial derivative of the polynomial with respect to the
+  i-th indeterminate."
+  [p i]
+  (make (:arity p)
+        (for [[xs c] (:xs->c p)
+              :let [xi (xs i)]
+              :when (not= 0 xi)]
+          [(update xs i dec) (g/* xi c)])))
+
+(defn partial-derivatives
+  "The sequence of partial derivatives of p with respect to each
+  indeterminate"
+  [p]
+  (for [i (range (:arity p))]
+    (partial-derivative p i)))
 
 (defn expression->
   "Convert an expression into Flat Polynomial canonical form. The

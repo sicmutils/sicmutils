@@ -259,7 +259,7 @@
   order term; then return the greatest tag found in any of these
   terms; i.e., the highest-numbered tag of the highest-order term."
   [ds]
-  (->> ds (mapcat #(-> % differential->terms last tags)) (reduce max)))
+  (->> ds (mapcat #(-> % differential->terms last tags)) (apply max)))
 
 (defn with-tag
   "XXX doc and decide if we need the two infra"

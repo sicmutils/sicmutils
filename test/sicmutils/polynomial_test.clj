@@ -221,6 +221,17 @@
       (is (= 33 (evaluate P [1 2 3])))
       (is (= 33 (evaluate P [1 2 3 4]))))))
 
+(deftest poly-partial-derivatives
+  (let [V (make [1 2 3 4])
+        U (make 2 [[[1 1] 3] [[2 2] 4] [[0 0] 5] [[0 3] 7] [[4 0] -2]])]
+    (is (= (make [2 6 12]) (partial-derivative V 0)))
+    (is (= [(make [2 6 12])] (partial-derivatives V)))
+    (is (= (make 2 [[[0 1] 3] [[1 2] 8] [[3 0] -8]]) (partial-derivative U 0)))
+    (is (= (make 2 [[[1 0] 3] [[2 1] 8] [[0 2] 21]]) (partial-derivative U 1)))
+    (is (= [(make 2 [[[0 1] 3] [[1 2] 8] [[3 0] -8]])
+            (make 2 [[[1 0] 3] [[2 1] 8] [[0 2] 21]])]
+           (partial-derivatives U)))))
+
 (deftest poly-as-simplifier
   (testing "arity"
     (is (= 1 (:arity (make [0 1])))))
