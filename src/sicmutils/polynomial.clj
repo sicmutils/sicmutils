@@ -17,8 +17,11 @@
 ;
 
 (ns sicmutils.polynomial
-  (:import (clojure.lang PersistentTreeMap BigInt IFn Ratio))
-  (:require [clojure.set :as set]
+  (:import (clojure.lang PersistentTreeMap BigInt IFn Ratio)
+           (java.util.concurrent TimeUnit TimeoutException)
+           (com.google.common.base Stopwatch))
+  (:require [clojure.tools.logging :as log]
+            [clojure.set :as set]
             [clojure.string]
             [sicmutils
              [value :as v]
@@ -485,3 +488,5 @@
 (defmethod g/expt [::polynomial Integer] [b x] (expt b x))
 (defmethod g/expt [::polynomial Long] [b x] (expt b x))
 (defmethod g/negate [::polynomial] [a] (negate a))
+
+(load "polynomial_gcd")

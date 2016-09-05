@@ -24,8 +24,7 @@
              [euclid :as e]
              [numsymb :as sym]
              [value :as v]
-             [polynomial :as p]
-             [polynomial-gcd :refer [gcd]]])
+             [polynomial :as p]])
   (:import [clojure.lang Ratio BigInt]
            [sicmutils.polynomial Polynomial]))
 
@@ -59,7 +58,7 @@
                              (reduce e/lcm 1 (map denominator (filter ratio? cs))))
         u' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) u) u)
         v' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) v) v)
-        g (gcd u' v')
+        g (p/gcd u' v')
         u'' (p/evenly-divide u' g)
         v'' (p/evenly-divide v' g)]
     (if (v/unity? v'') u''
@@ -82,12 +81,12 @@
   "Add the ratiional functions r and s."
   [{u :u u' :v :as p} {v :u v' :v :as q}]
   (let [a (p/check-same-arity p q)
-        d1 (gcd u' v')]
+        d1 (p/gcd u' v')]
     (if (v/unity? d1)
       (make-reduced  a (p/add (p/mul u v') (p/mul u' v)) (p/mul u' v'))
       (let [t (p/add (p/mul u (p/evenly-divide v' d1))
                      (p/mul v (p/evenly-divide u' d1)))
-            d2 (gcd t d1)]
+            d2 (p/gcd t d1)]
         (make-reduced a
                       (p/evenly-divide t d2)
                       (p/mul (p/evenly-divide u' d1)
@@ -128,8 +127,8 @@
           (v/nullity? V) V
           (v/unity? U) V
           (v/unity? V) U
-          :else (let [d1 (gcd u v')
-                      d2 (gcd u' v)
+          :else (let [d1 (p/gcd u v')
+                      d2 (p/gcd u' v)
                       u'' (p/mul (p/evenly-divide u d1) (p/evenly-divide v d2))
                       v'' (p/mul (p/evenly-divide u' d2) (p/evenly-divide v' d1))]
                   (make-reduced a u'' v'')))))
@@ -228,7 +227,7 @@
   "Multiply the rational function U = u/u' by the polynomial v"
   (cond (v/nullity? v) 0
         (v/unity? v) U
-        :else (let [d (gcd u' v) ]
+        :else (let [d (p/gcd u' v) ]
                 (if (v/unity? d)
                   (make-reduced arity
                                 (p/mul u v) u')
@@ -242,7 +241,7 @@
   "Multiply the polynomial u by the rational function V = v/v'"
   (cond (v/nullity? u) 0
         (v/unity? u) V
-        :else (let [d (gcd u v') ]
+        :else (let [d (p/gcd u v') ]
                 (if (v/unity? d)
                   (RationalFunction. arity
                                      (p/mul u v) v')
@@ -271,7 +270,7 @@
 (defmethod g/div
   [::p/polynomial ::p/polynomial]
   [p q]
-  (let [g (gcd p q)]
+  (let [g (p/gcd p q)]
     (make (p/evenly-divide p g) (p/evenly-divide q g))))
 
 (defmethod g/div

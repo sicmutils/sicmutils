@@ -25,7 +25,6 @@
             [sicmutils
              [polynomial :refer :all]
              [polynomial-test :as p-test]
-             [polynomial-gcd :refer :all]
              [numbers]
              [expression :refer [variables-in]]]
             [clojure.tools.logging :as log]

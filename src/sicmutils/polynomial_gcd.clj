@@ -16,16 +16,7 @@
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(ns sicmutils.polynomial-gcd
-  (:import (com.google.common.base Stopwatch)
-           (sicmutils.polynomial Polynomial)
-           (java.util.concurrent TimeUnit TimeoutException))
-  (:require [clojure.tools.logging :as log]
-            [clojure.string]
-            [sicmutils
-             [value :as v]
-             [generic :as g]
-             [polynomial :refer :all]]))
+(in-ns 'sicmutils.polynomial)
 
 (def ^:dynamic *poly-gcd-time-limit* [1000 TimeUnit/MILLISECONDS])
 (def ^:dynamic *poly-gcd-cache-enable* true)
