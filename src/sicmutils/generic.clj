@@ -68,8 +68,8 @@
 (defmulti div v/argument-kind)
 (defmethod div [:arity] [_] [:exactly 2])
 
-(defmulti exact-div v/argument-kind)
-(defmethod exact-div [:arity] [_] [:exactly 2])
+(defmulti exact-divide v/argument-kind)
+(defmethod exact-divide [:arity] [_] [:exactly 2])
 
 (defmulti quotient v/argument-kind)
 (defmethod quotient [:arity] [_] [:exactly 2])
@@ -190,7 +190,7 @@
 (def divide /)
 
 (v/add-object-symbols! {+ '+ * '* - '- / (symbol "/")
-                        exact-div 'exact-div quotient 'quotient remainder 'remainder
+                        exact-divide 'exact-divide quotient 'quotient remainder 'remainder
                         invert 'invert negate 'negate square 'square cube 'cube
                         expt 'expt exp 'exp log 'log sqrt 'sqrt abs 'abs negative? 'negative?
                         sin 'sin cos 'cos tan 'tan asin 'asin acos 'acos atan 'atan

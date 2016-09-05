@@ -16,7 +16,16 @@
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(in-ns 'sicmutils.polynomial)
+(ns sicmutils.polynomial-gcd
+  (:import (com.google.common.base Stopwatch)
+           (sicmutils.polynomial Polynomial)
+           (java.util.concurrent TimeUnit TimeoutException))
+  (:require [clojure.tools.logging :as log]
+            [clojure.string]
+            [sicmutils
+             [value :as v]
+             [generic :as g]
+             [polynomial :refer :all]]))
 
 (def ^:dynamic *poly-gcd-time-limit* [1000 TimeUnit/MILLISECONDS])
 (def ^:dynamic *poly-gcd-cache-enable* true)
@@ -67,8 +76,8 @@
         content #(-> % coefficients gcd-reducer)
         ku (content u)
         kv (content v)
-        pu (map-coefficients #(g/exact-div % ku) u)
-        pv (map-coefficients #(g/exact-div % kv) v)
+        pu (map-coefficients #(g/exact-divide % ku) u)
+        pv (map-coefficients #(g/exact-divide % kv) v)
         d (gcd ku kv)]
     (map-coefficients #(g/* d %) (continue pu pv))))
 
@@ -85,7 +94,7 @@
         (let [[r _] (pseudo-remainder u v)]
           (if (v/nullity? r) v
               (let [kr (content r)]
-                (recur v (map-coefficients #(g/exact-div % kr) r)))))))))
+                (recur v (map-coefficients #(g/exact-divide % kr) r)))))))))
 
 (def ^:private prime-collection
   "The four-digit primes"
@@ -394,6 +403,18 @@
   Note that a polynomial with integral coefficients is integral."
   #(and (v/exact? %) (not (ratio? %))))
 
+(defn ^:private maybe-bail-out
+  "Returns a function that checks if clock has been running longer
+  than timeout and if so throws an exception after logging the event.
+  Timeout should be of the form [number TimeUnit]. "
+  [description clock timeout]
+  (fn []
+    (when (> (.elapsed clock (second timeout))
+             (first timeout))
+      (let [s (format "Timed out: %s after %s" description clock)]
+        (log/warn s)
+        (throw (TimeoutException. s))))))
+
 (defn gcd
   "Knuth's algorithm 4.6.1E.
   This can take a long time, unfortunately, and so we bail if it seems to
@@ -412,18 +433,18 @@
       (v/unity? v) v
       (= u v) u
       (= arity 1) (abs (gcd1 u v))
-      :else (binding [*poly-gcd-bail-out* (fn [] (when (> (.elapsed clock (second *poly-gcd-time-limit*))
-                                                          (first *poly-gcd-time-limit*))
-                                                   (log/warn (format "long polynomial GCD: %s" clock))
-                                                   (throw (TimeoutException.
-                                                           (str "Took too long to find multivariate polynomial GCD: "
-                                                                clock)))))]
+      :else (binding [*poly-gcd-bail-out* (maybe-bail-out "polynomial GCD" clock *poly-gcd-time-limit*)]
               (abs (gcd-continuation-chain u v
                                            with-trivial-constant-gcd-check
                                            ;;with-easy-factors-removed (loses)
                                            with-probabilistic-check
                                            with-optimized-variable-order
                                            #(inner-gcd 0 %1 %2)))))))
+
+(def gcd-seq
+  "Compute the GCD of a sequence of polynomials (we take care to
+  break early if the gcd of an initial segment is unity)"
+  (reduce-until v/unity? gcd))
 
 ;; several observations. many of the gcds we find when attempting the troublesome
 ;; GCD are the case where we have two monomials. This can be done trivially

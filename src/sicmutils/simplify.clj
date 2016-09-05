@@ -77,7 +77,7 @@
               (base-simplify [expr] (expr-> expr ->expr))]
         (-> expr analyze base-simplify backsubstitute)))))
 
-(defn ^:private monotonic-symbol-generator
+(defn monotonic-symbol-generator
   "Returns a function which generates a sequence of symbols with the given
   prefix with the property that later symbols will sort after earlier symbols.
   This is important for the stability of the simplifier. (If we just used

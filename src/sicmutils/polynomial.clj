@@ -17,11 +17,8 @@
 ;
 
 (ns sicmutils.polynomial
-  (:import (clojure.lang PersistentTreeMap BigInt IFn Ratio)
-           (java.util.concurrent TimeUnit TimeoutException)
-           (com.google.common.base Stopwatch))
-  (:require [clojure.tools.logging :as log]
-            [clojure.set :as set]
+  (:import (clojure.lang BigInt IFn Ratio))
+  (:require [clojure.set :as set]
             [clojure.string]
             [sicmutils
              [value :as v]
@@ -453,7 +450,7 @@
 (defmethod g/add [::polynomial ::polynomial] [a b] (add a b))
 (defmethod g/mul [::polynomial ::polynomial] [a b] (mul a b))
 (defmethod g/sub [::polynomial ::polynomial] [a b] (sub a b))
-(defmethod g/exact-div [::polynomial ::polynomial] [p q] (evenly-divide p q))
+(defmethod g/exact-divide [::polynomial ::polynomial] [p q] (evenly-divide p q))
 
 (doseq [t [Long BigInt BigInteger Double Ratio]]
   (defmethod g/mul
@@ -488,5 +485,3 @@
 (defmethod g/expt [::polynomial Integer] [b x] (expt b x))
 (defmethod g/expt [::polynomial Long] [b x] (expt b x))
 (defmethod g/negate [::polynomial] [a] (negate a))
-
-(load "polynomial_gcd")

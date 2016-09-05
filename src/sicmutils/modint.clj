@@ -63,5 +63,5 @@
 (defmethod g/abs [::modint] [{:keys [i m] :as a}] (if (< i 0) (make i m) a))
 (defmethod g/quotient [::modint ::modint] [a b] (mul a (modular-inv b)))
 (defmethod g/remainder [::modint ::modint] [a b] (modulo a b))
-(defmethod g/exact-div [::modint ::modint] [a b] (mul a (modular-inv b)))
+(defmethod g/exact-divide [::modint ::modint] [a b] (mul a (modular-inv b)))
 (defmethod g/negative? [::modint] [a] (< (:i a) 0))

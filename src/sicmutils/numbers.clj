@@ -81,11 +81,11 @@
     (defmethod g/remainder [rhs lhs] [b a] (mod b a))
     (defmethod g/quotient [lhs rhs] [a b] (quot a b))
     (defmethod g/quotient [rhs lhs] [b a] (quot b a))
-    (defmethod g/exact-div [lhs rhs] [a b] (exact-integer-divide a b))
-    (defmethod g/exact-div [rhs lhs] [b a] (exact-integer-divide b a))))
+    (defmethod g/exact-divide [lhs rhs] [a b] (exact-integer-divide a b))
+    (defmethod g/exact-divide [rhs lhs] [b a] (exact-integer-divide b a))))
 
-(defmethod g/exact-div [Ratio Ratio] [a b] (core-div a b))
-(defmethod g/exact-div [Ratio BigInt] [a b] (core-div a b))
+(defmethod g/exact-divide [Ratio Ratio] [a b] (core-div a b))
+(defmethod g/exact-divide [Ratio BigInt] [a b] (core-div a b))
 
 (defmethod g/negative? [Long] [a] (neg? a))
 (defmethod g/negative? [BigInt] [a] (neg? a))

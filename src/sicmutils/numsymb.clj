@@ -43,7 +43,7 @@
   (fn [x] (and (seq? x) (= (first x) s))))
 
 (def ^:private sum? (is-expression? '+))
-(def ^:private product? (is-expression? '*))
+(def product? (is-expression? '*))
 (def ^:private sqrt? (is-expression? 'sqrt))
 (def expt? (is-expression? 'expt))
 

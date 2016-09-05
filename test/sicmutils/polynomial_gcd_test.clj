@@ -24,6 +24,7 @@
             [clojure.test.check.clojure-test :refer [defspec]]
             [sicmutils
              [polynomial :refer :all]
+             [polynomial-gcd :refer :all]
              [polynomial-test :as p-test]
              [numbers]
              [expression :refer [variables-in]]]
