@@ -1,3 +1,5 @@
+(use 'sicmutils.mechanics.lagrange)
+
 (def q
   ;; See p. 17
   (with-literal-functions [x y z]
