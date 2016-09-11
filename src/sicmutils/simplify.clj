@@ -34,8 +34,8 @@
 
 (defn analyzer
   [symbol-generator expr-> ->expr known-operations]
-  (let [expr->var (atom {})
-        var->expr (atom {})]
+  (let [expr->var (ref {})
+        var->expr (ref {})]
     (fn [expr]
       (letfn [(analyze [expr]
                 (if (and (sequential? expr)
@@ -50,7 +50,8 @@
                         (new-kernels analyzed-expr))))
                   expr))
               (new-kernels [expr]
-                (let [simplified-expr (map base-simplify expr)]
+                ;; use doall to force the variable-binding side effects of base-simplify
+                (let [simplified-expr (doall (map base-simplify expr))]
                   (if-let [v (sym/symbolic-operator (sym/operator simplified-expr))]
                     (let [w (apply v (sym/operands simplified-expr))]
                       (if (and (sequential? w)
@@ -63,13 +64,13 @@
               (add-symbol! [expr]
                 (if (and (sequential? expr)
                          (not (= (first expr) 'quote)))
-                  (if-let [existing-expr (@expr->var expr)]
-                    existing-expr
-                    (let [newvar (symbol-generator)]
-                      (println "binding" newvar "->" expr)
-                      (swap! expr->var assoc expr newvar)
-                      (swap! var->expr assoc newvar expr)
-                      newvar))
+                  (dosync ; in a transaction, probe and maybe update the expr->var->expr maps
+                   (if-let [existing-expr (@expr->var expr)]
+                     existing-expr
+                     (let [var (symbol-generator)]
+                       (alter expr->var assoc expr var)
+                       (alter var->expr assoc var expr)
+                       var)))
                   expr))
               (backsubstitute [expr]
                 (cond (sequential? expr) (map backsubstitute expr)
