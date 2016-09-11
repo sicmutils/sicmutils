@@ -22,7 +22,7 @@
              [generic :as g]
              [expression :as x]
              [simplify :as s]
-             [numsymb :refer [product? operands]]
+             [numsymb :refer [product? operands expt]]
              [polynomial :as p]
              [polynomial-gcd :refer [gcd gcd-seq]]]))
 
@@ -49,6 +49,12 @@
                  new-s
                  new-m))))))
 
+(defn actual-factors
+  [factors]
+  (filter #(not= % 1)
+          (cons (first factors)
+                (map-indexed #(expt %2 (+ %1 2)) (next factors)))))
+
 (defn factor-polynomial-expression
   [p]
   (p/expression->
@@ -57,32 +63,35 @@
      (map (fn [factor] (g/simplify (p/->expression factor v)))
           (split p)))))
 
-(defn actual-factors
+(defn ^:private flatten-product
+  "Construct a list with all the top-level products in args spliced
+  in; other items left wrapped."
   [factors]
-  (filter (fn [f] (or (not (number? f))
-                      (not (= f 1))))
-          ;; XXX finish
-          ))
+  (mapcat #(if (product? %) (operands %) (list %)) factors))
 
 (defn ->factors
   "Recursive generalization."
   [p v]
-  nil
-  #_(let [factors (map (fn [factor] (p/->expression factor v)) (split p))
+  (println "arity" (:arity p) "->factors dict: " v)
+  (let [factors (map #(p/->expression % v) (split p))
         ff (actual-factors factors)]
-    (condp count ff
+    (println "factors" factors)
+    (println "actual factors" ff)
+    (condp = (count ff)
       0 1
       1 (first ff)
-      (cons '*
-            (loop [args ff]
-              (cond (nil? args) nil
-                    (product? (first args)) (concat (operands (first args))
-                                                      (recur (rest args)))
-                    )))
-      )))
+      (cons '* (flatten-product ff)))))
 
 (def factor-analyzer
-  (s/analyzer (s/monotonic-symbol-generator "-f-") ->factors p/expression-> p/operators-known))
+  (s/analyzer (s/monotonic-symbol-generator "-f-")
+              p/expression->
+              ->factors
+              p/operators-known))
 
-(def factor
+(def factor0
   factor-analyzer) ;; XXX
+
+(defn factor
+  [x]
+  (println "to factor: " x)
+  (factor0 x))

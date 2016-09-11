@@ -66,13 +66,16 @@
                   (if-let [existing-expr (@expr->var expr)]
                     existing-expr
                     (let [newvar (symbol-generator)]
+                      (println "binding" newvar "->" expr)
                       (swap! expr->var assoc expr newvar)
                       (swap! var->expr assoc newvar expr)
                       newvar))
                   expr))
               (backsubstitute [expr]
                 (cond (sequential? expr) (map backsubstitute expr)
-                      (symbol? expr) (if-let [w (@var->expr expr)] (backsubstitute w) expr)
+                      (symbol? expr) (if-let [w (@var->expr expr)]
+                                       (backsubstitute w)
+                                       expr)
                       :else expr))
               (base-simplify [expr] (expr-> expr ->expr))]
         (-> expr analyze base-simplify backsubstitute)))))
