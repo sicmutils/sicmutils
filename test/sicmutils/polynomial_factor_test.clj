@@ -21,6 +21,7 @@
             [clojure.tools.logging :as log]
             [sicmutils
              [generic :as g]
+             [value :as v]
              [numbers]
              [polynomial :refer :all]
              [simplify :refer [hermetic-simplify-fixture]]
@@ -52,26 +53,7 @@
           y 'y
           z (g/square (g/+ x (g/* x (g/expt y 2))))
           test-poly (g/simplify (g/* (g/expt (g/+ (g/cos z) y) 2)
-                                     (g/expt (g/- (g/cos z) y) 3)))]
-      (is (= '(+ (expt (cos (+ (* (expt x 2) (expt y 4))
-                              (* 2 (expt x 2) (expt y 2))
-                              (expt x 2))) 5)
-                (* -1 (expt (cos (+ (* (expt x 2) (expt y 4))
-                                    (* 2 (expt x 2) (expt y 2))
-                                    (expt x 2))) 4)
-                   y)
-                (* -2 (expt (cos (+ (* (expt x 2) (expt y 4))
-                                    (* 2 (expt x 2) (expt y 2))
-                                    (expt x 2))) 3)
-                   (expt y 2))
-                (* 2 (expt (cos (+ (* (expt x 2) (expt y 4))
-                                   (* 2 (expt x 2) (expt y 2))
-                                   (expt x 2))) 2)
-                   (expt y 3))
-                (* (cos (+ (* (expt x 2) (expt y 4))
-                           (* 2 (expt x 2) (expt y 2))
-                           (expt x 2)))
-                   (expt y 4))
-                (* -1 (expt y 5))) test-poly))
-      #_(is (= nil (factor test-poly))) ;; XXX
-      )))
+                                    (g/expt (g/- (g/cos z) y) 3)))]
+      (is (= '(* (expt (+ (cos (expt (+ (* x (expt y 2)) x) 2)) y) 2)
+                 (expt (+ (cos (expt (+ (* x (expt y 2)) x) 2)) (* -1N y)) 3))
+             (-> test-poly v/freeze factor-analyzer))))))

@@ -70,7 +70,7 @@
           (sequential? x) (let [f (environment (first x))]
                             (when-not (= ::v/function (v/kind f))
                               (throw (IllegalArgumentException.
-                                      (str "no function binding for " x " found."))))
+                                      (str "no function binding for " (first x) " found."))))
                             (apply f (map walk (rest x))))
 
           :else (throw (IllegalArgumentException. (str "unknown expression type " x))))))

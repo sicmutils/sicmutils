@@ -53,7 +53,7 @@
   [factors]
   (filter #(not= % 1)
           (cons (first factors)
-                (map-indexed #(expt %2 (+ %1 2)) (next factors)))))
+                (map-indexed #(expt %2 (+ %1 1)) (next factors)))))
 
 (defn factor-polynomial-expression
   [p]
@@ -72,11 +72,8 @@
 (defn ->factors
   "Recursive generalization."
   [p v]
-  (println "arity" (:arity p) "->factors dict: " v)
   (let [factors (map #(p/->expression % v) (split p))
         ff (actual-factors factors)]
-    (println "factors" factors)
-    (println "actual factors" ff)
     (condp = (count ff)
       0 1
       1 (first ff)
@@ -87,11 +84,3 @@
               p/expression->
               ->factors
               p/operators-known))
-
-(def factor0
-  factor-analyzer) ;; XXX
-
-(defn factor
-  [x]
-  (println "to factor: " x)
-  (factor0 x))

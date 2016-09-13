@@ -408,7 +408,6 @@
         arity (count expression-vars)
         new-bindings (zipmap expression-vars (new-variables arity))
         environment (into operator-table new-bindings)
-        _ (println "environment" environment)
         transformer (x/walk-expression environment)]
     (-> expr transformer (cont expression-vars))))
 
