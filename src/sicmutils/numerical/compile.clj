@@ -17,8 +17,7 @@
 ;
 
 (ns sicmutils.numerical.compile
-  (:require [clojure.walk :refer [postwalk-replace]]
-            [sicmutils
+  (:require [sicmutils
              [structure :as struct]
              [generic :as g]]
             [clojure.walk :as w]
@@ -47,7 +46,7 @@
   going on just by reading this"
   [generic-parameters state-model body]
   `(fn [~(into [] (concat (-> state-model flatten) generic-parameters))]
-     ~(postwalk-replace compiled-function-whitelist body)))
+     ~(w/postwalk-replace compiled-function-whitelist body)))
 
 (defn extract-common-subexpressions
   "Given an S-expression, return a map of subexpressions which occur
@@ -56,12 +55,13 @@
   as subexpressions.)"
   [x & {:keys [symbol-generator]
         :or {symbol-generator gensym}}]
-  (let [cs (atom {})]
+  (let [cs (atom {})
+        increment (fnil inc 0)]
     ;; cs maps subexpressions to the number of times we have seen the
     ;; expression.
     (w/postwalk (fn [e]
                   (when (seq? e)
-                    (swap! cs update-in [e] (fnil inc 0)))
+                    (swap! cs update e increment))
                   e)
                 x)
     (into {} (for [[k v] @cs :when (> v 1)] [k (symbol-generator)]))))
@@ -118,7 +118,7 @@
 
 (defn- construct-univariate-function-exp
   [x body]
-  `(fn [~x] ~(postwalk-replace compiled-function-whitelist body)))
+  `(fn [~x] ~(w/postwalk-replace compiled-function-whitelist body)))
 
 (defn- compile-univariate-function2
   [f]

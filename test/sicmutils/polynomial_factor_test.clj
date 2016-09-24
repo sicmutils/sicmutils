@@ -56,4 +56,4 @@
                                     (g/expt (g/- (g/cos z) y) 3)))]
       (is (= '(* (expt (+ (cos (expt (+ (* x (expt y 2)) x) 2)) y) 2)
                  (expt (+ (cos (expt (+ (* x (expt y 2)) x) 2)) (* -1N y)) 3))
-             (-> test-poly v/freeze factor-analyzer))))))
+             (-> test-poly v/freeze factor))))))

@@ -79,8 +79,17 @@
       1 (first ff)
       (cons '* (flatten-product ff)))))
 
-(def factor-analyzer
+(def factor
   (s/analyzer (s/monotonic-symbol-generator "-f-")
               p/expression->
               ->factors
               p/operators-known))
+
+(defn ^:private process-sqrt
+  [expr]
+  (let [fact-exp nil]))
+
+(defn root-out-squares
+  [expr]
+
+  )
