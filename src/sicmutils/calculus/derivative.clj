@@ -61,19 +61,8 @@
       (recur (coefficient (last (:terms dx))))
       dx)))
 
-(defn- sorted-set-compare
-  [xs ys]
-  (let [cc (compare (count xs) (count ys))]
-    (if (not= 0 cc) cc
-                    (loop [xs xs ys ys]
-                      (if (nil? xs) 0
-                                    (let [c (compare (first xs) (first ys))]
-                                      (if (zero? c)
-                                        (recur (next xs) (next ys))
-                                        c)))))))
-
-(def ^:private empty-differential (sorted-map-by sorted-set-compare))
-(def ^:private empty-tags (sorted-set))
+(def ^:private empty-differential (sorted-map))
+(def ^:private empty-tags [])
 
 (defn canonicalize-differential
   [{terms :terms :as d}]
@@ -86,19 +75,17 @@
         d))))
 
 (defn make-differential
-  "The input here is a mapping (loosely defined) between sets of differential
-  tags and coefficients. The mapping can be an actual map, or just a sequence
-  of pairs. The differential tag sets can be actual sets of tags, or in fact
-  any kind of sequence of tags. This form of differential creation takes care
-  of everything, and canonicalizes the results. This process involves converting
-  the tag sets into sorted-sets, grouping the terms by tag-set value, summing
-  the corresponding entries, dropping zero-coefficient entries, and seeing
-  whether the resulting map is equivalent to a scalar; after all that either
-  a scalar or a Differential object is returned."
+  "The input here is a mapping (loosely defined) between sets of
+  differential tags and coefficients. The mapping can be an actual
+  map, or just a sequence of pairs. The differential tag sets are
+  sequences of integer tags. This form of differential creation takes
+  care of everything. This process involves sorting the tag sets,
+  grouping the terms by tag-set value, summing the corresponding
+  entries and dropping zero-coefficient entries."
   [tags->coefs]
   (->> tags->coefs
        ;; force tag sequences into sorted set form
-       (map (fn [[tag-sequence coefficient]] [(into (sorted-set) tag-sequence) coefficient]))
+       (map (fn [[tag-sequence coefficient]] [(into empty-tags (sort tag-sequence)) coefficient]))
        ;; group by canonicalized tag-set
        (group-by tags)
        ;; tag sets now map to [tag-set coefficient-list]. Sum the coefficients
@@ -120,6 +107,31 @@
         (g/zero? dx) empty-differential
         :else (assoc empty-differential empty-tags dx)))
 
+;; The data structure of a tag set. Tags are small integers. Tag sets are
+;; typically of small cardinality. So we experiment with implementing them
+;; as small vectors, instead of sorted sets.
+
+(defn ^:private tag-union
+  "The union of the sorted vectors ts and us."
+  [ts us]
+  (-> ts (into us) sort dedupe vec))
+
+(defn ^:private tag-intersection
+  "(ugh) intersection of sorted vectors ts and us. Cheating here a bit"
+  [ts us]
+  (vec (sort (set/intersection (set ts) (set us))))
+  )
+
+(defn ^:private tag-in?
+  "Return true if t is in the tag-set ts"
+  [ts t]
+  (some #(= % t) ts))
+
+(defn ^:private tag-without
+  "Return the tag set formed by dropping t from ts"
+  [ts t]
+  (filterv #(not= % t) ts))
+
 (defn- dxs+dys
   "Inputs are sequences of differential terms; returns the sequence of differential
   terms representing the sum."
@@ -132,7 +144,7 @@
       (empty? dys) (into result dxs)
       :else (let [[a-tags a-coef :as a] (first dxs)
                   [b-tags b-coef :as b] (first dys)
-                  c (sorted-set-compare a-tags b-tags)]
+                  c (compare a-tags b-tags)]
               (cond
                 (= c 0) (let [r-coef (g/+ a-coef b-coef)]
                           (recur (rest dxs) (rest dys)
@@ -151,9 +163,9 @@
     (if (nil? dys) result
                    (let [y1 (first dys) y-tags (tags y1)]
                      (recur (next dys)
-                            (if (empty? (set/intersection x-tags y-tags))
+                            (if (empty? (tag-intersection x-tags y-tags))
                               (assoc result
-                                (set/union x-tags y-tags)
+                                (tag-union x-tags y-tags)
                                 (g/* x-coef (coefficient y1)))
                               result))))))
 
@@ -182,7 +194,7 @@
     #(swap! next-differential-tag inc)))
 
 (defn ^:private make-x+dx [x dx]
-  (dx+dy x (Differential. (assoc empty-differential (sorted-set dx) 1))))
+  (dx+dy x (Differential. (assoc empty-differential (conj empty-tags dx) 1))))
 
 ;(defn- hide-tag-in-procedure [& args] false) ; XXX
 
@@ -196,7 +208,7 @@
             (if (differential? obj)
               (->> obj
                    :terms
-                   (map (fn [[ts coef]] (if (ts dx) [(disj ts dx) coef])))
+                   (map (fn [[ts coef]] (if (tag-in? ts dx) [(tag-without ts dx) coef])))
                    (filter some?)
                    make-differential
                    canonicalize-differential)
@@ -228,28 +240,28 @@
 
 (defn- finite-and-infinitesimal-parts
   "Partition the terms of the given differential into the finite and
-  infinite parts."
-  [x]
-  (if (differential? x)
-    (let [dts (differential->terms x)
-          keytag (-> dts last first last)
-          {finite-part        false
-           infinitesimal-part true} (group-by #(-> % tags (contains? keytag)) dts)]
-      ;; if the input differential was well-formed, then it is safe to
-      ;; construct differential objects on the split parts.
-      [(-> finite-part make-differential)
-       (-> infinitesimal-part make-differential)])
-    [(assoc empty-differential (sorted-set) x) empty-differential]))
+  infinite parts. The continuation is called with these two parts."
+  [x cont]
+  {:pre [(differential? x)]}
+  (let [dts (differential->terms x)
+        keytag (-> dts last first last)
+        {finite-part nil
+         infinitesimal-part true} (group-by #(-> % tags (tag-in? keytag)) dts)]
+    ;; since input differential is well-formed, it is safe to
+    ;; construct differential objects on the split parts.
+    (cont (Differential. finite-part) (Differential. infinitesimal-part))))
 
 (defn- unary-op
   [f df:dx]
   (fn [x]
-    (let [[finite-part infinitesimal-part] (finite-and-infinitesimal-parts x)
-          canonicalized-finite-part (canonicalize-differential finite-part)]
-      (canonicalize-differential
-        (dx+dy (f canonicalized-finite-part)
-               (dx*dy (df:dx canonicalized-finite-part)
-                      infinitesimal-part))))))
+    (finite-and-infinitesimal-parts
+     x
+     (fn [finite-part infinitesimal-part]
+       (let [canonicalized-finite-part (canonicalize-differential finite-part)]
+         (canonicalize-differential
+          (dx+dy (f canonicalized-finite-part)
+                 (dx*dy (df:dx canonicalized-finite-part)
+                        infinitesimal-part))))))))
 
 ;; (defn max-order-tag [& ds]
 ;;   (last (apply set/union (map #(-> % differential->terms last :tags) ds))))
@@ -265,7 +277,7 @@
   "XXX doc and decide if we need the two infra"
   [tag dx]
   (->> dx :terms
-       (filter #(-> % tags (contains? tag)))
+       (filter #(-> % tags (tag-in? tag)))
        make-differential
        canonicalize-differential))
 
@@ -275,15 +287,15 @@
   [tag dx]
   (->> dx
        differential->terms
-       (remove #(-> % tags (contains? tag)))
+       (remove #(-> % tags (tag-in? tag)))
        make-differential
        canonicalize-differential))
 
 (defn with-and-without-tag
   "XXX doc and decide if we need above two"
   [tag dx]
-  (let [{finite-terms false infinitesimal-terms true}
-        (group-by #(-> % tags (contains? tag)) (differential->terms dx))]
+  (let [{finite-terms nil infinitesimal-terms true}
+        (group-by #(-> % tags (tag-in? tag)) (differential->terms dx))]
     [(-> infinitesimal-terms make-differential canonicalize-differential)
      (-> finite-terms make-differential canonicalize-differential)]))
 
