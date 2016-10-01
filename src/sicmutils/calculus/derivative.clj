@@ -40,7 +40,7 @@
   (toString [_] (str "D[" (join " " (map #(join " → " %) terms)) "]"))
   v/Value
   (nullity? [_] (every? g/zero? (map coefficient terms)))
-  (unity? [_] false)                                        ;; XXX! this needs to be fixed
+  (unity? [_] false)
   (zero-like [_] 0)
   (exact? [_] false)
   (numerical? [d] (g/numerical-quantity? (differential-of d)))
@@ -97,7 +97,7 @@
        (into empty-differential)
        Differential.))
 
-(defn- differential->terms
+(defn ^:private differential->terms
   "Given a differential, returns the vector of DifferentialTerms
   within; otherwise, returns a singleton differential term
   representing d with an empty tag list (unless d is zero, in
@@ -132,13 +132,13 @@
   [ts t]
   (filterv #(not= % t) ts))
 
-(defn- dxs+dys
+(defn ^:private dxs+dys
   "Inputs are sequences of differential terms; returns the sequence of differential
   terms representing the sum."
   [dxs dys]
   (loop [dxs dxs
          dys dys
-         result empty-differential]
+         result []]
     (cond
       (empty? dxs) (into result dys)
       (empty? dys) (into result dxs)
@@ -149,27 +149,26 @@
                 (= c 0) (let [r-coef (g/+ a-coef b-coef)]
                           (recur (rest dxs) (rest dys)
                                  (if-not (g/zero? r-coef)
-                                   (assoc result a-tags r-coef)
+                                   (conj result [a-tags r-coef])
                                    result)))
                 (< c 0) (recur (rest dxs) dys (conj result a))
                 :else (recur dxs (rest dys) (conj result b)))))))
 
-(defn- dx*dys
+(defn ^:private dx*dys
   "Multiplies a differential term by a sequence of differential terms (differential-set,
-  coefficient) pairs. The result is a map of differential tag-sets to coefficients."
+  coefficient) pairs. The result is a sequence of tag-sets, coefficient pairs."
   [[x-tags x-coef] dys]
   (loop [dys dys
-         result empty-differential]
+         result []]
     (if (nil? dys) result
                    (let [y1 (first dys) y-tags (tags y1)]
                      (recur (next dys)
                             (if (empty? (tag-intersection x-tags y-tags))
-                              (assoc result
-                                (tag-union x-tags y-tags)
-                                (g/* x-coef (coefficient y1)))
+                              (conj result [(tag-union x-tags y-tags)
+                                            (g/* x-coef (coefficient y1))])
                               result))))))
 
-(defn- dxs*dys
+(defn ^:private dxs*dys
   [as bs]
   (if (or (empty? as)
           (empty? bs)) empty-differential
@@ -196,9 +195,9 @@
 (defn ^:private make-x+dx [x dx]
   (dx+dy x (Differential. (assoc empty-differential (conj empty-tags dx) 1))))
 
-;(defn- hide-tag-in-procedure [& args] false) ; XXX
+;(defn ^:private hide-tag-in-procedure [& args] false) ; XXX
 
-(defn- extract-dx-part [dx obj]
+(defn ^:private extract-dx-part [dx obj]
   (letfn [(extract
             ;; Collect all the terms of the differential in which
             ;; dx is a member of the term's tag set; drop that
@@ -238,7 +237,7 @@
     (let [dx (make-differential-tag)]
       (extract-dx-part dx (f (make-x+dx x dx))))))
 
-(defn- finite-and-infinitesimal-parts
+(defn ^:private finite-and-infinitesimal-parts
   "Partition the terms of the given differential into the finite and
   infinite parts. The continuation is called with these two parts."
   [x cont]
@@ -251,7 +250,7 @@
     ;; construct differential objects on the split parts.
     (cont (Differential. finite-part) (Differential. infinitesimal-part))))
 
-(defn- unary-op
+(defn ^:private unary-op
   [f df:dx]
   (fn [x]
     (finite-and-infinitesimal-parts
@@ -263,9 +262,6 @@
                  (dx*dy (df:dx canonicalized-finite-part)
                         infinitesimal-part))))))))
 
-;; (defn max-order-tag [& ds]
-;;   (last (apply set/union (map #(-> % differential->terms last :tags) ds))))
-
 (defn max-order-tag
   "From each of the differentials in the sequence ds, find the highest
   order term; then return the greatest tag found in any of these
@@ -274,7 +270,7 @@
   (->> ds (mapcat #(-> % differential->terms last tags)) (apply max)))
 
 (defn with-tag
-  "XXX doc and decide if we need the two infra"
+  "The differential containing only those terms with the given tag"
   [tag dx]
   (->> dx :terms
        (filter #(-> % tags (tag-in? tag)))
@@ -282,8 +278,7 @@
        canonicalize-differential))
 
 (defn without-tag
-  "Document this and the above and below, if we turn out to keep all
-  three of them. It seems there must be a better way to do this..."
+  "The differential containing only those terms without the given tag"
   [tag dx]
   (->> dx
        differential->terms
@@ -292,14 +287,14 @@
        canonicalize-differential))
 
 (defn with-and-without-tag
-  "XXX doc and decide if we need above two"
+  "Split the differential into the parts with and without tag and return the pair"
   [tag dx]
   (let [{finite-terms nil infinitesimal-terms true}
         (group-by #(-> % tags (tag-in? tag)) (differential->terms dx))]
     [(-> infinitesimal-terms make-differential canonicalize-differential)
      (-> finite-terms make-differential canonicalize-differential)]))
 
-(defn- binary-op
+(defn ^:private binary-op
   [f ∂f:∂x ∂f:∂y _kw]
   (fn [x y]
     (let [mt (max-order-tag [x y])
@@ -362,9 +357,9 @@
 (def ^:private log (unary-op g/log g/invert))
 
 ;; XXX unary-op is memoized in scmutils. But rather than memoizing that,
-;; it might be better just to memoize entire simplications.
+;; it might be better just to memoize entire simplifications.
 
-(defn- euclidean-structure
+(defn ^:private euclidean-structure
   [selectors f]
   (letfn [(structural-derivative [g v]
             (cond (struct/structure? v)
@@ -394,7 +389,7 @@
                   (throw (IllegalArgumentException. (str "Bad selectors " f selectors v)))))]
     a-euclidean-derivative))
 
-(defn- multivariate-derivative
+(defn ^:private multivariate-derivative
   [f selectors]
   (let [a (v/arity f)
         d (partial euclidean-structure selectors)]
@@ -422,14 +417,14 @@
                       {:arity a})
       (throw (IllegalArgumentException. (str "Haven't implemented this yet: arity " a))))))
 
-(defn- define-binary-operation
+(defn ^:private define-binary-operation
   [generic-operation differential-operation]
   (doseq [signature [[::differential ::differential]
                      [:sicmutils.expression/numerical-expression ::differential]
                      [::differential :sicmutils.expression/numerical-expression]]]
     (defmethod generic-operation signature [a b] (differential-operation a b))))
 
-(defn- define-unary-operation
+(defn ^:private define-unary-operation
   [generic-operation differential-operation]
   (defmethod generic-operation [::differential] [a] (differential-operation a)))
 
