@@ -84,7 +84,7 @@
       (is (= zero-differential (dx*dy dz (dx*dy dy dz))))
       (is (= 0 (* dx dx)))))
   (testing "more terms"
-    (let [d-expr #(-> % :terms (get [0]))
+    (let [d-expr #(->> % :terms (filter (fn [[tags coef]] (= tags [0]))) first second)
           d-simplify #(-> % d-expr simplify)]
       (is (= '(* 3 (expt x 2))
              (d-simplify (expt (+ 'x (make-differential {[0] 1})) 3))))

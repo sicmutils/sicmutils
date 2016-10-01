@@ -26,15 +26,15 @@
             [clojure.string :refer [join]])
   (:import (clojure.lang Sequential)))
 
-;; A differential term is implemented as a map entry
-;; whose key is a set of tags and whose second is the coefficient.
+;; A differential term is implemented as a pair whose first element is
+;; a set of tags and whose second is the coefficient.
 (def ^:private tags first)
 (def ^:private coefficient second)
 
 (declare differential-of)
 
-;; A differential is a map from (sorted) differential
-;; tag-sets to coefficients.
+;; A differential is a sequence of differential terms, ordered by the
+;; tag set.
 (defrecord Differential [terms]
   Object
   (toString [_] (str "D[" (join " " (map #(join " → " %) terms)) "]"))
@@ -61,7 +61,7 @@
       (recur (coefficient (last (:terms dx))))
       dx)))
 
-(def ^:private empty-differential (sorted-map))
+(def ^:private empty-differential [])
 (def ^:private empty-tags [])
 
 (defn canonicalize-differential
@@ -93,7 +93,7 @@
        (map (fn [[tag-set coefficients]] [tag-set (reduce g/+ 0 (map coefficient coefficients))]))
        ;; drop tag-set:coefficient pairs where the coefficient is a zero object
        (remove (fn [[_ coefficient]] (g/zero? coefficient)))
-       ;; build the differential object
+       (sort-by first)
        (into empty-differential)
        Differential.))
 
@@ -104,8 +104,8 @@
   which case we return the empty term list)."
   [dx]
   (cond (instance? Differential dx) (:terms dx)
-        (g/zero? dx) empty-differential
-        :else (assoc empty-differential empty-tags dx)))
+        (g/zero? dx) []
+        :else [[empty-tags dx]]))
 
 ;; The data structure of a tag set. Tags are small integers. Tag sets are
 ;; typically of small cardinality. So we experiment with implementing them
@@ -193,7 +193,7 @@
     #(swap! next-differential-tag inc)))
 
 (defn ^:private make-x+dx [x dx]
-  (dx+dy x (Differential. (assoc empty-differential (conj empty-tags dx) 1))))
+  (dx+dy x (Differential. [[[dx] 1]])))
 
 ;(defn ^:private hide-tag-in-procedure [& args] false) ; XXX
 
