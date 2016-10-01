@@ -114,13 +114,22 @@
 (defn ^:private tag-union
   "The union of the sorted vectors ts and us."
   [ts us]
-  (-> ts (into us) sort dedupe vec))
+  (-> ts (concat us) sort dedupe vec))
 
 (defn ^:private tag-intersection
-  "(ugh) intersection of sorted vectors ts and us. Cheating here a bit"
+  "Intersection of sorted vectors ts and us."
   [ts us]
-  (vec (sort (set/intersection (set ts) (set us))))
-  )
+  (loop [ts ts
+         us us
+         result []]
+    (cond (empty? ts) result
+          (empty? us) result
+          :else (let [t (first ts)
+                      u (first us)
+                      c (compare t u)]
+                  (cond (= c 0) (recur (rest ts) (rest us) (conj result t))
+                        (< c 0) (recur (rest ts) us result)
+                        :else (recur ts (rest us) result))))))
 
 (defn ^:private tag-in?
   "Return true if t is in the tag-set ts"
@@ -132,61 +141,39 @@
   [ts t]
   (filterv #(not= % t) ts))
 
-(defn ^:private dxs+dys
-  "Inputs are sequences of differential terms; returns the sequence of differential
-  terms representing the sum."
-  [dxs dys]
-  (loop [dxs dxs
-         dys dys
-         result []]
-    (cond
-      (empty? dxs) (into result dys)
-      (empty? dys) (into result dxs)
-      :else (let [[a-tags a-coef :as a] (first dxs)
-                  [b-tags b-coef :as b] (first dys)
-                  c (compare a-tags b-tags)]
-              (cond
-                (= c 0) (let [r-coef (g/+ a-coef b-coef)]
-                          (recur (rest dxs) (rest dys)
-                                 (if-not (g/zero? r-coef)
-                                   (conj result [a-tags r-coef])
-                                   result)))
-                (< c 0) (recur (rest dxs) dys (conj result a))
-                :else (recur dxs (rest dys) (conj result b)))))))
-
-(defn ^:private dx*dys
-  "Multiplies a differential term by a sequence of differential terms (differential-set,
-  coefficient) pairs. The result is a sequence of tag-sets, coefficient pairs."
-  [[x-tags x-coef] dys]
-  (loop [dys dys
-         result []]
-    (if (nil? dys) result
-                   (let [y1 (first dys) y-tags (tags y1)]
-                     (recur (next dys)
-                            (if (empty? (tag-intersection x-tags y-tags))
-                              (conj result [(tag-union x-tags y-tags)
-                                            (g/* x-coef (coefficient y1))])
-                              result))))))
-
-(defn ^:private dxs*dys
-  [as bs]
-  (if (or (empty? as)
-          (empty? bs)) empty-differential
-                       (dxs+dys
-                         (dx*dys (first as) bs)
-                         (dxs*dys (next as) bs))))
-
 (defn dx+dy
   "Adds two objects differentially. (One of the objects might not be
   differential; in which case we lift it into a trivial differential
   before the addition.)"
-  [a b]
-  (make-differential
-    (dxs+dys (differential->terms a) (differential->terms b))))
+  [dx dy]
+  (Differential.
+   ;; Iterate and build up the result while preserving order and dropping zero sums.
+   (loop [dxs (differential->terms dx)
+          dys (differential->terms dy)
+          result []]
+     (cond
+       (empty? dxs) (into result dys)
+       (empty? dys) (into result dxs)
+       :else (let [[a-tags a-coef :as a] (first dxs)
+                   [b-tags b-coef :as b] (first dys)
+                   c (compare a-tags b-tags)]
+               (cond
+                 (= c 0) (let [r-coef (g/+ a-coef b-coef)]
+                           (recur (rest dxs) (rest dys)
+                                  (if-not (g/zero? r-coef)
+                                    (conj result [a-tags r-coef])
+                                    result)))
+                 (< c 0) (recur (rest dxs) dys (conj result a))
+                 :else (recur dxs (rest dys) (conj result b))))))))
 
-(defn dx*dy [a b]
+(defn dx*dy
+  "Form the product of the differentials dx and dy."
+  [dx dy]
   (make-differential
-    (dxs*dys (differential->terms a) (differential->terms b))))
+   (for [[x-tags x-coef] (differential->terms dx)
+         [y-tags y-coef] (differential->terms dy)
+         :when (empty? (tag-intersection x-tags y-tags))]
+     [(tag-union x-tags y-tags) (g/* x-coef y-coef)])))
 
 (def ^:private make-differential-tag
   (let [next-differential-tag (atom 0)]
@@ -462,7 +449,7 @@
   (multivariate-derivative f selectors))
 
 (def D
-  "Derivative operator. Produces a function whose value at some poitn can
+  "Derivative operator. Produces a function whose value at some point can
   multiply an increment in the arguments, to produce the best linear estimate
   of the increment in the function value."
   (o/make-operator #(g/partial-derivative % []) :derivative))
