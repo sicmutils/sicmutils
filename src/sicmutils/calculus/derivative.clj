@@ -78,24 +78,15 @@
   "The input here is a mapping (loosely defined) between sets of
   differential tags and coefficients. The mapping can be an actual
   map, or just a sequence of pairs. The differential tag sets are
-  sequences of integer tags. This form of differential creation takes
-  care of everything. This process involves sorting the tag sets,
-  grouping the terms by tag-set value, summing the corresponding
-  entries and dropping zero-coefficient entries."
+  sequences of integer tags, which should be sorted."
   [tags->coefs]
-  (->> tags->coefs
-       ;; force tag sequences into sorted set form
-       (map (fn [[tag-sequence coefficient]] [(into empty-tags (sort tag-sequence)) coefficient]))
-       ;; group by canonicalized tag-set
-       (group-by tags)
-       ;; tag sets now map to [tag-set coefficient-list]. Sum the coefficients
-       ;; and produce the map of canonicalized tag-set to coefficient-sum
-       (map (fn [[tag-set coefficients]] [tag-set (reduce g/+ 0 (map coefficient coefficients))]))
-       ;; drop tag-set:coefficient pairs where the coefficient is a zero object
-       (remove (fn [[_ coefficient]] (g/zero? coefficient)))
-       (sort-by first)
-       (into empty-differential)
-       Differential.))
+  (Differential.
+   (into empty-differential
+         (sort-by first
+                  (for [[tags tags-coefs] (group-by tags tags->coefs)
+                        :let [c (reduce #(g/+ %1 (coefficient %2)) 0 tags-coefs)]
+                        :when (not (g/zero? c))]
+                    [tags c])))))
 
 (defn ^:private differential->terms
   "Given a differential, returns the vector of DifferentialTerms
@@ -192,12 +183,11 @@
             ;; from what remains.
             [obj]
             (if (differential? obj)
-              (->> obj
-                   :terms
-                   (map (fn [[ts coef]] (if (tag-in? ts dx) [(tag-without ts dx) coef])))
-                   (filter some?)
-                   make-differential
-                   canonicalize-differential)
+              (canonicalize-differential
+               (make-differential
+                (for [[tags coef] (:terms obj)
+                      :when (tag-in? tags dx)]
+                  [(tag-without tags dx) coef])))
               0))
           (dist
             [obj]
@@ -214,7 +204,7 @@
                   ;;                              obj)))
                   ;; note: we had ifn? here, but this is bad, since symbols and
                   ;; keywords implement IFn.
-                  (fn? obj) #(-> % obj dist)                ;; TODO: innocent of the tag-hiding business
+                  (fn? obj) #(dist (obj %))                ;; TODO: innocent of the tag-hiding business
                   :else (extract obj)))]
     (dist obj)))
 
@@ -224,30 +214,29 @@
     (let [dx (make-differential-tag)]
       (extract-dx-part dx (f (make-x+dx x dx))))))
 
-(defn ^:private finite-and-infinitesimal-parts
+(defn ^:private with-finite-and-infinitesimal-parts
   "Partition the terms of the given differential into the finite and
   infinite parts. The continuation is called with these two parts."
-  [x cont]
+  [x continue]
   {:pre [(differential? x)]}
   (let [dts (differential->terms x)
         keytag (-> dts last first last)
         {finite-part nil
-         infinitesimal-part true} (group-by #(-> % tags (tag-in? keytag)) dts)]
+         infinitesimal-part true} (group-by #(tag-in? (tags %) keytag) dts)]
     ;; since input differential is well-formed, it is safe to
     ;; construct differential objects on the split parts.
-    (cont (Differential. finite-part) (Differential. infinitesimal-part))))
+    (continue (Differential. finite-part) (Differential. infinitesimal-part))))
 
 (defn ^:private unary-op
   [f df:dx]
   (fn [x]
-    (finite-and-infinitesimal-parts
-     x
-     (fn [finite-part infinitesimal-part]
-       (let [canonicalized-finite-part (canonicalize-differential finite-part)]
-         (canonicalize-differential
-          (dx+dy (f canonicalized-finite-part)
-                 (dx*dy (df:dx canonicalized-finite-part)
-                        infinitesimal-part))))))))
+    (with-finite-and-infinitesimal-parts x
+      (fn [finite-part infinitesimal-part]
+        (let [canonicalized-finite-part (canonicalize-differential finite-part)]
+          (canonicalize-differential
+           (dx+dy (f canonicalized-finite-part)
+                  (dx*dy (df:dx canonicalized-finite-part)
+                         infinitesimal-part))))))))
 
 (defn max-order-tag
   "From each of the differentials in the sequence ds, find the highest
@@ -269,7 +258,7 @@
   [tag dx]
   (->> dx
        differential->terms
-       (remove #(-> % tags (tag-in? tag)))
+       (remove #(tag-in? (tags %) tag))
        make-differential
        canonicalize-differential))
 
@@ -277,7 +266,7 @@
   "Split the differential into the parts with and without tag and return the pair"
   [tag dx]
   (let [{finite-terms nil infinitesimal-terms true}
-        (group-by #(-> % tags (tag-in? tag)) (differential->terms dx))]
+        (group-by #(tag-in? (tags %) tag) (differential->terms dx))]
     [(-> infinitesimal-terms make-differential canonicalize-differential)
      (-> finite-terms make-differential canonicalize-differential)]))
 
