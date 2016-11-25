@@ -1,4 +1,4 @@
-This is my fork of *sicmutils* Colin Smith's excellent port of the MIT's _scmutils_ to Clojure.
+This is my fork of *_sicmutils_* Colin Smith's excellent port of the MIT's _scmutils_ to Clojure.
 If you are interested in this software, you should use the master at ![littleredcomputer/sicmutils](https://github.com/littleredcomputer/sicmutils) as it is far more likely to be up to date and correct.
 This fork will contain various trial extensions and other small enhancements, by way of demonstration, with a view to geting them incorporated into the main program at some later stage.
 
