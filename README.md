@@ -1,10 +1,3 @@
-This is my fork of __*sicmutils*__, Colin Smith's excellent port of the MIT's __*scmutils*__ to Clojure.
-If you are interested in this software, you should use the master at ![littleredcomputer/sicmutils](https://github.com/littleredcomputer/sicmutils) as it is far more likely to be up to date and correct.
-This fork will contain various trial extensions and other small enhancements, by way of demonstration, with a view to geting them incorporated into the main program at some later stage.
-
-Currently there are NO EXTENSIONS available.
-They can be viewed here as and when they are available.
-
 # sicmutils
 [![Build Status](https://travis-ci.org/littleredcomputer/sicmutils.svg?branch=master)](https://travis-ci.org/littleredcomputer/sicmutils) [![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/littleredcomputer/sicmutils/blob/master/LICENSE) [![Clojars Project](https://img.shields.io/clojars/v/net.littleredcomputer/sicmutils.svg)](https://clojars.org/net.littleredcomputer/sicmutils)
 
