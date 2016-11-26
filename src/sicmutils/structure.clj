@@ -430,3 +430,6 @@
 (defmethod g/cube [::structure] [a] (mul a (mul a a)))
 (defmethod g/simplify [::structure] [a] (->> a (mapr g/simplify) v/freeze))
 (defmethod g/transpose [::structure] [a] (opposite a (seq a)))
+
+(defmethod g/magnitude [::structure] [^Struct a] 
+  (g/sqrt (reduce + (map g/square a))))
