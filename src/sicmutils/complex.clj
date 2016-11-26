@@ -73,5 +73,12 @@
 (defmethod g/expt [::complex ::complex] [^Complex a ^Complex b] (.pow a b))
 (defmethod g/expt [::complex Number] [^Complex a n] (.pow a (double n)))
 (defmethod g/expt [Number ::complex] [n ^Complex a] (.pow ^Complex (complex n) a))
+(defmethod g/magnitude [::complex] [^Complex a] (.abs a))
+
+(defn conjugate [^Complex a] (.conjugate a))
+(defn real-part [^Complex a] (.getReal a))
+(defn imag-part [^Complex a] (.getImaginary a))
+(defn angle [^Complex a] (.getArgument a))
+
 
 (derive ::complex :sicmutils.expression/numerical-expression)

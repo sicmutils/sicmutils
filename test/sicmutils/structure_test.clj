@@ -19,8 +19,8 @@
 (ns sicmutils.structure-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
-            [sicmutils.env :refer :all]
-            [sicmutils.structure :as s]
+            [sicmutils.generic :as g]))
+            [sicmutils.structure :as s]))
             [sicmutils.value :as v]))
 
 (deftest structures
@@ -325,3 +325,17 @@
       (is (= (down (up 4 -3) (up -2 1)) (s/cofactors A)))
       (is (= (down (up 24 5 -4) (up -12 3 2) (up -2 -5 4)) (s/cofactors C)))
       (is (= (up (down 3)) (s/cofactors D))))))
+
+(defn ^:private near [w z]
+  (< (g/abs (g/- w z)) 1e-12))
+
+(deftest struct-magnitude
+  (testing "magnitude of structures as per GJS - 'plain' vectors"
+    (is (= (magnitude [3 4]) 5))
+    (is (near (magnitude [3 4 5]) (sqrt 50))))
+  (testing "magnitude of structures as per GJS - structures"
+    (is (= (magnitude (up 3 4)) 5))
+    (is (= (magnitude (down 3 4)) 5))
+    (is (near (magnitude (up 3 4 5)) (sqrt 50)))
+    (is (near (magnitude (down 3 4 5)) (sqrt 50)))))
+

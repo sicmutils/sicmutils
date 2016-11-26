@@ -135,6 +135,10 @@
 (defmulti transpose v/argument-kind)
 (defmethod transpose [:arity] [_] [:exactly 1])
 
+(defmulti magnitude v/argument-kind)
+(defmethod magnitude [:arity] [_] [:exactly 1])
+
+
 (defn- bin+ [a b]
   (cond (and (number? a) (number? b)) (+' a b)
         (zero? a) b

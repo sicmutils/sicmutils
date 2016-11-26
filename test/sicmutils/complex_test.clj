@@ -49,3 +49,15 @@
   (is (near (complex 1.57079632679489 -0.443568254385115) (g/asin 1.1)))
   (is (near (complex 0 0.4435682543851153) (g/acos 1.1)))
   (is (near (complex 0 Math/PI) (g/log -1))))
+
+
+(deftest extra-functions
+  (testing "functions needed for docs"
+    (is (near (real-part (complex 3 4)) 3))
+    (is (near (imag-part (complex 3 4)) 4))
+    (is (near (imag-part (conjugate (complex 3 4))) -4))
+    (is (near (g/magnitude (complex 0 1)) 1))
+    (is (near (g/magnitude (complex 1 0)) 1))
+    (is (near (g/magnitude (complex 1 1)) (g/sqrt 2)))
+    (is (near (angle (complex 3 4)) (g/atan 4/3)))))
+
