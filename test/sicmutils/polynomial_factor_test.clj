@@ -53,7 +53,92 @@
           y 'y
           z (g/square (g/+ x (g/* x (g/expt y 2))))
           test-poly (g/simplify (g/* (g/expt (g/+ (g/cos z) y) 2)
-                                    (g/expt (g/- (g/cos z) y) 3)))]
+                                     (g/expt (g/- (g/cos z) y) 3)))]
       (is (= '(* (expt (+ (cos (expt (+ (* x (expt y 2)) x) 2)) y) 2)
-                 (expt (+ (cos (expt (+ (* x (expt y 2)) x) 2)) (* -1N y)) 3))
+                 (expt (+ (cos (expt (+ (* x (expt y 2)) x) 2)) (* -1 y)) 3))
              (-> test-poly v/freeze factor))))))
+
+(deftest root-out-squares-test
+  (testing "one step"
+    (is (= '(+ x (* -1N y))
+           (root-out-squares
+            '(sqrt (square (- x y))))))
+    (is (= '(sqrt (expt (+ x (* -1 y)) 3))
+           (root-out-squares
+            '(sqrt (cube (- x y))))))
+    (is (= '(expt (+ x (* -1N y)) 2)
+           (root-out-squares
+            '(sqrt (expt (- x y) 4)))))
+    (is (= '(* (sqrt (expt (+ x (* -1 y)) 3)) (+ x y))
+           (root-out-squares
+            '(sqrt (* (square (+ x y)) (cube (- x y)))))))
+    (is (= '(* (sqrt (expt (+ x (* -1 y)) 3)) (+ x y))
+           (root-out-squares
+            (root-out-squares
+             '(sqrt (* (square (+ x y)) (cube (- x y))))))))
+    (is (= '(+ a b c)
+           (root-out-squares
+            '(sqrt (+ (expt a 2) (* 2 a b) (* b b) (* 2 a c) (* 2 b c) (expt c 2))))))
+    (is (= '(+ a b c d)
+           (root-out-squares
+            '(sqrt (+ (expt a 2) (* 2 a b) (* b b) (* 2 a c) (* 2 b c) (expt c 2)
+                      (* 2 a d) (* b d) (* b d) (* 2 c d) (* d d))))))
+    (is (= '(+ (expt c 2) a b d)
+           (root-out-squares
+            '(sqrt (+ (expt a 2) (* 2 a b) (* b b) (* 2 a c c) (* 2 b c c) (expt c 4)
+                      (* 2 a d) (* b d) (* b d) (* 2 c c d) (* d d)))))))
+  #_(testing "ex.2"
+    (is (= '(+ (* -1
+                  R
+                  (((partial 0) f)
+                   (up (* R (cos phi) (sin theta))
+                       (* R (sin phi) (sin theta))
+                       (* R (cos theta))))
+                  (cos phi)
+                  (expt (cos theta) 3))
+               (* -1
+                  R
+                  (((partial 1) f)
+                   (up (* R (cos phi) (sin theta))
+                       (* R (sin phi) (sin theta))
+                       (* R (cos theta))))
+                  (sin phi)
+                  (expt (cos theta) 3))
+               (* -1
+                  R
+                  (((partial 2) f)
+                   (up (* R (cos phi) (sin theta))
+                       (* R (sin phi) (sin theta))
+                       (* R (cos theta))))
+                  (expt (cos theta) 2)
+                  (sin theta)))
+           (root-out-squares
+            (g/simplify
+             '(/ (+ (* -1
+                       (expt R 2)
+                       (((partial 0) f)
+                        (up (* R (cos phi) (sin theta))
+                            (* R (sin phi) (sin theta))
+                            (* R (cos theta))))
+                       (cos phi)
+                       (expt (cos theta) 3)
+                       (sin theta))
+                    (* -1
+                       (expt R 2)
+                       (((partial 1) f)
+                        (up (* R (cos phi) (sin theta))
+                            (* R (sin phi) (sin theta))
+                            (* R (cos theta))))
+                       (expt (cos theta) 3)
+                       (sin phi)
+                       (sin theta))
+                    (* (((partial 2) f)
+                        (up (* R (cos phi) (sin theta))
+                            (* R (sin phi) (sin theta))
+                            (* R (cos theta))))
+                       (sqrt
+                        (+ (* (expt R 4) (expt (cos theta) 4))
+                           (* -2 (expt R 4) (expt (cos theta) 2))
+                           (expt R 4)))
+                       (expt (cos theta) 2)))
+                 (* R (sin theta)))))))))

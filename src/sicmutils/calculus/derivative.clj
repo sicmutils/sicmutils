@@ -65,14 +65,12 @@
 (def ^:private empty-tags [])
 
 (defn canonicalize-differential
-  [{terms :terms :as d}]
-  (if (empty? terms)
-    0
-    (let [tags->coef (first terms)]
-      (if (and (= (count terms) 1)
-               (empty? (tags tags->coef)))
-        (coefficient tags->coef)
-        d))))
+  [dx]
+  (let [ts (:terms dx)]
+    (cond (empty? ts) 0
+          (and (= (count ts) 1)
+               (empty? (tags (first ts)))) (coefficient (first ts))
+          :else dx)))
 
 (defn make-differential
   "The input here is a mapping (loosely defined) between sets of

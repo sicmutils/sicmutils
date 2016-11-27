@@ -220,12 +220,12 @@
   (cond (number? x) (if (< x 0) (- x) x)
         :else `(~'abs ~x)))
 
-(defn- sqrt [s]
+(defn sqrt [s]
   (if (number? s)
     (if-not (v/exact? s)
       (nt/sqrt s)
       (cond (g/zero? s) s
-            (g/one? s) :one
+            (g/one? s) 1
             :else (let [q (nt/sqrt s)]
                     (if (v/exact? q)
                       q

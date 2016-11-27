@@ -17,16 +17,20 @@
 ;
 
 (ns sicmutils.polynomial-factor
-  (:require [sicmutils
+  (:require [clojure.tools.logging :as log]
+            [clojure.walk :as w]
+            [sicmutils
              [value :as v]
              [generic :as g]
              [expression :as x]
              [simplify :as s]
-             [numsymb :refer [operator product? operands expt]]
+             [numsymb :as sym :refer [operator product? operands expt]]
              [polynomial :as p]
              [polynomial-gcd :refer [gcd gcd-seq]]]))
 
 (defn split
+  "We're not entirely certain what this algorithm does, but it would be nice
+  to know."
   [p]
   (let [answer (fn [tracker const]
                  (into [const] (rest tracker)))]
@@ -70,7 +74,7 @@
   (mapcat #(if (product? %) (operands %) (list %)) factors))
 
 (defn ->factors
-  "Recursive generalization."
+  "Recursive generalization. [Rather terse comment. --Ed.]"
   [p v]
   (let [factors (map #(p/->expression % v) (split p))
         ff (actual-factors factors)]
@@ -85,6 +89,10 @@
               ->factors
               p/operators-known))
 
+(defn ^:private assume!
+  [thing context]
+  (log/warn (format "Assuming %s in %s" thing context)))
+
 (defn ^:private process-sqrt
   [expr]
   (let [fact-exp (factor (first (operands expr)))]
@@ -93,21 +101,48 @@
                      (list fact-exp))
            odds 1
            evens 1]
-      (cond
-        (nil? factors) nil
-        :else nil))))
+      (cond (nil? factors)
+            (do (if (not (and (number? evens) (= evens 1)))
+                  (assume! `(non-negative? @evens) 'root-out-squares))
+                (sym/mul (sym/sqrt odds) evens))
+
+            (sym/expt? (first factors))
+            (let [b (first (operands (first factors)))
+                  e (second (operands (first factors)))]
+              (if (and (integer? e) (even? e))
+                (recur (next factors)
+                       odds
+                       (let [power (quot e 2)]
+                         (cond (> power 1) (sym/mul evens (sym/expt b power))
+                               (= power 1) (sym/mul evens b)
+                               :else evens)))
+                (recur (next factors)
+                       (sym/mul (first factors) odds)
+                       evens)))
+
+            :else
+            (recur (next factors)
+                   (sym/mul (first factors) odds)
+                   evens)))))
 
 ;; pre-walk might work here
-(defn ^:private sqrt-walk
-  [x]
-  (if (seq? x)
-    (if (= ('operator x) 'sqrt)
-      (process-sqrt x)
-      (cons (sqrt-walk (first x))
-            (sqrt-walk (rest x))))))
+;; (defn ^:private sqrt-walk
+;;   [x]
+;;   (if (seq? x)
+;;     (if (= (operator x) 'sqrt)
+;;       (process-sqrt x)
+;;       (cons (sqrt-walk (first x))
+;;             (sqrt-walk (next x))))
+;;     x))
+
+;; (defn root-out-squares-0
+;;   [expr]
+;;   (sqrt-walk expr))
 
 (defn root-out-squares
+  "Removes perfect squares from under square roots."
   [expr]
-
-
-  )
+  (w/prewalk
+   (fn [t]
+     (if (and (seq? t) (= (operator t) 'sqrt)) (process-sqrt t) t ))
+   expr))
