@@ -30,11 +30,19 @@
              (up 't
                  (up 'r 'phi)
                  (down 'p_r 'p_phi))))))
-    ;; We've moved the simplifier frontier back to this point.
-    ;; This should give (up 0 0 0). This is currently blocked
-    ;; on teaching the simplifier to reduce square roots of
-    ;; perfect squares.
     (is (= '(up 0 0 0)
            (simplify
             ((time-independent-canonical? (polar-canonical 'alpha))
-             (up 't 'theta 'I)))))))
+             (up 't 'theta 'I)))))
+    (let [a-non-canonical-transform (fn [[t theta p]]
+                                      (let [x (* p (sin theta))
+                                            p_x (* p (cos theta))]
+                                        (up t x p_x)))]
+      (is (not= '(up 0 0 0)
+             (simplify
+              ((time-independent-canonical? a-non-canonical-transform)
+               (up 't 'theta 'p))))))
+    ;; XXX don't have s->m yet.
+    #_(is (= 'foo (let [s (up 't (up 'x 'y) (down 'px 'py))
+                      s* (compatible-shape s)]
+                  (s->m s* ((D J-func) s*) s*))))))

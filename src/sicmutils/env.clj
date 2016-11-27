@@ -110,6 +110,7 @@
 (def vector->up s/vector->up)
 (def vector->down s/vector->down)
 (def m:transpose s/m:transpose)
+(def compatible-shape s/compatible-shape)
 (def mapr s/mapr)
 
 (def D d/D)
