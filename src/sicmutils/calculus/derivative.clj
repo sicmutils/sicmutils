@@ -148,14 +148,13 @@
        :else (let [[a-tags a-coef :as a] (first dxs)
                    [b-tags b-coef :as b] (first dys)
                    c (compare a-tags b-tags)]
-               (cond
-                 (= c 0) (let [r-coef (g/+ a-coef b-coef)]
-                           (recur (rest dxs) (rest dys)
-                                  (if-not (g/zero? r-coef)
-                                    (conj result [a-tags r-coef])
-                                    result)))
-                 (< c 0) (recur (rest dxs) dys (conj result a))
-                 :else (recur dxs (rest dys) (conj result b))))))))
+               (cond (= c 0) (let [r-coef (g/+ a-coef b-coef)]
+                               (recur (rest dxs) (rest dys)
+                                      (if-not (g/zero? r-coef)
+                                        (conj result [a-tags r-coef])
+                                        result)))
+                     (< c 0) (recur (rest dxs) dys (conj result a))
+                     :else (recur dxs (rest dys) (conj result b))))))))
 
 (defn dx*dy
   "Form the product of the differentials dx and dy."

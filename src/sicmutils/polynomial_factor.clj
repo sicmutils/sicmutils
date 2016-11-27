@@ -22,7 +22,7 @@
              [generic :as g]
              [expression :as x]
              [simplify :as s]
-             [numsymb :refer [product? operands expt]]
+             [numsymb :refer [operator product? operands expt]]
              [polynomial :as p]
              [polynomial-gcd :refer [gcd gcd-seq]]]))
 
@@ -87,9 +87,27 @@
 
 (defn ^:private process-sqrt
   [expr]
-  (let [fact-exp nil]))
+  (let [fact-exp (factor (first (operands expr)))]
+    (loop [factors (if (product? fact-exp)
+                     (operands fact-exp)
+                     (list fact-exp))
+           odds 1
+           evens 1]
+      (cond
+        (nil? factors) nil
+        :else nil))))
+
+;; pre-walk might work here
+(defn ^:private sqrt-walk
+  [x]
+  (if (seq? x)
+    (if (= ('operator x) 'sqrt)
+      (process-sqrt x)
+      (cons (sqrt-walk (first x))
+            (sqrt-walk (rest x))))))
 
 (defn root-out-squares
   [expr]
+
 
   )

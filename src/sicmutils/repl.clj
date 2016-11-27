@@ -21,7 +21,7 @@
   (:require [clojure.main :as main]
             [clojure.tools.nrepl.transport]
             [clojure.tools.nrepl.middleware :as mw]
-            [clojure.tools.nrepl.middleware.pr-values :as pr-values]
+            [clojure.tools.nrepl.middleware.pr-values :refer [pr-values]]
             [sicmutils
              [env :refer :all]
              [simplify :as simp]])
@@ -43,14 +43,14 @@
                              (.send transport
                                     (if (find response :value)
                                       (-> response
-                                          (update-in [:value] simp/expression->string)
+                                          (update :value simp/expression->string)
                                           (assoc :printed-value true))
                                       response))
                              this))))))
 
 ;; Interpose our middleware between evaluation and printing.
 (mw/set-descriptor! #'math-printer
-                    {:requires #{#'pr-values/pr-values}
+                    {:requires #{#'pr-values}
                      :expects #{"eval"}
                      :handles {}})
 
