@@ -61,6 +61,8 @@
          :a1*
          :a2*)))
 
+
+
 (def simplify-square-roots
   (rule-simplifier
    (ruleset
@@ -158,6 +160,10 @@
 (def sincos-flush-ones (rule-simplifier split-high-degree-cosines
                                         split-high-degree-sines
                                         flush-obvious-ones))
+
+(defn universal-reductions
+  [x]
+  x)
 
 (def canonicalize-partials
   (rule-simplifier

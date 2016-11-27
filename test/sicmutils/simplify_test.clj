@@ -19,7 +19,8 @@
 (ns sicmutils.simplify-test
   (require [clojure.test :refer :all]
            [sicmutils
-            [simplify :refer [hermetic-simplify-fixture analyzer simplify-expression expression->string]]
+            [simplify :refer [hermetic-simplify-fixture simplify-expression expression->string]]
+            [analyze :as a]
             [structure :refer :all]
             [expression :as x]
             [complex :as c]
@@ -49,25 +50,6 @@
     (is (= '(k0 k1 k2 k3 k4) a))
     (is (= '(k5 k6 k7 k8 k9) b))
     (is (= '(k0 k1 k2 k3 k4) c))))
-
-(deftest analyzer-test
-  (let [new-analyzer (fn [] (analyzer (symbol-generator "k%08d")
-                                      poly/expression->
-                                      poly/->expression
-                                      poly/operators-known))
-        A #((new-analyzer) %)]
-    (is (= '(+ x 1) (A '(+ 1 x))))
-    (is (= '(+ x 1) (A '[+ 1 x])))
-    (is (= 'x (A '(* 1/2 (+ x x)))))
-    (is (= '(* (sin y) (cos (+ (expt (sin y) 4) (* 2 (sin y)) 1)) y)
-           (A '(* y (sin y) (cos (+ 1 (sin y) (sin y) (expt (sin y) 4)))))))
-    (is (= '(+ (* -1 (expt ((D phi) t) 2) (r t) m) (* (((expt D 2) r) t) m) ((D U) (r t)))
-           (A '(- (* 1/2 m (+ (((expt D 2) r) t) (((expt D 2) r) t)))
-                    (+ (* 1/2 m (+ (* ((D phi) t) ((D phi) t) (r t))
-                                         (* ((D phi) t) ((D phi) t) (r t))))
-                         (* -1 ((D U) (r t))))))))
-    (is (= '(+ (expt cos 2) (expt sin 2)) (A '(+ (expt cos 2) (expt sin 2)))))
-    (is (= '(+ (expt cos 2) (expt sin 2)) (A '(+ (expt sin 2) (expt cos 2)))))))
 
 (deftest simplify-expressions
   (is (= 6 (simplify-expression '(* 1 2 3))))

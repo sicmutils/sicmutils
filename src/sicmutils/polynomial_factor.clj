@@ -21,9 +21,9 @@
             [clojure.walk :as w]
             [sicmutils
              [value :as v]
+             [analyze :as a]
              [generic :as g]
              [expression :as x]
-             [simplify :as s]
              [numsymb :as sym :refer [operator product? operands expt]]
              [polynomial :as p]
              [polynomial-gcd :refer [gcd gcd-seq]]]))
@@ -60,11 +60,11 @@
                 (map-indexed #(expt %2 (+ %1 1)) (next factors)))))
 
 (defn factor-polynomial-expression
-  [p]
+  [simplifier p]
   (p/expression->
    (x/expression-of p)
    (fn [p v]
-     (map (fn [factor] (g/simplify (p/->expression factor v)))
+     (map (fn [factor] (simplifier (p/->expression factor v)))
           (split p)))))
 
 (defn ^:private flatten-product
@@ -84,7 +84,7 @@
       (cons '* (flatten-product ff)))))
 
 (def factor
-  (s/analyzer (s/monotonic-symbol-generator "-f-")
+  (a/analyzer (a/monotonic-symbol-generator "-f-")
               p/expression->
               ->factors
               p/operators-known))

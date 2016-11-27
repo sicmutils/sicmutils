@@ -33,7 +33,8 @@
 
 (deftest factoring
   (testing "simple test cases"
-    (let [unity2 (make 2 [[[0 0] 1]])
+    (let [fpe #(factor-polynomial-expression g/simplify %)
+          unity2 (make 2 [[[0 0] 1]])
           x-y (->poly '(- x y))
           x+y (->poly '(+ x y))
           U0 (g/* (g/square (g/- 'x 'y)) (g/cube (g/+ 'x 'y)))
@@ -42,10 +43,10 @@
           U3 (g/* 3 (g/square 'z) (g/+ (g/square 'x) 'y))
           U (->poly '(* (square (- x y)) (cube (+ x y))))]
       (is (= [unity2 unity2 x-y x+y] (split U)))
-      (is (= [1 1 '(+ x (* -1 y)) '(+ x y)] (factor-polynomial-expression U0)))
-      (is (= [1 1 '(+ x (* -1 y)) 1] (factor-polynomial-expression U1)))
-      (is (= [3 '(+ (expt x 2) y) 1 'z] (factor-polynomial-expression U2)))
-      (is (= [3 '(+ (expt x 2) y) 'z 1] (factor-polynomial-expression U3))))))
+      (is (= [1 1 '(+ x (* -1 y)) '(+ x y)] (fpe U0)))
+      (is (= [1 1 '(+ x (* -1 y)) 1] (fpe U1)))
+      (is (= [3 '(+ (expt x 2) y) 1 'z] (fpe U2)))
+      (is (= [3 '(+ (expt x 2) y) 'z 1] (fpe U3))))))
 
 (deftest factoring-2
   (testing "test poly"
