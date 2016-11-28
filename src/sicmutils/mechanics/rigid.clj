@@ -67,7 +67,7 @@
   (let [ω-a (+ (* (sin ψ) (sin θ) φdot) (* (cos ψ) θdot))
         ω-b (+ (* (cos ψ) (sin θ) φdot) (* -1 (sin ψ) θdot))
         ω-c (+ (* (cos θ) φdot) ψdot)]
-    (column-matrix ω-a ω-b ω-c)))
+    (up ω-a ω-b ω-c)))
 
 (defn T-rigid-body
   [A B C]
