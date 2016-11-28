@@ -407,7 +407,7 @@
   "Returns a function that checks if clock has been running longer
   than timeout and if so throws an exception after logging the event.
   Timeout should be of the form [number TimeUnit]. "
-  [description clock timeout]
+  [description ^Stopwatch clock timeout]
   (fn []
     (when (> (.elapsed clock (second timeout))
              (first timeout))

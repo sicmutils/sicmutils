@@ -50,6 +50,8 @@
   [local]
   (nth local 2))
 
+(def velocity-tuple up)
+
 ;; The following are the functions that are defined in the SICM
 ;; book, but NOT in MIT Scmutils.  Marked here for possible future
 ;; relocation

@@ -42,7 +42,28 @@
              (simplify
               ((time-independent-canonical? a-non-canonical-transform)
                (up 't 'theta 'p))))))
-    ;; XXX don't have s->m yet.
-    #_(is (= 'foo (let [s (up 't (up 'x 'y) (down 'px 'py))
-                      s* (compatible-shape s)]
-                  (s->m s* ((D J-func) s*) s*))))))
+    (let [J-func (fn [[_ dh1 dh2]] (up 0 dh2 (- dh1)))]
+      (is (= '(matrix-by-rows [0 0 0 0 0]
+                              [0 0 0 1 0]
+                              [0 0 0 0 1]
+                              [0 -1 0 0 0]
+                              [0 0 -1 0 0])
+             (simplify (let [s (up 't (up 'x 'y) (down 'px 'py))
+                             s* (compatible-shape s)]
+                         (s->m s* ((D J-func) s*) s*)))))
+      (let [symplectic? (fn [C]
+                          (fn [s]
+                            (let [s* (compatible-shape s)
+                                  J (s->m s* ((D J-func) s*) s*)
+                                  DCs (s->m s* ((D C) s) s)]
+                              (- J (* DCs J (m:transpose DCs))))))]
+        (is (= '(matrix-by-rows [0 0 0 0 0]
+                                [0 0 0 0 0]
+                                [0 0 0 0 0]
+                                [0 0 0 0 0]
+                                [0 0 0 0 0])
+               (simplify
+                ((symplectic? (F->CT p->r))
+                 (up 't
+                     (up 'r 'varphi)
+                     (down 'p_r 'p_varphi))))))))))

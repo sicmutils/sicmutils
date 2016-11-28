@@ -83,11 +83,11 @@
 
 (defrecord Polynomial [arity xs->c]
   v/Value
-  (nullity? [_] (-> xs->c .count zero?))
+  (nullity? [_] (empty? xs->c))
   (numerical? [_] false)
   (zero-like [_] (Polynomial. arity empty-coefficients))
   (one-like [_] (make-constant arity (v/one-like (coefficient (exponents xs->c)))))
-  (unity? [_] (and (= (.count xs->c) 1)
+  (unity? [_] (and (= (count xs->c) 1)
                    (let [[xs c] (first xs->c)]
                      (and (every? zero? xs)
                           (v/unity? c)))))

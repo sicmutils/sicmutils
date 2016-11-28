@@ -28,6 +28,7 @@
              [expression]
              [function :as f]
              [complex :as c]
+             [matrix :as matrix]
              [operator]
              [infix :as i]]
             [sicmutils.numerical
@@ -106,13 +107,15 @@
 (def component s/component)
 (def structure? s/structure?)
 (def orientation s/orientation)
-(def dot-product s/dot-product)
 (def structure->vector s/structure->vector)
 (def vector->up s/vector->up)
 (def vector->down s/vector->down)
-(def m:transpose s/m:transpose)
+(def m:transpose matrix/transpose)
 (def compatible-shape s/compatible-shape)
 (def mapr s/mapr)
+(def s->m matrix/s->m)
+
+(def matrix-by-rows matrix/by-rows)
 
 (def D d/D)
 (def ∂ d/∂)

@@ -21,6 +21,7 @@
   (:require [sicmutils
              [generic :refer :all]
              [structure :refer :all]
+             [matrix :as matrix]
              [function :refer :all]]
             [sicmutils.calculus.derivative :refer :all]))
 
@@ -64,21 +65,27 @@
   [α]
   (let [c (cos α)
         s (sin α)]
-    (down (up 1 0 0) (up 0 c s) (up 0 (- s) c))))
+    (matrix/by-rows [1 0 0]
+                    [0 c (- s)]
+                    [0 s c])))
 
 (defn rotate-y-matrix
   "Produce the matrix of a rotation of α radians about the y axis."
   [α]
   (let [c (cos α)
         s (sin α)]
-    (down (up c 0 (- s)) (up 0 1 0) (up s 0 c))))
+    (matrix/by-rows  [c 0 s]
+                     [0 1 0]
+                     [(- s) 0 c])))
 
 (defn rotate-z-matrix
   "Produce the matrix of a rotation of α radians about the z axis."
   [α]
   (let [c (cos α)
         s (sin α)]
-    (down (up c s 0) (up (- s) c 0) (up 0 0 1))))
+    (matrix/by-rows [c (- s) 0]
+                    [s c 0]
+                    [0 0 1])))
 
 (defn Euler->M
   "Compute the rotation matrix from a set of Euler angles."

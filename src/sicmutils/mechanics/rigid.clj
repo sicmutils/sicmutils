@@ -21,6 +21,7 @@
   (:require [sicmutils
              [generic :refer :all]
              [structure :refer :all]
+             [matrix :refer [column-matrix]]
              [function :refer :all]]
             [sicmutils.calculus.derivative :refer :all]
             [sicmutils.mechanics
@@ -32,9 +33,9 @@
   return the column vector of its positive components."
   [a]
   ;; XXX: we should assert anstisymmetricity here
-  (up (get-in a [1 2])
-      (get-in a [2 0])
-      (get-in a [0 1])))
+  (column-matrix (get-in a [2 1])
+                 (get-in a [0 2])
+                 (get-in a [1 0])))
 
 (defn M-of-q->omega-of-t
   [M-of-q]
@@ -43,14 +44,14 @@
       (fn [t]
         (let [omega-cross (fn [t]
                             (* ((D M-on-path) t)
-                               (m:transpose (M-on-path t))))]
+                               (transpose (M-on-path t))))]
           (antisymmetric->column-matrix (omega-cross t)))))))
 
 (defn M-of-q->omega-body-of-t
   [M-of-q]
   (fn [q]
     (fn [t]
-      (* (m:transpose (M-of-q (q t)))
+      (* (transpose (M-of-q (q t)))
          (((M-of-q->omega-of-t M-of-q) q) t)))))
 
 (defn M->omega
@@ -66,7 +67,7 @@
   (let [ω-a (+ (* (sin ψ) (sin θ) φdot) (* (cos ψ) θdot))
         ω-b (+ (* (cos ψ) (sin θ) φdot) (* -1 (sin ψ) θdot))
         ω-c (+ (* (cos θ) φdot) ψdot)]
-    (up ω-a ω-b ω-c)))
+    (column-matrix ω-a ω-b ω-c)))
 
 (defn T-rigid-body
   [A B C]
@@ -85,9 +86,9 @@
   [A B C]
   (fn [local]
     (let [[ω0 ω1 ω2] (Euler-state->omega-body local)]
-      (up (* A ω0)
-          (* B ω1)
-          (* C ω2)))))
+      (column-matrix (* A ω0)
+                     (* B ω1)
+                     (* C ω2)))))
 
 (defn Euler-state->L-space
   [A B C]

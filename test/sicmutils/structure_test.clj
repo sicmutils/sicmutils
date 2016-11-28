@@ -21,6 +21,7 @@
   (:require [clojure.test :refer :all :exclude [function?]]
             [sicmutils.env :refer :all]
             [sicmutils.structure :as s]
+            [sicmutils.mechanics.lagrange :refer [velocity-tuple]]
             [sicmutils.value :as v]))
 
 (deftest structures
@@ -117,12 +118,6 @@
               (+ (* s y) (* c z))))))
     (is (= (up 0 0 1) ((Rx 'pi-over-2) (up 0 1 0))))
     (is (= (up 'x (sicmutils.generic/- 'z) 'y) ((Rx 'pi-over-2) (up 'x 'y 'z)))))
-  (testing "dot-product"
-    (is (= 11 (dot-product [1 2] [3 4])))
-    (is (= 11 (dot-product (up 1 2) (up 3 4))))
-    (is (= 11 (dot-product (down 1 2) (down 3 4))))
-    (is (thrown? IllegalArgumentException (dot-product [1 2] [3 4 5])))
-    (is (thrown? IllegalArgumentException (dot-product (up 1 2) (down 3 4)))))
   (testing "square/cube"
     (is (= 14 (square (up 1 2 3))))
     (is (= (up (up (up 1 2 3) (up 2 4 6) (up 3 6 9))
@@ -147,9 +142,7 @@
              (* (* xt M) x)))
       (is (= (+ (* 'x (+ (* 'x 'a) (* 'y 'b)))
                 (* 'y (+ (* 'x 'c) (* 'y 'd))))
-             (* xt (* M x))))
-      (is (= (down (up 'a 'b) (up 'c 'd)) (m:transpose M)))
-      (is (= (up (down 'a 'c) (up 'b 'd)) (m:transpose S))))
+             (* xt (* M x)))))
     (let [M (up (down 'a 'b) (down 'c 'd))
           x (down 'x 'y)]
       (is (= (down (+ (* 'x 'a) (* 'y 'c))
@@ -254,6 +247,20 @@
       (is (= ::s/down (v/kind (ref o 1))))
       (is (= ::s/down (v/kind (ref o 2)))))))
 
+(deftest other-operations
+  (let [A (up 1 2 'a (down 3 4) (up (down 'c 'd) 'e))]
+    (is (= 8 (s/dimension A)))
+    (let [vs (velocity-tuple
+              (velocity-tuple 'vx1 'vy1)
+              (velocity-tuple 'vx2 'vy2))
+          L1 (fn [[v1 v2]]
+               (+ (* 1/2 'm1 (square v1))
+                  (* 1/2 'm2 (square v2))))]
+      (is (= '(down
+               (down (down (down m1 0) (down 0 0)) (down (down 0 m1) (down 0 0)))
+               (down (down (down 0 0) (down m2 0)) (down (down 0 0) (down 0 m2))))
+             (simplify (((expt D 2) L1) vs)))))))
+
 (deftest some-tensors
   (let [ε_ijk (down (down (down  0  0  0)
                           (down  0  0  1)
@@ -268,8 +275,7 @@
                  (up 0 1 0)
                  (up 0 0 1))]
 
-    (is (= (down 0 0 0) (* δ-il ε_ijk)))
-    ))
+    (is (= (down 0 0 0) (* δ-il ε_ijk)))))
 
 (deftest matrices
   (let [A (up (up 1 2) (up 3 4))

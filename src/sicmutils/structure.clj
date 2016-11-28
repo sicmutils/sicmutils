@@ -63,8 +63,7 @@
   (invoke [_ w x y z]
     (Struct. orientation (mapv #(% w x y z) v)))
   (applyTo [s xs]
-    (AFn/applyToHelper s xs))
-  )
+    (AFn/applyToHelper s xs)))
 
 (defn structure->vector
   "Return the structure in unoriented vector form."
@@ -208,31 +207,6 @@
              (every? #(= first-minor-orientation %) (rest minor-orientations)))
       [major-size major-orientation first-minor-orientation])))
 
-(defn dot-product
-  "Dot product of two structures of the same orientation and length."
-  [v w]
-  (when-not (and (= (orientation v) (orientation w))
-                 (= (count v) (count w)))
-    (throw (IllegalArgumentException. "arguments incompatible for dot product")))
-  (g/* v (g/transpose w)))
-
-(defn m:transpose
-  "Transpose the structure s like a matrix. The result will have
-  the same orientation at all levels."
-  [^Struct s]
-  (let [d1 (count s)
-        d2s (map count (.v s))
-        ragged (not (apply = d2s))
-        o2s (map (fn [^Struct t] (.orientation t)) s)
-        weird (not (apply = o2s))
-        o2 (first o2s)]
-    (when (or ragged weird)
-      (prn "can't transpose" ragged weird d2s o2s)
-      (throw (IllegalArgumentException.
-              "a structure must be rectangular if it is to be transposed.")))
-    (same s (for [i (range (first d2s))]
-              (Struct. o2 (vec (for [j (range d1)]
-                                 (get (get s j) i))))))))
 
 (defn- without-index
   "The structure s with element index i removed"
@@ -385,6 +359,10 @@
   the slots filled with gensyms."
   [s]
   (unflatten opposite (repeatedly gensym) s))
+
+(defn dimension
+  [s]
+  (-> s flatten count))
 
 (defmethod g/add [::down ::down] [a b] (elementwise g/+ a b))
 (defmethod g/add [::up ::up] [a b] (elementwise g/+ a b))
