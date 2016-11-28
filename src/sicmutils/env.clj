@@ -32,7 +32,8 @@
              [infix :as i]]
             [sicmutils.numerical
              [minimize :as min]
-             [ode :as ode]]
+             [ode :as ode]
+             [integrate :as intg]]
             [sicmutils.calculus.derivative :as d]
             [sicmutils.value :as v]))
 
@@ -121,6 +122,8 @@
 (def function? f/function?)
 
 (def minimize min/minimize)
+
+(def definite-integral intg/definite-integral)
 
 (def ->infix i/->infix)
 (def ->TeX i/->TeX)

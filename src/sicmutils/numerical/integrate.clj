@@ -24,7 +24,7 @@
            (com.google.common.base Stopwatch)
            (org.apache.commons.math3.analysis.integration RombergIntegrator)))
 
-(defn integrate [f a b & {:keys [compile]}]
+(defn definite-integral [f a b & {:keys [compile]}]
   (let [total-time (Stopwatch/createStarted)
         evaluation-count (atom 0)
         evaluation-time (Stopwatch/createUnstarted)

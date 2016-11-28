@@ -23,19 +23,19 @@
 
 (def ^:private near (v/within 1e-6))
 
-(def ^:private natural-log (partial integrate / 1.))
+(def ^:private natural-log (partial definite-integral / 1.))
 
-(def ^:private sine (partial integrate #(Math/cos %) 0.))
+(def ^:private sine (partial definite-integral #(Math/cos %) 0.))
 
 (defn bessel-j0 [x]
-  (/ (integrate #(Math/cos (- (* x (Math/sin %)))) 0. Math/PI) Math/PI))
+  (/ (definite-integral #(Math/cos (- (* x (Math/sin %)))) 0. Math/PI) Math/PI))
 
 (deftest integrals
   (testing "easy"
-    (is (near 0.333333 (integrate #(* % %) 0. 1.)))
-    (is (near 0.5 (integrate identity 0. 1.)))
-    (is (near 3 (integrate (constantly 1.0) 0. 3.)))
-    (is (near 0 (integrate (constantly 0.0) 0. 1000.)))
+    (is (near 0.333333 (definite-integral #(* % %) 0. 1.)))
+    (is (near 0.5 (definite-integral identity 0. 1.)))
+    (is (near 3 (definite-integral (constantly 1.0) 0. 3.)))
+    (is (near 0 (definite-integral (constantly 0.0) 0. 1000.)))
     (is (near 1.0 (natural-log (Math/exp 1.))))
     (is (near 0 (sine Math/PI)))
     (is (near 1 (sine (/ Math/PI 2))))

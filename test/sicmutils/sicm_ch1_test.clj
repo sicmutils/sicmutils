@@ -44,6 +44,8 @@
                                           (let [η (make-η ν t1 t2)]
                                             (Lagrangian-action (L-free-particle mass)
                                                                (+ q (* ε η)) t1 t2))))]
+      ;; integral
+      (is (near 2.0 (definite-integral sin 0 Math/PI)))
       ;; p. 18
       (is (= '(up (x t)
                   (y t)
