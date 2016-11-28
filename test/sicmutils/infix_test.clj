@@ -18,9 +18,8 @@
 
 (ns sicmutils.infix-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
-  (:require [clojure.test :refer :all]
-            [sicmutils.env :refer :all]
-            ))
+  (:require [clojure.test :refer :all :exclude [function?]]
+            [sicmutils.env :refer :all]))
 
 (def ^:private s->infix (compose ->infix simplify))
 (def ^:private s->TeX (compose ->TeX simplify))

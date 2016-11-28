@@ -18,7 +18,7 @@
 
 (ns sicmutils.env-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer :all :exclude [function?]]
             [sicmutils.env :refer :all])
   (:import (org.apache.commons.math3.complex Complex)))
 

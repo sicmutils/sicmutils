@@ -18,7 +18,7 @@
 
 (ns sicmutils.sicm-ch1-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer :all :exclude [function?]]
             [sicmutils.env :refer :all :exclude []]
             [sicmutils.mechanics.lagrange :refer :all]
             [sicmutils.mechanics.rotation :refer [Rx Ry Rz]]

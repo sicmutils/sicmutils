@@ -18,11 +18,11 @@
 
 (ns sicmutils.examples.double-pendulum-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
-  (:require [sicmutils.env :refer :all]
+  (:require [clojure.test :refer :all :exclude [function?]]
+            [sicmutils.env :refer :all]
             [sicmutils.mechanics.lagrange :refer :all]
             [sicmutils.examples.double-pendulum :as double]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [clojure.test :refer :all]))
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 

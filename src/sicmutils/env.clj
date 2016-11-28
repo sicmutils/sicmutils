@@ -118,6 +118,8 @@
 (def pi Math/PI)
 (def taylor-series-terms d/taylor-series-terms)
 
+(def function? f/function?)
+
 (def minimize min/minimize)
 
 (def ->infix i/->infix)

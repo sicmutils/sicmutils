@@ -18,7 +18,7 @@
 
 (ns sicmutils.numerical.compile-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer :all :exclude [function?]]
             [sicmutils.env :refer :all]
             [sicmutils.value :as v]
             [sicmutils.numerical.compile :refer :all]))

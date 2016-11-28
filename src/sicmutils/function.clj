@@ -120,7 +120,7 @@
 ;; Algebra of functions
 ;;
 
-(defn- function?
+(defn function?
   [x]
   (and (ifn? x)
        (not (instance? Struct x))

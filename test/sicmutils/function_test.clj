@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.function-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer :all :exclude [function?]]
             [sicmutils
              [generic :as g]
              [numbers]
@@ -39,6 +39,11 @@
     (testing "arity > 1"
       (let [g (literal-function 'g [0 0] 0)]
         (is (= '(g a b) (g/simplify (g 'a 'b))))))))
+
+(deftest function-predicate
+  (is (= true (function? (fn [] 3))))
+  (is (= false (function? (up 0 0 0))))
+  (is (= true (ifn? (up 0 0 0)))))
 
 (deftest literal-functions
   (testing "domain in Rⁿ, range R"
