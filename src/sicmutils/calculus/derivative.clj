@@ -21,7 +21,8 @@
              [value :as v]
              [generic :as g]
              [operator :as o]
-             [structure :as struct]]
+             [structure :as struct]
+             [matrix :as matrix]]
             [clojure.set :as set]
             [clojure.string :refer [join]])
   (:import (clojure.lang Sequential)))
@@ -371,22 +372,22 @@
       [:exactly 1] (with-meta (d f) {:arity a})
       [:exactly 2] (with-meta (fn [x y]
                                 ((d (fn [[x y]] (f x y)))
-                                 (struct/seq-> [x y]))) {:arity a})
+                                 (matrix/seq-> [x y]))) {:arity a})
       [:exactly 3] (with-meta (fn [x y z]
                                 ((d (fn [[x y z]] (f x y z)))
-                                 (struct/seq-> [x y z]))) {:arity a})
+                                 (matrix/seq-> [x y z]))) {:arity a})
       [:exactly 4] (with-meta (fn [w x y z]
                                 ((d (fn [[w x y z]] (f w x y z)))
-                                 (struct/seq-> [w x y z]))) {:arity a})
+                                 (matrix/seq-> [w x y z]))) {:arity a})
       [:between 1 2] (with-meta (fn [x & y]
                                   (if (nil? y)
                                     ((d f) x)
                                     ((d (fn [[x y]] (f x y)))
-                                      (struct/seq-> (cons x y))))) {:arity a})
+                                     (matrix/seq-> (cons x y))))) {:arity a})
       [:at-least 0] (with-meta
                       (fn [& xs]
                         ((d (fn [xs] (apply f xs)))
-                         (struct/seq-> xs)))
+                         (matrix/seq-> xs)))
                       {:arity a})
       (throw (IllegalArgumentException. (str "Haven't implemented this yet: arity " a))))))
 
@@ -431,6 +432,11 @@
 
 (defmethod g/partial-derivative
   [:sicmutils.structure/structure Sequential]
+  [f selectors]
+  (multivariate-derivative f selectors))
+
+(defmethod g/partial-derivative
+  [:sicmutils.matrix/matrix Sequential]
   [f selectors]
   (multivariate-derivative f selectors))
 

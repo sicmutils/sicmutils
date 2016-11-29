@@ -58,15 +58,15 @@
              (simplify ((M->omega-body Euler->M) Euler-state)))))))
 
 (deftest section-2-9
-  (is (= '(+ (* (expt (cos ψ) 2) (expt (sin θ) 2) B φdot)
-             (* (expt (sin ψ) 2) (expt (sin θ) 2) A φdot)
-             (* (cos ψ) (sin ψ) (sin θ) A θdot)
-             (* -1 (cos ψ) (sin ψ) (sin θ) B θdot)
+  (is (= '(+ (* (expt (sin ψ) 2) (expt (sin θ) 2) A φdot)
+             (* (expt (sin θ) 2) (expt (cos ψ) 2) B φdot)
+             (* (sin ψ) (sin θ) (cos ψ) A θdot)
+             (* -1 (sin ψ) (sin θ) (cos ψ) B θdot)
              (* (expt (cos θ) 2) C φdot)
              (* (cos θ) C ψdot))
-         (simplify (nth (((∂ 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1))))
-  (is (zero? (simplify (- (nth ((Euler-state->L-space 'A 'B 'C) Euler-state) 2)
-                          (nth (((∂ 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1)))))
+         (simplify (ref (((∂ 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1))))
+  (is (zero? (simplify (- (ref ((Euler-state->L-space 'A 'B 'C) Euler-state) 2)
+                          (ref (((∂ 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1)))))
   (is (= '(* (expt (sin θ) 2) A B C)
          (simplify (determinant (((square (∂ 2)) (T-rigid-body 'A 'B 'C)) Euler-state))))))
 
@@ -106,10 +106,9 @@
 
 
 (deftest section-2-10
-  (is (= '(+
-           (* 1/2 (expt (cos θ) 2) C (expt φdot 2))
-           (* 1/2 (expt (sin θ) 2) A (expt φdot 2))
-           (* (cos θ) C φdot ψdot)
-           (* 1/2 A (expt θdot 2))
-           (* 1/2 C (expt ψdot 2)))
+  (is (= '(+ (* 1/2 (expt (sin θ) 2) A (expt φdot 2))
+             (* 1/2 (expt (cos θ) 2) C (expt φdot 2))
+             (* (cos θ) C φdot ψdot)
+             (* 1/2 A (expt θdot 2))
+             (* 1/2 C (expt ψdot 2)))
          (simplify ((T-rigid-body 'A 'A 'C) Euler-state)))))

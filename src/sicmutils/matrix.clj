@@ -17,7 +17,8 @@
 ;
 
 (ns sicmutils.matrix
-  (:import [clojure.lang PersistentVector])
+  (:import [clojure.lang PersistentVector IFn AFn ILookup]
+           [sicmutils.structure Struct])
   (:require [sicmutils
              [value :as v]
              [structure :as s]
@@ -30,28 +31,28 @@
   (zero-like [_] (Matrix. r c (vec (repeat r (vec (repeat c 0))))))
   (exact? [_] (every? v/exact? v))
   (freeze [_] `(~'matrix-by-rows ~@(map v/freeze v)))
+  (arity [_] (v/joint-arity (map v/arity v)))
   (kind [_] ::matrix)
+  IFn
+  (invoke [_ x]
+    (Matrix. r c (mapv (fn [e] (mapv #(% x) e)) v)))
+  (invoke [_ x y]
+    (Matrix. r c (mapv (fn [e] (mapv #(% x y) e)) v)))
+  (invoke [_ x y z]
+    (Matrix. r c (mapv (fn [e] (mapv #(% x y z) e)) v)))
+  (invoke [_ w x y z]
+    (Matrix. r c (mapv (fn [e] (mapv #(% w x y z) e)) v)))
+  (applyTo [m xs]
+    (AFn/applyToHelper m xs)))
 
-  ;; Sequential
-  ;; Counted
-  ;; (count [_] (count v))
-  ;; Seqable
-  ;; (seq [_] (seq v))
-  ;; ILookup
-  ;; (valAt [_ key] (get v key))
-  ;; (valAt [_ key default] (get v key default))
-  ;; IFn
-  ;; (invoke [_ x]
-  ;;   (Struct. orientation (mapv #(% x) v)))
-  ;; (invoke [_ x y]
-  ;;   (Struct. orientation (mapv #(% x y) v)))
-  ;; (invoke [_ x y z]
-  ;;   (Struct. orientation (mapv #(% x y z) v)))
-  ;; (invoke [_ w x y z]
-  ;;   (Struct. orientation (mapv #(% w x y z) v)))
-  ;; (applyTo [s xs]
-  ;;   (AFn/applyToHelper s xs))
-)
+(defn matrix-get-in
+  "Like get-in for matrices, but obeying the scmutils convention: only one
+  index is required to get an unboxed element from a column vector. This is
+  perhaps an unprincipled exception..."
+  [m is]
+  (let [e (get-in (:v m) is)]
+    (if (and (= 1 (count is))
+             (= 1 (:c m))) (e 0) e)))
 
 (defn by-rows
   [& rs]
@@ -77,6 +78,19 @@
                            (get-in v [j i]))
                          (range r)))
                  (range c))))
+
+(defn ->structure
+  "Convert m to a structure (a down tuple of up tuples)."
+  [m]
+  (let [mT (transpose m)]
+    (apply s/down (map #(apply s/up %) (:v mT)))))
+
+(defn seq->
+  "Convert a sequence (typically, of function arguments) to an up-structure.
+  GJS: Any matrix in the argument list wants to be converted to a row of
+  columns"
+  [s]
+  (apply s/up (map #(if (instance? Matrix %) (->structure %) %) s)))
 
 (defn ^:private mul
   "Multiplies the two matrices a and b"

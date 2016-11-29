@@ -19,6 +19,7 @@
 (ns sicmutils.env
   (:refer-clojure :exclude [+ - * / zero?]
                   :rename {ref core-ref partial core-partial})
+  (:import [sicmutils.matrix Matrix])
   (:require [sicmutils
              [generic :as g]
              [structure :as s]
@@ -88,7 +89,10 @@
   (if (and (> (count args) 1)
            (sequential? (first args))
            (every? integer? (rest args)))
-    (get-in (first args) (rest args))
+    (let [[a & indices] args]
+      (if (instance? Matrix a)
+       (matrix/matrix-get-in a indices)
+       (get-in a indices)))
     (apply core-ref args)))
 
 (defn partial

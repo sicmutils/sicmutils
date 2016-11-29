@@ -27,7 +27,8 @@
              [numbers]
              [simplify :refer [hermetic-simplify-fixture]]
              [infix :refer [->infix]]
-             [structure :refer :all]]
+             [structure :refer :all]
+             [matrix :as matrix]]
             [sicmutils.calculus.derivative :refer :all]))
 
 (use-fixtures :once hermetic-simplify-fixture)
@@ -160,6 +161,19 @@
       (is (= (up 'x 0)  ((((∂ 0) F) 1 1) (up 'x 'y))))
       (is (= (up 0 'y)  ((((∂ 1) F) 1 1) (up 'x 'y))))
       (is (= (down (up 'x 0) (up 0 'y)) (((D F) 1 1) (up 'x 'y)))))))
+
+(deftest derivative-of-matrix
+  (let [M (matrix/by-rows [(literal-function 'f) (literal-function 'g)]
+                          [(literal-function 'h) (literal-function 'k)])]
+    (is (= '(matrix-by-rows [(f t) (g t)] [(h t) (k t)])
+           (simplify (M 't))))
+    (is (= 'foo (simplify ((D M) 't))))
+    (is (= '(matrix-by-rows
+             [(+ (expt (f t) 2) (expt (h t) 2))
+              (+ (* (f t) (g t)) (* (h t) (k t)))]
+             [(+ (* (f t) (g t)) (* (h t) (k t)))
+              (+ (expt (g t) 2) (expt (k t) 2))])
+           (simplify ((* (transpose M) M) 't))))))
 
 (deftest amazing-bug
   (testing "1"

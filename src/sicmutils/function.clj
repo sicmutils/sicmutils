@@ -22,6 +22,7 @@
              [value :as v]
              [expression :as x]
              [structure :as s]
+             [matrix :as m]
              [numsymb :as ns]
              [generic :as g]]
             [sicmutils.calculus.derivative :as d])
@@ -217,6 +218,7 @@
 (defmethod g/simplify Function [a] (-> a :expr g/simplify))
 (derive ::x/numerical-expression ::cofunction)
 (derive ::s/structure ::cofunction)
+(derive ::m/matrix ::cofunction)
 (derive ::v/function ::function)
 
 ;; ------------------------------------
@@ -276,7 +278,7 @@
 
 (defn- literal-derivative
   [f xs]
-  (let [v (s/seq-> xs)
+  (let [v (m/seq-> xs)
         maxtag (->> v flatten d/max-order-tag)
         ve (->> v (s/mapr #(d/without-tag maxtag %)) seq)
         dv (->> v (s/mapr #(d/with-tag maxtag %)))]

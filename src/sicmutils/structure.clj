@@ -327,15 +327,6 @@
         (> n 1) (g/* s (g/expt s (- n 1)))
         :else (throw (ArithmeticException. (str "Cannot: " `(expt ~s ~n))))))
 
-(defn- matrix->structure "TODO: implement" [m] m)
-
-(defn seq->
-  "Convert a sequence (typically, of function arguments) to an up-structure.
-  GJS: Any matrix in the argument list wants to be converted to a row of
-  columns (TODO: this is not implemented yet)"
-  [s]
-  (Struct. ::up (mapv matrix->structure s)))
-
 (defn unflatten
   "Given a sequence of values and a model structure, unpack the values into
   a structure with the same shape as the model."
