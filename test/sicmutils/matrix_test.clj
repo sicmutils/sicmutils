@@ -17,29 +17,31 @@
 ;
 
 (ns sicmutils.matrix-test
-  (:refer-clojure :exclude [+ - * / zero? partial ref])
+  (:refer-clojure :exclude [+ - * / zero? partial ref map])
   (:require [clojure.test :refer :all :exclude [function?]]
             [sicmutils
-             [matrix :refer :all]
+             [matrix :as matrix]
              [structure :as s]
              [generic :as g]
              [value :as v]]
             [sicmutils.calculus.derivative :as d]))
 
 (deftest matrix-basics
-  (let [M (by-rows (list 1 2 3)
+  (let [M (matrix/by-rows (list 1 2 3)
                    (list 4 5 6))
-        v (column-matrix 7 8 9)]
+        v (matrix/column 7 8 9)]
     (is (= ::sicmutils.matrix/matrix (v/kind M)))
     (is (= '(matrix-by-rows [1 2 3] [4 5 6]) (v/freeze M)))
-    (is (= (by-rows [1 4] [2 5] [3 6]) (transpose M)))
-    (is (= (by-rows [0 0 0] [0 0 0]) (v/zero-like M)))
-    (is (thrown? IllegalArgumentException (by-rows [1 2 3] [4 5])))
-    (is (thrown? AssertionError (by-rows)))
-    (is (= 5 (matrix-get-in M [1 1])))
-    (is (= 3 (matrix-get-in M [0 2])))
-    (is (= [4 5 6] (matrix-get-in M [1])))
-    (is (= 8 (matrix-get-in v [1])))
+    (is (= (matrix/by-rows [1 4] [2 5] [3 6]) (matrix/transpose M)))
+    (is (= (matrix/by-rows [0 0 0] [0 0 0]) (v/zero-like M)))
+    (is (thrown? IllegalArgumentException (matrix/by-rows [1 2 3] [4 5])))
+    (is (thrown? AssertionError (matrix/by-rows)))
+    (is (= 5 (matrix/get-in M [1 1])))
+    (is (= 3 (matrix/get-in M [0 2])))
+    (is (= [4 5 6] (matrix/get-in M [1])))
+    (is (= 8 (matrix/get-in v [1])))
+    (is (= (matrix/by-rows [2 3 4]
+                           [5 6 7]) (matrix/map inc M)))
     ))
 
 (deftest structure
@@ -53,23 +55,23 @@
                               [0 m1 0 0]
                               [0 0 m2 0]
                               [0 0 0 m2])
-             (g/simplify (s->m vs (((g/expt d/D 2) L1) vs) vs))))))
-  (let [M (by-rows [1 2 3] [4 5 6])]
+             (g/simplify (matrix/s->m vs (((g/expt d/D 2) L1) vs) vs))))))
+  (let [M (matrix/by-rows [1 2 3] [4 5 6])]
     (is (= (s/down (s/up 1 4)
                    (s/up 2 5)
                    (s/up 3 6))
-           (->structure M)))))
+           (matrix/->structure M)))))
 
 (deftest matrix-mul
-  (let [M (by-rows '[a b] '[c d])
-        S (by-rows '[e f] '[g h])]
+  (let [M (matrix/by-rows '[a b] '[c d])
+        S (matrix/by-rows '[e f] '[g h])]
 
     (is (= '(matrix-by-rows [(+ (* a e) (* b g)) (+ (* a f) (* b h))]
                             [(+ (* c e) (* d g)) (+ (* c f) (* d h))])
            (g/simplify (g/* M S)))))
-  (let [M (by-rows [1 2 3]
+  (let [M (matrix/by-rows [1 2 3]
                    [2 3 4])
-        S (by-rows [3 4]
+        S (matrix/by-rows [3 4]
                    [4 5]
                    [5 6])]
-    (is (= (by-rows [26 32] [38 47]) (g/* M S)))))
+    (is (= (matrix/by-rows [26 32] [38 47]) (g/* M S)))))

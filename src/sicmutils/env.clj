@@ -19,7 +19,6 @@
 (ns sicmutils.env
   (:refer-clojure :exclude [+ - * / zero?]
                   :rename {ref core-ref partial core-partial})
-  (:import [sicmutils.matrix Matrix])
   (:require [sicmutils
              [generic :as g]
              [structure :as s]
@@ -85,15 +84,15 @@
 (defn ref
   "A shim so that ref can act like nth in SICM contexts, as clojure
   core ref elsewhere."
-  [& args]
-  (if (and (> (count args) 1)
-           (sequential? (first args))
-           (every? integer? (rest args)))
-    (let [[a & indices] args]
-      (if (instance? Matrix a)
-       (matrix/matrix-get-in a indices)
-       (get-in a indices)))
-    (apply core-ref args)))
+  [a & as]
+  (let [m? (matrix/matrix? a)]
+    (if (and as
+             (or (sequential? a) m?)
+             (every? integer? as))
+      (if m?
+        (matrix/get-in a as)
+        (get-in a as))
+     (apply core-ref a as))))
 
 (defn partial
   "A shim. Dispatches to partial differentiation when all the arguments
@@ -120,6 +119,7 @@
 (def s->m matrix/s->m)
 
 (def matrix-by-rows matrix/by-rows)
+(def column-matrix matrix/column)
 
 (def D d/D)
 (def ∂ d/∂)

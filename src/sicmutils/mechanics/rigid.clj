@@ -21,7 +21,7 @@
   (:require [sicmutils
              [generic :refer :all]
              [structure :refer :all]
-             [matrix :refer [column-matrix]]
+             [matrix :as matrix]
              [function :refer :all]]
             [sicmutils.calculus.derivative :refer :all]
             [sicmutils.mechanics
@@ -33,9 +33,9 @@
   return the column vector of its positive components."
   [a]
   ;; XXX: we should assert anstisymmetricity here
-  (column-matrix (get-in a [2 1])
-                 (get-in a [0 2])
-                 (get-in a [1 0])))
+  (matrix/column (matrix/get-in a [2 1])
+                 (matrix/get-in a [0 2])
+                 (matrix/get-in a [1 0])))
 
 (defn M-of-q->omega-of-t
   [M-of-q]
@@ -86,7 +86,7 @@
   [A B C]
   (fn [local]
     (let [[ω0 ω1 ω2] (Euler-state->omega-body local)]
-      (column-matrix (* A ω0)
+      (matrix/column (* A ω0)
                      (* B ω1)
                      (* C ω2)))))
 

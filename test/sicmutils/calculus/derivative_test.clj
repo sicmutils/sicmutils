@@ -165,15 +165,23 @@
 (deftest derivative-of-matrix
   (let [M (matrix/by-rows [(literal-function 'f) (literal-function 'g)]
                           [(literal-function 'h) (literal-function 'k)])]
-    (is (= '(matrix-by-rows [(f t) (g t)] [(h t) (k t)])
+    (is (= '(matrix-by-rows [(f t) (g t)]
+                            [(h t) (k t)])
            (simplify (M 't))))
-    (is (= 'foo (simplify ((D M) 't))))
+    (is (= '(matrix-by-rows [((D f) t) ((D g) t)]
+                            [((D h) t) ((D k) t)])
+           (simplify ((D M) 't))))
     (is (= '(matrix-by-rows
              [(+ (expt (f t) 2) (expt (h t) 2))
               (+ (* (f t) (g t)) (* (h t) (k t)))]
              [(+ (* (f t) (g t)) (* (h t) (k t)))
               (+ (expt (g t) 2) (expt (k t) 2))])
-           (simplify ((* (transpose M) M) 't))))))
+           (simplify ((* (transpose M) M) 't))))
+    (is (= '(matrix-by-rows [(+ (* 2 ((D f) t) (f t)) (* 2 (h t) ((D h) t)))
+                             (+ (* ((D f) t) (g t)) (* (f t) ((D g) t)) (* (h t) ((D k) t)) (* (k t) ((D h) t)))]
+                            [(+ (* ((D f) t) (g t)) (* (f t) ((D g) t)) (* (h t) ((D k) t)) (* (k t) ((D h) t)))
+                             (+ (* 2 (g t) ((D g) t)) (* 2 (k t) ((D k) t)))])
+           (simplify ((D (* (transpose M) M)) 't))))))
 
 (deftest amazing-bug
   (testing "1"

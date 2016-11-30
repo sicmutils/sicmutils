@@ -70,6 +70,7 @@
   (cond (and (number? a) (number? b)) (- a b)
         (number? a) (if (g/zero? a) `(~'- ~b) `(~'- ~a ~b))
         (number? b) (if (g/zero? b) a `(~'- ~a ~b))
+        (= a b) 0
         :else `(~'- ~a ~b)))
 
 (defn- sub-n [& args]

@@ -51,6 +51,7 @@
   [x]
   (cond (instance? Differential x) true
         (struct/structure? x) (some differential? x)
+        (matrix/matrix? x) (matrix/matrix-some differential? x)
         :else false))
 
 (defn differential-of
@@ -190,6 +191,7 @@
           (dist
             [obj]
             (cond (struct/structure? obj) (struct/mapr dist obj)
+                  (matrix/matrix? obj) (matrix/map dist obj)
                   (o/operator? obj) (do (throw (IllegalArgumentException. "can't differentiate an operator yet"))
                                         (extract obj))      ;; TODO: tag-hiding
                   ;; (matrix? obj) (m:elementwise dist obj) XXX
@@ -345,8 +347,10 @@
                                          (g (struct/structure-assoc-in v [i] w)))
                                        v_i))
                                     v))
+
                   (or (g/numerical-quantity? v) (g/abstract-quantity? v))
                   ((derivative g) v)
+
                   :else
                   (throw (IllegalArgumentException.
                           (str "derivative argument not found for selectors "

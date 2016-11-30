@@ -17,6 +17,7 @@
 ;
 
 (ns sicmutils.matrix
+  (:refer-clojure :rename {map core-map get-in core-get-in})
   (:import [clojure.lang PersistentVector IFn AFn ILookup]
            [sicmutils.structure Struct])
   (:require [sicmutils
@@ -30,11 +31,12 @@
   (unity? [_] false)
   (zero-like [_] (Matrix. r c (vec (repeat r (vec (repeat c 0))))))
   (exact? [_] (every? v/exact? v))
-  (freeze [_] `(~'matrix-by-rows ~@(map v/freeze v)))
-  (arity [_] (v/joint-arity (map v/arity v)))
+  (freeze [_] (if (= c 1)
+                `(~'column-matrix ~@(core-map (comp v/freeze first) v))
+                `(~'matrix-by-rows ~@(core-map v/freeze v))))
+  (arity [_] (v/joint-arity (core-map v/arity v)))
   (kind [_] ::matrix)
-  IFn
-  (invoke [_ x]
+  IFn  (invoke [_ x]
     (Matrix. r c (mapv (fn [e] (mapv #(% x) e)) v)))
   (invoke [_ x y]
     (Matrix. r c (mapv (fn [e] (mapv #(% x y) e)) v)))
@@ -45,26 +47,40 @@
   (applyTo [m xs]
     (AFn/applyToHelper m xs)))
 
-(defn matrix-get-in
+(defn get-in
   "Like get-in for matrices, but obeying the scmutils convention: only one
   index is required to get an unboxed element from a column vector. This is
   perhaps an unprincipled exception..."
   [m is]
-  (let [e (get-in (:v m) is)]
+  (let [e (core-get-in (:v m) is)]
     (if (and (= 1 (count is))
              (= 1 (:c m))) (e 0) e)))
+
+(defn matrix-some
+  "True if f is true for some element of m."
+  [f m]
+  (some f (flatten (:v m))))
+
+(defn map
+  "Maps f over the elements of m."
+  [f {r :r c :c v :v}]
+  (Matrix. r c (mapv #(mapv f %) v)))
+
+(defn matrix?
+  [m]
+  (instance? Matrix m))
 
 (defn by-rows
   [& rs]
   {:pre [(not-empty rs)
          (every? sequential? rs)]}
   (let [r (count rs)
-        cs (map count rs)]
+        cs (core-map count rs)]
     (when-not (every? #(= % (first cs)) (next cs))
       (throw (IllegalArgumentException. "malformed matrix")))
     (Matrix. r (first cs) (mapv vec rs))))
 
-(defn column-matrix
+(defn column
   [& es]
   {:pre [(not-empty es)]}
   (Matrix. (count es) 1 (vec (for [e es] [e]))))
@@ -75,7 +91,7 @@
   (Matrix. c r
            (mapv (fn [i]
                    (mapv (fn [j]
-                           (get-in v [j i]))
+                           (core-get-in v [j i]))
                          (range r)))
                  (range c))))
 
@@ -83,14 +99,14 @@
   "Convert m to a structure (a down tuple of up tuples)."
   [m]
   (let [mT (transpose m)]
-    (apply s/down (map #(apply s/up %) (:v mT)))))
+    (apply s/down (core-map #(apply s/up %) (:v mT)))))
 
 (defn seq->
   "Convert a sequence (typically, of function arguments) to an up-structure.
   GJS: Any matrix in the argument list wants to be converted to a row of
   columns"
   [s]
-  (apply s/up (map #(if (instance? Matrix %) (->structure %) %) s)))
+  (apply s/up (core-map #(if (instance? Matrix %) (->structure %) %) s)))
 
 (defn ^:private mul
   "Multiplies the two matrices a and b"
@@ -102,8 +118,8 @@
            (mapv (fn [i]
                    (mapv (fn [j]
                            (reduce g/+ (for [k (range ca)]
-                                         (g/* (get-in va [i k])
-                                              (get-in vb [k j])))))
+                                         (g/* (core-get-in va [i k])
+                                              (core-get-in vb [k j])))))
                          (range cb)))
                  (range ra))))
 
@@ -115,7 +131,7 @@
   (Matrix. ra ca
            (mapv (fn [i]
                    (mapv (fn [j]
-                           (f (get-in va [i j]) (get-in vb [i j])))
+                           (f (core-get-in va [i j]) (core-get-in vb [i j])))
                          (range rb)))
                  (range ra))))
 
@@ -125,15 +141,11 @@
   (when (not= c (count u))
     (throw (IllegalArgumentException. "matrix and tuple incompatible for multiplication")))
   (apply s/up
-         (map (fn [i]
+         (core-map (fn [i]
                 (reduce g/+ (for [k (range c)]
-                              (g/* (get-in v [i k])
+                              (g/* (core-get-in v [i k])
                                    (get u k)))))
               (range r))))
-
-(defn ^:private mapr
-  [f {r :r c :c v :v}]
-  (Matrix. r c (mapv #(mapv f %) v)))
 
 (defn s->m
   [ls ms rs]
@@ -154,4 +166,4 @@
 (defmethod g/sub [::matrix ::matrix] [a b] (elementwise g/- a b))
 (defmethod g/mul [::matrix ::matrix] [a b] (mul a b))
 (defmethod g/mul [::matrix ::s/up] [m u] (mul*up m u))
-(defmethod g/simplify [::matrix] [m] (->> m (mapr g/simplify) v/freeze))
+(defmethod g/simplify [::matrix] [m] (->> m (map g/simplify) v/freeze))
