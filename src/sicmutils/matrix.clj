@@ -148,6 +148,8 @@
               (range r))))
 
 (defn s->m
+  "Convert the structure ms, which would be a scalar if the (compatible) multiplication
+  (* ls ms rs) were performed, to a matrix."
   [ls ms rs]
   (let [ndowns (s/dimension ls)
         nups (s/dimension rs)]

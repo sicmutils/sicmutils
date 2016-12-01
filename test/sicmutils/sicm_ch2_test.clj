@@ -78,11 +78,12 @@
                          (fn [t state]
                            (let [L ((Euler-state->L-space A B C) state)
                                  E ((T-rigid-body A B C) state)]
+                             (println "L" L) (println "L0" L0)
                              (swap! points conj
                                     [t
-                                     (relative-error (nth L 0) (nth L0 0))
-                                     (relative-error (nth L 1) (nth L0 1))
-                                     (relative-error (nth L 2) (nth L0 2))
+                                     (relative-error (ref L 0) (ref L0 0))
+                                     (relative-error (ref L 1) (ref L0 1))
+                                     (relative-error (ref L 2) (ref L0 2))
                                      (relative-error E E0)]))))
         A 1. B (Math/sqrt 2.) C 2. ;; moments of inertia
         state0 (up 0. (up 1. 0. 0.) (up 0.1 0.1 0.1)) ;; initial state
