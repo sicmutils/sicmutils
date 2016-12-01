@@ -81,6 +81,13 @@
 (def cross-product g/cross-product)
 (def print-expression simp/print-expression)
 
+(def magnitude g/magnitude)
+(def real-part c/real-part)  
+(def imag-part c/imag-part) 
+(def conjugate c/conjugate) 
+(def angle c/angle) 
+
+
 (defn ref
   "A shim so that ref can act like nth in SICM contexts, as clojure
   core ref elsewhere."
