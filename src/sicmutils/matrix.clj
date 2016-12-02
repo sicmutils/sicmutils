@@ -98,8 +98,7 @@
 (defn ->structure
   "Convert m to a structure (a down tuple of up tuples)."
   [m]
-  (let [mT (transpose m)]
-    (apply s/down (core-map #(apply s/up %) (:v mT)))))
+  (apply s/down (core-map #(apply s/up %) (:v (transpose m)))))
 
 (defn seq->
   "Convert a sequence (typically, of function arguments) to an up-structure.
@@ -124,7 +123,7 @@
                  (range ra))))
 
 (defn ^:private elementwise
-  "Computes the difference of two matrices."
+  "Applies f elementwise between the matrices a and b."
   [f {ra :r ca :c va :v :as a} {rb :r cb :c vb :v :as b}]
   (when (or (not= ra rb) (not= ca cb))
     (throw (IllegalArgumentException. "matrices incompatible for subtraction")))
@@ -135,7 +134,7 @@
                          (range rb)))
                  (range ra))))
 
-(defn ^:private mul*up
+(defn ^:private M*u
   "Multiply a matrix by an up structure on the right. The return value is up."
   [{r :r c :c v :v :as m} u]
   (when (not= c (count u))
@@ -145,7 +144,20 @@
                 (reduce g/+ (for [k (range c)]
                               (g/* (core-get-in v [i k])
                                    (get u k)))))
-              (range r))))
+                   (range r))))
+
+(defn ^:private d*M
+  "Multiply a matrixy by a down tuple on the left. The return value is down."
+  [d {r :r c :c v :v :as m}]
+  (when (not= r (count d))
+    (throw (IllegalArgumentException. "matrix and tuple incompatible for multiplication")))
+  (apply s/down
+         (core-map (fn [i]
+                     (reduce g/+ (for [k (range r)]
+                                   (g/* (get d k)
+                                        (core-get-in v [i k])
+                                        ))))
+                   (range c))))
 
 (defn s->m
   "Convert the structure ms, which would be a scalar if the (compatible) multiplication
@@ -162,10 +174,10 @@
                            (range nups)))
                    (range ndowns)))))
 
-
-
 (defmethod g/transpose [::matrix] [m] (transpose m))
 (defmethod g/sub [::matrix ::matrix] [a b] (elementwise g/- a b))
+(defmethod g/add [::matrix ::matrix] [a b] (elementwise g/+ a b))
 (defmethod g/mul [::matrix ::matrix] [a b] (mul a b))
-(defmethod g/mul [::matrix ::s/up] [m u] (mul*up m u))
+(defmethod g/mul [::matrix ::s/up] [m u] (M*u m u))
+(defmethod g/mul [::s/down ::matrix] [d m] (d*M d m))
 (defmethod g/simplify [::matrix] [m] (->> m (map g/simplify) v/freeze))

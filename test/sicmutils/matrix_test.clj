@@ -74,4 +74,15 @@
         S (matrix/by-rows [3 4]
                    [4 5]
                    [5 6])]
-    (is (= (matrix/by-rows [26 32] [38 47]) (g/* M S)))))
+    (is (= (matrix/by-rows [26 32] [38 47]) (g/* M S))))
+  (let [M (matrix/by-rows '[a b] '[c d])
+        d (s/down 'x 'y)
+        u (s/up 'x 'y)]
+    (is (= (s/up (g/+ (g/* 'a 'x) (g/* 'b 'y)) (g/+ (g/* 'c 'x) (g/* 'd 'y)))
+           (g/* M u)))
+    (is (= (s/down (g/+ (g/* 'x 'a) (g/* 'y 'b)) (g/+ (g/* 'x 'c) (g/* 'y 'd)))
+           (g/* d M)))
+    (is (= '(+ (* a (expt x 2)) (* b x y) (* c x y) (* d (expt y 2)))
+           (g/simplify (g/* d M u))))
+    (is (thrown? IllegalArgumentException 'foo (g/* u M)))
+    (is (thrown? IllegalArgumentException (g/* M d)))))
