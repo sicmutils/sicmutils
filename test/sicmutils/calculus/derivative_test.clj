@@ -18,7 +18,7 @@
 
 (ns sicmutils.calculus.derivative-test
   (:refer-clojure :exclude [+ - * / zero? ref])
-  (:require [clojure.test :refer :all :exclude [function?]]
+  (:require [clojure.test :refer :all]
             [sicmutils
              [function :refer :all]
              [generic :refer :all]

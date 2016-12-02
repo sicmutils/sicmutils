@@ -18,7 +18,7 @@
 
 (ns sicmutils.mechanics.lagrange-test
   (:refer-clojure :exclude [+ - * / zero?])
-  (:require [clojure.test :refer :all :exclude [function?]]
+  (:require [clojure.test :refer :all]
             [sicmutils
              [generic :refer :all]
              [function :refer :all]

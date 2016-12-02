@@ -1,6 +1,6 @@
 (ns sicmutils.sicm-ch5-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
-  (:require [clojure.test :refer :all :exclude [function?]]
+  (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
             [sicmutils.mechanics.lagrange :refer :all]
             [sicmutils.mechanics.hamilton :refer :all]

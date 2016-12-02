@@ -18,7 +18,7 @@
 
 (ns sicmutils.sicm-ch2-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
-  (:require [clojure.test :refer :all :exclude [function?]]
+  (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
             [sicmutils.mechanics.rotation :refer [Euler->M]]
             [sicmutils.mechanics.rigid :refer :all]
@@ -78,7 +78,6 @@
                          (fn [t state]
                            (let [L ((Euler-state->L-space A B C) state)
                                  E ((T-rigid-body A B C) state)]
-                             (println "L" L) (println "L0" L0)
                              (swap! points conj
                                     [t
                                      (relative-error (ref L 0) (ref L0 0))

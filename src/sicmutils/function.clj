@@ -121,15 +121,6 @@
 ;; Algebra of functions
 ;;
 
-(defn function?
-  [x]
-  (and (ifn? x)
-       (not (instance? Struct x))
-       (not (instance? Operator x))
-       (not (instance? Polynomial x))
-       (not (symbol? x))
-       (not (vector? x))))
-
 (defn- unary-operation
   "For a unary operator (like sqrt), returns a function of one function
   which when called will apply the operation to the result of the

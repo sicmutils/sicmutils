@@ -82,10 +82,10 @@
 (def print-expression simp/print-expression)
 
 (def magnitude g/magnitude)
-(def real-part c/real-part)  
-(def imag-part c/imag-part) 
-(def conjugate c/conjugate) 
-(def angle c/angle) 
+(def real-part c/real-part)
+(def imag-part c/imag-part)
+(def conjugate c/conjugate)
+(def angle c/angle)
 
 
 (defn ref
@@ -132,8 +132,6 @@
 (def ∂ d/∂)
 (def pi Math/PI)
 (def taylor-series-terms d/taylor-series-terms)
-
-(def function? f/function?)
 
 (def minimize min/minimize)
 

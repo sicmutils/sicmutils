@@ -18,7 +18,7 @@
 
 (ns sicmutils.mechanics.hamilton-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
-  (:require [clojure.test :refer :all :exclude [function?]]
+  (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.mechanics

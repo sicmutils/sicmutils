@@ -18,7 +18,7 @@
 
 (ns sicmutils.matrix-test
   (:refer-clojure :exclude [+ - * / zero? partial ref map])
-  (:require [clojure.test :refer :all :exclude [function?]]
+  (:require [clojure.test :refer :all]
             [sicmutils
              [matrix :as matrix]
              [structure :as s]
