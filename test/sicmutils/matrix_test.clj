@@ -42,7 +42,14 @@
     (is (= 8 (matrix/get-in v [1])))
     (is (= (matrix/by-rows [2 3 4]
                            [5 6 7]) (matrix/map inc M)))
+
     ))
+
+(deftest matrix-generic-operations
+  (let [M (matrix/by-rows (list 1 2 3)
+                          (list 4 5 6))]
+    (is (= (matrix/by-rows (list -1 -2 -3)
+                           (list -4 -5 -6)) (g/negate M)))))
 
 (deftest structure
   (let [A (s/up 1 2 'a (s/down 3 4) (s/up (s/down 'c 'd) 'e))]
@@ -60,7 +67,28 @@
     (is (= (s/down (s/up 1 4)
                    (s/up 2 5)
                    (s/up 3 6))
-           (matrix/->structure M)))))
+           (matrix/->structure M ::s/down ::s/up true)))
+    (is (= (s/up (s/down 1 2 3)
+                 (s/down 4 5 6))
+           (matrix/->structure M ::s/up ::s/down false)))
+    (is (= (s/up (s/down 1 4)
+                 (s/down 2 5)
+                 (s/down 3 6))
+           (matrix/->structure M ::s/up ::s/down true)))
+    (is (= (s/up (s/down 1 2 3)
+                 (s/down 4 5 6))
+           (matrix/->structure M ::s/up ::s/down false))))
+  (doseq [[S M] [[(s/down (s/up 11 12) (s/up 21 22))
+                  (matrix/by-rows [11 21] [12 22])]
+                 [(s/up (s/down 11 12) (s/down 21 22))
+                  (matrix/by-rows [11 12] [21 22])]
+                 [(s/up (s/up 11 12) (s/up 21 22))
+                  (matrix/by-rows [11 21] [12 22])]
+                 [(s/down (s/down 11 12) (s/down 21 22))
+                  (matrix/by-rows [11 12] [21 22])]]]
+    (matrix/square-structure-> S (fn [m ->s]
+                                   (is (= M m))
+                                   (is (= S (->s m)))))))
 
 (deftest matrix-mul
   (let [M (matrix/by-rows '[a b] '[c d])

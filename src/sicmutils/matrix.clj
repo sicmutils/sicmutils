@@ -96,16 +96,18 @@
                  (range c))))
 
 (defn ->structure
-  "Convert m to a structure (a down tuple of up tuples)."
-  [m]
-  (apply s/down (core-map #(apply s/up %) (:v (transpose m)))))
+  "Convert m to a structure with given outer and inner orientations. Rows of
+  M will become the inner tuples, unless t? is true, in which columns of m will
+  form the inner tuples."
+  [m outer-orientation inner-orientation t?]
+  (s/Struct. outer-orientation (mapv #(s/Struct. inner-orientation %) (:v (if t? (transpose m) m)))))
 
 (defn seq->
   "Convert a sequence (typically, of function arguments) to an up-structure.
   GJS: Any matrix in the argument list wants to be converted to a row of
   columns"
   [s]
-  (apply s/up (core-map #(if (instance? Matrix %) (->structure %) %) s)))
+  (apply s/up (core-map #(if (instance? Matrix %) (->structure % s/down s/up) %) s)))
 
 (defn ^:private mul
   "Multiplies the two matrices a and b"
@@ -134,6 +136,35 @@
                          (range rb)))
                  (range ra))))
 
+(defn square-structure->
+  "Converts the square structure s into a matrix, and calls the
+  continuation with that matrix and a function which will restore a
+  matrix to a structure with the same inner and outer orientations as
+  s."
+  [s k]
+  (let [major-size (count s)
+        major-orientation (s/orientation s)
+        minor-sizes (core-map #(if (s/structure? %) (count %) 1) s)
+        minor-orientations (core-map s/orientation s)
+        minor-orientation (first minor-orientations)]
+    (if (and (every? #(= major-size %) minor-sizes)
+             (every? #(= minor-orientation %) (rest minor-orientations)))
+      (let [need-transpose (= minor-orientation ::s/up)
+            M (Matrix. major-size major-size
+                       (mapv (fn [i]
+                               (mapv (fn [j]
+                                       (core-get-in s (if need-transpose [j i] [i j])))
+                                     (range major-size)))
+                             (range major-size)))]
+        (k M #(->structure % major-orientation minor-orientation need-transpose)))
+      (throw (IllegalArgumentException. "structure is not square")))))
+
+(defn square-structure-operation
+  "Applies matrix operation f to square structure s, returning a structure of the same
+  type as that given."
+  [s f]
+  (square-structure-> s (fn [m ->s] (->s (f m)))))
+
 (defn ^:private M*u
   "Multiply a matrix by an up structure on the right. The return value is up."
   [{r :r c :c v :v :as m} u]
@@ -147,7 +178,7 @@
                    (range r))))
 
 (defn ^:private d*M
-  "Multiply a matrixy by a down tuple on the left. The return value is down."
+  "Multiply a matrix by a down tuple on the left. The return value is down."
   [d {r :r c :c v :v :as m}]
   (when (not= r (count d))
     (throw (IllegalArgumentException. "matrix and tuple incompatible for multiplication")))
@@ -176,6 +207,7 @@
 
 (defmethod g/transpose [::matrix] [m] (transpose m))
 (defmethod g/sub [::matrix ::matrix] [a b] (elementwise g/- a b))
+(defmethod g/negate [::matrix] [a] (map g/negate a))
 (defmethod g/add [::matrix ::matrix] [a b] (elementwise g/+ a b))
 (defmethod g/mul [::matrix ::matrix] [a b] (mul a b))
 (defmethod g/mul [::matrix ::s/up] [m u] (M*u m u))

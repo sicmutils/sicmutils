@@ -194,6 +194,7 @@
   [s t]
   (same t (map #(g/* s %) t)))
 
+
 (defn square?
   "Returns [dimension major-orientation minor-orientation] if s is a
   square structure, else nil."
@@ -400,5 +401,5 @@
 (defmethod g/simplify [::structure] [a] (->> a (mapr g/simplify) v/freeze))
 (defmethod g/transpose [::structure] [a] (opposite a (seq a)))
 
-(defmethod g/magnitude [::structure] [^Struct a] 
+(defmethod g/magnitude [::structure] [^Struct a]
   (g/sqrt (reduce + (map g/square a))))
