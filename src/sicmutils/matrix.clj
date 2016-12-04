@@ -36,7 +36,8 @@
                 `(~'matrix-by-rows ~@(core-map v/freeze v))))
   (arity [_] (v/joint-arity (core-map v/arity v)))
   (kind [_] ::matrix)
-  IFn  (invoke [_ x]
+  IFn
+  (invoke [_ x]
     (Matrix. r c (mapv (fn [e] (mapv #(% x) e)) v)))
   (invoke [_ x y]
     (Matrix. r c (mapv (fn [e] (mapv #(% x y) e)) v)))
@@ -140,7 +141,8 @@
   "Converts the square structure s into a matrix, and calls the
   continuation with that matrix and a function which will restore a
   matrix to a structure with the same inner and outer orientations as
-  s."
+  s. If invert is true, then up-up structures will become down-down
+  and vice versa."
   [s k]
   (let [major-size (count s)
         major-orientation (s/orientation s)
@@ -238,7 +240,7 @@
                       (v 0)
                       (for [i (range r)] (determinant (without m 0 i)))))))
 
-(defn- cofactors
+(defn cofactors
   "Computes the matrix of cofactors of the given structure with the
   same shape, if s is square."
   [{r :r c :c v :v :as m}]
@@ -253,20 +255,16 @@
                               (vec (for [j (range r)]
                                      (-> m (without i j) determinant (checkerboard-negate i j)))))))))
 
-#_(defn- invert
-  "Computes the inverse of s viewed as a square matrix."
-  [s]
-  (let [[d o1 o2] (square? s)]
-    (when-not d (throw (IllegalArgumentException. "not square")))
-    (condp = d
-      0 (throw (IllegalArgumentException. "zero size matrix has no inverse"))
-      1 (make o1 [(make o2 [(g/invert (first (first s)))])])
-      (let [C (cofactors s)
-            Δ (reduce g/+ (map g/* (first s) (first C)))
-            outer-orientation (if (= o1 o2) (opposite-orientation o1) o1)
-            inner-orientation (if (= o1 o2) (opposite-orientation o2) o2)]
-        (make-square d outer-orientation inner-orientation
-                     #(-> C (nth %2) (nth %1) (g/divide Δ)))))))
+(defn invert
+  "Computes the inverse of a square matrix."
+  [{r :r c :c v :v :as m}]
+  (when-not (= r c) (throw (IllegalArgumentException. "not square")))
+  (condp = r
+    0 m
+    1 (Matrix. 1 1 [[(g/invert ((v 0) 0))]])
+    (let [C (cofactors m)
+          Δ (reduce g/+ (core-map g/* (v 0) (-> C :v first)))]
+      (map #(g/divide % Δ) (transpose C)))))
 
 (defmethod g/transpose [::matrix] [m] (transpose m))
 (defmethod g/sub [::matrix ::matrix] [a b] (elementwise g/- a b))
@@ -276,3 +274,11 @@
 (defmethod g/mul [::matrix ::s/up] [m u] (M*u m u))
 (defmethod g/mul [::s/down ::matrix] [d m] (d*M d m))
 (defmethod g/simplify [::matrix] [m] (->> m (map g/simplify) v/freeze))
+
+(defmethod g/invert
+  [::s/structure]
+  [a]
+  (let [a' (square-structure-operation a invert)]
+    (if (= (s/orientation a') (s/orientation (first a')))
+      (s/opposite a' (core-map #(s/opposite a' %) a'))
+      a')))

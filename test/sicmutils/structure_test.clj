@@ -291,12 +291,6 @@
       (is (= [3 ::s/down ::s/up] (s/square? C)))
       (is (= [1 ::s/up ::s/down] (s/square? D)))
       (is (s/square? E)))
-    (testing "determinant"
-      (is (= -2 (determinant A)))
-      (is (= 22 (determinant C)))
-      (is (= 3 (determinant D)))
-      (is (= -2 (determinant F)))
-      (is (= -8 (determinant G))))
     (testing "inverse"
       (is (= (down (down -2 1) (down 3/2 -1/2)) (/ A)))
       (is (= 5/2 (* A (/ A))))
@@ -327,10 +321,7 @@
       (is (= (down (up 1 3) (up 1 6)) (s/substructure-without C 1 1)))
       (is (= (down (up 4 5) (up 0 6)) (s/substructure-without C 0 0)))
       (is (= (down (up 1 2) (up 1 0)) (s/substructure-without C 1 2))))
-    (testing "cofactors"
-      (is (= (down (up 4 -3) (up -2 1)) (s/cofactors A)))
-      (is (= (down (up 24 5 -4) (up -12 3 2) (up -2 -5 4)) (s/cofactors C)))
-      (is (= (up (down 3)) (s/cofactors D))))))
+    ))
 
 (defn ^:private near [w z]
   (< (abs (- w z)) 1e-12))

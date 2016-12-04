@@ -77,7 +77,15 @@
              (* -1 c e g))
            (g/simplify (matrix/determinant (matrix/by-rows '[a b c]
                                                            '[d e f]
-                                                           '[g h i])))))))
+                                                           '[g h i])))))
+    (is (= (matrix/by-rows [1/2])
+           (matrix/invert (matrix/by-rows [2]))))
+    (is (= (matrix/by-rows [7 -3 -3]
+                           [-1 1 0]
+                           [-1 0 1])
+           (matrix/invert (matrix/by-rows [1 3 3]
+                                          [1 4 3]
+                                          [1 3 4]))))))
 
 (deftest matrix-generic-operations
   (let [M (matrix/by-rows (list 1 2 3)
@@ -127,7 +135,27 @@
                   (matrix/by-rows [11 12] [21 22])]]]
     (matrix/square-structure-> S (fn [m ->s]
                                    (is (= M m))
-                                   (is (= S (->s m)))))))
+                                   (is (= S (->s m))))))
+  (testing "structure as matrix"
+    (let [A (s/up (s/up 1 2) (s/up 3 4))
+          B (s/down (s/up 1 2 3) (s/up 3 4 5))
+          C (s/down (s/up 1 2 3) (s/up 0 4 5) (s/up 1 0 6))
+          D (s/up (s/down 3))
+          E (s/up 1)
+          F (s/down (s/up 1 2) (s/up 3 4))
+          G (s/down (s/up 4 0 0 0) (s/up 0 0 2 0) (s/up 0 1 2 0) (s/up 1 0 0 1))
+          cof #(matrix/square-structure-operation % matrix/cofactors)
+          det #(matrix/square-structure-> % (fn [m _] (matrix/determinant m)))]
+      (testing "cofactors"
+        (is (= (s/down (s/up 4 -3) (s/up -2 1)) (cof A)))
+        (is (= (s/down (s/up 24 5 -4) (s/up -12 3 2) (s/up -2 -5 4)) (cof C)))
+        (is (= (s/up (s/down 3)) (cof D))))
+      (testing "determinant"
+        (is (= -2 (det A)))
+        (is (= 22 (det C)))
+        (is (= 3 (det D)))
+        (is (= -2 (det F)))
+        (is (= -8 (det G)))))))
 
 (deftest matrix-mul
   (let [M (matrix/by-rows '[a b] '[c d])
