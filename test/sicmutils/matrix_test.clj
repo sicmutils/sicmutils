@@ -17,7 +17,6 @@
 ;
 
 (ns sicmutils.matrix-test
-  (:refer-clojure :exclude [+ - * / zero? partial ref map])
   (:require [clojure.test :refer :all]
             [sicmutils
              [matrix :as matrix]
@@ -28,7 +27,10 @@
 
 (deftest matrix-basics
   (let [M (matrix/by-rows (list 1 2 3)
-                   (list 4 5 6))
+                          (list 4 5 6))
+        A (matrix/by-rows [11 12 13]
+                          [21 22 23]
+                          [31 32 33])
         v (matrix/column 7 8 9)]
     (is (= ::sicmutils.matrix/matrix (v/kind M)))
     (is (= '(matrix-by-rows [1 2 3] [4 5 6]) (v/freeze M)))
@@ -42,14 +44,51 @@
     (is (= 8 (matrix/get-in v [1])))
     (is (= (matrix/by-rows [2 3 4]
                            [5 6 7]) (matrix/map inc M)))
+    (is (= (matrix/by-rows [22 23] [32 33])
+           (matrix/without A 0 0)))
+    (is (= (matrix/by-rows [21 23] [31 33])
+           (matrix/without A 0 1)))
+    (is (= (matrix/by-rows [21 22] [31 32])
+           (matrix/without A 0 2)))
 
-    ))
+    (is (= (matrix/by-rows [12 13] [32 33])
+           (matrix/without A 1 0)))
+    (is (= (matrix/by-rows [11 13] [31 33])
+           (matrix/without A 1 1)))
+    (is (= (matrix/by-rows [11 12] [31 32])
+           (matrix/without A 1 2)))
+
+    (is (= (matrix/by-rows [12 13] [22 23])
+           (matrix/without A 2 0)))
+    (is (= (matrix/by-rows [11 13] [21 23])
+           (matrix/without A 2 1)))
+    (is (= (matrix/by-rows [11 12] [21 22])
+           (matrix/without A 2 2)))
+
+    (is (= 18 (matrix/determinant (matrix/by-rows [-2 2 -3]
+                                                  [-1 1 3]
+                                                  [2 0 -1]))))
+    (is (= '(+
+             (* a e i)
+             (* -1 a f h)
+             (* -1 b d i)
+             (* b f g)
+             (* c d h)
+             (* -1 c e g))
+           (g/simplify (matrix/determinant (matrix/by-rows '[a b c]
+                                                           '[d e f]
+                                                           '[g h i])))))))
 
 (deftest matrix-generic-operations
   (let [M (matrix/by-rows (list 1 2 3)
                           (list 4 5 6))]
     (is (= (matrix/by-rows (list -1 -2 -3)
-                           (list -4 -5 -6)) (g/negate M)))))
+                           (list -4 -5 -6)) (g/negate M)))
+    (is (= (s/down (s/up -1 -2)
+                   (s/up -3 -4))
+           (matrix/square-structure-operation
+            (s/down (s/up 1 2) (s/up 3 4))
+            #(matrix/map - %))))))
 
 (deftest structure
   (let [A (s/up 1 2 'a (s/down 3 4) (s/up (s/down 'c 'd) 'e))]

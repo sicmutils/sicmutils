@@ -205,6 +205,69 @@
                            (range nups)))
                    (range ndowns)))))
 
+(defn- vector-disj
+  "The vector formed by deleting the i'th element of the given vector."
+  [v i]
+  (vec (concat (take i v) (drop (inc i) v))))
+
+(defn without
+  "The matrix formed by deleting the i'th row and j'th column of the given matrix."
+  [{r :r c :c v :v} i j]
+  (Matrix. (dec r) (dec c)
+           (mapv #(vector-disj % j)
+                 (vector-disj v i))) )
+
+(defn- checkerboard-negate
+  [s i j]
+  (if (even? (+ i j)) s (g/negate s)))
+
+(defn determinant
+  "Computes the determinant of m, which must be square. Generic
+  operations are used, so this works on symbolic square matrix."
+  [{r :r c :c v :v :as m}]
+  (when-not (= r c)
+    (throw (IllegalArgumentException. "not square")))
+  (condp = r
+    0 m
+    1 ((v 0) 0)
+    2 (let [[[a b] [c d]] v]
+        (g/- (g/* a d) (g/* b c)))
+    (reduce g/+
+            (core-map g/*
+                      (cycle [1 -1])
+                      (v 0)
+                      (for [i (range r)] (determinant (without m 0 i)))))))
+
+(defn- cofactors
+  "Computes the matrix of cofactors of the given structure with the
+  same shape, if s is square."
+  [{r :r c :c v :v :as m}]
+  (when-not (= r c)
+    (throw (IllegalArgumentException. "only square matrices have cofactors")))
+  (cond (< r 2) m
+        (= r 2) (let [[[a b] [c d]] v]
+                  (Matrix. 2 2 [[d (g/negate c)]
+                                [(g/negate b) a]]))
+        :else (Matrix. r r
+                       (vec (for [i (range r)]
+                              (vec (for [j (range r)]
+                                     (-> m (without i j) determinant (checkerboard-negate i j)))))))))
+
+#_(defn- invert
+  "Computes the inverse of s viewed as a square matrix."
+  [s]
+  (let [[d o1 o2] (square? s)]
+    (when-not d (throw (IllegalArgumentException. "not square")))
+    (condp = d
+      0 (throw (IllegalArgumentException. "zero size matrix has no inverse"))
+      1 (make o1 [(make o2 [(g/invert (first (first s)))])])
+      (let [C (cofactors s)
+            Δ (reduce g/+ (map g/* (first s) (first C)))
+            outer-orientation (if (= o1 o2) (opposite-orientation o1) o1)
+            inner-orientation (if (= o1 o2) (opposite-orientation o2) o2)]
+        (make-square d outer-orientation inner-orientation
+                     #(-> C (nth %2) (nth %1) (g/divide Δ)))))))
+
 (defmethod g/transpose [::matrix] [m] (transpose m))
 (defmethod g/sub [::matrix ::matrix] [a b] (elementwise g/- a b))
 (defmethod g/negate [::matrix] [a] (map g/negate a))
