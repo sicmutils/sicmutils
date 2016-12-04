@@ -138,6 +138,8 @@
 (defmulti magnitude v/argument-kind)
 (defmethod magnitude [:arity] [_] [:exactly 1])
 
+(defmulti determinant v/argument-kind)
+(defmethod determinant [:arity] [_] [:exactly 1])
 
 (defn- bin+ [a b]
   (cond (and (number? a) (number? b)) (+' a b)

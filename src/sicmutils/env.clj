@@ -113,7 +113,7 @@
 (def up s/up)
 (def down s/down)
 (def transpose g/transpose)
-(def determinant s/determinant)
+(def determinant g/determinant)
 (def component s/component)
 (def structure? s/structure?)
 (def orientation s/orientation)

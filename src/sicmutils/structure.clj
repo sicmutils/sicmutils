@@ -24,7 +24,6 @@
              [generic :as g]]))
 
 (declare make)
-(declare make-identity-like)
 
 (def ^:private orientation->symbol {::up 'up ::down 'down})
 
@@ -194,94 +193,6 @@
   [s t]
   (same t (map #(g/* s %) t)))
 
-
-(defn square?
-  "Returns [dimension major-orientation minor-orientation] if s is a
-  square structure, else nil."
-  [s]
-  (let [major-size (count s)
-        major-orientation (orientation s)
-        minor-sizes (map #(if (structure? %) (count %) 1) s)
-        minor-orientations (map orientation s)
-        first-minor-orientation (first minor-orientations)]
-    (if (and (every? #(= major-size %) minor-sizes)
-             (every? #(= first-minor-orientation %) (rest minor-orientations)))
-      [major-size major-orientation first-minor-orientation])))
-
-
-(defn- without-index
-  "The structure s with element index i removed"
-  [^Struct s i]
-  (same s (into
-            (subvec (.v s) 0 i)
-            (subvec (.v s) (inc i)))))
-
-(defn substructure-without
-  "The structure with the i'th component removed at the top level and the j'th
-  component removed from each of the structures at the next level."
-  [s i j]
-  (let [a (map #(without-index % j) s)
-        b (concat (take i a) (drop (inc i) a))]
-    (same s b)))
-
-(declare determinant)
-
-(defn- make-square
-  "Make a square structure of size n by n with outer and inner orientations as given,
-  whose elements are (f i j), where i and j range from [0..n)"
-  [n outer-orientation inner-orientation f]
-  (make outer-orientation
-        (for [i (range n)]
-          (make inner-orientation
-                (for [j (range n)]
-                  (f i j))))))
-
-(defn cofactors
-  "Computes the matrix of cofactors of the given structure with the
-  same shape, if s is square."
-  [s]
-  (let [[d outer-orientation inner-orientation] (square? s)
-        checkerboard-negate (fn [s i j] (if (even? (+ i j)) s (g/negate s)))]
-    (cond (< d 2) s
-          (= d 2) (let [[[a b] [c d]] s]
-                    (make outer-orientation
-                          [(make inner-orientation [d (g/negate c)])
-                           (make inner-orientation [(g/negate b) a])]))
-          :else (make-square d outer-orientation inner-orientation
-                             #(-> s (substructure-without %1 %2) determinant (checkerboard-negate %1 %2))))))
-
-(defn determinant
-  "Computes the determinant of s, which must have square shape. Generic
-  operations are used, so this works on symbolic square structures."
-  [s]
-  (let [[d _ _] (square? s)]
-    (when-not d (throw (IllegalArgumentException. "not square")))
-    (condp = d
-      0 (throw (IllegalArgumentException. "zero size matrix has no determinant"))
-      1 (first (first s))
-      2 (let [[[a b] [c d]] s]
-          (g/- (g/* a d) (g/* b c)))
-      (reduce g/+
-              (map g/*
-                   (cycle [1 -1])
-                   (first s)
-                   (for [i (range d)] (determinant (substructure-without s 0 i))))))))
-
-(defn- invert
-  "Computes the inverse of s viewed as a square matrix."
-  [s]
-  (let [[d o1 o2] (square? s)]
-    (when-not d (throw (IllegalArgumentException. "not square")))
-    (condp = d
-      0 (throw (IllegalArgumentException. "zero size matrix has no inverse"))
-      1 (make o1 [(make o2 [(g/invert (first (first s)))])])
-      (let [C (cofactors s)
-            Δ (reduce g/+ (map g/* (first s) (first C)))
-            outer-orientation (if (= o1 o2) (opposite-orientation o1) o1)
-            inner-orientation (if (= o1 o2) (opposite-orientation o2) o2)]
-        (make-square d outer-orientation inner-orientation
-                     #(-> C (nth %2) (nth %1) (g/divide Δ)))))))
-
 (defn- cross-product
   "Cross product of structures of length 3. Input orientations are ignored;
   result is an up-tuple."
@@ -293,21 +204,6 @@
     (up (g/- (g/* s1 t2) (g/* t1 s2))
         (g/- (g/* s2 t0) (g/* s0 t2))
         (g/- (g/* s0 t1) (g/* t0 s1)))))
-
-(defn- make-identity-like
-  "Produce a multiplicative identity with the same shape as the square structure s."
-  [s]
-  (let [[d outer-orientation inner-orientation] (square? s)]
-    (when-not d (throw (IllegalArgumentException. "cannot make non-square identity structure")))
-    (make-square d outer-orientation inner-orientation #(if (= %1 %2) 1 0))))
-
-(defn characteristic-polynomial
-  "Compute the characteristic polynomial of the square structure s, evaluated
-  at x. Typically x will be a dummy variable, but if you wanted to get the
-  value of the characteristic polynomial at some particular point, you could
-  supply a different expression."
-  [s x]
-  (determinant (g/- (g/* x (make-identity-like s)) s)))
 
 (defn- mul
   "If s and t are compatible for contraction, returns their inner product,
@@ -392,7 +288,7 @@
   [a b]
   (outer-product (g/invert b) a))
 
-(defmethod g/div [::structure ::structure] [a b] (mul (invert b) a))
+(defmethod g/div [::structure ::structure] [a b] (mul (g/invert b) a))
 (defmethod g/expt [::structure Long] [a b] (expt a b))
 (defmethod g/negate [::structure] [a] (same a (mapv g/negate a)))
 (defmethod g/square [::structure] [a] (inner-product a a))

@@ -285,12 +285,6 @@
         E (up 1)
         F (down (up 1 2) (up 3 4))
         G (down (up 4 0 0 0) (up 0 0 2 0) (up 0 1 2 0) (up 1 0 0 1))]
-    (testing "square?"
-      (is (= [2 ::s/up ::s/up] (s/square? A)))
-      (is (not (s/square? B)))
-      (is (= [3 ::s/down ::s/up] (s/square? C)))
-      (is (= [1 ::s/up ::s/down] (s/square? D)))
-      (is (s/square? E)))
     (testing "inverse"
       (is (= (down (down -2 1) (down 3/2 -1/2)) (/ A)))
       (is (= 5/2 (* A (/ A))))
@@ -316,12 +310,7 @@
       (is (= (up (up 1 2 3) (up 0 4 5) (up 1 0 6)) (transpose C)))
       (is (= (down (down 3)) (transpose D)))
       (is (= (down 1) (transpose E)))
-      (is (= (up (up 1 2) (up 3 4)) (transpose F))))
-    (testing "substructure-without"
-      (is (= (down (up 1 3) (up 1 6)) (s/substructure-without C 1 1)))
-      (is (= (down (up 4 5) (up 0 6)) (s/substructure-without C 0 0)))
-      (is (= (down (up 1 2) (up 1 0)) (s/substructure-without C 1 2))))
-    ))
+      (is (= (up (up 1 2) (up 3 4)) (transpose F))))))
 
 (defn ^:private near [w z]
   (< (abs (- w z)) 1e-12))

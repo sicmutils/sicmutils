@@ -22,6 +22,7 @@
            [sicmutils.structure Struct])
   (:require [sicmutils
              [value :as v]
+             [expression :as x]
              [structure :as s]
              [generic :as g]]))
 
@@ -266,14 +267,38 @@
           Δ (reduce g/+ (core-map g/* (v 0) (-> C :v first)))]
       (map #(g/divide % Δ) (transpose C)))))
 
+(defn- I
+  "Return the identity matrix of order n."
+  [n]
+  (Matrix. n n
+           (vec (for [i (range n)]
+                  (vec (for [j (range n)]
+                         (if (= i j) 1 0)))))))
+
+(defn characteristic-polynomial
+  "Compute the characteristic polynomial of the square matrix m, evaluated
+  at x. Typically x will be a dummy variable, but if you wanted to get the
+  value of the characteristic polynomial at some particular point, you could
+  supply a different expression."
+  [{r :r c :c v :v :as m} x]
+  (when-not (= r c) (throw (IllegalArgumentException. "not square")))
+  (determinant (g/- (g/* x (I r)) m)))
+
 (defmethod g/transpose [::matrix] [m] (transpose m))
 (defmethod g/sub [::matrix ::matrix] [a b] (elementwise g/- a b))
 (defmethod g/negate [::matrix] [a] (map g/negate a))
 (defmethod g/add [::matrix ::matrix] [a b] (elementwise g/+ a b))
 (defmethod g/mul [::matrix ::matrix] [a b] (mul a b))
+(defmethod g/mul [::x/numerical-expression ::matrix] [n a] (map #(g/* n %) a))
 (defmethod g/mul [::matrix ::s/up] [m u] (M*u m u))
 (defmethod g/mul [::s/down ::matrix] [d m] (d*M d m))
 (defmethod g/simplify [::matrix] [m] (->> m (map g/simplify) v/freeze))
+(defmethod g/determinant [::matrix] [m] (determinant m))
+
+(defmethod g/determinant
+  [::s/structure]
+  [s]
+  (square-structure-> s (fn [m _] (determinant m))))
 
 (defmethod g/invert
   [::s/structure]

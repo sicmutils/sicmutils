@@ -26,6 +26,7 @@
             [complex :as c]
             [generic :as g]
             [structure :as s]
+            [matrix :as matrix]
             [numbers]
             [function :as f]
             [polynomial :as poly]
@@ -89,12 +90,12 @@
     ))
 
 (deftest structures
-  (let [A (up (up 1 2) (up 3 4))
-        C (down (up 1 2 3) (up 0 4 5) (up 1 0 6))]
+  (let [A (matrix/by-rows [1 2] [3 4])
+        C (matrix/by-rows [1 2 3] [0 4 5] [1 0 6])]
     (testing "characteristic polynomial"
-      (is (= '(+ (expt x 2) (* -5 x) -2) (g/simplify (characteristic-polynomial A 'x))))
-      (is (= '(+ (expt y 3) (* -11 (expt y 2)) (* 31 y) -22) (g/simplify (characteristic-polynomial C 'y))))
-      (is ((v/within 1e-12) 0.0 (g/simplify (characteristic-polynomial A (g/divide (g/- 5 (g/sqrt 33)) 2))))))))
+      (is (= '(+ (expt x 2) (* -5 x) -2) (g/simplify (matrix/characteristic-polynomial A 'x))))
+      (is (= '(+ (expt y 3) (* -11 (expt y 2)) (* 31 y) -22) (g/simplify (matrix/characteristic-polynomial C 'y))))
+      (is ((v/within 1e-12) 0.0 (g/simplify (matrix/characteristic-polynomial A (g/divide (g/- 5 (g/sqrt 33)) 2))))))))
 
 (deftest native-clojure-things
   (is (= "foo" (g/simplify "foo")))
