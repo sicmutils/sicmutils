@@ -18,11 +18,17 @@
 
 (ns sicmutils.matrix-test
   (:require [clojure.test :refer :all]
+            [clojure.test.check.generators :as gen]
+            [clojure.test.check.properties :as prop]
+            [clojure.test.check.clojure-test :refer [defspec]]
             [sicmutils
              [matrix :as matrix]
              [structure :as s]
              [generic :as g]
-             [value :as v]]
+             [value :as v]
+             [numsymb]
+             [function]
+             [simplify]]
             [sicmutils.calculus.derivative :as d]))
 
 (deftest matrix-basics
@@ -181,3 +187,26 @@
            (g/simplify (g/* d M u))))
     (is (thrown? IllegalArgumentException 'foo (g/* u M)))
     (is (thrown? IllegalArgumentException (g/* M d)))))
+
+(defn generate-square-matrix
+  [n]
+  (gen/fmap #(apply matrix/by-rows %) (gen/vector (gen/vector gen/int n) n)))
+
+(defspec p+q=q+p
+  (gen/let [n (gen/choose 1 10)]
+    (prop/for-all [p (generate-square-matrix n)
+                   q (generate-square-matrix n)]
+                  (= (g/+ p q) (g/+ q p)))))
+
+(defspec pq*r=p*qr
+  (gen/let [n (gen/choose 1 10)]
+    (prop/for-all [p (generate-square-matrix n)
+                   q (generate-square-matrix n)
+                   r (generate-square-matrix n)]
+                  (= (g/* (g/* p q) r) (g/* p (g/* q r))))))
+
+(defspec a*ainv=i
+  (gen/let [n (gen/choose 1 5)]
+    (prop/for-all [A (generate-square-matrix n)]
+                  (or (= (g/determinant A) 0)
+                      (= (matrix/I n) (g/* (g/invert A) A))))))

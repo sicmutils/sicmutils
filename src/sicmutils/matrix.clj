@@ -18,13 +18,13 @@
 
 (ns sicmutils.matrix
   (:refer-clojure :rename {map core-map get-in core-get-in})
-  (:import [clojure.lang PersistentVector IFn AFn ILookup]
-           [sicmutils.structure Struct])
   (:require [sicmutils
              [value :as v]
              [expression :as x]
              [structure :as s]
-             [generic :as g]]))
+             [generic :as g]])
+  (:import [clojure.lang PersistentVector IFn AFn ILookup]
+           [sicmutils.structure Struct]))
 
 (defrecord Matrix [r c ^PersistentVector v]
   v/Value
@@ -102,7 +102,7 @@
   M will become the inner tuples, unless t? is true, in which columns of m will
   form the inner tuples."
   [m outer-orientation inner-orientation t?]
-  (s/Struct. outer-orientation (mapv #(s/Struct. inner-orientation %) (:v (if t? (transpose m) m)))))
+  (Struct. outer-orientation (mapv #(Struct. inner-orientation %) (:v (if t? (transpose m) m)))))
 
 (defn seq->
   "Convert a sequence (typically, of function arguments) to an up-structure.
@@ -208,7 +208,7 @@
                            (range nups)))
                    (range ndowns)))))
 
-(defn- vector-disj
+(defn ^:private vector-disj
   "The vector formed by deleting the i'th element of the given vector."
   [v i]
   (vec (concat (take i v) (drop (inc i) v))))
@@ -220,7 +220,7 @@
            (mapv #(vector-disj % j)
                  (vector-disj v i))) )
 
-(defn- checkerboard-negate
+(defn ^:private checkerboard-negate
   [s i j]
   (if (even? (+ i j)) s (g/negate s)))
 
@@ -267,7 +267,7 @@
           Δ (reduce g/+ (core-map g/* (v 0) (-> C :v first)))]
       (map #(g/divide % Δ) (transpose C)))))
 
-(defn- I
+(defn I
   "Return the identity matrix of order n."
   [n]
   (Matrix. n n
@@ -285,6 +285,7 @@
   (determinant (g/- (g/* x (I r)) m)))
 
 (defmethod g/transpose [::matrix] [m] (transpose m))
+(defmethod g/invert [::matrix] [m] (invert m))
 (defmethod g/sub [::matrix ::matrix] [a b] (elementwise g/- a b))
 (defmethod g/negate [::matrix] [a] (map g/negate a))
 (defmethod g/add [::matrix ::matrix] [a b] (elementwise g/+ a b))

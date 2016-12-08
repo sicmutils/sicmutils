@@ -297,43 +297,43 @@
 (def ^:private num-tests 50)
 
 (defspec ^:long p+p=2p num-tests
-         (prop/for-all [p (gen/bind gen/nat generate-poly)]
-                       (= (add p p) (mul p (make-constant (:arity p) 2)))))
+  (prop/for-all [p (gen/bind gen/nat generate-poly)]
+                (= (add p p) (mul p (make-constant (:arity p) 2)))))
 
 (defspec ^:long p-p=0 num-tests
-         (prop/for-all [p (gen/bind gen/nat generate-poly)]
-                       (v/nullity? (sub p p))))
+  (prop/for-all [p (gen/bind gen/nat generate-poly)]
+                (v/nullity? (sub p p))))
 
 (defspec ^:long pq-div-p=q num-tests
-         (gen/let [arity gen/nat]
-                  (prop/for-all [p (generate-poly arity)
-                                 q (generate-nonzero-poly arity)]
-                                (let [[Q R] (divide (mul p q) q)]
-                                  (and (v/nullity? R)
-                                       (= Q p))))))
+  (gen/let [arity gen/nat]
+    (prop/for-all [p (generate-poly arity)
+                   q (generate-nonzero-poly arity)]
+                  (let [[Q R] (divide (mul p q) q)]
+                    (and (v/nullity? R)
+                         (= Q p))))))
 
 (defspec ^:long p+q=q+p num-tests
-         (gen/let [arity gen/nat]
-                  (prop/for-all [p (generate-poly arity)
-                                 q (generate-poly arity)]
-                                (= (add p q) (add q p)))))
+  (gen/let [arity gen/nat]
+    (prop/for-all [p (generate-poly arity)
+                   q (generate-poly arity)]
+                  (= (add p q) (add q p)))))
 
 (defspec ^:long pq=qp num-tests
-         (gen/let [arity gen/nat]
-                  (prop/for-all [p (generate-poly arity)
-                                 q (generate-poly arity)]
-                                (= (mul p q) (mul q p)))))
+  (gen/let [arity gen/nat]
+    (prop/for-all [p (generate-poly arity)
+                   q (generate-poly arity)]
+                  (= (mul p q) (mul q p)))))
 
 (defspec ^:long p*_q+r_=p*q+p*r num-tests
-         (gen/let [arity gen/nat]
-                  (prop/for-all [p (generate-poly arity)
-                                 q (generate-poly arity)
-                                 r (generate-poly arity)]
-                                (= (mul p (add q r)) (add (mul p q) (mul p r))))))
+  (gen/let [arity gen/nat]
+    (prop/for-all [p (generate-poly arity)
+                   q (generate-poly arity)
+                   r (generate-poly arity)]
+                  (= (mul p (add q r)) (add (mul p q) (mul p r))))))
 
 (defspec ^:long lower-and-raise-arity-are-inverse num-tests
-         (prop/for-all [p (gen/bind (gen/choose 2 10) generate-nonzero-poly)]
-                       (= p (raise-arity (lower-arity p)))))
+  (prop/for-all [p (gen/bind (gen/choose 2 10) generate-nonzero-poly)]
+                (= p (raise-arity (lower-arity p)))))
 
 (defspec ^:long evaluation-homomorphism num-tests
   (gen/let [arity (gen/choose 1 6)]
