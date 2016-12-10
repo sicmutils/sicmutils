@@ -100,12 +100,7 @@
 (defn transpose
   "Transpose the matrix m."
   [{r :r c :c v :v}]
-  (Matrix. c r
-           (mapv (fn [i]
-                   (mapv (fn [j]
-                           (core-get-in v [j i]))
-                         (range r)))
-                 (range c))))
+  (generate c r #(core-get-in v [%2 %1])))
 
 (defn ->structure
   "Convert m to a structure with given outer and inner orientations. Rows of
@@ -127,26 +122,16 @@
    {rb :r cb :c vb :v :as b}]
   (when (not= ca rb)
     (throw (IllegalArgumentException. "matrices incompatible for multiplication")))
-  (Matrix. ra cb
-           (mapv (fn [i]
-                   (mapv (fn [j]
-                           (reduce g/+ (for [k (range ca)]
-                                         (g/* (core-get-in va [i k])
-                                              (core-get-in vb [k j])))))
-                         (range cb)))
-                 (range ra))))
+  (generate ra cb #(reduce g/+ (for [k (range ca)]
+                                 (g/* (core-get-in va [%1 k])
+                                      (core-get-in vb [k %2]))))))
 
 (defn ^:private elementwise
   "Applies f elementwise between the matrices a and b."
   [f {ra :r ca :c va :v :as a} {rb :r cb :c vb :v :as b}]
   (when (or (not= ra rb) (not= ca cb))
     (throw (IllegalArgumentException. "matrices incompatible for operation")))
-  (Matrix. ra ca
-           (mapv (fn [i]
-                   (mapv (fn [j]
-                           (f (core-get-in va [i j]) (core-get-in vb [i j])))
-                         (range ca)))
-                 (range ra))))
+  (generate ra ca #(f (core-get-in va [%1 %2]) (core-get-in vb [%1 %2]))))
 
 (defn square-structure->
   "Converts the square structure s into a matrix, and calls the
@@ -163,12 +148,8 @@
     (if (and (every? #(= major-size %) minor-sizes)
              (every? #(= minor-orientation %) (rest minor-orientations)))
       (let [need-transpose (= minor-orientation ::s/up)
-            M (Matrix. major-size major-size
-                       (mapv (fn [i]
-                               (mapv (fn [j]
-                                       (core-get-in s (if need-transpose [j i] [i j])))
-                                     (range major-size)))
-                             (range major-size)))]
+            M (generate major-size major-size
+                        #(core-get-in s (if need-transpose [%2 %1] [%1 %2])))]
         (k M #(->structure % major-orientation minor-orientation need-transpose)))
       (throw (IllegalArgumentException. "structure is not square")))))
 
@@ -209,14 +190,10 @@
   [ls ms rs]
   (let [ndowns (s/dimension ls)
         nups (s/dimension rs)]
-    (Matrix. ndowns nups
-             (mapv (fn [i]
-                     (mapv (fn [j]
-                             (g/* (s/unflatten (for [k (range ndowns)] (if (= i k) 1 0)) ls)
-                                  (g/* ms
-                                       (s/unflatten (for [k (range nups)] (if (= j k) 1 0)) rs))))
-                           (range nups)))
-                   (range ndowns)))))
+    (generate ndowns nups
+              #(g/* (s/unflatten (for [k (range ndowns)] (if (= %1 k) 1 0)) ls)
+                    (g/* ms
+                         (s/unflatten (for [k (range nups)] (if (= %2 k) 1 0)) rs))))))
 
 (defn ^:private vector-disj
   "The vector formed by deleting the i'th element of the given vector."
