@@ -245,10 +245,8 @@
         (= r 2) (let [[[a b] [c d]] v]
                   (Matrix. 2 2 [[d (g/negate c)]
                                 [(g/negate b) a]]))
-        :else (Matrix. r r
-                       (vec (for [i (range r)]
-                              (vec (for [j (range r)]
-                                     (-> m (without i j) determinant (checkerboard-negate i j)))))))))
+        :else (generate r r
+                        #(-> m (without %1 %2) determinant (checkerboard-negate %1 %2)))))
 
 (defn invert
   "Computes the inverse of a square matrix."
@@ -264,10 +262,7 @@
 (defn I
   "Return the identity matrix of order n."
   [n]
-  (Matrix. n n
-           (vec (for [i (range n)]
-                  (vec (for [j (range n)]
-                         (if (= i j) 1 0)))))))
+  (generate n n #(if (= %1 %2) 1 0)))
 
 (defn characteristic-polynomial
   "Compute the characteristic polynomial of the square matrix m, evaluated
