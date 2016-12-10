@@ -91,7 +91,12 @@
                            [-1 0 1])
            (matrix/invert (matrix/by-rows [1 3 3]
                                           [1 4 3]
-                                          [1 3 4]))))))
+                                          [1 3 4]))))
+
+    (is (= (matrix/by-rows [0 1 2]
+                           [1 2 3]
+                           [2 3 4])
+           (matrix/generate 3 3 +)))))
 
 (deftest matrix-generic-operations
   (let [M (matrix/by-rows (list 1 2 3)
@@ -190,7 +195,7 @@
 
 (defn generate-square-matrix
   [n]
-  (gen/fmap #(apply matrix/by-rows %) (gen/vector (gen/vector gen/int n) n)))
+  (gen/fmap #(apply matrix/by-rows %) (gen/vector (gen/vector gen/ratio n) n)))
 
 (defspec p+q=q+p
   (gen/let [n (gen/choose 1 10)]
@@ -208,5 +213,5 @@
 (defspec a*ainv=i
   (gen/let [n (gen/choose 1 5)]
     (prop/for-all [A (generate-square-matrix n)]
-                  (or (= (g/determinant A) 0)
-                      (= (matrix/I n) (g/* (g/invert A) A))))))
+                  (or (zero? (g/determinant A))
+                      (= (matrix/I n) (g/* (g/invert A) A) (g/* A (g/invert A)))))))

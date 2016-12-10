@@ -23,6 +23,7 @@
              [structure :refer :all]
              [operator :refer [make-operator]]
              [value :refer :all]
+             [matrix :as matrix]
              [function :refer :all]]
             [sicmutils.calculus.derivative :refer :all]))
 
@@ -185,3 +186,29 @@
     (let [x (* (sqrt (/ (* 2 I) alpha)) (sin theta))
           p_x (* (sqrt (* 2 alpha I)) (cos theta))]
       (up t x p_x))))
+
+(defn symplectic-unit
+  "p. 334 (used, but not defined there)"
+  [n]
+  (let [twoN (* 2 n)]
+    (matrix/generate twoN twoN (fn [a b]
+                                 (cond (= (+ a n) b) 1
+                                       (= (+ b n) a) -1
+                                       :else 0)))))
+
+(defn symplectic-matrix?
+  "p. 334"
+  [M]
+  (let [twoN (matrix/dimension M)
+        J (symplectic-unit (quot twoN 2))]
+    (- J (* M J (matrix/transpose M)))))
+
+(defn symplectic-transform?
+  "p. 334"
+  [C]
+  (fn [s]
+    (symplectic-matrix?
+     (matrix/without
+      (matrix/s->m (compatible-shape s)
+                   ((D C) s)
+                   s) 0 0))))

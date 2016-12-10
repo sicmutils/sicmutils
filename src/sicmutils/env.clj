@@ -124,7 +124,8 @@
 (def compatible-shape s/compatible-shape)
 (def mapr s/mapr)
 (def s->m matrix/s->m)
-
+(def qp-submatrix #(matrix/without % 0 0))
+(def m:dimension matrix/dimension)
 (def matrix-by-rows matrix/by-rows)
 (def column-matrix matrix/column)
 

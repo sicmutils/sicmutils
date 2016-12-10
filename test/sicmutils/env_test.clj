@@ -62,3 +62,13 @@
     (is (= :sicmutils.structure/up (orientation (up 1 2))))
     (is (= "up(b z - c y, - a z + c x, a y - b x)"
            (->infix (simplify (cross-product (up 'a 'b 'c) (up 'x 'y 'z))))))))
+
+(deftest matrices
+  (testing "qp-submatrix"
+    (let [A (matrix-by-rows [1 2 3]
+                            [4 5 6]
+                            [7 8 9])]
+      (is (= (matrix-by-rows [5 6]
+                             [8 9])
+             (qp-submatrix A)))))
+  )

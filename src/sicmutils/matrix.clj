@@ -49,6 +49,16 @@
   (applyTo [m xs]
     (AFn/applyToHelper m xs)))
 
+(defn generate
+  "Create the r by c matrix whose entries are (f i j)"
+  [r c f]
+  (Matrix. r c
+           (mapv (fn [i]
+                   (mapv (fn [j]
+                           (f i j))
+                         (range c)))
+                 (range r))))
+
 (defn get-in
   "Like get-in for matrices, but obeying the scmutils convention: only one
   index is required to get an unboxed element from a column vector. This is
@@ -130,12 +140,12 @@
   "Applies f elementwise between the matrices a and b."
   [f {ra :r ca :c va :v :as a} {rb :r cb :c vb :v :as b}]
   (when (or (not= ra rb) (not= ca cb))
-    (throw (IllegalArgumentException. "matrices incompatible for subtraction")))
+    (throw (IllegalArgumentException. "matrices incompatible for operation")))
   (Matrix. ra ca
            (mapv (fn [i]
                    (mapv (fn [j]
                            (f (core-get-in va [i j]) (core-get-in vb [i j])))
-                         (range rb)))
+                         (range ca)))
                  (range ra))))
 
 (defn square-structure->
@@ -224,6 +234,13 @@
   [s i j]
   (if (even? (+ i j)) s (g/negate s)))
 
+(defn dimension
+  [m]
+  (when-not (and (instance? Matrix m)
+                 (= (:c m) (:r m)))
+    (throw (IllegalArgumentException. "not a square matrix")))
+  (:r m))
+
 (defn determinant
   "Computes the determinant of m, which must be square. Generic
   operations are used, so this works on symbolic square matrix."
@@ -286,8 +303,8 @@
 
 (defmethod g/transpose [::matrix] [m] (transpose m))
 (defmethod g/invert [::matrix] [m] (invert m))
-(defmethod g/sub [::matrix ::matrix] [a b] (elementwise g/- a b))
 (defmethod g/negate [::matrix] [a] (map g/negate a))
+(defmethod g/sub [::matrix ::matrix] [a b] (elementwise g/- a b))
 (defmethod g/add [::matrix ::matrix] [a b] (elementwise g/+ a b))
 (defmethod g/mul [::matrix ::matrix] [a b] (mul a b))
 (defmethod g/mul [::x/numerical-expression ::matrix] [n a] (map #(g/* n %) a))
