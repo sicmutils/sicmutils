@@ -3,10 +3,10 @@
   :url "http://github.com/littleredcomputer/sicmutils"
   :license {:name "GPLv3"
             :url "http://www.opensource.org/licenses/GPL-3.0"}
-  :dependencies [[org.clojure/clojure "1.7.0"]
+  :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/tools.logging "0.3.1"]
                  [hiccup "1.0.5"]
-                 [com.google.guava/guava "19.0"]
+                 [com.google.guava/guava "20.0"]
                  [org.apache.commons/commons-math3 "3.6.1"]
                  [org.clojure/math.numeric-tower "0.0.4"]
                  [org.clojure/tools.nrepl "0.2.12"]]
