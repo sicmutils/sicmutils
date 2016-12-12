@@ -96,7 +96,10 @@
     (is (= (matrix/by-rows [0 1 2]
                            [1 2 3]
                            [2 3 4])
-           (matrix/generate 3 3 +)))))
+           (matrix/generate 3 3 +)))
+
+    (is (g/zero? (matrix/by-rows [[0 0]
+                                  [0 0]])))))
 
 (deftest matrix-generic-operations
   (let [M (matrix/by-rows (list 1 2 3)

@@ -1,4 +1,4 @@
-(defproject net.littleredcomputer/sicmutils "0.9.6"
+(defproject net.littleredcomputer/sicmutils "0.9.7-SNAPSHOT"
   :description "A port of the Scmutils computer algebra/mechanics system to Clojure"
   :url "http://github.com/littleredcomputer/sicmutils"
   :license {:name "GPLv3"
