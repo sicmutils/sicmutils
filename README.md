@@ -1,5 +1,5 @@
 # sicmutils
-[![Build Status](https://travis-ci.org/littleredcomputer/sicmutils.svg?branch=master)](https://travis-ci.org/littleredcomputer/sicmutils) [![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/littleredcomputer/sicmutils/blob/master/LICENSE) [![Clojars Project](https://img.shields.io/clojars/v/net.littleredcomputer/sicmutils.svg)](https://clojars.org/net.littleredcomputer/sicmutils)
+[![Build Status](https://travis-ci.org/littleredcomputer/sicmutils.svg?branch=master)](https://travis-ci.org/littleredcomputer/sicmutils) [![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/littleredcomputer/sicmutils/blob/master/LICENSE) [![Clojars Project](https://img.shields.io/clojars/v/net.littleredcomputer/sicmutils.svg)](https://clojars.org/net.littleredcomputer/sicmutils) [![Dependency Status](https://www.versioneye.com/user/projects/584e03e575bc100039dbfd17/badge.svg?style=flat-square)](https://www.versioneye.com/user/projects/584e03e575bc100039dbfd17)
 
 An implementation of the Scmutils system for math and physics
 investigations in the Clojure language. Scmutils is extensively used
@@ -337,7 +337,7 @@ $ lein test
 
 ## License
 
-The work this is based on GPL code, and so carries the GPL v3 license.
+GPL v3.
 
 [SICM]: http://mitpress.mit.edu/books/structure-and-interpretation-classical-mechanics
 [FDG]: http://mitpress.mit.edu/books/functional-differential-geometry
