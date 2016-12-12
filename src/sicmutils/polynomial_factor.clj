@@ -103,7 +103,7 @@
            evens 1]
       (cond (nil? factors)
             (do (if (not (and (number? evens) (= evens 1)))
-                  (assume! `(non-negative? @evens) 'root-out-squares))
+                  (assume! `(~'non-negative? ~evens) 'root-out-squares))
                 (sym/mul (sym/sqrt odds) evens))
 
             (sym/expt? (first factors))
@@ -124,20 +124,6 @@
             (recur (next factors)
                    (sym/mul (first factors) odds)
                    evens)))))
-
-;; pre-walk might work here
-;; (defn ^:private sqrt-walk
-;;   [x]
-;;   (if (seq? x)
-;;     (if (= (operator x) 'sqrt)
-;;       (process-sqrt x)
-;;       (cons (sqrt-walk (first x))
-;;             (sqrt-walk (next x))))
-;;     x))
-
-;; (defn root-out-squares-0
-;;   [expr]
-;;   (sqrt-walk expr))
 
 (defn root-out-squares
   "Removes perfect squares from under square roots."
