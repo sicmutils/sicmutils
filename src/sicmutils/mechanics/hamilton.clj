@@ -212,3 +212,26 @@
       (matrix/s->m (compatible-shape s)
                    ((D C) s)
                    s) 0 0))))
+
+(defn Lie-derivative
+  "p. 428"
+  [H]
+  (make-operator
+   #(Poisson-bracket % H)
+   `(Lie-derivative ~H)))
+
+(defn Lie-transform
+  "p. 428"
+  [H t]
+  (make-operator
+   (exp (* t (Lie-derivative H)))
+   `(Lie-transform ~H ~t)))
+
+(defn H-central-polar
+  [m V]
+  (fn [[_ [r phi] [pr pphi]]]
+    (println "H-central-polar" r phi pr pphi)
+    (+ (/ (+ (square pr)
+             (square (/ pphi r)))
+          (* 2 m))
+       (V r))))

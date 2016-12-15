@@ -1,6 +1,7 @@
 (ns sicmutils.sicm-ch5-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer :all]
+            [sicmutils.numsymb]
             [sicmutils.env :refer :all]
             [sicmutils.mechanics.lagrange :refer :all]
             [sicmutils.mechanics.hamilton :refer :all]
@@ -170,3 +171,44 @@
         q (ref solution-C 0)
         p (ref solution-C 1)
         Dsol ((D sol) 't)]))
+
+(deftest section-5-10
+  (let [H-harmonic (fn [m k]
+                     (fn [state]
+                       (+ (/ (square (momentum state)) (* 2 m))
+                          (* 1/2 k (square (coordinate state))))))]
+    (is (= '(x0
+             (/ (* dt p0) m)
+             (/ (* -1 (expt dt 2) k x0) (* 2 m))
+             (/ (* -1 (expt dt 3) k p0) (* 6 (expt m 2)))
+             (/ (* (expt dt 4) (expt k 2) x0) (* 24 (expt m 2)))
+             (/ (* (expt dt 5) (expt k 2) p0) (* 120 (expt m 3))))
+           (simplify (take 6 (((Lie-transform (H-harmonic 'm 'k) 'dt)
+                                    coordinate)
+                              (up 0 'x0 'p0))))))
+    (is (= '(p0
+             (* -1 dt k x0)
+             (/ (* -1 (expt dt 2) k p0) (* 2 m))
+             (/ (* (expt dt 3) (expt k 2) x0) (* 6 m))
+             (/ (* (expt dt 4) (expt k 2) p0) (* 24 (expt m 2)))
+             (/ (* -1 (expt dt 5) (expt k 3) x0) (* 120 (expt m 2))))
+           (simplify (take 6 (((Lie-transform (H-harmonic 'm 'k) 'dt)
+                               momentum)
+                              (up 0 'x0 'p0))))))
+    (is (= '((/ (+ (* k m (expt x0 2)) (expt p0 2)) (* 2 m))
+             0
+             0
+             0
+             0
+             0)
+           (simplify (take 6 (((Lie-transform (H-harmonic 'm 'k) 'dt)
+                               (H-harmonic 'm 'k))
+                              (up 0 'x0 'p0))))))
+    ;; these two don't work, but when they do, that will be the end of chapter 5.
+    #_(is (= 'foo (simplify ((H-central-polar 'm (literal-function 'U)) (up 't (up 'r 'p) (down 'pr 'pp))))))
+    #_(is (= 'foo
+           (simplify (take 2 (((Lie-transform (H-central-polar 'm (literal-function 'U)) 'dt)
+                               coordinate)
+                              (up 't
+                                  (up 'r_0 'phi_0)
+                                  (down 'p_r_0 'p_phi_0)))))))))
