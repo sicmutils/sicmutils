@@ -184,6 +184,10 @@
                                         ))))
                    (range c))))
 
+(defn ^:private kronecker
+  [i j]
+  (if (= i j) 1 0))
+
 (defn s->m
   "Convert the structure ms, which would be a scalar if the (compatible) multiplication
   (* ls ms rs) were performed, to a matrix."
@@ -191,9 +195,9 @@
   (let [ndowns (s/dimension ls)
         nups (s/dimension rs)]
     (generate ndowns nups
-              #(g/* (s/unflatten (for [k (range ndowns)] (if (= %1 k) 1 0)) ls)
+              #(g/* (s/unflatten (for [k (range ndowns)] (kronecker %1 k)) ls)
                     (g/* ms
-                         (s/unflatten (for [k (range nups)] (if (= %2 k) 1 0)) rs))))))
+                         (s/unflatten (for [k (range nups)] (kronecker %2 k)) rs))))))
 
 (defn ^:private vector-disj
   "The vector formed by deleting the i'th element of the given vector."
@@ -262,7 +266,7 @@
 (defn I
   "Return the identity matrix of order n."
   [n]
-  (generate n n #(if (= %1 %2) 1 0)))
+  (generate n n #(kronecker %1 %2)))
 
 (defn characteristic-polynomial
   "Compute the characteristic polynomial of the square matrix m, evaluated

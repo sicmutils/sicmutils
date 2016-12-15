@@ -159,13 +159,11 @@
 (def ^:private symb:pi-over-4-mod-pi? #{'pi-over-4 '+pi-over-4})
 
 (defn- sine [x]
-  (when (number? x) (throw (IllegalArgumentException. "YIKES")))
-  (cond (number? x) (if (v/exact? x)
-                      (if (zero? x) 0 `(~'sin ~x))
-                      (cond (n:zero-mod-pi? x) 0.0
-                            (n:pi-over-2-mod-2pi? x) 1.0
-                            (n:-pi-over-2-mod-2pi? x) -1.0
-                            :else (Math/sin x)))
+  (cond (number? x) (cond (zero? x) 0
+                          (n:zero-mod-pi? x) 0
+                          (n:pi-over-2-mod-2pi? x) 1
+                          (n:-pi-over-2-mod-2pi? x) -1
+                          :else (Math/sin x))
         (symbol? x) (cond (symb:zero-mod-pi? x) 0
                           (symb:pi-over-2-mod-2pi? x) 1
                           (symb:-pi-over-2-mod-2pi? x) -1
@@ -177,13 +175,11 @@
   `(~'asin ~x))
 
 (defn- cosine [x]
-  (when (number? x) (throw (IllegalArgumentException. "YIKES")))
-  (cond (number? x) (if (v/exact? x)
-                      (if (zero? x) 1 `(~'cos ~x))
-                      (cond (n:pi-over-2-mod-pi? x) 0.0
-                            (n:zero-mod-2pi? x) 1.0
-                            (n:pi-mod-2pi? x) -1.0
-                            :else (Math/cos x)))
+  (cond (number? x) (cond (zero? x) 1
+                          (n:pi-over-2-mod-pi? x) 0
+                          (n:zero-mod-2pi? x) 1
+                          (n:pi-mod-2pi? x) -1
+                          :else (Math/cos x))
         (symbol? x) (cond (symb:pi-over-2-mod-pi? x) 0
                           (symb:zero-mod-2pi? x) +1
                           (symb:pi-mod-2pi? x) -1

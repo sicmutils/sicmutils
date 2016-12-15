@@ -19,6 +19,7 @@
 (ns sicmutils.operator-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
+            [sicmutils.value :as v]
             [sicmutils.env :refer :all]
             [sicmutils.operator :refer :all]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
@@ -59,6 +60,64 @@
             (down (((partial 0) ((partial 0) ff)) 'x 'y) (((partial 0) ((partial 1) ff)) 'x 'y))
             (down (((partial 1) ((partial 0) ff)) 'x 'y) (((partial 1) ((partial 1) ff)) 'x 'y)))))
     (is (= (((*  (partial 1)  (partial 0)) ff) 'x 'y)
-           (((partial 1) ((partial 0) ff)) 'x 'y)))))
+           (((partial 1) ((partial 0) ff)) 'x 'y))))
+  (testing "operator derivative shape"
+    (is (= [:at-least 0] (:arity identity-operator)))
+    (is (= [:exactly 1] (:arity D)))
+    (is (= [:exactly 1] (:arity (* D identity-operator))))
+    (is (= [:exactly 1] (v/arity sin)))
+    (is (= [:exactly 1] (v/arity (identity-operator sin))))
+    (is (= '(sin x) (simplify ((identity-operator sin) 'x))))
+    (is (= '(cos x) (simplify (((* D identity-operator) sin) 'x))))
+    (is (= '(cos x) (simplify (((* identity-operator D) sin) 'x)))))
+  (testing "exponentiation"
+    (is (= '((f t)
+             (* ((D f) t) ε)
+             (* 1/2 (((expt D 2) f) t) (expt ε 2))
+             (* 1/6 (((expt D 3) f) t) (expt ε 3))
+             (* 1/24 (((expt D 4) f) t) (expt ε 4))
+             (* 1/120 (((expt D 5) f) t) (expt ε 5)))
+           (simplify (take 6 (((exp (* 'ε D)) (literal-function 'f)) 't)))))
+    (is (= '(0
+             ε
+             0
+             (* -1/6 (expt ε 3))
+             0
+             (* 1/120 (expt ε 5))
+             0
+             (* -1/5040 (expt ε 7))
+             0
+             (* 1/362880 (expt ε 9))
+             0
+             (* -1/39916800 (expt ε 11)))
+           (simplify (take 12 (((exp (* 'ε D)) sin) 0)))))
+    (is (= '(1
+             0
+             (* -1/2 (expt ε 2))
+             0
+             (* 1/24 (expt ε 4))
+             0
+             (* -1/720 (expt ε 6))
+             0
+             (* 1/40320 (expt ε 8))
+             0
+             (* -1/3628800 (expt ε 10))
+             0) (simplify (take 12 (((exp (* 'ε D)) cos) 0)))))
+    (is (= '(1
+             (* 1/2 ε)
+             (* -1/8 (expt ε 2))
+             (* 1/16 (expt ε 3))
+             (* -5/128 (expt ε 4))
+             (* 7/256 (expt ε 5)))
+           (simplify (take 6 (((exp (* 'ε D)) #(sqrt (+ % 1))) 0)))))
+    (is (= '(+
+             (* 1/5040 (expt n 7) (expt ε 7))
+             (* -1/240 (expt n 6) (expt ε 7))
+             (* 5/144 (expt n 5) (expt ε 7))
+             (* -7/48 (expt n 4) (expt ε 7))
+             (* 29/90 (expt n 3) (expt ε 7))
+             (* -7/20 (expt n 2) (expt ε 7))
+             (* 1/7 n (expt ε 7)))
+           (simplify (nth (((exp (* 'ε D)) #(expt (+ 1 %) 'n)) 0) 7))))))
 
     ;;; more testing to come as we implement multivariate literal functions that rely on operations on structures....

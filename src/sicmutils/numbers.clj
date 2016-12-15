@@ -28,8 +28,6 @@
   [generic-operation core-operation]
   (defmethod generic-operation [Number] [a] (core-operation a)))
 
-(define-unary-operation g/sin #(Math/sin %))
-(define-unary-operation g/cos #(Math/cos %))
 (define-unary-operation g/tan #(Math/tan %))
 (define-unary-operation g/exp #(Math/exp %))
 (define-unary-operation g/atan #(Math/atan %))

@@ -44,7 +44,9 @@
   (instance? Operator x))
 
 (def identity-operator
-  (Operator. (fn [f] #(apply f %&)) [:at-least 0] 'identity))
+  (Operator. (fn [f] (with-meta
+                       #(apply f %&)
+                       {:arity (v/arity f)})) [:at-least 0] 'identity))
 
 (defn- number->operator
   [n]
@@ -99,6 +101,22 @@
          n n]
     (if (= n 0) e (recur (mul e o) (dec n)))))
 
+;; e to an operator g means forming the power series
+;; I + g + 1/2 g^2 + ... + 1/n! g^n
+;; where (as elsewhere) exponentiating the operator means n-fold composition
+(defmethod g/exp
+  [::operator]
+  [g]
+  (let [step (fn step
+               [n n! g**n]
+               (lazy-seq (cons (g/divide g**n n!)
+                               (step (inc n) (* n! (inc n)) (mul g g**n)))))]
+    (Operator. (fn [f]
+                 (with-meta
+                   #(map (fn [o] (apply (o f) %&)) (step 0 1 identity-operator))
+                   {:arity (v/arity f)}))
+               (v/arity g)
+               'exp)))
 
 (defmethod g/add [::operator ::operator] [o p] (add o p))
 ;; In additive operation the value 1 is considered as the identity operator
@@ -155,6 +173,11 @@
   [::x/numerical-expression ::operator]
   [n o]
   (mul o (number->operator n)))
+(defmethod g/div
+  [::operator ::x/numerical-expression]
+  [o n]
+  (mul (number->operator (g/invert n)) o ))
+
 
 (defmethod g/square [::operator] [o] (mul o o))
 

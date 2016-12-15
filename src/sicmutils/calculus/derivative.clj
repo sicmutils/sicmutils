@@ -462,5 +462,5 @@
   [f x dx]
   (let [step (fn step [n n! Dnf dxn]
                (lazy-seq (cons (g/divide (g/* (Dnf x) dxn) n!)
-                               (step (inc n) (* n! (inc n)) (D Dnf) (g/* dxn dx)))))]
+                               (step (inc n) (*' n! (inc n)) (D Dnf) (g/* dxn dx)))))]
     (step 0 1 f 1)))

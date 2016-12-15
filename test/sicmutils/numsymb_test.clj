@@ -47,7 +47,7 @@
     (is (= (g/* 'x 10 'x 3 2 1) (g/* 'x 10 'x 3 2 1)))
     (is (= (g/* 200 'x 3 2) (g/* 10 20 'x 3 2 1))))
   (testing "trig shortcuts - sin"
-    (is (= 0.0 (g/sin 0)))
+    (is (= 0 (g/sin 0)))
     (is (= 0 (g/sin 'pi)))
     (is (= 0 (g/sin 'two-pi)))
     (is (= 0 (g/sin '-pi)))
@@ -57,7 +57,7 @@
     (is (= 1 (g/sin 'pi-over-2)))
     (is (= 1.0 (g/sin (/ Math/PI 2)))))
   (testing "trig shortcuts - cos"
-    (is (= 1.0 (g/cos 0)))
+    (is (= 1 (g/cos 0)))
     (is (= -1 (g/cos 'pi)))
     (is (near -1.0 (g/cos Math/PI)))
     (is (= 1 (g/cos 'two-pi)))
