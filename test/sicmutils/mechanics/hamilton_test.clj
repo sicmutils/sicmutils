@@ -179,10 +179,25 @@
                                (Poisson-bracket HH (Poisson-bracket FF GG)))
                             (up 't (up 'x 'y) (down 'p_x 'p_y))))))))))
 
+(deftest symplectic
+  (testing "unit"
+    (is (= (matrix-by-rows [0 0 0 0 0 0 1 0 0 0 0 0]
+                           [0 0 0 0 0 0 0 1 0 0 0 0]
+                           [0 0 0 0 0 0 0 0 1 0 0 0]
+                           [0 0 0 0 0 0 0 0 0 1 0 0]
+                           [0 0 0 0 0 0 0 0 0 0 1 0]
+                           [0 0 0 0 0 0 0 0 0 0 0 1]
+                           [-1 0 0 0 0 0 0 0 0 0 0 0]
+                           [0 -1 0 0 0 0 0 0 0 0 0 0]
+                           [0 0 -1 0 0 0 0 0 0 0 0 0]
+                           [0 0 0 -1 0 0 0 0 0 0 0 0]
+                           [0 0 0 0 -1 0 0 0 0 0 0 0]
+                           [0 0 0 0 0 -1 0 0 0 0 0 0])
+           (symplectic-unit 6)))))
+
 (deftest iterated-map-test
   (let [fail (constantly false)
         M (fn [x y cont fail] (if (> x 10) (fail) (cont (inc x) (dec y))))]
     (is (= '(6 95) ((iterated-map M 5) 1 100 list fail)))
     (is (= '(10 91) ((iterated-map M 9) 1 100 list fail)))
-    (is (= false ((iterated-map M 20) 1 100 list fail ))))
-  )
+    (is (= false ((iterated-map M 20) 1 100 list fail )))))

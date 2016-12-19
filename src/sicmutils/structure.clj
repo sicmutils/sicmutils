@@ -142,21 +142,23 @@
   chains corresponding to position of each element (i.e., the sequence
   of indices needed to address that element)."
   [^Struct s]
-  (let [access (fn a [chain s]
-                 (make (orientation s)
-                       (map-indexed (fn [i elt]
-                                      (if (structure? elt)
-                                        (a (conj chain i) elt)
-                                        ;; subtle (I'm afraid). Here is where we put
-                                        ;; the access chain into the new structure.
-                                        ;; But if we put it in as a vector, that would
-                                        ;; introduce a new layer of structure since
-                                        ;; vectors are considered up-tuples. So we
-                                        ;; have to turn it into a seq, which will
-                                        ;; forfeit structure-nature.
-                                        (-> chain (conj i) seq)))
-                                    s)))]
-    (access [] s)))
+  (if-not (instance? Struct s)
+    nil
+    (let [access (fn a [chain s]
+                  (make (orientation s)
+                        (map-indexed (fn [i elt]
+                                       (if (structure? elt)
+                                         (a (conj chain i) elt)
+                                         ;; subtle (I'm afraid). Here is where we put
+                                         ;; the access chain into the new structure.
+                                         ;; But if we put it in as a vector, that would
+                                         ;; introduce a new layer of structure since
+                                         ;; vectors are considered up-tuples. So we
+                                         ;; have to turn it into a seq, which will
+                                         ;; forfeit structure-nature.
+                                         (-> chain (conj i) seq)))
+                                     s)))]
+     (access [] s))))
 
 (defn component
   "Given an access chain (a sequence of indices), return a function of

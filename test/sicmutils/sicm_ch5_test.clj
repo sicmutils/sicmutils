@@ -1,6 +1,8 @@
 (ns sicmutils.sicm-ch5-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer :all]
+            [sicmutils.value :as v]
+            [sicmutils.operator :as o]
             [sicmutils.numsymb]
             [sicmutils.env :refer :all]
             [sicmutils.mechanics.lagrange :refer :all]
@@ -184,7 +186,7 @@
              (/ (* (expt dt 4) (expt k 2) x0) (* 24 (expt m 2)))
              (/ (* (expt dt 5) (expt k 2) p0) (* 120 (expt m 3))))
            (simplify (take 6 (((Lie-transform (H-harmonic 'm 'k) 'dt)
-                                    coordinate)
+                               coordinate)
                               (up 0 'x0 'p0))))))
     (is (= '(p0
              (* -1 dt k x0)
@@ -204,11 +206,37 @@
            (simplify (take 6 (((Lie-transform (H-harmonic 'm 'k) 'dt)
                                (H-harmonic 'm 'k))
                               (up 0 'x0 'p0))))))
-    ;; these two don't work, but when they do, that will be the end of chapter 5.
-    #_(is (= 'foo (simplify ((H-central-polar 'm (literal-function 'U)) (up 't (up 'r 'p) (down 'pr 'pp))))))
-    #_(is (= 'foo
-           (simplify (take 2 (((Lie-transform (H-central-polar 'm (literal-function 'U)) 'dt)
-                               coordinate)
-                              (up 't
-                                  (up 'r_0 'phi_0)
-                                  (down 'p_r_0 'p_phi_0)))))))))
+    (let [state (up 't
+                    (up 'r_0 'phi_0)
+                    (down 'p_r_0 'p_phi_0))]
+      (is (= '(/
+               (+
+                (* 2 (U r_0) m (expt r_0 2))
+                (* (expt p_r_0 2) (expt r_0 2))
+                (expt p_phi_0 2))
+               (* 2 m (expt r_0 2)))
+             (simplify ((H-central-polar 'm (literal-function 'U)) state))))
+      (is (= '((up r_0 phi_0)
+               (up (/ (* dt p_r_0) m) (/ (* dt p_phi_0) (* m (expt r_0 2))))
+               (up
+                (/
+                 (+
+                  (* -1N ((D U) r_0) (expt dt 2) m (expt r_0 3))
+                  (* (expt dt 2) (expt p_phi_0 2)))
+                 (* 2N (expt m 2) (expt r_0 3)))
+                (/ (* -1N (expt dt 2) p_phi_0 p_r_0) (* (expt m 2) (expt r_0 3))))
+               (up
+                (/
+                 (+
+                  (* -1N (((expt D 2) U) r_0) (expt dt 3) m p_r_0 (expt r_0 4))
+                  (* -3N (expt dt 3) (expt p_phi_0 2) p_r_0))
+                 (* 6N (expt m 3) (expt r_0 4)))
+                (/
+                 (+
+                  (* ((D U) r_0) (expt dt 3) m p_phi_0 (expt r_0 3))
+                  (* 3N (expt dt 3) p_phi_0 (expt p_r_0 2) (expt r_0 2))
+                  (* -1N (expt dt 3) (expt p_phi_0 3)))
+                 (* 3N (expt m 3) (expt r_0 6)))))
+             (simplify (take 4 (((Lie-transform (H-central-polar 'm (literal-function 'U)) 'dt)
+                                 coordinate)
+                                state))))))))

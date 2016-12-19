@@ -230,7 +230,6 @@
 (defn H-central-polar
   [m V]
   (fn [[_ [r phi] [pr pphi]]]
-    (println "H-central-polar" r phi pr pphi)
     (+ (/ (+ (square pr)
              (square (/ pphi r)))
           (* 2 m))
