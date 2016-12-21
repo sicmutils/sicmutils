@@ -29,6 +29,7 @@
              [function :as f]
              [complex :as c]
              [matrix :as matrix]
+             [series :as series]
              [operator]
              [infix :as i]]
             [sicmutils.numerical
@@ -143,3 +144,6 @@
 (def ->JavaScript i/->JavaScript)
 
 (def principal-value v/principal-value)
+
+(def series series/starting-with)
+(def series:sum series/sum)

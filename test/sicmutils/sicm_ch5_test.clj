@@ -2,9 +2,8 @@
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer :all]
             [sicmutils.value :as v]
-            [sicmutils.operator :as o]
-            [sicmutils.numsymb]
             [sicmutils.env :refer :all]
+            [sicmutils.series :as series]
             [sicmutils.mechanics.lagrange :refer :all]
             [sicmutils.mechanics.hamilton :refer :all]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
@@ -185,27 +184,30 @@
              (/ (* -1 (expt dt 3) k p0) (* 6 (expt m 2)))
              (/ (* (expt dt 4) (expt k 2) x0) (* 24 (expt m 2)))
              (/ (* (expt dt 5) (expt k 2) p0) (* 120 (expt m 3))))
-           (simplify (take 6 (((Lie-transform (H-harmonic 'm 'k) 'dt)
-                               coordinate)
-                              (up 0 'x0 'p0))))))
+           (simplify (take                                                                6 (series/->seq
+                              (((Lie-transform (H-harmonic 'm 'k) 'dt)
+                                coordinate)
+                               (up 0 'x0 'p0)))))))
     (is (= '(p0
              (* -1 dt k x0)
              (/ (* -1 (expt dt 2) k p0) (* 2 m))
              (/ (* (expt dt 3) (expt k 2) x0) (* 6 m))
              (/ (* (expt dt 4) (expt k 2) p0) (* 24 (expt m 2)))
              (/ (* -1 (expt dt 5) (expt k 3) x0) (* 120 (expt m 2))))
-           (simplify (take 6 (((Lie-transform (H-harmonic 'm 'k) 'dt)
-                               momentum)
-                              (up 0 'x0 'p0))))))
+           (simplify (take 6 (series/->seq
+                              (((Lie-transform (H-harmonic 'm 'k) 'dt)
+                                momentum)
+                               (up 0 'x0 'p0)))))))
     (is (= '((/ (+ (* k m (expt x0 2)) (expt p0 2)) (* 2 m))
              0
              0
              0
              0
              0)
-           (simplify (take 6 (((Lie-transform (H-harmonic 'm 'k) 'dt)
-                               (H-harmonic 'm 'k))
-                              (up 0 'x0 'p0))))))
+           (simplify (take 6 (series/->seq
+                              (((Lie-transform (H-harmonic 'm 'k) 'dt)
+                                (H-harmonic 'm 'k))
+                               (up 0 'x0 'p0)))))))
     (let [state (up 't
                     (up 'r_0 'phi_0)
                     (down 'p_r_0 'p_phi_0))]
@@ -237,6 +239,7 @@
                   (* 3N (expt dt 3) p_phi_0 (expt p_r_0 2) (expt r_0 2))
                   (* -1N (expt dt 3) (expt p_phi_0 3)))
                  (* 3N (expt m 3) (expt r_0 6)))))
-             (simplify (take 4 (((Lie-transform (H-central-polar 'm (literal-function 'U)) 'dt)
-                                 coordinate)
-                                state))))))))
+             (simplify (take 4 (series/->seq
+                                (((Lie-transform (H-central-polar 'm (literal-function 'U)) 'dt)
+                                  coordinate)
+                                 state)))))))))

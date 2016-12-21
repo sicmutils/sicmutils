@@ -27,7 +27,7 @@
              [generic :as g]
              [value :as v]
              [numsymb]
-             [function]
+             [function :refer [literal-function]]
              [simplify]]
             [sicmutils.calculus.derivative :as d]))
 
@@ -99,7 +99,16 @@
            (matrix/generate 3 3 +)))
 
     (is (g/zero? (matrix/by-rows [[0 0]
-                                  [0 0]])))))
+                                  [0 0]])))
+    (is (= '(matrix-by-rows [(f x) (g x)] [(h x) (k x)])
+           (g/simplify
+            ((matrix/by-rows (map literal-function '[f g])
+                             (map literal-function '[h k])) 'x))))
+    (let [R2f #(literal-function % [0 1] 0)]
+      (is (= '(matrix-by-rows [(f x y) (g x y)] [(h x y) (k x y)])
+             (g/simplify
+              ((matrix/by-rows [(R2f 'f) (R2f 'g)]
+                               [(R2f 'h) (R2f 'k)]) 'x 'y)))))))
 
 (deftest matrix-generic-operations
   (let [M (matrix/by-rows (list 1 2 3)

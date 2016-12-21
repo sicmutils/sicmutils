@@ -28,7 +28,6 @@
             [sicmutils.calculus.derivative :as d])
   (:import [sicmutils.polynomial Polynomial]
            [sicmutils.structure Struct]
-           [sicmutils.operator Operator]
            (clojure.lang IFn)))
 
 (declare literal-apply)

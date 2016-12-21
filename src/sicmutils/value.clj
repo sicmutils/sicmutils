@@ -73,20 +73,14 @@
 ;;   [:between m n]
 ;;   [:at-least m]
 
-(def ^:private primitive-arity
+(def ^:private reflect-on-arity
   "Returns the arity of the function f.
   Computing arities of clojure functions is a bit complicated.
   It involves reflection, so the results are definitely worth
   memoizing."
   (memoize
    (fn [f]
-     (or (:arity f)
-         (:arity (meta f))
-         (cond (symbol? f)
-               [:exactly 0]
-
-               (fn? f)
-               (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
+     (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
                      ;; tally up arities of invoke, doInvoke, and
                      ;; getRequiredArity methods. Filter out invokeStatic.
                      ^RestFn rest-fn f
@@ -119,13 +113,21 @@
                         (= 3 (second (first (:getRequiredArity facts))))
                         (:doInvoke facts))
                    [:exactly 1]
-                   :else (throw (IllegalArgumentException. (str "arity? " f " " facts)))))
-               ;; If f is a multifunction, then we expect that it has a multimethod
-               ;; responding to the argument :arity, which returns the arity.
-               (instance? MultiFn f)
-               (f :arity)
-               ;; Faute de mieux, we assume the function is unary. Most math functions are.
-               :else [:exactly 1])))))
+                   :else (throw (IllegalArgumentException. (str "arity? " f " " facts))))))))
+
+(defn ^:private primitive-arity
+  "Return the cached or obvious arity of the object if we know it.
+  Otherwise delegate to the heavy duty reflection, if we have to."
+  [f]
+  (or (:arity f)
+      (:arity (meta f))
+      (cond (symbol? f) [:exactly 0]
+            (fn? f) (reflect-on-arity f)
+            ;; If f is a multifunction, then we expect that it has a multimethod
+            ;; responding to the argument :arity, which returns the arity.
+            (instance? MultiFn f) (f :arity)
+            ;; Faute de mieux, we assume the function is unary. Most math functions are.
+            :else [:exactly 1])))
 
 (defn ^:private combine-arities
   "Find the joint arity of arities a and b, i.e. the loosest possible arity specification

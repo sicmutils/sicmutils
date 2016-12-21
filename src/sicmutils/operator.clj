@@ -20,6 +20,7 @@
   (:require [sicmutils
              [value :as v]
              [expression :as x]
+             [series :as series]
              [generic :as g]])
   (:import (clojure.lang IFn)))
 
@@ -107,13 +108,16 @@
 (defmethod g/exp
   [::operator]
   [g]
+  {:pre [(= (v/arity g) [:exactly 1])]}
   (let [step (fn step
                [n n! g**n]
                (lazy-seq (cons (g/divide g**n n!)
                                (step (inc n) (* n! (inc n)) (mul g g**n)))))]
     (Operator. (fn [f]
                  (with-meta
-                   #(map (fn [o] (apply (o f) %&)) (step 0 1 identity-operator))
+                   #(series/->Series
+                     (v/arity g)
+                     (map (fn [o] (apply (o f) %&)) (step 0 1 identity-operator)))
                    {:arity (v/arity f)}))
                (v/arity g)
                'exp)))

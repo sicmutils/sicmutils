@@ -19,10 +19,12 @@
 (ns sicmutils.operator-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
-            [sicmutils.value :as v]
-            [sicmutils.env :refer :all]
-            [sicmutils.operator :refer :all]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+            [sicmutils
+             [value :as v]
+             [env :refer :all]
+             [series :as series]
+             [operator :refer :all]
+             [simplify :refer [hermetic-simplify-fixture]]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
@@ -77,7 +79,8 @@
              (* 1/6 (((expt D 3) f) t) (expt ε 3))
              (* 1/24 (((expt D 4) f) t) (expt ε 4))
              (* 1/120 (((expt D 5) f) t) (expt ε 5)))
-           (simplify (take 6 (((exp (* 'ε D)) (literal-function 'f)) 't)))))
+           (simplify (take 6 (series/->seq
+                              (((exp (* 'ε D)) (literal-function 'f)) 't))))))
     (is (= '(0
              ε
              0
@@ -90,7 +93,8 @@
              (* 1/362880 (expt ε 9))
              0
              (* -1/39916800 (expt ε 11)))
-           (simplify (take 12 (((exp (* 'ε D)) sin) 0)))))
+           (simplify (take 12 (series/->seq
+                               (((exp (* 'ε D)) sin) 0))))))
     (is (= '(1
              0
              (* -1/2 (expt ε 2))
@@ -102,14 +106,16 @@
              (* 1/40320 (expt ε 8))
              0
              (* -1/3628800 (expt ε 10))
-             0) (simplify (take 12 (((exp (* 'ε D)) cos) 0)))))
+             0) (simplify (take 12 (series/->seq
+                                    (((exp (* 'ε D)) cos) 0))))))
     (is (= '(1
              (* 1/2 ε)
              (* -1/8 (expt ε 2))
              (* 1/16 (expt ε 3))
              (* -5/128 (expt ε 4))
              (* 7/256 (expt ε 5)))
-           (simplify (take 6 (((exp (* 'ε D)) #(sqrt (+ % 1))) 0)))))
+           (simplify (take 6 (series/->seq
+                              (((exp (* 'ε D)) #(sqrt (+ % 1))) 0))))))
     (is (= '(+
              (* 1/5040 (expt n 7) (expt ε 7))
              (* -1/240 (expt n 6) (expt ε 7))
@@ -118,6 +124,7 @@
              (* 29/90 (expt n 3) (expt ε 7))
              (* -7/20 (expt n 2) (expt ε 7))
              (* 1/7 n (expt ε 7)))
-           (simplify (nth (((exp (* 'ε D)) #(expt (+ 1 %) 'n)) 0) 7))))))
+           (simplify (nth (series/->seq
+                           (((exp (* 'ε D)) #(expt (+ 1 %) 'n)) 0)) 7))))))
 
     ;;; more testing to come as we implement multivariate literal functions that rely on operations on structures....
