@@ -53,10 +53,41 @@
                 series/->seq
                 (take 4)
                 g/simplify)))
-    #_(is (= '(0 m (* 2 m) (* 3 m))
-           (->> (series/generate identity)
+    (is (= '(0 r (* 2 r) (* 3 r))
+           (g/simplify (take 4 (series/->seq (g/* 'r (series/generate identity)))))))
+    (is (= '(3 5 7 0 0 0 0 0)
+           (take 8
+                 (series/->seq
+                  (g/+ (series/starting-with 1 2 3)
+                       (series/starting-with 2 3 4))))))
+    (is (= '(1 4 10 12 9 0 0)
+           (g/simplify
+            (take 7
+                  (series/->seq
+                   (g/*
+                    (series/starting-with 1 2 3)
+                    (series/starting-with 1 2 3)))))))
+    (is (= '(1 4 10 20 35 56 84)
+           (take 7
+                 (series/->seq
+                  (g/square
+                   (series/generate inc))))))
+    (is (= '(m (* 4 m) (* 10 m) (* 20 m))
+           (->> (series/generate inc)
                 g/square
                 (g/* 'm)
                 series/->seq
                 (take 4)
-                g/simplify)))))
+                g/simplify
+                )))
+    (is (= '(1 2 3 4 5 6)
+           (->> (series/generate (constantly 1))
+                g/square
+                series/->seq
+                (take 6))))
+    ;; the triangular numbers
+    (is (= '(1 3 6 10 15 21)
+           (->> (g/* (series/generate (constantly 1))
+                     (series/generate inc))
+                series/->seq
+                (take 6))))))

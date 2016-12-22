@@ -51,10 +51,21 @@
   [{s :s} n]
   (reduce g/+ (take n s)))
 
-(defn generate
-  [f]
-  (let [step (fn step [i] (lazy-seq (cons (f i) (step (inc i)))))]
-    (->Series [:exactly 0] (step 0))))
+(defn ^:private c*s [c s] (map #(g/* c %) s))
+
+(defn ^:private s*c [s c] (map #(g/* % c) s))
+
+(defn ^:private s+s [s t] (map #(g/+ %1 %2) s t))
+
+(defn ^:private s*s
+  [s t]
+  (let [step (fn step [s t]
+               (lazy-seq (cons (g/mul (first s) (first t))
+                               (s+s (c*s (first s) (rest t))
+                                    (step (rest s) t)))))]
+    (step s t)))
+
+(def generate #(->Series [:exactly 0] (map % (range))))
 
 (defn ->seq
   [s]
@@ -64,21 +75,24 @@
 
 (defmethod g/mul
   [::x/numerical-expression ::series]
-  [n s]
-  (->Series (:arity s) (map #(g/* n %) (:s s))))
+  [c s]
+  (->Series (:arity s) (c*s c (:s s))))
 
 (defmethod g/mul
   [::series ::x/numerical-expression]
-  [s n]
-  (->Series (:arity s) (map #(g/* % n) (:s s))))
+  [s c]
+  (->Series (:arity s) (s*c (:s s) c)))
+
+(defmethod g/mul
+  [::series ::series]
+  [s t]
+  {:pre [(= (:arity s) (:arity t))]}
+  (->Series (:arity s) (s*s (:s s) (:s t))))
 
 (defmethod g/add
   [::series ::series]
   [s t]
-  (->Series (:arity s) (map #(g/+ %1 %2) (:s s) (:s t))))
+  {:pre [(= (:arity s) (:arity t))]}
+  (->Series (:arity s) (s+s (:s s) (:s t))))
 
-#_(defmethod g/mul
-  [::series ::series]
-  [s t]
-  ;; todo: series multiplication; test with finite series
-  (->Series (:arity s) ))
+(defmethod g/square [::series] [s] (g/mul s s))
