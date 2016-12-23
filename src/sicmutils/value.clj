@@ -49,7 +49,8 @@
   (numerical? [_] false)
   (unity? [o] (when (number? o) (== o 1)))
   (exact? [o] (or (integer? o) (ratio? o)))
-  (zero-like [_] 0)
+  (zero-like [o] (cond (fn? o) (constantly 0)
+                       :else 0))
   (one-like [_] 1)
   (freeze [o] (cond
                 (vector? o) (mapv freeze o)
@@ -133,7 +134,7 @@
   "Find the joint arity of arities a and b, i.e. the loosest possible arity specification
   compatible with both. Throws if the arities are incompatible."
   [a b]
-  (let [fail #(throw (IllegalArgumentException. (str "Incompatible arities: " a b)))]
+  (let [fail #(throw (IllegalArgumentException. (str "Incompatible arities: " a " " b)))]
     ;; since the combination operation is symmetric, sort the arguments
     ;; so that we only have to implement the upper triangle of the
     ;; relation.

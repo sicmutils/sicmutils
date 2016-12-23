@@ -2,6 +2,7 @@
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer :all]
             [sicmutils
+             [value :as v]
              [numsymb]
              [env :refer :all]
              [series :as series]
@@ -24,11 +25,23 @@
     (is (= 0 (simplify ((+ ((Lie-derivative (W 'alpha 'beta)) (H0 'alpha))
                            (H1 'beta))
                         a-state))))
+    (is (= '((/ (expt p_theta 2) (* 2 a)) (* -1 (cos theta) b e) 0 0 0 0)
+           (simplify
+            (series/take 6
+                         ((H-pendulum-series 'a 'b 'e) a-state)))))
 
-    #_(is (= 'foo (type
-                 (((exp (* 'epsilon (Lie-derivative (W 'alpha 'beta))))
-                   (H-pendulum-series 'alpha 'beta 'epsilon))
-                  a-state))))
+    #_(let [H (H-pendulum-series 'a 'b 'e)
+          L (Lie-derivative (W 'a 'b))]
+      (is (= '[(/ (expt p_theta 2) (* 2 a))
+               (* -1 (cos theta) b e)
+               0]
+             (simplify (series/take 3 (H a-state)))))
+      (is (= 'foo (v/arity H)))
+      (is (= 'foo (v/arity L)))
+      (is (= 'foo (v/arity (L H))))
+      (is (= 'foo ((L H) a-state)))
+      )
+    #_(is (= 0 (simplify (take 3 (series/->seq )))))
     #_(is (= 0 (simplify
               (series:sum
                (((exp (* 'epsilon (Lie-derivative (W 'alpha 'beta))))

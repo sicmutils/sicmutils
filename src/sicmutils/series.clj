@@ -17,11 +17,12 @@
 ;
 
 (ns sicmutils.series
+  (:refer-clojure :rename {take core-take})
   (:require [sicmutils
              [value :as v]
              [expression :as x]
              [generic :as g]])
-  (:import (clojure.lang IFn Seqable)))
+  (:import (clojure.lang IFn Sequential)))
 
 ;; We would prefer to just use native Clojure lazy sequences to represent
 ;; series objects. But, they must be invokable as functions, so we must
@@ -34,12 +35,12 @@
   (nullity? [_] (empty? s))
   (unity? [_] false)
   (numerical? [_] false)
-  (freeze [_] 'series)
+  (freeze [s] 'a-series)
   (arity [_] arity)
   (kind [_] ::series)
   IFn
   (invoke [_ x] (->Series arity (map #(% x) s)))
-  (applyTo [s xs] (->Series arity (map #(apply % xs) s)))
+  (applyTo [s xs] (->Series arity (map #(apply % xs) (:s s))))
   Object
   (toString [_] "a-series"))
 
@@ -47,15 +48,33 @@
   [& xs]
   (->Series [:exactly 0] (concat xs (repeat (v/zero-like (first xs))))))
 
+(defn partial-sums
+  [s]
+  (let [step (fn step [x xs]
+               (lazy-seq (cons x
+                               (step (g/+ x (first xs))
+                                     (rest xs)))))]
+    (->Series (:arity s) (step (first (:s s)) (rest (:s s))))))
+
+(defn ->seq
+  [s]
+  (when-not (instance? Series s)
+    (throw (IllegalArgumentException. "not a series")))
+  (:s s))
+
+(defn take
+  [n s]
+  (->> s ->seq (core-take n)))
+
 (defn sum
   [{s :s} n]
-  (reduce g/+ (take n s)))
+  (reduce g/+ (core-take n s)))
 
 (defn ^:private c*s [c s] (map #(g/* c %) s))
 
 (defn ^:private s*c [s c] (map #(g/* % c) s))
 
-(defn ^:private s+s [s t] (map #(g/+ %1 %2) s t))
+(defn ^:private s+s [s t] (map g/+ s t))
 
 (defn ^:private s*s
   [s t]
@@ -66,12 +85,6 @@
     (step s t)))
 
 (def generate #(->Series [:exactly 0] (map % (range))))
-
-(defn ->seq
-  [s]
-  (when-not (instance? Series s)
-    (throw (IllegalArgumentException. "not a series")))
-  (:s s))
 
 (defmethod g/mul
   [::x/numerical-expression ::series]
@@ -96,3 +109,12 @@
   (->Series (:arity s) (s+s (:s s) (:s t))))
 
 (defmethod g/square [::series] [s] (g/mul s s))
+
+(defmethod g/partial-derivative
+  [::series Sequential]
+  [{s :s arity :arity} selectors]
+  (cond (= arity [:exactly 0])
+        (->Series arity (map #(g/partial-derivative % selectors) s))
+
+        :else
+        (throw (IllegalArgumentException. (str "Can't differentiate series with arity " arity)))))

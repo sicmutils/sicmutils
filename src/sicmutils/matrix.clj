@@ -84,8 +84,8 @@
 
 (defn by-rows
   [& rs]
-  {:pre [(not-empty rs)
-         (every? sequential? rs)]}
+  {:pre [(seq rs)
+         (every? seq rs)]}
   (let [r (count rs)
         cs (core-map count rs)]
     (when-not (every? #(= % (first cs)) (next cs))
