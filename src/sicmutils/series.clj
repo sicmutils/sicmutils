@@ -42,7 +42,7 @@
   (invoke [_ x] (->Series arity (map #(% x) s)))
   (applyTo [s xs] (->Series arity (map #(apply % xs) (:s s))))
   Object
-  (toString [_] "a-series"))
+  (toString [_] (str "[a-series " arity "]")))
 
 (defn starting-with
   [& xs]
@@ -97,6 +97,21 @@
   (->Series (:arity s) (s*c (:s s) c)))
 
 (defmethod g/mul
+  [:sicmtuils.function/function ::series]
+  [f s]
+  (->Series (:arity s) (c*s f (:s s))))
+
+(defmethod g/mul
+  [::series :sicmutils.function/function]
+  [s f]
+  (->Series (:arity s) (s*c (:s s) f)))
+
+(defmethod g/mul
+  [:sicmutils.function/function ::series]
+  [f s]
+  (->Series (:arity s) (c*s f (:s s))))
+
+(defmethod g/mul
   [::series ::series]
   [s t]
   {:pre [(= (:arity s) (:arity t))]}
@@ -107,6 +122,17 @@
   [s t]
   {:pre [(= (:arity s) (:arity t))]}
   (->Series (:arity s) (s+s (:s s) (:s t))))
+
+(defmethod g/negate
+  [::series]
+  [s]
+  (->Series (:arity s) (map g/negate (:s s))))
+
+(defmethod g/sub
+  [::series ::series]
+  [s t]
+  {:pre [(= (:arity s) (:arity t))]}
+  (->Series (:arity s) (s+s (:s s) (map g/negate (:s t)))))
 
 (defmethod g/square [::series] [s] (g/mul s s))
 

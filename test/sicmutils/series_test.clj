@@ -22,6 +22,7 @@
              [numsymb]
              [simplify]
              [generic :as g]
+             [function :as f]
              [series :as series]
              [value :as v]
              ]))
@@ -48,6 +49,8 @@
     (is (= '(0 2 6 12) (series/take 4 (g/+
                                        nats0
                                        (series/generate g/square)))))
+    (is (= '(0 -2 -6 -12)
+           (series/take 4 (g/negate (g/+ nats0 (series/generate g/square))))))
     (is (= '(0 m (* 2 m) (* 3 m))
            (->> nats0
                 (g/* 'm)
@@ -98,4 +101,14 @@
            (series/take 6
                         (series/partial-sums
                          ones))))
+    (is (= '((* 2 (f x)) (* 3 (f x)))
+           (g/simplify
+            (series/take 2
+                         ((g/* (series/starting-with 2 3)
+                               (f/literal-function 'f)) 'x)))))
+    (is (= '((* 2 (f y)) (* 3 (f y)))
+           (g/simplify
+            (series/take 2
+                         ((g/* (f/literal-function 'f)
+                               (series/starting-with 2 3)) 'y)))))
     ))

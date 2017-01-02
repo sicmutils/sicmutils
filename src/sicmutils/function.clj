@@ -210,7 +210,6 @@
 (derive ::s/structure ::cofunction)
 (derive ::m/matrix ::cofunction)
 (derive ::v/function ::function)
-(derive ::sicmutils.series/series ::cofunction)
 
 ;; ------------------------------------
 ;; Differentiation of literal functions

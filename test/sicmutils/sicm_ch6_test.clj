@@ -30,18 +30,21 @@
             (series/take 6
                          ((H-pendulum-series 'a 'b 'e) a-state)))))
 
-    #_(let [H (H-pendulum-series 'a 'b 'e)
+    (let [H (H-pendulum-series 'a 'b 'e)
           L (Lie-derivative (W 'a 'b))]
       (is (= '[(/ (expt p_theta 2) (* 2 a))
                (* -1 (cos theta) b e)
                0]
              (simplify (series/take 3 (H a-state)))))
-      (is (= 'foo (v/arity H)))
-      (is (= 'foo (v/arity L)))
-      (is (= 'foo (v/arity (L H))))
-      (is (= 'foo ((L H) a-state)))
+      (is (= [:exactly 0] (v/arity H)))
+      (is (= [:exactly 1] (v/arity L)))
+      (is (= [:exactly 1] (v/arity (L H))))
+      (is (= '[(* (cos theta) b)
+               (/ (* (expt (sin theta) 2) a (expt b 2) e) (expt p_theta 2))]
+             (simplify
+                (series/take 2
+                             ((L H) a-state)))))
       )
-    #_(is (= 0 (simplify (take 3 (series/->seq )))))
     #_(is (= 0 (simplify
               (series:sum
                (((exp (* 'epsilon (Lie-derivative (W 'alpha 'beta))))
