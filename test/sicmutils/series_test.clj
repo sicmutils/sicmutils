@@ -49,6 +49,9 @@
     (is (= '(0 2 6 12) (series/take 4 (g/+
                                        nats0
                                        (series/generate g/square)))))
+    (is (= '(3 6 9 12) (series/take 4 (g/* 3 nats))))
+    (is (= '(3 6 9 12) (series/take 4 (g/* nats 3))))
+    (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε)) (g/simplify (series/take 4 (g/* nats 'ε)))))
     (is (= '(0 -2 -6 -12)
            (series/take 4 (g/negate (g/+ nats0 (series/generate g/square))))))
     (is (= '(0 m (* 2 m) (* 3 m))

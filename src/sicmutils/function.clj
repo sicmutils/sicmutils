@@ -141,8 +141,14 @@
                   f-arity (if f-numeric (v/arity g) (v/arity f))
                   g-arity (if g-numeric f-arity (v/arity g))
                   arity (v/joint-arity [f-arity g-arity])
-                  f1 (if f-numeric (constantly f) f)
-                  g1 (if g-numeric (constantly g) g)]
+                  f1 (if f-numeric (with-meta
+                                     (constantly f)
+                                     {:arity arity
+                                      :from :binop}) f)
+                  g1 (if g-numeric (with-meta
+                                     (constantly g)
+                                     {:arity arity
+                                      :from :binop}) g)]
               (let [h (condp = arity
                         [:exactly 0]
                         #(operator (f1) (g1))
@@ -170,7 +176,7 @@
                         #(operator (apply f1 %&) (apply g1 %&))
                         (throw (IllegalArgumentException.
                                 (str  "unsupported arity for function arithmetic " arity))))]
-                (with-meta h {:arity f-arity}))))]
+                (with-meta h {:arity f-arity :from :function-binop}))))]
     (with-meta h {:arity [:exactly 2]})))
 
 (defmacro ^:private make-binary-operations

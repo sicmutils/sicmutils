@@ -47,39 +47,41 @@
 (def identity-operator
   (Operator. (fn [f] (with-meta
                        #(apply f %&)
-                       {:arity (v/arity f)})) [:at-least 0] 'identity))
+                       {:arity (v/arity f) :from :identity-operator})) [:at-least 0] 'identity))
 
 (defn- number->operator
-  [n]
+  "Lift numeric object n to an operator which multiplies the value of its
+  argument function. Arity as supplied."
+  [n a]
   (Operator. (fn [f] (with-meta
                        #(g/* n (apply f %&))
-                       {:arity (v/arity f)}))
+                       {:arity a :from :number->operator}))
              [:at-least 0]
-             'number))
+             `(~'number->operator ~n)))
 
 (defn ^:private function->operator
   [f]
   (Operator. (fn [g] (with-meta
                        #(g/* (apply f %&) (apply g %&))
-                       {:arity (v/arity g)}))
+                       {:arity (v/arity g) :from :function->operator}))
              (v/arity f)
-             'fn))
+             `(~'function->operator f)))
 
 (defn- sub
   [o p]
   (Operator. (fn [f] (with-meta
                        #(g/- (apply (o f) %&) (apply (p f) %&))
-                       {:arity (v/arity f)}))
+                       {:arity (v/arity f) :from :operator-sub}))
              (v/joint-arity [(v/arity o) (v/arity p)])
-             'sub))
+             `(~'- ~(:name o) ~(:name p))))
 
 (defn- add
   [o p]
   (Operator. (fn [f] (with-meta
                        #(g/+ (apply (o f) %&) (apply (p f) %&))
-                       {:arity (v/arity f)}))
+                       {:arity (v/arity f) :from :operator-add}))
              (v/joint-arity [(v/arity o) (v/arity p)])
-             'add))
+             `(~'+ ~(:name o) ~(:name p))))
 
 ;; multiplication of operators is treated like composition.
 (defn- mul
@@ -87,9 +89,9 @@
   [o p]
   (Operator. (fn [f] (with-meta
                        #(apply (o (p f)) %&)
-                       {:arity (v/arity f)}))
+                       {:arity (v/arity f) :from :operator-mul}))
              (v/joint-arity [(v/arity o) (v/arity p)])
-             'mul))
+             `(~'* ~(:name o) ~(:name p))))
 
 ;; Do we need to promote the second arg type (Number)
 ;; to ::x/numerical-expression?? -- check this ***AG***
@@ -118,7 +120,7 @@
                    #(series/->Series
                      (v/arity g)
                      (map (fn [o] (apply (o f) %&)) (step 0 1 identity-operator)))
-                   {:arity (v/arity f)}))
+                   {:arity [:exactly 1] :from :operator-exp}))
                (v/arity g)
                'exp)))
 
@@ -126,10 +128,10 @@
 ;; In additive operation the value 1 is considered as the identity operator
 (defmethod g/add [::operator ::x/numerical-expression]
   [o n]
-  (add o (number->operator n)))
+  (add o (number->operator n (v/arity o))))
 (defmethod g/add [::x/numerical-expression ::operator]
   [n o]
-  (add (number->operator n) o))
+  (add (number->operator n (v/arity o)) o))
 (defmethod g/add
   [::operator :sicmutils.function/function]
   [o f]
@@ -143,11 +145,11 @@
 (defmethod g/sub
   [::operator ::x/numerical-expression]
   [o n]
-  (sub o (number->operator n)))
+  (sub o (number->operator n (v/arity o))))
 (defmethod g/sub
   [::x/numerical-expression ::operator]
   [n o]
-  (sub (number->operator n) o))
+  (sub (number->operator n (v/arity o)) o))
 (defmethod g/sub
   [::operator :sicmutils.function/function]
   [o f]
@@ -172,15 +174,15 @@
 (defmethod g/mul
   [::operator ::x/numerical-expression]
   [o n]
-  (mul o (number->operator n)))
+  (mul o (number->operator n (v/arity o))))
 (defmethod g/mul
   [::x/numerical-expression ::operator]
   [n o]
-  (mul o (number->operator n)))
+  (mul (number->operator n (v/arity o)) o))
 (defmethod g/div
   [::operator ::x/numerical-expression]
   [o n]
-  (mul (number->operator (g/invert n)) o ))
+  (mul o (number->operator (g/invert n) (v/arity o))))
 
 
 (defmethod g/square [::operator] [o] (mul o o))
@@ -197,6 +199,3 @@
   [o p]
   (fn [f]
     #(g/cross-product (apply (o f) %&) (apply (p f) %&))))
-
-
-;; XXX: we need a bunch more of these, of course.

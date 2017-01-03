@@ -19,6 +19,7 @@
 (ns sicmutils.mechanics.hamilton
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [sicmutils
+             [value :as v] ;; XXX
              [generic :refer :all]
              [structure :refer :all]
              [operator :refer [make-operator]]

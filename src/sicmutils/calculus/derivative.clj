@@ -348,21 +348,22 @@
                                        v_i))
                                     v))
 
+
                   (or (g/numerical-quantity? v) (g/abstract-quantity? v))
                   ((derivative g) v)
 
                   :else
-                  (throw (IllegalArgumentException.
-                          (str "derivative argument not found for selectors "
-                               selectors)))))
+                  (throw (IllegalArgumentException. (str "bad structure " g ", " v)))))
           (a-euclidean-derivative [v]
             (cond (struct/structure? v)
                   (structural-derivative
                    (fn [w]
                      (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
                    (get-in v selectors))
+
                   (empty? selectors)
                   ((derivative f) v)
+
                   :else
                   (throw (IllegalArgumentException. (str "Bad selectors " f selectors v)))))]
     a-euclidean-derivative))
@@ -370,29 +371,29 @@
 (defn ^:private multivariate-derivative
   [f selectors]
   (let [a (v/arity f)
-        d (partial euclidean-structure selectors)]
+        d (partial euclidean-structure selectors)
+        make-df #(with-meta % {:arity a :from :multivariate-derivative})]
     (condp = a
-      [:exactly 0] (constantly 0)
-      [:exactly 1] (with-meta (d f) {:arity a})
-      [:exactly 2] (with-meta (fn [x y]
+      [:exactly 0] (make-df (constantly 0))
+      [:exactly 1] (make-df (d f))
+      [:exactly 2] (make-df (fn [x y]
                                 ((d (fn [[x y]] (f x y)))
-                                 (matrix/seq-> [x y]))) {:arity a})
-      [:exactly 3] (with-meta (fn [x y z]
+                                 (matrix/seq-> [x y]))))
+      [:exactly 3] (make-df (fn [x y z]
                                 ((d (fn [[x y z]] (f x y z)))
-                                 (matrix/seq-> [x y z]))) {:arity a})
-      [:exactly 4] (with-meta (fn [w x y z]
+                                 (matrix/seq-> [x y z]))))
+      [:exactly 4] (make-df (fn [w x y z]
                                 ((d (fn [[w x y z]] (f w x y z)))
-                                 (matrix/seq-> [w x y z]))) {:arity a})
-      [:between 1 2] (with-meta (fn [x & y]
+                                 (matrix/seq-> [w x y z]))))
+      [:between 1 2] (make-df (fn [x & y]
                                   (if (nil? y)
                                     ((d f) x)
                                     ((d (fn [[x y]] (f x y)))
-                                     (matrix/seq-> (cons x y))))) {:arity a})
-      [:at-least 0] (with-meta
+                                     (matrix/seq-> (cons x y))))))
+      [:at-least 0] (make-df
                       (fn [& xs]
                         ((d (fn [xs] (apply f xs)))
-                         (matrix/seq-> xs)))
-                      {:arity a})
+                         (matrix/seq-> xs))))
       (throw (IllegalArgumentException. (str "Haven't implemented this yet: arity " a))))))
 
 (defn ^:private define-binary-operation

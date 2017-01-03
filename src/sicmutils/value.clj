@@ -49,14 +49,17 @@
   (numerical? [_] false)
   (unity? [o] (when (number? o) (== o 1)))
   (exact? [o] (or (integer? o) (ratio? o)))
-  (zero-like [o] (cond (fn? o) (constantly 0)
+  (arity [o] (primitive-arity o))
+  (zero-like [o] (cond (fn? o) (with-meta
+                                 (constantly 0)
+                                 {:arity (arity o)
+                                  :from :object-zero-like})
                        :else 0))
   (one-like [_] 1)
   (freeze [o] (cond
                 (vector? o) (mapv freeze o)
                 (sequential? o) (map freeze o)
                 :else (or (@object-name-map o) o)))
-  (arity [o] (primitive-arity o))
   (kind [o] (primitive-kind o)))
 
 (extend-type nil

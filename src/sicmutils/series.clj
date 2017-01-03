@@ -67,8 +67,8 @@
   (->> s ->seq (core-take n)))
 
 (defn sum
-  [{s :s} n]
-  (reduce g/+ (core-take n s)))
+  [s n]
+  (-> s partial-sums ->seq (nth n)))
 
 (defn ^:private c*s [c s] (map #(g/* c %) s))
 
