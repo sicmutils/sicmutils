@@ -20,4 +20,4 @@
   :test-selectors {:default (complement :long)}
   :profiles {:uberjar {:aot :all}
              :travis {:jvm-opts ["-Xmx512M"]}
-             :test {:dependencies [[org.clojure/test.check "0.9.0"]]}})
+             :dev {:dependencies [[org.clojure/test.check "0.9.0"]]}})
