@@ -95,9 +95,12 @@
 
 (defn Poisson-bracket
   [f g]
+
   (fn [x]
     (let [fx (f x)
           gx (g x)]
+      (println (str  "Poisson-bracketing " f ", " g " @ " x " where fx is " fx " and gx is " gx))
+      (println "is one a structure?" (or (structure? fx) (structure? gx)))
       (if (or (structure? fx) (structure? gx))
         (mapr (fn [af]
                 (mapr (fn [ag]
@@ -219,14 +222,14 @@
   [H]
   (make-operator
    #(Poisson-bracket % H)
-   `(Lie-derivative ~H)))
+   `(~'Lie-derivative ~H)))
 
 (defn Lie-transform
   "p. 428"
   [H t]
   (make-operator
    (exp (* t (Lie-derivative H)))
-   `(Lie-transform ~H ~t)))
+   `(~'Lie-transform ~H ~t)))
 
 (defn H-central-polar
   [m V]

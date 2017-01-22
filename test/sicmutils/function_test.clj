@@ -59,7 +59,8 @@
                   (down (k↑2_0 t) (k↑2_1 t)))
              (g/simplify (k 't))))
       (is (= '(down (up (q_0↑0 t) (q_0↑1 t))
-                    (up (q_1↑0 t) (q_1↑1 t))) (g/simplify (q 't))))))
+                    (up (q_1↑0 t) (q_1↑1 t))) (g/simplify (q 't))))
+      (is (= '(down (up 0 0) (up 0 0)) (g/simplify ((v/zero-like q) 't))))))
   (testing "R^n -> structured range"
     (let [h (literal-function 'h [0 1] 0)]
       (is (= '(h x y) (g/simplify (h 'x 'y)))))

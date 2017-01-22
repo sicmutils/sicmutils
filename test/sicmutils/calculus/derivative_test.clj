@@ -298,7 +298,9 @@
                 (down 0 0 (* 12 (expt z 2)))
                 (down 0 (* 6 y) 0)
                 (down (* 12 (expt z 2)) 0 (* 24 x z))))
-             (simplify (((expt D 3) fff) 'x 'y 'z)))))))
+             (simplify (((expt D 3) fff) 'x 'y 'z)))))
+    (is (= 0 ((D (fn [x] 0)) 'x)))
+    (is (= 0 ((D (fn [& xs] 0)) 'x)))))
 
 (deftest literal-functions
   (with-literal-functions [f [g [0 0] 0]]
@@ -309,7 +311,10 @@
       (is (= '(((∂ 0) g) x y) (simplify (((∂ 0) g) 'x 'y))))
       (is (= '(((∂ 1) g) x y) (simplify (((∂ 1) g) 'x 'y))))
       (is (= '(down (((∂ 0) g) x y) (((∂ 1) g) x y))
-             (simplify ((D g) 'x 'y)))))))
+             (simplify ((D g) 'x 'y)))))
+    (testing "zero-like"
+      (is (= 0 ((v/zero-like f) 'x)))
+      (is (= 0 ((D (v/zero-like f)) 'x))))))
 
 (deftest complex-derivatives
   (let [i (complex 0 1)
