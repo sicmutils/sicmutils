@@ -388,12 +388,11 @@
                                     ((d f) x)
                                     ((d (fn [[x y]] (f x y)))
                                      (matrix/seq-> (cons x y))))) {:arity a})
-      [:at-least 0] (with-meta
-                      (fn [& xs]
-                        ((d (fn [xs] (apply f xs)))
-                         (matrix/seq-> xs)))
-                      {:arity a})
-      (throw (IllegalArgumentException. (str "Haven't implemented this yet: arity " a))))))
+      (fn [& xs]
+        (when (empty? xs) (throw (IllegalArgumentException. "No args passed to derivative?")))
+        (if (= (count xs) 1)
+          ((d f) (first xs))
+          ((d #(apply f %)) (matrix/seq-> xs)))))))
 
 (defn ^:private define-binary-operation
   [generic-operation differential-operation]

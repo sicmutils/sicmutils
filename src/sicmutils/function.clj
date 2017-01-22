@@ -77,6 +77,7 @@
   v/Value
   (nullity? [_] false)
   (unity? [_] false)
+  (zero-like [_] (fn [& xs] (v/zero-like range)))
   (numerical? [_] false)
   (freeze [_] (v/freeze expr))
   (arity [_] arity)
