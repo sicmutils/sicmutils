@@ -85,11 +85,23 @@
 (defn- mul
   "Multiplication of operators is defined as their composition"
   [o p]
-  (Operator. (fn [f] (with-meta
-                       #(apply (o (p f)) %&)
-                       {:arity (v/arity f)}))
-             (v/joint-arity [(v/arity o) (v/arity p)])
-             'mul))
+  (Operator. (with-meta (comp o p) {:arity (:arity p)})
+             (:arity p)
+             `(~'* ~o ~p)))
+
+(defn ^:private o*f
+  [o f]
+  (Operator. (fn [& gs]
+               (apply o (map (fn [g] (g/* f g)) gs)))
+             (:arity o)
+             `(~'* ~o ~f)))
+
+(defn ^:private f*o
+  [f o]
+  (Operator. (fn [& gs]
+               (g/* f (apply o gs)))
+             (:arity o)
+             `(~'* ~f ~o)))
 
 ;; Do we need to promote the second arg type (Number)
 ;; to ::x/numerical-expression?? -- check this ***AG***
@@ -161,27 +173,11 @@
 (defmethod g/mul [::operator ::operator] [o p] (mul o p))
 ;; When multiplied with operators, a number is treated as an operator
 ;; that multiplies its input by the number.
-(defmethod g/mul
-  [::operator :sicmutils.function/function]
-  [o f]
-  (mul o (function->operator f)))
-(defmethod g/mul
-  [:sicmutils.function/function ::operator]
-  [f o]
-  (mul (function->operator f) o))
-(defmethod g/mul
-  [::operator ::x/numerical-expression]
-  [o n]
-  (mul o (number->operator n)))
-(defmethod g/mul
-  [::x/numerical-expression ::operator]
-  [n o]
-  (mul o (number->operator n)))
-(defmethod g/div
-  [::operator ::x/numerical-expression]
-  [o n]
-  (mul (number->operator (g/invert n)) o ))
-
+(defmethod g/mul [::operator :sicmutils.function/function] [o f] (o*f o f))
+(defmethod g/mul [:sicmutils.function/function ::operator] [f o] (f*o f o))
+(defmethod g/mul [::operator ::x/numerical-expression] [o n] (o*f o n))
+(defmethod g/mul [::x/numerical-expression ::operator] [n o] (f*o n o))
+(defmethod g/div [::operator ::x/numerical-expression] [o n] (o*f o (g/invert n)))
 
 (defmethod g/square [::operator] [o] (mul o o))
 
