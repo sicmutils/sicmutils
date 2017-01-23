@@ -95,24 +95,24 @@
 
 (defn Poisson-bracket
   [f g]
-
   (fn [x]
     (let [fx (f x)
           gx (g x)]
-      (println (str  "Poisson-bracketing " f ", " g " @ " x " where fx is " fx " and gx is " gx))
-      (println "is one a structure?" (or (structure? fx) (structure? gx)))
-      (if (or (structure? fx) (structure? gx))
-        (mapr (fn [af]
-                (mapr (fn [ag]
-                        ((Poisson-bracket
-                          (comp (apply component af) f)
-                          (comp (apply component ag) g))
-                         x))
-                      (structure->access-chains gx)))
-              (structure->access-chains fx))
-        ((- (* ((∂ 1) f) ((∂ 2) g))
-            (* ((∂ 2) f) ((∂ 1) g)))
-         x)))))
+      (println (str "Poisson-bracket\n  f " f "\n  g " g "\n  x " x "\n  fx " fx "\n  gx " gx))
+      (let [P (if (or (structure? fx) (structure? gx))
+                (mapr (fn [af]
+                        (mapr (fn [ag]
+                                ((Poisson-bracket
+                                  (comp (apply component af) f)
+                                  (comp (apply component ag) g))
+                                 x))
+                              (structure->access-chains gx)))
+                      (structure->access-chains fx))
+                ((- (* ((∂ 1) f) ((∂ 2) g))
+                    (* ((∂ 2) f) ((∂ 1) g)))
+                 x))]
+        (println (str "  yields: " P))
+        P))))
 
 (defn standard-map
   [K]

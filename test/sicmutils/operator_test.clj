@@ -64,9 +64,11 @@
     (is (= (((*  (partial 1)  (partial 0)) ff) 'x 'y)
            (((partial 1) ((partial 0) ff)) 'x 'y))))
   (testing "operator derivative shape"
-    (is (= [:at-least 0] (:arity identity-operator)))
+    (is (= [:exactly 1] (:arity identity-operator)))
     (is (= [:exactly 1] (:arity D)))
     (is (= [:exactly 1] (:arity (* D identity-operator))))
+    (is (= [:exactly 1] (:arity (* 'e D))))
+    (is (= [:exactly 1] (:arity (* D 'e))))
     (is (= [:exactly 1] (v/arity sin)))
     (is (= [:exactly 1] (v/arity (identity-operator sin))))
     (is (= '(sin x) (simplify ((identity-operator sin) 'x))))
