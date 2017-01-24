@@ -17,17 +17,16 @@
 ;
 
 (ns sicmutils.series-test
+  (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
             [sicmutils
-             [numsymb]
-             [simplify]
-             [generic :as g]
-             [function :as f]
+             [env :refer :all]
              [series :as series]
-             [value :as v]
              [simplify :refer [hermetic-simplify-fixture]]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
+
+(defn ^:private simp4 [x] (simplify (series/take 4 x)))
 
 (deftest series-test
   (testing "basics"
@@ -40,7 +39,7 @@
      (is (= '(4 0 0 0 0 0 0 0) (series/take 8 Q)))
      (is (= '(4 3 0 0 0 0 0 0) (series/take 8 R)))
      (is (= '(4 3 2 0 0 0 0 0) (series/take 8 S)))
-     (is (= '(8 6 2 0 0 0 0 0) (series/take 8 (g/+ R S))))
+     (is (= '(8 6 2 0 0 0 0 0) (series/take 8 (+ R S))))
      (is (= 4 (series/sum S 0)))
      (is (= 7 (series/sum S 1)))
      (is (= 9 (series/sum S 2)))
@@ -49,55 +48,58 @@
      (is (= 9 (series/sum S 3)))
      (is (= 9 (series/sum S 4)))
      (is (= '(0 1 2 3) (series/take 4 nats0)))
-     (is (= '(0 1 4 9) (series/take 4 (series/generate g/square))))
-     (is (= '(0 2 6 12) (series/take 4 (g/+
+     (is (= '(0 1 4 9) (series/take 4 (series/generate square))))
+     (is (= '(0 2 6 12) (series/take 4 (+
                                         nats0
-                                        (series/generate g/square)))))
-     (is (= '(3 6 9 12) (series/take 4 (g/* 3 nats))))
-     (is (= '(3 6 9 12) (series/take 4 (g/* nats 3))))
-     (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε)) (g/simplify (series/take 4 (g/* nats 'ε)))))
-     (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε)) (g/simplify (series/take 4 (g/* 'ε nats)))))
+                                        (series/generate square)))))
+     (is (= '(3 6 9 12) (series/take 4 (* 3 nats))))
+     (is (= '(-3 -6 -9 -12) (series/take 4 (negate (* 3 nats)))))
+     (is (= '(1 4 9 16) (series/take 4 (series/map square nats))))
+     (is (= '(3 6 9 12) (series/take 4 (* nats 3))))
+     (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε)) (simplify (series/take 4 (* nats 'ε)))))
+     (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε)) (simplify (series/take 4 (* 'ε nats)))))
      (is (= '(0 -2 -6 -12)
-            (series/take 4 (g/negate (g/+ nats0 (series/generate g/square))))))
+            (series/take 4 (negate (+ nats0 (series/generate square))))))
+     (is (= '(17/4 7/2 11/4 1) (series/take 4 (+ (* 1/4 nats) S))))
      (is (= '(0 m (* 2 m) (* 3 m))
             (->> nats0
-                 (g/* 'm)
+                 (* 'm)
                  series/->seq
                  (take 4)
-                 g/simplify)))
+                 simplify)))
      (is (= '(0 r (* 2 r) (* 3 r))
-            (g/simplify (take 4 (series/->seq (g/* 'r nats0))))))
+            (simplify (take 4 (series/->seq (* 'r nats0))))))
      (is (= '(3 5 7 0 0 0 0 0)
             (series/take 8
-                         (g/+ (series/starting-with 1 2 3)
+                         (+ (series/starting-with 1 2 3)
                               (series/starting-with 2 3 4)))))
      (is (= '(1 4 10 12 9 0 0)
-            (g/simplify
+            (simplify
              (series/take 7
-                          (g/*
+                          (*
                            (series/starting-with 1 2 3)
                            (series/starting-with 1 2 3))))))
      ;; the tetrahedral numbers
      (is (= '(1 4 10 20 35 56 84)
             (take 7
                   (series/->seq
-                   (g/square
+                   (square
                     nats)))))
      (is (= '(m (* 4 m) (* 10 m) (* 20 m))
             (->> (series/generate inc)
-                 g/square
-                 (g/* 'm)
+                 square
+                 (* 'm)
                  series/->seq
                  (take 4)
-                 g/simplify)))
+                 simplify)))
      (is (= '(1 2 3 4 5 6)
             (->> ones
-                 g/square
+                 square
                  series/->seq
                  (take 6))))
      ;; the triangular numbers, via convolution
      (is (= '(1 3 6 10 15 21)
-            (->> (g/* ones nats)
+            (->> (* ones nats)
                  series/->seq
                  (take 6))))
      ;; again, via partial sums
@@ -110,20 +112,40 @@
                          (series/partial-sums
                           ones))))
      (is (= '((* 2 (f x)) (* 3 (f x)))
-            (g/simplify
+            (simplify
              (series/take 2
-                          ((g/* (series/starting-with 2 3)
-                                (f/literal-function 'f)) 'x)))))
+                          ((* (series/starting-with 2 3)
+                                (literal-function 'f)) 'x)))))
      (is (= '((* 2 (f y)) (* 3 (f y)))
-            (g/simplify
+            (simplify
              (series/take 2
-                          ((g/* (f/literal-function 'f)
+                          ((* (literal-function 'f)
                                 (series/starting-with 2 3)) 'y)))))
      ))
-  (testing "with functions"
-    (let [S (series/starting-with (f/literal-function 'f)
-                                  (f/literal-function 'g))]
+
+  (let [S (series/starting-with (literal-function 'f)
+                                (literal-function 'g))
+        T (series/starting-with (literal-function 'F [0 1] 0)
+                                (literal-function 'G [0 1] 0))
+        U (series/starting-with (literal-function 'W [(up 0 0)] 0)
+                                (literal-function 'Z [(up 0 0)] 0))
+        V (series/starting-with sin cos tan)]
+    (testing "with functions"
       (is (= '[(* (f x) (sin x)) (* (sin x) (g x)) 0 0]
-             (g/simplify (series/take 4 ((g/* S g/sin) 'x)))))
+             (simplify (series/take 4 ((* S sin) 'x)))))
       (is (= '[(* (f x) (sin x)) (* (sin x) (g x)) 0 0]
-             (g/simplify (series/take 4 ((g/* g/sin S) 'x))))))))
+             (simplify (series/take 4 ((* sin S) 'x))))))
+    (testing "and derivatives"
+      (is (= '(((D f) x) ((D g) x) 0 0)
+             (simplify (series/take 4 ((D S) 'x)))))
+      (is (= '((F x y) (G x y) 0 0) (simp4 (T 'x 'y))))
+      (is (= '((((∂ 0) F) x y) (((∂ 0) G) x y) 0 0) (simp4 (((∂ 0) T) 'x 'y))))
+      (is (= '((((∂ 1) F) x y) (((∂ 1) G) x y) 0 0) (simp4 (((∂ 1) T) 'x 'y))))
+      (is (= '((((∂ 0) W) (up r θ)) (((∂ 0) Z) (up r θ)) 0 0) (simp4 (((∂ 0) U) (up 'r 'θ)))))
+      (is (= '((((∂ 1) W) (up r θ)) (((∂ 1) Z) (up r θ)) 0 0) (simp4 (((∂ 1) U) (up 'r 'θ)))))
+      (is (= '[(sin t) (cos t) (tan t) 0] (simp4 (V 't))))
+      (is (= '[(cos t) (* -1 (sin t)) (/ 1 (expt (cos t) 2)) 0] (simp4 ((D V) 't)))))
+    (testing "f -> Series"
+      (let [F (fn [k] (series/starting-with (fn [t] (* k t)) (fn [t] (* k k t))))]
+        (is (= '((* q z) (* (expt q 2) z) 0 0) (simp4 ((F 'q) 'z))))
+        (is (= '(z (* 2 q z) 0 0) (simp4 (((D F) 'q) 'z))))))))

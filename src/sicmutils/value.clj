@@ -50,12 +50,15 @@
   (unity? [o] (when (number? o) (== o 1)))
   (exact? [o] (or (integer? o) (ratio? o)))
   (arity [o] (primitive-arity o))
-  (zero-like [o] (cond (fn? o) (with-meta
-                                 (constantly 0)
-                                 {:arity (arity o)
-                                  :from :object-zero-like})
-                       :else 0))
-  (one-like [_] 1)
+  (zero-like [o] (cond (number? o) 0
+                       (instance? clojure.lang.Symbol o) 0
+                       (or (fn? o) (instance? MultiFn o)) (with-meta
+                                                            (constantly 0)
+                                                            {:arity (arity o)
+                                                             :from :object-zero-like})
+                       :else (throw (UnsupportedOperationException. (str "zero-like: " o)))))
+  (one-like [o] (cond (number? o) 1
+                      :else (throw (UnsupportedOperationException. (str "one-like: " o)))))
   (freeze [o] (cond
                 (vector? o) (mapv freeze o)
                 (sequential? o) (map freeze o)

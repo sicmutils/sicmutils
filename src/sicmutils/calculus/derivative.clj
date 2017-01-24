@@ -21,6 +21,7 @@
              [value :as v]
              [generic :as g]
              [operator :as o]
+             [series :as series]
              [structure :as struct]
              [matrix :as matrix]]
             [clojure.set :as set]
@@ -43,6 +44,7 @@
   (nullity? [_] (every? g/zero? (map coefficient terms)))
   (unity? [_] false)
   (zero-like [_] 0)
+  (freeze [_] `[~'Differential ~@terms])
   (exact? [_] false)
   (numerical? [d] (g/numerical-quantity? (differential-of d)))
   (kind [_] ::differential))
@@ -192,6 +194,7 @@
             [obj]
             (cond (struct/structure? obj) (struct/mapr dist obj)
                   (matrix/matrix? obj) (matrix/map dist obj)
+                  (series/series? obj) (series/map dist obj)
                   (o/operator? obj) (do (throw (IllegalArgumentException. "can't differentiate an operator yet"))
                                         (extract obj))      ;; TODO: tag-hiding
                   ;; (matrix? obj) (m:elementwise dist obj) XXX
@@ -429,6 +432,7 @@
 (define-unary-operation g/square #(diff-* % %))
 (define-unary-operation g/cube #(diff-* % (diff-* % %)))
 (derive ::differential :sicmutils.function/cofunction)
+(derive ::differential ::series/coseries)
 
 (defmethod g/partial-derivative
   [:sicmutils.function/function Sequential]

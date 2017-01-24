@@ -17,10 +17,9 @@
 ;
 
 (ns sicmutils.series
-  (:refer-clojure :rename {take core-take})
+  (:refer-clojure :rename {take core-take map core-map})
   (:require [sicmutils
              [value :as v]
-             [expression :as x]
              [generic :as g]])
   (:import (clojure.lang IFn Sequential)))
 
@@ -35,14 +34,18 @@
   (nullity? [_] (empty? s))
   (unity? [_] false)
   (numerical? [_] false)
-  (freeze [s] 'a-series)
+  (freeze [_] `[~'Series ~arity ~@(core-map g/simplify (core-take 4 s)) ~'...])
   (arity [_] arity)
   (kind [_] ::series)
   IFn
-  (invoke [_ x] (->Series arity (map #(% x) s)))
-  (applyTo [s xs] (->Series arity (map #(apply % xs) (:s s))))
+  (invoke [_ x] (->Series arity (core-map #(% x) s)))
+  (invoke [_ x y] (->Series arity (core-map #(% x y) s)))
+  (invoke [_ x y z] (->Series arity (core-map #(% x y z) s)))
+  (applyTo [s xs] (->Series arity (core-map #(apply % xs) (:s s))))
   Object
-  (toString [_] (str "[a-series " arity "]")))
+  (toString [s] (str (v/freeze s))))
+
+(defn series? [s] (instance? Series s))
 
 (defn starting-with
   [& xs]
@@ -66,15 +69,19 @@
   [n s]
   (->> s ->seq (core-take n)))
 
+(defn map
+  [f s]
+  (->Series (:arity s) (core-map f (:s s))))
+
 (defn sum
   [s n]
   (-> s partial-sums ->seq (nth n)))
 
-(defn ^:private c*s [c s] (map #(g/* c %) s))
+(defn ^:private c*s [c s] (core-map #(g/* c %) s))
 
-(defn ^:private s*c [s c] (map #(g/* % c) s))
+(defn ^:private s*c [s c] (core-map #(g/* % c) s))
 
-(defn ^:private s+s [s t] (map g/+ s t))
+(defn ^:private s+s [s t] (core-map g/+ s t))
 
 (defn ^:private s*s
   [s t]
@@ -84,32 +91,17 @@
                                     (step (rest s) t)))))]
     (step s t)))
 
-(def generate #(->Series [:exactly 0] (map % (range))))
+(def generate #(->Series [:exactly 0] (core-map % (range))))
 
 (defmethod g/mul
-  [::x/numerical-expression ::series]
+  [::coseries ::series]
   [c s]
   (->Series (:arity s) (c*s c (:s s))))
 
 (defmethod g/mul
-  [::series ::x/numerical-expression]
+  [::series ::coseries]
   [s c]
   (->Series (:arity s) (s*c (:s s) c)))
-
-(defmethod g/mul
-  [:sicmtuils.function/function ::series]
-  [f s]
-  (->Series (:arity s) (c*s f (:s s))))
-
-(defmethod g/mul
-  [::series :sicmutils.function/function]
-  [s f]
-  (->Series (:arity s) (s*c (:s s) f)))
-
-(defmethod g/mul
-  [:sicmutils.function/function ::series]
-  [f s]
-  (->Series (:arity s) (c*s f (:s s))))
 
 (defmethod g/mul
   [::series ::series]
@@ -123,16 +115,13 @@
   {:pre [(= (:arity s) (:arity t))]}
   (->Series (:arity s) (s+s (:s s) (:s t))))
 
-(defmethod g/negate
-  [::series]
-  [s]
-  (->Series (:arity s) (map g/negate (:s s))))
+(defmethod g/negate [::series] [s] (map g/negate s))
 
 (defmethod g/sub
   [::series ::series]
   [s t]
   {:pre [(= (:arity s) (:arity t))]}
-  (->Series (:arity s) (s+s (:s s) (map g/negate (:s t)))))
+  (->Series (:arity s) (s+s (:s s) (core-map g/negate (:s t)))))
 
 (defmethod g/square [::series] [s] (g/mul s s))
 
@@ -140,7 +129,10 @@
   [::series Sequential]
   [{s :s arity :arity} selectors]
   (cond (= arity [:exactly 0])
-        (->Series arity (map #(g/partial-derivative % selectors) s))
+        (->Series arity (core-map #(g/partial-derivative % selectors) s))
 
         :else
         (throw (IllegalArgumentException. (str "Can't differentiate series with arity " arity)))))
+
+(derive ::sicmutils.expression/numerical-expression ::coseries)
+(derive ::sicmutils.function/function ::coseries)
