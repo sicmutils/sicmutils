@@ -27,8 +27,6 @@
 ;; series objects. But, they must be invokable as functions, so we must
 ;; wrap them in a defrecord.
 
-(declare apply-to apply-to*)
-
 (defrecord Series [arity s]
   v/Value
   (nullity? [_] (empty? s))
@@ -48,10 +46,14 @@
 (defn series? [s] (instance? Series s))
 
 (defn starting-with
+  "Form the infinite sequence starting with the supplied values. The
+  remainder of the series will be filled with the zero-value
+  corresponding to the first of the given values."
   [& xs]
   (->Series [:exactly 0] (concat xs (repeat (v/zero-like (first xs))))))
 
 (defn partial-sums
+  "Form the infinite sequence of partial sums of the given series"
   [s]
   (let [step (fn step [x xs]
                (lazy-seq (cons x
@@ -60,9 +62,10 @@
     (->Series (:arity s) (step (first (:s s)) (rest (:s s))))))
 
 (defn ->seq
+  "Convert the series to a (native, lazy) sequence of its values."
   [s]
   (when-not (instance? Series s)
-    (throw (IllegalArgumentException. "not a series")))
+    (throw (IllegalArgumentException. (str  "not a series:" (type s)))))
   (:s s))
 
 (defn take
@@ -90,6 +93,31 @@
                                (s+s (c*s (first s) (rest t))
                                     (step (rest s) t)))))]
     (step s t)))
+
+(defn value
+  "Find the value of the series S applied to the argument x.
+  This assumes that S is a series of applicables. If, in fact, S is a
+  series of series-valued applicables, then the result will be a sort
+  of layered sum of the values. Concretely, suppose that S has the
+  form
+    [[A1 A2 A3...] [B1 B2 B3...] [C1 C2 C3...]...]
+  Then, this series applied to x will yield the series of values
+    [A1 (+ A2 B1) (+ A3 B2 C1) ...]"
+  [S x]
+  (letfn [(collect [s]
+            (let [first-result ((first s) x)]
+              (if (series? first-result)
+                (let [fr (:s first-result)]
+                  (lazy-seq (cons (first fr)
+                                  (s+s (rest fr)
+                                       (collect (rest s))))))
+                ;; note that we have already realized first-result,
+                ;; so it does not need to be behind lazy-seq.
+                (cons first-result (lazy-seq (collect (rest s)))))))]
+    (cond (= (:arity S) [:exactly 0])
+          (->Series (:arity S) (collect (:s S)))
+
+          :else (throw (UnsupportedOperationException. (format "Cannot apply series of arity %s" (:arity S)))))))
 
 (def generate #(->Series [:exactly 0] (core-map % (range))))
 

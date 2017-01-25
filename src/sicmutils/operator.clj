@@ -110,19 +110,15 @@
 (defmethod g/exp
   [::operator]
   [g]
-  {:pre [(= (v/arity g) [:exactly 1])]}
-  (let [step (fn step
-               [n n! g**n]
-               (lazy-seq (cons (g/divide g**n n!)
-                               (step (inc n) (* n! (inc n)) (o*o g g**n)))))]
+  (letfn [(step [n n! g**n]
+            (lazy-seq (cons (g/divide g**n n!)
+                            (step (inc n) (* n! (inc n)) (o*o g g**n)))))]
     (Operator. (fn [f]
-                 (with-meta
-                   #(series/->Series
-                     (v/arity g)
-                     (map (fn [o] (apply (o f) %&)) (step 0 1 identity-operator)))
-                   {:arity [:exactly 1] :from :operator-exp}))
-               (v/arity g)
-               'exp)))
+                 (partial series/value (series/->Series
+                                        [:exactly 0]
+                                        (map #(% f) (step 0 1 identity-operator)))))
+               [:exactly 1]
+               `(~'exp ~g))))
 
 (defmethod g/add [::operator ::operator] [o p] (o+o o p))
 ;; In additive operation the value 1 is considered as the identity operator
