@@ -8,6 +8,8 @@
             [sicmutils.mechanics.hamilton :refer :all]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
+(use-fixtures :once hermetic-simplify-fixture)
+
 (deftest section-5-1
   (testing "central field"
     (is (= '(/
