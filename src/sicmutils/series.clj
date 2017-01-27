@@ -102,7 +102,7 @@
   form
     [[A1 A2 A3...] [B1 B2 B3...] [C1 C2 C3...]...]
   Then, this series applied to x will yield the series of values
-    [A1 (+ A2 B1) (+ A3 B2 C1) ...]"
+    [(A1 x) (+ (A2 x) (B1 x)) (+ (A3 x) (B2 x) (C1 x)) ...]"
   [S x]
   (letfn [(collect [s]
             (let [first-result ((first s) x)]
