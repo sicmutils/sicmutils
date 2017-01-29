@@ -20,7 +20,6 @@
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
-            [sicmutils.mechanics.lagrange :refer :all]
             [sicmutils.examples.double-pendulum :as double]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 

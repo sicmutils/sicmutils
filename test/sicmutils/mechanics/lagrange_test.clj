@@ -17,15 +17,11 @@
 ;
 
 (ns sicmutils.mechanics.lagrange-test
-  (:refer-clojure :exclude [+ - * / zero?])
+  (:refer-clojure :exclude [+ - * / ref partial zero?])
   (:require [clojure.test :refer :all]
-            [sicmutils
-             [generic :refer :all]
-             [function :refer :all]
-             [numbers]
-             [simplify :refer [hermetic-simplify-fixture]]
-             [structure :refer :all]]
-            [sicmutils.mechanics.lagrange :refer :all]))
+            [sicmutils.env :refer :all]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.mechanics.lagrange :as L]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
@@ -64,7 +60,7 @@
 
 (deftest lagrange-equations
   (testing "basics"
-    (let [Le (Lagrange-equations (L-free-particle 'm))
+    (let [Le (Lagrange-equations (L/L-free-particle 'm))
           literal-path (literal-function 'q)
           generic-path (up (literal-function 'x)
                            (literal-function 'y)
@@ -85,14 +81,14 @@
                             (+ (* 'b t) 'b0)
                             (+ (* 'c t) 'c0)))]
         (is (= (down 0 0 0)
-               (((Lagrange-equations (L-free-particle 'm))
+               (((Lagrange-equations (L/L-free-particle 'm))
                  test-path)
                 't))))
       (is (= '(* (((expt D 2) q) t) m)
-             (simplify (((Lagrange-equations (L-free-particle 'm)) q) 't))))
+             (simplify (((Lagrange-equations (L/L-free-particle 'm)) q) 't))))
       (let [proposed-solution (fn [t]
                                 (* 'a (cos (+ (* 'ω t) 'φ))))
-            lagrange-eqns (simplify (((Lagrange-equations (L-harmonic 'm 'k))
+            lagrange-eqns (simplify (((Lagrange-equations (L/L-harmonic 'm 'k))
                                       proposed-solution)
                                      't))]
         (is (= '(+ (* -1 (cos (+ (* t ω) φ)) a m (expt ω 2))
@@ -100,7 +96,7 @@
                lagrange-eqns)))
       (is (= '(down (* (((expt D 2) x) t) m)
                     (+ (* (((expt D 2) y) t) m) (* g m)))
-             (simplify (((Lagrange-equations (L-uniform-acceleration 'm 'g))
+             (simplify (((Lagrange-equations (L/L-uniform-acceleration 'm 'g))
                          (up x y))
                         't))))
       (is (= '(down (/ (+ (* (((expt D 2) x) t) (sqrt (+ (expt (x t) 2) (expt (y t) 2))) m)
@@ -109,7 +105,7 @@
                     (/ (+ (* (((expt D 2) y) t) (sqrt (+ (expt (x t) 2) (expt (y t) 2))) m)
                           (* (y t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
                        (sqrt (+ (expt (x t) 2) (expt (y t) 2)))))
-             (simplify (((Lagrange-equations (L-central-rectangular 'm U))
+             (simplify (((Lagrange-equations (L/L-central-rectangular 'm U))
                          (up x y))
                         't))))
       (is (= '(down (+ (* -1 (expt ((D φ) t) 2) (r t) m)
@@ -117,7 +113,7 @@
                        ((D U) (r t)))
                     (+ (* 2 ((D φ) t) (r t) ((D r) t) m)
                        (* (expt (r t) 2) (((expt D 2) φ) t) m)))
-             (simplify (((Lagrange-equations (L-central-polar 'm U))
+             (simplify (((Lagrange-equations (L/L-central-polar 'm U))
                          (up r φ))
                         't))))
 

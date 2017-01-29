@@ -110,12 +110,6 @@
     (is (= (down 4 5 6) (vector->down [4 5 6])))
     (is (thrown? AssertionError (vector->up '(1 2 3)))))
   (testing "function - rotate about x axis"
-    (defn Rx [θ]
-      (fn [[x y z]]
-        (let [c (cos θ) s (sin θ)]
-          (up x
-              (- (* c y) (* s z))
-              (+ (* s y) (* c z))))))
     (is (= (up 0 0 1) ((Rx 'pi-over-2) (up 0 1 0))))
     (is (= (up 'x (sicmutils.generic/- 'z) 'y) ((Rx 'pi-over-2) (up 'x 'y 'z)))))
   (testing "square/cube"

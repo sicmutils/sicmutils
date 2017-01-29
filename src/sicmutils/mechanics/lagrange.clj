@@ -108,21 +108,24 @@
 
 ;; ---- end of functions undefined in Scmutils --------
 
-(def ->local up)
+(defn ->L-state
+  "Constructs a Lagrangian state, also knows as a local tuple"
+  [t q v & as]
+  (apply up t q v as))
 
 (defn F->C [F]
   (fn [[t _ v :as local]]
-    (->local t
-             (F local)
-             (+ (((∂ 0) F) local)
-                (* (((∂ 1) F) local) v)))))
+    (->L-state t
+               (F local)
+               (+ (((∂ 0) F) local)
+                  (* (((∂ 1) F) local) v)))))
 
 (defn p->r
   "SICM p. 47"
   [[_ [r φ]]]
   (up (* r (cos φ)) (* r (sin φ))))
 
-(defn Γ
+(defn Gamma
   ([q]
    (let [Dq (D q)]
      (with-meta
@@ -134,7 +137,7 @@
      (fn [t]
        (->> Dqs (map #(% t)) (cons t) (apply up))))))
 
-(def Gamma Γ)
+(def Γ Gamma)
 
 (defn Lagrangian-action
   [L q t1 t2]
@@ -159,19 +162,19 @@
     (assert (= (count xs) n))
     (with-meta
       (fn [x]
-       (reduce + 0
-               (for [i (range n)]
-                 (/ (reduce * 1
-                            (for [j (range n)]
-                              (if (= j i)
-                                (nth ys i)
-                                (- x (nth xs j)))))
-                    (let [xi (nth xs i)]
-                      (reduce * 1
-                              (for [j (range n)]
-                                (cond (< j i) (- (nth xs j) xi)
-                                      (= j i) (if (odd? i) -1 1)
-                                      :else (- xi (nth xs j))))))))))
+        (reduce + 0
+                (for [i (range n)]
+                  (/ (reduce * 1
+                             (for [j (range n)]
+                               (if (= j i)
+                                 (nth ys i)
+                                 (- x (nth xs j)))))
+                     (let [xi (nth xs i)]
+                       (reduce * 1
+                               (for [j (range n)]
+                                 (cond (< j i) (- (nth xs j) xi)
+                                       (= j i) (if (odd? i) -1 1)
+                                       :else (- xi (nth xs j))))))))))
       {:arity [:exactly 1]})))
 
 (defn Lagrangian->acceleration
@@ -199,7 +202,7 @@
     (let [state-path (qv->state-path q v)]
       (- (D state-path)
          (compose (Lagrangian->state-derivative L)
-               state-path)))))
+                  state-path)))))
 
 (defn Lagrangian->energy
   [L]
@@ -216,8 +219,8 @@
           (if (= n k)
             sum
             (recur (inc n)
-              (+ sum (* (nth state0 n) dt-n:n!))
-              (/ (* dt-n:n! dt) n))))))))
+                   (+ sum (* (nth state0 n) dt-n:n!))
+                   (/ (* dt-n:n! dt) n))))))))
 
 (defn Γ-bar
   [f]
@@ -243,52 +246,14 @@
     (- (* 1/2 m (square qdot))
        (V q0 q1))))
 
-(defn T-pendulum
-  [m l _ ys]
-  (fn [local]
-    (let [[t θ θdot] local
-          vys (D ys)]
-      (* 1/2 m
-         (+ (square (* l θdot))
-            (square (vys t))
-            (* 2 l (vys t) θdot (sin θ)))))))
-
-(defn V-pendulum
-  [m l g ys]
-  (fn [local]
-    (let [[t θ _] local]
-      (* m g (- (ys t) (* l (cos θ)))))))
-
-(def L-pendulum (- T-pendulum V-pendulum))
-
-(defn periodic-drive
-  [amplitude frequency phase]
-  (fn [t]
-    (* amplitude (cos (+ (* frequency t) phase)))))
-
-(defn L-periodically-driven-pendulum
-  [m l g a ω]
-  (let [ys (periodic-drive a ω 0)]
-    (L-pendulum m l g ys)))
-
-(defn L-axisymmetric-top
-  [A C gMR]
-  (fn [[t [theta phi psi] [thetadot phidot psidot]]]
-    (+ (* 1/2 A
-          (+ (square thetadot)
-             (square (* phidot (sin theta)))))
-       (* 1/2 C
-          (square (+ psidot (* phidot (cos theta)))))
-       (* -1 gMR (cos theta)))))
-
 (defn make-path
   "SICM p. 23n"
   [t0 q0 t1 q1 qs]
   (let [n (count qs)
         ts (linear-interpolants t0 t1 n)]
     (Lagrange-interpolation-function
-     `[~q0 ~@qs ~q1]
-     `[~t0 ~@ts ~t1])))
+      `[~q0 ~@qs ~q1]
+      `[~t0 ~@ts ~t1])))
 
 (defn parametric-path-action
   "SICM p. 23"
@@ -304,8 +269,8 @@
   (let [initial-qs (linear-interpolants q0 q1 n)
         minimizing-qs
         (multidimensional-minimize
-         (parametric-path-action Lagrangian t0 q0 t1 q1)
-         initial-qs observe)]
+          (parametric-path-action Lagrangian t0 q0 t1 q1)
+          initial-qs observe)]
     (make-path t0 q0 t1 q1 minimizing-qs)))
 
 (defn s->r

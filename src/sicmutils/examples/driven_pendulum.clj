@@ -19,12 +19,21 @@
 (ns sicmutils.examples.driven-pendulum
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [sicmutils.env :refer :all]
-            [sicmutils.mechanics.lagrange :refer :all]))
+            [sicmutils.examples.pendulum :as pendulum]))
+
+(defn vertical-periodic-drive
+  [amplitude frequency phase]
+  (fn [t]
+    (up 0 (* amplitude (cos (+ (* frequency t) phase))))))
+
+(defn L
+  [m l g a ω]
+  (pendulum/L m l g (vertical-periodic-drive a ω 0)))
 
 (defn state-derivative
   [m l g a ω]
   (Lagrangian->state-derivative
-    (L-periodically-driven-pendulum m l g a ω)))
+    (L m l g a ω)))
 
 (defn equations
   []

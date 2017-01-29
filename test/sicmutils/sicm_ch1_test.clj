@@ -19,11 +19,14 @@
 (ns sicmutils.sicm-ch1-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer :all]
-            [sicmutils.env :refer :all]
-            [sicmutils.mechanics.lagrange :refer :all]
-            [sicmutils.mechanics.rotation :refer [Rx Ry Rz]]
-            [sicmutils.value :refer [within]]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+            [sicmutils
+             [env :refer :all]
+             [value :refer [within]]
+             [simplify :refer [hermetic-simplify-fixture]]]
+            [sicmutils.mechanics.lagrange :as L]
+            [sicmutils.examples
+             [pendulum :as pendulum]
+             [driven-pendulum :as driven]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
@@ -42,7 +45,7 @@
           varied-free-particle-action (fn [mass q ν t1 t2]
                                         (fn [ε]
                                           (let [η (make-η ν t1 t2)]
-                                            (Lagrangian-action (L-free-particle mass)
+                                            (Lagrangian-action (L/L-free-particle mass)
                                                                (+ q (* ε η)) t1 t2))))]
       ;; integral
       (is (near 2.0 (definite-integral sin 0 Math/PI)))
@@ -71,11 +74,11 @@
                (* 1/2 (expt ((D x) t) 2) m)
                (* 1/2 (expt ((D y) t) 2) m)
                (* 1/2 (expt ((D z) t) 2) m))
-             (simplify ((compose (L-free-particle 'm) (Γ q)) 't))))
+             (simplify ((compose (L/L-free-particle 'm) (Γ q)) 't))))
       ;; at this point in the text we should be able to show-expression
       ;; in TeX form XXX.
       ;; p. 20
-      (is (= 435.0 (Lagrangian-action (L-free-particle 3.0) test-path 0.0 10.0)))
+      (is (= 435.0 (Lagrangian-action (L/L-free-particle 3.0) test-path 0.0 10.0)))
       (let [m (minimize (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) -2.0 1.0)]
         (is (near 0.0 (first m)))
         (is (near 435 (second m))))
@@ -84,7 +87,7 @@
       ;; multidimensional minimization of find-path involves computing a numeric integration
       ;; to find the Lagrangian of the path induced by the point. But it works.
       (let [values (atom [])
-            minimal-path (find-path (L-harmonic 1.0 1.0) 0. 1. (/ Math/PI 2) 0. 3
+            minimal-path (find-path (L/L-harmonic 1.0 1.0) 0. 1. (/ Math/PI 2) 0. 3
                                     :observe (fn [pt _] (swap! values conj pt)))
             good? (partial (within 2e-4) 0)
             errors (for [x (range 0.0 (/ Math/PI 2) 0.02)]
@@ -100,7 +103,7 @@
   (with-literal-functions [x f g q η φ]
     (let [F (fn [q] (fn [t] (f (q t))))
           G (fn [q] (fn [t] (g (q t))))
-          δ_η (δ η)
+          δ_η (L/δ η)
           φ (fn [f] (fn [q] (fn [t] (φ ((f q) t)))))
           test-path (fn [t] (up (+ 'a0 (* 'a t))
                                 (+ 'b0 (* 'b t))
@@ -116,21 +119,21 @@
              (simplify (((δ_η (* F G)) q) 't))))
       (is (= '(* (η t) ((D f) (q t)) ((D φ) (f (q t)))) (simplify (((δ_η (φ F)) q) 't))))
       ;; p. 35
-      (is (= (down 0 0 0) (((Lagrange-equations (L-free-particle 'm)) test-path) 't)))
+      (is (= (down 0 0 0) (((Lagrange-equations (L/L-free-particle 'm)) test-path) 't)))
       (is (= '(* (((expt D 2) x) t) m)
-             (simplify (((Lagrange-equations (L-free-particle 'm)) x) 't))))
+             (simplify (((Lagrange-equations (L/L-free-particle 'm)) x) 't))))
       (is (= '(+ (* -1 (cos (+ (* t ω) φ)) a m (expt ω 2)) (* (cos (+ (* t ω) φ)) a k))
-             (simplify (((Lagrange-equations (L-harmonic 'm 'k)) proposed-solution) 't)))))))
+             (simplify (((Lagrange-equations (L/L-harmonic 'm 'k)) proposed-solution) 't)))))))
 
 
 (deftest section-1-6
   (with-literal-functions [x y r θ φ U y_s]
     (let [L-alternate-central-polar (fn [m U]
-                                      (compose (L-central-rectangular m U)
+                                      (compose (L/L-central-rectangular m U)
                                                (F->C p->r)))]
       (is (= '(down (* (((expt D 2) x) t) m)
                     (+ (* (((expt D 2) y) t) m) (* g m)))
-             (simplify (((Lagrange-equations (L-uniform-acceleration 'm 'g))
+             (simplify (((Lagrange-equations (L/L-uniform-acceleration 'm 'g))
                          (up x y)) 't))))
       (is (= '(down (/ (+ (* (((expt D 2) x) t) (sqrt (+ (expt (x t) 2) (expt (y t) 2))) m)
                           (* (x t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
@@ -138,7 +141,7 @@
                     (/ (+ (* (((expt D 2) y) t) (sqrt (+ (expt (x t) 2) (expt (y t) 2))) m)
                           (* (y t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
                        (sqrt (+ (expt (x t) 2) (expt (y t) 2)))))
-             (simplify (((Lagrange-equations (L-central-rectangular 'm U))
+             (simplify (((Lagrange-equations (L/L-central-rectangular 'm U))
                          (up x y))
                         't))))
       (is (= '(down (+ (* -1 (expt ((D φ) t) 2) (r t) m)
@@ -146,7 +149,7 @@
                        ((D U) (r t)))
                     (+ (* 2 ((D φ) t) (r t) ((D r) t) m)
                        (* (expt (r t) 2) (((expt D 2) φ) t) m)))
-             (simplify (((Lagrange-equations (L-central-polar 'm U))
+             (simplify (((Lagrange-equations (L/L-central-polar 'm U))
                          (up r φ))
                         't))))
       (is (= '(up
@@ -168,10 +171,10 @@
              (simplify (((Lagrange-equations (L-alternate-central-polar 'm U))
                          (up r φ))
                         't))))
-      (is (= '(+ (* (((expt D 2) θ) t) (expt l 2) m)
-                 (* (((expt D 2) y_s) t) (sin (θ t)) l m)
-                 (* (sin (θ t)) g l m))
-             (simplify (((Lagrange-equations (L-pendulum 'm 'l 'g y_s)) θ) 't))))
+      (is (= '(+ (* (((expt D 2) y_s) t) (sin (θ t)) l m)
+                 (* (sin (θ t)) g l m)
+                 (* (((expt D 2) θ) t) (expt l 2) m))
+             (simplify (((Lagrange-equations (pendulum/L 'm 'l 'g (up (fn [t] 0) y_s))) θ) 't))))
       ;; p. 61
       (let [Lf (fn [m g]
                  (fn [[_ [_ y] v]]
@@ -194,7 +197,7 @@
 (deftest ^:long section-1-7-1
   (with-literal-functions [x y v_x v_y]
     (let [harmonic-state-derivative (fn [m k]
-                                      (Lagrangian->state-derivative (L-harmonic m k)))]
+                                      (Lagrangian->state-derivative (L/L-harmonic m k)))]
       (is (= '(up 1
                   (up v_x v_y)
                   (up (/ (* -1 k x) m) (/ (* -1 k y) m)))
@@ -206,7 +209,7 @@
                       (+ ((D y) t) (* -1 (v_y t))))
                   (up (/ (+ (* (x t) k) (* ((D v_x) t) m)) m)
                       (/ (+ (* (y t) k) (* ((D v_y) t) m)) m)))
-             (simplify (((Lagrange-equations-first-order (L-harmonic 'm 'k))
+             (simplify (((Lagrange-equations-first-order (L/L-harmonic 'm 'k))
                          (up x y)
                          (up v_x v_y))
                         't))))
@@ -231,12 +234,12 @@
 (deftest section-1-7-2
   (let [pend-state-derivative (fn [m l g a ω]
                                 (Lagrangian->state-derivative
-                                 (L-periodically-driven-pendulum m l g a ω)))]
+                                  (driven/L m l g a ω)))]
     (is (= '(+ (* -1 (sin (θ t)) (cos (* t ω)) a l m (expt ω 2))
-               (* (((expt D 2) θ) t) (expt l 2) m)
-               (* (sin (θ t)) g l m))
+               (* (sin (θ t)) g l m)
+               (* (((expt D 2) θ) t) (expt l 2) m))
            (simplify (((Lagrange-equations
-                        (L-periodically-driven-pendulum 'm 'l 'g 'a 'ω))
+                        (driven/L 'm 'l 'g 'a 'ω))
                        (literal-function 'θ))
                       't))))
     ;; NB. fraction simplification not happening here
@@ -301,7 +304,7 @@
                (* 1/2 m (expt rdot 2))
                (V r))
              (simplify ((Lagrangian->energy (L3-central 'm V)) spherical-state))))
-      (let [L (L-central-rectangular 'm U)
+      (let [L (L/L-central-rectangular 'm U)
             F-tilde (fn [angle-x angle-y angle-z]
                       (compose (Rx angle-x)
                                (Ry angle-y)
@@ -323,7 +326,7 @@
 (deftest section-1-9
   (let [F->C (fn [F]
                (let [f-bar #(->> % Γ (compose F) Γ)]
-                 (Γ-bar f-bar)))]
+                 (Gamma-bar f-bar)))]
     (is (= '(up t
                 (up (* (cos θ) r)
                     (* (sin θ) r))
@@ -332,10 +335,10 @@
            (simplify ((F->C p->r)
                       (->local 't (up 'r 'θ) (up 'rdot 'θdot)))))))
   (is (= '(+ (* a m) (* k x))
-         (simplify ((Euler-Lagrange-operator (L-harmonic 'm 'k))
+         (simplify ((Euler-Lagrange-operator (L/L-harmonic 'm 'k))
                     (->local 't 'x 'v 'a)))))
   (with-literal-functions [x]
     (is (= '(+ (* (((expt D 2) x) t) m) (* (x t) k))
            (simplify ((compose
-                       (Euler-Lagrange-operator (L-harmonic 'm 'k))
-                       (Γ x 4)) 't))))))
+                       (Euler-Lagrange-operator (L/L-harmonic 'm 'k))
+                       (Gamma x 4)) 't))))))

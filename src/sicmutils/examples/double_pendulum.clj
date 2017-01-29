@@ -18,8 +18,7 @@
 
 (ns sicmutils.examples.double-pendulum
   (:refer-clojure :exclude [+ - * / zero? partial ref])
-  (:require [sicmutils.env :refer :all]
-            [sicmutils.mechanics.lagrange :refer :all]))
+  (:require [sicmutils.env :refer :all]))
 
 (defn- coords
   [l1 l2 θ φ]

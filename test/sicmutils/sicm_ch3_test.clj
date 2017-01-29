@@ -2,9 +2,11 @@
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
-            [sicmutils.mechanics.lagrange :refer :all]
-            [sicmutils.mechanics.hamilton :refer :all]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+            [sicmutils.mechanics.lagrange :as L]
+            [sicmutils.mechanics.hamilton :as H]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.examples.driven-pendulum :as driven]
+            [sicmutils.examples.axisymmetric-top :as top]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
@@ -16,17 +18,17 @@
                 (down (+ ((D p_x) t) (((∂ 0) V) (x t) (y t)))
                       (+ ((D p_y) t) (((∂ 1) V) (x t) (y t)))))
            (simplify (((Hamilton-equations
-                              (H-rectangular
-                                'm
-                                (literal-function 'V (-> (X Real Real) Real))))
-                             (up (literal-function 'x) (literal-function 'y))
-                             (down (literal-function 'p_x) (literal-function 'p_y)))
-                            't)))))
+                         (H/H-rectangular
+                           'm
+                           (literal-function 'V (-> (X Real Real) Real))))
+                        (up (literal-function 'x) (literal-function 'y))
+                        (down (literal-function 'p_x) (literal-function 'p_y)))
+                       't)))))
   (testing "p.198"
     (is (= '(/ (+ (* 2 (V x y) m) (expt p_x 2) (expt p_y 2))
                (* 2 m))
            (simplify ((Lagrangian->Hamiltonian
-                        (L-rectangular
+                        (L/L-rectangular
                           'm (literal-function 'V (-> (X Real Real) Real))))
                        (up 't (up 'x 'y) (down 'p_x 'p_y))))))))
 
@@ -47,8 +49,8 @@
                   (expt p_phi 2))
                (* 2 m (expt r 2)))
            (simplify ((Lagrangian->Hamiltonian
-                       (L-central-polar 'm (literal-function 'V)))
-                      (up 't (up 'r 'phi) (down 'p_r 'p_phi))))))
+                        (L/L-central-polar 'm (literal-function 'V)))
+                       (up 't (up 'r 'phi) (down 'p_r 'p_phi))))))
     (is (= '(up 0
                 (up (/ (+ (* ((D r) t) m) (* -1 (p_r t))) m)
                     (/ (+ (* (expt (r t) 2) ((D phi) t) m)
@@ -60,13 +62,13 @@
                          (* (expt (r t) 3) m))
                       ((D p_phi) t)))
            (simplify (((Hamilton-equations
-                        (Lagrangian->Hamiltonian
-                         (L-central-polar 'm (literal-function 'V))))
-                       (up (literal-function 'r)
-                           (literal-function 'phi))
-                       (down (literal-function 'p_r)
-                             (literal-function 'p_phi)))
-                      't)))))
+                         (Lagrangian->Hamiltonian
+                           (L/L-central-polar 'm (literal-function 'V))))
+                        (up (literal-function 'r)
+                            (literal-function 'phi))
+                        (down (literal-function 'p_r)
+                              (literal-function 'p_phi)))
+                       't)))))
   (testing "p.213"
     (is (= '(/ (+ (* 2 (expt (sin theta) 2) (cos theta) A C gMR)
                   (* (expt (sin theta) 2) A (expt p_psi 2))
@@ -75,16 +77,16 @@
                   (* -2 (cos theta) C p_phi p_psi)
                   (* C (expt p_phi 2)))
                (* 2 (expt (sin theta) 2) A C))
-           (simplify ((Lagrangian->Hamiltonian (L-axisymmetric-top 'A 'C 'gMR))
-                      (up 't
-                          (up 'theta 'phi 'psi)
-                          (down 'p_theta 'p_phi 'p_psi)))))))
+           (simplify ((Lagrangian->Hamiltonian (top/L-axisymmetric-top 'A 'C 'gMR))
+                       (up 't
+                           (up 'theta 'phi 'psi)
+                           (down 'p_theta 'p_phi 'p_psi)))))))
   (testing "p.214"
     (let [top-state (up 't
                         (up 'theta 'phi 'psi)
                         (down 'p_theta 'p_phi 'p_psi))
           H (Lagrangian->Hamiltonian
-             (L-axisymmetric-top 'A 'C 'gMR))
+              (top/L-axisymmetric-top 'A 'C 'gMR))
           sysder (Hamiltonian->state-derivative H)]
       (is (= '(/ (+ (* 2 (expt (sin theta) 2) (cos theta) A C gMR)
                     (* (expt (sin theta) 2) A (expt p_psi 2))
@@ -95,29 +97,29 @@
                  (* 2 (expt (sin theta) 2) A C))
              (simplify (H top-state))))
       (is (= '(up
-               1
-               (up
-                (/ p_theta A)
-                (/ (+ (* -1 (cos theta) p_psi) p_phi) (* (expt (sin theta) 2) A))
-                (/
-                 (+
-                  (* (expt (sin theta) 2) A p_psi)
-                  (* (expt (cos theta) 2) C p_psi)
-                  (* -1 (cos theta) C p_phi))
-                 (* (expt (sin theta) 2) A C)))
-               (down
-                (/
-                 (+
-                  (* (expt (cos theta) 4) A gMR)
-                  (* -2 (expt (cos theta) 2) A gMR)
-                  (* -1 (expt (cos theta) 2) p_phi p_psi)
-                  (* (cos theta) (expt p_phi 2))
-                  (* (cos theta) (expt p_psi 2))
-                  (* A gMR)
-                  (* -1 p_phi p_psi))
-                 (* (expt (sin theta) 3) A))
-                0
-                0)) (simplify (sysder top-state))))
+                1
+                (up
+                  (/ p_theta A)
+                  (/ (+ (* -1 (cos theta) p_psi) p_phi) (* (expt (sin theta) 2) A))
+                  (/
+                    (+
+                      (* (expt (sin theta) 2) A p_psi)
+                      (* (expt (cos theta) 2) C p_psi)
+                      (* -1 (cos theta) C p_phi))
+                    (* (expt (sin theta) 2) A C)))
+                (down
+                  (/
+                    (+
+                      (* (expt (cos theta) 4) A gMR)
+                      (* -2 (expt (cos theta) 2) A gMR)
+                      (* -1 (expt (cos theta) 2) p_phi p_psi)
+                      (* (cos theta) (expt p_phi 2))
+                      (* (cos theta) (expt p_psi 2))
+                      (* A gMR)
+                      (* -1 p_phi p_psi))
+                    (* (expt (sin theta) 3) A))
+                  0
+                  0)) (simplify (sysder top-state))))
       (is (= (str "function(A, C, gMR, p_phi, p_psi, p_theta, theta) {\n"
                   "  var _1 = Math.sin(theta);\n"
                   "  var _2 = Math.pow(Math.cos(theta), 2);\n"
@@ -129,8 +131,8 @@
 (deftest section-3-5
   (testing "p.221"
     (let [H ((Lagrangian->Hamiltonian
-              (L-periodically-driven-pendulum 'm 'l 'g 'a 'omega))
-             (up 't 'theta 'p_theta))]
+               (driven/L 'm 'l 'g 'a 'omega))
+              (up 't 'theta 'p_theta))]
       (is (= '(/ (+ (* -1 (expt (sin (* omega t)) 2)
                        (expt (cos theta) 2)
                        (expt a 2)
@@ -149,10 +151,10 @@
                  (* 2 (expt l 2) m))
              (simplify H))))
     (let [sysder (simplify
-                  ((Hamiltonian->state-derivative
-                    (Lagrangian->Hamiltonian
-                     (L-periodically-driven-pendulum 'm 'l 'g 'a 'omega)))
-                   (up 't 'theta 'p_theta)))]
+                   ((Hamiltonian->state-derivative
+                      (Lagrangian->Hamiltonian
+                        (driven/L 'm 'l 'g 'a 'omega)))
+                     (up 't 'theta 'p_theta)))]
       (is (= '(up 1
                   (/ (+ (* (sin (* omega t)) (sin theta) a l m omega) p_theta) (* (expt l 2) m))
                   (/ (+ (* -1N (expt (sin (* omega t)) 2) (sin theta) (cos theta) (expt a 2) l m (expt omega 2))

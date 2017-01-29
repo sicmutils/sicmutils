@@ -17,6 +17,9 @@
 ;
 
 (ns sicmutils.env
+  "The purpose of these definitions is to let the import of sicmutils.env
+   bring all the functions in the book into scope without qualification,
+   so you can just start working with examples."
   (:refer-clojure :exclude [+ - * / zero?]
                   :rename {ref core-ref partial core-partial})
   (:require [sicmutils
@@ -36,6 +39,9 @@
              [minimize :as min]
              [ode :as ode]
              [integrate :as intg]]
+            [sicmutils.mechanics.lagrange :as L]
+            [sicmutils.mechanics.hamilton :as H]
+            [sicmutils.mechanics.rotation :as R]
             [sicmutils.calculus.derivative :as d]
             [sicmutils.value :as v]))
 
@@ -147,3 +153,49 @@
 
 (def series series/starting-with)
 (def series:sum series/sum)
+
+(def Lagrangian-action L/Lagrangian-action)
+(def Lagrangian->state-derivative L/Lagrangian->state-derivative)
+(def Lagrange-equations L/Lagrange-equations)
+(def Lagrange-equations-first-order L/Lagrange-equations-first-order)
+(def Lagrangian->energy L/Lagrangian->energy)
+(def Euler-Lagrange-operator L/Euler-Lagrange-operator)
+(def Gamma L/Gamma)
+(def Γ Gamma)
+(def Gamma-bar L/Gamma-bar)
+(def Lagrange-interpolation-function L/Lagrange-interpolation-function)
+(def linear-interpolants L/linear-interpolants)
+(def osculating-path L/osculating-path)
+
+(def F->C L/F->C)
+(def coordinate L/coordinate)
+(def coordinate-tuple L/coordinate-tuple)
+(def velocity L/velocity)
+(def ->local L/->L-state)
+(def ->L-state L/->L-state)
+(def p->r L/p->r)
+(def s->r L/s->r)
+(def find-path L/find-path)
+
+(def momentum H/momentum)
+(def momentum-tuple H/momentum-tuple)
+(def ->H-state H/->H-state)
+(def Legendre-transform H/Legendre-transform)
+(def Hamilton-equations H/Hamilton-equations)
+(def Poisson-bracket H/Poisson-bracket)
+(def Lagrangian->Hamiltonian H/Lagrangian->Hamiltonian)
+(def Hamiltonian->state-derivative H/Hamiltonian->state-derivative)
+(def compositional-canonical? H/compositional-canonical?)
+(def time-independent-canonical? H/time-independent-canonical?)
+(def F->CT H/F->CT)
+(def polar-canonical H/polar-canonical)
+(def symplectic-transform? H/symplectic-transform?)
+(def Lie-derivative H/Lie-derivative)
+(def Lie-transform H/Lie-transform)
+(def symplectic-unit H/symplectic-unit)
+(def iterated-map H/iterated-map)
+
+(def Rx R/Rx)
+(def Ry R/Ry)
+(def Rz R/Rz)
+

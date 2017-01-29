@@ -197,10 +197,7 @@
                   (series/series? obj) (series/map dist obj)
                   (o/operator? obj) (do (throw (IllegalArgumentException. "can't differentiate an operator yet"))
                                         (extract obj))      ;; TODO: tag-hiding
-                  ;; (matrix? obj) (m:elementwise dist obj) XXX
                   ;; (quaternion? obj) XXX
-                  ;; (series? obj) XXX
-                  ;;
                   ;; ((operator? obj)
                   ;;  (hide-tag-in-procedure dx
                   ;;                         (g:* (make-operator dist 'extract (operator-subtype obj))

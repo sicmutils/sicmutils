@@ -2,13 +2,10 @@
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer :all]
             [sicmutils
-             [value :as v]
              [numsymb]
              [env :refer :all]
              [series :as series]
-             [operator :as o]
-             [simplify :refer [hermetic-simplify-fixture]]]
-            [sicmutils.mechanics.hamilton :refer :all]))
+             [simplify :refer [hermetic-simplify-fixture]]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 

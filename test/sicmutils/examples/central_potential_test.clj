@@ -20,7 +20,6 @@
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all :exclude [function?]]
             [sicmutils.env :refer :all]
-            [sicmutils.mechanics.lagrange :refer :all]
             [sicmutils.examples.central-potential :as central]))
 
 (deftest equations

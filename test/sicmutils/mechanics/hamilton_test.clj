@@ -22,8 +22,8 @@
             [sicmutils.env :refer :all]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.mechanics
-             [hamilton :refer :all]
-             [lagrange :refer :all]]))
+             [hamilton :as H]
+             [lagrange :as L]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
@@ -40,7 +40,7 @@
                 (down (+ ((D p_x) t) (((∂ 0) V) (x t) (y t)))
                       (+ ((D p_y) t) (((∂ 1) V) (x t) (y t)))))
            (simplify (((Hamilton-equations
-                        (H-rectangular
+                        (H/H-rectangular
                          'm V))
                        (up x y)
                        (down p_x p_y))
@@ -49,11 +49,11 @@
            (simplify ((Legendre-transform (fn [x] (* 'c x x))) 'y))))
     (is (= '(* 1/4 (expt p 2)) (simplify ((Legendre-transform square) 'p))))
     (is (= '(+ (* 1/2 m (expt v_x 2)) (* 1/2 m (expt v_y 2)) (* -1 (V x y)))
-           (simplify ((L-rectangular 'm V) (up 't (up 'x 'y) (up 'v_x 'v_y))))))
+           (simplify ((L/L-rectangular 'm V) (up 't (up 'x 'y) (up 'v_x 'v_y))))))
     (is (= '(/ (+ (* 2 (V x y) m) (expt p_x 2) (expt p_y 2))
                (* 2 m))
            (simplify ((Lagrangian->Hamiltonian
-                       (L-rectangular 'm V))
+                       (L/L-rectangular 'm V))
                       (up 't (up 'x 'y) (down 'p_x 'p_y))))))))
 
 (deftest gjs-tests
@@ -68,7 +68,7 @@
 
          (with-literal-functions [x y p_x p_y [V [0 1] 2]]
            (simplify (((Hamilton-equations
-                        (H-rectangular
+                        (H/H-rectangular
                          'm V))
                        (coordinate-tuple x y)
                        (momentum-tuple p_x p_y))
@@ -82,7 +82,7 @@
          (with-literal-functions [[V [0 1] 2]]
            (simplify
             ((Lagrangian->Hamiltonian
-              (L-central-polar 'm (literal-function 'V)))
+              (L/L-central-polar 'm (literal-function 'V)))
              (->H-state 't
                         (coordinate-tuple 'r 'phi)
                         (momentum-tuple 'p_r 'p_phi)))))))
@@ -98,7 +98,7 @@
            (simplify
             (((Hamilton-equations
                (Lagrangian->Hamiltonian
-                (L-central-polar 'm V)))
+                (L/L-central-polar 'm V)))
               (coordinate-tuple r phi)
               (momentum-tuple p_r p_phi))
              't)))))
@@ -116,7 +116,7 @@
            (simplify
             (((Hamilton-equations
                (Lagrangian->Hamiltonian
-                (L-central-polar 'm
+                (L/L-central-polar 'm
                                  (fn [r] (- (/ (* 'GM 'm) r))))))
               (coordinate-tuple r phi)
               (momentum-tuple p_r p_phi))

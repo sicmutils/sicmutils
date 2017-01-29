@@ -66,7 +66,6 @@
 
 (defn hermetic-simplify-fixture
   [f]
-  (log/info "Setting up hermetic simplification fixture")
   (binding [*rf-analyzer* (rational-function-analyzer)
             *poly-analyzer* (poly-analyzer)]
     (f)))

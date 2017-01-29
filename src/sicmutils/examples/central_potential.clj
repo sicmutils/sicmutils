@@ -21,8 +21,7 @@
   (:require [clojure.tools.logging :as log]
             [hiccup.core :refer :all]
             [hiccup.page :refer :all]
-            [sicmutils.env :refer :all]
-            [sicmutils.mechanics.lagrange :refer :all]))
+            [sicmutils.env :refer :all]))
 
 (defn- pairs
   "Return a sequence of pairs of different elements from the given sequence."
