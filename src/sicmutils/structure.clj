@@ -81,7 +81,7 @@
   {:pre [(vector? v)]}
   (Struct. ::down v))
 
-(defn- make
+(defn ^:private make
   [orientation xs]
   (Struct. orientation (into [] xs)))
 
@@ -118,7 +118,7 @@
   [s xs]
   (make (orientation s) xs))
 
-(defn- elementwise
+(defn ^:private elementwise
   "Given a binary operator and two structures of the same size, return
   a structure with the same orientation as the first formed from the
   elementwise binary operation between corresponding elements of the
@@ -176,26 +176,26 @@
       (same s (assoc v k (structure-assoc-in (v k) ks value)))
       (same s (assoc v k value)))))
 
-(defn- compatible-for-contraction?
+(defn ^:private compatible-for-contraction?
   "True if s and t are equal in length but opposite in orientation"
   [s t]
   (and (= (count s) (count t))
        (not= (orientation s) (orientation t))))
 
-(defn- inner-product
+(defn ^:private inner-product
   "The inner produce of compatible structures (opposite orientation, same
   length)."
   [s t]
   (reduce g/+ (map g/* s t)))
 
-(defn- outer-product
+(defn ^:private outer-product
   "The outer product of s and t is the structure s with each element at the
   first level post-multiplied by all of t, following the usual structure
   multiplication rules."
   [s t]
   (same t (map #(g/* s %) t)))
 
-(defn- cross-product
+(defn ^:private cross-product
   "Cross product of structures of length 3. Input orientations are ignored;
   result is an up-tuple."
   [s t]
@@ -207,7 +207,7 @@
         (g/- (g/* s2 t0) (g/* s0 t2))
         (g/- (g/* s0 t1) (g/* t0 s1)))))
 
-(defn- mul
+(defn ^:private mul
   "If s and t are compatible for contraction, returns their inner product,
   else their outer product."
   [s t]
@@ -219,7 +219,7 @@
 ;; perhaps structures are not typically raised to high
 ;; exponents.
 
-(defn- expt
+(defn ^:private expt
   "Raise the structure s to the nth power."
   [s n]
   (cond (= n 1) s
