@@ -4,7 +4,7 @@
 
 (defn L-axisymmetric-top
   [A C gMR]
-  (fn [[t [theta phi psi] [thetadot phidot psidot]]]
+  (fn [[_ [theta _ _] [thetadot phidot psidot]]]
     (+ (* 1/2 A
           (+ (square thetadot)
              (square (* phidot (sin theta)))))

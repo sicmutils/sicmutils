@@ -39,9 +39,8 @@
   (invoke [_ x] (->Series arity (core-map #(% x) s)))
   (invoke [_ x y] (->Series arity (core-map #(% x y) s)))
   (invoke [_ x y z] (->Series arity (core-map #(% x y z) s)))
-  (applyTo [s xs] (->Series arity (core-map #(apply % xs) (:s s))))
   Object
-  (toString [s] (str (v/freeze s))))
+  (toString [S] (str (v/freeze S))))
 
 (defn series? [s] (instance? Series s))
 

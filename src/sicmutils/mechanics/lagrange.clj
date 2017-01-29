@@ -104,8 +104,6 @@
                 (f (+ q (* ε η))))]
         ((D g) 0)))))
 
-(def delta δ)
-
 ;; ---- end of functions undefined in Scmutils --------
 
 (defn ->L-state
@@ -242,7 +240,7 @@
 (defn L-rectangular
   "Lagrangian for a point mass on with the potential energy V(x, y)"
   [m V]
-  (fn [[_ [q0 q1] qdot]]  ;; local
+  (fn [[_ [q0 q1] qdot]]
     (- (* 1/2 m (square qdot))
        (V q0 q1))))
 

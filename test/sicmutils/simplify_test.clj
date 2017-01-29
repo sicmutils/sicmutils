@@ -20,16 +20,13 @@
   (require [clojure.test :refer :all]
            [sicmutils
             [simplify :refer [hermetic-simplify-fixture simplify-expression expression->string]]
-            [analyze :as a]
             [structure :refer :all]
-            [expression :as x]
             [complex :as c]
             [generic :as g]
             [structure :as s]
             [matrix :as matrix]
             [numbers]
             [function :as f]
-            [polynomial :as poly]
             [value :as v]]
            [sicmutils.mechanics.lagrange :refer :all]))
 

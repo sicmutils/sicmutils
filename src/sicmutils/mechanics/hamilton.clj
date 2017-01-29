@@ -19,7 +19,6 @@
 (ns sicmutils.mechanics.hamilton
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [sicmutils
-             [value :as v] ;; XXX
              [generic :refer :all]
              [structure :refer :all]
              [operator :refer [make-operator]]
@@ -113,7 +112,7 @@
 
 (defn standard-map
   [K]
-  (fn [theta I return failure]
+  (fn [theta I return _]
     (let [nI (+ I (* K (sin theta)))]
       (return ((principal-value twopi) (+ theta nI))
               ((principal-value twopi) nI)))))
@@ -142,16 +141,16 @@
   "A transformation of configuration coordinates F to a procedure
   implementing a transformation of phase-space coordinates (p. 320)"
   [F]
-  (fn [[t q p :as H-state]]
+  (fn [[t _ p :as H-state]]
     (up t
         (F H-state)
         (* p (invert (((∂ 1) F) H-state))))))
 
 (defn H-central
   [m V]
-  (fn [[t x p :as H-state]]
+  (fn [[_ q p]]
     (+  (/ (square p) (* 2 m))
-        (V (sqrt (square x))))))
+        (V (sqrt (square q))))))
 
 ;; page numbers here are references to the PDF; probably
 ;; do not correspond to 1ed.
@@ -230,8 +229,8 @@
 
 (defn H-central-polar
   [m V]
-  (fn [[_ [r phi] [pr pphi]]]
-    (+ (/ (+ (square pr)
-             (square (/ pphi r)))
+  (fn [[_ [r _] [p_r p_phi]]]
+    (+ (/ (+ (square p_r)
+             (square (/ p_phi r)))
           (* 2 m))
        (V r))))

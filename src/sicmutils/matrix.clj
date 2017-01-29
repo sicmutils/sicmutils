@@ -114,12 +114,12 @@
   GJS: Any matrix in the argument list wants to be converted to a row of
   columns"
   [s]
-  (apply s/up (core-map #(if (instance? Matrix %) (->structure % s/down s/up) %) s)))
+  (apply s/up (core-map #(if (instance? Matrix %) (->structure % s/down s/up false) %) s)))
 
 (defn ^:private mul
   "Multiplies the two matrices a and b"
-  [{ra :r ca :c va :v :as a}
-   {rb :r cb :c vb :v :as b}]
+  [{ra :r ca :c va :v}
+   {rb :r cb :c vb :v}]
   (when (not= ca rb)
     (throw (IllegalArgumentException. "matrices incompatible for multiplication")))
   (generate ra cb #(reduce g/+ (for [k (range ca)]
@@ -128,7 +128,7 @@
 
 (defn ^:private elementwise
   "Applies f elementwise between the matrices a and b."
-  [f {ra :r ca :c va :v :as a} {rb :r cb :c vb :v :as b}]
+  [f {ra :r ca :c va :v} {rb :r cb :c vb :v}]
   (when (or (not= ra rb) (not= ca cb))
     (throw (IllegalArgumentException. "matrices incompatible for operation")))
   (generate ra ca #(f (core-get-in va [%1 %2]) (core-get-in vb [%1 %2]))))
@@ -161,7 +161,7 @@
 
 (defn ^:private M*u
   "Multiply a matrix by an up structure on the right. The return value is up."
-  [{r :r c :c v :v :as m} u]
+  [{r :r c :c v :v} u]
   (when (not= c (count u))
     (throw (IllegalArgumentException. "matrix and tuple incompatible for multiplication")))
   (apply s/up
@@ -173,7 +173,7 @@
 
 (defn ^:private d*M
   "Multiply a matrix by a down tuple on the left. The return value is down."
-  [d {r :r c :c v :v :as m}]
+  [d {r :r c :c v :v}]
   (when (not= r (count d))
     (throw (IllegalArgumentException. "matrix and tuple incompatible for multiplication")))
   (apply s/down
@@ -273,7 +273,7 @@
   at x. Typically x will be a dummy variable, but if you wanted to get the
   value of the characteristic polynomial at some particular point, you could
   supply a different expression."
-  [{r :r c :c v :v :as m} x]
+  [{r :r c :c :as m} x]
   (when-not (= r c) (throw (IllegalArgumentException. "not square")))
   (determinant (g/- (g/* x (I r)) m)))
 

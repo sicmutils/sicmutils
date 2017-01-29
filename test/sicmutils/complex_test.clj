@@ -19,7 +19,6 @@
 (ns sicmutils.complex-test
   (:require [clojure.test :refer :all]
             [sicmutils
-             [value :as v]
              [generic :as g]
              [complex :refer :all]]))
 

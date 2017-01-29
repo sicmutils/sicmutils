@@ -20,9 +20,7 @@
   (:require [clojure.test :refer :all]
             [sicmutils
              [rational-function :refer :all]
-             [expression :as x]
              [generic :as g]
-             [value :as v]
              [structure :as s]
              [polynomial :as p]
              [numbers]

@@ -26,7 +26,8 @@
             [sicmutils.mechanics.lagrange :as L]
             [sicmutils.examples
              [pendulum :as pendulum]
-             [driven-pendulum :as driven]]))
+             [driven-pendulum :as driven]])
+  (:import (javax.management.remote.rmi _RMIConnection_Stub)))
 
 (use-fixtures :once hermetic-simplify-fixture)
 

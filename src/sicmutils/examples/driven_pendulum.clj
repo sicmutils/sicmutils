@@ -37,7 +37,7 @@
 
 (defn equations
   []
-  (simplify ((state-derivative 'm 'l 'g 'a 'ω 'φ)
+  (simplify ((state-derivative 'm 'l 'g 'a 'ω)
              (up 't 'θ_0 'θdot_0))))
 
 (defn evolver

@@ -194,6 +194,7 @@
 (def Lie-transform H/Lie-transform)
 (def symplectic-unit H/symplectic-unit)
 (def iterated-map H/iterated-map)
+(def standard-map H/standard-map)
 
 (def Rx R/Rx)
 (def Ry R/Ry)

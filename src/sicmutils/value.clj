@@ -18,7 +18,7 @@
 
 (ns sicmutils.value
   (:refer-clojure :rename {zero? core-zero?})
-  (:import (clojure.lang RestFn MultiFn)
+  (:import (clojure.lang RestFn MultiFn Symbol)
            (java.lang.reflect Method)))
 
 (defprotocol Value
@@ -51,7 +51,7 @@
   (exact? [o] (or (integer? o) (ratio? o)))
   (arity [o] (primitive-arity o))
   (zero-like [o] (cond (number? o) 0
-                       (instance? clojure.lang.Symbol o) 0
+                       (instance? Symbol o) 0
                        (or (fn? o) (instance? MultiFn o)) (with-meta
                                                             (constantly 0)
                                                             {:arity (arity o)
