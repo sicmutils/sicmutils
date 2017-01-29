@@ -141,7 +141,7 @@
 (defmulti determinant v/argument-kind)
 (defmethod determinant [:arity] [_] [:exactly 1])
 
-(defn- bin+ [a b]
+(defn ^:private bin+ [a b]
   (cond (and (number? a) (number? b)) (+' a b)
         (zero? a) b
         (zero? b) a
@@ -150,7 +150,7 @@
 (defn + [& args]
   (reduce bin+ 0 args))
 
-(defn- bin- [a b]
+(defn ^:private bin- [a b]
   (cond (and (number? a) (number? b)) (-' a b)
         (zero? b) a
         (zero? a) (negate b)
@@ -161,7 +161,7 @@
         (nil? (next args)) (negate (first args))
         :else (bin- (first args) (reduce bin+ (next args)))))
 
-(defn- bin* [a b]
+(defn ^:private bin* [a b]
   (cond (and (number? a) (number? b)) (*' a b)
         (and (number? a) (zero? a)) (v/zero-like b)
         (and (number? b) (zero? b)) (v/zero-like a)
@@ -183,7 +183,7 @@
 (defn * [& args]
   (reduce bin* 1 args))
 
-(defn- bin-div [a b]
+(defn ^:private bin-div [a b]
   (cond (and (number? a) (number? b)) (core-div a b)
         (one? b) a
         :else (div a b)))

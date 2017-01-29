@@ -121,7 +121,7 @@
 ;; Algebra of functions
 ;;
 
-(defn- unary-operation
+(defn ^:private unary-operation
   "For a unary operator (like sqrt), returns a function of one function
   which when called will apply the operation to the result of the
   original function (so that ((unary-operation sqrt) f) x) will return
@@ -129,7 +129,7 @@
   [operator]
   (with-meta (partial comp operator) {:arity [:exactly 1]}))
 
-(defn- binary-operation
+(defn ^:private binary-operation
   "For a given binary operator (like +), returns a function of two
   functions which will produce the pointwise operation of the results
   of applying the two functions to the input. That
@@ -247,7 +247,7 @@
         :else
         (list derivative-symbol expr)))
 
-(defn- make-partials
+(defn ^:private make-partials
   [f v]
   ;; GJS calls this function (the loop below) "fd"; we have no idea
   ;; what that stands for or what
@@ -273,7 +273,7 @@
     (fd [] v)))
 
 
-(defn- literal-derivative
+(defn ^:private literal-derivative
   [f xs]
   (let [v (m/seq-> xs)
         maxtag (->> v flatten d/max-order-tag)
@@ -286,7 +286,7 @@
                                    (flatten (make-partials f v))
                                    (flatten dv)))))))
 
-(defn- check-argument-type
+(defn ^:private check-argument-type
   "Check that the argument provided at index i has the same type as
   the exemplar expected."
   [f provided expected indexes]
@@ -308,7 +308,7 @@
         :else (throw (IllegalArgumentException.
                       (str "unexpected argument example " expected)))))
 
-(defn- literal-apply
+(defn ^:private literal-apply
   [f xs]
   (check-argument-type f xs (:domain f) [0])
   (if (some d/differential? xs)

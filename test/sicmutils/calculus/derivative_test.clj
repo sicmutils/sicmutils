@@ -38,7 +38,7 @@
       (literal-function 'y)
       (literal-function 'z)))
 
-(defn- δ
+(defn ^:private δ
   [η]
   (fn [f]
     ;; Define g(ε) as in Eq. 1.22; then δ_η f[q] = Dg(0)

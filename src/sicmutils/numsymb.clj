@@ -25,7 +25,7 @@
             [clojure.math.numeric-tower :as nt])
   (:import (clojure.lang Symbol)))
 
-(defn- numerical-expression
+(defn ^:private numerical-expression
   [expr]
   (cond (number? expr) expr
         (symbol? expr) expr
@@ -33,7 +33,7 @@
         (g/literal-number? expr) (:expression expr)
         :else (throw (IllegalArgumentException. (str "unknown numerical expression type " expr)))))
 
-(defn- make-numsymb-expression [operator operands]
+(defn ^:private make-numsymb-expression [operator operands]
   (->> operands (map numerical-expression) (apply operator) x/literal-number))
 
 (defn ^:private is-expression?
@@ -66,14 +66,14 @@
         (sum? b) `(~'+ ~a ~@(operands b))
         :else `(~'+ ~a ~b)))
 
-(defn- sub [a b]
+(defn ^:private sub [a b]
   (cond (and (number? a) (number? b)) (- a b)
         (number? a) (if (g/zero? a) `(~'- ~b) `(~'- ~a ~b))
         (number? b) (if (g/zero? b) a `(~'- ~a ~b))
         (= a b) 0
         :else `(~'- ~a ~b)))
 
-(defn- sub-n [& args]
+(defn ^:private sub-n [& args]
   (cond (nil? args) 0
         (nil? (next args)) (g/negate (first args))
         :else (sub (first args) (reduce add (next args)))))
@@ -103,7 +103,7 @@
                           :else `(~'/ ~a ~b))
         :else `(~'/ ~a ~b)))
 
-(defn- div-n [arg & args]
+(defn ^:private div-n [arg & args]
   (cond (nil? arg) 1
         (nil? args) (g/invert arg)
         :else (div arg (reduce mul args))))
@@ -117,7 +117,7 @@
 (def ^:private relative-integer-tolerance (* 100 v/machine-epsilon))
 (def ^:private absolute-integer-tolerance 1e-20)
 
-(defn- almost-integer? [x]
+(defn ^:private almost-integer? [x]
   (or (integer? x)
       (and (float? x)
            (let [x (double x)
@@ -133,32 +133,32 @@
 ;; (def ^:private pi-over-3 (/ pi 3))
 ;; (def ^:private pi-over-6 (/ pi-over-2 3))
 
-(defn- n:zero-mod-pi? [x]
+(defn ^:private n:zero-mod-pi? [x]
   (almost-integer? (/ x pi)))
 (def ^:private symb:zero-mod-pi? #{'-pi 'pi '-two-pi 'two-pi})
-(defn- n:pi-over-2-mod-2pi? [x]
+(defn ^:private n:pi-over-2-mod-2pi? [x]
   (almost-integer? (/ (- x pi-over-2 two-pi))))
 (def ^:private symb:pi-over-2-mod-2pi? #{'pi-over-2})
-(defn- n:-pi-over-2-mod-2pi? [x]
+(defn ^:private n:-pi-over-2-mod-2pi? [x]
   (almost-integer? (/ (+ x pi-over-2) two-pi)))
 (def ^:private symb:-pi-over-2-mod-2pi? #{'-pi-over-2})
-(defn- n:pi-mod-2pi? [x]
+(defn ^:private n:pi-mod-2pi? [x]
   (almost-integer? (/ (- x pi) two-pi)))
 (def ^:private symb:pi-mod-2pi? #{'-pi 'pi})
-(defn- n:pi-over-2-mod-pi? [x]
+(defn ^:private n:pi-over-2-mod-pi? [x]
   (almost-integer? (/ (- x pi-over-2) pi)))
 (def ^:private symb:pi-over-2-mod-pi? #{'-pi-over-2 'pi-over-2})
-(defn- n:zero-mod-2pi? [x]
+(defn ^:private n:zero-mod-2pi? [x]
   (almost-integer? (/ x two-pi)))
 (def ^:private symb:zero-mod-2pi? #{'-two-pi 'two-pi})
-(defn- n:-pi-over-4-mod-pi? [x]
+(defn ^:private n:-pi-over-4-mod-pi? [x]
   (almost-integer? (/ (+ x pi-over-4) pi)))
 (def ^:private symb:-pi-over-4-mod-pi? #{'-pi-over-4})
-(defn- n:pi-over-4-mod-pi? [x]
+(defn ^:private n:pi-over-4-mod-pi? [x]
   (almost-integer? (/ (- x pi-over-4) pi)))
 (def ^:private symb:pi-over-4-mod-pi? #{'pi-over-4 '+pi-over-4})
 
-(defn- sine [x]
+(defn ^:private sine [x]
   (cond (number? x) (cond (zero? x) 0
                           (n:zero-mod-pi? x) 0
                           (n:pi-over-2-mod-2pi? x) 1
@@ -170,11 +170,11 @@
                           :else `(~'sin ~x))
         :else `(~'sin ~x)))
 
-(defn- arcsine
+(defn ^:private arcsine
   [x]
   `(~'asin ~x))
 
-(defn- cosine [x]
+(defn ^:private cosine [x]
   (cond (number? x) (cond (zero? x) 1
                           (n:pi-over-2-mod-pi? x) 0
                           (n:zero-mod-2pi? x) 1
@@ -186,11 +186,11 @@
                           :else `(~'cos ~x))
         :else `(~'cos ~x)))
 
-(defn- arccosine
+(defn ^:private arccosine
   [x]
   `(~'acos ~x))
 
-(defn- tangent [x]
+(defn ^:private tangent [x]
   (cond (number? x) (if (v/exact? x)
                       (if (zero? x) 0 `(~'tan ~x))
                       (cond (n:zero-mod-pi? x) 0.
@@ -207,13 +207,13 @@
                           :else `(~'tan ~x))
         :else `(~'tan ~x)))
 
-(defn- arctangent
+(defn ^:private arctangent
   [y & x]
   (if (nil? x)
     `(~'atan ~y)
     `(~'atan ~y ~x)))
 
-(defn- abs [x]
+(defn ^:private abs [x]
   (cond (number? x) (if (< x 0) (- x) x)
         :else `(~'abs ~x)))
 
@@ -229,14 +229,14 @@
                       `(~'sqrt ~s)))))
     `(~'sqrt ~s)))
 
-(defn- log [s]
+(defn ^:private log [s]
   (if (number? s)
     (if-not (v/exact? s)
       (Math/log s)
       (if (g/one? s) 0 `(~'log ~s)))
     `(~'log ~s)))
 
-(defn- exp [s]
+(defn ^:private exp [s]
   (if (number? s)
     (if-not (v/exact? s)
       (Math/exp s)
@@ -260,14 +260,14 @@
                           :else `(~'expt ~b ~e))
         :else `(~'expt ~b ~e)))
 
-(defn- define-binary-operation
+(defn ^:private define-binary-operation
   [generic-operation symbolic-operation]
   (defmethod generic-operation [::x/numerical-expression
                                 ::x/numerical-expression]
     [a b]
     (make-numsymb-expression symbolic-operation [a b])))
 
-(defn- define-unary-operation
+(defn ^:private define-unary-operation
   [generic-operation symbolic-operation]
   (defmethod generic-operation [::x/numerical-expression]
     [a]

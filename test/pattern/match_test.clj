@@ -20,8 +20,8 @@
   (:require [clojure.test :refer :all]
             [pattern.match :refer :all]))
 
-(defn- receive [frame xs] [frame xs])
-(defn- collect-all-results [matcher input & tails]
+(defn ^:private receive [frame xs] [frame xs])
+(defn ^:private collect-all-results [matcher input & tails]
   (let [results (atom [])]
     (matcher {} input (fn [frame xs]
                         (swap! results conj

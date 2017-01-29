@@ -38,7 +38,7 @@
 
 (def ^:private compiled-function-cache (atom {}))
 
-(defn- construct-state-function-exp
+(defn ^:private construct-state-function-exp
   "Given a state model (a structure which is in the domain and range
   of the function) and its body, produce a function of the flattened
   form of the argument structure as a sequence.
@@ -89,7 +89,7 @@
            ~(w/postwalk-replace syms x)))
       x)))
 
-(defn- compile-state-function2
+(defn ^:private compile-state-function2
   [f parameters initial-state]
   (let [sw (Stopwatch/createStarted)
         generic-parameters (for [_ parameters] (gensym 'p))
@@ -116,11 +116,11 @@
       (swap! compiled-function-cache assoc f compiled-function)
       compiled-function)))
 
-(defn- construct-univariate-function-exp
+(defn ^:private construct-univariate-function-exp
   [x body]
   `(fn [~x] ~(w/postwalk-replace compiled-function-whitelist body)))
 
-(defn- compile-univariate-function2
+(defn ^:private compile-univariate-function2
   [f]
   (let [sw (Stopwatch/createStarted)
         var (gensym 'x)

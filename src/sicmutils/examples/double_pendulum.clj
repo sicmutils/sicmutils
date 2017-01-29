@@ -20,7 +20,7 @@
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [sicmutils.env :refer :all]))
 
-(defn- coords
+(defn ^:private coords
   [l1 l2 θ φ]
   (let [x1 (* l1 (sin θ))
         y1 (- (* l1 (cos θ)))

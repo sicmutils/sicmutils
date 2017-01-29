@@ -21,10 +21,10 @@
 
 (def ^:private => (constantly true))
 
-(defn- more-than-two? [x] (and (number? x) (> x 2)))
-(defn- at-least-two? [x] (and (number? x) (>= x 2)))
-(defn- even-integer? [x] (and (number? x) (even? x)))
-(defn- odd-integer? [x] (and (number? x) (not (even? x))))
+(defn ^:private more-than-two? [x] (and (number? x) (> x 2)))
+(defn ^:private at-least-two? [x] (and (number? x) (>= x 2)))
+(defn ^:private even-integer? [x] (and (number? x) (even? x)))
+(defn ^:private odd-integer? [x] (and (number? x) (not (even? x))))
 
 (def sin-sq->cos-sq
   (rule-simplifier

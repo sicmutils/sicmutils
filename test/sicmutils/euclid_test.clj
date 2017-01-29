@@ -20,7 +20,7 @@
   (:require [clojure.test :refer :all]
             [sicmutils.euclid :refer :all]))
 
-(defn- ok
+(defn ^:private ok
   "Compute the extended Euclid data; ensure that the gcd returned
   divides x and y, and that the GCD is the linear combination of x and
   y with the returned Bézout coefficients"

@@ -35,13 +35,13 @@
 (defn make [i m]
   (ModInt. (mod i m) m))
 
-(defn- modular-binop [op]
+(defn ^:private modular-binop [op]
   (fn [a b]
     (if-not (= (:m a) (:m b))
       (throw (ArithmeticException. "unequal moduli"))
       (make (op (:i a) (:i b)) (:m a)))))
 
-(defn- modular-inv [^ModInt m]
+(defn ^:private modular-inv [^ModInt m]
   (let [modulus (:m m)
         [g a _] (e/extended-gcd (:i m) modulus)]
     (if (< g 2) (make a modulus)

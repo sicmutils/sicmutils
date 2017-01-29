@@ -22,7 +22,7 @@
 ;; Inspired by Gerald Jay Sussman's lecture notes for MIT 6.945
 ;; http://groups.csail.mit.edu/mac/users/gjs/6.945/
 
-(defn- compile-consequence
+(defn ^:private compile-consequence
   "Compiles a consequence (written as a pattern), by returning a code
   fragment which will replace instances of variable and segment
   references in the consequence with values provided by the frame
@@ -48,7 +48,7 @@
 
     :else `(list '~consequence)))
 
-(defn- expose-predicate
+(defn ^:private expose-predicate
   "This is currently a little tricky to explain. A variable pattern in
   a ruleset might be written (:? 'a integer?). If we were to quote the
   entire ruleset, then the constraint part--integer?--would have the
@@ -59,7 +59,7 @@
   [form]
   `(list :? '~(second form) ~(nth form 2)))
 
-(defn- prepare-pattern
+(defn ^:private prepare-pattern
   "Replace form with code that will construct the equivalent form with
   variable predicate values exposed to evaluation (see above)."
   [form]
@@ -107,7 +107,7 @@
       `(fn [data# _# fail#]
          (fail# data#)))))
 
-(defn- try-rulesets
+(defn ^:private try-rulesets
   "Execute the supplied rulesets against expression in order. The
   first ruleset to succeed in rewriting an expression will cause
   the success continuation to be invoked and the process will stop.

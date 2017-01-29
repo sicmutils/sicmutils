@@ -23,7 +23,7 @@
             [hiccup.page :refer :all]
             [sicmutils.env :refer :all]))
 
-(defn- pairs
+(defn ^:private pairs
   "Return a sequence of pairs of different elements from the given sequence."
   [[x & xs]]
   (when xs
@@ -85,7 +85,7 @@
                  (up 'x_0 'y_0 'x_1 'y_1)
                  (up 'xdot_0 'ydot_0 'xdot_1 'ydot_1)))))
 
-(defn- to-svg
+(defn ^:private to-svg
   [evolution]
   [:svg {:width 480 :height 480}
    [:rect {:width 480 :height 480 :fill "#330033"}]

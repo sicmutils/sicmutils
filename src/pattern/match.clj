@@ -109,7 +109,7 @@
   (if (keyword? x) x
       (second x)))
 
-(defn- variable-constraint
+(defn ^:private variable-constraint
   "If x is a variable reference in a pattern with a constraint,
   returns that constraint; else returns a stock function which
   enforces no constraint at all."
