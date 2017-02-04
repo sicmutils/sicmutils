@@ -138,3 +138,64 @@
                 :parameter-order '[x dx])))
   (is (= "function(x, y) {\n  return [1, x + y, 2];\n}" (s->JS (up 1 (+ 'x 'y) 2))))
   (is (= "function(a, b) {\n  return [[1, a], [b, 2]];\n}" (s->JS (down (up 1 'a) (up 'b 2))))))
+
+(deftest systematic
+  (let [all-formats (juxt s->infix s->JS s->TeX)]
+    (is (= ["a + b"
+            "function(a, b) {\n  return a + b;\n}"
+            "a + b"]
+           (all-formats (+ 'a 'b))))
+    (is (= ["a b"
+            "function(a, b) {\n  return a * b;\n}"
+            "a\\,b"]
+           (all-formats (* 'a 'b))))
+    (is (= ["a / b"
+            "function(a, b) {\n  return a / b;\n}"
+            "\\dfrac{a}{b}"]
+           (all-formats (/ 'a 'b))))
+    (is (= ["a - b"
+            "function(a, b) {\n  return a - b;\n}"
+            "a - b"]
+           (all-formats (- 'a 'b))))
+    (is (= ["sin(t)"
+            "function(t) {\n  return Math.sin(t);\n}"
+            "\\sin\\left(t\\right)"]
+           (all-formats (sin 't))))
+    ;; below: the TeX form is dubious; does the superscript 2 go with the
+    ;; argument or the sine function?
+    (is (= ["sin(t)²"
+            "function(t) {\n  return Math.pow(Math.sin(t), 2);\n}"
+            "{\\sin\\left(t\\right)}^{2}"]
+           (all-formats ((expt sin 2) 't))))
+    (is (= ["a b + c d"
+            "function(a, b, c, d) {\n  return a * b + c * d;\n}"
+            "a\\,b + c\\,d"]
+           (all-formats (+ (* 'a 'b) (* 'c 'd)))))
+    (is (= ["a c + a d + b c + b d"
+            "function(a, b, c, d) {\n  return a * c + a * d + b * c + b * d;\n}"
+            "a\\,c + a\\,d + b\\,c + b\\,d"]
+           (all-formats (* (+ 'a 'b) (+ 'c 'd)))))
+    (is (= ["(a + b) / c"
+            "function(a, b, c) {\n  return (a + b) / c;\n}"
+            "\\dfrac{a + b}{c}"]
+           (all-formats (/ (+ 'a 'b) 'c))))
+    (is (= ["a / (b + c)"
+            "function(a, b, c) {\n  return a / (b + c);\n}"
+            "\\dfrac{a}{b + c}"]
+           (all-formats (/ 'a (+ 'b 'c)))))
+    ;; bad: need parens on bottom
+    (is (= ["a / b c"
+            "function(a, b, c) {\n  return a / b * c;\n}"
+            "\\dfrac{a}{b\\,c}"]
+           (all-formats (/ 'a (* 'b 'c)))))
+    ;; bad: need parens on top
+    (is (= ["b c / a"
+            "function(a, b, c) {\n  return b * c / a;\n}"
+            "\\dfrac{b\\,c}{a}"]
+           (all-formats (/ (* 'b 'c) 'a))))
+    ;; ruh-roh: these are wrong.
+    (is (= ["a b / c d"
+            "function(a, b, c, d) {\n  return a * b / c * d;\n}"
+            "\\dfrac{a\\,b}{c\\,d}"]
+           (all-formats (/ (* 'a 'b) (* 'c 'd)))))
+    ))

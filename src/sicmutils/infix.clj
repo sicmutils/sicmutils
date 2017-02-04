@@ -33,7 +33,7 @@
 (defn ^:private make-infix-renderer
   "Base function for infix renderers. This is meant to be specialized via
   options for the treatment desired. The options are:
-  - `precedence-map`: a map from (symbol or keyword) to numbers. Lower numbers
+  - `precedence-map`: a map from (symbol or keyword) to numbers. Higher numbers
     mean higher precedence. This guides parenthesization.
   - `juxtapose-multiply`: a string that will be placed between factors in a
     product. Defaults to `*`.
@@ -59,14 +59,14 @@
   (letfn [(precedence [op] (or (precedence-map op)
                                (cond (seq? op) (precedence-map :apply)
                                      (symbol? op) (precedence-map :apply)
-                                     :else 99)))
+                                     :else 0)))
           ;; TODO: the names are wack; reverse them one way or the other
-          (precedence> [a b] (< (precedence a) (precedence b)))
+          (precedence> [a b] (> (precedence a) (precedence b)))
           (precedence<= [a b] (not (precedence> a b)))
           (parenthesize-if [b x]
             (if b (parenthesize x) x))
           (maybe-rename-function [f]
-            (if-let [f' (rename-functions f)] f' f))
+            (or (rename-functions f) f))
           (maybe-rewrite-negation [loc]
             ;; if the tree at loc looks like (* -1 xs...) replace it with
             ;; (- (* xs...)). This helps the renderer with sums of terms with
@@ -157,7 +157,7 @@
   "Converts an S-expression to printable infix form. Numeric exponents are
   written as superscripts. Partial derivatives get subscripts."
   (make-infix-renderer
-   :precedence-map '{∂ 1, D 1, expt 2, :apply 3, / 5, * 5, + 6, - 6}
+   :precedence-map '{∂ 9, D 9, expt 7, :apply 5, / 3, * 3, + 2, - 2}
    :infix? '#{* + - / expt}
    :juxtapose-multiply " "
    :special-handlers
@@ -222,7 +222,7 @@
     (make-infix-renderer
      ;; here we set / to a very low precedence because the fraction bar we will
      ;; use in the rendering groups things very strongly.
-     :precedence-map '{∂ 1, D 1, :apply 2, expt 2, * 5, + 6, - 6, / 9}
+     :precedence-map '{∂ 9, D 9, :apply 7, expt 7, * 5, + 3, - 3, / 1}
      :parenthesize #(str "\\left(" % "\\right)")
      :infix? '#{* + - / expt}
      :juxtapose-multiply "\\,"
@@ -276,7 +276,7 @@
                            expt exp log up down}
         make-js-vector #(str \[ (s/join ", " %) \])
         R (make-infix-renderer
-           :precedence-map '{:apply 2, expt 2, * 5, / 5, - 6, + 6}
+           :precedence-map '{:apply 9, expt 9, * 5, / 5, - 3, + 3}
            :infix? '#{* + - /}
            :rename-functions {'sin "Math.sin",
                               'cos "Math.cos",
