@@ -6,7 +6,7 @@
             [sicmutils.mechanics.hamilton :as H]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.examples.driven-pendulum :as driven]
-            [sicmutils.examples.axisymmetric-top :as top]))
+            [sicmutils.examples.top :as top]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
@@ -77,7 +77,7 @@
                   (* -2 (cos theta) C p_phi p_psi)
                   (* C (expt p_phi 2)))
                (* 2 (expt (sin theta) 2) A C))
-           (simplify ((Lagrangian->Hamiltonian (top/L-axisymmetric-top 'A 'C 'gMR))
+           (simplify ((Lagrangian->Hamiltonian (top/L-axisymmetric 'A 'C 'gMR))
                        (up 't
                            (up 'theta 'phi 'psi)
                            (down 'p_theta 'p_phi 'p_psi)))))))
@@ -86,7 +86,7 @@
                         (up 'theta 'phi 'psi)
                         (down 'p_theta 'p_phi 'p_psi))
           H (Lagrangian->Hamiltonian
-              (top/L-axisymmetric-top 'A 'C 'gMR))
+              (top/L-axisymmetric 'A 'C 'gMR))
           sysder (Hamiltonian->state-derivative H)]
       (is (= '(/ (+ (* 2 (expt (sin theta) 2) (cos theta) A C gMR)
                     (* (expt (sin theta) 2) A (expt p_psi 2))
