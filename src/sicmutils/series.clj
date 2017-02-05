@@ -162,4 +162,3 @@
         (throw (IllegalArgumentException. (str "Can't differentiate series with arity " arity)))))
 
 (derive ::sicmutils.expression/numerical-expression ::coseries)
-(derive ::sicmutils.function/function ::coseries)

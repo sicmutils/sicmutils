@@ -81,9 +81,8 @@
   (is (= "x² + x^-2" (s->infix '(+ (expt x 2) (expt x -2)))))
   (is (= "sin²(x)" (->infix '((expt sin 2) x))))
   (is (= "(x y)²" (->infix '(expt (* x y) 2))))
-  ;; these are wrong: need extra parentheses
-  (is (= "sin(x)²" (s->infix ((expt sin 2) 'x))))
-  (is (= "sin(x)^y" (s->infix (expt (sin 'x) 'y))))
+  (is (= "(sin(x))²" (s->infix ((expt sin 2) 'x))))
+  (is (= "(sin(x))^y" (s->infix (expt (sin 'x) 'y))))
   (is (= "(a + b)²" (->infix '(expt (+ a b) 2))))
   (is (= "(a + b)^(x + y)" (->infix '(expt (+ a b) (+ x y)))))
   (is (= "(a + b)^x" (->infix '(expt (+ a b) x))))
@@ -161,12 +160,14 @@
             "function(t) {\n  return Math.sin(t);\n}"
             "\\sin\\left(t\\right)"]
            (all-formats (sin 't))))
-    ;; below: the TeX form is dubious; does the superscript 2 go with the
-    ;; argument or the sine function?
-    (is (= ["sin(t)²"
+    (is (= ["(sin(t))²"
             "function(t) {\n  return Math.pow(Math.sin(t), 2);\n}"
-            "{\\sin\\left(t\\right)}^{2}"]
+            "{\\left(\\sin\\left(t\\right)\\right)}^{2}"]
            (all-formats ((expt sin 2) 't))))
+    (is (= ["(sin(q + t))²"
+            "function(q, t) {\n  return Math.pow(Math.sin(q + t), 2);\n}"
+            "{\\left(\\sin\\left(q + t\\right)\\right)}^{2}"]
+           (all-formats ((expt sin 2) (+ 't 'q)))))
     (is (= ["a b + c d"
             "function(a, b, c, d) {\n  return a * b + c * d;\n}"
             "a\\,b + c\\,d"]
@@ -203,4 +204,14 @@
             "function(a, b, c) {\n  return - a * b * c;\n}"
             "- a\\,b\\,c"]
            (all-formats (- (* 'a 'b 'c)))))
+    (let [f (literal-function 'f)]
+      (is (= ["Df(x)"
+              "function(D, f, x) {\n  return D(f)(x);\n}"
+              "Df\\left(x\\right)"]
+             (all-formats ((D f) 'x))))
+      (is (= ["D²(f)(x)"
+              "function(D, f, x) {\n  return Math.pow(D, 2)(f)(x);\n}"
+              "{D}^{2}\\left(f\\right)\\left(x\\right)"]
+             (all-formats ((D (D f)) 'x)))))
+
     ))

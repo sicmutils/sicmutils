@@ -131,15 +131,23 @@
                                  (.write w " "))
                                (recur a'))
                              (str w))))))
-                  (or (and (special-handlers op)
-                           ((special-handlers op) args))
-                      (str (parenthesize-if (and (z/branch? fn-loc)
-                                                 (precedence> :apply (z/node (z/next fn-loc))))
-                                            (maybe-rename-function (render-loc (z/next arg-loc))))
-                           (parenthesize-if (or (precedence<= op :apply)
-                                                (> (count args) 1)
-                                                (z/branch? (z/right fn-loc)))
-                                            (s/join ", " args))))))
+                  ;; case: op is not infix.
+                  ;; The _whole_ result may need to be parenthesized, though, if it
+                  ;; is part of an infix expression with an operator with very high
+                  ;; precedence (in practice, this means exponentiation)
+                  (parenthesize-if
+                   (and upper-op
+                        (infix? upper-op)
+                        (precedence<= op upper-op))
+                   (or (and (special-handlers op)
+                            ((special-handlers op) args))
+                       (str (parenthesize-if (and (z/branch? fn-loc)
+                                                  (precedence> :apply (z/node (z/next fn-loc))))
+                                             (maybe-rename-function (render-loc (z/next arg-loc))))
+                            (parenthesize-if (or (precedence<= op :apply)
+                                                 (> (count args) 1)
+                                                 (z/branch? (z/right fn-loc)))
+                                             (s/join ", " args)))))))
 
               ;; primitive case
               (let [n (z/node loc)]
@@ -290,7 +298,7 @@
                            expt exp log up down}
         make-js-vector #(str \[ (s/join ", " %) \])
         R (make-infix-renderer
-           :precedence-map '{:apply 9, expt 9, * 5, / 5, - 3, + 3}
+           :precedence-map '{:apply 8, * 5, / 5, - 3, + 3}
            :infix? '#{* + - / u-}
            :rename-functions {'sin "Math.sin",
                               'cos "Math.cos",
