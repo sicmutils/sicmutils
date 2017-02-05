@@ -125,7 +125,7 @@
                   "  var _2 = Math.pow(Math.cos(theta), 2);\n"
                   "  var _3 = Math.pow(Math.sin(theta), 2);\n"
                   "  var _4 = Math.cos(theta);\n"
-                  "  return [1, [p_theta / A, (- _4 * p_psi + p_phi) / Math.pow(_1, 2) * A, (Math.pow(_1, 2) * A * p_psi + Math.pow(_4, 2) * C * p_psi - _4 * C * p_phi) / Math.pow(_1, 2) * A * C], [(Math.pow(_4, 4) * A * gMR -2 * Math.pow(_4, 2) * A * gMR - Math.pow(_4, 2) * p_phi * p_psi + _4 * Math.pow(p_phi, 2) + _4 * Math.pow(p_psi, 2) + A * gMR - p_phi * p_psi) / Math.pow(_1, 3) * A, 0, 0]];\n}")
+                  "  return [1, [p_theta / A, (- _4 * p_psi + p_phi) / (Math.pow(_1, 2) * A), (Math.pow(_1, 2) * A * p_psi + Math.pow(_4, 2) * C * p_psi - _4 * C * p_phi) / (Math.pow(_1, 2) * A * C)], [(Math.pow(_4, 4) * A * gMR -2 * Math.pow(_4, 2) * A * gMR - Math.pow(_4, 2) * p_phi * p_psi + _4 * Math.pow(p_phi, 2) + _4 * Math.pow(p_psi, 2) + A * gMR - p_phi * p_psi) / (Math.pow(_1, 3) * A), 0, 0]];\n}")
              (-> top-state sysder simplify ->JavaScript))))))
 
 (deftest section-3-5
@@ -170,6 +170,6 @@
                   "  var _3 = omega * t;\n"
                   "  var _4 = Math.sin(theta);\n"
                   "  var _5 = Math.cos(theta);\n"
-                  "  return [1, (Math.sin(_3) * _4 * a * l * m * omega + p_theta) / _2 * m, (- Math.pow(Math.sin(_3), 2) * _4 * _5 * Math.pow(a, 2) * l * m * Math.pow(omega, 2) - Math.sin(_3) * _5 * a * omega * p_theta - _4 * g * _2 * m) / l];\n"
+                  "  return [1, (Math.sin(_3) * _4 * a * l * m * omega + p_theta) / (_2 * m), (- Math.pow(Math.sin(_3), 2) * _4 * _5 * Math.pow(a, 2) * l * m * Math.pow(omega, 2) - Math.sin(_3) * _5 * a * omega * p_theta - _4 * g * _2 * m) / l];\n"
                   "}")
              (->JavaScript sysder))))))

@@ -69,17 +69,26 @@
             (or (rename-functions f) f))
           (maybe-rewrite-negation [loc]
             ;; if the tree at loc looks like (* -1 xs...) replace it with
-            ;; (- (* xs...)). This helps the renderer with sums of terms with
+            ;; (u- (* xs...)). This helps the renderer with sums of terms with
             ;; varying sign and unary negation. Otherwise return the loc
             ;; unmodified.
-            (if (and (= (z/node (z/next loc)) '*)
-                     (= (z/node (z/next (z/next loc))) -1))
-              (z/replace loc `(~'- (~'* ~@(z/rights (z/next (z/next loc))))))
-              loc))
+            (let [n (z/next loc)
+                  op (z/node n)
+                  nn (z/next n)]
+              (if (and (= op '*)
+                       (= (z/node nn) -1))
+                (let [xs (z/rights nn)]
+                  (if (= (count xs) 1)
+                    (z/replace loc
+                               `(~'u- ~(first xs)))
+                    (z/replace loc
+                               `(~'u- (~'* ~@xs)))))
+                loc)))
           (render-unary-node [op args]
             (let [a (first args)]
               (case op
                 (+ *) (str a)
+                u- (str "- " a)
                 / (str "1 / " a)
                 (str op " " a))))
           (render-loc [loc]
@@ -98,7 +107,12 @@
                 (if (infix? op)
                   (parenthesize-if
                    (and (infix? upper-op)
-                        (precedence> upper-op op))
+                        (and (precedence<= op upper-op)
+                             ;; respect precedence, except in the special case
+                             ;;   (- (* a b c...))
+                             ;; which we would prefer to write as "- a b c..." rather than "- (a b c...)"
+                             ;; as strict precedence rules would require.
+                             (not (and (= op '*) (= upper-op 'u-)))))
                    (or (and (special-handlers op)
                             ((special-handlers op) args))
                        (and (= (count args) 1)
@@ -157,8 +171,8 @@
   "Converts an S-expression to printable infix form. Numeric exponents are
   written as superscripts. Partial derivatives get subscripts."
   (make-infix-renderer
-   :precedence-map '{∂ 9, D 9, expt 7, :apply 5, / 3, * 3, + 2, - 2}
-   :infix? '#{* + - / expt}
+   :precedence-map '{∂ 9, D 9, expt 7, :apply 5, u- 4, / 3, * 3, + 1, - 1}
+   :infix? '#{* + - / expt u-}
    :juxtapose-multiply " "
    :special-handlers
    {'expt (fn [[x e]]
@@ -222,9 +236,9 @@
     (make-infix-renderer
      ;; here we set / to a very low precedence because the fraction bar we will
      ;; use in the rendering groups things very strongly.
-     :precedence-map '{∂ 9, D 9, :apply 7, expt 7, * 5, + 3, - 3, / 1}
+     :precedence-map '{∂ 9, D 9, :apply 7, expt 7, u- 6, * 5, + 3, - 3, / 1}
      :parenthesize #(str "\\left(" % "\\right)")
-     :infix? '#{* + - / expt}
+     :infix? '#{* + - / expt u-}
      :juxtapose-multiply "\\,"
      :special-handlers
      {'expt (fn [[x e]] (str (maybe-brace x) "^" (maybe-brace e)))
@@ -277,7 +291,7 @@
         make-js-vector #(str \[ (s/join ", " %) \])
         R (make-infix-renderer
            :precedence-map '{:apply 9, expt 9, * 5, / 5, - 3, + 3}
-           :infix? '#{* + - /}
+           :infix? '#{* + - / u-}
            :rename-functions {'sin "Math.sin",
                               'cos "Math.cos",
                               'tan "Math.tan",

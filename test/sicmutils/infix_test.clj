@@ -61,7 +61,7 @@
       (is (= "a - b + c - d" (s->infix (+ 'a (* -1 'b) 'c (* -1 'd)))))
       (is (= "- a" (s->infix (- 'a))))
       (is (= "- a" (s->infix (- 0 'a))))
-      (is (= "(- a) / b" (s->infix (/ (- 'a) 'b))))
+      (is (= "- a / b" (s->infix (/ (- 'a) 'b))))
       (is (= "1 / (a + b)" (s->infix (/ (+ 'a 'b)))))
       (is (= "x⁴" (s->infix (expt (- 'x) 4))))
       (is (= "- x³" (s->infix (expt (- 'x) 3))))
@@ -183,19 +183,24 @@
             "function(a, b, c) {\n  return a / (b + c);\n}"
             "\\dfrac{a}{b + c}"]
            (all-formats (/ 'a (+ 'b 'c)))))
-    ;; bad: need parens on bottom
-    (is (= ["a / b c"
-            "function(a, b, c) {\n  return a / b * c;\n}"
+    (is (= ["a / (b c)"
+            "function(a, b, c) {\n  return a / (b * c);\n}"
             "\\dfrac{a}{b\\,c}"]
            (all-formats (/ 'a (* 'b 'c)))))
-    ;; bad: need parens on top
-    (is (= ["b c / a"
-            "function(a, b, c) {\n  return b * c / a;\n}"
+    (is (= ["(b c) / a"
+            "function(a, b, c) {\n  return (b * c) / a;\n}"
             "\\dfrac{b\\,c}{a}"]
            (all-formats (/ (* 'b 'c) 'a))))
-    ;; ruh-roh: these are wrong.
-    (is (= ["a b / c d"
-            "function(a, b, c, d) {\n  return a * b / c * d;\n}"
+    (is (= ["(a b) / (c d)"
+            "function(a, b, c, d) {\n  return (a * b) / (c * d);\n}"
             "\\dfrac{a\\,b}{c\\,d}"]
            (all-formats (/ (* 'a 'b) (* 'c 'd)))))
+    (is (= ["- a - b - c"
+            "function(a, b, c) {\n  return - a - b - c;\n}"
+            "- a - b - c"]
+           (all-formats (- (+ 'a 'b 'c)))))
+    (is (= ["- a b c"
+            "function(a, b, c) {\n  return - a * b * c;\n}"
+            "- a\\,b\\,c"]
+           (all-formats (- (* 'a 'b 'c)))))
     ))
