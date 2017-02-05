@@ -32,7 +32,7 @@
 
 (defn ^:private make-infix-renderer
   "Base function for infix renderers. This is meant to be specialized via
-  options for the treatment desired. The options are:
+  options for the treatment desired. Returns a rendering function. The options are:
   - `precedence-map`: a map from (symbol or keyword) to numbers. Higher numbers
     mean higher precedence. This guides parenthesization.
   - `juxtapose-multiply`: a string that will be placed between factors in a
@@ -50,12 +50,13 @@
     just before the expression is written.
   "
   [& {:keys [juxtapose-multiply special-handlers infix? render-primitive
-             rename-functions parenthesize precedence-map]
+             rename-functions parenthesize precedence-map rewrite-trig-squares]
       :or {special-handlers {}
            parenthesize #(str "(" % ")")
            juxtapose-multiply " * "
+           rewrite-trig-squares false
            rename-functions {}
-           infix? (constantly false)}}]
+           infix? {}}}]
   (letfn [(precedence [op] (or (precedence-map op)
                                (cond (seq? op) (precedence-map :apply)
                                      (symbol? op) (precedence-map :apply)
@@ -84,6 +85,21 @@
                     (z/replace loc
                                `(~'u- (~'* ~@xs)))))
                 loc)))
+          (maybe-rewrite-trig-squares [loc]
+            ;; (expt (sin X) 2) -> ((expt sin 2) X), etc.
+            (if (and rewrite-trig-squares
+                     (z/branch? loc)
+                     (z/branch? (z/right (z/down loc)))
+                     (= 2 (count (z/rights (z/down loc)))))
+              (let [d (z/down loc)
+                    trig (z/down (z/right d))
+                    x (z/right (z/right d))]
+                (if (and (= 'expt (z/node d))
+                         (= 2 (z/node x))
+                         (#{'sin 'cos 'tan} (z/node trig)))
+                  (z/replace loc `((~'expt ~(z/node trig) ~(z/node x)) ~@(z/rights trig)))
+                  loc))
+              loc))
           (render-unary-node [op args]
             (let [a (first args)]
               (case op
@@ -95,7 +111,7 @@
             (if (z/branch? loc)
               ;; then the first child is the function and the rest are the
               ;; arguments.
-              (let [fn-loc (-> loc maybe-rewrite-negation z/next)
+              (let [fn-loc (-> loc maybe-rewrite-negation maybe-rewrite-trig-squares z/next)
                     arg-loc (loop [a (-> fn-loc z/right)]
                               (let [a' (z/replace a (render-loc a))]
                                 (if-let [r (z/right a')]
@@ -182,6 +198,7 @@
    :precedence-map '{∂ 9, D 9, expt 7, :apply 5, u- 4, / 3, * 3, + 1, - 1}
    :infix? '#{* + - / expt u-}
    :juxtapose-multiply " "
+   :rewrite-trig-squares true
    :special-handlers
    {'expt (fn [[x e]]
             (if (and (integer? e) ((complement neg?) e))
@@ -248,6 +265,7 @@
      :parenthesize #(str "\\left(" % "\\right)")
      :infix? '#{* + - / expt u-}
      :juxtapose-multiply "\\,"
+     :rewrite-trig-squares true
      :special-handlers
      {'expt (fn [[x e]] (str (maybe-brace x) "^" (maybe-brace e)))
       '∂ (fn [ds] (str "\\partial_" (maybe-brace (s/join "," ds))))

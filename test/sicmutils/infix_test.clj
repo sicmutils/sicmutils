@@ -81,7 +81,7 @@
   (is (= "x² + x^-2" (s->infix '(+ (expt x 2) (expt x -2)))))
   (is (= "sin²(x)" (->infix '((expt sin 2) x))))
   (is (= "(x y)²" (->infix '(expt (* x y) 2))))
-  (is (= "(sin(x))²" (s->infix ((expt sin 2) 'x))))
+  (is (= "sin²(x)" (s->infix ((expt sin 2) 'x))))
   (is (= "(sin(x))^y" (s->infix (expt (sin 'x) 'y))))
   (is (= "(a + b)²" (->infix '(expt (+ a b) 2))))
   (is (= "(a + b)^(x + y)" (->infix '(expt (+ a b) (+ x y)))))
@@ -160,13 +160,17 @@
             "function(t) {\n  return Math.sin(t);\n}"
             "\\sin\\left(t\\right)"]
            (all-formats (sin 't))))
-    (is (= ["(sin(t))²"
+    (is (= ["sin²(t)"
             "function(t) {\n  return Math.pow(Math.sin(t), 2);\n}"
-            "{\\left(\\sin\\left(t\\right)\\right)}^{2}"]
+            "{\\sin}^{2}\\left(t\\right)"]
            (all-formats ((expt sin 2) 't))))
-    (is (= ["(sin(q + t))²"
+    (is (= ["cos²(sin(t) / cos(t))"
+            "function(t) {\n  return Math.pow(Math.cos(Math.sin(t) / Math.cos(t)), 2);\n}"
+            "{\\cos}^{2}\\left(\\dfrac{\\sin\\left(t\\right)}{\\cos\\left(t\\right)}\\right)"]
+           (all-formats ((expt cos 2) (tan 't)))))
+    (is (= ["sin²(q + t)"
             "function(q, t) {\n  return Math.pow(Math.sin(q + t), 2);\n}"
-            "{\\left(\\sin\\left(q + t\\right)\\right)}^{2}"]
+            "{\\sin}^{2}\\left(q + t\\right)"]
            (all-formats ((expt sin 2) (+ 't 'q)))))
     (is (= ["a b + c d"
             "function(a, b, c, d) {\n  return a * b + c * d;\n}"
