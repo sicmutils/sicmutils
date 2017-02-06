@@ -21,6 +21,7 @@
             [clojure.set :as set]
             [clojure.string :as s]
             [clojure.walk :as walk]
+            [pattern.rule :as R]
             [sicmutils.expression :as x]
             [sicmutils.numerical.compile :as compile])
   (:import (java.io StringWriter)))
@@ -29,6 +30,20 @@
   [p]
   (let [i (atom 0)]
     (fn [] (format "%s%d" p (swap! i inc)))))
+
+(def ^:private rewrite-trig-powers
+  "Historical preference is to write sin^2(x) rather than (sin(x))^2."
+  (let [ok? #(and ('#{sin cos tan} (% :T))
+                  (= 2 (% :N)))]
+    (R/rule (expt (:T :X) :N) ok? ((expt :T :N) :X))))
+
+(def ^:private rewrite-negation
+  "The simplifier returns sums of products; for negative summands the
+  simplifier negates by wrapping with (* -1 ...). For rendering, we
+  prefer to use a unary minus"
+  (R/ruleset
+   (* -1 :X) => (u- :X)
+   (* -1 :X*) => (u- (* :X*))))
 
 (defn ^:private make-infix-renderer
   "Base function for infix renderers. This is meant to be specialized via
@@ -69,37 +84,12 @@
           (maybe-rename-function [f]
             (or (rename-functions f) f))
           (maybe-rewrite-negation [loc]
-            ;; if the tree at loc looks like (* -1 xs...) replace it with
-            ;; (u- (* xs...)). This helps the renderer with sums of terms with
-            ;; varying sign and unary negation. Otherwise return the loc
-            ;; unmodified.
-            (let [n (z/next loc)
-                  op (z/node n)
-                  nn (z/next n)]
-              (if (and (= op '*)
-                       (= (z/node nn) -1))
-                (let [xs (z/rights nn)]
-                  (if (= (count xs) 1)
-                    (z/replace loc
-                               `(~'u- ~(first xs)))
-                    (z/replace loc
-                               `(~'u- (~'* ~@xs)))))
-                loc)))
+            (or (rewrite-negation (z/node loc) #(z/replace loc %))
+                loc))
           (maybe-rewrite-trig-squares [loc]
-            ;; (expt (sin X) 2) -> ((expt sin 2) X), etc.
-            (if (and rewrite-trig-squares
-                     (z/branch? loc)
-                     (z/branch? (z/right (z/down loc)))
-                     (= 2 (count (z/rights (z/down loc)))))
-              (let [d (z/down loc)
-                    trig (z/down (z/right d))
-                    x (z/right (z/right d))]
-                (if (and (= 'expt (z/node d))
-                         (= 2 (z/node x))
-                         (#{'sin 'cos 'tan} (z/node trig)))
-                  (z/replace loc `((~'expt ~(z/node trig) ~(z/node x)) ~@(z/rights trig)))
-                  loc))
-              loc))
+            (or (and rewrite-trig-squares
+                     (rewrite-trig-powers (z/node loc) #(z/replace loc %)))
+                loc))
           (render-unary-node [op args]
             (let [a (first args)]
               (case op

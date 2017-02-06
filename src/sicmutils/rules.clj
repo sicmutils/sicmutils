@@ -19,8 +19,6 @@
 (ns sicmutils.rules
   (:require [pattern.rule :refer [ruleset rule-simplifier]]))
 
-(def ^:private => (constantly true))
-
 (defn ^:private more-than-two? [x] (and (number? x) (> x 2)))
 (defn ^:private at-least-two? [x] (and (number? x) (>= x 2)))
 (defn ^:private even-integer? [x] (and (number? x) (even? x)))
@@ -143,19 +141,24 @@
     ;; in the env namespace.
     (tan :x) => (/ (sin :x) (cos :x)))))
 
+;; note the difference in interface between rulesets and rule simplifiers.
+;; rulesets return nil when they're not applicable (unless you specify a
+;; custom fail continuation). Rule-simplifiers pass expressions through.
+
 (def sincos->trig
-  (ruleset
-   ;; undoes the effect of trig->sincos
-   (/ (sin :x) (cos :x))
-   => (tan :x)
+  (rule-simplifier
+   (ruleset
+    ;; undoes the effect of trig->sincos
+    (/ (sin :x) (cos :x))
+    => (tan :x)
 
-   (/ (sin :x) (* :d1* (cos :x) :d2*))
-   => (/ (tan :x) (* :d1* :d2*))
+    (/ (sin :x) (* :d1* (cos :x) :d2*))
+    => (/ (tan :x) (* :d1* :d2*))
 
-   (/ (* :n1* (sin :x) :n1*)
-      (* :d1* (cos :x) :d2*))
-   => (/ (* :n1* (tan :x) :n2*)
-         (* :d1* :d2*))))
+    (/ (* :n1* (sin :x) :n1*)
+       (* :d1* (cos :x) :d2*))
+    => (/ (* :n1* (tan :x) :n2*)
+          (* :d1* :d2*)))))
 
 (def sincos-flush-ones (rule-simplifier split-high-degree-cosines
                                         split-high-degree-sines

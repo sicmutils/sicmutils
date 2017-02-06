@@ -74,17 +74,18 @@
   and (optionally) a success continuation. The function will try to
   match the pattern and, if successful, _and_ the bindings satisfy the
   supplied predicate, will call the continuation with the result of
-  the substituion."
+  the substitution."
   [pattern predicate? consequence]
   (let [prepared-pattern (prepare-pattern pattern)
         frame-symbol (gensym)
-        compiled-consequence (compile-consequence frame-symbol consequence)]
+        compiled-consequence (compile-consequence frame-symbol consequence)
+        replace-if (if (= predicate? '=>) `(constantly true) predicate?)]
     `(let [matcher# (pattern->matcher ~prepared-pattern)]
        (fn apply#
          ([data#] (apply# data# identity))
          ([data# continue#]
-            (if-let [~frame-symbol (match matcher# data# ~predicate?)]
-              (continue# (first ~compiled-consequence))))))))
+          (if-let [~frame-symbol (match matcher# data# ~replace-if)]
+            (continue# (first ~compiled-consequence))))))))
 
 (defmacro ruleset
   "Ruleset compiles rules, predicates and consequences (triplet-wise)
@@ -95,15 +96,14 @@
   [& patterns-and-consequences]
   (let [[p pred c & pcs] patterns-and-consequences]
     (if p
-      (let [prepared-pattern  p]
-        `(fn apply#
-          ([data#] (apply# data# identity identity))
-          ([data# continue#] (apply# data# continue# identity))
-          ([data# continue# fail#]
-             (let [R# (rule ~prepared-pattern ~pred ~c)]
-               (or (R# data# continue#)
-                   ((ruleset ~@pcs) data# continue# fail#)
-                   (fail# data#))))))
+      `(fn apply#
+         ([data#] (apply# data# identity (constantly nil)))
+         ([data# continue#] (apply# data# continue# (constantly nil)))
+         ([data# continue# fail#]
+          (let [R# (rule ~p ~pred ~c)]
+            (or (R# data# continue#)
+                ((ruleset ~@pcs) data# continue# fail#)
+                (fail# data#)))))
       `(fn [data# _# fail#]
          (fail# data#)))))
 

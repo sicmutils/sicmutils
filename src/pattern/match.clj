@@ -42,12 +42,13 @@
   ([var]
    (match-var var (constantly true)))
   ([var predicate?]
-   (fn [frame [x & xs] succeed]
-     (if x
-       (if-let [binding (frame var)]
-         (and (= binding x) (succeed frame xs))
-         (if (predicate? x)
-           (succeed (assoc frame var x) xs)))))))
+   (fn [frame data succeed]
+     (if (sequential? data)
+       (if-let [[x & xs] data]
+         (if-let [binding (frame var)]
+           (and (= binding x) (succeed frame xs))
+           (if (predicate? x)
+             (succeed (assoc frame var x) xs))))))))
 
 (defn match-segment [var]
   (fn [frame xs succeed]

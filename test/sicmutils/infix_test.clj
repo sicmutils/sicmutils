@@ -164,9 +164,9 @@
             "function(t) {\n  return Math.pow(Math.sin(t), 2);\n}"
             "{\\sin}^{2}\\left(t\\right)"]
            (all-formats ((expt sin 2) 't))))
-    (is (= ["cos²(sin(t) / cos(t))"
-            "function(t) {\n  return Math.pow(Math.cos(Math.sin(t) / Math.cos(t)), 2);\n}"
-            "{\\cos}^{2}\\left(\\dfrac{\\sin\\left(t\\right)}{\\cos\\left(t\\right)}\\right)"]
+    (is (= ["cos²(tan(t))"
+            "function(t) {\n  return Math.pow(Math.cos(Math.tan(t)), 2);\n}"
+            "{\\cos}^{2}\\left(\\tan\\left(t\\right)\\right)"]
            (all-formats ((expt cos 2) (tan 't)))))
     (is (= ["sin²(q + t)"
             "function(q, t) {\n  return Math.pow(Math.sin(q + t), 2);\n}"
