@@ -442,7 +442,7 @@
                (* 2 (((∂ 1) ((∂ 0) f)) x y) dx dy)
                (* (((∂ 1) ((∂ 1) f)) x y) (expt dy 2)))
            (simplify (* dX (((expt D 2) f) 'x 'y) dX))))
-    (is (= "1/2 ∂₀(∂₀(f))(x, y) dx² + ∂₁(∂₀(f))(x, y) dx dy + 1/2 ∂₁(∂₁(f))(x, y) dy² + ∂₀(f)(x, y) dx + ∂₁(f)(x, y) dy + f(x, y)"
+    (is (= "1/2 ∂₀(∂₀f)(x, y) dx² + ∂₁(∂₀f)(x, y) dx dy + 1/2 ∂₁(∂₁f)(x, y) dy² + ∂₀f(x, y) dx + ∂₁f(x, y) dy + f(x, y)"
            (->infix (simplify (+ (f 'x 'y)
                                  (* ((D f) 'x 'y) dX)
                                  (* 1/2 (((expt D 2) f) 'x 'y) dX dX))))))))
