@@ -73,10 +73,17 @@
            rename-functions {}
            infix? {}}}]
   (letfn [(precedence [op] (or (precedence-map op)
-                               (cond (seq? op) (precedence-map :apply)
+                               (cond (seq? op)
+                                     ;; Some special cases:
+                                     ;; - give (expt X n) the precedence of X
+                                     ;; - give (∂ ...) the precedence of D
+                                     ;; - otherwise (...) has the precedence of application
+                                     (cond (and (= 3 (count op))
+                                                (= 'expt (first op))) (recur (second op))
+                                           (= '∂ (first op)) (precedence-map 'D)
+                                           :else (precedence-map :apply))
                                      (symbol? op) (precedence-map :apply)
                                      :else 0)))
-          ;; TODO: the names are wack; reverse them one way or the other
           (precedence> [a b] (> (precedence a) (precedence b)))
           (precedence<= [a b] (not (precedence> a b)))
           (parenthesize-if [b x]
@@ -185,7 +192,7 @@
   "Converts an S-expression to printable infix form. Numeric exponents are
   written as superscripts. Partial derivatives get subscripts."
   (make-infix-renderer
-   :precedence-map '{∂ 9, D 9, expt 7, :apply 5, u- 4, / 3, * 3, + 1, - 1}
+   :precedence-map '{D 9, expt 7, :apply 5, u- 4, / 3, * 3, + 1, - 1}
    :infix? '#{* + - / expt u-}
    :juxtapose-multiply " "
    :rewrite-trig-squares true
@@ -251,7 +258,7 @@
     (make-infix-renderer
      ;; here we set / to a very low precedence because the fraction bar we will
      ;; use in the rendering groups things very strongly.
-     :precedence-map '{∂ 9, D 9, :apply 7, expt 7, u- 6, * 5, + 3, - 3, / 1}
+     :precedence-map '{D 9, expt 8, :apply 7, u- 6, * 5, + 3, - 3, / 1}
      :parenthesize #(str "\\left(" % "\\right)")
      :infix? '#{* + - / expt u-}
      :juxtapose-multiply "\\,"
@@ -306,7 +313,7 @@
                            expt exp log up down}
         make-js-vector #(str \[ (s/join ", " %) \])
         R (make-infix-renderer
-           :precedence-map '{:apply 8, * 5, / 5, - 3, + 3}
+           :precedence-map '{D 8, :apply 8, * 5, / 5, - 3, + 3}
            :infix? '#{* + - / u-}
            :rename-functions {'sin "Math.sin",
                               'cos "Math.cos",

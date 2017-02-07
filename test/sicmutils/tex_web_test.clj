@@ -22,7 +22,18 @@
      (include-js "http://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.5.1/katex.min.js")]
     [:body
      (for [[name eqn]
-           [["driven-pendulum" (driven/equations)]
+           [["series" (simplify (series:sum (((exp (* 'epsilon D)) (literal-function 'g)) 'x) 5))]
+            ["accents" (simplify (+ 'x
+                                    'ydot
+                                    'rhodotdot
+                                    'sigmadotdotdot
+                                    'taudotdotdotdot
+                                    'Xihat
+                                    (expt 'ell 2)
+                                    'gammabar
+                                    'mubardot
+                                    'xivec
+                                    'Ftilde))]["driven-pendulum" (driven/equations)]
             ["double-pendulum" (double/equations)]
             ["central-potential" (central/equations)]
             ["down-of-ups" (simplify (down (up 'a 'b) (up 'c 'd)))]
@@ -34,17 +45,9 @@
                                            (literal-function 'f (up 0 0) 0)
                                            (up 'x 'y)
                                            (up 'dx 'dy)))))]
-            ["accents" (simplify (+ 'x
-                                    'ydot
-                                    'rhodotdot
-                                    'sigmadotdotdot
-                                    'Xihat
-                                    (expt 'ell 2)
-                                    'gammabar
-                                    'mubardot
-                                    'xivec
-                                    'Ftilde))]
-            ["dcot" (simplify ((D (/ tan)) 'x))]]]
+
+            ["dcot" (simplify ((D (/ tan)) 'x))]
+            ]]
        (let [t (->TeX eqn)]
          [:div
           [:h3 name]

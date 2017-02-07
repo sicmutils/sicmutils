@@ -19,7 +19,10 @@
 (ns sicmutils.infix-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.env :refer :all]))
+
+(use-fixtures :once hermetic-simplify-fixture)
 
 (def ^:private s->infix (compose ->infix simplify))
 (def ^:private s->TeX (compose ->TeX simplify))
@@ -69,7 +72,7 @@
       (is (= "f(b, c) a" (s->infix (* 'a (f 'b 'c)))))
       (is (= "f(2 h + 2 k, c) a" (s->infix (* 'a (f (* 2 (+ 'h 'k)) 'c)))))
       (is (= "f(x, y)" (s->infix (f 'x 'y))))
-      (is (= "down(∂₀(f)(x, y), ∂₁(f)(x, y))" (s->infix ((D f) 'x 'y))))
+      (is (= "down(∂₀f(x, y), ∂₁f(x, y))" (s->infix ((D f) 'x 'y))))
       (is (= "sin(t) cos(t)" (s->infix ((* sin cos) 't)))))))
 
 (deftest exponents
@@ -96,7 +99,7 @@
     (is (= "f(x) g(x)" (s->infix ((* f g) 'x))))
     (is (= "f(t)" (s->infix (f 't))))
     (is (= "Df(s)" (s->infix ((D f) 's))))
-    (is (= "D²(f)(s)" (s->infix (((expt D 2) f) 's))))))
+    (is (= "D²f(s)" (s->infix (((expt D 2) f) 's))))))
 
 (deftest structures
   (is (= "down(up(1, 2), up(3, 4))" (->infix (simplify (down (up 1 2) (up 3 4)))))))
@@ -213,9 +216,15 @@
               "function(D, f, x) {\n  return D(f)(x);\n}"
               "Df\\left(x\\right)"]
              (all-formats ((D f) 'x))))
-      (is (= ["D²(f)(x)"
+      (is (= ["D²f(x)"
               "function(D, f, x) {\n  return Math.pow(D, 2)(f)(x);\n}"
-              "{D}^{2}\\left(f\\right)\\left(x\\right)"]
-             (all-formats ((D (D f)) 'x)))))
-
-    ))
+              "{D}^{2}f\\left(x\\right)"]
+             (all-formats ((D (D f)) 'x))))
+      (is (= ["1/2 ∂₀(∂₀f)(up(x, y)) dx² + ∂₁(∂₀f)(up(x, y)) dx dy + 1/2 ∂₁(∂₁f)(up(x, y)) dy² + ∂₀f(up(x, y)) dx + ∂₁f(up(x, y)) dy + f(up(x, y))"
+              "function(dx, dy, f, x, y, ∂) {\n  var _1 = ∂(0);\n  var _2 = ∂(1);\n  var _3 = ∂(1)(f);\n  var _4 = [x, y];\n  var _5 = ∂(0)(f);\n  return 1/2 * (_1(_1(f)))(_4) * Math.pow(dx, 2) + (_2(_1(f)))(_4) * dx * dy + 1/2 * (_2(_2(f)))(_4) * Math.pow(dy, 2) + (_1(f))(_4) * dx + (_2(f))(_4) * dy + f(_4);\n}"
+              "\\dfrac{1}{2}\\,\\partial_0\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)\\,{dx}^{2} + \\partial_1\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)\\,dx\\,dy + \\dfrac{1}{2}\\,\\partial_1\\left(\\partial_1f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)\\,{dy}^{2} + \\partial_0f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)\\,dx + \\partial_1f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)\\,dy + f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)"]
+             (all-formats (reduce +
+                                  (take 3 (taylor-series-terms
+                                           (literal-function 'f (up 0 0) 0)
+                                           (up 'x 'y)
+                                           (up 'dx 'dy))))))))))
