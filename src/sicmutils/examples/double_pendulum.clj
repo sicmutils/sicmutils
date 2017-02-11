@@ -28,14 +28,14 @@
         y2 (- y1 (* l2 (cos φ)))]
     [x1 y1 x2 y2]))
 
-(defn V-double-pend
+(defn V
   [m1 m2 l1 l2 g]
   (fn [[_ [θ φ] _]]
     (let [[_ y1 _ y2] (coords l1 l2 θ φ)]
       (+ (* m1 g y1)
          (* m2 g y2)))))
 
-(defn T-double-pend
+(defn T
   [m1 m2 l1 l2 _]
   (fn [[_ [θ φ] [θdot φdot]]]
     (let [v1sq (* (square l1) (square θdot))
@@ -45,12 +45,12 @@
                       v2sq
                       (* 2 l1 l2 θdot φdot (cos (- θ φ)))))))))
 
-(def L-double-pend
-  (- T-double-pend V-double-pend))
+(def L
+  (- T V))
 
 (defn state-derivative  [m1 m2 l1 l2 g]
   (Lagrangian->state-derivative
-    (L-double-pend m1 m2 l1 l2 g)))
+    (L m1 m2 l1 l2 g)))
 
 (defn evolver
   [{:keys [t dt g m1 l1 theta_0 thetadot_0 m2 l2 phi_0 phidot_0 observe]

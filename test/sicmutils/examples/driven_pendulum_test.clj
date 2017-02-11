@@ -42,9 +42,22 @@
 
 (deftest as-javascript
   (let [eq (simplify
-             ((driven/state-derivative 'm 'l 'g 'a 'omega)
-               (up 't 'theta 'thetadot)))]
+            ((driven/state-derivative 'm 'l 'g 'a 'omega)
+             (up 't 'theta 'thetadot)))]
     (is (= (str "function(t, theta, thetadot) {\n"
                 "  var _1 = Math.sin(theta);\n"
                 "  return [1, thetadot, (_1 * Math.cos(omega * t) * a * Math.pow(omega, 2) - _1 * g) / l];\n}")
-           (->JavaScript eq :parameter-order '[t theta thetadot])))))
+           (->JavaScript eq :parameter-order '[t theta thetadot]))))
+  (let [eq (simplify
+            ((Hamiltonian->state-derivative
+              (Lagrangian->Hamiltonian
+               (driven/L 'm 'l 'g 'a 'omega)))
+             (->H-state 't 'theta 'p_theta)))]
+    (is (= (str "function(t, theta, p_theta) {\n"
+                "  var _1 = Math.sin(omega * t);\n"
+                "  var _2 = Math.pow(l, 2);\n"
+                "  var _3 = omega * t;\n"
+                "  var _4 = Math.sin(theta);\n"
+                "  var _5 = Math.cos(theta);\n"
+                "  return [1, (Math.sin(_3) * _4 * a * l * m * omega + p_theta) / (_2 * m), (- Math.pow(Math.sin(_3), 2) * _5 * _4 * Math.pow(a, 2) * l * m * Math.pow(omega, 2) - Math.sin(_3) * _5 * a * omega * p_theta - _4 * g * _2 * m) / l];\n}")
+           (->JavaScript eq :parameter-order '[t theta p_theta])))))

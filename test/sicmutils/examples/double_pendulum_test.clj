@@ -27,9 +27,9 @@
 
 (deftest equations
   (let [state (up 't (up 'θ 'φ) (up 'θdot 'φdot))
-        V (double/V-double-pend 'm1 'm2 'l1 'l2 'g)
-        T (double/T-double-pend 'm1 'm2 'l1 'l2 'g)
-        L (double/L-double-pend 'm1 'm2 'l1 'l2 'g)]
+        V (double/V 'm1 'm2 'l1 'l2 'g)
+        T (double/T 'm1 'm2 'l1 'l2 'g)
+        L (double/L 'm1 'm2 'l1 'l2 'g)]
     (is (= '(+ (* -1 (cos θ) g l1 m1)
                (* -1 (cos θ) g l1 m2)
                (* -1 (cos φ) g l2 m2))
@@ -61,7 +61,7 @@
                        (* (((expt D 2) φ) t) (expt l2 2) m2)
                        (* (sin (φ t)) g l2 m2)))
              (simplify (((Lagrange-equations
-                          (double/L-double-pend 'm1 'm2 'l1 'l2 'g))
+                          (double/L 'm1 'm2 'l1 'l2 'g))
                          (up θ φ))
                         't)))))
     (let [o (atom [])
@@ -70,7 +70,7 @@
         (double/evolver {:t 3/60 :dt 1/60 :observe observe})
         (is (= 4 (count @o)))))))
 
-(deftest as-javascript
+(deftest infix-forms
   (let [eq (simplify
              ((double/state-derivative 'm1 'm2 'l1 'l2 'g)
                (up 't (up 'theta 'phi) (up 'thetadot 'phidot))))]
@@ -84,4 +84,37 @@
                 "  var _7 = Math.sin(theta);\n"
                 "  var _8 = Math.pow(thetadot, 2);\n"
                 "  var _9 = - phi + theta;\n  return [1, [thetadot, phidot], [(- Math.sin(_5 + theta) * Math.cos(_5 + theta) * l1 * m2 * _8 - Math.sin(_5 + theta) * l2 * m2 * _2 + Math.cos(_5 + theta) * _3 * g * m2 - _7 * g * m1 - _7 * g * m2) / (Math.pow(Math.sin(_5 + theta), 2) * l1 * m2 + l1 * m1), (Math.sin(_5 + theta) * Math.cos(_5 + theta) * l2 * m2 * _2 + Math.sin(_5 + theta) * l1 * m1 * _8 + Math.sin(_5 + theta) * l1 * m2 * _8 + _7 * Math.cos(_5 + theta) * g * m1 + _7 * Math.cos(_5 + theta) * g * m2 - _3 * g * m1 - _3 * g * m2) / (Math.pow(Math.sin(_5 + theta), 2) * l2 * m2 + l2 * m1)]];\n}")
-           (->JavaScript eq :parameter-order '[t theta phi thetadot phidot])))))
+           (->JavaScript eq :parameter-order '[t theta phi thetadot phidot]))))
+  (let [eq (simplify
+            ((Hamiltonian->state-derivative
+              (Lagrangian->Hamiltonian
+               (double/L 'm_1 'm_2 'l_1 'l_2 'g)))
+             (->H-state 't (up 'theta 'psi) (down 'p_theta 'p_psi))))]
+    (is (= (str "function(theta, psi, p_theta, p_psi) {\n"
+                "  var _1 = Math.pow(l_1, 2) * Math.pow(l_2, 2) * Math.pow(m_2, 2);\n"
+                "  var _2 = Math.pow(Math.cos(- psi + theta), 4) * Math.pow(l_1, 2) * Math.pow(l_2, 2) * Math.pow(m_2, 2) -2 * Math.pow(Math.cos(- psi + theta), 2) * Math.pow(l_1, 2) * Math.pow(l_2, 2) * Math.pow(m_2, 2) + 2 * Math.pow(Math.sin(- psi + theta), 2) * Math.pow(l_1, 2) * Math.pow(l_2, 2) * m_1 * m_2 + Math.pow(l_1, 2) * Math.pow(l_2, 2) * Math.pow(m_1, 2) + Math.pow(l_1, 2) * Math.pow(l_2, 2) * Math.pow(m_2, 2);\n"
+                "  var _3 = -2 * Math.pow(Math.cos(- psi + theta), 2) * Math.pow(l_1, 2) * Math.pow(l_2, 2) * Math.pow(m_2, 2);\n"
+                "  var _4 = Math.pow(m_1, 2);\n"
+                "  var _5 = Math.pow(l_2, 2);\n"
+                "  var _6 = 2 * Math.pow(Math.sin(- psi + theta), 2) * Math.pow(l_1, 2) * Math.pow(l_2, 2) * m_1 * m_2;\n"
+                "  var _7 = - psi;\n"
+                "  var _8 = Math.cos(- psi + theta);\n"
+                "  var _9 = Math.sin(- psi + theta);\n"
+                "  var _10 = Math.pow(p_psi, 2);\n"
+                "  var _11 = Math.pow(l_1, 2);\n"
+                "  var _12 = Math.sin(psi);\n"
+                "  var _13 = Math.pow(m_2, 3);\n"
+                "  var _14 = Math.pow(l_2, 3);\n"
+                "  var _15 = - psi + theta;\n"
+                "  var _16 = Math.pow(Math.sin(- psi + theta), 2);\n"
+                "  var _17 = Math.sin(theta);\n"
+                "  var _18 = Math.pow(p_theta, 2);\n"
+                "  var _19 = Math.pow(m_2, 2);\n"
+                "  var _20 = Math.pow(Math.cos(- psi + theta), 4) * Math.pow(l_1, 2) * Math.pow(l_2, 2) * Math.pow(m_2, 2);\n"
+                "  var _21 = Math.pow(l_1, 2) * Math.pow(l_2, 2) * Math.pow(m_1, 2);\n"
+                "  var _22 = Math.pow(Math.cos(- psi + theta), 2);\n"
+                "  var _23 = Math.pow(l_1, 3);\n"
+                "  var _24 = Math.pow(Math.cos(- psi + theta), 4);\n"
+                "  return [1, [(- Math.cos(_7 + theta) * l_1 * p_psi + l_2 * p_theta) / (Math.pow(Math.sin(_7 + theta), 2) * _11 * l_2 * m_2 + _11 * l_2 * m_1), (- Math.cos(_7 + theta) * l_2 * m_2 * p_theta + l_1 * m_1 * p_psi + l_1 * m_2 * p_psi) / (Math.pow(Math.sin(_7 + theta), 2) * l_1 * _5 * _19 + l_1 * _5 * m_1 * m_2)], [(- _17 * Math.pow(Math.cos(_7 + theta), 4) * g * _23 * _5 * m_1 * _19 - _17 * Math.pow(Math.cos(_7 + theta), 4) * g * _23 * _5 * _13 + 2 * _17 * Math.pow(Math.cos(_7 + theta), 2) * g * _23 * _5 * _4 * m_2 + 4 * _17 * Math.pow(Math.cos(_7 + theta), 2) * g * _23 * _5 * m_1 * _19 + 2 * _17 * Math.pow(Math.cos(_7 + theta), 2) * g * _23 * _5 * _13 - _17 * g * _23 * _5 * Math.pow(m_1, 3) -3 * _17 * g * _23 * _5 * _4 * m_2 -3 * _17 * g * _23 * _5 * m_1 * _19 - _17 * g * _23 * _5 * _13 - Math.pow(Math.cos(_7 + theta), 2) * Math.sin(_7 + theta) * l_1 * l_2 * m_2 * p_psi * p_theta + Math.cos(_7 + theta) * Math.sin(_7 + theta) * _11 * m_1 * _10 + Math.cos(_7 + theta) * Math.sin(_7 + theta) * _11 * m_2 * _10 + Math.cos(_7 + theta) * Math.sin(_7 + theta) * _5 * m_2 * _18 - Math.sin(_7 + theta) * l_1 * l_2 * m_1 * p_psi * p_theta - Math.sin(_7 + theta) * l_1 * l_2 * m_2 * p_psi * p_theta) / (Math.pow(Math.cos(_7 + theta), 4) * _11 * _5 * _19 -2 * Math.pow(Math.cos(_7 + theta), 2) * _11 * _5 * _19 + 2 * Math.pow(Math.sin(_7 + theta), 2) * _11 * _5 * m_1 * m_2 + _11 * _5 * _4 + _11 * _5 * _19), (- Math.pow(Math.cos(_7 + theta), 4) * _12 * g * _11 * _14 * _13 + 2 * Math.pow(Math.cos(_7 + theta), 2) * _12 * g * _11 * _14 * _13 -2 * Math.pow(Math.sin(_7 + theta), 2) * _12 * g * _11 * _14 * m_1 * _19 - _12 * g * _11 * _14 * _4 * m_2 - _12 * g * _11 * _14 * _13 + Math.pow(Math.cos(_7 + theta), 2) * Math.sin(_7 + theta) * l_1 * l_2 * m_2 * p_psi * p_theta - Math.cos(_7 + theta) * Math.sin(_7 + theta) * _11 * m_1 * _10 - Math.cos(_7 + theta) * Math.sin(_7 + theta) * _11 * m_2 * _10 - Math.cos(_7 + theta) * Math.sin(_7 + theta) * _5 * m_2 * _18 + Math.sin(_7 + theta) * l_1 * l_2 * m_1 * p_psi * p_theta + Math.sin(_7 + theta) * l_1 * l_2 * m_2 * p_psi * p_theta) / (Math.pow(Math.cos(_7 + theta), 4) * _11 * _5 * _19 -2 * Math.pow(Math.cos(_7 + theta), 2) * _11 * _5 * _19 + 2 * Math.pow(Math.sin(_7 + theta), 2) * _11 * _5 * m_1 * m_2 + _11 * _5 * _4 + _11 * _5 * _19)]];\n"
+                "}")
+           (->JavaScript eq :parameter-order '[theta psi p_theta p_psi])))))
