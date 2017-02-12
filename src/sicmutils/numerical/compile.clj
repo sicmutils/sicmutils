@@ -49,22 +49,26 @@
      ~(w/postwalk-replace compiled-function-whitelist body)))
 
 (defn extract-common-subexpressions
-  "Given an S-expression, return a map of subexpressions which occur
-  more than once within it to symbols provided by the
-  generator. (Here, symbols and other primitive elements do not count
-  as subexpressions.)"
-  [x & {:keys [symbol-generator]
-        :or {symbol-generator gensym}}]
-  (let [cs (atom {})
-        increment (fnil inc 0)]
-    ;; cs maps subexpressions to the number of times we have seen the
-    ;; expression.
-    (w/postwalk (fn [e]
-                  (when (seq? e)
-                    (swap! cs update e increment))
-                  e)
-                x)
-    (into {} (for [[k v] @cs :when (> v 1)] [k (symbol-generator)]))))
+  "Given an S-expression, return a pair containing a list of pairs of
+  [subexpression which occurs more than once, generated symbol], followed
+  by an S-expression with those replacements enacted."
+  [expression symbol-generator]
+  (loop [x expression
+         syms {}]
+    (let [cs (atom {})
+          increment (fnil inc 0)]
+      ;; cs maps subexpressions to the number of times we have seen the
+      ;; expression.
+      (w/postwalk (fn [e]
+                    (when (seq? e)
+                      (swap! cs update e increment))
+                    e)
+                  x)
+      (let [new-syms (into {} (for [[k v] @cs :when (> v 1)] [k (symbol-generator)]))]
+        (if (empty? new-syms)
+          [x (sort-by second syms)]
+          (let [joint-syms (into syms new-syms)]
+            (recur (w/postwalk-replace joint-syms x) joint-syms)))))))
 
 (defn ^:private initialize-cs-variables
   "Given a list of pairs of (symbol, expression) construct a
@@ -81,12 +85,11 @@
   replaced by the dummy variables."
   [x & {:keys [symbol-generator]
         :or {symbol-generator gensym}}]
-  (let [syms (extract-common-subexpressions x :symbol-generator symbol-generator)]
+  (let [[x syms] (extract-common-subexpressions x symbol-generator)]
     (if (> (count syms) 0)
       (do
         (log/info (format "common subexpression elimination: %d expressions" (count syms)))
-        `(let ~(initialize-cs-variables syms)
-           ~(w/postwalk-replace syms x)))
+        `(let ~(initialize-cs-variables syms) ~x))
       x)))
 
 (defn ^:private compile-state-function2

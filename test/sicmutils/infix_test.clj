@@ -129,7 +129,7 @@
          (s->JS (expt 2.71828 'y))))
   (is (= "function(a, b, x) {\n  return Math.exp(Math.log(x) * b) * a;\n}"
          (s->JS (* 'a (exp (* 'b (log 'x)))))))
-  (is (= "function(x) {\n  var _1 = Math.sin(x);\n  return Math.pow(_1, 2) + _1;\n}"
+  (is (= "function(x) {\n  var _0001 = Math.sin(x);\n  return Math.pow(_0001, 2) + _0001;\n}"
          (s->JS (+ (sin 'x) (expt (sin 'x) 2)))))
   (is (= (str "function(x, dx) {\n"
               "  var t1 = Math.sin(x);\n"
@@ -221,7 +221,7 @@
               "{D}^{2}f\\left(x\\right)"]
              (all-formats ((D (D f)) 'x))))
       (is (= ["1/2 ∂₀(∂₀f)(up(x, y)) dx² + ∂₁(∂₀f)(up(x, y)) dx dy + 1/2 ∂₁(∂₁f)(up(x, y)) dy² + ∂₀f(up(x, y)) dx + ∂₁f(up(x, y)) dy + f(up(x, y))"
-              "function(dx, dy, f, x, y, ∂) {\n  var _1 = ∂(0);\n  var _2 = ∂(1);\n  var _3 = ∂(1)(f);\n  var _4 = [x, y];\n  var _5 = ∂(0)(f);\n  return 1/2 * (_1(_1(f)))(_4) * Math.pow(dx, 2) + (_2(_1(f)))(_4) * dx * dy + 1/2 * (_2(_2(f)))(_4) * Math.pow(dy, 2) + (_1(f))(_4) * dx + (_2(f))(_4) * dy + f(_4);\n}"
+              "function(dx, dy, f, x, y, ∂) {\n  var _0001 = ∂(0);\n  var _0002 = ∂(1);\n  var _0003 = ∂(1)(f);\n  var _0004 = [x, y];\n  var _0005 = ∂(0)(f);\n  var _0006 = _0001(f);\n  var _0007 = _0002(f);\n  return 1/2 * (_0001(_0006))(_0004) * Math.pow(dx, 2) + (_0002(_0006))(_0004) * dx * dy + 1/2 * (_0002(_0007))(_0004) * Math.pow(dy, 2) + (_0006(_0004)) * dx + (_0007(_0004)) * dy + f(_0004);\n}"
               "\\dfrac{1}{2}\\,\\partial_0\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)\\,{dx}^{2} + \\partial_1\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)\\,dx\\,dy + \\dfrac{1}{2}\\,\\partial_1\\left(\\partial_1f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)\\,{dy}^{2} + \\partial_0f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)\\,dx + \\partial_1f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)\\,dy + f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)"]
              (all-formats (reduce +
                                   (take 3 (taylor-series-terms

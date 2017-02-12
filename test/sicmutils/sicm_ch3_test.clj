@@ -121,11 +121,14 @@
                   0
                   0)) (simplify (sysder top-state))))
       (is (= (str "function(A, C, gMR, p_phi, p_psi, p_theta, theta) {\n"
-                  "  var _1 = Math.sin(theta);\n"
-                  "  var _2 = Math.pow(Math.cos(theta), 2);\n"
-                  "  var _3 = Math.pow(Math.sin(theta), 2);\n"
-                  "  var _4 = Math.cos(theta);\n"
-                  "  return [1, [p_theta / A, (- _4 * p_psi + p_phi) / (Math.pow(_1, 2) * A), (Math.pow(_1, 2) * A * p_psi + Math.pow(_4, 2) * C * p_psi - _4 * C * p_phi) / (Math.pow(_1, 2) * A * C)], [(Math.pow(_4, 4) * A * gMR -2 * Math.pow(_4, 2) * A * gMR - Math.pow(_4, 2) * p_phi * p_psi + _4 * Math.pow(p_phi, 2) + _4 * Math.pow(p_psi, 2) + A * gMR - p_phi * p_psi) / (Math.pow(_1, 3) * A), 0, 0]];\n}")
+                  "  var _0001 = Math.sin(theta);\n"
+                  "  var _0002 = Math.pow(Math.cos(theta), 2);\n"
+                  "  var _0003 = Math.pow(Math.sin(theta), 2);\n"
+                  "  var _0004 = Math.cos(theta);\n"
+                  "  var _0005 = Math.pow(_0001, 2);\n"
+                  "  var _0006 = Math.pow(_0004, 2);\n"
+                  "  return [1, [p_theta / A, (- _0004 * p_psi + p_phi) / (_0005 * A), (_0005 * A * p_psi + _0006 * C * p_psi - _0004 * C * p_phi) / (_0005 * A * C)], [(Math.pow(_0004, 4) * A * gMR -2 * _0006 * A * gMR - _0006 * p_phi * p_psi + _0004 * Math.pow(p_phi, 2) + _0004 * Math.pow(p_psi, 2) + A * gMR - p_phi * p_psi) / (Math.pow(_0001, 3) * A), 0, 0]];\n"
+                  "}")
              (-> top-state sysder simplify ->JavaScript))))))
 
 (deftest section-3-5
@@ -163,13 +166,14 @@
              sysder))
       ;; odd that we have _1 here when it's not used ... must be a bug in the CSE
       ;; ah, we observe that _3 is omega*t, and we have a few examples of
-      ;; the sine of that. So our algorithm is a little on the naive side o_o
+      ;; the sine (of that. So our algorithm is a little on the naive side o_o
       (is (= (str "function(a, g, l, m, omega, p_theta, t, theta) {\n"
-                  "  var _1 = Math.sin(omega * t);\n"
-                  "  var _2 = Math.pow(l, 2);\n"
-                  "  var _3 = omega * t;\n"
-                  "  var _4 = Math.sin(theta);\n"
-                  "  var _5 = Math.cos(theta);\n"
-                  "  return [1, (Math.sin(_3) * _4 * a * l * m * omega + p_theta) / (_2 * m), (- Math.pow(Math.sin(_3), 2) * _4 * _5 * Math.pow(a, 2) * l * m * Math.pow(omega, 2) - Math.sin(_3) * _5 * a * omega * p_theta - _4 * g * _2 * m) / l];\n"
+                  "  var _0001 = Math.sin(omega * t);\n"
+                  "  var _0002 = Math.pow(l, 2);\n"
+                  "  var _0003 = omega * t;\n"
+                  "  var _0004 = Math.sin(theta);\n"
+                  "  var _0005 = Math.cos(theta);\n"
+                  "  var _0006 = Math.sin(_0003);\n"
+                  "  return [1, (_0006 * _0004 * a * l * m * omega + p_theta) / (_0002 * m), (- Math.pow(_0006, 2) * _0004 * _0005 * Math.pow(a, 2) * l * m * Math.pow(omega, 2) - _0006 * _0005 * a * omega * p_theta - _0004 * g * _0002 * m) / l];\n"
                   "}")
              (->JavaScript sysder))))))

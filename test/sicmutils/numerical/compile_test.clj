@@ -52,15 +52,14 @@
       (symbol (format "%s%d" s (swap! i inc))))))
 
 (deftest subexp
-  (is (= '{(+ x y) g1}
+  (is (= '[(* g1 (+ x z) g1) ([(+ x y) g1])]
          (extract-common-subexpressions
           '(* (+ x y) (+ x z) (+ x y))
-          :symbol-generator (make-generator "g"))))
-  (is (= '{(sin x) K1
-           (cos x) K2}
+          (make-generator "g"))))
+  (is (= '[(+ K1 (expt K1 2) K2 (sqrt K2)) ([(sin x) K1] [(cos x) K2])]
          (extract-common-subexpressions
           '(+ (sin x) (expt (sin x) 2) (cos x) (sqrt (cos x)))
-          :symbol-generator (make-generator "K")))))
+          (make-generator "K")))))
 
 (deftest subexp-compile
   (let [x '(+ (sin x) (expt (sin x) 2) (cos x) (sqrt (cos x)) (tan x))

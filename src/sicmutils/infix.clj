@@ -29,7 +29,7 @@
 (defn ^:private make-symbol-generator
   [p]
   (let [i (atom 0)]
-    (fn [] (format "%s%d" p (swap! i inc)))))
+    (fn [] (format "%s%04x" p (swap! i inc)))))
 
 (def ^:private rewrite-trig-powers
   "Historical preference is to write sin^2(x) rather than (sin(x))^2."
@@ -332,9 +332,7 @@
               :or {symbol-generator (make-symbol-generator "_")
                    parameter-order sort}}]
       (let [params (set/difference (x/variables-in x) operators-known)
-            cs (compile/extract-common-subexpressions
-                x
-                :symbol-generator symbol-generator)
+            [x cs] (compile/extract-common-subexpressions x symbol-generator)
             w (StringWriter.)
             ordered-params (if (fn? parameter-order)
                              (parameter-order params)
@@ -351,5 +349,5 @@
             (.write ";\n")))
         (.toString (doto w
                      (.write "  return ")
-                     (.write ^String (R (walk/postwalk-replace cs x)))
+                     (.write ^String (R x))
                      (.write ";\n}")))))))
