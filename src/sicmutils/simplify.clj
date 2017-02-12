@@ -154,7 +154,6 @@
       rules/sincos->trig
       square-root-simplifier
       clear-square-roots-of-perfect-squares
-      ;;rules/divide-numbers-through
       simplify-and-flatten))
 
 (def simplify-expression (simplify-until-stable simplify-expression-1 simplify-and-flatten))

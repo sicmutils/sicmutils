@@ -107,18 +107,19 @@
     => (:? #([1 '(complex 0 1) -1 '(complex 0 -1)] (mod (% 'n) 4))))))
 
 (def divide-numbers-through
-  (ruleset
-   (* 1 :factor)
-   => :factor
+  (rule-simplifier
+   (ruleset
+    (* 1 :factor)
+    => :factor
 
-   (* 1 :factors*)
-   => (* :factors*)
+    (* 1 :factors*)
+    => (* :factors*)
 
-   (/ (:? n number?) (:? d number?))
-   => (:? #(/ (% 'n) (% 'd)))
+    (/ (:? n number?) (:? d number?))
+    => (:? #(/ (% 'n) (% 'd)))
 
-   (/ (+ :terms*) (:? d number?))
-   => (+ (:?? #(map (fn [n] `(~'/ ~n ~(% 'd))) (% :terms*))))))
+    (/ (+ :terms*) (:? d number?))
+    => (+ (:?? #(map (fn [n] `(~'/ ~n ~(% 'd))) (% :terms*)))))))
 
 (def ^:private flush-obvious-ones
   (ruleset
