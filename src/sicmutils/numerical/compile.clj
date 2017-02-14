@@ -67,18 +67,6 @@
                (let [new-vs (into #{} (mapcat #(x/variables-in (var-to-expr %)) new-variables))]
                  (set/difference (set/intersection new-vs subexpr-vars) new-variables)))))))
 
-(comment
-
-  (if (empty? new-syms)
-    (do
-      (println "new-syms empty, so returning" [nil x])
-      [nil x])
-    ;; prune unused symbols and return the simplified expression with the
-    ;; subexpression dictionary. The first batch of syms we retain will be those selected by the
-    ;; substitution.
-    ))
-
-
 (defn extract-common-subexpressions
   "Considers an S-expression from the point of view of optimizing
   its evaluation by isolating common subexpressions into auxiliary
