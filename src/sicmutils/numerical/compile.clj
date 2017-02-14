@@ -21,7 +21,9 @@
              [structure :as struct]
              [generic :as g]]
             [clojure.walk :as w]
-            [clojure.tools.logging :as log])
+            [clojure.tools.logging :as log]
+            [sicmutils.expression :as x]
+            [clojure.set :as set])
   (:import (com.google.common.base Stopwatch)))
 
 (def ^:private compiled-function-whitelist {'up `struct/up
@@ -48,26 +50,62 @@
   `(fn [~(into [] (concat (-> state-model flatten) generic-parameters))]
      ~(w/postwalk-replace compiled-function-whitelist body)))
 
+(defn ^:private discard-unreferenced-variables
+  [expression var-to-expr continue]
+  (let [subexpr-vars (into #{} (keys var-to-expr))
+        variables-in-x (x/variables-in expression)]
+    (loop [variables-required #{}
+           new-variables (set/intersection subexpr-vars variables-in-x)]
+      (if (empty? new-variables)
+        ;; we're done. prune and sort the variable list for the consumer.
+        (continue
+          expression
+          (sort-by first (filter #(variables-required (first %)) var-to-expr)))
+        ;; not yet. We found new variables in the last pass. See if the
+        ;; expressions they refer to flush out variables that we haven't seen.
+        (recur (set/union variables-required new-variables)
+               (let [new-vs (into #{} (mapcat #(x/variables-in (var-to-expr %)) new-variables))]
+                 (set/difference (set/intersection new-vs subexpr-vars) new-variables)))))))
+
+(comment
+
+  (if (empty? new-syms)
+    (do
+      (println "new-syms empty, so returning" [nil x])
+      [nil x])
+    ;; prune unused symbols and return the simplified expression with the
+    ;; subexpression dictionary. The first batch of syms we retain will be those selected by the
+    ;; substitution.
+    ))
+
+
 (defn extract-common-subexpressions
-  "Given an S-expression, return a pair containing a list of pairs of
-  [subexpression which occurs more than once, generated symbol], followed
-  by an S-expression with those replacements enacted."
-  [expression symbol-generator]
+  "Considers an S-expression from the point of view of optimizing
+  its evaluation by isolating common subexpressions into auxiliary
+  variables. The continuation is called with two arguments: a
+  new equivalent expression with possibly some subexpressions replaced
+  by new variables (delivered by the supplied generator) and a seq
+  of pairs of [aux variable, subexpression] used to reconstitute the
+  value."
+  [expression symbol-generator continue]
   (loop [x expression
-         syms {}]
+         expr-to-var {}]
     (let [cs (atom {})
           increment (fnil inc 0)]
       ;; cs maps subexpressions to the number of times we have seen the
       ;; expression.
       (w/postwalk (fn [e]
-                    (when (seq? e)
+                    (when (and (seq? e) (not (expr-to-var e)))
                       (swap! cs update e increment))
                     e)
                   x)
+
       (let [new-syms (into {} (for [[k v] @cs :when (> v 1)] [k (symbol-generator)]))]
         (if (empty? new-syms)
-          [x (sort-by second syms)]
-          (let [joint-syms (into syms new-syms)]
+          (discard-unreferenced-variables x
+                                          (into {} (for [[expr var] expr-to-var] [var expr]))
+                                          continue)
+          (let [joint-syms (into expr-to-var new-syms)]
             (recur (w/postwalk-replace joint-syms x) joint-syms)))))))
 
 (defn ^:private initialize-cs-variables
@@ -75,7 +113,7 @@
   binding vector (this is just a one-level flattening of the
   input)."
   [syms]
-  (reduce (fn [v [x sym]] (conj (conj v sym) x)) [] syms))
+  (reduce (fn [v [sym x]] (conj (conj v sym) x)) [] syms))
 
 (defn common-subexpression-elimination
   "Given an expression and a table of common subexpressions, create a
@@ -85,12 +123,15 @@
   replaced by the dummy variables."
   [x & {:keys [symbol-generator]
         :or {symbol-generator gensym}}]
-  (let [[x syms] (extract-common-subexpressions x symbol-generator)]
-    (if (> (count syms) 0)
-      (do
-        (log/info (format "common subexpression elimination: %d expressions" (count syms)))
-        `(let ~(initialize-cs-variables syms) ~x))
-      x)))
+  (extract-common-subexpressions
+    x
+    symbol-generator
+    (fn [new-expression new-vars]
+      (if (> (count new-vars) 0)
+        (do
+          (log/info (format "common subexpression elimination: %d expressions" (count new-vars)))
+          `(let ~(initialize-cs-variables new-vars) ~new-expression))
+        new-expression))))
 
 (defn ^:private compile-state-function2
   [f parameters initial-state]

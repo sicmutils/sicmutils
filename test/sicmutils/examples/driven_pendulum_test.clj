@@ -54,7 +54,7 @@
               (Lagrangian->Hamiltonian
                (driven/L 'm 'l 'g 'a 'omega)))
              (->H-state 't 'theta 'p_theta)))]
-    (is (= (str "function(t, theta, p_theta) {\n  var _0001 = Math.sin(omega * t);\n"
+    (is (= (str "function(t, theta, p_theta) {\n"
                 "  var _0002 = Math.pow(l, 2);\n"
                 "  var _0003 = omega * t;\n"
                 "  var _0004 = Math.sin(theta);\n"

@@ -50,7 +50,7 @@
 
 (defn variables-in
   "Return the 'variables' (e.g. symbols) found in the expression x,
-  which is an unwrapped expression."
+  which is an unwrapped expression, as a set"
   [x]
   (if (symbol? x) #{x}
       (->> x flatten (filter symbol?) (into #{}))))

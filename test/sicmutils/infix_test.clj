@@ -118,7 +118,7 @@
 (defn ^:private make-symbol-generator
   [p]
   (let [i (atom 0)]
-    (fn [] (format "%s%d" p (swap! i inc)))))
+    (fn [] (symbol (format "%s%d" p (swap! i inc))))))
 
 (deftest JS
   (is (= "function(a, b, theta) {\n  return Math.sin(theta) + a + b;\n}"
@@ -221,7 +221,14 @@
               "{D}^{2}f\\left(x\\right)"]
              (all-formats ((D (D f)) 'x))))
       (is (= ["1/2 ∂₀(∂₀f)(up(x, y)) dx² + ∂₁(∂₀f)(up(x, y)) dx dy + 1/2 ∂₁(∂₁f)(up(x, y)) dy² + ∂₀f(up(x, y)) dx + ∂₁f(up(x, y)) dy + f(up(x, y))"
-              "function(dx, dy, f, x, y, ∂) {\n  var _0001 = ∂(0);\n  var _0002 = ∂(1);\n  var _0003 = ∂(1)(f);\n  var _0004 = [x, y];\n  var _0005 = ∂(0)(f);\n  var _0006 = _0001(f);\n  var _0007 = _0002(f);\n  return 1/2 * (_0001(_0006))(_0004) * Math.pow(dx, 2) + (_0002(_0006))(_0004) * dx * dy + 1/2 * (_0002(_0007))(_0004) * Math.pow(dy, 2) + (_0006(_0004)) * dx + (_0007(_0004)) * dy + f(_0004);\n}"
+              (str "function(dx, dy, f, x, y, ∂) {\n"
+                   "  var _0001 = ∂(0);\n"
+                   "  var _0002 = ∂(1);\n"
+                   "  var _0004 = [x, y];\n"
+                   "  var _0006 = _0001(f);\n"
+                   "  var _0007 = _0002(f);\n"
+                   "  return 1/2 * _0001(_0006)(_0004) * Math.pow(dx, 2) + _0002(_0006)(_0004) * dx * dy + 1/2 * _0002(_0007)(_0004) * Math.pow(dy, 2) + _0006(_0004) * dx + _0007(_0004) * dy + f(_0004);\n"
+                   "}")
               "\\dfrac{1}{2}\\,\\partial_0\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)\\,{dx}^{2} + \\partial_1\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)\\,dx\\,dy + \\dfrac{1}{2}\\,\\partial_1\\left(\\partial_1f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)\\,{dy}^{2} + \\partial_0f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)\\,dx + \\partial_1f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)\\,dy + f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)"]
              (all-formats (reduce +
                                   (take 3 (taylor-series-terms
