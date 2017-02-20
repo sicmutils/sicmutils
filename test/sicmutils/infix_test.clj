@@ -111,9 +111,9 @@
   (is (= "a + b" (s->TeX (+ 'a 'b))))
   (is (= "\\lambda + \\mu" (s->TeX (+ 'lambda 'mu))))
   (is (= "x_0 + y_s" (s->TeX (+ 'x_0 'y_s))))
-  (is (= "\\dfrac{1}{x}" (s->TeX (/ 1 'x))))
-  (is (= "\\dfrac{a + b}{c + d}" (s->TeX (/ (+ 'a 'b) (+ 'c 'd)))))
-  (is (= "\\dfrac{a}{b}" (s->TeX (/ 'a 'b)))))
+  (is (= "\\frac{1}{x}" (s->TeX (/ 1 'x))))
+  (is (= "\\frac{a + b}{c + d}" (s->TeX (/ (+ 'a 'b) (+ 'c 'd)))))
+  (is (= "\\frac{a}{b}" (s->TeX (/ 'a 'b)))))
 
 (defn ^:private make-symbol-generator
   [p]
@@ -153,7 +153,7 @@
            (all-formats (* 'a 'b))))
     (is (= ["a / b"
             "function(a, b) {\n  return a / b;\n}"
-            "\\dfrac{a}{b}"]
+            "\\frac{a}{b}"]
            (all-formats (/ 'a 'b))))
     (is (= ["a - b"
             "function(a, b) {\n  return a - b;\n}"
@@ -185,23 +185,23 @@
            (all-formats (* (+ 'a 'b) (+ 'c 'd)))))
     (is (= ["(a + b) / c"
             "function(a, b, c) {\n  return (a + b) / c;\n}"
-            "\\dfrac{a + b}{c}"]
+            "\\frac{a + b}{c}"]
            (all-formats (/ (+ 'a 'b) 'c))))
     (is (= ["a / (b + c)"
             "function(a, b, c) {\n  return a / (b + c);\n}"
-            "\\dfrac{a}{b + c}"]
+            "\\frac{a}{b + c}"]
            (all-formats (/ 'a (+ 'b 'c)))))
     (is (= ["a / (b c)"
             "function(a, b, c) {\n  return a / (b * c);\n}"
-            "\\dfrac{a}{b\\,c}"]
+            "\\frac{a}{b\\,c}"]
            (all-formats (/ 'a (* 'b 'c)))))
     (is (= ["(b c) / a"
             "function(a, b, c) {\n  return (b * c) / a;\n}"
-            "\\dfrac{b\\,c}{a}"]
+            "\\frac{b\\,c}{a}"]
            (all-formats (/ (* 'b 'c) 'a))))
     (is (= ["(a b) / (c d)"
             "function(a, b, c, d) {\n  return (a * b) / (c * d);\n}"
-            "\\dfrac{a\\,b}{c\\,d}"]
+            "\\frac{a\\,b}{c\\,d}"]
            (all-formats (/ (* 'a 'b) (* 'c 'd)))))
     (is (= ["- a - b - c"
             "function(a, b, c) {\n  return - a - b - c;\n}"
@@ -229,7 +229,7 @@
                    "  var _0007 = _0002(f);\n"
                    "  return 1/2 * Math.pow(dx, 2) * _0001(_0006)(_0004) + dx * dy * _0002(_0006)(_0004) + 1/2 * Math.pow(dy, 2) * _0002(_0007)(_0004) + dx * _0006(_0004) + dy * _0007(_0004) + f(_0004);\n"
                    "}")
-              "\\dfrac{1}{2}\\,{dx}^{2}\\,\\partial_0\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,dy\\,\\partial_1\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + \\dfrac{1}{2}\\,{dy}^{2}\\,\\partial_1\\left(\\partial_1f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,\\partial_0f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dy\\,\\partial_1f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)"]
+              "\\frac{1}{2}\\,{dx}^{2}\\,\\partial_0\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,dy\\,\\partial_1\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + \\frac{1}{2}\\,{dy}^{2}\\,\\partial_1\\left(\\partial_1f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,\\partial_0f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dy\\,\\partial_1f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)"]
 
              (all-formats (reduce +
                                   (take 3 (taylor-series-terms

@@ -267,14 +267,14 @@
       '∂ (fn [ds] (str "\\partial_" (maybe-brace (s/join "," ds))))
       '/ (fn [xs]
            (when (= (count xs) 2)
-             (str "\\dfrac" (brace (first xs)) (brace (second xs)))))
+             (str "\\frac" (brace (first xs)) (brace (second xs)))))
       'up #(str "\\begin{pmatrix}" (s/join "\\\\" %) "\\end{pmatrix}")
       'down #(str "\\begin{bmatrix}" (s/join "&" %) "\\end{bmatrix}")
       'sqrt #(str "\\sqrt " (maybe-brace (first %)))}
      :render-primitive
      (fn r [v]
        (cond (ratio? v)
-             (str "\\dfrac" (brace (numerator v)) (brace (denominator v)))
+             (str "\\frac" (brace (numerator v)) (brace (denominator v)))
 
              :else
              (let [s (str v)]
