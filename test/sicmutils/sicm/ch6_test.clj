@@ -67,23 +67,22 @@
     (is (= 0 (simplify ((+ ((Lie-derivative (W 'alpha 'beta)) (H0 'alpha))
                            (H1 'beta))
                         a-state))))
-    (is (= '[(/ (expt p_theta 2) (* 2 α))
-             0
-             (/ (* (expt (sin theta) 2) α (expt β 2) (expt ε 2)) (* 2N (expt p_theta 2)))
-             0
-             0]
+    (is (= '((/ (expt p_theta 2) (* 2 α))
+              0
+              (/ (* α (expt β 2) (expt ε 2) (expt (sin theta) 2)) (* 2 (expt p_theta 2)))
+              0
+              0)
            (simplify (series/take 5 E))))
-    (is (= '(/ (+ (* (expt (sin theta) 2) (expt α 2) (expt β 2) (expt ε 2)) (expt p_theta 4))
-               (* 2N (expt p_theta 2) α))
+    (is (= '(/ (+ (* (expt α 2) (expt β 2) (expt ε 2) (expt (sin theta) 2)) (expt p_theta 4))
+               (* 2 (expt p_theta 2) α))
            (simplify (series:sum E 2))))
-    (is (= '(up t
-                (/ (+ (* -1N (cos theta) (sin theta) (expt α 2) (expt β 2) (expt ε 2))
-                      (* 2N (sin theta) (expt p_theta 2) α β ε)
-                      (* 2N (expt p_theta 4) theta))
-                   (* 2N (expt p_theta 4)))
-                (/ (+ (* 2N (cos theta) (expt p_theta 2) α β ε)
-                      (* -1N (expt α 2) (expt β 2) (expt ε 2))
-                      (* 2N (expt p_theta 4)))
-                   (* 2N (expt p_theta 3))))
+    (is (= '(up t (/ (+ (* -1 (expt α 2) (expt β 2) (expt ε 2) (cos theta) (sin theta))
+                        (* 2 (expt p_theta 2) α β ε (sin theta))
+                        (* 2 (expt p_theta 4) theta))
+                     (* 2 (expt p_theta 4)))
+                (/ (+ (* 2 (expt p_theta 2) α β ε (cos theta))
+                      (* -1 (expt α 2) (expt β 2) (expt ε 2))
+                      (* 2 (expt p_theta 4)))
+                   (* 2 (expt p_theta 3))))
            (simplify ((C 'α 'β 'ε 2) a-state))))
     ))

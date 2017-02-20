@@ -28,9 +28,7 @@
 (deftest equations
   (with-literal-functions
     [θ y]
-    (is (= '(+ (* -1 (cos (* t ω)) (sin (θ t)) a l m (expt ω 2))
-               (* (sin (θ t)) g l m)
-               (* (((expt D 2) θ) t) (expt l 2) m))
+    (is (= '(+ (* -1 a l m (expt ω 2) (cos (* t ω)) (sin (θ t))) (* g l m (sin (θ t))) (* (expt l 2) m (((expt D 2) θ) t)))
            (simplify (((Lagrange-equations
                          (driven/L 'm 'l 'g 'a 'ω))
                         θ)
@@ -46,7 +44,7 @@
              (up 't 'theta 'thetadot)))]
     (is (= (str "function(t, theta, thetadot) {\n"
                 "  var _0001 = Math.sin(theta);\n"
-                "  return [1, thetadot, (_0001 * Math.cos(omega * t) * a * Math.pow(omega, 2) - _0001 * g) / l];\n"
+                "  return [1, thetadot, (a * Math.pow(omega, 2) * _0001 * Math.cos(omega * t) - g * _0001) / l];\n"
                 "}")
            (->JavaScript eq :parameter-order '[t theta thetadot]))))
   (let [eq (simplify
@@ -60,6 +58,6 @@
                 "  var _0004 = Math.sin(theta);\n"
                 "  var _0005 = Math.cos(theta);\n"
                 "  var _0006 = Math.sin(_0003);\n"
-                "  return [1, (_0006 * _0004 * a * l * m * omega + p_theta) / (_0002 * m), (- Math.pow(_0006, 2) * _0005 * _0004 * Math.pow(a, 2) * l * m * Math.pow(omega, 2) - _0006 * _0005 * a * omega * p_theta - _0004 * g * _0002 * m) / l];\n"
+                "  return [1, (a * l * m * omega * _0006 * _0004 + p_theta) / (_0002 * m), (- Math.pow(a, 2) * l * m * Math.pow(omega, 2) * Math.pow(_0006, 2) * _0005 * _0004 - a * omega * p_theta * _0006 * _0005 - g * _0002 * m * _0004) / l];\n"
                 "}")
            (->JavaScript eq :parameter-order '[t theta p_theta])))))

@@ -50,22 +50,22 @@
                              (+ (* (cos (ψ t)) (sin (θ t)) ((D φ) t)) (* -1 (sin (ψ t)) ((D θ) t)))
                              (+ (* (cos (θ t)) ((D φ) t)) ((D ψ) t)))
              (simplify (((M-of-q->omega-body-of-t Euler->M) q) 't))))
-      (is (= '(column-matrix (+ (* (sin ψ) (sin θ) φdot) (* (cos ψ) θdot))
-                             (+ (* (cos ψ) (sin θ) φdot) (* -1 (sin ψ) θdot))
-                             (+ (* (cos θ) φdot) ψdot))
+      (is (= '(column-matrix (+ (* φdot (sin ψ) (sin θ)) (* θdot (cos ψ)))
+                             (+ (* φdot (cos ψ) (sin θ)) (* -1 θdot (sin ψ)))
+                             (+ (* φdot (cos θ)) ψdot))
              (simplify ((M->omega-body Euler->M) Euler-state)))))))
 
 (deftest section-2-9
-  (is (= '(+ (* (expt (cos ψ) 2) (expt (sin θ) 2) B φdot)
-             (* (expt (sin ψ) 2) (expt (sin θ) 2) A φdot)
-             (* (cos ψ) (sin ψ) (sin θ) A θdot)
-             (* -1N (cos ψ) (sin ψ) (sin θ) B θdot)
-             (* (expt (cos θ) 2) C φdot)
-             (* (cos θ) C ψdot))
+  (is (= '(+ (* A φdot (expt (sin ψ) 2) (expt (sin θ) 2))
+             (* B φdot (expt (cos ψ) 2) (expt (sin θ) 2))
+             (* A θdot (cos ψ) (sin ψ) (sin θ))
+             (* -1 B θdot (cos ψ) (sin ψ) (sin θ))
+             (* C φdot (expt (cos θ) 2))
+             (* C ψdot (cos θ)))
          (simplify (ref (((∂ 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1))))
   (is (zero? (simplify (- (ref ((Euler-state->L-space 'A 'B 'C) Euler-state) 2)
                           (ref (((∂ 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1)))))
-  (is (= '(* (expt (sin θ) 2) A B C)
+  (is (= '(* A B C (expt (sin θ) 2))
          (simplify (determinant (((square (∂ 2)) (T-rigid-body 'A 'B 'C)) Euler-state))))))
 
 (deftest ^:long section-2-9b
@@ -104,9 +104,9 @@
 
 
 (deftest section-2-10
-  (is (= '(+ (* 1/2 (expt (cos θ) 2) C (expt φdot 2))
-             (* 1/2 (expt (sin θ) 2) A (expt φdot 2))
-             (* (cos θ) C φdot ψdot)
+  (is (= '(+ (* 1/2 A (expt φdot 2) (expt (sin θ) 2))
+             (* 1/2 C (expt φdot 2) (expt (cos θ) 2))
+             (* C φdot ψdot (cos θ))
              (* 1/2 A (expt θdot 2))
              (* 1/2 C (expt ψdot 2)))
          (simplify ((T-rigid-body 'A 'A 'C) Euler-state)))))

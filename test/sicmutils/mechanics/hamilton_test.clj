@@ -34,11 +34,8 @@
   (with-literal-functions
     [x y v_x v_y p_x p_y [V [1 2] 3]]
     (is (= '(V x y) (simplify (V 'x 'y))))
-    (is (= '(up 0
-                (up (/ (+ (* ((D x) t) m) (* -1 (p_x t))) m)
-                    (/ (+ (* ((D y) t) m) (* -1 (p_y t))) m))
-                (down (+ ((D p_x) t) (((∂ 0) V) (x t) (y t)))
-                      (+ ((D p_y) t) (((∂ 1) V) (x t) (y t)))))
+    (is (= '(up 0 (up (/ (+ (* m ((D x) t)) (* -1 (p_x t))) m) (/ (+ (* m ((D y) t)) (* -1 (p_y t))) m))
+                (down (+ ((D p_x) t) (((∂ 0) V) (x t) (y t))) (+ ((D p_y) t) (((∂ 1) V) (x t) (y t)))))
            (simplify (((Hamilton-equations
                         (H/H-rectangular
                          'm V))
@@ -50,21 +47,15 @@
     (is (= '(* 1/4 (expt p 2)) (simplify ((Legendre-transform square) 'p))))
     (is (= '(+ (* 1/2 m (expt v_x 2)) (* 1/2 m (expt v_y 2)) (* -1 (V x y)))
            (simplify ((L/L-rectangular 'm V) (up 't (up 'x 'y) (up 'v_x 'v_y))))))
-    (is (= '(/ (+ (* 2 (V x y) m) (expt p_x 2) (expt p_y 2))
-               (* 2 m))
+    (is (= '(/ (+ (* 2 m (V x y)) (expt p_x 2) (expt p_y 2)) (* 2 m))
            (simplify ((Lagrangian->Hamiltonian
                        (L/L-rectangular 'm V))
                       (up 't (up 'x 'y) (down 'p_x 'p_y))))))))
 
 (deftest gjs-tests
-  (is (= '(up
-           0
-           (up
-            (/ (+ (* ((D x) t) m) (* -1 (p_x t))) m)
-            (/ (+ (* ((D y) t) m) (* -1 (p_y t))) m))
-           (down
-            (+ ((D p_x) t) (((∂ 0) V) (x t) (y t)))
-            (+ ((D p_y) t) (((∂ 1) V) (x t) (y t)))))
+  (is (= '(up 0
+              (up (/ (+ (* m ((D x) t)) (* -1 (p_x t))) m) (/ (+ (* m ((D y) t)) (* -1 (p_y t))) m))
+              (down (+ ((D p_x) t) (((∂ 0) V) (x t) (y t))) (+ ((D p_y) t) (((∂ 1) V) (x t) (y t)))))
 
          (with-literal-functions [x y p_x p_y [V [0 1] 2]]
            (simplify (((Hamilton-equations
@@ -73,12 +64,7 @@
                        (coordinate-tuple x y)
                        (momentum-tuple p_x p_y))
                       't)))))
-  (is (= '(/
-           (+
-            (* 2 (V r) m (expt r 2))
-            (* (expt p_r 2) (expt r 2))
-            (expt p_phi 2))
-           (* 2 m (expt r 2)))
+  (is (= '(/ (+ (* 2 m (expt r 2) (V r)) (* (expt p_r 2) (expt r 2)) (expt p_phi 2)) (* 2 m (expt r 2)))
          (with-literal-functions [[V [0 1] 2]]
            (simplify
             ((Lagrangian->Hamiltonian
@@ -87,12 +73,9 @@
                         (coordinate-tuple 'r 'phi)
                         (momentum-tuple 'p_r 'p_phi)))))))
   (is (= '(up 0
-              (up (/ (+ (* ((D r) t) m) (* -1 (p_r t))) m)
-                  (/ (+ (* (expt (r t) 2) ((D phi) t) m) (* -1 (p_phi t))) (* (expt (r t) 2) m)))
-              (down (/ (+ (* (expt (r t) 3) ((D p_r) t) m)
-                          (* (expt (r t) 3) ((D V) (r t)) m)
-                          (* -1 (expt (p_phi t) 2)))
-                       (* (expt (r t) 3) m))
+              (up (/ (+ (* m ((D r) t)) (* -1 (p_r t))) m)
+                  (/ (+ (* m (expt (r t) 2) ((D phi) t)) (* -1 (p_phi t))) (* m (expt (r t) 2))))
+              (down (/ (+ (* m (expt (r t) 3) ((D p_r) t)) (* m (expt (r t) 3) ((D V) (r t))) (* -1 (expt (p_phi t) 2))) (* m (expt (r t) 3)))
                     ((D p_phi) t)))
          (with-literal-functions [r phi p_r p_phi V]
            (simplify
@@ -103,14 +86,9 @@
               (momentum-tuple p_r p_phi))
              't)))))
   (is (= '(up 0
-              (up (/ (+ (* ((D r) t) m) (* -1 (p_r t))) m)
-                  (/ (+ (* (expt (r t) 2) ((D phi) t) m)
-                        (* -1 (p_phi t)))
-                     (* (expt (r t) 2) m)))
-              (down (/ (+ (* (expt (r t) 3) ((D p_r) t) m)
-                          (* (r t) GM (expt m 2))
-                          (* -1 (expt (p_phi t) 2)))
-                       (* (expt (r t) 3) m))
+              (up (/ (+ (* m ((D r) t)) (* -1 (p_r t))) m)
+                  (/ (+ (* m (expt (r t) 2) ((D phi) t)) (* -1 (p_phi t))) (* m (expt (r t) 2))))
+              (down (/ (+ (* m (expt (r t) 3) ((D p_r) t)) (* GM (expt m 2) (r t)) (* -1 (expt (p_phi t) 2))) (* m (expt (r t) 3)))
                     ((D p_phi) t)))
          (with-literal-functions [r phi p_r p_phi]
            (simplify

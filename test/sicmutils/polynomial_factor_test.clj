@@ -55,19 +55,20 @@
           z (g/square (g/+ x (g/* x (g/expt y 2))))
           test-poly (g/simplify (g/* (g/expt (g/+ (g/cos z) y) 2)
                                      (g/expt (g/- (g/cos z) y) 3)))]
-      (is (= '(* (expt (+ (cos (expt (+ (* x (expt y 2)) x) 2)) y) 2)
-                 (expt (+ (cos (expt (+ (* x (expt y 2)) x) 2)) (* -1 y)) 3))
+      (is (= '(* -1
+                 (expt (+ y (cos (expt (+ (* x (expt y 2)) x) 2))) 2)
+                 (expt (+ y (* -1 (cos (expt (+ (* x (expt y 2)) x) 2)))) 3))
              (-> test-poly v/freeze factor))))))
 
 (deftest root-out-squares-test
   (testing "one step"
-    (is (= '(+ x (* -1N y))
+    (is (= '(+ x (* -1 y))
            (root-out-squares
             '(sqrt (square (- x y))))))
     (is (= '(sqrt (expt (+ x (* -1 y)) 3))
            (root-out-squares
             '(sqrt (cube (- x y))))))
-    (is (= '(expt (+ x (* -1N y)) 2)
+    (is (= '(expt (+ x (* -1 y)) 2)
            (root-out-squares
             '(sqrt (expt (- x y) 4)))))
     (is (= '(* (sqrt (expt (+ x (* -1 y)) 3)) (+ x y))
@@ -88,8 +89,8 @@
            (root-out-squares
             '(sqrt (+ (expt a 2) (* 2 a b) (* b b) (* 2 a c c) (* 2 b c c) (expt c 4)
                       (* 2 a d) (* b d) (* b d) (* 2 c c d) (* d d)))))))
-  #_(testing "ex.2"
-    (is (= '(+ (* -1
+  (testing "ex.2"
+    #_(is (= '(+ (* -1
                   R
                   (((partial 0) f)
                    (up (* R (cos phi) (sin theta))

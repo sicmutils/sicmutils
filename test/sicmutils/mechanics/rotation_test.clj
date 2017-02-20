@@ -31,13 +31,9 @@
 
 (deftest hello
   (let [P (up 'x 'y 'z)]
-    (is (= '(up x
-                (+ (* (cos a) y) (* -1 (sin a) z))
-                (+ (* (cos a) z) (* (sin a) y)))
+    (is (= '(up x (+ (* y (cos a)) (* -1 z (sin a))) (+ (* y (sin a)) (* z (cos a))))
            (simplify ((Rx 'a) P))))
-    (is (= '(up x
-                (+ (* (cos a) y) (* -1 (sin a) z))
-                (+ (* (cos a) z) (* (sin a) y)))
+    (is (= '(up x (+ (* y (cos a)) (* -1 z (sin a))) (+ (* y (sin a)) (* z (cos a))))
            (simplify (* (rotate-x-matrix 'a) P))))
     (is (= '(up 0 0 0) (simplify (- ((Rx 'a) P) (* (rotate-x-matrix 'a) P)))))
     (is (= '(up 0 0 0) (simplify (- ((Ry 'a) P) (* (rotate-y-matrix 'a) P)))))

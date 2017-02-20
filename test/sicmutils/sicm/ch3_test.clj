@@ -31,8 +31,8 @@
 (deftest section-3-1
   (testing "p.189"
     (is (= '(up 0
-                (up (/ (+ (* ((D x) t) m) (* -1 (p_x t))) m)
-                    (/ (+ (* ((D y) t) m) (* -1 (p_y t))) m))
+                (up (/ (+ (* m ((D x) t)) (* -1 (p_x t))) m)
+                    (/ (+ (* m ((D y) t)) (* -1 (p_y t))) m))
                 (down (+ ((D p_x) t) (((∂ 0) V) (x t) (y t)))
                       (+ ((D p_y) t) (((∂ 1) V) (x t) (y t)))))
            (simplify (((Hamilton-equations
@@ -43,7 +43,7 @@
                         (down (literal-function 'p_x) (literal-function 'p_y)))
                        't)))))
   (testing "p.198"
-    (is (= '(/ (+ (* 2 (V x y) m) (expt p_x 2) (expt p_y 2))
+    (is (= '(/ (+ (* 2 m (V x y)) (expt p_x 2) (expt p_y 2))
                (* 2 m))
            (simplify ((Lagrangian->Hamiltonian
                         (L/L-rectangular
@@ -62,22 +62,14 @@
 
 (deftest section-3-4
   (testing "p.212"
-    (is (= '(/ (+ (* 2 (V r) m (expt r 2))
-                  (* (expt p_r 2) (expt r 2))
-                  (expt p_phi 2))
-               (* 2 m (expt r 2)))
+    (is (= '(/ (+ (* 2 m (expt r 2) (V r)) (* (expt p_r 2) (expt r 2)) (expt p_phi 2)) (* 2 m (expt r 2)))
            (simplify ((Lagrangian->Hamiltonian
                         (L/L-central-polar 'm (literal-function 'V)))
                        (up 't (up 'r 'phi) (down 'p_r 'p_phi))))))
     (is (= '(up 0
-                (up (/ (+ (* ((D r) t) m) (* -1 (p_r t))) m)
-                    (/ (+ (* (expt (r t) 2) ((D phi) t) m)
-                          (* -1 (p_phi t)))
-                       (* (expt (r t) 2) m)))
-                (down (/ (+ (* (expt (r t) 3) ((D p_r) t) m)
-                            (* (expt (r t) 3) ((D V) (r t)) m)
-                            (* -1 (expt (p_phi t) 2)))
-                         (* (expt (r t) 3) m))
+                (up (/ (+ (* m ((D r) t)) (* -1 (p_r t))) m)
+                    (/ (+ (* m (expt (r t) 2) ((D phi) t)) (* -1 (p_phi t))) (* m (expt (r t) 2))))
+                (down (/ (+ (* m (expt (r t) 3) ((D p_r) t)) (* m (expt (r t) 3) ((D V) (r t))) (* -1 (expt (p_phi t) 2))) (* m (expt (r t) 3)))
                       ((D p_phi) t)))
            (simplify (((Hamilton-equations
                          (Lagrangian->Hamiltonian
@@ -88,13 +80,13 @@
                               (literal-function 'p_phi)))
                        't)))))
   (testing "p.213"
-    (is (= '(/ (+ (* 2 (expt (sin theta) 2) (cos theta) A C gMR)
-                  (* (expt (sin theta) 2) A (expt p_psi 2))
-                  (* (expt (sin theta) 2) C (expt p_theta 2))
-                  (* (expt (cos theta) 2) C (expt p_psi 2))
-                  (* -2 (cos theta) C p_phi p_psi)
+    (is (= '(/ (+ (* 2 A C gMR (expt (sin theta) 2) (cos theta))
+                  (* A (expt p_psi 2) (expt (sin theta) 2))
+                  (* C (expt p_psi 2) (expt (cos theta) 2))
+                  (* C (expt p_theta 2) (expt (sin theta) 2))
+                  (* -2 C p_phi p_psi (cos theta))
                   (* C (expt p_phi 2)))
-               (* 2 (expt (sin theta) 2) A C))
+               (* 2 A C (expt (sin theta) 2)))
            (simplify ((Lagrangian->Hamiltonian (top/L-axisymmetric 'A 'C 'gMR))
                        (up 't
                            (up 'theta 'phi 'psi)
@@ -106,44 +98,28 @@
           H (Lagrangian->Hamiltonian
               (top/L-axisymmetric 'A 'C 'gMR))
           sysder (Hamiltonian->state-derivative H)]
-      (is (= '(/ (+ (* 2 (expt (sin theta) 2) (cos theta) A C gMR)
-                    (* (expt (sin theta) 2) A (expt p_psi 2))
-                    (* (expt (sin theta) 2) C (expt p_theta 2))
-                    (* (expt (cos theta) 2) C (expt p_psi 2))
-                    (* -2 (cos theta) C p_phi p_psi)
+      (is (= '(/ (+ (* 2 A C gMR (expt (sin theta) 2) (cos theta))
+                    (* A (expt p_psi 2) (expt (sin theta) 2))
+                    (* C (expt p_psi 2) (expt (cos theta) 2))
+                    (* C (expt p_theta 2) (expt (sin theta) 2))
+                    (* -2 C p_phi p_psi (cos theta))
                     (* C (expt p_phi 2)))
-                 (* 2 (expt (sin theta) 2) A C))
+                 (* 2 A C (expt (sin theta) 2)))
              (simplify (H top-state))))
-      (is (= '(up
-                1
-                (up
-                  (/ p_theta A)
-                  (/ (+ (* -1 (cos theta) p_psi) p_phi) (* (expt (sin theta) 2) A))
-                  (/
-                    (+
-                      (* (expt (sin theta) 2) A p_psi)
-                      (* (expt (cos theta) 2) C p_psi)
-                      (* -1 (cos theta) C p_phi))
-                    (* (expt (sin theta) 2) A C)))
-                (down
-                  (/
-                    (+
-                      (* (expt (cos theta) 4) A gMR)
-                      (* -2 (expt (cos theta) 2) A gMR)
-                      (* -1 (expt (cos theta) 2) p_phi p_psi)
-                      (* (cos theta) (expt p_phi 2))
-                      (* (cos theta) (expt p_psi 2))
-                      (* A gMR)
-                      (* -1 p_phi p_psi))
-                    (* (expt (sin theta) 3) A))
-                  0
-                  0)) (simplify (sysder top-state))))
+      (is (= '(up 1
+                  (up (/ p_theta A)
+                      (/ (+ (* -1 p_psi (cos theta)) p_phi) (* A (expt (sin theta) 2)))
+                      (/ (+ (* A p_psi (expt (sin theta) 2)) (* C p_psi (expt (cos theta) 2)) (* -1 C p_phi (cos theta))) (* A C (expt (sin theta) 2))))
+                  (down (/ (+ (* A gMR (expt (cos theta) 4)) (* -2 A gMR (expt (cos theta) 2)) (* -1 p_phi p_psi (expt (cos theta) 2)) (* (expt p_phi 2) (cos theta)) (* (expt p_psi 2) (cos theta)) (* A gMR) (* -1 p_phi p_psi)) (* A (expt (sin theta) 3)))
+                        0
+                        0))
+             (simplify (sysder top-state))))
       (is (= (str "function(A, C, gMR, p_phi, p_psi, p_theta, theta) {\n"
                   "  var _0001 = Math.sin(theta);\n"
                   "  var _0004 = Math.cos(theta);\n"
                   "  var _0005 = Math.pow(_0004, 2);\n"
                   "  var _0006 = Math.pow(_0001, 2);\n"
-                  "  return [1, [p_theta / A, (- _0004 * p_psi + p_phi) / (_0006 * A), (_0006 * A * p_psi + _0005 * C * p_psi - _0004 * C * p_phi) / (_0006 * A * C)], [(Math.pow(_0004, 4) * A * gMR -2 * _0005 * A * gMR - _0005 * p_phi * p_psi + _0004 * Math.pow(p_phi, 2) + _0004 * Math.pow(p_psi, 2) + A * gMR - p_phi * p_psi) / (Math.pow(_0001, 3) * A), 0, 0]];\n"
+                  "  return [1, [p_theta / A, (- p_psi * _0004 + p_phi) / (A * _0006), (A * p_psi * _0006 + C * p_psi * _0005 - C * p_phi * _0004) / (A * C * _0006)], [(A * gMR * Math.pow(_0004, 4) -2 * A * gMR * _0005 - p_phi * p_psi * _0005 + Math.pow(p_phi, 2) * _0004 + Math.pow(p_psi, 2) * _0004 + A * gMR - p_phi * p_psi) / (A * Math.pow(_0001, 3)), 0, 0]];\n"
                   "}")
              (-> top-state sysder simplify ->JavaScript))))))
 
@@ -152,20 +128,10 @@
     (let [H ((Lagrangian->Hamiltonian
                (driven/L 'm 'l 'g 'a 'omega))
               (up 't 'theta 'p_theta))]
-      (is (= '(/ (+ (* -1 (expt (sin (* omega t)) 2)
-                       (expt (cos theta) 2)
-                       (expt a 2)
-                       (expt l 2)
-                       (expt m 2)
-                       (expt omega 2))
-                    (* 2 (sin (* omega t))
-                       (sin theta)
-                       a l m omega p_theta)
-                    (* 2 (cos (* omega t))
-                       a g (expt l 2) (expt m 2))
-                    (* -2 (cos theta)
-                       g (expt l 3)
-                       (expt m 2))
+      (is (= '(/ (+ (* -1 (expt a 2) (expt l 2) (expt m 2) (expt omega 2) (expt (sin (* omega t)) 2) (expt (cos theta) 2))
+                    (* 2 a g (expt l 2) (expt m 2) (cos (* omega t)))
+                    (* 2 a l m omega p_theta (sin (* omega t)) (sin theta))
+                    (* -2 g (expt l 3) (expt m 2) (cos theta))
                     (expt p_theta 2))
                  (* 2 (expt l 2) m))
              (simplify H))))
@@ -175,10 +141,12 @@
                         (driven/L 'm 'l 'g 'a 'omega)))
                      (up 't 'theta 'p_theta)))]
       (is (= '(up 1
-                  (/ (+ (* (sin (* omega t)) (sin theta) a l m omega) p_theta) (* (expt l 2) m))
-                  (/ (+ (* -1N (expt (sin (* omega t)) 2) (sin theta) (cos theta) (expt a 2) l m (expt omega 2))
-                        (* -1N (sin (* omega t)) (cos theta) a omega p_theta)
-                        (* -1N (sin theta) g (expt l 2) m)) l))
+                  (/ (+ (* a l m omega (sin (* omega t)) (sin theta)) p_theta)
+                     (* (expt l 2) m))
+                  (/ (+ (* -1 (expt a 2) l m (expt omega 2) (expt (sin (* omega t)) 2) (sin theta) (cos theta))
+                        (* -1 a omega p_theta (sin (* omega t)) (cos theta))
+                        (* -1 g (expt l 2) m (sin theta)))
+                     l))
              sysder))
       ;; odd that we have _1 here when it's not used ... must be a bug in the CSE
       ;; ah, we observe that _3 is omega*t, and we have a few examples of
@@ -189,6 +157,6 @@
                   "  var _0004 = Math.sin(theta);\n"
                   "  var _0005 = Math.cos(theta);\n"
                   "  var _0006 = Math.sin(_0003);\n"
-                  "  return [1, (_0006 * _0004 * a * l * m * omega + p_theta) / (_0002 * m), (- Math.pow(_0006, 2) * _0004 * _0005 * Math.pow(a, 2) * l * m * Math.pow(omega, 2) - _0006 * _0005 * a * omega * p_theta - _0004 * g * _0002 * m) / l];\n"
+                  "  return [1, (a * l * m * omega * _0006 * _0004 + p_theta) / (_0002 * m), (- Math.pow(a, 2) * l * m * Math.pow(omega, 2) * Math.pow(_0006, 2) * _0004 * _0005 - a * omega * p_theta * _0006 * _0005 - g * _0002 * m * _0004) / l];\n"
                   "}")
              (->JavaScript sysder))))))

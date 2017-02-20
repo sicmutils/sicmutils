@@ -30,12 +30,8 @@
 
 (deftest section-5-1
   (testing "central field"
-    (is (= '(/
-              (+
-                (* 2 (V r) m (expt r 2))
-                (* (expt p_r 2) (expt r 2))
-                (expt p_phi 2))
-              (* 2 m (expt r 2)))
+    (is (= '(/ (+ (* 2 m (expt r 2) (V r)) (* (expt p_r 2) (expt r 2)) (expt p_phi 2))
+               (* 2 m (expt r 2)))
            (simplify ((compose (H/H-central 'm (literal-function 'V))
                                (F->CT p->r))
                        (up 't
@@ -231,34 +227,16 @@
     (let [state (up 't
                     (up 'r_0 'phi_0)
                     (down 'p_r_0 'p_phi_0))]
-      (is (= '(/
-                (+
-                  (* 2 (U r_0) m (expt r_0 2))
-                  (* (expt p_r_0 2) (expt r_0 2))
-                  (expt p_phi_0 2))
-                (* 2 m (expt r_0 2)))
+      (is (= '(/ (+ (* 2 m (expt r_0 2) (U r_0)) (* (expt p_r_0 2) (expt r_0 2)) (expt p_phi_0 2))
+                 (* 2 m (expt r_0 2)))
              (simplify ((H/H-central-polar 'm (literal-function 'U)) state))))
       (is (= '((up r_0 phi_0)
-                (up (/ (* dt p_r_0) m) (/ (* dt p_phi_0) (* m (expt r_0 2))))
-                (up
-                  (/
-                    (+
-                      (* -1N ((D U) r_0) (expt dt 2) m (expt r_0 3))
-                      (* (expt dt 2) (expt p_phi_0 2)))
-                    (* 2N (expt m 2) (expt r_0 3)))
-                  (/ (* -1N (expt dt 2) p_phi_0 p_r_0) (* (expt m 2) (expt r_0 3))))
-                (up
-                  (/
-                    (+
-                      (* -1N (((expt D 2) U) r_0) (expt dt 3) m p_r_0 (expt r_0 4))
-                      (* -3N (expt dt 3) (expt p_phi_0 2) p_r_0))
-                    (* 6N (expt m 3) (expt r_0 4)))
-                  (/
-                    (+
-                      (* ((D U) r_0) (expt dt 3) m p_phi_0 (expt r_0 3))
-                      (* 3N (expt dt 3) p_phi_0 (expt p_r_0 2) (expt r_0 2))
-                      (* -1N (expt dt 3) (expt p_phi_0 3)))
-                    (* 3N (expt m 3) (expt r_0 6)))))
+                (up (/ (* dt p_r_0) m)
+                    (/ (* dt p_phi_0) (* m (expt r_0 2))))
+                (up (/ (+ (* -1 (expt dt 2) m (expt r_0 3) ((D U) r_0)) (* (expt dt 2) (expt p_phi_0 2))) (* 2 (expt m 2) (expt r_0 3)))
+                    (/ (* -1 (expt dt 2) p_phi_0 p_r_0) (* (expt m 2) (expt r_0 3))))
+                (up (/ (+ (* -1 (expt dt 3) m p_r_0 (expt r_0 4) (((expt D 2) U) r_0)) (* -3 (expt dt 3) (expt p_phi_0 2) p_r_0)) (* 6 (expt m 3) (expt r_0 4)))
+                    (/ (+ (* (expt dt 3) m p_phi_0 (expt r_0 3) ((D U) r_0)) (* 3 (expt dt 3) p_phi_0 (expt p_r_0 2) (expt r_0 2)) (* -1 (expt dt 3) (expt p_phi_0 3))) (* 3 (expt m 3) (expt r_0 6)))))
              (simplify (take 4 (series/->seq
                                  (((Lie-transform (H/H-central-polar 'm (literal-function 'U)) 'dt)
                                     coordinate)

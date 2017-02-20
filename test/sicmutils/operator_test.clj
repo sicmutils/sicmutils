@@ -76,11 +76,11 @@
     (is (= '(cos x) (simplify (((* identity-operator D) sin) 'x)))))
   (testing "exponentiation"
     (is (= '((f t)
-             (* ((D f) t) ε)
-             (* 1/2 (((expt D 2) f) t) (expt ε 2))
-             (* 1/6 (((expt D 3) f) t) (expt ε 3))
-             (* 1/24 (((expt D 4) f) t) (expt ε 4))
-             (* 1/120 (((expt D 5) f) t) (expt ε 5)))
+              (* ε ((D f) t))
+              (* 1/2 (expt ε 2) (((expt D 2) f) t))
+              (* 1/6 (expt ε 3) (((expt D 3) f) t))
+              (* 1/24 (expt ε 4) (((expt D 4) f) t))
+              (* 1/120 (expt ε 5) (((expt D 5) f) t)))
            (simplify (take 6 (series/->seq
                               (((exp (* 'ε D)) (literal-function 'f)) 't))))))
     (is (= '(0

@@ -69,8 +69,8 @@
       (is (= "x⁴" (s->infix (expt (- 'x) 4))))
       (is (= "- x³" (s->infix (expt (- 'x) 3))))
       (is (= "a - b - c" (s->infix (- 'a 'b 'c))))
-      (is (= "f(b, c) a" (s->infix (* 'a (f 'b 'c)))))
-      (is (= "f(2 h + 2 k, c) a" (s->infix (* 'a (f (* 2 (+ 'h 'k)) 'c)))))
+      (is (= "a f(b, c)" (s->infix (* 'a (f 'b 'c)))))
+      (is (= "a f(2 h + 2 k, c)" (s->infix (* 'a (f (* 2 (+ 'h 'k)) 'c)))))
       (is (= "f(x, y)" (s->infix (f 'x 'y))))
       (is (= "down(∂₀f(x, y), ∂₁f(x, y))" (s->infix ((D f) 'x 'y))))
       (is (= "sin(t) cos(t)" (s->infix ((* sin cos) 't)))))))
@@ -121,19 +121,19 @@
     (fn [] (symbol (format "%s%d" p (swap! i inc))))))
 
 (deftest JS
-  (is (= "function(a, b, theta) {\n  return Math.sin(theta) + a + b;\n}"
+  (is (= "function(a, b, theta) {\n  return a + b + Math.sin(theta);\n}"
          (s->JS (+ 'a 'b (sin 'theta)))))
   (is (= "function(j) {\n  return 1 / j;\n}"
          (s->JS (invert 'j))))
   (is (= "function(y) {\n  return Math.pow(2.71828, y);\n}"
          (s->JS (expt 2.71828 'y))))
-  (is (= "function(a, b, x) {\n  return Math.exp(Math.log(x) * b) * a;\n}"
+  (is (= "function(a, b, x) {\n  return a * Math.exp(b * Math.log(x));\n}"
          (s->JS (* 'a (exp (* 'b (log 'x)))))))
   (is (= "function(x) {\n  var _0001 = Math.sin(x);\n  return Math.pow(_0001, 2) + _0001;\n}"
          (s->JS (+ (sin 'x) (expt (sin 'x) 2)))))
   (is (= (str "function(x, dx) {\n"
               "  var t1 = Math.sin(x);\n"
-              "  return -1/2 * t1 * Math.pow(dx, 2) + Math.cos(x) * dx + t1;\n"
+              "  return -1/2 * Math.pow(dx, 2) * t1 + dx * Math.cos(x) + t1;\n"
               "}")
          (s->JS (reduce + (take 3 (taylor-series-terms sin 'x 'dx)))
                 :symbol-generator (make-symbol-generator "t")
@@ -220,16 +220,17 @@
               "function(D, f, x) {\n  return Math.pow(D, 2)(f)(x);\n}"
               "{D}^{2}f\\left(x\\right)"]
              (all-formats ((D (D f)) 'x))))
-      (is (= ["1/2 ∂₀(∂₀f)(up(x, y)) dx² + ∂₁(∂₀f)(up(x, y)) dx dy + 1/2 ∂₁(∂₁f)(up(x, y)) dy² + ∂₀f(up(x, y)) dx + ∂₁f(up(x, y)) dy + f(up(x, y))"
+      (is (= ["1/2 dx² ∂₀(∂₀f)(up(x, y)) + dx dy ∂₁(∂₀f)(up(x, y)) + 1/2 dy² ∂₁(∂₁f)(up(x, y)) + dx ∂₀f(up(x, y)) + dy ∂₁f(up(x, y)) + f(up(x, y))"
               (str "function(dx, dy, f, x, y, ∂) {\n"
                    "  var _0001 = ∂(0);\n"
                    "  var _0002 = ∂(1);\n"
                    "  var _0004 = [x, y];\n"
                    "  var _0006 = _0001(f);\n"
                    "  var _0007 = _0002(f);\n"
-                   "  return 1/2 * _0001(_0006)(_0004) * Math.pow(dx, 2) + _0002(_0006)(_0004) * dx * dy + 1/2 * _0002(_0007)(_0004) * Math.pow(dy, 2) + _0006(_0004) * dx + _0007(_0004) * dy + f(_0004);\n"
+                   "  return 1/2 * Math.pow(dx, 2) * _0001(_0006)(_0004) + dx * dy * _0002(_0006)(_0004) + 1/2 * Math.pow(dy, 2) * _0002(_0007)(_0004) + dx * _0006(_0004) + dy * _0007(_0004) + f(_0004);\n"
                    "}")
-              "\\dfrac{1}{2}\\,\\partial_0\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)\\,{dx}^{2} + \\partial_1\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)\\,dx\\,dy + \\dfrac{1}{2}\\,\\partial_1\\left(\\partial_1f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)\\,{dy}^{2} + \\partial_0f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)\\,dx + \\partial_1f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)\\,dy + f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)"]
+              "\\dfrac{1}{2}\\,{dx}^{2}\\,\\partial_0\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,dy\\,\\partial_1\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + \\dfrac{1}{2}\\,{dy}^{2}\\,\\partial_1\\left(\\partial_1f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,\\partial_0f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dy\\,\\partial_1f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)"]
+
              (all-formats (reduce +
                                   (take 3 (taylor-series-terms
                                            (literal-function 'f (up 0 0) 0)

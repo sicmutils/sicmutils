@@ -208,8 +208,8 @@
             δηFq ((δη F) q)
             φ (fn [f] (fn [q] (fn [t] ((literal-function 'φ) ((f q) t)))))]
         (is (= '((D f) t) (simplify ((D f) 't))))
-        (is (= '(+ (* (η t) ε) (q t)) (simplify (q+εη 't))))
-        (is (= '(+ (* (η t) ε) (q t)) (simplify ((g 'ε) 't))))
+        (is (= '(+ (* ε (η t)) (q t)) (simplify (q+εη 't))))
+        (is (= '(+ (* ε (η t)) (q t)) (simplify ((g 'ε) 't))))
         (is (= '(η a) (simplify (((D g) 'dt) 'a))))
         (is (= '(η t) (simplify (δηIq 't))))
         (is (= '(f (q t)) (simplify ((F q) 't))))
@@ -219,7 +219,7 @@
                    (* (η t) ((D g) (q t))))
                (simplify (((δη (+ F G)) q) 't))))
         ;; scalar product rule for variation: δ(cF) = cδF
-        (is (= '(* (η t) ((D f) (q t)) c) (simplify (((δη (* 'c F)) q) 't))))
+        (is (= '(* c (η t) ((D f) (q t))) (simplify (((δη (* 'c F)) q) 't))))
         ;; product rule for variation: δ(FG) = δF G + F δG
         (is (= (simplify (+ (* (((δη F) q) 't) ((G q) 't))
                             (* ((F q) 't) (((δη G) q) 't))))
@@ -324,9 +324,9 @@
 
 (deftest fun-with-operators
   (let [f #(expt % 3)]
-    (is (= '(+ (* (cos t) (expt t 3)) (* 3 (sin t) (expt t 2)))
+    (is (= '(+ (* (expt t 3) (cos t)) (* 3 (expt t 2) (sin t)))
            (simplify (((* D sin) f) 't))))
-    (is (= '(* 3 (sin t) (expt t 2))
+    (is (= '(* 3 (expt t 2) (sin t) )
            (simplify (((* sin D) f) 't))))))
 
 (deftest vector-calculus
@@ -381,10 +381,10 @@
              (* a b c d e f g h j)
              (* a b c d e f g h i))
            (simplify ((D *) 'a 'b 'c 'd 'e 'f 'g 'h 'i 'j))))
-    (is (= '(down (* (expt x (+ y -1)) y)
+    (is (= '(down (* y (expt x (+ y -1)))
                   (* (log x) (expt x y)))
            (simplify ((D expt) 'x 'y))))
-    (is (= '(* (expt x (+ y -1)) y)
+    (is (= '(* y (expt x (+ y -1)))
            (simplify (((∂ 0) expt) 'x 'y))))
     (is (= 2
            (simplify (((∂ 0) expt) 1 2))))
@@ -435,23 +435,22 @@
            (simplify (((expt D 2) f) 'x 'y))))
     (is (= '(down (((∂ 0) f) x y) (((∂ 1) f) x y))
            (simplify ((D f) 'x 'y))))
-    (is (= '(+ (* (((∂ 0) f) x y) dx) (* (((∂ 1) f) x y) dy))
+    (is (= '(+ (* dx (((∂ 0) f) x y)) (* dy (((∂ 1) f) x y)))
            (simplify (* ((D f) 'x 'y) dX))))
-    (is (= '(+ (* (((∂ 0) ((∂ 0) f)) x y)
-                  (expt dx 2))
-               (* 2 (((∂ 1) ((∂ 0) f)) x y) dx dy)
-               (* (((∂ 1) ((∂ 1) f)) x y) (expt dy 2)))
+    (is (= '(+ (* (expt dx 2) (((∂ 0) ((∂ 0) f)) x y))
+               (* 2 dx dy (((∂ 1) ((∂ 0) f)) x y))
+               (* (expt dy 2) (((∂ 1) ((∂ 1) f)) x y)))
            (simplify (* dX (((expt D 2) f) 'x 'y) dX))))
-    (is (= "1/2 ∂₀(∂₀f)(x, y) dx² + ∂₁(∂₀f)(x, y) dx dy + 1/2 ∂₁(∂₁f)(x, y) dy² + ∂₀f(x, y) dx + ∂₁f(x, y) dy + f(x, y)"
+    (is (= "1/2 dx² ∂₀(∂₀f)(x, y) + dx dy ∂₁(∂₀f)(x, y) + 1/2 dy² ∂₁(∂₁f)(x, y) + dx ∂₀f(x, y) + dy ∂₁f(x, y) + f(x, y)"
            (->infix (simplify (+ (f 'x 'y)
                                  (* ((D f) 'x 'y) dX)
                                  (* 1/2 (((expt D 2) f) 'x 'y) dX dX))))))))
 
 (deftest taylor
-  (is (= '(+ (* 1/24 (sin x) (expt dx 4))
-             (* -1/6 (cos x) (expt dx 3))
-             (* -1/2 (sin x) (expt dx 2))
-             (* (cos x) dx)
+  (is (= '(+ (* 1/24 (expt dx 4) (sin x))
+             (* -1/6 (expt dx 3) (cos x))
+             (* -1/2 (expt dx 2) (sin x))
+             (* dx (cos x))
              (sin x))
          (simplify (reduce + (take 5 (taylor-series-terms sin 'x 'dx))))))
   (is (= '(1
@@ -461,17 +460,17 @@
            (* -5/128 (expt dx 4))
            (* 7/256 (expt dx 5)))
          (simplify (take 6 (taylor-series-terms #(sqrt (+ 1 %)) 0 'dx)))))
-  (is (= '(+ (* 1/6 (((∂ 0) ((∂ 0) ((∂ 0) f))) (up x y)) (expt dx 3))
-             (* 1/6 (((∂ 0) ((∂ 0) ((∂ 1) f))) (up x y)) (expt dx 2) dy)
-             (* 1/3 (((∂ 1) ((∂ 0) ((∂ 0) f))) (up x y)) (expt dx 2) dy)
-             (* 1/3 (((∂ 1) ((∂ 0) ((∂ 1) f))) (up x y)) dx (expt dy 2))
-             (* 1/6 (((∂ 1) ((∂ 1) ((∂ 0) f))) (up x y)) dx (expt dy 2))
-             (* 1/6 (((∂ 1) ((∂ 1) ((∂ 1) f))) (up x y)) (expt dy 3))
-             (* 1/2 (((∂ 0) ((∂ 0) f)) (up x y)) (expt dx 2))
-             (* (((∂ 1) ((∂ 0) f)) (up x y)) dx dy)
-             (* 1/2 (((∂ 1) ((∂ 1) f)) (up x y)) (expt dy 2))
-             (* (((∂ 0) f) (up x y)) dx)
-             (* (((∂ 1) f) (up x y)) dy)
+  (is (= '(+ (* 1/6 (expt dx 3) (((∂ 0) ((∂ 0) ((∂ 0) f))) (up x y)))
+             (* 1/6 (expt dx 2) dy (((∂ 0) ((∂ 0) ((∂ 1) f))) (up x y)))
+             (* 1/3 (expt dx 2) dy (((∂ 1) ((∂ 0) ((∂ 0) f))) (up x y)))
+             (* 1/3 dx (expt dy 2) (((∂ 1) ((∂ 0) ((∂ 1) f))) (up x y)))
+             (* 1/6 dx (expt dy 2) (((∂ 1) ((∂ 1) ((∂ 0) f))) (up x y)))
+             (* 1/6 (expt dy 3) (((∂ 1) ((∂ 1) ((∂ 1) f))) (up x y)))
+             (* 1/2 (expt dx 2) (((∂ 0) ((∂ 0) f)) (up x y)))
+             (* dx dy (((∂ 1) ((∂ 0) f)) (up x y)))
+             (* 1/2 (expt dy 2) (((∂ 1) ((∂ 1) f)) (up x y)))
+             (* dx (((∂ 0) f) (up x y)))
+             (* dy (((∂ 1) f) (up x y)))
              (f (up x y)))
          (simplify
           (reduce +

@@ -95,10 +95,10 @@
   ;; TODO: clearly more of these are needed.
   (rule-simplifier
    (ruleset
-    (cos (* (complex 0.0 1.0) :z))
+    (cos (* :z (complex 0.0 1.0)))
     => (cosh :z)
 
-    (sin (* (complex 0.0 1.0) :z))
+    (sin (* :z (complex 0.0 1.0)))
     => (* (complex 0.0 1.0) (sinh :z))
 
     ;; Does this really belong here?

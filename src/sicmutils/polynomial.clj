@@ -401,15 +401,14 @@
   commutative rings should be factored out by an expression analyzer
   before we get here. The result is a Polynomial object representing
   the polynomial structure of the input over the unknowns."
-  [expr cont]
-  ;; XXX this is probably not the sort we want. We should sort when we assemble
-  ;; the factors in a product and the terms in a sum.
-  (let [expression-vars (sort (set/difference (x/variables-in expr) operators-known))
-        arity (count expression-vars)
-        new-bindings (zipmap expression-vars (new-variables arity))
-        environment (into operator-table new-bindings)
-        transformer (x/walk-expression environment)]
-    (-> expr transformer (cont expression-vars))))
+  ([expr cont] (expression-> expr cont compare))
+  ([expr cont v-compare]
+   (let [expression-vars (sort v-compare (set/difference (x/variables-in expr) operators-known))
+         arity (count expression-vars)
+         new-bindings (zipmap expression-vars (new-variables arity))
+         environment (into operator-table new-bindings)
+         transformer (x/walk-expression environment)]
+     (-> expr transformer (cont expression-vars)))))
 
 (defn ->expression
   "This is the output stage of Flat Polynomial canonical form simplification.
