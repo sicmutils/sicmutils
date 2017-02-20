@@ -231,7 +231,7 @@ Zippel's algorithm for fast multivariate polynomial GCD operations.
 Currently we use a recursive Euclid algorithm, which gives acceptable
 results for expressions of medium complexity, but there is more to
 be done.
-
+ 
 ## What's not there yet
 
 ### Coordinates, patches, k-forms and all that
