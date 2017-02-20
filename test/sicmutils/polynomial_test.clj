@@ -18,7 +18,6 @@
 
 (ns sicmutils.polynomial-test
   (:require [clojure.test :refer :all]
-            [clojure.tools.logging :as log]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]

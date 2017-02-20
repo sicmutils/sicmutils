@@ -19,10 +19,8 @@
 (ns sicmutils.sicm.ch5-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer :all]
-            [sicmutils.value :as v]
             [sicmutils.env :refer :all]
             [sicmutils.series :as series]
-            [sicmutils.mechanics.lagrange :as L]
             [sicmutils.mechanics.hamilton :as H]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 

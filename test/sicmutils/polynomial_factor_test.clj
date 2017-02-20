@@ -18,7 +18,6 @@
 
 (ns sicmutils.polynomial-factor-test
   (:require [clojure.test :refer :all]
-            [clojure.tools.logging :as log]
             [sicmutils
              [generic :as g]
              [value :as v]

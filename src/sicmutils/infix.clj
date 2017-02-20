@@ -20,7 +20,6 @@
   (:require [clojure.zip :as z]
             [clojure.set :as set]
             [clojure.string :as s]
-            [clojure.walk :as walk]
             [pattern.rule :as R]
             [sicmutils.expression :as x]
             [sicmutils.numerical.compile :as compile])

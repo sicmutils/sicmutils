@@ -25,7 +25,6 @@
             [clojure.set :as set]
             [clojure.pprint :as pp]
             [sicmutils
-             [numsymb :as sym]
              [analyze :as a]
              [polynomial :as poly]
              [polynomial-factor :as factor]

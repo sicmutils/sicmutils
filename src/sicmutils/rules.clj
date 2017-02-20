@@ -59,8 +59,6 @@
          :a1*
          :a2*)))
 
-
-
 (def simplify-square-roots
   (rule-simplifier
    (ruleset

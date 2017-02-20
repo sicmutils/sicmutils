@@ -15,8 +15,9 @@ applied to differential geometry and physics is an irresistible lure.
 
 Scmutils is an excellent system, but it is written in an older variant
 of LISP (Scheme) and is tied to a particular implementation of
-Scheme--MIT/GNU Scheme. (There is a [port to Guile][GSCM], but due to
-the fact that Guile does not support MIT Scheme's "apply hooks,"
+Scheme—MIT/GNU Scheme. (There is a [port to Guile][GSCM], but due to
+the fact that Guile does not support MIT Scheme's 
+[apply hooks](http://www.gnu.org/software/mit-scheme/documentation/mit-scheme-ref/Application-Hooks.html)
 some glue code is required to run examples from the book in that
 environment.)
 
@@ -44,10 +45,10 @@ Rather than just quasi-mechanically translate the Scheme to Clojure, I
 have studied the implementation of the system before bringing it to
 Clojure, and have used TDD throughout the project (which turned out to
 be absolutely essential as I considered various approaches to problems
-posed by the Scheme code base). At this writing there are over 1000
-unit tests, and there easily ought to be twice as many.
+posed by the Scheme code base). At this writing there are over 1500
+unit tests.
 
-The implementation is far from complete. My goal was to create a
+The implementation is not complete. My goal was to create a
 system that could execute the example code in SICM and FDG directly
 from the book, to the extent possible. I started with SICM, as the
 requirements seemed the lesser; FDG code is written at a higher level
@@ -67,7 +68,8 @@ the polynomial systems: that took a while! Finally I got
 differentiation working, and then some of the book examples began to
 work.
 
-Much remains to be done (see below).
+As of this writing, all of the code presented in SICM, editions 1 and 
+2, will execute correctly. Work has begun on FDG.
 
 ## What's "working" now
 
@@ -118,13 +120,8 @@ yielding
 
 ```clojure
 (down
- (+
-  ((D U) (r t))
-  (* -1 (r t) m (expt ((D φ) t) 2))
-  (* (((expt D 2) r) t) m))
- (+
-  (* (((expt D 2) φ) t) m (expt (r t) 2))
-  (* 2 (r t) ((D r) t) ((D φ) t) m)))
+ (+ (* -1N m (expt ((D φ) t) 2) (r t)) (* m (((expt D 2) r) t)) ((D U) (r t)))
+ (+ (* 2N m ((D φ) t) (r t) ((D r) t)) (* m (expt (r t) 2) (((expt D 2) φ) t))))
 ```
 
 Which, modulo a few things, is what Scmutils would give. From later
@@ -180,11 +177,10 @@ And in Clojure, using a couple of simplifying definitions:
 yielding
 ```clojure
 (down
- (* m rdot)
- (* m θdot (expt r 2))
- (* m φdot (expt r 2) (expt (sin θ) 2)))
+ (+ (* m r (expt φdot 2) (expt (sin θ) 2)) (* m r (expt θdot 2)) (* -1 ((D V) r)))
+ (* m (expt r 2) (expt φdot 2) (sin θ) (cos θ))
+ 0)
 ```
-
 Which again agrees with Scmutils modulo notation. (These results are
 examples of "down tuples", or covariant vectors, since they represent
 derivatives of objects in primal space.) The partial derivative
@@ -196,32 +192,33 @@ integers and fall back to Clojure's definition of partial otherwise.
 Since it doesn't make sense to partially apply an integer, `partial`
 should just do the right thing.
 
+You could render that result in TeX: 
+
+![eq1](doc/img/md-eq1.png)
+
+using the `->TeX` function. You can also use `->infix` to obtain
+
+```
+down(m r φdot² sin²(θ) + m r θdot² - DV(r), m r² φdot² sin(θ) cos(θ), 0)
+```
+
+or even `->JavaScript` to get:
+
+```JavaScript
+function(D, V, m, r, θ, θdot, φdot) {
+  var _0001 = Math.sin(θ);
+  var _0002 = Math.pow(φdot, 2);
+  return [m * r * _0002 * Math.pow(_0001, 2) + m * r * Math.pow(θdot, 2) - (D(V)(r)), m * Math.pow(r, 2) * _0002 * _0001 * Math.cos(θ), 0];
+}
+```
+
+(For rendering into code, a simple common-subexpression extraction 
+algorithm is used.)
+
 ### Numerical Methods
 
 This system uses the delightful [Apache Commons Math][ACM] library
 to implement the numerical methods needed for the book.
-
-### Matrix methods
-
-The current implementation of arithmetic on `up` and `down` tuples is
-fairly complete; they can be nested and all the arithmetic rules for
-them are implemented.
-
-Scmutils provides a separate matrix "type" for these activities; in this
-work my plan is to see if it can all be done without introducing a separate
-type, forcing all matrix work to be "variance-labeled" by the use of
-`up` and `down` correctly at each level. So far, this has worked.
-
-### General operators and functions
-
-In Scmutils, any object can be made callable by using a MIT/GNU Scheme
-feature called `apply-hook`s. This is used, for example, to allow an
-up-tuple of functions to be applied to a compatible argument, yielding
-an up-tuple of values. In this implementation, this and other handy
-symbolic features of scmutils is implemented by having the relevant
-objects implement Clojure's `IFn` interface.
-
-### Rational function and rule-based simplification
 
 The Scmutils simplifier has three engines: a polynomial-based simplifier
 useful for grouping like terms, a rational-function-based simplifier
@@ -236,12 +233,6 @@ results for expressions of medium complexity, but there is more to
 be done.
 
 ## What's not there yet
-
-### TeX
-
-Scmutils can export its expressions in TeX format; this is very handy,
-but I haven't started that work yet as the necessary extensions to the
-simplification library to make that useful haven't happened yet.
 
 ### Coordinates, patches, k-forms and all that
 

@@ -24,7 +24,6 @@
              [series :as series]
              [structure :as struct]
              [matrix :as matrix]]
-            [clojure.set :as set]
             [clojure.string :refer [join]])
   (:import (clojure.lang Sequential)))
 

@@ -61,19 +61,18 @@
 
 (deftest lagrange-equations
   (testing "basics"
-    (let [Le (Lagrange-equations (L/L-free-particle 'm))
-          literal-path (literal-function 'q)
-          generic-path (up (literal-function 'x)
-                           (literal-function 'y)
-                           (literal-function 'z))
-          LeQ (Le literal-path)
-          LeP (Le generic-path)]
-      (is (= '(* m (((expt D 2) q) t))
-             (simplify (LeQ 't))))
-      (is (= '(down (* m (((expt D 2) x) t))
-                    (* m (((expt D 2) y) t))
-                    (* m (((expt D 2) z) t)))
-             (simplify (LeP 't))))))
+    (with-literal-functions [q x y z]
+      (let [Le (Lagrange-equations (L/L-free-particle 'm))
+           literal-path q
+           generic-path (up x y z)
+           LeQ (Le literal-path)
+           LeP (Le generic-path)]
+       (is (= '(* m (((expt D 2) q) t))
+              (simplify (LeQ 't))))
+       (is (= '(down (* m (((expt D 2) x) t))
+                     (* m (((expt D 2) y) t))
+                     (* m (((expt D 2) z) t)))
+              (simplify (LeP 't)))))))
   (testing "derivations"
     (with-literal-functions [q x y U r φ]
       (let [test-path (fn [t]
