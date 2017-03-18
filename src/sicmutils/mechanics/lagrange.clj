@@ -94,16 +94,6 @@
              (square (* r φdot))))
        (U r))))
 
-(defn δ
-  "The variation operator (p. 28)."
-  [η]
-  (fn [f]
-    ;; Define g(ε) as in Eq. 1.22; then δ_η f[q] = Dg(0)
-    (fn [q]
-      (let [g (fn [ε]
-                (f (+ q (* ε η))))]
-        ((D g) 0)))))
-
 ;; ---- end of functions undefined in Scmutils --------
 
 (defn ->L-state
@@ -144,8 +134,8 @@
 (defn Lagrange-equations
   [Lagrangian]
   (fn [q]
-    (- (D (compose ((∂ 2) Lagrangian) (Γ q)))
-       (compose ((∂ 1) Lagrangian) (Γ q)))))
+    (- (D (comp ((∂ 2) Lagrangian) (Γ q)))
+       (comp ((∂ 1) Lagrangian) (Γ q)))))
 
 (defn linear-interpolants
   [x0 x1 n]
@@ -220,12 +210,12 @@
                    (+ sum (* (nth state0 n) dt-n:n!))
                    (/ (* dt-n:n! dt) n))))))))
 
-(defn Γ-bar
+(defn Gamma-bar
   [f]
   (fn [local]
     ((f (osculating-path local)) (first local))))
 
-(def Gamma-bar Γ-bar)
+(def Γ-bar Gamma-bar)
 
 (defn Dt
   [F]

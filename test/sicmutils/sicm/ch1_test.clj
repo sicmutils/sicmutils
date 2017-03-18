@@ -99,11 +99,21 @@
         (is ((within 1e-5) 0 (minimal-path (/ Math/PI 2))))
         (is (every? good? errors))))))
 
+(defn ^:private δ
+  "The variation operator (p. 28)."
+  [η]
+  (fn [f]
+    ;; Define g(ε) as in Eq. 1.22; then δ_η f[q] = Dg(0)
+    (fn [q]
+      (let [g (fn [ε]
+                (f (+ q (* ε η))))]
+        ((D g) 0)))))
+
 (deftest section-1-5
   (with-literal-functions [x f g q η φ]
     (let [F (fn [q] (fn [t] (f (q t))))
           G (fn [q] (fn [t] (g (q t))))
-          δ_η (L/δ η)
+          δ_η (δ η)
           φ (fn [f] (fn [q] (fn [t] (φ ((f q) t)))))
           test-path (fn [t] (up (+ 'a0 (* 'a t))
                                 (+ 'b0 (* 'b t))

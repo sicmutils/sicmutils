@@ -20,18 +20,11 @@
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [sicmutils.env :refer :all]))
 
-(defn ^:private coords
-  [l1 l2 θ φ]
-  (let [x1 (* l1 (sin θ))
-        y1 (- (* l1 (cos θ)))
-        x2 (+ x1 (* l2 (sin φ)))
-        y2 (- y1 (* l2 (cos φ)))]
-    [x1 y1 x2 y2]))
-
 (defn V
   [m1 m2 l1 l2 g]
   (fn [[_ [θ φ] _]]
-    (let [[_ y1 _ y2] (coords l1 l2 θ φ)]
+    (let [y1 (- (* l1 (cos θ)))
+          y2 (- y1 (* l2 (cos φ)))]
       (+ (* m1 g y1)
          (* m2 g y2)))))
 

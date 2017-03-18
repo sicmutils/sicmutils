@@ -41,10 +41,10 @@
                            (recv [_ timeout] (.recv transport timeout))
                            (send [this response]
                              (.send transport
-                                    (if (find response :value)
-                                      (-> response
-                                          (update :value simp/expression->string)
-                                          (assoc :printed-value true))
+                                    (if-let [v (:value response)]
+                                      (assoc response
+                                             :value (simp/expression->string v)
+                                             :printed-value true)
                                       response))
                              this))))))
 

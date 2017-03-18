@@ -243,6 +243,8 @@
     s
     (brace s)))
 
+(def ^:dynamic *TeX-vertical-down-tuples* false)
+
 (def ->TeX
   "Convert the given (simplified) expression to TeX format, as a string."
   (let [TeX-accent (fn [accent]
@@ -269,7 +271,11 @@
            (when (= (count xs) 2)
              (str "\\frac" (brace (first xs)) (brace (second xs)))))
       'up #(str "\\begin{pmatrix}" (s/join "\\\\" %) "\\end{pmatrix}")
-      'down #(str "\\begin{bmatrix}" (s/join "&" %) "\\end{bmatrix}")
+      'down (fn [x]
+              (println "tvdt" *TeX-vertical-down-tuples*)
+              (str "\\begin{bmatrix}"
+                   (s/join (if-not *TeX-vertical-down-tuples* "&" "\\\\") x)
+                   "\\end{bmatrix}"))
       'sqrt #(str "\\sqrt " (maybe-brace (first %)))}
      :render-primitive
      (fn r [v]
@@ -281,9 +287,9 @@
                (cond (TeX-letters s) (str "\\" s)
                      (TeX-map s) (TeX-map s)
                      :else (condp re-find s
-                             #"(.+)_([0-9a-zA-Z]+)$"
+                             #"(.+)_([0-9a-zA-Zαωθφ]+)$"
                              :>> (fn [[_ stem subscript]]
-                                   (str (maybe-brace (r stem)) "_" (maybe-brace subscript)))
+                                   (str (maybe-brace (r stem)) "_" (maybe-brace (r subscript))))
                              ;; KaTeX doesn't do \dddot.
                              #"(.+)dotdot$" :>> ddot
                              #"(.+)dot$" :>> dot
@@ -292,8 +298,15 @@
                              #"(.+)vec$" :>> vec
                              #"(.+)tilde$" :>> tilde
 
-                             ;; otherwise do nothing
-                             v))))))))
+                             ;; TODO: superscripts
+
+                             ;; wrap it if it's a multiletter variable... unless it looks
+                             ;; like a differential. (Too hacky?)
+                             (if (and (symbol? v)
+                                      (> (count s) 1)
+                                      (not (re-matches #"^d[a-zαωθφ]" s)))
+                               (str "\\mathsf" (brace s))
+                               v)))))))))
 
 (def ->JavaScript
   "Convert the given (simplified) expression to a JavaScript function.

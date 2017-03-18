@@ -157,10 +157,10 @@
 
 ;; Multiplication of operators is defined as their application (see o*o, above)
 (defmethod g/mul [::operator ::operator] [o p] (o*o o p))
-;; When multiplied with operators, a number is treated as an operator
-;; that multiplies its input by the number.
 (defmethod g/mul [::operator :sicmutils.function/function] [o f] (o*f o f))
 (defmethod g/mul [:sicmutils.function/function ::operator] [f o] (f*o f o))
+;; When multiplied with operators, a number is treated as an operator
+;; that multiplies its input by the number.
 (defmethod g/mul [::operator ::x/numerical-expression] [o n] (o*f o n))
 (defmethod g/mul [::x/numerical-expression ::operator] [n o] (f*o n o))
 (defmethod g/div [::operator ::x/numerical-expression] [o n] (o*f o (g/invert n)))
