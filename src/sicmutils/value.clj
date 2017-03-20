@@ -18,6 +18,7 @@
 
 (ns sicmutils.value
   (:refer-clojure :rename {zero? core-zero?})
+  (:require [clojure.core.match :refer [match]])
   (:import (clojure.lang RestFn MultiFn Symbol)
            (java.lang.reflect Method)))
 
@@ -145,37 +146,26 @@
     ;; so that we only have to implement the upper triangle of the
     ;; relation.
     (if (< 0 (compare (first a) (first b)))
-     (combine-arities b a)
-     (case (first a)
-       :at-least (let [k (second a)]
-                   (case (first b)
-                    :at-least [:at-least (max k (second b))]
-                    :between (let [m (max k (second b))
-                                   n (nth b 2)]
-                               (cond (= m n) [:exactly m]
-                                     (< m n) [:between m n]
-                                     :else (fail)))
-                    :exactly (let [l (second b)]
-                               (if (>= l k)
-                                [:exactly l]
-                                (fail)))))
-       :between (let [[m n] (rest a)]
-                  (case (first b)
-                   :between (let [[m2 n2] (rest b)
-                                  m (max m m2)
-                                  n (min n n2)]
-                              (cond (= m n) [:exactly m]
-                                    (< m n) [:between m n]
-                                    :else (fail)))
-                   :exactly (let [k (second b)]
-                              (if (and (<= m k)
-                                       (<= k n))
-                                [:exactly k]
-                                (fail)))
-                   ))
-       :exactly (let [k1 (second a)
-                      k2 (second b)]
-                  (if (= k1 k2) [:exactly k1] (fail)))))))
+      (combine-arities b a)
+      (match [a b]
+             [[:at-least k] [:at-least k2]] [:at-least (max k k2)]
+             [[:at-least k] [:between m n]] (let [m (max k m)]
+                                              (cond (= m n) [:exactly m]
+                                                    (< m n) [:between m n]
+                                                    :else (fail)))
+             [[:at-least k] [:exactly l]] (if (>= l k)
+                                            [:exactly l]
+                                            (fail))
+             [[:between m n] [:between m2 n2]] (let [m (max m m2)
+                                                     n (min n n2)]
+                                                 (cond (= m n) [:exactly m]
+                                                       (< m n) [:between m n]
+                                                       :else (fail)))
+             [[:between m n] [:exactly k]] (if (and (<= m k)
+                                                    (<= k n))
+                                             [:exactly k]
+                                             (fail))
+             [[:exactly k] [:exactly l]] (if (= k l) [:exactly k] (fail))))))
 
 (defn joint-arity
   "Find the most relaxed possible statement of the joint arity of the given arities.

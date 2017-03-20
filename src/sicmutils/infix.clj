@@ -142,7 +142,7 @@
                                  (.write w sep)
                                  (.write w " "))
                                (recur a'))
-                             (str w))))))
+                             (.toString w))))))
                   ;; case: op is not infix.
                   ;; The _whole_ result may need to be parenthesized, though, if it
                   ;; is part of an infix expression with an operator with very high

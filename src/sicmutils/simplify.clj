@@ -258,6 +258,6 @@
   [expr]
   (let [w (StringWriter.)]
     (-> expr g/simplify (pp/write :stream w))
-    (str w)))
+    (.toString w)))
 (def print-expression #(-> % g/simplify pp/pprint))
 (def pe print-expression)
