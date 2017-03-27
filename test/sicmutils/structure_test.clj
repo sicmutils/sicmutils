@@ -86,9 +86,6 @@
     (is (zero? (up 0 0)))
     (is (zero? (up 0)))
     (is (zero? (down 0 0)))
-    (is (zero? []))
-    (is (zero? [0]))
-    (is (zero? [0 0]))
     (is (zero? (up 0 (down (up 0 0) (up 0 0))))))
   (testing "zero-like"
     (is (= (up 0 0 0) (v/zero-like (up 1 2 3))))

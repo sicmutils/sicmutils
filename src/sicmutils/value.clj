@@ -46,9 +46,9 @@
 (extend-type Object
   Value
   (numerical? [_] false)
-  (nullity? [_] false)
+  (nullity? [o] (and (number? o) (core-zero? o)))
   (numerical? [_] false)
-  (unity? [o] (when (number? o) (== o 1)))
+  (unity? [o] (and (number? o) (== o 1)))
   (exact? [o] (or (integer? o) (ratio? o)))
   (arity [o] (primitive-arity o))
   (zero-like [o] (cond (number? o) 0

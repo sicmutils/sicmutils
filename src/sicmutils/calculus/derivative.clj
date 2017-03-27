@@ -40,7 +40,7 @@
   Object
   (toString [_] (str "D[" (join " " (map #(join " → " %) terms)) "]"))
   v/Value
-  (nullity? [_] (every? g/zero? (map coefficient terms)))
+  (nullity? [_] (every? v/nullity? (map coefficient terms)))
   (unity? [_] false)
   (zero-like [_] 0)
   (freeze [_] `[~'Differential ~@terms])
@@ -86,7 +86,7 @@
          (sort-by first
                   (for [[tags tags-coefs] (group-by tags tags->coefs)
                         :let [c (reduce #(g/+ %1 (coefficient %2)) 0 tags-coefs)]
-                        :when (not (g/zero? c))]
+                        :when (not (v/nullity? c))]
                     [tags c])))))
 
 (defn ^:private differential->terms
@@ -96,7 +96,7 @@
   which case we return the empty term list)."
   [dx]
   (cond (instance? Differential dx) (:terms dx)
-        (g/zero? dx) []
+        (v/nullity? dx) []
         :else [[empty-tags dx]]))
 
 ;; The data structure of a tag set. Tags are small integers. Tag sets are
@@ -151,7 +151,7 @@
                    c (compare a-tags b-tags)]
                (cond (= c 0) (let [r-coef (g/+ a-coef b-coef)]
                                (recur (rest dxs) (rest dys)
-                                      (if-not (g/zero? r-coef)
+                                      (if-not (v/nullity? r-coef)
                                         (conj result [a-tags r-coef])
                                         result)))
                      (< c 0) (recur (rest dxs) dys (conj result a))
@@ -321,7 +321,7 @@
              (fn [x y]
                (g/* y (g/expt x (g/- y 1))))
              (fn [x y]
-               (if (and (number? x) (g/zero? y))
+               (if (and (number? x) (v/nullity? y))
                  (if (number? y)
                    (if (pos? y)
                      0

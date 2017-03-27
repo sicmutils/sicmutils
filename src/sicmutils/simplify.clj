@@ -79,7 +79,7 @@
         expression
         (let [canonicalized-expression (canonicalize new-expression)]
           (cond (= canonicalized-expression expression) expression
-                (g/zero? (*poly-analyzer* `(~'- ~expression ~canonicalized-expression))) canonicalized-expression
+                (v/nullity? (*poly-analyzer* `(~'- ~expression ~canonicalized-expression))) canonicalized-expression
                 :else (recur canonicalized-expression)))))))
 
 (defn ^:private simplify-and-canonicalize
@@ -102,7 +102,7 @@
 ;; up, but at least things are beginning to simplify adequately.
 
 (def ^:private simplify-zero
-  #(-> % *poly-analyzer* g/zero?))
+  #(-> % *poly-analyzer* v/nullity?))
 
 (def ^:private sincos-cleanup
   "This finds things like a - a cos^2 x and replaces them with a sin^2 x"

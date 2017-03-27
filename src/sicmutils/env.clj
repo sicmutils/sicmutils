@@ -56,7 +56,7 @@
 (def negate g/negate)
 (def complex c/complex)
 (def invert g/invert)
-(def zero? g/zero?)
+(def zero? v/nullity?)
 
 (def evolve ode/evolve)
 (def state-advancer ode/state-advancer)
@@ -199,4 +199,3 @@
 (def Rx R/Rx)
 (def Ry R/Ry)
 (def Rz R/Rz)
-

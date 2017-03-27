@@ -42,6 +42,8 @@
     (is (= '(matrix-by-rows [1 2 3] [4 5 6]) (v/freeze M)))
     (is (= (matrix/by-rows [1 4] [2 5] [3 6]) (matrix/transpose M)))
     (is (= (matrix/by-rows [0 0 0] [0 0 0]) (v/zero-like M)))
+    (is (thrown? IllegalArgumentException (v/one-like M)))
+    (is (= (matrix/by-rows [1 0 0] [0 1 0] [0 0 1]) (v/one-like A)))
     (is (thrown? IllegalArgumentException (matrix/by-rows [1 2 3] [4 5])))
     (is (thrown? AssertionError (matrix/by-rows)))
     (is (= 5 (matrix/get-in M [1 1])))
@@ -98,8 +100,8 @@
                            [2 3 4])
            (matrix/generate 3 3 +)))
 
-    (is (g/zero? (matrix/by-rows [[0 0]
-                                  [0 0]])))
+    (is (v/nullity? (matrix/by-rows [0 0]
+                                    [0 0])))
     (is (= '(matrix-by-rows [(f x) (g x)] [(h x) (k x)])
            (g/simplify
             ((matrix/by-rows (map literal-function '[f g])

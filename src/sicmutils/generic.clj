@@ -17,8 +17,7 @@
 ;
 
 (ns sicmutils.generic
-  (:refer-clojure :rename {/ core-div
-                           zero? core-zero?}
+  (:refer-clojure :rename {/ core-div}
                   :exclude [+ - *])
   (:require [sicmutils
              [value :as v]
@@ -26,16 +25,6 @@
   (:import [sicmutils.expression Expression]))
 
 ;;; classifiers
-(defn zero?
-  [x]
-  (cond (number? x) (core-zero? x)
-        (vector? x) (every? zero? x)
-        :else (v/nullity? x)))
-
-(defn one?
-  [x]
-  (or (and (number? x) (== x 1))
-      (v/unity? x)))
 
 (defn literal-number?
   [x]
@@ -143,8 +132,8 @@
 
 (defn ^:private bin+ [a b]
   (cond (and (number? a) (number? b)) (+' a b)
-        (zero? a) b
-        (zero? b) a
+        (v/nullity? a) b
+        (v/nullity? b) a
         :else (add a b)))
 
 (defn + [& args]
@@ -152,8 +141,8 @@
 
 (defn ^:private bin- [a b]
   (cond (and (number? a) (number? b)) (-' a b)
-        (zero? b) a
-        (zero? a) (negate b)
+        (v/nullity? b) a
+        (v/nullity? a) (negate b)
         :else (sub a b)))
 
 (defn - [& args]
@@ -163,10 +152,10 @@
 
 (defn ^:private bin* [a b]
   (cond (and (number? a) (number? b)) (*' a b)
-        (and (number? a) (zero? a)) (v/zero-like b)
-        (and (number? b) (zero? b)) (v/zero-like a)
-        (one? a) b
-        (one? b) a
+        (and (number? a) (v/nullity? a)) (v/zero-like b)
+        (and (number? b) (v/nullity? b)) (v/zero-like a)
+        (v/unity? a) b
+        (v/unity? b) a
         :else (mul a b)))
 
 ;;; In bin* we test for exact (numerical) zero
@@ -177,7 +166,7 @@
 ;;;       |a b c| |0|   |0|       |0|
 ;;;       |d e f| |0| = |0|, not  |0|
 ;;;
-;;; We are less worried about the zero? below,
+;;; We are less worried about the v/nullity? below,
 ;;; because any invertible matrix is square.
 
 (defn * [& args]
@@ -185,7 +174,7 @@
 
 (defn ^:private bin-div [a b]
   (cond (and (number? a) (number? b)) (core-div a b)
-        (one? b) a
+        (v/unity? b) a
         :else (div a b)))
 
 (defn / [& args]

@@ -55,10 +55,10 @@
 
 (defn add [a b]
   (cond (and (number? a) (number? b)) (+ a b)
-        (number? a) (cond (g/zero? a) b
+        (number? a) (cond (v/nullity? a) b
                           (sum? b) `(~'+ ~a ~@(operands b))
                           :else `(~'+ ~a ~b))
-        (number? b) (cond (g/zero? b) a
+        (number? b) (cond (v/nullity? b) a
                           (sum? a) `(~'+ ~@(operands a) ~b)
                           :else `(~'+ ~a ~b))
         (sum? a) (cond (sum? b) `(~'+ ~@(operands a) ~@(operands b))
@@ -68,8 +68,8 @@
 
 (defn ^:private sub [a b]
   (cond (and (number? a) (number? b)) (- a b)
-        (number? a) (if (g/zero? a) `(~'- ~b) `(~'- ~a ~b))
-        (number? b) (if (g/zero? b) a `(~'- ~a ~b))
+        (number? a) (if (v/nullity? a) `(~'- ~b) `(~'- ~a ~b))
+        (number? b) (if (v/nullity? b) a `(~'- ~a ~b))
         (= a b) 0
         :else `(~'- ~a ~b)))
 
@@ -80,13 +80,13 @@
 
 (defn mul [a b]
   (cond (and (number? a) (number? b)) (* a b)
-        (number? a) (cond (g/zero? a) a
-                          (g/one? a) b
+        (number? a) (cond (v/nullity? a) a
+                          (v/unity? a) b
                           (product? b) `(~'* ~a ~@(operands b))
                           :else `(~'* ~a ~b)
                           )
-        (number? b) (cond (g/zero? b) b
-                          (g/one? b) a
+        (number? b) (cond (v/nullity? b) b
+                          (v/unity? b) a
                           (product? a) `(~'* ~@(operands a) ~b)
                           :else `(~'* ~a ~b)
                           )
@@ -97,9 +97,9 @@
 
 (defn div [a b]
   (cond (and (number? a) (number? b)) (/ a b)
-        (number? a) (if (g/zero? a) a `(~'/ ~a ~b))
-        (number? b) (cond (g/zero? b) (throw (ArithmeticException. "division by zero"))
-                          (g/one? b) a
+        (number? a) (if (v/nullity? a) a `(~'/ ~a ~b))
+        (number? b) (cond (v/nullity? b) (throw (ArithmeticException. "division by zero"))
+                          (v/unity? b) a
                           :else `(~'/ ~a ~b))
         :else `(~'/ ~a ~b)))
 
@@ -221,8 +221,8 @@
   (if (number? s)
     (if-not (v/exact? s)
       (nt/sqrt s)
-      (cond (g/zero? s) s
-            (g/one? s) 1
+      (cond (v/nullity? s) s
+            (v/unity? s) 1
             :else (let [q (nt/sqrt s)]
                     (if (v/exact? q)
                       q
@@ -233,22 +233,22 @@
   (if (number? s)
     (if-not (v/exact? s)
       (Math/log s)
-      (if (g/one? s) 0 `(~'log ~s)))
+      (if (v/unity? s) 0 `(~'log ~s)))
     `(~'log ~s)))
 
 (defn ^:private exp [s]
   (if (number? s)
     (if-not (v/exact? s)
       (Math/exp s)
-      (if (g/zero? s) 1 `(~'exp ~s)))
+      (if (v/nullity? s) 1 `(~'exp ~s)))
     `(~'exp ~s)))
 
 (defn expt [b e]
   (cond (and (number? b) (number? e)) (nt/expt b e)
-        (number? b) (cond (g/one? b) 1
+        (number? b) (cond (v/unity? b) 1
                           :else `(~'expt ~b ~e))
-        (number? e) (cond (g/zero? e) 1
-                          (g/one? e) b
+        (number? e) (cond (v/nullity? e) 1
+                          (v/unity? e) b
                           (and (integer? e) (even? e) (sqrt? b))
                           (expt (first (operands b)) (quot e 2))
                           (and (expt? b)

@@ -272,7 +272,6 @@
              (str "\\frac" (brace (first xs)) (brace (second xs)))))
       'up #(str "\\begin{pmatrix}" (s/join "\\\\" %) "\\end{pmatrix}")
       'down (fn [x]
-              (println "tvdt" *TeX-vertical-down-tuples*)
               (str "\\begin{bmatrix}"
                    (s/join (if-not *TeX-vertical-down-tuples* "&" "\\\\") x)
                    "\\end{bmatrix}"))

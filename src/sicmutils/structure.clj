@@ -29,7 +29,7 @@
 
 (deftype Struct [orientation ^PersistentVector v]
   v/Value
-  (nullity? [_] (every? g/zero? v))
+  (nullity? [_] (every? v/nullity? v))
   (unity? [_] false)
   (zero-like [_] (Struct. orientation (mapv v/zero-like v)))
   (exact? [_] (every? v/exact? v))

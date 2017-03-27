@@ -20,6 +20,7 @@
   (:require [clojure.test :refer :all]
             [sicmutils
              [generic :as g]
+             [value :as v]
              [complex :refer :all]]))
 
 (defn ^:private near [w z]
@@ -33,7 +34,7 @@
       (is (= (complex 4 6) (g/+ (complex 1 2) (complex 3 4))))
       (is (= (complex -2 -2) (g/- (complex 1 2) (complex 3 4))))
       (is (= 5.0 (g/abs (complex 3 4))))
-      (is (g/zero? (g/+ i (g/invert i))))
+      (is (v/nullity? (g/+ i (g/invert i))))
       (is (near (complex -1) (g/exp (g/* i pi)))) ;; Euler identity
       (is (near (complex 0 -8) (g/cube (g/* 2 i))))
       (is (= (complex 0 -1) (g/divide 1 i)))
@@ -59,4 +60,3 @@
     (is (near (g/magnitude (complex 1 0)) 1))
     (is (near (g/magnitude (complex 1 1)) (g/sqrt 2)))
     (is (near (angle (complex 3 4)) (g/atan 4/3)))))
-

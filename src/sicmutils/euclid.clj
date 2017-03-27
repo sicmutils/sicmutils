@@ -17,7 +17,8 @@
 ;
 
 (ns sicmutils.euclid
-  (:require [sicmutils.generic :as g]))
+  (:require [sicmutils.generic :as g]
+            [sicmutils.value :as v]))
 
 (defn extended-gcd
   "The extended Euclidean algorithm
@@ -25,10 +26,10 @@
   Returns a list containing the GCD and the Bézout coefficients
   corresponding to the inputs."
   [a b]
-  (cond (g/zero? a) [(g/abs b) 0 1]
-        (g/zero? b) [(g/abs a) 1 0]
+  (cond (v/nullity? a) [(g/abs b) 0 1]
+        (v/nullity? b) [(g/abs a) 1 0]
         :else (loop [s 0 s0 1 t 1 t0 0 r (g/abs b) r0 (g/abs a)]
-                (if (g/zero? r)
+                (if (v/nullity? r)
                   [r0 s0 t0]
                   (let [q (g/quotient r0 r)]
                     (recur (g/- s0 (g/* q s)) s
@@ -37,10 +38,10 @@
 
 (defn gcd
   [a b]
-  (cond (g/zero? a) (g/abs b)
-        (g/zero? b) (g/abs a)
+  (cond (v/nullity? a) (g/abs b)
+        (v/nullity? b) (g/abs a)
         :else (loop [a a b b]
-                (if (g/zero? b)
+                (if (v/nullity? b)
                   a
                   (recur b (g/remainder a b))))))
 

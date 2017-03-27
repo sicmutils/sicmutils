@@ -121,7 +121,7 @@
    (Polynomial. arity
                 (->> (for [[xs cs] (group-by exponents xc-pairs)
                            :let [sum-cs (reduce #(g/+ %1 (coefficient %2)) 0 cs)]
-                           :when (not (g/zero? sum-cs))]
+                           :when (not (v/nullity? sum-cs))]
                        [xs sum-cs])
                      (sort-by exponents monomial-order)
                      (into empty-coefficients))))
@@ -159,7 +159,7 @@
   (Polynomial. arity (into empty-coefficients
                            (for [[xs c] xs->c
                                  :let [fc (f c)]
-                                 :when (not (g/zero? fc))]
+                                 :when (not (v/nullity? fc))]
                              [xs fc]))))
 
 (defn map-exponents
@@ -181,7 +181,7 @@
 (defn make-constant
   "Return a constant polynomial of the given arity."
   [arity c]
-  (Polynomial. arity (if (g/zero? c) empty-coefficients
+  (Polynomial. arity (if (v/nullity? c) empty-coefficients
                          (conj empty-coefficients [(vec (repeat arity 0)) c]))))
 
 (defn add
@@ -189,8 +189,8 @@
   [p q]
   {:pre [(instance? Polynomial p)
          (instance? Polynomial q)]}
-  (cond (g/zero? p) q
-        (g/zero? q) p
+  (cond (v/nullity? p) q
+        (v/nullity? q) p
         :else (make (check-same-arity p q) (concat (:xs->c p) (:xs->c q)))))
 
 (defn sub
@@ -198,8 +198,8 @@
   [p q]
   {:pre [(instance? Polynomial p)
          (instance? Polynomial q)]}
-  (cond (g/zero? p) (negate q)
-        (g/zero? q) p
+  (cond (v/nullity? p) (negate q)
+        (v/nullity? q) p
         :else (make (check-same-arity p q)
                     (concat (:xs->c p) (for [[xs c] (:xs->c q)]
                                          [xs (g/negate c)])))))
@@ -209,10 +209,10 @@
   [p q]
   {:pre [(instance? Polynomial p)
          (instance? Polynomial q)]}
-  (cond (g/zero? p) p
-        (g/zero? q) q
-        (g/one? p) q
-        (g/one? q) p
+  (cond (v/nullity? p) p
+        (v/nullity? q) q
+        (v/unity? p) q
+        (v/unity? q) p
         :else (let [a (check-same-arity p q)]
                 (make a (for [[xp cp] (:xs->c p)
                               [xq cq] (:xs->c q)]
@@ -363,8 +363,8 @@
   (when-not (and (integer? n) (>= n 0))
     (throw (ArithmeticException.
             (str "can't raise poly to " n))))
-  (cond (g/one? p) p
-        (g/zero? p) (if (zero? n)
+  (cond (v/unity? p) p
+        (v/nullity? p) (if (zero? n)
                       (throw (ArithmeticException. "poly 0^0"))
                       p)
         (zero? n) (make-constant (:arity p) 1)

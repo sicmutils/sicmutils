@@ -37,12 +37,12 @@
   (testing "kind"
     (is (= :sicmutils.polynomial/polynomial (v/kind (make [])))))
   (testing "zero"
-    (is (g/zero? (make [])))
-    (is (g/zero? (make [0])))
     (is (v/nullity? (make [])))
-    (is (g/zero? (make 2 [])))
+    (is (v/nullity? (make [0])))
+    (is (v/nullity? (make [])))
     (is (v/nullity? (make 2 [])))
-    (is (not (g/zero? (make [1])))))
+    (is (v/nullity? (make 2 [])))
+    (is (not (v/nullity? (make [1])))))
   (testing "unity"
     (is (v/unity? (make [1])))
     (is (v/unity? (make 2 [[[0 0] 1]])))
@@ -78,11 +78,11 @@
     (is (= (make [3 0 2]) (add (make [0 0 2]) (make [3]))))
     (is (= (make [0 0 2]) (add (make [2 0 2]) (make [-2])))))
   (testing "add/sub"
-    (is (g/zero? (add (make [0 0 2]) (make [0 0 -2]))))
+    (is (v/nullity? (add (make [0 0 2]) (make [0 0 -2]))))
     (is (= (make []) (add (make [0 0 2]) (make [0 0 -2]))))
     (is (= (make [3]) (add (make [3 0 2]) (make [0 0 -2]))))
     (is (= (make [-1 1]) (add (make [0 1]) (make [-1]))))
-    (is (g/zero? (sub (make [0 0 2]) (make [0 0 2]))))
+    (is (v/nullity? (sub (make [0 0 2]) (make [0 0 2]))))
     (is (= (make [-3]) (sub (make [0 0 2]) (make [3 0 2]))))
     (is (= (make [0 1 2]) (sub (make [3 1 2]) (make [3]))))
     (is (= (make [-2 -2 -1]) (sub (make [1]) (make [3 2 1]))))

@@ -26,11 +26,17 @@
   (:import [clojure.lang PersistentVector IFn AFn ILookup]
            [sicmutils.structure Struct]))
 
+(declare generate)
+
 (defrecord Matrix [r c ^PersistentVector v]
   v/Value
-  (nullity? [_] (every? g/zero? v))
+  (nullity? [_] (every? #(every? v/nullity? %) v))
   (unity? [_] false)
+  ;; TODO: zero-like and one-like should use a recursive copy to find the 0/1 elements
   (zero-like [_] (Matrix. r c (vec (repeat r (vec (repeat c 0))))))
+  (one-like [_] (if-not (= r c)
+                  (throw (IllegalArgumentException. "one-like on non-square"))
+                  (generate r c #(if (= %1 %2) 1 0))))
   (exact? [_] (every? v/exact? v))
   (freeze [_] (if (= c 1)
                 `(~'column-matrix ~@(core-map (comp v/freeze first) v))
