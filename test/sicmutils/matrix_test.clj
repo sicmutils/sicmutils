@@ -182,7 +182,7 @@
         (is (= -2 (det F)))
         (is (= -8 (det G)))))))
 
-(deftest matrix-mul
+(deftest matrix-mul-div
   (let [M (matrix/by-rows '[a b] '[c d])
         S (matrix/by-rows '[e f] '[g h])]
 
@@ -190,22 +190,28 @@
                             [(+ (* c e) (* d g)) (+ (* c f) (* d h))])
            (g/simplify (g/* M S)))))
   (let [M (matrix/by-rows [1 2 3]
-                   [2 3 4])
+                          [2 3 4])
         S (matrix/by-rows [3 4]
-                   [4 5]
-                   [5 6])]
+                          [4 5]
+                          [5 6])]
     (is (= (matrix/by-rows [26 32] [38 47]) (g/* M S))))
   (let [M (matrix/by-rows '[a b] '[c d])
         d (s/down 'x 'y)
         u (s/up 'x 'y)]
-    (is (= (s/up (g/+ (g/* 'a 'x) (g/* 'b 'y)) (g/+ (g/* 'c 'x) (g/* 'd 'y)))
-           (g/* M u)))
-    (is (= (s/down (g/+ (g/* 'x 'a) (g/* 'y 'b)) (g/+ (g/* 'x 'c) (g/* 'y 'd)))
-           (g/* d M)))
-    (is (= '(+ (* a (expt x 2)) (* b x y) (* c x y) (* d (expt y 2)))
-           (g/simplify (g/* d M u))))
-    (is (thrown? IllegalArgumentException 'foo (g/* u M)))
-    (is (thrown? IllegalArgumentException (g/* M d)))))
+    (testing "mul"
+      (is (= (s/up (g/+ (g/* 'a 'x) (g/* 'b 'y)) (g/+ (g/* 'c 'x) (g/* 'd 'y)))
+             (g/* M u)))
+      (is (= (s/down (g/+ (g/* 'x 'a) (g/* 'y 'b)) (g/+ (g/* 'x 'c) (g/* 'y 'd)))
+             (g/* d M)))
+      (is (= '(+ (* a (expt x 2)) (* b x y) (* c x y) (* d (expt y 2)))
+             (g/simplify (g/* d M u))))
+      (is (thrown? IllegalArgumentException 'foo (g/* u M)))
+      (is (thrown? IllegalArgumentException (g/* M d))))
+    (testing "div"
+      (is (= '(up
+               (/ (+ (* -1 b y) (* d x)) (+ (* a d) (* -1 b c)))
+               (/ (+ (* a y) (* -1 c x)) (+ (* a d) (* -1 b c))))
+             (g/simplify (g/divide u M)))))))
 
 (defn generate-square-matrix
   [n]

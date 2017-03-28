@@ -449,7 +449,7 @@
   "Derivative operator. Produces a function whose value at some point can
   multiply an increment in the arguments, to produce the best linear estimate
   of the increment in the function value."
-  (o/make-operator #(g/partial-derivative % []) :derivative))
+  (o/make-operator #(g/partial-derivative % []) 'D))
 
 (defn ∂
   "Partial differentiation of a function at the (zero-based) slot index

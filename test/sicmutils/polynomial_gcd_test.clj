@@ -33,10 +33,7 @@
             [sicmutils.value :as v]))
 
 (deftest poly-gcd
-  (let [u (make [6 7 1])  ;; some polynomials of arity 1
-        v (make [-6 -5 1])
-        x (make [0 1])
-        X (make 2 [[[1 0] 1]]) ;; some polynomials of arity 2
+  (let [X (make 2 [[[1 0] 1]]) ;; some polynomials of arity 2
         Y (make 2 [[[0 1] 1]])]
     (testing "inexact coefficients"
       (is (= (make [1]) (gcd (make [0.2 0.4 0.6]) (make [0.4 0.6 0.8])))))

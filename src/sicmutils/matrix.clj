@@ -292,6 +292,7 @@
 (defmethod g/mul [::x/numerical-expression ::matrix] [n a] (map #(g/* n %) a))
 (defmethod g/mul [::matrix ::s/up] [m u] (M*u m u))
 (defmethod g/mul [::s/down ::matrix] [d m] (d*M d m))
+(defmethod g/div [::s/up ::matrix] [u M] (M*u (invert M) u))
 (defmethod g/simplify [::matrix] [m] (->> m (map g/simplify) v/freeze))
 (defmethod g/determinant [::matrix] [m] (determinant m))
 
