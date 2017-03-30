@@ -86,6 +86,23 @@
                 "}")
            (->JavaScript eq :parameter-order '[t theta phi thetadot phidot]))))
   (let [eq (simplify
+             ((double/state-derivative 1 1 1 1 'g)
+               (up 't (up 'theta 'phi) (up 'thetadot 'phidot))))]
+    (is (= (str "function(g, phi, phidot, theta, thetadot) {\n"
+                "  var _0002 = Math.pow(phidot, 2);\n"
+                "  var _0003 = Math.sin(phi);\n"
+                "  var _0005 = - phi;\n"
+                "  var _0006 = Math.sin(theta);\n"
+                "  var _0008 = Math.pow(thetadot, 2);\n"
+                "  var _000c = _0005 + theta;\n"
+                "  var _0012 = Math.sin(_000c);\n"
+                "  var _0013 = Math.cos(_000c);\n"
+                "  var _0015 = Math.pow(_0013, 2);\n"
+                "  var _0016 = _0015 + -2;\n"
+                "  return [1, [thetadot, phidot], [(_0008 * _0012 * _0013 - g * _0013 * _0003 + _0002 * _0012 + 2 * g * _0006) / _0016, (- _0002 * _0012 * _0013 -2 * g * _0006 * _0013 -2 * _0008 * _0012 + 2 * g * _0003) / _0016]];\n}"
+                )
+           (->JavaScript eq))))
+  (let [eq (simplify
             ((Hamiltonian->state-derivative
               (Lagrangian->Hamiltonian
                (double/L 'm_1 'm_2 'l_1 'l_2 'g)))
