@@ -39,14 +39,14 @@
 
 (deftest gamma-test
   (with-literal-functions [q]
-    (is (= '(up t (q t) ((D q) t)) (simplify ((Γ q) 't))))
-    (is (= '(up t (q t) ((D q) t)) (simplify ((Γ q 3) 't))))
+    (is (= '(up t (q t) ((D q) t)) (simplify ((Gamma q) 't))))
+    (is (= '(up t (q t) ((D q) t)) (simplify ((Gamma q 3) 't))))
     (is (= '(up t
                 (q t)
                 ((D q) t)
                 (((expt D 2) q) t)
                 (((expt D 3) q) t))
-           (simplify ((Γ q 5) 't))))
+           (simplify ((Gamma q 5) 't))))
     (is (= '(+ (* 1/2 (expt t 2) (((expt D 2) q) t))
                (* -1 t t1 (((expt D 2) q) t))
                (* 1/2 (expt t1 2) (((expt D 2) q) t))

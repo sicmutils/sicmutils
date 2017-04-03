@@ -19,6 +19,7 @@
 (ns sicmutils.infix-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
+            [sicmutils.calculus.derivative :refer [taylor-series-terms]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.env :refer :all]))
 

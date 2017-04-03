@@ -4,6 +4,7 @@
             [hiccup.page :refer :all]
             [clojure.string :as s]
             [sicmutils.env :refer :all]
+            [sicmutils.calculus.derivative :refer [taylor-series-terms]]
             [sicmutils.examples.driven-pendulum :as driven]
             [sicmutils.examples.double-pendulum :as double]
             [sicmutils.examples.central-potential :as central])

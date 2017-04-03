@@ -101,6 +101,8 @@
   [t q v & as]
   (apply up t q v as))
 
+(def ->local ->L-state)
+
 (defn F->C [F]
   (fn [[t _ v :as local]]
     (->L-state t

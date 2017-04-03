@@ -22,44 +22,29 @@
    so you can just start working with examples."
   (:refer-clojure :exclude [+ - * / zero?]
                   :rename {ref core-ref partial core-partial})
-  (:require [sicmutils
+  (:require [potemkin]
+            [sicmutils
+             [structure]
+             [complex]
+             [infix]
              [generic :as g]
-             [structure :as s]
-             [numsymb]
-             [numbers]
              [simplify :as simp]
-             [expression]
              [function :as f]
-             [complex :as c]
              [matrix :as matrix]
-             [series :as series]
-             [operator]
-             [infix :as i]]
+             [series :as series]]
             [sicmutils.numerical
-             [minimize :as min]
-             [ode :as ode]
-             [integrate :as intg]]
-            [sicmutils.mechanics.lagrange :as L]
-            [sicmutils.mechanics.hamilton :as H]
-            [sicmutils.mechanics.rotation :as R]
+             [minimize]
+             [ode]
+             [integrate]]
+            [sicmutils.mechanics
+             [lagrange]
+             [hamilton]
+             [rotation]]
             [sicmutils.calculus.derivative :as d]
             [sicmutils.value :as v]))
 
-(def + g/+)
-(def - g/-)
-(def * g/*)
-(def / g/divide)
-(def square g/square)
-(def cube g/cube)
-(def sqrt g/sqrt)
-(def abs g/abs)
-(def negate g/negate)
-(def complex c/complex)
-(def invert g/invert)
-(def zero? v/nullity?)
 
-(def evolve ode/evolve)
-(def state-advancer ode/state-advancer)
+(def zero? v/nullity?)
 
 (defmacro literal-function
   ([f] `(f/literal-function ~f))
@@ -72,27 +57,13 @@
 
 (def compose f/compose)
 
-(def sin g/sin)
-(def cos g/cos)
-(def tan g/tan)
-(def asin g/asin)
-(def acos g/acos)
-(def atan g/atan)
 (def cot (g/divide g/cos g/sin))
 (def csc (g/invert g/sin))
 (def sec (g/invert g/cos))
-(def exp g/exp)
-(def log g/log)
-(def expt g/expt)
-(def simplify g/simplify)
-(def cross-product g/cross-product)
+
+
 (def print-expression simp/print-expression)
 
-(def magnitude g/magnitude)
-(def real-part c/real-part)
-(def imag-part c/imag-part)
-(def conjugate c/conjugate)
-(def angle c/angle)
 
 
 (defn ref
@@ -117,85 +88,125 @@
     (apply d/∂ selectors)
     (apply core-partial selectors)))
 
-(def up s/up)
-(def down s/down)
-(def transpose g/transpose)
-(def determinant g/determinant)
-(def component s/component)
-(def structure? s/structure?)
-(def orientation s/orientation)
-(def structure->vector s/structure->vector)
-(def vector->up s/vector->up)
-(def vector->down s/vector->down)
 (def m:transpose matrix/transpose)
-(def compatible-shape s/compatible-shape)
-(def mapr s/mapr)
 (def s->m matrix/s->m)
 (def qp-submatrix #(matrix/without % 0 0))
 (def m:dimension matrix/dimension)
 (def matrix-by-rows matrix/by-rows)
 (def column-matrix matrix/column)
 
-(def D d/D)
-(def ∂ d/∂)
 (def pi Math/PI)
-(def taylor-series-terms d/taylor-series-terms)
 
-(def minimize min/minimize)
 
-(def definite-integral intg/definite-integral)
 
-(def ->infix i/->infix)
-(def ->TeX i/->TeX)
-(def ->JavaScript i/->JavaScript)
+
 
 (def principal-value v/principal-value)
 
 (def series series/starting-with)
 (def series:sum series/sum)
 
-(def Lagrangian-action L/Lagrangian-action)
-(def Lagrangian->state-derivative L/Lagrangian->state-derivative)
-(def Lagrange-equations L/Lagrange-equations)
-(def Lagrange-equations-first-order L/Lagrange-equations-first-order)
-(def Lagrangian->energy L/Lagrangian->energy)
-(def Euler-Lagrange-operator L/Euler-Lagrange-operator)
-(def Gamma L/Gamma)
-(def Γ Gamma)
-(def Gamma-bar L/Gamma-bar)
-(def Lagrange-interpolation-function L/Lagrange-interpolation-function)
-(def linear-interpolants L/linear-interpolants)
-(def osculating-path L/osculating-path)
-
-(def F->C L/F->C)
-(def coordinate L/coordinate)
-(def coordinate-tuple L/coordinate-tuple)
-(def velocity L/velocity)
-(def ->local L/->L-state)
-(def ->L-state L/->L-state)
-(def p->r L/p->r)
-(def s->r L/s->r)
-(def find-path L/find-path)
-
-(def momentum H/momentum)
-(def momentum-tuple H/momentum-tuple)
-(def ->H-state H/->H-state)
-(def Legendre-transform H/Legendre-transform)
-(def Hamilton-equations H/Hamilton-equations)
-(def Poisson-bracket H/Poisson-bracket)
-(def Lagrangian->Hamiltonian H/Lagrangian->Hamiltonian)
-(def Hamiltonian->state-derivative H/Hamiltonian->state-derivative)
-(def compositional-canonical? H/compositional-canonical?)
-(def time-independent-canonical? H/time-independent-canonical?)
-(def F->CT H/F->CT)
-(def polar-canonical H/polar-canonical)
-(def symplectic-transform? H/symplectic-transform?)
-(def Lie-derivative H/Lie-derivative)
-(def Lie-transform H/Lie-transform)
-(def symplectic-unit H/symplectic-unit)
-(def iterated-map H/iterated-map)
-(def standard-map H/standard-map)
-
-(def Rx R/Rx)
-(def Ry R/Ry)
-(def Rz R/Rz)
+(potemkin/import-vars
+ [sicmutils.complex
+  angle
+  complex
+  conjugate
+  imag-part
+  real-part]
+ [sicmutils.generic
+  *
+  +
+  -
+  /
+  abs
+  acos
+  asin
+  atan
+  cos
+  cross-product
+  cube
+  determinant
+  exp
+  expt
+  invert
+  log
+  magnitude
+  negate
+  simplify
+  sin
+  sqrt
+  square
+  tan
+  transpose]
+ [sicmutils.structure
+  compatible-shape
+  component
+  down
+  mapr
+  orientation
+  structure->vector
+  structure?
+  up
+  vector->down
+  vector->up]
+ [sicmutils.infix
+  ->infix
+  ->TeX
+  ->JavaScript]
+ [sicmutils.calculus.derivative
+  D
+  ∂]
+ [sicmutils.mechanics.lagrange
+  ->L-state
+  ->L-state
+  ->local
+  Euler-Lagrange-operator
+  F->C
+  Gamma
+  Gamma-bar
+  Lagrange-equations
+  Lagrange-equations-first-order
+  Lagrange-interpolation-function
+  Lagrangian->energy
+  Lagrangian->state-derivative
+  Lagrangian-action
+  coordinate
+  coordinate-tuple
+  find-path
+  linear-interpolants
+  osculating-path
+  p->r
+  s->r
+  velocity
+  Γ]
+ [sicmutils.mechanics.hamilton
+  ->H-state
+  F->CT
+  Hamilton-equations
+  Hamiltonian->state-derivative
+  Lagrangian->Hamiltonian
+  Legendre-transform
+  Lie-derivative
+  Lie-transform
+  Poisson-bracket
+  compositional-canonical?
+  iterated-map
+  momentum
+  momentum-tuple
+  polar-canonical
+  standard-map
+  symplectic-transform?
+  symplectic-unit
+  time-independent-canonical?]
+ [sicmutils.mechanics.rotation
+  Rx
+  Ry
+  Rz]
+ [sicmutils.numerical.ode
+  evolve
+  state-advancer]
+ [sicmutils.numerical.integrate
+  definite-integral]
+ [sicmutils.numerical.minimize
+  minimize]
+)
