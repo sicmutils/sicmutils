@@ -286,6 +286,7 @@
                (cond (TeX-letters s) (str "\\" s)
                      (TeX-map s) (TeX-map s)
                      :else (condp re-find s
+                             ;; TODO: add support for superscripts
                              #"(.+)_([0-9a-zA-Zαωθφ]+)$"
                              :>> (fn [[_ stem subscript]]
                                    (str (maybe-brace (r stem)) "_" (maybe-brace (r subscript))))
@@ -296,9 +297,6 @@
                              #"(.+)bar$" :>> bar
                              #"(.+)vec$" :>> vec
                              #"(.+)tilde$" :>> tilde
-
-                             ;; TODO: superscripts
-
                              ;; wrap it if it's a multiletter variable... unless it looks
                              ;; like a differential. (Too hacky?)
                              (if (and (symbol? v)

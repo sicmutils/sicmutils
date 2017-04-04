@@ -43,7 +43,6 @@
             [sicmutils.calculus.derivative :as d]
             [sicmutils.value :as v]))
 
-
 (def zero? v/nullity?)
 
 (defmacro literal-function
@@ -55,16 +54,12 @@
   [& args]
   `(f/with-literal-functions ~@args))
 
-(def compose f/compose)
-
 (def cot (g/divide g/cos g/sin))
 (def csc (g/invert g/sin))
 (def sec (g/invert g/cos))
 
 
 (def print-expression simp/print-expression)
-
-
 
 (defn ref
   "A shim so that ref can act like nth in SICM contexts, as clojure
@@ -96,11 +91,6 @@
 (def column-matrix matrix/column)
 
 (def pi Math/PI)
-
-
-
-
-
 (def principal-value v/principal-value)
 
 (def series series/starting-with)
@@ -113,6 +103,8 @@
   conjugate
   imag-part
   real-part]
+ [sicmutils.function
+  compose]
  [sicmutils.generic
   *
   +
@@ -208,5 +200,4 @@
  [sicmutils.numerical.integrate
   definite-integral]
  [sicmutils.numerical.minimize
-  minimize]
-)
+  minimize])

@@ -93,7 +93,7 @@
 (defmulti sqrt v/argument-kind)
 (defmethod sqrt [:arity] [_] [:exactly 1])
 
-(defmulti sin v/argument-kind)
+(defmulti sin "generic sine" v/argument-kind)
 (defmethod sin [:arity] [_] [:exactly 1])
 
 (defmulti cos v/argument-kind)
