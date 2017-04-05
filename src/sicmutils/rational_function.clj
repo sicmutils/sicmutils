@@ -43,7 +43,7 @@
   [^Polynomial u ^Polynomial v]
   {:pre [(instance? Polynomial u)
          (instance? Polynomial v)
-         (= (.arityy u) (.arityy v))]}
+         (= (.arity u) (.arity v))]}
   (when (v/nullity? v)
     (throw (ArithmeticException. "Can't form rational function with zero denominator")))
   ;; annoying: we are using native operations here for the base coefficients
@@ -51,7 +51,7 @@
   ;; a generic operation (along with lcm), and binding the euclid implmentation
   ;; in for language supported integral types. Perhaps also generalizing ratio?
   ;; and denominator. TODO.
-  (let [arity (.arityy u)
+  (let [arity (.arity u)
         cv (p/coefficients v)
         lcv (last cv)
         cs (into (into #{} cv) (p/coefficients u))
@@ -285,12 +285,12 @@
 (defmethod g/div
   [Long ::p/polynomial]
   [c ^Polynomial p]
-  (make (p/make-constant (.arityy p) c) p))
+  (make (p/make-constant (.arity p) c) p))
 
 (defmethod g/div
   [BigInt ::p/polynomial]
   [c ^Polynomial p]
-  (make (p/make-constant (.arityy p) c) p))
+  (make (p/make-constant (.arity p) c) p))
 
 (defmethod g/div
   [Long ::rational-function]

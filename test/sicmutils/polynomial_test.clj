@@ -234,7 +234,7 @@
 (deftest poly-as-simplifier
   (testing "arity"
     (let [^sicmutils.polynomial.Polynomial p (make [0 1])]
-      (is (= 1 (.arityy p)))))
+      (is (= 1 (.arity p)))))
   (testing "make-vars"
     (is (= (list (make [0 1])) (new-variables 1)))
     (is (= [(make 3 [[[1 0 0] 1]])
@@ -298,7 +298,7 @@
 
 (defspec ^:long p+p=2p num-tests
   (prop/for-all [^sicmutils.polynomial.Polynomial p (gen/bind gen/nat generate-poly)]
-                (= (add p p) (mul p (make-constant (.arityy p) 2)))))
+                (= (add p p) (mul p (make-constant (.arity p) 2)))))
 
 (defspec ^:long p-p=0 num-tests
   (prop/for-all [p (gen/bind gen/nat generate-poly)]

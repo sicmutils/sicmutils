@@ -223,7 +223,7 @@
   {:pre [(instance? Polynomial u)
          (instance? Polynomial v)]}
   (let [sw (Stopwatch/createStarted)
-        a (.arityy u)]
+        a (.arity u)]
     (loop [n 0]
       (if (= n gcd-heuristic-trial-count)
         (do
@@ -246,7 +246,7 @@
          (instance? Polynomial v)]}
   (if (and
                                         ;false  ;; XXX
-       (> (.arityy u) 1)
+       (> (.arity u) 1)
        (probabilistic-unit-gcd u v))
     (do (swap! gcd-probabilistic-unit inc) (v/one-like u))
     (continue u v)))
@@ -294,7 +294,7 @@
         (swap! gcd-trivial-constant inc)
         (->> (concat (coefficients u) (coefficients v))
              primitive-gcd
-             (make-constant (.arityy u))))
+             (make-constant (.arity u))))
       (continue u v))))
 
 (defn ^:private sort->permutations
@@ -332,8 +332,8 @@
   [^Polynomial u ^Polynomial v]
   {:pre [(instance? Polynomial u)
          (instance? Polynomial v)
-         (= (.arityy u) 1)
-         (= (.arityy v) 1)]}
+         (= (.arity u) 1)
+         (= (.arity v) 1)]}
   (cond
     (v/nullity? u) v
     (v/nullity? v) u
@@ -353,7 +353,7 @@
         xs (reduce #(mapv min %1 %2) mxs (->> p .xs->c (map exponents)))
         c (primitive-gcd (cons mc (coefficients p)))]
     (swap! gcd-monomials inc)
-    (make (.arityy m) [[xs c]])))
+    (make (.arity m) [[xs c]])))
 
 (defn ^:private println-indented
   [level & args]
