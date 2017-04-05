@@ -40,9 +40,10 @@
 (defn make
   "Make the fraction of the two polynomials p and q, after dividing
   out their greatest common divisor."
-  [u v]
+  [^Polynomial u ^Polynomial v]
   {:pre [(instance? Polynomial u)
-         (instance? Polynomial v)]}
+         (instance? Polynomial v)
+         (= (.arityy u) (.arityy v))]}
   (when (v/nullity? v)
     (throw (ArithmeticException. "Can't form rational function with zero denominator")))
   ;; annoying: we are using native operations here for the base coefficients
@@ -50,7 +51,7 @@
   ;; a generic operation (along with lcm), and binding the euclid implmentation
   ;; in for language supported integral types. Perhaps also generalizing ratio?
   ;; and denominator. TODO.
-  (let [arity (p/check-same-arity u v)
+  (let [arity (.arityy u)
         cv (p/coefficients v)
         lcv (last cv)
         cs (into (into #{} cv) (p/coefficients u))
@@ -81,7 +82,10 @@
 (defn add
   "Add the ratiional functions r and s."
   [{u :u u' :v :as p} {v :u v' :v :as q}]
-  (let [a (p/check-same-arity p q)
+  {:pre [(instance? RationalFunction p)
+         (instance? RationalFunction q)
+         (= (:arity p) (:arity q))]}
+  (let [a (:arity p)
         d1 (gcd u' v')]
     (if (v/unity? d1)
       (make-reduced  a (p/add (p/mul u v') (p/mul u' v)) (p/mul u' v'))
@@ -123,7 +127,10 @@
 
 (defn mul
   [{u :u u' :v :as U} {v :u v' :v :as V}]
-  (let [a (p/check-same-arity U V)]
+  {:pre [(instance? RationalFunction U)
+         (instance? RationalFunction V)
+         (= (:arity U) (:arity V))]}
+  (let [a (:arity U)]
     (cond (v/nullity? U) U
           (v/nullity? V) V
           (v/unity? U) V
@@ -277,13 +284,13 @@
 
 (defmethod g/div
   [Long ::p/polynomial]
-  [c p]
-  (make (p/make-constant (:arity p) c) p))
+  [c ^Polynomial p]
+  (make (p/make-constant (.arityy p) c) p))
 
 (defmethod g/div
   [BigInt ::p/polynomial]
-  [c p]
-  (make (p/make-constant (:arity p) c) p))
+  [c ^Polynomial p]
+  (make (p/make-constant (.arityy p) c) p))
 
 (defmethod g/div
   [Long ::rational-function]
