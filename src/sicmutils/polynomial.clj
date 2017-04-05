@@ -97,8 +97,8 @@
   (equals [_ b]
     (and (instance? Polynomial b)
          (let [^Polynomial bp b]
-           (= arity (.arity bp))
-           (= xs->c (.xs->c bp)))))
+           (and (= arity (.arity bp))
+                (= xs->c (.xs->c bp))))))
   (toString [_]
     (let [n 10
           c (count xs->c)]
