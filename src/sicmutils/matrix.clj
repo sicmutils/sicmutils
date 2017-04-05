@@ -41,7 +41,6 @@
   (freeze [_] (if (= c 1)
                 `(~'column-matrix ~@(core-map (comp v/freeze first) v))
                 `(~'matrix-by-rows ~@(core-map v/freeze v))))
-  (arity [_] (v/joint-arity (core-map v/arity v)))
   (kind [_] ::matrix)
   IFn
   (invoke [_ x]

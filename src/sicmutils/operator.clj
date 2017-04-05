@@ -30,7 +30,6 @@
   (kind [_] ::operator)
   (nullity? [_] false)
   (unity? [_] false)
-  (arity [_] arity)
   IFn
   (invoke [_ f] (o f))
   (invoke [_ f g] (o f g))
@@ -55,7 +54,7 @@
   computes the difference of applying the supplied operators."
   [o p]
   (Operator. #(g/- (o %) (p %))
-             (v/joint-arity [(v/arity o) (v/arity p)])
+             (v/joint-arity [(:arity o) (:arity p)])
              `(~'- ~o ~p)))
 
 (defn ^:private o+o
