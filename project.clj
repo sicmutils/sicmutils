@@ -1,4 +1,4 @@
-(defproject net.littleredcomputer/sicmutils "0.9.8-SNAPSHOT"
+(defproject net.littleredcomputer/sicmutils "0.9.9-SNAPSHOT"
   :description "A port of the Scmutils computer algebra/mechanics system to Clojure"
   :url "http://github.com/littleredcomputer/sicmutils"
   :license {:name "GPLv3"
@@ -10,7 +10,8 @@
                  [org.clojure/core.match "0.3.0-alpha4"]
                  [org.apache.commons/commons-math3 "3.6.1"]
                  [org.clojure/math.numeric-tower "0.0.4"]
-                 [org.clojure/tools.nrepl "0.2.12"]]
+                 [org.clojure/tools.nrepl "0.2.12"]
+                 [potemkin "0.4.3"]]
   :main sicmutils.repl
   :jvm-opts ["-Djava.util.logging.config.file=logging.properties"]
   :repl-options {:prompt (fn [ns] (str "[" ns "] > "))

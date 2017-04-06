@@ -219,9 +219,11 @@
   "We're a little skeptical of this: why doesn't GJS use prime numbers here?
   In our observations, enough even numbers generate spurious content in the
   results. For the present we aren't using it."
-  [u v]
+  [^Polynomial u ^Polynomial v]
+  {:pre [(instance? Polynomial u)
+         (instance? Polynomial v)]}
   (let [sw (Stopwatch/createStarted)
-        a (:arity u)]
+        a (.arity u)]
     (loop [n 0]
       (if (= n gcd-heuristic-trial-count)
         (do
@@ -239,10 +241,12 @@
                 false)))))))
 
 (defn ^:private with-probabilistic-check
-  [u v continue]
+  [^Polynomial u ^Polynomial v continue]
+  {:pre [(instance? Polynomial u)
+         (instance? Polynomial v)]}
   (if (and
                                         ;false  ;; XXX
-       (> (:arity u) 1)
+       (> (.arity u) 1)
        (probabilistic-unit-gcd u v))
     (do (swap! gcd-probabilistic-unit inc) (v/one-like u))
     (continue u v)))
@@ -260,8 +264,10 @@
   the form x ± 1 for each variable. NB: this turned out to be a
   disastrous lose for some polynomials. Not obvious why, but I'm
   leaving the code here for the time being."
-  [u v continue]
-  (let [a (:arity u)
+  [^Polynomial u ^Polynomial v continue]
+  {:pre [(instance? Polynomial u)
+         (instance? Polynomial v)]}
+  (let [a (.arity u)
         candidates (for [i (range a)
                          k [-1 1]]
                      (make a [[(mapv #(if (= % i) 1 0) (range a)) k]]))
@@ -277,16 +283,18 @@
   exponent limit for both polynomials. This is basically a test for a
   kind of disjointness of the variables. If this happens we just
   return the constant gcd and do not invoke the continuation."
-  [u v continue]
-  (let [umax (reduce #(mapv max %1 %2) (map exponents (:xs->c u)))
-        vmax (reduce #(mapv max %1 %2) (map exponents (:xs->c v)))
+  [^Polynomial u ^Polynomial v continue]
+  {:pre [(instance? Polynomial u)
+         (instance? Polynomial v)]}
+  (let [umax (reduce #(mapv max %1 %2) (map exponents (.xs->c u)))
+        vmax (reduce #(mapv max %1 %2) (map exponents (.xs->c v)))
         maxd (mapv min umax vmax)]
     (if (every? zero? maxd)
       (do
         (swap! gcd-trivial-constant inc)
         (->> (concat (coefficients u) (coefficients v))
              primitive-gcd
-             (make-constant (:arity u))))
+             (make-constant (.arity u))))
       (continue u v))))
 
 (defn ^:private sort->permutations
@@ -306,9 +314,11 @@
   rearrangement on return. Variables are sorted by increasing degree.
   Discussed in 'Evaluation of the Heuristic Polynomial GCD', by Liao
   and Fateman [1995]."
-  [u v continue]
-  (let [xs (reduce #(mapv max %1 %2) (concat (map exponents (:xs->c u))
-                                             (map exponents (:xs->c v))))
+  [^Polynomial u ^Polynomial v continue]
+  {:pre [(instance? Polynomial u)
+         (instance? Polynomial v)]}
+  (let [xs (reduce #(mapv max %1 %2) (concat (map exponents (.xs->c u))
+                                             (map exponents (.xs->c v))))
         [sorter unsorter] (sort->permutations xs)]
     (map-exponents unsorter
                    (continue (map-exponents sorter u)
@@ -319,11 +329,11 @@
 
 (defn ^:private gcd1
   "Knuth's algorithm 4.6.1E for UNIVARIATE polynomials."
-  [u v]
+  [^Polynomial u ^Polynomial v]
   {:pre [(instance? Polynomial u)
          (instance? Polynomial v)
-         (= (:arity u) 1)
-         (= (:arity v) 1)]}
+         (= (.arity u) 1)
+         (= (.arity v) 1)]}
   (cond
     (v/nullity? u) v
     (v/nullity? v) u
@@ -335,13 +345,15 @@
 (defn ^:private monomial-gcd
   "Computing the GCD is easy if one of the polynomials is a monomial.
   The monomial is the first argument."
-  [m p]
-  {:pre [(= (count (:xs->c m)) 1)]}
-  (let [[mxs mc] (-> m :xs->c first)
-        xs (reduce #(mapv min %1 %2) mxs (->> p :xs->c (map exponents)))
+  [^Polynomial m ^Polynomial p]
+  {:pre [(instance? Polynomial m)
+         (instance? Polynomial p)
+         (= (count (.xs->c m)) 1)]}
+  (let [[mxs mc] (-> m .xs->c first)
+        xs (reduce #(mapv min %1 %2) mxs (->> p .xs->c (map exponents)))
         c (primitive-gcd (cons mc (coefficients p)))]
     (swap! gcd-monomials inc)
-    (make (:arity m) [[xs c]])))
+    (make (.arity m) [[xs c]])))
 
 (defn ^:private println-indented
   [level & args]

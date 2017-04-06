@@ -36,10 +36,9 @@
   ;; this is intended to be done just before simplification and printing, to
   ;; simplify those processes.
   (freeze [this])
-  (arity [this])
   (kind [this]))
 
-(declare primitive-arity primitive-kind)
+(declare arity primitive-kind)
 
 (def ^:private object-name-map (atom {}))
 
@@ -50,7 +49,6 @@
   (numerical? [_] false)
   (unity? [o] (and (number? o) (== o 1)))
   (exact? [o] (or (integer? o) (ratio? o)))
-  (arity [o] (primitive-arity o))
   (zero-like [o] (cond (number? o) 0
                        (instance? Symbol o) 0
                        (or (fn? o) (instance? MultiFn o)) (with-meta
@@ -123,7 +121,7 @@
                    [:exactly 1]
                    :else (throw (IllegalArgumentException. (str "arity? " f " " facts))))))))
 
-(defn ^:private primitive-arity
+(defn arity
   "Return the cached or obvious arity of the object if we know it.
   Otherwise delegate to the heavy duty reflection, if we have to."
   [f]
@@ -177,7 +175,6 @@
   [a]
   (cond
     (or (fn? a) (= (class a) MultiFn)) ::function
-    (keyword? a) a
     :else (type a)))
 
 (def argument-kind #(mapv kind %&))

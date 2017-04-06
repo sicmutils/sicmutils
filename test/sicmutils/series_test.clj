@@ -149,3 +149,20 @@
       (let [F (fn [k] (series/starting-with (fn [t] (* k t)) (fn [t] (* k k t))))]
         (is (= '((* q z) (* (expt q 2) z) 0 0) (simp4 ((F 'q) 'z))))
         (is (= '(z (* 2 q z) 0 0) (simp4 (((D F) 'q) 'z))))))))
+
+(deftest taylor
+  (let [taylor-series-expander (fn [f x h]
+                                 (((exp (* h D)) f) x))]
+    (is (= '(+ (* 1/24 (expt dx 4) (sin x))
+               (* -1/6 (expt dx 3) (cos x))
+               (* -1/2 (expt dx 2) (sin x))
+               (* dx (cos x))
+               (sin x))
+           (simplify (reduce + (series/take 5 (taylor-series-expander sin 'x 'dx))))))
+    (is (= '(1
+             (* 1/2 dx)
+             (* -1/8 (expt dx 2))
+             (* 1/16 (expt dx 3))
+             (* -5/128 (expt dx 4))
+             (* 7/256 (expt dx 5)))
+           (simplify (series/take 6 (taylor-series-expander #(sqrt (+ 1 %)) 0 'dx)))))))

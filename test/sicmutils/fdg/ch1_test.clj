@@ -27,16 +27,15 @@
   (fn [place velocity]
     (* 1/2 mass ((metric velocity velocity) place))))
 
-;(defn Lc
-;  [mass metric coordsys]
-;  (fn [[t x v]]
-;    (let [e coordinate-system->vector-basis coordsys]
-;      ((L2 mass metric) ((point coordsys) x) (* e v)))))
-;
-;(def the-metric (literal-metric 'g R2-rect))
+#_(defn Lc
+  [mass metric coordsys]
+  (fn [[t x v]]
+    (let [e (coordinate-system->vector-basis coordsys)]
+      ((L2 mass metric) ((point coordsys) x) (* e v)))))
 
 (deftest chapter-one
-  (is (= '(+ (* 1/2 (expt R 2) m (expt phidot 2) (expt (sin theta) 2)) (* 1/2 (expt R 2) m (expt thetadot 2)))
+  (is (= '(+ (* 1/2 (expt R 2) m (expt phidot 2) (expt (sin theta) 2))
+             (* 1/2 (expt R 2) m (expt thetadot 2)))
          (simplify
            ((Lsphere 'm 'R)
             (up 't (up 'theta 'phi) (up 'thetadot 'phidot)))))))

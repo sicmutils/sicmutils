@@ -31,18 +31,26 @@
 
 (declare operator-table operators-known)
 
-(defrecord RationalFunction [^long arity ^Polynomial u ^Polynomial v]
+(deftype RationalFunction [^long arity ^Polynomial u ^Polynomial v]
   v/Value
   (nullity? [_] (v/nullity? u))
   (unity? [_] (and (v/unity? u) (v/unity? v)))
-  (kind [_] ::rational-function))
+  (kind [_] ::rational-function)
+  Object
+  (equals [_ b]
+    (and (instance? RationalFunction b)
+         (let [^RationalFunction br b]
+           (= arity (.arity br))
+           (= u (.u br))
+           (= v (.v br))))))
 
 (defn make
   "Make the fraction of the two polynomials p and q, after dividing
   out their greatest common divisor."
-  [u v]
+  [^Polynomial u ^Polynomial v]
   {:pre [(instance? Polynomial u)
-         (instance? Polynomial v)]}
+         (instance? Polynomial v)
+         (= (.arity u) (.arity v))]}
   (when (v/nullity? v)
     (throw (ArithmeticException. "Can't form rational function with zero denominator")))
   ;; annoying: we are using native operations here for the base coefficients
@@ -50,7 +58,7 @@
   ;; a generic operation (along with lcm), and binding the euclid implmentation
   ;; in for language supported integral types. Perhaps also generalizing ratio?
   ;; and denominator. TODO.
-  (let [arity (p/check-same-arity u v)
+  (let [arity (.arity u)
         cv (p/coefficients v)
         lcv (last cv)
         cs (into (into #{} cv) (p/coefficients u))
@@ -80,8 +88,15 @@
 
 (defn add
   "Add the ratiional functions r and s."
-  [{u :u u' :v :as p} {v :u v' :v :as q}]
-  (let [a (p/check-same-arity p q)
+  [^RationalFunction r ^RationalFunction s]
+  {:pre [(instance? RationalFunction r)
+         (instance? RationalFunction s)
+         (= (.arity r) (.arity s))]}
+  (let [a (.arity r)
+        u (.u r)
+        u' (.v r)
+        v (.u s)
+        v' (.v s)
         d1 (gcd u' v')]
     (if (v/unity? d1)
       (make-reduced  a (p/add (p/mul u v') (p/mul u' v)) (p/mul u' v'))
@@ -94,40 +109,58 @@
                              (p/evenly-divide v' d2)))))))
 
 (defn addp
-  [{u :u u' :v :as r} v]
-  (if (v/nullity? v)
+  [^RationalFunction r ^Polynomial p]
+  (if (v/nullity? p)
     r
-    (make (p/add u (p/mul u' v)) u')))
+    (let [v (.v r)]
+      (make (p/add (.u r) (p/mul v p)) v))))
 
 (defn subp
-  [{u :u u' :v :as r} v]
-  (if (v/nullity? v)
+  [^RationalFunction r ^Polynomial p]
+  {:pre [(instance? RationalFunction r)
+         (instance? Polynomial p)]}
+  (if (v/nullity? p)
     r
-    (make (p/sub u (p/mul u' v)) u')))
+    (let [v (.v r)]
+      (make (p/sub (.u r) (p/mul v p)) v))))
 
 (defn negate
-  [{u :u v :v arity :arity}]
-  (RationalFunction. arity (p/negate u) v))
+  [^RationalFunction r]
+  {:pre [(instance? RationalFunction r)]}
+  (RationalFunction. (.arity r) (p/negate (.u r)) (.v r)))
 
 (defn square
-  [{u :u v :v arity :arity}]
-  (RationalFunction. arity (p/mul u u) (p/mul v v)))
+  [^RationalFunction r]
+  {:pre [(instance? RationalFunction r)]}
+  (let [u (.u r)
+        v (.v r)]
+    (RationalFunction. (.arity r) (p/mul u u) (p/mul v v))))
 
 (defn cube
-  [{u :u v :v arity :arity}]
-  (RationalFunction. arity (p/mul u (p/mul u u)) (p/mul v (p/mul v v))))
+  [^RationalFunction r]
+  {:pre [(instance? RationalFunction r)]}
+  (let [u (.u r)
+        v (.v r)]
+    (RationalFunction. (.arity r) (p/mul u (p/mul u u)) (p/mul v (p/mul v v)))))
 
 (defn sub
   [r s]
   (add r (negate s)))
 
 (defn mul
-  [{u :u u' :v :as U} {v :u v' :v :as V}]
-  (let [a (p/check-same-arity U V)]
-    (cond (v/nullity? U) U
-          (v/nullity? V) V
-          (v/unity? U) V
-          (v/unity? V) U
+  [^RationalFunction r ^RationalFunction s]
+  {:pre [(instance? RationalFunction r)
+         (instance? RationalFunction s)
+         (= (.arity r) (.arity s))]}
+  (let [a (.arity r)
+        u (.u r)
+        u' (.v r)
+        v (.u s)
+        v' (.v s)]
+    (cond (v/nullity? r) r
+          (v/nullity? s) s
+          (v/unity? r) s
+          (v/unity? s) r
           :else (let [d1 (gcd u v')
                       d2 (gcd u' v)
                       u'' (p/mul (p/evenly-divide u d1) (p/evenly-divide v d2))
@@ -135,18 +168,22 @@
                   (make-reduced a u'' v'')))))
 
 (defn invert
-  [{u :u v :v}]
+  [^RationalFunction r]
   ;; use make so that the - sign will get flipped if needed
-  (make v u))
+  (make (.v r) (.u r)))
 
 (defn div
   [r s]
   (g/mul r (invert s)))
 
 (defn expt
-  [{pr :u qr :v arity :arity} n]
-  (let [[top bottom e] (if (< n 0) [qr pr (- n)] [pr qr n])]
-    (RationalFunction. arity (p/expt top e) (p/expt bottom e))))
+  [^RationalFunction r n]
+  {:pre [(instance? RationalFunction r)
+         (integer? n)]}
+  (let [u (.u r)
+        v (.v r)
+        [top bottom e] (if (< n 0) [v u (- n)] [u v n])]
+    (RationalFunction. (.arity r) (p/expt top e) (p/expt bottom e))))
 
 (defn expression->
   "Convert an expression into Rational Function canonical form. The
@@ -175,7 +212,8 @@
   process."
   [r vars]
   (cond (instance? RationalFunction r)
-        (sym/div (p/->expression (:u r) vars) (p/->expression (:v r) vars))
+        (let [rr ^RationalFunction r]
+          (sym/div (p/->expression (.u rr) vars) (p/->expression (.v rr) vars)))
 
         (instance? Polynomial r)
         (p/->expression r vars)
@@ -202,7 +240,11 @@
 (defmethod g/add [::rational-function ::rational-function] [a b] (add a b))
 (defmethod g/add [::rational-function ::p/polynomial] [r p] (addp r p))
 (defmethod g/add [::p/polynomial ::rational-function] [p r] (addp r p))
-(defmethod g/add [::rational-function Double] [a b] (addp a (p/make-constant (:arity a) b)))
+
+(defmethod g/add
+  [::rational-function Double]
+  [^RationalFunction a b]
+  (addp a (p/make-constant (.arity a) b)))
 
 (defmethod g/sub
   [::rational-function ::p/polynomial]
@@ -215,59 +257,106 @@
   (addp (g/negate r) p))
 
 (defmethod g/mul [::rational-function ::rational-function] [a b] (mul a b))
-(defmethod g/mul [Long ::rational-function] [c {u :u v :v}] (make (g/mul c u) v))
-(defmethod g/mul [BigInt ::rational-function] [c {u :u v :v}] (make (g/mul c u) v))
-(defmethod g/mul [::rational-function Long] [{u :u v :v} c] (make (g/mul u c) v))
-(defmethod g/mul [Double ::rational-function] [c {u :u v :v}] (make (g/mul c u) v))
-(defmethod g/mul [::rational-function Double] [{u :u v :v} c] (make (g/mul u c) v))
-(defmethod g/mul [::rational-function Ratio] [{u :u v :v} r] (make (g/mul u (numerator r)) (g/mul v (denominator r))))
-(defmethod g/mul [Ratio ::rational-function] [r {u :u v :v}] (make (g/mul (numerator r) u) (g/mul (denominator r) v)))
+
+(defmethod g/mul
+  [Long ::rational-function]
+  [c ^RationalFunction r]
+  (make (g/mul c (.u r)) (.v r)))
+
+(defmethod g/mul [BigInt ::rational-function]
+  [c ^RationalFunction r]
+  (make (g/mul c (.u r)) (.v r)))
+
+(defmethod g/mul
+  [::rational-function Long]
+  [^RationalFunction r c]
+  (make (g/mul (.u r) c) (.v r)))
+
+(defmethod g/mul
+  [Double ::rational-function]
+  [c ^RationalFunction r]
+  (make (g/mul c (.u r)) (.v r)))
+
+(defmethod g/mul
+  [::rational-function Double]
+  [^RationalFunction r c]
+  (make (g/mul (.u r) c) (.v r)))
+
+(defmethod g/mul
+  [::rational-function Ratio]
+  [^RationalFunction r a]
+  (make (g/mul (.u r) (numerator a)) (g/mul (.v r) (denominator a))))
+
+(defmethod g/mul
+  [Ratio ::rational-function]
+  [a ^RationalFunction r]
+  (make (g/mul (numerator a) (.u r)) (g/mul (denominator a) (.v r))))
 
 (defmethod g/mul
   [::rational-function ::p/polynomial]
-  [{u :u u' :v arity :arity :as U} v]
-  "Multiply the rational function U = u/u' by the polynomial v"
-  (cond (v/nullity? v) 0
-        (v/unity? v) U
-        :else (let [d (gcd u' v) ]
-                (if (v/unity? d)
-                  (make-reduced arity
-                                (p/mul u v) u')
-                  (make-reduced arity
-                                (p/mul u (p/evenly-divide v d))
-                                (p/evenly-divide u' d))))))
+  [^RationalFunction r p]
+  "Multiply the rational function r = u/v by the polynomial p"
+  (let [u (.u r)
+        v (.v r)
+        a (.arity r)]
+    (cond (v/nullity? p) 0
+          (v/unity? p) r
+          :else (let [d (gcd v p) ]
+                  (if (v/unity? d)
+                    (make-reduced a (p/mul u p) v)
+                    (make-reduced a (p/mul u (p/evenly-divide p d)) (p/evenly-divide v d)))))))
 
 (defmethod g/mul
   [::p/polynomial ::rational-function]
-  [u {v :u v' :v arity :arity :as V}]
-  "Multiply the polynomial u by the rational function V = v/v'"
-  (cond (v/nullity? u) 0
-        (v/unity? u) V
-        :else (let [d (gcd u v') ]
-                (if (v/unity? d)
-                  (RationalFunction. arity
-                                     (p/mul u v) v')
-                  (RationalFunction. arity
-                                     (p/mul (p/evenly-divide u d) v)
-                                     (p/evenly-divide v' d))))))
+  [^Polynomial p ^RationalFunction r]
+  "Multiply the polynomial p by the rational function r = u/v"
+  (let [u (.u r)
+        v (.v r)
+        a (.arity r)]
+    (cond (v/nullity? p) 0
+          (v/unity? p) r
+          :else (let [d (gcd p v) ]
+                  (if (v/unity? d)
+                    (RationalFunction. a (p/mul p u) v)
+                    (RationalFunction. a (p/mul (p/evenly-divide p d) u) (p/evenly-divide v d)))))))
 
+(defmethod g/div [::rational-function ::rational-function] [a b] (div a b))
 (defmethod g/sub [::rational-function ::rational-function] [a b] (sub a b))
 (defmethod g/sub [::rational-function ::p/polynomial] [r p] (subp r p))
-(defmethod g/sub [::rational-function Long] [{u :u v :v} c] (make (p/sub (g/mul c v) u) v))
-(defmethod g/add [Long ::rational-function] [c {u :u v :v}] (make (p/add u (g/mul c v)) v))
-(defmethod g/add [::rational-function Long] [{u :u v :v} c] (make (p/add u (g/mul c v)) v))
-(defmethod g/div [::rational-function ::rational-function] [a b] (div a b))
-(defmethod g/div [::rational-function Long] [{u :u v :v} c] (make u (g/mul c v)))
+
+(defmethod g/sub
+  [::rational-function Long]
+  [^RationalFunction r c]
+  (let [u (.u r)
+        v (.v r)]
+    (make (p/sub (g/mul c v) u) v)))
+
+(defmethod g/add
+  [Long ::rational-function]
+  [c ^RationalFunction r]
+  (let [v (.v r)]
+    (make (p/add (.u r) (g/mul c v)) v)))
+
+(defmethod g/add
+  [::rational-function Long]
+  [^RationalFunction r c]
+  (let [v (.v r)]
+    (make (p/add (.u r) (g/mul c v)) v)))
+
+(defmethod g/div
+  [::rational-function Long]
+  [^RationalFunction r c]
+  (make (.u r) (g/mul c (.v r))))
 
 (defmethod g/div
   [::rational-function ::p/polynomial]
-  [{u :u v :v} p]
-  (make u (p/mul v p)))
+  [^RationalFunction r p]
+  (make (.u r) (p/mul (.v r) p)))
 
 (defmethod g/div
   [::p/polynomial ::rational-function]
-  [p {u :u v :v}]
-  (make (p/mul p v) u))
+  [^Polynomial p ^RationalFunction r]
+  (make (p/mul p (.v r)) (.u r)))
 
 (defmethod g/div
   [::p/polynomial ::p/polynomial]
@@ -277,18 +366,18 @@
 
 (defmethod g/div
   [Long ::p/polynomial]
-  [c p]
-  (make (p/make-constant (:arity p) c) p))
+  [c ^Polynomial p]
+  (make (p/make-constant (.arity p) c) p))
 
 (defmethod g/div
   [BigInt ::p/polynomial]
-  [c p]
-  (make (p/make-constant (:arity p) c) p))
+  [c ^Polynomial p]
+  (make (p/make-constant (.arity p) c) p))
 
 (defmethod g/div
   [Long ::rational-function]
-  [c r]
-  (g/divide (p/make-constant (:arity r) c) r))
+  [c ^RationalFunction r]
+  (g/divide (p/make-constant (.arity r) c) r))
 
 (defmethod g/expt [::rational-function Integer] [b x] (expt b x))
 (defmethod g/expt [::rational-function Long] [b x] (expt b x))

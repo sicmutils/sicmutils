@@ -33,7 +33,6 @@
   (unity? [_] false)
   (numerical? [_] false)
   (freeze [_] `[~'Series ~arity ~@(core-map g/simplify (core-take 4 s)) ~'...])
-  (arity [_] arity)
   (kind [_] ::series)
   IFn
   (invoke [_ x] (->Series arity (core-map #(% x) s)))

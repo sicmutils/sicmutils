@@ -22,7 +22,8 @@
   (:require [sicmutils
              [value :as v]
              [expression :as x]])
-  (:import [sicmutils.expression Expression]))
+  (:import [sicmutils.expression Expression]
+           (clojure.lang Keyword)))
 
 ;;; classifiers
 
@@ -45,90 +46,50 @@
       (abstract-number? x)
       (v/numerical? x)))
 
-(defmulti add v/argument-kind)
-(defmethod add [:arity] [_] [:exactly 2])
+(defmacro def-generic-function
+  "Defines a mutlifn using the provided symbol. Arranges for the multifn
+  to answer the :arity message, reporting either [:exactly a] or
+  [:between a b], according to the arguments given."
+  [f a & b]
+  (let [arity (if b `[:between ~a ~@b] [:exactly a])
+        docstring (str "generic " f)]
+    `(do
+       (defmulti ~f ~docstring v/argument-kind)
+       (defmethod ~f [Keyword] [k#] ({:arity ~arity} k#)))))
 
-(defmulti mul v/argument-kind)
-(defmethod mul [:arity] [_] [:exactly 2])
+(def-generic-function add 2)
+(def-generic-function mul 2)
+(def-generic-function sub 2)
+(def-generic-function div 2)
 
-(defmulti sub v/argument-kind)
-(defmethod sub [:arity] [_] [:exactly 2])
+(def-generic-function cos 1)
+(def-generic-function sin 1)
+(def-generic-function tan 1)
+(def-generic-function asin 1)
+(def-generic-function acos 1)
+(def-generic-function atan 1 2)
+(def-generic-function cross-product 2)
+(def-generic-function negative? 1)
+(def-generic-function transpose 1)
+(def-generic-function magnitude 1)
+(def-generic-function determinant 1)
 
-(defmulti div v/argument-kind)
-(defmethod div [:arity] [_] [:exactly 2])
+(def-generic-function invert 1)
+(def-generic-function negate 1)
+(def-generic-function square 1)
+(def-generic-function cube 1)
+(def-generic-function exp 1)
+(def-generic-function log 1)
+(def-generic-function abs 1)
+(def-generic-function sqrt 1)
 
-(defmulti exact-divide v/argument-kind)
-(defmethod exact-divide [:arity] [_] [:exactly 2])
-
-(defmulti quotient v/argument-kind)
-(defmethod quotient [:arity] [_] [:exactly 2])
-
-(defmulti remainder v/argument-kind)
-(defmethod remainder [:arity] [_] [:exactly 2])
-
-(defmulti invert v/argument-kind)
-(defmethod invert [:arity] [_] [:exactly 1])
-
-(defmulti negate v/argument-kind)
-(defmethod negate [:arity] [_] [:exactly 1])
-
-(defmulti square v/argument-kind)
-(defmethod square [:arity] [_] [:exactly 1])
-
-(defmulti cube v/argument-kind)
-(defmethod cube [:arity] [_] [:exactly 1])
-
-(defmulti expt v/argument-kind)
-(defmethod expt [:arity] [_] [:exactly 2])
-
-(defmulti exp v/argument-kind)
-(defmethod exp [:arity] [_] [:exactly 1])
-
-(defmulti log v/argument-kind)
-(defmethod log [:arity] [_] [:exactly 1])
-
-(defmulti abs v/argument-kind)
-(defmethod abs [:arity] [_] [:exactly 1])
-
-(defmulti sqrt v/argument-kind)
-(defmethod sqrt [:arity] [_] [:exactly 1])
-
-(defmulti sin v/argument-kind)
-(defmethod sin [:arity] [_] [:exactly 1])
-
-(defmulti cos v/argument-kind)
-(defmethod cos [:arity] [_] [:exactly 1])
-
-(defmulti tan v/argument-kind)
-(defmethod tan [:arity] [_] [:exactly 1])
-
-(defmulti asin v/argument-kind)
-(defmethod asin [:arity] [_] [:exactly 1])
-
-(defmulti acos v/argument-kind)
-(defmethod acos [:arity] [_] [:exactly 1])
-
-(defmulti atan v/argument-kind)
-(defmethod atan [:arity] [_] [:between 1 2])
+(def-generic-function exact-divide 2)
+(def-generic-function quotient 2)
+(def-generic-function remainder 2)
+(def-generic-function expt 2)
 
 (defmulti partial-derivative v/argument-kind)
-
-(defmulti cross-product v/argument-kind)
-(defmethod cross-product [:arity] [_] [:exactly 2])
-
 (defmulti simplify v/argument-kind)
-
-(defmulti negative? v/argument-kind)
-(defmethod negative? [:arity] [_] [:exactly 1])
-
-(defmulti transpose v/argument-kind)
-(defmethod transpose [:arity] [_] [:exactly 1])
-
-(defmulti magnitude v/argument-kind)
-(defmethod magnitude [:arity] [_] [:exactly 1])
-
-(defmulti determinant v/argument-kind)
-(defmethod determinant [:arity] [_] [:exactly 1])
 
 (defn ^:private bin+ [a b]
   (cond (and (number? a) (number? b)) (+' a b)

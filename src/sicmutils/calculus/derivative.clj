@@ -36,9 +36,7 @@
 
 ;; A differential is a sequence of differential terms, ordered by the
 ;; tag set.
-(defrecord Differential [terms]
-  Object
-  (toString [_] (str "D[" (join " " (map #(join " → " %) terms)) "]"))
+(deftype Differential [terms]
   v/Value
   (nullity? [_] (every? v/nullity? (map coefficient terms)))
   (unity? [_] false)
@@ -46,7 +44,14 @@
   (freeze [_] `[~'Differential ~@terms])
   (exact? [_] false)
   (numerical? [d] (g/numerical-quantity? (differential-of d)))
-  (kind [_] ::differential))
+  (kind [_] ::differential)
+  Object
+  (equals [_ b]
+    (and (instance? Differential b)
+         (let [^Differential bd b]
+           (= terms (.terms bd)))))
+  (toString [_] (str "D[" (join " " (map #(join " → " %) terms)) "]")))
+
 
 (defn differential?
   [x]
@@ -58,18 +63,18 @@
 (defn differential-of
   "The differential of a quantity is, if we're a differential, the differential
   of the coefficient of the highest-order term part, or else the input itself."
-  [dx]
+  [^Differential dx]
   (loop [dx dx]
     (if (instance? Differential dx)
-      (recur (coefficient (last (:terms dx))))
+      (recur (coefficient (last (.terms dx))))
       dx)))
 
 (def ^:private empty-differential [])
 (def ^:private empty-tags [])
 
 (defn canonicalize-differential
-  [dx]
-  (let [ts (:terms dx)]
+  [^Differential dx]
+  (let [ts (.terms dx)]
     (cond (empty? ts) 0
           (and (= (count ts) 1)
                (empty? (tags (first ts)))) (coefficient (first ts))
@@ -95,7 +100,7 @@
   representing d with an empty tag list (unless d is zero, in
   which case we return the empty term list)."
   [dx]
-  (cond (instance? Differential dx) (:terms dx)
+  (cond (instance? Differential dx) (let [^Differential d dx] (.terms d))
         (v/nullity? dx) []
         :else [[empty-tags dx]]))
 
@@ -175,7 +180,7 @@
 
 ;(defn ^:private hide-tag-in-procedure [& args] false) ; XXX
 
-(defn ^:private extract-dx-part [dx obj]
+(defn ^:private extract-dx-part [tag obj]
   (letfn [(extract
             ;; Collect all the terms of the differential in which
             ;; dx is a member of the term's tag set; drop that
@@ -183,11 +188,12 @@
             ;; from what remains.
             [obj]
             (if (differential? obj)
-              (canonicalize-differential
-               (make-differential
-                (for [[tags coef] (:terms obj)
-                      :when (tag-in? tags dx)]
-                  [(tag-without tags dx) coef])))
+              (let [^Differential d obj]
+                (canonicalize-differential
+                 (make-differential
+                   (for [[tags coef] (.terms d)
+                         :when (tag-in? tags tag)]
+                     [(tag-without tags tag) coef]))))
               0))
           (dist
             [obj]
@@ -247,7 +253,8 @@
 (defn with-tag
   "The differential containing only those terms with the given tag"
   [tag dx]
-  (->> dx :terms
+  (->> dx
+       differential->terms
        (filter #(-> % tags (tag-in? tag)))
        make-differential
        canonicalize-differential))

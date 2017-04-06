@@ -101,6 +101,8 @@
   [t q v & as]
   (apply up t q v as))
 
+(def ->local ->L-state)
+
 (defn F->C [F]
   (fn [[t _ v :as local]]
     (->L-state t
@@ -109,11 +111,13 @@
                   (* (((∂ 1) F) local) v)))))
 
 (defn p->r
-  "SICM p. 47"
+  "SICM p. 47. Polar to rectangular coordinates of state."
   [[_ [r φ]]]
   (up (* r (cos φ)) (* r (sin φ))))
 
 (defn Gamma
+  "Gamma takes a path function (from time to coordinates) to a state
+  function (from time to local tuple)."
   ([q]
    (let [Dq (D q)]
      (with-meta
@@ -134,8 +138,8 @@
 (defn Lagrange-equations
   [Lagrangian]
   (fn [q]
-    (- (D (comp ((∂ 2) Lagrangian) (Γ q)))
-       (comp ((∂ 1) Lagrangian) (Γ q)))))
+    (- (D (compose ((∂ 2) Lagrangian) (Γ q)))
+       (compose ((∂ 1) Lagrangian) (Γ q)))))
 
 (defn linear-interpolants
   [x0 x1 n]
@@ -175,6 +179,8 @@
        ((∂ 2) P))))
 
 (defn Lagrangian->state-derivative
+  "The state derivative of a Lagrangian is a function carrying a state
+  tuple to its time derivative."
   [L]
   (let [acceleration (Lagrangian->acceleration L)]
     (fn [[_ _ v :as state]]
@@ -198,6 +204,10 @@
     (- (* P velocity) L)))
 
 (defn osculating-path
+  "Given a state tuple (of finite length), reconstitutes the initial
+  segment of the Taylor series corresponding to the state tuple data
+  as a function of t.  Time is measured beginning at the point of time
+  specified in the input state tuple."
   [state0]
   (let [[t0 q0] state0
         k (count state0)]

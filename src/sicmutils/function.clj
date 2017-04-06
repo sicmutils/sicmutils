@@ -80,7 +80,6 @@
   (zero-like [_] (fn [& _] (v/zero-like range)))
   (numerical? [_] false)
   (freeze [_] (v/freeze expr))
-  (arity [_] arity)
   (kind [_] ::function)
   IFn
   (invoke [f x] (literal-apply f [x]))
