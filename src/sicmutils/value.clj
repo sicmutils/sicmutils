@@ -175,7 +175,6 @@
   [a]
   (cond
     (or (fn? a) (= (class a) MultiFn)) ::function
-    (keyword? a) a
     :else (type a)))
 
 (def argument-kind #(mapv kind %&))

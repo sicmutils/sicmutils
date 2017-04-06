@@ -58,7 +58,6 @@
 (def csc (g/invert g/sin))
 (def sec (g/invert g/cos))
 
-
 (def print-expression simp/print-expression)
 
 (defn ref
