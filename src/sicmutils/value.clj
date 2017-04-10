@@ -19,7 +19,7 @@
 (ns sicmutils.value
   (:refer-clojure :rename {zero? core-zero?})
   (:require [clojure.core.match :refer [match]])
-  (:import (clojure.lang RestFn MultiFn Symbol)
+  (:import (clojure.lang RestFn MultiFn Keyword Symbol)
            (java.lang.reflect Method)))
 
 (defprotocol Value
@@ -61,7 +61,11 @@
   (freeze [o] (cond
                 (vector? o) (mapv freeze o)
                 (sequential? o) (map freeze o)
-                :else (or (@object-name-map o) o)))
+                :else (or (and (instance? MultiFn o)
+                               (if-let [m (get-method o [Keyword])]
+                                 (m :name)))
+                          (@object-name-map o)
+                          o)))
   (kind [o] (primitive-kind o)))
 
 (extend-type nil

@@ -51,7 +51,17 @@
   [f]
   (fn [q]
     (fn [t]
-         ((literal-function 'φ) ((f q) t)))))
+      ((literal-function 'φ) ((f q) t)))))
+
+(defn δ
+  "The variation operator (p. 28)."
+  [η]
+  (fn [f]
+    ;; Define g(ε) as in Eq. 1.22; then δ_η f[q] = Dg(0)
+    (fn [q]
+      (let [g (fn [ε]
+                (f (+ q (* ε η))))]
+        ((D g) 0)))))
 
 ;; Exercise 1.7
 (def δ_η (δ (literal-function 'eta)))

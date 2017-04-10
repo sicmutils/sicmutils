@@ -142,8 +142,7 @@
   "Converts the square structure s into a matrix, and calls the
   continuation with that matrix and a function which will restore a
   matrix to a structure with the same inner and outer orientations as
-  s. If invert is true, then up-up structures will become down-down
-  and vice versa."
+  s."
   [s k]
   (let [major-size (count s)
         major-orientation (s/orientation s)

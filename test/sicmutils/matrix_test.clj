@@ -172,7 +172,7 @@
           cof #(matrix/square-structure-operation % matrix/cofactors)
           det #(matrix/square-structure-> % (fn [m _] (matrix/determinant m)))]
       (testing "cofactors"
-        (is (= (s/down (s/up 4 -3) (s/up -2 1)) (cof A)))
+        (is (= (s/up (s/up 4 -3) (s/up -2 1)) (cof A)))
         (is (= (s/down (s/up 24 5 -4) (s/up -12 3 2) (s/up -2 -5 4)) (cof C)))
         (is (= (s/up (s/down 3)) (cof D))))
       (testing "determinant"

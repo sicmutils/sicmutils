@@ -40,9 +40,9 @@
   (equals [_ b]
     (and (instance? RationalFunction b)
          (let [^RationalFunction br b]
-           (= arity (.arity br))
-           (= u (.u br))
-           (= v (.v br))))))
+           (and (= arity (.arity br))
+                (= u (.u br))
+                (= v (.v br)))))))
 
 (defn make
   "Make the fraction of the two polynomials p and q, after dividing

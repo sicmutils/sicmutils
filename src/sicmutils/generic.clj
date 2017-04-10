@@ -46,7 +46,7 @@
       (abstract-number? x)
       (v/numerical? x)))
 
-(defmacro def-generic-function
+(defmacro ^:private def-generic-function
   "Defines a mutlifn using the provided symbol. Arranges for the multifn
   to answer the :arity message, reporting either [:exactly a] or
   [:between a b], according to the arguments given."
@@ -55,7 +55,7 @@
         docstring (str "generic " f)]
     `(do
        (defmulti ~f ~docstring v/argument-kind)
-       (defmethod ~f [Keyword] [k#] ({:arity ~arity} k#)))))
+       (defmethod ~f [Keyword] [k#] ({:arity ~arity :name '~f} k#)))))
 
 (def-generic-function add 2)
 (def-generic-function mul 2)
@@ -145,11 +145,4 @@
 
 (def divide /)
 
-(v/add-object-symbols! {+ '+ * '* - '- / (symbol "/")
-                        exact-divide 'exact-divide quotient 'quotient remainder 'remainder
-                        invert 'invert negate 'negate square 'square cube 'cube
-                        expt 'expt exp 'exp log 'log sqrt 'sqrt abs 'abs negative? 'negative?
-                        sin 'sin cos 'cos tan 'tan asin 'asin acos 'acos atan 'atan
-                        partial-derivative 'partial
-                        cross-product 'cross-product
-                        simplify 'simplify})
+(v/add-object-symbols! {+ '+ * '* - '- / (symbol "/")})

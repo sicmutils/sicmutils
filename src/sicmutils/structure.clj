@@ -40,8 +40,8 @@
   (equals [_ b]
     (and (instance? Struct b)
          (let [^Struct bs b]
-           (= orientation (.orientation bs))
-          (= v (.v bs)))))
+           (and (= orientation (.orientation bs))
+                (= v (.v bs))))))
   (toString [_] (str "(" (orientation orientation->symbol) " " (join " " (map str v)) ")"))
   Sequential
   Counted
