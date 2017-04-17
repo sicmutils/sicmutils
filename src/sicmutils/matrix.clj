@@ -23,12 +23,12 @@
              [expression :as x]
              [structure :as s]
              [generic :as g]])
-  (:import [clojure.lang PersistentVector IFn AFn ILookup]
+  (:import [clojure.lang PersistentVector IFn AFn ILookup Seqable]
            [sicmutils.structure Struct]))
 
 (declare generate)
 
-(defrecord Matrix [r c ^PersistentVector v]
+(deftype Matrix [r c ^PersistentVector v]
   v/Value
   (nullity? [_] (every? #(every? v/nullity? %) v))
   (unity? [_] false)
@@ -37,7 +37,7 @@
   (one-like [_] (if-not (= r c)
                   (throw (IllegalArgumentException. "one-like on non-square"))
                   (generate r c #(if (= %1 %2) 1 0))))
-  (exact? [_] (every? v/exact? v))
+  (exact? [_] (every? #(every? v/exact? %) v))
   (freeze [_] (if (= c 1)
                 `(~'column-matrix ~@(core-map (comp v/freeze first) v))
                 `(~'matrix-by-rows ~@(core-map v/freeze v))))
@@ -52,7 +52,21 @@
   (invoke [_ w x y z]
     (Matrix. r c (mapv (fn [e] (mapv #(% w x y z) e)) v)))
   (applyTo [m xs]
-    (AFn/applyToHelper m xs)))
+    (AFn/applyToHelper m xs))
+  Seqable
+  (seq [_] (seq v))
+  Object
+  (equals [_ b]
+    (and (instance? Matrix b)
+         (let [^Matrix bm b]
+           (and (= r (.r bm))
+                (= c (.c bm))
+                (= v (.v bm)))))))
+
+(defn ^:private square?
+  [^Matrix m]
+  (and (instance? Matrix m)
+       (= (.r m) (.c m))))
 
 (defn generate
   "Create the r by c matrix whose entries are (f i j)"
@@ -68,20 +82,20 @@
   "Like get-in for matrices, but obeying the scmutils convention: only one
   index is required to get an unboxed element from a column vector. This is
   perhaps an unprincipled exception..."
-  [m is]
-  (let [e (core-get-in (:v m) is)]
+  [^Matrix m is]
+  (let [e (core-get-in (.v m) is)]
     (if (and (= 1 (count is))
-             (= 1 (:c m))) (e 0) e)))
+             (= 1 (.c m))) (e 0) e)))
 
 (defn matrix-some
   "True if f is true for some element of m."
-  [f m]
-  (some f (flatten (:v m))))
+  [f ^Matrix m]
+  (some f (flatten (.v m))))
 
 (defn map
   "Maps f over the elements of m."
-  [f {r :r c :c v :v}]
-  (Matrix. r c (mapv #(mapv f %) v)))
+  [f ^Matrix m]
+  (Matrix. (.r m) (.c m) (mapv #(mapv f %) (.v m))))
 
 (defn matrix?
   [m]
@@ -104,15 +118,18 @@
 
 (defn transpose
   "Transpose the matrix m."
-  [{r :r c :c v :v}]
-  (generate c r #(core-get-in v [%2 %1])))
+  [^Matrix m]
+  (let [v (.v m)]
+    (generate (.c m) (.r m) #(core-get-in v [%2 %1]))))
 
 (defn ->structure
   "Convert m to a structure with given outer and inner orientations. Rows of
   M will become the inner tuples, unless t? is true, in which columns of m will
   form the inner tuples."
   [m outer-orientation inner-orientation t?]
-  (Struct. outer-orientation (mapv #(Struct. inner-orientation %) (:v (if t? (transpose m) m)))))
+  (let [m' (if t? (transpose m) m)
+        v (.v m')]
+    (Struct. outer-orientation (mapv #(Struct. inner-orientation %) v))))
 
 (defn seq->
   "Convert a sequence (typically, of function arguments) to an up-structure.
@@ -123,20 +140,31 @@
 
 (defn ^:private mul
   "Multiplies the two matrices a and b"
-  [{ra :r ca :c va :v}
-   {rb :r cb :c vb :v}]
-  (when (not= ca rb)
-    (throw (IllegalArgumentException. "matrices incompatible for multiplication")))
-  (generate ra cb #(reduce g/+ (for [k (range ca)]
-                                 (g/* (core-get-in va [%1 k])
-                                      (core-get-in vb [k %2]))))))
+  [^Matrix a ^Matrix b]
+  (let [ra (.r a)
+        rb (.r b)
+        ca (.c a)
+        cb (.c b)
+        va (.v a)
+        vb (.v b)]
+    (when (not= ca rb)
+      (throw (IllegalArgumentException. "matrices incompatible for multiplication")))
+    (generate ra cb #(reduce g/+ (for [k (range ca)]
+                                   (g/* (core-get-in va [%1 k])
+                                        (core-get-in vb [k %2])))))))
 
 (defn ^:private elementwise
   "Applies f elementwise between the matrices a and b."
-  [f {ra :r ca :c va :v} {rb :r cb :c vb :v}]
-  (when (or (not= ra rb) (not= ca cb))
-    (throw (IllegalArgumentException. "matrices incompatible for operation")))
-  (generate ra ca #(f (core-get-in va [%1 %2]) (core-get-in vb [%1 %2]))))
+  [f ^Matrix a ^Matrix b]
+  (let [ra (.r a)
+        rb (.r b)
+        ca (.c a)
+        cb (.c b)
+        va (.v a)
+        vb (.v b)]
+    (when (or (not= ra rb) (not= ca cb))
+      (throw (IllegalArgumentException. "matrices incompatible for operation")))
+    (generate ra ca #(f (core-get-in va [%1 %2]) (core-get-in vb [%1 %2])))))
 
 (defn square-structure->
   "Converts the square structure s into a matrix, and calls the
@@ -165,28 +193,28 @@
 
 (defn ^:private M*u
   "Multiply a matrix by an up structure on the right. The return value is up."
-  [{r :r c :c v :v} u]
-  (when (not= c (count u))
+  [^Matrix m ^Struct u]
+  (when (not= (.c m) (count u))
     (throw (IllegalArgumentException. "matrix and tuple incompatible for multiplication")))
   (apply s/up
          (core-map (fn [i]
-                (reduce g/+ (for [k (range c)]
-                              (g/* (core-get-in v [i k])
+                (reduce g/+ (for [k (range (.c m))]
+                              (g/* (core-get-in (.v m) [i k])
                                    (get u k)))))
-                   (range r))))
+                   (range (.r m)))))
 
 (defn ^:private d*M
   "Multiply a matrix by a down tuple on the left. The return value is down."
-  [d {r :r c :c v :v}]
-  (when (not= r (count d))
+  [^Struct d ^Matrix m]
+  (when (not= (.r m) (count d))
     (throw (IllegalArgumentException. "matrix and tuple incompatible for multiplication")))
   (apply s/down
          (core-map (fn [i]
-                     (reduce g/+ (for [k (range r)]
+                     (reduce g/+ (for [k (range (.r m))]
                                    (g/* (get d k)
-                                        (core-get-in v [i k])
+                                        (core-get-in (.v m) [i k])
                                         ))))
-                   (range c))))
+                   (range (.c m)))))
 
 (defn ^:private kronecker
   [i j]
@@ -210,10 +238,10 @@
 
 (defn without
   "The matrix formed by deleting the i'th row and j'th column of the given matrix."
-  [{r :r c :c v :v} i j]
-  (Matrix. (dec r) (dec c)
+  [^Matrix m i j]
+  (Matrix. (dec (.r m)) (dec (.c m))
            (mapv #(vector-disj % j)
-                 (vector-disj v i))) )
+                 (vector-disj (.v m) i))) )
 
 (defn ^:private checkerboard-negate
   [s i j]
@@ -221,51 +249,52 @@
 
 (defn dimension
   [m]
-  (when-not (and (instance? Matrix m)
-                 (= (:c m) (:r m)))
-    (throw (IllegalArgumentException. "not a square matrix")))
-  (:r m))
+  {:pre [(square? m)]}
+  (.r m))
 
 (defn determinant
   "Computes the determinant of m, which must be square. Generic
   operations are used, so this works on symbolic square matrix."
-  [{r :r c :c v :v :as m}]
-  (when-not (= r c)
-    (throw (IllegalArgumentException. "not square")))
-  (condp = r
-    0 m
-    1 ((v 0) 0)
-    2 (let [[[a b] [c d]] v]
-        (g/- (g/* a d) (g/* b c)))
-    (reduce g/+
-            (core-map g/*
-                      (cycle [1 -1])
-                      (v 0)
-                      (for [i (range r)] (determinant (without m 0 i)))))))
+  [^Matrix m]
+  {:pre [(square? m)]}
+  (let [v (.v m)]
+    (condp = (.r m)
+      0 m
+      1 ((v 0) 0)
+      2 (let [[[a b] [c d]] v]
+          (g/- (g/* a d) (g/* b c)))
+      (reduce g/+
+              (core-map g/*
+                        (cycle [1 -1])
+                        (v 0)
+                        (for [i (range (.r m))] (determinant (without m 0 i))))))))
 
 (defn cofactors
   "Computes the matrix of cofactors of the given structure with the
   same shape, if s is square."
-  [{r :r c :c v :v :as m}]
-  (when-not (= r c)
-    (throw (IllegalArgumentException. "only square matrices have cofactors")))
-  (cond (< r 2) m
-        (= r 2) (let [[[a b] [c d]] v]
-                  (Matrix. 2 2 [[d (g/negate c)]
-                                [(g/negate b) a]]))
-        :else (generate r r
-                        #(-> m (without %1 %2) determinant (checkerboard-negate %1 %2)))))
+  [^Matrix m]
+  {:pre [(square? m)]}
+  (let [r (.r m)
+        v (.v m)]
+    (cond (< r 2) m
+          (= r 2) (let [[[a b] [c d]] v]
+                    (Matrix. 2 2 [[d (g/negate c)]
+                                  [(g/negate b) a]]))
+          :else (generate r r
+                          #(-> m (without %1 %2) determinant (checkerboard-negate %1 %2))))))
 
 (defn invert
   "Computes the inverse of a square matrix."
-  [{r :r c :c v :v :as m}]
-  (when-not (= r c) (throw (IllegalArgumentException. "not square")))
-  (condp = r
-    0 m
-    1 (Matrix. 1 1 [[(g/invert ((v 0) 0))]])
-    (let [C (cofactors m)
-          Δ (reduce g/+ (core-map g/* (v 0) (-> C :v first)))]
-      (map #(g/divide % Δ) (transpose C)))))
+  [^Matrix m]
+  {:pre [(square? m)]}
+  (let [r (.r m)
+        v (.v m)]
+    (condp = r
+      0 m
+      1 (Matrix. 1 1 [[(g/invert ((v 0) 0))]])
+      (let [C (cofactors m)
+            Δ (reduce g/+ (core-map g/* (v 0) (-> C .v first)))]
+        (map #(g/divide % Δ) (transpose C))))))
 
 (defn I
   "Return the identity matrix of order n."
@@ -277,9 +306,11 @@
   at x. Typically x will be a dummy variable, but if you wanted to get the
   value of the characteristic polynomial at some particular point, you could
   supply a different expression."
-  [{r :r c :c :as m} x]
-  (when-not (= r c) (throw (IllegalArgumentException. "not square")))
-  (determinant (g/- (g/* x (I r)) m)))
+  [^Matrix m x]
+  (let [r (.r m)
+        c (.c m)]
+    (when-not (= r c) (throw (IllegalArgumentException. "not square")))
+    (determinant (g/- (g/* x (I r)) m))))
 
 (defmethod g/transpose [::matrix] [m] (transpose m))
 (defmethod g/invert [::matrix] [m] (invert m))
