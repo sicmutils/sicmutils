@@ -22,7 +22,8 @@
              [expression :as x]
              [series :as series]
              [generic :as g]])
-  (:import (clojure.lang IFn)))
+  (:import (clojure.lang IFn)
+           (sicmutils.series Series)))
 
 (defrecord Operator [o arity name]
   v/Value
@@ -113,7 +114,7 @@
             (lazy-seq (cons (g/divide g**n n!)
                             (step (inc n) (* n! (inc n)) (o*o g g**n)))))]
     (Operator. (fn [f]
-                 (partial series/value (series/->Series
+                 (partial series/value (Series.
                                         [:exactly 0]
                                         (map #(% f) (step 0 1 identity-operator)))))
                [:exactly 1]

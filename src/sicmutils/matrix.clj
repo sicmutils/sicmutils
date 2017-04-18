@@ -127,7 +127,7 @@
   M will become the inner tuples, unless t? is true, in which columns of m will
   form the inner tuples."
   [m outer-orientation inner-orientation t?]
-  (let [m' (if t? (transpose m) m)
+  (let [^Matrix m' (if t? (transpose m) m)
         v (.v m')]
     (Struct. outer-orientation (mapv #(Struct. inner-orientation %) v))))
 
@@ -248,7 +248,7 @@
   (if (even? (+ i j)) s (g/negate s)))
 
 (defn dimension
-  [m]
+  [^Matrix m]
   {:pre [(square? m)]}
   (.r m))
 
@@ -292,7 +292,7 @@
     (condp = r
       0 m
       1 (Matrix. 1 1 [[(g/invert ((v 0) 0))]])
-      (let [C (cofactors m)
+      (let [^Matrix C (cofactors m)
             Δ (reduce g/+ (core-map g/* (v 0) (-> C .v first)))]
         (map #(g/divide % Δ) (transpose C))))))
 
