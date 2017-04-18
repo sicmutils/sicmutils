@@ -20,7 +20,8 @@
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all :exclude [function?]]
             [sicmutils.env :refer :all])
-  (:import (org.apache.commons.math3.complex Complex)))
+  (:import (org.apache.commons.math3.complex Complex)
+           (java.io StringWriter)))
 
 (deftest partial-shim
   (testing "partial also works the way Clojure defines it"
@@ -70,5 +71,29 @@
                             [7 8 9])]
       (is (= (matrix-by-rows [5 6]
                              [8 9])
-             (qp-submatrix A)))))
-  )
+             (qp-submatrix A)))
+      (is (= 3 (m:dimension A))))))
+
+(deftest pe
+  (let [os (StringWriter.)]
+    (is (= "(* 2 x)\n"
+           (do
+             (binding [*out* os] (print-expression (+ 'x 'x)))
+             (str os))))))
+
+(deftest pv
+  (let [π Math/PI
+        zero-to-two-pi (principal-value (* 2 π))
+        minus-pi-to-pi (principal-value π)]
+    (is (= (* 1/2 π) (zero-to-two-pi (* 1/2 π))))
+    (is (= 0.0 (zero-to-two-pi 0.0)))
+    (is (= (* 3/2 π) (zero-to-two-pi (* 3/2 π))))
+    (is (= (* 3/2 π) (zero-to-two-pi (* -1/2 π))))
+    (is (= (* 1/2 π) (zero-to-two-pi (* -3/2 π))))
+    (is (= 0.0 (zero-to-two-pi (* 2 π))))
+    (is (= (* 1/2 π) (minus-pi-to-pi (* 1/2 π))))
+    (is (= 0.0 (minus-pi-to-pi 0.0)))
+    (is (= (* -1/2 π) (minus-pi-to-pi (* 3/2 π))))
+    (is (= (* -1/2 π) (minus-pi-to-pi (* -1/2 π))))
+    (is (= (* 1/2 π) (minus-pi-to-pi (* -3/2 π))))
+    (is (= 0.0 (zero-to-two-pi (* 2 π))))))
