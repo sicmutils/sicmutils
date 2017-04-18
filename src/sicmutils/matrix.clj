@@ -24,7 +24,7 @@
              [structure :as s]
              [generic :as g]])
   (:import [clojure.lang PersistentVector IFn AFn ILookup Seqable]
-           [sicmutils.structure Struct]))
+           [sicmutils.structure Structure]))
 
 (declare generate)
 
@@ -129,7 +129,7 @@
   [m outer-orientation inner-orientation t?]
   (let [^Matrix m' (if t? (transpose m) m)
         v (.v m')]
-    (Struct. outer-orientation (mapv #(Struct. inner-orientation %) v))))
+    (Structure. outer-orientation (mapv #(Structure. inner-orientation %) v))))
 
 (defn seq->
   "Convert a sequence (typically, of function arguments) to an up-structure.
@@ -193,7 +193,7 @@
 
 (defn ^:private M*u
   "Multiply a matrix by an up structure on the right. The return value is up."
-  [^Matrix m ^Struct u]
+  [^Matrix m ^Structure u]
   (when (not= (.c m) (count u))
     (throw (IllegalArgumentException. "matrix and tuple incompatible for multiplication")))
   (apply s/up
@@ -205,7 +205,7 @@
 
 (defn ^:private d*M
   "Multiply a matrix by a down tuple on the left. The return value is down."
-  [^Struct d ^Matrix m]
+  [^Structure d ^Matrix m]
   (when (not= (.r m) (count d))
     (throw (IllegalArgumentException. "matrix and tuple incompatible for multiplication")))
   (apply s/down

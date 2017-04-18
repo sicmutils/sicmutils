@@ -27,7 +27,7 @@
              [generic :as g]]
             [sicmutils.calculus.derivative :as d])
   (:import [sicmutils.polynomial Polynomial]
-           [sicmutils.structure Struct]
+           [sicmutils.structure Structure]
            (clojure.lang IFn)))
 
 (declare literal-apply)
@@ -179,36 +179,44 @@
                 (with-meta h {:arity f-arity :from :function-binop}))))]
     (with-meta h {:arity [:exactly 2]})))
 
-(defmacro ^:private make-binary-operations
-  "Given a sequence of alternating generic and binary operations,
-  define the multimethod necessary to introduce this operation
+(defmacro ^:private make-binary-operation
+  "Given a generic and binary function operation,
+  define the multimethods necessary to introduce this operation
   to function arguments."
-  [& generic-and-binary-ops]
-  `(do ~@(map (fn [[generic-op binary-op]]
-                `(let [binop# (binary-operation ~binary-op)]
-                   (doseq [signature# [[::function ::function]
-                                       [::function ::cofunction]
-                                       [::cofunction ::function]]]
-                     (defmethod ~generic-op signature# [a# b#] (binop# a# b#)))))
+  [generic-op binary-op]
+  `(let [binop# (binary-operation ~binary-op)]
+     (doseq [signature# [[::function ::function]
+                         [::function ::cofunction]
+                         [::cofunction ::function]]]
+       (defmethod ~generic-op signature# [a# b#] (binop# a# b#)))))
 
-              (partition 2 generic-and-binary-ops))))
+(defmacro ^:private make-unary-operation
+  [generic-op]
+  `(defmethod ~generic-op [::function] [a#] ((unary-operation ~generic-op) a#)))
 
-(defmacro ^:private make-unary-operations
-  [& generic-ops]
-  `(do ~@(map (fn [generic-op]
-                `(let [unop# (unary-operation ~generic-op)]
-                   (defmethod ~generic-op [::function] [a#] (unop# a#))))
-              generic-ops)))
 
-(make-binary-operations
- g/add g/+
- g/sub g/-
- g/mul g/*
- g/div g/divide
- g/expt g/expt)
 
-(make-unary-operations
- g/negate g/invert g/sqrt g/sin g/asin g/cos g/acos g/tan g/atan g/square g/cube g/exp g/log g/transpose)
+(make-binary-operation g/add g/+)
+(make-binary-operation g/sub g/-)
+(make-binary-operation g/mul g/*)
+(make-binary-operation g/div g/divide)
+(make-binary-operation g/expt g/expt)
+
+(make-unary-operation g/negate)
+(make-unary-operation g/invert)
+(make-unary-operation g/sqrt)
+(make-unary-operation g/sin)
+(make-unary-operation g/asin)
+(make-unary-operation g/cos)
+(make-unary-operation g/acos)
+(make-unary-operation g/tan)
+(make-unary-operation g/atan)
+(make-unary-operation g/square)
+(make-unary-operation g/cube)
+(make-unary-operation g/exp)
+(make-unary-operation g/log)
+(make-unary-operation g/transpose)
+
 ;; TODO sinh cosh ...
 
 (defmethod g/simplify Function [a] (-> a :expr g/simplify))
@@ -253,7 +261,7 @@
   ;; is being attempted here
   (letfn [(fd [indices vv]
             (cond (s/structure? vv)
-                  (let [^Struct s vv]
+                  (let [^Structure s vv]
                     (s/same s (map-indexed (fn [i element]
                                              (fd (conj indices i) element))
                                            s)))

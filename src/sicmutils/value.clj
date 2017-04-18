@@ -132,10 +132,10 @@
   (or (:arity f)
       (:arity (meta f))
       (cond (symbol? f) [:exactly 0]
-            (fn? f) (reflect-on-arity f)
             ;; If f is a multifunction, then we expect that it has a multimethod
             ;; responding to the argument :arity, which returns the arity.
             (instance? MultiFn f) (f :arity)
+            (fn? f) (reflect-on-arity f)
             ;; Faute de mieux, we assume the function is unary. Most math functions are.
             :else [:exactly 1])))
 

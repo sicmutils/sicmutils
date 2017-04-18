@@ -27,19 +27,19 @@
 
 (def ^:private orientation->symbol {::up 'up ::down 'down})
 
-(deftype Struct [orientation ^PersistentVector v]
+(deftype Structure [orientation ^PersistentVector v]
   v/Value
   (nullity? [_] (every? v/nullity? v))
   (unity? [_] false)
-  (zero-like [_] (Struct. orientation (mapv v/zero-like v)))
+  (zero-like [_] (Structure. orientation (mapv v/zero-like v)))
   (exact? [_] (every? v/exact? v))
   (numerical? [_] false)
   (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
   (kind [_] orientation)
   Object
   (equals [_ b]
-    (and (instance? Struct b)
-         (let [^Struct bs b]
+    (and (instance? Structure b)
+         (let [^Structure bs b]
            (and (= orientation (.orientation bs))
                 (= v (.v bs))))))
   (toString [_] (str "(" (orientation orientation->symbol) " " (join " " (map str v)) ")"))
@@ -53,36 +53,36 @@
   (valAt [_ key default] (get v key default))
   IFn
   (invoke [_ x]
-    (Struct. orientation (mapv #(% x) v)))
+    (Structure. orientation (mapv #(% x) v)))
   (invoke [_ x y]
-    (Struct. orientation (mapv #(% x y) v)))
+    (Structure. orientation (mapv #(% x y) v)))
   (invoke [_ x y z]
-    (Struct. orientation (mapv #(% x y z) v)))
+    (Structure. orientation (mapv #(% x y z) v)))
   (invoke [_ w x y z]
-    (Struct. orientation (mapv #(% w x y z) v)))
+    (Structure. orientation (mapv #(% w x y z) v)))
   (applyTo [s xs]
     (AFn/applyToHelper s xs)))
 
 (defn structure->vector
   "Return the structure in unoriented vector form."
-  [^Struct s]
+  [^Structure s]
   (.v s))
 
 (defn vector->up
   "Form an up-tuple from a vector."
   [v]
   {:pre [(vector? v)]}
-  (Struct. ::up v))
+  (Structure. ::up v))
 
 (defn vector->down
   "Form a down-tuple from a vector."
   [v]
   {:pre [(vector? v)]}
-  (Struct. ::down v))
+  (Structure. ::down v))
 
 (defn ^:private make
   [orientation xs]
-  (Struct. orientation (into [] xs)))
+  (Structure. orientation (into [] xs)))
 
 (defn up
   "Construct an up (contravariant) tuple from the arguments."
@@ -97,15 +97,15 @@
 (defn structure?
   "True if s is a structure (as far as we're concerned.)"
   [s]
-  (or (instance? Struct s)
+  (or (instance? Structure s)
       (vector? s)))
 
 (def ^:private opposite-orientation {::up ::down ::down ::up})
 
 (defn orientation
   "Return the orientation of s, either ::up or ::down."
-  [^Struct s]
-  (if (instance? Struct s) (.orientation s)  ::up))
+  [^Structure s]
+  (if (instance? Structure s) (.orientation s) ::up))
 
 (defn opposite
   "Make a tuple containing xs with the orientation opposite to s."
@@ -124,15 +124,15 @@
   structures."
   [op s t]
   (if (= (count s) (count t))
-    (Struct. (orientation s) (mapv op s t))
+    (Structure. (orientation s) (mapv op s t))
     (throw (ArithmeticException.
             (str op " provided arguments of differing length")))))
 
 (defn mapr
   "Return a structure with the same shape as s but with f applied to
   each primitive (that is, not structural) component."
-  [f ^Struct s]
-  (cond (instance? Struct s) (Struct. (.orientation s) (mapv #(mapr f %) (.v s)))
+  [f ^Structure s]
+  (cond (instance? Structure s) (Structure. (.orientation s) (mapv #(mapr f %) (.v s)))
         (vector? s) (mapv #(mapr f %) s)
         :else (f s)))
 
@@ -140,8 +140,8 @@
   "Return a structure of the same shape as s whose elements are access
   chains corresponding to position of each element (i.e., the sequence
   of indices needed to address that element)."
-  [^Struct s]
-  (if-not (instance? Struct s)
+  [^Structure s]
+  (if-not (instance? Structure s)
     nil
     (let [access (fn a [chain s]
                   (make (orientation s)
@@ -169,7 +169,7 @@
   "Like assoc-in, but works for structures. At this writing we're not
   sure if we want to overwrite the stock definition of assoc-in to
   something that would fall through for standard clojure data types"
-  [^Struct s [k & ks] value]
+  [^Structure s [k & ks] value]
   (let [v (.v s)]
     (if ks
       (same s (assoc v k (structure-assoc-in (v k) ks value)))
@@ -297,5 +297,5 @@
 (defmethod g/simplify [::structure] [a] (->> a (mapr g/simplify) v/freeze))
 (defmethod g/transpose [::structure] [a] (opposite a (seq a)))
 
-(defmethod g/magnitude [::structure] [^Struct a]
+(defmethod g/magnitude [::structure] [^Structure a]
   (g/sqrt (reduce + (map g/square a))))
