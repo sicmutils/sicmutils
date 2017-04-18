@@ -64,11 +64,11 @@
      (is (= '(0 m (* 2 m) (* 3 m))
             (->> nats0
                  (* 'm)
-                 series/->seq
+                 seq
                  (take 4)
                  simplify)))
      (is (= '(0 r (* 2 r) (* 3 r))
-            (simplify (take 4 (series/->seq (* 'r nats0))))))
+            (simplify (take 4 (seq (* 'r nats0))))))
      (is (= '(3 5 7 0 0 0 0 0)
             (series/take 8
                          (+ (series/starting-with 1 2 3)
@@ -82,25 +82,25 @@
      ;; the tetrahedral numbers
      (is (= '(1 4 10 20 35 56 84)
             (take 7
-                  (series/->seq
+                  (seq
                    (square
                     nats)))))
      (is (= '(m (* 4 m) (* 10 m) (* 20 m))
             (->> (series/generate inc)
                  square
                  (* 'm)
-                 series/->seq
+                 seq
                  (take 4)
                  simplify)))
      (is (= '(1 2 3 4 5 6)
             (->> ones
                  square
-                 series/->seq
+                 seq
                  (take 6))))
      ;; the triangular numbers, via convolution
      (is (= '(1 3 6 10 15 21)
             (->> (* ones nats)
-                 series/->seq
+                 seq
                  (take 6))))
      ;; again, via partial sums
      (is (= '(1 3 6 10 15 21)

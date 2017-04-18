@@ -21,7 +21,7 @@
   (:require [sicmutils
              [value :as v]
              [generic :as g]])
-  (:import (clojure.lang IFn Sequential)))
+  (:import (clojure.lang IFn Sequential Seqable)))
 
 ;; We would prefer to just use native Clojure lazy sequences to represent
 ;; series objects. But, they must be invokable as functions, so we must
@@ -39,7 +39,9 @@
   (invoke [_ x y] (Series. arity (core-map #(% x y) s)))
   (invoke [_ x y z] (Series. arity (core-map #(% x y z) s)))
   Object
-  (toString [S] (str (v/freeze S))))
+  (toString [S] (str (v/freeze S)))
+  Seqable
+  (seq [_] s))
 
 (defn series? [s] (instance? Series s))
 
@@ -59,15 +61,9 @@
                                      (rest xs)))))]
     (Series. (.arity s) (step (first (.s s)) (rest (.s s))))))
 
-(defn ->seq
-  "Convert the series to a (native, lazy) sequence of its values."
-  [^Series s]
-  {:pre [(series? s)]}
-  (.s s))
-
 (defn take
   [n s]
-  (->> s ->seq (core-take n)))
+  (->> s seq (core-take n)))
 
 (defn map
   [f ^Series s]
@@ -75,7 +71,7 @@
 
 (defn sum
   [s n]
-  (-> s partial-sums ->seq (nth n)))
+  (-> s partial-sums seq (nth n)))
 
 (defn ^:private c*s [c s] (core-map #(g/* c %) s))
 

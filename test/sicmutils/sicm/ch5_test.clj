@@ -198,7 +198,7 @@
               (/ (* -1 (expt dt 3) k p0) (* 6 (expt m 2)))
               (/ (* (expt dt 4) (expt k 2) x0) (* 24 (expt m 2)))
               (/ (* (expt dt 5) (expt k 2) p0) (* 120 (expt m 3))))
-           (simplify (take 6 (series/->seq
+           (simplify (take 6 (seq
                                (((Lie-transform (H-harmonic 'm 'k) 'dt)
                                   coordinate)
                                  (up 0 'x0 'p0)))))))
@@ -208,7 +208,7 @@
               (/ (* (expt dt 3) (expt k 2) x0) (* 6 m))
               (/ (* (expt dt 4) (expt k 2) p0) (* 24 (expt m 2)))
               (/ (* -1 (expt dt 5) (expt k 3) x0) (* 120 (expt m 2))))
-           (simplify (take 6 (series/->seq
+           (simplify (take 6 (seq
                                (((Lie-transform (H-harmonic 'm 'k) 'dt)
                                   momentum)
                                  (up 0 'x0 'p0)))))))
@@ -218,7 +218,7 @@
               0
               0
               0)
-           (simplify (take 6 (series/->seq
+           (simplify (take 6 (seq
                                (((Lie-transform (H-harmonic 'm 'k) 'dt)
                                   (H-harmonic 'm 'k))
                                  (up 0 'x0 'p0)))))))
@@ -235,7 +235,7 @@
                     (/ (* -1 (expt dt 2) p_phi_0 p_r_0) (* (expt m 2) (expt r_0 3))))
                 (up (/ (+ (* -1 (expt dt 3) m p_r_0 (expt r_0 4) (((expt D 2) U) r_0)) (* -3 (expt dt 3) (expt p_phi_0 2) p_r_0)) (* 6 (expt m 3) (expt r_0 4)))
                     (/ (+ (* (expt dt 3) m p_phi_0 (expt r_0 3) ((D U) r_0)) (* 3 (expt dt 3) p_phi_0 (expt p_r_0 2) (expt r_0 2)) (* -1 (expt dt 3) (expt p_phi_0 3))) (* 3 (expt m 3) (expt r_0 6)))))
-             (simplify (take 4 (series/->seq
+             (simplify (take 4 (seq
                                  (((Lie-transform (H/H-central-polar 'm (literal-function 'U)) 'dt)
                                     coordinate)
                                    state)))))))))
