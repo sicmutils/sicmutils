@@ -76,10 +76,10 @@
 
 (deftest pe
   (let [os (StringWriter.)]
-    (is (= "(* 2 x)\n"
-           (do
-             (binding [*out* os] (print-expression (+ 'x 'x)))
-             (str os))))))
+    (is (re-matches #"\(\* 2 x\)\r?\n"
+                    (do
+                      (binding [*out* os] (print-expression (+ 'x 'x)))
+                      (str os))))))
 
 (deftest pv
   (let [π Math/PI
