@@ -23,16 +23,18 @@
              [value :as v]
              [numbers]
              [polynomial :refer :all]
+             [analyze :as a]
              [simplify :refer [hermetic-simplify-fixture]]
              [polynomial-factor :refer :all]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
-(defn ^:private ->poly [x] (expression-> x (fn [p _] p)))
+(def ^:private poly-analyzer (->PolynomialAnalyzer))
+(defn ^:private ->poly [x] (a/expression-> poly-analyzer x (fn [p _] p)))
 
 (deftest factoring
   (testing "simple test cases"
-    (let [fpe #(factor-polynomial-expression g/simplify %)
+    (let [fpe #(factor-polynomial-expression g/simplify poly-analyzer %)
           unity2 (make 2 [[[0 0] 1]])
           x-y (->poly '(- x y))
           x+y (->poly '(+ x y))

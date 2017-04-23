@@ -21,6 +21,7 @@
   (:require [clojure.set :as set]
             [clojure.string]
             [sicmutils
+             [analyze :as a]
              [value :as v]
              [generic :as g]
              [numsymb :as sym]
@@ -398,40 +399,6 @@
   (for [i (range (.arity p))]
     (partial-derivative p i)))
 
-(defn expression->
-  "Convert an expression into Flat Polynomial canonical form. The
-  expression should be an unwrapped expression, i.e., not an instance
-  of the Expression type, nor should subexpressions contain type
-  information. This kind of simplification proceeds purely
-  symbolically over the known Flat Polynomial operations; other
-  operations outside the arithmetic available in polynomials over
-  commutative rings should be factored out by an expression analyzer
-  before we get here. The result is a Polynomial object representing
-  the polynomial structure of the input over the unknowns."
-  ([expr cont] (expression-> expr cont compare))
-  ([expr cont v-compare]
-   (let [expression-vars (sort v-compare (set/difference (x/variables-in expr) operators-known))
-         variables (zipmap expression-vars (new-variables (count expression-vars)))]
-     (-> expr (x/walk-expression variables operator-table) (cont expression-vars)))))
-
-(defn ->expression
-  "This is the output stage of Flat Polynomial canonical form simplification.
-  The input is a Polynomial object, and the output is an expression
-  representing the evaluation of that polynomial over the
-  indeterminates extracted from the expression at the start of this
-  process."
-  [^Polynomial p vars]
-  (if (instance? Polynomial p)
-    (reduce
-     sym/add 0
-     (map (fn [[xs c]]
-            (sym/mul c
-                     (reduce sym/mul 1 (map (fn [exponent var]
-                                              (sym/expt var exponent))
-                                            xs vars))))
-          (->> p .xs->c (sort-by exponents #(monomial-order %2 %1)))))
-    p))
-
 ;; The operator-table represents the operations that can be understood
 ;; from the point of view of a polynomial over a commutative ring. The
 ;; functions take polynomial inputs and return polynomials.
@@ -448,7 +415,42 @@
    ;;`'g/gcd gcd
    })
 
-(def operators-known (set (keys operator-table)))
+(def ^:private operators-known (into #{} (keys operator-table)))
+
+(deftype PolynomialAnalyzer []
+  a/IAnalyze
+  (expression-> [this expr cont] (a/expression-> this expr cont compare))
+  (expression-> [this expr cont v-compare]
+    ;; Convert an expression into Flat Polynomial canonical form. The
+    ;; expression should be an unwrapped expression, i.e., not an instance
+    ;; of the Expression type, nor should subexpressions contain type
+    ;; information. This kind of simplification proceeds purely
+    ;; symbolically over the known Flat Polynomial operations; other
+    ;; operations outside the arithmetic available in polynomials over
+    ;; commutative rings should be factored out by an expression analyzer
+    ;; before we get here. The result is a Polynomial object representing
+    ;; the polynomial structure of the input over the unknowns.
+    (let [expression-vars (sort v-compare (set/difference (x/variables-in expr) operators-known))
+          variables (zipmap expression-vars (new-variables (count expression-vars)))]
+      (-> expr (x/walk-expression variables operator-table) (cont expression-vars))))
+  (->expression [this p vars]
+    ;; This is the output stage of Flat Polynomial canonical form simplification.
+    ;; The input is a Polynomial object, and the output is an expression
+    ;; representing the evaluation of that polynomial over the
+    ;; indeterminates extracted from the expression at the start of this
+    ;; process.
+    (if (instance? Polynomial p)
+      (let [^Polynomial p p]
+        (reduce
+         sym/add 0
+         (map (fn [[xs c]]
+                (sym/mul c
+                         (reduce sym/mul 1 (map (fn [exponent var]
+                                                  (sym/expt var exponent))
+                                                xs vars))))
+              (->> p .xs->c (sort-by exponents #(monomial-order %2 %1))))))
+      p))
+  (known-operation? [_ o] (operator-table o)))
 
 (defmethod g/add [::polynomial ::polynomial] [a b] (add a b))
 (defmethod g/mul [::polynomial ::polynomial] [a b] (mul a b))

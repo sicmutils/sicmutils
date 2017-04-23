@@ -29,6 +29,7 @@
              [numbers]
              [expression :refer [variables-in]]
              [simplify]
+             [analyze :as a]
              [modint :as modular]]))
 
 (set! *warn-on-reflection* true)
@@ -178,7 +179,8 @@
       (is (= [z2 x3 x2z2 xy2z] (monomial-sort graded-reverse-lex-order)))
       (is (= [z2 x3 xy2z x2z2] (monomial-sort graded-lex-order))))))
 
-(defn ^:private ->poly [x] (expression-> x (fn [p _] p)))
+(def ^:private poly-analyzer (->PolynomialAnalyzer))
+(defn ^:private ->poly [x] (a/expression-> poly-analyzer x (fn [p _] p)))
 
 (deftest poly-evaluate
   (testing "arity 1"
@@ -246,12 +248,12 @@
           exp3 (:expression (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5)))
           receive (fn [a b] [a b])]
       (is (= '#{* + x} (variables-in exp1)))
-      (is (= [(make [-3 -2 1]) '(x)] (expression-> exp1 receive)))
-      (is (= [(make [-3 -2 1]) '(x)] (expression-> exp1 receive)))
-      (is (= [(make [1 5 10 10 5 1]) '(y)] (expression-> exp2 receive)))
-      (is (= [(make [0 -11 5 -30 10 -7 1]) '(y)] (expression-> exp3 receive)))))
+      (is (= [(make [-3 -2 1]) '(x)] (a/expression-> poly-analyzer exp1 receive)))
+      (is (= [(make [-3 -2 1]) '(x)] (a/expression-> poly-analyzer exp1 receive)))
+      (is (= [(make [1 5 10 10 5 1]) '(y)] (a/expression-> poly-analyzer exp2 receive)))
+      (is (= [(make [0 -11 5 -30 10 -7 1]) '(y)] (a/expression-> poly-analyzer exp3 receive)))))
   (testing "monomial order"
-    (let [poly-simp #(expression-> (:expression %) ->expression)]
+    (let [poly-simp #(a/expression-> poly-analyzer (:expression %) (fn [p vars] (a/->expression poly-analyzer p vars)))]
       (is (= '(+ (expt x 2) x 1) (poly-simp (g/+ 'x (g/expt 'x 2) 1))))
       (is (= '(+ (expt x 4) (* 4 (expt x 3)) (* 6 (expt x 2)) (* 4 x) 1) (poly-simp (g/expt (g/+ 1 'x) 4))))
       (is (= '(+
@@ -269,7 +271,7 @@
                (expt y 4))
              (poly-simp (g/expt (g/+ 'y 'x) 4))))))
   (testing "expr-simplify"
-    (let [poly-simp #(expression-> % ->expression)
+    (let [poly-simp #(a/expression-> poly-analyzer % (fn [p vars] (a/->expression poly-analyzer p vars)))
           exp1 (:expression (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))
           exp2 (:expression (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
           exp3 'y]

@@ -26,11 +26,12 @@
              [polynomial :refer :all]
              [polynomial-gcd :refer :all]
              [polynomial-test :as p-test]
+             [value :as v]
+             [analyze :as a]
              [numbers]
              [expression :refer [variables-in]]]
             [clojure.tools.logging :as log]
-            [clojure.test.check.generators :as gen]
-            [sicmutils.value :as v]))
+            [clojure.test.check.generators :as gen]))
 
 (deftest poly-gcd
   (let [X (make 2 [[[1 0] 1]]) ;; some polynomials of arity 2
@@ -135,7 +136,9 @@
       (is (= II (gcd (add Z Z) II)))
       (is (= II (gcd II (add (add X X) (add Z Z))))))))
 
-(defn ^:private ->poly [x] (expression-> x (fn [p _] p)))
+(def ^:private poly-analyzer (->PolynomialAnalyzer))
+(defn ^:private ->poly [x] (a/expression-> poly-analyzer x (fn [p _] p)))
+
 (defn ^:private gcd-test [name dx fx gx]
   (let [d (->poly dx)
         f (->poly fx)

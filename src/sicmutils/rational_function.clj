@@ -25,6 +25,7 @@
              [numsymb :as sym]
              [value :as v]
              [polynomial :as p]
+             [analyze :as a]
              [polynomial-gcd :refer [gcd]]])
   (:import [clojure.lang Ratio BigInt]
            [sicmutils.polynomial Polynomial]))
@@ -185,39 +186,6 @@
         [top bottom e] (if (< n 0) [v u (- n)] [u v n])]
     (RationalFunction. (.arity r) (p/expt top e) (p/expt bottom e))))
 
-(defn expression->
-  "Convert an expression into Rational Function canonical form. The
-  expression should be an unwrapped expression, i.e., not an instance
-  of the Expression type, nor should subexpressions contain type
-  information. This kind of simplification proceeds purely
-  symbolically over the known Rational Function operations; other
-  operations outside the arithmetic available R(x...) should be
-  factored out by an expression analyzer before we get here. The
-  result is a RationalFunction object representing the structure of
-  the input over the unknowns."
-  ([expr cont] (expression-> expr cont compare))
-  ([expr cont v-compare]
-   (let [expression-vars (sort v-compare (set/difference (x/variables-in expr) operators-known))
-         arity (count expression-vars)]
-     (let [variables (zipmap expression-vars (p/new-variables arity))]
-       (-> expr (x/walk-expression variables operator-table) (cont expression-vars))))))
-
-(defn ->expression
-  "This is the output stage of Rational Function canonical form simplification.
-  The input is a RationalFunction, and the output is an expression
-  representing the evaluation of that function over the
-  indeterminates extracted from the expression at the start of this
-  process."
-  [r vars]
-  (cond (instance? RationalFunction r)
-        (let [rr ^RationalFunction r]
-          (sym/div (p/->expression (.u rr) vars) (p/->expression (.v rr) vars)))
-
-        (instance? Polynomial r)
-        (p/->expression r vars)
-
-        :else r))
-
 (def ^:private operator-table
   {'+ #(reduce g/add %&)
    '- (fn [arg & args]
@@ -233,7 +201,41 @@
    ;;`'g/gcd gcd
    })
 
-(def operators-known (set (keys operator-table)))
+(def operators-known (set (keys operator-table)))           ;; XXX
+
+(deftype RationalFunctionAnalyzer [polynomial-analyzer]
+  a/IAnalyze
+  (expression-> [this expr cont] (a/expression-> this expr cont compare))
+  (expression-> [_ expr cont v-compare]
+    ;; Convert an expression into Rational Function canonical form. The
+    ;; expression should be an unwrapped expression, i.e., not an instance
+    ;; of the Expression type, nor should subexpressions contain type
+    ;; information. This kind of simplification proceeds purely
+    ;; symbolically over the known Rational Function operations;;  other
+    ;; operations outside the arithmetic available R(x...) should be
+    ;; factored out by an expression analyzer before we get here. The
+    ;; result is a RationalFunction object representing the structure of
+    ;; the input over the unknowns."
+    (let [expression-vars (sort v-compare (set/difference (x/variables-in expr) operators-known))
+          arity (count expression-vars)]
+      (let [variables (zipmap expression-vars (p/new-variables arity))]
+        (-> expr (x/walk-expression variables operator-table) (cont expression-vars)))))
+  (->expression [_ r vars]
+    ;; This is the output stage of Rational Function canonical form simplification.
+    ;; The input is a RationalFunction, and the output is an expression
+    ;; representing the evaluation of that function over the
+    ;; indeterminates extracted from the expression at the start of this
+    ;; process."
+    (cond (instance? RationalFunction r)
+          (let [rr ^RationalFunction r]
+            (sym/div (a/->expression polynomial-analyzer (.u rr) vars) (a/->expression polynomial-analyzer (.v rr) vars)))
+
+          (instance? Polynomial r)
+          (a/->expression polynomial-analyzer r vars)
+
+          :else r))
+  (known-operation? [_ o] (operators-known o)))
+
 
 (defmethod g/add [::rational-function ::rational-function] [a b] (add a b))
 (defmethod g/add [::rational-function ::p/polynomial] [r p] (addp r p))

@@ -36,55 +36,60 @@
         (var-set w) 1
         :else (compare v w)))))
 
+(defprotocol IAnalyze
+  (expression-> [this x ->x] [this x ->x compare-variable])
+  (->expression [this b variables])
+  (known-operation? [this x]))
+
 (defn analyzer
-  [symbol-generator expr-> ->expr known-operations]
+  [a symbol-generator]
   (let [expr->var (ref {})
         var->expr (ref {})]
     (fn [expr]
       (let [vless? (make-vcompare (x/variables-in expr))]
         (letfn [(analyze [expr]
-                 (if (and (sequential? expr)
-                          (not (= (first expr) 'quote)))
-                   (let [analyzed-expr (map analyze expr)]
-                     (if (and (known-operations (sym/operator analyzed-expr))
-                              (or (not (= 'expt (sym/operator analyzed-expr)))
-                                  (integer? (second (sym/operands analyzed-expr)))))
-                       analyzed-expr
-                       (if-let [existing-expr (@expr->var analyzed-expr)]
-                         existing-expr
-                         (new-kernels analyzed-expr))))
-                   expr))
-               (new-kernels [expr]
-                 ;; use doall to force the variable-binding side effects of base-simplify
-                 (let [simplified-expr (doall (map base-simplify expr))]
-                   (if-let [v (sym/symbolic-operator (sym/operator simplified-expr))]
-                     (let [w (apply v (sym/operands simplified-expr))]
-                       (if (and (sequential? w)
-                                (= (sym/operator w) (sym/operator simplified-expr)))
-                         (add-symbols! w)
-                         (analyze w)))
-                     (add-symbols! simplified-expr))))
-               (add-symbols! [expr]
-                 (->> expr (map add-symbol!) add-symbol!))
-               (add-symbol! [expr]
-                 (if (and (sequential? expr)
-                          (not (= (first expr) 'quote)))
-                   (dosync                                  ; in a transaction, probe and maybe update the expr->var->expr maps
-                     (if-let [existing-expr (@expr->var expr)]
-                       existing-expr
-                       (let [var (symbol-generator)]
-                         (alter expr->var assoc expr var)
-                         (alter var->expr assoc var expr)
-                         var)))
-                   expr))
-               (backsubstitute [expr]
-                 (cond (sequential? expr) (map backsubstitute expr)
-                       (symbol? expr) (if-let [w (@var->expr expr)]
-                                        (backsubstitute w)
-                                        expr)
-                       :else expr))
-               (base-simplify [expr]
-                 (expr-> expr ->expr vless?))]
+                  (if (and (sequential? expr)
+                           (not (= (first expr) 'quote)))
+                    (let [analyzed-expr (map analyze expr)]
+                      (if (and (known-operation? a (sym/operator analyzed-expr))
+                               (or (not (= 'expt (sym/operator analyzed-expr)))
+                                   (integer? (second (sym/operands analyzed-expr)))))
+                        analyzed-expr
+                        (if-let [existing-expr (@expr->var analyzed-expr)]
+                          existing-expr
+                          (new-kernels analyzed-expr))))
+                    expr))
+                (new-kernels [expr]
+                  ;; use doall to force the variable-binding side effects of base-simplify
+                  (let [simplified-expr (doall (map base-simplify expr))]
+                    (if-let [v (sym/symbolic-operator (sym/operator simplified-expr))]
+                      (let [w (apply v (sym/operands simplified-expr))]
+                        (if (and (sequential? w)
+                                 (= (sym/operator w) (sym/operator simplified-expr)))
+                          (add-symbols! w)
+                          (analyze w)))
+                      (add-symbols! simplified-expr))))
+                (add-symbols! [expr]
+                  (->> expr (map add-symbol!) add-symbol!))
+                (add-symbol! [expr]
+                  (if (and (sequential? expr)
+                           (not (= (first expr) 'quote)))
+                    (dosync                                 ; in a transaction, probe and maybe update the expr->var->expr maps
+                      (if-let [existing-expr (@expr->var expr)]
+                        existing-expr
+                        (let [var (symbol-generator)]
+                          (alter expr->var assoc expr var)
+                          (alter var->expr assoc var expr)
+                          var)))
+                    expr))
+                (backsubstitute [expr]
+                  (cond (sequential? expr) (map backsubstitute expr)
+                        (symbol? expr) (if-let [w (@var->expr expr)]
+                                         (backsubstitute w)
+                                         expr)
+                        :else expr))
+                (base-simplify [expr]
+                  (expression-> a expr #(->expression a %1 %2) vless?))]
           (-> expr analyze base-simplify backsubstitute))))))
 
 (defn monotonic-symbol-generator

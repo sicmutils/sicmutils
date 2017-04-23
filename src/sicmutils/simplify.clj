@@ -50,15 +50,13 @@
   "An analyzer capable of simplifying sums and products, but unable to
   cancel across the fraction bar"
   []
-  (a/analyzer (a/monotonic-symbol-generator "-s-")
-              poly/expression-> poly/->expression poly/operators-known))
+  (a/analyzer (poly/->PolynomialAnalyzer) (a/monotonic-symbol-generator "-s-")))
 
 (defn ^:private rational-function-analyzer
   "An analyzer capable of simplifying expressions built out of rational
   functions."
   []
-  (a/analyzer (a/monotonic-symbol-generator "-r-")
-              rf/expression-> rf/->expression rf/operators-known))
+  (a/analyzer (rf/->RationalFunctionAnalyzer (poly/->PolynomialAnalyzer)) (a/monotonic-symbol-generator "-r-")))
 
 (def ^:dynamic *rf-analyzer* (memoize (unless-timeout (rational-function-analyzer))))
 (def ^:dynamic *poly-analyzer* (memoize (poly-analyzer)))
@@ -240,7 +238,7 @@
                         exp)]
     simplified-exp))
 
-(defmethod g/simplify [:sicmutils.expression/numerical-expression]
+(defmethod g/simplify [::x/numerical-expression]
   [a]
   (-> a v/freeze simplify-expression))
 

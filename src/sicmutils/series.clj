@@ -80,6 +80,7 @@
 (defn ^:private s+s [s t] (core-map g/+ s t))
 
 (defn ^:private s*s
+  "The Cauchy product of the two sequences"
   [s t]
   (let [step (fn step [s t]
                (lazy-seq (cons (g/mul (first s) (first t))

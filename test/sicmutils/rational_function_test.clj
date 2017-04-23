@@ -23,6 +23,7 @@
              [generic :as g]
              [structure :as s]
              [polynomial :as p]
+             [analyze :as a]
              [numbers]
              [simplify]]))
 
@@ -71,20 +72,21 @@
         x-1 (p/make [-1 1])]
     (= 'foo (g/mul x-1 (make x+1 x-1)))))
 
-(def ^:private rf-simp #(expression-> % ->expression))
+(def ^:private rf-analyzer (->RationalFunctionAnalyzer (p/->PolynomialAnalyzer)))
+(def ^:private rf-simp #(a/expression-> rf-analyzer % (fn [a b] (a/->expression rf-analyzer a b))))
 
 (deftest rf-as-simplifier
   (testing "expr"
     (let [exp1 (:expression (g/* (g/+ 1 'x) (g/+ -3 'x)))
           exp2 (:expression (g/expt (g/+ 1 'y) 5))
           exp3 (:expression (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5)))]
-      (is (= [(p/make [-3 -2 1]) '(x)] (expression-> exp1 vector)))
-      (is (= [(p/make [-3 -2 1]) '(x)] (expression-> exp1 vector)))
-      (is (= [(p/make [1 5 10 10 5 1]) '(y)] (expression-> exp2 vector)))
-      (is (= [(p/make [0 -11 5 -30 10 -7 1]) '(y)] (expression-> exp3 vector)))))
-  (testing "expr-simplify"
-    (let [exp1 (:expression (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))
-          exp2 (:expression (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
+      (is (= [(p/make [-3 -2 1]) '(x)] (a/expression-> rf-analyzer exp1 vector)))
+      (is (= [(p/make [-3 -2 1]) '(x)] (a/expression-> rf-analyzer exp1 vector)))
+      (is (= [(p/make [1 5 10 10 5 1]) '(y)] (a/expression-> rf-analyzer exp2 vector)))
+      (is (= [(p/make [0 -11 5 -30 10 -7 1]) '(y)] (a/expression-> rf-analyzer exp3 vector)))))
+  (testing "expr-simplify"`
+    (let [exp1 (:expression (g/+ (g/* 'x 'x 'x) `(g/* 'x 'x) (g/* 'x 'x)))
+          exp2 (:expression (g/+ (g/* 'y 'y) (g/* 'x '`x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
           exp3 'y]
       (is (= '(+ (expt x 3) (* 2 (expt x 2))) (rf-simp exp1)))
       (is (= '(+ (expt x 3) (* 2 (expt x 2)) (* 2 (expt y 2))) (rf-simp exp2)))

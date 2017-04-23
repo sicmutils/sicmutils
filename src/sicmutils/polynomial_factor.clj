@@ -25,7 +25,7 @@
              [generic :as g]
              [expression :as x]
              [numsymb :as sym :refer [operator product? operands expt]]
-             [polynomial :as p]
+             [polynomial :as poly]
              [polynomial-gcd :refer [gcd gcd-seq]]]))
 
 (defn split
@@ -41,7 +41,7 @@
            old-m (v/one-like p)]
       (if (v/unity? m)
         (answer tracker h)
-        (let [gg (-> h p/partial-derivatives gcd-seq)
+        (let [gg (-> h poly/partial-derivatives gcd-seq)
               new-s (g/exact-divide h (gcd h gg))
               new-m (gcd gg new-s)
               facts (g/exact-divide old-s new-s)
@@ -60,12 +60,13 @@
                 (map-indexed #(expt %2 (+ %1 1)) (next factors)))))
 
 (defn factor-polynomial-expression
-  [simplifier p]
-  (p/expression->
-   (x/expression-of p)
-   (fn [p v]
-     (map (fn [factor] (simplifier (p/->expression factor v)))
-          (split p)))))
+  [simplifier analyzer p]
+  (a/expression->
+    analyzer
+    (x/expression-of p)
+    (fn [p v]
+      (map (fn [factor] (simplifier (a/->expression analyzer factor v)))
+           (split p)))))
 
 (defn ^:private flatten-product
   "Construct a list with all the top-level products in args spliced
@@ -75,8 +76,8 @@
 
 (defn ->factors
   "Recursive generalization. [Rather terse comment. --Ed.]"
-  [p v]
-  (let [factors (map #(p/->expression % v) (split p))
+  [p poly-> v]
+  (let [factors (map #(poly-> % v) (split p))
         ff (actual-factors factors)]
     (condp = (count ff)
       0 1
@@ -84,10 +85,14 @@
       (cons '* (flatten-product ff)))))
 
 (def factor
-  (a/analyzer (a/monotonic-symbol-generator "-f-")
-              p/expression->
-              ->factors
-              p/operators-known))
+  (let [poly-analyzer (poly/->PolynomialAnalyzer)
+        poly-> (partial a/->expression poly-analyzer)]
+    (a/analyzer
+     (reify a/IAnalyze
+       (expression-> [_ expr cont v-compare] (a/expression-> poly-analyzer expr cont v-compare))
+       (->expression [_ p vars] (->factors p poly-> vars))
+       (known-operation? [_ o] (a/known-operation? poly-analyzer o)))
+     (a/monotonic-symbol-generator "-f-"))))
 
 (defn ^:private assume!
   [thing context]
