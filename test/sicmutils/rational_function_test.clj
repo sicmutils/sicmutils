@@ -84,9 +84,9 @@
       (is (= [(p/make [-3 -2 1]) '(x)] (a/expression-> rf-analyzer exp1 vector)))
       (is (= [(p/make [1 5 10 10 5 1]) '(y)] (a/expression-> rf-analyzer exp2 vector)))
       (is (= [(p/make [0 -11 5 -30 10 -7 1]) '(y)] (a/expression-> rf-analyzer exp3 vector)))))
-  (testing "expr-simplify"`
-    (let [exp1 (:expression (g/+ (g/* 'x 'x 'x) `(g/* 'x 'x) (g/* 'x 'x)))
-          exp2 (:expression (g/+ (g/* 'y 'y) (g/* 'x '`x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
+  (testing "expr-simplify"
+    (let [exp1 (:expression (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))
+          exp2 (:expression (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
           exp3 'y]
       (is (= '(+ (expt x 3) (* 2 (expt x 2))) (rf-simp exp1)))
       (is (= '(+ (expt x 3) (* 2 (expt x 2)) (* 2 (expt y 2))) (rf-simp exp2)))
