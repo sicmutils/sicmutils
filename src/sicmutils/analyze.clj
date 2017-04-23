@@ -37,8 +37,8 @@
         (var-set w) 1
         :else (compare v w)))))
 
-(defprotocol IAnalyze
-  "IAnalyze captures the methods exposed by a scmutils analyzer backend.
+(defprotocol ICanonicalize
+  "ICanonicalize captures the methods exposed by a scmutils analyzer backend.
   Analyzer backends find canonical forms of inputs over limited vocabularies of
   operations. For example, a polynomial backend will expose operations like
   addition, subtraction, multiplication, and exponentiation by positive
@@ -61,7 +61,7 @@
      canonical form"))
 
 (defn make-analyzer
-  "Make-analyzer takes an analyzer backend (which implements IAnalyze) and
+  "Make-analyzer takes an analyzer backend (which implements ICanonicalize) and
   provides the apparatus necessary to prepare expressions for analysis by
   replacing subexpressions formed from operations unknown to the analyzer with
   generated symbols, and backsubstituting after analysis is complete. (For

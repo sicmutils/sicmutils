@@ -415,7 +415,7 @@
 (def ^:private operators-known (into #{} (keys operator-table)))
 
 (deftype PolynomialAnalyzer []
-  a/IAnalyze
+  a/ICanonicalize
   (expression-> [this expr cont] (a/expression-> this expr cont compare))
   (expression-> [this expr cont v-compare]
     ;; Convert an expression into Flat Polynomial canonical form. The

@@ -204,7 +204,7 @@
 (def operators-known (set (keys operator-table)))           ;; XXX
 
 (deftype RationalFunctionAnalyzer [polynomial-analyzer]
-  a/IAnalyze
+  a/ICanonicalize
   (expression-> [this expr cont] (a/expression-> this expr cont compare))
   (expression-> [_ expr cont v-compare]
     ;; Convert an expression into Rational Function canonical form. The
