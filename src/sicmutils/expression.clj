@@ -53,24 +53,15 @@
   which is an unwrapped expression, as a set"
   [x]
   (if (symbol? x) #{x}
-      (->> x flatten (filter symbol?) (into #{}))))
+                  (->> x flatten (filter symbol?) (into #{}))))
 
 (defn walk-expression
   "Walk the unwrapped expression x in postorder, replacing symbols found there
-  with their values in the map environment, if present; an unbound
-  symbol is an error. Function applications are applied."
-  [environment]
-  (fn walk [x]
-    (cond (symbol? x) (if-let [binding (environment x)]
-                        (if-not (= ::v/function (v/kind binding)) binding x)
-                        (throw (IllegalArgumentException.
-                                (str "no binding for " x " found."))))
-          (number? x) x
-          (instance? Expression x) (walk (expression-of x))
-          (sequential? x) (let [f (environment (first x))]
-                            (when-not (= ::v/function (v/kind f))
-                              (throw (IllegalArgumentException.
-                                      (str "no function binding for " (first x) " found."))))
-                            (apply f (map walk (rest x))))
-
-          :else (throw (IllegalArgumentException. (str "unknown expression type " x))))))
+  with their values in the map environment, if present; the functions association
+  is used for elements in function application position (first of a sequence)."
+  [x variables functions]
+  (let [walk (fn walk [x]
+               (cond (symbol? x) (or (variables x) x)
+                     (sequential? x) (apply (functions (first x)) (map walk (rest x)))
+                     :else x))]
+    (walk x)))

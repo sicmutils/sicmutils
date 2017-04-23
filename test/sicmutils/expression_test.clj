@@ -26,10 +26,10 @@
     (is (= '#{x} (variables-in 'x)))
     )
   (testing "walk"
-    (is (= 12 ((walk-expression {'+ + 'x 5}) '(+ 3 4 x))))
-    (is (= 0 ((walk-expression {'* * '+ + 'x 5 'y -2}) '(+ 3 (* 4 y) x))))
-    (is (thrown? IllegalArgumentException
-                 ((walk-expression {'+ + 'x 5 'y -2}) '(+ 3 (* 4 y) x))))))
+    (is (= 12 (walk-expression '(+ 3 4 x) {'x 5} {'+ +} )))
+    (is (= 0 (walk-expression '(+ 3 (* 4 y) x) {'x 5 'y -2} {'* * '+ +})))
+    (is (thrown? Exception
+                 (walk-expression '(+ 3 (* 4 y) x) {'x 5 'y -2} {'+ +})))))
 
 (deftest foo
   (testing "foo"

@@ -18,7 +18,7 @@
 
 (ns sicmutils.simplify
   (:import (java.util.concurrent TimeoutException)
-           (clojure.lang Sequential Var LazySeq)
+           (clojure.lang Sequential Var LazySeq Symbol)
            (java.io StringWriter))
   (:require [clojure.walk :refer [postwalk]]
             [clojure.tools.logging :as log]
@@ -128,9 +128,7 @@
        (+ :a1* :a2* :a3* (* :a (expt (sin :x) 2)))))
      simplify-and-flatten)))
 
-;; (defn ^:private spy [x a]
-;;   (println a x)
-;;   x)
+;; (defn ^:private spy [x a] (println a x) x)
 
 (defn clear-square-roots-of-perfect-squares
   [x]
@@ -244,13 +242,15 @@
 
 (defmethod g/simplify [:sicmutils.expression/numerical-expression]
   [a]
-  (->> a v/freeze simplify-expression))
+  (-> a v/freeze simplify-expression))
 
 (defmethod g/simplify :default [a] (v/freeze a))
 (defmethod g/simplify [Var] [a] (-> a meta :name))
 (defmethod g/simplify [Sequential] [a] (map g/simplify a))
 (defmethod g/simplify [LazySeq] [a] (map g/simplify a))
+(defmethod g/simplify [Symbol] [a] a)
 (prefer-method g/simplify [:sicmutils.structure/structure] [Sequential])
+(prefer-method g/simplify [Symbol] [::x/numerical-expression])
 
 (defn expression->string
   "Renders an expression through the simplifier and into a string,
