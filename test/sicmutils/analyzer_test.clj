@@ -6,7 +6,7 @@
            [sicmutils.mechanics.lagrange :refer :all]))
 
 (deftest analyzer-test
-  (let [new-analyzer (fn [] (a/analyzer (poly/->PolynomialAnalyzer) (a/monotonic-symbol-generator "k%08d")))
+  (let [new-analyzer (fn [] (a/make-analyzer (poly/->PolynomialAnalyzer) (a/monotonic-symbol-generator "k%08d")))
         A #((new-analyzer) %)]
     (is (= '(+ x 1) (A '(+ 1 x))))
     (is (= '(+ x 1) (A '[+ 1 x])))

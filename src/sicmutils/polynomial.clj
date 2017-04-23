@@ -329,12 +329,9 @@
   return the number d for which d * u = q * v + r."
   [^Polynomial u ^Polynomial v]
   {:pre [(instance? Polynomial u)
-         (instance? Polynomial v)]}
-  (when (v/nullity? v)
-    (throw (IllegalArgumentException. "internal polynomial division by zero")))
-  (when (not (= 1 (.arity u) (.arity v)))
-    (throw (IllegalArgumentException. "pseudo remainder of poly arity != 1")))
-
+         (instance? Polynomial v)
+         (not (v/nullity? v))
+         (= (.arity u) (.arity v) 1)]}
   (let [a (check-same-arity u v)
         [vn-exponents vn-coefficient] (lead-term v)
         *vn (fn [p] (map-coefficients #(g/* vn-coefficient %) p))

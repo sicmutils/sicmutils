@@ -87,7 +87,7 @@
 (def factor
   (let [poly-analyzer (poly/->PolynomialAnalyzer)
         poly-> (partial a/->expression poly-analyzer)]
-    (a/analyzer
+    (a/make-analyzer
      (reify a/IAnalyze
        (expression-> [_ expr cont v-compare] (a/expression-> poly-analyzer expr cont v-compare))
        (->expression [_ p vars] (->factors p poly-> vars))

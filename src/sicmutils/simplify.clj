@@ -50,13 +50,13 @@
   "An analyzer capable of simplifying sums and products, but unable to
   cancel across the fraction bar"
   []
-  (a/analyzer (poly/->PolynomialAnalyzer) (a/monotonic-symbol-generator "-s-")))
+  (a/make-analyzer (poly/->PolynomialAnalyzer) (a/monotonic-symbol-generator "-s-")))
 
 (defn ^:private rational-function-analyzer
   "An analyzer capable of simplifying expressions built out of rational
   functions."
   []
-  (a/analyzer (rf/->RationalFunctionAnalyzer (poly/->PolynomialAnalyzer)) (a/monotonic-symbol-generator "-r-")))
+  (a/make-analyzer (rf/->RationalFunctionAnalyzer (poly/->PolynomialAnalyzer)) (a/monotonic-symbol-generator "-r-")))
 
 (def ^:dynamic *rf-analyzer* (memoize (unless-timeout (rational-function-analyzer))))
 (def ^:dynamic *poly-analyzer* (memoize (poly-analyzer)))

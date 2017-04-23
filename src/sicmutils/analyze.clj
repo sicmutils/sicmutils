@@ -24,11 +24,12 @@
 
 (defn ^:private make-vcompare
   [var-set]
-  "Returns a Comparator taking account of the input variable set in the following way:
-  if both inputs to the comparator are in var-set, or both are not, then the results
-  are as core compare would return. But if one is in var-set and the other is not, then
-  the other will always compare greater. In this way, expressions produced by the simplifier
-  will have simple variables sorted earlier than expressions involving those variables."
+  "Returns a Comparator taking account of the input variable set in the
+  following way: if both inputs to the comparator are in var-set, or both are
+  not, then the results are as core compare would return. But if one is in
+  var-set and the other is not, then the other will always compare greater. In
+  this way, expressions produced by the simplifier will have simple variables
+  sorted earlier than expressions involving those variables."
   (reify Comparator
     (compare [_ v w]
       (cond
@@ -37,12 +38,38 @@
         :else (compare v w)))))
 
 (defprotocol IAnalyze
-  (expression-> [this x ->x] [this x ->x compare-variable])
-  (->expression [this b variables])
-  (known-operation? [this x]))
+  "IAnalyze captures the methods exposed by a scmutils analyzer backend.
+  Analyzer backends find canonical forms of inputs over limited vocabularies of
+  operations. For example, a polynomial backend will expose operations like
+  addition, subtraction, multiplication, and exponentiation by positive
+  integers (but not division). An expression containing only these operations
+  and symbols can then be converted to and from a polynomial canonical form,
+  which in this example would have the effect of grouping like terms; a
+  rational function backend would include the division operation and be capable
+  of cancellation. Canonicalizing an expression with respect to an analyzer is
+  therefore effected by a round-trip to and from the canonical form."
+  (expression-> [this x continue] [this x continue compare-variable]
+    "Convert an expression to the canonical form represented by this analyzer,
+    and invoke continue with the canonicalized input and a (sorted) sequence of
+    variables found in the original expression.")
+  (->expression [this b variables]
+    "Convert a canonical form back to S-expression form. The variable list is
+    typically obtained from the continuation invoked by expression->, so these
+    functions are complementary.")
+  (known-operation? [this x]
+    "A function deciding if an operation is considered fundamental by the
+     canonical form"))
 
-(defn analyzer
-  [a symbol-generator]
+(defn make-analyzer
+  "Make-analyzer takes an analyzer backend (which implements IAnalyze) and
+  provides the apparatus necessary to prepare expressions for analysis by
+  replacing subexpressions formed from operations unknown to the analyzer with
+  generated symbols, and backsubstituting after analysis is complete. (For
+  example, in the case of polynomial canonical form, we would replace a
+  subexpression like (sin x) with a gensym, before entry, since the sine
+  operation is not available to the polynomial canonicalizer, and restore it
+  afterwards."
+  [backend symbol-generator]
   (let [expr->var (ref {})
         var->expr (ref {})]
     (fn [expr]
@@ -51,7 +78,7 @@
                   (if (and (sequential? expr)
                            (not (= (first expr) 'quote)))
                     (let [analyzed-expr (map analyze expr)]
-                      (if (and (known-operation? a (sym/operator analyzed-expr))
+                      (if (and (known-operation? backend (sym/operator analyzed-expr))
                                (or (not (= 'expt (sym/operator analyzed-expr)))
                                    (integer? (second (sym/operands analyzed-expr)))))
                         analyzed-expr
@@ -89,7 +116,7 @@
                                          expr)
                         :else expr))
                 (base-simplify [expr]
-                  (expression-> a expr #(->expression a %1 %2) vless?))]
+                  (expression-> backend expr #(->expression backend %1 %2) vless?))]
           (-> expr analyze base-simplify backsubstitute))))))
 
 (defn monotonic-symbol-generator
