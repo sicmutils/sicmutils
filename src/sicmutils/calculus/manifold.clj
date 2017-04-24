@@ -43,6 +43,9 @@
   [manifold-family patch-name]
   (update manifold-family :patch assoc patch-name (make-patch patch-name)))
 
+;; attach-patch does more, though. It also creates a patch generator,
+;; which is a function of the patch, which knows the manifold, and
+;; which takes care of instantiating the coordinate system.
 
 ; coordinate systems are added to coordinate patches.
 ; a coordinate system is an invertible map from the space to R(n).
@@ -64,7 +67,7 @@
                     :coordinate-system coordinate-system-name]))
 
 (defprotocol ICoordinateSystem
-  (check-cooridinates [this coords])
+  (check-coordinates [this coords])
   (coords->point [this coords])
   (check-point [this point])
   (point->coords [this point])
@@ -109,10 +112,10 @@
 
 (deftype Rectangular [manifold]
   ICoordinateSystem
-  (check-cooridinates [this coords]
+  (check-coordinates [this coords]
     (= (count coords) (manifold :dimension)))
   (coords->point [this coords]
-    (assert (check-cooridinates this coords))
+    (assert (check-coordinates this coords))
     (make-manifold-point coords manifold this coords))
   (check-point [this point]
     (my-manifold-point? point manifold))
@@ -131,7 +134,7 @@
 
 (deftype PolarCylindrical [manifold]
   ICoordinateSystem
-  (check-cooridinates [this coords]
+  (check-coordinates [this coords]
     ))
 
 
@@ -219,6 +222,3 @@
 ;;   distinguished points
 ;;   add-distinguished-point! --> (does anyone call this? apparently not)
 ;;   patch-names (from patches list)
-
-
-
