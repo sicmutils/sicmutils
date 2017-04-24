@@ -17,19 +17,24 @@
 ;
 
 (ns sicmutils.calculus.manifold-test
+  (:refer-clojure :exclude [* - / + ref zero? partial])
   (:require
     [clojure.test :refer :all]
+    [sicmutils.env :refer :all]
+    ;; objects in manifold ns will need to graduate to env
     [sicmutils.calculus.manifold :refer :all]))
 
-(deftest rectangular
-  (testing "points"
-    (let [rect (->Rectangular nil)]
-      (is (= 1 1)))))
 
-(deftest cartesian-plane
+(deftest rectangular
   (testing "R2"
-    (let [R-family (make-manifold-family "R(%d)")
-          Rn (attach-patch R-family :origin)
-          Rnc (attach-coordinate-system Rn :rectangular :origin ->Rectangular)
-          R2 (make-manifold Rnc 2)]
-      (is (= 1 1)))))
+    (let [rect (->Rectangular R2)]
+      (testing "check-coordinates"
+        (is (not (check-cooridinates rect (up 1))))
+        (is (check-cooridinates rect (up 1 2)))
+        (is (not (check-cooridinates rect (up 1 2 3))))
+        (is (thrown? UnsupportedOperationException (check-cooridinates rect 99))))
+      (testing "coords->point"
+        (let [p (coords->point rect (up 3 4))]
+          (is (= (up 3 4) (get-coordinates p rect (fn do-not-call [] (throw (IllegalStateException.)))) ))
+          (is (check-point rect p)))))))
+

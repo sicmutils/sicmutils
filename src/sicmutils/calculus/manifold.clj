@@ -24,10 +24,10 @@
   [manifold-family n]
   {:pre [(integer? n)
          (> n 0)]}
-  (assoc manifold-family
-    :name (format (manifold-family :name-format) n)
-    :dimension n
-    :embedding-dimension n))
+  {:manifold-family manifold-family
+   :name (format (manifold-family :name-format) n)
+   :dimension n
+   :embedding-dimension n})
 
 ;; to each manifold family, one or more patches may be adjoined.
 ;; each has a name.
@@ -52,9 +52,15 @@
   (update-in manifold-family [:patch patch-name :coordinate-system]
              assoc coordinate-system-name coordinate-system))
 
+;; where we left off: this currently evaluates to the manifold
+;; constructor function, and not the manifold itself. When is
+;; the manifold constructor applied? It can't be when the coordinate
+;; system is attached, because those are attached to patches.
+
 (defn coordinate-system-at
   [coordinate-system-name patch-name manifold]
-  (get-in manifold [:patch patch-name 
+  (get-in manifold [:manifold-family
+                    :patch patch-name
                     :coordinate-system coordinate-system-name]))
 
 (defprotocol ICoordinateSystem
@@ -79,7 +85,7 @@
   [manifold-point]
   (manifold-point :spec))
 
-(defn ^:private get-coordinates
+(defn get-coordinates
   "Get the representation of manifold-point in coordinate-system. The
   point contains a cache of the coordinate system->representation mapping.
   If an entry for the given coordinate system is not found, thunk is
@@ -109,10 +115,10 @@
     (assert (check-cooridinates this coords))
     (make-manifold-point coords manifold this coords))
   (check-point [this point]
-    {:pre [(= 1 2)]}
     (my-manifold-point? point manifold))
   (point->coords [this point]
     (assert (check-point this point))
+    ;; might be an opportunity for a courtesy construtor here
     (get-coordinates point this
                      (fn []
                        (let [prep (manifold-point-representation point)]
@@ -155,7 +161,8 @@
 (def R2 (make-manifold Rn 2))
 (def R2-rect (coordinate-system-at :rectangular :origin R2))
 
-(println R2-rect)
+(println "R2 is" R2)
+(println "R2-rect is " R2-rect)
 
 
 
