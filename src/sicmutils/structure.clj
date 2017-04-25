@@ -95,10 +95,17 @@
   (make ::down xs))
 
 (defn structure?
-  "True if s is a structure (as far as we're concerned.)"
+  "True if s is a structure."
   [s]
   (or (instance? Structure s)
       (vector? s)))
+
+(defn up?
+  "True if s in an up structure."
+  [s]
+  (or (vector? s)
+      (and (instance? Structure s)
+           (= (.orientation s) ::up))))
 
 (def ^:private opposite-orientation {::up ::down ::down ::up})
 

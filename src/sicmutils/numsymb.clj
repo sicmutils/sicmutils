@@ -211,7 +211,7 @@
   [y & x]
   (if (nil? x)
     `(~'atan ~y)
-    `(~'atan ~y ~x)))
+    `(~'atan ~y ~@x)))
 
 (defn ^:private abs [x]
   (cond (number? x) (if (< x 0) (- x) x)

@@ -2,17 +2,9 @@
   (:require [clojure.string :as str]
             [sicmutils
              [value :as v]
+             [generic :as g]
              [structure :as s]])
   )
-
-;; (defn coordinate-system-at
-;;   [coordinate-system-name patch-name manifold]
-;;   (coordinate-system coordinate-system-name (patch patch-name manifold)))
-
-;(defprotocol IManifoldSpecification
-;  (new-patch [this name generator setup])
-;  (patch-setup [this name])
-;  (generator [this]))
 
 (defn make-manifold-family
   [name-format & {:keys [over] :or {over 'Real}}]
@@ -21,50 +13,42 @@
    :patch {}})
 
 (defn make-manifold
+  "Specialize a manifold-family into a particular manifold by specifying
+  its dimension."
   [manifold-family n]
   {:pre [(integer? n)
          (> n 0)]}
-  {:manifold-family manifold-family
-   :name (format (manifold-family :name-format) n)
-   :dimension n
+  {:manifold-family     manifold-family
+   :name                (format (manifold-family :name-format) n)
+   :dimension           n
    :embedding-dimension n})
 
-;; to each manifold family, one or more patches may be adjoined.
-;; each has a name.
-;; each has patch-generator and patch-setup functions.
-;; the name and these two functions are stored with the manifold in
-;; its patch map.
-
 (defn make-patch [name]
+  "Constructor for patches."
   {:name name
    :coordinate-system {}})
 
 (defn attach-patch
+  "Produces a new manifold with the supplied patch attached."
   [manifold-family patch-name]
   (update manifold-family :patch assoc patch-name (make-patch patch-name)))
 
-;; attach-patch does more, though. It also creates a patch generator,
-;; which is a function of the patch, which knows the manifold, and
-;; which takes care of instantiating the coordinate system.
-
-; coordinate systems are added to coordinate patches.
-; a coordinate system is an invertible map from the space to R(n).
-
 (defn attach-coordinate-system
-  [manifold-family coordinate-system-name patch-name coordinate-system]
+  "Produces a new manifold family with the given coordinate system
+  constructor attached and indexed by the patch and coordinate system
+  names."
+  [manifold-family coordinate-system-name patch-name coordinate-system-ctor]
   (update-in manifold-family [:patch patch-name :coordinate-system]
-             assoc coordinate-system-name coordinate-system))
-
-;; where we left off: this currently evaluates to the manifold
-;; constructor function, and not the manifold itself. When is
-;; the manifold constructor applied? It can't be when the coordinate
-;; system is attached, because those are attached to patches.
+             assoc coordinate-system-name coordinate-system-ctor))
 
 (defn coordinate-system-at
+  "Looks up the named coordinate system in the named patch of the given
+  manifold; this locates a constructor, which is then applied to manifold
+  to produce the result: an instantiated coordinate system."
   [coordinate-system-name patch-name manifold]
-  (get-in manifold [:manifold-family
-                    :patch patch-name
-                    :coordinate-system coordinate-system-name]))
+  ((get-in manifold [:manifold-family
+                     :patch patch-name
+                     :coordinate-system coordinate-system-name]) manifold))
 
 (defprotocol ICoordinateSystem
   (check-coordinates [this coords])
@@ -73,12 +57,11 @@
   (point->coords [this point])
   (manifold [this]))
 
-;; where we left off: we discover that in scmutils, a manifold-point
-;; may be immutable in spirit, but lazily computes its representations
-;; in various coordinate systems. One idea would be for the point to
-;; hold an atom containing a mapping.
-
 (defn ^:private make-manifold-point
+  "Make a point in an abstract manifold, specified by a concreate point
+  in some coordinate system, and the concrete coordinates in Euclidean
+  space. The map of coordinate representaions can be lazily extended to
+  yet other coordinate systems."
   [spec manifold coordinate-system coordinate-rep]
   {:spec spec
    :manifold manifold
@@ -135,38 +118,56 @@
 (deftype PolarCylindrical [manifold]
   ICoordinateSystem
   (check-coordinates [this coords]
-    ))
-
-
-
-; features of a coordinate system object:
-;
-; name
-; patch (pointer to the patch in which it was defined...which would be a cycle :(
-; ->point (transform-delivery 'coords->point)
-; ->coords (transform-delivery 'point->coords)
-; check-point
-; check-coords
-; typical-coords
-; coordinate-prototype
-; set-coordinate-protoype!
-;   this has the effect of clearing the following internal state variables:
-;    coordinate-{prototype,function-specs,basis-vector-field-specs,basis-1form-field-specs,basis}
-;    access-chains (but what about dual-chains? bug?)
-; access-chains
-; dual-chains (initialized as the flip of access chains).
-
+    (and (s/up? coords)
+         (= (s/dimension coords) (manifold :dimension))
+         (> (s/dimension coords) 1)
+         (or (not (number? coords))
+             (>= (nth coords 0) 0))))
+  (coords->point [this coords]
+    (assert (check-coordinates this coords))
+    (let [[r theta] coords]
+      (make-manifold-point
+        (s/->Structure ::s/up
+                       (mapv (fn [i]
+                               (case i
+                                 0 (g/* r (g/cos theta))
+                                 1 (g/* r (g/sin theta))
+                                 (nth coords i))) (range (count coords))))
+        manifold
+        this
+        coords)))
+  (check-point [this point]
+    (my-manifold-point? point manifold))
+  (point->coords [this point]
+    (assert (check-point this point))
+    (get-coordinates point this
+                     (fn []
+                       (let [prep (manifold-point-representation point)]
+                         (when-not (and (s/up? prep)
+                                        (= (s/dimension prep) (manifold :embedding-dimension)))
+                           (throw (IllegalStateException. "PolarCylindrical singular")))
+                         (let [[x y] prep
+                               rsq (g/+ (g/square x) (g/square y))]
+                           (when (v/nullity? rsq)
+                             (throw (IllegalStateException. "PolarCylindrical singular")))
+                           (s/->Structure ::s/up
+                                          (mapv (fn [i]
+                                                  (case i
+                                                    0 (g/sqrt rsq)
+                                                    1 (g/atan y x)
+                                                    (nth prep i)))
+                                                (range (count prep)))))))))
+  (manifold [this] manifold))
 
 (def Rn (-> "R(%d)"
             make-manifold-family
             (attach-patch :origin)
-            (attach-coordinate-system :rectangular :origin ->Rectangular)))
+            (attach-coordinate-system :rectangular :origin ->Rectangular)
+            (attach-coordinate-system :polar-cylindrical :origin ->PolarCylindrical)))
+
 (def R2 (make-manifold Rn 2))
 (def R2-rect (coordinate-system-at :rectangular :origin R2))
-
-(println "R2 is" R2)
-(println "R2-rect is " R2-rect)
-
+(def R2-polar (coordinate-system-at :polar-cylindrical :origin R2))
 
 
 ;(defn make-manifold

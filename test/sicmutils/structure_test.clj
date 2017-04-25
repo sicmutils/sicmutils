@@ -79,6 +79,10 @@
                     (down (down 13 17) (up 19 23 29)))))
     (is (= (up (up 10 15) (up 14 21) (up 22 33)) (* (up 2 3) (up 5 7 11))))
     (is (= (up (up 10 14 22) (up 15 21 33)) (* (up 5 7 11) (up 2 3)))))
+  (testing "up?"
+    (is (up? [1 2]))
+    (is (up? (up 3 4)))
+    (is (not (up? (down 3 4)))))
   (testing "zero?"
     (is (zero? (up)))
     (is (zero? (down)))

@@ -17,18 +17,18 @@
 ;
 
 (ns sicmutils.simplify-test
-  (require [clojure.test :refer :all]
-           [sicmutils
-            [simplify :refer [hermetic-simplify-fixture simplify-expression expression->string]]
-            [structure :refer :all]
-            [complex :as c]
-            [generic :as g]
-            [structure :as s]
-            [matrix :as matrix]
-            [numbers]
-            [function :as f]
-            [value :as v]]
-           [sicmutils.mechanics.lagrange :refer :all]))
+  (:require [clojure.test :refer :all]
+            [sicmutils
+             [simplify :refer [hermetic-simplify-fixture simplify-expression expression->string]]
+             [structure :refer :all]
+             [complex :as c]
+             [generic :as g]
+             [structure :as s]
+             [matrix :as matrix]
+             [numbers]
+             [function :as f]
+             [value :as v]]
+            [sicmutils.mechanics.lagrange :refer :all]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
@@ -144,4 +144,6 @@
   (is (= '(/ (+ (sin x) (cos x)) (cos x)) (g/simplify (g/+ (g/tan 'x) 1))))
   (is (= '(* -1 (expt (cos x) 2)) (g/simplify (g/+ (g/expt (g/sin 'x) 2) -1))))
   (is (= '(expt (cos x) 2) (g/simplify (g/- 1 (g/expt (g/sin 'x) 2)))))
-  (is (= '(* -1 (expt (cos x) 2)) (g/simplify (g/+ (g/expt (g/sin 'x) 2) -1)))))
+  (is (= '(* -1 (expt (cos x) 2)) (g/simplify (g/+ (g/expt (g/sin 'x) 2) -1))))
+  (testing "symbolic arguments"
+    (is (= '(atan y x) (g/simplify (g/atan 'y 'x))))))

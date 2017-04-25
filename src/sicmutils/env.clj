@@ -138,6 +138,7 @@
   structure->vector
   structure?
   up
+  up?
   vector->down
   vector->up]
  [sicmutils.infix
