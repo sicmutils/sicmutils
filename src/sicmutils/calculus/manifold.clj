@@ -90,8 +90,25 @@
   (point :manifold))
 
 (defn ^:private my-manifold-point?
+  "True if this point was created under the aegis of manifold"
   [point manifold]
   (= (point->manifold point) manifold))
+
+(defn ^:private frame?
+  "True if this coordinate system is actually a frame. FIXME: frames aren't
+  implemented yet."
+  [coordinate-system]
+  false                                                     ; FIXME
+  )
+
+(defn chart
+  [coordinate-system]
+  #(point->coords coordinate-system %)
+  )
+
+(defn point
+  [coordinate-system]
+  #(coords->point coordinate-system %))
 
 (deftype Rectangular [manifold]
   ICoordinateSystem

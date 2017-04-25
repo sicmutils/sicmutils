@@ -2,9 +2,9 @@
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]])
-  (:import (org.w3c.dom.html HTMLFrameElement)
-           (com.sun.org.apache.bcel.internal.generic L2D)))
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+
+(use-fixtures :once hermetic-simplify-fixture)
 
 (defn Lfree
   [mass]
