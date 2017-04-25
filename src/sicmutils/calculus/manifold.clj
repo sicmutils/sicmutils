@@ -44,7 +44,7 @@
 (defn coordinate-system-at
   "Looks up the named coordinate system in the named patch of the given
   manifold; this locates a constructor, which is then applied to manifold
-  to produce the result: an instantiated coordinate system."
+  to produce the result: an object implementing ICoordinateSystem."
   [coordinate-system-name patch-name manifold]
   ((get-in manifold [:manifold-family
                      :patch patch-name
@@ -58,7 +58,7 @@
   (manifold [this]))
 
 (defn ^:private make-manifold-point
-  "Make a point in an abstract manifold, specified by a concreate point
+  "Make a point in an abstract manifold, specified by a concrete point
   in some coordinate system, and the concrete coordinates in Euclidean
   space. The map of coordinate representaions can be lazily extended to
   yet other coordinate systems."
@@ -103,8 +103,7 @@
 
 (defn chart
   [coordinate-system]
-  #(point->coords coordinate-system %)
-  )
+  #(point->coords coordinate-system %))
 
 (defn point
   [coordinate-system]
@@ -144,12 +143,11 @@
     (assert (check-coordinates this coords))
     (let [[r theta] coords]
       (make-manifold-point
-        (s/->Structure ::s/up
-                       (mapv (fn [i]
-                               (case i
-                                 0 (g/* r (g/cos theta))
-                                 1 (g/* r (g/sin theta))
-                                 (nth coords i))) (range (count coords))))
+        (s/generate (count coords) ::s/up
+                    #(case %
+                       0 (g/* r (g/cos theta))
+                       1 (g/* r (g/sin theta))
+                       (nth coords %)))
         manifold
         this
         coords)))
@@ -167,13 +165,11 @@
                                rsq (g/+ (g/square x) (g/square y))]
                            (when (v/nullity? rsq)
                              (throw (IllegalStateException. "PolarCylindrical singular")))
-                           (s/->Structure ::s/up
-                                          (mapv (fn [i]
-                                                  (case i
-                                                    0 (g/sqrt rsq)
-                                                    1 (g/atan y x)
-                                                    (nth prep i)))
-                                                (range (count prep)))))))))
+                           (s/generate (count prep) ::s/up
+                                       #(case %
+                                          0 (g/sqrt rsq)
+                                          1 (g/atan y x)
+                                          (nth prep %))))))))
   (manifold [this] manifold))
 
 (def Rn (-> "R(%d)"

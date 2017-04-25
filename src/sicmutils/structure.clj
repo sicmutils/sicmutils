@@ -256,6 +256,12 @@
   [s]
   (unflatten opposite (repeatedly gensym) s))
 
+(defn generate
+  "Generate a structure with the given orientation whose elements are (f i)
+  where i ranges from [0..dimension)"
+  [dimension orientation f]
+  (->Structure orientation (mapv f (range dimension))))
+
 (defn dimension
   [s]
   (-> s flatten count))
