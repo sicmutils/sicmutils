@@ -70,7 +70,6 @@
      (if (vector? d) d [d]))
    (sicm-set->exemplar range)])
 
-
 (defrecord Function [expr arity domain range]
   Object
   (toString [_] (str expr ": " domain " → " range))
@@ -93,6 +92,7 @@
 (defn literal-function
   ([f] (Function. f [:exactly 1] [0] 0))
   ([f signature]
+   (println "signature" signature)
    (let [[domain range] (sicm-signature->domain-range signature)]
      (literal-function f domain range)))
   ([f domain range]
