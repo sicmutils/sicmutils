@@ -105,7 +105,7 @@
   [s]
   (or (vector? s)
       (and (instance? Structure s)
-           (= (.orientation s) ::up))))
+           (= (.orientation ^Structure s) ::up))))
 
 (def ^:private opposite-orientation {::up ::down ::down ::up})
 
@@ -135,36 +135,55 @@
     (throw (ArithmeticException.
             (str op " provided arguments of differing length")))))
 
+(defn generate
+  "Generate a structure with the given orientation whose elements are (f i)
+  where i ranges from [0..dimension)"
+  [dimension orientation f]
+  (->Structure orientation (mapv f (range dimension))))
+
+(defn map:l
+  [f structures]
+  (if (structure? (first structures))
+    (generate (count (first structures))
+              (orientation (first structures))
+              #(apply f (map (fn [s] (nth s %)) structures)))
+    (apply f structures)))
+
+(defn map:r:l
+  [f structures]
+  (map:l (fn [& elements]
+           (if (structure? (first elements))
+             (map:r:l f elements)
+             (apply f elements)))
+         structures))
+
 (defn mapr
   "Return a structure with the same shape as s but with f applied to
   each primitive (that is, not structural) component."
-  [f ^Structure s]
-  (cond (instance? Structure s) (Structure. (.orientation s) (mapv #(mapr f %) (.v s)))
-        (vector? s) (mapv #(mapr f %) s)
-        :else (f s)))
+  [f & structures]
+  (map:r:l f structures))
 
 (defn structure->access-chains
   "Return a structure of the same shape as s whose elements are access
   chains corresponding to position of each element (i.e., the sequence
   of indices needed to address that element)."
   [^Structure s]
-  (if-not (instance? Structure s)
-    nil
+  (when (structure? s)
     (let [access (fn a [chain s]
-                  (make (orientation s)
-                        (map-indexed (fn [i elt]
-                                       (if (structure? elt)
-                                         (a (conj chain i) elt)
-                                         ;; subtle (I'm afraid). Here is where we put
-                                         ;; the access chain into the new structure.
-                                         ;; But if we put it in as a vector, that would
-                                         ;; introduce a new layer of structure since
-                                         ;; vectors are considered up-tuples. So we
-                                         ;; have to turn it into a seq, which will
-                                         ;; forfeit structure-nature.
-                                         (-> chain (conj i) seq)))
-                                     s)))]
-     (access [] s))))
+                   (make (orientation s)
+                         (map-indexed (fn [i elt]
+                                        (if (structure? elt)
+                                          (a (conj chain i) elt)
+                                          ;; subtle (I'm afraid). Here is where we put
+                                          ;; the access chain into the new structure.
+                                          ;; But if we put it in as a vector, that would
+                                          ;; introduce a new layer of structure since
+                                          ;; vectors are considered up-tuples. So we
+                                          ;; have to turn it into a seq, which will
+                                          ;; forfeit structure-nature.
+                                          (-> chain (conj i) seq)))
+                                      s)))]
+      (access [] s))))
 
 (defn component
   "Given an access chain (a sequence of indices), return a function of
@@ -255,12 +274,6 @@
   the slots filled with gensyms."
   [s]
   (unflatten opposite (repeatedly gensym) s))
-
-(defn generate
-  "Generate a structure with the given orientation whose elements are (f i)
-  where i ranges from [0..dimension)"
-  [dimension orientation f]
-  (->Structure orientation (mapv f (range dimension))))
 
 (defn dimension
   [s]

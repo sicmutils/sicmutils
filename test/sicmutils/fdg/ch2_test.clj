@@ -26,9 +26,12 @@
         corresponding-polar-point (R2-polar-chi-inverse
                                     (up (sqrt (+ (square 'x0) (square 'y0)))
                                         (atan 'y0 'x0)))]
-    (is (= 0 R2-rect-point))
-    (is (= 0 corresponding-polar-point))
-    (is (= 0 (R2-rect-chi corresponding-polar-point)))
-    (is (= 0 (simplify (f R2-rect-point))))
-    (is (= 0 (simplify (f corresponding-polar-point))))
+    (is (= '(f-rect (up x0 y0)) (simplify (f R2-rect-point))))
+    (is (= '(f-rect (up x0 y0)) (simplify (f corresponding-polar-point))))
+
+    ; what do we want to write?
+    ; (using-coordinates (up 'x 'y) R2-rect
+    ;    yada
+    ;    yada)
+    ;
     ))

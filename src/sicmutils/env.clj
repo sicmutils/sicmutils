@@ -41,7 +41,7 @@
              [hamilton]
              [rotation]]
             [sicmutils.calculus.derivative :as d]
-            [sicmutils.calculus.manifold]
+            [sicmutils.calculus.manifold :as m]
             [sicmutils.value :as v]))
 
 (def zero? v/nullity?)
@@ -152,6 +152,8 @@
  [sicmutils.calculus.manifold
   chart
   point
+  let-coordinates
+  using-coordinates
   R2-rect
   R2-polar
   ]

@@ -18,7 +18,7 @@
 
 (ns sicmutils.simplify
   (:import (java.util.concurrent TimeoutException)
-           (clojure.lang Sequential Var LazySeq Symbol)
+           (clojure.lang Sequential Var LazySeq Symbol PersistentVector)
            (java.io StringWriter))
   (:require [clojure.walk :refer [postwalk]]
             [clojure.tools.logging :as log]
@@ -245,6 +245,7 @@
 (defmethod g/simplify :default [a] (v/freeze a))
 (defmethod g/simplify [Var] [a] (-> a meta :name))
 (defmethod g/simplify [Sequential] [a] (map g/simplify a))
+(defmethod g/simplify [PersistentVector] [a] (mapv g/simplify a))
 (defmethod g/simplify [LazySeq] [a] (map g/simplify a))
 (defmethod g/simplify [Symbol] [a] a)
 (prefer-method g/simplify [:sicmutils.structure/structure] [Sequential])

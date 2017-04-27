@@ -177,9 +177,16 @@
       (is (= (up 4 9) (mapr square S1)))
       (is (= (down (up 1 4) (up 9 16)) (mapr square S2)))
       (is (= (up (down 1 4) (down 9 16)) (mapr square S3)))
-      (let [a (mapr square [2 3])]
-        (is (= [4 9] a))
-        (is (vector? a)))))
+      (is (= (up 4 9) (mapr square [2 3])))))
+  (testing "mapr - two arg fn"
+    (let [S (down 'a 'b (up 'c 'd) (down 'e (down 'f 'g)) 'h)]
+      (is (= (down '(a 0) '(b 1) (up '(c 2 0) '(d 2 1)) (down '(e 3 0) (down '(f 3 1 0) '(g 3 1 1))) '(h 4))
+             (mapr cons S (s/structure->access-chains S))))))
+  (testing "mapr - etc"
+    (is (= (up 1 4 9) (mapr square [1 2 3])))
+    (is (= (up 11 22) (mapr + (up 1 2) (up 10 20))))
+    (is (= (up 11 22) (mapr + [1 2] (up 10 20))))
+    (is (= (up 11 22) (mapr + (up 10 20) [1 2]))))
   (testing "a structure has a nth element"
     (is (= 5 (nth (up 4 5 6) 1)))
     (is (thrown? IndexOutOfBoundsException (nth (up 4 5 6) 4))))

@@ -92,7 +92,6 @@
 (defn literal-function
   ([f] (Function. f [:exactly 1] [0] 0))
   ([f signature]
-   (println "signature" signature)
    (let [[domain range] (sicm-signature->domain-range signature)]
      (literal-function f domain range)))
   ([f domain range]

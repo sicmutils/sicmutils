@@ -159,13 +159,19 @@
     => (/ (* :n1* (tan :x) :n2*)
           (* :d1* :d2*)))))
 
+(def triginv
+  (rule-simplifier
+    (ruleset
+     (sin (atan :y :x)) => (/ :y (sqrt (+ (expt :x 2) (expt :y 2))))
+     (cos (atan :y :x)) => (/ :x (sqrt (+ (expt :x 2) (expt :y 2)))))))
+
 (def sincos-flush-ones (rule-simplifier split-high-degree-cosines
                                         split-high-degree-sines
                                         flush-obvious-ones))
 
 (defn universal-reductions
   [x]
-  x)
+  (triginv x))
 
 (def canonicalize-partials
   (rule-simplifier

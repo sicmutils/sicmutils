@@ -57,6 +57,67 @@
   (point->coords [this point])
   (manifold [this]))
 
+;; [BEGIN coordinates]
+(defn ^:private quotify-coordinate-prototype
+  [p]
+  (cond (and (sequential? p)
+             ('#{up down} (first p))) `(~(first p) ~@(map quotify-coordinate-prototype (rest p)))
+        (vector? p) (mapv quotify-coordinate-prototype p)
+        (symbol? p) `'~p
+        :else (throw (IllegalArgumentException. "Invalid coordinate prototype"))))
+
+(defn  symbols-from-prototype
+  [p]
+  (cond (and (sequential? p)
+             ('#{up down} (first p))) (mapcat symbols-from-prototype (rest p))
+        (vector? p) (mapcat symbols-from-prototype p)
+        (symbol? p) `(~p)
+        :else (throw (IllegalArgumentException. (str "Invalid coordinate prototype: " p)))))
+
+(defn coordinate-functions
+  [coordinate-system coordinate-prototype]
+  (s/mapr (fn [coordinate-name access-chain]
+            (comp (apply s/component access-chain)
+                  #(point->coords coordinate-system %)))
+          coordinate-prototype
+          (s/structure->access-chains coordinate-prototype)))
+
+(defmacro using-coordinates
+  "Example:
+    (using-coordinates (up x y) R2-rect
+      body...)"
+  [coordinate-prototype coordinate-system & body]
+  (let [qcp (quotify-coordinate-prototype coordinate-prototype)
+        coordinates (symbols-from-prototype coordinate-prototype)]
+    `(let [prototype# ~qcp
+           c-fns# (coordinate-functions ~coordinate-system prototype#)
+           f# (fn ~(vec coordinates) ~@body)]
+       (apply f# (flatten c-fns#)))))
+
+(defmacro let-coordinates
+  "Example:
+    (let-coordinates [[x y] R2-rect
+                      [r theta] R2-polar]
+      body...)"
+  [bindings & body]
+  (when-not (even? (count bindings))
+    (throw (IllegalArgumentException. "let-coordinates requires an even number of bindings")))
+  (let [pairs (partition 2 bindings)
+        prototypes (map first pairs)
+        c-systems (map second pairs)
+        coordinates (mapcat symbols-from-prototype prototypes)]
+    `(let [prototypes# ~(mapv quotify-coordinate-prototype prototypes)
+           c-systems# ~(vec c-systems)
+           c-fns# (map coordinate-functions c-systems# prototypes#)
+           f# (fn ~(vec coordinates) ~@body)]
+       (apply f# (mapcat flatten c-fns#)))))
+
+;; idea for another macro:
+;; (with-coordinates [R2-rect [x y]
+;;                    R2-polar [r theta]]
+;;   body...)
+;; [END coordinates]
+
 (defn ^:private make-manifold-point
   "Make a point in an abstract manifold, specified by a concrete point
   in some coordinate system, and the concrete coordinates in Euclidean
@@ -86,6 +147,7 @@
        rep))))
 
 (defn ^:private point->manifold
+  "Return the manifold upon which this point was defined."
   [point]
   (point :manifold))
 
@@ -97,6 +159,9 @@
 (defn ^:private frame?
   "True if this coordinate system is actually a frame. FIXME: frames aren't
   implemented yet."
+  ;; Note: when we get around to doing so, it probably makes sense to have
+  ;; frames implement ICoordinateSystem in their own way, rather than the
+  ;; hacky polymorphism used in scmutils
   [coordinate-system]
   false                                                     ; FIXME
   )
@@ -182,57 +247,3 @@
 (def R2-rect (coordinate-system-at :rectangular :origin R2))
 (def R2-polar (coordinate-system-at :polar-cylindrical :origin R2))
 
-
-;(defn make-manifold
-;  [manifold-family dimension]
-;  {:family manifold-family
-;   :name (format (:name-format manifold-family) dimension)
-;   })
-
-
-;(def R3 (make-manifold Rn 3))
-;(attach-patch )
-
-;(defn specify-manifold
-;  [manifold-name & {:keys [over] :or {over 'Real}}]
-;
-;  {:type  ::manifold-specification
-;   :over  over
-;   :patch {}
-;   :generator
-;          (fn [dimension & {:keys [embedding-dimension]}]
-;            (let [counter (atom 0)
-;                  name (symbol (str (let [namestring (str manifold-name)]
-;                                      (if (re-matches #".*[↑^]n" namestring)
-;                                        (str/replace namestring #"n$" (str dimension))
-;                                        namestring))
-;                                    "-"
-;                                    (swap! counter inc)))]
-;              {:dimension           dimension
-;               :embedding-dimension (or embedding-dimension dimension)
-;               :name                name
-;               :over over
-;               }))
-;   })
-
-
-;; specify-manifold produces an object answering the SETUP api.
-;;   new-patch(new-patch-name, patch-generator, patch-setup)
-;;     -- mutates manifold by adding a patch
-;;        this just means we add the argument triple to the patches list.
-;;   patch-setup(patch-name) -- returns the setup entry of the named patch.
-;;   generator() -- returns generator object.
-
-;; generator takes (dimension & optionally embedding-dimension) to produce
-;; a manifold object with that data baked in.
-
-;; the manifold object answers the following API:
-;;   name
-;;   manifold (i.e., self?)
-;;   type (local)
-;;   dimension or manifold-dimension --> dimension (local)
-;;   embedding-dimension --> ditto
-;;   get-patch
-;;   distinguished points
-;;   add-distinguished-point! --> (does anyone call this? apparently not)
-;;   patch-names (from patches list)
