@@ -58,6 +58,14 @@
   (manifold [this]))
 
 ;; [BEGIN coordinates]
+(defn coordinate-functions
+  [coordinate-system coordinate-prototype]
+  (s/mapr (fn [coordinate-name access-chain]
+            (comp (apply s/component access-chain)
+                  #(point->coords coordinate-system %)))
+          coordinate-prototype
+          (s/structure->access-chains coordinate-prototype)))
+
 (defn ^:private quotify-coordinate-prototype
   [p]
   (cond (and (sequential? p)
@@ -66,21 +74,13 @@
         (symbol? p) `'~p
         :else (throw (IllegalArgumentException. "Invalid coordinate prototype"))))
 
-(defn  symbols-from-prototype
+(defn ^:private symbols-from-prototype
   [p]
   (cond (and (sequential? p)
              ('#{up down} (first p))) (mapcat symbols-from-prototype (rest p))
         (vector? p) (mapcat symbols-from-prototype p)
         (symbol? p) `(~p)
         :else (throw (IllegalArgumentException. (str "Invalid coordinate prototype: " p)))))
-
-(defn coordinate-functions
-  [coordinate-system coordinate-prototype]
-  (s/mapr (fn [coordinate-name access-chain]
-            (comp (apply s/component access-chain)
-                  #(point->coords coordinate-system %)))
-          coordinate-prototype
-          (s/structure->access-chains coordinate-prototype)))
 
 (defmacro using-coordinates
   "Example:
@@ -104,18 +104,13 @@
     (throw (IllegalArgumentException. "let-coordinates requires an even number of bindings")))
   (let [pairs (partition 2 bindings)
         prototypes (map first pairs)
-        c-systems (map second pairs)
+        c-systems (mapv second pairs)
         coordinates (mapcat symbols-from-prototype prototypes)]
     `(let [prototypes# ~(mapv quotify-coordinate-prototype prototypes)
-           c-systems# ~(vec c-systems)
+           c-systems# ~c-systems
            c-fns# (map coordinate-functions c-systems# prototypes#)
            f# (fn ~(vec coordinates) ~@body)]
        (apply f# (mapcat flatten c-fns#)))))
-
-;; idea for another macro:
-;; (with-coordinates [R2-rect [x y]
-;;                    R2-polar [r theta]]
-;;   body...)
 ;; [END coordinates]
 
 (defn ^:private make-manifold-point
