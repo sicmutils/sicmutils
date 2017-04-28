@@ -57,7 +57,6 @@
   (point->coords [this point])
   (manifold [this]))
 
-;; [BEGIN coordinates]
 (defn coordinate-functions
   [coordinate-system coordinate-prototype]
   (s/mapr (fn [coordinate-name access-chain]
@@ -111,7 +110,6 @@
            c-fns# (map coordinate-functions c-systems# prototypes#)
            f# (fn ~(vec coordinates) ~@body)]
        (apply f# (mapcat flatten c-fns#)))))
-;; [END coordinates]
 
 (defn ^:private make-manifold-point
   "Make a point in an abstract manifold, specified by a concrete point
