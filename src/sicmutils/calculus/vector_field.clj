@@ -3,11 +3,17 @@
              [generic :as g]
              [operator :as o]
              [function :as f]
-             [structure :as s]]
+             [structure :as s]
+             [series :as series]]
             [sicmutils.calculus
              [manifold :as m]
              [derivative :refer [D ∂]]]
             [sicmutils.function :as f]))
+
+;; A vector field is an operator that takes a smooth real-valued
+;; function of a manifold and produces a new function on the manifold
+;; which computes the directional derivative of the given function at
+;; each point of the manifold.
 
 (defn procedure->vector-field
   [vfp & name]
@@ -31,7 +37,7 @@
 
 (defn components->vector-field
   [components coordinate-system name]
-  (procedure->vector-field (vector-field-procedure components coordinate-system)))
+  (procedure->vector-field (vector-field-procedure components coordinate-system) name))
 
 (defn vector-field->components
   [vf coordinate-system]
@@ -68,3 +74,16 @@
   (s/mapr #(apply coordinate-basis-vector-field coordinate-system %1 %2)
           prototype
           (s/structure->access-chains prototype)))
+
+(defn evolution
+  "We can use the coordinatized vector field to build an evolution along an
+  integral curve."
+  [order]
+  (fn [delta-t vector-field]
+    (fn [manifold-function]
+      (fn [manifold-point]
+        (series/sum
+          (((g/exp (g/* delta-t vector-field))
+             manifold-function)
+            manifold-point)
+          order)))))

@@ -41,7 +41,7 @@
              [hamilton]
              [rotation]]
             [sicmutils.calculus.derivative :as d]
-            [sicmutils.calculus.manifold :as m]
+            [sicmutils.calculus.manifold]
             [sicmutils.calculus.coordinate]
             [sicmutils.value :as v]))
 
@@ -154,6 +154,8 @@
  [sicmutils.calculus.coordinate
   let-coordinates
   using-coordinates]
+ [sicmutils.calculus.vector-field
+  literal-vector-field]
  [sicmutils.mechanics.lagrange
   ->L-state
   ->L-state

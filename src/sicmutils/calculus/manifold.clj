@@ -136,10 +136,7 @@
                      (fn []
                        (let [prep (manifold-point-representation point)]
                          (assert (= (s/dimension prep) (manifold :embedding-dimension)))
-                         prep
-                         )))
-
-    )
+                         prep))))
   (manifold [this] manifold))
 
 (deftype PolarCylindrical [manifold]
