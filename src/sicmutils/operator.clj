@@ -53,7 +53,7 @@
   {:pre [(instance? Operator o)
          (instance? Operator p)]}
   (reduce (fn [joint-ctx [k v]]
-            (if-let [cv (joint-ctx k)]
+            (if-let [cv (k joint-ctx)]
               (if (= cv v)
                 joint-ctx
                 (throw (IllegalArgumentException. (str "incompatible operator context: " (:context o) (:context p)))))

@@ -150,12 +150,16 @@
   point
   literal-manifold-function
   R2-rect
-  R2-polar]
+  R2-polar
+  R3-rect
+  R3-cyl]
  [sicmutils.calculus.coordinate
   let-coordinates
   using-coordinates]
  [sicmutils.calculus.vector-field
-  literal-vector-field]
+  evolution
+  literal-vector-field
+  vector-field->components]
  [sicmutils.mechanics.lagrange
   ->L-state
   ->L-state

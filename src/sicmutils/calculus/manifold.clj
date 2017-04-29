@@ -187,6 +187,9 @@
             (attach-coordinate-system :polar-cylindrical :origin ->PolarCylindrical)))
 
 (def R2 (make-manifold Rn 2))
+(def R3 (make-manifold Rn 3))
 (def R2-rect (coordinate-system-at :rectangular :origin R2))
+(def R3-rect (coordinate-system-at :rectangular :origin R3))
+(def R3-cyl (coordinate-system-at :polar-cylindrical :origin R3))
 (def R2-polar (coordinate-system-at :polar-cylindrical :origin R2))
 
