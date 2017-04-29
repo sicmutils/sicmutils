@@ -42,6 +42,7 @@
              [rotation]]
             [sicmutils.calculus.derivative :as d]
             [sicmutils.calculus.manifold :as m]
+            [sicmutils.calculus.coordinate]
             [sicmutils.value :as v]))
 
 (def zero? v/nullity?)
@@ -106,10 +107,7 @@
  [sicmutils.function
   compose]
  [sicmutils.generic
-  *
-  +
-  -
-  /
+  * + - /
   abs
   acos
   asin
@@ -146,17 +144,16 @@
   ->infix
   ->TeX
   ->JavaScript]
- [sicmutils.calculus.derivative
-  D
-  ∂]
+ [sicmutils.calculus.derivative D ∂]
  [sicmutils.calculus.manifold
   chart
   point
-  let-coordinates
-  using-coordinates
+  literal-manifold-function
   R2-rect
-  R2-polar
-  ]
+  R2-polar]
+ [sicmutils.calculus.coordinate
+  let-coordinates
+  using-coordinates]
  [sicmutils.mechanics.lagrange
   ->L-state
   ->L-state
@@ -199,14 +196,9 @@
   symplectic-transform?
   symplectic-unit
   time-independent-canonical?]
- [sicmutils.mechanics.rotation
-  Rx
-  Ry
-  Rz]
+ [sicmutils.mechanics.rotation Rx Ry Rz]
  [sicmutils.numerical.ode
   evolve
   state-advancer]
- [sicmutils.numerical.integrate
-  definite-integral]
- [sicmutils.numerical.minimize
-  minimize])
+ [sicmutils.numerical.integrate definite-integral]
+ [sicmutils.numerical.minimize minimize])

@@ -1,10 +1,9 @@
 (ns sicmutils.calculus.manifold
-  (:require [clojure.string :as str]
-            [sicmutils
+  (:require [sicmutils
              [value :as v]
+             [function :as f]
              [generic :as g]
-             [structure :as s]])
-  )
+             [structure :as s]]))
 
 (defn make-manifold-family
   [name-format & {:keys [over] :or {over 'Real}}]
@@ -56,60 +55,6 @@
   (check-point [this point])
   (point->coords [this point])
   (manifold [this]))
-
-(defn coordinate-functions
-  [coordinate-system coordinate-prototype]
-  (s/mapr (fn [coordinate-name access-chain]
-            (comp (apply s/component access-chain)
-                  #(point->coords coordinate-system %)))
-          coordinate-prototype
-          (s/structure->access-chains coordinate-prototype)))
-
-(defn ^:private quotify-coordinate-prototype
-  [p]
-  (cond (and (sequential? p)
-             ('#{up down} (first p))) `(~(first p) ~@(map quotify-coordinate-prototype (rest p)))
-        (vector? p) (mapv quotify-coordinate-prototype p)
-        (symbol? p) `'~p
-        :else (throw (IllegalArgumentException. "Invalid coordinate prototype"))))
-
-(defn ^:private symbols-from-prototype
-  [p]
-  (cond (and (sequential? p)
-             ('#{up down} (first p))) (mapcat symbols-from-prototype (rest p))
-        (vector? p) (mapcat symbols-from-prototype p)
-        (symbol? p) `(~p)
-        :else (throw (IllegalArgumentException. (str "Invalid coordinate prototype: " p)))))
-
-(defmacro using-coordinates
-  "Example:
-    (using-coordinates (up x y) R2-rect
-      body...)"
-  [coordinate-prototype coordinate-system & body]
-  (let [qcp (quotify-coordinate-prototype coordinate-prototype)
-        coordinates (symbols-from-prototype coordinate-prototype)]
-    `(let [prototype# ~qcp
-           c-fns# (coordinate-functions ~coordinate-system prototype#)
-           f# (fn ~(vec coordinates) ~@body)]
-       (apply f# (flatten c-fns#)))))
-
-(defmacro let-coordinates
-  "Example:
-    (let-coordinates [[x y] R2-rect
-                      [r theta] R2-polar]
-      body...)"
-  [bindings & body]
-  (when-not (even? (count bindings))
-    (throw (IllegalArgumentException. "let-coordinates requires an even number of bindings")))
-  (let [pairs (partition 2 bindings)
-        prototypes (map first pairs)
-        c-systems (mapv second pairs)
-        coordinates (mapcat symbols-from-prototype prototypes)]
-    `(let [prototypes# ~(mapv quotify-coordinate-prototype prototypes)
-           c-systems# ~c-systems
-           c-fns# (map coordinate-functions c-systems# prototypes#)
-           f# (fn ~(vec coordinates) ~@body)]
-       (apply f# (mapcat flatten c-fns#)))))
 
 (defn ^:private make-manifold-point
   "Make a point in an abstract manifold, specified by a concrete point
@@ -166,6 +111,14 @@
 (defn point
   [coordinate-system]
   #(coords->point coordinate-system %))
+
+(defn literal-manifold-function
+  [name coordinate-system]
+  (let [n (:dimension (manifold coordinate-system))
+        domain (apply s/up (repeat n 0))
+        range 0]
+    (f/compose (f/literal-function name domain range)
+               #(point->coords coordinate-system %))))
 
 (deftype Rectangular [manifold]
   ICoordinateSystem

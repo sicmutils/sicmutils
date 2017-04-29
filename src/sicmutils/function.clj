@@ -308,11 +308,11 @@
                            (= (count provided) (count expected)))
               (throw (IllegalArgumentException.
                       (str "expected structure matching " expected
-                           " but got " provided))))
+                           " but got " provided ))))
             (doseq [[provided expected sub-index] (map list provided expected (range))]
               (check-argument-type f provided expected (conj indexes sub-index))))
         :else (throw (IllegalArgumentException.
-                      (str "unexpected argument example " expected)))))
+                      (str "unexpected argument example. got " provided " want " expected)))))
 
 (defn ^:private literal-apply
   [f xs]

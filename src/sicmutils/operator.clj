@@ -25,7 +25,7 @@
   (:import (clojure.lang IFn)
            (sicmutils.series Series)))
 
-(defrecord Operator [o arity name]
+(defrecord Operator [o arity name subtype]
   v/Value
   (freeze [_] name)
   (kind [_] ::operator)
@@ -36,19 +36,34 @@
   (invoke [_ f g] (o f g))
   (applyTo [_ fns] (apply o fns)))
 
+;; FIXME (elsewhere): audit calls to make-operator to ensure they're providing a useful/consistent name
 (defn make-operator
-  [o name]
-  (Operator. o [:exactly 1] name))
+  [o name & {:keys [subtype]}]
+  (Operator. o [:exactly 1] name subtype))
 
 (defn operator?
   [x]
   (instance? Operator x))
 
-(def identity-operator (Operator. identity [:exactly 1] 1))
+(def identity-operator (Operator. identity [:exactly 1] 1 nil))
+
+(defn ^:private joint-subtype
+  [o p]
+  {:pre [(instance? Operator o)
+         (instance? Operator p)]}
+  (let [o-subtype (:subtype o)
+        p-subtype (:subtype p)]
+    (if o-subtype
+      (if p-subtype
+        (do (when-not (= o-subtype p-subtype)
+              (throw (IllegalArgumentException. (str "Incompatible operator types: " o-subtype " " p-subtype))))
+            o-subtype)
+        o-subtype)
+      p-subtype)))
 
 (defn ^:private number->operator
   [n]
-  (Operator. #(g/* n %) [:at-least 0] n))
+  (Operator. #(g/* n %) [:at-least 0] n nil))
 
 (defn ^:private o-o
   "Subtract one operator from another. Produces an operator which
@@ -56,16 +71,17 @@
   [o p]
   (Operator. #(g/- (o %) (p %))
              (v/joint-arity [(:arity o) (:arity p)])
-             `(~'- ~o ~p)))
+             `(~'- ~(:name o) ~(:name p))
+             (joint-subtype o p)))
 
 (defn ^:private o+o
   "Add two operators. Produces an operator which adds the result of
   applying the given operators."
   [o p]
-
   (Operator. #(g/+ (o %) (p %))
              (v/joint-arity [(v/arity o) (v/arity p)])
-             `(~'+ ~o ~p)))
+             `(~'+ ~(:name o) ~(:name p))
+             (joint-subtype o p)))
 
 ;; multiplication of operators is treated like composition.
 (defn ^:private o*o
@@ -73,7 +89,8 @@
   [o p]
   (Operator. (with-meta (comp o p) {:arity (:arity p)})
              (:arity p)
-             `(~'* ~o ~p)))
+             `(~'* ~(:name o) ~(:name p))
+             (joint-subtype o p)))
 
 (defn ^:private o*f
   "Multiply an operator by a non-operator on the right. The
@@ -82,7 +99,8 @@
   (Operator. (fn [& gs]
                (apply o (map (fn [g] (g/* f g)) gs)))
              (:arity o)
-             `(~'* ~o ~f)))
+             `(~'* ~(:name o) ~f)
+             (:subtype o)))
 
 (defn ^:private f*o
   "Multiply an operator by a non-operator on the left. The
@@ -91,7 +109,8 @@
   (Operator. (fn [& gs]
                (g/* f (apply o gs)))
              (:arity o)
-             `(~'* ~f ~o)))
+             `(~'* ~f ~(:name o))
+             (:subtype o)))
 
 ;; Do we need to promote the second arg type (Number)
 ;; to ::x/numerical-expression?? -- check this ***AG***
@@ -118,7 +137,8 @@
                                         [:exactly 0]
                                         (map #(% f) (step 0 1 identity-operator)))))
                [:exactly 1]
-               `(~'exp ~g))))
+               `(~'exp ~(:name g))
+               (:subtype g))))
 
 (defmethod g/add [::operator ::operator] [o p] (o+o o p))
 ;; In additive operation the value 1 is considered as the identity operator
@@ -172,7 +192,7 @@
 (defmethod g/transpose
   [::operator]
   [o]
-  (Operator. (fn [f] #(g/transpose (apply (o f) %&))) 1 'transpose))
+  (Operator. (fn [f] #(g/transpose (apply (o f) %&))) 1 'transpose nil))
 
 (defmethod g/cross-product
   [::operator ::operator]

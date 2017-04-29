@@ -90,7 +90,7 @@
     (let [L #(Lagrangian (up t q %))]
       ((Legendre-transform L) p))))
 
-(def Lagrangian->Hamiltonian (make-operator Lagrangian->Hamiltonian-fn "Lagrangian->Hamiltonian"))
+(def Lagrangian->Hamiltonian (make-operator Lagrangian->Hamiltonian-fn 'Lagrangian->Hamiltonian))
 
 (defn Poisson-bracket
   [f g]

@@ -22,12 +22,15 @@
 
 (deftest section-2-2
   (let [f (compose (literal-function 'f-rect (-> (UP Real Real) Real)) R2-rect-chi)
+        g (literal-manifold-function 'g-rect R2-rect)
         R2-rect-point (R2-rect-chi-inverse (up 'x0 'y0))
         corresponding-polar-point (R2-polar-chi-inverse
                                     (up (sqrt (+ (square 'x0) (square 'y0)))
                                         (atan 'y0 'x0)))]
     (is (= '(f-rect (up x0 y0)) (simplify (f R2-rect-point))))
     (is (= '(f-rect (up x0 y0)) (simplify (f corresponding-polar-point))))
+    (is (= '(g-rect (up x0 y0)) (simplify (g R2-rect-point))))
+    (is (= '(g-rect (up x0 y0)) (simplify (g corresponding-polar-point))))
     (let-coordinates [[x y] R2-rect
                       [r theta] R2-polar]
       (is (= 'x0 (x (R2-rect-chi-inverse (up 'x0 'y0)))))
