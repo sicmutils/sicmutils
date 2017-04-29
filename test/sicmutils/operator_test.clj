@@ -122,6 +122,20 @@
              (* 29/90 (expt n 3) (expt ε 7))
              (* -7/20 (expt n 2) (expt ε 7))
              (* 1/7 n (expt ε 7)))
-           (simplify (nth (seq (((exp (* 'ε D)) #(expt (+ 1 %) 'n)) 0)) 7))))))
+           (simplify (nth (seq (((exp (* 'ε D)) #(expt (+ 1 %) 'n)) 0)) 7)))))
+  (testing "mixed types don't combine"
+    (let [o (make-operator identity 'o :subtype :x)
+          p (make-operator identity 'p :subtype :y)
+          q (make-operator identity 'q :subtype :x :color :blue)
+          r (make-operator identity 'r :subtype :x :color :green)]
+      (is (thrown? IllegalArgumentException ((+ o p) inc)))
+      (is (thrown? IllegalArgumentException ((* o p) inc)))
+      (is (= 2 (((+ o o) inc) 0)))
+      (is (= 1 (((* o o) inc) 0)))
+      (is (= {:subtype :x} (:context (+ o o))))
+      (is (= {:subtype :y} (:context (* p p))))
+      (is (thrown? IllegalArgumentException ((+ q r) inc)))
+      (is (= {:subtype :x :color :blue} (:context (+ q o))))
+      (is (thrown? IllegalArgumentException (+ q p))))))
 
     ;;; more testing to come as we implement multivariate literal functions that rely on operations on structures....

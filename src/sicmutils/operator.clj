@@ -25,7 +25,7 @@
   (:import (clojure.lang IFn)
            (sicmutils.series Series)))
 
-(defrecord Operator [o arity name subtype]
+(defrecord Operator [o arity name context]
   v/Value
   (freeze [_] name)
   (kind [_] ::operator)
@@ -36,10 +36,9 @@
   (invoke [_ f g] (o f g))
   (applyTo [_ fns] (apply o fns)))
 
-;; FIXME (elsewhere): audit calls to make-operator to ensure they're providing a useful/consistent name
 (defn make-operator
-  [o name & {:keys [subtype]}]
-  (Operator. o [:exactly 1] name subtype))
+  [o name & {:keys [] :as context}]
+  (Operator. o [:exactly 1] name context))
 
 (defn operator?
   [x]
@@ -47,21 +46,25 @@
 
 (def identity-operator (Operator. identity [:exactly 1] 1 nil))
 
-(defn ^:private joint-subtype
+(defn ^:private joint-context
+  "Merges type context maps of the two operators. Where the maps have keys in
+  common, they must agree; disjoint keys become part of the new joint context."
   [o p]
   {:pre [(instance? Operator o)
          (instance? Operator p)]}
-  (let [o-subtype (:subtype o)
-        p-subtype (:subtype p)]
-    (if o-subtype
-      (if p-subtype
-        (do (when-not (= o-subtype p-subtype)
-              (throw (IllegalArgumentException. (str "Incompatible operator types: " o-subtype " " p-subtype))))
-            o-subtype)
-        o-subtype)
-      p-subtype)))
+  (reduce (fn [joint-ctx [k v]]
+            (if-let [cv (joint-ctx k)]
+              (if (= cv v)
+                joint-ctx
+                (throw (IllegalArgumentException. (str "incompatible operator context: " (:context o) (:context p)))))
+              (assoc joint-ctx k v)))
+          (:context o)
+          (:context p)))
 
 (defn ^:private number->operator
+  "Lift a number to an operator which multiplies its
+  applied function by that number (nb: in function arithmentic,
+  this is pointwise multiplication)"
   [n]
   (Operator. #(g/* n %) [:at-least 0] n nil))
 
@@ -72,7 +75,7 @@
   (Operator. #(g/- (o %) (p %))
              (v/joint-arity [(:arity o) (:arity p)])
              `(~'- ~(:name o) ~(:name p))
-             (joint-subtype o p)))
+             (joint-context o p)))
 
 (defn ^:private o+o
   "Add two operators. Produces an operator which adds the result of
@@ -81,7 +84,7 @@
   (Operator. #(g/+ (o %) (p %))
              (v/joint-arity [(v/arity o) (v/arity p)])
              `(~'+ ~(:name o) ~(:name p))
-             (joint-subtype o p)))
+             (joint-context o p)))
 
 ;; multiplication of operators is treated like composition.
 (defn ^:private o*o
@@ -90,7 +93,7 @@
   (Operator. (with-meta (comp o p) {:arity (:arity p)})
              (:arity p)
              `(~'* ~(:name o) ~(:name p))
-             (joint-subtype o p)))
+             (joint-context o p)))
 
 (defn ^:private o*f
   "Multiply an operator by a non-operator on the right. The
@@ -100,7 +103,7 @@
                (apply o (map (fn [g] (g/* f g)) gs)))
              (:arity o)
              `(~'* ~(:name o) ~f)
-             (:subtype o)))
+             (:context o)))
 
 (defn ^:private f*o
   "Multiply an operator by a non-operator on the left. The
@@ -110,7 +113,7 @@
                (g/* f (apply o gs)))
              (:arity o)
              `(~'* ~f ~(:name o))
-             (:subtype o)))
+             (:context o)))
 
 ;; Do we need to promote the second arg type (Number)
 ;; to ::x/numerical-expression?? -- check this ***AG***
@@ -138,7 +141,7 @@
                                         (map #(% f) (step 0 1 identity-operator)))))
                [:exactly 1]
                `(~'exp ~(:name g))
-               (:subtype g))))
+               (:context g))))
 
 (defmethod g/add [::operator ::operator] [o p] (o+o o p))
 ;; In additive operation the value 1 is considered as the identity operator
