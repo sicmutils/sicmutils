@@ -19,7 +19,7 @@
              (simplify ((v f) p))))
       (is (= '(up (b↑0 (up x0 y0)) (b↑1 (up x0 y0)))
              (simplify ((v (chart R2-rect)) p))))))
-  (testing "exponentiation"
+  (testing "exponential"
     (let-coordinates [[x y] R2-rect]
       (let [circular (- (* x d:dy) (* y d:dx))]
         (is (= '(up (+ (* -1/720 (expt a 6)) (* 1/24 (expt a 4)) (* -1/2 (expt a 2)) 1)

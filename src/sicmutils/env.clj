@@ -152,7 +152,10 @@
   R2-rect
   R2-polar
   R3-rect
-  R3-cyl]
+  R3-cyl
+  S2-spherical
+  S2-stereographic
+  S2-Riemann]
  [sicmutils.calculus.coordinate
   let-coordinates
   using-coordinates]

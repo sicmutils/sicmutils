@@ -124,6 +124,13 @@
   [s xs]
   (make (orientation s) xs))
 
+(defn flip-indices
+  "Make a tuple with the same shape as s but all orientations inverted."
+  [s]
+  (if (structure? s)
+    (Structure. (opposite-orientation (orientation s)) (mapv flip-indices (seq s)))
+    s))
+
 (defn ^:private elementwise
   "Given a binary operator and two structures of the same size, return
   a structure with the same orientation as the first formed from the
@@ -277,7 +284,9 @@
 
 (defn dimension
   [s]
-  (-> s flatten count))
+  (if (sequential? s)
+    (-> s flatten count)
+    1))
 
 (defmethod g/add [::down ::down] [a b] (elementwise g/+ a b))
 (defmethod g/add [::up ::up] [a b] (elementwise g/+ a b))

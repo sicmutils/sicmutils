@@ -22,7 +22,6 @@
             [sicmutils
              [value :as v]
              [env :refer :all]
-             [series :as series]
              [operator :refer :all]
              [simplify :refer [hermetic-simplify-fixture]]]))
 

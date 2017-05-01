@@ -23,7 +23,6 @@
     [sicmutils
      [env :refer :all]
      [value :as v]]
-    ;; objects in manifold ns will need to graduate to env
     [sicmutils.calculus.manifold :as m]))
 
 (defn ^:private near

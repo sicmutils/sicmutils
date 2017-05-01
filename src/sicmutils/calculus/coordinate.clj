@@ -7,10 +7,9 @@
 
 (defn coordinate-functions
   [coordinate-system coordinate-prototype]
-  (s/mapr (fn [coordinate-name access-chain]
+  (s/mapr (fn [access-chain]
             (comp (apply s/component access-chain)
                   #(point->coords coordinate-system %)))
-          coordinate-prototype
           (s/structure->access-chains coordinate-prototype)))
 
 (defn ^:private quotify-coordinate-prototype

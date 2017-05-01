@@ -252,6 +252,7 @@
 (deftest other-operations
   (let [A (up 1 2 'a (down 3 4) (up (down 'c 'd) 'e))]
     (is (= 8 (s/dimension A)))
+    (is (= 1 (s/dimension 99)))
     (let [vs (velocity-tuple
               (velocity-tuple 'vx1 'vy1)
               (velocity-tuple 'vx2 'vy2))
@@ -312,7 +313,11 @@
       (is (= (up (up 1 2 3) (up 0 4 5) (up 1 0 6)) (transpose C)))
       (is (= (down (down 3)) (transpose D)))
       (is (= (down 1) (transpose E)))
-      (is (= (up (up 1 2) (up 3 4)) (transpose F))))))
+      (is (= (up (up 1 2) (up 3 4)) (transpose F))))
+    (testing "flip-indices"
+      (is (= (down (down 1 2) (down 3 4)) (s/flip-indices A)))
+      (is (= (up (down 1 2 3) (down 3 4 5)) (s/flip-indices B)))
+      (is (= (down 1) (s/flip-indices E))))))
 
 (defn ^:private near [w z]
   (< (abs (- w z)) 1e-12))

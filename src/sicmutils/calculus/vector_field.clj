@@ -23,7 +23,7 @@
 (defn vector-field?
   [vf]
   (and (o/operator? vf)
-       (= (:subtype (:context vf)) ::vector-field)))
+       (-> vf :context :subtype (= ::vector-field))))
 
 ;; TODO(colin.smith): GJS supplies the allowed argument list here; but we think
 ;; this is probably already covered by the defmethod operator applicability rules.

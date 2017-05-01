@@ -3,6 +3,7 @@
              [value :as v]
              [function :as f]
              [generic :as g]
+             [matrix :as matrix]
              [structure :as s]]))
 
 (defn make-manifold-family
@@ -14,13 +15,13 @@
 (defn make-manifold
   "Specialize a manifold-family into a particular manifold by specifying
   its dimension."
-  [manifold-family n]
+  [manifold-family n & [embedding-dimension]]
   {:pre [(integer? n)
          (> n 0)]}
   {:manifold-family     manifold-family
    :name                (format (manifold-family :name-format) n)
    :dimension           n
-   :embedding-dimension n})
+   :embedding-dimension (or embedding-dimension n)})
 
 (defn make-patch [name]
   "Constructor for patches."
@@ -168,7 +169,7 @@
                        (let [prep (manifold-point-representation point)]
                          (when-not (and (s/up? prep)
                                         (= (s/dimension prep) (manifold :embedding-dimension)))
-                           (throw (IllegalStateException. "PolarCylindrical singular")))
+                           (throw (IllegalArgumentException. "PolarCylindrical bad point")))
                          (let [[x y] prep
                                rsq (g/+ (g/square x) (g/square y))]
                            (when (v/nullity? rsq)
@@ -180,11 +181,87 @@
                                           (nth prep %))))))))
   (manifold [this] manifold))
 
+(deftype SphericalCylindrical [manifold]
+  ICoordinateSystem
+  (check-coordinates [this coords]
+    (and (s/up? coords)
+         (= (s/dimension coords) (manifold :dimension))
+         (or (not (number? coords))
+             (>= (nth coords 0) 0))))
+  (coords->point [this coords]
+    (assert (check-coordinates this coords))
+    (let [[r theta phi] coords]
+      (make-manifold-point
+        (s/generate (s/dimension coords) ::s/up
+                    #(case %
+                       0 (g/* r (g/sin theta) (g/cos phi))
+                       1 (g/* r (g/sin theta) (g/sin phi))
+                       2 (g/* r (g/cos theta))
+                       (nth coords %)))
+        manifold
+        this
+        coords)))
+  (check-point [this point]
+    (my-manifold-point? point manifold))
+  (point->coords [this point]
+    (assert (check-point this point))
+    (get-coordinates point this
+                     (fn []
+                       (let [prep (manifold-point-representation point)]
+                         (when-not (and (s/up? prep)
+                                        (= (s/dimension prep) (manifold :embedding-dimension)))
+                           (throw (IllegalArgumentException. "SphericalCylindrical bad point")))
+                         (let [[x y z] prep
+                               r (g/sqrt (g/+ (g/square x) (g/square y) (g/square z)))]
+                           (when (v/nullity? r)
+                             (throw (IllegalStateException. "SphericalCylindrical singular")))
+                           (s/generate (s/dimension prep) ::s/up
+                                       #(case %
+                                          0 r
+                                          1 (g/acos (g/divide z r))
+                                          2 (g/atan y x)
+                                          (nth prep %))))))))
+  (manifold [this] manifold))
+
+(defn Stereographic
+  "Stereographic projection from the final coordinate. The default pole is (0 0 ... 1),
+  but this can be moved by the orthogonal (n+1) by (n+1) matrix returned by orientation
+  function."
+  [orientation-function]
+  (fn [manifold]
+    (let [n (manifold :dimension)
+          orientation-matrix (orientation-function (+ n 1))
+          orientation-inverse-matrix (g/invert orientation-matrix)]
+      (reify ICoordinateSystem
+        (check-coordinates [this coords]
+          (or (and (= n 1) (= (s/dimension coords) 1))
+              (and (s/up? coords) (= (s/dimension coords) n))))
+        (coords->point [this coords]
+          (assert (check-coordinates this coords))
+          (let [coords (if (= n 1) (s/up coords) coords)
+                delta (g/square coords)
+                xn (g/divide (g/- delta 1) (g/+ 1 delta))
+                pt (s/generate (+ n 1) ::s/up #(if (= % n) xn
+                                                           (g/divide (g/* 2 (nth coords %))
+                                                                     (g/+ 1 delta))))]
+            (make-manifold-point (g/* orientation-matrix pt) manifold this coords)))
+        (check-point [this point]
+          (my-manifold-point? point manifold))
+        (point->coords [this point]
+          (assert (check-point this point))
+          (let [pt (g/* orientation-inverse-matrix (manifold-point-representation point))]
+            (when (and (number? (nth pt n)) (= (nth pt n) 1))
+              (throw (IllegalStateException. "S^n stereographic singular")))
+            (let [coords (s/generate n ::s/up #(g/divide (nth pt %) (g/- 1 (nth pt n))))]
+              (if (= n 1) (first coords) coords))))
+        (manifold [this] manifold)))))
+
 (def Rn (-> "R(%d)"
             make-manifold-family
             (attach-patch :origin)
             (attach-coordinate-system :rectangular :origin ->Rectangular)
             (attach-coordinate-system :polar-cylindrical :origin ->PolarCylindrical)))
+
 
 (def R2 (make-manifold Rn 2))
 (def R3 (make-manifold Rn 3))
@@ -192,4 +269,22 @@
 (def R3-rect (coordinate-system-at :rectangular :origin R3))
 (def R3-cyl (coordinate-system-at :polar-cylindrical :origin R3))
 (def R2-polar (coordinate-system-at :polar-cylindrical :origin R2))
+
+(def Sn (-> "S(%d)"
+            make-manifold-family
+            (attach-patch :north-pole)
+            (attach-coordinate-system :spherical :north-pole ->SphericalCylindrical)
+            (attach-coordinate-system :stereographic :north-pole (Stereographic matrix/I))))
+
+(def S2-type (-> "S2"
+                 make-manifold-family
+                 (attach-patch :north-pole)
+                 (attach-coordinate-system :spherical :north-pole ->SphericalCylindrical)
+                 (attach-coordinate-system :stereographic :north-pole (Stereographic matrix/I))
+                 ))
+
+(def S2 (make-manifold S2-type 2 3))
+(def S2-spherical (coordinate-system-at :spherical :north-pole S2))
+(def S2-stereographic (coordinate-system-at :stereographic :north-pole S2))
+(def S2-Riemann S2-stereographic)
 
