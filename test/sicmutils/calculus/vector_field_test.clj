@@ -26,7 +26,10 @@
                     (+ (* 1/120 (expt a 5)) (* -1/6 (expt a 3)) a))
                (simplify
                  ((((evolution 6) 'a circular) (chart R2-rect))
-                   ((point R2-rect) (up 1 0)))))))))
+                  ((point R2-rect) (up 1 0)))))))))
+  (testing "naming"
+    (let-coordinates [[x y] R2-rect]
+      (is (= 0 ))))
   (testing "gjs-examples"
     (let-coordinates [[x y z] R3-rect]
       (is (= '(+ (* -1 a b (cos a) (cos b)) (* -2 a (cos a) (sin b)))
@@ -86,4 +89,3 @@
                  (simplify (((coordinatize (literal-vector-field 'v R3-rect) R3-rect)
                               (literal-function 'f (up 1 2 3) 1))
                              (up 'x0 'y0 'z0))))))))))
-

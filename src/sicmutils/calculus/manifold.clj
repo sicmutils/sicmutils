@@ -280,11 +280,10 @@
                  make-manifold-family
                  (attach-patch :north-pole)
                  (attach-coordinate-system :spherical :north-pole ->SphericalCylindrical)
-                 (attach-coordinate-system :stereographic :north-pole (Stereographic matrix/I))
-                 ))
+                 (attach-coordinate-system :stereographic :north-pole (Stereographic matrix/I))))
 
 (def S2 (make-manifold S2-type 2 3))
 (def S2-spherical (coordinate-system-at :spherical :north-pole S2))
 (def S2-stereographic (coordinate-system-at :stereographic :north-pole S2))
 (def S2-Riemann S2-stereographic)
-
+;; double-check these: what goes in S2-type, and what goes in Sn(2)?

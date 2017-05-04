@@ -69,11 +69,21 @@
     (apply coordinate-basis-vector-field-procedure coordinate-system i)
     name))
 
+;; this should be index-flipped, and should be named d:d_.
+
+(defn coordinate-name->vf-name
+  "From the name of a coordinate, produce the name of the coordinate basis
+  vector field (as a symbol)"
+  [n]
+  (symbol (str "d:d" n))
+  )
+
 (defn coordinate-basis-vector-fields
   [coordinate-system prototype]
-  (s/mapr #(apply coordinate-basis-vector-field coordinate-system %1 %2)
-          prototype
-          (s/structure->access-chains prototype)))
+  (s/flip-indices
+   (s/mapr #(apply coordinate-basis-vector-field coordinate-system %1 %2)
+           prototype
+           (s/structure->access-chains prototype))))
 
 (defn evolution
   "We can use the coordinatized vector field to build an evolution along an
