@@ -234,3 +234,12 @@
              (square (/ p_phi r)))
           (* 2 m))
        (V r))))
+
+(defn Hamiltonian
+  "Return SICM-style function signature for a Hamiltonian with n
+  degrees of freedom (or 1 if n is not given). Useful for constructing
+  Hamiltonian literal functions."
+  [& n]
+  (if (nil? n)
+    '(-> (UP Real (UP* Real) (DOWN* Real)) Real)
+    `(~'-> (~'UP ~'Real (~'UP* ~'Real ~@n) (~'DOWN* ~'Real ~@n)) ~'Real)))

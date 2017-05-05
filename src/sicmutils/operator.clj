@@ -115,6 +115,14 @@
              `(~'* ~f ~(:name o))
              (:context o)))
 
+(defn commutator
+  [o p]
+  (g/- (g/* o p) (g/* p o)))
+
+(defn anticommutator
+  [o p]
+  (g/+ (g/* o p) (g/* p o)))
+
 ;; Do we need to promote the second arg type (Number)
 ;; to ::x/numerical-expression?? -- check this ***AG***
 (defmethod g/expt

@@ -98,7 +98,16 @@
                                  (fn [r] (- (/ (* 'GM 'm) r))))))
               (coordinate-tuple r phi)
               (momentum-tuple p_r p_phi))
-             't))))))
+             't)))))
+  (let [F (literal-function 'F (Hamiltonian 2))
+        G (literal-function 'G (Hamiltonian 2))
+        H (literal-function 'G (Hamiltonian 2))
+        L_F (Lie-derivative F)
+        L_G (Lie-derivative G)]
+    (is (= 0 (simplify (((+ (commutator L_F L_G)
+                            (Lie-derivative (Poisson-bracket F G)))
+                         H)
+                        (up 't (up 'x 'y) (down 'px 'py))))))))
 
 (deftest poisson
   (let [a-state (->H-state 't

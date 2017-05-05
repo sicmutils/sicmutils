@@ -41,23 +41,13 @@
 
     (sequential? s)
     (let [[constructor & args] s]
-      (cond (= 'X constructor)
-            (mapv sicm-set->exemplar args)
-
-            (= 'UP constructor)
-            (apply s/up (map sicm-set->exemplar args))
-
-            (= 'DOWN constructor)
-            (apply s/down (map sicm-set->exemplar args))
-
-            (= 'UP* constructor)
-            (apply s/up (repeat (second args) (sicm-set->exemplar (first args))))
-
-            (= 'DOWN* constructor)
-            (apply s/down (repeat (second args) (sicm-set->exemplar (first args))))
-
-            (= 'X* constructor)
-            (into [] (repeat (second args) (sicm-set->exemplar (first args))))))))
+      (case constructor
+        X     (mapv sicm-set->exemplar args)
+        UP    (apply s/up (map sicm-set->exemplar args))
+        DOWN  (apply s/down (map sicm-set->exemplar args))
+        UP*   (apply s/up (repeat (second args) (sicm-set->exemplar (first args))))
+        DOWN* (apply s/down (repeat (second args) (sicm-set->exemplar (first args))))
+        X*    (into [] (repeat (second args) (sicm-set->exemplar (first args))))))))
 
 (defn sicm-signature->domain-range
   "Convert a SICM-style literal function signature (e.g.,
@@ -65,7 +55,7 @@
   [[arrow domain range]]
   (when-not (and (= '-> arrow) domain range)
     (throw (IllegalArgumentException.
-            "A SICM signature is of the form '(-> domain range)")))
+            (str "A SICM signature is of the form '(-> domain range), got: " arrow domain range))))
   [(let [d (sicm-set->exemplar domain)]
      (if (vector? d) d [d]))
    (sicm-set->exemplar range)])

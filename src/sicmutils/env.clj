@@ -30,6 +30,7 @@
              [generic :as g]
              [simplify :as simp]
              [function :as f]
+             [operator]
              [matrix :as matrix]
              [series :as series]]
             [sicmutils.numerical
@@ -49,7 +50,10 @@
 
 (defmacro literal-function
   ([f] `(f/literal-function ~f))
-  ([f sicm-signature] `(f/literal-function ~f '~sicm-signature))
+  ([f sicm-signature]
+   (if (= '-> (first sicm-signature))
+     `(f/literal-function ~f '~sicm-signature)
+     `(f/literal-function ~f ~sicm-signature)))
   ([f domain range] `(f/literal-function ~f ~domain ~range)))
 
 (defmacro with-literal-functions
@@ -106,6 +110,8 @@
   real-part]
  [sicmutils.function
   compose]
+ [sicmutils.operator
+  commutator]
  [sicmutils.generic
   * + - /
   abs
@@ -190,6 +196,7 @@
   ->H-state
   F->CT
   Hamilton-equations
+  Hamiltonian
   Hamiltonian->state-derivative
   Lagrangian->Hamiltonian
   Legendre-transform
