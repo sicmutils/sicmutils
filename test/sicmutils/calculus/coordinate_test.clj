@@ -5,13 +5,15 @@
 
 (deftest coordinates
   (testing "using coordinates"
-    (using-coordinates (up x y) R2-rect
-                       (using-coordinates (up r theta) R2-polar
-                                          (let [R2-polar-chi-inverse (point R2-polar)
-                                                h (+ (* x (square r)) (cube y))]
-                                            (is (= '(+ (* (expt r0 3) (expt (sin theta0) 3))
-                                                       (* (expt r0 3) (cos theta0)))
-                                                   (simplify (h (R2-polar-chi-inverse (up 'r0 'theta0))))))))))
+    (using-coordinates
+     (up x y) R2-rect
+     (using-coordinates
+      (up r theta) R2-polar
+      (let [R2-polar-chi-inverse (point R2-polar)
+            h (+ (* x (square r)) (cube y))]
+        (is (= '(+ (* (expt r0 3) (expt (sin theta0) 3))
+                   (* (expt r0 3) (cos theta0)))
+               (simplify (h (R2-polar-chi-inverse (up 'r0 'theta0))))))))))
 
   (testing "let-coordinates"
     (let-coordinates [(up x y) R2-rect

@@ -223,7 +223,7 @@
                                           (nth prep %))))))))
   (manifold [this] manifold))
 
-(defn Stereographic
+(defn ->Stereographic
   "Stereographic projection from the final coordinate. The default pole is (0 0 ... 1),
   but this can be moved by the orthogonal (n+1) by (n+1) matrix returned by orientation
   function."
@@ -274,13 +274,13 @@
             make-manifold-family
             (attach-patch :north-pole)
             (attach-coordinate-system :spherical :north-pole ->SphericalCylindrical)
-            (attach-coordinate-system :stereographic :north-pole (Stereographic matrix/I))))
+            (attach-coordinate-system :stereographic :north-pole (->Stereographic matrix/I))))
 
 (def S2-type (-> "S2"
                  make-manifold-family
                  (attach-patch :north-pole)
                  (attach-coordinate-system :spherical :north-pole ->SphericalCylindrical)
-                 (attach-coordinate-system :stereographic :north-pole (Stereographic matrix/I))))
+                 (attach-coordinate-system :stereographic :north-pole (->Stereographic matrix/I))))
 
 (def S2 (make-manifold S2-type 2 3))
 (def S2-spherical (coordinate-system-at :spherical :north-pole S2))
