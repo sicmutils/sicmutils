@@ -3,7 +3,8 @@
              [structure :as s]]
             [sicmutils.calculus
              [manifold :refer :all]
-             [vector-field :refer :all]]))
+             [vector-field :refer :all]
+             [form-field :refer :all]]))
 
 (defn coordinate-functions
   [coordinate-system coordinate-prototype]
@@ -49,16 +50,20 @@
         c-systems (mapv second pairs)
         coordinate-names (mapcat symbols-from-prototype prototypes)
         coordinate-vector-field-names (map coordinate-name->vf-name coordinate-names)
+        coordinate-form-field-names (map coordinate-name->ff-name coordinate-names)
         ]
     `(let [prototypes# ~(mapv #(quotify-coordinate-prototype identity %) prototypes)
            vf-prototypes# ~(mapv #(quotify-coordinate-prototype coordinate-name->vf-name %) prototypes)
+           ff-prototypes# ~(mapv #(quotify-coordinate-prototype coordinate-name->ff-name %) prototypes)
            c-systems# ~c-systems
            c-fns# (map coordinate-functions c-systems# prototypes#)
            c-vfs# (map coordinate-basis-vector-fields c-systems# vf-prototypes#)
+           c-ffs# (map coordinate-basis-oneform-fields c-systems# ff-prototypes#)
            f# (fn ~(into [] (concat coordinate-names
-                                    coordinate-vector-field-names))
+                                    coordinate-vector-field-names
+                                    coordinate-form-field-names))
                 ~@body)]
-       (apply f# (mapcat flatten (concat c-fns# c-vfs#))))))
+       (apply f# (mapcat flatten (concat c-fns# c-vfs# c-ffs#))))))
 
 (defmacro using-coordinates
   "Example:

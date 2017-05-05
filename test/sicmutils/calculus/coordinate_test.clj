@@ -48,14 +48,15 @@
           mp ((point R2-polar) (up 'r0 'theta0))
           circular (- (* x d:dy) (* y d:dx))]
       (is (= 1 (simplify ((circular theta) mr))))
-      ;; (is (= 0 (simplify ((dr circular) mr)))) TODO(colin.smith): implement one-form fields
-      ;; (is (= what (((d r) d:dr) mr)))) TODO(colin.smith): implement little d
-      ;; (is (= 0 (simplify ((dr d:dr) mr))))
-      ;; (is (= 0 (simplify ((dr (literal-vector-field 'v R2-polar)) mr))))
-      ;; (((d r) (literal-vector-field 'v R2-polar)) mr)
-      ;; (is (= 0 (simplify ((dr (literal-vector-field 'v R2-rect)) mr))))
-      ;; (((d r) (literal-vector-field 'v R2-rect)) mr)
-
-      ))
-
-  )
+      (is (= 0 (simplify ((dr circular) mr))))
+      ;; TODO(colin.smith): implement little d
+      ;; (is (= 0 (((d r) d:dr) mr))))
+      (is (= 1 (simplify ((dr d:dr) mr))))
+      (is (= '(v↑0 (up (sqrt (+ (expt x0 2) (expt y0 2))) (atan y0 x0)))
+             (simplify ((dr (literal-vector-field 'v R2-polar)) mr))))
+      ;;(is (= 0 (((d r) (literal-vector-field 'v R2-polar)) mr)))
+      (is (= '(/ (+ (* x0 (v↑0 (up x0 y0))) (* y0 (v↑1 (up x0 y0))))
+                 (sqrt (+ (expt x0 2) (expt y0 2))))
+             (simplify ((dr (literal-vector-field 'v R2-rect)) mr))))
+      ;;(is (= 0 (((d r) (literal-vector-field 'v R2-rect)) mr)))
+      )))

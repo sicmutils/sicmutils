@@ -63,20 +63,17 @@
     (f/compose ((apply ∂ i) (f/compose f #(m/coords->point coordinate-system %)))
                #(m/point->coords coordinate-system %))))
 
+(defn coordinate-name->vf-name
+  "From the name of a coordinate, produce the name of the coordinate basis
+  vector field (as a symbol)"
+  [n]
+  (symbol (str "d:d" n)))
+
 (defn coordinate-basis-vector-field
   [coordinate-system name & i]
   (procedure->vector-field
     (apply coordinate-basis-vector-field-procedure coordinate-system i)
     name))
-
-;; this should be index-flipped, and should be named d:d_.
-
-(defn coordinate-name->vf-name
-  "From the name of a coordinate, produce the name of the coordinate basis
-  vector field (as a symbol)"
-  [n]
-  (symbol (str "d:d" n))
-  )
 
 (defn coordinate-basis-vector-fields
   [coordinate-system prototype]

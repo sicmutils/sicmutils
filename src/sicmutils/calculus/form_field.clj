@@ -19,8 +19,18 @@
 
 (defn procedure->oneform-field
   [fp name]
-  ;; TODO: constrain argument type to vector field
-  (o/make-operator fp name :subtype ::form-field :rank 1))
+  (o/make-operator
+   (fn [f]
+     (when-not (vf/vector-field? f)
+       (throw (IllegalArgumentException. "one-forms apply to vector fields")))
+     (fp f))
+   name :subtype ::form-field :rank 1))
+
+(defn coordinate-name->ff-name
+  "From the name of a coordinate, produce the name of the coordinate basis
+  one-form field (as a symbol)"
+  [n]
+  (symbol (str \d n)))
 
 (defn oneform-field-procedure
   [components coordinate-system]
@@ -36,7 +46,30 @@
   [components coordinate-system name]
   (procedure->oneform-field (oneform-field-procedure components coordinate-system) name))
 
-;(defn oneform-field->components
-;  [form coordinate-system]
-;  (assert (form-field? form))
-;  (let [X (csvb)]))
+(defn oneform-field->components
+  [form coordinate-system]
+  {:pre [(form-field? form)]}
+  (let [X (vf/coordinate-basis-vector-fields coordinate-system)]
+    (f/compose (form X) #(m/point coordinate-system))))
+
+;;; To get the elements of a coordinate basis for the 1-form fields
+
+(defn coordinate-basis-oneform-field-procedure
+  [coordinate-system & i]
+  (fn [vf]
+    (let [internal (fn [vf]
+                     (assert (vf/vector-field? vf))
+                     (vf (f/compose (apply s/component i) (m/chart coordinate-system))))]
+      (s/mapr internal vf))))
+
+(defn coordinate-basis-oneform-field
+  [coordinate-system name & i]
+  (procedure->oneform-field
+   (apply coordinate-basis-oneform-field-procedure coordinate-system i)
+   name))
+
+(defn coordinate-basis-oneform-fields
+  [coordinate-system prototype]
+  (s/mapr #(apply coordinate-basis-oneform-field coordinate-system %1 %2)
+          prototype
+          (s/structure->access-chains prototype)))
