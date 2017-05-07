@@ -153,6 +153,13 @@
 
 (def simplify-expression (simplify-until-stable simplify-expression-1 simplify-and-flatten))
 
+(defn simplify-numerical-expression
+  "Runs the content of the Expression e through the simplifier, but leaves the result in
+  Expression form."
+  [e]
+  (if (g/abstract-quantity? e)
+    (x/fmap simplify-expression e)
+    e))
 
 (defn ^:private haz
   "Returns a function which checks whether its argument, a set, has a nonempty

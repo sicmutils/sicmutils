@@ -73,3 +73,13 @@
   (s/mapr #(apply coordinate-basis-oneform-field coordinate-system %1 %2)
           prototype
           (s/structure->access-chains prototype)))
+
+;; (defn ^:private get-rank
+;;   [form]
+;;   ())
+
+; the differential of a function is a one-form.
+;; (defn ^:private exterior-derivative-procedure
+;;   [kform]
+;;   {:pre [(form-field? kform)]}
+;;   (let [rank ]))

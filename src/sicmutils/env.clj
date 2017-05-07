@@ -51,7 +51,8 @@
 (defmacro literal-function
   ([f] `(f/literal-function ~f))
   ([f sicm-signature]
-   (if (= '-> (first sicm-signature))
+   (if (and (list? sicm-signature)
+            (= '-> (first sicm-signature)))
      `(f/literal-function ~f '~sicm-signature)
      `(f/literal-function ~f ~sicm-signature)))
   ([f domain range] `(f/literal-function ~f ~domain ~range)))

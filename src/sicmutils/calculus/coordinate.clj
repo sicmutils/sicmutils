@@ -50,8 +50,7 @@
         c-systems (mapv second pairs)
         coordinate-names (mapcat symbols-from-prototype prototypes)
         coordinate-vector-field-names (map coordinate-name->vf-name coordinate-names)
-        coordinate-form-field-names (map coordinate-name->ff-name coordinate-names)
-        ]
+        coordinate-form-field-names (map coordinate-name->ff-name coordinate-names)]
     `(let [prototypes# ~(mapv #(quotify-coordinate-prototype identity %) prototypes)
            vf-prototypes# ~(mapv #(quotify-coordinate-prototype coordinate-name->vf-name %) prototypes)
            ff-prototypes# ~(mapv #(quotify-coordinate-prototype coordinate-name->ff-name %) prototypes)

@@ -3,6 +3,7 @@
              [value :as v]
              [function :as f]
              [generic :as g]
+             [simplify :refer [simplify-numerical-expression]]
              [matrix :as matrix]
              [structure :as s]]))
 
@@ -73,15 +74,15 @@
 
 (defn get-coordinates
   "Get the representation of manifold-point in coordinate-system. The
-  point contains a cache of the coordinate system->representation mapping.
-  If an entry for the given coordinate system is not found, thunk is
-  called to produce the representation, which is then installed in the
-  cache."
+  point contains a cache of the coordinate system->representation
+  mapping.  If an entry for the given coordinate system is not found,
+  thunk is called to produce the representation, which is then
+  installed in the cache."
   [manifold-point coordinate-system thunk]
   (let [reps (manifold-point :coordinate-representation)]
     (if-let [rep (@reps coordinate-system)]
      rep
-     (let [rep (thunk)]
+     (let [rep (s/mapr simplify-numerical-expression (thunk))]
        (swap! reps assoc coordinate-system rep)
        rep))))
 
@@ -223,10 +224,48 @@
                                           (nth prep %))))))))
   (manifold [this] manifold))
 
+(defn ->S2-coordinates
+  "Colatitude-longitude coordinates for the surface of the sphere
+  S(2). The orientation map (on vectors) can be used to reposition the
+  polar coordinate singularities."
+  [orientation]
+  (let [inverse-orientation (g/invert orientation)]
+    (fn [manifold]
+      (reify ICoordinateSystem
+        (check-coordinates [this coords]
+          (and (s/up? coords)
+               (= (s/dimension coords) 2)
+               (or (not (number? coords))
+                   (>= (nth coords 0) 0))))
+        (coords->point [this coords]
+          (assert (check-coordinates this coords))
+          (let [[colatitude longitude] coords]
+            (make-manifold-point
+             (g/* orientation
+                  (s/up (g/* (g/sin colatitude) (g/cos longitude))
+                        (g/* (g/sin colatitude) (g/sin longitude))
+                        (g/cos colatitude)))
+             manifold
+             this
+             coords)))
+        (check-point [this point]
+          (my-manifold-point? point manifold))
+        (point->coords [this point]
+          (assert (check-point this point))
+          (get-coordinates point this
+                           (fn []
+                             (let [prep (g/* inverse-orientation (manifold-point-representation point))]
+                               (when-not (and (s/up? prep)
+                                              (= (s/dimension prep) (manifold :embedding-dimension)))
+                                 (throw (IllegalArgumentException. "S2-coordinates bad point")))
+                               (let [[x y z] prep]
+                                 (s/up (g/acos z) (g/atan y x)))))))
+        (manifold [this] manifold)))))
+
 (defn ->Stereographic
   "Stereographic projection from the final coordinate. The default pole is (0 0 ... 1),
-  but this can be moved by the orthogonal (n+1) by (n+1) matrix returned by orientation
-  function."
+  but this can be moved by the orthogonal (n+1) by (n+1) matrix
+  returned by orientation function."
   [orientation-function]
   (fn [manifold]
     (let [n (manifold :dimension)
@@ -279,7 +318,15 @@
 (def S2-type (-> "S2"
                  make-manifold-family
                  (attach-patch :north-pole)
-                 (attach-coordinate-system :spherical :north-pole ->SphericalCylindrical)
+                 (attach-patch :south-pole)
+                 (attach-coordinate-system :spherical :north-pole
+                                           (->S2-coordinates (s/down (s/up 1 0 0)
+                                                                     (s/up 0 1 0)
+                                                                     (s/up 0 0 1))))
+                 (attach-coordinate-system :spherical :south-pole
+                                           (->S2-coordinates (s/down (s/up 1 0 0)
+                                                                     (s/up 0 1 0)
+                                                                     (s/up 0 0 -1))))
                  (attach-coordinate-system :stereographic :north-pole (->Stereographic matrix/I))))
 
 (def S2 (make-manifold S2-type 2 3))

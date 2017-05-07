@@ -1,3 +1,21 @@
+;
+; Copyright (C) 2017 Colin Smith.
+; This work is based on the Scmutils system of MIT/GNU Scheme.
+;
+; This is free software;  you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation; either version 3 of the License, or (at
+; your option) any later version.
+;
+; This software is distributed in the hope that it will be useful, but
+; WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+; General Public License for more details.
+;
+; You should have received a copy of the GNU General Public License
+; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;
+
 (ns sicmutils.fdg.ch2-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer :all]
@@ -21,12 +39,13 @@
          (simplify ((D (compose R2-rect-chi R2-polar-chi-inverse)) (up 'r0 'theta0))))))
 
 (deftest section-2-2
-  (let [f (compose (literal-function 'f-rect (-> (UP Real Real) Real)) R2-rect-chi)
+  (let [R2->R '(-> (UP Real Real) Real)
+        f (compose (literal-function 'f-rect R2->R) R2-rect-chi)
         g (literal-manifold-function 'g-rect R2-rect)
         R2-rect-point (R2-rect-chi-inverse (up 'x0 'y0))
         corresponding-polar-point (R2-polar-chi-inverse
-                                    (up (sqrt (+ (square 'x0) (square 'y0)))
-                                        (atan 'y0 'x0)))]
+                                   (up (sqrt (+ (square 'x0) (square 'y0)))
+                                       (atan 'y0 'x0)))]
     (is (= '(f-rect (up x0 y0)) (simplify (f R2-rect-point))))
     (is (= '(f-rect (up x0 y0)) (simplify (f corresponding-polar-point))))
     (is (= '(g-rect (up x0 y0)) (simplify (g R2-rect-point))))
@@ -49,10 +68,9 @@
                     (expt y 2))
                  (sqrt (+ (expt x 2) (expt y 2))))
              (simplify ((- r (* 2 'a (+ 1 (cos theta))))
-                         ((point R2-rect) (up 'x 'y)))))))
+                        ((point R2-rect) (up 'x 'y)))))))
     (testing "ex2.2"
-      (is (= '(up 1
-                  (acos (/ (+ (expt rho 2) -1)
+      (is (= '(up (acos (/ (+ (expt rho 2) -1)
                            (+ (expt rho 2) 1)))
                   ;; we can see that the entry below works out to (atan (tan theta)) == theta,
                   ;; but the simplifier does not yet know how to look for a simplification that
@@ -60,10 +78,8 @@
                   (atan (/ (* 2 rho (sin theta)) (+ (expt rho 2) 1))
                         (/ (* 2 rho (cos theta)) (+ (expt rho 2) 1))))
              (simplify ((compose
-                          (chart S2-spherical)
-                          (point S2-Riemann)
-                          (chart R2-rect)
-                          (point R2-polar))
-                         (up 'rho 'theta))))))
-
-    ))
+                         (chart S2-spherical)
+                         (point S2-Riemann)
+                         (chart R2-rect)
+                         (point R2-polar))
+                        (up 'rho 'theta))))))))

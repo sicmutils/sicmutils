@@ -37,6 +37,11 @@
     expression
     (Expression. ::numerical-expression expression)))
 
+(defn fmap
+  "Applies f to the expression part of e and creates from that an Expression otherwise like e."
+  [f e]
+  (->> e :expression f (->Expression (:type e))))
+
 (defn abstract? [^Expression x]
   ;; TODO: GJS also allows for up, down, matrix here. We do not yet have
   ;; abstract structures.
