@@ -60,15 +60,15 @@
      (if (vector? d) d [d]))
    (sicm-set->exemplar range)])
 
-(defrecord Function [expr arity domain range]
+(defrecord Function [name arity domain range]
   Object
-  (toString [_] (str expr ": " domain " → " range))
+  (toString [_] (str name ": " domain " → " range))
   v/Value
   (nullity? [_] false)
   (unity? [_] false)
   (zero-like [_] (fn [& _] (v/zero-like range)))
   (numerical? [_] false)
-  (freeze [_] (v/freeze expr))
+  (freeze [_] (v/freeze name))
   (kind [_] ::function)
   IFn
   (invoke [f x] (literal-apply f [x]))
@@ -208,7 +208,7 @@
 
 ;; TODO sinh cosh ...
 
-(defmethod g/simplify Function [a] (-> a :expr g/simplify))
+(defmethod g/simplify Function [a] (-> a :name g/simplify))
 (derive ::x/numerical-expression ::cofunction)
 (derive ::s/structure ::cofunction)
 (derive ::m/matrix ::cofunction)
@@ -259,10 +259,10 @@
                   (let [fexp (if (= (:arity f) [:exactly 1])  ; univariate
                                (if (= (first indices) 0)
                                  (if (= (count indices) 1)
-                                   (symbolic-increase-derivative (:expr f))
-                                   `((~'∂ ~@(next indices)) ~(:expr f)))
+                                   (symbolic-increase-derivative (:name f))
+                                   `((~'∂ ~@(next indices)) ~(:name f)))
                                  (throw (IllegalArgumentException. "wrong indices")))
-                               `((~'∂ ~@indices) ~(:expr f)))]
+                               `((~'∂ ~@indices) ~(:name f)))]
                     (Function. fexp (:arity f) (:domain f) (:range f)))
                   :else
                   (throw (IllegalArgumentException. (str "make-partials WTF " vv)))))]
@@ -309,7 +309,7 @@
   (check-argument-type f xs (:domain f) [0])
   (if (some d/differential? xs)
     (literal-derivative f xs)
-    (x/literal-number (list* (:expr f) xs)))) ;; XXX cons
+    (x/literal-number (list* (:name f) xs)))) ;; XXX cons
 
 ;;; Utilities
 

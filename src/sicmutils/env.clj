@@ -42,8 +42,10 @@
              [hamilton]
              [rotation]]
             [sicmutils.calculus.derivative :as d]
+            [sicmutils.calculus.form-field :as form-field]
             [sicmutils.calculus.manifold]
             [sicmutils.calculus.coordinate]
+            [sicmutils.calculus.vector-field]
             [sicmutils.value :as v]))
 
 (def zero? v/nullity?)
@@ -152,6 +154,7 @@
   ->TeX
   ->JavaScript]
  [sicmutils.calculus.derivative D ∂]
+ [sicmutils.calculus.form-field d]
  [sicmutils.calculus.manifold
   chart
   point

@@ -1,11 +1,12 @@
 (ns sicmutils.calculus.form-field
-  (:require [sicmutils.operator :as o]
-            [sicmutils.structure :as s]
+  (:require [sicmutils
+             [operator :as o]
+             [structure :as s]
+             [generic :as g]
+             [function :as f]
+             [expression :as x]]
             [sicmutils.calculus.vector-field :as vf]
-            [sicmutils.generic :as g]
-            [sicmutils.function :as f]
             [sicmutils.calculus.manifold :as m]))
-
 
 (defn form-field?
   [f]
@@ -46,10 +47,15 @@
   [components coordinate-system name]
   (procedure->oneform-field (oneform-field-procedure components coordinate-system) name))
 
+(defn ^:private default-coordinate-prototype
+  [coordinate-system]
+  (let [k (:dimension (m/manifold coordinate-system))]
+    (s/generate k ::s/up #(symbol (str "x" %)))))
+
 (defn oneform-field->components
   [form coordinate-system]
   {:pre [(form-field? form)]}
-  (let [X (vf/coordinate-basis-vector-fields coordinate-system)]
+  (let [X (vf/coordinate-basis-vector-fields coordinate-system (default-coordinate-prototype coordinate-system))]
     (f/compose (form X) #(m/point coordinate-system))))
 
 ;;; To get the elements of a coordinate basis for the 1-form fields
@@ -74,38 +80,68 @@
           prototype
           (s/structure->access-chains prototype)))
 
-;; (define (diffop-name form)
-;;   (cond ((operator? form) (operator-name form))
-;; 	((literal-function? form) (f:expression form))
-;; 	(else (expression form))))
+(defn ^:private diffop-name
+  [form]
+  (or (:name form) (x/expression-of form)))
 
-;; (define (diffop-name form)
-;;   (cond ((operator? form) (operator-name form))
-;; 	((literal-function? form) (f:expression form))
-;; 	(else (expression form))))      ;
+(defn function->oneform-field
+  [f]
+  {:pre [(fn? f)]}
+  (procedure->oneform-field
+    (fn [v] (s/mapr (fn [v]
+                      (assert (vf/vector-field? v))
+                      (fn [m] ((v f) m)))
+                    v))
+    `(~'d ,(diffop-name f))))
 
-;; (define (function->1form-field f)
-;;   (define (internal v)
-;;     (assert (vector-field? v))
-;;     (lambda (m) ((v f) m)))
-;;   (assert (function? f))
-;;   (procedure->1form-field
-;;    (lambda (v) (s:map/r internal v))
-;;    `(d ,(diffop-name f))))
+(defn ^:private get-rank
+  [f]
+  (cond (o/operator? f) (or (:rank (:context f))
+                            (throw (IllegalArgumentException. (str "operator, but not a differential form: " f))))
+        (fn? f) 0
+        :else (throw (IllegalArgumentException. "not a differential form"))))
+(defn exterior-derivative-procedure
+  [kform]
+  (let [k (get-rank kform)]
+    (if (= k 0)
+      (function->oneform-field kform)
+      (throw (UnsupportedOperationException. "can't d k>0-forms yet."))          )))
 
-;; (defn function->oneform-field
-;;   [f]
-;;   {:pre [(function? f)]}
-;;   (procedure->oneform-field
-;;    (fn [v]
-;;      (s/mapr ))))
+(def d (o/make-operator exterior-derivative-procedure 'd))
 
-;; (defn ^:private get-rank
-;;   [form]
-;;   ())
+;; (define (exterior-derivative-procedure kform)
+;;   (let ((k (get-rank kform)))
+;;     (if (fix:= k 0)
+;; 	(differential-of-function kform)
+;; 	(let ((the-k+1form
+;; 	       (lambda vectors
+;; 		 (assert (fix:= (length vectors) (fix:+ k 1)))
+;; 		 (lambda (point)
+;; 		   (let ((n ((point->manifold point) 'dimension)))
+;; 		     ;;(s:dimension (manifold-point-representation point))
+;; 		     (if (fix:< k n)
+;; 			 (sigma
+;; 			  (lambda (i)
+;; 			    (let ((rest (delete-nth i vectors)))
+;; 			      (+ (* (if (even? i) +1 -1)
+;; 				    (((ref vectors i) (apply kform rest))
+;; 				     point))
+;; 				 (sigma
+;; 				  (lambda (j)
+;; 				    (* (if (even? (fix:+ i j)) +1 -1)
+;; 				       ((apply kform
+;; 					       (cons
+;; 						(commutator (ref vectors i)
+;; 							    (ref vectors j))
+;; 						;; j-1 because already deleted i.
+;; 						(delete-nth (fix:- j 1)
+;; 							    rest)))
+;; 					point)))
+;; 				  (fix:+ i 1) k))))
+;; 			  0 k)
+;; 			 0))))))
+;; 	  (procedure->nform-field the-k+1form
+;; 				  (fix:+ (get-rank kform) 1)
+;; 				  `(d ,(diffop-name kform)))))))
 
-; the differential of a function is a one-form.
-;; (defn ^:private exterior-derivative-procedure
-;;   [kform]
-;;   {:pre [(form-field? kform)]}
-;;   (let [rank ]))
+
