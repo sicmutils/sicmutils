@@ -31,9 +31,9 @@
 (defn vector-field-procedure
   [components coordinate-system]
   (fn [f]
-    (f/compose (g/* (D (comp f #(m/coords->point coordinate-system %)))
+    (f/compose (g/* (D (comp f (m/point coordinate-system)))
                     components)
-               #(m/point->coords coordinate-system %))))
+               (m/chart coordinate-system))))
 
 (defn components->vector-field
   [components coordinate-system name]
@@ -43,8 +43,8 @@
   [vf coordinate-system]
   (fn [coords]
     (assert (vector-field? vf))
-    ((vf #(m/point->coords coordinate-system %))
-      (m/coords->point coordinate-system coords))))
+    ((vf (m/chart coordinate-system))
+     (m/coords->point coordinate-system coords))))
 
 (defn literal-vector-field
   [name coordinate-system]
@@ -60,8 +60,8 @@
 (defn ^:private coordinate-basis-vector-field-procedure
   [coordinate-system & i]
   (fn [f]
-    (f/compose ((apply ∂ i) (f/compose f #(m/coords->point coordinate-system %)))
-               #(m/point->coords coordinate-system %))))
+    (f/compose ((apply ∂ i) (f/compose f (m/point coordinate-system)))
+               (m/chart coordinate-system))))
 
 (defn coordinate-name->vf-name
   "From the name of a coordinate, produce the name of the coordinate basis
