@@ -74,6 +74,32 @@
           prototype
           (s/structure->access-chains prototype)))
 
+;; (define (diffop-name form)
+;;   (cond ((operator? form) (operator-name form))
+;; 	((literal-function? form) (f:expression form))
+;; 	(else (expression form))))
+
+;; (define (diffop-name form)
+;;   (cond ((operator? form) (operator-name form))
+;; 	((literal-function? form) (f:expression form))
+;; 	(else (expression form))))      ;
+
+;; (define (function->1form-field f)
+;;   (define (internal v)
+;;     (assert (vector-field? v))
+;;     (lambda (m) ((v f) m)))
+;;   (assert (function? f))
+;;   (procedure->1form-field
+;;    (lambda (v) (s:map/r internal v))
+;;    `(d ,(diffop-name f))))
+
+;; (defn function->oneform-field
+;;   [f]
+;;   {:pre [(function? f)]}
+;;   (procedure->oneform-field
+;;    (fn [v]
+;;      (s/mapr ))))
+
 ;; (defn ^:private get-rank
 ;;   [form]
 ;;   ())
