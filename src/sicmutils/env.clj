@@ -170,6 +170,8 @@
   let-coordinates
   using-coordinates]
  [sicmutils.calculus.vector-field
+  components->vector-field
+  coordinatize
   evolution
   literal-vector-field
   vector-field->components]
