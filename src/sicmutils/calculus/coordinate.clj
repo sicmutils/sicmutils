@@ -58,11 +58,10 @@
            c-fns# (map coordinate-functions c-systems# prototypes#)
            c-vfs# (map coordinate-basis-vector-fields c-systems# vf-prototypes#)
            c-ffs# (map coordinate-basis-oneform-fields c-systems# ff-prototypes#)
-           f# (fn ~(into [] (concat coordinate-names
-                                    coordinate-vector-field-names
-                                    coordinate-form-field-names))
-                ~@body)]
-       (apply f# (mapcat flatten (concat c-fns# c-vfs# c-ffs#))))))
+           ~(vec coordinate-names) (flatten c-fns#)
+           ~(vec coordinate-vector-field-names) (flatten c-vfs#)
+           ~(vec coordinate-form-field-names) (flatten c-ffs#)]
+       ~@body)))
 
 (defmacro using-coordinates
   "Example:
