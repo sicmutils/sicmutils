@@ -109,8 +109,16 @@
       (is (= '(up 1
                   (up (/ p_theta A)
                       (/ (+ (* -1 p_psi (cos theta)) p_phi) (* A (expt (sin theta) 2)))
-                      (/ (+ (* A p_psi (expt (sin theta) 2)) (* C p_psi (expt (cos theta) 2)) (* -1 C p_phi (cos theta))) (* A C (expt (sin theta) 2))))
-                  (down (/ (+ (* A gMR (expt (cos theta) 4)) (* -2 A gMR (expt (cos theta) 2)) (* -1 p_phi p_psi (expt (cos theta) 2)) (* (expt p_phi 2) (cos theta)) (* (expt p_psi 2) (cos theta)) (* A gMR) (* -1 p_phi p_psi)) (* A (expt (sin theta) 3)))
+                      (/ (+ (* A p_psi (expt (sin theta) 2)) (* C p_psi (expt (cos theta) 2)) (* -1 C p_phi (cos theta)))
+                         (* A C (expt (sin theta) 2))))
+                  (down (/ (+ (* A gMR (expt (cos theta) 4))
+                              (* -2 A gMR (expt (cos theta) 2))
+                              (* -1 p_phi p_psi (expt (cos theta) 2))
+                              (* (expt p_phi 2) (cos theta))
+                              (* (expt p_psi 2) (cos theta))
+                              (* A gMR)
+                              (* -1 p_phi p_psi))
+                           (* A (expt (sin theta) 3)))
                         0
                         0))
              (simplify (sysder top-state))))

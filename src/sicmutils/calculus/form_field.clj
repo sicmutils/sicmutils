@@ -20,12 +20,10 @@
 
 (defn procedure->oneform-field
   [fp name]
-  (o/make-operator
-   (fn [f]
-     (when-not (vf/vector-field? f)
-       (throw (IllegalArgumentException. "one-forms apply to vector fields")))
-     (fp f))
-   name :subtype ::form-field :rank 1))
+  (o/make-operator fp name
+                   :subtype ::form-field
+                   :rank 1
+                   :arguments [:vf/vector-field]))
 
 (defn coordinate-name->ff-name
   "From the name of a coordinate, produce the name of the coordinate basis
@@ -44,10 +42,11 @@
             f)))
 
 (defn components->oneform-field
-  [components coordinate-system name]
-  (procedure->oneform-field (oneform-field-procedure components coordinate-system) name))
+  [components coordinate-system & [name]]
+  (let [name (or name `(~'oneform-field ~components))]
+    (procedure->oneform-field (oneform-field-procedure components coordinate-system) name)))
 
-(defn ^:private default-coordinate-prototype
+(defn default-coordinate-prototype
   [coordinate-system]
   (let [k (:dimension (m/manifold coordinate-system))]
     (s/generate k ::s/up #(symbol (str "x" %)))))
@@ -93,6 +92,17 @@
                       (fn [m] ((v f) m)))
                     v))
     `(~'d ,(diffop-name f))))
+
+(defn literal-oneform-field
+  [name coordinate-system]
+  (let [n (:dimension (m/manifold coordinate-system))
+        domain (apply s/up (repeat n 0))
+        range 0
+        components (s/generate n ::s/down #(f/literal-function
+                                            (symbol (str name \_ %))
+                                            domain
+                                            range))]
+    (components->oneform-field components coordinate-system name)))
 
 (defn ^:private get-rank
   [f]
@@ -143,5 +153,3 @@
 ;; 	  (procedure->nform-field the-k+1form
 ;; 				  (fix:+ (get-rank kform) 1)
 ;; 				  `(d ,(diffop-name kform)))))))
-
-

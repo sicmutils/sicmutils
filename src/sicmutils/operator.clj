@@ -27,7 +27,7 @@
 
 (defrecord Operator [o arity name context]
   v/Value
-  (freeze [_] name)
+  (freeze [_] (v/freeze name))
   (kind [_] ::operator)
   (nullity? [_] false)
   (unity? [_] false)

@@ -62,7 +62,7 @@
 
 (defrecord Function [name arity domain range]
   Object
-  (toString [_] (str name ": " domain " → " range))
+  (toString [_] (str name) )
   v/Value
   (nullity? [_] false)
   (unity? [_] false)

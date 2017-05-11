@@ -73,3 +73,7 @@
   preferred."
   [coordinate-prototype coordinate-system & body]
   `(let-coordinates [~coordinate-prototype ~coordinate-system] ~@body))
+
+(defn coordinate-system->vector-basis
+  [coordinate-system]
+  (coordinate-basis-vector-fields coordinate-system (default-coordinate-prototype coordinate-system)))

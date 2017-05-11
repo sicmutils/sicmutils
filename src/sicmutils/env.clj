@@ -154,7 +154,10 @@
   ->TeX
   ->JavaScript]
  [sicmutils.calculus.derivative D ∂]
- [sicmutils.calculus.form-field d]
+ [sicmutils.calculus.form-field
+  d
+  components->oneform-field
+  literal-oneform-field]
  [sicmutils.calculus.manifold
   chart
   point
@@ -167,6 +170,7 @@
   S2-stereographic
   S2-Riemann]
  [sicmutils.calculus.coordinate
+  coordinate-system->vector-basis
   let-coordinates
   using-coordinates]
  [sicmutils.calculus.vector-field
