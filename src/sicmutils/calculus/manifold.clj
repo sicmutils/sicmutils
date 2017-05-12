@@ -56,6 +56,7 @@
   (coords->point [this coords])
   (check-point [this point])
   (point->coords [this point])
+  (coordinate-prototype [this])
   (manifold [this]))
 
 (defn ^:private make-manifold-point
@@ -122,6 +123,23 @@
     (f/compose (f/literal-function name domain range)
                #(point->coords coordinate-system %))))
 
+(defn ^:private default-coordinate-prototype
+  [manifold]
+  (let [k (:dimension manifold)]
+    (s/generate k ::s/up #(symbol (str "x" %)))))
+
+(defn with-coordinate-prototype
+  "Produces a coordinate system exactly like the given one but with the supplied
+  coordinate prototype."
+  [coordinate-system coordinate-prototype]
+  (reify ICoordinateSystem
+    (check-coordinates [this coords] (check-coordinates coordinate-system coords))
+    (coords->point [this coords] (coords->point coordinate-system coords))
+    (check-point [this point] (check-point coordinate-system point))
+    (point->coords [this point] (point->coords coordinate-system point))
+    (coordinate-prototype [this] coordinate-prototype)
+    (manifold [this] (manifold coordinate-system))))
+
 (deftype Rectangular [manifold]
   ICoordinateSystem
   (check-coordinates [this coords]
@@ -139,6 +157,7 @@
                        (let [prep (manifold-point-representation point)]
                          (assert (= (s/dimension prep) (manifold :embedding-dimension)))
                          prep))))
+  (coordinate-prototype [this] (default-coordinate-prototype manifold))
   (manifold [this] manifold))
 
 (deftype PolarCylindrical [manifold]
@@ -180,6 +199,7 @@
                                           0 (g/sqrt rsq)
                                           1 (g/atan y x)
                                           (nth prep %))))))))
+  (coordinate-prototype [this] (default-coordinate-prototype manifold))
   (manifold [this] manifold))
 
 (deftype SphericalCylindrical [manifold]
@@ -222,6 +242,7 @@
                                           1 (g/acos (g/divide z r))
                                           2 (g/atan y x)
                                           (nth prep %))))))))
+  (coordinate-prototype [this] (default-coordinate-prototype manifold))
   (manifold [this] manifold))
 
 (defn ->S2-coordinates
@@ -260,6 +281,7 @@
                                  (throw (IllegalArgumentException. "S2-coordinates bad point")))
                                (let [[x y z] prep]
                                  (s/up (g/acos z) (g/atan y x)))))))
+        (coordinate-prototype [this] (default-coordinate-prototype manifold))
         (manifold [this] manifold)))))
 
 (defn ->Stereographic
@@ -293,6 +315,7 @@
               (throw (IllegalStateException. "S^n stereographic singular")))
             (let [coords (s/generate n ::s/up #(g/divide (nth pt %) (g/- 1 (nth pt n))))]
               (if (= n 1) (first coords) coords))))
+        (coordinate-prototype [this] (default-coordinate-prototype manifold))
         (manifold [this] manifold)))))
 
 (def Rn (-> "R(%d)"

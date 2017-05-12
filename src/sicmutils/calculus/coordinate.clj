@@ -56,7 +56,7 @@
            ff-prototypes# ~(mapv #(quotify-coordinate-prototype coordinate-name->ff-name %) prototypes)
            c-systems# ~c-systems
            c-fns# (map coordinate-functions c-systems# prototypes#)
-           c-vfs# (map coordinate-basis-vector-fields c-systems# vf-prototypes#)
+           c-vfs# (map coordinate-basis-vector-fields c-systems#)
            c-ffs# (map coordinate-basis-oneform-fields c-systems# ff-prototypes#)
            ~(vec coordinate-names) (flatten c-fns#)
            ~(vec coordinate-vector-field-names) (flatten c-vfs#)
@@ -75,4 +75,4 @@
 
 (defn coordinate-system->vector-basis
   [coordinate-system]
-  (coordinate-basis-vector-fields coordinate-system (default-coordinate-prototype coordinate-system)))
+  (coordinate-basis-vector-fields coordinate-system))

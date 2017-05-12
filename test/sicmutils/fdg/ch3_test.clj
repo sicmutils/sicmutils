@@ -84,14 +84,16 @@
                ((point R2-rect) (up 1 0)))))))))
 
 (deftest section-3-5
-  (let-coordinates [[x y] R2-rect]
+  (let-coordinates [[x y] R2-rect
+                    [r theta] R2-polar]
     (let [R2->R '(-> (UP Real Real) Real)
           omega (components->oneform-field
                  (down (literal-function 'a_0 R2->R)
                        (literal-function 'a_1 R2->R))
                  R2-rect)
           R2-rect-point ((point R2-rect) (up 'x0 'y0))
-          omega2 (literal-oneform-field 'a R2-rect)]
+          omega2 (literal-oneform-field 'a R2-rect)
+          circular (- (* x d:dy) (* y d:dx))]
       #_(is (= '(oneform-field (down a_0 a_1)) (simplify omega))) ;; fix this
       (is (= '(down (a_0 (up x0 y0)) (a_1 (up x0 y0)))
              (simplify ((omega (down d:dx d:dy)) R2-rect-point))))
@@ -113,4 +115,16 @@
              (simplify
               (((d (literal-manifold-function 'f-polar R2-polar))
                 (coordinate-system->vector-basis R2-rect))
-               ((point R2-polar) (up 'r 'theta)))))))))
+               ((point R2-polar) (up 'r 'theta))))))
+      (is (= 0 ((dx d:dy) R2-rect-point)))
+      (is (= 1 ((dx d:dx) R2-rect-point)))
+      (is (= '(* -1 y0) (simplify ((dx circular) R2-rect-point))))
+      (is (= 'x0 ((dy circular) R2-rect-point)))
+      (is (= 0 (simplify ((dr circular) R2-rect-point))))
+      (is (= 1 (simplify ((dtheta circular) R2-rect-point))))
+      (let [f (literal-manifold-function 'f-rect R2-rect)]
+        (is (= 0 (simplify (((- circular d:dtheta) f) R2-rect-point)))))
+      (let [v (literal-vector-field 'b R2-rect)]
+        (is (= '(+ (* (a_0 (up x0 y0)) (b↑0 (up x0 y0)))
+                   (* (a_1 (up x0 y0)) (b↑1 (up x0 y0))))
+               (simplify ((omega v) R2-rect-point))))))))

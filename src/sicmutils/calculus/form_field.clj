@@ -46,15 +46,10 @@
   (let [name (or name `(~'oneform-field ~components))]
     (procedure->oneform-field (oneform-field-procedure components coordinate-system) name)))
 
-(defn default-coordinate-prototype
-  [coordinate-system]
-  (let [k (:dimension (m/manifold coordinate-system))]
-    (s/generate k ::s/up #(symbol (str "x" %)))))
-
 (defn oneform-field->components
   [form coordinate-system]
   {:pre [(form-field? form)]}
-  (let [X (vf/coordinate-basis-vector-fields coordinate-system (default-coordinate-prototype coordinate-system))]
+  (let [X (vf/coordinate-basis-vector-fields coordinate-system)]
     (f/compose (form X) #(m/point coordinate-system))))
 
 ;;; To get the elements of a coordinate basis for the 1-form fields
