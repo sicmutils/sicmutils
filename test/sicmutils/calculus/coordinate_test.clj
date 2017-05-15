@@ -1,7 +1,19 @@
 (ns sicmutils.calculus.coordinate-test
   (:refer-clojure :exclude [+ - * / ref zero? partial])
   (:require [clojure.test :refer :all]
+            [sicmutils.calculus.manifold :refer [coordinate-prototype with-coordinate-prototype]]
             [sicmutils.env :refer :all]))
+
+(deftest smoke
+  (let-coordinates [[x y] R2-rect
+                    [r theta] R2-polar]
+    (let [p ((point R2-rect) (up 1 2))]
+      (is (= '[x y] (coordinate-prototype R2-rect)))
+      (is (= '[r theta] (coordinate-prototype R2-polar)))
+      (is (= 1 (x p)))
+      (is (= 2 (y p)))
+      (is (= (sqrt 5) (r p)))
+      (is (= (atan 2) (theta p))))))
 
 (deftest coordinates
   (testing "using coordinates"
@@ -12,8 +24,13 @@
       (let [R2-polar-chi-inverse (point R2-polar)
             h (+ (* x (square r)) (cube y))]
         (is (= '(+ (* (expt r0 3) (expt (sin theta0) 3))
-                   (* (expt r0 3) (cos theta0)))
+                  (* (expt r0 3) (cos theta0)))
                (simplify (h (R2-polar-chi-inverse (up 'r0 'theta0))))))))))
+  (testing "with-coordinate-prototype"
+    (let [A R2-rect
+          B (with-coordinate-prototype R2-rect '[X Y])]
+      (is (= '[d:dx0 d:dx1] (map :name (coordinate-system->vector-basis A))))
+      (is (= '[d:dX d:dY] (map :name (coordinate-system->vector-basis B))))))
 
   (testing "let-coordinates"
     (let-coordinates [(up x y) R2-rect

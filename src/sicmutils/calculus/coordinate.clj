@@ -7,11 +7,12 @@
              [form-field :refer :all]]))
 
 (defn coordinate-functions
-  [coordinate-system coordinate-prototype]
-  (s/mapr (fn [access-chain]
-            (comp (apply s/component access-chain)
-                  #(point->coords coordinate-system %)))
-          (s/structure->access-chains coordinate-prototype)))
+  [coordinate-system]
+  (let [prototype (coordinate-prototype coordinate-system)]
+    (s/mapr (fn [access-chain]
+              (comp (apply s/component access-chain)
+                    #(point->coords coordinate-system %)))
+            (s/structure->access-chains prototype))))
 
 (defn ^:private quotify-coordinate-prototype
   "Scmutils wants to allow forms like this:
@@ -51,13 +52,13 @@
         coordinate-names (mapcat symbols-from-prototype prototypes)
         coordinate-vector-field-names (map coordinate-name->vf-name coordinate-names)
         coordinate-form-field-names (map coordinate-name->ff-name coordinate-names)]
-    `(let [prototypes# ~(mapv #(quotify-coordinate-prototype identity %) prototypes)
-           vf-prototypes# ~(mapv #(quotify-coordinate-prototype coordinate-name->vf-name %) prototypes)
-           ff-prototypes# ~(mapv #(quotify-coordinate-prototype coordinate-name->ff-name %) prototypes)
-           c-systems# ~c-systems
-           c-fns# (map coordinate-functions c-systems# prototypes#)
+    `(let [[~@c-systems :as c-systems#]
+           (mapv with-coordinate-prototype
+                 ~c-systems
+                 ~(mapv #(quotify-coordinate-prototype identity %) prototypes))
+           c-fns# (map coordinate-functions c-systems#)
            c-vfs# (map coordinate-basis-vector-fields c-systems#)
-           c-ffs# (map coordinate-basis-oneform-fields c-systems# ff-prototypes#)
+           c-ffs# (map coordinate-basis-oneform-fields c-systems#)
            ~(vec coordinate-names) (flatten c-fns#)
            ~(vec coordinate-vector-field-names) (flatten c-vfs#)
            ~(vec coordinate-form-field-names) (flatten c-ffs#)]

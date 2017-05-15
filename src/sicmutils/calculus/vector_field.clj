@@ -78,7 +78,7 @@
 
 (defn coordinate-basis-vector-fields
   [coordinate-system]
-  (let [prototype (m/coordinate-prototype coordinate-system)]
+  (let [prototype (s/mapr coordinate-name->vf-name (m/coordinate-prototype coordinate-system))]
     (s/flip-indices
      (s/mapr #(apply coordinate-basis-vector-field coordinate-system %1 %2)
              prototype

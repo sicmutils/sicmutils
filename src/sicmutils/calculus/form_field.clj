@@ -69,10 +69,11 @@
    name))
 
 (defn coordinate-basis-oneform-fields
-  [coordinate-system prototype]
-  (s/mapr #(apply coordinate-basis-oneform-field coordinate-system %1 %2)
-          prototype
-          (s/structure->access-chains prototype)))
+  [coordinate-system]
+  (let [prototype (s/mapr coordinate-name->ff-name (m/coordinate-prototype coordinate-system))]
+    (s/mapr #(apply coordinate-basis-oneform-field coordinate-system %1 %2)
+            prototype
+            (s/structure->access-chains prototype))))
 
 (defn ^:private diffop-name
   [form]

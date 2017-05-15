@@ -63,4 +63,3 @@
                    (atan 'y 'x)) (m/point->coords R2-polar xy)))
         (is (= (up (* 'ρ (cos 'θ)) (* 'ρ (sin 'θ))) (m/point->coords R2-rect rt)))
         (is (= (up 'x 'y) (m/point->coords R2-rect xy)))))))
-
