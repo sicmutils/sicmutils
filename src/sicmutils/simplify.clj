@@ -30,6 +30,7 @@
              [polynomial-factor :as factor]
              [rational-function :as rf]
              [value :as v]
+             [numsymb :as nsy]
              [expression :as x]
              [generic :as g]
              [rules :as rules]]
@@ -128,10 +129,25 @@
 
 ;; (defn ^:private spy [x a] (println a x) x)
 
-(defn clear-square-roots-of-perfect-squares
-  [x]
-  ((simplify-and-canonicalize (comp rules/universal-reductions factor/root-out-squares)
-                              simplify-and-flatten) x))
+(defn ^:privatep arctan-cleanup
+  [expr]
+  (let [[a y x] expr]
+    (if (= a 'atan)
+      (let [q (*rf-analyzer* (nsy/div y x))]
+        (println "it's an arctan that simplifies to " q)
+        (if (nsy/quotient? q)
+          (let [yx (nsy/operands q)]
+            `(~'atan ~(first yx) ~(second yx)))
+          `(~'atan ~q)))
+      expr)))
+
+(def arctan-simplifier
+  (simplify-and-canonicalize arctan-cleanup simplify-and-flatten))
+
+(def clear-square-roots-of-perfect-squares
+  (simplify-and-canonicalize
+   (comp rules/universal-reductions factor/root-out-squares)
+   simplify-and-flatten))
 
 (defn ^:private simplify-expression-1
   "this is a chain of rule-simplifiers (i.e., each entry in the chain

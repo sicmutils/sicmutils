@@ -46,6 +46,7 @@
 (def product? (is-expression? '*))
 (def ^:private sqrt? (is-expression? 'sqrt))
 (def expt? (is-expression? 'expt))
+(def quotient? (is-expression? (symbol "/")))
 
 (def operator first)
 (def operands rest)
