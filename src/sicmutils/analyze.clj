@@ -58,7 +58,10 @@
     functions are complementary.")
   (known-operation? [this x]
     "A function deciding if an operation is considered fundamental by the
-     canonical form"))
+     canonical form")
+  (new-variables [this n]
+    "Produce n new variables to represent values outside the domain of
+     computation for this analyzer"))
 
 (defn make-analyzer
   "Make-analyzer takes an analyzer backend (which implements ICanonicalize) and

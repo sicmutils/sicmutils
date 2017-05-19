@@ -238,10 +238,10 @@
     (let [^sicmutils.polynomial.Polynomial p (make [0 1])]
       (is (= 1 (.arity p)))))
   (testing "make-vars"
-    (is (= (list (make [0 1])) (new-variables 1)))
+    (is (= (list (make [0 1])) (a/new-variables poly-analyzer 1)))
     (is (= [(make 3 [[[1 0 0] 1]])
             (make 3 [[[0 1 0] 1]])
-            (make 3 [[[0 0 1] 1]])] (new-variables 3))))
+            (make 3 [[[0 0 1] 1]])] (a/new-variables poly-analyzer 3))))
   (testing "expr"
     (let [exp1 (:expression (g/* (g/+ 1 'x) (g/+ -3 'x)))
           exp2 (:expression (g/expt (g/+ 1 'y) 5))

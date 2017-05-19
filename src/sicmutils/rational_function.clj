@@ -206,7 +206,7 @@
 (deftype RationalFunctionAnalyzer [polynomial-analyzer]
   a/ICanonicalize
   (expression-> [this expr cont] (a/expression-> this expr cont compare))
-  (expression-> [_ expr cont v-compare]
+  (expression-> [this expr cont v-compare]
     ;; Convert an expression into Rational Function canonical form. The
     ;; expression should be an unwrapped expression, i.e., not an instance
     ;; of the Expression type, nor should subexpressions contain type
@@ -218,7 +218,7 @@
     ;; the input over the unknowns."
     (let [expression-vars (sort v-compare (set/difference (x/variables-in expr) operators-known))
           arity (count expression-vars)]
-      (let [variables (zipmap expression-vars (p/new-variables arity))]
+      (let [variables (zipmap expression-vars (a/new-variables this arity))]
         (-> expr (x/walk-expression variables operator-table) (cont expression-vars)))))
   (->expression [_ r vars]
     ;; This is the output stage of Rational Function canonical form simplification.
@@ -228,13 +228,15 @@
     ;; process."
     (cond (instance? RationalFunction r)
           (let [rr ^RationalFunction r]
-            (sym/div (a/->expression polynomial-analyzer (.u rr) vars) (a/->expression polynomial-analyzer (.v rr) vars)))
+            (sym/div (a/->expression polynomial-analyzer (.u rr) vars)
+                     (a/->expression polynomial-analyzer (.v rr) vars)))
 
           (instance? Polynomial r)
           (a/->expression polynomial-analyzer r vars)
 
           :else r))
-  (known-operation? [_ o] (operators-known o)))
+  (known-operation? [_ o] (operators-known o))
+  (new-variables [_ n] (a/new-variables polynomial-analyzer n)))
 
 
 (defmethod g/add [::rational-function ::rational-function] [a b] (add a b))

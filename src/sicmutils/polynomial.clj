@@ -176,13 +176,6 @@
   (make (.arity p) (for [[xs c] (.xs->c p)]
                       [(f xs) c])))
 
-(defn new-variables
-  "Creates a sequence of identity (i.e., x) polynomials, one for each
-  of arity indeterminates."
-  [arity]
-  (for [a (range arity)]
-    (make arity [[(mapv #(if (= % a) 1 0) (range arity)) 1]])))
-
 (def negate (partial map-coefficients g/negate))
 
 (defn make-constant
@@ -428,7 +421,7 @@
     ;; before we get here. The result is a Polynomial object representing
     ;; the polynomial structure of the input over the unknowns.
     (let [expression-vars (sort v-compare (set/difference (x/variables-in expr) operators-known))
-          variables (zipmap expression-vars (new-variables (count expression-vars)))]
+          variables (zipmap expression-vars (a/new-variables this (count expression-vars)))]
       (-> expr (x/walk-expression variables operator-table) (cont expression-vars))))
   (->expression [this p vars]
     ;; This is the output stage of Flat Polynomial canonical form simplification.
@@ -447,7 +440,9 @@
                                                 xs vars))))
               (->> p .xs->c (sort-by exponents #(monomial-order %2 %1))))))
       p))
-  (known-operation? [_ o] (operator-table o)))
+  (known-operation? [_ o] (operator-table o))
+  (new-variables [_ arity] (for [a (range arity)]
+                             (make arity [[(mapv #(if (= % a) 1 0) (range arity)) 1]]))))
 
 (defmethod g/add [::polynomial ::polynomial] [a b] (add a b))
 (defmethod g/mul [::polynomial ::polynomial] [a b] (mul a b))
