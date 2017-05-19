@@ -146,4 +146,12 @@
     (is (= 2 (g/quotient 5 2N)))
     (is (= 2 (g/quotient 5N 2N)))
     (is (= 2 (g/quotient (BigInteger/valueOf 5) 2)))
-    (is (= 2 (g/quotient 5 (BigInteger/valueOf 2))))))
+    (is (= 2 (g/quotient 5 (BigInteger/valueOf 2)))))
+  (testing "gcd"
+    (is (= (* 2 5 7) (g/gcd (* 2 3 5 7) (* 2 5 7 11))))
+    (is (= 4 (g/gcd 4 0)))
+    (is (= 4 (g/gcd 0 4)))
+    (is (= 1 (g/gcd 1 4)))
+    (is (= 1 (g/gcd 4 1)))
+    #_(is (= 0 (g/gcd 'x 'x)))
+    ))

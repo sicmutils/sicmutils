@@ -87,6 +87,7 @@
 (def-generic-function quotient 2)
 (def-generic-function remainder 2)
 (def-generic-function expt 2)
+(def-generic-function gcd 2)
 
 (defmulti partial-derivative v/argument-kind)
 (defmulti simplify v/argument-kind)
