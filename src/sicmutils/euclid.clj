@@ -40,6 +40,7 @@
   [a b]
   (cond (v/nullity? a) (g/abs b)
         (v/nullity? b) (g/abs a)
+        (not (and (integer? a) (integer? b))) 1
         :else (loop [a a b b]
                 (if (v/nullity? b)
                   a

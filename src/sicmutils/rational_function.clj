@@ -21,12 +21,12 @@
             [sicmutils
              [expression :as x]
              [generic :as g]
-             [euclid :as e]
+             [euclid :as euclid]
              [numsymb :as sym]
              [value :as v]
              [polynomial :as p]
              [analyze :as a]
-             [polynomial-gcd :refer [gcd]]])
+             [polynomial-gcd :as poly]])
   (:import [clojure.lang Ratio BigInt]
            [sicmutils.polynomial Polynomial]))
 
@@ -65,10 +65,10 @@
         cs (into (into #{} cv) (p/coefficients u))
         integerizing-factor (*
                              (if (< lcv 0) -1 1)
-                             (reduce e/lcm 1 (map denominator (filter ratio? cs))))
+                             (reduce euclid/lcm 1 (map denominator (filter ratio? cs))))
         u' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) u) u)
         v' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) v) v)
-        g (gcd u' v')
+        g (poly/gcd u' v')
         u'' (p/evenly-divide u' g)
         v'' (p/evenly-divide v' g)]
     (if (v/unity? v'') u''
@@ -98,12 +98,12 @@
         u' (.v r)
         v (.u s)
         v' (.v s)
-        d1 (gcd u' v')]
+        d1 (poly/gcd u' v')]
     (if (v/unity? d1)
       (make-reduced  a (p/add (p/mul u v') (p/mul u' v)) (p/mul u' v'))
       (let [t (p/add (p/mul u (p/evenly-divide v' d1))
                      (p/mul v (p/evenly-divide u' d1)))
-            d2 (gcd t d1)]
+            d2 (poly/gcd t d1)]
         (make-reduced a
                       (p/evenly-divide t d2)
                       (p/mul (p/evenly-divide u' d1)
@@ -162,8 +162,8 @@
           (v/nullity? s) s
           (v/unity? r) s
           (v/unity? s) r
-          :else (let [d1 (gcd u v')
-                      d2 (gcd u' v)
+          :else (let [d1 (poly/gcd u v')
+                      d2 (poly/gcd u' v)
                       u'' (p/mul (p/evenly-divide u d1) (p/evenly-divide v d2))
                       v'' (p/mul (p/evenly-divide u' d2) (p/evenly-divide v' d1))]
                   (make-reduced a u'' v'')))))
@@ -198,7 +198,7 @@
    'expt g/expt
    'square square
    'cube cube
-   ;;`'g/gcd gcd
+   'gcd g/gcd
    })
 
 (def operators-known (set (keys operator-table)))           ;; XXX
@@ -303,7 +303,7 @@
         a (.arity r)]
     (cond (v/nullity? p) 0
           (v/unity? p) r
-          :else (let [d (gcd v p) ]
+          :else (let [d (poly/gcd v p) ]
                   (if (v/unity? d)
                     (make-reduced a (p/mul u p) v)
                     (make-reduced a (p/mul u (p/evenly-divide p d)) (p/evenly-divide v d)))))))
@@ -317,7 +317,7 @@
         a (.arity r)]
     (cond (v/nullity? p) 0
           (v/unity? p) r
-          :else (let [d (gcd p v) ]
+          :else (let [d (poly/gcd p v) ]
                   (if (v/unity? d)
                     (RationalFunction. a (p/mul p u) v)
                     (RationalFunction. a (p/mul (p/evenly-divide p d) u) (p/evenly-divide v d)))))))
@@ -363,7 +363,7 @@
 (defmethod g/div
   [::p/polynomial ::p/polynomial]
   [p q]
-  (let [g (gcd p q)]
+  (let [g (poly/gcd p q)]
     (make (p/evenly-divide p g) (p/evenly-divide q g))))
 
 (defmethod g/div
@@ -384,3 +384,33 @@
 (defmethod g/expt [::rational-function Integer] [b x] (expt b x))
 (defmethod g/expt [::rational-function Long] [b x] (expt b x))
 (defmethod g/negate [::rational-function] [a] (negate a))
+
+(defmethod g/gcd
+  [::p/polynomial ::p/polynomial]
+  [p q]
+  (poly/gcd p q))
+
+(defmethod g/gcd
+  [::p/polynomial ::rational-function]
+  [p ^RationalFunction u]
+  (poly/gcd p (.u u)))
+
+(defmethod g/gcd
+  [::rational-function ::p/polynomial]
+  [^RationalFunction u p]
+  (poly/gcd (.u u) p))
+
+(defmethod g/gcd
+  [::rational-function ::rational-function]
+  [^RationalFunction u ^RationalFunction v]
+  (make (poly/gcd (.u u) (.u v)) (poly/gcd (.v u) (.v v))))
+
+(defmethod g/gcd
+  [::p/polynomial Number]
+  [p a]
+  (euclid/gcd a (->> p p/coefficients (reduce euclid/gcd))))
+
+(defmethod g/gcd
+  [Number ::p/polynomial]
+  [a p]
+  (euclid/gcd a (->> p p/coefficients (reduce euclid/gcd))))
