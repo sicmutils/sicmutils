@@ -21,6 +21,7 @@
              [value :as v]
              [generic :as g]
              [complex :as c]
+             [euclid :as euclid]
              [expression :as x]]
             [clojure.math.numeric-tower :as nt])
   (:import (clojure.lang Symbol)))
@@ -297,6 +298,8 @@
 (define-unary-operation g/exp exp)
 (define-unary-operation g/abs abs)
 (define-unary-operation g/log log)
+
+(defmethod g/gcd [Number Number] [a b] (euclid/gcd a b))
 
 (def ^:private symbolic-operator-table
   {'+ #(reduce add 0 %&)

@@ -114,6 +114,14 @@
                              (* K (expt dy 2) m1)
                              (* 2 K m1 m2))
                           (* 2 K)))))))
+  (testing "gcd"
+    (is (= '(* x y) (rf-simp '(gcd (* w x y) (* x y z)))))
+    (is (= '(/ s c) (rf-simp '(gcd (/ (* r s) c) (/ (* s t) (* c))))))
+    (is (= 2 (rf-simp '(gcd (* 2 x y) 2))))
+    (is (= 3 (rf-simp '(gcd 9 (* x 6 y)))))
+    (is (= 1 (rf-simp '(gcd 9.1 (* x 6 y)))))
+    (is (= 1 (rf-simp '(gcd (* 5/2 x y) (* 7/3 y z)))))
+    (is (= '(* 7 y) (rf-simp '(gcd (* 14 x y) (* 21 y z))))))
   (testing "quotients"
     (is (= '(/ 1 (* 2 x)) (rf-simp (:expression (g/divide 1 (g/* 2 'x))))))
     (is (= 4 (rf-simp (:expression (g/divide (g/* 28 'x) (g/* 7 'x))))))

@@ -32,7 +32,7 @@
 
 (defn product-string
   [s t]
-  (apply str(for [cs s ct t] (str cs ct))))
+  (apply str (for [cs s ct t] (str cs ct))))
 
 (defmethod s* [Number String] [n s] (multiply-string n s))
 (defmethod s* [String Number] [s n] (multiply-string n s))
