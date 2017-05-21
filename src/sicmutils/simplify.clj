@@ -100,10 +100,13 @@
 ;; simplification library, so this one has to go here. Not ideal the way we have split things
 ;; up, but at least things are beginning to simplify adequately.
 
-(def ^:private simplify-zero
+(def ^:private simplifies-to-zero?
   #(-> % *poly-analyzer* v/nullity?))
 
-(def ^:private sincos-cleanup
+(def ^:private simplifies-to-unity?
+  #(-> % *rf-analyzer* v/unity?))
+
+(def ^:private trig-cleanup
   "This finds things like a - a cos^2 x and replaces them with a sin^2 x"
   (let [at-least-two? #(and (number? %) (>= % 2))]
     (simplify-until-stable
@@ -111,38 +114,33 @@
       (rule/ruleset
        ;;  ... + a + ... + cos^n x + ...   if a + cos^(n-2) x = 0: a sin^2 x
        (+ :a1* :a :a2* (expt (cos :x) (:? n at-least-two?)) :a3*)
-       #(simplify-zero `(~'+ (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2)) ~(% :a)))
+       #(simplifies-to-zero? `(~'+ (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2)) ~(% :a)))
        (+ :a1* :a2* :a3* (* :a (expt (sin :x) 2)))
 
        (+ :a1* (expt (cos :x) (:? n at-least-two?)) :a2* :a :a3*)
-       #(simplify-zero `(~'+ (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2)) ~(% :a)))
+       #(simplifies-to-zero? `(~'+ (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2)) ~(% :a)))
        (+ :a1* :a2* :a3* (* :a (expt (sin :x) 2)))
 
        (+ :a1* :a :a2* (* :b1* (expt (cos :x) (:? n at-least-two?)) :b2*) :a3*)
-       #(simplify-zero `(~'+ (~'* ~@(% :b1*) ~@(% :b2*) (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2))) ~(% :a)))
+       #(simplifies-to-zero? `(~'+ (~'* ~@(% :b1*) ~@(% :b2*) (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2))) ~(% :a)))
        (+ :a1* :a2* :a3* (* :a (expt (sin :x) 2)))
 
        (+ :a1* (* :b1* (expt (cos :x) (:? n at-least-two?)) :b2*) :a2* :a :a3*)
-       #(simplify-zero `(~'+ (~'* ~@(% :b1*) ~@(% :b2*) (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2))) ~(% :a)))
-       (+ :a1* :a2* :a3* (* :a (expt (sin :x) 2)))))
+       #(simplifies-to-zero? `(~'+ (~'* ~@(% :b1*) ~@(% :b2*) (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2))) ~(% :a)))
+       (+ :a1* :a2* :a3* (* :a (expt (sin :x) 2)))
+
+       ;; since computing GCDs of rational functions is expensive, it would be nice if the
+       ;; result of the computation done in simplifies-to-unity could be captured and reused
+       ;; in the substitution. Idea: provide a binding for the *return value* of the predicate
+       ;; in the scope of the substitution.
+       (atan :y :x)
+       #(not (simplifies-to-unity? `(~'gcd ~(% :x) ~(% :y))))
+       (atan (/ :y (gcd :x :y)) (/ :x (gcd :x :y)))
+
+       ))
      simplify-and-flatten)))
 
 ;; (defn ^:private spy [x a] (println a x) x)
-
-(defn ^:privatep arctan-cleanup
-  [expr]
-  (let [[a y x] expr]
-    (if (= a 'atan)
-      (let [q (*rf-analyzer* (nsy/div y x))]
-        (println "it's an arctan that simplifies to " q)
-        (if (nsy/quotient? q)
-          (let [yx (nsy/operands q)]
-            `(~'atan ~(first yx) ~(second yx)))
-          `(~'atan ~q)))
-      expr)))
-
-(def arctan-simplifier
-  (simplify-and-canonicalize arctan-cleanup simplify-and-flatten))
 
 (def clear-square-roots-of-perfect-squares
   (simplify-and-canonicalize
@@ -161,7 +159,7 @@
       rules/complex-trig
       sincos-simplifier
       sin-sq->cos-sq-simplifier
-      sincos-cleanup
+      trig-cleanup
       rules/sincos->trig
       square-root-simplifier
       clear-square-roots-of-perfect-squares

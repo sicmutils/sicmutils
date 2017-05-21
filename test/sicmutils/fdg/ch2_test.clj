@@ -70,13 +70,7 @@
              (simplify ((- r (* 2 'a (+ 1 (cos theta))))
                         ((point R2-rect) (up 'x 'y)))))))
     (testing "ex2.2"
-      (is (= '(up (acos (/ (+ (expt rho 2) -1)
-                           (+ (expt rho 2) 1)))
-                  ;; we can see that the entry below works out to (atan (tan theta)) == theta,
-                  ;; but the simplifier does not yet know how to look for a simplification that
-                  ;; be done by considering both of atan's args.
-                  (atan (/ (* 2 rho (sin theta)) (+ (expt rho 2) 1))
-                        (/ (* 2 rho (cos theta)) (+ (expt rho 2) 1))))
+      (is (= '(up (acos (/ (+ (expt rho 2) -1) (+ (expt rho 2) 1))) theta)
              (simplify ((compose
                          (chart S2-spherical)
                          (point S2-Riemann)

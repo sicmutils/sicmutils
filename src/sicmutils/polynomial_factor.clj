@@ -24,7 +24,7 @@
              [analyze :as a]
              [generic :as g]
              [expression :as x]
-             [numsymb :as sym :refer [operator product? operands expt]]
+             [numsymb :as sym :refer [operator product? sqrt? operands expt]]
              [polynomial :as poly]
              [polynomial-gcd :refer [gcd gcd-seq]]]))
 
@@ -135,5 +135,5 @@
   [expr]
   (w/prewalk
    (fn [t]
-     (if (and (seq? t) (= (operator t) 'sqrt)) (process-sqrt t) t ))
+     (if (sqrt? t) (process-sqrt t) t ))
    expr))

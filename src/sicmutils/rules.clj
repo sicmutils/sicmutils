@@ -163,7 +163,9 @@
   (rule-simplifier
     (ruleset
      (sin (atan :y :x)) => (/ :y (sqrt (+ (expt :x 2) (expt :y 2))))
-     (cos (atan :y :x)) => (/ :x (sqrt (+ (expt :x 2) (expt :y 2)))))))
+     (cos (atan :y :x)) => (/ :x (sqrt (+ (expt :x 2) (expt :y 2))))
+     (atan (tan :x)) => :x
+     (atan (sin :x) (cos :x)) => :x)))
 
 (def sincos-flush-ones (rule-simplifier split-high-degree-cosines
                                         split-high-degree-sines

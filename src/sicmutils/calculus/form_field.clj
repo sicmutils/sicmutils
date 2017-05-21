@@ -4,6 +4,7 @@
              [structure :as s]
              [generic :as g]
              [function :as f]
+             [value :as v]
              [expression :as x]]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.manifold :as m]))
@@ -43,7 +44,7 @@
 
 (defn components->oneform-field
   [components coordinate-system & [name]]
-  (let [name (or name `(~'oneform-field ~components))]
+  (let [name (or name `(~'oneform-field ~(v/freeze components)))]
     (procedure->oneform-field (oneform-field-procedure components coordinate-system) name)))
 
 (defn oneform-field->components

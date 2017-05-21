@@ -408,9 +408,9 @@
 (defmethod g/gcd
   [::p/polynomial Number]
   [p a]
-  (euclid/gcd a (->> p p/coefficients (reduce euclid/gcd))))
+  (poly/primitive-gcd (cons a (p/coefficients p))))
 
 (defmethod g/gcd
   [Number ::p/polynomial]
   [a p]
-  (euclid/gcd a (->> p p/coefficients (reduce euclid/gcd))))
+  (poly/primitive-gcd (cons a (p/coefficients p))))

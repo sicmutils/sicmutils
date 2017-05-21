@@ -45,10 +45,10 @@
 
 (def ^:private sum? (is-expression? '+))
 (def product? (is-expression? '*))
-(def ^:private sqrt? (is-expression? 'sqrt))
+(def sqrt? (is-expression? 'sqrt))
 (def expt? (is-expression? 'expt))
 (def quotient? (is-expression? (symbol "/")))
-
+(def arctan? (is-expression? 'atan))
 (def operator first)
 (def operands rest)
 
@@ -209,9 +209,9 @@
                           :else `(~'tan ~x))
         :else `(~'tan ~x)))
 
-(defn ^:private arctangent
+(defn arctangent
   [y & x]
-  (if (nil? x)
+  (if (or (nil? x) (v/unity? (first x)))
     `(~'atan ~y)
     `(~'atan ~y ~@x)))
 

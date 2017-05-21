@@ -94,7 +94,7 @@
           R2-rect-point ((point R2-rect) (up 'x0 'y0))
           omega2 (literal-oneform-field 'a R2-rect)
           circular (- (* x d:dy) (* y d:dx))]
-      #_(is (= '(oneform-field (down a_0 a_1)) (simplify omega))) ;; fix this
+      (is (= '(oneform-field (down a_0 a_1)) (simplify omega))) ;; fix this
       (is (= '(down (a_0 (up x0 y0)) (a_1 (up x0 y0)))
              (simplify ((omega (down d:dx d:dy)) R2-rect-point))))
       (is (= '(down (a_0 (up x0 y0)) (a_1 (up x0 y0)))
@@ -105,12 +105,11 @@
               (((d (literal-manifold-function 'f-rect R2-rect))
                 (coordinate-system->vector-basis R2-rect))
                R2-rect-point))))
-      ;; TODO: this doesn't simplify all the way because we don't simplify the implied quotient in atan
-      (is (= '(down (/ (+ (* r (cos theta) (((∂ 0) f-polar) (up r (atan (* r (sin theta)) (* r (cos theta))))))
-                          (* -1N (sin theta) (((∂ 1) f-polar) (up r (atan (* r (sin theta)) (* r (cos theta)))))))
+      (is (= '(down (/ (+ (* r (cos theta) (((∂ 0) f-polar) (up r theta)))
+                          (* -1N (sin theta) (((∂ 1) f-polar) (up r theta))))
                        r)
-                    (/ (+ (* r (sin theta) (((∂ 0) f-polar) (up r (atan (* r (sin theta)) (* r (cos theta))))))
-                          (* (cos theta) (((∂ 1) f-polar) (up r (atan (* r (sin theta)) (* r (cos theta)))))))
+                    (/ (+ (* r (sin theta) (((∂ 0) f-polar) (up r theta)))
+                          (* (cos theta) (((∂ 1) f-polar) (up r theta))))
                        r))
              (simplify
               (((d (literal-manifold-function 'f-polar R2-polar))

@@ -119,7 +119,6 @@
     (is (= '(/ s c) (rf-simp '(gcd (/ (* r s) c) (/ (* s t) (* c))))))
     (is (= 2 (rf-simp '(gcd (* 2 x y) 2))))
     (is (= 3 (rf-simp '(gcd 9 (* x 6 y)))))
-    (is (= 1 (rf-simp '(gcd 9.1 (* x 6 y)))))
     (is (= 1 (rf-simp '(gcd (* 5/2 x y) (* 7/3 y z)))))
     (is (= '(* 7 y) (rf-simp '(gcd (* 14 x y) (* 21 y z))))))
   (testing "quotients"

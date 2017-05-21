@@ -41,7 +41,7 @@
   (cond (v/nullity? a) (g/abs b)
         (v/nullity? b) (g/abs a)
         (not (and (integer? a) (integer? b))) 1
-        :else (loop [a a b b]
+        :else (loop [a (g/abs a) b (g/abs b)]
                 (if (v/nullity? b)
                   a
                   (recur b (g/remainder a b))))))

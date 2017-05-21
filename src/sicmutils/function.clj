@@ -309,7 +309,7 @@
   (check-argument-type f xs (:domain f) [0])
   (if (some d/differential? xs)
     (literal-derivative f xs)
-    (x/literal-number (list* (:name f) xs)))) ;; XXX cons
+    (x/literal-number `(~(:name f) ~@(map v/freeze xs)))))
 
 ;;; Utilities
 

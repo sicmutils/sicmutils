@@ -22,6 +22,7 @@
            (java.util.concurrent TimeUnit TimeoutException))
   (:require [clojure.tools.logging :as log]
             [clojure.string]
+            [clojure.math.numeric-tower :as nt]
             [sicmutils
              [value :as v]
              [generic :as g]
@@ -52,18 +53,18 @@
   "Returns a reducer over the function f which will exit early
   if done? becomes true."
   [done? f]
-  (let [rf (fn [a b]
-             (let [c (f a b)]
-               (if (done? c) (reduced c) c)))]
-    #(reduce rf %)))
+  (let [rf #(let [c (f %1 %2)]
+              (if (done? c) (reduced c) c))]
+    (partial reduce rf)))
 
 (defn ^:private native-gcd
   [a b]
   (.gcd (biginteger a) (biginteger b)))
 
-(def ^:private primitive-gcd
+(defn primitive-gcd
   "A function which will return the gcd of a sequence of numbers."
-  (reduce-until #(= % 1) native-gcd))
+  [xs]
+  (nt/abs ((reduce-until #(= % 1) native-gcd) xs)))
 
 (defn ^:private with-content-removed
   "For multivariate polynomials. u and v are considered here as
