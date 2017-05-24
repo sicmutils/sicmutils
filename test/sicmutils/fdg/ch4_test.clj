@@ -20,6 +20,7 @@
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
+            [sicmutils.calculus.manifold :as m]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
@@ -30,4 +31,36 @@
                 (* (literal-manifold-function 'e0y R2-rect) d:dy))
           e1 (+ (* (literal-manifold-function 'e1x R2-rect) d:dx)
                 (* (literal-manifold-function 'e1y R2-rect) d:dy))
-          e-vector-basis (down e0 e1)])))
+          F (literal-manifold-function 'F R2-rect)
+          e-vector-basis (down e0 e1)
+          e-dual-basis (vector-basis->dual e-vector-basis R2-polar)
+          R2-rect-chi-inverse (point R2-rect)
+          p (R2-rect-chi-inverse (up 'x0 'y0))
+          v (R2-rect-chi-inverse (up 'X 'Y))]
+      ;; e0, 1 are vector fields. They act on manifold functions to
+      ;; produce directional derivatives... which are manifold functions.
+
+      (is (= '(+
+               (* (e0x (up X Y)) (((∂ 0) F) (up X Y)))
+               (* (e0y (up X Y)) (((∂ 1) F) (up X Y))))
+             (simplify ((e0 F) v))))
+      (is (= '(+
+               (* (((∂ 0) F) (up X Y)) (e1x (up X Y)))
+               (* (((∂ 1) F) (up X Y)) (e1y (up X Y))))
+             (simplify ((e1 F) v))))
+      (is (= '(down
+               (+
+                (* (e0x (up X Y)) (((∂ 0) F) (up X Y)))
+                (* (e0y (up X Y)) (((∂ 1) F) (up X Y))))
+               (+
+                (* (((∂ 0) F) (up X Y)) (e1x (up X Y)))
+                (* (((∂ 1) F) (up X Y)) (e1y (up X Y)))))
+             (simplify ((e-vector-basis F) v))))
+      (is (= 00 ((e-vector-basis (fn [x] (println "X was" x) x) ) v)))
+
+      (is (= 99 ((e1 p) v)))
+      (is (structure? e-vector-basis))
+      (is (structure? (m/coordinate-prototype R2-rect)))
+      (is (= 0 (simplify e-dual-basis)))
+      (is (= 0 (e-dual-basis e-vector-basis)))
+      (is (= 0 ((e-dual-basis e-vector-basis) p))))))

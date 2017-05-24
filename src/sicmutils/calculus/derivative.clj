@@ -198,8 +198,8 @@
           (dist
             [obj]
             (cond (struct/structure? obj) (struct/mapr dist obj)
-                  (matrix/matrix? obj) (matrix/map dist obj)
-                  (series/series? obj) (series/map dist obj)
+                  (matrix/matrix? obj) (matrix/fmap dist obj)
+                  (series/series? obj) (series/fmap dist obj)
                   (o/operator? obj) (do (throw (IllegalArgumentException. "can't differentiate an operator yet"))
                                         (extract obj))      ;; TODO: tag-hiding
                   ;; (quaternion? obj) XXX

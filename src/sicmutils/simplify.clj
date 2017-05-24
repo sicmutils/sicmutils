@@ -106,7 +106,7 @@
 (def ^:private simplifies-to-unity?
   #(-> % *rf-analyzer* v/unity?))
 
-(def ^:private trig-cleanup
+(def trig-cleanup
   "This finds things like a - a cos^2 x and replaces them with a sin^2 x"
   (let [at-least-two? #(and (number? %) (>= % 2))]
     (simplify-until-stable

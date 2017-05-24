@@ -21,7 +21,6 @@
   (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
             [sicmutils.structure :as s]
-            [sicmutils.mechanics.lagrange :refer [velocity-tuple]]
             [sicmutils.value :as v]))
 
 (deftest structures
@@ -222,7 +221,13 @@
            (s/unflatten (range 3 12)
                       (down 'a (up 'b 'c) (down (up (down 'd 'e) (up 'f 'g) 'h)) 'i))))
     (is (= 9 (s/unflatten [9] 3)))
-    (is (= (up 2) (s/unflatten [2] (up 0.0)))))
+    (is (= (up 2) (s/unflatten [2] (up 0.0))))
+    ;; gjs examples from structs.scmutils
+    (is (= (up 1 2 'a (down 3 4) (up (down 'c 'd) 'e))
+           (s/unflatten '(1 2 a 3 4 c d e)
+                        (up 'x 'x 'x (down 'x 'x) (up (down 'x 'x) 'x)))))
+
+    )
   (testing "get-in"
     (is (= 5 (get-in (up 4 5 6) [1])))
     (is (= 4 (get-in (up 4 5 6) [0])))
@@ -247,7 +252,11 @@
       (is (= ::s/up (v/kind o)))
       (is (symbol? (ref o 0)))
       (is (= ::s/down (v/kind (ref o 1))))
-      (is (= ::s/down (v/kind (ref o 2)))))))
+      (is (= ::s/down (v/kind (ref o 2)))))
+    (let [o (s/compatible-shape (up 'x0 'x1))]
+      (is (= 0 o)))
+    (let [o (s/compatible-shape (down 'x0 'x1))]
+      (is (= 0 o)))))
 
 (deftest other-operations
   (let [A (up 1 2 'a (down 3 4) (up (down 'c 'd) 'e))]

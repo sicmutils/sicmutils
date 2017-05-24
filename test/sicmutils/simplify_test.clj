@@ -22,7 +22,7 @@
              [simplify :refer [hermetic-simplify-fixture
                                simplify-expression
                                expression->string
-                               arctan-simplifier]]
+                               trig-cleanup]]
              [structure :refer :all]
              [complex :as c]
              [generic :as g]
@@ -131,18 +131,14 @@
            (simplify-expression `(~'expt (~'complex 0.0 1.0) ~n))))))
 
 (deftest arc-tan-cleanup
-  ;; some of these are wrong: we need to find a GCD, and divide it
-  ;; from top and bottom, if the gcd is not unity. That way we can
-  ;; preserve all quadrants.
-  (is (= '(atan 1 1) (g/simplify (arctan-simplifier '(atan 1 1)))))
-  (is (= '(atan -1 1) (g/simplify (arctan-simplifier '(atan -1 1)))))
-  (is (= '(atan 1 -1) (g/simplify (arctan-simplifier '(atan 1 -1)))))
-  (is (= '(atan -1 -1) (g/simplify (arctan-simplifier '(atan -1 -1)))))
-
-  (is (= '(atan y x) (g/simplify (arctan-simplifier '(atan y x)))))
-  (is (= '(atan 1) (g/simplify (arctan-simplifier '(atan x x)))))
-  (is (= '(atan 1 -1) (g/simplify (arctan-simplifier '(atan x (* -1 x))))))
-  (is (= '(atan -1) (g/simplify (arctan-simplifier '(atan (* -1 x) x))))))
+  (is (= '(atan 1 1)  (trig-cleanup '(atan 1 1))))
+  (is (= '(atan -1 1)  (trig-cleanup '(atan -1 1))))
+  (is (= '(atan 1 -1) (g/simplify (trig-cleanup '(atan 1 -1)))))
+  (is (= '(atan -1 -1) (g/simplify (trig-cleanup '(atan -1 -1)))))
+  (is (= '(atan y x) (g/simplify (trig-cleanup '(atan y x)))))
+  (is (= '(atan 1) (g/simplify (trig-cleanup '(atan x x)))))
+  (is (= '(atan 1 -1) (g/simplify (trig-cleanup '(atan x (* -1 x))))))
+  (is (= '(atan -1) (g/simplify (trig-cleanup '(atan (* -1 x) x))))))
 
 (deftest string-form-test
   (is (= "(up sin cos tan)" (expression->string (s/up g/sin g/cos g/tan))))

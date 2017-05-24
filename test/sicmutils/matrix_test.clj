@@ -51,7 +51,7 @@
     (is (= [4 5 6] (matrix/get-in M [1])))
     (is (= 8 (matrix/get-in v [1])))
     (is (= (matrix/by-rows [2 3 4]
-                           [5 6 7]) (matrix/map inc M)))
+                           [5 6 7]) (matrix/fmap inc M)))
     (is (= (matrix/by-rows [22 23] [32 33])
            (matrix/without A 0 0)))
     (is (= (matrix/by-rows [21 23] [31 33])
@@ -72,7 +72,10 @@
            (matrix/without A 2 1)))
     (is (= (matrix/by-rows [11 12] [21 22])
            (matrix/without A 2 2)))
-
+    (is (= (s/up 11 21 31) (matrix/nth-col A 0)))
+    (is (= (s/up 12 22 32) (matrix/nth-col A 1)))
+    (is (= (s/up 13 23 33) (matrix/nth-col A 2)))
+    (is (thrown? IndexOutOfBoundsException (matrix/nth-col A 3)))
     (is (= 18 (matrix/determinant (matrix/by-rows [-2 2 -3]
                                                   [-1 1 3]
                                                   [2 0 -1]))))
@@ -121,7 +124,7 @@
                    (s/up -3 -4))
            (matrix/square-structure-operation
             (s/down (s/up 1 2) (s/up 3 4))
-            #(matrix/map - %))))))
+            #(matrix/fmap - %))))))
 
 (deftest structure
   (let [A (s/up 1 2 'a (s/down 3 4) (s/up (s/down 'c 'd) 'e))]
@@ -180,7 +183,46 @@
         (is (= 22 (det C)))
         (is (= 3 (det D)))
         (is (= -2 (det F)))
-        (is (= -8 (det G)))))))
+        (is (= -8 (det G))))))
+  (testing "s->m->s"
+    (let [as-matrix (fn [F]
+                      (fn [s]
+                        (let [v (F s)]
+                          (matrix/s->m (s/compatible-shape (g/* v s)) v s))))
+          C-general (literal-function 'C '(-> (UP Real
+                                                  (UP Real Real)
+                                                  (DOWN Real Real))
+                                              (UP Real
+                                                  (UP Real Real)
+                                                  (DOWN Real Real))))
+          s (s/up 't (s/up 'x 'y) (s/down 'px 'py))]
+      (is (= '(matrix-by-rows
+               [(((∂ 0) C↑0) (up t (up x y) (down px py)))
+                (((∂ 1 0) C↑0) (up t (up x y) (down px py)))
+                (((∂ 1 1) C↑0) (up t (up x y) (down px py)))
+                (((∂ 2 0) C↑0) (up t (up x y) (down px py)))
+                (((∂ 2 1) C↑0) (up t (up x y) (down px py)))]
+               [(((∂ 0) C↑1↑0) (up t (up x y) (down px py)))
+                (((∂ 1 0) C↑1↑0) (up t (up x y) (down px py)))
+                (((∂ 1 1) C↑1↑0) (up t (up x y) (down px py)))
+                (((∂ 2 0) C↑1↑0) (up t (up x y) (down px py)))
+                (((∂ 2 1) C↑1↑0) (up t (up x y) (down px py)))]
+               [(((∂ 0) C↑1↑1) (up t (up x y) (down px py)))
+                (((∂ 1 0) C↑1↑1) (up t (up x y) (down px py)))
+                (((∂ 1 1) C↑1↑1) (up t (up x y) (down px py)))
+                (((∂ 2 0) C↑1↑1) (up t (up x y) (down px py)))
+                (((∂ 2 1) C↑1↑1) (up t (up x y) (down px py)))]
+               [(((∂ 0) C↑2_0) (up t (up x y) (down px py)))
+                (((∂ 1 0) C↑2_0) (up t (up x y) (down px py)))
+                (((∂ 1 1) C↑2_0) (up t (up x y) (down px py)))
+                (((∂ 2 0) C↑2_0) (up t (up x y) (down px py)))
+                (((∂ 2 1) C↑2_0) (up t (up x y) (down px py)))]
+               [(((∂ 0) C↑2_1) (up t (up x y) (down px py)))
+                (((∂ 1 0) C↑2_1) (up t (up x y) (down px py)))
+                (((∂ 1 1) C↑2_1) (up t (up x y) (down px py)))
+                (((∂ 2 0) C↑2_1) (up t (up x y) (down px py)))
+                (((∂ 2 1) C↑2_1) (up t (up x y) (down px py)))])
+             (g/simplify ((as-matrix (d/D C-general)) s)))))))
 
 (deftest matrix-mul-div
   (let [M (matrix/by-rows '[a b] '[c d])

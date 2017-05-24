@@ -1,6 +1,7 @@
 (ns sicmutils.calculus.coordinate
   (:require [sicmutils
-             [structure :as s]]
+             [structure :as s]
+             [matrix :as matrix]]
             [sicmutils.calculus
              [manifold :refer :all]
              [vector-field :refer :all]
@@ -77,3 +78,27 @@
 (defn coordinate-system->vector-basis
   [coordinate-system]
   (coordinate-basis-vector-fields coordinate-system))
+
+(defn ^:private c:generate
+  [n orientation f]
+  (if (= n 1)
+    (f 0)
+    (s/generate n orientation f)))
+
+(defn vector-basis->dual
+  [vector-basis coordinate-system]
+  (let [prototype (coordinate-prototype coordinate-system)
+        _ (println "prototype" prototype)
+        vector-basis-coefficient-functions (s/mapr #(vector-field->components % coordinate-system) vector-basis)
+        guts (fn [coords]
+               (matrix/s:transpose (s/compatible-shape prototype)
+                                   (matrix/s:inverse
+                                    (s/compatible-shape prototype)
+                                    (s/mapr #(% coords) vector-basis-coefficient-functions)
+                                    prototype)
+                                   prototype))
+        oneform-basis-coefficient-functions (c:generate (:dimension (manifold coordinate-system))
+                                                        ::s/up
+                                                        #(comp (s/component %) guts))
+        oneform-basis (s/mapr #(components->oneform-field % coordinate-system) oneform-basis-coefficient-functions)]
+    oneform-basis))

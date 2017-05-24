@@ -17,7 +17,7 @@
 ;
 
 (ns sicmutils.matrix
-  (:refer-clojure :rename {map core-map get-in core-get-in})
+  (:refer-clojure :rename {get-in core-get-in})
   (:require [sicmutils
              [value :as v]
              [expression :as x]
@@ -39,8 +39,8 @@
                   (generate r c #(if (= %1 %2) 1 0))))
   (exact? [_] (every? #(every? v/exact? %) v))
   (freeze [_] (if (= c 1)
-                `(~'column-matrix ~@(core-map (comp v/freeze first) v))
-                `(~'matrix-by-rows ~@(core-map v/freeze v))))
+                `(~'column-matrix ~@(map (comp v/freeze first) v))
+                `(~'matrix-by-rows ~@(map v/freeze v))))
   (kind [_] ::matrix)
   IFn
   (invoke [_ x]
@@ -92,8 +92,8 @@
   [f ^Matrix m]
   (some f (flatten (.v m))))
 
-(defn map
-  "Maps f over the elements of m."
+(defn fmap
+  "Maps f over the elements of m, returning an object of the same type."
   [f ^Matrix m]
   (Matrix. (.r m) (.c m) (mapv #(mapv f %) (.v m))))
 
@@ -106,7 +106,7 @@
   {:pre [(seq rs)
          (every? seq rs)]}
   (let [r (count rs)
-        cs (core-map count rs)]
+        cs (map count rs)]
     (when-not (every? #(= % (first cs)) (next cs))
       (throw (IllegalArgumentException. "malformed matrix")))
     (Matrix. r (first cs) (mapv vec rs))))
@@ -136,7 +136,7 @@
   GJS: Any matrix in the argument list wants to be converted to a row of
   columns"
   [s]
-  (apply s/up (core-map #(if (instance? Matrix %) (->structure % s/down s/up false) %) s)))
+  (apply s/up (map #(if (instance? Matrix %) (->structure % s/down s/up false) %) s)))
 
 (defn ^:private mul
   "Multiplies the two matrices a and b"
@@ -174,8 +174,8 @@
   [s k]
   (let [major-size (count s)
         major-orientation (s/orientation s)
-        minor-sizes (core-map #(if (s/structure? %) (count %) 1) s)
-        minor-orientations (core-map s/orientation s)
+        minor-sizes (map #(if (s/structure? %) (count %) 1) s)
+        minor-orientations (map s/orientation s)
         minor-orientation (first minor-orientations)]
     (if (and (every? #(= major-size %) minor-sizes)
              (every? #(= minor-orientation %) (rest minor-orientations)))
@@ -197,7 +197,7 @@
   (when (not= (.c m) (count u))
     (throw (IllegalArgumentException. "matrix and tuple incompatible for multiplication")))
   (apply s/up
-         (core-map (fn [i]
+         (map (fn [i]
                 (reduce g/+ (for [k (range (.c m))]
                               (g/* (core-get-in (.v m) [i k])
                                    (get u k)))))
@@ -209,7 +209,7 @@
   (when (not= (.r m) (count d))
     (throw (IllegalArgumentException. "matrix and tuple incompatible for multiplication")))
   (apply s/down
-         (core-map (fn [i]
+         (map (fn [i]
                      (reduce g/+ (for [k (range (.r m))]
                                    (g/* (get d k)
                                         (core-get-in (.v m) [i k])
@@ -220,16 +220,43 @@
   [i j]
   (if (= i j) 1 0))
 
+(def ^:dynamic *careful-conversion* true)
+
 (defn s->m
   "Convert the structure ms, which would be a scalar if the (compatible) multiplication
   (* ls ms rs) were performed, to a matrix."
   [ls ms rs]
-  (let [ndowns (s/dimension ls)
+  (println "ls" ls "ms" ms "rs" rs)
+  (when *careful-conversion*
+    (assert (g/numerical-quantity? (g/* ls (g/* ms rs)))))  (let [ndowns (s/dimension ls)
         nups (s/dimension rs)]
     (generate ndowns nups
-              #(g/* (s/unflatten (for [k (range ndowns)] (kronecker %1 k)) ls)
+              #(g/* (s/unflatten (map (partial kronecker %1) (range)) ls)
                     (g/* ms
-                         (s/unflatten (for [k (range nups)] (kronecker %2 k)) rs))))))
+                         (s/unflatten (map (partial kronecker %2) (range)) rs))))))
+
+;; (I wonder if tuple multiplication is associative...)
+
+(defn nth-col
+  [^Matrix m j]
+  (apply s/up (mapv #(% j) (.v m))))
+
+(defn m->s
+  "Convert the matrix m into a structure S, guided by the requirement that (* ls S rs)
+  should be a scalar"
+  [ls ^Matrix m rs]
+  (let [ncols (.c m)
+        col-shape (s/compatible-shape ls)
+        ms (s/unflatten (s/compatible-shape rs)
+                        (for [j (range ncols)]
+                          (s/unflatten col-shape (nth-col m j))))]
+    (when *careful-conversion*
+      (assert (g/numerical-quantity? (g/* ls (g/* ms rs)))))
+    ms))
+
+(defn s:transpose
+  [ls ms rs]
+  (m->s rs (transpose (s->m ls ms rs)) ls))
 
 (defn ^:private vector-disj
   "The vector formed by deleting the i'th element of the given vector."
@@ -264,7 +291,7 @@
       2 (let [[[a b] [c d]] v]
           (g/- (g/* a d) (g/* b c)))
       (reduce g/+
-              (core-map g/*
+              (map g/*
                         (cycle [1 -1])
                         (v 0)
                         (for [i (range (.r m))] (determinant (without m 0 i))))))))
@@ -293,8 +320,15 @@
       0 m
       1 (Matrix. 1 1 [[(g/invert ((v 0) 0))]])
       (let [^Matrix C (cofactors m)
-            Δ (reduce g/+ (core-map g/* (v 0) (-> C .v first)))]
-        (map #(g/divide % Δ) (transpose C))))))
+            Δ (reduce g/+ (map g/* (v 0) (-> C .v first)))]
+        (fmap #(g/divide % Δ) (transpose C))))))
+
+(defn s:inverse
+  [ls ms rs]
+  (println "s:inverse rs" rs "cs(rs)" (s/compatible-shape rs))
+  (m->s (s/compatible-shape rs)
+        (invert (s->m ls ms rs))
+        (s/compatible-shape ls)))
 
 (defn I
   "Return the identity matrix of order n."
@@ -314,15 +348,15 @@
 
 (defmethod g/transpose [::matrix] [m] (transpose m))
 (defmethod g/invert [::matrix] [m] (invert m))
-(defmethod g/negate [::matrix] [a] (map g/negate a))
+(defmethod g/negate [::matrix] [a] (fmap g/negate a))
 (defmethod g/sub [::matrix ::matrix] [a b] (elementwise g/- a b))
 (defmethod g/add [::matrix ::matrix] [a b] (elementwise g/+ a b))
 (defmethod g/mul [::matrix ::matrix] [a b] (mul a b))
-(defmethod g/mul [::x/numerical-expression ::matrix] [n a] (map #(g/* n %) a))
+(defmethod g/mul [::x/numerical-expression ::matrix] [n a] (fmap #(g/* n %) a))
 (defmethod g/mul [::matrix ::s/up] [m u] (M*u m u))
 (defmethod g/mul [::s/down ::matrix] [d m] (d*M d m))
 (defmethod g/div [::s/up ::matrix] [u M] (M*u (invert M) u))
-(defmethod g/simplify [::matrix] [m] (->> m (map g/simplify) v/freeze))
+(defmethod g/simplify [::matrix] [m] (->> m (fmap g/simplify) v/freeze))
 (defmethod g/determinant [::matrix] [m] (determinant m))
 
 (defmethod g/determinant
@@ -335,5 +369,5 @@
   [a]
   (let [a' (square-structure-operation a invert)]
     (if (= (s/orientation a') (s/orientation (first a')))
-      (s/opposite a' (core-map #(s/opposite a' %) a'))
+      (s/opposite a' (map #(s/opposite a' %) a'))
       a')))

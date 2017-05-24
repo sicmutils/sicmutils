@@ -54,7 +54,7 @@
                                         (series/generate square)))))
      (is (= '(3 6 9 12) (series/take 4 (* 3 nats))))
      (is (= '(-3 -6 -9 -12) (series/take 4 (negate (* 3 nats)))))
-     (is (= '(1 4 9 16) (series/take 4 (series/map square nats))))
+     (is (= '(1 4 9 16) (series/take 4 (series/fmap square nats))))
      (is (= '(3 6 9 12) (series/take 4 (* nats 3))))
      (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε)) (simplify (series/take 4 (* nats 'ε)))))
      (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε)) (simplify (series/take 4 (* 'ε nats)))))

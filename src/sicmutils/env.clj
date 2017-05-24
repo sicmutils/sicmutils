@@ -92,7 +92,6 @@
     (apply core-partial selectors)))
 
 (def m:transpose matrix/transpose)
-(def s->m matrix/s->m)
 (def qp-submatrix #(matrix/without % 0 0))
 (def m:dimension matrix/dimension)
 (def matrix-by-rows matrix/by-rows)
@@ -172,7 +171,8 @@
  [sicmutils.calculus.coordinate
   coordinate-system->vector-basis
   let-coordinates
-  using-coordinates]
+  using-coordinates
+  vector-basis->dual]
  [sicmutils.calculus.vector-field
   components->vector-field
   coordinatize
@@ -201,7 +201,11 @@
   p->r
   s->r
   velocity
+  velocity-tuple
   Γ]
+ [sicmutils.matrix
+  s->m
+  m->s]
  [sicmutils.mechanics.hamilton
   ->H-state
   F->CT

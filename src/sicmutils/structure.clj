@@ -148,7 +148,7 @@
   [dimension orientation f]
   (->Structure orientation (mapv f (range dimension))))
 
-(defn map:l
+(defn ^:private map:l
   [f structures]
   (if (structure? (first structures))
     (generate (count (first structures))
@@ -156,7 +156,7 @@
               #(apply f (map (fn [s] (nth s %)) structures)))
     (apply f structures)))
 
-(defn map:r:l
+(defn ^:private map:r:l
   [f structures]
   (map:l (fn [& elements]
            (if (structure? (first elements))
