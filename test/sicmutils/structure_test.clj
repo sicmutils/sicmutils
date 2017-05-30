@@ -252,11 +252,7 @@
       (is (= ::s/up (v/kind o)))
       (is (symbol? (ref o 0)))
       (is (= ::s/down (v/kind (ref o 1))))
-      (is (= ::s/down (v/kind (ref o 2)))))
-    (let [o (s/compatible-shape (up 'x0 'x1))]
-      (is (= 0 o)))
-    (let [o (s/compatible-shape (down 'x0 'x1))]
-      (is (= 0 o)))))
+      (is (= ::s/down (v/kind (ref o 2)))))))
 
 (deftest other-operations
   (let [A (up 1 2 'a (down 3 4) (up (down 'c 'd) 'e))]

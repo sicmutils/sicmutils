@@ -222,7 +222,16 @@
                 (((∂ 1 1) C↑2_1) (up t (up x y) (down px py)))
                 (((∂ 2 0) C↑2_1) (up t (up x y) (down px py)))
                 (((∂ 2 1) C↑2_1) (up t (up x y) (down px py)))])
-             (g/simplify ((as-matrix (d/D C-general)) s)))))))
+             (g/simplify ((as-matrix (d/D C-general)) s))))
+      (is (= (matrix/by-rows [1 2] [2 3]) (matrix/s->m (s/down 'x 'y) (s/down (s/up 1 2) (s/up 2 3)) (s/up 'x 'y))))
+      (is (= (matrix/by-rows [-3 2] [2 -1]) (matrix/invert (matrix/s->m (s/down 'x 'y) (s/down (s/up 1 2) (s/up 2 3)) (s/up 'x 'y)))))
+      (is (= (s/up (s/down -3 2) (s/down 2 -1))
+             (matrix/m->s
+              (s/compatible-shape (s/down 1 2))
+              (matrix/invert (matrix/s->m (s/down 'x 'y) (s/down (s/up 1 2) (s/up 2 3)) (s/up 'x 'y)))
+              (s/compatible-shape (s/up 2 3)))))
+      (is (= (s/down (s/up -3 2) (s/up 2 -1))
+             (matrix/s:inverse (s/down 'x 'y) (s/down (s/up 1 2) (s/up 2 3)) (s/up 'x 'y)))))))
 
 (deftest matrix-mul-div
   (let [M (matrix/by-rows '[a b] '[c d])

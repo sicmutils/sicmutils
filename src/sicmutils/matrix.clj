@@ -61,7 +61,9 @@
          (let [^Matrix bm b]
            (and (= r (.r bm))
                 (= c (.c bm))
-                (= v (.v bm)))))))
+                (= v (.v bm))))))
+  (toString [_]
+    (str v)))
 
 (defn ^:private square?
   [^Matrix m]
@@ -226,7 +228,6 @@
   "Convert the structure ms, which would be a scalar if the (compatible) multiplication
   (* ls ms rs) were performed, to a matrix."
   [ls ms rs]
-  (println "ls" ls "ms" ms "rs" rs)
   (when *careful-conversion*
     (assert (g/numerical-quantity? (g/* ls (g/* ms rs)))))  (let [ndowns (s/dimension ls)
         nups (s/dimension rs)]
@@ -247,9 +248,9 @@
   [ls ^Matrix m rs]
   (let [ncols (.c m)
         col-shape (s/compatible-shape ls)
-        ms (s/unflatten (s/compatible-shape rs)
-                        (for [j (range ncols)]
-                          (s/unflatten col-shape (nth-col m j))))]
+        ms (s/unflatten (for [j (range ncols)]
+                          (s/unflatten (nth-col m j) col-shape))
+                        (s/compatible-shape rs))]
     (when *careful-conversion*
       (assert (g/numerical-quantity? (g/* ls (g/* ms rs)))))
     ms))
@@ -325,7 +326,6 @@
 
 (defn s:inverse
   [ls ms rs]
-  (println "s:inverse rs" rs "cs(rs)" (s/compatible-shape rs))
   (m->s (s/compatible-shape rs)
         (invert (s->m ls ms rs))
         (s/compatible-shape ls)))

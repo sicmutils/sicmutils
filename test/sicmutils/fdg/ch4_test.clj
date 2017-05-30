@@ -35,7 +35,6 @@
           e-vector-basis (down e0 e1)
           e-dual-basis (vector-basis->dual e-vector-basis R2-polar)
           R2-rect-chi-inverse (point R2-rect)
-          p (R2-rect-chi-inverse (up 'x0 'y0))
           v (R2-rect-chi-inverse (up 'X 'Y))]
       ;; e0, 1 are vector fields. They act on manifold functions to
       ;; produce directional derivatives... which are manifold functions.
@@ -56,11 +55,4 @@
                 (* (((∂ 0) F) (up X Y)) (e1x (up X Y)))
                 (* (((∂ 1) F) (up X Y)) (e1y (up X Y)))))
              (simplify ((e-vector-basis F) v))))
-      (is (= 00 ((e-vector-basis (fn [x] (println "X was" x) x) ) v)))
-
-      (is (= 99 ((e1 p) v)))
-      (is (structure? e-vector-basis))
-      (is (structure? (m/coordinate-prototype R2-rect)))
-      (is (= 0 (simplify e-dual-basis)))
-      (is (= 0 (e-dual-basis e-vector-basis)))
-      (is (= 0 ((e-dual-basis e-vector-basis) p))))))
+      (is (= '(up (down 1 0) (down 0 1)) (simplify ((e-dual-basis e-vector-basis) v)))))))
