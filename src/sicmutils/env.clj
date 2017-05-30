@@ -161,14 +161,21 @@
   chart
   point
   literal-manifold-function
+  Euler-angles
   R2-rect
   R2-polar
   R3-rect
   R3-cyl
   S2-spherical
   S2-stereographic
-  S2-Riemann]
+  S2-Riemann
+  SO3]
  [sicmutils.calculus.coordinate
+  Jacobian
+  basis->vector-basis
+  basis->oneform-basis
+  coordinate-system->basis
+  coordinate-system->oneform-basis
   coordinate-system->vector-basis
   let-coordinates
   using-coordinates

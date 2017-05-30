@@ -5,7 +5,8 @@
              [generic :as g]
              [simplify :refer [simplify-numerical-expression]]
              [matrix :as matrix]
-             [structure :as s]]))
+             [structure :as s]]
+            [sicmutils.mechanics.rotation :refer [rotate-x-tuple rotate-z-tuple]]))
 
 (defn make-manifold-family
   [name-format & {:keys [over] :or {over 'Real}}]
@@ -310,11 +311,48 @@
           (my-manifold-point? point manifold))
         (point->coords [this point]
           (assert (check-point this point))
-          (let [pt (g/* orientation-inverse-matrix (manifold-point-representation point))]
-            (when (and (number? (nth pt n)) (= (nth pt n) 1))
-              (throw (IllegalStateException. "S^n stereographic singular")))
-            (let [coords (s/generate n ::s/up #(g/divide (nth pt %) (g/- 1 (nth pt n))))]
-              (if (= n 1) (first coords) coords))))
+          (get-coordinates point this
+                           (fn []
+                             (let [pt (g/* orientation-inverse-matrix (manifold-point-representation point))]
+                               (when (and (number? (nth pt n)) (= (nth pt n) 1))
+                                 (throw (IllegalStateException. "S^n stereographic singular")))
+                               (let [coords (s/generate n ::s/up #(g/divide (nth pt %) (g/- 1 (nth pt n))))]
+                                 (if (= n 1) (first coords) coords))))))
+        (coordinate-prototype [this] coordinate-prototype)
+        (with-coordinate-prototype [this prototype] (ctor manifold prototype))
+        (manifold [this] manifold)))))
+
+(def ^:private ->Euler-chart
+  "Euler angles for SO(3)."
+  (fn ctor [manifold coordinate-prototype]
+    (let [n (manifold :dimension)]
+      (reify ICoordinateSystem
+        (check-coordinates [this coords]
+          (and (s/up? coords)
+               (= (s/dimension coords) n)
+               (or (not (number? (nth coords 0)))
+                   (not (zero? (nth coords 0))))))
+        (coords->point [this coords]
+          (assert (check-coordinates this coords))
+          (let [[theta phi psi] coords
+                Mx-theta (rotate-x-tuple theta)
+                Mz-phi (rotate-z-tuple phi)
+                Mz-psi (rotate-z-tuple psi)
+                pt (g/* Mz-phi Mx-theta Mz-psi)]
+            (make-manifold-point pt manifold this coords)))
+        (check-point [this point]
+          (my-manifold-point? point manifold))
+        (point->coords [this point]
+          (assert (check-point this point))
+          (get-coordinates point this
+                           (fn []
+                             (let [M (manifold-point-representation point)
+                                   theta (g/acos (matrix/get-in M 2 2))
+                                   phi (g/atan (matrix/get-in M 2 0)
+                                               (g/negate (matrix/get-in M 2 1)))
+                                   psi (g/atan (matrix/get-in M 0 2)
+                                               (matrix/get-in M 1 2))]
+                               (s/up theta phi psi)))))
         (coordinate-prototype [this] coordinate-prototype)
         (with-coordinate-prototype [this prototype] (ctor manifold prototype))
         (manifold [this] manifold)))))
@@ -358,3 +396,12 @@
 (def S2-stereographic (coordinate-system-at :stereographic :north-pole S2))
 (def S2-Riemann S2-stereographic)
 ;; double-check these: what goes in S2-type, and what goes in Sn(2)?
+
+
+(def SO3-type (-> "SO3"
+                  make-manifold-family
+                  (attach-patch :Euler-patch)
+                  (attach-coordinate-system :Euler :Euler-patch ->Euler-chart)))
+
+(def SO3 (make-manifold SO3-type 3))
+(def Euler-angles (coordinate-system-at :Euler :Euler-patch SO3))

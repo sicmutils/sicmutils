@@ -60,32 +60,59 @@
           (+ (* s x) (* c y))
           z))))
 
+(defn ^:private rotate-x-matrix-2
+  [c s]
+  (matrix/by-rows [1 0 0]
+                  [0 c (- s)]
+                  [0 s c]))
+
 (defn rotate-x-matrix
   "Produce the matrix of a rotation of α radians about the x axis."
   [α]
-  (let [c (cos α)
-        s (sin α)]
-    (matrix/by-rows [1 0 0]
-                    [0 c (- s)]
-                    [0 s c])))
+  (rotate-x-matrix-2 (cos α) (sin α)))
+
+(defn ^:private rotate-y-matrix-2
+  [c s]
+  (matrix/by-rows  [c 0 s]
+                   [0 1 0]
+                   [(- s) 0 c]))
 
 (defn rotate-y-matrix
   "Produce the matrix of a rotation of α radians about the y axis."
   [α]
-  (let [c (cos α)
-        s (sin α)]
-    (matrix/by-rows  [c 0 s]
-                     [0 1 0]
-                     [(- s) 0 c])))
+  (rotate-y-matrix-2 (cos α) (sin α)))
+
+(defn ^:private rotate-z-matrix-2
+  "Produce the matrix of a rotation of α radians about the z axis."
+  [c s]
+  (matrix/by-rows [c (- s) 0]
+                  [s c 0]
+                  [0 0 1]))
 
 (defn rotate-z-matrix
   "Produce the matrix of a rotation of α radians about the z axis."
   [α]
-  (let [c (cos α)
-        s (sin α)]
-    (matrix/by-rows [c (- s) 0]
-                    [s c 0]
-                    [0 0 1])))
+  (rotate-z-matrix-2 (cos α) (sin α)))
+
+(defn ^:private rotate-x-tuple-2
+  [c s]
+  (matrix/m->s (down 'ignore 'ignore 'ignore)
+               (rotate-x-matrix-2 c s)
+               (up 'ignore 'ignore 'ignore)))
+
+(defn rotate-x-tuple
+  [α]
+  (rotate-x-tuple-2 (cos α) (sin α)))
+
+(defn ^:private rotate-z-tuple-2
+  [c s]
+  (matrix/m->s (down 'ignore 'ignore 'ignore)
+               (rotate-z-matrix-2 c s)
+               (up 'ignore 'ignore 'ignore)))
+
+(defn rotate-z-tuple
+  [α]
+  (rotate-z-tuple-2 (cos α) (sin α)))
 
 (defn Euler->M
   "Compute the rotation matrix from a set of Euler angles."

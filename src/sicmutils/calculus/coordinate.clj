@@ -79,6 +79,10 @@
   [coordinate-system]
   (coordinate-basis-vector-fields coordinate-system))
 
+(defn coordinate-system->oneform-basis
+  [coordinate-system]
+  (coordinate-basis-oneform-fields coordinate-system))
+
 (defn ^:private c:generate
   [n orientation f]
   (if (= n 1)
@@ -102,3 +106,26 @@
                                                         #(comp (s/component %) guts))
         oneform-basis (s/mapr #(components->oneform-field % coordinate-system) oneform-basis-coefficient-functions)]
     oneform-basis))
+
+(defn coordinate-system->basis
+  [coordinate-system]
+  {:type ::basis
+   :coordinate-system coordinate-system
+   :dimension (:dimension (manifold coordinate-system))
+   :vector-basis (coordinate-basis-vector-fields coordinate-system)
+   :oneform-basis (coordinate-basis-oneform-fields coordinate-system)})
+
+(defn basis->oneform-basis
+  [b]
+  {:pre [(= (:type b) ::basis)]}
+  (:oneform-basis b))
+
+(defn basis->vector-basis
+  [b]
+  {:pre [(= (:type b) ::basis)]}
+  (:vector-basis b))
+
+(defn Jacobian
+  [to-basis from-basis]
+  (s/mapr (basis->oneform-basis to-basis)
+          (basis->vector-basis from-basis)))

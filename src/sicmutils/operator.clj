@@ -195,6 +195,7 @@
 (defmethod g/mul [::operator ::x/numerical-expression] [o n] (o*f o n))
 (defmethod g/mul [::x/numerical-expression ::operator] [n o] (f*o n o))
 (defmethod g/div [::operator ::x/numerical-expression] [o n] (o*f o (g/invert n)))
+(defmethod g/div [::operator :sicmutils.function/function] [o f] (o*f o (g/invert f)))
 
 (defmethod g/square [::operator] [o] (o*o o o))
 
