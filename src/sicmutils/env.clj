@@ -162,6 +162,7 @@
   point
   literal-manifold-function
   Euler-angles
+  alternate-angles
   R2-rect
   R2-polar
   R3-rect

@@ -132,7 +132,8 @@
 
 (defn square
   [^RationalFunction r]
-  {:pre [(instance? RationalFunction r)]}
+  ;;{:pre [(instance? RationalFunction r)]}
+  (println "RF square" r)
   (let [u (.u r)
         v (.v r)]
     (RationalFunction. (.arity r) (p/mul u u) (p/mul v v))))
@@ -196,7 +197,7 @@
    'negate negate
    'invert invert
    'expt g/expt
-   'square square
+   'square g/square
    'cube cube
    'gcd g/gcd
    })

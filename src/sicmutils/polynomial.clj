@@ -448,6 +448,7 @@
 (defmethod g/mul [::polynomial ::polynomial] [a b] (mul a b))
 (defmethod g/sub [::polynomial ::polynomial] [a b] (sub a b))
 (defmethod g/exact-divide [::polynomial ::polynomial] [p q] (evenly-divide p q))
+(defmethod g/square [::polynomial] [a] (mul a a))
 
 (doseq [t [Long BigInt BigInteger Double Ratio]]
   (defmethod g/mul

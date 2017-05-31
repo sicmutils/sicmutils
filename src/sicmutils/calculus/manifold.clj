@@ -6,7 +6,7 @@
              [simplify :refer [simplify-numerical-expression]]
              [matrix :as matrix]
              [structure :as s]]
-            [sicmutils.mechanics.rotation :refer [rotate-x-tuple rotate-z-tuple]]))
+            [sicmutils.mechanics.rotation :refer [rotate-x-matrix rotate-y-matrix rotate-z-matrix]]))
 
 (defn make-manifold-family
   [name-format & {:keys [over] :or {over 'Real}}]
@@ -335,9 +335,10 @@
         (coords->point [this coords]
           (assert (check-coordinates this coords))
           (let [[theta phi psi] coords
-                Mx-theta (rotate-x-tuple theta)
-                Mz-phi (rotate-z-tuple phi)
-                Mz-psi (rotate-z-tuple psi)
+                ;; NB: scmutils uses rotate-?-tuple instead of matrix; therefore we must transpose indices
+                Mx-theta (rotate-x-matrix theta)
+                Mz-phi (rotate-z-matrix phi)
+                Mz-psi (rotate-z-matrix psi)
                 pt (g/* Mz-phi Mx-theta Mz-psi)]
             (make-manifold-point pt manifold this coords)))
         (check-point [this point]
@@ -347,11 +348,47 @@
           (get-coordinates point this
                            (fn []
                              (let [M (manifold-point-representation point)
-                                   theta (g/acos (matrix/get-in M 2 2))
-                                   phi (g/atan (matrix/get-in M 2 0)
-                                               (g/negate (matrix/get-in M 2 1)))
-                                   psi (g/atan (matrix/get-in M 0 2)
-                                               (matrix/get-in M 1 2))]
+                                   theta (g/acos (matrix/get-in M [2 2]))
+                                   phi (g/atan (matrix/get-in M [0 2])
+                                               (g/negate (matrix/get-in M [1 2])))
+                                   psi (g/atan (matrix/get-in M [2 0])
+                                               (matrix/get-in M [2 1]))]
+                               (s/up theta phi psi)))))
+        (coordinate-prototype [this] coordinate-prototype)
+        (with-coordinate-prototype [this prototype] (ctor manifold prototype))
+        (manifold [this] manifold)))))
+
+(def ^:private ->Alternate-chart
+  "Alternate angles for SO(3)."
+  (fn ctor [manifold coordinate-prototype]
+    (let [n (manifold :dimension)]
+      (reify ICoordinateSystem
+        (check-coordinates [this coords]
+          (and (s/up? coords)
+               (= (s/dimension coords) n)
+               (or (not (number? (nth coords 0)))
+                   (and (< (/ Math/PI -2) (nth coords 0) (/ Math/PI 2) )))))
+        (coords->point [this coords]
+          (assert (check-coordinates this coords))
+          (let [[theta phi psi] coords
+                ;; NB: scmutils uses rotate-?-tuple instead of matrix; therefore we must transpose indices
+                Mx-theta (rotate-x-matrix theta)
+                Mz-phi (rotate-z-matrix phi)
+                My-psi (rotate-y-matrix psi)
+                pt (g/* Mz-phi Mx-theta My-psi)]
+            (make-manifold-point pt manifold this coords)))
+        (check-point [this point]
+          (my-manifold-point? point manifold))
+        (point->coords [this point]
+          (assert (check-point this point))
+          (get-coordinates point this
+                           (fn []
+                             (let [M (manifold-point-representation point)
+                                   theta (g/asin (matrix/get-in M [2 1]))
+                                   phi (g/atan (g/negate (matrix/get-in M [0 1]))
+                                               (matrix/get-in M [1 1]))
+                                   psi (g/atan (g/negate (matrix/get-in M [2 0]))
+                                               (matrix/get-in M [2 2]))]
                                (s/up theta phi psi)))))
         (coordinate-prototype [this] coordinate-prototype)
         (with-coordinate-prototype [this prototype] (ctor manifold prototype))
@@ -401,7 +438,10 @@
 (def SO3-type (-> "SO3"
                   make-manifold-family
                   (attach-patch :Euler-patch)
-                  (attach-coordinate-system :Euler :Euler-patch ->Euler-chart)))
+                  (attach-patch :alternate-patch)
+                  (attach-coordinate-system :Euler :Euler-patch ->Euler-chart)
+                  (attach-coordinate-system :alternate :alternate-patch ->Alternate-chart)))
 
 (def SO3 (make-manifold SO3-type 3))
 (def Euler-angles (coordinate-system-at :Euler :Euler-patch SO3))
+(def alternate-angles (coordinate-system-at :alternate :alternate-patch SO3))

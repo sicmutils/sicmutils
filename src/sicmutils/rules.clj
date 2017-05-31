@@ -161,11 +161,16 @@
 
 (def triginv
   (rule-simplifier
-    (ruleset
-     (sin (atan :y :x)) => (/ :y (sqrt (+ (expt :x 2) (expt :y 2))))
-     (cos (atan :y :x)) => (/ :x (sqrt (+ (expt :x 2) (expt :y 2))))
-     (atan (tan :x)) => :x
-     (atan (sin :x) (cos :x)) => :x)))
+   (ruleset
+    (sin (asin :x))          => :x
+    (asin (sin :x))          => :x
+    (sin (atan :y :x))       => (/ :y (sqrt (+ (expt :x 2) (expt :y 2))))
+    (cos (atan :y :x))       => (/ :x (sqrt (+ (expt :x 2) (expt :y 2))))
+    (cos (asin :t))          => (sqrt (- 1 (square :t)))
+    (acos (cos :x))          => :x
+    (atan (tan :x))          => :x
+    (atan (sin :x) (cos :x)) => :x
+    (atan (* :c (sin :x)) (* :c (cos :x))) => :x)))
 
 (def sincos-flush-ones (rule-simplifier split-high-degree-cosines
                                         split-high-degree-sines

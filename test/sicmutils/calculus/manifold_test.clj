@@ -22,8 +22,11 @@
     [clojure.test :refer :all]
     [sicmutils
      [env :refer :all]
-     [value :as v]]
+     [value :as v]
+     [simplify :refer [hermetic-simplify-fixture]]]
     [sicmutils.calculus.manifold :as m]))
+
+(use-fixtures :once hermetic-simplify-fixture)
 
 (defn ^:private near
   [p q]
@@ -62,4 +65,20 @@
         (is (= (up (sqrt (+ (square 'x) (square 'y)))
                    (atan 'y 'x)) (m/point->coords R2-polar xy)))
         (is (= (up (* 'ρ (cos 'θ)) (* 'ρ (sin 'θ))) (m/point->coords R2-rect rt)))
-        (is (= (up 'x 'y) (m/point->coords R2-rect xy)))))))
+        (is (= (up 'x 'y) (m/point->coords R2-rect xy)))))
+    (testing "SO(3)"
+      (is (= '(up (asin (* (sin theta) (cos psi)))
+                  (atan (+ (* (cos psi) (cos theta) (sin phi))
+                           (* (cos phi) (sin psi)))
+                        (+ (* (cos psi) (cos phi) (cos theta))
+                           (* -1 (sin psi) (sin phi))))
+                  (atan (* -1 (sin theta) (sin psi)) (cos theta)))
+             (simplify ((compose (chart alternate-angles)
+                                 (point Euler-angles))
+                        (up 'theta 'phi 'psi)))))
+      (is (= '(up theta phi psi)
+             (simplify ((compose (chart Euler-angles)
+                                 (point alternate-angles)
+                                 (chart alternate-angles)
+                                 (point Euler-angles))
+                        (up 'theta 'phi 'psi))))))))

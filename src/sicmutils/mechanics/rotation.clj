@@ -82,6 +82,16 @@
   [α]
   (rotate-y-matrix-2 (cos α) (sin α)))
 
+(defn rotate-y-tuple-2
+  [c s]
+  (matrix/m->s (down 'ignore 'ignore 'ignore)
+               (rotate-y-matrix-2 c s)
+               (up 'ignore 'ignore 'ignore)))
+
+(defn rotate-y-tuple
+  [α]
+  (rotate-y-tuple-2 (cos α) (sin α)))
+
 (defn ^:private rotate-z-matrix-2
   "Produce the matrix of a rotation of α radians about the z axis."
   [c s]
