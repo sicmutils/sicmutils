@@ -107,6 +107,7 @@
                             (throw (IllegalArgumentException. (str "operator, but not a differential form: " f))))
         (fn? f) 0
         :else (throw (IllegalArgumentException. "not a differential form"))))
+
 (defn exterior-derivative-procedure
   [kform]
   (let [k (get-rank kform)]
@@ -115,6 +116,17 @@
       (throw (UnsupportedOperationException. "can't d k>0-forms yet."))          )))
 
 (def d (o/make-operator exterior-derivative-procedure 'd))
+
+
+(defn ^:private wedge
+  [form1 form2]
+  (let [n1 (get-rank form1)
+        n2 (get-rank form2)]
+    (if (or (zero? n1) (zero? n2))
+      (g/* form1 form2)
+      (let [n (+ n1 n2)]
+        ))))
+
 
 ;; (define (exterior-derivative-procedure kform)
 ;;   (let ((k (get-rank kform)))

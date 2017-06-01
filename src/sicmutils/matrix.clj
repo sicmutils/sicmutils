@@ -353,6 +353,7 @@
 (defmethod g/add [::matrix ::matrix] [a b] (elementwise g/+ a b))
 (defmethod g/mul [::matrix ::matrix] [a b] (mul a b))
 (defmethod g/mul [::x/numerical-expression ::matrix] [n a] (fmap #(g/* n %) a))
+(defmethod g/mul [::matrix ::x/numerical-expression] [a n] (fmap #(g/* % n) a))
 (defmethod g/mul [::matrix ::s/up] [m u] (M*u m u))
 (defmethod g/mul [::s/down ::matrix] [d m] (d*M d m))
 (defmethod g/div [::s/up ::matrix] [u M] (M*u (invert M) u))

@@ -21,6 +21,7 @@
   (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
             [sicmutils.calculus.manifold :as m]
+            [sicmutils.mechanics.rotation :refer [rotate-x-matrix rotate-y-matrix rotate-z-matrix]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
@@ -66,7 +67,9 @@
                 (literal-vector-field 'b R2-rect))
         b-polar (* (Jacobian (coordinate-system->basis R2-polar)
                              (coordinate-system->basis R2-rect))
-                   b-rect)]
+                   b-rect)
+        p ((point R2-rect) (up 'X 'Y))
+        q ((point R2-polar) (up 'R 'Θ))]
     (is (= '(up
              (/
               (+ (* x0 (b↑0 (up x0 y0))) (* y0 (b↑1 (up x0 y0))))
@@ -91,7 +94,89 @@
                        (b-polar ((point R2-rect) (up 'x0 'y0)))
                        (((coordinate-system->oneform-basis R2-polar)
                          (literal-vector-field 'b R2-rect))
-                        ((point R2-rect) (up 'x0 'y0)))))))))
+                        ((point R2-rect) (up 'x0 'y0)))))))
+    (is (= '(up (down (/ X (sqrt (+ (expt X 2) (expt Y 2)))) (* -1 Y))
+                (down (/ Y (sqrt (+ (expt X 2) (expt Y 2)))) X))
+           (simplify (((coordinate-system->oneform-basis R2-rect)
+                       (coordinate-system->vector-basis R2-polar))
+                      p))))
+    (is (= '(up (down (cos Θ) (* -1 R (sin Θ)))
+                (down (sin Θ) (* R (cos Θ))))
+           (simplify (((coordinate-system->oneform-basis R2-rect)
+                       (coordinate-system->vector-basis R2-polar))
+                      q))))
+    (is (= '(up (down (/ X (sqrt (+ (expt X 2) (expt Y 2))))
+                      (/ Y (sqrt (+ (expt X 2) (expt Y 2)))))
+                (down (/ (* -1 Y) (+ (expt X 2) (expt Y 2)))
+                      (/ X (+ (expt X 2) (expt Y 2)))))
+           (simplify (((coordinate-system->oneform-basis R2-polar)
+                       (coordinate-system->vector-basis R2-rect))
+                      p))))
+    (is (= '(up (down (cos Θ) (sin Θ))
+                (down (/ (* -1N (sin Θ)) R) (/ (cos Θ) R)))
+           (simplify (((coordinate-system->oneform-basis R2-polar)
+                       (coordinate-system->vector-basis R2-rect))
+                      q))))
+    (let [p (up 'theta 'phi 'psi)
+          q (up 'a 'b 'c)
+          f #(+ p (* % q))
+          M (fn [[theta phi psi]] (* (rotate-z-matrix phi)
+                                     (rotate-x-matrix theta)
+                                     (rotate-z-matrix psi)))]
+      (is (= '(up
+               (+ (* a epsilon) theta)
+               (+ (* b epsilon) phi)
+               (+ (* c epsilon) psi))
+             (simplify  (f 'epsilon))))
+      (is (= '(up
+               (+ (* a epsilon) theta)
+               (+ (* b epsilon) phi)
+               (+ (* c epsilon) psi))
+             (simplify ((comp (chart Euler-angles) (point Euler-angles) f) 'epsilon))))
+      (is (= '(up a b c) (simplify ((D f) 'epsilon))))
+      (let [g (comp M f)
+            h #(* (rotate-x-matrix %) (M (up 'theta 'phi 'psi)))]
+        ;; The next two expresssions show the LHS and RHS of the "linear equations" alluded to on
+        ;; p.48 of FDG. By equating corresponding entries, we may verify the solution of a, b, c
+        ;; given there.
+        (is (= '(matrix-by-rows [(+ (* a (sin theta) (sin phi) (sin psi))
+                                    (* -1 b (cos phi) (cos theta) (sin psi))
+                                    (* -1 c (cos theta) (sin phi) (cos psi))
+                                    (* -1 b (sin phi) (cos psi))
+                                    (* -1 c (cos phi) (sin psi)))
+                                 (+ (* a (sin theta) (sin phi) (cos psi))
+                                    (* -1 b (cos phi) (cos theta) (cos psi))
+                                    (* c (cos theta) (sin phi) (sin psi))
+                                    (* b (sin phi) (sin psi))
+                                    (* -1 c (cos phi) (cos psi)))
+                                 (+ (* a (cos theta) (sin phi))
+                                    (* b (cos phi) (sin theta)))]
+                                [(+ (* -1 a (cos phi) (sin theta) (sin psi))
+                                    (* -1 b (cos theta) (sin phi) (sin psi))
+                                    (* c (cos phi) (cos theta) (cos psi))
+                                    (* b (cos phi) (cos psi))
+                                    (* -1 c (sin phi) (sin psi)))
+                                 (+ (* -1 a (cos phi) (sin theta) (cos psi))
+                                    (* -1 b (cos theta) (sin phi) (cos psi))
+                                    (* -1 c (cos phi) (cos theta) (sin psi))
+                                    (* -1 b (cos phi) (sin psi))
+                                    (* -1 c (sin phi) (cos psi)))
+                                 (+ (* -1 a (cos phi) (cos theta))
+                                    (* b (sin theta) (sin phi)))]
+                                [(+ (* a (cos theta) (sin psi))
+                                    (* c (sin theta) (cos psi)))
+                                 (+ (* a (cos theta) (cos psi))
+                                    (* -1 c (sin theta) (sin psi)))
+                                 (* -1 a (sin theta))])
+               (simplify ((D g) 0))))
+        (is (= '(matrix-by-rows [0 0 0]
+                                [(* -1 (sin theta) (sin psi))
+                                 (* -1 (sin theta) (cos psi))
+                                 (* -1 (cos theta))]
+                                [(+ (* (cos phi) (cos theta) (sin psi)) (* (sin phi) (cos psi)))
+                                 (+ (* (cos phi) (cos theta) (cos psi)) (* -1 (sin phi) (sin psi)))
+                                 (* -1 (cos phi) (sin theta))])
+               (simplify ((D h) 0))))))))
 
 (deftest section-4-3
   (let-coordinates [[x y] R2-rect]

@@ -92,7 +92,6 @@
 (defn vector-basis->dual
   [vector-basis coordinate-system]
   (let [prototype (coordinate-prototype coordinate-system)
-        _ (println "prototype" prototype)
         vector-basis-coefficient-functions (s/mapr #(vector-field->components % coordinate-system) vector-basis)
         guts (fn [coords]
                (matrix/s:transpose (s/compatible-shape prototype)

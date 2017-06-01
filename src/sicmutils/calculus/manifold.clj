@@ -335,12 +335,13 @@
         (coords->point [this coords]
           (assert (check-coordinates this coords))
           (let [[theta phi psi] coords
-                ;; NB: scmutils uses rotate-?-tuple instead of matrix; therefore we must transpose indices
+                ;; NB: scmutils uses rotate-?-tuple instead of matrix;
+                ;; therefore we must transpose indices in get-coordinates
                 Mx-theta (rotate-x-matrix theta)
                 Mz-phi (rotate-z-matrix phi)
                 Mz-psi (rotate-z-matrix psi)
-                pt (g/* Mz-phi Mx-theta Mz-psi)]
-            (make-manifold-point pt manifold this coords)))
+                M (g/* Mz-phi Mx-theta Mz-psi)]
+            (make-manifold-point M manifold this coords)))
         (check-point [this point]
           (my-manifold-point? point manifold))
         (point->coords [this point]
@@ -371,7 +372,8 @@
         (coords->point [this coords]
           (assert (check-coordinates this coords))
           (let [[theta phi psi] coords
-                ;; NB: scmutils uses rotate-?-tuple instead of matrix; therefore we must transpose indices
+                ;; NB: scmutils uses rotate-?-tuple instead of matrix;
+                ;; therefore we must transpose indices in get-coordinates
                 Mx-theta (rotate-x-matrix theta)
                 Mz-phi (rotate-z-matrix phi)
                 My-psi (rotate-y-matrix psi)
