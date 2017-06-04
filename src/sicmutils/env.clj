@@ -156,7 +156,8 @@
  [sicmutils.calculus.form-field
   d
   components->oneform-field
-  literal-oneform-field]
+  literal-oneform-field
+  wedge]
  [sicmutils.calculus.manifold
   chart
   point

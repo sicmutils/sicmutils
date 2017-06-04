@@ -96,7 +96,7 @@
        (swap! reps assoc coordinate-system rep)
        rep))))
 
-(defn ^:private point->manifold
+(defn point->manifold
   "Return the manifold upon which this point was defined."
   [point]
   (point :manifold))

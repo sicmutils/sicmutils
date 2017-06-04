@@ -26,6 +26,17 @@
                    :rank 1
                    :arguments [:vf/vector-field]))
 
+(declare wedge)
+(defn procedure->nform-field
+  [proc n name]
+  (if (= n 0)
+    (proc)
+    (o/make-operator proc name
+                     :subtype ::wedge
+                     :arity [:exactly n]
+                     :rank n
+                     :arguments (repeat n ::vf/vector-field))))
+
 (defn coordinate-name->ff-name
   "From the name of a coordinate, produce the name of the coordinate basis
   one-form field (as a symbol)"
@@ -78,7 +89,10 @@
 
 (defn ^:private diffop-name
   [form]
-  (or (:name form) (x/expression-of form)))
+  (or (:name form)
+      (and (= (:type form) ::x/numerical-expression)
+           (x/expression-of form))
+      '...))
 
 (defn function->oneform-field
   [f]
@@ -88,7 +102,9 @@
                       (assert (vf/vector-field? v))
                       (fn [m] ((v f) m)))
                     v))
-    `(~'d ,(diffop-name f))))
+    `(~'d ~(diffop-name f))))
+
+
 
 (defn literal-oneform-field
   [name coordinate-system]
@@ -113,52 +129,109 @@
   (let [k (get-rank kform)]
     (if (= k 0)
       (function->oneform-field kform)
-      (throw (UnsupportedOperationException. "can't d k>0-forms yet."))          )))
+      (let [without #(concat (take %1 %2) (drop (inc %1) %2))
+            k+1form (fn [& vectors]
+                      (assert (= (count vectors) (inc k)))
+                      (fn [point]
+                        (let [n ((m/point->manifold point) :dimension)]
+                          (if (< k n)
+                            (reduce g/+ (for [i (range 0 (inc k))]
+                                          (let [rest (without i vectors)]
+                                            (g/+ (g/* (if (even? i) 1 -1)
+                                                      (((nth vectors i) (apply kform rest))
+                                                       point))
+                                                 (reduce g/+ (for [j (range (inc i) (inc k))]
+                                                               (g/* (if (even? (+ i j)) 1 -1)
+                                                                    ((apply kform
+                                                                            (cons
+                                                                             (o/commutator (nth vectors i)
+                                                                                           (nth vectors j))
+                                                                             (without (dec j) rest)))
+                                                                     point))))))))
+                            0))))]
+        (procedure->nform-field k+1form (inc k) `(~'d ~(diffop-name kform)))))))
 
 (def d (o/make-operator exterior-derivative-procedure 'd))
 
+(defn permutation-sequence
+  "This is an unusual way to go about this in a functional language,
+  but it's fun. Produces an iterable sequence developing the
+  permutations of the input sequence of objects (which are considered
+  distinct) in church-bell-changes order, that is, each permutation
+  differs from the previous by a transposition of adjacent
+  elements (Algorithm P from §7.2.1.2 of Knuth). This has the
+  side-effect of arranging for the parity of the generated
+  permutations to alternate; the first permutation yielded is the
+  identity permutation (which of course is even). Inside, there is a
+  great deal of mutable state, but this cannot be observed by the
+  user."
+  [as]
+  (let [n (count as)
+        a (object-array as)
+        c (int-array n (repeat 0)) ;; P1. [Initialize.]
+        o (int-array n (repeat 1))
+        return #(into [] %)
+        first (atom true)
+        the-next (atom (return a))
+        has-next (atom true)
+        ;; step implements one-through of algorithm P up to step P2,
+        ;; at which point we return false if we have terminated, true
+        ;; if a has been set to a new permutation. Knuth's code is
+        ;; one-based; this is zero-based.
+        step (fn [j s]
+               (let [q (+ (aget c j) (aget o j))] ;; P4. [Ready to change?]
+                 (cond (< q 0)
+                       (do ;; P7. [Switch direction.]
+                         (aset o j (- (aget o j)))
+                         (recur (dec j) s))
 
-(defn ^:private wedge
+                       (= q (inc j))
+                       (if (zero? j)
+                         false ;; All permutations have been delivered.
+                         (do (aset o j (- (aget o j))) ;; P6. [Increase s.]
+                             (recur (dec j) (inc s)))) ;; P7. [Switch direction.]
+
+                       :else ;; P5. [Change.]
+                       (let [i1 (+ s (- j (aget c j)))
+                             i2 (+ s (- j q))
+                             t (aget a i1)
+                             ]
+                         (aset a i1 (aget a i2))
+                         (aset a i2 t)
+                         (aset c j q)
+                         true ;; More permutations are forthcoming.
+                         ))))]
+    (iterator-seq
+     (reify java.util.Iterator
+       (hasNext [this] @has-next)
+       (next [this]  ;; P2. [Visit.]
+         (let [prev @the-next]
+           (reset! has-next (step (dec n) 0))
+           (reset! the-next (return a))
+           prev))))))
+
+(defn ^:private factorial
+  [n]
+  (reduce *' (range 2 (inc n))))
+
+(defn ^:private wedge2
   [form1 form2]
   (let [n1 (get-rank form1)
         n2 (get-rank form2)]
     (if (or (zero? n1) (zero? n2))
       (g/* form1 form2)
-      (let [n (+ n1 n2)]
-        ))))
+      (let [n (+ n1 n2)
+            w (fn [& args]
+                (assert (= (count args) n) "Wrong number of args to wedge product")
+                (g/* (/ 1 (factorial n1) (factorial n2))
+                     (reduce g/+ (map (fn [permutation parity]
+                                        (let [a1 (take n1 permutation)
+                                              a2 (drop n1 permutation)]
+                                          (g/* parity (apply form1 a1) (apply form2 a2))))
+                                      (permutation-sequence args)
+                                      (cycle [1 -1])))))]
+        (procedure->nform-field w n `(~'wedge ~(diffop-name form1) ~(diffop-name form2)))))))
 
-
-;; (define (exterior-derivative-procedure kform)
-;;   (let ((k (get-rank kform)))
-;;     (if (fix:= k 0)
-;; 	(differential-of-function kform)
-;; 	(let ((the-k+1form
-;; 	       (lambda vectors
-;; 		 (assert (fix:= (length vectors) (fix:+ k 1)))
-;; 		 (lambda (point)
-;; 		   (let ((n ((point->manifold point) 'dimension)))
-;; 		     ;;(s:dimension (manifold-point-representation point))
-;; 		     (if (fix:< k n)
-;; 			 (sigma
-;; 			  (lambda (i)
-;; 			    (let ((rest (delete-nth i vectors)))
-;; 			      (+ (* (if (even? i) +1 -1)
-;; 				    (((ref vectors i) (apply kform rest))
-;; 				     point))
-;; 				 (sigma
-;; 				  (lambda (j)
-;; 				    (* (if (even? (fix:+ i j)) +1 -1)
-;; 				       ((apply kform
-;; 					       (cons
-;; 						(commutator (ref vectors i)
-;; 							    (ref vectors j))
-;; 						;; j-1 because already deleted i.
-;; 						(delete-nth (fix:- j 1)
-;; 							    rest)))
-;; 					point)))
-;; 				  (fix:+ i 1) k))))
-;; 			  0 k)
-;; 			 0))))))
-;; 	  (procedure->nform-field the-k+1form
-;; 				  (fix:+ (get-rank kform) 1)
-;; 				  `(d ,(diffop-name kform)))))))
+(defn wedge
+  [& fs]
+  (reduce wedge2 fs))

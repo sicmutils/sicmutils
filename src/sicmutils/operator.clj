@@ -34,11 +34,13 @@
   IFn
   (invoke [_ f] (o f))
   (invoke [_ f g] (o f g))
+  (invoke [_ f g h] (o f g h))
+  (invoke [_ f g h i] (o f g h i))
   (applyTo [_ fns] (apply o fns)))
 
 (defn make-operator
   [o name & {:keys [] :as context}]
-  (Operator. o [:exactly 1] name context))
+  (->Operator o (or (:arity context) [:exactly 1]) name context))
 
 (defn operator?
   [x]
@@ -72,7 +74,7 @@
   "Subtract one operator from another. Produces an operator which
   computes the difference of applying the supplied operators."
   [o p]
-  (Operator. #(g/- (o %) (p %))
+  (Operator. #(g/- (apply o %&) (apply p %&))
              (v/joint-arity [(:arity o) (:arity p)])
              `(~'- ~(:name o) ~(:name p))
              (joint-context o p)))
@@ -81,7 +83,7 @@
   "Add two operators. Produces an operator which adds the result of
   applying the given operators."
   [o p]
-  (Operator. #(g/+ (o %) (p %))
+  (Operator. #(g/+ (apply o %&) (apply p %&))
              (v/joint-arity [(v/arity o) (v/arity p)])
              `(~'+ ~(:name o) ~(:name p))
              (joint-context o p)))
@@ -117,11 +119,11 @@
 
 (defn commutator
   [o p]
-  (g/- (g/* o p) (g/* p o)))
+  (o-o (o*o o p) (o*o p o)))
 
 (defn anticommutator
   [o p]
-  (g/+ (g/* o p) (g/* p o)))
+  (o+o (o*o o p) (o*o p o)))
 
 ;; Do we need to promote the second arg type (Number)
 ;; to ::x/numerical-expression?? -- check this ***AG***
