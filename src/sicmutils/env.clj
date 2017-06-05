@@ -185,8 +185,11 @@
   using-coordinates
   vector-basis->dual]
  [sicmutils.calculus.map
+  basis->basis-over-map
   differential
-  literal-manifold-map]
+  literal-manifold-map
+  form-field->form-field-over-map
+  vector-field->vector-field-over-map]
  [sicmutils.calculus.vector-field
   components->vector-field
   coordinatize

@@ -106,7 +106,18 @@
         oneform-basis (s/mapr #(components->oneform-field % coordinate-system) oneform-basis-coefficient-functions)]
     oneform-basis))
 
+(defn make-basis
+  "Make a basis object out of a vector and dual basis. The dimensions must agree."
+  [vector-basis dual-basis]
+  (let [d (count (flatten vector-basis))]
+    (assert (= (count (flatten dual-basis)) d))
+    {:type ::basis
+     :vector-basis vector-basis
+     :dimension d
+     :oneform-basis dual-basis}))
+
 (defn coordinate-system->basis
+  "Return the standard basis object for the coordinate system."
   [coordinate-system]
   {:type ::basis
    :coordinate-system coordinate-system
@@ -115,16 +126,19 @@
    :oneform-basis (coordinate-basis-oneform-fields coordinate-system)})
 
 (defn basis->oneform-basis
+  "Extract the dual basis from the given basis object."
   [b]
   {:pre [(= (:type b) ::basis)]}
   (:oneform-basis b))
 
 (defn basis->vector-basis
+  "Extract the vector basis from the given basis object."
   [b]
   {:pre [(= (:type b) ::basis)]}
   (:vector-basis b))
 
 (defn Jacobian
+  "Compute the Jacobian of transition from from-basis to to-basis."
   [to-basis from-basis]
   (s/mapr (basis->oneform-basis to-basis)
           (basis->vector-basis from-basis)))

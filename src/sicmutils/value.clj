@@ -178,7 +178,7 @@
   [a]
   (cond
     (or (fn? a) (= (class a) MultiFn)) ::function
-    :else (or (::type a)
+    :else (or (:type a)
               (type a))))
 
 (def argument-kind #(mapv kind %&))

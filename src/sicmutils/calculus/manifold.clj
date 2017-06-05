@@ -74,7 +74,7 @@
   space. The map of coordinate representaions can be lazily extended to
   yet other coordinate systems."
   [spec manifold coordinate-system coordinate-rep]
-  {::v/type ::manifold-point
+  {:type ::manifold-point
    :spec spec
    :manifold manifold
    :coordinate-representation (atom {coordinate-system coordinate-rep})})

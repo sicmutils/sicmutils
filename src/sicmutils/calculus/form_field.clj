@@ -117,7 +117,7 @@
                                             range))]
     (components->oneform-field components coordinate-system name)))
 
-(defn ^:private get-rank
+(defn get-rank
   [f]
   (cond (o/operator? f) (or (:rank (:context f))
                             (throw (IllegalArgumentException. (str "operator, but not a differential form: " f))))

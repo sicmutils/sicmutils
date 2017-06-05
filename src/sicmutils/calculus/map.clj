@@ -6,6 +6,7 @@
              [function :as f]
              [value :as v]
              [expression :as x]]
+            [sicmutils.calculus.coordinate :as c]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.manifold :as m]))
@@ -36,3 +37,29 @@
     (f/compose (m/point target)
                (s/generate m ::s/up #(f/literal-function (symbol (str name "↑" %)) domain 0))
                (m/chart source))))
+
+(defn form-field->form-field-over-map
+  [mu:N->M]
+  (fn [w-on-M]
+    (let [make-fake-vector-field (fn [V-over-mu n]
+                                   (let [u (fn [f]
+                                             (fn [m]
+                                               ((V-over-mu f) n)))]
+                                     (vf/procedure->vector-field u)))]
+      (ff/procedure->nform-field
+       (fn [& vectors-over-map]
+         (fn [n]
+           ((apply w-on-M
+                   (map (fn [V-over-mu] (make-fake-vector-field V-over-mu n))
+                        vectors-over-map))
+            (mu:N->M n))))
+       (ff/get-rank w-on-M)
+       `((~'form-field->form-field-over-map ~(ff/diffop-name mu:N->M))
+         ~(ff/diffop-name w-on-M))))))
+
+(defn basis->basis-over-map
+  [mu:N->M basis-on-M]
+  (let [vector-basis-on-M (c/basis->vector-basis basis-on-M)
+        dual-basis-on-M (c/basis->oneform-basis basis-on-M)]
+    (c/make-basis (s/mapr (vector-field->vector-field-over-map mu:N->M) vector-basis-on-M)
+                  (s/mapr (form-field->form-field-over-map mu:N->M) dual-basis-on-M))))
