@@ -44,7 +44,6 @@
 
 (extend-type Object
   Value
-  (numerical? [_] false)
   (nullity? [o] (and (number? o) (core-zero? o)))
   (numerical? [_] false)
   (unity? [o] (and (number? o) (== o 1)))
@@ -179,7 +178,8 @@
   [a]
   (cond
     (or (fn? a) (= (class a) MultiFn)) ::function
-    :else (type a)))
+    :else (or (::type a)
+              (type a))))
 
 (def argument-kind #(mapv kind %&))
 

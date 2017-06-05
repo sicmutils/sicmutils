@@ -44,6 +44,7 @@
             [sicmutils.calculus.derivative :as d]
             [sicmutils.calculus.form-field :as form-field]
             [sicmutils.calculus.manifold]
+            [sicmutils.calculus.map]
             [sicmutils.calculus.coordinate]
             [sicmutils.calculus.vector-field]
             [sicmutils.value :as v]))
@@ -164,6 +165,7 @@
   literal-manifold-function
   Euler-angles
   alternate-angles
+  R1-rect
   R2-rect
   R2-polar
   R3-rect
@@ -182,6 +184,9 @@
   let-coordinates
   using-coordinates
   vector-basis->dual]
+ [sicmutils.calculus.map
+  differential
+  literal-manifold-map]
  [sicmutils.calculus.vector-field
   components->vector-field
   coordinatize

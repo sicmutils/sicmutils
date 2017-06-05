@@ -301,6 +301,12 @@
                            " but got " provided ))))
             (doseq [[provided expected sub-index] (map list provided expected (range))]
               (check-argument-type f provided expected (conj indexes sub-index))))
+        (keyword? expected) ;; a keyword has to match the argument's kind
+        (when-not (= (v/kind provided) expected)
+          (throw (IllegalArgumentException.
+                  (str "expected argument of type " expected " but got " (v/kind provided)
+                       " in call to function " f))))
+
         :else (throw (IllegalArgumentException.
                       (str "unexpected argument example. got " provided " want " expected)))))
 

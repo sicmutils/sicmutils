@@ -87,7 +87,7 @@
             prototype
             (s/structure->access-chains prototype))))
 
-(defn ^:private diffop-name
+(defn diffop-name
   [form]
   (or (:name form)
       (and (= (:type form) ::x/numerical-expression)

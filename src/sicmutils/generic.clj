@@ -29,7 +29,8 @@
 
 (defn literal-number?
   [x]
-  (and (instance? Expression x) (v/numerical? x)))
+
+  (= (:type x) ::x/numerical-expression))
 
 (defn abstract-number?
   [x]

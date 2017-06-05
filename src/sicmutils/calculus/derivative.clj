@@ -443,6 +443,11 @@
   (multivariate-derivative f selectors))
 
 (defmethod g/partial-derivative
+  [:sicmutils.function/function nil]
+  [f _]
+  (multivariate-derivative f []))
+
+(defmethod g/partial-derivative
   [::struct/structure Sequential]
   [f selectors]
   (multivariate-derivative f selectors))

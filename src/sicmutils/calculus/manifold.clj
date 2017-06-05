@@ -74,7 +74,8 @@
   space. The map of coordinate representaions can be lazily extended to
   yet other coordinate systems."
   [spec manifold coordinate-system coordinate-rep]
-  {:spec spec
+  {::v/type ::manifold-point
+   :spec spec
    :manifold manifold
    :coordinate-representation (atom {coordinate-system coordinate-rep})})
 
@@ -129,15 +130,17 @@
   (let [n (:dimension (manifold coordinate-system))
         domain (apply s/up (repeat n 0))
         range 0]
-    (f/compose (f/literal-function name domain range)
-               #(point->coords coordinate-system %))))
+    (vary-meta
+      (f/compose (f/literal-function name domain range)
+                 #(point->coords coordinate-system %))
+      assoc :name name :coordinate-system coordinate-system)))
 
 (def ^:private ->Rectangular
     (fn ctor [manifold coordinate-prototype]
     (reify
       ICoordinateSystem
       (check-coordinates [this coords]
-        (= (count coords) (manifold :dimension)))
+        (= (s/dimension coords) (manifold :dimension)))
       (coords->point [this coords]
         (assert (check-coordinates this coords))
         (make-manifold-point coords manifold this coords))
@@ -403,8 +406,10 @@
             (attach-coordinate-system :polar-cylindrical :origin ->PolarCylindrical)))
 
 
+(def R1 (make-manifold Rn 1))
 (def R2 (make-manifold Rn 2))
 (def R3 (make-manifold Rn 3))
+(def R1-rect (coordinate-system-at :rectangular :origin R1))
 (def R2-rect (coordinate-system-at :rectangular :origin R2))
 (def R3-rect (coordinate-system-at :rectangular :origin R3))
 (def R3-cyl (coordinate-system-at :polar-cylindrical :origin R3))

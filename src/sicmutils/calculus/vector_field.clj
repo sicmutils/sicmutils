@@ -18,15 +18,14 @@
 (defn procedure->vector-field
   [vfp & name]
   (let [name (if name (first name) 'unnamed-vector-field)]
-    (o/make-operator vfp name :subtype ::vector-field)))
+    (o/make-operator vfp name
+                     :subtype ::vector-field
+                     :arguments [::f/function])))
 
 (defn vector-field?
   [vf]
   (and (o/operator? vf)
        (-> vf :context :subtype (= ::vector-field))))
-
-;; TODO(colin.smith): GJS supplies the allowed argument list here; but we think
-;; this is probably already covered by the defmethod operator applicability rules.
 
 (defn vector-field-procedure
   [components coordinate-system]
