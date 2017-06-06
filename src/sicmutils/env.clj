@@ -188,6 +188,7 @@
   basis->basis-over-map
   differential
   pullback
+  pushforward-vector
   literal-manifold-map
   form-field->form-field-over-map
   vector-field->vector-field-over-map]

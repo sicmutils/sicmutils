@@ -46,7 +46,7 @@
   [x]
   (instance? Operator x))
 
-(def identity-operator (Operator. identity [:exactly 1] 1 nil))
+(def identity-operator (->Operator identity [:exactly 1] 1 nil))
 
 (defn ^:private joint-context
   "Merges type context maps of the two operators. Where the maps have keys in
@@ -68,54 +68,54 @@
   applied function by that number (nb: in function arithmentic,
   this is pointwise multiplication)"
   [n]
-  (Operator. #(g/* n %) [:at-least 0] n nil))
+  (->Operator #(apply g/* n %&) [:at-least 0] n nil))
 
 (defn ^:private o-o
   "Subtract one operator from another. Produces an operator which
   computes the difference of applying the supplied operators."
   [o p]
-  (Operator. #(g/- (apply o %&) (apply p %&))
-             (v/joint-arity [(:arity o) (:arity p)])
-             `(~'- ~(:name o) ~(:name p))
-             (joint-context o p)))
+  (->Operator #(g/- (apply o %&) (apply p %&))
+              (v/joint-arity [(:arity o) (:arity p)])
+              `(~'- ~(:name o) ~(:name p))
+              (joint-context o p)))
 
 (defn ^:private o+o
   "Add two operators. Produces an operator which adds the result of
   applying the given operators."
   [o p]
-  (Operator. #(g/+ (apply o %&) (apply p %&))
-             (v/joint-arity [(v/arity o) (v/arity p)])
-             `(~'+ ~(:name o) ~(:name p))
-             (joint-context o p)))
+  (->Operator #(g/+ (apply o %&) (apply p %&))
+              (v/joint-arity [(v/arity o) (v/arity p)])
+              `(~'+ ~(:name o) ~(:name p))
+              (joint-context o p)))
 
 ;; multiplication of operators is treated like composition.
 (defn ^:private o*o
   "Multiplication of operators is defined as their composition"
   [o p]
-  (Operator. (with-meta (comp o p) {:arity (:arity p)})
-             (:arity p)
-             `(~'* ~(:name o) ~(:name p))
-             (joint-context o p)))
+  (->Operator (with-meta (comp o p) {:arity (:arity p)})
+              (:arity p)
+              `(~'* ~(:name o) ~(:name p))
+              (joint-context o p)))
 
 (defn ^:private o*f
   "Multiply an operator by a non-operator on the right. The
   non-operator acts on its argument by multiplication."
   [o f]
-  (Operator. (fn [& gs]
-               (apply o (map (fn [g] (g/* f g)) gs)))
-             (:arity o)
-             `(~'* ~(:name o) ~f)
-             (:context o)))
+  (->Operator (fn [& gs]
+                (apply o (map (fn [g] (g/* f g)) gs)))
+              (:arity o)
+              `(~'* ~(:name o) ~f)
+              (:context o)))
 
 (defn ^:private f*o
   "Multiply an operator by a non-operator on the left. The
   non-operator acts on its argument by multiplication."
   [f o]
-  (Operator. (fn [& gs]
-               (g/* f (apply o gs)))
-             (:arity o)
-             `(~'* ~f ~(:name o))
-             (:context o)))
+  (->Operator (fn [& gs]
+                (g/* f (apply o gs)))
+              (:arity o)
+              `(~'* ~f ~(:name o))
+              (:context o)))
 
 (defn commutator
   [o p]
@@ -145,13 +145,13 @@
   (letfn [(step [n n! g**n]
             (lazy-seq (cons (g/divide g**n n!)
                             (step (inc n) (* n! (inc n)) (o*o g g**n)))))]
-    (Operator. (fn [f]
-                 (partial series/value (Series.
-                                        [:exactly 0]
-                                        (map #(% f) (step 0 1 identity-operator)))))
-               [:exactly 1]
-               `(~'exp ~(:name g))
-               (:context g))))
+    (->Operator (fn [f]
+                  (partial series/value (Series.
+                                         [:exactly 0]
+                                         (map #(% f) (step 0 1 identity-operator)))))
+                [:exactly 1]
+                `(~'exp ~(:name g))
+                (:context g))))
 
 (defmethod g/add [::operator ::operator] [o p] (o+o o p))
 ;; In additive operation the value 1 is considered as the identity operator
@@ -188,14 +188,16 @@
   [f o]
   (o-o (number->operator f) o))
 
+(derive ::x/numerical-expression ::co-operator)
+
 ;; Multiplication of operators is defined as their application (see o*o, above)
 (defmethod g/mul [::operator ::operator] [o p] (o*o o p))
 (defmethod g/mul [::operator :sicmutils.function/function] [o f] (o*f o f))
 (defmethod g/mul [:sicmutils.function/function ::operator] [f o] (f*o f o))
 ;; When multiplied with operators, a number is treated as an operator
 ;; that multiplies its input by the number.
-(defmethod g/mul [::operator ::x/numerical-expression] [o n] (o*f o n))
-(defmethod g/mul [::x/numerical-expression ::operator] [n o] (f*o n o))
+(defmethod g/mul [::operator ::co-operator] [o n] (o*f o n))
+(defmethod g/mul [::co-operator ::operator] [n o] (f*o n o))
 (defmethod g/div [::operator ::x/numerical-expression] [o n] (o*f o (g/invert n)))
 (defmethod g/div [::operator :sicmutils.function/function] [o f] (o*f o (g/invert f)))
 
@@ -206,7 +208,7 @@
 (defmethod g/transpose
   [::operator]
   [o]
-  (Operator. (fn [f] #(g/transpose (apply (o f) %&))) 1 'transpose nil))
+  (->Operator (fn [f] #(g/transpose (apply (o f) %&))) 1 'transpose nil))
 
 (defmethod g/cross-product
   [::operator ::operator]

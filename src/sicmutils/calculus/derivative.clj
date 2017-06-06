@@ -1,4 +1,3 @@
-;
 ; Copyright (C) 2016 Colin Smith.
 ; This work is based on the Scmutils system of MIT/GNU Scheme.
 ;
@@ -435,7 +434,9 @@
 (define-unary-operation g/square #(diff-* % %))
 (define-unary-operation g/cube #(diff-* % (diff-* % %)))
 (derive ::differential :sicmutils.function/cofunction)
+(derive ::differential ::o/co-operator)
 (derive ::differential ::series/coseries)
+
 
 (defmethod g/partial-derivative
   [:sicmutils.function/function Sequential]

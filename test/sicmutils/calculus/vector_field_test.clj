@@ -3,6 +3,7 @@
   (:require [clojure.test :refer :all]
             [sicmutils
              [env :refer :all]
+             [value :as v]
              [simplify :refer [hermetic-simplify-fixture]]]
             [sicmutils.operator :as o]))
 
@@ -18,7 +19,8 @@
                  (* (((∂ 1) f-rect) (up x0 y0)) (b↑1 (up x0 y0))))
              (simplify ((v f) p))))
       (is (= '(up (b↑0 (up x0 y0)) (b↑1 (up x0 y0)))
-             (simplify ((v (chart R2-rect)) p))))))
+             (simplify ((v (chart R2-rect)) p))))
+      (is (= :sicmutils.operator/operator (v/kind v)))))
   (testing "exponential"
     (let-coordinates [[x y] R2-rect]
       (let [circular (- (* x d:dy) (* y d:dx))]
