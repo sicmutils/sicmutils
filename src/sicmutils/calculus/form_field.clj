@@ -24,7 +24,7 @@
   (o/make-operator fp name
                    :subtype ::form-field
                    :rank 1
-                   :arguments [:vf/vector-field]))
+                   :arguments [::vf/vector-field]))
 
 (declare wedge)
 (defn procedure->nform-field
@@ -32,7 +32,7 @@
   (if (= n 0)
     (proc)
     (o/make-operator proc name
-                     :subtype ::wedge
+                     :subtype ::form-field
                      :arity [:exactly n]
                      :rank n
                      :arguments (repeat n ::vf/vector-field))))

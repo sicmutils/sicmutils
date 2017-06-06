@@ -187,6 +187,7 @@
  [sicmutils.calculus.map
   basis->basis-over-map
   differential
+  pullback
   literal-manifold-map
   form-field->form-field-over-map
   vector-field->vector-field-over-map]

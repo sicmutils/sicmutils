@@ -63,3 +63,44 @@
         dual-basis-on-M (c/basis->oneform-basis basis-on-M)]
     (c/make-basis (s/mapr (vector-field->vector-field-over-map mu:N->M) vector-basis-on-M)
                   (s/mapr (form-field->form-field-over-map mu:N->M) dual-basis-on-M))))
+
+(defn pullback-function
+  [mu:N->M]
+  (fn [f-on-M]
+    (f/compose f-on-M mu:N->M)))
+
+(defn pushforward-vector
+  [mu:N->M mu-inverse:M->N]
+  (fn [v-on-N]
+    (vf/procedure->vector-field
+     #(f/compose (v-on-N (f/compose % mu:N->M)) mu-inverse:M->N)
+     `((~'pushforward ~(ff/diffop-name mu:N->M)) ~(ff/diffop-name v-on-N)))))
+
+(defn pullback-vector-field
+  [mu:N->M mu-inverse:M->N]
+  (pushforward-vector mu-inverse:M->N mu:N->M))
+
+(defn pullback-form
+  "Returns a function which will pull a form back across a map (without needing its inverse)"
+  [mu:N->M]
+  (fn [omega-on-M]
+    (let [k (ff/get-rank omega-on-M)]
+      (if (zero? k)
+        ((pullback-function mu:N->M) omega-on-M)
+        (ff/procedure->nform-field
+         (fn [& vectors-on-N]
+           (apply ((form-field->form-field-over-map mu:N->M) omega-on-M)
+                  (map (differential mu:N->M) vectors-on-N)))
+         k
+         `((~'pullback ~(ff/diffop-name mu:N->M)) ~(ff/diffop-name omega-on-M)))))))
+
+(defn pullback
+  ([mu:N->M mu-inverse:M->N]
+   (fn [thing]
+     (if (vf/vector-field? thing)
+      (do
+        (assert mu-inverse:M->N "Pullback of a vector requires inverse map")
+        ((pullback-vector-field mu:N->M mu-inverse:M->N) thing))
+      ((pullback-form mu:N->M) thing))))
+  ([mu:N->M]
+   (pullback mu:N->M nil)))
