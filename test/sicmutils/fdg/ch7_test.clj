@@ -21,6 +21,7 @@
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
+            [sicmutils.value :as v]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
@@ -76,14 +77,9 @@
             Z (literal-vector-field 'Z-rect R3-rect)
             V (literal-vector-field 'V-rect R3-rect)
             R3-rect-point ((point R3-rect) (up 'x0 'y0 'z0))]
-        ;; Where we left off: these don't work, because the definition of
-        ;; Lie-derivative for vector fields (etc.) is different from that
-        ;; used for Hamiltonians (based on Poisson brackets).
-        ;;
-        ;; The annoying question is how to implement the polymorphism.
-        ;; Ideally we'd make it part of the generic system. But all
-        ;; our operator types are the same. Does it make sense to
-        ;; crack open the operator type and use derive?
+        (is (= :sicmutils.calculus.vector-field/vector-field (v/kind V)))
+        (is (= ::v/function (v/kind (Lie-derivative V))))
+        (is (= :sicmutils.calculus.form-field/form-field (v/kind theta)))
         #_(is (= 'a
                (simplify (((d ((Lie-derivative V) theta))
                            X Y)
@@ -92,7 +88,9 @@
                (simplify ((((Lie-derivative V) (d theta))
                            X Y)
                           R3-rect-point))))
-        #_(is (= 'a
+        ;; if you look at the LH and RH of the subtraction, you will observe that
+        ;; this is nontrivial :)
+        (is (= 0
                (simplify (((- ((Lie-derivative V) (d theta))
                               (d ((Lie-derivative V) theta)))
                            X Y)

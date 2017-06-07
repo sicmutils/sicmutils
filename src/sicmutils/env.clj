@@ -136,7 +136,8 @@
   sqrt
   square
   tan
-  transpose]
+  transpose
+  Lie-derivative]
  [sicmutils.structure
   compatible-shape
   component
@@ -233,7 +234,6 @@
   Hamiltonian->state-derivative
   Lagrangian->Hamiltonian
   Legendre-transform
-  Lie-derivative
   Lie-transform
   Poisson-bracket
   compositional-canonical?

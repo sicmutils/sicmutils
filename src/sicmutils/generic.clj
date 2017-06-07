@@ -90,6 +90,8 @@
 (def-generic-function expt 2)
 (def-generic-function gcd 2)
 
+(def-generic-function Lie-derivative 1)
+
 (defmulti partial-derivative v/argument-kind)
 (defmulti simplify v/argument-kind)
 

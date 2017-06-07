@@ -18,7 +18,7 @@
     (vf/procedure->vector-field
      (fn [f-on-M]
        (f/compose (v-on-M f-on-M) mu:N->M))
-     `((~'vector-field->vector-field-over-map ~(ff/diffop-name mu:N->M)) ~(ff/diffop-name v-on-M)))))
+     `((~'vector-field->vector-field-over-map ~(m/diffop-name mu:N->M)) ~(m/diffop-name v-on-M)))))
 
 (defn differential
   "FDG p.72"
@@ -27,7 +27,7 @@
     (let [v-on-M (fn [g-on-M] (v-on-N (f/compose g-on-M mu:N->M)))]
       (assert (vf/vector-field? v-on-N))
       (vf/procedure->vector-field v-on-M
-                                  `((~'d ~(ff/diffop-name mu:N->M)) ~(ff/diffop-name v-on-N))))))
+                                  `((~'d ~(m/diffop-name mu:N->M)) ~(m/diffop-name v-on-N))))))
 
 (defn literal-manifold-map
   [name source target]
@@ -54,8 +54,8 @@
                         vectors-over-map))
             (mu:N->M n))))
        (ff/get-rank w-on-M)
-       `((~'form-field->form-field-over-map ~(ff/diffop-name mu:N->M))
-         ~(ff/diffop-name w-on-M))))))
+       `((~'form-field->form-field-over-map ~(m/diffop-name mu:N->M))
+         ~(m/diffop-name w-on-M))))))
 
 (defn basis->basis-over-map
   [mu:N->M basis-on-M]
@@ -74,7 +74,7 @@
   (fn [v-on-N]
     (vf/procedure->vector-field
      #(f/compose (v-on-N (f/compose % mu:N->M)) mu-inverse:M->N)
-     `((~'pushforward ~(ff/diffop-name mu:N->M)) ~(ff/diffop-name v-on-N)))))
+     `((~'pushforward ~(m/diffop-name mu:N->M)) ~(m/diffop-name v-on-N)))))
 
 (defn pullback-vector-field
   [mu:N->M mu-inverse:M->N]
@@ -92,7 +92,7 @@
            (apply ((form-field->form-field-over-map mu:N->M) omega-on-M)
                   (map (differential mu:N->M) vectors-on-N)))
          k
-         `((~'pullback ~(ff/diffop-name mu:N->M)) ~(ff/diffop-name omega-on-M)))))))
+         `((~'pullback ~(m/diffop-name mu:N->M)) ~(m/diffop-name omega-on-M)))))))
 
 (defn pullback
   ([mu:N->M mu-inverse:M->N]

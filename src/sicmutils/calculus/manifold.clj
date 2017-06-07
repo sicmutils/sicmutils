@@ -3,6 +3,7 @@
              [value :as v]
              [function :as f]
              [generic :as g]
+             [expression :as x]
              [simplify :refer [simplify-numerical-expression]]
              [matrix :as matrix]
              [structure :as s]]
@@ -58,6 +59,13 @@
                      :coordinate-system coordinate-system-name])
    manifold
    (default-coordinate-prototype manifold)))
+
+(defn diffop-name
+  [form]
+  (or (:name form)
+      (and (= (:type form) ::x/numerical-expression)
+           (x/expression-of form))
+      '...))
 
 (defprotocol ICoordinateSystem
   (check-coordinates [this coords])

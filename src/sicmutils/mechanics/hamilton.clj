@@ -24,7 +24,7 @@
              [operator :refer [make-operator]]
              [value :refer :all]
              [matrix :as matrix]
-             [function :refer :all]]
+             [function :as f]]
             [sicmutils.calculus.derivative :refer :all]))
 
 (defn momentum-tuple
@@ -60,8 +60,8 @@
   (fn [q p]
     (let [H-state-path (qp->H-state-path q p)]
       (- (D H-state-path)
-         (compose (phase-space-derivative Hamiltonian)
-                  H-state-path)))))
+         (f/compose (phase-space-derivative Hamiltonian)
+                    H-state-path)))))
 
 (defn H-rectangular
   [m V]
@@ -158,13 +158,13 @@
 (defn canonical?
   "p.324"
   [C H Hprime]
-  (- (compose (phase-space-derivative H) C)
+  (- (f/compose (phase-space-derivative H) C)
      (* (D C) (phase-space-derivative Hprime))))
 
 (defn compositional-canonical?
   "p.324"
   [C H]
-  (canonical? C H (compose H C)))
+  (canonical? C H (f/compose H C)))
 
 (defn time-independent-canonical?
   "p.326"
@@ -174,9 +174,9 @@
         Phi* (fn [A] #(* % A))]
     (fn [s]
       ((- J-func
-          (compose (Phi ((D C) s))
-                   J-func
-                   (Phi* ((D C) s))))
+          (f/compose (Phi ((D C) s))
+                     J-func
+                     (Phi* ((D C) s))))
        (compatible-shape s)))))
 
 (defn polar-canonical
@@ -213,12 +213,14 @@
                    ((D C) s)
                    s) 0 0))))
 
-(defn Lie-derivative
+(defn ^:private Hamiltonian-Lie-derivative
   "p. 428"
   [H]
   (make-operator
    #(Poisson-bracket % H)
    `(~'Lie-derivative ~H)))
+
+(defmethod Lie-derivative [::f/function] [f] (Hamiltonian-Lie-derivative f))
 
 (defn Lie-transform
   "p. 428"

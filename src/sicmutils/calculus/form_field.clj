@@ -89,13 +89,6 @@
             prototype
             (s/structure->access-chains prototype))))
 
-(defn diffop-name
-  [form]
-  (or (:name form)
-      (and (= (:type form) ::x/numerical-expression)
-           (x/expression-of form))
-      '...))
-
 (defn function->oneform-field
   [f]
   {:pre [(fn? f)]}
@@ -104,7 +97,7 @@
                       (assert (vf/vector-field? v))
                       (fn [m] ((v f) m)))
                     v))
-    `(~'d ~(diffop-name f))))
+    `(~'d ~(m/diffop-name f))))
 
 (defn literal-oneform-field
   [name coordinate-system]
@@ -149,7 +142,7 @@
                                                                              (without (dec j) rest)))
                                                                      point))))))))
                             0))))]
-        (procedure->nform-field k+1form (inc k) `(~'d ~(diffop-name kform)))))))
+        (procedure->nform-field k+1form (inc k) `(~'d ~(m/diffop-name kform)))))))
 
 (def d (o/make-operator exterior-derivative-procedure 'd))
 
@@ -230,8 +223,31 @@
                                           (g/* parity (apply form1 a1) (apply form2 a2))))
                                       (permutation-sequence args)
                                       (cycle [1 -1])))))]
-        (procedure->nform-field w n `(~'wedge ~(diffop-name form1) ~(diffop-name form2)))))))
+        (procedure->nform-field w n `(~'wedge ~(m/diffop-name form1) ~(m/diffop-name form2)))))))
 
 (defn wedge
   [& fs]
   (reduce wedge2 fs))
+
+(defn ^:private vector-field-Lie-derivative
+  [X]
+  (let [name `(~'Lie-derivative ~(m/diffop-name X))]
+    (fn [Y]
+      (cond (fn? Y) (X Y)
+            (vf/vector-field? Y) (o/commutator X Y)
+            (form-field? Y) (let [k (get-rank Y)]
+                              (procedure->nform-field
+                               (fn [& vectors]
+                                 (assert (= k (count vectors)))
+                                 (g/- ((g/Lie-derivative X) (apply Y vectors))
+                                      (reduce g/+ (for [i (range 0 k)]
+                                                    (apply Y (map-indexed (fn [j v]
+                                                                            (if (= j i)
+                                                                              ((g/Lie-derivative X) v)
+                                                                              v))
+                                                                          vectors))))))
+                               k
+                               `((~'Lie-derivative ~(m/diffop-name X)) ~(m/diffop-name Y))))
+            :else (throw (UnsupportedOperationException. "Can't take the Lie derivative of that yet"))))))
+
+(defmethod g/Lie-derivative [::vf/vector-field] [V] (vector-field-Lie-derivative V))
