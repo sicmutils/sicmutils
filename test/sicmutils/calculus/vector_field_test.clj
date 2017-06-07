@@ -20,7 +20,7 @@
              (simplify ((v f) p))))
       (is (= '(up (b↑0 (up x0 y0)) (b↑1 (up x0 y0)))
              (simplify ((v (chart R2-rect)) p))))
-      (is (= :sicmutils.operator/operator (v/kind v)))))
+      (is (= :sicmutils.calculus.vector-field/vector-field (v/kind v)))))
   (testing "exponential"
     (let-coordinates [[x y] R2-rect]
       (let [circular (- (* x d:dy) (* y d:dx))]

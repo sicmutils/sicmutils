@@ -9,6 +9,8 @@
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.manifold :as m]))
 
+(derive ::form-field ::o/operator)
+
 (defn form-field?
   [f]
   (and (o/operator? f)
@@ -103,8 +105,6 @@
                       (fn [m] ((v f) m)))
                     v))
     `(~'d ~(diffop-name f))))
-
-
 
 (defn literal-oneform-field
   [name coordinate-system]

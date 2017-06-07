@@ -15,6 +15,8 @@
 ;; which computes the directional derivative of the given function at
 ;; each point of the manifold.
 
+(derive ::vector-field ::o/operator)
+
 (defn procedure->vector-field
   [vfp & name]
   (let [name (if name (first name) 'unnamed-vector-field)]

@@ -28,7 +28,7 @@
 (defrecord Operator [o arity name context]
   v/Value
   (freeze [_] (v/freeze name))
-  (kind [_] ::operator)
+  (kind [_] (:subtype context))
   (nullity? [_] false)
   (unity? [_] false)
   IFn
@@ -40,13 +40,13 @@
 
 (defn make-operator
   [o name & {:keys [] :as context}]
-  (->Operator o (or (:arity context) [:exactly 1]) name context))
+  (->Operator o (or (:arity context) [:exactly 1]) name (into {:subtype ::operator} context)))
 
 (defn operator?
   [x]
   (instance? Operator x))
 
-(def identity-operator (->Operator identity [:exactly 1] 1 nil))
+(def identity-operator (make-operator identity 'identity))
 
 (defn ^:private joint-context
   "Merges type context maps of the two operators. Where the maps have keys in
@@ -68,7 +68,7 @@
   applied function by that number (nb: in function arithmentic,
   this is pointwise multiplication)"
   [n]
-  (->Operator #(apply g/* n %&) [:at-least 0] n nil))
+  (->Operator #(apply g/* n %&) [:at-least 0] n {:subtype ::operator}))
 
 (defn ^:private o-o
   "Subtract one operator from another. Produces an operator which
@@ -95,7 +95,9 @@
   (->Operator (with-meta (comp o p) {:arity (:arity p)})
               (:arity p)
               `(~'* ~(:name o) ~(:name p))
-              (joint-context o p)))
+              ;; Since operator p is applied first, it determines the type/arity
+              ;; of the composition.
+              (:context p)))
 
 (defn ^:private o*f
   "Multiply an operator by a non-operator on the right. The
@@ -208,7 +210,7 @@
 (defmethod g/transpose
   [::operator]
   [o]
-  (->Operator (fn [f] #(g/transpose (apply (o f) %&))) 1 'transpose nil))
+  (->Operator (fn [f] #(g/transpose (apply (o f) %&))) 1 'transpose (:context o)))
 
 (defmethod g/cross-product
   [::operator ::operator]
