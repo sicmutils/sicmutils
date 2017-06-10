@@ -6,6 +6,7 @@
              [function :as f]
              [value :as v]
              [expression :as x]]
+            [sicmutils.calculus.basis :refer :all]
             [sicmutils.calculus.coordinate :as c]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.form-field :as ff]
@@ -59,10 +60,10 @@
 
 (defn basis->basis-over-map
   [mu:N->M basis-on-M]
-  (let [vector-basis-on-M (c/basis->vector-basis basis-on-M)
-        dual-basis-on-M (c/basis->oneform-basis basis-on-M)]
-    (c/make-basis (s/mapr (vector-field->vector-field-over-map mu:N->M) vector-basis-on-M)
-                  (s/mapr (form-field->form-field-over-map mu:N->M) dual-basis-on-M))))
+  (let [vector-basis-on-M (basis->vector-basis basis-on-M)
+        dual-basis-on-M (basis->oneform-basis basis-on-M)]
+    (make-basis (s/mapr (vector-field->vector-field-over-map mu:N->M) vector-basis-on-M)
+                (s/mapr (form-field->form-field-over-map mu:N->M) dual-basis-on-M))))
 
 (defn pullback-function
   [mu:N->M]

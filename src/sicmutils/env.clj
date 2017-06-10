@@ -41,6 +41,7 @@
              [lagrange]
              [hamilton]
              [rotation]]
+            [sicmutils.calculus.basis]
             [sicmutils.calculus.derivative :as d]
             [sicmutils.calculus.form-field :as form-field]
             [sicmutils.calculus.manifold]
@@ -156,9 +157,12 @@
   ->JavaScript]
  [sicmutils.calculus.derivative D ∂]
  [sicmutils.calculus.form-field
+  Christoffel->Cartan
   d
   components->oneform-field
+  interior-product
   literal-oneform-field
+  make-Christoffel
   wedge]
  [sicmutils.calculus.manifold
   chart
@@ -175,10 +179,11 @@
   S2-stereographic
   S2-Riemann
   SO3]
+ [sicmutils.calculus.basis
+  basis->vector-basis
+  basis->oneform-basis]
  [sicmutils.calculus.coordinate
   Jacobian
-  basis->vector-basis
-  basis->oneform-basis
   coordinate-system->basis
   coordinate-system->oneform-basis
   coordinate-system->vector-basis

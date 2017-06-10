@@ -6,6 +6,7 @@
              [function :as f]
              [value :as v]
              [expression :as x]]
+            [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.manifold :as m]))
 
@@ -232,22 +233,60 @@
 (defn ^:private vector-field-Lie-derivative
   [X]
   (let [name `(~'Lie-derivative ~(m/diffop-name X))]
-    (fn [Y]
-      (cond (fn? Y) (X Y)
-            (vf/vector-field? Y) (o/commutator X Y)
-            (form-field? Y) (let [k (get-rank Y)]
-                              (procedure->nform-field
-                               (fn [& vectors]
-                                 (assert (= k (count vectors)))
-                                 (g/- ((g/Lie-derivative X) (apply Y vectors))
-                                      (reduce g/+ (for [i (range 0 k)]
-                                                    (apply Y (map-indexed (fn [j v]
-                                                                            (if (= j i)
-                                                                              ((g/Lie-derivative X) v)
-                                                                              v))
-                                                                          vectors))))))
-                               k
-                               `((~'Lie-derivative ~(m/diffop-name X)) ~(m/diffop-name Y))))
-            :else (throw (UnsupportedOperationException. "Can't take the Lie derivative of that yet"))))))
+    (o/make-operator
+     (fn [Y]
+       (cond (fn? Y) (X Y)
+             (vf/vector-field? Y) (o/commutator X Y)
+             (form-field? Y) (let [k (get-rank Y)]
+                               (procedure->nform-field
+                                (fn [& vectors]
+                                  (assert (= k (count vectors)) `(~'≠ ~k ~(count vectors) ~@vectors ~@(map meta vectors)))
+                                  (g/- ((g/Lie-derivative X) (apply Y vectors))
+                                       (reduce g/+ (for [i (range 0 k)]
+                                                     (apply Y (map-indexed (fn [j v]
+                                                                             (if (= j i)
+                                                                               ((g/Lie-derivative X) v)
+                                                                               v))
+                                                                           vectors))))))
+                                k
+                                `((~'Lie-derivative ~(m/diffop-name X)) ~(m/diffop-name Y))))
+             :else (throw (UnsupportedOperationException. "Can't take the Lie derivative of that yet"))))
+     `(Lie-derivative ~(m/diffop-name X)))))
 
 (defmethod g/Lie-derivative [::vf/vector-field] [V] (vector-field-Lie-derivative V))
+
+(defn interior-product
+  [V]
+  (assert (vf/vector-field? V))
+  (fn [omega]
+    (assert (form-field? omega))
+    (let [k (get-rank omega)]
+      (procedure->nform-field
+       (fn [& vectors]
+         (assert (= (dec k) (count vectors)))
+         (apply omega V vectors))
+       (dec k)
+       `((~'interior-product ~(m/diffop-name V)) ~(m/diffop-name omega))))))
+
+(defn make-Christoffel
+  [symbols basis]
+  {:type ::Christoffel
+   :symbols symbols
+   :basis basis})
+
+(def Christoffel->basis :basis)
+(def Christoffel->symbols :symbols)
+
+(defn make-Cartan
+  [forms basis]
+  {:type ::Cartan
+   :forms forms
+   :basis basis})
+
+(defn Christoffel->Cartan
+  [Christoffel]
+  (assert (= (:type Christoffel) ::Christoffel))
+  (let [basis (Christoffel->basis Christoffel)
+        Christoffel-symbols (Christoffel->symbols Christoffel)]
+    (make-Cartan (g/* Christoffel-symbols (b/basis->oneform-basis basis))
+                 basis)))

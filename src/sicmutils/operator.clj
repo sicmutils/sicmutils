@@ -1,4 +1,4 @@
-;
+a;
 ; Copyright (C) 2016 Colin Smith.
 ; This work is based on the Scmutils system of MIT/GNU Scheme.
 ;
@@ -121,11 +121,11 @@
 
 (defn commutator
   [o p]
-  (o-o (o*o o p) (o*o p o)))
+  (g/- (g/* o p) (g/* p o)))
 
 (defn anticommutator
   [o p]
-  (o+o (o*o o p) (o*o p o)))
+  (g/+ (g/* o p) (g/* p o)))
 
 ;; Do we need to promote the second arg type (Number)
 ;; to ::x/numerical-expression?? -- check this ***AG***

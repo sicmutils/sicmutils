@@ -310,6 +310,16 @@
   (outer-product a b))
 
 (defmethod g/mul
+  [::structure :sicmutils.operator/operator]
+  [a b]
+  (outer-product b a))
+
+(defmethod g/mul
+  [:sicmutils.operator/operator ::structure]
+  [a b]
+  (outer-product a b))
+
+(defmethod g/mul
   [::structure :sicmutils.calculus.derivative/differential]
   [a b]
   (outer-product b a))

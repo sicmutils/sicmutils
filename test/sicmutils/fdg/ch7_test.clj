@@ -78,20 +78,116 @@
             V (literal-vector-field 'V-rect R3-rect)
             R3-rect-point ((point R3-rect) (up 'x0 'y0 'z0))]
         (is (= :sicmutils.calculus.vector-field/vector-field (v/kind V)))
-        (is (= ::v/function (v/kind (Lie-derivative V))))
+        (is (= :sicmutils.operator/operator (v/kind (Lie-derivative V))))
         (is (= :sicmutils.calculus.form-field/form-field (v/kind theta)))
+        (is (= 1 (:rank (:context theta))))
+        (is (= 2 (:rank (:context omega))))
         #_(is (= 'a
-               (simplify (((d ((Lie-derivative V) theta))
-                           X Y)
-                          R3-rect-point))))
+                 (simplify (((d ((Lie-derivative V) theta))
+                             X Y)
+                            R3-rect-point))))
         #_(is (= 'a
-               (simplify ((((Lie-derivative V) (d theta))
-                           X Y)
-                          R3-rect-point))))
+                 (simplify ((((Lie-derivative V) (d theta))
+                             X Y)
+                            R3-rect-point))))
         ;; if you look at the LH and RH of the subtraction, you will observe that
         ;; this is nontrivial :)
         (is (= 0
                (simplify (((- ((Lie-derivative V) (d theta))
                               (d ((Lie-derivative V) theta)))
                            X Y)
+                          R3-rect-point))))
+        (is (= 0
+               (simplify (((- ((Lie-derivative V) (d omega))
+                              (d ((Lie-derivative V) omega)))
+                           X Y Z)
+                          R3-rect-point)
+                         )))
+        (is (= 0
+               (simplify ((((- (commutator (Lie-derivative X) (Lie-derivative Y))
+                               (Lie-derivative (commutator X Y)))
+                            theta)
+                           Z)
+                          R3-rect-point))))
+        (is (= 0
+               (simplify ((((- (commutator (Lie-derivative X) (Lie-derivative Y))
+                               (Lie-derivative (commutator X Y)))
+                            omega)
+                           Z V)
                           R3-rect-point))))))))
+
+(deftest section-7-1b
+  (let-coordinates [[x y z] R3-rect]
+    (let [Jz (- (* x d:dy) (* y d:dx))]
+      ;; Seems like there may be a misprint
+      #_(is (= 'a (simplify
+                 (take 5
+                       (seq
+                        ((((exp (* 'a (Lie-derivative Jz))) d:dy)
+                          (literal-manifold-function 'f-rect R3-rect))
+                         ((point R3-rect) (up 1 0 0)))))))))))
+
+(deftest section-7-1c
+  (let-coordinates [[x y z] R3-rect]
+    (let [X (literal-vector-field 'X-rect R3-rect)
+          Y (literal-vector-field 'Y-rect R3-rect)
+          Z (literal-vector-field 'Z-rect R3-rect)
+          a (literal-manifold-function 'alpha R3-rect)
+          b (literal-manifold-function 'beta R3-rect)
+          c (literal-manifold-function 'gamma R3-rect)
+          omega (+ (* a (wedge dx dy))
+                   (* b (wedge dy dz))
+                   (* c (wedge dz dx)))
+          L1 (fn [X]
+               (fn [omega]
+                 (+ ((interior-product X) (d omega))
+                    (d ((interior-product X) omega)))))]
+      (is (= 0 (simplify
+                ((- (((Lie-derivative X) omega) Y Z)
+                    (((L1 X) omega) Y Z))
+                 ((point R3-rect) (up 'x0 'y0 'z0)))))))))
+
+(defn ^:private F-parallel
+  [omega phi coordinate-system]
+  (fn [v]
+    (fn [delta]
+      (fn [u]
+        (fn [f]
+          (fn [m]
+            (let [basis (coordinate-system->basis coordinate-system)
+                  etilde (basis->oneform-basis basis)
+                  e (basis->vector-basis basis)
+                  m0 (((phi v) (- delta)) m)
+                  Aij (+ (v/one-like ((omega v) m0))
+                         (* delta (- ((omega v) m0))))
+                  ui ((etilde u) m0)]
+              (* ((e f) m)
+                 (* Aij ui)))))))))
+
+(defn ^:private covariant-derivative-vector
+  [omega coordinate-system order]
+  (let [Phi (phi coordinate-system order)]
+    (F->directional-derivative
+     (F-parallel omega Phi coordinate-system))))
+
+(deftest section-7-2
+  (let-coordinates [[x y] R2-rect
+                    [r theta] R2-polar]
+    (let [R2-rect-basis (coordinate-system->basis R2-rect)
+          R2-polar-basis (coordinate-system->basis R2-polar)
+          R2-rect-Christoffel (make-Christoffel
+                               (let [zero (fn [m] 0)]
+                                 (down (down (up zero zero)
+                                             (up zero zero))
+                                       (down (up zero zero)
+                                             (up zero zero))))
+                               R2-rect-basis)
+          R2-rect-Cartan (Christoffel->Cartan R2-rect-Christoffel)
+          ;; R2-polar-Cartan (Cartan-transform R2-rect-Cartan R2-polar-basis)
+          circular (- (* x d:dy) (* y d:dx))
+          f (literal-manifold-function 'f-rect R2-rect)
+          R2-rect-point ((point R2-rect) (up 'x0 'y0))]
+      (is (= 1 1)))))
+
+;; (deftest section-7-2
+;;   (let [covariant-derivative-vector]))
