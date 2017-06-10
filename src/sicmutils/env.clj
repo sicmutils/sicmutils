@@ -30,6 +30,7 @@
              [generic :as g]
              [simplify :as simp]
              [function :as f]
+             [value :as v]
              [operator]
              [matrix :as matrix]
              [series :as series]]
@@ -41,14 +42,16 @@
              [lagrange]
              [hamilton]
              [rotation]]
-            [sicmutils.calculus.basis]
-            [sicmutils.calculus.derivative :as d]
-            [sicmutils.calculus.form-field :as form-field]
-            [sicmutils.calculus.manifold]
-            [sicmutils.calculus.map]
-            [sicmutils.calculus.coordinate]
-            [sicmutils.calculus.vector-field]
-            [sicmutils.value :as v]))
+            [sicmutils.calculus
+             [basis]
+             [covariant]
+             [derivative :as d]
+             [form-field]
+             [manifold]
+             [map]
+             [coordinate]
+             [vector-field]
+             ]))
 
 (def zero? v/nullity?)
 
@@ -155,14 +158,18 @@
   ->infix
   ->TeX
   ->JavaScript]
+ [sicmutils.calculus.covariant
+  interior-product
+  Cartan-transform
+  Christoffel->Cartan
+  make-Christoffel
+  ]
  [sicmutils.calculus.derivative D ∂]
  [sicmutils.calculus.form-field
-  Christoffel->Cartan
   d
   components->oneform-field
-  interior-product
+
   literal-oneform-field
-  make-Christoffel
   wedge]
  [sicmutils.calculus.manifold
   chart

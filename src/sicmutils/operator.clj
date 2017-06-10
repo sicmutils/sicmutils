@@ -1,4 +1,4 @@
-a;
+;
 ; Copyright (C) 2016 Colin Smith.
 ; This work is based on the Scmutils system of MIT/GNU Scheme.
 ;

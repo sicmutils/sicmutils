@@ -183,7 +183,7 @@
                                              (up zero zero))))
                                R2-rect-basis)
           R2-rect-Cartan (Christoffel->Cartan R2-rect-Christoffel)
-          ;; R2-polar-Cartan (Cartan-transform R2-rect-Cartan R2-polar-basis)
+          R2-polar-Cartan (Cartan-transform R2-rect-Cartan R2-polar-basis)
           circular (- (* x d:dy) (* y d:dx))
           f (literal-manifold-function 'f-rect R2-rect)
           R2-rect-point ((point R2-rect) (up 'x0 'y0))]

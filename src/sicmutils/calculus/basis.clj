@@ -1,5 +1,4 @@
 (ns sicmutils.calculus.basis)
-
 (defn make-basis
   "Make a basis object out of a vector and dual basis. The dimensions must agree."
   [vector-basis dual-basis]
