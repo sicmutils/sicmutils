@@ -57,7 +57,7 @@
 
 (defn components->vector-field
   [components coordinate-system & [name]]
-  (let [name (or name `(vector-field ~components))]
+  (let [name (or name `(~'vector-field ~components))]
     (procedure->vector-field (vector-field-procedure components coordinate-system) name)))
 
 (defn vector-field->components
@@ -111,7 +111,7 @@
                             (let [b (f/compose (v (m/chart coordinate-system))
                                                (m/point coordinate-system))]
                               (g/* ((D f) x) (b x)))))]
-    (o/make-operator coordinatized-v `(coordinatized ~v))))
+    (o/make-operator coordinatized-v `(~'coordinatized ~v))))
 
 (defn evolution
   "We can use the coordinatized vector field to build an evolution along an

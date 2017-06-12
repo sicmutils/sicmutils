@@ -32,26 +32,25 @@
   )
 (defn ^:private vector-field-Lie-derivative
   [X]
-  (let [name `(~'Lie-derivative ~(m/diffop-name X))]
-    (o/make-operator
-     (fn [Y]
-       (cond (fn? Y) (X Y)
-             (vf/vector-field? Y) (o/commutator X Y)
-             (ff/form-field? Y) (let [k (ff/get-rank Y)]
-                               (ff/procedure->nform-field
-                                (fn [& vectors]
-                                  (assert (= k (count vectors)) `(~'≠ ~k ~(count vectors) ~@vectors ~@(map meta vectors)))
-                                  (g/- ((g/Lie-derivative X) (apply Y vectors))
-                                       (reduce g/+ (for [i (range 0 k)]
-                                                     (apply Y (map-indexed (fn [j v]
-                                                                             (if (= j i)
-                                                                               ((g/Lie-derivative X) v)
-                                                                               v))
-                                                                           vectors))))))
-                                k
-                                `((~'Lie-derivative ~(m/diffop-name X)) ~(m/diffop-name Y))))
-             :else (throw (UnsupportedOperationException. "Can't take the Lie derivative of that yet"))))
-     `(Lie-derivative ~(m/diffop-name X)))))
+  (o/make-operator
+    (fn [Y]
+      (cond (fn? Y) (X Y)
+            (vf/vector-field? Y) (o/commutator X Y)
+            (ff/form-field? Y) (let [k (ff/get-rank Y)]
+                                 (ff/procedure->nform-field
+                                   (fn [& vectors]
+                                     (assert (= k (count vectors)) `(~'≠ ~k ~(count vectors) ~@vectors ~@(map meta vectors)))
+                                     (g/- ((g/Lie-derivative X) (apply Y vectors))
+                                          (reduce g/+ (for [i (range 0 k)]
+                                                        (apply Y (map-indexed (fn [j v]
+                                                                                (if (= j i)
+                                                                                  ((g/Lie-derivative X) v)
+                                                                                  v))
+                                                                              vectors))))))
+                                   k
+                                   `((~'Lie-derivative ~(m/diffop-name X)) ~(m/diffop-name Y))))
+            :else (throw (UnsupportedOperationException. "Can't take the Lie derivative of that yet"))))
+    `(~'Lie-derivative ~(m/diffop-name X))))
 
 (defmethod g/Lie-derivative [::vf/vector-field] [V] (vector-field-Lie-derivative V))
 

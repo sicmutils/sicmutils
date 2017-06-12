@@ -19,14 +19,9 @@
 
 (ns sicmutils.calculus.map
   (:require [sicmutils
-             [operator :as o]
              [structure :as s]
-             [generic :as g]
-             [function :as f]
-             [value :as v]
-             [expression :as x]]
+             [function :as f]]
             [sicmutils.calculus.basis :refer :all]
-            [sicmutils.calculus.coordinate :as c]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.manifold :as m]))
@@ -63,7 +58,7 @@
   (fn [w-on-M]
     (let [make-fake-vector-field (fn [V-over-mu n]
                                    (let [u (fn [f]
-                                             (fn [m]
+                                             (fn [_]
                                                ((V-over-mu f) n)))]
                                      (vf/procedure->vector-field u)))]
       (ff/procedure->nform-field

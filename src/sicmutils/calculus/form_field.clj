@@ -23,9 +23,7 @@
              [structure :as s]
              [generic :as g]
              [function :as f]
-             [value :as v]
-             [expression :as x]]
-            [sicmutils.calculus.basis :as b]
+             [value :as v]]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.manifold :as m]))
 
@@ -184,7 +182,6 @@
         c (int-array n (repeat 0)) ;; P1. [Initialize.]
         o (int-array n (repeat 1))
         return #(into [] %)
-        first (atom true)
         the-next (atom (return a))
         has-next (atom true)
         ;; step implements one-through of algorithm P up to step P2,
@@ -216,8 +213,8 @@
                          ))))]
     (iterator-seq
      (reify java.util.Iterator
-       (hasNext [this] @has-next)
-       (next [this]  ;; P2. [Visit.]
+       (hasNext [_] @has-next)
+       (next [_]  ;; P2. [Visit.]
          (let [prev @the-next]
            (reset! has-next (step (dec n) 0))
            (reset! the-next (return a))
