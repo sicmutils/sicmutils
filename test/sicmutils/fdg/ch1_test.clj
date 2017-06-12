@@ -1,6 +1,7 @@
 ;
-; Copyright (C) 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme.
+; Copyright © 2017 Colin Smith.
+; This work is based on the Scmutils system of MIT/GNU Scheme:
+; Copyright © 2002 Massachusetts Institute of Technology
 ;
 ; This is free software;  you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
