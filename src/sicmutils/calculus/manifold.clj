@@ -141,7 +141,10 @@
     (vary-meta
       (f/compose (f/literal-function name domain range)
                  #(point->coords coordinate-system %))
-      assoc :name name :coordinate-system coordinate-system)))
+      assoc
+      :name name
+      :coordinate-system coordinate-system
+      :type ::manifold-function)))
 
 (def ^:private ->Rectangular
     (fn ctor [manifold coordinate-prototype]

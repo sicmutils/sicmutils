@@ -159,6 +159,7 @@
   ->TeX
   ->JavaScript]
  [sicmutils.calculus.covariant
+  covariant-derivative
   interior-product
   Cartan-transform
   Christoffel->Cartan

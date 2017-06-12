@@ -164,12 +164,6 @@
               (* ((e f) m)
                  (* Aij ui)))))))))
 
-(defn ^:private covariant-derivative-vector
-  [omega coordinate-system order]
-  (let [Phi (phi coordinate-system order)]
-    (F->directional-derivative
-     (F-parallel omega Phi coordinate-system))))
-
 (deftest section-7-2
   (let-coordinates [[x y] R2-rect
                     [r theta] R2-polar]
@@ -187,7 +181,33 @@
           circular (- (* x d:dy) (* y d:dx))
           f (literal-manifold-function 'f-rect R2-rect)
           R2-rect-point ((point R2-rect) (up 'x0 'y0))]
-      (is (= 1 1)))))
 
-;; (deftest section-7-2
-;;   (let [covariant-derivative-vector]))
+      (is (= '(((∂ 1) f-rect) (up x0 y0))
+             (simplify
+              (((((covariant-derivative R2-rect-Cartan) d:dx)
+                 circular)
+                f)
+               R2-rect-point))))
+      (is (= '(((∂ 1) f-rect) (up x0 y0))
+             (simplify
+              ((d:dy f) R2-rect-point))))
+      (is (= '(((∂ 1) f-rect) (up x0 y0))
+             (simplify
+              (((((covariant-derivative R2-polar-Cartan) d:dx) circular) f)
+               R2-rect-point))))
+      (let [V (literal-vector-field 'V-rect R2-rect)
+            W (literal-vector-field 'W-rect R2-rect)]
+        ;; this one runs out of time. The culprit may be the
+        ;; in-rule call to simplifies-to-zero in trig-cleanup.
+        ;; (or else it may just be the exponential size of the
+        ;; search for repeated segment...) Ultimately it works,
+        ;; but boy. This expression warrants further study for
+        ;; optimization's sake
+        #_(is (= 0
+                 (simplify
+                  (((((- (covariant-derivative R2-rect-Cartan)
+                         (covariant-derivative R2-polar-Cartan))
+                      V)
+                     W)
+                    f)
+                   R2-rect-point))))))))
