@@ -202,10 +202,11 @@
         (let [[r theta] coords]
           (make-manifold-point
            (s/generate (count coords) ::s/up
-                       #(case %
-                          0 (g/* r (g/cos theta))
-                          1 (g/* r (g/sin theta))
-                          (nth coords %)))
+                       (fn [^long i]
+                         (case i
+                            0 (g/* r (g/cos theta))
+                            1 (g/* r (g/sin theta))
+                            (nth coords i))))
            manifold
            this
            coords)))
@@ -224,10 +225,11 @@
                                (when (v/nullity? rsq)
                                  (throw (IllegalStateException. "PolarCylindrical singular")))
                                (s/generate (count prep) ::s/up
-                                           #(case %
-                                              0 (g/sqrt rsq)
-                                              1 (g/atan y x)
-                                              (nth prep %))))))))
+                                           (fn [^long i]
+                                             (case i
+                                               0 (g/sqrt rsq)
+                                               1 (g/atan y x)
+                                               (nth prep i)))))))))
       (coordinate-prototype [this] coordinate-prototype)
       (with-coordinate-prototype [this prototype] (->PolarCylindrical manifold prototype))
       (manifold [this] manifold))))
@@ -286,11 +288,12 @@
         (let [[r theta phi] coords]
           (make-manifold-point
            (s/generate (s/dimension coords) ::s/up
-                       #(case %
-                          0 (g/* r (g/sin theta) (g/cos phi))
-                          1 (g/* r (g/sin theta) (g/sin phi))
-                          2 (g/* r (g/cos theta))
-                          (nth coords %)))
+                       (fn [^long i]
+                         (case i
+                           0 (g/* r (g/sin theta) (g/cos phi))
+                           1 (g/* r (g/sin theta) (g/sin phi))
+                           2 (g/* r (g/cos theta))
+                           (nth coords i))))
            manifold
            this
            coords)))
@@ -309,11 +312,12 @@
                                (when (v/nullity? r)
                                  (throw (IllegalStateException. "SphericalCylindrical singular")))
                                (s/generate (s/dimension prep) ::s/up
-                                           #(case %
-                                              0 r
-                                              1 (g/acos (g/divide z r))
-                                              2 (g/atan y x)
-                                              (nth prep %))))))))
+                                           (fn [^long i]
+                                             (case i
+                                               0 r
+                                               1 (g/acos (g/divide z r))
+                                               2 (g/atan y x)
+                                               (nth prep i)))))))))
       (coordinate-prototype [this] coordinate-prototype)
       (with-coordinate-prototype [this prototype] (ctor manifold prototype))
       (manifold [this] manifold))))
