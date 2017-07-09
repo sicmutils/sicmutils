@@ -259,7 +259,7 @@
          result 0
          x**e 1
          e 0]
-    (if-let [[[e'] c] (exponents xs->c)]
+    (if-let [[[e'] c] (first xs->c)]
       (let [x**e' (g/* x**e (g/expt x (- e' e)))]
         (recur (next xs->c)
                (g/+ result (g/* c x**e'))

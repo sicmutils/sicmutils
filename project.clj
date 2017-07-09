@@ -38,8 +38,12 @@
                  :init-ns sicmutils.env
                  :nrepl-middleware [sicmutils.repl/math-printer]}
   :target-path "target/%s"
-  :test-selectors {:default (complement :long)}
+  :test-selectors {:default (complement :long)
+                   :benchmark :benchmark}
   :profiles {:uberjar {:aot :all}
              :travis {:jvm-opts ["-Xmx512M"]}
-             :dev {:dependencies [[org.clojure/test.check "0.9.0"]]}
-             :test {:dependencies [[org.clojure/test.check "0.9.0"]]}})
+             :dev {:dependencies [[org.clojure/test.check "0.9.0"]
+                                  [criterium "0.4.4"]]}
+             :test {:jvm-opts ["-Xmx512m"]
+                    :dependencies [[org.clojure/test.check "0.9.0"]
+                                   [criterium "0.4.4"]]}})

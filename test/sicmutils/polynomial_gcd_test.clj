@@ -23,6 +23,7 @@
   (:require [clojure.test :refer :all]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
+            [criterium.core :refer [bench quick-bench]]
             [sicmutils
              [polynomial :refer :all]
              [polynomial-gcd :refer :all]
@@ -147,11 +148,14 @@
         df (mul d f)
         dg (mul d g)
         sw (Stopwatch/createStarted)
-        a (gcd df dg)]
-    (log/info "gcd-test" name (str sw))
-    (is (= d a))))
+        a (binding [*poly-gcd-time-limit* [10 TimeUnit/SECONDS]
+                    *poly-gcd-cache-enable* false
+                    ]
+            (quick-bench (is (= d (gcd df dg))))
+            )]
+    (log/info "gcd-test" name (str sw))))
 
-(deftest gjs
+(deftest ^:long ^:benchmark gjs
   (testing "GJS cases (see sparse-gcd.scm:666)"
     (let [d1 '(+ (expt x1 2) x1 3)
           f1 '(+ (* 2 (expt x1 2)) (* 2 x1) 1)
@@ -271,16 +275,14 @@
              (mul (lower-arity (->poly d2))
                   (lower-arity (mul (->poly d2) (->poly f2))))))
 
-      (binding [*poly-gcd-time-limit* [2 TimeUnit/SECONDS]
-                *poly-gcd-debug* false]
-        (gcd-test "D1" d1 f1 g1)
-        (gcd-test "D2" d2 f2 g2)
-        (gcd-test "D3" d3 f3 g3)
-        (gcd-test "D4" d4 f4 g4)
-        (gcd-test "D5" d5 f5 g5)
-        ;; the following are too big for our naive algorithm.
-        #_(gcd-test "D6" d6 f6 g6)
-        #_(gcd-test "D7" d7 f7 g7))
+      (gcd-test "D1" d1 f1 g1)
+      (gcd-test "D2" d2 f2 g2)
+      (gcd-test "D3" d3 f3 g3)
+      (gcd-test "D4" d4 f4 g4)
+      (gcd-test "D5" d5 f5 g5)
+      ;; the following are too big for our naive algorithm.
+      ;;(gcd-test "D6" d6 f6 g6)
+      #_(gcd-test "D7" d7 f7 g7)
       (gcd-stats))))
 
 (deftest big-gcd
@@ -344,7 +346,7 @@
                     [[4 0 1 0 1 1 0 0 0 0] 1]])]
     (is (= (make-constant 10 1) (gcd u v)))))
 
-(deftest kuniaki-tsuji-examples
+(deftest ^:benchmark kuniaki-tsuji-examples
   ;; (only have a few of these, will add more)
   ;; http://www.sciencedirect.com/science/article/pii/S0747717108001016
   (testing "ex1"
@@ -370,7 +372,7 @@
                 (expt z 0))]
       (gcd-test "K2" d p q))))
 
-(deftest some-interesting-small-examples
+(deftest ^:benchmark some-interesting-small-examples
   "Clojure.test.check's awesome problem-shrinking feature found some
   small examples of polynomials whose GCD is difficult to compute with
   this code (at the time of this writing). Recording them here as they
@@ -378,18 +380,13 @@
   (testing "ex1"
     (let [u (make 3 {[0 0 0] -1, [0 0 3] 1})
           v (make 3 {[0 0 0] 1, [2 3 0] 2, [0 8 1] 1, [7 0 5] -1})
-          sw (Stopwatch/createStarted)
-          g (binding [*poly-gcd-time-limit* [10 TimeUnit/SECONDS], *poly-gcd-debug* false]
-              (gcd u v))]
-      (log/info "S1 gcd" (str g) (str sw))
-      ))
+          sw (Stopwatch/createStarted)]
+      (gcd-test "S1" (make 3 {[0 0 0] 1}) u v)))
   (testing "ex2"
     (let [u (make 2 {[0 0] -1, [0 7] -1})
-          v (make 2 {[0 0] 1, [0 1] -1, [0 4] 1, [3 3] -11, [1 9] 8, [8 5] -9, [12 1] 1})
-          sw (Stopwatch/createStarted)
-          g (binding [*poly-gcd-time-limit* [10 TimeUnit/SECONDS]]
-              (gcd u v))]
-      (log/info "S2 gcd" (str g) (str sw)))))
+          v (make 2 {[0 0] 1, [0 1] -1, [0 4] 1, [3 3] -11, [1 9] 8, [8 5] -9, [12 1] 1})]
+      (gcd-test "S2" (make 2 {[0 0] 1}) u v))))
+
 
 ;; Currently we only do GCD testing of univariate polynomials, because
 ;; we find that unfortunately clojure.test.check is very good at finding
@@ -399,20 +396,28 @@
 
 (def ^:private num-tests 20)
 
+(defspec zippel-interpolation num-tests
+  (gen/let [n gen/s-pos-int]
+    (prop/for-all [xs (gen/vector-distinct gen/int {:num-elements n})
+                   ys (gen/vector gen/int n)]
+                  (println xs ys)
+                  (let [p (zippel-algorithm-D xs ys)]
+                    (is (every? true? (map #(= %2 (evaluate p [%1])) xs ys)))))))
+
 (defspec ^:long g-divides-u-and-v num-tests
-         (gen/let [arity (gen/elements [1])]
-                  (prop/for-all [u (p-test/generate-poly arity)
-                                 v (p-test/generate-poly arity)]
-                                (let [g (gcd u v)]
-                                  (or (and (v/nullity? u)
-                                           (v/nullity? v)
-                                           (v/nullity? g))
-                                      (and (evenly-divide u g)
-                                           (evenly-divide v g)))))))
+  (gen/let [arity (gen/elements [1])]
+    (prop/for-all [u (p-test/generate-poly arity)
+                   v (p-test/generate-poly arity)]
+                  (let [g (gcd u v)]
+                    (or (and (v/nullity? u)
+                             (v/nullity? v)
+                             (v/nullity? g))
+                        (and (evenly-divide u g)
+                             (evenly-divide v g)))))))
 
 (defspec ^:long d-divides-gcd-ud-vd num-tests
-         (gen/let [arity (gen/elements [1])]
-                  (prop/for-all [u (p-test/generate-poly arity)
-                                 v (p-test/generate-poly arity)
-                                 d (p-test/generate-nonzero-poly arity)]
-                                (evenly-divide (gcd (mul u d) (mul v d)) d))))
+  (gen/let [arity (gen/elements [1])]
+    (prop/for-all [u (p-test/generate-poly arity)
+                   v (p-test/generate-poly arity)
+                   d (p-test/generate-nonzero-poly arity)]
+                  (evenly-divide (gcd (mul u d) (mul v d)) d))))
