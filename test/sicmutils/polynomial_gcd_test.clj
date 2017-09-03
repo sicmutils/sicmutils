@@ -23,7 +23,6 @@
   (:require [clojure.test :refer :all]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
-            [criterium.core :refer [bench quick-bench]]
             [sicmutils
              [polynomial :refer :all]
              [polynomial-gcd :refer :all]
@@ -149,10 +148,8 @@
         dg (mul d g)
         sw (Stopwatch/createStarted)
         a (binding [*poly-gcd-time-limit* [10 TimeUnit/SECONDS]
-                    *poly-gcd-cache-enable* false
-                    ]
-            (quick-bench (is (= d (gcd df dg))))
-            )]
+                    *poly-gcd-cache-enable* false]
+            (is (= d (gcd df dg)))            )]
     (log/info "gcd-test" name (str sw))))
 
 (deftest ^:long ^:benchmark gjs
