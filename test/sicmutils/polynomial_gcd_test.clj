@@ -393,13 +393,6 @@
 
 (def ^:private num-tests 20)
 
-(defspec zippel-interpolation num-tests
-  (gen/let [n gen/s-pos-int]
-    (prop/for-all [xs (gen/vector-distinct gen/int {:num-elements n})
-                   ys (gen/vector gen/int n)]
-                  (let [p (zippel-algorithm-D xs ys)]
-                    (is (every? true? (map #(= %2 (evaluate p [%1])) xs ys)))))))
-
 (defspec ^:long g-divides-u-and-v num-tests
   (gen/let [arity (gen/elements [1])]
     (prop/for-all [u (p-test/generate-poly arity)
