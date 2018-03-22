@@ -160,4 +160,4 @@
                             :else
                             (throw (IllegalArgumentException. (str "Can't differentiate series with arity " a))))))
 
-(derive ::sicmutils.expression/numerical-expression ::coseries)
+(derive :sicmutils.expression/numerical-expression ::coseries)
