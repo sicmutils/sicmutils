@@ -263,18 +263,18 @@
                           :else `(~'expt ~b ~e))
         :else `(~'expt ~b ~e)))
 
-(defn ^:private define-binary-operation
+(defmacro ^:private define-binary-operation
   [generic-operation symbolic-operation]
-  (defmethod generic-operation [::x/numerical-expression
-                                ::x/numerical-expression]
-    [a b]
-    (make-numsymb-expression symbolic-operation [a b])))
+  `(defmethod ~generic-operation [::x/numerical-expression
+                                  ::x/numerical-expression]
+     [a# b#]
+     (make-numsymb-expression ~symbolic-operation [a# b#])))
 
-(defn ^:private define-unary-operation
+(defmacro ^:private define-unary-operation
   [generic-operation symbolic-operation]
-  (defmethod generic-operation [::x/numerical-expression]
-    [a]
-    (make-numsymb-expression symbolic-operation [a])))
+  `(defmethod ~generic-operation [::x/numerical-expression]
+     [a#]
+     (make-numsymb-expression ~symbolic-operation [a#])))
 
 (derive Symbol ::x/numerical-expression)
 (derive Number ::x/numerical-expression)
