@@ -18,11 +18,11 @@
 ;
 
 (ns sicmutils.analyzer-test
-  (require [clojure.test :refer :all]
-           [sicmutils
-            [analyze :as a]
-            [polynomial :as poly]]
-           [sicmutils.mechanics.lagrange :refer :all]))
+  (:require [clojure.test :refer :all]
+            [sicmutils
+             [analyze :as a]
+             [polynomial :as poly]]
+            [sicmutils.mechanics.lagrange :refer :all]))
 
 (deftest analyzer-test
   (let [new-analyzer (fn [] (a/make-analyzer (poly/->PolynomialAnalyzer) (a/monotonic-symbol-generator "k%08d")))

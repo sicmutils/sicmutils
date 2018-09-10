@@ -18,8 +18,8 @@
 ;
 
 (ns sicmutils.rules-test
-  (require [clojure.test :refer :all]
-           [sicmutils.rules :refer :all]))
+  (:require [clojure.test :refer :all]
+            [sicmutils.rules :refer :all]))
 
 (deftest simplify-square-roots-test
   (let [s simplify-square-roots]

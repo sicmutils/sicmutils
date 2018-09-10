@@ -284,19 +284,6 @@
   (reduce-until v/unity? gcd))
 
 
-(defn zippel-algorithm-D
-  [ps ms]
-  {:pre [(= (count ps) (count ms))]}
-  (loop [f (make [(first ms)])
-         q (make [(- (first ps)) 1])
-         [m & ms] (rest ms)
-         [p & ps] (rest ps)]
-    (if (nil? m) f
-        (recur (add f (map-coefficients #(/ (* % (- m (evaluate f [p]))) (evaluate q [p])) q))
-               (mul q (make [(- p) 1]))
-               ms
-               ps))))
-
 ;; several observations. many of the gcds we find when attempting the troublesome
 ;; GCD are the case where we have two monomials. This can be done trivially
 ;; without lowering arity.

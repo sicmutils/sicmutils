@@ -23,7 +23,6 @@
   (:require [clojure.test :refer :all]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
-            [criterium.core :refer [bench quick-bench]]
             [sicmutils
              [polynomial :refer :all]
              [polynomial-gcd :refer :all]
@@ -89,39 +88,39 @@
     (testing "GCD: arity 3 case"
       (binding [*poly-gcd-time-limit* [2 TimeUnit/SECONDS]]
         (let [I (make 3 [[[0 0 0] 1]])
-             X (make 3 [[[1 0 0] 1]])
-             Y (make 3 [[[0 1 0] 1]])
-             Z (make 3 [[[0 0 1] 1]])
-             X+Y (add X Y)
-             X+Z (add X Z)
-             Y+Z (add Y Z)
-             X+Y+Z (add X+Y Z)
-             X+1 (add X I)
-             Y+1 (add Y I)
-             Z+1 (add Z I)
-             U (reduce mul [(expt X+1 3) (expt X+Y 2) (expt Y+Z 5) (expt X+Y+Z 4) (expt Y+1 4) (expt Z+1 3)])
-             V (reduce mul [(expt X+1 2)  (expt X+Y 5) (expt Y+Z 3) (expt X+Y+Z 5) (expt Y+1 2) (expt Z+1 1) X+1])
-             G (reduce mul [(expt X+1 3) (expt X+Y 2) (expt Y+Z 3) (expt X+Y+Z 4) (expt Y+1 2) Z+1])]
-         (is (= [(reduce mul [(expt Y+Z 2) (expt Y+1 2) (expt Z+1 2)]) (make 3 [])] (divide U G)))
-         (is (= [(reduce mul [(expt X+Y 3) X+Y+Z]) (make 3 [])] (divide V G)))
-         (is (= X+Z (gcd (mul X+Y X+Z) (mul Y+Z X+Z))))
-         (is (= (mul X+Z X+Y+Z) (gcd (reduce mul [X+Y X+Z X+Y+Z]) (reduce mul [X+Z X+Y+Z Y+Z]))))
-         (is (= (mul X+Z (mul X+Z X+Y)) (gcd (reduce mul [X+Z X+Z X+Y X+Y+Z Y+1]) (reduce mul [X+Z X+Z X+Y X+1 Z+1 X+Z]))))
-         (is (= G (gcd U V))))))
+              X (make 3 [[[1 0 0] 1]])
+              Y (make 3 [[[0 1 0] 1]])
+              Z (make 3 [[[0 0 1] 1]])
+              X+Y (add X Y)
+              X+Z (add X Z)
+              Y+Z (add Y Z)
+              X+Y+Z (add X+Y Z)
+              X+1 (add X I)
+              Y+1 (add Y I)
+              Z+1 (add Z I)
+              U (reduce mul [(expt X+1 3) (expt X+Y 2) (expt Y+Z 5) (expt X+Y+Z 4) (expt Y+1 4) (expt Z+1 3)])
+              V (reduce mul [(expt X+1 2)  (expt X+Y 5) (expt Y+Z 3) (expt X+Y+Z 5) (expt Y+1 2) (expt Z+1 1) X+1])
+              G (reduce mul [(expt X+1 3) (expt X+Y 2) (expt Y+Z 3) (expt X+Y+Z 4) (expt Y+1 2) Z+1])]
+          (is (= [(reduce mul [(expt Y+Z 2) (expt Y+1 2) (expt Z+1 2)]) (make 3 [])] (divide U G)))
+          (is (= [(reduce mul [(expt X+Y 3) X+Y+Z]) (make 3 [])] (divide V G)))
+          (is (= X+Z (gcd (mul X+Y X+Z) (mul Y+Z X+Z))))
+          (is (= (mul X+Z X+Y+Z) (gcd (reduce mul [X+Y X+Z X+Y+Z]) (reduce mul [X+Z X+Y+Z Y+Z]))))
+          (is (= (mul X+Z (mul X+Z X+Y)) (gcd (reduce mul [X+Z X+Z X+Y X+Y+Z Y+1]) (reduce mul [X+Z X+Z X+Y X+1 Z+1 X+Z]))))
+          (is (= G (gcd U V))))))
     ;; this was sort of cool, but prevented us from using native BigInteger GCD.
     ;; it could come back, but in order to do this right, we would need a way
     ;; to specify the coefficient field when we create a polynomial so that we
     ;; can efficiently dispatch to a GCD routine tailored to that field.
     #_(testing "modular polynomial reduction"
-      (let [A (make [-360 -171 145 25 1])
-            B (make [-15 -14 -1 15 14 1])
-            Z5 #(modular/make % 5)
-            A:Z5 (map-coefficients Z5 A)
-            B:Z5 (map-coefficients Z5 B)
-            G5 (gcd A:Z5 B:Z5)]
-        (is (= (make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) A:Z5))
-        (is (= (make [(Z5 0) (Z5 1) (Z5 -1) (Z5 0) (Z5 -1) (Z5 1)]) B:Z5))
-        (is (= (make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) G5))))))
+        (let [A (make [-360 -171 145 25 1])
+              B (make [-15 -14 -1 15 14 1])
+              Z5 #(modular/make % 5)
+              A:Z5 (map-coefficients Z5 A)
+              B:Z5 (map-coefficients Z5 B)
+              G5 (gcd A:Z5 B:Z5)]
+          (is (= (make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) A:Z5))
+          (is (= (make [(Z5 0) (Z5 1) (Z5 -1) (Z5 0) (Z5 -1) (Z5 1)]) B:Z5))
+          (is (= (make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) G5))))))
 
 (deftest simple-gcd-3
   (testing "GCD: arity 3 case"
@@ -149,10 +148,8 @@
         dg (mul d g)
         sw (Stopwatch/createStarted)
         a (binding [*poly-gcd-time-limit* [10 TimeUnit/SECONDS]
-                    *poly-gcd-cache-enable* false
-                    ]
-            (quick-bench (is (= d (gcd df dg))))
-            )]
+                    *poly-gcd-cache-enable* false]
+            (is (= d (gcd df dg)))            )]
     (log/info "gcd-test" name (str sw))))
 
 (deftest ^:long ^:benchmark gjs
@@ -396,14 +393,6 @@
 
 (def ^:private num-tests 20)
 
-(defspec zippel-interpolation num-tests
-  (gen/let [n gen/s-pos-int]
-    (prop/for-all [xs (gen/vector-distinct gen/int {:num-elements n})
-                   ys (gen/vector gen/int n)]
-                  (println xs ys)
-                  (let [p (zippel-algorithm-D xs ys)]
-                    (is (every? true? (map #(= %2 (evaluate p [%1])) xs ys)))))))
-
 (defspec ^:long g-divides-u-and-v num-tests
   (gen/let [arity (gen/elements [1])]
     (prop/for-all [u (p-test/generate-poly arity)
@@ -417,7 +406,13 @@
 
 (defspec ^:long d-divides-gcd-ud-vd num-tests
   (gen/let [arity (gen/elements [1])]
-    (prop/for-all [u (p-test/generate-poly arity)
-                   v (p-test/generate-poly arity)
+    (prop/for-all [u (p-test/generate-nonzero-poly arity)
+                   v (p-test/generate-nonzero-poly arity)
                    d (p-test/generate-nonzero-poly arity)]
-                  (evenly-divide (gcd (mul u d) (mul v d)) d))))
+                  (let [ud (mul u d)
+                        vd (mul v d)
+                        g (gcd ud vd)]
+                    (and
+                     (evenly-divide ud g)
+                     (evenly-divide vd g)
+                     (evenly-divide g d))))))

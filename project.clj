@@ -17,12 +17,12 @@
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(defproject net.littleredcomputer/sicmutils "0.10.0"
+(defproject net.littleredcomputer/sicmutils "0.11.0-SNAPSHOT"
   :description "A port of the Scmutils computer algebra/mechanics system to Clojure"
   :url "http://github.com/littleredcomputer/sicmutils"
   :license {:name "GPLv3"
             :url "http://www.opensource.org/licenses/GPL-3.0"}
-  :dependencies [[org.clojure/clojure "1.8.0"]
+  :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/tools.logging "0.4.0"]
                  [hiccup "1.0.5"]
                  [com.google.guava/guava "22.0"]
