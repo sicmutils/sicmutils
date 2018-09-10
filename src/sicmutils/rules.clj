@@ -168,6 +168,8 @@
     (sin (atan :y :x))       => (/ :y (sqrt (+ (expt :x 2) (expt :y 2))))
     (cos (atan :y :x))       => (/ :x (sqrt (+ (expt :x 2) (expt :y 2))))
     (cos (asin :t))          => (sqrt (- 1 (square :t)))
+    )
+   (ruleset
     (acos (cos :x))          => :x
     (atan (tan :x))          => :x
     (atan (sin :x) (cos :x)) => :x

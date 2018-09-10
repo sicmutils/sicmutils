@@ -24,14 +24,15 @@
   (:refer-clojure :exclude [+ - * / zero?]
                   :rename {ref core-ref partial core-partial})
   (:require [potemkin]
+            [clojupyter.protocol.mime-convertible :as mc]
             [sicmutils
              [structure]
              [complex]
-             [infix]
              [generic :as g]
              [simplify :as simp]
              [function :as f]
              [value :as v]
+             [infix]
              [operator]
              [matrix :as matrix]
              [series :as series]]
@@ -51,8 +52,7 @@
              [manifold]
              [map]
              [coordinate]
-             [vector-field]
-             ]))
+             [vector-field]]))
 
 (def zero? v/nullity?)
 
@@ -108,6 +108,23 @@
 
 (def series series/starting-with)
 (def series:sum series/sum)
+
+(defn as-mime
+  "Used to wrap data with a MIME type. This wrapping is noticed by Jupyter,
+  which will render the result accordingly."
+  [type data]
+  (reify mc/PMimeConvertible
+    (to-mime [_] (mc/stream-to-string {type data}))))
+
+(def ^:private tex-render (comp sicmutils.infix/->TeX g/simplify))
+(defn tex$
+  "Convert a result to TeX inline style."
+  [a]
+  (as-mime :text/latex (str "$" (tex-render a) "$")))
+(defn tex$$
+  "Convert a result to TeX display style."
+  [a]
+  (as-mime :text/latex (str "\\[\\displaystyle" (tex-render a) "\\]")))
 
 (potemkin/import-vars
  [sicmutils.complex
