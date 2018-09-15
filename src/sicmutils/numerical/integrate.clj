@@ -23,7 +23,8 @@
             [sicmutils.numbers])
   (:import (org.apache.commons.math3.analysis UnivariateFunction)
            (com.google.common.base Stopwatch)
-           (org.apache.commons.math3.analysis.integration RombergIntegrator
+           (org.apache.commons.math3.analysis.integration UnivariateIntegrator
+                                                          RombergIntegrator
                                                           MidPointIntegrator
                                                           IterativeLegendreGaussIntegrator)))
 
@@ -43,7 +44,8 @@
         evaluation-count (atom 0)
         evaluation-time (Stopwatch/createUnstarted)
         integrand (if compile (compile-univariate-function f) f)
-        value (.integrate ((method->integrator method))
+        integrator ^UnivariateIntegrator ((method->integrator method))
+        value (.integrate integrator
                           max-evaluations
                           (reify UnivariateFunction
                             (value [_ x]
@@ -56,3 +58,51 @@
     (.stop total-time)
     (log/info "#" @evaluation-count "total" (str total-time) "f" (str evaluation-time))
     value))
+
+(defn carlson-rf [x y z]
+  (let [errtol 0.08
+        tiny 1.5e-38
+        big 3e37
+        third (/ 3.)
+        c1 (/ 24.)
+        c2 0.1
+        c3 (/ 3. 44.)
+        c4 (/ 14.)]
+    (when (or (< (min x y z) 0)
+              (< (min (+ x y) (+ x z) (+ y z)) tiny)
+              (> (max x y z) big))
+      (throw (IllegalArgumentException.)))
+    (loop [xt x
+           yt y
+           zt z]
+      (let [sqrtx (Math/sqrt xt)
+            sqrty (Math/sqrt yt)
+            sqrtz (Math/sqrt zt)
+            alamb (+ (* sqrtx
+                        (+ sqrty sqrtz))
+                     (* sqrty sqrtz))
+            xt' (* 0.25 (+ xt alamb))
+            yt' (* 0.25 (+ yt alamb))
+            zt' (* 0.25 (+ zt alamb))
+            ave (* third (+ xt' yt' zt'))
+            delx (/ (- ave xt') ave)
+            dely (/ (- ave yt') ave)
+            delz (/ (- ave zt') ave)]
+        (if (> (max (Math/abs delx) (Math/abs dely) (Math/abs delz)) errtol)
+          (recur xt' yt' zt')
+          (let [e2 (- (* delx dely) (* delz delz))
+                e3 (* delx dely delz)]
+            (/ (+ 1
+                  (* (- (* c1 e2)
+                        c2
+                        (* c3 e3))
+                     e2)
+                  (* c4 e3))
+               (Math/sqrt ave))))))))
+
+(defn elliptic-f [phi k]
+  (let [s (Math/sin phi)]
+    (* s (carlson-rf (Math/pow (Math/cos phi) 2)
+                     (* (- 1 (* s k))
+                        (+ 1 (* s k)))
+                     1))))
