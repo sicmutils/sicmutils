@@ -23,15 +23,28 @@
             [sicmutils.numbers])
   (:import (org.apache.commons.math3.analysis UnivariateFunction)
            (com.google.common.base Stopwatch)
-           (org.apache.commons.math3.analysis.integration RombergIntegrator)))
+           (org.apache.commons.math3.analysis.integration RombergIntegrator
+                                                          MidPointIntegrator
+                                                          IterativeLegendreGaussIntegrator)))
 
-(defn definite-integral [f a b & {:keys [compile]}]
+(def ^:private method->integrator
+  {:romberg #(RombergIntegrator.)
+   :midpoint #(MidPointIntegrator.)
+   :legendre-gauss #(IterativeLegendreGaussIntegrator. 64 1 256)})
+
+(defn definite-integral [f a b & {:keys [compile max-evaluations method method-args]
+                                  :or {compile false,
+                                       max-evaluations 10000,
+                                       method :romberg
+                                       metohd-args []
+                                       }}]
+  {:pre [(contains? method->integrator method)]}
   (let [total-time (Stopwatch/createStarted)
         evaluation-count (atom 0)
         evaluation-time (Stopwatch/createUnstarted)
         integrand (if compile (compile-univariate-function f) f)
-        value (.integrate (RombergIntegrator.)
-                          10000
+        value (.integrate ((method->integrator method))
+                          max-evaluations
                           (reify UnivariateFunction
                             (value [_ x]
                               (.start evaluation-time)

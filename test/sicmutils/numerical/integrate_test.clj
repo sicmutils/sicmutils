@@ -41,4 +41,22 @@
     (is (near 0 (sine Math/PI)))
     (is (near 1 (sine (/ Math/PI 2))))
     (is (near 0.7651976 (bessel-j0 1)))
-    (is (near -0.2459358 (bessel-j0 10)))))
+    (is (near -0.2459358 (bessel-j0 10))))
+  (testing "harder"
+    ;; Apache commons math doesn't seem to have an integrator handy that works
+    ;; well on integrals with a singularity at the edge
+    (let [sort-of-near (v/within 5e-3)
+          integrand (fn [g theta0]
+                      (fn [theta]
+                        (/ (Math/sqrt (* 2 g (- (Math/cos theta) (Math/cos theta0)))))))
+          epsilon 0.000001
+          L (fn [a] (* 4 (definite-integral (integrand 9.8 a)
+                           0 (- a epsilon)
+                           :method :legendre-gauss
+                           :max-evaluations 500000) ))]
+      (is (sort-of-near 2.00992 (L 0.15)))
+      (is (sort-of-near 2.01844 (L 0.30)))
+      (is (sort-of-near 2.03279 (L 0.45)))
+      (is (sort-of-near 2.0532 (L 0.60)))
+      (is (sort-of-near 2.08001 (L 0.75)))
+      (is (sort-of-near 2.11368 (L 0.9))))))

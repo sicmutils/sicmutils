@@ -279,6 +279,7 @@
  [sicmutils.mechanics.rotation Rx Ry Rz]
  [sicmutils.numerical.ode
   evolve
+  integrate-state-derivative
   state-advancer]
  [sicmutils.numerical.integrate definite-integral]
  [sicmutils.numerical.minimize minimize])

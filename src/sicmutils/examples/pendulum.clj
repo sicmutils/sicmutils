@@ -24,7 +24,7 @@
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [sicmutils.env :refer :all]))
 
-(defn ^:private T
+(defn T
   [m l _ x]
   (let [v (D x)]
     (fn [[t θ θdot]]
@@ -34,10 +34,9 @@
               (* 2 l θdot (+ (* vy (sin θ)) (* vx (cos θ))))
               (square (* l θdot))))))))
 
-(defn ^:private V
+(defn V
   [m l g x]
   (fn [[t θ _]]
     (* m g (- (ref (x t) 1) (* l (cos θ))))))
 
 (def L (- T V))
-

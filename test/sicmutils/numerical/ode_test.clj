@@ -80,4 +80,33 @@
                       3
                       1e-10
                       :compile compile?)]
-          (is (near? (Math/exp 0.6) (first result))))))))
+          (is (near? (Math/exp 0.6) (first result)))))))
+  (testing "with sd-integrator"
+    (let [state-derivative (fn [] (fn [[t y]] [1 y]))
+          output (integrate-state-derivative state-derivative [] (up 0 1) 1 1/10)
+          expected [[0.0 1.0]
+                    [0.1 1.1051709179235594]
+                    [0.2 1.2214027531002876]
+                    [0.3 1.3498587919571827]
+                    [0.4 1.4918246775485524]
+                    [0.5 1.648721248240836]
+                    [0.6 1.8221187755620267]
+                    [0.7 2.0137526801065393]
+                    [0.8 2.2255409007561555]
+                    [0.9 2.459603091529638]
+                    [1.0 2.718281812371165]]]
+      (is (> 0.00001 (apply max (map abs (flatten (- output expected)))))))
+    (let [state-derivative (fn [] (fn [[t y]] [1 (* 2 y)]))
+          output (integrate-state-derivative state-derivative [] (up 0 1) 1 1/10)
+          expected [[0.0 1.0],
+                    [0.1 1.2214027581601699],
+                    [0.2 1.4918246976412703],
+                    [0.3 1.8221188003905089],
+                    [0.4 2.225540928492468],
+                    [0.5 2.718281828459045],
+                    [0.6 3.3201169227365472],
+                    [0.7 4.0551999668446745],
+                    [0.8 4.953032424395115],
+                    [0.9 6.0496474644129465],
+                    [1.0 7.38905609893065]]]
+      (is (> 0.00001 (apply max (map abs (flatten (- output expected)))))))))
