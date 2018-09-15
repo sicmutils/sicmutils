@@ -27,23 +27,42 @@
                                                           MidPointIntegrator
                                                           IterativeLegendreGaussIntegrator)))
 
-(def ^:private method->integrator
-  {:romberg #(RombergIntegrator.)
-   :midpoint #(MidPointIntegrator.)
-   :legendre-gauss #(IterativeLegendreGaussIntegrator. 64 1 256)})
-
-(defn definite-integral [f a b & {:keys [compile max-evaluations method method-args]
+(defn definite-integral [f a b & {:keys [compile
+                                         method
+                                         max-evaluations
+                                         relative-accuracy
+                                         absolute-accuracy
+                                         min-iterations
+                                         max-iterations
+                                         points]
                                   :or {compile false,
-                                       max-evaluations 10000,
-                                       method :romberg
-                                       metohd-args []
-                                       }}]
-  {:pre [(contains? method->integrator method)]}
+                                       method :romberg,
+                                       max-evaluations 32768,
+                                       relative-accuracy 1e-6,
+                                       absolute-accuracy 1e-15,
+                                       min-iterations 3
+                                       max-iterations 32
+                                       points 16}}]
   (let [total-time (Stopwatch/createStarted)
         evaluation-count (atom 0)
         evaluation-time (Stopwatch/createUnstarted)
         integrand (if compile (compile-univariate-function f) f)
-        value (.integrate ((method->integrator method))
+        integrator (case method
+                     :romberg (RombergIntegrator. relative-accuracy
+                                                  absolute-accuracy
+                                                  min-iterations
+                                                  max-iterations)
+                     :midpoint (MidPointIntegrator. relative-accuracy
+                                                    absolute-accuracy
+                                                    min-iterations
+                                                    max-iterations)
+                     :legendre-gauss (IterativeLegendreGaussIntegrator. points
+                                                                        relative-accuracy
+                                                                        absolute-accuracy
+                                                                        min-iterations
+                                                                        max-iterations))
+
+        value (.integrate integrator
                           max-evaluations
                           (reify UnivariateFunction
                             (value [_ x]
@@ -56,3 +75,51 @@
     (.stop total-time)
     (log/info "#" @evaluation-count "total" (str total-time) "f" (str evaluation-time))
     value))
+
+(defn carlson-rf [x y z]
+  (let [errtol 0.0025
+        tiny 1.5e-38
+        big 3.0e37
+        third (/ 3.)
+        c1 (/ 24.)
+        c2 0.1
+        c3 (/ 3. 44.)
+        c4 (/ 14.)]
+    (when (or (< (min x y z) 0)
+              (< (min (+ x y) (+ x z) (+ y z)) tiny)
+              (> (max x y z) big))
+      (throw (IllegalArgumentException. "Carlson R_F")))
+    (loop [xt x
+           yt y
+           zt z]
+      (let [sqrtx (Math/sqrt xt)
+            sqrty (Math/sqrt yt)
+            sqrtz (Math/sqrt zt)
+            alamb (+ (* sqrtx (+ sqrty sqrtz))
+                     (* sqrty sqrtz))
+            xt' (* 0.25 (+ xt alamb))
+            yt' (* 0.25 (+ yt alamb))
+            zt' (* 0.25 (+ zt alamb))
+            ave (* third (+ xt' yt' zt'))
+            delx (/ (- ave xt') ave)
+            dely (/ (- ave yt') ave)
+            delz (/ (- ave zt') ave)]
+        (if (> (max (Math/abs delx) (Math/abs dely) (Math/abs delz)) errtol)
+          (recur xt' yt' zt')
+          (let [e2 (- (* delx dely) (* delz delz))
+                e3 (* delx dely delz)]
+            (/ (+ 1.0
+                  (* (- (* c1 e2)
+                        c2
+                        (* c3 e3))
+                     e2)
+                  (* c4 e3))
+               (Math/sqrt ave))))))))
+
+(defn elliptic-f [phi k]
+  (let [sinphi (Math/sin phi)
+        cosphi (Math/cos phi)]
+    (* sinphi (carlson-rf (Math/pow cosphi 2)
+                          (- 1 (* (Math/pow k 2)
+                                  (Math/pow sinphi 2)))
+                          1))))

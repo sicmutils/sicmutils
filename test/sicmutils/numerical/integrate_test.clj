@@ -53,10 +53,26 @@
           L (fn [a] (* 4 (definite-integral (integrand 9.8 a)
                            0 (- a epsilon)
                            :method :legendre-gauss
+                           :max-iterations 200
+                           :points 64
                            :max-evaluations 500000) ))]
       (is (sort-of-near 2.00992 (L 0.15)))
       (is (sort-of-near 2.01844 (L 0.30)))
       (is (sort-of-near 2.03279 (L 0.45)))
       (is (sort-of-near 2.0532 (L 0.60)))
       (is (sort-of-near 2.08001 (L 0.75)))
-      (is (sort-of-near 2.11368 (L 0.9))))))
+      (is (sort-of-near 2.11368 (L 0.9)))))
+  (testing "elliptic integral"
+    (let [F (fn [phi k]
+              (definite-integral #(/ (Math/sqrt (- 1 (* k k (Math/pow (Math/sin %) 2))))) 0 phi
+
+                :relative-accuracy 0.01
+                :absolute-accuracy 0.001
+                :max-evaluations 1000000))]
+      (is (near 0.303652 (F 0.3 (Math/sqrt 0.8))))
+      (is (near 1.30567 (F 1.2 (Math/sqrt 0.4))))))
+  (testing "elliptic"
+    (is (near 0.200212 (elliptic-f 0.2 0.4)))
+    (is (near 0.841935 (elliptic-f 0.8 0.7)))
+    (is (near 0.303652 (elliptic-f 0.3 (Math/sqrt 0.8))))
+    (is (near 1.30567  (elliptic-f 1.2 (Math/sqrt 0.4))))))
