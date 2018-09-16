@@ -23,7 +23,8 @@
             [sicmutils.numbers])
   (:import (org.apache.commons.math3.analysis UnivariateFunction)
            (com.google.common.base Stopwatch)
-           (org.apache.commons.math3.analysis.integration RombergIntegrator
+           (org.apache.commons.math3.analysis.integration UnivariateIntegrator
+                                                          RombergIntegrator
                                                           MidPointIntegrator
                                                           IterativeLegendreGaussIntegrator)))
 
@@ -47,7 +48,7 @@
         evaluation-count (atom 0)
         evaluation-time (Stopwatch/createUnstarted)
         integrand (if compile (compile-univariate-function f) f)
-        integrator (case method
+        integrator ^UnivariateIntegrator (case method
                      :romberg (RombergIntegrator. relative-accuracy
                                                   absolute-accuracy
                                                   min-iterations
@@ -108,7 +109,7 @@
           (recur xt' yt' zt')
           (let [e2 (- (* delx dely) (* delz delz))
                 e3 (* delx dely delz)]
-            (/ (+ 1.0
+            (/ (+ 1
                   (* (- (* c1 e2)
                         c2
                         (* c3 e3))
@@ -117,9 +118,8 @@
                (Math/sqrt ave))))))))
 
 (defn elliptic-f [phi k]
-  (let [sinphi (Math/sin phi)
-        cosphi (Math/cos phi)]
-    (* sinphi (carlson-rf (Math/pow cosphi 2)
-                          (- 1 (* (Math/pow k 2)
-                                  (Math/pow sinphi 2)))
-                          1))))
+  (let [s (Math/sin phi)]
+    (* s (carlson-rf (Math/pow (Math/cos phi) 2)
+                     (* (- 1 (* s k))
+                        (+ 1 (* s k)))
+                     1))))
