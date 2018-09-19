@@ -1,5 +1,5 @@
 # sicmutils
-[![Build Status](https://travis-ci.org/littleredcomputer/sicmutils.svg?branch=master)](https://travis-ci.org/littleredcomputer/sicmutils) [![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/littleredcomputer/sicmutils/blob/master/LICENSE) [![Clojars Project](https://img.shields.io/clojars/v/net.littleredcomputer/sicmutils.svg)](https://clojars.org/net.littleredcomputer/sicmutils) [![Dependency Status](https://www.versioneye.com/user/projects/584e03e575bc100039dbfd17/badge.svg?style=flat-square)](https://www.versioneye.com/user/projects/584e03e575bc100039dbfd17)
+[![Build Status](https://travis-ci.org/littleredcomputer/sicmutils.svg?branch=master)](https://travis-ci.org/littleredcomputer/sicmutils) [![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/littleredcomputer/sicmutils/blob/master/LICENSE) [![Clojars Project](https://img.shields.io/clojars/v/net.littleredcomputer/sicmutils.svg)](https://clojars.org/net.littleredcomputer/sicmutils)
 
 An implementation of the Scmutils system for math and physics
 investigations in the Clojure language. Scmutils is extensively used
@@ -9,14 +9,14 @@ in the textbooks
 
 These books can be thought of as spiritual successors to
 [The Structure and Interpretation of Computer Programs][SICP], a very
-influential text--as I can attest, since carefully reading this book
+influential text—as I can attest, since carefully reading this book
 in my 30s changed my life as a programmer. To see the same techniques
 applied to differential geometry and physics is an irresistible lure.
 
 Scmutils is an excellent system, but it is written in an older variant
 of LISP (Scheme) and is tied to a particular implementation of
 Scheme—MIT/GNU Scheme. (There is a [port to Guile][GSCM], but due to
-the fact that Guile does not support MIT Scheme's 
+the fact that Guile does not support MIT Scheme's
 [apply hooks](http://www.gnu.org/software/mit-scheme/documentation/mit-scheme-ref/Application-Hooks.html)
 some glue code is required to run examples from the book in that
 environment.)
@@ -27,11 +27,8 @@ only a Java runtime is required. It does not require the X Window
 System for graphics, as MIT Scheme does. All of the standard tooling
 for Java and Clojure become available, and this is a lot compared to
 what we get with MIT/GNU scheme.  Clojure support is now extensive in
-any number of editors and IDEs.  The MIT/Scheme distribution
-(apparently) must be rebuilt if you wish to hack on the Scheme code
-providing the mathematics implementation; whereas in this Clojure
-implementation, you can test out new ideas and enhancements directly
-in the REPL (or a REPL server) at will.
+any number of editors and IDEs. Even better, you can interact with the
+system in the context of a [Jupyter notebook](./jupyter).
 
 You can invoke the system from within Java code or use any Java
 packages you like together with the mathematics system. It's my hope
@@ -45,7 +42,7 @@ Rather than just quasi-mechanically translate the Scheme to Clojure, I
 have studied the implementation of the system before bringing it to
 Clojure, and have used TDD throughout the project (which turned out to
 be absolutely essential as I considered various approaches to problems
-posed by the Scheme code base). At this writing there are over 1500
+posed by the Scheme code base). At this writing there are over 1800
 unit tests.
 
 The implementation is not complete. My goal was to create a
@@ -68,7 +65,7 @@ the polynomial systems: that took a while! Finally I got
 differentiation working, and then some of the book examples began to
 work.
 
-As of this writing, all of the code presented in SICM, editions 1 and 
+As of this writing, all of the code presented in SICM, editions 1 and
 2, will execute correctly. Work has begun on FDG.
 
 ## What's "working" now
@@ -192,7 +189,7 @@ integers and fall back to Clojure's definition of partial otherwise.
 Since it doesn't make sense to partially apply an integer, `partial`
 should just do the right thing.
 
-You could render that result in TeX: 
+You could render that result in TeX:
 
 ![eq1](doc/img/md-eq1.png)
 
@@ -212,7 +209,7 @@ function(D, V, m, r, θ, θdot, φdot) {
 }
 ```
 
-(For rendering into code, a simple common-subexpression extraction 
+(For rendering into code, a simple common-subexpression extraction
 algorithm is used.)
 
 ### Numerical Methods
@@ -231,15 +228,13 @@ Zippel's algorithm for fast multivariate polynomial GCD operations.
 Currently we use a recursive Euclid algorithm, which gives acceptable
 results for expressions of medium complexity, but there is more to
 be done.
- 
+
 ## What's not there yet
 
-### Coordinates, patches, k-forms and all that
+### The latter half of FDG
 
-I think the code here has the potential to quickly evolve to cover the
-techniques of [FDG], but at the moment, I have not gotten to the point
-of implementing any of the groundwork for that yet, as working through
-[SICM] has been challenge enough for me.
+Most of the code in the early sections of FDG will work, but this cannot
+be considered compelte.
 
 ### Derivatives of nested functions
 
@@ -247,7 +242,7 @@ Or, what is described as "Alexey's Amazing Bug" in the Scmutils source
 code (and further described by Oleksandr Manzyuk [here][OM]). This should
 be straightforward to fix but hasn't been necessary for the work so far.
 
-### Quaternions, Power Series...
+### Quaternions, and other exotica
 
 The Scmutils library is vast, and I don't pretend to have covered
 anywhere near all of it. The breadth-first approach I have used to get
