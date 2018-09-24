@@ -27,7 +27,6 @@
   (numerical? [this])
   (nullity? [this])
   (unity? [this])
-  (zero-like [this])
   (one-like [this])
   (exact? [this])
   ;; Freezing an expression means removing wrappers and other metadata
@@ -49,20 +48,15 @@
   (numerical? [_] false)
   (unity? [o] (and (number? o) (== o 1)))
   (exact? [o] (or (integer? o) (ratio? o)))
-  (zero-like [o] (cond (number? o) 0
-                       (instance? Symbol o) 0
-                       (or (fn? o) (instance? MultiFn o)) (with-meta
-                                                            (constantly 0)
-                                                            {:arity (arity o)
-                                                             :from :object-zero-like})
-                       :else (throw (UnsupportedOperationException. (str "zero-like: " o)))))
   (one-like [o] (cond (number? o) 1
                       :else (throw (UnsupportedOperationException. (str "one-like: " o)))))
   (freeze [o] (cond
                 (vector? o) (mapv freeze o)
                 (sequential? o) (map freeze o)
+                ;; TODO this is temporary until we finish refactoring expressions
+                (= (:type o) :sicmutils.expression/numerical-expression) (:expression o)
                 :else (or (and (instance? MultiFn o)
-                               (if-let [m (get-method o [Keyword])]
+                               (if-let [m (get-method o :name)]
                                  (m :name)))
                           (@object-name-map o)
                           o)))
@@ -182,7 +176,12 @@
     :else (or (:type a)
               (type a))))
 
-(def argument-kind #(mapv kind %&))
+(defn argument-kind
+  [& args]
+  (if (and (= 1 (count args))
+           (keyword? (first args)))
+    (first args)
+    (mapv kind args)))
 
 (def machine-epsilon
   (loop [e 1.0]

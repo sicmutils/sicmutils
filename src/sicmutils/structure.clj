@@ -32,7 +32,6 @@
   v/Value
   (nullity? [_] (every? v/nullity? v))
   (unity? [_] false)
-  (zero-like [_] (Structure. orientation (mapv v/zero-like v)))
   (exact? [_] (every? v/exact? v))
   (numerical? [_] false)
   (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
@@ -299,42 +298,25 @@
 (derive ::up ::structure)
 (derive ::down ::structure)
 (derive PersistentVector ::up)
+(derive :sicmutils.expression/numerical-expression ::scalar)
+(derive :sicmutils.numsymb/native-numeric-type ::scalar)
+(derive clojure.lang.Symbol ::scalar)
 
-(defmethod g/mul
-  [::structure :sicmutils.expression/numerical-expression]
-  [a b]
-  (outer-product b a))
+(doseq [type-compatible-with-structure-multiplication [:sicmutils.operator/operator
+                                                       :sicmutils.calculus.derivative/differential
+                                                       :sicmutils.numsymb/native-numeric-type
+                                                       :sicmutils.expression/numerical-expression
+                                                       clojure.lang.Symbol]]
+  (defmethod g/mul
+    [::structure type-compatible-with-structure-multiplication]
+    [a b]
+    (outer-product b a))
+  (defmethod g/mul
+    [type-compatible-with-structure-multiplication ::structure]
+    [a b]
+    (outer-product a b)))
 
-(defmethod g/mul
-  [:sicmutils.expression/numerical-expression ::structure]
-  [a b]
-  (outer-product a b))
-
-(defmethod g/mul
-  [::structure :sicmutils.operator/operator]
-  [a b]
-  (outer-product b a))
-
-(defmethod g/mul
-  [:sicmutils.operator/operator ::structure]
-  [a b]
-  (outer-product a b))
-
-(defmethod g/mul
-  [::structure :sicmutils.calculus.derivative/differential]
-  [a b]
-  (outer-product b a))
-
-(defmethod g/mul
-  [:sicmutils.calculus.derivative/differential ::structure]
-  [a b]
-  (outer-product a b))
-
-(defmethod g/div
-  [::structure :sicmutils.expression/numerical-expression]
-  [a b]
-  (outer-product (g/invert b) a))
-
+(defmethod g/div [::structure ::scalar] [a b] (outer-product (g/invert b) a))
 (defmethod g/div [::structure ::structure] [a b] (mul (g/invert b) a))
 (defmethod g/expt [::structure Long] [a b] (expt a b))
 (defmethod g/negate [::structure] [a] (same a (mapv g/negate a)))
@@ -342,6 +324,7 @@
 (defmethod g/cube [::structure] [a] (mul a (mul a a)))
 (defmethod g/simplify [::structure] [a] (->> a (mapr g/simplify) v/freeze))
 (defmethod g/transpose [::structure] [a] (opposite a (seq a)))
+(defmethod g/zero-like [::structure] [a] (mapr g/zero-like a))
 
 (defmethod g/magnitude [::structure] [^Structure a]
   (g/sqrt (reduce + (map g/square a))))

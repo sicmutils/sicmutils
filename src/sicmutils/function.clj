@@ -67,7 +67,6 @@
   v/Value
   (nullity? [_] false)
   (unity? [_] false)
-  (zero-like [_] (fn [& _] (v/zero-like range)))
   (numerical? [_] false)
   (freeze [_] (v/freeze name))
   (kind [_] ::function)
@@ -209,8 +208,12 @@
 
 ;; TODO sinh cosh ...
 
-(defmethod g/simplify Function [a] (-> a :name g/simplify))
+(defmethod g/simplify [Function] [a] (-> a :name g/simplify))
+(defmethod g/zero-like [::function] [a] (fn [& _] (g/zero-like (:range a))))
+
+(derive clojure.lang.Symbol ::cofunction)
 (derive ::x/numerical-expression ::cofunction)
+(derive ::ns/native-numeric-type ::cofunction)
 (derive ::s/structure ::cofunction)
 (derive ::m/matrix ::cofunction)
 (derive ::v/function ::function)

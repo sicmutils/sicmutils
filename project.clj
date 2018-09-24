@@ -45,6 +45,6 @@
              :travis {:jvm-opts ["-Xmx512M"]}
              :dev {:dependencies [[org.clojure/test.check "0.9.0"]
                                   [criterium "0.4.4"]]}
-             :test {:jvm-opts ["-Xmx512m"]
+             :test {:jvm-opts ["-Xmx512m" "-Djava.awt.headless=true"]
                     :dependencies [[org.clojure/test.check "0.9.0"]
                                    [criterium "0.4.4"]]}})

@@ -87,7 +87,6 @@
   v/Value
   (nullity? [_] (empty? xs->c))
   (numerical? [_] false)
-  (zero-like [_] (Polynomial. arity empty-coefficients))
   (one-like [_] (make-constant arity (v/one-like (coefficient (exponents xs->c)))))
   (unity? [_] (and (= (count xs->c) 1)
                    (let [[xs c] (first xs->c)]
@@ -286,29 +285,35 @@
   [u v]
   {:pre [(instance? Polynomial u)
          (instance? Polynomial v)]}
-  (cond (v/nullity? v) (throw (IllegalArgumentException. "internal polynomial division by zero"))
-        (v/nullity? u) [u u]
-        (v/unity? v) [u (v/zero-like u)]
-        :else (let [arity (check-same-arity u v)
-                    [vn-exponents vn-coefficient] (lead-term v)
-                    good? (fn [residues]
-                            (and (not-empty residues)
-                                 (every? (complement neg?) residues)))]
-                (if (zero? arity)
-                  [(make 0 [[[] (g/divide (coefficient (lead-term u)) vn-coefficient)]])
-                   (make 0 [[[] 0]])]
-                  (loop [quotient (make arity [])
-                         remainder u]
-                    ;; find a term in the remainder into which the
-                    ;; lead term of the divisor can be divided.
-                    (let [[r-exponents r-coefficient] (lead-term remainder)
-                          residues (mapv - r-exponents vn-exponents)]
-                      (if (good? residues)
-                        (let [new-coefficient (g/divide r-coefficient vn-coefficient)
-                              new-term (make arity [[residues new-coefficient]])]
-                          (recur (add quotient new-term)
-                                 (sub remainder (mul new-term v))))
-                        [quotient remainder])))))))
+  (let [arity (check-same-arity u v)]
+    (cond (v/nullity? v) (throw (IllegalArgumentException. "internal polynomial division by zero"))
+         (v/nullity? u) [u u]
+         ;; nb: we are thinking of getting out of the business of having
+         ;; the polynomials exist over general rings, and having the
+         ;; polynomials function only over Z, so we wouldn't call zero-like.
+         ;; On the other hand, we went to a great deal of trouble to
+         ;; genericize the polynomial arithmetic... but maybe this should
+         ;; not have been done?
+         (v/unity? v) [u (make arity [])]
+         :else (let [[vn-exponents vn-coefficient] (lead-term v)
+                     good? (fn [residues]
+                             (and (not-empty residues)
+                                  (every? (complement neg?) residues)))]
+                 (if (zero? arity)
+                   [(make 0 [[[] (g/divide (coefficient (lead-term u)) vn-coefficient)]])
+                    (make 0 [[[] 0]])]
+                   (loop [quotient (make arity [])
+                          remainder u]
+                     ;; find a term in the remainder into which the
+                     ;; lead term of the divisor can be divided.
+                     (let [[r-exponents r-coefficient] (lead-term remainder)
+                           residues (mapv - r-exponents vn-exponents)]
+                       (if (good? residues)
+                         (let [new-coefficient (g/divide r-coefficient vn-coefficient)
+                               new-term (make arity [[residues new-coefficient]])]
+                           (recur (add quotient new-term)
+                                  (sub remainder (mul new-term v))))
+                         [quotient remainder]))))))))
 
 (defn pseudo-remainder
   "Compute the pseudo-remainder of univariate polynomials p and
@@ -450,6 +455,7 @@
 (defmethod g/sub [::polynomial ::polynomial] [a b] (sub a b))
 (defmethod g/exact-divide [::polynomial ::polynomial] [p q] (evenly-divide p q))
 (defmethod g/square [::polynomial] [a] (mul a a))
+(defmethod g/zero-like [::polynomial] [a] (make (.arity a) []))
 
 (doseq [t [Long BigInt BigInteger Double Ratio]]
   (defmethod g/mul

@@ -51,7 +51,7 @@
   remainder of the series will be filled with the zero-value
   corresponding to the first of the given values."
   [& xs]
-  (Series. [:exactly 0] (concat xs (repeat (v/zero-like (first xs))))))
+  (Series. [:exactly 0] (concat xs (repeat (g/zero-like (first xs))))))
 
 (defn partial-sums
   "Form the infinite sequence of partial sums of the given series"
@@ -161,3 +161,5 @@
                             (throw (IllegalArgumentException. (str "Can't differentiate series with arity " a))))))
 
 (derive :sicmutils.expression/numerical-expression ::coseries)
+(derive clojure.lang.Symbol ::coseries)
+(derive :sicmutils.numsymb/native-numeric-type ::coseries)

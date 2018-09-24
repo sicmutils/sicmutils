@@ -42,7 +42,7 @@
     (is (= :sicmutils.matrix/matrix (v/kind M)))
     (is (= '(matrix-by-rows [1 2 3] [4 5 6]) (v/freeze M)))
     (is (= (matrix/by-rows [1 4] [2 5] [3 6]) (matrix/transpose M)))
-    (is (= (matrix/by-rows [0 0 0] [0 0 0]) (v/zero-like M)))
+    (is (= (matrix/by-rows [0 0 0] [0 0 0]) (g/zero-like M)))
     (is (thrown? IllegalArgumentException (v/one-like M)))
     (is (= (matrix/by-rows [1 0 0] [0 1 0] [0 0 1]) (v/one-like A)))
     (is (thrown? IllegalArgumentException (matrix/by-rows [1 2 3] [4 5])))

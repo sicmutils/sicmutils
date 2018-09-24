@@ -33,8 +33,6 @@
   v/Value
   (nullity? [_] (every? #(every? v/nullity? %) v))
   (unity? [_] false)
-  ;; TODO: zero-like and one-like should use a recursive copy to find the 0/1 elements
-  (zero-like [_] (Matrix. r c (vec (repeat r (vec (repeat c 0))))))
   (one-like [_] (if-not (= r c)
                   (throw (IllegalArgumentException. "one-like on non-square"))
                   (generate r c #(if (= %1 %2) 1 0))))
@@ -353,13 +351,14 @@
 (defmethod g/sub [::matrix ::matrix] [a b] (elementwise g/- a b))
 (defmethod g/add [::matrix ::matrix] [a b] (elementwise g/+ a b))
 (defmethod g/mul [::matrix ::matrix] [a b] (mul a b))
-(defmethod g/mul [::x/numerical-expression ::matrix] [n a] (fmap #(g/* n %) a))
-(defmethod g/mul [::matrix ::x/numerical-expression] [a n] (fmap #(g/* % n) a))
+(defmethod g/mul [::s/scalar ::matrix] [n a] (fmap #(g/* n %) a))
+(defmethod g/mul [::matrix ::s/scalar] [a n] (fmap #(g/* % n) a))
 (defmethod g/mul [::matrix ::s/up] [m u] (M*u m u))
 (defmethod g/mul [::s/down ::matrix] [d m] (d*M d m))
 (defmethod g/div [::s/up ::matrix] [u M] (M*u (invert M) u))
 (defmethod g/simplify [::matrix] [m] (->> m (fmap g/simplify) v/freeze))
 (defmethod g/determinant [::matrix] [m] (determinant m))
+(defmethod g/zero-like [::matrix] [m] (fmap g/zero-like m))
 
 (defmethod g/determinant
   [::s/structure]

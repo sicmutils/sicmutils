@@ -29,7 +29,6 @@
              [generic :as g]
              [structure :as s]
              [matrix :as matrix]
-             [numbers]
              [function :as f]
              [value :as v]]
             [sicmutils.mechanics.lagrange :refer :all]))

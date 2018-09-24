@@ -25,7 +25,6 @@
              [structure :as s]
              [polynomial :as p]
              [analyze :as a]
-             [numbers]
              [simplify]]))
 
 (deftest make-test

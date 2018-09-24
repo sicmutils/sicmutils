@@ -27,7 +27,6 @@
   v/Value
   (nullity? [_] (zero? i))
   (unity? [_] (= i 1))
-  (zero-like [_] (ModInt. 0 m))
   (one-like [_] (ModInt. 1 m))
   (exact? [_] true)
   (numerical? [_] true)

@@ -25,7 +25,6 @@
              [generic :refer :all]
              [complex :refer [complex]]
              [value :as v]
-             [numbers]
              [simplify :refer [hermetic-simplify-fixture]]
              [infix :refer [->infix]]
              [structure :refer :all]
@@ -316,8 +315,8 @@
       (is (= '(down (((∂ 0) g) x y) (((∂ 1) g) x y))
              (simplify ((D g) 'x 'y)))))
     (testing "zero-like"
-      (is (= 0 ((v/zero-like f) 'x)))
-      (is (= 0 ((D (v/zero-like f)) 'x))))))
+      (is (= 0 ((zero-like f) 'x)))
+      (is (= 0 ((D (zero-like f)) 'x))))))
 
 (deftest complex-derivatives
   (let [i (complex 0 1)

@@ -35,7 +35,7 @@
   [p]
   (let [answer (fn [tracker const]
                  (into [const] (rest tracker)))]
-    (loop [m (v/zero-like p)
+    (loop [m (g/zero-like p)
            h p
            tracker []
            old-s p

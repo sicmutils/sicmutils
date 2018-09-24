@@ -23,7 +23,6 @@
             [sicmutils
              [generic :refer :all]
              [function :refer :all]
-             [numbers]
              [simplify :refer [pe hermetic-simplify-fixture]]
              [structure :refer :all]]
             [sicmutils.mechanics.rotation :refer :all]))

@@ -21,6 +21,7 @@
   (:require [sicmutils
              [value :as v]
              [generic :as g]
+             [numsymb :as ns]
              [operator :as o]
              [series :as series]
              [structure :as struct]
@@ -41,7 +42,6 @@
   v/Value
   (nullity? [_] (every? v/nullity? (map coefficient terms)))
   (unity? [_] false)
-  (zero-like [_] 0)
   (freeze [_] `[~'Differential ~@terms])
   (exact? [_] false)
   (numerical? [d] (g/numerical-quantity? (differential-of d)))
@@ -403,18 +403,25 @@
           ((d f) (first xs))
           ((d #(apply f %)) (matrix/seq-> xs)))))))
 
+(defmacro ^:private define-binary-diffop
+  [generic-operation differential-operation type-1 type-2]
+  `(defmethod ~generic-operation [~type-1 ~type-2] [a# b#] (~differential-operation a# b#)))
+
 (defn ^:private define-binary-operation
   [generic-operation differential-operation]
-  (doseq [signature [[::differential ::differential]
-                     [:sicmutils.expression/numerical-expression ::differential]
-                     [::differential :sicmutils.expression/numerical-expression]]]
-    (defmethod generic-operation signature [a b] (differential-operation a b))))
+  (define-binary-diffop generic-operation differential-operation ::differential ::differential)
+  (let [types [clojure.lang.Symbol
+               ::ns/native-numeric-type
+               :sicmutils.expression/numerical-expression]]
+    (doseq [t types]
+      (define-binary-diffop generic-operation differential-operation ::differential t)
+      (define-binary-diffop generic-operation differential-operation t ::differential))
+    ))
 
 (defn ^:private define-unary-operation
   [generic-operation differential-operation]
   (defmethod generic-operation [::differential] [a] (differential-operation a)))
 
-(defmethod g/expt [::differential Number] [d n] (power d n))
 (define-binary-operation g/expt expt)
 
 (define-binary-operation g/add diff-+)

@@ -22,7 +22,6 @@
             [sicmutils
              [generic :as g]
              [value :as v]
-             [numbers]
              [polynomial :refer :all]
              [analyze :as a]
              [simplify :refer [hermetic-simplify-fixture]]

@@ -19,8 +19,7 @@
 
 (ns sicmutils.numerical.integrate
   (:require [clojure.tools.logging :as log]
-            [sicmutils.numerical.compile :refer :all]
-            [sicmutils.numbers])
+            [sicmutils.numerical.compile :refer :all])
   (:import (org.apache.commons.math3.analysis UnivariateFunction)
            (com.google.common.base Stopwatch)
            (org.apache.commons.math3.analysis.integration UnivariateIntegrator

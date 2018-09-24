@@ -22,6 +22,7 @@
   (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
             [sicmutils.structure :as s]
+            [sicmutils.generic :as g]
             [sicmutils.value :as v]))
 
 (deftest structures
@@ -92,11 +93,11 @@
     (is (zero? (down 0 0)))
     (is (zero? (up 0 (down (up 0 0) (up 0 0))))))
   (testing "zero-like"
-    (is (= (up 0 0 0) (v/zero-like (up 1 2 3))))
-    (is (= (up) (v/zero-like (up))))
-    (is (= (down 0 0 0) (v/zero-like (down 1 2 3))))
-    (is (= (down) (v/zero-like (down))))
-    (is (= (up 0 (down (up 0 0) (up 0 0))) (v/zero-like (up 1 (down (up 2 3) (up 4 5)))))))
+    (is (= (up 0 0 0) (g/zero-like (up 1 2 3))))
+    (is (= (up) (g/zero-like (up))))
+    (is (= (down 0 0 0) (g/zero-like (down 1 2 3))))
+    (is (= (down) (g/zero-like (down))))
+    (is (= (up 0 (down (up 0 0) (up 0 0))) (g/zero-like (up 1 (down (up 2 3) (up 4 5)))))))
   (testing "exact?"
     (is (v/exact? (up 0 1 3/2)))
     (is (not (v/exact? (up 0 0 0.00001)))))
@@ -112,7 +113,7 @@
     (is (thrown? AssertionError (vector->up '(1 2 3)))))
   (testing "function - rotate about x axis"
     (is (= (up 0 0 1) ((Rx 'pi-over-2) (up 0 1 0))))
-    (is (= (up 'x (sicmutils.generic/- 'z) 'y) ((Rx 'pi-over-2) (up 'x 'y 'z)))))
+    (is (= (up 'x (g/- 'z) 'y) ((Rx 'pi-over-2) (up 'x 'y 'z)))))
   (testing "square/cube"
     (is (= 14 (square (up 1 2 3))))
     (is (= (up (up (up 1 2 3) (up 2 4 6) (up 3 6 9))

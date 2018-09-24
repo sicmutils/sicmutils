@@ -23,6 +23,7 @@
             [sicmutils
              [env :refer :all]
              [series :as series]
+             [function]
              [simplify :refer [hermetic-simplify-fixture]]]))
 
 (use-fixtures :once hermetic-simplify-fixture)

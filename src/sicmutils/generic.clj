@@ -18,19 +18,17 @@
 ;
 
 (ns sicmutils.generic
-  (:refer-clojure :rename {/ core-div}
+  (:refer-clojure :rename {/ core-div zero? core-zero?}
                   :exclude [+ - *])
   (:require [sicmutils
              [value :as v]
              [expression :as x]])
-  (:import [sicmutils.expression Expression]
-           (clojure.lang Keyword)))
+  (:import (clojure.lang Keyword)))
 
 ;;; classifiers
 
 (defn literal-number?
   [x]
-
   (= (:type x) ::x/numerical-expression))
 
 (defn abstract-number?
@@ -39,7 +37,7 @@
 
 (defn abstract-quantity?
   [x]
-  (and (instance? Expression x)
+  (and (= (:type x) ::x/numerical-expression)
        (x/abstract? x)))
 
 (defn numerical-quantity?
@@ -57,7 +55,8 @@
         docstring (str "generic " f)]
     `(do
        (defmulti ~f ~docstring v/argument-kind)
-       (defmethod ~f [Keyword] [k#] ({:arity ~arity :name '~f} k#)))))
+       (defmethod ~f :arity [k#] ~arity)
+       (defmethod ~f :name [k#] '~f))))
 
 (def-generic-function add 2)
 (def-generic-function mul 2)
@@ -91,6 +90,9 @@
 (def-generic-function expt 2)
 (def-generic-function gcd 2)
 
+(def-generic-function zero-like 1)
+(defmethod zero-like :default [a] 0)
+
 (def-generic-function Lie-derivative 1)
 
 (defmulti partial-derivative v/argument-kind)
@@ -117,9 +119,10 @@
         :else (bin- (first args) (reduce bin+ (next args)))))
 
 (defn ^:private bin* [a b]
+  ;; TODO: remove if-polymorphism
   (cond (and (number? a) (number? b)) (*' a b)
-        (and (number? a) (v/nullity? a)) (v/zero-like b)
-        (and (number? b) (v/nullity? b)) (v/zero-like a)
+        (and (number? a) (core-zero? a)) (zero-like b)
+        (and (number? b) (core-zero? b)) (zero-like a)
         (v/unity? a) b
         (v/unity? b) a
         :else (mul a b)))

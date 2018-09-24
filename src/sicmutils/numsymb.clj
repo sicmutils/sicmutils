@@ -27,6 +27,7 @@
             [clojure.math.numeric-tower :as nt])
   (:import (clojure.lang Symbol)))
 
+;; TODO: remove if-polymorphism
 (defn ^:private numerical-expression
   [expr]
   (cond (number? expr) expr
@@ -162,6 +163,7 @@
 (def ^:private symb:pi-over-4-mod-pi? #{'pi-over-4 '+pi-over-4})
 
 (defn ^:private sine [x]
+  ;; TODO: the number ones should go to the number implementation, not here.
   (cond (number? x) (cond (zero? x) 0
                           (n:zero-mod-pi? x) 0
                           (n:pi-over-2-mod-2pi? x) 1
@@ -173,11 +175,16 @@
                           :else `(~'sin ~x))
         :else `(~'sin ~x)))
 
+
+;; TODO: thought -- maybe having every type participate is too much.
+;; Use derive, and define Number operations when that is convenient.
+
 (defn ^:private arcsine
   [x]
   `(~'asin ~x))
 
 (defn ^:private cosine [x]
+  ;; TODO: the number ones should go to the number implementation, not here.
   (cond (number? x) (cond (zero? x) 1
                           (n:pi-over-2-mod-pi? x) 0
                           (n:zero-mod-2pi? x) 1
@@ -221,6 +228,7 @@
         :else `(~'abs ~x)))
 
 (defn sqrt [s]
+  ;; TODO remove if-polymorphism
   (if (number? s)
     (if-not (v/exact? s)
       (nt/sqrt s)
@@ -247,6 +255,7 @@
     `(~'exp ~s)))
 
 (defn expt [b e]
+  ;; TODO: if-polymorphism
   (cond (and (number? b) (number? e)) (nt/expt b e)
         (number? b) (cond (v/unity? b) 1
                           :else `(~'expt ~b ~e))
@@ -263,45 +272,191 @@
                           :else `(~'expt ~b ~e))
         :else `(~'expt ~b ~e)))
 
+(defmacro ^:private literal-binary-operation
+  [generic-operation symbolic-operation expression-type primitive-type]
+  `(do
+     ))
+
 (defmacro ^:private define-binary-operation
   [generic-operation symbolic-operation]
-  `(defmethod ~generic-operation [::x/numerical-expression
-                                  ::x/numerical-expression]
-     [a# b#]
-     (make-numsymb-expression ~symbolic-operation [a# b#])))
+  `(do
+     (defmethod ~generic-operation
+       [::x/numerical-expression ::x/numerical-expression]
+       [a# b#]
+       (make-numsymb-expression ~symbolic-operation [a# b#]))
+     (defmethod ~generic-operation
+       [clojure.lang.Symbol ::x/numerical-expression]
+       [a# b#]
+       (x/literal-number (~symbolic-operation a# (:expression b#))))
+     (defmethod ~generic-operation
+       [::x/numerical-expression clojure.lang.Symbol]
+       [a# b#]
+       (x/literal-number (~symbolic-operation (:expression a#) b#)))
+     (defmethod ~generic-operation
+       [clojure.lang.Symbol clojure.lang.Symbol]
+       [a# b#]
+       (x/literal-number (~symbolic-operation a# b#)))
+     (defmethod ~generic-operation
+       [clojure.lang.Symbol ::native-numeric-type]
+       [a# b#]
+       (x/literal-number (~symbolic-operation a# b#)))
+     (defmethod ~generic-operation
+       [::native-numeric-type clojure.lang.Symbol]
+       [a# b#]
+       (x/literal-number (~symbolic-operation a# b#)))
+     (defmethod ~generic-operation
+       [::x/numerical-expression ::native-numeric-type]
+       [a# b#]
+       (x/literal-number (~symbolic-operation (:expression a#) b#)))
+     (defmethod ~generic-operation
+       [::native-numeric-type ::x/numerical-expression]
+       [a# b#]
+       (x/literal-number (~symbolic-operation a# (:expression b#))))
+     ))
+
+;; native-numeric-type
+;;  - native-exact-type
+;;    - native-integral-type
+;;      - java.lang.Long
+;;      - clojure.lang.BigInt
+;;    - clojure.lang.Ratio
+;;  - java.lang.Double
+
+
+(derive ::native-exact-type ::native-numeric-type)
+(derive ::native-integral-type ::native-exact-type)
+(derive java.lang.Long ::native-integral-type)
+(derive java.lang.Double ::native-numeric-type)
+(derive clojure.lang.BigInt ::native-integral-type)
+(derive java.math.BigInteger ::native-integral-type)
+(derive clojure.lang.Ratio ::native-exact-type)
 
 (defmacro ^:private define-unary-operation
   [generic-operation symbolic-operation]
-  `(defmethod ~generic-operation [::x/numerical-expression]
-     [a#]
-     (make-numsymb-expression ~symbolic-operation [a#])))
-
-(derive Symbol ::x/numerical-expression)
-(derive Number ::x/numerical-expression)
+  `(do
+     (defmethod ~generic-operation [::x/numerical-expression]
+       [a#]
+       (x/literal-number (~symbolic-operation (:expression a#))))
+     (defmethod ~generic-operation [clojure.lang.Symbol]
+       [a#]
+       (x/literal-number (~symbolic-operation a#)))
+     ))
 
 (define-binary-operation g/add add)
+(defmethod g/add [::native-numeric-type ::native-numeric-type] [a b] (+ a b))
+
 (define-binary-operation g/sub sub)
+(defmethod g/sub [::native-numeric-type ::native-numeric-type] [a b] (- a b))
+
 (define-binary-operation g/mul mul)
+(defmethod g/mul [::native-numeric-type ::native-numeric-type] [a b] (* a b))
+
 (define-binary-operation g/div div)
+(defmethod g/div [::native-numeric-type ::native-numeric-type] [a b] (/ a b))
+
 (define-binary-operation g/expt expt)
+(defmethod g/expt [::native-numeric-type ::native-numeric-type] [a b] (nt/expt a b))
+
 (define-binary-operation g/atan arctangent)
+
 (define-unary-operation g/negate #(sub 0 %))
+(defmethod g/negate [::native-numeric-type] [a] (- a))
+
 (define-unary-operation g/invert #(div 1 %))
+(defmethod g/invert [::native-numeric-type] [a] (/ a))
+
 (define-unary-operation g/sin sine)
+(defmethod g/sin [::native-numeric-type] [a] (if (zero? a) 0 (Math/sin a)))
+
 (define-unary-operation g/asin arcsine)
+(defmethod g/asin [::native-numeric-type]
+  [a]
+  (if (> (nt/abs a) 1)
+    (g/asin (c/complex a))
+    (Math/asin a)))
+
 (define-unary-operation g/cos cosine)
+(defmethod g/cos [::native-numeric-type] [a] (if (zero? a) 1 (Math/cos a)))
+
 (define-unary-operation g/acos arccosine)
+(defmethod g/acos [::native-numeric-type]
+  [a]
+  (if (> (nt/abs a) 1)
+    (g/acos (c/complex a))
+    (Math/acos a)))
+
 (define-unary-operation g/tan tangent)
+(defmethod g/tan [::native-numeric-type] [a] (if (zero? a) 0 (Math/tan a)))
+
 (define-unary-operation g/atan arctangent)
+;(defmethod g/atan)
+(defmethod g/atan [::native-numeric-type] [a] (Math/atan a))
+(defmethod g/atan [::native-numeric-type ::native-numeric-type] [y x] (Math/atan2 y x))
+
+
 (define-unary-operation g/square #(expt % 2))
+(defmethod g/square [::native-numeric-type] [a] (* a a))
+
 (define-unary-operation g/cube #(expt % 3))
+(defmethod g/cube [::native-numeric-type] [a] (* a a a))
+
 (define-unary-operation g/sqrt sqrt)
+(defmethod g/sqrt [::native-numeric-type]
+  [a]
+  (if (< a 0)
+    (g/sqrt (c/complex a))
+    (nt/sqrt a)))
+
 (define-unary-operation g/exp exp)
+(defmethod g/exp [::native-numeric-type] [a] (Math/exp a))
+
 (define-unary-operation g/abs abs)
+(defmethod g/abs [::native-numeric-type] [a] (nt/abs a))
+
 (define-unary-operation g/log log)
+(defmethod g/log [::native-numeric-type]
+  [a]
+  (if (< a 0)
+    (g/log (c/complex a))
+    (Math/log a)))
 
-(defmethod g/gcd [Number Number] [a b] (euclid/gcd a b))
+(defmethod g/gcd
+  [::native-integral-type ::native-integral-type]
+  [a b]
+  (euclid/gcd a b))
 
+
+(defmethod g/remainder
+  [::native-integral-type ::native-integral-type]
+  [a b]
+  (mod a b))
+
+(defmethod g/quotient
+  [::native-integral-type ::native-integral-type]
+  [a b]
+  (quot a b))
+
+(defn ^:private exact-integer-divide
+  [a b]
+  {:pre [(zero? (mod a b))]}
+  (quot a b))
+
+(defmethod g/exact-divide
+  [::native-integral-type ::native-integral-type]
+  [a b]
+  (exact-integer-divide a b))
+
+(defmethod g/exact-divide
+  [::native-exact-type ::native-exact-type]
+  [a b]
+  (/ a b))
+
+(defmethod g/negative?
+  [::native-numeric-type]
+  [a]
+  (neg? a))
+
+;; TODO: what are the anonymous functions doing here?
 (def ^:private symbolic-operator-table
   {'+ #(reduce add 0 %&)
    '- sub-n

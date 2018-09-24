@@ -27,7 +27,6 @@
              [value :as v]
              [polynomial :refer :all]
              [generic :as g]
-             [numbers]
              [expression :refer [variables-in]]
              [simplify]
              [analyze :as a]
@@ -66,9 +65,9 @@
     (is (= (degree (make [-1 2 0])) 1))
     (is (= (degree (make [0 0])) -1)))
   (testing "zero-like"
-    (is (= (make []) (v/zero-like (make [1 2 3]))))
-    (is (= (make 2 []) (v/zero-like (make 2 [[[1 0] 1] [[2 1] 3]]))))
-    (is (= (make 3 []) (v/zero-like (make 3 [[[1 2 1] 4] [[0 1 0] 5]])))))
+    (is (= (make []) (g/zero-like (make [1 2 3]))))
+    (is (= (make 2 []) (g/zero-like (make 2 [[[1 0] 1] [[2 1] 3]]))))
+    (is (= (make 3 []) (g/zero-like (make 3 [[[1 2 1] 4] [[0 1 0] 5]])))))
   (testing "one-like"
     (is (= (make [1]) (v/one-like (make [1 2 3]))))
     (is (= (make 2 [[[0 0] 1]]) (v/one-like (make 2 [[[1 0] 1] [[2 1] 3]]))))

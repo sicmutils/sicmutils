@@ -20,37 +20,28 @@
 (ns sicmutils.expression
   (:require [sicmutils.value :as v]))
 
-(defrecord Expression [type expression]
-  Object
-  (toString [_] (str expression))
-  v/Value
-  (nullity? [_] false)  ;; XXX what if it's a wrapped zero? one?
-  (unity? [_] false)
-  (zero-like [_] 0)
-  (numerical? [_] (= type ::numerical-expression))
-  (exact? [_] false)
-  (freeze [_] (v/freeze expression))
-  (kind [_] type))
-
+;; TODO: remove if-polymorphism
 (defn literal-number
   [expression]
   (if (number? expression)
     expression
-    (Expression. ::numerical-expression expression)))
+    {:type ::numerical-expression
+     :expression expression}))
 
 (defn fmap
   "Applies f to the expression part of e and creates from that an Expression otherwise like e."
   [f e]
-  (->> e :expression f (->Expression (:type e))))
+  {:type (:type e)
+   :expression (f (:expression e))})
 
-(defn abstract? [^Expression x]
+(defn abstract? [x]
   ;; TODO: GJS also allows for up, down, matrix here. We do not yet have
   ;; abstract structures.
   (= (:type x) ::numerical-expression))
 
 (defn expression-of
   [expr]
-  (cond (instance? Expression expr) (:expression expr)
+  (cond (= (:type expr) ::numerical-expression) (:expression expr)
         (symbol? expr) expr
         :else (throw (IllegalArgumentException. (str "unknown expression type:" expr)))))
 

@@ -22,6 +22,7 @@
             [sicmutils
              [generic :as g]
              [value :as v]
+             [numsymb]
              [complex :refer :all]]))
 
 (defn ^:private near [w z]

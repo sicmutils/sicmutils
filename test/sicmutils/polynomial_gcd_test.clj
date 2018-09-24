@@ -29,7 +29,6 @@
              [polynomial-test :as p-test]
              [value :as v]
              [analyze :as a]
-             [numbers]
              [expression :refer [variables-in]]]
             [clojure.tools.logging :as log]
             [clojure.test.check.generators :as gen]))

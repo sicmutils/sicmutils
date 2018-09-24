@@ -262,7 +262,7 @@
 
 (defmethod g/simplify [::x/numerical-expression]
   [a]
-  (-> a v/freeze simplify-expression))
+  (-> a :expression v/freeze simplify-expression))
 
 (defmethod g/simplify :default [a] (v/freeze a))
 (defmethod g/simplify [Var] [a] (-> a meta :name))
@@ -271,7 +271,6 @@
 (defmethod g/simplify [LazySeq] [a] (map g/simplify a))
 (defmethod g/simplify [Symbol] [a] a)
 (prefer-method g/simplify [:sicmutils.structure/structure] [Sequential])
-(prefer-method g/simplify [Symbol] [::x/numerical-expression])
 
 (defn expression->string
   "Renders an expression through the simplifier and into a string,
