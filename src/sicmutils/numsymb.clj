@@ -27,18 +27,6 @@
             [clojure.math.numeric-tower :as nt])
   (:import (clojure.lang Symbol)))
 
-;; TODO: remove if-polymorphism
-(defn ^:private numerical-expression
-  [expr]
-  (cond (number? expr) expr
-        (symbol? expr) expr
-        (c/complex? expr) expr
-        (g/literal-number? expr) (:expression expr)
-        :else (throw (IllegalArgumentException. (str "unknown numerical expression type " expr)))))
-
-(defn ^:private make-numsymb-expression [operator operands]
-  (->> operands (map numerical-expression) (apply operator) x/literal-number))
-
 (defn ^:private is-expression?
   "Returns a function which will decide if its argument is a sequence
   commencing with s."
@@ -163,34 +151,19 @@
 (def ^:private symb:pi-over-4-mod-pi? #{'pi-over-4 '+pi-over-4})
 
 (defn ^:private sine [x]
-  ;; TODO: the number ones should go to the number implementation, not here.
-  (cond (number? x) (cond (zero? x) 0
-                          (n:zero-mod-pi? x) 0
-                          (n:pi-over-2-mod-2pi? x) 1
-                          (n:-pi-over-2-mod-2pi? x) -1
-                          :else (Math/sin x))
-        (symbol? x) (cond (symb:zero-mod-pi? x) 0
+  (cond (symbol? x) (cond (symb:zero-mod-pi? x) 0
                           (symb:pi-over-2-mod-2pi? x) 1
                           (symb:-pi-over-2-mod-2pi? x) -1
                           :else `(~'sin ~x))
         :else `(~'sin ~x)))
 
 
-;; TODO: thought -- maybe having every type participate is too much.
-;; Use derive, and define Number operations when that is convenient.
-
 (defn ^:private arcsine
   [x]
   `(~'asin ~x))
 
 (defn ^:private cosine [x]
-  ;; TODO: the number ones should go to the number implementation, not here.
-  (cond (number? x) (cond (zero? x) 1
-                          (n:pi-over-2-mod-pi? x) 0
-                          (n:zero-mod-2pi? x) 1
-                          (n:pi-mod-2pi? x) -1
-                          :else (Math/cos x))
-        (symbol? x) (cond (symb:pi-over-2-mod-pi? x) 0
+  (cond (symbol? x) (cond (symb:pi-over-2-mod-pi? x) 0
                           (symb:zero-mod-2pi? x) +1
                           (symb:pi-mod-2pi? x) -1
                           :else `(~'cos ~x))
@@ -201,15 +174,7 @@
   `(~'acos ~x))
 
 (defn ^:private tangent [x]
-  (cond (number? x) (if (v/exact? x)
-                      (if (zero? x) 0 `(~'tan ~x))
-                      (cond (n:zero-mod-pi? x) 0.
-                            (n:pi-over-4-mod-pi? x) 1.
-                            (n:-pi-over-4-mod-pi? x) -1.
-                            (n:pi-over-2-mod-pi? x)
-                              (throw (IllegalArgumentException. "Undefined: tan"))
-                            :else `(~'tan ~x)))
-        (symbol? x) (cond (symb:zero-mod-pi? x) 0
+  (cond (symbol? x) (cond (symb:zero-mod-pi? x) 0
                           (symb:pi-over-4-mod-pi? x) 1
                           (symb:-pi-over-4-mod-pi? x) -1
                           (symb:pi-over-2-mod-pi? x)
@@ -241,11 +206,7 @@
     `(~'sqrt ~s)))
 
 (defn ^:private log [s]
-  (if (number? s)
-    (if-not (v/exact? s)
-      (Math/log s)
-      (if (v/unity? s) 0 `(~'log ~s)))
-    `(~'log ~s)))
+  `(~'log ~s))
 
 (defn ^:private exp [s]
   (if (number? s)
@@ -255,7 +216,10 @@
     `(~'exp ~s)))
 
 (defn expt [b e]
-  ;; TODO: if-polymorphism
+  ;; interesting: it is harder to drop the if-polymorphism here than I thought,
+  ;; as simplification can bring together the expt of two numbers, which should
+  ;; be simplified here if possible. But, it would be better to put the collapsing
+  ;; logic into one place.
   (cond (and (number? b) (number? e)) (nt/expt b e)
         (number? b) (cond (v/unity? b) 1
                           :else `(~'expt ~b ~e))
@@ -272,10 +236,8 @@
                           :else `(~'expt ~b ~e))
         :else `(~'expt ~b ~e)))
 
-(defmacro ^:private literal-binary-operation
-  [generic-operation symbolic-operation expression-type primitive-type]
-  `(do
-     ))
+;; TODO: consider settling on fmap as a way to deal with the wrapping and unwrapping
+;; of the various expression pieces here.
 
 (defmacro ^:private define-binary-operation
   [generic-operation symbolic-operation]
@@ -283,7 +245,7 @@
      (defmethod ~generic-operation
        [::x/numerical-expression ::x/numerical-expression]
        [a# b#]
-       (make-numsymb-expression ~symbolic-operation [a# b#]))
+       (x/literal-number (~symbolic-operation (:expression a#) (:expression b#))))
      (defmethod ~generic-operation
        [clojure.lang.Symbol ::x/numerical-expression]
        [a# b#]
@@ -366,7 +328,14 @@
 (defmethod g/invert [::native-numeric-type] [a] (/ a))
 
 (define-unary-operation g/sin sine)
-(defmethod g/sin [::native-numeric-type] [a] (if (zero? a) 0 (Math/sin a)))
+(defmethod g/sin
+  [::native-numeric-type]
+  [a]
+  (cond (zero? a) 0
+        (n:zero-mod-pi? a) 0
+        (n:pi-over-2-mod-2pi? a) 1
+        (n:-pi-over-2-mod-2pi? a) -1
+        :else (Math/sin a)))
 
 (define-unary-operation g/asin arcsine)
 (defmethod g/asin [::native-numeric-type]
@@ -376,7 +345,14 @@
     (Math/asin a)))
 
 (define-unary-operation g/cos cosine)
-(defmethod g/cos [::native-numeric-type] [a] (if (zero? a) 1 (Math/cos a)))
+(defmethod g/cos
+  [::native-numeric-type]
+  [a]
+  (cond (zero? a) 1
+        (n:pi-over-2-mod-pi? a) 0
+        (n:zero-mod-2pi? a) 1
+        (n:pi-mod-2pi? a) -1
+        :else (Math/cos a)))
 
 (define-unary-operation g/acos arccosine)
 (defmethod g/acos [::native-numeric-type]
@@ -386,7 +362,16 @@
     (Math/acos a)))
 
 (define-unary-operation g/tan tangent)
-(defmethod g/tan [::native-numeric-type] [a] (if (zero? a) 0 (Math/tan a)))
+(defmethod g/tan
+  [::native-numeric-type]
+  [a]
+  (if (v/exact? a)
+    (if (zero? a) 0 `(~'tan ~a))
+    (cond (n:zero-mod-pi? a) 0.
+          (n:pi-over-4-mod-pi? a) 1.
+          (n:-pi-over-4-mod-pi? a) -1.
+          (n:pi-over-2-mod-pi? a) (throw (IllegalArgumentException. "Undefined: tan"))
+          :else `(~'tan ~a))))
 
 (define-unary-operation g/atan arctangent)
 ;(defmethod g/atan)

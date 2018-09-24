@@ -20,7 +20,8 @@
 (ns sicmutils.expression
   (:require [sicmutils.value :as v]))
 
-;; TODO: remove if-polymorphism
+;; TODO: remove if-polymorphism... tricky, though, as this prevents lots of things
+;; from lowering.
 (defn literal-number
   [expression]
   (if (number? expression)

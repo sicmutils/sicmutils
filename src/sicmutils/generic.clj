@@ -99,8 +99,7 @@
 (defmulti simplify v/argument-kind)
 
 (defn ^:private bin+ [a b]
-  (cond (and (number? a) (number? b)) (+' a b)
-        (v/nullity? a) b
+  (cond (v/nullity? a) b
         (v/nullity? b) a
         :else (add a b)))
 
@@ -108,8 +107,7 @@
   (reduce bin+ 0 args))
 
 (defn ^:private bin- [a b]
-  (cond (and (number? a) (number? b)) (-' a b)
-        (v/nullity? b) a
+  (cond (v/nullity? b) a
         (v/nullity? a) (negate b)
         :else (sub a b)))
 
@@ -119,11 +117,7 @@
         :else (bin- (first args) (reduce bin+ (next args)))))
 
 (defn ^:private bin* [a b]
-  ;; TODO: remove if-polymorphism
-  (cond (and (number? a) (number? b)) (*' a b)
-        (and (number? a) (core-zero? a)) (zero-like b)
-        (and (number? b) (core-zero? b)) (zero-like a)
-        (v/unity? a) b
+  (cond (v/unity? a) b
         (v/unity? b) a
         :else (mul a b)))
 
@@ -142,8 +136,7 @@
   (reduce bin* 1 args))
 
 (defn ^:private bin-div [a b]
-  (cond (and (number? a) (number? b)) (core-div a b)
-        (v/unity? b) a
+  (cond (v/unity? b) a
         :else (div a b)))
 
 (defn / [& args]
