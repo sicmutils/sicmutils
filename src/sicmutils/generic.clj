@@ -27,24 +27,11 @@
 
 ;;; classifiers
 
-(defn literal-number?
-  [x]
-  (= (:type x) ::x/numerical-expression))
-
-(defn abstract-number?
-  [x]
-  (or (symbol? x) (literal-number? x)))
-
+;; TODO can we get rid of this?
 (defn abstract-quantity?
   [x]
   (and (= (:type x) ::x/numerical-expression)
        (x/abstract? x)))
-
-(defn numerical-quantity?
-  [x]
-  (or (number? x)
-      (abstract-number? x)
-      (v/numerical? x)))
 
 (defmacro ^:private def-generic-function
   "Defines a mutlifn using the provided symbol. Arranges for the multifn
@@ -97,6 +84,8 @@
 
 (defmulti partial-derivative v/argument-kind)
 (defmulti simplify v/argument-kind)
+(defmulti numerical? v/argument-kind)
+(defmethod numerical? :default [a] false)
 
 (defn ^:private bin+ [a b]
   (cond (v/nullity? a) b

@@ -30,7 +30,6 @@
   (one-like [_] Complex/ONE)
   (freeze [c] (list 'complex (.getReal c) (.getImaginary c)))
   (exact? [_] false)
-  (numerical? [_] true)
   (kind [_] ::complex))
 
 (defn complex

@@ -32,7 +32,7 @@
   (testing "arithmetic"
     (let [i (complex 0 1)
           pi Math/PI]
-      (is (g/numerical-quantity? i))
+      (is (g/numerical? i))
       (is (= (complex 4 6) (g/+ (complex 1 2) (complex 3 4))))
       (is (= (complex -2 -2) (g/- (complex 1 2) (complex 3 4))))
       (is (= 5.0 (g/abs (complex 3 4))))

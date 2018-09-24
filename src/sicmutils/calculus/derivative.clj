@@ -44,7 +44,7 @@
   (unity? [_] false)
   (freeze [_] `[~'Differential ~@terms])
   (exact? [_] false)
-  (numerical? [d] (g/numerical-quantity? (differential-of d)))
+
   (kind [_] ::differential)
   Object
   (equals [_ b]
@@ -356,7 +356,7 @@
                                     v))
 
 
-                  (or (g/numerical-quantity? v) (g/abstract-quantity? v))
+                  (or (g/numerical? v) (g/abstract-quantity? v))
                   ((derivative g) v)
 
                   :else
@@ -466,6 +466,11 @@
   [::matrix/matrix Sequential]
   [f selectors]
   (multivariate-derivative f selectors))
+
+(defmethod g/numerical?
+  [::differential]
+  [a]
+  (g/numerical? (differential-of a)))
 
 (def D
   "Derivative operator. Produces a function whose value at some point can

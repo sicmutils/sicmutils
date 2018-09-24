@@ -32,7 +32,6 @@
   v/Value
   (nullity? [_] (empty? s))
   (unity? [_] false)
-  (numerical? [_] false)
   (freeze [_] `[~'Series ~arity ~@(map g/simplify (core-take 4 s)) ~'...])
   (kind [_] ::series)
   IFn

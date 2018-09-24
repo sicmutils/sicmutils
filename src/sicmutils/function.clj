@@ -67,7 +67,6 @@
   v/Value
   (nullity? [_] false)
   (unity? [_] false)
-  (numerical? [_] false)
   (freeze [_] (v/freeze name))
   (kind [_] ::function)
   IFn
@@ -125,8 +124,8 @@
   which computes (+ (f x) (g x)) given x as input."
   [operator]
   (let [h (fn [f g]
-            (let [f-numeric (g/numerical-quantity? f)
-                  g-numeric (g/numerical-quantity? g)
+            (let [f-numeric (g/numerical? f)
+                  g-numeric (g/numerical? g)
                   f-arity (if f-numeric (v/arity g) (v/arity f))
                   g-arity (if g-numeric f-arity (v/arity g))
                   arity (v/joint-arity [f-arity g-arity])
@@ -258,7 +257,7 @@
                     (s/same s (map-indexed (fn [i element]
                                              (fd (conj indices i) element))
                                            s)))
-                  (or (g/numerical-quantity? vv)
+                  (or (g/numerical? vv)
                       (g/abstract-quantity? vv))
                   (let [fexp (if (= (:arity f) [:exactly 1])  ; univariate
                                (if (= (first indices) 0)
@@ -291,7 +290,7 @@
   the exemplar expected."
   [f provided expected indexes]
   (cond (number? expected)
-        (when-not (g/numerical-quantity? provided)
+        (when-not (g/numerical? provided)
           (throw (IllegalArgumentException.
                   (str "expected numerical quantity in argument " indexes
                        " of function call " f

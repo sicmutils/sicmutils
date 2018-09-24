@@ -33,7 +33,6 @@
   (nullity? [_] (every? v/nullity? v))
   (unity? [_] false)
   (exact? [_] (every? v/exact? v))
-  (numerical? [_] false)
   (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
   (kind [_] orientation)
   Object

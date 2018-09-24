@@ -24,7 +24,6 @@
            (java.lang.reflect Method)))
 
 (defprotocol Value
-  (numerical? [this])
   (nullity? [this])
   (unity? [this])
   (one-like [this])
@@ -45,7 +44,6 @@
 (extend-type Object
   Value
   (nullity? [o] (and (number? o) (core-zero? o)))
-  (numerical? [_] false)
   (unity? [o] (and (number? o) (== o 1)))
   (exact? [o] (or (integer? o) (ratio? o)))
   (one-like [o] (cond (number? o) 1
@@ -65,7 +63,6 @@
 (extend-type nil
   Value
   (freeze [_] nil)
-  (numerical? [_] nil)
   (kind [_] nil))
 
 (defn add-object-symbols!

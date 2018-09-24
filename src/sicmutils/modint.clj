@@ -29,7 +29,6 @@
   (unity? [_] (= i 1))
   (one-like [_] (ModInt. 1 m))
   (exact? [_] true)
-  (numerical? [_] true)
   (kind [_] ::modint))
 
 (defn make [i m]

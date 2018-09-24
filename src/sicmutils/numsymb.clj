@@ -293,6 +293,10 @@
 (derive java.math.BigInteger ::native-integral-type)
 (derive clojure.lang.Ratio ::native-exact-type)
 
+(defmethod g/numerical? [::native-numeric-type] [a] true)
+(defmethod g/numerical? [::x/numerical-expression] [a] true)
+(defmethod g/numerical? [clojure.lang.Symbol] [a] true)
+
 (defmacro ^:private define-unary-operation
   [generic-operation symbolic-operation]
   `(do

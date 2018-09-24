@@ -228,7 +228,7 @@
   (* ls ms rs) were performed, to a matrix."
   [ls ms rs]
   (when *careful-conversion*
-    (assert (g/numerical-quantity? (g/* ls (g/* ms rs)))))  (let [ndowns (s/dimension ls)
+    (assert (g/numerical? (g/* ls (g/* ms rs)))))  (let [ndowns (s/dimension ls)
         nups (s/dimension rs)]
     (generate ndowns nups
               #(g/* (s/unflatten (map (partial kronecker %1) (range)) ls)
@@ -251,7 +251,7 @@
                           (s/unflatten (nth-col m j) col-shape))
                         (s/compatible-shape rs))]
     (when *careful-conversion*
-      (assert (g/numerical-quantity? (g/* ls (g/* ms rs)))))
+      (assert (g/numerical? (g/* ls (g/* ms rs)))))
     ms))
 
 (defn s:transpose

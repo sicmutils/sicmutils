@@ -86,7 +86,6 @@
 (deftype Polynomial [arity xs->c]
   v/Value
   (nullity? [_] (empty? xs->c))
-  (numerical? [_] false)
   (one-like [_] (make-constant arity (v/one-like (coefficient (exponents xs->c)))))
   (unity? [_] (and (= (count xs->c) 1)
                    (let [[xs c] (first xs->c)]
