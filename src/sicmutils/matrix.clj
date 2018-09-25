@@ -33,9 +33,6 @@
   v/Value
   (nullity? [_] (every? #(every? v/nullity? %) v))
   (unity? [_] false)
-  (one-like [_] (if-not (= r c)
-                  (throw (IllegalArgumentException. "one-like on non-square"))
-                  (generate r c #(if (= %1 %2) 1 0))))
   (exact? [_] (every? #(every? v/exact? %) v))
   (freeze [_] (if (= c 1)
                 `(~'column-matrix ~@(map (comp v/freeze first) v))
@@ -359,6 +356,13 @@
 (defmethod g/simplify [::matrix] [m] (->> m (fmap g/simplify) v/freeze))
 (defmethod g/determinant [::matrix] [m] (determinant m))
 (defmethod g/zero-like [::matrix] [m] (fmap g/zero-like m))
+(defmethod g/one-like
+  [::matrix]
+  [m]
+  (let [r (.r m)
+        c (.c m)]
+    (when-not (= r c) (throw (IllegalArgumentException. "not square")))
+    (generate r c #(if (= %1 %2) 1 0))))
 
 (defmethod g/determinant
   [::s/structure]

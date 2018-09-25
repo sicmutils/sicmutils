@@ -265,7 +265,7 @@
         arity (check-same-arity u v)]
     (cond
       (not (and (every? integral? (coefficients u))
-                (every? integral? (coefficients v)))) (v/one-like u)
+                (every? integral? (coefficients v)))) (g/one-like u)
       (v/nullity? u) v
       (v/nullity? v) u
       (v/unity? u) u

@@ -80,6 +80,9 @@
 (def-generic-function zero-like 1)
 (defmethod zero-like :default [a] 0)
 
+(def-generic-function one-like 1)
+(defmethod one-like :default [a] 1)
+
 (def-generic-function Lie-derivative 1)
 
 (defmulti partial-derivative v/argument-kind)

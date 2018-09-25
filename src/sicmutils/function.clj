@@ -209,6 +209,7 @@
 
 (defmethod g/simplify [Function] [a] (-> a :name g/simplify))
 (defmethod g/zero-like [::function] [a] (fn [& _] (g/zero-like (:range a))))
+(defmethod g/one-like [::function] [a] (fn [& _] (g/one-like (:range a))))
 
 (derive clojure.lang.Symbol ::cofunction)
 (derive ::x/numerical-expression ::cofunction)

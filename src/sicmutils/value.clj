@@ -26,7 +26,6 @@
 (defprotocol Value
   (nullity? [this])
   (unity? [this])
-  (one-like [this])
   (exact? [this])
   ;; Freezing an expression means removing wrappers and other metadata
   ;; from subexpressions, so that the result is basically a pure
@@ -46,8 +45,6 @@
   (nullity? [o] (and (number? o) (core-zero? o)))
   (unity? [o] (and (number? o) (== o 1)))
   (exact? [o] (or (integer? o) (ratio? o)))
-  (one-like [o] (cond (number? o) 1
-                      :else (throw (UnsupportedOperationException. (str "one-like: " o)))))
   (freeze [o] (cond
                 (vector? o) (mapv freeze o)
                 (sequential? o) (map freeze o)

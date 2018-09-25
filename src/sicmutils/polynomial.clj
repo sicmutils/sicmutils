@@ -86,7 +86,6 @@
 (deftype Polynomial [arity xs->c]
   v/Value
   (nullity? [_] (empty? xs->c))
-  (one-like [_] (make-constant arity (v/one-like (coefficient (exponents xs->c)))))
   (unity? [_] (and (= (count xs->c) 1)
                    (let [[xs c] (first xs->c)]
                      (and (every? zero? xs)
@@ -455,6 +454,7 @@
 (defmethod g/exact-divide [::polynomial ::polynomial] [p q] (evenly-divide p q))
 (defmethod g/square [::polynomial] [a] (mul a a))
 (defmethod g/zero-like [::polynomial] [a] (make (.arity a) []))
+(defmethod g/one-like [::polynomial] [a] (make-constant (.arity a) (g/one-like (coefficient (first (.xs->c a))))))
 
 (doseq [t [Long BigInt BigInteger Double Ratio]]
   (defmethod g/mul

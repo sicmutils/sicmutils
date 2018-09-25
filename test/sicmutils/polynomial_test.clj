@@ -69,12 +69,10 @@
     (is (= (make 2 []) (g/zero-like (make 2 [[[1 0] 1] [[2 1] 3]]))))
     (is (= (make 3 []) (g/zero-like (make 3 [[[1 2 1] 4] [[0 1 0] 5]])))))
   (testing "one-like"
-    (is (= (make [1]) (v/one-like (make [1 2 3]))))
-    (is (= (make 2 [[[0 0] 1]]) (v/one-like (make 2 [[[1 0] 1] [[2 1] 3]]))))
-    (is (= (make 3 [[[0 0 0] 1]]) (v/one-like (make 3 [[[1 2 1] 4] [[0 1 0] 5]]))))
-    ;; we can't deduce the unit element from the zero polynomial over an
-    ;; "unknown" ring
-    (is (thrown? IllegalArgumentException (v/one-like (make 2 [])))))
+    (is (= (make [1]) (g/one-like (make [1 2 3]))))
+    (is (= (make 2 [[[0 0] 1]]) (g/one-like (make 2 [[[1 0] 1] [[2 1] 3]]))))
+    (is (= (make 3 [[[0 0 0] 1]]) (g/one-like (make 3 [[[1 2 1] 4] [[0 1 0] 5]]))))
+    (is (= (make 2 [[[0 0] 1]]) (g/one-like (make 2 [])))))
   (testing "add constant"
     (is (= (make [3 0 2]) (add (make [0 0 2]) (make [3]))))
     (is (= (make [0 0 2]) (add (make [2 0 2]) (make [-2])))))

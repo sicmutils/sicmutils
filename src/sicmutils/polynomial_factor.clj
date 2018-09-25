@@ -39,7 +39,7 @@
            h p
            tracker []
            old-s p
-           old-m (v/one-like p)]
+           old-m (g/one-like p)]
       (if (v/unity? m)
         (answer tracker h)
         (let [gg (-> h poly/partial-derivatives gcd-seq)

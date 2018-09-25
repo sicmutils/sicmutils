@@ -27,7 +27,6 @@
   v/Value
   (nullity? [c] (= Complex/ZERO c))
   (unity? [c] (= Complex/ONE c))
-  (one-like [_] Complex/ONE)
   (freeze [c] (list 'complex (.getReal c) (.getImaginary c)))
   (exact? [_] false)
   (kind [_] ::complex))

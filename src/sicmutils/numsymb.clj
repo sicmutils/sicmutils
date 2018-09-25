@@ -309,13 +309,13 @@
      ))
 
 (define-binary-operation g/add add)
-(defmethod g/add [::native-numeric-type ::native-numeric-type] [a b] (+ a b))
+(defmethod g/add [::native-numeric-type ::native-numeric-type] [a b] (+' a b))
 
 (define-binary-operation g/sub sub)
-(defmethod g/sub [::native-numeric-type ::native-numeric-type] [a b] (- a b))
+(defmethod g/sub [::native-numeric-type ::native-numeric-type] [a b] (-' a b))
 
 (define-binary-operation g/mul mul)
-(defmethod g/mul [::native-numeric-type ::native-numeric-type] [a b] (* a b))
+(defmethod g/mul [::native-numeric-type ::native-numeric-type] [a b] (*' a b))
 
 (define-binary-operation g/div div)
 (defmethod g/div [::native-numeric-type ::native-numeric-type] [a b] (/ a b))

@@ -153,12 +153,14 @@
   log
   magnitude
   negate
+  one-like
   simplify
   sin
   sqrt
   square
   tan
   transpose
+  zero-like
   Lie-derivative]
  [sicmutils.structure
   compatible-shape

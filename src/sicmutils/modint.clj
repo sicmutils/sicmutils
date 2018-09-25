@@ -27,7 +27,6 @@
   v/Value
   (nullity? [_] (zero? i))
   (unity? [_] (= i 1))
-  (one-like [_] (ModInt. 1 m))
   (exact? [_] true)
   (kind [_] ::modint))
 

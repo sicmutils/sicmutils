@@ -158,7 +158,7 @@
                   etilde (basis->oneform-basis basis)
                   e (basis->vector-basis basis)
                   m0 (((phi v) (- delta)) m)
-                  Aij (+ (v/one-like ((omega v) m0))
+                  Aij (+ (one-like ((omega v) m0))
                          (* delta (- ((omega v) m0))))
                   ui ((etilde u) m0)]
               (* ((e f) m)
