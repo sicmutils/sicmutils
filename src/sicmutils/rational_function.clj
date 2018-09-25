@@ -263,26 +263,12 @@
 (defmethod g/mul [::rational-function ::rational-function] [a b] (mul a b))
 
 (defmethod g/mul
-  [Long ::rational-function]
-  [c ^RationalFunction r]
-  (make (g/mul c (.u r)) (.v r)))
-
-(defmethod g/mul [BigInt ::rational-function]
+  [::sym/numeric-type ::rational-function]
   [c ^RationalFunction r]
   (make (g/mul c (.u r)) (.v r)))
 
 (defmethod g/mul
-  [::rational-function Long]
-  [^RationalFunction r c]
-  (make (g/mul (.u r) c) (.v r)))
-
-(defmethod g/mul
-  [Double ::rational-function]
-  [c ^RationalFunction r]
-  (make (g/mul c (.u r)) (.v r)))
-
-(defmethod g/mul
-  [::rational-function Double]
+  [::rational-function ::sym/numeric-type]
   [^RationalFunction r c]
   (make (g/mul (.u r) c) (.v r)))
 
@@ -329,26 +315,33 @@
 (defmethod g/sub [::rational-function ::p/polynomial] [r p] (subp r p))
 
 (defmethod g/sub
-  [::rational-function Long]
+  [::rational-function ::sym/numeric-type]
   [^RationalFunction r c]
   (let [u (.u r)
         v (.v r)]
     (make (p/sub (g/mul c v) u) v)))
 
+(defmethod g/sub
+  [::sym/numeric-type ::rational-function]
+  [c ^RationalFunction r]
+  (let [u (.u r)
+        v (.v r)]
+    (make (p/sub u (g/mul c v)) v)))
+
 (defmethod g/add
-  [Long ::rational-function]
+  [::sym/numeric-type ::rational-function]
   [c ^RationalFunction r]
   (let [v (.v r)]
     (make (p/add (.u r) (g/mul c v)) v)))
 
 (defmethod g/add
-  [::rational-function Long]
+  [::rational-function ::sym/numeric-type]
   [^RationalFunction r c]
   (let [v (.v r)]
     (make (p/add (.u r) (g/mul c v)) v)))
 
 (defmethod g/div
-  [::rational-function Long]
+  [::rational-function ::sym/numeric-type]
   [^RationalFunction r c]
   (make (.u r) (g/mul c (.v r))))
 
@@ -369,17 +362,12 @@
     (make (p/evenly-divide p g) (p/evenly-divide q g))))
 
 (defmethod g/div
-  [Long ::p/polynomial]
+  [::sym/numeric-type ::p/polynomial]
   [c ^Polynomial p]
   (make (p/make-constant (.arity p) c) p))
 
 (defmethod g/div
-  [BigInt ::p/polynomial]
-  [c ^Polynomial p]
-  (make (p/make-constant (.arity p) c) p))
-
-(defmethod g/div
-  [Long ::rational-function]
+  [::sym/numeric-type ::rational-function]
   [c ^RationalFunction r]
   (g/divide (p/make-constant (.arity r) c) r))
 
@@ -408,11 +396,11 @@
   (make (poly/gcd (.u u) (.u v)) (poly/gcd (.v u) (.v v))))
 
 (defmethod g/gcd
-  [::p/polynomial Number]
+  [::p/polynomial ::sym/native-integral-type]
   [p a]
   (poly/primitive-gcd (cons a (p/coefficients p))))
 
 (defmethod g/gcd
-  [Number ::p/polynomial]
+  [::sym/native-integral-type ::p/polynomial]
   [a p]
   (poly/primitive-gcd (cons a (p/coefficients p))))
