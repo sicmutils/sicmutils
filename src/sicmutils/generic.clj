@@ -94,6 +94,7 @@
 (defmulti exact? v/argument-kind)
 (defmethod exact? :default [_] false)
 
+(defmulti freeze v/argument-kind)
 (defn ^:private bin+ [a b]
   (cond (v/nullity? a) b
         (v/nullity? b) a
@@ -142,4 +143,5 @@
 
 (def divide /)
 
-(v/add-object-symbols! {+ '+ * '* - '- / (symbol "/")})
+;; TODO
+;;(v/add-object-symbols! {+ '+ * '* - '- / (symbol "/")})

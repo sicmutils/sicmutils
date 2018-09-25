@@ -32,7 +32,6 @@
   v/Value
   (nullity? [_] (every? v/nullity? v))
   (unity? [_] false)
-  (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
   (kind [_] orientation)
   Object
   (equals [_ b]
@@ -320,10 +319,12 @@
 (defmethod g/negate [::structure] [a] (same a (mapv g/negate a)))
 (defmethod g/square [::structure] [a] (inner-product a a))
 (defmethod g/cube [::structure] [a] (mul a (mul a a)))
-(defmethod g/simplify [::structure] [a] (->> a (mapr g/simplify) v/freeze))
+(defmethod g/simplify [::structure] [a] (->> a (mapr g/simplify) g/freeze))
 (defmethod g/transpose [::structure] [a] (opposite a (seq a)))
 (defmethod g/zero-like [::structure] [a] (mapr g/zero-like a))
 (defmethod g/exact? [::structure] [a] (every? g/exact? a))
+(defmethod g/freeze [::structure] [a]
+  `(~((orientation a) orientation->symbol) ~@(map g/freeze a)))
 
 (defmethod g/magnitude [::structure] [^Structure a]
   (g/sqrt (reduce + (map g/square a))))

@@ -143,6 +143,7 @@
 (deftest string-form-test
   (is (= "(up sin cos tan)" (expression->string (s/up g/sin g/cos g/tan))))
   (is (= "+" (expression->string g/+)))
+  (is (= "*" (expression->string g/*)))
   (is (= "1" (expression->string ((g/+ (g/square g/sin) (g/square g/cos)) 'x))))
   (is (= "(/ (+ (* -1 (expt (cos x) 4)) 1) (expt (cos x) 2))"
          (expression->string ((g/+ (g/square g/sin) (g/square g/tan)) 'x))))

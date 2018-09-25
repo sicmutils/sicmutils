@@ -33,9 +33,6 @@
   v/Value
   (nullity? [_] (every? #(every? v/nullity? %) v))
   (unity? [_] false)
-  (freeze [_] (if (= c 1)
-                `(~'column-matrix ~@(map (comp v/freeze first) v))
-                `(~'matrix-by-rows ~@(map v/freeze v))))
   (kind [_] ::matrix)
   IFn
   (invoke [_ x]
@@ -352,7 +349,7 @@
 (defmethod g/mul [::matrix ::s/up] [m u] (M*u m u))
 (defmethod g/mul [::s/down ::matrix] [d m] (d*M d m))
 (defmethod g/div [::s/up ::matrix] [u M] (M*u (invert M) u))
-(defmethod g/simplify [::matrix] [m] (->> m (fmap g/simplify) v/freeze))
+(defmethod g/simplify [::matrix] [m] (->> m (fmap g/simplify) g/freeze))
 (defmethod g/determinant [::matrix] [m] (determinant m))
 (defmethod g/zero-like [::matrix] [m] (fmap g/zero-like m))
 (defmethod g/one-like
@@ -363,6 +360,12 @@
     (when-not (= r c) (throw (IllegalArgumentException. "not square")))
     (generate r c #(if (= %1 %2) 1 0))))
 (defmethod g/exact? [::matrix] [m] (every? #(every? g/exact? %) m))
+(defmethod g/freeze
+  [::matrix]
+  [m]
+  (if (= (.c m) 1)
+    `(~'column-matrix ~@(map (comp g/freeze first) (.v m)))
+    `(~'matrix-by-rows ~@(map g/freeze (.v m)))))
 
 (defmethod g/determinant
   [::s/structure]

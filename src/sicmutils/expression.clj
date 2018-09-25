@@ -17,8 +17,7 @@
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(ns sicmutils.expression
-  (:require [sicmutils.value :as v]))
+(ns sicmutils.expression)
 
 ;; TODO: remove if-polymorphism... tricky, though, as this prevents lots of things
 ;; from lowering.

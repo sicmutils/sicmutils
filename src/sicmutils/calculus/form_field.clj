@@ -75,7 +75,7 @@
 
 (defn components->oneform-field
   [components coordinate-system & [name]]
-  (let [name (or name `(~'oneform-field ~(v/freeze components)))]
+  (let [name (or name `(~'oneform-field ~(g/freeze components)))]
     (procedure->oneform-field (oneform-field-procedure components coordinate-system) name)))
 
 (defn oneform-field->components

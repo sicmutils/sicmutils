@@ -172,7 +172,7 @@
              (((covariant-derivative-function Cartan) X) V)
 
              :else
-             (throw (UnsupportedOperationException. (str "Can't do this kind of covariant derivative yet " (v/freeze X) " @ " (v/freeze V))))))
+             (throw (UnsupportedOperationException. (str "Can't do this kind of covariant derivative yet " (g/freeze X) " @ " (g/freeze V))))))
      `(~'nabla ~(m/diffop-name X)))
     ))
 

@@ -32,14 +32,13 @@
   v/Value
   (nullity? [_] (empty? s))
   (unity? [_] false)
-  (freeze [_] `[~'Series ~arity ~@(map g/simplify (core-take 4 s)) ~'...])
   (kind [_] ::series)
   IFn
   (invoke [_ x] (Series. arity (map #(% x) s)))
   (invoke [_ x y] (Series. arity (map #(% x y) s)))
   (invoke [_ x y z] (Series. arity (map #(% x y z) s)))
   Object
-  (toString [S] (str (v/freeze S)))
+  (toString [S] (str (g/freeze S)))
   Seqable
   (seq [_] s))
 
@@ -158,6 +157,11 @@
 
                             :else
                             (throw (IllegalArgumentException. (str "Can't differentiate series with arity " a))))))
+
+(defmethod g/freeze
+  [::series]
+  [a]
+  `[~'Series ~(.arity a) ~@(map g/simplify (core-take 4 (.s a))) ~'...])
 
 (derive :sicmutils.expression/numerical-expression ::coseries)
 (derive clojure.lang.Symbol ::coseries)

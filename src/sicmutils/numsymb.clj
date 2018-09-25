@@ -260,19 +260,19 @@
        [a# b#]
        (x/literal-number (~symbolic-operation a# b#)))
      (defmethod ~generic-operation
-       [clojure.lang.Symbol ::native-numeric-type]
+       [clojure.lang.Symbol ::numeric-type]
        [a# b#]
        (x/literal-number (~symbolic-operation a# b#)))
      (defmethod ~generic-operation
-       [::native-numeric-type clojure.lang.Symbol]
+       [::numeric-type clojure.lang.Symbol]
        [a# b#]
        (x/literal-number (~symbolic-operation a# b#)))
      (defmethod ~generic-operation
-       [::x/numerical-expression ::native-numeric-type]
+       [::x/numerical-expression ::numeric-type]
        [a# b#]
        (x/literal-number (~symbolic-operation (:expression a#) b#)))
      (defmethod ~generic-operation
-       [::native-numeric-type ::x/numerical-expression]
+       [::numeric-type ::x/numerical-expression]
        [a# b#]
        (x/literal-number (~symbolic-operation a# (:expression b#))))
      ))
@@ -286,6 +286,7 @@
 ;;  - java.lang.Double
 
 
+(derive ::native-numeric-type ::numeric-type)
 (derive ::native-exact-type ::native-numeric-type)
 (derive ::native-integral-type ::native-exact-type)
 (derive java.lang.Long ::native-integral-type)

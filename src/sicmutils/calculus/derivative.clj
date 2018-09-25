@@ -42,7 +42,6 @@
   v/Value
   (nullity? [_] (every? v/nullity? (map coefficient terms)))
   (unity? [_] false)
-  (freeze [_] `[~'Differential ~@terms])
 
   (kind [_] ::differential)
   Object
@@ -410,7 +409,7 @@
   [generic-operation differential-operation]
   (define-binary-diffop generic-operation differential-operation ::differential ::differential)
   (let [types [clojure.lang.Symbol
-               ::ns/native-numeric-type
+               ::ns/numeric-type
                :sicmutils.expression/numerical-expression]]
     (doseq [t types]
       (define-binary-diffop generic-operation differential-operation ::differential t)
@@ -470,6 +469,11 @@
   [::differential]
   [a]
   (g/numerical? (differential-of a)))
+
+(defmethod g/freeze
+  [::differential]
+  [a]
+  `[~'Differential ~@(.terms a)])
 
 (def D
   "Derivative operator. Produces a function whose value at some point can

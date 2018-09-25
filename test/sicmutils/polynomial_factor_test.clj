@@ -59,7 +59,7 @@
       (is (= '(* -1
                  (expt (+ y (cos (expt (+ (* x (expt y 2)) x) 2))) 2)
                  (expt (+ y (* -1 (cos (expt (+ (* x (expt y 2)) x) 2)))) 3))
-             (-> test-poly v/freeze factor))))))
+             (-> test-poly g/freeze factor))))))
 
 (deftest root-out-squares-test
   (testing "one step"

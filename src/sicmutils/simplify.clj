@@ -262,15 +262,35 @@
 
 (defmethod g/simplify [::x/numerical-expression]
   [a]
-  (-> a :expression v/freeze simplify-expression))
+  (-> a g/freeze simplify-expression))
 
-(defmethod g/simplify :default [a] (v/freeze a))
+(defmethod g/simplify :default [a] (g/freeze a))
 (defmethod g/simplify [Var] [a] (-> a meta :name))
 (defmethod g/simplify [Sequential] [a] (map g/simplify a))
 (defmethod g/simplify [PersistentVector] [a] (mapv g/simplify a))
 (defmethod g/simplify [LazySeq] [a] (map g/simplify a))
 (defmethod g/simplify [Symbol] [a] a)
 (prefer-method g/simplify [:sicmutils.structure/structure] [Sequential])
+
+;; Freezing an expression means removing wrappers and other metadata
+;; from subexpressions, so that the result is basically a pure
+;; S-expression with the same structure as the input. Doing this will
+;; rob an expression of useful information fur further computation; so
+;; this is intended to be done just before simplification and printing, to
+;; simplify those processes.
+;;
+;; TODO: is it really necessary to maintain the distinction between freeze and simplify
+;; at this point? It is probably an artifact of the development process we went through
+;; (in which the simplifier was slow to mature, but useful results could still be got
+;; through the expedient of freeze)
+
+(def ^:private object-name-map {g/+ '+ g/- '- g/* '* g/divide (symbol "/")})
+(defmethod g/freeze :default [a] (or (object-name-map a) a))
+;; TODO dodgy. the right thing to do is sever the dependence of this module on expression,
+;; i.e. invert that dependence, and move the following implementation there.
+(defmethod g/freeze [::x/numerical-expression] [a] (g/freeze (:expression a)))
+(defmethod g/freeze [clojure.lang.PersistentVector] [a] (mapv g/freeze a))
+(defmethod g/freeze [clojure.lang.Cons] [a] (map g/freeze a))
 
 (defn expression->string
   "Renders an expression through the simplifier and into a string,

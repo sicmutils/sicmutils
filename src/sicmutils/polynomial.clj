@@ -90,7 +90,6 @@
                    (let [[xs c] (first xs->c)]
                      (and (every? zero? xs)
                           (v/unity? c)))))
-  (freeze [_] `(~'polynomial ~arity ~xs->c))
   (kind [_] ::polynomial)
   Object
   (equals [_ b]
@@ -455,37 +454,14 @@
 (defmethod g/square [::polynomial] [a] (mul a a))
 (defmethod g/zero-like [::polynomial] [a] (make (.arity a) []))
 (defmethod g/one-like [::polynomial] [a] (make-constant (.arity a) (g/one-like (coefficient (first (.xs->c a))))))
+(defmethod g/mul [::polynomial ::sym/numeric-type] [p a] (map-coefficients #(g/* a %) p))
+(defmethod g/mul [::sym/numeric-type ::polynomial] [a p] (map-coefficients #(g/* % a) p))
+(defmethod g/add [::polynomial ::sym/numeric-type] [p a] (add p (make-constant (.arity p) a)))
+(defmethod g/add [::sym/numeric-type ::polynomial] [a p] (add (make-constant (.arity p) a) p))
+(defmethod g/sub [::polynomial ::sym/numeric-type] [p a] (sub p (make-constant (.arity p) a)))
+(defmethod g/sub [::sym/numeric-type ::polynomial] [a p] (sub (make-constant (.arity p) a) p))
+(defmethod g/div [::polynomial ::sym/numeric-type] [p a] (map-coefficients #(g/divide % a) p))
 
-(doseq [t [Long BigInt BigInteger Double Ratio]]
-  (defmethod g/mul
-    [t ::polynomial]
-    [c p]
-    (map-coefficients #(g/* c %) p))
-  (defmethod g/mul
-    [::polynomial t]
-    [p c]
-    (map-coefficients #(g/* % c) p))
-  (defmethod g/add
-    [t ::polynomial]
-    [c ^Polynomial p]
-    (add (make-constant (.arity p) c) p))
-  (defmethod g/add
-    [::polynomial t]
-    [^Polynomial p c]
-    (add p (make-constant (.arity p) c)))
-  (defmethod g/sub
-    [t ::polynomial]
-    [c ^Polynomial p]
-    (sub (make-constant (.arity p) c) p))
-  (defmethod g/sub
-    [::polynomial t]
-    [^Polynomial p c]
-    (sub p (make-constant (.arity p) c)))
-  (defmethod g/div
-    [::polynomial t]
-    [p c]
-    (map-coefficients #(g/divide % c) p)))
-
-(defmethod g/expt [::polynomial Integer] [b x] (expt b x))
-(defmethod g/expt [::polynomial Long] [b x] (expt b x))
+(defmethod g/expt [::polynomial ::sym/native-integral-type] [b x] (expt b x))
 (defmethod g/negate [::polynomial] [a] (negate a))
+(defmethod g/freeze [::polynomial] [a] `(~'polynomial ~(.arity a) ~(.xs->c a)))

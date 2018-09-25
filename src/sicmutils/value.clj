@@ -26,43 +26,20 @@
 (defprotocol Value
   (nullity? [this])
   (unity? [this])
-  ;; Freezing an expression means removing wrappers and other metadata
-  ;; from subexpressions, so that the result is basically a pure
-  ;; S-expression with the same structure as the input. Doing this will
-  ;; rob an expression of useful information fur further computation; so
-  ;; this is intended to be done just before simplification and printing, to
-  ;; simplify those processes.
-  (freeze [this])
   (kind [this]))
 
 (declare arity primitive-kind)
-
-(def ^:private object-name-map (atom {}))
 
 (extend-type Object
   Value
   (nullity? [o] (and (number? o) (core-zero? o)))
   (unity? [o] (and (number? o) (== o 1)))
-  (freeze [o] (cond
-                (vector? o) (mapv freeze o)
-                (sequential? o) (map freeze o)
-                ;; TODO this is temporary until we finish refactoring expressions
-                (= (:type o) :sicmutils.expression/numerical-expression) (:expression o)
-                :else (or (and (instance? MultiFn o)
-                               (if-let [m (get-method o :name)]
-                                 (m :name)))
-                          (@object-name-map o)
-                          o)))
   (kind [o] (primitive-kind o)))
 
 (extend-type nil
   Value
   (freeze [_] nil)
   (kind [_] nil))
-
-(defn add-object-symbols!
-  [o->syms]
-  (swap! object-name-map into o->syms))
 
 ;; we record arities as a vector with an initial keyword:
 ;;   [:exactly m]

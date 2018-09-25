@@ -67,7 +67,6 @@
   v/Value
   (nullity? [_] false)
   (unity? [_] false)
-  (freeze [_] (v/freeze name))
   (kind [_] ::function)
   IFn
   (invoke [f x] (literal-apply f [x]))
@@ -319,7 +318,7 @@
   (check-argument-type f xs (:domain f) [0])
   (if (some d/differential? xs)
     (literal-derivative f xs)
-    (x/literal-number `(~(:name f) ~@(map v/freeze xs)))))
+    (x/literal-number `(~(:name f) ~@(map g/freeze xs)))))
 
 ;;; Utilities
 
@@ -352,3 +351,12 @@
                                     (str "unknown literal function type" s)))))
                     litfns)))
      ~@body))
+
+(defmethod g/freeze
+  [::function]
+  [a]
+  (or (and (instance? clojure.lang.MultiFn a)
+           (if-let [m (get-method a :name)]
+             (m :name)))
+      (:name a)
+      ((get-method g/freeze :default) a)))
