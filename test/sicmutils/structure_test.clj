@@ -99,8 +99,8 @@
     (is (= (down) (g/zero-like (down))))
     (is (= (up 0 (down (up 0 0) (up 0 0))) (g/zero-like (up 1 (down (up 2 3) (up 4 5)))))))
   (testing "exact?"
-    (is (v/exact? (up 0 1 3/2)))
-    (is (not (v/exact? (up 0 0 0.00001)))))
+    (is (g/exact? (up 0 1 3/2)))
+    (is (not (g/exact? (up 0 0 0.00001)))))
   (testing "to vector"
     (is (= [1 2 3] (structure->vector (up 1 2 3))))
     (is (= [1 2 3] (structure->vector (down 1 2 3))))

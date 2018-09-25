@@ -32,7 +32,6 @@
   v/Value
   (nullity? [_] (every? v/nullity? v))
   (unity? [_] false)
-  (exact? [_] (every? v/exact? v))
   (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
   (kind [_] orientation)
   Object
@@ -324,6 +323,7 @@
 (defmethod g/simplify [::structure] [a] (->> a (mapr g/simplify) v/freeze))
 (defmethod g/transpose [::structure] [a] (opposite a (seq a)))
 (defmethod g/zero-like [::structure] [a] (mapr g/zero-like a))
+(defmethod g/exact? [::structure] [a] (every? g/exact? a))
 
 (defmethod g/magnitude [::structure] [^Structure a]
   (g/sqrt (reduce + (map g/square a))))

@@ -27,7 +27,6 @@
   v/Value
   (nullity? [_] (zero? i))
   (unity? [_] (= i 1))
-  (exact? [_] true)
   (kind [_] ::modint))
 
 (defn make [i m]

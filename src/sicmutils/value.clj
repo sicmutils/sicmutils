@@ -26,7 +26,6 @@
 (defprotocol Value
   (nullity? [this])
   (unity? [this])
-  (exact? [this])
   ;; Freezing an expression means removing wrappers and other metadata
   ;; from subexpressions, so that the result is basically a pure
   ;; S-expression with the same structure as the input. Doing this will
@@ -44,7 +43,6 @@
   Value
   (nullity? [o] (and (number? o) (core-zero? o)))
   (unity? [o] (and (number? o) (== o 1)))
-  (exact? [o] (or (integer? o) (ratio? o)))
   (freeze [o] (cond
                 (vector? o) (mapv freeze o)
                 (sequential? o) (map freeze o)

@@ -193,14 +193,14 @@
         :else `(~'abs ~x)))
 
 (defn sqrt [s]
-  ;; TODO remove if-polymorphism
+  ;; TODO remove if-polymorphism?
   (if (number? s)
-    (if-not (v/exact? s)
+    (if-not (g/exact? s)
       (nt/sqrt s)
       (cond (v/nullity? s) s
             (v/unity? s) 1
             :else (let [q (nt/sqrt s)]
-                    (if (v/exact? q)
+                    (if (g/exact? q)
                       q
                       `(~'sqrt ~s)))))
     `(~'sqrt ~s)))
@@ -209,8 +209,9 @@
   `(~'log ~s))
 
 (defn ^:private exp [s]
+  ;; TODO remove if-polymorphism?
   (if (number? s)
-    (if-not (v/exact? s)
+    (if-not (g/exact? s)
       (Math/exp s)
       (if (v/nullity? s) 1 `(~'exp ~s)))
     `(~'exp ~s)))
@@ -296,6 +297,7 @@
 (defmethod g/numerical? [::native-numeric-type] [a] true)
 (defmethod g/numerical? [::x/numerical-expression] [a] true)
 (defmethod g/numerical? [clojure.lang.Symbol] [a] true)
+(defmethod g/exact? [::native-exact-type] [_] true)
 
 (defmacro ^:private define-unary-operation
   [generic-operation symbolic-operation]
@@ -369,7 +371,7 @@
 (defmethod g/tan
   [::native-numeric-type]
   [a]
-  (if (v/exact? a)
+  (if (g/exact? a)
     (if (zero? a) 0 `(~'tan ~a))
     (cond (n:zero-mod-pi? a) 0.
           (n:pi-over-4-mod-pi? a) 1.

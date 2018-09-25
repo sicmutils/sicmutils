@@ -87,8 +87,12 @@
 
 (defmulti partial-derivative v/argument-kind)
 (defmulti simplify v/argument-kind)
+
 (defmulti numerical? v/argument-kind)
-(defmethod numerical? :default [a] false)
+(defmethod numerical? :default [_] false)
+
+(defmulti exact? v/argument-kind)
+(defmethod exact? :default [_] false)
 
 (defn ^:private bin+ [a b]
   (cond (v/nullity? a) b

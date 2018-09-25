@@ -28,7 +28,6 @@
   (nullity? [c] (= Complex/ZERO c))
   (unity? [c] (= Complex/ONE c))
   (freeze [c] (list 'complex (.getReal c) (.getImaginary c)))
-  (exact? [_] false)
   (kind [_] ::complex))
 
 (defn complex

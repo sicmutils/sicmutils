@@ -43,7 +43,6 @@
   (nullity? [_] (every? v/nullity? (map coefficient terms)))
   (unity? [_] false)
   (freeze [_] `[~'Differential ~@terms])
-  (exact? [_] false)
 
   (kind [_] ::differential)
   Object

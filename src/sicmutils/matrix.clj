@@ -33,7 +33,6 @@
   v/Value
   (nullity? [_] (every? #(every? v/nullity? %) v))
   (unity? [_] false)
-  (exact? [_] (every? #(every? v/exact? %) v))
   (freeze [_] (if (= c 1)
                 `(~'column-matrix ~@(map (comp v/freeze first) v))
                 `(~'matrix-by-rows ~@(map v/freeze v))))
@@ -363,6 +362,7 @@
         c (.c m)]
     (when-not (= r c) (throw (IllegalArgumentException. "not square")))
     (generate r c #(if (= %1 %2) 1 0))))
+(defmethod g/exact? [::matrix] [m] (every? #(every? g/exact? %) m))
 
 (defmethod g/determinant
   [::s/structure]

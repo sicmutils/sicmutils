@@ -240,7 +240,7 @@
   "A function returning true if the argument is exact but not a ratio.
   Polynomials must have such coefficients if we are to find GCDs for them.
   Note that a polynomial with integral coefficients is integral."
-  #(and (v/exact? %) (not (ratio? %))))
+  #(and (g/exact? %) (not (ratio? %))))
 
 (defn ^:private maybe-bail-out
   "Returns a function that checks if clock has been running longer

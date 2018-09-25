@@ -211,3 +211,13 @@
     (is (= 1 (g/gcd 4 1)))
     #_(is (= 0 (g/gcd 'x 'x)))
     ))
+
+(deftest exactness
+  (is (g/exact? 1))
+  (is (g/exact? 3/2))
+  (is (g/exact? 4N))
+  (is (g/exact? (BigInteger/valueOf 111)))
+  (is (not (g/exact? 1.1)))
+  (is (not (g/exact? 'a)))
+  (is (not (g/exact? :a)))
+  (is (not (g/exact? "a"))))
