@@ -74,3 +74,9 @@
   (is (zero? 0.0))
   (is (not (zero? 1)))
   (is (not (zero? 0.1))))
+
+(deftest one-predicate
+  (is (one? 1))
+  (is (one? 1.0))
+  (is (not (one? 0)))
+  (is (not (one? 0.0))))

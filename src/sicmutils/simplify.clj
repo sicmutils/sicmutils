@@ -105,7 +105,7 @@
   #(-> % *poly-analyzer* g/zero?))
 
 (def ^:private simplifies-to-unity?
-  #(-> % *rf-analyzer* v/unity?))
+  #(-> % *rf-analyzer* g/one?))
 
 (def trig-cleanup
   "This finds things like a - a cos^2 x and replaces them with a sin^2 x"

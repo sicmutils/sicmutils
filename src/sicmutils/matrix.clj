@@ -31,7 +31,6 @@
 
 (deftype Matrix [r c ^PersistentVector v]
   v/Value
-  (unity? [_] false)
   (kind [_] ::matrix)
   IFn
   (invoke [_ x]

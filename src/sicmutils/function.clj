@@ -65,7 +65,6 @@
   Object
   (toString [_] (str name) )
   v/Value
-  (unity? [_] false)
   (kind [_] ::function)
   IFn
   (invoke [f x] (literal-apply f [x]))

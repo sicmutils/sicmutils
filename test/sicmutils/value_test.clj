@@ -38,12 +38,6 @@
         g (fn [y] (* y y))]
     (is (= [:exactly 1] (arity (comp f g))))))
 
-(deftest unity
-  (is (unity? 1))
-  (is (unity? 1.0))
-  (is (not (unity? 0)))
-  (is (not (unity? 0.0))))
-
 (deftest kinds
   (is (= Long (kind 1)))
   (is (= Double (kind 1.0)))

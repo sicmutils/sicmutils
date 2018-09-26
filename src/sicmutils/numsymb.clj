@@ -73,12 +73,12 @@
 (defn mul [a b]
   (cond (and (number? a) (number? b)) (* a b)
         (number? a) (cond (g/zero? a) a
-                          (v/unity? a) b
+                          (g/one? a) b
                           (product? b) `(~'* ~a ~@(operands b))
                           :else `(~'* ~a ~b)
                           )
         (number? b) (cond (g/zero? b) b
-                          (v/unity? b) a
+                          (g/one? b) a
                           (product? a) `(~'* ~@(operands a) ~b)
                           :else `(~'* ~a ~b)
                           )
@@ -91,7 +91,7 @@
   (cond (and (number? a) (number? b)) (/ a b)
         (number? a) (if (g/zero? a) a `(~'/ ~a ~b))
         (number? b) (cond (g/zero? b) (throw (ArithmeticException. "division by zero"))
-                          (v/unity? b) a
+                          (g/one? b) a
                           :else `(~'/ ~a ~b))
         :else `(~'/ ~a ~b)))
 
@@ -184,7 +184,7 @@
 
 (defn arctangent
   [y & x]
-  (if (or (nil? x) (v/unity? (first x)))
+  (if (or (nil? x) (g/one? (first x)))
     `(~'atan ~y)
     `(~'atan ~y ~@x)))
 
@@ -198,7 +198,7 @@
     (if-not (g/exact? s)
       (nt/sqrt s)
       (cond (g/zero? s) s
-            (v/unity? s) 1
+            (g/one? s) 1
             :else (let [q (nt/sqrt s)]
                     (if (g/exact? q)
                       q
@@ -222,10 +222,10 @@
   ;; be simplified here if possible. But, it would be better to put the collapsing
   ;; logic into one place.
   (cond (and (number? b) (number? e)) (nt/expt b e)
-        (number? b) (cond (v/unity? b) 1
+        (number? b) (cond (g/one? b) 1
                           :else `(~'expt ~b ~e))
         (number? e) (cond (g/zero? e) 1
-                          (v/unity? e) b
+                          (g/one? e) b
                           (and (integer? e) (even? e) (sqrt? b))
                           (expt (first (operands b)) (quot e 2))
                           (and (expt? b)
@@ -300,6 +300,7 @@
 (defmethod g/numerical? [clojure.lang.Symbol] [a] true)
 (defmethod g/exact? [::native-exact-type] [_] true)
 (defmethod g/zero? [::native-numeric-type] [a] (zero? a))
+(defmethod g/one? [::native-numeric-type] [a] (== 1 a))
 
 (defmacro ^:private define-unary-operation
   [generic-operation symbolic-operation]

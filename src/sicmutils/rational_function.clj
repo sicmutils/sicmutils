@@ -35,7 +35,6 @@
 
 (deftype RationalFunction [^long arity ^Polynomial u ^Polynomial v]
   v/Value
-  (unity? [_] (and (v/unity? u) (v/unity? v)))
   (kind [_] ::rational-function)
   Object
   (equals [_ b]
@@ -66,12 +65,12 @@
         integerizing-factor (*
                              (if (< lcv 0) -1 1)
                              (reduce euclid/lcm 1 (map denominator (filter ratio? cs))))
-        u' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) u) u)
-        v' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) v) v)
+        u' (if (not (g/one? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) u) u)
+        v' (if (not (g/one? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) v) v)
         g (poly/gcd u' v')
         u'' (p/evenly-divide u' g)
         v'' (p/evenly-divide v' g)]
-    (if (v/unity? v'') u''
+    (if (g/one? v'') u''
         (do (when-not (and (instance? Polynomial u'')
                            (instance? Polynomial v''))
               (throw (IllegalArgumentException. (str "bad RF" u v u' v' u'' v''))))
@@ -79,7 +78,7 @@
 
 (defn ^:private make-reduced
   [arity u v]
-  (if (v/unity? v)
+  (if (g/one? v)
     u
     (RationalFunction. arity u v)))
 
@@ -99,7 +98,7 @@
         v (.u s)
         v' (.v s)
         d1 (poly/gcd u' v')]
-    (if (v/unity? d1)
+    (if (g/one? d1)
       (make-reduced  a (p/add (p/mul u v') (p/mul u' v)) (p/mul u' v'))
       (let [t (p/add (p/mul u (p/evenly-divide v' d1))
                      (p/mul v (p/evenly-divide u' d1)))
@@ -161,8 +160,8 @@
         v' (.v s)]
     (cond (g/zero? r) r
           (g/zero? s) s
-          (v/unity? r) s
-          (v/unity? s) r
+          (g/one? r) s
+          (g/one? s) r
           :else (let [d1 (poly/gcd u v')
                       d2 (poly/gcd u' v)
                       u'' (p/mul (p/evenly-divide u d1) (p/evenly-divide v d2))
@@ -289,9 +288,9 @@
         v (.v r)
         a (.arity r)]
     (cond (g/zero? p) 0
-          (v/unity? p) r
+          (g/one? p) r
           :else (let [d (poly/gcd v p) ]
-                  (if (v/unity? d)
+                  (if (g/one? d)
                     (make-reduced a (p/mul u p) v)
                     (make-reduced a (p/mul u (p/evenly-divide p d)) (p/evenly-divide v d)))))))
 
@@ -303,9 +302,9 @@
         v (.v r)
         a (.arity r)]
     (cond (g/zero? p) 0
-          (v/unity? p) r
+          (g/one? p) r
           :else (let [d (poly/gcd p v) ]
-                  (if (v/unity? d)
+                  (if (g/one? d)
                     (RationalFunction. a (p/mul p u) v)
                     (RationalFunction. a (p/mul (p/evenly-divide p d) u) (p/evenly-divide v d)))))))
 
@@ -374,6 +373,7 @@
 (defmethod g/expt [::rational-function Long] [b x] (expt b x))
 (defmethod g/negate [::rational-function] [a] (negate a))
 (defmethod g/zero? [::rational-function] [^RationalFunction a] (g/zero? (.u a)))
+(defmethod g/one? [::rational-function] [^RationalFunction a] (and (g/one? (.u a)) (g/one? (.v a))))
 
 (defmethod g/gcd
   [::p/polynomial ::p/polynomial]

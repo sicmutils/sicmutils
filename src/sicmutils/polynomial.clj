@@ -85,11 +85,6 @@
 
 (deftype Polynomial [arity xs->c]
   v/Value
-
-  (unity? [_] (and (= (count xs->c) 1)
-                   (let [[xs c] (first xs->c)]
-                     (and (every? zero? xs)
-                          (v/unity? c)))))
   (kind [_] ::polynomial)
   Object
   (equals [_ b]
@@ -208,8 +203,8 @@
          (instance? Polynomial q)]}
   (cond (g/zero? p) p
         (g/zero? q) q
-        (v/unity? p) q
-        (v/unity? q) p
+        (g/one? p) q
+        (g/one? q) p
         :else (let [a (check-same-arity p q)]
                 (make a (for [[xp cp] (.xs->c p)
                               [xq cq] (.xs->c q)]
@@ -291,7 +286,7 @@
          ;; On the other hand, we went to a great deal of trouble to
          ;; genericize the polynomial arithmetic... but maybe this should
          ;; not have been done?
-         (v/unity? v) [u (make arity [])]
+         (g/one? v) [u (make arity [])]
          :else (let [[vn-exponents vn-coefficient] (lead-term v)
                      good? (fn [residues]
                              (and (not-empty residues)
@@ -364,7 +359,7 @@
   (when-not (and (integer? n) (>= n 0))
     (throw (ArithmeticException.
             (str "can't raise poly to " n))))
-  (cond (v/unity? p) p
+  (cond (g/one? p) p
         (g/zero? p) (if (zero? n)
                       (throw (ArithmeticException. "poly 0^0"))
                       p)
@@ -465,3 +460,11 @@
 (defmethod g/negate [::polynomial] [a] (negate a))
 (defmethod g/freeze [::polynomial] [^Polynomial a] `(~'polynomial ~(.arity a) ~(.xs->c a)))
 (defmethod g/zero? [::polynomial] [^Polynomial a] (empty? (.xs->c a)))
+(defmethod g/one?
+  [::polynomial]
+  [^Polynomial a]
+  (let [xs->c (.xs->c a)]
+    (and (= (count xs->c) 1)
+         (let [[xs c] (first xs->c)]
+           (and (every? zero? xs)
+                (g/one? c))))))

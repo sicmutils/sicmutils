@@ -40,7 +40,7 @@
            tracker []
            old-s p
            old-m (g/one-like p)]
-      (if (v/unity? m)
+      (if (g/one? m)
         (answer tracker h)
         (let [gg (-> h poly/partial-derivatives gcd-seq)
               new-s (g/exact-divide h (gcd h gg))

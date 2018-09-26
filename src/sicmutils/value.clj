@@ -24,14 +24,12 @@
            (java.lang.reflect Method)))
 
 (defprotocol Value
-  (unity? [this])
   (kind [this]))
 
 (declare arity primitive-kind)
 
 (extend-type Object
   Value
-  (unity? [o] (and (number? o) (== o 1)))
   (kind [o] (primitive-kind o)))
 
 (extend-type nil

@@ -30,8 +30,6 @@
 
 (deftype Structure [orientation ^PersistentVector v]
   v/Value
-
-  (unity? [_] false)
   (kind [_] orientation)
   Object
   (equals [_ b]

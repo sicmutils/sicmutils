@@ -30,7 +30,6 @@
 
 (deftype Series [arity s]
   v/Value
-  (unity? [_] false)
   (kind [_] ::series)
   IFn
   (invoke [_ x] (Series. arity (map #(% x) s)))

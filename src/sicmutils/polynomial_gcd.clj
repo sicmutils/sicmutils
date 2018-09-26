@@ -72,7 +72,7 @@
   primitive parts are supplied to the continuation, the result of which
   has the content reattached and is returned."
   [gcd u v continue]
-  (let [gcd-reducer (reduce-until v/unity? gcd)
+  (let [gcd-reducer (reduce-until g/one? gcd)
         content #(-> % coefficients gcd-reducer)
         ku (content u)
         kv (content v)
@@ -164,8 +164,8 @@
   (cond
     (g/zero? u) v
     (g/zero? v) u
-    (v/unity? u) u
-    (v/unity? v) v
+    (g/one? u) u
+    (g/one? v) v
     (= u v) u
     :else (with-content-removed native-gcd u v univariate-euclid-inner-loop)))
 
@@ -218,8 +218,8 @@
                 (= arity 1) (gcd1 u v)
                 (g/zero? u) v
                 (g/zero? v) u
-                (v/unity? u) u
-                (v/unity? v) v
+                (g/one? u) u
+                (g/one? v) v
                 (= u v) u
                 (monomial? u) (monomial-gcd u v)
                 (monomial? v) (monomial-gcd v u)
@@ -268,8 +268,8 @@
                 (every? integral? (coefficients v)))) (g/one-like u)
       (g/zero? u) v
       (g/zero? v) u
-      (v/unity? u) u
-      (v/unity? v) v
+      (g/one? u) u
+      (g/one? v) v
       (= u v) u
       (= arity 1) (abs (gcd1 u v))
       :else (binding [*poly-gcd-bail-out* (maybe-bail-out "polynomial GCD" clock *poly-gcd-time-limit*)]
@@ -281,7 +281,7 @@
 (def gcd-seq
   "Compute the GCD of a sequence of polynomials (we take care to
   break early if the gcd of an initial segment is unity)"
-  (reduce-until v/unity? gcd))
+  (reduce-until g/one? gcd))
 
 
 ;; several observations. many of the gcds we find when attempting the troublesome

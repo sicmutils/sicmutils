@@ -25,7 +25,6 @@
 
 (defrecord ModInt [^BigInteger i ^BigInteger m]
   v/Value
-  (unity? [_] (= i 1))
   (kind [_] ::modint))
 
 (defn make [i m]
@@ -62,3 +61,4 @@
 (defmethod g/exact-divide [::modint ::modint] [a b] (mul a (modular-inv b)))
 (defmethod g/negative? [::modint] [a] (< (:i a) 0))
 (defmethod g/zero? [::modint] [a] (= (:i a) 0))
+(defmethod g/one? [::modint] [a] (= (:i a) 1))

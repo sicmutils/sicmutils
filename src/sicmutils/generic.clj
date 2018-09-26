@@ -78,6 +78,9 @@
 (def-generic-function zero? 1)
 (defmethod zero? :default [_] false)
 
+(def-generic-function one? 1)
+(defmethod one? :default [_] false)
+
 (def-generic-function Lie-derivative 1)
 
 (defmulti partial-derivative v/argument-kind)
@@ -114,8 +117,8 @@
         :else (bin- (first args) (reduce bin+ (next args)))))
 
 (defn ^:private bin* [a b]
-  (cond (v/unity? a) b
-        (v/unity? b) a
+  (cond (one? a) b
+        (one? b) a
         :else (mul a b)))
 
 ;;; In bin* we test for exact (numerical) zero
@@ -133,7 +136,7 @@
   (reduce bin* 1 args))
 
 (defn ^:private bin-div [a b]
-  (cond (v/unity? b) a
+  (cond (one? b) a
         :else (div a b)))
 
 (defn / [& args]

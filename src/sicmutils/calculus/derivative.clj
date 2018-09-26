@@ -40,8 +40,6 @@
 ;; tag set.
 (deftype Differential [terms]
   v/Value
-  (unity? [_] false)
-
   (kind [_] ::differential)
   Object
   (equals [_ b]
