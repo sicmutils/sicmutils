@@ -168,6 +168,9 @@
 
 (def simplify-expression (simplify-until-stable simplify-expression-1 simplify-and-flatten))
 
+(defn ^:private abstract-quantity? [x] (= (:type x) ::x/numerical-expression))
+
+;; TODO: it is structurally irritating to have an if here.
 (defn simplify-numerical-expression
   "Runs the content of the Expression e through the simplifier, but leaves the result in
   Expression form."

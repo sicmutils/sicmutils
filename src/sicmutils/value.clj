@@ -38,7 +38,6 @@
 
 (extend-type nil
   Value
-  (freeze [_] nil)
   (kind [_] nil))
 
 ;; we record arities as a vector with an initial keyword:

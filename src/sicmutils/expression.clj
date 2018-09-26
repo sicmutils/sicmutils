@@ -34,11 +34,6 @@
   {:type (:type e)
    :expression (f (:expression e))})
 
-(defn abstract? [x]
-  ;; TODO: GJS also allows for up, down, matrix here. We do not yet have
-  ;; abstract structures.
-  (= (:type x) ::numerical-expression))
-
 (defn expression-of
   [expr]
   (cond (= (:type expr) ::numerical-expression) (:expression expr)

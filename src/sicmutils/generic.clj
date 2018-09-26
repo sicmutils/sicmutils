@@ -21,17 +21,10 @@
   (:refer-clojure :rename {/ core-div zero? core-zero?}
                   :exclude [+ - *])
   (:require [sicmutils
-             [value :as v]
-             [expression :as x]])
+             [value :as v]])
   (:import (clojure.lang Keyword)))
 
 ;;; classifiers
-
-;; TODO can we get rid of this?
-(defn abstract-quantity?
-  [x]
-  (and (= (:type x) ::x/numerical-expression)
-       (x/abstract? x)))
 
 (defmacro ^:private def-generic-function
   "Defines a mutlifn using the provided symbol. Arranges for the multifn
@@ -95,6 +88,11 @@
 (defmethod exact? :default [_] false)
 
 (defmulti freeze v/argument-kind)
+
+(defn abstract-quantity?
+  [x]
+  (= (:type x) :sicmutils.expression/numerical-expression))
+
 (defn ^:private bin+ [a b]
   (cond (v/nullity? a) b
         (v/nullity? b) a
