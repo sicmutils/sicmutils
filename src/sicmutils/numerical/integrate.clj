@@ -27,6 +27,22 @@
                                                           MidPointIntegrator
                                                           IterativeLegendreGaussIntegrator)))
 
+(defn ^:private select-integrator
+  [method relative-accuracy absolute-accuracy min-iterations max-iterations points]
+  (case method
+    :romberg (RombergIntegrator. relative-accuracy
+                                 absolute-accuracy
+                                 min-iterations
+                                 max-iterations)
+    :midpoint (MidPointIntegrator. relative-accuracy
+                                   absolute-accuracy
+                                   min-iterations
+                                   max-iterations)
+    :legendre-gauss (IterativeLegendreGaussIntegrator. points
+                                                       relative-accuracy
+                                                       absolute-accuracy
+                                                       min-iterations
+                                                       max-iterations)))
 (defn definite-integral [f a b & {:keys [compile
                                          method
                                          max-evaluations
@@ -42,26 +58,17 @@
                                        absolute-accuracy 1e-15,
                                        min-iterations 3
                                        max-iterations 32
-                                       points 16}}]
+                                       points 16}
+                                  :as options}]
   (let [total-time (Stopwatch/createStarted)
         evaluation-count (atom 0)
         evaluation-time (Stopwatch/createUnstarted)
         integrand (if compile (compile-univariate-function f) f)
-        integrator ^UnivariateIntegrator (case method
-                     :romberg (RombergIntegrator. relative-accuracy
-                                                  absolute-accuracy
-                                                  min-iterations
-                                                  max-iterations)
-                     :midpoint (MidPointIntegrator. relative-accuracy
-                                                    absolute-accuracy
-                                                    min-iterations
-                                                    max-iterations)
-                     :legendre-gauss (IterativeLegendreGaussIntegrator. points
-                                                                        relative-accuracy
-                                                                        absolute-accuracy
-                                                                        min-iterations
-                                                                        max-iterations))
-
+        ^UnivariateIntegrator integrator (select-integrator method
+                                                            relative-accuracy
+                                                            absolute-accuracy
+                                                            min-iterations
+                                                            max-iterations points)
         value (.integrate integrator
                           max-evaluations
                           (reify UnivariateFunction

@@ -71,7 +71,7 @@
 (defmethod g/expt [Complex :sicmutils.numsymb/native-numeric-type] [^Complex a n] (.pow a (double n)))
 (defmethod g/expt [:sicmutils.numsymb/native-numeric-type Complex] [n ^Complex a] (.pow ^Complex (complex n) a))
 (defmethod g/magnitude [Complex] [^Complex a] (.abs a))
-(defmethod g/freeze [Complex] [c] (list 'complex (.getReal c) (.getImaginary c)))
+(defmethod g/freeze [Complex] [^Complex c] (list 'complex (.getReal c) (.getImaginary c)))
 (defmethod g/numerical? [Complex] [_] true)
 
 (derive Complex :sicmutils.numsymb/numeric-type)

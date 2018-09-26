@@ -472,7 +472,7 @@
 
 (defmethod g/freeze
   [::differential]
-  [a]
+  [^Differential a]
   `[~'Differential ~@(.terms a)])
 
 (def D

@@ -260,7 +260,7 @@
         (recur (next xs->c)
                (g/+ result (g/* c x**e'))
                x**e'
-               e'))
+               (long e')))
       result)))
 
 (defn evaluate
@@ -452,16 +452,16 @@
 (defmethod g/sub [::polynomial ::polynomial] [a b] (sub a b))
 (defmethod g/exact-divide [::polynomial ::polynomial] [p q] (evenly-divide p q))
 (defmethod g/square [::polynomial] [a] (mul a a))
-(defmethod g/zero-like [::polynomial] [a] (make (.arity a) []))
-(defmethod g/one-like [::polynomial] [a] (make-constant (.arity a) (g/one-like (coefficient (first (.xs->c a))))))
+(defmethod g/zero-like [::polynomial] [^Polynomial a] (make (.arity a) []))
+(defmethod g/one-like [::polynomial] [^Polynomial a] (make-constant (.arity a) (g/one-like (coefficient (first (.xs->c a))))))
 (defmethod g/mul [::polynomial ::sym/numeric-type] [p a] (map-coefficients #(g/* a %) p))
 (defmethod g/mul [::sym/numeric-type ::polynomial] [a p] (map-coefficients #(g/* % a) p))
-(defmethod g/add [::polynomial ::sym/numeric-type] [p a] (add p (make-constant (.arity p) a)))
-(defmethod g/add [::sym/numeric-type ::polynomial] [a p] (add (make-constant (.arity p) a) p))
-(defmethod g/sub [::polynomial ::sym/numeric-type] [p a] (sub p (make-constant (.arity p) a)))
-(defmethod g/sub [::sym/numeric-type ::polynomial] [a p] (sub (make-constant (.arity p) a) p))
+(defmethod g/add [::polynomial ::sym/numeric-type] [^Polynomial p a] (add p (make-constant (.arity p) a)))
+(defmethod g/add [::sym/numeric-type ::polynomial] [a ^Polynomial p] (add (make-constant (.arity p) a) p))
+(defmethod g/sub [::polynomial ::sym/numeric-type] [^Polynomial p a] (sub p (make-constant (.arity p) a)))
+(defmethod g/sub [::sym/numeric-type ::polynomial] [a ^Polynomial p] (sub (make-constant (.arity p) a) p))
 (defmethod g/div [::polynomial ::sym/numeric-type] [p a] (map-coefficients #(g/divide % a) p))
 
 (defmethod g/expt [::polynomial ::sym/native-integral-type] [b x] (expt b x))
 (defmethod g/negate [::polynomial] [a] (negate a))
-(defmethod g/freeze [::polynomial] [a] `(~'polynomial ~(.arity a) ~(.xs->c a)))
+(defmethod g/freeze [::polynomial] [^Polynomial a] `(~'polynomial ~(.arity a) ~(.xs->c a)))

@@ -354,7 +354,7 @@
 (defmethod g/zero-like [::matrix] [m] (fmap g/zero-like m))
 (defmethod g/one-like
   [::matrix]
-  [m]
+  [^Matrix m]
   (let [r (.r m)
         c (.c m)]
     (when-not (= r c) (throw (IllegalArgumentException. "not square")))
@@ -362,7 +362,7 @@
 (defmethod g/exact? [::matrix] [m] (every? #(every? g/exact? %) m))
 (defmethod g/freeze
   [::matrix]
-  [m]
+  [^Matrix m]
   (if (= (.c m) 1)
     `(~'column-matrix ~@(map (comp g/freeze first) (.v m)))
     `(~'matrix-by-rows ~@(map g/freeze (.v m)))))

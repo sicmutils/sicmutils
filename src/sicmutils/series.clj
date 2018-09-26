@@ -160,7 +160,7 @@
 
 (defmethod g/freeze
   [::series]
-  [a]
+  [^Series a]
   `[~'Series ~(.arity a) ~@(map g/simplify (core-take 4 (.s a))) ~'...])
 
 (derive :sicmutils.expression/numerical-expression ::coseries)
