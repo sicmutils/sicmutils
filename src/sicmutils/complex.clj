@@ -25,7 +25,6 @@
 
 (extend-type Complex
   v/Value
-  (nullity? [c] (= Complex/ZERO c))
   (unity? [c] (= Complex/ONE c))
   ;; TODO: get rid of this
   (kind [_] Complex))
@@ -73,6 +72,7 @@
 (defmethod g/magnitude [Complex] [^Complex a] (.abs a))
 (defmethod g/freeze [Complex] [^Complex c] (list 'complex (.getReal c) (.getImaginary c)))
 (defmethod g/numerical? [Complex] [_] true)
+(defmethod g/zero? [Complex] [a] (= a Complex/ZERO))
 
 (derive Complex :sicmutils.numsymb/numeric-type)
 

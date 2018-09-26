@@ -35,7 +35,6 @@
 
 (deftype RationalFunction [^long arity ^Polynomial u ^Polynomial v]
   v/Value
-  (nullity? [_] (v/nullity? u))
   (unity? [_] (and (v/unity? u) (v/unity? v)))
   (kind [_] ::rational-function)
   Object
@@ -53,7 +52,7 @@
   {:pre [(instance? Polynomial u)
          (instance? Polynomial v)
          (= (.arity u) (.arity v))]}
-  (when (v/nullity? v)
+  (when (g/zero? v)
     (throw (ArithmeticException. "Can't form rational function with zero denominator")))
   ;; annoying: we are using native operations here for the base coefficients
   ;; of the polynomial. Can we do better? That would involve exposing gcd as
@@ -112,7 +111,7 @@
 
 (defn addp
   [^RationalFunction r ^Polynomial p]
-  (if (v/nullity? p)
+  (if (g/zero? p)
     r
     (let [v (.v r)]
       (make (p/add (.u r) (p/mul v p)) v))))
@@ -121,7 +120,7 @@
   [^RationalFunction r ^Polynomial p]
   {:pre [(instance? RationalFunction r)
          (instance? Polynomial p)]}
-  (if (v/nullity? p)
+  (if (g/zero? p)
     r
     (let [v (.v r)]
       (make (p/sub (.u r) (p/mul v p)) v))))
@@ -160,8 +159,8 @@
         u' (.v r)
         v (.u s)
         v' (.v s)]
-    (cond (v/nullity? r) r
-          (v/nullity? s) s
+    (cond (g/zero? r) r
+          (g/zero? s) s
           (v/unity? r) s
           (v/unity? s) r
           :else (let [d1 (poly/gcd u v')
@@ -289,7 +288,7 @@
   (let [u (.u r)
         v (.v r)
         a (.arity r)]
-    (cond (v/nullity? p) 0
+    (cond (g/zero? p) 0
           (v/unity? p) r
           :else (let [d (poly/gcd v p) ]
                   (if (v/unity? d)
@@ -303,7 +302,7 @@
   (let [u (.u r)
         v (.v r)
         a (.arity r)]
-    (cond (v/nullity? p) 0
+    (cond (g/zero? p) 0
           (v/unity? p) r
           :else (let [d (poly/gcd p v) ]
                   (if (v/unity? d)
@@ -374,6 +373,7 @@
 (defmethod g/expt [::rational-function Integer] [b x] (expt b x))
 (defmethod g/expt [::rational-function Long] [b x] (expt b x))
 (defmethod g/negate [::rational-function] [a] (negate a))
+(defmethod g/zero? [::rational-function] [^RationalFunction a] (g/zero? (.u a)))
 
 (defmethod g/gcd
   [::p/polynomial ::p/polynomial]

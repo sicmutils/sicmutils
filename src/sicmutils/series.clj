@@ -30,7 +30,6 @@
 
 (deftype Series [arity s]
   v/Value
-  (nullity? [_] (empty? s))
   (unity? [_] false)
   (kind [_] ::series)
   IFn
@@ -140,6 +139,7 @@
   (Series. (.arity s) (s+s (.s s) (.s t))))
 
 (defmethod g/negate [::series] [s] (fmap g/negate s))
+;; (defmethod g/zero? [::series] [^Series a] (empty? (.s a)))
 
 (defmethod g/sub
   [::series ::series]

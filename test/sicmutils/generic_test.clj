@@ -68,3 +68,9 @@
   (testing "types"
     (is (= Long (v/kind 9)))
     (is (= Double (v/kind 99.0)))))
+
+(deftest zero-predicate
+  (is (zero? 0))
+  (is (zero? 0.0))
+  (is (not (zero? 1)))
+  (is (not (zero? 0.1))))

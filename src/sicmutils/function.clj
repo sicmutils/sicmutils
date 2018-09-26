@@ -65,7 +65,6 @@
   Object
   (toString [_] (str name) )
   v/Value
-  (nullity? [_] false)
   (unity? [_] false)
   (kind [_] ::function)
   IFn

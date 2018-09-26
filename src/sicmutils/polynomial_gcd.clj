@@ -92,7 +92,7 @@
       (loop [u u v v]
         (*poly-gcd-bail-out*)
         (let [[r _] (pseudo-remainder u v)]
-          (if (v/nullity? r) v
+          (if (g/zero? r) v
               (let [kr (content r)]
                 (recur v (map-coefficients #(g/exact-divide % kr) r)))))))))
 
@@ -101,7 +101,7 @@
   [u v d]
   (let [[q1 r1] (divide u d)
         [q2 r2] (divide v d)]
-    (if (and (v/nullity? r1) (v/nullity? r2))
+    (if (and (g/zero? r1) (g/zero? r2))
       [q1 q2 d])))
 
 (defn ^:private with-trivial-constant-gcd-check
@@ -162,8 +162,8 @@
          (= (.arity u) 1)
          (= (.arity v) 1)]}
   (cond
-    (v/nullity? u) v
-    (v/nullity? v) u
+    (g/zero? u) v
+    (g/zero? v) u
     (v/unity? u) u
     (v/unity? v) v
     (= u v) u
@@ -216,8 +216,8 @@
       (do (swap! gcd-cache-hit inc) g)
       (let [g (cond
                 (= arity 1) (gcd1 u v)
-                (v/nullity? u) v
-                (v/nullity? v) u
+                (g/zero? u) v
+                (g/zero? v) u
                 (v/unity? u) u
                 (v/unity? v) v
                 (= u v) u
@@ -266,8 +266,8 @@
     (cond
       (not (and (every? integral? (coefficients u))
                 (every? integral? (coefficients v)))) (g/one-like u)
-      (v/nullity? u) v
-      (v/nullity? v) u
+      (g/zero? u) v
+      (g/zero? v) u
       (v/unity? u) u
       (v/unity? v) v
       (= u v) u

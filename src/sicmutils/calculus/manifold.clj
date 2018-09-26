@@ -222,7 +222,7 @@
                              (throw (IllegalArgumentException. "PolarCylindrical bad point")))
                            (let [[x y] prep
                                  rsq (g/+ (g/square x) (g/square y))]
-                             (when (v/nullity? rsq)
+                             (when (g/zero? rsq)
                                (throw (IllegalStateException. "PolarCylindrical singular")))
                              (s/generate (count prep) ::s/up
                                          (fn [^long i]
@@ -309,7 +309,7 @@
                              (throw (IllegalArgumentException. "SphericalCylindrical bad point")))
                            (let [[x y z] prep
                                  r (g/sqrt (g/+ (g/square x) (g/square y) (g/square z)))]
-                             (when (v/nullity? r)
+                             (when (g/zero? r)
                                (throw (IllegalStateException. "SphericalCylindrical singular")))
                              (s/generate (s/dimension prep) ::s/up
                                          (fn [^long i]

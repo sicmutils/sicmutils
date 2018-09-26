@@ -54,8 +54,6 @@
              [coordinate]
              [vector-field]]))
 
-(def zero? v/nullity?)
-
 (defmacro literal-function
   ([f] `(f/literal-function ~f))
   ([f sicm-signature]
@@ -161,6 +159,7 @@
   tan
   transpose
   zero-like
+  zero?
   Lie-derivative]
  [sicmutils.structure
   compatible-shape

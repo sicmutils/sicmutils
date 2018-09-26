@@ -24,7 +24,6 @@
            (java.lang.reflect Method)))
 
 (defprotocol Value
-  (nullity? [this])
   (unity? [this])
   (kind [this]))
 
@@ -32,7 +31,6 @@
 
 (extend-type Object
   Value
-  (nullity? [o] (and (number? o) (core-zero? o)))
   (unity? [o] (and (number? o) (== o 1)))
   (kind [o] (primitive-kind o)))
 

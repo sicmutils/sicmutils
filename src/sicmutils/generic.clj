@@ -18,8 +18,7 @@
 ;
 
 (ns sicmutils.generic
-  (:refer-clojure :rename {/ core-div zero? core-zero?}
-                  :exclude [+ - *])
+  (:refer-clojure :exclude [+ - * / zero?])
   (:require [sicmutils
              [value :as v]])
   (:import (clojure.lang Keyword)))
@@ -71,10 +70,13 @@
 (def-generic-function gcd 2)
 
 (def-generic-function zero-like 1)
-(defmethod zero-like :default [a] 0)
+(defmethod zero-like :default [_] 0)
 
 (def-generic-function one-like 1)
-(defmethod one-like :default [a] 1)
+(defmethod one-like :default [_] 1)
+
+(def-generic-function zero? 1)
+(defmethod zero? :default [_] false)
 
 (def-generic-function Lie-derivative 1)
 
@@ -94,16 +96,16 @@
   (= (:type x) :sicmutils.expression/numerical-expression))
 
 (defn ^:private bin+ [a b]
-  (cond (v/nullity? a) b
-        (v/nullity? b) a
+  (cond (zero? a) b
+        (zero? b) a
         :else (add a b)))
 
 (defn + [& args]
   (reduce bin+ 0 args))
 
 (defn ^:private bin- [a b]
-  (cond (v/nullity? b) a
-        (v/nullity? a) (negate b)
+  (cond (zero? b) a
+        (zero? a) (negate b)
         :else (sub a b)))
 
 (defn - [& args]
@@ -124,7 +126,7 @@
 ;;;       |a b c| |0|   |0|       |0|
 ;;;       |d e f| |0| = |0|, not  |0|
 ;;;
-;;; We are less worried about the v/nullity? below,
+;;; We are less worried about the g/zero? below,
 ;;; because any invertible matrix is square.
 
 (defn * [& args]

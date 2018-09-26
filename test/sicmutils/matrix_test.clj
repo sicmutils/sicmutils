@@ -104,7 +104,7 @@
                            [2 3 4])
            (matrix/generate 3 3 +)))
 
-    (is (v/nullity? (matrix/by-rows [0 0]
+    (is (g/zero? (matrix/by-rows [0 0]
                                     [0 0])))
     (is (= '(matrix-by-rows [(f x) (g x)] [(h x) (k x)])
            (g/simplify

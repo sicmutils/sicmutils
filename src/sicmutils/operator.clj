@@ -29,7 +29,6 @@
 (defrecord Operator [o arity name context]
   v/Value
   (kind [_] (:subtype context))
-  (nullity? [_] false)
   (unity? [_] false)
   IFn
   (invoke [_ f] (o f))

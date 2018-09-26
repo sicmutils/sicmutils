@@ -47,10 +47,10 @@
 
 (defn add [a b]
   (cond (and (number? a) (number? b)) (+ a b)
-        (number? a) (cond (v/nullity? a) b
+        (number? a) (cond (g/zero? a) b
                           (sum? b) `(~'+ ~a ~@(operands b))
                           :else `(~'+ ~a ~b))
-        (number? b) (cond (v/nullity? b) a
+        (number? b) (cond (g/zero? b) a
                           (sum? a) `(~'+ ~@(operands a) ~b)
                           :else `(~'+ ~a ~b))
         (sum? a) (cond (sum? b) `(~'+ ~@(operands a) ~@(operands b))
@@ -60,8 +60,8 @@
 
 (defn ^:private sub [a b]
   (cond (and (number? a) (number? b)) (- a b)
-        (number? a) (if (v/nullity? a) `(~'- ~b) `(~'- ~a ~b))
-        (number? b) (if (v/nullity? b) a `(~'- ~a ~b))
+        (number? a) (if (g/zero? a) `(~'- ~b) `(~'- ~a ~b))
+        (number? b) (if (g/zero? b) a `(~'- ~a ~b))
         (= a b) 0
         :else `(~'- ~a ~b)))
 
@@ -72,12 +72,12 @@
 
 (defn mul [a b]
   (cond (and (number? a) (number? b)) (* a b)
-        (number? a) (cond (v/nullity? a) a
+        (number? a) (cond (g/zero? a) a
                           (v/unity? a) b
                           (product? b) `(~'* ~a ~@(operands b))
                           :else `(~'* ~a ~b)
                           )
-        (number? b) (cond (v/nullity? b) b
+        (number? b) (cond (g/zero? b) b
                           (v/unity? b) a
                           (product? a) `(~'* ~@(operands a) ~b)
                           :else `(~'* ~a ~b)
@@ -89,8 +89,8 @@
 
 (defn div [a b]
   (cond (and (number? a) (number? b)) (/ a b)
-        (number? a) (if (v/nullity? a) a `(~'/ ~a ~b))
-        (number? b) (cond (v/nullity? b) (throw (ArithmeticException. "division by zero"))
+        (number? a) (if (g/zero? a) a `(~'/ ~a ~b))
+        (number? b) (cond (g/zero? b) (throw (ArithmeticException. "division by zero"))
                           (v/unity? b) a
                           :else `(~'/ ~a ~b))
         :else `(~'/ ~a ~b)))
@@ -197,7 +197,7 @@
   (if (number? s)
     (if-not (g/exact? s)
       (nt/sqrt s)
-      (cond (v/nullity? s) s
+      (cond (g/zero? s) s
             (v/unity? s) 1
             :else (let [q (nt/sqrt s)]
                     (if (g/exact? q)
@@ -213,7 +213,7 @@
   (if (number? s)
     (if-not (g/exact? s)
       (Math/exp s)
-      (if (v/nullity? s) 1 `(~'exp ~s)))
+      (if (g/zero? s) 1 `(~'exp ~s)))
     `(~'exp ~s)))
 
 (defn expt [b e]
@@ -224,7 +224,7 @@
   (cond (and (number? b) (number? e)) (nt/expt b e)
         (number? b) (cond (v/unity? b) 1
                           :else `(~'expt ~b ~e))
-        (number? e) (cond (v/nullity? e) 1
+        (number? e) (cond (g/zero? e) 1
                           (v/unity? e) b
                           (and (integer? e) (even? e) (sqrt? b))
                           (expt (first (operands b)) (quot e 2))
@@ -299,6 +299,7 @@
 (defmethod g/numerical? [::x/numerical-expression] [a] true)
 (defmethod g/numerical? [clojure.lang.Symbol] [a] true)
 (defmethod g/exact? [::native-exact-type] [_] true)
+(defmethod g/zero? [::native-numeric-type] [a] (zero? a))
 
 (defmacro ^:private define-unary-operation
   [generic-operation symbolic-operation]

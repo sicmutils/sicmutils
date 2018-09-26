@@ -79,7 +79,7 @@
         expression
         (let [canonicalized-expression (canonicalize new-expression)]
           (cond (= canonicalized-expression expression) expression
-                (v/nullity? (*poly-analyzer* `(~'- ~expression ~canonicalized-expression))) canonicalized-expression
+                (g/zero? (*poly-analyzer* `(~'- ~expression ~canonicalized-expression))) canonicalized-expression
                 :else (recur canonicalized-expression)))))))
 
 (defn ^:private simplify-and-canonicalize
@@ -102,7 +102,7 @@
 ;; up, but at least things are beginning to simplify adequately.
 
 (def ^:private simplifies-to-zero?
-  #(-> % *poly-analyzer* v/nullity?))
+  #(-> % *poly-analyzer* g/zero?))
 
 (def ^:private simplifies-to-unity?
   #(-> % *rf-analyzer* v/unity?))

@@ -48,8 +48,8 @@
      (is (= m2_7 (g/- m5_7 m3_7))))
    (testing "neg"
      (is (= m2_7 (g/negate m5_7))))
-   (testing "nullity?"
-     (is (v/nullity? m0_7)))
+   (testing "zero?"
+     (is (g/zero? m0_7)))
    (testing "unity?"
      (is (v/unity? m1_7)))
    (testing "inv"

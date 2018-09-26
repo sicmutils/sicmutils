@@ -40,7 +40,6 @@
 ;; tag set.
 (deftype Differential [terms]
   v/Value
-  (nullity? [_] (every? v/nullity? (map coefficient terms)))
   (unity? [_] false)
 
   (kind [_] ::differential)
@@ -90,7 +89,7 @@
          (sort-by first
                   (for [[tags tags-coefs] (group-by tags tags->coefs)
                         :let [c (reduce #(g/+ %1 (coefficient %2)) 0 tags-coefs)]
-                        :when (not (v/nullity? c))]
+                        :when (not (g/zero? c))]
                     [tags c])))))
 
 (defn ^:private differential->terms
@@ -100,7 +99,7 @@
   which case we return the empty term list)."
   [dx]
   (cond (instance? Differential dx) (let [^Differential d dx] (.terms d))
-        (v/nullity? dx) []
+        (g/zero? dx) []
         :else [[empty-tags dx]]))
 
 ;; The data structure of a tag set. Tags are small integers. Tag sets are
@@ -155,7 +154,7 @@
                    c (compare a-tags b-tags)]
                (cond (= c 0) (let [r-coef (g/+ a-coef b-coef)]
                                (recur (rest dxs) (rest dys)
-                                      (if-not (v/nullity? r-coef)
+                                      (if-not (g/zero? r-coef)
                                         (conj result [a-tags r-coef])
                                         result)))
                      (< c 0) (recur (rest dxs) dys (conj result a))
@@ -327,7 +326,7 @@
              (fn [x y]
                (g/* y (g/expt x (g/- y 1))))
              (fn [x y]
-               (if (and (number? x) (v/nullity? y))
+               (if (and (number? x) (g/zero? y))
                  (if (number? y)
                    (if (pos? y)
                      0
@@ -474,6 +473,11 @@
   [::differential]
   [^Differential a]
   `[~'Differential ~@(.terms a)])
+
+(defmethod g/zero?
+  [::differential]
+  [^Differential a]
+  (every? #(g/zero? (coefficient %)) (.terms a)))
 
 (def D
   "Derivative operator. Produces a function whose value at some point can

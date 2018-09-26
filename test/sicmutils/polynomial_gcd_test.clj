@@ -27,7 +27,7 @@
              [polynomial :refer :all]
              [polynomial-gcd :refer :all]
              [polynomial-test :as p-test]
-             [value :as v]
+             [generic :as g]
              [analyze :as a]
              [expression :refer [variables-in]]]
             [clojure.tools.logging :as log]
@@ -397,9 +397,9 @@
     (prop/for-all [u (p-test/generate-poly arity)
                    v (p-test/generate-poly arity)]
                   (let [g (gcd u v)]
-                    (or (and (v/nullity? u)
-                             (v/nullity? v)
-                             (v/nullity? g))
+                    (or (and (g/zero? u)
+                             (g/zero? v)
+                             (g/zero? g))
                         (and (evenly-divide u g)
                              (evenly-divide v g)))))))
 

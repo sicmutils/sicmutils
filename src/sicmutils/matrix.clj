@@ -31,7 +31,6 @@
 
 (deftype Matrix [r c ^PersistentVector v]
   v/Value
-  (nullity? [_] (every? #(every? v/nullity? %) v))
   (unity? [_] false)
   (kind [_] ::matrix)
   IFn
@@ -351,6 +350,7 @@
 (defmethod g/div [::s/up ::matrix] [u M] (M*u (invert M) u))
 (defmethod g/simplify [::matrix] [m] (->> m (fmap g/simplify) g/freeze))
 (defmethod g/determinant [::matrix] [m] (determinant m))
+(defmethod g/zero? [::matrix] [^Matrix m] (every? #(every? g/zero? %) (.v m)))
 (defmethod g/zero-like [::matrix] [m] (fmap g/zero-like m))
 (defmethod g/one-like
   [::matrix]

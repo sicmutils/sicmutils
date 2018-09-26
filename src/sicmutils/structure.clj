@@ -30,7 +30,7 @@
 
 (deftype Structure [orientation ^PersistentVector v]
   v/Value
-  (nullity? [_] (every? v/nullity? v))
+
   (unity? [_] false)
   (kind [_] orientation)
   Object
@@ -328,3 +328,4 @@
 
 (defmethod g/magnitude [::structure] [^Structure a]
   (g/sqrt (reduce + (map g/square a))))
+(defmethod g/zero? [::structure] [a] (every? g/zero? a))
