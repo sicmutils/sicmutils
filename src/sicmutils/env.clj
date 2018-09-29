@@ -139,6 +139,7 @@
   * + - /
   abs
   acos
+  arity
   asin
   atan
   cos

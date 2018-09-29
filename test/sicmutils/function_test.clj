@@ -35,7 +35,7 @@
       (is (= '(F x) (g/simplify (f 'x))))
       (is (= '(F 7) (g/simplify (f (g/+ 3 4))))))
     (testing "kind"
-      (is (= :sicmutils.function/function (v/kind f))))
+      (is (= sicmutils.function.Function (v/kind f))))
     (testing "arity > 1"
       (let [g (literal-function 'g [0 0] 0)]
         (is (= '(g a b) (g/simplify (g 'a 'b))))))))
@@ -154,9 +154,9 @@
               add+mul (g/+ add mul)
               add-mul (g/- add mul)
               mul-add (g/- mul add)]
-          (is (= [:at-least 0] (v/arity add)))
-          (is (= [:at-least 0] (v/arity mul)))
-          (is (= [:at-least 0] (v/arity add+mul)))
+          (is (= [:at-least 0] (g/arity add)))
+          (is (= [:at-least 0] (g/arity mul)))
+          (is (= [:at-least 0] (g/arity add+mul)))
           (is (= 33 (add+mul 2 3 4)))
           (is (= -15 (add-mul 2 3 4)))
           (is (= 15 (mul-add 2 3 4))))))))
@@ -186,3 +186,21 @@
     (is (iterated-symbolic-derivative? '((expt D 2) f)))
     (is (= '((expt D 2) f) (symbolic-increase-derivative '(D f))))
     (is (= '((expt D 3) f) (symbolic-increase-derivative '((expt D 2) f))))))
+
+(deftest arities
+  (is (= [:exactly 0] (g/arity (fn [] 42))))
+  (is (= [:exactly 1] (g/arity (fn [x] (+ x 1)))))
+  (is (= [:exactly 2] (g/arity (fn [x y] (+ x y)))))
+  (is (= [:exactly 3] (g/arity (fn [x y z] (* x y z)))))
+  (is (= [:at-least 0] (g/arity (fn [& xs] (reduce + 0 xs)))))
+  (is (= [:at-least 1] (g/arity (fn [x & xs] (+ x (reduce * 1 xs))))))
+  (is (= [:at-least 2] (g/arity (fn [x y & zs] (+ x y (reduce * 1 zs))))))
+  (is (= [:exactly 0] (g/arity 'x)))
+  (is (= [:at-least 0] (g/arity (constantly 42))))
+  (is (= [:exactly 0] (g/arity [1 2 3])))
+  (is (= [:exactly 1] (g/arity [g/sin g/cos g/tan])))
+  (is (= [:exactly 2] (g/arity [[(fn [x y] (+ x y)) (fn [x y] (- x y))]
+                              [(fn [x y] (* x y)) (fn [x y] (/ x y))]])))
+  (let [f (fn [x] (+ x x))
+        g (fn [y] (* y y))]
+    (is (= [:exactly 1] (g/arity (comp f g))))))

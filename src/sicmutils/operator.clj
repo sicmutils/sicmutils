@@ -73,7 +73,7 @@
   computes the difference of applying the supplied operators."
   [o p]
   (->Operator #(g/- (apply o %&) (apply p %&))
-              (v/joint-arity [(:arity o) (:arity p)])
+              (g/joint-arity [o p])
               `(~'- ~(:name o) ~(:name p))
               (joint-context o p)))
 
@@ -82,7 +82,7 @@
   applying the given operators."
   [o p]
   (->Operator #(g/+ (apply o %&) (apply p %&))
-              (v/joint-arity [(v/arity o) (v/arity p)])
+              (g/joint-arity [o p])
               `(~'+ ~(:name o) ~(:name p))
               (joint-context o p)))
 
@@ -187,6 +187,7 @@
 (defmethod g/mul [::operator ::co-operator] [o n] (o*f o n))
 (defmethod g/mul [::co-operator ::operator] [n o] (f*o n o))
 (defmethod g/div [::operator ::co-operator] [o n] (o*f o (g/invert n)))
+(defmethod g/arity [::operator] [o] (:arity o))
 
 (defmethod g/square [::operator] [o] (o*o o o))
 

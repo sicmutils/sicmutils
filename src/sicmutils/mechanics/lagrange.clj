@@ -121,10 +121,8 @@
   function (from time to local tuple)."
   ([q]
    (let [Dq (D q)]
-     (with-meta
-       (fn [t]
-         (up t (q t) (Dq t)))
-       {:arity [:exactly 1]})))
+     (fn [t]
+       (up t (q t) (Dq t)))))
   ([q n]
    (let [Dqs (->> q (iterate D) (take (- n 1)))]
      (fn [t]

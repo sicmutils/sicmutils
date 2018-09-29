@@ -365,6 +365,11 @@
   (if (= (.c m) 1)
     `(~'column-matrix ~@(map (comp g/freeze first) (.v m)))
     `(~'matrix-by-rows ~@(map g/freeze (.v m)))))
+(defmethod g/arity
+  [::matrix]
+  [^Matrix m]
+  (g/joint-arity (.v m))
+  )
 
 (defmethod g/determinant
   [::s/structure]

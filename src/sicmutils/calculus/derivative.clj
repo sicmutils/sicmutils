@@ -372,7 +372,7 @@
 
 (defn ^:private multivariate-derivative
   [f selectors]
-  (let [a (v/arity f)
+  (let [a (g/arity f)
         d (partial euclidean-structure selectors)
         make-df #(with-meta % {:arity a :from :multivariate-derivative})]
     (condp = a
@@ -437,7 +437,7 @@
 (define-unary-operation g/invert #(diff-div 1 %))
 (define-unary-operation g/square #(diff-* % %))
 (define-unary-operation g/cube #(diff-* % (diff-* % %)))
-(derive ::differential :sicmutils.function/cofunction)
+(derive ::differential :sicmutils.function/lifts-to-function)
 (derive ::differential ::o/co-operator)
 (derive ::differential ::series/coseries)
 

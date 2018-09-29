@@ -327,3 +327,4 @@
 (defmethod g/magnitude [::structure] [^Structure a]
   (g/sqrt (reduce + (map g/square a))))
 (defmethod g/zero? [::structure] [a] (every? g/zero? a))
+(defmethod g/arity [::structure] [a] (g/joint-arity a))

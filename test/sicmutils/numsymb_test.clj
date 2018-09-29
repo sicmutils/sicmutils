@@ -207,9 +207,7 @@
     (is (= 4 (g/gcd 4 0)))
     (is (= 4 (g/gcd 0 4)))
     (is (= 1 (g/gcd 1 4)))
-    (is (= 1 (g/gcd 4 1)))
-    #_(is (= 0 (g/gcd 'x 'x)))
-    ))
+    (is (= 1 (g/gcd 4 1)))))
 
 (deftest exactness
   (is (g/exact? 1))
@@ -220,3 +218,11 @@
   (is (not (g/exact? 'a)))
   (is (not (g/exact? :a)))
   (is (not (g/exact? "a"))))
+
+(deftest generic-plus
+  (testing "simple"
+    (is (= 0 (g/+)))
+    (is (= 7 (g/+ 7)))
+    (is (= 7 (g/+ 3 4))))
+  (testing "many"
+    (is (= 33 (g/+ 3 4 5 6 7 8)))))

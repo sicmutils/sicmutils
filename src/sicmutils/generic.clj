@@ -20,7 +20,8 @@
 (ns sicmutils.generic
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [sicmutils
-             [value :as v]])
+             [value :as v]]
+            [clojure.core.match :refer [match]])
   (:import (clojure.lang Keyword)))
 
 ;;; classifiers
@@ -91,6 +92,48 @@
 
 (defmulti exact? v/argument-kind)
 (defmethod exact? :default [_] false)
+
+(defmulti arity v/argument-kind)
+(defmethod arity :default [a]
+  (or (:arity a)
+      (:arity (meta a))
+      [:exactly 0]))
+
+(defn ^:private combine-arities
+  "Find the joint arity of arities a and b, i.e. the loosest possible arity specification
+  compatible with both. Throws if the arities are incompatible."
+  [a b]
+  (let [fail #(throw (IllegalArgumentException. (str "Incompatible arities: " a " " b)))]
+    ;; since the combination operation is symmetric, sort the arguments
+    ;; so that we only have to implement the upper triangle of the
+    ;; relation.
+    (if (< 0 (compare (first a) (first b)))
+      (combine-arities b a)
+      (match [a b]
+             [[:at-least k] [:at-least k2]] [:at-least (max k k2)]
+             [[:at-least k] [:between m n]] (let [m (max k m)]
+                                              (cond (= m n) [:exactly m]
+                                                    (< m n) [:between m n]
+                                                    :else (fail)))
+             [[:at-least k] [:exactly l]] (if (>= l k)
+                                            [:exactly l]
+                                            (fail))
+             [[:between m n] [:between m2 n2]] (let [m (max m m2)
+                                                     n (min n n2)]
+                                                 (cond (= m n) [:exactly m]
+                                                       (< m n) [:between m n]
+                                                       :else (fail)))
+             [[:between m n] [:exactly k]] (if (and (<= m k)
+                                                    (<= k n))
+                                             [:exactly k]
+                                             (fail))
+             [[:exactly k] [:exactly l]] (if (= k l) [:exactly k] (fail))))))
+
+(defn joint-arity
+  "Find the most relaxed possible statement of the joint arity of the given objects.
+  If they are incompatible, an exception is thrown."
+  [objects]
+  (reduce combine-arities [:at-least 0] (map arity objects)))
 
 (defmulti freeze v/argument-kind)
 

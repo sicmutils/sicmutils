@@ -29,7 +29,8 @@
             [sicmutils.calculus.derivative :as d])
   (:import [sicmutils.polynomial Polynomial]
            [sicmutils.structure Structure]
-           (clojure.lang IFn)))
+           (clojure.lang IFn RestFn)
+           (java.lang.reflect Method)))
 
 (declare literal-apply)
 
@@ -65,7 +66,7 @@
   Object
   (toString [_] (str name) )
   v/Value
-  (kind [_] ::function)
+  (kind [_] Function)
   IFn
   (invoke [f x] (literal-apply f [x]))
   (invoke [f x y] (literal-apply f [x y]))
@@ -121,48 +122,43 @@
   which computes (+ (f x) (g x)) given x as input."
   [operator]
   (let [h (fn [f g]
-            (let [f-numeric (g/numerical? f)
-                  g-numeric (g/numerical? g)
-                  f-arity (if f-numeric (v/arity g) (v/arity f))
-                  g-arity (if g-numeric f-arity (v/arity g))
-                  arity (v/joint-arity [f-arity g-arity])
-                  f1 (if f-numeric (with-meta
-                                     (constantly f)
-                                     {:arity arity
-                                      :from :binop}) f)
-                  g1 (if g-numeric (with-meta
-                                     (constantly g)
-                                     {:arity arity
-                                      :from :binop}) g)]
-              (let [h (condp = arity
-                        [:exactly 0]
-                        #(operator (f1) (g1))
-                        [:exactly 1]
-                        #(operator (f1 %) (g1 %))
-                        [:exactly 2]
-                        #(operator (f1 %1 %2) (g1 %1 %2))
-                        [:exactly 3]
-                        #(operator (f1 %1 %2 %3) (g1 %1 %2 %3))
-                        [:exactly 4]
-                        #(operator (f1 %1 %2 %3 %4) (g1 %1 %2 %3 %4))
-                        [:exactly 5]
-                        #(operator (f1 %1 %2 %3 %4 %5) (g1 %1 %2 %3 %4 %5))
-                        [:exactly 6]
-                        #(operator (f1 %1 %2 %3 %4 %5 %6) (g1 %1 %2 %3 %4 %5 %6))
-                        [:exactly 7]
-                        #(operator (f1 %1 %2 %3 %4 %5 %6 %7) (g1 %1 %2 %3 %4 %5 %6 %7))
-                        [:exactly 8]
-                        #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8) (g1 %1 %2 %3 %4 %5 %6 %7 %8))
-                        [:exactly 9]
-                        #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9))
-                        [:exactly 10]
-                        #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10))
-                        [:at-least 0]
-                        #(operator (apply f1 %&) (apply g1 %&))
-                        (throw (IllegalArgumentException.
-                                (str  "unsupported arity for function arithmetic " arity))))]
-                (with-meta h {:arity f-arity :from :function-binop}))))]
+            (let [arity (g/joint-arity [f g])
+                  h (condp = arity
+                      [:exactly 0]
+                      #(operator (f) (g))
+                      [:exactly 1]
+                      #(operator (f %) (g %))
+                      [:exactly 2]
+                      #(operator (f %1 %2) (g %1 %2))
+                      [:exactly 3]
+                      #(operator (f %1 %2 %3) (g %1 %2 %3))
+                      [:exactly 4]
+                      #(operator (f %1 %2 %3 %4) (g %1 %2 %3 %4))
+                      [:exactly 5]
+                      #(operator (f %1 %2 %3 %4 %5) (g %1 %2 %3 %4 %5))
+                      [:exactly 6]
+                      #(operator (f %1 %2 %3 %4 %5 %6) (g %1 %2 %3 %4 %5 %6))
+                      [:exactly 7]
+                      #(operator (f %1 %2 %3 %4 %5 %6 %7) (g %1 %2 %3 %4 %5 %6 %7))
+                      [:exactly 8]
+                      #(operator (f %1 %2 %3 %4 %5 %6 %7 %8) (g %1 %2 %3 %4 %5 %6 %7 %8))
+                      [:exactly 9]
+                      #(operator (f %1 %2 %3 %4 %5 %6 %7 %8 %9) (g %1 %2 %3 %4 %5 %6 %7 %8 %9))
+                      [:exactly 10]
+                      #(operator (f %1 %2 %3 %4 %5 %6 %7 %8 %9 %10) (g %1 %2 %3 %4 %5 %6 %7 %8 %9 %10))
+                      [:at-least 0]
+                      #(operator (apply f %&) (apply g %&))
+                      (throw (IllegalArgumentException.
+                              (str  "unsupported arity for function arithmetic " arity))))]
+              (with-meta h {:arity arity :from :function-binop})))]
     (with-meta h {:arity [:exactly 2]})))
+
+(defn lift-to-function
+  [f arity]
+  (with-meta
+    (constantly f)
+    {:arity arity
+     :from :binop}))
 
 (defmacro ^:private make-binary-operation
   "Given a generic and binary function operation,
@@ -173,13 +169,19 @@
      (doseq [signature# [[::function ::function]
                          [::function ::cofunction]
                          [::cofunction ::function]]]
-       (defmethod ~generic-op signature# [a# b#] (binop# a# b#)))))
+       (defmethod ~generic-op signature# [a# b#] (binop# a# b#)))
+     (defmethod ~generic-op
+       [::function ::lifts-to-function]
+       [f# n#]
+       (binop# f# (lift-to-function n# (g/arity f#))))
+     (defmethod ~generic-op
+       [::lifts-to-function ::function]
+       [n# f#]
+       (binop# (lift-to-function n# (g/arity f#)) f#))))
 
 (defmacro ^:private make-unary-operation
   [generic-op]
   `(defmethod ~generic-op [::function] [a#] ((unary-operation ~generic-op) a#)))
-
-
 
 (make-binary-operation g/add g/+)
 (make-binary-operation g/sub g/-)
@@ -208,13 +210,14 @@
 (defmethod g/zero-like [::function] [a] (fn [& _] (g/zero-like (:range a))))
 (defmethod g/one-like [::function] [a] (fn [& _] (g/one-like (:range a))))
 
-(derive clojure.lang.Symbol ::cofunction)
-(derive ::x/numerical-expression ::cofunction)
-(derive ::ns/native-numeric-type ::cofunction)
+(derive clojure.lang.Symbol ::lifts-to-function)
+(derive ::x/numerical-expression ::lifts-to-function)
+(derive ::ns/numeric-type ::lifts-to-function)
 (derive ::s/structure ::cofunction)
 (derive ::m/matrix ::cofunction)
-(derive ::v/function ::function)
 (derive ::function :sicmutils.series/coseries)
+(derive ::v/function ::function)  ;; TODO: WTF
+
 ;; ------------------------------------
 ;; Differentiation of literal functions
 ;;
@@ -327,7 +330,7 @@
   simply the arity of its rightmost (that is, first to be applied)
   function term."
   [& fns]
-  (let [a (v/arity (last fns))]
+  (let [a (g/arity (last fns))]
     (with-meta (apply comp fns) {:arity a})))
 
 (defmacro with-literal-functions
@@ -358,3 +361,68 @@
              (m :name)))
       (:name a)
       ((get-method g/freeze :default) a)))
+
+(def ^:private reflect-on-arity
+  "Returns the arity of the native function f.
+  Computing arities of clojure functions is a bit complicated.
+  It involves reflection, so the results are definitely worth
+  memoizing."
+  (memoize
+   (fn [f]
+     (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
+                     ;; tally up arities of invoke, doInvoke, and
+                     ;; getRequiredArity methods. Filter out invokeStatic.
+                     ^RestFn rest-fn f
+                     facts (group-by first
+                                     (for [^Method m methods
+                                           :let [name (.getName m)]
+                                           :when (not= name "invokeStatic")]
+                                       (condp = name
+                                         "invoke" [:invoke (alength (.getParameterTypes m))]
+                                         "doInvoke" [:doInvoke true]
+                                         "getRequiredArity" [:getRequiredArity (.getRequiredArity rest-fn)])))]
+                 (cond
+                   ;; Rule one: if all we have is one single case of invoke, then the
+                   ;; arity is the arity of that method. This is the common case.
+                   (and (= 1 (count facts))
+                        (= 1 (count (:invoke facts))))
+                   [:exactly (second (first (:invoke facts)))]
+                   ;; Rule two: if we have exactly one doInvoke and getRequiredArity,
+                   ;; and possibly an invokeStatic, then the arity at
+                   ;; least the result of .getRequiredArity.
+                   (and (= 2 (count facts))
+                        (= 1 (count (:doInvoke facts)))
+                        (= 1 (count (:getRequiredArity facts))))
+                   [:at-least (second (first (:getRequiredArity facts)))]
+                   ;; Rule three: if we have invokes for the arities 0..3, getRequiredArity
+                   ;; says 3, and we have doInvoke, then we consider that this function
+                   ;; was probably produced by Clojure's core "comp" function, and
+                   ;; we somewhat lamely consider the arity of the composed function 1.
+                   (and (= #{0 1 2 3} (into #{} (map second (:invoke facts))))
+                        (= 3 (second (first (:getRequiredArity facts))))
+                        (:doInvoke facts))
+                   [:exactly 1]
+                   :else (throw (IllegalArgumentException. (str "arity? " f " " facts))))))))
+
+(defmethod g/arity
+  [clojure.lang.MultiFn]
+  [a]
+  (if-let [m (get-method a :arity)]
+    (m :arity)
+    (throw (UnsupportedOperationException. "unknown multifn arity"))))
+
+(defmethod g/arity
+  [Function]
+  [^Function a]
+  (.arity a))
+
+(defmethod g/arity
+  [::function]
+  [a]
+  (if (fn? a)
+    (or (:arity (meta a))
+        (reflect-on-arity a))
+    (throw (UnsupportedOperationException. (str "arity of unusual object: " a " of type " (type a))))))
+
+(derive clojure.lang.MultiFn ::function)
+(derive Function ::function)

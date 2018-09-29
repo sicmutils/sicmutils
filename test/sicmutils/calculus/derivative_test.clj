@@ -420,10 +420,13 @@
           f100e (fn f100e
                   ([x] (f100e x 100 x))
                   ([x ct acc] (if (zero? ct) acc (recur x (dec ct) (sin (+ x acc))))))
+          ;; the above function has a confused arity as seen by the differentiation logic.
+          ;; We create a version wrapped with a metadata tag to indicate the arity
+          ;; intended.
           f100ea (with-meta f100e {:arity [:exactly 1]})]
       (is ((v/within 1e-6) 0.51603111348625 ((D f100d) 6)))
       (is (thrown? IllegalArgumentException ((v/within 1e-6) 0.51603111348625 ((D f100e) 6))))
-      (is ((v/within 1e-6) 0.51603111348625 ((D (with-meta f100e {:arity [:exactly 1]})) 6))))))
+      (is ((v/within 1e-6) 0.51603111348625 ((D f100ea) 6))))))
 
 (deftest deep-partials
   (let [f (fn [x y] (+ (square x) (square (square y))))]

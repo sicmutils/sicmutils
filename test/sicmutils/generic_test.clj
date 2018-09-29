@@ -56,27 +56,38 @@
     (is (= "zzz" (s+ "" "zzz")))
     ))
 
-(deftest generic-plus
-  (testing "simple"
-    (is (= 0 (+)))
-    (is (= 7 (+ 7)))
-    (is (= 7 (+ 3 4))))
-  (testing "many"
-    (is (= 33 (+ 3 4 5 6 7 8)))))
-
 (deftest type-assigner
   (testing "types"
     (is (= Long (v/kind 9)))
     (is (= Double (v/kind 99.0)))))
 
-(deftest zero-predicate
-  (is (zero? 0))
-  (is (zero? 0.0))
-  (is (not (zero? 1)))
-  (is (not (zero? 0.1))))
-
-(deftest one-predicate
-  (is (one? 1))
-  (is (one? 1.0))
-  (is (not (one? 0)))
-  (is (not (one? 0.0))))
+(deftest joint-arities
+  (let [exactly (fn [n] {:arity [:exactly n]})
+        at-least (fn [n] {:arity [:at-least n]})
+        between (fn [m n] {:arity [:between m n]})]
+    (is (= [:exactly 1] (joint-arity [(exactly 1) (exactly 1)])))
+    (is (= [:exactly 5] (joint-arity [(exactly 5) (exactly 5)])))
+    (is (thrown? IllegalArgumentException (joint-arity [(exactly 2) (exactly 1)])))
+    (is (thrown? IllegalArgumentException (joint-arity [(exactly 1) (exactly 2)])))
+    (is (= [:exactly 3] (joint-arity [(exactly 3) (at-least 2)])))
+    (is (= [:exactly 3] (joint-arity [(exactly 3) (at-least 3)])))
+    (is (= [:exactly 3] (joint-arity [(at-least 1) (exactly 3)])))
+    (is (= [:exactly 3] (joint-arity [(at-least 3) (exactly 3)])))
+    (is (thrown? IllegalArgumentException (joint-arity [(exactly 1) (at-least 2)])))
+    (is (thrown? IllegalArgumentException (joint-arity [(at-least 2) (exactly 1)])))
+    (is (= [:at-least 3] (joint-arity [(at-least 2) (at-least 3)])))
+    (is (= [:at-least 3] (joint-arity [(at-least 3) (at-least 2)])))
+    (is (= [:between 2 3] (joint-arity [(between 1 3) (between 2 5)])))
+    (is (= [:between 2 3] (joint-arity [(between 2 5) (between 1 3)])))
+    (is (thrown? IllegalArgumentException (joint-arity [(between 1 3) (between 4 6)])))
+    (is (thrown? IllegalArgumentException (joint-arity [(between 4 6) (between 1 3)])))
+    (is (= [:exactly 3] (joint-arity [(between 1 3) (between 3 4)])))
+    (is (= [:exactly 3] (joint-arity [(between 3 4) (between 1 3)])))
+    (is (= [:between 2 4] (joint-arity [(at-least 2) (between 1 4)])))
+    (is (= [:between 2 4] (joint-arity [(between 1 4) (at-least 2)])))
+    (is (thrown? IllegalArgumentException (joint-arity [(at-least 4) (between 1 3)])))
+    (is (thrown? IllegalArgumentException (joint-arity [(between 1 3) (at-least 4)])))
+    (is (= [:exactly 2] (joint-arity [(exactly 2) (between 2 3)])))
+    (is (= [:exactly 2] (joint-arity [(between 2 3) (exactly 2)])))
+    (is (thrown? IllegalArgumentException (joint-arity [(between 2 3) (exactly 1)])))
+    (is (thrown? IllegalArgumentException (joint-arity [(exactly 1) (between 2 3)])))))
