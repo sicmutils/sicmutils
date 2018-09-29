@@ -170,7 +170,8 @@
 
 (defn ^:private abstract-quantity? [x] (= (:type x) ::x/numerical-expression))
 
-;; TODO: it is structurally irritating to have an if here.
+;; TODO: it is structurally irritating to have an if here. The trick would be to make simplify generic.
+;; Although then we have to account for the structure-preserving and other forms of simplification.
 (defn simplify-numerical-expression
   "Runs the content of the Expression e through the simplifier, but leaves the result in
   Expression form."

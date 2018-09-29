@@ -188,6 +188,3 @@
         :else (bin-div (first args) (reduce bin* (next args)))))
 
 (def divide /)
-
-;; TODO
-;;(v/add-object-symbols! {+ '+ * '* - '- / (symbol "/")})
