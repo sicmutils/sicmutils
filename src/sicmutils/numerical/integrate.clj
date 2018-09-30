@@ -84,6 +84,7 @@
     value))
 
 (defn carlson-rf [x y z]
+  "From W.H. Press, Numerical Recipes in C++, 2ed. NR::rf from section 6.11"
   (let [errtol 0.0025
         tiny 1.5e-38
         big 3.0e37
