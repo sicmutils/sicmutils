@@ -22,7 +22,6 @@
   (:require [clojure.test :refer :all]
             [sicmutils
              [env :refer :all]
-             [value :refer [within]]
              [simplify :refer [hermetic-simplify-fixture]]]
             [sicmutils.mechanics.lagrange :as L]
             [sicmutils.examples
@@ -31,6 +30,7 @@
   (:import (javax.management.remote.rmi _RMIConnection_Stub)))
 
 (use-fixtures :once hermetic-simplify-fixture)
+
 
 (def ^:private near (within 1e-6))
 

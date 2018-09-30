@@ -21,11 +21,10 @@
   (:require [clojure.test :refer :all]
             [sicmutils
              [generic :as g]
-             [value :as v]
              [simplify]
              [numsymb]]))
 
-(def ^:private near (v/within 1e-12))
+(def ^:private near (g/within 1e-12))
 
 (deftest numsymb-test
   (testing "+/- with vars"

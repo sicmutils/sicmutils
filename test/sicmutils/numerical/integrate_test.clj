@@ -19,10 +19,10 @@
 
 (ns sicmutils.numerical.integrate-test
   (:require [clojure.test :refer :all]
-            [sicmutils.value :as v]
+            [sicmutils.generic :refer [within]]
             [sicmutils.numerical.integrate :refer :all]))
 
-(def ^:private near (v/within 1e-6))
+(def ^:private near (within 1e-6))
 
 (def ^:private natural-log (partial definite-integral / 1.))
 
@@ -45,7 +45,7 @@
   (testing "harder"
     ;; Apache commons math doesn't seem to have an integrator handy that works
     ;; well on integrals with a singularity at the edge
-    (let [sort-of-near (v/within 5e-3)
+    (let [sort-of-near (within 5e-3)
           integrand (fn [g theta0]
                       (fn [theta]
                         (/ (Math/sqrt (* 2 g (- (Math/cos theta) (Math/cos theta0)))))))

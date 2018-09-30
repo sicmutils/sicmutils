@@ -23,17 +23,16 @@
             [sicmutils
              [structure :refer :all]
              [generic :refer :all]
-             [numsymb]
-             [value :as v]]
+             [numsymb]]
             [sicmutils.numerical.ode :refer :all]))
 
-(def ^:private near? (v/within 1e-8))
+(def ^:private near? (within 1e-8))
 
 (deftest simple-odes
   (testing "y' = y"
     ;; we should get exp(x), with suitable initial condition
     (let [result ((state-advancer (constantly identity)) (up 1.) 1. 1.e-10)]
-      (is ((v/within 1e-8) (Math/exp 1) (nth result 0))))
+      (is ((within 1e-8) (Math/exp 1) (nth result 0))))
     (let [f (constantly identity)]
       (doseq [compile? [true false true true]]
         (let [states (atom [])

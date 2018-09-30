@@ -29,8 +29,7 @@
              [generic :as g]
              [structure :as s]
              [matrix :as matrix]
-             [function :as f]
-             [value :as v]]
+             [function :as f]]
             [sicmutils.mechanics.lagrange :refer :all]))
 
 (use-fixtures :once hermetic-simplify-fixture)
@@ -95,7 +94,7 @@
     (testing "characteristic polynomial"
       (is (= '(+ (expt x 2) (* -5 x) -2) (g/simplify (matrix/characteristic-polynomial A 'x))))
       (is (= '(+ (expt y 3) (* -11 (expt y 2)) (* 31 y) -22) (g/simplify (matrix/characteristic-polynomial C 'y))))
-      (is ((v/within 1e-12) 0.0 (g/simplify (matrix/characteristic-polynomial A (g/divide (g/- 5 (g/sqrt 33)) 2))))))))
+      (is ((g/within 1e-12) 0.0 (g/simplify (matrix/characteristic-polynomial A (g/divide (g/- 5 (g/sqrt 33)) 2))))))))
 
 (deftest native-clojure-things
   (is (= "foo" (g/simplify "foo")))

@@ -19,10 +19,10 @@
 
 (ns sicmutils.numerical.minimize-test
   (:require [clojure.test :refer :all]
-            [sicmutils.value :as v]
+            [sicmutils.generic :refer [within]]
             [sicmutils.numerical.minimize :refer :all]))
 
-(def ^:private near (v/within 1e-5))
+(def ^:private near (within 1e-5))
 
 (deftest minima
   (testing "univariate"

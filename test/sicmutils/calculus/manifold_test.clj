@@ -23,7 +23,6 @@
     [clojure.test :refer :all]
     [sicmutils
      [env :refer :all]
-     [value :as v]
      [generic :as g]
      [simplify :refer [hermetic-simplify-fixture]]]
     [sicmutils.calculus.manifold :as m]))
@@ -32,7 +31,7 @@
 
 (defn ^:private near
   [p q]
-  ((v/within 1e-12) 0 (sqrt (square (- p q)))))
+  ((g/within 1e-12) 0 (sqrt (square (- p q)))))
 
 (deftest coordinate-systems
   (testing "R2"

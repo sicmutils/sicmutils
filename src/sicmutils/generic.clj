@@ -215,3 +215,8 @@
         :else (bin-div (first args) (reduce bin* (next args)))))
 
 (def divide /)
+
+(defn within
+  "Returns a function that tests whether two values are within ε of each other."
+  [ε]
+  (fn [x y] (< (Math/abs (double (- x y))) ε)))

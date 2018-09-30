@@ -23,7 +23,6 @@
              [generic :refer :all]
              [structure :refer :all]
              [operator :refer [make-operator]]
-             [value :refer :all]
              [matrix :as matrix]
              [function :as f]]
             [sicmutils.calculus.derivative :refer :all]))
@@ -110,6 +109,18 @@
         ((- (* ((∂ 1) f) ((∂ 2) g))
             (* ((∂ 2) f) ((∂ 1) g)))
          x)))))
+
+(def ^:private twopi (* 2 Math/PI))
+(defn principal-value
+  [cuthigh]
+  (let [cutlow (- cuthigh twopi)]
+    (fn [x]
+      (if (and (<= cutlow x) (< x cuthigh))
+        x
+        (let [y (- x (* twopi (Math/floor (/ x twopi))))]
+          (if (< y cuthigh)
+            y
+            (- y twopi)))))))
 
 (defn standard-map
   [K]

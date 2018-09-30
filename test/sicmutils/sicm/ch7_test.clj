@@ -21,8 +21,7 @@
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
-            [sicmutils.simplify :refer [pe hermetic-simplify-fixture]]
-            [sicmutils.value :refer [within]]))
+            [sicmutils.simplify :refer [pe hermetic-simplify-fixture]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 

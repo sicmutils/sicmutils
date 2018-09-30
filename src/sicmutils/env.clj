@@ -31,7 +31,6 @@
              [generic :as g]
              [simplify :as simp]
              [function :as f]
-             [value :as v]
              [infix]
              [operator]
              [matrix :as matrix]
@@ -102,7 +101,6 @@
 (def column-matrix matrix/column)
 
 (def pi Math/PI)
-(def principal-value v/principal-value)
 
 (def series series/starting-with)
 (def series:sum series/sum)
@@ -159,6 +157,7 @@
   square
   tan
   transpose
+  within
   zero-like
   zero?
   Lie-derivative]
@@ -274,6 +273,7 @@
   momentum
   momentum-tuple
   polar-canonical
+  principal-value
   standard-map
   symplectic-transform?
   symplectic-unit

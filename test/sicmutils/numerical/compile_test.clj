@@ -21,10 +21,9 @@
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
-            [sicmutils.value :as v]
             [sicmutils.numerical.compile :refer :all]))
 
-(def ^:private near (v/within 1e-6))
+(def ^:private near (within 1e-6))
 
 (deftest compile-univariate
   (let [f (fn [x] (+ 1 (square (sin x))))

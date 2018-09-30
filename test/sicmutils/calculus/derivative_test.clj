@@ -24,7 +24,6 @@
              [function :refer :all]
              [generic :refer :all]
              [complex :refer [complex]]
-             [value :as v]
              [simplify :refer [hermetic-simplify-fixture]]
              [infix :refer [->infix]]
              [structure :refer :all]
@@ -133,7 +132,7 @@
     (let [s (fn [t] (sqrt t))
           u (fn [t] (expt (- (* 3 (s t)) 1) 2/3))
           y (fn [t] (/ (+ (u t) 2) (- (u t) 1)))]
-      (is ((v/within 1e-6) (/ -1 18.) ((D y) 9)))))
+      (is ((within 1e-6) (/ -1 18.) ((D y) 9)))))
   (testing "structural-functions"
     (is (= '(up (cos t) (* -1 (sin t))) (simplify ((D (up sin cos)) 't))))))
 
@@ -192,7 +191,7 @@
                 (fn [y]
                   (g (+ x y)))))
           f-hat ((D f) 3)]
-      (is ((v/within 1e-6) 2980.957987 ((f-hat exp) 5)))
+      (is ((within 1e-6) 2980.957987 ((f-hat exp) 5)))
       ;; TODO: this is the amazing bug: bbb == 0 is wrong.
       #_(is (= 'bbb ((f-hat (f-hat exp)) 5))))))
 
@@ -424,9 +423,9 @@
           ;; We create a version wrapped with a metadata tag to indicate the arity
           ;; intended.
           f100ea (with-meta f100e {:arity [:exactly 1]})]
-      (is ((v/within 1e-6) 0.51603111348625 ((D f100d) 6)))
-      (is (thrown? IllegalArgumentException ((v/within 1e-6) 0.51603111348625 ((D f100e) 6))))
-      (is ((v/within 1e-6) 0.51603111348625 ((D f100ea) 6))))))
+      (is ((within 1e-6) 0.51603111348625 ((D f100d) 6)))
+      (is (thrown? IllegalArgumentException ((within 1e-6) 0.51603111348625 ((D f100e) 6))))
+      (is ((within 1e-6) 0.51603111348625 ((D f100ea) 6))))))
 
 (deftest deep-partials
   (let [f (fn [x y] (+ (square x) (square (square y))))]

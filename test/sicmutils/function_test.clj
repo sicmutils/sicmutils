@@ -21,13 +21,12 @@
   (:require [clojure.test :refer :all]
             [sicmutils
              [generic :as g]
-             [value :as v]
              [operator :as o]
              [structure :refer :all]
              [simplify]
              [function :refer :all]]))
 
-(def ^:private near (v/within 1.0e-6))
+(def ^:private near (g/within 1.0e-6))
 
 (deftest function-basic
   (let [f (literal-function 'F)]
