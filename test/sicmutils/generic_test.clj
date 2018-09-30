@@ -21,11 +21,11 @@
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.test :refer :all]
             [sicmutils
-             [value :as v]
-             [generic :refer :all]]))
+             [generic :refer :all]])
+  (:import (clojure.lang PersistentVector)))
 
-(defmulti s* v/argument-kind)
-(defmulti s+ v/argument-kind)
+(defmulti s* argument-kind)
+(defmulti s+ argument-kind)
 
 (defn multiply-string
   [n s]
@@ -58,8 +58,8 @@
 
 (deftest type-assigner
   (testing "types"
-    (is (= [Long] (v/argument-kind 9)))
-    (is (= [Double] (v/argument-kind 99.0)))))
+    (is (= [Long] (argument-kind 9)))
+    (is (= [Double] (argument-kind 99.0)))))
 
 (deftest joint-arities
   (let [exactly (fn [n] {:arity [:exactly n]})
@@ -91,3 +91,16 @@
     (is (= [:exactly 2] (joint-arity [(between 2 3) (exactly 2)])))
     (is (thrown? IllegalArgumentException (joint-arity [(between 2 3) (exactly 1)])))
     (is (thrown? IllegalArgumentException (joint-arity [(exactly 1) (between 2 3)])))))
+
+(deftest generic-types
+  (is (= Long (generic-type 1)))
+  (is (= Double (generic-type 1.0)))
+  (is (= PersistentVector (generic-type [1 2]))))
+
+(deftest argument-kinds
+  (let [L Long
+        V PersistentVector]
+    (is (= [L] (argument-kind 1)))
+    (is (= [L L L] (argument-kind 1 2 3)))
+    (is (= [V] (argument-kind [2 3])))
+    (is (= [V V] (argument-kind [1] [3 4])))))

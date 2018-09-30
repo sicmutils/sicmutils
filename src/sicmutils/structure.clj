@@ -18,19 +18,18 @@
 ;
 
 (ns sicmutils.structure
-  (:import (clojure.lang Sequential Seqable IFn ILookup AFn Counted PersistentVector))
   (:require [clojure.string :refer [join]]
             [sicmutils
-             [value :as v]
-             [generic :as g]]))
+             [generic :as g]])
+  (:import (clojure.lang Sequential Seqable IFn ILookup AFn Counted PersistentVector)))
 
 (declare make)
 
 (def ^:private orientation->symbol {::up 'up ::down 'down})
 
 (deftype Structure [orientation ^PersistentVector v]
-  v/Value
-  (kind [_] orientation)
+  g/IGenericType
+  (generic-type [_] orientation)
   Object
   (equals [_ b]
     (and (instance? Structure b)
@@ -293,24 +292,14 @@
 (derive ::up ::structure)
 (derive ::down ::structure)
 (derive PersistentVector ::up)
+
+;; Things that derive ::scalar are multiplied by structures elementwise.
 (derive :sicmutils.expression/numerical-expression ::scalar)
 (derive :sicmutils.numsymb/native-numeric-type ::scalar)
 (derive clojure.lang.Symbol ::scalar)
 
-(doseq [type-compatible-with-structure-multiplication [:sicmutils.operator/operator
-                                                       :sicmutils.calculus.derivative/differential
-                                                       :sicmutils.numsymb/native-numeric-type
-                                                       :sicmutils.expression/numerical-expression
-                                                       clojure.lang.Symbol]]
-  (defmethod g/mul
-    [::structure type-compatible-with-structure-multiplication]
-    [a b]
-    (outer-product b a))
-  (defmethod g/mul
-    [type-compatible-with-structure-multiplication ::structure]
-    [a b]
-    (outer-product a b)))
-
+(defmethod g/mul [::structure ::scalar] [a b] (outer-product b a))
+(defmethod g/mul [::scalar ::structure] [a b] (outer-product a b))
 (defmethod g/div [::structure ::scalar] [a b] (outer-product (g/invert b) a))
 (defmethod g/div [::structure ::structure] [a b] (mul (g/invert b) a))
 (defmethod g/expt [::structure Long] [a b] (expt a b))

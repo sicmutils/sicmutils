@@ -19,13 +19,10 @@
 
 (ns sicmutils.modint
   (:require [sicmutils
-             [value :as v]
              [generic :as g]
              [euclid :as e]]))
 
-(defrecord ModInt [^BigInteger i ^BigInteger m]
-  v/Value
-  (kind [_] ::modint))
+(defrecord ModInt [^BigInteger i ^BigInteger m])
 
 (defn make [i m]
   (ModInt. (mod i m) m))
@@ -48,17 +45,17 @@
 (def ^:private mul (modular-binop *))
 (def ^:private modulo (modular-binop mod))
 
-(defmethod g/add [::modint ::modint] [a b] (add a b))
-(defmethod g/add [Long ::modint] [a b] (make (+ a (:i b)) (:m b)))
-(defmethod g/add [::modint Long] [a b] (make (+ (:i a) b) (:m a)))
-(defmethod g/mul [::modint ::modint] [a b] (mul a b))
-(defmethod g/sub [::modint ::modint] [a b] (sub a b))
-(defmethod g/negate [::modint] [a] (make (- (:i a)) (:m a)))
-(defmethod g/invert [::modint] [a] (modular-inv a))
-(defmethod g/abs [::modint] [{:keys [i m] :as a}] (if (< i 0) (make i m) a))
-(defmethod g/quotient [::modint ::modint] [a b] (mul a (modular-inv b)))
-(defmethod g/remainder [::modint ::modint] [a b] (modulo a b))
-(defmethod g/exact-divide [::modint ::modint] [a b] (mul a (modular-inv b)))
-(defmethod g/negative? [::modint] [a] (< (:i a) 0))
-(defmethod g/zero? [::modint] [a] (= (:i a) 0))
-(defmethod g/one? [::modint] [a] (= (:i a) 1))
+(defmethod g/add [ModInt ModInt] [a b] (add a b))
+(defmethod g/add [Long ModInt] [a b] (make (+ a (:i b)) (:m b)))
+(defmethod g/add [ModInt Long] [a b] (make (+ (:i a) b) (:m a)))
+(defmethod g/mul [ModInt ModInt] [a b] (mul a b))
+(defmethod g/sub [ModInt ModInt] [a b] (sub a b))
+(defmethod g/negate [ModInt] [a] (make (- (:i a)) (:m a)))
+(defmethod g/invert [ModInt] [a] (modular-inv a))
+(defmethod g/abs [ModInt] [{:keys [i m] :as a}] (if (< i 0) (make i m) a))
+(defmethod g/quotient [ModInt ModInt] [a b] (mul a (modular-inv b)))
+(defmethod g/remainder [ModInt ModInt] [a b] (modulo a b))
+(defmethod g/exact-divide [ModInt ModInt] [a b] (mul a (modular-inv b)))
+(defmethod g/negative? [ModInt] [a] (< (:i a) 0))
+(defmethod g/zero? [ModInt] [a] (= (:i a) 0))
+(defmethod g/one? [ModInt] [a] (= (:i a) 1))

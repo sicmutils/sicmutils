@@ -22,7 +22,7 @@
   (:require [clojure.test :refer :all]
             [sicmutils
              [env :refer :all]
-             [value :as v]
+             [generic :as g]
              [simplify :refer [hermetic-simplify-fixture]]]
             [sicmutils.operator :as o]))
 
@@ -39,7 +39,7 @@
              (simplify ((v f) p))))
       (is (= '(up (b↑0 (up x0 y0)) (b↑1 (up x0 y0)))
              (simplify ((v (chart R2-rect)) p))))
-      (is (= :sicmutils.calculus.vector-field/vector-field (v/kind v)))))
+      (is (= :sicmutils.calculus.vector-field/vector-field (g/generic-type v)))))
   (testing "exponential"
     (let-coordinates [[x y] R2-rect]
       (let [circular (- (* x d:dy) (* y d:dx))]

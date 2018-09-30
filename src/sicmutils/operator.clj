@@ -19,7 +19,6 @@
 
 (ns sicmutils.operator
   (:require [sicmutils
-             [value :as v]
              [expression :as x]
              [series :as series]
              [generic :as g]])
@@ -27,8 +26,8 @@
            (sicmutils.series Series)))
 
 (defrecord Operator [o arity name context]
-  v/Value
-  (kind [_] (:subtype context))
+  g/IGenericType
+  (generic-type [_] (:subtype context))
   IFn
   (invoke [_ f] (o f))
   (invoke [_ f g] (o f g))
@@ -178,6 +177,7 @@
 (derive :sicmutils.numsymb/native-numeric-type ::co-operator)
 (derive :sicmutils.function/function ::co-operator)
 (derive clojure.lang.Symbol ::co-operator)
+(derive ::operator :sicmutils.structure/scalar)
 
 
 ;; Multiplication of operators is defined as their application (see o*o, above)

@@ -21,7 +21,6 @@
   (:require [clojure.test :refer :all]
             [sicmutils
              [generic :as g]
-             [value :as v]
              [polynomial :refer :all]
              [analyze :as a]
              [simplify :refer [hermetic-simplify-fixture]]

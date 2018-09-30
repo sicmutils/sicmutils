@@ -19,18 +19,4 @@
 
 (ns sicmutils.value-test
   (:require [clojure.test :refer :all]
-            [sicmutils.value :refer :all])
-  (:import (clojure.lang PersistentVector)))
-
-(deftest kinds
-  (is (= Long (kind 1)))
-  (is (= Double (kind 1.0)))
-  (is (= PersistentVector (kind [1 2]))))
-
-(deftest argument-kinds
-  (let [L Long
-        V PersistentVector]
-    (is (= [L] (argument-kind 1)))
-    (is (= [L L L] (argument-kind 1 2 3)))
-    (is (= [V] (argument-kind [2 3])))
-    (is (= [V V] (argument-kind [1] [3 4])))))
+            [sicmutils.value :refer :all]))

@@ -22,8 +22,7 @@
              [operator :as o]
              [structure :as s]
              [generic :as g]
-             [function :as f]
-             [value :as v]]
+             [function :as f]]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.manifold :as m]))
 

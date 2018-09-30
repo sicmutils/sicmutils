@@ -18,8 +18,7 @@
 ;
 
 (ns sicmutils.euclid
-  (:require [sicmutils.generic :as g]
-            [sicmutils.value :as v]))
+  (:require [sicmutils.generic :as g]))
 
 (defn extended-gcd
   "The extended Euclidean algorithm

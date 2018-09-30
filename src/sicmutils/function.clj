@@ -20,7 +20,6 @@
 (ns sicmutils.function
   (:require [sicmutils
              [polynomial]
-             [value :as v]
              [expression :as x]
              [structure :as s]
              [matrix :as m]
@@ -65,8 +64,6 @@
 (defrecord Function [name arity domain range]
   Object
   (toString [_] (str name) )
-  v/Value
-  (kind [_] Function)
   IFn
   (invoke [f x] (literal-apply f [x]))
   (invoke [f x y] (literal-apply f [x y]))
@@ -216,7 +213,7 @@
 (derive ::s/structure ::cofunction)
 (derive ::m/matrix ::cofunction)
 (derive ::function :sicmutils.series/coseries)
-(derive ::v/function ::function)  ;; TODO: WTF
+
 
 ;; ------------------------------------
 ;; Differentiation of literal functions
@@ -306,9 +303,9 @@
             (doseq [[provided expected sub-index] (map list provided expected (range))]
               (check-argument-type f provided expected (conj indexes sub-index))))
         (keyword? expected) ;; a keyword has to match the argument's kind
-        (when-not (= (v/kind provided) expected)
+        (when-not (= (g/generic-type provided) expected)
           (throw (IllegalArgumentException.
-                  (str "expected argument of type " expected " but got " (v/kind provided)
+                  (str "expected argument of type " expected " but got " (g/generic-type provided)
                        " in call to function " f))))
 
         :else (throw (IllegalArgumentException.
@@ -357,7 +354,7 @@
   [::function]
   [a]
   (or (and (instance? clojure.lang.MultiFn a)
-           (if-let [m (get-method a :name)]
+           (if-let [m (get-method a [:name])]
              (m :name)))
       (:name a)
       ((get-method g/freeze :default) a)))
@@ -407,7 +404,7 @@
 (defmethod g/arity
   [clojure.lang.MultiFn]
   [a]
-  (if-let [m (get-method a :arity)]
+  (if-let [m (get-method a [:arity])]
     (m :arity)
     (throw (UnsupportedOperationException. "unknown multifn arity"))))
 

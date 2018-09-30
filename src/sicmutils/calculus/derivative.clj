@@ -19,7 +19,6 @@
 
 (ns sicmutils.calculus.derivative
   (:require [sicmutils
-             [value :as v]
              [generic :as g]
              [numsymb :as ns]
              [operator :as o]
@@ -27,7 +26,8 @@
              [structure :as struct]
              [matrix :as matrix]]
             [clojure.string :refer [join]])
-  (:import (clojure.lang Sequential)))
+  (:import (clojure.lang Sequential)
+           (sicmutils.matrix Matrix)))
 
 ;; A differential term is implemented as a pair whose first element is
 ;; a set of tags and whose second is the coefficient.
@@ -39,8 +39,6 @@
 ;; A differential is a sequence of differential terms, ordered by the
 ;; tag set.
 (deftype Differential [terms]
-  v/Value
-  (kind [_] ::differential)
   Object
   (equals [_ b]
     (and (instance? Differential b)
@@ -404,18 +402,18 @@
 
 (defn ^:private define-binary-operation
   [generic-operation differential-operation]
-  (define-binary-diffop generic-operation differential-operation ::differential ::differential)
+  (define-binary-diffop generic-operation differential-operation Differential Differential)
   (let [types [clojure.lang.Symbol
                ::ns/numeric-type
                :sicmutils.expression/numerical-expression]]
     (doseq [t types]
-      (define-binary-diffop generic-operation differential-operation ::differential t)
-      (define-binary-diffop generic-operation differential-operation t ::differential))
+      (define-binary-diffop generic-operation differential-operation Differential t)
+      (define-binary-diffop generic-operation differential-operation t Differential))
     ))
 
 (defn ^:private define-unary-operation
   [generic-operation differential-operation]
-  (defmethod generic-operation [::differential] [a] (differential-operation a)))
+  (defmethod generic-operation [Differential] [a] (differential-operation a)))
 
 (define-binary-operation g/expt expt)
 
@@ -437,10 +435,9 @@
 (define-unary-operation g/invert #(diff-div 1 %))
 (define-unary-operation g/square #(diff-* % %))
 (define-unary-operation g/cube #(diff-* % (diff-* % %)))
-(derive ::differential :sicmutils.function/lifts-to-function)
-(derive ::differential ::o/co-operator)
-(derive ::differential ::series/coseries)
-
+(derive Differential :sicmutils.function/lifts-to-function)
+(derive Differential ::o/co-operator)
+(derive Differential ::series/coseries)
 
 (defmethod g/partial-derivative
   [:sicmutils.function/function Sequential]
@@ -458,24 +455,26 @@
   (multivariate-derivative f selectors))
 
 (defmethod g/partial-derivative
-  [::matrix/matrix Sequential]
+  [Matrix Sequential]
   [f selectors]
   (multivariate-derivative f selectors))
 
 (defmethod g/numerical?
-  [::differential]
+  [Differential]
   [a]
   (g/numerical? (differential-of a)))
 
 (defmethod g/freeze
-  [::differential]
+  [Differential]
   [^Differential a]
   `[~'Differential ~@(.terms a)])
 
 (defmethod g/zero?
-  [::differential]
+  [Differential]
   [^Differential a]
   (every? #(g/zero? (coefficient %)) (.terms a)))
+
+(derive Differential :sicmutils.structure/scalar)
 
 (def D
   "Derivative operator. Produces a function whose value at some point can

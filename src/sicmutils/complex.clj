@@ -19,13 +19,8 @@
 
 (ns sicmutils.complex
   (:require [sicmutils
-             [value :as v]
              [generic :as g]])
   (:import [org.apache.commons.math3.complex Complex]))
-
-(extend-type Complex
-  v/Value
-  (kind [_] Complex))
 
 (defn complex
   "Construct a complex number from real, or real and imaginary, components."

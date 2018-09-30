@@ -21,7 +21,6 @@
   (:require [clojure.test :refer :all]
             [sicmutils
              [generic :as g]
-             [value :as v]
              [numsymb]
              [complex :refer :all]]))
 

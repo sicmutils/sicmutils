@@ -20,7 +20,6 @@
 (ns sicmutils.modint-test
   (:require [clojure.test :refer :all]
             [sicmutils
-             [value :as v]
              [generic :as g]
              [modint :refer :all]]))
 

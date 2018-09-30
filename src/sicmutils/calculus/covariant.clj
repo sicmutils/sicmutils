@@ -20,7 +20,6 @@
 (ns sicmutils.calculus.covariant
   (:require
    [sicmutils
-    [value :as v]
     [generic :as g]
     [structure :as s]
     [operator :as o]]

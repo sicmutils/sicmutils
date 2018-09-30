@@ -19,10 +19,32 @@
 
 (ns sicmutils.generic
   (:refer-clojure :exclude [+ - * / zero?])
-  (:require [sicmutils
-             [value :as v]]
-            [clojure.core.match :refer [match]])
+  (:require [clojure.core.match :refer [match]])
   (:import (clojure.lang Keyword)))
+
+(defprotocol IGenericType
+  (generic-type [this]))
+
+(extend-type Object
+  IGenericType
+  (generic-type [o] (or (:type o) (type o))))
+
+(extend-type nil
+  IGenericType
+  (generic-type [_] nil))
+
+(extend-type Keyword
+  IGenericType
+  (generic-type [k] k))
+
+(defn ^:private primitive-kind
+  [a]
+  (if (fn? a) :sicmutils.function/function
+      (generic-type a)))
+
+(defn argument-kind
+  [& args]
+  (mapv primitive-kind args))
 
 ;;; classifiers
 
@@ -34,9 +56,9 @@
   (let [arity (if b `[:between ~a ~@b] [:exactly a])
         docstring (str "generic " f)]
     `(do
-       (defmulti ~f ~docstring v/argument-kind)
-       (defmethod ~f :arity [k#] ~arity)
-       (defmethod ~f :name [k#] '~f))))
+       (defmulti ~f ~docstring argument-kind)
+       (defmethod ~f [:arity] [k#] ~arity)
+       (defmethod ~f [:name] [k#] '~f))))
 
 (def-generic-function add 2)
 (def-generic-function mul 2)
@@ -84,16 +106,16 @@
 
 (def-generic-function Lie-derivative 1)
 
-(defmulti partial-derivative v/argument-kind)
-(defmulti simplify v/argument-kind)
+(defmulti partial-derivative argument-kind)
+(defmulti simplify argument-kind)
 
-(defmulti numerical? v/argument-kind)
+(defmulti numerical? argument-kind)
 (defmethod numerical? :default [_] false)
 
-(defmulti exact? v/argument-kind)
+(defmulti exact? argument-kind)
 (defmethod exact? :default [_] false)
 
-(defmulti arity v/argument-kind)
+(defmulti arity argument-kind)
 (defmethod arity :default [a]
   (or (:arity a)
       (:arity (meta a))
@@ -140,7 +162,7 @@
   [objects]
   (reduce combine-arities [:at-least 0] (map arity objects)))
 
-(defmulti freeze v/argument-kind)
+(defmulti freeze argument-kind)
 
 (defn abstract-quantity?
   [x]

@@ -110,6 +110,4 @@
             (is (= '(up ((D θ) τ) ((D φ) τ))
                    (simplify (((basis->oneform-basis foo)
                                ((differential μ) d:dt))
-                              ((point R1-rect) 'τ)))))))
-        )))
-  )
+                              ((point R1-rect) 'τ)))))))))))

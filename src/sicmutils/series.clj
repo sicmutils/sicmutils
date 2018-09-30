@@ -20,7 +20,6 @@
 (ns sicmutils.series
   (:refer-clojure :rename {take core-take})
   (:require [sicmutils
-             [value :as v]
              [generic :as g]])
   (:import (clojure.lang IFn Sequential Seqable)))
 
@@ -29,8 +28,6 @@
 ;; wrap them in a defrecord.
 
 (deftype Series [arity s]
-  v/Value
-  (kind [_] ::series)
   IFn
   (invoke [_ x] (Series. arity (map #(% x) s)))
   (invoke [_ x y] (Series. arity (map #(% x y) s)))
@@ -116,40 +113,40 @@
   (Series. [:exactly 0] (map f (range))))
 
 (defmethod g/mul
-  [::coseries ::series]
+  [::coseries Series]
   [c ^Series s]
   (Series. (.arity s) (c*s c (.s s))))
 
 (defmethod g/mul
-  [::series ::coseries]
+  [Series ::coseries]
   [^Series s c]
   (Series. (.arity s) (s*c (.s s) c)))
 
 (defmethod g/mul
-  [::series ::series]
+  [Series Series]
   [^Series s ^Series t]
   {:pre [(= (.arity s) (.arity t))]}
   (Series. (.arity s) (s*s (.s s) (.s t))))
 
 (defmethod g/add
-  [::series ::series]
+  [Series Series]
   [^Series s ^Series t]
   {:pre [(= (.arity s) (.arity t))]}
   (Series. (.arity s) (s+s (.s s) (.s t))))
 
-(defmethod g/negate [::series] [s] (fmap g/negate s))
-;; (defmethod g/zero? [::series] [^Series a] (empty? (.s a)))
+(defmethod g/negate [Series] [s] (fmap g/negate s))
+;; (defmethod g/zero? [Series] [^Series a] (empty? (.s a)))
 
 (defmethod g/sub
-  [::series ::series]
+  [Series Series]
   [^Series s ^Series t]
   {:pre [(= (.arity s) (.arity t))]}
   (Series. (.arity s) (s+s (.s s) (map g/negate (.s t)))))
 
-(defmethod g/square [::series] [s] (g/mul s s))
+(defmethod g/square [Series] [s] (g/mul s s))
 
 (defmethod g/partial-derivative
-  [::series Sequential]
+  [Series Sequential]
   [^Series s selectors]
   (let [a (.arity s)] (cond (= a [:exactly 0])
                             (Series. a (map #(g/partial-derivative % selectors) (.s s)))
@@ -158,7 +155,7 @@
                             (throw (IllegalArgumentException. (str "Can't differentiate series with arity " a))))))
 
 (defmethod g/freeze
-  [::series]
+  [Series]
   [^Series a]
   `[~'Series ~(.arity a) ~@(map g/simplify (core-take 4 (.s a))) ~'...])
 

@@ -21,7 +21,7 @@
   (:refer-clojure :exclude [+ - * / zero? ref partial])
   (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
-            [sicmutils.value :as v]
+            [sicmutils.generic :as g]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
@@ -77,9 +77,9 @@
             Z (literal-vector-field 'Z-rect R3-rect)
             V (literal-vector-field 'V-rect R3-rect)
             R3-rect-point ((point R3-rect) (up 'x0 'y0 'z0))]
-        (is (= :sicmutils.calculus.vector-field/vector-field (v/kind V)))
-        (is (= :sicmutils.operator/operator (v/kind (Lie-derivative V))))
-        (is (= :sicmutils.calculus.form-field/form-field (v/kind theta)))
+        (is (= :sicmutils.calculus.vector-field/vector-field (g/generic-type V)))
+        (is (= :sicmutils.operator/operator (g/generic-type (Lie-derivative V))))
+        (is (= :sicmutils.calculus.form-field/form-field (g/generic-type theta)))
         (is (= 1 (:rank (:context theta))))
         (is (= 2 (:rank (:context omega))))
         #_(is (= 'a

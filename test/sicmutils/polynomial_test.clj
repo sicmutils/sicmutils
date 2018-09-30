@@ -24,7 +24,6 @@
             [clojure.test.check.clojure-test :refer [defspec]]
             [clojure.math.numeric-tower :as nt]
             [sicmutils
-             [value :as v]
              [polynomial :refer :all]
              [generic :as g]
              [expression :refer [variables-in]]
@@ -35,8 +34,6 @@
 (set! *warn-on-reflection* true)
 
 (deftest poly-core
-  (testing "kind"
-    (is (= :sicmutils.polynomial/polynomial (v/kind (make [])))))
   (testing "zero"
     (is (g/zero? (make [])))
     (is (g/zero? (make [0])))

@@ -21,7 +21,6 @@
   (:require [clojure.tools.logging :as log]
             [clojure.walk :as w]
             [sicmutils
-             [value :as v]
              [analyze :as a]
              [generic :as g]
              [expression :as x]

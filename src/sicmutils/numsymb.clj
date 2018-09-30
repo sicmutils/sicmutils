@@ -19,7 +19,6 @@
 
 (ns sicmutils.numsymb
   (:require [sicmutils
-             [value :as v]
              [generic :as g]
              [complex :as c]
              [euclid :as euclid]
@@ -106,7 +105,13 @@
 ;; TRIG
 ;;
 
-(def ^:private relative-integer-tolerance (* 100 v/machine-epsilon))
+(def ^:private machine-epsilon
+  (loop [e 1.0]
+    (if (not= 1.0 (+ 1.0 (/ e 2.0)))
+      (recur (/ e 2.0))
+      e)))
+
+(def ^:private relative-integer-tolerance (* 100 machine-epsilon))
 (def ^:private absolute-integer-tolerance 1e-20)
 
 (defn ^:private almost-integer? [x]

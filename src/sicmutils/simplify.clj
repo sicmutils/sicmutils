@@ -30,7 +30,6 @@
              [polynomial :as poly]
              [polynomial-factor :as factor]
              [rational-function :as rf]
-             [value :as v]
              [numsymb :as nsy]
              [expression :as x]
              [generic :as g]

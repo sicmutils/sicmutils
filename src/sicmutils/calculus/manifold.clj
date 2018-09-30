@@ -19,7 +19,6 @@
 
 (ns sicmutils.calculus.manifold
   (:require [sicmutils
-             [value :as v]
              [function :as f]
              [generic :as g]
              [expression :as x]

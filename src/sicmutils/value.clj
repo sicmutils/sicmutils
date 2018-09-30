@@ -21,34 +21,6 @@
   (:refer-clojure :rename {zero? core-zero?})
   (:import (clojure.lang Keyword Symbol)))
 
-(defprotocol Value
-  (kind [this]))
-
-(extend-type Object
-  Value
-  (kind [o] (or (:type o) (type o))))
-
-(extend-type nil
-  Value
-  (kind [_] nil))
-
-(defn ^:private primitive-kind
-  [a]
-  (if (fn? a) ::function
-      (kind a)))
-
-(defn argument-kind
-  [& args]
-  (if (and (= 1 (count args))
-           (keyword? (first args)))
-    (first args)
-    (mapv primitive-kind args)))
-
-(def machine-epsilon
-  (loop [e 1.0]
-    (if (not= 1.0 (+ 1.0 (/ e 2.0)))
-      (recur (/ e 2.0))
-      e)))
 
 (defn within
   "Returns a function that tests whether two values are within ε of each other."

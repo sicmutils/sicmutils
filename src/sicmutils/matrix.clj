@@ -20,7 +20,6 @@
 (ns sicmutils.matrix
   (:refer-clojure :rename {get-in core-get-in})
   (:require [sicmutils
-             [value :as v]
              [expression :as x]
              [structure :as s]
              [generic :as g]])
@@ -30,8 +29,6 @@
 (declare generate)
 
 (deftype Matrix [r c ^PersistentVector v]
-  v/Value
-  (kind [_] ::matrix)
   IFn
   (invoke [_ x]
     (Matrix. r c (mapv (fn [e] (mapv #(% x) e)) v)))
@@ -336,37 +333,37 @@
     (when-not (= r c) (throw (IllegalArgumentException. "not square")))
     (determinant (g/- (g/* x (I r)) m))))
 
-(defmethod g/transpose [::matrix] [m] (transpose m))
-(defmethod g/invert [::matrix] [m] (invert m))
-(defmethod g/negate [::matrix] [a] (fmap g/negate a))
-(defmethod g/sub [::matrix ::matrix] [a b] (elementwise g/- a b))
-(defmethod g/add [::matrix ::matrix] [a b] (elementwise g/+ a b))
-(defmethod g/mul [::matrix ::matrix] [a b] (mul a b))
-(defmethod g/mul [::s/scalar ::matrix] [n a] (fmap #(g/* n %) a))
-(defmethod g/mul [::matrix ::s/scalar] [a n] (fmap #(g/* % n) a))
-(defmethod g/mul [::matrix ::s/up] [m u] (M*u m u))
-(defmethod g/mul [::s/down ::matrix] [d m] (d*M d m))
-(defmethod g/div [::s/up ::matrix] [u M] (M*u (invert M) u))
-(defmethod g/simplify [::matrix] [m] (->> m (fmap g/simplify) g/freeze))
-(defmethod g/determinant [::matrix] [m] (determinant m))
-(defmethod g/zero? [::matrix] [^Matrix m] (every? #(every? g/zero? %) (.v m)))
-(defmethod g/zero-like [::matrix] [m] (fmap g/zero-like m))
+(defmethod g/transpose [Matrix] [m] (transpose m))
+(defmethod g/invert [Matrix] [m] (invert m))
+(defmethod g/negate [Matrix] [a] (fmap g/negate a))
+(defmethod g/sub [Matrix Matrix] [a b] (elementwise g/- a b))
+(defmethod g/add [Matrix Matrix] [a b] (elementwise g/+ a b))
+(defmethod g/mul [Matrix Matrix] [a b] (mul a b))
+(defmethod g/mul [::s/scalar Matrix] [n a] (fmap #(g/* n %) a))
+(defmethod g/mul [Matrix ::s/scalar] [a n] (fmap #(g/* % n) a))
+(defmethod g/mul [Matrix ::s/up] [m u] (M*u m u))
+(defmethod g/mul [::s/down Matrix] [d m] (d*M d m))
+(defmethod g/div [::s/up Matrix] [u M] (M*u (invert M) u))
+(defmethod g/simplify [Matrix] [m] (->> m (fmap g/simplify) g/freeze))
+(defmethod g/determinant [Matrix] [m] (determinant m))
+(defmethod g/zero? [Matrix] [^Matrix m] (every? #(every? g/zero? %) (.v m)))
+(defmethod g/zero-like [Matrix] [m] (fmap g/zero-like m))
 (defmethod g/one-like
-  [::matrix]
+  [Matrix]
   [^Matrix m]
   (let [r (.r m)
         c (.c m)]
     (when-not (= r c) (throw (IllegalArgumentException. "not square")))
     (generate r c #(if (= %1 %2) 1 0))))
-(defmethod g/exact? [::matrix] [m] (every? #(every? g/exact? %) m))
+(defmethod g/exact? [Matrix] [m] (every? #(every? g/exact? %) m))
 (defmethod g/freeze
-  [::matrix]
+  [Matrix]
   [^Matrix m]
   (if (= (.c m) 1)
     `(~'column-matrix ~@(map (comp g/freeze first) (.v m)))
     `(~'matrix-by-rows ~@(map g/freeze (.v m)))))
 (defmethod g/arity
-  [::matrix]
+  [Matrix]
   [^Matrix m]
   (g/joint-arity (.v m))
   )

@@ -22,13 +22,12 @@
   (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
             [sicmutils.structure :as s]
-            [sicmutils.generic :as g]
-            [sicmutils.value :as v]))
+            [sicmutils.generic :as g]))
 
 (deftest structures
   (testing "type"
-    (is (= ::s/up (v/kind (up 1 2))))
-    (is (= ::s/down (v/kind (down (up 1 2) (up 2 3))))))
+    (is (= ::s/up (g/generic-type (up 1 2))))
+    (is (= ::s/down (g/generic-type (down (up 1 2) (up 2 3))))))
   (testing "s+t"
     (is (= (+ (up 1 2) (up 2 3)) (up 3 5)))
     (is (= (+ (down 3 4) (down 1 2)) (down 4 6)))
@@ -248,13 +247,13 @@
   ;; this is wrong and needs to be fixed.
   (testing "compatible-shape"
     (let [o (s/compatible-shape (up 1 2))]
-      (is (= ::s/down (v/kind o)))
+      (is (= ::s/down (g/generic-type o)))
       (is (every? symbol? o)))
     (let [o (s/compatible-shape (down 3 (up 1 2) (up 3 4)))]
-      (is (= ::s/up (v/kind o)))
+      (is (= ::s/up (g/generic-type o)))
       (is (symbol? (ref o 0)))
-      (is (= ::s/down (v/kind (ref o 1))))
-      (is (= ::s/down (v/kind (ref o 2)))))))
+      (is (= ::s/down (g/generic-type (ref o 1))))
+      (is (= ::s/down (g/generic-type (ref o 2)))))))
 
 (deftest other-operations
   (let [A (up 1 2 'a (down 3 4) (up (down 'c 'd) 'e))]

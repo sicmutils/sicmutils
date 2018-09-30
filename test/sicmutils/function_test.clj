@@ -35,7 +35,7 @@
       (is (= '(F x) (g/simplify (f 'x))))
       (is (= '(F 7) (g/simplify (f (g/+ 3 4))))))
     (testing "kind"
-      (is (= sicmutils.function.Function (v/kind f))))
+      (is (= sicmutils.function.Function (g/generic-type f))))
     (testing "arity > 1"
       (let [g (literal-function 'g [0 0] 0)]
         (is (= '(g a b) (g/simplify (g 'a 'b))))))))
@@ -127,7 +127,7 @@
         (is (= 10 ((g/+ mul3 4) 2)))
         (is (= 32 ((g/expt 2 add2) 3)))
         (is (= 25 ((g/expt add2 2) 3)))
-        (is (= [:sicmutils.value/function] (v/argument-kind (g/expt add2 2)))))
+        (is (= [:sicmutils.function/function] (g/argument-kind (g/expt add2 2)))))
       (testing "arity 2"
         (let [f (fn [x y] (+ x y))
               g (fn [x y] (* x y))

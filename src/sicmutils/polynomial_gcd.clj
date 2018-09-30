@@ -25,7 +25,6 @@
             [clojure.string]
             [clojure.math.numeric-tower :as nt]
             [sicmutils
-             [value :as v]
              [generic :as g]
              [polynomial :refer :all]]))
 

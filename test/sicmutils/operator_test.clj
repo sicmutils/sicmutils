@@ -21,7 +21,6 @@
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
             [sicmutils
-             [value :as v]
              [env :refer :all]
              [operator :as o]
              [simplify :refer [hermetic-simplify-fixture]]]))

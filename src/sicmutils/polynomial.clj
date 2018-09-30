@@ -23,7 +23,6 @@
             [clojure.string]
             [sicmutils
              [analyze :as a]
-             [value :as v]
              [generic :as g]
              [numsymb :as sym]
              [expression :as x]]))
@@ -84,8 +83,6 @@
 (declare evaluate)
 
 (deftype Polynomial [arity xs->c]
-  v/Value
-  (kind [_] ::polynomial)
   Object
   (equals [_ b]
     (and (instance? Polynomial b)
@@ -442,26 +439,26 @@
   (new-variables [_ arity] (for [a (range arity)]
                              (make arity [[(mapv #(if (= % a) 1 0) (range arity)) 1]]))))
 
-(defmethod g/add [::polynomial ::polynomial] [a b] (add a b))
-(defmethod g/mul [::polynomial ::polynomial] [a b] (mul a b))
-(defmethod g/sub [::polynomial ::polynomial] [a b] (sub a b))
-(defmethod g/exact-divide [::polynomial ::polynomial] [p q] (evenly-divide p q))
-(defmethod g/square [::polynomial] [a] (mul a a))
-(defmethod g/zero-like [::polynomial] [^Polynomial a] (make (.arity a) []))
-(defmethod g/one-like [::polynomial] [^Polynomial a] (make-constant (.arity a) (g/one-like (coefficient (first (.xs->c a))))))
-(defmethod g/mul [::polynomial ::sym/numeric-type] [p a] (map-coefficients #(g/* a %) p))
-(defmethod g/mul [::sym/numeric-type ::polynomial] [a p] (map-coefficients #(g/* % a) p))
-(defmethod g/add [::polynomial ::sym/numeric-type] [^Polynomial p a] (add p (make-constant (.arity p) a)))
-(defmethod g/add [::sym/numeric-type ::polynomial] [a ^Polynomial p] (add (make-constant (.arity p) a) p))
-(defmethod g/sub [::polynomial ::sym/numeric-type] [^Polynomial p a] (sub p (make-constant (.arity p) a)))
-(defmethod g/sub [::sym/numeric-type ::polynomial] [a ^Polynomial p] (sub (make-constant (.arity p) a) p))
-(defmethod g/div [::polynomial ::sym/numeric-type] [p a] (map-coefficients #(g/divide % a) p))
-(defmethod g/expt [::polynomial ::sym/native-integral-type] [b x] (expt b x))
-(defmethod g/negate [::polynomial] [a] (negate a))
-(defmethod g/freeze [::polynomial] [^Polynomial a] `(~'polynomial ~(.arity a) ~(.xs->c a)))
-(defmethod g/zero? [::polynomial] [^Polynomial a] (empty? (.xs->c a)))
+(defmethod g/add [Polynomial Polynomial] [a b] (add a b))
+(defmethod g/mul [Polynomial Polynomial] [a b] (mul a b))
+(defmethod g/sub [Polynomial Polynomial] [a b] (sub a b))
+(defmethod g/exact-divide [Polynomial Polynomial] [p q] (evenly-divide p q))
+(defmethod g/square [Polynomial] [a] (mul a a))
+(defmethod g/zero-like [Polynomial] [^Polynomial a] (make (.arity a) []))
+(defmethod g/one-like [Polynomial] [^Polynomial a] (make-constant (.arity a) (g/one-like (coefficient (first (.xs->c a))))))
+(defmethod g/mul [Polynomial ::sym/numeric-type] [p a] (map-coefficients #(g/* a %) p))
+(defmethod g/mul [::sym/numeric-type Polynomial] [a p] (map-coefficients #(g/* % a) p))
+(defmethod g/add [Polynomial ::sym/numeric-type] [^Polynomial p a] (add p (make-constant (.arity p) a)))
+(defmethod g/add [::sym/numeric-type Polynomial] [a ^Polynomial p] (add (make-constant (.arity p) a) p))
+(defmethod g/sub [Polynomial ::sym/numeric-type] [^Polynomial p a] (sub p (make-constant (.arity p) a)))
+(defmethod g/sub [::sym/numeric-type Polynomial] [a ^Polynomial p] (sub (make-constant (.arity p) a) p))
+(defmethod g/div [Polynomial ::sym/numeric-type] [p a] (map-coefficients #(g/divide % a) p))
+(defmethod g/expt [Polynomial ::sym/native-integral-type] [b x] (expt b x))
+(defmethod g/negate [Polynomial] [a] (negate a))
+(defmethod g/freeze [Polynomial] [^Polynomial a] `(~'polynomial ~(.arity a) ~(.xs->c a)))
+(defmethod g/zero? [Polynomial] [^Polynomial a] (empty? (.xs->c a)))
 (defmethod g/one?
-  [::polynomial]
+  [Polynomial]
   [^Polynomial a]
   (let [xs->c (.xs->c a)]
     (and (= (count xs->c) 1)

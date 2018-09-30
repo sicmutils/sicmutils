@@ -26,7 +26,6 @@
              [matrix :as matrix]
              [structure :as s]
              [generic :as g]
-             [value :as v]
              [numsymb]
              [function :refer [literal-function]]
              [simplify]]
@@ -39,7 +38,6 @@
                           [21 22 23]
                           [31 32 33])
         v (matrix/column 7 8 9)]
-    (is (= :sicmutils.matrix/matrix (v/kind M)))
     (is (= '(matrix-by-rows [1 2 3] [4 5 6]) (g/freeze M)))
     (is (= (matrix/by-rows [1 4] [2 5] [3 6]) (matrix/transpose M)))
     (is (= (matrix/by-rows [0 0 0] [0 0 0]) (g/zero-like M)))
