@@ -54,7 +54,7 @@
           (is (m/check-point R2-rect p))
           (is (m/check-point R1-rect Tp))
           (is (= 99 (m/point->coords R1-rect (m/coords->point R1-rect 99))))
-          (is (= ::m/manifold-point (v/kind p)))
+          (is (= ::m/manifold-point (:type p)))
           (is (not (g/numerical? p))))))
     (testing "Polar"
       (testing "polar m/check-coordinates"

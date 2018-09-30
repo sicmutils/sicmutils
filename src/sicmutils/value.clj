@@ -24,50 +24,25 @@
 (defprotocol Value
   (kind [this]))
 
-(declare primitive-kind)
-
 (extend-type Object
   Value
-  (kind [o] (primitive-kind o)))
+  (kind [o] (or (:type o) (type o))))
 
 (extend-type nil
   Value
   (kind [_] nil))
 
-;; we record arities as a vector with an initial keyword:
-;;   [:exactly m]
-;;   [:between m n]
-;;   [:at-least m]
-
-#_(defn TODO-replace-me-arity
-  "Return the cached or obvious arity of the object if we know it.
-  Otherwise delegate to the heavy duty reflection, if we have to."
-  [f]
-  (or (:arity f)
-      (:arity (meta f))
-      (cond (symbol? f) [:exactly 0]
-            ;; If f is a multifunction, then we expect that it has a multimethod
-            ;; responding to the argument :arity, which returns the arity.
-            (instance? MultiFn f) (f :arity)
-            (fn? f) (reflect-on-arity f)
-            ;; Faute de mieux, we assume the function is unary. Most math functions are.
-            :else [:exactly 1])))
-
-
-
 (defn ^:private primitive-kind
   [a]
-  (cond
-    (fn? a) ::function
-    :else (or (:type a)
-              (type a))))
+  (if (fn? a) ::function
+      (kind a)))
 
 (defn argument-kind
   [& args]
   (if (and (= 1 (count args))
            (keyword? (first args)))
     (first args)
-    (mapv kind args)))
+    (mapv primitive-kind args)))
 
 (def machine-epsilon
   (loop [e 1.0]

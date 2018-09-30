@@ -127,7 +127,7 @@
         (is (= 10 ((g/+ mul3 4) 2)))
         (is (= 32 ((g/expt 2 add2) 3)))
         (is (= 25 ((g/expt add2 2) 3)))
-        (is (= :sicmutils.value/function (v/kind (g/expt add2 2)))))
+        (is (= [:sicmutils.value/function] (v/argument-kind (g/expt add2 2)))))
       (testing "arity 2"
         (let [f (fn [x y] (+ x y))
               g (fn [x y] (* x y))

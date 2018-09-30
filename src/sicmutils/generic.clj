@@ -99,6 +99,11 @@
       (:arity (meta a))
       [:exactly 0]))
 
+;; we record arities as a vector with an initial keyword:
+;;   [:exactly m]
+;;   [:between m n]
+;;   [:at-least m]
+
 (defn ^:private combine-arities
   "Find the joint arity of arities a and b, i.e. the loosest possible arity specification
   compatible with both. Throws if the arities are incompatible."

@@ -58,8 +58,8 @@
 
 (deftest type-assigner
   (testing "types"
-    (is (= Long (v/kind 9)))
-    (is (= Double (v/kind 99.0)))))
+    (is (= [Long] (v/argument-kind 9)))
+    (is (= [Double] (v/argument-kind 99.0)))))
 
 (deftest joint-arities
   (let [exactly (fn [n] {:arity [:exactly n]})
