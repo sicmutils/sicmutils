@@ -33,10 +33,6 @@
   IGenericType
   (generic-type [_] nil))
 
-(extend-type Keyword
-  IGenericType
-  (generic-type [k] k))
-
 (defn ^:private primitive-kind
   [a]
   (if (fn? a) :sicmutils.function/function
@@ -50,15 +46,14 @@
 
 (defmacro ^:private def-generic-function
   "Defines a mutlifn using the provided symbol. Arranges for the multifn
-  to answer the :arity message, reporting either [:exactly a] or
-  [:between a b], according to the arguments given."
+  to answer the :arity  and :name messages."
   [f a & b]
   (let [arity (if b `[:between ~a ~@b] [:exactly a])
         docstring (str "generic " f)]
     `(do
        (defmulti ~f ~docstring argument-kind)
-       (defmethod ~f [:arity] [k#] ~arity)
-       (defmethod ~f [:name] [k#] '~f))))
+       (defmethod ~f [Keyword] [k#] ({:arity ~arity
+                                      :name '~f} k#)))))
 
 (def-generic-function add 2)
 (def-generic-function mul 2)

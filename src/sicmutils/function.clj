@@ -28,7 +28,7 @@
             [sicmutils.calculus.derivative :as d])
   (:import [sicmutils.polynomial Polynomial]
            [sicmutils.structure Structure]
-           (clojure.lang IFn RestFn)
+           (clojure.lang IFn RestFn Keyword)
            (java.lang.reflect Method)))
 
 (declare literal-apply)
@@ -354,8 +354,8 @@
   [::function]
   [a]
   (or (and (instance? clojure.lang.MultiFn a)
-           (if-let [m (get-method a [:name])]
-             (m :name)))
+           (if-let [m (get-method a [Keyword])]
+             (or (m :name) a)))
       (:name a)
       ((get-method g/freeze :default) a)))
 
@@ -403,9 +403,9 @@
 
 (defmethod g/arity
   [clojure.lang.MultiFn]
-  [a]
-  (if-let [m (get-method a [:arity])]
-    (m :arity)
+  [f]
+  (if-let [m (get-method f [Keyword])]
+    (if-let [a (m :arity)] a (throw (UnsupportedOperationException. "unknown multifn arity")))
     (throw (UnsupportedOperationException. "unknown multifn arity"))))
 
 (defmethod g/arity
