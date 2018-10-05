@@ -48,10 +48,10 @@
              [covariant]
              [derivative :as d]
              [form-field]
-             [manifold]
              [map]
              [coordinate]
-             [vector-field]]))
+             [vector-field]
+             [manifold]]))
 
 (defmacro literal-function
   ([f] `(f/literal-function ~f))

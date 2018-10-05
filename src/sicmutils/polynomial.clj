@@ -334,7 +334,8 @@
         (if (< m n)
           [remainder d]
           (recur (sub (*vn remainder)
-                      (mul v (Polynomial. a [[[(- m n)] c]])))
+                      ;; The following is v * c^(m-n). We can compute this cheaply
+                      (Polynomial. a (mapv (fn [[[e] k]] [[(- (+ e m) n)] (g/* k c)]) (.xs->c v))))
                  (inc d)))))))
 
 (defn evenly-divide

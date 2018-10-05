@@ -19,8 +19,7 @@
 
 (ns sicmutils.structure
   (:require [clojure.string :refer [join]]
-            [sicmutils
-             [generic :as g]])
+            [sicmutils.generic :as g])
   (:import (clojure.lang Sequential Seqable IFn ILookup AFn Counted PersistentVector)))
 
 (declare make)

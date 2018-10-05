@@ -373,10 +373,12 @@
   [s]
   (square-structure-> s (fn [m _] (determinant m))))
 
-(defmethod g/invert
-  [::s/structure]
-  [a]
-  (let [a' (square-structure-operation a invert)]
-    (if (= (s/orientation a') (s/orientation (first a')))
-      (s/opposite a' (map #(s/opposite a' %) a'))
-      a')))
+(defn ^:private invert-structure
+  [s]
+  (let [s' (square-structure-operation s invert)]
+    (if (= (s/orientation s') (s/orientation (first s')))
+      (s/opposite s' (map #(s/opposite s' %) s'))
+      s')))
+
+(defmethod g/invert [::s/structure] [s] (invert-structure s))
+(defmethod g/invert [Structure] [s] (invert-structure s))

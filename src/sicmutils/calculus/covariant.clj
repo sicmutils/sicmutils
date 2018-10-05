@@ -27,8 +27,8 @@
     [basis :as b]
     [manifold :as m]
     [vector-field :as vf]
-    [form-field :as ff]])
-  )
+    [form-field :as ff]]))
+
 (defn ^:private vector-field-Lie-derivative
   [X]
   (o/make-operator
