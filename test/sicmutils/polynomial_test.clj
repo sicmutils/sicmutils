@@ -109,12 +109,6 @@
            (divide (make [-4 0 -2 1]) (make [-3 1]))))
     (is (= [(make [-5 0 3]) (make [60 -27 -11])]
            (divide (make [-45 18 72 -27 -27 0 9]) (make [21 -9 -4 0 3]))))
-    (let [U (make [-5 2 8 -3 -3 0 1 0 1])
-          V (make [21 -9 -4 0 5 0 3])
-          [pr d] (pseudo-remainder U V)]
-      (is (= [(make [-2/9 0 1/3]) (make [-1/3 0 1/9 0 -5/9])] (divide U V)))
-      (is (= [(make [-3 0 1 0 -5]) 2] [pr d]))
-      (is (= (make []) (sub (mul (make [(nt/expt 3 d)]) U) (add (mul (make [-2 0 3]) V) pr)))))
     ;; examples from http://www.mathworks.com/help/symbolic/mupad_ref/pdivide.html
     (let [p (make [1 1 0 1])
           q (make [1 1 3])]

@@ -121,6 +121,12 @@
           (is (= (make [(Z5 0) (Z5 1) (Z5 -1) (Z5 0) (Z5 -1) (Z5 1)]) B:Z5))
           (is (= (make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) G5))))))
 
+(deftest basics
+  (let [U (make [-5 2 8 -3 -3 0 1 0 1])
+        V (make [21 -9 -4 0 5 0 3])]
+    (is (= (make [-9 0 3 0 -15]) (univariate-pseudo-remainder U V)))
+    (is (= (g/one-like U) (univariate-subresultant-gcd U V)))))
+
 (deftest simple-gcd-3
   (testing "GCD: arity 3 case"
     (let [I (make 3 [[[0 0 0] 1]])

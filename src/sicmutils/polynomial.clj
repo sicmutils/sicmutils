@@ -124,7 +124,7 @@
   ([dense-coefficients]
    (make 1 (zipmap (map vector (iterate inc 0)) dense-coefficients))))
 
-(defn ^:private lead-term
+(defn lead-term
   "Return the leading (i.e., highest degree) term of the polynomial
   p. The return value is [exponents coefficient]."
   [^Polynomial p]
@@ -166,6 +166,10 @@
                       [(f xs) c])))
 
 (def negate (partial map-coefficients g/negate))
+
+(defn scale
+  [c u]
+  (map-coefficients #(* c %) u))
 
 (defn make-constant
   "Return a constant polynomial of the given arity."
@@ -439,6 +443,8 @@
   (new-variables [_ arity] (for [a (range arity)]
                              (make arity [[(mapv #(if (= % a) 1 0) (range arity)) 1]]))))
 
+(defn polynomial-zero? [^Polynomial u] (empty? (.xs->c u)))
+
 (defmethod g/add [Polynomial Polynomial] [a b] (add a b))
 (defmethod g/mul [Polynomial Polynomial] [a b] (mul a b))
 (defmethod g/sub [Polynomial Polynomial] [a b] (sub a b))
@@ -456,7 +462,7 @@
 (defmethod g/expt [Polynomial ::sym/native-integral-type] [b x] (expt b x))
 (defmethod g/negate [Polynomial] [a] (negate a))
 (defmethod g/freeze [Polynomial] [^Polynomial a] `(~'polynomial ~(.arity a) ~(.xs->c a)))
-(defmethod g/zero? [Polynomial] [^Polynomial a] (empty? (.xs->c a)))
+(defmethod g/zero? [Polynomial] [a] (polynomial-zero? a))
 (defmethod g/one?
   [Polynomial]
   [^Polynomial a]

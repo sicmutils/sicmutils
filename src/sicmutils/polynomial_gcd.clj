@@ -47,6 +47,7 @@
                     @gcd-trivial-constant
                     @gcd-monomials)))
 
+
 (defn ^:private reduce-until
   "Returns a reducer over the function f which will exit early
   if done? becomes true."
@@ -57,12 +58,25 @@
 
 (defn ^:private native-gcd
   [a b]
-  (.gcd (biginteger a) (biginteger b)))
+  (if (zero? b) a
+      (recur b (mod a b))))
 
 (defn primitive-gcd
-  "A function which will return the gcd of a sequence of numbers."
   [xs]
-  (nt/abs ((reduce-until #(= % 1) native-gcd) xs)))
+  (loop [x (first xs)
+         xs (next xs)]
+    (if (and xs (not= x 1))
+      (recur (native-gcd x (first xs)) (next xs))
+      x)))
+
+(defn univariate-content
+  [u]
+  (primitive-gcd (coefficients u)))
+
+(defn univariate-primitive-part
+  [u]
+  (let [content (univariate-content u)]
+    (map-coefficients #(/ % content) u)))
 
 (defn ^:private with-content-removed
   "For multivariate polynomials. u and v are considered here as
@@ -150,24 +164,6 @@
                    (continue (map-exponents sorter u)
                              (map-exponents sorter v)))))
 
-(def ^:private univariate-euclid-inner-loop
-  (euclid-inner-loop native-gcd))
-
-(defn ^:private gcd1
-  "Knuth's algorithm 4.6.1E for UNIVARIATE polynomials."
-  [^Polynomial u ^Polynomial v]
-  {:pre [(instance? Polynomial u)
-         (instance? Polynomial v)
-         (= (.arity u) 1)
-         (= (.arity v) 1)]}
-  (cond
-    (g/zero? u) v
-    (g/zero? v) u
-    (g/one? u) u
-    (g/one? v) v
-    (= u v) u
-    :else (with-content-removed native-gcd u v univariate-euclid-inner-loop)))
-
 (defn ^:private monomial-gcd
   "Computing the GCD is easy if one of the polynomials is a monomial.
   The monomial is the first argument."
@@ -203,9 +199,51 @@
     1 `(~(first fs) ~u ~v ~(second fs))
     0 `(~(first fs) ~u ~v)))
 
+(defn univariate-pseudo-remainder
+  "Knuth Algorithm 4.6.1R (Pseudo-division of polynomials): Given polynomials
+  u, v this algorithm finds polynomials q and r satisfying:
+    lc(v)^(m-n-1)u = qv + r, deg(r) < deg(v)."
+  [^Polynomial u ^Polynomial v]
+  {:pre [(instance? Polynomial u)
+         (instance? Polynomial v)
+         (not (g/zero? v))
+         (= (.arity u) (.arity v) 1)]}
+  (let [vn (coefficient (lead-term v))
+        m-n+1 (inc (- (degree u) (degree v)))]
+    (second (divide (g/mul (nt/expt vn m-n+1) u) v))))
+
+(defn univariate-subresultant-gcd
+  [u v]
+  (cond
+    (polynomial-zero? u) v
+    (polynomial-zero? v) u
+    :else
+    (let [cu (univariate-content u)
+         cv (univariate-content v)
+         d (primitive-gcd [cu cv])]
+     (loop [g 1
+            h 1
+            u (map-coefficients #(/ % cu) u)
+            v (map-coefficients #(/ % cv) v)]
+       (let [delta (int (- (degree u) (degree v)))
+             r ^Polynomial (univariate-pseudo-remainder u v)]
+         (cond
+           (polynomial-zero? r) (scale d (univariate-primitive-part v))
+           (zero? (degree r)) (make-constant 1 d)
+           :else (let [q (*' g (nt/expt h delta))
+                       u' v
+                       v' (Polynomial. 1 (mapv #(vector (first %) (/ (second %) q)) (.xs->c r)))
+                       g' (coefficient (lead-term u'))
+                       h' (let [gd (nt/expt g' delta)]
+                            (case delta
+                              0 (*' h gd)
+                              1 gd
+                              (/ gd (nt/expt h (dec delta)))))]
+                   (recur g' h' u' v'))))))))
+
 (defn ^:private inner-gcd
   "gcd is just a wrapper for this function, which does the real work
-  of computing a polynomial gcd. Delegates to gcd1 for univariate
+  of computing a multivariate polynomial gcd. Delegates for univariate
   polynomials."
   [level u v]
   (when *poly-gcd-debug*
@@ -214,7 +252,7 @@
     (if-let [g (and *poly-gcd-cache-enable* (@gcd-memo [u v]))]
       (do (swap! gcd-cache-hit inc) g)
       (let [g (cond
-                (= arity 1) (gcd1 u v)
+                (= arity 1) (univariate-subresultant-gcd u v)
                 (g/zero? u) v
                 (g/zero? v) u
                 (g/one? u) u
@@ -270,7 +308,7 @@
       (g/one? u) u
       (g/one? v) v
       (= u v) u
-      (= arity 1) (abs (gcd1 u v))
+      (= arity 1) (abs (univariate-subresultant-gcd u v))
       :else (binding [*poly-gcd-bail-out* (maybe-bail-out "polynomial GCD" clock *poly-gcd-time-limit*)]
               (abs (gcd-continuation-chain u v
                                            with-trivial-constant-gcd-check
@@ -281,7 +319,6 @@
   "Compute the GCD of a sequence of polynomials (we take care to
   break early if the gcd of an initial segment is unity)"
   (reduce-until g/one? gcd))
-
 
 ;; several observations. many of the gcds we find when attempting the troublesome
 ;; GCD are the case where we have two monomials. This can be done trivially
