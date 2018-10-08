@@ -19,6 +19,9 @@
 
 (ns sicmutils.euclid-test
   (:require [clojure.test :refer :all]
+            [clojure.test.check.generators :as gen]
+            [clojure.test.check.properties :as prop]
+            [clojure.test.check.clojure-test :refer [defspec]]
             [sicmutils.euclid :refer :all]))
 
 (defn ^:private ok
@@ -46,8 +49,6 @@
   (testing "extended-gcd"
     (is (= (ok 8 7) 1))
     (is (= (ok 927 632) 1))
-    (is (= [3 0 1] (extended-gcd 0 3)))
-    (is (= [323 1 0] (extended-gcd 323 0)))
     (is (= (ok 934132 (* 934132 71)) 934132))
     (is (= (ok 37279462087332 366983722766) 564958))
     (is (= (ok 4323874085395 586898689868986900219865) 85))
@@ -60,3 +61,23 @@
     (is (= 30 (lcm 6 15)))
     (is (= 12 (reduce lcm [2 3 4])))
     (is (= 30 (reduce lcm [2 3 5])))))
+
+(defspec gcd-divides-both-evenly 1000
+  (prop/for-all [a gen/s-pos-int
+                 b gen/s-pos-int]
+                (let [g (gcd a b)]
+                  (and (= 0 (mod a g))
+                       (= 0 (mod b g))))))
+
+(defspec modular-inverses-work 1000
+  (gen/let [p (gen/elements [2 3 5 7 11 13 17 19 23 29 31])]
+    (prop/for-all [a (gen/such-that #(not= 0 (mod % p)) gen/s-pos-int)]
+                  ;; a · ai ≡ 1 (mod p)
+                  (= 1 (mod (* (modular-inverse p a) a)
+                            p)))))
+
+(defspec bezout-coefficients-work 1000
+  (prop/for-all [a gen/s-pos-int
+                 b gen/s-pos-int]
+                (let [[g m n] (extended-gcd a b)]
+                  (= g (+ (* m a) (* n b))))))

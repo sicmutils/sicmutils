@@ -26,6 +26,7 @@
             [clojure.math.numeric-tower :as nt]
             [sicmutils
              [generic :as g]
+             [euclid :as euclid]
              [polynomial :refer :all]]))
 
 (def ^:dynamic *poly-gcd-time-limit* [1000 TimeUnit/MILLISECONDS])
@@ -240,6 +241,38 @@
                               1 gd
                               (/ gd (nt/expt h (dec delta)))))]
                    (recur g' h' u' v'))))))))
+
+(defn ^:private polynomial-reduce-mod
+  [m p]
+  (map-coefficients #(mod % m) p))
+
+(defn univariate-modular-remainder
+  "Divide polynomial u by v (in ℤ/pℤ), and return the remainder."
+  [p ^Polynomial u ^Polynomial v]
+  {:pre [(= (.arity u) (.arity v) 1)]}
+  (when (g/zero? v)
+    (throw (IllegalArgumentException. "internal polynomial division by zero")))
+  (let [v (polynomial-reduce-mod p v)
+        vn-inv (euclid/modular-inverse p (coefficient (lead-term v)))]
+    (loop [r u]
+      (let [delta (- (degree r) (degree v))]
+        (if (neg? delta) r
+            (recur (polynomial-reduce-mod p
+                                          (sub r (mul v (Polynomial. 1 [[[delta] (* vn-inv (coefficient (lead-term r)))]]))))))))))
+
+(defn univariate-modular-gcd
+  [p u v]
+  (loop [u (polynomial-reduce-mod p u)
+         v (polynomial-reduce-mod p v)]
+    (let [r (univariate-modular-remainder p u v)]
+      (cond
+        (polynomial-zero? r) (let [l (coefficient (lead-term v))]
+                               (if (not= l 1)
+                                 (let [l' (euclid/modular-inverse p l)]
+                                   (map-coefficients #(mod (* % l') p) v))
+                                 v))
+        (zero? (degree r)) (make-constant 1 1)
+        :else (recur v r)))))
 
 (defn ^:private inner-gcd
   "gcd is just a wrapper for this function, which does the real work

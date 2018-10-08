@@ -17,35 +17,35 @@
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(ns sicmutils.euclid
-  (:require [sicmutils.generic :as g]))
+(ns sicmutils.euclid)
+
+(defn gcd
+  [m n]
+  (let [r (mod m n)]
+    (if (zero? r) (if (neg? n) (- n) n)
+        (recur n r))))
 
 (defn extended-gcd
   "The extended Euclidean algorithm
   (see http://en.wikipedia.org/wiki/Extended_Euclidean_algorithm)
   Returns a list containing the GCD and the Bézout coefficients
   corresponding to the inputs."
-  [a b]
-  (cond (g/zero? a) [(g/abs b) 0 1]
-        (g/zero? b) [(g/abs a) 1 0]
-        :else (loop [s 0 s0 1 t 1 t0 0 r (g/abs b) r0 (g/abs a)]
-                (if (g/zero? r)
-                  [r0 s0 t0]
-                  (let [q (g/quotient r0 r)]
-                    (recur (g/- s0 (g/* q s)) s
-                           (g/- t0 (g/* q t)) t
-                           (g/- r0 (g/* q r)) r))))))
+  [m n]
+  (loop [a' 1
+         b 1
+         a 0
+         b' 0
+         c (if (neg? m) (- m) m)
+         d (if (neg? n) (- n) n)]
+    (let [q (quot c d)
+          r (mod c d)]
+      (if (zero? r) [d a b]
+          (recur a (- b' (* q b)) (- a' (* q a)) b d r)))))
 
-(defn gcd
-  [a b]
-  (cond (g/zero? a) (g/abs b)
-        (g/zero? b) (g/abs a)
-        (not (and (integer? a) (integer? b))) 1
-        :else (loop [a (g/abs a) b (g/abs b)]
-                (if (g/zero? b)
-                  a
-                  (recur b (g/remainder a b))))))
+(defn modular-inverse
+  [p a]
+  (second (extended-gcd a p)))
 
 (defn lcm
   [a b]
-  (g/abs (g/divide (g/* a b) (gcd a b))))
+  (/ (*' a b) (gcd a b)))

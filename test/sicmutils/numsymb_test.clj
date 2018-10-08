@@ -203,8 +203,6 @@
     (is (= 2 (g/quotient 5 (BigInteger/valueOf 2)))))
   (testing "gcd"
     (is (= (* 2 5 7) (g/gcd (* 2 3 5 7) (* 2 5 7 11))))
-    (is (= 4 (g/gcd 4 0)))
-    (is (= 4 (g/gcd 0 4)))
     (is (= 1 (g/gcd 1 4)))
     (is (= 1 (g/gcd 4 1)))))
 

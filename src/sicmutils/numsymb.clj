@@ -424,7 +424,6 @@
   [a b]
   (euclid/gcd a b))
 
-
 (defmethod g/remainder
   [::native-integral-type ::native-integral-type]
   [a b]
