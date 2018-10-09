@@ -69,7 +69,7 @@
         (symbol? form) `(quote ~form)
         :else form))
 
-(defmacro rule
+(defn ^:private rule-body
   "Rule takes a match pattern and substitution pattern, compiles each
   of these and returns a function which may be applied to a form
   and (optionally) a success continuation. The function will try to
@@ -83,30 +83,50 @@
         replace-if (if (= predicate? '=>) `(constantly true) predicate?)]
     `(let [matcher# (pattern->matcher ~prepared-pattern)]
        (fn apply#
-         ([data#] (apply# data# identity))
-         ([data# continue#]
-          (if-let [~frame-symbol (match matcher# data# ~replace-if)]
-            (continue# (first ~compiled-consequence))))))))
+         [data# continue#]
+         (if-let [~frame-symbol (match matcher# data# ~replace-if)]
+           (continue# (first ~compiled-consequence)))))))
+
+(defmacro rule
+  [pattern predicate? consequence]
+  (rule-body pattern predicate? consequence))
 
 (defmacro ruleset
   "Ruleset compiles rules, predicates and consequences (triplet-wise)
   into a function which acts like a single rule (as rule would
-  produce) which acts by returning the consequence of the first
-  successful rule, whose pattern-matches satisfy the predicate,
-  or nil if none are applicable."
+  produce) which acts by invoking the success continuation with the
+  consequence of the first successful rule whose patterns match and
+  satisfy the predicate. If no rules match, the failure continuation
+  is invoked."
   [& patterns-and-consequences]
-  (let [[p pred c & pcs] patterns-and-consequences]
-    (if p
-      `(fn apply#
-         ([data#] (apply# data# identity (constantly nil)))
-         ([data# continue#] (apply# data# continue# (constantly nil)))
-         ([data# continue# fail#]
-          (let [R# (rule ~p ~pred ~c)]
-            (or (R# data# continue#)
-                ((ruleset ~@pcs) data# continue# fail#)
-                (fail# data#)))))
-      `(fn [data# _# fail#]
-         (fail# data#)))))
+  {:pre (zero? (mod (count patterns-and-consequences) 3))}
+  (let [rule-inputs (partition 3 patterns-and-consequences)
+        rules (mapv #(apply rule-body %) rule-inputs)
+        n (count rules)]
+    `(let [rules# ~rules]
+       (fn [data# continue# fail#]
+         (loop [i# 0]
+           (if (= i# ~n) (fail# data#)
+               (if-let [success# ((nth rules# i#) data# continue#)]
+                 success#
+                 (recur (inc i#)))
+               )
+           )))
+
+    )
+
+
+  ;; (let [[p pred c & pcs] patterns-and-consequences]
+  ;;   (if p
+  ;;     `(fn [data# continue# fail#]
+  ;;        (let [R# (rule ~p ~pred ~c)]
+  ;;          (or (R# data# continue#)
+  ;;              ((ruleset ~@pcs) data# continue# fail#)
+  ;;              (fail# data#))))
+  ;;     `(fn [data# _# fail#]
+  ;;        (fail# data#))))
+
+  )
 
 (defn ^:private try-rulesets
   "Execute the supplied rulesets against expression in order. The
