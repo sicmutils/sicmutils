@@ -101,32 +101,11 @@
   [& patterns-and-consequences]
   {:pre (zero? (mod (count patterns-and-consequences) 3))}
   (let [rule-inputs (partition 3 patterns-and-consequences)
-        rules (mapv #(apply rule-body %) rule-inputs)
-        n (count rules)]
+        rules (mapv #(apply rule-body %) rule-inputs)]
     `(let [rules# ~rules]
        (fn [data# continue# fail#]
-         (loop [i# 0]
-           (if (= i# ~n) (fail# data#)
-               (if-let [success# ((nth rules# i#) data# continue#)]
-                 success#
-                 (recur (inc i#)))
-               )
-           )))
-
-    )
-
-
-  ;; (let [[p pred c & pcs] patterns-and-consequences]
-  ;;   (if p
-  ;;     `(fn [data# continue# fail#]
-  ;;        (let [R# (rule ~p ~pred ~c)]
-  ;;          (or (R# data# continue#)
-  ;;              ((ruleset ~@pcs) data# continue# fail#)
-  ;;              (fail# data#))))
-  ;;     `(fn [data# _# fail#]
-  ;;        (fail# data#))))
-
-  )
+         (or (some #(% data# continue#) rules#)
+             (fail# data#))))))
 
 (defn ^:private try-rulesets
   "Execute the supplied rulesets against expression in order. The
