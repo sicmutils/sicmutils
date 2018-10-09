@@ -21,32 +21,52 @@
   (:require [clojure.test :refer :all]
             [pattern.rule :refer :all]))
 
-(def ^:private => (constantly true))
 (def ^:private !=> (constantly false))
+
+
+(defmacro ^:private rule-1
+  "Compiling a rule produces an arity 2 function which takes the data to match
+  and a success continuation. For testing we provide this arity-1 wrapper which
+  provides a continuation that immediately returns."
+  [& pattern-components]
+  `(let [compiled-rule# (rule ~@pattern-components)]
+     (fn [data#]
+       (compiled-rule# data# identity))))
+
+(defn ^:private apply-ruleset
+  "Like the above, supplies trivial success and failure continuations to a
+  ruleset so that it may be invoked with data alone."
+  [ruleset data]
+  (ruleset data identity (constantly nil)))
 
 (deftest rule-test
   (testing "simple"
-    (let [R (rule ((:? a) (:? b) (:?? cs)) =>
-                  (a b c (:? a) (:? b) y z))]
+    (let [R (rule-1 ((:? a) (:? b) (:?? cs)) =>
+                    (a b c (:? a) (:? b) y z))]
       (is (= '(a b c 9 8 y z) (R '(9 8 7 6 5))))
       (is (nil? (R '(9))))))
+  (testing "continuation"
+    (let [R (rule ((:? a) (:? b) (:?? cs)) =>
+                    (a b c (:? a) (:? b) y z))]
+      (is (= '(z y 8 9 c b a) (R '(9 8 7 6 5) reverse)))
+      (is (nil? (R '(9) reverse)))))
   (testing "simple2"
-    (let [R (rule ((:? a) (:?? b) (:? a)) =>
-                  (2 (:? a) (:?? b)))]
+    (let [R (rule-1 ((:? a) (:?? b) (:? a)) =>
+                    (2 (:? a) (:?? b)))]
       (is (= '(2 a x y z) (R '(a x y z a))))
       (is (= '(2 a) (R '(a a))))
       (is (= '(2 a b) (R '(a b a))))))
   (testing "simple3"
-    (let [R (rule (+ (:? a)) => (:? a))
-          notR (rule (+ (:? a)) !=> (:? a))
-          evenR (rule (+ (:? a)) #(even? ('a %)) (:? a))]
+    (let [R (rule-1 (+ (:? a)) => (:? a))
+          notR (rule-1 (+ (:? a)) !=> (:? a))
+          evenR (rule-1 (+ (:? a)) #(even? ('a %)) (:? a))]
       (is (= 3 (R '(+ 3))))
       (is (nil? (notR '(+ 3))))
       (is (nil? (notR '(+ 8))))
       (is (nil? (evenR '(+ 3))))
       (is (= 8 (evenR '(+ 8))))))
   (testing "two"
-    (let [R (rule ((:? a) (:? b)) => ((:? b) (:? a)))]
+    (let [R (rule-1 ((:? a) (:? b)) => ((:? b) (:? a)))]
       (is (= [20 10] (R [10 20])))
       (is (not (R [10 20 30])))
       (is (not (R [10])))
@@ -54,8 +74,8 @@
       (is (not (R nil)))
       (is (not (R "")))))
   (testing "simple3"
-    (let [R (rule (+ (:?? b1) (:? a) (:?? b2) (:? a) (:?? b3)) =>
-                  (+ (* 2 (:? a)) (:?? b1) (:?? b2) (:?? b3)))]
+    (let [R (rule-1 (+ (:?? b1) (:? a) (:?? b2) (:? a) (:?? b3)) =>
+                    (+ (* 2 (:? a)) (:?? b1) (:?? b2) (:?? b3)))]
       (is (= '(+ (* 2 a) b c d e) (R '(+ a b c d a e))))
       (is (= '(+ (* 2 a) b c d e) (R '(+ a a b c d e))))
       (is (= '(+ (* 2 a) b c d e) (R '(+ b c d e a a))))
@@ -71,15 +91,15 @@
                ((:? a) (:? a)) => (* 2 (:? a))
                ((:? a) (:? b)) => ((:? b) (:? a))
                ((:? a) (:? b) (:? c)) => ((:? c) (:? b) (:? a)))]
-      (is (= '(4 3) (RS '(3 4))))
-      (is (= '(8 7 6) (RS '(6 7 8))))
-      (is (= '(* 2 5) (RS '(5 5))))
-      (is (= '(* 2 f) (RS '(f f))))
-      (is (nil? (RS '(4))))
-      (is (nil? (RS '(5 6 7 8))))
-      (is (= -2 (RS '(10 8) #(apply - %))))
-      (is (= 4/5 (RS '(10 8) #(apply / %))))
-      (is (= 3/40 (RS '(10 8 6) #(apply / %))))))
+      (is (= '(4 3) (apply-ruleset RS '(3 4))))
+      (is (= '(8 7 6) (apply-ruleset RS '(6 7 8))))
+      (is (= '(* 2 5) (apply-ruleset RS '(5 5))))
+      (is (= '(* 2 f) (apply-ruleset RS '(f f))))
+      (is (nil? (apply-ruleset RS '(4))))
+      (is (nil? (apply-ruleset RS '(5 6 7 8))))
+      (is (= -2 (RS '(10 8) #(apply - %) (constantly nil))))
+      (is (= 4/5 (RS '(10 8) #(apply / %) (constantly nil))))
+      (is (= 3/40 (RS '(10 8 6) #(apply / %) (constantly nil))))))
   (testing "algebra-1"
     (let [RS (ruleset
                (+ (:? a) (+ (:? b) (:? c))) =>
@@ -143,18 +163,17 @@
                                                              (- 1 (expt (cos (:? x)) 2))))
           RS (rule-simplifier R)
           ]
-      (is (= '(b 4 3) (R '(a 3 4))))
-      (is (= '(c 4 3.0) (R '(a 3.0 4))))
-      (is (nil? (R '(a "foo" 4))))
-      (is (= 'success (R '(* (expt (cos y) 3)))))
-      (is (= 4 (R '(* (expt (tan y) 4)))))
-      (is (= 3 (R '(* (expt (sin z) 5)))))
-      (is (= 6 (R '(* (expt (bzz t) 4)))))
+      (is (= '(b 4 3) (apply-ruleset R '(a 3 4))))
+      (is (= '(c 4 3.0) (apply-ruleset R '(a 3.0 4))))
+      (is (nil? (apply-ruleset R '(a "foo" 4))))
+      (is (= 'success (apply-ruleset R '(* (expt (cos y) 3)))))
+      (is (= 4 (apply-ruleset R '(* (expt (tan y) 4)))))
+      (is (= 3 (apply-ruleset R '(* (expt (sin z) 5)))))
+      (is (= 6 (apply-ruleset R '(* (expt (bzz t) 4)))))
       (is (= '(+ (expt (cos x) 2) (* (expt (sin x) 0) (- 1 (expt (cos x) 2))))
              (RS '(+ (expt (cos x) 2) (expt (sin x) 2)))))))
   (testing "rearrangement"
-    (let [R (rule (expt (:T :X) :N) => ((expt :T :N) :X))]
+    (let [R (rule-1 (expt (:T :X) :N) => ((expt :T :N) :X))]
       (is (= '((expt sin 2) t) (R '(expt (sin t) 2))))
       (is (= '((expt cos 2) t) (R '(expt (cos t) 2))))
-      (is (= nil (R '(expt x 2)))))
-    ))
+      (is (= nil (R '(expt x 2)))))))

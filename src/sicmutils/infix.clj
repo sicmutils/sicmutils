@@ -91,7 +91,7 @@
           (maybe-rename-function [f]
             (or (rename-functions f) f))
           (maybe-rewrite-negation [loc]
-            (or (rewrite-negation (z/node loc) #(z/replace loc %))
+            (or (rewrite-negation (z/node loc) #(z/replace loc %) (constantly nil))
                 loc))
           (maybe-rewrite-trig-squares [loc]
             (or (and rewrite-trig-squares

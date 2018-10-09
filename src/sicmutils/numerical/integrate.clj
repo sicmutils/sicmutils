@@ -125,6 +125,8 @@
                (Math/sqrt ave))))))))
 
 (defn elliptic-f [phi k]
+  "Legendre elliptic integral of the first kind F(φ, k).
+   See W.H. Press, Numerical Recipes in C++, 2ed. eq. 6.11.19"
   (let [s (Math/sin phi)]
     (* s (carlson-rf (Math/pow (Math/cos phi) 2)
                      (* (- 1 (* s k))
