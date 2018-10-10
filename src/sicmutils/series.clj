@@ -135,7 +135,6 @@
   (Series. (.arity s) (s+s (.s s) (.s t))))
 
 (defmethod g/negate [Series] [s] (fmap g/negate s))
-;; (defmethod g/zero? [Series] [^Series a] (empty? (.s a)))
 
 (defmethod g/sub
   [Series Series]

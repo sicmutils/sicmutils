@@ -39,6 +39,8 @@
 ;; A differential is a sequence of differential terms, ordered by the
 ;; tag set.
 (deftype Differential [terms]
+  g/INumericType
+  (zero? [_] (empty? terms))
   Object
   (equals [_ b]
     (and (instance? Differential b)
@@ -468,11 +470,6 @@
   [Differential]
   [^Differential a]
   `[~'Differential ~@(.terms a)])
-
-(defmethod g/zero?
-  [Differential]
-  [^Differential a]
-  (every? #(g/zero? (coefficient %)) (.terms a)))
 
 (derive Differential :sicmutils.structure/scalar)
 

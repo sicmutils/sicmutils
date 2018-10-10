@@ -33,6 +33,8 @@
 (declare operator-table operators-known)
 
 (deftype RationalFunction [^long arity ^Polynomial u ^Polynomial v]
+  g/INumericType
+  (zero? [_] (p/polynomial-zero? u))
   Object
   (equals [_ b]
     (and (instance? RationalFunction b)
@@ -369,7 +371,6 @@
 (defmethod g/expt [RationalFunction Integer] [b x] (expt b x))
 (defmethod g/expt [RationalFunction Long] [b x] (expt b x))
 (defmethod g/negate [RationalFunction] [a] (negate a))
-(defmethod g/zero? [RationalFunction] [^RationalFunction a] (p/polynomial-zero? (.u a)))
 (defmethod g/one? [RationalFunction] [^RationalFunction a] (and (g/one? (.u a)) (g/one? (.v a))))
 
 (defmethod g/gcd

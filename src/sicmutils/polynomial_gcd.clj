@@ -247,24 +247,6 @@
                                (/ gd (nt/expt h (dec delta)))))]
                     (recur g' h' u' v'))))))))
 
-(defn ^:private polynomial-reduce-mod
-  [m p]
-  (map-coefficients #(mod % m) p))
-
-(defn univariate-modular-remainder
-  "Divide polynomial u by v (in ℤ/pℤ), and return the remainder."
-  [p ^Polynomial u ^Polynomial v]
-  {:pre [(= (.arity u) (.arity v) 1)]}
-  (when (polynomial-zero? v)
-    (throw (IllegalArgumentException. "internal polynomial division by zero")))
-  (let [v (polynomial-reduce-mod p v)
-        vn-inv (euclid/modular-inverse p (coefficient (lead-term v)))]
-    (loop [r u]
-      (let [delta (- (degree r) (degree v))]
-        (if (neg? delta) r
-            (recur (polynomial-reduce-mod p
-                                          (sub r (mul v (Polynomial. 1 [[[delta] (* vn-inv (coefficient (lead-term r)))]]))))))))))
-
 (defn univariate-modular-gcd
   [p u v]
   (loop [u (polynomial-reduce-mod p u)

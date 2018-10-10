@@ -28,8 +28,7 @@
              [generic :as g]
              [expression :refer [variables-in]]
              [simplify]
-             [analyze :as a]
-             [modint :as modular]]))
+             [analyze :as a]]))
 
 (set! *warn-on-reflection* true)
 
@@ -128,35 +127,21 @@
       (is (= (make [1 3 3 1]) (expt x+1 3)))
       (is (= (make [1 4 6 4 1]) (expt x+1 4)))
       (is (= (make [1 5 10 10 5 1]) (expt x+1 5)))))
-  (testing "other coefficient rings: GF(2)"
-    (let [mod2 #(modular/make % 2)
-          x0 (mod2 0)
-          x1 (mod2 1)
-          P (make [x1 x0 x1])]
-      (is (= (make [x1 x0 x0 x0 x1]) (expt P 2)))
-      (is (= (make [x1 x0 x1 x0 x1 x0 x1]) (expt P 3)))
-      (is (= (make [x1 x0 x0 x0 x0 x0 x0 x0 x1]) (mul (expt P 3) P)))
-      (is (= (make []) (sub P P)))
-      (is (= (make []) (add P P)))
-      (is (= (make [x0 x0 x1]) (add P (make [1]))))))
   (testing "CRC polynomials"
     ;; https://en.wikipedia.org/wiki/Computation_of_cyclic_redundancy_checks
     ;; http://www.lammertbies.nl/comm/info/crc-calculation.html
-    (let [mod2 #(modular/make % 2)
-          o (mod2 0)
-          i (mod2 1)
-          x8 (make [o o o o o o o o i])
-          CRC-8-ATM (make [i i i o o o o o i])
-          M (make [i i i 0 i o i])
+    (let [x8 (make [0 0 0 0 0 0 0 0 1])
+          CRC-8-ATM (make [1 1 1 0 0 0 0 0 1])
+          M (make [1 1 1 0 1 0 1])
           Mx8 (mul x8 M)
-          [_ r1] (divide Mx8 CRC-8-ATM)
-          CRC-16-CCITT (make [i o o o o i o o o o o o i o o o i])
+          r1 (univariate-modular-remainder 2 Mx8 CRC-8-ATM)
+          CRC-16-CCITT (make [1 0 0 0 0 1 0 0 0 0 0 0 1 0 0 0 1])
           x16 (mul x8 x8)
-          T (make [o o i o i o i])
+          T (make [0 0 1 0 1 0 1])
           Tx16 (mul x16 T)
-          [_ r2] (divide Tx16 CRC-16-CCITT)]
-      (is (= (make [o i o o o i o i]) r1))
-      (is (= (make [i o o o i i i o o i o i i]) r2))))
+          r2 (univariate-modular-remainder 2 Tx16 CRC-16-CCITT)]
+      (is (= (make [0 1 0 0 0 1 0 1]) r1))
+      (is (= (make [1 0 0 0 1 1 1 0 0 1 0 1 1]) r2))))
   (testing "monomial order"
     (let [x3 [3 0 0]
           x2z2 [2 0 2]

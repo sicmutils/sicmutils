@@ -24,6 +24,7 @@
             [sicmutils
              [analyze :as a]
              [generic :as g]
+             [euclid :as euclid]
              [numsymb :as sym]
              [expression :as x]]))
 
@@ -83,6 +84,8 @@
 (declare evaluate)
 
 (deftype Polynomial [arity xs->c]
+  g/INumericType
+  (zero? [_] (empty? xs->c))
   Object
   (equals [_ b]
     (and (instance? Polynomial b)
@@ -340,6 +343,24 @@
                       (Polynomial. a (mapv (fn [[[e] k]] [[(- (+ e m) n)] (g/* k c)]) (.xs->c v))))
                  (inc d)))))))
 
+(defn polynomial-reduce-mod
+  [m p]
+  (map-coefficients #(mod % m) p))
+
+(defn univariate-modular-remainder
+  "Divide polynomial u by v (in ℤ/pℤ), and return the remainder."
+  [p ^Polynomial u ^Polynomial v]
+  {:pre [(= (.arity u) (.arity v) 1)]}
+  (when (polynomial-zero? v)
+    (throw (IllegalArgumentException. "internal polynomial division by zero")))
+  (let [v (polynomial-reduce-mod p v)
+        vn-inv (euclid/modular-inverse p (coefficient (lead-term v)))]
+    (loop [r u]
+      (let [delta (- (degree r) (degree v))]
+        (if (neg? delta) r
+            (recur (polynomial-reduce-mod p
+                                          (sub r (mul v (Polynomial. 1 [[[delta] (* vn-inv (coefficient (lead-term r)))]]))))))))))
+
 (defn evenly-divide
   "Divides the polynomial u by the polynomial v. Throws an IllegalStateException
   if the division leaves a remainder. Otherwise returns the quotient."
@@ -461,7 +482,6 @@
 (defmethod g/sub [::sym/numeric-type Polynomial] [a ^Polynomial p] (sub (make-constant (.arity p) a) p))
 (defmethod g/div [Polynomial ::sym/numeric-type] [p a] (map-coefficients #(g/divide % a) p))
 (defmethod g/expt [Polynomial ::sym/native-integral-type] [b x] (expt b x))
-(defmethod g/zero? [Polynomial] [a] (polynomial-zero? a))
 (defmethod g/negate [Polynomial] [a] (negate a))
 (defmethod g/freeze [Polynomial] [^Polynomial a] `(~'polynomial ~(.arity a) ~(.xs->c a)))
 (defmethod g/one?

@@ -18,6 +18,7 @@
 ;
 
 (ns sicmutils.numsymb
+  (:refer-clojure :rename {zero? core-zero?})
   (:require [sicmutils
              [generic :as g]
              [complex :as c]
@@ -119,7 +120,7 @@
       (and (float? x)
            (let [x (double x)
                  z (Math/round x)]
-             (if (zero? z)
+             (if (core-zero? z)
                (< (Math/abs x) absolute-integer-tolerance)
                (< (Math/abs (/ (- x z) z)) relative-integer-tolerance))))))
 
@@ -304,8 +305,11 @@
 (defmethod g/numerical? [::x/numerical-expression] [a] true)
 (defmethod g/numerical? [clojure.lang.Symbol] [a] true)
 (defmethod g/exact? [::native-exact-type] [_] true)
-(defmethod g/zero? [::native-numeric-type] [a] (zero? a))
 (defmethod g/one? [::native-numeric-type] [a] (== 1 a))
+
+(extend-type Number
+  g/INumericType
+  (zero? [n] (core-zero? n)))
 
 (defmacro ^:private define-unary-operation
   [generic-operation symbolic-operation]
@@ -345,7 +349,7 @@
 (defmethod g/sin
   [::native-numeric-type]
   [a]
-  (cond (zero? a) 0
+  (cond (core-zero? a) 0
         (n:zero-mod-pi? a) 0
         (n:pi-over-2-mod-2pi? a) 1
         (n:-pi-over-2-mod-2pi? a) -1
@@ -362,7 +366,7 @@
 (defmethod g/cos
   [::native-numeric-type]
   [a]
-  (cond (zero? a) 1
+  (cond (core-zero? a) 1
         (n:pi-over-2-mod-pi? a) 0
         (n:zero-mod-2pi? a) 1
         (n:pi-mod-2pi? a) -1
@@ -380,7 +384,7 @@
   [::native-numeric-type]
   [a]
   (if (g/exact? a)
-    (if (zero? a) 0 `(~'tan ~a))
+    (if (core-zero? a) 0 `(~'tan ~a))
     (cond (n:zero-mod-pi? a) 0.
           (n:pi-over-4-mod-pi? a) 1.
           (n:-pi-over-4-mod-pi? a) -1.
@@ -436,7 +440,7 @@
 
 (defn ^:private exact-integer-divide
   [a b]
-  {:pre [(zero? (mod a b))]}
+  {:pre [(core-zero? (mod a b))]}
   (quot a b))
 
 (defmethod g/exact-divide

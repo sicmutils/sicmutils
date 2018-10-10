@@ -33,6 +33,10 @@
   [a]
   (instance? Complex a))
 
+(extend-type Complex
+  g/INumericType
+  (zero? [c] (= c Complex/ZERO)))
+
 (defmethod g/add [Complex Complex] [^Complex a ^Complex b] (.add a b))
 (defmethod g/add [Complex :sicmutils.numsymb/native-numeric-type] [^Complex a n] (.add a (double n)))
 (defmethod g/add [:sicmutils.numsymb/native-numeric-type Complex] [n ^Complex a] (.add a (double n)))
@@ -65,7 +69,6 @@
 (defmethod g/magnitude [Complex] [^Complex a] (.abs a))
 (defmethod g/freeze [Complex] [^Complex c] (list 'complex (.getReal c) (.getImaginary c)))
 (defmethod g/numerical? [Complex] [_] true)
-(defmethod g/zero? [Complex] [a] (= a Complex/ZERO))
 (defmethod g/one? [Complex] [a] (= a Complex/ONE))
 
 (derive Complex :sicmutils.numsymb/numeric-type)

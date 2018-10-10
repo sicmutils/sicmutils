@@ -29,6 +29,8 @@
 (declare generate)
 
 (deftype Matrix [r c ^PersistentVector v]
+  g/INumericType
+  (zero? [_] (every? g/zero? v))
   IFn
   (invoke [_ x]
     (Matrix. r c (mapv (fn [e] (mapv #(% x) e)) v)))
@@ -346,7 +348,6 @@
 (defmethod g/div [::s/up Matrix] [u M] (M*u (invert M) u))
 (defmethod g/simplify [Matrix] [m] (->> m (fmap g/simplify) g/freeze))
 (defmethod g/determinant [Matrix] [m] (determinant m))
-(defmethod g/zero? [Matrix] [^Matrix m] (every? #(every? g/zero? %) (.v m)))
 (defmethod g/zero-like [Matrix] [m] (fmap g/zero-like m))
 (defmethod g/one-like
   [Matrix]
