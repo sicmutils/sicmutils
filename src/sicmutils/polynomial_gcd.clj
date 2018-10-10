@@ -106,17 +106,9 @@
       (loop [u u v v]
         (*poly-gcd-bail-out*)
         (let [[r _] (pseudo-remainder u v)]
-          (if (g/zero? r) v
+          (if (polynomial-zero? r) v
               (let [kr (content r)]
                 (recur v (map-coefficients #(g/exact-divide % kr) r)))))))))
-
-(defn ^:private joint-quotient
-  "If d evenly divides both u and v, then [u/d, v/d, d], else nil."
-  [u v d]
-  (let [[q1 r1] (divide u d)
-        [q2 r2] (divide v d)]
-    (if (and (g/zero? r1) (g/zero? r2))
-      [q1 q2 d])))
 
 (defn ^:private with-trivial-constant-gcd-check
   "We consider the maximum exponent found for each variable in any
@@ -207,11 +199,17 @@
   [^Polynomial u ^Polynomial v]
   {:pre [(instance? Polynomial u)
          (instance? Polynomial v)
-         (not (g/zero? v))
+         (not (polynomial-zero? v))
          (= (.arity u) (.arity v) 1)]}
   (let [vn (coefficient (lead-term v))
         m-n+1 (inc (- (degree u) (degree v)))]
     (second (divide (g/mul (nt/expt vn m-n+1) u) v))))
+
+(def ^:dynamic gcd-time-data #_(atom []) nil)
+
+(defn ^:private height
+  [p]
+  (transduce (map nt/abs) max 0 (coefficients p)))
 
 (defn univariate-subresultant-gcd
   [u v]
@@ -219,28 +217,35 @@
     (polynomial-zero? u) v
     (polynomial-zero? v) u
     :else
-    (let [cu (univariate-content u)
-         cv (univariate-content v)
-         d (primitive-gcd [cu cv])]
-     (loop [g 1
-            h 1
-            u (map-coefficients #(/ % cu) u)
-            v (map-coefficients #(/ % cv) v)]
-       (let [delta (int (- (degree u) (degree v)))
-             r ^Polynomial (univariate-pseudo-remainder u v)]
-         (cond
-           (polynomial-zero? r) (scale d (univariate-primitive-part v))
-           (zero? (degree r)) (make-constant 1 d)
-           :else (let [q (*' g (nt/expt h delta))
-                       u' v
-                       v' (Polynomial. 1 (mapv #(vector (first %) (/ (second %) q)) (.xs->c r)))
-                       g' (coefficient (lead-term u'))
-                       h' (let [gd (nt/expt g' delta)]
-                            (case delta
-                              0 (*' h gd)
-                              1 gd
-                              (/ gd (nt/expt h (dec delta)))))]
-                   (recur g' h' u' v'))))))))
+    (let [sw (Stopwatch/createStarted)
+          return (fn [g]
+                   (if gcd-time-data
+                     (let [t (.toNanos (.elapsed sw))]
+                      (swap! gcd-time-data conj [(degree u) (degree v) (height u) (height v) t])
+                      g)
+                     g))
+          cu (univariate-content u)
+          cv (univariate-content v)
+          d (primitive-gcd [cu cv])]
+      (loop [g 1
+             h 1
+             u (map-coefficients #(/ % cu) u)
+             v (map-coefficients #(/ % cv) v)]
+        (let [delta (int (- (degree u) (degree v)))
+              r ^Polynomial (univariate-pseudo-remainder u v)]
+          (cond
+            (polynomial-zero? r) (return (scale d (univariate-primitive-part v)))
+            (zero? (degree r)) (return (make-constant 1 d))
+            :else (let [q (*' g (nt/expt h delta))
+                        u' v
+                        v' (Polynomial. 1 (mapv #(vector (first %) (/ (second %) q)) (.xs->c r)))
+                        g' (coefficient (lead-term u'))
+                        h' (let [gd (nt/expt g' delta)]
+                             (case delta
+                               0 (*' h gd)
+                               1 gd
+                               (/ gd (nt/expt h (dec delta)))))]
+                    (recur g' h' u' v'))))))))
 
 (defn ^:private polynomial-reduce-mod
   [m p]
@@ -250,7 +255,7 @@
   "Divide polynomial u by v (in ℤ/pℤ), and return the remainder."
   [p ^Polynomial u ^Polynomial v]
   {:pre [(= (.arity u) (.arity v) 1)]}
-  (when (g/zero? v)
+  (when (polynomial-zero? v)
     (throw (IllegalArgumentException. "internal polynomial division by zero")))
   (let [v (polynomial-reduce-mod p v)
         vn-inv (euclid/modular-inverse p (coefficient (lead-term v)))]
@@ -286,8 +291,8 @@
       (do (swap! gcd-cache-hit inc) g)
       (let [g (cond
                 (= arity 1) (univariate-subresultant-gcd u v)
-                (g/zero? u) v
-                (g/zero? v) u
+                (polynomial-zero? u) v
+                (polynomial-zero? v) u
                 (g/one? u) u
                 (g/one? v) v
                 (= u v) u
@@ -336,8 +341,8 @@
     (cond
       (not (and (every? integral? (coefficients u))
                 (every? integral? (coefficients v)))) (g/one-like u)
-      (g/zero? u) v
-      (g/zero? v) u
+      (polynomial-zero? u) v
+      (polynomial-zero? v) u
       (g/one? u) u
       (g/one? v) v
       (= u v) u

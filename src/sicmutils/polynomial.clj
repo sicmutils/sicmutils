@@ -99,6 +99,8 @@
            (if (> c n) (format " ...and %d more terms" (- c n)))
            ")"))))
 
+(defn polynomial-zero? [^Polynomial u] (empty? (.xs->c u)))
+
 (defn make
   "When called with two arguments, the first is the arity
   (number of indeterminates) of the polynomial followed by a sequence
@@ -132,7 +134,7 @@
 
 (defn degree
   [p]
-  (if (g/zero? p) -1
+  (if (polynomial-zero? p) -1
       (->> p lead-term exponents (reduce +))))
 
 (defn monomial?
@@ -182,8 +184,8 @@
   [^Polynomial p ^Polynomial q]
   {:pre [(instance? Polynomial p)
          (instance? Polynomial q)]}
-  (cond (g/zero? p) q
-        (g/zero? q) p
+  (cond (polynomial-zero? p) q
+        (polynomial-zero? q) p
         :else (make (check-same-arity p q) (concat (.xs->c p) (.xs->c q)))))
 
 (defn sub
@@ -191,8 +193,8 @@
   [^Polynomial p ^Polynomial q]
   {:pre [(instance? Polynomial p)
          (instance? Polynomial q)]}
-  (cond (g/zero? p) (negate q)
-        (g/zero? q) p
+  (cond (polynomial-zero? p) (negate q)
+        (polynomial-zero? q) p
         :else (make (check-same-arity p q)
                     (concat (.xs->c p) (for [[xs c] (.xs->c q)]
                                          [xs (g/negate c)])))))
@@ -202,8 +204,8 @@
   [^Polynomial p ^Polynomial q]
   {:pre [(instance? Polynomial p)
          (instance? Polynomial q)]}
-  (cond (g/zero? p) p
-        (g/zero? q) q
+  (cond (polynomial-zero? p) p
+        (polynomial-zero? q) q
         (g/one? p) q
         (g/one? q) p
         :else (let [a (check-same-arity p q)]
@@ -228,7 +230,7 @@
   [^Polynomial p]
   {:pre [(instance? Polynomial p)
          (> (.arity p) 1)
-         (not (g/zero? p))]}
+         (not (polynomial-zero? p))]}
   ;; XXX observation:
   ;; XXX we often create polynomials of "one lower arity"
   ;; which are EFFECTIVELY UNIVARIATE. When this happens,
@@ -264,7 +266,7 @@
   [^Polynomial p xs]
   {:pre [(instance? Polynomial p)]}
   (cond (nil? xs) p
-        (g/zero? p) 0
+        (polynomial-zero? p) 0
         (= (.arity p) 1) (evaluate-1 p (first xs))
         :else (let [L (evaluate-1 (lower-arity p) (first xs))]
                 (if (instance? Polynomial L)
@@ -279,34 +281,34 @@
   {:pre [(instance? Polynomial u)
          (instance? Polynomial v)]}
   (let [arity (check-same-arity u v)]
-    (cond (g/zero? v) (throw (IllegalArgumentException. "internal polynomial division by zero"))
-         (g/zero? u) [u u]
-         ;; nb: we are thinking of getting out of the business of having
-         ;; the polynomials exist over general rings, and having the
-         ;; polynomials function only over Z, so we wouldn't call zero-like.
-         ;; On the other hand, we went to a great deal of trouble to
-         ;; genericize the polynomial arithmetic... but maybe this should
-         ;; not have been done?
-         (g/one? v) [u (make arity [])]
-         :else (let [[vn-exponents vn-coefficient] (lead-term v)
-                     good? (fn [residues]
-                             (and (not-empty residues)
-                                  (every? (complement neg?) residues)))]
-                 (if (zero? arity)
-                   [(make 0 [[[] (g/divide (coefficient (lead-term u)) vn-coefficient)]])
-                    (make 0 [[[] 0]])]
-                   (loop [quotient (make arity [])
-                          remainder u]
-                     ;; find a term in the remainder into which the
-                     ;; lead term of the divisor can be divided.
-                     (let [[r-exponents r-coefficient] (lead-term remainder)
-                           residues (mapv - r-exponents vn-exponents)]
-                       (if (good? residues)
-                         (let [new-coefficient (g/divide r-coefficient vn-coefficient)
-                               new-term (make arity [[residues new-coefficient]])]
-                           (recur (add quotient new-term)
-                                  (sub remainder (mul new-term v))))
-                         [quotient remainder]))))))))
+    (cond (polynomial-zero? v) (throw (IllegalArgumentException. "internal polynomial division by zero"))
+          (polynomial-zero? u) [u u]
+          ;; nb: we are thinking of getting out of the business of having
+          ;; the polynomials exist over general rings, and having the
+          ;; polynomials function only over Z, so we wouldn't call zero-like.
+          ;; On the other hand, we went to a great deal of trouble to
+          ;; genericize the polynomial arithmetic... but maybe this should
+          ;; not have been done?
+          (g/one? v) [u (make arity [])]
+          :else (let [[vn-exponents vn-coefficient] (lead-term v)
+                      good? (fn [residues]
+                              (and (not-empty residues)
+                                   (every? (complement neg?) residues)))]
+                  (if (zero? arity)
+                    [(make 0 [[[] (g/divide (coefficient (lead-term u)) vn-coefficient)]])
+                     (make 0 [[[] 0]])]
+                    (loop [quotient (make arity [])
+                           remainder u]
+                      ;; find a term in the remainder into which the
+                      ;; lead term of the divisor can be divided.
+                      (let [[r-exponents r-coefficient] (lead-term remainder)
+                            residues (mapv - r-exponents vn-exponents)]
+                        (if (good? residues)
+                          (let [new-coefficient (g/divide r-coefficient vn-coefficient)
+                                new-term (make arity [[residues new-coefficient]])]
+                            (recur (add quotient new-term)
+                                   (sub remainder (mul new-term v))))
+                          [quotient remainder]))))))))
 
 (defn pseudo-remainder
   "Compute the pseudo-remainder of univariate polynomials p and
@@ -322,7 +324,7 @@
   [^Polynomial u ^Polynomial v]
   {:pre [(instance? Polynomial u)
          (instance? Polynomial v)
-         (not (g/zero? v))
+         (not (polynomial-zero? v))
          (= (.arity u) (.arity v) 1)]}
   (let [a (check-same-arity u v)
         [vn-exponents vn-coefficient] (lead-term v)
@@ -345,7 +347,7 @@
   {:pre [(instance? Polynomial u)
          (instance? Polynomial v)]}
   (let [[q r] (divide u v)]
-    (when-not (g/zero? r)
+    (when-not (polynomial-zero? r)
       (throw (IllegalStateException. (str "expected even division left a remainder!" u " / " v " r " r))))
     q))
 
@@ -362,9 +364,9 @@
     (throw (ArithmeticException.
             (str "can't raise poly to " n))))
   (cond (g/one? p) p
-        (g/zero? p) (if (zero? n)
-                      (throw (ArithmeticException. "poly 0^0"))
-                      p)
+        (polynomial-zero? p) (if (zero? n)
+                               (throw (ArithmeticException. "poly 0^0"))
+                               p)
         (zero? n) (make-constant (.arity p) 1)
         :else (loop [x p c n a (make-constant (.arity p) 1)]
                 (if (zero? c) a
@@ -444,8 +446,6 @@
   (new-variables [_ arity] (for [a (range arity)]
                              (make arity [[(mapv #(if (= % a) 1 0) (range arity)) 1]]))))
 
-(defn polynomial-zero? [^Polynomial u] (empty? (.xs->c u)))
-
 (defmethod g/add [Polynomial Polynomial] [a b] (add a b))
 (defmethod g/mul [Polynomial Polynomial] [a b] (mul a b))
 (defmethod g/sub [Polynomial Polynomial] [a b] (sub a b))
@@ -461,9 +461,9 @@
 (defmethod g/sub [::sym/numeric-type Polynomial] [a ^Polynomial p] (sub (make-constant (.arity p) a) p))
 (defmethod g/div [Polynomial ::sym/numeric-type] [p a] (map-coefficients #(g/divide % a) p))
 (defmethod g/expt [Polynomial ::sym/native-integral-type] [b x] (expt b x))
+(defmethod g/zero? [Polynomial] [a] (polynomial-zero? a))
 (defmethod g/negate [Polynomial] [a] (negate a))
 (defmethod g/freeze [Polynomial] [^Polynomial a] `(~'polynomial ~(.arity a) ~(.xs->c a)))
-(defmethod g/zero? [Polynomial] [a] (polynomial-zero? a))
 (defmethod g/one?
   [Polynomial]
   [^Polynomial a]

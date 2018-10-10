@@ -48,7 +48,7 @@
   {:pre [(instance? Polynomial u)
          (instance? Polynomial v)
          (= (.arity u) (.arity v))]}
-  (when (g/zero? v)
+  (when (p/polynomial-zero? v)
     (throw (ArithmeticException. "Can't form rational function with zero denominator")))
   ;; annoying: we are using native operations here for the base coefficients
   ;; of the polynomial. Can we do better? That would involve exposing gcd as
@@ -107,7 +107,7 @@
 
 (defn addp
   [^RationalFunction r ^Polynomial p]
-  (if (g/zero? p)
+  (if (p/polynomial-zero? p)
     r
     (let [v (.v r)]
       (make (p/add (.u r) (p/mul v p)) v))))
@@ -116,7 +116,7 @@
   [^RationalFunction r ^Polynomial p]
   {:pre [(instance? RationalFunction r)
          (instance? Polynomial p)]}
-  (if (g/zero? p)
+  (if (p/polynomial-zero? p)
     r
     (let [v (.v r)]
       (make (p/sub (.u r) (p/mul v p)) v))))
@@ -284,7 +284,7 @@
   (let [u (.u r)
         v (.v r)
         a (.arity r)]
-    (cond (g/zero? p) 0
+    (cond (p/polynomial-zero? p) 0
           (g/one? p) r
           :else (let [d (poly/gcd v p) ]
                   (if (g/one? d)
@@ -298,7 +298,7 @@
   (let [u (.u r)
         v (.v r)
         a (.arity r)]
-    (cond (g/zero? p) 0
+    (cond (p/polynomial-zero? p) 0
           (g/one? p) r
           :else (let [d (poly/gcd p v) ]
                   (if (g/one? d)
@@ -369,7 +369,7 @@
 (defmethod g/expt [RationalFunction Integer] [b x] (expt b x))
 (defmethod g/expt [RationalFunction Long] [b x] (expt b x))
 (defmethod g/negate [RationalFunction] [a] (negate a))
-(defmethod g/zero? [RationalFunction] [^RationalFunction a] (g/zero? (.u a)))
+(defmethod g/zero? [RationalFunction] [^RationalFunction a] (p/polynomial-zero? (.u a)))
 (defmethod g/one? [RationalFunction] [^RationalFunction a] (and (g/one? (.u a)) (g/one? (.v a))))
 
 (defmethod g/gcd
