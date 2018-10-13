@@ -33,7 +33,7 @@
   to know."
   [p]
   (let [answer (fn [tracker const]
-                 (into [const] (rest tracker)))]
+                 (into [const] (next tracker)))]
     (loop [m (g/zero-like p)
            h p
            tracker []

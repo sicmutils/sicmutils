@@ -54,6 +54,6 @@
   [x variables functions]
   (let [walk (fn walk [x]
                (cond (symbol? x) (or (variables x) x)
-                     (sequential? x) (apply (functions (first x)) (map walk (rest x)))
+                     (sequential? x) (apply (functions (first x)) (map walk (next x)))
                      :else x))]
     (walk x)))

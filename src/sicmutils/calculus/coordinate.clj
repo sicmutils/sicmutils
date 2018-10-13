@@ -45,7 +45,7 @@
   [xf p]
   (let [q (fn q [p]
             (cond (and (sequential? p)
-                       ('#{up down} (first p))) `(~(first p) ~@(map q (rest p)))
+                       ('#{up down} (first p))) `(~(first p) ~@(map q (next p)))
                   (vector? p) (mapv q p)
                   (symbol? p) `'~(xf p)
                   :else (throw (IllegalArgumentException. "Invalid coordinate prototype"))))]
