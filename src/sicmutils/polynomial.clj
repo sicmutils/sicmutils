@@ -174,7 +174,7 @@
 
 (defn scale
   [c u]
-  (map-coefficients #(* c %) u))
+  (map-coefficients #(*' c %) u))
 
 (defn make-constant
   "Return a constant polynomial of the given arity."
