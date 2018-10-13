@@ -261,6 +261,74 @@
         (zero? (degree r)) (make-constant 1 1)
         :else (recur v r)))))
 
+(defonce ^:private primes
+  [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61,
+   67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137,
+   139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211,
+   223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283,
+   293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379,
+   383, 389, 397, 401, 409, 419, 421, 431, 433, 439, 443, 449, 457, 461,
+   463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541, 547, 557, 563,
+   569, 571, 577, 587, 593, 599, 601, 607, 613, 617, 619, 631, 641, 643,
+   647, 653, 659, 661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739,
+   743, 751, 757, 761, 769, 773, 787, 797, 809, 811, 821, 823, 827, 829,
+   839, 853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919, 929, 937,
+   941, 947, 953, 967, 971, 977, 983, 991, 997, 1009, 1013, 1019, 1021,
+   1031, 1033, 1039, 1049, 1051, 1061, 1063, 1069, 1087, 1091, 1093,
+   1097, 1103, 1109, 1117, 1123, 1129, 1151, 1153, 1163, 1171, 1181,
+   1187, 1193, 1201, 1213, 1217, 1223])
+
+(defn ^:private random-prime-such-that
+  "Returns one of the primes in the above list, such that (f p) is true.
+  This is kind of hokey: so long as we have a finite list, there's a
+  possibility that we will run out of primes. Would it be better to just
+  take the primes in order, and trust that the product will build up
+  quickly enough?"
+  [f]
+  (loop []
+    (let [p (nth primes (rand-int (count primes)))]
+      (if (f p) p (recur)))))
+
+(defn zippel-univariate-gcd
+  "Univariate GCD from R. Zippel, Effective Polynomial Computation, §15.2"
+  [F G]
+  (let [c (native-gcd (univariate-content F) (univariate-content G))
+        F (univariate-primitive-part F)
+        G (univariate-primitive-part G)
+        lcF (coefficient (lead-term F))
+        lcG (coefficient (lead-term G))
+        h (native-gcd lcF lcG)
+        l (/ (* lcF lcG) h)
+        r (degree F)
+        s (degree G)
+        B (inc (* 2 (nt/abs h) (min (* (nt/expt 2 r) (nt/sqrt (inc r)) (height F))
+                                    (* (nt/expt 2 s) (nt/sqrt (inc s)) (height G)))))]
+    (loop [H (make [])
+           primes-used #{}
+           m 1]
+      (if (>= B m)
+        (let [H-degree (degree H)
+              p (random-prime-such-that #(and (not= (mod l %) 0)
+                                              (not (primes-used %))))
+              Hhat (univariate-modular-gcd p F G)
+              Hhat-degree (degree Hhat)
+              new-primes-used (conj primes-used p)
+              ]
+          (cond
+            (or (polynomial-zero? H) ;; first time through
+                (< Hhat-degree H-degree)) (recur Hhat new-primes-used p) ;; had too many divisors
+            (> Hhat-degree H-degree) (recur H new-primes-used m) ;;  bad prime
+            :else (let [[_ rm rp] (euclid/extended-gcd m p)
+                        mp (* m p)
+                        H (polynomial-reduce-mod mp
+                                                 (add (scale (*' rp p) H)
+                                                      (scale (*' rm m) Hhat)))]
+                    (recur H new-primes-used mp))))
+        ;; we're done when m > B. First balance H.
+        (let [Hb (map-coefficients #(if (> % (/ m 2)) (- % m) %) H)
+              ch (univariate-content H)]
+          (map-coefficients #(/ (*' c %) ch) Hb))))))
+
 (defn ^:private inner-gcd
   "gcd is just a wrapper for this function, which does the real work
   of computing a multivariate polynomial gcd. Delegates for univariate

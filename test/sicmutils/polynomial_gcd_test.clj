@@ -252,6 +252,13 @@
                       [1]])
            (map gcd us vs)))))
 
+(deftest zippel-gcd-test
+  (testing "Zippel UnivariateGCD"
+    (let [F (make [-6350400, 385560, 603118, -68507, -15631, 2650, 32, -23, 1])
+          G (make [-9720000, 2565000, 478500, -168250, -1013, 3026, -128, -16, 1])
+          ]
+      (is (= (make [450 -5 -14 1]) (zippel-univariate-gcd F G))))))
+
 (deftest simple-gcd-3
   (testing "GCD: arity 3 case"
     (let [I (make 3 [[[0 0 0] 1]])
