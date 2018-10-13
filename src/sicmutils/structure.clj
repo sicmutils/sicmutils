@@ -317,3 +317,7 @@
 (defmethod g/magnitude [::structure] [^Structure a]
   (g/sqrt (reduce + (map g/square a))))
 (defmethod g/arity [::structure] [a] (g/joint-arity a))
+
+(extend-type PersistentVector
+  g/INumericType
+  (zero? [v] (every? g/zero? v)))
