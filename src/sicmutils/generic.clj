@@ -26,13 +26,15 @@
   (generic-type [this]))
 
 (defprotocol INumericType
-  (zero? [this]))
+  (zero? [this])
+  (one? [this]))
 
 (extend-type Object
   IGenericType
   (generic-type [o] (or (:type o) (type o)))
   INumericType
-  (zero? [_] false))
+  (zero? [_] false)
+  (one? [_] false))
 
 (extend-type nil
   IGenericType
@@ -97,9 +99,6 @@
 
 (def-generic-function one-like 1)
 (defmethod one-like :default [_] 1)
-
-(def-generic-function one? 1)
-(defmethod one? :default [_] false)
 
 (def-generic-function Lie-derivative 1)
 

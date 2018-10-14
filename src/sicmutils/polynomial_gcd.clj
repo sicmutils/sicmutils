@@ -201,7 +201,7 @@
          (instance? Polynomial v)
          (not (polynomial-zero? v))
          (= (.arity u) (.arity v) 1)]}
-  (let [vn (coefficient (lead-term v))
+  (let [vn (lead-coefficient v)
         m-n+1 (inc (- (degree u) (degree v)))]
     (second (divide (g/mul (nt/expt vn m-n+1) u) v))))
 
@@ -239,7 +239,7 @@
             :else (let [q (*' g (nt/expt h delta))
                         u' v
                         v' (Polynomial. 1 (mapv #(vector (first %) (/ (second %) q)) (.xs->c r)))
-                        g' (coefficient (lead-term u'))
+                        g' (lead-coefficient u')
                         h' (let [gd (nt/expt g' delta)]
                              (case delta
                                0 (*' h gd)
@@ -253,7 +253,7 @@
          v (polynomial-reduce-mod p v)]
     (let [r (univariate-modular-remainder p u v)]
       (cond
-        (polynomial-zero? r) (let [l (coefficient (lead-term v))]
+        (polynomial-zero? r) (let [l (lead-coefficient v)]
                                (if (not= l 1)
                                  (let [l' (euclid/modular-inverse p l)]
                                    (map-coefficients #(mod (* % l') p) v))
@@ -295,8 +295,8 @@
   (let [c (native-gcd (univariate-content F) (univariate-content G))
         F (univariate-primitive-part F)
         G (univariate-primitive-part G)
-        u (coefficient (lead-term F))
-        v (coefficient (lead-term G))
+        u (lead-coefficient F)
+        v (lead-coefficient G)
         h (native-gcd u v)
         l (/ (* u v) h)
         r (degree F)

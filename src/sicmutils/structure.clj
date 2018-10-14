@@ -31,6 +31,7 @@
   (generic-type [_] orientation)
   g/INumericType
   (zero? [_] (every? g/zero? v))
+  (one? [_] false)
   Object
   (equals [_ b]
     (and (instance? Structure b)
@@ -317,3 +318,8 @@
 (defmethod g/magnitude [::structure] [^Structure a]
   (g/sqrt (reduce + (map g/square a))))
 (defmethod g/arity [::structure] [a] (g/joint-arity a))
+
+(extend-type PersistentVector
+  g/INumericType
+  (zero? [v] (every? g/zero? v))
+  (one? [v] false))

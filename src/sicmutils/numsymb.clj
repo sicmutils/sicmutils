@@ -305,11 +305,11 @@
 (defmethod g/numerical? [::x/numerical-expression] [a] true)
 (defmethod g/numerical? [clojure.lang.Symbol] [a] true)
 (defmethod g/exact? [::native-exact-type] [_] true)
-(defmethod g/one? [::native-numeric-type] [a] (== 1 a))
 
 (extend-type Number
   g/INumericType
-  (zero? [n] (core-zero? n)))
+  (zero? [n] (core-zero? n))
+  (one? [n] (== 1 n)))
 
 (defmacro ^:private define-unary-operation
   [generic-operation symbolic-operation]

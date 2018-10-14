@@ -30,7 +30,8 @@
 
 (deftype Matrix [r c ^PersistentVector v]
   g/INumericType
-  (zero? [_] (every? g/zero? v))
+  (zero? [_] (g/zero? v))
+  (one? [_] false)
   IFn
   (invoke [_ x]
     (Matrix. r c (mapv (fn [e] (mapv #(% x) e)) v)))

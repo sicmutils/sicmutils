@@ -86,6 +86,11 @@
 (deftype Polynomial [arity xs->c]
   g/INumericType
   (zero? [_] (empty? xs->c))
+  (one? [a]
+    (and (= (count xs->c) 1)
+         (let [[xs c] (first xs->c)]
+           (and (every? zero? xs)
+                (g/one? c)))))
   Object
   (equals [_ b]
     (and (instance? Polynomial b)
@@ -134,6 +139,11 @@
   p. The return value is [exponents coefficient]."
   [^Polynomial p]
   (-> p .xs->c peek))
+
+(defn lead-coefficient
+  "Returns the coefficient of the lead term of the polynomial."
+  [p]
+  (coefficient (lead-term p)))
 
 (defn degree
   [p]
@@ -224,7 +234,7 @@
   (let [terms (for [[x ^Polynomial q] (.xs->c p)
                     [ys c] (.xs->c q)]
                 [(into x ys) c])
-        ^Polynomial ltc (coefficient (lead-term p))]
+        ^Polynomial ltc (lead-coefficient p)]
     (make (inc (.arity ltc)) terms)))
 
 (defn lower-arity
@@ -298,7 +308,7 @@
                               (and (not-empty residues)
                                    (every? (complement neg?) residues)))]
                   (if (zero? arity)
-                    [(make 0 [[[] (g/divide (coefficient (lead-term u)) vn-coefficient)]])
+                    [(make 0 [[[] (g/divide (lead-coefficient u) vn-coefficient)]])
                      (make 0 [[[] 0]])]
                     (loop [quotient (make arity [])
                            remainder u]
@@ -335,7 +345,7 @@
         n (reduce + vn-exponents)]
     (loop [remainder u d 0]
       (let [m (degree remainder)
-            c (-> remainder lead-term coefficient)]
+            c (lead-coefficient remainder)]
         (if (< m n)
           [remainder d]
           (recur (sub (*vn remainder)
@@ -354,12 +364,12 @@
   (when (polynomial-zero? v)
     (throw (IllegalArgumentException. "internal polynomial division by zero")))
   (let [v (polynomial-reduce-mod p v)
-        vn-inv (euclid/modular-inverse p (coefficient (lead-term v)))]
+        vn-inv (euclid/modular-inverse p (lead-coefficient v))]
     (loop [r u]
       (let [delta (- (degree r) (degree v))]
         (if (neg? delta) r
             (recur (polynomial-reduce-mod p
-                                          (sub r (mul v (Polynomial. 1 [[[delta] (* vn-inv (coefficient (lead-term r)))]]))))))))))
+                                          (sub r (mul v (Polynomial. 1 [[[delta] (* vn-inv (lead-coefficient r))]]))))))))))
 
 (defn evenly-divide
   "Divides the polynomial u by the polynomial v. Throws an IllegalStateException
@@ -374,7 +384,7 @@
 
 (defn abs
   [p]
-  (if (-> p lead-term coefficient g/negative?)
+  (if (g/negative? (lead-coefficient p))
     (negate p)
     p))
 
@@ -484,11 +494,3 @@
 (defmethod g/expt [Polynomial ::sym/native-integral-type] [b x] (expt b x))
 (defmethod g/negate [Polynomial] [a] (negate a))
 (defmethod g/freeze [Polynomial] [^Polynomial a] `(~'polynomial ~(.arity a) ~(.xs->c a)))
-(defmethod g/one?
-  [Polynomial]
-  [^Polynomial a]
-  (let [xs->c (.xs->c a)]
-    (and (= (count xs->c) 1)
-         (let [[xs c] (first xs->c)]
-           (and (every? zero? xs)
-                (g/one? c))))))
