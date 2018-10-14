@@ -31,6 +31,7 @@
   (generic-type [_] orientation)
   g/INumericType
   (zero? [_] (every? g/zero? v))
+  (one? [_] false)
   Object
   (equals [_ b]
     (and (instance? Structure b)
@@ -320,4 +321,5 @@
 
 (extend-type PersistentVector
   g/INumericType
-  (zero? [v] (every? g/zero? v)))
+  (zero? [v] (every? g/zero? v))
+  (one? [v] false))

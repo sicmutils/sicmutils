@@ -86,6 +86,11 @@
 (deftype Polynomial [arity xs->c]
   g/INumericType
   (zero? [_] (empty? xs->c))
+  (one? [a]
+    (and (= (count xs->c) 1)
+         (let [[xs c] (first xs->c)]
+           (and (every? zero? xs)
+                (g/one? c)))))
   Object
   (equals [_ b]
     (and (instance? Polynomial b)
@@ -489,11 +494,3 @@
 (defmethod g/expt [Polynomial ::sym/native-integral-type] [b x] (expt b x))
 (defmethod g/negate [Polynomial] [a] (negate a))
 (defmethod g/freeze [Polynomial] [^Polynomial a] `(~'polynomial ~(.arity a) ~(.xs->c a)))
-(defmethod g/one?
-  [Polynomial]
-  [^Polynomial a]
-  (let [xs->c (.xs->c a)]
-    (and (= (count xs->c) 1)
-         (let [[xs c] (first xs->c)]
-           (and (every? zero? xs)
-                (g/one? c))))))

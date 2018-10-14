@@ -41,6 +41,7 @@
 (deftype Differential [terms]
   g/INumericType
   (zero? [_] (empty? terms))
+  (one? [_] false)
   Object
   (equals [_ b]
     (and (instance? Differential b)

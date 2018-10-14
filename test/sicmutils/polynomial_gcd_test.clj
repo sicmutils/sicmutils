@@ -541,6 +541,23 @@
                         (and (evenly-divide u g)
                              (evenly-divide v g)))))))
 
+(defn generate-gcd-poly
+  [h k]
+  (gen/fmap
+   (fn [v]
+     (reduce mul (make [1]) (map #(make [% 1]) v)))
+   (gen/vector (gen/choose (- h) h) k)))
+
+(defspec ^:long zippel-gcd-works
+  (prop/for-all [u (generate-gcd-poly 10 10)
+                 v (generate-gcd-poly 10 10)]
+                (let [g (zippel-univariate-gcd u v)]
+                  (or (and (g/zero? u)
+                           (g/zero? v)
+                           (g/zero? g))
+                      (and (evenly-divide u g)
+                           (evenly-divide v g))))))
+
 (defspec ^:long d-divides-gcd-ud-vd num-tests
   (gen/let [arity (gen/elements [1])]
     (prop/for-all [u (p-test/generate-nonzero-poly arity)
