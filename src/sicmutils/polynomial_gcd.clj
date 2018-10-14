@@ -211,7 +211,7 @@
   [p]
   (transduce (map nt/abs) max 0 (coefficients p)))
 
-(defn univariate-subresultant-gcd
+(defn univariate-gcd-subresultant
   [u v]
   (cond
     (polynomial-zero? u) v
@@ -289,16 +289,16 @@
     (let [p (nth primes (rand-int (count primes)))]
       (if (f p) p (recur)))))
 
-(defn zippel-univariate-gcd
+(defn univariate-gcd-zippel
   "Univariate GCD from R. Zippel, Effective Polynomial Computation, §15.2"
   [F G]
   (let [c (native-gcd (univariate-content F) (univariate-content G))
         F (univariate-primitive-part F)
         G (univariate-primitive-part G)
-        lcF (coefficient (lead-term F))
-        lcG (coefficient (lead-term G))
-        h (native-gcd lcF lcG)
-        l (/ (* lcF lcG) h)
+        u (coefficient (lead-term F))
+        v (coefficient (lead-term G))
+        h (native-gcd u v)
+        l (/ (* u v) h)
         r (degree F)
         s (degree G)
         B (inc (* 2 (nt/abs h) (min (* (nt/expt 2 r) (nt/sqrt (inc r)) (height F))
@@ -309,11 +309,10 @@
       (if (>= B m)
         (let [H-degree (degree H)
               p (random-prime-such-that #(and (not= (mod l %) 0)
-                                              (not (primes-used %))))
+                                              (not (contains? primes-used %))))
               Hhat (univariate-modular-gcd p F G)
               Hhat-degree (degree Hhat)
-              new-primes-used (conj primes-used p)
-              ]
+              new-primes-used (conj primes-used p)]
           (cond
             (or (polynomial-zero? H) ;; first time through
                 (< Hhat-degree H-degree)) (recur Hhat new-primes-used p) ;; had too many divisors
@@ -324,9 +323,9 @@
                                                  (add (scale (*' rp p) H)
                                                       (scale (*' rm m) Hhat)))]
                     (recur H new-primes-used mp))))
-        ;; we're done when m > B. First balance H.
+        ;; we're done when m > B. First balance H, then reimpose the content.
         (let [Hb (map-coefficients #(if (> % (/ m 2)) (- % m) %) H)
-              ch (univariate-content H)]
+              ch (univariate-content Hb)]
           (map-coefficients #(/ (*' c %) ch) Hb))))))
 
 (defn ^:private inner-gcd
@@ -340,7 +339,7 @@
     (if-let [g (and *poly-gcd-cache-enable* (@gcd-memo [u v]))]
       (do (swap! gcd-cache-hit inc) g)
       (let [g (cond
-                (= arity 1) (univariate-subresultant-gcd u v)
+                (= arity 1) (univariate-gcd-subresultant u v)
                 (polynomial-zero? u) v
                 (polynomial-zero? v) u
                 (g/one? u) u
@@ -396,7 +395,7 @@
       (g/one? u) u
       (g/one? v) v
       (= u v) u
-      (= arity 1) (abs (univariate-subresultant-gcd u v))
+      (= arity 1) (abs (univariate-gcd-subresultant u v))
       :else (binding [*poly-gcd-bail-out* (maybe-bail-out "polynomial GCD" clock *poly-gcd-time-limit*)]
               (abs (gcd-continuation-chain u v
                                            with-trivial-constant-gcd-check
