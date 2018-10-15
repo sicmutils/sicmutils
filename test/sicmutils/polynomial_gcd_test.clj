@@ -542,11 +542,13 @@
                              (evenly-divide v g)))))))
 
 (defn generate-gcd-poly
+  "Generates a polynomial by generating from 0 to k monic linear monomials
+  and multiplying them together."
   [h k]
   (gen/fmap
    (fn [v]
      (reduce mul (make [1]) (map #(make [% 1]) v)))
-   (gen/vector (gen/choose (- h) h) k)))
+   (gen/vector (gen/choose (- h) h) 0 k)))
 
 (defspec ^:long zippel-gcd-works
   (prop/for-all [u (generate-gcd-poly 10 10)
