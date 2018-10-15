@@ -203,7 +203,7 @@
          (= (.arity u) (.arity v) 1)]}
   (let [vn (lead-coefficient v)
         m-n+1 (inc (- (degree u) (degree v)))]
-    (second (divide (g/mul (nt/expt vn m-n+1) u) v))))
+    (second (divide (scale (nt/expt vn m-n+1) u) v))))
 
 (def ^:dynamic gcd-time-data #_(atom []) nil)
 
@@ -317,12 +317,14 @@
             (or (polynomial-zero? H) ;; first time through
                 (< Hhat-degree H-degree)) (recur Hhat new-primes-used p) ;; had too many divisors
             (> Hhat-degree H-degree) (recur H new-primes-used m) ;;  bad prime
+            ;; else use the Chinese Remainder Algorithm to combine the solutions (mod m) and
+            ;; (mod p) into the solution (mod mp).
             :else (let [[_ rm rp] (euclid/extended-gcd m p)
-                        mp (* m p)
-                        H (polynomial-reduce-mod mp
-                                                 (add (scale (*' rp p) H)
-                                                      (scale (*' rm m) Hhat)))]
-                    (recur H new-primes-used mp))))
+                        m*p (* m p)
+                        rp*p (* rp p)
+                        rm*m (* rm m)
+                        H (combine-like-terms H Hhat (fn [h hh] (mod (+ (*' rp*p h) (*' rm*m hh)) m*p)))]
+                    (recur H new-primes-used m*p))))
         ;; we're done when m > B. First balance H, then reimpose the content.
         (let [Hb (map-coefficients #(if (> % (/ m 2)) (- % m) %) H)
               ch (univariate-content Hb)]

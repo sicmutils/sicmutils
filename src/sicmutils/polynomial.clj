@@ -167,11 +167,12 @@
 (defn map-coefficients
   "Map the function f over the coefficients of p, returning a new Polynomial."
   [f ^Polynomial p]
-  (Polynomial. (.arity p) (into empty-coefficients
-                                (for [[xs c] (.xs->c p)
-                                      :let [fc (f c)]
-                                      :when (not (g/zero? fc))]
-                                  [xs fc]))))
+  (Polynomial. (.arity p) (loop [[old-term & old-terms] (.xs->c p)
+                                 new-terms empty-coefficients]
+                            (if (nil? old-term) new-terms
+                                (let [fc (f (coefficient old-term))]
+                                  (recur old-terms (if (g/zero? fc) new-terms
+                                                       (conj new-terms [(exponents old-term) fc]))))))))
 
 (defn map-exponents
   "Map the function f over the exponents of each monomial in p,
@@ -192,25 +193,53 @@
   (Polynomial. arity (if (g/zero? c) empty-coefficients
                          (conj empty-coefficients [(vec (repeat arity 0)) c]))))
 
+(defn combine-like-terms
+  "Merges the polynomials p and q. Where p and q have a like term, f is
+  called on the old coefficients to produce the new one. Where there
+  are terms in one with no companion in the other, zero is substituted
+  for the missing coefficient."
+  [^Polynomial p ^Polynomial q f]
+  (let [a (check-same-arity p q)
+        terms (loop [[p-term & p-terms :as all-ps] (.xs->c p)
+                     [q-term & q-terms :as all-qs] (.xs->c q)
+                     r-terms empty-coefficients]
+                (cond
+                  (nil? p-term) (if (nil? q-term) r-terms
+                                    (let [fc (f 0 (coefficient q-term))]
+                                      (recur nil q-terms
+                                             (if (g/zero? fc) r-terms
+                                                 (conj r-terms [(exponents q-term) fc])))))
+                  (nil? q-term) (let [fc (f (coefficient p-term) 0)]
+                                  (recur p-terms nil
+                                         (if (g/zero? fc) r-terms
+                                             (conj r-terms [(exponents p-term) fc]))))
+
+                  :else (let [o (monomial-order (exponents p-term) (exponents q-term))]
+                          (cond (neg? o) (let [fc (f (coefficient p-term) 0)]
+                                           (recur p-terms all-qs
+                                                  (if (g/zero? fc) r-terms (conj r-terms [(exponents p-term) fc]))))
+                                (pos? o) (let [fc (f 0 (coefficient q-term))]
+                                           (recur all-ps q-terms
+                                                  (if (g/zero? fc) r-terms (conj r-terms [(exponents q-term) fc]))))
+                                :else (let [fc (f (coefficient p-term) (coefficient q-term))]
+                                        (recur p-terms q-terms
+                                               (if (g/zero? fc) r-terms (conj r-terms [(exponents p-term) fc]))))))))]
+    (Polynomial. a terms)))
+
 (defn add
   "Adds the polynomials p and q"
   [^Polynomial p ^Polynomial q]
-  {:pre [(instance? Polynomial p)
-         (instance? Polynomial q)]}
   (cond (polynomial-zero? p) q
         (polynomial-zero? q) p
-        :else (make (check-same-arity p q) (concat (.xs->c p) (.xs->c q)))))
+        :else (combine-like-terms p q g/+)))
+
 
 (defn sub
   "Subtract the polynomial q from the polynomial p."
   [^Polynomial p ^Polynomial q]
-  {:pre [(instance? Polynomial p)
-         (instance? Polynomial q)]}
   (cond (polynomial-zero? p) (negate q)
         (polynomial-zero? q) p
-        :else (make (check-same-arity p q)
-                    (concat (.xs->c p) (for [[xs c] (.xs->c q)]
-                                         [xs (g/negate c)])))))
+        :else (combine-like-terms p q g/-)))
 
 (defn mul
   "Multiply polynomials p and q, and return the product."
