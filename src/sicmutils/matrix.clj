@@ -156,7 +156,7 @@
         vb (.v b)]
     (when (or (not= ra rb) (not= ca cb))
       (throw (IllegalArgumentException. "matrices incompatible for operation")))
-    (generate ra ca #(f (core-get-in va [%1 %2]) (core-get-in vb [%1 %2])))))
+    (Matrix. ra ca (mapv #(mapv f %1 %2) va vb))))
 
 (defn square-structure->
   "Converts the square structure s into a matrix, and calls the
