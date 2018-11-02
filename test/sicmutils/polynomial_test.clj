@@ -32,6 +32,11 @@
 
 (set! *warn-on-reflection* true)
 
+(defn ^:private fully-evaluate [p xs]
+  (let [v (partial-evaluate p xs)]
+    (is (zero? (.arity v)))
+    (first (coefficients v))))
+
 (deftest poly-core
   (testing "zero"
     (is (g/zero? (make [])))
@@ -154,47 +159,51 @@
       (is (= [z2 x3 xy2z x2z2] (monomial-sort graded-lex-order))))))
 
 (def ^:private poly-analyzer (->PolynomialAnalyzer))
-(defn ^:private ->poly [x] (a/expression-> poly-analyzer x (fn [p _] p)))
+(defn ->poly [x] (a/expression-> poly-analyzer x (fn [p _] p)))
 
 (deftest poly-evaluate
   (testing "arity 1"
     (let [p (->poly '(+ 2 (* x 3)))]
-      (is (= 14 (evaluate p [4])))
-      (is (= 11 (evaluate p [3 2]))))
-    (is (= 256 (evaluate (->poly '(expt x 8)) [2])))
-    (is (= 272 (evaluate (->poly '(+ (expt x 4) (expt x 8))) [2]))))
+      (is (= 14 (fully-evaluate p [4])))
+      (is (thrown? IllegalArgumentException (fully-evaluate p [3 2]))))
+    (is (= 256 (fully-evaluate (->poly '(expt x 8)) [2])))
+    (is (= 272 (fully-evaluate (->poly '(+ (expt x 4) (expt x 8))) [2]))))
   (testing "arity 2"
     (let [p (->poly '(expt (+ x y) 2))]
-      (is (= 25 (evaluate p [2 3])))))
+      (is (= 25 (fully-evaluate p [2 3])))))
   (testing "arity 3"
     (let [p (->poly '(+ (expt x 3) (expt y 2) z 1))]
-      (is (= 19 (evaluate p [2 3 1])))))
+      (is (= 19 (fully-evaluate p [2 3 1])))))
   (testing "arity 4"
     (let [p (->poly '(expt (- w x y z) 2))]
-      (is (= 36 (evaluate p [10 1 2 1])))))
+      (is (= 36 (fully-evaluate p [10 1 2 1])))))
   (testing "arity 5"
     (let [p (->poly '(expt (- v w x y z) 2))]
-      (is (= 16 (evaluate p [10 1 2 1 2])))))
+      (is (= 16 (fully-evaluate p [10 1 2 1 2])))))
   (testing "arity 10"
     (let [p (->poly '(expt (- x0 x1 x2 x3 x4 x5 x6 x7 x8 x9) 3))]
-      (is (= 216 (evaluate p [10 1 2 1 2 -3 1 -2 -1 3])))))
+      (is (= 216 (fully-evaluate p [10 1 2 1 2 -3 1 -2 -1 3])))))
   (testing "constant polys"
     (let [p1 (make [3])
           p2 (make 2 [[[0 0] 5]])
           p3 (make 3 [[[1 0 0] 1]])
           p4 (make 3 [[[0 1 0] 1]])
           p5 (make 3 [[[0 0 1] 1]])]
-      (is (= 3 (evaluate p1 [99])))
-      (is (= 5 (evaluate p2 [99 98])))
-      (is (= 7 (evaluate p3 [7 8 9])))
-      (is (= 8 (evaluate p4 [7 8 9])))
-      (is (= 9 (evaluate p5 [7 8 9])))))
+      (is (= 3 (fully-evaluate p1 [99])))
+      (is (= 5 (fully-evaluate p2 [99 98])))
+      (is (= 7 (fully-evaluate p3 [7 8 9])))
+      (is (= 8 (fully-evaluate p4 [7 8 9])))
+      (is (= 9 (fully-evaluate p5 [7 8 9])))))
   (testing "partial application"
     (let [P (->poly '(+ 1 (* 2 x) (* 3 x y) (* 4 x y z)))]
-      (is (= (->poly '(+ 3 (* 3 y) (* 4 y z))) (evaluate P [1])))
-      (is (= (->poly '(+ 9 (* 8 z))) (evaluate P [1 2])))
-      (is (= 33 (evaluate P [1 2 3])))
-      (is (= 33 (evaluate P [1 2 3 4]))))))
+      (is (= (->poly '(+ 3 (* 3 y) (* 4 y z))) (partial-evaluate P [1])))
+      (is (= (->poly '(+ 1 (* 2 x) (* 7 x y))) (partial-evaluate P [1] :direction :right)))
+      (is (= (->poly '(+ 9 (* 8 z))) (partial-evaluate P [1 2])))
+      (is (= (->poly '(+ 1 (* 13 x) )) (partial-evaluate P [1 2] :direction :right)))
+      (is (= (make 0 [[[] 33]]) (partial-evaluate P [1 2 3])))
+      (is (= (make 0 [[[] 33]]) (partial-evaluate P [1 2 3] :direction :right)))
+      (is (thrown? IllegalArgumentException (partial-evaluate P [1 2 3 4])))
+      (is (thrown? IllegalArgumentException (partial-evaluate P [1 2 3 4] :direction :right))))))
 
 (deftest poly-partial-derivatives
   (let [V (make [1 2 3 4])
@@ -316,5 +325,5 @@
     (prop/for-all [p (generate-poly arity)
                    q (generate-poly arity)
                    xs (gen/vector gen/int arity)]
-                  (= (*' (evaluate p xs) (evaluate q xs))
-                     (evaluate (mul p q) xs)))))
+                  (= (*' (fully-evaluate p xs) (fully-evaluate q xs))
+                     (fully-evaluate (mul p q) xs)))))

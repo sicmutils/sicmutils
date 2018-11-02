@@ -20,7 +20,12 @@
 (ns sicmutils.polynomial-gcd
   (:import (com.google.common.base Stopwatch)
            (sicmutils.polynomial Polynomial)
-           (java.util.concurrent TimeUnit TimeoutException))
+           (java.util.concurrent TimeUnit TimeoutException)
+           (org.apache.commons.math3.fraction BigFraction BigFractionField)
+           (org.apache.commons.math3.linear Array2DRowFieldMatrix
+                                            ArrayFieldVector
+                                            FieldDecompositionSolver
+                                            FieldLUDecomposition))
   (:require [clojure.tools.logging :as log]
             [clojure.string]
             [clojure.math.numeric-tower :as nt]
@@ -399,10 +404,129 @@
       (= u v) u
       (= arity 1) (abs (univariate-gcd-subresultant u v))
       :else (binding [*poly-gcd-bail-out* (maybe-bail-out "polynomial GCD" clock *poly-gcd-time-limit*)]
-              (abs (gcd-continuation-chain u v
-                                           with-trivial-constant-gcd-check
-                                           with-optimized-variable-order
-                                           #(inner-gcd 0 %1 %2)))))))
+              (abs
+               (with-optimized-variable-order u v
+                 (partial inner-gcd 0)
+                 )
+
+               )))))
+
+(defn ^:private expand-poly
+  "Let skeleton and ps be the same length. A new polynomial is generated
+  in which each term of each p is augmented by the powers of the new
+  indeterminates in the corresponding skeleton element. Or you could
+  look at this as the skeleton being fleshed out, termwise, by
+  additional indeterminates and coefficients provided by each p to
+  make a new polynomial out of all the resulting terms."
+  [skeleton ps]
+  (make (+ (.arity ^Polynomial (first ps)) (count (first skeleton)))
+        (mapcat (fn [s ^Polynomial p]
+                  (for [[es c] (.xs->c p)]
+                    (vector (into s es) c)))
+                skeleton ps)))
+
+(defn ^:private bigfraction->ratio
+  [^BigFraction bf]
+  (clojure.lang.Ratio. (.getNumerator bf)
+                       (.getDenominator bf)))
+
+(defn ^:private generate-sequence
+  [s]
+  (let [i (atom -1)]
+    (fn []
+      (nth s (swap! i inc)))))
+
+(defn gcd-spmod
+  [u v]
+  (let [arity (check-same-arity u v)
+        ds (reduce (partial map max) (mapcat ->skeleton [u v]))
+        B 10000
+        arggen (fn [] (inc (rand-int B)))]
+    (loop [xs (repeatedly arity arggen)]
+      (let [u0 (partial-evaluate u (next xs) :direction :right)
+            v0 (partial-evaluate v (next xs) :direction :right)
+            r (loop [stage-count 0
+                     k 1
+                     g (univariate-gcd-subresultant u0 v0)]
+                (when *poly-gcd-debug*
+                  (println 'STAGE k '\# stage-count)
+                  (println 'g g))
+                (if (= k arity)
+                  g
+                  (let [S (->skeleton g)
+                        nterms (count S)
+                        arglists (repeatedly nterms #(repeatedly k arggen))
+                        xsk+1 (drop (inc k) xs)
+                        uk (partial-evaluate u xsk+1 :direction :right)
+                        vk (partial-evaluate v xsk+1 :direction :right)
+                        gks (map #(univariate-gcd-subresultant (partial-evaluate uk %)
+                                                               (partial-evaluate vk %))
+                                 arglists)
+                        skels (map ->skeleton gks)
+                        nGkTerms (count (first skels))
+                        maxGkTerms (inc (nth ds k))]
+                    (when *poly-gcd-debug*
+                      (println 'S S)
+                      (println 'arglists arglists)
+                      (println 'uk uk)
+                      (println 'vk vk)
+                      (println 'gks gks)
+                      (println 'skels skels)
+                      (println 'ds ds))
+                    (cond
+                      (or (not (reduce #(and %1 (= (first skels) %2)) true (next skels)))
+                          (> nGkTerms maxGkTerms))
+                      (do
+                        (log/warn "bad skeletons")
+                        :restart)
+
+                      :else
+                      (let [A (Array2DRowFieldMatrix. (BigFractionField/getInstance) (count arglists) (count S))]
+                        (doseq [i (range (count arglists))
+                                j (range (count S))]
+                          (.setEntry A i j
+                                     (BigFraction.
+                                      (biginteger
+                                       (reduce *' (map nt/expt (nth arglists i) (nth S j)))))))
+                        (let [LU (FieldLUDecomposition. A)]
+                          (when *poly-gcd-debug*
+                            (println 'A A)
+                            (println 'L (str (.getL LU)))
+                            (println 'U (str (.getU LU))))
+                          (let [solver (.getSolver LU)
+                                newXs (repeatedly maxGkTerms arggen)
+                                values (for [newX newXs]
+                                         (let [b (ArrayFieldVector. (BigFractionField/getInstance) (count gks))]
+                                           (doseq [j (range (count gks))]
+                                             (.setEntry b j (BigFraction.
+                                                             (biginteger
+                                                              (evaluate-1 (nth gks j) newX)))))
+                                           b))
+                                coeffs (map #(.solve solver ^ArrayFieldVector %) values)]
+                            (when *poly-gcd-debug*
+                              (println 'newXs newXs)
+                              (println 'values (map #(java.util.Arrays/toString (.toArray ^ArrayFieldVector %)) values))
+                              (println 'coeffs (map #(java.util.Arrays/toString (.toArray ^ArrayFieldVector %)) coeffs)))
+                            (let [things (for [j (range nterms)]
+                                           (lagrange-interpolating-polynomial
+                                            newXs
+                                            (map #(bigfraction->ratio (.getEntry ^ArrayFieldVector % j)) coeffs)))
+                                  gk (expand-poly S things)]
+                              (when *poly-gcd-debug* (println 'things things))
+                              (if (and (polynomial-zero? (second (divide uk gk)))
+                                       (polynomial-zero? (second (divide vk gk))))
+                                ;; Success! Start interpolating the next variable. Reset the stage
+                                ;; counter.
+                                (recur 0 (inc k) gk)
+                                ;; If the stage trial-division fails, note that we have tried a step
+                                ;; by incrementing stage-count but do not advance k. Start over with the
+                                ;; smae g; new random interpolation points will be selected.
+                                (recur (inc stage-count) k g))))))))))]
+        (if (= r :restart)
+          (do
+            (println 'RESTART)
+            (recur (repeatedly arity arggen)))
+          r)))))
 
 (def gcd-seq
   "Compute the GCD of a sequence of polynomials (we take care to

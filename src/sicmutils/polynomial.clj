@@ -156,7 +156,14 @@
 
 (defn coefficients
   [^Polynomial p]
-  (->> p .xs->c (map coefficient)))
+  (map coefficient (.xs->c p)))
+
+(defn ->skeleton
+  "This is called sparse-exponents in scmutils; we call it skeleton
+  because that is the name given to this operation in the literature
+  on multivariate GCD algorithms."
+  [^Polynomial p]
+  (map exponents (.xs->c p)))
 
 (defn check-same-arity [^Polynomial p ^Polynomial q]
   (let [ap (.arity p)
@@ -192,6 +199,11 @@
   [arity c]
   (Polynomial. arity (if (g/zero? c) empty-coefficients
                          (conj empty-coefficients [(vec (repeat arity 0)) c]))))
+
+(defn ^:private make-linear
+  "Given c, return the univariate polynomial x - c."
+  [c]
+  (Polynomial. 1 [[[0] (- c)] [[1] 1]]))
 
 (defn combine-like-terms
   "Merges the polynomials p and q. Where p and q have a like term, f is
@@ -288,7 +300,7 @@
                                      [(subvec xs 1) c]))]))
          (make 1))))
 
-(defn ^:private evaluate-1
+(defn evaluate-1
   "Evaluates a univariate polynomial p at x."
   [^Polynomial p x]
   (loop [xs->c (.xs->c p)
@@ -303,17 +315,21 @@
                (long e')))
       result)))
 
-(defn evaluate
-  "Evaluates a multivariate polynomial p at xs."
-  [^Polynomial p xs]
-  {:pre [(instance? Polynomial p)]}
-  (cond (nil? xs) p
-        (polynomial-zero? p) 0
-        (= (.arity p) 1) (evaluate-1 p (first xs))
-        :else (let [L (evaluate-1 (lower-arity p) (first xs))]
-                (if (instance? Polynomial L)
-                  (recur L (next xs))
-                  L))))
+(defn partial-evaluate
+  "Evaluates a multivariate polynomial p at xs. The result is a
+  polynomial with arity lowered by one for each element of xs."
+  ^Polynomial
+  [^Polynomial p xs & {:keys [direction] :or {direction :left}}]
+  (let [p-arity (.arity p)
+        x-arity (count xs)
+        new-arity (- p-arity x-arity)]
+    (when (> x-arity p-arity)
+      (throw (IllegalArgumentException. "too many values supplied for polynomial")))
+    (make new-arity
+          (for [[es c] (.xs->c p)]
+            (if (= direction :left)
+              [(subvec es x-arity) (reduce g/* c (map g/expt xs (subvec es 0 x-arity)))]
+              [(subvec es 0 new-arity) (reduce g/* c (map g/expt xs (subvec es new-arity)))])))))
 
 (defn divide
   "Divide polynomial u by v, and return the pair of [quotient, remainder]
@@ -450,6 +466,21 @@
   [^Polynomial p]
   (for [i (range (.arity p))]
     (partial-derivative p i)))
+
+(defn lagrange-interpolating-polynomial
+  [xs ys]
+  (let [q (transduce (map make-linear) (completing mul) (make-constant 1 1) xs)]
+    (loop [f (make 1 [])
+           xs xs
+           ys ys]
+      (if (nil? xs) f
+          (let [x (first xs)
+                qi (evenly-divide q (make-linear x))
+                pi (scale (/ (evaluate-1 qi x)) qi)]
+            (recur (add f (scale (first ys) pi))
+                   (next xs)
+                   (next ys)))))))
+
 
 ;; The operator-table represents the operations that can be understood
 ;; from the point of view of a polynomial over a commutative ring. The
