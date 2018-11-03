@@ -744,7 +744,7 @@
                      (evenly-divide vd g)
                      (evenly-divide g d))))))
 
-#_(defspec d-divides-gcd-ud-vd-spmod 15
+(defspec d-divides-gcd-ud-vd-spmod 15
   (gen/let [arity (gen/elements [2 3 4])]
     (prop/for-all [u (p-test/generate-nonzero-poly arity)
                    v (p-test/generate-nonzero-poly arity)

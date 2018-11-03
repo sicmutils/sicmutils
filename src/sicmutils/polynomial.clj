@@ -19,7 +19,9 @@
 
 (ns sicmutils.polynomial
   (:import (clojure.lang BigInt Ratio))
-  (:require [clojure.set :as set]
+  (:require [clojure.tools.logging :as log];;XXX
+            [clojure.string :refer [join]]
+            [clojure.set :as set]
             [clojure.string]
             [sicmutils
              [analyze :as a]

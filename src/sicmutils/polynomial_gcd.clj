@@ -26,7 +26,8 @@
                                             ArrayFieldVector
                                             FieldDecompositionSolver
                                             FieldLUDecomposition
-                                            FieldMatrixChangingVisitor))
+                                            FieldMatrixChangingVisitor
+                                            FieldVectorChangingVisitor))
   (:require [clojure.tools.logging :as log]
             [clojure.string]
             [clojure.math.numeric-tower :as nt]
@@ -455,115 +456,133 @@
                        (end [this])))
     M))
 
+(defn ^:private acm-rational-vector
+  "Produce an Apache Commons Math vector of dimension n over the
+  field of arbitrary size rational numbers. (f i) is called to supply
+  the entries; that function should return a BigFraction."
+  [^long n f]
+  (let [b (ArrayFieldVector. (BigFractionField/getInstance) n)]
+    (.walkInOptimizedOrder b
+                           (reify FieldVectorChangingVisitor
+                             (start [this n n1 n2])
+                             (visit [this i v] (f i))
+                             (end [this])))
+    b))
+
 (def ^:dynamic *spmod-max-restart* 20)
 (def ^:dynamic *spmod-max-stage-restart* 100)
 
+(defn ^:private random-distinct-primes
+  [n]
+  (loop [ps #{}]
+    (if (= (count ps) n) (into [] ps)
+        (recur (conj ps (nth primes (rand-int (count primes))))))))
+
+(def ^:private interpolation-argument-generator random-distinct-primes)
+
+(defn gcd-spmod-stage
+  [arity xs u v ds g]
+  (loop [stage-count 0
+         k 1
+         g g]
+    (cond (= k arity) g
+          (> stage-count *spmod-max-stage-restart*) :restart
+          :else
+          (do
+            (when *poly-gcd-debug*
+              (println 'STAGE k '\# stage-count)
+              (println 'g g))
+            (let [S (->skeleton g)
+                  nterms (count S)
+                  arglists (repeatedly nterms #(interpolation-argument-generator k))
+                  xsk+1 (drop (inc k) xs)
+                  uk (partial-evaluate u xsk+1 :direction :right)
+                  vk (partial-evaluate v xsk+1 :direction :right)
+                  gks (for [a arglists]
+                        (univariate-gcd-subresultant (partial-evaluate uk a)
+                                                     (partial-evaluate vk a)))
+                  skels (map ->skeleton gks)
+                  nGkTerms (count (first skels))
+                  maxGkTerms (inc (nth ds k))]
+              (when *poly-gcd-debug*
+                (println 'S S)
+                (println 'arglists arglists)
+                (println 'uk uk)
+                (println 'vk vk)
+                (println 'gks gks)
+                (println 'skels skels)
+                (println 'ds ds))
+              (cond
+                (or (not (reduce #(and %1 (= (first skels) %2)) true (next skels)))
+                    (> nGkTerms maxGkTerms))
+                (do
+                  (log/warn "bad skeletons")
+                  :restart)
+
+                :else
+                (let [A (acm-rational-matrix
+                         (count arglists) (count S)
+                         (fn [i j]
+                           (BigFraction.
+                            (biginteger
+                             (reduce *' (map nt/expt (nth arglists i) (nth S j)))))))
+                      LU (FieldLUDecomposition. A)
+                      solver (.getSolver LU)]
+                  (when *poly-gcd-debug*
+                    (println 'A A)
+                    (println 'L (str (.getL LU)))
+                    (println 'U (str (.getU LU))))
+                  (if (not (.isNonSingular solver))
+                    (do
+                      (log/warn "singular matrix")
+                      :restart)
+                    (let [newXs (interpolation-argument-generator maxGkTerms)
+                          values (for [newX newXs]
+                                   (acm-rational-vector
+                                    (count gks)
+                                    #(BigFraction. (biginteger (evaluate-1 (nth gks %) newX)))))
+                          coeffs (map #(.solve solver ^ArrayFieldVector %) values)]
+                      (when *poly-gcd-debug*
+                        (println 'newXs newXs)
+                        (println 'values (map #(java.util.Arrays/toString (.toArray ^ArrayFieldVector %)) values))
+                        (println 'coeffs (map #(java.util.Arrays/toString (.toArray ^ArrayFieldVector %)) coeffs)))
+                      (let [things (try (doall  ;; because if an exception is to be thrown, we want to see it now
+                                         (for [j (range nterms)]
+                                           (lagrange-interpolating-polynomial
+                                            newXs
+                                            (map #(bigfraction->ratio (.getEntry ^ArrayFieldVector % j)) coeffs))))
+                                        (catch ArithmeticException e
+                                          (log/warn (str "unable to interpolate" (into [] newXs)))
+                                          nil))]
+                        (if things
+                          (let [gk (expand-poly S things)]
+                            (if (and (polynomial-zero? (second (divide uk gk)))
+                                     (polynomial-zero? (second (divide vk gk))))
+                              ;; Success! Start interpolating the next variable. Reset the stage
+                              ;; counter. If we're out of variables we're done.
+                              (recur 0 (inc k) gk)
+                              ;; If the stage trial-division fails, note that we have tried a step
+                              ;; by incrementing stage-count but do not advance k. Start over with the
+                              ;; smae g; new random interpolation points will be selected.
+                              (recur (inc stage-count) k g)))
+                          (recur (inc stage-count) k g))))))))))))
+
 (defn gcd-spmod
   [u v]
-  (print 'gcd-spmod u v)
   (let [arity (check-same-arity u v)
         ds (reduce (partial map max) (mapcat ->skeleton [u v]))
-        B 100000
-        ;;arggen (fn [] (inc (rand-int B)))
-        arggen #(random-prime-such-that (constantly true))]
+        B 100000]
     (loop [restart-count 0
-           xs (repeatedly arity arggen)]
+           xs (interpolation-argument-generator arity)]
       (let [u0 (partial-evaluate u (next xs) :direction :right)
             v0 (partial-evaluate v (next xs) :direction :right)
-            r (loop [stage-count 0
-                     k 1
-                     g (univariate-gcd-subresultant u0 v0)]
-                (cond (= k arity) g
-                      (> stage-count *spmod-max-stage-restart*) :restart
-                      :else
-                      (do
-                        (when *poly-gcd-debug*
-                          (println 'STAGE k '\# stage-count)
-                          (println 'g g))
-                        (let [S (->skeleton g)
-                              nterms (count S)
-                              arglists (repeatedly nterms #(repeatedly k arggen))
-                              xsk+1 (drop (inc k) xs)
-                              uk (partial-evaluate u xsk+1 :direction :right)
-                              vk (partial-evaluate v xsk+1 :direction :right)
-                              gks (for [a arglists]
-                                    (univariate-gcd-subresultant (partial-evaluate uk a)
-                                                                 (partial-evaluate vk a)))
-                              skels (map ->skeleton gks)
-                              nGkTerms (count (first skels))
-                              maxGkTerms (inc (nth ds k))]
-                          (when *poly-gcd-debug*
-                            (println 'S S)
-                            (println 'arglists arglists)
-                            (println 'uk uk)
-                            (println 'vk vk)
-                            (println 'gks gks)
-                            (println 'skels skels)
-                            (println 'ds ds))
-                          (cond
-                            (or (not (reduce #(and %1 (= (first skels) %2)) true (next skels)))
-                                (> nGkTerms maxGkTerms))
-                            (do
-                              (log/warn "bad skeletons")
-                              :restart)
-
-                            :else
-                            (let [A (acm-rational-matrix
-                                     (count arglists) (count S)
-                                     (fn [i j]
-                                       (BigFraction.
-                                        (biginteger
-                                         (reduce *' (map nt/expt (nth arglists i) (nth S j)))))))
-                                  LU (FieldLUDecomposition. A)
-                                  solver (.getSolver LU)]
-                              (when *poly-gcd-debug*
-                                (println 'A A)
-                                (println 'L (str (.getL LU)))
-                                (println 'U (str (.getU LU))))
-                              (if (not (.isNonSingular solver))
-                                (do
-                                  (log/warn "singular matrix")
-                                  :restart)
-                                (let [newXs (loop [xs (repeatedly maxGkTerms arggen)]
-                                              (if (distinct? xs) xs (recur (repeatedly maxGkTerms arggen))))
-                                      values (for [newX newXs]
-                                               (let [b (ArrayFieldVector. (BigFractionField/getInstance) (count gks))]
-                                                 (doseq [j (range (count gks))]
-                                                   (.setEntry b j (BigFraction.
-                                                                   (biginteger
-                                                                    (evaluate-1 (nth gks j) newX)))))
-                                                 b))
-                                      coeffs (map #(.solve solver ^ArrayFieldVector %) values)]
-                                  (when *poly-gcd-debug*
-                                    (println 'newXs newXs)
-                                    (println 'values (map #(java.util.Arrays/toString (.toArray ^ArrayFieldVector %)) values))
-                                    (println 'coeffs (map #(java.util.Arrays/toString (.toArray ^ArrayFieldVector %)) coeffs)))
-                                  (let [things (try (doall  ;; because if an exception is to be thrown, we want to see it now
-                                                     (for [j (range nterms)]
-                                                       (lagrange-interpolating-polynomial
-                                                        newXs
-                                                        (map #(bigfraction->ratio (.getEntry ^ArrayFieldVector % j)) coeffs))))
-                                                    (catch ArithmeticException e
-                                                      (log/warn (str "unable to interpolate" (into [] newXs)))
-                                                      nil))]
-                                    (if things
-                                      (let [gk (expand-poly S things)]
-                                        (if (and (polynomial-zero? (second (divide uk gk)))
-                                                 (polynomial-zero? (second (divide vk gk))))
-                                          ;; Success! Start interpolating the next variable. Reset the stage
-                                          ;; counter. If we're out of variables we're done.
-                                          (recur 0 (inc k) gk)
-                                          ;; If the stage trial-division fails, note that we have tried a step
-                                          ;; by incrementing stage-count but do not advance k. Start over with the
-                                          ;; smae g; new random interpolation points will be selected.
-                                          (recur (inc stage-count) k g)))
-                                      (recur (inc stage-count) k g)))))))))))]
+            r (gcd-spmod-stage arity xs u v ds (univariate-gcd-subresultant u0 v0))]
         (if (= r :restart)
           (let [rc (inc restart-count)]
             (when (> rc *spmod-max-restart*)
               (throw (ArithmeticException. "unable to compute GCD with SPMOD")))
             (log/warn "spmod GCD restart")
-            (recur rc (repeatedly arity arggen)))
+            (recur rc (interpolation-argument-generator arity)))
           r)))))
 
 (defn gcd-spmod-w
