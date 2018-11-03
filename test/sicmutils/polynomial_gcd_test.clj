@@ -550,8 +550,19 @@
       (gcd-test "D4" d4 f4 g4)
       (gcd-test "D5" d5 f5 g5)
       ;; the following are too big for our naive algorithm.
-      ;;(gcd-test "D6" d6 f6 g6)
+      #_(gcd-test "D6" d6 f6 g6)
       #_(gcd-test "D7" d7 f7 g7)
+
+      (let [d (->poly d6)
+            f (->poly f6)
+            g (->poly g6)]
+        (is (= d (gcd-spmod (mul d f) (mul d g)))))
+
+      (let [d (->poly d7)
+            f (->poly f7)
+            g (->poly g7)]
+        (is (= d (gcd-spmod (mul d f) (mul d g)))))
+
       (gcd-stats))))
 
 (deftest big-gcd
@@ -656,7 +667,30 @@
   (testing "ex2"
     (let [u (make 2 {[0 0] -1, [0 7] -1})
           v (make 2 {[0 0] 1, [0 1] -1, [0 4] 1, [3 3] -11, [1 9] 8, [8 5] -9, [12 1] 1})]
-      (gcd-test "S2" (make 2 {[0 0] 1}) u v))))
+      (gcd-test "S2" (make 2 {[0 0] 1}) u v)))
+  #_(testing "fat gcd"
+    ;; I actually ran across this example by accident thinking I was setting
+    ;; up an easy test, but for reasons we have yet to convincingly analyze
+    ;; it appears to require many cycles to solve
+    (let [u (->poly '(* (expt (- Z 1) 3)
+                        (+ X 1)
+                        (- Y 2)
+                        (+ Z 2)
+                        (- X 3)
+                        (expt (+ Y 1) 2)))
+          v (->poly '(* (expt (- Z 1) 2)
+                        (+ Z 1)
+                        (expt (+ Y 1) 3)
+                        (- Z 3)
+                        (+ X 2)))
+          g (->poly '(* (expt X 0)
+                        (expt (- Z 1) 2)
+                        (expt (+ Y 1) 2)))]
+      (is (= g (gcd-spmod u v))))
+
+    ))
+
+
 
 
 ;; Currently we only do GCD testing of univariate polynomials, because
@@ -705,6 +739,20 @@
                   (let [ud (mul u d)
                         vd (mul v d)
                         g (gcd ud vd)]
+                    (and
+                     (evenly-divide ud g)
+                     (evenly-divide vd g)
+                     (evenly-divide g d))))))
+
+#_(defspec d-divides-gcd-ud-vd-spmod 15
+  (gen/let [arity (gen/elements [2 3 4])]
+    (prop/for-all [u (p-test/generate-nonzero-poly arity)
+                   v (p-test/generate-nonzero-poly arity)
+                   d (p-test/generate-nonzero-poly arity)]
+                  (let [ud (mul u d)
+                        vd (mul v d)
+                        g (binding [*poly-gcd-debug* false]
+                            (gcd-spmod-w ud vd))]
                     (and
                      (evenly-divide ud g)
                      (evenly-divide vd g)
