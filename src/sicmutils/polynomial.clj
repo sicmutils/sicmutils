@@ -400,6 +400,13 @@
                       (Polynomial. a (mapv (fn [[[e] k]] [[(- (+ e m) n)] (g/* k c)]) (.xs->c v))))
                  (inc d)))))))
 
+(defn ^:private balance
+  [a m]
+  (let [b (mod a m)]
+    (if (> b (quot m 2)) (- b m) b)))
+
+;; XXX qq: why do we get an infinite loop when we use balance and euclidean GCD?
+
 (defn polynomial-reduce-mod
   [m p]
   (map-coefficients #(mod % m) p))
@@ -415,8 +422,9 @@
     (loop [r u]
       (let [delta (- (degree r) (degree v))]
         (if (neg? delta) r
-            (recur (polynomial-reduce-mod p
-                                          (sub r (mul v (Polynomial. 1 [[[delta] (* vn-inv (lead-coefficient r))]]))))))))))
+            (recur (polynomial-reduce-mod
+                    p
+                    (sub r (mul v (Polynomial. 1 [[[delta] (* vn-inv (lead-coefficient r))]]))))))))))
 
 (defn evenly-divide
   "Divides the polynomial u by the polynomial v. Throws an IllegalStateException
@@ -484,7 +492,7 @@
                    (next ys)))))))
 
 
-;; The operator-table represents the operations that can be understood
+;; The operator-table represents the operations that can be unerstood
 ;; from the point of view of a polynomial over a commutative ring. The
 ;; functions take polynomial inputs and return polynomials.
 

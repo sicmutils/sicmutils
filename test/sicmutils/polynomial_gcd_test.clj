@@ -105,21 +105,7 @@
           (is (= X+Z (gcd (mul X+Y X+Z) (mul Y+Z X+Z))))
           (is (= (mul X+Z X+Y+Z) (gcd (reduce mul [X+Y X+Z X+Y+Z]) (reduce mul [X+Z X+Y+Z Y+Z]))))
           (is (= (mul X+Z (mul X+Z X+Y)) (gcd (reduce mul [X+Z X+Z X+Y X+Y+Z Y+1]) (reduce mul [X+Z X+Z X+Y X+1 Z+1 X+Z]))))
-          (is (= G (gcd U V))))))
-    ;; this was sort of cool, but prevented us from using native BigInteger GCD.
-    ;; it could come back, but in order to do this right, we would need a way
-    ;; to specify the coefficient field when we create a polynomial so that we
-    ;; can efficiently dispatch to a GCD routine tailored to that field.
-    #_(testing "modular polynomial reduction"
-        (let [A (make [-360 -171 145 25 1])
-              B (make [-15 -14 -1 15 14 1])
-              Z5 #(modular/make % 5)
-              A:Z5 (map-coefficients Z5 A)
-              B:Z5 (map-coefficients Z5 B)
-              G5 (gcd A:Z5 B:Z5)]
-          (is (= (make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) A:Z5))
-          (is (= (make [(Z5 0) (Z5 1) (Z5 -1) (Z5 0) (Z5 -1) (Z5 1)]) B:Z5))
-          (is (= (make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) G5))))))
+          (is (= G (gcd U V))))))))
 
 (deftest basics
   (let [U (make [-5 2 8 -3 -3 0 1 0 1])
@@ -134,6 +120,15 @@
                       [6 0 17 0 10]])
            (map #(univariate-modular-remainder % U V) [3 5 7 11 13 17 19])))
     (is (= (g/one-like U) (univariate-gcd-subresultant U V)))))
+
+(deftest modular-polys
+  (testing "modular polynomial reduction"
+    (let [A (make [-360 -171 145 25 1])
+          B (make [-15 -14 -1 15 14 1])
+          G (univariate-modular-gcd 5 A B)]
+      (is (= (make [0 4 0 0 1]) (polynomial-reduce-mod 5 A)))
+      (is (= (make [0 1 4 0 4 1]) (polynomial-reduce-mod 5 B)))
+      (is (= (make [0 4 0 0 1]) G)))))
 
 (deftest poly-modular-gcd
   ;; The test data here is courtesy of the following Mathematica expressions:
@@ -412,7 +407,7 @@
 (def ^:private poly-analyzer (->PolynomialAnalyzer))
 (defn ^:private ->poly [x] (a/expression-> poly-analyzer x (fn [p _] p)))
 
-(defn ^:private gcd-test [name dx fx gx]
+(defn ^:private gcd-test [name gcd-algorithm dx fx gx]
   (let [d (->poly dx)
         f (->poly fx)
         g (->poly gx)
@@ -421,7 +416,7 @@
         sw (Stopwatch/createStarted)
         a (binding [*poly-gcd-time-limit* [10 TimeUnit/SECONDS]
                     *poly-gcd-cache-enable* false]
-            (is (= d (gcd df dg)))            )]
+            (is (= d (gcd-algorithm df dg))))]
     (log/info "gcd-test" name (str sw))))
 
 (deftest ^:long ^:benchmark gjs
@@ -516,7 +511,66 @@
                  (* x2 x2 x3 x3 x4 x4 x5 x6 x7 x7)
                  (* x4 x6 x7 x7)
                  (* x1 x1 x2 x3 x5 x6 x7)
-                 (* x1 x1 x3 x3 x4 x5 x5))]
+                 (* x1 x1 x3 x3 x4 x5 x5))
+
+          d8 '(+ (* x2 x2 x4 x5 x6 x7 x8 x8)
+                 (* x1 x1 x2 x3 x3 x4 x4 x6 x6 x7 x7 x8)
+                 (* x1 x1 x3 x4 x4 x6 x6 x7 x7)
+                 (* x1 x1 x2 x2 x3 x3 x4 x5 x5 x6 x7 x7)
+                 (* x2 x2 x4 x6))
+
+          f8 '(+ (* x1 x1 x2 x2 x3 x4 x4 x5 x6 x6 x8 x8)
+                 (* x2 x5 x6 x6 x8 x8)
+                 (* x1 x1 x2 x2 x3 x3 x4 x4 x6 x6 x7 x7 x8)
+                 (* x1 x1 x3 x3 x4 x5 x5 x7 x7 x8)
+                 (* x1 x2 x2 x3 x3 x5 x5 x7))
+
+          g8 '(+ (* x1 x4 x4 x6 x6 x7 x8 x8)
+                 (* x1 x2 x2 x4 x4 x5 x5 x6 x6 x8)
+                 (* x1 x1 x2 x3 x4 x4 x6 x6 x8)
+                 (* x1 x1 x2 x2 x3 x3 x4 x5 x5 x8)
+                 (* x1 x2 x4 x4 x5 x5))
+
+          d10 '(+ (* x1 x2 x2 x4 x4 x8 x9 x9 x10 x10)
+                  (* x2 x2 x4 x5 x5 x6 x7 x9 x10 x10)
+                  (* x1 x1 x2 x3 x5 x5 x7 x7 x9 x9)
+                  (* x1 x3 x3 x4 x4 x7 x7 x9 x9)
+                  (* x1 x1 x3 x4 x7 x7 x8 x8))
+
+          f10 '(+ (* x1 x2 x3 x3 x4 x6 x7 x8 x9 x9 x10 x10)
+                  (* x2 x2 x3 x3 x4 x4 x6 x6 x9 x10 x10)
+                  (* x1 x2 x2 x3 x3 x4 x5 x6 x7 x8 x8 x9 x9 x10)
+                  (* x1 x1 x2 x4 x4 x5 x5 x8 x8 x9 x9 x10)
+                  (* x3 x4 x4 x5 x6 x7 x7 x9 x10))
+
+          g10 '(+ (* x1 x2 x2 x3 x3 x5 x5 x6 x6 x7 x8 x9 x9 x10 x10)
+                  (* x3 x8 x9 x9 x10 x10)
+                  (* x1 x2 x2 x3 x4 x5 x5 x6 x6 x8 x8 x9 x10)
+                  (* x1 x3 x6 x7 x8 x10)
+                  (* x4 x4 x5 x5 x6 x6 x7 x9 x9))
+
+          d10a '(+ (* 2 x1 x2 x2 x4 x4 x8 x9 x9 x10 x10)
+                   (* 3 x2 x2 x4 x5 x5 x6 x7 x9 x10 x10)
+                   (* 4 x1 x1 x2 x3 x5 x5 x7 x7 x9 x9)
+                   (* 5 x1 x3 x3 x4 x4 x7 x7 x9 x9)
+                   (* 6 x1 x1 x3 x4 x7 x7 x8 x8)
+                   7)
+
+          f10a '(+ (* 8 x1 x2 x3 x3 x4 x6 x7 x8 x9 x9 x10 x10)
+                   (* 9 x2 x2 x3 x3 x4 x4 x6 x6 x9 x10 x10)
+                   (* 10 x1 x2 x2 x3 x3 x4 x5 x6 x7 x8 x8 x9 x9 x10)
+                   (* 11 x1 x1 x2 x4 x4 x5 x5 x8 x8 x9 x9 x10)
+                   (* 12 x3 x4 x4 x5 x6 x7 x7 x9 x10)
+                   13)
+
+          g10a '(+ (* 14 x1 x2 x2 x3 x3 x5 x5 x6 x6 x7 x8 x9 x9 x10 x10)
+                   (* 15 x3 x8 x9 x9 x10 x10)
+                   (* 16 x1 x2 x2 x3 x4 x5 x5 x6 x6 x8 x8 x9 x10)
+                   (* 17 x1 x3 x6 x7 x8 x10)
+                   (* 18 x4 x4 x5 x5 x6 x6 x7 x9 x9)
+                   19)
+
+          ]
 
       (is (= (->poly d2) (-> d2 ->poly lower-arity raise-arity)))
       (is (= (->poly d3) (-> d3 ->poly lower-arity raise-arity)))
@@ -544,24 +598,26 @@
              (mul (lower-arity (->poly d2))
                   (lower-arity (mul (->poly d2) (->poly f2))))))
 
-      (gcd-test "D1" d1 f1 g1)
-      (gcd-test "D2" d2 f2 g2)
-      (gcd-test "D3" d3 f3 g3)
-      (gcd-test "D4" d4 f4 g4)
-      (gcd-test "D5" d5 f5 g5)
+      (gcd-test "Eu D1" gcd-euclid d1 f1 g1)
+      (gcd-test "Eu D2" gcd-euclid d2 f2 g2)
+      (gcd-test "Eu D3" gcd-euclid d3 f3 g3)
+      (gcd-test "Eu D4" gcd-euclid d4 f4 g4)
+      (gcd-test "Eu D5" gcd-euclid d5 f5 g5)
+
+      (gcd-test "SP D1" gcd-spmod d1 f1 g1)
+      (gcd-test "SP D2" gcd-spmod d2 f2 g2)
+      (gcd-test "SP D3" gcd-spmod d3 f3 g3)
+      (gcd-test "SP D4" gcd-spmod d4 f4 g4)
+      (gcd-test "SP D5" gcd-spmod d5 f5 g5)
       ;; the following are too big for our naive algorithm.
       #_(gcd-test "D6" d6 f6 g6)
       #_(gcd-test "D7" d7 f7 g7)
 
-      (let [d (->poly d6)
-            f (->poly f6)
-            g (->poly g6)]
-        (is (= d (gcd-spmod (mul d f) (mul d g)))))
-
-      (let [d (->poly d7)
-            f (->poly f7)
-            g (->poly g7)]
-        (is (= d (gcd-spmod (mul d f) (mul d g)))))
+      (gcd-test "SP D6" gcd-spmod d6 f6 g6)
+      (gcd-test "SP D7" gcd-spmod d7 f7 g7)
+      (gcd-test "SP D8" gcd-spmod d8 f8 g8)
+      (gcd-test "SP D10" gcd-spmod d10 f10 g10)
+      (gcd-test "SP D10A" gcd-spmod d10a f10a g10a)
 
       (gcd-stats))))
 
@@ -638,7 +694,8 @@
                 (* 2 (expt z 35) (expt y 41) (expt x 2))
                 (* (expt z 3) (expt y 5) x)
                 525)]
-      (gcd-test "K1" d p q)))
+      (gcd-test "Eu K1" gcd-spmod d p q)
+      (gcd-test "SP K1" gcd-euclid d p q)))
   (testing "ex2"
     ;; a hack, using (expt z 0) to make the arities equal
     (let [d '(+ (expt x 3) (* 2 (expt z 0) (+ (expt y 34) (expt y 75)) (expt x 2)) (expt y 84))
@@ -652,7 +709,8 @@
                 (* (expt y 45) x)
                 54
                 (expt z 0))]
-      (gcd-test "K2" d p q))))
+      #_(gcd-test "Eu K2" gcd-spmod d p q)  ;; over 2 minutes
+      (gcd-test "SP K2" gcd-euclid d p q))))
 
 (deftest ^:benchmark some-interesting-small-examples
   "Clojure.test.check's awesome problem-shrinking feature found some
@@ -663,12 +721,14 @@
     (let [u (make 3 {[0 0 0] -1, [0 0 3] 1})
           v (make 3 {[0 0 0] 1, [2 3 0] 2, [0 8 1] 1, [7 0 5] -1})
           sw (Stopwatch/createStarted)]
-      (gcd-test "S1" (make 3 {[0 0 0] 1}) u v)))
+      (gcd-test "Eu S1" gcd-euclid (make 3 {[0 0 0] 1}) u v)
+      (gcd-test "SP S1" gcd-spmod (make 3 {[0 0 0] 1}) u v)))
   (testing "ex2"
     (let [u (make 2 {[0 0] -1, [0 7] -1})
           v (make 2 {[0 0] 1, [0 1] -1, [0 4] 1, [3 3] -11, [1 9] 8, [8 5] -9, [12 1] 1})]
-      (gcd-test "S2" (make 2 {[0 0] 1}) u v)))
-  #_(testing "fat gcd"
+      (gcd-test "Eu S2" gcd-euclid (make 2 {[0 0] 1}) u v)
+      (gcd-test "SP S2" gcd-spmod (make 2 {[0 0] 1}) u v)))
+  (testing "fat gcd"
     ;; I actually ran across this example by accident thinking I was setting
     ;; up an easy test, but for reasons we have yet to convincingly analyze
     ;; it appears to require many cycles to solve
@@ -686,12 +746,8 @@
           g (->poly '(* (expt X 0)
                         (expt (- Z 1) 2)
                         (expt (+ Y 1) 2)))]
-      (is (= g (gcd-spmod u v))))
-
-    ))
-
-
-
+      (is (= g (gcd-euclid u v)))
+      (is (= g (gcd-spmod u v))))))
 
 ;; Currently we only do GCD testing of univariate polynomials, because
 ;; we find that unfortunately clojure.test.check is very good at finding
@@ -752,7 +808,7 @@
                   (let [ud (mul u d)
                         vd (mul v d)
                         g (binding [*poly-gcd-debug* false]
-                            (gcd-spmod-w ud vd))]
+                            (gcd-spmod ud vd))]
                     (and
                      (evenly-divide ud g)
                      (evenly-divide vd g)

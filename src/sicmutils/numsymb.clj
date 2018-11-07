@@ -295,6 +295,7 @@
 (derive ::native-numeric-type ::numeric-type)
 (derive ::native-exact-type ::native-numeric-type)
 (derive ::native-integral-type ::native-exact-type)
+(derive java.lang.Integer ::native-integral-type)
 (derive java.lang.Long ::native-integral-type)
 (derive java.lang.Double ::native-numeric-type)
 (derive clojure.lang.BigInt ::native-integral-type)
