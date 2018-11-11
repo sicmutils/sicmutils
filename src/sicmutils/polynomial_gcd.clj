@@ -78,13 +78,13 @@
       (recur (native-gcd x (first xs)) (next xs))
       x)))
 
-(defn univariate-content
+(defn integral-content
   [u]
   (primitive-gcd (coefficients u)))
 
-(defn univariate-primitive-part
+(defn integral-primitive-part
   [u]
-  (let [content (univariate-content u)]
+  (let [content (integral-content u)]
     (map-coefficients #(/ % content) u)))
 
 (defn ^:private with-content-removed
@@ -232,8 +232,8 @@
                       (swap! gcd-time-data conj [(degree u) (degree v) (height u) (height v) t])
                       g)
                      g))
-          cu (univariate-content u)
-          cv (univariate-content v)
+          cu (integral-content u)
+          cv (integral-content v)
           d (primitive-gcd [cu cv])]
       (loop [g 1
              h 1
@@ -242,7 +242,7 @@
         (let [delta (int (- (degree u) (degree v)))
               r ^Polynomial (univariate-pseudo-remainder u v)]
           (cond
-            (polynomial-zero? r) (return (scale d (univariate-primitive-part v)))
+            (polynomial-zero? r) (return (scale d (integral-primitive-part v)))
             (zero? (degree r)) (return (make-constant 1 d))
             :else (let [q (*' g (nt/expt h delta))
                         u' v
@@ -283,9 +283,9 @@
 (defn univariate-gcd-zippel
   "Univariate GCD from R. Zippel, Effective Polynomial Computation, §15.2"
   [F G]
-  (let [c (native-gcd (univariate-content F) (univariate-content G))
-        F (univariate-primitive-part F)
-        G (univariate-primitive-part G)
+  (let [c (native-gcd (integral-content F) (integral-content G))
+        F (integral-primitive-part F)
+        G (integral-primitive-part G)
         u (lead-coefficient F)
         v (lead-coefficient G)
         h (native-gcd u v)
@@ -318,7 +318,7 @@
                     (recur H new-primes-used m*p))))
         ;; we're done when m > B. First balance H, then reimpose the content.
         (let [Hb (map-coefficients #(if (> % (/ m 2)) (- % m) %) H)
-              ch (univariate-content Hb)]
+              ch (integral-content Hb)]
           (map-coefficients #(/ (*' c %) ch) Hb))))))
 
 (defn ^:private inner-gcd
@@ -410,30 +410,28 @@
 ;; number of iterations. i.e., put limits on both types of restart.
 ;;
 
-(defn ^:private acm-rational-matrix
+(defn acm-integral-matrix
   "Produce an Apache Commons Math matrix of dimension m × n over the
   field of arbitrary size rational numbers. (f i j) is called to
-  supply the entries. That function should return BigFractions."
+  supply the entries. That function should return integers. The resulting
+  matrix will have entries in the BigFractionField"
   [^long m ^long n f]
   (let [M (Array2DRowFieldMatrix. (BigFractionField/getInstance) m n)]
     (.walkInOptimizedOrder M
                      (reify FieldMatrixChangingVisitor
                        (start [this r c r1 r2 c1 c2])
-                       (visit [this i j v] (f i j))
+                       (visit [this i j v] (integer->bigfraction (f i j)))
                        (end [this])))
     M))
 
-(defn ^:private acm-rational-vector
-  "Produce an Apache Commons Math vector of dimension n over the
-  field of arbitrary size rational numbers. (f i) is called to supply
-  the entries; that function should return a BigFraction."
-  [^long n f]
-  (let [b (ArrayFieldVector. (BigFractionField/getInstance) n)]
-    (.walkInOptimizedOrder b
-                           (reify FieldVectorChangingVisitor
-                             (start [this n n1 n2])
-                             (visit [this i v] (f i))
-                             (end [this])))
+(defn ^:private acm-integral-vector
+  "Produce an Apache Commons Math vector over the BigFractionField
+  coreesponding to the supplied native Clojure vector of integers."
+  ^ArrayFieldVector
+  [v]
+  (let [b (ArrayFieldVector. (BigFractionField/getInstance) (count v))]
+    (doseq [i (range (count v))]
+      (.setEntry b i (integer->bigfraction (nth v i))))
     b))
 
 (def ^:dynamic *spmod-max-restart* 20)
@@ -446,6 +444,33 @@
         (recur (conj ps (nth primes (rand-int (count primes))))))))
 
 (def ^:private interpolation-arguments random-distinct-primes)
+
+(defn ^:private linear-solution
+  "Let A be the n×n matrix whose entries are (f i j), where i and j are
+  zero-based. Produce a function which will accept a vector b and
+  return the solution to the linear system Ax = b. Return nil if A is
+  singular."
+  [n f]
+  (if (= n 1)
+    (let [a00 (f 0 0)]
+      (if (zero? a00) nil
+          (fn [b]
+            {:pre (= (count b) 1)}
+            [(/ (first b) a00)])))
+    (let [A (acm-integral-matrix n n f)
+          sw (Stopwatch/createStarted)
+          LU (FieldLUDecomposition. A)
+          _ (.stop sw)
+          solver (.getSolver LU)]
+      (log/info (format "LU of %d-matrix took %s" n sw))
+      (if-not (.isNonSingular solver)
+        (do
+          (log/warn "spmod: singular matrix")
+          nil)
+        (fn [b]
+          (let [x (.solve solver (acm-integral-vector b))]
+            (vec (for [i (range n)]
+                   (bigfraction->ratio (.getEntry x i))))))))))
 
 (defn ^:private gcd-spmod-stage
   [arity xs u v ds g]
@@ -490,53 +515,54 @@
                   nil)
 
                 :else
-                (let [A (acm-rational-matrix
-                         (count arglists) (count S)
-                         (fn [i j] (integer->bigfraction (reduce *' (map nt/expt (nth arglists i) (nth S j))))))
-                      LU (FieldLUDecomposition. A)
-                      solver (.getSolver LU)]
-                  (when *poly-gcd-debug*
-                    (println 'A A)
-                    (println 'L (str (.getL LU)))
-                    (println 'U (str (.getU LU))))
-                  (if (not (.isNonSingular solver))
-                    (do
-                      (log/warn "singular matrix")
-                      nil)
-                    (let [newXs (interpolation-arguments maxGkTerms)
-                          values (for [newX newXs]
-                                   (acm-rational-vector
-                                    (count gks)
-                                    #(integer->bigfraction (evaluate-1 (nth gks %) newX))))
-                          coeffs (map #(.solve solver ^ArrayFieldVector %) values)]
-                      (when *poly-gcd-debug*
-                        (println 'newXs newXs)
-                        (println 'values (map #(java.util.Arrays/toString (.toArray ^ArrayFieldVector %)) values))
-                        (println 'coeffs (map #(java.util.Arrays/toString (.toArray ^ArrayFieldVector %)) coeffs)))
-                      (if-let [things (try (doall  ;; because if an exception is to be thrown, we want to see it now
-                                            (for [j (range nterms)]
-                                              (lagrange-interpolating-polynomial
-                                               newXs
-                                               (map #(bigfraction->ratio (.getEntry ^ArrayFieldVector % j)) coeffs))))
-                                           (catch ArithmeticException e
-                                             (log/warn (str "unable to interpolate" (into [] newXs)))
-                                             nil))]
-                        (let [gk (expand-poly S things)]
-                          (if (and (polynomial-zero? (second (divide uk gk)))
-                                   (polynomial-zero? (second (divide vk gk))))
-                            ;; Success! Start interpolating the next variable. Reset the stage
-                            ;; counter. If we're out of variables we're done.
-                            (recur 0 (inc k) gk)
-                            ;; If the stage trial-division fails, note that we have tried a step
-                            ;; by incrementing stage-count but do not advance k. Start over with the
-                            ;; smae g; new random interpolation points will be selected.
-                            (recur (inc stage-count) k g)))
+                (if-let [solver (linear-solution
+                                 (count arglists)
+                                 (fn [i j]
+                                   (reduce *' (map nt/expt (nth arglists i) (nth S j)))))]
+
+                  (let [newXs (interpolation-arguments maxGkTerms)
+                        values (mapv
+                                (fn [newX]
+                                  (mapv #(evaluate-1 % newX) gks))
+                                newXs)
+                        ;; XXX consider mapv
+                        coeffs (mapv solver values)]
+                    (when *poly-gcd-debug*
+                      (println 'newXs newXs)
+                      (println 'values values)
+                      (println 'coeffs coeffs))
+                    (if-let [things (try (doall  ;; because if an exception is to be thrown, we want to see it now
+                                          (for [j (range nterms)]
+                                            (lagrange-interpolating-polynomial
+                                             newXs
+                                             (mapv #(nth % j) coeffs))))
+                                         (catch ArithmeticException e
+                                           (log/warn (str "unable to interpolate" (into [] newXs)))
+                                           nil))]
+                      (let [gk (expand-poly S things)]
+                        (if (and (polynomial-zero? (second (divide uk gk)))
+                                 (polynomial-zero? (second (divide vk gk))))
+                          ;; Success! Start interpolating the next variable. Reset the stage
+                          ;; counter. If we're out of variables we're done.
+                          (recur 0 (inc k) gk)
+                          ;; If the stage trial-division fails, note that we have tried a step
+                          ;; by incrementing stage-count but do not advance k. Start over with the
+                          ;; smae g; new random interpolation points will be selected.
+                          (do
+                            (log/warn (format "divide fail. restarting stage #%d %d" k (inc stage-count)))
+                            (recur (inc stage-count) k g))))
+                      (do
+                        (log/warn (format "interpolation fail. restarting stage #%d %d" k (inc stage-count)))
                         (recur (inc stage-count) k g)))))))))))
+
+(defn ^:private multidegree
+  [p]
+  (reduce (partial mapv max) (->skeleton p)))
 
 (defn gcd-spmod-start
   [u v]
   (let [arity (check-same-arity u v)
-        ds (reduce (partial map max) (mapcat ->skeleton [u v]))]
+        ds (mapv max (multidegree u) (multidegree v))]
     (loop [restart-count 0
            xs (interpolation-arguments arity)]
       (let [u0 (partial-evaluate u (next xs) :direction :right)
@@ -560,6 +586,8 @@
                  (every? integral? (coefficients v)))) (g/one-like u)
        (polynomial-zero? u) v
        (polynomial-zero? v) u
+       (polynomial-constant? u) (make-constant a (euclid/gcd (polynomial-constant? u) (integral-content v)))
+       (polynomial-constant? v) (make-constant a (euclid/gcd (polynomial-constant? v) (integral-content u)))
        (g/one? u) u
        (g/one? v) v
        (= u v) u
@@ -573,13 +601,43 @@
            (abs
             (with-optimized-variable-order u v k))))))))
 
+(defn timed-gcd
+  [algorithm u v]
+  (let [sw (Stopwatch/createStarted)
+        g (algorithm u v)]
+    [(.stop sw) g]))
+
+(def ^:private win-counts (atom {}))
 (def gcd-euclid (prepare-gcd "Eu GCD" (partial inner-gcd 0)))
 (def gcd-spmod (prepare-gcd "SP GCD" gcd-spmod-start))
 
-(defn gcd
-  "This will become the 'dispatching' gcd."
-  [u v]
-  (gcd-euclid u v))
+(defn gcd-race
+  [algorithms]
+  (fn [^Polynomial u ^Polynomial v]
+    (let [m (into {} (for [[name algorithm] algorithms]
+                       [name (timed-gcd algorithm u v)]))
+
+          [best-algorithm-name [elapsed-time gcd]]
+          (apply min-key
+                 (fn [[algorithm-name [^Stopwatch stopwatch gcd]]]
+                           (.elapsed stopwatch java.util.concurrent.TimeUnit/MICROSECONDS))
+                 m)]
+      (log/info (format "gcd %s wins %s deg %d,%d arity %d md %s,%s %s"
+                        best-algorithm-name
+                        elapsed-time
+                        (degree u)
+                        (degree v)
+                        (.arity u)
+                        (multidegree u)
+                        (multidegree v)
+                        @win-counts)  )
+      (swap! win-counts update best-algorithm-name (fnil inc 0))
+      gcd)))
+
+#_(def gcd (prepare-gcd "Race" (gcd-race {:euclid (partial inner-gcd 0)
+                                          :sparse gcd-spmod-start})))
+
+(def gcd gcd-euclid)
 
 (def gcd-seq
   "Compute the GCD of a sequence of polynomials (we take care to

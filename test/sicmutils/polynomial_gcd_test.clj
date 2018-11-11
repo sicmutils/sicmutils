@@ -85,7 +85,7 @@
         (is (= X+Y_3 (gcd X+Y_3 X+Y_3)))
         (is (= G (gcd U V)))))
     (testing "GCD: arity 3 case"
-      (binding [*poly-gcd-time-limit* [2 TimeUnit/SECONDS]]
+      (binding [*poly-gcd-time-limit* [4 TimeUnit/SECONDS]]
         (let [I (make 3 [[[0 0 0] 1]])
               X (make 3 [[[1 0 0] 1]])
               Y (make 3 [[[0 1 0] 1]])
@@ -385,8 +385,7 @@
 (deftest zippel-gcd-test
   (testing "Zippel UnivariateGCD"
     (let [F (make [-6350400, 385560, 603118, -68507, -15631, 2650, 32, -23, 1])
-          G (make [-9720000, 2565000, 478500, -168250, -1013, 3026, -128, -16, 1])
-          ]
+          G (make [-9720000, 2565000, 478500, -168250, -1013, 3026, -128, -16, 1])]
       (is (= (make [450 -5 -14 1]) (univariate-gcd-zippel F G))))))
 
 (deftest simple-gcd-3

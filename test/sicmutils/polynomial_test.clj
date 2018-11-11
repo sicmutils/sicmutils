@@ -58,6 +58,11 @@
     (is (= (make [99]) (make-constant 1 99)))
     (is (= (make 2 [[[0 0] 88]]) (make-constant 2 88)))
     (is (= (make 3 [[[0 0 0] 77]]) (make-constant 3 77))))
+  (testing "constant?"
+    (is (polynomial-constant? (make-constant 1 101)))
+    (is (polynomial-constant? (make [1])))
+    (is (polynomial-constant? (make-constant 2 111)))
+    (is (not (polynomial-constant? (make [0 1])))))
   (testing "degree"
     (is (= (degree (make [])) -1))
     (is (= (degree (make [-1 1])) 1))

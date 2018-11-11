@@ -83,16 +83,12 @@
 ;; Polynomials
 ;;
 
-(declare evaluate)
+(declare evaluate polynomial-one?)
 
 (deftype Polynomial [arity xs->c]
   g/INumericType
   (zero? [_] (empty? xs->c))
-  (one? [a]
-    (and (= (count xs->c) 1)
-         (let [[xs c] (first xs->c)]
-           (and (every? zero? xs)
-                (g/one? c)))))
+  (one? [a] (polynomial-one? a))
   Object
   (equals [_ b]
     (and (instance? Polynomial b)
@@ -108,6 +104,20 @@
                                            (str v "*" (clojure.string/join "," k)))))
            (if (> c n) (format " ...and %d more terms" (- c n)))
            ")"))))
+
+(defn polynomial-constant?
+  "If the polynomial is constant (i.e., degree zero or negative), then
+  the constant value is returned, else nil."
+  [^Polynomial p]
+  (let [xs->c (.xs->c p)]
+    (if (= (count xs->c) 1)
+      (let [[xs c] (first xs->c)]
+        (if (every? zero? xs) c)))))
+
+(defn ^:private polynomial-one?
+  [^Polynomial p]
+  (and (polynomial-constant? p)
+       (g/one? (coefficient (first (.xs->c p))))))
 
 (defn polynomial-zero? [^Polynomial u] (empty? (.xs->c u)))
 
