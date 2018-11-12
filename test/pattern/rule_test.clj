@@ -28,8 +28,8 @@
   "Compiling a rule produces an arity 2 function which takes the data to match
   and a success continuation. For testing we provide this arity-1 wrapper which
   provides a continuation that immediately returns."
-  [& pattern-components]
-  `(let [compiled-rule# (rule ~@pattern-components)]
+  [pattern predicate consequence]
+  `(let [compiled-rule# (rule ~pattern ~predicate ~consequence)]
      (fn [data#]
        (compiled-rule# data# identity))))
 
@@ -88,9 +88,10 @@
 (deftest ruleset-test
   (testing "simple"
     (let [RS (ruleset
-               ((:? a) (:? a)) => (* 2 (:? a))
-               ((:? a) (:? b)) => ((:? b) (:? a))
-               ((:? a) (:? b) (:? c)) => ((:? c) (:? b) (:? a)))]
+              "RS"
+              ((:? a) (:? a)) => (* 2 (:? a))
+              ((:? a) (:? b)) => ((:? b) (:? a))
+              ((:? a) (:? b) (:? c)) => ((:? c) (:? b) (:? a)))]
       (is (= '(4 3) (apply-ruleset RS '(3 4))))
       (is (= '(8 7 6) (apply-ruleset RS '(6 7 8))))
       (is (= '(* 2 5) (apply-ruleset RS '(5 5))))
@@ -102,14 +103,15 @@
       (is (= 3/40 (RS '(10 8 6) #(apply / %) (constantly nil))))))
   (testing "algebra-1"
     (let [RS (ruleset
-               (+ (:? a) (+ (:? b) (:? c))) =>
-               (+ (+ (:? a) (:? b) (:? c)))
+              "Algebra-One"
+              (+ (:? a) (+ (:? b) (:? c))) =>
+              (+ (+ (:? a) (:? b) (:? c)))
 
-               (+ (:? a)) =>
-               (:? a)
+              (+ (:? a)) =>
+              (:? a)
 
-               (* (:? a) (+ (:? b) (:?? c))) =>
-               (+ (* (:? a) (:? b)) (* (:? a) (:?? c))))
+              (* (:? a) (+ (:? b) (:?? c))) =>
+              (+ (* (:? a) (:? b)) (* (:? a) (:?? c))))
           S (rule-simplifier RS)]
       (is (= 3 (S '(+ 3))))
       (is (= '(+ 3 4 5) (S '(+ 3 (+ 4 5)))))
@@ -120,14 +122,14 @@
       (is (= '(* (+ y z w) x) (S '(* (+ y (+ z w)) x))))))
   (testing "associative (multiple rulesets)"
     (let [R1 (ruleset
-               (+ (:?? as) (+ (:?? bs)) (:?? cs)) =>
-               (+ (:?? as) (:?? bs) (:?? cs)))
+              (+ (:?? as) (+ (:?? bs)) (:?? cs)) =>
+              (+ (:?? as) (:?? bs) (:?? cs)))
           R2 (ruleset
-               (* (:?? as) (* (:?? bs)) (:?? cs)) =>
-               (* (:?? as) (:?? bs) (:?? cs))
+              (* (:?? as) (* (:?? bs)) (:?? cs)) =>
+              (* (:?? as) (:?? bs) (:?? cs))
 
-               (* (:?? as) 1 (:?? bs)) =>
-               (* (:?? as) (:?? bs)))
+              (* (:?? as) 1 (:?? bs)) =>
+              (* (:?? as) (:?? bs)))
           S1 (rule-simplifier R1)
           S2 (rule-simplifier R2)
           S12 (rule-simplifier R1 R2)]
@@ -153,14 +155,14 @@
           at-least-two? #(>= % 2)
           subtract-from (fn [symbol amount] #(- (% symbol) amount))
           R (ruleset
-              (a (:? x integer?) (:? y)) => (b (:? y) (:? x))
-              (a (:? x float?) (:? y)) => (c (:? y) (:? x))
-              (* (expt (cos (:? x)) (:? n more-than-two?))) => success
-              (* (expt (tan (:? x)) (:? n #(> % 2)))) => (:? n)
-              (* (expt (sin (:? x)) (:? n #(> % 2)))) => (:? #(- (% 'n) 2))
-              (* (expt (bzz (:? x)) (:? n #(> % 2)))) => (:? (subtract-from 'n -2))
-              (expt (sin (:? x)) (:? n at-least-two?)) => (* (expt (sin (:? x)) (:? #(- (% 'n) 2)))
-                                                             (- 1 (expt (cos (:? x)) 2))))
+             (a (:? x integer?) (:? y)) => (b (:? y) (:? x))
+             (a (:? x float?) (:? y)) => (c (:? y) (:? x))
+             (* (expt (cos (:? x)) (:? n more-than-two?))) => success
+             (* (expt (tan (:? x)) (:? n #(> % 2)))) => (:? n)
+             (* (expt (sin (:? x)) (:? n #(> % 2)))) => (:? #(- (% 'n) 2))
+             (* (expt (bzz (:? x)) (:? n #(> % 2)))) => (:? (subtract-from 'n -2))
+             (expt (sin (:? x)) (:? n at-least-two?)) => (* (expt (sin (:? x)) (:? #(- (% 'n) 2)))
+                                                            (- 1 (expt (cos (:? x)) 2))))
           RS (rule-simplifier R)
           ]
       (is (= '(b 4 3) (apply-ruleset R '(a 3 4))))

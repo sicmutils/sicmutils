@@ -18,7 +18,8 @@
 ;
 
 (ns pattern.rule
-  (:require [pattern.match :refer :all]))
+  (:require [pattern.match :refer :all]
+            [clojure.spec.alpha :as s]))
 
 ;; Inspired by Gerald Jay Sussman's lecture notes for MIT 6.945
 ;; http://groups.csail.mit.edu/mac/users/gjs/6.945/
@@ -82,14 +83,24 @@
         compiled-consequence (compile-consequence frame-symbol consequence)
         replace-if (if (= predicate? '=>) `(constantly true) predicate?)]
     `(let [matcher# (pattern->matcher ~prepared-pattern)]
-       (fn apply#
-         [data# continue#]
+       (fn [data# continue#]
          (if-let [~frame-symbol (match matcher# data# ~replace-if)]
            (continue# (first ~compiled-consequence)))))))
 
 (defmacro rule
   [pattern predicate? consequence]
   (rule-body pattern predicate? consequence))
+
+(s/def ::pattern list?)
+(s/def ::consequence any?)
+(s/def ::predicate (s/or :any #(= % '=>) :predicate any?))
+(s/def ::rule (s/cat :pattern ::pattern
+                     :predicate ::predicate
+                     :consequence ::consequence))
+(s/def ::ruleset (s/cat :name (s/? string?)
+                        :rules (s/+ ::rule)))
+
+
 
 (defmacro ruleset
   "Ruleset compiles rules, predicates and consequences (triplet-wise)
@@ -98,14 +109,18 @@
   consequence of the first successful rule whose patterns match and
   satisfy the predicate. If no rules match, the failure continuation
   is invoked."
-  [& patterns-and-consequences]
-  {:pre (zero? (mod (count patterns-and-consequences) 3))}
-  (let [rule-inputs (partition 3 patterns-and-consequences)
-        rules (mapv #(apply rule-body %) rule-inputs)]
-    `(let [rules# ~rules]
-       (fn [data# continue# fail#]
-         (or (some #(% data# continue#) rules#)
-             (fail# data#))))))
+  [& rules]
+  (let [rs (s/conform ::ruleset rules)]
+    (when (= rs :s/invalid)
+      (throw (ex-info "invalid input" (s/explain-data ::rule rules))))
+    (let [rules (for [{:keys [pattern predicate consequence]} (:rules rs)]
+                  (rule-body pattern (second predicate) consequence))
+          rs-name (or (:name rs) (gensym "ruleset-"))]
+      (println "compiling " rs-name)
+      `(let [rules# ~(into [] rules)]
+         (fn [data# continue# fail#]
+           (or (some #(% data# continue#) rules#)
+               (fail# data#)))))))
 
 (defn ^:private try-rulesets
   "Execute the supplied rulesets against expression in order. The

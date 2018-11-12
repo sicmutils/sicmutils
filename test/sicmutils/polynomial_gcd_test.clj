@@ -746,7 +746,14 @@
                         (expt (- Z 1) 2)
                         (expt (+ Y 1) 2)))]
       (is (= g (gcd-euclid u v)))
-      (is (= g (gcd-spmod u v))))))
+      ;; XXX this one doesn't quite work: it gets some stray content in the
+      ;; output.
+      (let [gs (gcd-spmod u v)]
+        (is (= g gs))
+        (is (polynomial-zero? (second (divide u gs))))
+        (is (polynomial-zero? (second (divide v gs)))))
+
+      )))
 
 ;; Currently we only do GCD testing of univariate polynomials, because
 ;; we find that unfortunately clojure.test.check is very good at finding
