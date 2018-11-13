@@ -18,6 +18,7 @@
 ;
 
 (ns pattern.rule
+  (:import (com.google.common.base Stopwatch))
   (:require [pattern.match :refer :all]
             [clojure.spec.alpha :as s]))
 
@@ -100,7 +101,18 @@
 (s/def ::ruleset (s/cat :name (s/? string?)
                         :rules (s/+ ::rule)))
 
+(defonce ruleset-timing (atom {}))
+(defonce ruleset-count (atom {}))
 
+(defn record-ruleset-time
+  [rs-name success ^Stopwatch stopwatch]
+  ;;(println "ruleset " rs-name " active for " (str stopwatch) " " success)
+  (swap! ruleset-timing
+         update rs-name
+         (fnil #(+ % (.elapsed stopwatch java.util.concurrent.TimeUnit/NANOSECONDS)) 0))
+  (swap! ruleset-count
+         update rs-name
+         (fnil inc 0)))
 
 (defmacro ruleset
   "Ruleset compiles rules, predicates and consequences (triplet-wise)
@@ -115,12 +127,19 @@
       (throw (ex-info "invalid input" (s/explain-data ::rule rules))))
     (let [rules (for [{:keys [pattern predicate consequence]} (:rules rs)]
                   (rule-body pattern (second predicate) consequence))
-          rs-name (or (:name rs) (gensym "ruleset-"))]
-      (println "compiling " rs-name)
+          rs-name (or (:name rs) (str (gensym "ruleset-")))]
       `(let [rules# ~(into [] rules)]
          (fn [data# continue# fail#]
-           (or (some #(% data# continue#) rules#)
-               (fail# data#)))))))
+           (let [sw# (Stopwatch/createStarted)
+                 ;; return takes a continuation expecting an expression and wraps
+                 ;; it to allow gathering timing data.
+                 return# (fn [k# outcome#]
+                           (fn [x#]
+                             (.stop sw#)
+                             (record-ruleset-time ~rs-name outcome# sw#)
+                             (k# x#)))]
+             (or (some #(% data# (return# continue# true)) rules#)
+                 ((return# fail# false) data#))))))))
 
 (defn ^:private try-rulesets
   "Execute the supplied rulesets against expression in order. The

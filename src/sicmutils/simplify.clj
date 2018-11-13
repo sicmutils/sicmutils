@@ -111,7 +111,7 @@
   (let [at-least-two? #(and (number? %) (>= % 2))]
     (simplify-until-stable
      (rule/rule-simplifier
-      (rule/ruleset
+      (rule/ruleset "trig-cleanup"
        ;;  ... + a + ... + cos^n x + ...   if a + cos^(n-2) x = 0: a sin^2 x
        (+ :a1* :a :a2* (expt (cos :x) (:? n at-least-two?)) :a3*)
        #(simplifies-to-zero? `(~'+ (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2)) ~(% :a)))

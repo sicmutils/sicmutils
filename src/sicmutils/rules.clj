@@ -27,13 +27,13 @@
 
 (def sin-sq->cos-sq
   (rule-simplifier
-   (ruleset
+   (ruleset "sin-sq->cos-sq"
     (expt (sin :x) (:? n at-least-two?))
     => (* (expt (sin :x) (:? #(- (% 'n) 2)))
           (- 1 (expt (cos :x) 2))))))
 
 (def ^:private split-high-degree-cosines
-  (ruleset
+  (ruleset "split-high-degree-cosines"
    (* :f1* (expt (cos :x) (:? n more-than-two?)) :f2*)
    => (* (expt (cos :x) 2)
          (expt (cos :x) (:? #(- (% 'n) 2)))
@@ -47,7 +47,7 @@
          :a2*)))
 
 (def ^:private split-high-degree-sines
-  (ruleset
+  (ruleset "split-high-degree-sines"
    (* :f1* (expt (sin :x) (:? n more-than-two?)) :f2*)
    => (* (expt (sin :x) 2)
          (expt (sin :x) (:? #(- (% 'n) 2)))
@@ -62,7 +62,7 @@
 
 (def simplify-square-roots
   (rule-simplifier
-   (ruleset
+   (ruleset "simplify-square-roots"
     (expt (sqrt :x) (:? n even-integer?))
     => (expt :x (:? #(/ (% 'n) 2)))
 
@@ -93,7 +93,7 @@
 (def complex-trig
   ;; TODO: clearly more of these are needed.
   (rule-simplifier
-   (ruleset
+   (ruleset "complex-trig"
     (cos (* :z (complex 0.0 1.0)))
     => (cosh :z)
 
@@ -107,7 +107,7 @@
 
 (def divide-numbers-through
   (rule-simplifier
-   (ruleset
+   (ruleset "divide-numbers-through"
     (* 1 :factor)
     => :factor
 
@@ -121,7 +121,7 @@
     => (+ (:?? #(map (fn [n] `(~'/ ~n ~(% 'd))) (% :terms*)))))))
 
 (def ^:private flush-obvious-ones
-  (ruleset
+  (ruleset "flush-obvious-ones"
    (+ :a1* (expt (sin :x) 2) :a2* (expt (cos :x) 2) :a3*)
    => (+ 1 :a1* :a2* :a3*))
   ;; are sines always before cosines after we poly simplify?
@@ -135,7 +135,7 @@
 
 (def trig->sincos
   (rule-simplifier
-   (ruleset
+   (ruleset "trig->sincos"
     ;; GJS has other rules: to map cot, sec and csc to sin/cos, but
     ;; I don't think we need those since we transform those to sin/cos
     ;; in the env namespace.
@@ -147,7 +147,7 @@
 
 (def sincos->trig
   (rule-simplifier
-   (ruleset
+   (ruleset "sincos->trig"
     ;; undoes the effect of trig->sincos
     (/ (sin :x) (cos :x))
     => (tan :x)
@@ -162,14 +162,14 @@
 
 (def triginv
   (rule-simplifier
-   (ruleset
+   (ruleset "triginv=1"
     (sin (asin :x))          => :x
     (asin (sin :x))          => :x
     (sin (atan :y :x))       => (/ :y (sqrt (+ (expt :x 2) (expt :y 2))))
     (cos (atan :y :x))       => (/ :x (sqrt (+ (expt :x 2) (expt :y 2))))
     (cos (asin :t))          => (sqrt (- 1 (square :t)))
     )
-   (ruleset
+   (ruleset "triginv-2"
     (acos (cos :x))          => :x
     (atan (tan :x))          => :x
     (atan (sin :x) (cos :x)) => :x
@@ -185,7 +185,7 @@
 
 (def canonicalize-partials
   (rule-simplifier
-    (ruleset
+    (ruleset "canonicalize-partials"
       ;; example: (((∂ 2 1) ((∂ 1 1) FF)) (up t (up x y) (down p_x p_y)))
       ;; since the partial indices in the outer derivative are lexically
       ;; greater than those of the inner, we canonicalize by swapping the
