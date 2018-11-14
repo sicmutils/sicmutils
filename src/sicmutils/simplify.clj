@@ -19,6 +19,7 @@
 
 (ns sicmutils.simplify
   (:import (java.util.concurrent TimeoutException)
+           (com.google.common.base Stopwatch)
            (clojure.lang Sequential Var LazySeq Symbol PersistentVector)
            (java.io StringWriter))
   (:require [clojure.walk :refer [postwalk]]
@@ -152,18 +153,33 @@
   passes the expression through after the simplification of the step
   stabilizes.)"
   [x]
-  (-> x
-      rules/canonicalize-partials
-      rules/trig->sincos
-      simplify-and-flatten
-      rules/complex-trig
-      sincos-simplifier
-      sin-sq->cos-sq-simplifier
-      trig-cleanup
-      rules/sincos->trig
-      square-root-simplifier
-      clear-square-roots-of-perfect-squares
-      simplify-and-flatten))
+  (let [sw (Stopwatch/createStarted)
+        snoop (fn [x where] (println (format " -- %s : %s so far" where sw)) x)
+        result (-> x
+                   rules/canonicalize-partials
+                   (snoop "after can-par")
+                   rules/trig->sincos
+                   (snoop "after trig-sincos")
+                   simplify-and-flatten
+                   (snoop "after s-and-f")
+                   rules/complex-trig
+                   (snoop "after complex-trig")
+                   sincos-simplifier
+                   (snoop "after sincos")
+                   sin-sq->cos-sq-simplifier
+                   (snoop "after sin-sq")
+                   trig-cleanup
+                   (snoop "after trig-cleanup")
+                   rules/sincos->trig
+                   (snoop "after sincos->trig")
+                   square-root-simplifier
+                   (snoop "after sqrt-simp")
+                   clear-square-roots-of-perfect-squares
+                   (snoop "after clear-sqrt")
+                   simplify-and-flatten
+                   (snoop "after final s&f"))]
+    (println (format "simplify-expression-1 took %s" sw))
+    result))
 
 (def simplify-expression (simplify-until-stable simplify-expression-1 simplify-and-flatten))
 

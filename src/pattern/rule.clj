@@ -141,6 +141,43 @@
              (or (some #(% data# (return# continue# true)) rules#)
                  ((return# fail# false) data#))))))))
 
+(defmacro hacked-ruleset
+  "Ruleset compiles rules, predicates and consequences (triplet-wise)
+  into a function which acts like a single rule (as rule would
+  produce) which acts by invoking the success continuation with the
+  consequence of the first successful rule whose patterns match and
+  satisfy the predicate. If no rules match, the failure continuation
+  is invoked."
+  [& rules]
+  (let [rs (s/conform ::ruleset rules)]
+    (when (= rs :s/invalid)
+      (throw (ex-info "invalid input" (s/explain-data ::rule rules))))
+    (let [rules (for [{:keys [pattern predicate consequence]} (:rules rs)]
+                  (rule-body pattern (second predicate) consequence))
+          rs-name (or (:name rs) (str (gensym "ruleset-")))]
+      `(let [rules# ~(into [] rules)
+             memo# (atom {})
+             ]
+         (fn [data# continue# fail#]
+           (let [sw# (Stopwatch/createStarted)
+                 ;; return takes a continuation expecting an expression and wraps
+                 ;; it to memoize results and gather timing data.
+                 return# (fn [k# outcome#]
+                           (fn [x#]
+                             ;;(.stop sw#)
+                             ;;(record-ruleset-time ~rs-name outcome# sw#)
+                             ;; (swap! memo# assoc data# [outcome# x#])
+                             ;;(println (format "memo %s associating %s to %s. Memo now contains %d entries" ~rs-name data# outcome# (count @memo#)))
+                             ;;(k# x#)
+                             #_(let [final-answer# (k# x#)]
+                               (swap! memo# assoc data# final-answer#)
+                               final-answer#)
+                             (k# x#)
+                             ))
+                 ]
+             (or (some #(% data# (return# continue# true)) rules#)
+                 ((return# fail# false) data#))))))))
+
 (defn ^:private try-rulesets
   "Execute the supplied rulesets against expression in order. The
   first ruleset to succeed in rewriting an expression will cause
@@ -150,6 +187,28 @@
   (if ruleset
     (ruleset expression succeed #(try-rulesets rulesets % succeed))
     expression))
+
+(defn hacked-rule-simplifier
+  "Transform the supplied rulesets into a function of expressions
+  which will arrange to apply each of the rules in the ruleset to all
+  the component parts of the expression in depth order, then
+  simplifies the result; the process is continued until a fixed point
+  of the simplification process is achieved."
+  [& rulesets]
+  (let [memo (atom {})]
+    (fn simplifier [expression]
+      (if-let [cached-simplification (@memo expression)]
+        cached-simplification
+        (let [sw (Stopwatch/createStarted)
+              simplified (if (seq? expression)
+                           (map simplifier expression)
+                           expression)]
+          (try-rulesets rulesets simplified
+                        (fn [result]
+                          (let [simplified-result (simplifier result)]
+                            (swap! memo assoc expression simplified-result)
+                            (println (format "rule-simplifier took %s" sw))
+                            simplified-result))))))))
 
 (defn rule-simplifier
   "Transform the supplied rulesets into a function of expressions

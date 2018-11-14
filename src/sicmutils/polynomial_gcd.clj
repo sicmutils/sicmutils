@@ -443,6 +443,14 @@
     (if (= (count ps) n) (into [] ps)
         (recur (conj ps (nth primes (rand-int (count primes))))))))
 
+(defn primes-in-order-from
+  [m]
+  (let [ps (atom (drop-while #(< % m) primes))]
+    (fn [n]
+      (let [as (take n @ps)]
+        (swap! ps (partial drop n))
+        as))))
+
 (def ^:private interpolation-arguments random-distinct-primes)
 
 (defn ^:private linear-solution
@@ -607,6 +615,14 @@
         g (algorithm u v)]
     [(.stop sw) g]))
 
+(defn with-time-reporting
+  [algorithm]
+  (fn [u v]
+    (let [sw (Stopwatch/createStarted)
+          g (algorithm u v)]
+      (println (format "gcd took %s" sw))
+      g)))
+
 (def ^:private win-counts (atom {}))
 (def gcd-euclid (prepare-gcd "Eu GCD" (partial inner-gcd 0)))
 (def gcd-spmod (prepare-gcd "SP GCD" gcd-spmod-start))
@@ -637,7 +653,7 @@
 #_(def gcd (prepare-gcd "Race" (gcd-race {:euclid (partial inner-gcd 0)
                                           :sparse gcd-spmod-start})))
 
-(def gcd gcd-euclid)
+(def gcd (with-time-reporting gcd-euclid))
 
 (def gcd-seq
   "Compute the GCD of a sequence of polynomials (we take care to
