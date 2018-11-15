@@ -32,8 +32,8 @@
             R3-cyl-point ((point R3-cyl) (up 'r0 'theta0 'zeta0))
             counter-clockwise (- (* x d:dy) (* y d:dx))
             outward (+ (* x d:dx) (* y d:dy))]
-        (is (= '(* -1 y0) (simplify ((dx counter-clockwise) R3-rect-point))))
-        (is (= '(* -1 y0) (simplify ((((differential x) counter-clockwise) identity) R3-rect-point))))
+        (is (= (* -1 'y0) (simplify ((dx counter-clockwise) R3-rect-point))))
+        (is (= (* -1 'y0) (simplify ((((differential x) counter-clockwise) identity) R3-rect-point))))
         (is (= 'x0 (simplify ((dx outward) R3-rect-point))))
         (is (= 'x0 (simplify ((((differential x) outward) identity) R3-rect-point))))
         (is (= 'x0 ((dy counter-clockwise) R3-rect-point)))
@@ -57,11 +57,13 @@
 
         (is (= '(+ (* (((∂ 0) f) (up (μ↑0 τ) (μ↑1 τ))) ((D μ↑0) τ))
                    (* (((∂ 1) f) (up (μ↑0 τ) (μ↑1 τ))) ((D μ↑1) τ)))
-               (simplify ((((differential μ) d:dt) f)
-                          ((point R1-rect) 'τ)))))
+               (simplify-and-freeze
+                ((((differential μ) d:dt) f)
+                 ((point R1-rect) 'τ)))))
         (is (= '((D μ↑0) τ)
-               (simplify ((dx ((differential μ) d:dt))
-                          ((point R1-rect) 'τ)))))
+               (simplify-and-freeze
+                ((dx ((differential μ) d:dt))
+                 ((point R1-rect) 'τ)))))
         (let [e0 (literal-vector-field 'e0 R2-rect)
               e1 (literal-vector-field 'e1 R2-rect)
               edual (vector-basis->dual (down e0 e1) R2-rect)]
@@ -75,13 +77,14 @@
                         (* -1 ((D μ↑1) τ) (e1↑0 (up x0 y0))))
                      (+ (* (e1↑1 (up x0 y0)) (e0↑0 (up x0 y0)))
                         (* -1 (e1↑0 (up x0 y0)) (e0↑1 (up x0 y0)))))
-                 (simplify (((nth edual 0)
-                             (vf/procedure->vector-field
-                              (fn [f]
-                                (fn [m]
-                                  ((((differential μ) d:dt) f)
-                                   ((point R1-rect) 'τ))))))
-                            R2-rect-point))))))))
+                 (simplify-and-freeze
+                  (((nth edual 0)
+                    (vf/procedure->vector-field
+                     (fn [f]
+                       (fn [m]
+                         ((((differential μ) d:dt) f)
+                          ((point R1-rect) 'τ))))))
+                   R2-rect-point))))))))
   (testing "general path on the sphere"
     (let-coordinates [t R1-rect]
       (let [μ (compose (point S2-spherical)
@@ -92,22 +95,26 @@
                        (chart S2-spherical))]
         (is (= '(+ (* (((∂ 0) f) (up (θ τ) (φ τ))) ((D θ) τ))
                    (* (((∂ 1) f) (up (θ τ) (φ τ))) ((D φ) τ)))
-               (simplify ((((differential μ) d:dt) f)
-                          ((point R1-rect) 'τ)))))
+               (simplify-and-freeze ((((differential μ) d:dt) f)
+                                     ((point R1-rect) 'τ)))))
         (let-coordinates [[θ φ] S2-spherical]
           (is (= '(((∂ 0) f) (up (θ τ) (φ τ)))
-                 (simplify ((((vector-field->vector-field-over-map μ) d:dθ) f)
-                            ((point R1-rect) 'τ)))))
+                 (simplify-and-freeze
+                  ((((vector-field->vector-field-over-map μ) d:dθ) f)
+                   ((point R1-rect) 'τ)))))
           (is (= '((D θ) τ)
-                 (simplify ((((form-field->form-field-over-map μ) dθ)
-                             ((differential μ) d:dt))
-                            ((point R1-rect) 'τ)))))
+                 (simplify-and-freeze
+                  ((((form-field->form-field-over-map μ) dθ)
+                    ((differential μ) d:dt))
+                   ((point R1-rect) 'τ)))))
           (let [foo (basis->basis-over-map μ (coordinate-system->basis S2-spherical))]
             (is (= '(up (down 1 0) (down 0 1))
-                   (simplify (((basis->oneform-basis foo)
-                               (basis->vector-basis foo))
-                              ((point R1-rect) 'τ)))))
+                   (simplify-and-freeze
+                    (((basis->oneform-basis foo)
+                      (basis->vector-basis foo))
+                     ((point R1-rect) 'τ)))))
             (is (= '(up ((D θ) τ) ((D φ) τ))
-                   (simplify (((basis->oneform-basis foo)
-                               ((differential μ) d:dt))
-                              ((point R1-rect) 'τ)))))))))))
+                   (simplify-and-freeze
+                    (((basis->oneform-basis foo)
+                      ((differential μ) d:dt))
+                     ((point R1-rect) 'τ)))))))))))

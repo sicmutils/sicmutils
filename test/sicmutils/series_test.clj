@@ -28,7 +28,7 @@
 
 (use-fixtures :once hermetic-simplify-fixture)
 
-(defn ^:private simp4 [x] (simplify (series/take 4 x)))
+(defn ^:private simp4 [x] (simplify-and-freeze (series/take 4 x)))
 
 (deftest series-test
   (testing "basics"
@@ -58,8 +58,10 @@
      (is (= '(-3 -6 -9 -12) (series/take 4 (negate (* 3 nats)))))
      (is (= '(1 4 9 16) (series/take 4 (series/fmap square nats))))
      (is (= '(3 6 9 12) (series/take 4 (* nats 3))))
-     (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε)) (simplify (series/take 4 (* nats 'ε)))))
-     (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε)) (simplify (series/take 4 (* 'ε nats)))))
+     (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε)) (simplify-and-freeze
+                                          (series/take 4 (* nats 'ε)))))
+     (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε)) (simplify-and-freeze
+                                          (series/take 4 (* 'ε nats)))))
      (is (= '(0 -2 -6 -12)
             (series/take 4 (negate (+ nats0 (series/generate square))))))
      (is (= '(17/4 7/2 11/4 1) (series/take 4 (+ (* 1/4 nats) S))))
@@ -68,9 +70,9 @@
                  (* 'm)
                  seq
                  (take 4)
-                 simplify)))
+                 simplify-and-freeze)))
      (is (= '(0 r (* 2 r) (* 3 r))
-            (simplify (take 4 (seq (* 'r nats0))))))
+            (simplify-and-freeze (take 4 (seq (* 'r nats0))))))
      (is (= '(3 5 7 0 0 0 0 0)
             (series/take 8
                          (+ (series/starting-with 1 2 3)
@@ -93,7 +95,7 @@
                  (* 'm)
                  seq
                  (take 4)
-                 simplify)))
+                 simplify-and-freeze)))
      (is (= '(1 2 3 4 5 6)
             (->> ones
                  square
@@ -114,12 +116,12 @@
                          (series/partial-sums
                           ones))))
      (is (= '((* 2 (f x)) (* 3 (f x)))
-            (simplify
+            (simplify-and-freeze
              (series/take 2
                           ((* (series/starting-with 2 3)
                                 (literal-function 'f)) 'x)))))
      (is (= '((* 2 (f y)) (* 3 (f y)))
-            (simplify
+            (simplify-and-freeze
              (series/take 2
                           ((* (literal-function 'f)
                                 (series/starting-with 2 3)) 'y)))))
@@ -134,12 +136,12 @@
         V (series/starting-with sin cos tan)]
     (testing "with functions"
       (is (= '[(* (f x) (sin x)) (* (sin x) (g x)) 0 0]
-             (simplify (series/take 4 ((* S sin) 'x)))))
+             (simplify-and-freeze (series/take 4 ((* S sin) 'x)))))
       (is (= '[(* (f x) (sin x)) (* (sin x) (g x)) 0 0]
-             (simplify (series/take 4 ((* sin S) 'x))))))
+             (simplify-and-freeze (series/take 4 ((* sin S) 'x))))))
     (testing "and derivatives"
       (is (= '(((D f) x) ((D g) x) 0 0)
-             (simplify (series/take 4 ((D S) 'x)))))
+             (simplify-and-freeze (series/take 4 ((D S) 'x)))))
       (is (= '((F x y) (G x y) 0 0) (simp4 (T 'x 'y))))
       (is (= '((((∂ 0) F) x y) (((∂ 0) G) x y) 0 0) (simp4 (((∂ 0) T) 'x 'y))))
       (is (= '((((∂ 1) F) x y) (((∂ 1) G) x y) 0 0) (simp4 (((∂ 1) T) 'x 'y))))
@@ -160,11 +162,13 @@
                (* -1/2 (expt dx 2) (sin x))
                (* dx (cos x))
                (sin x))
-           (simplify (reduce + (series/take 5 (taylor-series-expander sin 'x 'dx))))))
+           (simplify-and-freeze
+            (reduce + (series/take 5 (taylor-series-expander sin 'x 'dx))))))
     (is (= '(1
              (* 1/2 dx)
              (* -1/8 (expt dx 2))
              (* 1/16 (expt dx 3))
              (* -5/128 (expt dx 4))
              (* 7/256 (expt dx 5)))
-           (simplify (series/take 6 (taylor-series-expander #(sqrt (+ 1 %)) 0 'dx)))))))
+           (simplify-and-freeze
+            (series/take 6 (taylor-series-expander #(sqrt (+ 1 %)) 0 'dx)))))))

@@ -650,10 +650,10 @@
       (swap! win-counts update best-algorithm-name (fnil inc 0))
       gcd)))
 
-#_(def gcd (prepare-gcd "Race" (gcd-race {:euclid (partial inner-gcd 0)
-                                          :sparse gcd-spmod-start})))
+(def race-gcd (prepare-gcd "Race" (gcd-race {:euclid (partial inner-gcd 0)
+                                             :sparse gcd-spmod-start})))
 
-(def gcd (with-time-reporting gcd-euclid))
+(def gcd gcd-euclid)
 
 (def gcd-seq
   "Compute the GCD of a sequence of polynomials (we take care to

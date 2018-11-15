@@ -28,7 +28,7 @@
              [generic :as g]
              [numsymb]
              [function :refer [literal-function]]
-             [simplify]]
+             [simplify :refer [simplify-and-freeze]]]
             [sicmutils.calculus.derivative :as d]))
 
 (deftest matrix-basics
@@ -78,13 +78,13 @@
     (is (= 18 (matrix/determinant (matrix/by-rows [-2 2 -3]
                                                   [-1 1 3]
                                                   [2 0 -1]))))
-    (is (= '(+
-             (* a e i)
-             (* -1 a f h)
-             (* -1 b d i)
-             (* b f g)
-             (* c d h)
-             (* -1 c e g))
+    (is (= (g/+
+             (g/* 'a 'e 'i)
+             (g/* -1 'a 'f 'h)
+             (g/* -1 'b 'd 'i)
+             (g/* 'b 'f 'g)
+             (g/* 'c 'd 'h)
+             (g/* -1 'c 'e 'g))
            (g/simplify (matrix/determinant (matrix/by-rows '[a b c]
                                                            '[d e f]
                                                            '[g h i])))))
@@ -105,12 +105,12 @@
     (is (g/zero? (matrix/by-rows [0 0]
                                     [0 0])))
     (is (= '(matrix-by-rows [(f x) (g x)] [(h x) (k x)])
-           (g/simplify
+           (simplify-and-freeze
             ((matrix/by-rows (map literal-function '[f g])
                              (map literal-function '[h k])) 'x))))
     (let [R2f #(literal-function % [0 1] 0)]
       (is (= '(matrix-by-rows [(f x y) (g x y)] [(h x y) (k x y)])
-             (g/simplify
+             (simplify-and-freeze
               ((matrix/by-rows [(R2f 'f) (R2f 'g)]
                                [(R2f 'h) (R2f 'k)]) 'x 'y)))))))
 
@@ -132,10 +132,10 @@
           L1 (fn [[v1 v2]]
                (g/+ (g/* 1/2 'm1 (g/square v1))
                     (g/* 1/2 'm2 (g/square v2))))]
-      (is (= '(matrix-by-rows [m1 0 0 0]
-                              [0 m1 0 0]
-                              [0 0 m2 0]
-                              [0 0 0 m2])
+      (is (= (matrix/by-rows ['m1 0 0 0]
+                             [0 'm1 0 0]
+                             [0 0 'm2 0]
+                             [0 0 0 'm2])
              (g/simplify (matrix/s->m vs (((g/expt d/D 2) L1) vs) vs))))))
   (let [M (matrix/by-rows [1 2 3] [4 5 6])]
     (is (= (s/down (s/up 1 4)
@@ -221,7 +221,7 @@
                 (((∂ 1 1) C↑2_1) (up t (up x y) (down px py)))
                 (((∂ 2 0) C↑2_1) (up t (up x y) (down px py)))
                 (((∂ 2 1) C↑2_1) (up t (up x y) (down px py)))])
-             (g/simplify ((as-matrix (d/D C-general)) s))))
+             (simplify-and-freeze ((as-matrix (d/D C-general)) s))))
       (is (= (matrix/by-rows [1 2] [2 3]) (matrix/s->m (s/down 'x 'y) (s/down (s/up 1 2) (s/up 2 3)) (s/up 'x 'y))))
       (is (= (matrix/by-rows [-3 2] [2 -1]) (matrix/invert (matrix/s->m (s/down 'x 'y) (s/down (s/up 1 2) (s/up 2 3)) (s/up 'x 'y)))))
       (is (= (s/up (s/down -3 2) (s/down 2 -1))
@@ -238,14 +238,14 @@
 
     (is (= '(matrix-by-rows [(+ (* a e) (* b g)) (+ (* a f) (* b h))]
                             [(+ (* c e) (* d g)) (+ (* c f) (* d h))])
-           (g/simplify (g/* M S)))))
+           (simplify-and-freeze (g/* M S)))))
   (let [M (matrix/by-rows [1 2 3]
                           [2 3 4])
         S (matrix/by-rows [3 4]
                           [4 5]
                           [5 6])]
     (is (= (matrix/by-rows [26 32] [38 47]) (g/* M S))))
-  (let [M (matrix/by-rows '[a b] '[c d])
+  (let [M (matrix/by-rows '[a b]  '[c d])
         d (s/down 'x 'y)
         u (s/up 'x 'y)]
     (testing "mul"
@@ -254,13 +254,13 @@
       (is (= (s/down (g/+ (g/* 'x 'a) (g/* 'y 'b)) (g/+ (g/* 'x 'c) (g/* 'y 'd)))
              (g/* d M)))
       (is (= '(+ (* a (expt x 2)) (* b x y) (* c x y) (* d (expt y 2)))
-             (g/simplify (g/* d M u))))
+             (simplify-and-freeze (g/* d M u))))
       (is (thrown? IllegalArgumentException 'foo (g/* u M)))
       (is (thrown? IllegalArgumentException (g/* M d))))
     (testing "div"
-      (is (= '(up
-               (/ (+ (* -1 b y) (* d x)) (+ (* a d) (* -1 b c)))
-               (/ (+ (* a y) (* -1 c x)) (+ (* a d) (* -1 b c))))
+      (is (= (s/up
+              (g/divide (g/+ (g/* -1 'b 'y) (g/* 'd 'x)) (g/+ (g/* 'a 'd) (g/* -1 'b 'c)))
+              (g/divide (g/+ (g/* 'a 'y) (g/* -1 'c 'x)) (g/+ (g/* 'a 'd) (g/* -1 'b 'c))))
              (g/simplify (g/divide u M)))))))
 
 (defn generate-square-matrix

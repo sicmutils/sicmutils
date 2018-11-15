@@ -104,6 +104,7 @@
 
 (defmulti partial-derivative argument-kind)
 (defmulti simplify argument-kind)
+(defmethod simplify :default [a] a)
 
 (defmulti numerical? argument-kind)
 (defmethod numerical? :default [_] false)

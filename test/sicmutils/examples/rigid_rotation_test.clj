@@ -40,7 +40,8 @@
                      (* A B (sin θ)))
                   (/ (+ (* (expt A 2) B (expt φdot 2) (sin ψ) (expt (sin θ) 3) (cos ψ)) (* (expt A 2) C (expt φdot 2) (sin ψ) (expt (cos θ) 2) (sin θ) (cos ψ)) (* -1 A (expt B 2) (expt φdot 2) (sin ψ) (expt (sin θ) 3) (cos ψ)) (* -1 A (expt C 2) (expt φdot 2) (sin ψ) (expt (cos θ) 2) (sin θ) (cos ψ)) (* -1 (expt B 2) C (expt φdot 2) (sin ψ) (expt (cos θ) 2) (sin θ) (cos ψ)) (* B (expt C 2) (expt φdot 2) (sin ψ) (expt (cos θ) 2) (sin θ) (cos ψ)) (* 2 (expt A 2) B θdot φdot (expt (sin θ) 2) (expt (cos ψ) 2)) (* (expt A 2) C θdot φdot (expt (cos θ) 2) (expt (cos ψ) 2)) (* (expt A 2) C φdot ψdot (sin ψ) (cos θ) (sin θ) (cos ψ)) (* -2 A (expt B 2) θdot φdot (expt (sin θ) 2) (expt (cos ψ) 2)) (* -1 A (expt C 2) θdot φdot (expt (cos θ) 2) (expt (cos ψ) 2)) (* -1 A (expt C 2) φdot ψdot (sin ψ) (cos θ) (sin θ) (cos ψ)) (* (expt B 2) C θdot φdot (expt (sin ψ) 2) (expt (cos θ) 2)) (* -1 (expt B 2) C φdot ψdot (sin ψ) (cos θ) (sin θ) (cos ψ)) (* -1 B (expt C 2) θdot φdot (expt (sin ψ) 2) (expt (cos θ) 2)) (* B (expt C 2) φdot ψdot (sin ψ) (cos θ) (sin θ) (cos ψ)) (* -1 (expt A 2) B (expt θdot 2) (sin ψ) (sin θ) (cos ψ)) (* (expt A 2) C θdot ψdot (cos θ) (expt (cos ψ) 2)) (* A (expt B 2) (expt θdot 2) (sin ψ) (sin θ) (cos ψ)) (* -1 A (expt C 2) θdot ψdot (cos θ) (expt (cos ψ) 2)) (* (expt B 2) C θdot ψdot (expt (sin ψ) 2) (cos θ)) (* -1 B (expt C 2) θdot ψdot (expt (sin ψ) 2) (cos θ)) (* -1 (expt A 2) B θdot φdot (expt (sin θ) 2)) (* A (expt B 2) θdot φdot (expt (sin θ) 2)) (* -1 A B C θdot ψdot (cos θ)) (* A B C θdot φdot))
                      (* A B C (sin θ)))))
-         (simplify ((rigid/rigid-sysder 'A 'B 'C)
-                    (up 't
-                        (up 'θ 'φ 'ψ)
-                        (up 'θdot 'φdot 'ψdot)))))))
+         (simplify-and-freeze
+          ((rigid/rigid-sysder 'A 'B 'C)
+           (up 't
+               (up 'θ 'φ 'ψ)
+               (up 'θdot 'φdot 'ψdot)))))))

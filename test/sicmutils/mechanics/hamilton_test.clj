@@ -34,40 +34,46 @@
 
   (with-literal-functions
     [x y v_x v_y p_x p_y [V [1 2] 3]]
-    (is (= '(V x y) (simplify (V 'x 'y))))
+    (is (= '(V x y) (simplify-and-freeze (V 'x 'y))))
     (is (= '(up 0 (up (/ (+ (* m ((D x) t)) (* -1 (p_x t))) m) (/ (+ (* m ((D y) t)) (* -1 (p_y t))) m))
                 (down (+ ((D p_x) t) (((∂ 0) V) (x t) (y t))) (+ ((D p_y) t) (((∂ 1) V) (x t) (y t)))))
-           (simplify (((Hamilton-equations
-                        (H/H-rectangular
-                         'm V))
-                       (up x y)
-                       (down p_x p_y))
-                      't))))
+           (simplify-and-freeze
+            (((Hamilton-equations
+               (H/H-rectangular
+                'm V))
+              (up x y)
+              (down p_x p_y))
+             't))))
     (is (= '(/ (expt y 2) (* 4 c))
-           (simplify ((Legendre-transform (fn [x] (* 'c x x))) 'y))))
-    (is (= '(* 1/4 (expt p 2)) (simplify ((Legendre-transform square) 'p))))
+           (simplify-and-freeze
+            ((Legendre-transform (fn [x] (* 'c x x))) 'y))))
+    (is (= '(* 1/4 (expt p 2))
+           (simplify-and-freeze
+            ((Legendre-transform square) 'p))))
     (is (= '(+ (* 1/2 m (expt v_x 2)) (* 1/2 m (expt v_y 2)) (* -1 (V x y)))
-           (simplify ((L/L-rectangular 'm V) (up 't (up 'x 'y) (up 'v_x 'v_y))))))
+           (simplify-and-freeze
+            ((L/L-rectangular 'm V) (up 't (up 'x 'y) (up 'v_x 'v_y))))))
     (is (= '(/ (+ (* 2 m (V x y)) (expt p_x 2) (expt p_y 2)) (* 2 m))
-           (simplify ((Lagrangian->Hamiltonian
-                       (L/L-rectangular 'm V))
-                      (up 't (up 'x 'y) (down 'p_x 'p_y))))))))
+           (simplify-and-freeze
+            ((Lagrangian->Hamiltonian
+              (L/L-rectangular 'm V))
+             (up 't (up 'x 'y) (down 'p_x 'p_y))))))))
 
 (deftest gjs-tests
   (is (= '(up 0
               (up (/ (+ (* m ((D x) t)) (* -1 (p_x t))) m) (/ (+ (* m ((D y) t)) (* -1 (p_y t))) m))
               (down (+ ((D p_x) t) (((∂ 0) V) (x t) (y t))) (+ ((D p_y) t) (((∂ 1) V) (x t) (y t)))))
-
          (with-literal-functions [x y p_x p_y [V [0 1] 2]]
-           (simplify (((Hamilton-equations
-                        (H/H-rectangular
-                         'm V))
-                       (coordinate-tuple x y)
-                       (momentum-tuple p_x p_y))
-                      't)))))
+           (simplify-and-freeze
+            (((Hamilton-equations
+               (H/H-rectangular
+                'm V))
+              (coordinate-tuple x y)
+              (momentum-tuple p_x p_y))
+             't)))))
   (is (= '(/ (+ (* 2 m (expt r 2) (V r)) (* (expt p_r 2) (expt r 2)) (expt p_phi 2)) (* 2 m (expt r 2)))
          (with-literal-functions [[V [0 1] 2]]
-           (simplify
+           (simplify-and-freeze
             ((Lagrangian->Hamiltonian
               (L/L-central-polar 'm (literal-function 'V)))
              (->H-state 't
@@ -79,7 +85,7 @@
               (down (/ (+ (* m (expt (r t) 3) ((D p_r) t)) (* m (expt (r t) 3) ((D V) (r t))) (* -1 (expt (p_phi t) 2))) (* m (expt (r t) 3)))
                     ((D p_phi) t)))
          (with-literal-functions [r phi p_r p_phi V]
-           (simplify
+           (simplify-and-freeze
             (((Hamilton-equations
                (Lagrangian->Hamiltonian
                 (L/L-central-polar 'm V)))
@@ -92,11 +98,11 @@
               (down (/ (+ (* m (expt (r t) 3) ((D p_r) t)) (* GM (expt m 2) (r t)) (* -1 (expt (p_phi t) 2))) (* m (expt (r t) 3)))
                     ((D p_phi) t)))
          (with-literal-functions [r phi p_r p_phi]
-           (simplify
+           (simplify-and-freeze
             (((Hamilton-equations
                (Lagrangian->Hamiltonian
                 (L/L-central-polar 'm
-                                 (fn [r] (- (/ (* 'GM 'm) r))))))
+                                   (fn [r] (- (/ (* 'GM 'm) r))))))
               (coordinate-tuple r phi)
               (momentum-tuple p_r p_phi))
              't)))))
@@ -117,7 +123,7 @@
     (is (= '(up (down 1 0 0)
                 (down 0 1 0)
                 (down 0 0 1))
-           (simplify
+           (simplify-and-freeze
             ((Poisson-bracket
               (up (comp (component 0) coordinate)
                   (comp (component 1) coordinate)
@@ -131,7 +137,8 @@
        [GG (up 0 (up 1 2) (down 3 4)) 5]
        [HH (up 0 (up 1 2) (down 3 4)) 5]]
       (is (= '(FF (up t (up x y) (down pa pb)))
-             (simplify (FF (up 't (up 'x 'y) (down 'pa 'pb))))))
+             (simplify-and-freeze
+              (FF (up 't (up 'x 'y) (down 'pa 'pb))))))
       (is (= '(down
                (((∂ 0) FF) (up t (up x y) (down pa pb)))
                (down
@@ -140,7 +147,8 @@
                (up
                 (((∂ 2 0) FF) (up t (up x y) (down pa pb)))
                 (((∂ 2 1) FF) (up t (up x y) (down pa pb)))))
-             (simplify ((D FF) (up 't (up 'x 'y) (down 'pa 'pb))))))
+             (simplify-and-freeze
+              ((D FF) (up 't (up 'x 'y) (down 'pa 'pb))))))
       (is (= '(+
                (*
                 -1
@@ -156,7 +164,7 @@
                (*
                 (((∂ 1 1) FF) (up t (up x y) (down p_x p_y)))
                 (((∂ 2 1) GG) (up t (up x y) (down p_x p_y)))))
-             (simplify
+             (simplify-and-freeze
               ((* (D FF)
                   (Poisson-bracket identity identity)
                   (D GG))

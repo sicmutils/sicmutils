@@ -46,15 +46,18 @@
                               [(* (sin (ψ t)) (sin (θ t)))
                                (* (cos (ψ t)) (sin (θ t)))
                                (cos (θ t))])
-             (simplify (M-on-path 't))))
+             (simplify-and-freeze
+              (M-on-path 't))))
       (is (= '(column-matrix (+ (* (sin (ψ t)) (sin (θ t)) ((D φ) t)) (* (cos (ψ t)) ((D θ) t)))
                              (+ (* (cos (ψ t)) (sin (θ t)) ((D φ) t)) (* -1 (sin (ψ t)) ((D θ) t)))
                              (+ (* (cos (θ t)) ((D φ) t)) ((D ψ) t)))
-             (simplify (((M-of-q->omega-body-of-t Euler->M) q) 't))))
+             (simplify-and-freeze
+              (((M-of-q->omega-body-of-t Euler->M) q) 't))))
       (is (= '(column-matrix (+ (* φdot (sin ψ) (sin θ)) (* θdot (cos ψ)))
                              (+ (* φdot (cos ψ) (sin θ)) (* -1 θdot (sin ψ)))
                              (+ (* φdot (cos θ)) ψdot))
-             (simplify ((M->omega-body Euler->M) Euler-state)))))))
+             (simplify-and-freeze
+              ((M->omega-body Euler->M) Euler-state)))))))
 
 (deftest section-2-9
   (is (= '(+ (* A φdot (expt (sin ψ) 2) (expt (sin θ) 2))
@@ -63,11 +66,15 @@
              (* -1 B θdot (cos ψ) (sin ψ) (sin θ))
              (* C φdot (expt (cos θ) 2))
              (* C ψdot (cos θ)))
-         (simplify (ref (((∂ 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1))))
-  (is (zero? (simplify (- (ref ((Euler-state->L-space 'A 'B 'C) Euler-state) 2)
-                          (ref (((∂ 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1)))))
+         (simplify-and-freeze
+          (ref (((∂ 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1))))
+  (is (zero? (simplify-and-freeze
+              (- (ref ((Euler-state->L-space 'A 'B 'C) Euler-state) 2)
+                 (ref (((∂ 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1)))))
   (is (= '(* A B C (expt (sin θ) 2))
-         (simplify (determinant (((square (∂ 2)) (T-rigid-body 'A 'B 'C)) Euler-state))))))
+         (simplify-and-freeze
+          (determinant
+           (((square (∂ 2)) (T-rigid-body 'A 'B 'C)) Euler-state))))))
 
 (deftest ^:long section-2-9b
   (let [relative-error (fn [value reference-value]
@@ -110,4 +117,4 @@
              (* C φdot ψdot (cos θ))
              (* 1/2 A (expt θdot 2))
              (* 1/2 C (expt ψdot 2)))
-         (simplify ((T-rigid-body 'A 'A 'C) Euler-state)))))
+         (simplify-and-freeze ((T-rigid-body 'A 'A 'C) Euler-state)))))

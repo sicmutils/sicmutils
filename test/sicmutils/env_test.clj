@@ -48,22 +48,22 @@
           f3 (literal-function 'f (-> Real (UP Real Real)))
           f4 (literal-function 'f [0] (up 1 2))
           f5 (literal-function 'f (-> (DOWN Real Real) (X Real Real)))]
-      (is (= '(f x) (simplify (f1 'x))))
-      (is (= '(f x) (simplify (f2 'x))))
-      (is (= '(up (f↑0 x) (f↑1 x)) (simplify (f3 'x))))
-      (is (= '(up (f↑0 x) (f↑1 x)) (simplify (f4 'x))))
+      (is (= '(f x) (simplify-and-freeze (f1 'x))))
+      (is (= '(f x) (simplify-and-freeze (f2 'x))))
+      (is (= '(up (f↑0 x) (f↑1 x)) (simplify-and-freeze (f3 'x))))
+      (is (= '(up (f↑0 x) (f↑1 x)) (simplify-and-freeze (f4 'x))))
       (is (= '(up (f↑0 (down p_x p_y)) (f↑1 (down p_x p_y)))
-             (simplify (f5 (down 'p_x 'p_y))))))))
+             (simplify-and-freeze (f5 (down 'p_x 'p_y))))))))
 
 (deftest shortcuts
   (testing "cot"
-    (is (= '(/ (cos x) (sin x)) (simplify (cot 'x))))
-    (is (= '(/ 1 (sin x)) (simplify (csc 'x))))
-    (is (= '(/ 1 (cos x)) (simplify (sec 'x))))
+    (is (= (/ (cos 'x) (sin 'x)) (simplify (cot 'x))))
+    (is (= (/ 1 (sin 'x)) (simplify (csc 'x))))
+    (is (= (/ 1 (cos 'x)) (simplify (sec 'x))))
     (is (= (Complex. 1 2) (complex 1 2)))
     (is (= :sicmutils.structure/up (orientation (up 1 2))))
     (is (= "up(b z - c y, - a z + c x, a y - b x)"
-           (->infix (simplify (cross-product (up 'a 'b 'c) (up 'x 'y 'z))))))))
+           (->infix (simplify-and-freeze (cross-product (up 'a 'b 'c) (up 'x 'y 'z))))))))
 
 (deftest matrices
   (testing "qp-submatrix"

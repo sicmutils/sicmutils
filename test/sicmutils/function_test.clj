@@ -23,7 +23,7 @@
              [generic :as g]
              [operator :as o]
              [structure :refer :all]
-             [simplify]
+             [simplify :refer [simplify-and-freeze]]
              [function :refer :all]]))
 
 (def ^:private near (g/within 1.0e-6))
@@ -31,20 +31,20 @@
 (deftest function-basic
   (let [f (literal-function 'F)]
     (testing "a"
-      (is (= '(F x) (g/simplify (f 'x))))
-      (is (= '(F 7) (g/simplify (f (g/+ 3 4))))))
+      (is (= '(F x) (simplify-and-freeze (f 'x))))
+      (is (= '(F 7) (simplify-and-freeze (f (g/+ 3 4))))))
     (testing "kind"
       (is (= sicmutils.function.Function (g/generic-type f))))
     (testing "arity > 1"
       (let [g (literal-function 'g [0 0] 0)]
-        (is (= '(g a b) (g/simplify (g 'a 'b))))))))
+        (is (= '(g a b) (simplify-and-freeze (g 'a 'b))))))))
 
 (deftest literal-functions
   (testing "domain in Rⁿ, range R"
     (let [f (literal-function 'f)             ;; f : R -> R
          g (literal-function 'g [0 0] 0)]     ;; g : R x R -> R
-     (is (= '(f x) (g/simplify (f 'x))))
-     (is (= '(g x y) (g/simplify (g 'x 'y))))
+     (is (= '(f x) (simplify-and-freeze (f 'x))))
+     (is (= '(g x y) (simplify-and-freeze (g 'x 'y))))
      (is (thrown? IllegalArgumentException (g/simplify (f 'x 'y))))
      (is (thrown? IllegalArgumentException (g/simplify (g 'x))))
      ))
@@ -52,24 +52,24 @@
     (let [h (literal-function 'h 0 (up 0 0 0))
           k (literal-function 'k 0 (up 0 (up 0 0) (down 0 0)))
           q (literal-function 'q 0 (down (up 0 1) (up 2 3)))]
-      (is (= '(up (h↑0 t) (h↑1 t) (h↑2 t)) (g/simplify (h 't))))
+      (is (= '(up (h↑0 t) (h↑1 t) (h↑2 t)) (simplify-and-freeze (h 't))))
       (is (= '(up (k↑0 t)
                   (up (k↑1↑0 t) (k↑1↑1 t))
                   (down (k↑2_0 t) (k↑2_1 t)))
-             (g/simplify (k 't))))
+             (simplify-and-freeze (k 't))))
       (is (= '(down (up (q_0↑0 t) (q_0↑1 t))
-                    (up (q_1↑0 t) (q_1↑1 t))) (g/simplify (q 't))))
-      (is (= '(down (up 0 0) (up 0 0)) (g/simplify ((g/zero-like q) 't))))))
+                    (up (q_1↑0 t) (q_1↑1 t))) (simplify-and-freeze (q 't))))
+      (is (= '(down (up 0 0) (up 0 0)) (simplify-and-freeze ((g/zero-like q) 't))))))
   (testing "R^n -> structured range"
     (let [h (literal-function 'h [0 1] 0)]
-      (is (= '(h x y) (g/simplify (h 'x 'y)))))
+      (is (= '(h x y) (simplify-and-freeze (h 'x 'y)))))
     (let [m (literal-function 'm [0 1] (up 1 2 3))]
       (is (= '(up (m↑0 x y) (m↑1 x y) (m↑2 x y))
-             (g/simplify (m 'x 'y)))))
+             (simplify-and-freeze (m 'x 'y)))))
     (let [z (literal-function 'm [0 1] (up (down 1 2) (down 3 4)))]
       (is (= '(up (down (m↑0_0 x y) (m↑0_1 x y))
                   (down (m↑1_0 x y) (m↑1_1 x y)))
-             (g/simplify (z 'x 'y)))))
+             (simplify-and-freeze (z 'x 'y)))))
     (let [g (literal-function 'm [0 1 2] (down (down 1 2 3)
                                                (down 4 5 6)
                                                (down 7 8 9)))]
@@ -77,7 +77,7 @@
                (down (m_0_0 x y z) (m_0_1 x y z) (m_0_2 x y z))
                (down (m_1_0 x y z) (m_1_1 x y z) (m_1_2 x y z))
                (down (m_2_0 x y z) (m_2_1 x y z) (m_2_2 x y z)))
-             (g/simplify (g 'x 'y 'z))))))
+             (simplify-and-freeze (g 'x 'y 'z))))))
   (testing "R -> Rⁿ"
     ;; NB: GJS doesn't allow a function with vector range, because
     ;; if this were parallel with structures this would mean

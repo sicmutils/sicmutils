@@ -31,7 +31,6 @@
 
 (use-fixtures :once hermetic-simplify-fixture)
 
-
 (def ^:private near (within 1e-6))
 
 (deftest ^:long section-1-4
@@ -52,29 +51,29 @@
       ;; integral
       (is (near 2.0 (definite-integral sin 0 Math/PI)))
       ;; p. 18
-      (is (= '(up (x t)
-                  (y t)
-                  (z t))
+      (is (= (up (x 't)
+                 (y 't)
+                 (z 't))
              (simplify (q 't))))
-      (is (= '(up ((D x) t)
-                  ((D y) t)
-                  ((D z) t))
+      (is (= (up ((D x) 't)
+                  ((D y) 't)
+                  ((D z) 't))
              (simplify ((D q) 't))))
-      (is (= '(up (((expt D 2) x) t)
-                  (((expt D 2) y) t)
-                  (((expt D 2) z) t))
+      (is (= (up (((expt D 2) x) 't)
+                  (((expt D 2) y) 't)
+                  (((expt D 2) z) 't))
              (simplify (((expt D 2) q) 't))))
-      (is (= '(up (((expt D 2) x) t)
-                  (((expt D 2) y) t)
-                  (((expt D 2) z) t))
+      (is (= (up (((expt D 2) x) 't)
+                 (((expt D 2) y) 't)
+                 (((expt D 2) z) 't))
              (simplify ((D (D q)) 't))))
-      (is (= '(up t
-                  (up (x t) (y t) (z t))
-                  (up ((D x) t) ((D y) t) ((D z) t)))
+      (is (= (up 't
+                 (up (x 't) (y 't) (z 't))
+                 (up ((D x) 't) ((D y) 't) ((D z) 't)))
              (simplify ((Γ q) 't))))
-      (is (= '(+ (* 1/2 m (expt ((D x) t) 2))
-                 (* 1/2 m (expt ((D y) t) 2))
-                 (* 1/2 m (expt ((D z) t) 2)))
+      (is (= (+ (* 1/2 'm (expt ((D x) 't) 2))
+                 (* 1/2 'm (expt ((D y) 't) 2))
+                 (* 1/2 'm (expt ((D z) 't) 2)))
              (simplify ((compose (L/L-free-particle 'm) (Γ q)) 't))))
       ;; at this point in the text we should be able to show-expression
       ;; in TeX form XXX.
@@ -121,20 +120,22 @@
                                 (+ 'c0 (* 'c t))))
           proposed-solution (fn [t] (* 'a (cos (+ (* 'ω t) 'φ))))]
       ;; p. 29
-      (is (= '(η t) (simplify (((δ_η identity) q) 't))))
-      (is (= '(* (η t) ((D f) (q t))) (simplify (((δ_η F) q) 't))))
-      (is (= '(* (η t) ((D g) (q t))) (simplify (((δ_η G) q) 't))))
+      (is (= '(η t) (simplify-and-freeze (((δ_η identity) q) 't))))
+      (is (= '(* (η t) ((D f) (q t))) (simplify-and-freeze (((δ_η F) q) 't))))
+      (is (= '(* (η t) ((D g) (q t))) (simplify-and-freeze (((δ_η G) q) 't))))
       (is (= '(+ (* (η t) ((D f) (q t)) (g (q t))) (* (η t) ((D g) (q t)) (f (q t))))
-             (simplify (((δ_η (* F G)) q) 't))))
+             (simplify-and-freeze (((δ_η (* F G)) q) 't))))
       (is (= '(+ (* (η t) ((D f) (q t)) (g (q t))) (* (η t) ((D g) (q t)) (f (q t))))
-             (simplify (((δ_η (* F G)) q) 't))))
-      (is (= '(* (η t) ((D f) (q t)) ((D φ) (f (q t)))) (simplify (((δ_η (φ F)) q) 't))))
+             (simplify-and-freeze (((δ_η (* F G)) q) 't))))
+      (is (= '(* (η t) ((D f) (q t)) ((D φ) (f (q t)))) (simplify-and-freeze (((δ_η (φ F)) q) 't))))
       ;; p. 35
       (is (= (down 0 0 0) (((Lagrange-equations (L/L-free-particle 'm)) test-path) 't)))
       (is (= '(* m (((expt D 2) x) t))
-             (simplify (((Lagrange-equations (L/L-free-particle 'm)) x) 't))))
+             (simplify-and-freeze
+              (((Lagrange-equations (L/L-free-particle 'm)) x) 't))))
       (is (= '(+ (* -1 a m (expt ω 2) (cos (+ (* t ω) φ))) (* a k (cos (+ (* t ω) φ))))
-             (simplify (((Lagrange-equations (L/L-harmonic 'm 'k)) proposed-solution) 't)))))))
+             (simplify-and-freeze
+              (((Lagrange-equations (L/L-harmonic 'm 'k)) proposed-solution) 't)))))))
 
 
 (deftest section-1-6
@@ -144,47 +145,54 @@
                                                (F->C p->r)))]
       (is (= '(down (* m (((expt D 2) x) t))
                     (+ (* g m) (* m (((expt D 2) y) t))))
-             (simplify (((Lagrange-equations (L/L-uniform-acceleration 'm 'g))
-                         (up x y)) 't))))
+             (simplify-and-freeze
+              (((Lagrange-equations (L/L-uniform-acceleration 'm 'g))
+                (up x y)) 't))))
       (is (= '(down (/ (+ (* m (((expt D 2) x) t) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
                           (* (x t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
                        (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
                     (/ (+ (* m (((expt D 2) y) t) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
                           (* (y t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
                        (sqrt (+ (expt (x t) 2) (expt (y t) 2)))))
-             (simplify (((Lagrange-equations (L/L-central-rectangular 'm U))
-                         (up x y))
-                        't))))
+             (simplify-and-freeze
+              (((Lagrange-equations (L/L-central-rectangular 'm U))
+                (up x y))
+               't))))
       (is (= '(down (+ (* -1 m (expt ((D φ) t) 2) (r t))
                        (* m (((expt D 2) r) t))
                        ((D U) (r t)))
                     (+ (* 2 m ((D φ) t) (r t) ((D r) t))
                        (* m (expt (r t) 2) (((expt D 2) φ) t))))
-             (simplify (((Lagrange-equations (L/L-central-polar 'm U))
-                         (up r φ))
-                        't))))
+             (simplify-and-freeze
+              (((Lagrange-equations (L/L-central-polar 'm U))
+                (up r φ))
+               't))))
       (is (= '(up (+ (* -1 r φdot (sin φ)) (* rdot (cos φ)))
                   (+ (* r φdot (cos φ)) (* rdot (sin φ))))
-             (simplify (velocity ((F->C p->r)
-                                  (->local 't (up 'r 'φ) (up 'rdot 'φdot)))))))
+             (simplify-and-freeze
+              (velocity ((F->C p->r)
+                         (->local 't (up 'r 'φ) (up 'rdot 'φdot)))))))
       (is (= '(+
                (* 1/2 m (expt r 2) (expt φdot 2))
                (* 1/2 m (expt rdot 2))
                (* -1 (U r)))
-             (simplify ((L-alternate-central-polar 'm U)
-                        (->local 't (up 'r 'φ) (up 'rdot 'φdot))))))
+             (simplify-and-freeze
+              ((L-alternate-central-polar 'm U)
+               (->local 't (up 'r 'φ) (up 'rdot 'φdot))))))
       (is (= '(down (+ (* -1 m (expt ((D φ) t) 2) (r t))
                        (* m (((expt D 2) r) t))
                        ((D U) (r t)))
                     (+ (* 2 m ((D φ) t) (r t) ((D r) t))
                        (* m (expt (r t) 2) (((expt D 2) φ) t))))
-             (simplify (((Lagrange-equations (L-alternate-central-polar 'm U))
-                         (up r φ))
-                        't))))
+             (simplify-and-freeze
+              (((Lagrange-equations (L-alternate-central-polar 'm U))
+                (up r φ))
+               't))))
       (is (= '(+ (* g l m (sin (θ t)))
                  (* (expt l 2) m (((expt D 2) θ) t))
                  (* l m (((expt D 2) y_s) t) (sin (θ t))))
-             (simplify (((Lagrange-equations (pendulum/L 'm 'l 'g (up (fn [t] 0) y_s))) θ) 't))))
+             (simplify-and-freeze
+              (((Lagrange-equations (pendulum/L 'm 'l 'g (up (fn [t] 0) y_s))) θ) 't))))
       ;; p. 61
       (let [Lf (fn [m g]
                  (fn [[_ [_ y] v]]
@@ -202,7 +210,8 @@
                    (* g l m (cos θ))
                    (* -1 g m (y_s t))
                    (* 1/2 m (expt ((D y_s) t) 2)))
-               (simplify ((L-pend2 'm 'l 'g y_s) (->local 't 'θ 'θdot)))))))))
+               (simplify-and-freeze
+                ((L-pend2 'm 'l 'g y_s) (->local 't 'θ 'θdot)))))))))
 
 (deftest ^:long section-1-7-1
   (with-literal-functions [x y v_x v_y]
@@ -211,21 +220,23 @@
       (is (= '(up 1
                   (up v_x v_y)
                   (up (/ (* -1 k x) m) (/ (* -1 k y) m)))
-             (simplify ((harmonic-state-derivative 'm 'k)
-                        (up 't (up 'x 'y) (up 'v_x 'v_y))))))
+             (simplify-and-freeze
+              ((harmonic-state-derivative 'm 'k)
+               (up 't (up 'x 'y) (up 'v_x 'v_y))))))
       ;; p. 71
       (is (= '(up 0
                   (up (+ ((D x) t) (* -1 (v_x t)))
                       (+ ((D y) t) (* -1 (v_y t))))
                   (up (/ (+ (* k (x t)) (* m ((D v_x) t))) m)
                       (/ (+ (* k (y t)) (* m ((D v_y) t))) m)))
-             (simplify (((Lagrange-equations-first-order (L/L-harmonic 'm 'k))
-                         (up x y)
-                         (up v_x v_y))
-                        't))))
-      (is (= (up 1 (up 3.0 4.0) (up -0.5 -1.0))
+             (simplify-and-freeze
+              (((Lagrange-equations-first-order (L/L-harmonic 'm 'k))
+                (up x y)
+                (up v_x v_y))
+               't))))
+      (is (= (up 1 (up 3.0 4.0) (up -1/2 -1.0))
              ((harmonic-state-derivative 2. 1.) (up 0 (up 1. 2.) (up 3. 4.)))))
-      (is (= '(1 3.0 4.0 -0.5 -1.0)
+      (is (= '(1 3.0 4.0 -1/2 -1.0)
              (flatten ((harmonic-state-derivative 2. 1.)
                        (up 0 (up 1. 2.) (up 3. 4.))))))
       ;; p. 72
@@ -244,20 +255,21 @@
 (deftest section-1-7-2
   (let [pend-state-derivative (fn [m l g a ω]
                                 (Lagrangian->state-derivative
-                                  (driven/L m l g a ω)))]
+                                 (driven/L m l g a ω)))]
     (is (= '(+ (* -1 a l m (expt ω 2) (sin (θ t)) (cos (* t ω)))
                (* g l m (sin (θ t)))
                (* (expt l 2) m (((expt D 2) θ) t)))
-           (simplify (((Lagrange-equations
-                        (driven/L 'm 'l 'g 'a 'ω))
-                       (literal-function 'θ))
-                      't))))
+           (simplify-and-freeze (((Lagrange-equations
+                                   (driven/L 'm 'l 'g 'a 'ω))
+                                  (literal-function 'θ))
+                                 't))))
     ;; NB. fraction simplification not happening here
     (is (= '(up 1
                 θdot
                 (/ (+ (* a (expt ω 2) (sin θ) (cos (* t ω))) (* -1 g (sin θ))) l))
-           (simplify ((pend-state-derivative 'm 'l 'g 'a 'ω)
-                      (up 't 'θ 'θdot)))))
+           (simplify-and-freeze
+            ((pend-state-derivative 'm 'l 'g 'a 'ω)
+             (up 't 'θ 'θdot)))))
     (let [answer ((evolve pend-state-derivative
                           1.0
                           1.0
@@ -298,20 +310,20 @@
                        (* -1 ((D V) r)))
                     (* m (expt r 2) (expt φdot 2) (cos θ) (sin θ))
                     0)
-             (simplify (((∂ 1) (L3-central 'm V)) spherical-state))))
+             (simplify-and-freeze (((∂ 1) (L3-central 'm V)) spherical-state))))
       (is (= '(down (* m rdot)
                     (* m (expt r 2) θdot)
                     (* m (expt r 2) φdot (expt (sin θ) 2)))
-             (simplify (((∂ 2) (L3-central 'm V)) spherical-state))))
+             (simplify-and-freeze (((∂ 2) (L3-central 'm V)) spherical-state))))
       ;; p. 82
       (is (= '(* m (expt r 2) φdot (expt (sin θ) 2))
-             (simplify ((compose (ang-mom-z 'm) (F->C s->r)) spherical-state))))
+             (simplify-and-freeze ((compose (ang-mom-z 'm) (F->C s->r)) spherical-state))))
       ;; p. 84
       (is (= '(+ (* 1/2 m (expt r 2) (expt φdot 2) (expt (sin θ) 2))
                  (* 1/2 m (expt r 2) (expt θdot 2))
                  (* 1/2 m (expt rdot 2))
                  (V r))
-             (simplify ((Lagrangian->energy (L3-central 'm V)) spherical-state))))
+             (simplify-and-freeze ((Lagrangian->energy (L3-central 'm V)) spherical-state))))
       (let [L (L/L-central-rectangular 'm U)
             F-tilde (fn [angle-x angle-y angle-z]
                       (compose (Rx angle-x)
@@ -320,34 +332,34 @@
                                coordinate))
             Noether-integral (* ((∂ 2) L) ((D F-tilde) 0 0 0))
             state (up 't (up 'x 'y 'z) (up 'vx 'vy 'vz))]
-        (is (= '(down (* m vx) (* m vy) (* m vz)) (simplify (((∂ 2) L) state))))
-        (is (= '(up x y z) (simplify ((F-tilde 0 0 0) state))))
+        (is (= '(down (* m vx) (* m vy) (* m vz)) (simplify-and-freeze (((∂ 2) L) state))))
+        (is (= '(up x y z) (simplify-and-freeze ((F-tilde 0 0 0) state))))
         (is (= '(down (up 0 (* -1 z) y)
                       (up z 0 (* -1 x))
                       (up (* -1 y) x 0))
-               (simplify (((D F-tilde) 0 0 0) state))))
+               (simplify-and-freeze (((D F-tilde) 0 0 0) state))))
         (is (= '(down (+ (* -1 m vy z) (* m vz y))
                       (+ (* m vx z) (* -1 m vz x))
                       (+ (* -1 m vx y) (* m vy x)))
-               (simplify (Noether-integral state))))))))
+               (simplify-and-freeze (Noether-integral state))))))))
 
 (deftest section-1-9
   (let [F->C (fn [F]
                (let [f-bar #(->> % Γ (compose F) Γ)]
                  (Gamma-bar f-bar)))]
-    (is (= '(up t
-                (up (* r (cos θ)) (* r (sin θ)))
-                (up (+ (* -1 r θdot (sin θ))
-                       (* rdot (cos θ)))
-                    (+ (* r θdot (cos θ))
-                       (* rdot (sin θ)))))
+    (is (= (up 't
+               (up (* 'r (cos 'θ)) (* 'r (sin 'θ)))
+               (up (+ (* -1 'r 'θdot (sin 'θ))
+                      (* 'rdot (cos 'θ)))
+                   (+ (* 'r 'θdot (cos 'θ))
+                      (* 'rdot (sin 'θ)))))
            (simplify ((F->C p->r)
                       (->local 't (up 'r 'θ) (up 'rdot 'θdot)))))))
-  (is (= '(+ (* a m) (* k x))
+  (is (= (+ (* 'a 'm) (* 'k 'x))
          (simplify ((Euler-Lagrange-operator (L/L-harmonic 'm 'k))
                     (->local 't 'x 'v 'a)))))
   (with-literal-functions [x]
-    (is (= '(+ (* k (x t)) (* m (((expt D 2) x) t)))
+    (is (= (+ (* 'k (x 't)) (* 'm (((expt D 2) x) 't)))
            (simplify ((compose
                        (Euler-Lagrange-operator (L/L-harmonic 'm 'k))
                        (Gamma x 4)) 't))))))

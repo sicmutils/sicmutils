@@ -26,11 +26,11 @@
 
 (use-fixtures :once hermetic-simplify-fixture)
 
-(def ^:private s->infix (compose ->infix simplify))
-(def ^:private s->TeX (compose ->TeX simplify))
+(def ^:private s->infix (compose ->infix simplify-and-freeze))
+(def ^:private s->TeX (compose ->TeX simplify-and-freeze))
 (defn ^:private s->JS
   [x & options]
-  (apply ->JavaScript (simplify x) options))
+  (apply ->JavaScript (simplify-and-freeze x) options))
 
 (deftest basic
   (testing "raw epxressions"
@@ -104,7 +104,7 @@
     (is (= "D²f(s)" (s->infix (((expt D 2) f) 's))))))
 
 (deftest structures
-  (is (= "down(up(1, 2), up(3, 4))" (->infix (simplify (down (up 1 2) (up 3 4)))))))
+  (is (= "down(up(1, 2), up(3, 4))" (s->infix (down (up 1 2) (up 3 4))))))
 
 (deftest variable-subscripts
   (is (= "x₀ + y₁ + z₂" (s->infix (+ 'x_0 'y_1 'z_2)))))

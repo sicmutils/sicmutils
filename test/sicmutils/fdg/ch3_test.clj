@@ -35,18 +35,18 @@
         v2 (literal-vector-field 'b R2-rect)]
     (is (= '(+ (* (((∂ 0) f-rect) (up x0 y0)) (b↑0 (up x0 y0)))
                (* (((∂ 1) f-rect) (up x0 y0)) (b↑1 (up x0 y0))))
-           (simplify
+           (simplify-and-freeze
             ((v (literal-manifold-function 'f-rect R2-rect)) R2-rect-point))))
     (is (= '(+ (* (((∂ 0) f-rect) (up x0 y0)) (b↑0 (up x0 y0)))
                (* (((∂ 1) f-rect) (up x0 y0)) (b↑1 (up x0 y0))))
-           (simplify
+           (simplify-and-freeze
             ((v2 (literal-manifold-function 'f-rect R2-rect)) R2-rect-point))))
     (is (= '(up (b↑0 (up x0 y0)) (b↑1 (up x0 y0)))
-           (simplify
+           (simplify-and-freeze
             ((v (chart R2-rect)) R2-rect-point))))
     (is (= '(+ (* (((∂ 0) f-rect) (up x0 y0)) (b↑0 (up x0 y0)))
                (* (((∂ 1) f-rect) (up x0 y0)) (b↑1 (up x0 y0))))
-           (simplify
+           (simplify-and-freeze
             (((coordinatize v R2-rect) (literal-function 'f-rect R2->R))
              (up 'x0 'y0)))))))
 
@@ -54,9 +54,9 @@
   (let-coordinates [[x y] R2-rect
                     [r theta] R2-polar]
     (let [R2-rect-point ((point R2-rect) (up 'x0 'y0))]
-      (is (= '(* 2 x0) (simplify ((d:dx (square r)) R2-rect-point))))
+      (is (= '(* 2 x0) (simplify-and-freeze ((d:dx (square r)) R2-rect-point))))
       (is (= '(+ (* 2 x0) (* 4 y0) 3)
-             (simplify
+             (simplify-and-freeze
               (((+ d:dx (* 2 d:dy)) (+ (square r) (* 3 x))) R2-rect-point)))))))
 
 (deftest section-3-3
@@ -68,7 +68,7 @@
                (up 0 (* -1/6 (expt t 3)))
                (up (* 1/24 (expt t 4)) 0)
                (up 0 (* 1/120 (expt t 5))))
-             (simplify
+             (simplify-and-freeze
               (take 6
                     (seq
                      (((exp (* 't circular)) (chart R2-rect))
@@ -80,7 +80,7 @@
                 (* -1/2 (expt delta-t 2))
                 1)
                (+ (* 1/120 (expt delta-t 5)) (* -1/6 (expt delta-t 3)) delta-t))
-             (simplify
+             (simplify-and-freeze
               ((((evolution 6) 'delta-t circular) (chart R2-rect))
                ((point R2-rect) (up 1 0)))))))))
 
@@ -95,14 +95,16 @@
           R2-rect-point ((point R2-rect) (up 'x0 'y0))
           omega2 (literal-oneform-field 'a R2-rect)
           circular (- (* x d:dy) (* y d:dx))]
-      (is (= '(oneform-field (down a_0 a_1)) (simplify omega))) ;; fix this
+      (is (= '(oneform-field (down a_0 a_1)) (simplify-and-freeze omega))) ;; XXX fix this
       (is (= '(down (a_0 (up x0 y0)) (a_1 (up x0 y0)))
-             (simplify ((omega (down d:dx d:dy)) R2-rect-point))))
+             (simplify-and-freeze
+              ((omega (down d:dx d:dy)) R2-rect-point))))
       (is (= '(down (a_0 (up x0 y0)) (a_1 (up x0 y0)))
-             (simplify ((omega2 (down d:dx d:dy)) R2-rect-point))))
+             (simplify-and-freeze
+              ((omega2 (down d:dx d:dy)) R2-rect-point))))
       (is (= '(down (((∂ 0) f-rect) (up x0 y0))
                     (((∂ 1) f-rect) (up x0 y0)))
-             (simplify
+             (simplify-and-freeze
               (((d (literal-manifold-function 'f-rect R2-rect))
                 (coordinate-system->vector-basis R2-rect))
                R2-rect-point))))
@@ -112,13 +114,13 @@
                     (/ (+ (* r (sin theta) (((∂ 0) f-polar) (up r theta)))
                           (* (cos theta) (((∂ 1) f-polar) (up r theta))))
                        r))
-             (simplify
+             (simplify-and-freeze
               (((d (literal-manifold-function 'f-polar R2-polar))
                 (coordinate-system->vector-basis R2-rect))
                ((point R2-polar) (up 'r 'theta))))))
       (is (= 0 ((dx d:dy) R2-rect-point)))
       (is (= 1 ((dx d:dx) R2-rect-point)))
-      (is (= '(* -1 y0) (simplify ((dx circular) R2-rect-point))))
+      (is (= '(* -1 y0) (simplify-and-freeze ((dx circular) R2-rect-point))))
       (is (= 'x0 ((dy circular) R2-rect-point)))
       (is (= 0 (simplify ((dr circular) R2-rect-point))))
       (is (= 1 (simplify ((dtheta circular) R2-rect-point))))
@@ -127,4 +129,4 @@
       (let [v (literal-vector-field 'b R2-rect)]
         (is (= '(+ (* (a_0 (up x0 y0)) (b↑0 (up x0 y0)))
                    (* (a_1 (up x0 y0)) (b↑1 (up x0 y0))))
-               (simplify ((omega v) R2-rect-point))))))))
+               (simplify-and-freeze ((omega v) R2-rect-point))))))))

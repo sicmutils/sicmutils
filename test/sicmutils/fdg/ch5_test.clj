@@ -33,12 +33,13 @@
           u (+ (* 'u↑0 d:dx) (* 'u↑1 d:dy))
           v (+ (* 'v↑0 d:dx) (* 'v↑1 d:dy))
           a (+ (* 'a↑0 d:dr) (* 'a↑1 d:dtheta))
-          b (+ (* 'b↑0 d:dr) (* 'b↑1 d:dtheta))
-          ]
+          b (+ (* 'b↑0 d:dr) (* 'b↑1 d:dtheta))]
       (is (= '(+ (* u↑0 v↑1) (* -1 u↑1 v↑0))
-             (simplify (((wedge dx dy) u v) p))))
+             (simplify-and-freeze
+              (((wedge dx dy) u v) p))))
       (is (= '(+ (* a↑0 b↑1) (* -1 a↑1 b↑0))
-             (simplify (((wedge dr dtheta) a b) q)))))
+             (simplify-and-freeze
+              (((wedge dr dtheta) a b) q)))))
     (let [p ((point R3-rect) (up 'X 'Y 'Z))
           u (+ (* 'u↑0 d:dx) (* 'u↑1 d:dy) (* 'u↑2 d:dz))
           v (+ (* 'v↑0 d:dx) (* 'v↑1 d:dy) (* 'v↑2 d:dz))
@@ -51,12 +52,14 @@
                (* u↑1 v↑2 w↑0)
                (* u↑2 v↑0 w↑1)
                (* -1 u↑2 v↑1 w↑0))
-             (simplify (((wedge dx dy dz) u v w) p))))
-      (is (= 0 (simplify (- (((wedge dx dy dz) u v w) p)
-                            (determinant
-                             (matrix-by-rows '[u↑0 u↑1 u↑2]
-                                             '[v↑0 v↑1 v↑2]
-                                             '[w↑0 w↑1 w↑2]))))))
+             (simplify-and-freeze
+              (((wedge dx dy dz) u v w) p))))
+      (is (= 0 (simplify
+                (- (((wedge dx dy dz) u v w) p)
+                   (determinant
+                    (matrix-by-rows '[u↑0 u↑1 u↑2]
+                                    '[v↑0 v↑1 v↑2]
+                                    '[w↑0 w↑1 w↑2]))))))
       (is (= 1 (((wedge dx dy dz) d:dx d:dy d:dz) p))))))
 
 (deftest section-5-2

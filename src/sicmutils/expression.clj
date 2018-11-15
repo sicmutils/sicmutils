@@ -29,16 +29,19 @@
      :expression expression}))
 
 (defn fmap
-  "Applies f to the expression part of e and creates from that an Expression otherwise like e."
+  "Applies f to the expression part of e and creates from that an Expression otherwise like e,
+  except we lower to symbol or numeric type when we may.
+  XXX It is not certain that this is a good idea."
   [f e]
-  {:type (:type e)
-   :expression (f (:expression e))})
+  (let [fe (f (:expression e))]
+    (cond (symbol? fe) fe
+          (number? fe) fe
+          :else {:type (:type e)
+                 :expression fe})))
 
 (defn expression-of
   [expr]
-  (cond (= (:type expr) ::numerical-expression) (:expression expr)
-        (symbol? expr) expr
-        :else (throw (IllegalArgumentException. (str "unknown expression type:" expr)))))
+  (:expression expr))
 
 (defn variables-in
   "Return the 'variables' (e.g. symbols) found in the expression x,

@@ -39,17 +39,20 @@
         (is (= '(down
                  (((∂ 0) h-spherical) (up (theta t0) (phi t0)))
                  (((∂ 1) h-spherical) (up (theta t0) (phi t0))))
-               (simplify (((basis->vector-basis S2-basis-over-mu) h)
-                          ((point R1-rect) 't0)))))
+               (simplify-and-freeze
+                (((basis->vector-basis S2-basis-over-mu) h)
+                 ((point R1-rect) 't0)))))
         (is (= '(up (down 1 0)
                     (down 0 1))
-               (simplify (((basis->oneform-basis S2-basis-over-mu)
-                           (basis->vector-basis S2-basis-over-mu))
-                          ((point R1-rect) 't0)))))
+               (simplify-and-freeze
+                (((basis->oneform-basis S2-basis-over-mu)
+                  (basis->vector-basis S2-basis-over-mu))
+                 ((point R1-rect) 't0)))))
         (is (= '(up ((D theta) t0) ((D phi) t0))
-               (simplify (((basis->oneform-basis S2-basis-over-mu)
-                           ((differential mu) d:dt))
-                          ((point R1-rect) 't0)))))))))
+               (simplify-and-freeze
+                (((basis->oneform-basis S2-basis-over-mu)
+                  ((differential mu) d:dt))
+                 ((point R1-rect) 't0)))))))))
 
 (deftest section-6-4
   (let [mu (literal-manifold-map 'MU R2-rect R3-rect)

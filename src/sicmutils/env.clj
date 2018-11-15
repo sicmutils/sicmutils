@@ -71,6 +71,7 @@
 (def sec (g/invert g/cos))
 
 (def print-expression simp/print-expression)
+(def simplify-and-freeze simp/simplify-and-freeze)
 
 (defn ref
   "A shim so that ref can act like nth in SICM contexts, as clojure

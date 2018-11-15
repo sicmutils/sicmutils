@@ -21,7 +21,7 @@
   (:require [clojure.test :refer :all]
             [sicmutils
              [generic :as g]
-             [simplify]
+             [simplify :refer [simplify-and-freeze]]
              [numsymb]]))
 
 (def ^:private near (g/within 1e-12))
@@ -112,7 +112,7 @@
     (is (near (/ (Math/PI) 4) (g/acos (/ (Math/sqrt 2) 2))))
     (is (zero? (g/asin 0)))
     (is (near (/ (Math/PI) 2) (g/acos 0)))
-    (is (= '(tan x) (g/simplify (g/tan 'x)))))
+    (is (= '(tan x) (simplify-and-freeze (g/tan 'x)))))
   (testing "square/cube"
     (is (= 4 (g/square 2)))
     (is (= 4 (g/square -2)))
@@ -120,13 +120,12 @@
     (is (= -27 (g/cube -3)))
     )
   (testing "with-symbols"
-    (is (= '(+ x 4) (g/simplify (g/+ 4 'x))))
-    (is (= '(+ y 5) (g/simplify (g/+ 'y 5))))
-    (is (= '(/ 5 y) (g/simplify (g/divide 5 'y))))
-    (is (= '(* 5 y) (g/simplify (g/* 5 'y))))
-    (is (= '(/ x y) (g/simplify (g/divide 'x 'y))))
-    (is (= '(* x y) (g/simplify (g/* 'x 'y))))
-    )
+    (is (= '(+ x 4) (simplify-and-freeze (g/+ 4 'x))))
+    (is (= '(+ y 5) (simplify-and-freeze (g/+ 'y 5))))
+    (is (= '(/ 5 y) (simplify-and-freeze (g/divide 5 'y))))
+    (is (= '(* 5 y) (simplify-and-freeze (g/* 5 'y))))
+    (is (= '(/ x y) (simplify-and-freeze (g/divide 'x 'y))))
+    (is (= '(* x y) (simplify-and-freeze (g/* 'x 'y)))))
   (testing "zero/one elimination"
     (is (= 'x (g/+ 0 'x)))
     (is (= 'x (g/* 1 'x)))
@@ -143,10 +142,9 @@
     (is (= 0 (g/divide 0 'x)))
     (is (= 0 (g/* 0 'x)))
     (is (= 0 (g/* 'x 0)))
-    (is (thrown? ArithmeticException (g/divide 'x 0)))
-    )
+    (is (thrown? ArithmeticException (g/divide 'x 0))))
   (testing "neg"
-    (is (= '(* -1 x) (g/simplify (g/negate 'x))))
+    (is (= (g/* -1 'x) (g/simplify (g/negate 'x))))
     (is (= -4 (g/- 0 4)))
     (is (= -4 (g/negate 4)))
     (is (= 4 (g/negate (g/- 4))))
@@ -168,32 +166,28 @@
   (testing "abs"
     (is (= 1 (g/abs -1)))
     (is (= 1 (g/abs 1)))
-    (is (= '(abs x) (g/simplify (g/abs 'x))))
-    )
+    (is (= '(abs x) (simplify-and-freeze (g/abs 'x)))))
   (testing "sqrt"
     (is (= 9 (g/sqrt 81)))
-    (is (= '(sqrt x) (g/simplify (g/sqrt 'x))))
-    )
+    (is (= '(sqrt x) (simplify-and-freeze (g/sqrt 'x)))))
   (testing "expt"
     (is (= 32 (g/expt 2 5)))
-    (is (= '(expt x 2) (g/simplify (g/expt 'x 2))))
-    (is (= '(expt x y) (g/simplify (g/expt 'x 'y))))
-    (is (= '(expt 2 y) (g/simplify (g/expt 2 'y))))
+    (is (= '(expt x 2) (simplify-and-freeze (g/expt 'x 2))))
+    (is (= '(expt x y) (simplify-and-freeze (g/expt 'x 'y))))
+    (is (= '(expt 2 y) (simplify-and-freeze (g/expt 2 'y))))
     (is (= 1 (g/expt 1 'x)))
     (is (= 1 (g/expt 'x 0)))
     (is (= 'x (g/simplify (g/expt 'x 1))))
     (is (= 'x (g/simplify (g/expt (g/sqrt 'x) 2))))
-    (is (= '(expt x 3) (g/simplify (g/expt (g/sqrt 'x) 6))))
-    (is (= '(expt x 12) (g/simplify (g/expt (g/expt 'x 4) 3))))
-    (is (= '(/ 1 (expt x 3)) (g/simplify (g/expt 'x -3))))
-    )
+    (is (= (g/expt 'x 3) (g/simplify (g/expt (g/sqrt 'x) 6))))
+    (is (= (g/expt 'x 12) (g/simplify (g/expt (g/expt 'x 4) 3))))
+    (is (= (g/divide 1 (g/expt 'x 3)) (g/simplify (g/expt 'x -3)))))
   (testing "exp/log"
     (is (= 1.0 (g/exp 0)))
-    (is (= '(exp x) (g/simplify (g/exp 'x))))
+    (is (= '(exp x) (simplify-and-freeze (g/exp 'x))))
     (is (= 0.0 (g/log 1)))
-    (is (= '(log x) (g/simplify (g/log 'x))))
-    (is (= 0.0 (g/log (g/exp 0))))
-    )
+    (is (= '(log x) (simplify-and-freeze (g/log 'x))))
+    (is (= 0.0 (g/log (g/exp 0)))))
   (testing "quotient"
     (is (= 2 (g/quotient 5 2)))
     (is (= 2 (g/quotient 5N 2)))

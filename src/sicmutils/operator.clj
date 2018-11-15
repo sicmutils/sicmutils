@@ -191,7 +191,7 @@
 
 (defmethod g/square [::operator] [o] (o*o o o))
 
-(defmethod g/simplify [::operator] [o] (:name o))
+(defmethod g/freeze [::operator] [o] (:name o))
 
 (defmethod g/transpose
   [::operator]

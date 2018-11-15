@@ -62,6 +62,7 @@
 
 (def ^:dynamic *rf-analyzer* (memoize (unless-timeout (rational-function-analyzer))))
 (def ^:dynamic *poly-analyzer* (memoize (poly-analyzer)))
+(def ^:dynamic *simplify-debug* false)
 
 (defn hermetic-simplify-fixture
   [f]
@@ -154,32 +155,22 @@
   stabilizes.)"
   [x]
   (let [sw (Stopwatch/createStarted)
-        snoop (fn [x where] (println (format " -- %s : %s so far" where sw)) x)
-        result (-> x
-                   rules/canonicalize-partials
-                   (snoop "after can-par")
-                   rules/trig->sincos
-                   (snoop "after trig-sincos")
-                   simplify-and-flatten
-                   (snoop "after s-and-f")
-                   rules/complex-trig
-                   (snoop "after complex-trig")
-                   sincos-simplifier
-                   (snoop "after sincos")
-                   sin-sq->cos-sq-simplifier
-                   (snoop "after sin-sq")
-                   trig-cleanup
-                   (snoop "after trig-cleanup")
-                   rules/sincos->trig
-                   (snoop "after sincos->trig")
-                   square-root-simplifier
-                   (snoop "after sqrt-simp")
-                   clear-square-roots-of-perfect-squares
-                   (snoop "after clear-sqrt")
-                   simplify-and-flatten
-                   (snoop "after final s&f"))]
-    (println (format "simplify-expression-1 took %s" sw))
-    result))
+        step (fn [x step-fn step-name]
+               (let [result (step-fn x)]
+                 (when *simplify-debug* (println (format " -- after %s : %s so far" step-name sw)) x)
+                 result))]
+    (-> x
+        (step rules/canonicalize-partials "can-par")
+        (step rules/trig->sincos "trig->sincos")
+        (step simplify-and-flatten "s&f")
+        (step rules/complex-trig "complex-trig")
+        (step sincos-simplifier "sincos")
+        (step sin-sq->cos-sq-simplifier "sin^2 cos^2")
+        (step trig-cleanup "trig-cleanup")
+        (step rules/sincos->trig "sincos->trig")
+        (step square-root-simplifier "sqrt-simp")
+        (step clear-square-roots-of-perfect-squares "perfect-squares")
+        (step simplify-and-flatten "s&f"))))
 
 (def simplify-expression (simplify-until-stable simplify-expression-1 simplify-and-flatten))
 
@@ -187,6 +178,7 @@
 
 ;; TODO: it is structurally irritating to have an if here. The trick would be to make simplify generic.
 ;; Although then we have to account for the structure-preserving and other forms of simplification.
+;; XXX this must go. it is only used in manifold.
 (defn simplify-numerical-expression
   "Runs the content of the Expression e through the simplifier, but leaves the result in
   Expression form."
@@ -281,14 +273,11 @@
 
 (defmethod g/simplify [::x/numerical-expression]
   [a]
-  (-> a g/freeze simplify-expression))
+  (x/fmap simplify-expression a))
 
-(defmethod g/simplify :default [a] (g/freeze a))
-(defmethod g/simplify [Var] [a] (-> a meta :name))
 (defmethod g/simplify [Sequential] [a] (map g/simplify a))
 (defmethod g/simplify [PersistentVector] [a] (mapv g/simplify a))
 (defmethod g/simplify [LazySeq] [a] (map g/simplify a))
-(defmethod g/simplify [Symbol] [a] a)
 (prefer-method g/simplify [:sicmutils.structure/structure] [Sequential])
 
 ;; Freezing an expression means removing wrappers and other metadata
@@ -307,16 +296,19 @@
 (defmethod g/freeze :default [a] (or (object-name-map a) a))
 ;; TODO dodgy. the right thing to do is sever the dependence of this module on expression,
 ;; i.e. invert that dependence, and move the following implementation there.
-(defmethod g/freeze [::x/numerical-expression] [a] (g/freeze (:expression a)))
+(defmethod g/freeze [::x/numerical-expression] [a] (g/freeze (x/expression-of a)))
 (defmethod g/freeze [clojure.lang.PersistentVector] [a] (mapv g/freeze a))
 (defmethod g/freeze [clojure.lang.Cons] [a] (map g/freeze a))
+(defmethod g/freeze [Sequential] [a] (map g/freeze a))
+(prefer-method g/freeze [:sicmutils.structure/structure] [Sequential])
 
 (defn expression->string
   "Renders an expression through the simplifier and into a string,
   which is returned."
   [expr]
   (let [w (StringWriter.)]
-    (-> expr g/simplify (pp/write :stream w))
+    (-> expr g/simplify g/freeze (pp/write :stream w))
     (.toString w)))
-(def print-expression #(-> % g/simplify pp/pprint))
+(def simplify-and-freeze (comp g/freeze g/simplify))
+(def print-expression (comp pp/pprint g/freeze g/simplify))
 (def pe print-expression)

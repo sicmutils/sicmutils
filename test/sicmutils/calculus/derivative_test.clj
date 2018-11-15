@@ -24,7 +24,7 @@
              [function :refer :all]
              [generic :refer :all]
              [complex :refer [complex]]
-             [simplify :refer [hermetic-simplify-fixture]]
+             [simplify :refer [hermetic-simplify-fixture simplify-and-freeze]]
              [infix :refer [->infix]]
              [structure :refer :all]
              [matrix :as matrix]]
@@ -87,7 +87,7 @@
   (testing "more terms"
     (let [d-expr (fn [^Differential dx]
                    (->> dx .terms (filter (fn [[tags coef]] (= tags [0]))) first second))
-          d-simplify #(-> % d-expr simplify)]
+          d-simplify #(-> % d-expr simplify-and-freeze)]
       (is (= '(* 3 (expt x 2))
              (d-simplify (expt (+ 'x (make-differential {[0] 1})) 3))))
       (is (= '(* 4 (expt x 3))
@@ -126,31 +126,31 @@
     (is (= (/ 1 (expt (cos 'x) 2)) ((D tan) 'x)))
     (is (= (up 2 (+ 't 't)) ((D #(up (* 2 %) (* % %))) 't)))
     (is (= (up (- (sin 't)) (cos 't)) ((D #(up (cos %) (sin %))) 't)))
-    (is (= '(/ 1 (sqrt (+ (* -1 (expt x 2)) 1))) (simplify ((D asin) 'x))))
-    (is (= '(/ -1 (sqrt (+ (* -1 (expt x 2)) 1))) (simplify ((D acos) 'x)))))
+    (is (= (/ 1 (sqrt (+ (* -1 (expt 'x 2)) 1))) (simplify ((D asin) 'x))))
+    (is (= (/ -1 (sqrt (+ (* -1 (expt 'x 2)) 1))) (simplify ((D acos) 'x)))))
   (testing "chain rule"
     (let [s (fn [t] (sqrt t))
           u (fn [t] (expt (- (* 3 (s t)) 1) 2/3))
           y (fn [t] (/ (+ (u t) 2) (- (u t) 1)))]
       (is ((within 1e-6) (/ -1 18.) ((D y) 9)))))
   (testing "structural-functions"
-    (is (= '(up (cos t) (* -1 (sin t))) (simplify ((D (up sin cos)) 't))))))
+    (is (= (up (cos 't) (* -1 (sin 't))) (simplify ((D (up sin cos)) 't))))))
 
 (deftest partial-diff-test
   (testing "partial derivatives"
     (let [f (fn [x y] (+ (* 'a x x) (* 'b x y) (* 'c y y)))]
-      (is (= '(+ (* 4 a) (* 3 b)) (simplify (((∂ 0) f) 2 3))))
-      (is (= '(+ (* 2 b) (* 6 c)) (simplify (((∂ 1) f) 2 3))))
-      (is (= '(+ (* 2 a x) (* b y)) (simplify (((∂ 0) f) 'x 'y))))
-      (is (= '(+ (* b x) (* 2 c y)) (simplify (((∂ 1) f) 'x 'y))))
+      (is (= (+ (* 4 'a) (* 3 'b)) (simplify (((∂ 0) f) 2 3))))
+      (is (= (+ (* 2 'b) (* 6 'c)) (simplify (((∂ 1) f) 2 3))))
+      (is (= (+ (* 2 'a 'x) (* 'b 'y)) (simplify (((∂ 0) f) 'x 'y))))
+      (is (= (+ (* 'b 'x) (* 2 'c 'y)) (simplify (((∂ 1) f) 'x 'y))))
       ;; matrix of 2nd partials
-      (is (= '[[(* 2 a) b]
-               [b (* 2 c)]]
+      (is (= [[(* 2 'a) 'b]
+              ['b (* 2 'c)]]
              (for [i (range 2)]
                (for [j (range 2)]
                  (simplify (((* (∂ i) (∂ j)) f) 'x 'y))))))
-      (is (= '[[(* 2 a) b]
-               [b (* 2 c)]]
+      (is (= [[(* 2 'a) 'b]
+              ['b (* 2 'c)]]
              (for [i (range 2)]
                (for [j (range 2)]
                  (simplify (((compose (∂ i) (∂ j)) f) 'x 'y)))))))
@@ -164,25 +164,26 @@
       (is (= (down (up 'x 0) (up 0 'y)) (((D F) 1 1) (up 'x 'y)))))))
 
 (deftest derivative-of-matrix
-  (let [M (matrix/by-rows [(literal-function 'f) (literal-function 'g)]
-                          [(literal-function 'h) (literal-function 'k)])]
-    (is (= '(matrix-by-rows [(f t) (g t)]
-                            [(h t) (k t)])
-           (simplify (M 't))))
-    (is (= '(matrix-by-rows [((D f) t) ((D g) t)]
-                            [((D h) t) ((D k) t)])
-           (simplify ((D M) 't))))
-    (is (= '(matrix-by-rows
-             [(+ (expt (f t) 2) (expt (h t) 2))
-              (+ (* (f t) (g t)) (* (h t) (k t)))]
-             [(+ (* (f t) (g t)) (* (h t) (k t)))
-              (+ (expt (g t) 2) (expt (k t) 2))])
-           (simplify ((* (transpose M) M) 't))))
-    (is (= '(matrix-by-rows [(+ (* 2 ((D f) t) (f t)) (* 2 (h t) ((D h) t)))
-                             (+ (* ((D f) t) (g t)) (* (f t) ((D g) t)) (* (h t) ((D k) t)) (* (k t) ((D h) t)))]
-                            [(+ (* ((D f) t) (g t)) (* (f t) ((D g) t)) (* (h t) ((D k) t)) (* (k t) ((D h) t)))
-                             (+ (* 2 (g t) ((D g) t)) (* 2 (k t) ((D k) t)))])
-           (simplify ((D (* (transpose M) M)) 't))))))
+  (with-literal-functions [f g h k]
+    (let [M (matrix/by-rows [f g]
+                            [h k])]
+     (is (= (matrix/by-rows [(f 't) (g 't)]
+                            [(h 't) (k 't)])
+            (simplify (M 't))))
+     (is (= (matrix/by-rows [((D f) 't) ((D g) 't)]
+                            [((D h) 't) ((D k) 't)])
+            (simplify ((D M) 't))))
+     (is (= (matrix/by-rows
+             [(+ (expt (f 't) 2) (expt (h 't) 2))
+              (+ (* (f 't) (g 't)) (* (h 't) (k 't)))]
+             [(+ (* (f 't) (g 't)) (* (h 't) (k 't)))
+              (+ (expt (g 't) 2) (expt (k 't) 2))])
+            (simplify ((* (transpose M) M) 't))))
+     (is (= (matrix/by-rows [(+ (* 2 ((D f) 't) (f 't)) (* 2 (h 't) ((D h) 't)))
+                              (+ (* ((D f) 't) (g 't)) (* (f 't) ((D g) 't)) (* (h 't) ((D k) 't)) (* (k 't) ((D h) 't)))]
+                             [(+ (* ((D f) 't) (g 't)) (* (f 't) ((D g) 't)) (* (h 't) ((D k) 't)) (* (k 't) ((D h) 't)))
+                              (+ (* 2 (g 't) ((D g) 't)) (* 2 (k 't) ((D k) 't)))])
+            (simplify ((D (* (transpose M) M)) 't)))))))
 
 (deftest amazing-bug
   (testing "1"
@@ -208,26 +209,26 @@
             δηIq (δηI q)
             δηFq ((δη F) q)
             φ (fn [f] (fn [q] (fn [t] ((literal-function 'φ) ((f q) t)))))]
-        (is (= '((D f) t) (simplify ((D f) 't))))
-        (is (= '(+ (* ε (η t)) (q t)) (simplify (q+εη 't))))
-        (is (= '(+ (* ε (η t)) (q t)) (simplify ((g 'ε) 't))))
-        (is (= '(η a) (simplify (((D g) 'dt) 'a))))
-        (is (= '(η t) (simplify (δηIq 't))))
-        (is (= '(f (q t)) (simplify ((F q) 't))))
-        (is (= '(* (η t) ((D f) (q t))) (simplify (δηFq 't))))
+        (is (= '((D f) t) (simplify-and-freeze ((D f) 't))))
+        (is (= '(+ (* ε (η t)) (q t)) (simplify-and-freeze (q+εη 't))))
+        (is (= '(+ (* ε (η t)) (q t)) (simplify-and-freeze ((g 'ε) 't))))
+        (is (= '(η a) (simplify-and-freeze (((D g) 'dt) 'a))))
+        (is (= '(η t) (simplify-and-freeze (δηIq 't))))
+        (is (= '(f (q t)) (simplify-and-freeze ((F q) 't))))
+        (is (= '(* (η t) ((D f) (q t))) (simplify-and-freeze (δηFq 't))))
         ;; sum rule for variation: δ(F+G) = δF + δG
         (is (= '(+ (* (η t) ((D f) (q t)))
                    (* (η t) ((D g) (q t))))
-               (simplify (((δη (+ F G)) q) 't))))
+               (simplify-and-freeze (((δη (+ F G)) q) 't))))
         ;; scalar product rule for variation: δ(cF) = cδF
-        (is (= '(* c (η t) ((D f) (q t))) (simplify (((δη (* 'c F)) q) 't))))
+        (is (= '(* c (η t) ((D f) (q t))) (simplify-and-freeze (((δη (* 'c F)) q) 't))))
         ;; product rule for variation: δ(FG) = δF G + F δG
-        (is (= (simplify (+ (* (((δη F) q) 't) ((G q) 't))
+        (is (= (simplify-and-freeze (+ (* (((δη F) q) 't) ((G q) 't))
                             (* ((F q) 't) (((δη G) q) 't))))
-               (simplify (((δη (* F G)) q) 't))))
+               (simplify-and-freeze (((δη (* F G)) q) 't))))
         ;; path-independent chain rule for variation
-        (is (= '(φ (f (q t))) (simplify (((φ F) q) 't))))
-        (is (= '(* (η t) ((D f) (q t)) ((D φ) (f (q t)))) (simplify (((δη (φ F)) q) 't))))))))
+        (is (= '(φ (f (q t))) (simplify-and-freeze (((φ F) q) 't))))
+        (is (= '(* (η t) ((D f) (q t)) ((D φ) (f (q t)))) (simplify-and-freeze (((δη (φ F)) q) 't))))))))
 
 (deftest derivatives-as-values
   (let [cs0 (fn [x] (sin (cos x)))
@@ -236,29 +237,29 @@
         y0 (D cs0)
         y1 (D cs1)
         y2 (D cs2)]
-    (is (= '(sin (cos x)) (simplify (cs0 'x))))
-    (is (= '(sin (cos x)) (simplify (cs1 'x))))
-    (is (= '(sin (cos x)) (simplify (cs2 'x))))
-    (is (= '(* -1 (sin x) (cos (cos x))) (simplify ((D cs0) 'x))))
-    (is (= '(* -1 (sin x) (cos (cos x))) (simplify ((D cs1) 'x))))
-    (is (= '(* -1 (sin x) (cos (cos x))) (simplify ((D cs2) 'x))))
-    (is (= '(* -1 (sin x) (cos (cos x))) (simplify (y0 'x))))
-    (is (= '(* -1 (sin x) (cos (cos x))) (simplify (y1 'x))))
-    (is (= '(* -1 (sin x) (cos (cos x))) (simplify (y2 'x)))))
+    (is (= (sin (cos 'x)) (simplify (cs0 'x))))
+    (is (= (sin (cos 'x)) (simplify (cs1 'x))))
+    (is (= (sin (cos 'x)) (simplify (cs2 'x))))
+    (is (= (* -1 (sin 'x) (cos (cos 'x))) (simplify ((D cs0) 'x))))
+    (is (= (* -1 (sin 'x) (cos (cos 'x))) (simplify ((D cs1) 'x))))
+    (is (= (* -1 (sin 'x) (cos (cos 'x))) (simplify ((D cs2) 'x))))
+    (is (= (* -1 (sin 'x) (cos (cos 'x))) (simplify (y0 'x))))
+    (is (= (* -1 (sin 'x) (cos (cos 'x))) (simplify (y1 'x))))
+    (is (= (* -1 (sin 'x) (cos (cos 'x))) (simplify (y2 'x)))))
   (let [unity (reduce + (map square [sin cos]))
         dU (D unity)]
     (is (= 1 (simplify (unity 'x))))
     (is (= 0 (simplify (dU 'x)))))
   (let [odear (fn [z] ((D (compose sin cos)) z))]
-    (is (= '(* -1 (sin x) (cos (cos x))) (simplify (odear 'x))))))
+    (is (= (* -1 (sin 'x) (cos (cos 'x))) (simplify (odear 'x))))))
 
 (deftest exponentiation-and-composition
   (let [ff (fn [x y z] (+ (* x x y) (* y y z)(* z z x)))
         ]
-    (is (= '(down
-             (down (* 2 y) (* 2 x) (* 2 z))
-             (down (* 2 x) (* 2 z) (* 2 y))
-             (down (* 2 z) (* 2 y) (* 2 x)))
+    (is (= (down
+             (down (* 2 'y) (* 2 'x) (* 2 'z))
+             (down (* 2 'x) (* 2 'z) (* 2 'y))
+             (down (* 2 'z) (* 2 'y) (* 2 'x)))
            (simplify (((expt D 2) ff) 'x 'y 'z))))
     (is (= (((* D D) ff) 'x 'y 'z) (((expt D 2) ff) 'x 'y 'z)))
     (is (= (((compose D D) ff) 'x 'y 'z) (((expt D 2) ff) 'x 'y 'z)))
@@ -267,38 +268,38 @@
   (testing "issue #9 regression"
     (let [g (fn [z] (* z z z z))
           f4 (fn [x] (+ (* x x x) (* x x x)))]
-      (is (= '(expt t 4) (simplify (g 't))))
-      (is (= '(* 4 (expt t 3)) (simplify ((D g) 't))))
-      (is (= '(* 12 (expt t 2)) (simplify ((D (D g)) 't))))
-      (is (= '(* 24 t) (simplify ((D (D (D g))) 't))))
-      (is (= '(* 24 z) (simplify (((expt D 3) g) 'z))))
-      (is (= '(* 2 (expt s 3)) (simplify (f4 's))))
-      (is (= '(* 6 (expt s 2)) (simplify ((D f4) 's))))
-      (is (= '(* 12 s) (simplify ((D (D f4)) 's))))
+      (is (= (expt 't 4) (simplify (g 't))))
+      (is (= (* 4 (expt 't 3)) (simplify ((D g) 't))))
+      (is (= (* 12 (expt 't 2)) (simplify ((D (D g)) 't))))
+      (is (= (* 24 't) (simplify ((D (D (D g))) 't))))
+      (is (= (* 24 'z) (simplify (((expt D 3) g) 'z))))
+      (is (= (* 2 (expt 's 3)) (simplify (f4 's))))
+      (is (= (* 6 (expt 's 2)) (simplify ((D f4) 's))))
+      (is (= (* 12 's) (simplify ((D (D f4)) 's))))
       (is (= 12 (simplify ((D (D (D f4))) 's))))
       (is (= 12 (simplify (((* D D D) f4) 's))))
       (is (= 12 (simplify (((compose D D D) f4) 's))))
       (is (= 12 (simplify (((expt D 3) f4) 's)))))
     (let [fff (fn [x y z] (+ (* x x y)(* y y y z)(* z z z z x)))]
-      (is (= '(+ (* x (expt z 4)) (* (expt y 3) z) (* (expt x 2) y))
+      (is (= (+ (* 'x (expt 'z 4)) (* (expt 'y 3) 'z) (* (expt 'x 2) 'y))
              (simplify (((expt D 0) fff) 'x 'y 'z))))
-      (is (= '(down
-               (+ (expt z 4) (* 2 x y))
-               (+ (* 3 (expt y 2) z) (expt x 2))
-               (+ (* 4 x (expt z 3)) (expt y 3)))
+      (is (= (down
+              (+ (expt 'z 4) (* 2 'x 'y))
+              (+ (* 3 (expt 'y 2) 'z) (expt 'x 2))
+              (+ (* 4 'x (expt 'z 3)) (expt 'y 3)))
              (simplify (((expt D 1) fff) 'x 'y 'z))))
-      (is (= '(down
-               (down (* 2 y) (* 2 x) (* 4 (expt z 3)))
-               (down (* 2 x) (* 6 y z) (* 3 (expt y 2)))
-               (down (* 4 (expt z 3)) (* 3 (expt y 2)) (* 12 x (expt z 2))))
+      (is (= (down
+              (down (* 2 'y) (* 2 'x) (* 4 (expt 'z 3)))
+              (down (* 2 'x) (* 6 'y 'z) (* 3 (expt 'y 2)))
+              (down (* 4 (expt 'z 3)) (* 3 (expt 'y 2)) (* 12 'x (expt 'z 2))))
              (simplify (((expt D 2) fff) 'x 'y 'z))))
-      (is (= '(down
-               (down (down 0 2 0) (down 2 0 0) (down 0 0 (* 12 (expt z 2))))
-               (down (down 2 0 0) (down 0 (* 6 z) (* 6 y)) (down 0 (* 6 y) 0))
+      (is (= (down
+               (down (down 0 2 0) (down 2 0 0) (down 0 0 (* 12 (expt 'z 2))))
+               (down (down 2 0 0) (down 0 (* 6 'z) (* 6 'y)) (down 0 (* 6 'y) 0))
                (down
-                (down 0 0 (* 12 (expt z 2)))
-                (down 0 (* 6 y) 0)
-                (down (* 12 (expt z 2)) 0 (* 24 x z))))
+                (down 0 0 (* 12 (expt 'z 2)))
+                (down 0 (* 6 'y) 0)
+                (down (* 12 (expt 'z 2)) 0 (* 24 'x 'z))))
              (simplify (((expt D 3) fff) 'x 'y 'z)))))
     (is (= 0 ((D (fn [x] 0)) 'x)))
     (is (= 0 ((D (fn [& xs] 0)) 'x)))))
@@ -306,13 +307,13 @@
 (deftest literal-functions
   (with-literal-functions [f [g [0 0] 0]]
     (testing "R -> R"
-      (is (= '((D f) x) (simplify ((D f) 'x))))
-      (is (= '((D f) (+ x y)) (simplify ((D f) (+ 'x 'y))))))
+      (is (= '((D f) x) (simplify-and-freeze ((D f) 'x))))
+      (is (= '((D f) (+ x y)) (simplify-and-freeze ((D f) (+ 'x 'y))))))
     (testing "R^2 -> R"
-      (is (= '(((∂ 0) g) x y) (simplify (((∂ 0) g) 'x 'y))))
-      (is (= '(((∂ 1) g) x y) (simplify (((∂ 1) g) 'x 'y))))
+      (is (= '(((∂ 0) g) x y) (simplify-and-freeze (((∂ 0) g) 'x 'y))))
+      (is (= '(((∂ 1) g) x y) (simplify-and-freeze (((∂ 1) g) 'x 'y))))
       (is (= '(down (((∂ 0) g) x y) (((∂ 1) g) x y))
-             (simplify ((D g) 'x 'y)))))
+             (simplify-and-freeze ((D g) 'x 'y)))))
     (testing "zero-like"
       (is (= 0 ((zero-like f) 'x)))
       (is (= 0 ((D (zero-like f)) 'x))))))
@@ -321,39 +322,39 @@
   (let [i (complex 0 1)
         f (fn [z] (* i (sin (* i z))))]
     (is (= '(* -1 (cosh z))
-           (simplify ((D f) 'z))))))
+           (simplify-and-freeze ((D f) 'z))))))
 
 (deftest fun-with-operators
   (let [f #(expt % 3)]
-    (is (= '(+ (* (expt t 3) (cos t)) (* 3 (expt t 2) (sin t)))
+    (is (= (+ (* (expt 't 3) (cos 't)) (* 3 (expt 't 2) (sin 't)))
            (simplify (((* D sin) f) 't))))
-    (is (= '(* 3 (expt t 2) (sin t) )
+    (is (= (* 3 (expt 't 2) (sin 't))
            (simplify (((* sin D) f) 't))))))
 
 (deftest vector-calculus
   (let [f (up identity sin cos)
         divergence #(fn [t] (reduce + ((D %) t)))
         laplacian #(* (D %) ((transpose D) %))]
-    (is (= '(up 1 (cos t) (* -1 (sin t))) (simplify ((D f) 't))))
-    (is (= '(down 1 (cos t) (* -1 (sin t))) (simplify (((transpose D) f) 't))))
+    (is (= (up 1 (cos 't) (* -1 (sin 't))) (simplify ((D f) 't))))
+    (is (= (down 1 (cos 't) (* -1 (sin 't))) (simplify (((transpose D) f) 't))))
     (is (= 2 (simplify (* ((D f) 't) (((transpose D) f) 't)))))
     (is (= 2 (simplify ((laplacian (up identity sin cos)) 't))))
-    (is (= '(+ (cos t) (* -1 (sin t)) 1) (simplify ((divergence f) 't))))))
+    (is (= (+ (cos 't) (* -1 (sin 't)) 1) (simplify ((divergence f) 't))))))
 
 (deftest exp-and-log
-  (is (= '(/ 1 x) (simplify ((D log) 'x)))))
+  (is (= (/ 1 'x) (simplify ((D log) 'x)))))
 
 (deftest more-trig
   (let [cot (/ cos sin)
         sec (/ cos)
         csc (/ sin)]
-    (is (= '(/ (cos x) (sin x)) (simplify (cot 'x))))
-    (is (= '(/ -1 (expt (sin x) 2)) (simplify ((D cot) 'x))))
-    (is (= '(/ -1 (expt (sin x) 2)) (simplify ((D (/ tan)) 'x))))
-    (is (= '(/ (* -1 (cos x)) (expt (sin x) 2)) (simplify ((D csc) 'x))))
-    (is (= '(/ (sin x) (expt (cos x) 2)) (simplify ((D sec) 'x))))
-    (is (= '(/ 1 (+ (expt x 2) 1)) (simplify ((D atan) 'x))))
-    (is (= '(down (/ x (+ (expt x 2) (expt y 2))) (/ (* -1 y) (+ (expt x 2) (expt y 2))))
+    (is (= (/ (cos 'x) (sin 'x)) (simplify (cot 'x))))
+    (is (= (/ -1 (expt (sin 'x) 2)) (simplify ((D cot) 'x))))
+    (is (= (/ -1 (expt (sin 'x) 2)) (simplify ((D (/ tan)) 'x))))
+    (is (= (/ (* -1 (cos 'x)) (expt (sin 'x) 2)) (simplify ((D csc) 'x))))
+    (is (= (/ (sin 'x) (expt (cos 'x) 2)) (simplify ((D sec) 'x))))
+    (is (= (/ 1 (+ (expt 'x 2) 1)) (simplify ((D atan) 'x))))
+    (is (= (down (/ 'x (+ (expt 'x 2) (expt 'y 2))) (/ (* -1 'y) (+ (expt 'x 2) (expt 'y 2))))
            (simplify ((D atan) 'y 'x))))))
 
 (deftest alexgian-examples
@@ -361,54 +362,54 @@
     (let [g (literal-function 'g [0 0] 0)
           h (literal-function 'h [0 0] 0)]
       (is (= '(+ (((∂ 0) g) x y) (((∂ 0) h) x y))
-             (simplify (((∂ 0) (+ g h)) 'x 'y))))
+             (simplify-and-freeze (((∂ 0) (+ g h)) 'x 'y))))
       (is (= '(+ (* (((∂ 0) g) x y) (h x y)) (* (((∂ 0) h) x y) (g x y)))
-             (simplify (((∂ 0) (* g h)) 'x 'y))))
+             (simplify-and-freeze (((∂ 0) (* g h)) 'x 'y))))
       (is (= '(+ (* (((∂ 0) g) x y) (h x y) (expt (g x y) (+ (h x y) -1)))
                  (* (((∂ 0) h) x y) (log (g x y)) (expt (g x y) (h x y))))
-             (simplify (((∂ 0) (expt g h)) 'x 'y))))))
+             (simplify-and-freeze (((∂ 0) (expt g h)) 'x 'y))))))
   (testing "operators"
-    (is (= '(down 1 1 1 1 1 1 1 1 1 1)
+    (is (= (down 1 1 1 1 1 1 1 1 1 1)
            (simplify ((D +) 'a 'b 'c 'd 'e 'f 'g 'h 'i 'j))))
-    (is (= '(down
-             (* b c d e f g h i j)
-             (* a c d e f g h i j)
-             (* a b d e f g h i j)
-             (* a b c e f g h i j)
-             (* a b c d f g h i j)
-             (* a b c d e g h i j)
-             (* a b c d e f h i j)
-             (* a b c d e f g i j)
-             (* a b c d e f g h j)
-             (* a b c d e f g h i))
+    (is (= (down
+             (* 'b 'c 'd 'e 'f 'g 'h 'i 'j)
+             (* 'a 'c 'd 'e 'f 'g 'h 'i 'j)
+             (* 'a 'b 'd 'e 'f 'g 'h 'i 'j)
+             (* 'a 'b 'c 'e 'f 'g 'h 'i 'j)
+             (* 'a 'b 'c 'd 'f 'g 'h 'i 'j)
+             (* 'a 'b 'c 'd 'e 'g 'h 'i 'j)
+             (* 'a 'b 'c 'd 'e 'f 'h 'i 'j)
+             (* 'a 'b 'c 'd 'e 'f 'g 'i 'j)
+             (* 'a 'b 'c 'd 'e 'f 'g 'h 'j)
+             (* 'a 'b 'c 'd 'e 'f 'g 'h 'i))
            (simplify ((D *) 'a 'b 'c 'd 'e 'f 'g 'h 'i 'j))))
     (is (= '(down (* y (expt x (+ y -1)))
                   (* (log x) (expt x y)))
-           (simplify ((D expt) 'x 'y))))
+           (simplify-and-freeze ((D expt) 'x 'y))))
     (is (= '(* y (expt x (+ y -1)))
-           (simplify (((∂ 0) expt) 'x 'y))))
+           (simplify-and-freeze (((∂ 0) expt) 'x 'y))))
     (is (= 2
-           (simplify (((∂ 0) expt) 1 2))))
+           (simplify-and-freeze (((∂ 0) expt) 1 2))))
     (let [pow (fn [x y] (apply * (repeat y x)))]
       (is (= 8 (pow 2 3)))
-      (is (= '(expt x 8) (simplify (pow 'x 8))))))
+      (is (= '(expt x 8) (simplify-and-freeze (pow 'x 8))))))
   (testing "formatting"
     (let [f2 (fn [x y] (* (sin x) (log y)))
           f3 (fn [x y] (* (tan x) (log y)))
           f4 (fn [x y] (* (tan x) (sin y)))
           f5 (fn [x y] (/ (tan x) (sin y)))]
-      (is (= '(down (* (cos x) (log y))
-                    (/ (sin x) y))
+      (is (= (down (* (cos 'x) (log 'y))
+                   (/ (sin 'x) 'y))
              (simplify ((D f2) 'x 'y))))
-      (is (= '(down (/ (log y) (expt (cos x) 2))
-                    (/ (tan x) y))
+      (is (= (down (/ (log 'y) (expt (cos 'x) 2))
+                   (/ (tan 'x) 'y))
              (simplify ((D f3) 'x 'y))))
-      (is (= '(down (/ (sin y) (expt (cos x) 2))
-                    (/ (* (sin x) (cos y)) (cos x)))
+      (is (= (down (/ (sin 'y) (expt (cos 'x) 2))
+                   (/ (* (sin 'x) (cos 'y)) (cos 'x)))
              (simplify ((D f4) 'x 'y))))
-      (is (= '(down
-                (/ 1 (* (expt (cos x) 2) (sin y)))
-                (/ (* -1 (sin x) (cos y)) (* (cos x) (expt (sin y) 2))))
+      (is (= (down
+              (/ 1 (* (expt (cos 'x) 2) (sin 'y)))
+              (/ (* -1 (sin 'x) (cos 'y)) (* (cos 'x) (expt (sin 'y) 2))))
              (simplify ((D f5) 'x 'y))))))
   (testing "arity"
     (let [f100dd (fn [x ct acc]
@@ -429,10 +430,10 @@
 
 (deftest deep-partials
   (let [f (fn [x y] (+ (square x) (square (square y))))]
-    (is (= '((* 2 x)
-             (* 2 y)
-             (+ (* 4 (expt w 3)) (* 4 w (expt z 2)))
-             (+ (* 4 (expt w 2) z) (* 4 (expt z 3))))
+    (is (= [(* 2 'x)
+            (* 2 'y)
+            (+ (* 4 (expt 'w 3)) (* 4 'w (expt 'z 2)))
+            (+ (* 4 (expt 'w 2) 'z) (* 4 (expt 'z 3)))]
            (map simplify
                 (for [i (range 2)
                       j (range 2)]
@@ -443,25 +444,27 @@
   (let [f (literal-function 'f [0 0] 0)
         g (literal-function 'g (up 0 0) 0)
         dX (up 'dx 'dy)]
-    (is (= '(f x y) (simplify (f 'x 'y))))
-    (is (= '(g (up (* 3 x) (* 3 y))) (simplify (g (* 3 (up 'x 'y))))))
+    (is (= '(f x y) (simplify-and-freeze (f 'x 'y))))
+    (is (= '(g (up (* 3 x) (* 3 y))) (simplify-and-freeze (g (* 3 (up 'x 'y))))))
     (is (= '(down (down (((∂ 0) ((∂ 0) f)) x y)
                         (((∂ 1) ((∂ 0) f)) x y))
                   (down (((∂ 1) ((∂ 0) f)) x y)
                         (((∂ 1) ((∂ 1) f)) x y)))
-           (simplify (((expt D 2) f) 'x 'y))))
+           (simplify-and-freeze (((expt D 2) f) 'x 'y))))
     (is (= '(down (((∂ 0) f) x y) (((∂ 1) f) x y))
-           (simplify ((D f) 'x 'y))))
+           (simplify-and-freeze ((D f) 'x 'y))))
     (is (= '(+ (* dx (((∂ 0) f) x y)) (* dy (((∂ 1) f) x y)))
-           (simplify (* ((D f) 'x 'y) dX))))
+           (simplify-and-freeze (* ((D f) 'x 'y) dX))))
     (is (= '(+ (* (expt dx 2) (((∂ 0) ((∂ 0) f)) x y))
                (* 2 dx dy (((∂ 1) ((∂ 0) f)) x y))
                (* (expt dy 2) (((∂ 1) ((∂ 1) f)) x y)))
-           (simplify (* dX (((expt D 2) f) 'x 'y) dX))))
+           (simplify-and-freeze (* dX (((expt D 2) f) 'x 'y) dX))))
     (is (= "1/2 dx² ∂₀(∂₀f)(x, y) + dx dy ∂₁(∂₀f)(x, y) + 1/2 dy² ∂₁(∂₁f)(x, y) + dx ∂₀f(x, y) + dy ∂₁f(x, y) + f(x, y)"
-           (->infix (simplify (+ (f 'x 'y)
-                                 (* ((D f) 'x 'y) dX)
-                                 (* 1/2 (((expt D 2) f) 'x 'y) dX dX))))))))
+           (->infix
+            (simplify-and-freeze
+             (+ (f 'x 'y)
+                (* ((D f) 'x 'y) dX)
+                (* 1/2 (((expt D 2) f) 'x 'y) dX dX))))))))
 
 (deftest taylor
   (is (= '(+ (* 1/6 (expt dx 3) (((∂ 0) ((∂ 0) ((∂ 0) f))) (up x y)))
@@ -476,7 +479,7 @@
                (* dx (((∂ 0) f) (up x y)))
                (* dy (((∂ 1) f) (up x y)))
                (f (up x y)))
-           (simplify
+           (simplify-and-freeze
             (reduce +
                     (take 4 (taylor-series-terms
                                     (literal-function 'f (up 0 0) 0)
@@ -485,4 +488,4 @@
   (testing "eq. 5.291"
     (let [V (fn [[xi eta]] (sqrt (+ (square (+ xi 'R_0)) (square eta))))]
       (is (= '[R_0 xi (/ (expt eta 2) (* 2 R_0))]
-             (take 3 (simplify (taylor-series-terms V (up 0 0) (up 'xi 'eta)))))))))
+             (take 3 (simplify-and-freeze (taylor-series-terms V (up 0 0) (up 'xi 'eta)))))))))

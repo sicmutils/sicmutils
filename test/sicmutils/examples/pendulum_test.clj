@@ -28,4 +28,5 @@
 
 (deftest simple-pendulum
   (is (= '(+ (* 1/2 (expt l 2) m (expt thetadot 2)) (* g l m (cos theta)))
-         (simplify ((pendulum/L 'm 'l 'g (fn [_t] (up 0 0))) (up 't 'theta 'thetadot))))))
+         (simplify-and-freeze
+          ((pendulum/L 'm 'l 'g (fn [_t] (up 0 0))) (up 't 'theta 'thetadot))))))

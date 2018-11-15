@@ -31,19 +31,19 @@
                (* 1/2 A (expt thetadot 2))
                (* 1/2 C (expt psidot 2))
                (* -1 gMR (cos theta)))
-           (simplify ((L-axisymmetric 'A 'C 'gMR) state))))
+           (simplify-and-freeze ((L-axisymmetric 'A 'C 'gMR) state))))
     (is (= '(up 1
                 (up thetadot phidot psidot)
                 (up (/ (+ (* A (expt phidot 2) (sin theta) (cos theta)) (* -1 C (expt phidot 2) (sin theta) (cos theta)) (* -1 C phidot psidot (sin theta)) (* gMR (sin theta))) A)
                     (/ (+ (* -2 A phidot thetadot (cos theta)) (* C phidot thetadot (cos theta)) (* C psidot thetadot)) (* A (sin theta)))
                     (/ (+ (* A phidot thetadot (expt (cos theta) 2)) (* -1 C phidot thetadot (expt (cos theta) 2)) (* -1 C psidot thetadot (cos theta)) (* A phidot thetadot)) (* A (sin theta)))))
-           (simplify ((Lagrangian->state-derivative (L-axisymmetric 'A 'C 'gMR)) state))))
+           (simplify-and-freeze ((Lagrangian->state-derivative (L-axisymmetric 'A 'C 'gMR)) state))))
     (is (= '(up 1
                 (up thetadot phidot psidot)
                 (up (/ (+ (* -1 A phidot psidot (sin theta)) (* gMR (sin theta))) A)
                     (/ (+ (* -1 phidot thetadot (cos theta)) (* psidot thetadot)) (sin theta))
                     (/ (+ (* -1 psidot thetadot (cos theta)) (* phidot thetadot)) (sin theta))))
-           (simplify ((Lagrangian->state-derivative (L 'A 'A 'A 'gMR)) state))))
+           (simplify-and-freeze ((Lagrangian->state-derivative (L 'A 'A 'A 'gMR)) state))))
     ;; to be checked. Where does the dividing through happen?
     (is (= '(/ (+ (* 2 A C gMR (expt (sin theta) 2) (cos theta))
                   (* A (expt p_psi 2) (expt (sin theta) 2))
@@ -52,7 +52,7 @@
                   (* -2 C p_phi p_psi (cos theta))
                   (* C (expt p_phi 2)))
                (* 2 A C (expt (sin theta) 2)))
-           (simplify ((Lagrangian->Hamiltonian (L-axisymmetric 'A 'C 'gMR))
+           (simplify-and-freeze ((Lagrangian->Hamiltonian (L-axisymmetric 'A 'C 'gMR))
                       (->H-state 't
                                  '[theta phi psi]
                                  '[p_theta p_phi p_psi])))))
@@ -64,7 +64,7 @@
                 (down (/ (+ (* -1 A gMR (expt (cos (theta t)) 4)) (* A (expt (sin (theta t)) 3) ((D p_theta) t)) (* 2 A gMR (expt (cos (theta t)) 2)) (* (expt (cos (theta t)) 2) (p_phi t) (p_psi t)) (* -1 (cos (theta t)) (expt (p_phi t) 2)) (* -1 (cos (theta t)) (expt (p_psi t) 2)) (* -1 A gMR) (* (p_phi t) (p_psi t))) (* A (expt (sin (theta t)) 3)))
                       ((D p_phi) t)
                       ((D p_psi) t)))
-           (simplify
+           (simplify-and-freeze
             (((Hamilton-equations
                (Lagrangian->Hamiltonian
                 (L-axisymmetric 'A 'C 'gMR)))

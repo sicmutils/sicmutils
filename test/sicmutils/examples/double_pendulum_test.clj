@@ -34,12 +34,12 @@
     (is (= '(+ (* -1 g l1 m1 (cos θ))
                (* -1 g l1 m2 (cos θ))
                (* -1 g l2 m2 (cos φ)))
-           (simplify (V state))))
+           (simplify-and-freeze (V state))))
     (is (= '(+ (* l1 l2 m2 θdot φdot (cos (+ θ (* -1 φ))))
                (* 1/2 (expt l1 2) m1 (expt θdot 2))
                (* 1/2 (expt l1 2) m2 (expt θdot 2))
                (* 1/2 (expt l2 2) m2 (expt φdot 2)))
-           (simplify (T state))))
+           (simplify-and-freeze (T state))))
     (is (= '(+ (* l1 l2 m2 θdot φdot (cos (+ θ (* -1 φ))))
                (* 1/2 (expt l1 2) m1 (expt θdot 2))
                (* 1/2 (expt l1 2) m2 (expt θdot 2))
@@ -47,7 +47,7 @@
                (* g l1 m1 (cos θ))
                (* g l1 m2 (cos θ))
                (* g l2 m2 (cos φ)))
-           (simplify (L state))))
+           (simplify-and-freeze (L state))))
     (with-literal-functions [θ φ]
       (is (= '(down (+ (* l1 l2 m2 (expt ((D φ) t) 2) (sin (+ (θ t) (* -1 (φ t)))))
                        (* l1 l2 m2 (((expt D 2) φ) t) (cos (+ (θ t) (* -1 (φ t)))))
@@ -59,10 +59,10 @@
                        (* l1 l2 m2 (((expt D 2) θ) t) (cos (+ (θ t) (* -1 (φ t)))))
                        (* g l2 m2 (sin (φ t)))
                        (* (expt l2 2) m2 (((expt D 2) φ) t))))
-             (simplify (((Lagrange-equations
-                          (double/L 'm1 'm2 'l1 'l2 'g))
-                         (up θ φ))
-                        't)))))
+             (simplify-and-freeze (((Lagrange-equations
+                                     (double/L 'm1 'm2 'l1 'l2 'g))
+                                    (up θ φ))
+                                   't)))))
     (let [o (atom [])
           observe (fn [t q] (swap! o conj [t q]))]
       (do
@@ -70,7 +70,7 @@
         (is (= 4 (count @o)))))))
 
 (deftest infix-forms
-  (let [eq (simplify
+  (let [eq (simplify-and-freeze
              ((double/state-derivative 'm1 'm2 'l1 'l2 'g)
                (up 't (up 'theta 'phi) (up 'thetadot 'phidot))))]
     (is (= (str "function(t, theta, phi, thetadot, phidot) {\n"
@@ -86,7 +86,7 @@
                 "  return [1, [thetadot, phidot], [(- l1 * m2 * _0008 * _000f * _000e - l2 * m2 * _0002 * _000f + g * m2 * _000e * _0003 - g * m1 * _0007 - g * m2 * _0007) / (l1 * m2 * _0011 + l1 * m1), (l2 * m2 * _0002 * _000f * _000e + l1 * m1 * _0008 * _000f + l1 * m2 * _0008 * _000f + g * m1 * _0007 * _000e + g * m2 * _0007 * _000e - g * m1 * _0003 - g * m2 * _0003) / (l2 * m2 * _0011 + l2 * m1)]];\n"
                 "}")
            (->JavaScript eq :parameter-order '[t theta phi thetadot phidot]))))
-  (let [eq (simplify
+  (let [eq (simplify-and-freeze
              ((double/state-derivative 1 1 1 1 'g)
                (up 't (up 'theta 'phi) (up 'thetadot 'phidot))))]
     (is (= (str "function(g, phi, phidot, theta, thetadot) {\n"
@@ -103,7 +103,7 @@
                 "  return [1, [thetadot, phidot], [(_0008 * _0012 * _0013 - g * _0013 * _0003 + _0002 * _0012 + 2 * g * _0006) / _0016, (- _0002 * _0012 * _0013 -2 * g * _0006 * _0013 -2 * _0008 * _0012 + 2 * g * _0003) / _0016]];\n}"
                 )
            (->JavaScript eq))))
-  (let [eq (simplify
+  (let [eq (simplify-and-freeze
             ((Hamiltonian->state-derivative
               (Lagrangian->Hamiltonian
                (double/L 'm_1 'm_2 'l_1 'l_2 'g)))

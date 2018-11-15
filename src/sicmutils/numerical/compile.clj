@@ -131,6 +131,7 @@
         compiled-function (->> generic-initial-state
                                g
                                g/simplify
+                               g/freeze
                                common-subexpression-elimination
                                (construct-state-function-exp
                                  generic-parameters
@@ -160,6 +161,7 @@
         compiled-function (->> var
                                f
                                g/simplify
+                               g/freeze
                                common-subexpression-elimination
                                (construct-univariate-function-exp var)
                                eval)]

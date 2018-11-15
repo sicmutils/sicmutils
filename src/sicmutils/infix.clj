@@ -15,7 +15,12 @@
 ;
 ; You should have received a copy of the GNU General Public License
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+                                        ;
+
+;; XXX TODO: it may be wrong that we only transform simplified-and-frozen things
+;; to infix form. It may in fact be better to work on the live expression form.
+;; That would most particularly involve some subtlety with tuples, for instance,
+;; but would be more principled
 
 (ns sicmutils.infix
   (:require [clojure.zip :as z]

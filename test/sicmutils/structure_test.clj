@@ -265,9 +265,9 @@
           L1 (fn [[v1 v2]]
                (+ (* 1/2 'm1 (square v1))
                   (* 1/2 'm2 (square v2))))]
-      (is (= '(down
-               (down (down (down m1 0) (down 0 0)) (down (down 0 m1) (down 0 0)))
-               (down (down (down 0 0) (down m2 0)) (down (down 0 0) (down 0 m2))))
+      (is (= (down
+              (down (down (down 'm1 0) (down 0 0)) (down (down 0 'm1) (down 0 0)))
+              (down (down (down 0 0) (down 'm2 0)) (down (down 0 0) (down 0 'm2))))
              (simplify (((expt D 2) L1) vs)))))))
 
 (deftest some-tensors

@@ -29,18 +29,21 @@
 (deftest equations
   (with-literal-functions
     [θ y]
-    (is (= '(+ (* -1 a l m (expt ω 2) (cos (* t ω)) (sin (θ t))) (* g l m (sin (θ t))) (* (expt l 2) m (((expt D 2) θ) t)))
-           (simplify (((Lagrange-equations
-                         (driven/L 'm 'l 'g 'a 'ω))
-                        θ)
-                       't))))
+    (is (= '(+ (* -1 a l m (expt ω 2) (cos (* t ω)) (sin (θ t)))
+               (* g l m (sin (θ t)))
+               (* (expt l 2) m (((expt D 2) θ) t)))
+           (simplify-and-freeze
+            (((Lagrange-equations
+               (driven/L 'm 'l 'g 'a 'ω))
+              θ)
+             't))))
     (let [o (atom [])
           observe (fn [t q] (swap! o conj [t q]))]
       (driven/evolver {:t 3/60 :dt 1/60 :observe observe})
       (is (= 4 (count @o))))))
 
 (deftest as-javascript
-  (let [eq (simplify
+  (let [eq (simplify-and-freeze
             ((driven/state-derivative 'm 'l 'g 'a 'omega)
              (up 't 'theta 'thetadot)))]
     (is (= (str "function(t, theta, thetadot) {\n"
@@ -48,7 +51,7 @@
                 "  return [1, thetadot, (a * Math.pow(omega, 2) * _0001 * Math.cos(omega * t) - g * _0001) / l];\n"
                 "}")
            (->JavaScript eq :parameter-order '[t theta thetadot]))))
-  (let [eq (simplify
+  (let [eq (simplify-and-freeze
             ((Hamiltonian->state-derivative
               (Lagrangian->Hamiltonian
                (driven/L 'm 'l 'g 'a 'omega)))

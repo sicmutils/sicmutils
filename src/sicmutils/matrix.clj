@@ -347,7 +347,7 @@
 (defmethod g/mul [Matrix ::s/up] [m u] (M*u m u))
 (defmethod g/mul [::s/down Matrix] [d m] (d*M d m))
 (defmethod g/div [::s/up Matrix] [u M] (M*u (invert M) u))
-(defmethod g/simplify [Matrix] [m] (->> m (fmap g/simplify) g/freeze))
+(defmethod g/simplify [Matrix] [m] (fmap g/simplify m))
 (defmethod g/determinant [Matrix] [m] (determinant m))
 (defmethod g/zero-like [Matrix] [m] (fmap g/zero-like m))
 (defmethod g/one-like

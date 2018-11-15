@@ -308,7 +308,7 @@
 (defmethod g/negate [::structure] [a] (same a (mapv g/negate a)))
 (defmethod g/square [::structure] [a] (inner-product a a))
 (defmethod g/cube [::structure] [a] (mul a (mul a a)))
-(defmethod g/simplify [::structure] [a] (->> a (mapr g/simplify) g/freeze))
+(defmethod g/simplify [::structure] [a] (mapr g/simplify a))
 (defmethod g/transpose [::structure] [a] (opposite a (seq a)))
 (defmethod g/zero-like [::structure] [a] (mapr g/zero-like a))
 (defmethod g/exact? [::structure] [a] (every? g/exact? a))

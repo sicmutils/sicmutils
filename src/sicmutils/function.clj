@@ -203,7 +203,7 @@
 
 ;; TODO sinh cosh ...
 
-(defmethod g/simplify [Function] [a] (-> a :name g/simplify))
+(defmethod g/freeze [Function] [a] (:name a))
 (defmethod g/zero-like [::function] [a] (fn [& _] (g/zero-like (:range a))))
 (defmethod g/one-like [::function] [a] (fn [& _] (g/one-like (:range a))))
 

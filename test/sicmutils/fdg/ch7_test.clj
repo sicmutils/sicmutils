@@ -183,16 +183,16 @@
           R2-rect-point ((point R2-rect) (up 'x0 'y0))]
 
       (is (= '(((∂ 1) f-rect) (up x0 y0))
-             (simplify
+             (simplify-and-freeze
               (((((covariant-derivative R2-rect-Cartan) d:dx)
                  circular)
                 f)
                R2-rect-point))))
       (is (= '(((∂ 1) f-rect) (up x0 y0))
-             (simplify
+             (simplify-and-freeze
               ((d:dy f) R2-rect-point))))
       (is (= '(((∂ 1) f-rect) (up x0 y0))
-             (simplify
+             (simplify-and-freeze
               (((((covariant-derivative R2-polar-Cartan) d:dx) circular) f)
                R2-rect-point))))
       (let [V (literal-vector-field 'V-rect R2-rect)

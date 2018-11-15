@@ -92,9 +92,17 @@
 
 (def complex-trig
   ;; TODO: clearly more of these are needed.
+  ;; XXX: currently this doesn't work because of work we have done to make
+  ;; simplification incremental. In the new environment, the list (complex 0 1)
+  ;; is not seen by the simplifier; instead the genuine complex constant is seen.
+  ;; We might want to import a kind of ~ notation from clojure to indicate that
+  ;; we want the contents to be evaluated before pattern compilation.
   (rule-simplifier
    (ruleset "complex-trig"
     (cos (* :z (complex 0.0 1.0)))
+    => (cosh :z)
+
+    (cos (* (complex 0.0 1.0) :z))
     => (cosh :z)
 
     (sin (* :z (complex 0.0 1.0)))

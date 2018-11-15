@@ -36,50 +36,54 @@
                     (/ (+ (* m ((D y) t)) (* -1 (p_y t))) m))
                 (down (+ ((D p_x) t) (((∂ 0) V) (x t) (y t)))
                       (+ ((D p_y) t) (((∂ 1) V) (x t) (y t)))))
-           (simplify (((Hamilton-equations
-                         (H/H-rectangular
-                           'm
-                           (literal-function 'V (-> (X Real Real) Real))))
-                        (up (literal-function 'x) (literal-function 'y))
-                        (down (literal-function 'p_x) (literal-function 'p_y)))
-                       't)))))
+           (simplify-and-freeze
+            (((Hamilton-equations
+               (H/H-rectangular
+                'm
+                (literal-function 'V (-> (X Real Real) Real))))
+              (up (literal-function 'x) (literal-function 'y))
+              (down (literal-function 'p_x) (literal-function 'p_y)))
+             't)))))
   (testing "p.198"
     (is (= '(/ (+ (* 2 m (V x y)) (expt p_x 2) (expt p_y 2))
                (* 2 m))
-           (simplify ((Lagrangian->Hamiltonian
-                        (L/L-rectangular
-                          'm (literal-function 'V (-> (X Real Real) Real))))
-                       (up 't (up 'x 'y) (down 'p_x 'p_y))))))))
+           (simplify-and-freeze ((Lagrangian->Hamiltonian
+                                  (L/L-rectangular
+                                   'm (literal-function 'V (-> (X Real Real) Real))))
+                                 (up 't (up 'x 'y) (down 'p_x 'p_y))))))))
 
 (deftest section-3-2
   (testing "p.205"
     (let [F (literal-function 'F (-> (UP Real (UP Real Real) (DOWN Real Real)) Real))
           G (literal-function 'G (-> (UP Real (UP Real Real) (DOWN Real Real)) Real))
           H (literal-function 'H (-> (UP Real (UP Real Real) (DOWN Real Real)) Real))]
-      (is (zero? (simplify ((+ (Poisson-bracket F (Poisson-bracket G H))
-                               (Poisson-bracket G (Poisson-bracket H F))
-                               (Poisson-bracket H (Poisson-bracket F G)))
-                             (up 't (up 'x 'y) (down 'px 'py)))))))))
+      (is (zero? (simplify-and-freeze
+                  ((+ (Poisson-bracket F (Poisson-bracket G H))
+                      (Poisson-bracket G (Poisson-bracket H F))
+                      (Poisson-bracket H (Poisson-bracket F G)))
+                   (up 't (up 'x 'y) (down 'px 'py)))))))))
 
 (deftest section-3-4
   (testing "p.212"
     (is (= '(/ (+ (* 2 m (expt r 2) (V r)) (* (expt p_r 2) (expt r 2)) (expt p_phi 2)) (* 2 m (expt r 2)))
-           (simplify ((Lagrangian->Hamiltonian
-                        (L/L-central-polar 'm (literal-function 'V)))
-                       (up 't (up 'r 'phi) (down 'p_r 'p_phi))))))
+           (simplify-and-freeze
+            ((Lagrangian->Hamiltonian
+              (L/L-central-polar 'm (literal-function 'V)))
+             (up 't (up 'r 'phi) (down 'p_r 'p_phi))))))
     (is (= '(up 0
                 (up (/ (+ (* m ((D r) t)) (* -1 (p_r t))) m)
                     (/ (+ (* m (expt (r t) 2) ((D phi) t)) (* -1 (p_phi t))) (* m (expt (r t) 2))))
                 (down (/ (+ (* m (expt (r t) 3) ((D p_r) t)) (* m (expt (r t) 3) ((D V) (r t))) (* -1 (expt (p_phi t) 2))) (* m (expt (r t) 3)))
                       ((D p_phi) t)))
-           (simplify (((Hamilton-equations
-                         (Lagrangian->Hamiltonian
-                           (L/L-central-polar 'm (literal-function 'V))))
-                        (up (literal-function 'r)
-                            (literal-function 'phi))
-                        (down (literal-function 'p_r)
-                              (literal-function 'p_phi)))
-                       't)))))
+           (simplify-and-freeze
+            (((Hamilton-equations
+               (Lagrangian->Hamiltonian
+                (L/L-central-polar 'm (literal-function 'V))))
+              (up (literal-function 'r)
+                  (literal-function 'phi))
+              (down (literal-function 'p_r)
+                    (literal-function 'p_phi)))
+             't)))))
   (testing "p.213"
     (is (= '(/ (+ (* 2 A C gMR (expt (sin theta) 2) (cos theta))
                   (* A (expt p_psi 2) (expt (sin theta) 2))
@@ -88,16 +92,17 @@
                   (* -2 C p_phi p_psi (cos theta))
                   (* C (expt p_phi 2)))
                (* 2 A C (expt (sin theta) 2)))
-           (simplify ((Lagrangian->Hamiltonian (top/L-axisymmetric 'A 'C 'gMR))
-                       (up 't
-                           (up 'theta 'phi 'psi)
-                           (down 'p_theta 'p_phi 'p_psi)))))))
+           (simplify-and-freeze
+            ((Lagrangian->Hamiltonian (top/L-axisymmetric 'A 'C 'gMR))
+             (up 't
+                 (up 'theta 'phi 'psi)
+                 (down 'p_theta 'p_phi 'p_psi)))))))
   (testing "p.214"
     (let [top-state (up 't
                         (up 'theta 'phi 'psi)
                         (down 'p_theta 'p_phi 'p_psi))
           H (Lagrangian->Hamiltonian
-              (top/L-axisymmetric 'A 'C 'gMR))
+             (top/L-axisymmetric 'A 'C 'gMR))
           sysder (Hamiltonian->state-derivative H)]
       (is (= '(/ (+ (* 2 A C gMR (expt (sin theta) 2) (cos theta))
                     (* A (expt p_psi 2) (expt (sin theta) 2))
@@ -106,7 +111,7 @@
                     (* -2 C p_phi p_psi (cos theta))
                     (* C (expt p_phi 2)))
                  (* 2 A C (expt (sin theta) 2)))
-             (simplify (H top-state))))
+             (simplify-and-freeze (H top-state))))
       (is (= '(up 1
                   (up (/ p_theta A)
                       (/ (+ (* -1 p_psi (cos theta)) p_phi) (* A (expt (sin theta) 2)))
@@ -122,7 +127,7 @@
                            (* A (expt (sin theta) 3)))
                         0
                         0))
-             (simplify (sysder top-state))))
+             (simplify-and-freeze (sysder top-state))))
       (is (= (str "function(A, C, gMR, p_phi, p_psi, p_theta, theta) {\n"
                   "  var _0001 = Math.sin(theta);\n"
                   "  var _0004 = Math.cos(theta);\n"
@@ -130,7 +135,7 @@
                   "  var _0006 = Math.pow(_0001, 2);\n"
                   "  return [1, [p_theta / A, (- p_psi * _0004 + p_phi) / (A * _0006), (A * p_psi * _0006 + C * p_psi * _0005 - C * p_phi * _0004) / (A * C * _0006)], [(A * gMR * Math.pow(_0004, 4) -2 * A * gMR * _0005 - p_phi * p_psi * _0005 + Math.pow(p_phi, 2) * _0004 + Math.pow(p_psi, 2) * _0004 + A * gMR - p_phi * p_psi) / (A * Math.pow(_0001, 3)), 0, 0]];\n"
                   "}")
-             (-> top-state sysder simplify ->JavaScript))))))
+             (-> top-state sysder simplify-and-freeze ->JavaScript))))))
 
 (deftest section-3-5
   (testing "p.221"
@@ -143,8 +148,8 @@
                     (* -2 g (expt l 3) (expt m 2) (cos theta))
                     (expt p_theta 2))
                  (* 2 (expt l 2) m))
-             (simplify H))))
-    (let [sysder (simplify
+             (simplify-and-freeze H))))
+    (let [sysder (simplify-and-freeze
                    ((Hamiltonian->state-derivative
                       (Lagrangian->Hamiltonian
                         (driven/L 'm 'l 'g 'a 'omega)))
