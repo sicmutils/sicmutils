@@ -653,7 +653,14 @@
 (def race-gcd (prepare-gcd "Race" (gcd-race {:euclid (partial inner-gcd 0)
                                              :sparse gcd-spmod-start})))
 
-(def gcd gcd-euclid)
+(def ^:dynamic *poly-gcd-report-time* false)
+
+(defn gcd [u v]
+  (let [sw (Stopwatch/createStarted)
+        g (gcd-euclid u v)]
+    (when *poly-gcd-report-time*
+      (log/info (format "gcd took %s" sw)))
+    g))
 
 (def gcd-seq
   "Compute the GCD of a sequence of polynomials (we take care to

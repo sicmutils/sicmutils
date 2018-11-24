@@ -87,7 +87,7 @@
 
 ;; multiplication of operators is treated like composition.
 (defn ^:private o*o
-  "Multiplication of operators is defined as their composition"
+  "Multiplication of operators is defined as their composition."
   [o p]
   (->Operator (with-meta (comp o p) {:arity (:arity p)})
               (:arity p)
@@ -127,13 +127,11 @@
 ;; Do we need to promote the second arg type (Number)
 ;; to ::x/numerical-expression?? -- check this ***AG***
 (defmethod g/expt
-  [::operator Number]
+  [::operator :sicmutils.numsymb/native-integral-type]
   [o n]
-  {:pre [(integer? n)
-         (not (neg? n))]}
-  (loop [e identity-operator
-         n n]
-    (if (= n 0) e (recur (o*o e o) (dec n)))))
+  {:pre [(not (neg? n))]}
+  (if (zero? n) identity-operator
+      (reduce o*o (repeat n o))))
 
 ;; e to an operator g means forming the power series
 ;; I + g + 1/2 g^2 + ... + 1/n! g^n
@@ -153,25 +151,12 @@
                 (:context g))))
 
 (defmethod g/add [::operator ::operator] [o p] (o+o o p))
-;; In additive operation the value 1 is considered as the identity operator
-(defmethod g/add
-  [::operator ::co-operator]
-  [o n]
-  (o+o o (number->operator n)))
-(defmethod g/add
-  [::co-operator ::operator]
-  [n o]
-  (o+o (number->operator n) o))
+(defmethod g/add [::operator ::co-operator] [o n] (o+o o (number->operator n)))
+(defmethod g/add [::co-operator ::operator] [n o] (o+o (number->operator n) o))
 
 (defmethod g/sub [::operator ::operator] [o p] (o-o o p))
-(defmethod g/sub
-  [::operator ::co-operator]
-  [o n]
-  (o-o o (number->operator n)))
-(defmethod g/sub
-  [::co-operator ::operator]
-  [n o]
-  (o-o (number->operator n) o))
+(defmethod g/sub [::operator ::co-operator] [o n] (o-o o (number->operator n)))
+(defmethod g/sub [::co-operator ::operator] [n o] (o-o (number->operator n) o))
 
 (derive ::x/numerical-expression ::co-operator)
 (derive :sicmutils.numsymb/native-numeric-type ::co-operator)

@@ -157,7 +157,7 @@
   (let [sw (Stopwatch/createStarted)
         step (fn [x step-fn step-name]
                (let [result (step-fn x)]
-                 (when *simplify-debug* (println (format " -- after %s : %s so far" step-name sw)) x)
+                 (when *simplify-debug* (log/info (format " -- after %s : %s so far" step-name sw)) x)
                  result))]
     (-> x
         (step rules/canonicalize-partials "can-par")

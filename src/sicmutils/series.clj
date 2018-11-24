@@ -156,7 +156,7 @@
 (defmethod g/freeze
   [Series]
   [^Series a]
-  `[~'Series ~(.arity a) ~@(map g/simplify (core-take 4 (.s a))) ~'...])
+  `[~'Series ~(.arity a) ~@(map g/freeze (core-take 4 (.s a))) ~'...])
 
 (derive :sicmutils.expression/numerical-expression ::coseries)
 (derive clojure.lang.Symbol ::coseries)

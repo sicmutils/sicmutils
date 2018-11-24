@@ -442,6 +442,15 @@
 (derive Differential ::o/co-operator)
 (derive Differential ::series/coseries)
 
+(defn fmap
+  [f ^Differential d]
+  (canonicalize-differential
+   (make-differential
+    (for [[tags coef] (.terms d)]
+      [tags (f coef)]))))
+
+(defmethod g/simplify [Differential] [d] (fmap g/simplify d))
+
 (defmethod g/partial-derivative
   [:sicmutils.function/function Sequential]
   [f selectors]

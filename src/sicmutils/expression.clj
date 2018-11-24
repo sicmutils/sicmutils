@@ -31,7 +31,7 @@
 (defn fmap
   "Applies f to the expression part of e and creates from that an Expression otherwise like e,
   except we lower to symbol or numeric type when we may.
-  XXX It is not certain that this is a good idea."
+  XXX It is not certain that this latter move is a good idea."
   [f e]
   (let [fe (f (:expression e))]
     (cond (symbol? fe) fe
@@ -47,8 +47,12 @@
   "Return the 'variables' (e.g. symbols) found in the expression x,
   which is an unwrapped expression, as a set"
   [x]
-  (if (symbol? x) #{x}
-                  (->> x flatten (filter symbol?) (into #{}))))
+  (let [vars (transient #{})
+        walk (fn walk [x]
+               (cond (symbol? x) (conj! vars x)
+                     (seqable? x) (run! walk x)))]
+    (walk x)
+    (persistent! vars)))
 
 (defn walk-expression
   "Walk the unwrapped expression x in postorder, replacing symbols found there
