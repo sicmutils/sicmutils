@@ -35,12 +35,12 @@
   (with-literal-functions [θ φ ψ]
     (let [q (up θ φ ψ)
           M-on-path (compose Euler->M q)]
-      (is (= '(matrix-by-rows [(+ (* -1 (cos (θ t)) (sin (ψ t)) (sin (φ t))) (* (cos (φ t)) (cos (ψ t))))
-                               (+ (* -1 (cos (ψ t)) (cos (θ t)) (sin (φ t))) (* -1 (cos (φ t)) (sin (ψ t))))
+      (is (= '(matrix-by-rows [(+ (* -1 (sin (φ t)) (cos (θ t)) (sin (ψ t))) (* (cos (φ t)) (cos (ψ t))))
+                               (+ (* -1 (cos (ψ t)) (sin (φ t)) (cos (θ t))) (* -1 (cos (φ t)) (sin (ψ t))))
                                (* (sin (φ t)) (sin (θ t)))]
 
                               [(+ (* (cos (φ t)) (cos (θ t)) (sin (ψ t))) (* (cos (ψ t)) (sin (φ t))))
-                               (+ (* (cos (φ t)) (cos (ψ t)) (cos (θ t))) (* -1 (sin (ψ t)) (sin (φ t))))
+                               (+ (* (cos (φ t)) (cos (ψ t)) (cos (θ t))) (* -1 (sin (φ t)) (sin (ψ t))))
                                (* -1 (cos (φ t)) (sin (θ t)))]
 
                               [(* (sin (ψ t)) (sin (θ t)))
