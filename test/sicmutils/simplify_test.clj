@@ -85,10 +85,10 @@
     (is (= (s/up (x 't) (y 't)) (g/simplify xyt)))
     (is (= (g/+ (g/expt (x 't) 2) (g/expt (y 't) 2)) (g/simplify xyt2)))
     (is (= (U (g/+ (g/expt (x 't) 2) (g/expt (y 't) 2))) (g/simplify Uxyt2)))
-    (is (= 1 (g/simplify (g/+ (g/expt (g/sin 'x) 2) (g/expt (g/cos 'x) 2)))))
+    (is (= 1 (simplify-and-freeze (g/+ (g/expt (g/sin 'x) 2) (g/expt (g/cos 'x) 2)))))
     ;; why doesn't the following work given that the rules are meant
     ;; to pull sines to the left?
-    (is (= 1 (g/simplify (g/+ (g/expt (g/cos 'x) 2) (g/expt (g/sin 'x) 2)))))))
+    (is (= 1 (simplify-and-freeze (g/+ (g/expt (g/cos 'x) 2) (g/expt (g/sin 'x) 2)))))))
 
 (deftest structures
   (let [A (matrix/by-rows [1 2] [3 4])

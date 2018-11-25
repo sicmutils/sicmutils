@@ -82,32 +82,32 @@
               (* 1/24 (expt 'ε 4) (((expt D 4) f) 't))
               (* 1/120 (expt 'ε 5) (((expt D 5) f) 't))]
              (simplify (take 6 (seq (((exp (* 'ε D)) (literal-function 'f)) 't)))))))
-    (is (= [0
-            'ε
-            0
-            (* -1/6 (expt 'ε 3))
-            0
-            (* 1/120 (expt 'ε 5))
-            0
-            (* -1/5040 (expt 'ε 7))
-            0
-            (* 1/362880 (expt 'ε 9))
-            0
-            (* -1/39916800 (expt 'ε 11))]
-           (simplify (take 12 (seq (((exp (* 'ε D)) sin) 0))))))
-    (is (= [1
-            0
-            (* -1/2 (expt 'ε 2))
-            0
-            (* 1/24 (expt 'ε 4))
-            0
-            (* -1/720 (expt 'ε 6))
-            0
-            (* 1/40320 (expt 'ε 8))
-            0
-            (* -1/3628800 (expt 'ε 10))
-            0]
-           (simplify (take 12 (seq (((exp (* 'ε D)) cos) 0))))))
+    (is (= '[0
+             ε
+             0
+             (* -1/6 (expt ε 3))
+             0
+             (* 1/120 (expt ε 5))
+             0
+             (* -1/5040 (expt ε 7))
+             0
+             (* 1/362880 (expt ε 9))
+             0
+             (* -1/39916800 (expt ε 11))]
+           (simplify-and-freeze (take 12 (seq (((exp (* 'ε D)) sin) 0))))))
+    (is (= '[1
+             0
+             (* -1/2 (expt ε 2))
+             0
+             (* 1/24 (expt ε 4))
+             0
+             (* -1/720 (expt ε 6))
+             0
+             (* 1/40320 (expt ε 8))
+             0
+             (* -1/3628800 (expt ε 10))
+             0]
+           (simplify-and-freeze (take 12 (seq (((exp (* 'ε D)) cos) 0))))))
     (is (= [1
             (* 1/2 'ε)
             (* -1/8 (expt 'ε 2))

@@ -35,7 +35,7 @@
     (is (= (g 2) (* (cube 2) (sin 2))))
     (is (near (g 2) 7.2743794))
     (is (= (expt (sin 'a) 3) (simplify (h 'a))))
-    (is (= 0 (simplify ((- (+ (square sin) (square cos)) 1) 'a))))
+    (is (= 0 (simplify-and-freeze ((- (+ (square sin) (square cos)) 1) 'a))))
     (is (= '(f x) (simplify-and-freeze ((literal-function 'f) 'x))))
     (is (= '(f (g x))
            (simplify-and-freeze

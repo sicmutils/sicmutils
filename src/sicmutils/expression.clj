@@ -19,25 +19,15 @@
 
 (ns sicmutils.expression)
 
-;; TODO: remove if-polymorphism... tricky, though, as this prevents lots of things
-;; from lowering.
-(defn literal-number
-  [expression]
-  (if (number? expression)
-    expression
-    {:type ::numerical-expression
-     :expression expression}))
+(defn join-expressions
+  [a x b]
+  )
 
-(defn fmap
-  "Applies f to the expression part of e and creates from that an Expression otherwise like e,
-  except we lower to symbol or numeric type when we may.
-  XXX It is not certain that this latter move is a good idea."
-  [f e]
-  (let [fe (f (:expression e))]
-    (cond (symbol? fe) fe
-          (number? fe) fe
-          :else {:type (:type e)
-                 :expression fe})))
+(defn ->expression
+  [expression]
+  {:type ::numerical-expression
+   :expression expression
+   :weight 1})
 
 (defn expression-of
   [expr]
@@ -53,6 +43,32 @@
                      (seqable? x) (run! walk x)))]
     (walk x)
     (persistent! vars)))
+
+(defn ^:private weight
+  [x]
+  (let [w (atom 0)
+        walk (fn walk [x]
+               (cond (symbol? x) (swap! w inc)
+                     (seqable? x) (run! walk x)))]
+    (walk x)
+    @w))
+
+(defn fmap
+  "Applies f to the expression part of e and creates from that an Expression otherwise like e"
+  [f e]
+  (let [fe (f (:expression e))
+        w (weight fe)]
+    (assoc e
+           :expression fe
+           ;; :weight w XXX
+           )))
+
+(defn join
+  [a x b]
+  {:pre [(= (:type a) (:type b))]}
+  {:type (:type a)
+   :weight (+ (:weight a) (:weight b) 1)
+   :expression `(~x ~a ~b)})
 
 (defn walk-expression
   "Walk the unwrapped expression x in postorder, replacing symbols found there

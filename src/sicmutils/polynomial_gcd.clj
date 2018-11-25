@@ -418,10 +418,10 @@
   [^long m ^long n f]
   (let [M (Array2DRowFieldMatrix. (BigFractionField/getInstance) m n)]
     (.walkInOptimizedOrder M
-                     (reify FieldMatrixChangingVisitor
-                       (start [this r c r1 r2 c1 c2])
-                       (visit [this i j v] (integer->bigfraction (f i j)))
-                       (end [this])))
+                           (reify FieldMatrixChangingVisitor
+                             (start [this r c r1 r2 c1 c2])
+                             (visit [this i j v] (integer->bigfraction (f i j)))
+                             (end [this])))
     M))
 
 (defn ^:private acm-integral-vector
@@ -533,7 +533,6 @@
                                 (fn [newX]
                                   (mapv #(evaluate-1 % newX) gks))
                                 newXs)
-                        ;; XXX consider mapv
                         coeffs (mapv solver values)]
                     (when *poly-gcd-debug*
                       (println 'newXs newXs)

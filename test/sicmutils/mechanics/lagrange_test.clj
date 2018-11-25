@@ -36,7 +36,7 @@
       (is (= (f 3) 5))
       (is (= (f 4) 1)))
     (let [f (Lagrange-interpolation-function '[a b c] '[w x y])]
-      (is (= 'a (simplify (f 'w)))))))
+      (is (= 'a (simplify-and-freeze (f 'w)))))))
 
 (deftest misc
   (let [vs (velocity-tuple
@@ -45,14 +45,14 @@
         L1 (fn [[v1 v2]]
              (+ (* 1/2 'm1 (square v1))
                 (* 1/2 'm2 (square v2))))]
-    (is (= (down (down (down (down 'm1 0) (down 0 0)) (down (down 0 'm1) (down 0 0)))
-                 (down (down (down 0 0) (down 'm2 0)) (down (down 0 0) (down 0 'm2))))
-           (simplify (((expt D 2) L1) vs))))
-    (is (= (matrix/by-rows ['m1 0 0 0]
-                            [0 'm1 0 0]
-                            [0 0 'm2 0]
-                            [0 0 0 'm2])
-           (simplify (s->m vs (((expt D 2) L1) vs) vs))))))
+    (is (= '(down (down (down (down m1 0) (down 0 0)) (down (down 0 m1) (down 0 0)))
+                  (down (down (down 0 0) (down m2 0)) (down (down 0 0) (down 0 m2))))
+           (simplify-and-freeze (((expt D 2) L1) vs))))
+    (is (= '(matrix-by-rows [m1 0 0 0]
+                            [0 m1 0 0]
+                            [0 0 m2 0]
+                            [0 0 0 m2])
+           (simplify-and-freeze (s->m vs (((expt D 2) L1) vs) vs))))))
 
 (deftest gamma-test
   (with-literal-functions [q]

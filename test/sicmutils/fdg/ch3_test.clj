@@ -121,11 +121,11 @@
       (is (= 0 ((dx d:dy) R2-rect-point)))
       (is (= 1 ((dx d:dx) R2-rect-point)))
       (is (= '(* -1 y0) (simplify-and-freeze ((dx circular) R2-rect-point))))
-      (is (= 'x0 ((dy circular) R2-rect-point)))
-      (is (= 0 (simplify ((dr circular) R2-rect-point))))
-      (is (= 1 (simplify ((dtheta circular) R2-rect-point))))
+      (is (= 'x0 (simplify-and-freeze ((dy circular) R2-rect-point))))
+      (is (= 0 (simplify-and-freeze ((dr circular) R2-rect-point))))
+      (is (= 1 (simplify-and-freeze ((dtheta circular) R2-rect-point))))
       (let [f (literal-manifold-function 'f-rect R2-rect)]
-        (is (= 0 (simplify (((- circular d:dtheta) f) R2-rect-point)))))
+        (is (= 0 (simplify-and-freeze (((- circular d:dtheta) f) R2-rect-point)))))
       (let [v (literal-vector-field 'b R2-rect)]
         (is (= '(+ (* (a_0 (up x0 y0)) (b↑0 (up x0 y0)))
                    (* (a_1 (up x0 y0)) (b↑1 (up x0 y0))))

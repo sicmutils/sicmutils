@@ -111,8 +111,8 @@
     (is (= (down 4 5 6) (vector->down [4 5 6])))
     (is (thrown? AssertionError (vector->up '(1 2 3)))))
   (testing "function - rotate about x axis"
-    (is (= (up 0 0 1) ((Rx 'pi-over-2) (up 0 1 0))))
-    (is (= (up 'x (g/- 'z) 'y) ((Rx 'pi-over-2) (up 'x 'y 'z)))))
+    (is (= '(up 0 0 1) (simplify-and-freeze ((Rx 'pi-over-2) (up 0 1 0)))))
+    (is (= '(up x (* -1 z) y) (simplify-and-freeze ((Rx 'pi-over-2) (up 'x 'y 'z))))))
   (testing "square/cube"
     (is (= 14 (square (up 1 2 3))))
     (is (= (up (up (up 1 2 3) (up 2 4 6) (up 3 6 9))
@@ -265,10 +265,10 @@
           L1 (fn [[v1 v2]]
                (+ (* 1/2 'm1 (square v1))
                   (* 1/2 'm2 (square v2))))]
-      (is (= (down
-              (down (down (down 'm1 0) (down 0 0)) (down (down 0 'm1) (down 0 0)))
-              (down (down (down 0 0) (down 'm2 0)) (down (down 0 0) (down 0 'm2))))
-             (simplify (((expt D 2) L1) vs)))))))
+      (is (= '(down
+               (down (down (down m1 0) (down 0 0)) (down (down 0 m1) (down 0 0)))
+               (down (down (down 0 0) (down m2 0)) (down (down 0 0) (down 0 m2))))
+             (simplify-and-freeze (((expt D 2) L1) vs)))))))
 
 (deftest some-tensors
   (let [ε_ijk (down (down (down  0  0  0)

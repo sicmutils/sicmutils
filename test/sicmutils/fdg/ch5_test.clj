@@ -54,7 +54,7 @@
                (* -1 u↑2 v↑1 w↑0))
              (simplify-and-freeze
               (((wedge dx dy dz) u v w) p))))
-      (is (= 0 (simplify
+      (is (= 0 (simplify-and-freeze
                 (- (((wedge dx dy dz) u v w) p)
                    (determinant
                     (matrix-by-rows '[u↑0 u↑1 u↑2]
@@ -75,21 +75,21 @@
                (* b (wedge dz dx))
                (* c (wedge dx dy)))
           Z (literal-vector-field 'Z-rect R3-rect)]
-      (is (= 0 (simplify
+      (is (= 0 (simplify-and-freeze
                 (((- (d θ)
                      (+ (wedge (d a) dx)
                         (wedge (d b) dy)
                         (wedge (d c) dz)))
                   X Y)
                  p))))
-      (is (= 0 (simplify
+      (is (= 0 (simplify-and-freeze
                 (((- (d ω)
                      (+ (wedge (d a) dy dz)
                         (wedge (d b) dz dx)
                         (wedge (d c) dx dy)))
                   X Y Z)
                  p)) ))
-      (is (= 0 (simplify (((d (d θ)) X Y Z) p)))))))
+      (is (= 0 (simplify-and-freeze (((d (d θ)) X Y Z) p)))))))
 
 (deftest section-5-4
   (let [v (literal-vector-field 'v-rect R2-rect)
@@ -99,14 +99,15 @@
         R2-rect-basis (coordinate-system->basis R2-rect)
         [dx dy] (basis->oneform-basis R2-rect-basis)
         p ((point R2-rect) (up 'x0 'y0))]
-    (is (= 0 (simplify (((- (d (+ (* (compose α (chart R2-rect)) dx)
-                                  (* (compose β (chart R2-rect)) dy)))
-                            (* (compose (- ((∂ 0) β)
-                                           ((∂ 1) α))
-                                        (chart R2-rect))
-                               (wedge dx dy)))
-                         v w)
-                        p)))))
+    (is (= 0 (simplify-and-freeze
+              (((- (d (+ (* (compose α (chart R2-rect)) dx)
+                         (* (compose β (chart R2-rect)) dy)))
+                   (* (compose (- ((∂ 0) β)
+                                  ((∂ 1) α))
+                               (chart R2-rect))
+                      (wedge dx dy)))
+                v w)
+               p)))))
   (let-coordinates [[x y z] R3-rect]
     (let [a (literal-manifold-function 'a-rect R3-rect)
           b (literal-manifold-function 'b-rect R3-rect)
@@ -120,7 +121,8 @@
           Y (literal-vector-field 'Y-rect R3-rect)
           Z (literal-vector-field 'Z-rect R3-rect)
           p ((point R3-rect) (up 'x0 'y0 'z0))]
-      (is (= 0 (simplify (((- production-in-volume-element
-                              (d flux-through-boundary-element))
-                           X Y Z)
-                          p)))))))
+      (is (= 0 (simplify-and-freeze
+                (((- production-in-volume-element
+                     (d flux-through-boundary-element))
+                  X Y Z)
+                 p)))))))

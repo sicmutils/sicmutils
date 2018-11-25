@@ -34,20 +34,23 @@
             outward (+ (* x d:dx) (* y d:dy))]
         (is (= (* -1 'y0) (simplify ((dx counter-clockwise) R3-rect-point))))
         (is (= (* -1 'y0) (simplify ((((differential x) counter-clockwise) identity) R3-rect-point))))
-        (is (= 'x0 (simplify ((dx outward) R3-rect-point))))
-        (is (= 'x0 (simplify ((((differential x) outward) identity) R3-rect-point))))
-        (is (= 'x0 ((dy counter-clockwise) R3-rect-point)))
-        (is (= 'x0 ((((differential y) counter-clockwise) identity) R3-rect-point)))
-        (is (= 'y0 ((dy outward) R3-rect-point)))
-        (is (= 'y0 ((((differential y) outward) identity) R3-rect-point)))
-        (is (= '0 (simplify ((dr counter-clockwise) R3-cyl-point))))
-        (is (= '0 (simplify ((((differential r) counter-clockwise) identity) R3-cyl-point))))
-        (is (= 'r0 (simplify ((dr outward) R3-cyl-point))))
-        (is (= 'r0 (simplify ((((differential r) outward) identity) R3-cyl-point))))
-        (is (= 1 (simplify ((dtheta counter-clockwise) R3-cyl-point))))
-        (is (= 1 (simplify ((((differential theta) counter-clockwise) identity) R3-cyl-point))))
-        (is (= 0 (simplify ((dtheta outward) R3-cyl-point))))
-        (is (= 0 (simplify ((((differential theta) outward) identity) R3-cyl-point)))))))
+        (is (= 'x0 (simplify-and-freeze ((dx outward) R3-rect-point))))
+        (is (= 'x0 (simplify-and-freeze ((((differential x) outward) identity) R3-rect-point))))
+        (is (= 'x0 (simplify-and-freeze ((dy counter-clockwise) R3-rect-point))))
+        (is (= 'x0 (simplify-and-freeze
+                    ((((differential y) counter-clockwise) identity) R3-rect-point))))
+        (is (= 'y0 (simplify-and-freeze
+                    ((dy outward) R3-rect-point))))
+        (is (= 'y0 (simplify-and-freeze
+                    ((((differential y) outward) identity) R3-rect-point))))
+        (is (= '0 (simplify-and-freeze ((dr counter-clockwise) R3-cyl-point))))
+        (is (= '0 (simplify-and-freeze ((((differential r) counter-clockwise) identity) R3-cyl-point))))
+        (is (= 'r0 (simplify-and-freeze ((dr outward) R3-cyl-point))))
+        (is (= 'r0 (simplify-and-freeze ((((differential r) outward) identity) R3-cyl-point))))
+        (is (= 1 (simplify-and-freeze ((dtheta counter-clockwise) R3-cyl-point))))
+        (is (= 1 (simplify-and-freeze ((((differential theta) counter-clockwise) identity) R3-cyl-point))))
+        (is (= 0 (simplify-and-freeze ((dtheta outward) R3-cyl-point))))
+        (is (= 0 (simplify-and-freeze ((((differential theta) outward) identity) R3-cyl-point)))))))
   (testing "literal manifold map"
     (let-coordinates [[x y] R2-rect
                       t R1-rect]

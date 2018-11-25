@@ -132,11 +132,11 @@
           L1 (fn [[v1 v2]]
                (g/+ (g/* 1/2 'm1 (g/square v1))
                     (g/* 1/2 'm2 (g/square v2))))]
-      (is (= (matrix/by-rows ['m1 0 0 0]
-                             [0 'm1 0 0]
-                             [0 0 'm2 0]
-                             [0 0 0 'm2])
-             (g/simplify (matrix/s->m vs (((g/expt d/D 2) L1) vs) vs))))))
+      (is (= '(matrix-by-rows [m1 0 0 0]
+                              [0 m1 0 0]
+                              [0 0 m2 0]
+                              [0 0 0 m2])
+             (simplify-and-freeze (matrix/s->m vs (((g/expt d/D 2) L1) vs) vs))))))
   (let [M (matrix/by-rows [1 2 3] [4 5 6])]
     (is (= (s/down (s/up 1 4)
                    (s/up 2 5)

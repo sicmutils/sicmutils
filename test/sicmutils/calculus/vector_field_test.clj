@@ -57,7 +57,8 @@
       (let [counter-clockwise (- (* x d:dy) (* y d:dx))
             outward (+ (* x d:dx) (* y d:dy))
             mr ((point R3-rect) (up 'x0 'y0 'z0))]
-        (is (= 0 (simplify ((counter-clockwise (sqrt (+ (square x) (square y)))) mr))))
+        (is (= 0 (simplify-and-freeze
+                  ((counter-clockwise (sqrt (+ (square x) (square y)))) mr))))
         (is (= (+ (expt 'x0 2) (* -1 (expt 'y0 2)))
                (simplify ((counter-clockwise (* x y)) mr))))
         (is (= (* 2 'x0 'y0) (simplify ((outward (* x y)) mr))))))
@@ -73,7 +74,7 @@
                       A_z)
                  (simplify-and-freeze
                   ((vector-field->components A R3-rect) (up 'x 'y 'z)))))
-          (is (= (up (* -1 'y) 'x 0) (simplify ((d:dtheta (up x y z)) p))))
+          (is (= '(up (* -1 y) x 0) (simplify-and-freeze ((d:dtheta (up x y z)) p))))
           (is (= '(up (/ x (sqrt (+ (expt x 2) (expt y 2))))
                       (/ y (sqrt (+ (expt x 2) (expt y 2))))
                       0)

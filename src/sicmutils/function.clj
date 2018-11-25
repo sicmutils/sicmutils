@@ -316,7 +316,7 @@
   (check-argument-type f xs (:domain f) [0])
   (if (some d/differential? xs)
     (literal-derivative f xs)
-    (x/literal-number `(~(:name f) ~@(map g/freeze xs)))))
+    (x/->expression `(~(:name f) ~@(map g/freeze xs)))))
 
 ;;; Utilities
 

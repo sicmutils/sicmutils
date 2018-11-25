@@ -24,8 +24,11 @@
 (deftest expressions
   (testing "variables-in"
     (is (= '#{a b c d x y * +} (variables-in '(+ x (* 3 y) [a [b 9 c] [3 4 5 d]]))))
-    (is (= '#{x} (variables-in 'x)))
-    )
+    (is (= '#{x} (variables-in 'x))))
+  #_(testing "weight"
+      (is (= {:type :sicmutils.expression/numerical-expression
+              :weight 3
+              :expression '(+ a b)} (fmap identity (->expression '(+ a b))))))
   (testing "walk"
     (is (= 12 (walk-expression '(+ 3 4 x) {'x 5} {'+ +} )))
     (is (= 0 (walk-expression '(+ 3 (* 4 y) x) {'x 5 'y -2} {'* * '+ +})))

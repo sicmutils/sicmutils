@@ -248,8 +248,8 @@
     (is (= (* -1 (sin 'x) (cos (cos 'x))) (simplify (y2 'x)))))
   (let [unity (reduce + (map square [sin cos]))
         dU (D unity)]
-    (is (= 1 (simplify (unity 'x))))
-    (is (= 0 (simplify (dU 'x)))))
+    (is (= 1 (simplify-and-freeze (unity 'x))))
+    (is (= 0 (simplify-and-freeze (dU 'x)))))
   (let [odear (fn [z] ((D (compose sin cos)) z))]
     (is (= (* -1 (sin 'x) (cos (cos 'x))) (simplify (odear 'x))))))
 
@@ -337,8 +337,8 @@
         laplacian #(* (D %) ((transpose D) %))]
     (is (= (up 1 (cos 't) (* -1 (sin 't))) (simplify ((D f) 't))))
     (is (= (down 1 (cos 't) (* -1 (sin 't))) (simplify (((transpose D) f) 't))))
-    (is (= 2 (simplify (* ((D f) 't) (((transpose D) f) 't)))))
-    (is (= 2 (simplify ((laplacian (up identity sin cos)) 't))))
+    (is (= 2 (simplify-and-freeze (* ((D f) 't) (((transpose D) f) 't)))))
+    (is (= 2 (simplify-and-freeze ((laplacian (up identity sin cos)) 't))))
     (is (= (+ (cos 't) (* -1 (sin 't)) 1) (simplify ((divergence f) 't))))))
 
 (deftest exp-and-log

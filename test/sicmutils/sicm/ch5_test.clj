@@ -114,14 +114,14 @@
             K (fn [Omega]
                 (fn [[_ [x y _] [p_x p_y _]]]
                   (* Omega (- (* x p_y) (* y p_x)))))]
-        (is (= (matrix-by-rows
-                [0 0 0 0 0 0]
-                [0 0 0 0 0 0]
-                [0 0 0 0 0 0]
-                [0 0 0 0 0 0]
-                [0 0 0 0 0 0]
-                [0 0 0 0 0 0])
-               (simplify
+        (is (= '(matrix-by-rows
+                 [0 0 0 0 0 0]
+                 [0 0 0 0 0 0]
+                 [0 0 0 0 0 0]
+                 [0 0 0 0 0 0]
+                 [0 0 0 0 0 0]
+                 [0 0 0 0 0 0])
+               (simplify-and-freeze
                 ((symplectic-transform? (C-rotating 'Omega))
                  (up 't
                      (up 'x 'y 'z)

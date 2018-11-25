@@ -65,14 +65,15 @@
                        (compose (C alpha beta epsilon order)
                                 ((solution0 alpha beta) delta-t)
                                 (C-inv alpha beta epsilon order)))))]
-    (is (= 0 (simplify ((+ ((Lie-derivative (W 'alpha 'beta)) (H0 'alpha))
-                           (H1 'beta))
-                        a-state))))
+    (is (= 0 (simplify-and-freeze
+              ((+ ((Lie-derivative (W 'alpha 'beta)) (H0 'alpha))
+                  (H1 'beta))
+               a-state))))
     (is (= '((/ (expt p_theta 2) (* 2 α))
-              0
-              (/ (* α (expt β 2) (expt ε 2) (expt (sin theta) 2)) (* 2 (expt p_theta 2)))
-              0
-              0)
+             0
+             (/ (* α (expt β 2) (expt ε 2) (expt (sin theta) 2)) (* 2 (expt p_theta 2)))
+             0
+             0)
            (simplify-and-freeze (series/take 5 E))))
     (is (= '(/ (+ (* (expt α 2) (expt β 2) (expt ε 2) (expt (sin theta) 2)) (expt p_theta 4))
                (* 2 (expt p_theta 2) α))

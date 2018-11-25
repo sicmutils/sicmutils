@@ -111,10 +111,11 @@
         H (literal-function 'G (Hamiltonian 2))
         L_F (Lie-derivative F)
         L_G (Lie-derivative G)]
-    (is (= 0 (simplify (((+ (commutator L_F L_G)
-                            (Lie-derivative (Poisson-bracket F G)))
-                         H)
-                        (up 't (up 'x 'y) (down 'px 'py))))))))
+    (is (= 0 (simplify-and-freeze
+              (((+ (commutator L_F L_G)
+                   (Lie-derivative (Poisson-bracket F G)))
+                H)
+               (up 't (up 'x 'y) (down 'px 'py))))))))
 
 (deftest poisson
   (let [a-state (->H-state 't
@@ -170,10 +171,11 @@
                   (D GG))
                (up 't (up 'x 'y) (down 'p_x 'p_y))))))
       (testing "Jacobi identity"
-        (is (= 0 (simplify ((+ (Poisson-bracket FF (Poisson-bracket GG HH))
-                               (Poisson-bracket GG (Poisson-bracket HH FF))
-                               (Poisson-bracket HH (Poisson-bracket FF GG)))
-                            (up 't (up 'x 'y) (down 'p_x 'p_y))))))))))
+        (is (= 0 (simplify-and-freeze
+                  ((+ (Poisson-bracket FF (Poisson-bracket GG HH))
+                      (Poisson-bracket GG (Poisson-bracket HH FF))
+                      (Poisson-bracket HH (Poisson-bracket FF GG)))
+                   (up 't (up 'x 'y) (down 'p_x 'p_y))))))))))
 
 (deftest symplectic
   (testing "unit"

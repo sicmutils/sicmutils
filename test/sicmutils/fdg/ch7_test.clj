@@ -61,9 +61,10 @@
         w (literal-vector-field 'w-rect R3-rect)
         f (literal-manifold-function 'f-rect R3-rect)]
     (is (= 0
-           (simplify ((- ((((Lie-directional R3-rect 2) v) w) f)
-                         ((commutator v w) f))
-                      ((point R3-rect) (up 'x0 'y0 'z0)))))))
+           (simplify-and-freeze
+            ((- ((((Lie-directional R3-rect 2) v) w) f)
+                ((commutator v w) f))
+             ((point R3-rect) (up 'x0 'y0 'z0)))))))
   (let [a (literal-manifold-function 'alpha R3-rect)
         b (literal-manifold-function 'beta R3-rect)
         c (literal-manifold-function 'gamma R3-rect)]
@@ -93,28 +94,32 @@
         ;; if you look at the LH and RH of the subtraction, you will observe that
         ;; this is nontrivial :)
         (is (= 0
-               (simplify (((- ((Lie-derivative V) (d theta))
-                              (d ((Lie-derivative V) theta)))
-                           X Y)
-                          R3-rect-point))))
+               (simplify-and-freeze
+                (((- ((Lie-derivative V) (d theta))
+                     (d ((Lie-derivative V) theta)))
+                  X Y)
+                 R3-rect-point))))
         (is (= 0
-               (simplify (((- ((Lie-derivative V) (d omega))
-                              (d ((Lie-derivative V) omega)))
-                           X Y Z)
-                          R3-rect-point)
-                         )))
+               (simplify-and-freeze
+                (((- ((Lie-derivative V) (d omega))
+                     (d ((Lie-derivative V) omega)))
+                  X Y Z)
+                 R3-rect-point)
+                )))
         (is (= 0
-               (simplify ((((- (commutator (Lie-derivative X) (Lie-derivative Y))
-                               (Lie-derivative (commutator X Y)))
-                            theta)
-                           Z)
-                          R3-rect-point))))
+               (simplify-and-freeze
+                ((((- (commutator (Lie-derivative X) (Lie-derivative Y))
+                      (Lie-derivative (commutator X Y)))
+                   theta)
+                  Z)
+                 R3-rect-point))))
         (is (= 0
-               (simplify ((((- (commutator (Lie-derivative X) (Lie-derivative Y))
-                               (Lie-derivative (commutator X Y)))
-                            omega)
-                           Z V)
-                          R3-rect-point))))))))
+               (simplify-and-freeze
+                ((((- (commutator (Lie-derivative X) (Lie-derivative Y))
+                      (Lie-derivative (commutator X Y)))
+                   omega)
+                  Z V)
+                 R3-rect-point))))))))
 
 (deftest section-7-1b
   (let-coordinates [[x y z] R3-rect]
@@ -142,7 +147,7 @@
                (fn [omega]
                  (+ ((interior-product X) (d omega))
                     (d ((interior-product X) omega)))))]
-      (is (= 0 (simplify
+      (is (= 0 (simplify-and-freeze
                 ((- (((Lie-derivative X) omega) Y Z)
                     (((L1 X) omega) Y Z))
                  ((point R3-rect) (up 'x0 'y0 'z0)))))))))

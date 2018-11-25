@@ -23,7 +23,7 @@
              [generic :as g]
              [complex :as c]
              [euclid :as euclid]
-             [expression :as x]]
+             [expression :as x :refer [->expression]]]
             [clojure.math.numeric-tower :as nt])
   (:import (clojure.lang Symbol)))
 
@@ -252,35 +252,35 @@
      (defmethod ~generic-operation
        [::x/numerical-expression ::x/numerical-expression]
        [a# b#]
-       (x/literal-number (~symbolic-operation (:expression a#) (:expression b#))))
+       (->expression (~symbolic-operation (:expression a#) (:expression b#))))
      (defmethod ~generic-operation
        [clojure.lang.Symbol ::x/numerical-expression]
        [a# b#]
-       (x/literal-number (~symbolic-operation a# (:expression b#))))
+       (->expression (~symbolic-operation a# (:expression b#))))
      (defmethod ~generic-operation
        [::x/numerical-expression clojure.lang.Symbol]
        [a# b#]
-       (x/literal-number (~symbolic-operation (:expression a#) b#)))
+       (->expression (~symbolic-operation (:expression a#) b#)))
      (defmethod ~generic-operation
        [clojure.lang.Symbol clojure.lang.Symbol]
        [a# b#]
-       (x/literal-number (~symbolic-operation a# b#)))
+       (->expression (~symbolic-operation a# b#)))
      (defmethod ~generic-operation
        [clojure.lang.Symbol ::numeric-type]
        [a# b#]
-       (x/literal-number (~symbolic-operation a# b#)))
+       (->expression (~symbolic-operation a# b#)))
      (defmethod ~generic-operation
        [::numeric-type clojure.lang.Symbol]
        [a# b#]
-       (x/literal-number (~symbolic-operation a# b#)))
+       (->expression (~symbolic-operation a# b#)))
      (defmethod ~generic-operation
        [::x/numerical-expression ::numeric-type]
        [a# b#]
-       (x/literal-number (~symbolic-operation (:expression a#) b#)))
+       (->expression (~symbolic-operation (:expression a#) b#)))
      (defmethod ~generic-operation
        [::numeric-type ::x/numerical-expression]
        [a# b#]
-       (x/literal-number (~symbolic-operation a# (:expression b#))))
+       (->expression (~symbolic-operation a# (:expression b#))))
      ))
 
 ;; native-numeric-type
@@ -302,6 +302,9 @@
 (derive java.math.BigInteger ::native-integral-type)
 (derive clojure.lang.Ratio ::native-exact-type)
 
+(derive ::numeric-type ::x/lifts-to-expression)
+(derive clojure.lang.Symbol ::x/lifts-to-expression)
+
 (defmethod g/numerical? [::native-numeric-type] [a] true)
 (defmethod g/numerical? [::x/numerical-expression] [a] true)
 (defmethod g/numerical? [clojure.lang.Symbol] [a] true)
@@ -317,10 +320,10 @@
   `(do
      (defmethod ~generic-operation [::x/numerical-expression]
        [a#]
-       (x/literal-number (~symbolic-operation (:expression a#))))
+       (->expression (~symbolic-operation (:expression a#))))
      (defmethod ~generic-operation [clojure.lang.Symbol]
        [a#]
-       (x/literal-number (~symbolic-operation a#)))
+       (->expression (~symbolic-operation a#)))
      ))
 
 (define-binary-operation g/add add)
@@ -486,3 +489,8 @@
   symbolic operator construction available."
   [s]
   (symbolic-operator-table s))
+
+;; where we left off: we have ->expression scattered throughout here, but what we
+;; really want is a monad-like expression combiner. We only want to lift less-primitive
+;; things to expressions with weight 1, and then use the combiner for the rest of
+;; the things.

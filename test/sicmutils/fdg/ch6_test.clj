@@ -59,12 +59,14 @@
         f (literal-manifold-function 'f-rect R3-rect)
         X (literal-vector-field 'X-rect R2-rect)]
     (is (zero?
-         (simplify (((- ((pullback mu) (d f)) (d ((pullback mu) f))) X)
-                    ((point R2-rect) (up 'x0 'y0))))))
+         (simplify-and-freeze
+          (((- ((pullback mu) (d f)) (d ((pullback mu) f))) X)
+           ((point R2-rect) (up 'x0 'y0))))))
     (let [theta (literal-oneform-field 'THETA R3-rect)
           Y (literal-vector-field 'Y-rect R2-rect)]
       (is (zero?
-           (simplify (((- ((pullback mu) (d theta))
-                          (d ((pullback mu) theta)))
-                       X Y)
-                      ((point R2-rect) (up 'x0 'y0)))))))))
+           (simplify-and-freeze
+            (((- ((pullback mu) (d theta))
+                 (d ((pullback mu) theta)))
+              X Y)
+             ((point R2-rect) (up 'x0 'y0)))))))))
