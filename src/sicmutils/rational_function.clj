@@ -261,12 +261,12 @@
 (defmethod g/mul [RationalFunction RationalFunction] [a b] (mul a b))
 
 (defmethod g/mul
-  [::sym/numeric-type RationalFunction]
+  [::sym/expression-or-number RationalFunction]
   [c ^RationalFunction r]
   (make (g/mul c (.u r)) (.v r)))
 
 (defmethod g/mul
-  [RationalFunction ::sym/numeric-type]
+  [RationalFunction ::sym/expression-or-number]
   [^RationalFunction r c]
   (make (g/mul (.u r) c) (.v r)))
 
@@ -313,33 +313,33 @@
 (defmethod g/sub [RationalFunction Polynomial] [r p] (subp r p))
 
 (defmethod g/sub
-  [RationalFunction ::sym/numeric-type]
+  [RationalFunction ::sym/expression-or-number]
   [^RationalFunction r c]
   (let [u (.u r)
         v (.v r)]
     (make (p/sub (g/mul c v) u) v)))
 
 (defmethod g/sub
-  [::sym/numeric-type RationalFunction]
+  [::sym/expression-or-number RationalFunction]
   [c ^RationalFunction r]
   (let [u (.u r)
         v (.v r)]
     (make (p/sub u (g/mul c v)) v)))
 
 (defmethod g/add
-  [::sym/numeric-type RationalFunction]
+  [::sym/expression-or-number RationalFunction]
   [c ^RationalFunction r]
   (let [v (.v r)]
     (make (p/add (.u r) (g/mul c v)) v)))
 
 (defmethod g/add
-  [RationalFunction ::sym/numeric-type]
+  [RationalFunction ::sym/expression-or-number]
   [^RationalFunction r c]
   (let [v (.v r)]
     (make (p/add (.u r) (g/mul c v)) v)))
 
 (defmethod g/div
-  [RationalFunction ::sym/numeric-type]
+  [RationalFunction ::sym/expression-or-number]
   [^RationalFunction r c]
   (make (.u r) (g/mul c (.v r))))
 

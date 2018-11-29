@@ -29,6 +29,21 @@
    :expression expression
    :weight 1})
 
+(defn ^:private weight
+  [x]
+  (let [w (atom 0)
+        walk (fn walk [x]
+               (cond (symbol? x) (swap! w inc)
+                     (seqable? x) (run! walk x)))]
+    (walk x)
+    @w))
+
+(defn lift-to-expression
+  [expression]
+  {:type ::numerical-expression
+   :expression expression
+   :weight (weight expression)})
+
 (defn expression-of
   [expr]
   (:expression expr))
@@ -44,14 +59,7 @@
     (walk x)
     (persistent! vars)))
 
-(defn ^:private weight
-  [x]
-  (let [w (atom 0)
-        walk (fn walk [x]
-               (cond (symbol? x) (swap! w inc)
-                     (seqable? x) (run! walk x)))]
-    (walk x)
-    @w))
+
 
 (defn fmap
   "Applies f to the expression part of e and creates from that an Expression otherwise like e"
@@ -64,11 +72,15 @@
            )))
 
 (defn join
-  [a x b]
-  {:pre [(= (:type a) (:type b))]}
-  {:type (:type a)
-   :weight (+ (:weight a) (:weight b) 1)
-   :expression `(~x ~a ~b)})
+  ([x a]
+   {:type (:type a)
+    :weight (inc (:weight a))
+    :expression (list x (:expression a))})
+  ([x a b]
+   {:pre [(= (:type a) (:type b))]}
+   {:type (:type a)
+    :weight (+ (:weight a) (:weight b) 1)
+    :expression (list x (:expression a) (:expression b))}))
 
 (defn walk-expression
   "Walk the unwrapped expression x in postorder, replacing symbols found there

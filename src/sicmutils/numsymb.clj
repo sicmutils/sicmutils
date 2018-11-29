@@ -280,18 +280,25 @@
      (defmethod ~generic-operation
        [::numeric-type ::x/numerical-expression]
        [a# b#]
-       (->expression (~symbolic-operation a# (:expression b#))))
-     ))
+       (->expression (~symbolic-operation a# (:expression b#))))))
 
-;; native-numeric-type
-;;  - native-exact-type
-;;    - native-integral-type
-;;      - java.lang.Long
-;;      - clojure.lang.BigInt
-;;    - clojure.lang.Ratio
-;;  - java.lang.Double
+;;
+;; - expression-or-number
+;;   - x/numerical-expression
+;;   - numeric-type
+;;     - native-numeric-type
+;;       - native-exact-type
+;;         - native-integral-type
+;;           - java.lang.Long
+;;           - clojure.lang.BigInt
+;;         - clojure.lang.Ratio
+;;       - java.lang.Double
+;;     - org.apache.commons.math3.complex.Complex
+;;
 
 
+(derive ::numeric-type ::expression-or-number)
+(derive ::x/numerical-expression ::expression-or-number)
 (derive ::native-numeric-type ::numeric-type)
 (derive ::native-exact-type ::native-numeric-type)
 (derive ::native-integral-type ::native-exact-type)
@@ -318,6 +325,7 @@
 (defmacro ^:private define-unary-operation
   [generic-operation symbolic-operation]
   `(do
+
      (defmethod ~generic-operation [::x/numerical-expression]
        [a#]
        (->expression (~symbolic-operation (:expression a#))))
@@ -325,6 +333,32 @@
        [a#]
        (->expression (~symbolic-operation a#)))
      ))
+
+;;
+;; idea:
+;; the default operation wraps with a symbol: x -> (sqrt x).
+;; we specialize for numbers.
+;; for expressions, we fmap with an increase in weight.
+;; This last is the tricky part. The whole point of this particular refactor is
+;; to economize the maintenance of the weight score.
+;; We can't really do this with fmap. Are we sure the analyzer is presenting
+;; us with a raw cons for the right reasons? Are intermediate results in the
+;; simplifier going to balloon, wasting our effort of expression weight count?
+;;
+;; Should we bite the bullet and recompute weight in the cons case?
+;;
+
+(defmacro ^:private define-unary-operation2
+  [generic-operation symbolic-operation]
+  `(do
+     (defmethod ~generic-operation [::x/numerical-expression]
+       [a#]
+       (let [ex# (:expression a#)]
+         (if (isa? ex# ::x/numeric-type)
+           (x/fmap ~generic-operation a#)
+           (x/join '~symbolic-operation a#))))
+     (defmethod ~generic-operation :default [a#]
+       (x/lift-to-expression (list '~symbolic-operation a#)))))
 
 (define-binary-operation g/add add)
 (defmethod g/add [::native-numeric-type ::native-numeric-type] [a b] (+' a b))
@@ -349,7 +383,7 @@
 (define-unary-operation g/invert #(div 1 %))
 (defmethod g/invert [::native-numeric-type] [a] (/ a))
 
-(define-unary-operation g/sin sine)
+(define-unary-operation2 g/sin sin)
 (defmethod g/sin
   [::native-numeric-type]
   [a]
