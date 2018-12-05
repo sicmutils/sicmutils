@@ -124,7 +124,10 @@
 (defn tex$$
   "Convert a result to TeX display style."
   [a]
-  (as-mime :text/latex (str "\\[\\displaystyle" (tex-render a) "\\]")))
+  (as-mime :text/latex
+           (str "\\[\\displaystyle{"
+                (-> a simplify tex-render)
+                "}\\]")))
 
 (potemkin/import-vars
  [sicmutils.complex
