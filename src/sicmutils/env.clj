@@ -126,7 +126,7 @@
   [a]
   (as-mime :text/latex
            (str "\\[\\displaystyle{"
-                (-> a simplify tex-render)
+                (tex-render a)
                 "}\\]")))
 
 (potemkin/import-vars
