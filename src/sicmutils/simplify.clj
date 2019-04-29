@@ -273,12 +273,17 @@
 (prefer-method g/simplify [:sicmutils.structure/structure] [Sequential])
 (prefer-method g/simplify [Symbol] [::x/numerical-expression])
 
+(defn expression->stream
+  "Renders an expression through the simplifier and onto the stream."
+  [expr stream]
+  (-> expr g/simplify (pp/write :stream stream)))
+
 (defn expression->string
   "Renders an expression through the simplifier and into a string,
   which is returned."
   [expr]
   (let [w (StringWriter.)]
-    (-> expr g/simplify (pp/write :stream w))
+    (expression->stream expr w)
     (.toString w)))
 (def print-expression #(-> % g/simplify pp/pprint))
 (def pe print-expression)

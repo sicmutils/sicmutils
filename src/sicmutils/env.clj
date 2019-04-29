@@ -24,7 +24,7 @@
   (:refer-clojure :exclude [+ - * / zero?]
                   :rename {ref core-ref partial core-partial})
   (:require [potemkin]
-            [clojupyter.protocol.mime-convertible :as mc]
+            [nrepl.middleware.print]
             [sicmutils
              [structure]
              [complex]
@@ -32,7 +32,7 @@
              [simplify :as simp]
              [function :as f]
              [value :as v]
-             [infix]
+             [infix :as infix]
              [operator]
              [matrix :as matrix]
              [series :as series]]
@@ -109,25 +109,20 @@
 (def series series/starting-with)
 (def series:sum series/sum)
 
-(defn as-mime
-  "Used to wrap data with a MIME type. This wrapping is noticed by Jupyter,
-  which will render the result accordingly."
-  [type data]
-  (reify mc/PMimeConvertible
-    (to-mime [_] (mc/stream-to-string {type data}))))
-
-(def ^:private tex-render (comp sicmutils.infix/->TeX g/simplify))
 (defn tex$
-  "Convert a result to TeX inline style."
-  [a]
-  (as-mime :text/latex (str "$" (tex-render a) "$")))
+  "Render expression in a form convenient for rendering with clojupyter.
+  In this case, we want the TeX material wrapped with dollar signs."
+  [expr]
+  (str "$" (-> expr g/simplify infix/->TeX) "$"))
+
 (defn tex$$
-  "Convert a result to TeX display style."
-  [a]
-  (as-mime :text/latex
-           (str "\\[\\displaystyle{"
-                (tex-render a)
-                "}\\]")))
+  "Render expression in a form convenient for rendering with clojupyter.
+  In this case, we want the TeX material wrapped with dollar signs."
+  [expr]
+  (str "$$" (-> expr g/simplify infix/->TeX) "$$"))
+
+(defn sicmutils-repl-init []
+  (set! nrepl.middleware.print/*print-fn* simp/expression->stream))
 
 (potemkin/import-vars
  [sicmutils.complex

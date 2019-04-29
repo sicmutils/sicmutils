@@ -77,7 +77,7 @@
         (is (= (up 'x 'y) (m/point->coords R2-rect xy)))))
     (testing "SO(3)"
       (is (= '(up (asin (* (sin theta) (cos psi)))
-                  (atan (+ (* (cos psi) (cos theta) (sin phi))
+                  (atan (+ (* (cos psi) (sin phi) (cos theta))
                            (* (cos phi) (sin psi)))
                         (+ (* (cos psi) (cos phi) (cos theta))
                            (* -1 (sin psi) (sin phi))))

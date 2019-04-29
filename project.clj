@@ -22,22 +22,20 @@
   :url "http://github.com/littleredcomputer/sicmutils"
   :license {:name "GPLv3"
             :url "http://www.opensource.org/licenses/GPL-3.0"}
-  :dependencies [[org.clojure/clojure "1.9.0"]
+  :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.clojure/tools.logging "0.4.0"]
                  [hiccup "1.0.5"]
                  [com.google.guava/guava "22.0"]
                  [org.clojure/core.match "0.3.0-alpha4"]
                  [org.apache.commons/commons-math3 "3.6.1"]
                  [org.clojure/math.numeric-tower "0.0.4"]
-                 [org.clojure/tools.nrepl "0.2.13"]
-                 [org.clojars.didiercrunch/clojupyter "0.1.5"]
+                 [nrepl "0.6.0"]
                  [potemkin "0.4.3"]]
   :main sicmutils.repl
   :jvm-opts ["-Djava.util.logging.config.file=logging.properties"]
   :repl-options {:prompt (fn [ns] (str "[" ns "] > "))
-                 :welcome "clojure algebra system"
-                 :init-ns sicmutils.env
-                 :nrepl-middleware [sicmutils.repl/math-printer]}
+                 :welcome (sicmutils.env/sicmutils-repl-init)
+                 :init-ns sicmutils.env}
   :target-path "target/%s"
   :test-selectors {:default (complement :long)
                    :benchmark :benchmark}
