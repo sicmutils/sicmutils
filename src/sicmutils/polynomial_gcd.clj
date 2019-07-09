@@ -470,7 +470,7 @@
           LU (FieldLUDecomposition. A)
           _ (.stop sw)
           solver (.getSolver LU)]
-      (log/info (format "LU of %d-matrix took %s" n sw))
+      ;(log/info (format "LU of %d-matrix took %s" n sw))
       (if-not (.isNonSingular solver)
         (do
           (log/warn "spmod: singular matrix")

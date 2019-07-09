@@ -302,13 +302,18 @@
 (defmethod g/freeze [Sequential] [a] (map g/freeze a))
 (prefer-method g/freeze [:sicmutils.structure/structure] [Sequential])
 
+(def simplify-and-freeze (comp g/freeze g/simplify))
+(defn expression->stream
+  "Renders an expression through the simplifier and onto the stream."
+  [expr stream]
+  (-> expr simplify-and-freeze (pp/write :stream stream)))
+
 (defn expression->string
   "Renders an expression through the simplifier and into a string,
   which is returned."
   [expr]
   (let [w (StringWriter.)]
-    (-> expr g/simplify g/freeze (pp/write :stream w))
+    (expression->stream expr w)
     (.toString w)))
-(def simplify-and-freeze (comp g/freeze g/simplify))
 (def print-expression (comp pp/pprint g/freeze g/simplify))
 (def pe print-expression)
