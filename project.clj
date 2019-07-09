@@ -22,7 +22,7 @@
   :url "http://github.com/littleredcomputer/sicmutils"
   :license {:name "GPLv3"
             :url "http://www.opensource.org/licenses/GPL-3.0"}
-  :dependencies [[org.clojure/clojure "1.10.0"]
+  :dependencies [[org.clojure/clojure "1.10.1"]
                  [org.clojure/tools.logging "0.4.0"]
                  [hiccup "1.0.5"]
                  [com.google.guava/guava "22.0"]
