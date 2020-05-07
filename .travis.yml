@@ -1,7 +1,4 @@
 language: clojure
-script: lein with-profile travis test :all
 branches:
   only:
     - master
-jdk:
-  - oraclejdk8
