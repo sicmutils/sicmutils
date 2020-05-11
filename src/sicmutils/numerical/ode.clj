@@ -28,7 +28,7 @@
            (org.apache.commons.math3.ode.sampling StepHandler)
            (com.google.common.base Stopwatch)))
 
-(defn ^:private make-integrator
+(defn make-integrator
   "make-integrator takes a state derivative function (which in this
   system is assumed to be a map from a structure to a structure of the
   same shape, as differentiating a function does not change its
