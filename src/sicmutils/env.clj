@@ -251,6 +251,7 @@
   s->r
   velocity
   velocity-tuple
+  state->t
   Γ]
  [sicmutils.matrix
   s->m
