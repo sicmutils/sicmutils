@@ -23,15 +23,14 @@
   :license {:name "GPLv3"
             :url "http://www.opensource.org/licenses/GPL-3.0"}
   :dependencies [[org.clojure/clojure "1.10.1"]
-                 [org.clojure/tools.logging "0.4.0"]
+                 [org.clojure/tools.logging "1.1.0"]
                  [hiccup "1.0.5"]
-                 [com.google.guava/guava "22.0"]
-                 [org.clojure/core.match "0.3.0-alpha4"]
+                 [com.google.guava/guava "23.0"]
+                 [org.clojure/core.match "1.0.0"]
                  [org.apache.commons/commons-math3 "3.6.1"]
                  [org.clojure/math.numeric-tower "0.0.4"]
-                 [nrepl "0.6.0"]
-                 [potemkin "0.4.3"]]
-  :main sicmutils.repl
+                 [nrepl "0.7.0"]
+                 [potemkin "0.4.5"]]
   :jvm-opts ["-Djava.util.logging.config.file=logging.properties"]
   :repl-options {:prompt (fn [ns] (str "[" ns "] > "))
                  :welcome (sicmutils.env/sicmutils-repl-init)
@@ -41,8 +40,9 @@
                    :benchmark :benchmark}
   :profiles {:uberjar {:aot :all}
              :travis {:jvm-opts ["-Xmx512M"]}
-             :dev {:dependencies [[org.clojure/test.check "0.9.0"]
-                                  [criterium "0.4.4"]]}
+             :dev {:dependencies [[org.clojure/test.check "1.0.0"]
+                                  [criterium "0.4.5"]]}
              :test {:jvm-opts ["-Xmx512m"]
-                    :dependencies [[org.clojure/test.check "0.9.0"]
-                                   [criterium "0.4.4"]]}})
+                    :dependencies [[org.clojure/test.check "1.0.0"]
+                                   [criterium "0.4.5"]]}}
+  :deploy-repositories [["clojars" {:sign-releases false}]])

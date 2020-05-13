@@ -303,16 +303,6 @@ capability. For example, to run the demonstration script in
 $ lein repl < demo.clj
 ~~~
 
-You can also make an uberjar with `lein uberjar`, and then run it with
-`java -jar`. That will start a REPL, but not a fancy one with command editing
-like `lein repl` would provide. It's faster, though, since all of the
-compilation has been done ahead of time.
-
-~~~ sh
-$ lein uberjar
-$ java -jar target/uberjar/sicmutils-${VERSION}-standalone.jar  < demo.clj
-~~~
-
 To run the test suite:
 
 ~~~ sh
