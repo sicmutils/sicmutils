@@ -18,7 +18,11 @@
 ;
 
 (ns sicmutils.rules
-  (:require [pattern.rule :refer [ruleset rule-simplifier]]))
+  (:require
+   #?(:clj [pattern.rule :refer [ruleset rule-simplifier]]
+      :cljs [pattern.rule
+             :refer [rule-simplifier]
+             :refer-macros [ruleset]])))
 
 (defn ^:private more-than-two? [x] (and (number? x) (> x 2)))
 (defn ^:private at-least-two? [x] (and (number? x) (>= x 2)))
