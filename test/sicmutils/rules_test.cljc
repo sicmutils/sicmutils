@@ -18,26 +18,30 @@
 ;
 
 (ns sicmutils.rules-test
-  (:require [clojure.test :refer :all]
-            [sicmutils.rules :refer :all]))
+  (:require #?(:clj  [clojure.test :refer :all]
+               :cljs [cljs.test :refer-macros [is deftest]])
+            [sicmutils.rules :as r]))
 
 (deftest simplify-square-roots-test
-  (let [s simplify-square-roots]
+  (let [s r/simplify-square-roots]
     (is (= '(expt x 4) (s '(expt (sqrt x) 8))))
     (is (= '(* (sqrt x) (expt x 3)) (s '(expt (sqrt x) 7))))
     (is (= '(expt x 4) (s '(sqrt (expt x 8)))))
     (is (= '(sqrt (expt x 7)) (s '(sqrt (expt x 7)))))))
 
 (deftest divide-numbers-through-test
-  (let [d divide-numbers-through]
-    (is (= 1/2 (d '(/ 1 2))))
+  (let [d r/divide-numbers-through
+        ;; cljs doesn't support ratios.
+        one-half #?(:clj 1/2
+                    :cljs 0.5)]
+    (is (= one-half (d '(/ 1 2))))
     (is (= 'x (d '(* 1 x))))
     (is (= '(* x y z) (d '(* 1 x y z))))
     (is (= '(*) (d '(* 1))))
     (is (= '(+ (/ a 3) (/ b 3) (/ c 3)) (d '(/ (+ a b c) 3))))))
 
 (deftest sincos-flush-ones-test
-  (let [s sincos-flush-ones]
+  (let [s r/sincos-flush-ones]
     (is (= '(+ 1 a b c c d e f g)
            (s '(+ a b c (expt (sin x) 2) c d (expt (cos x) 2) e f g))))
     (is (= '(+ (* (expt (cos x) 2) (expt (cos x) 1)) c (expt (sin x) 2) d e)
@@ -48,7 +52,7 @@
            (s '(+ c (expt (sin x) 5)  d (expt (cos x) 3) e ))))))
 
 (deftest sin-sq->cos-sq-test
-  (let [s sin-sq->cos-sq]
+  (let [s r/sin-sq->cos-sq]
     (is (= '(+ 3 x
                (* (* (* (expt (sin x) 1)
                         (- 1 (expt (cos x) 2)))
