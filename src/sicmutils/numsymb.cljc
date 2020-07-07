@@ -25,7 +25,8 @@
              [euclid :as euclid]
              [expression :as x]]
             [clojure.math.numeric-tower :as nt])
-  (:import (clojure.lang Symbol)))
+  #?(:clj
+     (:import (clojure.lang Symbol))))
 
 (defn ^:private numerical-expression
   [expr]
@@ -277,7 +278,7 @@
      (make-numsymb-expression ~symbolic-operation [a#])))
 
 (derive Symbol ::x/numerical-expression)
-(derive Number ::x/numerical-expression)
+(derive #?(:clj Number :cljs js/Number) ::numerical-expression)
 
 (define-binary-operation g/add add)
 (define-binary-operation g/sub sub)

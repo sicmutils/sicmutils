@@ -2,6 +2,7 @@
   (:require [doo.runner :refer-macros [doo-tests]]
             [pattern.match-test]
             [pattern.rule-test]
+            [sicmutils.euclid-test]
             [sicmutils.expression-test]
             [sicmutils.generic-test]
             [sicmutils.rules-test]
@@ -9,6 +10,7 @@
 
 (doo-tests 'pattern.match-test
            'pattern.rule-test
+           'sicmutils.euclid-test
            'sicmutils.expression-test
            'sicmutils.generic-test
            'sicmutils.rules-test
