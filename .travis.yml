@@ -2,3 +2,9 @@ language: clojure
 branches:
   only:
     - master
+cache:
+  directories:
+  - $HOME/.m2
+script:
+  - lein test
+  - lein test-cljs
