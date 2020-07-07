@@ -45,8 +45,20 @@
 
 (def ^:private object-name-map (atom {}))
 
-;; TODO convert here.
-(extend-type Object
+(defn unsupported [s]
+  (throw
+   #?(:clj (UnsupportedOperationException. s)
+      :cljs (js/Error s))))
+
+(defn illegal [s]
+  (throw
+   #?(:clj (IllegalArgumentException. s)
+      :cljs (js/Error s))))
+
+#?(:cljs
+   (def ^:private ratio? (constantly false)))
+
+(extend-type #?(:clj Object :cljs default)
   Value
   (nullity? [o] (and (number? o) (core-zero? o)))
   (numerical? [_] false)
@@ -58,9 +70,11 @@
                                                             (constantly 0)
                                                             {:arity (arity o)
                                                              :from :object-zero-like})
-                       :else (throw (UnsupportedOperationException. (str "zero-like: " o)))))
-  (one-like [o] (cond (number? o) 1
-                      :else (throw (UnsupportedOperationException. (str "one-like: " o)))))
+
+                       :else (unsupported (str "zero-like: " o))))
+  (one-like [o] (if (number? o)
+                  1
+                  (unsupported (str "one-like: " o))))
   (freeze [o] (cond
                 (vector? o) (mapv freeze o)
                 (sequential? o) (map freeze o)
@@ -86,14 +100,8 @@
 ;;   [:between m n]
 ;;   [:at-least m]
 
-;; TODO fix.
-(def ^:private reflect-on-arity
-  "Returns the arity of the function f.
-  Computing arities of clojure functions is a bit complicated.
-  It involves reflection, so the results are definitely worth
-  memoizing."
-  (memoize
-   (fn [f]
+#?(:clj
+   (defn jvm-arity [f]
      (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
            ;; tally up arities of invoke, doInvoke, and
            ;; getRequiredArity methods. Filter out invokeStatic.
@@ -127,9 +135,64 @@
               (= 3 (second (first (:getRequiredArity facts))))
               (:doInvoke facts))
          [:exactly 1]
-         :else (throw (IllegalArgumentException. (str "arity? " f " " facts))))))))
+         :else (illegal (str "arity? " f " " facts)))))
 
-;; TODO fix multifn reference
+   :cljs
+   (do
+     (defn variadic?
+       "Returns true if the supplied function is variadic, false otherwise."
+       [f]
+       (boolean (.-cljs$lang$maxFixedArity f)))
+
+     (defn exposed-arities
+       "When CLJS functions have different arities, the function is represented as a js
+  object with each arity storied under its own key."
+       [f]
+       (let [parse (fn [s]
+                     (when-let [arity (re-find (re-pattern #"invoke\$arity\$\d+") s)]
+                       (js/parseInt (subs arity 13))))
+             arities (->> (map parse (js-keys f))
+                          (concat [(.-cljs$lang$maxFixedArity f)])
+                          (remove nil?)
+                          (into #{}))]
+         (if (empty? arities)
+           [(alength f)]
+           (sort arities))))
+
+     (defn js-arity
+       "Returns a data structure indicating the arity of the supplied function."
+       [f]
+       (let [arities (exposed-arities f)]
+         (cond (variadic? f)
+               (if (= [0 1 2 3] arities)
+                 ;; Rule 3, where we assume that any function that's variadic and
+                 ;; that has defined these particular arities is a "compose"
+                 ;; function... and therefore takes a single argument.
+                 [:exactly 1]
+
+                 ;; this case is where we know we have variadic args, so we set
+                 ;; a minimum. This could break if some arity was missing
+                 ;; between the smallest and the variadic case.
+                 [:at-least (first arities)])
+
+               ;; This corresponds to rule 1 in the JVM case. We have a single
+               ;; arity and no evidence of a variadic function.
+               (= 1 (count arities)) [:exactly (first arities)]
+
+               ;; This is a departure from the JVM rules. A potential error here
+               ;; would occur if someone defined arities 1 and 3, but missed 2.
+               :else [:between
+                      (first arities)
+                      (last arities)])))))
+
+(def ^:private reflect-on-arity
+  "Returns the arity of the function f.
+  Computing arities of clojure functions is a bit complicated.
+  It involves reflection, so the results are definitely worth
+  memoizing."
+  (memoize
+   #?(:cljs js-arity :clj jvm-arity)))
+
 (defn arity
   "Return the cached or obvious arity of the object if we know it.
   Otherwise delegate to the heavy duty reflection, if we have to."
@@ -144,12 +207,11 @@
             ;; Faute de mieux, we assume the function is unary. Most math functions are.
             :else [:exactly 1])))
 
-;; TODO fix exception.
 (defn ^:private combine-arities
   "Find the joint arity of arities a and b, i.e. the loosest possible arity specification
   compatible with both. Throws if the arities are incompatible."
   [a b]
-  (let [fail #(throw (IllegalArgumentException. (str "Incompatible arities: " a " " b)))]
+  (let [fail #(illegal (str "Incompatible arities: " a " " b))]
     ;; since the combination operation is symmetric, sort the arguments
     ;; so that we only have to implement the upper triangle of the
     ;; relation.
@@ -181,11 +243,10 @@
   [arities]
   (reduce combine-arities [:at-least 0] arities))
 
-;; TODO fix the multifn reference.
 (defn ^:private primitive-kind
   [a]
   (cond
-    (or (fn? a) (= (class a) MultiFn)) ::function
+    (or (fn? a) (instance? MultiFn a)) ::function
     :else (or (:type a)
               (type a))))
 
