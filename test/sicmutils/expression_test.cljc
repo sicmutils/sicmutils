@@ -28,7 +28,12 @@
     (is (= '#{x} (e/variables-in 'x)))
     )
   (testing "walk"
-    (is (= 12 (e/walk-expression '(+ 3 4 x) {'x 5} {'+ +} )))
+    (is (= 12 (e/walk-expression '(+ 3 4 x) {'x 5} {'+ +})))
     (is (= 0 (e/walk-expression '(+ 3 (* 4 y) x) {'x 5 'y -2} {'* * '+ +})))
     (is (thrown? #?(:clj Exception :cljs js/Error)
                  (e/walk-expression '(+ 3 (* 4 y) x) {'x 5 'y -2} {'+ +})))))
+
+(deftest is-expression
+  (is (e/expression?
+       (->> (e/literal-number '(* 4 3)))))
+  (is (not (e/expression? "face"))))

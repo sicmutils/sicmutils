@@ -41,12 +41,18 @@
 (defn fmap
   "Applies f to the expression part of e and creates from that an Expression otherwise like e."
   [f e]
-  (->> e :expression f (->Expression (:type e))))
+  (->Expression (:type e)
+                (f (:expression e))))
 
 (defn abstract? [^Expression x]
   ;; TODO: GJS also allows for up, down, matrix here. We do not yet have
   ;; abstract structures.
   (= (:type x) ::numerical-expression))
+
+(defn expression?
+  "Returns true if the argument is an expression, false otherwise."
+  [x]
+  (instance? Expression x))
 
 (defn expression-of
   [expr]
