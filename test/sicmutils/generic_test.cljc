@@ -19,10 +19,10 @@
 
 (ns sicmutils.generic-test
   (:refer-clojure :exclude [+ - * / zero?])
-  (:require [clojure.test :refer :all]
-            [sicmutils
-             [value :as v]
-             [generic :refer :all]]))
+  (:require #?(:clj  [clojure.test :refer :all]
+               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+            [sicmutils.value :as v]
+            [sicmutils.generic :as g]))
 
 (defmulti s* v/argument-kind)
 (defmulti s+ v/argument-kind)
@@ -35,10 +35,13 @@
   [s t]
   (apply str (for [cs s ct t] (str cs ct))))
 
-(defmethod s* [Number String] [n s] (multiply-string n s))
-(defmethod s* [String Number] [s n] (multiply-string n s))
-(defmethod s* [String String] [s t] (product-string s t))
-(defmethod s+ [String String] [s t] (str s t))
+(def number #?(:clj Number :cljs js/Number))
+(def string #?(:clj String :cljs js/String))
+
+(defmethod s* [number string] [n s] (multiply-string n s))
+(defmethod s* [string number] [s n] (multiply-string n s))
+(defmethod s* [string string] [s t] (product-string s t))
+(defmethod s+ [string string] [s t] (str s t))
 
 (deftest handler-fn
   (testing "multiply-string"
@@ -58,13 +61,13 @@
 
 (deftest generic-plus
   (testing "simple"
-    (is (= 0 (+)))
-    (is (= 7 (+ 7)))
-    (is (= 7 (+ 3 4))))
+    (is (= 0 (g/+)))
+    (is (= 7 (g/+ 7)))
+    (is (= 7 (g/+ 3 4))))
   (testing "many"
-    (is (= 33 (+ 3 4 5 6 7 8)))))
+    (is (= 33 (g/+ 3 4 5 6 7 8)))))
 
 (deftest type-assigner
   (testing "types"
-    (is (= Long (v/kind 9)))
-    (is (= Double (v/kind 99.0)))))
+    (is (= #?(:clj Long :cljs js/Number) (v/kind 9)))
+    (is (= #?(:clj Double :cljs js/Number) (v/kind 99.0)))))

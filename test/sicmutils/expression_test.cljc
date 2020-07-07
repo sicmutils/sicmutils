@@ -18,20 +18,22 @@
 ;
 
 (ns sicmutils.expression-test
-  (:require [clojure.test :refer :all]
-            [sicmutils.expression :refer :all]))
+  (:require #?(:clj  [clojure.test :refer :all]
+               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+            [sicmutils.expression :as e]))
 
 (deftest expressions
   (testing "variables-in"
-    (is (= '#{a b c d x y * +} (variables-in '(+ x (* 3 y) [a [b 9 c] [3 4 5 d]]))))
-    (is (= '#{x} (variables-in 'x)))
+    (is (= '#{a b c d x y * +} (e/variables-in '(+ x (* 3 y) [a [b 9 c] [3 4 5 d]]))))
+    (is (= '#{x} (e/variables-in 'x)))
     )
   (testing "walk"
-    (is (= 12 (walk-expression '(+ 3 4 x) {'x 5} {'+ +} )))
-    (is (= 0 (walk-expression '(+ 3 (* 4 y) x) {'x 5 'y -2} {'* * '+ +})))
-    (is (thrown? Exception
-                 (walk-expression '(+ 3 (* 4 y) x) {'x 5 'y -2} {'+ +})))))
+    (is (= 12 (e/walk-expression '(+ 3 4 x) {'x 5} {'+ +})))
+    (is (= 0 (e/walk-expression '(+ 3 (* 4 y) x) {'x 5 'y -2} {'* * '+ +})))
+    (is (thrown? #?(:clj Exception :cljs js/Error)
+                 (e/walk-expression '(+ 3 (* 4 y) x) {'x 5 'y -2} {'+ +})))))
 
-(deftest foo
-  (testing "foo"
-    (is (= 1 1))))
+(deftest is-expression
+  (is (e/expression?
+       (->> (e/literal-number '(* 4 3)))))
+  (is (not (e/expression? "face"))))
