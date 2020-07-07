@@ -19,9 +19,11 @@
 
 (ns sicmutils.value
   (:refer-clojure :rename {zero? core-zero?})
-  (:require [clojure.core.match :refer [match]])
-  (:import (clojure.lang RestFn MultiFn Keyword Symbol)
-           (java.lang.reflect Method)))
+  (:require #?(:clj [clojure.core.match :refer [match]]
+               :cljs [cljs.core.match :refer-macros [match]]))
+  #?(:clj
+     (:import (clojure.lang RestFn MultiFn Keyword Symbol)
+              (java.lang.reflect Method))))
 
 (defprotocol Value
   (numerical? [this])
@@ -43,6 +45,7 @@
 
 (def ^:private object-name-map (atom {}))
 
+;; TODO convert here.
 (extend-type Object
   Value
   (nullity? [o] (and (number? o) (core-zero? o)))
@@ -83,6 +86,7 @@
 ;;   [:between m n]
 ;;   [:at-least m]
 
+;; TODO fix.
 (def ^:private reflect-on-arity
   "Returns the arity of the function f.
   Computing arities of clojure functions is a bit complicated.
@@ -91,40 +95,41 @@
   (memoize
    (fn [f]
      (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
-                     ;; tally up arities of invoke, doInvoke, and
-                     ;; getRequiredArity methods. Filter out invokeStatic.
-                     ^RestFn rest-fn f
-                     facts (group-by first
-                                     (for [^Method m methods
-                                           :let [name (.getName m)]
-                                           :when (not= name "invokeStatic")]
-                                       (condp = name
-                                         "invoke" [:invoke (alength (.getParameterTypes m))]
-                                         "doInvoke" [:doInvoke true]
-                                         "getRequiredArity" [:getRequiredArity (.getRequiredArity rest-fn)])))]
-                 (cond
-                   ;; Rule one: if all we have is one single case of invoke, then the
-                   ;; arity is the arity of that method. This is the common case.
-                   (and (= 1 (count facts))
-                        (= 1 (count (:invoke facts))))
-                   [:exactly (second (first (:invoke facts)))]
-                   ;; Rule two: if we have exactly one doInvoke and getRequiredArity,
-                   ;; and possibly an invokeStatic, then the arity at
-                   ;; least the result of .getRequiredArity.
-                   (and (= 2 (count facts))
-                        (= 1 (count (:doInvoke facts)))
-                        (= 1 (count (:getRequiredArity facts))))
-                   [:at-least (second (first (:getRequiredArity facts)))]
-                   ;; Rule three: if we have invokes for the arities 0..3, getRequiredArity
-                   ;; says 3, and we have doInvoke, then we consider that this function
-                   ;; was probably produced by Clojure's core "comp" function, and
-                   ;; we somewhat lamely consider the arity of the composed function 1.
-                   (and (= #{0 1 2 3} (into #{} (map second (:invoke facts))))
-                        (= 3 (second (first (:getRequiredArity facts))))
-                        (:doInvoke facts))
-                   [:exactly 1]
-                   :else (throw (IllegalArgumentException. (str "arity? " f " " facts))))))))
+           ;; tally up arities of invoke, doInvoke, and
+           ;; getRequiredArity methods. Filter out invokeStatic.
+           ^RestFn rest-fn f
+           facts (group-by first
+                           (for [^Method m methods
+                                 :let [name (.getName m)]
+                                 :when (not= name "invokeStatic")]
+                             (condp = name
+                               "invoke" [:invoke (alength (.getParameterTypes m))]
+                               "doInvoke" [:doInvoke true]
+                               "getRequiredArity" [:getRequiredArity (.getRequiredArity rest-fn)])))]
+       (cond
+         ;; Rule one: if all we have is one single case of invoke, then the
+         ;; arity is the arity of that method. This is the common case.
+         (and (= 1 (count facts))
+              (= 1 (count (:invoke facts))))
+         [:exactly (second (first (:invoke facts)))]
+         ;; Rule two: if we have exactly one doInvoke and getRequiredArity,
+         ;; and possibly an invokeStatic, then the arity at
+         ;; least the result of .getRequiredArity.
+         (and (= 2 (count facts))
+              (= 1 (count (:doInvoke facts)))
+              (= 1 (count (:getRequiredArity facts))))
+         [:at-least (second (first (:getRequiredArity facts)))]
+         ;; Rule three: if we have invokes for the arities 0..3, getRequiredArity
+         ;; says 3, and we have doInvoke, then we consider that this function
+         ;; was probably produced by Clojure's core "comp" function, and
+         ;; we somewhat lamely consider the arity of the composed function 1.
+         (and (= #{0 1 2 3} (into #{} (map second (:invoke facts))))
+              (= 3 (second (first (:getRequiredArity facts))))
+              (:doInvoke facts))
+         [:exactly 1]
+         :else (throw (IllegalArgumentException. (str "arity? " f " " facts))))))))
 
+;; TODO fix multifn reference
 (defn arity
   "Return the cached or obvious arity of the object if we know it.
   Otherwise delegate to the heavy duty reflection, if we have to."
@@ -139,6 +144,7 @@
             ;; Faute de mieux, we assume the function is unary. Most math functions are.
             :else [:exactly 1])))
 
+;; TODO fix exception.
 (defn ^:private combine-arities
   "Find the joint arity of arities a and b, i.e. the loosest possible arity specification
   compatible with both. Throws if the arities are incompatible."
@@ -175,6 +181,7 @@
   [arities]
   (reduce combine-arities [:at-least 0] arities))
 
+;; TODO fix the multifn reference.
 (defn ^:private primitive-kind
   [a]
   (cond
