@@ -46,7 +46,11 @@
   :profiles {:uberjar {:aot :all}
              :travis {:jvm-opts ["-Xmx512M"]}
              :dev {:plugins [~cljsbuild
+                             [lein-cloverage "1.1.2"]
                              [lein-doo "0.1.11"]]
+                   :cloverage {:ns-exclude-regex [#"sicmutils.rules"
+                                                  #"sicmutils.simplify"
+                                                  #"sicmutils.calculus.manifold"]}
                    :repl-options {:nrepl-middleware
                                   [cider.piggieback/wrap-cljs-repl]}
                    :dependencies [[org.clojure/test.check "0.9.0"]
