@@ -52,7 +52,7 @@
   [expr]
   (cond (instance? Expression expr) (:expression expr)
         (symbol? expr) expr
-        :else (throw (IllegalArgumentException. (str "unknown expression type:" expr)))))
+        :else (v/illegal (str "unknown expression type:" expr))))
 
 (defn variables-in
   "Return the 'variables' (e.g. symbols) found in the expression x,
