@@ -19,9 +19,11 @@
 
 (ns sicmutils.value
   (:refer-clojure :rename {zero? core-zero?})
-  (:require [clojure.core.match :refer [match]])
-  (:import (clojure.lang RestFn MultiFn Keyword Symbol)
-           (java.lang.reflect Method)))
+  (:require #?(:clj [clojure.core.match :refer [match]]
+               :cljs [cljs.core.match :refer-macros [match]]))
+  #?(:clj
+     (:import (clojure.lang RestFn MultiFn Keyword Symbol)
+              (java.lang.reflect Method))))
 
 (defprotocol Value
   (numerical? [this])
@@ -43,7 +45,20 @@
 
 (def ^:private object-name-map (atom {}))
 
-(extend-type Object
+(defn unsupported [s]
+  (throw
+   #?(:clj (UnsupportedOperationException. s)
+      :cljs (js/Error s))))
+
+(defn illegal [s]
+  (throw
+   #?(:clj (IllegalArgumentException. s)
+      :cljs (js/Error s))))
+
+#?(:cljs
+   (def ^:private ratio? (constantly false)))
+
+(extend-type #?(:clj Object :cljs default)
   Value
   (nullity? [o] (and (number? o) (core-zero? o)))
   (numerical? [_] false)
@@ -55,9 +70,11 @@
                                                             (constantly 0)
                                                             {:arity (arity o)
                                                              :from :object-zero-like})
-                       :else (throw (UnsupportedOperationException. (str "zero-like: " o)))))
-  (one-like [o] (cond (number? o) 1
-                      :else (throw (UnsupportedOperationException. (str "one-like: " o)))))
+
+                       :else (unsupported (str "zero-like: " o))))
+  (one-like [o] (if (number? o)
+                  1
+                  (unsupported (str "one-like: " o))))
   (freeze [o] (cond
                 (vector? o) (mapv freeze o)
                 (sequential? o) (map freeze o)
@@ -83,47 +100,98 @@
 ;;   [:between m n]
 ;;   [:at-least m]
 
+#?(:clj
+   (defn jvm-arity [f]
+     (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
+           ;; tally up arities of invoke, doInvoke, and
+           ;; getRequiredArity methods. Filter out invokeStatic.
+           ^RestFn rest-fn f
+           facts (group-by first
+                           (for [^Method m methods
+                                 :let [name (.getName m)]
+                                 :when (not= name "invokeStatic")]
+                             (condp = name
+                               "invoke" [:invoke (alength (.getParameterTypes m))]
+                               "doInvoke" [:doInvoke true]
+                               "getRequiredArity" [:getRequiredArity (.getRequiredArity rest-fn)])))]
+       (cond
+         ;; Rule one: if all we have is one single case of invoke, then the
+         ;; arity is the arity of that method. This is the common case.
+         (and (= 1 (count facts))
+              (= 1 (count (:invoke facts))))
+         [:exactly (second (first (:invoke facts)))]
+         ;; Rule two: if we have exactly one doInvoke and getRequiredArity,
+         ;; and possibly an invokeStatic, then the arity at
+         ;; least the result of .getRequiredArity.
+         (and (= 2 (count facts))
+              (= 1 (count (:doInvoke facts)))
+              (= 1 (count (:getRequiredArity facts))))
+         [:at-least (second (first (:getRequiredArity facts)))]
+         ;; Rule three: if we have invokes for the arities 0..3, getRequiredArity
+         ;; says 3, and we have doInvoke, then we consider that this function
+         ;; was probably produced by Clojure's core "comp" function, and
+         ;; we somewhat lamely consider the arity of the composed function 1.
+         (and (= #{0 1 2 3} (into #{} (map second (:invoke facts))))
+              (= 3 (second (first (:getRequiredArity facts))))
+              (:doInvoke facts))
+         [:exactly 1]
+         :else (illegal (str "arity? " f " " facts)))))
+
+   :cljs
+   (do
+     (defn variadic?
+       "Returns true if the supplied function is variadic, false otherwise."
+       [f]
+       (boolean (.-cljs$lang$maxFixedArity f)))
+
+     (defn exposed-arities
+       "When CLJS functions have different arities, the function is represented as a js
+  object with each arity storied under its own key."
+       [f]
+       (let [parse (fn [s]
+                     (when-let [arity (re-find (re-pattern #"invoke\$arity\$\d+") s)]
+                       (js/parseInt (subs arity 13))))
+             arities (->> (map parse (js-keys f))
+                          (concat [(.-cljs$lang$maxFixedArity f)])
+                          (remove nil?)
+                          (into #{}))]
+         (if (empty? arities)
+           [(alength f)]
+           (sort arities))))
+
+     (defn js-arity
+       "Returns a data structure indicating the arity of the supplied function."
+       [f]
+       (let [arities (exposed-arities f)]
+         (cond (variadic? f)
+               (if (= [0 1 2 3] arities)
+                 ;; Rule 3, where we assume that any function that's variadic and
+                 ;; that has defined these particular arities is a "compose"
+                 ;; function... and therefore takes a single argument.
+                 [:exactly 1]
+
+                 ;; this case is where we know we have variadic args, so we set
+                 ;; a minimum. This could break if some arity was missing
+                 ;; between the smallest and the variadic case.
+                 [:at-least (first arities)])
+
+               ;; This corresponds to rule 1 in the JVM case. We have a single
+               ;; arity and no evidence of a variadic function.
+               (= 1 (count arities)) [:exactly (first arities)]
+
+               ;; This is a departure from the JVM rules. A potential error here
+               ;; would occur if someone defined arities 1 and 3, but missed 2.
+               :else [:between
+                      (first arities)
+                      (last arities)])))))
+
 (def ^:private reflect-on-arity
   "Returns the arity of the function f.
   Computing arities of clojure functions is a bit complicated.
   It involves reflection, so the results are definitely worth
   memoizing."
   (memoize
-   (fn [f]
-     (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
-                     ;; tally up arities of invoke, doInvoke, and
-                     ;; getRequiredArity methods. Filter out invokeStatic.
-                     ^RestFn rest-fn f
-                     facts (group-by first
-                                     (for [^Method m methods
-                                           :let [name (.getName m)]
-                                           :when (not= name "invokeStatic")]
-                                       (condp = name
-                                         "invoke" [:invoke (alength (.getParameterTypes m))]
-                                         "doInvoke" [:doInvoke true]
-                                         "getRequiredArity" [:getRequiredArity (.getRequiredArity rest-fn)])))]
-                 (cond
-                   ;; Rule one: if all we have is one single case of invoke, then the
-                   ;; arity is the arity of that method. This is the common case.
-                   (and (= 1 (count facts))
-                        (= 1 (count (:invoke facts))))
-                   [:exactly (second (first (:invoke facts)))]
-                   ;; Rule two: if we have exactly one doInvoke and getRequiredArity,
-                   ;; and possibly an invokeStatic, then the arity at
-                   ;; least the result of .getRequiredArity.
-                   (and (= 2 (count facts))
-                        (= 1 (count (:doInvoke facts)))
-                        (= 1 (count (:getRequiredArity facts))))
-                   [:at-least (second (first (:getRequiredArity facts)))]
-                   ;; Rule three: if we have invokes for the arities 0..3, getRequiredArity
-                   ;; says 3, and we have doInvoke, then we consider that this function
-                   ;; was probably produced by Clojure's core "comp" function, and
-                   ;; we somewhat lamely consider the arity of the composed function 1.
-                   (and (= #{0 1 2 3} (into #{} (map second (:invoke facts))))
-                        (= 3 (second (first (:getRequiredArity facts))))
-                        (:doInvoke facts))
-                   [:exactly 1]
-                   :else (throw (IllegalArgumentException. (str "arity? " f " " facts))))))))
+   #?(:cljs js-arity :clj jvm-arity)))
 
 (defn arity
   "Return the cached or obvious arity of the object if we know it.
@@ -143,7 +211,7 @@
   "Find the joint arity of arities a and b, i.e. the loosest possible arity specification
   compatible with both. Throws if the arities are incompatible."
   [a b]
-  (let [fail #(throw (IllegalArgumentException. (str "Incompatible arities: " a " " b)))]
+  (let [fail #(illegal (str "Incompatible arities: " a " " b))]
     ;; since the combination operation is symmetric, sort the arguments
     ;; so that we only have to implement the upper triangle of the
     ;; relation.
@@ -178,7 +246,7 @@
 (defn ^:private primitive-kind
   [a]
   (cond
-    (or (fn? a) (= (class a) MultiFn)) ::function
+    (or (fn? a) (instance? MultiFn a)) ::function
     :else (or (:type a)
               (type a))))
 

@@ -311,6 +311,15 @@ $ lein test
 
 `lein test :all` will run some additional tests that may take a while to execute.
 
+## Clojurescript
+
+The library is currently (July, 2020) going through a slow port to
+Clojurescript. To run the Clojurescript test suite:
+
+~~~ sh
+$ lein test-cljs
+~~~
+
 ## License
 
 GPL v3.

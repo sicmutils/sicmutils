@@ -18,7 +18,7 @@
 ;
 
 (ns pattern.rule
-  (:require [pattern.match :refer :all]))
+  (:require [pattern.match :as m]))
 
 ;; Inspired by Gerald Jay Sussman's lecture notes for MIT 6.945
 ;; http://groups.csail.mit.edu/mac/users/gjs/6.945/
@@ -32,13 +32,13 @@
   variables to their desired substitutions."
   [frame-symbol consequence]
   (cond
-    (segment-reference? consequence)
-    (let [v (variable consequence)
+    (m/segment-reference? consequence)
+    (let [v (m/variable consequence)
           function-of-frame (if (symbol? v) `(quote ~v) v)]
       `(~function-of-frame ~frame-symbol))
 
-    (variable-reference? consequence)
-    (let [v (variable consequence)
+    (m/variable-reference? consequence)
+    (let [v (m/variable consequence)
           function-of-frame (if (symbol? v) `(quote ~v) v)]
       `(list (~function-of-frame ~frame-symbol)))
 
@@ -64,7 +64,7 @@
   "Replace form with code that will construct the equivalent form with
   variable predicate values exposed to evaluation (see above)."
   [form]
-  (cond (variable-reference-with-predicate? form) (expose-predicate form)
+  (cond (m/variable-reference-with-predicate? form) (expose-predicate form)
         (list? form) (cons 'list (map prepare-pattern form))
         (symbol? form) `(quote ~form)
         :else form))
@@ -81,10 +81,10 @@
         frame-symbol (gensym)
         compiled-consequence (compile-consequence frame-symbol consequence)
         replace-if (if (= predicate? '=>) `(constantly true) predicate?)]
-    `(let [matcher# (pattern->matcher ~prepared-pattern)]
+    `(let [matcher# (m/pattern->matcher ~prepared-pattern)]
        (fn apply#
          [data# continue#]
-         (if-let [~frame-symbol (match matcher# data# ~replace-if)]
+         (if-let [~frame-symbol (m/match matcher# data# ~replace-if)]
            (continue# (first ~compiled-consequence)))))))
 
 (defmacro rule
