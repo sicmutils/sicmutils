@@ -1,36 +1,36 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.generic
-  (:refer-clojure :rename {/ core-div}
-                  :exclude [+ - *])
-  (:require [sicmutils
-             [value :as v]
-             [expression :as x]])
-  (:import [sicmutils.expression Expression]
-           (clojure.lang Keyword)))
+  (:refer-clojure :rename {/ core-div
+                           + core-plus
+                           - core-minus
+                           * core-times}
+                  #?@(:cljs [:exclude [/ + - * divide]]))
+  (:require [sicmutils.value :as v]
+            [sicmutils.expression :as x])
+  #?(:cljs (:require-macros [sicmutils.generic :refer [def-generic-function]])))
 
 ;;; classifiers
 
 (defn literal-number?
   [x]
-
   (= (:type x) ::x/numerical-expression))
 
 (defn abstract-number?
@@ -39,7 +39,7 @@
 
 (defn abstract-quantity?
   [x]
-  (and (instance? Expression x)
+  (and (x/expression? x)
        (x/abstract? x)))
 
 (defn numerical-quantity?
@@ -48,16 +48,29 @@
       (abstract-number? x)
       (v/numerical? x)))
 
+(defmacro ^:private fork
+  "I borrowed this lovely, mysterious macro from `macrovich`:
+  https://github.com/cgrand/macrovich. This allows us to fork behavior inside of
+  a macro at macroexpansion time, not at read time."
+  [& {:keys [cljs clj]}]
+  (if (contains? &env '&env)
+    `(if (:ns ~'&env) ~cljs ~clj)
+    (if #?(:clj (:ns &env) :cljs true)
+      cljs
+      clj)))
+
 (defmacro ^:private def-generic-function
-  "Defines a mutlifn using the provided symbol. Arranges for the multifn
+  "Defines a multifn using the provided symbol. Arranges for the multifn
   to answer the :arity message, reporting either [:exactly a] or
   [:between a b], according to the arguments given."
   [f a & b]
   (let [arity (if b `[:between ~a ~@b] [:exactly a])
-        docstring (str "generic " f)]
+        docstring (str "generic " f)
+        klass (fork :clj clojure.lang.Keyword :cljs 'cljs.core/Keyword)]
     `(do
        (defmulti ~f ~docstring v/argument-kind)
-       (defmethod ~f [Keyword] [k#] ({:arity ~arity :name '~f} k#)))))
+       (defmethod ~f [~klass] [k#]
+         ({:arity ~arity :name '~f} k#)))))
 
 (def-generic-function add 2)
 (def-generic-function mul 2)
@@ -97,7 +110,7 @@
 (defmulti simplify v/argument-kind)
 
 (defn ^:private bin+ [a b]
-  (cond (and (number? a) (number? b)) (+' a b)
+  (cond (and (number? a) (number? b)) (#?(:clj +' :cljs core-plus) a b)
         (v/nullity? a) b
         (v/nullity? b) a
         :else (add a b)))
@@ -106,7 +119,7 @@
   (reduce bin+ 0 args))
 
 (defn ^:private bin- [a b]
-  (cond (and (number? a) (number? b)) (-' a b)
+  (cond (and (number? a) (number? b)) (#?(:clj -' :cljs core-minus) a b)
         (v/nullity? b) a
         (v/nullity? a) (negate b)
         :else (sub a b)))
@@ -117,7 +130,7 @@
         :else (bin- (first args) (reduce bin+ (next args)))))
 
 (defn ^:private bin* [a b]
-  (cond (and (number? a) (number? b)) (*' a b)
+  (cond (and (number? a) (number? b)) (#?(:clj *' :cljs core-times) a b)
         (and (number? a) (v/nullity? a)) (v/zero-like b)
         (and (number? b) (v/nullity? b)) (v/zero-like a)
         (v/unity? a) b
