@@ -20,7 +20,9 @@
 (ns sicmutils.euclid-test
   (:require #?(:clj  [clojure.test :refer :all]
                :cljs [cljs.test :as t :refer-macros [is deftest testing]])
-            [sicmutils.euclid :as e]))
+            [sicmutils.numbers]
+            [sicmutils.euclid :as e]
+            [sicmutils.generic :as g]))
 
 (defn ^:private ok
   "Compute the extended Euclid data; ensure that the gcd returned
@@ -44,20 +46,33 @@
       (is (= 1 (e/gcd -8 7) 1))
       (is (= 1 (e/gcd 8 -7) 1))
       (is (= 1 (e/gcd -8 -7) 1))))
+
+  (testing "generic-gcd"
+    (is (= (* 2 5 7) (g/gcd (* 2 3 5 7) (* 2 5 7 11))))
+    (is (= 4 (g/gcd 4 0)))
+    (is (= 4 (g/gcd 0 4)))
+    (is (= 1 (g/gcd 1 4)))
+    (is (= 1 (g/gcd 4 1))))
+
   (testing "extended-gcd"
     (is (= (ok 8 7) 1))
     (is (= (ok 927 632) 1))
     (is (= [3 0 1] (e/extended-gcd 0 3)))
     (is (= [323 1 0] (e/extended-gcd 323 0)))
     (is (= (ok 934132 (* 934132 71)) 934132))
-    (is (= (ok 37279462087332 366983722766) 564958))
-    (is (= (ok 4323874085395 586898689868986900219865) 85))
     (is (= [2 -9 47] (e/extended-gcd 240 46)))
     (is (= [2 1 0] (e/extended-gcd 2 4))))
+
   (testing "lcm"
     (is (= 21 (e/lcm 3 7)))
     (is (= 6 (e/lcm 2 6)))
     (is (= 8 (e/lcm 2 8)))
     (is (= 30 (e/lcm 6 15)))
     (is (= 12 (reduce e/lcm [2 3 4])))
-    (is (= 30 (reduce e/lcm [2 3 5])))))
+    (is (= 30 (reduce e/lcm [2 3 5]))))
+
+  ;; CLJS can't currently handle the precision of these numbers.
+  #?(:clj
+     (testing "high precision gcd"
+       (is (= (ok 37279462087332 366983722766) 564958))
+       (is (= (ok 4323874085395 586898689868986900219865) 85)))))

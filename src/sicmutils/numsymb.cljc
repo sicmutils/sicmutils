@@ -18,13 +18,13 @@
 ;
 
 (ns sicmutils.numsymb
-  (:require [sicmutils
-             [value :as v]
-             [generic :as g]
-             [complex :as c]
-             [euclid :as euclid]
-             [expression :as x]]
-            [clojure.math.numeric-tower :as nt])
+  (:require [sicmutils.complex :as c]
+            [sicmutils.expression :as x]
+            [sicmutils.euclid]
+            [sicmutils.generic :as g]
+            [sicmutils.numbers]
+            [sicmutils.value :as v]
+            #?(:clj [clojure.math.numeric-tower :as nt]))
   #?(:clj
      (:import (clojure.lang Symbol))))
 
@@ -44,6 +44,9 @@
   commencing with s."
   [s]
   (fn [x] (and (seq? x) (= (first x) s))))
+
+(def ^:private compute-sqrt #?(:clj nt/sqrt :cljs Math/sqrt))
+(def ^:private compute-expt #?(:clj nt/expt :cljs Math/pow))
 
 (def ^:private sum? (is-expression? '+))
 (def product? (is-expression? '*))
@@ -224,10 +227,10 @@
 (defn sqrt [s]
   (if (number? s)
     (if-not (v/exact? s)
-      (nt/sqrt s)
+      (compute-sqrt s)
       (cond (v/nullity? s) s
             (v/unity? s) 1
-            :else (let [q (nt/sqrt s)]
+            :else (let [q (compute-sqrt s)]
                     (if (v/exact? q)
                       q
                       `(~'sqrt ~s)))))
@@ -248,7 +251,7 @@
     `(~'exp ~s)))
 
 (defn expt [b e]
-  (cond (and (number? b) (number? e)) (nt/expt b e)
+  (cond (and (number? b) (number? e)) (compute-expt b e)
         (number? b) (cond (v/unity? b) 1
                           :else `(~'expt ~b ~e))
         (number? e) (cond (v/nullity? e) 1
@@ -300,8 +303,6 @@
 (define-unary-operation g/exp exp)
 (define-unary-operation g/abs abs)
 (define-unary-operation g/log log)
-
-(defmethod g/gcd [Number Number] [a b] (euclid/gcd a b))
 
 (def ^:private symbolic-operator-table
   {'+ #(reduce add 0 %&)
