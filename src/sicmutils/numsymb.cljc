@@ -244,51 +244,40 @@
   [x]
   `(~'abs ~x))
 
-(defn sqrt
+(defn ^:private delegator
+  "Returns a wrapper around f that attempts to preserve exactness if the input is
+  exact, else passes through to f."
+  [f sym]
+  (fn [s]
+    (if (number? s)
+      (let [q (f s)]
+        (if-not (v/exact? s)
+          q
+          (if (v/exact? q)
+            q
+            `(~sym ~s))))
+      `(~sym ~s))))
+
+(def sqrt
   "Square root implementation that attempts to preserve exact numbers wherever
   possible. If the incoming value is not exact, simply computes sqrt."
-  [s]
-  (if (number? s)
-    (let [q (u/compute-sqrt s)]
-      (if-not (v/exact? s)
-        q
-        (if (v/exact? q)
-          q
-          `(~'sqrt ~s))))
-    `(~'sqrt ~s)))
+  (delegator g/sqrt 'sqrt))
 
-(defn ^:private log
+(def ^:private log
   "Attempts to preserve exact precision if the argument is exact; else, evaluates
   symbolically or numerically."
-  [s]
-  (if (number? s)
-    (if-not (v/exact? s)
-      (Math/log s)
-      (if (v/unity? s)
-        (v/zero-like s)
-        `(~'log ~s)))
-    `(~'log ~s)))
+  (delegator g/log 'log))
 
-(defn ^:private exp
+(def ^:private exp
   "Attempts to preserve exact precision if the argument is exact; else, evaluates
   symbolically or numerically."
-  [s]
-  (if (number? s)
-    (if-not (v/exact? s)
-      (Math/exp s)
-      (if (v/nullity? s)
-        (v/one-like s)
-        `(~'exp ~s)))
-    `(~'exp ~s)))
+  (delegator g/exp 'exp))
 
 (defn expt
   "Attempts to preserve exact precision if either argument is exact; else, evaluates
-  symbolically or numerically.
-
-  TODO the first case could be removed, since it's handled by the number
-  implementation in `sicmutils.numbers`."
+  symbolically or numerically."
   [b e]
-  (cond (and (number? b) (number? e)) (u/compute-expt b e)
+  (cond (and (number? b) (number? e)) (g/expt b e)
         (number? b) (cond (v/unity? b) 1
                           :else `(~'expt ~b ~e))
         (number? e) (cond (v/nullity? e) 1

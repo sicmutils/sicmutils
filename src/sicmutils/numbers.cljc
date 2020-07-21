@@ -63,7 +63,6 @@
   ;; Instead, these implementations for numbers are provided by
   ;; `sicmutils.numsymb`. This allows us to apply simplifications inside each
   ;; operation as it's evaluated.
-  (define-unary-operation g/exp #(Math/exp %))
   (define-unary-operation g/sin #(Math/sin %))
   (define-unary-operation g/cos #(Math/cos %))
   (define-unary-operation g/tan #(Math/tan %)))
@@ -122,6 +121,13 @@
   (cond (neg? a) (g/log (complex a))
         (v/unity? a) (v/zero-like a)
         :else (Math/log a)))
+
+(defmethod g/exp
+  [u/numtype]
+  [a]
+  (if (v/nullity? a)
+    (v/one-like a)
+    (Math/exp a)))
 
 ;; This section defines methods that act differently between clojurescript and
 ;; Clojure. The clojure methods are all slightly more refined based on Java's
