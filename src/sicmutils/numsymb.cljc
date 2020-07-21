@@ -287,6 +287,12 @@
                           :else `(~'expt ~b ~e))
         :else `(~'expt ~b ~e)))
 
+(defn ^:private negate [x]
+  (sub 0 x))
+
+(defn ^:private invert [x]
+  (div 1 x))
+
 (defn ^:private numerical-expression
   [expr]
   (cond (number? expr) expr
@@ -324,8 +330,8 @@
 (define-binary-operation g/div div)
 (define-binary-operation g/expt expt)
 (define-binary-operation g/atan arctangent)
-(define-unary-operation g/negate #(sub 0 %))
-(define-unary-operation g/invert #(div 1 %))
+(define-unary-operation g/negate negate)
+(define-unary-operation g/invert invert)
 (define-unary-operation g/sin sine)
 (define-unary-operation g/asin arcsine)
 (define-unary-operation g/cos cosine)
@@ -342,8 +348,8 @@
    '- sub-n
    '* #(reduce mul 1 %&)
    '/ div-n
-   'negate #(sub 0 %)
-   'invert #(div 1 %)
+   'negate negate
+   'invert invert
    'sin sine
    'asin arcsine
    'cos cosine
