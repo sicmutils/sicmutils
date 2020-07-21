@@ -18,39 +18,23 @@
 ;
 
 (ns sicmutils.numsymb
+  "Implementations of the generic operations for numeric types that have
+  optimizations available, and for the general symbolic case."
   (:require [sicmutils.complex :as c]
-            [sicmutils.util :as u]
-            [sicmutils.expression :as x]
             [sicmutils.euclid]
+            [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.numbers]
             [sicmutils.value :as v]
-            #?(:clj [clojure.math.numeric-tower :as nt]))
+            [sicmutils.util :as u])
   #?(:clj
      (:import (clojure.lang Symbol))))
-
-(defn ^:private numerical-expression
-  [expr]
-  (cond (number? expr) expr
-        (symbol? expr) expr
-        (c/complex? expr) expr
-        (g/literal-number? expr) (:expression expr)
-        :else (u/illegal (str "unknown numerical expression type " expr))))
-
-(defn ^:private make-numsymb-expression [operator operands]
-  (->> operands
-       (map numerical-expression)
-       (apply operator)
-       x/literal-number))
 
 (defn ^:private is-expression?
   "Returns a function which will decide if its argument is a sequence
   commencing with s."
   [s]
   (fn [x] (and (seq? x) (= (first x) s))))
-
-(def ^:private compute-sqrt #?(:clj nt/sqrt :cljs Math/sqrt))
-(def ^:private compute-expt #?(:clj nt/expt :cljs Math/pow))
 
 (def ^:private sum? (is-expression? '+))
 (def product? (is-expression? '*))
@@ -70,6 +54,8 @@
 ;; TODO the branches with both arguments equal to number? are taken care of by
 ;; operations defined by the implementations in `sicmutils.numbers`. Remove them
 ;; here! Or keep, knowing they'll never get hit.
+;;
+;; TODO should these be private?
 
 (defn add [a b]
   (cond (and (number? a) (number? b)) (+ a b)
@@ -176,7 +162,14 @@
   (almost-integer? (/ (- x pi-over-4) pi)))
 (def ^:private symb:pi-over-4-mod-pi? #{'pi-over-4 '+pi-over-4})
 
-(defn ^:private sine [x]
+(defn ^:private sine
+  "Implementation of sine that attempts to apply optimizations at the call site.
+  If it's not possible to do this (if the expression is symbolic, say), returns
+  a symbolic form.
+
+  TODO could we use v/numerical? here? If so, could complex numbers take
+  advantage?"
+  [x]
   (cond (number? x) (cond (zero? x) 0
                           (n:zero-mod-pi? x) 0
                           (n:pi-over-2-mod-2pi? x) 1
@@ -189,10 +182,20 @@
         :else `(~'sin ~x)))
 
 (defn ^:private arcsine
+  "Implementation of arcsine that should only be reached after the standard
+  installed numeric implementation is bypassed. This is called for non-number
+  numerical expressions."
   [x]
   `(~'asin ~x))
 
-(defn ^:private cosine [x]
+(defn ^:private cosine
+  "Implementation of cosine that attempts to apply optimizations at the call site.
+  If it's not possible to do this (if the expression is symbolic, say), returns
+  a symbolic form.
+
+  TODO could we use v/numerical? here? If so, could complex numbers take
+  advantage?"
+  [x]
   (cond (number? x) (cond (zero? x) 1
                           (n:pi-over-2-mod-pi? x) 0
                           (n:zero-mod-2pi? x) 1
@@ -205,10 +208,16 @@
         :else `(~'cos ~x)))
 
 (defn ^:private arccosine
+  "Similar to arcsine, this method should only be reached in cases where the
+  expression is symbolic."
   [x]
   `(~'acos ~x))
 
-(defn ^:private tangent [x]
+(defn ^:private tangent
+  "Implementation of tangent that attempts to apply optimizations at the call site.
+  If it's not possible to do this (if the expression is symbolic, say), returns
+  a symbolic form."
+  [x]
   (cond (number? x) (if (v/exact? x)
                       (if (zero? x) 0 `(~'tan ~x))
                       (cond (n:zero-mod-pi? x) 0.
@@ -226,42 +235,61 @@
         :else `(~'tan ~x)))
 
 (defn arctangent
+  "Similar to arcsine and arccosine, this method should only be reached in cases
+  where the expression is symbolic."
   [y & x]
   (if (or (nil? x) (v/unity? (first x)))
     `(~'atan ~y)
     `(~'atan ~y ~@x)))
 
-(defn ^:private abs [x]
+(defn ^:private abs
+  "Symbolic expression handler for abs."
+  [x]
   `(~'abs ~x))
 
-(defn sqrt [s]
+(defn sqrt
+  "Square root implementation that attempts to preserve exact numbers wherever
+  possible. If the incoming value is not exact, simply computes sqrt."
+  [s]
   (if (number? s)
     (if-not (v/exact? s)
-      (compute-sqrt s)
+      (u/compute-sqrt s)
       (cond (v/nullity? s) s
             (v/unity? s) 1
-            :else (let [q (compute-sqrt s)]
+            :else (let [q (u/compute-sqrt s)]
                     (if (v/exact? q)
                       q
                       `(~'sqrt ~s)))))
     `(~'sqrt ~s)))
 
-(defn ^:private log [s]
+(defn ^:private log
+  "Attempts to preserve exact precision if the argument is exact; else, evaluates
+  symbolically or numerically."
+  [s]
   (if (number? s)
     (if-not (v/exact? s)
       (Math/log s)
       (if (v/unity? s) 0 `(~'log ~s)))
     `(~'log ~s)))
 
-(defn ^:private exp [s]
+(defn ^:private exp
+  "Attempts to preserve exact precision if the argument is exact; else, evaluates
+  symbolically or numerically."
+  [s]
   (if (number? s)
     (if-not (v/exact? s)
       (Math/exp s)
       (if (v/nullity? s) 1 `(~'exp ~s)))
     `(~'exp ~s)))
 
-(defn expt [b e]
-  (cond (and (number? b) (number? e)) (compute-expt b e)
+(defn expt
+  "Attempts to preserve exact precision if either argument is exact; else, evaluates
+  symbolically or numerically.
+
+  TODO the first case could be removed, since it's handled by the number
+  implementation in `sicmutils.numbers`."
+  [b e]
+  (cond (and (number? b) (number? e)) (u/compute-expt b e)
         (number? b) (cond (v/unity? b) 1
                           :else `(~'expt ~b ~e))
         (number? e) (cond (v/nullity? e) 1
@@ -276,6 +304,21 @@
                           (< e 0) (div-n 1 (expt b (- e)))
                           :else `(~'expt ~b ~e))
         :else `(~'expt ~b ~e)))
+
+(defn ^:private numerical-expression
+  [expr]
+  (cond (number? expr) expr
+        (symbol? expr) expr
+        (c/complex? expr) expr
+        (g/literal-number? expr) (:expression expr)
+        :else (u/illegal (str "unknown numerical expression type " expr))))
+
+(defn ^:private make-numsymb-expression
+  [operator operands]
+  (->> operands
+       (map numerical-expression)
+       (apply operator)
+       x/literal-number))
 
 (defmacro ^:private define-binary-operation
   [generic-operation symbolic-operation]

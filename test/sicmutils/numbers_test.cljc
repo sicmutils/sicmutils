@@ -61,8 +61,6 @@
     (is (= 2.14 (g/- 3.14 1))))
 
   (testing "trig"
-    (is (= 1 (g/cos 0)))
-    (is (= 0 (g/sin 0)))
     (is (near (/ (Math/PI) 4) (g/asin (/ (Math/sqrt 2) 2))))
     (is (near (/ (Math/PI) 4) (g/acos (/ (Math/sqrt 2) 2))))
     (is (zero? (g/asin 0)))
@@ -105,10 +103,8 @@
   (testing "expt"
     (is (= 32 (g/expt 2 5))))
 
-  (testing "exp/log"
-    (is (= 1.0 (g/exp 0)))
-    (is (= 0.0 (g/log 1)))
-    (is (= 0.0 (g/log (g/exp 0)))))
+  (testing "log"
+    (is (= 0.0 (g/log 1))))
 
   (testing "quotient"
     (is (= 2 (g/quotient 5 2)))

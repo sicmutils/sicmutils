@@ -18,26 +18,21 @@
 ;
 
 (ns sicmutils.numbers
+  "Implementations of the unoptimized generic operations for the numeric types
+  available on the executing platform."
   (:refer-clojure :rename {zero? core-zero?
                            / core-div
                            + core-plus
                            - core-minus
                            * core-times}
                   #?@(:cljs [:exclude [zero? / + - *]]))
-  (:require #?(:clj [clojure.math.numeric-tower :as nt])
-            [sicmutils.complex :refer [complex]]
+  (:require [sicmutils.complex :refer [complex]]
             [sicmutils.generic :as g]
+            [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang BigInt Ratio))))
 
-;; TODO: these are also defined privately in `sicmutils.numsymb`. Where is the
-;; right place to put these? Also: are we benefitting here from the numeric
-;; tower implementation?
-(def ^:private compute-sqrt #?(:clj nt/sqrt :cljs Math/sqrt))
-(def ^:private compute-expt #?(:clj nt/expt :cljs Math/pow))
-(def ^:private compute-abs #?(:clj nt/abs :cljs Math/abs))
-(def ^:private numtype #?(:clj Number :cljs js/Number))
 #?(:cljs (def ^:private ratio? (constantly false)))
 
 (extend-type #?(:clj Number :cljs number)
@@ -53,12 +48,12 @@
 
 (defn ^:private define-unary-operation
   [generic-operation core-operation]
-  (defmethod generic-operation [numtype] [a]
+  (defmethod generic-operation [u/numtype] [a]
     (core-operation a)))
 
 (defn ^:private define-binary-operation
   [generic-operation core-operation]
-  (defmethod generic-operation [numtype numtype] [a b]
+  (defmethod generic-operation [u/numtype u/numtype] [a b]
     (core-operation a b)))
 
 (comment
@@ -74,20 +69,19 @@
   (define-unary-operation g/tan #(Math/tan %)))
 
 ;; these overrides are here because these operations have no optimizations
-;; associated.
-
+;; associated. If you DO want to optimize for these data types, replace these
+;; implementations with better functions.
 (define-binary-operation g/add #?(:clj +' :cljs core-plus))
 (define-binary-operation g/mul #?(:clj *' :cljs core-times))
 (define-binary-operation g/sub #?(:clj -' :cljs core-minus))
 (define-unary-operation g/negate core-minus)
 (define-binary-operation g/div core-div)
 (define-unary-operation g/invert core-div)
-(define-binary-operation g/expt compute-expt)
-(define-unary-operation g/abs compute-abs)
-(define-unary-operation g/magnitude compute-abs)
+(define-binary-operation g/expt u/compute-expt)
+(define-unary-operation g/abs u/compute-abs)
+(define-unary-operation g/magnitude u/compute-abs)
 
 ;; trig operations
-(define-unary-operation g/exp #(Math/exp %))
 (define-unary-operation g/atan #(Math/atan %))
 (define-binary-operation g/atan #(Math/atan2 % %2))
 
@@ -96,28 +90,32 @@
 ;; line
 
 (defmethod g/asin
-  [numtype]
+  [u/numtype]
   [a]
   (if (> (g/abs a) 1)
     (g/asin (complex a))
     (Math/asin a)))
 
 (defmethod g/acos
-  [numtype]
+  [u/numtype]
   [a]
   (if (> (g/abs a) 1)
     (g/acos (complex a))
     (Math/acos a)))
 
 (defmethod g/sqrt
-  [numtype]
+  [u/numtype]
   [a]
   (if (< a 0)
     (g/sqrt (complex a))
-    (compute-sqrt a)))
+
+    ;; TODO should this call back UP the multimethod chain, to take advantage of
+    ;; the optimizations in numsymb in the case where the expression is not
+    ;; symbolic? Same with all of the ignored implementations above.
+    (u/compute-sqrt a)))
 
 (defmethod g/log
-  [numtype]
+  [u/numtype]
   [a]
   (if (< a 0)
     (g/log (complex a))
@@ -126,9 +124,10 @@
 ;; This section defines methods that act differently between clojurescript and
 ;; Clojure. The clojure methods are all slightly more refined based on Java's
 ;; type system.
-
 #?(:cljs
    (do
+     ;; These are potentially ill-formed, since these don't make sense for
+     ;; floats.
      (define-unary-operation g/negative? neg?)
      (define-binary-operation g/quotient quot)
      (define-binary-operation g/remainder rem))

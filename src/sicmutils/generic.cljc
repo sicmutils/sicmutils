@@ -90,10 +90,10 @@
 (def-generic-function exact-divide 2)
 
 (def-generic-function square 1)
-(defmethod :default square [x] (expt x 2))
+(defmethod square :default [x] (expt x 2))
 
 (def-generic-function cube 1)
-(defmethod :default cube [x] (expt x 3))
+(defmethod cube :default [x] (expt x 3))
 
 
 ;; Trigonometric functions.
