@@ -38,7 +38,10 @@
         :else (u/illegal (str "unknown numerical expression type " expr))))
 
 (defn ^:private make-numsymb-expression [operator operands]
-  (->> operands (map numerical-expression) (apply operator) x/literal-number))
+  (->> operands
+       (map numerical-expression)
+       (apply operator)
+       x/literal-number))
 
 (defn ^:private is-expression?
   "Returns a function which will decide if its argument is a sequence
@@ -53,13 +56,20 @@
 (def product? (is-expression? '*))
 (def sqrt? (is-expression? 'sqrt))
 (def expt? (is-expression? 'expt))
-(def quotient? (is-expression? (symbol "/")))
+
+(let [slash (symbol "/")]
+  (def quotient? (is-expression? slash)))
+
 (def arctan? (is-expression? 'atan))
 (def operator first)
 (def operands rest)
 
 ;; BEGIN
 ;; these are without constructor simplifications!
+;;
+;; TODO the branches with both arguments equal to number? are taken care of by
+;; operations defined by the implementations in `sicmutils.numbers`. Remove them
+;; here! Or keep, knowing they'll never get hit.
 
 (defn add [a b]
   (cond (and (number? a) (number? b)) (+ a b)
@@ -222,8 +232,7 @@
     `(~'atan ~y ~@x)))
 
 (defn ^:private abs [x]
-  (cond (number? x) (if (< x 0) (- x) x)
-        :else `(~'abs ~x)))
+  `(~'abs ~x))
 
 (defn sqrt [s]
   (if (number? s)

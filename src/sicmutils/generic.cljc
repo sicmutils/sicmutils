@@ -79,8 +79,6 @@
 (def-generic-function div 2)
 (def-generic-function negate 1)
 (def-generic-function negative? 1)
-(def-generic-function square 1)
-(def-generic-function cube 1)
 (def-generic-function exp 1)
 (def-generic-function log 1)
 (def-generic-function abs 1)
@@ -90,6 +88,13 @@
 (def-generic-function expt 2)
 (def-generic-function gcd 2)
 (def-generic-function exact-divide 2)
+
+(def-generic-function square 1)
+(defmethod :default square [x] (expt x 2))
+
+(def-generic-function cube 1)
+(defmethod :default cube [x] (expt x 3))
+
 
 ;; Trigonometric functions.
 (def-generic-function cos 1)

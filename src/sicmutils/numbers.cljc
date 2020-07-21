@@ -61,28 +61,35 @@
   (defmethod generic-operation [numtype numtype] [a b]
     (core-operation a b)))
 
-;; Generic operations defined on and between numbers.
-(define-unary-operation g/tan #(Math/tan %))
-(define-unary-operation g/exp #(Math/exp %))
-(define-unary-operation g/negate core-minus)
-(define-unary-operation g/invert core-div)
-(define-unary-operation g/square #(compute-expt % 2))
-(define-unary-operation g/cube #(compute-expt % 3))
-(define-unary-operation g/exp #(Math/exp %))
-(define-unary-operation g/abs compute-abs)
-(define-unary-operation g/magnitude compute-abs)
+(comment
+  ;; As reference documentation, these are the implementations that one would
+  ;; provide for the generic operations if there were no simplifications available.
+  ;;
+  ;; Instead, these implementations for numbers are provided by
+  ;; `sicmutils.numsymb`. This allows us to apply simplifications inside each
+  ;; operation as it's evaluated.
+  (define-unary-operation g/exp #(Math/exp %))
+  (define-unary-operation g/sin #(Math/sin %))
+  (define-unary-operation g/cos #(Math/cos %))
+  (define-unary-operation g/tan #(Math/tan %)))
+
+;; these overrides are here because these operations have no optimizations
+;; associated.
 
 (define-binary-operation g/add #?(:clj +' :cljs core-plus))
 (define-binary-operation g/mul #?(:clj *' :cljs core-times))
 (define-binary-operation g/sub #?(:clj -' :cljs core-minus))
+(define-unary-operation g/negate core-minus)
 (define-binary-operation g/div core-div)
+(define-unary-operation g/invert core-div)
 (define-binary-operation g/expt compute-expt)
+(define-unary-operation g/abs compute-abs)
+(define-unary-operation g/magnitude compute-abs)
 
-(define-unary-operation g/cos #(Math/cos %))
-(define-unary-operation g/sin #(Math/sin %))
-(define-unary-operation g/tan #(Math/tan %))
+;; trig operations
+(define-unary-operation g/exp #(Math/exp %))
 (define-unary-operation g/atan #(Math/atan %))
-(defmethod g/atan [numtype numtype] [y x] (Math/atan2 y x))
+(define-binary-operation g/atan #(Math/atan2 % %2))
 
 ;; Operations which allow promotion to complex numbers when their
 ;; arguments would otherwise result in a NaN if computed on the real

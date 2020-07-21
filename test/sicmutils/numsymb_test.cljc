@@ -22,7 +22,6 @@
                :cljs [cljs.test :as t :refer-macros [is deftest testing]])
             [sicmutils.generic :as g]
             [sicmutils.value :as v]
-            ;; [sicmutils.numbers]
             [sicmutils.numsymb]))
 
 (def ^:private near (v/within 1e-12))
