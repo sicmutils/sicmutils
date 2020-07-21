@@ -19,6 +19,7 @@
 
 (ns sicmutils.numsymb
   (:require [sicmutils.complex :as c]
+            [sicmutils.util :as u]
             [sicmutils.expression :as x]
             [sicmutils.euclid]
             [sicmutils.generic :as g]
@@ -34,7 +35,7 @@
         (symbol? expr) expr
         (c/complex? expr) expr
         (g/literal-number? expr) (:expression expr)
-        :else (throw (IllegalArgumentException. (str "unknown numerical expression type " expr)))))
+        :else (u/illegal (str "unknown numerical expression type " expr))))
 
 (defn ^:private make-numsymb-expression [operator operands]
   (->> operands (map numerical-expression) (apply operator) x/literal-number))
@@ -105,7 +106,7 @@
 (defn div [a b]
   (cond (and (number? a) (number? b)) (/ a b)
         (number? a) (if (v/nullity? a) a `(~'/ ~a ~b))
-        (number? b) (cond (v/nullity? b) (throw (ArithmeticException. "division by zero"))
+        (number? b) (cond (v/nullity? b) (u/arithmetic-ex "division by zero")
                           (v/unity? b) a
                           :else `(~'/ ~a ~b))
         :else `(~'/ ~a ~b)))
@@ -204,13 +205,13 @@
                             (n:pi-over-4-mod-pi? x) 1.
                             (n:-pi-over-4-mod-pi? x) -1.
                             (n:pi-over-2-mod-pi? x)
-                              (throw (IllegalArgumentException. "Undefined: tan"))
+                            (u/illegal "Undefined: tan")
                             :else `(~'tan ~x)))
         (symbol? x) (cond (symb:zero-mod-pi? x) 0
                           (symb:pi-over-4-mod-pi? x) 1
                           (symb:-pi-over-4-mod-pi? x) -1
                           (symb:pi-over-2-mod-pi? x)
-                            (throw (IllegalArgumentException. "Undefined: tan"))
+                          (u/illegal "Undefined: tan")
                           :else `(~'tan ~x))
         :else `(~'tan ~x)))
 

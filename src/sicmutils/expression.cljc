@@ -18,7 +18,8 @@
 ;
 
 (ns sicmutils.expression
-  (:require [sicmutils.value :as v]))
+  (:require [sicmutils.util :as u]
+            [sicmutils.value :as v]))
 
 (defrecord Expression [type expression]
   Object
@@ -58,7 +59,7 @@
   [expr]
   (cond (instance? Expression expr) (:expression expr)
         (symbol? expr) expr
-        :else (v/illegal (str "unknown expression type:" expr))))
+        :else (u/illegal (str "unknown expression type:" expr))))
 
 (defn variables-in
   "Return the 'variables' (e.g. symbols) found in the expression x,
