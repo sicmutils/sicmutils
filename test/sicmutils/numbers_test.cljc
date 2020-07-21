@@ -103,8 +103,8 @@
   (testing "expt"
     (is (= 32 (g/expt 2 5))))
 
-  (testing "log"
-    (is (= 0.0 (g/log 1))))
+  (testing "log optimizations"
+    (is (= 0 (g/log 1))))
 
   (testing "quotient"
     (is (= 2 (g/quotient 5 2)))

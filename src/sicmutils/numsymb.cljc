@@ -320,21 +320,21 @@
        (apply operator)
        x/literal-number))
 
-(defmacro ^:private define-binary-operation
+(defn ^:private define-binary-operation
   [generic-operation symbolic-operation]
-  `(defmethod ~generic-operation [::x/numerical-expression
-                                  ::x/numerical-expression]
-     [a# b#]
-     (make-numsymb-expression ~symbolic-operation [a# b#])))
+  (defmethod generic-operation [::x/numerical-expression
+                                ::x/numerical-expression]
+    [a b]
+    (make-numsymb-expression symbolic-operation [a b])))
 
-(defmacro ^:private define-unary-operation
+(defn ^:private define-unary-operation
   [generic-operation symbolic-operation]
-  `(defmethod ~generic-operation [::x/numerical-expression]
-     [a#]
-     (make-numsymb-expression ~symbolic-operation [a#])))
+  (defmethod generic-operation [::x/numerical-expression]
+    [a]
+    (make-numsymb-expression symbolic-operation [a])))
 
 (derive Symbol ::x/numerical-expression)
-(derive #?(:clj Number :cljs js/Number) ::numerical-expression)
+(derive #?(:clj Number :cljs js/Number) ::x/numerical-expression)
 
 (define-binary-operation g/add add)
 (define-binary-operation g/sub sub)

@@ -20,9 +20,9 @@
 (ns sicmutils.numsymb-test
   (:require #?(:clj  [clojure.test :refer :all]
                :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+            [sicmutils.numsymb]
             [sicmutils.generic :as g]
-            [sicmutils.value :as v]
-            [sicmutils.numsymb]))
+            [sicmutils.value :as v]))
 
 (def ^:private near (v/within 1e-12))
 
@@ -69,7 +69,7 @@
     (is (= 0 (g/cos 'pi-over-2))))
 
   (testing "trig shortcuts - tan"
-    (is (= 0.0 (g/tan 0)))
+    (is (= 0 (g/tan 0)))
     (is (= 1 (g/tan 'pi-over-4)))
     (is (= -1 (g/tan '-pi-over-4)))
     (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
@@ -90,5 +90,5 @@
     #?(:clj (is (near (/ Math/PI 3) (g/acos 1/2)))))
 
   (testing "exp/log"
-    (is (= 1.0 (g/exp 0)))
-    (is (= 0.0 (g/log (g/exp 0))))))
+    (is (= 1 (g/exp 0)))
+    (is (= 0 (g/log (g/exp 0))))))

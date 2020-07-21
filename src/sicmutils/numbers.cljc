@@ -106,7 +106,7 @@
 (defmethod g/sqrt
   [u/numtype]
   [a]
-  (if (< a 0)
+  (if (neg? a)
     (g/sqrt (complex a))
 
     ;; TODO should this call back UP the multimethod chain, to take advantage of
@@ -114,12 +114,14 @@
     ;; symbolic? Same with all of the ignored implementations above.
     (u/compute-sqrt a)))
 
+;; Implementation that converts to complex when negative, and also attempts to
+;; remain exact if possible.
 (defmethod g/log
   [u/numtype]
   [a]
-  (if (< a 0)
-    (g/log (complex a))
-    (Math/log a)))
+  (cond (neg? a) (g/log (complex a))
+        (and (v/exact? a) (v/unity? a)) (v/zero-like a)
+        :else (Math/log a)))
 
 ;; This section defines methods that act differently between clojurescript and
 ;; Clojure. The clojure methods are all slightly more refined based on Java's
