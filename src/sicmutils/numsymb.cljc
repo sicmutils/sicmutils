@@ -51,11 +51,10 @@
 ;; BEGIN
 ;; these are without constructor simplifications!
 ;;
-;; TODO the branches with both arguments equal to number? are taken care of by
-;; operations defined by the implementations in `sicmutils.numbers`. Remove them
-;; here! Or keep, knowing they'll never get hit.
-;;
-;; TODO should these be private?
+;; the branches with both arguments equal to number? are taken care of by
+;; operations defined by the implementations in `sicmutils.numbers`; they remain
+;; because the implementations in `sicmutils.polynomial` bypass the generic
+;; operations and call these directly.
 
 (defn add [a b]
   (cond (and (number? a) (number? b)) (+ a b)
@@ -134,8 +133,6 @@
 (def ^:private pi-over-4 (/ pi 4))
 (def ^:private two-pi (* 2 pi))
 (def ^:private pi-over-2 (* 2 pi-over-4))
-;; (def ^:private pi-over-3 (/ pi 3))
-;; (def ^:private pi-over-6 (/ pi-over-2 3))
 
 (defn ^:private n:zero-mod-pi? [x]
   (almost-integer? (/ x pi)))
