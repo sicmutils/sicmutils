@@ -29,8 +29,6 @@
                  [org.clojure/clojurescript "1.10.764" :scope "provided"]
                  [org.clojure/tools.logging "0.4.0"]
                  [cljsjs/complex "2.0.11-0"]
-                 [cljsjs/decimal "5.0.3-0"]
-                 [cljsjs/fraction "4.0.12-0"]
                  [hiccup "1.0.5"]
                  [com.google.guava/guava "22.0"]
                  [org.clojure/core.match "0.3.0-alpha4"]

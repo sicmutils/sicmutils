@@ -103,16 +103,16 @@
     (g/acos (complex a))
     (Math/acos a)))
 
+;; TODO should this call back UP the multimethod chain, to take advantage of the
+;; optimizations in numsymb in the case where the expression is not symbolic?
+;; Same with all of the ignored implementations above.
 (defmethod g/sqrt
   [u/numtype]
   [a]
-  (if (neg? a)
-    (g/sqrt (complex a))
-
-    ;; TODO should this call back UP the multimethod chain, to take advantage of
-    ;; the optimizations in numsymb in the case where the expression is not
-    ;; symbolic? Same with all of the ignored implementations above.
-    (u/compute-sqrt a)))
+  (cond (neg? a) (g/sqrt (complex a))
+        (v/nullity? a) a
+        (v/unity? a) (v/one-like a)
+        :else (u/compute-sqrt a)))
 
 ;; Implementation that converts to complex when negative, and also attempts to
 ;; remain exact if possible.
@@ -120,7 +120,7 @@
   [u/numtype]
   [a]
   (cond (neg? a) (g/log (complex a))
-        (and (v/exact? a) (v/unity? a)) (v/zero-like a)
+        (v/unity? a) (v/zero-like a)
         :else (Math/log a)))
 
 ;; This section defines methods that act differently between clojurescript and

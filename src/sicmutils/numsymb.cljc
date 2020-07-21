@@ -249,14 +249,12 @@
   possible. If the incoming value is not exact, simply computes sqrt."
   [s]
   (if (number? s)
-    (if-not (v/exact? s)
-      (u/compute-sqrt s)
-      (cond (v/nullity? s) s
-            (v/unity? s) 1
-            :else (let [q (u/compute-sqrt s)]
-                    (if (v/exact? q)
-                      q
-                      `(~'sqrt ~s)))))
+    (let [q (u/compute-sqrt s)]
+      (if-not (v/exact? s)
+        q
+        (if (v/exact? q)
+          q
+          `(~'sqrt ~s))))
     `(~'sqrt ~s)))
 
 (defn ^:private log
@@ -266,7 +264,9 @@
   (if (number? s)
     (if-not (v/exact? s)
       (Math/log s)
-      (if (v/unity? s) 0 `(~'log ~s)))
+      (if (v/unity? s)
+        (v/zero-like s)
+        `(~'log ~s)))
     `(~'log ~s)))
 
 (defn ^:private exp
@@ -276,7 +276,9 @@
   (if (number? s)
     (if-not (v/exact? s)
       (Math/exp s)
-      (if (v/nullity? s) 1 `(~'exp ~s)))
+      (if (v/nullity? s)
+        (v/one-like s)
+        `(~'exp ~s)))
     `(~'exp ~s)))
 
 (defn expt
