@@ -85,6 +85,4 @@
     (is (near (* -3 (/ Math/PI 4)) (g/atan -1 -1)))
     (is (near (* 3 (/ Math/PI 4)) (g/atan 1 -1)))
     (is (near (/ Math/PI -4) (g/atan -1 1)))
-
-    ;; Ratio literals don't compile in cljs.
-    #?(:clj (is (near (/ Math/PI 3) (g/acos 1/2))))))
+    (is (near (/ Math/PI 3) (g/acos #?(:clj 1/2 :cljs (/ 1 2)))))))
