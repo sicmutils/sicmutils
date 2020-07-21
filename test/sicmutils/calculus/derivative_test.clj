@@ -192,8 +192,15 @@
               (fn [g]
                 (fn [y]
                   (g (+ x y)))))
-          f-hat ((D f) 3)]
-      (is ((v/within 1e-6) 2980.957987 ((f-hat exp) 5)))
+          f-hat ((D f) 3)
+          f-hat-inexact ((D f) 3.0)]
+
+      ;; exact precision is maintained for exact arguments.
+      (is (= (exp 8) ((f-hat exp) 5)))
+
+      ;; with a float instead of an int, evaluation's forced.
+      (is ((v/within 1e-6) 2980.957987 ((f-hat-inexact exp) 5)))
+
       ;; TODO: this is the amazing bug: bbb == 0 is wrong.
       #_(is (= 'bbb ((f-hat (f-hat exp)) 5))))))
 
