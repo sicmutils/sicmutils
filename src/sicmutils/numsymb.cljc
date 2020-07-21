@@ -40,10 +40,7 @@
 (def product? (is-expression? '*))
 (def sqrt? (is-expression? 'sqrt))
 (def expt? (is-expression? 'expt))
-
-(let [slash (symbol "/")]
-  (def quotient? (is-expression? slash)))
-
+(def quotient? (is-expression? (symbol "/")))
 (def arctan? (is-expression? 'atan))
 (def operator first)
 (def operands rest)
@@ -57,7 +54,7 @@
 ;; operations and call these directly.
 
 (defn add [a b]
-  (cond (and (number? a) (number? b)) (+ a b)
+  (cond (and (number? a) (number? b)) (g/add a b)
         (number? a) (cond (v/nullity? a) b
                           (sum? b) `(~'+ ~a ~@(operands b))
                           :else `(~'+ ~a ~b))
@@ -70,7 +67,7 @@
         :else `(~'+ ~a ~b)))
 
 (defn ^:private sub [a b]
-  (cond (and (number? a) (number? b)) (- a b)
+  (cond (and (number? a) (number? b)) (g/sub a b)
         (number? a) (if (v/nullity? a) `(~'- ~b) `(~'- ~a ~b))
         (number? b) (if (v/nullity? b) a `(~'- ~a ~b))
         (= a b) 0
@@ -82,7 +79,7 @@
         :else (sub (first args) (reduce add (next args)))))
 
 (defn mul [a b]
-  (cond (and (number? a) (number? b)) (* a b)
+  (cond (and (number? a) (number? b)) (g/mul a b)
         (number? a) (cond (v/nullity? a) a
                           (v/unity? a) b
                           (product? b) `(~'* ~a ~@(operands b))
@@ -99,7 +96,7 @@
         :else `(~'* ~a ~b)))
 
 (defn div [a b]
-  (cond (and (number? a) (number? b)) (/ a b)
+  (cond (and (number? a) (number? b)) (g/div a b)
         (number? a) (if (v/nullity? a) a `(~'/ ~a ~b))
         (number? b) (cond (v/nullity? b) (u/arithmetic-ex "division by zero")
                           (v/unity? b) a
@@ -188,10 +185,7 @@
 (defn ^:private cosine
   "Implementation of cosine that attempts to apply optimizations at the call site.
   If it's not possible to do this (if the expression is symbolic, say), returns
-  a symbolic form.
-
-  TODO could we use v/numerical? here? If so, could complex numbers take
-  advantage?"
+  a symbolic form."
   [x]
   (cond (number? x) (cond (zero? x) 1
                           (n:pi-over-2-mod-pi? x) 0
@@ -246,7 +240,7 @@
 
 (defn ^:private delegator
   "Returns a wrapper around f that attempts to preserve exactness if the input is
-  exact, else passes through to f."
+  numerically exact, else passes through to f."
   [f sym]
   (fn [s]
     (if (number? s)
@@ -274,8 +268,8 @@
   (delegator g/exp 'exp))
 
 (defn expt
-  "Attempts to preserve exact precision if either argument is exact; else, evaluates
-  symbolically or numerically."
+  "Attempts to preserve exact precision if either argument is exact; else,
+  evaluates symbolically or numerically."
   [b e]
   (cond (and (number? b) (number? e)) (g/expt b e)
         (number? b) (cond (v/unity? b) 1
@@ -322,7 +316,7 @@
     (make-numsymb-expression symbolic-operation [a])))
 
 (derive Symbol ::x/numerical-expression)
-(derive #?(:clj Number :cljs js/Number) ::x/numerical-expression)
+(derive u/numtype ::x/numerical-expression)
 
 (define-binary-operation g/add add)
 (define-binary-operation g/sub sub)
@@ -338,8 +332,6 @@
 (define-unary-operation g/acos arccosine)
 (define-unary-operation g/tan tangent)
 (define-unary-operation g/atan arctangent)
-(define-unary-operation g/square #(expt % 2))
-(define-unary-operation g/cube #(expt % 3))
 (define-unary-operation g/sqrt sqrt)
 (define-unary-operation g/exp exp)
 (define-unary-operation g/abs abs)
@@ -367,7 +359,7 @@
    'expt expt})
 
 (defn symbolic-operator
-  "Given a symbol (like '+) returns an applicable if there is a corresponding
-  symbolic operator construction available."
+  "Given a symbol (like '+) returns an applicable operator if there is a
+  corresponding symbolic operator construction available."
   [s]
   (symbolic-operator-table s))
