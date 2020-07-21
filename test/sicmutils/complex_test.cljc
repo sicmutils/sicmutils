@@ -60,6 +60,7 @@
     (is (near (g/magnitude (c/complex 0 1)) 1))
     (is (near (g/magnitude (c/complex 1 0)) 1))
     (is (near (g/magnitude (c/complex 1 1)) (g/sqrt 2)))
-    #?(:clj
-       ;; This only works in Clojure so far due to the ratio literal.
-       (is (near (c/angle (c/complex 3 4)) (g/atan 4/3))))))
+
+    ;; This looks awkward in cljs due to the ratio literal.
+    (is (near (c/angle (c/complex 3 4))
+              (g/atan #?(:clj 4/3 :cljs (/ 4 3)))))))

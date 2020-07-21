@@ -102,9 +102,6 @@
     (g/acos (complex a))
     (Math/acos a)))
 
-;; TODO should this call back UP the multimethod chain, to take advantage of the
-;; optimizations in numsymb in the case where the expression is not symbolic?
-;; Same with all of the ignored implementations above.
 (defmethod g/sqrt
   [u/numtype]
   [a]
