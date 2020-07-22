@@ -23,6 +23,9 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
+      - name: Install dependencies
+        run: lein deps
+
       - name: generate coverage report
         run: |
             CLOVERAGE_VERSION=1.1.2 lein cloverage --codecov

@@ -23,6 +23,9 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
+      - name: Install dependencies
+        run: lein deps
+
       - name: Clojure and Clojurescript tests
         run: |
           lein test
