@@ -6,6 +6,7 @@
             [sicmutils.euclid-test]
             [sicmutils.expression-test]
             [sicmutils.generic-test]
+            [sicmutils.numbers-test]
             [sicmutils.numsymb-test]
             [sicmutils.rules-test]
             [sicmutils.value-test]))
@@ -16,6 +17,7 @@
            'sicmutils.euclid-test
            'sicmutils.expression-test
            'sicmutils.generic-test
+           'sicmutils.numbers-test
            'sicmutils.numsymb-test
            'sicmutils.rules-test
            'sicmutils.value-test)

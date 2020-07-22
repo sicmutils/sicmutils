@@ -10,3 +10,4 @@ pom.xml.asc
 .DS_Store
 jupyter/.ipynb_checkpoints/
 .cljs_node_repl
+out

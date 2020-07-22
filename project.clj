@@ -26,7 +26,7 @@
   :license {:name "GPLv3"
             :url "http://www.opensource.org/licenses/GPL-3.0"}
   :dependencies [[org.clojure/clojure "1.10.1" :scope "provided"]
-                 [org.clojure/clojurescript "1.10.764" :scope "provided"]
+                 [org.clojure/clojurescript "1.10.773" :scope "provided"]
                  [org.clojure/tools.logging "0.4.0"]
                  [cljsjs/complex "2.0.11-0"]
                  [hiccup "1.0.5"]
@@ -62,14 +62,24 @@
                     :dependencies [[org.clojure/test.check "0.9.0"]
                                    [criterium "0.4.4"]]}}
   :aliases {"test-cljs"
-            ["doo" "node" "main" "once"]}
+            ["doo" "node" "test" "once"]}
   :cljsbuild {:builds
-              {:main
+              {:test
                {:source-paths ["src" "test"]
                 :compiler
                 {:main sicmutils.runner
                  :optimizations :none
-                 :parallel-build true
                  :target :nodejs
                  :output-dir "target/main"
-                 :output-to "target/main.js"}}}})
+                 :output-to "target/main/main.js"}}}})
+
+(comment
+  ;; NOTE - if you do decide to run tests in :advanced optimization mode, you'll
+  ;; need to move to phantom, and an older version of clojurescript:
+
+  [org.clojure/clojurescript "1.10.597"]
+
+  ;;Don't ask me why. You may also need to remove `:output-dir`, so try that if
+  ;;you run into problems. Do this, change `:optimizations` to `:advanced` and
+  ;;you should be good to go.
+  )
