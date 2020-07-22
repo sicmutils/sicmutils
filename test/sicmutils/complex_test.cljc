@@ -46,8 +46,18 @@
 
     (is (= '(complex 10.0 0.0) (v/freeze (c/complex 10))))
     (is (v/numerical? (c/complex 10)))
-    (is (not (v/exact? (c/complex 10))))
-    (is (not (v/exact? (c/complex 0 10.1))))))
+
+    (testing "exact?"
+      (is (not (v/exact? (c/complex 0 10.1))))
+
+      ;; cljs is able to maintain exact numbers here.
+      #?@(:clj
+          [(is (not (v/exact? (c/complex 10))))
+           (is (not (v/exact? (c/complex 10 12))))]
+
+          :cljs
+          [(is (v/exact? (c/complex 10)))
+           (is (v/exact? (c/complex 10 12)))]))))
 
 (let [i (c/complex 0 1)
       pi Math/PI]

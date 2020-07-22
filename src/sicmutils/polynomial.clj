@@ -87,6 +87,7 @@
   v/Value
   (nullity? [_] (empty? xs->c))
   (numerical? [_] false)
+  (exact? [_] false)
   (zero-like [_] (Polynomial. arity empty-coefficients))
   (one-like [_] (make-constant arity (v/one-like (coefficient (exponents xs->c)))))
   (unity? [_] (and (= (count xs->c) 1)
@@ -107,7 +108,7 @@
       (str "("
            (clojure.string/join ";"
                                 (take n (for [[k v] xs->c]
-                                           (str v "*" (clojure.string/join "," k)))))
+                                          (str v "*" (clojure.string/join "," k)))))
            (if (> c n) (format " ...and %d more terms" (- c n)))
            ")"))))
 

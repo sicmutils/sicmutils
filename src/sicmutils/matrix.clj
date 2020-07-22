@@ -31,6 +31,7 @@
 
 (deftype Matrix [r c ^PersistentVector v]
   v/Value
+  (numerical? [_] false)
   (nullity? [_] (every? #(every? v/nullity? %) v))
   (unity? [_] false)
   ;; TODO: zero-like and one-like should use a recursive copy to find the 0/1 elements

@@ -35,16 +35,7 @@
 
 #?(:cljs (def ^:private ratio? (constantly false)))
 
-(extend-type #?(:clj Number :cljs number)
-  v/Value
-  (nullity? [x] (core-zero? x))
-  (unity? [x] (== 1 x))
-  (zero-like [_] 0)
-  (one-like [_] 1)
-  (freeze [x] x)
-  (exact? [x] (or (integer? x) (ratio? x)))
-  (numerical? [_] true)
-  (kind [x] (type x)))
+
 
 (defn ^:private define-unary-operation
   [generic-operation core-operation]

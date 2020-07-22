@@ -28,30 +28,6 @@
 
 (def near (v/within 1e-12))
 
-(deftest value-protocol
-  ;; These really want to be generative tests.
-  ;;
-  ;; TODO convert, once we sort out the cljs test.check story.
-  (is (v/nullity? 0))
-  (is (v/nullity? 0.0))
-  (is (not (v/nullity? 1)))
-  (is (not (v/nullity? 1.0)))
-  (is (v/nullity? (v/zero-like 100)))
-  (is (= 0 (v/zero-like 2)))
-  (is (= 0 (v/zero-like 3.14)))
-
-  (is (v/unity? 1))
-  (is (v/unity? 1.0))
-  (is (v/unity? (v/one-like 100)))
-  (is (not (v/unity? 2)))
-  (is (not (v/unity? 0.0)))
-
-  (is (= 10 (v/freeze 10)))
-  (is (v/numerical? 10))
-  (is (isa? (v/kind 10) u/numtype))
-  (is (v/exact? 10))
-  (is (not (v/exact? 10.1))))
-
 (deftest arithmetic
   #?(:clj
      (testing "with-ratios"
@@ -163,3 +139,45 @@
     (is (= 1 (g/remainder 5N 2)))
     (is (= 1 (g/remainder 5 2N)))
     (is (= 1 (g/remainder 5N 2N)))))
+
+;; Test of generic wrapper operations.
+
+(deftest generic-plus
+  "sicmutils.numbers provides implementations of the methods needed by g/+. Test
+  that these functions now come work with numbers."
+  (testing "simple"
+    (is (= 7 (g/+ 3 4)))
+    (is (= 4 (g/+ 2 2)))
+    (is (= 3.5 (g/+ 1.5 2))))
+
+  (testing "many"
+    (is (= 10 (g/+ 1 2 3 4)))
+    (is (= 33 (g/+ 3 4 5 6 7 8)))))
+
+(deftest generic-minus
+  "numbers provides implementations, so test behaviors."
+  (is (= -3.14 (g/- 3.14)))
+  (is (= 2.14 (g/- 3.14 1)))
+
+  (testing "many"
+    (is (= -14 (g/- 10 9 8 7)))))
+
+(deftest generic-times
+  "numbers provides implementations, so test behaviors."
+  (is (= 20 (g/* 5 4)))
+  (is (= 4 (g/* 2 2)))
+  (is (= 8 (g/* 2 2 2))))
+
+(deftest generic-divide
+  "numbers provides implementations, so test behaviors."
+  (is (= 5 (g/divide 20 4)))
+  (is (= 2 (g/divide 8 2 2))))
+
+#?(:clj
+   (deftest with-ratios
+     (is (= 13/40 (g/+ 1/5 1/8)))
+     (is (= 1/8 (g/- 3/8 1/4)))
+     (is (= 5/4 (g/divide 5 4)))
+     (is (= 1/2 (g/divide 1 2)))
+     (is (= 1/4 (g/divide 1 2 2)))
+     (is (= 1/8 (g/divide 1 2 2 2)))))

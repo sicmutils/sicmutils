@@ -59,59 +59,29 @@
     (is (= "zzz" (s+ "" "zzz")))
     ))
 
-(deftest generic-plus
-  (testing "simple"
-    (is (= 7 (g/+ 3 4)))
-    (is (= 4 (g/+ 2 2)))
-    (is (= 3.5 (g/+ 1.5 2))))
-
-  (testing "many"
-    (is (= 0 (g/+)))
-    (is (= 3.14 (g/+ 3.14)))
-    (is (= 7 (g/+ 7)))
-    (is (= 10 (g/+ 1 2 3 4)))
-    (is (= 33 (g/+ 3 4 5 6 7 8)))))
-
-(deftest generic-minus
-  "Subtraction with a single arg doesn't work since we currently lack a default
-  implementation for negate."
-  (testing "simple"
-    (is (= 2.14 (g/- 3.14 1))))
-
-  (testing "many"
-    (is (= 0 (g/-)))
-    (is (= -14 (g/- 10 9 8 7)))))
-
-(deftest generic-times
-  (testing "simple"
-    (is (= 20 (g/* 5 4))))
-
-  (testing "many"
-    (is (= 1 (g/*)))
-    (is (= 2 (g/* 2)))
-    (is (= 4 (g/* 2 2)))
-    (is (= 8 (g/* 2 2 2)))))
-
-(deftest generic-divide
-  "division with a single argument doesn't work, since there's currently no
-  default implementation for invert."
-  (testing "simple"
-    (is (= 5 (g/divide 20 4))))
-
-  (testing "many"
-    (is (= 1 (g/divide)))
-    (is (= 2 (g/divide 8 2 2)))))
-
-#?(:clj
-   (deftest with-ratios
-     (is (= 13/40 (g/+ 1/5 1/8)))
-     (is (= 1/8 (g/- 3/8 1/4)))
-     (is (= 5/4 (g/divide 5 4)))
-     (is (= 1/2 (g/divide 1 2)))
-     (is (= 1/4 (g/divide 1 2 2)))
-     (is (= 1/8 (g/divide 1 2 2 2)))))
-
 (deftest type-assigner
   (testing "types"
     (is (= #?(:clj Long :cljs js/Number) (v/kind 9)))
     (is (= #?(:clj Double :cljs js/Number) (v/kind 99.0)))))
+
+(deftest generic-plus
+  (is (= 0 (g/+)) "no args returns additive identity")
+  (is (= 3.14 (g/+ 3.14)) "single arg should return itself")
+  (is (= 10 (g/+ 0 10 0.0 0 0)) "multi-arg works, as long as zeros appear.")
+  (is (= "happy" (g/+ 0 "happy" 0.0 0 0)) "returns really anything."))
+
+(deftest generic-minus
+  (is (= 0 (g/-)) "no-arity returns the additive identity.")
+  (is (= 10 (g/- 10 0)) "Subtracting a zero works, with no implementations registered.")
+  (is (= "face" (g/- "face" 0))))
+
+(deftest generic-times
+  (is (= 1 (g/*)) "No args returns the multiplicative identity.")
+  (is (= 2 (g/* 2)) "single arg returns itself.")
+  (is (= 5 (g/* 5 1) (g/* 1 5)) "Anything times a 1 returns itself.")
+  (is (= "face" (g/* "face" 1) (g/* 1 "face")) "works for really anything."))
+
+(deftest generic-divide
+  (is (= 1 (g/divide)) "division with no args returns multiplicative identity")
+  (is (= 20 (g/divide 20 1)) "dividing by one a single time returns the input")
+  (is (= "face" (g/divide "face" 1 1 1 1.0 1)) "dividing by 1 returns the input"))

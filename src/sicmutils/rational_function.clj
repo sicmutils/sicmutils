@@ -37,6 +37,7 @@
   v/Value
   (nullity? [_] (v/nullity? u))
   (unity? [_] (and (v/unity? u) (v/unity? v)))
+  (numerical? [_] false)
   (kind [_] ::rational-function)
   Object
   (equals [_ b]
