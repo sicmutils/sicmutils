@@ -71,18 +71,15 @@
   (nullity? [o] false)
   (numerical? [_] false)
   (unity? [o] false)
-  (exact? [o] (or (integer? o) (ratio? o)))
-  (zero-like [o] (cond (number? o) 0
-                       (instance? Symbol o) 0
+  (exact? [o] false)
+  (zero-like [o] (cond (instance? Symbol o) 0
                        (or (fn? o) (instance? MultiFn o)) (with-meta
                                                             (constantly 0)
                                                             {:arity (arity o)
                                                              :from :object-zero-like})
 
                        :else (u/unsupported (str "zero-like: " o))))
-  (one-like [o] (if (number? o)
-                  1
-                  (u/unsupported (str "one-like: " o))))
+  (one-like [o] (u/unsupported (str "one-like: " o)))
   (freeze [o] (cond
                 (vector? o) (mapv freeze o)
                 (sequential? o) (map freeze o)
