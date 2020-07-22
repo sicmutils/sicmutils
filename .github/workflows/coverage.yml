@@ -28,7 +28,7 @@ jobs:
 
       - name: generate coverage report
         run: |
-            CLOVERAGE_VERSION=1.1.2 lein cloverage --codecov
+            CLOVERAGE_VERSION=1.1.2 lein cloverage --codecov || :
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
