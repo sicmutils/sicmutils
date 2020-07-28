@@ -20,23 +20,24 @@
 (ns sicmutils.complex
   (:require [sicmutils.generic :as g]
             [sicmutils.value :as v]
-            #?(:cljs [cljsjs.complex]))
+            [sicmutils.util :as u]
+            #?(:cljs [cljsjs.complex :as Complex]))
   #?(:clj
      (:import [org.apache.commons.math3.complex Complex])))
 
-(def ZERO #?(:clj Complex/ZERO :cljs (.-ZERO js/Complex)))
-(def ONE #?(:clj Complex/ONE :cljs (.-ONE js/Complex)))
+(def ZERO #?(:clj Complex/ZERO :cljs (.-ZERO Complex)))
+(def ONE #?(:clj Complex/ONE :cljs (.-ONE Complex)))
 
 (defn complex
   "Construct a complex number from real, or real and imaginary, components."
   ([re]
-   (#?(:clj Complex. :cljs js/Complex.) re))
+   (Complex. re))
   ([re im]
-   (#?(:clj Complex. :cljs js/Complex.) re im)))
+   (Complex. re im)))
 
 (defn complex?
   [a]
-  (instance? #?(:clj Complex :cljs js/Complex) a))
+  (instance? Complex a))
 
 (defn conjugate [^Complex a] (.conjugate a))
 (defn real-part [^Complex a] (#?(:clj .getReal :cljs .-re) a))
@@ -46,12 +47,12 @@
 (derive ::complex :sicmutils.expression/numerical-expression)
 
 #?(:cljs
-   (extend-type js/Complex
+   (extend-type Complex
      IEquiv
      (-equiv [this other]
        (.equals this other))))
 
-(extend-type #?(:clj Complex :cljs js/Complex)
+(extend-type Complex
   v/Value
   (nullity? [c] #?(:clj (= ZERO c) :cljs (.isZero c)))
   (unity? [c] (= ONE c))
@@ -62,12 +63,30 @@
   (numerical? [_] true)
   (kind [_] ::complex))
 
+(defmethod g/add [::complex ::complex] [^Complex a ^Complex b] (.add a b))
+(defmethod g/add [::complex u/numtype] [^Complex a n] (.add a (double n)))
+(defmethod g/add [u/numtype ::complex] [n ^Complex a] (.add a (double n)))
+
+(defmethod g/expt [::complex ::complex] [^Complex a ^Complex b] (.pow a b))
+(defmethod g/expt [::complex u/numtype] [^Complex a n] (.pow a (double n)))
+(defmethod g/expt [u/numtype ::complex] [n ^Complex a] (.pow ^Complex (complex n) a))
+
+(defmethod g/abs [::complex] [^Complex a] (.abs a))
+(defmethod g/exp [::complex] [^Complex a] (.exp a))
+(defmethod g/log [::complex] [^Complex a] (.log a))
+(defmethod g/sqrt [::complex] [^Complex a] (.sqrt a))
+(defmethod g/sin [::complex] [^Complex a] (.sin a))
+(defmethod g/cos [::complex] [^Complex a] (.cos a))
+(defmethod g/tan [::complex] [^Complex a] (.tan a))
+(defmethod g/asin [::complex] [^Complex a] (.asin a))
+(defmethod g/acos [::complex] [^Complex a] (.acos a))
+(defmethod g/atan [::complex] [^Complex a] (.atan a))
+(defmethod g/magnitude [::complex] [^Complex a] (.abs a))
+
+;;The remaining methods have different names in the Clojure vs JS
+;;implementations.
 #?(:clj
    (do
-     (defmethod g/add [::complex ::complex] [^Complex a ^Complex b] (.add a b))
-     (defmethod g/add [::complex Number] [^Complex a n] (.add a (double n)))
-     (defmethod g/add [Number ::complex] [n ^Complex a] (.add a (double n)))
-
      (defmethod g/sub [::complex ::complex] [^Complex a ^Complex b] (.subtract a b))
      (defmethod g/sub [::complex Number] [^Complex a n] (.subtract a (double n)))
      (defmethod g/sub [Number ::complex] [n ^Complex a] (.add (.negate a) (double n)))
@@ -80,32 +99,13 @@
      (defmethod g/div [::complex Number] [^Complex a n] (.divide a (double n)))
      (defmethod g/div [Number ::complex] [n ^Complex a] (.multiply (.reciprocal a) (double n)))
 
-     (defmethod g/expt [::complex ::complex] [^Complex a ^Complex b] (.pow a b))
-     (defmethod g/expt [::complex Number] [^Complex a n] (.pow a (double n)))
-     (defmethod g/expt [Number ::complex] [n ^Complex a] (.pow ^Complex (complex n) a))
-
      (defmethod g/negate [::complex] [^Complex a] (.negate a))
      (defmethod g/invert [::complex] [^Complex a] (.reciprocal a))
-     (defmethod g/abs [::complex] [^Complex a] (.abs a))
-     (defmethod g/exp [::complex] [^Complex a] (.exp a))
-     (defmethod g/log [::complex] [^Complex a] (.log a))
      (defmethod g/square [::complex] [^Complex a] (.multiply a a))
-     (defmethod g/cube [::complex] [^Complex a] (.pow a 3.0))
-     (defmethod g/sqrt [::complex] [^Complex a] (.sqrt a))
-     (defmethod g/sin [::complex] [^Complex a] (.sin a))
-     (defmethod g/cos [::complex] [^Complex a] (.cos a))
-     (defmethod g/tan [::complex] [^Complex a] (.tan a))
-     (defmethod g/asin [::complex] [^Complex a] (.asin a))
-     (defmethod g/acos [::complex] [^Complex a] (.acos a))
-     (defmethod g/atan [::complex] [^Complex a] (.atan a))
-     (defmethod g/magnitude [::complex] [^Complex a] (.abs a)))
+     (defmethod g/cube [::complex] [^Complex a] (.pow a 3.0)))
 
    :cljs
    (do
-     (defmethod g/add [::complex ::complex] [a  b] (.add a b))
-     (defmethod g/add [::complex js/Number] [a n] (.add a (double n)))
-     (defmethod g/add [js/Number ::complex] [n a] (.add a (double n)))
-
      (defmethod g/sub [::complex ::complex] [a b] (.sub a b))
      (defmethod g/sub [::complex js/Number] [a n] (.sub a (double n)))
      (defmethod g/sub [js/Number ::complex] [n a] (.add (.neg a) (double n)))
@@ -118,22 +118,7 @@
      (defmethod g/div [::complex js/Number] [a n] (.div a (double n)))
      (defmethod g/div [js/Number ::complex] [n a] (.mul (.inverse a) (double n)))
 
-     (defmethod g/expt [::complex ::complex] [a b] (.pow a b))
-     (defmethod g/expt [::complex js/Number] [a n] (.pow a (double n)))
-     (defmethod g/expt [js/Number ::complex] [n a] (.pow (complex n) a))
-
      (defmethod g/negate [::complex] [a] (.neg a))
      (defmethod g/invert [::complex] [a] (.inverse a))
-     (defmethod g/abs [::complex] [a] (.abs a))
-     (defmethod g/exp [::complex] [a] (.exp a))
-     (defmethod g/log [::complex] [a] (.log a))
      (defmethod g/square [::complex] [a] (.mul a a))
-     (defmethod g/cube [::complex] [a] (.pow a 3.0))
-     (defmethod g/sqrt [::complex] [a] (.sqrt a))
-     (defmethod g/sin [::complex] [a] (.sin a))
-     (defmethod g/cos [::complex] [a] (.cos a))
-     (defmethod g/tan [::complex] [a] (.tan a))
-     (defmethod g/asin [::complex] [a] (.asin a))
-     (defmethod g/acos [::complex] [a] (.acos a))
-     (defmethod g/atan [::complex] [a] (.atan a))
-     (defmethod g/magnitude [::complex] [a] (.abs a))))
+     (defmethod g/cube [::complex] [a] (.pow a 3.0))))

@@ -28,7 +28,7 @@
   :dependencies [[org.clojure/clojure "1.10.1" :scope "provided"]
                  [org.clojure/clojurescript "1.10.773" :scope "provided"]
                  [org.clojure/tools.logging "0.4.0"]
-                 [cljsjs/complex "2.0.11-0"]
+                 [org.clojars.sritchie09/complex "2.0.11-0"]
                  [hiccup "1.0.5"]
                  [com.google.guava/guava "22.0"]
                  [org.clojure/core.match "0.3.0-alpha4"]
