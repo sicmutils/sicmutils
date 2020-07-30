@@ -20,9 +20,34 @@
 (ns sicmutils.value-test
   (:require #?(:clj  [clojure.test :refer :all]
                :cljs [cljs.test :as t :refer-macros [is deftest]])
+            [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang PersistentVector))))
+
+(deftest value-protocol-numbers
+  ;; These really want to be generative tests.
+  ;;
+  ;; TODO convert, once we sort out the cljs test.check story.
+  (is (v/nullity? 0))
+  (is (v/nullity? 0.0))
+  (is (not (v/nullity? 1)))
+  (is (not (v/nullity? 1.0)))
+  (is (v/nullity? (v/zero-like 100)))
+  (is (= 0 (v/zero-like 2)))
+  (is (= 0 (v/zero-like 3.14)))
+
+  (is (v/unity? 1))
+  (is (v/unity? 1.0))
+  (is (v/unity? (v/one-like 100)))
+  (is (not (v/unity? 2)))
+  (is (not (v/unity? 0.0)))
+
+  (is (= 10 (v/freeze 10)))
+  (is (v/numerical? 10))
+  (is (isa? (v/kind 10) u/numtype))
+  (is (v/exact? 10))
+  (is (not (v/exact? 10.1))))
 
 #?(:cljs
    (deftest exposed-arities-test

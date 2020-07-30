@@ -18,11 +18,7 @@
 ;;
 
 (ns sicmutils.generic
-  (:refer-clojure :rename {/ core-div
-                           + core-plus
-                           - core-minus
-                           * core-times}
-                  #?@(:cljs [:exclude [/ + - * divide]]))
+  (:refer-clojure :exclude [/ + - * divide])
   (:require [sicmutils.value :as v]
             [sicmutils.expression :as x])
   #?(:cljs (:require-macros [sicmutils.generic :refer [def-generic-function]])))
@@ -44,8 +40,7 @@
 
 (defn numerical-quantity?
   [x]
-  (or (number? x)
-      (abstract-number? x)
+  (or (abstract-number? x)
       (v/numerical? x)))
 
 (defmacro ^:private fork
@@ -119,8 +114,7 @@
 (defmulti simplify v/argument-kind)
 
 (defn ^:private bin+ [a b]
-  (cond (and (number? a) (number? b)) (#?(:clj +' :cljs core-plus) a b)
-        (v/nullity? a) b
+  (cond (v/nullity? a) b
         (v/nullity? b) a
         :else (add a b)))
 
@@ -128,8 +122,7 @@
   (reduce bin+ 0 args))
 
 (defn ^:private bin- [a b]
-  (cond (and (number? a) (number? b)) (#?(:clj -' :cljs core-minus) a b)
-        (v/nullity? b) a
+  (cond (v/nullity? b) a
         (v/nullity? a) (negate b)
         :else (sub a b)))
 
@@ -139,9 +132,8 @@
         :else (bin- (first args) (reduce bin+ (next args)))))
 
 (defn ^:private bin* [a b]
-  (cond (and (number? a) (number? b)) (#?(:clj *' :cljs core-times) a b)
-        (and (number? a) (v/nullity? a)) (v/zero-like b)
-        (and (number? b) (v/nullity? b)) (v/zero-like a)
+  (cond (and (v/numerical? a) (v/nullity? a)) (v/zero-like b)
+        (and (v/numerical? b) (v/nullity? b)) (v/zero-like a)
         (v/unity? a) b
         (v/unity? b) a
         :else (mul a b)))
@@ -161,8 +153,7 @@
   (reduce bin* 1 args))
 
 (defn ^:private bin-div [a b]
-  (cond (and (number? a) (number? b)) (core-div a b)
-        (v/unity? b) a
+  (cond (v/unity? b) a
         :else (div a b)))
 
 (defn / [& args]

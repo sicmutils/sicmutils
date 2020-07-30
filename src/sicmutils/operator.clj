@@ -30,6 +30,7 @@
   v/Value
   (freeze [_] (v/freeze name))
   (kind [_] (:subtype context))
+  (numerical? [_] false)
   (nullity? [_] false)
   (unity? [_] false)
   IFn

@@ -59,7 +59,8 @@
   (zero-like [_] ZERO)
   (one-like [_] ONE)
   (freeze [c] (list 'complex (real-part c) (imag-part c)))
-  (exact? [_] false)
+  (exact? [c] (and (v/exact? (real-part c))
+                   (v/exact? (imag-part c))))
   (numerical? [_] true)
   (kind [_] ::complex))
 

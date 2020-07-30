@@ -42,6 +42,7 @@
   (nullity? [_] (every? v/nullity? (map coefficient terms)))
   (unity? [_] false)
   (zero-like [_] 0)
+  (one-like [_] 1)
   (freeze [_] `[~'Differential ~@terms])
   (exact? [_] false)
   (numerical? [d] (g/numerical-quantity? (differential-of d)))

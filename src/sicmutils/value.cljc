@@ -36,7 +36,7 @@
   ;; Freezing an expression means removing wrappers and other metadata
   ;; from subexpressions, so that the result is basically a pure
   ;; S-expression with the same structure as the input. Doing this will
-  ;; rob an expression of useful information fur further computation; so
+  ;; rob an expression of useful information for further computation; so
   ;; this is intended to be done just before simplification and printing, to
   ;; simplify those processes.
   (freeze [this])
@@ -49,23 +49,37 @@
 #?(:cljs
    (def ^:private ratio? (constantly false)))
 
-(extend-type #?(:clj Object :cljs default)
-  Value
-  (nullity? [o] (and (number? o) (core-zero? o)))
+(extend-protocol Value
+  #?(:clj Number :cljs number)
+  (nullity? [x] (core-zero? x))
+  (unity? [x] (== 1 x))
+  (zero-like [_] 0)
+  (one-like [_] 1)
+  (freeze [x] x)
+  (exact? [x] (or (integer? x) (ratio? x)))
+  (numerical? [_] true)
+  (kind [x] (type x))
+
+  nil
+  (freeze [_] nil)
   (numerical? [_] false)
-  (unity? [o] (and (number? o) (== o 1)))
-  (exact? [o] (or (integer? o) (ratio? o)))
-  (zero-like [o] (cond (number? o) 0
-                       (instance? Symbol o) 0
+  (nullity? [_] true)
+  (unity?[_] false)
+  (kind [_] nil)
+
+  #?(:clj Object :cljs default)
+  (nullity? [o] false)
+  (numerical? [_] false)
+  (unity? [o] false)
+  (exact? [o] false)
+  (zero-like [o] (cond (instance? Symbol o) 0
                        (or (fn? o) (instance? MultiFn o)) (with-meta
                                                             (constantly 0)
                                                             {:arity (arity o)
                                                              :from :object-zero-like})
 
                        :else (u/unsupported (str "zero-like: " o))))
-  (one-like [o] (if (number? o)
-                  1
-                  (u/unsupported (str "one-like: " o))))
+  (one-like [o] (u/unsupported (str "one-like: " o)))
   (freeze [o] (cond
                 (vector? o) (mapv freeze o)
                 (sequential? o) (map freeze o)
@@ -75,12 +89,6 @@
                           (@object-name-map o)
                           o)))
   (kind [o] (primitive-kind o)))
-
-(extend-type nil
-  Value
-  (freeze [_] nil)
-  (numerical? [_] nil)
-  (kind [_] nil))
 
 (defn add-object-symbols!
   [o->syms]
