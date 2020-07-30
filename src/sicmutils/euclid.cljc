@@ -47,6 +47,9 @@
                   a
                   (recur b (g/remainder a b))))))
 
+;; multimethod implementation for basic numeric types.
+(defmethod g/gcd :default [a b] (gcd a b))
+
 (defn lcm
   [a b]
   (g/abs (g/divide (g/* a b) (gcd a b))))

@@ -161,3 +161,55 @@
   (is (= '(* -1 (expt (cos x) 2)) (g/simplify (g/+ (g/expt (g/sin 'x) 2) -1))))
   (testing "symbolic arguments"
     (is (= '(atan y x) (g/simplify (g/atan 'y 'x))))))
+
+
+(deftest moved-from-numbers
+  (testing "with-symbols"
+    (is (= '(tan x) (g/simplify (g/tan 'x))))
+
+    (is (= '(+ x 4) (g/simplify (g/+ 4 'x))))
+    (is (= '(+ y 5) (g/simplify (g/+ 'y 5))))
+    (is (= '(/ 5 y) (g/simplify (g/divide 5 'y))))
+    (is (= '(* 5 y) (g/simplify (g/* 5 'y))))
+    (is (= '(/ x y) (g/simplify (g/divide 'x 'y))))
+    (is (= '(* x y) (g/simplify (g/* 'x 'y))))
+
+    (is (= '(* -1 x) (g/simplify (g/negate 'x))))
+    (is (= '(abs x) (g/simplify (g/abs 'x))))
+    (is (= '(sqrt x) (g/simplify (g/sqrt 'x))))
+    (is (= '(expt x 2) (g/simplify (g/expt 'x 2))))
+    (is (= '(expt x y) (g/simplify (g/expt 'x 'y))))
+    (is (= '(expt 2 y) (g/simplify (g/expt 2 'y))))
+
+    (is (= 'x (g/simplify (g/expt 'x 1))))
+    (is (= 'x (g/simplify (g/expt (g/sqrt 'x) 2))))
+    (is (= '(expt x 3) (g/simplify (g/expt (g/sqrt 'x) 6))))
+    (is (= '(expt x 12) (g/simplify (g/expt (g/expt 'x 4) 3))))
+    (is (= '(/ 1 (expt x 3)) (g/simplify (g/expt 'x -3))))
+
+    (is (= '(log x) (g/simplify (g/log 'x))))
+    (is (= '(exp x) (g/simplify (g/exp 'x)))))
+
+  (testing "zero/one elimination"
+    (is (= 'x (g/+ 0 'x)))
+    (is (= 'x (g/* 1 'x)))
+    (is (= (g/negate 'x) (g/- 0 'x)))
+    (is (= 'x (g/+ 'x 0)))
+    (is (= 'x (g/* 'x 1)))
+    (is (= 'x (g/- 'x 0)))
+    (is (= 'x (g/+ 0.0 'x)))
+    (is (= 'x (g/* 1.0 'x)))
+    (is (= 'x (g/+ 'x 0.0)))
+    (is (= 'x (g/* 'x 1.0)))
+    (is (= 'x (g/divide 'x 1.0)))
+    (is (= 'x (g/divide 'x 1)))
+    (is (= 0 (g/divide 0 'x)))
+    (is (= 0 (g/* 0 'x)))
+    (is (= 0 (g/* 'x 0)))
+    (is (thrown? ArithmeticException (g/divide 'x 0))))
+
+  (testing "symbolic moves"
+    (is (= 1 (g/expt 'x 0)))
+    #_(is (= 0 (g/gcd 'x 'x)))
+    (is (= 1 (g/expt 1 'x)))
+    (is (= (g/negate 'x) (g/- 0 'x)))))

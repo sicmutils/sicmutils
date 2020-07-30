@@ -19,7 +19,8 @@
 
 (ns sicmutils.value
   (:refer-clojure :rename {zero? core-zero?})
-  (:require #?(:clj [clojure.core.match :refer [match]]
+  (:require [sicmutils.util :as u]
+            #?(:clj [clojure.core.match :refer [match]]
                :cljs [cljs.core.match :refer-macros [match]]))
   #?(:clj
      (:import (clojure.lang RestFn MultiFn Keyword Symbol)
@@ -45,16 +46,6 @@
 
 (def ^:private object-name-map (atom {}))
 
-(defn unsupported [s]
-  (throw
-   #?(:clj (UnsupportedOperationException. s)
-      :cljs (js/Error s))))
-
-(defn illegal [s]
-  (throw
-   #?(:clj (IllegalArgumentException. s)
-      :cljs (js/Error s))))
-
 #?(:cljs
    (def ^:private ratio? (constantly false)))
 
@@ -71,10 +62,10 @@
                                                             {:arity (arity o)
                                                              :from :object-zero-like})
 
-                       :else (unsupported (str "zero-like: " o))))
+                       :else (u/unsupported (str "zero-like: " o))))
   (one-like [o] (if (number? o)
                   1
-                  (unsupported (str "one-like: " o))))
+                  (u/unsupported (str "one-like: " o))))
   (freeze [o] (cond
                 (vector? o) (mapv freeze o)
                 (sequential? o) (map freeze o)
@@ -135,7 +126,7 @@
               (= 3 (second (first (:getRequiredArity facts))))
               (:doInvoke facts))
          [:exactly 1]
-         :else (illegal (str "arity? " f " " facts)))))
+         :else (u/illegal (str "arity? " f " " facts)))))
 
    :cljs
    (do
@@ -211,7 +202,7 @@
   "Find the joint arity of arities a and b, i.e. the loosest possible arity specification
   compatible with both. Throws if the arities are incompatible."
   [a b]
-  (let [fail #(illegal (str "Incompatible arities: " a " " b))]
+  (let [fail #(u/illegal (str "Incompatible arities: " a " " b))]
     ;; since the combination operation is symmetric, sort the arguments
     ;; so that we only have to implement the upper triangle of the
     ;; relation.
