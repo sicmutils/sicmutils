@@ -18,25 +18,17 @@
 ;
 
 (ns sicmutils.numsymb
-  (:require [sicmutils
-             [value :as v]
-             [generic :as g]
-             [complex :as c]
-             [euclid :as euclid]
-             [expression :as x]]
-            [clojure.math.numeric-tower :as nt])
-  (:import (clojure.lang Symbol)))
-
-(defn ^:private numerical-expression
-  [expr]
-  (cond (number? expr) expr
-        (symbol? expr) expr
-        (c/complex? expr) expr
-        (g/literal-number? expr) (:expression expr)
-        :else (throw (IllegalArgumentException. (str "unknown numerical expression type " expr)))))
-
-(defn ^:private make-numsymb-expression [operator operands]
-  (->> operands (map numerical-expression) (apply operator) x/literal-number))
+  "Implementations of the generic operations for numeric types that have
+  optimizations available, and for the general symbolic case."
+  (:require [sicmutils.complex :as c]
+            [sicmutils.euclid]
+            [sicmutils.expression :as x]
+            [sicmutils.generic :as g]
+            [sicmutils.numbers]
+            [sicmutils.value :as v]
+            [sicmutils.util :as u])
+  #?(:clj
+     (:import (clojure.lang Symbol))))
 
 (defn ^:private is-expression?
   "Returns a function which will decide if its argument is a sequence
@@ -55,9 +47,14 @@
 
 ;; BEGIN
 ;; these are without constructor simplifications!
+;;
+;; the branches with both arguments equal to number? are taken care of by
+;; operations defined by the implementations in `sicmutils.numbers`; they remain
+;; because the implementations in `sicmutils.polynomial` bypass the generic
+;; operations and call these directly.
 
 (defn add [a b]
-  (cond (and (number? a) (number? b)) (+ a b)
+  (cond (and (number? a) (number? b)) (g/add a b)
         (number? a) (cond (v/nullity? a) b
                           (sum? b) `(~'+ ~a ~@(operands b))
                           :else `(~'+ ~a ~b))
@@ -70,7 +67,7 @@
         :else `(~'+ ~a ~b)))
 
 (defn ^:private sub [a b]
-  (cond (and (number? a) (number? b)) (- a b)
+  (cond (and (number? a) (number? b)) (g/sub a b)
         (number? a) (if (v/nullity? a) `(~'- ~b) `(~'- ~a ~b))
         (number? b) (if (v/nullity? b) a `(~'- ~a ~b))
         (= a b) 0
@@ -82,7 +79,7 @@
         :else (sub (first args) (reduce add (next args)))))
 
 (defn mul [a b]
-  (cond (and (number? a) (number? b)) (* a b)
+  (cond (and (number? a) (number? b)) (g/mul a b)
         (number? a) (cond (v/nullity? a) a
                           (v/unity? a) b
                           (product? b) `(~'* ~a ~@(operands b))
@@ -99,9 +96,9 @@
         :else `(~'* ~a ~b)))
 
 (defn div [a b]
-  (cond (and (number? a) (number? b)) (/ a b)
+  (cond (and (number? a) (number? b)) (g/div a b)
         (number? a) (if (v/nullity? a) a `(~'/ ~a ~b))
-        (number? b) (cond (v/nullity? b) (throw (ArithmeticException. "division by zero"))
+        (number? b) (cond (v/nullity? b) (u/arithmetic-ex "division by zero")
                           (v/unity? b) a
                           :else `(~'/ ~a ~b))
         :else `(~'/ ~a ~b)))
@@ -133,8 +130,6 @@
 (def ^:private pi-over-4 (/ pi 4))
 (def ^:private two-pi (* 2 pi))
 (def ^:private pi-over-2 (* 2 pi-over-4))
-;; (def ^:private pi-over-3 (/ pi 3))
-;; (def ^:private pi-over-6 (/ pi-over-2 3))
 
 (defn ^:private n:zero-mod-pi? [x]
   (almost-integer? (/ x pi)))
@@ -161,7 +156,14 @@
   (almost-integer? (/ (- x pi-over-4) pi)))
 (def ^:private symb:pi-over-4-mod-pi? #{'pi-over-4 '+pi-over-4})
 
-(defn ^:private sine [x]
+(defn ^:private sine
+  "Implementation of sine that attempts to apply optimizations at the call site.
+  If it's not possible to do this (if the expression is symbolic, say), returns
+  a symbolic form.
+
+  TODO could we use v/numerical? here? If so, could complex numbers take
+  advantage?"
+  [x]
   (cond (number? x) (cond (zero? x) 0
                           (n:zero-mod-pi? x) 0
                           (n:pi-over-2-mod-2pi? x) 1
@@ -174,10 +176,17 @@
         :else `(~'sin ~x)))
 
 (defn ^:private arcsine
+  "Implementation of arcsine that should only be reached after the standard
+  installed numeric implementation is bypassed. This is called for non-number
+  numerical expressions."
   [x]
   `(~'asin ~x))
 
-(defn ^:private cosine [x]
+(defn ^:private cosine
+  "Implementation of cosine that attempts to apply optimizations at the call site.
+  If it's not possible to do this (if the expression is symbolic, say), returns
+  a symbolic form."
+  [x]
   (cond (number? x) (cond (zero? x) 1
                           (n:pi-over-2-mod-pi? x) 0
                           (n:zero-mod-2pi? x) 1
@@ -190,64 +199,79 @@
         :else `(~'cos ~x)))
 
 (defn ^:private arccosine
+  "Similar to arcsine, this method should only be reached in cases where the
+  expression is symbolic."
   [x]
   `(~'acos ~x))
 
-(defn ^:private tangent [x]
+(defn ^:private tangent
+  "Implementation of tangent that attempts to apply optimizations at the call site.
+  If it's not possible to do this (if the expression is symbolic, say), returns
+  a symbolic form."
+  [x]
   (cond (number? x) (if (v/exact? x)
                       (if (zero? x) 0 `(~'tan ~x))
                       (cond (n:zero-mod-pi? x) 0.
                             (n:pi-over-4-mod-pi? x) 1.
                             (n:-pi-over-4-mod-pi? x) -1.
                             (n:pi-over-2-mod-pi? x)
-                              (throw (IllegalArgumentException. "Undefined: tan"))
+                            (u/illegal "Undefined: tan")
                             :else `(~'tan ~x)))
         (symbol? x) (cond (symb:zero-mod-pi? x) 0
                           (symb:pi-over-4-mod-pi? x) 1
                           (symb:-pi-over-4-mod-pi? x) -1
                           (symb:pi-over-2-mod-pi? x)
-                            (throw (IllegalArgumentException. "Undefined: tan"))
+                          (u/illegal "Undefined: tan")
                           :else `(~'tan ~x))
         :else `(~'tan ~x)))
 
 (defn arctangent
+  "Similar to arcsine and arccosine, this method should only be reached in cases
+  where the expression is symbolic."
   [y & x]
   (if (or (nil? x) (v/unity? (first x)))
     `(~'atan ~y)
     `(~'atan ~y ~@x)))
 
-(defn ^:private abs [x]
-  (cond (number? x) (if (< x 0) (- x) x)
-        :else `(~'abs ~x)))
+(defn ^:private abs
+  "Symbolic expression handler for abs."
+  [x]
+  `(~'abs ~x))
 
-(defn sqrt [s]
-  (if (number? s)
-    (if-not (v/exact? s)
-      (nt/sqrt s)
-      (cond (v/nullity? s) s
-            (v/unity? s) 1
-            :else (let [q (nt/sqrt s)]
-                    (if (v/exact? q)
-                      q
-                      `(~'sqrt ~s)))))
-    `(~'sqrt ~s)))
+(defn ^:private delegator
+  "Returns a wrapper around f that attempts to preserve exactness if the input is
+  numerically exact, else passes through to f."
+  [f sym]
+  (fn [s]
+    (if (number? s)
+      (let [q (f s)]
+        (if-not (v/exact? s)
+          q
+          (if (v/exact? q)
+            q
+            `(~sym ~s))))
+      `(~sym ~s))))
 
-(defn ^:private log [s]
-  (if (number? s)
-    (if-not (v/exact? s)
-      (Math/log s)
-      (if (v/unity? s) 0 `(~'log ~s)))
-    `(~'log ~s)))
+(def sqrt
+  "Square root implementation that attempts to preserve exact numbers wherever
+  possible. If the incoming value is not exact, simply computes sqrt."
+  (delegator g/sqrt 'sqrt))
 
-(defn ^:private exp [s]
-  (if (number? s)
-    (if-not (v/exact? s)
-      (Math/exp s)
-      (if (v/nullity? s) 1 `(~'exp ~s)))
-    `(~'exp ~s)))
+(def ^:private log
+  "Attempts to preserve exact precision if the argument is exact; else, evaluates
+  symbolically or numerically."
+  (delegator g/log 'log))
 
-(defn expt [b e]
-  (cond (and (number? b) (number? e)) (nt/expt b e)
+(def ^:private exp
+  "Attempts to preserve exact precision if the argument is exact; else, evaluates
+  symbolically or numerically."
+  (delegator g/exp 'exp))
+
+(defn expt
+  "Attempts to preserve exact precision if either argument is exact; else,
+  evaluates symbolically or numerically."
+  [b e]
+  (cond (and (number? b) (number? e)) (g/expt b e)
         (number? b) (cond (v/unity? b) 1
                           :else `(~'expt ~b ~e))
         (number? e) (cond (v/nullity? e) 1
@@ -263,21 +287,42 @@
                           :else `(~'expt ~b ~e))
         :else `(~'expt ~b ~e)))
 
-(defmacro ^:private define-binary-operation
-  [generic-operation symbolic-operation]
-  `(defmethod ~generic-operation [::x/numerical-expression
-                                  ::x/numerical-expression]
-     [a# b#]
-     (make-numsymb-expression ~symbolic-operation [a# b#])))
+(defn ^:private negate [x]
+  (sub 0 x))
 
-(defmacro ^:private define-unary-operation
+(defn ^:private invert [x]
+  (div 1 x))
+
+(defn ^:private numerical-expression
+  [expr]
+  (cond (number? expr) expr
+        (symbol? expr) expr
+        (c/complex? expr) expr
+        (g/literal-number? expr) (:expression expr)
+        :else (u/illegal (str "unknown numerical expression type " expr))))
+
+(defn ^:private make-numsymb-expression
+  [operator operands]
+  (->> operands
+       (map numerical-expression)
+       (apply operator)
+       x/literal-number))
+
+(defn ^:private define-binary-operation
   [generic-operation symbolic-operation]
-  `(defmethod ~generic-operation [::x/numerical-expression]
-     [a#]
-     (make-numsymb-expression ~symbolic-operation [a#])))
+  (defmethod generic-operation [::x/numerical-expression
+                                ::x/numerical-expression]
+    [a b]
+    (make-numsymb-expression symbolic-operation [a b])))
+
+(defn ^:private define-unary-operation
+  [generic-operation symbolic-operation]
+  (defmethod generic-operation [::x/numerical-expression]
+    [a]
+    (make-numsymb-expression symbolic-operation [a])))
 
 (derive Symbol ::x/numerical-expression)
-(derive Number ::x/numerical-expression)
+(derive u/numtype ::x/numerical-expression)
 
 (define-binary-operation g/add add)
 (define-binary-operation g/sub sub)
@@ -285,30 +330,26 @@
 (define-binary-operation g/div div)
 (define-binary-operation g/expt expt)
 (define-binary-operation g/atan arctangent)
-(define-unary-operation g/negate #(sub 0 %))
-(define-unary-operation g/invert #(div 1 %))
+(define-unary-operation g/negate negate)
+(define-unary-operation g/invert invert)
 (define-unary-operation g/sin sine)
 (define-unary-operation g/asin arcsine)
 (define-unary-operation g/cos cosine)
 (define-unary-operation g/acos arccosine)
 (define-unary-operation g/tan tangent)
 (define-unary-operation g/atan arctangent)
-(define-unary-operation g/square #(expt % 2))
-(define-unary-operation g/cube #(expt % 3))
 (define-unary-operation g/sqrt sqrt)
 (define-unary-operation g/exp exp)
 (define-unary-operation g/abs abs)
 (define-unary-operation g/log log)
-
-(defmethod g/gcd [Number Number] [a b] (euclid/gcd a b))
 
 (def ^:private symbolic-operator-table
   {'+ #(reduce add 0 %&)
    '- sub-n
    '* #(reduce mul 1 %&)
    '/ div-n
-   'negate #(sub 0 %)
-   'invert #(div 1 %)
+   'negate negate
+   'invert invert
    'sin sine
    'asin arcsine
    'cos cosine
@@ -324,7 +365,7 @@
    'expt expt})
 
 (defn symbolic-operator
-  "Given a symbol (like '+) returns an applicable if there is a corresponding
-  symbolic operator construction available."
+  "Given a symbol (like '+) returns an applicable operator if there is a
+  corresponding symbolic operator construction available."
   [s]
   (symbolic-operator-table s))

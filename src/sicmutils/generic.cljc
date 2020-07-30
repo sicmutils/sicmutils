@@ -72,41 +72,50 @@
        (defmethod ~f [~klass] [k#]
          ({:arity ~arity :name '~f} k#)))))
 
+;; Numeric functions.
 (def-generic-function add 2)
 (def-generic-function mul 2)
 (def-generic-function sub 2)
 (def-generic-function div 2)
+(def-generic-function negate 1)
+(def-generic-function negative? 1)
+(def-generic-function exp 1)
+(def-generic-function log 1)
+(def-generic-function abs 1)
+(def-generic-function sqrt 1)
+(def-generic-function quotient 2)
+(def-generic-function remainder 2)
+(def-generic-function expt 2)
+(def-generic-function gcd 2)
+(def-generic-function exact-divide 2)
 
+(def-generic-function square 1)
+(defmethod square :default [x] (expt x 2))
+
+(def-generic-function cube 1)
+(defmethod cube :default [x] (expt x 3))
+
+
+;; Trigonometric functions.
 (def-generic-function cos 1)
 (def-generic-function sin 1)
 (def-generic-function tan 1)
 (def-generic-function asin 1)
 (def-generic-function acos 1)
 (def-generic-function atan 1 2)
-(def-generic-function cross-product 2)
-(def-generic-function negative? 1)
+
+;; Operations on structures
+(def-generic-function invert 1)
 (def-generic-function transpose 1)
 (def-generic-function magnitude 1)
 (def-generic-function determinant 1)
+(def-generic-function cross-product 2)
 
-(def-generic-function invert 1)
-(def-generic-function negate 1)
-(def-generic-function square 1)
-(def-generic-function cube 1)
-(def-generic-function exp 1)
-(def-generic-function log 1)
-(def-generic-function abs 1)
-(def-generic-function sqrt 1)
-
-(def-generic-function exact-divide 2)
-(def-generic-function quotient 2)
-(def-generic-function remainder 2)
-(def-generic-function expt 2)
-(def-generic-function gcd 2)
-
+;; More advanced generic operations.
 (def-generic-function Lie-derivative 1)
 
 (defmulti partial-derivative v/argument-kind)
+
 (defmulti simplify v/argument-kind)
 
 (defn ^:private bin+ [a b]

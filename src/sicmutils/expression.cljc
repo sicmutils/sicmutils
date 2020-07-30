@@ -18,11 +18,13 @@
 ;
 
 (ns sicmutils.expression
-  (:require [sicmutils.value :as v]))
+  (:require [sicmutils.util :as u]
+            [sicmutils.value :as v]))
 
 (defrecord Expression [type expression]
   Object
   (toString [_] (str expression))
+
   v/Value
   (nullity? [_] false)  ;; XXX what if it's a wrapped zero? one?
   (unity? [_] false)
@@ -58,7 +60,7 @@
   [expr]
   (cond (instance? Expression expr) (:expression expr)
         (symbol? expr) expr
-        :else (v/illegal (str "unknown expression type:" expr))))
+        :else (u/illegal (str "unknown expression type:" expr))))
 
 (defn variables-in
   "Return the 'variables' (e.g. symbols) found in the expression x,

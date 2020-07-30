@@ -18,12 +18,11 @@
 ;
 
 (ns sicmutils.numsymb-test
-  (:require [clojure.test :refer :all]
-            [sicmutils
-             [generic :as g]
-             [value :as v]
-             [numbers]
-             [numsymb]]))
+  (:require #?(:clj  [clojure.test :refer :all]
+               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+            [sicmutils.numsymb]
+            [sicmutils.generic :as g]
+            [sicmutils.value :as v]))
 
 (def ^:private near (v/within 1e-12))
 
@@ -41,12 +40,14 @@
     (is (= (g/- 10 (g/+ 'x 3 2)) (g/- 10 'x 3 2)))
     (is (= (g/- 10 (g/+ 'x 3 2 1)) (g/- 10 'x 3 2 1)))
     (is (= (g/- 10 (g/+ 20 'x 3 2 1)) (g/- 10 20 'x 3 2 1))))
+
   (testing "* with vars"
     (is (= (g/* 60 'x) (g/* 10 3 2 'x)))
     (is (= (g/* 10 'x 3 2) (g/* 10 'x 3 2)))
     (is (= (g/* 10 'x 3 2 1) (g/* 10 'x 3 2 1)))
     (is (= (g/* 'x 10 'x 3 2 1) (g/* 'x 10 'x 3 2 1)))
     (is (= (g/* 200 'x 3 2) (g/* 10 20 'x 3 2 1))))
+
   (testing "trig shortcuts - sin"
     (is (= 0 (g/sin 0)))
     (is (= 0 (g/sin 'pi)))
@@ -57,6 +58,7 @@
     (is (near 0.0 (g/sin (- Math/PI))))
     (is (= 1 (g/sin 'pi-over-2)))
     (is (= 1.0 (g/sin (/ Math/PI 2)))))
+
   (testing "trig shortcuts - cos"
     (is (= 1 (g/cos 0)))
     (is (= -1 (g/cos 'pi)))
@@ -65,19 +67,22 @@
     (is (near 1.0 (g/cos (* 2 Math/PI))))
     (is (= -1 (g/cos '-pi)))
     (is (= 0 (g/cos 'pi-over-2))))
+
   (testing "trig shortcuts - tan"
-    (is (= 0.0 (g/tan 0)))
+    (is (= 0 (g/tan 0)))
     (is (= 1 (g/tan 'pi-over-4)))
     (is (= -1 (g/tan '-pi-over-4)))
-    (is (thrown? IllegalArgumentException (g/tan 'pi-over-2))))
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                 (g/tan 'pi-over-2))))
+
   (testing "misc trig"
     (is (near (/ Math/PI 2) (g/asin 1)))
     (is (near (/ Math/PI 2) (g/acos 0)))
-    (is (near (/ Math/PI 3) (g/acos 1/2)))
     (is (near (/ Math/PI 6) (g/asin 0.5)))
     (is (near (/ Math/PI 4) (g/atan 1)))
     (is (near (- (/ Math/PI 4)) (g/atan -1)))
     (is (near (/ Math/PI 4) (g/atan 1 1)))
     (is (near (* -3 (/ Math/PI 4)) (g/atan -1 -1)))
     (is (near (* 3 (/ Math/PI 4)) (g/atan 1 -1)))
-    (is (near (/ Math/PI -4) (g/atan -1 1)))))
+    (is (near (/ Math/PI -4) (g/atan -1 1)))
+    (is (near (/ Math/PI 3) (g/acos #?(:clj 1/2 :cljs (/ 1 2)))))))
