@@ -124,7 +124,9 @@
 
 #?(:cljs
    (letfn [(goog-expt
-             ;; Implementation of exponent taken from Clojure's numeric tower.
+             ;; Implementation of exponent taken from Clojure's numeric tower's
+             ;; expt-int:
+             ;; https://github.com/clojure/math.numeric-tower/blob/master/src/main/clojure/clojure/math/numeric_tower.clj#L72
              [base pow]
              (loop [n pow
                     y (v/one-like base)
