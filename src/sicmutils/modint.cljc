@@ -18,10 +18,10 @@
 ;
 
 (ns sicmutils.modint
-  (:require [sicmutils
-             [value :as v]
-             [generic :as g]
-             [euclid :as e]]))
+  (:require [sicmutils.euclid :as e]
+            [sicmutils.generic :as g]
+            [sicmutils.util :as u]
+            [sicmutils.value :as v]))
 
 (defrecord ModInt [^BigInteger i ^BigInteger m]
   v/Value
@@ -39,15 +39,14 @@
 (defn ^:private modular-binop [op]
   (fn [a b]
     (if-not (= (:m a) (:m b))
-      (throw (ArithmeticException. "unequal moduli"))
+      (u/arithmetic-ex "unequal moduli")
       (make (op (:i a) (:i b)) (:m a)))))
 
 (defn ^:private modular-inv [^ModInt m]
   (let [modulus (:m m)
         [g a _] (e/extended-gcd (:i m) modulus)]
     (if (< g 2) (make a modulus)
-        (throw (ArithmeticException.
-                (str m " is not invertible mod " modulus))))))
+        (u/arithmetic-ex (str m " is not invertible mod " modulus)))))
 
 (def ^:private add (modular-binop +))
 (def ^:private sub (modular-binop -))
@@ -55,8 +54,6 @@
 (def ^:private modulo (modular-binop mod))
 
 (defmethod g/add [::modint ::modint] [a b] (add a b))
-(defmethod g/add [Long ::modint] [a b] (make (+ a (:i b)) (:m b)))
-(defmethod g/add [::modint Long] [a b] (make (+ (:i a) b) (:m a)))
 (defmethod g/mul [::modint ::modint] [a b] (mul a b))
 (defmethod g/sub [::modint ::modint] [a b] (sub a b))
 (defmethod g/negate [::modint] [a] (make (- (:i a)) (:m a)))
@@ -66,3 +63,7 @@
 (defmethod g/remainder [::modint ::modint] [a b] (modulo a b))
 (defmethod g/exact-divide [::modint ::modint] [a b] (mul a (modular-inv b)))
 (defmethod g/negative? [::modint] [a] (< (:i a) 0))
+
+;; Methods that convert between other types.
+(defmethod g/add [u/longtype ::modint] [a b] (make (+ a (:i b)) (:m b)))
+(defmethod g/add [::modint u/longtype] [a b] (make (+ (:i a) b) (:m a)))
