@@ -21,12 +21,21 @@
   (:require #?(:clj  [clojure.test :refer :all]
                :cljs [cljs.test :as t :refer-macros [is deftest testing]])
             [sicmutils.numbers]
+            [sicmutils.numbers-test :as nt]
             [sicmutils.complex :as c]
             [sicmutils.generic :as g]
             [sicmutils.value :as v]))
 
 (defn ^:private near [w z]
   (< (g/abs (g/- w z)) 1e-12))
+
+(deftest complex-generics
+  (let [skip #{:quotient :remainder :negative? :cube}]
+    (nt/integral-tests c/complex :exclusions skip))
+
+  (testing "cube"
+    (is (near (c/complex 27) (g/cube (c/complex 3))))
+    (is (near (c/complex -27) (g/cube (c/complex -3))))))
 
 (deftest value-protocol
   (testing "v/Value protocol implementation"

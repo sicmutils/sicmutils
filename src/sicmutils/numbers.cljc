@@ -175,6 +175,10 @@
        (if (neg? a) (core-minus a) a))
      (defmethod g/exact-divide [js/BigInt js/BigInt] [a b] (exact-divide a b))
 
+     ;; Compatibility with u/numtype.
+     (defmethod g/expt [js/BigInt u/numtype] [a b] (g/expt a (js/BigInt b)))
+     (defmethod g/expt [u/numtype js/BigInt] [a b] (g/expt (js/BigInt a) b))
+
      ;; Google Closure library's 64-bit Long and arbitrary-precision Integer
      ;; type.
      (doseq [goog-type [goog.math.Long goog.math.Integer]]
@@ -185,10 +189,22 @@
        (defmethod g/expt [goog-type goog-type] [a b] (goog-expt a b))
        (defmethod g/abs [goog-type] [a] (if (neg? a) (.negate a) a))
        (defmethod g/negative? [goog-type] [a] (neg? a))
-       (defmethod g/quotient [goog-type goog-type] [a b] (.div a b))
        (defmethod g/remainder [goog-type goog-type] [a b] (.modulo a b))
        (defmethod g/magnitude [goog-type] [a b] (if (neg? a) (.negate a) a))
-       (defmethod g/exact-divide [goog-type goog-type] [a b] (exact-divide a b)))
+       (defmethod g/exact-divide [goog-type goog-type] [a b] (exact-divide a b))
+
+       ;; These names are slightly different between the two types.
+       (defmethod g/quotient [goog.math.Long goog.math.Long] [a b] (.div a b))
+       (defmethod g/quotient [goog.math.Integer goog.math.Integer] [a b] (.divide a b))
+
+       ;; Compatibility with basic number type. TODO: make a way to get this
+       ;; working for ALL of the binary functions... by providing a conversion
+       ;; function and doing them all together, for both args.
+       (defmethod g/expt [goog-type u/numtype] [a b]
+         (g/expt a (.fromNumber goog-type b)))
+
+       (defmethod g/expt [u/numtype goog-type] [a b]
+         (goog-expt (.fromNumber goog-type a) b)))
 
      ;; TODO these are not defined on integral types, BUT we could get farther
      ;; if we could convert these to a BigDecimal, once we support those.
