@@ -122,6 +122,42 @@
   {:pre [(v/nullity? (g/remainder a b))]}
   (g/quotient a b))
 
+;; This section defines methods that act differently between Clojurescript and
+;; Clojure. The clojure methods are all slightly more refined based on Java's
+;; type system.
+#?(:cljs
+   (do
+     ;; These are potentially ill-formed on js/Number, since these don't make
+     ;; sense for floats. But there is no distinction in JS between a floating
+     ;; point number and an integer, so here we go.
+     (defmethod g/negative? [u/numtype] (neg? a))
+     (defmethod g/quotient [u/numtype u/numtype] [a b] (quot a b))
+     (defmethod g/remainder [u/numtype u/numtype] (rem a b)))
+
+   :clj
+   (do
+     ;; Operations defined only on integral types
+     (let [integral-types [Long BigInt BigInteger]]
+       (doseq [lhs integral-types
+               rhs integral-types]
+         (defmethod g/remainder [lhs rhs] [a b] (mod a b))
+         (defmethod g/remainder [rhs lhs] [b a] (mod b a))
+         (defmethod g/quotient [lhs rhs] [a b] (quot a b))
+         (defmethod g/quotient [rhs lhs] [b a] (quot b a))
+         (defmethod g/exact-divide [lhs rhs] [a b] (exact-divide a b))
+         (defmethod g/exact-divide [rhs lhs] [b a] (exact-divide b a))))
+
+     (defmethod g/exact-divide [Ratio Ratio] [a b] (core-div a b))
+     (defmethod g/exact-divide [Ratio BigInt] [a b] (core-div a b))
+
+     (defmethod g/negative? [Long] [a] (neg? a))
+     (defmethod g/negative? [BigInt] [a] (neg? a))
+     (defmethod g/negative? [BigInteger] [a] (neg? a))))
+
+
+;; Clojurescript and Javascript have a number of numeric types available that
+;; don't respond true to number? These each require their own block of method
+;; implementations.
 #?(:cljs
    (letfn [(goog-expt
              ;; Implementation of exponent taken from Clojure's numeric tower's
@@ -152,66 +188,23 @@
        (if (neg? a) (core-minus a) a))
      (defmethod g/exact-divide [js/BigInt js/BigInt] [a b] (exact-divide a b))
 
-     ;; Google Closure library 64-bit Long
-     (defmethod g/add [u/longtype u/longtype] [a b] (.add a b))
-     (defmethod g/mul [u/longtype u/longtype] [a b] (.multiply a b))
-     (defmethod g/sub [u/longtype u/longtype] [a b] (.subtract a b))
-     (defmethod g/negate [u/longtype] [a] (.negate a))
-     (defmethod g/expt [u/longtype u/longtype] [a b] (goog-expt a b))
-     (defmethod g/abs [u/longtype] [a] (if (neg? a) (.negate a) a))
-     (defmethod g/negative? [u/longtype] [a] (neg? a))
-     (defmethod g/quotient [u/longtype u/longtype] [a b] (.div a b))
-     (defmethod g/remainder [u/longtype u/longtype] [a b] (.modulo a b))
-     (defmethod g/magnitude [u/longtype] [a b] (if (neg? a) (.negate a) a))
-     (defmethod g/exact-divide [u/longtype u/longtype] [a b] (exact-divide a b))
+     ;; Google Closure library's 64-bit Long and arbitrary-precision Integer
+     ;; type.
+     (doseq [goog-type [goog.math.Long goog.math.Integer]]
+       (defmethod g/add [goog-type goog-type] [a b] (.add a b))
+       (defmethod g/mul [goog-type goog-type] [a b] (.multiply a b))
+       (defmethod g/sub [goog-type goog-type] [a b] (.subtract a b))
+       (defmethod g/negate [goog-type] [a] (.negate a))
+       (defmethod g/expt [goog-type goog-type] [a b] (goog-expt a b))
+       (defmethod g/abs [goog-type] [a] (if (neg? a) (.negate a) a))
+       (defmethod g/negative? [goog-type] [a] (neg? a))
+       (defmethod g/quotient [goog-type goog-type] [a b] (.div a b))
+       (defmethod g/remainder [goog-type goog-type] [a b] (.modulo a b))
+       (defmethod g/magnitude [goog-type] [a b] (if (neg? a) (.negate a) a))
+       (defmethod g/exact-divide [goog-type goog-type] [a b] (exact-divide a b)))
 
-     ;; Google Closure library arbitrary-precision Integer
-     (defmethod g/add [u/inttype u/inttype] [a b] (core-plus a b))
-     (defmethod g/mul [u/inttype u/inttype] [a b] (core-times a b))
-     (defmethod g/sub [u/inttype u/inttype] [a b] (core-minus a b))
-     (defmethod g/negate [u/inttype] [a] (core-minus a))
-     (defmethod g/expt [u/inttype u/inttype] [a b] (goog-expt a b))
-     (defmethod g/abs [u/inttype] [a] (if (neg? a) (.negate a) a))
-     (defmethod g/negative? [u/inttype] [a] (neg? a))
-     (defmethod g/quotient [u/inttype u/inttype] [a b] (.div a b))
-     (defmethod g/remainder [u/inttype u/inttype] [a b] (.modulo a b))
-     (defmethod g/magnitude [u/inttype] [a b] (if (neg? a) (.negate a) a))
-     (defmethod g/exact-divide [u/inttype u/inttype] [a b] (exact-divide a b))
-
-     ;; TODO these are not defined, BUT we could get farther if we could convert
-     ;; these to a BigDecimal, once we support those.
+     ;; TODO these are not defined on integral types, BUT we could get farther
+     ;; if we could convert these to a BigDecimal, once we support those.
      (comment
        (defmethod g/div [js/BigInt js/BigInt] [a b] (core-div a b))
        (defmethod g/invert [js/BigInt] [a] (core-div a)))))
-
-
-;; This section defines methods that act differently between clojurescript and
-;; Clojure. The clojure methods are all slightly more refined based on Java's
-;; type system.
-#?(:cljs
-   (do
-     ;; These are potentially ill-formed on js/Number, since these don't make
-     ;; sense for floats.
-     (define-unary-operation g/negative? neg?)
-     (define-binary-operation g/quotient quot)
-     (define-binary-operation g/remainder rem))
-
-   :clj
-   (do
-     ;; Operations defined only on integral types
-     (let [integral-types [Long BigInt BigInteger]]
-       (doseq [lhs integral-types
-               rhs integral-types]
-         (defmethod g/remainder [lhs rhs] [a b] (mod a b))
-         (defmethod g/remainder [rhs lhs] [b a] (mod b a))
-         (defmethod g/quotient [lhs rhs] [a b] (quot a b))
-         (defmethod g/quotient [rhs lhs] [b a] (quot b a))
-         (defmethod g/exact-divide [lhs rhs] [a b] (exact-divide a b))
-         (defmethod g/exact-divide [rhs lhs] [b a] (exact-divide b a))))
-
-     (defmethod g/exact-divide [Ratio Ratio] [a b] (core-div a b))
-     (defmethod g/exact-divide [Ratio BigInt] [a b] (core-div a b))
-
-     (defmethod g/negative? [Long] [a] (neg? a))
-     (defmethod g/negative? [BigInt] [a] (neg? a))
-     (defmethod g/negative? [BigInteger] [a] (neg? a))))
