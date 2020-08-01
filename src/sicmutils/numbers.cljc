@@ -35,15 +35,19 @@
   #?(:clj
      (:import (clojure.lang BigInt Ratio))))
 
-(defn ^:private define-unary-operation
-  [generic-operation core-operation]
-  (defmethod generic-operation [u/numtype] [a]
-    (core-operation a)))
+(defmethod g/add [u/numtype u/numtype] [a b] (#?(:clj +' :cljs core-plus) a b))
+(defmethod g/mul [u/numtype u/numtype] [a b] (#?(:clj *' :cljs core-times) a b))
+(defmethod g/sub [u/numtype u/numtype] [a b] (#?(:clj -' :cljs core-minus) a b))
+(defmethod g/negate [u/numtype] [a] (core-minus a))
+(defmethod g/div [u/numtype u/numtype] [a b] (core-div a b))
+(defmethod g/invert [u/numtype] [a] (core-div a))
+(defmethod g/expt [u/numtype u/numtype] [a b] (u/compute-expt a b))
+(defmethod g/abs [u/numtype] [a] (u/compute-abs a))
+(defmethod g/magnitude [u/numtype] [a] (u/compute-abs a))
 
-(defn ^:private define-binary-operation
-  [generic-operation core-operation]
-  (defmethod generic-operation [u/numtype u/numtype] [a b]
-    (core-operation a b)))
+;; trig operations
+(defmethod g/atan [u/numtype] [a] (Math/atan a))
+(defmethod g/atan [u/numtype u/numtype] [a b] (Math/atan2 a b))
 
 (comment
   ;; As reference documentation, these are the implementations that one would
@@ -52,26 +56,9 @@
   ;; Instead, these implementations for numbers are provided by
   ;; `sicmutils.numsymb`. This allows us to apply simplifications inside each
   ;; operation as it's evaluated.
-  (define-unary-operation g/sin #(Math/sin %))
-  (define-unary-operation g/cos #(Math/cos %))
-  (define-unary-operation g/tan #(Math/tan %)))
-
-;; these overrides are here because these operations have no optimizations
-;; associated. If you DO want to optimize for these data types, replace these
-;; implementations with better functions.
-(define-binary-operation g/add #?(:clj +' :cljs core-plus))
-(define-binary-operation g/mul #?(:clj *' :cljs core-times))
-(define-binary-operation g/sub #?(:clj -' :cljs core-minus))
-(define-unary-operation g/negate core-minus)
-(define-binary-operation g/div core-div)
-(define-unary-operation g/invert core-div)
-(define-binary-operation g/expt u/compute-expt)
-(define-unary-operation g/abs u/compute-abs)
-(define-unary-operation g/magnitude u/compute-abs)
-
-;; trig operations
-(define-unary-operation g/atan #(Math/atan %))
-(define-binary-operation g/atan #(Math/atan2 % %2))
+  (defmethod g/sin [u/numtype] [a] (Math/sin a))
+  (defmethod g/cos [u/numtype] [a] (Math/cos a))
+  (defmethod g/tan [u/numtype] [a] (Math/tan a)))
 
 ;; Operations which allow promotion to complex numbers when their
 ;; arguments would otherwise result in a NaN if computed on the real
@@ -130,9 +117,9 @@
      ;; These are potentially ill-formed on js/Number, since these don't make
      ;; sense for floats. But there is no distinction in JS between a floating
      ;; point number and an integer, so here we go.
-     (defmethod g/negative? [u/numtype] (neg? a))
+     (defmethod g/negative? [u/numtype] [a] (neg? a))
      (defmethod g/quotient [u/numtype u/numtype] [a b] (quot a b))
-     (defmethod g/remainder [u/numtype u/numtype] (rem a b)))
+     (defmethod g/remainder [u/numtype u/numtype] [a b] (rem a b)))
 
    :clj
    (do
