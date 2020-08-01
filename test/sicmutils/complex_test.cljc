@@ -29,14 +29,6 @@
 (defn ^:private near [w z]
   (< (g/abs (g/- w z)) 1e-12))
 
-(deftest complex-generics
-  (let [skip #{:quotient :remainder :negative? :cube}]
-    (nt/integral-tests c/complex :exclusions skip))
-
-  (testing "cube"
-    (is (near (c/complex 27) (g/cube (c/complex 3))))
-    (is (near (c/complex -27) (g/cube (c/complex -3))))))
-
 (deftest value-protocol
   (testing "v/Value protocol implementation"
     (is (v/nullity? c/ZERO))
@@ -76,6 +68,10 @@
       (is (c/complex? (c/complex 0 1)))
       (is (c/complex? (c/complex 2)))
       (is (not (c/complex? 4))))
+
+    (testing "complex generics"
+      (let [skip #{:quotient :remainder :negative? :cube}]
+        (nt/integral-tests c/complex :exclusions skip)))
 
     (testing "add"
       (is (= (c/complex 4 6) (g/add (c/complex 1 2) (c/complex 3 4))))
@@ -127,7 +123,9 @@
       (is (near (g/mul i 200) (g/square (c/complex 10 10)))))
 
     (testing "cube"
-      (is (near (c/complex 0 -8) (g/cube (g/* 2 i)))))
+      (is (near (c/complex 0 -8) (g/cube (g/* 2 i))))
+      (is (near (c/complex 27) (g/cube (c/complex 3))))
+      (is (near (c/complex -27) (g/cube (c/complex -3)))))
 
     (testing "sqrt"
       (is (near (c/complex 10 10) (g/sqrt (g/mul i 200)))))
