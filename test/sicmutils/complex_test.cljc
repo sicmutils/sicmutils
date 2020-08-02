@@ -94,8 +94,7 @@
 
     (testing "div in either order"
       (is (= (c/complex 0 -1) (g/div 1 i)))
-      (is (= (c/complex 2 2) (g/div (c/complex 4 4) 2)))
-      )
+      (is (= (c/complex 2 2) (g/div (c/complex 4 4) 2))))
 
     (testing "expt"
       (is (near -1 (g/expt (c/complex 0 1) 2)))

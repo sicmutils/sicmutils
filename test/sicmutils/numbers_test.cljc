@@ -227,9 +227,13 @@
 (deftest long-generics
   (integral-tests u/long))
 
-#?(:cljs
-   (deftest bigint-generics
-     (integral-tests js/BigInt)))
+(deftest bigint-generics
+  (integral-tests #?(:clj bigint
+                     :cljs js/BigInt)))
+
+#?(:clj
+   (deftest biginteger-generics
+     (integral-tests #(BigInteger/valueOf %))))
 
 (deftest arithmetic
   #?(:clj

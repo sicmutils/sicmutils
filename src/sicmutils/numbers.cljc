@@ -109,6 +109,19 @@
   {:pre [(v/nullity? (g/remainder a b))]}
   (g/quotient a b))
 
+(derive u/inttype ::integral)
+(derive u/longtype ::integral)
+
+#?(:cljs
+   (derive js/BigInt ::integral)
+
+   :clj
+   (do (derive BigInt ::integral)
+       (derive BigInteger ::integral)))
+
+(defmethod g/negative? [::integral] [a] (neg? a))
+(defmethod g/exact-divide [::integral ::integral] [b a] (exact-divide b a))
+
 ;; This section defines methods that act differently between Clojurescript and
 ;; Clojure. The clojure methods are all slightly more refined based on Java's
 ;; type system.
@@ -124,22 +137,11 @@
    :clj
    (do
      ;; Operations defined only on integral types
-     (let [integral-types [Long BigInt BigInteger]]
-       (doseq [lhs integral-types
-               rhs integral-types]
-         (defmethod g/remainder [lhs rhs] [a b] (mod a b))
-         (defmethod g/remainder [rhs lhs] [b a] (mod b a))
-         (defmethod g/quotient [lhs rhs] [a b] (quot a b))
-         (defmethod g/quotient [rhs lhs] [b a] (quot b a))
-         (defmethod g/exact-divide [lhs rhs] [a b] (exact-divide a b))
-         (defmethod g/exact-divide [rhs lhs] [b a] (exact-divide b a))))
+     (defmethod g/quotient [::integral ::integral] [b a] (quot b a))
+     (defmethod g/remainder [::integral ::integral] [a b] (mod a b))
 
      (defmethod g/exact-divide [Ratio Ratio] [a b] (core-div a b))
-     (defmethod g/exact-divide [Ratio BigInt] [a b] (core-div a b))
-
-     (defmethod g/negative? [Long] [a] (neg? a))
-     (defmethod g/negative? [BigInt] [a] (neg? a))
-     (defmethod g/negative? [BigInteger] [a] (neg? a))))
+     (defmethod g/exact-divide [Ratio BigInt] [a b] (core-div a b))))
 
 
 ;; Clojurescript and Javascript have a number of numeric types available that
@@ -168,12 +170,10 @@
      (defmethod g/negate [js/BigInt] [a] (core-minus a))
      (defmethod g/expt [js/BigInt js/BigInt] [a b] (js* "~{} ** ~{}" a b))
      (defmethod g/abs [js/BigInt] [a] (if (neg? a) (core-minus a) a))
-     (defmethod g/negative? [js/BigInt] [a] (neg? a))
      (defmethod g/quotient [js/BigInt js/BigInt] [a b] (core-div a b))
      (defmethod g/remainder [js/BigInt js/BigInt] [a b] (js* "~{} % ~{}" a b))
      (defmethod g/magnitude [js/BigInt] [a b]
        (if (neg? a) (core-minus a) a))
-     (defmethod g/exact-divide [js/BigInt js/BigInt] [a b] (exact-divide a b))
 
      ;; Compatibility with u/numtype.
      (defmethod g/expt [js/BigInt u/numtype] [a b] (g/expt a (js/BigInt b)))
@@ -188,10 +188,8 @@
        (defmethod g/negate [goog-type] [a] (.negate a))
        (defmethod g/expt [goog-type goog-type] [a b] (goog-expt a b))
        (defmethod g/abs [goog-type] [a] (if (neg? a) (.negate a) a))
-       (defmethod g/negative? [goog-type] [a] (neg? a))
        (defmethod g/remainder [goog-type goog-type] [a b] (.modulo a b))
        (defmethod g/magnitude [goog-type] [a b] (if (neg? a) (.negate a) a))
-       (defmethod g/exact-divide [goog-type goog-type] [a b] (exact-divide a b))
 
        ;; These names are slightly different between the two types.
        (defmethod g/quotient [goog.math.Long goog.math.Long] [a b] (.div a b))
@@ -201,7 +199,7 @@
        ;; working for ALL of the binary functions... by providing a conversion
        ;; function and doing them all together, for both args.
        (defmethod g/expt [goog-type u/numtype] [a b]
-         (g/expt a (.fromNumber goog-type b)))
+         (goog-expt a (.fromNumber goog-type b)))
 
        (defmethod g/expt [u/numtype goog-type] [a b]
          (goog-expt (.fromNumber goog-type a) b)))
