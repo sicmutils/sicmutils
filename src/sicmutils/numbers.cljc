@@ -109,6 +109,8 @@
   {:pre [(v/nullity? (g/remainder a b))]}
   (g/quotient a b))
 
+;; Smaller inheritance tree to enabled shared implementations between numeric
+;; types that represent mathematical integers.
 (derive u/inttype ::integral)
 (derive u/longtype ::integral)
 
@@ -142,7 +144,6 @@
 
      (defmethod g/exact-divide [Ratio Ratio] [a b] (core-div a b))
      (defmethod g/exact-divide [Ratio BigInt] [a b] (core-div a b))))
-
 
 ;; Clojurescript and Javascript have a number of numeric types available that
 ;; don't respond true to number? These each require their own block of method

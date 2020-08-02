@@ -85,3 +85,191 @@
   (is (= 1 (g/divide)) "division with no args returns multiplicative identity")
   (is (= 20 (g/divide 20 1)) "dividing by one a single time returns the input")
   (is (= "face" (g/divide "face" 1 1 1 1.0 1)) "dividing by 1 returns the input"))
+
+(defn integral-unary-tests
+  [int->a & {:keys [exclusions eq]
+             :or {eq =}}]
+  (letfn [(check [op x expected]
+            (let [in (op (int->a x))
+                  out (int->a expected)]
+              (is (eq in out)
+                  #?(:clj (format "%s != %s" in out)))))]
+
+    (when-not (:negate exclusions)
+      (testing "negate"
+        (check g/negate 4 -4)
+        (check (comp g/negate g/negate) 4 4)))
+
+    (when-not (:abs exclusions)
+      (testing "abs"
+        (check g/abs -1 1)
+        (check g/abs 1 1)))
+
+    (when-not (:magnitude exclusions)
+      (testing "magnitude"
+        (check g/magnitude -123 123)
+        (check g/magnitude 123 123)))
+
+    (when-not (:square exclusions)
+      (testing "square"
+        (check g/square 2 4)
+        (check g/square -2 4)))
+
+    (when-not (:cube exclusions)
+      (testing "cube"
+        (check g/cube 3 27)
+        (check g/cube -3 -27)))
+
+    (when-not (:negative? exclusions)
+      (testing "negative?"
+        (is (g/negative? (g/negate (int->a 4))))
+        (is (not (g/negative? (g/negate (g/negate (int->a 4))))))))))
+
+(defn integral-binary-tests
+  [int->a int->b & {:keys [exclusions eq]
+                    :or {eq =}}]
+  (letfn [(check [op l r expected]
+            (let [a (int->a expected)]
+              (is (eq a (op (int->a l) (int->b r))))
+              (is (eq a (op (int->b l) (int->a r))))))]
+
+    (when-not (:add exclusions)
+      (testing "add"
+        (check g/add 2 2 4)
+        (check g/add 2 0 2)
+        (is (eq (int->a 10)
+                (reduce g/add (map int->a [1 2 3 4]))))))
+
+    (when-not (:mul exclusions)
+      (testing "mul"
+        (check g/mul 5 4 20)
+        (check g/mul 2 2 4)
+        (is (eq (int->a 8)
+                (reduce g/mul (map int->a [2 2 2]))))))
+
+    (when-not (:sub exclusions)
+      (testing "sub"
+        (check g/sub 0 4 -4)))
+
+    (when-not (:expt exclusions)
+      (testing "expt"
+        (check g/expt 2 5 32)))
+
+    (when-not (:quotient exclusions)
+      (testing "quotient"
+        (check g/quotient 5 2 2)))
+
+    (when-not (:remainder exclusions)
+      (testing "remainder"
+        (check g/remainder 5 2 1)))
+
+    (when-not (:exact-divide exclusions)
+      (testing "exact-divide"
+        (check g/exact-divide 20 5 4)))))
+
+(defn floating-point-unary-tests
+  [float->a & {:keys [exclusions eq]
+               :or {eq =}}]
+  (letfn [(check [op x expected]
+            (let [a (float->a expected)]
+              (is (eq a (op (float->a x))))))]
+    (when-not (:negate exclusions)
+      (testing "negate"
+        (check g/negate 4.2 -4.2)
+        (check (comp g/negate g/negate) 4.2 4.2)))
+
+    (when-not (:abs exclusions)
+      (testing "abs"
+        (check g/abs 1.4 1.4)
+        (check g/abs -1.4 1.4)))
+
+    (when-not (:magnitude exclusions)
+      (testing "magnitude"
+        (check g/magnitude 123.4 123.4)
+        (check g/magnitude -123.4 123.4)))
+
+    (when-not (:square exclusions)
+      (testing "square"
+        (check g/square 2.2 4.84)
+        (check g/square -2.2 4.84)))
+
+    (when-not (:cube exclusions)
+      (testing "cube"
+        (check g/cube 3.2 32.768)
+        (check g/cube -3.2 -32.768)))
+
+    (when-not (:invert exclusions)
+      (testing "invert"
+        (check g/invert 1 1)
+        (check g/invert 5 0.2)))
+
+    (when-not (:exp exclusions)
+      (testing "exp"
+        (check g/exp 0 1)))
+
+    (when-not (:log exclusions)
+      (testing "log"
+        (check g/log 1 0)))
+
+    (when-not (or (:log exclusions)
+                  (:exp exclusions))
+      (testing "log/exp"
+        (check (comp g/log g/exp) 10 10)))))
+
+(defn floating-point-binary-tests
+  [float->a float->b & {:keys [exclusions eq]
+                        :or {eq =}}]
+  (letfn [(check [op l r expected]
+            (let [a (float->a expected)]
+              (is (eq a (op (float->a l) (float->b r))))
+              (is (eq a (op (float->b l) (float->a r))))))]
+
+    (when-not (:add exclusions)
+      (testing "add"
+        (check g/add 2 2 4)
+        (check g/add 2 0 2)))
+
+    (when-not (:mul exclusions)
+      (testing "mul"
+        (check g/mul 5 4 20)
+        (check g/mul 2 2 4)))
+
+    (when-not (:sub exclusions)
+      (testing "sub"
+        (check g/sub 3.14 1 2.14)
+        (check g/sub 0 4 -4)))
+
+    (when-not (:expt exclusions)
+      (testing "expt"
+        (check g/expt 2 5 32)))
+
+    (when-not (:div exclusions)
+      (testing "div"
+        (check g/div 20 4 5)))
+
+    (when-not (:invert exclusions)
+      (testing "invert"
+        (is (eq (float->a 0.05)
+                (g/invert (float->a 20))))
+        (is (eq (g/invert (float->a 21))
+                (g/div (float->a 1) (float->a 21))))
+        (is (eq (g/invert (float->a 21))
+                (g/div (float->b 1) (float->b 21))))))))
+
+(defn integral-tests
+  "Battery of tests that check the behavior of standard generic operations on
+  types that handle integral numbers."
+  [int->a & {:keys [exclusions eq]}]
+  (integral-unary-tests int->a :exclusions exclusions :eq (or eq =))
+  (integral-binary-tests int->a int->a :exclusions exclusions :eq (or eq =)))
+
+(defn floating-point-tests
+  "Battery of tests that check the behavior of standard generic operations on
+  types that handle floating point numbers."
+  [float->a & {:keys [exclusions eq]}]
+  (floating-point-unary-tests float->a
+                              :exclusions exclusions
+                              :eq (or eq =))
+  (floating-point-binary-tests float->a float->a
+                               :exclusions exclusions
+                               :eq (or eq =)))

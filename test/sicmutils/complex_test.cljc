@@ -21,9 +21,9 @@
   (:require #?(:clj  [clojure.test :refer :all]
                :cljs [cljs.test :as t :refer-macros [is deftest testing]])
             [sicmutils.numbers]
-            [sicmutils.numbers-test :as nt]
             [sicmutils.complex :as c]
             [sicmutils.generic :as g]
+            [sicmutils.generic-test :as gt]
             [sicmutils.value :as v]))
 
 (defn ^:private near [w z]
@@ -69,9 +69,10 @@
       (is (c/complex? (c/complex 2)))
       (is (not (c/complex? 4))))
 
-    (testing "complex generics"
-      (let [skip #{:quotient :remainder :negative? :cube}]
-        (nt/integral-tests c/complex :exclusions skip)))
+    (testing "complex-generics"
+      (let [skip #{:quotient :remainder :negative? :exact-divide}]
+        (gt/integral-tests c/complex :exclusions skip :eq near)
+        (gt/floating-point-tests c/complex :eq near)))
 
     (testing "add"
       (is (= (c/complex 4 6) (g/add (c/complex 1 2) (c/complex 3 4))))
