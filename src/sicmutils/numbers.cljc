@@ -186,9 +186,6 @@
        (defmethod op [u/numtype js/BigInt] [a b]
          (op (u/bigint a) b)))
 
-     (defmethod g/expt [js/BigInt u/numtype] [a b] (g/expt a (js/BigInt b)))
-     (defmethod g/expt [u/numtype js/BigInt] [a b] (g/expt (js/BigInt a) b))
-
      ;; Google Closure library's 64-bit Long and arbitrary-precision Integer
      ;; type.
      (doseq [goog-type [goog.math.Long goog.math.Integer]]

@@ -41,7 +41,34 @@
     (is (= 0 (g/log (g/exp 0)))))
 
   (testing "exp/log goes approx if forced"
-    (is (= 10.0 (g/log (g/exp 10))))))
+    (is (= 10.0 (g/log (g/exp 10)))))
+
+  (testing "div"
+    (is (= 5 (g/div 20 4))))
+
+  (testing "invert"
+    (is (= 1 (g/invert 1)))
+    (is (= (g/div 1 21) (g/invert 21))))
+
+  (testing "trig"
+    (is (near (/ Math/PI 4) (g/asin (/ (g/sqrt 2) 2))))
+    (is (near (/ Math/PI 4) (g/acos (/ (g/sqrt 2) 2))))
+    (is (zero? (g/asin 0)))
+    (is (near (/ Math/PI 2) (g/acos 0))))
+
+  (testing ">1 gets promoted to complex for asin, acos"
+    (is (c/complex? (g/asin 2)))
+    (is (c/complex? (g/acos 2))))
+
+  (testing "sqrt handles negative numbers, 0"
+    (is (= 0 (g/sqrt 0)))
+    (is (= 9 (g/sqrt 81)))
+    (is (c/complex? (g/sqrt -81)))
+    (is (= (c/complex 0 9) (g/sqrt -81))))
+
+  (testing "sqrt of one preserves type"
+    (is (v/one-like (g/sqrt c/ONE)))
+    (is (c/complex? (g/sqrt c/ONE)))))
 
 (deftest integer-generics
   (gt/integral-tests u/int)
@@ -157,37 +184,3 @@
      (is (= 1/2 (g/divide 1 2)))
      (is (= 1/4 (g/divide 1 2 2)))
      (is (= 1/8 (g/divide 1 2 2 2)))))
-
-
-(defn field-tests
-  [from-int]
-  (testing "div"
-    (is (= 5 (g/div 20 4))))
-
-  (testing "invert"
-    (is (= 1 (g/invert 1)))
-    (is (= (g/div 1 21) (g/invert 21)))))
-
-(defn misc-tests
-  "These seem a little tailored to the number implementation, but let's see. I
-  guess, clearly, we should be promoting other types to complex too."
-  [from-int]
-  (testing "trig"
-    (is (near (/ Math/PI 4) (g/asin (/ (g/sqrt 2) 2))))
-    (is (near (/ Math/PI 4) (g/acos (/ (g/sqrt 2) 2))))
-    (is (zero? (g/asin 0)))
-    (is (near (/ Math/PI 2) (g/acos 0))))
-
-  (testing ">1 gets promoted to complex for asin, acos"
-    (is (c/complex? (g/asin 2)))
-    (is (c/complex? (g/acos 2))))
-
-  (testing "sqrt handles negative numbers, 0"
-    (is (= 0 (g/sqrt 0)))
-    (is (= 9 (g/sqrt 81)))
-    (is (c/complex? (g/sqrt -81)))
-    (is (= (c/complex 0 9) (g/sqrt -81))))
-
-  (testing "sqrt of one preserves type"
-    (is (v/one-like (g/sqrt c/ONE)))
-    (is (c/complex? (g/sqrt c/ONE)))) )
