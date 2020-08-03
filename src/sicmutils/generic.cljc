@@ -25,13 +25,10 @@
 
 ;;; classifiers
 
-(defn literal-number?
-  [x]
-  (= (:type x) ::x/numerical-expression))
-
 (defn abstract-number?
   [x]
-  (or (symbol? x) (literal-number? x)))
+  (or (symbol? x)
+      (x/literal-number? x)))
 
 (defn abstract-quantity?
   [x]

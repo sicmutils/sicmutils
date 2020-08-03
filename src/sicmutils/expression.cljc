@@ -34,6 +34,10 @@
   (freeze [_] (v/freeze expression))
   (kind [_] type))
 
+(defn literal-number?
+  [x]
+  (= (:type x) ::numerical-expression))
+
 (defn literal-number
   [expression]
   (if (number? expression)

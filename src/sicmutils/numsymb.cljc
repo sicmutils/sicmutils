@@ -169,10 +169,7 @@
                           (n:pi-over-2-mod-2pi? x) 1
                           (n:-pi-over-2-mod-2pi? x) -1
                           :else (Math/sin x))
-        (symbol? x) (cond (symb:zero-mod-pi? x) 0
-                          (symb:pi-over-2-mod-2pi? x) 1
-                          (symb:-pi-over-2-mod-2pi? x) -1
-                          :else `(~'sin ~x))
+        (symbol? x) (g/sin x)
         :else `(~'sin ~x)))
 
 (defn ^:private arcsine
@@ -192,10 +189,7 @@
                           (n:zero-mod-2pi? x) 1
                           (n:pi-mod-2pi? x) -1
                           :else (Math/cos x))
-        (symbol? x) (cond (symb:pi-over-2-mod-pi? x) 0
-                          (symb:zero-mod-2pi? x) +1
-                          (symb:pi-mod-2pi? x) -1
-                          :else `(~'cos ~x))
+        (symbol? x) (g/cos x)
         :else `(~'cos ~x)))
 
 (defn ^:private arccosine
@@ -211,18 +205,13 @@
   [x]
   (cond (number? x) (if (v/exact? x)
                       (if (zero? x) 0 `(~'tan ~x))
-                      (cond (n:zero-mod-pi? x) 0.
-                            (n:pi-over-4-mod-pi? x) 1.
-                            (n:-pi-over-4-mod-pi? x) -1.
+                      (cond (n:zero-mod-pi? x) 0
+                            (n:pi-over-4-mod-pi? x) 1
+                            (n:-pi-over-4-mod-pi? x) -1
                             (n:pi-over-2-mod-pi? x)
                             (u/illegal "Undefined: tan")
                             :else `(~'tan ~x)))
-        (symbol? x) (cond (symb:zero-mod-pi? x) 0
-                          (symb:pi-over-4-mod-pi? x) 1
-                          (symb:-pi-over-4-mod-pi? x) -1
-                          (symb:pi-over-2-mod-pi? x)
-                          (u/illegal "Undefined: tan")
-                          :else `(~'tan ~x))
+        (symbol? x) (g/tan x)
         :else `(~'tan ~x)))
 
 (defn arctangent
@@ -298,28 +287,58 @@
   (cond (number? expr) expr
         (symbol? expr) expr
         (c/complex? expr) expr
-        (g/literal-number? expr) (:expression expr)
+        (x/literal-number? expr) (:expression expr)
         :else (u/illegal (str "unknown numerical expression type " expr))))
 
-(defn ^:private make-numsymb-expression
-  [operator operands]
-  (->> operands
-       (map numerical-expression)
-       (apply operator)
-       x/literal-number))
+(defn ^:private expr-map
+  "Applies the function to its arguments, and returns the rest."
+  ([f a]
+   (let [x (numerical-expression a)]
+     (x/literal-number (f x))))
+  ([f a b]
+   (let [l (numerical-expression a)
+         r (numerical-expression b)]
+     (x/literal-number (f l r))))
+  ([f a b & args]
+   (let [xs (map numerical-expression (conj args b a))]
+     (x/literal-number (apply f xs)))))
 
-(defn ^:private define-binary-operation
-  [generic-operation symbolic-operation]
-  (defmethod generic-operation [::x/numerical-expression
-                                ::x/numerical-expression]
-    [a b]
-    (make-numsymb-expression symbolic-operation [a b])))
+;; Symbol-specific implementations of the core trig functions.
+(defmethod g/sin [Symbol] [x]
+  (x/literal-number
+   (cond (symb:zero-mod-pi? x) 0
+         (symb:pi-over-2-mod-2pi? x) 1
+         (symb:-pi-over-2-mod-2pi? x) -1
+         :else `(~'sin ~x))))
+
+(defmethod g/cos [Symbol] [x]
+  (x/literal-number
+   (cond (symb:pi-over-2-mod-pi? x) 0
+         (symb:zero-mod-2pi? x) +1
+         (symb:pi-mod-2pi? x) -1
+         :else `(~'cos ~x))))
+
+(defmethod g/tan [Symbol] [x]
+  (x/literal-number
+   (cond (symb:zero-mod-pi? x) 0
+         (symb:pi-over-4-mod-pi? x) 1
+         (symb:-pi-over-4-mod-pi? x) -1
+         (symb:pi-over-2-mod-pi? x)
+         (u/illegal "Undefined: tan")
+         :else `(~'tan ~x))))
 
 (defn ^:private define-unary-operation
-  [generic-operation symbolic-operation]
-  (defmethod generic-operation [::x/numerical-expression]
+  [generic-op symbolic-op]
+  (defmethod generic-op [::x/numerical-expression]
     [a]
-    (make-numsymb-expression symbolic-operation [a])))
+    (expr-map symbolic-op a)))
+
+(defn ^:private define-binary-operation
+  [generic-op symbolic-op]
+  (defmethod generic-op [::x/numerical-expression
+                         ::x/numerical-expression]
+    [a b]
+    (expr-map symbolic-op a b)))
 
 (derive Symbol ::x/numerical-expression)
 (derive u/numtype ::x/numerical-expression)
