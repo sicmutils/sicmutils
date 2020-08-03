@@ -52,6 +52,12 @@
 #?(:cljs
    (def ^:private ratio? (constantly false)))
 
+(def numtype #?(:clj Number :cljs ::number))
+
+#?(:cljs
+   (do (derive js/Number ::number)
+       (derive ::exact-number ::number)))
+
 (extend-protocol Value
   #?(:clj Number :cljs number)
   (nullity? [x] (core-zero? x))
@@ -61,7 +67,10 @@
   (freeze [x] x)
   (exact? [x] (or (integer? x) (ratio? x)))
   (numerical? [_] true)
-  (kind [x] (type x))
+  (kind [x] #?(:clj (type x)
+               :cljs (if (exact? x)
+                       ::exact-number
+                       (type x))))
 
   nil
   (freeze [_] nil)

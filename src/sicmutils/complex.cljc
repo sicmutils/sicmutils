@@ -20,7 +20,6 @@
 (ns sicmutils.complex
   (:require [sicmutils.generic :as g]
             [sicmutils.value :as v]
-            [sicmutils.util :as u]
             #?(:cljs [cljsjs.complex :as Complex]))
   #?(:clj
      (:import [org.apache.commons.math3.complex Complex])))
@@ -65,12 +64,12 @@
   (kind [_] ::complex))
 
 (defmethod g/add [::complex ::complex] [^Complex a ^Complex b] (.add a b))
-(defmethod g/add [::complex u/numtype] [^Complex a n] (.add a (double n)))
-(defmethod g/add [u/numtype ::complex] [n ^Complex a] (.add a (double n)))
+(defmethod g/add [::complex v/numtype] [^Complex a n] (.add a (double n)))
+(defmethod g/add [v/numtype ::complex] [n ^Complex a] (.add a (double n)))
 
 (defmethod g/expt [::complex ::complex] [^Complex a ^Complex b] (.pow a b))
-(defmethod g/expt [::complex u/numtype] [^Complex a n] (.pow a (double n)))
-(defmethod g/expt [u/numtype ::complex] [n ^Complex a] (.pow ^Complex (complex n) a))
+(defmethod g/expt [::complex v/numtype] [^Complex a n] (.pow a (double n)))
+(defmethod g/expt [v/numtype ::complex] [n ^Complex a] (.pow ^Complex (complex n) a))
 
 (defmethod g/abs [::complex] [^Complex a] (.abs a))
 (defmethod g/exp [::complex] [^Complex a] (.exp a))
@@ -108,16 +107,16 @@
    :cljs
    (do
      (defmethod g/sub [::complex ::complex] [a b] (.sub a b))
-     (defmethod g/sub [::complex js/Number] [a n] (.sub a (double n)))
-     (defmethod g/sub [js/Number ::complex] [n a] (.add (.neg a) (double n)))
+     (defmethod g/sub [::complex v/numtype] [a n] (.sub a (double n)))
+     (defmethod g/sub [v/numtype ::complex] [n a] (.add (.neg a) (double n)))
 
      (defmethod g/mul [::complex ::complex] [a b] (.mul a b))
-     (defmethod g/mul [::complex js/Number] [a n] (.mul a (double n)))
-     (defmethod g/mul [js/Number ::complex] [n a] (.mul a (double n)))
+     (defmethod g/mul [::complex v/numtype] [a n] (.mul a (double n)))
+     (defmethod g/mul [v/numtype ::complex] [n a] (.mul a (double n)))
 
      (defmethod g/div [::complex ::complex] [a b] (.div a b))
-     (defmethod g/div [::complex js/Number] [a n] (.div a (double n)))
-     (defmethod g/div [js/Number ::complex] [n a] (.mul (.inverse a) (double n)))
+     (defmethod g/div [::complex v/numtype] [a n] (.div a (double n)))
+     (defmethod g/div [v/numtype ::complex] [n a] (.mul (.inverse a) (double n)))
 
      (defmethod g/negate [::complex] [a] (.neg a))
      (defmethod g/invert [::complex] [a] (.inverse a))
