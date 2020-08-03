@@ -35,6 +35,18 @@
   #?(:clj
      (:import (clojure.lang BigInt Ratio))))
 
+;; Smaller inheritance tree to enabled shared implementations between numeric
+;; types that represent mathematical integers.
+(derive u/inttype ::integral)
+(derive u/longtype ::integral)
+
+#?(:cljs
+   (derive js/BigInt ::integral)
+
+   :clj
+   (do (derive BigInt ::integral)
+       (derive BigInteger ::integral)))
+
 (defmethod g/add [u/numtype u/numtype] [a b] (#?(:clj +' :cljs core-plus) a b))
 (defmethod g/mul [u/numtype u/numtype] [a b] (#?(:clj *' :cljs core-times) a b))
 (defmethod g/sub [u/numtype u/numtype] [a b] (#?(:clj -' :cljs core-minus) a b))
@@ -108,18 +120,6 @@
   [a b]
   {:pre [(v/nullity? (g/remainder a b))]}
   (g/quotient a b))
-
-;; Smaller inheritance tree to enabled shared implementations between numeric
-;; types that represent mathematical integers.
-(derive u/inttype ::integral)
-(derive u/longtype ::integral)
-
-#?(:cljs
-   (derive js/BigInt ::integral)
-
-   :clj
-   (do (derive BigInt ::integral)
-       (derive BigInteger ::integral)))
 
 (defmethod g/negative? [::integral] [a] (neg? a))
 (defmethod g/exact-divide [::integral ::integral] [b a] (exact-divide b a))

@@ -20,15 +20,16 @@
 (ns sicmutils.modint
   (:require [sicmutils.euclid :as e]
             [sicmutils.generic :as g]
+            [sicmutils.numbers :as n]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
-(defrecord ModInt [^BigInteger i ^BigInteger m]
+(defrecord ModInt [i m]
   v/Value
-  (nullity? [_] (zero? i))
-  (unity? [_] (= i 1))
-  (zero-like [_] (ModInt. 0 m))
-  (one-like [_] (ModInt. 1 m))
+  (nullity? [_] (v/nullity? i))
+  (unity? [_] (v/unity? i))
+  (zero-like [_] (ModInt. (v/zero-like i) m))
+  (one-like [_] (ModInt. (v/one-like i) m))
   (exact? [_] true)
   (numerical? [_] true)
   (kind [_] ::modint))
@@ -48,22 +49,29 @@
     (if (< g 2) (make a modulus)
         (u/arithmetic-ex (str m " is not invertible mod " modulus)))))
 
-(def ^:private add (modular-binop +))
-(def ^:private sub (modular-binop -))
-(def ^:private mul (modular-binop *))
-(def ^:private modulo (modular-binop mod))
+(def ^:private add (modular-binop g/add))
+(def ^:private sub (modular-binop g/sub))
+(def ^:private mul (modular-binop g/mul))
+(def ^:private modulo (modular-binop g/mod))
 
 (defmethod g/add [::modint ::modint] [a b] (add a b))
 (defmethod g/mul [::modint ::modint] [a b] (mul a b))
 (defmethod g/sub [::modint ::modint] [a b] (sub a b))
-(defmethod g/negate [::modint] [a] (make (- (:i a)) (:m a)))
+(defmethod g/negate [::modint] [a] (make (g/negate (:i a)) (:m a)))
 (defmethod g/invert [::modint] [a] (modular-inv a))
 (defmethod g/abs [::modint] [{:keys [i m] :as a}] (if (< i 0) (make i m) a))
 (defmethod g/quotient [::modint ::modint] [a b] (mul a (modular-inv b)))
 (defmethod g/remainder [::modint ::modint] [a b] (modulo a b))
 (defmethod g/exact-divide [::modint ::modint] [a b] (mul a (modular-inv b)))
-(defmethod g/negative? [::modint] [a] (< (:i a) 0))
+(defmethod g/negative? [::modint] [a] (g/negative? (:i a)))
 
-;; Methods that convert between other types.
-(defmethod g/add [u/longtype ::modint] [a b] (make (+ a (:i b)) (:m b)))
-(defmethod g/add [::modint u/longtype] [a b] (make (+ (:i a) b) (:m a)))
+;; Methods that allow interaction with other integral types. The first block is
+;; perhaps slightly more efficient:
+(doseq [op [g/add g/mul g/sub]]
+  (defmethod op [::n/integral ::modint] [a b] (make (op a (:i b)) (:m b)))
+  (defmethod op [::modint ::n/integral] [a b] (make (op (:i a) b) (:m a))))
+
+;; The second block promotes any integral type to a ModInt before operating.
+(doseq [op [g/quotient g/remainder g/exact-divide]]
+  (defmethod op [::n/integral ::modint] [a b] (op (make a (:m b)) b))
+  (defmethod op [::modint ::n/integral] [a b] (op a (make b (:m a)))))
