@@ -51,9 +51,10 @@
 #?(:cljs
    (def ^:private ratio? (constantly false)))
 
-(def numtype #?(:clj Number :cljs ::number))
+(def numtype ::number)
 
-#?(:cljs
+#?(:clj (derive Number ::number)
+   :cljs
    (do (derive js/Number ::number)
        (derive ::exact-number ::number)))
 

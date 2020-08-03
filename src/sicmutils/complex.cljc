@@ -88,16 +88,16 @@
 #?(:clj
    (do
      (defmethod g/sub [::complex ::complex] [^Complex a ^Complex b] (.subtract a b))
-     (defmethod g/sub [::complex Number] [^Complex a n] (.subtract a (double n)))
-     (defmethod g/sub [Number ::complex] [n ^Complex a] (.add (.negate a) (double n)))
+     (defmethod g/sub [::complex v/numtype] [^Complex a n] (.subtract a (double n)))
+     (defmethod g/sub [v/numtype ::complex] [n ^Complex a] (.add (.negate a) (double n)))
 
      (defmethod g/mul [::complex ::complex] [^Complex a ^Complex b] (.multiply a b))
-     (defmethod g/mul [::complex Number] [^Complex a n] (.multiply a (double n)))
-     (defmethod g/mul [Number ::complex] [n ^Complex a] (.multiply a (double n)))
+     (defmethod g/mul [::complex v/numtype] [^Complex a n] (.multiply a (double n)))
+     (defmethod g/mul [v/numtype ::complex] [n ^Complex a] (.multiply a (double n)))
 
      (defmethod g/div [::complex ::complex] [^Complex a ^Complex b] (.divide a b))
-     (defmethod g/div [::complex Number] [^Complex a n] (.divide a (double n)))
-     (defmethod g/div [Number ::complex] [n ^Complex a] (.multiply (.reciprocal a) (double n)))
+     (defmethod g/div [::complex v/numtype] [^Complex a n] (.divide a (double n)))
+     (defmethod g/div [v/numtype ::complex] [n ^Complex a] (.multiply (.reciprocal a) (double n)))
 
      (defmethod g/negate [::complex] [^Complex a] (.negate a))
      (defmethod g/invert [::complex] [^Complex a] (.reciprocal a))
