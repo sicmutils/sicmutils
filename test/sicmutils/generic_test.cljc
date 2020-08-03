@@ -22,8 +22,7 @@
   (:require #?(:clj  [clojure.test :refer :all]
                :cljs [cljs.test :as t :refer-macros [is deftest testing]])
             [sicmutils.generic :as g]
-            [sicmutils.value :as v]
-            [sicmutils.util :as u]))
+            [sicmutils.value :as v]))
 
 (defmulti s* v/argument-kind)
 (defmulti s+ v/argument-kind)
@@ -38,8 +37,8 @@
 
 (def string #?(:clj String :cljs js/String))
 
-(defmethod s* [u/numtype string] [n s] (multiply-string n s))
-(defmethod s* [string u/numtype] [s n] (multiply-string n s))
+(defmethod s* [v/numtype string] [n s] (multiply-string n s))
+(defmethod s* [string v/numtype] [s n] (multiply-string n s))
 (defmethod s* [string string] [s t] (product-string s t))
 (defmethod s+ [string string] [s t] (str s t))
 
@@ -61,8 +60,9 @@
 
 (deftest type-assigner
   (testing "types"
-    (is (= #?(:clj Long :cljs js/Number) (v/kind 9)))
-    (is (= #?(:clj Double :cljs js/Number) (v/kind 99.0)))))
+    (is (= #?(:clj Long :cljs ::v/exact-number) (v/kind 9)))
+    (is (= #?(:clj Double :cljs ::v/exact-number) (v/kind 99.0)))
+    (is (= #?(:clj Double :cljs js/Number) (v/kind 99.5)))))
 
 (deftest generic-plus
   (is (= 0 (g/+)) "no args returns additive identity")

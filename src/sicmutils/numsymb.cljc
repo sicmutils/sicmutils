@@ -322,7 +322,7 @@
     (make-numsymb-expression symbolic-operation [a])))
 
 (derive Symbol ::x/numerical-expression)
-(derive u/numtype ::x/numerical-expression)
+(derive v/numtype ::x/numerical-expression)
 
 (define-binary-operation g/add add)
 (define-binary-operation g/sub sub)

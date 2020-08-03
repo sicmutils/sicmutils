@@ -11,7 +11,6 @@
 (def compute-sqrt #?(:clj nt/sqrt :cljs Math/sqrt))
 (def compute-expt #?(:clj nt/expt :cljs Math/pow))
 (def compute-abs #?(:clj nt/abs :cljs Math/abs))
-(def numtype #?(:clj Number :cljs js/Number))
 (def inttype #?(:clj Integer :cljs goog.math.Integer))
 (def longtype #?(:clj Long :cljs goog.math.Long))
 
