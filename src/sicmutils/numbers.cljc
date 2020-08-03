@@ -41,8 +41,8 @@
 (derive u/longtype ::integral)
 
 #?(:cljs
-   (derive js/BigInt ::integral)
-   (derive ::v/exact-number ::integral)
+   (do (derive js/BigInt ::integral)
+       (derive ::v/exact-number ::integral))
 
    :clj
    (do (derive BigInt ::integral)
