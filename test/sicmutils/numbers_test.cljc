@@ -61,7 +61,7 @@
    (deftest double-generics
      (gt/integral-tests double
                         :eq near
-                        :exclusions #{:exact-divide :remainder :quotient :negative?})
+                        :exclusions #{:exact-divide :remainder :modulo :quotient :negative?})
      (gt/floating-point-tests double :eq near)))
 
 #?(:clj

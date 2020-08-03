@@ -82,8 +82,8 @@
 (def-generic-function quotient 2)
 
 (def-generic-function remainder 2)
-(def-generic-function mod 2)
-(defmethod mod :default [a b]
+(def-generic-function modulo 2)
+(defmethod modulo :default [a b]
   (let [m (remainder a b)]
     (if (or (v/nullity? m)
             (= (negative? a)

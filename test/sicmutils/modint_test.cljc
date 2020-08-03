@@ -22,6 +22,7 @@
                :cljs [cljs.test :as t :refer-macros [is deftest testing]])
             [sicmutils.value :as v]
             [sicmutils.generic :as g]
+            [sicmutils.generic-test :as gt]
             [sicmutils.modint :as m]))
 
 (deftest modint
@@ -42,16 +43,22 @@
       (is (= m5_7b m5_7))
       (is (not= m2_7 m5_7))
       (is (not= m5_13 m5_7)))
+
     (testing "add"
       (is (= m3_7 (g/+ m5_7 m5_7))))
+
     (testing "sub"
       (is (= m2_7 (g/- m5_7 m3_7))))
+
     (testing "neg"
       (is (= m2_7 (g/negate m5_7))))
+
     (testing "nullity?"
       (is (v/nullity? m0_7)))
+
     (testing "unity?"
       (is (v/unity? m1_7)))
+
     (testing "inv"
       (is (= m3_7 (g/invert m5_7)))
       (is (= m5_7 (g/invert m3_7)))

@@ -134,13 +134,15 @@
      ;; point number and an integer, so here we go.
      (defmethod g/negative? [u/numtype] [a] (neg? a))
      (defmethod g/quotient [u/numtype u/numtype] [a b] (quot a b))
-     (defmethod g/remainder [u/numtype u/numtype] [a b] (rem a b)))
+     (defmethod g/remainder [u/numtype u/numtype] [a b] (rem a b))
+     (defmethod g/modulo [u/numtype u/numtype] [a b] (mod a b)))
 
    :clj
    (do
      ;; Operations defined only on integral types
      (defmethod g/quotient [::integral ::integral] [b a] (quot b a))
-     (defmethod g/remainder [::integral ::integral] [a b] (mod a b))
+     (defmethod g/remainder [::integral ::integral] [a b] (rem a b))
+     (defmethod g/modulo [::integral ::integral] [a b] (mod a b))
 
      (defmethod g/exact-divide [Ratio Ratio] [a b] (core-div a b))
      (defmethod g/exact-divide [Ratio BigInt] [a b] (core-div a b))))

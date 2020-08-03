@@ -35,7 +35,7 @@
   (kind [_] ::modint))
 
 (defn make [i m]
-  (ModInt. (mod i m) m))
+  (ModInt. (g/modulo i m) m))
 
 (defn ^:private modular-binop [op]
   (fn [a b]
@@ -52,22 +52,27 @@
 (def ^:private add (modular-binop g/add))
 (def ^:private sub (modular-binop g/sub))
 (def ^:private mul (modular-binop g/mul))
-(def ^:private modulo (modular-binop g/mod))
+(def ^:private remainder (modular-binop g/remainder))
+(def ^:private modulo (modular-binop g/modulo))
 
 (defmethod g/add [::modint ::modint] [a b] (add a b))
 (defmethod g/mul [::modint ::modint] [a b] (mul a b))
 (defmethod g/sub [::modint ::modint] [a b] (sub a b))
 (defmethod g/negate [::modint] [a] (make (g/negate (:i a)) (:m a)))
 (defmethod g/invert [::modint] [a] (modular-inv a))
-(defmethod g/abs [::modint] [{:keys [i m] :as a}] (if (< i 0) (make i m) a))
+(defmethod g/magnitude [::modint] [{:keys [i m] :as a}] (g/modulo i m))
+(defmethod g/abs [::modint] [{:keys [i m] :as a}] (if (g/negative? i)
+                                                    (make i m)
+                                                    a))
 (defmethod g/quotient [::modint ::modint] [a b] (mul a (modular-inv b)))
-(defmethod g/remainder [::modint ::modint] [a b] (modulo a b))
+(defmethod g/remainder [::modint ::modint] [a b] (remainder a b))
+(defmethod g/modulo [::modint ::modint] [a b] (modulo a b))
 (defmethod g/exact-divide [::modint ::modint] [a b] (mul a (modular-inv b)))
 (defmethod g/negative? [::modint] [a] (g/negative? (:i a)))
 
 ;; Methods that allow interaction with other integral types. The first block is
 ;; perhaps slightly more efficient:
-(doseq [op [g/add g/mul g/sub]]
+(doseq [op [g/add g/mul g/sub g/expt]]
   (defmethod op [::n/integral ::modint] [a b] (make (op a (:i b)) (:m b)))
   (defmethod op [::modint ::n/integral] [a b] (make (op (:i a) b) (:m a))))
 

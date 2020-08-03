@@ -70,7 +70,7 @@
       (is (not (c/complex? 4))))
 
     (testing "complex-generics"
-      (let [skip #{:quotient :remainder :negative? :exact-divide}]
+      (let [skip #{:quotient :remainder :modulo :negative? :exact-divide}]
         (gt/integral-tests c/complex :exclusions skip :eq near)
         (gt/floating-point-tests c/complex :eq near)))
 

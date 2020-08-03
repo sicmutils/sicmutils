@@ -86,15 +86,19 @@
   (is (= 20 (g/divide 20 1)) "dividing by one a single time returns the input")
   (is (= "face" (g/divide "face" 1 1 1 1.0 1)) "dividing by 1 returns the input"))
 
+(defn ^:private is* [eq actual expected]
+  (is (eq actual expected)
+      #?(:clj (format "expected: %s\n  actual: %s"
+                      (pr-str expected)
+                      (pr-str actual)))))
+
 (defn integral-unary-tests
   [int->a & {:keys [exclusions eq]
              :or {eq =}}]
   (letfn [(check [op x expected]
-            (let [in (op (int->a x))
-                  out (int->a expected)]
-              (is (eq in out)
-                  #?(:clj (format "%s != %s" in out)))))]
-
+            (is* eq
+                 (op (int->a x))
+                 (int->a expected)))]
     (when-not (:negate exclusions)
       (testing "negate"
         (check g/negate 4 -4)
@@ -129,9 +133,11 @@
   [int->a int->b & {:keys [exclusions eq]
                     :or {eq =}}]
   (letfn [(check [op l r expected]
-            (let [a (int->a expected)]
-              (is (eq a (op (int->a l) (int->b r))))
-              (is (eq a (op (int->b l) (int->a r))))))]
+            (let [a (int->a expected)
+                  al-br (op (int->a l) (int->b r))
+                  bl-ar (op (int->b l) (int->a r))]
+              (is* eq al-br a)
+              (is* eq bl-ar a)))]
 
     (when-not (:add exclusions)
       (testing "add"
@@ -161,7 +167,17 @@
 
     (when-not (:remainder exclusions)
       (testing "remainder"
-        (check g/remainder 5 2 1)))
+        (check g/remainder 5 2 1)
+
+        ;; Clojure's `rem` and `mod` differ in how they handle negative numbers.
+        (check g/remainder -7 4 -3)))
+
+    (when-not (:modulo exclusions)
+      (testing "modulo"
+        (check g/modulo 5 2 1)
+
+        ;; Clojure's `rem` and `mod` differ in how they handle negative numbers.
+        (check g/modulo -7 4 1)))
 
     (when-not (:exact-divide exclusions)
       (testing "exact-divide"
@@ -171,8 +187,9 @@
   [float->a & {:keys [exclusions eq]
                :or {eq =}}]
   (letfn [(check [op x expected]
-            (let [a (float->a expected)]
-              (is (eq a (op (float->a x))))))]
+            (is* eq
+                 (op (float->a x))
+                 (float->a expected)))]
     (when-not (:negate exclusions)
       (testing "negate"
         (check g/negate 4.2 -4.2)
@@ -220,10 +237,11 @@
   [float->a float->b & {:keys [exclusions eq]
                         :or {eq =}}]
   (letfn [(check [op l r expected]
-            (let [a (float->a expected)]
-              (is (eq a (op (float->a l) (float->b r))))
-              (is (eq a (op (float->b l) (float->a r))))))]
-
+            (let [a (float->a expected)
+                  al-br (op (float->a l) (float->b r))
+                  bl-ar (op (float->b l) (float->a r))]
+              (is* eq al-br a)
+              (is* eq bl-ar a)))]
     (when-not (:add exclusions)
       (testing "add"
         (check g/add 2 2 4)
