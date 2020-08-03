@@ -178,7 +178,14 @@
      (defmethod g/magnitude [js/BigInt] [a b]
        (if (neg? a) (core-minus a) a))
 
-     ;; Compatibility with u/numtype.
+     ;; Compatibility between numbers and bigint.
+     (doseq [op [g/add g/mul g/sub g/expt g/remainder g/quotient]]
+       (defmethod op [js/BigInt u/numtype] [a b]
+         (op a (u/bigint b)))
+
+       (defmethod op [u/numtype js/BigInt] [a b]
+         (op (u/bigint a) b)))
+
      (defmethod g/expt [js/BigInt u/numtype] [a b] (g/expt a (js/BigInt b)))
      (defmethod g/expt [u/numtype js/BigInt] [a b] (g/expt (js/BigInt a) b))
 
@@ -194,18 +201,18 @@
        (defmethod g/remainder [goog-type goog-type] [a b] (.modulo a b))
        (defmethod g/magnitude [goog-type] [a b] (if (neg? a) (.negate a) a))
 
-       ;; These names are slightly different between the two types.
-       (defmethod g/quotient [goog.math.Long goog.math.Long] [a b] (.div a b))
-       (defmethod g/quotient [goog.math.Integer goog.math.Integer] [a b] (.divide a b))
+       ;; Compatibility between basic number type and the google numeric types.
+       ;; Any operation between a number and a Long or Integer will promote the
+       (doseq [op [g/add g/mul g/sub g/expt g/remainder g/quotient]]
+         (defmethod op [goog-type u/numtype] [a b]
+           (op a (.fromNumber goog-type b)))
 
-       ;; Compatibility with basic number type. TODO: make a way to get this
-       ;; working for ALL of the binary functions... by providing a conversion
-       ;; function and doing them all together, for both args.
-       (defmethod g/expt [goog-type u/numtype] [a b]
-         (goog-expt a (.fromNumber goog-type b)))
+         (defmethod op [u/numtype goog-type] [a b]
+           (op (.fromNumber goog-type a) b))))
 
-       (defmethod g/expt [u/numtype goog-type] [a b]
-         (goog-expt (.fromNumber goog-type a) b)))
+     ;; These names are slightly different between the two types.
+     (defmethod g/quotient [goog.math.Long goog.math.Long] [a b] (.div a b))
+     (defmethod g/quotient [goog.math.Integer goog.math.Integer] [a b] (.divide a b))
 
      ;; TODO these are not defined on integral types, BUT we could get farther
      ;; if we could convert these to a BigDecimal, once we support those.

@@ -281,6 +281,12 @@
   (integral-unary-tests int->a :exclusions exclusions :eq (or eq =))
   (integral-binary-tests int->a int->a :exclusions exclusions :eq (or eq =)))
 
+(defn integral-a->b-tests
+  "Battery of tests that check the behavior of standard generic operations on
+  types that handle integral numbers."
+  [int->a int->b & {:keys [exclusions eq]}]
+  (integral-binary-tests int->a int->b :exclusions exclusions :eq (or eq =)))
+
 (defn floating-point-tests
   "Battery of tests that check the behavior of standard generic operations on
   types that handle floating point numbers."

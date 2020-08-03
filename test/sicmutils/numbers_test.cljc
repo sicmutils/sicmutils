@@ -44,14 +44,15 @@
     (is (= 10.0 (g/log (g/exp 10))))))
 
 (deftest integer-generics
-  (gt/integral-tests u/int))
+  (gt/integral-tests u/int)
+  (gt/integral-a->b-tests u/int identity :exclusions #{:exact-divide}))
 
 (deftest long-generics
-  (gt/integral-tests u/long))
+  (gt/integral-tests u/long)
+  (gt/integral-a->b-tests u/long identity :exclusions #{:exact-divide}))
 
 (deftest bigint-generics
-  (gt/integral-tests #?(:clj bigint
-                        :cljs js/BigInt)))
+  (gt/integral-tests u/bigint))
 
 #?(:clj
    (deftest biginteger-generics

@@ -1,8 +1,9 @@
 (ns sicmutils.util
   "Shared utilities between clojure and clojurescript."
-  (:refer-clojure :rename {int core-int
+  (:refer-clojure :rename {bigint core-bigint
+                           int core-int
                            long core-long}
-                  #?@(:cljs [:exclude [long int]]))
+                  #?@(:cljs [:exclude [bigint long int]]))
   (:require #?(:clj [clojure.math.numeric-tower :as nt])
             #?(:cljs goog.math.Integer)
             #?(:cljs goog.math.Long)))
@@ -13,6 +14,10 @@
 (def numtype #?(:clj Number :cljs js/Number))
 (def inttype #?(:clj Integer :cljs goog.math.Integer))
 (def longtype #?(:clj Long :cljs goog.math.Long))
+
+(defn bigint [x]
+  #?(:clj (core-bigint x)
+     :cljs (js/BigInt x)))
 
 (defn int [x]
   #?(:clj (core-int x)
