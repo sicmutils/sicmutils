@@ -289,43 +289,27 @@
 
 (deftest matrices-from-structure
   (let [A (s/up (s/up 1 2) (s/up 3 4))
-        B (s/down (s/up 1 2 3) (s/up 3 4 5))
         C (s/down (s/up 1 2 3) (s/up 0 4 5) (s/up 1 0 6))
         D (s/up (s/down 3))
-        E (s/up 1)
         F (s/down (s/up 1 2) (s/up 3 4))
         G (s/down (s/up 4 0 0 0) (s/up 0 0 2 0) (s/up 0 1 2 0) (s/up 1 0 0 1))]
-
     (testing "inverse"
-      (is (= (s/down (s/down -2 1) (s/down 3/2 -1/2)) (/ A)))
-      (is (= 5/2 (* A (/ A))))
-      (is (= 5/2 (* (/ A) A)))
-      (is (= (* 1/22 (s/down (s/up 24 -12 -2) (s/up 5 3 -5) (s/up -4 2 4))) (/ C)))
-      (is (= (s/up (s/down 1/3)) (/ D)))
-      (is (= (s/up (s/down 1)) (* D (/ D))))
-      (is (= (s/down (s/up 1 0) (s/up 0 1)) (* F (/ F))))
-      (is (= (s/down (s/up 1 0) (s/up 0 1)) (/ F F)))
-      (is (= (s/down (s/up 1 0) (s/up 0 1)) (* (/ F) F)))
-      (is (= (s/down (s/up 1/4 0 0 0) (s/up 0 -1 1 0) (s/up 0 1/2 0 0) (s/up -1/4 0 0 1)) (/ G)))
-      (is (= (s/down (s/up 1/4 0 0 0) (s/up 0 -1 1 0) (s/up 0 1/2 0 0) (s/up -1/4 0 0 1)) (/ G)))
-      (is (= (s/down (s/up 1 0 0 0) (s/up 0 1 0 0) (s/up 0 0 1 0) (s/up 0 0 0 1)) (/ G G)))
-      (is (= (s/down (s/up 1/8)) (/ (s/down (s/up 8))))))
+      (is (= (s/down (s/down -2 1) (s/down 3/2 -1/2)) (g/divide A)))
+      (is (= 5/2 (g/* A (g/divide A))))
+      (is (= 5/2 (g/* (g/divide A) A)))
+      (is (= (g/* 1/22 (s/down (s/up 24 -12 -2) (s/up 5 3 -5) (s/up -4 2 4))) (g/divide C)))
+      (is (= (s/up (s/down 1/3)) (g/divide D)))
+      (is (= (s/up (s/down 1)) (g/* D (g/divide D))))
+      (is (= (s/down (s/up 1 0) (s/up 0 1)) (g/* F (g/divide F))))
+      (is (= (s/down (s/up 1 0) (s/up 0 1)) (g/divide F F)))
+      (is (= (s/down (s/up 1 0) (s/up 0 1)) (g/* (g/divide F) F)))
+      (is (= (s/down (s/up 1/4 0 0 0) (s/up 0 -1 1 0) (s/up 0 1/2 0 0) (s/up -1/4 0 0 1)) (g/divide G)))
+      (is (= (s/down (s/up 1/4 0 0 0) (s/up 0 -1 1 0) (s/up 0 1/2 0 0) (s/up -1/4 0 0 1)) (g/divide G)))
+      (is (= (s/down (s/up 1 0 0 0) (s/up 0 1 0 0) (s/up 0 0 1 0) (s/up 0 0 0 1)) (g/divide G G)))
+      (is (= (s/down (s/up 1/8)) (g/divide (s/down (s/up 8))))))
 
     (testing "invert-hilbert-matrix"
       (let [N 3
             H (apply s/up (for [i (range 1 (inc N))]
-                            (apply s/up (for [j (range 1 (inc N))] (/ 1 (+ i j -1))))))]
-        (is (= (s/down (s/down 9 -36 30) (s/down -36 192 -180) (s/down 30 -180 180)) (/ H)))))
-
-    (testing "transpose"
-      (is (= (s/down (s/up 1 2) (s/up 3 4)) (g/transpose A)))
-      (is (= (s/up (s/up 1 2 3) (s/up 3 4 5)) (g/transpose B)))
-      (is (= (s/up (s/up 1 2 3) (s/up 0 4 5) (s/up 1 0 6)) (g/transpose C)))
-      (is (= (s/down (s/down 3)) (g/transpose D)))
-      (is (= (s/down 1) (g/transpose E)))
-      (is (= (s/up (s/up 1 2) (s/up 3 4)) (g/transpose F))))
-
-    (testing "flip-indices"
-      (is (= (s/down (s/down 1 2) (s/down 3 4)) (s/flip-indices A)))
-      (is (= (s/up (s/down 1 2 3) (s/down 3 4 5)) (s/flip-indices B)))
-      (is (= (s/down 1) (s/flip-indices E))))))
+                            (apply s/up (for [j (range 1 (inc N))] (g/divide 1 (g/+ i j -1))))))]
+        (is (= (s/down (s/down 9 -36 30) (s/down -36 192 -180) (s/down 30 -180 180)) (g/divide H)))))))

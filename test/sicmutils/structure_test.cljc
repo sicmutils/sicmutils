@@ -326,6 +326,26 @@
 
     (is (= (s/down 0 0 0) (* δ-il ε_ijk)))))
 
+(deftest matrices
+  (let [A (s/up (s/up 1 2) (s/up 3 4))
+        B (s/down (s/up 1 2 3) (s/up 3 4 5))
+        C (s/down (s/up 1 2 3) (s/up 0 4 5) (s/up 1 0 6))
+        D (s/up (s/down 3))
+        E (s/up 1)
+        F (s/down (s/up 1 2) (s/up 3 4))]
+    (testing "transpose"
+      (is (= (s/down (s/up 1 2) (s/up 3 4)) (g/transpose A)))
+      (is (= (s/up (s/up 1 2 3) (s/up 3 4 5)) (g/transpose B)))
+      (is (= (s/up (s/up 1 2 3) (s/up 0 4 5) (s/up 1 0 6)) (g/transpose C)))
+      (is (= (s/down (s/down 3)) (g/transpose D)))
+      (is (= (s/down 1) (g/transpose E)))
+      (is (= (s/up (s/up 1 2) (s/up 3 4)) (g/transpose F))))
+
+    (testing "flip-indices"
+      (is (= (s/down (s/down 1 2) (s/down 3 4)) (s/flip-indices A)))
+      (is (= (s/up (s/down 1 2 3) (s/down 3 4 5)) (s/flip-indices B)))
+      (is (= (s/down 1) (s/flip-indices E))))))
+
 (def ^:private near
   (v/within 1e-12))
 
