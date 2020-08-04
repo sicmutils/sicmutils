@@ -18,17 +18,21 @@
 ;
 
 (ns sicmutils.structure
-  (:import (clojure.lang Sequential Seqable IFn ILookup AFn Counted PersistentVector))
   (:require [clojure.string :refer [join]]
-            [sicmutils
-             [value :as v]
-             [generic :as g]]))
+            [sicmutils.expression :as x]
+            [sicmutils.generic :as g]
+            [sicmutils.util :as u]
+            [sicmutils.numbers :as n]
+            [sicmutils.numsymb]
+            [sicmutils.value :as v])
+  #?(:clj
+     (:import [clojure.lang Sequential Seqable IFn ILookup AFn Counted PersistentVector])))
 
 (declare make)
 
 (def ^:private orientation->symbol {::up 'up ::down 'down})
 
-(deftype Structure [orientation ^PersistentVector v]
+(deftype Structure [orientation v]
   v/Value
   (nullity? [_] (every? v/nullity? v))
   (unity? [_] false)
@@ -37,21 +41,27 @@
   (numerical? [_] false)
   (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
   (kind [_] orientation)
+
   Object
   (equals [_ b]
     (and (instance? Structure b)
-         (let [^Structure bs b]
+         (let [bs b]
            (and (= orientation (.orientation bs))
                 (= v (.v bs))))))
   (toString [_] (str "(" (orientation orientation->symbol) " " (join " " (map str v)) ")"))
+
   Sequential
+
   Counted
   (count [_] (count v))
+
   Seqable
   (seq [_] (seq v))
+
   ILookup
   (valAt [_ key] (get v key))
   (valAt [_ key default] (get v key default))
+
   IFn
   (invoke [_ x]
     (Structure. orientation (mapv #(% x) v)))
@@ -66,7 +76,7 @@
 
 (defn structure->vector
   "Return the structure in unoriented vector form."
-  [^Structure s]
+  [s]
   (.v s))
 
 (defn vector->up
@@ -140,8 +150,7 @@
   [op s t]
   (if (= (count s) (count t))
     (Structure. (orientation s) (mapv op s t))
-    (throw (ArithmeticException.
-            (str op " provided arguments of differing length")))))
+    (u/arithmetic-ex (str op " provided arguments of differing length"))))
 
 (defn generate
   "Generate a structure with the given orientation whose elements are (f i)
@@ -179,18 +188,19 @@
   (when (structure? s)
     (let [access (fn a [chain s]
                    (make (orientation s)
-                         (map-indexed (fn [i elt]
-                                        (if (structure? elt)
-                                          (a (conj chain i) elt)
-                                          ;; subtle (I'm afraid). Here is where we put
-                                          ;; the access chain into the new structure.
-                                          ;; But if we put it in as a vector, that would
-                                          ;; introduce a new layer of structure since
-                                          ;; vectors are considered up-tuples. So we
-                                          ;; have to turn it into a seq, which will
-                                          ;; forfeit structure-nature.
-                                          (-> chain (conj i) seq)))
-                                      s)))]
+                         (map-indexed
+                          (fn [i elt]
+                            (if (structure? elt)
+                              (a (conj chain i) elt)
+                              ;; subtle (I'm afraid). Here is where we put
+                              ;; the access chain into the new structure.
+                              ;; But if we put it in as a vector, that would
+                              ;; introduce a new layer of structure since
+                              ;; vectors are considered up-tuples. So we
+                              ;; have to turn it into a seq, which will
+                              ;; forfeit structure-nature.
+                              (-> chain (conj i) seq)))
+                          s)))]
       (access [] s))))
 
 (defn component
@@ -203,7 +213,7 @@
   "Like assoc-in, but works for structures. At this writing we're not
   sure if we want to overwrite the stock definition of assoc-in to
   something that would fall through for standard clojure data types"
-  [^Structure s [k & ks] value]
+  [s [k & ks] value]
   (let [v (.v s)]
     (if ks
       (same s (assoc v k (structure-assoc-in (v k) ks value)))
@@ -233,8 +243,7 @@
   result is an up-tuple."
   [s t]
   (when (or (not= (count s) 3) (not= (count t) 3))
-    (throw (IllegalArgumentException.
-            "cross product only works on two elements of ^3")))
+    (u/illegal "cross product only works on two elements of ^3"))
   (let [[s0 s1 s2] s [t0 t1 t2] t]
     (up (g/- (g/* s1 t2) (g/* t1 s2))
         (g/- (g/* s2 t0) (g/* s0 t2))
@@ -255,9 +264,10 @@
 (defn ^:private expt
   "Raise the structure s to the nth power."
   [s n]
-  (cond (= n 1) s
-        (> n 1) (g/* s (g/expt s (- n 1)))
-        :else (throw (ArithmeticException. (str "Cannot: " `(expt ~s ~n))))))
+  (let [one (v/one-like n)]
+    (cond (v/unity? n) s
+          (> n one) (g/* s (g/expt s (g/- n one)))
+          :else (u/arithmetic-ex (str "Cannot: " `(expt ~s ~n))))))
 
 (defn unflatten
   "Given a sequence of values and a model structure, unpack the values into
@@ -301,12 +311,12 @@
 (derive PersistentVector ::up)
 
 (defmethod g/mul
-  [::structure :sicmutils.expression/numerical-expression]
+  [::structure ::x/numerical-expression]
   [a b]
   (outer-product b a))
 
 (defmethod g/mul
-  [:sicmutils.expression/numerical-expression ::structure]
+  [::x/numerical-expression ::structure]
   [a b]
   (outer-product a b))
 
@@ -331,17 +341,16 @@
   (outer-product a b))
 
 (defmethod g/div
-  [::structure :sicmutils.expression/numerical-expression]
+  [::structure ::x/numerical-expression]
   [a b]
   (outer-product (g/invert b) a))
 
 (defmethod g/div [::structure ::structure] [a b] (mul (g/invert b) a))
-(defmethod g/expt [::structure Long] [a b] (expt a b))
+(defmethod g/expt [::structure ::n/integral] [a b] (expt a b))
 (defmethod g/negate [::structure] [a] (same a (mapv g/negate a)))
 (defmethod g/square [::structure] [a] (inner-product a a))
 (defmethod g/cube [::structure] [a] (mul a (mul a a)))
 (defmethod g/simplify [::structure] [a] (->> a (mapr g/simplify) v/freeze))
 (defmethod g/transpose [::structure] [a] (opposite a (seq a)))
-
-(defmethod g/magnitude [::structure] [^Structure a]
+(defmethod g/magnitude [::structure] [a]
   (g/sqrt (reduce + (map g/square a))))
