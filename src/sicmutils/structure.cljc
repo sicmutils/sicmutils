@@ -24,13 +24,24 @@
             [sicmutils.util :as u]
             [sicmutils.numbers :as n]
             [sicmutils.numsymb]
-            [sicmutils.value :as v])
+            [sicmutils.value :as v]
+            #?(:cljs [cljs.reader]))
   #?(:clj
      (:import [clojure.lang Sequential Seqable IFn ILookup AFn Counted PersistentVector])))
 
 (declare make)
 
-(def ^:private orientation->symbol {::up 'up ::down 'down})
+;; Type Declarations
+
+(def ^:private orientation->symbol
+  {::up 'up ::down 'down})
+
+(def ^:private opposite-orientation
+  {::up ::down ::down ::up})
+
+(derive ::up ::structure)
+(derive ::down ::structure)
+(derive PersistentVector ::up)
 
 (deftype Structure [orientation v]
   v/Value
@@ -46,9 +57,8 @@
       [Object
        (equals [_ b]
                (and (instance? Structure b)
-                    (let [bs b]
-                      (and (= orientation (.orientation bs))
-                           (= v (.-v bs))))))
+                    (and (= orientation (.orientation b))
+                         (= v (.-v b)))))
        (toString [_] (str "(" (orientation orientation->symbol) " " (join " " (map str v)) ")"))
 
        Sequential
@@ -72,7 +82,7 @@
 
       :cljs
       [IEquiv
-       (-equiv [a b]
+       (-equiv [_ b]
                (if (instance? Structure b)
                  (and (= orientation (.-orientation b))
                       (= v (.-v b)))
@@ -118,17 +128,17 @@
   "Form an up-tuple from a vector."
   [v]
   {:pre [(vector? v)]}
-  (Structure. ::up v))
+  (->Structure ::up v))
 
 (defn vector->down
   "Form a down-tuple from a vector."
   [v]
   {:pre [(vector? v)]}
-  (Structure. ::down v))
+  (->Structure ::down v))
 
 (defn ^:private make
   [orientation xs]
-  (Structure. orientation (into [] xs)))
+  (->Structure orientation (into [] xs)))
 
 (defn up
   "Construct an up (contravariant) tuple from the arguments."
@@ -151,9 +161,7 @@
   [s]
   (or (vector? s)
       (and (instance? Structure s)
-           (= (.-orientation ^Structure s) ::up))))
-
-(def ^:private opposite-orientation {::up ::down ::down ::up})
+           (= (.-orientation s) ::up))))
 
 (defn orientation
   "Return the orientation of s, either ::up or ::down."
@@ -174,7 +182,8 @@
   "Make a tuple with the same shape as s but all orientations inverted."
   [s]
   (if (structure? s)
-    (Structure. (opposite-orientation (orientation s)) (mapv flip-indices (seq s)))
+    (->Structure (opposite-orientation (orientation s))
+                 (mapv flip-indices (seq s)))
     s))
 
 (defn ^:private elementwise
@@ -184,7 +193,7 @@
   structures."
   [op s t]
   (if (= (count s) (count t))
-    (Structure. (orientation s) (mapv op s t))
+    (->Structure (orientation s) (mapv op s t))
     (u/arithmetic-ex (str op " provided arguments of differing length"))))
 
 (defn generate
@@ -341,10 +350,6 @@
 (defmethod g/sub [::up ::up] [a b] (elementwise g/- a b))
 (defmethod g/cross-product [::up ::up] [a b] (cross-product a b))
 (defmethod g/mul [::structure ::structure] [a b] (mul a b))
-
-(derive ::up ::structure)
-(derive ::down ::structure)
-(derive PersistentVector ::up)
 
 (defmethod g/mul
   [::structure ::x/numerical-expression]
