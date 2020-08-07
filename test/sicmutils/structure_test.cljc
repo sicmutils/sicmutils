@@ -26,8 +26,6 @@
             [sicmutils.structure :as s]
             [sicmutils.value :as v]))
 
-(set! *warn-on-reflection* true)
-
 (deftest structures
   (testing "type"
     (is (= ::s/up (v/kind (s/up 1 2))))
@@ -117,7 +115,7 @@
     (is (= (s/up 0 (s/down (s/up 0 0) (s/up 0 0))) (v/zero-like (s/up 1 (s/down (s/up 2 3) (s/up 4 5)))))))
 
   (testing "exact?"
-    (is (v/exact? (s/up 0 1 3/2)))
+    #?(:clj (is (v/exact? (s/up 0 1 3/2))))
     (is (not (v/exact? (s/up 0 0 0.00001)))))
 
   (testing "to vector"
@@ -219,7 +217,7 @@
 
   (testing "a structure has a nth element"
     (is (= 5 (nth (s/up 4 5 6) 1)))
-    (is (thrown? IndexOutOfBoundsException (nth (s/up 4 5 6) 4))))
+    (is (thrown? #?(:clj IndexOutOfBoundsException :cljs js/Error) (nth (s/up 4 5 6) 4))))
 
   (testing "can be counted"
     (is (= 3 (count (s/up 4 5 6))))

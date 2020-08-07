@@ -42,42 +42,77 @@
   (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
   (kind [_] orientation)
 
-  Object
-  (equals [_ b]
-    (and (instance? Structure b)
-         (let [bs b]
-           (and (= orientation (.orientation bs))
-                (= v (.v bs))))))
-  (toString [_] (str "(" (orientation orientation->symbol) " " (join " " (map str v)) ")"))
+  #?@(:clj
+      [Object
+       (equals [_ b]
+               (and (instance? Structure b)
+                    (let [bs b]
+                      (and (= orientation (.orientation bs))
+                           (= v (.-v bs))))))
+       (toString [_] (str "(" (orientation orientation->symbol) " " (join " " (map str v)) ")"))
 
-  Sequential
+       Sequential
 
-  Counted
-  (count [_] (count v))
+       Counted
+       (count [_] (count v))
 
-  Seqable
-  (seq [_] (seq v))
+       Seqable
+       (seq [_] (seq v))
 
-  ILookup
-  (valAt [_ key] (get v key))
-  (valAt [_ key default] (get v key default))
+       ILookup
+       (valAt [_ key] (get v key))
+       (valAt [_ key default] (get v key default))
 
-  IFn
-  (invoke [_ x]
-    (Structure. orientation (mapv #(% x) v)))
-  (invoke [_ x y]
-    (Structure. orientation (mapv #(% x y) v)))
-  (invoke [_ x y z]
-    (Structure. orientation (mapv #(% x y z) v)))
-  (invoke [_ w x y z]
-    (Structure. orientation (mapv #(% w x y z) v)))
-  (applyTo [s xs]
-    (AFn/applyToHelper s xs)))
+       IFn
+       (invoke [_ x] (Structure. orientation (mapv #(% x) v)))
+       (invoke [_ x y] (Structure. orientation (mapv #(% x y) v)))
+       (invoke [_ x y z] (Structure. orientation (mapv #(% x y z) v)))
+       (invoke [_ w x y z] (Structure. orientation (mapv #(% w x y z) v)))
+       (applyTo [s xs] (AFn/applyToHelper s xs))]
+
+      :cljs
+      [IEquiv
+       (-equiv [a b]
+               (if (instance? Structure b)
+                 (and (= orientation (.-orientation b))
+                      (= v (.-v b)))
+                 (= v (seq b))))
+
+       Object
+       (toString [_] (str "("
+                          (orientation orientation->symbol) " " (join " " (map str v))
+                          ")"))
+
+       IPrintWithWriter
+       (-pr-writer [x writer _]
+                   (write-all writer
+                              "#object[sicmutils.structure.Structure \""
+                              (.toString x)
+                              "\"]"))
+
+       ISequential
+
+       ICounted
+       (-count [_] (-count v))
+
+       ISeqable
+       (-seq [_] (-seq v))
+
+       ILookup
+       (-lookup [_ k] (-lookup v k))
+       (-lookup [_ k default] (-lookup v k default))
+
+       IFn
+       (-invoke [_ x] (Structure. orientation (mapv #(% x) v)))
+       (-invoke [_ x y] (Structure. orientation (mapv #(% x y) v)))
+       (-invoke [_ x y z] (Structure. orientation (mapv #(% x y z) v)))
+       (-invoke [_ w x y z] (Structure. orientation (mapv #(% w x y z) v)))
+       ]))
 
 (defn structure->vector
   "Return the structure in unoriented vector form."
   [s]
-  (.v s))
+  (.-v s))
 
 (defn vector->up
   "Form an up-tuple from a vector."
@@ -116,14 +151,14 @@
   [s]
   (or (vector? s)
       (and (instance? Structure s)
-           (= (.orientation ^Structure s) ::up))))
+           (= (.-orientation ^Structure s) ::up))))
 
 (def ^:private opposite-orientation {::up ::down ::down ::up})
 
 (defn orientation
   "Return the orientation of s, either ::up or ::down."
   [^Structure s]
-  (if (instance? Structure s) (.orientation s) ::up))
+  (if (instance? Structure s) (.-orientation s) ::up))
 
 (defn opposite
   "Make a tuple containing xs with the orientation opposite to s."
@@ -214,7 +249,7 @@
   sure if we want to overwrite the stock definition of assoc-in to
   something that would fall through for standard clojure data types"
   [s [k & ks] value]
-  (let [v (.v s)]
+  (let [v (structure->vector s)]
     (if ks
       (same s (assoc v k (structure-assoc-in (v k) ks value)))
       (same s (assoc v k value)))))
@@ -244,7 +279,8 @@
   [s t]
   (when (or (not= (count s) 3) (not= (count t) 3))
     (u/illegal "cross product only works on two elements of ^3"))
-  (let [[s0 s1 s2] s [t0 t1 t2] t]
+  (let [[s0 s1 s2] s
+        [t0 t1 t2] t]
     (up (g/- (g/* s1 t2) (g/* t1 s2))
         (g/- (g/* s2 t0) (g/* s0 t2))
         (g/- (g/* s0 t1) (g/* t0 s1)))))
