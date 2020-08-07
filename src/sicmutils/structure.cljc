@@ -27,7 +27,7 @@
             [sicmutils.value :as v]
             #?(:cljs [cljs.reader]))
   #?(:clj
-     (:import [clojure.lang Sequential Seqable IFn ILookup AFn Counted PersistentVector])))
+     (:import [clojure.lang AFn Counted IFn ILookup PersistentVector Seqable Sequential])))
 
 (declare make)
 

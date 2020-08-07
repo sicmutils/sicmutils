@@ -18,14 +18,15 @@
 ;
 
 (ns sicmutils.matrix
-  (:refer-clojure :rename {get-in core-get-in})
+  (:refer-clojure :rename {get-in core-get-in}
+                  #?@(:cljs [:exclude [get-in]]))
   (:require [sicmutils.value :as v]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.structure :as s])
   #?(:clj
-     (:import [clojure.lang PersistentVector IFn AFn ILookup Seqable])))
+     (:import [clojure.lang AFn Counted IFn ILookup Seqable Sequential])))
 
 (declare generate)
 
@@ -44,28 +45,149 @@
                 `(~'column-matrix ~@(map (comp v/freeze first) v))
                 `(~'matrix-by-rows ~@(map v/freeze v))))
   (kind [_] ::matrix)
-  IFn
-  (invoke [_ x]
-    (Matrix. r c (mapv (fn [e] (mapv #(% x) e)) v)))
-  (invoke [_ x y]
-    (Matrix. r c (mapv (fn [e] (mapv #(% x y) e)) v)))
-  (invoke [_ x y z]
-    (Matrix. r c (mapv (fn [e] (mapv #(% x y z) e)) v)))
-  (invoke [_ w x y z]
-    (Matrix. r c (mapv (fn [e] (mapv #(% w x y z) e)) v)))
-  (applyTo [m xs]
-    (AFn/applyToHelper m xs))
-  Seqable
-  (seq [_] (seq v))
-  Object
-  (equals [_ b]
-    (and (instance? Matrix b)
-         (let [^Matrix bm b]
-           (and (= r (.-r bm))
-                (= c (.-c bm))
-                (= v (.-v bm))))))
-  (toString [_]
-    (str v)))
+
+  #?@(:clj
+      [Object
+       (equals [_ b]
+               (and (instance? Matrix b)
+                    (let [^Matrix bm b]
+                      (and (= r (.-r bm))
+                           (= c (.-c bm))
+                           (= v (.-v bm))))))
+       (toString [_] (str v))
+
+       Sequential
+
+       Counted
+       (count [_] (count v))
+
+       Seqable
+       (seq [_] (seq v))
+
+       ILookup
+       (valAt [_ key] (get v key))
+       (valAt [_ key default] (get v key default))
+
+       IFn
+       (invoke [_ a]
+               (Matrix. r c (mapv (fn [e] (mapv #(% a) e)) v)))
+       (invoke [_ a b]
+               (Matrix. r c (mapv (fn [e] (mapv #(% a b) e)) v)))
+       (invoke [_ a b c]
+               (Matrix. r c (mapv (fn [e] (mapv #(% a b c) e)) v)))
+       (invoke [_ a b c d]
+               (Matrix. r c (mapv (fn [e] (mapv #(% a b c d) e)) v)))
+       (invoke [_ a b c d e]
+               (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e) e)) v)))
+       (invoke [_ a b c d e f]
+               (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f) e)) v)))
+       (invoke [_ a b c d e f g]
+               (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g) e)) v)))
+       (invoke [_ a b c d e f g h]
+               (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h) e)) v)))
+       (invoke [_ a b c d e f g h i]
+               (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i) e)) v)))
+       (invoke [_ a b c d e f g h i j]
+               (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j) e)) v)))
+       (invoke [_ a b c d e f g h i j k]
+               (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j k) e)) v)))
+       (invoke [_ a b c d e f g h i j k l]
+               (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j k l) e)) v)))
+       (invoke [_ a b c d e f g h i j k l m]
+               (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j k l m) e)) v)))
+       (invoke [_ a b c d e f g h i j k l m n]
+               (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j k l m n) e)) v)))
+       (invoke [_ a b c d e f g h i j k l m n o]
+               (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j k l m n o) e)) v)))
+       (invoke [_ a b c d e f g h i j k l m n o p]
+               (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j k l m n o p) e)) v)))
+       (invoke [_ a b c d e f g h i j k l m n o p q]
+               (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j k l m n o p q) e)) v)))
+       (invoke [_ a b c d e f g h i j k l m n o p q r]
+               (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j k l m n o p q r) e)) v)))
+       (invoke [_ a b c d e f g h i j k l m n o p q r s]
+               (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j k l m n o p q r s) e)) v)))
+       (invoke [_ a b c d e f g h i j k l m n o p q r s t]
+               (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j k l m n o p q r s t) e)) v)))
+       (invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
+               (Matrix. r c (mapv (fn [e] (mapv #(apply % a b c d e f g h i j k l m n o p q r s t rest) e)) v)))
+       (applyTo [m xs]
+                (AFn/applyToHelper m xs))]
+
+      :cljs
+      [IEquiv
+       (-equiv [_ b]
+               (if (instance? Matrix b)
+                 (and (= r (.-r b))
+                      (= c (.-c b))
+                      (= v (.-v b)))
+                 (= v (seq b))))
+
+       Object
+       (toString [_] (str v))
+
+       IPrintWithWriter
+       (-pr-writer [x writer _]
+                   (write-all writer
+                              "#object[sicmutils.structure.Matrix \""
+                              (.toString x)
+                              "\"]"))
+
+       ISequential
+
+       ICounted
+       (-count [_] (-count v))
+
+       ISeqable
+       (-seq [_] (-seq v))
+
+       ILookup
+       (-lookup [_ k] (-lookup v k))
+       (-lookup [_ k default] (-lookup v k default))
+
+       IFn
+       (-invoke [_ a]
+                (Matrix. r c (mapv (fn [e] (mapv #(% a) e)) v)))
+       (-invoke [_ a b]
+                (Matrix. r c (mapv (fn [e] (mapv #(% a b) e)) v)))
+       (-invoke [_ a b c]
+                (Matrix. r c (mapv (fn [e] (mapv #(% a b c) e)) v)))
+       (-invoke [_ a b c d]
+                (Matrix. r c (mapv (fn [e] (mapv #(% a b c d) e)) v)))
+       (-invoke [_ a b c d e]
+                (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e) e)) v)))
+       (-invoke [_ a b c d e f]
+                (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f) e)) v)))
+       (-invoke [_ a b c d e f g]
+                (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g) e)) v)))
+       (-invoke [_ a b c d e f g h]
+                (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h) e)) v)))
+       (-invoke [_ a b c d e f g h i]
+                (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i) e)) v)))
+       (-invoke [_ a b c d e f g h i j]
+                (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j) e)) v)))
+       (-invoke [_ a b c d e f g h i j k]
+                (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j k) e)) v)))
+       (-invoke [_ a b c d e f g h i j k l]
+                (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j k l) e)) v)))
+       (-invoke [_ a b c d e f g h i j k l m]
+                (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j k l m) e)) v)))
+       (-invoke [_ a b c d e f g h i j k l m n]
+                (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j k l m n) e)) v)))
+       (-invoke [_ a b c d e f g h i j k l m n o]
+                (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j k l m n o) e)) v)))
+       (-invoke [_ a b c d e f g h i j k l m n o p]
+                (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j k l m n o p) e)) v)))
+       (-invoke [_ a b c d e f g h i j k l m n o p q]
+                (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j k l m n o p q) e)) v)))
+       (-invoke [_ a b c d e f g h i j k l m n o p q r]
+                (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j k l m n o p q r) e)) v)))
+       (-invoke [_ a b c d e f g h i j k l m n o p q r s]
+                (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j k l m n o p q r s) e)) v)))
+       (-invoke [_ a b c d e f g h i j k l m n o p q r s t]
+                (Matrix. r c (mapv (fn [e] (mapv #(% a b c d e f g h i j k l m n o p q r s t) e)) v)))
+       (-invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
+                (Matrix. r c (mapv (fn [e] (mapv #(apply % a b c d e f g h i j k l m n o p q r s t rest) e)) v)))]))
 
 (defn ^:private square?
   [^Matrix m]
