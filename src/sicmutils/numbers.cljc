@@ -37,6 +37,7 @@
 
 ;; Smaller inheritance tree to enabled shared implementations between numeric
 ;; types that represent mathematical integers.
+(derive ::integral ::v/number)
 (derive u/inttype ::integral)
 (derive u/longtype ::integral)
 
@@ -181,10 +182,10 @@
 
      ;; Compatibility between numbers and bigint.
      (doseq [op [g/add g/mul g/sub g/expt g/remainder g/quotient]]
-       (defmethod op [js/BigInt v/numtype] [a b]
+       (defmethod op [js/BigInt ::v/exact-number] [a b]
          (op a (u/bigint b)))
 
-       (defmethod op [v/numtype js/BigInt] [a b]
+       (defmethod op [::v/exact-number js/BigInt] [a b]
          (op (u/bigint a) b)))
 
      ;; Google Closure library's 64-bit Long and arbitrary-precision Integer
@@ -202,10 +203,10 @@
        ;; Compatibility between basic number type and the google numeric types.
        ;; Any operation between a number and a Long or Integer will promote the
        (doseq [op [g/add g/mul g/sub g/expt g/remainder g/quotient]]
-         (defmethod op [goog-type v/numtype] [a b]
+         (defmethod op [goog-type ::v/exact-number] [a b]
            (op a (.fromNumber goog-type b)))
 
-         (defmethod op [v/numtype goog-type] [a b]
+         (defmethod op [::v/exact-number goog-type] [a b]
            (op (.fromNumber goog-type a) b))))
 
      ;; These names are slightly different between the two types.
