@@ -113,10 +113,48 @@
        (-lookup [_ k default] (-lookup v k default))
 
        IFn
-       (-invoke [_ x] (Structure. orientation (mapv #(% x) v)))
-       (-invoke [_ x y] (Structure. orientation (mapv #(% x y) v)))
-       (-invoke [_ x y z] (Structure. orientation (mapv #(% x y z) v)))
-       (-invoke [_ w x y z] (Structure. orientation (mapv #(% w x y z) v)))
+       (-invoke [_ a]
+                (Structure. orientation (mapv #(% a) v)))
+       (-invoke [_ a b]
+                (Structure. orientation (mapv #(% a b) v)))
+       (-invoke [_ a b c]
+                (Structure. orientation (mapv #(% a b c) v)))
+       (-invoke [_ a b c d]
+                (Structure. orientation (mapv #(% a b c d) v)))
+       (-invoke [_ a b c d e]
+                (Structure. orientation (mapv #(% a b c d e) v)))
+       (-invoke [_ a b c d e f]
+                (Structure. orientation (mapv #(% a b c d e f) v)))
+       (-invoke [_ a b c d e f g]
+                (Structure. orientation (mapv #(% a b c d e f g) v)))
+       (-invoke [_ a b c d e f g h]
+                (Structure. orientation (mapv #(% a b c d e f g h) v)))
+       (-invoke [_ a b c d e f g h i]
+                (Structure. orientation (mapv #(% a b c d e f g h i) v)))
+       (-invoke [_ a b c d e f g h i j]
+                (Structure. orientation (mapv #(% a b c d e f g h i j) v)))
+       (-invoke [_ a b c d e f g h i j k]
+                (Structure. orientation (mapv #(% a b c d e f g h i j k) v)))
+       (-invoke [_ a b c d e f g h i j k l]
+                (Structure. orientation (mapv #(% a b c d e f g h i j k l) v)))
+       (-invoke [_ a b c d e f g h i j k l m]
+                (Structure. orientation (mapv #(% a b c d e f g h i j k l m) v)))
+       (-invoke [_ a b c d e f g h i j k l m n]
+                (Structure. orientation (mapv #(% a b c d e f g h i j k l m n) v)))
+       (-invoke [_ a b c d e f g h i j k l m n o]
+                (Structure. orientation (mapv #(% a b c d e f g h i j k l m n o) v)))
+       (-invoke [_ a b c d e f g h i j k l m n o p]
+                (Structure. orientation (mapv #(% a b c d e f g h i j k l m n o p) v)))
+       (-invoke [_ a b c d e f g h i j k l m n o p q]
+                (Structure. orientation (mapv #(% a b c d e f g h i j k l m n o p q) v)))
+       (-invoke [_ a b c d e f g h i j k l m n o p q r]
+                (Structure. orientation (mapv #(% a b c d e f g h i j k l m n o p q r) v)))
+       (-invoke [_ a b c d e f g h i j k l m n o p q r s]
+                (Structure. orientation (mapv #(% a b c d e f g h i j k l m n o p q r s) v)))
+       (-invoke [_ a b c d e f g h i j k l m n o p q r s t]
+                (Structure. orientation (mapv #(% a b c d e f g h i j k l m n o p q r s t) v)))
+       (-invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
+                (Structure. orientation (mapv #(apply % a b c d e f g h i j k l m n o p q r s t rest) v)))
        ]))
 
 (defn structure->vector
@@ -186,16 +224,6 @@
                  (mapv flip-indices (seq s)))
     s))
 
-(defn ^:private elementwise
-  "Given a binary operator and two structures of the same size, return
-  a structure with the same orientation as the first formed from the
-  elementwise binary operation between corresponding elements of the
-  structures."
-  [op s t]
-  (if (= (count s) (count t))
-    (->Structure (orientation s) (mapv op s t))
-    (u/arithmetic-ex (str op " provided arguments of differing length"))))
-
 (defn generate
   "Generate a structure with the given orientation whose elements are (f i)
   where i ranges from [0..dimension)"
@@ -228,23 +256,23 @@
   "Return a structure of the same shape as s whose elements are access
   chains corresponding to position of each element (i.e., the sequence
   of indices needed to address that element)."
-  [^Structure s]
+  [s]
   (when (structure? s)
-    (let [access (fn a [chain s]
-                   (make (orientation s)
-                         (map-indexed
-                          (fn [i elt]
-                            (if (structure? elt)
-                              (a (conj chain i) elt)
-                              ;; subtle (I'm afraid). Here is where we put
-                              ;; the access chain into the new structure.
-                              ;; But if we put it in as a vector, that would
-                              ;; introduce a new layer of structure since
-                              ;; vectors are considered up-tuples. So we
-                              ;; have to turn it into a seq, which will
-                              ;; forfeit structure-nature.
-                              (-> chain (conj i) seq)))
-                          s)))]
+    (letfn [(access [chain s]
+              (make (orientation s)
+                    (map-indexed
+                     (fn [i elt]
+                       (if (structure? elt)
+                         (access (conj chain i) elt)
+                         ;; subtle (I'm afraid). Here is where we put
+                         ;; the access chain into the new structure.
+                         ;; But if we put it in as a vector, that would
+                         ;; introduce a new layer of structure since
+                         ;; vectors are considered up-tuples. So we
+                         ;; have to turn it into a seq, which will
+                         ;; forfeit structure-nature.
+                         (seq (conj chain i))))
+                     s)))]
       (access [] s))))
 
 (defn component
@@ -344,6 +372,16 @@
     (-> s flatten count)
     1))
 
+(defn ^:private elementwise
+  "Given a binary operator and two structures of the same size, return
+  a structure with the same orientation as the first formed from the
+  elementwise binary operation between corresponding elements of the
+  structures."
+  [op s t]
+  (if (= (count s) (count t))
+    (->Structure (orientation s) (mapv op s t))
+    (u/arithmetic-ex (str op " provided arguments of differing length"))))
+
 (defmethod g/add [::down ::down] [a b] (elementwise g/+ a b))
 (defmethod g/add [::up ::up] [a b] (elementwise g/+ a b))
 (defmethod g/sub [::down ::down] [a b] (elementwise g/- a b))
@@ -394,4 +432,4 @@
 (defmethod g/simplify [::structure] [a] (->> a (mapr g/simplify) v/freeze))
 (defmethod g/transpose [::structure] [a] (opposite a (seq a)))
 (defmethod g/magnitude [::structure] [a]
-  (g/sqrt (reduce + (map g/square a))))
+  (g/sqrt (reduce g/+ (map g/square a))))
