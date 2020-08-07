@@ -74,10 +74,48 @@
        (valAt [_ key default] (get v key default))
 
        IFn
-       (invoke [_ x] (Structure. orientation (mapv #(% x) v)))
-       (invoke [_ x y] (Structure. orientation (mapv #(% x y) v)))
-       (invoke [_ x y z] (Structure. orientation (mapv #(% x y z) v)))
-       (invoke [_ w x y z] (Structure. orientation (mapv #(% w x y z) v)))
+       (invoke [_ a]
+               (Structure. orientation (mapv #(% a) v)))
+       (invoke [_ a b]
+               (Structure. orientation (mapv #(% a b) v)))
+       (invoke [_ a b c]
+               (Structure. orientation (mapv #(% a b c) v)))
+       (invoke [_ a b c d]
+               (Structure. orientation (mapv #(% a b c d) v)))
+       (invoke [_ a b c d e]
+               (Structure. orientation (mapv #(% a b c d e) v)))
+       (invoke [_ a b c d e f]
+               (Structure. orientation (mapv #(% a b c d e f) v)))
+       (invoke [_ a b c d e f g]
+               (Structure. orientation (mapv #(% a b c d e f g) v)))
+       (invoke [_ a b c d e f g h]
+               (Structure. orientation (mapv #(% a b c d e f g h) v)))
+       (invoke [_ a b c d e f g h i]
+               (Structure. orientation (mapv #(% a b c d e f g h i) v)))
+       (invoke [_ a b c d e f g h i j]
+               (Structure. orientation (mapv #(% a b c d e f g h i j) v)))
+       (invoke [_ a b c d e f g h i j k]
+               (Structure. orientation (mapv #(% a b c d e f g h i j k) v)))
+       (invoke [_ a b c d e f g h i j k l]
+               (Structure. orientation (mapv #(% a b c d e f g h i j k l) v)))
+       (invoke [_ a b c d e f g h i j k l m]
+               (Structure. orientation (mapv #(% a b c d e f g h i j k l m) v)))
+       (invoke [_ a b c d e f g h i j k l m n]
+               (Structure. orientation (mapv #(% a b c d e f g h i j k l m n) v)))
+       (invoke [_ a b c d e f g h i j k l m n o]
+               (Structure. orientation (mapv #(% a b c d e f g h i j k l m n o) v)))
+       (invoke [_ a b c d e f g h i j k l m n o p]
+               (Structure. orientation (mapv #(% a b c d e f g h i j k l m n o p) v)))
+       (invoke [_ a b c d e f g h i j k l m n o p q]
+               (Structure. orientation (mapv #(% a b c d e f g h i j k l m n o p q) v)))
+       (invoke [_ a b c d e f g h i j k l m n o p q r]
+               (Structure. orientation (mapv #(% a b c d e f g h i j k l m n o p q r) v)))
+       (invoke [_ a b c d e f g h i j k l m n o p q r s]
+               (Structure. orientation (mapv #(% a b c d e f g h i j k l m n o p q r s) v)))
+       (invoke [_ a b c d e f g h i j k l m n o p q r s t]
+               (Structure. orientation (mapv #(% a b c d e f g h i j k l m n o p q r s t) v)))
+       (invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
+               (Structure. orientation (mapv #(apply % a b c d e f g h i j k l m n o p q r s t rest) v)))
        (applyTo [s xs] (AFn/applyToHelper s xs))]
 
       :cljs

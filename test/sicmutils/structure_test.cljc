@@ -106,8 +106,9 @@
     (is (= (s/up 22 2048 (g/expt 2 -9)) ((s/up + * /) 2 2 2 2 2 2 2 2 2 2 2))))
 
   (testing "print representation"
-    (is (= "#object[sicmutils.structure.Structure \"(up 1 2 3)\"]"
-           (pr-str (s/up 1 2 3))))
+    (let [s (pr-str (s/up 1 2 3))]
+      (is #?(:clj (clojure.string/includes? s "\"(up 1 2 3)\"")
+             :cljs (= s "#object[sicmutils.structure.Structure \"(up 1 2 3)\"]"))))
     (is (= "(up 1 2 3)" (str (s/up 1 2 3)))))
 
   (testing "equality"
