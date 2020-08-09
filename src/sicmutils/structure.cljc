@@ -43,21 +43,12 @@
 (derive ::down ::structure)
 (derive PersistentVector ::up)
 
-(extend-type PersistentVector
-  v/Value
-  (nullity? [v] (every? v/nullity? v))
-  (unity? [_] false)
-  (zero-like [v] (mapv v/zero-like v))
-  (exact? [v] (every? v/exact? v))
-  (numerical? [_] false)
-  (freeze [v] (mapv v/freeze v))
-  (kind [v] (type v)))
-
 (deftype Structure [orientation v]
   v/Value
   (nullity? [_] (every? v/nullity? v))
   (unity? [_] false)
-  (zero-like [_] (Structure. orientation (mapv v/zero-like v)))
+  (zero-like [_] (Structure. orientation (v/zero-like v)))
+  (one-like [o] (u/unsupported (str "one-like: " o)))
   (exact? [_] (every? v/exact? v))
   (numerical? [_] false)
   (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
