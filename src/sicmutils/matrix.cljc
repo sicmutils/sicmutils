@@ -189,9 +189,13 @@
        (-invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
                 (Matrix. r c (mapv (fn [e] (mapv #(apply % a b c d e f g h i j k l m n o p q r s t rest) e)) v)))]))
 
+(defn matrix?
+  [m]
+  (instance? Matrix m))
+
 (defn ^:private square?
   [^Matrix m]
-  (and (instance? Matrix m)
+  (and (matrix? n)
        (= (.-r m) (.-c m))))
 
 (defn generate
@@ -222,10 +226,6 @@
   "Maps f over the elements of m, returning an object of the same type."
   [f ^Matrix m]
   (->Matrix (.-r m) (.-c m) (mapv #(mapv f %) (.-v m))))
-
-(defn matrix?
-  [m]
-  (instance? Matrix m))
 
 (defn by-rows
   [& rs]
