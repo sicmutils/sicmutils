@@ -213,3 +213,43 @@
     #_(is (= 0 (g/gcd 'x 'x)))
     (is (= 1 (g/expt 1 'x)))
     (is (= (g/negate 'x) (g/- 0 'x)))))
+
+(deftest moved-from-matrix
+  "Tests that use g/simplify, moved here from sicmutils.matrix-test"
+  (is (= '(+
+           (* a e i)
+           (* -1 a f h)
+           (* -1 b d i)
+           (* b f g)
+           (* c d h)
+           (* -1 c e g))
+         (g/simplify
+          (matrix/determinant
+           (matrix/by-rows '[a b c]
+                           '[d e f]
+                           '[g h i])))))
+  (is (= '(matrix-by-rows [(f x) (g x)] [(h x) (k x)])
+         (g/simplify
+          ((matrix/by-rows (map f/literal-function '[f g])
+                           (map f/literal-function '[h k])) 'x))))
+
+  (let [R2f #(f/literal-function % [0 1] 0)]
+    (is (= '(matrix-by-rows [(f x y) (g x y)] [(h x y) (k x y)])
+           (g/simplify
+            ((matrix/by-rows [(R2f 'f) (R2f 'g)]
+                             [(R2f 'h) (R2f 'k)]) 'x 'y)))))
+
+  (let [M (matrix/by-rows '[a b] '[c d])
+        S (matrix/by-rows '[e f] '[g h])]
+    (is (= '(matrix-by-rows [(+ (* a e) (* b g)) (+ (* a f) (* b h))]
+                            [(+ (* c e) (* d g)) (+ (* c f) (* d h))])
+           (g/simplify (g/* M S)))))
+
+  (testing "div"
+    (let [M (matrix/by-rows '[a b] '[c d])
+          d (down 'x 'y)
+          u (up 'x 'y)]
+      (is (= '(up
+               (/ (+ (* -1 b y) (* d x)) (+ (* a d) (* -1 b c)))
+               (/ (+ (* a y) (* -1 c x)) (+ (* a d) (* -1 b c))))
+             (g/simplify (g/divide u M)))))))

@@ -493,7 +493,7 @@
       (is (= '[R_0 xi (/ (expt eta 2) (* 2 R_0))]
              (take 3 (simplify (taylor-series-terms V (up 0 0) (up 'xi 'eta)))))))))
 
-(deftest moved-from-structure
+(deftest moved-from-structure-and-matrix
   (let [vs (up
             (up 'vx1 'vy1)
             (up 'vx2 'vy2))
@@ -505,4 +505,54 @@
                    (down (down 0 m1) (down 0 0)))
              (down (down (down 0 0) (down m2 0))
                    (down (down 0 0) (down 0 m2))))
-           (g/simplify (((g/expt D 2) L1) vs))))))
+           (g/simplify (((g/expt D 2) L1) vs))))
+
+    (testing "identical test in matrix form"
+      (is (= '(matrix-by-rows [m1 0 0 0]
+                              [0 m1 0 0]
+                              [0 0 m2 0]
+                              [0 0 0 m2])
+             (g/simplify
+              (matrix/s->m vs (((g/expt D 2) L1) vs) vs)))))))
+
+(deftest moved-from-matrix
+  (testing "s->m->s"
+    (let [as-matrix (fn [F]
+                      (fn [s]
+                        (let [v (F s)]
+                          (matrix/s->m (compatible-shape (g/* v s)) v s))))
+          C-general (literal-function
+                     'C '(-> (UP Real
+                                 (UP Real Real)
+                                 (DOWN Real Real))
+                             (UP Real
+                                 (UP Real Real)
+                                 (DOWN Real Real))))
+          s (up 't (up 'x 'y) (down 'px 'py))]
+      (is (= '(matrix-by-rows
+               [(((∂ 0) C↑0) (up t (up x y) (down px py)))
+                (((∂ 1 0) C↑0) (up t (up x y) (down px py)))
+                (((∂ 1 1) C↑0) (up t (up x y) (down px py)))
+                (((∂ 2 0) C↑0) (up t (up x y) (down px py)))
+                (((∂ 2 1) C↑0) (up t (up x y) (down px py)))]
+               [(((∂ 0) C↑1↑0) (up t (up x y) (down px py)))
+                (((∂ 1 0) C↑1↑0) (up t (up x y) (down px py)))
+                (((∂ 1 1) C↑1↑0) (up t (up x y) (down px py)))
+                (((∂ 2 0) C↑1↑0) (up t (up x y) (down px py)))
+                (((∂ 2 1) C↑1↑0) (up t (up x y) (down px py)))]
+               [(((∂ 0) C↑1↑1) (up t (up x y) (down px py)))
+                (((∂ 1 0) C↑1↑1) (up t (up x y) (down px py)))
+                (((∂ 1 1) C↑1↑1) (up t (up x y) (down px py)))
+                (((∂ 2 0) C↑1↑1) (up t (up x y) (down px py)))
+                (((∂ 2 1) C↑1↑1) (up t (up x y) (down px py)))]
+               [(((∂ 0) C↑2_0) (up t (up x y) (down px py)))
+                (((∂ 1 0) C↑2_0) (up t (up x y) (down px py)))
+                (((∂ 1 1) C↑2_0) (up t (up x y) (down px py)))
+                (((∂ 2 0) C↑2_0) (up t (up x y) (down px py)))
+                (((∂ 2 1) C↑2_0) (up t (up x y) (down px py)))]
+               [(((∂ 0) C↑2_1) (up t (up x y) (down px py)))
+                (((∂ 1 0) C↑2_1) (up t (up x y) (down px py)))
+                (((∂ 1 1) C↑2_1) (up t (up x y) (down px py)))
+                (((∂ 2 0) C↑2_1) (up t (up x y) (down px py)))
+                (((∂ 2 1) C↑2_1) (up t (up x y) (down px py)))])
+             (g/simplify ((as-matrix (D C-general)) s)))))))
