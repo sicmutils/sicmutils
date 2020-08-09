@@ -55,6 +55,9 @@
     #?(:clj (is (v/exact? (s/up 0 1 3/2))))
     (is (not (v/exact? (s/up 0 0 0.00001)))))
 
+  (testing "freeze"
+    (is (= '(up 1 2 3) (v/freeze (s/up 1 2 3)))))
+
   (testing "kind"
     (is (= ::s/up (v/kind (s/up 1 2))))
     (is (= ::s/down (v/kind (s/down (s/up 1 2)
@@ -79,6 +82,9 @@
     (is (not (v/exact? [1.2 3 4])))
     #?(:clj (is (v/exact? [0 1 3/2])))
     (is (not (v/exact? [0 0 0.00001]))))
+
+  (testing "freeze"
+    (is (= '(up 1 2 3) (v/freeze [1 2 3]))))
 
   (testing "kind"
     (is (= PersistentVector (v/kind [1 2])))))

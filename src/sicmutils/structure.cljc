@@ -50,7 +50,9 @@
   (zero-like [v] (mapv v/zero-like v))
   (exact? [v] (every? v/exact? v))
   (numerical? [_] false)
-  (freeze [v] `(~::up ~@(map v/freeze v)))
+
+  ;; vectors freeze as up tuples.
+  (freeze [v] `(~'up ~@(map v/freeze v)))
   (kind [v] (type v)))
 
 (deftype Structure [orientation v]
