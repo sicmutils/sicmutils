@@ -195,7 +195,7 @@
 
 (defn ^:private square?
   [^Matrix m]
-  (and (matrix? n)
+  (and (matrix? m)
        (= (.-r m) (.-c m))))
 
 (defn generate
