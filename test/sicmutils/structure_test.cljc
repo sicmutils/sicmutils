@@ -24,7 +24,9 @@
             [sicmutils.generic :as g :refer [+ - * / cube expt negate square]]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
-            [sicmutils.value :as v]))
+            [sicmutils.value :as v])
+  #?(:clj
+     (:import [clojure.lang PersistentVector])))
 
 (deftest value-impl
   (testing "nullity?"
@@ -58,6 +60,28 @@
     (is (= ::s/down (v/kind (s/down (s/up 1 2)
                                     (s/up 2 3))))
         "Kind only depends on the outer wrapper, not on the contents.")))
+
+(deftest vector-value-impl
+  (testing "nullity?"
+    (is (v/nullity? []))
+    (is (v/nullity? [(s/up 0 (s/down 0))]))
+    (is (not (v/nullity? [1 2 3]))))
+
+  (testing "zero-like"
+    (is (= [0 0 0] (v/zero-like [1 2 3])))
+    (is (= [] (v/zero-like [])))
+    (is (= [0 [0 0] [0 0]] (v/zero-like [1 [2 3] [4 5]])))
+    (is (= [(u/long 0) (u/int 0) 0]
+           (v/zero-like [(u/long 1) (u/int 2) 3]))))
+
+  (testing "exact?"
+    (is (v/exact? [1 2 3 4]))
+    (is (not (v/exact? [1.2 3 4])))
+    #?(:clj (is (v/exact? [0 1 3/2])))
+    (is (not (v/exact? [0 0 0.00001]))))
+
+  (testing "kind"
+    (is (= PersistentVector (v/kind [1 2])))))
 
 (deftest structure-interfaces
   (testing "count"
