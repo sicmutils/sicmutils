@@ -18,20 +18,20 @@
 ;
 
 (ns sicmutils.polynomial-test
-  (:require [clojure.test :refer :all]
+  (:require #?(:clj  [clojure.test :refer :all]
+               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
             [clojure.math.numeric-tower :as nt]
-            [sicmutils
-             [value :as v]
-             [polynomial :refer :all]
-             [generic :as g]
-             [numbers]
-             [expression :refer [variables-in]]
-             [simplify]
-             [analyze :as a]
-             [modint :as modular]]))
+            [sicmutils.analyze :as a]
+            [sicmutils.expression :refer [variables-in]]
+            [sicmutils.generic :as g]
+            [sicmutils.modint :as modular]
+            [sicmutils.numbers]
+            [sicmutils.polynomial :refer :all]
+            [sicmutils.simplify]
+            [sicmutils.value :as v]))
 
 (set! *warn-on-reflection* true)
 
@@ -345,3 +345,24 @@
                    xs (gen/vector gen/int arity)]
                   (= (*' (evaluate p xs) (evaluate q xs))
                      (evaluate (mul p q) xs)))))
+
+(deftest analyzer-test
+  (let [new-analyzer (fn [] (a/make-analyzer
+                            (->PolynomialAnalyzer)
+                            (a/monotonic-symbol-generator "k%08d")))
+        A #((new-analyzer) %)]
+    (is (= '(+ x 1) (A '(+ 1 x))))
+    (is (= '(+ x 1) (A '[+ 1 x])))
+    (is (= 'x (A '(* 1/2 (+ x x)))))
+    (is (= '(* y (sin y) (cos (+ (expt (sin y) 4) (* 2 (sin y)) 1)))
+           (A '(* y (sin y) (cos (+ 1 (sin y) (sin y) (expt (sin y) 4)))))))
+    (is (= '(+ (expt cos 2) (expt sin 2)) (A '(+ (expt cos 2) (expt sin 2)))))
+    (is (= '(+ (expt cos 2) (expt sin 2)) (A '(+ (expt sin 2) (expt cos 2)))))
+
+    (comment
+      (is (= '(+ (* -1 m (expt ((D phi) t) 2) (r t)) (* m (((expt D 2) r) t)) ((D U) (r t)))
+             (A '(- (* 1/2 m (+ (((expt D 2) r) t) (((expt D 2) r) t)))
+                    (+ (* 1/2 m (+ (* ((D phi) t) ((D phi) t) (r t))
+                                   (* ((D phi) t) ((D phi) t) (r t))))
+                       (* -1 ((D U) (r t))))))))
+      )))

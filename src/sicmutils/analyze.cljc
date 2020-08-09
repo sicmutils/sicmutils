@@ -18,25 +18,22 @@
 ;
 
 (ns sicmutils.analyze
-  (:require [sicmutils
-             [numsymb :as sym]]
-            [sicmutils.expression :as x])
-  (:import (java.util Comparator)))
+  (:require [sicmutils.expression :as x]
+            [sicmutils.numsymb :as sym]))
 
 (defn ^:private make-vcompare
-  [var-set]
-  "Returns a Comparator taking account of the input variable set in the
+  "Returns a Comparator function taking account of the input variable set in the
   following way: if both inputs to the comparator are in var-set, or both are
   not, then the results are as core compare would return. But if one is in
   var-set and the other is not, then the other will always compare greater. In
   this way, expressions produced by the simplifier will have simple variables
   sorted earlier than expressions involving those variables."
-  (reify Comparator
-    (compare [_ v w]
-      (cond
-        (var-set v) (if (var-set w) (compare v w) -1)
-        (var-set w) 1
-        :else (compare v w)))))
+  [var-set]
+  (fn [v w]
+    (cond
+      (var-set v) (if (var-set w) (compare v w) -1)
+      (var-set w) 1
+      :else (compare v w))))
 
 (defprotocol ICanonicalize
   "ICanonicalize captures the methods exposed by a scmutils analyzer backend.
