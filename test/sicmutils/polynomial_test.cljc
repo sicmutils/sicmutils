@@ -82,14 +82,14 @@
     (is (thrown? IllegalArgumentException (v/one-like (p/make 2 [])))))
 
   (testing "add constant"
-    (is (= (p/make [3 0 2]) (p/add (p/make [0 0 2]) (p/make [3]))))
-    (is (= (p/make [0 0 2]) (p/add (p/make [2 0 2]) (p/make [-2])))))
+    (is (= (p/make [3 0 2]) (g/add (p/make [0 0 2]) (p/make [3]))))
+    (is (= (p/make [0 0 2]) (g/add (p/make [2 0 2]) (p/make [-2])))))
 
   (testing "add/sub"
-    (is (v/nullity? (p/add (p/make [0 0 2]) (p/make [0 0 -2]))))
-    (is (= (p/make []) (p/add (p/make [0 0 2]) (p/make [0 0 -2]))))
-    (is (= (p/make [3]) (p/add (p/make [3 0 2]) (p/make [0 0 -2]))))
-    (is (= (p/make [-1 1]) (p/add (p/make [0 1]) (p/make [-1]))))
+    (is (v/nullity? (g/add (p/make [0 0 2]) (p/make [0 0 -2]))))
+    (is (= (p/make []) (g/add (p/make [0 0 2]) (p/make [0 0 -2]))))
+    (is (= (p/make [3]) (g/add (p/make [3 0 2]) (p/make [0 0 -2]))))
+    (is (= (p/make [-1 1]) (g/add (p/make [0 1]) (p/make [-1]))))
     (is (v/nullity? (p/sub (p/make [0 0 2]) (p/make [0 0 2]))))
     (is (= (p/make [-3]) (p/sub (p/make [0 0 2]) (p/make [3 0 2]))))
     (is (= (p/make [0 1 2]) (p/sub (p/make [3 1 2]) (p/make [3]))))
@@ -99,7 +99,7 @@
     (is (= (p/make [-1 -2 -3]) (p/negate (p/make [1 2 3])))))
 
   (testing "with symbols"
-    (is (= (p/make [(g/+ 'a 'c) (g/+ 'b 'd) 'c]) (p/add (p/make '[a b c]) (p/make '[c d])))))
+    (is (= (p/make [(g/+ 'a 'c) (g/+ 'b 'd) 'c]) (g/add (p/make '[a b c]) (p/make '[c d])))))
 
   (testing "mul"
     (is (= (p/make []) (p/mul (p/make [1 2 3]) (p/make [0]))))
@@ -129,7 +129,7 @@
           [pr d] (p/pseudo-remainder U V)]
       (is (= [(p/make [-2/9 0 1/3]) (p/make [-1/3 0 1/9 0 -5/9])] (p/divide U V)))
       (is (= [(p/make [-3 0 1 0 -5]) 2] [pr d]))
-      (is (= (p/make []) (p/sub (p/mul (p/make [(nt/expt 3 d)]) U) (p/add (p/mul (p/make [-2 0 3]) V) pr)))))
+      (is (= (p/make []) (p/sub (p/mul (p/make [(nt/expt 3 d)]) U) (g/add (p/mul (p/make [-2 0 3]) V) pr)))))
     ;; examples from http://www.mathworks.com/help/symbolic/mupad_ref/pdivide.html
     (let [p (p/make [1 1 0 1])
           q (p/make [1 1 3])]
@@ -160,8 +160,8 @@
       (is (= (p/make [x1 x0 x1 x0 x1 x0 x1]) (p/expt P 3)))
       (is (= (p/make [x1 x0 x0 x0 x0 x0 x0 x0 x1]) (p/mul (p/expt P 3) P)))
       (is (= (p/make []) (p/sub P P)))
-      (is (= (p/make []) (p/add P P)))
-      (is (= (p/make [x0 x0 x1]) (p/add P (p/make [1]))))))
+      (is (= (p/make []) (g/add P P)))
+      (is (= (p/make [x0 x0 x1]) (g/add P (p/make [1]))))))
 
   (testing "CRC polynomials"
     ;; https://en.wikipedia.org/wiki/Computation_of_cyclic_redundancy_checks
@@ -325,7 +325,7 @@
 
 (defspec ^:long p+p=2p num-tests
   (prop/for-all [^sicmutils.polynomial.Polynomial p (gen/bind gen/nat generate-poly)]
-                (= (p/add p p) (p/mul p (p/make-constant (.-arity p) 2)))))
+                (= (g/add p p) (p/mul p (p/make-constant (.-arity p) 2)))))
 
 (defspec ^:long p-p=0 num-tests
   (prop/for-all [p (gen/bind gen/nat generate-poly)]
@@ -343,7 +343,7 @@
   (gen/let [arity gen/nat]
     (prop/for-all [p (generate-poly arity)
                    q (generate-poly arity)]
-                  (= (p/add p q) (p/add q p)))))
+                  (= (g/add p q) (g/add q p)))))
 
 (defspec ^:long pq=qp num-tests
   (gen/let [arity gen/nat]
@@ -356,7 +356,7 @@
     (prop/for-all [p (generate-poly arity)
                    q (generate-poly arity)
                    r (generate-poly arity)]
-                  (= (p/mul p (p/add q r)) (p/add (p/mul p q) (p/mul p r))))))
+                  (= (p/mul p (g/add q r)) (g/add (p/mul p q) (p/mul p r))))))
 
 (defspec ^:long lower-and-raise-arity-are-inverse num-tests
   (prop/for-all [p (gen/bind (gen/choose 2 10) generate-nonzero-poly)]
