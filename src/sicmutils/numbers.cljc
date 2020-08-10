@@ -41,6 +41,11 @@
 (derive u/inttype ::integral)
 (derive u/longtype ::integral)
 
+(defn integral?
+  "TODO add tests."
+  [x]
+  (isa? (v/kind x) ::integral))
+
 #?(:cljs
    (do (derive js/BigInt ::integral)
        (derive ::v/exact-number ::integral))

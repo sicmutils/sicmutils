@@ -90,30 +90,30 @@
     (is (= (p/make []) (g/add (p/make [0 0 2]) (p/make [0 0 -2]))))
     (is (= (p/make [3]) (g/add (p/make [3 0 2]) (p/make [0 0 -2]))))
     (is (= (p/make [-1 1]) (g/add (p/make [0 1]) (p/make [-1]))))
-    (is (v/nullity? (p/sub (p/make [0 0 2]) (p/make [0 0 2]))))
-    (is (= (p/make [-3]) (p/sub (p/make [0 0 2]) (p/make [3 0 2]))))
-    (is (= (p/make [0 1 2]) (p/sub (p/make [3 1 2]) (p/make [3]))))
-    (is (= (p/make [-2 -2 -1]) (p/sub (p/make [1]) (p/make [3 2 1]))))
-    (is (= (p/make [0 0 1 0 1 -1]) (p/sub (p/make [1 0 1 0 1]) (p/make [1 0 0 0 0 1]))))
-    (is (= (p/make [0 0 -1 0 -1 1]) (p/sub (p/make [1 0 0 0 0 1]) (p/make [1 0 1 0 1]))))
+    (is (v/nullity? (g/sub (p/make [0 0 2]) (p/make [0 0 2]))))
+    (is (= (p/make [-3]) (g/sub (p/make [0 0 2]) (p/make [3 0 2]))))
+    (is (= (p/make [0 1 2]) (g/sub (p/make [3 1 2]) (p/make [3]))))
+    (is (= (p/make [-2 -2 -1]) (g/sub (p/make [1]) (p/make [3 2 1]))))
+    (is (= (p/make [0 0 1 0 1 -1]) (g/sub (p/make [1 0 1 0 1]) (p/make [1 0 0 0 0 1]))))
+    (is (= (p/make [0 0 -1 0 -1 1]) (g/sub (p/make [1 0 0 0 0 1]) (p/make [1 0 1 0 1]))))
     (is (= (p/make [-1 -2 -3]) (p/negate (p/make [1 2 3])))))
 
   (testing "with symbols"
     (is (= (p/make [(g/+ 'a 'c) (g/+ 'b 'd) 'c]) (g/add (p/make '[a b c]) (p/make '[c d])))))
 
   (testing "mul"
-    (is (= (p/make []) (p/mul (p/make [1 2 3]) (p/make [0]))))
-    (is (= (p/make []) (p/mul (p/make [0]) (p/make [1 2 3]))))
-    (is (= (p/make []) (p/mul (p/make []) (p/make [1 2 3]))))
-    (is (= (p/make [1 2 3]) (p/mul (p/make [1 2 3]) (p/make [1]))))
-    (is (= (p/make [1 2 3]) (p/mul (p/make [1]) (p/make [1 2 3]))))
-    (is (= (p/make [3 6 9]) (p/mul (p/make [1 2 3]) (p/make [3]))))
-    (is (= (p/make [0 1 2 3]) (p/mul (p/make [0 1]) (p/make [1 2 3]))))
-    (is (= (p/make [0 -1 -2 -3]) (p/mul (p/make [0 -1]) (p/make [1 2 3]))))
-    (is (= (p/make [-1 0 1]) (p/mul (p/make [1 1]) (p/make [-1 1]))))
-    (is (= (p/make [1 3 3 1]) (p/mul (p/make [1 1]) (p/mul (p/make [1 1]) (p/make [1 1])))))
-    (is (= (p/make [1 -4 6 -4 1]) (p/mul (p/mul (p/make [-1 1]) (p/make [-1 1]))
-                                         (p/mul (p/make [-1 1]) (p/make [-1 1]))))))
+    (is (= (p/make []) (g/mul (p/make [1 2 3]) (p/make [0]))))
+    (is (= (p/make []) (g/mul (p/make [0]) (p/make [1 2 3]))))
+    (is (= (p/make []) (g/mul (p/make []) (p/make [1 2 3]))))
+    (is (= (p/make [1 2 3]) (g/mul (p/make [1 2 3]) (p/make [1]))))
+    (is (= (p/make [1 2 3]) (g/mul (p/make [1]) (p/make [1 2 3]))))
+    (is (= (p/make [3 6 9]) (g/mul (p/make [1 2 3]) (p/make [3]))))
+    (is (= (p/make [0 1 2 3]) (g/mul (p/make [0 1]) (p/make [1 2 3]))))
+    (is (= (p/make [0 -1 -2 -3]) (g/mul (p/make [0 -1]) (p/make [1 2 3]))))
+    (is (= (p/make [-1 0 1]) (g/mul (p/make [1 1]) (p/make [-1 1]))))
+    (is (= (p/make [1 3 3 1]) (g/mul (p/make [1 1]) (g/mul (p/make [1 1]) (p/make [1 1])))))
+    (is (= (p/make [1 -4 6 -4 1]) (g/mul (g/mul (p/make [-1 1]) (p/make [-1 1]))
+                                         (g/mul (p/make [-1 1]) (p/make [-1 1]))))))
 
   (testing "div"
     (is (= [(p/make [1 1]) (p/make [])]
@@ -129,7 +129,7 @@
           [pr d] (p/pseudo-remainder U V)]
       (is (= [(p/make [-2/9 0 1/3]) (p/make [-1/3 0 1/9 0 -5/9])] (p/divide U V)))
       (is (= [(p/make [-3 0 1 0 -5]) 2] [pr d]))
-      (is (= (p/make []) (p/sub (p/mul (p/make [(nt/expt 3 d)]) U) (g/add (p/mul (p/make [-2 0 3]) V) pr)))))
+      (is (= (p/make []) (g/sub (g/mul (p/make [(nt/expt 3 d)]) U) (g/add (g/mul (p/make [-2 0 3]) V) pr)))))
     ;; examples from http://www.mathworks.com/help/symbolic/mupad_ref/pdivide.html
     (let [p (p/make [1 1 0 1])
           q (p/make [1 1 3])]
@@ -158,8 +158,8 @@
           P (p/make [x1 x0 x1])]
       (is (= (p/make [x1 x0 x0 x0 x1]) (p/expt P 2)))
       (is (= (p/make [x1 x0 x1 x0 x1 x0 x1]) (p/expt P 3)))
-      (is (= (p/make [x1 x0 x0 x0 x0 x0 x0 x0 x1]) (p/mul (p/expt P 3) P)))
-      (is (= (p/make []) (p/sub P P)))
+      (is (= (p/make [x1 x0 x0 x0 x0 x0 x0 x0 x1]) (g/mul (p/expt P 3) P)))
+      (is (= (p/make []) (g/sub P P)))
       (is (= (p/make []) (g/add P P)))
       (is (= (p/make [x0 x0 x1]) (g/add P (p/make [1]))))))
 
@@ -172,12 +172,12 @@
           x8 (p/make [o o o o o o o o i])
           CRC-8-ATM (p/make [i i i o o o o o i])
           M (p/make [i i i 0 i o i])
-          Mx8 (p/mul x8 M)
+          Mx8 (g/mul x8 M)
           [_ r1] (p/divide Mx8 CRC-8-ATM)
           CRC-16-CCITT (p/make [i o o o o i o o o o o o i o o o i])
-          x16 (p/mul x8 x8)
+          x16 (g/mul x8 x8)
           T (p/make [o o i o i o i])
-          Tx16 (p/mul x16 T)
+          Tx16 (g/mul x16 T)
           [_ r2] (p/divide Tx16 CRC-16-CCITT)]
       (is (= (p/make [o i o o o i o i]) r1))
       (is (= (p/make [i o o o i i i o o i o i i]) r2))))
@@ -325,17 +325,17 @@
 
 (defspec ^:long p+p=2p num-tests
   (prop/for-all [^sicmutils.polynomial.Polynomial p (gen/bind gen/nat generate-poly)]
-                (= (g/add p p) (p/mul p (p/make-constant (.-arity p) 2)))))
+                (= (g/add p p) (g/mul p (p/make-constant (.-arity p) 2)))))
 
 (defspec ^:long p-p=0 num-tests
   (prop/for-all [p (gen/bind gen/nat generate-poly)]
-                (v/nullity? (p/sub p p))))
+                (v/nullity? (g/sub p p))))
 
 (defspec ^:long pq-div-p=q num-tests
   (gen/let [arity gen/nat]
     (prop/for-all [p (generate-poly arity)
                    q (generate-nonzero-poly arity)]
-                  (let [[Q R] (p/divide (p/mul p q) q)]
+                  (let [[Q R] (p/divide (g/mul p q) q)]
                     (and (v/nullity? R)
                          (= Q p))))))
 
@@ -349,14 +349,14 @@
   (gen/let [arity gen/nat]
     (prop/for-all [p (generate-poly arity)
                    q (generate-poly arity)]
-                  (= (p/mul p q) (p/mul q p)))))
+                  (= (g/mul p q) (g/mul q p)))))
 
 (defspec ^:long p*_q+r_=p*q+p*r num-tests
   (gen/let [arity gen/nat]
     (prop/for-all [p (generate-poly arity)
                    q (generate-poly arity)
                    r (generate-poly arity)]
-                  (= (p/mul p (g/add q r)) (g/add (p/mul p q) (p/mul p r))))))
+                  (= (g/mul p (g/add q r)) (g/add (g/mul p q) (g/mul p r))))))
 
 (defspec ^:long lower-and-raise-arity-are-inverse num-tests
   (prop/for-all [p (gen/bind (gen/choose 2 10) generate-nonzero-poly)]
@@ -368,7 +368,7 @@
                    q (generate-poly arity)
                    xs (gen/vector gen/int arity)]
                   (= (*' (p/evaluate p xs) (p/evaluate q xs))
-                     (p/evaluate (p/mul p q) xs)))))
+                     (p/evaluate (g/mul p q) xs)))))
 
 (deftest analyzer-test
   (let [new-analyzer (fn [] (a/make-analyzer

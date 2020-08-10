@@ -23,7 +23,9 @@
             [sicmutils.analyze :as a]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
+            [sicmutils.numbers :as n]
             [sicmutils.numsymb :as sym]
+            [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang BigInt Ratio))))
@@ -160,7 +162,7 @@
   (let [ap (.-arity p)
         aq (.-arity q)]
     (if (= ap aq) ap
-        (throw (ArithmeticException. "mismatched polynomial arity")))))
+        (u/arithmetic-ex "mismatched polynomial arity"))))
 
 (defn map-coefficients
   "Map the function f over the coefficients of p, returning a new Polynomial."
@@ -287,7 +289,7 @@
   [u v]
   {:pre [(instance? Polynomial u)
          (instance? Polynomial v)]}
-  (cond (v/nullity? v) (throw (IllegalArgumentException. "internal polynomial division by zero"))
+  (cond (v/nullity? v) (u/illegal "internal polynomial division by zero")
         (v/nullity? u) [u u]
         (v/unity? v) [u (v/zero-like u)]
         :else (let [arity (check-same-arity u v)
@@ -348,7 +350,7 @@
          (instance? Polynomial v)]}
   (let [[q r] (divide u v)]
     (when-not (v/nullity? r)
-      (throw (IllegalStateException. (str "expected even division left a remainder!" u " / " v " r " r))))
+      (u/illegal-state (str "expected even division left a remainder!" u " / " v " r " r)))
     q))
 
 (defn abs
@@ -360,16 +362,21 @@
 (defn expt
   "Raise the polynomial p to the (integer) power n."
   [^Polynomial p n]
-  (when-not (and (integer? n) (>= n 0))
-    (throw (ArithmeticException.
-            (str "can't raise poly to " n))))
+  (when-not (and (n/integral? n)
+                 (not (g/negative? n)))
+    (u/arithmetic-ex (str "can't raise poly to " n)))
   (cond (v/unity? p) p
-        (v/nullity? p) (if (zero? n)
-                         (throw (ArithmeticException. "poly 0^0"))
+        (v/nullity? p) (if (v/nullity? n)
+                         (u/arithmetic-ex "poly 0^0")
                          p)
-        (zero? n) (make-constant (.-arity p) 1)
-        :else (loop [x p c n a (make-constant (.-arity p) 1)]
-                (if (zero? c) a
+        (v/nullity? n) (make-constant (.-arity p) 1)
+
+        ;; TODO we want this to work with any real integral type, not just
+        ;; Clojure's native. So we need some generic way to do decrements, etc.
+        :else (loop [x p
+                     c n
+                     a (make-constant (.-arity p) 1)]
+                (if (v/nullity? c) a
                     (if (even? c)
                       (recur (mul x x) (quot c 2) a)
                       (recur x (dec c) (mul x a)))))))
@@ -482,6 +489,5 @@
     [p c]
     (map-coefficients #(g/divide % c) p)))
 
-(defmethod g/expt [::polynomial Integer] [b x] (expt b x))
-(defmethod g/expt [::polynomial Long] [b x] (expt b x))
+(defmethod g/expt [::polynomial ::n/integral] [b x] (expt b x))
 (defmethod g/negate [::polynomial] [a] (negate a))
