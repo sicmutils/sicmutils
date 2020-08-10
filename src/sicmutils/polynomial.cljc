@@ -24,13 +24,10 @@
             [sicmutils.analyze :as a]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
-            [sicmutils.numbers :as n]
             [sicmutils.numsymb :as sym]
             [sicmutils.util :as u]
             [sicmutils.value :as v]
-            #?(:cljs [goog.string :refer [format]]))
-  #?(:clj
-     (:import (clojure.lang BigInt Ratio))))
+            #?(:cljs [goog.string :refer [format]])))
 
 (declare operator-table operators-known make-constant)
 
@@ -399,7 +396,7 @@
 (defn expt
   "Raise the polynomial p to the (integer) power n."
   [p n]
-  (when-not (and (v/exact-number? n)
+  (when-not (and (v/native-integral? n)
                  (not (g/negative? n)))
     (u/arithmetic-ex (str "can't raise poly to " n)))
   (cond (v/unity? p) p
@@ -407,9 +404,6 @@
                          (u/arithmetic-ex "poly 0^0")
                          p)
         (v/nullity? n) (make-constant (.-arity p) 1)
-
-        ;; TODO we want this to work with any real integral type, not just
-        ;; Clojure's native. So we need some generic way to do decrements, etc.
         :else (loop [x p
                      c n
                      a (make-constant (.-arity p) 1)]
@@ -526,5 +520,5 @@
 (defmethod g/div [::polynomial ::v/number] [p c]
   (map-coefficients #(g/divide % c) p))
 
-(defmethod g/expt [::polynomial ::v/exact-number] [b x] (expt b x))
+(defmethod g/expt [::polynomial ::v/native-integral] [b x] (expt b x))
 (defmethod g/negate [::polynomial] [a] (negate a))

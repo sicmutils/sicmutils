@@ -22,7 +22,6 @@
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
-            [sicmutils.numbers :as n]
             [sicmutils.numsymb]
             [sicmutils.value :as v]
             #?(:cljs [cljs.reader]))
@@ -463,7 +462,7 @@
   (outer-product (g/invert b) a))
 
 (defmethod g/div [::structure ::structure] [a b] (mul (g/invert b) a))
-(defmethod g/expt [::structure ::n/integral] [a b] (expt a b))
+(defmethod g/expt [::structure ::v/integral] [a b] (expt a b))
 (defmethod g/negate [::structure] [a] (same a (mapv g/negate a)))
 (defmethod g/square [::structure] [a] (inner-product a a))
 (defmethod g/cube [::structure] [a] (mul a (mul a a)))

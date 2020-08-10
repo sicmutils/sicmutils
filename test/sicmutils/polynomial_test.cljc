@@ -29,8 +29,8 @@
             [sicmutils.modint :as modular]
             [sicmutils.numbers]
             [sicmutils.polynomial :as p]
-            [sicmutils.value :as v]
-            #?(:clj [sicmutils.simplify])))
+            [sicmutils.util :as u]
+            [sicmutils.value :as v]))
 
 (deftest poly-core
   (testing "kind"
@@ -254,147 +254,177 @@
             (p/make 2 [[[1 0] 3] [[2 1] 8] [[0 2] 21]])]
            (p/partial-derivatives U)))))
 
-#?(:clj
-   (comment
+(deftest poly-as-simplifier
+  (testing "arity"
+    (let [^sicmutils.polynomial.Polynomial p (p/make [0 1])]
+      (is (= 1 (.-arity p)))))
 
+  (testing "make-vars"
+    (is (= (list (p/make [0 1])) (a/new-variables poly-analyzer 1)))
+    (is (= [(p/make 3 [[[1 0 0] 1]])
+            (p/make 3 [[[0 1 0] 1]])
+            (p/make 3 [[[0 0 1] 1]])] (a/new-variables poly-analyzer 3))))
 
+  (testing "expr"
+    (let [exp1 (:expression (g/* (g/+ 1 'x) (g/+ -3 'x)))
+          exp2 (:expression (g/expt (g/+ 1 'y) 5))
+          exp3 (:expression (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5)))
+          receive (fn [a b] [a b])]
+      (is (= '#{* + x} (variables-in exp1)))
+      (is (= [(p/make [-3 -2 1]) '(x)] (a/expression-> poly-analyzer exp1 receive)))
+      (is (= [(p/make [-3 -2 1]) '(x)] (a/expression-> poly-analyzer exp1 receive)))
+      (is (= [(p/make [1 5 10 10 5 1]) '(y)] (a/expression-> poly-analyzer exp2 receive)))
+      (is (= [(p/make [0 -11 5 -30 10 -7 1]) '(y)] (a/expression-> poly-analyzer exp3 receive)))))
 
+  (testing "monomial order"
+    (let [poly-simp #(a/expression-> poly-analyzer (:expression %) (fn [p vars] (a/->expression poly-analyzer p vars)))]
+      (is (= '(+ (expt x 2) x 1) (poly-simp (g/+ 'x (g/expt 'x 2) 1))))
+      (is (= '(+ (expt x 4) (* 4 (expt x 3)) (* 6 (expt x 2)) (* 4 x) 1) (poly-simp (g/expt (g/+ 1 'x) 4))))
+      (is (= '(+
+               (expt x 4)
+               (* 4 (expt x 3) y)
+               (* 6 (expt x 2) (expt y 2))
+               (* 4 x (expt y 3))
+               (expt y 4))
+             (poly-simp (g/expt (g/+ 'x 'y) 4))))
+      (is (= '(+
+               (expt x 4)
+               (* 4 (expt x 3) y)
+               (* 6 (expt x 2) (expt y 2))
+               (* 4 x (expt y 3))
+               (expt y 4))
+             (poly-simp (g/expt (g/+ 'y 'x) 4))))))
 
+  (testing "expr-simplify"
+    (let [poly-simp #(a/expression-> poly-analyzer % (fn [p vars] (a/->expression poly-analyzer p vars)))
+          exp1 (:expression (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))
+          exp2 (:expression (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
+          exp3 'y]
+      (is (= '(+ (expt x 3) (* 2 (expt x 2))) (poly-simp exp1)))
+      (is (= '(+ (expt x 3) (* 2 (expt x 2)) (* 2 (expt y 2))) (poly-simp exp2)))
+      (is (= 'y (poly-simp exp3)))
+      (is (= '(+ g1 g2) (poly-simp (:expression (g/+ 'g1 'g2)))))
+      (is (= '(* 2 g1) (poly-simp (:expression (g/+ 'g1 'g1)))))
+      (is (= 3 (poly-simp '(+ 2 1))))
+      (is (= '(+ b (* -1 f)) (poly-simp '(- (+ a b c) (+ a c f)))))
+      (is (= '(+ (* -1 b) f) (poly-simp '(- (+ a c f) (+ c b a))))))))
 
+(defn generate-poly
+  [arity]
+  (gen/fmap #(p/make arity %)
+            (gen/vector
+             (gen/tuple
+              (gen/vector gen/nat arity)
+              gen/small-integer))))
 
-     (deftest poly-as-simplifier
-       (testing "arity"
-         (let [^sicmutils.polynomial.Polynomial p (p/make [0 1])]
-           (is (= 1 (.-arity p)))))
+(defn generate-nonzero-poly
+  [arity]
+  (gen/such-that (complement v/nullity?)
+                 (generate-poly arity)))
 
-       (testing "make-vars"
-         (is (= (list (p/make [0 1])) (a/new-variables poly-analyzer 1)))
-         (is (= [(p/make 3 [[[1 0 0] 1]])
-                 (p/make 3 [[[0 1 0] 1]])
-                 (p/make 3 [[[0 0 1] 1]])] (a/new-variables poly-analyzer 3))))
+(def ^:private num-tests 30)
 
-       (testing "expr"
-         (let [exp1 (:expression (g/* (g/+ 1 'x) (g/+ -3 'x)))
-               exp2 (:expression (g/expt (g/+ 1 'y) 5))
-               exp3 (:expression (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5)))
-               receive (fn [a b] [a b])]
-           (is (= '#{* + x} (variables-in exp1)))
-           (is (= [(p/make [-3 -2 1]) '(x)] (a/expression-> poly-analyzer exp1 receive)))
-           (is (= [(p/make [-3 -2 1]) '(x)] (a/expression-> poly-analyzer exp1 receive)))
-           (is (= [(p/make [1 5 10 10 5 1]) '(y)] (a/expression-> poly-analyzer exp2 receive)))
-           (is (= [(p/make [0 -11 5 -30 10 -7 1]) '(y)] (a/expression-> poly-analyzer exp3 receive)))))
+(defspec ^:long p+p=2p num-tests
+  (prop/for-all [p (gen/bind gen/nat generate-poly)]
+                (= (g/add p p)
+                   (g/mul p (p/make-constant (.-arity p) 2)))))
 
-       (testing "monomial order"
-         (let [poly-simp #(a/expression-> poly-analyzer (:expression %) (fn [p vars] (a/->expression poly-analyzer p vars)))]
-           (is (= '(+ (expt x 2) x 1) (poly-simp (g/+ 'x (g/expt 'x 2) 1))))
-           (is (= '(+ (expt x 4) (* 4 (expt x 3)) (* 6 (expt x 2)) (* 4 x) 1) (poly-simp (g/expt (g/+ 1 'x) 4))))
-           (is (= '(+
-                    (expt x 4)
-                    (* 4 (expt x 3) y)
-                    (* 6 (expt x 2) (expt y 2))
-                    (* 4 x (expt y 3))
-                    (expt y 4))
-                  (poly-simp (g/expt (g/+ 'x 'y) 4))))
-           (is (= '(+
-                    (expt x 4)
-                    (* 4 (expt x 3) y)
-                    (* 6 (expt x 2) (expt y 2))
-                    (* 4 x (expt y 3))
-                    (expt y 4))
-                  (poly-simp (g/expt (g/+ 'y 'x) 4))))))
+(defspec ^:long p-p=0 num-tests
+  (prop/for-all [p (gen/bind gen/nat generate-poly)]
+                (v/nullity? (g/sub p p))))
 
-       (testing "expr-simplify"
-         (let [poly-simp #(a/expression-> poly-analyzer % (fn [p vars] (a/->expression poly-analyzer p vars)))
-               exp1 (:expression (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))
-               exp2 (:expression (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
-               exp3 'y]
-           (is (= '(+ (expt x 3) (* 2 (expt x 2))) (poly-simp exp1)))
-           (is (= '(+ (expt x 3) (* 2 (expt x 2)) (* 2 (expt y 2))) (poly-simp exp2)))
-           (is (= 'y (poly-simp exp3)))
-           (is (= '(+ g1 g2) (poly-simp (:expression (g/+ 'g1 'g2)))))
-           (is (= '(* 2 g1) (poly-simp (:expression (g/+ 'g1 'g1)))))
-           (is (= 3 (poly-simp '(+ 2 1))))
-           (is (= '(+ b (* -1 f)) (poly-simp '(- (+ a b c) (+ a c f)))))
-           (is (= '(+ (* -1 b) f) (poly-simp '(- (+ a c f) (+ c b a))))))))
+(defspec ^:long pq-div-p=q num-tests
+  (gen/let [arity gen/nat]
+    (prop/for-all [p (generate-poly arity)
+                   q (generate-nonzero-poly arity)]
+                  (let [[Q R] (p/divide (g/mul p q) q)]
+                    (and (v/nullity? R)
+                         (= Q p))))))
 
-     (defn generate-poly
-       [arity]
-       (gen/fmap #(p/make arity %)
-                 (gen/vector
-                  (gen/tuple
-                   (gen/vector gen/pos-int arity)
-                   gen/int))))
+(defspec ^:long p+q=q+p num-tests
+  (gen/let [arity gen/nat]
+    (prop/for-all [p (generate-poly arity)
+                   q (generate-poly arity)]
+                  (= (g/add p q) (g/add q p)))))
 
-     (defn generate-nonzero-poly
-       [arity]
-       (gen/such-that (complement v/nullity?) (generate-poly arity)))
+(defspec ^:long pq=qp num-tests
+  (gen/let [arity gen/nat]
+    (prop/for-all [p (generate-poly arity)
+                   q (generate-poly arity)]
+                  (= (g/mul p q) (g/mul q p)))))
 
-     (def ^:private num-tests 50)
+(defspec ^:long p*_q+r_=p*q+p*r num-tests
+  (gen/let [arity gen/nat]
+    (prop/for-all [p (generate-poly arity)
+                   q (generate-poly arity)
+                   r (generate-poly arity)]
+                  (= (g/mul p (g/add q r))
+                     (g/add (g/mul p q) (g/mul p r))))))
 
-     (defspec ^:long p+p=2p num-tests
-       (prop/for-all [^sicmutils.polynomial.Polynomial p (gen/bind gen/nat generate-poly)]
-                     (= (g/add p p) (g/mul p (p/make-constant (.-arity p) 2)))))
+(defspec ^:long lower-and-raise-arity-are-inverse num-tests
+  (prop/for-all [p (gen/bind (gen/choose 2 10) generate-nonzero-poly)]
+                (= p (p/raise-arity (p/lower-arity p)))))
 
-     (defspec ^:long p-p=0 num-tests
-       (prop/for-all [p (gen/bind gen/nat generate-poly)]
-                     (v/nullity? (g/sub p p))))
+(defspec ^:long evaluation-homomorphism num-tests
+  (let [gen-bigint (gen/fmap u/bigint gen/small-integer)]
+    (gen/let [arity (gen/choose 1 6)]
+      (prop/for-all [p (generate-poly arity)
+                     q (generate-poly arity)
+                     xs (gen/vector gen-bigint arity)]
+                    (= (u/bigint
+                        (g/mul (p/evaluate p xs)
+                               (p/evaluate q xs)))
+                       (u/bigint
+                        (p/evaluate (g/mul p q) xs)))))))
 
-     (defspec ^:long pq-div-p=q num-tests
-       (gen/let [arity gen/nat]
-         (prop/for-all [p (generate-poly arity)
-                        q (generate-nonzero-poly arity)]
-                       (let [[Q R] (p/divide (g/mul p q) q)]
-                         (and (v/nullity? R)
-                              (= Q p))))))
+(deftest evaluation-homomorphism-unit
+  (testing "specific test cases from generative tests"
+    (let [p (p/make 4 [[[0 0 0 0] -2] [[1 6 3 3] 3]])
+          q (p/make 4 [[[0 0 0 3] 3] [[4 0 6 2] 1]])
+          xs (map u/bigint [-2 3 -3 -3])]
+      (is (= (g/mul (p/evaluate p xs)
+                    (p/evaluate q xs))
+             (p/evaluate (g/mul p q) xs))
+          "This blows through non-bigint precision in cljs. bigint can promote
+          other types it interacts with, so any bigint in `xs` is enough to
+          maintain precision."))
 
-     (defspec ^:long p+q=q+p num-tests
-       (gen/let [arity gen/nat]
-         (prop/for-all [p (generate-poly arity)
-                        q (generate-poly arity)]
-                       (= (g/add p q) (g/add q p)))))
+    (let [p (p/make 5 [])
+          q (p/make 5 [[[0 5 4 0 1] -2]
+                       [[2 0 4 7 3] 4]
+                       [[1 6 0 1 9] -9]
+                       [[4 4 3 2 4] -5]
+                       [[6 1 8 1 5] -3]
+                       [[7 3 8 2 2] 9]
+                       [[3 5 3 6 9] 2]
+                       [[3 8 4 6 9] -8]
+                       [[1 8 7 9 8] -2]])
+          xs (map u/bigint [-9 7 0 9 -9])]
+      (is (= (u/bigint
+              (g/mul (p/evaluate p xs)
+                     (p/evaluate q xs)))
+             (u/bigint
+              (p/evaluate (g/mul p q) xs)))
+          "BigInt doesn't compare automatically with non-bigint, so make sure to
+          check that the results have the same type."))))
 
-     (defspec ^:long pq=qp num-tests
-       (gen/let [arity gen/nat]
-         (prop/for-all [p (generate-poly arity)
-                        q (generate-poly arity)]
-                       (= (g/mul p q) (g/mul q p)))))
+(deftest analyzer-test
+  (let [new-analyzer (fn [] (a/make-analyzer
+                            (p/->PolynomialAnalyzer)
+                            (a/monotonic-symbol-generator "k%08d")))
+        A #((new-analyzer) %)]
+    (is (= '(+ x 1) (A '(+ 1 x))))
+    (is (= '(+ x 1) (A '[+ 1 x])))
+    (is (= '(* y (sin y) (cos (+ (expt (sin y) 4) (* 2 (sin y)) 1)))
+           (A '(* y (sin y) (cos (+ 1 (sin y) (sin y) (expt (sin y) 4)))))))
+    (is (= '(+ (expt cos 2) (expt sin 2)) (A '(+ (expt cos 2) (expt sin 2)))))
+    (is (= '(+ (expt cos 2) (expt sin 2)) (A '(+ (expt sin 2) (expt cos 2)))))
 
-     (defspec ^:long p*_q+r_=p*q+p*r num-tests
-       (gen/let [arity gen/nat]
-         (prop/for-all [p (generate-poly arity)
-                        q (generate-poly arity)
-                        r (generate-poly arity)]
-                       (= (g/mul p (g/add q r)) (g/add (g/mul p q) (g/mul p r))))))
-
-     (defspec ^:long lower-and-raise-arity-are-inverse num-tests
-       (prop/for-all [p (gen/bind (gen/choose 2 10) generate-nonzero-poly)]
-                     (= p (p/raise-arity (p/lower-arity p)))))
-
-     (defspec ^:long evaluation-homomorphism num-tests
-       (gen/let [arity (gen/choose 1 6)]
-         (prop/for-all [p (generate-poly arity)
-                        q (generate-poly arity)
-                        xs (gen/vector gen/int arity)]
-                       (= (*' (p/evaluate p xs) (p/evaluate q xs))
-                          (p/evaluate (g/mul p q) xs)))))
-
-     (deftest analyzer-test
-       (let [new-analyzer (fn [] (a/make-analyzer
-                                 (p/->PolynomialAnalyzer)
-                                 (a/monotonic-symbol-generator "k%08d")))
-             A #((new-analyzer) %)]
-         (is (= '(+ x 1) (A '(+ 1 x))))
-         (is (= '(+ x 1) (A '[+ 1 x])))
-         (is (= 'x (A '(* 1/2 (+ x x)))))
-         (is (= '(* y (sin y) (cos (+ (expt (sin y) 4) (* 2 (sin y)) 1)))
-                (A '(* y (sin y) (cos (+ 1 (sin y) (sin y) (expt (sin y) 4)))))))
-         (is (= '(+ (expt cos 2) (expt sin 2)) (A '(+ (expt cos 2) (expt sin 2)))))
-         (is (= '(+ (expt cos 2) (expt sin 2)) (A '(+ (expt sin 2) (expt cos 2)))))
-
-         (comment
+    ;; Tests involving Ratio literals don't work in cljs yet.
+    #?(:clj
+       (do (is (= 'x (A '(* 1/2 (+ x x)))))
            (is (= '(+ (* -1 m (expt ((D phi) t) 2) (r t)) (* m (((expt D 2) r) t)) ((D U) (r t)))
                   (A '(- (* 1/2 m (+ (((expt D 2) r) t) (((expt D 2) r) t)))
                          (+ (* 1/2 m (+ (* ((D phi) t) ((D phi) t) (r t))
                                         (* ((D phi) t) ((D phi) t) (r t))))
-                            (* -1 ((D U) (r t))))))))
-           )))))
+                            (* -1 ((D U) (r t))))))))))))

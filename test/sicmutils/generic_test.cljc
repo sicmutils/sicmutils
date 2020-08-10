@@ -60,8 +60,8 @@
 
 (deftest type-assigner
   (testing "types"
-    (is (= #?(:clj Long :cljs ::v/exact-number) (v/kind 9)))
-    (is (= #?(:clj Double :cljs ::v/exact-number) (v/kind 99.0)))
+    (is (= #?(:clj Long :cljs ::v/native-integral) (v/kind 9)))
+    (is (= #?(:clj Double :cljs ::v/native-integral) (v/kind 99.0)))
     (is (= #?(:clj Double :cljs js/Number) (v/kind 99.5)))))
 
 (deftest generic-plus
