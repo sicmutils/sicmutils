@@ -362,7 +362,7 @@
 (defn expt
   "Raise the polynomial p to the (integer) power n."
   [^Polynomial p n]
-  (when-not (and (n/integral? n)
+  (when-not (and (v/exact-number? n)
                  (not (g/negative? n)))
     (u/arithmetic-ex (str "can't raise poly to " n)))
   (cond (v/unity? p) p
@@ -378,7 +378,7 @@
                      a (make-constant (.-arity p) 1)]
                 (if (v/nullity? c) a
                     (if (even? c)
-                      (recur (mul x x) (quot c 2) a)
+                      (recur (mul x x) (g/quotient c 2) a)
                       (recur x (dec c) (mul x a)))))))
 
 (defn partial-derivative
@@ -489,5 +489,5 @@
     [p c]
     (map-coefficients #(g/divide % c) p)))
 
-(defmethod g/expt [::polynomial ::n/integral] [b x] (expt b x))
+(defmethod g/expt [::polynomial ::v/exact-number] [b x] (expt b x))
 (defmethod g/negate [::polynomial] [a] (negate a))

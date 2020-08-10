@@ -25,7 +25,7 @@
             #?(:cljs goog.math.Long)
             #?(:cljs goog.math.Integer))
   #?(:clj
-     (:import (clojure.lang RestFn MultiFn Keyword Symbol)
+     (:import (clojure.lang BigInt RestFn MultiFn Keyword Symbol)
               (java.lang.reflect Method))))
 
 
@@ -54,10 +54,23 @@
 
 (def numtype ::number)
 
-#?(:clj (derive Number ::number)
+(defn exact-number?
+  "Returns true if x is an integral number that Clojure's math operations work
+  with, false otherwise."
+  [x]
+  (isa? (kind x) ::exact-number))
+
+(derive ::exact-number ::number)
+
+#?(:clj
+   (do
+     (derive Integer ::exact-number)
+     (derive Long ::exact-number)
+     (derive BigInt ::exact-number)
+     (derive BigInteger ::exact-number)
+     (derive Number ::number))
    :cljs
-   (do (derive js/Number ::number)
-       (derive ::exact-number ::number)))
+   (do (derive js/Number ::number)))
 
 (extend-protocol Value
   #?(:clj Number :cljs number)
