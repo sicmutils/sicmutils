@@ -21,13 +21,14 @@
   (:require [clojure.tools.logging :as log]
             [clojure.string]
             [clojure.math.numeric-tower :as nt]
-            [sicmutils
-             [value :as v]
-             [generic :as g]
-             [polynomial :refer :all]])
-  (:import (com.google.common.base Stopwatch)
-           (sicmutils.polynomial Polynomial)
-           (java.util.concurrent TimeUnit TimeoutException)))
+            [sicmutils.generic :as g]
+            [sicmutils.polynomial :as p]
+            [sicmutils.util :as u]
+            [sicmutils.value :as v])
+  #?(:clj
+     (:import (com.google.common.base Stopwatch)
+              (sicmutils.polynomial Polynomial)
+              (java.util.concurrent TimeUnit TimeoutException))))
 
 (def ^:dynamic *poly-gcd-time-limit* [1000 TimeUnit/MILLISECONDS])
 (def ^:dynamic *poly-gcd-cache-enable* true)
@@ -58,12 +59,13 @@
 
 (defn ^:private native-gcd
   [a b]
-  (.gcd (biginteger a) (biginteger b)))
+  (.gcd (biginteger a)
+        (biginteger b)))
 
 (defn primitive-gcd
   "A function which will return the gcd of a sequence of numbers."
   [xs]
-  (nt/abs ((reduce-until #(= % 1) native-gcd) xs)))
+  (nt/abs ((reduce-until v/unity? native-gcd) xs)))
 
 (defn ^:private with-content-removed
   "For multivariate polynomials. u and v are considered here as
@@ -73,34 +75,36 @@
   has the content reattached and is returned."
   [gcd u v continue]
   (let [gcd-reducer (reduce-until v/unity? gcd)
-        content #(-> % coefficients gcd-reducer)
+        content #(-> % p/coefficients gcd-reducer)
         ku (content u)
         kv (content v)
-        pu (map-coefficients #(g/exact-divide % ku) u)
-        pv (map-coefficients #(g/exact-divide % kv) v)
+        pu (p/map-coefficients #(g/exact-divide % ku) u)
+        pv (p/map-coefficients #(g/exact-divide % kv) v)
         d (gcd ku kv)]
-    (map-coefficients #(g/* d %) (continue pu pv))))
+    (p/map-coefficients #(g/* d %) (continue pu pv))))
 
 (defn ^:private with-lower-arity
   [u v continue]
-  (raise-arity (continue (lower-arity u) (lower-arity v))))
+  (p/raise-arity
+   (continue (p/lower-arity u)
+             (p/lower-arity v))))
 
 (defn ^:private euclid-inner-loop
   [coefficient-gcd]
-  (let [content #(->> % coefficients (reduce coefficient-gcd))]
+  (let [content #(->> % p/coefficients (reduce coefficient-gcd))]
     (fn [u v]
       (loop [u u v v]
         (*poly-gcd-bail-out*)
-        (let [[r _] (pseudo-remainder u v)]
+        (let [[r _] (p/pseudo-remainder u v)]
           (if (v/nullity? r) v
               (let [kr (content r)]
-                (recur v (map-coefficients #(g/exact-divide % kr) r)))))))))
+                (recur v (p/map-coefficients #(g/exact-divide % kr) r)))))))))
 
 (defn ^:private joint-quotient
   "If d evenly divides both u and v, then [u/d, v/d, d], else nil."
   [u v d]
-  (let [[q1 r1] (divide u d)
-        [q2 r2] (divide v d)]
+  (let [[q1 r1] (p/divide u d)
+        [q2 r2] (p/divide v d)]
     (if (and (v/nullity? r1) (v/nullity? r2))
       [q1 q2 d])))
 
@@ -110,18 +114,18 @@
   exponent limit for both polynomials. This is basically a test for a
   kind of disjointness of the variables. If this happens we just
   return the constant gcd and do not invoke the continuation."
-  [^Polynomial u ^Polynomial v continue]
-  {:pre [(instance? Polynomial u)
-         (instance? Polynomial v)]}
-  (let [umax (reduce #(mapv max %1 %2) (map exponents (.xs->c u)))
-        vmax (reduce #(mapv max %1 %2) (map exponents (.xs->c v)))
+  [u v continue]
+  {:pre [(p/polynomial? u)
+         (p/polynomial? v)]}
+  (let [umax (reduce #(mapv max %1 %2) (map p/exponents (.-xs->c u)))
+        vmax (reduce #(mapv max %1 %2) (map p/exponents (.-xs->c v)))
         maxd (mapv min umax vmax)]
     (if (every? zero? maxd)
       (do
         (swap! gcd-trivial-constant inc)
-        (->> (concat (coefficients u) (coefficients v))
+        (->> (concat (p/coefficients u) (p/coefficients v))
              primitive-gcd
-             (make-constant (.arity u))))
+             (p/make-constant (.-arity u))))
       (continue u v))))
 
 (defn ^:private sort->permutations
@@ -141,26 +145,27 @@
   rearrangement on return. Variables are sorted by increasing degree.
   Discussed in 'Evaluation of the Heuristic Polynomial GCD', by Liao
   and Fateman [1995]."
-  [^Polynomial u ^Polynomial v continue]
-  {:pre [(instance? Polynomial u)
-         (instance? Polynomial v)]}
-  (let [xs (reduce #(mapv max %1 %2) (concat (map exponents (.xs->c u))
-                                             (map exponents (.xs->c v))))
+  [u v continue]
+  {:pre [(p/polynomial? u)
+         (p/polynomial? v)]}
+  (let [xs (reduce #(mapv max %1 %2)
+                   (concat (map p/exponents (.-xs->c u))
+                           (map p/exponents (.-xs->c v))))
         [sorter unsorter] (sort->permutations xs)]
-    (map-exponents unsorter
-                   (continue (map-exponents sorter u)
-                             (map-exponents sorter v)))))
+    (p/map-exponents unsorter
+                     (continue (p/map-exponents sorter u)
+                               (p/map-exponents sorter v)))))
 
 (def ^:private univariate-euclid-inner-loop
   (euclid-inner-loop native-gcd))
 
 (defn ^:private gcd1
   "Knuth's algorithm 4.6.1E for UNIVARIATE polynomials."
-  [^Polynomial u ^Polynomial v]
-  {:pre [(instance? Polynomial u)
-         (instance? Polynomial v)
-         (= (.arity u) 1)
-         (= (.arity v) 1)]}
+  [u v]
+  {:pre [(p/polynomial? u)
+         (p/polynomial? v)
+         (= (.-arity u) 1)
+         (= (.-arity v) 1)]}
   (cond
     (v/nullity? u) v
     (v/nullity? v) u
@@ -172,15 +177,15 @@
 (defn ^:private monomial-gcd
   "Computing the GCD is easy if one of the polynomials is a monomial.
   The monomial is the first argument."
-  [^Polynomial m ^Polynomial p]
-  {:pre [(instance? Polynomial m)
-         (instance? Polynomial p)
-         (= (count (.xs->c m)) 1)]}
-  (let [[mxs mc] (-> m .xs->c first)
-        xs (reduce #(mapv min %1 %2) mxs (->> p .xs->c (map exponents)))
-        c (primitive-gcd (cons mc (coefficients p)))]
+  [m p]
+  {:pre [(p/polynomial? m)
+         (p/polynomial? p)
+         (= (count (.-xs->c m)) 1)]}
+  (let [[mxs mc] (-> m .-xs->c first)
+        xs (reduce #(mapv min %1 %2) mxs (->> p .-xs->c (map p/exponents)))
+        c (primitive-gcd (cons mc (p/coefficients p)))]
     (swap! gcd-monomials inc)
-    (make (.arity m) [[xs c]])))
+    (p/make (.-arity m) [[xs c]])))
 
 (defn ^:private println-indented
   [level & args]
@@ -211,7 +216,7 @@
   [level u v]
   (when *poly-gcd-debug*
     (println-indented level "inner-gcd" level (str u) (str v)))
-  (let [arity (check-same-arity u v)]
+  (let [arity (p/check-same-arity u v)]
     (if-let [g (and *poly-gcd-cache-enable* (@gcd-memo [u v]))]
       (do (swap! gcd-cache-hit inc) g)
       (let [g (cond
@@ -221,8 +226,8 @@
                 (v/unity? u) u
                 (v/unity? v) v
                 (= u v) u
-                (monomial? u) (monomial-gcd u v)
-                (monomial? v) (monomial-gcd v u)
+                (p/monomial? u) (monomial-gcd u v)
+                (p/monomial? v) (monomial-gcd v u)
                 :else (let [next-gcd #(inner-gcd (inc level) %1 %2)
                             content-remover #(with-content-removed next-gcd %1 %2 %3)]
                         (*poly-gcd-bail-out*)
@@ -259,43 +264,42 @@
   This can take a long time, unfortunately, and so we bail if it seems to
   be taking too long."
   [u v]
-  {:pre [(instance? Polynomial u)
-         (instance? Polynomial v)]}
+  {:pre [(p/polynomial? u)
+         (p/polynomial? v)]}
   (let [clock (Stopwatch/createStarted)
-        arity (check-same-arity u v)]
+        arity (p/check-same-arity u v)]
     (cond
-      (not (and (every? integral? (coefficients u))
-                (every? integral? (coefficients v)))) (v/one-like u)
+      (not (and (every? integral? (p/coefficients u))
+                (every? integral? (p/coefficients v)))) (v/one-like u)
       (v/nullity? u) v
       (v/nullity? v) u
       (v/unity? u) u
       (v/unity? v) v
       (= u v) u
-      (= arity 1) (abs (gcd1 u v))
+      (= arity 1) (g/abs (gcd1 u v))
       :else (binding [*poly-gcd-bail-out* (maybe-bail-out "polynomial GCD" clock *poly-gcd-time-limit*)]
-              (abs (gcd-continuation-chain u v
-                                           with-trivial-constant-gcd-check
-                                           with-optimized-variable-order
-                                           #(inner-gcd 0 %1 %2)))))))
+              (g/abs (gcd-continuation-chain u v
+                                             with-trivial-constant-gcd-check
+                                             with-optimized-variable-order
+                                             #(inner-gcd 0 %1 %2)))))))
 
 (def gcd-seq
   "Compute the GCD of a sequence of polynomials (we take care to
   break early if the gcd of an initial segment is unity)"
   (reduce-until v/unity? gcd))
 
-
-;; several observations. many of the gcds we find when attempting the troublesome
-;; GCD are the case where we have two monomials. This can be done trivially
-;; without lowering arity.
+;; several observations. many of the gcds we find when attempting the
+;; troublesome GCD are the case where we have two monomials. This can be done
+;; trivially without lowering arity.
 ;;
 ;; secondly, we observe that lowering arity often produces constant polynomials.
 ;; can we get away with just dropping these to scalars, instead of constant
 ;; polynomials of lower degree?
 ;;
-;; then we could special-case the question of GCD of a polynomial with a
-;; basic number. That's just the gcd of the number and the polynomial's
-;; integer coefficients.
+;; then we could special-case the question of GCD of a polynomial with a basic
+;; number. That's just the gcd of the number and the polynomial's integer
+;; coefficients.
 ;;
-;; open question: why was dividing out the greatest monomial factor such
-;; a lose? it's much cheaper to do that than to find a gcd by going down
-;; the arity chain.
+;; open question: why was dividing out the greatest monomial factor such a lose?
+;; it's much cheaper to do that than to find a gcd by going down the arity
+;; chain.

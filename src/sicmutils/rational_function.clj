@@ -28,8 +28,7 @@
              [polynomial :as p]
              [analyze :as a]
              [polynomial-gcd :as poly]])
-  (:import [clojure.lang Ratio BigInt]
-           [sicmutils.polynomial Polynomial]))
+  (:import [clojure.lang Ratio BigInt]))
 
 (declare operator-table operators-known)
 
@@ -51,8 +50,8 @@
   "Make the fraction of the two polynomials p and q, after dividing
   out their greatest common divisor."
   [^Polynomial u ^Polynomial v]
-  {:pre [(instance? Polynomial u)
-         (instance? Polynomial v)
+  {:pre [(p/polynomial? u)
+         (p/polynomial? v)
          (= (.arity u) (.arity v))]}
   (when (v/nullity? v)
     (throw (ArithmeticException. "Can't form rational function with zero denominator")))
@@ -74,8 +73,8 @@
         u'' (p/evenly-divide u' g)
         v'' (p/evenly-divide v' g)]
     (if (v/unity? v'') u''
-        (do (when-not (and (instance? Polynomial u'')
-                           (instance? Polynomial v''))
+        (do (when-not (and (p/polynomial? u'')
+                           (p/polynomial? v''))
               (throw (IllegalArgumentException. (str "bad RF" u v u' v' u'' v''))))
             (RationalFunction. arity  u'' v'')))))
 
@@ -121,7 +120,7 @@
 (defn subp
   [^RationalFunction r ^Polynomial p]
   {:pre [(instance? RationalFunction r)
-         (instance? Polynomial p)]}
+         (p/polynomial? p)]}
   (if (v/nullity? p)
     r
     (let [v (.v r)]
@@ -234,7 +233,7 @@
             (sym/div (a/->expression polynomial-analyzer (.u rr) vars)
                      (a/->expression polynomial-analyzer (.v rr) vars)))
 
-          (instance? Polynomial r)
+          (p/polynomial? r)
           (a/->expression polynomial-analyzer r vars)
 
           :else r))

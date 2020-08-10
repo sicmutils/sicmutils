@@ -18,27 +18,29 @@
 ;
 
 (ns sicmutils.polynomial-gcd-test
-  (:import (com.google.common.base Stopwatch)
-           (java.util.concurrent TimeUnit))
-  (:require [clojure.test :refer :all]
+  (:require #?(:clj  [clojure.test :refer :all]
+               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+            [clojure.tools.logging :as log]
+            [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
-            [sicmutils
-             [polynomial :refer :all]
-             [polynomial-gcd :refer :all]
-             [polynomial-test :as p-test]
-             [value :as v]
-             [analyze :as a]
-             [numbers]
-             [expression :refer [variables-in]]]
-            [clojure.tools.logging :as log]
-            [clojure.test.check.generators :as gen]))
+            [sicmutils.polynomial :refer :all]
+            [sicmutils.polynomial-gcd :refer :all]
+            [sicmutils.polynomial-test :as p-test]
+            [sicmutils.value :as v]
+            [sicmutils.analyze :as a]
+            [sicmutils.numbers]
+            [sicmutils.expression :refer [variables-in]])
+  #?(:clj
+     (:import (com.google.common.base Stopwatch)
+              (java.util.concurrent TimeUnit))))
 
 (deftest poly-gcd
   (let [X (make 2 [[[1 0] 1]]) ;; some polynomials of arity 2
         Y (make 2 [[[0 1] 1]])]
     (testing "inexact coefficients"
       (is (= (make [1]) (gcd (make [0.2 0.4 0.6]) (make [0.4 0.6 0.8])))))
+
     (testing "GCD: arity 1 case"
       (let [x+1 (make [1 1])
             x+2 (make [2 1])
@@ -67,9 +69,11 @@
         (is (= U (gcd Z U)))
         (is (= V (gcd V Z)))
         (is (= V (gcd Z V)))))
+
     (testing "divide constant arity 2"
       (is (= [(make 2 []) X] (divide X Y)))
       (is (= [(make 2 []) Y] (divide Y X))))
+
     (testing "GCD: arity 2 case"
       (let [I (make 2 [[[0 0] 1]])
             X (make 2 [[[1 0] 1]])
@@ -85,6 +89,7 @@
         (is (= X+Y_2 (gcd X+Y_2 X+Y_3)))
         (is (= X+Y_3 (gcd X+Y_3 X+Y_3)))
         (is (= G (gcd U V)))))
+
     (testing "GCD: arity 3 case"
       (binding [*poly-gcd-time-limit* [2 TimeUnit/SECONDS]]
         (let [I (make 3 [[[0 0 0] 1]])
@@ -354,6 +359,7 @@
                 (* (expt z 3) (expt y 5) x)
                 525)]
       (gcd-test "K1" d p q)))
+
   (testing "ex2"
     ;; a hack, using (expt z 0) to make the arities equal
     (let [d '(+ (expt x 3) (* 2 (expt z 0) (+ (expt y 34) (expt y 75)) (expt x 2)) (expt y 84))
@@ -379,6 +385,7 @@
           v (make 3 {[0 0 0] 1, [2 3 0] 2, [0 8 1] 1, [7 0 5] -1})
           sw (Stopwatch/createStarted)]
       (gcd-test "S1" (make 3 {[0 0 0] 1}) u v)))
+
   (testing "ex2"
     (let [u (make 2 {[0 0] -1, [0 7] -1})
           v (make 2 {[0 0] 1, [0 1] -1, [0 4] 1, [3 3] -11, [1 9] 8, [8 5] -9, [12 1] 1})]
