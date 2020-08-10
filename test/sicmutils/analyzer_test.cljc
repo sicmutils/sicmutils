@@ -21,3 +21,10 @@
   (:require #?(:clj  [clojure.test :refer :all]
                :cljs [cljs.test :as t :refer-macros [is deftest testing]])
             [sicmutils.analyze :as a]))
+
+(deftest symbol-generator
+  (let [gen     (a/monotonic-symbol-generator "cake")
+        symbols (repeatedly 200 gen)]
+    (is (= symbols (sort symbols))
+        "Generated symbols sort into the same order in which they were
+        generated.")))
