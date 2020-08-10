@@ -18,16 +18,16 @@
 ;
 
 (ns sicmutils.polynomial-gcd
-  (:import (com.google.common.base Stopwatch)
-           (sicmutils.polynomial Polynomial)
-           (java.util.concurrent TimeUnit TimeoutException))
   (:require [clojure.tools.logging :as log]
             [clojure.string]
             [clojure.math.numeric-tower :as nt]
             [sicmutils
              [value :as v]
              [generic :as g]
-             [polynomial :refer :all]]))
+             [polynomial :refer :all]])
+  (:import (com.google.common.base Stopwatch)
+           (sicmutils.polynomial Polynomial)
+           (java.util.concurrent TimeUnit TimeoutException)))
 
 (def ^:dynamic *poly-gcd-time-limit* [1000 TimeUnit/MILLISECONDS])
 (def ^:dynamic *poly-gcd-cache-enable* true)

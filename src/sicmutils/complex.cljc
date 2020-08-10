@@ -18,7 +18,8 @@
 ;
 
 (ns sicmutils.complex
-  (:require [sicmutils.generic :as g]
+  (:require [sicmutils.expression :as x]
+            [sicmutils.generic :as g]
             [sicmutils.value :as v]
             #?(:cljs [cljsjs.complex :as Complex]))
   #?(:clj
@@ -43,7 +44,7 @@
 (defn imag-part [^Complex a] (#?(:clj .getImaginary :cljs .-im) a))
 (defn angle [^Complex a] (#?(:clj .getArgument :cljs .arg) a))
 
-(derive ::complex :sicmutils.expression/numerical-expression)
+(derive ::complex ::x/numerical-expression)
 
 #?(:cljs
    (extend-type Complex

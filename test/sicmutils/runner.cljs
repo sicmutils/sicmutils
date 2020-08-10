@@ -1,8 +1,8 @@
 (ns sicmutils.runner
   (:require [doo.runner :refer-macros [doo-tests]]
-            [pattern.analyzer-test]
             [pattern.match-test]
             [pattern.rule-test]
+            [sicmutils.analyzer-test]
             [sicmutils.complex-test]
             [sicmutils.euclid-test]
             [sicmutils.expression-test]

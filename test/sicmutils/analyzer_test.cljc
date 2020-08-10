@@ -23,7 +23,7 @@
             [sicmutils.analyze :as a]))
 
 (deftest symbol-generator
-  (let [gen     (a/monotonic-symbol-generator "cake")
+  (let [gen (a/monotonic-symbol-generator "cake")
         symbols (repeatedly 200 gen)]
     (is (= symbols (sort symbols))
         "Generated symbols sort into the same order in which they were

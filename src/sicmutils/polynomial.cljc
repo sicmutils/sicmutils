@@ -18,6 +18,7 @@
 ;
 
 (ns sicmutils.polynomial
+  (:refer-clojure :exclude [divide])
   (:require [clojure.set :as set]
             [clojure.string]
             [sicmutils.analyze :as a]
@@ -26,11 +27,13 @@
             [sicmutils.numbers :as n]
             [sicmutils.numsymb :as sym]
             [sicmutils.util :as u]
-            [sicmutils.value :as v])
+            [sicmutils.value :as v]
+            #?(:cljs [goog.string :refer [format]]))
   #?(:clj
      (:import (clojure.lang BigInt Ratio))))
 
 (declare operator-table operators-known make-constant)
+
 (def coefficient second)
 (def exponents first)
 
@@ -98,12 +101,13 @@
                           (v/unity? c)))))
   (freeze [_] `(~'polynomial ~arity ~xs->c))
   (kind [_] ::polynomial)
+
   Object
   (equals [_ b]
     (and (instance? Polynomial b)
-         (let [^Polynomial bp b]
-           (and (= arity (.arity bp))
-                (= xs->c (.-xs->c bp))))))
+         (and (= arity (.-arity b))
+              (= xs->c (.-xs->c b)))))
+
   (toString [_]
     (let [n 10
           c (count xs->c)]
@@ -142,75 +146,86 @@
 (defn ^:private lead-term
   "Return the leading (i.e., highest degree) term of the polynomial
   p. The return value is [exponents coefficient]."
-  [^Polynomial p]
-  (-> p .-xs->c peek))
+  [p]
+  (peek (.-xs->c p)))
 
 (defn degree
   [p]
-  (if (v/nullity? p) -1
-      (->> p lead-term exponents (reduce +))))
+  (if (v/nullity? p)
+    -1
+    (->> p lead-term exponents (reduce g/+))))
 
 (defn monomial?
-  [^Polynomial p]
-  (-> p .-xs->c count (= 1)))
+  [p]
+  (= 1 (count (.-xs->c p))))
 
 (defn coefficients
-  [^Polynomial p]
-  (->> p .-xs->c (map coefficient)))
+  [p]
+  (map coefficient (.-xs->c p)))
 
-(defn check-same-arity [^Polynomial p ^Polynomial q]
+(defn check-same-arity [p q]
   (let [ap (.-arity p)
         aq (.-arity q)]
-    (if (= ap aq) ap
-        (u/arithmetic-ex "mismatched polynomial arity"))))
+    (if (= ap aq)
+      ap
+      (u/arithmetic-ex "mismatched polynomial arity"))))
 
 (defn map-coefficients
   "Map the function f over the coefficients of p, returning a new Polynomial."
-  [f ^Polynomial p]
-  (->Polynomial (.-arity p) (into empty-coefficients
-                                 (for [[xs c] (.-xs->c p)
-                                       :let [fc (f c)]
-                                       :when (not (v/nullity? fc))]
-                                   [xs fc]))))
+  [f p]
+  (->Polynomial (.-arity p)
+                (into empty-coefficients
+                      (for [[xs c] (.-xs->c p)
+                            :let [fc (f c)]
+                            :when (not (v/nullity? fc))]
+                        [xs fc]))))
 
 (defn map-exponents
   "Map the function f over the exponents of each monomial in p,
   returning a new Polynomial."
-  [f ^Polynomial p]
-  (make (.-arity p) (for [[xs c] (.-xs->c p)]
-                      [(f xs) c])))
+  [f p]
+  (make (.-arity p)
+        (for [[xs c] (.-xs->c p)]
+          [(f xs) c])))
 
-(def negate (partial map-coefficients g/negate))
+(def negate
+  (partial map-coefficients g/negate))
 
 (defn make-constant
   "Return a constant polynomial of the given arity."
   [arity c]
-  (->Polynomial arity (if (v/nullity? c) empty-coefficients
-                          (conj empty-coefficients [(vec (repeat arity 0)) c]))))
+  (->Polynomial arity
+                (if (v/nullity? c)
+                  empty-coefficients
+                  (conj empty-coefficients
+                        [(vec (repeat arity 0)) c]))))
 
 (defn add
   "Adds the polynomials p and q"
-  [^Polynomial p ^Polynomial q]
+  [p q]
   {:pre [(instance? Polynomial p)
          (instance? Polynomial q)]}
   (cond (v/nullity? p) q
         (v/nullity? q) p
-        :else (make (check-same-arity p q) (concat (.-xs->c p) (.-xs->c q)))))
+        :else (make (check-same-arity p q)
+                    (concat (.-xs->c p)
+                            (.-xs->c q)))))
 
 (defn sub
   "Subtract the polynomial q from the polynomial p."
-  [^Polynomial p ^Polynomial q]
+  [p q]
   {:pre [(instance? Polynomial p)
          (instance? Polynomial q)]}
   (cond (v/nullity? p) (negate q)
         (v/nullity? q) p
         :else (make (check-same-arity p q)
-                    (concat (.-xs->c p) (for [[xs c] (.-xs->c q)]
-                                          [xs (g/negate c)])))))
+                    (concat (.-xs->c p)
+                            (for [[xs c] (.-xs->c q)]
+                              [xs (g/negate c)])))))
 
 (defn mul
   "Multiply polynomials p and q, and return the product."
-  [^Polynomial p ^Polynomial q]
+  [p q]
   {:pre [(instance? Polynomial p)
          (instance? Polynomial q)]}
   (cond (v/nullity? p) p
@@ -224,19 +239,19 @@
 
 (defn raise-arity
   "The opposite of lower-arity."
-  [^Polynomial p]
+  [p]
   {:pre [(instance? Polynomial p)
          (= (.-arity p) 1)]}
-  (let [terms (for [[x ^Polynomial q] (.-xs->c p)
+  (let [terms (for [[x q] (.-xs->c p)
                     [ys c] (.-xs->c q)]
                 [(into x ys) c])
-        ^Polynomial ltc (coefficient (lead-term p))]
+        ltc (coefficient (lead-term p))]
     (make (inc (.-arity ltc)) terms)))
 
 (defn lower-arity
   "Given a nonzero polynomial of arity A > 1, return an equivalent polynomial
   of arity 1 whose coefficients are polynomials of arity A-1."
-  [^Polynomial p]
+  [p]
   {:pre [(instance? Polynomial p)
          (> (.-arity p) 1)
          (not (v/nullity? p))]}
@@ -247,9 +262,8 @@
   ;; (but univariate in which variable? is it really that
   ;; common that it's the first one?)
   (let [A (.-arity p)]
-    (->> p
-         .-xs->c
-         (group-by #(-> % exponents first))
+    (->> (.-xs->c p)
+         (group-by #(first (exponents %)))
          (map (fn [[x cs]]
                 [[x] (make (dec A) (for [[xs c] cs]
                                      [(subvec xs 1) c]))]))
@@ -257,7 +271,7 @@
 
 (defn ^:private evaluate-1
   "Evaluates a univariate polynomial p at x."
-  [^Polynomial p x]
+  [p x]
   (loop [xs->c (.-xs->c p)
          result 0
          x**e 1
@@ -272,7 +286,7 @@
 
 (defn evaluate
   "Evaluates a multivariate polynomial p at xs."
-  [^Polynomial p xs]
+  [p xs]
   {:pre [(instance? Polynomial p)]}
   (cond (nil? xs) p
         (v/nullity? p) 0
@@ -324,7 +338,7 @@
   through during gaps in the remainder. Since you don't know up front
   how many times the integerizing multiplication will be done, we also
   return the number d for which d * u = q * v + r."
-  [^Polynomial u ^Polynomial v]
+  [u v]
   {:pre [(instance? Polynomial u)
          (instance? Polynomial v)
          (not (v/nullity? v))
@@ -361,7 +375,7 @@
 
 (defn expt
   "Raise the polynomial p to the (integer) power n."
-  [^Polynomial p n]
+  [p n]
   (when-not (and (v/exact-number? n)
                  (not (g/negative? n)))
     (u/arithmetic-ex (str "can't raise poly to " n)))
@@ -384,7 +398,7 @@
 (defn partial-derivative
   "The partial derivative of the polynomial with respect to the
   i-th indeterminate."
-  [^Polynomial p i]
+  [p i]
   (make (.-arity p)
         (for [[xs c] (.-xs->c p)
               :let [xi (xs i)]
@@ -394,7 +408,7 @@
 (defn partial-derivatives
   "The sequence of partial derivatives of p with respect to each
   indeterminate"
-  [^Polynomial p]
+  [p]
   (for [i (range (.-arity p))]
     (partial-derivative p i)))
 
@@ -414,11 +428,14 @@
    ;;`'g/gcd gcd
    })
 
-(def ^:private operators-known (into #{} (keys operator-table)))
+(def ^:private operators-known
+  (into #{} (keys operator-table)))
 
 (deftype PolynomialAnalyzer []
   a/ICanonicalize
-  (expression-> [this expr cont] (a/expression-> this expr cont compare))
+  (expression-> [this expr cont]
+    (a/expression-> this expr cont compare))
+
   (expression-> [this expr cont v-compare]
     ;; Convert an expression into Flat Polynomial canonical form. The
     ;; expression should be an unwrapped expression, i.e., not an instance
@@ -432,6 +449,7 @@
     (let [expression-vars (sort v-compare (set/difference (x/variables-in expr) operators-known))
           variables (zipmap expression-vars (a/new-variables this (count expression-vars)))]
       (-> expr (x/walk-expression variables operator-table) (cont expression-vars))))
+
   (->expression [this p vars]
     ;; This is the output stage of Flat Polynomial canonical form simplification.
     ;; The input is a Polynomial object, and the output is an expression
@@ -439,55 +457,50 @@
     ;; indeterminates extracted from the expression at the start of this
     ;; process.
     (if (instance? Polynomial p)
-      (let [^Polynomial p p]
-        (reduce
-         sym/add 0
-         (map (fn [[xs c]]
-                (sym/mul c
-                         (reduce sym/mul 1 (map (fn [exponent var]
-                                                  (sym/expt var exponent))
-                                                xs vars))))
-              (->> p .-xs->c (sort-by exponents #(monomial-order %2 %1))))))
+      (reduce
+       sym/add 0
+       (map (fn [[xs c]]
+              (sym/mul c
+                       (reduce sym/mul 1 (map (fn [exponent var]
+                                                (sym/expt var exponent))
+                                              xs vars))))
+            (->> p .-xs->c (sort-by exponents #(monomial-order %2 %1)))))
       p))
-  (known-operation? [_ o] (operator-table o))
-  (new-variables [_ arity] (for [a (range arity)]
-                             (make arity [[(mapv #(if (= % a) 1 0) (range arity)) 1]]))))
 
+  (known-operation? [_ o]
+    (operator-table o))
+
+  (new-variables [_ arity]
+    (for [a (range arity)]
+      (make arity [[(mapv #(if (= % a) 1 0) (range arity)) 1]]))))
+
+;; generic method implementations
 (defmethod g/add [::polynomial ::polynomial] [a b] (add a b))
 (defmethod g/mul [::polynomial ::polynomial] [a b] (mul a b))
 (defmethod g/sub [::polynomial ::polynomial] [a b] (sub a b))
 (defmethod g/exact-divide [::polynomial ::polynomial] [p q] (evenly-divide p q))
 (defmethod g/square [::polynomial] [a] (mul a a))
 
-(doseq [t [Long BigInt BigInteger Double Ratio]]
-  (defmethod g/mul
-    [t ::polynomial]
-    [c p]
-    (map-coefficients #(g/* c %) p))
-  (defmethod g/mul
-    [::polynomial t]
-    [p c]
-    (map-coefficients #(g/* % c) p))
-  (defmethod g/add
-    [t ::polynomial]
-    [c ^Polynomial p]
-    (add (make-constant (.-arity p) c) p))
-  (defmethod g/add
-    [::polynomial t]
-    [^Polynomial p c]
-    (add p (make-constant (.-arity p) c)))
-  (defmethod g/sub
-    [t ::polynomial]
-    [c ^Polynomial p]
-    (sub (make-constant (.-arity p) c) p))
-  (defmethod g/sub
-    [::polynomial t]
-    [^Polynomial p c]
-    (sub p (make-constant (.-arity p) c)))
-  (defmethod g/div
-    [::polynomial t]
-    [p c]
-    (map-coefficients #(g/divide % c) p)))
+(defmethod g/mul [::v/number ::polynomial] [c p]
+  (map-coefficients #(g/* c %) p))
+
+(defmethod g/mul [::polynomial ::v/number] [p c]
+  (map-coefficients #(g/* % c) p))
+
+(defmethod g/add [::v/number ::polynomial] [c p]
+  (add (make-constant (.-arity p) c) p))
+
+(defmethod g/add [::polynomial ::v/number] [p c]
+  (add p (make-constant (.-arity p) c)))
+
+(defmethod g/sub [::v/number ::polynomial] [c p]
+  (sub (make-constant (.-arity p) c) p))
+
+(defmethod g/sub [::polynomial ::v/number] [p c]
+  (sub p (make-constant (.-arity p) c)))
+
+(defmethod g/div [::polynomial ::v/number] [p c]
+  (map-coefficients #(g/divide % c) p))
 
 (defmethod g/expt [::polynomial ::v/exact-number] [b x] (expt b x))
 (defmethod g/negate [::polynomial] [a] (negate a))
