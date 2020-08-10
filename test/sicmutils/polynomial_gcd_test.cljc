@@ -24,137 +24,137 @@
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
-            [sicmutils.polynomial :refer :all]
-            [sicmutils.polynomial-gcd :refer :all]
+            [sicmutils.generic :as g]
+            [sicmutils.polynomial :as p]
+            [sicmutils.polynomial-gcd :as pg]
             [sicmutils.polynomial-test :as p-test]
             [sicmutils.value :as v]
             [sicmutils.analyze :as a]
-            [sicmutils.numbers]
             [sicmutils.expression :refer [variables-in]])
   #?(:clj
      (:import (com.google.common.base Stopwatch)
               (java.util.concurrent TimeUnit))))
 
 (deftest poly-gcd
-  (let [X (make 2 [[[1 0] 1]]) ;; some polynomials of arity 2
-        Y (make 2 [[[0 1] 1]])]
+  (let [X (p/make 2 [[[1 0] 1]]) ;; some polynomials of arity 2
+        Y (p/make 2 [[[0 1] 1]])]
     (testing "inexact coefficients"
-      (is (= (make [1]) (gcd (make [0.2 0.4 0.6]) (make [0.4 0.6 0.8])))))
+      (is (= (p/make [1]) (pg/gcd (p/make [0.2 0.4 0.6]) (p/make [0.4 0.6 0.8])))))
 
     (testing "GCD: arity 1 case"
-      (let [x+1 (make [1 1])
-            x+2 (make [2 1])
-            x+3 (make [3 1])
-            x+4 (make [4 1])
-            U (mul x+1 (mul x+1 (mul x+2 x+4)))
-            V (mul x+1 (mul x+2 x+3))]
-        (is (= (make [2 3 1]) (gcd U V)))
-        (is (= (make [4]) (gcd (make [8]) (make [4]))))
-        (is (= (make [1]) (gcd (make [7]) (make [11]))))
-        (is (= (make [11]) (gcd (make []) (make [11])))))
-      (let [x+4 (make [4 1])
-            x+3 (make [3 1])
-            x-2 (make [-2 1])
-            x+1 (make [1 1])
-            U (reduce mul [x+4 x+4 x+3 x+3 x-2 x-2 x-2 x-2 x-2 x+1])
-            V (reduce mul [x+4 x+3 x+3 x+3 x-2 x-2 x+1 x+1])
-            W (reduce mul [x+4 x+3 x+3 x-2 x-2 x+1])
-            Z (make [])]
-        (is (= W (gcd U V)))
-        (is (= W (gcd V U)))
-        (is (= U (gcd U U)))
-        (is (= V (gcd V V)))
-        (is (= W (gcd W W)))
-        (is (= U (gcd U Z)))
-        (is (= U (gcd Z U)))
-        (is (= V (gcd V Z)))
-        (is (= V (gcd Z V)))))
+      (let [x+1 (p/make [1 1])
+            x+2 (p/make [2 1])
+            x+3 (p/make [3 1])
+            x+4 (p/make [4 1])
+            U (g/mul x+1 (g/mul x+1 (g/mul x+2 x+4)))
+            V (g/mul x+1 (g/mul x+2 x+3))]
+        (is (= (p/make [2 3 1]) (pg/gcd U V)))
+        (is (= (p/make [4]) (pg/gcd (p/make [8]) (p/make [4]))))
+        (is (= (p/make [1]) (pg/gcd (p/make [7]) (p/make [11]))))
+        (is (= (p/make [11]) (pg/gcd (p/make []) (p/make [11])))))
+      (let [x+4 (p/make [4 1])
+            x+3 (p/make [3 1])
+            x-2 (p/make [-2 1])
+            x+1 (p/make [1 1])
+            U (reduce g/mul [x+4 x+4 x+3 x+3 x-2 x-2 x-2 x-2 x-2 x+1])
+            V (reduce g/mul [x+4 x+3 x+3 x+3 x-2 x-2 x+1 x+1])
+            W (reduce g/mul [x+4 x+3 x+3 x-2 x-2 x+1])
+            Z (p/make [])]
+        (is (= W (pg/gcd U V)))
+        (is (= W (pg/gcd V U)))
+        (is (= U (pg/gcd U U)))
+        (is (= V (pg/gcd V V)))
+        (is (= W (pg/gcd W W)))
+        (is (= U (pg/gcd U Z)))
+        (is (= U (pg/gcd Z U)))
+        (is (= V (pg/gcd V Z)))
+        (is (= V (pg/gcd Z V)))))
 
     (testing "divide constant arity 2"
-      (is (= [(make 2 []) X] (divide X Y)))
-      (is (= [(make 2 []) Y] (divide Y X))))
+      (is (= [(p/make 2 []) X] (p/divide X Y)))
+      (is (= [(p/make 2 []) Y] (p/divide Y X))))
 
     (testing "GCD: arity 2 case"
-      (let [I (make 2 [[[0 0] 1]])
-            X (make 2 [[[1 0] 1]])
-            Y (make 2 [[[0 1] 1]])
-            X+Y (add X Y)
-            X+1 (add X I)
-            Y+1 (add Y I)
-            X+Y_2 (mul X+Y X+Y)
-            X+Y_3 (mul X+Y_2 X+Y)
-            U (reduce mul [(expt X+1 3) (expt X+Y 2) (expt Y+1 4)])
-            V (reduce mul [(expt X+1 2) (expt X+Y 5) (expt Y+1 3)])
-            G (reduce mul [(expt X+1 2) (expt X+Y 2) (expt Y+1 3)])]
-        (is (= X+Y_2 (gcd X+Y_2 X+Y_3)))
-        (is (= X+Y_3 (gcd X+Y_3 X+Y_3)))
-        (is (= G (gcd U V)))))
+      (let [I (p/make 2 [[[0 0] 1]])
+            X (p/make 2 [[[1 0] 1]])
+            Y (p/make 2 [[[0 1] 1]])
+            X+Y (g/add X Y)
+            X+1 (g/add X I)
+            Y+1 (g/add Y I)
+            X+Y_2 (g/mul X+Y X+Y)
+            X+Y_3 (g/mul X+Y_2 X+Y)
+            U (reduce g/mul [(g/expt X+1 3) (g/expt X+Y 2) (g/expt Y+1 4)])
+            V (reduce g/mul [(g/expt X+1 2) (g/expt X+Y 5) (g/expt Y+1 3)])
+            G (reduce g/mul [(g/expt X+1 2) (g/expt X+Y 2) (g/expt Y+1 3)])]
+        (is (= X+Y_2 (pg/gcd X+Y_2 X+Y_3)))
+        (is (= X+Y_3 (pg/gcd X+Y_3 X+Y_3)))
+        (is (= G (pg/gcd U V)))))
 
     (testing "GCD: arity 3 case"
-      (binding [*poly-gcd-time-limit* [2 TimeUnit/SECONDS]]
-        (let [I (make 3 [[[0 0 0] 1]])
-              X (make 3 [[[1 0 0] 1]])
-              Y (make 3 [[[0 1 0] 1]])
-              Z (make 3 [[[0 0 1] 1]])
-              X+Y (add X Y)
-              X+Z (add X Z)
-              Y+Z (add Y Z)
-              X+Y+Z (add X+Y Z)
-              X+1 (add X I)
-              Y+1 (add Y I)
-              Z+1 (add Z I)
-              U (reduce mul [(expt X+1 3) (expt X+Y 2) (expt Y+Z 5) (expt X+Y+Z 4) (expt Y+1 4) (expt Z+1 3)])
-              V (reduce mul [(expt X+1 2)  (expt X+Y 5) (expt Y+Z 3) (expt X+Y+Z 5) (expt Y+1 2) (expt Z+1 1) X+1])
-              G (reduce mul [(expt X+1 3) (expt X+Y 2) (expt Y+Z 3) (expt X+Y+Z 4) (expt Y+1 2) Z+1])]
-          (is (= [(reduce mul [(expt Y+Z 2) (expt Y+1 2) (expt Z+1 2)]) (make 3 [])] (divide U G)))
-          (is (= [(reduce mul [(expt X+Y 3) X+Y+Z]) (make 3 [])] (divide V G)))
-          (is (= X+Z (gcd (mul X+Y X+Z) (mul Y+Z X+Z))))
-          (is (= (mul X+Z X+Y+Z) (gcd (reduce mul [X+Y X+Z X+Y+Z]) (reduce mul [X+Z X+Y+Z Y+Z]))))
-          (is (= (mul X+Z (mul X+Z X+Y)) (gcd (reduce mul [X+Z X+Z X+Y X+Y+Z Y+1]) (reduce mul [X+Z X+Z X+Y X+1 Z+1 X+Z]))))
-          (is (= G (gcd U V))))))
+      (binding [pg/*poly-gcd-time-limit* [2 TimeUnit/SECONDS]]
+        (let [I (p/make 3 [[[0 0 0] 1]])
+              X (p/make 3 [[[1 0 0] 1]])
+              Y (p/make 3 [[[0 1 0] 1]])
+              Z (p/make 3 [[[0 0 1] 1]])
+              X+Y (g/add X Y)
+              X+Z (g/add X Z)
+              Y+Z (g/add Y Z)
+              X+Y+Z (g/add X+Y Z)
+              X+1 (g/add X I)
+              Y+1 (g/add Y I)
+              Z+1 (g/add Z I)
+              U (reduce g/mul [(g/expt X+1 3) (g/expt X+Y 2) (g/expt Y+Z 5) (g/expt X+Y+Z 4) (g/expt Y+1 4) (g/expt Z+1 3)])
+              V (reduce g/mul [(g/expt X+1 2)  (g/expt X+Y 5) (g/expt Y+Z 3) (g/expt X+Y+Z 5) (g/expt Y+1 2) (g/expt Z+1 1) X+1])
+              G (reduce g/mul [(g/expt X+1 3) (g/expt X+Y 2) (g/expt Y+Z 3) (g/expt X+Y+Z 4) (g/expt Y+1 2) Z+1])]
+          (is (= [(reduce g/mul [(g/expt Y+Z 2) (g/expt Y+1 2) (g/expt Z+1 2)]) (p/make 3 [])] (p/divide U G)))
+          (is (= [(reduce g/mul [(g/expt X+Y 3) X+Y+Z]) (p/make 3 [])] (p/divide V G)))
+          (is (= X+Z (pg/gcd (g/mul X+Y X+Z) (g/mul Y+Z X+Z))))
+          (is (= (g/mul X+Z X+Y+Z) (pg/gcd (reduce g/mul [X+Y X+Z X+Y+Z]) (reduce g/mul [X+Z X+Y+Z Y+Z]))))
+          (is (= (g/mul X+Z (g/mul X+Z X+Y)) (pg/gcd (reduce g/mul [X+Z X+Z X+Y X+Y+Z Y+1]) (reduce g/mul [X+Z X+Z X+Y X+1 Z+1 X+Z]))))
+          (is (= G (pg/gcd U V))))))
     ;; this was sort of cool, but prevented us from using native BigInteger GCD.
     ;; it could come back, but in order to do this right, we would need a way
     ;; to specify the coefficient field when we create a polynomial so that we
     ;; can efficiently dispatch to a GCD routine tailored to that field.
     #_(testing "modular polynomial reduction"
-        (let [A (make [-360 -171 145 25 1])
-              B (make [-15 -14 -1 15 14 1])
+        (let [A (p/make [-360 -171 145 25 1])
+              B (p/make [-15 -14 -1 15 14 1])
               Z5 #(modular/make % 5)
               A:Z5 (map-coefficients Z5 A)
               B:Z5 (map-coefficients Z5 B)
-              G5 (gcd A:Z5 B:Z5)]
-          (is (= (make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) A:Z5))
-          (is (= (make [(Z5 0) (Z5 1) (Z5 -1) (Z5 0) (Z5 -1) (Z5 1)]) B:Z5))
-          (is (= (make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) G5))))))
+              G5 (pg/gcd A:Z5 B:Z5)]
+          (is (= (p/make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) A:Z5))
+          (is (= (p/make [(Z5 0) (Z5 1) (Z5 -1) (Z5 0) (Z5 -1) (Z5 1)]) B:Z5))
+          (is (= (p/make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) G5))))))
 
 (deftest simple-gcd-3
   (testing "GCD: arity 3 case"
-    (let [I (make 3 [[[0 0 0] 1]])
-          II (add I I)
-          X (make 3 [[[1 0 0] 1]])
-          Y (make 3 [[[0 1 0] 1]])
-          Z (make 3 [[[0 0 1] 1]])
-          X+Y (add X Y)
-          X+Z (add X Z)
-          Y+Z (add Y Z)]
-      (is (= X+Z (gcd (mul X+Y X+Z) (mul Y+Z X+Z))))
-      (is (= II (gcd II (add Z Z))))
-      (is (= II (gcd (add Z Z) II)))
-      (is (= II (gcd II (add (add X X) (add Z Z))))))))
+    (let [I (p/make 3 [[[0 0 0] 1]])
+          II (g/add I I)
+          X (p/make 3 [[[1 0 0] 1]])
+          Y (p/make 3 [[[0 1 0] 1]])
+          Z (p/make 3 [[[0 0 1] 1]])
+          X+Y (g/add X Y)
+          X+Z (g/add X Z)
+          Y+Z (g/add Y Z)]
+      (is (= X+Z (pg/gcd (g/mul X+Y X+Z) (g/mul Y+Z X+Z))))
+      (is (= II (pg/gcd II (g/add Z Z))))
+      (is (= II (pg/gcd (g/add Z Z) II)))
+      (is (= II (pg/gcd II (g/add (g/add X X) (g/add Z Z))))))))
 
-(def ^:private poly-analyzer (->PolynomialAnalyzer))
+(def ^:private poly-analyzer (p/->PolynomialAnalyzer))
 (defn ^:private ->poly [x] (a/expression-> poly-analyzer x (fn [p _] p)))
 
 (defn ^:private gcd-test [name dx fx gx]
   (let [d (->poly dx)
         f (->poly fx)
         g (->poly gx)
-        df (mul d f)
-        dg (mul d g)
+        df (g/mul d f)
+        dg (g/mul d g)
         sw (Stopwatch/createStarted)
-        a (binding [*poly-gcd-time-limit* [10 TimeUnit/SECONDS]
-                    *poly-gcd-cache-enable* false]
-            (is (= d (gcd df dg)))            )]
+        a (binding [pg/*poly-gcd-time-limit* [10 TimeUnit/SECONDS]
+                    pg/*poly-gcd-cache-enable* false]
+            (is (= d (pg/gcd df dg)))            )]
     (log/info "gcd-test" name (str sw))))
 
 (deftest ^:long ^:benchmark gjs
@@ -251,31 +251,31 @@
                  (* x1 x1 x2 x3 x5 x6 x7)
                  (* x1 x1 x3 x3 x4 x5 x5))]
 
-      (is (= (->poly d2) (-> d2 ->poly lower-arity raise-arity)))
-      (is (= (->poly d3) (-> d3 ->poly lower-arity raise-arity)))
-      (is (= (->poly d4) (-> d4 ->poly lower-arity raise-arity)))
+      (is (= (->poly d2) (-> d2 ->poly p/lower-arity p/raise-arity)))
+      (is (= (->poly d3) (-> d3 ->poly p/lower-arity p/raise-arity)))
+      (is (= (->poly d4) (-> d4 ->poly p/lower-arity p/raise-arity)))
 
-      (is (= (make [0
-                    (make [2 1])
-                    (make [0 0 2])])
-             (-> d2 ->poly lower-arity)))
+      (is (= (p/make [0
+                      (p/make [2 1])
+                      (p/make [0 0 2])])
+             (-> d2 ->poly p/lower-arity)))
 
-      (is (= (make [0
-                    (make [2 1 2 1])
-                    (make [0 0 2 0 2])
-                    (make [2 5 2])
-                    (make [0 0 2 4])])
-             (lower-arity (mul (->poly d2) (->poly f2)))))
+      (is (= (p/make [0
+                      (p/make [2 1 2 1])
+                      (p/make [0 0 2 0 2])
+                      (p/make [2 5 2])
+                      (p/make [0 0 2 4])])
+             (p/lower-arity (g/mul (->poly d2) (->poly f2)))))
 
-      (is (= (make [0
-                    0
-                    (make [4 4 5 4 1])
-                    (make [0 0 8 4 8 4])
-                    (make [4 12 9 2 4 0 4])
-                    (make [0 0 8 20 8])
-                    (make [0 0 0 0 4 8])])
-             (mul (lower-arity (->poly d2))
-                  (lower-arity (mul (->poly d2) (->poly f2))))))
+      (is (= (p/make [0
+                      0
+                      (p/make [4 4 5 4 1])
+                      (p/make [0 0 8 4 8 4])
+                      (p/make [4 12 9 2 4 0 4])
+                      (p/make [0 0 8 20 8])
+                      (p/make [0 0 0 0 4 8])])
+             (g/mul (p/lower-arity (->poly d2))
+                    (p/lower-arity (g/mul (->poly d2) (->poly f2))))))
 
       (gcd-test "D1" d1 f1 g1)
       (gcd-test "D2" d2 f2 g2)
@@ -285,68 +285,68 @@
       ;; the following are too big for our naive algorithm.
       ;;(gcd-test "D6" d6 f6 g6)
       #_(gcd-test "D7" d7 f7 g7)
-      (gcd-stats))))
+      (pg/gcd-stats))))
 
 (deftest big-gcd
-  (let [u (make 10 [[[0 0 1 0 0 0 1 1 0 1] 1]
-                    [[0 1 1 0 0 0 1 1 1 0] 2]
-                    [[0 0 1 2 0 1 0 1 0 1] 1]
-                    [[0 0 1 2 1 0 0 1 0 1] -1]
-                    [[1 1 0 1 0 1 0 2 0 0] 1]
-                    [[1 1 0 1 1 0 0 2 0 0] -1]
-                    [[2 0 1 0 0 1 0 1 0 1] -1]
-                    [[2 0 1 0 1 0 0 1 0 1] 1]
-                    [[0 1 1 2 0 1 0 1 1 0] -2]
-                    [[1 0 2 1 0 1 0 0 1 1] 2]
-                    [[1 0 2 1 1 0 0 0 1 1] -2]])
-        v (make 10 [[[0 0 1 4 1 1 0 0 0 0] 1]
-                    [[2 0 1 2 1 1 0 0 0 0] 2]
-                    [[4 0 1 0 1 1 0 0 0 0] 1]])]
+  (let [u (p/make 10 [[[0 0 1 0 0 0 1 1 0 1] 1]
+                      [[0 1 1 0 0 0 1 1 1 0] 2]
+                      [[0 0 1 2 0 1 0 1 0 1] 1]
+                      [[0 0 1 2 1 0 0 1 0 1] -1]
+                      [[1 1 0 1 0 1 0 2 0 0] 1]
+                      [[1 1 0 1 1 0 0 2 0 0] -1]
+                      [[2 0 1 0 0 1 0 1 0 1] -1]
+                      [[2 0 1 0 1 0 0 1 0 1] 1]
+                      [[0 1 1 2 0 1 0 1 1 0] -2]
+                      [[1 0 2 1 0 1 0 0 1 1] 2]
+                      [[1 0 2 1 1 0 0 0 1 1] -2]])
+        v (p/make 10 [[[0 0 1 4 1 1 0 0 0 0] 1]
+                      [[2 0 1 2 1 1 0 0 0 0] 2]
+                      [[4 0 1 0 1 1 0 0 0 0] 1]])]
     (let [t (fn []
-              (let [g (gcd u v)]
-                (gcd-stats)
+              (let [g (pg/gcd u v)]
+                (pg/gcd-stats)
                 g))]
-      (is (= (make 10 [[[0 0 0 0 0 0 0 0 0 0] 1]]) (t)))
+      (is (= (p/make 10 [[[0 0 0 0 0 0 0 0 0 0] 1]]) (t)))
       ;; for profiling
-      (binding [*poly-gcd-cache-enable* false]
+      (binding [pg/*poly-gcd-cache-enable* false]
         (dotimes [_ 0] (t))))))
 
 (deftest ^:long troublesome-gcd
-  (let [u (make 10 [[[0 1 1 2 1 0 1 1 0 1] -1]
-                    [[2 1 1 0 0 1 1 1 0 1] -1]
-                    [[0 2 1 2 1 0 1 1 1 0] -2]
-                    [[1 1 2 1 0 1 1 0 1 1] 1]
-                    [[1 1 2 1 1 0 1 0 1 1] -1]
-                    [[2 2 1 0 0 1 1 1 1 0] -2]
-                    [[0 1 1 4 1 1 0 1 0 1] -1]
-                    [[0 1 1 4 2 0 0 1 0 1] 1]
-                    [[1 2 0 3 1 1 0 2 0 0] -1]
-                    [[1 2 0 3 2 0 0 2 0 0] 1]
-                    [[1 2 2 1 0 1 1 0 2 0] 1]
-                    [[1 2 2 1 1 0 1 0 2 0] -1]
-                    [[2 1 1 2 0 2 0 1 0 1] 1]
-                    [[2 1 1 2 1 1 0 1 0 1] -2]
-                    [[2 1 1 2 2 0 0 1 0 1] 1]
-                    [[3 2 0 1 0 2 0 2 0 0] -1]
-                    [[3 2 0 1 1 1 0 2 0 0] 1]
-                    [[4 1 1 0 0 2 0 1 0 1] 1]
-                    [[4 1 1 0 1 1 0 1 0 1] -1]
-                    [[0 2 1 4 1 1 0 1 1 0] 2]
-                    [[1 1 2 3 0 2 0 0 1 1] -1]
-                    [[1 1 2 3 2 0 0 0 1 1] 1]
-                    [[2 2 1 2 0 2 0 1 1 0] 2]
-                    [[2 2 1 2 2 0 0 1 1 0] 2]
-                    [[3 1 2 1 0 2 0 0 1 1] -1]
-                    [[3 1 2 1 2 0 0 0 1 1] 1]
-                    [[4 2 1 0 1 1 0 1 1 0] 2]
-                    [[1 2 2 3 0 2 0 0 2 0] -1]
-                    [[1 2 2 3 1 1 0 0 2 0] 1]
-                    [[3 2 2 1 1 1 0 0 2 0] -1]
-                    [[3 2 2 1 2 0 0 0 2 0] 1]])
-        v (make 10 [[[0 0 1 4 1 1 0 0 0 0] 1]
-                    [[2 0 1 2 1 1 0 0 0 0] 2]
-                    [[4 0 1 0 1 1 0 0 0 0] 1]])]
-    (is (= (make-constant 10 1) (gcd u v)))))
+  (let [u (p/make 10 [[[0 1 1 2 1 0 1 1 0 1] -1]
+                      [[2 1 1 0 0 1 1 1 0 1] -1]
+                      [[0 2 1 2 1 0 1 1 1 0] -2]
+                      [[1 1 2 1 0 1 1 0 1 1] 1]
+                      [[1 1 2 1 1 0 1 0 1 1] -1]
+                      [[2 2 1 0 0 1 1 1 1 0] -2]
+                      [[0 1 1 4 1 1 0 1 0 1] -1]
+                      [[0 1 1 4 2 0 0 1 0 1] 1]
+                      [[1 2 0 3 1 1 0 2 0 0] -1]
+                      [[1 2 0 3 2 0 0 2 0 0] 1]
+                      [[1 2 2 1 0 1 1 0 2 0] 1]
+                      [[1 2 2 1 1 0 1 0 2 0] -1]
+                      [[2 1 1 2 0 2 0 1 0 1] 1]
+                      [[2 1 1 2 1 1 0 1 0 1] -2]
+                      [[2 1 1 2 2 0 0 1 0 1] 1]
+                      [[3 2 0 1 0 2 0 2 0 0] -1]
+                      [[3 2 0 1 1 1 0 2 0 0] 1]
+                      [[4 1 1 0 0 2 0 1 0 1] 1]
+                      [[4 1 1 0 1 1 0 1 0 1] -1]
+                      [[0 2 1 4 1 1 0 1 1 0] 2]
+                      [[1 1 2 3 0 2 0 0 1 1] -1]
+                      [[1 1 2 3 2 0 0 0 1 1] 1]
+                      [[2 2 1 2 0 2 0 1 1 0] 2]
+                      [[2 2 1 2 2 0 0 1 1 0] 2]
+                      [[3 1 2 1 0 2 0 0 1 1] -1]
+                      [[3 1 2 1 2 0 0 0 1 1] 1]
+                      [[4 2 1 0 1 1 0 1 1 0] 2]
+                      [[1 2 2 3 0 2 0 0 2 0] -1]
+                      [[1 2 2 3 1 1 0 0 2 0] 1]
+                      [[3 2 2 1 1 1 0 0 2 0] -1]
+                      [[3 2 2 1 2 0 0 0 2 0] 1]])
+        v (p/make 10 [[[0 0 1 4 1 1 0 0 0 0] 1]
+                      [[2 0 1 2 1 1 0 0 0 0] 2]
+                      [[4 0 1 0 1 1 0 0 0 0] 1]])]
+    (is (= (p/make-constant 10 1) (pg/gcd u v)))))
 
 (deftest ^:benchmark kuniaki-tsuji-examples
   ;; (only have a few of these, will add more)
@@ -381,15 +381,15 @@
   this code (at the time of this writing). Recording them here as they
   should provide excellent examples for performance experiments."
   (testing "ex1"
-    (let [u (make 3 {[0 0 0] -1, [0 0 3] 1})
-          v (make 3 {[0 0 0] 1, [2 3 0] 2, [0 8 1] 1, [7 0 5] -1})
+    (let [u (p/make 3 {[0 0 0] -1, [0 0 3] 1})
+          v (p/make 3 {[0 0 0] 1, [2 3 0] 2, [0 8 1] 1, [7 0 5] -1})
           sw (Stopwatch/createStarted)]
-      (gcd-test "S1" (make 3 {[0 0 0] 1}) u v)))
+      (gcd-test "S1" (p/make 3 {[0 0 0] 1}) u v)))
 
   (testing "ex2"
-    (let [u (make 2 {[0 0] -1, [0 7] -1})
-          v (make 2 {[0 0] 1, [0 1] -1, [0 4] 1, [3 3] -11, [1 9] 8, [8 5] -9, [12 1] 1})]
-      (gcd-test "S2" (make 2 {[0 0] 1}) u v))))
+    (let [u (p/make 2 {[0 0] -1, [0 7] -1})
+          v (p/make 2 {[0 0] 1, [0 1] -1, [0 4] 1, [3 3] -11, [1 9] 8, [8 5] -9, [12 1] 1})]
+      (gcd-test "S2" (p/make 2 {[0 0] 1}) u v))))
 
 
 ;; Currently we only do GCD testing of univariate polynomials, because
@@ -404,22 +404,22 @@
   (gen/let [arity (gen/elements [1])]
     (prop/for-all [u (p-test/generate-poly arity)
                    v (p-test/generate-poly arity)]
-                  (let [g (gcd u v)]
+                  (let [g (pg/gcd u v)]
                     (or (and (v/nullity? u)
                              (v/nullity? v)
                              (v/nullity? g))
-                        (and (evenly-divide u g)
-                             (evenly-divide v g)))))))
+                        (and (g/exact-divide u g)
+                             (g/exact-divide v g)))))))
 
 (defspec ^:long d-divides-gcd-ud-vd num-tests
   (gen/let [arity (gen/elements [1])]
     (prop/for-all [u (p-test/generate-nonzero-poly arity)
                    v (p-test/generate-nonzero-poly arity)
                    d (p-test/generate-nonzero-poly arity)]
-                  (let [ud (mul u d)
-                        vd (mul v d)
-                        g (gcd ud vd)]
+                  (let [ud (g/mul u d)
+                        vd (g/mul v d)
+                        g (pg/gcd ud vd)]
                     (and
-                     (evenly-divide ud g)
-                     (evenly-divide vd g)
-                     (evenly-divide g d))))))
+                     (g/exact-divide ud g)
+                     (g/exact-divide vd g)
+                     (g/exact-divide g d))))))
