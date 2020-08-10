@@ -156,9 +156,9 @@
           x0 (mod2 0)
           x1 (mod2 1)
           P (p/make [x1 x0 x1])]
-      (is (= (p/make [x1 x0 x0 x0 x1]) (p/expt P 2)))
-      (is (= (p/make [x1 x0 x1 x0 x1 x0 x1]) (p/expt P 3)))
-      (is (= (p/make [x1 x0 x0 x0 x0 x0 x0 x0 x1]) (g/mul (p/expt P 3) P)))
+      (is (= (p/make [x1 x0 x0 x0 x1]) (g/expt P 2)))
+      (is (= (p/make [x1 x0 x1 x0 x1 x0 x1]) (g/expt P 3)))
+      (is (= (p/make [x1 x0 x0 x0 x0 x0 x0 x0 x1]) (g/mul (g/expt P 3) P)))
       (is (= (p/make []) (g/sub P P)))
       (is (= (p/make []) (g/add P P)))
       (is (= (p/make [x0 x0 x1]) (g/add P (p/make [1]))))))
@@ -193,70 +193,74 @@
       (is (= [z2 x3 x2z2 xy2z] (monomial-sort p/graded-reverse-lex-order)))
       (is (= [z2 x3 xy2z x2z2] (monomial-sort p/graded-lex-order))))))
 
+(def ^:private poly-analyzer (p/->PolynomialAnalyzer))
+(defn ^:private ->poly [x] (a/expression-> poly-analyzer x (fn [p _] p)))
+
+(deftest poly-evaluate
+  (testing "arity 1"
+    (let [p (->poly '(+ 2 (* x 3)))]
+      (is (= 14 (p/evaluate p [4])))
+      (is (= 11 (p/evaluate p [3 2]))))
+    (is (= 256 (p/evaluate (->poly '(expt x 8)) [2])))
+    (is (= 272 (p/evaluate (->poly '(+ (expt x 4) (expt x 8))) [2]))))
+
+  (testing "arity 2"
+    (let [p (->poly '(expt (+ x y) 2))]
+      (is (= 25 (p/evaluate p [2 3])))))
+
+  (testing "arity 3"
+    (let [p (->poly '(+ (expt x 3) (expt y 2) z 1))]
+      (is (= 19 (p/evaluate p [2 3 1])))))
+
+  (testing "arity 4"
+    (let [p (->poly '(expt (- w x y z) 2))]
+      (is (= 36 (p/evaluate p [10 1 2 1])))))
+
+  (testing "arity 5"
+    (let [p (->poly '(expt (- v w x y z) 2))]
+      (is (= 16 (p/evaluate p [10 1 2 1 2])))))
+
+  (testing "arity 10"
+    (let [p (->poly '(expt (- x0 x1 x2 x3 x4 x5 x6 x7 x8 x9) 3))]
+      (is (= 216 (p/evaluate p [10 1 2 1 2 -3 1 -2 -1 3])))))
+
+  (testing "constant polys"
+    (let [p1 (p/make [3])
+          p2 (p/make 2 [[[0 0] 5]])
+          p3 (p/make 3 [[[1 0 0] 1]])
+          p4 (p/make 3 [[[0 1 0] 1]])
+          p5 (p/make 3 [[[0 0 1] 1]])]
+      (is (= 3 (p/evaluate p1 [99])))
+      (is (= 5 (p/evaluate p2 [99 98])))
+      (is (= 7 (p/evaluate p3 [7 8 9])))
+      (is (= 8 (p/evaluate p4 [7 8 9])))
+      (is (= 9 (p/evaluate p5 [7 8 9])))))
+
+  (testing "partial application"
+    (let [P (->poly '(+ 1 (* 2 x) (* 3 x y) (* 4 x y z)))]
+      (is (= (->poly '(+ 3 (* 3 y) (* 4 y z))) (p/evaluate P [1])))
+      (is (= (->poly '(+ 9 (* 8 z))) (p/evaluate P [1 2])))
+      (is (= 33 (p/evaluate P [1 2 3])))
+      (is (= 33 (p/evaluate P [1 2 3 4]))))))
+
+(deftest poly-partial-derivatives
+  (let [V (p/make [1 2 3 4])
+        U (p/make 2 [[[1 1] 3] [[2 2] 4] [[0 0] 5] [[0 3] 7] [[4 0] -2]])]
+    (is (= (p/make [2 6 12]) (p/partial-derivative V 0)))
+    (is (= [(p/make [2 6 12])] (p/partial-derivatives V)))
+    (is (= (p/make 2 [[[0 1] 3] [[1 2] 8] [[3 0] -8]]) (p/partial-derivative U 0)))
+    (is (= (p/make 2 [[[1 0] 3] [[2 1] 8] [[0 2] 21]]) (p/partial-derivative U 1)))
+    (is (= [(p/make 2 [[[0 1] 3] [[1 2] 8] [[3 0] -8]])
+            (p/make 2 [[[1 0] 3] [[2 1] 8] [[0 2] 21]])]
+           (p/partial-derivatives U)))))
+
 #?(:clj
    (comment
 
 
-     (def ^:private poly-analyzer (p/->PolynomialAnalyzer))
-     (defn ^:private ->poly [x] (a/expression-> poly-analyzer x (fn [p _] p)))
 
-     (deftest poly-evaluate
-       (testing "arity 1"
-         (let [p (->poly '(+ 2 (* x 3)))]
-           (is (= 14 (p/evaluate p [4])))
-           (is (= 11 (p/evaluate p [3 2]))))
-         (is (= 256 (p/evaluate (->poly '(expt x 8)) [2])))
-         (is (= 272 (p/evaluate (->poly '(+ (expt x 4) (expt x 8))) [2]))))
 
-       (testing "arity 2"
-         (let [p (->poly '(expt (+ x y) 2))]
-           (is (= 25 (p/evaluate p [2 3])))))
 
-       (testing "arity 3"
-         (let [p (->poly '(+ (expt x 3) (expt y 2) z 1))]
-           (is (= 19 (p/evaluate p [2 3 1])))))
-
-       (testing "arity 4"
-         (let [p (->poly '(expt (- w x y z) 2))]
-           (is (= 36 (p/evaluate p [10 1 2 1])))))
-
-       (testing "arity 5"
-         (let [p (->poly '(expt (- v w x y z) 2))]
-           (is (= 16 (p/evaluate p [10 1 2 1 2])))))
-
-       (testing "arity 10"
-         (let [p (->poly '(expt (- x0 x1 x2 x3 x4 x5 x6 x7 x8 x9) 3))]
-           (is (= 216 (p/evaluate p [10 1 2 1 2 -3 1 -2 -1 3])))))
-
-       (testing "constant polys"
-         (let [p1 (p/make [3])
-               p2 (p/make 2 [[[0 0] 5]])
-               p3 (p/make 3 [[[1 0 0] 1]])
-               p4 (p/make 3 [[[0 1 0] 1]])
-               p5 (p/make 3 [[[0 0 1] 1]])]
-           (is (= 3 (p/evaluate p1 [99])))
-           (is (= 5 (p/evaluate p2 [99 98])))
-           (is (= 7 (p/evaluate p3 [7 8 9])))
-           (is (= 8 (p/evaluate p4 [7 8 9])))
-           (is (= 9 (p/evaluate p5 [7 8 9])))))
-
-       (testing "partial application"
-         (let [P (->poly '(+ 1 (* 2 x) (* 3 x y) (* 4 x y z)))]
-           (is (= (->poly '(+ 3 (* 3 y) (* 4 y z))) (p/evaluate P [1])))
-           (is (= (->poly '(+ 9 (* 8 z))) (p/evaluate P [1 2])))
-           (is (= 33 (p/evaluate P [1 2 3])))
-           (is (= 33 (p/evaluate P [1 2 3 4]))))))
-
-     (deftest poly-partial-derivatives
-       (let [V (p/make [1 2 3 4])
-             U (p/make 2 [[[1 1] 3] [[2 2] 4] [[0 0] 5] [[0 3] 7] [[4 0] -2]])]
-         (is (= (p/make [2 6 12]) (p/partial-derivative V 0)))
-         (is (= [(p/make [2 6 12])] (p/partial-derivatives V)))
-         (is (= (p/make 2 [[[0 1] 3] [[1 2] 8] [[3 0] -8]]) (p/partial-derivative U 0)))
-         (is (= (p/make 2 [[[1 0] 3] [[2 1] 8] [[0 2] 21]]) (p/partial-derivative U 1)))
-         (is (= [(p/make 2 [[[0 1] 3] [[1 2] 8] [[3 0] -8]])
-                 (p/make 2 [[[1 0] 3] [[2 1] 8] [[0 2] 21]])]
-                (p/partial-derivatives U)))))
 
      (deftest poly-as-simplifier
        (testing "arity"
