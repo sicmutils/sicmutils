@@ -20,7 +20,7 @@
 (ns sicmutils.polynomial
   (:refer-clojure :exclude [divide])
   (:require [clojure.set :as set]
-            [clojure.string]
+            [clojure.string :as cs]
             [sicmutils.analyze :as a]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
@@ -86,7 +86,8 @@
 ;; Polynomials
 ;;
 
-(declare evaluate)
+(declare evaluate poly->str)
+
 
 (deftype Polynomial [arity xs->c]
   v/Value
@@ -102,21 +103,43 @@
   (freeze [_] `(~'polynomial ~arity ~xs->c))
   (kind [_] ::polynomial)
 
-  Object
-  (equals [_ b]
-    (and (instance? Polynomial b)
-         (and (= arity (.-arity b))
-              (= xs->c (.-xs->c b)))))
+  #?@(:clj
+      [Object
+       (equals [_ b]
+               (and (instance? Polynomial b)
+                    (and (= arity (.-arity b))
+                         (= xs->c (.-xs->c b)))))
 
-  (toString [_]
-    (let [n 10
-          c (count xs->c)]
-      (str "("
-           (clojure.string/join ";"
-                                (take n (for [[k v] xs->c]
-                                          (str v "*" (clojure.string/join "," k)))))
-           (if (> c n) (format " ...and %d more terms" (- c n)))
-           ")"))))
+       (toString [p] (poly->str p))]
+
+      :cljs
+      [IEquiv
+       (-equiv [_ b]
+               (and (instance? Polynomial b)
+                    (and (= arity (.-arity b))
+                         (= xs->c (.-xs->c b)))))
+
+       Object
+       (toString [p] (poly->str p))
+
+       IPrintWithWriter
+       (-pr-writer [x writer _]
+                   (write-all writer
+                              "#object[sicmutils.structure.Polynomial \""
+                              (.toString x)
+                              "\"]"))]))
+
+(defn ^:private poly->str [p]
+  (let [n 10
+        xs->c (.-xs->c p)
+        c (count xs->c)]
+    (str "("
+         (cs/join ";"
+                  (take n (for [[k v] xs->c]
+                            (str v "*" (cs/join "," k)))))
+         (when (> c n)
+           (format " ...and %d more terms" (- c n)))
+         ")")))
 
 (defn make
   "When called with two arguments, the first is the arity
@@ -125,13 +148,13 @@
   length equal to the arity, with integer exponent values. To
   make 4 x^2 y + 5 x y^2, an arity 2 polynomial (since it has two
   variables, x and y), we could write the following for xc-pairs:
-  [[[2 1] 4] [[1 2] 5]]
+   [[[2 1] 4] [[1 2] 5]]
 
   When called with one argument, the sequence is interpreted as a
   dense sequence of coefficients of an arity-1 (univariate)
   polynomial. The coefficients begin with the constant term and
   proceed to each higher power of the indeterminate. For example, x^2
-  - 1 can be constructed by (make -1 0 1)."
+  - 1 can be constructed by (make [-1 0 1])."
   ([arity xc-pairs]
    (->Polynomial arity
                  (->> (for [[xs cs] (group-by exponents xc-pairs)
@@ -475,6 +498,7 @@
       (make arity [[(mapv #(if (= % a) 1 0) (range arity)) 1]]))))
 
 ;; generic method implementations
+
 (defmethod g/add [::polynomial ::polynomial] [a b] (add a b))
 (defmethod g/mul [::polynomial ::polynomial] [a b] (mul a b))
 (defmethod g/sub [::polynomial ::polynomial] [a b] (sub a b))

@@ -30,170 +30,172 @@
             [sicmutils.numbers]
             [sicmutils.polynomial :as p]
             [sicmutils.value :as v]
-            #?(:clj [clojure.math.numeric-tower :as nt])
             #?(:clj [sicmutils.simplify])))
 
+(deftest poly-core
+  (testing "kind"
+    (is (= ::p/polynomial (v/kind (p/make [])))))
+
+  (testing "zero"
+    (is (v/nullity? (p/make [])))
+    (is (v/nullity? (p/make [0])))
+    (is (v/nullity? (p/make [])))
+    (is (v/nullity? (p/make 2 [])))
+    (is (v/nullity? (p/make 2 [])))
+    (is (not (v/nullity? (p/make [1])))))
+
+  (testing "unity"
+    (is (v/unity? (p/make [1])))
+    (is (v/unity? (p/make 2 [[[0 0] 1]])))
+    (is (v/unity? (p/make 3 [[[0 0 0] 1]])))
+    (is (not (v/unity? (p/make 3 [[[0 0 0] 1] [[0 0 1] 2]]))))
+    (is (not (v/unity? (p/make [1.1]))))
+    (is (v/unity? (p/make [1.0])))
+    (is (v/unity? (p/make [(p/make [1])])))
+    (is (not (v/unity? (p/make [(p/make [2])])))))
+
+  (testing "make-constant"
+    (is (= (p/make [99]) (p/make-constant 1 99)))
+    (is (= (p/make 2 [[[0 0] 88]]) (p/make-constant 2 88)))
+    (is (= (p/make 3 [[[0 0 0] 77]]) (p/make-constant 3 77))))
+
+  (testing "degree"
+    (is (= (p/degree (p/make [])) -1))
+    (is (= (p/degree (p/make [-1 1])) 1))
+    (is (= (p/degree (p/make [0 1])) 1))
+    (is (= (p/degree (p/make [-1 0 2])) 2))
+    (is (= (p/degree (p/make [-1 2 0])) 1))
+    (is (= (p/degree (p/make [0 0])) -1)))
+
+  (testing "zero-like"
+    (is (= (p/make []) (v/zero-like (p/make [1 2 3]))))
+    (is (= (p/make 2 []) (v/zero-like (p/make 2 [[[1 0] 1] [[2 1] 3]]))))
+    (is (= (p/make 3 []) (v/zero-like (p/make 3 [[[1 2 1] 4] [[0 1 0] 5]])))))
+
+  (testing "one-like"
+    (is (= (p/make [1]) (v/one-like (p/make [1 2 3]))))
+    (is (= (p/make 2 [[[0 0] 1]]) (v/one-like (p/make 2 [[[1 0] 1] [[2 1] 3]]))))
+    (is (= (p/make 3 [[[0 0 0] 1]]) (v/one-like (p/make 3 [[[1 2 1] 4] [[0 1 0] 5]]))))
+    ;; we can't deduce the unit element from the zero polynomial over an
+    ;; "unknown" ring
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                 (v/one-like (p/make 2 [])))))
+
+  (testing "add constant"
+    (is (= (p/make [3 0 2]) (g/add (p/make [0 0 2]) (p/make [3]))))
+    (is (= (p/make [0 0 2]) (g/add (p/make [2 0 2]) (p/make [-2])))))
+
+  (testing "add/sub"
+    (is (v/nullity? (g/add (p/make [0 0 2]) (p/make [0 0 -2]))))
+    (is (= (p/make []) (g/add (p/make [0 0 2]) (p/make [0 0 -2]))))
+    (is (= (p/make [3]) (g/add (p/make [3 0 2]) (p/make [0 0 -2]))))
+    (is (= (p/make [-1 1]) (g/add (p/make [0 1]) (p/make [-1]))))
+    (is (v/nullity? (g/sub (p/make [0 0 2]) (p/make [0 0 2]))))
+    (is (= (p/make [-3]) (g/sub (p/make [0 0 2]) (p/make [3 0 2]))))
+    (is (= (p/make [0 1 2]) (g/sub (p/make [3 1 2]) (p/make [3]))))
+    (is (= (p/make [-2 -2 -1]) (g/sub (p/make [1]) (p/make [3 2 1]))))
+    (is (= (p/make [0 0 1 0 1 -1]) (g/sub (p/make [1 0 1 0 1]) (p/make [1 0 0 0 0 1]))))
+    (is (= (p/make [0 0 -1 0 -1 1]) (g/sub (p/make [1 0 0 0 0 1]) (p/make [1 0 1 0 1]))))
+    (is (= (p/make [-1 -2 -3]) (p/negate (p/make [1 2 3])))))
+
+  (testing "with symbols"
+    (is (= (p/make [(g/+ 'a 'c) (g/+ 'b 'd) 'c]) (g/add (p/make '[a b c]) (p/make '[c d])))))
+
+  (testing "mul"
+    (is (= (p/make []) (g/mul (p/make [1 2 3]) (p/make [0]))))
+    (is (= (p/make []) (g/mul (p/make [0]) (p/make [1 2 3]))))
+    (is (= (p/make []) (g/mul (p/make []) (p/make [1 2 3]))))
+    (is (= (p/make [1 2 3]) (g/mul (p/make [1 2 3]) (p/make [1]))))
+    (is (= (p/make [1 2 3]) (g/mul (p/make [1]) (p/make [1 2 3]))))
+    (is (= (p/make [3 6 9]) (g/mul (p/make [1 2 3]) (p/make [3]))))
+    (is (= (p/make [0 1 2 3]) (g/mul (p/make [0 1]) (p/make [1 2 3]))))
+    (is (= (p/make [0 -1 -2 -3]) (g/mul (p/make [0 -1]) (p/make [1 2 3]))))
+    (is (= (p/make [-1 0 1]) (g/mul (p/make [1 1]) (p/make [-1 1]))))
+    (is (= (p/make [1 3 3 1]) (g/mul (p/make [1 1]) (g/mul (p/make [1 1]) (p/make [1 1])))))
+    (is (= (p/make [1 -4 6 -4 1]) (g/mul (g/mul (p/make [-1 1]) (p/make [-1 1]))
+                                         (g/mul (p/make [-1 1]) (p/make [-1 1]))))))
+
+  (testing "div"
+    (is (= [(p/make [1 1]) (p/make [])]
+           (p/divide (p/make [-1 0 1]) (p/make [-1 1]))))
+    (is (= [(p/make [-10 1]) (p/make [-32 -21])]
+           (p/divide (p/make [-42 0 -12 1]) (p/make [1 -2 1]))))
+    (is (= [(p/make [3 1 1]) (p/make [5])]
+           (p/divide (p/make [-4 0 -2 1]) (p/make [-3 1]))))
+    (is (= [(p/make [-5 0 3]) (p/make [60 -27 -11])]
+           (p/divide (p/make [-45 18 72 -27 -27 0 9]) (p/make [21 -9 -4 0 3]))))
+    (let [U (p/make [-5 2 8 -3 -3 0 1 0 1])
+          V (p/make [21 -9 -4 0 5 0 3])
+          [pr d] (p/pseudo-remainder U V)]
+      #?(:clj (is (= [(p/make [-2/9 0 1/3]) (p/make [-1/3 0 1/9 0 -5/9])] (p/divide U V))))
+      (is (= [(p/make [-3 0 1 0 -5]) 2] [pr d]))
+      (is (= (p/make []) (g/sub (g/mul (p/make [(g/expt 3 d)]) U) (g/add (g/mul (p/make [-2 0 3]) V) pr)))))
+    ;; examples from http://www.mathworks.com/help/symbolic/mupad_ref/pdivide.html
+    (let [p (p/make [1 1 0 1])
+          q (p/make [1 1 3])]
+      (is (= [(p/make [10 7]) 2] (p/pseudo-remainder p q))))
+    (let [p (p/make [3 0 4])
+          q (p/make [2 2])]
+      (is (= [(p/make [28]) 2] (p/pseudo-remainder p q))))
+    (is (= [(p/make 2 []) (p/make 2 [[[2 1] 1] [[1 2] 1]])]
+           (p/divide (p/make 2 [[[2 1] 1] [[1 2] 1]]) (p/make 2 [[[1 2] 1]]))))
+    (is (= [(p/make [1]) (p/make [])] (p/divide (p/make [3]) (p/make [3]))))
+    (is (= [(p/make [0]) 1] (p/pseudo-remainder (p/make [7]) (p/make [2])))))
+
+  (testing "expt"
+    (let [x+1 (p/make [1 1])]
+      (is (= (p/make [1]) (g/expt x+1 0)))
+      (is (= x+1 (g/expt x+1 1)))
+      (is (= (p/make [1 2 1]) (g/expt x+1 2)))
+      (is (= (p/make [1 3 3 1]) (g/expt x+1 3)))
+      (is (= (p/make [1 4 6 4 1]) (g/expt x+1 4)))
+      (is (= (p/make [1 5 10 10 5 1]) (g/expt x+1 5)))))
+
+  (testing "other coefficient rings: GF(2)"
+    (let [mod2 #(modular/make % 2)
+          x0 (mod2 0)
+          x1 (mod2 1)
+          P (p/make [x1 x0 x1])]
+      (is (= (p/make [x1 x0 x0 x0 x1]) (p/expt P 2)))
+      (is (= (p/make [x1 x0 x1 x0 x1 x0 x1]) (p/expt P 3)))
+      (is (= (p/make [x1 x0 x0 x0 x0 x0 x0 x0 x1]) (g/mul (p/expt P 3) P)))
+      (is (= (p/make []) (g/sub P P)))
+      (is (= (p/make []) (g/add P P)))
+      (is (= (p/make [x0 x0 x1]) (g/add P (p/make [1]))))))
+
+  (testing "CRC polynomials"
+    ;; https://en.wikipedia.org/wiki/Computation_of_cyclic_redundancy_checks
+    ;; http://www.lammertbies.nl/comm/info/crc-calculation.html
+    (let [mod2 #(modular/make % 2)
+          o (mod2 0)
+          i (mod2 1)
+          x8 (p/make [o o o o o o o o i])
+          CRC-8-ATM (p/make [i i i o o o o o i])
+          M (p/make [i i i 0 i o i])
+          Mx8 (g/mul x8 M)
+          [_ r1] (p/divide Mx8 CRC-8-ATM)
+          CRC-16-CCITT (p/make [i o o o o i o o o o o o i o o o i])
+          x16 (g/mul x8 x8)
+          T (p/make [o o i o i o i])
+          Tx16 (g/mul x16 T)
+          [_ r2] (p/divide Tx16 CRC-16-CCITT)]
+      (is (= (p/make [o i o o o i o i]) r1))
+      (is (= (p/make [i o o o i i i o o i o i i]) r2))))
+
+  (testing "monomial order"
+    (let [x3 [3 0 0]
+          x2z2 [2 0 2]
+          xy2z [1 2 1]
+          z2 [0 0 2]
+          monomials [x3 x2z2 xy2z z2]
+          monomial-sort #(sort-by identity % monomials)]
+      (is (= [z2 xy2z x2z2 x3] (monomial-sort p/lex-order)))
+      (is (= [z2 x3 x2z2 xy2z] (monomial-sort p/graded-reverse-lex-order)))
+      (is (= [z2 x3 xy2z x2z2] (monomial-sort p/graded-lex-order))))))
+
 #?(:clj
-   (do
-     (deftest poly-core
-       (testing "kind"
-         (is (= ::p/polynomial (v/kind (p/make [])))))
+   (comment
 
-       (testing "zero"
-         (is (v/nullity? (p/make [])))
-         (is (v/nullity? (p/make [0])))
-         (is (v/nullity? (p/make [])))
-         (is (v/nullity? (p/make 2 [])))
-         (is (v/nullity? (p/make 2 [])))
-         (is (not (v/nullity? (p/make [1])))))
-
-       (testing "unity"
-         (is (v/unity? (p/make [1])))
-         (is (v/unity? (p/make 2 [[[0 0] 1]])))
-         (is (v/unity? (p/make 3 [[[0 0 0] 1]])))
-         (is (not (v/unity? (p/make 3 [[[0 0 0] 1] [[0 0 1] 2]]))))
-         (is (not (v/unity? (p/make [1.1]))))
-         (is (v/unity? (p/make [1.0])))
-         (is (v/unity? (p/make [(p/make [1])])))
-         (is (not (v/unity? (p/make [(p/make [2])])))))
-
-       (testing "make-constant"
-         (is (= (p/make [99]) (p/make-constant 1 99)))
-         (is (= (p/make 2 [[[0 0] 88]]) (p/make-constant 2 88)))
-         (is (= (p/make 3 [[[0 0 0] 77]]) (p/make-constant 3 77))))
-
-       (testing "degree"
-         (is (= (p/degree (p/make [])) -1))
-         (is (= (p/degree (p/make [-1 1])) 1))
-         (is (= (p/degree (p/make [0 1])) 1))
-         (is (= (p/degree (p/make [-1 0 2])) 2))
-         (is (= (p/degree (p/make [-1 2 0])) 1))
-         (is (= (p/degree (p/make [0 0])) -1)))
-
-       (testing "zero-like"
-         (is (= (p/make []) (v/zero-like (p/make [1 2 3]))))
-         (is (= (p/make 2 []) (v/zero-like (p/make 2 [[[1 0] 1] [[2 1] 3]]))))
-         (is (= (p/make 3 []) (v/zero-like (p/make 3 [[[1 2 1] 4] [[0 1 0] 5]])))))
-
-       (testing "one-like"
-         (is (= (p/make [1]) (v/one-like (p/make [1 2 3]))))
-         (is (= (p/make 2 [[[0 0] 1]]) (v/one-like (p/make 2 [[[1 0] 1] [[2 1] 3]]))))
-         (is (= (p/make 3 [[[0 0 0] 1]]) (v/one-like (p/make 3 [[[1 2 1] 4] [[0 1 0] 5]]))))
-         ;; we can't deduce the unit element from the zero polynomial over an
-         ;; "unknown" ring
-         (is (thrown? IllegalArgumentException (v/one-like (p/make 2 [])))))
-
-       (testing "add constant"
-         (is (= (p/make [3 0 2]) (g/add (p/make [0 0 2]) (p/make [3]))))
-         (is (= (p/make [0 0 2]) (g/add (p/make [2 0 2]) (p/make [-2])))))
-
-       (testing "add/sub"
-         (is (v/nullity? (g/add (p/make [0 0 2]) (p/make [0 0 -2]))))
-         (is (= (p/make []) (g/add (p/make [0 0 2]) (p/make [0 0 -2]))))
-         (is (= (p/make [3]) (g/add (p/make [3 0 2]) (p/make [0 0 -2]))))
-         (is (= (p/make [-1 1]) (g/add (p/make [0 1]) (p/make [-1]))))
-         (is (v/nullity? (g/sub (p/make [0 0 2]) (p/make [0 0 2]))))
-         (is (= (p/make [-3]) (g/sub (p/make [0 0 2]) (p/make [3 0 2]))))
-         (is (= (p/make [0 1 2]) (g/sub (p/make [3 1 2]) (p/make [3]))))
-         (is (= (p/make [-2 -2 -1]) (g/sub (p/make [1]) (p/make [3 2 1]))))
-         (is (= (p/make [0 0 1 0 1 -1]) (g/sub (p/make [1 0 1 0 1]) (p/make [1 0 0 0 0 1]))))
-         (is (= (p/make [0 0 -1 0 -1 1]) (g/sub (p/make [1 0 0 0 0 1]) (p/make [1 0 1 0 1]))))
-         (is (= (p/make [-1 -2 -3]) (p/negate (p/make [1 2 3])))))
-
-       (testing "with symbols"
-         (is (= (p/make [(g/+ 'a 'c) (g/+ 'b 'd) 'c]) (g/add (p/make '[a b c]) (p/make '[c d])))))
-
-       (testing "mul"
-         (is (= (p/make []) (g/mul (p/make [1 2 3]) (p/make [0]))))
-         (is (= (p/make []) (g/mul (p/make [0]) (p/make [1 2 3]))))
-         (is (= (p/make []) (g/mul (p/make []) (p/make [1 2 3]))))
-         (is (= (p/make [1 2 3]) (g/mul (p/make [1 2 3]) (p/make [1]))))
-         (is (= (p/make [1 2 3]) (g/mul (p/make [1]) (p/make [1 2 3]))))
-         (is (= (p/make [3 6 9]) (g/mul (p/make [1 2 3]) (p/make [3]))))
-         (is (= (p/make [0 1 2 3]) (g/mul (p/make [0 1]) (p/make [1 2 3]))))
-         (is (= (p/make [0 -1 -2 -3]) (g/mul (p/make [0 -1]) (p/make [1 2 3]))))
-         (is (= (p/make [-1 0 1]) (g/mul (p/make [1 1]) (p/make [-1 1]))))
-         (is (= (p/make [1 3 3 1]) (g/mul (p/make [1 1]) (g/mul (p/make [1 1]) (p/make [1 1])))))
-         (is (= (p/make [1 -4 6 -4 1]) (g/mul (g/mul (p/make [-1 1]) (p/make [-1 1]))
-                                              (g/mul (p/make [-1 1]) (p/make [-1 1]))))))
-
-       (testing "div"
-         (is (= [(p/make [1 1]) (p/make [])]
-                (p/divide (p/make [-1 0 1]) (p/make [-1 1]))))
-         (is (= [(p/make [-10 1]) (p/make [-32 -21])]
-                (p/divide (p/make [-42 0 -12 1]) (p/make [1 -2 1]))))
-         (is (= [(p/make [3 1 1]) (p/make [5])]
-                (p/divide (p/make [-4 0 -2 1]) (p/make [-3 1]))))
-         (is (= [(p/make [-5 0 3]) (p/make [60 -27 -11])]
-                (p/divide (p/make [-45 18 72 -27 -27 0 9]) (p/make [21 -9 -4 0 3]))))
-         (let [U (p/make [-5 2 8 -3 -3 0 1 0 1])
-               V (p/make [21 -9 -4 0 5 0 3])
-               [pr d] (p/pseudo-remainder U V)]
-           (is (= [(p/make [-2/9 0 1/3]) (p/make [-1/3 0 1/9 0 -5/9])] (p/divide U V)))
-           (is (= [(p/make [-3 0 1 0 -5]) 2] [pr d]))
-           (is (= (p/make []) (g/sub (g/mul (p/make [(nt/expt 3 d)]) U) (g/add (g/mul (p/make [-2 0 3]) V) pr)))))
-         ;; examples from http://www.mathworks.com/help/symbolic/mupad_ref/pdivide.html
-         (let [p (p/make [1 1 0 1])
-               q (p/make [1 1 3])]
-           (is (= [(p/make [10 7]) 2] (p/pseudo-remainder p q))))
-         (let [p (p/make [3 0 4])
-               q (p/make [2 2])]
-           (is (= [(p/make [28]) 2] (p/pseudo-remainder p q))))
-         (is (= [(p/make 2 []) (p/make 2 [[[2 1] 1] [[1 2] 1]])]
-                (p/divide (p/make 2 [[[2 1] 1] [[1 2] 1]]) (p/make 2 [[[1 2] 1]]))))
-         (is (= [(p/make [1]) (p/make [])] (p/divide (p/make [3]) (p/make [3]))))
-         (is (= [(p/make [0]) 1] (p/pseudo-remainder (p/make [7]) (p/make [2])))))
-
-       (testing "expt"
-         (let [x+1 (p/make [1 1])]
-           (is (= (p/make [1]) (p/expt x+1 0)))
-           (is (= x+1 (p/expt x+1 1)))
-           (is (= (p/make [1 2 1]) (p/expt x+1 2)))
-           (is (= (p/make [1 3 3 1]) (p/expt x+1 3)))
-           (is (= (p/make [1 4 6 4 1]) (p/expt x+1 4)))
-           (is (= (p/make [1 5 10 10 5 1]) (p/expt x+1 5)))))
-
-       (testing "other coefficient rings: GF(2)"
-         (let [mod2 #(modular/make % 2)
-               x0 (mod2 0)
-               x1 (mod2 1)
-               P (p/make [x1 x0 x1])]
-           (is (= (p/make [x1 x0 x0 x0 x1]) (p/expt P 2)))
-           (is (= (p/make [x1 x0 x1 x0 x1 x0 x1]) (p/expt P 3)))
-           (is (= (p/make [x1 x0 x0 x0 x0 x0 x0 x0 x1]) (g/mul (p/expt P 3) P)))
-           (is (= (p/make []) (g/sub P P)))
-           (is (= (p/make []) (g/add P P)))
-           (is (= (p/make [x0 x0 x1]) (g/add P (p/make [1]))))))
-
-       (testing "CRC polynomials"
-         ;; https://en.wikipedia.org/wiki/Computation_of_cyclic_redundancy_checks
-         ;; http://www.lammertbies.nl/comm/info/crc-calculation.html
-         (let [mod2 #(modular/make % 2)
-               o (mod2 0)
-               i (mod2 1)
-               x8 (p/make [o o o o o o o o i])
-               CRC-8-ATM (p/make [i i i o o o o o i])
-               M (p/make [i i i 0 i o i])
-               Mx8 (g/mul x8 M)
-               [_ r1] (p/divide Mx8 CRC-8-ATM)
-               CRC-16-CCITT (p/make [i o o o o i o o o o o o i o o o i])
-               x16 (g/mul x8 x8)
-               T (p/make [o o i o i o i])
-               Tx16 (g/mul x16 T)
-               [_ r2] (p/divide Tx16 CRC-16-CCITT)]
-           (is (= (p/make [o i o o o i o i]) r1))
-           (is (= (p/make [i o o o i i i o o i o i i]) r2))))
-
-       (testing "monomial order"
-         (let [x3 [3 0 0]
-               x2z2 [2 0 2]
-               xy2z [1 2 1]
-               z2 [0 0 2]
-               monomials [x3 x2z2 xy2z z2]
-               monomial-sort #(sort-by identity % monomials)]
-           (is (= [z2 xy2z x2z2 x3] (monomial-sort p/lex-order)))
-           (is (= [z2 x3 x2z2 xy2z] (monomial-sort p/graded-reverse-lex-order)))
-           (is (= [z2 x3 xy2z x2z2] (monomial-sort p/graded-lex-order))))))
 
      (def ^:private poly-analyzer (p/->PolynomialAnalyzer))
      (defn ^:private ->poly [x] (a/expression-> poly-analyzer x (fn [p _] p)))

@@ -9,7 +9,7 @@
             [sicmutils.generic-test]
             [sicmutils.matrix-test]
             [sicmutils.modint-test]
-            ;; [sicmutils.polynomial-test]
+            [sicmutils.polynomial-test]
             [sicmutils.numbers-test]
             [sicmutils.numsymb-test]
             [sicmutils.polynomial-test]
@@ -28,7 +28,7 @@
            'sicmutils.modint-test
            'sicmutils.numbers-test
            'sicmutils.numsymb-test
-           ;; 'sicmutils.polynomial-test
+           'sicmutils.polynomial-test
            'sicmutils.rules-test
            'sicmutils.structure-test
            'sicmutils.value-test)
