@@ -312,7 +312,7 @@
   [generic-operation symbolic-operation]
   (defmethod generic-operation [::x/numerical-expression ::x/numerical-expression]
     [a b]
-    (make-numsymb-expression symbolic-operation [a b]))  )
+    (make-numsymb-expression symbolic-operation [a b])))
 
 (defn ^:private define-unary-operation
   [generic-operation symbolic-operation]

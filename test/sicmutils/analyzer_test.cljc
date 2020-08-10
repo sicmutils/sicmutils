@@ -20,6 +20,7 @@
 (ns sicmutils.analyzer-test
   (:require #?(:clj  [clojure.test :refer :all]
                :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+            [clojure.string :as cs]
             [sicmutils.analyze :as a]))
 
 (deftest symbol-generator
@@ -27,4 +28,8 @@
         symbols (repeatedly 200 gen)]
     (is (= symbols (sort symbols))
         "Generated symbols sort into the same order in which they were
-        generated.")))
+        generated.")
+
+    (is (every? #(cs/starts-with? (str %) "cake")
+                symbols)
+        "The prefix gets prepended to every generated symbol.")))
