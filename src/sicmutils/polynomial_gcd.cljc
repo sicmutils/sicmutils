@@ -18,7 +18,8 @@
 ;
 
 (ns sicmutils.polynomial-gcd
-  (:require [sicmutils.generic :as g]
+  (:require #?(:cljs [goog.string :refer [format]])
+            [sicmutils.generic :as g]
             [sicmutils.polynomial :as p]
             [sicmutils.util :as u]
             [sicmutils.util.stopwatch :as us]

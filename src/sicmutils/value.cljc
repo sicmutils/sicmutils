@@ -28,7 +28,6 @@
      (:import (clojure.lang BigInt RestFn MultiFn Keyword Symbol)
               (java.lang.reflect Method))))
 
-
 (defprotocol Value
   (numerical? [this])
   (nullity? [this])

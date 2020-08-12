@@ -1,5 +1,6 @@
 (ns sicmutils.util.stopwatch
-  (:require [stopwatch.core :as sw])
+  (:require [sicmutils.util :as u]
+            [stopwatch.core :as sw])
   #?(:clj
      (:import [java.util.concurrent TimeUnit TimeoutException])))
 
@@ -16,42 +17,87 @@
   ([sw] (-elapsed sw :nanos))
   ([sw unit] (-elapsed sw unit)))
 
-(:clj
- (def unit-map
-   {:days TimeUnit/DAYS
-    :hours TimeUnit/HOURS
-    :minutes TimeUnit/MINUTES
-    :seconds TimeUnit/SECONDS
-    :micros TimeUnit/MICROSECONDS
-    :millis TimeUnit/MILLISECONDS
-    :nanos TimeUnit/NANOSECONDS}))
+(def units
+  "Allowed units of time, ordered from most precise to least."
+  [:nanos :micros :millis :seconds :minutes :hours :days])
+
+(def abbreviate
+  {:nanos "ns"
+   :micros "\u03bcs"
+   :millis "ms"
+   :seconds "s"
+   :minutes "min"
+   :hours "h"
+   :days "d"})
+
+#?(:clj
+   (def unit-map
+     {:days TimeUnit/DAYS
+      :hours TimeUnit/HOURS
+      :minutes TimeUnit/MINUTES
+      :seconds TimeUnit/SECONDS
+      :micros TimeUnit/MICROSECONDS
+      :millis TimeUnit/MILLISECONDS
+      :nanos TimeUnit/NANOSECONDS}))
+
+;; Conversions from nanoseconds. The stopwatch library stores nanos, so we only
+;; need to convert FROM nanos, ever, not between other units.
+#?(:cljs
+   (let [->micros 1e3
+         ->ms (* ->micros 1e3)
+         ->s (* ->ms 1e3)
+         ->m (* ->s 60)
+         ->h (* ->m 60)
+         ->d (* ->h 24)]
+     (defn from-nanos
+       [ns unit]
+       (/ ns
+          (case unit
+            :nanos 1
+            :micros ->micros
+            :millis ->ms
+            :seconds ->s
+            :minutes ->m
+            :hours ->h
+            :days ->d
+            (throw (js/Error (str "Unknown unit: " unit))))))))
 
 #?(:cljs
-   (do
-     (defrecord Stopwatch [elapsed-fn offset is-running?]
-       IStopwatch
-       (running? [this] is-running?)
+   (defn choose-unit
+     "Returns a pair of [value, unit]."
+     [ns]
+     (or (->> (reverse units)
+              (map (juxt #(from-nanos ns %) identity))
+              (filter (comp #(> % 1) first))
+              first)
+         [0 :nanos])))
 
-       (start [this]
-         (if is-running?
-           this
-           (Stopwatch. (sw/start*) offset true)))
+#?(:cljs
+   (defrecord Stopwatch [elapsed-fn offset is-running?]
+     IStopwatch
+     (running? [this] is-running?)
 
-       (stop [this]
-         (if is-running?
-           (let [offset' (elapsed this :nanos)]
-             (Stopwatch. (constantly offset') offset' false))
-           this))
+     (start [this]
+       (if is-running?
+         this
+         (Stopwatch. (sw/start*) offset true)))
 
-       ;; TODO add unit support.
-       (-elapsed [_ _]
-         (if is-running?
-           (+ (bigint (elapsed-fn))
-              offset)
-           offset))
+     (stop [this]
+       (if is-running?
+         (let [offset' (elapsed this :nanos)]
+           (Stopwatch. (constantly offset') offset' false))
+         this))
 
-       (repr [this]
-         (str (elapsed this :micros) " ms")))))
+     (-elapsed [_ unit]
+       (-> (if is-running?
+             (+ (elapsed-fn)
+                offset)
+             offset)
+           (from-nanos unit)))
+
+     (repr [this]
+       (let [[x unit] (choose-unit (elapsed this :nanos))]
+         (str x " " (abbreviate unit))))))
 
 #?(:clj
    (extend-type com.google.common.base.Stopwatch
@@ -67,7 +113,7 @@
   "Returns a platform-specific implementation of IStopwatch."
   ([] (stopwatch true))
   ([running?]
-   #? (:cljs (let [watch (->Stopwatch nil (bigint 0) false)]
+   #? (:cljs (let [watch (->Stopwatch nil 0 false)]
                (if running?
                  (start watch)
                  watch))

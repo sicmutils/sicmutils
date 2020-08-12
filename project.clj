@@ -31,7 +31,8 @@
                  [org.clojure/math.numeric-tower "0.0.4"]
                  [dm3/stopwatch "0.1.1"]
                  [com.google.guava/guava "23.0"]
-                 [com.taoensso/timbre "4.10.0"]
+                 [com.taoensso/timbre "4.11.0-alpha1"
+                  :exclusions [org.clojure/clojurescript]]
                  [org.apache.commons/commons-math3 "3.6.1"]
                  [org.clojars.sritchie09/complex "2.0.11-0"]
                  [hiccup "1.0.5"]
