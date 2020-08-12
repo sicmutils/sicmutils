@@ -29,11 +29,9 @@
             [sicmutils.polynomial :as p]
             [sicmutils.polynomial-gcd :as pg]
             [sicmutils.polynomial-test :as p-test]
+            [sicmutils.util.stopwatch :as us]
             [sicmutils.value :as v]
-            [taoensso.timbre :as log])
-  #?(:clj
-     (:import (com.google.common.base Stopwatch)
-              (java.util.concurrent TimeUnit))))
+            [taoensso.timbre :as log]))
 
 (deftest poly-gcd
   (let [X (p/make 2 [[[1 0] 1]]) ;; some polynomials of arity 2
@@ -91,7 +89,7 @@
         (is (= G (pg/gcd U V)))))
 
     (testing "GCD: arity 3 case"
-      (binding [pg/*poly-gcd-time-limit* [2 TimeUnit/SECONDS]]
+      (binding [pg/*poly-gcd-time-limit* [2 :seconds]]
         (let [I (p/make 3 [[[0 0 0] 1]])
               X (p/make 3 [[[1 0 0] 1]])
               Y (p/make 3 [[[0 1 0] 1]])
@@ -151,11 +149,11 @@
         g (->poly gx)
         df (g/mul d f)
         dg (g/mul d g)
-        elapsed (u/stopwatch)
-        a (binding [pg/*poly-gcd-time-limit* [10 TimeUnit/SECONDS]
+        sw (us/stopwatch)
+        a (binding [pg/*poly-gcd-time-limit* [10 :seconds]
                     pg/*poly-gcd-cache-enable* false]
             (is (= d (pg/gcd df dg))))]
-    (log/info "gcd-test" name (elapsed))))
+    (log/info "gcd-test" name (us/repr sw))))
 
 (deftest ^:long ^:benchmark gjs
   (testing "GJS cases (see sparse-gcd.scm:666)"
@@ -382,8 +380,7 @@
   should provide excellent examples for performance experiments."
   (testing "ex1"
     (let [u (p/make 3 {[0 0 0] -1, [0 0 3] 1})
-          v (p/make 3 {[0 0 0] 1, [2 3 0] 2, [0 8 1] 1, [7 0 5] -1})
-          sw (Stopwatch/createStarted)]
+          v (p/make 3 {[0 0 0] 1, [2 3 0] 2, [0 8 1] 1, [7 0 5] -1})]
       (gcd-test "S1" (p/make 3 {[0 0 0] 1}) u v)))
 
   (testing "ex2"

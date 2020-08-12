@@ -21,13 +21,11 @@
   (:require [sicmutils.generic :as g]
             [sicmutils.polynomial :as p]
             [sicmutils.util :as u]
+            [sicmutils.util.stopwatch :as us]
             [sicmutils.value :as v]
-            [taoensso.timbre :as log])
-  #?(:clj
-     (:import (com.google.common.base Stopwatch)
-              (java.util.concurrent TimeUnit))))
+            [taoensso.timbre :as log]))
 
-(def ^:dynamic *poly-gcd-time-limit* [1000 TimeUnit/MILLISECONDS])
+(def ^:dynamic *poly-gcd-time-limit* [1000 :millis])
 (def ^:dynamic *poly-gcd-cache-enable* true)
 (def ^:dynamic *poly-gcd-debug* false)
 (def ^:private ^:dynamic *poly-gcd-bail-out* (fn []))
@@ -238,14 +236,15 @@
         g))))
 
 (defn ^:private maybe-bail-out
-  "Returns a function that checks if clock has been running longer
-  than timeout and if so throws an exception after logging the event.
-  Timeout should be of the form [number TimeUnit]. "
+  "Returns a function that checks if clock has been running longer than timeout
+  and if so throws an exception after logging the event. Timeout should be of
+  the form [number Keyword], where keyword is one of the supported units from
+  sicmutils.util.stopwatch."
   [description clock timeout]
   (fn []
-    (when (> (.elapsed clock (second timeout))
+    (when (> (us/elapsed clock (second timeout))
              (first timeout))
-      (let [s (format "Timed out: %s after %s" description clock)]
+      (let [s (format "Timed out: %s after %s" description (us/repr clock))]
         (log/warn s)
         (u/timeout-ex s)))))
 
@@ -256,7 +255,7 @@
   [u v]
   {:pre [(p/polynomial? u)
          (p/polynomial? v)]}
-  (let [clock (Stopwatch/createStarted)
+  (let [clock (us/stopwatch)
         arity (p/check-same-arity u v)]
     (cond
       (not (and (every? v/integral? (p/coefficients u))
