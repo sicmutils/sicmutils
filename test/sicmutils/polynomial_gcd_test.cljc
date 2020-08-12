@@ -20,17 +20,17 @@
 (ns sicmutils.polynomial-gcd-test
   (:require #?(:clj  [clojure.test :refer :all]
                :cljs [cljs.test :as t :refer-macros [is deftest testing]])
-            [clojure.tools.logging :as log]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
+            [sicmutils.analyze :as a]
+            [sicmutils.expression :refer [variables-in]]
             [sicmutils.generic :as g]
             [sicmutils.polynomial :as p]
             [sicmutils.polynomial-gcd :as pg]
             [sicmutils.polynomial-test :as p-test]
             [sicmutils.value :as v]
-            [sicmutils.analyze :as a]
-            [sicmutils.expression :refer [variables-in]])
+            [taoensso.timbre :as log])
   #?(:clj
      (:import (com.google.common.base Stopwatch)
               (java.util.concurrent TimeUnit))))

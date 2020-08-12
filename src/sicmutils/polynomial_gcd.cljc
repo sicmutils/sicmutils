@@ -18,16 +18,13 @@
 ;
 
 (ns sicmutils.polynomial-gcd
-  (:require [clojure.tools.logging :as log]
-            [clojure.string]
-            [clojure.math.numeric-tower :as nt]
-            [sicmutils.generic :as g]
+  (:require [sicmutils.generic :as g]
             [sicmutils.polynomial :as p]
             [sicmutils.util :as u]
-            [sicmutils.value :as v])
+            [sicmutils.value :as v]
+            [taoensso.timbre :as log])
   #?(:clj
      (:import (com.google.common.base Stopwatch)
-              (sicmutils.polynomial Polynomial)
               (java.util.concurrent TimeUnit TimeoutException))))
 
 (def ^:dynamic *poly-gcd-time-limit* [1000 TimeUnit/MILLISECONDS])
@@ -57,15 +54,14 @@
               (if (done? c) (reduced c) c))]
     (partial reduce rf)))
 
-(defn ^:private native-gcd
-  [a b]
-  (.gcd (biginteger a)
-        (biginteger b)))
+(defn ^:private native-gcd [l r]
+  (g/gcd (u/biginteger l)
+         (u/biginteger r)))
 
 (defn primitive-gcd
   "A function which will return the gcd of a sequence of numbers."
   [xs]
-  (nt/abs ((reduce-until v/unity? native-gcd) xs)))
+  (g/abs ((reduce-until v/unity? native-gcd) xs)))
 
 (defn ^:private with-content-removed
   "For multivariate polynomials. u and v are considered here as

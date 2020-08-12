@@ -1,6 +1,7 @@
 (ns sicmutils.util
   "Shared utilities between clojure and clojurescript."
   (:refer-clojure :rename {bigint core-bigint
+                           biginteger core-biginteger
                            int core-int
                            long core-long}
                   #?@(:cljs [:exclude [bigint long int]]))
@@ -16,6 +17,10 @@
 
 (defn bigint [x]
   #?(:clj (core-bigint x)
+     :cljs (js/BigInt x)))
+
+(defn biginteger [x]
+  #?(:clj (core-biginteger x)
      :cljs (js/BigInt x)))
 
 (defn int [x]
