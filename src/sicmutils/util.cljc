@@ -7,7 +7,9 @@
                   #?@(:cljs [:exclude [bigint long int]]))
   (:require #?(:clj [clojure.math.numeric-tower :as nt])
             #?(:cljs goog.math.Integer)
-            #?(:cljs goog.math.Long)))
+            #?(:cljs goog.math.Long))
+  #?(:clj
+     (:import [java.util.concurrent TimeoutException])))
 
 (def compute-sqrt #?(:clj nt/sqrt :cljs Math/sqrt))
 (def compute-expt #?(:clj nt/expt :cljs Math/pow))
@@ -49,4 +51,9 @@
 (defn arithmetic-ex [s]
   (throw
    #?(:clj (ArithmeticException. s)
+      :cljs (js/Error s))))
+
+(defn timeout-ex [s]
+  (throw
+   #?(:clj (TimeoutException. s)
       :cljs (js/Error s))))

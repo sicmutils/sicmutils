@@ -25,7 +25,7 @@
             [taoensso.timbre :as log])
   #?(:clj
      (:import (com.google.common.base Stopwatch)
-              (java.util.concurrent TimeUnit TimeoutException))))
+              (java.util.concurrent TimeUnit))))
 
 (def ^:dynamic *poly-gcd-time-limit* [1000 TimeUnit/MILLISECONDS])
 (def ^:dynamic *poly-gcd-cache-enable* true)
@@ -237,23 +237,17 @@
         (dbg level "<-" g)
         g))))
 
-(def ^:private integral?
-  "A function returning true if the argument is exact but not a ratio.
-  Polynomials must have such coefficients if we are to find GCDs for them.
-  Note that a polynomial with integral coefficients is integral."
-  #(and (v/exact? %) (not (ratio? %))))
-
 (defn ^:private maybe-bail-out
   "Returns a function that checks if clock has been running longer
   than timeout and if so throws an exception after logging the event.
   Timeout should be of the form [number TimeUnit]. "
-  [description ^Stopwatch clock timeout]
+  [description clock timeout]
   (fn []
     (when (> (.elapsed clock (second timeout))
              (first timeout))
       (let [s (format "Timed out: %s after %s" description clock)]
         (log/warn s)
-        (throw (TimeoutException. s))))))
+        (u/timeout-ex s)))))
 
 (defn gcd
   "Knuth's algorithm 4.6.1E.
@@ -265,8 +259,8 @@
   (let [clock (Stopwatch/createStarted)
         arity (p/check-same-arity u v)]
     (cond
-      (not (and (every? integral? (p/coefficients u))
-                (every? integral? (p/coefficients v)))) (v/one-like u)
+      (not (and (every? v/integral? (p/coefficients u))
+                (every? v/integral? (p/coefficients v)))) (v/one-like u)
       (v/nullity? u) v
       (v/nullity? v) u
       (v/unity? u) u
