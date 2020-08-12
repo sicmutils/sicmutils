@@ -29,6 +29,7 @@
                  [org.clojure/clojurescript "1.10.773" :scope "provided"]
                  [org.clojure/core.match "1.0.0"]
                  [org.clojure/math.numeric-tower "0.0.4"]
+                 [dm3/stopwatch "0.1.1"]
                  [com.google.guava/guava "23.0"]
                  [com.taoensso/timbre "4.10.0"]
                  [org.apache.commons/commons-math3 "3.6.1"]

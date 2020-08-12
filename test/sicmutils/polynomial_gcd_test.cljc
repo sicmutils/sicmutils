@@ -151,11 +151,11 @@
         g (->poly gx)
         df (g/mul d f)
         dg (g/mul d g)
-        sw (Stopwatch/createStarted)
+        elapsed (u/stopwatch)
         a (binding [pg/*poly-gcd-time-limit* [10 TimeUnit/SECONDS]
                     pg/*poly-gcd-cache-enable* false]
-            (is (= d (pg/gcd df dg)))            )]
-    (log/info "gcd-test" name (str sw))))
+            (is (= d (pg/gcd df dg))))]
+    (log/info "gcd-test" name (elapsed))))
 
 (deftest ^:long ^:benchmark gjs
   (testing "GJS cases (see sparse-gcd.scm:666)"
