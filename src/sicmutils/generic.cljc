@@ -18,7 +18,8 @@
 ;;
 
 (ns sicmutils.generic
-  (:refer-clojure :exclude [/ + - * divide])
+  (:refer-clojure :rename {mod core-mod}
+                  :exclude [/ + - * divide #?(:cljs mod)])
   (:require [sicmutils.value :as v]
             [sicmutils.expression :as x])
   #?(:cljs (:require-macros [sicmutils.generic :refer [def-generic-function]])))
@@ -79,7 +80,17 @@
 (def-generic-function abs 1)
 (def-generic-function sqrt 1)
 (def-generic-function quotient 2)
+
 (def-generic-function remainder 2)
+(def-generic-function modulo 2)
+(defmethod modulo :default [a b]
+  (let [m (remainder a b)]
+    (if (or (v/nullity? m)
+            (= (negative? a)
+               (negative? b)))
+      m
+      (add m b))))
+
 (def-generic-function expt 2)
 (def-generic-function gcd 2)
 (def-generic-function exact-divide 2)
@@ -89,7 +100,6 @@
 
 (def-generic-function cube 1)
 (defmethod cube :default [x] (expt x 3))
-
 
 ;; Trigonometric functions.
 (def-generic-function cos 1)

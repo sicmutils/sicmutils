@@ -23,6 +23,7 @@
             [sicmutils.numbers]
             [sicmutils.complex :as c]
             [sicmutils.generic :as g]
+            [sicmutils.generic-test :as gt]
             [sicmutils.value :as v]))
 
 (defn ^:private near [w z]
@@ -68,6 +69,11 @@
       (is (c/complex? (c/complex 2)))
       (is (not (c/complex? 4))))
 
+    (testing "complex-generics"
+      (let [skip #{:quotient :remainder :modulo :negative? :exact-divide}]
+        (gt/integral-tests c/complex :exclusions skip :eq near)
+        (gt/floating-point-tests c/complex :eq near)))
+
     (testing "add"
       (is (= (c/complex 4 6) (g/add (c/complex 1 2) (c/complex 3 4))))
       (is (= (c/complex 1 3) (g/add (c/complex 0 3) 1)))
@@ -89,8 +95,7 @@
 
     (testing "div in either order"
       (is (= (c/complex 0 -1) (g/div 1 i)))
-      (is (= (c/complex 2 2) (g/div (c/complex 4 4) 2)))
-      )
+      (is (= (c/complex 2 2) (g/div (c/complex 4 4) 2))))
 
     (testing "expt"
       (is (near -1 (g/expt (c/complex 0 1) 2)))
@@ -118,7 +123,9 @@
       (is (near (g/mul i 200) (g/square (c/complex 10 10)))))
 
     (testing "cube"
-      (is (near (c/complex 0 -8) (g/cube (g/* 2 i)))))
+      (is (near (c/complex 0 -8) (g/cube (g/* 2 i))))
+      (is (near (c/complex 27) (g/cube (c/complex 3))))
+      (is (near (c/complex -27) (g/cube (c/complex -3)))))
 
     (testing "sqrt"
       (is (near (c/complex 10 10) (g/sqrt (g/mul i 200)))))

@@ -23,14 +23,83 @@
             [sicmutils.complex :as c]
             [sicmutils.util :as u]
             [sicmutils.generic :as g]
+            [sicmutils.generic-test :as gt]
             [sicmutils.value :as v]
             [sicmutils.numbers :as n]))
 
 (def near (v/within 1e-12))
 
-(deftest arithmetic
-  #?(:clj
-     (testing "with-ratios"
+(deftest number-generics
+  (gt/integral-tests identity :exclusions #{:exact-divide})
+  (gt/floating-point-tests identity :eq near)
+
+  (testing "log converts to complex"
+    (is (c/complex? (g/log -10)))
+    (is (= (c/complex 0 Math/PI) (g/log -1))))
+
+  (testing "exp/log preserve exactness together"
+    (is (= 0 (g/log (g/exp 0)))))
+
+  (testing "exp/log goes approx if forced"
+    (is (= 10.0 (g/log (g/exp 10)))))
+
+  (testing "div"
+    (is (= 5 (g/div 20 4))))
+
+  (testing "invert"
+    (is (= 1 (g/invert 1)))
+    (is (= (g/div 1 21) (g/invert 21))))
+
+  (testing "trig"
+    (is (near (/ Math/PI 4) (g/asin (/ (g/sqrt 2) 2))))
+    (is (near (/ Math/PI 4) (g/acos (/ (g/sqrt 2) 2))))
+    (is (zero? (g/asin 0)))
+    (is (near (/ Math/PI 2) (g/acos 0))))
+
+  (testing ">1 gets promoted to complex for asin, acos"
+    (is (c/complex? (g/asin 2)))
+    (is (c/complex? (g/acos 2))))
+
+  (testing "sqrt handles negative numbers, 0"
+    (is (= 0 (g/sqrt 0)))
+    (is (= 9 (g/sqrt 81)))
+    (is (c/complex? (g/sqrt -81)))
+    (is (= (c/complex 0 9) (g/sqrt -81))))
+
+  (testing "sqrt of one preserves type"
+    (is (v/one-like (g/sqrt c/ONE)))
+    (is (c/complex? (g/sqrt c/ONE)))))
+
+(deftest integer-generics
+  (gt/integral-tests u/int)
+  (gt/integral-a->b-tests u/int identity :exclusions #{:exact-divide}))
+
+(deftest long-generics
+  (gt/integral-tests u/long)
+  (gt/integral-a->b-tests u/long identity :exclusions #{:exact-divide}))
+
+(deftest bigint-generics
+  (gt/integral-tests u/bigint))
+
+#?(:clj
+   (deftest biginteger-generics
+     (gt/integral-tests #(BigInteger/valueOf %))))
+
+#?(:clj
+   (deftest double-generics
+     (gt/integral-tests double
+                        :eq near
+                        :exclusions #{:exact-divide :remainder :modulo :quotient :negative?})
+     (gt/floating-point-tests double :eq near)))
+
+#?(:clj
+   (deftest ratio-generics
+     (testing "rational generics"
+       (gt/floating-point-tests
+        rationalize :eq #(= (rationalize %1)
+                            (rationalize %2))))
+
+     (testing "ratio-operations"
        (is (= 13/40 (g/add 1/5 1/8)))
        (is (= 1/8 (g/sub 3/8 1/4)))
        (is (= 5/4 (g/div 5 4)))
@@ -39,54 +108,9 @@
        (is (= 1/2 (g/div 1 2)))
        (is (= 1/4 (reduce g/div [1 2 2])))
        (is (= 1/8 (reduce g/div [1 2 2 2])))
-       (is (= 1/8 (g/invert 8)))))
+       (is (= 1/8 (g/invert 8))))))
 
-  (testing "add"
-    (is (= 4 (g/add 2 2)))
-    (is (= 2 (g/add 2 0)))
-    (is (= 3.5 (g/add 1.5 2)))
-    (is (= 10 (reduce g/add [1 2 3 4]))))
-
-  (testing "mul"
-    (is (= 20 (g/mul 5 4)))
-    (is (= 4 (g/mul 2 2)))
-    (is (= 8 (reduce g/mul [2 2 2]))))
-
-  (testing "sub"
-    (is (= -4 (g/sub 0 4)))
-    (is (= 2.14 (g/sub 3.14 1))))
-
-  (testing "negate"
-    (is (= -4 (g/negate 4)))
-    (is (= 4 (g/negate (g/negate 4))))
-    (is (= -4 (g/negate 4)))
-    (is (= -4.2 (g/negate 4.2))))
-
-  (testing "div"
-    (is (= 5 (g/div 20 4)))
-    (is (= -14 (reduce g/sub [10 9 8 7]))))
-
-  (testing "invert"
-    (is (= 1 (g/invert 1)))
-    (is (= (g/div 1 21) (g/invert 21))))
-
-  (testing "expt"
-    (is (= 32 (g/expt 2 5))))
-
-  (testing "abs"
-    (is (= 1 (g/abs -1)))
-    (is (= 1 (g/abs 1))))
-
-  (testing "magnitude"
-    (is (= 123 (g/magnitude -123)))
-    (is (= 123 (g/magnitude 123))))
-
-  (testing "square/cube"
-    (is (= 4 (g/square 2)))
-    (is (= 4 (g/square -2)))
-    (is (= 27 (g/cube 3)))
-    (is (= -27 (g/cube -3))))
-
+(deftest arithmetic
   (testing "trig"
     (is (near (/ Math/PI 4) (g/asin (/ (g/sqrt 2) 2))))
     (is (near (/ Math/PI 4) (g/acos (/ (g/sqrt 2) 2))))
@@ -117,28 +141,7 @@
 
   (testing "exp/log preserve exactness together"
     (is (= 0 (g/log (g/exp 0)))
-        (= 10 (g/log (g/exp 10)))))
-
-  (testing "negative?"
-    (is (g/negative? (g/negate 4)))
-    (is (not (g/negative? (g/negate (g/negate 4))))))
-
-  (testing "quotient"
-    (is (= 2 (g/quotient 5 2)))
-    (is (= 2 (g/quotient 5N 2)))
-    (is (= 2 (g/quotient 5 2N)))
-    (is (= 2 (g/quotient 5N 2N))))
-
-  #?(:clj
-     (testing "bigint quotient"
-       (is (= 2 (g/quotient (BigInteger/valueOf 5) 2)))
-       (is (= 2 (g/quotient 5 (BigInteger/valueOf 2))))))
-
-  (testing "remainder"
-    (is (= 1 (g/remainder 5 2)))
-    (is (= 1 (g/remainder 5N 2)))
-    (is (= 1 (g/remainder 5 2N)))
-    (is (= 1 (g/remainder 5N 2N)))))
+        (= 10 (g/log (g/exp 10))))))
 
 ;; Test of generic wrapper operations.
 

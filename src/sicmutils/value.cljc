@@ -21,10 +21,13 @@
   (:refer-clojure :rename {zero? core-zero?})
   (:require [sicmutils.util :as u]
             #?(:clj [clojure.core.match :refer [match]]
-               :cljs [cljs.core.match :refer-macros [match]]))
+               :cljs [cljs.core.match :refer-macros [match]])
+            #?(:cljs goog.math.Long)
+            #?(:cljs goog.math.Integer))
   #?(:clj
      (:import (clojure.lang RestFn MultiFn Keyword Symbol)
               (java.lang.reflect Method))))
+
 
 (defprotocol Value
   (numerical? [this])
@@ -88,6 +91,67 @@
                           (@object-name-map o)
                           o)))
   (kind [o] (primitive-kind o)))
+
+#?(:cljs
+   ;; These definitions are required for the protocol implementation below.
+   (extend-protocol IEquiv
+     goog.math.Integer
+     (-equiv [this other]
+       (.equals this other))
+
+     goog.math.Long
+     (-equiv [this other]
+       (.equals this other))))
+
+#?(:cljs
+   (extend-protocol IComparable
+     goog.math.Integer
+     (-compare [this other]
+       (if (number? other)
+         (.compare this (u/int other))
+         (.compare this other)))
+
+     goog.math.Long
+     (-compare [this other]
+       (if (number? other)
+         (.compare this (u/long other))
+         (.compare this other)))))
+
+#?(:cljs
+   ;; Clojurescript-specific implementations of Value.
+   (let [big-zero (js/BigInt 0)
+         big-one (js/BigInt 1)]
+
+     (extend-protocol Value
+       js/BigInt
+       (nullity? [x] (js*  "~{} == ~{}" big-zero x))
+       (unity? [x] (js*  "~{} == ~{}" big-one x))
+       (zero-like [_] big-zero)
+       (one-like [_] big-one)
+       (freeze [x] x)
+       (exact? [_] true)
+       (numerical? [_] true)
+       (kind [_] js/BigInt)
+
+       goog.math.Integer
+       (nullity? [x] (.isZero x))
+       (unity? [x] (= (.-ONE goog.math.Integer) x))
+       (zero-like [_] (.-ZERO goog.math.Integer))
+       (one-like [_] (.-ONE goog.math.Integer))
+       (freeze [x] x)
+       (exact? [_] true)
+       (numerical? [_] true)
+       (kind [_] goog.math.Integer)
+
+       goog.math.Long
+       (nullity? [x] (.isZero x))
+       (unity? [x] (= (.getOne goog.math.Long) x))
+       (zero-like [_] (.getZero goog.math.Long))
+       (one-like [_] (.getOne goog.math.Long))
+       (freeze [x] x)
+       (exact? [x] true)
+       (numerical? [_] true)
+       (kind [_] goog.math.Long))))
 
 (defn add-object-symbols!
   [o->syms]
