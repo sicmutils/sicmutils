@@ -19,14 +19,18 @@
 
 (ns sicmutils.series-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
-  (:require [clojure.test :refer :all]
-            [sicmutils.env :refer :all]
+  (:require #?(:clj  [clojure.test :refer :all]
+               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+            #?(:clj [sicmutils.env :refer :all])
+            [sicmutils.generic :as g]
             [sicmutils.series :as series]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+            #?(:clj
+               [sicmutils.simplify :refer [hermetic-simplify-fixture]])))
 
-(use-fixtures :once hermetic-simplify-fixture)
+#?(:clj
+   (use-fixtures :once hermetic-simplify-fixture))
 
-(defn ^:private simp4 [x] (simplify (series/take 4 x)))
+(defn ^:private simp4 [x] (g/simplify (series/take 4 x)))
 
 (deftest series-test
   (testing "basics"
