@@ -28,7 +28,8 @@
              [polynomial :as p]
              [analyze :as a]
              [polynomial-gcd :as poly]])
-  (:import [clojure.lang Ratio BigInt]))
+  (:import [clojure.lang Ratio BigInt]
+           [sicmutils.polynomial Polynomial]))
 
 (declare operator-table operators-known)
 
