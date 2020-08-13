@@ -46,6 +46,8 @@
 
 (declare arity primitive-kind)
 
+(def argument-kind #(mapv kind %&))
+
 (def ^:private object-name-map (atom {}))
 
 (def numtype ::number)
@@ -128,16 +130,61 @@
                           o)))
   (kind [o] (primitive-kind o)))
 
+;; Override equiv for numbers.
+(defmulti eq argument-kind)
+
+;; These two constitute the default cases.
+(defmethod eq [::number ::number] [l r]
+  #?(:clj (= l r)
+     :cljs (identical? l r)))
+
+(defmethod eq :default [l r]
+  (if (or (isa? (kind l) ::number)
+          (isa? (kind r) ::number))
+    false
+    (= l r)))
+
 #?(:cljs
    ;; These definitions are required for the protocol implementation below.
-   (extend-protocol IEquiv
-     goog.math.Integer
-     (-equiv [this other]
-       (.equals this other))
+   (do
+     (defmethod eq [::native-integral js/BigInt] [l r]
+       (js*  "~{} == ~{}" l r))
 
-     goog.math.Long
-     (-equiv [this other]
-       (.equals this other))))
+     (defmethod eq [js/BigInt ::native-integral] [l r]
+       (js*  "~{} == ~{}" l r))
+
+     (doseq [[from to f] [[goog.math.Long goog.math.Integer u/int]
+                          [::exact-integral goog.math.Integer u/int]
+                          [::exact-integral goog.math.Long u/long]
+                          [goog.math.Long js/BigInt u/bigint]
+                          [goog.math.Integer js/BigInt u/bigint]]]
+       (defmethod eq [from to] [l r] (eq (f l) r))
+       (defmethod eq [to from] [l r] (eq l (f r))))
+
+     (extend-protocol IEquiv
+       number
+       (-equiv [this other]
+         (cond (number? other) (identical? this other)
+               (isa? (kind other) ::number) (eq this other)
+               :else false))
+
+       js/BigInt
+       (-equiv [this other]
+         (if (= js/BigInt (type other))
+           (js*  "~{} == ~{}" this other)
+           (eq this other)))
+
+       goog.math.Integer
+       (-equiv [this other]
+         (if (= goog.math.Integer (type other))
+           (.equals this other)
+           (eq this other)))
+
+       goog.math.Long
+       (-equiv [this other]
+         (if (= goog.math.Long (type other))
+           (.equals this other)
+           (eq this other))))))
 
 #?(:cljs
    (extend-protocol IComparable
@@ -347,8 +394,6 @@
     (or (fn? a) (instance? MultiFn a)) ::function
     :else (or (:type a)
               (type a))))
-
-(def argument-kind #(mapv kind %&))
 
 (def machine-epsilon
   (loop [e 1.0]

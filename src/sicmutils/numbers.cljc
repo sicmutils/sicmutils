@@ -134,6 +134,24 @@
    ;; Efficient, native GCD on the JVM.
    (defmethod g/gcd [BigInteger BigInteger] [a b] (.gcd a b)))
 
+#?(:cljs
+   ;; TODO these are not defined on integral types, BUT we could get farther
+   ;; if we could convert these to a BigDecimal, once we support those.
+   (doseq [t [goog.math.Integer goog.math.Long js/BigInt]]
+     (defmethod g/div [t t] [a b]
+       (let [rem (g/remainder a b)]
+         (if (v/nullity? rem)
+           (g/quotient a b)
+           (u/arithmetic-ex
+            (str "Division between " a " and " b " is not exact.")))))
+
+     (comment
+       ;; TODO invert is not defined on integral types, BUT we could get farther
+       ;; if we could convert these to a BigDecimal, once we support those.
+       ;;
+       ;; We could also make g/div above kick out the proper floating point ttype
+       ;; instead of throwing.
+       (defmethod g/invert [t] [a] (core-div a)))))
 
 ;; Clojurescript and Javascript have a number of numeric types available that
 ;; don't respond true to number? These each require their own block of method
@@ -167,7 +185,7 @@
        (if (neg? a) (core-minus a) a))
 
      ;; Compatibility between numbers and bigint.
-     (doseq [op [g/add g/mul g/sub g/expt g/remainder g/quotient g/gcd]]
+     (doseq [op [g/add g/mul g/sub g/gcd g/expt g/remainder g/quotient g/div]]
        (defmethod op [js/BigInt ::v/native-integral] [a b]
          (op a (u/bigint b)))
 
@@ -188,7 +206,7 @@
 
        ;; Compatibility between basic number type and the google numeric types.
        ;; Any operation between a number and a Long or Integer will promote the
-       (doseq [op [g/add g/mul g/sub g/gcd g/expt g/remainder g/quotient]]
+       (doseq [op [g/add g/mul g/sub g/gcd g/expt g/remainder g/quotient g/div]]
          (defmethod op [goog-type ::v/native-integral] [a b]
            (op a (.fromNumber goog-type b)))
 
@@ -197,10 +215,4 @@
 
      ;; These names are slightly different between the two types.
      (defmethod g/quotient [goog.math.Long goog.math.Long] [a b] (.div a b))
-     (defmethod g/quotient [goog.math.Integer goog.math.Integer] [a b] (.divide a b))
-
-     ;; TODO these are not defined on integral types, BUT we could get farther
-     ;; if we could convert these to a BigDecimal, once we support those.
-     (comment
-       (defmethod g/div [js/BigInt js/BigInt] [a b] (core-div a b))
-       (defmethod g/invert [js/BigInt] [a] (core-div a)))))
+     (defmethod g/quotient [goog.math.Integer goog.math.Integer] [a b] (.divide a b))))

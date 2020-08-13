@@ -18,6 +18,8 @@
 ;
 
 (ns sicmutils.polynomial-gcd
+  #?(:cljs (:require-macros
+            [sicmutils.polynomial-gcd :refer [dbg gcd-continuation-chain]]))
   (:require #?(:cljs [goog.string :refer [format]])
             [sicmutils.generic :as g]
             [sicmutils.polynomial :as p]
@@ -268,10 +270,11 @@
       (= u v) u
       (= arity 1) (g/abs (gcd1 u v))
       :else (binding [*poly-gcd-bail-out* (maybe-bail-out "polynomial GCD" clock *poly-gcd-time-limit*)]
-              (g/abs (gcd-continuation-chain u v
-                                             with-trivial-constant-gcd-check
-                                             with-optimized-variable-order
-                                             #(inner-gcd 0 %1 %2)))))))
+              (g/abs
+               (gcd-continuation-chain u v
+                                       with-trivial-constant-gcd-check
+                                       with-optimized-variable-order
+                                       #(inner-gcd 0 %1 %2)))))))
 
 (def gcd-seq
   "Compute the GCD of a sequence of polynomials (we take care to
