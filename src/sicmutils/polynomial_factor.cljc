@@ -19,6 +19,7 @@
 
 (ns sicmutils.polynomial-factor
   (:require [clojure.walk :as w]
+            #?(:cljs [goog.string :refer [format]])
             [sicmutils.value :as v]
             [sicmutils.analyze :as a]
             [sicmutils.generic :as g]

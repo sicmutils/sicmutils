@@ -18,19 +18,20 @@
 ;
 
 (ns sicmutils.polynomial-factor-test
-  (:require [clojure.test :refer :all]
-            [sicmutils
-             [generic :as g]
-             [value :as v]
-             [numbers]
-             [polynomial :refer :all]
-             [analyze :as a]
-             [simplify :refer [hermetic-simplify-fixture]]
-             [polynomial-factor :refer :all]]))
+  (:require #?(:clj  [clojure.test :refer :all]
+               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+            [sicmutils.analyze :as a]
+            [sicmutils.generic :as g]
+            [sicmutils.numbers]
+            [sicmutils.polynomial :as p]
+            [sicmutils.value :as v]
+            #?(:clj [sicmutils.simplify :refer [hermetic-simplify-fixture]])
+            [sicmutils.polynomial-factor :as pf]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+#?(:clj
+   (use-fixtures :once hermetic-simplify-fixture))
 
-(def ^:private poly-analyzer (->PolynomialAnalyzer))
+(def ^:private poly-analyzer (p/->PolynomialAnalyzer))
 (defn ^:private ->poly [x] (a/expression-> poly-analyzer x (fn [p _] p)))
 
 (deftest factoring
