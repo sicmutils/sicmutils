@@ -56,7 +56,7 @@
 
 (defn actual-factors
   [factors]
-  (filter #(not= % 1)
+  (filter (complement v/unity?)
           (cons (first factors)
                 (map-indexed #(expt %2 (+ %1 1)) (next factors)))))
 
