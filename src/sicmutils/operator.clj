@@ -18,11 +18,11 @@
 ;
 
 (ns sicmutils.operator
-  (:require [sicmutils
-             [value :as v]
-             [expression :as x]
-             [series :as series]
-             [generic :as g]])
+  (:require [sicmutils.expression :as x]
+            [sicmutils.function :as f]
+            [sicmutils.generic :as g]
+            [sicmutils.series :as series]
+            [sicmutils.value :as v])
   (:import (clojure.lang IFn)
            (sicmutils.series Series)))
 
@@ -33,6 +33,7 @@
   (numerical? [_] false)
   (nullity? [_] false)
   (unity? [_] false)
+
   IFn
   (invoke [_ f] (o f))
   (invoke [_ f g] (o f g))
@@ -166,11 +167,11 @@
   [n o]
   (o+o (number->operator n) o))
 (defmethod g/add
-  [::operator :sicmutils.function/function]
+  [::operator ::f/function]
   [o f]
   (o+o o (number->operator f)))
 (defmethod g/add
-  [:sicmutils.function/function ::operator]
+  [::f/function ::operator]
   [f o]
   (o+o (number->operator f) o))
 
@@ -184,11 +185,11 @@
   [n o]
   (o-o (number->operator n) o))
 (defmethod g/sub
-  [::operator :sicmutils.function/function]
+  [::operator ::f/function]
   [o f]
   (o-o o (number->operator f)))
 (defmethod g/sub
-  [:sicmutils.function/function ::operator]
+  [::f/function ::operator]
   [f o]
   (o-o (number->operator f) o))
 
@@ -196,14 +197,14 @@
 
 ;; Multiplication of operators is defined as their application (see o*o, above)
 (defmethod g/mul [::operator ::operator] [o p] (o*o o p))
-(defmethod g/mul [::operator :sicmutils.function/function] [o f] (o*f o f))
-(defmethod g/mul [:sicmutils.function/function ::operator] [f o] (f*o f o))
+(defmethod g/mul [::operator ::f/function] [o f] (o*f o f))
+(defmethod g/mul [::f/function ::operator] [f o] (f*o f o))
 ;; When multiplied with operators, a number is treated as an operator
 ;; that multiplies its input by the number.
 (defmethod g/mul [::operator ::co-operator] [o n] (o*f o n))
 (defmethod g/mul [::co-operator ::operator] [n o] (f*o n o))
 (defmethod g/div [::operator ::x/numerical-expression] [o n] (o*f o (g/invert n)))
-(defmethod g/div [::operator :sicmutils.function/function] [o f] (o*f o (g/invert f)))
+(defmethod g/div [::operator ::f/function] [o f] (o*f o (g/invert f)))
 
 (defmethod g/square [::operator] [o] (o*o o o))
 

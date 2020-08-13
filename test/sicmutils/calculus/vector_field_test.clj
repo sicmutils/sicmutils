@@ -20,11 +20,10 @@
 (ns sicmutils.calculus.vector-field-test
   (:refer-clojure :exclude [+ - * / ref zero? partial])
   (:require [clojure.test :refer :all]
-            [sicmutils
-             [env :refer :all]
-             [value :as v]
-             [simplify :refer [hermetic-simplify-fixture]]]
-            [sicmutils.operator :as o]))
+            [sicmutils.env :refer :all]
+            [sicmutils.operator :as o]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.value :as v]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 

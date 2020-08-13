@@ -18,14 +18,13 @@
 ;
 
 (ns sicmutils.calculus.derivative
-  (:require [sicmutils
-             [value :as v]
-             [generic :as g]
-             [operator :as o]
-             [series :as series]
-             [structure :as struct]
-             [matrix :as matrix]]
-            [clojure.string :refer [join]])
+  (:require [clojure.string :refer [join]]
+            [sicmutils.generic :as g]
+            [sicmutils.matrix :as matrix]
+            [sicmutils.operator :as o]
+            [sicmutils.series :as series]
+            [sicmutils.structure :as struct]
+            [sicmutils.value :as v])
   (:import (clojure.lang Sequential)))
 
 ;; A differential term is implemented as a pair whose first element is
@@ -47,11 +46,13 @@
   (exact? [_] false)
   (numerical? [d] (g/numerical-quantity? (differential-of d)))
   (kind [_] ::differential)
+
   Object
   (equals [_ b]
     (and (instance? Differential b)
          (let [^Differential bd b]
            (= terms (.terms bd)))))
+
   (toString [_] (str "D[" (join " " (map #(join " → " %) terms)) "]")))
 
 
@@ -88,7 +89,7 @@
   map, or just a sequence of pairs. The differential tag sets are
   sequences of integer tags, which should be sorted."
   [tags->coefs]
-  (Differential.
+  (->Differential
    (into empty-differential
          (sort-by first
                   (for [[tags tags-coefs] (group-by tags tags->coefs)
@@ -145,7 +146,7 @@
   differential; in which case we lift it into a trivial differential
   before the addition.)"
   [dx dy]
-  (Differential.
+  (->Differential
    ;; Iterate and build up the result while preserving order and dropping zero sums.
    (loop [dxs (differential->terms dx)
           dys (differential->terms dy)
@@ -178,7 +179,7 @@
     #(swap! next-differential-tag inc)))
 
 (defn ^:private make-x+dx [x dx]
-  (dx+dy x (Differential. [[[dx] 1]])))
+  (dx+dy x (->Differential [[[dx] 1]])))
 
 ;(defn ^:private hide-tag-in-procedure [& args] false) ; XXX
 
@@ -232,7 +233,7 @@
          infinitesimal-part true} (group-by #(tag-in? (tags %) keytag) dts)]
     ;; since input differential is well-formed, it is safe to
     ;; construct differential objects on the split parts.
-    (continue (Differential. finite-part) (Differential. infinitesimal-part))))
+    (continue (->Differential finite-part) (->Differential infinitesimal-part))))
 
 (defn ^:private unary-op
   [f df:dx]

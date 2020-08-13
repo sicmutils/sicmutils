@@ -19,14 +19,12 @@
 
 (ns sicmutils.calculus.manifold-test
   (:refer-clojure :exclude [* - / + ref zero? partial])
-  (:require
-    [clojure.test :refer :all]
-    [sicmutils
-     [env :refer :all]
-     [value :as v]
-     [generic :as g]
-     [simplify :refer [hermetic-simplify-fixture]]]
-    [sicmutils.calculus.manifold :as m]))
+  (:require [clojure.test :refer :all]
+            [sicmutils.calculus.manifold :as m]
+            [sicmutils.env :refer :all]
+            [sicmutils.generic :as g]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.value :as v]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 

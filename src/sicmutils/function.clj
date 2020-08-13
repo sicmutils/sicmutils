@@ -18,14 +18,13 @@
 ;
 
 (ns sicmutils.function
-  (:require [sicmutils
-             [polynomial]
-             [value :as v]
-             [expression :as x]
-             [structure :as s]
-             [matrix :as m]
-             [numsymb :as ns]
-             [generic :as g]]
+  (:require [sicmutils.expression :as x]
+            [sicmutils.generic :as g]
+            [sicmutils.matrix :as m]
+            [sicmutils.numsymb :as ns]
+            [sicmutils.polynomial]
+            [sicmutils.structure :as s]
+            [sicmutils.value :as v]
             [sicmutils.calculus.derivative :as d])
   (:import [sicmutils.polynomial Polynomial]
            [sicmutils.structure Structure]
