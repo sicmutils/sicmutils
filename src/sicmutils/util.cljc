@@ -5,8 +5,7 @@
                            int core-int
                            long core-long}
                   #?@(:cljs [:exclude [bigint long int]]))
-  (:require [stopwatch.core :as sw]
-            #?(:clj [clojure.math.numeric-tower :as nt])
+  (:require #?(:clj [clojure.math.numeric-tower :as nt])
             #?(:cljs goog.math.Integer)
             #?(:cljs goog.math.Long))
   #?(:clj

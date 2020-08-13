@@ -19,10 +19,10 @@
 
 (ns sicmutils.examples.central-potential
   (:refer-clojure :exclude [+ - * / zero? partial ref])
-  (:require [clojure.tools.logging :as log]
-            [hiccup.core :refer :all]
+  (:require [hiccup.core :refer :all]
             [hiccup.page :refer :all]
-            [sicmutils.env :refer :all]))
+            [sicmutils.env :refer :all]
+            [taoensso.timbre :as log]))
 
 (defn ^:private pairs
   "Return a sequence of pairs of different elements from the given sequence."

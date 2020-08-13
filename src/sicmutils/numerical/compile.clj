@@ -18,14 +18,13 @@
 ;
 
 (ns sicmutils.numerical.compile
-  (:require [sicmutils
-             [structure :as struct]
-             [generic :as g]]
+  (:require [clojure.set :as set]
             [clojure.walk :as w]
-            [clojure.tools.logging :as log]
             [sicmutils.expression :as x]
-            [clojure.set :as set])
-  (:import (com.google.common.base Stopwatch)))
+            [sicmutils.generic :as g]
+            [sicmutils.structure :as struct]
+            [sicmutils.util.stopwatch :as us]
+            [taoensso.timbre :as log]))
 
 (def ^:private compiled-function-whitelist {'up `struct/up
                                             'down `struct/down
@@ -124,7 +123,7 @@
 
 (defn ^:private compile-state-function2
   [f parameters initial-state]
-  (let [sw (Stopwatch/createStarted)
+  (let [sw (us/stopwatch)
         generic-parameters (for [_ parameters] (gensym 'p))
         generic-initial-state (struct/mapr (fn [_] (gensym 'y)) initial-state)
         g (apply f generic-parameters)
@@ -133,10 +132,10 @@
                                g/simplify
                                common-subexpression-elimination
                                (construct-state-function-exp
-                                 generic-parameters
-                                 generic-initial-state)
+                                generic-parameters
+                                generic-initial-state)
                                eval)]
-    (log/info "compiled state function in" (str sw))
+    (log/info "compiled state function in" (us/repr sw))
     compiled-function))
 
 (defn compile-state-function
@@ -155,7 +154,7 @@
 
 (defn ^:private compile-univariate-function2
   [f]
-  (let [sw (Stopwatch/createStarted)
+  (let [sw (us/stopwatch)
         var (gensym 'x)
         compiled-function (->> var
                                f
@@ -163,7 +162,7 @@
                                common-subexpression-elimination
                                (construct-univariate-function-exp var)
                                eval)]
-    (log/info "compiled univariate function in" (str sw))
+    (log/info "compiled univariate function in" (us/repr sw))
     compiled-function))
 
 (defn compile-univariate-function

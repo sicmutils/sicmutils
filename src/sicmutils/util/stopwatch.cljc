@@ -111,12 +111,11 @@
 
 (defn stopwatch
   "Returns a platform-specific implementation of IStopwatch."
-  ([] (stopwatch true))
-  ([running?]
-   #? (:cljs (let [watch (->Stopwatch nil 0 false)]
-               (if running?
-                 (start watch)
-                 watch))
-       :clj (if running?
-              (com.google.common.base.Stopwatch/createStarted)
-              (com.google.common.base.Stopwatch/createUnstarted)))))
+  [& {:keys [started?] :or {started? true}}]
+  #? (:cljs (let [watch (->Stopwatch nil 0 false)]
+              (if started?
+                (start watch)
+                watch))
+      :clj (if started?
+             (com.google.common.base.Stopwatch/createStarted)
+             (com.google.common.base.Stopwatch/createUnstarted))))
