@@ -18,46 +18,47 @@
 ;
 
 (ns sicmutils.rational-function-test
-  (:require [clojure.test :refer :all]
+  (:require #?(:clj  [clojure.test :refer :all]
+               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
             [sicmutils.analyze :as a]
             [sicmutils.generic :as g]
+            [sicmutils.matrix]
             [sicmutils.numbers]
             [sicmutils.polynomial :as p]
-            [sicmutils.rational-function :refer :all]
-            [sicmutils.structure :as s]
-            [sicmutils.simplify]))
+            [sicmutils.rational-function :as rf]
+            [sicmutils.structure :as s]))
 
 (deftest make-test
   (let [p #(p/make 1 [[[0] %]])      ;; constant arity 1 polynomial
-        rf #(make (p %1) (p %2))       ;; ratio of constant arity 1 polynomials
+        rf #(rf/make (p %1) (p %2))       ;; ratio of constant arity 1 polynomials
         x+1 (p/make [1 1])
         x-1 (p/make [-1 1])
-        x+1:x-1 (make x+1 x-1)
-        x-1:x+1 (make x-1 x+1)
+        x+1:x-1 (rf/make x+1 x-1)
+        x-1:x+1 (rf/make x-1 x+1)
         one (p/make [1])]
-    (is (= (make (p/make [-1 -2 -3]) (p/make [-4 -5 6]))
-           (make (p/make [1 2 3]) (p/make [4 5 -6]))))
-    (is (= (make (p/make [1 2 3]) (p/make [-4 5 6]))
-           (make (p/make [1 2 3]) (p/make [-4 5 6]))))
-    (is (= one (mul x+1:x-1 x-1:x+1)))
-    (is (= one (mul x-1:x+1 x+1:x-1)))
-    (is (= (make (p/make [0 15 10]) (p/make [0 0 15 18]))
-           (make (p/make [0 1/2 1/3]) (p/make [0 0 1/2 3/5]))))
-    (is (= (make (p/make [1 -1]) (p/make [1 1])) (negate x-1:x+1)))
-    (is (= x+1:x-1 (invert x-1:x+1)))
-    (is (= one (mul x-1:x+1 (invert x-1:x+1))))
-    (is (= (make (p/make [2 0 2]) (p/make [-1 0 1])) (add x-1:x+1 x+1:x-1)))
-    (is (= (make (p/make [2 0 2]) (p/make [-1 0 1])) (add x+1:x-1 x-1:x+1)))
-    (is (= (make (p/make [1 2 1]) (p/make [1 -2 1])) (expt x+1:x-1 2)))
-    (is (= (make (p/make [1 -2 1]) (p/make [1 2 1])) (expt x+1:x-1 -2)))
-    (is (= (p 3) (add (rf 3 2) (rf 3 2))))
-    (is (= (rf 5 3) (div (rf 5 2) (rf 3 2))))
-    (is (= (rf 14 3) (div (rf 8 3) (rf 4 7))))))
+    (is (= (rf/make (p/make [-1 -2 -3]) (p/make [-4 -5 6]))
+           (rf/make (p/make [1 2 3]) (p/make [4 5 -6]))))
+    (is (= (rf/make (p/make [1 2 3]) (p/make [-4 5 6]))
+           (rf/make (p/make [1 2 3]) (p/make [-4 5 6]))))
+    (is (= one (rf/mul x+1:x-1 x-1:x+1)))
+    (is (= one (rf/mul x-1:x+1 x+1:x-1)))
+    (is (= (rf/make (p/make [0 15 10]) (p/make [0 0 15 18]))
+           (rf/make (p/make [0 1/2 1/3]) (p/make [0 0 1/2 3/5]))))
+    (is (= (rf/make (p/make [1 -1]) (p/make [1 1])) (rf/negate x-1:x+1)))
+    (is (= x+1:x-1 (rf/invert x-1:x+1)))
+    (is (= one (rf/mul x-1:x+1 (rf/invert x-1:x+1))))
+    (is (= (rf/make (p/make [2 0 2]) (p/make [-1 0 1])) (rf/add x-1:x+1 x+1:x-1)))
+    (is (= (rf/make (p/make [2 0 2]) (p/make [-1 0 1])) (rf/add x+1:x-1 x-1:x+1)))
+    (is (= (rf/make (p/make [1 2 1]) (p/make [1 -2 1])) (rf/expt x+1:x-1 2)))
+    (is (= (rf/make (p/make [1 -2 1]) (p/make [1 2 1])) (rf/expt x+1:x-1 -2)))
+    (is (= (p 3) (rf/add (rf 3 2) (rf 3 2))))
+    (is (= (rf 5 3) (rf/div (rf 5 2) (rf 3 2))))
+    (is (= (rf 14 3) (rf/div (rf 8 3) (rf 4 7))))))
 
 (deftest rf-arithmetic
   (testing "invert-hilbert-matrix"
     (let [p #(p/make 1 [[[0] %]])         ;; constant arity 1 polynomial
-          rf #(make (p %1) (p %2))        ;; arity 1 rational function out of two constants
+          rf #(rf/make (p %1) (p %2))        ;; arity 1 rational function out of two constants
           N 3
           H (apply s/up (for [i (range 1 (inc N))]
                           (apply s/up (for [j (range 1 (inc N))] (rf 1 (+ i j -1))))))]
@@ -70,9 +71,9 @@
 (deftest rf-operations
   (let [x+1 (p/make [1 1])
         x-1 (p/make [-1 1])]
-    (= 'foo (g/mul x-1 (make x+1 x-1)))))
+    (= 'foo (g/mul x-1 (rf/make x+1 x-1)))))
 
-(def ^:private rf-analyzer (->RationalFunctionAnalyzer (p/->PolynomialAnalyzer)))
+(def ^:private rf-analyzer (rf/->RationalFunctionAnalyzer (p/->PolynomialAnalyzer)))
 (def ^:private rf-simp #(a/expression-> rf-analyzer % (fn [a b] (a/->expression rf-analyzer a b))))
 
 (deftest rf-as-simplifier

@@ -1,38 +1,41 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.simplify-test
-  (:require [clojure.test :refer :all]
-            [sicmutils
-             [simplify :refer [hermetic-simplify-fixture
-                               simplify-expression
-                               expression->string
-                               trig-cleanup]]
-             [structure :refer :all]
-             [complex :as c]
-             [generic :as g]
-             [structure :as s]
-             [matrix :as matrix]
-             [numbers]
-             [function :as f]
-             [value :as v]]
-            [sicmutils.mechanics.lagrange :refer :all]))
+  (:require #?(:clj  [clojure.test :refer :all]
+               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+            #?(:cljs [goog.string :refer [format]])
+            [sicmutils.complex :as c]
+
+            ;; TODO move tests for both.
+            #?(:clj [sicmutils.function :as f])
+            #?(:clj [sicmutils.mechanics.lagrange :refer :all])
+
+            [sicmutils.generic :as g]
+            [sicmutils.matrix :as matrix]
+            [sicmutils.numbers]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture
+                                        simplify-expression
+                                        expression->string
+                                        trig-cleanup]]
+            [sicmutils.structure :as s :refer :all]
+            [sicmutils.value :as v]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
