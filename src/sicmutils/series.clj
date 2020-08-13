@@ -21,6 +21,7 @@
   (:refer-clojure :rename {take core-take})
   (:require [sicmutils.expression :as x]
             [sicmutils.generic :as g]
+            [sicmutils.util :as u]
             [sicmutils.value :as v])
   (:import (clojure.lang IFn Sequential Seqable)))
 
