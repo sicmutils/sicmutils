@@ -138,6 +138,12 @@
            (format " ...and %d more terms" (- c n)))
          ")")))
 
+(defn polynomial?
+  "Returns true if the supplied argument is an instance of Polynomial, false
+  otherwise."
+  [p]
+  (instance? Polynomial p))
+
 (defn make
   "When called with two arguments, the first is the arity
   (number of indeterminates) of the polynomial followed by a sequence
@@ -223,8 +229,8 @@
 (defn add
   "Adds the polynomials p and q"
   [p q]
-  {:pre [(instance? Polynomial p)
-         (instance? Polynomial q)]}
+  {:pre [(polynomial? p)
+         (polynomial? q)]}
   (cond (v/nullity? p) q
         (v/nullity? q) p
         :else (make (check-same-arity p q)
@@ -234,8 +240,8 @@
 (defn sub
   "Subtract the polynomial q from the polynomial p."
   [p q]
-  {:pre [(instance? Polynomial p)
-         (instance? Polynomial q)]}
+  {:pre [(polynomial? p)
+         (polynomial? q)]}
   (cond (v/nullity? p) (negate q)
         (v/nullity? q) p
         :else (make (check-same-arity p q)
@@ -246,8 +252,8 @@
 (defn mul
   "Multiply polynomials p and q, and return the product."
   [p q]
-  {:pre [(instance? Polynomial p)
-         (instance? Polynomial q)]}
+  {:pre [(polynomial? p)
+         (polynomial? q)]}
   (cond (v/nullity? p) p
         (v/nullity? q) q
         (v/unity? p) q
@@ -260,7 +266,7 @@
 (defn raise-arity
   "The opposite of lower-arity."
   [p]
-  {:pre [(instance? Polynomial p)
+  {:pre [(polynomial? p)
          (= (.-arity p) 1)]}
   (let [terms (for [[x q] (.-xs->c p)
                     [ys c] (.-xs->c q)]
@@ -272,7 +278,7 @@
   "Given a nonzero polynomial of arity A > 1, return an equivalent polynomial
   of arity 1 whose coefficients are polynomials of arity A-1."
   [p]
-  {:pre [(instance? Polynomial p)
+  {:pre [(polynomial? p)
          (> (.-arity p) 1)
          (not (v/nullity? p))]}
   ;; XXX observation:
@@ -307,12 +313,12 @@
 (defn evaluate
   "Evaluates a multivariate polynomial p at xs."
   [p xs]
-  {:pre [(instance? Polynomial p)]}
+  {:pre [(polynomial? p)]}
   (cond (nil? xs) p
         (v/nullity? p) 0
         (= (.-arity p) 1) (evaluate-1 p (first xs))
         :else (let [L (evaluate-1 (lower-arity p) (first xs))]
-                (if (instance? Polynomial L)
+                (if (polynomial? L)
                   (recur L (next xs))
                   L))))
 
@@ -321,8 +327,8 @@
   polynomials. This assumes that the coefficients are drawn from a field,
   and so support division."
   [u v]
-  {:pre [(instance? Polynomial u)
-         (instance? Polynomial v)]}
+  {:pre [(polynomial? u)
+         (polynomial? v)]}
   (cond (v/nullity? v) (u/illegal "internal polynomial division by zero")
         (v/nullity? u) [u u]
         (v/unity? v) [u (v/zero-like u)]
@@ -359,8 +365,8 @@
   how many times the integerizing multiplication will be done, we also
   return the number d for which d * u = q * v + r."
   [u v]
-  {:pre [(instance? Polynomial u)
-         (instance? Polynomial v)
+  {:pre [(polynomial? u)
+         (polynomial? v)
          (not (v/nullity? v))
          (= (.-arity u) (.-arity v) 1)]}
   (let [a (check-same-arity u v)
@@ -380,8 +386,8 @@
   "Divides the polynomial u by the polynomial v. Throws an IllegalStateException
   if the division leaves a remainder. Otherwise returns the quotient."
   [u v]
-  {:pre [(instance? Polynomial u)
-         (instance? Polynomial v)]}
+  {:pre [(polynomial? u)
+         (polynomial? v)]}
   (let [[q r] (divide u v)]
     (when-not (v/nullity? r)
       (u/illegal-state (str "expected even division left a remainder!" u " / " v " r " r)))
@@ -473,7 +479,7 @@
     ;; representing the evaluation of that polynomial over the
     ;; indeterminates extracted from the expression at the start of this
     ;; process.
-    (if (instance? Polynomial p)
+    (if (polynomial? p)
       (reduce
        sym/add 0
        (map (fn [[xs c]]
@@ -498,6 +504,7 @@
 (defmethod g/sub [::polynomial ::polynomial] [a b] (sub a b))
 (defmethod g/exact-divide [::polynomial ::polynomial] [p q] (evenly-divide p q))
 (defmethod g/square [::polynomial] [a] (mul a a))
+(defmethod g/abs [::polynomial] [a] (abs a))
 
 (defmethod g/mul [::v/number ::polynomial] [c p]
   (map-coefficients #(g/* c %) p))

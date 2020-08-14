@@ -161,6 +161,14 @@
       (testing "expt"
         (check g/expt 2 5 32)))
 
+    (when-not (:gcd exclusions)
+      (testing "gcd"
+        (check g/gcd (g/* 2 3 5 7) (g/* 2 5 7 11) (g/* 2 5 7))
+        (check g/gcd 4 0 4)
+        (check g/gcd 0 4 4)
+        (check g/gcd 1 4 1)
+        (check g/gcd 4 1 1)))
+
     (when-not (:quotient exclusions)
       (testing "quotient"
         (check g/quotient 5 2 2)))

@@ -1,12 +1,16 @@
 (ns sicmutils.util
   "Shared utilities between clojure and clojurescript."
   (:refer-clojure :rename {bigint core-bigint
+                           biginteger core-biginteger
                            int core-int
                            long core-long}
                   #?@(:cljs [:exclude [bigint long int]]))
-  (:require #?(:clj [clojure.math.numeric-tower :as nt])
+  (:require [stopwatch.core :as sw]
+            #?(:clj [clojure.math.numeric-tower :as nt])
             #?(:cljs goog.math.Integer)
-            #?(:cljs goog.math.Long)))
+            #?(:cljs goog.math.Long))
+  #?(:clj
+     (:import [java.util.concurrent TimeUnit TimeoutException])))
 
 (def compute-sqrt #?(:clj nt/sqrt :cljs Math/sqrt))
 (def compute-expt #?(:clj nt/expt :cljs Math/pow))
@@ -16,6 +20,10 @@
 
 (defn bigint [x]
   #?(:clj (core-bigint x)
+     :cljs (js/BigInt x)))
+
+(defn biginteger [x]
+  #?(:clj (core-biginteger x)
      :cljs (js/BigInt x)))
 
 (defn int [x]
@@ -44,4 +52,9 @@
 (defn arithmetic-ex [s]
   (throw
    #?(:clj (ArithmeticException. s)
+      :cljs (js/Error s))))
+
+(defn timeout-ex [s]
+  (throw
+   #?(:clj (TimeoutException. s)
       :cljs (js/Error s))))
