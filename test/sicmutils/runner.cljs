@@ -17,6 +17,7 @@
             [sicmutils.polynomial-test]
             [sicmutils.rational-function-test]
             [sicmutils.rules-test]
+            [sicmutils.series-test]
             [sicmutils.simplify-test]
             [sicmutils.structure-test]
             [sicmutils.value-test]))
@@ -37,6 +38,7 @@
            'sicmutils.polynomial-factor-test
            'sicmutils.rational-function-test
            'sicmutils.rules-test
+           'sicmutils.series-test
            'sicmutils.simplify-test
            'sicmutils.structure-test
            'sicmutils.value-test)
