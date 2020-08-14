@@ -37,29 +37,31 @@
 
 ;; Smaller inheritance tree to enabled shared implementations between numeric
 ;; types that represent mathematical integers.
+(derive ::integral ::v/number)
 (derive u/inttype ::integral)
 (derive u/longtype ::integral)
 
 #?(:cljs
-   (derive js/BigInt ::integral)
+   (do (derive js/BigInt ::integral)
+       (derive ::v/exact-number ::integral))
 
    :clj
    (do (derive BigInt ::integral)
        (derive BigInteger ::integral)))
 
-(defmethod g/add [u/numtype u/numtype] [a b] (#?(:clj +' :cljs core-plus) a b))
-(defmethod g/mul [u/numtype u/numtype] [a b] (#?(:clj *' :cljs core-times) a b))
-(defmethod g/sub [u/numtype u/numtype] [a b] (#?(:clj -' :cljs core-minus) a b))
-(defmethod g/negate [u/numtype] [a] (core-minus a))
-(defmethod g/div [u/numtype u/numtype] [a b] (core-div a b))
-(defmethod g/invert [u/numtype] [a] (core-div a))
-(defmethod g/expt [u/numtype u/numtype] [a b] (u/compute-expt a b))
-(defmethod g/abs [u/numtype] [a] (u/compute-abs a))
-(defmethod g/magnitude [u/numtype] [a] (u/compute-abs a))
+(defmethod g/add [v/numtype v/numtype] [a b] (#?(:clj +' :cljs core-plus) a b))
+(defmethod g/mul [v/numtype v/numtype] [a b] (#?(:clj *' :cljs core-times) a b))
+(defmethod g/sub [v/numtype v/numtype] [a b] (#?(:clj -' :cljs core-minus) a b))
+(defmethod g/negate [v/numtype] [a] (core-minus a))
+(defmethod g/div [v/numtype v/numtype] [a b] (core-div a b))
+(defmethod g/invert [v/numtype] [a] (core-div a))
+(defmethod g/expt [v/numtype v/numtype] [a b] (u/compute-expt a b))
+(defmethod g/abs [v/numtype] [a] (u/compute-abs a))
+(defmethod g/magnitude [v/numtype] [a] (u/compute-abs a))
 
 ;; trig operations
-(defmethod g/atan [u/numtype] [a] (Math/atan a))
-(defmethod g/atan [u/numtype u/numtype] [a b] (Math/atan2 a b))
+(defmethod g/atan [v/numtype] [a] (Math/atan a))
+(defmethod g/atan [v/numtype v/numtype] [a b] (Math/atan2 a b))
 
 (comment
   ;; As reference documentation, these are the implementations that one would
@@ -68,30 +70,30 @@
   ;; Instead, these implementations for numbers are provided by
   ;; `sicmutils.numsymb`. This allows us to apply simplifications inside each
   ;; operation as it's evaluated.
-  (defmethod g/sin [u/numtype] [a] (Math/sin a))
-  (defmethod g/cos [u/numtype] [a] (Math/cos a))
-  (defmethod g/tan [u/numtype] [a] (Math/tan a)))
+  (defmethod g/sin [v/numtype] [a] (Math/sin a))
+  (defmethod g/cos [v/numtype] [a] (Math/cos a))
+  (defmethod g/tan [v/numtype] [a] (Math/tan a)))
 
 ;; Operations which allow promotion to complex numbers when their
 ;; arguments would otherwise result in a NaN if computed on the real
 ;; line
 
 (defmethod g/asin
-  [u/numtype]
+  [v/numtype]
   [a]
   (if (> (g/abs a) 1)
     (g/asin (complex a))
     (Math/asin a)))
 
 (defmethod g/acos
-  [u/numtype]
+  [v/numtype]
   [a]
   (if (> (g/abs a) 1)
     (g/acos (complex a))
     (Math/acos a)))
 
 (defmethod g/sqrt
-  [u/numtype]
+  [v/numtype]
   [a]
   (cond (neg? a) (g/sqrt (complex a))
         (v/nullity? a) a
@@ -101,14 +103,14 @@
 ;; Implementation that converts to complex when negative, and also attempts to
 ;; remain exact if possible.
 (defmethod g/log
-  [u/numtype]
+  [v/numtype]
   [a]
   (cond (neg? a) (g/log (complex a))
         (v/unity? a) (v/zero-like a)
         :else (Math/log a)))
 
 (defmethod g/exp
-  [u/numtype]
+  [v/numtype]
   [a]
   (if (v/nullity? a)
     (v/one-like a)
@@ -129,17 +131,17 @@
 ;; type system.
 #?(:cljs
    (do
-     ;; These are potentially ill-formed on js/Number, since these don't make
-     ;; sense for floats. But there is no distinction in JS between a floating
-     ;; point number and an integer, so here we go.
-     (defmethod g/negative? [u/numtype] [a] (neg? a))
-     (defmethod g/quotient [u/numtype u/numtype] [a b] (quot a b))
-     (defmethod g/remainder [u/numtype u/numtype] [a b] (rem a b))
-     (defmethod g/modulo [u/numtype u/numtype] [a b] (mod a b)))
+     ;; These extend ::v/exact-number, which allows them to apply only to JS
+     ;; numbers that are... exact.
+     (defmethod g/negative? [::v/exact-number] [a] (neg? a))
+     (defmethod g/quotient [::v/exact-number ::v/exact-number] [a b] (quot a b))
+     (defmethod g/remainder [::v/exact-number ::v/exact-number] [a b] (rem a b))
+     (defmethod g/modulo [::v/exact-number ::v/exact-number] [a b] (mod a b)))
 
    :clj
    (do
-     ;; Operations defined only on integral types
+     ;; All JVM types that respond to ::integral behave correctly with Clojure's
+     ;; native `quot`, `rem`, `mod`.
      (defmethod g/quotient [::integral ::integral] [b a] (quot b a))
      (defmethod g/remainder [::integral ::integral] [a b] (rem a b))
      (defmethod g/modulo [::integral ::integral] [a b] (mod a b))
@@ -180,10 +182,10 @@
 
      ;; Compatibility between numbers and bigint.
      (doseq [op [g/add g/mul g/sub g/expt g/remainder g/quotient]]
-       (defmethod op [js/BigInt u/numtype] [a b]
+       (defmethod op [js/BigInt ::v/exact-number] [a b]
          (op a (u/bigint b)))
 
-       (defmethod op [u/numtype js/BigInt] [a b]
+       (defmethod op [::v/exact-number js/BigInt] [a b]
          (op (u/bigint a) b)))
 
      ;; Google Closure library's 64-bit Long and arbitrary-precision Integer
@@ -201,10 +203,10 @@
        ;; Compatibility between basic number type and the google numeric types.
        ;; Any operation between a number and a Long or Integer will promote the
        (doseq [op [g/add g/mul g/sub g/expt g/remainder g/quotient]]
-         (defmethod op [goog-type u/numtype] [a b]
+         (defmethod op [goog-type ::v/exact-number] [a b]
            (op a (.fromNumber goog-type b)))
 
-         (defmethod op [u/numtype goog-type] [a b]
+         (defmethod op [::v/exact-number goog-type] [a b]
            (op (.fromNumber goog-type a) b))))
 
      ;; These names are slightly different between the two types.

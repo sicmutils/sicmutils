@@ -22,7 +22,7 @@
   (:require [clojure.test :refer :all]
             [sicmutils
              [function :refer :all]
-             [generic :refer :all]
+             [generic :as g :refer :all]
              [complex :refer [complex]]
              [value :as v]
              [numbers]
@@ -471,24 +471,38 @@
 
 (deftest taylor
   (is (= '(+ (* 1/6 (expt dx 3) (((∂ 0) ((∂ 0) ((∂ 0) f))) (up x y)))
-               (* 1/6 (expt dx 2) dy (((∂ 0) ((∂ 0) ((∂ 1) f))) (up x y)))
-               (* 1/3 (expt dx 2) dy (((∂ 1) ((∂ 0) ((∂ 0) f))) (up x y)))
-               (* 1/3 dx (expt dy 2) (((∂ 1) ((∂ 0) ((∂ 1) f))) (up x y)))
-               (* 1/6 dx (expt dy 2) (((∂ 1) ((∂ 1) ((∂ 0) f))) (up x y)))
-               (* 1/6 (expt dy 3) (((∂ 1) ((∂ 1) ((∂ 1) f))) (up x y)))
-               (* 1/2 (expt dx 2) (((∂ 0) ((∂ 0) f)) (up x y)))
-               (* dx dy (((∂ 1) ((∂ 0) f)) (up x y)))
-               (* 1/2 (expt dy 2) (((∂ 1) ((∂ 1) f)) (up x y)))
-               (* dx (((∂ 0) f) (up x y)))
-               (* dy (((∂ 1) f) (up x y)))
-               (f (up x y)))
-           (simplify
-            (reduce +
-                    (take 4 (taylor-series-terms
-                                    (literal-function 'f (up 0 0) 0)
-                                    (up 'x 'y)
-                                    (up 'dx 'dy)))))))
+             (* 1/6 (expt dx 2) dy (((∂ 0) ((∂ 0) ((∂ 1) f))) (up x y)))
+             (* 1/3 (expt dx 2) dy (((∂ 1) ((∂ 0) ((∂ 0) f))) (up x y)))
+             (* 1/3 dx (expt dy 2) (((∂ 1) ((∂ 0) ((∂ 1) f))) (up x y)))
+             (* 1/6 dx (expt dy 2) (((∂ 1) ((∂ 1) ((∂ 0) f))) (up x y)))
+             (* 1/6 (expt dy 3) (((∂ 1) ((∂ 1) ((∂ 1) f))) (up x y)))
+             (* 1/2 (expt dx 2) (((∂ 0) ((∂ 0) f)) (up x y)))
+             (* dx dy (((∂ 1) ((∂ 0) f)) (up x y)))
+             (* 1/2 (expt dy 2) (((∂ 1) ((∂ 1) f)) (up x y)))
+             (* dx (((∂ 0) f) (up x y)))
+             (* dy (((∂ 1) f) (up x y)))
+             (f (up x y)))
+         (simplify
+          (reduce +
+                  (take 4 (taylor-series-terms
+                           (literal-function 'f (up 0 0) 0)
+                           (up 'x 'y)
+                           (up 'dx 'dy)))))))
   (testing "eq. 5.291"
     (let [V (fn [[xi eta]] (sqrt (+ (square (+ xi 'R_0)) (square eta))))]
       (is (= '[R_0 xi (/ (expt eta 2) (* 2 R_0))]
              (take 3 (simplify (taylor-series-terms V (up 0 0) (up 'xi 'eta)))))))))
+
+(deftest moved-from-structure
+  (let [vs (up
+            (up 'vx1 'vy1)
+            (up 'vx2 'vy2))
+        L1 (fn [[v1 v2]]
+             (+ (* 1/2 'm1 (g/square v1))
+                (* 1/2 'm2 (g/square v2))))]
+    (is (= '(down
+             (down (down (down m1 0) (down 0 0))
+                   (down (down 0 m1) (down 0 0)))
+             (down (down (down 0 0) (down m2 0))
+                   (down (down 0 0) (down 0 m2))))
+           (g/simplify (((g/expt D 2) L1) vs))))))

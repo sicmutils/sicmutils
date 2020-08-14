@@ -22,15 +22,14 @@
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
-            [sicmutils
-             [matrix :as matrix]
-             [structure :as s]
-             [generic :as g]
-             [value :as v]
-             [numsymb]
-             [function :refer [literal-function]]
-             [simplify]]
-            [sicmutils.calculus.derivative :as d]))
+            [sicmutils.calculus.derivative :as d]
+            [sicmutils.function :refer [literal-function]]
+            [sicmutils.generic :as g]
+            [sicmutils.matrix :as matrix]
+            [sicmutils.numsymb]
+            [sicmutils.simplify]
+            [sicmutils.structure :as s]
+            [sicmutils.value :as v]))
 
 (deftest matrix-basics
   (let [M (matrix/by-rows (list 1 2 3)
@@ -287,3 +286,30 @@
     (prop/for-all [A (generate-square-matrix n)]
                   (or (zero? (g/determinant A))
                       (= (matrix/I n) (g/* (g/invert A) A) (g/* A (g/invert A)))))))
+
+(deftest matrices-from-structure
+  (let [A (s/up (s/up 1 2) (s/up 3 4))
+        C (s/down (s/up 1 2 3) (s/up 0 4 5) (s/up 1 0 6))
+        D (s/up (s/down 3))
+        F (s/down (s/up 1 2) (s/up 3 4))
+        G (s/down (s/up 4 0 0 0) (s/up 0 0 2 0) (s/up 0 1 2 0) (s/up 1 0 0 1))]
+    (testing "inverse"
+      (is (= (s/down (s/down -2 1) (s/down 3/2 -1/2)) (g/divide A)))
+      (is (= 5/2 (g/* A (g/divide A))))
+      (is (= 5/2 (g/* (g/divide A) A)))
+      (is (= (g/* 1/22 (s/down (s/up 24 -12 -2) (s/up 5 3 -5) (s/up -4 2 4))) (g/divide C)))
+      (is (= (s/up (s/down 1/3)) (g/divide D)))
+      (is (= (s/up (s/down 1)) (g/* D (g/divide D))))
+      (is (= (s/down (s/up 1 0) (s/up 0 1)) (g/* F (g/divide F))))
+      (is (= (s/down (s/up 1 0) (s/up 0 1)) (g/divide F F)))
+      (is (= (s/down (s/up 1 0) (s/up 0 1)) (g/* (g/divide F) F)))
+      (is (= (s/down (s/up 1/4 0 0 0) (s/up 0 -1 1 0) (s/up 0 1/2 0 0) (s/up -1/4 0 0 1)) (g/divide G)))
+      (is (= (s/down (s/up 1/4 0 0 0) (s/up 0 -1 1 0) (s/up 0 1/2 0 0) (s/up -1/4 0 0 1)) (g/divide G)))
+      (is (= (s/down (s/up 1 0 0 0) (s/up 0 1 0 0) (s/up 0 0 1 0) (s/up 0 0 0 1)) (g/divide G G)))
+      (is (= (s/down (s/up 1/8)) (g/divide (s/down (s/up 8))))))
+
+    (testing "invert-hilbert-matrix"
+      (let [N 3
+            H (apply s/up (for [i (range 1 (inc N))]
+                            (apply s/up (for [j (range 1 (inc N))] (g/divide 1 (g/+ i j -1))))))]
+        (is (= (s/down (s/down 9 -36 30) (s/down -36 192 -180) (s/down 30 -180 180)) (g/divide H)))))))

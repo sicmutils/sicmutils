@@ -10,6 +10,7 @@
             [sicmutils.numbers-test]
             [sicmutils.numsymb-test]
             [sicmutils.rules-test]
+            [sicmutils.structure-test]
             [sicmutils.value-test]))
 
 (doo-tests 'pattern.match-test
@@ -22,4 +23,5 @@
            'sicmutils.numbers-test
            'sicmutils.numsymb-test
            'sicmutils.rules-test
+           'sicmutils.structure-test
            'sicmutils.value-test)

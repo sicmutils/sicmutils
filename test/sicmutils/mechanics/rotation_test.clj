@@ -40,3 +40,8 @@
     (is (= '(up 0 0 0) (simplify (- ((Ry 'a) P) (* (rotate-y-matrix 'a) P)))))
     (is (= '(up 0 0 0) (simplify (- ((Rz 'a) P) (* (rotate-z-matrix 'a) P)))))
     ))
+
+(deftest rotation-from-structure-tests
+  (testing "function - rotate about x axis"
+    (is (= (up 0 0 1) ((Rx 'pi-over-2) (up 0 1 0))))
+    (is (= (up 'x (- 'z) 'y) ((Rx 'pi-over-2) (up 'x 'y 'z))))))

@@ -45,7 +45,7 @@
 
   (is (= 10 (v/freeze 10)))
   (is (v/numerical? 10))
-  (is (isa? (v/kind 10) u/numtype))
+  (is (isa? (v/kind 10) v/numtype))
   (is (v/exact? 10))
   (is (not (v/exact? 10.1))))
 
@@ -105,8 +105,8 @@
   (is (not (v/unity? 0.0))))
 
 (deftest kinds
-  (is (= #?(:clj Long :cljs js/Number) (v/kind 1)))
-  (is (= #?(:clj Double :cljs js/Number) (v/kind 1.0)))
+  (is (= #?(:clj Long :cljs ::v/exact-number) (v/kind 1)))
+  (is (= #?(:clj Double :cljs ::v/exact-number) (v/kind 1.0)))
   (is (= PersistentVector (v/kind [1 2]))))
 
 (deftest exactness
@@ -123,7 +123,7 @@
      (is (v/exact? (BigInteger/valueOf 111)))))
 
 (deftest argument-kinds
-  (let [L #?(:clj Long :cljs js/Number)
+  (let [L #?(:clj Long :cljs ::v/exact-number)
         V PersistentVector]
     (is (= [L] (v/argument-kind 1)))
     (is (= [L L L] (v/argument-kind 1 2 3)))
