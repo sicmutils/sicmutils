@@ -27,6 +27,7 @@
             [sicmutils.infix :refer [->infix]]
             [sicmutils.matrix :as matrix]
             [sicmutils.numbers]
+            [sicmutils.series :as series]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :refer :all]
             [sicmutils.value :as v])
@@ -555,3 +556,24 @@
                 (((∂ 2 0) C↑2_1) (up t (up x y) (down px py)))
                 (((∂ 2 1) C↑2_1) (up t (up x y) (down px py)))])
              (g/simplify ((as-matrix (D C-general)) s)))))))
+
+(deftest taylor-moved-from-series
+  (let [taylor-series-expander (fn [f x h]
+                                 (((g/exp (g/* h D)) f) x))]
+    (is (= '(+ (* 1/24 (expt dx 4) (sin x))
+               (* -1/6 (expt dx 3) (cos x))
+               (* -1/2 (expt dx 2) (sin x))
+               (* dx (cos x))
+               (sin x))
+           (g/simplify
+            (reduce g/+ (series/take 5 (taylor-series-expander g/sin 'x 'dx))))))
+    (is (= '(1
+             (* 1/2 dx)
+             (* -1/8 (expt dx 2))
+             (* 1/16 (expt dx 3))
+             (* -5/128 (expt dx 4))
+             (* 7/256 (expt dx 5)))
+           (g/simplify
+            (series/take 6 (taylor-series-expander
+                            (fn [x] (g/sqrt (g/+ (v/one-like x) x)))
+                            0 'dx)))))))
