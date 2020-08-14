@@ -3,7 +3,9 @@
   (:refer-clojure :rename {bigint core-bigint
                            biginteger core-biginteger
                            int core-int
-                           long core-long}
+                           long core-long
+                           #?@(:clj [ratio? core-ratio?])
+                           #?@(:clj [denominator core-denominator])}
                   #?@(:cljs [:exclude [bigint long int]]))
   (:require #?(:clj [clojure.math.numeric-tower :as nt])
             #?(:cljs goog.math.Integer)
@@ -20,6 +22,14 @@
 (defn bigint [x]
   #?(:clj (core-bigint x)
      :cljs (js/BigInt x)))
+
+(def ratio?
+  #?(:clj core-ratio?
+     :cljs (constantly false)))
+
+(def denominator
+  #?(:clj core-denominator
+     :cljs (fn [x] (throw (js/Error "Ratio doesn't exist in cljs.")))))
 
 (defn biginteger [x]
   #?(:clj (core-biginteger x)
