@@ -24,6 +24,7 @@
             [sicmutils.numsymb :as ns]
             [sicmutils.polynomial]
             [sicmutils.structure :as s]
+            [sicmutils.util :as u]
             [sicmutils.value :as v]
             [sicmutils.calculus.derivative :as d])
   (:import [sicmutils.polynomial Polynomial]
@@ -168,22 +169,21 @@
                 (with-meta h {:arity f-arity :from :function-binop}))))]
     (with-meta h {:arity [:exactly 2]})))
 
-(defmacro ^:private make-binary-operation
+(defn ^:private make-binary-operation
   "Given a generic and binary function operation,
   define the multimethods necessary to introduce this operation
   to function arguments."
   [generic-op binary-op]
-  `(let [binop# (binary-operation ~binary-op)]
-     (doseq [signature# [[::function ::function]
-                         [::function ::cofunction]
-                         [::cofunction ::function]]]
-       (defmethod ~generic-op signature# [a# b#] (binop# a# b#)))))
+  (let [binop (binary-operation binary-op)]
+    (doseq [signature [[::function ::function]
+                       [::function ::cofunction]
+                       [::cofunction ::function]]]
+      (defmethod generic-op signature [a b] (binop a b)))))
 
-(defmacro ^:private make-unary-operation
+(defn ^:private make-unary-operation
   [generic-op]
-  `(defmethod ~generic-op [::function] [a#] ((unary-operation ~generic-op) a#)))
-
-
+  (let [unary-op (unary-operation generic-op)]
+    (defmethod generic-op [::function] [a] (unary-op a))))
 
 (make-binary-operation g/add g/+)
 (make-binary-operation g/sub g/-)
@@ -208,11 +208,14 @@
 
 ;; TODO sinh cosh ...
 
-(defmethod g/simplify Function [a] (-> a :name g/simplify))
+(defmethod g/simplify [Function] [a] (g/simplify (:name a)))
 (derive ::x/numerical-expression ::cofunction)
 (derive ::s/structure ::cofunction)
 (derive ::m/matrix ::cofunction)
+
+;; Clojure functions, returns by v/primitive-kind.
 (derive ::v/function ::function)
+
 (derive ::function :sicmutils.series/coseries)
 ;; ------------------------------------
 ;; Differentiation of literal functions
@@ -343,8 +346,6 @@
                             `(literal-function (quote ~(first s))
                                                ~(second s)
                                                ~(nth s 2))
-                            :else (throw
-                                   (IllegalArgumentException.
-                                    (str "unknown literal function type" s)))))
+                            :else (u/illegal (str "unknown literal function type" s))))
                     litfns)))
      ~@body))
