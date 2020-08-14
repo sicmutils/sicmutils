@@ -21,10 +21,26 @@
   (:refer-clojure :exclude [+ - * / ref partial zero?])
   (:require [clojure.test :refer :all]
             [sicmutils.env :refer :all]
+            [sicmutils.function :as f]
+            [sicmutils.generic :as g]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.structure :as s]
             [sicmutils.mechanics.lagrange :as L]))
 
 (use-fixtures :once hermetic-simplify-fixture)
+
+(deftest lagrange-equations-test
+  (let [xy (s/up (f/literal-function 'x) (f/literal-function 'y))
+        LE (((L/Lagrange-equations
+              (L/L-central-rectangular 'm (f/literal-function 'U))) xy) 't)]
+    (is (= '(up x y) (g/simplify xy)))
+    (is (= '(down (/ (+ (* m (((expt D 2) x) t) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
+                        (* (x t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
+                     (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
+                  (/ (+ (* m (sqrt (+ (expt (x t) 2) (expt (y t) 2))) (((expt D 2) y) t))
+                        (* (y t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
+                     (sqrt (+ (expt (x t) 2) (expt (y t) 2)))))
+           (g/simplify LE)))))
 
 (deftest interpolation
   (testing "lagrange interpolation"
