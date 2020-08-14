@@ -19,11 +19,39 @@
 
 (ns sicmutils.value-test
   (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest]])
+               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang PersistentVector))))
+
+(deftest vector-value-impl
+  (testing "nullity?"
+    (is (v/nullity? []))
+    (is (v/nullity? [0 0]))
+    (is (not (v/nullity? [1 2 3]))))
+
+  (testing "zero-like"
+    (is (= [0 0 0] (v/zero-like [1 2 3])))
+    (is (= [] (v/zero-like [])))
+    (is (= [0 [0 0] [0 0]] (v/zero-like [1 [2 3] [4 5]])))
+    (is (= [(u/long 0) (u/int 0) 0]
+           (v/zero-like [(u/long 1) (u/int 2) 3]))))
+
+  (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
+               (v/one-like [1 2 3])))
+
+  (testing "exact?"
+    (is (v/exact? [1 2 3 4]))
+    (is (not (v/exact? [1.2 3 4])))
+    #?(:clj (is (v/exact? [0 1 3/2])))
+    (is (not (v/exact? [0 0 0.00001]))))
+
+  (testing "freeze"
+    (is (= [1 2 3] (v/freeze [1 2 3]))))
+
+  (testing "kind"
+    (is (= PersistentVector (v/kind [1 2])))))
 
 (deftest value-protocol-numbers
   ;; These really want to be generative tests.
