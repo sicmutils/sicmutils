@@ -32,9 +32,7 @@
             [sicmutils.generic :as g]
             [sicmutils.rules :as rules]
             [taoensso.timbre :as log])
-  (:import (java.util.concurrent TimeoutException)
-           (clojure.lang Sequential Var LazySeq Symbol PersistentVector)
-           (java.io StringWriter)))
+  )
 
 
 (defn ^:private unless-timeout

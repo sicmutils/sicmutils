@@ -30,7 +30,7 @@
 
 ;; We would prefer to just use native Clojure lazy sequences to represent
 ;; series objects. But, they must be invokable as functions, so we must
-;; wrap them in a defrecord.
+;; wrap them in a deftype.
 
 (deftype Series [arity s]
   v/Value

@@ -42,8 +42,6 @@
            (rf/make (p/make [1 2 3]) (p/make [-4 5 6]))))
     (is (= one (rf/mul x+1:x-1 x-1:x+1)))
     (is (= one (rf/mul x-1:x+1 x+1:x-1)))
-    (is (= (rf/make (p/make [0 15 10]) (p/make [0 0 15 18]))
-           (rf/make (p/make [0 1/2 1/3]) (p/make [0 0 1/2 3/5]))))
     (is (= (rf/make (p/make [1 -1]) (p/make [1 1])) (rf/negate x-1:x+1)))
     (is (= x+1:x-1 (rf/invert x-1:x+1)))
     (is (= one (rf/mul x-1:x+1 (rf/invert x-1:x+1))))
@@ -53,7 +51,11 @@
     (is (= (rf/make (p/make [1 -2 1]) (p/make [1 2 1])) (rf/expt x+1:x-1 -2)))
     (is (= (p 3) (rf/add (rf 3 2) (rf 3 2))))
     (is (= (rf 5 3) (rf/div (rf 5 2) (rf 3 2))))
-    (is (= (rf 14 3) (rf/div (rf 8 3) (rf 4 7))))))
+    (is (= (rf 14 3) (rf/div (rf 8 3) (rf 4 7))))
+
+    #?(:clj
+       (is (= (rf/make (p/make [0 15 10]) (p/make [0 0 15 18]))
+              (rf/make (p/make [0 1/2 1/3]) (p/make [0 0 1/2 3/5])))))))
 
 (deftest rf-arithmetic
   (testing "invert-hilbert-matrix"
@@ -85,6 +87,7 @@
       (is (= [(p/make [-3 -2 1]) '(x)] (a/expression-> rf-analyzer exp1 vector)))
       (is (= [(p/make [1 5 10 10 5 1]) '(y)] (a/expression-> rf-analyzer exp2 vector)))
       (is (= [(p/make [0 -11 5 -30 10 -7 1]) '(y)] (a/expression-> rf-analyzer exp3 vector)))))
+
   (testing "expr-simplify"
     (let [exp1 (:expression (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))
           exp2 (:expression (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
@@ -115,13 +118,16 @@
                              (* K (expt dy 2) m1)
                              (* 2 K m1 m2))
                           (* 2 K)))))))
+
   (testing "gcd"
     (is (= '(* x y) (rf-simp '(gcd (* w x y) (* x y z)))))
     (is (= '(/ s c) (rf-simp '(gcd (/ (* r s) c) (/ (* s t) (* c))))))
     (is (= 2 (rf-simp '(gcd (* 2 x y) 2))))
     (is (= 3 (rf-simp '(gcd 9 (* x 6 y)))))
-    (is (= 1 (rf-simp '(gcd (* 5/2 x y) (* 7/3 y z)))))
-    (is (= '(* 7 y) (rf-simp '(gcd (* 14 x y) (* 21 y z))))))
+    (is (= '(* 7 y) (rf-simp '(gcd (* 14 x y) (* 21 y z)))))
+    #?(:clj
+       (is (= 1 (rf-simp '(gcd (* 5/2 x y) (* 7/3 y z)))))))
+
   (testing "quotients"
     (is (= '(/ 1 (* 2 x)) (rf-simp (:expression (g/divide 1 (g/* 2 'x))))))
     (is (= 4 (rf-simp (:expression (g/divide (g/* 28 'x) (g/* 7 'x))))))
