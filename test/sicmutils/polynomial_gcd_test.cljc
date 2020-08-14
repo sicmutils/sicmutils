@@ -89,7 +89,8 @@
         (is (= G (pg/gcd U V)))))
 
     (testing "GCD: arity 3 case"
-      (binding [pg/*poly-gcd-time-limit* [3 :seconds]]
+      (binding [pg/*poly-gcd-time-limit* #?(:clj  [2 :seconds]
+                                            :cljs [6 :seconds])]
         (let [I (p/make 3 [[[0 0 0] 1]])
               X (p/make 3 [[[1 0 0] 1]])
               Y (p/make 3 [[[0 1 0] 1]])
