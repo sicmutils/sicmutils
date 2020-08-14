@@ -36,13 +36,12 @@
   (zero-like [this])
   (one-like [this])
   (exact? [this])
-  ;; Freezing an expression means removing wrappers and other metadata
-  ;; from subexpressions, so that the result is basically a pure
-  ;; S-expression with the same structure as the input. Doing this will
-  ;; rob an expression of useful information for further computation; so
-  ;; this is intended to be done just before simplification and printing, to
-  ;; simplify those processes.
-  (freeze [this])
+  (freeze [this]
+    "Freezing an expression means removing wrappers and other metadata from
+  subexpressions, so that the result is basically a pure S-expression with the
+  same structure as the input. Doing this will rob an expression of useful
+  information for further computation; so this is intended to be done just
+  before simplification and printing, to simplify those processes.")
   (kind [this]))
 
 (declare arity primitive-kind)
