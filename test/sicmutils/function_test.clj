@@ -226,28 +226,28 @@
               ((m/by-rows [(R2f 'f) (R2f 'g)]
                           [(R2f 'h) (R2f 'k)]) 'x 'y)))))))
 
-
 (deftest moved-from-series
   (testing "series"
     (is (= '((* 2 (f x)) (* 3 (f x)))
            (g/simplify
             (series/take 2
                          ((g/* (series/starting-with 2 3)
-                               (literal-function 'f)) 'x)))))
+                               (f/literal-function 'f)) 'x)))))
     (is (= '((* 2 (f y)) (* 3 (f y)))
            (g/simplify
             (series/take 2
-                         ((* (literal-function 'f)
-                             (series/starting-with 2 3)) 'y))))))
+                         ((g/* (f/literal-function 'f)
+                               (series/starting-with 2 3)) 'y))))))
 
   (let [simp4 (fn [x] (g/simplify (series/take 4 x)))
-        S (series/starting-with (literal-function 'f)
-                                (literal-function 'g))
-        T (series/starting-with (literal-function 'F [0 1] 0)
-                                (literal-function 'G [0 1] 0))
-        U (series/starting-with (literal-function 'W [(up 0 0)] 0)
-                                (literal-function 'Z [(up 0 0)] 0))
+        S (series/starting-with (f/literal-function 'f)
+                                (f/literal-function 'g))
+        T (series/starting-with (f/literal-function 'F [0 1] 0)
+                                (f/literal-function 'G [0 1] 0))
+        U (series/starting-with (f/literal-function 'W [(s/up 0 0)] 0)
+                                (f/literal-function 'Z [(s/up 0 0)] 0))
         V (series/starting-with g/sin g/cos g/tan)]
+
     (testing "with functions"
       (is (= '[(* (f x) (sin x)) (* (sin x) (g x)) 0 0]
              (g/simplify (series/take 4 ((g/* S g/sin) 'x)))))
@@ -266,6 +266,6 @@
       (is (= '[(cos t) (* -1 (sin t)) (/ 1 (expt (cos t) 2)) 0] (simp4 ((D V) 't)))))
 
     (testing "f -> Series"
-      (let [F (fn [k] (series/starting-with (fn [t] (* k t)) (fn [t] (* k k t))))]
+      (let [F (fn [k] (series/starting-with (fn [t] (g/* k t)) (fn [t] (g/* k k t))))]
         (is (= '((* q z) (* (expt q 2) z) 0 0) (simp4 ((F 'q) 'z))))
         (is (= '(z (* 2 q z) 0 0) (simp4 (((D F) 'q) 'z))))))))
