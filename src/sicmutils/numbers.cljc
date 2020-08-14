@@ -35,20 +35,6 @@
   #?(:clj
      (:import (clojure.lang BigInt Ratio))))
 
-;; Smaller inheritance tree to enabled shared implementations between numeric
-;; types that represent mathematical integers.
-(derive ::integral ::v/number)
-(derive u/inttype ::integral)
-(derive u/longtype ::integral)
-
-#?(:cljs
-   (do (derive js/BigInt ::integral)
-       (derive ::v/exact-number ::integral))
-
-   :clj
-   (do (derive BigInt ::integral)
-       (derive BigInteger ::integral)))
-
 (defmethod g/add [v/numtype v/numtype] [a b] (#?(:clj +' :cljs core-plus) a b))
 (defmethod g/mul [v/numtype v/numtype] [a b] (#?(:clj *' :cljs core-times) a b))
 (defmethod g/sub [v/numtype v/numtype] [a b] (#?(:clj -' :cljs core-minus) a b))
@@ -123,31 +109,21 @@
   {:pre [(v/nullity? (g/remainder a b))]}
   (g/quotient a b))
 
-(defmethod g/negative? [::integral] [a] (neg? a))
-(defmethod g/exact-divide [::integral ::integral] [b a] (exact-divide b a))
+(defmethod g/negative? [::v/integral] [a] (neg? a))
+(defmethod g/exact-divide [::v/integral ::v/integral] [b a] (exact-divide b a))
+
+;; All JVM and JS types that respond to ::native-integral behave correctly with
+;; Clojure's native `quot`, `rem`, `mod`.
+(defmethod g/quotient [::v/native-integral ::v/native-integral] [a b] (quot a b))
+(defmethod g/remainder [::v/native-integral ::v/native-integral] [a b] (rem a b))
+(defmethod g/modulo [::v/native-integral ::v/native-integral] [a b] (mod a b))
 
 ;; This section defines methods that act differently between Clojurescript and
 ;; Clojure. The clojure methods are all slightly more refined based on Java's
 ;; type system.
-#?(:cljs
-   (do
-     ;; These extend ::v/exact-number, which allows them to apply only to JS
-     ;; numbers that are... exact.
-     (defmethod g/negative? [::v/exact-number] [a] (neg? a))
-     (defmethod g/quotient [::v/exact-number ::v/exact-number] [a b] (quot a b))
-     (defmethod g/remainder [::v/exact-number ::v/exact-number] [a b] (rem a b))
-     (defmethod g/modulo [::v/exact-number ::v/exact-number] [a b] (mod a b)))
-
-   :clj
-   (do
-     ;; All JVM types that respond to ::integral behave correctly with Clojure's
-     ;; native `quot`, `rem`, `mod`.
-     (defmethod g/quotient [::integral ::integral] [b a] (quot b a))
-     (defmethod g/remainder [::integral ::integral] [a b] (rem a b))
-     (defmethod g/modulo [::integral ::integral] [a b] (mod a b))
-
-     (defmethod g/exact-divide [Ratio Ratio] [a b] (core-div a b))
-     (defmethod g/exact-divide [Ratio BigInt] [a b] (core-div a b))))
+#?(:clj
+   (do (defmethod g/exact-divide [Ratio Ratio] [a b] (core-div a b))
+       (defmethod g/exact-divide [Ratio BigInt] [a b] (core-div a b))))
 
 ;; Clojurescript and Javascript have a number of numeric types available that
 ;; don't respond true to number? These each require their own block of method
@@ -182,10 +158,10 @@
 
      ;; Compatibility between numbers and bigint.
      (doseq [op [g/add g/mul g/sub g/expt g/remainder g/quotient]]
-       (defmethod op [js/BigInt ::v/exact-number] [a b]
+       (defmethod op [js/BigInt ::v/native-integral] [a b]
          (op a (u/bigint b)))
 
-       (defmethod op [::v/exact-number js/BigInt] [a b]
+       (defmethod op [::v/native-integral js/BigInt] [a b]
          (op (u/bigint a) b)))
 
      ;; Google Closure library's 64-bit Long and arbitrary-precision Integer
@@ -203,10 +179,10 @@
        ;; Compatibility between basic number type and the google numeric types.
        ;; Any operation between a number and a Long or Integer will promote the
        (doseq [op [g/add g/mul g/sub g/expt g/remainder g/quotient]]
-         (defmethod op [goog-type ::v/exact-number] [a b]
+         (defmethod op [goog-type ::v/native-integral] [a b]
            (op a (.fromNumber goog-type b)))
 
-         (defmethod op [::v/exact-number goog-type] [a b]
+         (defmethod op [::v/native-integral goog-type] [a b]
            (op (.fromNumber goog-type a) b))))
 
      ;; These names are slightly different between the two types.

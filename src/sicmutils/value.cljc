@@ -25,7 +25,7 @@
             #?(:cljs goog.math.Long)
             #?(:cljs goog.math.Integer))
   #?(:clj
-     (:import (clojure.lang PersistentVector RestFn MultiFn Keyword Symbol)
+     (:import (clojure.lang BigInt PersistentVector RestFn MultiFn Keyword Symbol)
               (java.lang.reflect Method))))
 
 
@@ -48,15 +48,41 @@
 
 (def ^:private object-name-map (atom {}))
 
-#?(:cljs
-   (def ^:private ratio? (constantly false)))
-
 (def numtype ::number)
 
-#?(:clj (derive Number ::number)
+;; Smaller inheritance tree to enabled shared implementations between numeric
+;; types that represent mathematical integers.
+
+(derive ::native-integral ::integral)
+(derive ::integral ::number)
+
+(defn native-integral?
+  "Returns true if x is an integral number that Clojure's math operations work
+  with, false otherwise."
+  [x]
+  (isa? (kind x) ::native-integral))
+
+(defn integral?
+  "Returns true if x is an integral number, false otherwise."
+  [x]
+  (isa? (kind x) ::integral))
+
+#?(:clj
+   (do
+     (derive Number ::number)
+     (derive Integer ::native-integral)
+     (derive Long ::native-integral)
+     (derive BigInt ::native-integral)
+     (derive BigInteger ::native-integral))
+
    :cljs
    (do (derive js/Number ::number)
-       (derive ::exact-number ::number)))
+       (derive js/BigInt ::integral)
+       (derive goog.math.Integer ::integral)
+       (derive goog.math.Long ::integral)))
+
+#?(:cljs
+   (def ^:private ratio? (constantly false)))
 
 (extend-protocol Value
   #?(:clj Number :cljs number)
@@ -69,7 +95,7 @@
   (numerical? [_] true)
   (kind [x] #?(:clj (type x)
                :cljs (if (exact? x)
-                       ::exact-number
+                       ::native-integral
                        (type x))))
 
   nil

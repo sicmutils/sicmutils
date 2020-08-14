@@ -36,6 +36,11 @@
    #?(:clj (IllegalArgumentException. s)
       :cljs (js/Error s))))
 
+(defn illegal-state [s]
+  (throw
+   #?(:clj (IllegalStateException. s)
+      :cljs (js/Error s))))
+
 (defn arithmetic-ex [s]
   (throw
    #?(:clj (ArithmeticException. s)

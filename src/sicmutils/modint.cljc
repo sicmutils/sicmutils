@@ -20,7 +20,6 @@
 (ns sicmutils.modint
   (:require [sicmutils.euclid :as e]
             [sicmutils.generic :as g]
-            [sicmutils.numbers :as n]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
@@ -73,10 +72,10 @@
 ;; Methods that allow interaction with other integral types. The first block is
 ;; perhaps slightly more efficient:
 (doseq [op [g/add g/mul g/sub g/expt]]
-  (defmethod op [::n/integral ::modint] [a b] (make (op a (:i b)) (:m b)))
-  (defmethod op [::modint ::n/integral] [a b] (make (op (:i a) b) (:m a))))
+  (defmethod op [::v/integral ::modint] [a b] (make (op a (:i b)) (:m b)))
+  (defmethod op [::modint ::v/integral] [a b] (make (op (:i a) b) (:m a))))
 
 ;; The second block promotes any integral type to a ModInt before operating.
 (doseq [op [g/quotient g/remainder g/exact-divide]]
-  (defmethod op [::n/integral ::modint] [a b] (op (make a (:m b)) b))
-  (defmethod op [::modint ::n/integral] [a b] (op a (make b (:m a)))))
+  (defmethod op [::v/integral ::modint] [a b] (op (make a (:m b)) b))
+  (defmethod op [::modint ::v/integral] [a b] (op a (make b (:m a)))))
