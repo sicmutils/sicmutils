@@ -47,11 +47,18 @@
     (is (= (s/up (u/long 0) (u/int 0) 0)
            (v/zero-like (s/up (u/long 1) (u/int 2) 3)))))
 
+  (testing "one-like"
+    (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
+                 (v/one-like (s/up 1 2 3)))))
+
   (testing "exact?"
     (is (v/exact? (s/up 1 2 3 4)))
     (is (not (v/exact? (s/up 1.2 3 4))))
     #?(:clj (is (v/exact? (s/up 0 1 3/2))))
     (is (not (v/exact? (s/up 0 0 0.00001)))))
+
+  (testing "freeze"
+    (is (= '(up 1 2 3) (v/freeze (s/up 1 2 3)))))
 
   (testing "kind"
     (is (= ::s/up (v/kind (s/up 1 2))))
