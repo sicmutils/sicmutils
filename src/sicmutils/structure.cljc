@@ -28,7 +28,6 @@
   #?(:clj
      (:import [clojure.lang AFn Counted IFn ILookup PersistentVector Seqable Sequential])))
 
-
 (declare make)
 
 ;; Type Declarations
@@ -47,7 +46,8 @@
   v/Value
   (nullity? [_] (every? v/nullity? v))
   (unity? [_] false)
-  (zero-like [_] (Structure. orientation (mapv v/zero-like v)))
+  (zero-like [_] (Structure. orientation (v/zero-like v)))
+  (one-like [o] (u/unsupported (str "one-like: " o)))
   (exact? [_] (every? v/exact? v))
   (numerical? [_] false)
   (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
