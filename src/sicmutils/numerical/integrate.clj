@@ -18,11 +18,11 @@
 ;
 
 (ns sicmutils.numerical.integrate
-  (:require [clojure.tools.logging :as log]
+  (:require [sicmutils.util.stopwatch :as us]
             [sicmutils.numerical.compile :refer :all]
-            [sicmutils.numbers])
+            [sicmutils.numbers]
+            [taoensso.timbre :as log])
   (:import (org.apache.commons.math3.analysis UnivariateFunction)
-           (com.google.common.base Stopwatch)
            (org.apache.commons.math3.analysis.integration UnivariateIntegrator
                                                           RombergIntegrator
                                                           MidPointIntegrator
@@ -44,41 +44,41 @@
                                        min-iterations 3
                                        max-iterations 32
                                        points 16}}]
-  (let [total-time (Stopwatch/createStarted)
+  (let [total-time (us/stopwatch :started? true)
         evaluation-count (atom 0)
-        evaluation-time (Stopwatch/createUnstarted)
+        evaluation-time (us/stopwatch :started? false)
         integrand (if compile (compile-univariate-function f) f)
         integrator ^UnivariateIntegrator (case method
-                     :romberg (RombergIntegrator. relative-accuracy
-                                                  absolute-accuracy
-                                                  min-iterations
-                                                  max-iterations)
-                     :midpoint (MidPointIntegrator. relative-accuracy
-                                                    absolute-accuracy
-                                                    min-iterations
-                                                    max-iterations)
-                     :legendre-gauss (IterativeLegendreGaussIntegrator. points
-                                                                        relative-accuracy
+                                           :romberg (RombergIntegrator. relative-accuracy
                                                                         absolute-accuracy
                                                                         min-iterations
-                                                                        max-iterations))
+                                                                        max-iterations)
+                                           :midpoint (MidPointIntegrator. relative-accuracy
+                                                                          absolute-accuracy
+                                                                          min-iterations
+                                                                          max-iterations)
+                                           :legendre-gauss (IterativeLegendreGaussIntegrator. points
+                                                                                              relative-accuracy
+                                                                                              absolute-accuracy
+                                                                                              min-iterations
+                                                                                              max-iterations))
 
         value (.integrate integrator
                           max-evaluations
                           (reify UnivariateFunction
                             (value [_ x]
-                              (.start evaluation-time)
+                              (us/start evaluation-time)
                               (swap! evaluation-count inc)
                               (let [fx (integrand x)]
-                                (.stop evaluation-time)
+                                (us/stop evaluation-time)
                                 fx)))
                           a b)]
-    (.stop total-time)
-    (log/info "#" @evaluation-count "total" (str total-time) "f" (str evaluation-time))
+    (us/stop total-time)
+    (log/info "#" @evaluation-count "total" (us/repr total-time) "f" (us/repr evaluation-time))
     value))
 
 (defn carlson-rf [x y z]
-  "From W.H. Press, Numerial Recipes in C++, 2ed. NR::rf from section 6.11"
+  "From W.H. Press, Numerical Recipes in C++, 2ed. NR::rf from section 6.11"
   (let [errtol 0.0025
         tiny 1.5e-38
         big 3.0e37

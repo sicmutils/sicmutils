@@ -18,16 +18,15 @@
 ;
 
 (ns sicmutils.polynomial-factor
-  (:require [clojure.tools.logging :as log]
-            [clojure.walk :as w]
-            [sicmutils
-             [value :as v]
-             [analyze :as a]
-             [generic :as g]
-             [expression :as x]
-             [numsymb :as sym :refer [operator product? sqrt? operands expt]]
-             [polynomial :as poly]
-             [polynomial-gcd :refer [gcd gcd-seq]]]))
+  (:require [clojure.walk :as w]
+            [sicmutils.value :as v]
+            [sicmutils.analyze :as a]
+            [sicmutils.generic :as g]
+            [sicmutils.expression :as x]
+            [sicmutils.numsymb :as sym :refer [operator product? sqrt? operands expt]]
+            [sicmutils.polynomial :as poly]
+            [sicmutils.polynomial-gcd :refer [gcd gcd-seq]]
+            [taoensso.timbre :as log]))
 
 (defn split
   "We're not entirely certain what this algorithm does, but it would be nice

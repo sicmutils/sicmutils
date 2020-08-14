@@ -18,15 +18,14 @@
 ;
 
 (ns sicmutils.numerical.ode
-  (:require [clojure.tools.logging :as log]
-            [sicmutils
-             [structure :as struct]
-             [simplify]]
-            [sicmutils.numerical.compile :refer :all])
+  (:require [sicmutils.numerical.compile :refer :all]
+            [sicmutils.structure :as struct]
+            [sicmutils.simplify]
+            [sicmutils.util.stopwatch :as us]
+            [taoensso.timbre :as log])
   (:import (org.apache.commons.math3.ode.nonstiff GraggBulirschStoerIntegrator)
            (org.apache.commons.math3.ode FirstOrderDifferentialEquations)
-           (org.apache.commons.math3.ode.sampling StepHandler)
-           (com.google.common.base Stopwatch)))
+           (org.apache.commons.math3.ode.sampling StepHandler)))
 
 (defn make-integrator
   "make-integrator takes a state derivative function (which in this
@@ -40,9 +39,9 @@
   second, at each intermediate step."
   [state-derivative derivative-args]
   (fn [initial-state observe step-size t ε & {:keys [compile]}]
-    (let [total-time (Stopwatch/createStarted)
+    (let [total-time (us/stopwatch :started? true)
+          evaluation-time (us/stopwatch :started? false)
           evaluation-count (atom 0)
-          evaluation-time (Stopwatch/createUnstarted)
           state->array #(-> % flatten double-array)
           array->state #(struct/unflatten % initial-state)
           initial-state-array (doubles (state->array initial-state))
@@ -54,11 +53,11 @@
           integrator (GraggBulirschStoerIntegrator. 0. 1. (double ε) (double ε))
           equations (reify FirstOrderDifferentialEquations
                       (computeDerivatives [_ _ y out]
-                        (.start evaluation-time)
+                        (us/start evaluation-time)
                         (swap! evaluation-count inc)
                         (let [y' (doubles (-> y (concat derivative-args) derivative-fn state->array))]
                           (System/arraycopy y' 0 out 0 (alength y')))
-                        (.stop evaluation-time))
+                        (us/stop evaluation-time))
                       (getDimension [_] dimension))
           out (double-array dimension)]
       (when-not compile
@@ -75,7 +74,7 @@
          integrator
          (reify StepHandler
            (handleStep
-             [_ interpolator is-last]
+               [_ interpolator is-last]
              (let [it0 (.getPreviousTime interpolator)
                    it1 (.getCurrentTime interpolator)
                    adjust (mod it0 step-size)
@@ -88,7 +87,8 @@
                  (observe it1 (array->state last-state)))))
            (init [_ _ _ _]))))
       (.integrate integrator equations 0 initial-state-array t out)
-      (log/info "#" @evaluation-count "total" (str total-time) "f" (str evaluation-time))
+      (us/stop total-time)
+      (log/info "#" @evaluation-count "total" (us/repr total-time) "f" (us/repr evaluation-time))
       (array->state out))))
 
 (defn state-advancer

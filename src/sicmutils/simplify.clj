@@ -18,24 +18,23 @@
 ;
 
 (ns sicmutils.simplify
+  (:require [clojure.walk :refer [postwalk]]
+            [clojure.pprint :as pp]
+            [clojure.set :as set]
+            [pattern.rule :as rule]
+            [sicmutils.analyze :as a]
+            [sicmutils.polynomial :as poly]
+            [sicmutils.polynomial-factor :as factor]
+            [sicmutils.rational-function :as rf]
+            [sicmutils.value :as v]
+            [sicmutils.numsymb :as nsy]
+            [sicmutils.expression :as x]
+            [sicmutils.generic :as g]
+            [sicmutils.rules :as rules]
+            [taoensso.timbre :as log])
   (:import (java.util.concurrent TimeoutException)
            (clojure.lang Sequential Var LazySeq Symbol PersistentVector)
-           (java.io StringWriter))
-  (:require [clojure.walk :refer [postwalk]]
-            [clojure.tools.logging :as log]
-            [clojure.set :as set]
-            [clojure.pprint :as pp]
-            [sicmutils
-             [analyze :as a]
-             [polynomial :as poly]
-             [polynomial-factor :as factor]
-             [rational-function :as rf]
-             [value :as v]
-             [numsymb :as nsy]
-             [expression :as x]
-             [generic :as g]
-             [rules :as rules]]
-            [pattern.rule :as rule]))
+           (java.io StringWriter)))
 
 
 (defn ^:private unless-timeout
