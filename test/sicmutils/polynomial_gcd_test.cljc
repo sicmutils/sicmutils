@@ -37,7 +37,7 @@
   (let [X (p/make 2 [[[1 0] 1]]) ;; some polynomials of arity 2
         Y (p/make 2 [[[0 1] 1]])]
     (testing "inexact coefficients"
-      (is (= (p/make [1]) (pg/gcd (p/make [0.2 0.4 0.6]) (p/make [0.4 0.6 0.8])))))
+      (is (= (p/make [1]) (g/gcd (p/make [0.2 0.4 0.6]) (p/make [0.4 0.6 0.8])))))
 
     (testing "GCD: arity 1 case"
       (let [x+1 (p/make [1 1])
@@ -46,10 +46,10 @@
             x+4 (p/make [4 1])
             U (g/mul x+1 (g/mul x+1 (g/mul x+2 x+4)))
             V (g/mul x+1 (g/mul x+2 x+3))]
-        (is (= (p/make [2 3 1]) (pg/gcd U V)))
-        (is (= (p/make [4]) (pg/gcd (p/make [8]) (p/make [4]))))
-        (is (= (p/make [1]) (pg/gcd (p/make [7]) (p/make [11]))))
-        (is (= (p/make [11]) (pg/gcd (p/make []) (p/make [11])))))
+        (is (= (p/make [2 3 1]) (g/gcd U V)))
+        (is (= (p/make [4]) (g/gcd (p/make [8]) (p/make [4]))))
+        (is (= (p/make [1]) (g/gcd (p/make [7]) (p/make [11]))))
+        (is (= (p/make [11]) (g/gcd (p/make []) (p/make [11])))))
       (let [x+4 (p/make [4 1])
             x+3 (p/make [3 1])
             x-2 (p/make [-2 1])
@@ -58,15 +58,15 @@
             V (reduce g/mul [x+4 x+3 x+3 x+3 x-2 x-2 x+1 x+1])
             W (reduce g/mul [x+4 x+3 x+3 x-2 x-2 x+1])
             Z (p/make [])]
-        (is (= W (pg/gcd U V)))
-        (is (= W (pg/gcd V U)))
-        (is (= U (pg/gcd U U)))
-        (is (= V (pg/gcd V V)))
-        (is (= W (pg/gcd W W)))
-        (is (= U (pg/gcd U Z)))
-        (is (= U (pg/gcd Z U)))
-        (is (= V (pg/gcd V Z)))
-        (is (= V (pg/gcd Z V)))))
+        (is (= W (g/gcd U V)))
+        (is (= W (g/gcd V U)))
+        (is (= U (g/gcd U U)))
+        (is (= V (g/gcd V V)))
+        (is (= W (g/gcd W W)))
+        (is (= U (g/gcd U Z)))
+        (is (= U (g/gcd Z U)))
+        (is (= V (g/gcd V Z)))
+        (is (= V (g/gcd Z V)))))
 
     (testing "divide constant arity 2"
       (is (= [(p/make 2 []) X] (p/divide X Y)))
@@ -84,9 +84,9 @@
             U (reduce g/mul [(g/expt X+1 3) (g/expt X+Y 2) (g/expt Y+1 4)])
             V (reduce g/mul [(g/expt X+1 2) (g/expt X+Y 5) (g/expt Y+1 3)])
             G (reduce g/mul [(g/expt X+1 2) (g/expt X+Y 2) (g/expt Y+1 3)])]
-        (is (= X+Y_2 (pg/gcd X+Y_2 X+Y_3)))
-        (is (= X+Y_3 (pg/gcd X+Y_3 X+Y_3)))
-        (is (= G (pg/gcd U V)))))
+        (is (= X+Y_2 (g/gcd X+Y_2 X+Y_3)))
+        (is (= X+Y_3 (g/gcd X+Y_3 X+Y_3)))
+        (is (= G (g/gcd U V)))))
 
     (testing "GCD: arity 3 case"
       (binding [pg/*poly-gcd-time-limit* #?(:clj  [2 :seconds]
@@ -107,10 +107,10 @@
               G (reduce g/mul [(g/expt X+1 3) (g/expt X+Y 2) (g/expt Y+Z 3) (g/expt X+Y+Z 4) (g/expt Y+1 2) Z+1])]
           (is (= [(reduce g/mul [(g/expt Y+Z 2) (g/expt Y+1 2) (g/expt Z+1 2)]) (p/make 3 [])] (p/divide U G)))
           (is (= [(reduce g/mul [(g/expt X+Y 3) X+Y+Z]) (p/make 3 [])] (p/divide V G)))
-          (is (= X+Z (pg/gcd (g/mul X+Y X+Z) (g/mul Y+Z X+Z))))
-          (is (= (g/mul X+Z X+Y+Z) (pg/gcd (reduce g/mul [X+Y X+Z X+Y+Z]) (reduce g/mul [X+Z X+Y+Z Y+Z]))))
-          (is (= (g/mul X+Z (g/mul X+Z X+Y)) (pg/gcd (reduce g/mul [X+Z X+Z X+Y X+Y+Z Y+1]) (reduce g/mul [X+Z X+Z X+Y X+1 Z+1 X+Z]))))
-          (is (= G (pg/gcd U V))))))
+          (is (= X+Z (g/gcd (g/mul X+Y X+Z) (g/mul Y+Z X+Z))))
+          (is (= (g/mul X+Z X+Y+Z) (g/gcd (reduce g/mul [X+Y X+Z X+Y+Z]) (reduce g/mul [X+Z X+Y+Z Y+Z]))))
+          (is (= (g/mul X+Z (g/mul X+Z X+Y)) (g/gcd (reduce g/mul [X+Z X+Z X+Y X+Y+Z Y+1]) (reduce g/mul [X+Z X+Z X+Y X+1 Z+1 X+Z]))))
+          (is (= G (g/gcd U V))))))
     ;; this was sort of cool, but prevented us from using native BigInteger GCD.
     ;; it could come back, but in order to do this right, we would need a way
     ;; to specify the coefficient field when we create a polynomial so that we
@@ -121,7 +121,7 @@
               Z5 #(modular/make % 5)
               A:Z5 (map-coefficients Z5 A)
               B:Z5 (map-coefficients Z5 B)
-              G5 (pg/gcd A:Z5 B:Z5)]
+              G5 (g/gcd A:Z5 B:Z5)]
           (is (= (p/make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) A:Z5))
           (is (= (p/make [(Z5 0) (Z5 1) (Z5 -1) (Z5 0) (Z5 -1) (Z5 1)]) B:Z5))
           (is (= (p/make [(Z5 0) (Z5 -1) (Z5 0) (Z5 0) (Z5 1)]) G5))))))
@@ -136,10 +136,10 @@
           X+Y (g/add X Y)
           X+Z (g/add X Z)
           Y+Z (g/add Y Z)]
-      (is (= X+Z (pg/gcd (g/mul X+Y X+Z) (g/mul Y+Z X+Z))))
-      (is (= II (pg/gcd II (g/add Z Z))))
-      (is (= II (pg/gcd (g/add Z Z) II)))
-      (is (= II (pg/gcd II (g/add (g/add X X) (g/add Z Z))))))))
+      (is (= X+Z (g/gcd (g/mul X+Y X+Z) (g/mul Y+Z X+Z))))
+      (is (= II (g/gcd II (g/add Z Z))))
+      (is (= II (g/gcd (g/add Z Z) II)))
+      (is (= II (g/gcd II (g/add (g/add X X) (g/add Z Z))))))))
 
 (def ^:private poly-analyzer (p/->PolynomialAnalyzer))
 (defn ^:private ->poly [x] (a/expression-> poly-analyzer x (fn [p _] p)))
@@ -302,7 +302,7 @@
                       [[2 0 1 2 1 1 0 0 0 0] 2]
                       [[4 0 1 0 1 1 0 0 0 0] 1]])]
     (let [t (fn []
-              (let [g (pg/gcd u v)]
+              (let [g (g/gcd u v)]
                 (pg/gcd-stats)
                 g))]
       (is (= (p/make 10 [[[0 0 0 0 0 0 0 0 0 0] 1]]) (t)))
@@ -345,7 +345,7 @@
         v (p/make 10 [[[0 0 1 4 1 1 0 0 0 0] 1]
                       [[2 0 1 2 1 1 0 0 0 0] 2]
                       [[4 0 1 0 1 1 0 0 0 0] 1]])]
-    (is (= (p/make-constant 10 1) (pg/gcd u v)))))
+    (is (= (p/make-constant 10 1) (g/gcd u v)))))
 
 (deftest ^:benchmark kuniaki-tsuji-examples
   ;; (only have a few of these, will add more)
@@ -402,7 +402,7 @@
   (gen/let [arity (gen/elements [1])]
     (prop/for-all [u (p-test/generate-poly arity)
                    v (p-test/generate-poly arity)]
-                  (let [g (pg/gcd u v)]
+                  (let [g (g/gcd u v)]
                     (or (and (v/nullity? u)
                              (v/nullity? v)
                              (v/nullity? g))
@@ -416,7 +416,7 @@
                    d (p-test/generate-nonzero-poly arity)]
                   (let [ud (g/mul u d)
                         vd (g/mul v d)
-                        g (pg/gcd ud vd)]
+                        g (g/gcd ud vd)]
                     (and
                      (g/exact-divide ud g)
                      (g/exact-divide vd g)
