@@ -18,7 +18,10 @@
 ;
 
 (ns sicmutils.calculus.derivative
+  (:refer-clojure :rename {partial core-partial}
+                  #?@(:cljs [:exclude [partial]]))
   (:require [clojure.string :refer [join]]
+            [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as matrix]
             [sicmutils.operator :as o]
@@ -379,7 +382,7 @@
 (defn ^:private multivariate-derivative
   [f selectors]
   (let [a (v/arity f)
-        d (partial euclidean-structure selectors)
+        d (core-partial euclidean-structure selectors)
         make-df #(with-meta % {:arity a :from :multivariate-derivative})]
     (condp = a
       [:exactly 0] (make-df (constantly 0))
@@ -407,8 +410,8 @@
 (defn ^:private define-binary-operation
   [generic-operation differential-operation]
   (doseq [signature [[::differential ::differential]
-                     [:sicmutils.expression/numerical-expression ::differential]
-                     [::differential :sicmutils.expression/numerical-expression]]]
+                     [::x/numerical-expression ::differential]
+                     [::differential ::x/numerical-expression]]]
     (defmethod generic-operation signature [a b] (differential-operation a b))))
 
 (defn ^:private define-unary-operation
@@ -469,12 +472,14 @@
   of the increment in the function value."
   (o/make-operator #(g/partial-derivative % []) 'D))
 
-(defn ∂
+(defn partial
   "Partial differentiation of a function at the (zero-based) slot index
   provided."
   [& selectors]
   (o/make-operator #(g/partial-derivative % selectors)
                    :partial-derivative))
+
+#?(:clj (def ∂ partial))
 
 (defn taylor-series-terms
   "The (infinite) sequence of terms of the taylor series of the function f

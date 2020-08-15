@@ -18,12 +18,12 @@
 ;
 
 (ns sicmutils.calculus.derivative-test
-  (:refer-clojure :exclude [+ - * / ref])
+  (:refer-clojure :exclude [+ - * / ref partial])
   (:require #?(:clj  [clojure.test :refer :all]
                :cljs [cljs.test :as t :refer-macros [is deftest testing use-fixtures]])
-            [sicmutils.calculus.derivative :as d :refer [D ∂]]
+            [sicmutils.calculus.derivative :as d :refer [D ∂ partial]]
             [sicmutils.complex :refer [complex]]
-            [sicmutils.function :as f]
+            [sicmutils.function :as f :refer [with-literal-functions]]
             [sicmutils.generic :as g :refer [acos asin atan cos sin tan log exp expt + - * /]]
             [sicmutils.matrix :as matrix]
             [sicmutils.series :as series]
@@ -106,12 +106,12 @@
                                       (* (+ x+dx x+dx) x+dx)
                                       (* x+dx x+dx)))))
         (is (= 24 (d-expr (+ (* 6 x+dx)
-                               (* 2 x+dx)
-                               x+dx x+dx x+dx x+dx
-                               (* 2 x+dx)
-                               x+dx x+dx x+dx x+dx
-                               (* 2 x+dx)
-                               x+dx x+dx x+dx x+dx))))
+                             (* 2 x+dx)
+                             x+dx x+dx x+dx x+dx
+                             (* 2 x+dx)
+                             x+dx x+dx x+dx x+dx
+                             (* 2 x+dx)
+                             x+dx x+dx x+dx x+dx))))
         (is (= '(* 4 (expt x 3))
                (d-simplify (f x+dx))))))))
 
@@ -131,7 +131,7 @@
 
   (testing "chain rule"
     (let [s (fn [t] (g/sqrt t))
-          u (fn [t] (g/expt (- (* 3 (s t)) 1) 2/3))
+          u (fn [t] (g/expt (- (* 3 (s t)) 1) #?(:clj 2/3 :cljs (/ 2 3))))
           y (fn [t] (/ (+ (u t) 2) (- (u t) 1)))]
       (is ((v/within 1e-6) (/ -1 18.) ((D y) 9)))))
 
@@ -206,7 +206,7 @@
 
 (deftest diff-test-2
   (testing "delta-eta-test"
-    (f/with-literal-functions [η q f g]
+    (with-literal-functions [η q f g]
       (let [I (fn [q] (fn [t] (q t)))
             F (fn [q] (fn [t] (f (q t))))
             G (fn [q] (fn [t] (g (q t))))
@@ -232,7 +232,7 @@
         (is (= '(* c (η t) ((D f) (q t))) (g/simplify (((δη (* 'c F)) q) 't))))
         ;; product rule for variation: δ(FG) = δF G + F δG
         (is (= (g/simplify (+ (* (((δη F) q) 't) ((G q) 't))
-                            (* ((F q) 't) (((δη G) q) 't))))
+                              (* ((F q) 't) (((δη G) q) 't))))
                (g/simplify (((δη (* F G)) q) 't))))
         ;; path-independent chain rule for variation
         (is (= '(φ (f (q t))) (g/simplify (((φ F) q) 't))))
@@ -313,13 +313,13 @@
     (is (= 0 ((D (fn [& xs] 0)) 'x)))))
 
 (deftest literal-functions
-  (f/with-literal-functions [f [g [0 0] 0]]
+  (with-literal-functions [f [g [0 0] 0]]
     (testing "R -> R"
       (is (= '((D f) x) (g/simplify ((D f) 'x))))
       (is (= '((D f) (+ x y)) (g/simplify ((D f) (+ 'x 'y))))))
 
     (testing "R^2 -> R"
-      (is (= '(((∂ 0) g) x y) (g/simplify (((∂ 0) g) 'x 'y))))
+      (is (= '(((∂ 0) g) x y) (g/simplify (((partial 0) g) 'x 'y))))
       (is (= '(((∂ 1) g) x y) (g/simplify (((∂ 1) g) 'x 'y))))
       (is (= '(down (((∂ 0) g) x y) (((∂ 1) g) x y))
              (g/simplify ((D g) 'x 'y)))))
@@ -433,7 +433,8 @@
                   ([x ct acc] (if (v/nullity? ct) acc (recur x (dec ct) (sin (+ x acc))))))
           f100ea (with-meta f100e {:arity [:exactly 1]})]
       (is ((v/within 1e-6) 0.51603111348625 ((D f100d) 6)))
-      (is (thrown? IllegalArgumentException ((v/within 1e-6) 0.51603111348625 ((D f100e) 6))))
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   ((v/within 1e-6) 0.51603111348625 ((D f100e) 6))))
       (is ((v/within 1e-6) 0.51603111348625 ((D (with-meta f100e {:arity [:exactly 1]})) 6))))))
 
 (deftest deep-partials
@@ -446,7 +447,8 @@
                 (for [i (range 2)
                       j (range 2)]
                   (((∂ i j) f) (s/up 'x 'y) (s/up 'w 'z))))))
-    (is (thrown? IllegalArgumentException (((∂ 0 1) f) 'x 'y)))))
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                 (((∂ 0 1) f) 'x 'y)))))
 
 (deftest derivative-as-operator
   (let [f (f/literal-function 'f [0 0] 0)
@@ -468,52 +470,63 @@
                (* (expt dy 2) (((∂ 1) ((∂ 1) f)) x y)))
            (g/simplify (* dX (((g/expt D 2) f) 'x 'y) dX))))))
 
-(deftest taylor
-  (is (= '(+ (* 1/6 (expt dx 3) (((∂ 0) ((∂ 0) ((∂ 0) f))) (up x y)))
-             (* 1/6 (expt dx 2) dy (((∂ 0) ((∂ 0) ((∂ 1) f))) (up x y)))
-             (* 1/3 (expt dx 2) dy (((∂ 1) ((∂ 0) ((∂ 0) f))) (up x y)))
-             (* 1/3 dx (expt dy 2) (((∂ 1) ((∂ 0) ((∂ 1) f))) (up x y)))
-             (* 1/6 dx (expt dy 2) (((∂ 1) ((∂ 1) ((∂ 0) f))) (up x y)))
-             (* 1/6 (expt dy 3) (((∂ 1) ((∂ 1) ((∂ 1) f))) (up x y)))
-             (* 1/2 (expt dx 2) (((∂ 0) ((∂ 0) f)) (up x y)))
-             (* dx dy (((∂ 1) ((∂ 0) f)) (up x y)))
-             (* 1/2 (expt dy 2) (((∂ 1) ((∂ 1) f)) (up x y)))
-             (* dx (((∂ 0) f) (up x y)))
-             (* dy (((∂ 1) f) (up x y)))
-             (f (up x y)))
-         (g/simplify
-          (reduce +
-                  (take 4 (d/taylor-series-terms
-                           (f/literal-function 'f (s/up 0 0) 0)
-                           (s/up 'x 'y)
-                           (s/up 'dx 'dy)))))))
+#?(:clj
+   (deftest taylor
+     (is (= '(+ (* 1/6
+                   (expt dx 3) (((∂ 0) ((∂ 0) ((∂ 0) f))) (up x y)))
+                (* 1/6
+                   (expt dx 2) dy (((∂ 0) ((∂ 0) ((∂ 1) f))) (up x y)))
+                (* 1/3
+                   (expt dx 2) dy (((∂ 1) ((∂ 0) ((∂ 0) f))) (up x y)))
+                (* 1/3
+                   dx (expt dy 2) (((∂ 1) ((∂ 0) ((∂ 1) f))) (up x y)))
+                (* 1/6
+                   dx (expt dy 2) (((∂ 1) ((∂ 1) ((∂ 0) f))) (up x y)))
+                (* 1/6
+                   (expt dy 3) (((∂ 1) ((∂ 1) ((∂ 1) f))) (up x y)))
+                (* 1/2
+                   (expt dx 2) (((∂ 0) ((∂ 0) f)) (up x y)))
+                (* dx dy (((∂ 1) ((∂ 0) f)) (up x y)))
+                (* 1/2
+                   (expt dy 2) (((∂ 1) ((∂ 1) f)) (up x y)))
+                (* dx (((∂ 0) f) (up x y)))
+                (* dy (((∂ 1) f) (up x y)))
+                (f (up x y)))
+            (->> (d/taylor-series-terms
+                  (f/literal-function 'f (s/up 0 0) 0)
+                  (s/up 'x 'y)
+                  (s/up 'dx 'dy))
+                 (take 4)
+                 (reduce +)
+                 (g/simplify))))
 
-  (testing "eq. 5.291"
-    (let [V (fn [[xi eta]] (g/sqrt (+ (g/square (+ xi 'R_0)) (g/square eta))))]
-      (is (= '[R_0 xi (/ (expt eta 2) (* 2 R_0))]
-             (take 3 (g/simplify (d/taylor-series-terms V (s/up 0 0) (s/up 'xi 'eta)))))))))
+     (testing "eq. 5.291"
+       (let [V (fn [[xi eta]] (g/sqrt (+ (g/square (+ xi 'R_0)) (g/square eta))))]
+         (is (= '[R_0 xi (/ (expt eta 2) (* 2 R_0))]
+                (take 3 (g/simplify (d/taylor-series-terms V (s/up 0 0) (s/up 'xi 'eta))))))))))
 
-(deftest moved-from-structure-and-matrix
-  (let [vs (s/up
-            (s/up 'vx1 'vy1)
-            (s/up 'vx2 'vy2))
-        L1 (fn [[v1 v2]]
-             (+ (* 1/2 'm1 (g/square v1))
-                (* 1/2 'm2 (g/square v2))))]
-    (is (= '(down
-             (down (down (down m1 0) (down 0 0))
-                   (down (down 0 m1) (down 0 0)))
-             (down (down (down 0 0) (down m2 0))
-                   (down (down 0 0) (down 0 m2))))
-           (g/simplify (((g/expt D 2) L1) vs))))
+#?(:clj
+   (deftest moved-from-structure-and-matrix
+     (let [vs (s/up
+               (s/up 'vx1 'vy1)
+               (s/up 'vx2 'vy2))
+           L1 (fn [[v1 v2]]
+                (+ (* 1/2 'm1 (g/square v1))
+                   (* 1/2 'm2 (g/square v2))))]
+       (is (= '(down
+                (down (down (down m1 0) (down 0 0))
+                      (down (down 0 m1) (down 0 0)))
+                (down (down (down 0 0) (down m2 0))
+                      (down (down 0 0) (down 0 m2))))
+              (g/simplify (((g/expt D 2) L1) vs))))
 
-    (testing "identical test in matrix form"
-      (is (= '(matrix-by-rows [m1 0 0 0]
-                              [0 m1 0 0]
-                              [0 0 m2 0]
-                              [0 0 0 m2])
-             (g/simplify
-              (matrix/s->m vs (((g/expt D 2) L1) vs) vs)))))))
+       (testing "identical test in matrix form"
+         (is (= '(matrix-by-rows [m1 0 0 0]
+                                 [0 m1 0 0]
+                                 [0 0 m2 0]
+                                 [0 0 0 m2])
+                (g/simplify
+                 (matrix/s->m vs (((g/expt D 2) L1) vs) vs))))))))
 
 (deftest moved-from-matrix
   (testing "s->m->s"
@@ -557,23 +570,24 @@
                 (((∂ 2 1) C↑2_1) (up t (up x y) (down px py)))])
              (g/simplify ((as-matrix (D C-general)) s)))))))
 
-(deftest taylor-moved-from-series
-  (let [taylor-series-expander (fn [f x h]
-                                 (((g/exp (* h D)) f) x))]
-    (is (= '(+ (* 1/24 (expt dx 4) (sin x))
-               (* -1/6 (expt dx 3) (cos x))
-               (* -1/2 (expt dx 2) (sin x))
-               (* dx (cos x))
-               (sin x))
-           (g/simplify
-            (reduce + (series/take 5 (taylor-series-expander g/sin 'x 'dx))))))
-    (is (= '(1
-             (* 1/2 dx)
-             (* -1/8 (expt dx 2))
-             (* 1/16 (expt dx 3))
-             (* -5/128 (expt dx 4))
-             (* 7/256 (expt dx 5)))
-           (g/simplify
-            (series/take 6 (taylor-series-expander
-                            (fn [x] (g/sqrt (+ (v/one-like x) x)))
-                            0 'dx)))))))
+#?(:clj
+   (deftest taylor-moved-from-series
+     (let [taylor-series-expander (fn [f x h]
+                                    (((g/exp (* h D)) f) x))]
+       (is (= '(+ (* 1/24 (expt dx 4) (sin x))
+                  (* -1/6 (expt dx 3) (cos x))
+                  (* -1/2 (expt dx 2) (sin x))
+                  (* dx (cos x))
+                  (sin x))
+              (g/simplify
+               (reduce + (series/take 5 (taylor-series-expander g/sin 'x 'dx))))))
+       (is (= '(1
+                (* 1/2 dx)
+                (* -1/8 (expt dx 2))
+                (* 1/16 (expt dx 3))
+                (* -5/128 (expt dx 4))
+                (* 7/256 (expt dx 5)))
+              (g/simplify
+               (series/take 6 (taylor-series-expander
+                               (fn [x] (g/sqrt (+ (v/one-like x) x)))
+                               0 'dx))))))))

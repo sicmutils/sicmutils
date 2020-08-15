@@ -86,7 +86,7 @@
       (if m?
         (matrix/get-in a as)
         (get-in a as))
-     (apply core-ref a as))))
+      (apply core-ref a as))))
 
 (defn partial
   "A shim. Dispatches to partial differentiation when all the arguments
@@ -94,7 +94,7 @@
   otherwise."
   [& selectors]
   (if (every? integer? selectors)
-    (apply d/∂ selectors)
+    (apply d/partial selectors)
     (apply core-partial selectors)))
 
 (def m:transpose matrix/transpose)

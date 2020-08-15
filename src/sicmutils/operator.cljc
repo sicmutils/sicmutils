@@ -34,12 +34,20 @@
   (nullity? [_] false)
   (unity? [_] false)
 
-  IFn
-  (invoke [_ f] (o f))
-  (invoke [_ f g] (o f g))
-  (invoke [_ f g h] (o f g h))
-  (invoke [_ f g h i] (o f g h i))
-  (applyTo [_ fns] (apply o fns)))
+  #?@(:clj
+      [IFn
+       (invoke [_ f] (o f))
+       (invoke [_ f g] (o f g))
+       (invoke [_ f g h] (o f g h))
+       (invoke [_ f g h i] (o f g h i))
+       (applyTo [_ fns] (apply o fns))]
+
+      :cljs
+      [IFn
+       (-invoke [_ f] (o f))
+       (-invoke [_ f g] (o f g))
+       (-invoke [_ f g h] (o f g h))
+       (-invoke [_ f g h i] (o f g h i))]))
 
 (defn make-operator
   [o name & {:keys [] :as context}]
