@@ -27,9 +27,10 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]
             [sicmutils.calculus.derivative :as d])
-  (:import [sicmutils.polynomial Polynomial]
-           [sicmutils.structure Structure]
-           (clojure.lang IFn)))
+  #?(:clj
+     (:import [sicmutils.polynomial Polynomial]
+              [sicmutils.structure Structure]
+              (clojure.lang IFn))))
 
 (declare literal-apply)
 
