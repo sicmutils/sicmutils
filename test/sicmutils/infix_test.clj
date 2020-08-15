@@ -75,7 +75,13 @@
       (is (= "a f(2 h + 2 k, c)" (s->infix (* 'a (f (* 2 (+ 'h 'k)) 'c)))))
       (is (= "f(x, y)" (s->infix (f 'x 'y))))
       (is (= "down(∂₀f(x, y), ∂₁f(x, y))" (s->infix ((D f) 'x 'y))))
-      (is (= "sin(t) cos(t)" (s->infix ((* sin cos) 't)))))))
+      (is (= "sin(t) cos(t)" (s->infix ((* sin cos) 't))))
+      (let [dX (up 'dx 'dy)]
+        (is (= "1/2 dx² ∂₀(∂₀f)(x, y) + dx dy ∂₁(∂₀f)(x, y) + 1/2 dy² ∂₁(∂₁f)(x, y) + dx ∂₀f(x, y) + dy ∂₁f(x, y) + f(x, y)"
+               (s->infix
+                (+ (f 'x 'y)
+                   (* ((D f) 'x 'y) dX)
+                   (* 1/2 (((expt D 2) f) 'x 'y) dX dX)))))))))
 
 (deftest exponents
   (is (= '"x⁴ + 4 x³ + 6 x² + 4 x + 1"
