@@ -28,9 +28,7 @@
             [sicmutils.value :as v]
             [sicmutils.calculus.derivative :as d])
   #?(:clj
-     (:import [sicmutils.polynomial Polynomial]
-              [sicmutils.structure Structure]
-              (clojure.lang IFn))))
+     (:import [clojure.lang IFn])))
 
 (declare literal-apply)
 
@@ -71,12 +69,21 @@
   (numerical? [_] false)
   (freeze [_] (v/freeze name))
   (kind [_] ::function)
-  IFn
-  (invoke [f x] (literal-apply f [x]))
-  (invoke [f x y] (literal-apply f [x y]))
-  (invoke [f x y z] (literal-apply f [x y z]))
-  (invoke [f w x y z] (literal-apply f [w x y z]))
-  (applyTo [f xs] (literal-apply f xs)))
+
+  #?@(:clj
+      [IFn
+       (invoke [f x] (literal-apply f [x]))
+       (invoke [f x y] (literal-apply f [x y]))
+       (invoke [f x y z] (literal-apply f [x y z]))
+       (invoke [f w x y z] (literal-apply f [w x y z]))
+       (applyTo [f xs] (literal-apply f xs))]
+
+      :cljs
+      [IFn
+       (-invoke [f x] (literal-apply f [x]))
+       (-invoke [f x y] (literal-apply f [x y]))
+       (-invoke [f x y z] (literal-apply f [x y z]))
+       (-invoke [f w x y z] (literal-apply f [w x y z]))]))
 
 (def ^:private orientation->symbol {::s/up "↑" ::s/down "_"})
 
@@ -252,10 +259,9 @@
   ;; is being attempted here
   (letfn [(fd [indices vv]
             (cond (s/structure? vv)
-                  (let [^Structure s vv]
-                    (s/same s (map-indexed (fn [i element]
-                                             (fd (conj indices i) element))
-                                           s)))
+                  (s/same vv (map-indexed (fn [i element]
+                                            (fd (conj indices i) element))
+                                          vv))
                   (or (g/numerical-quantity? vv)
                       (g/abstract-quantity? vv))
                   (let [fexp (if (= (:arity f) [:exactly 1])  ; univariate

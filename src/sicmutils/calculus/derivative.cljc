@@ -24,8 +24,10 @@
             [sicmutils.operator :as o]
             [sicmutils.series :as series]
             [sicmutils.structure :as struct]
+            [sicmutils.util :as u]
             [sicmutils.value :as v])
-  (:import (clojure.lang Sequential)))
+  #?(:clj
+     (:import [clojure.lang Sequential])))
 
 ;; A differential term is implemented as a pair whose first element is
 ;; a set of tags and whose second is the coefficient.
@@ -50,8 +52,7 @@
   Object
   (equals [_ b]
     (and (instance? Differential b)
-         (let [^Differential bd b]
-           (= terms (.terms bd)))))
+         (= terms (.-terms b))))
 
   (toString [_] (str "D[" (join " " (map #(join " → " %) terms)) "]")))
 
@@ -66,18 +67,17 @@
 (defn differential-of
   "The differential of a quantity is, if we're a differential, the differential
   of the coefficient of the highest-order term part, or else the input itself."
-  [^Differential dx]
+  [dx]
   (loop [dx dx]
     (if (instance? Differential dx)
-      (recur (coefficient (last (.terms dx))))
+      (recur (coefficient (last (.-terms dx))))
       dx)))
 
 (def ^:private empty-differential [])
 (def ^:private empty-tags [])
 
-(defn canonicalize-differential
-  [^Differential dx]
-  (let [ts (.terms dx)]
+(defn canonicalize-differential [dx]
+  (let [ts (.-terms dx)]
     (cond (empty? ts) 0
           (and (= (count ts) 1)
                (empty? (tags (first ts)))) (coefficient (first ts))
@@ -103,7 +103,7 @@
   representing d with an empty tag list (unless d is zero, in
   which case we return the empty term list)."
   [dx]
-  (cond (instance? Differential dx) (let [^Differential d dx] (.terms d))
+  (cond (instance? Differential dx) (let [^Differential d dx] (.-terms d))
         (v/nullity? dx) []
         :else [[empty-tags dx]]))
 
@@ -194,16 +194,16 @@
               (let [^Differential d obj]
                 (canonicalize-differential
                  (make-differential
-                   (for [[tags coef] (.terms d)
-                         :when (tag-in? tags tag)]
-                     [(tag-without tags tag) coef]))))
+                  (for [[tags coef] (.-terms d)
+                        :when (tag-in? tags tag)]
+                    [(tag-without tags tag) coef]))))
               0))
           (dist
             [obj]
             (cond (struct/structure? obj) (struct/mapr dist obj)
                   (matrix/matrix? obj) (matrix/fmap dist obj)
                   (series/series? obj) (series/fmap dist obj)
-                  (o/operator? obj) (do (throw (IllegalArgumentException. "can't differentiate an operator yet"))
+                  (o/operator? obj) (do (u/illegal "can't differentiate an operator yet")
                                         (extract obj))      ;; TODO: tag-hiding
                   ;; (quaternion? obj) XXX
                   ;; ((operator? obj)
@@ -216,8 +216,7 @@
                   :else (extract obj)))]
     (dist obj)))
 
-(defn derivative
-  [f]
+(defn derivative [f]
   (fn [x]
     (let [dx (make-differential-tag)]
       (extract-dx-part dx (f (make-x+dx x dx))))))
@@ -286,10 +285,10 @@
           [dx xe] (with-and-without-tag mt x)
           [dy ye] (with-and-without-tag mt y)
           a (f xe ye)
-          b (if (and (number? dx) (zero? dx))
+          b (if (and (v/number? dx) (v/nullity? dx))
               a
               (dx+dy a (dx*dy dx (∂f:∂x xe ye))))
-          c (if (and (number? dy) (zero? dy))
+          c (if (and (v/number? dy) (v/nullity? dy))
               b
               (dx+dy b (dx*dy (∂f:∂y xe ye) dy)))]
       (canonicalize-differential c))))
@@ -324,18 +323,18 @@
              (fn [x y]
                (g/* y (g/expt x (g/- y 1))))
              (fn [_ _]
-               (throw (IllegalArgumentException. "can't get there from here")))
+               (u/illegal "can't get there from here"))
              :expt))
 (def ^:private expt
   (binary-op g/expt
              (fn [x y]
                (g/* y (g/expt x (g/- y 1))))
              (fn [x y]
-               (if (and (number? x) (v/nullity? y))
-                 (if (number? y)
-                   (if (pos? y)
+               (if (and (v/number? x) (v/nullity? y))
+                 (if (v/number? y)
+                   (if (not (g/negative? y))
                      0
-                     (throw (IllegalArgumentException. "Derivative undefined: expt")))
+                     (u/illegal "Derivative undefined: expt"))
                    0)
                  (g/* (g/log x) (g/expt x y))))
              :expt))
@@ -362,7 +361,7 @@
                   ((derivative g) v)
 
                   :else
-                  (throw (IllegalArgumentException. (str "bad structure " g ", " v)))))
+                  (u/illegal (str "bad structure " g ", " v))))
           (a-euclidean-derivative [v]
             (cond (struct/structure? v)
                   (structural-derivative
@@ -374,7 +373,7 @@
                   ((derivative f) v)
 
                   :else
-                  (throw (IllegalArgumentException. (str "Bad selectors " f selectors v)))))]
+                  (u/illegal (str "Bad selectors " f selectors v))))]
     a-euclidean-derivative))
 
 (defn ^:private multivariate-derivative
@@ -386,21 +385,21 @@
       [:exactly 0] (make-df (constantly 0))
       [:exactly 1] (make-df (d f))
       [:exactly 2] (make-df (fn [x y]
-                                ((d (fn [[x y]] (f x y)))
-                                 (matrix/seq-> [x y]))))
+                              ((d (fn [[x y]] (f x y)))
+                               (matrix/seq-> [x y]))))
       [:exactly 3] (make-df (fn [x y z]
-                                ((d (fn [[x y z]] (f x y z)))
-                                 (matrix/seq-> [x y z]))))
+                              ((d (fn [[x y z]] (f x y z)))
+                               (matrix/seq-> [x y z]))))
       [:exactly 4] (make-df (fn [w x y z]
-                                ((d (fn [[w x y z]] (f w x y z)))
-                                 (matrix/seq-> [w x y z]))))
+                              ((d (fn [[w x y z]] (f w x y z)))
+                               (matrix/seq-> [w x y z]))))
       [:between 1 2] (make-df (fn [x & y]
-                                  (if (nil? y)
-                                    ((d f) x)
-                                    ((d (fn [[x y]] (f x y)))
-                                     (matrix/seq-> (cons x y))))))
+                                (if (nil? y)
+                                  ((d f) x)
+                                  ((d (fn [[x y]] (f x y)))
+                                   (matrix/seq-> (cons x y))))))
       (fn [& xs]
-        (when (empty? xs) (throw (IllegalArgumentException. "No args passed to derivative?")))
+        (when (empty? xs) (u/illegal "No args passed to derivative?"))
         (if (= (count xs) 1)
           ((d f) (first xs))
           ((d #(apply f %)) (matrix/seq-> xs)))))))
@@ -416,7 +415,7 @@
   [generic-operation differential-operation]
   (defmethod generic-operation [::differential] [a] (differential-operation a)))
 
-(defmethod g/expt [::differential Number] [d n] (power d n))
+(defmethod g/expt [::differential ::v/number] [d n] (power d n))
 (define-binary-operation g/expt expt)
 
 (define-binary-operation g/add diff-+)
@@ -441,9 +440,11 @@
 (derive ::differential ::o/co-operator)
 (derive ::differential ::series/coseries)
 
+(def ^:private seqtype
+  #?(:clj Sequential :cljs ISequential))
 
 (defmethod g/partial-derivative
-  [:sicmutils.function/function Sequential]
+  [:sicmutils.function/function seqtype]
   [f selectors]
   (multivariate-derivative f selectors))
 
@@ -453,12 +454,12 @@
   (multivariate-derivative f []))
 
 (defmethod g/partial-derivative
-  [::struct/structure Sequential]
+  [::struct/structure seqtype]
   [f selectors]
   (multivariate-derivative f selectors))
 
 (defmethod g/partial-derivative
-  [::matrix/matrix Sequential]
+  [::matrix/matrix seqtype]
   [f selectors]
   (multivariate-derivative f selectors))
 
@@ -472,7 +473,8 @@
   "Partial differentiation of a function at the (zero-based) slot index
   provided."
   [& selectors]
-  (o/make-operator #(g/partial-derivative % selectors) :partial-derivative))
+  (o/make-operator #(g/partial-derivative % selectors)
+                   :partial-derivative))
 
 (defn taylor-series-terms
   "The (infinite) sequence of terms of the taylor series of the function f
@@ -480,5 +482,5 @@
   [f x dx]
   (let [step (fn step [n n! Dnf dxn]
                (lazy-seq (cons (g/divide (g/* (Dnf x) dxn) n!)
-                               (step (inc n) (*' n! (inc n)) (D Dnf) (g/* dxn dx)))))]
+                               (step (inc n) (g/* n! (inc n)) (D Dnf) (g/* dxn dx)))))]
     (step 0 1 f 1)))

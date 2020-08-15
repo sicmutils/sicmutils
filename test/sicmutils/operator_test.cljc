@@ -19,7 +19,8 @@
 
 (ns sicmutils.operator-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
-  (:require [clojure.test :refer :all]
+  (:require #?(:clj  [clojure.test :refer :all]
+               :cljs [cljs.test :as t :refer-macros [is deftest testing use-fixtures]])
             [sicmutils.env :refer :all]
             [sicmutils.operator :as o]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]

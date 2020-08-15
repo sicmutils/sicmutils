@@ -19,7 +19,8 @@
 
 (ns sicmutils.calculus.derivative-test
   (:refer-clojure :exclude [+ - * / ref])
-  (:require [clojure.test :refer :all]
+  (:require #?(:clj  [clojure.test :refer :all]
+               :cljs [cljs.test :as t :refer-macros [is deftest testing use-fixtures]])
             [sicmutils.calculus.derivative :refer :all]
             [sicmutils.complex :refer [complex]]
             [sicmutils.function :refer :all]
@@ -31,7 +32,8 @@
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :refer :all]
             [sicmutils.value :as v])
-  (:import (sicmutils.calculus.derivative Differential)))
+  #?(:clj
+     (:import (sicmutils.calculus.derivative Differential))))
 
 (use-fixtures :once hermetic-simplify-fixture)
 

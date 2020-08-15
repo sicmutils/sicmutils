@@ -21,9 +21,10 @@
   (:require [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.series :as series]
+            [sicmutils.util :as u]
             [sicmutils.value :as v])
-  (:import (clojure.lang IFn)
-           (sicmutils.series Series)))
+  #?(:clj
+     (:import [clojure.lang IFn])))
 
 (defrecord Operator [o arity name context]
   v/Value
@@ -42,25 +43,29 @@
 
 (defn make-operator
   [o name & {:keys [] :as context}]
-  (->Operator o (or (:arity context) [:exactly 1]) name (into {:subtype ::operator} context)))
+  (->Operator o
+              (or (:arity context) [:exactly 1])
+              name
+              (into {:subtype ::operator} context)))
 
 (defn operator?
   [x]
   (instance? Operator x))
 
-(def identity-operator (make-operator identity 'identity))
+(def identity-operator
+  (make-operator identity 'identity))
 
 (defn ^:private joint-context
   "Merges type context maps of the two operators. Where the maps have keys in
   common, they must agree; disjoint keys become part of the new joint context."
   [o p]
-  {:pre [(instance? Operator o)
-         (instance? Operator p)]}
+  {:pre [(operator? o)
+         (operator? p)]}
   (reduce (fn [joint-ctx [k v]]
             (if-let [cv (k joint-ctx)]
               (if (= cv v)
                 joint-ctx
-                (throw (IllegalArgumentException. (str "incompatible operator context: " (:context o) (:context p)))))
+                (u/illegal (str "incompatible operator context: " (:context o) (:context p))))
               (assoc joint-ctx k v)))
           (:context o)
           (:context p)))
@@ -121,21 +126,16 @@
               `(~'* ~f ~(:name o))
               (:context o)))
 
-(defn commutator
-  [o p]
+(defn commutator [o p]
   (g/- (g/* o p) (g/* p o)))
 
-(defn anticommutator
-  [o p]
+(defn anticommutator [o p]
   (g/+ (g/* o p) (g/* p o)))
 
-;; Do we need to promote the second arg type (Number)
+;; Do we need to promote the second arg type (::v/integral)
 ;; to ::x/numerical-expression?? -- check this ***AG***
-(defmethod g/expt
-  [::operator Number]
-  [o n]
-  {:pre [(integer? n)
-         (not (neg? n))]}
+(defmethod g/expt [::operator ::v/integral] [o n]
+  {:pre [(not (g/negative? n))]}
   (loop [e identity-operator
          n n]
     (if (= n 0) e (recur (o*o e o) (dec n)))))
@@ -143,14 +143,12 @@
 ;; e to an operator g means forming the power series
 ;; I + g + 1/2 g^2 + ... + 1/n! g^n
 ;; where (as elsewhere) exponentiating the operator means n-fold composition
-(defmethod g/exp
-  [::operator]
-  [g]
+(defmethod g/exp [::operator] [g]
   (letfn [(step [n n! g**n]
             (lazy-seq (cons (g/divide g**n n!)
                             (step (inc n) (* n! (inc n)) (o*o g g**n)))))]
     (->Operator (fn [f]
-                  (partial series/value (Series.
+                  (partial series/value (series/->Series
                                          [:exactly 0]
                                          (map #(% f) (step 0 1 identity-operator)))))
                 [:exactly 1]
@@ -158,38 +156,32 @@
                 (:context g))))
 
 (defmethod g/add [::operator ::operator] [o p] (o+o o p))
+
 ;; In additive operation the value 1 is considered as the identity operator
-(defmethod g/add [::operator ::x/numerical-expression]
-  [o n]
+(defmethod g/add [::operator ::x/numerical-expression] [o n]
   (o+o o (number->operator n)))
-(defmethod g/add [::x/numerical-expression ::operator]
-  [n o]
+
+(defmethod g/add [::x/numerical-expression ::operator] [n o]
   (o+o (number->operator n) o))
-(defmethod g/add
-  [::operator :sicmutils.function/function]
-  [o f]
+
+(defmethod g/add [::operator :sicmutils.function/function] [o f]
   (o+o o (number->operator f)))
-(defmethod g/add
-  [:sicmutils.function/function ::operator]
-  [f o]
+
+(defmethod g/add [:sicmutils.function/function ::operator] [f o]
   (o+o (number->operator f) o))
 
 (defmethod g/sub [::operator ::operator] [o p] (o-o o p))
-(defmethod g/sub
-  [::operator ::x/numerical-expression]
-  [o n]
+
+(defmethod g/sub [::operator ::x/numerical-expression] [o n]
   (o-o o (number->operator n)))
-(defmethod g/sub
-  [::x/numerical-expression ::operator]
-  [n o]
+
+(defmethod g/sub [::x/numerical-expression ::operator] [n o]
   (o-o (number->operator n) o))
-(defmethod g/sub
-  [::operator :sicmutils.function/function]
-  [o f]
+
+(defmethod g/sub [::operator :sicmutils.function/function] [o f]
   (o-o o (number->operator f)))
-(defmethod g/sub
-  [:sicmutils.function/function ::operator]
-  [f o]
+
+(defmethod g/sub [:sicmutils.function/function ::operator] [f o]
   (o-o (number->operator f) o))
 
 (derive ::x/numerical-expression ::co-operator)
