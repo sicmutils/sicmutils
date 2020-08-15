@@ -56,8 +56,7 @@
   '(-> Real (X Real Real)) ) to our 'exemplar' format."
   [[arrow domain range]]
   (when-not (and (= '-> arrow) domain range)
-    (throw (IllegalArgumentException.
-            (str "A SICM signature is of the form '(-> domain range), got: " arrow domain range))))
+    (u/illegal (str "A SICM signature is of the form '(-> domain range), got: " arrow domain range)))
   [(let [d (sicm-set->exemplar domain)]
      (if (vector? d) d [d]))
    (sicm-set->exemplar range)])
@@ -82,15 +81,15 @@
 (def ^:private orientation->symbol {::s/up "↑" ::s/down "_"})
 
 (defn literal-function
-  ([f] (Function. f [:exactly 1] [0] 0))
+  ([f] (->Function f [:exactly 1] [0] 0))
   ([f signature]
    (let [[domain range] (sicm-signature->domain-range signature)]
      (literal-function f domain range)))
   ([f domain range]
    (cond (number? range)
-         (Function. f [:exactly (if (vector? domain) (count domain) 1)]
-                    (if (vector? domain) domain [domain])
-                    range)
+         (->Function f [:exactly (if (vector? domain) (count domain) 1)]
+                     (if (vector? domain) domain [domain])
+                     range)
 
          (s/structure? range)
          (s/same range (map-indexed (fn [index component]
@@ -103,7 +102,7 @@
                                     range))
 
          :else
-         (throw (IllegalArgumentException. (str "WTF range" domain))))))
+         (u/illegal (str "WTF range" domain)))))
 
 (def ^:private derivative-symbol 'D)
 
@@ -165,8 +164,7 @@
                         #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10))
                         [:at-least 0]
                         #(operator (apply f1 %&) (apply g1 %&))
-                        (throw (IllegalArgumentException.
-                                (str  "unsupported arity for function arithmetic " arity))))]
+                        (u/illegal (str  "unsupported arity for function arithmetic " arity)))]
                 (with-meta h {:arity f-arity :from :function-binop}))))]
     (with-meta h {:arity [:exactly 2]})))
 
@@ -265,11 +263,11 @@
                                  (if (= (count indices) 1)
                                    (symbolic-increase-derivative (:name f))
                                    `((~'∂ ~@(next indices)) ~(:name f)))
-                                 (throw (IllegalArgumentException. "wrong indices")))
+                                 (u/illegal "wrong indices"))
                                `((~'∂ ~@indices) ~(:name f)))]
-                    (Function. fexp (:arity f) (:domain f) (:range f)))
+                    (->Function fexp (:arity f) (:domain f) (:range f)))
                   :else
-                  (throw (IllegalArgumentException. (str "make-partials WTF " vv)))))]
+                  (u/illegal (str "make-partials WTF " vv))))]
     (fd [] v)))
 
 
@@ -292,27 +290,23 @@
   [f provided expected indexes]
   (cond (number? expected)
         (when-not (g/numerical-quantity? provided)
-          (throw (IllegalArgumentException.
-                  (str "expected numerical quantity in argument " indexes
-                       " of function call " f
-                       " but got " provided))))
+          (u/illegal (str "expected numerical quantity in argument " indexes
+                          " of function call " f
+                          " but got " provided)))
         (s/structure? expected)
         (do (when-not (and (or (s/structure? provided) (sequential? provided))
                            (= (s/orientation provided) (s/orientation expected))
                            (= (count provided) (count expected)))
-              (throw (IllegalArgumentException.
-                      (str "expected structure matching " expected
-                           " but got " provided ))))
+              (u/illegal (str "expected structure matching " expected
+                              " but got " provided )))
             (doseq [[provided expected sub-index] (map list provided expected (range))]
               (check-argument-type f provided expected (conj indexes sub-index))))
         (keyword? expected) ;; a keyword has to match the argument's kind
         (when-not (= (v/kind provided) expected)
-          (throw (IllegalArgumentException.
-                  (str "expected argument of type " expected " but got " (v/kind provided)
-                       " in call to function " f))))
+          (u/illegal (str "expected argument of type " expected " but got " (v/kind provided)
+                          " in call to function " f)))
 
-        :else (throw (IllegalArgumentException.
-                      (str "unexpected argument example. got " provided " want " expected)))))
+        :else (u/illegal (str "unexpected argument example. got " provided " want " expected))))
 
 (defn ^:private literal-apply
   [f xs]

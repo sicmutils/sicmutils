@@ -249,9 +249,9 @@
         V (series/starting-with g/sin g/cos g/tan)]
 
     (testing "with functions"
-      (is (= '[(* (f x) (sin x)) (* (sin x) (g x)) 0 0]
+      (is (= '[(* (sin x) (f x)) (* (sin x) (g x)) 0 0]
              (g/simplify (series/take 4 ((g/* S g/sin) 'x)))))
-      (is (= '[(* (f x) (sin x)) (* (sin x) (g x)) 0 0]
+      (is (= '[(* (sin x) (f x)) (* (sin x) (g x)) 0 0]
              (g/simplify (series/take 4 ((g/* g/sin S) 'x))))))
 
     (testing "and derivatives"
