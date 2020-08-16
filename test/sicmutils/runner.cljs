@@ -3,6 +3,7 @@
             pattern.match-test
             pattern.rule-test
             sicmutils.calculus.derivative-test
+            sicmutils.calculus.form-field-test
             sicmutils.calculus.manifold-test
             sicmutils.mechanics.rotation-test
             sicmutils.numerical.compile-test
@@ -28,9 +29,13 @@
             sicmutils.structure-test
             sicmutils.value-test))
 
-(doo-tests 'pattern.match-test
+(doo-tests 'sicmutils.calculus.form-field-test)
+
+(comment
+  (doo-tests 'pattern.match-test
            'pattern.rule-test
            'sicmutils.calculus.derivative-test
+           'sicmutils.calculus.form-field-test
            'sicmutils.calculus.manifold-test
            'sicmutils.numerical.compile-test
            'sicmutils.mechanics.rotation-test
@@ -53,4 +58,4 @@
            'sicmutils.series-test
            'sicmutils.simplify-test
            'sicmutils.structure-test
-           'sicmutils.value-test)
+           'sicmutils.value-test))

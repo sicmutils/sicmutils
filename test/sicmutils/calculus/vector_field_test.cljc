@@ -18,9 +18,12 @@
 ;
 
 (ns sicmutils.calculus.vector-field-test
-  (:refer-clojure :exclude [+ - * / ref zero? partial])
-  (:require [clojure.test :refer :all]
-            [sicmutils.env :refer :all]
+  (:refer-clojure :exclude [+ - * / partial])
+  (:require #?(:clj  [clojure.test :refer :all]
+               :cljs [cljs.test :as t :refer-macros [is deftest testing use-fixtures]])
+            #?(:clj  [sicmutils.calculus.coordinate :refer [let-coordinates]]
+               :cljs [sicmutils.calculus.coordinate :refer-macros [let-coordinates]])
+            [sicmutils.calculus.vector-field :as vf]
             [sicmutils.operator :as o]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :as v]))
@@ -38,7 +41,8 @@
              (simplify ((v f) p))))
       (is (= '(up (b↑0 (up x0 y0)) (b↑1 (up x0 y0)))
              (simplify ((v (chart R2-rect)) p))))
-      (is (= :sicmutils.calculus.vector-field/vector-field (v/kind v)))))
+      (is (= ::vf/vector-field (v/kind v)))))
+
   (testing "exponential"
     (let-coordinates [[x y] R2-rect]
       (let [circular (- (* x d:dy) (* y d:dx))]
@@ -47,9 +51,11 @@
                (simplify
                 ((((evolution 6) 'a circular) (chart R2-rect))
                  ((point R2-rect) (up 1 0)))))))))
+
   (testing "naming"
     (let-coordinates [[x y] R2-rect]
       (is (= 0 ))))
+
   (testing "gjs-examples"
     (let-coordinates [[x y z] R3-rect]
       (is (= '(+ (* -1 a b (cos a) (cos b)) (* -2 a (cos a) (sin b)))
@@ -95,6 +101,7 @@
       (is (= (up 0 1 0) ((vector-field->components d:dy R3-cyl) (up 1 0 0))))
       (is (= '(up (sin theta0) (/ (cos theta0) r0) 0)
              (simplify ((vector-field->components d:dy R3-cyl) (up 'r0 'theta0 'z)))))
+
       (testing "coordinatize"
         (let [coordinatize (fn [sfv coordsys]
                              (let [v (fn [f]
