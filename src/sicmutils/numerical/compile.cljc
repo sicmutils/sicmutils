@@ -18,7 +18,8 @@
 ;
 
 (ns sicmutils.numerical.compile
-  (:require [clojure.set :as set]
+  (:require #?(:cljs [goog.string :refer [format]])
+            [clojure.set :as set]
             [clojure.walk :as w]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
