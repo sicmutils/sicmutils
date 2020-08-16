@@ -2,9 +2,11 @@
   (:require [doo.runner :refer-macros [doo-tests]]
             pattern.match-test
             pattern.rule-test
+            sicmutils.calculus.coordinate-test
             sicmutils.calculus.derivative-test
             sicmutils.calculus.form-field-test
             sicmutils.calculus.manifold-test
+            sicmutils.calculus.vector-field-test
             sicmutils.mechanics.rotation-test
             sicmutils.numerical.compile-test
             sicmutils.analyzer-test
@@ -29,14 +31,19 @@
             sicmutils.structure-test
             sicmutils.value-test))
 
-(doo-tests 'sicmutils.calculus.form-field-test)
+(doo-tests 'sicmutils.calculus.coordinate-test
+           'sicmutils.calculus.form-field-test
+           'sicmutils.calculus.vector-field-test
+           )
 
 (comment
   (doo-tests 'pattern.match-test
-           'pattern.rule-test
-           'sicmutils.calculus.derivative-test
-           'sicmutils.calculus.form-field-test
-           'sicmutils.calculus.manifold-test
+             'pattern.rule-test
+             'sicmutils.calculus.coordinate-test
+             'sicmutils.calculus.derivative-test
+             'sicmutils.calculus.form-field-test
+             'sicmutils.calculus.manifold-test
+             'sicmutils.calculus.vector-field-test
            'sicmutils.numerical.compile-test
            'sicmutils.mechanics.rotation-test
            'sicmutils.analyzer-test
