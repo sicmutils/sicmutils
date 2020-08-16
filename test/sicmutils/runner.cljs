@@ -29,6 +29,7 @@
 (doo-tests 'pattern.match-test
            'pattern.rule-test
            'sicmutils.calculus.derivative-test
+           'sicmutils.numerical.compile-test
            'sicmutils.analyzer-test
            'sicmutils.complex-test
            'sicmutils.euclid-test
