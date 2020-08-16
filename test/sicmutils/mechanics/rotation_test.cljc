@@ -18,30 +18,28 @@
 ;
 
 (ns sicmutils.mechanics.rotation-test
-  (:refer-clojure :exclude [+ - * / zero?])
-  (:require [clojure.test :refer :all]
-            [sicmutils
-             [generic :refer :all]
-             [function :refer :all]
-             [numbers]
-             [simplify :refer [pe hermetic-simplify-fixture]]
-             [structure :refer :all]]
-            [sicmutils.mechanics.rotation :refer :all]))
+  (:refer-clojure :exclude [+ - * /])
+  (:require #?(:clj  [clojure.test :refer :all]
+               :cljs [cljs.test :as t :refer-macros [is deftest testing use-fixtures]])
+            [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.structure :refer [up down]]
+            [sicmutils.mechanics.rotation :as r]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
 (deftest hello
   (let [P (up 'x 'y 'z)]
     (is (= '(up x (+ (* y (cos a)) (* -1 z (sin a))) (+ (* y (sin a)) (* z (cos a))))
-           (simplify ((Rx 'a) P))))
+           (g/simplify ((r/Rx 'a) P))))
     (is (= '(up x (+ (* y (cos a)) (* -1 z (sin a))) (+ (* y (sin a)) (* z (cos a))))
-           (simplify (* (rotate-x-matrix 'a) P))))
-    (is (= '(up 0 0 0) (simplify (- ((Rx 'a) P) (* (rotate-x-matrix 'a) P)))))
-    (is (= '(up 0 0 0) (simplify (- ((Ry 'a) P) (* (rotate-y-matrix 'a) P)))))
-    (is (= '(up 0 0 0) (simplify (- ((Rz 'a) P) (* (rotate-z-matrix 'a) P)))))
+           (g/simplify (* (r/rotate-x-matrix 'a) P))))
+    (is (= '(up 0 0 0) (g/simplify (- ((r/Rx 'a) P) (* (r/rotate-x-matrix 'a) P)))))
+    (is (= '(up 0 0 0) (g/simplify (- ((r/Ry 'a) P) (* (r/rotate-y-matrix 'a) P)))))
+    (is (= '(up 0 0 0) (g/simplify (- ((r/Rz 'a) P) (* (r/rotate-z-matrix 'a) P)))))
     ))
 
 (deftest rotation-from-structure-tests
   (testing "function - rotate about x axis"
-    (is (= (up 0 0 1) ((Rx 'pi-over-2) (up 0 1 0))))
-    (is (= (up 'x (- 'z) 'y) ((Rx 'pi-over-2) (up 'x 'y 'z))))))
+    (is (= (up 0 0 1) ((r/Rx 'pi-over-2) (up 0 1 0))))
+    (is (= (up 'x (- 'z) 'y) ((r/Rx 'pi-over-2) (up 'x 'y 'z))))))
