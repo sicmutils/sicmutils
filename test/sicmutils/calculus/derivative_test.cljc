@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.calculus.derivative-test
   (:refer-clojure :exclude [+ - * / ref partial])
@@ -405,6 +405,7 @@
     (let [pow (fn [x y] (apply * (repeat y x)))]
       (is (= 8 (pow 2 3)))
       (is (= '(expt x 8) (g/simplify (pow 'x 8))))))
+
   (testing "formatting"
     (let [f2 (fn [x y] (* (sin x) (log y)))
           f3 (fn [x y] (* (tan x) (log y)))
@@ -423,6 +424,7 @@
                (/ 1 (* (expt (cos x) 2) (sin y)))
                (/ (* -1 (sin x) (cos y)) (* (cos x) (expt (sin y) 2))))
              (g/simplify ((D f5) 'x 'y))))))
+
   (testing "arity"
     (let [f100dd (fn [x ct acc]
                    (if (v/nullity? ct)
@@ -440,7 +442,8 @@
            :cljs
            ;; The CLJS implementation doesn't have trouble here.
            (is (run))))
-      (is ((v/within 1e-6) 0.51603111348625 ((D (with-meta f100e {:arity [:exactly 1]})) 6))))))
+      (is ((v/within 1e-6) 0.51603111348625
+           ((D (with-meta f100e {:arity [:exactly 1]})) 6))))))
 
 (deftest deep-partials
   (let [f (fn [x y] (+ (g/square x) (g/square (g/square y))))]
@@ -475,10 +478,11 @@
                (* (expt dy 2) (((partial 1) ((partial 1) f)) x y)))
            (g/simplify (* dX (((g/expt D 2) f) 'x 'y) dX))))))
 
-;; TODO This is not going to work well in CLJS until we have fractions that can
-;; at least print their own representation.
-#?(:clj
-   (deftest taylor
+
+(deftest taylor
+  ;; TODO This is not going to work well in CLJS until we have fractions that can
+  ;; at least print their own representation.
+  #?(:clj
      (is (= '(+ (* 1/6
                    (expt dx 3) (((partial 0) ((partial 0) ((partial 0) f))) (up x y)))
                 (* 1/6
@@ -505,35 +509,34 @@
                   (s/up 'dx 'dy))
                  (take 4)
                  (reduce +)
-                 (g/simplify))))
+                 (g/simplify)))))
 
-     (testing "eq. 5.291"
-       (let [V (fn [[xi eta]] (g/sqrt (+ (g/square (+ xi 'R_0)) (g/square eta))))]
-         (is (= '[R_0 xi (/ (expt eta 2) (* 2 R_0))]
-                (take 3 (g/simplify (d/taylor-series-terms V (s/up 0 0) (s/up 'xi 'eta))))))))))
+  (testing "eq. 5.291"
+    (let [V (fn [[xi eta]] (g/sqrt (+ (g/square (+ xi 'R_0)) (g/square eta))))]
+      (is (= '[R_0 xi (/ (expt eta 2) (* 2 R_0))]
+             (take 3 (g/simplify (d/taylor-series-terms V (s/up 0 0) (s/up 'xi 'eta)))))))))
 
-#?(:clj
-   (deftest moved-from-structure-and-matrix
-     (let [vs (s/up
-               (s/up 'vx1 'vy1)
-               (s/up 'vx2 'vy2))
-           L1 (fn [[v1 v2]]
-                (+ (* 1/2 'm1 (g/square v1))
-                   (* 1/2 'm2 (g/square v2))))]
-       (is (= '(down
-                (down (down (down m1 0) (down 0 0))
-                      (down (down 0 m1) (down 0 0)))
-                (down (down (down 0 0) (down m2 0))
-                      (down (down 0 0) (down 0 m2))))
-              (g/simplify (((g/expt D 2) L1) vs))))
+(deftest moved-from-structure-and-matrix
+  (let [vs (s/up
+            (s/up 'vx1 'vy1)
+            (s/up 'vx2 'vy2))
+        L1 (fn [[v1 v2]]
+             (+ (* (/ 1 2) 'm1 (g/square v1))
+                (* (/ 1 2) 'm2 (g/square v2))))]
+    (is (= '(down
+             (down (down (down m1 0) (down 0 0))
+                   (down (down 0 m1) (down 0 0)))
+             (down (down (down 0 0) (down m2 0))
+                   (down (down 0 0) (down 0 m2))))
+           (g/simplify (((g/expt D 2) L1) vs))))
 
-       (testing "identical test in matrix form"
-         (is (= '(matrix-by-rows [m1 0 0 0]
-                                 [0 m1 0 0]
-                                 [0 0 m2 0]
-                                 [0 0 0 m2])
-                (g/simplify
-                 (matrix/s->m vs (((g/expt D 2) L1) vs) vs))))))))
+    (testing "identical test in matrix form"
+      (is (= '(matrix-by-rows [m1 0 0 0]
+                              [0 m1 0 0]
+                              [0 0 m2 0]
+                              [0 0 0 m2])
+             (g/simplify
+              (matrix/s->m vs (((g/expt D 2) L1) vs) vs)))))))
 
 (deftest moved-from-matrix
   (testing "s->m->s"
