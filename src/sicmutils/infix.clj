@@ -339,8 +339,8 @@
            :special-handlers {'up make-js-vector
                               'down make-js-vector})]
     (fn [x & {:keys [symbol-generator parameter-order]
-              :or {symbol-generator (make-symbol-generator "_")
-                   parameter-order sort}}]
+             :or {symbol-generator (make-symbol-generator "_")
+                  parameter-order sort}}]
       (let [params (set/difference (x/variables-in x) operators-known)
             w (StringWriter.)
             ordered-params (if (fn? parameter-order)
@@ -351,16 +351,16 @@
           (.write (s/join ", " ordered-params))
           (.write ") {\n"))
         (compile/extract-common-subexpressions
-          x
-          symbol-generator
-          (fn [new-exression new-vars]
-            (doseq [[var val] new-vars]
-              (doto w
-                (.write "  var ")
-                (.write (str var " = "))
-                (.write ^String (R val))
-                (.write ";\n")))
-            (.toString (doto w
-                         (.write "  return ")
-                         (.write ^String (R new-exression))
-                         (.write ";\n}")))))))))
+         x
+         symbol-generator
+         (fn [new-expression new-vars]
+           (doseq [[var val] new-vars]
+             (doto w
+               (.write "  var ")
+               (.write (str var " = "))
+               (.write ^String (R val))
+               (.write ";\n")))
+           (.toString (doto w
+                        (.write "  return ")
+                        (.write ^String (R new-expression))
+                        (.write ";\n}")))))))))

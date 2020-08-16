@@ -18,7 +18,7 @@
 ;
 
 (ns sicmutils.mechanics.rotation
-  (:refer-clojure :exclude [+ - * / zero?])
+  (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [sicmutils
              [generic :refer :all]
              [structure :refer :all]

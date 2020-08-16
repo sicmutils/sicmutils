@@ -74,14 +74,8 @@
       (is (= "a f(b, c)" (s->infix (* 'a (f 'b 'c)))))
       (is (= "a f(2 h + 2 k, c)" (s->infix (* 'a (f (* 2 (+ 'h 'k)) 'c)))))
       (is (= "f(x, y)" (s->infix (f 'x 'y))))
-      (is (= "down(partial₀f(x, y), partial₁f(x, y))" (s->infix ((D f) 'x 'y))))
-      (is (= "sin(t) cos(t)" (s->infix ((* sin cos) 't))))
-      (let [dX (up 'dx 'dy)]
-        (is (= "1/2 dx² partial₀(partial₀f)(x, y) + dx dy partial₁(partial₀f)(x, y) + 1/2 dy² partial₁(partial₁f)(x, y) + dx partial₀f(x, y) + dy partial₁f(x, y) + f(x, y)"
-               (s->infix
-                (+ (f 'x 'y)
-                   (* ((D f) 'x 'y) dX)
-                   (* 1/2 (((expt D 2) f) 'x 'y) dX dX)))))))))
+      (is (= "down(∂₀f(x, y), ∂₁f(x, y))" (s->infix ((D f) 'x 'y))))
+      (is (= "sin(t) cos(t)" (s->infix ((* sin cos) 't)))))))
 
 (deftest exponents
   (is (= '"x⁴ + 4 x³ + 6 x² + 4 x + 1"
@@ -228,19 +222,24 @@
               "function(D, f, x) {\n  return Math.pow(D, 2)(f)(x);\n}"
               "{D}^{2}f\\left(x\\right)"]
              (all-formats ((D (D f)) 'x))))
-      (is (= ["1/2 dx² partial₀(partial₀f)(up(x, y)) + dx dy partial₁(partial₀f)(up(x, y)) + 1/2 dy² partial₁(partial₁f)(up(x, y)) + dx partial₀f(up(x, y)) + dy partial₁f(up(x, y)) + f(up(x, y))"
-              (str "function(dx, dy, f, x, y, partial) {\n"
-                   "  var _0001 = partial(0);\n"
-                   "  var _0002 = partial(1);\n"
-                   "  var _0004 = [x, y];\n"
-                   "  var _0006 = _0001(f);\n"
-                   "  var _0007 = _0002(f);\n"
-                   "  return 1/2 * Math.pow(dx, 2) * _0001(_0006)(_0004) + dx * dy * _0002(_0006)(_0004) + 1/2 * Math.pow(dy, 2) * _0002(_0007)(_0004) + dx * _0006(_0004) + dy * _0007(_0004) + f(_0004);\n"
-                   "}")
-              "\\frac{1}{2}\\,{dx}^{2}\\,\\partial_0\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,dy\\,\\partial_1\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + \\frac{1}{2}\\,{dy}^{2}\\,\\partial_1\\left(\\partial_1f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,\\partial_0f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dy\\,\\partial_1f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)"]
 
-             (all-formats (reduce +
-                                  (take 3 (taylor-series-terms
-                                           (literal-function 'f (up 0 0) 0)
-                                           (up 'x 'y)
-                                           (up 'dx 'dy))))))))))
+      (let [expr (->> (taylor-series-terms
+                       (literal-function 'f (up 0 0) 0)
+                       (up 'x 'y)
+                       (up 'dx 'dy))
+                      (take 3)
+                      (reduce +))]
+        (is (= "1/2 dx² ∂₀(∂₀f)(up(x, y)) + dx dy ∂₁(∂₀f)(up(x, y)) + 1/2 dy² ∂₁(∂₁f)(up(x, y)) + dx ∂₀f(up(x, y)) + dy ∂₁f(up(x, y)) + f(up(x, y))"
+               (s->infix expr)))
+
+        (is (= (str "function(dx, dy, f, partial, x, y) {\n"
+                    "  var _0003 = partial(0);\n"
+                    "  var _0004 = [x, y];\n"
+                    "  var _0005 = partial(1);\n"
+                    "  var _0006 = _0005(f);\n"
+                    "  var _0007 = _0003(f);\n"
+                    "  return 1/2 * Math.pow(dx, 2) * _0003(_0007)(_0004) + dx * dy * _0005(_0007)(_0004) + 1/2 * Math.pow(dy, 2) * _0005(_0006)(_0004) + dx * _0007(_0004) + dy * _0006(_0004) + f(_0004);\n}")
+               (s->JS expr)))
+
+        (is (= "\\frac{1}{2}\\,{dx}^{2}\\,\\partial_0\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,dy\\,\\partial_1\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + \\frac{1}{2}\\,{dy}^{2}\\,\\partial_1\\left(\\partial_1f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,\\partial_0f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dy\\,\\partial_1f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)"
+               (s->TeX expr)))))))

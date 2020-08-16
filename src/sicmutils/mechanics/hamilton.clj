@@ -18,7 +18,7 @@
 ;
 
 (ns sicmutils.mechanics.hamilton
-  (:refer-clojure :exclude [+ - * / zero?])
+  (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [sicmutils.generic :refer :all]
             [sicmutils.structure :refer :all]
             [sicmutils.operator :refer [make-operator]]
