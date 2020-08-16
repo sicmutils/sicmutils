@@ -23,7 +23,8 @@
                :cljs [cljs.test :as t :refer-macros [is deftest testing use-fixtures]])
             [sicmutils.calculus.derivative :as d :refer [D partial]]
             [sicmutils.complex :refer [complex]]
-            [sicmutils.function :as f :refer [with-literal-functions]]
+            #?(:clj  [sicmutils.function :as f :refer [with-literal-functions]]
+               :cljs [sicmutils.function :as f :refer-macros [with-literal-functions]])
             [sicmutils.generic :as g :refer [acos asin atan cos sin tan log exp expt + - * /]]
             [sicmutils.matrix :as matrix]
             [sicmutils.series :as series]
@@ -433,8 +434,12 @@
                   ([x ct acc] (if (v/nullity? ct) acc (recur x (dec ct) (sin (+ x acc))))))
           f100ea (with-meta f100e {:arity [:exactly 1]})]
       (is ((v/within 1e-6) 0.51603111348625 ((D f100d) 6)))
-      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-                   ((v/within 1e-6) 0.51603111348625 ((D f100e) 6))))
+      (let [run (fn [] ((v/within 1e-6) 0.51603111348625 ((D f100e) 6)))]
+        #?(:clj
+           (is (thrown? IllegalArgumentException (run)))
+           :cljs
+           ;; The CLJS implementation doesn't have trouble here.
+           (is (run))))
       (is ((v/within 1e-6) 0.51603111348625 ((D (with-meta f100e {:arity [:exactly 1]})) 6))))))
 
 (deftest deep-partials
@@ -470,6 +475,8 @@
                (* (expt dy 2) (((partial 1) ((partial 1) f)) x y)))
            (g/simplify (* dX (((g/expt D 2) f) 'x 'y) dX))))))
 
+;; TODO This is not going to work well in CLJS until we have fractions that can
+;; at least print their own representation.
 #?(:clj
    (deftest taylor
      (is (= '(+ (* 1/6

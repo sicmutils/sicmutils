@@ -25,11 +25,8 @@
             sicmutils.structure-test
             sicmutils.value-test))
 
-(doo-tests
- 'sicmutils.calculus.derivative-test
- ;; 'sicmutils.function-test
- ;; 'sicmutils.operator-test
- )
+(doo-tests 'sicmutils.calculus.derivative-test
+           'sicmutils.function-test)
 
 (comment
   (doo-tests 'pattern.match-test

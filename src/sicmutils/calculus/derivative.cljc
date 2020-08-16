@@ -28,9 +28,7 @@
             [sicmutils.series :as series]
             [sicmutils.structure :as struct]
             [sicmutils.util :as u]
-            [sicmutils.value :as v])
-  #?(:clj
-     (:import [clojure.lang Sequential])))
+            [sicmutils.value :as v]))
 
 ;; A differential term is implemented as a pair whose first element is
 ;; a set of tags and whose second is the coefficient.
@@ -457,21 +455,18 @@
 (derive ::differential ::o/co-operator)
 (derive ::differential ::series/coseries)
 
-(def ^:private seqtype
-  #?(:clj Sequential :cljs ISequential))
-
 (defmethod g/partial-derivative
-  [:sicmutils.function/function seqtype]
+  [:sicmutils.function/function v/seqtype]
   [f selectors]
   (multivariate-derivative f selectors))
 
 (defmethod g/partial-derivative [:sicmutils.function/function nil] [f _]
   (multivariate-derivative f []))
 
-(defmethod g/partial-derivative [::struct/structure seqtype] [f selectors]
+(defmethod g/partial-derivative [::struct/structure v/seqtype] [f selectors]
   (multivariate-derivative f selectors))
 
-(defmethod g/partial-derivative [::matrix/matrix seqtype] [f selectors]
+(defmethod g/partial-derivative [::matrix/matrix v/seqtype] [f selectors]
   (multivariate-derivative f selectors))
 
 (def D
