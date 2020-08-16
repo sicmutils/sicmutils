@@ -268,9 +268,9 @@
                                (if (= (first indices) 0)
                                  (if (= (count indices) 1)
                                    (symbolic-increase-derivative (:name f))
-                                   `((~'∂ ~@(next indices)) ~(:name f)))
+                                   `((~'partial ~@(next indices)) ~(:name f)))
                                  (u/illegal "wrong indices"))
-                               `((~'∂ ~@indices) ~(:name f)))]
+                               `((~'partial ~@indices) ~(:name f)))]
                     (->Function fexp (:arity f) (:domain f) (:range f)))
                   :else
                   (u/illegal (str "make-partials WTF " vv))))]

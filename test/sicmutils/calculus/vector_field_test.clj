@@ -33,8 +33,8 @@
           v (literal-vector-field 'b R2-rect)
           R2-rect-chi-inverse (point R2-rect)
           p (R2-rect-chi-inverse (up 'x0 'y0))]
-      (is (= '(+ (* (((∂ 0) f-rect) (up x0 y0)) (b↑0 (up x0 y0)))
-                 (* (((∂ 1) f-rect) (up x0 y0)) (b↑1 (up x0 y0))))
+      (is (= '(+ (* (((partial 0) f-rect) (up x0 y0)) (b↑0 (up x0 y0)))
+                 (* (((partial 1) f-rect) (up x0 y0)) (b↑1 (up x0 y0))))
              (simplify ((v f) p))))
       (is (= '(up (b↑0 (up x0 y0)) (b↑1 (up x0 y0)))
              (simplify ((v (chart R2-rect)) p))))
@@ -45,8 +45,8 @@
         (is (= '(up (+ (* -1/720 (expt a 6)) (* 1/24 (expt a 4)) (* -1/2 (expt a 2)) 1)
                     (+ (* 1/120 (expt a 5)) (* -1/6 (expt a 3)) a))
                (simplify
-                 ((((evolution 6) 'a circular) (chart R2-rect))
-                  ((point R2-rect) (up 1 0)))))))))
+                ((((evolution 6) 'a circular) (chart R2-rect))
+                 ((point R2-rect) (up 1 0)))))))))
   (testing "naming"
     (let-coordinates [[x y] R2-rect]
       (is (= 0 ))))
@@ -54,7 +54,7 @@
     (let-coordinates [[x y z] R3-rect]
       (is (= '(+ (* -1 a b (cos a) (cos b)) (* -2 a (cos a) (sin b)))
              (simplify (((* (expt d:dy 2) x y d:dx) (* (sin x) (cos y)))
-                         ((point R3-rect) (up 'a 'b 'c))))))
+                        ((point R3-rect) (up 'a 'b 'c))))))
       (let [counter-clockwise (- (* x d:dy) (* y d:dx))
             outward (+ (* x d:dx) (* y d:dy))
             mr ((point R3-rect) (up 'x0 'y0 'z0))]
@@ -103,9 +103,9 @@
                                                           (point coordsys))]
                                            (* ((D f) x) (b x)))))]
                                (o/make-operator v 'coordinatize)))]
-          (is (= '(+ (* (((∂ 0) f) (up x0 y0 z0)) (v↑0 (up x0 y0 z0)))
-                     (* (((∂ 1) f) (up x0 y0 z0)) (v↑1 (up x0 y0 z0)))
-                     (* (((∂ 2) f) (up x0 y0 z0)) (v↑2 (up x0 y0 z0))))
+          (is (= '(+ (* (((partial 0) f) (up x0 y0 z0)) (v↑0 (up x0 y0 z0)))
+                     (* (((partial 1) f) (up x0 y0 z0)) (v↑1 (up x0 y0 z0)))
+                     (* (((partial 2) f) (up x0 y0 z0)) (v↑2 (up x0 y0 z0))))
                  (simplify (((coordinatize (literal-vector-field 'v R3-rect) R3-rect)
-                              (literal-function 'f (up 1 2 3) 1))
-                             (up 'x0 'y0 'z0))))))))))
+                             (literal-function 'f (up 1 2 3) 1))
+                            (up 'x0 'y0 'z0))))))))))

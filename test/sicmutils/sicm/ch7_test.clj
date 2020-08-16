@@ -53,11 +53,11 @@
         (is (thrown? IllegalArgumentException (H (up 0 (up 1 2) (down 1 2 3)))))
         (is (thrown? IllegalArgumentException (H (up 0 (up 1) (down 1 2)))))
         (is (thrown? IllegalArgumentException (H (up (up 1 2) (up 1 2) (down 1 2)))))
-        (is (= '(down (((∂ 0) H) (up t (up x y) (down p_x p_y)))
-                      (down (((∂ 1 0) H) (up t (up x y) (down p_x p_y)))
-                            (((∂ 1 1) H) (up t (up x y) (down p_x p_y))))
-                      (up (((∂ 2 0) H) (up t (up x y) (down p_x p_y)))
-                          (((∂ 2 1) H) (up t (up x y) (down p_x p_y)))))
+        (is (= '(down (((partial 0) H) (up t (up x y) (down p_x p_y)))
+                      (down (((partial 1 0) H) (up t (up x y) (down p_x p_y)))
+                            (((partial 1 1) H) (up t (up x y) (down p_x p_y))))
+                      (up (((partial 2 0) H) (up t (up x y) (down p_x p_y)))
+                          (((partial 2 1) H) (up t (up x y) (down p_x p_y)))))
                (-> s ((D H)) simplify)))))))
 
 (deftest section-3

@@ -20,7 +20,7 @@
 (ns sicmutils.function-test
   (:require #?(:clj  [clojure.test :refer :all]
                :cljs [cljs.test :as t :refer-macros [is deftest testing]])
-            [sicmutils.calculus.derivative :refer [D ∂]]
+            [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
             [sicmutils.value :as v]
@@ -264,10 +264,10 @@
 ;;       (is (= '(((D f) x) ((D g) x) 0 0)
 ;;              (g/simplify (series/take 4 ((D S) 'x)))))
 ;;       (is (= '((F x y) (G x y) 0 0) (simp4 (T 'x 'y))))
-;;       (is (= '((((∂ 0) F) x y) (((∂ 0) G) x y) 0 0) (simp4 (((∂ 0) T) 'x 'y))))
-;;       (is (= '((((∂ 1) F) x y) (((∂ 1) G) x y) 0 0) (simp4 (((∂ 1) T) 'x 'y))))
-;;       (is (= '((((∂ 0) W) (up r θ)) (((∂ 0) Z) (up r θ)) 0 0) (simp4 (((∂ 0) U) (up 'r 'θ)))))
-;;       (is (= '((((∂ 1) W) (up r θ)) (((∂ 1) Z) (up r θ)) 0 0) (simp4 (((∂ 1) U) (up 'r 'θ)))))
+;;       (is (= '((((partial 0) F) x y) (((partial 0) G) x y) 0 0) (simp4 (((partial 0) T) 'x 'y))))
+;;       (is (= '((((partial 1) F) x y) (((partial 1) G) x y) 0 0) (simp4 (((partial 1) T) 'x 'y))))
+;;       (is (= '((((partial 0) W) (up r θ)) (((partial 0) Z) (up r θ)) 0 0) (simp4 (((partial 0) U) (up 'r 'θ)))))
+;;       (is (= '((((partial 1) W) (up r θ)) (((partial 1) Z) (up r θ)) 0 0) (simp4 (((partial 1) U) (up 'r 'θ)))))
 ;;       (is (= '[(sin t) (cos t) (tan t) 0] (simp4 (V 't))))
 ;;       (is (= '[(cos t) (* -1 (sin t)) (/ 1 (expt (cos t) 2)) 0] (simp4 ((D V) 't)))))
 

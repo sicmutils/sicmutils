@@ -26,7 +26,7 @@
              [series :as series]]
             [sicmutils.calculus
              [manifold :as m]
-             [derivative :refer [D ∂]]]
+             [derivative :refer [D partial]]]
             [sicmutils.function :as f]))
 
 ;; A vector field is an operator that takes a smooth real-valued
@@ -81,7 +81,7 @@
 (defn ^:private coordinate-basis-vector-field-procedure
   [coordinate-system & i]
   (fn [f]
-    (f/compose ((apply ∂ i) (f/compose f (m/point coordinate-system)))
+    (f/compose ((apply partial i) (f/compose f (m/point coordinate-system)))
                (m/chart coordinate-system))))
 
 (defn coordinate-name->vf-name

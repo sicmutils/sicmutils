@@ -189,11 +189,11 @@
 
 (def canonicalize-partials
   (rule-simplifier
-    (ruleset
-      ;; example: (((∂ 2 1) ((∂ 1 1) FF)) (up t (up x y) (down p_x p_y)))
-      ;; since the partial indices in the outer derivative are lexically
-      ;; greater than those of the inner, we canonicalize by swapping the
-      ;; order. This is the "equality of mixed partials."
-      (((∂ :i*) ((∂ :j*) :x)) :y*)
-      #(> 0 (compare (% :i*) (% :j*)))
-      (((∂ :j*) ((∂ :i*) :x)) :y*))))
+   (ruleset
+    ;; example: (((partial 2 1) ((partial 1 1) FF)) (up t (up x y) (down p_x p_y)))
+    ;; since the partial indices in the outer derivative are lexically
+    ;; greater than those of the inner, we canonicalize by swapping the
+    ;; order. This is the "equality of mixed partials."
+    (((partial :i*) ((partial :j*) :x)) :y*)
+    #(> 0 (compare (% :i*) (% :j*)))
+    (((partial :j*) ((partial :i*) :x)) :y*))))

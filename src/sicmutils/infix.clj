@@ -76,11 +76,11 @@
                                (cond (seq? op)
                                      ;; Some special cases:
                                      ;; - give (expt X n) the precedence of X
-                                     ;; - give (∂ ...) the precedence of D
+                                     ;; - give (partial ...) the precedence of D
                                      ;; - otherwise (...) has the precedence of application
                                      (cond (and (= 3 (count op))
                                                 (= 'expt (first op))) (recur (second op))
-                                           (= '∂ (first op)) (precedence-map 'D)
+                                           (= 'partial (first op)) (precedence-map 'D)
                                            :else (precedence-map :apply))
                                      (symbol? op) (precedence-map :apply)
                                      :else 0)))
@@ -200,9 +200,9 @@
    {'expt (fn [[x e]]
             (if (and (integer? e) ((complement neg?) e))
               (str x (n->superscript e))))
-    '∂ (fn [ds]
-         (when (and (= (count ds) 1) (integer? (first ds)))
-           (str "∂" (n->subscript (first ds)))))}
+    'partial (fn [ds]
+               (when (and (= (count ds) 1) (integer? (first ds)))
+                 (str "∂" (n->subscript (first ds)))))}
    :render-primitive (fn r [v]
                        (let [s (str v)
                              [_ stem subscript] (re-find #"(.+)_(\d+)$" s)]
@@ -267,7 +267,7 @@
      :rewrite-trig-squares true
      :special-handlers
      {'expt (fn [[x e]] (str (maybe-brace x) "^" (maybe-brace e)))
-      '∂ (fn [ds] (str "\\partial_" (maybe-brace (s/join "," ds))))
+      'partial (fn [ds] (str "\\partial_" (maybe-brace (s/join "," ds))))
       '/ (fn [xs]
            (when (= (count xs) 2)
              (str "\\frac" (brace (first xs)) (brace (second xs)))))

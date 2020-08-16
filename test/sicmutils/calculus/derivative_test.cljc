@@ -21,7 +21,7 @@
   (:refer-clojure :exclude [+ - * / ref partial])
   (:require #?(:clj  [clojure.test :refer :all]
                :cljs [cljs.test :as t :refer-macros [is deftest testing use-fixtures]])
-            [sicmutils.calculus.derivative :as d :refer [D ∂ partial]]
+            [sicmutils.calculus.derivative :as d :refer [D partial]]
             [sicmutils.complex :refer [complex]]
             [sicmutils.function :as f :refer [with-literal-functions]]
             [sicmutils.generic :as g :refer [acos asin atan cos sin tan log exp expt + - * /]]
@@ -86,7 +86,7 @@
 
   (testing "more terms"
     (let [d-expr (fn [dx]
-                   (->> dx .terms (filter (fn [[tags coef]] (= tags [0]))) first second))
+                   (->> dx .-terms (filter (fn [[tags coef]] (= tags [0]))) first second))
           d-simplify #(-> % d-expr g/simplify)]
       (is (= '(* 3 (expt x 2))
              (d-simplify (g/expt (+ 'x (d/make-differential {[0] 1})) 3))))
@@ -141,28 +141,28 @@
 (deftest partial-diff-test
   (testing "partial derivatives"
     (let [f (fn [x y] (+ (* 'a x x) (* 'b x y) (* 'c y y)))]
-      (is (= '(+ (* 4 a) (* 3 b)) (g/simplify (((∂ 0) f) 2 3))))
-      (is (= '(+ (* 2 b) (* 6 c)) (g/simplify (((∂ 1) f) 2 3))))
-      (is (= '(+ (* 2 a x) (* b y)) (g/simplify (((∂ 0) f) 'x 'y))))
-      (is (= '(+ (* b x) (* 2 c y)) (g/simplify (((∂ 1) f) 'x 'y))))
+      (is (= '(+ (* 4 a) (* 3 b)) (g/simplify (((partial 0) f) 2 3))))
+      (is (= '(+ (* 2 b) (* 6 c)) (g/simplify (((partial 1) f) 2 3))))
+      (is (= '(+ (* 2 a x) (* b y)) (g/simplify (((partial 0) f) 'x 'y))))
+      (is (= '(+ (* b x) (* 2 c y)) (g/simplify (((partial 1) f) 'x 'y))))
       ;; matrix of 2nd partials
       (is (= '[[(* 2 a) b]
                [b (* 2 c)]]
              (for [i (range 2)]
                (for [j (range 2)]
-                 (g/simplify (((* (∂ i) (∂ j)) f) 'x 'y))))))
+                 (g/simplify (((* (partial i) (partial j)) f) 'x 'y))))))
       (is (= '[[(* 2 a) b]
                [b (* 2 c)]]
              (for [i (range 2)]
                (for [j (range 2)]
-                 (g/simplify (((f/compose (∂ i) (∂ j)) f) 'x 'y)))))))
+                 (g/simplify (((f/compose (partial i) (partial j)) f) 'x 'y)))))))
     (let [F (fn [a b]
               (fn [[x y]]
                 (s/up (* a x) (* b y))))]
       (is (= (s/up 'x 'y) ((F 1 1) (s/up 'x 'y))))
       (is (= (s/up (* 2 'x) (* 3 'y)) ((F 2 3) (s/up 'x 'y))))
-      (is (= (s/up 'x 0)  ((((∂ 0) F) 1 1) (s/up 'x 'y))))
-      (is (= (s/up 0 'y)  ((((∂ 1) F) 1 1) (s/up 'x 'y))))
+      (is (= (s/up 'x 0)  ((((partial 0) F) 1 1) (s/up 'x 'y))))
+      (is (= (s/up 0 'y)  ((((partial 1) F) 1 1) (s/up 'x 'y))))
       (is (= (s/down (s/up 'x 0) (s/up 0 'y)) (((D F) 1 1) (s/up 'x 'y)))))))
 
 (deftest derivative-of-matrix
@@ -319,9 +319,9 @@
       (is (= '((D f) (+ x y)) (g/simplify ((D f) (+ 'x 'y))))))
 
     (testing "R^2 -> R"
-      (is (= '(((∂ 0) g) x y) (g/simplify (((partial 0) g) 'x 'y))))
-      (is (= '(((∂ 1) g) x y) (g/simplify (((∂ 1) g) 'x 'y))))
-      (is (= '(down (((∂ 0) g) x y) (((∂ 1) g) x y))
+      (is (= '(((partial 0) g) x y) (g/simplify (((partial 0) g) 'x 'y))))
+      (is (= '(((partial 1) g) x y) (g/simplify (((partial 1) g) 'x 'y))))
+      (is (= '(down (((partial 0) g) x y) (((partial 1) g) x y))
              (g/simplify ((D g) 'x 'y)))))
 
     (testing "zero-like"
@@ -371,13 +371,13 @@
   (testing "space"
     (let [g (f/literal-function 'g [0 0] 0)
           h (f/literal-function 'h [0 0] 0)]
-      (is (= '(+ (((∂ 0) g) x y) (((∂ 0) h) x y))
-             (g/simplify (((∂ 0) (+ g h)) 'x 'y))))
-      (is (= '(+ (* (((∂ 0) g) x y) (h x y)) (* (((∂ 0) h) x y) (g x y)))
-             (g/simplify (((∂ 0) (* g h)) 'x 'y))))
-      (is (= '(+ (* (((∂ 0) g) x y) (h x y) (expt (g x y) (+ (h x y) -1)))
-                 (* (((∂ 0) h) x y) (log (g x y)) (expt (g x y) (h x y))))
-             (g/simplify (((∂ 0) (g/expt g h)) 'x 'y))))))
+      (is (= '(+ (((partial 0) g) x y) (((partial 0) h) x y))
+             (g/simplify (((partial 0) (+ g h)) 'x 'y))))
+      (is (= '(+ (* (((partial 0) g) x y) (h x y)) (* (((partial 0) h) x y) (g x y)))
+             (g/simplify (((partial 0) (* g h)) 'x 'y))))
+      (is (= '(+ (* (((partial 0) g) x y) (h x y) (expt (g x y) (+ (h x y) -1)))
+                 (* (((partial 0) h) x y) (log (g x y)) (expt (g x y) (h x y))))
+             (g/simplify (((partial 0) (g/expt g h)) 'x 'y))))))
 
   (testing "operators"
     (is (= '(down 1 1 1 1 1 1 1 1 1 1)
@@ -398,9 +398,9 @@
                   (* (log x) (expt x y)))
            (g/simplify ((D expt) 'x 'y))))
     (is (= '(* y (expt x (+ y -1)))
-           (g/simplify (((∂ 0) expt) 'x 'y))))
+           (g/simplify (((partial 0) expt) 'x 'y))))
     (is (= 2
-           (g/simplify (((∂ 0) expt) 1 2))))
+           (g/simplify (((partial 0) expt) 1 2))))
     (let [pow (fn [x y] (apply * (repeat y x)))]
       (is (= 8 (pow 2 3)))
       (is (= '(expt x 8) (g/simplify (pow 'x 8))))))
@@ -446,9 +446,9 @@
            (map g/simplify
                 (for [i (range 2)
                       j (range 2)]
-                  (((∂ i j) f) (s/up 'x 'y) (s/up 'w 'z))))))
+                  (((partial i j) f) (s/up 'x 'y) (s/up 'w 'z))))))
     (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-                 (((∂ 0 1) f) 'x 'y)))))
+                 (((partial 0 1) f) 'x 'y)))))
 
 (deftest derivative-as-operator
   (let [f (f/literal-function 'f [0 0] 0)
@@ -456,41 +456,41 @@
         dX (s/up 'dx 'dy)]
     (is (= '(f x y) (g/simplify (f 'x 'y))))
     (is (= '(g (up (* 3 x) (* 3 y))) (g/simplify (g (* 3 (s/up 'x 'y))))))
-    (is (= '(down (down (((∂ 0) ((∂ 0) f)) x y)
-                        (((∂ 1) ((∂ 0) f)) x y))
-                  (down (((∂ 1) ((∂ 0) f)) x y)
-                        (((∂ 1) ((∂ 1) f)) x y)))
+    (is (= '(down (down (((partial 0) ((partial 0) f)) x y)
+                        (((partial 1) ((partial 0) f)) x y))
+                  (down (((partial 1) ((partial 0) f)) x y)
+                        (((partial 1) ((partial 1) f)) x y)))
            (g/simplify (((g/expt D 2) f) 'x 'y))))
-    (is (= '(down (((∂ 0) f) x y) (((∂ 1) f) x y))
+    (is (= '(down (((partial 0) f) x y) (((partial 1) f) x y))
            (g/simplify ((D f) 'x 'y))))
-    (is (= '(+ (* dx (((∂ 0) f) x y)) (* dy (((∂ 1) f) x y)))
+    (is (= '(+ (* dx (((partial 0) f) x y)) (* dy (((partial 1) f) x y)))
            (g/simplify (* ((D f) 'x 'y) dX))))
-    (is (= '(+ (* (expt dx 2) (((∂ 0) ((∂ 0) f)) x y))
-               (* 2 dx dy (((∂ 1) ((∂ 0) f)) x y))
-               (* (expt dy 2) (((∂ 1) ((∂ 1) f)) x y)))
+    (is (= '(+ (* (expt dx 2) (((partial 0) ((partial 0) f)) x y))
+               (* 2 dx dy (((partial 1) ((partial 0) f)) x y))
+               (* (expt dy 2) (((partial 1) ((partial 1) f)) x y)))
            (g/simplify (* dX (((g/expt D 2) f) 'x 'y) dX))))))
 
 #?(:clj
    (deftest taylor
      (is (= '(+ (* 1/6
-                   (expt dx 3) (((∂ 0) ((∂ 0) ((∂ 0) f))) (up x y)))
+                   (expt dx 3) (((partial 0) ((partial 0) ((partial 0) f))) (up x y)))
                 (* 1/6
-                   (expt dx 2) dy (((∂ 0) ((∂ 0) ((∂ 1) f))) (up x y)))
+                   (expt dx 2) dy (((partial 0) ((partial 0) ((partial 1) f))) (up x y)))
                 (* 1/3
-                   (expt dx 2) dy (((∂ 1) ((∂ 0) ((∂ 0) f))) (up x y)))
+                   (expt dx 2) dy (((partial 1) ((partial 0) ((partial 0) f))) (up x y)))
                 (* 1/3
-                   dx (expt dy 2) (((∂ 1) ((∂ 0) ((∂ 1) f))) (up x y)))
+                   dx (expt dy 2) (((partial 1) ((partial 0) ((partial 1) f))) (up x y)))
                 (* 1/6
-                   dx (expt dy 2) (((∂ 1) ((∂ 1) ((∂ 0) f))) (up x y)))
+                   dx (expt dy 2) (((partial 1) ((partial 1) ((partial 0) f))) (up x y)))
                 (* 1/6
-                   (expt dy 3) (((∂ 1) ((∂ 1) ((∂ 1) f))) (up x y)))
+                   (expt dy 3) (((partial 1) ((partial 1) ((partial 1) f))) (up x y)))
                 (* 1/2
-                   (expt dx 2) (((∂ 0) ((∂ 0) f)) (up x y)))
-                (* dx dy (((∂ 1) ((∂ 0) f)) (up x y)))
+                   (expt dx 2) (((partial 0) ((partial 0) f)) (up x y)))
+                (* dx dy (((partial 1) ((partial 0) f)) (up x y)))
                 (* 1/2
-                   (expt dy 2) (((∂ 1) ((∂ 1) f)) (up x y)))
-                (* dx (((∂ 0) f) (up x y)))
-                (* dy (((∂ 1) f) (up x y)))
+                   (expt dy 2) (((partial 1) ((partial 1) f)) (up x y)))
+                (* dx (((partial 0) f) (up x y)))
+                (* dy (((partial 1) f) (up x y)))
                 (f (up x y)))
             (->> (d/taylor-series-terms
                   (f/literal-function 'f (s/up 0 0) 0)
@@ -543,31 +543,31 @@
                                  (DOWN Real Real))))
           s (s/up 't (s/up 'x 'y) (s/down 'px 'py))]
       (is (= '(matrix-by-rows
-               [(((∂ 0) C↑0) (up t (up x y) (down px py)))
-                (((∂ 1 0) C↑0) (up t (up x y) (down px py)))
-                (((∂ 1 1) C↑0) (up t (up x y) (down px py)))
-                (((∂ 2 0) C↑0) (up t (up x y) (down px py)))
-                (((∂ 2 1) C↑0) (up t (up x y) (down px py)))]
-               [(((∂ 0) C↑1↑0) (up t (up x y) (down px py)))
-                (((∂ 1 0) C↑1↑0) (up t (up x y) (down px py)))
-                (((∂ 1 1) C↑1↑0) (up t (up x y) (down px py)))
-                (((∂ 2 0) C↑1↑0) (up t (up x y) (down px py)))
-                (((∂ 2 1) C↑1↑0) (up t (up x y) (down px py)))]
-               [(((∂ 0) C↑1↑1) (up t (up x y) (down px py)))
-                (((∂ 1 0) C↑1↑1) (up t (up x y) (down px py)))
-                (((∂ 1 1) C↑1↑1) (up t (up x y) (down px py)))
-                (((∂ 2 0) C↑1↑1) (up t (up x y) (down px py)))
-                (((∂ 2 1) C↑1↑1) (up t (up x y) (down px py)))]
-               [(((∂ 0) C↑2_0) (up t (up x y) (down px py)))
-                (((∂ 1 0) C↑2_0) (up t (up x y) (down px py)))
-                (((∂ 1 1) C↑2_0) (up t (up x y) (down px py)))
-                (((∂ 2 0) C↑2_0) (up t (up x y) (down px py)))
-                (((∂ 2 1) C↑2_0) (up t (up x y) (down px py)))]
-               [(((∂ 0) C↑2_1) (up t (up x y) (down px py)))
-                (((∂ 1 0) C↑2_1) (up t (up x y) (down px py)))
-                (((∂ 1 1) C↑2_1) (up t (up x y) (down px py)))
-                (((∂ 2 0) C↑2_1) (up t (up x y) (down px py)))
-                (((∂ 2 1) C↑2_1) (up t (up x y) (down px py)))])
+               [(((partial 0) C↑0) (up t (up x y) (down px py)))
+                (((partial 1 0) C↑0) (up t (up x y) (down px py)))
+                (((partial 1 1) C↑0) (up t (up x y) (down px py)))
+                (((partial 2 0) C↑0) (up t (up x y) (down px py)))
+                (((partial 2 1) C↑0) (up t (up x y) (down px py)))]
+               [(((partial 0) C↑1↑0) (up t (up x y) (down px py)))
+                (((partial 1 0) C↑1↑0) (up t (up x y) (down px py)))
+                (((partial 1 1) C↑1↑0) (up t (up x y) (down px py)))
+                (((partial 2 0) C↑1↑0) (up t (up x y) (down px py)))
+                (((partial 2 1) C↑1↑0) (up t (up x y) (down px py)))]
+               [(((partial 0) C↑1↑1) (up t (up x y) (down px py)))
+                (((partial 1 0) C↑1↑1) (up t (up x y) (down px py)))
+                (((partial 1 1) C↑1↑1) (up t (up x y) (down px py)))
+                (((partial 2 0) C↑1↑1) (up t (up x y) (down px py)))
+                (((partial 2 1) C↑1↑1) (up t (up x y) (down px py)))]
+               [(((partial 0) C↑2_0) (up t (up x y) (down px py)))
+                (((partial 1 0) C↑2_0) (up t (up x y) (down px py)))
+                (((partial 1 1) C↑2_0) (up t (up x y) (down px py)))
+                (((partial 2 0) C↑2_0) (up t (up x y) (down px py)))
+                (((partial 2 1) C↑2_0) (up t (up x y) (down px py)))]
+               [(((partial 0) C↑2_1) (up t (up x y) (down px py)))
+                (((partial 1 0) C↑2_1) (up t (up x y) (down px py)))
+                (((partial 1 1) C↑2_1) (up t (up x y) (down px py)))
+                (((partial 2 0) C↑2_1) (up t (up x y) (down px py)))
+                (((partial 2 1) C↑2_1) (up t (up x y) (down px py)))])
              (g/simplify ((as-matrix (D C-general)) s)))))))
 
 #?(:clj

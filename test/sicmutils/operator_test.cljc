@@ -21,7 +21,7 @@
   (:refer-clojure :exclude [+ - * /  partial])
   (:require #?(:clj  [clojure.test :refer :all]
                :cljs [cljs.test :as t :refer-macros [is deftest testing use-fixtures]])
-            [sicmutils.calculus.derivative :refer [D ∂ partial]]
+            [sicmutils.calculus.derivative :refer [D partial partial]]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.operator :as o]
@@ -57,7 +57,7 @@
 ;;            (g/simplify ((D ((* (- D g) (+ D 1)) f)) 'x)))))
 ;;   (testing "that basic arithmetic operations work on multivariate literal functions"
 ;;     (is (= (g/simplify (((+  D  D) ff) 'x 'y))
-;;            '(down (* 2 (((∂ 0) ff) x y)) (* 2 (((∂ 1) ff) x y)))))
+;;            '(down (* 2 (((partial 0) ff) x y)) (* 2 (((partial 1) ff) x y)))))
 ;;     (is (= (g/simplify (((-  D  D) ff) 'x 'y))
 ;;            '(down 0 0)))
 ;;     (is (= (((*  D  D) ff) 'x 'y)

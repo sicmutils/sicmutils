@@ -74,10 +74,10 @@
       (is (= "a f(b, c)" (s->infix (* 'a (f 'b 'c)))))
       (is (= "a f(2 h + 2 k, c)" (s->infix (* 'a (f (* 2 (+ 'h 'k)) 'c)))))
       (is (= "f(x, y)" (s->infix (f 'x 'y))))
-      (is (= "down(∂₀f(x, y), ∂₁f(x, y))" (s->infix ((D f) 'x 'y))))
+      (is (= "down(partial₀f(x, y), partial₁f(x, y))" (s->infix ((D f) 'x 'y))))
       (is (= "sin(t) cos(t)" (s->infix ((* sin cos) 't))))
       (let [dX (up 'dx 'dy)]
-        (is (= "1/2 dx² ∂₀(∂₀f)(x, y) + dx dy ∂₁(∂₀f)(x, y) + 1/2 dy² ∂₁(∂₁f)(x, y) + dx ∂₀f(x, y) + dy ∂₁f(x, y) + f(x, y)"
+        (is (= "1/2 dx² partial₀(partial₀f)(x, y) + dx dy partial₁(partial₀f)(x, y) + 1/2 dy² partial₁(partial₁f)(x, y) + dx partial₀f(x, y) + dy partial₁f(x, y) + f(x, y)"
                (s->infix
                 (+ (f 'x 'y)
                    (* ((D f) 'x 'y) dX)
@@ -228,10 +228,10 @@
               "function(D, f, x) {\n  return Math.pow(D, 2)(f)(x);\n}"
               "{D}^{2}f\\left(x\\right)"]
              (all-formats ((D (D f)) 'x))))
-      (is (= ["1/2 dx² ∂₀(∂₀f)(up(x, y)) + dx dy ∂₁(∂₀f)(up(x, y)) + 1/2 dy² ∂₁(∂₁f)(up(x, y)) + dx ∂₀f(up(x, y)) + dy ∂₁f(up(x, y)) + f(up(x, y))"
-              (str "function(dx, dy, f, x, y, ∂) {\n"
-                   "  var _0001 = ∂(0);\n"
-                   "  var _0002 = ∂(1);\n"
+      (is (= ["1/2 dx² partial₀(partial₀f)(up(x, y)) + dx dy partial₁(partial₀f)(up(x, y)) + 1/2 dy² partial₁(partial₁f)(up(x, y)) + dx partial₀f(up(x, y)) + dy partial₁f(up(x, y)) + f(up(x, y))"
+              (str "function(dx, dy, f, x, y, partial) {\n"
+                   "  var _0001 = partial(0);\n"
+                   "  var _0002 = partial(1);\n"
                    "  var _0004 = [x, y];\n"
                    "  var _0006 = _0001(f);\n"
                    "  var _0007 = _0002(f);\n"

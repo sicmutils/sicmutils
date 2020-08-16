@@ -55,8 +55,8 @@
             μ (literal-manifold-map 'μ R1-rect R2-rect)
             f (literal-manifold-function 'f R2-rect)]
 
-        (is (= '(+ (* (((∂ 0) f) (up (μ↑0 τ) (μ↑1 τ))) ((D μ↑0) τ))
-                   (* (((∂ 1) f) (up (μ↑0 τ) (μ↑1 τ))) ((D μ↑1) τ)))
+        (is (= '(+ (* (((partial 0) f) (up (μ↑0 τ) (μ↑1 τ))) ((D μ↑0) τ))
+                   (* (((partial 1) f) (up (μ↑0 τ) (μ↑1 τ))) ((D μ↑1) τ)))
                (simplify ((((differential μ) d:dt) f)
                           ((point R1-rect) 'τ)))))
         (is (= '((D μ↑0) τ)
@@ -90,12 +90,12 @@
                        (chart R1-rect))
             f (compose (literal-function 'f (-> (UP Real Real) Real))
                        (chart S2-spherical))]
-        (is (= '(+ (* (((∂ 0) f) (up (θ τ) (φ τ))) ((D θ) τ))
-                   (* (((∂ 1) f) (up (θ τ) (φ τ))) ((D φ) τ)))
+        (is (= '(+ (* (((partial 0) f) (up (θ τ) (φ τ))) ((D θ) τ))
+                   (* (((partial 1) f) (up (θ τ) (φ τ))) ((D φ) τ)))
                (simplify ((((differential μ) d:dt) f)
                           ((point R1-rect) 'τ)))))
         (let-coordinates [[θ φ] S2-spherical]
-          (is (= '(((∂ 0) f) (up (θ τ) (φ τ)))
+          (is (= '(((partial 0) f) (up (θ τ) (φ τ)))
                  (simplify ((((vector-field->vector-field-over-map μ) d:dθ) f)
                             ((point R1-rect) 'τ)))))
           (is (= '((D θ) τ)

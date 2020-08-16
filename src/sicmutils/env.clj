@@ -181,7 +181,7 @@
   Christoffel->Cartan
   make-Christoffel
   ]
- [sicmutils.calculus.derivative D ∂]
+ [sicmutils.calculus.derivative D partial]
  [sicmutils.calculus.form-field
   d
   components->oneform-field

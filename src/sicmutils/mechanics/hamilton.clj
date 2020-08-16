@@ -45,8 +45,8 @@
   [Hamiltonian]
   (fn [H-state]
     (->H-state 1
-               (((∂ 2) Hamiltonian) H-state)
-               (- (((∂ 1) Hamiltonian) H-state)))))
+               (((partial 2) Hamiltonian) H-state)
+               (- (((partial 1) Hamiltonian) H-state)))))
 
 (def phase-space-derivative Hamiltonian->state-derivative)
 
@@ -106,8 +106,8 @@
                          x))
                       (structure->access-chains gx)))
               (structure->access-chains fx))
-        ((- (* ((∂ 1) f) ((∂ 2) g))
-            (* ((∂ 2) f) ((∂ 1) g)))
+        ((- (* ((partial 1) f) ((partial 2) g))
+            (* ((partial 2) f) ((partial 1) g)))
          x)))))
 
 (defn standard-map
@@ -144,7 +144,7 @@
   (fn [[t _ p :as H-state]]
     (up t
         (F H-state)
-        (* p (invert (((∂ 1) F) H-state))))))
+        (* p (invert (((partial 1) F) H-state))))))
 
 (defn H-central
   [m V]

@@ -53,11 +53,25 @@
   (kind [_] ::differential)
 
   Object
-  (equals [_ b]
-    (and (instance? Differential b)
-         (= terms (.-terms b))))
+  (toString [_] (str "D[" (join " " (map #(join " → " %) terms)) "]"))
 
-  (toString [_] (str "D[" (join " " (map #(join " → " %) terms)) "]")))
+  #?(:clj
+     (equals [_ b]
+             (and (instance? Differential b)
+                  (= terms (.-terms b)))))
+
+  #?@(:cljs
+      [IEquiv
+       (-equiv [_ b]
+               (and (instance? Differential b)
+                    (= terms (.-terms b))))
+
+       IPrintWithWriter
+       (-pr-writer [x writer _]
+                   (write-all writer (.toString x)))
+       ])
+  )
+
 
 
 (defn differential?
@@ -282,7 +296,7 @@
      (-> finite-terms make-differential canonicalize-differential)]))
 
 (defn ^:private binary-op
-  [f ∂f:∂x ∂f:∂y _kw]
+  [f df:dx df:dy _kw]
   (fn [x y]
     (let [mt (max-order-tag [x y])
           [dx xe] (with-and-without-tag mt x)
@@ -290,10 +304,10 @@
           a (f xe ye)
           b (if (and (v/number? dx) (v/nullity? dx))
               a
-              (dx+dy a (dx*dy dx (∂f:∂x xe ye))))
+              (dx+dy a (dx*dy dx (df:dx xe ye))))
           c (if (and (v/number? dy) (v/nullity? dy))
               b
-              (dx+dy b (dx*dy (∂f:∂y xe ye) dy)))]
+              (dx+dy b (dx*dy (df:dy xe ye) dy)))]
       (canonicalize-differential c))))
 
 (def ^:private diff-+ (binary-op g/+ (constantly 1) (constantly 1) :plus))
@@ -451,19 +465,13 @@
   [f selectors]
   (multivariate-derivative f selectors))
 
-(defmethod g/partial-derivative
-  [:sicmutils.function/function nil]
-  [f _]
+(defmethod g/partial-derivative [:sicmutils.function/function nil] [f _]
   (multivariate-derivative f []))
 
-(defmethod g/partial-derivative
-  [::struct/structure seqtype]
-  [f selectors]
+(defmethod g/partial-derivative [::struct/structure seqtype] [f selectors]
   (multivariate-derivative f selectors))
 
-(defmethod g/partial-derivative
-  [::matrix/matrix seqtype]
-  [f selectors]
+(defmethod g/partial-derivative [::matrix/matrix seqtype] [f selectors]
   (multivariate-derivative f selectors))
 
 (def D
@@ -478,8 +486,6 @@
   [& selectors]
   (o/make-operator #(g/partial-derivative % selectors)
                    :partial-derivative))
-
-#?(:clj (def ∂ partial))
 
 (defn taylor-series-terms
   "The (infinite) sequence of terms of the taylor series of the function f
