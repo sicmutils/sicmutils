@@ -6,6 +6,7 @@
             sicmutils.calculus.derivative-test
             sicmutils.calculus.form-field-test
             sicmutils.calculus.manifold-test
+            sicmutils.calculus.map-test
             sicmutils.calculus.vector-field-test
             sicmutils.mechanics.rotation-test
             sicmutils.numerical.compile-test
@@ -42,6 +43,7 @@
            'sicmutils.calculus.derivative-test
            'sicmutils.calculus.form-field-test
            'sicmutils.calculus.manifold-test
+           'sicmutils.calculus.map-test
            'sicmutils.calculus.vector-field-test
            'sicmutils.numerical.compile-test
            'sicmutils.mechanics.rotation-test

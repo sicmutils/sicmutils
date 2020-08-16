@@ -25,6 +25,7 @@
             [sicmutils.generic :as g]
             [sicmutils.operator :as o]
             [sicmutils.structure :as s]
+            [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
 (defn ^:private vector-field-Lie-derivative
@@ -46,7 +47,7 @@
                                                                             vectors))))))
                                  k
                                  `((~'Lie-derivative ~(m/diffop-name X)) ~(m/diffop-name Y))))
-           :else (throw (UnsupportedOperationException. "Can't take the Lie derivative of that yet"))))
+           :else (u/unsupported "Can't take the Lie derivative of that yet")))
    `(~'Lie-derivative ~(m/diffop-name X))))
 
 (defmethod g/Lie-derivative [::vf/vector-field] [V] (vector-field-Lie-derivative V))
@@ -148,7 +149,7 @@
   (fn [X]
     (fn [f]
       (fn [& args]
-        (throw (UnsupportedOperationException. "Covariant derivative of a function (need to analyze type)"))))))
+        (u/unsupported "Covariant derivative of a function (need to analyze type)")))))
 
 (defn ^:private covariant-derivative-ordinary
   [Cartan]
@@ -169,7 +170,8 @@
              (((covariant-derivative-function Cartan) X) V)
 
              :else
-             (throw (UnsupportedOperationException. (str "Can't do this kind of covariant derivative yet " (v/freeze X) " @ " (v/freeze V))))))
+             (u/unsupported
+              (str "Can't do this kind of covariant derivative yet " (v/freeze X) " @ " (v/freeze V)))))
      `(~'nabla ~(m/diffop-name X)))
     ))
 
@@ -178,4 +180,4 @@
   ([Cartan]
    (covariant-derivative-ordinary Cartan))
   ([Cartan map]
-   (throw (UnsupportedOperationException. "Can't compute covariant derivatives over maps yet"))))
+   (u/unsupported "Can't compute covariant derivatives over maps yet")))
