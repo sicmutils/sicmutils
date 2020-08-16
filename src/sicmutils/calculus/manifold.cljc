@@ -18,14 +18,15 @@
 ;
 
 (ns sicmutils.calculus.manifold
-  (:require [sicmutils
-             [value :as v]
-             [function :as f]
-             [generic :as g]
-             [expression :as x]
-             [simplify :refer [simplify-numerical-expression]]
-             [matrix :as matrix]
-             [structure :as s]]
+  (:require #?(:cljs [goog.string :refer [format]])
+            [sicmutils.expression :as x]
+            [sicmutils.function :as f]
+            [sicmutils.generic :as g]
+            [sicmutils.matrix :as matrix]
+            [sicmutils.simplify :refer [simplify-numerical-expression]]
+            [sicmutils.structure :as s]
+            [sicmutils.util :as u]
+            [sicmutils.value :as v]
             [sicmutils.mechanics.rotation :refer [rotate-x-matrix rotate-y-matrix rotate-z-matrix]]))
 
 (defn make-manifold-family
@@ -219,11 +220,11 @@
                          (let [prep (manifold-point-representation point)]
                            (when-not (and (s/up? prep)
                                           (= (s/dimension prep) (manifold :embedding-dimension)))
-                             (throw (IllegalArgumentException. "PolarCylindrical bad point")))
+                             (u/illegal "PolarCylindrical bad point"))
                            (let [[x y] prep
                                  rsq (g/+ (g/square x) (g/square y))]
                              (when (v/nullity? rsq)
-                               (throw (IllegalStateException. "PolarCylindrical singular")))
+                               (u/illegal-state "PolarCylindrical singular"))
                              (s/generate (count prep) ::s/up
                                          (fn [^long i]
                                            (case i
@@ -267,7 +268,7 @@
                              (let [prep (g/* inverse-orientation (manifold-point-representation point))]
                                (when-not (and (s/up? prep)
                                               (= (s/dimension prep) (manifold :embedding-dimension)))
-                                 (throw (IllegalArgumentException. "S2-coordinates bad point")))
+                                 (u/illegal "S2-coordinates bad point"))
                                (let [[x y z] prep]
                                  (s/up (g/acos z) (g/atan y x)))))))
         (coordinate-prototype [this] coordinate-prototype)
@@ -306,11 +307,11 @@
                          (let [prep (manifold-point-representation point)]
                            (when-not (and (s/up? prep)
                                           (= (s/dimension prep) (manifold :embedding-dimension)))
-                             (throw (IllegalArgumentException. "SphericalCylindrical bad point")))
+                             (u/illegal "SphericalCylindrical bad point"))
                            (let [[x y z] prep
                                  r (g/sqrt (g/+ (g/square x) (g/square y) (g/square z)))]
                              (when (v/nullity? r)
-                               (throw (IllegalStateException. "SphericalCylindrical singular")))
+                               (u/illegal-state "SphericalCylindrical singular"))
                              (s/generate (s/dimension prep) ::s/up
                                          (fn [^long i]
                                            (case i
@@ -341,8 +342,8 @@
                 delta (g/square coords)
                 xn (g/divide (g/- delta 1) (g/+ 1 delta))
                 pt (s/generate (+ n 1) ::s/up #(if (= % n) xn
-                                                           (g/divide (g/* 2 (nth coords %))
-                                                                     (g/+ 1 delta))))]
+                                                   (g/divide (g/* 2 (nth coords %))
+                                                             (g/+ 1 delta))))]
             (make-manifold-point (g/* orientation-matrix pt) manifold this coords)))
         (check-point [this point]
           (my-manifold-point? point manifold))
@@ -352,7 +353,7 @@
                            (fn []
                              (let [pt (g/* orientation-inverse-matrix (manifold-point-representation point))]
                                (when (and (number? (nth pt n)) (= (nth pt n) 1))
-                                 (throw (IllegalStateException. "S^n stereographic singular")))
+                                 (u/illegal-state "S^n stereographic singular"))
                                (let [coords (s/generate n ::s/up #(g/divide (nth pt %) (g/- 1 (nth pt n))))]
                                  (if (= n 1) (first coords) coords))))))
         (coordinate-prototype [this] coordinate-prototype)

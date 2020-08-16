@@ -48,6 +48,11 @@
    #?(:clj (UnsupportedOperationException. s)
       :cljs (js/Error s))))
 
+(defn exception [s]
+  (throw
+   #?(:clj (Exception. s)
+      :cljs (js/Error s))))
+
 (defn illegal [s]
   (throw
    #?(:clj (IllegalArgumentException. s)

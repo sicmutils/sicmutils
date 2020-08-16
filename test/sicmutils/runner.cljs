@@ -3,6 +3,7 @@
             pattern.match-test
             pattern.rule-test
             sicmutils.calculus.derivative-test
+            sicmutils.calculus.manifold-test
             sicmutils.mechanics.rotation-test
             sicmutils.numerical.compile-test
             sicmutils.analyzer-test
@@ -30,6 +31,7 @@
 (doo-tests 'pattern.match-test
            'pattern.rule-test
            'sicmutils.calculus.derivative-test
+           'sicmutils.calculus.manifold-test
            'sicmutils.numerical.compile-test
            'sicmutils.mechanics.rotation-test
            'sicmutils.analyzer-test
