@@ -166,27 +166,6 @@
       (is (= (s/up 0 'y)  ((((partial 1) F) 1 1) (s/up 'x 'y))))
       (is (= (s/down (s/up 'x 0) (s/up 0 'y)) (((D F) 1 1) (s/up 'x 'y)))))))
 
-(deftest derivative-of-matrix
-  (let [M (matrix/by-rows [(f/literal-function 'f) (f/literal-function 'g)]
-                          [(f/literal-function 'h) (f/literal-function 'k)])]
-    (is (= '(matrix-by-rows [(f t) (g t)]
-                            [(h t) (k t)])
-           (g/simplify (M 't))))
-    (is (= '(matrix-by-rows [((D f) t) ((D g) t)]
-                            [((D h) t) ((D k) t)])
-           (g/simplify ((D M) 't))))
-    (is (= '(matrix-by-rows
-             [(+ (expt (f t) 2) (expt (h t) 2))
-              (+ (* (f t) (g t)) (* (h t) (k t)))]
-             [(+ (* (f t) (g t)) (* (h t) (k t)))
-              (+ (expt (g t) 2) (expt (k t) 2))])
-           (g/simplify ((* (g/transpose M) M) 't))))
-    (is (= '(matrix-by-rows [(+ (* 2 ((D f) t) (f t)) (* 2 (h t) ((D h) t)))
-                             (+ (* ((D f) t) (g t)) (* (f t) ((D g) t)) (* (h t) ((D k) t)) (* (k t) ((D h) t)))]
-                            [(+ (* ((D f) t) (g t)) (* (f t) ((D g) t)) (* (h t) ((D k) t)) (* (k t) ((D h) t)))
-                             (+ (* 2 (g t) ((D g) t)) (* 2 (k t) ((D k) t)))])
-           (g/simplify ((D (* (g/transpose M) M)) 't))))))
-
 (deftest amazing-bug
   (testing "1"
     (let [f (fn [x]
@@ -238,29 +217,6 @@
         ;; path-independent chain rule for variation
         (is (= '(φ (f (q t))) (g/simplify (((φ F) q) 't))))
         (is (= '(* (η t) ((D f) (q t)) ((D φ) (f (q t)))) (g/simplify (((δη (φ F)) q) 't))))))))
-
-(deftest derivatives-as-values
-  (let [cs0 (fn [x] (sin (cos x)))
-        cs1 (f/compose sin cos)
-        cs2 (comp sin cos)
-        y0 (D cs0)
-        y1 (D cs1)
-        y2 (D cs2)]
-    (is (= '(sin (cos x)) (g/simplify (cs0 'x))))
-    (is (= '(sin (cos x)) (g/simplify (cs1 'x))))
-    (is (= '(sin (cos x)) (g/simplify (cs2 'x))))
-    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify ((D cs0) 'x))))
-    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify ((D cs1) 'x))))
-    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify ((D cs2) 'x))))
-    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify (y0 'x))))
-    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify (y1 'x))))
-    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify (y2 'x)))))
-  (let [unity (reduce + (map g/square [sin cos]))
-        dU (D unity)]
-    (is (= 1 (g/simplify (unity 'x))))
-    (is (= 0 (g/simplify (dU 'x)))))
-  (let [odear (fn [z] ((D (f/compose sin cos)) z))]
-    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify (odear 'x))))))
 
 (deftest exponentiation-and-composition
   (let [ff (fn [x y z] (+ (* x x y) (* y y z)(* z z x)))
@@ -601,3 +557,47 @@
                (series/take 6 (taylor-series-expander
                                (fn [x] (g/sqrt (+ (v/one-like x) x)))
                                0 'dx))))))))
+
+(deftest derivative-of-matrix
+  (let [M (matrix/by-rows [(f/literal-function 'f) (f/literal-function 'g)]
+                          [(f/literal-function 'h) (f/literal-function 'k)])]
+    (is (= '(matrix-by-rows [(f t) (g t)]
+                            [(h t) (k t)])
+           (g/simplify (M 't))))
+    (is (= '(matrix-by-rows [((D f) t) ((D g) t)]
+                            [((D h) t) ((D k) t)])
+           (g/simplify ((D M) 't))))
+    (is (= '(matrix-by-rows
+             [(+ (expt (f t) 2) (expt (h t) 2))
+              (+ (* (f t) (g t)) (* (h t) (k t)))]
+             [(+ (* (f t) (g t)) (* (h t) (k t)))
+              (+ (expt (g t) 2) (expt (k t) 2))])
+           (g/simplify ((* (g/transpose M) M) 't))))
+    (is (= '(matrix-by-rows [(+ (* 2 ((D f) t) (f t)) (* 2 (h t) ((D h) t)))
+                             (+ (* ((D f) t) (g t)) (* (f t) ((D g) t)) (* (h t) ((D k) t)) (* (k t) ((D h) t)))]
+                            [(+ (* ((D f) t) (g t)) (* (f t) ((D g) t)) (* (h t) ((D k) t)) (* (k t) ((D h) t)))
+                             (+ (* 2 (g t) ((D g) t)) (* 2 (k t) ((D k) t)))])
+           (g/simplify ((D (* (g/transpose M) M)) 't))))))
+
+(deftest derivatives-as-values
+  (let [cs0 (fn [x] (sin (cos x)))
+        cs1 (f/compose sin cos)
+        cs2 (comp sin cos)
+        y0 (D cs0)
+        y1 (D cs1)
+        y2 (D cs2)]
+    (is (= '(sin (cos x)) (g/simplify (cs0 'x))))
+    (is (= '(sin (cos x)) (g/simplify (cs1 'x))))
+    (is (= '(sin (cos x)) (g/simplify (cs2 'x))))
+    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify ((D cs0) 'x))))
+    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify ((D cs1) 'x))))
+    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify ((D cs2) 'x))))
+    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify (y0 'x))))
+    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify (y1 'x))))
+    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify (y2 'x)))))
+  (let [unity (reduce + (map g/square [sin cos]))
+        dU (D unity)]
+    (is (= 1 (g/simplify (unity 'x))))
+    (is (= 0 (g/simplify (dU 'x)))))
+  (let [odear (fn [z] ((D (f/compose sin cos)) z))]
+    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify (odear 'x))))))

@@ -137,5 +137,6 @@
 
               :cljs
               (let [i (swap! count inc)
-                    suffix (.padStart (str i) 16 "0")]
+                    suffix (-> (.toString i 16)
+                               (.padStart 16 "0"))]
                 (str prefix suffix)))))))

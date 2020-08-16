@@ -129,7 +129,7 @@
 (defmethod simplify [Symbol] [a] a)
 (defmethod simplify [LazySeq] [a] (map simplify a))
 (defmethod simplify [PersistentVector] [a] (mapv simplify a))
-(defmethod simplify [#?(:clj Seqable :cljs ISeqable)] [a]
+(defmethod simplify [v/seqtype] [a]
   (map simplify a))
 
 (defn ^:private bin+ [a b]
