@@ -18,11 +18,11 @@
 ;
 
 (ns sicmutils.calculus.map-test
-  (:refer-clojure :exclude [+ - * / ref zero? partial])
-  (:require [clojure.test :refer :all]
+  (:refer-clojure :exclude [+ - * /  partial])
+  (:require #?(:clj  [clojure.test :refer :all]
+               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
             [sicmutils.calculus.form-field :refer [permutation-sequence]]
-            [sicmutils.calculus.vector-field :as vf]
-            [sicmutils.env :refer :all]))
+            [sicmutils.calculus.vector-field :as vf]))
 
 (deftest map-tests
   (testing "the basics"

@@ -18,13 +18,12 @@
 ;
 
 (ns sicmutils.calculus.map
-  (:require [sicmutils
-             [structure :as s]
-             [function :as f]]
-            [sicmutils.calculus.basis :refer :all]
-            [sicmutils.calculus.vector-field :as vf]
+  (:require [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.form-field :as ff]
-            [sicmutils.calculus.manifold :as m]))
+            [sicmutils.calculus.vector-field :as vf]
+            [sicmutils.calculus.manifold :as m]
+            [sicmutils.function :as f]
+            [sicmutils.structure :as s]))
 
 (defn vector-field->vector-field-over-map
   "FDG p.72"
