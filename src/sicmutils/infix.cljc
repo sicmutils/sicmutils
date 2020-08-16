@@ -23,13 +23,23 @@
             [clojure.string :as s]
             [pattern.rule :as R]
             [sicmutils.expression :as x]
+            [sicmutils.util :as u]
             [sicmutils.numerical.compile :as compile])
-  (:import (java.io StringWriter)))
+  #?(:clj
+     (:import (java.io StringWriter))))
 
 (defn ^:private make-symbol-generator
   [p]
   (let [i (atom 0)]
-    (fn [] (symbol (format "%s%04x" p (swap! i inc))))))
+    (fn [] (symbol
+           #?(:clj
+              (format "%s%04x" p (swap! i inc))
+
+              :cljs
+              (let [suffix (-> (swap! i inc)
+                               (.toString 16)
+                               (.padStart 4 "0"))]
+                (str p suffix)))))))
 
 (def ^:private rewrite-trig-powers
   "Historical preference is to write sin^2(x) rather than (sin(x))^2."
@@ -279,8 +289,8 @@
       'sqrt #(str "\\sqrt " (maybe-brace (first %)))}
      :render-primitive
      (fn r [v]
-       (cond (ratio? v)
-             (str "\\frac" (brace (numerator v)) (brace (denominator v)))
+       (cond (u/ratio? v)
+             (str "\\frac" (brace (u/numerator v)) (brace (u/denominator v)))
 
              :else
              (let [s (str v)]
