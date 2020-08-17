@@ -21,12 +21,10 @@
   (:require [clojure.zip :as z]
             [clojure.set :as set]
             [clojure.string :as s]
-            [pattern.rule :as R]
+            [pattern.rule :as R #?@(:cljs [:include-macros true])]
             [sicmutils.expression :as x]
             [sicmutils.util :as u]
-            [sicmutils.numerical.compile :as compile])
-  #?(:clj
-     (:import (java.io StringWriter))))
+            [sicmutils.numerical.compile :as compile]))
 
 (defn ^:private make-symbol-generator
   [p]
@@ -140,20 +138,18 @@
                             ((special-handlers op) args))
                        (and (= (count args) 1)
                             (render-unary-node op args))
-                       (let [w (StringWriter.)
-                             ^String sep (case op
-                                           * (or juxtapose-multiply " * ")
-                                           expt "^"
-                                           (str " " op " "))]
-                         (loop [a args]
-                           (.write w (str (first a)))
-                           (if-let [a' (next a)]
-                             (do
+                       (let [sep (case op
+                                   * (or juxtapose-multiply " * ")
+                                   expt "^"
+                                   (str " " op " "))]
+                         (with-out-str
+                           (loop [a args]
+                             (print (str (first a)))
+                             (when-let [a' (next a)]
                                (if-not (and (string? (first a')) (= (first (first a')) \-))
-                                 (.write w sep)
-                                 (.write w " "))
-                               (recur a'))
-                             (.toString w))))))
+                                 (print sep)
+                                 (print " "))
+                               (recur a')))))))
                   ;; case: op is not infix.
                   ;; The _whole_ result may need to be parenthesized, though, if it
                   ;; is part of an infix expression with an operator with very high
@@ -185,7 +181,8 @@
 
 (defn ^:private digit->int
   [^Character d]
-  (Character/digit d 10))
+  #?(:clj (Character/digit d 10)
+     :cljs (js/parseInt d)))
 
 (defn ^:private n->script
   "Given an integer, returns a string where each digit of the
@@ -352,25 +349,22 @@
              :or {symbol-generator (make-symbol-generator "_")
                   parameter-order sort}}]
       (let [params (set/difference (x/variables-in x) operators-known)
-            w (StringWriter.)
             ordered-params (if (fn? parameter-order)
                              (parameter-order params)
                              parameter-order)]
-        (doto w
-          (.write "function(")
-          (.write (s/join ", " ordered-params))
-          (.write ") {\n"))
-        (compile/extract-common-subexpressions
-         x
-         symbol-generator
-         (fn [new-expression new-vars]
-           (doseq [[var val] new-vars]
-             (doto w
-               (.write "  var ")
-               (.write (str var " = "))
-               (.write ^String (R val))
-               (.write ";\n")))
-           (.toString (doto w
-                        (.write "  return ")
-                        (.write ^String (R new-expression))
-                        (.write ";\n}")))))))))
+        (with-out-str
+          (print "function(")
+          (print (s/join ", " ordered-params))
+          (print ") {\n")
+          (compile/extract-common-subexpressions
+           x
+           symbol-generator
+           (fn [new-expression new-vars]
+             (doseq [[var val] new-vars]
+               (print "  var ")
+               (print (str var " = "))
+               (print (R val))
+               (print ";\n"))
+             (print "  return ")
+             (print (R new-expression))
+             (print ";\n}"))))))))
