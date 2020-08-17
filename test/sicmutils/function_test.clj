@@ -19,10 +19,12 @@
 
 (ns sicmutils.function-test
   (:require [clojure.test :refer :all]
+            [sicmutils.calculus.derivative :refer [D ∂]]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
             [sicmutils.value :as v]
             [sicmutils.operator :as o]
+            [sicmutils.series :as series]
             [sicmutils.structure :as s :refer :all]
             [sicmutils.simplify :as ss]
             [sicmutils.function :as f :refer :all]))
@@ -223,3 +225,47 @@
              (g/simplify
               ((m/by-rows [(R2f 'f) (R2f 'g)]
                           [(R2f 'h) (R2f 'k)]) 'x 'y)))))))
+
+(deftest moved-from-series
+  (testing "series"
+    (is (= '((* 2 (f x)) (* 3 (f x)))
+           (g/simplify
+            (series/take 2
+                         ((g/* (series/starting-with 2 3)
+                               (f/literal-function 'f)) 'x)))))
+    (is (= '((* 2 (f y)) (* 3 (f y)))
+           (g/simplify
+            (series/take 2
+                         ((g/* (f/literal-function 'f)
+                               (series/starting-with 2 3)) 'y))))))
+
+  (let [simp4 (fn [x] (g/simplify (series/take 4 x)))
+        S (series/starting-with (f/literal-function 'f)
+                                (f/literal-function 'g))
+        T (series/starting-with (f/literal-function 'F [0 1] 0)
+                                (f/literal-function 'G [0 1] 0))
+        U (series/starting-with (f/literal-function 'W [(s/up 0 0)] 0)
+                                (f/literal-function 'Z [(s/up 0 0)] 0))
+        V (series/starting-with g/sin g/cos g/tan)]
+
+    (testing "with functions"
+      (is (= '[(* (sin x) (f x)) (* (sin x) (g x)) 0 0]
+             (g/simplify (series/take 4 ((g/* S g/sin) 'x)))))
+      (is (= '[(* (sin x) (f x)) (* (sin x) (g x)) 0 0]
+             (g/simplify (series/take 4 ((g/* g/sin S) 'x))))))
+
+    (testing "and derivatives"
+      (is (= '(((D f) x) ((D g) x) 0 0)
+             (g/simplify (series/take 4 ((D S) 'x)))))
+      (is (= '((F x y) (G x y) 0 0) (simp4 (T 'x 'y))))
+      (is (= '((((∂ 0) F) x y) (((∂ 0) G) x y) 0 0) (simp4 (((∂ 0) T) 'x 'y))))
+      (is (= '((((∂ 1) F) x y) (((∂ 1) G) x y) 0 0) (simp4 (((∂ 1) T) 'x 'y))))
+      (is (= '((((∂ 0) W) (up r θ)) (((∂ 0) Z) (up r θ)) 0 0) (simp4 (((∂ 0) U) (up 'r 'θ)))))
+      (is (= '((((∂ 1) W) (up r θ)) (((∂ 1) Z) (up r θ)) 0 0) (simp4 (((∂ 1) U) (up 'r 'θ)))))
+      (is (= '[(sin t) (cos t) (tan t) 0] (simp4 (V 't))))
+      (is (= '[(cos t) (* -1 (sin t)) (/ 1 (expt (cos t) 2)) 0] (simp4 ((D V) 't)))))
+
+    (testing "f -> Series"
+      (let [F (fn [k] (series/starting-with (fn [t] (g/* k t)) (fn [t] (g/* k k t))))]
+        (is (= '((* q z) (* (expt q 2) z) 0 0) (simp4 ((F 'q) 'z))))
+        (is (= '(z (* 2 q z) 0 0) (simp4 (((D F) 'q) 'z))))))))
