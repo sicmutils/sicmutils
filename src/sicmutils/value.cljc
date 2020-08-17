@@ -27,8 +27,7 @@
             #?(:cljs goog.math.Long)
             #?(:cljs goog.math.Integer))
   #?(:clj
-     (:import (clojure.lang BigInt RestFn MultiFn
-                            Keyword Sequential Symbol)
+     (:import (clojure.lang BigInt PersistentVector RestFn Sequential MultiFn Keyword Symbol)
               (java.lang.reflect Method))))
 
 (defprotocol Value
@@ -38,13 +37,12 @@
   (zero-like [this])
   (one-like [this])
   (exact? [this])
-  ;; Freezing an expression means removing wrappers and other metadata
-  ;; from subexpressions, so that the result is basically a pure
-  ;; S-expression with the same structure as the input. Doing this will
-  ;; rob an expression of useful information for further computation; so
-  ;; this is intended to be done just before simplification and printing, to
-  ;; simplify those processes.
-  (freeze [this])
+  (freeze [this]
+    "Freezing an expression means removing wrappers and other metadata from
+  subexpressions, so that the result is basically a pure S-expression with the
+  same structure as the input. Doing this will rob an expression of useful
+  information for further computation; so this is intended to be done just
+  before simplification and printing, to simplify those processes.")
   (kind [this]))
 
 (declare arity primitive-kind)
@@ -120,6 +118,16 @@
   (unity?[_] false)
   (kind [_] nil)
 
+  PersistentVector
+  (nullity? [v] (every? nullity? v))
+  (unity? [_] false)
+  (zero-like [v] (mapv zero-like v))
+  (one-like [o] (u/unsupported (str "one-like: " o)))
+  (exact? [v] (every? exact? v))
+  (numerical? [_] false)
+  (freeze [v] (mapv freeze v))
+  (kind [v] (type v))
+
   #?(:clj Object :cljs default)
   (nullity? [o] false)
   (numerical? [_] false)
@@ -134,7 +142,6 @@
                        :else (u/unsupported (str "zero-like: " o))))
   (one-like [o] (u/unsupported (str "one-like: " o)))
   (freeze [o] (cond
-                (vector? o) (mapv freeze o)
                 (sequential? o) (map freeze o)
                 :else (or (and (instance? MultiFn o)
                                (if-let [m (get-method o [Keyword])]
