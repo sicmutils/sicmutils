@@ -33,6 +33,28 @@
 
 (def ^:private near? (v/within 1e-8))
 
+(deftest gamma-test
+  (f/with-literal-functions [q]
+    (is (= '(up t (q t) ((D q) t)) (g/simplify ((L/Gamma q) 't))))
+    (is (= '(up t (q t) ((D q) t)) (g/simplify ((L/Gamma q 3) 't))))
+    (is (= '(up t
+                (q t)
+                ((D q) t)
+                (((expt D 2) q) t)
+                (((expt D 3) q) t))
+           (g/simplify ((L/Gamma q 5) 't))))
+    (is (= '(+ (* #?(:clj 1/2 :cljs 0.5) (expt t 2) (((expt D 2) q) t))
+               (* -1 t t1 (((expt D 2) q) t))
+               (* #?(:clj 1/2 :cljs 0.5) (expt t1 2) (((expt D 2) q) t))
+               (* -1 t ((D q) t))
+               (* t1 ((D q) t))
+               (q t))
+           (g/simplify ((L/osculating-path ((L/Γ q 4) 't)) 't1))))
+    (is (= '(up t (up t (x t) (y t)) (up 1 ((D x) t) ((D y) t)))
+           (g/simplify
+            (f/with-literal-functions [x y]
+              ((L/Gamma (up identity x y)) 't)))))))
+
 (deftest interpolation
   (testing "lagrange interpolation"
     #?(:clj
@@ -66,27 +88,7 @@
                             [0 0 0 m2])
            (g/simplify (m/s->m vs (((g/expt D 2) L1) vs) vs))))))
 
-(deftest gamma-test
-  (f/with-literal-functions [q]
-    (is (= '(up t (q t) ((D q) t)) (g/simplify ((L/Gamma q) 't))))
-    (is (= '(up t (q t) ((D q) t)) (g/simplify ((L/Gamma q 3) 't))))
-    (is (= '(up t
-                (q t)
-                ((D q) t)
-                (((expt D 2) q) t)
-                (((expt D 3) q) t))
-           (g/simplify ((L/Gamma q 5) 't))))
-    (is (= '(+ (* #?(:clj 1/2 :cljs 0.5) (expt t 2) (((expt D 2) q) t))
-               (* -1 t t1 (((expt D 2) q) t))
-               (* #?(:clj 1/2 :cljs 0.5) (expt t1 2) (((expt D 2) q) t))
-               (* -1 t ((D q) t))
-               (* t1 ((D q) t))
-               (q t))
-           (g/simplify ((L/osculating-path ((L/Γ q 4) 't)) 't1))))
-    (is (= '(up t (up t (x t) (y t)) (up 1 ((D x) t) ((D y) t)))
-           (g/simplify
-            (f/with-literal-functions [x y]
-              ((L/Gamma (up identity x y)) 't)))))))
+
 
 (deftest lagrange-equations
   (testing "moved-from-simplify"

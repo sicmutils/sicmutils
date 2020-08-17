@@ -39,12 +39,7 @@
 
 (doo-tests 'pattern.match-test
            'pattern.rule-test
-
-           ;; TODO this currently triggers a lot of timeout errors. Something
-           ;; odd is going on.
-           ;;
-           ;; 'sicmutils.calculus.coordinate-test
-
+           'sicmutils.calculus.coordinate-test
            'sicmutils.calculus.derivative-test
            'sicmutils.calculus.form-field-test
            'sicmutils.calculus.manifold-test
