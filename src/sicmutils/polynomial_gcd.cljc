@@ -276,6 +276,8 @@
                                        with-optimized-variable-order
                                        #(inner-gcd 0 %1 %2)))))))
 
+(defmethod g/gcd [::p/polynomial ::p/polynomial] [u v] (gcd u v))
+
 (def gcd-seq
   "Compute the GCD of a sequence of polynomials (we take care to
   break early if the gcd of an initial segment is unity)"
