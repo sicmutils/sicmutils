@@ -99,8 +99,12 @@
                           (add-symbols! w)
                           (analyze w)))
                       (add-symbols! simplified-expr))))
+
                 (add-symbols! [expr]
-                  (->> expr (map add-symbol!) add-symbol!))
+                  (add-symbol!
+                   ;; FORCE the side effect of binding all symbols.
+                   (doall (map add-symbol! expr))))
+
                 (add-symbol! [expr]
                   (if (and (sequential? expr)
                            (not (= (first expr) 'quote)))

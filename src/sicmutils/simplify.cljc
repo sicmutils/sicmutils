@@ -87,7 +87,7 @@
 
 (defn ^:private simplify-and-canonicalize
   [rule-simplify canonicalize]
-  (fn simplify [expression]
+  (fn [expression]
     (let [new-expression (rule-simplify expression)]
       (if (= expression new-expression)
         expression

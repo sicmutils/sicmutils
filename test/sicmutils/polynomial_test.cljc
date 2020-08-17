@@ -419,6 +419,12 @@
            (A '(* y (sin y) (cos (+ 1 (sin y) (sin y) (expt (sin y) 4)))))))
     (is (= '(+ (expt cos 2) (expt sin 2)) (A '(+ (expt cos 2) (expt sin 2)))))
     (is (= '(+ (expt cos 2) (expt sin 2)) (A '(+ (expt sin 2) (expt cos 2)))))
+    (is (= '(+ (up (+ (/ d a) (/ (* -1 b) a))) (* -1 (up (/ (* -1 y) (+ a b)))))
+           (A '(- (up (+ (/ d a)
+                         (/ (- b) a)))
+                  (up (/ (- y) (+ a b))))))
+        "This test exploded without the doall that forces add-symbol! calls in
+        analyze.clj.")
 
     ;; Tests involving Ratio literals don't work in cljs yet.
     #?(:clj
