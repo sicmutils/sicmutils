@@ -14,6 +14,7 @@
             sicmutils.complex-test
             sicmutils.euclid-test
             sicmutils.expression-test
+            sicmutils.infix-test
             sicmutils.function-test
             sicmutils.generic-test
             sicmutils.matrix-test
@@ -50,6 +51,7 @@
            'sicmutils.analyzer-test
            'sicmutils.complex-test
            'sicmutils.euclid-test
+           'sicmutils.infix-test
            'sicmutils.expression-test
            'sicmutils.function-test
            'sicmutils.generic-test
