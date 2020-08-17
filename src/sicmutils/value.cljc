@@ -30,13 +30,21 @@
      (:import (clojure.lang BigInt PersistentVector RestFn Sequential MultiFn Keyword Symbol)
               (java.lang.reflect Method))))
 
-(defprotocol Value
-  (numerical? [this])
+(defprotocol INumerical
+  (numerical? [this]))
+
+(defprotocol IExact
+  (exact? [this]))
+
+(defprotocol IAdditive
   (nullity? [this])
+  (zero-like [this]))
+
+(defprotocol IMultiplicative
   (unity? [this])
-  (zero-like [this])
-  (one-like [this])
-  (exact? [this])
+  (one-like [this]))
+
+(defprotocol Value
   (freeze [this]
     "Freezing an expression means removing wrappers and other metadata from
   subexpressions, so that the result is basically a pure S-expression with the
@@ -97,51 +105,33 @@
        (derive goog.math.Integer ::integral)
        (derive goog.math.Long ::integral)))
 
-(extend-protocol Value
-  #?(:clj Number :cljs number)
-  (nullity? [x] (core-zero? x))
-  (unity? [x] (== 1 x))
-  (zero-like [_] 0)
-  (one-like [_] 1)
-  (freeze [x] x)
-  (exact? [x] (or (integer? x) (u/ratio? x)))
-  (numerical? [_] true)
-  (kind [x] #?(:clj (type x)
-               :cljs (if (exact? x)
-                       ::native-integral
-                       (type x))))
+(extend-type Symbol
+  IAdditive
+  (nullity? [_] false)
+  (zero-like [_] 0))
 
-  nil
-  (freeze [_] nil)
+(extend-type #?(:clj Object :cljs default)
+  INumerical
   (numerical? [_] false)
-  (nullity? [_] true)
-  (unity?[_] false)
-  (kind [_] nil)
 
-  PersistentVector
-  (nullity? [v] (every? nullity? v))
-  (unity? [_] false)
-  (zero-like [v] (mapv zero-like v))
+  IExact
+  (exact? [x] false)
+
+  IAdditive
+  (nullity? [x] false)
+  (zero-like [_] (if (or (fn? o) (instance? MultiFn o))
+                   (with-meta
+                     (constantly 0)
+                     {:arity (arity o)
+                      :from :object-zero-like})
+                   (u/unsupported (str "zero-like: " o))))
+
+  IMultiplicative
+  (unity? [x] false)
   (one-like [o] (u/unsupported (str "one-like: " o)))
-  (exact? [v] (every? exact? v))
-  (numerical? [_] false)
-  (freeze [v] (mapv freeze v))
-  (kind [v] (type v))
 
-  #?(:clj Object :cljs default)
-  (nullity? [o] false)
-  (numerical? [_] false)
-  (unity? [o] false)
-  (exact? [o] false)
-  (zero-like [o] (cond (instance? Symbol o) 0
-                       (or (fn? o) (instance? MultiFn o)) (with-meta
-                                                            (constantly 0)
-                                                            {:arity (arity o)
-                                                             :from :object-zero-like})
-
-                       :else (u/unsupported (str "zero-like: " o))))
-  (one-like [o] (u/unsupported (str "one-like: " o)))
-  (freeze [o] (cond
+  Value
+  (freeze [x] (cond
                 (sequential? o) (map freeze o)
                 :else (or (and (instance? MultiFn o)
                                (if-let [m (get-method o [Keyword])]
@@ -149,6 +139,51 @@
                           (@object-name-map o)
                           o)))
   (kind [o] (primitive-kind o)))
+
+(extend-type #?(:clj Number :cljs number)
+  INumerical
+  (numerical? [_] true)
+
+  IExact
+  (exact? [x] (or (integer? x) (u/ratio? x)))
+
+  IAdditive
+  (nullity? [x] (core-zero? x))
+  (zero-like [_] 0)
+
+  IMultiplicative
+  (unity? [x] (== 1 x))
+  (one-like [_] 1)
+
+  Value
+  (freeze [x] x)
+  (kind [x] #?(:clj (type x)
+               :cljs (if (exact? x)
+                       ::native-integral
+                       (type x)))))
+
+(extend-type nil
+  IAdditive
+  (nullity? [_] true)
+  (zero-like [_] 0)
+
+  Value
+  (freeze [_] nil)
+  (kind [_] nil))
+
+(extend-type PersistentVector
+  IAdditive
+  (nullity? [v] (every? nullity? v))
+  (zero-like [v] (mapv zero-like v))
+
+  IExact
+  (exact? [v] (every? exact? v))
+
+  Value
+  (freeze [v] (mapv freeze v))
+  (kind [v] (type v)))
+
+
 
 ;; Override equiv for numbers.
 (defmulti eq argument-kind)
