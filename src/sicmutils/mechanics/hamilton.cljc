@@ -18,14 +18,15 @@
 ;
 
 (ns sicmutils.mechanics.hamilton
-  (:refer-clojure :exclude [+ - * / zero? partial])
-  (:require [sicmutils.generic :refer :all]
-            [sicmutils.structure :refer :all]
-            [sicmutils.operator :refer [make-operator]]
-            [sicmutils.matrix :as matrix]
+  (:refer-clojure :exclude [+ - * /  partial])
+  (:require [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.function :as f]
-            [sicmutils.value :as v]
-            [sicmutils.calculus.derivative :refer :all]))
+            [sicmutils.generic :as g :refer [sin cos + - * /]]
+            [sicmutils.matrix :as matrix]
+            [sicmutils.operator :refer [make-operator]]
+            [sicmutils.structure :as s :refer [up down]]
+            [sicmutils.util :as u]
+            [sicmutils.value :as v]))
 
 (defn momentum-tuple
   [& ps]
@@ -66,11 +67,11 @@
 (defn H-rectangular
   [m V]
   (fn [[_ q p]]  ;; H-state
-    (+ (/ (square p) (* 2 m))
+    (+ (/ (g/square p) (* 2 m))
        (apply V q))))
 
 (defn dual-zero [z]
-  (if (structure? z) (-> z transpose v/zero-like) 0))
+  (if (s/structure? z) (-> z g/transpose v/zero-like) 0))
 
 (defn ^:private Legendre-transform-fn
   [F]
@@ -97,15 +98,15 @@
   (fn [x]
     (let [fx (f x)
           gx (g x)]
-      (if (or (structure? fx) (structure? gx))
-        (mapr (fn [af]
-                (mapr (fn [ag]
-                        ((Poisson-bracket
-                          (comp (apply component af) f)
-                          (comp (apply component ag) g))
-                         x))
-                      (structure->access-chains gx)))
-              (structure->access-chains fx))
+      (if (or (s/structure? fx) (s/structure? gx))
+        (s/mapr (fn [af]
+                  (s/mapr (fn [ag]
+                            ((Poisson-bracket
+                              (comp (apply s/component af) f)
+                              (comp (apply s/component ag) g))
+                             x))
+                          (s/structure->access-chains gx)))
+                (s/structure->access-chains fx))
         ((- (* ((partial 1) f) ((partial 2) g))
             (* ((partial 2) f) ((partial 1) g)))
          x)))))
@@ -126,16 +127,16 @@
   [f n]
   (let [lulz (constantly nil)]
     (fn [x y continue fail]
-     (when (< n 0) (throw (IllegalArgumentException. "Cannot invert map")))
-     (loop [x x
-            y y
-            i n]
-       (if (= i 0)
-         (continue x y)
-         (let [step (f x y vector lulz)]
-           (if step
-             (recur (step 0) (step 1) (dec i))
-             (fail))))))))
+      (when (< n 0) (u/illegal "Cannot invert map"))
+      (loop [x x
+             y y
+             i n]
+        (if (= i 0)
+          (continue x y)
+          (let [step (f x y vector lulz)]
+            (if step
+              (recur (step 0) (step 1) (dec i))
+              (fail))))))))
 
 (defn F->CT
   "A transformation of configuration coordinates F to a procedure
@@ -144,13 +145,13 @@
   (fn [[t _ p :as H-state]]
     (up t
         (F H-state)
-        (* p (invert (((partial 1) F) H-state))))))
+        (* p (g/invert (((partial 1) F) H-state))))))
 
 (defn H-central
   [m V]
   (fn [[_ q p]]
-    (+  (/ (square p) (* 2 m))
-        (V (sqrt (square q))))))
+    (+  (/ (g/square p) (* 2 m))
+        (V (g/sqrt (g/square q))))))
 
 ;; page numbers here are references to the PDF; probably
 ;; do not correspond to 1ed.
@@ -177,14 +178,14 @@
           (f/compose (Phi ((D C) s))
                      J-func
                      (Phi* ((D C) s))))
-       (compatible-shape s)))))
+       (s/compatible-shape s)))))
 
 (defn polar-canonical
   "p.327"
   [alpha]
   (fn [[t theta I]]
-    (let [x (* (sqrt (/ (* 2 I) alpha)) (sin theta))
-          p_x (* (sqrt (* 2 alpha I)) (cos theta))]
+    (let [x (* (g/sqrt (/ (* 2 I) alpha)) (sin theta))
+          p_x (* (g/sqrt (* 2 alpha I)) (cos theta))]
       (up t x p_x))))
 
 (defn symplectic-unit
@@ -209,7 +210,7 @@
   (fn [s]
     (symplectic-matrix?
      (matrix/without
-      (matrix/s->m (compatible-shape s)
+      (matrix/s->m (s/compatible-shape s)
                    ((D C) s)
                    s) 0 0))))
 
@@ -220,20 +221,20 @@
    #(Poisson-bracket % H)
    `(~'Lie-derivative ~H)))
 
-(defmethod Lie-derivative [::f/function] [f] (Hamiltonian-Lie-derivative f))
+(defmethod g/Lie-derivative [::f/function] [f] (Hamiltonian-Lie-derivative f))
 
 (defn Lie-transform
   "p. 428"
   [H t]
   (make-operator
-   (exp (* t (Lie-derivative H)))
+   (g/exp (* t (g/Lie-derivative H)))
    `(~'Lie-transform ~H ~t)))
 
 (defn H-central-polar
   [m V]
   (fn [[_ [r _] [p_r p_phi]]]
-    (+ (/ (+ (square p_r)
-             (square (/ p_phi r)))
+    (+ (/ (+ (g/square p_r)
+             (g/square (/ p_phi r)))
           (* 2 m))
        (V r))))
 
