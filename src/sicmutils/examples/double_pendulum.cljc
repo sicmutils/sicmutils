@@ -18,8 +18,11 @@
 ;
 
 (ns sicmutils.examples.double-pendulum
-  (:refer-clojure :exclude [+ - * / zero? partial ref])
-  (:require [sicmutils.env :refer :all]))
+  (:refer-clojure :exclude [+ - * /])
+  (:require [sicmutils.mechanics.lagrange :as L]
+            [sicmutils.numerical.ode :as o]
+            [sicmutils.generic :as g :refer [sin cos + - * /]]
+            [sicmutils.structure :refer [up down]]))
 
 (defn V
   [m1 m2 l1 l2 g]
@@ -32,40 +35,40 @@
 (defn T
   [m1 m2 l1 l2 _]
   (fn [[_ [θ φ] [θdot φdot]]]
-    (let [v1sq (* (square l1) (square θdot))
-          v2sq (* (square l2) (square φdot))]
-      (+ (* 1/2 m1 v1sq)
-         (* 1/2 m2 (+ v1sq
-                      v2sq
-                      (* 2 l1 l2 θdot φdot (cos (- θ φ)))))))))
+    (let [v1sq (* (g/square l1) (g/square θdot))
+          v2sq (* (g/square l2) (g/square φdot))]
+      (+ (* (/ 1 2) m1 v1sq)
+         (* (/ 1 2) m2 (+ v1sq
+                          v2sq
+                          (* 2 l1 l2 θdot φdot (cos (- θ φ)))))))))
 
 (def L
   (- T V))
 
 (defn state-derivative  [m1 m2 l1 l2 g]
-  (Lagrangian->state-derivative
-    (L m1 m2 l1 l2 g)))
+  (L/Lagrangian->state-derivative
+   (L m1 m2 l1 l2 g)))
 
 (defn evolver
   [{:keys [t dt g m1 l1 theta_0 thetadot_0 m2 l2 phi_0 phidot_0 observe]
     :or {t 1
-         dt 1/60
+         dt (/ 1 60)
          g 9.8
          m1 1
          l1 0.5
-         theta_0 (/ pi 2)
+         theta_0 (/ Math/PI 2)
          thetadot_0 0
          m2 1
          l2 0.5
          phi_0 0
          phidot_0 0}}]
-  ((evolve state-derivative
-           m1 ;; mass of bob1
-           m2 ;; mass of bob2
-           l1 ;; length of rod1
-           l2 ;; length of rod2
-           g  ;; acceleration due to gravity
-           )
+  ((o/evolve state-derivative
+             m1 ;; mass of bob1
+             m2 ;; mass of bob2
+             l1 ;; length of rod1
+             l2 ;; length of rod2
+             g  ;; acceleration due to gravity
+             )
    (up 0.0
        (up theta_0 phi_0)
        (up thetadot_0 phidot_0))
@@ -77,7 +80,7 @@
 
 (defn equations
   []
-  (simplify ((state-derivative 'm_1 'm_2 'l_1 'l_2 'g)
-             (up 't
-                 (up 'θ_0 'φ_0)
-                 (up 'θdot_0 'φdot_0)))))
+  (g/simplify ((state-derivative 'm_1 'm_2 'l_1 'l_2 'g)
+               (up 't
+                   (up 'θ_0 'φ_0)
+                   (up 'θdot_0 'φdot_0)))))
