@@ -1,0 +1,115 @@
+;
+; Copyright © 2017 Colin Smith.
+; This work is based on the Scmutils system of MIT/GNU Scheme:
+; Copyright © 2002 Massachusetts Institute of Technology
+;
+; This is free software;  you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation; either version 3 of the License, or (at
+; your option) any later version.
+;
+; This software is distributed in the hope that it will be useful, but
+; WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+; General Public License for more details.
+;
+; You should have received a copy of the GNU General Public License
+; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;
+
+(ns sicmutils.numerical.ode-test
+  (:refer-clojure :exclude [+ - * /])
+  (:require #?(:clj  [clojure.test :refer :all]
+               :cljs [cljs.test :as t :refer-macros [is deftest testing use-fixtures]])
+            [sicmutils.numerical.ode :as o]
+            [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.structure :refer [up down]]
+            [sicmutils.value :as v]))
+
+(def ^:private near? (v/within 1e-8))
+
+#?(:clj
+   (deftest simple-odes
+     (testing "y' = y"
+       ;; we should get exp(x), with suitable initial condition
+       (let [result ((o/state-advancer (constantly identity)) (up 1.) 1. 1.e-10)]
+         (is ((v/within 1e-8) (Math/exp 1) (nth result 0))))
+       (let [f (constantly identity)]
+         (doseq [compile? [true false true true]]
+           (let [states (atom [])
+                 result ((o/evolve f)         ;; solve: y' = y
+                         (up 1.)                               ;;        y(0) = 1
+                         #(swap! states conj [%1 %2])          ;; accumulate results
+                         0.1                                   ;; ... with step size 0.1
+                         1                                     ;; solve until t = 1
+                         1e-10                                 ;; accuracy desired
+                         :compile compile?)]
+             (is (= (count @states) 11))
+             (is (near? (Math/exp 1) (first result)))))))
+
+     (testing "y'' = -y"
+       (let [f (fn [] (fn [[y u]] (up u (- y))))]
+         (doseq [compile? [true false true]]
+           (let [states (atom [])
+                 ;; let u = y', then we have the first-order system {y' = u, u' = -y}
+                 ;; with initial conditions y(0) = 0, y'(0) = 1; we expect y = sin(x).
+                 result ((o/evolve f)
+                         (up 0. 1.)                            ;; y(0) = 0, y'(0) = 1
+                         #(swap! states conj [%1 %2])          ;; accumulate results
+                         0.1                                   ;; ... with step size 0.1
+                         (* 2 (Math/PI))                       ;; over [0, 2π]
+                         1.e-10                                ;; accuracy desired
+                         :compile compile?)]
+             (is (= 64 (count @states)))                        ;; 0.0 .. 6.2 by .1, plus 2π
+             (is (near? 0 (first result)))
+             (is (near? 1 (second result)))
+             (let [[t [s c]] (nth @states 15)]                  ;; state #15 is t = 1.5
+               (is (near? t 1.5))
+               (is (near? s (Math/sin 1.5)))
+               (is (near? c (Math/cos 1.5))))
+             (let [[t [s c]] (nth @states 30)]
+               (is (near? t 3.0))
+               (is (near? s (Math/sin 3)))
+               (is (near? c (Math/cos 3))))))))
+
+     (testing "with parameter"
+       (let [f (fn [k] (fn [[y]] (up (* k y))))]
+         (doseq [compile? [true false true]]
+           (let [result ((o/evolve f 0.2)
+                         (up 1)
+                         nil
+                         0
+                         3
+                         1e-10
+                         :compile compile?)]
+             (is (near? (Math/exp 0.6) (first result)))))))
+
+     (testing "with sd-integrator"
+       (let [state-derivative (fn [] (fn [[t y]] [1 y]))
+             output (o/integrate-state-derivative state-derivative [] (up 0 1) 1 1/10)
+             expected [[0.0 1.0]
+                       [0.1 1.1051709179235594]
+                       [0.2 1.2214027531002876]
+                       [0.3 1.3498587919571827]
+                       [0.4 1.4918246775485524]
+                       [0.5 1.648721248240836]
+                       [0.6 1.8221187755620267]
+                       [0.7 2.0137526801065393]
+                       [0.8 2.2255409007561555]
+                       [0.9 2.459603091529638]
+                       [1.0 2.718281812371165]]]
+         (is (> 0.00001 (apply max (map g/abs (flatten (- output expected)))))))
+       (let [state-derivative (fn [] (fn [[t y]] [1 (* 2 y)]))
+             output (o/integrate-state-derivative state-derivative [] (up 0 1) 1 1/10)
+             expected [[0.0 1.0],
+                       [0.1 1.2214027581601699],
+                       [0.2 1.4918246976412703],
+                       [0.3 1.8221188003905089],
+                       [0.4 2.225540928492468],
+                       [0.5 2.718281828459045],
+                       [0.6 3.3201169227365472],
+                       [0.7 4.0551999668446745],
+                       [0.8 4.953032424395115],
+                       [0.9 6.0496474644129465],
+                       [1.0 7.38905609893065]]]
+         (is (> 0.00001 (apply max (map g/abs (flatten (- output expected))))))))))

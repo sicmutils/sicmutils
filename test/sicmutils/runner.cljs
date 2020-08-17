@@ -10,6 +10,9 @@
             sicmutils.calculus.vector-field-test
             sicmutils.mechanics.rotation-test
             sicmutils.numerical.compile-test
+            sicmutils.numerical.integrate-test
+            sicmutils.numerical.minimize-test
+            sicmutils.numerical.ode-test
             sicmutils.analyzer-test
             sicmutils.complex-test
             sicmutils.euclid-test
@@ -47,6 +50,9 @@
            'sicmutils.calculus.map-test
            'sicmutils.calculus.vector-field-test
            'sicmutils.numerical.compile-test
+           'sicmutils.numerical.integrate-test
+           'sicmutils.numerical.minimize-test
+           'sicmutils.numerical.ode-test
            'sicmutils.mechanics.rotation-test
            'sicmutils.analyzer-test
            'sicmutils.complex-test
