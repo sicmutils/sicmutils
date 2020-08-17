@@ -101,25 +101,23 @@
           residual (- g-polar g-rect)
           vp (vf/literal-vector-field 'v R2-polar)
           vr (vf/literal-vector-field 'v R2-rect)]
+      (is (= 0 (g/simplify ((dr circular) mr))))
+      (is (= '(/ (+ (* x0 (v↑0 (up x0 y0))) (* y0 (v↑1 (up x0 y0))))
+                 (sqrt (+ (expt x0 2) (expt y0 2))))
+             (g/simplify ((dr vr) mr))))
+      (is (= '(/ (+ (* x0 (v↑0 (up x0 y0))) (* y0 (v↑1 (up x0 y0))))
+                 (sqrt (+ (expt x0 2) (expt y0 2))))
+             (g/simplify (((ff/d r) vr) mr))))
+      (is (= 0 (g/simplify ((residual vr vr) mr))))
+      (is (= 0 (g/simplify ((residual vp vp) mr))))
+      (is (= 0 (g/simplify ((residual vp vp) mp))))
+      (is (= 0 (g/simplify ((residual vr vr) mp))))
       (is (= 1 (g/simplify ((circular theta) mr))))
+
       ;; TODO(colin.smith): implement little d
       (is (= 1 (((ff/d r) d:dr) mr)))
       (is (= 1 (g/simplify ((dr d:dr) mr))))
       (is (= '(v↑0 (up (sqrt (+ (expt x0 2) (expt y0 2))) (atan y0 x0)))
              (g/simplify ((dr vp) mr))))
       (is (= '(v↑0 (up (sqrt (+ (expt x0 2) (expt y0 2))) (atan y0 x0)))
-             (g/simplify (((ff/d r) vp) mr))))
-
-      ;; TODO these tests all blow the stack in cljs.
-      #?(:clj
-         (do (is (= 0 (g/simplify ((dr circular) mr))))
-             (is (= '(/ (+ (* x0 (v↑0 (up x0 y0))) (* y0 (v↑1 (up x0 y0))))
-                        (sqrt (+ (expt x0 2) (expt y0 2))))
-                    (g/simplify ((dr vr) mr))))
-             (is (= '(/ (+ (* x0 (v↑0 (up x0 y0))) (* y0 (v↑1 (up x0 y0))))
-                        (sqrt (+ (expt x0 2) (expt y0 2))))
-                    (g/simplify (((ff/d r) vr) mr))))
-             (is (= 0 (g/simplify ((residual vr vr) mr))))
-             (is (= 0 (g/simplify ((residual vp vp) mr))))
-             (is (= 0 (g/simplify ((residual vp vp) mp))))
-             (is (= 0 (g/simplify ((residual vr vr) mp)))))))))
+             (g/simplify (((ff/d r) vp) mr)))))))
