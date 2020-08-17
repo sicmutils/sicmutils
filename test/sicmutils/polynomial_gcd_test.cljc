@@ -8,12 +8,12 @@
 ; the Free Software Foundation; either version 3 of the License, or (at
 ; your option) any later version.
 ;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
+; this software is distributed in the hope that it will be useful, but
+; without any warranty; without even the implied warranty of
+; merchantability or fitness for a particular purpose.  see the gnu
+; general public license for more details.
 ;
-; You should have received a copy of the GNU General Public License
+; you should have received a copy of the gnu general public license
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
@@ -34,19 +34,19 @@
             [taoensso.timbre :as log]))
 
 (deftest poly-gcd
-  (let [X (p/make 2 [[[1 0] 1]]) ;; some polynomials of arity 2
-        Y (p/make 2 [[[0 1] 1]])]
+  (let [x (p/make 2 [[[1 0] 1]]) ;; some polynomials of arity 2
+        y (p/make 2 [[[0 1] 1]])]
     (testing "inexact coefficients"
       (is (= (p/make [1]) (pg/gcd (p/make [0.2 0.4 0.6]) (p/make [0.4 0.6 0.8])))))
 
-    (testing "GCD: arity 1 case"
+    (testing "gcd: arity 1 case"
       (let [x+1 (p/make [1 1])
             x+2 (p/make [2 1])
             x+3 (p/make [3 1])
             x+4 (p/make [4 1])
-            U (g/mul x+1 (g/mul x+1 (g/mul x+2 x+4)))
-            V (g/mul x+1 (g/mul x+2 x+3))]
-        (is (= (p/make [2 3 1]) (pg/gcd U V)))
+            u (g/mul x+1 (g/mul x+1 (g/mul x+2 x+4)))
+            v (g/mul x+1 (g/mul x+2 x+3))]
+        (is (= (p/make [2 3 1]) (pg/gcd u v)))
         (is (= (p/make [4]) (pg/gcd (p/make [8]) (p/make [4]))))
         (is (= (p/make [1]) (pg/gcd (p/make [7]) (p/make [11]))))
         (is (= (p/make [11]) (pg/gcd (p/make []) (p/make [11])))))
@@ -54,42 +54,42 @@
             x+3 (p/make [3 1])
             x-2 (p/make [-2 1])
             x+1 (p/make [1 1])
-            U (reduce g/mul [x+4 x+4 x+3 x+3 x-2 x-2 x-2 x-2 x-2 x+1])
-            V (reduce g/mul [x+4 x+3 x+3 x+3 x-2 x-2 x+1 x+1])
-            W (reduce g/mul [x+4 x+3 x+3 x-2 x-2 x+1])
-            Z (p/make [])]
-        (is (= W (pg/gcd U V)))
-        (is (= W (pg/gcd V U)))
-        (is (= U (pg/gcd U U)))
-        (is (= V (pg/gcd V V)))
-        (is (= W (pg/gcd W W)))
-        (is (= U (pg/gcd U Z)))
-        (is (= U (pg/gcd Z U)))
-        (is (= V (pg/gcd V Z)))
-        (is (= V (pg/gcd Z V)))))
+            u (reduce g/mul [x+4 x+4 x+3 x+3 x-2 x-2 x-2 x-2 x-2 x+1])
+            v (reduce g/mul [x+4 x+3 x+3 x+3 x-2 x-2 x+1 x+1])
+            w (reduce g/mul [x+4 x+3 x+3 x-2 x-2 x+1])
+            z (p/make [])]
+        (is (= w (pg/gcd u v)))
+        (is (= w (pg/gcd v u)))
+        (is (= u (pg/gcd u u)))
+        (is (= v (pg/gcd v v)))
+        (is (= w (pg/gcd w w)))
+        (is (= u (pg/gcd u z)))
+        (is (= u (pg/gcd z u)))
+        (is (= v (pg/gcd v z)))
+        (is (= v (pg/gcd z v)))))
 
     (testing "divide constant arity 2"
-      (is (= [(p/make 2 []) X] (p/divide X Y)))
-      (is (= [(p/make 2 []) Y] (p/divide Y X))))
+      (is (= [(p/make 2 []) x] (p/divide x y)))
+      (is (= [(p/make 2 []) y] (p/divide y x))))
 
-    (testing "GCD: arity 2 case"
-      (let [I (p/make 2 [[[0 0] 1]])
-            X (p/make 2 [[[1 0] 1]])
-            Y (p/make 2 [[[0 1] 1]])
-            X+Y (g/add X Y)
-            X+1 (g/add X I)
-            Y+1 (g/add Y I)
-            X+Y_2 (g/mul X+Y X+Y)
-            X+Y_3 (g/mul X+Y_2 X+Y)
-            U (reduce g/mul [(g/expt X+1 3) (g/expt X+Y 2) (g/expt Y+1 4)])
-            V (reduce g/mul [(g/expt X+1 2) (g/expt X+Y 5) (g/expt Y+1 3)])
-            G (reduce g/mul [(g/expt X+1 2) (g/expt X+Y 2) (g/expt Y+1 3)])]
-        (is (= X+Y_2 (pg/gcd X+Y_2 X+Y_3)))
-        (is (= X+Y_3 (pg/gcd X+Y_3 X+Y_3)))
-        (is (= G (pg/gcd U V)))))
+    (testing "gcd: arity 2 case"
+      (let [i (p/make 2 [[[0 0] 1]])
+            x (p/make 2 [[[1 0] 1]])
+            y (p/make 2 [[[0 1] 1]])
+            x+y (g/add x y)
+            x+1 (g/add x i)
+            y+1 (g/add y i)
+            x+y_2 (g/mul x+y x+y)
+            x+y_3 (g/mul x+y_2 x+y)
+            u (reduce g/mul [(g/expt x+1 3) (g/expt x+y 2) (g/expt y+1 4)])
+            v (reduce g/mul [(g/expt x+1 2) (g/expt x+y 5) (g/expt y+1 3)])
+            g (reduce g/mul [(g/expt x+1 2) (g/expt x+y 2) (g/expt y+1 3)])]
+        (is (= x+y_2 (pg/gcd x+y_2 x+y_3)))
+        (is (= x+y_3 (pg/gcd x+y_3 x+y_3)))
+        (is (= g (pg/gcd u v)))))
 
-    (testing "GCD: arity 3 case"
-      (binding [pg/*poly-gcd-time-limit* #?(:clj [3 :seconds]
+    (testing "gcd: arity 3 case"
+      (binding [pg/*poly-gcd-time-limit* #?(:clj  [2 :seconds]
                                             :cljs [6 :seconds])]
         (let [I (p/make 3 [[[0 0 0] 1]])
               X (p/make 3 [[[1 0 0] 1]])
