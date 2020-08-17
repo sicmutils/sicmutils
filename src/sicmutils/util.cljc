@@ -4,8 +4,9 @@
                            biginteger core-biginteger
                            int core-int
                            long core-long
-                           #?@(:clj [ratio? core-ratio?])
-                           #?@(:clj [denominator core-denominator])}
+                           #?@(:clj [ratio? core-ratio?
+                                     denominator core-denominator
+                                     numerator core-numerator])}
                   #?@(:cljs [:exclude [bigint long int]]))
   (:require #?(:clj [clojure.math.numeric-tower :as nt])
             #?(:cljs goog.math.Integer)
@@ -26,6 +27,10 @@
 (def ratio?
   #?(:clj core-ratio?
      :cljs (constantly false)))
+
+(def numerator
+  #?(:clj core-numerator
+     :cljs (fn [x] (throw (js/Error "Ratio doesn't exist in cljs.")))))
 
 (def denominator
   #?(:clj core-denominator
