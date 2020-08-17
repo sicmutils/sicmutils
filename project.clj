@@ -51,8 +51,7 @@
                              [lein-cloverage "1.1.2"]
                              [lein-doo "0.1.11"]]
                    :cloverage {:ns-exclude-regex [#"sicmutils.rules"
-                                                  #"sicmutils.simplify"
-                                                  #"sicmutils.calculus.manifold"]}
+                                                  #"sicmutils.simplify"]}
                    :repl-options {:nrepl-middleware
                                   [cider.piggieback/wrap-cljs-repl]}
                    :dependencies [[org.clojure/test.check "1.0.0"]

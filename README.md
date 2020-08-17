@@ -1,6 +1,8 @@
 # sicmutils
+
 [![Build Status](https://github.com/littleredcomputer/sicmutils/workflows/Clojure%20CI/badge.svg?branch=master)](https://github.com/littleredcomputer/sicmutils/actions?query=workflow%3A%22Clojure+CI%22)
 [![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/littleredcomputer/sicmutils/blob/master/LICENSE)
+[![Codecov branch](https://img.shields.io/codecov/c/github/littleredcomputer/sicmutils/master.svg?maxAge=3600)](https://codecov.io/github/littleredcomputer/sicmutils)
 [![Clojars Project](https://img.shields.io/clojars/v/net.littleredcomputer/sicmutils.svg)](https://clojars.org/net.littleredcomputer/sicmutils)
 
 An implementation of the Scmutils system for math and physics
