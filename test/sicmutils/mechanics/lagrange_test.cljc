@@ -18,20 +18,52 @@
 ;
 
 (ns sicmutils.mechanics.lagrange-test
-  (:require [clojure.test :refer :all]
+  (:require #?(:clj  [clojure.test :refer :all]
+               :cljs [cljs.test :as t :refer-macros [is deftest testing use-fixtures]])
             [sicmutils.calculus.derivative :refer [D]]
-            [sicmutils.function :as f]
+            [sicmutils.function :as f #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]
             [sicmutils.matrix :as m]
-            [sicmutils.structure :as s]
+            [sicmutils.structure :refer [up down]]
+            [sicmutils.value :as v]
             [sicmutils.mechanics.lagrange :as L]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
+(def ^:private near? (v/within 1e-8))
+
+(deftest gamma-test
+  (f/with-literal-functions [q]
+    (is (= '(up t (q t) ((D q) t)) (g/simplify ((L/Gamma q) 't))))
+    (is (= '(up t (q t) ((D q) t)) (g/simplify ((L/Gamma q 3) 't))))
+    (is (= '(up t
+                (q t)
+                ((D q) t)
+                (((expt D 2) q) t)
+                (((expt D 3) q) t))
+           (g/simplify ((L/Gamma q 5) 't))))
+    (is (= '(+ (* #?(:clj 1/2 :cljs 0.5) (expt t 2) (((expt D 2) q) t))
+               (* -1 t t1 (((expt D 2) q) t))
+               (* #?(:clj 1/2 :cljs 0.5) (expt t1 2) (((expt D 2) q) t))
+               (* -1 t ((D q) t))
+               (* t1 ((D q) t))
+               (q t))
+           (g/simplify ((L/osculating-path ((L/Γ q 4) 't)) 't1))))
+    (is (= '(up t (up t (x t) (y t)) (up 1 ((D x) t) ((D y) t)))
+           (g/simplify
+            (f/with-literal-functions [x y]
+              ((L/Gamma (up identity x y)) 't)))))))
+
 (deftest interpolation
   (testing "lagrange interpolation"
-    (is (= [1/6 1/3 1/2 2/3 5/6] (L/linear-interpolants 0 1 5)))
+    #?(:clj
+       (is (= [1/6 1/3 1/2 2/3 5/6] (L/linear-interpolants 0 1 5)))
+       :cljs
+       (is (every?
+            (map near?
+                 [(/ 1 6) (/ 1 3) (/ 1 2) (/ 2 3) (/ 5 6)]
+                 (L/linear-interpolants 0 1 5)))))
     (let [f (L/Lagrange-interpolation-function [3 2 5 1] [1 2 3 4])]
       (is (= (f 1) 3))
       (is (= (f 2) 2))
@@ -45,8 +77,8 @@
             (L/velocity-tuple 'vx1 'vy1)
             (L/velocity-tuple 'vx2 'vy2))
         L1 (fn [[v1 v2]]
-             (g/+ (g/* 1/2 'm1 (g/square v1))
-                  (g/* 1/2 'm2 (g/square v2))))]
+             (g/+ (g/* (/ 1 2) 'm1 (g/square v1))
+                  (g/* (/ 1 2) 'm2 (g/square v2))))]
     (is (= '(down (down (down (down m1 0) (down 0 0)) (down (down 0 m1) (down 0 0)))
                   (down (down (down 0 0) (down m2 0)) (down (down 0 0) (down 0 m2))))
            (g/simplify (((g/expt D 2) L1) vs))))
@@ -56,31 +88,11 @@
                             [0 0 0 m2])
            (g/simplify (m/s->m vs (((g/expt D 2) L1) vs) vs))))))
 
-(deftest gamma-test
-  (f/with-literal-functions [q]
-    (is (= '(up t (q t) ((D q) t)) (g/simplify ((L/Gamma q) 't))))
-    (is (= '(up t (q t) ((D q) t)) (g/simplify ((L/Gamma q 3) 't))))
-    (is (= '(up t
-                (q t)
-                ((D q) t)
-                (((expt D 2) q) t)
-                (((expt D 3) q) t))
-           (g/simplify ((L/Gamma q 5) 't))))
-    (is (= '(+ (* 1/2 (expt t 2) (((expt D 2) q) t))
-               (* -1 t t1 (((expt D 2) q) t))
-               (* 1/2 (expt t1 2) (((expt D 2) q) t))
-               (* -1 t ((D q) t))
-               (* t1 ((D q) t))
-               (q t))
-           (g/simplify ((L/osculating-path ((L/Γ q 4) 't)) 't1))))
-    (is (= '(up t (up t (x t) (y t)) (up 1 ((D x) t) ((D y) t)))
-           (g/simplify
-            (f/with-literal-functions [x y]
-              ((L/Gamma (s/up identity x y)) 't)))))))
+
 
 (deftest lagrange-equations
   (testing "moved-from-simplify"
-    (let [xy (s/up (f/literal-function 'x) (f/literal-function 'y))
+    (let [xy (up (f/literal-function 'x) (f/literal-function 'y))
           LE (((L/Lagrange-equations
                 (L/L-central-rectangular 'm (f/literal-function 'U))) xy) 't)]
       (is (= '(up x y) (g/simplify xy)))
@@ -96,7 +108,7 @@
     (f/with-literal-functions [q x y z]
       (let [Le (L/Lagrange-equations (L/L-free-particle 'm))
             literal-path q
-            generic-path (s/up x y z)
+            generic-path (up x y z)
             LeQ (Le literal-path)
             LeP (Le generic-path)]
         (is (= '(* m (((expt D 2) q) t))
@@ -109,10 +121,10 @@
   (testing "derivations"
     (f/with-literal-functions [q x y U r φ]
       (let [test-path (fn [t]
-                        (s/up (g/+ (g/* 'a t) 'a0)
-                              (g/+ (g/* 'b t) 'b0)
-                              (g/+ (g/* 'c t) 'c0)))]
-        (is (= (s/down 0 0 0)
+                        (up (g/+ (g/* 'a t) 'a0)
+                            (g/+ (g/* 'b t) 'b0)
+                            (g/+ (g/* 'c t) 'c0)))]
+        (is (= (down 0 0 0)
                (((L/Lagrange-equations (L/L-free-particle 'm))
                  test-path)
                 't))))
@@ -129,7 +141,7 @@
       (is (= '(down (* m (((expt D 2) x) t))
                     (+ (* g m) (* m (((expt D 2) y) t))))
              (g/simplify (((L/Lagrange-equations (L/L-uniform-acceleration 'm 'g))
-                           (s/up x y))
+                           (up x y))
                           't))))
 
       (is (= '(down (/ (+ (* m (((expt D 2) x) t) (sqrt (+ (expt (x t) 2) (expt (y t) 2)))) (* (x t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
@@ -137,13 +149,13 @@
                     (/ (+ (* m (sqrt (+ (expt (x t) 2) (expt (y t) 2))) (((expt D 2) y) t)) (* (y t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
                        (sqrt (+ (expt (x t) 2) (expt (y t) 2)))))
              (g/simplify (((L/Lagrange-equations (L/L-central-rectangular 'm U))
-                           (s/up x y))
+                           (up x y))
                           't))))
 
       (is (= '(down (+ (* -1 m (expt ((D φ) t) 2) (r t)) (* m (((expt D 2) r) t)) ((D U) (r t)))
                     (+ (* 2 m ((D φ) t) (r t) ((D r) t)) (* m (expt (r t) 2) (((expt D 2) φ) t))))
              (g/simplify (((L/Lagrange-equations (L/L-central-polar 'm U))
-                           (s/up r φ))
+                           (up r φ))
                           't))))
 
       (is (= '(up (+ (* -1 r φdot (sin φ)) (* rdot (cos φ)))
@@ -151,4 +163,4 @@
              (g/simplify
               (L/velocity
                ((L/F->C L/p->r)
-                (L/->local 't (s/up 'r 'φ) (s/up 'rdot 'φdot))))))))))
+                (L/->local 't (up 'r 'φ) (up 'rdot 'φdot))))))))))

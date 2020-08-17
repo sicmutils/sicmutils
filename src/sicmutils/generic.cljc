@@ -24,7 +24,7 @@
             [sicmutils.expression :as x])
   #?(:cljs (:require-macros [sicmutils.generic :refer [def-generic-function]]))
   #?(:clj
-     (:import [clojure.lang LazySeq PersistentVector Symbol Seqable])))
+     (:import [clojure.lang LazySeq PersistentVector Symbol Seqable Var])))
 
 ;;; classifiers
 
@@ -126,6 +126,7 @@
 (defmulti simplify v/argument-kind)
 (defmethod simplify :default [a] (v/freeze a))
 (defmethod simplify [::v/number] [a] a)
+(defmethod simplify [Var] [a] (-> a meta :name))
 (defmethod simplify [Symbol] [a] a)
 (defmethod simplify [LazySeq] [a] (map simplify a))
 (defmethod simplify [PersistentVector] [a] (mapv simplify a))

@@ -18,14 +18,13 @@
 ;
 
 (ns sicmutils.mechanics.lagrange
-  (:refer-clojure :exclude [+ - * / zero? partial])
-  (:require [sicmutils
-             [generic :refer :all]
-             [structure :refer :all]
-             [function :refer :all]]
-            [sicmutils.numerical.integrate :refer :all]
-            [sicmutils.numerical.minimize :refer :all]
-            [sicmutils.calculus.derivative :refer :all]))
+  (:refer-clojure :exclude [+ - * /  partial])
+  (:require [sicmutils.numerical.integrate :as i]
+            [sicmutils.numerical.minimize :as m]
+            [sicmutils.calculus.derivative :refer [D partial]]
+            [sicmutils.generic :as g :refer [cos sin + - * /]]
+            [sicmutils.structure :refer [up down]]
+            [sicmutils.function :as f :refer [compose]]))
 
 (defn state->t
   "Extract the time slot from a state tuple"
@@ -65,7 +64,7 @@
   just the kinetic energy."
   [mass]
   (fn [[_ _ v]]
-    (* 1/2 mass (square v))))
+    (* (/ 1 2) mass (g/square v))))
 
 (defn L-harmonic
   "The Lagrangian of a simple harmonic oscillator (mass-spring
@@ -74,25 +73,25 @@
   local tuple of the system."
   [m k]
   (fn [[_ q v]]
-    (- (* 1/2 m (square v)) (* 1/2 k (square q)))))
+    (- (* (/ 1 2) m (g/square v)) (* (/ 1 2) k (g/square q)))))
 
 (defn L-uniform-acceleration
   "The Lagrangian of an object experiencing uniform acceleration
   in the negative y direction, i.e. the acceleration due to gravity"
   [m g]
   (fn [[_ [_ y] v]]
-    (- (* 1/2 m (square v)) (* m g y))))
+    (- (* (/ 1 2) m (g/square v)) (* m g y))))
 
 (defn L-central-rectangular [m U]
   (fn [[_ q v]]
-    (- (* 1/2 m (square v))
-       (U (sqrt (square q))))))
+    (- (* (/ 1 2) m (g/square v))
+       (U (g/sqrt (g/square q))))))
 
 (defn L-central-polar [m U]
   (fn [[_ [r] [rdot φdot]]]
-    (- (* 1/2 m
-          (+ (square rdot)
-             (square (* r φdot))))
+    (- (* (/ 1 2) m
+          (+ (g/square rdot)
+             (g/square (* r φdot))))
        (U r))))
 
 ;; ---- end of functions undefined in Scmutils --------
@@ -134,7 +133,7 @@
 
 (defn Lagrangian-action
   [L q t1 t2]
-  (definite-integral (compose L (Γ q)) t1 t2 :compile true))
+  (i/definite-integral (compose L (Γ q)) t1 t2 :compile true))
 
 (defn Lagrange-equations
   [Lagrangian]
@@ -242,7 +241,7 @@
   "Lagrangian for a point mass on with the potential energy V(x, y)"
   [m V]
   (fn [[_ [q0 q1] qdot]]
-    (- (* 1/2 m (square qdot))
+    (- (* (/ 1 2) m (g/square qdot))
        (V q0 q1))))
 
 (defn make-path
@@ -267,9 +266,9 @@
   [Lagrangian t0 q0 t1 q1 n & {:keys [observe]}]
   (let [initial-qs (linear-interpolants q0 q1 n)
         minimizing-qs
-        (multidimensional-minimize
-          (parametric-path-action Lagrangian t0 q0 t1 q1)
-          initial-qs observe)]
+        (m/multidimensional-minimize
+         (parametric-path-action Lagrangian t0 q0 t1 q1)
+         initial-qs observe)]
     (make-path t0 q0 t1 q1 minimizing-qs)))
 
 (defn s->r

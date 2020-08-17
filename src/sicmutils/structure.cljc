@@ -57,8 +57,8 @@
       [Object
        (equals [_ b]
                (and (instance? Structure b)
-                    (and (= orientation (.orientation b))
-                         (= v (.-v b)))))
+                    (= orientation (.orientation b))
+                    (= v (.-v b))))
        (toString [_] (str "(" (orientation orientation->symbol) " " (join " " (map str v)) ")"))
 
        Sequential
@@ -124,7 +124,7 @@
                (if (instance? Structure b)
                  (and (= orientation (.-orientation b))
                       (= v (.-v b)))
-                 (= v (seq b))))
+                 (= v b)))
 
        Object
        (toString [_] (str "("

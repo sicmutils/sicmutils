@@ -117,6 +117,7 @@
     (ruleset expression succeed #(try-rulesets rulesets % succeed))
     expression))
 
+
 (defn rule-simplifier
   "Transform the supplied rulesets into a function of expressions
   which will arrange to apply each of the rules in the ruleset to all
