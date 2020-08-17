@@ -274,7 +274,7 @@
            facts (group-by first
                            (for [^Method m methods
                                  :let [name (.getName m)]
-                                 :when (not= name "invokeStatic")]
+                                 :when (not (#{"withMeta" "meta" "invokeStatic"} name))]
                              (condp = name
                                "invoke" [:invoke (alength (.getParameterTypes m))]
                                "doInvoke" [:doInvoke true]
