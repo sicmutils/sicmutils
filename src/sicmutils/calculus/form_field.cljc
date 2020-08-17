@@ -189,16 +189,16 @@
         ;; if a has been set to a new permutation. Knuth's code is
         ;; one-based; this is zero-based.
         step (fn [j s]
-               (let [q (+ (aget c j) (aget o j))] ;; P4. [Ready to change?]
+               (let [q (int (+ (aget c j) (aget o j)))] ;; P4. [Ready to change?]
                  (cond (< q 0)
                        (do ;; P7. [Switch direction.]
-                         (aset o j (- (aget o j)))
+                         (aset o j (int (- (aget o j))))
                          (recur (dec j) s))
 
                        (= q (inc j))
                        (if (zero? j)
                          false ;; All permutations have been delivered.
-                         (do (aset o j (- (aget o j))) ;; P6. [Increase s.]
+                         (do (aset o j (int (- (aget o j)))) ;; P6. [Increase s.]
                              (recur (dec j) (inc s)))) ;; P7. [Switch direction.]
 
                        :else ;; P5. [Change.]
