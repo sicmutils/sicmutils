@@ -18,14 +18,14 @@
 ;
 
 (ns sicmutils.calculus.form-field
-  (:require [sicmutils
-             [operator :as o]
-             [structure :as s]
-             [generic :as g]
-             [function :as f]
-             [value :as v]]
-            [sicmutils.calculus.vector-field :as vf]
-            [sicmutils.calculus.manifold :as m]))
+  (:require [sicmutils.calculus.vector-field :as vf]
+            [sicmutils.calculus.manifold :as m]
+            [sicmutils.operator :as o]
+            [sicmutils.structure :as s]
+            [sicmutils.generic :as g]
+            [sicmutils.function :as f]
+            [sicmutils.util :as u]
+            [sicmutils.value :as v]))
 
 (derive ::form-field ::o/operator)
 
@@ -131,9 +131,9 @@
 (defn get-rank
   [f]
   (cond (o/operator? f) (or (:rank (:context f))
-                            (throw (IllegalArgumentException. (str "operator, but not a differential form: " f))))
+                            (u/illegal (str "operator, but not a differential form: " f)))
         (fn? f) 0
-        :else (throw (IllegalArgumentException. "not a differential form"))))
+        :else (u/illegal "not a differential form")))
 
 (defn exterior-derivative-procedure
   [kform]
@@ -211,18 +211,22 @@
                          (aset c j q)
                          true ;; More permutations are forthcoming.
                          ))))]
-    (iterator-seq
-     (reify java.util.Iterator
+    (#?(:clj iterator-seq :cljs #'cljs.core/chunkIteratorSeq)
+     (reify #?(:clj java.util.Iterator :cljs Object)
        (hasNext [_] @has-next)
        (next [_]  ;; P2. [Visit.]
          (let [prev @the-next]
            (reset! has-next (step (dec n) 0))
            (reset! the-next (return a))
-           prev))))))
+           prev))
+
+       #?@(:cljs
+           [IIterable
+            (-iterator [this] this)])))))
 
 (defn ^:private factorial
   [n]
-  (reduce *' (range 2 (inc n))))
+  (reduce g/* (range 2 (inc n))))
 
 (defn ^:private wedge2
   [form1 form2]

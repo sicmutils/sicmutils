@@ -2,8 +2,11 @@
   (:require [doo.runner :refer-macros [doo-tests]]
             pattern.match-test
             pattern.rule-test
+            sicmutils.calculus.coordinate-test
             sicmutils.calculus.derivative-test
+            sicmutils.calculus.form-field-test
             sicmutils.calculus.manifold-test
+            sicmutils.calculus.vector-field-test
             sicmutils.mechanics.rotation-test
             sicmutils.numerical.compile-test
             sicmutils.analyzer-test
@@ -30,8 +33,16 @@
 
 (doo-tests 'pattern.match-test
            'pattern.rule-test
+
+           ;; TODO this currently triggers a lot of timeout errors. Something
+           ;; odd is going on.
+           ;;
+           ;; 'sicmutils.calculus.coordinate-test
+
            'sicmutils.calculus.derivative-test
+           'sicmutils.calculus.form-field-test
            'sicmutils.calculus.manifold-test
+           'sicmutils.calculus.vector-field-test
            'sicmutils.numerical.compile-test
            'sicmutils.mechanics.rotation-test
            'sicmutils.analyzer-test
