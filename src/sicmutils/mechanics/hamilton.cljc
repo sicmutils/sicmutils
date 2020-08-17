@@ -145,7 +145,7 @@
   (fn [[t _ p :as H-state]]
     (up t
         (F H-state)
-        (* p (matrix/invert (((partial 1) F) H-state))))))
+        (* p (g/invert (((partial 1) F) H-state))))))
 
 (defn H-central
   [m V]
