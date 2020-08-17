@@ -18,13 +18,12 @@
 ;
 
 (ns sicmutils.calculus.map
-  (:require [sicmutils
-             [structure :as s]
-             [function :as f]]
-            [sicmutils.calculus.basis :refer :all]
-            [sicmutils.calculus.vector-field :as vf]
+  (:require [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.form-field :as ff]
-            [sicmutils.calculus.manifold :as m]))
+            [sicmutils.calculus.vector-field :as vf]
+            [sicmutils.calculus.manifold :as m]
+            [sicmutils.function :as f]
+            [sicmutils.structure :as s]))
 
 (defn vector-field->vector-field-over-map
   "FDG p.72"
@@ -74,10 +73,10 @@
 
 (defn basis->basis-over-map
   [mu:N->M basis-on-M]
-  (let [vector-basis-on-M (basis->vector-basis basis-on-M)
-        dual-basis-on-M (basis->oneform-basis basis-on-M)]
-    (make-basis (s/mapr (vector-field->vector-field-over-map mu:N->M) vector-basis-on-M)
-                (s/mapr (form-field->form-field-over-map mu:N->M) dual-basis-on-M))))
+  (let [vector-basis-on-M (b/basis->vector-basis basis-on-M)
+        dual-basis-on-M (b/basis->oneform-basis basis-on-M)]
+    (b/make-basis (s/mapr (vector-field->vector-field-over-map mu:N->M) vector-basis-on-M)
+                  (s/mapr (form-field->form-field-over-map mu:N->M) dual-basis-on-M))))
 
 (defn pullback-function
   [mu:N->M]
