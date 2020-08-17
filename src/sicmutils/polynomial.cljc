@@ -480,14 +480,15 @@
     ;; indeterminates extracted from the expression at the start of this
     ;; process.
     (if (polynomial? p)
-      (reduce
-       sym/add 0
-       (map (fn [[xs c]]
-              (sym/mul c
-                       (reduce sym/mul 1 (map (fn [exponent var]
-                                                (sym/expt var exponent))
-                                              xs vars))))
-            (->> p .-xs->c (sort-by exponents #(monomial-order %2 %1)))))
+      (->> (.-xs->c p)
+           (sort-by exponents #(monomial-order %2 %1))
+           (map (fn [[xs c]]
+                  (->> (map (fn [exponent var]
+                              (sym/expt var exponent))
+                            xs vars)
+                       (reduce sym/mul 1)
+                       (sym/mul c))))
+           (reduce sym/add 0))
       p))
 
   (known-operation? [_ o]

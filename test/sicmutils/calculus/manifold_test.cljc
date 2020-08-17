@@ -70,24 +70,6 @@
         (let [p (m/coords->point m/R2-polar (up 1 2))]
           (is (= (up 1 2) (m/get-coordinates p m/R2-polar #(u/exception "")))))))
 
-    (testing "SO(3)"
-      (is (= '(up theta phi psi)
-             (g/simplify ((f/compose (m/chart m/Euler-angles)
-                                     (m/point m/alternate-angles)
-                                     (m/chart m/alternate-angles)
-                                     (m/point m/Euler-angles))
-                          (up 'theta 'phi 'psi)))))
-
-      (is (= '(up (asin (* (sin theta) (cos psi)))
-                  (atan (+ (* (cos psi) (cos theta) (sin phi))
-                           (* (cos phi) (sin psi)))
-                        (+ (* (cos psi) (cos phi) (cos theta))
-                           (* -1 (sin psi) (sin phi))))
-                  (atan (* -1 (sin theta) (sin psi)) (cos theta)))
-             (g/simplify ((f/compose (m/chart m/alternate-angles)
-                                     (m/point m/Euler-angles))
-                          (up 'theta 'phi 'psi))))))
-
     (testing "Rect <-> Polar"
       (let [Pr (m/coords->point m/R2-rect (up (Math/sqrt 2) (Math/sqrt 2)))
             xy (m/coords->point m/R2-rect (up 'x 'y))
@@ -97,4 +79,22 @@
         (is (= (up 'ρ 'θ) (m/point->coords m/R2-polar rt)))
         (is (= (up (g/sqrt (+ (g/square 'x) (g/square 'y)))
                    (g/atan 'y 'x)) (m/point->coords m/R2-polar xy)))
-        (is (= (up (* 'ρ (cos 'θ)) (* 'ρ (sin 'θ))) (m/point->coords m/R2-rect rt)))))))
+        (is (= (up (* 'ρ (cos 'θ)) (* 'ρ (sin 'θ))) (m/point->coords m/R2-rect rt)))))
+
+    (testing "SO(3)"
+      (is (= '(up theta phi psi)
+             (g/simplify ((f/compose (m/chart m/Euler-angles)
+                                     (m/point m/alternate-angles)
+                                     (m/chart m/alternate-angles)
+                                     (m/point m/Euler-angles))
+                          (up 'theta 'phi 'psi)))))
+
+      (is (= '(up (asin (* (sin theta) (cos psi)))
+                  (atan (+ (* (cos psi) (sin phi) (cos theta))
+                           (* (cos phi) (sin psi)))
+                        (+ (* (cos psi) (cos phi) (cos theta))
+                           (* -1 (sin psi) (sin phi))))
+                  (atan (* -1 (sin theta) (sin psi)) (cos theta)))
+             (g/simplify ((f/compose (m/chart m/alternate-angles)
+                                     (m/point m/Euler-angles))
+                          (up 'theta 'phi 'psi))))))))
