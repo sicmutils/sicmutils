@@ -18,7 +18,7 @@
 ;
 
 (ns sicmutils.mechanics.lagrange
-  (:refer-clojure :exclude [+ - * / zero?])
+  (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [sicmutils
              [generic :refer :all]
              [structure :refer :all]
@@ -108,8 +108,8 @@
   (fn [[t _ v :as local]]
     (->L-state t
                (F local)
-               (+ (((∂ 0) F) local)
-                  (* (((∂ 1) F) local) v)))))
+               (+ (((partial 0) F) local)
+                  (* (((partial 1) F) local) v)))))
 
 (defn p->r
   "SICM p. 47. Polar to rectangular coordinates of state."
@@ -139,8 +139,8 @@
 (defn Lagrange-equations
   [Lagrangian]
   (fn [q]
-    (- (D (compose ((∂ 2) Lagrangian) (Γ q)))
-       (compose ((∂ 1) Lagrangian) (Γ q)))))
+    (- (D (compose ((partial 2) Lagrangian) (Γ q)))
+       (compose ((partial 1) Lagrangian) (Γ q)))))
 
 (defn linear-interpolants
   [x0 x1 n]
@@ -172,12 +172,12 @@
 
 (defn Lagrangian->acceleration
   [L]
-  (let [P ((∂ 2) L)
-        F ((∂ 1) L)]
+  (let [P ((partial 2) L)
+        F ((partial 1) L)]
     (/ (- F
-          (+ ((∂ 0) P)
-             (* ((∂ 1) P) velocity)))
-       ((∂ 2) P))))
+          (+ ((partial 0) P)
+             (* ((partial 1) P) velocity)))
+       ((partial 2) P))))
 
 (defn Lagrangian->state-derivative
   "The state derivative of a Lagrangian is a function carrying a state
@@ -201,7 +201,7 @@
 
 (defn Lagrangian->energy
   [L]
-  (let [P ((∂ 2) L)]
+  (let [P ((partial 2) L)]
     (- (* P velocity) L)))
 
 (defn osculating-path
@@ -236,7 +236,7 @@
 
 (defn Euler-Lagrange-operator
   [L]
-  (- (Dt ((∂ 2) L)) ((∂ 1) L)))
+  (- (Dt ((partial 2) L)) ((partial 1) L)))
 
 (defn L-rectangular
   "Lagrangian for a point mass on with the potential energy V(x, y)"

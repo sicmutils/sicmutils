@@ -182,16 +182,16 @@
           f (literal-manifold-function 'f-rect R2-rect)
           R2-rect-point ((point R2-rect) (up 'x0 'y0))]
 
-      (is (= '(((∂ 1) f-rect) (up x0 y0))
+      (is (= '(((partial 1) f-rect) (up x0 y0))
              (simplify
               (((((covariant-derivative R2-rect-Cartan) d:dx)
                  circular)
                 f)
                R2-rect-point))))
-      (is (= '(((∂ 1) f-rect) (up x0 y0))
+      (is (= '(((partial 1) f-rect) (up x0 y0))
              (simplify
               ((d:dy f) R2-rect-point))))
-      (is (= '(((∂ 1) f-rect) (up x0 y0))
+      (is (= '(((partial 1) f-rect) (up x0 y0))
              (simplify
               (((((covariant-derivative R2-polar-Cartan) d:dx) circular) f)
                R2-rect-point))))

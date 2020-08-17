@@ -27,7 +27,7 @@
             #?(:cljs goog.math.Long)
             #?(:cljs goog.math.Integer))
   #?(:clj
-     (:import (clojure.lang BigInt PersistentVector RestFn MultiFn Keyword Symbol)
+     (:import (clojure.lang BigInt PersistentVector RestFn Sequential MultiFn Keyword Symbol)
               (java.lang.reflect Method))))
 
 (defprotocol Value
@@ -52,6 +52,14 @@
 (def ^:private object-name-map (atom {}))
 
 (def numtype ::number)
+(def seqtype #?(:clj Sequential :cljs ::seq))
+
+;; Allows multimethod dispatch to seqs in CLJS.
+#?(:cljs
+   (do
+     (derive IndexedSeq ::seq)
+     (derive PersistentVector ::seq)
+     (derive LazySeq ::seq)))
 
 ;; Smaller inheritance tree to enabled shared implementations between numeric
 ;; types that represent mathematical integers.

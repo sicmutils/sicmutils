@@ -247,9 +247,7 @@
 
 (defmethod g/square [::series] [s] (g/mul s s))
 
-(defmethod g/partial-derivative
-  [::series #?(:clj Sequential :cljs ISequential)]
-  [s selectors]
+(defmethod g/partial-derivative [::series v/seqtype] [s selectors]
   (let [a (.-arity s)]
     (cond (= a [:exactly 0])
           (->Series a (map #(g/partial-derivative % selectors) (.-s s)))

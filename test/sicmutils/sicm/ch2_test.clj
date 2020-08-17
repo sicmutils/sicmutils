@@ -63,11 +63,11 @@
              (* -1 B θdot (cos ψ) (sin ψ) (sin θ))
              (* C φdot (expt (cos θ) 2))
              (* C ψdot (cos θ)))
-         (simplify (ref (((∂ 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1))))
+         (simplify (ref (((partial 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1))))
   (is (zero? (simplify (- (ref ((Euler-state->L-space 'A 'B 'C) Euler-state) 2)
-                          (ref (((∂ 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1)))))
+                          (ref (((partial 2) (T-rigid-body 'A 'B 'C)) Euler-state) 1)))))
   (is (= '(* A B C (expt (sin θ) 2))
-         (simplify (determinant (((square (∂ 2)) (T-rigid-body 'A 'B 'C)) Euler-state))))))
+         (simplify (determinant (((square (partial 2)) (T-rigid-body 'A 'B 'C)) Euler-state))))))
 
 (deftest ^:long section-2-9b
   (let [relative-error (fn [value reference-value]

@@ -37,8 +37,8 @@
             S2-basis-over-mu (basis->basis-over-map mu S2-basis)
             h (literal-manifold-function 'h-spherical S2-spherical)]
         (is (= '(down
-                 (((∂ 0) h-spherical) (up (theta t0) (phi t0)))
-                 (((∂ 1) h-spherical) (up (theta t0) (phi t0))))
+                 (((partial 0) h-spherical) (up (theta t0) (phi t0)))
+                 (((partial 1) h-spherical) (up (theta t0) (phi t0))))
                (simplify (((basis->vector-basis S2-basis-over-mu) h)
                           ((point R1-rect) 't0)))))
         (is (= '(up (down 1 0)

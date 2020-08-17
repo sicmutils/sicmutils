@@ -98,8 +98,8 @@
         p ((point R2-rect) (up 'x0 'y0))]
     (is (= 0 (simplify (((- (d (+ (* (compose α (chart R2-rect)) dx)
                                   (* (compose β (chart R2-rect)) dy)))
-                            (* (compose (- ((∂ 0) β)
-                                           ((∂ 1) α))
+                            (* (compose (- ((partial 0) β)
+                                           ((partial 1) α))
                                         (chart R2-rect))
                                (wedge dx dy)))
                          v w)

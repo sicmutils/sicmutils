@@ -36,7 +36,7 @@
       (is (= '(/ (* -1 m1 m2)
                  (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
              (simplify ((central/V 'm1 'm2) state))))
-      ;(is (println "unsimplified central" ((central/L 'm1 'm2) state)))
+                                        ;(is (println "unsimplified central" ((central/L 'm1 'm2) state)))
       (is (= '(/ (+ (* (expt dX 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
                     (* (expt dY 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
                     (* (expt dx 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
@@ -44,12 +44,12 @@
                     (* 2 m1 m2))
                  (* 2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2)))))
              (simplify ((central/L 'm1 'm2) state))))
-      (let [F ((∂ 1) (central/L 'm1 'm2))
-            P ((∂ 2) (central/L 'm1 'm2))
+      (let [F ((partial 1) (central/L 'm1 'm2))
+            P ((partial 2) (central/L 'm1 'm2))
             N (- F
-                 (+ ((∂ 0) P)
-                    (* ((∂ 1) P) velocity)))
-            A ((∂ 2) P)]
+                 (+ ((partial 0) P)
+                    (* ((partial 1) P) velocity)))
+            A ((partial 2) P)]
         (is (= '(down (/ (+ (* X m1 m2)
                             (* -1 m1 m2 x))
                          (+ (* (expt X 2) (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))

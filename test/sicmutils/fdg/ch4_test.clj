@@ -45,20 +45,20 @@
       ;; produce directional derivatives... which are manifold functions.
 
       (is (= '(+
-               (* (e0x (up X Y)) (((∂ 0) F) (up X Y)))
-               (* (e0y (up X Y)) (((∂ 1) F) (up X Y))))
+               (* (e0x (up X Y)) (((partial 0) F) (up X Y)))
+               (* (e0y (up X Y)) (((partial 1) F) (up X Y))))
              (simplify ((e0 F) p))))
       (is (= '(+
-               (* (((∂ 0) F) (up X Y)) (e1x (up X Y)))
-               (* (((∂ 1) F) (up X Y)) (e1y (up X Y))))
+               (* (((partial 0) F) (up X Y)) (e1x (up X Y)))
+               (* (((partial 1) F) (up X Y)) (e1y (up X Y))))
              (simplify ((e1 F) p))))
       (is (= '(down
                (+
-                (* (e0x (up X Y)) (((∂ 0) F) (up X Y)))
-                (* (e0y (up X Y)) (((∂ 1) F) (up X Y))))
+                (* (e0x (up X Y)) (((partial 0) F) (up X Y)))
+                (* (e0y (up X Y)) (((partial 1) F) (up X Y))))
                (+
-                (* (((∂ 0) F) (up X Y)) (e1x (up X Y)))
-                (* (((∂ 1) F) (up X Y)) (e1y (up X Y)))))
+                (* (((partial 0) F) (up X Y)) (e1x (up X Y)))
+                (* (((partial 1) F) (up X Y)) (e1y (up X Y)))))
              (simplify ((e-vector-basis F) p))))
       (is (= '(up (down 1 0) (down 0 1)) (simplify ((e-dual-basis e-vector-basis) p))))
       (is (= '(up (b↑0 (up X Y)) (b↑1 (up X Y))) (simplify ((e-dual-basis v) p)))))))

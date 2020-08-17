@@ -36,7 +36,7 @@
     [x y v_x v_y p_x p_y [V [1 2] 3]]
     (is (= '(V x y) (simplify (V 'x 'y))))
     (is (= '(up 0 (up (/ (+ (* m ((D x) t)) (* -1 (p_x t))) m) (/ (+ (* m ((D y) t)) (* -1 (p_y t))) m))
-                (down (+ ((D p_x) t) (((∂ 0) V) (x t) (y t))) (+ ((D p_y) t) (((∂ 1) V) (x t) (y t)))))
+                (down (+ ((D p_x) t) (((partial 0) V) (x t) (y t))) (+ ((D p_y) t) (((partial 1) V) (x t) (y t)))))
            (simplify (((Hamilton-equations
                         (H/H-rectangular
                          'm V))
@@ -56,7 +56,7 @@
 (deftest gjs-tests
   (is (= '(up 0
               (up (/ (+ (* m ((D x) t)) (* -1 (p_x t))) m) (/ (+ (* m ((D y) t)) (* -1 (p_y t))) m))
-              (down (+ ((D p_x) t) (((∂ 0) V) (x t) (y t))) (+ ((D p_y) t) (((∂ 1) V) (x t) (y t)))))
+              (down (+ ((D p_x) t) (((partial 0) V) (x t) (y t))) (+ ((D p_y) t) (((partial 1) V) (x t) (y t)))))
 
          (with-literal-functions [x y p_x p_y [V [0 1] 2]]
            (simplify (((Hamilton-equations
@@ -133,29 +133,29 @@
       (is (= '(FF (up t (up x y) (down pa pb)))
              (simplify (FF (up 't (up 'x 'y) (down 'pa 'pb))))))
       (is (= '(down
-               (((∂ 0) FF) (up t (up x y) (down pa pb)))
+               (((partial 0) FF) (up t (up x y) (down pa pb)))
                (down
-                (((∂ 1 0) FF) (up t (up x y) (down pa pb)))
-                (((∂ 1 1) FF) (up t (up x y) (down pa pb))))
+                (((partial 1 0) FF) (up t (up x y) (down pa pb)))
+                (((partial 1 1) FF) (up t (up x y) (down pa pb))))
                (up
-                (((∂ 2 0) FF) (up t (up x y) (down pa pb)))
-                (((∂ 2 1) FF) (up t (up x y) (down pa pb)))))
+                (((partial 2 0) FF) (up t (up x y) (down pa pb)))
+                (((partial 2 1) FF) (up t (up x y) (down pa pb)))))
              (simplify ((D FF) (up 't (up 'x 'y) (down 'pa 'pb))))))
       (is (= '(+
                (*
                 -1
-                (((∂ 2 0) FF) (up t (up x y) (down p_x p_y)))
-                (((∂ 1 0) GG) (up t (up x y) (down p_x p_y))))
+                (((partial 2 0) FF) (up t (up x y) (down p_x p_y)))
+                (((partial 1 0) GG) (up t (up x y) (down p_x p_y))))
                (*
                 -1
-                (((∂ 2 1) FF) (up t (up x y) (down p_x p_y)))
-                (((∂ 1 1) GG) (up t (up x y) (down p_x p_y))))
+                (((partial 2 1) FF) (up t (up x y) (down p_x p_y)))
+                (((partial 1 1) GG) (up t (up x y) (down p_x p_y))))
                (*
-                (((∂ 1 0) FF) (up t (up x y) (down p_x p_y)))
-                (((∂ 2 0) GG) (up t (up x y) (down p_x p_y))))
+                (((partial 1 0) FF) (up t (up x y) (down p_x p_y)))
+                (((partial 2 0) GG) (up t (up x y) (down p_x p_y))))
                (*
-                (((∂ 1 1) FF) (up t (up x y) (down p_x p_y)))
-                (((∂ 2 1) GG) (up t (up x y) (down p_x p_y)))))
+                (((partial 1 1) FF) (up t (up x y) (down p_x p_y)))
+                (((partial 2 1) GG) (up t (up x y) (down p_x p_y)))))
              (simplify
               ((* (D FF)
                   (Poisson-bracket identity identity)

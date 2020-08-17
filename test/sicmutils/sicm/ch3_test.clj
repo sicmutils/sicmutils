@@ -34,22 +34,22 @@
     (is (= '(up 0
                 (up (/ (+ (* m ((D x) t)) (* -1 (p_x t))) m)
                     (/ (+ (* m ((D y) t)) (* -1 (p_y t))) m))
-                (down (+ ((D p_x) t) (((∂ 0) V) (x t) (y t)))
-                      (+ ((D p_y) t) (((∂ 1) V) (x t) (y t)))))
+                (down (+ ((D p_x) t) (((partial 0) V) (x t) (y t)))
+                      (+ ((D p_y) t) (((partial 1) V) (x t) (y t)))))
            (simplify (((Hamilton-equations
-                         (H/H-rectangular
-                           'm
-                           (literal-function 'V (-> (X Real Real) Real))))
-                        (up (literal-function 'x) (literal-function 'y))
-                        (down (literal-function 'p_x) (literal-function 'p_y)))
-                       't)))))
+                        (H/H-rectangular
+                         'm
+                         (literal-function 'V (-> (X Real Real) Real))))
+                       (up (literal-function 'x) (literal-function 'y))
+                       (down (literal-function 'p_x) (literal-function 'p_y)))
+                      't)))))
   (testing "p.198"
     (is (= '(/ (+ (* 2 m (V x y)) (expt p_x 2) (expt p_y 2))
                (* 2 m))
            (simplify ((Lagrangian->Hamiltonian
-                        (L/L-rectangular
-                          'm (literal-function 'V (-> (X Real Real) Real))))
-                       (up 't (up 'x 'y) (down 'p_x 'p_y))))))))
+                       (L/L-rectangular
+                        'm (literal-function 'V (-> (X Real Real) Real))))
+                      (up 't (up 'x 'y) (down 'p_x 'p_y))))))))
 
 (deftest section-3-2
   (testing "p.205"
