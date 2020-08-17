@@ -240,6 +240,14 @@
         (is (= (format "%s dx² ∂₀(∂₀f)(up(x, y)) + dx dy ∂₁(∂₀f)(up(x, y)) + %s dy² ∂₁(∂₁f)(up(x, y)) + dx ∂₀f(up(x, y)) + dy ∂₁f(up(x, y)) + f(up(x, y))" half half)
                (s->infix expr)))
 
+        ;; TODO there is some difference happening internally in the simplifier,
+        ;; probably due to some difference in equality between cljs and clj,
+        ;; that is causing the variables to resolve differently. We're in a
+        ;; functional language, and we want everything to work EXACTLY the
+        ;; same... so this is a passing test, but also a bug.
+        ;;
+        ;; TODO once we get fractional support, render fractions correctly. Or,
+        ;; since cljs *is* js, consider doing something different here.
         (is (= #?(:clj
                   (str "function(dx, dy, f, partial, x, y) {\n"
                        "  var _0003 = partial(0);\n"
