@@ -23,19 +23,18 @@
             [clojure.set :as set]
             [pattern.rule :as rule]
             [sicmutils.analyze :as a]
+            [sicmutils.expression :as x]
+            [sicmutils.generic :as g]
+            [sicmutils.numsymb :as nsy]
             [sicmutils.polynomial :as poly]
             [sicmutils.polynomial-factor :as factor]
             [sicmutils.rational-function :as rf]
-            [sicmutils.value :as v]
-            [sicmutils.numsymb :as nsy]
-            [sicmutils.expression :as x]
-            [sicmutils.generic :as g]
             [sicmutils.rules :as rules]
+            [sicmutils.structure :as s]
+            [sicmutils.value :as v]
             [taoensso.timbre :as log])
-  (:import (java.util.concurrent TimeoutException)
-           (clojure.lang Sequential Var LazySeq Symbol PersistentVector)
-           (java.io StringWriter)))
-
+  #?(:clj
+     (:import [java.util.concurrent TimeoutException])))
 
 (defn ^:private unless-timeout
   "Returns a function that invokes f, but catches TimeoutException;
@@ -43,7 +42,7 @@
   [f]
   (fn [x]
     (try (f x)
-         (catch TimeoutException _
+         (catch #?(:clj TimeoutException :cljs js/Error) _
            (log/warn (str "simplifier timed out: must have been a complicated expression"))
            x))))
 
@@ -51,16 +50,21 @@
   "An analyzer capable of simplifying sums and products, but unable to
   cancel across the fraction bar"
   []
-  (a/make-analyzer (poly/->PolynomialAnalyzer) (a/monotonic-symbol-generator "-s-")))
+  (a/make-analyzer (poly/->PolynomialAnalyzer)
+                   (a/monotonic-symbol-generator "-s-")))
 
 (defn ^:private rational-function-analyzer
   "An analyzer capable of simplifying expressions built out of rational
   functions."
   []
-  (a/make-analyzer (rf/->RationalFunctionAnalyzer (poly/->PolynomialAnalyzer)) (a/monotonic-symbol-generator "-r-")))
+  (a/make-analyzer (rf/->RationalFunctionAnalyzer (poly/->PolynomialAnalyzer))
+                   (a/monotonic-symbol-generator "-r-")))
 
-(def ^:dynamic *rf-analyzer* (memoize (unless-timeout (rational-function-analyzer))))
-(def ^:dynamic *poly-analyzer* (memoize (poly-analyzer)))
+(def ^:dynamic *rf-analyzer*
+  (memoize (unless-timeout (rational-function-analyzer))))
+
+(def ^:dynamic *poly-analyzer*
+  (memoize (poly-analyzer)))
 
 (defn hermetic-simplify-fixture
   [f]
@@ -90,11 +94,16 @@
         (canonicalize new-expression)))))
 
 (def ^:private sin-sq->cos-sq-simplifier
-  (simplify-and-canonicalize rules/sin-sq->cos-sq simplify-and-flatten))
+  (simplify-and-canonicalize
+   rules/sin-sq->cos-sq simplify-and-flatten))
+
 (def ^:private sincos-simplifier
-  (simplify-and-canonicalize rules/sincos-flush-ones simplify-and-flatten))
+  (simplify-and-canonicalize
+   rules/sincos-flush-ones simplify-and-flatten))
+
 (def ^:private square-root-simplifier
-  (simplify-and-canonicalize rules/simplify-square-roots simplify-and-flatten))
+  (simplify-and-canonicalize
+   rules/simplify-square-roots simplify-and-flatten))
 
 ;; looks like we might have the modules inverted: rulesets will need some functions from the
 ;; simplification library, so this one has to go here. Not ideal the way we have split things
@@ -140,8 +149,6 @@
        ))
      simplify-and-flatten)))
 
-;; (defn ^:private spy [x a] (println a x) x)
-
 (def clear-square-roots-of-perfect-squares
   (simplify-and-canonicalize
    (comp rules/universal-reductions factor/root-out-squares)
@@ -165,7 +172,8 @@
       clear-square-roots-of-perfect-squares
       simplify-and-flatten))
 
-(def simplify-expression (simplify-until-stable simplify-expression-1 simplify-and-flatten))
+(def simplify-expression
+  (simplify-until-stable simplify-expression-1 simplify-and-flatten))
 
 (defn simplify-numerical-expression
   "Runs the content of the Expression e through the simplifier, but leaves the result in
@@ -259,30 +267,21 @@
                         exp)]
     simplified-exp))
 
-(defmethod g/simplify [::x/numerical-expression]
-  [a]
-  (-> a v/freeze simplify-expression))
-
-(defmethod g/simplify :default [a] (v/freeze a))
-(defmethod g/simplify [Var] [a] (-> a meta :name))
-(defmethod g/simplify [Sequential] [a] (map g/simplify a))
-(defmethod g/simplify [PersistentVector] [a] (mapv g/simplify a))
-(defmethod g/simplify [LazySeq] [a] (map g/simplify a))
-(defmethod g/simplify [Symbol] [a] a)
-(prefer-method g/simplify [:sicmutils.structure/structure] [Sequential])
-(prefer-method g/simplify [Symbol] [::x/numerical-expression])
+(defmethod g/simplify [::x/numerical-expression] [a]
+  (simplify-expression (v/freeze a)))
 
 (defn expression->stream
   "Renders an expression through the simplifier and onto the stream."
   [expr stream]
-  (-> expr g/simplify (pp/write :stream stream)))
+  (-> (g/simplify expr)
+      (pp/write :stream stream)))
 
 (defn expression->string
   "Renders an expression through the simplifier and into a string,
   which is returned."
   [expr]
-  (let [w (StringWriter.)]
-    (expression->stream expr w)
-    (.toString w)))
-(def print-expression #(-> % g/simplify pp/pprint))
+  (with-out-str
+    (expression->stream expr true)))
+
+(def print-expression #(pp/pprint (g/simplify %)))
 (def pe print-expression)

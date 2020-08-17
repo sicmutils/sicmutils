@@ -20,12 +20,12 @@
 (ns sicmutils.function-test
   (:require [clojure.test :refer :all]
             [sicmutils.generic :as g]
-            [sicmutils.numbers]
+            [sicmutils.matrix :as m]
             [sicmutils.value :as v]
             [sicmutils.operator :as o]
-            [sicmutils.structure :refer :all]
-            [sicmutils.simplify]
-            [sicmutils.function :refer :all]))
+            [sicmutils.structure :as s :refer :all]
+            [sicmutils.simplify :as ss]
+            [sicmutils.function :as f :refer :all]))
 
 (def ^:private near (v/within 1.0e-6))
 
@@ -40,15 +40,24 @@
       (let [g (literal-function 'g [0 0] 0)]
         (is (= '(g a b) (g/simplify (g 'a 'b))))))))
 
+(deftest string-form-test
+  (is (= "1" (ss/expression->string
+              ((g/+ (g/square g/sin) (g/square g/cos)) 'x))))
+
+  (is (= "(/ (+ (* -1 (expt (cos x) 4)) 1) (expt (cos x) 2))"
+         (ss/expression->string
+          ((g/+ (g/square g/sin) (g/square g/tan)) 'x)))))
+
+
 (deftest literal-functions
   (testing "domain in Rⁿ, range R"
     (let [f (literal-function 'f)             ;; f : R -> R
-         g (literal-function 'g [0 0] 0)]     ;; g : R x R -> R
-     (is (= '(f x) (g/simplify (f 'x))))
-     (is (= '(g x y) (g/simplify (g 'x 'y))))
-     (is (thrown? IllegalArgumentException (g/simplify (f 'x 'y))))
-     (is (thrown? IllegalArgumentException (g/simplify (g 'x))))
-     ))
+          g (literal-function 'g [0 0] 0)]     ;; g : R x R -> R
+      (is (= '(f x) (g/simplify (f 'x))))
+      (is (= '(g x y) (g/simplify (g 'x 'y))))
+      (is (thrown? IllegalArgumentException (g/simplify (f 'x 'y))))
+      (is (thrown? IllegalArgumentException (g/simplify (g 'x))))
+      ))
   (testing "structured range"
     (let [h (literal-function 'h 0 (up 0 0 0))
           k (literal-function 'k 0 (up 0 (up 0 0) (down 0 0)))
@@ -127,7 +136,7 @@
         (is (= 10 ((g/+ mul3 4) 2)))
         (is (= 32 ((g/expt 2 add2) 3)))
         (is (= 25 ((g/expt add2 2) 3)))
-        (is (= :sicmutils.value/function (v/kind (g/expt add2 2)))))
+        (is (= ::v/function (v/kind (g/expt add2 2)))))
       (testing "arity 2"
         (let [f (fn [x y] (+ x y))
               g (fn [x y] (* x y))
@@ -186,3 +195,31 @@
     (is (iterated-symbolic-derivative? '((expt D 2) f)))
     (is (= '((expt D 2) f) (symbolic-increase-derivative '(D f))))
     (is (= '((expt D 3) f) (symbolic-increase-derivative '((expt D 2) f))))))
+
+(deftest equations-moved-from-simplify
+  (testing "moved-from-simplify"
+    (let [xy (s/up (f/literal-function 'x) (f/literal-function 'y))
+          xyt (xy 't)
+          U (f/literal-function 'U)
+          xyt2 (g/square xyt)
+          Uxyt2 (U xyt2)]
+      (is (= '(up x y) (g/simplify xy)))
+      (is (= '(up (x t) (y t)) (g/simplify xyt)))
+      (is (= '(+ (expt (x t) 2) (expt (y t) 2)) (g/simplify xyt2)))
+      (is (= '(U (+ (expt (x t) 2) (expt (y t) 2))) (g/simplify Uxyt2)))
+      (is (= 1 (g/simplify (g/+ (g/expt (g/sin 'x) 2) (g/expt (g/cos 'x) 2)))))
+      ;; why doesn't the following work given that the rules are meant
+      ;; to pull sines to the left?
+      (is (= 1 (g/simplify (g/+ (g/expt (g/cos 'x) 2) (g/expt (g/sin 'x) 2)))))))
+
+  (testing "moved-from-matrix"
+    (is (= '(matrix-by-rows [(f x) (g x)] [(h x) (k x)])
+           (g/simplify
+            ((m/by-rows (map f/literal-function '[f g])
+                        (map f/literal-function '[h k])) 'x))))
+
+    (let [R2f #(f/literal-function % [0 1] 0)]
+      (is (= '(matrix-by-rows [(f x y) (g x y)] [(h x y) (k x y)])
+             (g/simplify
+              ((m/by-rows [(R2f 'f) (R2f 'g)]
+                          [(R2f 'h) (R2f 'k)]) 'x 'y)))))))
