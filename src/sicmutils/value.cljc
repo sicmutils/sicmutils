@@ -89,9 +89,6 @@
        (derive goog.math.Integer ::integral)
        (derive goog.math.Long ::integral)))
 
-#?(:cljs
-   (def ^:private ratio? (constantly false)))
-
 (extend-protocol Value
   #?(:clj Number :cljs number)
   (nullity? [x] (core-zero? x))
@@ -99,7 +96,7 @@
   (zero-like [_] 0)
   (one-like [_] 1)
   (freeze [x] x)
-  (exact? [x] (or (integer? x) (ratio? x)))
+  (exact? [x] (or (integer? x) (u/ratio? x)))
   (numerical? [_] true)
   (kind [x] #?(:clj (type x)
                :cljs (if (exact? x)
