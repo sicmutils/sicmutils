@@ -48,17 +48,17 @@
 ;; BEGIN
 ;; these are without constructor simplifications!
 ;;
-;; the branches with both arguments equal to number? are taken care of by
+;; the branches with both arguments equal to v/number? are taken care of by
 ;; operations defined by the implementations in `sicmutils.numbers`; they remain
 ;; because the implementations in `sicmutils.polynomial` bypass the generic
 ;; operations and call these directly.
 
 (defn add [a b]
-  (cond (and (number? a) (number? b)) (g/add a b)
-        (number? a) (cond (v/nullity? a) b
+  (cond (and (v/number? a) (v/number? b)) (g/add a b)
+        (v/number? a) (cond (v/nullity? a) b
                           (sum? b) `(~'+ ~a ~@(operands b))
                           :else `(~'+ ~a ~b))
-        (number? b) (cond (v/nullity? b) a
+        (v/number? b) (cond (v/nullity? b) a
                           (sum? a) `(~'+ ~@(operands a) ~b)
                           :else `(~'+ ~a ~b))
         (sum? a) (cond (sum? b) `(~'+ ~@(operands a) ~@(operands b))
@@ -67,9 +67,9 @@
         :else `(~'+ ~a ~b)))
 
 (defn ^:private sub [a b]
-  (cond (and (number? a) (number? b)) (g/sub a b)
-        (number? a) (if (v/nullity? a) `(~'- ~b) `(~'- ~a ~b))
-        (number? b) (if (v/nullity? b) a `(~'- ~a ~b))
+  (cond (and (v/number? a) (v/number? b)) (g/sub a b)
+        (v/number? a) (if (v/nullity? a) `(~'- ~b) `(~'- ~a ~b))
+        (v/number? b) (if (v/nullity? b) a `(~'- ~a ~b))
         (= a b) 0
         :else `(~'- ~a ~b)))
 
@@ -79,13 +79,13 @@
         :else (sub (first args) (reduce add (next args)))))
 
 (defn mul [a b]
-  (cond (and (number? a) (number? b)) (g/mul a b)
-        (number? a) (cond (v/nullity? a) a
+  (cond (and (v/number? a) (v/number? b)) (g/mul a b)
+        (v/number? a) (cond (v/nullity? a) a
                           (v/unity? a) b
                           (product? b) `(~'* ~a ~@(operands b))
                           :else `(~'* ~a ~b)
                           )
-        (number? b) (cond (v/nullity? b) b
+        (v/number? b) (cond (v/nullity? b) b
                           (v/unity? b) a
                           (product? a) `(~'* ~@(operands a) ~b)
                           :else `(~'* ~a ~b)
@@ -96,9 +96,9 @@
         :else `(~'* ~a ~b)))
 
 (defn div [a b]
-  (cond (and (number? a) (number? b)) (g/div a b)
-        (number? a) (if (v/nullity? a) a `(~'/ ~a ~b))
-        (number? b) (cond (v/nullity? b) (u/arithmetic-ex "division by zero")
+  (cond (and (v/number? a) (v/number? b)) (g/div a b)
+        (v/number? a) (if (v/nullity? a) a `(~'/ ~a ~b))
+        (v/number? b) (cond (v/nullity? b) (u/arithmetic-ex "division by zero")
                           (v/unity? b) a
                           :else `(~'/ ~a ~b))
         :else `(~'/ ~a ~b)))
@@ -164,7 +164,7 @@
   TODO could we use v/numerical? here? If so, could complex numbers take
   advantage?"
   [x]
-  (cond (number? x) (cond (zero? x) 0
+  (cond (v/number? x) (cond (zero? x) 0
                           (n:zero-mod-pi? x) 0
                           (n:pi-over-2-mod-2pi? x) 1
                           (n:-pi-over-2-mod-2pi? x) -1
@@ -187,7 +187,7 @@
   If it's not possible to do this (if the expression is symbolic, say), returns
   a symbolic form."
   [x]
-  (cond (number? x) (cond (zero? x) 1
+  (cond (v/number? x) (cond (zero? x) 1
                           (n:pi-over-2-mod-pi? x) 0
                           (n:zero-mod-2pi? x) 1
                           (n:pi-mod-2pi? x) -1
@@ -209,7 +209,7 @@
   If it's not possible to do this (if the expression is symbolic, say), returns
   a symbolic form."
   [x]
-  (cond (number? x) (if (v/exact? x)
+  (cond (v/number? x) (if (v/exact? x)
                       (if (zero? x) 0 `(~'tan ~x))
                       (cond (n:zero-mod-pi? x) 0.
                             (n:pi-over-4-mod-pi? x) 1.
@@ -243,7 +243,7 @@
   numerically exact, else passes through to f."
   [f sym]
   (fn [s]
-    (if (number? s)
+    (if (v/number? s)
       (let [q (f s)]
         (if-not (v/exact? s)
           q
@@ -271,20 +271,20 @@
   "Attempts to preserve exact precision if either argument is exact; else,
   evaluates symbolically or numerically."
   [b e]
-  (cond (and (number? b) (number? e)) (g/expt b e)
-        (number? b) (cond (v/unity? b) 1
-                          :else `(~'expt ~b ~e))
-        (number? e) (cond (v/nullity? e) 1
-                          (v/unity? e) b
-                          (and (integer? e) (even? e) (sqrt? b))
-                          (expt (first (operands b)) (quot e 2))
-                          (and (expt? b)
-                               (number? (second (operands b)))
-                               (integer? (* (second (operands b)) e)))
-                          (expt (first (operands b))
-                                (* (second (operands b)) e))
-                          (< e 0) (div-n 1 (expt b (- e)))
-                          :else `(~'expt ~b ~e))
+  (cond (and (v/number? b) (v/number? e)) (g/expt b e)
+        (v/number? b) (cond (v/unity? b) 1
+                            :else `(~'expt ~b ~e))
+        (v/number? e) (cond (v/nullity? e) 1
+                            (v/unity? e) b
+                            (and (integer? e) (even? e) (sqrt? b))
+                            (expt (first (operands b)) (quot e 2))
+                            (and (expt? b)
+                                 (v/number? (second (operands b)))
+                                 (integer? (* (second (operands b)) e)))
+                            (expt (first (operands b))
+                                  (* (second (operands b)) e))
+                            (< e 0) (div-n 1 (expt b (- e)))
+                            :else `(~'expt ~b ~e))
         :else `(~'expt ~b ~e)))
 
 (defn ^:private negate [x]
@@ -295,7 +295,7 @@
 
 (defn ^:private numerical-expression
   [expr]
-  (cond (number? expr) expr
+  (cond (v/number? expr) expr
         (symbol? expr) expr
         (c/complex? expr) expr
         (g/literal-number? expr) (:expression expr)

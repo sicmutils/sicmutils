@@ -19,14 +19,13 @@
 
 (ns sicmutils.rational-function-test
   (:require [clojure.test :refer :all]
-            [sicmutils
-             [rational-function :refer :all]
-             [generic :as g]
-             [structure :as s]
-             [polynomial :as p]
-             [analyze :as a]
-             [numbers]
-             [simplify]]))
+            [sicmutils.analyze :as a]
+            [sicmutils.generic :as g]
+            [sicmutils.numbers]
+            [sicmutils.polynomial :as p]
+            [sicmutils.rational-function :refer :all]
+            [sicmutils.structure :as s]
+            [sicmutils.simplify]))
 
 (deftest make-test
   (let [p #(p/make 1 [[[0] %]])      ;; constant arity 1 polynomial

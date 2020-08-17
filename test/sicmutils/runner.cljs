@@ -11,6 +11,7 @@
             [sicmutils.modint-test]
             [sicmutils.polynomial-test]
             [sicmutils.polynomial-gcd-test]
+            [sicmutils.polynomial-factor-test]
             [sicmutils.numbers-test]
             [sicmutils.numsymb-test]
             [sicmutils.polynomial-test]
@@ -31,6 +32,7 @@
            'sicmutils.numsymb-test
            'sicmutils.polynomial-test
            'sicmutils.polynomial-gcd-test
+           'sicmutils.polynomial-factor-test
            'sicmutils.rules-test
            'sicmutils.structure-test
            'sicmutils.value-test)

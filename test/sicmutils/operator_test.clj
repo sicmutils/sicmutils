@@ -20,11 +20,10 @@
 (ns sicmutils.operator-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
-            [sicmutils
-             [value :as v]
-             [env :refer :all]
-             [operator :as o]
-             [simplify :refer [hermetic-simplify-fixture]]]))
+            [sicmutils.env :refer :all]
+            [sicmutils.operator :as o]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.value :as v]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 

@@ -19,14 +19,13 @@
 
 (ns sicmutils.function-test
   (:require [clojure.test :refer :all]
-            [sicmutils
-             [generic :as g]
-             [numbers]
-             [value :as v]
-             [operator :as o]
-             [structure :refer :all]
-             [simplify]
-             [function :refer :all]]))
+            [sicmutils.generic :as g]
+            [sicmutils.numbers]
+            [sicmutils.value :as v]
+            [sicmutils.operator :as o]
+            [sicmutils.structure :refer :all]
+            [sicmutils.simplify]
+            [sicmutils.function :refer :all]))
 
 (def ^:private near (v/within 1.0e-6))
 

@@ -18,7 +18,9 @@
 ;
 
 (ns sicmutils.value
-  (:refer-clojure :rename {zero? core-zero?})
+  (:refer-clojure :rename {zero? core-zero?
+                           number? core-number?}
+                  #?@(:cljs [:exclude [zero? number?]]))
   (:require [sicmutils.util :as u]
             #?(:clj [clojure.core.match :refer [match]]
                :cljs [cljs.core.match :refer-macros [match]])
@@ -67,6 +69,11 @@
   "Returns true if x is an integral number, false otherwise."
   [x]
   (isa? (kind x) ::integral))
+
+(defn number?
+  [x]
+  #?(:clj (core-number? x)
+     :cljs (isa? (kind x) ::number)))
 
 #?(:clj
    (do
@@ -172,8 +179,8 @@
      (extend-protocol IEquiv
        number
        (-equiv [this other]
-         (cond (number? other) (identical? this other)
-               (isa? (kind other) ::number) (eq this other)
+         (cond (core-number? other) (identical? this other)
+               (number? other)      (eq this other)
                :else false))
 
        js/BigInt
@@ -198,13 +205,13 @@
    (extend-protocol IComparable
      goog.math.Integer
      (-compare [this other]
-       (if (number? other)
+       (if (core-number? other)
          (.compare this (u/int other))
          (.compare this other)))
 
      goog.math.Long
      (-compare [this other]
-       (if (number? other)
+       (if (core-number? other)
          (.compare this (u/long other))
          (.compare this other)))))
 

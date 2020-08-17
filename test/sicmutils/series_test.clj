@@ -20,10 +20,9 @@
 (ns sicmutils.series-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer :all]
-            [sicmutils
-             [env :refer :all]
-             [series :as series]
-             [simplify :refer [hermetic-simplify-fixture]]]))
+            [sicmutils.env :refer :all]
+            [sicmutils.series :as series]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 

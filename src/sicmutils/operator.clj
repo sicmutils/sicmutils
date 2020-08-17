@@ -18,11 +18,10 @@
 ;
 
 (ns sicmutils.operator
-  (:require [sicmutils
-             [value :as v]
-             [expression :as x]
-             [series :as series]
-             [generic :as g]])
+  (:require [sicmutils.expression :as x]
+            [sicmutils.generic :as g]
+            [sicmutils.series :as series]
+            [sicmutils.value :as v])
   (:import (clojure.lang IFn)
            (sicmutils.series Series)))
 
@@ -33,6 +32,7 @@
   (numerical? [_] false)
   (nullity? [_] false)
   (unity? [_] false)
+
   IFn
   (invoke [_ f] (o f))
   (invoke [_ f g] (o f g))

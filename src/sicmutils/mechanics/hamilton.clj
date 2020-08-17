@@ -19,13 +19,12 @@
 
 (ns sicmutils.mechanics.hamilton
   (:refer-clojure :exclude [+ - * / zero?])
-  (:require [sicmutils
-             [generic :refer :all]
-             [structure :refer :all]
-             [operator :refer [make-operator]]
-             [value :refer :all]
-             [matrix :as matrix]
-             [function :as f]]
+  (:require [sicmutils.generic :refer :all]
+            [sicmutils.structure :refer :all]
+            [sicmutils.operator :refer [make-operator]]
+            [sicmutils.matrix :as matrix]
+            [sicmutils.function :as f]
+            [sicmutils.value :as v]
             [sicmutils.calculus.derivative :refer :all]))
 
 (defn momentum-tuple
@@ -71,7 +70,7 @@
        (apply V q))))
 
 (defn dual-zero [z]
-  (if (structure? z) (-> z transpose zero-like) 0))
+  (if (structure? z) (-> z transpose v/zero-like) 0))
 
 (defn ^:private Legendre-transform-fn
   [F]
@@ -115,8 +114,8 @@
   [K]
   (fn [theta I return _]
     (let [nI (+ I (* K (sin theta)))]
-      (return ((principal-value twopi) (+ theta nI))
-              ((principal-value twopi) nI)))))
+      (return ((v/principal-value v/twopi) (+ theta nI))
+              ((v/principal-value v/twopi) nI)))))
 
 (defn iterated-map
   "f is a function of (x y continue fail), which calls continue with

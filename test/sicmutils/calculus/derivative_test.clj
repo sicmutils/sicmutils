@@ -20,17 +20,16 @@
 (ns sicmutils.calculus.derivative-test
   (:refer-clojure :exclude [+ - * / ref])
   (:require [clojure.test :refer :all]
-            [sicmutils
-             [function :refer :all]
-             [generic :as g :refer :all]
-             [complex :refer [complex]]
-             [value :as v]
-             [numbers]
-             [simplify :refer [hermetic-simplify-fixture]]
-             [infix :refer [->infix]]
-             [structure :refer :all]
-             [matrix :as matrix]]
-            [sicmutils.calculus.derivative :refer :all])
+            [sicmutils.calculus.derivative :refer :all]
+            [sicmutils.complex :refer [complex]]
+            [sicmutils.function :refer :all]
+            [sicmutils.generic :as g :refer :all]
+            [sicmutils.infix :refer [->infix]]
+            [sicmutils.matrix :as matrix]
+            [sicmutils.numbers]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.structure :refer :all]
+            [sicmutils.value :as v])
   (:import (sicmutils.calculus.derivative Differential)))
 
 (use-fixtures :once hermetic-simplify-fixture)
