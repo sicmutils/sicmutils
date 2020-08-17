@@ -18,13 +18,12 @@
 ;
 
 (ns sicmutils.mechanics.rotation
-  (:refer-clojure :exclude [+ - * / zero? partial])
-  (:require [sicmutils
-             [generic :refer :all]
-             [structure :refer :all]
-             [matrix :as matrix]
-             [function :refer :all]]
-            [sicmutils.calculus.derivative :refer :all]))
+  (:refer-clojure :exclude [+ - * /])
+  (:require [sicmutils.calculus.derivative :as d]
+            [sicmutils.function :as f]
+            [sicmutils.generic :as g :refer [cos sin + - * /]]
+            [sicmutils.matrix :as matrix]
+            [sicmutils.structure :refer [up down]]))
 
 ;; XXX: R[xyz] should not return an up; they should return a struct
 ;; of the same shape they were given. But do rotations of covectors
