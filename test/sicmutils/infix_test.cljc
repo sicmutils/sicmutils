@@ -267,6 +267,6 @@
                        "  return 0.5 * Math.pow(dx, 2) * _0002(_0006)(_0003) + dx * dy * _0004(_0006)(_0003) + 0.5 * Math.pow(dy, 2) * _0004(_0007)(_0003) + dx * _0006(_0003) + dy * _0007(_0003) + f(_0003);\n}"))
                (s->JS expr)))
 
-        (is (= (format "%s\\,{dx}^{2}\\,\\partial_0\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,dy\\,\\partial_1\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + 0.5\\,{dy}^{2}\\,\\partial_1\\left(\\partial_1f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,\\partial_0f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dy\\,\\partial_1f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)"
+        (is (= (format "%s\\,{dx}^{2}\\,\\partial_0\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,dy\\,\\partial_1\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + %s\\,{dy}^{2}\\,\\partial_1\\left(\\partial_1f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,\\partial_0f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dy\\,\\partial_1f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)"
                        tex-half tex-half)
                (s->TeX expr)))))))
