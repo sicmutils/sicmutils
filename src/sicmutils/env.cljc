@@ -21,9 +21,9 @@
   "The purpose of these definitions is to let the import of sicmutils.env
    bring all the functions in the book into scope without qualification,
    so you can just start working with examples."
-  (:refer-clojure :exclude [+ - * / zero? #?(:cljs partial)]
-                  :rename {ref core-ref
-                           partial core-partial})
+  (:refer-clojure :rename {ref core-ref
+                           partial core-partial}
+                  :exclude [+ - * / zero? #?(:cljs partial)])
   (:require #?(:clj [potemkin :refer [import-vars]])
             #?(:clj [nrepl.middleware.print])
             [sicmutils.complex]
@@ -57,18 +57,26 @@
      []
      (set! nrepl.middleware.print/*print-fn* simp/expression->stream)))
 
-(defmacro literal-function
-  ([f] `(f/literal-function ~f))
-  ([f sicm-signature]
-   (if (and (list? sicm-signature)
-            (= '-> (first sicm-signature)))
-     `(f/literal-function ~f '~sicm-signature)
-     `(f/literal-function ~f ~sicm-signature)))
-  ([f domain range] `(f/literal-function ~f ~domain ~range)))
+#?(:clj
+   (defmacro bootstrap-env! []
+     `(require '~['sicmutils.env
+                  :refer
+                  (into [] (keys (ns-publics 'sicmutils.env)))])))
 
-(defmacro with-literal-functions
-  [& args]
-  `(f/with-literal-functions ~@args))
+#?(:clj
+   (defmacro literal-function
+     ([f] `(f/literal-function ~f))
+     ([f sicm-signature]
+      (if (and (list? sicm-signature)
+               (= '-> (first sicm-signature)))
+        `(f/literal-function ~f '~sicm-signature)
+        `(f/literal-function ~f ~sicm-signature)))
+     ([f domain range] `(f/literal-function ~f ~domain ~range))))
+
+#?(:clj
+   (defmacro with-literal-functions
+     [& args]
+     `(f/with-literal-functions ~@args)))
 
 (def zero? v/nullity?)
 
