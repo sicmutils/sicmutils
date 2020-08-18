@@ -8,7 +8,7 @@
 ;; the Free Software Foundation; either version 3 of the License, or (at
 ;; your option) any later version.
 ;;
-;;; This software is distributed in the hope that it will be useful, but
+;; This software is distributed in the hope that it will be useful, but
 ;; WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 ;; General Public License for more details.
@@ -17,14 +17,15 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(ns pattern.rule-test
-  (:require [pattern.rule :as r]))
+(ns sicmutils.examples.pendulum-test
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [sicmutils.env :refer [up simplify]]
+            [sicmutils.examples.pendulum :as p]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
-(defmacro rule-1
-  "Compiling a rule produces an arity 2 function which takes the data to match
-  and a success continuation. For testing we provide this arity-1 wrapper which
-  provides a continuation that immediately returns."
-  [& pattern-components]
-  `(let [compiled-rule# (r/rule ~@pattern-components)]
-     (fn [data#]
-       (compiled-rule# data# identity))))
+(use-fixtures :once hermetic-simplify-fixture)
+
+(deftest simple-pendulum
+  (is (= '(+ (* #?(:clj 1/2 :cljs 0.5) (expt l 2) m (expt thetadot 2))
+             (* g l m (cos theta)))
+         (simplify ((p/L 'm 'l 'g (fn [_t] (up 0 0))) (up 't 'theta 'thetadot))))))

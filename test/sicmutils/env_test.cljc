@@ -20,84 +20,89 @@
 (ns sicmutils.env-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer [is deftest testing]]
-            [sicmutils.env :as e #?@(:cljs [:include-macros true])])
+            [sicmutils.complex :as c]
+            [sicmutils.env :as e :refer [+ - * / zero? partial ref
+                                         complex
+                                         simplify
+                                         literal-function
+                                         orientation up down
+                                         ->infix
+                                         cross-product
+                                         cot csc sec]
+             #?@(:cljs [:include-macros true])]))
+
+(deftest partial-shim
+  (testing "partial also works the way Clojure defines it"
+    (is (= 10 ((partial + 9) 1)))
+    (is (= 5 ((partial max 4) 5)))
+    (is (= 4 ((partial max 4) 2)))))
+
+(deftest ref-shim
+  (testing "works for structures"
+    (is (= 2 (ref (up 1 2 3) 1)))
+    (is (= 3 (ref (down (up 1 2) (up 3 4)) 1 0))))
+
   #?(:clj
-     (:import (org.apache.commons.math3.complex Complex)
-              (java.io StringWriter))))
+     ;; Clojurescript doesn't have refs.
+     (testing "works clojure-style"
+       (let [r (ref [])
+             s (ref {} :meta {:a "apple"})]
+         (is (= [] @r))
+         (is (= [99] (dosync (alter r conj 99))))
+         (is (= {:b 88} (dosync (alter s assoc :b 88))))))))
 
-(e/bootstrap-env!)
+(deftest literal-function-shim
+  (testing "works for signatures"
+    (let [f1 (literal-function 'f)
+          f2 (literal-function 'f (-> Real Real))
+          f3 (literal-function 'f (-> Real (UP Real Real)))
+          f4 (literal-function 'f [0] (up 1 2))
+          f5 (literal-function 'f (-> (DOWN Real Real) (X Real Real)))]
+      (is (= '(f x) (simplify (f1 'x))))
+      (is (= '(f x) (simplify (f2 'x))))
+      (is (= '(up (f↑0 x) (f↑1 x)) (simplify (f3 'x))))
+      (is (= '(up (f↑0 x) (f↑1 x)) (simplify (f4 'x))))
+      (is (= '(up (f↑0 (down p_x p_y)) (f↑1 (down p_x p_y)))
+             (simplify (f5 (down 'p_x 'p_y))))))))
 
-;; (deftest partial-shim
-;;   (testing "partial also works the way Clojure defines it"
-;;     (is (= 10 ((partial + 9) 1)))
-;;     (is (= 5 ((partial max 4) 5)))
-;;     (is (= 4 ((partial max 4) 2)))))
+(deftest shortcuts
+  (testing "cot"
+    (is (= '(/ (cos x) (sin x)) (simplify (cot 'x))))
+    (is (= '(/ 1 (sin x)) (simplify (csc 'x))))
+    (is (= '(/ 1 (cos x)) (simplify (sec 'x))))
+    (is (= (c/complex 1 2) (complex 1 2)))
+    (is (= :sicmutils.structure/up (orientation (up 1 2))))
+    (is (= "up(b z - c y, - a z + c x, a y - b x)"
+           (->infix (simplify (cross-product (up 'a 'b 'c) (up 'x 'y 'z))))))))
 
-;; (deftest ref-shim
-;;   (testing "works for structures"
-;;     (is (= 2 (ref (up 1 2 3) 1)))
-;;     (is (= 3 (ref (down (up 1 2) (up 3 4)) 1 0))))
-;;   (testing "works clojure-style"
-;;     (let [r (ref [])
-;;           s (ref {} :meta {:a "apple"})]
-;;       (is (= [] @r))
-;;       (is (= [99] (dosync (alter r conj 99))))
-;;       (is (= {:b 88} (dosync (alter s assoc :b 88)))))))
+(deftest matrices
+  (testing "qp-submatrix"
+    (let [A (e/matrix-by-rows [1 2 3]
+                              [4 5 6]
+                              [7 8 9])]
+      (is (= (e/matrix-by-rows [5 6]
+                               [8 9])
+             (e/qp-submatrix A)))
+      (is (= 3 (e/m:dimension A))))))
 
-;; (deftest literal-function-shim
-;;   (testing "works for signatures"
-;;     (let [f1 (literal-function 'f)
-;;           f2 (literal-function 'f (-> Real Real))
-;;           f3 (literal-function 'f (-> Real (UP Real Real)))
-;;           f4 (literal-function 'f [0] (up 1 2))
-;;           f5 (literal-function 'f (-> (DOWN Real Real) (X Real Real)))]
-;;       (is (= '(f x) (simplify (f1 'x))))
-;;       (is (= '(f x) (simplify (f2 'x))))
-;;       (is (= '(up (f↑0 x) (f↑1 x)) (simplify (f3 'x))))
-;;       (is (= '(up (f↑0 x) (f↑1 x)) (simplify (f4 'x))))
-;;       (is (= '(up (f↑0 (down p_x p_y)) (f↑1 (down p_x p_y)))
-;;              (simplify (f5 (down 'p_x 'p_y))))))))
+(deftest pe
+  (is (re-matches #"\(\* 2 x\)\r?\n"
+                  (with-out-str
+                    (e/print-expression (+ 'x 'x))))))
 
-;; (deftest shortcuts
-;;   (testing "cot"
-;;     (is (= '(/ (cos x) (sin x)) (simplify (cot 'x))))
-;;     (is (= '(/ 1 (sin x)) (simplify (csc 'x))))
-;;     (is (= '(/ 1 (cos x)) (simplify (sec 'x))))
-;;     (is (= (Complex. 1 2) (complex 1 2)))
-;;     (is (= :sicmutils.structure/up (orientation (up 1 2))))
-;;     (is (= "up(b z - c y, - a z + c x, a y - b x)"
-;;            (->infix (simplify (cross-product (up 'a 'b 'c) (up 'x 'y 'z))))))))
-
-;; (deftest matrices
-;;   (testing "qp-submatrix"
-;;     (let [A (matrix-by-rows [1 2 3]
-;;                             [4 5 6]
-;;                             [7 8 9])]
-;;       (is (= (matrix-by-rows [5 6]
-;;                              [8 9])
-;;              (qp-submatrix A)))
-;;       (is (= 3 (m:dimension A))))))
-
-;; (deftest pe
-;;   (let [os (StringWriter.)]
-;;     (is (re-matches #"\(\* 2 x\)\r?\n"
-;;                     (do
-;;                       (binding [*out* os] (print-expression (+ 'x 'x)))
-;;                       (str os))))))
-
-;; (deftest pv
-;;   (let [π Math/PI
-;;         zero-to-two-pi (principal-value (* 2 π))
-;;         minus-pi-to-pi (principal-value π)]
-;;     (is (= (* 1/2 π) (zero-to-two-pi (* 1/2 π))))
-;;     (is (= 0.0 (zero-to-two-pi 0.0)))
-;;     (is (= (* 3/2 π) (zero-to-two-pi (* 3/2 π))))
-;;     (is (= (* 3/2 π) (zero-to-two-pi (* -1/2 π))))
-;;     (is (= (* 1/2 π) (zero-to-two-pi (* -3/2 π))))
-;;     (is (= 0.0 (zero-to-two-pi (* 2 π))))
-;;     (is (= (* 1/2 π) (minus-pi-to-pi (* 1/2 π))))
-;;     (is (= 0.0 (minus-pi-to-pi 0.0)))
-;;     (is (= (* -1/2 π) (minus-pi-to-pi (* 3/2 π))))
-;;     (is (= (* -1/2 π) (minus-pi-to-pi (* -1/2 π))))
-;;     (is (= (* 1/2 π) (minus-pi-to-pi (* -3/2 π))))
-;;     (is (= 0.0 (zero-to-two-pi (* 2 π))))))
+(deftest pv
+  (let [π Math/PI
+        zero-to-two-pi (e/principal-value (* 2 π))
+        minus-pi-to-pi (e/principal-value π)]
+    (is (= (* (/ 1 2) π) (zero-to-two-pi (* (/ 1 2) π))))
+    (is (= 0.0 (zero-to-two-pi 0.0)))
+    (is (= (* (/ 3 2) π) (zero-to-two-pi (* (/ 3 2) π))))
+    (is (= (* (/ 3 2) π) (zero-to-two-pi (* (/ -1 2) π))))
+    (is (= (* (/ 1 2) π) (zero-to-two-pi (* (/ -3 2) π))))
+    (is (= 0.0 (zero-to-two-pi (* 2 π))))
+    (is (= (* (/ 1 2) π) (minus-pi-to-pi (* (/ 1 2) π))))
+    (is (= 0.0 (minus-pi-to-pi 0.0)))
+    (is (= (* (/ -1 2) π) (minus-pi-to-pi (* (/ 3 2) π))))
+    (is (= (* (/ -1 2) π) (minus-pi-to-pi (* (/ -1 2) π))))
+    (is (= (* (/ 1 2) π) (minus-pi-to-pi (* (/ -3 2) π))))
+    (is (= 0.0 (zero-to-two-pi (* 2 π))))))

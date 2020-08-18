@@ -22,9 +22,7 @@
 
 (ns sicmutils.examples.pendulum
   (:refer-clojure :exclude [+ - * / zero? partial ref])
-  (:require [sicmutils.env :as e #?@(:cljs [:include-macros true])]))
-
-(e/bootstrap-env!)
+  (:require [sicmutils.env :as e :refer [D sin cos square + - * / ref]]))
 
 (defn T
   [m l _ x]

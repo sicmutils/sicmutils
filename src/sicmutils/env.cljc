@@ -58,7 +58,10 @@
      (set! nrepl.middleware.print/*print-fn* simp/expression->stream)))
 
 #?(:clj
-   (defmacro bootstrap-env! []
+   (defmacro bootstrap-repl!
+     "Bootstraps a repl or Clojure namespace by requiring all public vars from
+     sicmutils.env. From (This will only work at a repl in Clojurescript.)"
+     []
      `(require '~['sicmutils.env
                   :refer
                   (into [] (keys (ns-publics 'sicmutils.env)))])))
@@ -289,10 +292,4 @@
 ;; Macros. These work with Potemkin's import, but not with the Clojure version.
 #?(:clj
    (import-vars
-    [sicmutils.calculus.coordinate
-     let-coordinates
-     using-coordinates]))
-
-(defmacro bootstrap-env []
-  (let [deal ['sicmutils.env :refer (into [] (keys (ns-publics 'sicmutils.env)))]]
-    `(require '~deal)))
+    [sicmutils.calculus.coordinate let-coordinates using-coordinates]))

@@ -25,8 +25,15 @@
 
 (def ^:private !=> (constantly false))
 
-(deftest cake
-  (is (= 1 2)))
+(defmacro rule-1
+  "Compiling a rule produces an arity 2 function which takes the data to match
+  and a success continuation. For testing we provide this arity-1 wrapper which
+  provides a continuation that immediately returns."
+  [& pattern-components]
+  `(let [compiled-rule# (r/rule ~@pattern-components)]
+     (fn [data#]
+       (compiled-rule# data# identity))))
+
 (defn ^:private apply-ruleset
   "Like the above, supplies trivial success and failure continuations to a
   ruleset so that it may be invoked with data alone."
