@@ -21,8 +21,9 @@
   "The purpose of these definitions is to let the import of sicmutils.env
    bring all the functions in the book into scope without qualification,
    so you can just start working with examples."
-  (:refer-clojure :exclude [+ - * / zero? partial]
-                  :rename {ref core-ref partial core-partial})
+  (:refer-clojure :exclude [+ - * / zero? #?(:cljs partial)]
+                  :rename {ref core-ref
+                           partial core-partial})
   (:require #?(:clj [potemkin :refer [import-vars]])
             #?(:clj [nrepl.middleware.print])
             [sicmutils.complex]
@@ -54,11 +55,7 @@
 #?(:clj
    (defn sicmutils-repl-init
      []
-     (set! nrepl.middleware.print/*print-fn* simp/expression->strea)))
-
-(defmacro bootstrap-env []
-  (let [deal ['sicmutils.env :refer (into [] (keys (ns-publics 'sicmutils.env)))]]
-    `(cljs.core/require '~deal)))
+     (set! nrepl.middleware.print/*print-fn* simp/expression->stream)))
 
 (defmacro literal-function
   ([f] `(f/literal-function ~f))
@@ -287,3 +284,7 @@
     [sicmutils.calculus.coordinate
      let-coordinates
      using-coordinates]))
+
+(defmacro bootstrap-env []
+  (let [deal ['sicmutils.env :refer (into [] (keys (ns-publics 'sicmutils.env)))]]
+    `(require '~deal)))

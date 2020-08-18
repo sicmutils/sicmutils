@@ -22,7 +22,8 @@
 
 (ns sicmutils.examples.pendulum
   (:refer-clojure :exclude [+ - * / zero? partial ref])
-  (:require [sicmutils.env :refer-macros [literal-function]]))
+  (:require [sicmutils.env :as e :include-macros true])
+  (:require [sicmutils.function :as f :include-macros true]))
 
 (defn T
   [m l _ x]
