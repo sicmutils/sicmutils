@@ -18,11 +18,11 @@
 ;
 
 (ns sicmutils.examples.double-pendulum-test
-  (:refer-clojure :exclude [+ - * / zero? partial ref])
-  (:require [clojure.test :refer :all]
-            [sicmutils.env :refer :all]
+  (:refer-clojure :exclude [+ - * /])
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.examples.double-pendulum :as double]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.env :as e :refer [up down expt cos sin + - * /]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
@@ -34,21 +34,21 @@
     (is (= '(+ (* -1 g l1 m1 (cos θ))
                (* -1 g l1 m2 (cos θ))
                (* -1 g l2 m2 (cos φ)))
-           (simplify (V state))))
+           (e/simplify (V state))))
     (is (= '(+ (* l1 l2 m2 θdot φdot (cos (+ θ (* -1 φ))))
-               (* 1/2 (expt l1 2) m1 (expt θdot 2))
-               (* 1/2 (expt l1 2) m2 (expt θdot 2))
-               (* 1/2 (expt l2 2) m2 (expt φdot 2)))
-           (simplify (T state))))
+               (* #?(:clj 1/2 :cljs 0.5) (expt l1 2) m1 (expt θdot 2))
+               (* #?(:clj 1/2 :cljs 0.5) (expt l1 2) m2 (expt θdot 2))
+               (* #?(:clj 1/2 :cljs 0.5) (expt l2 2) m2 (expt φdot 2)))
+           (e/simplify (T state))))
     (is (= '(+ (* l1 l2 m2 θdot φdot (cos (+ θ (* -1 φ))))
-               (* 1/2 (expt l1 2) m1 (expt θdot 2))
-               (* 1/2 (expt l1 2) m2 (expt θdot 2))
-               (* 1/2 (expt l2 2) m2 (expt φdot 2))
+               (* #?(:clj 1/2 :cljs 0.5) (expt l1 2) m1 (expt θdot 2))
+               (* #?(:clj 1/2 :cljs 0.5) (expt l1 2) m2 (expt θdot 2))
+               (* #?(:clj 1/2 :cljs 0.5) (expt l2 2) m2 (expt φdot 2))
                (* g l1 m1 (cos θ))
                (* g l1 m2 (cos θ))
                (* g l2 m2 (cos φ)))
-           (simplify (L state))))
-    (with-literal-functions [θ φ]
+           (e/simplify (L state))))
+    (e/with-literal-functions [θ φ]
       (is (= '(down (+ (* l1 l2 m2 (expt ((D φ) t) 2) (sin (+ (θ t) (* -1 (φ t)))))
                        (* l1 l2 m2 (((expt D 2) φ) t) (cos (+ (θ t) (* -1 (φ t)))))
                        (* g l1 m1 (sin (θ t)))
@@ -59,18 +59,20 @@
                        (* l1 l2 m2 (((expt D 2) θ) t) (cos (+ (θ t) (* -1 (φ t)))))
                        (* g l2 m2 (sin (φ t)))
                        (* (expt l2 2) m2 (((expt D 2) φ) t))))
-             (simplify (((Lagrange-equations
-                          (double/L 'm1 'm2 'l1 'l2 'g))
-                         (up θ φ))
-                        't)))))
-    (let [o (atom [])
-          observe (fn [t q] (swap! o conj [t q]))]
-      (do
-        (double/evolver {:t 3/60 :dt 1/60 :observe observe})
-        (is (= 4 (count @o)))))))
+             (e/simplify (((e/Lagrange-equations
+                            (double/L 'm1 'm2 'l1 'l2 'g))
+                           (up θ φ))
+                          't)))))
+    ;; Integrator doesn't work yet in cljs.
+    #?(:clj
+       (let [o (atom [])
+             observe (fn [t q] (swap! o conj [t q]))]
+         (do
+           (double/evolver {:t (/ 3 60) :dt (/ 1 60) :observe observe})
+           (is (= 4 (count @o))))))))
 
 (deftest infix-forms
-  (let [eq (simplify
+  (let [eq (e/simplify
             ((double/state-derivative 'm1 'm2 'l1 'l2 'g)
              (up 't (up 'theta 'phi) (up 'thetadot 'phidot))))]
     (is (= (str "function(t, theta, phi, thetadot, phidot) {\n"
@@ -85,11 +87,11 @@
                 "  var _0011 = Math.pow(_0010, 2);\n"
                 "  return [1, [thetadot, phidot], [(- l1 * m2 * _0006 * _0010 * _000e - l2 * m2 * _0005 * _0010 + g * m2 * _000e * _0008 - g * m1 * _0009 - g * m2 * _0009) / (l1 * m2 * _0011 + l1 * m1), (l2 * m2 * _0005 * _0010 * _000e + l1 * m1 * _0006 * _0010 + l1 * m2 * _0006 * _0010 + g * m1 * _0009 * _000e + g * m2 * _0009 * _000e - g * m1 * _0008 - g * m2 * _0008) / (l2 * m2 * _0011 + l2 * m1)]];\n"
                 "}")
-           (->JavaScript eq
-                         :parameter-order '[t theta phi thetadot phidot]
-                         :deterministic? true))))
+           (e/->JavaScript eq
+                           :parameter-order '[t theta phi thetadot phidot]
+                           :deterministic? true))))
 
-  (let [eq (simplify
+  (let [eq (e/simplify
             ((double/state-derivative 1 1 1 1 'g)
              (up 't (up 'theta 'phi) (up 'thetadot 'phidot))))]
     (is (= (str "function(g, phi, phidot, theta, thetadot) {\n"
@@ -105,13 +107,13 @@
                 "  var _0016 = _0015 + -2;\n"
                 "  return [1, [thetadot, phidot], [(_0007 * _0013 * _0011 - g * _0011 * _0009 + _0006 * _0013 + 2 * g * _000a) / _0016, (- _0006 * _0013 * _0011 -2 * g * _000a * _0011 -2 * _0007 * _0013 + 2 * g * _0009) / _0016]];\n"
                 "}")
-           (->JavaScript eq :deterministic? true))))
+           (e/->JavaScript eq :deterministic? true))))
 
-  (let [eq (simplify
-            ((Hamiltonian->state-derivative
-              (Lagrangian->Hamiltonian
+  (let [eq (e/simplify
+            ((e/Hamiltonian->state-derivative
+              (e/Lagrangian->Hamiltonian
                (double/L 'm_1 'm_2 'l_1 'l_2 'g)))
-             (->H-state 't (up 'theta 'psi) (down 'p_theta 'p_psi))))]
+             (e/->H-state 't (up 'theta 'psi) (down 'p_theta 'p_psi))))]
     (is (= (str "function(theta, psi, p_theta, p_psi) {\n"
                 "  var _0004 = - psi;\n"
                 "  var _000d = Math.pow(l_1, 2);\n"

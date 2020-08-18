@@ -9,6 +9,7 @@
             sicmutils.calculus.map-test
             sicmutils.calculus.vector-field-test
             sicmutils.examples.pendulum-test
+            sicmutils.examples.double-pendulum-test
             sicmutils.mechanics.hamilton-test
             sicmutils.mechanics.lagrange-test
             sicmutils.mechanics.rotation-test
@@ -49,6 +50,7 @@
            'sicmutils.calculus.map-test
            'sicmutils.calculus.vector-field-test
            'sicmutils.examples.pendulum-test
+           'sicmutils.examples.double-pendulum-test
            'sicmutils.numerical.compile-test
            'sicmutils.numerical.integrate-test
            'sicmutils.numerical.minimize-test

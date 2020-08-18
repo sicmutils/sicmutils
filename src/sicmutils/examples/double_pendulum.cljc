@@ -19,10 +19,7 @@
 
 (ns sicmutils.examples.double-pendulum
   (:refer-clojure :exclude [+ - * /])
-  (:require [sicmutils.mechanics.lagrange :as L]
-            [sicmutils.numerical.ode :as o]
-            [sicmutils.generic :as g :refer [sin cos + - * /]]
-            [sicmutils.structure :refer [up down]]))
+  (:require [sicmutils.env :as e :refer [up down square sin cos + - * /]]))
 
 (defn V
   [m1 m2 l1 l2 g]
@@ -35,8 +32,8 @@
 (defn T
   [m1 m2 l1 l2 _]
   (fn [[_ [θ φ] [θdot φdot]]]
-    (let [v1sq (* (g/square l1) (g/square θdot))
-          v2sq (* (g/square l2) (g/square φdot))]
+    (let [v1sq (* (square l1) (square θdot))
+          v2sq (* (square l2) (square φdot))]
       (+ (* (/ 1 2) m1 v1sq)
          (* (/ 1 2) m2 (+ v1sq
                           v2sq
@@ -45,8 +42,8 @@
 (def L
   (- T V))
 
-(defn state-derivative  [m1 m2 l1 l2 g]
-  (L/Lagrangian->state-derivative
+(defn state-derivative [m1 m2 l1 l2 g]
+  (e/Lagrangian->state-derivative
    (L m1 m2 l1 l2 g)))
 
 (defn evolver
@@ -62,7 +59,7 @@
          l2 0.5
          phi_0 0
          phidot_0 0}}]
-  ((o/evolve state-derivative
+  ((e/evolve state-derivative
              m1 ;; mass of bob1
              m2 ;; mass of bob2
              l1 ;; length of rod1
@@ -78,9 +75,9 @@
    1.0e-6
    :compile true))
 
-(defn equations
-  []
-  (g/simplify ((state-derivative 'm_1 'm_2 'l_1 'l_2 'g)
-               (up 't
-                   (up 'θ_0 'φ_0)
-                   (up 'θdot_0 'φdot_0)))))
+(defn equations []
+  (e/simplify
+   ((state-derivative 'm_1 'm_2 'l_1 'l_2 'g)
+    (up 't
+        (up 'θ_0 'φ_0)
+        (up 'θdot_0 'φdot_0)))))
