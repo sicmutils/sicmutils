@@ -21,40 +21,44 @@
   "The purpose of these definitions is to let the import of sicmutils.env
    bring all the functions in the book into scope without qualification,
    so you can just start working with examples."
-  (:refer-clojure :exclude [+ - * / zero?]
+  (:refer-clojure :exclude [+ - * / zero? partial]
                   :rename {ref core-ref partial core-partial})
-  (:require [potemkin]
-            [nrepl.middleware.print]
-            [sicmutils
-             [structure]
-             [complex]
-             [generic :as g]
-             [simplify :as simp]
-             [function :as f]
-             [value :as v]
-             [infix :as infix]
-             [operator]
-             [matrix :as matrix]
-             [series :as series]]
-            [sicmutils.numerical
-             [minimize]
-             [ode]
-             [integrate]]
-            [sicmutils.mechanics
-             [lagrange]
-             [hamilton]
-             [rotation]]
-            [sicmutils.calculus
-             [basis]
-             [covariant]
-             [derivative :as d]
-             [form-field]
-             [manifold]
-             [map]
-             [coordinate]
-             [vector-field]]))
+  (:require #?(:clj [potemkin :refer [import-vars]])
+            #?(:clj [nrepl.middleware.print])
+            [sicmutils.complex]
+            [sicmutils.function :as f #?@(:cljs [:include-macros true])]
+            [sicmutils.generic :as g]
+            [sicmutils.infix :as infix]
+            [sicmutils.operator]
+            [sicmutils.simplify :as simp]
+            [sicmutils.structure]
+            [sicmutils.value :as v]
+            [sicmutils.matrix :as matrix]
+            [sicmutils.series :as series]
+            [sicmutils.util :as u #?@(:cljs [:refer-macros [import-vars]])]
+            [sicmutils.numerical.minimize]
+            [sicmutils.numerical.ode]
+            [sicmutils.numerical.integrate]
+            [sicmutils.mechanics.lagrange]
+            [sicmutils.mechanics.hamilton]
+            [sicmutils.mechanics.rotation]
+            [sicmutils.calculus.basis]
+            [sicmutils.calculus.covariant]
+            [sicmutils.calculus.derivative :as d]
+            [sicmutils.calculus.form-field]
+            [sicmutils.calculus.manifold]
+            [sicmutils.calculus.map]
+            [sicmutils.calculus.coordinate]
+            [sicmutils.calculus.vector-field]))
 
-(def zero? v/nullity?)
+#?(:clj
+   (defn sicmutils-repl-init
+     []
+     (set! nrepl.middleware.print/*print-fn* simp/expression->strea)))
+
+(defmacro bootstrap-env []
+  (let [deal ['sicmutils.env :refer (into [] (keys (ns-publics 'sicmutils.env)))]]
+    `(cljs.core/require '~deal)))
 
 (defmacro literal-function
   ([f] `(f/literal-function ~f))
@@ -69,6 +73,8 @@
   [& args]
   `(f/with-literal-functions ~@args))
 
+(def zero? v/nullity?)
+
 (def cot (g/divide g/cos g/sin))
 (def csc (g/invert g/sin))
 (def sec (g/invert g/cos))
@@ -82,11 +88,12 @@
   (let [m? (matrix/matrix? a)]
     (if (and as
              (or (sequential? a) m?)
-             (every? integer? as))
+             (every? v/integral? as))
       (if m?
         (matrix/get-in a as)
         (get-in a as))
-      (apply core-ref a as))))
+      #?(:clj (apply core-ref a as)
+         :cljs (get-in a as)))))
 
 (defn partial
   "A shim. Dispatches to partial differentiation when all the arguments
@@ -121,20 +128,15 @@
   [expr]
   (str "$$" (-> expr g/simplify infix/->TeX) "$$"))
 
-(defn sicmutils-repl-init []
-  (set! nrepl.middleware.print/*print-fn* simp/expression->stream))
-
-(potemkin/import-vars
+(import-vars
  [sicmutils.complex
   angle
   complex
   conjugate
   imag-part
   real-part]
- [sicmutils.function
-  compose]
- [sicmutils.operator
-  commutator]
+ [sicmutils.function compose]
+ [sicmutils.operator commutator]
  [sicmutils.generic
   * + - /
   abs
@@ -185,7 +187,6 @@
  [sicmutils.calculus.form-field
   d
   components->oneform-field
-
   literal-oneform-field
   wedge]
  [sicmutils.calculus.manifold
@@ -211,8 +212,6 @@
   coordinate-system->basis
   coordinate-system->oneform-basis
   coordinate-system->vector-basis
-  let-coordinates
-  using-coordinates
   vector-basis->dual]
  [sicmutils.calculus.map
   basis->basis-over-map
@@ -229,7 +228,6 @@
   literal-vector-field
   vector-field->components]
  [sicmutils.mechanics.lagrange
-  ->L-state
   ->L-state
   ->local
   Euler-Lagrange-operator
@@ -282,3 +280,10 @@
   state-advancer]
  [sicmutils.numerical.integrate definite-integral elliptic-f]
  [sicmutils.numerical.minimize minimize])
+
+;; Macros. These work with Potemkin's import, but not with the Clojure version.
+#?(:clj
+   (import-vars
+    [sicmutils.calculus.coordinate
+     let-coordinates
+     using-coordinates]))

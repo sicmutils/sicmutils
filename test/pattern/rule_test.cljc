@@ -20,11 +20,13 @@
 (ns pattern.rule-test
   #?(:cljs  (:require-macros [pattern.rule-test :refer [rule-1]]))
   (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing async]])
+               :cljs [clojure.test :as t :refer [is deftest testing async]])
             [pattern.rule :as r]))
 
 (def ^:private !=> (constantly false))
 
+(deftest cake
+  (is (= 1 2)))
 (defn ^:private apply-ruleset
   "Like the above, supplies trivial success and failure continuations to a
   ruleset so that it may be invoked with data alone."
