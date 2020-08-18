@@ -19,8 +19,7 @@
 
 (ns pattern.rule-test
   #?(:cljs  (:require-macros [pattern.rule-test :refer [rule-1]]))
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [clojure.test :as t :refer [is deftest testing async]])
+  (:require [clojure.test :as t :refer [is deftest testing]]
             [pattern.rule :as r]))
 
 (def ^:private !=> (constantly false))
