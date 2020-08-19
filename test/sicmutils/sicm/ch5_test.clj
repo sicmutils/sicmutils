@@ -19,7 +19,7 @@
 
 (ns sicmutils.sicm.ch5-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :refer :all]
             [sicmutils.series :as series]
             [sicmutils.mechanics.hamilton :as H]

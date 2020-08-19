@@ -19,7 +19,7 @@
 
 (ns sicmutils.fdg.ch4-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :refer :all]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.mechanics.rotation :refer [rotate-x-matrix rotate-y-matrix rotate-z-matrix]]

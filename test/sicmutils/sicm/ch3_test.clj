@@ -19,7 +19,7 @@
 
 (ns sicmutils.sicm.ch3-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :refer :all]
             [sicmutils.mechanics.lagrange :as L]
             [sicmutils.mechanics.hamilton :as H]
