@@ -345,9 +345,10 @@
                               'exp "Math.exp"}
            :special-handlers {'up make-js-vector
                               'down make-js-vector})]
-    (fn [x & {:keys [symbol-generator parameter-order]
+    (fn [x & {:keys [symbol-generator parameter-order deterministic?]
              :or {symbol-generator (make-symbol-generator "_")
-                  parameter-order sort}}]
+                  parameter-order sort
+                  deterministic? true}}]
       (let [params (set/difference (x/variables-in x) operators-known)
             ordered-params (if (fn? parameter-order)
                              (parameter-order params)
@@ -367,4 +368,5 @@
                (print ";\n"))
              (print "  return ")
              (print (R new-expression))
-             (print ";\n}"))))))))
+             (print ";\n}"))
+           :deterministic? deterministic?))))))
