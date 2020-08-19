@@ -316,16 +316,21 @@
 (def ->JavaScript
   "Convert the given (simplified) expression to a JavaScript function.
   Parameters to the function will be extracted from the symbols in the
-  expression. Common subexpression elimination will be performed and
-  auxiliary variables will be bound in the body of the function; the
-  names of these symbols are obtained from the nullary function
-  option :symbol-generator, which defaults to a function yielding `_1,
-  ...`. If `:parameter-order is specified, it is used to determine
-  function parameter order in one of two ways: if it is set to a
-  function, that function will be called on the sequence of parameters
-  and is expected to return the parameters in the desired
-  sequence. Otherwise, it is interpreted as the sequence of parameters
-  itself. If not specified, the default behavior is `sort`."
+  expression. Common subexpression elimination will be performed and auxiliary
+  variables will be bound in the body of the function; the names of these
+  symbols are obtained from the nullary function option :symbol-generator, which
+  defaults to a function yielding `_1, ...`. If `:parameter-order is specified,
+  it is used to determine function parameter order in one of two ways: if it is
+  set to a function, that function will be called on the sequence of parameters
+  and is expected to return the parameters in the desired sequence. Otherwise,
+  it is interpreted as the sequence of parameters itself. If not specified, the
+  default behavior is `sort`.
+
+  If `:deterministic? true` is supplied, the function will assign variables by
+  sorting the string representations of each term before assignment. Otherwise,
+  the nondeterministic order of hash maps inside this function won't guarantee a
+  consistent variable naming convention in the returned function. For tests, set
+  `:deterministic? true`."
   (let [operators-known '#{sin cos tan asin acos atan sqrt abs pow + - * /
                            expt exp log up down}
         make-js-vector #(str \[ (s/join ", " %) \])
@@ -347,8 +352,7 @@
                               'down make-js-vector})]
     (fn [x & {:keys [symbol-generator parameter-order deterministic?]
              :or {symbol-generator (make-symbol-generator "_")
-                  parameter-order sort
-                  deterministic? true}}]
+                  parameter-order sort}}]
       (let [params (set/difference (x/variables-in x) operators-known)
             ordered-params (if (fn? parameter-order)
                              (parameter-order params)

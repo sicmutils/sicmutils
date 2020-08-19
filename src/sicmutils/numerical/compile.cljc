@@ -69,13 +69,18 @@
                  (set/difference (set/intersection new-vs subexpr-vars) new-variables)))))))
 
 (defn extract-common-subexpressions
-  "Considers an S-expression from the point of view of optimizing
-  its evaluation by isolating common subexpressions into auxiliary
-  variables. The continuation is called with two arguments: a
-  new equivalent expression with possibly some subexpressions replaced
-  by new variables (delivered by the supplied generator) and a seq
-  of pairs of [aux variable, subexpression] used to reconstitute the
-  value."
+  "Considers an S-expression from the point of view of optimizing its evaluation
+  by isolating common subexpressions into auxiliary variables. The continuation
+  is called with two arguments: a new equivalent expression with possibly some
+  subexpressions replaced by new variables (delivered by the supplied generator)
+  and a seq of pairs of [aux variable, subexpression] used to reconstitute the
+  value.
+
+  If `:deterministic? true` is supplied, the function will assign aux variables
+  by sorting the string representations of each term before assignment.
+  Otherwise, the nondeterministic order of hash maps inside this function won't
+  guarantee a consistent variable naming convention in the returned function.
+  For tests, set `:deterministic? true`."
   [expression symbol-generator continue & {:keys [deterministic?]}]
   (let [pairs (if deterministic?
                 (partial sort-by (comp str vec first))
@@ -107,11 +112,16 @@
   (reduce (fn [v [sym x]] (conj (conj v sym) x)) [] syms))
 
 (defn common-subexpression-elimination
-  "Given an expression and a table of common subexpressions, create a
-  let statement which assigns the subexpressions to the values of
-  dummy variables generated for the purpose of holding these values;
-  the body of the let statement will be x with the subexpressions
-  replaced by the dummy variables."
+  "Given an expression and a table of common subexpressions, create a let
+  statement which assigns the subexpressions to the values of dummy variables
+  generated for the purpose of holding these values; the body of the let
+  statement will be x with the subexpressions replaced by the dummy variables.
+
+  If `:deterministic? true` is supplied, the function will assign variable names
+  by sorting the string representations of each term before assignment.
+  Otherwise, the nondeterministic order of hash maps inside this function won't
+  guarantee a consistent variable naming convention in the returned function.
+  For tests, set `:deterministic? true`."
   [x & {:keys [symbol-generator deterministic?]
         :or {symbol-generator gensym}}]
   (extract-common-subexpressions
