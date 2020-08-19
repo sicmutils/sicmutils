@@ -19,8 +19,7 @@
 
 (ns sicmutils.function-test
   (:refer-clojure :exclude [partial])
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
@@ -28,8 +27,10 @@
             [sicmutils.operator :as o]
             [sicmutils.series :as series]
             [sicmutils.structure :as s :refer [up down]]
-            [sicmutils.simplify :as ss]
+            [sicmutils.simplify :as ss :refer [hermetic-simplify-fixture]]
             [sicmutils.function :as f]))
+
+(use-fixtures :once hermetic-simplify-fixture)
 
 (def ^:private near (v/within 1.0e-6))
 
