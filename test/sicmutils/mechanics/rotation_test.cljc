@@ -19,8 +19,7 @@
 
 (ns sicmutils.mechanics.rotation-test
   (:refer-clojure :exclude [+ - * /])
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing use-fixtures]])
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :refer [up down]]

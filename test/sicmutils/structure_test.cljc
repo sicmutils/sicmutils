@@ -19,8 +19,7 @@
 
 (ns sicmutils.structure-test
   (:refer-clojure :exclude [+ - * /])
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+  (:require [clojure.test :refer [is deftest testing]]
             [sicmutils.generic :as g :refer [+ - * / cube expt negate square]]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]

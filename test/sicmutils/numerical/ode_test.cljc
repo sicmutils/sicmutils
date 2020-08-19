@@ -19,8 +19,7 @@
 
 (ns sicmutils.numerical.ode-test
   (:refer-clojure :exclude [+ - * /])
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing use-fixtures]])
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.numerical.ode :as o]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.structure :refer [up down]]

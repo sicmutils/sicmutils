@@ -19,8 +19,7 @@
 
 (ns sicmutils.numerical.compile-test
   (:refer-clojure :exclude [+ - * /])
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+  (:require [clojure.test :refer [is deftest testing]]
             #?(:cljs [goog.string :refer [format]])
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.structure :refer [up down]]

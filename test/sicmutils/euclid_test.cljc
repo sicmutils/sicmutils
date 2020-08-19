@@ -18,8 +18,7 @@
 ;
 
 (ns sicmutils.euclid-test
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+  (:require [clojure.test :refer [is deftest testing]]
             [sicmutils.numbers]
             [sicmutils.euclid :as e]
             [sicmutils.generic :as g]))

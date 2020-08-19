@@ -18,8 +18,7 @@
 ;
 
 (ns sicmutils.analyzer-test
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+  (:require [clojure.test :refer [is deftest testing]]
             [clojure.string :as cs]
             [sicmutils.analyze :as a]))
 

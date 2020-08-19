@@ -18,8 +18,7 @@
 ;
 
 (ns pattern.match-test
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing async]])
+  (:require [clojure.test :refer [is deftest testing]]
             [pattern.match :as m]))
 
 (defn ^:private receive [frame xs] [frame xs])

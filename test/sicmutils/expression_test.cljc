@@ -18,15 +18,14 @@
 ;
 
 (ns sicmutils.expression-test
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+  (:require [clojure.test :refer [is deftest testing]]
             [sicmutils.expression :as e]))
 
 (deftest expressions
   (testing "variables-in"
     (is (= '#{a b c d x y * +} (e/variables-in '(+ x (* 3 y) [a [b 9 c] [3 4 5 d]]))))
-    (is (= '#{x} (e/variables-in 'x)))
-    )
+    (is (= '#{x} (e/variables-in 'x))))
+
   (testing "walk"
     (is (= 12 (e/walk-expression '(+ 3 4 x) {'x 5} {'+ +})))
     (is (= 0 (e/walk-expression '(+ 3 (* 4 y) x) {'x 5 'y -2} {'* * '+ +})))

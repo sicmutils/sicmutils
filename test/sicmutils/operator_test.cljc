@@ -19,8 +19,7 @@
 
 (ns sicmutils.operator-test
   (:refer-clojure :exclude [+ - * /  partial])
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing use-fixtures]])
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [+ - * /]]

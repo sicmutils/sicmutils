@@ -19,8 +19,7 @@
 
 (ns sicmutils.generic-test
   (:refer-clojure :exclude [+ - * / zero?])
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+  (:require [clojure.test :refer [is deftest testing]]
             [sicmutils.generic :as g]
             [sicmutils.value :as v]))
 

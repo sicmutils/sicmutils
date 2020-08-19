@@ -18,8 +18,7 @@
 ;
 
 (ns sicmutils.series-test
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing use-fixtures]])
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.generic :as g]
             [sicmutils.series :as series]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
