@@ -251,7 +251,7 @@
                      "  var _0007 = _0004(f);\n"
                      "  return %s * Math.pow(dx, 2) * _0003(_0006)(_0005) + dx * dy * _0004(_0006)(_0005) + %s * Math.pow(dy, 2) * _0004(_0007)(_0005) + dx * _0006(_0005) + dy * _0007(_0005) + f(_0005);\n}")
                 half half)
-               (s->JS expr)))
+               (s->JS expr :deterministic? true)))
 
         (is (= (format "%s\\,{dx}^{2}\\,\\partial_0\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,dy\\,\\partial_1\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + %s\\,{dy}^{2}\\,\\partial_1\\left(\\partial_1f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,\\partial_0f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dy\\,\\partial_1f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)"
                        tex-half tex-half)
