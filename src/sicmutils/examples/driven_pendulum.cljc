@@ -18,8 +18,8 @@
 ;
 
 (ns sicmutils.examples.driven-pendulum
-  (:refer-clojure :exclude [+ - * / zero? partial ref])
-  (:require [sicmutils.env :refer :all]
+  (:refer-clojure :exclude [+ - * /])
+  (:require [sicmutils.env :as e :refer [cos up + - * /]]
             [sicmutils.examples.pendulum :as pendulum]))
 
 (defn vertical-periodic-drive
@@ -33,29 +33,29 @@
 
 (defn state-derivative
   [m l g a ω]
-  (Lagrangian->state-derivative
-    (L m l g a ω)))
+  (e/Lagrangian->state-derivative
+   (L m l g a ω)))
 
 (defn equations
   []
-  (simplify ((state-derivative 'm 'l 'g 'a 'ω)
-             (up 't 'θ_0 'θdot_0))))
+  (e/simplify ((state-derivative 'm 'l 'g 'a 'ω)
+               (up 't 'θ_0 'θdot_0))))
 
 (defn evolver
   [{:keys [t dt a omega g theta_0 thetadot_0 observe]
     :or {t 1
-         dt 1/60
+         dt (/ 1 60)
          a 0
          omega 0
          g 9.8
          theta_0 1
          thetadot_0 0}}]
-  ((evolve state-derivative
-           1.0    ;; mass of bob
-           1.0    ;; length of rod
-           g      ;; acceleration due to gravity
-           a      ;; amplitude of drive
-           omega) ;; frequency of drive
+  ((e/evolve state-derivative
+             1.0    ;; mass of bob
+             1.0    ;; length of rod
+             g      ;; acceleration due to gravity
+             a      ;; amplitude of drive
+             omega) ;; frequency of drive
    (up 0.0
        theta_0
        thetadot_0)

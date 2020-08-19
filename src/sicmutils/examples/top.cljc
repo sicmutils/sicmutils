@@ -18,8 +18,8 @@
 ;
 
 (ns sicmutils.examples.top
-  (:refer-clojure :exclude [+ - * / zero? partial ref])
-  (:require [sicmutils.env :refer :all]
+  (:refer-clojure :exclude [+ - * /])
+  (:require [sicmutils.env :as e :refer [cos up + - * /]]
             [sicmutils.mechanics.rigid :as rigid]))
 
 (defn L
@@ -35,10 +35,10 @@
 
 (defn state-derivative
   [A B C gMR]
-  (Lagrangian->state-derivative
+  (e/Lagrangian->state-derivative
    (L A B C gMR)))
 
 (defn equations
   []
-  (simplify ((state-derivative 'A 'B 'C 'gMR)
-             (up 't (up 'theta 'phi 'psi) (up 'thetadot 'phidot 'psidot)))))
+  (e/simplify ((state-derivative 'A 'B 'C 'gMR)
+               (up 't (up 'theta 'phi 'psi) (up 'thetadot 'phidot 'psidot)))))

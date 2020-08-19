@@ -18,37 +18,46 @@
 ;
 
 (ns sicmutils.examples.central-potential-test
-  (:refer-clojure :exclude [+ - * / zero? partial ref])
-  (:require [clojure.test :refer :all :exclude [function?]]
-            [sicmutils.env :refer :all]
+  (:refer-clojure :exclude [+ - * / partial])
+  (:require [clojure.test :refer [deftest is testing]]
+            [sicmutils.env :as e :refer [up + - * / partial]]
             [sicmutils.examples.central-potential :as central]))
 
 (deftest equations
-  (with-literal-functions
+  (e/with-literal-functions
     [m M x y X Y]
     (let [state (up 't (up 'x 'y 'X 'Y) (up 'dx 'dy 'dX 'dY))]
-      (is (= '(+ (* 1/2 (expt dX 2) m2)
-                 (* 1/2 (expt dY 2) m2)
-                 (* 1/2 (expt dx 2) m1)
-                 (* 1/2 (expt dy 2) m1))
-             (simplify ((central/T 'm1 'm2) state))))
+      (is (= '(+ (* #?(:clj 1/2 :cljs 0.5) (expt dX 2) m2)
+                 (* #?(:clj 1/2 :cljs 0.5) (expt dY 2) m2)
+                 (* #?(:clj 1/2 :cljs 0.5) (expt dx 2) m1)
+                 (* #?(:clj 1/2 :cljs 0.5) (expt dy 2) m1))
+             (e/simplify ((central/T 'm1 'm2) state))))
       ;; NB: teach simplifier to recognize difference of squares below
       (is (= '(/ (* -1 m1 m2)
                  (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-             (simplify ((central/V 'm1 'm2) state))))
-                                        ;(is (println "unsimplified central" ((central/L 'm1 'm2) state)))
-      (is (= '(/ (+ (* (expt dX 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                    (* (expt dY 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                    (* (expt dx 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                    (* (expt dy 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                    (* 2 m1 m2))
-                 (* 2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2)))))
-             (simplify ((central/L 'm1 'm2) state))))
+             (e/simplify ((central/V 'm1 'm2) state))))
+      ;; (is (println "unsimplified central" ((central/L 'm1 'm2) state)))
+      (is (= #?(:clj
+                '(/ (+ (* (expt dX 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+                       (* (expt dY 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+                       (* (expt dx 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+                       (* (expt dy 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+                       (* 2 m1 m2))
+                    (* 2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2)))))
+
+                :cljs
+                '(/ (+ (* 0.5 (expt dX 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+                       (* 0.5 (expt dY 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+                       (* 0.5 (expt dx 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+                       (* 0.5 (expt dy 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+                       (* 2 m1 m2))
+                    (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2)))))
+             (e/simplify ((central/L 'm1 'm2) state))))
       (let [F ((partial 1) (central/L 'm1 'm2))
             P ((partial 2) (central/L 'm1 'm2))
             N (- F
                  (+ ((partial 0) P)
-                    (* ((partial 1) P) velocity)))
+                    (* ((partial 1) P) e/velocity)))
             A ((partial 2) P)]
         (is (= '(down (/ (+ (* X m1 m2)
                             (* -1 m1 m2 x))
@@ -80,12 +89,12 @@
                             (* -2 Y y (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
                             (* (expt x 2) (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
                             (* (expt y 2) (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2)))))))
-               (simplify (F state))))
+               (e/simplify (F state))))
         (is (= '(down (* dx m1)
                       (* dy m1)
                       (* dX m2)
                       (* dY m2))
-               (simplify (P state))))
+               (e/simplify (P state))))
         (is (= '(down (/ (+ (* X m1 m2) (* -1 m1 m2 x))
                          (+ (* (expt X 2) (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
                             (* -2 X x (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
@@ -114,34 +123,34 @@
                             (* -2 Y y (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
                             (* (expt x 2) (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
                             (* (expt y 2) (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2)))))))
-               (simplify (N state))))
-        (is (= '(down 0 0 0 0) (simplify ((- F N) state))))
+               (e/simplify (N state))))
+        (is (= '(down 0 0 0 0) (e/simplify ((- F N) state))))
         (is (= 4 (count (A state))))
         (is (= [4 4 4 4] (map count (A state))))
         (is (= '(down (down m1 0 0 0)
                       (down 0 m1 0 0)
                       (down 0 0 m2 0)
                       (down 0 0 0 m2))
-               (simplify (A state))))
+               (e/simplify (A state))))
         (is (= '(up (up (/ 1 m1) 0 0 0)
                     (up 0 (/ 1 m1) 0 0)
                     (up 0 0 (/ 1 m2) 0)
                     (up 0 0 0 (/ 1 m2)))
-               (simplify (/ (A state))))))
+               (e/simplify (/ (A state))))))
       (is (= '(down (down (up (up (* m (((expt D 2) x) t))
-                                  (* 1/2 m (((expt D 2) y) t)))
-                              (up (* 1/2 m (((expt D 2) y) t))
+                                  (* #?(:clj 1/2 :cljs 0.5) m (((expt D 2) y) t)))
+                              (up (* #?(:clj 1/2 :cljs 0.5) m (((expt D 2) y) t))
                                   0))
                           (up (up 0
-                                  (* 1/2 m (((expt D 2) x) t)))
-                              (up (* 1/2 m (((expt D 2) x) t))
+                                  (* #?(:clj 1/2 :cljs 0.5) m (((expt D 2) x) t)))
+                              (up (* #?(:clj 1/2 :cljs 0.5) m (((expt D 2) x) t))
                                   (* m (((expt D 2) y) t)))))
                     (down (up (up 0 0)
                               (up 0 0))
                           (up (up 0 0)
                               (up 0 0))))
-             (simplify (((Lagrange-equations (central/L 'm 'M))
-                         (up (up x y) (up (constantly 0) (constantly 0)))) 't))))
+             (e/simplify (((e/Lagrange-equations (central/L 'm 'M))
+                           (up (up x y) (up (constantly 0) (constantly 0)))) 't))))
       (is (= '(up 1
                   (up dx dy dX dY)
                   (up (/ (+ (* M X) (* -1 M x))
@@ -172,9 +181,12 @@
                             (* -2 Y y (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
                             (* (expt x 2) (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
                             (* (expt y 2) (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))))))
-             (simplify ((central/state-derivative 'm 'M) state))))
-      (let [o (atom [])
-            observe (fn [t q] (swap! o conj [t q]))]
-        (do
-          (central/evolver {:t 3/60 :dt 1/60 :observe observe})
-          (is (= 4 (count @o))))))))
+             (e/simplify ((central/state-derivative 'm 'M) state))))
+
+      #?(:clj
+         ;; Integrator isn't yet implemented in cljs.
+         (let [o (atom [])
+               observe (fn [t q] (swap! o conj [t q]))]
+           (do
+             (central/evolver {:t (/ 3 60) :dt (/ 1 60) :observe observe})
+             (is (= 4 (count @o)))))))))

@@ -18,17 +18,17 @@
 ;
 
 (ns sicmutils.examples.rigid-rotation
-  (:refer-clojure :exclude [+ - * / zero? partial ref])
-  (:require [sicmutils.env :refer :all]
-            [sicmutils.mechanics.rigid :refer :all]))
+  (:refer-clojure :exclude [+ - * /])
+  (:require [sicmutils.env :as e :refer [up + - * /]]
+            [sicmutils.mechanics.rigid :as r]))
 
 (defn evolver
   [t dt A B C θ0 φ0 ψ0 θdot0 φdot0 ψdot0]
   (let [state-history (atom [])
-        L (Euler-state->L-space A B C)]
-    ((evolve rigid-sysder
-             A B C                                                ;; moments of inertia
-             )
+        L (r/Euler-state->L-space A B C)]
+    ((e/evolve r/rigid-sysder
+               A B C                                                ;; moments of inertia
+               )
      (up 0.0
          (up θ0 φ0 ψ0)
          (up θdot0 φdot0 ψdot0))
