@@ -115,4 +115,38 @@
                (double/L 'm_1 'm_2 'l_1 'l_2 'g)))
              (e/->H-state 't (up 'theta 'psi) (down 'p_theta 'p_psi))))]
     (is (= "up(1, up((- l₁ p_psi cos(- psi + theta) + l₂ p_theta) / (l₁² l₂ m₂ sin²(- psi + theta) + l₁² l₂ m₁), (- l₂ m₂ p_theta cos(- psi + theta) + l₁ m₁ p_psi + l₁ m₂ p_psi) / (l₁ l₂² m₂² sin²(- psi + theta) + l₁ l₂² m₁ m₂)), down((- g l₁³ l₂² m₁ m₂² sin(theta) (cos(- psi + theta))⁴ - g l₁³ l₂² m₂³ sin(theta) (cos(- psi + theta))⁴ + 2 g l₁³ l₂² m₁² m₂ sin(theta) cos²(- psi + theta) + 4 g l₁³ l₂² m₁ m₂² sin(theta) cos²(- psi + theta) + 2 g l₁³ l₂² m₂³ sin(theta) cos²(- psi + theta) - g l₁³ l₂² m₁³ sin(theta) -3 g l₁³ l₂² m₁² m₂ sin(theta) -3 g l₁³ l₂² m₁ m₂² sin(theta) - g l₁³ l₂² m₂³ sin(theta) - l₁ l₂ m₂ p_psi p_theta cos²(- psi + theta) sin(- psi + theta) + l₁² m₁ p_psi² cos(- psi + theta) sin(- psi + theta) + l₁² m₂ p_psi² cos(- psi + theta) sin(- psi + theta) + l₂² m₂ p_theta² cos(- psi + theta) sin(- psi + theta) - l₁ l₂ m₁ p_psi p_theta sin(- psi + theta) - l₁ l₂ m₂ p_psi p_theta sin(- psi + theta)) / (l₁² l₂² m₂² (cos(- psi + theta))⁴ + 2 l₁² l₂² m₁ m₂ sin²(- psi + theta) -2 l₁² l₂² m₂² cos²(- psi + theta) + l₁² l₂² m₁² + l₁² l₂² m₂²), (- g l₁² l₂³ m₂³ (cos(- psi + theta))⁴ sin(psi) -2 g l₁² l₂³ m₁ m₂² sin²(- psi + theta) sin(psi) + 2 g l₁² l₂³ m₂³ cos²(- psi + theta) sin(psi) - g l₁² l₂³ m₁² m₂ sin(psi) - g l₁² l₂³ m₂³ sin(psi) + l₁ l₂ m₂ p_psi p_theta cos²(- psi + theta) sin(- psi + theta) - l₁² m₁ p_psi² cos(- psi + theta) sin(- psi + theta) - l₁² m₂ p_psi² cos(- psi + theta) sin(- psi + theta) - l₂² m₂ p_theta² cos(- psi + theta) sin(- psi + theta) + l₁ l₂ m₁ p_psi p_theta sin(- psi + theta) + l₁ l₂ m₂ p_psi p_theta sin(- psi + theta)) / (l₁² l₂² m₂² (cos(- psi + theta))⁴ + 2 l₁² l₂² m₁ m₂ sin²(- psi + theta) -2 l₁² l₂² m₂² cos²(- psi + theta) + l₁² l₂² m₁² + l₁² l₂² m₂²)))"
-           (e/->infix eq)))))
+           (e/->infix eq)))
+
+    #?(:clj
+       ;; even with the deterministic flag, this is not quite reproducing in
+       ;; Clojurescript.
+       (is (= (str "function(theta, psi, p_theta, p_psi) {\n"
+                   "  var _0004 = - psi;\n"
+                   "  var _000d = Math.pow(l_1, 2);\n"
+                   "  var _000e = Math.pow(l_1, 3);\n"
+                   "  var _000f = Math.pow(l_2, 2);\n"
+                   "  var _0010 = Math.pow(l_2, 3);\n"
+                   "  var _0011 = Math.pow(m_1, 2);\n"
+                   "  var _0012 = Math.pow(m_2, 2);\n"
+                   "  var _0013 = Math.pow(m_2, 3);\n"
+                   "  var _0014 = Math.pow(p_psi, 2);\n"
+                   "  var _0015 = Math.pow(p_theta, 2);\n"
+                   "  var _0017 = Math.sin(psi);\n"
+                   "  var _0018 = Math.sin(theta);\n"
+                   "  var _001b = _000d * _000f * _0011;\n"
+                   "  var _001d = _000d * _000f * _0012;\n"
+                   "  var _001f = _0004 + theta;\n"
+                   "  var _0029 = Math.cos(_001f);\n"
+                   "  var _002d = Math.sin(_001f);\n"
+                   "  var _0032 = Math.pow(_0029, 2);\n"
+                   "  var _0033 = Math.pow(_0029, 4);\n"
+                   "  var _0034 = Math.pow(_002d, 2);\n"
+                   "  var _0035 = -2 * _000d * _000f * _0012 * _0032;\n"
+                   "  var _0036 = 2 * _000d * _000f * m_1 * m_2 * _0034;\n"
+                   "  var _0037 = _000d * _000f * _0012 * _0033;\n"
+                   "  var _0039 = _0037 + _0036 + _0035 + _001b + _001d;\n"
+                   "  return [1, [(- l_1 * p_psi * _0029 + l_2 * p_theta) / (_000d * l_2 * m_2 * _0034 + _000d * l_2 * m_1), (- l_2 * m_2 * p_theta * _0029 + l_1 * m_1 * p_psi + l_1 * m_2 * p_psi) / (l_1 * _000f * _0012 * _0034 + l_1 * _000f * m_1 * m_2)], [(- g * _000e * _000f * m_1 * _0012 * _0018 * _0033 - g * _000e * _000f * _0013 * _0018 * _0033 + 2 * g * _000e * _000f * _0011 * m_2 * _0018 * _0032 + 4 * g * _000e * _000f * m_1 * _0012 * _0018 * _0032 + 2 * g * _000e * _000f * _0013 * _0018 * _0032 - g * _000e * _000f * Math.pow(m_1, 3) * _0018 -3 * g * _000e * _000f * _0011 * m_2 * _0018 -3 * g * _000e * _000f * m_1 * _0012 * _0018 - g * _000e * _000f * _0013 * _0018 - l_1 * l_2 * m_2 * p_psi * p_theta * _0032 * _002d + _000d * m_1 * _0014 * _0029 * _002d + _000d * m_2 * _0014 * _0029 * _002d + _000f * m_2 * _0015 * _0029 * _002d - l_1 * l_2 * m_1 * p_psi * p_theta * _002d - l_1 * l_2 * m_2 * p_psi * p_theta * _002d) / _0039, (- g * _000d * _0010 * _0013 * _0033 * _0017 -2 * g * _000d * _0010 * m_1 * _0012 * _0034 * _0017 + 2 * g * _000d * _0010 * _0013 * _0032 * _0017 - g * _000d * _0010 * _0011 * m_2 * _0017 - g * _000d * _0010 * _0013 * _0017 + l_1 * l_2 * m_2 * p_psi * p_theta * _0032 * _002d - _000d * m_1 * _0014 * _0029 * _002d - _000d * m_2 * _0014 * _0029 * _002d - _000f * m_2 * _0015 * _0029 * _002d + l_1 * l_2 * m_1 * p_psi * p_theta * _002d + l_1 * l_2 * m_2 * p_psi * p_theta * _002d) / _0039]];\n"
+                   "}")
+              (e/->JavaScript eq
+                              :parameter-order '[theta psi p_theta p_psi]
+                              :deterministic? true))))))

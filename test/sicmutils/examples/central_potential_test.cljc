@@ -46,11 +46,13 @@
                     (* 2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2)))))
 
                 :cljs
+                ;; TODO CLJS can't handle ratios yet, so we can't simplify this
+                ;; 0.5 out.
                 '(/ (+ (* 0.5 (expt dX 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
                        (* 0.5 (expt dY 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
                        (* 0.5 (expt dx 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
                        (* 0.5 (expt dy 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                       (* 2 m1 m2))
+                       (* m1 m2))
                     (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2)))))
              (e/simplify ((central/L 'm1 'm2) state))))
       (let [F ((partial 1) (central/L 'm1 'm2))
