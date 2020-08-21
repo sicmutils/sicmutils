@@ -18,9 +18,12 @@
 ;
 
 (ns sicmutils.fdg.ch1-test
-  (:refer-clojure :exclude [+ - * / zero? ref partial])
-  (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [sicmutils.env :refer :all]
+  (:refer-clojure :exclude [+ - * /])
+  (:require [clojure.test :refer [is deftest use-fixtures]]
+            [sicmutils.env :as e :refer [+ - * /
+                                         D simplify compose
+                                         up down
+                                         sin cos square]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
@@ -28,7 +31,7 @@
 (defn Lfree
   [mass]
   (fn [[t q v]]
-    (* 1/2 mass (square v))))
+    (* (/ 1 2) mass (square v))))
 
 (defn sphere->R3
   [R]
@@ -39,12 +42,12 @@
 
 (defn Lsphere
   [m R]
-  (compose (Lfree m) (F->C (sphere->R3 R))))
+  (compose (Lfree m) (e/F->C (sphere->R3 R))))
 
 (defn L2
   [mass metric]
   (fn [place velocity]
-    (* 1/2 mass ((metric velocity velocity) place))))
+    (* (/ 1 2) mass ((metric velocity velocity) place))))
 
 #_(defn Lc
   [mass metric coordsys]
@@ -53,8 +56,8 @@
       ((L2 mass metric) ((point coordsys) x) (* e v)))))
 
 (deftest chapter-one
-  (is (= '(+ (* 1/2 (expt R 2) m (expt phidot 2) (expt (sin theta) 2))
-             (* 1/2 (expt R 2) m (expt thetadot 2)))
+  (is (= '(+ (* #?(:clj 1/2 :cljs 0.5) (expt R 2) m (expt phidot 2) (expt (sin theta) 2))
+             (* #?(:clj 1/2 :cljs 0.5) (expt R 2) m (expt thetadot 2)))
          (simplify
-           ((Lsphere 'm 'R)
-            (up 't (up 'theta 'phi) (up 'thetadot 'phidot)))))))
+          ((Lsphere 'm 'R)
+           (up 't (up 'theta 'phi) (up 'thetadot 'phidot)))))))

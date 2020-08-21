@@ -18,9 +18,18 @@
 ;
 
 (ns sicmutils.fdg.ch2-test
-  (:refer-clojure :exclude [+ - * / zero? ref partial])
+  (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [sicmutils.env :refer :all]
+            [sicmutils.env :as e :refer [+ - * /
+                                         D simplify compose
+                                         literal-function
+                                         literal-manifold-function
+                                         up down
+                                         sin cos square cube sqrt atan
+                                         point chart
+                                         R2-rect R2-polar
+                                         S2-spherical S2-Riemann]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
@@ -51,25 +60,27 @@
     (is (= '(f-rect (up x0 y0)) (simplify (f corresponding-polar-point))))
     (is (= '(g-rect (up x0 y0)) (simplify (g R2-rect-point))))
     (is (= '(g-rect (up x0 y0)) (simplify (g corresponding-polar-point))))
-    (let-coordinates [[x y] R2-rect
-                      [r theta] R2-polar]
-      (is (= 'x0 (x (R2-rect-chi-inverse (up 'x0 'y0)))))
-      (is (= '(* r0 (cos theta0)) (simplify (x (R2-polar-chi-inverse (up 'r0 'theta0))))))
-      (is (= 'r0 (simplify (r (R2-polar-chi-inverse (up 'r0 'theta0))))))
-      (is (= '(sqrt (+ (expt x0 2) (expt y0 2))) (simplify (r (R2-rect-chi-inverse (up 'x0 'y0))))))
-      (is (= '(atan y0 x0) (simplify (theta (R2-rect-chi-inverse (up 'x0 'y0))))))
-      (let [h (+ (* x (square r)) (cube y))]
-        (is (= '(+ (expt x0 3) (* x0 (expt y0 2)) (expt y0 3))
-               (simplify (h R2-rect-point))))
-        (is (= '(+ (* (expt r0 3) (expt (sin theta0) 3)) (* (expt r0 3) (cos theta0)))
-               (simplify (h (R2-polar-chi-inverse (up 'r0 'theta0)))))))
-      (is (= '(/ (+ (* -2 a x)
-                    (* -2 a (sqrt (+ (expt x 2) (expt y 2))))
-                    (expt x 2)
-                    (expt y 2))
-                 (sqrt (+ (expt x 2) (expt y 2))))
-             (simplify ((- r (* 2 'a (+ 1 (cos theta))))
-                        ((point R2-rect) (up 'x 'y)))))))
+
+    (e/let-coordinates
+     [[x y] R2-rect
+      [r theta] R2-polar]
+     (is (= 'x0 (x (R2-rect-chi-inverse (up 'x0 'y0)))))
+     (is (= '(* r0 (cos theta0)) (simplify (x (R2-polar-chi-inverse (up 'r0 'theta0))))))
+     (is (= 'r0 (simplify (r (R2-polar-chi-inverse (up 'r0 'theta0))))))
+     (is (= '(sqrt (+ (expt x0 2) (expt y0 2))) (simplify (r (R2-rect-chi-inverse (up 'x0 'y0))))))
+     (is (= '(atan y0 x0) (simplify (theta (R2-rect-chi-inverse (up 'x0 'y0))))))
+     (let [h (+ (* x (square r)) (cube y))]
+       (is (= '(+ (expt x0 3) (* x0 (expt y0 2)) (expt y0 3))
+              (simplify (h R2-rect-point))))
+       (is (= '(+ (* (expt r0 3) (expt (sin theta0) 3)) (* (expt r0 3) (cos theta0)))
+              (simplify (h (R2-polar-chi-inverse (up 'r0 'theta0)))))))
+     (is (= '(/ (+ (* -2 a x)
+                   (* -2 a (sqrt (+ (expt x 2) (expt y 2))))
+                   (expt x 2)
+                   (expt y 2))
+                (sqrt (+ (expt x 2) (expt y 2))))
+            (simplify ((- r (* 2 'a (+ 1 (cos theta))))
+                       ((point R2-rect) (up 'x 'y)))))))
     (testing "ex2.2"
       (is (= '(up (acos (/ (+ (expt rho 2) -1) (+ (expt rho 2) 1))) theta)
              (simplify ((compose
