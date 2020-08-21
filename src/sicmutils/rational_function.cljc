@@ -89,7 +89,7 @@
         cv (p/coefficients v)
         lcv (last cv)
         cs (into (into #{} cv) (p/coefficients u))
-        integerizing-factor (*
+        integerizing-factor (g/*
                              (if (< lcv 0) -1 1)
                              (reduce euclid/lcm 1 (map u/denominator (filter u/ratio? cs))))
         u' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) u) u)
@@ -298,7 +298,7 @@
         a (.-arity r)]
     (cond (v/nullity? p) 0
           (v/unity? p) r
-          :else (let [d (poly/gcd v p) ]
+          :else (let [d (poly/gcd v p)]
                   (if (v/unity? d)
                     (make-reduced a (p/mul u p) v)
                     (make-reduced a (p/mul u (p/evenly-divide p d)) (p/evenly-divide v d)))))))

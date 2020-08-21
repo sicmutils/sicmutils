@@ -18,11 +18,15 @@
 ;
 
 (ns sicmutils.sicm.ch6-test
-  (:refer-clojure :exclude [+ - * / zero? ref partial])
+  (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [sicmutils.env :refer :all]
+            [sicmutils.env :as e
+             :refer [+ - * / D simplify compose
+                     up down
+                     sin cos square exp]]
             [sicmutils.series :as series]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.util :as u]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
@@ -34,12 +38,12 @@
              (fn [[_ theta _]]
                (* -1 beta (cos theta))))
         H-pendulum-series (fn [alpha beta epsilon]
-                            (series (H0 alpha) (* epsilon (H1 beta))))
+                            (e/series (H0 alpha) (* epsilon (H1 beta))))
         W (fn [alpha beta]
             (fn [[_ theta ptheta]]
               (/ (* -1 alpha beta (sin theta)) ptheta)))
         a-state (up 't 'theta 'p_theta)
-        L (Lie-derivative (W 'α 'β))
+        L (e/Lie-derivative (W 'α 'β))
         H (H-pendulum-series 'α 'β 'ε)
         E (((exp (* 'ε L)) H) a-state)
         solution0 (fn [alpha beta]
@@ -50,8 +54,8 @@
                             ptheta0))))
         C (fn [alpha beta epsilon order]
             (fn [state]
-              (series:sum
-               (((Lie-transform (W alpha beta) epsilon)
+              (e/series:sum
+               (((e/Lie-transform (W alpha beta) epsilon)
                  identity)
                 state)
                order)))
@@ -63,18 +67,18 @@
                        (compose (C alpha beta epsilon order)
                                 ((solution0 alpha beta) delta-t)
                                 (C-inv alpha beta epsilon order)))))]
-    (is (= 0 (simplify ((+ ((Lie-derivative (W 'alpha 'beta)) (H0 'alpha))
+    (is (= 0 (simplify ((+ ((e/Lie-derivative (W 'alpha 'beta)) (H0 'alpha))
                            (H1 'beta))
                         a-state))))
     (is (= '((/ (expt p_theta 2) (* 2 α))
-              0
-              (/ (* α (expt β 2) (expt ε 2) (expt (sin theta) 2)) (* 2 (expt p_theta 2)))
-              0
-              0)
+             0
+             (/ (* α (expt β 2) (expt ε 2) (expt (sin theta) 2)) (* 2 (expt p_theta 2)))
+             0
+             0)
            (simplify (series/take 5 E))))
     (is (= '(/ (+ (* (expt α 2) (expt β 2) (expt ε 2) (expt (sin theta) 2)) (expt p_theta 4))
                (* 2 (expt p_theta 2) α))
-           (simplify (series:sum E 2))))
+           (simplify (e/series:sum E 2))))
     (is (= '(up t (/ (+ (* -1 (expt α 2) (expt β 2) (expt ε 2) (cos theta) (sin theta))
                         (* 2 (expt p_theta 2) α β ε (sin theta))
                         (* 2 (expt p_theta 4) theta))
@@ -83,5 +87,4 @@
                       (* -1 (expt α 2) (expt β 2) (expt ε 2))
                       (* 2 (expt p_theta 4)))
                    (* 2 (expt p_theta 3))))
-           (simplify ((C 'α 'β 'ε 2) a-state))))
-    ))
+           (simplify ((C 'α 'β 'ε 2) a-state))))))

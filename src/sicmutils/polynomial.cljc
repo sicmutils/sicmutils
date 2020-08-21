@@ -18,7 +18,7 @@
 ;
 
 (ns sicmutils.polynomial
-  (:refer-clojure :exclude [divide])
+  (:refer-clojure :exclude [divide + - * /])
   (:require [clojure.set :as set]
             [clojure.string :as cs]
             [sicmutils.analyze :as a]
@@ -66,7 +66,7 @@
   {:pre (= (count xs) (count ys))}
   (let [xd (monomial-degree xs)
         yd (monomial-degree ys)]
-    (if (= xd yd) (lex-order xs ys) (- xd yd))))
+    (if (= xd yd) (lex-order xs ys) (g/- xd yd))))
 
 (defn graded-reverse-lex-order
   ""
@@ -74,7 +74,7 @@
   {:pre (= (count xs) (count ys))}
   (let [xd (monomial-degree xs)
         yd (monomial-degree ys)]
-    (if (= xd yd) (compare (vec (rseq ys)) (vec (rseq xs))) (- xd yd))))
+    (if (= xd yd) (compare (vec (rseq ys)) (vec (rseq xs))) (g/- xd yd))))
 
 (def ^:private monomial-order graded-lex-order)
 (def ^:private empty-coefficients [])
@@ -135,7 +135,7 @@
                   (take n (for [[k v] xs->c]
                             (str v "*" (cs/join "," k)))))
          (when (> c n)
-           (format " ...and %d more terms" (- c n)))
+           (format " ...and %d more terms" (g/- c n)))
          ")")))
 
 (defn polynomial?
@@ -261,7 +261,7 @@
         :else (let [a (check-same-arity p q)]
                 (make a (for [[xp cp] (.-xs->c p)
                               [xq cq] (.-xs->c q)]
-                          [(mapv + xp xq) (g/* cp cq)])))))
+                          [(mapv g/+ xp xq) (g/* cp cq)])))))
 
 (defn raise-arity
   "The opposite of lower-arity."
@@ -303,7 +303,7 @@
          x**e 1
          e 0]
     (if-let [[[e'] c] (first xs->c)]
-      (let [x**e' (g/* x**e (g/expt x (- e' e)))]
+      (let [x**e' (g/* x**e (g/expt x (g/- e' e)))]
         (recur (next xs->c)
                (g/+ result (g/* c x**e'))
                x**e'
@@ -345,7 +345,7 @@
                     ;; find a term in the remainder into which the
                     ;; lead term of the divisor can be divided.
                     (let [[r-exponents r-coefficient] (lead-term remainder)
-                          residues (mapv - r-exponents vn-exponents)]
+                          residues (mapv g/- r-exponents vn-exponents)]
                       (if (good? residues)
                         (let [new-coefficient (g/divide r-coefficient vn-coefficient)
                               new-term (make arity [[residues new-coefficient]])]
@@ -372,14 +372,14 @@
   (let [a (check-same-arity u v)
         [vn-exponents vn-coefficient] (lead-term v)
         *vn (fn [p] (map-coefficients #(g/* vn-coefficient %) p))
-        n (reduce + vn-exponents)]
+        n (reduce g/+ vn-exponents)]
     (loop [remainder u d 0]
       (let [m (degree remainder)
             c (-> remainder lead-term coefficient)]
         (if (< m n)
           [remainder d]
           (recur (sub (*vn remainder)
-                      (mul v (->Polynomial a [[[(- m n)] c]])))
+                      (mul v (->Polynomial a [[[(g/- m n)] c]])))
                  (inc d)))))))
 
 (defn evenly-divide
