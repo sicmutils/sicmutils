@@ -32,6 +32,7 @@
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.mechanics.rotation :refer [rotate-x-matrix rotate-y-matrix rotate-z-matrix]]
+            [sicmutils.polynomial-gcd :as pg]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :each hermetic-simplify-fixture)
@@ -209,11 +210,13 @@
          polar-dual-basis (e/basis->oneform-basis polar-basis)
          f (literal-manifold-function 'f-rect R2-rect)
          p ((point R2-rect) (up 'X 'Y))]
-     (is (zero? (simplify ((- ((e/commutator e0 e1) f)
-                              (* (- (e0 (polar-dual-basis e1))
-                                    (e1 (polar-dual-basis e0)))
-                                 (polar-vector-basis f)))
-                           p))))))
+     (binding [pg/*poly-gcd-time-limit* #?(:clj  [1 :seconds]
+                                           :cljs [4 :seconds])]
+       (is (zero? (simplify ((- ((e/commutator e0 e1) f)
+                                (* (- (e0 (polar-dual-basis e1))
+                                      (e1 (polar-dual-basis e0)))
+                                   (polar-vector-basis f)))
+                             p)))))))
   (e/let-coordinates
    [[x y z] R3-rect]
    (let [p ((point R3-rect) (up 'x0 'y0 'z0))
