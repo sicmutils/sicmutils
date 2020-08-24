@@ -19,7 +19,7 @@
 
 (ns sicmutils.sicm.ch2-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [is deftest use-fixtures]]
             [sicmutils.env :refer :all]
             [sicmutils.mechanics.rotation :refer [Euler->M]]
             [sicmutils.mechanics.rigid :refer :all]

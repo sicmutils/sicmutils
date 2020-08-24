@@ -18,52 +18,48 @@
 ;
 
 (ns sicmutils.polynomial-factor-test
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.analyze :as a]
             [sicmutils.generic :as g]
             [sicmutils.numbers]
             [sicmutils.polynomial :as p]
             [sicmutils.value :as v]
-            #?(:clj [sicmutils.simplify :refer [hermetic-simplify-fixture]])
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.polynomial-factor :as pf]))
 
-#?(:clj
-   (use-fixtures :once hermetic-simplify-fixture))
+(use-fixtures :once hermetic-simplify-fixture)
 
 (def ^:private poly-analyzer (p/->PolynomialAnalyzer))
 (defn ^:private ->poly [x] (a/expression-> poly-analyzer x (fn [p _] p)))
 
-#?(:clj
-   (deftest factoring
-     (testing "simple test cases"
-       (let [fpe #(pf/factor-polynomial-expression g/simplify poly-analyzer %)
-             unity2 (p/make 2 [[[0 0] 1]])
-             x-y (->poly '(- x y))
-             x+y (->poly '(+ x y))
-             U0 (g/* (g/square (g/- 'x 'y)) (g/cube (g/+ 'x 'y)))
-             U1 (g/square (g/- 'x 'y))
-             U2 (g/* 3 (g/cube 'z) (g/+ (g/square 'x) 'y))
-             U3 (g/* 3 (g/square 'z) (g/+ (g/square 'x) 'y))
-             U (->poly '(* (square (- x y)) (cube (+ x y))))]
-         (is (= [unity2 unity2 x-y x+y] (pf/split U)))
-         (is (= [1 1 '(+ x (* -1 y)) '(+ x y)] (fpe U0)))
-         (is (= [1 1 '(+ x (* -1 y)) 1] (fpe U1)))
-         (is (= [3 '(+ (expt x 2) y) 1 'z] (fpe U2)))
-         (is (= [3 '(+ (expt x 2) y) 'z 1] (fpe U3)))))))
+(deftest factoring
+  (testing "simple test cases"
+    (let [fpe #(pf/factor-polynomial-expression g/simplify poly-analyzer %)
+          unity2 (p/make 2 [[[0 0] 1]])
+          x-y (->poly '(- x y))
+          x+y (->poly '(+ x y))
+          U0 (g/* (g/square (g/- 'x 'y)) (g/cube (g/+ 'x 'y)))
+          U1 (g/square (g/- 'x 'y))
+          U2 (g/* 3 (g/cube 'z) (g/+ (g/square 'x) 'y))
+          U3 (g/* 3 (g/square 'z) (g/+ (g/square 'x) 'y))
+          U (->poly '(* (square (- x y)) (cube (+ x y))))]
+      (is (= [unity2 unity2 x-y x+y] (pf/split U)))
+      (is (= [1 1 '(+ x (* -1 y)) '(+ x y)] (fpe U0)))
+      (is (= [1 1 '(+ x (* -1 y)) 1] (fpe U1)))
+      (is (= [3 '(+ (expt x 2) y) 1 'z] (fpe U2)))
+      (is (= [3 '(+ (expt x 2) y) 'z 1] (fpe U3))))))
 
-#?(:clj
-   (deftest factoring-2
-     (testing "test poly"
-       (let [x 'x
-             y 'y
-             z (g/square (g/+ x (g/* x (g/expt y 2))))
-             test-poly (g/simplify (g/* (g/expt (g/+ (g/cos z) y) 2)
-                                        (g/expt (g/- (g/cos z) y) 3)))]
-         (is (= '(* -1
-                    (expt (+ y (cos (expt (+ (* x (expt y 2)) x) 2))) 2)
-                    (expt (+ y (* -1 (cos (expt (+ (* x (expt y 2)) x) 2)))) 3))
-                (-> test-poly v/freeze pf/factor)))))))
+(deftest factoring-2
+  (testing "test poly"
+    (let [x 'x
+          y 'y
+          z (g/square (g/+ x (g/* x (g/expt y 2))))
+          test-poly (g/simplify (g/* (g/expt (g/+ (g/cos z) y) 2)
+                                     (g/expt (g/- (g/cos z) y) 3)))]
+      (is (= '(* -1
+                 (expt (+ y (cos (expt (+ (* x (expt y 2)) x) 2))) 2)
+                 (expt (+ y (* -1 (cos (expt (+ (* x (expt y 2)) x) 2)))) 3))
+             (-> test-poly v/freeze pf/factor))))))
 
 (deftest root-out-squares-test
   (testing "one step"

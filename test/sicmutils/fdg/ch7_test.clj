@@ -19,7 +19,7 @@
 
 (ns sicmutils.fdg.ch7-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :refer :all]
             [sicmutils.value :as v]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))

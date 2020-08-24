@@ -19,8 +19,7 @@
 
 (ns sicmutils.calculus.map-test
   (:refer-clojure :exclude [+ - * /  partial])
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+  (:require [clojure.test :refer [is deftest testing]]
             [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.coordinate :as c
              #?(:clj :refer :cljs :refer-macros) [let-coordinates]]

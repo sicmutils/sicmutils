@@ -19,15 +19,13 @@
 
 (ns sicmutils.sicm.ch1-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
-  (:require [clojure.test :refer :all]
-            [sicmutils
-             [env :refer :all]
-             [value :refer [within]]
-             [simplify :refer [hermetic-simplify-fixture]]]
+  (:require [clojure.test :refer [is deftest use-fixtures]]
+            [sicmutils.env :refer :all]
+            [sicmutils.value :refer [within]]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.mechanics.lagrange :as L]
-            [sicmutils.examples
-             [pendulum :as pendulum]
-             [driven-pendulum :as driven]]))
+            [sicmutils.examples.pendulum :as pendulum]
+            [sicmutils.examples.driven-pendulum :as driven]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 

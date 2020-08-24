@@ -18,8 +18,7 @@
 ;
 
 (ns sicmutils.value-test
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+  (:require [clojure.test :refer [is deftest testing]]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj

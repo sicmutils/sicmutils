@@ -18,8 +18,7 @@
 ;
 
 (ns sicmutils.numbers-test
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+  (:require [clojure.test :refer [is deftest testing]]
             [sicmutils.complex :as c]
             [sicmutils.util :as u]
             [sicmutils.generic :as g]

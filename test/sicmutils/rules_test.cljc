@@ -18,8 +18,7 @@
 ;
 
 (ns sicmutils.rules-test
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :refer-macros [is deftest]])
+  (:require [clojure.test :refer [is deftest]]
             [sicmutils.rules :as r]))
 
 (deftest simplify-square-roots-test

@@ -19,8 +19,7 @@
 
 (ns sicmutils.calculus.derivative-test
   (:refer-clojure :exclude [+ - * / ref partial])
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing use-fixtures]])
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.calculus.derivative :as d :refer [D partial]]
             [sicmutils.complex :refer [complex]]
             #?(:clj  [sicmutils.function :as f :refer [with-literal-functions]]

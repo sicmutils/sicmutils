@@ -19,8 +19,7 @@
 
 (ns sicmutils.calculus.form-field-test
   (:refer-clojure :exclude [+ - * /])
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing]])
+  (:require [clojure.test :refer [is deftest testing]]
             [sicmutils.calculus.coordinate :as c
              #?(:clj :refer :cljs :refer-macros) [let-coordinates]]
             [sicmutils.calculus.manifold :as m :refer [R2-rect R2-polar]]

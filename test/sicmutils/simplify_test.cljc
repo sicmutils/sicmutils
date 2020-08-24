@@ -18,8 +18,7 @@
 ;;
 
 (ns sicmutils.simplify-test
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing use-fixtures]])
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             #?(:cljs [goog.string :refer [format]])
             [sicmutils.complex :as c]
             [sicmutils.generic :as g]

@@ -19,8 +19,7 @@
 
 (ns sicmutils.infix-test
   (:refer-clojure :exclude [+ - * /])
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing use-fixtures]])
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             #?(:cljs [goog.string :refer [format]])
             [sicmutils.calculus.derivative :refer [D taylor-series-terms]]
             [sicmutils.generic :as g :refer [expt sin cos + - * /]]

@@ -19,12 +19,10 @@
 
 (ns sicmutils.sicm.ch6-test
   (:refer-clojure :exclude [+ - * / zero? ref partial])
-  (:require [clojure.test :refer :all]
-            [sicmutils
-             [numsymb]
-             [env :refer :all]
-             [series :as series]
-             [simplify :refer [hermetic-simplify-fixture]]]))
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [sicmutils.env :refer :all]
+            [sicmutils.series :as series]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 

@@ -19,8 +19,7 @@
 
 (ns sicmutils.calculus.manifold-test
   (:refer-clojure :exclude [* - / +])
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing use-fixtures]])
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [cos sin * - / +]]
