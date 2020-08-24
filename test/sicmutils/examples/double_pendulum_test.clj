@@ -71,68 +71,74 @@
 
 (deftest infix-forms
   (let [eq (simplify
-             ((double/state-derivative 'm1 'm2 'l1 'l2 'g)
-               (up 't (up 'theta 'phi) (up 'thetadot 'phidot))))]
+            ((double/state-derivative 'm1 'm2 'l1 'l2 'g)
+             (up 't (up 'theta 'phi) (up 'thetadot 'phidot))))]
     (is (= (str "function(t, theta, phi, thetadot, phidot) {\n"
-                "  var _0002 = Math.pow(phidot, 2);\n"
-                "  var _0003 = Math.sin(phi);\n"
-                "  var _0005 = - phi;\n"
-                "  var _0007 = Math.sin(theta);\n"
-                "  var _0008 = Math.pow(thetadot, 2);\n"
-                "  var _000b = _0005 + theta;\n"
-                "  var _000e = Math.cos(_000b);\n"
-                "  var _000f = Math.sin(_000b);\n"
-                "  var _0011 = Math.pow(_000f, 2);\n"
-                "  return [1, [thetadot, phidot], [(- l1 * m2 * _0008 * _000f * _000e - l2 * m2 * _0002 * _000f + g * m2 * _000e * _0003 - g * m1 * _0007 - g * m2 * _0007) / (l1 * m2 * _0011 + l1 * m1), (l2 * m2 * _0002 * _000f * _000e + l1 * m1 * _0008 * _000f + l1 * m2 * _0008 * _000f + g * m1 * _0007 * _000e + g * m2 * _0007 * _000e - g * m1 * _0003 - g * m2 * _0003) / (l2 * m2 * _0011 + l2 * m1)]];\n"
+                "  var _0001 = - phi;\n"
+                "  var _0005 = Math.pow(phidot, 2);\n"
+                "  var _0006 = Math.pow(thetadot, 2);\n"
+                "  var _0008 = Math.sin(phi);\n"
+                "  var _0009 = Math.sin(theta);\n"
+                "  var _000a = _0001 + theta;\n"
+                "  var _000e = Math.cos(_000a);\n"
+                "  var _0010 = Math.sin(_000a);\n"
+                "  var _0011 = Math.pow(_0010, 2);\n"
+                "  return [1, [thetadot, phidot], [(- l1 * m2 * _0006 * _0010 * _000e - l2 * m2 * _0005 * _0010 + g * m2 * _000e * _0008 - g * m1 * _0009 - g * m2 * _0009) / (l1 * m2 * _0011 + l1 * m1), (l2 * m2 * _0005 * _0010 * _000e + l1 * m1 * _0006 * _0010 + l1 * m2 * _0006 * _0010 + g * m1 * _0009 * _000e + g * m2 * _0009 * _000e - g * m1 * _0008 - g * m2 * _0008) / (l2 * m2 * _0011 + l2 * m1)]];\n"
                 "}")
-           (->JavaScript eq :parameter-order '[t theta phi thetadot phidot]))))
+           (->JavaScript eq
+                         :parameter-order '[t theta phi thetadot phidot]
+                         :deterministic? true))))
+
   (let [eq (simplify
-             ((double/state-derivative 1 1 1 1 'g)
-               (up 't (up 'theta 'phi) (up 'thetadot 'phidot))))]
+            ((double/state-derivative 1 1 1 1 'g)
+             (up 't (up 'theta 'phi) (up 'thetadot 'phidot))))]
     (is (= (str "function(g, phi, phidot, theta, thetadot) {\n"
-                "  var _0002 = Math.pow(phidot, 2);\n"
-                "  var _0003 = Math.sin(phi);\n"
-                "  var _0005 = - phi;\n"
-                "  var _0006 = Math.sin(theta);\n"
-                "  var _0008 = Math.pow(thetadot, 2);\n"
-                "  var _000c = _0005 + theta;\n"
-                "  var _0012 = Math.sin(_000c);\n"
-                "  var _0013 = Math.cos(_000c);\n"
-                "  var _0015 = Math.pow(_0013, 2);\n"
+                "  var _0001 = - phi;\n"
+                "  var _0006 = Math.pow(phidot, 2);\n"
+                "  var _0007 = Math.pow(thetadot, 2);\n"
+                "  var _0009 = Math.sin(phi);\n"
+                "  var _000a = Math.sin(theta);\n"
+                "  var _000c = _0001 + theta;\n"
+                "  var _0011 = Math.cos(_000c);\n"
+                "  var _0013 = Math.sin(_000c);\n"
+                "  var _0015 = Math.pow(_0011, 2);\n"
                 "  var _0016 = _0015 + -2;\n"
-                "  return [1, [thetadot, phidot], [(_0008 * _0012 * _0013 - g * _0013 * _0003 + _0002 * _0012 + 2 * g * _0006) / _0016, (- _0002 * _0012 * _0013 -2 * g * _0006 * _0013 -2 * _0008 * _0012 + 2 * g * _0003) / _0016]];\n}"
-                )
-           (->JavaScript eq))))
+                "  return [1, [thetadot, phidot], [(_0007 * _0013 * _0011 - g * _0011 * _0009 + _0006 * _0013 + 2 * g * _000a) / _0016, (- _0006 * _0013 * _0011 -2 * g * _000a * _0011 -2 * _0007 * _0013 + 2 * g * _0009) / _0016]];\n"
+                "}")
+           (->JavaScript eq :deterministic? true))))
+
   (let [eq (simplify
             ((Hamiltonian->state-derivative
               (Lagrangian->Hamiltonian
                (double/L 'm_1 'm_2 'l_1 'l_2 'g)))
              (->H-state 't (up 'theta 'psi) (down 'p_theta 'p_psi))))]
     (is (= (str "function(theta, psi, p_theta, p_psi) {\n"
-                "  var _0004 = Math.pow(m_1, 2);\n"
-                "  var _0006 = Math.pow(l_2, 2);\n"
-                "  var _0007 = - psi;\n"
-                "  var _000a = Math.pow(p_psi, 2);\n"
-                "  var _000b = Math.pow(l_1, 2);\n"
-                "  var _000c = Math.sin(psi);\n"
-                "  var _000d = Math.pow(m_2, 3);\n"
-                "  var _000e = Math.pow(l_2, 3);\n"
-                "  var _0012 = Math.sin(theta);\n"
-                "  var _0013 = Math.pow(p_theta, 2);\n"
-                "  var _0014 = Math.pow(m_2, 2);\n"
-                "  var _0017 = Math.pow(l_1, 3);\n"
-                "  var _0019 = _0007 + theta;\n"
-                "  var _001c = _000b * _0006 * _0014;\n"
-                "  var _0023 = _000b * _0006 * _0004;\n"
-                "  var _002b = Math.cos(_0019);\n"
-                "  var _002d = Math.sin(_0019);\n"
-                "  var _002e = Math.pow(_002b, 4);\n"
-                "  var _0030 = Math.pow(_002b, 2);\n"
-                "  var _0033 = Math.pow(_002d, 2);\n"
-                "  var _0035 = _000b * _0006 * _0014 * _002e;\n"
-                "  var _0036 = -2 * _000b * _0006 * _0014 * _0030;\n"
-                "  var _0038 = 2 * _000b * _0006 * m_1 * m_2 * _0033;\n"
-                "  var _0039 = _0035 + _0038 + _0036 + _0023 + _001c;\n"
-                "  return [1, [(- l_1 * p_psi * _002b + l_2 * p_theta) / (_000b * l_2 * m_2 * _0033 + _000b * l_2 * m_1), (- l_2 * m_2 * p_theta * _002b + l_1 * m_1 * p_psi + l_1 * m_2 * p_psi) / (l_1 * _0006 * _0014 * _0033 + l_1 * _0006 * m_1 * m_2)], [(- g * _0017 * _0006 * m_1 * _0014 * _0012 * _002e - g * _0017 * _0006 * _000d * _0012 * _002e + 2 * g * _0017 * _0006 * _0004 * m_2 * _0012 * _0030 + 4 * g * _0017 * _0006 * m_1 * _0014 * _0012 * _0030 + 2 * g * _0017 * _0006 * _000d * _0012 * _0030 - g * _0017 * _0006 * Math.pow(m_1, 3) * _0012 -3 * g * _0017 * _0006 * _0004 * m_2 * _0012 -3 * g * _0017 * _0006 * m_1 * _0014 * _0012 - g * _0017 * _0006 * _000d * _0012 - l_1 * l_2 * m_2 * p_psi * p_theta * _0030 * _002d + _000b * m_1 * _000a * _002b * _002d + _000b * m_2 * _000a * _002b * _002d + _0006 * m_2 * _0013 * _002b * _002d - l_1 * l_2 * m_1 * p_psi * p_theta * _002d - l_1 * l_2 * m_2 * p_psi * p_theta * _002d) / _0039, (- g * _000b * _000e * _000d * _002e * _000c -2 * g * _000b * _000e * m_1 * _0014 * _0033 * _000c + 2 * g * _000b * _000e * _000d * _0030 * _000c - g * _000b * _000e * _0004 * m_2 * _000c - g * _000b * _000e * _000d * _000c + l_1 * l_2 * m_2 * p_psi * p_theta * _0030 * _002d - _000b * m_1 * _000a * _002b * _002d - _000b * m_2 * _000a * _002b * _002d - _0006 * m_2 * _0013 * _002b * _002d + l_1 * l_2 * m_1 * p_psi * p_theta * _002d + l_1 * l_2 * m_2 * p_psi * p_theta * _002d) / _0039]];\n"
+                "  var _0004 = - psi;\n"
+                "  var _000d = Math.pow(l_1, 2);\n"
+                "  var _000e = Math.pow(l_1, 3);\n"
+                "  var _000f = Math.pow(l_2, 2);\n"
+                "  var _0010 = Math.pow(l_2, 3);\n"
+                "  var _0011 = Math.pow(m_1, 2);\n"
+                "  var _0012 = Math.pow(m_2, 2);\n"
+                "  var _0013 = Math.pow(m_2, 3);\n"
+                "  var _0014 = Math.pow(p_psi, 2);\n"
+                "  var _0015 = Math.pow(p_theta, 2);\n"
+                "  var _0017 = Math.sin(psi);\n"
+                "  var _0018 = Math.sin(theta);\n"
+                "  var _001b = _000d * _000f * _0011;\n"
+                "  var _001d = _000d * _000f * _0012;\n"
+                "  var _001f = _0004 + theta;\n"
+                "  var _0029 = Math.cos(_001f);\n"
+                "  var _002d = Math.sin(_001f);\n"
+                "  var _0032 = Math.pow(_0029, 2);\n"
+                "  var _0033 = Math.pow(_0029, 4);\n"
+                "  var _0034 = Math.pow(_002d, 2);\n"
+                "  var _0035 = -2 * _000d * _000f * _0012 * _0032;\n"
+                "  var _0036 = 2 * _000d * _000f * m_1 * m_2 * _0034;\n"
+                "  var _0037 = _000d * _000f * _0012 * _0033;\n"
+                "  var _0039 = _0037 + _0036 + _0035 + _001b + _001d;\n"
+                "  return [1, [(- l_1 * p_psi * _0029 + l_2 * p_theta) / (_000d * l_2 * m_2 * _0034 + _000d * l_2 * m_1), (- l_2 * m_2 * p_theta * _0029 + l_1 * m_1 * p_psi + l_1 * m_2 * p_psi) / (l_1 * _000f * _0012 * _0034 + l_1 * _000f * m_1 * m_2)], [(- g * _000e * _000f * m_1 * _0012 * _0018 * _0033 - g * _000e * _000f * _0013 * _0018 * _0033 + 2 * g * _000e * _000f * _0011 * m_2 * _0018 * _0032 + 4 * g * _000e * _000f * m_1 * _0012 * _0018 * _0032 + 2 * g * _000e * _000f * _0013 * _0018 * _0032 - g * _000e * _000f * Math.pow(m_1, 3) * _0018 -3 * g * _000e * _000f * _0011 * m_2 * _0018 -3 * g * _000e * _000f * m_1 * _0012 * _0018 - g * _000e * _000f * _0013 * _0018 - l_1 * l_2 * m_2 * p_psi * p_theta * _0032 * _002d + _000d * m_1 * _0014 * _0029 * _002d + _000d * m_2 * _0014 * _0029 * _002d + _000f * m_2 * _0015 * _0029 * _002d - l_1 * l_2 * m_1 * p_psi * p_theta * _002d - l_1 * l_2 * m_2 * p_psi * p_theta * _002d) / _0039, (- g * _000d * _0010 * _0013 * _0033 * _0017 -2 * g * _000d * _0010 * m_1 * _0012 * _0034 * _0017 + 2 * g * _000d * _0010 * _0013 * _0032 * _0017 - g * _000d * _0010 * _0011 * m_2 * _0017 - g * _000d * _0010 * _0013 * _0017 + l_1 * l_2 * m_2 * p_psi * p_theta * _0032 * _002d - _000d * m_1 * _0014 * _0029 * _002d - _000d * m_2 * _0014 * _0029 * _002d - _000f * m_2 * _0015 * _0029 * _002d + l_1 * l_2 * m_1 * p_psi * p_theta * _002d + l_1 * l_2 * m_2 * p_psi * p_theta * _002d) / _0039]];\n"
                 "}")
-           (->JavaScript eq :parameter-order '[theta psi p_theta p_psi])))))
+           (->JavaScript eq
+                         :parameter-order '[theta psi p_theta p_psi]
+                         :deterministic? true)))))

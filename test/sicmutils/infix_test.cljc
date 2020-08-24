@@ -240,32 +240,18 @@
         (is (= (format "%s dx² ∂₀(∂₀f)(up(x, y)) + dx dy ∂₁(∂₀f)(up(x, y)) + %s dy² ∂₁(∂₁f)(up(x, y)) + dx ∂₀f(up(x, y)) + dy ∂₁f(up(x, y)) + f(up(x, y))" half half)
                (s->infix expr)))
 
-        ;; TODO there is some difference happening internally in the simplifier,
-        ;; probably due to some difference in equality between cljs and clj,
-        ;; that is causing the variables to resolve differently. We're in a
-        ;; functional language, and we want everything to work EXACTLY the
-        ;; same... so this is a passing test, but also a bug.
-        ;;
         ;; TODO once we get fractional support, render fractions correctly. Or,
         ;; since cljs *is* js, consider doing something different here.
-        (is (= #?(:clj
-                  (str "function(dx, dy, f, partial, x, y) {\n"
-                       "  var _0003 = partial(0);\n"
-                       "  var _0004 = [x, y];\n"
-                       "  var _0005 = partial(1);\n"
-                       "  var _0006 = _0005(f);\n"
-                       "  var _0007 = _0003(f);\n"
-                       "  return 1/2 * Math.pow(dx, 2) * _0003(_0007)(_0004) + dx * dy * _0005(_0007)(_0004) + 1/2 * Math.pow(dy, 2) * _0005(_0006)(_0004) + dx * _0007(_0004) + dy * _0006(_0004) + f(_0004);\n}")
-
-                  :cljs
-                  (str "function(dx, dy, f, partial, x, y) {\n"
-                       "  var _0002 = partial(0);\n"
-                       "  var _0003 = [x, y];\n"
-                       "  var _0004 = partial(1);\n"
-                       "  var _0006 = _0002(f);\n"
-                       "  var _0007 = _0004(f);\n"
-                       "  return 0.5 * Math.pow(dx, 2) * _0002(_0006)(_0003) + dx * dy * _0004(_0006)(_0003) + 0.5 * Math.pow(dy, 2) * _0004(_0007)(_0003) + dx * _0006(_0003) + dy * _0007(_0003) + f(_0003);\n}"))
-               (s->JS expr)))
+        (is (= (format
+                (str "function(dx, dy, f, partial, x, y) {\n"
+                     "  var _0003 = partial(0);\n"
+                     "  var _0004 = partial(1);\n"
+                     "  var _0005 = [x, y];\n"
+                     "  var _0006 = _0003(f);\n"
+                     "  var _0007 = _0004(f);\n"
+                     "  return %s * Math.pow(dx, 2) * _0003(_0006)(_0005) + dx * dy * _0004(_0006)(_0005) + %s * Math.pow(dy, 2) * _0004(_0007)(_0005) + dx * _0006(_0005) + dy * _0007(_0005) + f(_0005);\n}")
+                half half)
+               (s->JS expr :deterministic? true)))
 
         (is (= (format "%s\\,{dx}^{2}\\,\\partial_0\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,dy\\,\\partial_1\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + %s\\,{dy}^{2}\\,\\partial_1\\left(\\partial_1f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,\\partial_0f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dy\\,\\partial_1f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)"
                        tex-half tex-half)

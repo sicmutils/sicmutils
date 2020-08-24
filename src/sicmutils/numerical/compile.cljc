@@ -69,33 +69,40 @@
                  (set/difference (set/intersection new-vs subexpr-vars) new-variables)))))))
 
 (defn extract-common-subexpressions
-  "Considers an S-expression from the point of view of optimizing
-  its evaluation by isolating common subexpressions into auxiliary
-  variables. The continuation is called with two arguments: a
-  new equivalent expression with possibly some subexpressions replaced
-  by new variables (delivered by the supplied generator) and a seq
-  of pairs of [aux variable, subexpression] used to reconstitute the
-  value."
-  [expression symbol-generator continue]
-  (loop [x expression
-         expr-to-var {}]
-    (let [cs (atom {})
-          increment (fnil inc 0)]
-      ;; cs maps subexpressions to the number of times we have seen the
-      ;; expression.
-      (w/postwalk (fn [e]
-                    (when (and (seq? e) (not (expr-to-var e)))
-                      (swap! cs update e increment))
-                    e)
-                  x)
+  "Considers an S-expression from the point of view of optimizing its evaluation
+  by isolating common subexpressions into auxiliary variables. The continuation
+  is called with two arguments: a new equivalent expression with possibly some
+  subexpressions replaced by new variables (delivered by the supplied generator)
+  and a seq of pairs of [aux variable, subexpression] used to reconstitute the
+  value.
 
-      (let [new-syms (into {} (for [[k v] @cs :when (> v 1)] [k (symbol-generator)]))]
-        (if (empty? new-syms)
-          (discard-unreferenced-variables x
-                                          (into {} (for [[expr var] expr-to-var] [var expr]))
-                                          continue)
-          (let [joint-syms (into expr-to-var new-syms)]
-            (recur (w/postwalk-replace joint-syms x) joint-syms)))))))
+  If `:deterministic? true` is supplied, the function will assign aux variables
+  by sorting the string representations of each term before assignment.
+  Otherwise, the nondeterministic order of hash maps inside this function won't
+  guarantee a consistent variable naming convention in the returned function.
+  For tests, set `:deterministic? true`."
+  [expression symbol-generator continue & {:keys [deterministic?]}]
+  (let [pairs (if deterministic?
+                (partial sort-by (comp str vec first))
+                identity)]
+    (loop [x expression
+           expr-to-var {}]
+      (let [cs (atom {})
+            increment (fnil inc 0)]
+        ;; cs maps subexpressions to the number of times we have seen the
+        ;; expression.
+        (w/postwalk (fn [e]
+                      (when (and (seq? e) (not (expr-to-var e)))
+                        (swap! cs update e increment))
+                      e)
+                    x)
+        (let [new-syms (into {} (for [[k v] (pairs @cs) :when (> v 1)] [k (symbol-generator)]))]
+          (if (empty? new-syms)
+            (discard-unreferenced-variables x
+                                            (into {} (for [[expr var] expr-to-var] [var expr]))
+                                            continue)
+            (let [joint-syms (into expr-to-var new-syms)]
+              (recur (w/postwalk-replace joint-syms x) joint-syms))))))))
 
 (defn ^:private initialize-cs-variables
   "Given a list of pairs of (symbol, expression) construct a
@@ -105,22 +112,28 @@
   (reduce (fn [v [sym x]] (conj (conj v sym) x)) [] syms))
 
 (defn common-subexpression-elimination
-  "Given an expression and a table of common subexpressions, create a
-  let statement which assigns the subexpressions to the values of
-  dummy variables generated for the purpose of holding these values;
-  the body of the let statement will be x with the subexpressions
-  replaced by the dummy variables."
-  [x & {:keys [symbol-generator]
+  "Given an expression and a table of common subexpressions, create a let
+  statement which assigns the subexpressions to the values of dummy variables
+  generated for the purpose of holding these values; the body of the let
+  statement will be x with the subexpressions replaced by the dummy variables.
+
+  If `:deterministic? true` is supplied, the function will assign variable names
+  by sorting the string representations of each term before assignment.
+  Otherwise, the nondeterministic order of hash maps inside this function won't
+  guarantee a consistent variable naming convention in the returned function.
+  For tests, set `:deterministic? true`."
+  [x & {:keys [symbol-generator deterministic?]
         :or {symbol-generator gensym}}]
   (extract-common-subexpressions
-    x
-    symbol-generator
-    (fn [new-expression new-vars]
-      (if (> (count new-vars) 0)
-        (do
-          (log/info (format "common subexpression elimination: %d expressions" (count new-vars)))
-          `(let ~(initialize-cs-variables new-vars) ~new-expression))
-        new-expression))))
+   x
+   symbol-generator
+   (fn [new-expression new-vars]
+     (if (> (count new-vars) 0)
+       (do
+         (log/info (format "common subexpression elimination: %d expressions" (count new-vars)))
+         `(let ~(initialize-cs-variables new-vars) ~new-expression))
+       new-expression))
+   :deterministic? deterministic?))
 
 (defn ^:private compile-state-function2
   [f parameters initial-state]

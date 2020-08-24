@@ -8,6 +8,7 @@
             sicmutils.calculus.manifold-test
             sicmutils.calculus.map-test
             sicmutils.calculus.vector-field-test
+            sicmutils.examples.pendulum-test
             sicmutils.mechanics.hamilton-test
             sicmutils.mechanics.lagrange-test
             sicmutils.mechanics.rotation-test
@@ -19,9 +20,10 @@
             sicmutils.complex-test
             sicmutils.euclid-test
             sicmutils.expression-test
-            sicmutils.infix-test
+            sicmutils.env-test
             sicmutils.function-test
             sicmutils.generic-test
+            sicmutils.infix-test
             sicmutils.matrix-test
             sicmutils.modint-test
             sicmutils.operator-test
@@ -46,6 +48,7 @@
            'sicmutils.calculus.manifold-test
            'sicmutils.calculus.map-test
            'sicmutils.calculus.vector-field-test
+           'sicmutils.examples.pendulum-test
            'sicmutils.numerical.compile-test
            'sicmutils.numerical.integrate-test
            'sicmutils.numerical.minimize-test
@@ -56,10 +59,11 @@
            'sicmutils.analyzer-test
            'sicmutils.complex-test
            'sicmutils.euclid-test
-           'sicmutils.infix-test
            'sicmutils.expression-test
+           'sicmutils.env-test
            'sicmutils.function-test
            'sicmutils.generic-test
+           'sicmutils.infix-test
            'sicmutils.matrix-test
            'sicmutils.modint-test
            'sicmutils.numbers-test

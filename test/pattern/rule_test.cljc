@@ -19,11 +19,19 @@
 
 (ns pattern.rule-test
   #?(:cljs  (:require-macros [pattern.rule-test :refer [rule-1]]))
-  (:require #?(:clj  [clojure.test :refer :all]
-               :cljs [cljs.test :as t :refer-macros [is deftest testing async]])
+  (:require [clojure.test :as t :refer [is deftest testing]]
             [pattern.rule :as r]))
 
 (def ^:private !=> (constantly false))
+
+(defmacro rule-1
+  "Compiling a rule produces an arity 2 function which takes the data to match
+  and a success continuation. For testing we provide this arity-1 wrapper which
+  provides a continuation that immediately returns."
+  [& pattern-components]
+  `(let [compiled-rule# (r/rule ~@pattern-components)]
+     (fn [data#]
+       (compiled-rule# data# identity))))
 
 (defn ^:private apply-ruleset
   "Like the above, supplies trivial success and failure continuations to a
