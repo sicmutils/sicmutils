@@ -78,7 +78,9 @@
   (gt/integral-a->b-tests u/long identity :exclusions #{:exact-divide}))
 
 (deftest bigint-generics
-  (gt/integral-tests u/bigint))
+  (gt/integral-tests u/bigint)
+  (gt/integral-a->b-tests u/bigint identity)
+  (gt/integral-a->b-tests identity u/bigint))
 
 #?(:clj
    (deftest biginteger-generics

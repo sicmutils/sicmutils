@@ -18,9 +18,16 @@
 ;
 
 (ns sicmutils.sicm.ch1-test
-  (:refer-clojure :exclude [+ - * / zero? ref partial])
+  (:refer-clojure :exclude [+ - * / partial])
   (:require [clojure.test :refer [is deftest use-fixtures]]
-            [sicmutils.env :refer :all]
+            [sicmutils.env :as e
+             :refer [+ - * / D partial simplify
+                     compose up down abs sin cos square expt
+                     Lagrange-equations
+                     F->C p->r s->r ->local
+                     coordinate velocity
+                     Rx Ry Rz]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.value :refer [within]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.mechanics.lagrange :as L]
@@ -32,7 +39,7 @@
 (def ^:private near (within 1e-6))
 
 (deftest ^:long section-1-4
-  (with-literal-functions [x y z]
+  (e/with-literal-functions [x y z]
     (let [q (up x y z)
           test-path (fn [t]
                       (up (+ (* 4 t) 7)
@@ -44,58 +51,82 @@
           varied-free-particle-action (fn [mass q ν t1 t2]
                                         (fn [ε]
                                           (let [η (make-η ν t1 t2)]
-                                            (Lagrangian-action (L/L-free-particle mass)
-                                                               (+ q (* ε η)) t1 t2))))]
+                                            (e/Lagrangian-action (L/L-free-particle mass)
+                                                                 (+ q (* ε η)) t1 t2))))]
       ;; integral
-      (is (near 2.0 (definite-integral sin 0 Math/PI)))
+      #?(:clj
+         (is (near 2.0 (e/definite-integral sin 0 Math/PI))))
+
       ;; p. 18
       (is (= '(up (x t)
                   (y t)
                   (z t))
              (simplify (q 't))))
+
       (is (= '(up ((D x) t)
                   ((D y) t)
                   ((D z) t))
              (simplify ((D q) 't))))
+
       (is (= '(up (((expt D 2) x) t)
                   (((expt D 2) y) t)
                   (((expt D 2) z) t))
              (simplify (((expt D 2) q) 't))))
+
       (is (= '(up (((expt D 2) x) t)
                   (((expt D 2) y) t)
                   (((expt D 2) z) t))
              (simplify ((D (D q)) 't))))
+
       (is (= '(up t
                   (up (x t) (y t) (z t))
                   (up ((D x) t) ((D y) t) ((D z) t)))
-             (simplify ((Γ q) 't))))
-      (is (= '(+ (* 1/2 m (expt ((D x) t) 2))
-                 (* 1/2 m (expt ((D y) t) 2))
-                 (* 1/2 m (expt ((D z) t) 2)))
-             (simplify ((compose (L/L-free-particle 'm) (Γ q)) 't))))
+             (simplify ((e/Γ q) 't))))
+
+      (is (= '(+ (* #?(:clj 1/2 :cljs 0.5) m (expt ((D x) t) 2))
+                 (* #?(:clj 1/2 :cljs 0.5) m (expt ((D y) t) 2))
+                 (* #?(:clj 1/2 :cljs 0.5) m (expt ((D z) t) 2)))
+             (simplify ((compose (L/L-free-particle 'm) (e/Γ q)) 't))))
+
       ;; at this point in the text we should be able to show-expression
       ;; in TeX form XXX.
       ;; p. 20
-      (is (= 435.0 (Lagrangian-action (L/L-free-particle 3.0) test-path 0.0 10.0)))
-      (let [m (minimize (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) -2.0 1.0)]
-        (is (near 0.0 (first m)))
-        (is (near 435 (second m))))
-      (is (near 436.2912143 ((varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) 0.001)))
-      ;; This is fairly time consuming since every evaluation of a candidate point in the
-      ;; multidimensional minimization of find-path involves computing a numeric integration
-      ;; to find the Lagrangian of the path induced by the point. But it works.
-      (let [values (atom [])
-            minimal-path (find-path (L/L-harmonic 1.0 1.0) 0. 1. (/ Math/PI 2) 0. 3
-                                    :observe (fn [pt _] (swap! values conj pt)))
-            good? (partial (within 2e-4) 0)
-            errors (for [x (range 0.0 (/ Math/PI 2) 0.02)]
-                     (abs (- (Math/cos x) (minimal-path x))))]
-        ;; the minimization is supposed to discover the cosine function in the interval [0..pi/2].
-        ;; Check that it has done so over a variety of points to within 2e-4.
-        ;; (prn values)
-        (is ((within 1e-4) 1 (minimal-path 0)))
-        (is ((within 1e-5) 0 (minimal-path (/ Math/PI 2))))
-        (is (every? good? errors))))))
+      #?(:clj
+         ;; TODO activate when we get integrator support in cljs.
+         (is (= 435.0 (e/Lagrangian-action (L/L-free-particle 3.0) test-path 0.0 10.0))))
+
+      #?(:clj
+         ;; TODO activate when we get integrator support in cljs.
+         (let [m (e/minimize
+                  (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0)
+                  -2.0 1.0)]
+           (is (near 0.0 (first m)))
+           (is (near 435 (second m)))))
+
+      #?(:clj
+         ;; TODO activate when we get integrator support in cljs.
+         (is (near 436.2912143 ((varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) 0.001))))
+
+      ;; This is fairly time consuming since every evaluation of a candidate
+      ;; point in the multidimensional minimization of find-path involves
+      ;; computing a numeric integration to find the Lagrangian of the path
+      ;; induced by the point. But it works.
+      #?(:clj
+         ;; TODO activate when we get integrator support in cljs.
+         (let [values (atom [])
+               minimal-path (e/find-path
+                             (L/L-harmonic 1.0 1.0) 0. 1. (/ Math/PI 2) 0. 3
+                             :observe (fn [pt _] (swap! values conj pt)))
+               good? (partial (within 2e-4) 0)
+               errors (for [x (range 0.0 (/ Math/PI 2) 0.02)]
+                        (abs (- (Math/cos x) (minimal-path x))))]
+
+           ;; the minimization is supposed to discover the cosine function in the
+           ;; interval [0..pi/2]. Check that it has done so over a variety of
+           ;; points to within 2e-4.
+           (is ((within 1e-4) 1 (minimal-path 0)))
+           (is ((within 1e-5) 0 (minimal-path (/ Math/PI 2))))
+           (is (every? good? errors)))))))
 
 (defn ^:private δ
   "The variation operator (p. 28)."
@@ -108,15 +139,16 @@
         ((D g) 0)))))
 
 (deftest section-1-5
-  (with-literal-functions [x f g q η φ]
+  (e/with-literal-functions [x f g q η φ]
     (let [F (fn [q] (fn [t] (f (q t))))
           G (fn [q] (fn [t] (g (q t))))
           δ_η (δ η)
           φ (fn [f] (fn [q] (fn [t] (φ ((f q) t)))))
           test-path (fn [t] (up (+ 'a0 (* 'a t))
-                                (+ 'b0 (* 'b t))
-                                (+ 'c0 (* 'c t))))
+                               (+ 'b0 (* 'b t))
+                               (+ 'c0 (* 'c t))))
           proposed-solution (fn [t] (* 'a (cos (+ (* 'ω t) 'φ))))]
+
       ;; p. 29
       (is (= '(η t) (simplify (((δ_η identity) q) 't))))
       (is (= '(* (η t) ((D f) (q t))) (simplify (((δ_η F) q) 't))))
@@ -126,6 +158,7 @@
       (is (= '(+ (* (η t) ((D f) (q t)) (g (q t))) (* (η t) ((D g) (q t)) (f (q t))))
              (simplify (((δ_η (* F G)) q) 't))))
       (is (= '(* (η t) ((D f) (q t)) ((D φ) (f (q t)))) (simplify (((δ_η (φ F)) q) 't))))
+
       ;; p. 35
       (is (= (down 0 0 0) (((Lagrange-equations (L/L-free-particle 'm)) test-path) 't)))
       (is (= '(* m (((expt D 2) x) t))
@@ -135,7 +168,7 @@
 
 
 (deftest section-1-6
-  (with-literal-functions [x y r θ φ U y_s]
+  (e/with-literal-functions [x y r θ φ U y_s]
     (let [L-alternate-central-polar (fn [m U]
                                       (compose (L/L-central-rectangular m U)
                                                (F->C p->r)))]
@@ -143,6 +176,7 @@
                     (+ (* g m) (* m (((expt D 2) y) t))))
              (simplify (((Lagrange-equations (L/L-uniform-acceleration 'm 'g))
                          (up x y)) 't))))
+
       (is (= '(down (/ (+ (* m (((expt D 2) x) t) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
                           (* (x t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
                        (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
@@ -152,6 +186,7 @@
              (simplify (((Lagrange-equations (L/L-central-rectangular 'm U))
                          (up x y))
                         't))))
+
       (is (= '(down (+ (* -1 m (expt ((D φ) t) 2) (r t))
                        (* m (((expt D 2) r) t))
                        ((D U) (r t)))
@@ -160,16 +195,19 @@
              (simplify (((Lagrange-equations (L/L-central-polar 'm U))
                          (up r φ))
                         't))))
+
       (is (= '(up (+ (* -1 r φdot (sin φ)) (* rdot (cos φ)))
                   (+ (* r φdot (cos φ)) (* rdot (sin φ))))
              (simplify (velocity ((F->C p->r)
                                   (->local 't (up 'r 'φ) (up 'rdot 'φdot)))))))
+
       (is (= '(+
-               (* 1/2 m (expt r 2) (expt φdot 2))
-               (* 1/2 m (expt rdot 2))
+               (* #?(:clj 1/2 :cljs 0.5) m (expt r 2) (expt φdot 2))
+               (* #?(:clj 1/2 :cljs 0.5) m (expt rdot 2))
                (* -1 (U r)))
              (simplify ((L-alternate-central-polar 'm U)
                         (->local 't (up 'r 'φ) (up 'rdot 'φdot))))))
+
       (is (= '(down (+ (* -1 m (expt ((D φ) t) 2) (r t))
                        (* m (((expt D 2) r) t))
                        ((D U) (r t)))
@@ -178,14 +216,16 @@
              (simplify (((Lagrange-equations (L-alternate-central-polar 'm U))
                          (up r φ))
                         't))))
+
       (is (= '(+ (* g l m (sin (θ t)))
                  (* (expt l 2) m (((expt D 2) θ) t))
                  (* l m (((expt D 2) y_s) t) (sin (θ t))))
              (simplify (((Lagrange-equations (pendulum/L 'm 'l 'g (up (fn [t] 0) y_s))) θ) 't))))
+
       ;; p. 61
       (let [Lf (fn [m g]
                  (fn [[_ [_ y] v]]
-                   (- (* 1/2 m (square v)) (* m g y))))
+                   (- (* (/ 1 2) m (square v)) (* m g y))))
             dp-coordinates (fn [l y_s]
                              (fn [[t θ]]
                                (let [x (* l (sin θ))
@@ -194,17 +234,17 @@
             L-pend2 (fn [m l g y_s]
                       (compose (Lf m g)
                                (F->C (dp-coordinates l y_s))))]
-        (is (= '(+ (* 1/2 (expt l 2) m (expt θdot 2))
+        (is (= '(+ (* #?(:clj 1/2 :cljs 0.5) (expt l 2) m (expt θdot 2))
                    (* l m θdot ((D y_s) t) (sin θ))
                    (* g l m (cos θ))
                    (* -1 g m (y_s t))
-                   (* 1/2 m (expt ((D y_s) t) 2)))
+                   (* #?(:clj 1/2 :cljs 0.5) m (expt ((D y_s) t) 2)))
                (simplify ((L-pend2 'm 'l 'g y_s) (->local 't 'θ 'θdot)))))))))
 
 (deftest ^:long section-1-7-1
-  (with-literal-functions [x y v_x v_y]
+  (e/with-literal-functions [x y v_x v_y]
     (let [harmonic-state-derivative (fn [m k]
-                                      (Lagrangian->state-derivative (L/L-harmonic m k)))]
+                                      (e/Lagrangian->state-derivative (L/L-harmonic m k)))]
       (is (= '(up 1
                   (up v_x v_y)
                   (up (/ (* -1 k x) m) (/ (* -1 k y) m)))
@@ -216,7 +256,7 @@
                       (+ ((D y) t) (* -1 (v_y t))))
                   (up (/ (+ (* k (x t)) (* m ((D v_x) t))) m)
                       (/ (+ (* k (y t)) (* m ((D v_y) t))) m)))
-             (simplify (((Lagrange-equations-first-order (L/L-harmonic 'm 'k))
+             (simplify (((e/Lagrange-equations-first-order (L/L-harmonic 'm 'k))
                          (up x y)
                          (up v_x v_y))
                         't))))
@@ -226,28 +266,30 @@
              (flatten ((harmonic-state-derivative 2. 1.)
                        (up 0 (up 1. 2.) (up 3. 4.))))))
       ;; p. 72
-      (dotimes [_ 1]  ;; this is just here in case we want to watch in the profiler
-        (let [answer ((state-advancer harmonic-state-derivative 2. 1.)
-                      (up 0. (up 1. 2.) (up 3. 4.))
-                      10.
-                      1e-12
-                      :compile true)
-              expected (up 10.
-                           (up 3.71279166 5.42062082)
-                           (up 1.61480309 1.81891037))
-              delta (->> answer (- expected) flatten (map abs) (reduce max))]
-          (is (< delta 1e-8)))))))
+      #?(:clj
+         ;; TODO integrator doesn't work yet in cljs.
+         (dotimes [_ 1]  ;; this is just here in case we want to watch in the profiler
+           (let [answer ((e/state-advancer harmonic-state-derivative 2. 1.)
+                         (up 0. (up 1. 2.) (up 3. 4.))
+                         10.
+                         1e-12
+                         :compile true)
+                 expected (up 10.
+                              (up 3.71279166 5.42062082)
+                              (up 1.61480309 1.81891037))
+                 delta (->> answer (- expected) flatten (map abs) (reduce max))]
+             (is (< delta 1e-8))))))))
 
 (deftest section-1-7-2
   (let [pend-state-derivative (fn [m l g a ω]
-                                (Lagrangian->state-derivative
-                                  (driven/L m l g a ω)))]
+                                (e/Lagrangian->state-derivative
+                                 (driven/L m l g a ω)))]
     (is (= '(+ (* -1 a l m (expt ω 2) (sin (θ t)) (cos (* t ω)))
                (* g l m (sin (θ t)))
                (* (expt l 2) m (((expt D 2) θ) t)))
            (simplify (((Lagrange-equations
                         (driven/L 'm 'l 'g 'a 'ω))
-                       (literal-function 'θ))
+                       (e/literal-function 'θ))
                       't))))
     ;; NB. fraction simplification not happening here
     (is (= '(up 1
@@ -255,40 +297,43 @@
                 (/ (+ (* a (expt ω 2) (sin θ) (cos (* t ω))) (* -1 g (sin θ))) l))
            (simplify ((pend-state-derivative 'm 'l 'g 'a 'ω)
                       (up 't 'θ 'θdot)))))
-    (let [answer ((evolve pend-state-derivative
-                          1.0
-                          1.0
-                          9.8
-                          0.1
-                          (* 2.0 (sqrt 9.8)))
-                  (up 0.0
-                      1.
-                      0.)
-                  (constantly nil)
-                  0.01
-                  1.0
-                  1.0e-13
-                  :compile true)
-          expected (up 1.0 -1.030115687 -1.40985359)
-          delta (->> answer (- expected) flatten (map abs) (reduce max))]
-      (is (< delta 1e-8)))))
+
+    #?(:clj
+       ;; TODO make-integrator isn't implemented
+       (let [answer ((e/evolve pend-state-derivative
+                               1.0
+                               1.0
+                               9.8
+                               0.1
+                               (* 2.0 (e/sqrt 9.8)))
+                     (up 0.0
+                         1.
+                         0.)
+                     (constantly nil)
+                     0.01
+                     1.0
+                     1.0e-13
+                     :compile true)
+             expected (up 1.0 -1.030115687 -1.40985359)
+             delta (->> answer (- expected) flatten (map abs) (reduce max))]
+         (is (< delta 1e-8))))))
 
 (deftest section-1-8
-  (with-literal-functions [U V]
+  (e/with-literal-functions [U V]
     (let [spherical-state (up 't
                               (up 'r 'θ 'φ)
                               (up 'rdot 'θdot 'φdot))
           T3-spherical (fn [m]
                          (fn [[_ [r θ _] [rdot θdot φdot]]]
-                           (* 1/2 m (+ (square rdot)
-                                       (square (* r θdot))
-                                       (square (* r (sin θ) φdot))))))
+                           (* (/ 1 2) m (+ (square rdot)
+                                           (square (* r θdot))
+                                           (square (* r (sin θ) φdot))))))
           L3-central (fn [m Vr]
                        (let [Vs (fn [[_ [r]]] (Vr r))]
                          (- (T3-spherical m) Vs)))
           ang-mom-z (fn [m]
                       (fn  [[_ q v]]
-                        (nth (cross-product q (* m v)) 2)))]
+                        (nth (e/cross-product q (* m v)) 2)))]
       ;; p. 81
       (is (= '(down (+ (* m r (expt φdot 2) (expt (sin θ) 2))
                        (* m r (expt θdot 2))
@@ -304,11 +349,11 @@
       (is (= '(* m (expt r 2) φdot (expt (sin θ) 2))
              (simplify ((compose (ang-mom-z 'm) (F->C s->r)) spherical-state))))
       ;; p. 84
-      (is (= '(+ (* 1/2 m (expt r 2) (expt φdot 2) (expt (sin θ) 2))
-                 (* 1/2 m (expt r 2) (expt θdot 2))
-                 (* 1/2 m (expt rdot 2))
+      (is (= '(+ (* #?(:clj 1/2 :cljs 0.5) m (expt r 2) (expt φdot 2) (expt (sin θ) 2))
+                 (* #?(:clj 1/2 :cljs 0.5) m (expt r 2) (expt θdot 2))
+                 (* #?(:clj 1/2 :cljs 0.5) m (expt rdot 2))
                  (V r))
-             (simplify ((Lagrangian->energy (L3-central 'm V)) spherical-state))))
+             (simplify ((e/Lagrangian->energy (L3-central 'm V)) spherical-state))))
       (let [L (L/L-central-rectangular 'm U)
             F-tilde (fn [angle-x angle-y angle-z]
                       (compose (Rx angle-x)
@@ -330,8 +375,8 @@
 
 (deftest section-1-9
   (let [F->C (fn [F]
-               (let [f-bar #(->> % Γ (compose F) Γ)]
-                 (Gamma-bar f-bar)))]
+               (let [f-bar #(->> % e/Γ (compose F) e/Γ)]
+                 (e/Gamma-bar f-bar)))]
     (is (= '(up t
                 (up (* r (cos θ)) (* r (sin θ)))
                 (up (+ (* -1 r θdot (sin θ))
@@ -341,10 +386,10 @@
            (simplify ((F->C p->r)
                       (->local 't (up 'r 'θ) (up 'rdot 'θdot)))))))
   (is (= '(+ (* a m) (* k x))
-         (simplify ((Euler-Lagrange-operator (L/L-harmonic 'm 'k))
+         (simplify ((e/Euler-Lagrange-operator (L/L-harmonic 'm 'k))
                     (->local 't 'x 'v 'a)))))
-  (with-literal-functions [x]
+  (e/with-literal-functions [x]
     (is (= '(+ (* k (x t)) (* m (((expt D 2) x) t)))
            (simplify ((compose
-                       (Euler-Lagrange-operator (L/L-harmonic 'm 'k))
-                       (Gamma x 4)) 't))))))
+                       (e/Euler-Lagrange-operator (L/L-harmonic 'm 'k))
+                       (e/Gamma x 4)) 't))))))

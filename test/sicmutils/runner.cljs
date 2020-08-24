@@ -22,6 +22,21 @@
             sicmutils.mechanics.lagrange-test
             sicmutils.mechanics.rotation-test
 
+            sicmutils.fdg.ch1-test
+            sicmutils.fdg.ch2-test
+            sicmutils.fdg.ch3-test
+            sicmutils.fdg.ch4-test
+            sicmutils.fdg.ch5-test
+            sicmutils.fdg.ch6-test
+            sicmutils.fdg.ch7-test
+
+            sicmutils.sicm.ch1-test
+            sicmutils.sicm.ch2-test
+            sicmutils.sicm.ch3-test
+            sicmutils.sicm.ch5-test
+            sicmutils.sicm.ch6-test
+            sicmutils.sicm.ch7-test
+
             sicmutils.numerical.compile-test
             sicmutils.numerical.integrate-test
             sicmutils.numerical.minimize-test
@@ -76,6 +91,25 @@
            'sicmutils.mechanics.hamilton-test
            'sicmutils.mechanics.lagrange-test
            'sicmutils.mechanics.rotation-test
+
+           'sicmutils.fdg.ch1-test
+           'sicmutils.fdg.ch2-test
+           'sicmutils.fdg.ch3-test
+           'sicmutils.fdg.ch4-test
+           'sicmutils.fdg.ch5-test
+           'sicmutils.fdg.ch6-test
+           'sicmutils.fdg.ch7-test
+
+           'sicmutils.sicm.ch1-test
+           'sicmutils.sicm.ch2-test
+           'sicmutils.sicm.ch7-test
+
+           ;; TODO These don't currently work due to the lack of BigDecimal and
+           ;; proper rational numbers.
+
+           ;; 'sicmutils.sicm.ch3-test
+           ;; 'sicmutils.sicm.ch5-test
+           ;; 'sicmutils.sicm.ch6-test
 
            'sicmutils.analyzer-test
            'sicmutils.complex-test
