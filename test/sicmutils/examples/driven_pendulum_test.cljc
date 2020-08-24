@@ -18,47 +18,53 @@
 ;
 
 (ns sicmutils.examples.driven-pendulum-test
-  (:refer-clojure :exclude [+ - * / zero? partial ref])
-  (:require [clojure.test :refer :all]
-            [sicmutils.env :refer :all]
+  (:refer-clojure :exclude [+ - * /])
+  (:require [clojure.test :refer [deftest is testing use-fixtures]]
+            [sicmutils.env :as e :refer [up + - * /]]
             [sicmutils.examples.driven-pendulum :as driven]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
 (deftest equations
-  (with-literal-functions
+  (e/with-literal-functions
     [θ y]
     (is (= '(+ (* -1 a l m (expt ω 2) (cos (* t ω)) (sin (θ t))) (* g l m (sin (θ t))) (* (expt l 2) m (((expt D 2) θ) t)))
-           (simplify (((Lagrange-equations
-                         (driven/L 'm 'l 'g 'a 'ω))
-                        θ)
-                       't))))
-    (let [o (atom [])
-          observe (fn [t q] (swap! o conj [t q]))]
-      (driven/evolver {:t 3/60 :dt 1/60 :observe observe})
-      (is (= 4 (count @o))))))
+           (e/simplify (((e/Lagrange-equations
+                          (driven/L 'm 'l 'g 'a 'ω))
+                         θ)
+                        't))))
+    #?(:clj
+       ;; TODO - enable once we have an evolver in cljs.
+       (let [o (atom [])
+             observe (fn [t q] (swap! o conj [t q]))]
+         (driven/evolver {:t (/ 3 60) :dt (/ 1 60) :observe observe})
+         (is (= 4 (count @o)))))))
 
 (deftest as-javascript
-  (let [eq (simplify
+  (let [eq (e/simplify
             ((driven/state-derivative 'm 'l 'g 'a 'omega)
              (up 't 'theta 'thetadot)))]
     (is (= (str "function(t, theta, thetadot) {\n"
                 "  var _0001 = Math.sin(theta);\n"
                 "  return [1, thetadot, (a * Math.pow(omega, 2) * _0001 * Math.cos(omega * t) - g * _0001) / l];\n"
                 "}")
-           (->JavaScript eq :parameter-order '[t theta thetadot]))))
-  (let [eq (simplify
-            ((Hamiltonian->state-derivative
-              (Lagrangian->Hamiltonian
+           (e/->JavaScript eq
+                           :parameter-order '[t theta thetadot]
+                           :deterministic? true))))
+  (let [eq (e/simplify
+            ((e/Hamiltonian->state-derivative
+              (e/Lagrangian->Hamiltonian
                (driven/L 'm 'l 'g 'a 'omega)))
-             (->H-state 't 'theta 'p_theta)))]
+             (e/->H-state 't 'theta 'p_theta)))]
     (is (= (str "function(t, theta, p_theta) {\n"
-                "  var _0002 = Math.pow(l, 2);\n"
-                "  var _0003 = omega * t;\n"
-                "  var _0004 = Math.sin(theta);\n"
-                "  var _0005 = Math.cos(theta);\n"
-                "  var _0006 = Math.sin(_0003);\n"
-                "  return [1, (a * l * m * omega * _0006 * _0004 + p_theta) / (_0002 * m), (- Math.pow(a, 2) * l * m * Math.pow(omega, 2) * Math.pow(_0006, 2) * _0005 * _0004 - a * omega * p_theta * _0006 * _0005 - g * _0002 * m * _0004) / l];\n"
+                "  var _0001 = omega * t;\n"
+                "  var _0002 = Math.cos(theta);\n"
+                "  var _0003 = Math.pow(l, 2);\n"
+                "  var _0005 = Math.sin(theta);\n"
+                "  var _0006 = Math.sin(_0001);\n"
+                "  return [1, (a * l * m * omega * _0006 * _0005 + p_theta) / (_0003 * m), (- Math.pow(a, 2) * l * m * Math.pow(omega, 2) * Math.pow(_0006, 2) * _0002 * _0005 - a * omega * p_theta * _0006 * _0002 - g * _0003 * m * _0005) / l];\n"
                 "}")
-           (->JavaScript eq :parameter-order '[t theta p_theta])))))
+           (e/->JavaScript eq
+                           :parameter-order '[t theta p_theta]
+                           :deterministic? true)))))

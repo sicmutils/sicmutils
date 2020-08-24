@@ -21,7 +21,7 @@
   (:require [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.value :as v]
-            #?(:cljs [cljsjs.complex :as Complex]))
+            #?(:cljs ["complex.js" :as Complex]))
   #?(:clj
      (:import [org.apache.commons.math3.complex Complex])))
 

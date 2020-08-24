@@ -1,21 +1,32 @@
 (ns sicmutils.runner
   (:require [doo.runner :refer-macros [doo-tests]]
+
             pattern.match-test
             pattern.rule-test
+
             sicmutils.calculus.coordinate-test
             sicmutils.calculus.derivative-test
             sicmutils.calculus.form-field-test
             sicmutils.calculus.manifold-test
             sicmutils.calculus.map-test
             sicmutils.calculus.vector-field-test
+
+            sicmutils.examples.central-potential-test
+            sicmutils.examples.double-pendulum-test
+            sicmutils.examples.driven-pendulum-test
             sicmutils.examples.pendulum-test
+            sicmutils.examples.rigid-rotation-test
+            sicmutils.examples.top-test
+
             sicmutils.mechanics.hamilton-test
             sicmutils.mechanics.lagrange-test
             sicmutils.mechanics.rotation-test
+
             sicmutils.numerical.compile-test
             sicmutils.numerical.integrate-test
             sicmutils.numerical.minimize-test
             sicmutils.numerical.ode-test
+
             sicmutils.analyzer-test
             sicmutils.complex-test
             sicmutils.euclid-test
@@ -42,20 +53,30 @@
 
 (doo-tests 'pattern.match-test
            'pattern.rule-test
+
            'sicmutils.calculus.coordinate-test
            'sicmutils.calculus.derivative-test
            'sicmutils.calculus.form-field-test
            'sicmutils.calculus.manifold-test
            'sicmutils.calculus.map-test
            'sicmutils.calculus.vector-field-test
+
+           'sicmutils.examples.central-potential-test
+           'sicmutils.examples.double-pendulum-test
+           'sicmutils.examples.driven-pendulum-test
            'sicmutils.examples.pendulum-test
+           'sicmutils.examples.rigid-rotation-test
+           'sicmutils.examples.top-test
+
            'sicmutils.numerical.compile-test
            'sicmutils.numerical.integrate-test
            'sicmutils.numerical.minimize-test
            'sicmutils.numerical.ode-test
+
            'sicmutils.mechanics.hamilton-test
            'sicmutils.mechanics.lagrange-test
            'sicmutils.mechanics.rotation-test
+
            'sicmutils.analyzer-test
            'sicmutils.complex-test
            'sicmutils.euclid-test

@@ -66,20 +66,18 @@
                   :refer
                   (into [] (keys (ns-publics 'sicmutils.env)))])))
 
-#?(:clj
-   (defmacro literal-function
-     ([f] `(f/literal-function ~f))
-     ([f sicm-signature]
-      (if (and (list? sicm-signature)
-               (= '-> (first sicm-signature)))
-        `(f/literal-function ~f '~sicm-signature)
-        `(f/literal-function ~f ~sicm-signature)))
-     ([f domain range] `(f/literal-function ~f ~domain ~range))))
+(defmacro literal-function
+  ([f] `(f/literal-function ~f))
+  ([f sicm-signature]
+   (if (and (list? sicm-signature)
+            (= '-> (first sicm-signature)))
+     `(f/literal-function ~f '~sicm-signature)
+     `(f/literal-function ~f ~sicm-signature)))
+  ([f domain range] `(f/literal-function ~f ~domain ~range)))
 
-#?(:clj
-   (defmacro with-literal-functions
-     [& args]
-     `(f/with-literal-functions ~@args)))
+(defmacro with-literal-functions
+  [& args]
+  `(f/with-literal-functions ~@args))
 
 (def zero? v/nullity?)
 
