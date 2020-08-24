@@ -104,7 +104,7 @@
   (zero-like [_] 0)
   (one-like [_] 1)
   (freeze [x] x)
-  (exact? [x] (or (integer? x) (u/ratio? x)))
+  (exact? [x] (or (integer? x) #?(:clj (ratio? x))))
   (numerical? [_] true)
   (kind [x] #?(:clj (type x)
                :cljs (if (exact? x)
@@ -115,7 +115,9 @@
   (freeze [_] nil)
   (numerical? [_] false)
   (nullity? [_] true)
+  (zero-like [o] (u/unsupported "nil doesn't support zero-like."))
   (unity?[_] false)
+  (one-like [o] (u/unsupported "nil doesn't support one-like."))
   (kind [_] nil)
 
   PersistentVector
@@ -174,8 +176,8 @@
        (js*  "~{} == ~{}" l r))
 
      (doseq [[from to f] [[goog.math.Long goog.math.Integer u/int]
-                          [::exact-integral goog.math.Integer u/int]
-                          [::exact-integral goog.math.Long u/long]
+                          [::native-integral goog.math.Integer u/int]
+                          [::native-integral goog.math.Long u/long]
                           [goog.math.Long js/BigInt u/bigint]
                           [goog.math.Integer js/BigInt u/bigint]]]
        (defmethod eq [from to] [l r] (eq (f l) r))

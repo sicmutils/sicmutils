@@ -20,21 +20,25 @@
 (ns sicmutils.examples.top-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [deftest is testing use-fixtures]]
-            [sicmutils.env :as e :refer [up literal-function + - * /]]
+            [sicmutils.env :as e :refer [up literal-function + - * /]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.examples.top :as t]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.value :as v]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (deftest Top
   (let [state (up 't (up 'theta 'phi 'psi) (up 'thetadot 'phidot 'psidot))]
-    (is (= '(+ (* #?(:clj 1/2 :cljs 0.5) A (expt phidot 2) (expt (sin theta) 2))
-               (* #?(:clj 1/2 :cljs 0.5) C (expt phidot 2) (expt (cos theta) 2))
+    (is (= '(+ (* (/ 1 2) A (expt phidot 2) (expt (sin theta) 2))
+               (* (/ 1 2) C (expt phidot 2) (expt (cos theta) 2))
                (* C phidot psidot (cos theta))
-               (* #?(:clj 1/2 :cljs 0.5) A (expt thetadot 2))
-               (* #?(:clj 1/2 :cljs 0.5) C (expt psidot 2))
+               (* (/ 1 2) A (expt thetadot 2))
+               (* (/ 1 2) C (expt psidot 2))
                (* -1 gMR (cos theta)))
-           (e/simplify ((t/L-axisymmetric 'A 'C 'gMR) state))))
+           (v/freeze
+            (e/simplify ((t/L-axisymmetric 'A 'C 'gMR) state)))))
+
     (is (= '(up 1
                 (up thetadot phidot psidot)
                 (up (/ (+ (* A (expt phidot 2) (sin theta) (cos theta)) (* -1 C (expt phidot 2) (sin theta) (cos theta)) (* -1 C phidot psidot (sin theta)) (* gMR (sin theta))) A)
@@ -49,29 +53,19 @@
                     (/ (+ (* -1 psidot thetadot (cos theta)) (* phidot thetadot)) (sin theta))))
            (e/simplify ((e/Lagrangian->state-derivative (t/L 'A 'A 'A 'gMR)) state))))
 
-    (is (= #?(:clj
-              ;; to be checked. Where does the dividing through happen?
-              '(/ (+ (* 2 A C gMR (expt (sin theta) 2) (cos theta))
-                     (* A (expt p_psi 2) (expt (sin theta) 2))
-                     (* C (expt p_psi 2) (expt (cos theta) 2))
-                     (* C (expt p_theta 2) (expt (sin theta) 2))
-                     (* -2 C p_phi p_psi (cos theta))
-                     (* C (expt p_phi 2)))
-                  (* 2 A C (expt (sin theta) 2)))
-              :cljs
-              ;; TODO this happens because of the lack of ratio support. Once we
-              ;; get ratios in, this should fail and we can remove the fork.
-              '(/ (+ (* A C gMR (expt (sin theta) 2) (cos theta))
-                     (* 0.5 A (expt p_psi 2) (expt (sin theta) 2))
-                     (* 0.5 C (expt p_psi 2) (expt (cos theta) 2))
-                     (* 0.5 C (expt p_theta 2) (expt (sin theta) 2))
-                     (* -1 C p_phi p_psi (cos theta))
-                     (* 0.5 C (expt p_phi 2)))
-                  (* A C (expt (sin theta) 2))))
-           (e/simplify ((e/Lagrangian->Hamiltonian (t/L-axisymmetric 'A 'C 'gMR))
-                        (e/->H-state 't
-                                     '[theta phi psi]
-                                     '[p_theta p_phi p_psi])))))
+    ;; to be checked. Where does the dividing through happen?
+    (is (= '(/ (+ (* 2 A C gMR (expt (sin theta) 2) (cos theta))
+                  (* A (expt p_psi 2) (expt (sin theta) 2))
+                  (* C (expt p_psi 2) (expt (cos theta) 2))
+                  (* C (expt p_theta 2) (expt (sin theta) 2))
+                  (* -2 C p_phi p_psi (cos theta))
+                  (* C (expt p_phi 2)))
+               (* 2 A C (expt (sin theta) 2)))
+           (e/simplify
+            ((e/Lagrangian->Hamiltonian (t/L-axisymmetric 'A 'C 'gMR))
+             (e/->H-state 't
+                          '[theta phi psi]
+                          '[p_theta p_phi p_psi])))))
     ;; to be checked
     (is (= '(up 0
                 (up (/ (+ (* A ((D theta) t)) (* -1 (p_theta t))) A)

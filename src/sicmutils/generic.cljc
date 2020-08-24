@@ -61,13 +61,20 @@
   "Defines a multifn using the provided symbol. Arranges for the multifn
   to answer the :arity message, reporting either [:exactly a] or
   [:between a b], according to the arguments given."
-  [f a & b]
-  (let [arity (if b `[:between ~a ~@b] [:exactly a])
-        docstring (str "generic " f)
-        klass (fork :clj clojure.lang.Keyword :cljs 'cljs.core/Keyword)]
+  {:arglists '([name arities docstring? attr-map? & options])}
+  [f arities & options]
+  (let [[a b] (if (vector? arities) arities [arities])
+        arity     (if b `[:between ~a ~@b] [:exactly a])
+        docstring (if (string? (first options))
+                    (str "generic " f ".\n\n" (first options))
+                    (str "generic " f ))
+        options (if (string? (first options))
+                  (next options)
+                  options)
+        kwd-klass (fork :clj clojure.lang.Keyword :cljs 'cljs.core/Keyword)]
     `(do
-       (defmulti ~f ~docstring v/argument-kind)
-       (defmethod ~f [~klass] [k#]
+       (defmulti ~f ~docstring v/argument-kind ~@options)
+       (defmethod ~f [~kwd-klass] [k#]
          ({:arity ~arity :name '~f} k#)))))
 
 ;; Numeric functions.
@@ -76,7 +83,10 @@
 (def-generic-function sub 2)
 (def-generic-function div 2)
 (def-generic-function negate 1)
+
 (def-generic-function negative? 1)
+(defmethod negative? :default [a] (< a (v/zero-like a)))
+
 (def-generic-function exp 1)
 (def-generic-function log 1)
 (def-generic-function abs 1)

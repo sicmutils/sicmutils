@@ -86,30 +86,11 @@
    (deftest biginteger-generics
      (gt/integral-tests #(BigInteger/valueOf %))))
 
-#?(:clj
-   (deftest double-generics
-     (gt/integral-tests double
-                        :eq near
-                        :exclusions #{:exact-divide :gcd :remainder :modulo :quotient :negative?})
-     (gt/floating-point-tests double :eq near)))
-
-#?(:clj
-   (deftest ratio-generics
-     (testing "rational generics"
-       (gt/floating-point-tests
-        rationalize :eq #(= (rationalize %1)
-                            (rationalize %2))))
-
-     (testing "ratio-operations"
-       (is (= 13/40 (g/add 1/5 1/8)))
-       (is (= 1/8 (g/sub 3/8 1/4)))
-       (is (= 5/4 (g/div 5 4)))
-       (is (thrown? IllegalArgumentException (g/exact-divide 10/2 2/10)))
-       (is (= 1 (g/exact-divide 2/10 2/10)))
-       (is (= 1/2 (g/div 1 2)))
-       (is (= 1/4 (reduce g/div [1 2 2])))
-       (is (= 1/8 (reduce g/div [1 2 2 2])))
-       (is (= 1/8 (g/invert 8))))))
+(deftest double-generics
+  (gt/integral-tests double
+                     :eq near
+                     :exclusions #{:exact-divide :gcd :remainder :modulo :quotient})
+  (gt/floating-point-tests double :eq near))
 
 (deftest arithmetic
   (testing "trig"
@@ -176,12 +157,3 @@
   "numbers provides implementations, so test behaviors."
   (is (= 5 (g/divide 20 4)))
   (is (= 2 (g/divide 8 2 2))))
-
-#?(:clj
-   (deftest with-ratios
-     (is (= 13/40 (g/+ 1/5 1/8)))
-     (is (= 1/8 (g/- 3/8 1/4)))
-     (is (= 5/4 (g/divide 5 4)))
-     (is (= 1/2 (g/divide 1 2)))
-     (is (= 1/4 (g/divide 1 2 2)))
-     (is (= 1/8 (g/divide 1 2 2 2)))))
