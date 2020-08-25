@@ -52,19 +52,20 @@
      (let [array->state #(struct/unflatten % initial-state)]
        (reify StepHandler
          (init [_ _ _ _])
-         (handleStep [_ interpolator is-last]
+         (handleStep [_ interpolator final-step?]
            (let [it0         (.getPreviousTime interpolator)
                  it1         (.getCurrentTime interpolator)
                  t0          (round-up it0 step-size)
-                 final-state (array->state
-                              (.getInterpolatedState interpolator))]
+                 final-state (when final-step?
+                               (array->state
+                                (.getInterpolatedState interpolator)))]
              (doseq [t (range t0 it1 step-size)]
                (.setInterpolatedTime interpolator t)
                (observe t (array->state
                            (.getInterpolatedState interpolator))))
              ;; `range` has an exclusive upper bound, so the final point will
              ;; never be observed in the `doseq`. Handle it here.
-             (when is-last
+             (when final-step?
                (observe it1 final-state))))))))
 
 #?(:clj
