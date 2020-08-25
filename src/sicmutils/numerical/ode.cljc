@@ -28,6 +28,101 @@
               (org.apache.commons.math3.ode FirstOrderDifferentialEquations)
               (org.apache.commons.math3.ode.sampling StepHandler))))
 
+(defn ^:private round-up
+  "Returns `n` rounded up to the nearest multiple of `step-size`. the returned
+  value will always equal `0`, mod `step-size`"
+  [n step-size]
+  (let [offset (mod n step-size)]
+    (if (pos? offset)
+      (-> (- n offset)
+          (+ step-size))
+      n)))
+
+#?(:clj
+   (defn step-handler
+     "Generates a StepHandler instance that can be attached to an integrator.
+
+  When used as an observation callback, the `StepHandler` is not invoked at
+  every grid point; rather, it is invoked once in a while over a range of time
+  within which the integrated function may be accurately evaluated. The handler
+  we install does this, invoking the callback for each requested grid point
+  within the valid range, ensuring that we also invoke the callback for the
+  final point."
+     [observe step-size initial-state]
+     (let [array->state #(struct/unflatten % initial-state)]
+       (reify StepHandler
+         (init [_ _ _ _])
+         (handleStep [_ interpolator is-last]
+           (let [it0         (.getPreviousTime interpolator)
+                 it1         (.getCurrentTime interpolator)
+                 t0          (round-up it0 step-size)
+                 final-state (array->state
+                              (.getInterpolatedState interpolator))]
+             (doseq [t (range t0 it1 step-size)]
+               (.setInterpolatedTime interpolator t)
+               (observe t (array->state
+                           (.getInterpolatedState interpolator))))
+             ;; `range` has an exclusive upper bound, so the final point will
+             ;; never be observed in the `doseq`. Handle it here.
+             (when is-last
+               (observe it1 final-state))))))))
+
+#?(:clj
+   (defn integrator
+     "Returns a map with the following kv pairs:
+
+  - :integrator an instance of GraggBulirschStoerIntegrator
+  - :equations instance of FirstOrderDifferentialEquations
+  - :dimension the total number of entries in the flattened initial state tuple
+  - :stopwatch IStopwatch instance that records total evaluation time inside the
+  computeDerivatives function
+  - :counter an atom containing a Long that increments every time
+  `computeDerivatives` is called."
+     [state-derivative derivative-args initial-state
+      & {:keys [compile? epsilon]}]
+     (let [evaluation-time     (us/stopwatch :started? false)
+           evaluation-count    (atom 0)
+           state->array        (comp double-array flatten)
+           dimension           (count (flatten initial-state))
+           derivative-fn
+           (if compile?
+             (c/compile-state-function state-derivative derivative-args initial-state)
+             (do (log/warn "Not compiling function for ODE analysis")
+                 (let [d:dt (apply state-derivative derivative-args)
+                       array->state #(struct/unflatten % initial-state)]
+                   (comp d:dt array->state))))
+
+           equations
+           (reify FirstOrderDifferentialEquations
+             (computeDerivatives [_ _ y out]
+               (us/start evaluation-time)
+               (swap! evaluation-count inc)
+               (let [y' (doubles (-> (concat y derivative-args)
+                                     derivative-fn
+                                     state->array))]
+                 (System/arraycopy y' 0 out 0 (alength y')))
+               (us/stop evaluation-time))
+             (getDimension [_] dimension))
+           integrator (GraggBulirschStoerIntegrator. 0. 1. (double epsilon) (double epsilon))]
+       {:integrator integrator
+        :equations equations
+        :dimension dimension
+        :stopwatch evaluation-time
+        :counter evaluation-count})))
+
+#?(:clj
+   (defn attach-handler
+     "We implement the observation callback by adding a StepHandler to the
+  integration. The StepHandler is not invoked at every grid point; rather, it is
+  invoked once in a while over a range of time within which the integrated
+  function may be accurately evaluated. The handler we install does this,
+  invoking the callback for each requested grid point within the valid range,
+  ensuring that we also invoke the callback for the final point."
+     [integrator observe step-size initial-state]
+     (.addStepHandler
+      integrator
+      (step-handler observe step-size initial-state))))
+
 (defn make-integrator
   "make-integrator takes a state derivative function (which in this
   system is assumed to be a map from a structure to a structure of the
@@ -43,58 +138,24 @@
      (u/unsupported "make-integrator isn't yet implemented in Clojurescript.")
 
      :clj
-     (fn [initial-state observe step-size t ε & {:keys [compile]}]
-       (let [total-time (us/stopwatch :started? true)
-             evaluation-time (us/stopwatch :started? false)
-             evaluation-count (atom 0)
-             state->array #(-> % flatten double-array)
-             array->state #(struct/unflatten % initial-state)
-             initial-state-array (doubles (state->array initial-state))
-             derivative-fn (if compile
-                             (c/compile-state-function state-derivative derivative-args initial-state)
-                             (let [d:dt (apply state-derivative derivative-args)]
-                               #(-> % array->state d:dt)))
-             dimension (alength initial-state-array)
-             integrator (GraggBulirschStoerIntegrator. 0. 1. (double ε) (double ε))
-             equations (reify FirstOrderDifferentialEquations
-                         (computeDerivatives [_ _ y out]
-                           (us/start evaluation-time)
-                           (swap! evaluation-count inc)
-                           (let [y' (doubles (-> y (concat derivative-args) derivative-fn state->array))]
-                             (System/arraycopy y' 0 out 0 (alength y')))
-                           (us/stop evaluation-time))
-                         (getDimension [_] dimension))
-             out (double-array dimension)]
-         (when-not compile
-           (log/warn "Not compiling function for ODE analysis"))
-         (when observe
-           ;; We implement the observation callback by adding a StepHandler
-           ;; to the integration. The StepHandler is not invoked at every grid
-           ;; point; rather, it is invoked once in a while over a range of time
-           ;; within which the integrated function may be accurately evaluated.
-           ;; The handler we install does this, invoking the callback for
-           ;; each requested grid point within the valid range, ensuring that we
-           ;; also invoke the callback for the final point.
-           (.addStepHandler
-            integrator
-            (reify StepHandler
-              (handleStep
-                  [_ interpolator is-last]
-                (let [it0 (.getPreviousTime interpolator)
-                      it1 (.getCurrentTime interpolator)
-                      adjust (mod it0 step-size)
-                      t0 (if (> adjust 0) (+ (- it0 adjust) step-size) it0)
-                      last-state (when is-last (double-array (.getInterpolatedState interpolator)))]
-                  (doseq [t (range t0 it1 step-size)]
-                    (.setInterpolatedTime interpolator t)
-                    (observe t (-> interpolator .getInterpolatedState array->state)))
-                  (when is-last
-                    (observe it1 (array->state last-state)))))
-              (init [_ _ _ _]))))
-         (.integrate integrator equations 0 initial-state-array t out)
-         (us/stop total-time)
-         (log/info "#" @evaluation-count "total" (us/repr total-time) "f" (us/repr evaluation-time))
-         (array->state out)))))
+     (let [total-time (us/stopwatch :started? false)]
+       (fn [initial-state observe step-size t ε & {:keys [compile]}]
+         (us/start total-time)
+         (let [{:keys [integrator equations dimension stopwatch counter]}
+               (integrator state-derivative derivative-args initial-state
+                           :epsilon ε
+                           :compile? compile)
+               initial-state-array (double-array
+                                    (flatten initial-state))
+               array->state #(struct/unflatten % initial-state)
+               output-buffer (double-array dimension)]
+           (when observe
+             (attach-handler integrator observe step-size initial-state))
+           (.integrate integrator equations 0
+                       initial-state-array t output-buffer)
+           (doto total-time (us/stop) (us/reset))
+           (log/info "#" @counter "total" (us/repr total-time) "f" (us/repr stopwatch))
+           (array->state output-buffer))))))
 
 (defn state-advancer
   "state-advancer takes a state derivative function constructor
@@ -110,7 +171,7 @@
       (apply I initial-state nil 0 t ε options))))
 
 (defn evolve
-  "evolve takes a state derivative function constructor and its
+"evolve takes a state derivative function constructor and its
   arguments, and returns an integrator via make-integrator. In
   particular, the returned function accepts a callback function which
   will be invoked at intermediate grid points of the integration."
