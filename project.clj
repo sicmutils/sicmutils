@@ -23,6 +23,7 @@
 (defproject net.littleredcomputer/sicmutils "0.12.2-SNAPSHOT"
   :description "A port of the Scmutils computer algebra/mechanics system to Clojure"
   :url "http://github.com/littleredcomputer/sicmutils"
+  :scm {:name "git" :url "https://github.com/littleredcomputer/sicmutils"}
   :license {:name "GPLv3"
             :url "http://www.opensource.org/licenses/GPL-3.0"}
   :dependencies [[org.clojure/clojure "1.10.1" :scope "provided"]
