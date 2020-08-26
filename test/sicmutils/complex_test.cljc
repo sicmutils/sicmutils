@@ -70,7 +70,7 @@
           [(is (v/exact? (c/complex 10)))
            (is (v/exact? (c/complex 10 12)))]))))
 
-(let [i #sicm/complex "1i"
+(let [i #sicm/complex "0 + 1i"
       pi Math/PI]
   (deftest complex-numbers
     (testing "complex constructor and predicate"
