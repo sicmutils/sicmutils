@@ -23,10 +23,14 @@
             [sicmutils.value :as v]
             #?(:cljs ["complex.js" :as Complex]))
   #?(:clj
-     (:import [org.apache.commons.math3.complex Complex])))
+     (:import [org.apache.commons.math3.complex Complex ComplexFormat])))
 
 (def ZERO #?(:clj Complex/ZERO :cljs (.-ZERO Complex)))
 (def ONE #?(:clj Complex/ONE :cljs (.-ONE Complex)))
+
+(def complextype Complex)
+
+(derive ::complex ::x/numerical-expression)
 
 (defn complex
   "Construct a complex number from real, or real and imaginary, components."
@@ -44,13 +48,35 @@
 (defn imag-part [^Complex a] (#?(:clj .getImaginary :cljs .-im) a))
 (defn angle [^Complex a] (#?(:clj .getArgument :cljs .arg) a))
 
-(derive ::complex ::x/numerical-expression)
+(def ^{:doc "Parser that converts a string representation of a complex number,
+  like `1 + 3i`, into a Complex number object in clj or cljs."}
+  parse-complex
+  #?(:clj (let [cf (ComplexFormat.)]
+            (fn [s]
+              (let [v (.parse cf s)]
+                `(complex ~(real-part v)
+                          ~(imag-part v)))))
+
+     :cljs (fn [s] `(complex ~s))))
 
 #?(:cljs
    (extend-type Complex
      IEquiv
      (-equiv [this other]
-       (.equals this other))))
+       (.equals this other))
+
+     IPrintWithWriter
+     (-pr-writer [x writer opts]
+       (write-all writer "#sicm/complex \"" (.toString x) "\""))))
+
+#?(:clj
+   ;; Clojure implementation of a printer that will emit items that can
+   ;; round-trip via #sicm/complex.
+   (let [cf (ComplexFormat.)]
+     (defmethod print-method Complex [^Complex v ^java.io.Writer w]
+       (.write w (str "#sicm/complex \""
+                      (.format cf v)
+                      "\"")))))
 
 (extend-type Complex
   v/Value
