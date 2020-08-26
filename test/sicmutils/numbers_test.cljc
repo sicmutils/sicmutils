@@ -33,22 +33,23 @@
 (def near (v/within 1e-12))
 
 (deftest numeric-laws
+  ;; All native types available on clj and cljs form fields.
   (l/field 100 sg/bigint #?(:clj "clojure.lang.BigInt" :cljs "js/BigInt"))
   (l/field 100 sg/long #?(:clj "java.lang.Long" :cljs "goog.math.Long"))
   (l/field 100 sg/integer #?(:clj "java.lang.Integer" :cljs "goog.math.Integer"))
+
   #?(:clj
-     (l/field 100 sg/biginteger "java.math.BigInteger")
-     :cljs
+     ;; There's no biginteger / bigint distinction in cljs.
+     (l/field 100 sg/biginteger "java.math.BigInteger"))
+
+  #?(:cljs
+     ;; this is covered by sg/long in clj.
      (l/field 100 sg/native-integral "integral js/Number")))
 
 (deftest floating-point-laws
-  #?(:clj
-     (l/field 100 sg/double "java.lang.Double")
-
-     :cljs
-     ;; We can upgrade these to `field` once we get a BigDecimal data type in cljs.
-     (do (l/additive-group 100 (sg/double) "js/Number")
-         (l/multiplicative-group 100 (sg/double) "js/Number"))))
+  ;; Doubles form a field too.
+  (l/field 100 (sg/reasonable-double) #?(:clj  "java.lang.Double"
+                                         :cljs "floating point js/Number")))
 
 (deftest number-generics
   (gt/integral-tests identity :exclusions #{:exact-divide})

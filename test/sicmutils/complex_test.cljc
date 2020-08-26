@@ -34,10 +34,9 @@
   (< (g/abs (g/- w z)) 1e-12))
 
 (deftest complex-laws
-  ;; Clojurescript loses quite a bit of precision, so we swap in a slightly more
-  ;; tolerant comparator.
-  (with-comparator #?(:clj  default-comparator
-                      :cljs (sc/compare-ulp 1.0 1e3))
+  ;; Complex numbers form a field. We use a custom comparator to control some
+  ;; precision loss.
+  (with-comparator (sc/compare-ulp 1.0 1e3)
     (l/field 100 sg/complex "Complex")))
 
 (deftest value-protocol

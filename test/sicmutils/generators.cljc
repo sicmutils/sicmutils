@@ -25,7 +25,7 @@
    (def biginteger
      (gen/fmap u/biginteger bigint)))
 
-(def integral
+(def native-integral
   "non-floating-point integers on cljs, Long on clj."
   gen/large-integer)
 
