@@ -174,8 +174,8 @@
        (js*  "~{} == ~{}" l r))
 
      (doseq [[from to f] [[goog.math.Long goog.math.Integer u/int]
-                          [::exact-integral goog.math.Integer u/int]
-                          [::exact-integral goog.math.Long u/long]
+                          [::native-integral goog.math.Integer u/int]
+                          [::native-integral goog.math.Long u/long]
                           [goog.math.Long js/BigInt u/bigint]
                           [goog.math.Integer js/BigInt u/bigint]]]
        (defmethod eq [from to] [l r] (eq (f l) r))
@@ -188,12 +188,6 @@
                (number? other)      (eq this other)
                :else false))
 
-       js/BigInt
-       (-equiv [this other]
-         (if (= js/BigInt (type other))
-           (js*  "~{} == ~{}" this other)
-           (eq this other)))
-
        goog.math.Integer
        (-equiv [this other]
          (if (= goog.math.Integer (type other))
@@ -205,6 +199,21 @@
          (if (= goog.math.Long (type other))
            (.equals this other)
            (eq this other))))))
+
+#?(:cljs
+   (extend-type js/BigInt
+     IEquiv
+     (-equiv [this other]
+       (if (= js/BigInt (type other))
+         (js*  "~{} == ~{}" this other)
+         (eq this other)))
+
+     IPrintWithWriter
+     (-pr-writer [x writer opts]
+       (let [rep (if (<= x (.-MAX_SAFE_INTEGER js/Number))
+                   (str x)
+                   (str "\"" x "\""))]
+         (write-all writer "#sicm/bigint " rep)))))
 
 #?(:cljs
    (extend-protocol IComparable
@@ -231,7 +240,12 @@
        (unity? [x] (js*  "~{} == ~{}" big-one x))
        (zero-like [_] big-zero)
        (one-like [_] big-one)
-       (freeze [x] x)
+       (freeze [x]
+         ;; Bigint freezes into a non-bigint if it can be represented as a
+         ;; number; otherwise, it turns into its own literal.
+         (if (<= x (.-MAX_SAFE_INTEGER js/Number))
+           (js/Number x)
+           x))
        (exact? [_] true)
        (numerical? [_] true)
        (kind [_] js/BigInt)

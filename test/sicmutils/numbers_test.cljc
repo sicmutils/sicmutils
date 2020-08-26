@@ -23,10 +23,31 @@
             [sicmutils.util :as u]
             [sicmutils.generic :as g]
             [sicmutils.generic-test :as gt]
-            [sicmutils.value :as v]
-            [sicmutils.numbers :as n]))
+            [sicmutils.generators :as sg]
+            [sicmutils.laws :as l]
+            [sicmutils.numbers :as n]
+            [sicmutils.value :as v]))
 
 (def near (v/within 1e-12))
+
+(deftest numeric-laws
+  ;; All native types available on clj and cljs form fields.
+  (l/field 100 sg/bigint #?(:clj "clojure.lang.BigInt" :cljs "js/BigInt"))
+  (l/field 100 sg/long #?(:clj "java.lang.Long" :cljs "goog.math.Long"))
+  (l/field 100 sg/integer #?(:clj "java.lang.Integer" :cljs "goog.math.Integer"))
+
+  #?(:clj
+     ;; There's no biginteger / bigint distinction in cljs.
+     (l/field 100 sg/biginteger "java.math.BigInteger"))
+
+  #?(:cljs
+     ;; this is covered by sg/long in clj.
+     (l/field 100 sg/native-integral "integral js/Number")))
+
+(deftest floating-point-laws
+  ;; Doubles form a field too.
+  (l/field 100 (sg/reasonable-double) #?(:clj  "java.lang.Double"
+                                         :cljs "floating point js/Number")))
 
 (deftest number-generics
   (gt/integral-tests identity :exclusions #{:exact-divide})
@@ -84,14 +105,13 @@
 
 #?(:clj
    (deftest biginteger-generics
-     (gt/integral-tests #(BigInteger/valueOf %))))
+     (gt/integral-tests u/biginteger)))
 
-#?(:clj
-   (deftest double-generics
-     (gt/integral-tests double
-                        :eq near
-                        :exclusions #{:exact-divide :gcd :remainder :modulo :quotient :negative?})
-     (gt/floating-point-tests double :eq near)))
+(deftest double-generics
+  (gt/integral-tests double
+                     :eq near
+                     :exclusions #{:exact-divide :gcd :remainder :modulo :quotient})
+  (gt/floating-point-tests double :eq near))
 
 #?(:clj
    (deftest ratio-generics
