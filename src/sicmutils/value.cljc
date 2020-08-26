@@ -155,7 +155,7 @@
 
 ;; These two constitute the default cases.
 (defmethod eq [::number ::number] [l r]
-  #?(:clj (= l r)
+  #?(:clj  (= l r)
      :cljs (identical? l r)))
 
 (defmethod eq :default [l r]
@@ -178,8 +178,8 @@
                           [::native-integral goog.math.Long u/long]
                           [goog.math.Long js/BigInt u/bigint]
                           [goog.math.Integer js/BigInt u/bigint]]]
-       (defmethod eq [from to] [l r] (eq (f l) r))
-       (defmethod eq [to from] [l r] (eq l (f r))))
+       (defmethod eq [from to] [l r] (= (f l) r))
+       (defmethod eq [to from] [l r] (= l (f r))))
 
      (extend-protocol IEquiv
        number

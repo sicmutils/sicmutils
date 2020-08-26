@@ -8,6 +8,7 @@
   (:require [clojure.test.check.generators :as gen]
             [same.ish :as si]
             [sicmutils.complex :as c]
+            [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -56,6 +57,8 @@
             i (reasonable-double)]
     (c/complex r i)))
 
+(def ^:dynamic *complex-tolerance* 1e-12)
+
 (extend-protocol si/Approximate
   #?@(:cljs
       [js/BigInt
@@ -64,7 +67,5 @@
 
   #?(:cljs c/complextype :clj Complex)
   (ish [this that]
-    (and (si/ish (c/real-part this)
-                 (c/real-part that))
-         (si/ish (c/imag-part this)
-                 (c/imag-part that)))))
+    (< (g/abs (g/- this that))
+       *complex-tolerance*)))

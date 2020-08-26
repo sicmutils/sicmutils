@@ -20,8 +20,6 @@
 (ns sicmutils.complex-test
   (:require [clojure.test :refer [is deftest testing]]
             #?(:cljs [cljs.reader :refer [read-string]])
-            [same :refer [with-comparator]]
-            [same.compare :as sc]
             [sicmutils.numbers]
             [sicmutils.complex :as c]
             [sicmutils.generic :as g]
@@ -46,7 +44,7 @@
 (deftest complex-laws
   ;; Complex numbers form a field. We use a custom comparator to control some
   ;; precision loss.
-  (with-comparator (sc/compare-ulp 1.0 1e3)
+  (binding [sg/*complex-tolerance* 1e-3]
     (l/field 100 sg/complex "Complex")))
 
 (deftest value-protocol
