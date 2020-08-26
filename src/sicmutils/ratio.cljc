@@ -142,7 +142,7 @@
        (toString [r] (str (v/freeze r)))
 
        IPrintWithWriter
-       (-pr-writer [x writer _]
+       (-pr-writer [x writer opts]
          (let [x (v/freeze x)]
            (if (number? x)
              (write-all writer x)
@@ -192,6 +192,7 @@
      (defmethod g/abs [Fraction] [a] (promote (.abs a)))
      (defmethod g/magnitude [Fraction] [ a] (promote (.abs a)))
      (defmethod g/gcd [Fraction Fraction] [a b] (promote (.gcd a)))
+     (defmethod g/lcm [Fraction Fraction] [a b] (promote (.lcm a)))
 
      (defmethod g/quotient [Fraction Fraction] [a b]
        (promote

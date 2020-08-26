@@ -21,7 +21,8 @@
   (:require [clojure.test :refer [is deftest testing]]
             [sicmutils.numbers]
             [sicmutils.euclid :as e]
-            [sicmutils.generic :as g]))
+            [sicmutils.generic :as g]
+            [sicmutils.util :as u]))
 
 (defn ^:private ok
   "Compute the extended Euclid data; ensure that the gcd returned
@@ -29,9 +30,9 @@
   y with the returned Bézout coefficients"
   [x y]
   (let [[g a b] (e/extended-gcd x y)]
-    (and (= 0 (mod x g))
-         (= 0 (mod y g))
-         (= g (+ (* a x) (* b y)))
+    (and (= 0 (g/modulo x g))
+         (= 0 (g/modulo y g))
+         (= g (g/+ (g/* a x) (g/* b y)))
          g)))
 
 (deftest euclid-test
@@ -63,15 +64,17 @@
     (is (= [2 1 0] (e/extended-gcd 2 4))))
 
   (testing "lcm"
-    (is (= 21 (e/lcm 3 7)))
-    (is (= 6 (e/lcm 2 6)))
-    (is (= 8 (e/lcm 2 8)))
-    (is (= 30 (e/lcm 6 15)))
-    (is (= 12 (reduce e/lcm [2 3 4])))
-    (is (= 30 (reduce e/lcm [2 3 5]))))
+    (is (= 21 (g/lcm 3 7)))
+    (is (= 6 (g/lcm 2 6)))
+    (is (= 8 (g/lcm 2 8)))
+    (is (= 30 (g/lcm 6 15)))
+    (is (= 12 (reduce g/lcm [2 3 4])))
+    (is (= 30 (reduce g/lcm [2 3 5]))))
 
-  ;; CLJS can't currently handle the precision of these numbers.
-  #?(:clj
-     (testing "high precision gcd"
-       (is (= (ok 37279462087332 366983722766) 564958))
-       (is (= (ok 4323874085395 586898689868986900219865) 85)))))
+  (testing "high precision gcd"
+    (is (= (ok (u/bigint 37279462087332)
+               (u/bigint 366983722766))
+           564958))
+    (is (= (ok (u/bigint 4323874085395)
+               (u/bigint "586898689868986900219865"))
+           85))))

@@ -19,14 +19,26 @@
 
 (ns sicmutils.complex-test
   (:require [clojure.test :refer [is deftest testing]]
+            [same :refer [with-comparator]]
+            [same.ish :refer [default-comparator]]
+            [same.compare :as sc]
             [sicmutils.numbers]
             [sicmutils.complex :as c]
             [sicmutils.generic :as g]
             [sicmutils.generic-test :as gt]
+            [sicmutils.generators :as sg]
+            [sicmutils.laws :as l]
             [sicmutils.value :as v]))
 
 (defn ^:private near [w z]
   (< (g/abs (g/- w z)) 1e-12))
+
+(deftest complex-laws
+  ;; Clojurescript loses quite a bit of precision, so we swap in a slightly more
+  ;; tolerant comparator.
+  (with-comparator #?(:clj  default-comparator
+                      :cljs (sc/compare-ulp 1.0 1e3))
+    (l/field 100 sg/complex "Complex")))
 
 (deftest value-protocol
   (testing "v/Value protocol implementation"

@@ -19,14 +19,36 @@
 
 (ns sicmutils.numbers-test
   (:require [clojure.test :refer [is deftest testing]]
+            [clojure.test.check.generators :as gen]
+            [same :refer [with-comparator]]
             [sicmutils.complex :as c]
             [sicmutils.util :as u]
             [sicmutils.generic :as g]
             [sicmutils.generic-test :as gt]
-            [sicmutils.value :as v]
-            [sicmutils.numbers :as n]))
+            [sicmutils.generators :as sg]
+            [sicmutils.laws :as l]
+            [sicmutils.numbers :as n]
+            [sicmutils.value :as v]))
 
 (def near (v/within 1e-12))
+
+(deftest numeric-laws
+  (l/field 100 sg/bigint #?(:clj "clojure.lang.BigInt" :cljs "js/BigInt"))
+  (l/field 100 sg/long #?(:clj "java.lang.Long" :cljs "goog.math.Long"))
+  (l/field 100 sg/integer #?(:clj "java.lang.Integer" :cljs "goog.math.Integer"))
+  #?(:clj
+     (l/field 100 sg/biginteger "java.math.BigInteger")
+     :cljs
+     (l/field 100 sg/native-integral "integral js/Number")))
+
+(deftest floating-point-laws
+  #?(:clj
+     (l/field 100 sg/double "java.lang.Double")
+
+     :cljs
+     ;; We can upgrade these to `field` once we get a BigDecimal data type in cljs.
+     (do (l/additive-group 100 (sg/double) "js/Number")
+         (l/multiplicative-group 100 (sg/double) "js/Number"))))
 
 (deftest number-generics
   (gt/integral-tests identity :exclusions #{:exact-divide})

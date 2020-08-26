@@ -23,6 +23,8 @@
             [sicmutils.util :as u]
             [sicmutils.generic :as g]
             [sicmutils.generic-test :as gt]
+            [sicmutils.generators :as sg]
+            [sicmutils.laws :as l]
             [sicmutils.value :as v]
             [sicmutils.numbers :as n]))
 
@@ -36,6 +38,9 @@
 
   ;; TODO ticket to fix equality, interop with complex numbers.
   )
+
+(deftest ratio-laws
+  (l/field 100 sg/ratio "Ratio"))
 
 (deftest ratio-generics
   (testing "rational generics"

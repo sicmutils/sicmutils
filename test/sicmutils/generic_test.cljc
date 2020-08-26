@@ -20,8 +20,16 @@
 (ns sicmutils.generic-test
   (:refer-clojure :exclude [+ - * / zero?])
   (:require [clojure.test :refer [is deftest testing]]
+            [clojure.test.check.generators :as gen]
+            [clojure.test.check.properties :as prop]
+            [clojure.test.check.clojure-test :refer [defspec]]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
+            [sicmutils.laws :as l]
             [sicmutils.value :as v]))
+
+;; Remaining
 
 (defmulti s* v/argument-kind)
 (defmulti s+ v/argument-kind)
@@ -54,8 +62,7 @@
     (is (= "eceoeleienrcrorlrirnicioiliiinncnonlninn" (s* "erin" "colin"))))
   (testing "add"
     (is (= "foobar" (s+ "foo" "bar")))
-    (is (= "zzz" (s+ "" "zzz")))
-    ))
+    (is (= "zzz" (s+ "" "zzz")))))
 
 (deftest type-assigner
   (testing "types"
@@ -65,31 +72,50 @@
 
 (deftest generic-plus
   (is (= 0 (g/+)) "no args returns additive identity")
-  (is (= 3.14 (g/+ 3.14)) "single arg should return itself")
-  (is (= 10 (g/+ 0 10 0.0 0 0)) "multi-arg works, as long as zeros appear.")
-  (is (= "happy" (g/+ 0 "happy" 0.0 0 0)) "returns really anything."))
+  (checking "g/+"
+            100
+            [x gen/any]
+            (is (= x (g/+ x)) "single arg should return itself, for any type.")
+            (is (= (if (v/nullity? x) 0 x)
+                   (g/+ x 0))
+                "adding a 0 works for any input. The first zero element gets
+                returned.")
+            (is (= x (g/+ 0 x)) "adding a leading 0 acts as identity.")
+            (is (= (if (v/nullity? x) 0 x)
+                   (g/+ 0 x 0.0 0 0)) "multi-arg works as long as zeros
+            appear.")))
 
 (deftest generic-minus
   (is (= 0 (g/-)) "no-arity returns the additive identity.")
-  (is (= 10 (g/- 10 0)) "Subtracting a zero works, with no implementations registered.")
-  (is (= "face" (g/- "face" 0))))
+  (checking "Subtracting a zero acts as id, with no implementations registered."
+            100
+            [x gen/any]
+            (is (= x (g/- x 0)))))
 
 (deftest generic-times
   (is (= 1 (g/*)) "No args returns the multiplicative identity.")
-  (is (= 2 (g/* 2)) "single arg returns itself.")
-  (is (= 5 (g/* 5 1) (g/* 1 5)) "Anything times a 1 returns itself.")
-  (is (= "face" (g/* "face" 1) (g/* 1 "face")) "works for really anything."))
+  (checking "g/*"
+            100
+            [x gen/any]
+            (is (= x (g/* x)) "single arg returns itself.")
+            (is (= (if (v/unity? x) 1 x)
+                   (g/* x 1)) "First unity gets returned.")
+            (is (= x (g/* 1 x)) "Anything times a 1 returns itself.")))
 
 (deftest generic-divide
   (is (= 1 (g/divide)) "division with no args returns multiplicative identity")
-  (is (= 20 (g/divide 20 1)) "dividing by one a single time returns the input")
-  (is (= "face" (g/divide "face" 1 1 1 1.0 1)) "dividing by 1 returns the input"))
+  (checking "g/divide"
+            100
+            [x gen/any]
+            (is (= x (g/divide x 1)) "dividing by one a single time returns the input")
+            (is (= x (g/divide x 1 1 1 1.0 1)) "dividing by 1 returns the input")))
 
 (defn ^:private is* [eq actual expected]
   (is (eq actual expected)
       #?(:clj (format "expected: %s\n  actual: %s"
                       (pr-str expected)
                       (pr-str actual)))))
+
 
 (defn integral-unary-tests
   [int->a & {:keys [exclusions eq]

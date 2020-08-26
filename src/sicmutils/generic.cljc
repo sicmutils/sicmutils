@@ -84,8 +84,8 @@
 (def-generic-function div 2)
 (def-generic-function negate 1)
 (def-generic-function negative? 1
-  "This is a function."
-  :default (fn[a] (< a (v/zero-like a))))
+  "This is a function.")
+(defmethod negative? :default [a] (< a (v/zero-like a)))
 
 (def-generic-function exp 1)
 (def-generic-function log 1)
@@ -94,24 +94,25 @@
 (def-generic-function quotient 2)
 
 (def-generic-function remainder 2)
-(def-generic-function modulo 2
-  :default (fn [a b]
-             (let [m (remainder a b)]
-               (if (or (v/nullity? m)
-                       (= (negative? a)
-                          (negative? b)))
-                 m
-                 (add m b)))))
+(def-generic-function modulo 2)
+(defmethod modulo :default [a b]
+  (let [m (remainder a b)]
+    (if (or (v/nullity? m)
+            (= (negative? a)
+               (negative? b)))
+      m
+      (add m b))))
 
 (def-generic-function expt 2)
 (def-generic-function gcd 2)
+(def-generic-function lcm 2)
 (def-generic-function exact-divide 2)
 
-(def-generic-function square 1
-  :default (fn [x] (expt x 2)))
+(def-generic-function square 1)
+(defmethod square :default [x] (expt x 2))
 
-(def-generic-function cube 1
-  :default (fn [x] (expt x 3)))
+(def-generic-function cube 1)
+(defmethod cube :default [x] (expt x 3))
 
 ;; Trigonometric functions.
 (def-generic-function cos 1)
@@ -133,7 +134,8 @@
 
 (defmulti partial-derivative v/argument-kind)
 
-(defmulti simplify v/argument-kind :default v/freeze)
+(defmulti simplify v/argument-kind)
+(defmethod simplify :default [a] (v/freeze a))
 (defmethod simplify [::v/number] [a] a)
 (defmethod simplify [Var] [a] (-> a meta :name))
 (defmethod simplify [Symbol] [a] a)

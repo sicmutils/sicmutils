@@ -233,7 +233,11 @@
        (unity? [x] (js*  "~{} == ~{}" big-one x))
        (zero-like [_] big-zero)
        (one-like [_] big-one)
-       (freeze [x] x)
+       (freeze [x] (if (<= x (.-MAX_SAFE_INTEGER js/Number))
+                     (js/Number x)
+
+                     ;; TODO: figure out how to handle this branch. Do we have our owner reader?
+                     x))
        (exact? [_] true)
        (numerical? [_] true)
        (kind [_] js/BigInt)
