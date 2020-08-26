@@ -46,7 +46,6 @@
 (defn imag-part [^Complex a] (#?(:clj .getImaginary :cljs .-im) a))
 (defn angle [^Complex a] (#?(:clj .getArgument :cljs .arg) a))
 
-;; TODO why is it printing weird??
 (def parse-complex
   #?(:clj (let [cf (ComplexFormat.)]
             (fn [s]
@@ -58,18 +57,6 @@
 
 (derive ::complex ::x/numerical-expression)
 
-#?(:clj
-   (let [cf (ComplexFormat.)]
-     (defmethod print-method Complex [^Complex v ^java.io.Writer w]
-       (.write w (str "#sicm/complex \""
-                      (.format cf v)
-                      "\"")))))
-
-#?(:clj
-   (let [cf (ComplexFormat.)]
-     (defn print-c [^Complex x]
-       (.format (ComplexFormat.) ^Complex x))))
-
 #?(:cljs
    (extend-type Complex
      IEquiv
@@ -79,6 +66,13 @@
      IPrintWithWriter
      (-pr-writer [x writer opts]
        (write-all writer "#sicm/complex \"" (.toString x) "\""))))
+
+#?(:clj
+   (let [cf (ComplexFormat.)]
+     (defmethod print-method Complex [^Complex v ^java.io.Writer w]
+       (.write w (str "#sicm/complex \""
+                      (.format cf v)
+                      "\"")))))
 
 (extend-type Complex
   v/Value
