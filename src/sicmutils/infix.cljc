@@ -23,7 +23,7 @@
             [clojure.string :as s]
             [pattern.rule :as R #?@(:cljs [:include-macros true])]
             [sicmutils.expression :as x]
-            [sicmutils.util :as u]
+            [sicmutils.ratio :as r]
             [sicmutils.numerical.compile :as compile]))
 
 (defn ^:private make-symbol-generator
@@ -286,8 +286,8 @@
       'sqrt #(str "\\sqrt " (maybe-brace (first %)))}
      :render-primitive
      (fn r [v]
-       (cond (u/ratio? v)
-             (str "\\frac" (brace (u/numerator v)) (brace (u/denominator v)))
+       (cond (r/ratio? v)
+             (str "\\frac" (brace (r/numerator v)) (brace (r/denominator v)))
 
              :else
              (let [s (str v)]

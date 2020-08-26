@@ -8,7 +8,11 @@
   (:require [clojure.test.check.generators :as gen]
             [same.ish :as si]
             [sicmutils.complex :as c]
+<<<<<<< HEAD
             [sicmutils.generic :as g]
+=======
+            [sicmutils.ratio :as r]
+>>>>>>> 77aa090... all ported
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -56,6 +60,14 @@
   (gen/let [r (reasonable-double)
             i (reasonable-double)]
     (c/complex r i)))
+
+(def ratio
+  (gen/let [n bigint
+            d bigint]
+    (let [d (if (v/nullity? d)
+              (u/bigint 1)
+              d)]
+      (r/rationalize n d))))
 
 (def ^:dynamic *complex-tolerance* 1e-12)
 

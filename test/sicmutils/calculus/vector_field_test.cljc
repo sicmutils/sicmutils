@@ -47,16 +47,20 @@
              (g/simplify ((v (m/chart R2-rect)) p))))
       (is (= ::vf/vector-field (v/kind v)))))
 
-  ;; TODO enable ratio literals for cljs.
-  #?(:clj
-     (testing "exponential"
-       (let-coordinates [[x y] R2-rect]
-         (let [circular (- (* x d:dy) (* y d:dx))]
-           (is (= '(up (+ (* -1/720 (expt a 6)) (* 1/24 (expt a 4)) (* -1/2 (expt a 2)) 1)
-                       (+ (* 1/120 (expt a 5)) (* -1/6 (expt a 3)) a))
-                  (g/simplify
-                   ((((vf/evolution 6) 'a circular) (m/chart R2-rect))
-                    ((m/point R2-rect) (up 1 0))))))))))
+  (testing "exponential"
+    (let-coordinates [[x y] R2-rect]
+      (let [circular (- (* x d:dy) (* y d:dx))]
+        (is (= '(up (+ (* (/ -1 720) (expt a 6))
+                       (* (/ 1 24) (expt a 4))
+                       (* (/ -1 2) (expt a 2))
+                       1)
+                    (+ (* (/ 1 120) (expt a 5))
+                       (* (/ -1 6) (expt a 3))
+                       a))
+               (v/freeze
+                (g/simplify
+                 ((((vf/evolution 6) 'a circular) (m/chart R2-rect))
+                  ((m/point R2-rect) (up 1 0))))))))))
 
   (testing "naming"
     (let-coordinates [[x y] R2-rect]
