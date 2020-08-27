@@ -93,12 +93,24 @@
                 "multiplying by denominator recovers numerator")
             (let [r      (r/rationalize n d)
                   factor (g/gcd n d)]
-              (is (= (g/abs d)
-                     (g/abs (g/mul factor (r/denominator r))))
-                  "denominator scales down by gcd")
-              (is (= (g/abs n)
-                     (g/abs (g/mul factor (r/numerator r))))
-                  "numerator scales down by gcd"))))
+              (when-not (r/ratio? r)
+                (is (= (g/abs d)
+                       (g/abs factor))
+                    "If rationalize doesn't return ratio the denominator must
+                    have been the gcd.")
+
+                (is (= (g/abs n)
+                       (g/abs (g/mul factor r)))
+                    "Recover the original n by multiplying the return value by
+                    the factor."))
+
+              (when (r/ratio? r)
+                (is (= (g/abs d)
+                       (g/abs (g/mul factor (r/denominator r))))
+                    "denominator scales down by gcd")
+                (is (= (g/abs n)
+                       (g/abs (g/mul factor (r/numerator r))))
+                    "numerator scales down by gcd")))))
 
 (deftest ratio-generics
   (testing "rational generics"
