@@ -130,6 +130,8 @@
         "integral exponents stay exact")
 
     (is (= (-> #sicm/ratio 1/2 (g/expt (u/long 3)))
+           (-> #sicm/ratio 1/2 (g/expt (u/bigint 3)))
+           (-> #sicm/ratio 1/2 (g/expt (u/int 3)))
            #sicm/ratio 1/8)
         "different types work")
 

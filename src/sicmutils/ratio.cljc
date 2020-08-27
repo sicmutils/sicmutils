@@ -206,9 +206,11 @@
      (defmethod g/magnitude [Fraction] [ a] (promote (.abs a)))
      (defmethod g/gcd [Fraction Fraction] [a b] (promote (.gcd a)))
      (defmethod g/lcm [Fraction Fraction] [a b] (promote (.lcm a)))
+     (defmethod g/expt [Fraction ::v/native-integral] [a b]
+       (promote (.pow a b)))
 
      (defmethod g/expt [Fraction ::v/integral] [a b]
-       (promote (.pow a b)))
+       (promote (.pow a (js/Number b))))
 
      ;; Only integral ratios let us stay exact. If a ratio appears in the
      ;; exponent, convert the base to a number and call g/expt again.
@@ -255,7 +257,6 @@
      ;; We handle the cases above where the exponent connects with integrals and
      ;; stays exact.
      (downcast-fraction g/expt)
-
      (doseq [op [g/add g/mul g/sub g/gcd g/remainder g/quotient g/div]]
        (upcast-number op)
        (downcast-fraction op))))
