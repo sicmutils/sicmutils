@@ -59,6 +59,13 @@
     (c/complex r i)))
 
 (def ratio
+  "Generates a small ratio (or integer) using gen/small-integer. Shrinks
+  toward simpler ratios, which may be larger or smaller."
+  (gen/fmap
+   (fn [[a b]] (r/rationalize a b))
+   (gen/tuple gen/small-integer (gen/fmap inc gen/nat))))
+
+(def big-ratio
   (gen/let [n bigint
             d bigint]
     (let [d (if (v/nullity? d)

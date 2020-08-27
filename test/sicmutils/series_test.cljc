@@ -107,6 +107,8 @@
       (is (= '(1 2 3 4 5 6)
              (series/take 6 (series/partial-sums ones))))
 
-      #?(:clj
-         ;; Ratios, not compatible with cljs yet.
-         (is (= '(17/4 7/2 11/4 1) (series/take 4 (g/+ (g/* 1/4 nats) S))))))))
+      (is (= [#sicm/ratio 17/4
+              #sicm/ratio 7/2
+              #sicm/ratio 11/4
+              1]
+             (series/take 4 (g/+ (g/* #sicm/ratio 1/4 nats) S)))))))

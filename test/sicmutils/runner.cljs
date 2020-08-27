@@ -103,14 +103,10 @@
 
            'sicmutils.sicm.ch1-test
            'sicmutils.sicm.ch2-test
+           'sicmutils.sicm.ch3-test
+           'sicmutils.sicm.ch5-test
+           'sicmutils.sicm.ch6-test
            'sicmutils.sicm.ch7-test
-
-           ;; TODO These don't currently work due to the lack of BigDecimal and
-           ;; proper rational numbers.
-
-           ;; 'sicmutils.sicm.ch3-test
-           ;; 'sicmutils.sicm.ch5-test
-           ;; 'sicmutils.sicm.ch6-test
 
            'sicmutils.analyzer-test
            'sicmutils.complex-test

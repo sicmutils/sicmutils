@@ -272,7 +272,6 @@
 (defmethod g/add [::rational-function ::p/polynomial] [r p] (addp r p))
 (defmethod g/add [::p/polynomial ::rational-function] [p r] (addp r p))
 
-;; TODO can we consolidate these below?
 (defmethod g/add [::rational-function ::v/number] [a b]
   (addp a (p/make-constant (.-arity a) b)))
 

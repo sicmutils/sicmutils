@@ -41,7 +41,7 @@
 
 (deftest ratio-laws
   ;; Rational numbers form a field!
-  (l/field 100 sg/ratio "Ratio"))
+  (l/field 100 sg/big-ratio "Ratio"))
 
 (deftest ratio-generics
   (testing "rational generics"

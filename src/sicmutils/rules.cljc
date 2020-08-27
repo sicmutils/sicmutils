@@ -18,16 +18,23 @@
 ;
 
 (ns sicmutils.rules
-  (:require
-   #?(:clj [pattern.rule :refer [ruleset rule-simplifier]]
-      :cljs [pattern.rule
-             :refer [rule-simplifier]
-             :refer-macros [ruleset]])))
+  (:require [pattern.rule :refer [ruleset rule-simplifier]
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.generic :as g]
+            [sicmutils.value :as v]))
 
-(defn ^:private more-than-two? [x] (and (number? x) (> x 2)))
-(defn ^:private at-least-two? [x] (and (number? x) (>= x 2)))
-(defn ^:private even-integer? [x] (and (number? x) (even? x)))
-(defn ^:private odd-integer? [x] (and (number? x) (not (even? x))))
+(defn ^:private more-than-two? [x]
+  (and (v/number? x) (> x 2)))
+
+(defn ^:private at-least-two? [x]
+  (and (v/number? x) (>= x 2)))
+
+(defn ^:private even-integer? [x]
+  (and (v/integral? x) (v/nullity? (g/modulo x 2))))
+
+(defn ^:private odd-integer? [x]
+  (and (v/integral? x)
+       (not (v/nullity? (g/modulo x 2)))))
 
 (def sin-sq->cos-sq
   (rule-simplifier
@@ -106,7 +113,7 @@
 
     ;; Does this really belong here?
     ;; It works by reducing n mod 4 and then indexing into [1 i -1 -i].
-    (expt (complex 0.0 1.0) (:? n integer?))
+    (expt (complex 0.0 1.0) (:? n v/integral?))
     => (:? #([1 '(complex 0 1) -1 '(complex 0 -1)] (mod (% 'n) 4))))))
 
 (def divide-numbers-through
@@ -118,10 +125,10 @@
     (* 1 :factors*)
     => (* :factors*)
 
-    (/ (:? n number?) (:? d number?))
-    => (:? #(/ (% 'n) (% 'd)))
+    (/ (:? n v/number?) (:? d v/number?))
+    => (:? #(g// (% 'n) (% 'd)))
 
-    (/ (+ :terms*) (:? d number?))
+    (/ (+ :terms*) (:? d v/number?))
     => (+ (:?? #(map (fn [n] `(~'/ ~n ~(% 'd))) (% :terms*)))))))
 
 (def ^:private flush-obvious-ones

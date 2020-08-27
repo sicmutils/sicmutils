@@ -22,7 +22,8 @@
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.examples.double-pendulum :as double]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.env :as e :refer [up down expt cos sin + - * /]]))
+            [sicmutils.env :as e :refer [up down expt cos sin + - * /]]
+            [sicmutils.value :as v]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
@@ -36,18 +37,20 @@
                (* -1 g l2 m2 (cos φ)))
            (e/simplify (V state))))
     (is (= '(+ (* l1 l2 m2 θdot φdot (cos (+ θ (* -1 φ))))
-               (* #?(:clj 1/2 :cljs 0.5) (expt l1 2) m1 (expt θdot 2))
-               (* #?(:clj 1/2 :cljs 0.5) (expt l1 2) m2 (expt θdot 2))
-               (* #?(:clj 1/2 :cljs 0.5) (expt l2 2) m2 (expt φdot 2)))
-           (e/simplify (T state))))
+               (* (/ 1 2) (expt l1 2) m1 (expt θdot 2))
+               (* (/ 1 2) (expt l1 2) m2 (expt θdot 2))
+               (* (/ 1 2) (expt l2 2) m2 (expt φdot 2)))
+           (v/freeze
+            (e/simplify (T state)))))
     (is (= '(+ (* l1 l2 m2 θdot φdot (cos (+ θ (* -1 φ))))
-               (* #?(:clj 1/2 :cljs 0.5) (expt l1 2) m1 (expt θdot 2))
-               (* #?(:clj 1/2 :cljs 0.5) (expt l1 2) m2 (expt θdot 2))
-               (* #?(:clj 1/2 :cljs 0.5) (expt l2 2) m2 (expt φdot 2))
+               (* (/ 1 2) (expt l1 2) m1 (expt θdot 2))
+               (* (/ 1 2) (expt l1 2) m2 (expt θdot 2))
+               (* (/ 1 2) (expt l2 2) m2 (expt φdot 2))
                (* g l1 m1 (cos θ))
                (* g l1 m2 (cos θ))
                (* g l2 m2 (cos φ)))
-           (e/simplify (L state))))
+           (v/freeze
+            (e/simplify (L state)))))
     (e/with-literal-functions [θ φ]
       (is (= '(down (+ (* l1 l2 m2 (expt ((D φ) t) 2) (sin (+ (θ t) (* -1 (φ t)))))
                        (* l1 l2 m2 (((expt D 2) φ) t) (cos (+ (θ t) (* -1 (φ t)))))

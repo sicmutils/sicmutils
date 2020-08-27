@@ -155,7 +155,12 @@
            (.compare this (rationalize other))))
 
        Object
-       (toString [r] (str (v/freeze r)))
+       (toString [r]
+         (let [x (v/freeze r)]
+           (if number? x)
+           x
+           (let [[_ n d] x]
+             (str n "/" d))))
 
        IPrintWithWriter
        (-pr-writer [x writer opts]

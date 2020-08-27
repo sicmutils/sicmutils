@@ -30,7 +30,8 @@
                                          point chart
                                          R2-rect R2-polar]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 
@@ -70,32 +71,33 @@
              (((+ d:dx (* 2 d:dy)) (+ (square r) (* 3 x))) R2-rect-point)))))))
 
 (deftest section-3-3
-  #?(:clj
-     ;; TODO making this clj only until we have proper ratio support.
-     (e/let-coordinates
-      [[x y] R2-rect]
-      (let [circular (- (* x d:dy) (* y d:dx))]
-        (is (= '((up 1 0)
-                 (up 0 t)
-                 (up (* -1/2 (expt t 2)) 0)
-                 (up 0 (* -1/6 (expt t 3)))
-                 (up (* 1/24 (expt t 4)) 0)
-                 (up 0 (* 1/120 (expt t 5))))
-               (simplify
-                (take 6
-                      (seq
-                       (((exp (* 't circular)) (chart R2-rect))
-                        ((point R2-rect) (up 1 0))))))))
-        (is (= '(up
-                 (+
-                  (* -1/720 (expt delta-t 6))
-                  (* 1/24 (expt delta-t 4))
-                  (* -1/2 (expt delta-t 2))
-                  1)
-                 (+ (* 1/120 (expt delta-t 5)) (* -1/6 (expt delta-t 3)) delta-t))
-               (simplify
-                ((((e/evolution 6) 'delta-t circular) (chart R2-rect))
-                 ((point R2-rect) (up 1 0))))))))))
+  (e/let-coordinates
+   [[x y] R2-rect]
+   (let [circular (- (* x d:dy) (* y d:dx))]
+     (is (= '((up 1 0)
+              (up 0 t)
+              (up (* (/ -1 2) (expt t 2)) 0)
+              (up 0 (* (/ -1 6) (expt t 3)))
+              (up (* (/ 1 24) (expt t 4)) 0)
+              (up 0 (* (/ 1 120) (expt t 5))))
+            (v/freeze
+             (simplify
+              (take 6
+                    (seq
+                     (((exp (* 't circular)) (chart R2-rect))
+                      ((point R2-rect) (up 1 0)))))))))
+     (is (= '(up
+              (+ (* (/ -1 720) (expt delta-t 6))
+                 (* (/ 1 24) (expt delta-t 4))
+                 (* (/ -1 2) (expt delta-t 2))
+                 1)
+              (+ (* (/ 1 120) (expt delta-t 5))
+                 (* (/ -1 6) (expt delta-t 3))
+                 delta-t))
+            (v/freeze
+             (simplify
+              ((((e/evolution 6) 'delta-t circular) (chart R2-rect))
+               ((point R2-rect) (up 1 0))))))))))
 
 (deftest section-3-5
   (e/let-coordinates

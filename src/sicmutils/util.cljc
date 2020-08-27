@@ -48,6 +48,9 @@
   #?(:clj (core-bigint x)
      :cljs (js/BigInt x)))
 
+(defn parse-bigint [x]
+  `(bigint ~x))
+
 (defn biginteger [x]
   #?(:clj (core-biginteger x)
      :cljs (js/BigInt x)))
