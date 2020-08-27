@@ -61,24 +61,40 @@
               (Fraction. n d))
       :clj (core-rationalize (/ n d)))))
 
+(def ^:private ratio-pattern #"([-+]?[0-9]+)/([0-9]+)")
+
+(defn ^boolean matches? [pattern s]
+  (let [[match] (re-find pattern s)]
+    (identical? match s)))
+
+(defn ^:private match-ratio
+  [s]
+  (let [m (vec (re-find ratio-pattern s))
+        numerator   (m 1)
+        denominator (m 2)
+        numerator (if (re-find #"^\+" numerator)
+                    (subs numerator 1)
+                    numerator)]
+    `(rationalize
+      (u/bigint ~numerator)
+      (u/bigint ~denominator))))
+
 (defn parse-ratio
-  "TODO Experimental. Parser for the #sicm/frac data literal."
+  "Parser for the #sicm/ratio literal."
   [x]
   (cond #?@(:clj
             [(ratio? x)
-             `(sicmutils.ratio/rationalize
-               ~(long (numerator x))
-               ~(long (denominator x)))])
-
-        (sequential? x)
-        (let [[op n d] x]
-          (cond (= op '/) `(sicmutils.ratio/rationalize ~n ~d)
-                (nil? d)  `(sicmutils.ratio/rationalize ~op ~n)
-                :else (u/illegal (str "Invalid: " x))))
+             `(rationalize
+               (u/bigint ~(str (numerator x)))
+               (u/bigint ~(str (denominator x))))])
 
         (v/number? x) `(sicmutils.ratio/rationalize ~x)
-
-        :else (u/illegal (str "Invalid: " x))))
+        (string? x)    (if (matches? ratio-pattern x)
+                         (match-ratio x)
+                         (recur
+                          #?(:clj  (clojure.edn/read-string x)
+                             :cljs (cljs.reader/read-string x))))
+        :else (u/illegal (str "Invalid ratio: " x))))
 
 #?(:clj
    (extend-type Ratio
@@ -108,10 +124,10 @@
        (freeze [x] (let [n (numerator x)
                          d (denominator x)]
                      (if (v/unity? d)
-                       (js/Number n)
+                       (v/freeze n)
                        `(~'/
-                         ~(js/Number n)
-                         ~(js/Number d)))))
+                         ~(v/freeze n)
+                         ~(v/freeze d)))))
        (exact? [c] true)
        (numerical? [_] true)
        (kind [x] Fraction)
@@ -143,10 +159,13 @@
 
        IPrintWithWriter
        (-pr-writer [x writer opts]
-         (let [x (v/freeze x)]
-           (if (number? x)
-             (write-all writer x)
-             (write-all writer "#sicm/ratio " (str x))))))))
+         (let [n (numerator x)
+               d (denominator x)]
+           (if (v/unity? d)
+             (-pr-writer n writer opts)
+             (write-all writer "#sicm/ratio \""
+                        (str n) "/" (str d)
+                        "\"")))))))
 
 #?(:clj
    (doseq [[op f] [[g/exact-divide /]

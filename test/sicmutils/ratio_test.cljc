@@ -40,6 +40,7 @@
   )
 
 (deftest ratio-laws
+  ;; Rational numbers form a field!
   (l/field 100 sg/ratio "Ratio"))
 
 (deftest ratio-generics

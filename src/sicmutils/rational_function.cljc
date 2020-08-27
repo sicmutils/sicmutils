@@ -27,9 +27,8 @@
             [sicmutils.polynomial :as p]
             [sicmutils.polynomial-gcd :as poly]
             [sicmutils.ratio :as r]
-            [sicmutils.value :as v])
-  #?(:clj
-     (:import [clojure.lang Ratio BigInt])))
+            [sicmutils.util :as u]
+            [sicmutils.value :as v]))
 
 (declare operator-table operators-known)
 
@@ -375,11 +374,8 @@
 (defmethod g/gcd [::v/integral ::p/polynomial] [a p]
   (poly/primitive-gcd (cons a (p/coefficients p))))
 
-#?(:clj
-   ;; Ratio support for Clojure.
-   (do
-     (defmethod g/gcd [::p/polynomial Ratio] [p a]
-       (poly/primitive-gcd (cons a (p/coefficients p))))
+(defmethod g/gcd [::p/polynomial r/ratiotype] [p a]
+  (poly/primitive-gcd (cons a (p/coefficients p))))
 
-     (defmethod g/gcd [Ratio ::p/polynomial] [a p]
-       (poly/primitive-gcd (cons a (p/coefficients p))))))
+(defmethod g/gcd [r/ratiotype ::p/polynomial] [a p]
+  (poly/primitive-gcd (cons a (p/coefficients p))))
