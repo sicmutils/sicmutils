@@ -77,7 +77,7 @@
     (is (= (p/make 3 [[[0 0 0] 1]]) (v/one-like (p/make 3 [[[1 2 1] 4] [[0 1 0] 5]]))))
     ;; we can't deduce the unit element from the zero polynomial over an
     ;; "unknown" ring
-    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+    (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
                  (v/one-like (p/make 2 [])))))
 
   (testing "add constant"
