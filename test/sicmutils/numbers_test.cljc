@@ -19,6 +19,7 @@
 
 (ns sicmutils.numbers-test
   (:require [clojure.test :refer [is deftest testing]]
+            [same :refer [with-comparator]]
             [sicmutils.complex :as c]
             [sicmutils.util :as u]
             [sicmutils.generic :as g]
@@ -46,8 +47,9 @@
 
 (deftest floating-point-laws
   ;; Doubles form a field too.
-  (l/field 100 (sg/reasonable-double) #?(:clj  "java.lang.Double"
-                                         :cljs "floating point js/Number")))
+  (with-comparator (v/within 1e-3)
+    (l/field 100 (sg/reasonable-double) #?(:clj  "java.lang.Double"
+                                           :cljs "floating point js/Number"))))
 
 (deftest number-generics
   (gt/integral-tests identity :exclusions #{:exact-divide})
