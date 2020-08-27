@@ -8,11 +8,8 @@
   (:require [clojure.test.check.generators :as gen]
             [same.ish :as si]
             [sicmutils.complex :as c]
-<<<<<<< HEAD
             [sicmutils.generic :as g]
-=======
             [sicmutils.ratio :as r]
->>>>>>> 77aa090... all ported
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
