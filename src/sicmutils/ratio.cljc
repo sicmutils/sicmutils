@@ -188,6 +188,15 @@
 
    :cljs
    (do
+     (defn pow [r m]
+       (let [n (numerator r)
+             d (denominator r)]
+         (if (neg? m)
+           (rationalize (g/expt d (g/negate m))
+                        (g/expt n (g/negate m)))
+           (rationalize (g/expt n m)
+                        (g/expt d m)))))
+
      ;; The -equiv implementation handles equality with any number, so flip the
      ;; arguments around and invoke equiv.
      (defmethod v/eq [::v/number Fraction] [l r] (= r l))
@@ -206,11 +215,7 @@
      (defmethod g/magnitude [Fraction] [ a] (promote (.abs a)))
      (defmethod g/gcd [Fraction Fraction] [a b] (promote (.gcd a)))
      (defmethod g/lcm [Fraction Fraction] [a b] (promote (.lcm a)))
-     (defmethod g/expt [Fraction ::v/native-integral] [a b]
-       (promote (.pow a b)))
-
-     (defmethod g/expt [Fraction ::v/integral] [a b]
-       (promote (.pow a (js/Number b))))
+     (defmethod g/expt [Fraction ::v/integral] [a b] (pow a b))
 
      ;; Only integral ratios let us stay exact. If a ratio appears in the
      ;; exponent, convert the base to a number and call g/expt again.
