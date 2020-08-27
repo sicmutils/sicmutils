@@ -51,7 +51,7 @@
 
 (deftest simplify-expressions
   (is (= 6 (simplify-expression '(* 1 2 3))))
-  (is (= #?(:clj 2/3 :cljs (/ 2 3))
+  (is (= #sicm/ratio 2/3
          (simplify-expression '(/ 2 3)))))
 
 (deftest trivial-simplifications

@@ -197,17 +197,6 @@
      (defmethod g/mul [Fraction Fraction] [a b] (promote (.mul a b)))
      (defmethod g/div [Fraction Fraction] [a b] (promote (.div a b)))
      (defmethod g/exact-divide [Fraction Fraction] [a b] (promote (.div a b)))
-
-     ;; TODO this does NOT work. We can actually only take integral exponents! To match Clojure, we want to:
-     ;;
-     ;; - handle integral exponents, just like the implementation allows.
-     ;; - if the pow is NOT integral, convert both toValue then proceed.
-     ;; - below, downcast fraction if we find it in the exponent.
-     ;; - from nt/expt, 'return an exact number if the base is an exact number
-     ;; - and the power is an integer, otherwise returns a double'
-
-     (defmethod g/expt [Fraction Fraction] [a b] (promote (.pow a b)))
-
      (defmethod g/negate [Fraction] [a] (promote (.neg a)))
      (defmethod g/negative? [Fraction] [a] (neg? (.-s a)))
      (defmethod g/invert [Fraction] [a] (promote (.inverse a)))
@@ -217,6 +206,16 @@
      (defmethod g/magnitude [Fraction] [ a] (promote (.abs a)))
      (defmethod g/gcd [Fraction Fraction] [a b] (promote (.gcd a)))
      (defmethod g/lcm [Fraction Fraction] [a b] (promote (.lcm a)))
+
+     (defmethod g/expt [Fraction ::v/integral] [a b]
+       (promote (.pow a b)))
+
+     ;; Only integral ratios let us stay exact. If a ratio appears in the
+     ;; exponent, convert the base to a number and call g/expt again.
+     (defmethod g/expt [Fraction Fraction] [a b]
+       (if (v/unity? (denominator b))
+         (promote (.pow a (numerator b)))
+         (g/expt (.valueOf a) (.valueOf b))))
 
      (defmethod g/quotient [Fraction Fraction] [a b]
        (promote
@@ -253,6 +252,10 @@
      ;; is).
      (upcast-number g/exact-divide)
 
-     (doseq [op [g/add g/mul g/sub g/gcd g/expt g/remainder g/quotient g/div]]
+     ;; We handle the cases above where the exponent connects with integrals and
+     ;; stays exact.
+     (downcast-fraction g/expt)
+
+     (doseq [op [g/add g/mul g/sub g/gcd g/remainder g/quotient g/div]]
        (upcast-number op)
        (downcast-fraction op))))

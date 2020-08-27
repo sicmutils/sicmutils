@@ -53,6 +53,12 @@
                                :min excluded-upper
                                :max max})])))
 
+(def any-integral
+  (gen/one-of [native-integral
+               bigint
+               long
+               integer]))
+
 (def complex
   (gen/let [r (reasonable-double)
             i (reasonable-double)]

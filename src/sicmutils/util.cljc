@@ -9,7 +9,8 @@
             #?(:cljs goog.math.Integer)
             #?(:cljs goog.math.Long))
   #?(:clj
-     (:import [java.util.concurrent TimeUnit TimeoutException])))
+     (:import [clojure.lang BigInt]
+              [java.util.concurrent TimeUnit TimeoutException])))
 
 (defmacro import-def
   "import a single fn or var
@@ -41,6 +42,7 @@
 (def compute-sqrt #?(:clj nt/sqrt :cljs Math/sqrt))
 (def compute-expt #?(:clj nt/expt :cljs Math/pow))
 (def compute-abs #?(:clj nt/abs :cljs Math/abs))
+(def biginttype #?(:clj BigInt :cljs js/BigInt))
 (def inttype #?(:clj Integer :cljs goog.math.Integer))
 (def longtype #?(:clj Long :cljs goog.math.Long))
 

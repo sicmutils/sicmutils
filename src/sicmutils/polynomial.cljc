@@ -25,7 +25,6 @@
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as sym]
-            [sicmutils.ratio :as r]
             [sicmutils.util :as u]
             [sicmutils.value :as v]
             #?(:cljs [goog.string :refer [format]])))

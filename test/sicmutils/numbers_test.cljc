@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.numbers-test
   (:require [clojure.test :refer [is deftest testing]]
@@ -59,6 +59,9 @@
     (is (c/complex? (g/log -10)))
     (is (= (c/complex 0 Math/PI) (g/log -1))))
 
+  (testing "expt goes rational with negative expt"
+    (is (= #sicm/ratio 1/4 (g/expt 2 -2))))
+
   (testing "exp/log preserve exactness together"
     (is (= 0 (g/log (g/exp 0)))))
 
@@ -94,16 +97,28 @@
 
 (deftest integer-generics
   (gt/integral-tests u/int)
-  (gt/integral-a->b-tests u/int identity :exclusions #{:exact-divide}))
+  (gt/integral-a->b-tests u/int identity :exclusions #{:exact-divide})
+
+  (testing "g/expt"
+    (is (= (g/expt (u/int 2) (u/int -2))
+           (g/invert (u/int 4))))))
 
 (deftest long-generics
   (gt/integral-tests u/long)
-  (gt/integral-a->b-tests u/long identity :exclusions #{:exact-divide}))
+  (gt/integral-a->b-tests u/long identity :exclusions #{:exact-divide})
+
+  (testing "g/expt"
+    (is (= (g/expt (u/long 2) (u/long -2))
+           (g/invert (u/long 4))))))
 
 (deftest bigint-generics
   (gt/integral-tests u/bigint)
   (gt/integral-a->b-tests u/bigint identity)
-  (gt/integral-a->b-tests identity u/bigint))
+  (gt/integral-a->b-tests identity u/bigint)
+
+  (testing "g/expt"
+    (is (= (g/expt (u/bigint 2) (u/bigint -2))
+           (g/invert (u/bigint 4))))))
 
 #?(:clj
    (deftest biginteger-generics

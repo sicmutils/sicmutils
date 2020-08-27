@@ -133,7 +133,12 @@
    (defmethod g/gcd [BigInteger BigInteger] [a b] (.gcd a b)))
 
 #?(:cljs
-   (do (defmethod g/div [::v/integral ::v/integral] [a b]
+   (do (defmethod g/expt [::v/native-integral ::v/native-integral] [a b]
+         (if (neg? b)
+           (g/invert (u/compute-expt a (core-minus b)))
+           (u/compute-expt a b)))
+
+       (defmethod g/div [::v/integral ::v/integral] [a b]
          (let [rem (g/remainder a b)]
            (if (v/nullity? rem)
              (g/quotient a b)
@@ -168,7 +173,12 @@
      (defmethod g/mul [js/BigInt js/BigInt] [a b] (core-times a b))
      (defmethod g/sub [js/BigInt js/BigInt] [a b] (core-minus a b))
      (defmethod g/negate [js/BigInt] [a] (core-minus a))
-     (defmethod g/expt [js/BigInt js/BigInt] [a b] (js* "~{} ** ~{}" a b))
+
+     (defmethod g/expt [js/BigInt js/BigInt] [a b]
+       (if (g/negative? b)
+         (g/invert (js* "~{} ** ~{}" a (core-minus b)))
+         (js* "~{} ** ~{}" a b)))
+
      (defmethod g/abs [js/BigInt] [a] (if (neg? a) (core-minus a) a))
      (defmethod g/quotient [js/BigInt js/BigInt] [a b] (core-div a b))
      (defmethod g/remainder [js/BigInt js/BigInt] [a b] (js* "~{} % ~{}" a b))
@@ -177,7 +187,6 @@
 
      ;; Compatibility between js/BigInt and the other integral types.
      (doseq [op [g/add g/mul g/sub g/expt g/remainder g/quotient]]
-       (defmethod op [js/BigInt ::v/integral] [a b])
        (defmethod op [js/BigInt ::v/integral] [a b]
          (op a (u/bigint b)))
 
@@ -191,15 +200,18 @@
        (defmethod g/mul [goog-type goog-type] [a b] (.multiply a b))
        (defmethod g/sub [goog-type goog-type] [a b] (.subtract a b))
        (defmethod g/negate [goog-type] [a] (.negate a))
-       (defmethod g/expt [goog-type goog-type] [a b] (goog-expt a b))
        (defmethod g/abs [goog-type] [a] (if (neg? a) (.negate a) a))
        (defmethod g/remainder [goog-type goog-type] [a b] (.modulo a b))
        (defmethod g/magnitude [goog-type] [a b] (if (neg? a) (.negate a) a))
+       (defmethod g/expt [goog-type goog-type] [a b]
+         (if (g/negative? b)
+           (g/invert (goog-expt a (.negate b)))
+           (goog-expt a b)))
 
        ;; Compatibility between basic number type and the google numeric types.
        ;; Any operation between a number and a Long or Integer will promote the
        ;; number.
-       (doseq [op [g/add g/mul g/sub g/expt g/remainder g/quotient]]
+       (doseq [op [g/add g/mul g/sub g/gcd g/lcm g/expt g/remainder g/quotient]]
          (defmethod op [goog-type ::v/native-integral] [a b]
            (op a (.fromNumber goog-type b)))
 
