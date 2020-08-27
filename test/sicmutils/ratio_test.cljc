@@ -78,6 +78,10 @@
         "Parsing #sicm/ratio works with big strings too.")))
 
 (deftest rationalize-test
+  (testing "r/rationalize promotes to bigint if evenly divisible"
+    (is (not (r/ratio? (r/rationalize 10 2))))
+    (is (r/ratio? (r/rationalize 10 3))))
+
   (checking "r/rationalize round-trips all integrals"
             100
             [x (gen/one-of [sg/any-integral sg/big-ratio])]
