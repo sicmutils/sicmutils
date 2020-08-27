@@ -32,9 +32,9 @@
 
 (deftest numeric-laws
   ;; All native types available on clj and cljs form fields.
-  (l/ring 100 sg/bigint #?(:clj "clojure.lang.BigInt" :cljs "js/BigInt"))
-  (l/ring 100 sg/long #?(:clj "java.lang.Long" :cljs "goog.math.Long"))
-  (l/ring 100 sg/integer #?(:clj "java.lang.Integer" :cljs "goog.math.Integer"))
+  (l/field 100 sg/bigint #?(:clj "clojure.lang.BigInt" :cljs "js/BigInt"))
+  (l/field 100 sg/long #?(:clj "java.lang.Long" :cljs "goog.math.Long"))
+  (l/field 100 sg/integer #?(:clj "java.lang.Integer" :cljs "goog.math.Integer"))
 
   #?(:clj
      ;; There's no biginteger / bigint distinction in cljs.
@@ -42,7 +42,7 @@
 
   #?(:cljs
      ;; this is covered by sg/long in clj.
-     (l/ring 100 sg/native-integral "integral js/Number")))
+     (l/field 100 sg/native-integral "integral js/Number")))
 
 (deftest floating-point-laws
   ;; Doubles form a field too.
