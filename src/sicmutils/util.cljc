@@ -51,6 +51,9 @@
   #?(:clj (core-bigint x)
      :cljs (js/BigInt x)))
 
+(defn parse-bigint [x]
+  `(bigint ~x))
+
 (def ratio?
   #?(:clj core-ratio?
      :cljs (constantly false)))

@@ -24,6 +24,8 @@
             [sicmutils.complex :as c]
             [sicmutils.generic :as g]
             [sicmutils.generic-test :as gt]
+            [sicmutils.generators :as sg]
+            [sicmutils.laws :as l]
             [sicmutils.value :as v]))
 
 (defn ^:private near [w z]
@@ -38,6 +40,12 @@
               :cljs '(sicmutils.complex/complex "1 + 2i"))
            (read-string {:readers {'sicm/complex c/parse-complex}}
                         (pr-str #sicm/complex "1 + 2i"))))))
+
+(deftest complex-laws
+  ;; Complex numbers form a field. We use a custom comparator to control some
+  ;; precision loss.
+  (binding [sg/*complex-tolerance* 1e-3]
+    (l/field 100 sg/complex "Complex")))
 
 (deftest value-protocol
   (testing "v/Value protocol implementation"

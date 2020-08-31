@@ -85,13 +85,17 @@
   ;; a generic operation (along with lcm), and binding the euclid implmentation
   ;; in for language supported integral types. Perhaps also generalizing ratio?
   ;; and denominator. TODO.
+  ;;
+  ;; (note from sritchie: I don't think this is true anymore, as of 8.26.20.
+  ;; Should we remove the comment, or is there some more work to do to make this
+  ;; more efficient?)
   (let [arity (.-arity u)
         cv (p/coefficients v)
         lcv (last cv)
         cs (into (into #{} cv) (p/coefficients u))
         integerizing-factor (g/*
                              (if (< lcv 0) -1 1)
-                             (reduce euclid/lcm 1 (map u/denominator (filter u/ratio? cs))))
+                             (reduce g/lcm 1 (map u/denominator (filter u/ratio? cs))))
         u' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) u) u)
         v' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) v) v)
         g (poly/gcd u' v')

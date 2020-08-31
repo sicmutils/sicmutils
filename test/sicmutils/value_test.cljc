@@ -19,10 +19,24 @@
 
 (ns sicmutils.value-test
   (:require [clojure.test :refer [is deftest testing]]
+            #?(:cljs [cljs.reader :refer [read-string]])
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang PersistentVector))))
+
+(deftest bigint-literal
+  (testing "u/parse-bigint can round-trip Bigint instances in clj or cljs. "
+    (is (= #?(:clj 10N
+              :cljs '(sicmutils.util/bigint 10))
+           (read-string {:readers {'sicm/bigint u/parse-bigint}}
+                        (pr-str #sicm/bigint 10))))
+    (let [one-e-40 (apply str "1" (repeat 40 "0"))]
+      (is (= #?(:clj (bigint 1e40)
+                :cljs (list 'sicmutils.util/bigint one-e-40))
+             (read-string {:readers {'sicm/bigint u/parse-bigint}}
+                          (pr-str #sicm/bigint one-e-40)))
+          "Parsing #sicm/bigint works with big strings too."))))
 
 (deftest vector-value-impl
   (testing "nullity?"
