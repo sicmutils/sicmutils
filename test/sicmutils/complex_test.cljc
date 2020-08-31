@@ -19,6 +19,7 @@
 
 (ns sicmutils.complex-test
   (:require [clojure.test :refer [is deftest testing]]
+            #?(:cljs [cljs.reader :refer [read-string]])
             [sicmutils.numbers]
             [sicmutils.complex :as c]
             [sicmutils.generic :as g]
@@ -28,15 +29,25 @@
 (defn ^:private near [w z]
   (< (g/abs (g/- w z)) 1e-12))
 
+(deftest complex-literal
+  (testing "parse-complex can round-trip Complex instances. These show up as
+  code snippets when you call `read-string` directly, and aren't evaluated into
+  Clojure. The fork in the test here captures the different behavior that will
+  appear in evaluated Clojure, vs self-hosted Clojurescript."
+    (is (= #?(:clj  '(sicmutils.complex/complex 1.0 2.0)
+              :cljs '(sicmutils.complex/complex "1 + 2i"))
+           (read-string {:readers {'sicm/complex c/parse-complex}}
+                        (pr-str #sicm/complex "1 + 2i"))))))
+
 (deftest value-protocol
   (testing "v/Value protocol implementation"
     (is (v/nullity? c/ZERO))
-    (is (v/nullity? (c/complex 0.0)))
+    (is (v/nullity? #sicm/complex "0"))
     (is (not (v/nullity? c/ONE)))
     (is (not (v/nullity? (c/complex 1.0))))
     (is (v/nullity? (v/zero-like (c/complex 100))))
     (is (= c/ZERO (v/zero-like (c/complex 2))))
-    (is (= c/ZERO (v/zero-like (c/complex 0 3.14))))
+    (is (= c/ZERO (v/zero-like #sicm/complex "0 + 3.14i")))
 
     (is (v/unity? c/ONE))
     (is (v/unity? (c/complex 1.0)))
@@ -59,13 +70,13 @@
           [(is (v/exact? (c/complex 10)))
            (is (v/exact? (c/complex 10 12)))]))))
 
-(let [i (c/complex 0 1)
+(let [i #sicm/complex "0 + 1i"
       pi Math/PI]
   (deftest complex-numbers
     (testing "complex constructor and predicate"
       (is (c/complex? c/ONE))
-      (is (c/complex? (c/complex 0 1)))
-      (is (c/complex? (c/complex 2)))
+      (is (c/complex? i))
+      (is (c/complex? #sicm/complex "2"))
       (is (not (c/complex? 4))))
 
     (testing "complex-generics"
@@ -74,7 +85,9 @@
         (gt/floating-point-tests c/complex :eq near)))
 
     (testing "add"
-      (is (= (c/complex 4 6) (g/add (c/complex 1 2) (c/complex 3 4))))
+      (is (= #sicm/complex "4 + 6i"
+             (g/add #sicm/complex "1 + 2i"
+                    #sicm/complex "3 + 4i")))
       (is (= (c/complex 1 3) (g/add (c/complex 0 3) 1)))
       (is (= (c/complex 1 3)
              (g/add 1 (c/complex 0 3))
