@@ -44,10 +44,28 @@
 
       :cljs
       [IFn
-       (-invoke [_ f] (o f))
-       (-invoke [_ f g] (o f g))
-       (-invoke [_ f g h] (o f g h))
-       (-invoke [_ f g h i] (o f g h i))]))
+       (-invoke [_ a] (o a))
+       (-invoke [_ a b] (o a b))
+       (-invoke [_ a b c] (o a b c))
+       (-invoke [_ a b c d] (o a b c d))
+       (-invoke [_ a b c d e] (o a b c d e))
+       (-invoke [_ a b c d e f] (o a b c d e f))
+       (-invoke [_ a b c d e f g] (o a b c d e f g))
+       (-invoke [_ a b c d e f g h] (o a b c d e f g h))
+       (-invoke [_ a b c d e f g h i] (o a b c d e f g h i))
+       (-invoke [_ a b c d e f g h i j] (o a b c d e f g h i j))
+       (-invoke [_ a b c d e f g h i j k] (o a b c d e f g h i j k))
+       (-invoke [_ a b c d e f g h i j k l] (o a b c d e f g h i j k l))
+       (-invoke [_ a b c d e f g h i j k l m] (o a b c d e f g h i j k l m))
+       (-invoke [_ a b c d e f g h i j k l m n] (o a b c d e f g h i j k l m n))
+       (-invoke [_ a b c d e f g h i j k l m n o] (o a b c d e f g h i j k l m n o))
+       (-invoke [_ a b c d e f g h i j k l m n o p] (o a b c d e f g h i j k l m n o p))
+       (-invoke [_ a b c d e f g h i j k l m n o p q] (o a b c d e f g h i j k l m n o p q))
+       (-invoke [_ a b c d e f g h i j k l m n o p q r] (o a b c d e f g h i j k l m n o p q r))
+       (-invoke [_ a b c d e f g h i j k l m n o p q r s] (o a b c d e f g h i j k l m n o p q r s))
+       (-invoke [_ a b c d e f g h i j k l m n o p q r s t] (o a b c d e f g h i j k l m n o p q r s t))
+       (-invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
+                (apply o a b c d e f g h i j k l m n o p q r s t rest))]))
 
 (defn make-operator
   [o name & {:keys [] :as context}]
