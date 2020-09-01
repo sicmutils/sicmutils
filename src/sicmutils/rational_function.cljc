@@ -26,10 +26,9 @@
             [sicmutils.numsymb :as sym]
             [sicmutils.polynomial :as p]
             [sicmutils.polynomial-gcd :as poly]
+            [sicmutils.ratio :as r]
             [sicmutils.util :as u]
-            [sicmutils.value :as v])
-  #?(:clj
-     (:import [clojure.lang Ratio BigInt])))
+            [sicmutils.value :as v]))
 
 (declare operator-table operators-known)
 
@@ -95,7 +94,7 @@
         cs (into (into #{} cv) (p/coefficients u))
         integerizing-factor (g/*
                              (if (< lcv 0) -1 1)
-                             (reduce g/lcm 1 (map u/denominator (filter u/ratio? cs))))
+                             (reduce g/lcm 1 (map r/denominator (filter r/ratio? cs))))
         u' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) u) u)
         v' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) v) v)
         g (poly/gcd u' v')
@@ -273,7 +272,6 @@
 (defmethod g/add [::rational-function ::p/polynomial] [r p] (addp r p))
 (defmethod g/add [::p/polynomial ::rational-function] [p r] (addp r p))
 
-;; TODO can we consolidate these below?
 (defmethod g/add [::rational-function ::v/number] [a b]
   (addp a (p/make-constant (.-arity a) b)))
 
@@ -325,14 +323,12 @@
 (defmethod g/mul [::rational-function ::v/number] [r c]
   (make (g/mul (.-u r) c) (.-v r)))
 
-#?(:clj
-   ;; Ratio support for Clojure.
-   (do
-     (defmethod g/mul [::rational-function Ratio] [r a]
-       (make (g/mul (.-u r) (numerator a)) (g/mul (.-v r) (denominator a))))
+;; Ratio support for Clojure.
+(defmethod g/mul [::rational-function r/ratiotype] [r a]
+  (make (g/mul (.-u r) (r/numerator a)) (g/mul (.-v r) (r/denominator a))))
 
-     (defmethod g/mul [Ratio ::rational-function] [a r]
-       (make (g/mul (numerator a) (.-u r)) (g/mul (denominator a) (.-v r))))))
+(defmethod g/mul [r/ratiotype ::rational-function] [a r]
+  (make (g/mul (r/numerator a) (.-u r)) (g/mul (r/denominator a) (.-v r))))
 
 (defmethod g/div [::rational-function ::rational-function] [a b] (div a b))
 
@@ -377,11 +373,8 @@
 (defmethod g/gcd [::v/integral ::p/polynomial] [a p]
   (poly/primitive-gcd (cons a (p/coefficients p))))
 
-#?(:clj
-   ;; Ratio support for Clojure.
-   (do
-     (defmethod g/gcd [::p/polynomial Ratio] [p a]
-       (poly/primitive-gcd (cons a (p/coefficients p))))
+(defmethod g/gcd [::p/polynomial r/ratiotype] [p a]
+  (poly/primitive-gcd (cons a (p/coefficients p))))
 
-     (defmethod g/gcd [Ratio ::p/polynomial] [a p]
-       (poly/primitive-gcd (cons a (p/coefficients p))))))
+(defmethod g/gcd [r/ratiotype ::p/polynomial] [a p]
+  (poly/primitive-gcd (cons a (p/coefficients p))))

@@ -21,39 +21,30 @@
   (:refer-clojure :exclude [+ - * / partial])
   (:require [clojure.test :refer [deftest is testing]]
             [sicmutils.env :as e :refer [up + - * / partial]]
-            [sicmutils.examples.central-potential :as central]))
+            [sicmutils.examples.central-potential :as central]
+            [sicmutils.value :as v]))
 
 (deftest equations
   (e/with-literal-functions
     [m M x y X Y]
     (let [state (up 't (up 'x 'y 'X 'Y) (up 'dx 'dy 'dX 'dY))]
-      (is (= '(+ (* #?(:clj 1/2 :cljs 0.5) (expt dX 2) m2)
-                 (* #?(:clj 1/2 :cljs 0.5) (expt dY 2) m2)
-                 (* #?(:clj 1/2 :cljs 0.5) (expt dx 2) m1)
-                 (* #?(:clj 1/2 :cljs 0.5) (expt dy 2) m1))
-             (e/simplify ((central/T 'm1 'm2) state))))
+      (is (= '(+ (* (/ 1 2) (expt dX 2) m2)
+                 (* (/ 1 2) (expt dY 2) m2)
+                 (* (/ 1 2) (expt dx 2) m1)
+                 (* (/ 1 2) (expt dy 2) m1))
+             (v/freeze
+              (e/simplify ((central/T 'm1 'm2) state)))))
       ;; NB: teach simplifier to recognize difference of squares below
       (is (= '(/ (* -1 m1 m2)
                  (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
              (e/simplify ((central/V 'm1 'm2) state))))
       ;; (is (println "unsimplified central" ((central/L 'm1 'm2) state)))
-      (is (= #?(:clj
-                '(/ (+ (* (expt dX 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                       (* (expt dY 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                       (* (expt dx 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                       (* (expt dy 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                       (* 2 m1 m2))
-                    (* 2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2)))))
-
-                :cljs
-                ;; TODO CLJS can't handle ratios yet, so we can't simplify this
-                ;; 0.5 out.
-                '(/ (+ (* 0.5 (expt dX 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                       (* 0.5 (expt dY 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                       (* 0.5 (expt dx 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                       (* 0.5 (expt dy 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                       (* m1 m2))
-                    (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2)))))
+      (is (= '(/ (+ (* (expt dX 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+                    (* (expt dY 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+                    (* (expt dx 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+                    (* (expt dy 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+                    (* 2 m1 m2))
+                 (* 2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2)))))
              (e/simplify ((central/L 'm1 'm2) state))))
       (let [F ((partial 1) (central/L 'm1 'm2))
             P ((partial 2) (central/L 'm1 'm2))
@@ -140,19 +131,20 @@
                     (up 0 0 0 (/ 1 m2)))
                (e/simplify (/ (A state))))))
       (is (= '(down (down (up (up (* m (((expt D 2) x) t))
-                                  (* #?(:clj 1/2 :cljs 0.5) m (((expt D 2) y) t)))
-                              (up (* #?(:clj 1/2 :cljs 0.5) m (((expt D 2) y) t))
+                                  (* (/ 1 2) m (((expt D 2) y) t)))
+                              (up (* (/ 1 2) m (((expt D 2) y) t))
                                   0))
                           (up (up 0
-                                  (* #?(:clj 1/2 :cljs 0.5) m (((expt D 2) x) t)))
-                              (up (* #?(:clj 1/2 :cljs 0.5) m (((expt D 2) x) t))
+                                  (* (/ 1 2) m (((expt D 2) x) t)))
+                              (up (* (/ 1 2) m (((expt D 2) x) t))
                                   (* m (((expt D 2) y) t)))))
                     (down (up (up 0 0)
                               (up 0 0))
                           (up (up 0 0)
                               (up 0 0))))
-             (e/simplify (((e/Lagrange-equations (central/L 'm 'M))
-                           (up (up x y) (up (constantly 0) (constantly 0)))) 't))))
+             (v/freeze
+              (e/simplify (((e/Lagrange-equations (central/L 'm 'M))
+                            (up (up x y) (up (constantly 0) (constantly 0)))) 't)))))
       (is (= '(up 1
                   (up dx dy dX dY)
                   (up (/ (+ (* M X) (* -1 M x))

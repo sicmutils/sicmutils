@@ -28,7 +28,8 @@
             [sicmutils.matrix :as m]
             [sicmutils.operator :as o]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.structure :as s :refer [component up down]]))
+            [sicmutils.structure :as s :refer [component up down]]
+            [sicmutils.value :as v]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
@@ -105,15 +106,18 @@
                         't))))
     (is (= '(/ (expt y 2) (* 4 c))
            (g/simplify ((H/Legendre-transform (fn [x] (* 'c x x))) 'y))))
-    (is (= '(* #?(:clj 1/4 :cljs 0.25) (expt p 2)) (g/simplify ((H/Legendre-transform g/square) 'p))))
-    (is (= '(+ (* #?(:clj 1/2 :cljs 0.5) m (expt v_x 2))
-               (* #?(:clj 1/2 :cljs 0.5) m (expt v_y 2))
-               (* -1 (V x y)))
-           (g/simplify ((L/L-rectangular 'm V) (up 't (up 'x 'y) (up 'v_x 'v_y))))))
 
-    ;; TODO Clojurescript doesn't have ratios yet, so it can't perform this better simplification.
-    (is (= #?(:clj  '(/ (+ (* 2 m (V x y)) (expt p_x 2) (expt p_y 2)) (* 2 m))
-              :cljs '(/ (+ (* (expt m 2) (V x y)) (* 0.5 m (expt p_x 2)) (* 0.5 m (expt p_y 2))) (expt m 2)))
+    (is (= '(* (/ 1 4) (expt p 2))
+           (v/freeze
+            (g/simplify ((H/Legendre-transform g/square) 'p)))))
+
+    (is (= '(+ (* (/ 1 2) m (expt v_x 2))
+               (* (/ 1 2) m (expt v_y 2))
+               (* -1 (V x y)))
+           (v/freeze
+            (g/simplify ((L/L-rectangular 'm V) (up 't (up 'x 'y) (up 'v_x 'v_y)))))))
+
+    (is (= '(/ (+ (* 2 m (V x y)) (expt p_x 2) (expt p_y 2)) (* 2 m))
            (g/simplify ((H/Lagrangian->Hamiltonian
                          (L/L-rectangular 'm V))
                         (up 't (up 'x 'y) (down 'p_x 'p_y))))))))
@@ -131,9 +135,7 @@
                          (H/momentum-tuple p_x p_y))
                         't)))))
 
-  ;; TODO Clojurescript doesn't have ratios yet, so it can't perform this better simplification.
-  (is (= #?(:clj  '(/ (+ (* 2 m (expt r 2) (V r)) (* (expt p_r 2) (expt r 2)) (expt p_phi 2)) (* 2 m (expt r 2)))
-            :cljs '(/ (+ (* (expt m 2) (expt r 2) (V r)) (* 0.5 m (expt p_r 2) (expt r 2)) (* 0.5 m (expt p_phi 2))) (* (expt m 2) (expt r 2))))
+  (is (= '(/ (+ (* 2 m (expt r 2) (V r)) (* (expt p_r 2) (expt r 2)) (expt p_phi 2)) (* 2 m (expt r 2)))
          (f/with-literal-functions [[V [0 1] 2]]
            (g/simplify
             ((H/Lagrangian->Hamiltonian

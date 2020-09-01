@@ -194,4 +194,4 @@
 
     ;; This looks awkward in cljs due to the ratio literal.
     (is (near (c/angle (c/complex 3 4))
-              (g/atan #?(:clj 4/3 :cljs (/ 4 3)))))))
+              (g/atan #sicm/ratio 4/3)))))

@@ -28,7 +28,7 @@
                      coordinate velocity
                      Rx Ry Rz]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.value :refer [within]]
+            [sicmutils.value :as v :refer [within]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.mechanics.lagrange :as L]
             [sicmutils.examples.pendulum :as pendulum]
@@ -83,10 +83,11 @@
                   (up ((D x) t) ((D y) t) ((D z) t)))
              (simplify ((e/Γ q) 't))))
 
-      (is (= '(+ (* #?(:clj 1/2 :cljs 0.5) m (expt ((D x) t) 2))
-                 (* #?(:clj 1/2 :cljs 0.5) m (expt ((D y) t) 2))
-                 (* #?(:clj 1/2 :cljs 0.5) m (expt ((D z) t) 2)))
-             (simplify ((compose (L/L-free-particle 'm) (e/Γ q)) 't))))
+      (is (= '(+ (* (/ 1 2) m (expt ((D x) t) 2))
+                 (* (/ 1 2) m (expt ((D y) t) 2))
+                 (* (/ 1 2) m (expt ((D z) t) 2)))
+             (v/freeze
+              (simplify ((compose (L/L-free-particle 'm) (e/Γ q)) 't)))))
 
       ;; at this point in the text we should be able to show-expression
       ;; in TeX form XXX.
@@ -202,11 +203,12 @@
                                   (->local 't (up 'r 'φ) (up 'rdot 'φdot)))))))
 
       (is (= '(+
-               (* #?(:clj 1/2 :cljs 0.5) m (expt r 2) (expt φdot 2))
-               (* #?(:clj 1/2 :cljs 0.5) m (expt rdot 2))
+               (* (/ 1 2) m (expt r 2) (expt φdot 2))
+               (* (/ 1 2) m (expt rdot 2))
                (* -1 (U r)))
-             (simplify ((L-alternate-central-polar 'm U)
-                        (->local 't (up 'r 'φ) (up 'rdot 'φdot))))))
+             (v/freeze
+              (simplify ((L-alternate-central-polar 'm U)
+                         (->local 't (up 'r 'φ) (up 'rdot 'φdot)))))))
 
       (is (= '(down (+ (* -1 m (expt ((D φ) t) 2) (r t))
                        (* m (((expt D 2) r) t))
@@ -225,7 +227,7 @@
       ;; p. 61
       (let [Lf (fn [m g]
                  (fn [[_ [_ y] v]]
-                   (- (* (/ 1 2) m (square v)) (* m g y))))
+                   (- (* #sicm/ratio 1/2 m (square v)) (* m g y))))
             dp-coordinates (fn [l y_s]
                              (fn [[t θ]]
                                (let [x (* l (sin θ))
@@ -234,12 +236,13 @@
             L-pend2 (fn [m l g y_s]
                       (compose (Lf m g)
                                (F->C (dp-coordinates l y_s))))]
-        (is (= '(+ (* #?(:clj 1/2 :cljs 0.5) (expt l 2) m (expt θdot 2))
+        (is (= '(+ (* (/ 1 2) (expt l 2) m (expt θdot 2))
                    (* l m θdot ((D y_s) t) (sin θ))
                    (* g l m (cos θ))
                    (* -1 g m (y_s t))
-                   (* #?(:clj 1/2 :cljs 0.5) m (expt ((D y_s) t) 2)))
-               (simplify ((L-pend2 'm 'l 'g y_s) (->local 't 'θ 'θdot)))))))))
+                   (* (/ 1 2) m (expt ((D y_s) t) 2)))
+               (v/freeze
+                (simplify ((L-pend2 'm 'l 'g y_s) (->local 't 'θ 'θdot))))))))))
 
 (deftest ^:long section-1-7-1
   (e/with-literal-functions [x y v_x v_y]
@@ -260,11 +263,13 @@
                          (up x y)
                          (up v_x v_y))
                         't))))
-      (is (= (up 1 (up 3.0 4.0) (up -0.5 -1.0))
+      (is (= (up 1 (up 3.0 4.0) (up #sicm/ratio -1/2 -1.0))
              ((harmonic-state-derivative 2. 1.) (up 0 (up 1. 2.) (up 3. 4.)))))
-      (is (= '(1 3.0 4.0 -0.5 -1.0)
-             (flatten ((harmonic-state-derivative 2. 1.)
-                       (up 0 (up 1. 2.) (up 3. 4.))))))
+
+      (is (= '(1 3.0 4.0 (/ -1 2) -1.0)
+             (v/freeze
+              (flatten ((harmonic-state-derivative 2. 1.)
+                        (up 0 (up 1. 2.) (up 3. 4.)))))))
       ;; p. 72
       #?(:clj
          ;; TODO integrator doesn't work yet in cljs.
@@ -349,11 +354,12 @@
       (is (= '(* m (expt r 2) φdot (expt (sin θ) 2))
              (simplify ((compose (ang-mom-z 'm) (F->C s->r)) spherical-state))))
       ;; p. 84
-      (is (= '(+ (* #?(:clj 1/2 :cljs 0.5) m (expt r 2) (expt φdot 2) (expt (sin θ) 2))
-                 (* #?(:clj 1/2 :cljs 0.5) m (expt r 2) (expt θdot 2))
-                 (* #?(:clj 1/2 :cljs 0.5) m (expt rdot 2))
+      (is (= '(+ (* (/ 1 2) m (expt r 2) (expt φdot 2) (expt (sin θ) 2))
+                 (* (/ 1 2) m (expt r 2) (expt θdot 2))
+                 (* (/ 1 2) m (expt rdot 2))
                  (V r))
-             (simplify ((e/Lagrangian->energy (L3-central 'm V)) spherical-state))))
+             (v/freeze
+              (simplify ((e/Lagrangian->energy (L3-central 'm V)) spherical-state)))))
       (let [L (L/L-central-rectangular 'm U)
             F-tilde (fn [angle-x angle-y angle-z]
                       (compose (Rx angle-x)

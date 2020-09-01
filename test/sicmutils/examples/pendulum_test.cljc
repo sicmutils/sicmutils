@@ -21,11 +21,13 @@
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :refer [up simplify]]
             [sicmutils.examples.pendulum :as p]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.value :as v]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
 (deftest simple-pendulum
-  (is (= '(+ (* #?(:clj 1/2 :cljs 0.5) (expt l 2) m (expt thetadot 2))
+  (is (= '(+ (* (/ 1 2) (expt l 2) m (expt thetadot 2))
              (* g l m (cos theta)))
-         (simplify ((p/L 'm 'l 'g (fn [_t] (up 0 0))) (up 't 'theta 'thetadot))))))
+         (v/freeze
+          (simplify ((p/L 'm 'l 'g (fn [_t] (up 0 0))) (up 't 'theta 'thetadot)))))))

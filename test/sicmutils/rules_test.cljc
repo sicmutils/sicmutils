@@ -29,11 +29,8 @@
     (is (= '(sqrt (expt x 7)) (s '(sqrt (expt x 7)))))))
 
 (deftest divide-numbers-through-test
-  (let [d r/divide-numbers-through
-        ;; cljs doesn't support ratios.
-        one-half #?(:clj 1/2
-                    :cljs 0.5)]
-    (is (= one-half (d '(/ 1 2))))
+  (let [d r/divide-numbers-through]
+    (is (= #sicm/ratio 1/2 (d '(/ 1 2))))
     (is (= 'x (d '(* 1 x))))
     (is (= '(* x y z) (d '(* 1 x y z))))
     (is (= '(*) (d '(* 1))))

@@ -37,8 +37,7 @@
                            (g/- t0 (g/* q t)) t
                            (g/- r0 (g/* q r)) r))))))
 
-(defn gcd
-  [a b]
+(defn gcd [a b]
   (cond (v/nullity? a) (g/abs b)
         (v/nullity? b) (g/abs a)
         (not (and (v/integral? a) (v/integral? b))) 1

@@ -27,10 +27,10 @@
                            * core-times}
                   #?@(:cljs [:exclude [zero? / + - *]]))
   (:require [sicmutils.complex :refer [complex]]
+            [sicmutils.ratio :as r]
 
             ;; Required to enable the generic gcd implementation.
             [sicmutils.euclid]
-
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v]
@@ -40,15 +40,18 @@
      (:import [clojure.lang BigInt Ratio]
               [java.math BigInteger])))
 
+;; "Backstop" implementations that apply to anything that descends from
+;; v/numtype.
 (defmethod g/add [v/numtype v/numtype] [a b] (#?(:clj +' :cljs core-plus) a b))
 (defmethod g/mul [v/numtype v/numtype] [a b] (#?(:clj *' :cljs core-times) a b))
 (defmethod g/sub [v/numtype v/numtype] [a b] (#?(:clj -' :cljs core-minus) a b))
 (defmethod g/negate [v/numtype] [a] (core-minus a))
-(defmethod g/div [v/numtype v/numtype] [a b] (core-div a b))
-(defmethod g/invert [v/numtype] [a] (core-div a))
+(defmethod g/negative? [v/numtype] [a] (neg? a))
 (defmethod g/expt [v/numtype v/numtype] [a b] (u/compute-expt a b))
 (defmethod g/abs [v/numtype] [a] (u/compute-abs a))
 (defmethod g/magnitude [v/numtype] [a] (u/compute-abs a))
+(defmethod g/div [v/numtype v/numtype] [a b] (core-div a b))
+(defmethod g/invert [v/numtype] [a] (core-div a))
 
 ;; trig operations
 (defmethod g/atan [v/numtype] [a] (Math/atan a))
@@ -114,7 +117,6 @@
   {:pre [(v/nullity? (g/remainder a b))]}
   (g/quotient a b))
 
-(defmethod g/negative? [::v/integral] [a] (neg? a))
 (defmethod g/exact-divide [::v/integral ::v/integral] [b a] (exact-divide b a))
 
 ;; All JVM and JS types that respond to ::native-integral behave correctly with
@@ -127,31 +129,25 @@
 ;; Clojure. The clojure methods are all slightly more refined based on Java's
 ;; type system.
 #?(:clj
-   (do (defmethod g/exact-divide [Ratio Ratio] [a b] (core-div a b))
-       (defmethod g/exact-divide [Ratio BigInt] [a b] (core-div a b))))
-
-#?(:clj
    ;; Efficient, native GCD on the JVM.
    (defmethod g/gcd [BigInteger BigInteger] [a b] (.gcd a b)))
 
 #?(:cljs
-   ;; TODO these are not defined on integral types, BUT we could get farther
-   ;; if we could convert these to a BigDecimal, once we support those.
-   (doseq [t [goog.math.Integer goog.math.Long js/BigInt]]
-     (defmethod g/div [t t] [a b]
-       (let [rem (g/remainder a b)]
-         (if (v/nullity? rem)
-           (g/quotient a b)
-           (u/arithmetic-ex
-            (str "Division between " a " and " b " is not exact.")))))
+   (do (defmethod g/expt [::v/native-integral ::v/native-integral] [a b]
+         (if (neg? b)
+           (g/invert (u/compute-expt a (core-minus b)))
+           (u/compute-expt a b)))
 
-     (comment
-       ;; TODO invert is not defined on integral types, BUT we could get farther
-       ;; if we could convert these to a BigDecimal, once we support those.
-       ;;
-       ;; We could also make g/div above kick out the proper floating point ttype
-       ;; instead of throwing.
-       (defmethod g/invert [t] [a] (core-div a)))))
+       (defmethod g/div [::v/integral ::v/integral] [a b]
+         (let [rem (g/remainder a b)]
+           (if (v/nullity? rem)
+             (g/quotient a b)
+             (r/rationalize a b))))
+
+       (defmethod g/invert [::v/integral] [a]
+         (if (v/unity? a)
+           a
+           (r/rationalize 1 a)))))
 
 ;; Clojurescript and Javascript have a number of numeric types available that
 ;; don't respond true to number? These each require their own block of method
@@ -177,19 +173,24 @@
      (defmethod g/mul [js/BigInt js/BigInt] [a b] (core-times a b))
      (defmethod g/sub [js/BigInt js/BigInt] [a b] (core-minus a b))
      (defmethod g/negate [js/BigInt] [a] (core-minus a))
-     (defmethod g/expt [js/BigInt js/BigInt] [a b] (js* "~{} ** ~{}" a b))
+
+     (defmethod g/expt [js/BigInt js/BigInt] [a b]
+       (if (g/negative? b)
+         (g/invert (js* "~{} ** ~{}" a (core-minus b)))
+         (js* "~{} ** ~{}" a b)))
+
      (defmethod g/abs [js/BigInt] [a] (if (neg? a) (core-minus a) a))
      (defmethod g/quotient [js/BigInt js/BigInt] [a b] (core-div a b))
      (defmethod g/remainder [js/BigInt js/BigInt] [a b] (js* "~{} % ~{}" a b))
      (defmethod g/magnitude [js/BigInt] [a b]
        (if (neg? a) (core-minus a) a))
 
-     ;; Compatibility between numbers and bigint.
-     (doseq [op [g/add g/mul g/sub g/gcd g/expt g/remainder g/quotient g/div]]
-       (defmethod op [js/BigInt ::v/native-integral] [a b]
+     ;; Compatibility between js/BigInt and the other integral types.
+     (doseq [op [g/add g/mul g/sub g/expt g/remainder g/quotient]]
+       (defmethod op [js/BigInt ::v/integral] [a b]
          (op a (u/bigint b)))
 
-       (defmethod op [::v/native-integral js/BigInt] [a b]
+       (defmethod op [::v/integral js/BigInt] [a b]
          (op (u/bigint a) b)))
 
      ;; Google Closure library's 64-bit Long and arbitrary-precision Integer
@@ -199,14 +200,18 @@
        (defmethod g/mul [goog-type goog-type] [a b] (.multiply a b))
        (defmethod g/sub [goog-type goog-type] [a b] (.subtract a b))
        (defmethod g/negate [goog-type] [a] (.negate a))
-       (defmethod g/expt [goog-type goog-type] [a b] (goog-expt a b))
        (defmethod g/abs [goog-type] [a] (if (neg? a) (.negate a) a))
        (defmethod g/remainder [goog-type goog-type] [a b] (.modulo a b))
        (defmethod g/magnitude [goog-type] [a b] (if (neg? a) (.negate a) a))
+       (defmethod g/expt [goog-type goog-type] [a b]
+         (if (g/negative? b)
+           (g/invert (goog-expt a (.negate b)))
+           (goog-expt a b)))
 
        ;; Compatibility between basic number type and the google numeric types.
        ;; Any operation between a number and a Long or Integer will promote the
-       (doseq [op [g/add g/mul g/sub g/gcd g/expt g/remainder g/quotient g/div]]
+       ;; number.
+       (doseq [op [g/add g/mul g/sub g/gcd g/lcm g/expt g/remainder g/quotient]]
          (defmethod op [goog-type ::v/native-integral] [a b]
            (op a (.fromNumber goog-type b)))
 

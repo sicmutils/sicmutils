@@ -24,7 +24,8 @@
                                          D simplify compose
                                          up down
                                          sin cos square]]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.value :as v]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
@@ -56,8 +57,9 @@
       ((L2 mass metric) ((point coordsys) x) (* e v)))))
 
 (deftest chapter-one
-  (is (= '(+ (* #?(:clj 1/2 :cljs 0.5) (expt R 2) m (expt phidot 2) (expt (sin theta) 2))
-             (* #?(:clj 1/2 :cljs 0.5) (expt R 2) m (expt thetadot 2)))
-         (simplify
-          ((Lsphere 'm 'R)
-           (up 't (up 'theta 'phi) (up 'thetadot 'phidot)))))))
+  (is (= '(+ (* (/ 1 2) (expt R 2) m (expt phidot 2) (expt (sin theta) 2))
+             (* (/ 1 2) (expt R 2) m (expt thetadot 2)))
+         (v/freeze
+          (simplify
+           ((Lsphere 'm 'R)
+            (up 't (up 'theta 'phi) (up 'thetadot 'phidot))))))))

@@ -104,7 +104,7 @@
   (zero-like [_] 0)
   (one-like [_] 1)
   (freeze [x] x)
-  (exact? [x] (or (integer? x) (u/ratio? x)))
+  (exact? [x] (or (integer? x) #?(:clj (ratio? x))))
   (numerical? [_] true)
   (kind [x] #?(:clj (type x)
                :cljs (if (exact? x)
@@ -115,7 +115,9 @@
   (freeze [_] nil)
   (numerical? [_] false)
   (nullity? [_] true)
+  (zero-like [o] (u/unsupported "nil doesn't support zero-like."))
   (unity?[_] false)
+  (one-like [o] (u/unsupported "nil doesn't support one-like."))
   (kind [_] nil)
 
   PersistentVector

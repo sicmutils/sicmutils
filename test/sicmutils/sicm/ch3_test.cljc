@@ -23,14 +23,15 @@
             [sicmutils.env :as e
              :refer [+ - * / D zero? partial simplify
                      up down
-                     literal-function]]
+                     literal-function]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.mechanics.lagrange :as L]
             [sicmutils.mechanics.hamilton :as H]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.examples.driven-pendulum :as driven]
             [sicmutils.examples.top :as top]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (deftest section-3-1
   (testing "p.189"
@@ -135,13 +136,13 @@
                         0))
              (simplify (sysder top-state))))
       (is (= (str "function(A, C, gMR, p_phi, p_psi, p_theta, theta) {\n"
-                  "  var _0001 = Math.sin(theta);\n"
-                  "  var _0004 = Math.cos(theta);\n"
-                  "  var _0005 = Math.pow(_0004, 2);\n"
-                  "  var _0006 = Math.pow(_0001, 2);\n"
-                  "  return [1, [p_theta / A, (- p_psi * _0004 + p_phi) / (A * _0006), (A * p_psi * _0006 + C * p_psi * _0005 - C * p_phi * _0004) / (A * C * _0006)], [(A * gMR * Math.pow(_0004, 4) -2 * A * gMR * _0005 - p_phi * p_psi * _0005 + Math.pow(p_phi, 2) * _0004 + Math.pow(p_psi, 2) * _0004 + A * gMR - p_phi * p_psi) / (A * Math.pow(_0001, 3)), 0, 0]];\n"
+                  "  var _0001 = Math.cos(theta);\n"
+                  "  var _0004 = Math.sin(theta);\n"
+                  "  var _0005 = Math.pow(_0001, 2);\n"
+                  "  var _0006 = Math.pow(_0004, 2);\n"
+                  "  return [1, [p_theta / A, (- p_psi * _0001 + p_phi) / (A * _0006), (A * p_psi * _0006 + C * p_psi * _0005 - C * p_phi * _0001) / (A * C * _0006)], [(A * gMR * Math.pow(_0001, 4) -2 * A * gMR * _0005 - p_phi * p_psi * _0005 + Math.pow(p_phi, 2) * _0001 + Math.pow(p_psi, 2) * _0001 + A * gMR - p_phi * p_psi) / (A * Math.pow(_0004, 3)), 0, 0]];\n"
                   "}")
-             (-> top-state sysder simplify e/->JavaScript))))))
+             (-> top-state sysder simplify (e/->JavaScript :deterministic? true)))))))
 
 (deftest section-3-5
   (testing "p.221"
@@ -168,15 +169,15 @@
                         (* -1 g (expt l 2) m (sin theta)))
                      l))
              sysder))
-      ;; odd that we have _1 here when it's not used ... must be a bug in the CSE
-      ;; ah, we observe that _3 is omega*t, and we have a few examples of
-      ;; the sine (of that. So our algorithm is a little on the naive side o_o
+
+      ;; ah, we observe that _1 is omega*t, and we have a few examples of the
+      ;; sine (of that. So our algorithm is a little on the naive side o_o
       (is (= (str "function(a, g, l, m, omega, p_theta, t, theta) {\n"
-                  "  var _0002 = Math.pow(l, 2);\n"
-                  "  var _0003 = omega * t;\n"
-                  "  var _0004 = Math.sin(theta);\n"
-                  "  var _0005 = Math.cos(theta);\n"
-                  "  var _0006 = Math.sin(_0003);\n"
-                  "  return [1, (a * l * m * omega * _0006 * _0004 + p_theta) / (_0002 * m), (- Math.pow(a, 2) * l * m * Math.pow(omega, 2) * Math.pow(_0006, 2) * _0004 * _0005 - a * omega * p_theta * _0006 * _0005 - g * _0002 * m * _0004) / l];\n"
+                  "  var _0001 = omega * t;\n"
+                  "  var _0002 = Math.cos(theta);\n"
+                  "  var _0003 = Math.pow(l, 2);\n"
+                  "  var _0005 = Math.sin(theta);\n"
+                  "  var _0006 = Math.sin(_0001);\n"
+                  "  return [1, (a * l * m * omega * _0006 * _0005 + p_theta) / (_0003 * m), (- Math.pow(a, 2) * l * m * Math.pow(omega, 2) * Math.pow(_0006, 2) * _0005 * _0002 - a * omega * p_theta * _0006 * _0002 - g * _0003 * m * _0005) / l];\n"
                   "}")
-             (e/->JavaScript sysder))))))
+             (e/->JavaScript sysder :deterministic? true))))))

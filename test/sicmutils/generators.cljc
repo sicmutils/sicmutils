@@ -9,6 +9,7 @@
             [same.ish :as si]
             [sicmutils.complex :as c]
             [sicmutils.generic :as g]
+            [sicmutils.ratio :as r]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -52,10 +53,31 @@
                                :min excluded-upper
                                :max max})])))
 
+(def any-integral
+  (gen/one-of [native-integral
+               bigint
+               long
+               integer]))
+
 (def complex
   (gen/let [r (reasonable-double)
             i (reasonable-double)]
     (c/complex r i)))
+
+(def ratio
+  "Generates a small ratio (or integer) using gen/small-integer. Shrinks
+  toward simpler ratios, which may be larger or smaller."
+  (gen/fmap
+   (fn [[a b]] (r/rationalize a b))
+   (gen/tuple gen/small-integer (gen/fmap inc gen/nat))))
+
+(def big-ratio
+  (gen/let [n bigint
+            d bigint]
+    (let [d (if (v/nullity? d)
+              (u/bigint 1)
+              d)]
+      (r/rationalize n d))))
 
 (def ^:dynamic *complex-tolerance* 1e-12)
 
