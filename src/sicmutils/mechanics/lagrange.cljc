@@ -268,7 +268,8 @@
         minimizing-qs
         (m/multidimensional-minimize
          (parametric-path-action Lagrangian t0 q0 t1 q1)
-         initial-qs observe)]
+         initial-qs
+         :callback observe)]
     (make-path t0 q0 t1 q1 minimizing-qs)))
 
 (defn s->r

@@ -20,7 +20,8 @@
 (ns sicmutils.numerical.minimize-test
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.value :as v]
-            [same :refer [ish? with-comparator]]
+            [same :refer [ish? with-comparator]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.minimize :as m]))
 
 (def ^:private near (v/within 1e-5))
