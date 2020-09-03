@@ -140,7 +140,7 @@
          (s->JS (+ (sin 'x) (expt (sin 'x) 2)))))
   (is (= (str "function(x, dx) {\n"
               "  var t1 = Math.sin(x);\n"
-              "  return " #?(:clj "-1/2" :cljs "-0.5") " * Math.pow(dx, 2) * t1 + dx * Math.cos(x) + t1;\n"
+              "  return -1/2 * Math.pow(dx, 2) * t1 + dx * Math.cos(x) + t1;\n"
               "}")
          (s->JS (reduce + (take 3 (taylor-series-terms sin 'x 'dx)))
                 :symbol-generator (make-symbol-generator "t")
@@ -233,25 +233,18 @@
                        (up 'x 'y)
                        (up 'dx 'dy))
                       (take 3)
-                      (reduce +))
-            half #?(:clj "1/2" :cljs "0.5")
-            tex-half #?(:clj "\\frac{1}{2}" :cljs "0.5")]
-        (is (= (format "%s dx² ∂₀(∂₀f)(up(x, y)) + dx dy ∂₁(∂₀f)(up(x, y)) + %s dy² ∂₁(∂₁f)(up(x, y)) + dx ∂₀f(up(x, y)) + dy ∂₁f(up(x, y)) + f(up(x, y))" half half)
+                      (reduce +))]
+        (is (= "1/2 dx² ∂₀(∂₀f)(up(x, y)) + dx dy ∂₁(∂₀f)(up(x, y)) + 1/2 dy² ∂₁(∂₁f)(up(x, y)) + dx ∂₀f(up(x, y)) + dy ∂₁f(up(x, y)) + f(up(x, y))"
                (s->infix expr)))
 
-        ;; TODO once we get fractional support, render fractions correctly. Or,
-        ;; since cljs *is* js, consider doing something different here.
-        (is (= (format
-                (str "function(dx, dy, f, partial, x, y) {\n"
-                     "  var _0003 = partial(0);\n"
-                     "  var _0004 = partial(1);\n"
-                     "  var _0005 = [x, y];\n"
-                     "  var _0006 = _0003(f);\n"
-                     "  var _0007 = _0004(f);\n"
-                     "  return %s * Math.pow(dx, 2) * _0003(_0006)(_0005) + dx * dy * _0004(_0006)(_0005) + %s * Math.pow(dy, 2) * _0004(_0007)(_0005) + dx * _0006(_0005) + dy * _0007(_0005) + f(_0005);\n}")
-                half half)
+        (is (= (str "function(dx, dy, f, partial, x, y) {\n"
+                    "  var _0003 = partial(0);\n"
+                    "  var _0004 = partial(1);\n"
+                    "  var _0005 = [x, y];\n"
+                    "  var _0006 = _0003(f);\n"
+                    "  var _0007 = _0004(f);\n"
+                    "  return 1/2 * Math.pow(dx, 2) * _0003(_0006)(_0005) + dx * dy * _0004(_0006)(_0005) + 1/2 * Math.pow(dy, 2) * _0004(_0007)(_0005) + dx * _0006(_0005) + dy * _0007(_0005) + f(_0005);\n}")
                (s->JS expr :deterministic? true)))
 
-        (is (= (format "%s\\,{dx}^{2}\\,\\partial_0\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,dy\\,\\partial_1\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + %s\\,{dy}^{2}\\,\\partial_1\\left(\\partial_1f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,\\partial_0f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dy\\,\\partial_1f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)"
-                       tex-half tex-half)
+        (is (= "\\frac{1}{2}\\,{dx}^{2}\\,\\partial_0\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,dy\\,\\partial_1\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + \\frac{1}{2}\\,{dy}^{2}\\,\\partial_1\\left(\\partial_1f\\right)\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dx\\,\\partial_0f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + dy\\,\\partial_1f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right) + f\\left(\\begin{pmatrix}x\\\\y\\end{pmatrix}\\right)"
                (s->TeX expr)))))))

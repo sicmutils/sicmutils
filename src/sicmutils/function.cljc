@@ -80,10 +80,48 @@
 
       :cljs
       [IFn
-       (-invoke [f x] (literal-apply f [x]))
-       (-invoke [f x y] (literal-apply f [x y]))
-       (-invoke [f x y z] (literal-apply f [x y z]))
-       (-invoke [f w x y z] (literal-apply f [w x y z]))]))
+       (-invoke [f a]
+                (literal-apply f [a]))
+       (-invoke [f a b]
+                (literal-apply f [a b]))
+       (-invoke [f a b c]
+                (literal-apply f [a b c]))
+       (-invoke [f a b c d]
+                (literal-apply f [a b c d]))
+       (-invoke [f a b c d e]
+                (literal-apply f [a b c d e]))
+       (-invoke [f a b c d e f]
+                (literal-apply f [a b c d e f]))
+       (-invoke [f a b c d e f g]
+                (literal-apply f [a b c d e f g]))
+       (-invoke [f a b c d e f g h]
+                (literal-apply f [a b c d e f g h]))
+       (-invoke [f a b c d e f g h i]
+                (literal-apply f [a b c d e f g h i]))
+       (-invoke [f a b c d e f g h i j]
+                (literal-apply f [a b c d e f g h i j]))
+       (-invoke [f a b c d e f g h i j k]
+                (literal-apply f [a b c d e f g h i j k]))
+       (-invoke [f a b c d e f g h i j k l]
+                (literal-apply f [a b c d e f g h i j k l]))
+       (-invoke [f a b c d e f g h i j k l m]
+                (literal-apply f [a b c d e f g h i j k l m]))
+       (-invoke [f a b c d e f g h i j k l m n]
+                (literal-apply f [a b c d e f g h i j k l m n]))
+       (-invoke [f a b c d e f g h i j k l m n o]
+                (literal-apply f [a b c d e f g h i j k l m n o]))
+       (-invoke [f a b c d e f g h i j k l m n o p]
+                (literal-apply f [a b c d e f g h i j k l m n o p]))
+       (-invoke [f a b c d e f g h i j k l m n o p q]
+                (literal-apply f [a b c d e f g h i j k l m n o p q]))
+       (-invoke [f a b c d e f g h i j k l m n o p q r]
+                (literal-apply f [a b c d e f g h i j k l m n o p q r]))
+       (-invoke [f a b c d e f g h i j k l m n o p q r s]
+                (literal-apply f [a b c d e f g h i j k l m n o p q r s]))
+       (-invoke [f a b c d e f g h i j k l m n o p q r s t]
+                (literal-apply f [a b c d e f g h i j k l m n o p q r s t]))
+       (-invoke [f a b c d e f g h i j k l m n o p q r s t rest]
+                (literal-apply f (concat [a b c d e f g h i j k l m n o p q r s t]  rest)))]))
 
 (def ^:private orientation->symbol {::s/up "↑" ::s/down "_"})
 

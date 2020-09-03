@@ -56,6 +56,7 @@
             sicmutils.polynomial-test
             sicmutils.polynomial-gcd-test
             sicmutils.polynomial-factor-test
+            sicmutils.ratio-test
             sicmutils.numbers-test
             sicmutils.numsymb-test
             sicmutils.polynomial-test
@@ -102,14 +103,10 @@
 
            'sicmutils.sicm.ch1-test
            'sicmutils.sicm.ch2-test
+           'sicmutils.sicm.ch3-test
+           'sicmutils.sicm.ch5-test
+           'sicmutils.sicm.ch6-test
            'sicmutils.sicm.ch7-test
-
-           ;; TODO These don't currently work due to the lack of BigDecimal and
-           ;; proper rational numbers.
-
-           ;; 'sicmutils.sicm.ch3-test
-           ;; 'sicmutils.sicm.ch5-test
-           ;; 'sicmutils.sicm.ch6-test
 
            'sicmutils.analyzer-test
            'sicmutils.complex-test
@@ -127,6 +124,7 @@
            'sicmutils.polynomial-test
            'sicmutils.polynomial-gcd-test
            'sicmutils.polynomial-factor-test
+           'sicmutils.ratio-test
            'sicmutils.rational-function-test
            'sicmutils.rules-test
            'sicmutils.series-test

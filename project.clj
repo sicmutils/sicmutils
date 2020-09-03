@@ -35,6 +35,7 @@
                  [com.taoensso/timbre "4.11.0-alpha1"
                   :exclusions [org.clojure/clojurescript]]
                  [org.apache.commons/commons-math3 "3.6.1"]
+                 [org.clojars.sritchie09/bigfraction "4.0.12-0"]
                  [cljsjs/complex "2.0.11-0"]
                  [hiccup "1.0.5"]
                  [nrepl "0.7.0"]
@@ -55,7 +56,9 @@
                                                   #"sicmutils.simplify"]}
                    :repl-options {:nrepl-middleware
                                   [cider.piggieback/wrap-cljs-repl]}
-                   :dependencies [[org.clojure/test.check "1.0.0"]
+                   :dependencies [[org.clojure/test.check "1.1.0"]
+                                  [com.gfredericks/test.chuck "0.2.10"]
+                                  [same/ish "0.1.4"]
                                   [criterium "0.4.5"]
                                   [cider/piggieback "0.5.0"]
                                   [lein-doo "0.1.11"]]}

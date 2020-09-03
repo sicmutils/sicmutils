@@ -1,32 +1,55 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.numbers-test
   (:require [clojure.test :refer [is deftest testing]]
+            [same :refer [with-comparator]]
             [sicmutils.complex :as c]
             [sicmutils.util :as u]
             [sicmutils.generic :as g]
             [sicmutils.generic-test :as gt]
-            [sicmutils.value :as v]
-            [sicmutils.numbers :as n]))
+            [sicmutils.generators :as sg]
+            [sicmutils.laws :as l]
+            [sicmutils.numbers :as n]
+            [sicmutils.value :as v]))
 
 (def near (v/within 1e-12))
+
+(deftest numeric-laws
+  ;; All native types available on clj and cljs form fields.
+  (l/field 100 sg/bigint #?(:clj "clojure.lang.BigInt" :cljs "js/BigInt"))
+  (l/field 100 sg/long #?(:clj "java.lang.Long" :cljs "goog.math.Long"))
+  (l/field 100 sg/integer #?(:clj "java.lang.Integer" :cljs "goog.math.Integer"))
+
+  #?(:clj
+     ;; There's no biginteger / bigint distinction in cljs.
+     (l/field 100 sg/biginteger "java.math.BigInteger"))
+
+  #?(:cljs
+     ;; this is covered by sg/long in clj.
+     (l/field 100 sg/native-integral "integral js/Number")))
+
+(deftest floating-point-laws
+  ;; Doubles form a field too.
+  (with-comparator (v/within 1e-3)
+    (l/field 100 (sg/reasonable-double) #?(:clj  "java.lang.Double"
+                                           :cljs "floating point js/Number"))))
 
 (deftest number-generics
   (gt/integral-tests identity :exclusions #{:exact-divide})
@@ -35,6 +58,9 @@
   (testing "log converts to complex"
     (is (c/complex? (g/log -10)))
     (is (= (c/complex 0 Math/PI) (g/log -1))))
+
+  (testing "expt goes rational with negative expt"
+    (is (= #sicm/ratio 1/4 (g/expt 2 -2))))
 
   (testing "exp/log preserve exactness together"
     (is (= 0 (g/log (g/exp 0)))))
@@ -71,45 +97,38 @@
 
 (deftest integer-generics
   (gt/integral-tests u/int)
-  (gt/integral-a->b-tests u/int identity :exclusions #{:exact-divide}))
+  (gt/integral-a->b-tests u/int identity :exclusions #{:exact-divide})
+
+  (testing "g/expt"
+    (is (= (g/expt (u/int 2) (u/int -2))
+           (g/invert (u/int 4))))))
 
 (deftest long-generics
   (gt/integral-tests u/long)
-  (gt/integral-a->b-tests u/long identity :exclusions #{:exact-divide}))
+  (gt/integral-a->b-tests u/long identity :exclusions #{:exact-divide})
+
+  (testing "g/expt"
+    (is (= (g/expt (u/long 2) (u/long -2))
+           (g/invert (u/long 4))))))
 
 (deftest bigint-generics
   (gt/integral-tests u/bigint)
   (gt/integral-a->b-tests u/bigint identity)
-  (gt/integral-a->b-tests identity u/bigint))
+  (gt/integral-a->b-tests identity u/bigint)
+
+  (testing "g/expt"
+    (is (= (g/expt (u/bigint 2) (u/bigint -2))
+           (g/invert (u/bigint 4))))))
 
 #?(:clj
    (deftest biginteger-generics
-     (gt/integral-tests #(BigInteger/valueOf %))))
+     (gt/integral-tests u/biginteger)))
 
-#?(:clj
-   (deftest double-generics
-     (gt/integral-tests double
-                        :eq near
-                        :exclusions #{:exact-divide :gcd :remainder :modulo :quotient :negative?})
-     (gt/floating-point-tests double :eq near)))
-
-#?(:clj
-   (deftest ratio-generics
-     (testing "rational generics"
-       (gt/floating-point-tests
-        rationalize :eq #(= (rationalize %1)
-                            (rationalize %2))))
-
-     (testing "ratio-operations"
-       (is (= 13/40 (g/add 1/5 1/8)))
-       (is (= 1/8 (g/sub 3/8 1/4)))
-       (is (= 5/4 (g/div 5 4)))
-       (is (thrown? IllegalArgumentException (g/exact-divide 10/2 2/10)))
-       (is (= 1 (g/exact-divide 2/10 2/10)))
-       (is (= 1/2 (g/div 1 2)))
-       (is (= 1/4 (reduce g/div [1 2 2])))
-       (is (= 1/8 (reduce g/div [1 2 2 2])))
-       (is (= 1/8 (g/invert 8))))))
+(deftest double-generics
+  (gt/integral-tests double
+                     :eq near
+                     :exclusions #{:exact-divide :gcd :remainder :modulo :quotient})
+  (gt/floating-point-tests double :eq near))
 
 (deftest arithmetic
   (testing "trig"
@@ -176,12 +195,3 @@
   "numbers provides implementations, so test behaviors."
   (is (= 5 (g/divide 20 4)))
   (is (= 2 (g/divide 8 2 2))))
-
-#?(:clj
-   (deftest with-ratios
-     (is (= 13/40 (g/+ 1/5 1/8)))
-     (is (= 1/8 (g/- 3/8 1/4)))
-     (is (= 5/4 (g/divide 5 4)))
-     (is (= 1/2 (g/divide 1 2)))
-     (is (= 1/4 (g/divide 1 2 2)))
-     (is (= 1/8 (g/divide 1 2 2 2)))))

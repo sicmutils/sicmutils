@@ -3,16 +3,14 @@
   (:refer-clojure :rename {bigint core-bigint
                            biginteger core-biginteger
                            int core-int
-                           long core-long
-                           #?@(:clj [ratio? core-ratio?
-                                     denominator core-denominator
-                                     numerator core-numerator])}
+                           long core-long}
                   #?@(:cljs [:exclude [bigint long int]]))
   (:require #?(:clj [clojure.math.numeric-tower :as nt])
             #?(:cljs goog.math.Integer)
             #?(:cljs goog.math.Long))
   #?(:clj
-     (:import [java.util.concurrent TimeUnit TimeoutException])))
+     (:import [clojure.lang BigInt]
+              [java.util.concurrent TimeUnit TimeoutException])))
 
 (defmacro import-def
   "import a single fn or var
@@ -44,6 +42,7 @@
 (def compute-sqrt #?(:clj nt/sqrt :cljs Math/sqrt))
 (def compute-expt #?(:clj nt/expt :cljs Math/pow))
 (def compute-abs #?(:clj nt/abs :cljs Math/abs))
+(def biginttype #?(:clj BigInt :cljs js/BigInt))
 (def inttype #?(:clj Integer :cljs goog.math.Integer))
 (def longtype #?(:clj Long :cljs goog.math.Long))
 
@@ -51,17 +50,8 @@
   #?(:clj (core-bigint x)
      :cljs (js/BigInt x)))
 
-(def ratio?
-  #?(:clj core-ratio?
-     :cljs (constantly false)))
-
-(def numerator
-  #?(:clj core-numerator
-     :cljs (fn [x] (throw (js/Error "Ratio doesn't exist in cljs.")))))
-
-(def denominator
-  #?(:clj core-denominator
-     :cljs (fn [x] (throw (js/Error "Ratio doesn't exist in cljs.")))))
+(defn parse-bigint [x]
+  `(bigint ~x))
 
 (defn biginteger [x]
   #?(:clj (core-biginteger x)

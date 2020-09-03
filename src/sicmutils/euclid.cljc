@@ -37,8 +37,7 @@
                            (g/- t0 (g/* q t)) t
                            (g/- r0 (g/* q r)) r))))))
 
-(defn gcd
-  [a b]
+(defn gcd [a b]
   (cond (v/nullity? a) (g/abs b)
         (v/nullity? b) (g/abs a)
         (not (and (v/integral? a) (v/integral? b))) 1
@@ -50,6 +49,5 @@
 ;; multimethod implementation for basic numeric types.
 (defmethod g/gcd :default [a b] (gcd a b))
 
-(defn lcm
-  [a b]
-  (g/abs (g/divide (g/* a b) (gcd a b))))
+(defmethod g/lcm :default [a b]
+  (g/abs (g/divide (g/* a b) (g/gcd a b))))

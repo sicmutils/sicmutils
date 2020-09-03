@@ -42,13 +42,16 @@
                 (((expt D 2) q) t)
                 (((expt D 3) q) t))
            (g/simplify ((L/Gamma q 5) 't))))
-    (is (= '(+ (* #?(:clj 1/2 :cljs 0.5) (expt t 2) (((expt D 2) q) t))
+
+    (is (= '(+ (* (/ 1 2) (expt t 2) (((expt D 2) q) t))
                (* -1 t t1 (((expt D 2) q) t))
-               (* #?(:clj 1/2 :cljs 0.5) (expt t1 2) (((expt D 2) q) t))
+               (* (/ 1 2) (expt t1 2) (((expt D 2) q) t))
                (* -1 t ((D q) t))
                (* t1 ((D q) t))
                (q t))
-           (g/simplify ((L/osculating-path ((L/Γ q 4) 't)) 't1))))
+           (v/freeze
+            (g/simplify ((L/osculating-path ((L/Γ q 4) 't)) 't1)))))
+
     (is (= '(up t (up t (x t) (y t)) (up 1 ((D x) t) ((D y) t)))
            (g/simplify
             (f/with-literal-functions [x y]

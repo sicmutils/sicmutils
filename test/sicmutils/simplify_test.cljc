@@ -51,7 +51,7 @@
 
 (deftest simplify-expressions
   (is (= 6 (simplify-expression '(* 1 2 3))))
-  (is (= #?(:clj 2/3 :cljs (/ 2 3))
+  (is (= #sicm/ratio 2/3
          (simplify-expression '(/ 2 3)))))
 
 (deftest trivial-simplifications
@@ -68,10 +68,9 @@
   (is (= 'x (simplify-expression '(* 1 x))))
   (is (= '(* x y z) (simplify-expression '(* 1 x y z))))
   (is (= '(+ x y) (simplify-expression '(/ (* 2 (+ x y)) 2))))
-
-  (is (= #?(:clj  '(+ (* 1/2 x) (* 1/2 y))
-            :cljs '(+ (* 0.5 x) (* 0.5 y)))
-         (simplify-expression '(/ (+ x y) 2)))))
+  (is (= '(+ (* (/ 1 2) x) (* (/ 1 2) y))
+         (v/freeze
+          (simplify-expression '(/ (+ x y) 2))))))
 
 (deftest structures
   (let [A (m/by-rows [1 2] [3 4])

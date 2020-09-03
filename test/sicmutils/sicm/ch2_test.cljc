@@ -25,7 +25,8 @@
             [sicmutils.mechanics.rotation :refer [Euler->M]]
             [sicmutils.mechanics.rigid :as r]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.util :as u]))
+            [sicmutils.util :as u]
+            [sicmutils.value :as v]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
@@ -111,9 +112,10 @@
                              (reduce max))))))))
 
 (deftest section-2-10
-  (is (= '(+ (* #?(:clj 1/2 :cljs 0.5) A (expt φdot 2) (expt (sin θ) 2))
-             (* #?(:clj 1/2 :cljs 0.5) C (expt φdot 2) (expt (cos θ) 2))
+  (is (= '(+ (* (/ 1 2) A (expt φdot 2) (expt (sin θ) 2))
+             (* (/ 1 2) C (expt φdot 2) (expt (cos θ) 2))
              (* C φdot ψdot (cos θ))
-             (* #?(:clj 1/2 :cljs 0.5) A (expt θdot 2))
-             (* #?(:clj 1/2 :cljs 0.5) C (expt ψdot 2)))
-         (simplify ((r/T-rigid-body 'A 'A 'C) Euler-state)))))
+             (* (/ 1 2) A (expt θdot 2))
+             (* (/ 1 2) C (expt ψdot 2)))
+         (v/freeze
+          (simplify ((r/T-rigid-body 'A 'A 'C) Euler-state))))))

@@ -77,7 +77,7 @@
     (is (= (p/make 3 [[[0 0 0] 1]]) (v/one-like (p/make 3 [[[1 2 1] 4] [[0 1 0] 5]]))))
     ;; we can't deduce the unit element from the zero polynomial over an
     ;; "unknown" ring
-    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+    (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
                  (v/one-like (p/make 2 [])))))
 
   (testing "add constant"
@@ -380,13 +380,10 @@
   (testing "specific test cases from generative tests"
     (let [p (p/make 4 [[[0 0 0 0] -2] [[1 6 3 3] 3]])
           q (p/make 4 [[[0 0 0 3] 3] [[4 0 6 2] 1]])
-          xs (map u/bigint [-2 3 -3 -3])]
+          xs [-2 3 -3 -3]]
       (is (= (g/mul (p/evaluate p xs)
                     (p/evaluate q xs))
-             (p/evaluate (g/mul p q) xs))
-          "This blows through non-bigint precision in cljs. bigint can promote
-          other types it interacts with, so any bigint in `xs` is enough to
-          maintain precision."))
+             (p/evaluate (g/mul p q) xs))))
 
     (let [p (p/make 5 [])
           q (p/make 5 [[[0 5 4 0 1] -2]
@@ -399,13 +396,9 @@
                        [[3 8 4 6 9] -8]
                        [[1 8 7 9 8] -2]])
           xs (map u/bigint [-9 7 0 9 -9])]
-      (is (= (u/bigint
-              (g/mul (p/evaluate p xs)
-                     (p/evaluate q xs)))
-             (u/bigint
-              (p/evaluate (g/mul p q) xs)))
-          "BigInt doesn't compare automatically with non-bigint, so make sure to
-          check that the results have the same type."))))
+      (is (= (g/mul (p/evaluate p xs)
+                    (p/evaluate q xs))
+             (p/evaluate (g/mul p q) xs))))))
 
 (deftest analyzer-test
   (let [new-analyzer (fn [] (a/make-analyzer
@@ -418,6 +411,7 @@
            (A '(* y (sin y) (cos (+ 1 (sin y) (sin y) (expt (sin y) 4)))))))
     (is (= '(+ (expt cos 2) (expt sin 2)) (A '(+ (expt cos 2) (expt sin 2)))))
     (is (= '(+ (expt cos 2) (expt sin 2)) (A '(+ (expt sin 2) (expt cos 2)))))
+
     (is (= '(+ (up (+ (/ d a) (/ (* -1 b) a))) (* -1 (up (/ (* -1 y) (+ a b)))))
            (A '(- (up (+ (/ d a)
                          (/ (- b) a)))
@@ -425,11 +419,9 @@
         "This test exploded without the doall that forces add-symbol! calls in
         analyze.clj.")
 
-    ;; Tests involving Ratio literals don't work in cljs yet.
-    #?(:clj
-       (do (is (= 'x (A '(* 1/2 (+ x x)))))
-           (is (= '(+ (* -1 m (expt ((D phi) t) 2) (r t)) (* m (((expt D 2) r) t)) ((D U) (r t)))
-                  (A '(- (* 1/2 m (+ (((expt D 2) r) t) (((expt D 2) r) t)))
-                         (+ (* 1/2 m (+ (* ((D phi) t) ((D phi) t) (r t))
-                                        (* ((D phi) t) ((D phi) t) (r t))))
-                            (* -1 ((D U) (r t))))))))))))
+    (is (= 'x (A '(* (/ 1 2) (+ x x)))))
+    (is (= '(+ (* -1 m (expt ((D phi) t) 2) (r t)) (* m (((expt D 2) r) t)) ((D U) (r t)))
+           (A '(- (* (/ 1 2) m (+ (((expt D 2) r) t) (((expt D 2) r) t)))
+                  (+ (* (/ 1 2) m (+ (* ((D phi) t) ((D phi) t) (r t))
+                                     (* ((D phi) t) ((D phi) t) (r t))))
+                     (* -1 ((D U) (r t))))))))))
