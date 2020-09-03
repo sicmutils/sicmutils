@@ -103,10 +103,10 @@
   [simplex]
   (reduce max (map u/compute-abs (flatten (map (fn [v] (map - v (first simplex))) simplex)))))
 
-(defn multidimensional-minimize
+(defn ^:private nelder-mead
   "Find the minimum of the function f: R^n -> R, given an initial point q ∈ R^n.
-  If :callback is supplied, will be invoked with the intermediate points of evaluation.
-  If :info is true, wraps the result with evaluation information.
+  If adaptive, use Gao/Han values of parameters
+  If callback, invoke it on each trial point
   TODO: document other options
 
   See Gao, F. and Han, L.
@@ -116,8 +116,7 @@
 
   I gratefully acknowledge the Python implementation in SciPy, which I have imitated here.
   "
-  [func x0 & {:keys [adaptive callback maxiter maxfun xatol fatol info]
-              :or {xatol 1e-4, fatol 1e-4}}]
+  [func x0 adaptive callback maxiter maxfun xatol fatol]
 
   (let [v+ #(mapv + %1 %2)                ;; add two vectors elementwise
         v- #(mapv - %1 %2)                ;; subtract two vectors elementwise
@@ -142,21 +141,21 @@
       (let [indices-by-f-value (sort #(compare (nth fsimplex %1) (nth fsimplex %2)) (range 0 (inc N)))
             ;; sort simplex and f(simplex) in ascending order of function value
             simplex (mapv simplex indices-by-f-value)
-            fsimplex (mapv fsimplex indices-by-f-value)]
+            fsimplex (mapv fsimplex indices-by-f-value)
+            converged (and (<= (sup-norm simplex) xatol)
+                           (<= (reduce max (map u/compute-abs (map #(- % (first fsimplex)) fsimplex))) fatol))]
 
         (when callback (callback (first simplex)))
 
         (if (or (> iterations maxiter)
                 (> @fncall_count maxfun)
-                (and (<= (sup-norm simplex) xatol)
-                     (<= (reduce max (map u/compute-abs (map #(- % (first fsimplex)) fsimplex))) fatol)))
+                converged)
           ;; RETURN
-          (if info
-            {:result (first simplex)
-             :value (first fsimplex)
-             :iterations iterations
-             :fncalls @fncall_count}
-            (first simplex))
+          {:result (first simplex)
+           :value (first fsimplex)
+           :converged converged
+           :iterations iterations
+           :fncalls @fncall_count}
           ;; CARRY OUT A STEP
           (let [xbar (v* (/ N) (reduce v+ (butlast simplex)))
                 xr (v- (v* (+ 1 rho) xbar) (v* rho (last simplex)))
@@ -199,3 +198,11 @@
                       (let [s (shrink simplex)
                             fs (mapv f s)]
                         (recur s fs (inc iterations))))))))))))))
+
+(defn multidimensional-minimize
+  [func x0 & {:keys [adaptive callback maxiter maxfun xatol fatol]
+              :or {xatol 1e-4, fatol 1e-4, adaptive true}}]
+  (let [result (nelder-mead func x0 adaptive callback maxiter maxfun xatol fatol)]
+    (if (:converged result)
+      (:result result)
+      (u/failure-to-converge (str "multidimensional-minimize failed to converge: " result)))))
