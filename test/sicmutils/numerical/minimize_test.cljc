@@ -20,6 +20,7 @@
 (ns sicmutils.numerical.minimize-test
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.value :as v]
+            [same :refer [ish? with-comparator]]
             [sicmutils.numerical.minimize :as m]))
 
 (def ^:private near (v/within 1e-5))
@@ -43,28 +44,28 @@
 
 (deftest multi-variable-minimize
   (testing "convergence"
-   (let [p (m/multidimensional-minimize
-            (fn [[x y]]
-              (let [x' (- x 3)
-                    y' (+ y 4)]
-                (+ (* x' x') (* y' y'))))
-            [0 0]
-            :xatol 1e-5)]
-     (is (near 3 (first p)))
-     (is (near -4 (second p))))
-   ;; from scipy's test_optimize.py
-   (let [v (m/multidimensional-minimize
-            (fn [[x0 x1 x2]]
-              (let [log_pdot [(+ x0 x1 x2)
-                              (+ x0 x1)
-                              (+ x0 x2)
-                              x0
-                              x0]
-                    logZ (Math/log (reduce + (map #(Math/exp %) log_pdot)))]
-                (- logZ (+ x0 (* 0.3 x1) (* 0.5 x2)))))
-            [0 0 0]
-            :xatol 1e-5
-            :adaptive false)]
-     (is (near 0.17285378 (nth v 0)))
-     (is (near -0.524869316 (nth v 1)))
-     (is (near 0.487525860 (nth v 2))))))
+    (let [p (m/multidimensional-minimize
+             (fn [[x y]]
+               (let [x' (- x 3)
+                     y' (+ y 4)]
+                 (+ (* x' x') (* y' y'))))
+             [0 0]
+             :simplex-tolerance 1e-5)]
+      (is (near 3 (first p)))
+      (is (near -4 (second p))))
+    ;; from scipy's test_optimize.py
+    (let [v (m/multidimensional-minimize
+             (fn [[x0 x1 x2]]
+               (let [log_pdot [(+ x0 x1 x2)
+                               (+ x0 x1)
+                               (+ x0 x2)
+                               x0
+                               x0]
+                     logZ (Math/log (reduce + (map #(Math/exp %) log_pdot)))]
+                 (- logZ (+ x0 (* 0.3 x1) (* 0.5 x2)))))
+             [0 0 0]
+             :simplex-tolerance 1e-5
+             :adaptive? false)]
+      (with-comparator near
+        (is (ish? [0.17285378 -0.524869316 0.487525860]
+                  v))))))
