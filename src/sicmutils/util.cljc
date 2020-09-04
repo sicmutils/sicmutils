@@ -94,3 +94,8 @@
   (throw
    #?(:clj (TimeoutException. s)
       :cljs (js/Error s))))
+
+(defn failure-to-converge [s]
+  (throw
+   #?(:clj (Exception. s)
+      :cljs (js/Error s))))
