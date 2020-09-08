@@ -18,72 +18,7 @@
 ;;
 
 (ns sicmutils.numerical.minimize
-  (:require [sicmutils.util :as u]
-            [sicmutils.util.stopwatch :as us]
-            [taoensso.timbre :as log])
-  #?(:clj
-     (:import (org.apache.commons.math3.optim.univariate
-               BrentOptimizer
-               UnivariateObjectiveFunction
-               SearchInterval
-               UnivariatePointValuePair)
-              (org.apache.commons.math3.analysis
-               UnivariateFunction
-               MultivariateFunction)
-              (org.apache.commons.math3.optim.nonlinear.scalar
-               GoalType
-               ObjectiveFunction)
-              (org.apache.commons.math3.optim
-               MaxEval
-               OptimizationData
-               ConvergenceChecker
-               PointValuePair))))
-
-(defn minimize
-  "Find the minimum of the function f: R -> R in the interval [a,b]. If
-  observe is supplied, will be invoked with the iteration count and the
-  values of x and f(x) at each search step."
-  ([f a b observe]
-   #?(:cljs
-      (u/unsupported "minimize isn't yet implemented in Clojurescript.")
-
-      :clj
-      (let [total-time (us/stopwatch :started? true)
-            evaluation-time (us/stopwatch :started? false)
-            evaluation-count (atom 0)
-            rel 1e-5
-            abs 1e-5
-            o (BrentOptimizer.
-               rel abs
-               (reify ConvergenceChecker
-                 (converged [_ _ _ current]
-                   (when observe
-                     (observe (.getPoint ^UnivariatePointValuePair current)
-                              (.getValue ^UnivariatePointValuePair current)))
-                   false)))
-            args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
-            (into-array OptimizationData
-                        [(UnivariateObjectiveFunction.
-                          (reify UnivariateFunction
-                            (value [_ x]
-                              (us/start evaluation-time)
-                              (swap! evaluation-count inc)
-                              (let [fx (f x)]
-                                (us/stop evaluation-time)
-                                fx))))
-                         (MaxEval. 1000)
-                         (SearchInterval. a b)
-                         GoalType/MINIMIZE])
-            p (.optimize o args)]
-        (let [x (.getPoint p)
-              y (.getValue p)]
-          (when observe
-            (observe (dec (.getEvaluations o)) x y))
-          (us/stop total-time)
-          (log/info "#" @evaluation-count "total" (us/repr total-time) "f" (us/repr evaluation-time))
-          [x y @evaluation-count]))))
-  ([f a b]
-   (minimize f a b nil)))
+  (:require [sicmutils.util :as u]))
 
 (defn- v+
   "add two vectors elementwise."
