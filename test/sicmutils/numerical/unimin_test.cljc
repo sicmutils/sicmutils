@@ -30,6 +30,11 @@
             [sicmutils.value :as v]
             [sicmutils.numerical.unimin :as m]))
 
+;; TODO test that the minimum of the polynomial interpolation has derivative 0!
+;; Since we have functions to do both.
+;;
+;; TODO add the ability for the golden section stuff to share code.
+
 (deftest bracket-tests
   (testing "cubic-from-java"
     (let [min-f (fn [x]

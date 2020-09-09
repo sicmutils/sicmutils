@@ -24,8 +24,7 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
-;; should this be machine eps?
-(def ^:private very-small-num 1e-21)
+(def ^:private epsilon  1e-21)
 (def ^:private phi      (/ (+ (g/sqrt 5) 1) 2))
 (def ^:private inv-phi  (/ (- (g/sqrt 5) 1) 2))
 (def ^:private inv-phi2 (- 1 inv-phi))
@@ -41,6 +40,10 @@
 (defn- lagrange-interpolating-polynomial
   "Generates a lagrange interpolating polynomial that fits all of the supplied
   points.
+
+  g(x) =  (f(a) * [(x-b)(x-c)...] / [(a-b)(a-c)...])
+        + (f(b) * [(x-a)(x-c)...] / [(b-a)(b-c)...])
+        + ...
 
   TODO this should move to polynomial and become a real thing."
   [& points]
@@ -71,16 +74,10 @@
         v     (- tmp2 tmp1)
         num   (- (* (- xb xc) tmp2)
                  (* (- xb xa) tmp1))
-        denom (if (< (g/abs v) very-small-num)
-                (* 2.0 very-small-num)
+        denom (if (< (g/abs v) epsilon)
+                (* 2.0 epsilon)
                 (* 2.0 v))]
     (- xb (/ num denom))))
-
-(defn- between?
-  "Returns true if the bound is `a` is strictly between `l` and `r` (ie, they act
-  as non-inclusive bounds), false otherwise."
-  [a l r]
-  (> (* (- a r) (- l a)) 0))
 
 (defn- extend-pt
   "generate a new point by extending x away from `away-from`. The invariant is
@@ -90,7 +87,10 @@
   (+ x (* phi (- x away-from))))
 
 (defn bracket-step-fn
-  "Returns a function that performs steps of bracket extension."
+  "Returns a function that performs steps of bracket extension.
+
+  :grow-limit is the maximum factor that the parabolic interpolation can jump
+  the function."
   [f {:keys [grow-limit] :or {grow-limit 110.0}}]
   (fn [[xa fa :as a]
       [xb fb :as b]
