@@ -18,7 +18,7 @@
 ;;
 
 (ns sicmutils.numerical.unimin-test
-  (:require [clojure.test :refer [is deftest testing use-fixtures]]
+  (:require [clojure.test :refer [is deftest testing]]
             [clojure.test.check :as tc]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
@@ -29,6 +29,54 @@
             [sicmutils.generic :as g]
             [sicmutils.value :as v]
             [sicmutils.numerical.unimin :as m]))
+
+(deftest bracket-tests
+  (testing "cubic-from-java"
+    (let [min-f (fn [x]
+                  (if (< x -2)
+                    -2
+                    (* (- x 1)
+                       (+ x 2)
+                       (+ x 3))))
+          max-f (comp g/negate min-f)
+          expected {:lo [-2 0]
+                    :mid [-1 -4]
+                    :hi [0.6180339887498949 -3.6180339887498945]
+                    :fncalls 3
+                    :iterations 0}]
+      (is (ish? expected (m/bracket-min min-f {:xa -2 :xb -1})))
+      (is (ish? expected (m/bracket-max max-f {:xa -2 :xb -1})))))
+
+  (checking "bracket-{min,max} properly brackets a quadratic"
+            100
+            [lower  gen/large-integer
+             upper  gen/large-integer
+             offset gen/small-integer]
+            (let [upper (if (= lower upper) (inc lower) upper)
+                  min-f (fn [x] (g/square (- x offset)))]
+              (testing "bracket-min"
+                (let [{:keys [lo hi fncalls iterations]} (m/bracket-min min-f {:xa lower :xb upper})]
+                  (is (<= (first lo) offset)
+                      "bracket-min lower bound is <= argmin.")
+                  (is (>= (first hi) offset)
+                      "bracket-min upper bound is >= argmin.")))
+
+              (let [max-f (comp g/negate min-f)
+                    {:keys [lo hi]} (m/bracket-max max-f {:xa lower :xb upper})]
+                (is (<= (first lo) offset)
+                    "bracket-max lower bound is <= argmax.")
+                (is (>= (first hi) offset)
+                    "bracket-max upper bound is >= argmax."))))
+
+
+
+
+  ;; from scipy:
+
+  #_(-1.618034, -4.999999999999998, -10.472135974843995, 11.437694025156002, 3.1554436208840472e-30, 29.944272127181844, 5)
+
+  #_((sicmutils.calculus.derivative/D
+      (lagrange-interpolating-polynomial [-3 10] [-1 8] [1 6.1])) (parabolic-step [-3 10] [-1 8] [1 6.1])))
 
 (deftest golden-cut-tests
   (checking "golden-cut"
@@ -61,19 +109,23 @@
                     (m/golden-cut r l)))))
 
 (deftest golden-section-tests
-  (let [close?     (v/within 1e-10)
-        good-enuf? (fn [[_ fa] [_ fminx] [_ fb] _]
-                     (close? (max fa fb) fminx))]
+  (let [close? (v/within 1e-10)
+        good-enuf? (fn [[_ fa] [_ fl] [_ fr] [_ fb] iterations]
+                     (or (> iterations 100)
+                         (close? (max fa fb)
+                                 (min fl fr))))]
     (with-comparator (v/within 1e-6)
       (testing "minimize"
         (is (ish? {:result 2
                    :value 0
-                   :iterations 25}
+                   :iterations 26
+                   :fncalls 30}
                   (-> (fn [x] (g/square (- x 2)))
-                      (m/golden-section-min 1 5 good-enuf?))))
+                      (m/golden-section-min* 1 5 {:stop? good-enuf?}))))
 
         (is (ish? {:result 1.5
                    :value -0.8
-                   :iterations 30}
+                   :iterations 31
+                   :fncalls 35}
                   (-> (fn [x] (- (g/square (- x 1.5)) 0.8))
-                      (m/golden-section-min -15 15 good-enuf?))))))))
+                      (m/golden-section-min -15 15 {:stop? good-enuf?}))))))))
