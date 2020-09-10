@@ -22,7 +22,23 @@
   maximal) values of single variable functions."
   (:require [sicmutils.generic :as g]
             [sicmutils.util :as u]
-            [sicmutils.value :as v]))
+            [sicmutils.value :as v])
+  #?(:clj
+     (:import (org.apache.commons.math3.optim.univariate
+               BrentOptimizer
+               UnivariateObjectiveFunction
+               SearchInterval
+               UnivariatePointValuePair)
+              (org.apache.commons.math3.analysis
+               UnivariateFunction)
+              (org.apache.commons.math3.optim.nonlinear.scalar
+               GoalType
+               ObjectiveFunction)
+              (org.apache.commons.math3.optim
+               MaxEval
+               OptimizationData
+               ConvergenceChecker
+               PointValuePair))))
 
 (def ^:private epsilon  1e-21)
 (def ^:private phi      (/ (+ (g/sqrt 5) 1) 2))
@@ -59,6 +75,19 @@
         (->> (map-indexed build-term points)
              (reduce g/+))))))
 
+(defn parabolic-pieces
+  "TODO normalize? make the denom positive?"
+  [[xa fa] [xb fb] [xc fc]]
+  (let [tmp1  (* (- xb xa) (- fb fc))
+        tmp2  (* (- xb xc) (- fb fa))
+        v     (- tmp2 tmp1)
+        num   (- (* (- xb xc) tmp2)
+                 (* (- xb xa) tmp1))
+        denom (* 2.0 v)]
+    (if (pos? denom)
+      [(g/negate num) denom]
+      [num (g/abs denom)])))
+
 (defn parabolic-step
   "Fits a parabola through all three points, and returns the coordinate of the
   minimum of the parabola.
@@ -67,17 +96,16 @@
   very small denom vs 0.
 
   Nice notes here on how we derived this method:
-  http://fourier.eng.hmc.edu/e176/lectures/NM/node25.html"
-  [[xa fa] [xb fb] [xc fc]]
-  (let [tmp1  (* (- xb xa) (- fb fc))
-        tmp2  (* (- xb xc) (- fb fa))
-        v     (- tmp2 tmp1)
-        num   (- (* (- xb xc) tmp2)
-                 (* (- xb xa) tmp1))
-        denom (if (< (g/abs v) epsilon)
-                (* 2.0 epsilon)
-                (* 2.0 v))]
-    (- xb (/ num denom))))
+  http://fourier.eng.hmc.edu/e176/lectures/NM/node25.html
+
+  TODO note the assumption here... that fb < fa. Bake this in!"
+  [a [xb :as b] c]
+  (let [two-eps (* 2.0 epsilon)
+        [num denom] (parabolic-pieces a b c)
+        denom (if (< denom two-eps)
+                two-eps
+                denom)]
+    (+ xb (/ num denom))))
 
 (defn- extend-pt
   "generate a new point by extending x away from `away-from`. The invariant is
@@ -222,7 +250,7 @@
                 (complete a b c iter)
                 (let [xd (+ xc (- xc xa))]
                   (recur b c [xd (f xd)] (inc iter)))))
-        [[xa :as a] [xb :as b]] (ascending-by f start (+ start step))]
+        [[xb :as b] [xa :as a]] (ascending-by f start (+ start step))]
     (let [xc (+ xb (- xb xa))]
       (run a b [xc (f xc)] 0))))
 
@@ -320,39 +348,42 @@
   to provide an interval.
 
   TODO add auto-bracketing using the new interval stuff above."
-  [f a b {:keys [
-                 ;; stop-fn override.
-                 stop?
+  [f {:keys [
+             xa
+             xb
 
-                 ;; How do we select the final result from the spread?
-                 choose
+             ;; stop-fn override.
+             stop?
 
-                 ;; call this on every iteration.
-                 callback
+             ;; How do we select the final result from the spread?
+             choose
 
-                 ;; max number of times we can call the fn.
-                 maxfun
+             ;; call this on every iteration.
+             callback
 
-                 ;; max number of times we can loop.
-                 maxiter
+             ;; max number of times we can call the fn.
+             maxfun
 
-                 ;; check that the minimal value of any of the checked points is
-                 ;; within this of f(a) or f(b).
-                 fn-tolerance
+             ;; max number of times we can loop.
+             maxiter
 
-                 arg-tolerance ;; check that a, b are close enough.
-                 ]
-          :or {choose best-of
-               fn-tolerance 1e-4
-               callback identity}}]
+             ;; check that the minimal value of any of the checked points is
+             ;; within this of f(a) or f(b).
+             fn-tolerance
+
+             arg-tolerance ;; check that a, b are close enough.
+             ]
+      :or {choose best-of
+           fn-tolerance 1e-4
+           callback identity}}]
   (let [[f-counter f] (u/counted f)
-        xl            (golden-cut b a)
-        xr            (golden-cut a b)
+        xl            (golden-cut xb xa)
+        xr            (golden-cut xa xb)
 
         ;; TODO - change this to a thing that nicely composes the various
         ;; stopping conditions.
         stop-fn stop?]
-    (loop [[a l r b :as state] [[a (f a)] [xl (f xl)] [xr (f xr)] [b (f b)]]
+    (loop [[a l r b :as state] [[xa (f xa)] [xl (f xl)] [xr (f xr)] [xb (f xb)]]
            iteration 0]
       (callback state)
       (if (stop-fn a l r b iteration)
@@ -374,57 +405,246 @@
     (-> (golden-section-min -f a b opts)
         (update-in [:result 1] g/negate))))
 
+;; Brent's Method!
+;;
+;; Many helper functions.
+
+(defn- brent-converged?
+  "Brent's check for convergence. Convergence occurs when:
+
+  - `tol2` covers at least half of the interval (a, b)
+  - the center point `x`'s distance from the midpoint, plus HALF of the (a, b)
+    interval, is still <= half of the span.
+
+  \"A typical ending configuration for Brent's method is that $a$ and $b$
+  are `(* 2 midpoint tol)` apart, with $x$ (the best abscissa) at the midpoint
+  of $a$ and $b$, and therefore fractionally accurate to +-tol.\" ~Numerical
+  Analysis, 397.
+  "
+  [a x b tol2]
+  (let [half-ab (* 0.5 (- b a))
+        mid     (* 0.5 (+ a b))
+        mid->x  (g/abs (- x mid))]
+    (<= (+ mid->x half-ab) tol2)))
+
+(defn- brent-golden-step
+  "Returns a pair of:
+
+  - the value of the previous step IF the previous step had been a golden
+    section search
+  - The delta that needs to be applied to xx to take it into the larger of the
+  two gaps between `a` and `b,` ie, to `new_x`:
+
+  `xa---------new_x<---xx------xb`
+
+  NOTE this is quite strange. Every implementation I've been able to find makes
+  this substitution of the `prev-prev-step`, even though the spirit of the
+  algorithm states that we want to track \"the previous value of prev-step\".
+
+  Why the dance here to wipe the previous step? Why not simply bump the true
+  value of `previous-step` over on every iteration? Especially since the step
+  will be reported as much too large for progressive golden steps.
+
+  TODO write to the author, ask what the situation is."
+  [[xa] [xx] [xb]]
+  (let [x-mid     (* 0.5 (+ xa xb))
+        new-delta (if (>= xx x-mid)
+                    (- xa xx)
+                    (- xb xx))
+        step (* inv-phi2 new-delta)]
+    [new-delta step]))
+
+(defn- parabola-valid?
+  "The parabolic step implied by num / denom is valid if:
+
+  - it doesn't move the point outside of the left or right bounds
+  - it results in a move < (move before last) / 2.
+
+  more comments here soon."
+  [a x b prev-prev-step num denom]
+  (let [inbounds? (and (< num (* denom (- x a)))
+                       (< num (* denom (- b x))))
+
+        ;; This is the second condition for Brent's method:
+        ;; https://en.wikipedia.org/wiki/Brent%27s_method#Brent's_method
+        ;;
+        ;; "To be acceptable, the parabolic step must (i) fall within the
+        ;; bounding interval $(a, b)$, and (ii) imply a movement from the best
+        ;; current value $x$ that is _less_ than half the movement of the _step
+        ;; before last_." ~Numerical Analysis book.
+        lt-half-step-before-last? (< (g/abs num)
+                                     (g/abs
+                                      (* 0.5 denom prev-prev-step)))]
+    (and inbounds? lt-half-step-before-last?)))
+
+(defn- brent-parabolic-step
+  "Gets the three bounding points (a, x, b) and fit a parabola to w, x, v.
+
+  If the parabola's minimum sits in (a, b), then calculate the new point. If it
+  lies within tol2 of the edge, return the offset required to make it happen!
+  Else, trigger a jump of tol1 instead."
+  [[xa :as a] [xx :as x] [xb :as b] v w step-before-last previous-step]
+  (let [[num denom] (parabolic-pieces w x v)]
+    (if (parabola-valid? xa xx xb step-before-last num denom)
+      [previous-step (/ num denom)]
+      (brent-golden-step a x b))))
+
+(defn- perform-step
+  "Performs the final step for Brent's method.
+
+  If the step is near the edge, the function initiates a small step back toward
+  the center.
+
+  If the step is too small, a step's forced."
+  [a x b step tol1 tol2]
+  (let [near-edge? (or (< (- x a) tol2)
+                       (< (- b x) tol2))]
+    (cond
+      near-edge?
+      (let [middle (* 0.5 (+ a b))]
+        (if (<= x middle)
+          (+ x tol1)
+          (- x tol1)))
+
+      ;; tiny step?
+      (< (g/abs step) tol1)
+      (if (pos? step)
+        (+ x tol1)
+        (- x tol1))
+
+      :else (+ x step))))
+
+(defn- update-history
+  "Updates the brent history. This basically tries to pick out the two previous
+  NON-best candidates, equivalent to the pair $(b_{k-2}, b_{k-1})$ in Brent's
+  method.
+
+  There is some finicky stuff going on with equalities here. That is ONLY to
+  deal with the fact that we initialize v and w to `x`. If that went away, this
+  would get simpler.
+
+  Returns $(b_{k-2}, b_{k-1})$.
+  "
+  [[xnew fnew] [xx fx :as x] [xk2 fk2 :as bk-2] [xk1 fk1 :as bk-1]]
+  (cond (<= fnew fx)                              [bk-1 x]
+        (or (<= fnew fk1) (= xk1 xx))             [bk-1 [xnew fnew]]
+        (or (<= fnew fk2) (= xk2 xx) (= xk2 xk1)) [[xnew fnew] bk-1]
+        :else [bk-2 bk-1]))
+
 (defn brent-min
   "Find the minimum of the function f: R -> R in the interval [a,b]. If
   observe is supplied, will be invoked with the iteration count and the
   values of x and f(x) at each search step.
 
-  Modern code for the brent optimizer: https://github.com/scipy/scipy/blob/v1.5.2/scipy/optimize/optimize.py#L2193-L2269
+  Scipy code for the brent optimizer:
+  https://github.com/scipy/scipy/blob/v1.5.2/scipy/optimize/optimize.py#L2193-L2269
 
-  Actual code: https://github.com/scipy/scipy/blob/v1.5.2/scipy/optimize/optimize.py#L2028"
-  [f a b {:keys [rel abs observe]
+  Actual code:
+  https://github.com/scipy/scipy/blob/v1.5.2/scipy/optimize/optimize.py#L2028
+
+  The simplest way to think about this is that it's doing a golden section
+  search, just like the simpler thing. But periodically it decides to do a
+  parabolic jump to try and converge faster."
+  [f {:keys [xa xb
+             relative-threshold
+             absolute-threshold
+             maxiter]
+      ;; TODO read more about this, and make sure that we cap the
+      ;; relative-threshold so that you can't look for anything more precise
+      ;; than this.
+      :or {relative-threshold (g/sqrt v/machine-epsilon)
+
+           ;; this is to control for being close to 0.
+           absolute-threshold 1.0e-11
+           maxiter 500}}]
+  ;; TODO: discuss how we initialize our first guess. The java version simply
+  ;; takes the cut in between them. The python version actually calls `bracket`
+  ;; and gets whatever the return value is there. Could that be the only
+  ;; difference with the fminbound method? NOTE YES, indeed it is. Gotta fix
+  ;; this.
+  ;;
+  (let [;; NOTE three initial points, MAYBE quite different from where you
+        ;; started. add support in all of these methods for locking in actual
+        ;; bounds.
+        {:keys [lo mid hi fncalls]} (bracket-min f {:xa xa :xb xb})
+        [f-counter f] (u/counted f fncalls)]
+    (loop [[[xa fa :as a]
+            [xx fx :as x]
+            [xb fb :as b]
+            bk-2
+            bk-1] [lo mid hi mid mid]
+           prev-prev-step 0
+           previous-step  0
+           iteration      0]
+      (let [;; `tol` is the minimum possible step you can take. If you take
+            ;; this, you're guaranteed to be different from the previous value
+            ;; by at least "relative threshold", even for tiny values of `x`.
+            tol (+ absolute-threshold
+                   (* relative-threshold (g/abs xx)))
+            tol2 (* 2 tol)]
+        (if (or (> iteration maxiter)
+                (brent-converged? xa xx xb tol2))
+          {:result     xx
+           :value      fx
+           :iterations iteration
+           :fncalls    @f-counter}
+          (let [[new-prev-step new-step]
+                (if (< tol (g/abs prev-prev-step))
+                  (brent-parabolic-step a x b bk-2 bk-1
+                                        prev-prev-step previous-step)
+                  (brent-golden-step a x b))
+                xnew   (perform-step xa xx xb new-step tol tol2)
+                new-pt [xnew (f xnew)]
+
+                ;; Now we decide which point is better, given the candidate.
+                ;; This SHOULD feel very much like the golden method.
+                [[xl fl :as l] [xr fr :as r]] (if (< xnew xx)
+                                                [new-pt x]
+                                                [x new-pt])
+                [bk-2 bk-1] (update-history new-pt x bk-2 bk-1)
+                [new-a new-x new-b] (if (<= fl fr)
+                                      [a l r]
+                                      [l r b])]
+            (recur [new-a new-x new-b bk-2 bk-1]
+                   new-prev-step
+                   new-step
+                   (inc iteration))))))))
+
+;; Now here's what we have before.
+(defn old-brent-min
+  [f a b {:keys [rel abs maxiter maxfun observe]
           :or {rel 1e-5
                abs 1e-5
                observe (constantly nil)}}]
-  (let []
-    ))
-
-;; Now here's what we have before.
-#_(defn minimize*
-    [f a b {:keys [rel abs maxiter maxfun observe]
-            :or {rel 1e-5
-                 abs 1e-5
-                 observe (constantly nil)}}]
-    (let [o (BrentOptimizer.
-             rel
-             abs
-             (reify ConvergenceChecker
-               (converged [_ _ _ current]
-                 (observe (.getPoint ^UnivariatePointValuePair current)
-                          (.getValue ^UnivariatePointValuePair current))
-                 false)))
-          args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
-          (into-array OptimizationData
-                      [(UnivariateObjectiveFunction.
-                        (reify UnivariateFunction
-                          (value [_ x]
-                            (us/start evaluation-time)
-                            (swap! evaluation-count inc)
-                            (let [fx (f x)]
-                              (us/stop evaluation-time)
-                              fx))))
-                       (MaxEval. 1000)
-                       (SearchInterval. a b)
-                       GoalType/MINIMIZE])
-          p (.optimize o args)]
-      (let [x (.getPoint p)
-            y (.getValue p)]
-        (when observe
-          (observe (dec (.getEvaluations o)) x y))
-        (us/stop total-time)
-        (log/info "#" @evaluation-count "total" (us/repr total-time) "f" (us/repr evaluation-time))
-        [x y @evaluation-count]))
-    )
+  (let [evaluation-count (atom 0)
+        o (BrentOptimizer.
+           rel
+           abs
+           (reify ConvergenceChecker
+             (converged [_ _ previous current]
+               (observe [(.getPoint ^UnivariatePointValuePair previous)
+                         (.getValue ^UnivariatePointValuePair previous)]
+                        [(.getPoint ^UnivariatePointValuePair current)
+                         (.getValue ^UnivariatePointValuePair current)])
+               false)))
+        args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
+        (into-array OptimizationData
+                    [(UnivariateObjectiveFunction.
+                      (reify UnivariateFunction
+                        (value [_ x]
+                          (swap! evaluation-count inc)
+                          (f x))))
+                     (MaxEval. 1000)
+                     (SearchInterval. a b)
+                     GoalType/MINIMIZE])
+        p (.optimize o args)]
+    (let [x (.getPoint p)
+          y (.getValue p)]
+      (when observe
+        (observe (dec (.getEvaluations o)) x y))
+      (println "#" @evaluation-count)
+      [x y @evaluation-count]))
+  )
 
 (defn brent-max [f a b eps])
 
@@ -448,3 +668,38 @@
 (defn estimate-global-min
   "Refer to the previous two functions and find the min."
   [f a b n ftol])
+
+;; Equal? ANd it gets called here with (equals x y 1)
+
+;; public static boolean equals(final float x, final float y, final int maxUlps) {
+
+;;         final int xInt = Float.floatToRawIntBits(x);
+;;         final int yInt = Float.floatToRawIntBits(y);
+
+;;         final boolean isEqual;
+;;         if (((xInt ^ yInt) & SGN_MASK_FLOAT) == 0) {
+;;             // number have same sign, there is no risk of overflow
+;;             isEqual = FastMath.abs(xInt - yInt) <= maxUlps;
+;;         } else {
+;;             // number have opposite signs, take care of overflow
+;;             final int deltaPlus;
+;;             final int deltaMinus;
+;;             if (xInt < yInt) {
+;;                 deltaPlus  = yInt - POSITIVE_ZERO_FLOAT_BITS;
+;;                 deltaMinus = xInt - NEGATIVE_ZERO_FLOAT_BITS;
+;;             } else {
+;;                 deltaPlus  = xInt - POSITIVE_ZERO_FLOAT_BITS;
+;;                 deltaMinus = yInt - NEGATIVE_ZERO_FLOAT_BITS;
+;;             }
+
+;;             if (deltaPlus > maxUlps) {
+;;                 isEqual = false;
+;;             } else {
+;;                 isEqual = deltaMinus <= (maxUlps - deltaPlus);
+;;             }
+
+;;         }
+
+;;         return isEqual && !Float.isNaN(x) && !Float.isNaN(y);
+
+;;     }

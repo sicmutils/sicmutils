@@ -17,11 +17,12 @@
 
   - an atom that keeps track of fn invocation counts,
   - the instrumented fn"
-  [f]
-  (let [count (atom 0)]
-    [count (fn [x]
-             (swap! count inc)
-             (f x))]))
+  ([f] (counted f 0))
+  ([f initial-count]
+   (let [count (atom initial-count)]
+     [count (fn [x]
+              (swap! count inc)
+              (f x))])))
 
 (defmacro import-def
   "import a single fn or var

@@ -73,11 +73,7 @@
                 (is (>= (first hi) offset)
                     "bracket-max upper bound is >= argmax."))))
 
-
-
-
   ;; from scipy:
-
   #_(-1.618034, -4.999999999999998, -10.472135974843995, 11.437694025156002, 3.1554436208840472e-30, 29.944272127181844, 5)
 
   #_((sicmutils.calculus.derivative/D
@@ -113,6 +109,16 @@
               (ish? (m/golden-cut l (m/golden-cut l r))
                     (m/golden-cut r l)))))
 
+(deftest scmutils-bracket-test
+  (testing "bracket"
+    (is (ish? {:lo [-46 2116]
+               :mid [-12 144]
+               :hi [43 1849]
+               :fncalls 11
+               :converged? true
+               :iterations 8}
+              (m/bracket-min-from-scmutils g/square {:start -100 :step 1})))))
+
 (deftest golden-section-tests
   (let [close? (v/within 1e-10)
         good-enuf? (fn [[_ fa] [_ fl] [_ fr] [_ fb] iterations]
@@ -120,17 +126,33 @@
                          (close? (max fa fb)
                                  (min fl fr))))]
     (with-comparator (v/within 1e-6)
+      (testing "with-helper"
+        (let [f (fn [x] (* x x))
+              {:keys [lo hi]} (m/bracket-min f {:xa -100
+                                                :xb -99})]
+          (is (ish?
+               {:result 0
+                :value 0
+                :iterations 35
+                :fncalls 39}
+               (m/golden-section-min f {:xa (first lo)
+                                        :xb (first hi)
+                                        :stop? good-enuf?})))))
       (testing "minimize"
         (is (ish? {:result 2
                    :value 0
                    :iterations 26
                    :fncalls 30}
                   (-> (fn [x] (g/square (- x 2)))
-                      (m/golden-section-min* 1 5 {:stop? good-enuf?}))))
+                      (m/golden-section-min {:xa 1
+                                             :xb 5
+                                             :stop? good-enuf?}))))
 
         (is (ish? {:result 1.5
                    :value -0.8
                    :iterations 31
                    :fncalls 35}
                   (-> (fn [x] (- (g/square (- x 1.5)) 0.8))
-                      (m/golden-section-min -15 15 {:stop? good-enuf?}))))))))
+                      (m/golden-section-min {:xa -15
+                                             :xb 15
+                                             :stop? good-enuf?}))))))))
