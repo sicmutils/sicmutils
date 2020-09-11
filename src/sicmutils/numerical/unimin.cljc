@@ -407,7 +407,7 @@
 
 ;; Brent's Method!
 ;;
-;; Many helper functions.
+;; Many helper functions. TODO add notes, move to own namespace.
 
 (defn- brent-converged?
   "Brent's check for convergence. Convergence occurs when:
@@ -430,8 +430,7 @@
 (defn- brent-golden-step
   "Returns a pair of:
 
-  - the value of the previous step IF the previous step had been a golden
-    section search
+  - The new width
   - The delta that needs to be applied to xx to take it into the larger of the
   two gaps between `a` and `b,` ie, to `new_x`:
 
@@ -447,12 +446,15 @@
 
   TODO write to the author, ask what the situation is."
   [[xa] [xx] [xb]]
-  (let [x-mid     (* 0.5 (+ xa xb))
-        new-delta (if (>= xx x-mid)
+  (let [midpoint (* 0.5 (+ xa xb))
+        new-width (if (>= xx midpoint)
                     (- xa xx)
                     (- xb xx))
-        step (* inv-phi2 new-delta)]
-    [new-delta step]))
+        step (* inv-phi2 new-width)]
+
+    ;; TODO BOOM https://maths-people.anu.edu.au/~brent/pd/rpb005.pdf this paper
+    ;; explains why we want new-delta2 to be e at the next step!!!
+    [new-width step]))
 
 (defn- parabola-valid?
   "The parabolic step implied by num / denom is valid if:
@@ -461,7 +463,7 @@
   - it results in a move < (move before last) / 2.
 
   more comments here soon."
-  [a x b prev-prev-step num denom]
+  [a x b delta2 num denom]
   (let [inbounds? (and (< num (* denom (- x a)))
                        (< num (* denom (- b x))))
 
@@ -473,8 +475,7 @@
         ;; current value $x$ that is _less_ than half the movement of the _step
         ;; before last_." ~Numerical Analysis book.
         lt-half-step-before-last? (< (g/abs num)
-                                     (g/abs
-                                      (* 0.5 denom prev-prev-step)))]
+                                     (g/abs (* 0.5 denom delta2)))]
     (and inbounds? lt-half-step-before-last?)))
 
 (defn- brent-parabolic-step
@@ -483,36 +484,35 @@
   If the parabola's minimum sits in (a, b), then calculate the new point. If it
   lies within tol2 of the edge, return the offset required to make it happen!
   Else, trigger a jump of tol1 instead."
-  [[xa :as a] [xx :as x] [xb :as b] v w step-before-last previous-step]
+  [[xa :as a] [xx :as x] [xb :as b] v w delta2 delta]
   (let [[num denom] (parabolic-pieces w x v)]
-    (if (parabola-valid? xa xx xb step-before-last num denom)
-      [previous-step (/ num denom)]
+    (if (parabola-valid? xa xx xb delta2 num denom)
+      [delta (/ num denom)]
       (brent-golden-step a x b))))
 
-(defn- perform-step
+(defn- apply-delta
   "Performs the final step for Brent's method.
 
-  If the step is near the edge, the function initiates a small step back toward
+  If the delta is near the edge, the function initiates a small step back toward
   the center.
 
-  If the step is too small, a step's forced."
-  [a x b step tol1 tol2]
+  If the delta is too small, a tiny delta's forced."
+  [a x b delta tol1 tol2]
   (let [near-edge? (or (< (- x a) tol2)
                        (< (- b x) tol2))]
-    (cond
-      near-edge?
-      (let [middle (* 0.5 (+ a b))]
-        (if (<= x middle)
-          (+ x tol1)
-          (- x tol1)))
+    (cond near-edge?
+          (let [middle (* 0.5 (+ a b))]
+            (if (<= x middle)
+              (+ x tol1)
+              (- x tol1)))
 
-      ;; tiny step?
-      (< (g/abs step) tol1)
-      (if (pos? step)
-        (+ x tol1)
-        (- x tol1))
+          ;; tiny delta?
+          (< (g/abs delta) tol1)
+          (if (pos? delta)
+            (+ x tol1)
+            (- x tol1))
 
-      :else (+ x step))))
+          :else (+ x delta))))
 
 (defn- update-history
   "Updates the brent history. This basically tries to pick out the two previous
@@ -573,89 +573,83 @@
             [xb fb :as b]
             bk-2
             bk-1] [lo mid hi mid mid]
-           prev-prev-step 0
-           previous-step  0
-           iteration      0]
+           delta2 0 ;; step size for the iteration before last (not quite!)
+           delta  0 ;; step size for the previous iteration.
+           iteration 0]
       (let [;; `tol` is the minimum possible step you can take. If you take
             ;; this, you're guaranteed to be different from the previous value
             ;; by at least "relative threshold", even for tiny values of `x`.
             tol (+ absolute-threshold
                    (* relative-threshold (g/abs xx)))
-            tol2 (* 2 tol)]
-        (if (or (> iteration maxiter)
-                (brent-converged? xa xx xb tol2))
+            tol2 (* 2 tol)
+            converged? (brent-converged? xa xx xb tol2)]
+        (if (or (> iteration maxiter) converged?)
           {:result     xx
            :value      fx
            :iterations iteration
+           :converged? converged?
            :fncalls    @f-counter}
-          (let [[new-prev-step new-step]
-                (if (< tol (g/abs prev-prev-step))
-                  (brent-parabolic-step a x b bk-2 bk-1
-                                        prev-prev-step previous-step)
+          (let [[new-delta2 new-delta]
+                (if (< tol (g/abs delta2))
+                  (brent-parabolic-step a x b bk-2 bk-1 delta2 delta)
                   (brent-golden-step a x b))
-                xnew   (perform-step xa xx xb new-step tol tol2)
+
+                xnew   (perform-step xa xx xb new-delta tol tol2)
                 new-pt [xnew (f xnew)]
 
-                ;; Now we decide which point is better, given the candidate.
-                ;; This SHOULD feel very much like the golden method.
                 [[xl fl :as l] [xr fr :as r]] (if (< xnew xx)
                                                 [new-pt x]
                                                 [x new-pt])
                 [bk-2 bk-1] (update-history new-pt x bk-2 bk-1)
-                [new-a new-x new-b] (if (<= fl fr)
-                                      [a l r]
-                                      [l r b])]
-            (recur [new-a new-x new-b bk-2 bk-1]
-                   new-prev-step
-                   new-step
+                [a x b] (if (<= fl fr)
+                          [a l r]
+                          [l r b])]
+            (recur [a x b bk-2 bk-1]
+                   new-delta2
+                   new-delta
                    (inc iteration))))))))
 
-;; Now here's what we have before.
-(defn old-brent-min
-  [f a b {:keys [rel abs maxiter maxfun observe]
-          :or {rel 1e-5
-               abs 1e-5
-               observe (constantly nil)}}]
-  (let [evaluation-count (atom 0)
-        o (BrentOptimizer.
-           rel
-           abs
-           (reify ConvergenceChecker
-             (converged [_ _ previous current]
-               (observe [(.getPoint ^UnivariatePointValuePair previous)
-                         (.getValue ^UnivariatePointValuePair previous)]
-                        [(.getPoint ^UnivariatePointValuePair current)
-                         (.getValue ^UnivariatePointValuePair current)])
-               false)))
-        args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
-        (into-array OptimizationData
-                    [(UnivariateObjectiveFunction.
-                      (reify UnivariateFunction
-                        (value [_ x]
-                          (swap! evaluation-count inc)
-                          (f x))))
-                     (MaxEval. 1000)
-                     (SearchInterval. a b)
-                     GoalType/MINIMIZE])
-        p (.optimize o args)]
-    (let [x (.getPoint p)
-          y (.getValue p)]
-      (when observe
-        (observe (dec (.getEvaluations o)) x y))
-      (println "#" @evaluation-count)
-      [x y @evaluation-count]))
-  )
+#?(:clj
+   (defn brent-min-commons
+     [f a b {:keys [rel abs maxiter maxfun observe]
+             :or {rel 1e-5
+                  abs 1e-5
+                  observe (constantly nil)}}]
+     (let [[f-counter f] (u/counted f)
+           o (BrentOptimizer.
+              rel
+              abs
+              (reify ConvergenceChecker
+                (converged [_ _ previous current]
+                  (observe [(.getPoint ^UnivariatePointValuePair previous)
+                            (.getValue ^UnivariatePointValuePair previous)]
+                           [(.getPoint ^UnivariatePointValuePair current)
+                            (.getValue ^UnivariatePointValuePair current)])
+                  false)))
+           args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
+           (into-array OptimizationData
+                       [(UnivariateObjectiveFunction.
+                         (reify UnivariateFunction
+                           (value [_ x]
+                             (f x))))
+                        (MaxEval. 1000)
+                        (SearchInterval. a b)
+                        GoalType/MINIMIZE])
+           p (.optimize o args)]
+       (let [x (.getPoint p)
+             y (.getValue p)]
+         (when observe
+           (observe (dec (.getEvaluations o)) x y))
+         (println "#" @f-counter)
+         [x y @f-counter]))))
 
 (defn brent-max [f a b eps])
 
 (defn local-maxima
-  "
-  Given a function f on [a, b] and N > 0, examine f at the endpoints
-  a, b, and at N equally-separated interior points. From this form a
-  list of brackets (p q) in each of which a local maximum is trapped.
-  Then apply Golden Section to all these brackets and return a list of
-  pairs (x fx) representing the local maxima.
-
+  " Given a function f on [a, b] and N > 0, examine f at the endpoints a, b, and
+  at N equally-separated interior points. From this form a list of brackets (p
+  q) in each of which a local maximum is trapped. Then apply Brent to all these
+  brackets and return a list of pairs (x fx) representing the local maxima.
   "
   [f a b n ftol])
 
@@ -668,38 +662,3 @@
 (defn estimate-global-min
   "Refer to the previous two functions and find the min."
   [f a b n ftol])
-
-;; Equal? ANd it gets called here with (equals x y 1)
-
-;; public static boolean equals(final float x, final float y, final int maxUlps) {
-
-;;         final int xInt = Float.floatToRawIntBits(x);
-;;         final int yInt = Float.floatToRawIntBits(y);
-
-;;         final boolean isEqual;
-;;         if (((xInt ^ yInt) & SGN_MASK_FLOAT) == 0) {
-;;             // number have same sign, there is no risk of overflow
-;;             isEqual = FastMath.abs(xInt - yInt) <= maxUlps;
-;;         } else {
-;;             // number have opposite signs, take care of overflow
-;;             final int deltaPlus;
-;;             final int deltaMinus;
-;;             if (xInt < yInt) {
-;;                 deltaPlus  = yInt - POSITIVE_ZERO_FLOAT_BITS;
-;;                 deltaMinus = xInt - NEGATIVE_ZERO_FLOAT_BITS;
-;;             } else {
-;;                 deltaPlus  = xInt - POSITIVE_ZERO_FLOAT_BITS;
-;;                 deltaMinus = yInt - NEGATIVE_ZERO_FLOAT_BITS;
-;;             }
-
-;;             if (deltaPlus > maxUlps) {
-;;                 isEqual = false;
-;;             } else {
-;;                 isEqual = deltaMinus <= (maxUlps - deltaPlus);
-;;             }
-
-;;         }
-
-;;         return isEqual && !Float.isNaN(x) && !Float.isNaN(y);
-
-;;     }
