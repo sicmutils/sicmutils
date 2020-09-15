@@ -71,13 +71,24 @@
 
 (defn- shrink-interval
   "Takes four pairs of test (x, f(x)) and narrows the interval down by choosing
-  the minimum of `l` or `r` and bracketing around that."
+  the minimum of `l` or `r` and bracketing around that.
+
+  NOTE there's a guard internally against the items getting out of order; over
+  many repeated evaluations, the points can get out of whack with the golden
+  ratio. The slight guard is that we check internally that the interior points
+  can never get past each other."
   [f [xa :as a] [xl fl :as l] [xr fr :as r] [xb :as b]]
+  {:pre  [(< xa xl xr xb)]
+   :post [#(apply < %&)]}
   (if (< fl fr)
     (let [new-l (golden-cut xr xa)]
-      [a [new-l (f new-l)] l r])
+      (if (< new-l xl)
+        [a [new-l (f new-l)] l r]
+        [a l [new-l (f new-l)] r]))
     (let [new-r (golden-cut xl xb)]
-      [l r [new-r (f new-r)] b])))
+      (if (< xr new-r)
+        [l r [new-r (f new-r)] b]
+        [l [new-r (f new-r)] r b]))))
 
 (defn best-of
   "Default selection function for the best possible point. This function chooses
@@ -99,7 +110,7 @@
   within `epsilon` absolute distance, false otherwise."
   [epsilon]
   (let [close? (v/within epsilon)]
-    (fn [[xa _] _ _ [xb _] _]
+    (fn [[xa _] l r [xb _] _]
       (close? xa xb))))
 
 (defn ^:private counter-fn
@@ -140,7 +151,6 @@
 
 (defn golden-section-min
   "Golden Section search, with supplied convergence test procedure.
-
 
   :converged? is a predicate accepting five arguments:
 
@@ -188,7 +198,7 @@
            (let [[x fx] (choose a l r b)]
              {:result x
               :value fx
-              :converged? converged?
+              :converged? (boolean converged?)
               :iterations iteration
               :fncalls @fn-counter})
            (recur (shrink-interval f a l r b)
@@ -202,5 +212,5 @@
   ([f xa xb] (golden-section-max f xa xb {}))
   ([f xa xb opts]
    (let [-f (comp g/negate f)]
-     (-> (golden-section-min -f opts)
+     (-> (golden-section-min -f xa xb opts)
          (update-in [:value] g/negate)))))

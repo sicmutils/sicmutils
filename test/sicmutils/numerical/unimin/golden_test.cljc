@@ -75,25 +75,47 @@
                     "Extending x away from a point should place x in the
                     golden-ratioed spot between them.")))))
 
-(deftest golden-section-tests
-  (with-comparator (v/within 1e-3)
-    (checking (str "golden-section finds a quadratic min with help from bracket.")
+(defn golden-checker
+  "Takes a description string, function of an offset, a bracketer and min/max
+  optimizer and runs a bunch of tests."
+  [description f bracket-fn optimizer]
+  (with-comparator (v/within 1e-5)
+    (checking description
               100
               [lower gen/large-integer
                upper  gen/large-integer
                offset gen/small-integer]
-              (let [f (fn [x] (g/square (- x offset)))
+              (let [f (f offset)
                     upper (if (= lower upper) (inc lower) upper)
-                    {:keys [lo hi]} (b/bracket-min f {:xa lower :xb upper})
+                    {:keys [lo hi]} (bracket-fn f {:xa lower :xb upper})
                     {:keys [result value converged? iterations fncalls] :as m}
-                    (ug/golden-section-min f lo hi {:arg-tolerance 1e-10
-                                                    :fn-tolerance 1e-10})]
+                    (optimizer f lo hi
+                               {:fn-tolerance 1e-10
+                                :callback (fn [[xa] [xl] [xr] [xb] _]
+                                            (is (< xa xl xr xb)
+                                                "the l and r points
+                                                            stay fully within
+                                                            the bounds."))})]
 
-                (when converged?
-                  (when-not (ish? result offset)
-                    (prn m))
-                  (is (ish? result offset)))))
+                (is (ish? result offset) "The result converges to the supplied offset.")
 
+                (is (= fncalls (+ 2 iterations))
+                    "The bound search takes care of 2 fncalls, so we only need 2
+                    additional (for the first interior points) in addition to 1
+                    per iteration.")))))
+
+(deftest golden-section-tests
+  (golden-checker "golden-min finds a quadratic min with help from bracket-min."
+                  (fn [offset] (fn [x] (g/square (- x offset))))
+                  b/bracket-min
+                  ug/golden-section-min)
+
+  (golden-checker "golden-max finds a quadratic max with help from bracket-max."
+                  (fn [offset] (fn [x] (- (g/square (- x offset)))))
+                  b/bracket-max
+                  ug/golden-section-max)
+
+  (with-comparator (v/within 1e-5)
     (testing "with-helper"
       (let [f (fn [x] (* x x))
             {:keys [lo hi]} (b/bracket-min f {:xa -100 :xb -99})]
@@ -106,6 +128,7 @@
              (ug/golden-section-min f lo hi {:fn-tolerance 1e-10}))
             "Converges on 0, AND reuses the two function evaluations from the
             bracketing process.")))
+
     (testing "minimize"
       (is (ish? {:result 2
                  :value 0
