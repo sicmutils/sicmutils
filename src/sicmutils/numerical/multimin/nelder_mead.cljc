@@ -236,7 +236,7 @@
 (defn nelder-mead
   "Find the minimum of the function f: R^n -> R, given an initial point q ∈ R^n.
 
-  Supports the following optional keyword arguments:
+    Supports the following optional keyword arguments:
 
   :callback if supplied, the supplied fn will be invoked with the intermediate
   points of evaluation.
@@ -284,25 +284,26 @@
   SciPy](https://github.com/scipy/scipy/blob/589c9afe41774ee96ec121f1867361146add8276/scipy/optimize/optimize.py#L556:5)
   which I have imitated here.
   "
-  [f x0 {:keys [callback]
-         :or {callback (constantly nil)}
-         :as opts}]
-  (let [dimension     (count x0)
-        [f-counter f] (u/counted f)
-        step          (step-fn f dimension opts)
-        convergence?  (convergence-fn opts)
-        stop?         (stop-fn f-counter dimension opts)
-        simplex       (initial-simplex x0 opts)
-        f-simplex     (mapv f simplex)]
-    (loop [[[s0 :as simplex] [f0 :as f-simplex]] (sort-by-f simplex f-simplex dimension)
-           iteration 0]
-      (callback s0)
-      (let [converged? (convergence? simplex f-simplex)]
-        (if (or converged? (stop? iteration))
-          {:result s0
-           :value f0
-           :converged? converged?
-           :iterations iteration
-           :fncalls @f-counter}
-          (recur (step simplex f-simplex)
-                 (inc iteration)))))))
+  ([f x0] (nelder-mead f x0 {}))
+  ([f x0 {:keys [callback]
+          :or {callback (constantly nil)}
+          :as opts}]
+   (let [dimension     (count x0)
+         [f-counter f] (u/counted f)
+         step          (step-fn f dimension opts)
+         convergence?  (convergence-fn opts)
+         stop?         (stop-fn f-counter dimension opts)
+         simplex       (initial-simplex x0 opts)
+         f-simplex     (mapv f simplex)]
+     (loop [[[s0 :as simplex] [f0 :as f-simplex]] (sort-by-f simplex f-simplex dimension)
+            iteration 0]
+       (callback s0)
+       (let [converged? (convergence? simplex f-simplex)]
+         (if (or converged? (stop? iteration))
+           {:result s0
+            :value f0
+            :converged? converged?
+            :iterations iteration
+            :fncalls @f-counter}
+           (recur (step simplex f-simplex)
+                  (inc iteration))))))))

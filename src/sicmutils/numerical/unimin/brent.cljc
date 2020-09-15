@@ -144,50 +144,59 @@
           :else (+ x delta))))
 
 (defn- update-history
-  "Updates the brent history. This basically tries to pick out the two previous
-  NON-best candidates, equivalent to the pair $(b_{k-2}, b_{k-1})$ in Brent's
-  method.
+  "Brent's method tracks the two best (non-candidate) points, so they can be used
+  to fit a candidate parabolic step.
 
-  There is some finicky stuff going on with equalities here. That is ONLY to
-  deal with the fact that we initialize v and w to `x`. If that went away, this
-  would get simpler.
+  This function accepts:
 
-  Returns $(b_{k-2}, b_{k-1})$.
+  - `x2` and `x1`, the previous two best non-candidates;
+  - `x`, the previous candidate
+  - `new-pt` the current new point
+
+  and returns the third- and second-best points, ie, the new `[x2, x1]`.
+
+  NOTE on the implementation: the assumption is that `x2` and `x1` will be
+  initialized to `x`, and that they'll be replaced by potentially WORSE values
+  that appear for the first two steps.
   "
-  [[xnew fnew] [xx2 fx2 :as x2] [xx1 fx1 :as x1] [xx fx :as x]]
+  [[xx2 fx2 :as x2] [xx1 fx1 :as x1] [xx fx :as x] [xnew fnew]]
   (cond (<= fnew fx)                              [x1 x]
         (or (<= fnew fx1) (= xx1 xx))             [x1 [xnew fnew]]
         (or (<= fnew fx2) (= xx2 xx) (= xx2 xx1)) [[xnew fnew] x1]
         :else [x2 x1]))
 
 (defn brent-min
-  "Find the minimum of the function f: R -> R in the interval [a,b].
+  "Find the minimum of the function f: R -> R in the interval [a,b] using Brent's
+  Method, described by Richard Brent in [Algorithms for Minimization without
+  Derivatives](https://books.google.com/books?id=AITCAgAAQBAJ&q=Brent%E2%80%99s#v=onepage&q=Parabolic&f=false).
 
-  If observe is supplied, will be invoked with the iteration count and the
-  values of x and f(x) at each search step.
+  Brent's method is a combination of a golden section search with a parabolic
+  interpolation step. Parabolic interpolation can go wild if the candidate point
+  is close to colinear with the search bounds, or of the points are too close
+  together.
 
-  Scipy code for the brent optimizer:
-  https://github.com/scipy/scipy/blob/v1.5.2/scipy/optimize/optimize.py#L2193-L2269
+  Brent's method prevents this by applying an internal test that forces a golden
+  section step every so often. (If you want the details, see `parabola-valid?`
+  above.)
 
-  Actual code:
-  https://github.com/scipy/scipy/blob/v1.5.2/scipy/optimize/optimize.py#L2028
+  Supports the following optional keyword arguments:
 
-  The simplest way to think about this is that it's doing a golden section
-  search, just like the simpler thing. But periodically it decides to do a
-  parabolic jump to try and converge faster.
+  :callback if supplied, the supplied fn will be invoked at each intermediate
+  point with the iteration count and the values of x and f(x) at each search
+  step.
 
-  TODO Threshold discussion.
+  :relative-threshold defaults to around 1.49e8, the sqrt of the machine
+  tolerance. You won't gain any benefit attempting to set the value less than
+  the default.
 
-  TODO: discuss how we initialize our bracket. Right now (as with the java
-  version) we simply takes the cut in between them. This is what Fortran does too.
+  :absolute-threshold a smaller absolute threshold that applies when the
+  candidate minimum point is close to 0.
 
-  The python version actually calls `bracket` and gets whatever the return value
-  is there. The scipy version in `fminbound` starts with a golden section jump,
-  which sort of makes more sense.
+  :maxiter Maximum number of iterations allowed for the minimizer. Defaults to
+  1000.
 
-  And then the scipy version, `brent`, expands to search for a bound... but
-  otherwise it's the same.
-
+  :maxfun Maximum number of times the function can be evaluated before exiting.
+  Defaults to `(inc maxiter)`.
   "
   ([f a b] (brent-min f a b {}))
   ([f a b {:keys [relative-threshold
@@ -202,16 +211,29 @@
    (let [maxfun        (or maxfun (inc maxiter))
          [a b]         [(min a b) (max a b)]
          [f-counter f] (u/counted f)
-         xmid          (ug/golden-cut b a)#_(* 0.5 (+ a b))
+         xmid          (* 0.5 (+ a b))
          mid           [xmid (f xmid)]]
-     (loop [[a [xx fx :as x] b] [a mid b]
+     (loop [
+            ;; a and b bound the interval in which the minimizer is searching.
+            ;; `xx` is the current candidate point, and `fx` is its value.
+            [a [xx fx :as x] b] [a mid b]
+
+            ;; The second-best and best points considered prior to this
+            ;; iteration and its candidate point.
             [x2 x1] [mid mid]
-            target 0 ;; twice the target
-            delta  0 ;; step size for the previous iteration.
+
+            ;; This value is used by `parabola-valid?` to decide whether or not
+            ;; it's appropriate to proceed with the parabolic step, or fall back
+            ;; to a golden section step. `parabola-valid?`'s docstring describes
+            ;; the logic.
+            target 0
+
+            ;; step size taken by the previous iteration.
+            delta  0
             iteration 0]
-       (let [;; `tol` is the minimum possible step you can take. If you take
-             ;; this, you're guaranteed to be different from the previous value
-             ;; by at least "relative threshold", even for tiny values of `x`.
+       (let [
+             ;; The total tolerance for the algorithm, and also the minimum
+             ;; possible step to take during each iteration.
              tol  (+ absolute-threshold (* relative-threshold (g/abs xx)))
              tol2 (* 2 tol)
              converged? (terminate? a xx b tol2)]
@@ -227,7 +249,20 @@
            (let [[new-target new-delta]
                  (if (<= (g/abs target) tol)
                    (golden-section-step a xx b)
+                   ;; If the target value is > the combined tolerance, generate
+                   ;; a parabolic interpolation using
+                   ;;
+                   ;; - the previous two best guesses WORSE than the candidate point, and
+                   ;; - the current candidate point
+                   ;;
+                   ;; `p` and `q` are the numerator and denominator of the step
+                   ;; required to move to the minimum of the interpolated
+                   ;; parabola from the current candidate `x`; ie, `x + p/q`
+                   ;; lies at the parabola's minimum.
                    (let [[p q] (ub/parabolic-pieces x1 x x2)]
+                     ;; Only proceed with the parabolic step if the new point
+                     ;; lies inside `(a, b)` and results in a step >= 1/2
+                     ;; target. Otherwise, default to a golden section step.
                      (if (parabola-valid? a xx b target p q)
                        [delta (/ p q)]
                        (golden-section-step a xx b))))
@@ -235,20 +270,24 @@
                  xnew   (apply-delta a xx b new-delta tol tol2)
                  new-pt [xnew (f xnew)]
 
+                 ;; `x` and `xnew` both lie within `(a, b)`; assign them to `l`,
+                 ;; `r` based on their ordering within the interval...
                  [[xl fl :as l] [xr fr :as r]] (if (< xnew xx)
                                                  [new-pt x]
                                                  [x new-pt])]
+             ;; and then tighten the search interval down around the new
+             ;; lowest-valued point.
              (recur (if (<= fl fr)
                       [a l xr]
                       [xl r b])
-                    (update-history new-pt x2 x1 x)
+                    (update-history x2 x1 x new-pt)
                     new-target
                     new-delta
                     (inc iteration)))))))))
 
 (defn brent-max
-  "For convenience, we also provide the sister-procedure for finding
-  the maximum of a unimodal function.
+  "For convenience, we also provide the sister-procedure for finding the maximum
+  of a unimodal function using Brent's method.
 
   Negate the function, minimize, negate the result."
   [f a b opts]
@@ -258,12 +297,18 @@
 
 #?(:clj
    (defn brent-min-commons
+     "Find the minimum of the function f: R -> R in the interval [a,b] using
+  Brent's Method, described by Richard Brent in [Algorithms for Minimization
+  without
+  Derivatives](https://books.google.com/books?id=AITCAgAAQBAJ&q=Brent%E2%80%99s#v=onepage&q=Parabolic&f=false).
+
+   This method is identical to `brent-min` but uses the apache-commons
+   implementation of Brent's method. See `brent-min` for more information."
      [f a b {:keys [relative-threshold
                     absolute-threshold
                     maxiter
                     maxfun
-                    callback
-                    goaltype]
+                    callback]
              :or {relative-threshold (g/sqrt v/machine-epsilon)
                   absolute-threshold 1.0e-11
                   maxiter 1000
@@ -293,7 +338,6 @@
        (let [xx (.getPoint p)
              fx (.getValue p)]
          (callback (.getIterations o) xx fx)
-         (println "#" @f-counter)
          {:result xx
           :value fx
           :iterations (.getIterations o)
@@ -302,8 +346,9 @@
 
 #?(:clj
    (defn brent-max-commons
-     "For convenience, we also provide the sister-procedure for finding
-  the maximum of a unimodal function.
+     "For convenience, we also provide the sister-procedure for finding the
+  maximum of a unimodal function using the apache commons implementation of
+  Brent's method.
 
   Negate the function, minimize, negate the result."
      [f a b opts]

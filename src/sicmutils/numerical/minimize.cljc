@@ -33,7 +33,7 @@
 (defn multidimensional-minimize
   "Entrypoint for multidimensional minimization routines.
 
-  See `sicmutils.numerical.multimin.nelder-mead/nelder-meade` for the only
+  See `sicmutils.numerical.multimin.nelder-mead/nelder-mead` for the only
   supported option."
   [func x0 & {:keys [info?] :as opts}]
   (let [result (nm/nelder-mead func x0 opts)]
