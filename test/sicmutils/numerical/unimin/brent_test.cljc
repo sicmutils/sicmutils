@@ -17,24 +17,22 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(ns sicmutils.numerical.unimin
-  "`unimin` is a module of functions and methods designed to find minimal (or
-  maximal) values of single variable functions.")
+(ns sicmutils.numerical.unimin.brent-test
+  (:require [clojure.test :refer [is deftest testing]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
+            [same :refer [ish?]]
+            [sicmutils.generic :as g]
+            [sicmutils.numerical.unimin.brent :as b]))
 
-(defn local-maxima
-  " Given a function f on [a, b] and N > 0, examine f at the endpoints a, b, and
-  at N equally-separated interior points. From this form a list of brackets (p
-  q) in each of which a local maximum is trapped. Then apply Brent to all these
-  brackets and return a list of pairs (x fx) representing the local maxima.
-  "
-  [f a b n ftol])
-
-(defn local-minima [f a b n ftol])
-
-(defn estimate-global-max
-  "Refer to the previous two functions and find the max of all of those."
-  [f a b n ftol])
-
-(defn estimate-global-min
-  "Refer to the previous two functions and find the min."
-  [f a b n ftol])
+(deftest brent-tests
+  (testing "cubic-from-java"
+    (is (ish?
+         {:result 1.9999999999999822
+          :value 0
+          :iterations 9
+          :fncalls 10
+          :converged? true}
+         (-> (fn [x] (g/square (- x 2)))
+             (b/brent-min -1000 10))))))
