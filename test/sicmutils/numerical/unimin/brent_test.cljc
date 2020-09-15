@@ -27,12 +27,12 @@
             [sicmutils.numerical.unimin.brent :as b]))
 
 (deftest brent-tests
-  (testing "cubic-from-java"
+  (testing "basic brent minimization"
     (is (ish?
-         {:result 1.9999999999999822
+         {:result 2.000000000000032
           :value 0
-          :iterations 9
-          :fncalls 10
+          :iterations 10
+          :fncalls 11
           :converged? true}
          (-> (fn [x] (g/square (- x 2)))
              (b/brent-min -1000 10))))))
