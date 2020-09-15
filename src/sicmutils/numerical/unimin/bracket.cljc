@@ -244,37 +244,38 @@
   iter-count is the number of function evaluations required. retcode is 'okay if
   the search succeeded, or 'maxcount if it was abandoned.
   "
-  [f {:keys [start step maxiter]
-      :or {start 0
-           step 10
-           maxiter 1000}}]
-  (let [[f-counter f] (u/counted f)
-        stop-fn (fn [[_ fa :as a] [_ fb :as b] [_ fc :as c] iteration]
-                  (or (> iteration maxiter)
-                      (<= fb (min fa fc))))
-        complete (fn [[xa fa :as a] b [xc fc :as c] iterations]
-                   (let [m {:lo a
-                            :mid b
-                            :hi c
-                            :fncalls @f-counter
-                            :converged? (<= iterations maxiter)
-                            :iterations iterations}]
-                     (if (< xc xa)
-                       (assoc m :lo c :hi a)
-                       m)))
-        run (fn [[xa fa :as a] [xb fb :as b] [xc fc :as c] iter]
-              (if (stop-fn a b c iter)
-                (complete a b c iter)
-                (let [xd (+ xc (- xc xa))]
-                  (recur b c [xd (f xd)] (inc iter)))))
-        [[xb :as b] [xa :as a]] (ascending-by f start (+ start step))]
-    (let [xc (+ xb (- xb xa))]
-      (run a b [xc (f xc)] 0))))
+  ([f] (bracket-min-scmutils f {}))
+  ([f {:keys [start step maxiter]
+       :or {start 0
+            step 10
+            maxiter 1000}}]
+   (let [[f-counter f] (u/counted f)
+         stop-fn (fn [[_ fa :as a] [_ fb :as b] [_ fc :as c] iteration]
+                   (or (> iteration maxiter)
+                       (<= fb (min fa fc))))
+         complete (fn [[xa fa :as a] b [xc fc :as c] iterations]
+                    (let [m {:lo a
+                             :mid b
+                             :hi c
+                             :fncalls @f-counter
+                             :converged? (<= iterations maxiter)
+                             :iterations iterations}]
+                      (if (< xc xa)
+                        (assoc m :lo c :hi a)
+                        m)))
+         run (fn [[xa fa :as a] [xb fb :as b] [xc fc :as c] iter]
+               (if (stop-fn a b c iter)
+                 (complete a b c iter)
+                 (let [xd (+ xc (- xc xa))]
+                   (recur b c [xd (f xd)] (inc iter)))))
+         [[xb :as b] [xa :as a]] (ascending-by f start (+ start step))]
+     (let [xc (+ xb (- xb xa))]
+       (run a b [xc (f xc)] 0)))))
 
 (defn bracket-max-scmutils
   "Identical to bracket-min-scmutils, except brackets a maximum of the supplied
   fn."
-  ([f] (bracket-max-from-scmutils f {}))
+  ([f] (bracket-max-scmutils f {}))
   ([f opts]
    (let [-f (comp g/negate f)]
      (bracket-min -f opts))))

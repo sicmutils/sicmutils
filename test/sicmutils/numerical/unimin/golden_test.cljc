@@ -22,80 +22,103 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [same :refer [ish? with-comparator]
+            [same :refer [ish? zeroish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
             [sicmutils.value :as v]
             [sicmutils.numerical.unimin.bracket :as b]
             [sicmutils.numerical.unimin.golden :as ug]))
 
-;; TODO add the ability for the golden section stuff to share code.
+(deftest golden-ratio-tests
+  (testing "constants work as defined"
+    (is (ish? ug/inv-phi  (/ 1 ug/phi)))
+    (is (ish? ug/inv-phi2 (/ 1 (* ug/phi ug/phi))))
+    (is (ish? ug/inv-phi2 (/ ug/inv-phi ug/phi)))))
 
 (deftest golden-cut-tests
-  (checking "golden-cut"
-            100
-            [l gen/small-integer, r gen/small-integer]
-            (let [lo (min l r)
-                  hi (max l r)
-                  cut (ug/golden-cut l r)]
-              (is (<= lo cut hi) "golden-cut is always between (or
-              equal to) the two numbers.")
+  (with-comparator (v/within 1e-8)
+    (checking "golden-cut"
+              100
+              [l gen/small-integer, r gen/small-integer]
+              (let [lo (min l r)
+                    hi (max l r)
+                    cut (ug/golden-cut l r)]
+                (is (<= lo cut hi) "golden-cut is always between (or
+              equal to) the two numbers."))
 
               (when (not= l r)
-                ;; `golden-cut` returns the golden-ratioed point closer to the
-                ;; right side. So the ratio of this point relative to the
-                ;; original segment has to be equal to the ratio between the
-                ;; shorter and longer cuts.
-                (ish? (/ (ug/golden-cut l r)
-                         (- r l))
-                      (/ (ug/golden-cut r l)
-                         (ug/golden-cut l r))))
+                (is (ish? (/ (- (ug/golden-cut l r) l)
+                             (- r l))
+                          (/ (- (ug/golden-cut r l) l)
+                             (- (ug/golden-cut l r) l)))
+                    "`golden-cut` returns the golden-ratioed point closer to the
+                     right side. So the ratio of this point relative to the
+                     original segment has to be equal to the ratio between the
+                     shorter and longer cuts."))
 
-              ;; ug/golden-cut returns the point between the two inputs such
-              ;; that they add up to the original interval.
-              (ish? hi
-                    (+ (ug/golden-cut l r)
-                       (ug/golden-cut r l)))
+              (is (zeroish?
+                   (+ (- (ug/golden-cut l r) l)
+                      (- (ug/golden-cut r l) r)))
+                  "ug/golden-cut returns the point between the two inputs such
+                  that they add up to the original interval.")
 
-              ;; Golden-cutting twice in one direction is equivalent to cutting
-              ;; once in the reverse direction.
-              (ish? (ug/golden-cut l (ug/golden-cut l r))
-                    (ug/golden-cut r l)))))
+              (is (ish? (ug/golden-cut l (ug/golden-cut l r))
+                        (ug/golden-cut r l))
+                  "Golden-cutting twice in one direction is equivalent to
+                   cutting once in the reverse direction."))
+
+    (checking "extend-pt vs golden-cut"
+              100
+              [x gen/small-integer, away-from gen/small-integer]
+              (let [x' (ug/extend-pt x away-from)]
+                (is (ish? x (ug/golden-cut x' away-from))
+                    "Extending x away from a point should place x in the
+                    golden-ratioed spot between them.")))))
 
 (deftest golden-section-tests
-  (let [close? (v/within 1e-10)
-        good-enuf? (fn [[_ fa] [_ fl] [_ fr] [_ fb] iterations]
-                     (or (> iterations 100)
-                         (close? (max fa fb)
-                                 (min fl fr))))]
-    (with-comparator (v/within 1e-6)
-      (testing "with-helper"
-        (let [f (fn [x] (* x x))
-              {:keys [lo hi]} (b/bracket-min f {:xa -100
-                                                :xb -99})]
-          (is (ish?
-               {:result 0
-                :value 0
-                :iterations 35
-                :fncalls 39}
-               (ug/golden-section-min f {:xa (first lo)
-                                         :xb (first hi)
-                                         :stop? good-enuf?})))))
-      (testing "minimize"
-        (is (ish? {:result 2
-                   :value 0
-                   :iterations 26
-                   :fncalls 30}
-                  (-> (fn [x] (g/square (- x 2)))
-                      (ug/golden-section-min {:xa 1
-                                              :xb 5
-                                              :stop? good-enuf?}))))
+  (with-comparator (v/within 1e-3)
+    (checking (str "golden-section finds a quadratic min with help from bracket.")
+              100
+              [lower gen/large-integer
+               upper  gen/large-integer
+               offset gen/small-integer]
+              (let [f (fn [x] (g/square (- x offset)))
+                    upper (if (= lower upper) (inc lower) upper)
+                    {:keys [lo hi]} (b/bracket-min f {:xa lower :xb upper})
+                    {:keys [result value converged? iterations fncalls] :as m}
+                    (ug/golden-section-min f lo hi {:arg-tolerance 1e-10
+                                                    :fn-tolerance 1e-10})]
 
-        (is (ish? {:result 1.5
-                   :value -0.8
-                   :iterations 31
-                   :fncalls 35}
-                  (-> (fn [x] (- (g/square (- x 1.5)) 0.8))
-                      (ug/golden-section-min {:xa -15
-                                              :xb 15
-                                              :stop? good-enuf?}))))))))
+                (when converged?
+                  (when-not (ish? result offset)
+                    (prn m))
+                  (is (ish? result offset)))))
+
+    (testing "with-helper"
+      (let [f (fn [x] (* x x))
+            {:keys [lo hi]} (b/bracket-min f {:xa -100 :xb -99})]
+        (is (ish?
+             {:result 0
+              :value 0
+              :converged? true
+              :iterations 35
+              :fncalls 37}
+             (ug/golden-section-min f lo hi {:fn-tolerance 1e-10}))
+            "Converges on 0, AND reuses the two function evaluations from the
+            bracketing process.")))
+    (testing "minimize"
+      (is (ish? {:result 2
+                 :value 0
+                 :converged? true
+                 :iterations 26
+                 :fncalls 30}
+                (-> (fn [x] (g/square (- x 2)))
+                    (ug/golden-section-min 1 5 {:fn-tolerance 1e-10}))))
+
+      (is (ish? {:result 1.5
+                 :value -0.8
+                 :converged? true
+                 :iterations 29
+                 :fncalls 33}
+                (-> (fn [x] (- (g/square (- x 1.5)) 0.8))
+                    (ug/golden-section-min -15 5 {:fn-tolerance 1e-10})))))))

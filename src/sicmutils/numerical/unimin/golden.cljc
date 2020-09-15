@@ -23,10 +23,6 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
-(def phi      (/ (+ (g/sqrt 5) 1) 2))
-(def inv-phi  (/ (- (g/sqrt 5) 1) 2))
-(def inv-phi2 (- 1 inv-phi))
-
 ;; # Golden Section Method
 ;;
 ;; What is this? Here's the algo, a way to find a minimum value of a single
@@ -44,6 +40,10 @@
 ;; {\sqrt{5} - 1} \over 2$.
 ;;
 ;; But you ALSO have the nice property...
+
+(def phi      (/ (+ (g/sqrt 5) 1) 2))
+(def inv-phi  (/ (- (g/sqrt 5) 1) 2))
+(def inv-phi2 (- 1 inv-phi))
 
 (defn golden-cut
   "Returns the point between `from` and `to` that cuts the region between the two
@@ -69,8 +69,9 @@
   [x away-from]
   (+ x (* phi (- x away-from))))
 
-(defn ^:private shrink-interval
-  "Takes four pairs of test (x, f(x)) and returns the new interval"
+(defn- shrink-interval
+  "Takes four pairs of test (x, f(x)) and narrows the interval down by choosing
+  the minimum of `l` or `r` and bracketing around that."
   [f [xa :as a] [xl fl :as l] [xr fr :as r] [xb :as b]]
   (if (< fl fr)
     (let [new-l (golden-cut xr xa)]
@@ -78,36 +79,70 @@
     (let [new-r (golden-cut xl xb)]
       [l r [new-r (f new-r)] b])))
 
-(defn ^:private best-of
-  "Default selection for the best possible point. You could also return, say, the
-  average value between the bounds."
+(defn best-of
+  "Default selection function for the best possible point. This function chooses
+  the point out of (a, l, r, b) with the minimum function value."
   [& pairs]
   (apply min-key second pairs))
 
-(defn ^:private fn-tolerance-fn [epsilon]
+(defn- fn-tolerance-fn
+  "Returns a function that returns true if the max interior value is within
+  `epsilon` of the smallest bound, false otherwise."
+  [epsilon]
   (let [close? (v/within epsilon)]
     (fn [[_ fa] [_ fl] [_ fr] [_ fb] _]
       (close? (max fa fb)
               (min fl fr)))))
 
-(defn ^:private arg-tolerance-fn [epsilon]
+(defn- arg-tolerance-fn
+  "Returns a fn that returns true if the coordinates of the outer bounds are
+  within `epsilon` absolute distance, false otherwise."
+  [epsilon]
   (let [close? (v/within epsilon)]
-    (fn [[xa _] _ [xb _] _]
+    (fn [[xa _] _ _ [xb _] _]
       (close? xa xb))))
 
-(defn ^:private counter-fn [max-count]
+(defn ^:private counter-fn
+  "Returns a fn that returns true if the number of iterations has exceeded
+  `max-count`, false otherwise. "
+  [max-count]
   (fn [_ _ _ _ iterations]
     (< max-count iterations)))
 
-(defn stop?
-  "TODO make a single function that will return the big stop fn."
-  [{:keys []}]
-  )
+(defn convergence-fn
+  "Returns a fn that returns true if any of the following are true:
+
+  - the max interior value is within `fn-tolerance` of the smallest bound,
+  - `convergence?` (if supplied) returns true
+  - the bounds are within `arg-tolerance` absolute distance,
+
+  false otherwise."
+  [{:keys [converged? fn-tolerance arg-tolerance]}]
+  (fn [& args]
+    (some #(apply % args)
+          [(or converged? (constantly false))
+           (arg-tolerance-fn arg-tolerance)
+           (fn-tolerance-fn fn-tolerance)])))
+
+(defn stop-fn
+  "Returns a fn that returns true if any of the following are true::
+
+  - the supplied `fn-counter` atom contains a value > `maxfun`
+  - the loop has exceeded `maxiter` iterations
+
+  false otherwise.
+  "
+  [{:keys [maxiter maxfun fn-counter]}]
+  (fn [& args]
+    (some #(apply % args)
+          [(fn [& _] (> @fn-counter maxfun))
+           (counter-fn maxiter)])))
 
 (defn golden-section-min
   "Golden Section search, with supplied convergence test procedure.
 
-  stop?, which is a predicate accepting five arguments:
+
+  :converged? is a predicate accepting five arguments:
 
   [a fa]
   [l fl]
@@ -115,66 +150,57 @@
   [b fb]
   steps
 
-    - TODO check against the scipy implementation
-  https://github.com/scipy/scipy/blob/v1.5.2/scipy/optimize/optimize.py#L2373:5
+  :choose accepts 4 points and returns the final choice.
 
-  The big difference there is that they allow auto-bracketing, if you don't want
-  to provide an interval.
+  :callback gets all 5.
 
-  TODO add auto-bracketing using the new interval stuff above."
-  [f {:keys [
-             xa
-             xb
+  :maxfun
 
-             ;; stop-fn override.
-             stop?
+  :maxiter
 
-             ;; How do we select the final result from the spread?
-             choose
+  :fn-tolerance check that the minimal value of any of the checked points is
+  within this of f(a) or f(b).
 
-             ;; call this on every iteration.
-             callback
-
-             ;; max number of times we can call the fn.
-             maxfun
-
-             ;; max number of times we can loop.
-             maxiter
-
-             ;; check that the minimal value of any of the checked points is
-             ;; within this of f(a) or f(b).
-             fn-tolerance
-
-             arg-tolerance ;; check that a, b are close enough.
-             ]
-      :or {choose best-of
-           fn-tolerance 1e-4
-           callback identity}}]
-  (let [[f-counter f] (u/counted f)
-        xl            (golden-cut xb xa)
-        xr            (golden-cut xa xb)
-
-        ;; TODO - change this to a thing that nicely composes the various
-        ;; stopping conditions.
-        stop-fn stop?]
-    (loop [[a l r b :as state] [[xa (f xa)] [xl (f xl)] [xr (f xr)] [xb (f xb)]]
-           iteration 0]
-      (callback state)
-      (if (stop-fn a l r b iteration)
-        (let [[x fx] (choose a l r b)]
-          {:result     x
-           :value      fx
-           :iterations iteration
-           :fncalls    @f-counter})
-        (recur (shrink-interval f a l r b)
-               (inc iteration))))))
+  :arg-tolerance check that a, b are close enough."
+  ([f xa xb] (golden-section-min f xa xb {}))
+  ([f xa xb {:keys [choose callback]
+             :or {choose best-of
+                  callback (constantly nil)}
+             :as opts}]
+   (let [[fn-counter f] (u/counted f)
+         [xa fa :as a] (if (vector? xa) xa [xa (f xa)])
+         [xb fb :as b] (if (vector? xb) xb [xb (f xb)])
+         opts (merge {:maxfun 1000
+                      :maxiter 1000
+                      :fn-tolerance 1e-8
+                      :arg-tolerance 1e-8
+                      :fn-counter fn-counter}
+                     opts)
+         xl           (golden-cut xb xa)
+         xr           (golden-cut xa xb)
+         convergence? (convergence-fn opts)
+         stop?        (stop-fn (assoc opts :fn-counter fn-counter))]
+     (loop [[a l r b :as state] [a [xl (f xl)] [xr (f xr)] b]
+            iteration 0]
+       (callback a l r b iteration)
+       (let [converged? (convergence? a l r b iteration)]
+         (if (or converged? (stop? a l r b iteration))
+           (let [[x fx] (choose a l r b)]
+             {:result x
+              :value fx
+              :converged? converged?
+              :iterations iteration
+              :fncalls @fn-counter})
+           (recur (shrink-interval f a l r b)
+                  (inc iteration))))))))
 
 (defn golden-section-max
   "For convenience, we also provide the sister-procedure for finding
-  the maximum of a unimodal function.
+  the maximum of a unimodal function using the golden section method.
 
   Negate the function, minimize, negate the result."
-  [f opts]
-  (let [-f (comp g/negate f)]
-    (-> (golden-section-min -f opts)
-        (update-in [:result 1] g/negate))))
+  ([f xa xb] (golden-section-max f xa xb {}))
+  ([f xa xb opts]
+   (let [-f (comp g/negate f)]
+     (-> (golden-section-min -f opts)
+         (update-in [:value] g/negate)))))
