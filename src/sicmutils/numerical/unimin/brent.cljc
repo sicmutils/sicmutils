@@ -23,7 +23,6 @@
   (:require [sicmutils.generic :as g]
             [sicmutils.numbers]
             [sicmutils.util :as u]
-            [sicmutils.value :as v]
             [sicmutils.numerical.unimin.bracket :as ub]
             [sicmutils.numerical.unimin.golden :as ug])
   #?(:clj

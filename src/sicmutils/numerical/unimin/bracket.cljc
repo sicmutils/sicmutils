@@ -24,7 +24,7 @@
 
 (def ^:private epsilon 1e-21)
 
-(defn- ascending-by
+(defn ascending-by
   "Returns the points ordered as f(a) < f(b)"
   [f a b]
   (let [fa (f a) fb (f b)]
@@ -32,7 +32,7 @@
       [[a fa] [b fb]]
       [[b fb] [a fa]])))
 
-(defn- lagrange-interpolating-polynomial
+(defn lagrange-interpolating-polynomial
   "Generates a lagrange interpolating polynomial that fits all of the supplied
   points.
 
@@ -48,37 +48,45 @@
       (let [build-term (fn [i [a fa]]
                          (let [others (for [j (range n) :when (not= i j)]
                                         (get-in points [j 0]))
-                               num (reduce g/* (map #(g/- x %) others))
-                               denom (reduce g/* (map #(g/- a %) others))]
-                           (g// (g/* fa num) denom)))]
+                               p (reduce g/* (map #(g/- x %) others))
+                               q (reduce g/* (map #(g/- a %) others))]
+                           (g// (g/* fa p) q)))]
         (->> (map-indexed build-term points)
              (reduce g/+))))))
 
 (defn parabolic-pieces
-  "Nice notes here on how we derived this method:
+  "Accepts three pairs of `[x, (f x)]`, fits a quadratic function to all three
+  points and returns the step from `xb` (the coordinate of the second argument)
+  to the minimum of the fitted quadratic.
+
+  Returns the numerator and denominator `p` and `q` of the required step. If `q`
+  is 0, then the supplied points were colinear.
+
+  `q` is guaranteed to be `>= 0`, while `p` might be negative.
+
+  See these notes for the derivation of this method:
   http://fourier.eng.hmc.edu/e176/lectures/NM/node25.html"
   [[xa fa] [xb fb] [xc fc]]
+  {:pre [(and (not= xa xb)
+              (not= xa xc)
+              (not= xb xc))]
+   :post [#(>= (second %) 0)]}
   (let [tmp1  (* (- xb xa) (- fb fc))
         tmp2  (* (- xb xc) (- fb fa))
         v     (- tmp2 tmp1)
-        num   (- (* (- xb xc) tmp2)
-                 (* (- xb xa) tmp1))
-        denom (* 2.0 v)]
-    (if (pos? denom)
-      [(g/negate num) denom]
-      [num (g/abs denom)])))
+        p (- (* (- xb xc) tmp2)
+             (* (- xb xa) tmp1))
+        q (* 2.0 v)]
+    (if (pos? q)
+      [(g/negate p) q]
+      [p (g/abs q)])))
 
 (defn parabolic-step
   "Fits a parabola through all three points, and returns the coordinate of the
   minimum of the parabola.
 
-  If the parabola is totally flat, the denominator will be zero... defaults to a
-  very small denom vs 0.
-
-  Nice notes here on how we derived this method:
-  http://fourier.eng.hmc.edu/e176/lectures/NM/node25.html
-
-  TODO note the assumption here... that fb < fa. Bake this in!"
+  If the supplied points are colinear, returns a point that takes a large jump
+  in the direction of the downward slope of the line."
   [a [xb :as b] c]
   (let [two-eps (* 2.0 epsilon)
         [p q] (parabolic-pieces a b c)
@@ -141,23 +149,58 @@
                 [b c [new-c (f new-c)]])))))
 
 (defn bracket-min
-  "Scipy version:  https://github.com/scipy/scipy/blob/v1.5.2/scipy/optimize/optimize.py#L2450
+  "Generates an interval `[lo, hi]` that is guaranteed to contain a minimum of the
+  function `f`, along with a candidate point `[mid, (f mid)]` that the user can
+  use to start a minimum search.
 
-  This works by growing the bounds first with either golden section steps or
-  jumps using parabolic interpolation, bounded by a max.
+  Returns a dictionary of the form:
+
+  {:lo `lower end of the bracket`
+   :mid `candidate point`
+   :hi `upper end of the bracket`
+   :fncalls `# of fn evaluations so far`
+   :iterations `total iterations`}
+
+  `:lo`, `:mid` and `:hi` are each pairs of the form `[x, (f x)]`.
+
+  The implementation works by growing the bounds using either:
+
+  - a step outside the bounds that places one bound at the golden-ratio cut
+  point between the new bounds, or
+  - a parabola with a minimum interpolated outside the current bounds, bounded b
+  a max.
+
+  This implementation was ported from `scipy.optimize.optimize.bracket`:
+  https://github.com/scipy/scipy/blob/v1.5.2/scipy/optimize/optimize.py#L2450
+
+  `bracket-min` supports the following optional keyword arguments:
+
+  `:xa` the initial guess for the lower end of the bracket. Defaults to 0.0.
+
+  `:xb` the initial guess for the upper end of the bracket. Defaults to 1.0. (If
+  these points aren't supplied in sorted order they'll be switched.)
+
+  `:grow-limit` The maximum factor that the parabolic interpolation can jump the
+  function. Defaults to 110.0.
+
+  `:maxiter` Maximum number of iterations allowed for the minimizer. Defaults to
+  1000.
+
+  `:maxfun` Maximum number of times the function can be evaluated before exiting.
+  Defaults to 1000.
   "
   ([f] (bracket-min f {}))
-  ([f {:keys [xa xb max-tries]
+  ([f {:keys [xa xb maxiter maxfun]
        :or {xa 0.0
             xb 1.0
-            max-tries 1000}
+            maxiter 1000
+            maxfun 1000}
        :as opts}]
    (let [[f-counter f] (u/counted f)
          step (bracket-step-fn f opts)
          stop-fn (fn [[xa fa :as a] [xb fb :as b] [xc fc :as c] iteration]
-                   ;; TODO - properly distinguish convergence from the other
-                   ;; stopping conditions.
-                   (or (> iteration max-tries)
+                   (or (> iteration maxiter)
+                       (> @f-counter maxfun)
                        (<= fb fc)))
          complete (fn [[xa fa :as a] b [xc fc :as c] iterations]
                     (let [m {:lo a
@@ -184,12 +227,13 @@
                 (inc iteration)))))))
 
 (defn bracket-max
+  "Identical to bracket-min, except brackets a maximum of the supplied fn."
   ([f] (bracket-max f {}))
   ([f opts]
    (let [-f (comp g/negate f)]
      (bracket-min -f opts))))
 
-(defn bracket-min-from-scmutils
+(defn bracket-min-scmutils
   " Given a function f, a starting point and a step size, try to bracket a local
   extremum for f.
 
@@ -200,20 +244,20 @@
   iter-count is the number of function evaluations required. retcode is 'okay if
   the search succeeded, or 'maxcount if it was abandoned.
   "
-  [f {:keys [start step max-tries]
+  [f {:keys [start step maxiter]
       :or {start 0
            step 10
-           max-tries 1000}}]
+           maxiter 1000}}]
   (let [[f-counter f] (u/counted f)
         stop-fn (fn [[_ fa :as a] [_ fb :as b] [_ fc :as c] iteration]
-                  (or (> iteration max-tries)
+                  (or (> iteration maxiter)
                       (<= fb (min fa fc))))
         complete (fn [[xa fa :as a] b [xc fc :as c] iterations]
                    (let [m {:lo a
                             :mid b
                             :hi c
                             :fncalls @f-counter
-                            :converged? (<= iterations max-tries)
+                            :converged? (<= iterations maxiter)
                             :iterations iterations}]
                      (if (< xc xa)
                        (assoc m :lo c :hi a)
@@ -227,7 +271,9 @@
     (let [xc (+ xb (- xb xa))]
       (run a b [xc (f xc)] 0))))
 
-(defn bracket-max-from-scmutils
+(defn bracket-max-scmutils
+  "Identical to bracket-min-scmutils, except brackets a maximum of the supplied
+  fn."
   ([f] (bracket-max-from-scmutils f {}))
   ([f opts]
    (let [-f (comp g/negate f)]

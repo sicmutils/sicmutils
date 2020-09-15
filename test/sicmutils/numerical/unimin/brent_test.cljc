@@ -24,6 +24,7 @@
              #?@(:cljs [:include-macros true])]
             [same :refer [ish?]]
             [sicmutils.generic :as g]
+            [sicmutils.value :as v]
             [sicmutils.numerical.unimin.brent :as b]))
 
 (deftest brent-tests
