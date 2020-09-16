@@ -23,6 +23,7 @@
   (:require [sicmutils.generic :as g]
             [sicmutils.numbers]
             [sicmutils.util :as u]
+            [sicmutils.value :as v]
             [sicmutils.numerical.unimin.bracket :as ub]
             [sicmutils.numerical.unimin.golden :as ug])
   #?(:clj
@@ -303,45 +304,46 @@
 
    This method is identical to `brent-min` but uses the apache-commons
    implementation of Brent's method. See `brent-min` for more information."
-     [f a b {:keys [relative-threshold
-                    absolute-threshold
-                    maxiter
-                    maxfun
-                    callback]
-             :or {relative-threshold (g/sqrt v/machine-epsilon)
-                  absolute-threshold 1.0e-11
-                  maxiter 1000
-                  callback (constantly nil)}}]
-     (let [maxfun (or maxfun (inc maxiter))
-           [f-counter f] (u/counted f)
-           o (BrentOptimizer.
-              relative-threshold
-              absolute-threshold
-              (reify ConvergenceChecker
-                (converged [_ iter previous current]
-                  (callback iter
-                            (.getPoint ^UnivariatePointValuePair current)
-                            (.getValue ^UnivariatePointValuePair current))
-                  false)))
-           args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
-           (into-array OptimizationData
-                       [(UnivariateObjectiveFunction.
-                         (reify UnivariateFunction
-                           (value [_ x]
-                             (f x))))
-                        (MaxEval. maxfun)
-                        (MaxIter. maxiter)
-                        (SearchInterval. a b)
-                        GoalType/MINIMIZE])
-           p (.optimize o args)]
-       (let [xx (.getPoint p)
-             fx (.getValue p)]
-         (callback (.getIterations o) xx fx)
-         {:result xx
-          :value fx
-          :iterations (.getIterations o)
-          :converged? true
-          :fncalls @f-counter}))))
+     ([f a b] (brent-min-commons f a b {}))
+     ([f a b {:keys [relative-threshold
+                     absolute-threshold
+                     maxiter
+                     maxfun
+                     callback]
+              :or {relative-threshold (g/sqrt v/machine-epsilon)
+                   absolute-threshold 1.0e-11
+                   maxiter 1000
+                   callback (constantly nil)}}]
+      (let [maxfun (or maxfun (inc maxiter))
+            [f-counter f] (u/counted f)
+            o (BrentOptimizer.
+               relative-threshold
+               absolute-threshold
+               (reify ConvergenceChecker
+                 (converged [_ iter previous current]
+                   (callback iter
+                             (.getPoint ^UnivariatePointValuePair current)
+                             (.getValue ^UnivariatePointValuePair current))
+                   false)))
+            args ^"[Lorg.apache.commons.math3.optim.OptimizationData;"
+            (into-array OptimizationData
+                        [(UnivariateObjectiveFunction.
+                          (reify UnivariateFunction
+                            (value [_ x]
+                              (f x))))
+                         (MaxEval. maxfun)
+                         (MaxIter. maxiter)
+                         (SearchInterval. a b)
+                         GoalType/MINIMIZE])
+            p (.optimize o args)]
+        (let [xx (.getPoint p)
+              fx (.getValue p)]
+          (callback (.getIterations o) xx fx)
+          {:result xx
+           :value fx
+           :iterations (.getIterations o)
+           :converged? true
+           :fncalls @f-counter})))))
 
 #?(:clj
    (defn brent-max-commons
@@ -350,7 +352,8 @@
   Brent's method.
 
   Negate the function, minimize, negate the result."
-     [f a b opts]
-     (let [-f (comp g/negate f)]
-       (-> (brent-min-commons -f a b opts)
-           (update-in [:value] g/negate)))))
+     ([f a b] (brent-max-commons f a b {}))
+     ([f a b opts]
+      (let [-f (comp g/negate f)]
+        (-> (brent-min-commons -f a b opts)
+            (update-in [:value] g/negate))))))

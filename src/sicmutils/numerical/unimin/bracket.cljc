@@ -67,10 +67,7 @@
   See these notes for the derivation of this method:
   http://fourier.eng.hmc.edu/e176/lectures/NM/node25.html"
   [[xa fa] [xb fb] [xc fc]]
-  {:pre [(and (not= xa xb)
-              (not= xa xc)
-              (not= xb xc))]
-   :post [#(>= (second %) 0)]}
+  {:post [#(>= (second %) 0)]}
   (let [tmp1  (* (- xb xa) (- fb fc))
         tmp2  (* (- xb xc) (- fb fa))
         v     (- tmp2 tmp1)
