@@ -25,24 +25,37 @@
 
 ;; # Golden Section Method
 ;;
-;; What is this? Here's the algo, a way to find a minimum value of a single
-;; variable function: https://en.wikipedia.org/wiki/Golden-section_search
-;;
-;; Start with the two endpoints, and choose two interior points that fall at the
-;; two points you could cut the x axis so that the interval splits into
-;; golden-ratioed pieces.
-;;
-;; If $upper - lower = h$, then the distance from either endpoint needs to be
-;; $a$, where ${h \over a} = \phi$, or $a = h \over \phi$.
-;;
-;; One test point is $lower + h \over \phi$. The other is $upper - h \over
-;; \phi$. A nice feature of the golden ratio is that $1 \over \phi = \phi - 1 =
-;; {\sqrt{5} - 1} \over 2$.
-;;
-;; But you ALSO have the nice property...
+;; The golden section method is an algorithm for locating the minimum of a
+;; single variable function without access to its derivative.
 
+;; Wikipedia page: https://en.wikipedia.org/wiki/Golden-section_search
+;;
+;; Start with the two endpoints `a` and `b` that you know bound a minimum, and
+;; choose two interior points to test. (The goal is to progressively narrow your
+;; search window; you need two points to know where to zoom in.)
+;;
+;; If the left point `l` has a lower function value, zoom in to `(a, r)`. Else,
+;; zoom to `(l, b)` for the next round.
+;;
+;; How do you pick the points? Use the golden ratio. There are two ways to cut
+;; an interval using the golden ratio. Each results in a larger and smaller piece.
+;;
+;; The "golden ratio" is the interval such that the ratio of the LARGER piece to
+;; the whole is the same as the ratio of the smaller piece to the larger piece.
+;; By choosing your interior points using the golden ratio, you guarantee that
+;; whether you zoom in to `(a, r)` or `(l, b)`, both pieces will cover the same
+;; ratio of the the total interval, every time. Any ratio other than the golden
+;; ratio could degenerate into you selecting the larger of the two pieces every
+;; time, slowing your search.
+
+;; $\phi$, the golden ratio.
 (def phi      (/ (+ (g/sqrt 5) 1) 2))
+
+;; $1 \over \phi$. Multiply by this to scale some distance down to the
+;; larger-sized golden ratio piece.
 (def inv-phi  (/ (- (g/sqrt 5) 1) 2))
+
+;; $1 \over \phi^2$. Scales down twice!
 (def inv-phi2 (- 1 inv-phi))
 
 (defn golden-cut
@@ -150,28 +163,40 @@
            (counter-fn maxiter)])))
 
 (defn golden-section-min
-  "Golden Section search, with supplied convergence test procedure.
+  "Golden Section search attempts to locate the minimum of the supplied function
+  `f` by evaluating points located at golden-ratioed intervals between the two
+  starting endpoints `a` and `b`. This method is slow, steady and reliable.
 
-  :converged? is a predicate accepting five arguments:
+  Supports the following optional keyword arguments:
 
-  [a fa]
-  [l fl]
-  [r fr]
-  [b fb]
-  steps
+  `:converged?` is an optional predicate accepting five arguments:
 
-  :choose accepts 4 points and returns the final choice.
+  `[a fa]`
+  `[l fl]`
+  `[r fr]`
+  `[b fb]`
+  `current-iteration`
 
-  :callback gets all 5.
+  If the supplied `fn` returns true, it will signal convergence and the
+  optimizer will return. Returning false will continue.
 
-  :maxfun
+  `:choose` is called at the final step of optimization with all 4 points and
+  their fn values (see the first four arguments to `:converged?`), and returns
+  the final choice.
 
-  :maxiter
+  `:callback` receives all 5 arguments on every iteration.
 
-  :fn-tolerance check that the minimal value of any of the checked points is
-  within this of f(a) or f(b).
+  `:maxiter` Maximum number of iterations allowed for the minimizer. Defaults to
+  1000.
 
-  :arg-tolerance check that a, b are close enough."
+  `:maxfun` Maximum number of times the function can be evaluated before exiting.
+  Defaults to 1000.
+
+  `:fn-tolerance` check that the minimal value of any of the checked points is
+  within the maximum of f(a) or f(b).
+
+  `:arg-tolerance` check that `a` and `b` are within this supplied absolute
+  distance."
   ([f xa xb] (golden-section-min f xa xb {}))
   ([f xa xb {:keys [choose callback]
              :or {choose best-of
