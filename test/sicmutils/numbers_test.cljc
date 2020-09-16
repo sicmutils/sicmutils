@@ -122,14 +122,12 @@
              (g/invert (u/bigint 4)))))
 
     (testing "g/add with floating point"
-      (is (= 12.5
-             (g/add (u/bigint 10) 2.5)
-             (g/add 2.5 (u/bigint 10)))))
+      (is (= 12.5 (g/add (u/bigint 10) 2.5)))
+      (is (= 12.5 (g/add 2.5 (u/bigint 10)))))
 
     (testing "g/mul with floating point"
-      (is (= 25
-             (g/mul (u/bigint 10) 2.5)
-             (g/mul 2.5 (u/bigint 10)))))
+      (is (ish? 25 (g/mul (u/bigint 10) 2.5)))
+      (is (ish? 25 (g/mul 2.5 (u/bigint 10)))))
 
     (testing "g/sub with floating point"
       (is (= 7.5 (g/sub (u/bigint 10) 2.5)))
