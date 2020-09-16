@@ -319,9 +319,5 @@
   "Battery of tests that check the behavior of standard generic operations on
   types that handle floating point numbers."
   [float->a & {:keys [exclusions eq]}]
-  (floating-point-unary-tests float->a
-                              :exclusions exclusions
-                              :eq (or eq =))
-  (floating-point-binary-tests float->a float->a
-                               :exclusions exclusions
-                               :eq (or eq =)))
+  (floating-point-unary-tests float->a :exclusions exclusions :eq (or eq =))
+  (floating-point-binary-tests float->a float->a :exclusions exclusions :eq (or eq =)))

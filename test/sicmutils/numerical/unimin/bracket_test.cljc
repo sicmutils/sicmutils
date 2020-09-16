@@ -25,6 +25,7 @@
             [same :refer [zeroish? ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :refer [D]]
+            [sicmutils.function]
             [sicmutils.generic :as g]
             [sicmutils.value :as v]
             [sicmutils.numerical.unimin.bracket :as b]))

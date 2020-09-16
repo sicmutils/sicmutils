@@ -185,13 +185,23 @@
      (defmethod g/magnitude [js/BigInt] [a b]
        (if (neg? a) (core-minus a) a))
 
-     ;; Compatibility between js/BigInt and the other integral types.
+
      (doseq [op [g/add g/mul g/sub g/expt g/remainder g/quotient]]
+       ;; Compatibility between js/BigInt and the other integral types.
        (defmethod op [js/BigInt ::v/integral] [a b]
          (op a (u/bigint b)))
 
        (defmethod op [::v/integral js/BigInt] [a b]
-         (op (u/bigint a) b)))
+         (op (u/bigint a) b))
+
+       ;; For NON integrals, we currently have no choice but to downcast the
+       ;; BigInt to a floating point number. TODO if we introduce BigDecimal
+       ;; support this could get cleaner.
+       (defmethod op [js/BigInt ::v/floating-point] [a b]
+         (op (js/Number a) b))
+
+       (defmethod op [::v/floating-point js/BigInt] [a b]
+         (op a (js/Number b))))
 
      ;; Google Closure library's 64-bit Long and arbitrary-precision Integer
      ;; type.

@@ -19,7 +19,7 @@
 
 (ns sicmutils.numbers-test
   (:require [clojure.test :refer [is deftest testing]]
-            [same :refer [with-comparator]]
+            [same :refer [ish? with-comparator]]
             [sicmutils.complex :as c]
             [sicmutils.util :as u]
             [sicmutils.generic :as g]
@@ -116,9 +116,28 @@
   (gt/integral-a->b-tests u/bigint identity)
   (gt/integral-a->b-tests identity u/bigint)
 
-  (testing "g/expt"
-    (is (= (g/expt (u/bigint 2) (u/bigint -2))
-           (g/invert (u/bigint 4))))))
+  (testing "bigint/float compatibility"
+    (testing "g/expt"
+      (is (= (g/expt (u/bigint 2) (u/bigint -2))
+             (g/invert (u/bigint 4)))))
+
+    (testing "g/add with floating point"
+      (is (= 12.5
+             (g/add (u/bigint 10) 2.5)
+             (g/add 2.5 (u/bigint 10)))))
+
+    (testing "g/mul with floating point"
+      (is (= 25
+             (g/mul (u/bigint 10) 2.5)
+             (g/mul 2.5 (u/bigint 10)))))
+
+    (testing "g/sub with floating point"
+      (is (= 7.5 (g/sub (u/bigint 10) 2.5)))
+      (is (= -7.5 (g/sub 2.5 (u/bigint 10)))))
+
+    (testing "g/expt with floating point"
+      (is (ish? 316.2277660168379 (g/expt (u/bigint 10) 2.5)))
+      (is (ish? 9536.7431640625 (g/expt 2.5 (u/bigint 10)))))))
 
 #?(:clj
    (deftest biginteger-generics

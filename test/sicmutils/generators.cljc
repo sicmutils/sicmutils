@@ -28,7 +28,7 @@
 
 (def native-integral
   "non-floating-point integers on cljs, Long on clj."
-  gen/large-integer)
+  gen/small-integer)
 
 (def long
   "goog.math.Long in cljs,
