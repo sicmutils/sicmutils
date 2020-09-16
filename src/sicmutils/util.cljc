@@ -12,6 +12,18 @@
      (:import [clojure.lang BigInt]
               [java.util.concurrent TimeUnit TimeoutException])))
 
+(defn counted
+  "Takes a function and returns a pair of:
+
+  - an atom that keeps track of fn invocation counts,
+  - the instrumented fn"
+  ([f] (counted f 0))
+  ([f initial-count]
+   (let [count (atom initial-count)]
+     [count (fn [x]
+              (swap! count inc)
+              (f x))])))
+
 (defmacro import-def
   "import a single fn or var
    (import-def a b) => (def b a/b)
