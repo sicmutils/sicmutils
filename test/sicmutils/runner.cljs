@@ -42,6 +42,8 @@
             sicmutils.numerical.minimize-test
             sicmutils.numerical.ode-test
 
+            sicmutils.numerical.unimin.bracket-test
+
             sicmutils.analyzer-test
             sicmutils.complex-test
             sicmutils.euclid-test
@@ -88,6 +90,8 @@
            'sicmutils.numerical.integrate-test
            'sicmutils.numerical.minimize-test
            'sicmutils.numerical.ode-test
+
+           'sicmutils.numerical.unimin.bracket-test
 
            'sicmutils.mechanics.hamilton-test
            'sicmutils.mechanics.lagrange-test
