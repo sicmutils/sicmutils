@@ -43,6 +43,7 @@
             sicmutils.numerical.ode-test
 
             sicmutils.numerical.unimin.bracket-test
+            sicmutils.numerical.unimin.brent-test
             sicmutils.numerical.unimin.golden-test
 
             sicmutils.analyzer-test
@@ -93,6 +94,7 @@
            'sicmutils.numerical.ode-test
 
            'sicmutils.numerical.unimin.bracket-test
+           'sicmutils.numerical.unimin.brent-test
            'sicmutils.numerical.unimin.golden-test
 
            'sicmutils.mechanics.hamilton-test
