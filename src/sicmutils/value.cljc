@@ -66,6 +66,7 @@
 
 (derive ::native-integral ::integral)
 (derive ::integral ::number)
+(derive ::floating-point ::number)
 
 (defn native-integral?
   "Returns true if x is an integral number that Clojure's math operations work
@@ -86,6 +87,9 @@
 #?(:clj
    (do
      (derive Number ::number)
+     (derive Double ::floating-pont)
+     (derive Float ::floating-pont)
+     (derive BigDecimal ::floating-pont)
      (derive Integer ::native-integral)
      (derive Long ::native-integral)
      (derive BigInt ::native-integral)
@@ -109,7 +113,7 @@
   (kind [x] #?(:clj (type x)
                :cljs (if (exact? x)
                        ::native-integral
-                       (type x))))
+                       ::floating-point)))
 
   nil
   (freeze [_] nil)
