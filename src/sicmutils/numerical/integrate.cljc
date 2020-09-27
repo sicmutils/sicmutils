@@ -30,58 +30,6 @@
                MidPointIntegrator
                IterativeLegendreGaussIntegrator])))
 
-(defn definite-integral
-  [f a b & {:keys [compile
-                   method
-                   max-evaluations
-                   relative-accuracy
-                   absolute-accuracy
-                   min-iterations
-                   max-iterations
-                   points]
-            :or {compile false,
-                 method :romberg,
-                 max-evaluations 32768,
-                 relative-accuracy 1e-6,
-                 absolute-accuracy 1e-15,
-                 min-iterations 3
-                 max-iterations 32
-                 points 16}}]
-  #?(:cljs
-     (u/unsupported "definite-integral isn't yet implemented in Clojurescript.")
-     :clj
-     (let [total-time (us/stopwatch :started? true)
-           evaluation-count (atom 0)
-           evaluation-time (us/stopwatch :started? false)
-           integrand (if compile (c/compile-univariate-function f) f)
-           integrator ^UnivariateIntegrator (case method
-                                              :romberg (RombergIntegrator. relative-accuracy
-                                                                           absolute-accuracy
-                                                                           min-iterations
-                                                                           max-iterations)
-                                              :midpoint (MidPointIntegrator. relative-accuracy
-                                                                             absolute-accuracy
-                                                                             min-iterations
-                                                                             max-iterations)
-                                              :legendre-gauss (IterativeLegendreGaussIntegrator. points
-                                                                                                 relative-accuracy
-                                                                                                 absolute-accuracy
-                                                                                                 min-iterations
-                                                                                                 max-iterations))
-           value (.integrate integrator
-                             max-evaluations
-                             (reify UnivariateFunction
-                               (value [_ x]
-                                 (us/start evaluation-time)
-                                 (swap! evaluation-count inc)
-                                 (let [fx (integrand x)]
-                                   (us/stop evaluation-time)
-                                   fx)))
-                             a b)]
-       (us/stop total-time)
-       (log/info "#" @evaluation-count "total" (us/repr total-time) "f" (us/repr evaluation-time))
-       value)))
-
 (defn carlson-rf [x y z]
   "From W.H. Press, Numerical Recipes in C++, 2ed. NR::rf from section 6.11"
   (let [errtol 0.0025
@@ -126,11 +74,46 @@
                   (* c4 e3))
                (Math/sqrt ave))))))))
 
-(defn elliptic-f [phi k]
+(defn elliptic-f
   "Legendre elliptic integral of the first kind F(φ, k).
    See W.H. Press, Numerical Recipes in C++, 2ed. eq. 6.11.19"
+  [phi k]
   (let [s (Math/sin phi)]
     (* s (carlson-rf (Math/pow (Math/cos phi) 2)
                      (* (- 1 (* s k))
                         (+ 1 (* s k)))
                      1))))
+
+
+(defn definite-integral
+  "Evaluate the definite integral of f over [a, b]."
+  [f a b & {:keys [compile
+                   epsilon]
+            :or {compile false,
+                 epsilon 1e-9}}]
+
+  (letfn
+      [(simpson-1
+         [a fa b fb]
+         (let [m (/ (+ a b) 2)
+               fm (f m)]
+           [m fm (* (/ (- b a) 6) (+ fa (* 4 fm) fb))]))
+       (trapezoid-1
+         [a fa b fb]
+         (let [m (/ (+ a b) 2)
+               fm (f m)]
+           [m fm (* (/ (- b a) 4) (+ fa (* 2 fm) fb))]))
+       (adaptive-simpson-recurse
+         [a fa b fb epsilon whole m fm]
+         (let [[lm flm l] (trapezoid-1 a fa m fm)
+               [rm frm r] (trapezoid-1 m fm b fb)
+               delta (- (+ l r) whole)]
+           (if (<= (u/compute-abs delta) (* 15 epsilon))
+             (+ l r (/ delta 15))
+             (let [half-epsilon (/ epsilon 2)]
+               (+ (adaptive-simpson-recurse a fa m fm half-epsilon l lm flm)
+                  (adaptive-simpson-recurse m fm b fb half-epsilon r rm frm))))))]
+    (let [fa (f a)
+          fb (f b)
+          [m fm whole] (trapezoid-1 a fa b fb)]
+      (adaptive-simpson-recurse a fa b fb epsilon whole m fm))))
