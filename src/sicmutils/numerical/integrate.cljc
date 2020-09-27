@@ -21,14 +21,7 @@
   (:require [sicmutils.util :as u]
             [sicmutils.util.stopwatch :as us]
             [sicmutils.numerical.compile :as c]
-            [taoensso.timbre :as log])
-  #?(:clj
-     (:import [org.apache.commons.math3.analysis UnivariateFunction]
-              [org.apache.commons.math3.analysis.integration
-               UnivariateIntegrator
-               RombergIntegrator
-               MidPointIntegrator
-               IterativeLegendreGaussIntegrator])))
+            [taoensso.timbre :as log]))
 
 (defn carlson-rf [x y z]
   "From W.H. Press, Numerical Recipes in C++, 2ed. NR::rf from section 6.11"
@@ -86,7 +79,9 @@
 
 
 (defn definite-integral
-  "Evaluate the definite integral of f over [a, b]."
+  "Evaluate the definite integral of f over [a, b].
+
+  See: https://en.wikipedia.org/wiki/Adaptive_Simpson%27s_method"
   [f a b & {:keys [compile
                    epsilon]
             :or {compile false,
