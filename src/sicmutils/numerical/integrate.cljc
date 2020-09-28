@@ -100,8 +100,8 @@
            [m fm (* (/ (- b a) 4) (+ fa (* 2 fm) fb))]))
        (adaptive-simpson-recurse
          [a fa b fb epsilon whole m fm]
-         (let [[lm flm l] (trapezoid-1 a fa m fm)
-               [rm frm r] (trapezoid-1 m fm b fb)
+         (let [[lm flm l] (simpson-1 a fa m fm)
+               [rm frm r] (simpson-1 m fm b fb)
                delta (- (+ l r) whole)]
            (if (<= (u/compute-abs delta) (* 15 epsilon))
              (+ l r (/ delta 15))
@@ -110,5 +110,5 @@
                   (adaptive-simpson-recurse m fm b fb half-epsilon r rm frm))))))]
     (let [fa (f a)
           fb (f b)
-          [m fm whole] (trapezoid-1 a fa b fb)]
+          [m fm whole] (simpson-1 a fa b fb)]
       (adaptive-simpson-recurse a fa b fb epsilon whole m fm))))
