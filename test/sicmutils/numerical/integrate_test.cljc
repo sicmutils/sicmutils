@@ -21,7 +21,9 @@
   (:require [clojure.test :refer [is deftest testing]]
             [sicmutils.numerical.integrate :as i]
             [sicmutils.generic :as g]
-            [sicmutils.value :as v]))
+            [sicmutils.value :as v]
+            [same :refer [ish? zeroish? with-comparator]
+             #?@(:cljs [:include-macros true])]))
 
 (def ^:private near (v/within 1e-6))
 
@@ -47,21 +49,43 @@
     ;; Apache commons math doesn't seem to have an integrator handy that works
     ;; well on integrals with a singularity at the edge
     (let [near (v/within 5e-3)
-          integrand (fn [g theta0]
+          g 9.8
+          integrand (fn [theta0]
                       (fn [theta]
                         (/ (Math/sqrt (* 2 g (- (Math/cos theta) (Math/cos theta0)))))))
-          epsilon 0.000001
-          L (fn [a] (* 4 (i/definite-integral
-                           (integrand 9.8 a)
-                           0 (- a epsilon)
-                           :epsilon 1e-6
-                           ) ))]
-      (is (near 2.00992 (L 0.15)))
-      (is (near 2.01844 (L 0.30)))
-      (is (near 2.03279 (L 0.45)))
-      (is (near 2.0532 (L 0.60)))
-      (is (near 2.08001 (L 0.75)))
-      (is (near 2.11368 (L 0.9)))))
+          ;; the integrand is improper at the right endpoint: the function is not
+          ;; defined there. Delta is the "indent" from the right endpoint used to
+          ;; avoid the singularity
+          L (fn [epsilon delta a] (* 4 (i/definite-integral
+                                         (integrand a)
+                                         0 (- a delta)
+                                         :epsilon epsilon)))]
+      (let [delta 1e-6
+            epsilon 1e-9
+            f (partial L epsilon delta)]
+        (is (near 2.00992 (f 0.15)))
+        (is (near 2.01844 (f 0.30)))
+        (is (near 2.03279 (f 0.45)))
+        (is (near 2.0532 (f 0.60)))
+        (is (near 2.08001 (f 0.75)))
+        (is (near 2.11368 (f 0.9))))
+      ;; experiment with "squeezing" the end of the numerical integration
+      ;; interval closer to the singularity on the right. How does that
+      ;; affect convergence? We can see that it's much more important than
+      ;; the epsilon value of the integrator; we can relax that to 1e-6 and
+      ;; yet get more accurate answers by reducing delta to 1e-10. Mathematica
+      ;; reports that the correct answer is 2.03279.
+      (with-comparator (v/within 1e-6)
+        (is (ish? [1.1505131
+                   1.7583257
+                   1.9461327
+                   2.0053914
+                   2.0241265
+                   2.0300509
+                   2.0319244
+                   2.0325168
+                   2.0327042]
+                 (map #(L 1e-6 % 0.45) (map #(Math/pow 10 (- %)) (range 1 10))))))))
   (testing "elliptic integral"
     (let [F (fn [phi k]
               (i/definite-integral #(/ (Math/sqrt (- 1 (* k k (Math/pow (Math/sin %) 2))))) 0 phi
