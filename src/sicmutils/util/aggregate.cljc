@@ -18,25 +18,47 @@
 ;;
 
 (ns sicmutils.util.aggregate
-  "Utilities for aggregating streams.")
+  "Utilities for aggregating sequences.")
 
-;; The following method comes from rational.scm, and use Kahan's summation trick
-;; to add up a stream of numbers.
+;; I learned about "Kahan's summation trick" from `rational.scm` in the
+;; `scmutils` package, where it shows up in the `sigma` function.
 
-(defn sigma
-  "Remember, this is the name of the summation symbol. We should rename this `sum`
-  in this case."
+(defn kahan-sum
+  "Implements a fold that tracks the summation of a sequence of floating point
+  numbers, using Kahan's trick for maintaining stability in the face of
+  accumulating floating point errors."
+  ([] [0.0 0.0])
+  ([[sum c] x]
+   (let [y (- x c)
+         t (+ sum y)]
+     [t (- (- t sum) y)])))
+
+(defn sum
+  "Sums either:
+
+  - a series `xs` of numbers, or
+  - the result of mapping function `f` to `(range low high)`
+
+  Using Kahan's summation trick behind the scenes to keep floating point errors
+  under control."
   ([xs]
    (first
-    (reduce (fn [[sum c] x]
-              (let [y (- x c)
-                    t (+ sum y)]
-                [t (- (- t sum) y)]))
-            [0.0 0.0]
-            xs)))
+    (reduce kahan-sum [0.0 0.0] xs)))
   ([f low high]
-   (sigma (map f (range low high)))))
+   (sum (map f (range low high)))))
 
-;; here's a nice little test:
-#_
-(sigma [1.0 1e-8 -1e-8])
+(defn scanning-sum
+  "Returns every intermediate summation from summing either:
+
+  - a series `xs` of numbers, or
+  - the result of mapping function `f` to `(range low high)`
+
+  Using Kahan's summation trick behind the scenes to keep floating point errors
+  under control."
+  ([xs]
+   (->> (reductions kahan-sum [0.0 0.0] xs)
+        (map first)
+        (rest)))
+  ([f low high]
+   (scanning-sum
+    (map f (range low high)))))

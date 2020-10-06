@@ -44,8 +44,13 @@
 
 (deftest scan-tests
   (testing "intermediate + aggregations, all negated by `present`."
-    (let [f (us/scan 0 + -)]
+    (let [f (us/scan + :init 0 :present -)]
       (is (= [0 -1 -3 -6 -10 -15 -21 -28]
+             (f (range 8))))))
+
+  (testing "intermediate + aggregations, no present, arity-based init."
+    (let [f (us/scan (fn ([] 0) ([l r] (+ l r))))]
+      (is (= [0 1 3 6 10 15 21 28]
              (f (range 8)))))))
 
 (deftest convergence-tests
