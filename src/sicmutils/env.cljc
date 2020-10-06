@@ -37,6 +37,7 @@
             [sicmutils.matrix :as matrix]
             [sicmutils.series :as series]
             [sicmutils.util :as u #?@(:cljs [:refer-macros [import-vars]])]
+            [sicmutils.numerical.elliptic]
             [sicmutils.numerical.minimize]
             [sicmutils.numerical.ode]
             [sicmutils.numerical.integrate]

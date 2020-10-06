@@ -33,7 +33,7 @@
 (defn powers
   "Returns an infinite sequence of `x * n^i`, starting with i == 0. `x` defaults
   to 1."
-  ([n] (doubling 1))
+  ([n] (powers n 1))
   ([n x] (iterate #(* n %) x)))
 
 (defn zeno

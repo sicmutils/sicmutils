@@ -24,6 +24,7 @@
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
+            [sicmutils.numbers]
             [sicmutils.util.stream :as us]))
 
 (deftest zeno-powers-tests

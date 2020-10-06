@@ -46,6 +46,8 @@
             sicmutils.numerical.unimin.brent-test
             sicmutils.numerical.unimin.golden-test
 
+            sicmutils.util.stream-test
+
             sicmutils.analyzer-test
             sicmutils.complex-test
             sicmutils.euclid-test
@@ -96,6 +98,8 @@
            'sicmutils.numerical.unimin.bracket-test
            'sicmutils.numerical.unimin.brent-test
            'sicmutils.numerical.unimin.golden-test
+
+           'sicmutils.util.stream-test
 
            'sicmutils.mechanics.hamilton-test
            'sicmutils.mechanics.lagrange-test
