@@ -64,7 +64,7 @@
   (testing "types"
     (is (= #?(:clj Long :cljs ::v/native-integral) (v/kind 9)))
     (is (= #?(:clj Double :cljs ::v/native-integral) (v/kind 99.0)))
-    (is (= #?(:clj Double :cljs js/Number) (v/kind 99.5)))))
+    (is (= #?(:clj Double :cljs ::v/floating-point) (v/kind 99.5)))))
 
 (deftest generic-plus
   (is (= 0 (g/+)) "no args returns additive identity")
