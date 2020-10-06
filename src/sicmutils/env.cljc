@@ -284,7 +284,8 @@
   evolve
   integrate-state-derivative
   state-advancer]
- [sicmutils.numerical.integrate definite-integral elliptic-f]
+ [sicmutils.numerical.integrate definite-integral]
+ [sicmutils.numerical.elliptic elliptic-f]
  [sicmutils.numerical.minimize minimize])
 
 ;; Macros. These work with Potemkin's import, but not with the Clojure version.

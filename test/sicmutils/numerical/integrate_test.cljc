@@ -20,9 +20,8 @@
 (ns sicmutils.numerical.integrate-test
   (:require [clojure.test :refer [is deftest testing]]
             [sicmutils.numerical.integrate :as i]
-            [sicmutils.generic :as g]
             [sicmutils.value :as v]
-            [same :refer [ish? zeroish? with-comparator]
+            [same :refer [ish?  with-comparator]
              #?@(:cljs [:include-macros true])]))
 
 (def ^:private near (v/within 1e-6))
@@ -86,6 +85,7 @@
                    2.0325168
                    2.0327042]
                  (map #(L 1e-6 % 0.45) (map #(Math/pow 10 (- %)) (range 1 10))))))))
+
   (testing "elliptic integral"
     (let [F (fn [phi k]
               (i/definite-integral #(/ (Math/sqrt (- 1 (* k k (Math/pow (Math/sin %) 2))))) 0 phi
@@ -94,33 +94,3 @@
                 :max-evaluations 1000000))]
       (is (near 0.303652 (F 0.3 (Math/sqrt 0.8))))
       (is (near 1.30567 (F 1.2 (Math/sqrt 0.4)))))))
-
-(deftest elliptic-tests
-  (testing "elliptic"
-    (is (near 1.30567  (i/elliptic-f 1.2 (Math/sqrt 0.4)))))
-
-  (testing "direct elliptic"
-    (is (near 0.200212 (i/elliptic-f 0.2 0.4)))
-    (is (near 0.841935 (i/elliptic-f 0.8 0.7)))
-    (is (near 0.303652 (i/elliptic-f 0.3 (g/sqrt 0.8))))
-    (is (near 0.300712 (i/elliptic-f 0.3 0.4)))
-    (is (near 0.738059 (i/elliptic-f 0.7 0.8))))
-
-  (testing "general pendulum periods"
-    (let [period (fn [theta_0]
-                   (/ (* 8 (i/elliptic-f (/ theta_0 2) (/ (g/sin (/ theta_0 2)))))
-                      (* (g/sqrt (* 2 9.8))
-                         (g/sqrt (- 1 (g/cos theta_0))))))]
-      (is (near 2.009916 (period 0.15)))
-      (is (near 2.018438 (period 0.30)))
-      (is (near 2.032791 (period 0.45)))
-      (is (near 2.053204 (period 0.60)))
-      (is (near 2.080013 (period 0.75)))
-      (is (near 2.113680 (period 0.90)))
-      (is (near 2.154814 (period 1.05)))
-      (is (near 2.204206 (period 1.20)))
-      (is (near 2.262882 (period 1.35)))
-      (is (near 2.332176 (period 1.50)))
-      (is (near 2.413836 (period 1.65)))
-      (is (near 2.510197 (period 1.80)))
-      (is (near 2.624447 (period 1.95))))))
