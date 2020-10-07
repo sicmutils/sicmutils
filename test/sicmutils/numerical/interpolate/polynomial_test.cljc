@@ -21,36 +21,82 @@
   "Tests of the various sequence convergence and generation utilities in the SICM
   library."
   (:require [clojure.test :refer [is deftest testing]]
-            [same :refer [ish? with-comparator]
+            [same :refer [zeroish? ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.interpolate.polynomial :as ip]
             [sicmutils.generic :as g]
             [sicmutils.numsymb]))
 
-(deftest equivalent-tests
-  (testing "Neville and Lagrange interpolation are equivalent"
-    (let [points [['x_1 'y_1] ['x_2 'y_2]]]
-      (is (zero?
-           (g/simplify
-            (g/- (ip/lagrange points 'x)
-                 (ip/neville points 'x))))))))
+(deftest symbolic-tests
+  (letfn [(lagrange-incremental [points x]
+            (let [n (count points)]
+              (map (fn [i]
+                     (ip/lagrange (take i points) x))
+                   (range 1 (inc n)))))
+          (diff [l r]
+            (g/simplify (g/- l r)))]
 
-(deftest polynomial-tests
-  (testing "the methods match."
-    (let [points   [[0 1] [2 1] [5 2] [8 10]]
-          expected 1.0829333333333333]
-      (is (ish? expected (ip/neville points 1.2)))
-      (is (ish? expected (ip/lagrange points 1.2)))))
+    (testing "Neville and Lagrange interpolation are equivalent"
+      (let [points [['x_1 'y_1] ['x_2 'y_2]]]
+        (is (zeroish?
+             (diff (ip/lagrange points 'x)
+                   (ip/neville-top-down points 'x))))))
 
-  ;; TODO test that all permutations of points give the same result.
-  )
+    (testing "points ordering doesn't matter for the final value. (Should test
+    all permutations...)"
+      (is (zeroish?
+           (diff
+            (ip/lagrange [['x_1 'y_1] ['x_2 'y_2] ['x_3 'y_3]] 'x)
+            (ip/lagrange [['x_2 'y_2] ['x_1 'y_1] ['x_3 'y_3]] 'x))))
 
-(deftest neville-reductions-tests
-  (testing "this function returns a sequence of successive approximations. The
+      (is (zeroish?
+           (diff
+            (ip/lagrange [['x_2 'y_2] ['x_1 'y_1] ['x_3 'y_3]] 'x)
+            (ip/lagrange [['x_3 'y_3] ['x_2 'y_2] ['x_1 'y_1]] 'x)))))
+
+    (testing "symbolic incremental methods should be identical to the full
+  lagrange method at each point prefix."
+      (let [points [['x_1 'y_1] ['x_2 'y_2] ['x_3 'y_3] ['x_4 'y_4]]
+            diffs  (map diff
+                        (lagrange-incremental points 'x)
+                        (ip/neville-incremental* points 'x))]
+        (is (ish? [0 0 0 0] diffs))))))
+
+(deftest performance-tests
+  (let [points [[0 1] [2 1] [5 2] [8 10]]
+        expected [1 1.0 0.9359999999999999 1.0829333333333333]]
+    (testing "each function returns a sequence of successive approximations. The
   approximation around 1.2 gets better the more points we add in."
-    (let [points   [[0 1] [2 1] [5 2] [8 10]]
-          expected [1 1.0 0.9359999999999999 1.0829333333333333]]
-      (is (ish? expected (ip/neville-reductions* points 1.2)))
-      (is (ish? expected (ip/neville-reductions points 1.2)))
-      (is (ish? expected (ip/incremental-by-cl points 1.2)))
-      (is (ish? expected ((ip/poly-scan 1.2) points))))))
+
+      (is (ish? (last expected) (ip/lagrange points 1.2))
+          "Lagrange only returns the final value.")
+
+      (is (ish? (last expected) (ip/neville-top-down points 1.2))
+          "Lagrange only returns the final value.")
+
+      (is (ish? expected (ip/neville-incremental* points 1.2))
+          "This is the initial, unabstracted version.")
+
+      (is (ish? expected (ip/neville points 1.2))
+          "incremental calculation via full Neville's algorithm")
+
+      (is (ish? expected (ip/modified-neville points 1.2))
+          "incremental calculation via modified Neville"))
+
+    (testing "folding points in reverse should match column-wise processing."
+      (is (ish? expected ((ip/neville-fold 1.2) (reverse points))))
+      (is (ish? expected ((ip/modified-neville-fold 1.2) (reverse points)))))
+
+    (testing "scan should process successive rows of the tableau; the diagonal
+    of the tableau processed with a fold should match the first row of
+    column-wise processing."
+      (is (ish? expected (map last ((ip/neville-scan 1.2) points))))
+      (is (ish? expected (map last ((ip/modified-neville-scan 1.2) points)))))
+
+    (testing "the tableau processed with a fold should match the first row of
+    column-wise processing."
+      (is (ish? ((ip/neville-fold 1.2) points)
+                (last ((ip/neville-scan 1.2) points))))
+
+      (is (ish?  ((ip/modified-neville-fold 1.2) points)
+                 (last ((ip/modified-neville-scan 1.2) points)))))))
