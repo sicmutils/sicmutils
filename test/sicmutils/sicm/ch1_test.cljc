@@ -101,8 +101,8 @@
          (let [m (e/minimize
                   (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0)
                   -2.0 1.0)]
-           (is (near 0.0 (first m)))
-           (is (near 435 (second m)))))
+           (is (near 0.0 (:result m)))
+           (is (near 435 (:value m)))))
 
       #?(:clj
          ;; TODO activate when we get integrator support in cljs.
@@ -117,7 +117,7 @@
          (let [values (atom [])
                minimal-path (e/find-path
                              (L/L-harmonic 1.0 1.0) 0. 1. (/ Math/PI 2) 0. 3
-                             :observe (fn [pt _] (swap! values conj pt)))
+                             :observe (fn [_ pt _] (swap! values conj pt)))
                good? (partial (within 2e-4) 0)
                errors (for [x (range 0.0 (/ Math/PI 2) 0.02)]
                         (abs (- (Math/cos x) (minimal-path x))))]

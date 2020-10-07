@@ -264,12 +264,11 @@
   "SICM p. 23. The optional parameter values is a callback which will report
   intermediate points of the minimization."
   [Lagrangian t0 q0 t1 q1 n & {:keys [observe]}]
-  (let [initial-qs (linear-interpolants q0 q1 n)
-        minimizing-qs
-        (m/multidimensional-minimize
-         (parametric-path-action Lagrangian t0 q0 t1 q1)
-         initial-qs
-         :callback observe)]
+  (let [initial-qs    (linear-interpolants q0 q1 n)
+        minimizing-qs (m/multidimensional-minimize
+                       (parametric-path-action Lagrangian t0 q0 t1 q1)
+                       initial-qs
+                       :callback observe)]
     (make-path t0 q0 t1 q1 minimizing-qs)))
 
 (defn s->r

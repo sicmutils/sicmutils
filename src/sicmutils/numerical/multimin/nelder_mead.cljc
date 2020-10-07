@@ -238,30 +238,45 @@
 (defn nelder-mead
   "Find the minimum of the function f: R^n -> R, given an initial point q ∈ R^n.
   Supports the following optional keyword arguments:
-  :callback if supplied, the supplied fn will be invoked with the intermediate
-  points of evaluation.
-  :info? if true, wraps the result with evaluation information.
-  :adaptive? if true, the Nelder-Mead parameters for contraction, expansion,
+
+  `:callback` if supplied, the supplied fn will be invoked with iteration count,
+  the values of X and the value of f(X) at each intermediate point of
+  evaluation.
+
+  `:info?` if true, wraps the result with evaluation information.
+
+  `:adaptive?` if true, the Nelder-Mead parameters for contraction, expansion,
   reflection and shrinking will be set adaptively, as functions of the number of
   dimensions. If false they stay constant.
-  :alpha sets the reflection coefficient used for each step of Nelder-Mead.
-  :beta sets the expansion coefficient used for each step of Nelder-Mead.
-  :gamma sets the contraction coefficient used for each step of Nelder-Mead.
-  :sigma sets the shrink coefficient used for each step of Nelder-Mead.
-  :maxiter Maximum number of iterations allowed for the minimizer. Defaults to
+
+  `:alpha` sets the reflection coefficient used for each step of Nelder-Mead.
+
+  `:beta` sets the expansion coefficient used for each step of Nelder-Mead.
+
+  `:gamma` sets the contraction coefficient used for each step of Nelder-Mead.
+
+  `:sigma` sets the shrink coefficient used for each step of Nelder-Mead.
+
+  `:maxiter` Maximum number of iterations allowed for the minimizer. Defaults to
   200*dimension.
-  :maxfun Maximum number of times the function can be evaluated before exiting.
+
+  `:maxfun` Maximum number of times the function can be evaluated before exiting.
   Defaults to 200*dimension.
-  :simplex-tolerance When the absolute value of the max difference between the
+
+  `:simplex-tolerance` When the absolute value of the max difference between the
   best point and any point in the simplex falls below this tolerance, the
   minimizer stops. Defaults to 1e-4.
-  :fn-tolerance When the absolute value of the max difference between the best
+
+  `:fn-tolerance` When the absolute value of the max difference between the best
   point's function value and the fn value of any point in the simplex falls
   below this tolerance, the minimizer stops. Defaults to 1e-4.
-  :zero-delta controls the value to which 0 entries in the initial vector are
+
+  `:zero-delta` controls the value to which 0 entries in the initial vector are
   set during initial simplex generation. Defaults to 0.00025.
-  :nonzero-delta factor by which entries in the initial vector are perturbed to
+
+  `:nonzero-delta` factor by which entries in the initial vector are perturbed to
   generate the initial simplex. Defaults to 0.05.
+
   See Gao, F. and Han, L.
       Implementing the Nelder-Mead simplex algorithm with adaptive
       parameters. 2012. Computational Optimization and Applications.
@@ -282,7 +297,7 @@
         f-simplex     (mapv f simplex)]
     (loop [[[s0 :as simplex] [f0 :as f-simplex]] (sort-by-f simplex f-simplex dimension)
            iteration 0]
-      (callback s0)
+      (callback iteration s0 f0)
       (let [converged? (convergence? simplex f-simplex)]
         (if (or converged? (stop? iteration))
           {:result s0

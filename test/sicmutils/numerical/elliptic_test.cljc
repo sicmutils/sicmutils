@@ -20,34 +20,36 @@
 (ns sicmutils.numerical.elliptic-test
   (:require [clojure.test :refer [is deftest testing]]
             [sicmutils.numerical.elliptic :as e]
-            [same :refer [ish?]]))
+            [sicmutils.value :as v]))
+
+(def ^:private near (v/within 1e-6))
 
 (deftest elliptic-tests
   (testing "elliptic"
-    (is (ish? 1.30567  (e/elliptic-f 1.2 (Math/sqrt 0.4)))))
+    (is (near 1.30567  (e/elliptic-f 1.2 (Math/sqrt 0.4)))))
 
   (testing "direct elliptic"
-    (is (ish? 0.200212 (e/elliptic-f 0.2 0.4)))
-    (is (ish? 0.841935 (e/elliptic-f 0.8 0.7)))
-    (is (ish? 0.303652 (e/elliptic-f 0.3 (Math/sqrt 0.8))))
-    (is (ish? 0.300712 (e/elliptic-f 0.3 0.4)))
-    (is (ish? 0.738059 (e/elliptic-f 0.7 0.8))))
+    (is (near 0.200212 (e/elliptic-f 0.2 0.4)))
+    (is (near 0.841935 (e/elliptic-f 0.8 0.7)))
+    (is (near 0.303652 (e/elliptic-f 0.3 (Math/sqrt 0.8))))
+    (is (near 0.300712 (e/elliptic-f 0.3 0.4)))
+    (is (near 0.738059 (e/elliptic-f 0.7 0.8))))
 
   (testing "general pendulum periods"
     (let [period (fn [theta_0]
                    (/ (* 8 (e/elliptic-f (/ theta_0 2) (/ (Math/sin (/ theta_0 2)))))
                       (* (Math/sqrt (* 2 9.8))
                          (Math/sqrt (- 1 (Math/cos theta_0))))))]
-      (is (ish? 2.009916 (period 0.15)))
-      (is (ish? 2.018438 (period 0.30)))
-      (is (ish? 2.032791 (period 0.45)))
-      (is (ish? 2.053204 (period 0.60)))
-      (is (ish? 2.080013 (period 0.75)))
-      (is (ish? 2.113680 (period 0.90)))
-      (is (ish? 2.154814 (period 1.05)))
-      (is (ish? 2.204206 (period 1.20)))
-      (is (ish? 2.262882 (period 1.35)))
-      (is (ish? 2.332176 (period 1.50)))
-      (is (ish? 2.413836 (period 1.65)))
-      (is (ish? 2.510197 (period 1.80)))
-      (is (ish? 2.624447 (period 1.95))))))
+      (is (near 2.009916 (period 0.15)))
+      (is (near 2.018438 (period 0.30)))
+      (is (near 2.032791 (period 0.45)))
+      (is (near 2.053204 (period 0.60)))
+      (is (near 2.080013 (period 0.75)))
+      (is (near 2.113680 (period 0.90)))
+      (is (near 2.154814 (period 1.05)))
+      (is (near 2.204206 (period 1.20)))
+      (is (near 2.262882 (period 1.35)))
+      (is (near 2.332176 (period 1.50)))
+      (is (near 2.413836 (period 1.65)))
+      (is (near 2.510197 (period 1.80)))
+      (is (near 2.624447 (period 1.95))))))

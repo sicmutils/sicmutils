@@ -38,6 +38,7 @@
             sicmutils.sicm.ch7-test
 
             sicmutils.numerical.compile-test
+            sicmutils.numerical.elliptic-test
             sicmutils.numerical.integrate-test
             sicmutils.numerical.minimize-test
             sicmutils.numerical.ode-test
@@ -92,6 +93,7 @@
            'sicmutils.examples.top-test
 
            'sicmutils.numerical.compile-test
+           'sicmutils.numerical.elliptic-test
            'sicmutils.numerical.integrate-test
            'sicmutils.numerical.minimize-test
            'sicmutils.numerical.ode-test
