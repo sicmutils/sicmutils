@@ -1,5 +1,5 @@
 ;;
-;; Copyright © 2017 Colin Smith.
+;; Copyright © 2020 Sam Ritchie.
 ;; This work is based on the Scmutils system of MIT/GNU Scheme:
 ;; Copyright © 2002 Massachusetts Institute of Technology
 ;;
@@ -95,10 +95,10 @@
 ;; This recurrence works because the two parents $P_l$ and $P_r$ already agree
 ;; at all points except $x_l$ and $x_r$.
 
-(defn neville-top-down
+(defn neville-recursive
   "Top-down implementation of Neville's algorithm.
 
-  Returns the value of `P(x)`, where `P` is polynomial fit (using Neville's
+  Returns the value of `P(x)`, where `P` is a polynomial fit (using Neville's
   algorithm) to every point in the supplied sequence `points` (of form `[x (f
   x)]`)
 
@@ -678,7 +678,8 @@
          (map present-fn)
          (rest))))
 
-;; And finally, we specialize to our two incremental methods. The scan implementations receive EACH row,
+;; And finally, we specialize to our two incremental methods. TODO add
+;; docstrings here.
 
 (defn neville-fold [x]
   (tableau-fold (neville-fold-fn x)

@@ -1,5 +1,5 @@
 ;;
-;; Copyright © 2017 Colin Smith.
+;; Copyright © 2020 Sam Ritchie.
 ;; This work is based on the Scmutils system of MIT/GNU Scheme:
 ;; Copyright © 2002 Massachusetts Institute of Technology
 ;;
@@ -18,8 +18,6 @@
 ;;
 
 (ns sicmutils.numerical.interpolate.polynomial-test
-  "Tests of the various sequence convergence and generation utilities in the SICM
-  library."
   (:require [clojure.test :refer [is deftest testing]]
             [same :refer [zeroish? ish? with-comparator]
              #?@(:cljs [:include-macros true])]
@@ -40,7 +38,7 @@
       (let [points [['x_1 'y_1] ['x_2 'y_2]]]
         (is (zeroish?
              (diff (ip/lagrange points 'x)
-                   (ip/neville-top-down points 'x))))))
+                   (ip/neville-recursive points 'x))))))
 
     (testing "points ordering doesn't matter for the final value. (Should test
     all permutations...)"
@@ -71,7 +69,7 @@
       (is (ish? (last expected) (ip/lagrange points 1.2))
           "Lagrange only returns the final value.")
 
-      (is (ish? (last expected) (ip/neville-top-down points 1.2))
+      (is (ish? (last expected) (ip/neville-recursive points 1.2))
           "Lagrange only returns the final value.")
 
       (is (ish? expected (ip/neville-incremental* points 1.2))
