@@ -681,19 +681,53 @@
 ;; And finally, we specialize to our two incremental methods. TODO add
 ;; docstrings here.
 
-(defn neville-fold [x]
+(defn neville-fold
+  "Returns a function that consumes an entire sequence `xs` of points, and returns
+  a sequence of successive approximations of `x` using polynomials fitted to the
+  points in reverse order.
+
+  This function uses the `neville` algorithm internally."
+  [x]
   (tableau-fold (neville-fold-fn x)
                 neville-present))
 
-(defn neville-scan [x]
+(defn neville-scan
+  "Returns a function that consumes an entire sequence `xs` of points, and returns
+  a sequence of SEQUENCES of successive polynomial approximations of `x`; one
+  for each of the supplied points.
+
+  For a sequence a, b, c... you'll see:
+
+  [(neville [a] x)
+   (neville [b a] x)
+   (neville [c b a] x)
+   ...]"
+  [x]
   (tableau-scan (neville-fold-fn x)
                 neville-present))
 
-(defn modified-neville-fold [x]
+(defn modified-neville-fold
+  "Returns a function that consumes an entire sequence `xs` of points, and returns
+  a sequence of successive approximations of `x` using polynomials fitted to the
+  points in reverse order.
+
+  This function uses the `modified-neville` algorithm internally."
+  [x]
   (tableau-fold (modified-neville-fold-fn x)
                 mn-present))
 
-(defn modified-neville-scan [x]
+(defn modified-neville-scan
+  "Returns a function that consumes an entire sequence `xs` of points, and returns
+  a sequence of SEQUENCES of successive polynomial approximations of `x`; one
+  for each of the supplied points.
+
+  For a sequence a, b, c... you'll see:
+
+  [(modified-neville [a] x)
+   (modified-neville [b a] x)
+   (modified-neville [c b a] x)
+   ...]"
+  [x]
   (tableau-scan (modified-neville-fold-fn x)
                 mn-present))
 

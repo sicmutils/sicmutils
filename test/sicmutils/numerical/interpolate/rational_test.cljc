@@ -23,8 +23,13 @@
             [sicmutils.numerical.interpolate.rational :as ir]))
 
 (deftest rational-interpolation-tests
-  (let [points   [[0 1] [2 1.4] [5 2] [8 10]]
+  (let [points [[0 1] [2 1.4] [5 2] [8 10]]
         expected [1.0 1.206896551724138 1.24 1.191835569511847]]
+
+    (testing "The algo can handle a zero denominator case, though I don't get
+    what it means!"
+      (is (ish? [4.0 2.6490066225165565 4.0 1.126760563380282]
+                ((ir/modified-bulirsch-stoer-fold 1.2) [[0 1] [0 1] [0 2.5] [8 4]]))))
 
     (testing "each function returns a sequence of successive approximations. The
   approximation around 1.2 gets better the more points we add in."
@@ -51,4 +56,13 @@
                 (last ((ir/modified-bulirsch-stoer-scan 1.2) points))))
 
       (is (ish?  ((ir/modified-bulirsch-stoer-fold 1.2) points)
-                 (last ((ir/modified-bulirsch-stoer-scan 1.2) points)))))))
+                 (last ((ir/modified-bulirsch-stoer-scan 1.2) points))))
+
+      (testing "scan gives you prefixes, reversed!"
+        (is (ish?  (map #(ir/modified-bulirsch-stoer % 1.2)
+                        [[[0 1]]
+                         [[2 1.4] [0 1]]
+                         [[5 2]   [2 1.4] [0 1]]
+                         [[8 10]  [5 2]   [2 1.4] [0 1]]])
+                   ((ir/modified-bulirsch-stoer-scan 1.2)
+                    [[0 1] [2 1.4] [5 2] [8 10]])))))))

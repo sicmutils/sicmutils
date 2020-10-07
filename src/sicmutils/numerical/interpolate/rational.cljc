@@ -150,7 +150,16 @@
 (defn bs-merge
   "Implements the recursion rules described in Press's Numerical Recipes, section
   3.2 http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-2.pdf to generate x_l, x_r, C
-  and D for a tableau node, given the usual left and left-up tableau entries."
+  and D for a tableau node, given the usual left and left-up tableau entries.
+
+  This merge function ALSO includes a 'zero denominator fix used by Bulirsch and
+  Stoer and Henon', in the words of Sussman from `rational.scm` in the scmutils
+  package.
+
+  If the denominator is 0, we pass along C from the up-left node and d from the
+  previous entry in the row. Otherwise, we use the algorithm to calculate.
+
+  TODO understand why this works, or where it helps!"
   [x]
   (fn [[xl _ _ dl] [_ xr cr _]]
     (let [c-d     (- cr dl)
@@ -160,7 +169,7 @@
           den  (- d*ratio cr)]
       (if (zero? den)
         (do (log/info "zero denominator!")
-            [cr dl])
+            [xl xr cr dl])
         (let [cnum (* d*ratio c-d)
               dnum (* cr c-d)]
           [xl xr (/ cnum den) (/ dnum den)])))))
@@ -203,12 +212,27 @@
    bs-prepare
    (bs-merge x)))
 
-(defn modified-bulirsch-stoer-fold [x]
+(defn modified-bulirsch-stoer-fold
+  "Returns a function that consumes an entire sequence `xs` of points, and returns
+  a sequence of successive approximations of `x` using rational functions fitted
+  to the points in reverse order."
+  [x]
   (ip/tableau-fold
-   (modified-bs-fold-fn x)
+   (modified-bulirsch-stoer-fold-fn x)
    ip/mn-present))
 
-(defn modified-bulirsch-stoer-scan [x]
+(defn modified-bulirsch-stoer-scan
+  "Returns a function that consumes an entire sequence `xs` of points, and returns
+  a sequence of SEQUENCES of successive rational function approximations of `x`;
+  one for each of the supplied points.
+
+  For a sequence a, b, c... you'll see:
+
+  [(modified-bulirsch-stoer [a] x)
+   (modified-bulirsch-stoer [b a] x)
+   (modified-bulirsch-stoer [c b a] x)
+   ...]"
+  [x]
   (ip/tableau-scan
    (modified-bulirsch-stoer-fold-fn x)
    ip/mn-present))
