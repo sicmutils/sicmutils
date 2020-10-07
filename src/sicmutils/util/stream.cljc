@@ -65,12 +65,12 @@
   `identity`.
     "
   [f & {:keys [present init]
-        :or {present identity
-             init (f)}}]
-  (fn [xs]
-    (->> (reductions f init xs)
-         (map present)
-         (rest))))
+        :or {present identity}}]
+  (let [init (or init (f))]
+    (fn [xs]
+      (->> (reductions f init xs)
+           (map present)
+           (rest)))))
 
 ;; ## Convergence Tests
 ;;

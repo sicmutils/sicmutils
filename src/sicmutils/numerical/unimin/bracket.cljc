@@ -32,28 +32,6 @@
       [[a fa] [b fb]]
       [[b fb] [a fa]])))
 
-(defn lagrange-interpolating-polynomial
-  "Generates a lagrange interpolating polynomial that fits all of the supplied
-  points.
-
-  g(x) =  (f(a) * [(x-b)(x-c)...] / [(a-b)(a-c)...])
-        + (f(b) * [(x-a)(x-c)...] / [(b-a)(b-c)...])
-        + ...
-
-  TODO this should move to polynomial and become a real thing."
-  [& points]
-  (let [points (vec points)
-        n (count points)]
-    (fn [x]
-      (let [build-term (fn [i [a fa]]
-                         (let [others (for [j (range n) :when (not= i j)]
-                                        (get-in points [j 0]))
-                               p (reduce g/* (map #(g/- x %) others))
-                               q (reduce g/* (map #(g/- a %) others))]
-                           (g// (g/* fa p) q)))]
-        (->> (map-indexed build-term points)
-             (reduce g/+))))))
-
 (defn parabolic-pieces
   "Accepts three pairs of `[x, (f x)]`, fits a quadratic function to all three
   points and returns the step from `xb` (the coordinate of the second argument)
