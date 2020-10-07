@@ -39,8 +39,8 @@
       (is (ish? expected (ir/bulirsch-stoer points 1.2))
           "the tableau-based version gives you everything.")
 
-      (is (ish? expected (ir/incremental-bulirsch-stoer points 1.2))
-          "The incremental version works the same way."))
+      (is (ish? expected (ir/modified-bulirsch-stoer points 1.2))
+          "The incremental, modified version works the same way."))
 
     (testing "folding points in reverse should match column-wise processing."
       (is (ish? expected ((ir/modified-bulirsch-stoer-fold 1.2) (reverse points)))))
