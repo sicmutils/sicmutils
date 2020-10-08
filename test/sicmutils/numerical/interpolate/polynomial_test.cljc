@@ -18,12 +18,15 @@
 ;;
 
 (ns sicmutils.numerical.interpolate.polynomial-test
-  (:require [clojure.test :refer [is deftest testing]]
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [same :refer [zeroish? ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.interpolate.polynomial :as ip]
             [sicmutils.generic :as g]
-            [sicmutils.numsymb]))
+            [sicmutils.numsymb]
+            [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]))
+
+(use-fixtures :once hermetic-simplify-fixture)
 
 (deftest symbolic-tests
   (letfn [(lagrange-incremental [points x]

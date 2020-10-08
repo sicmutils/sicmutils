@@ -43,6 +43,10 @@
             sicmutils.numerical.minimize-test
             sicmutils.numerical.ode-test
 
+            sicmutils.numerical.interpolate.polynomial-test
+            sicmutils.numerical.interpolate.rational-test
+            sicmutils.numerical.interpolate.richardson-test
+
             sicmutils.numerical.unimin.bracket-test
             sicmutils.numerical.unimin.brent-test
             sicmutils.numerical.unimin.golden-test
@@ -67,7 +71,6 @@
             sicmutils.ratio-test
             sicmutils.numbers-test
             sicmutils.numsymb-test
-            sicmutils.polynomial-test
             sicmutils.rational-function-test
             sicmutils.rules-test
             sicmutils.series-test
@@ -97,6 +100,10 @@
            'sicmutils.numerical.integrate-test
            'sicmutils.numerical.minimize-test
            'sicmutils.numerical.ode-test
+
+           'sicmutils.numerical.interpolate.polynomial-test
+           'sicmutils.numerical.interpolate.rational-test
+           'sicmutils.numerical.interpolate.richardson-test
 
            'sicmutils.numerical.unimin.bracket-test
            'sicmutils.numerical.unimin.brent-test
