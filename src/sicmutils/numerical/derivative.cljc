@@ -324,7 +324,8 @@
   [rel-error-ratio]
   (inc
    (Math/floor
-    (Math/abs rel-error-ratio))))
+    (Math/abs
+     (double rel-error-ratio)))))
 
 ;; That calculation, as the documentation states, returns the number
 ;; of "roundoff units". Let's call it $r$.
@@ -409,10 +410,10 @@
          (us/seq-limit {:tolerance 1e-13})))
 
    {:converged? true
-    :terms-checked 6
-    :result 0.5006325594766895})
+    :terms-checked 5
+    :result 0.5000000000000159})
 
-;; Happily, it does, in only 6 terms instead of 15! This brings convergence in
+;; Happily, it does, in only 5 terms instead of 15! This brings convergence in
 ;; under our limit of 6 total terms.
 ;;
 ;; If you're interested in more details of Richardson extrapolation, please see
@@ -466,7 +467,7 @@
     :backward
     {:p 1
      :q 1
-     :function (forward-difference f x fx)
+     :function (backward-difference f x fx)
      :ratio-fn (fn [h]
                  (/ fx (- fx (f (- x h)))))}
 
@@ -536,11 +537,11 @@
   more info.)
 
   - `:initial-h`: the initial `h` to use for derivative estimates before $h \to
-  0$. Defaults to 0.1.
+  0$. Defaults to 0.1 * abs(x).
 
   - `:tolerance`: see `us/stream-limit` for a discussion of how this value
-  handles relative vs absolute tolerance. $\sqrt(\epsilon)$ by default, where
-  $\epsilon$ = machine tolerance.
+  handles relative vs absolute tolerance. $\\sqrt(\\epsilon)$ by default, where
+  $\\epsilon$ = machine tolerance.
 
   - `:maxterms`: the maximum number of terms to consider when hunting for a
   derivative estimate. This defaults to an estimate generated internally,
@@ -561,7 +562,7 @@
                               (ratio-fn h)
                               tolerance))
               estimates (map function (us/zeno 2 h))
-              result    (-> (r/richardson-sequence estimates h p q)
+              result    (-> (r/richardson-sequence estimates 2 p q)
                             (us/seq-limit (assoc opts :maxterms n)))]
           (if info? result (:result result))))))))
 
