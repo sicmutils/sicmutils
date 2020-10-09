@@ -1,5 +1,5 @@
 ;;
-;; Copyright © 2017 Colin Smith.
+;; Copyright © 2020 Sam Ritchie.
 ;; This work is based on the Scmutils system of MIT/GNU Scheme:
 ;; Copyright © 2002 Massachusetts Institute of Technology
 ;;
@@ -95,10 +95,10 @@
 ;; This recurrence works because the two parents $P_l$ and $P_r$ already agree
 ;; at all points except $x_l$ and $x_r$.
 
-(defn neville-top-down
+(defn neville-recursive
   "Top-down implementation of Neville's algorithm.
 
-  Returns the value of `P(x)`, where `P` is polynomial fit (using Neville's
+  Returns the value of `P(x)`, where `P` is a polynomial fit (using Neville's
   algorithm) to every point in the supplied sequence `points` (of form `[x (f
   x)]`)
 
@@ -678,21 +678,56 @@
          (map present-fn)
          (rest))))
 
-;; And finally, we specialize to our two incremental methods. The scan implementations receive EACH row,
+;; And finally, we specialize to our two incremental methods. TODO add
+;; docstrings here.
 
-(defn neville-fold [x]
+(defn neville-fold
+  "Returns a function that consumes an entire sequence `xs` of points, and returns
+  a sequence of successive approximations of `x` using polynomials fitted to the
+  points in reverse order.
+
+  This function uses the `neville` algorithm internally."
+  [x]
   (tableau-fold (neville-fold-fn x)
                 neville-present))
 
-(defn neville-scan [x]
+(defn neville-scan
+  "Returns a function that consumes an entire sequence `xs` of points, and returns
+  a sequence of SEQUENCES of successive polynomial approximations of `x`; one
+  for each of the supplied points.
+
+  For a sequence a, b, c... you'll see:
+
+  [(neville [a] x)
+   (neville [b a] x)
+   (neville [c b a] x)
+   ...]"
+  [x]
   (tableau-scan (neville-fold-fn x)
                 neville-present))
 
-(defn modified-neville-fold [x]
+(defn modified-neville-fold
+  "Returns a function that consumes an entire sequence `xs` of points, and returns
+  a sequence of successive approximations of `x` using polynomials fitted to the
+  points in reverse order.
+
+  This function uses the `modified-neville` algorithm internally."
+  [x]
   (tableau-fold (modified-neville-fold-fn x)
                 mn-present))
 
-(defn modified-neville-scan [x]
+(defn modified-neville-scan
+  "Returns a function that consumes an entire sequence `xs` of points, and returns
+  a sequence of SEQUENCES of successive polynomial approximations of `x`; one
+  for each of the supplied points.
+
+  For a sequence a, b, c... you'll see:
+
+  [(modified-neville [a] x)
+   (modified-neville [b a] x)
+   (modified-neville [c b a] x)
+   ...]"
+  [x]
   (tableau-scan (modified-neville-fold-fn x)
                 mn-present))
 
