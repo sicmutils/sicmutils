@@ -562,10 +562,6 @@
 ;; Our `generate-new-row` function from above is exactly the `merge` function of
 ;; a fold. The accumulator is the latest tableau row:
 
-(defn- generate-new-row [prepare merge]
-  (fn [prev-row point]
-    (reductions merge (prepare point) prev-row)))
-
 ;; `init`    == [], the initial empty row.
 ;; `present` == the same present function as before (`neville-present` or
 ;;   `mn-present`)
