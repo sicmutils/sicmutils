@@ -38,6 +38,7 @@
             sicmutils.sicm.ch7-test
 
             sicmutils.numerical.compile-test
+            sicmutils.numerical.elliptic-test
             sicmutils.numerical.integrate-test
             sicmutils.numerical.minimize-test
             sicmutils.numerical.ode-test
@@ -45,6 +46,9 @@
             sicmutils.numerical.unimin.bracket-test
             sicmutils.numerical.unimin.brent-test
             sicmutils.numerical.unimin.golden-test
+
+            sicmutils.util.aggregate-test
+            sicmutils.util.stream-test
 
             sicmutils.analyzer-test
             sicmutils.complex-test
@@ -89,6 +93,7 @@
            'sicmutils.examples.top-test
 
            'sicmutils.numerical.compile-test
+           'sicmutils.numerical.elliptic-test
            'sicmutils.numerical.integrate-test
            'sicmutils.numerical.minimize-test
            'sicmutils.numerical.ode-test
@@ -96,6 +101,9 @@
            'sicmutils.numerical.unimin.bracket-test
            'sicmutils.numerical.unimin.brent-test
            'sicmutils.numerical.unimin.golden-test
+
+           'sicmutils.util.aggregate-test
+           'sicmutils.util.stream-test
 
            'sicmutils.mechanics.hamilton-test
            'sicmutils.mechanics.lagrange-test

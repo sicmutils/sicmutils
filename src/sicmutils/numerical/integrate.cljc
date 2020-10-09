@@ -18,65 +18,7 @@
 ;
 
 (ns sicmutils.numerical.integrate
-  (:require [sicmutils.util :as u]
-            [sicmutils.util.stopwatch :as us]
-            [sicmutils.numerical.compile :as c]
-            [taoensso.timbre :as log]))
-
-(defn carlson-rf [x y z]
-  "From W.H. Press, Numerical Recipes in C++, 2ed. NR::rf from section 6.11"
-  (let [errtol 0.0025
-        tiny 1.5e-38
-        big 3.0e37
-        third (/ 3.)
-        c1 (/ 24.)
-        c2 0.1
-        c3 (/ 3. 44.)
-        c4 (/ 14.)]
-    (when (or (< (min x y z) 0)
-              (< (min (+ x y) (+ x z) (+ y z)) tiny)
-              (> (max x y z) big))
-      (u/illegal "Carlson R_F"))
-    (loop [xt x
-           yt y
-           zt z]
-      (let [sqrtx (Math/sqrt xt)
-            sqrty (Math/sqrt yt)
-            sqrtz (Math/sqrt zt)
-            alamb (+ (* sqrtx (+ sqrty sqrtz))
-                     (* sqrty sqrtz))
-            xt' (* 0.25 (+ xt alamb))
-            yt' (* 0.25 (+ yt alamb))
-            zt' (* 0.25 (+ zt alamb))
-            ave (* third (+ xt' yt' zt'))
-            delx (/ (- ave xt') ave)
-            dely (/ (- ave yt') ave)
-            delz (/ (- ave zt') ave)]
-        (if (> (max (Math/abs delx)
-                    (Math/abs dely)
-                    (Math/abs delz))
-               errtol)
-          (recur xt' yt' zt')
-          (let [e2 (- (* delx dely) (* delz delz))
-                e3 (* delx dely delz)]
-            (/ (+ 1
-                  (* (- (* c1 e2)
-                        c2
-                        (* c3 e3))
-                     e2)
-                  (* c4 e3))
-               (Math/sqrt ave))))))))
-
-(defn elliptic-f
-  "Legendre elliptic integral of the first kind F(φ, k).
-   See W.H. Press, Numerical Recipes in C++, 2ed. eq. 6.11.19"
-  [phi k]
-  (let [s (Math/sin phi)]
-    (* s (carlson-rf (Math/pow (Math/cos phi) 2)
-                     (* (- 1 (* s k))
-                        (+ 1 (* s k)))
-                     1))))
-
+  (:require [sicmutils.util :as u]))
 
 (defn definite-integral
   "Evaluate the definite integral of f over [a, b].
