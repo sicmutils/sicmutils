@@ -3,8 +3,9 @@
   (:refer-clojure :rename {bigint core-bigint
                            biginteger core-biginteger
                            int core-int
-                           long core-long}
-                  #?@(:cljs [:exclude [bigint long int]]))
+                           long core-long
+                           double core-double}
+                  #?@(:cljs [:exclude [bigint double long int]]))
   (:require #?(:clj [clojure.math.numeric-tower :as nt])
             #?(:cljs goog.math.Integer)
             #?(:cljs goog.math.Long))
@@ -76,6 +77,10 @@
 (defn long [x]
   #?(:clj (core-long x)
      :cljs (.fromNumber goog.math.Long x)))
+
+(defn double [x]
+  #?(:clj (core-double x)
+     :cljs (if (number? x) x (js/Number x))))
 
 (defn unsupported [s]
   (throw
