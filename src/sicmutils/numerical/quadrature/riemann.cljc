@@ -87,33 +87,48 @@
 ;; - width == $x_r - x_l$, and
 ;; - height == $f(x_l)$ or $f(x_r)$, respectively.
 ;;
-;; `left-riemann-sum` is simple to implement, given `windowed-sum`:
+;; `left-sum` is simple to implement, given `windowed-sum`:
 
-(defn- left-riemann-sum
-  "Returns a function of `n`, some number of slices of the total integration
-  range, that returns an estimate for the definite integral of $f$ over the
-  range $[a, b)$ using a left Riemann sum.
-
-  "
-  [f a b]
+(defn- left-sum* [f a b]
   (-> (fn [l r] (* (f l) (- r l)))
       (windowed-sum a b)))
 
-;; `right-riemann-sum` is almost identical, except that it uses $f(x_r)$ as the
+;; Every internal slice has the same width, so we can make the sum slightly more
+;; efficient by pulling out the constant and multiplying by it a single time:
+
+(defn- left-sum
+  "Returns a function of `n`, some number of slices of the total integration
+  range, that returns an estimate for the definite integral of $f$ over the
+  range $[a, b)$ using a left Riemann sum."
+  [f a b]
+  (fn [n]
+    (let [h (/ (- b a) n)]
+      (* h (ua/sum
+            (map f (range a b h)))))))
+
+;; `right-sum` is almost identical, except that it uses $f(x_r)$ as the
 ;; estimate of each rectangle's height:
 
-(defn- right-riemann-sum
+(defn- right-sum* [f a b]
+  (-> (fn [l r] (* (f r) (- r l)))
+      (windowed-sum a b)))
+
+;; Same trick here to get a more efficient version:
+
+(defn- right-sum
   "Returns a function of `n`, some number of slices of the total integration
   range, that returns an estimate for the definite integral of $f$ over the
   range $(a, b]$ using a right Riemann sum."
   [f a b]
-  (-> (fn [l r] (* (f r) (- r l)))
-      (windowed-sum a b)))
+  (fn [n]
+    (let [h (/ (- b a) n)]
+      (* h (ua/sum
+            (map f (range (+ a h) (+ b h) h)))))))
 
 ;; The upper Riemann sum generates a slice estimate by taking the maximum of
 ;; $f(x_l)$ and $f(x_r)$:
 
-(defn- upper-riemann-sum
+(defn- upper-sum
   "Returns an estimate for the definite integral of $f$ over the range $[a, b]$
   using an upper Riemann sum.
 
@@ -127,7 +142,7 @@
 
 ;; Similarly, the lower Riemann sum uses the /minimum/ of $f(x_l)$ and $f(x_r)$:
 
-(defn- lower-riemann-sum
+(defn- lower-sum
   "Returns an estimate for the definite integral of $f$ over the range $[a, b]$
   using a lower Riemann sum.
 
@@ -152,15 +167,15 @@
 
 #_
 (let [f              (fn [x] (* x x))
-      left-estimates  (map (left-riemann-sum f 0 10)
+      left-estimates  (map (left-sum f 0 10)
                            (us/powers 2))
-      right-estimates (map (right-riemann-sum f 0 10)
+      right-estimates (map (right-sum f 0 10)
                            (us/powers 2))]
-  (= [0 125 218.75 273.4375 302.734375]
-     (take 5 left-estimates))
+  (and (= [0.0 125.0 218.75 273.4375 302.734375]
+          (take 5 left-estimates))
 
-  (= [1000 625 468.75 398.4375 365.234375]
-     (take 5 right-estimates)))
+       (= [1000.0 625.0 468.75 398.4375 365.234375]
+          (take 5 right-estimates))))
 
 ;; Both estimates are bad at 32 slices and don't seem to be getting better. Even
 ;; up to $2^16 = 65,536$ slices we haven't converged, and are still far from the
@@ -171,7 +186,7 @@
     :terms-checked 16
     :result 333.31807469949126}
    (let [f (fn [x] (* x x))]
-     (-> (map (left-riemann-sum f 0 10)
+     (-> (map (left-sum f 0 10)
               (us/powers 2))
          (us/seq-limit {:maxterms 16}))))
 
@@ -194,7 +209,7 @@
     :result 333.3333333333333}
 
    (let [f (fn [x] (* x x))]
-     (-> (map (left-riemann-sum f 0 10)
+     (-> (map (left-sum f 0 10)
               (us/powers 2))
          (ir/richardson-sequence 2)
          (us/seq-limit))))
@@ -204,56 +219,70 @@
 ;; The results look quite nice; but notice how much redundant computation we're
 ;; doing. Every time we double our number of number of evaluations, half of the
 ;; windows share a left (or right) endpoint.
+;;
+;; Here's a version that returns a sequence for successively doubled window
+;; sizes...
 
-(defn- left-riemann-seq [f a b]
+(defn left-doubling-seq [f a b]
   (letfn [(next-S [[Sn n]]
             (let [next-n  (* 2 n)
-                  half-h  (/ (+ a b) next-n)
-                  offsets (left-riemann-sum f (+ a half-h) (+ b half-h))
+                  half-h  (/ (- b a) next-n)
+                  offsets (left-sum f
+                                    (+ a half-h)
+                                    (+ b half-h))
                   Sn+1    (/ (+ Sn (offsets n)) 2)]
               [Sn+1 next-n]))]
-    (->> (iterate next-S [((left-riemann-sum f a b) 1) 1])
+    (->> (iterate next-S [(* (- b a) (f a)) 1])
          (map first))))
 
-(defn- right-riemann-seq [f a b]
+(defn right-doubling-seq [f a b]
   (letfn [(next-S [[Sn n]]
-            (let [next-n  (* 2 n)
-                  half-h  (/ (+ a b) next-n)
-                  offsets (right-riemann-sum f (- a half-h) (- b half-h))
-                  Sn+1    (/ (+ Sn (offsets n)) 2)]
+            (let [next-n   (* 2 n)
+                  half-h   (/ (- b a) next-n)
+                  delta-fn (right-sum f
+                                      (- a half-h)
+                                      (- b half-h))
+                  Sn+1    (/ (+ Sn (delta-fn n)) 2)]
               [Sn+1 next-n]))]
-    (->> (iterate next-S [((right-riemann-sum f a b) 1) 1])
+    (->> (iterate next-S [(* (- b a) (f b)) 1])
          (map first))))
 
-(defn accelerated-left
-  ([f a b] (accelerated-left f a b {}))
+;; NOTE - if you want to do some other, more hardcore sequence... you'll need to
+;; memoize internally.
+;;
+;; Here's a nice reference to use: http://raganwald.com/2018/08/30/to-grok-a-mockingbird.html
+
+(defn left-integral
+  ([f a b] (left-integral f a b {}))
   ([f a b opts]
-   (-> (left-riemann-seq f a b)
+   (-> (left-doubling-seq f a b)
        (ir/richardson-sequence 2)
        (us/seq-limit opts))))
 
-(defn accelerated-right
-  ([f a b] (accelerated-right f a b {}))
+(defn right-integral
+  ([f a b] (right-integral f a b {}))
   ([f a b opts]
-   (-> (right-riemann-seq f a b)
+   (-> (right-doubling-seq f a b)
        (ir/richardson-sequence 2)
        (us/seq-limit opts))))
 
 ;; The same trick works for upper and lower, except we don't have a clever way
-;; of combining previous evaluations.
+;; of combining previous evaluations... so we just use sums directly.
 
-(defn accelerated-upper
-  ([f a b] (accelerated-upper f a b {}))
+(defn upper-integral
+  ([f a b] (upper-integral f a b {}))
   ([f a b opts]
-   (-> (map (upper-riemann-sum f a b)
+   (-> (map (upper-sum f a b)
             (us/powers 2))
        (ir/richardson-sequence 2)
        (us/seq-limit opts))))
 
-(defn accelerated-lower
-  ([f a b] (accelerated-lower f a b {}))
+(defn lower-integral
+  ([f a b] (lower-integral f a b {}))
   ([f a b opts]
-   (-> (map (lower-riemann-sum f a b)
+   (-> (map (lower-sum f a b)
             (us/powers 2))
        (ir/richardson-sequence 2)
        (us/seq-limit opts))))
+
+;; Next, check out `midpoint` and `trapezoidal`.
