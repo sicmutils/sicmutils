@@ -42,6 +42,8 @@
 ;; - add up all of the slices to form an estimate of the integral
 ;; - increase the number of slices, and stop when the estimate stops changing.
 ;;
+;; (The methods in `midpoint.cljc` and `trapezoid.cljc` work the same way!)
+;;
 ;; The integral of a function $f$ is the limit of this process as $n \to
 ;; \infty$.
 ;;
@@ -101,10 +103,11 @@
   range, that returns an estimate for the definite integral of $f$ over the
   range $[a, b)$ using a left Riemann sum."
   [f a b]
-  (fn [n]
-    (let [h (/ (- b a) n)]
-      (* h (ua/sum
-            (map f (range a b h)))))))
+  (let [width (- b a)]
+    (fn [n]
+      (let [h  (/ width n)
+            fx (fn [i] (f (+ a (* i h))))]
+        (* h (ua/sum fx 0 n))))))
 
 ;; `right-sum` is almost identical, except that it uses $f(x_r)$ as the
 ;; estimate of each rectangle's height:
@@ -120,10 +123,12 @@
   range, that returns an estimate for the definite integral of $f$ over the
   range $(a, b]$ using a right Riemann sum."
   [f a b]
-  (fn [n]
-    (let [h (/ (- b a) n)]
-      (* h (ua/sum
-            (map f (range (+ a h) (+ b h) h)))))))
+  (let [width (- b a)]
+    (fn [n]
+      (let [h     (/ width n)
+            start (+ a h)
+            fx    (fn [i] (f (+ start (* i h))))]
+        (* h (ua/sum fx 0 n))))))
 
 ;; The upper Riemann sum generates a slice estimate by taking the maximum of
 ;; $f(x_l)$ and $f(x_r)$:
@@ -215,42 +220,77 @@
          (us/seq-limit))))
 
 ;; We now converge to the actual, true value of the integral in 4 terms!
+
+;; ## Incremental Computation
 ;;
 ;; The results look quite nice; but notice how much redundant computation we're
 ;; doing. Every time we double our number of number of evaluations, half of the
 ;; windows share a left (or right) endpoint.
 ;;
-;; Here's a version that returns a sequence for successively doubled window
-;; sizes...
+;; Here's a function that lets use REUSE.
 
-(defn left-doubling-seq [f a b]
-  (letfn [(next-S [[Sn n]]
-            (let [next-n  (* 2 n)
-                  half-h  (/ (- b a) next-n)
-                  offsets (left-sum f
-                                    (+ a half-h)
-                                    (+ b half-h))
-                  Sn+1    (/ (+ Sn (offsets n)) 2)]
-              [Sn+1 next-n]))]
-    (->> (iterate next-S [(* (- b a) (f a)) 1])
-         (map first))))
+(defn midpoint-sum [f a b]
+  (let [width (- b a)]
+    (fn [n]
+      (let [h      (/ width n)
+            offset (+ a (/ h 2.0))
+            fx     (fn [i] (f (+ offset (* i h))))]
+        (* h (ua/sum fx 0 n))))))
 
-(defn right-doubling-seq [f a b]
-  (letfn [(next-S [[Sn n]]
-            (let [next-n   (* 2 n)
-                  half-h   (/ (- b a) next-n)
-                  delta-fn (right-sum f
-                                      (- a half-h)
-                                      (- b half-h))
-                  Sn+1    (/ (+ Sn (delta-fn n)) 2)]
-              [Sn+1 next-n]))]
-    (->> (iterate next-S [(* (- b a) (f b)) 1])
-         (map first))))
+(defn Sn->S2n [f a b]
+  (let [midpoints (midpoint-sum f a b)]
+    (fn [Sn n]
+      (-> (+ Sn (midpoints n))
+          (/ 2.0)))))
 
-;; NOTE - if you want to do some other, more hardcore sequence... you'll need to
-;; memoize internally.
-;;
-;; Here's a nice reference to use: http://raganwald.com/2018/08/30/to-grok-a-mockingbird.html
+;; Then an attempt to put it all together:
+
+(defn- left-doubling-seq*
+  ([f a b] (left-doubling-seq* f a b 1))
+  ([f a b n0]
+   (let [first-S ((left-sum f a b) n0)
+         steps   (us/powers 2 n0)]
+     (reductions (Sn->S2n f a b) first-S steps))))
+
+;; Hmm, we can make this more general...
+
+(defn power-seq
+  [S next-S factor n0]
+  (let [first-S (S n0)
+        steps   (us/powers factor n0)]
+    (reductions next-S first-S steps)))
+
+(defn left-doubling-seq
+  ([f a b] (left-doubling-seq f a b 1))
+  ([f a b n0]
+   (power-seq (left-sum f a b)
+              (Sn->S2n f a b)
+              2
+              n0)))
+
+(defn incrementalize
+  "Leaving this here... THIS is the big boy that can upgrade everyone to an
+  accelerated sequence."
+  [S next-S factor n-seq]
+  (let [f (fn [[m _] i]
+            (let [Si (if (zero? (rem i factor))
+                       (let [j (quot i factor)]
+                         (if-let [Sj (get m j)]
+                           (next-S Sj j)
+                           (S i)))
+                       (S i))]
+              [(assoc m i Si) Si]))]
+    (->> (reductions f [{} nil] n-seq)
+         (map second)
+         (rest))))
+
+(defn right-doubling-seq
+  ([f a b] (right-doubling-seq f a b 1))
+  ([f a b n0]
+   (power-seq (right-sum f a b)
+              (Sn->S2n f a b)
+              2
+              n0)))
 
 (defn left-integral
   ([f a b] (left-integral f a b {}))
@@ -285,4 +325,4 @@
        (ir/richardson-sequence 2)
        (us/seq-limit opts))))
 
-;; Next, check out `midpoint` and `trapezoidal`.
+;; Next, check out `midpoint` and `trapezoid`.
