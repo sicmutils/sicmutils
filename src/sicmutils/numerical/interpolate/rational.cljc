@@ -213,7 +213,7 @@
    - Press's Numerical Recipes (p105), Section 3.2 http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-2.pdf"
   [points x]
   (ip/mn-present
-   (ip/first-row
+   (ip/first-terms
     (ip/tableau-fn bs-prepare
                    (bs-merge x)
                    points))))

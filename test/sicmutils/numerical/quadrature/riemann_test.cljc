@@ -18,9 +18,8 @@
 ;;
 
 (ns sicmutils.numerical.quadrature.riemann-test
-  (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [same :refer [zeroish? ish? with-comparator]
-             #?@(:cljs [:include-macros true])]
+  (:require [clojure.test :refer [is deftest testing]]
+            [same :refer [ish?]]
             [sicmutils.numerical.interpolate.richardson :as ir]
             [sicmutils.numerical.quadrature.riemann :as qr]
             [sicmutils.generic :as g]

@@ -29,13 +29,6 @@
 
 ;; ## The Trapezoid Method
 ;;
-;; We can do some algebra and save ourselves some computation in the trapezoid
-;; method. Here's a nice function that gets more efficient, for any N.
-
-(defn single-trapezoid [f a b]
-  (* (/ (+ (f a) (f b)) 2.0)
-     (- b a)))
-
 ;; What's the area of a trapezoid? Two points, `(a, f(a))` and `(b, f(b))`. Add
 ;; the area together for the
 
@@ -61,7 +54,7 @@
 ;; and the triangle is:
 ;;
 ;; $${1 \over 2} (- b a) (f(b) - f(a))$$
-;;
+
 ;; We can verify that adding these two simplifies to our trapezoid rule:
 
 #_
@@ -77,6 +70,13 @@
    (g/simplify (g/- formula (g/+ square triangle)))))
 ;; => true
 
+;; We can do some algebra and save ourselves some computation in the trapezoid
+;; method. Here's a nice function that gets more efficient, for any N.
+
+(defn single-trapezoid [f a b]
+  (* (/ (+ (f a) (f b)) 2.0)
+     (- b a)))
+
 ;; Full sum:
 
 (defn- trapezoid-sum* [f a b]
@@ -87,18 +87,18 @@
 ;; Riemann sums. You can see that in the equation, but lets verify:
 
 #_
-(let [f      (fn [x] (* x x))
-      points (iterate inc 1)
-      [a b]  [0 10]
-
-      left-estimates  (map (@#'qr/left-sum f a b) points)
-      right-estimates (map (@#'qr/right-sum f a b) points)
+(let [points  (iterate inc 1)
+      average (fn [l r]
+                (/ (+ l r) 2))
+      f       (fn [x] (* x x))
+      [a b]   [0 10]
+      left-estimates  (qr/left-sequence f a b points)
+      right-estimates (qr/right-sequence f a b points)
       midpoints       (map (trapezoid-sum f a b) points)]
-  (map - (take 5 midpoints)
-       (take 5 (map (fn [l r]
-                      (/ (+ l r) 2))
-                    left-estimates
-                    right-estimates))))
+  (= (take 5 midpoints)
+     (take 5 (map average
+                  left-estimates
+                  right-estimates))))
 
 ;; Turns out we can definitely make the trapezoid calculation more efficient.
 ;;
@@ -116,11 +116,12 @@
 (defn trapezoid-sum
   "More efficient version of trapezoid summation."
   [f a b]
-  (fn [n]
-    (let [h  (/ (- b a) n)
-          fx (fn [i] (f (+ a (* i h))))]
-      (* h (+ (/ (+ (f a) (f b)) 2)
-              (ua/sum fx 1 n))))))
+  (let [width (- b a)]
+    (fn [n]
+      (let [h  (/ width n)
+            fx (fn [i] (f (+ a (* i h))))]
+        (* h (+ (/ (+ (f a) (f b)) 2)
+                (ua/sum fx 1 n)))))))
 
 ;; Then use this to estimate pi:
 
@@ -161,21 +162,19 @@
 ;;
 ;; Boom, it totally works and re-uses the tricks from before.
 
-(defn trapezoid-stream
+(defn trapezoid-sequence
   ([f a b] (trapezoid-stream f a b 1))
-  ([f a b n0]
+  ([f a b n]
    (let [S      (trapezoid-sum f a b)
          next-S (qr/Sn->S2n f a b)]
-     (if (number? n0)
-       (qr/power-seq S next-S 2 n0)
-       (qr/incrementalize S next-S 2 n0)))))
+     (qr/incrementalize S next-S 2 n))))
 
 ;; Final integrator interface:
 
-(defn integrator
+(defn integral
   ([f a b] (integrator f a b {}))
   ([f a b opts]
-   (let [xs (trapezoid-stream f a b)]
+   (let [xs (trapezoid-sequence f a b)]
      (-> (if (:accelerate? opts)
            (ir/richardson-sequence xs 2 2 2)
            xs)
@@ -188,7 +187,7 @@
   (= {:converged? true
       :terms-checked 13
       :result 3.141592643655686}
-     (integrator f 0 1)))
+     (integral f 0 1)))
 
 ;; Then accelerate:
 
@@ -198,7 +197,7 @@
   (= {:converged? true
       :terms-checked 6
       :result 3.141592653638244}
-     (integrator f 0 1 {:accelerate? true}))
+     (integral f 0 1 {:accelerate? true}))
   @counter)
 
 ;; NOTE
