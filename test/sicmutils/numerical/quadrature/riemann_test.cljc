@@ -140,7 +140,7 @@
         "left-integral converges for sin over 0 => pi.")
 
     (is (ish?
-         {:converged? true
+         {:converged? false
           :terms-checked 14
           :result 10.333533164162947}
          (qr/left-integral g/square 0 Math/PI {:maxterms 14}))
