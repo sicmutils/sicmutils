@@ -200,3 +200,19 @@
       :result 3.141592653638244}
      (integrator f 0 1 {:accelerate? true}))
   @counter)
+
+;; NOTE
+;;
+;; Applying Richardson extrapolation here totally works, as described here:
+;; https://calculus7.org/2015/12/27/richardson-extrapolation-and-midpoint-rule/
+;;
+;; This is called "Romberg Integration".
+;;
+;; OH, so funny... if you go with just the second COLUMN of the polynomial
+;; interpolation methods, you get Simpson's rule!
+;;
+;; Third column of Romberg gives you Boole's rule.
+;;
+;; https://en.wikipedia.org/wiki/Newton%E2%80%93Cotes_formulas#Closed_Newton%E2%80%93Cotes_formulas
+;;
+;; Second column of Midpoint gives you Milne's rule.

@@ -252,7 +252,7 @@
 ;;
 ;; So define a function to grab that:
 
-(defn- first-terms [tableau]
+(defn first-terms [tableau]
   (map first tableau))
 
 ;; the final piece we need is a function that will extract the estimate from our
@@ -302,8 +302,10 @@
 ;; ## Generic Tableau Processing
 ;;
 ;; The above pattern, of processing tableau entries, is general enough that we
-;; can abstract it out into a higher order function that takes a `prepare`,
-;; `merge` and `present` function.
+;; can abstract it out into a higher order function that takes a `prepare` and
+;; `merge` function and generates a tableau. Any method generating a tableau can
+;; use a `present` function to extract the first row, OR to process the tableau
+;; in any other way that they like.
 ;;
 ;; This is necessarily more abstract! But we'll specialize it shortly, and
 ;; rebuild `neville-incremental` into its final form.
@@ -313,7 +315,7 @@
 ;; tableau-fn prepare merge present)`.
 
 (defn tableau-fn
-  "Returns the first row of a Newton-style approximation tableau, given:
+  "Returns a Newton-style approximation tableau, given:
 
   - `prepare`: a fn that processes each element of the supplied `points` into
   the state necessary to calculate future tableau entries.
@@ -329,23 +331,20 @@
   the inputs are of the same form returned by `prepare`. `merge` should return a
   new structure of the same form.
 
-  - `present`: a function of the entire first (lazy) row of the tableau. Use
-  `present` to drop extra aggregation information used in the course of
-  generating tableau entries.
-
   - `points`: the (potentially lazy) sequence of points used to generate the
   first column of the tableau.
   "
-  [prepare merge present points]
+  [prepare merge points]
   (let [next-col (fn [previous-col]
                    (map merge
                         previous-col
-                        (rest previous-col)))
-        tableau (->> (map prepare points)
-                     (iterate next-col)
-                     (take-while seq))]
-    (present
-     (map first tableau))))
+                        (rest previous-col)))]
+    (->> (map prepare points)
+         (iterate next-col)
+         (take-while seq))))
+
+;; Redefine `neville-merge` to make it slightly more efficient, with baked-in
+;; native operations:
 
 (defn- neville-merge
   "Returns a tableau merge function. Identical to `neville-combine-fn` but uses
@@ -356,6 +355,16 @@
                   (* (- xl x) pr))
                (- xl xr))]
       [xl xr p])))
+
+;; And now, `neville`, identical to `neville-incremental*` except using the
+;; generic tableau generator.
+;;
+;; The form of the tableau also makes it easy to select a particular /column/
+;; instead of just the first row. Columns are powerful because they allow you to
+;; successively interpolate between pairs, triplets etc of points, instead of
+;; moving onto very high order polynomials.
+;;
+;; I'm not sure it's the best interface, but we'll add that arity here.
 
 (defn neville
   "Takes:
@@ -368,22 +377,50 @@
   estimate.
 
   Said another way: the Nth in the returned sequence is the estimate using a
-  polynomial generated from the first N points of the input sequence.
+  polynomial generated from the first N points of the input sequence:
+
+  p0 p01 p012 p0123 p01234
 
   This function generates each estimate using Neville's algorithm:
 
   $$P(x) = [(x - x_r) P_l(x) - (x - x_l) P_r(x)] / [x_l - x_r]$$
+
+  ## Column
+
+  If you supply an integer for the third `column` argument, `neville` will
+  return that /column/ of the interpolation tableau instead of the first row.
+  This will give you a sequence of nth-order polynomial approximations taken
+  between point `i` and the next `n` points.
+
+  As a reminder, this is the shape of the tableau:
+
+   p0 p01 p012 p0123 p01234
+   p1 p12 p123 p1234 .
+   p2 p23 p234 .     .
+   p3 p34 .    .     .
+   p4 .   .    .     .
+
+  So supplying a `column` of `1` gives a sequence of linear approximations
+  between pairs of points; `2` gives quadratic approximations between successive
+  triplets, etc.
 
   References:
 
   - Press's Numerical Recipes (p103), chapter 3: http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-1.pdf
   - Wikipedia: https://en.wikipedia.org/wiki/Neville%27s_algorithm
   "
-  [points x]
-  (tableau-fn neville-prepare
-              (neville-merge x)
-              neville-present
-              points))
+  ([points x]
+   (neville-present
+    (first-row
+     (tableau-fn neville-prepare
+                 (neville-merge x)
+                 points))))
+  ([points x column]
+   (-> (tableau-fn neville-prepare
+                   (neville-merge x)
+                   points)
+       (nth column)
+       (neville-present))))
 
 ;; ## Modified Neville
 ;;
@@ -470,6 +507,10 @@
   See the `neville` docstring for usage information, and info about the required
   structure of the arguments.
 
+  The structure of the `modified-neville` algorithm makes it difficult to select
+  a particular column. See `neville` if you'd like to generate polynomial
+  approximations between successive sequences of points.
+
   References:
 
   - \"A comparison of algorithms for polynomial interpolation\", A. Macleod,
@@ -477,10 +518,11 @@
   - Press's Numerical Recipes (p103), chapter 3: http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-1.pdf
   "
   [points x]
-  (tableau-fn mn-prepare
-              (mn-merge x)
-              mn-present
-              points))
+  (mn-present
+   (first-row
+    (tableau-fn mn-prepare
+                (mn-merge x)
+                points))))
 
 ;; ## Folds and Tableaus by Row
 ;;

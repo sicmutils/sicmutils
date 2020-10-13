@@ -182,20 +182,19 @@
   columns."
   ([xs t] (make-tableau xs t (iterate inc 1)))
   ([xs t ps]
-   (iterate (fn [[xs [p & ps]]]
-              [(accelerate-sequence xs t p) ps])
-            [xs ps])))
+   (->> (iterate (fn [[xs [p & ps]]]
+                   [(accelerate-sequence xs t p) ps])
+                 [xs ps])
+        (map first))))
 
 ;; All we really care about are the FIRST terms of each sequence. These
 ;; approximate the sequence's final value with small and smaller error (see the
-;; paper for details:)
-
-(defn- first-terms-of-tableau
-  "The extra `first` inside exists because each tableau column holds the sequence
-  AND the remaining `ps` entries."
-  [tableau]
-  (map (comp first first) tableau))
-
+;; paper for details).
+;;
+;; Polynomial interpolation in `polynomial.cljc` has a similar tableau
+;; structure (not by coincidence!), so we can use `ip/first-terms` in the
+;; implementation below to fetch this first row.
+;;
 ;; Now we can put it all together into a sequence transforming function, with
 ;; nice docs:
 
@@ -256,10 +255,10 @@
   - Wikipedia: https://en.wikipedia.org/wiki/Richardson_extrapolation
   - GJS, 'Abstraction in Numerical Methods': https://dspace.mit.edu/bitstream/handle/1721.1/6060/AIM-997.pdf?sequence=2"
   ([xs t]
-   (first-terms-of-tableau
+   (ip/first-terms
     (make-tableau xs t)))
   ([xs t p-sequence]
-   (first-terms-of-tableau
+   (ip/first-terms
     (make-tableau xs t p-sequence)))
   ([xs t p q]
    (let [arithmetic-p-q (iterate #(+ q %) p)]
@@ -279,6 +278,51 @@
 
 ;; Much faster!
 ;;
+;; ## Richardson Columns
+;;
+;; Richardson extrapolation works by cancelling terms in the error terms of a
+;; function's taylor expansion about `0`. To cancel the nth error term, the nth
+;; derivative has to be defined. Non-smooth functions aren't going to play well
+;; with `richardson-sequence` above.
+;;
+;; The solution is to look at specific /columns/ of the Richardson tableau. Each
+;; column is a sequence with one further error term cancelled.
+;;
+;; `rational.cljc` and `polynomial.cljc` both have this feature in their
+;; tableau-based interpolation functions. The feature here requires a different
+;; function, because the argument vector is a bit crowded already in
+;; `richardson-sequence` above.
+
+(defn richardson-column
+  "Function with an identical interface to `richardson-sequence` above, except for
+  an additional first argument `col`.
+
+  `richardson-column` will return that /column/ offset the interpolation tableau
+  instead of the first row. This will give you a sequence of nth-order
+  Richardson accelerations taken between point `i` and the next `n` points.
+
+  As a reminder, this is the shape of the Richardson tableau:
+
+   p0 p01 p012 p0123 p01234
+   p1 p12 p123 p1234 .
+   p2 p23 p234 .     .
+   p3 p34 .    .     .
+   p4 .   .    .     .
+
+  So supplying a `column` of `1` gives a single acceleration by combining points
+  from column 0; `2` kills two terms from the error sequence, etc.
+
+  NOTE Given a better interface for `richardson-sequence`, this function could
+  be merged with that function."
+  ([col xs t]
+   (nth (make-tableau xs t) col))
+  ([col xs t p-seq]
+   (nth (make-tableau xs t p-seq) col))
+  ([col xs t p q]
+   (let [arithmetic-p-q (iterate #(+ q %) p)]
+     (richardson-column col xs t arithmetic-p-q))))
+
+
 ;; ## Richardson Extrapolation and Polynomial Extrapolation
 ;;
 ;; It turns out that the Richardson extrapolation is a special case of
