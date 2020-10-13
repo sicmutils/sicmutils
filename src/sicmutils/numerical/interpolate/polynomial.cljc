@@ -411,7 +411,7 @@
   "
   ([points x]
    (neville-present
-    (first-row
+    (first-terms
      (tableau-fn neville-prepare
                  (neville-merge x)
                  points))))
@@ -519,7 +519,7 @@
   "
   [points x]
   (mn-present
-   (first-row
+   (first-terms
     (tableau-fn mn-prepare
                 (mn-merge x)
                 points))))
