@@ -1,0 +1,301 @@
+;;
+;; Copyright © 2020 Sam Ritchie.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
+
+(ns sicmutils.numerical.quadrature.trapezoid
+  "Trapezoid method."
+  (:require [sicmutils.numerical.quadrature.riemann :as qr]
+            [sicmutils.numerical.interpolate.richardson :as ir]
+            [sicmutils.function :as f]
+            [sicmutils.generic :as g]
+            [sicmutils.util :as u]
+            [sicmutils.util.aggregate :as ua]
+            [sicmutils.util.stream :as us]))
+
+;; ## The Trapezoid Method
+;;
+;; This namespace builds on the ideas introduced in `riemann.cljc` and
+;; `midpoint.cljc`, and follows the pattern of those namespaces:
+;;
+;; - implement a simple, easy-to-understand version of the Trapezoid method
+;; - make the computation more efficient
+;; - write an incremental version that can reuse prior results
+;; - wrap everything up behind a nice, exposed API
+;;
+;; Let's begin.
+;;
+;; ## Simple Implementation
+;;
+;; A nice integration scheme related to the Midpoint method is the "Trapezoid"
+;; method. The idea here is to estimate the area of each slice by fitting a
+;; trapezoid between the function values at the left and right sides of the
+;; slice.
+;;
+;; Alternatively, you can think of drawing a line between $f(x_l)$ and $f(x_r)$
+;; and taking the area under the line.
+;;
+;; What's the area of a trapezoid? The two slice endpoints are
+;;
+;; - $(x_l, f(x_l))$ and
+;; - $(x_r, f(x_r))$
+;;
+;; The trapezoid consists of a lower rectangle and a capping triangle. The lower
+;; rectangle's area is:
+;;
+;; $$(b - a) f(a)$$.
+;;
+;; Just like in the left Riemann sum. The upper triangle's area is one half base
+;; times height:
+;;
+;; $$ {1 \over 2} (x_r - x_l) (f(x_r) - f(x_l))$$
+;;
+;; The sum of these simplifies to:
+;;
+;; $${1 \over 2} {(x_r - x_l) (f(x_l) + f(x_r))}$$
+;;
+;; Or, in Clojure:
+
+(defn- single-trapezoid [f xl xr]
+  (g// (g/* (g/- xr xl)
+            (g/+ (f xl) (f xr)))
+       2.0))
+
+;; We can use the symbolic algebra facilities in the library to show that this
+;; simplification is valid:
+
+#_
+(let [f (f/literal-function 'f)
+      square    (g/* (f 'x_l)
+                     (g/- 'x_r 'x_l))
+      triangle  (g/* (g// 1 2)
+                     (g/- 'x_r 'x_l)
+                     (g/- (f 'x_r) (f 'x_l)))]
+  (zero?
+   (g/simplify
+    (g/- (single-trapezoid f 'x_l 'x_r)
+         (g/+ square triangle)))))
+;; => true
+
+;; We can use `qr/windowed-sum` to turn this function into an (inefficient)
+;; integrator:
+
+(defn- trapezoid-sum* [f a b]
+  (qr/windowed-sum (partial single-trapezoid f)
+                   a b))
+
+;; Fitting triangles is easy:
+
+#_
+(= (* 0.5 10 10)
+   ((trapezoid-sum* identity 0.0 10.0) 10))
+
+;; In fact, we can even use our estimator to estimate $\pi$:
+
+(def ^:private pi-estimator*
+  (let [f (fn [x] (/ 4 (+ 1 (* x x))))]
+    (trapezoid-sum* f 0.0 1.0)))
+
+;; The accuracy is not bad, for 10 slices:
+
+#_
+(= 3.1399259889071587
+   (pi-estimator* 10))
+
+#_
+(- Math/PI (pi-estimator* 10))
+;; => 0.0016666646826344333
+
+;; 10000 slices gets us closer:
+
+#_
+(< (- Math/PI (pi-estimator* 10000))
+   1e-8)
+
+;; Fun fact: the trapezoid method is equal to the /average/ of the left and
+;; right Riemann sums. You can see that in the equation, but lets verify:
+
+(defn- basically-identical? [l-seq r-seq]
+  (every? #(< % 1e-15)
+          (map - l-seq r-seq)))
+
+#_
+(let [points  (take 5 (iterate inc 1))
+      average (fn [l r]
+                (/ (+ l r) 2))
+      f       (fn [x] (/ 4 (+ 1 (* x x))))
+      [a b]   [0 1]
+      left-estimates  (qr/left-sequence f a b points)
+      right-estimates (qr/right-sequence f a b points)]
+  (basically-identical? (map (trapezoid-sum f a b) points)
+                        (map average
+                             left-estimates
+                             right-estimates)))
+
+;; ## Efficient Trapezoid Method
+;;
+;; Next let's attempt a more efficient implementation. Looking at
+;; `single-trapezoid`, it's clear that each slice evaluates both of its
+;; endpoints. This means that each point on a border between two slices earns a
+;; contribution of $f(x) \over 2$ from each slice.
+;;
+;; A more efficient implementation would evaluate both endpoints once and then
+;; sum (without halving) each interior point.
+;;
+;; This interior sum is identical to a left Riemann sum (without the $f(a)$
+;; evaluation), or a right Riemann sum (without $f(b)$).
+;;
+;; Here is this idea implemented in Clojure:
+
+(defn trapezoid-sum
+  "Returns a function of `n`, some number of slices of the total integration
+  range, that returns an estimate for the definite integral of $f$ over the
+  range $(a, b)$ using the trapezoid method."
+  [f a b]
+  (let [width (- b a)]
+    (fn [n]
+      (let [h  (/ width n)
+            fx (fn [i] (f (+ a (* i h))))]
+        (* h (+ (/ (+ (f a) (f b)) 2)
+                (ua/sum fx 1 n)))))))
+
+;; We can define a new `pi-estimator` and check it against our less efficient
+;; version:
+
+(def ^:private pi-estimator
+  (let [f (fn [x] (/ 4 (+ 1 (* x x))))]
+    (trapezoid-sum* f 0.0 1.0)))
+
+#_
+(basically-identical?
+ (map pi-estimator (range 1 100))
+ (map pi-estimator* (range 1 100)))
+;; => true
+
+;; ## Incremental Trapezoid Rule
+;;
+;; Next let's develop an incremental updater for the Trapezoid rule that lets us
+;; reuse evaluation points as we increase the number of slices.
+;;
+;; Because interior points of the Trapezoid method mirror the interior points of
+;; the left and right Riemann sums, we can piggyback on the incremental
+;; implementations for those two methods in developing an incremental Trapezoid
+;; implementation.
+;;
+;; Consider the evaluation points of the trapezoid method with 2 slices, next to
+;; the points of a 4 slice pass:
+;;
+;; x-------x-------x
+;; x---x---x---x---x
+;;
+;; The new points are simply the /midpoints/ of the existing slices, just like
+;; we had for the left (and right) Riemann sums. This means that we can reuse
+;; `qr/Sn->S2n` in our definition of the incrementally-enabled
+;; `trapezoid-sequence`:
+
+(defn trapezoid-sequence
+  "Returns a (lazy) sequence of successively refined estimates of the integral of
+  `f` over the open interval $(a, b)$ using the Trapezoid method.
+
+  If `n` is a number, returns estimates with $n, 2n, 4n, ...$ slices,
+  geometrically increasing by a factor of 2 with each estimate.
+
+  If `n` is a sequence, the resulting sequence will hold an estimate for each
+  integer number of slices in that sequence."
+  ([f a b] (trapezoid-sequence f a b 1))
+  ([f a b n]
+   (let [S      (trapezoid-sum f a b)
+         next-S (qr/Sn->S2n f a b)]
+     (qr/incrementalize S next-S 2 n))))
+
+;; The following example shows that for the sequence $2, 3, 4, 6, ...$ (used in
+;; the Bulirsch-Stoer method!), the incrementally-augmented `trapezoid-sequence`
+;; only performs 162 function evaluations, vs the 327 of the non-incremental
+;; `(trapezoid-sum f2 0 1)` mapped across the points.
+;;
+;; This is a good bit more efficient than the Midpoint method's incremental
+;; savings, since factors of 2 come up more often than factors of 3.
+
+#_
+(let [f (fn [x] (/ 4 (+ 1 (* x x))))
+      [counter1 f1] (u/counted f)
+      [counter2 f2] (u/counted f)
+      n-seq (take 12 (interleave
+                      (iterate (fn [x] (* 2 x)) 2)
+                      (iterate (fn [x] (* 2 x)) 3)))]
+  (doall (trapezoid-sequence f1 0 1 n-seq))
+  (doall (map (trapezoid-sum f2 0 1) n-seq))
+  (= [162 327]
+     [@counter1 @counter2]))
+
+;; Final Trapezoid API:
+;;
+;; The final version is analogous the `qr/left-integral` and friends, including
+;; an option to `:accelerate?` the final sequence with Richardson
+;; extrapolation. (Accelerating the trapezoid method in this way is
+;; called "Romberg integration".)
+;;
+;; ### Note on Richardson Extrapolation
+;;
+;; The terms of the error series for the Trapezoid method increase as $h^2, h^4,
+;; h^6$... (see https://en.wikipedia.org/wiki/Trapezoidal_rule#Error_analysis).
+;; Because of this, we pass $p = q = 2$ into `ir/richardson-sequence` below.
+;; Additionally, `integral` hardcodes the factor of `2` and doesn't currently
+;; allow for a custom sequence of $n$. This requires passing $t = 2$ into
+;; `ir/richardson-sequence`.
+;;
+;; If you want to accelerate some other geometric sequence, call
+;; `ir/richardson-sequence` with some other value of `t.`
+;;
+;; To accelerate an arbitrary sequence of trapezoid evaluations, investigate
+;; `polynomial.cljc` or `rational.cljc`. The "Bulirsch-Stoer" method uses either
+;; of these to extrapolate the Trapezoid method using a non-geometric sequence.
+
+(defn integral
+  "Returns an estimate of the integral of `f` over the open interval $(a, b)$
+  using the Trapezoid method with $1, 2, 4 ... 2^n$ windows for each estimate.
+
+  Optionally accepts `opts`, a dict of optional arguments. All of these get
+  passed on to `us/seq-limit` to configure convergence checking.
+
+  `opts` entries that configure integral behavior:
+
+  `:accelerate?`: if true, use Richardson extrapolation to accelerate
+  convergence. (This combination of Trapezoid method and Richardson
+  extrapolation is called 'Romberg integration'.) If false, attempts to converge
+  directly."
+  ([f a b] (integral f a b {}))
+  ([f a b opts]
+   (let [xs (trapezoid-sequence f a b)]
+     (-> (if (:accelerate? opts)
+           (ir/richardson-sequence xs 2 2 2)
+           xs)
+         (us/seq-limit opts)))))
+
+;; ## Next Steps
+;;
+;; If you start with the trapezoid method, one single step of Richardson
+;; extrapolation (taking the second column of the Richardson tableau) is
+;; equivalent to "Simpson's rule". Two steps of Richardson extrapolation gives
+;; you "Boole's rule".
+;;
+;; These methods will appear in their respective namespaces in the `quadrature`
+;; package.
+;;
+;; See the wikipedia entry on [Closed Newton-Cotes
+;; Formulas](https://en.wikipedia.org/wiki/Newton%E2%80%93Cotes_formulas#Closed_Newton%E2%80%93Cotes_formulas)
+;; for more details.
