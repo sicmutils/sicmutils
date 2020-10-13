@@ -195,7 +195,7 @@
 
 (defn central-difference-d2
   "Returns a single-variable function of a step size `h` that calculates the
-  backward-difference estimate of the second derivative of `f` at point `x`:
+  central-difference estimate of the second derivative of `f` at point `x`:
 
   f''(x) = [f(x + h) - 2f(x) + f(x - h)] / h^2
 

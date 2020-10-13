@@ -42,6 +42,14 @@
                 (-> (ir/richardson-sequence pi-seq 2 2 2)
                     (us/seq-limit {:tolerance v/machine-epsilon}))))
 
+      (is (ish? {:converged? false
+                 :terms-checked 3
+                 :result 3.1415903931299374}
+                (-> (take 3 pi-seq)
+                    (ir/richardson-sequence 2 2 2)
+                    (us/seq-limit {:tolerance v/machine-epsilon})))
+          "richardson-sequence bails if the input sequence runs out of terms.")
+
       (is (ish? [2.8284271247461903
                  3.1391475703122276
                  3.1415903931299374

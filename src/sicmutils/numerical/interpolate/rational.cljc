@@ -114,12 +114,31 @@
   The implementation follows Equation 3.2.3 on on page 105 of Press:
   http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-2.pdf.
 
+  ## Column
+
+  If you supply an integer for the third (optional) `column` argument,
+  `bulirsch-stoer` will return that /column/ offset the interpolation tableau
+  instead of the first row. This will give you a sequence of nth-order
+  polynomial approximations taken between point `i` and the next `n` points.
+
+  As a reminder, this is the shape of the tableau:
+
+   p0 p01 p012 p0123 p01234
+   p1 p12 p123 p1234 .
+   p2 p23 p234 .     .
+   p3 p34 .    .     .
+   p4 .   .    .     .
+
+  So supplying a `column` of `1` gives a sequence of 2-point approximations
+  between pairs of points; `2` gives 3-point approximations between successive
+  triplets, etc.
+
   References:
 
     - Stoer & Bulirsch, 'Introduction to Numerical Analysis': https://www.amazon.com/Introduction-Numerical-Analysis-Applied-Mathematics/dp/144193006X
     - PDF of the same: http://www.math.uni.wroc.pl/~olech/metnum2/Podreczniki/(eBook)%20Introduction%20to%20Numerical%20Analysis%20-%20J.Stoer,R.Bulirsch.pdf
     - Press's Numerical Recipes (p105), Section 3.2 http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-2.pdf"
-  [points x]
+  [points x & [column]]
   (let [prepare (fn [[x fx]] [x x 0 fx])
         merge   (fn [[xl _ _ rl] [_ xr rc rr]]
                   (let [p  (- rr rl)
@@ -128,8 +147,12 @@
                                (* (- 1 (/ p (- rr rc))))
                                (- 1))]
                     [xl xr rl (+ rr (/ p q))]))
-        present (fn [row] (map (fn [[_ _ _ r]] r) row))]
-    (ip/tableau-fn prepare merge present points)))
+        present (fn [row] (map (fn [[_ _ _ r]] r) row))
+        tableau (ip/tableau-fn prepare merge points)]
+    (present
+     (if column
+       (nth tableau column)
+       (ip/first-terms tableau)))))
 
 ;; ## Incremental Bulirsch-Stoer
 ;;
@@ -189,10 +212,11 @@
 
    - Press's Numerical Recipes (p105), Section 3.2 http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-2.pdf"
   [points x]
-  (ip/tableau-fn bs-prepare
-                 (bs-merge x)
-                 ip/mn-present
-                 points))
+  (ip/mn-present
+   (ip/first-terms
+    (ip/tableau-fn bs-prepare
+                   (bs-merge x)
+                   points))))
 
 ;; ## Rational Interpolation as a Fold
 ;;
