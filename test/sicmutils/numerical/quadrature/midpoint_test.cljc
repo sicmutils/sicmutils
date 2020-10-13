@@ -57,11 +57,11 @@
       (is (ish? {:converged? true
                  :terms-checked 9
                  :result 3.141592655525674}
-                (qm/integrator f 0 1))
+                (qm/integral f 0 1))
           "convergence happens fairly fast!")
 
       (is (ish? {:converged? true
                  :terms-checked 5
                  :result 3.141592653582428}
-                (qm/integrator f 0 1 {:accelerate? true}))
+                (qm/integral f 0 1 {:accelerate? true}))
           "convergence happens faster when accelerated."))))

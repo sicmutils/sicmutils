@@ -47,6 +47,10 @@
             sicmutils.numerical.interpolate.rational-test
             sicmutils.numerical.interpolate.richardson-test
 
+            sicmutils.numerical.quadrature.midpoint-test
+            sicmutils.numerical.quadrature.riemann-test
+            sicmutils.numerical.quadrature.trapezoid-test
+
             sicmutils.numerical.unimin.bracket-test
             sicmutils.numerical.unimin.brent-test
             sicmutils.numerical.unimin.golden-test
@@ -104,6 +108,10 @@
            'sicmutils.numerical.interpolate.polynomial-test
            'sicmutils.numerical.interpolate.rational-test
            'sicmutils.numerical.interpolate.richardson-test
+
+           'sicmutils.numerical.quadrature.midpoint-test
+           'sicmutils.numerical.quadrature.riemann-test
+           'sicmutils.numerical.quadrature.trapezoid-test
 
            'sicmutils.numerical.unimin.bracket-test
            'sicmutils.numerical.unimin.brent-test

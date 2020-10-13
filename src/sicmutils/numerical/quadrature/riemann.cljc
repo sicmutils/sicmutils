@@ -391,7 +391,7 @@
   n0, 2n0, 4n0, ...
 
   slices."
-  ([f a b] (left-sequence f a b 1))
+  ([f a b] (left-sequence** f a b 1))
   ([f a b n0]
    (geometric-estimate-seq (left-sum f a b)
                            (Sn->S2n f a b)

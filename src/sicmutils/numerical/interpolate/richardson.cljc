@@ -185,7 +185,8 @@
    (->> (iterate (fn [[xs [p & ps]]]
                    [(accelerate-sequence xs t p) ps])
                  [xs ps])
-        (map first))))
+        (map first)
+        (take-while seq))))
 
 ;; All we really care about are the FIRST terms of each sequence. These
 ;; approximate the sequence's final value with small and smaller error (see the

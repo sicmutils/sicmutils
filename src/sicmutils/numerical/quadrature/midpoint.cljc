@@ -154,7 +154,7 @@
 
   If `n` is a sequence, the resulting sequence will hold an estimate for each
   integer number of slices in that sequence."
-  ([f a b] (midpoint-stream f a b 1))
+  ([f a b] (midpoint-sequence f a b 1))
   ([f a b n]
    (let [S      (qr/midpoint-sum f a b)
          next-S (Sn->S3n f a b)]
@@ -162,7 +162,7 @@
 
 ;; The following example shows that for the sequence $2, 3, 4, 6, ...$ (used in
 ;; the Bulirsch-Stoer method!), the incrementally-augmented `midpoint-sequence`
-;; only performs 253 function evaluations, vs the `315` of the non-incremental
+;; only performs 253 function evaluations, vs the 315 of the non-incremental
 ;; `(midpoint-sum f2 0 1)` mapped across the points.
 
 #_
@@ -217,7 +217,7 @@
 
   `:accelerate?`: if true, use Richardson extrapolation to accelerate
   convergence. If false, attempts to converge directly."
-  ([f a b] (midpoint-integral f a b {}))
+  ([f a b] (integral f a b {}))
   ([f a b opts]
    (let [estimates (midpoint-sequence f a b)]
      (-> (if (:accelerate? opts)
