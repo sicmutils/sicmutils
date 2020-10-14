@@ -70,10 +70,10 @@
 ;;
 ;; Or, in Clojure:
 
-(defn- single-trapezoid [f xl xr]
+(defn single-trapezoid [f xl xr]
   (g// (g/* (g/- xr xl)
             (g/+ (f xl) (f xr)))
-       2.0))
+       2))
 
 ;; We can use the symbolic algebra facilities in the library to show that this
 ;; simplification is valid:

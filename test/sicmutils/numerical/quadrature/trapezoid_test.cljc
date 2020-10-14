@@ -49,7 +49,7 @@
           [a b]   [0 1]
           left-estimates  (qr/left-sequence f a b points)
           right-estimates (qr/right-sequence f a b points)]
-      (ish? (map (qt/trapezoid-sum f a b) points)
+      (ish? (qt/trapezoid-sequence f a b points)
             (map average
                  left-estimates
                  right-estimates))))
