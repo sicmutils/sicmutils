@@ -33,9 +33,7 @@
 (defn boole-step
   "Implements a single step of Boole's method, as laid out in the [Wikipedia
   entry on Newton Cotes
-  formulas](https://en.wikipedia.org/wiki/Newton%E2%80%93Cotes_formulas#Closed_Newton%E2%80%93Cotes_formulas).
-  This is equivalent to fitting a quadratic to the $a$, $b$ and the midpoint
-  using the values of $f$ at each point."
+  formulas](https://en.wikipedia.org/wiki/Newton%E2%80%93Cotes_formulas#Closed_Newton%E2%80%93Cotes_formulas)."
   [f a b]
   (let [h     (/ (- b a) 4)
         mid   (/ (+ a b) 2)

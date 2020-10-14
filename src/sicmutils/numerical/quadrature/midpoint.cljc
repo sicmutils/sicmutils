@@ -20,6 +20,7 @@
 (ns sicmutils.numerical.quadrature.midpoint
   (:require [sicmutils.numerical.interpolate.richardson :as ir]
             [sicmutils.numerical.quadrature.riemann :as qr]
+            [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
             [sicmutils.util.stream :as us]))
@@ -57,11 +58,11 @@
 ;; Here's an implementation of a function that can take the midpoint of a single
 ;; slice:
 
-(defn- single-midpoint [f a b]
-  (let [width      (- b a)
-        half-width (/ width 2.0)
-        midpoint   (+ a half-width)]
-    (* width (f midpoint))))
+(defn single-midpoint [f a b]
+  (let [width      (g/- b a)
+        half-width (g// width 2)
+        midpoint   (g/+ a half-width)]
+    (g/* width (f midpoint))))
 
 ;; And a full (though inefficient) integrator using `windowed-sum`:
 
