@@ -72,7 +72,7 @@
   (testing "Milne's rule converges, and the interface works properly. (Milne
   never evaluates the endpoints!)"
     (let [pi-test (fn [x]
-                    (case x
+                    (condp = x
                       0 (u/illegal "Zero!!")
                       1 (u/illegal "One!")
                       (/ 4 (+ 1 (* x x)))))]
