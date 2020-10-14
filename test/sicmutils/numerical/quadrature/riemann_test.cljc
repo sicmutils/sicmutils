@@ -189,10 +189,9 @@
   (testing "upper-integral"
     (is (ish?
          {:converged? true
-          :terms-checked 13
-          :result 1.9999999999999998}
+          :terms-checked #?(:cljs 15 :clj 13)
+          :result 2}
          (qr/upper-integral
           g/sin 0 Math/PI {:accelerate? true
                            :tolerance v/machine-epsilon}))
-        "upper-integral does not QUITE converge to the correct value for sin
-        over 0 => pi.")))
+        "upper-integral converges, with slightly different speeds on CLJS vs Clojure (at machine epsilon!).")))
