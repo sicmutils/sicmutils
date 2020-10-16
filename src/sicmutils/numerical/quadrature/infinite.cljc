@@ -34,45 +34,69 @@
 ;; If you find it, please submit an issue!
 
 (defn- fill-defaults
+  "Populates the supplied `opts` dictionary with defaults required by
+  `evaluate-infinite-integral`."
   [opts]
-  (merge {:infinite-breakpoint 1}
-         opts))
+  (assoc opts :infinite-breakpoint 1))
 
 (defn evaluate-infinite-integral
-  "Handles all integrals with an infinite endpoint. I think there are a lot of
-  fuckups going on here. You really want to be able to control WHAT method is
-  getting used inside for the pieces... well, to a point. but right now we
-  hardcode a LOT in here. This is not great design.
+  "Accepts:
 
-  DONE In the Press book, he shows how you can basically just replace... the
-  endpoints, etc, in the midpoint routine and get everything working out of the
-  box. That is definitely a WAY clearer way to do things - handle the variable
-  change with a wrapper to the entire midpoint function, the entire open-open
-  function itself, not doing it so weird and ad hoc here.
+  - A function `integrator` of `f`, `a`, `b` and `opts`
+  - `a` and `b`, the endpoints of an integration interval, and
+  - (optionally) `opts`, a dict of integrator-configuring options
 
-  :breakpoint Where should you choose the breakpoint? At a sufficiently large
-  positive value so that the function funk is at least beginning to approach its
-  asymptotic decrease to zero value at infinity. The polynomial extrapolation
-  implicit in the second call to qromo deals with a polynomial in 1/x, not in
-  x."
+  And evaluates the integral of `f` across $(a, b)$.
+
+  If either `a` or `b` is equal to `##Inf` or `##-Inf`, this function will
+  internally perform a change of variables on the regions from:
+
+  `(:infinite-breakpoint opts) => ##Inf`
+
+  or
+
+  `##-Inf => (- (:infinite-breakpoint opts))`
+
+  using $u(t) = {1 \\over t}$, as described in the `infinitize` method of
+  `substitute.cljc`.
+
+  This has the effect of mapping the infinite endpoint to an open interval
+  endpoint of 0.
+
+  Optional arguments:
+
+  `:infinite-breakpoint`: specifies both the positive and negative breakpoints
+  used to split $(a, b)$ if either endpoint is infinite.
+
+  All other arguments in `opts` are passed on to the `integrator` argument,
+  where they govern sequence convergence.
+
+  Where should you choose the breakpoint? According to Press in Numerical
+  Recipes, section 4.4: \"At a sufficiently large positive value so that the
+  function funk is at least beginning to approach its asymptotic decrease to
+  zero value at infinity.\"
+
+  References:
+  - Press's Numerical Recipes (p138), Section 4.4: http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf
+  "
   ([integrator f a b]
    (evaluate-infinite-integral integrator f a b {}))
   ([integrator f a b opts]
-   {:pre [(or (qc/infinite? a)
-              (qc/infinite? b))]}
    (let [{:keys [breakpoint] :as opts} (fill-defaults opts)
          call (fn [integrate l r lr-interval]
                 (let [m (qc/with-interval opts lr-interval)]
-                  (integrate f l r m)))
+                  (:result
+                   (integrate f l r m))))
          ab-interval   (qc/interval opts)
          integrate     (partial call integrator)
          inf-integrate (partial call (qs/infinitize integrate))
-         r-break  (Math/abs breakpoint)
-         l-break  (- r-break)]
+         r-break       (Math/abs breakpoint)
+         l-break       (- r-break)]
      (match [[a b]]
-            [(:or [##-Inf ##-Inf]
-                  [##Inf ##Inf])]
-            0.0
+            [(:or [##-Inf ##-Inf] [##Inf ##Inf])]
+            {:converged? true
+             :terms-checked 0
+             :result 0.0}
 
             [(:or [_ ##-Inf] [##Inf _])]
             (- (evaluate-infinite-integral f b a opts))
@@ -86,18 +110,33 @@
             (let [-inf->l (inf-integrate a l-break qc/open-closed)
                   l->r    (integrate     l-break r-break qc/closed)
                   r->+inf (inf-integrate r-break b qc/closed-open)]
-              (+ -inf->l l->r r->+inf))
+              {:converged? true
+               :result (+ -inf->l l->r r->+inf)})
 
+            ;; If `b` lies to the left of the negative breakpoint, don't cut.
+            ;; Else, cut the integral into two pieces at the negative breakpoint
+            ;; and variable-change the left piece.
             [[##-Inf _]]
             (if (<= b l-break)
               (inf-integrate a b ab-interval)
               (let [-inf->l (inf-integrate a l-break qc/open-closed)
                     l->b    (integrate     l-break b (qc/close-l ab-interval))]
-                (+ -inf->l l->b)))
+                {:converged? true
+                 :result (+ -inf->l l->b)}))
 
+            ;; If `a` lies to the right of the positive breakpoint, don't cut.
+            ;; Else, cut the integral into two pieces at the positive breakpoint
+            ;; and variable-change the right piece.
             [[_ ##Inf]]
             (if (>= a r-break)
               (inf-integrate a b ab-interval)
               (let [a->r    (integrate     a r-break (qc/close-r ab-interval))
                     r->+inf (inf-integrate r-break b qc/closed-open)]
-                (+ a->r r->+inf)))))))
+                {:converged? true
+                 :result (+ a->r r->+inf)}))
+
+            ;; This is a lot of machinery to use with NON-infinite endpoints;
+            ;; but for completeness, if you reach this level the fn will attempt
+            ;; to integrate the full range directly using the original
+            ;; integrator.
+            :else (integrator f a b opts)))))
