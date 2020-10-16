@@ -93,8 +93,7 @@
   [area-fn a b]
   (fn [n]
     (let [width       (/ (- b a) n)
-          grid-points (concat (range a b width)
-                              (lazy-seq [b]))]
+          grid-points (range a (+ b width) width)]
       (ua/sum
        (map area-fn grid-points (rest grid-points))))))
 
