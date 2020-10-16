@@ -69,7 +69,6 @@
 ;; $${1 \over 2} {(x_r - x_l) (f(x_l) + f(x_r))}$$
 ;;
 ;; Or, in Clojure:
-
 (defn single-trapezoid [f xl xr]
   (g// (g/* (g/- xr xl)
             (g/+ (f xl) (f xr)))

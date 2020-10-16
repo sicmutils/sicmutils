@@ -75,19 +75,26 @@
                         (if (qc/closed? interval)
                           (closed-integrator f l r opts)
                           (open-integrator f l r opts)))]
-        (loop [sum   (ua/kahan-sum)
-               stack [[a b (:interval opts)]]]
+        (loop [stack [[a b (:interval opts)]]
+               sum   (ua/kahan-sum)
+               iteration 0]
           (if (empty? stack)
-            (first sum)
+            {:converged? true
+             :iterations iteration
+             :result (first sum)}
             (let [[l r interval] (peek stack)
                   remaining      (pop stack)
                   {:keys [converged? result]} (integrate l r interval)]
               (if converged?
-                (recur (ua/kahan-sum sum result) remaining)
+                (recur remaining
+                       (ua/kahan-sum sum result)
+                       (inc iteration))
                 (let [midpoint (split-point l r (:fuzz-factor opts))]
-                  (recur sum (conj remaining
-                                   [midpoint r (qc/close-l interval)]
-                                   [l midpoint (qc/close-r interval)]))))))))))))
+                  (recur (conj remaining
+                               [midpoint r (qc/close-l interval)]
+                               [l midpoint (qc/close-r interval)])
+                         sum
+                         (inc iteration))))))))))))
 
 
 ;; Example:

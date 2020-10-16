@@ -18,18 +18,51 @@
 ;;
 
 (ns sicmutils.numerical.quadrature.substitute
+  "## U Substitution and Variable Changes
+
+  This namespace provides implementations of functions that accept an
+  `integrator` and perform a variable change to address some singularity, like
+  an infinite endpoint, in the definite integral.
+
+  The strategies currently implemented were each described by Press, et al. in
+  section 4.4 of ['Numerical
+  Recipes'](http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf)."
   (:require [clojure.core.match :refer [match]]
             [sicmutils.numerical.quadrature.common :as qc]))
 
-;; Simpler version of `evaluate-improper-integral`, from Press, et al.
-;; http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf
+;; ## Infinite Endpoints
 ;;
-;; TODO flip the integral bounds inside `opts` when we change variables... for
-;; all of these!
+;; This first function, `infinitize`, transforms some integrator into a new
+;; integrator with the same interface that can handle an infinite endpoint.
+;;
+;; This implementation can only handle one endpoint at a time, and, the way it's
+;; written, both endpoints have to have the same sign. For an easier interface
+;; to this transformation, see `infinite/evaluate-infinite-integral` in
+;; `infinite.cljc`.
 
 (defn infinitize
-  "The returned function definitely requires that `a` and `b` have the same sign.
-  add a precondition!"
+  "Performs a variable substitution targeted at turning a single infinite endpoint
+  of an improper integral evaluation an (open) endpoint at 0 by applying the
+  following substitution:
+
+  $$u(t) = {1 \\over t}$$ $$du = {-1 \\over t^2}$$
+
+  This works when the integrand `f` falls off at least as fast as $1 \\over t^2$
+  as it approaches the infinite limit.
+
+  The returned function requires that `a` and `b` have the same sign, ie:
+
+  $$ab > 0$$
+
+  Transform the bounds with $u(t)$, and cancel the negative sign by changing
+  their order:
+
+  $$\\int_{a}^{b} f(x) d x=\\int_{1 / b}^{1 / a} \\frac{1}{t^{2}} f\\left(\\frac{1}{t}\\right) dt$$
+
+  References:
+
+  - Mathworld, \"Improper Integral\": https://mathworld.wolfram.com/ImproperIntegral.html
+  - Press, Numerical Recipes, Section 4.4: http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf"
   [integrate]
   (fn [f a b opts]
     {:pre [(not
@@ -38,15 +71,51 @@
     (let [f' (fn [t]
                (/ (f (/ 1.0 t))
                   (* t t)))
-          a' (if (qc/infinite? b) 0.0 (/ 1.0 a))
-          b' (if (qc/infinite? a) 0.0 (/ 1.0 a))]
+          a' (if (qc/infinite? b) 0.0 (/ 1.0 b))
+          b' (if (qc/infinite? a) 0.0 (/ 1.0 a))
+          opts (qc/update-interval opts qc/flip)]
       (integrate f' a' b' opts))))
 
-(defn- power-law-change
-  "To deal with an integral that has an integrable power-law singularity at its
-  lower/upper limit, one also makes a change of variable."
+;; ## Power Law Singularities
+;;
+;; "To deal with an integral that has an integrable power-law singularity at its
+;; lower limit, one also makes a change of variable." (Press, p138)
+;;
+;; A "power-law singularity" means that the integrand diverges as $(x -
+;; a)^{-\gamma}$ near $x=a$.
+;;
+;; We implement the following identity (from Press) if the singularity occurs at
+;; the lower limit:
+;;
+;; $$\int_{a}^{b} f(x) d x=\frac{1}{1-\gamma} \int_{0}^{(b-a)^{1-\gamma}} t^{\frac{\gamma}{1-\gamma}} f\left(t^{\frac{1}{1-\gamma}}+a\right) d t \quad(b>a)$$
+;;
+;; And this similar identity if the singularity occurs at the upper limit:
+;;
+;;$$\int_{a}^{b} f(x) d x=\frac{1}{1-\gamma} \int_{0}^{(b-a)^{1-\gamma}} t^{\frac{\gamma}{1-\gamma}} f\left(b-t^{\frac{1}{1-\gamma}}\right) d t \quad(b>a)$$
+;;
+;; If you have singularities at both sides, divide the interval at some interior
+;; breakpoint, take separate integrals for both sides and add the values back
+;; together.
+
+(defn- power-law
+  "Implements a change of variables to address a power law singularity at the
+  lower or upper integration endpoint.
+
+  A \"power law singularity\" means that the integrand diverges as
+
+  $$(x - a)^{-\\gamma}$$
+
+  near $x=a$. Passing true for `lower?` to specify a singularity at the lower
+  endpoint, false to signal an upper-endpoint singularity.
+
+  References:
+
+  - Mathworld, \"Improper Integral\": https://mathworld.wolfram.com/ImproperIntegral.html
+  - Press, Numerical Recipes, Section 4.4: http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf
+  - Wikipedia, \"Finite-time Singularity\": https://en.wikipedia.org/wiki/Singularity_(mathematics)#Finite-time_singularity
+  "
   [integrate gamma lower?]
-  {:pre [(and (<= 0 gamma) (< gamma 1))]}
+  {:pre [(<= 0 gamma 1)]}
   (fn [f a b opts]
     (let [inner-pow (/ 1.0   (- 1 gamma))
           gamma-pow (/ gamma (- 1 gamma))
@@ -58,26 +127,96 @@
           f' #(* gamma-pow (f (t->t' %)))]
       (* inner-pow (integrate f' a' b' opts)))))
 
-(defn power-law-lower
-  "Change of variables for singularity on the lower side."
-  [integrate gamma]
-  (power-law-change integrate gamma true))
+(defn inverse-power-law-lower
+  "Implements a change of variables to address a power law singularity at the
+  lower integration endpoint.
 
-(defn power-law-upper
-  "Change of variables for singularity on the upper side."
-  [integrate gamma]
-  (power-law-change integrate gamma false))
+  A \"power law singularity\" means that the integrand diverges as
 
-(defn inv-square-lower
-  "Change of variables for singularity on the lower side."
+  $$(x - a)^{-\\gamma}$$
+
+  near $x=a$.
+
+  References:
+
+  - Mathworld, \"Improper Integral\": https://mathworld.wolfram.com/ImproperIntegral.html
+  - Press, Numerical Recipes, Section 4.4: http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf
+  - Wikipedia, \"Finite-time Singularity\": https://en.wikipedia.org/wiki/Singularity_(mathematics)#Finite-time_singularity"
   [integrate gamma]
+  (power-law integrate gamma true))
+
+(defn inverse-power-law-upper
+  "Implements a change of variables to address a power law singularity at the
+  upper integration endpoint.
+
+  A \"power law singularity\" means that the integrand diverges as
+
+  $$(x - a)^{-\\gamma}$$
+
+  near $x=a$.
+
+  References:
+
+  - Mathworld, \"Improper Integral\": https://mathworld.wolfram.com/ImproperIntegral.html
+  - Press, Numerical Recipes, Section 4.4: http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf
+  - Wikipedia, \"Finite-time Singularity\": https://en.wikipedia.org/wiki/Singularity_(mathematics)#Finite-time_singularity"
+  [integrate gamma]
+  (power-law integrate gamma false))
+
+;; ## Inverse Square Root singularities
+;;
+;; The next two functions specialize the `inverse-power-law-*` functions to the
+;; common situation of an inverse power law singularity.
+
+(defn inverse-sqrt-lower
+  "Implements a change of variables to address an inverse square root singularity
+  at the lower integration endpoint. Use this when the integrand diverges as
+
+  $$1 \\over {\\sqrt{x - a}}$$
+
+  near the lower endpoint $a$."
+  [integrate]
+  ;; TODO identical to gamma = 1/2, test...
   (fn [f a b opts]
     (let [f' (fn [t] (* t (f (+ a (* t t)))))]
       (* 2 (integrate f' 0 (Math/sqrt (- b a)) opts)))))
 
-(defn inv-square-upper
-  "Change of variables for singularity on the upper side."
-  [integrate gamma]
+(defn inverse-sqrt-upper
+  "Implements a change of variables to address an inverse square root singularity
+  at the upper integration endpoint. Use this when the integrand diverges as
+
+  $$1 \\over {\\sqrt{x - b}}$$
+
+  near the upper endpoint $b$."
+  [integrate]
+  ;; TODO identical to gamma = 1/2, test...
   (fn [f a b opts]
     (let [f' (fn [t] (* t (f (- b (* t t)))))]
       (* 2 (integrate f' 0 (Math/sqrt (- b a)) opts)))))
+
+;; ## Exponentially Diverging Endpoints
+
+;; From Press, section 4.4: "Suppose the upper limit of integration is infinite,
+;; and the integrand falls off exponentially. Then we want a change of variable
+;; that maps
+;;
+;; $$\exp{-x} dx$$
+;;
+;; into +- $dt$ (with the sign chosen to keep the upper limit of the new
+;; variable larger than the lower limit)."
+;;
+;; The required identity is:
+;;
+;; $$\int_{x=a}^{x=\infty} f(x) d x=\int_{t=0}^{t=e^{-a}} f(-\log t) \frac{d t}{t}$$
+
+(defn exponential-upper
+  "Implements a change of variables to address an exponentially diverging upper
+  integration endpoint. Use this when the integrand diverges as $\\exp{x}$ near
+  the upper endpoint $b$."
+  [integrate]
+  (fn [f a b opts]
+    {:pre [(qc/infinite? b)]}
+    (let [f' (fn [t] (* (- (Math/log t))
+                       (/ 1 t)))
+          opts (qc/update-interval opts qc/flip)]
+      (integrate f 0 (Math/exp (- a)) opts))))

@@ -39,6 +39,9 @@
 (defn open-r [[l _]] [l ::open])
 (defn flip [[l r]] [r l])
 
+(defn update-interval [opts f]
+  (update-in opts [:interval] f))
+
 (def infinities #{:-infinity :+infinity})
 (def infinite? (comp boolean infinities))
 
@@ -70,8 +73,8 @@
            {:converged true
             :terms-checked 1
             :result (area-fn f a b)})
-       (-> (seq-fn f a b opts)
-           (us/seq-limit opts))))))
+       :else (-> (seq-fn f a b opts)
+                 (us/seq-limit opts))))))
 
 
 (comment
