@@ -18,20 +18,52 @@
 ;;
 
 (ns sicmutils.numerical.quadrature.common
+  "Implements utilities shared by all integrators, for example:
+
+  - code to wrap a sequence of progressively better estimates in a common `integrator` interface
+  - data structures implementing various integration intervals."
   (:require [sicmutils.util.stream :as us]
             [taoensso.timbre :as log]))
 
+
+;; This dynamic variable holds the default "roundoff cutoff" used by all
+;; integrators to decide when to return an estimate based on a single slice, vs
+;; attempting to converge a sequence of progressively finer estimates. When this
+;; condition is satisfied:
+;;
+;; |b - a| / |a| + |b| <= `cutoff`
+;;
+;; An integrator will estimate a single slice directly. Else, it will attempt to
+;; converge a sequence.
+;;
+;; NOTE - we don't have an interface yet to bind this dynamic variable. bind it
+;; manually to modify the cutoff for a specific call to some integrator:
+;;
+;; (binding [*roundoff-cutoff* 1e-6]
+;;   (integrate f a b))
+
 (def ^:dynamic *roundoff-cutoff* 1e-14)
 
-;; Intervals... these no longer wrap the values themselves, but live alongside.
+;; ## Intervals
+;;
+;; Implementations of the various intervals used by the adaptive integral
+;; interface. By default, integration endpoints are considered /open/.
 
 (def open        [::open ::open])
 (def closed      [::closed ::closed])
 (def open-closed [::open ::closed])
 (def closed-open [::closed ::open])
+(def infinities #{##Inf ##-Inf})
+(def infinite? (comp boolean infinities))
 
-(defn closed? [x] (= x closed))
+(defn closed?
+  "Returns true if the argument represents an explicit `closed` interval, false
+  otherwise."
+  [x] (= x closed))
 (def open? (complement closed?))
+
+;; These functions modify an interval by opening or closing either of its
+;; endpoints.
 
 (defn close-l [[_ r]] [::closed r])
 (defn close-r [[l _]] [l ::closed])
@@ -39,29 +71,75 @@
 (defn open-r [[l _]] [l ::open])
 (defn flip [[l r]] [r l])
 
-(defn update-interval [opts f]
-  (update-in opts [:interval] f))
+(defn interval
+  "Extracts the interval (or `open` as a default) from the supplied integration
+  options dict."
+  [opts]
+  (get opts :interval open))
 
-(def infinities #{:-infinity :+infinity})
-(def infinite? (comp boolean infinities))
+(defn with-interval
+  "Sets the specified interval to a key inside the suppled `opts` map of arbitrary
+  integration options."
+  [opts interval]
+  (assoc opts :interval interval))
+
+(defn update-interval
+  "Accepts:
+
+  - a dictionary of arbitrary options
+  - one of the 4 interval modification functions
+
+  and returns a dict of options with `f` applied to the contained interval (or
+  `open` if no interval is set).
+  "
+  [opts f]
+  (let [k :interval]
+    (assoc opts k (f (interval opts)))))
+
+;; ## Common Integration Interface
+;;
+;; The following two functions define a shared interface that integration
+;; namespaces can use to create an "integrator" from:
+;;
+;; - a fn that can estimate the area of a single integration slice, and
+;; - a fn that can return a sequence of progressively finer estimates.
+;;
+;; The first function is called in the case that the integration range $(a,
+;; b)$ (open or closed) is too fine for subdivision. The second function takes
+;; over in all other (most!) cases.
 
 (defn- narrow-slice?
-  "Returns true if we're in the middle of a strip whose width is smaller than the
-  roundoff error between the two endpoints, false otherwise. (TODO figure out if
-  this is a true statement!)
+  "Returns true if the range $[a, b]$ is strip narrow enough to pass the following
+  test:
 
-  |b - a| / |a| + |b| <= `cutoff`"
+  |b - a| / |a| + |b| <= `cutoff`
+
+  False otherwise. This inequality measures how close the two floating point
+  values are, scaled by the sum of their magnitudes."
   [a b cutoff]
   (let [diff   (Math/abs (- b a))
         sum    (+ (Math/abs a)
                   (Math/abs b))]
     (<= diff (* cutoff sum))))
 
-(defn make-integrator
-  "`area-fn` is called in cases where the `a` and `b` are too narrow to
-  generate any intervals.
+(defn make-integrator-fn
+  "Generates an `integrator` function from two functions with the following
+  signatures and descriptions:
 
-  `seq-fn` generates a sequence of estimates."
+  - `(area-fn f a b)` estimates the integral of `f` over the interval `(a, b)`
+  with no subdivision, nothing clever at all.
+
+  - `(seq-fn f a b opts)` returns a sequence of successively refined estimates
+  of the integral of `f` over `(a, b)`. `opts` can contain kv pairs that
+  configure the behavior of the sequence function (a sequence of the number of
+  integration slices to use, for example.)
+
+  The returned function has the signature:
+
+  `(f a b opts)`
+
+  All `opts` are passed on to `seq-fn`, /and/ to `us/seq-limit` internally,
+  where the options configure the checks on sequence convergence."
   [area-fn seq-fn]
   (fn call
     ([f a b] (call f a b {}))
@@ -73,10 +151,10 @@
            {:converged true
             :terms-checked 1
             :result (area-fn f a b)})
-       :else (-> (seq-fn f a b opts)
-                 (us/seq-limit opts))))))
+       (-> (seq-fn f a b opts)
+           (us/seq-limit opts))))))
 
-
+#_
 (comment
   ;; TODO move `:accelerate?` into the SEQUENCE functions... so that
   ;; `make-integrator` can call those sequence fns.

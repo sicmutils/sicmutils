@@ -22,12 +22,20 @@
             [sicmutils.numerical.quadrature.common :as qc]
             [sicmutils.numerical.quadrature.substitute :as qs]))
 
-;; Simpler version of `evaluate-improper-integral`, from Press, et al.
-;; http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf
+;; ## Improper (infinite) Integrals
 ;;
-(defn- fill-defaults [opts]
-  (merge {:breakpoint 1
-          :interval qc/open}
+;; The ideas in this namespace could well apply to other variable
+;; substitutions (see `substitute.cljc`) that only need to apply to certain
+;; function ranges. Some of the variable substitution methods require that both
+;; endpoints be positive, for example. The code below automatically cuts the
+;; range $(a, b)$ to accomodate this for the particular variable change we've
+;; baked in, but there is a more general abstraction lurking.
+;;
+;; If you find it, please submit an issue!
+
+(defn- fill-defaults
+  [opts]
+  (merge {:infinite-breakpoint 1}
          opts))
 
 (defn evaluate-infinite-integral
@@ -52,42 +60,44 @@
   ([integrator f a b opts]
    {:pre [(or (qc/infinite? a)
               (qc/infinite? b))]}
-   (let [{:keys [interval breakpoint] :as opts} (fill-defaults opts)
-         call (fn [integrate l r interval]
-                (integrate f l r (assoc opts :interval interval)))
+   (let [{:keys [breakpoint] :as opts} (fill-defaults opts)
+         call (fn [integrate l r lr-interval]
+                (let [m (qc/with-interval opts lr-interval)]
+                  (integrate f l r m)))
+         ab-interval   (qc/interval opts)
          integrate     (partial call integrator)
          inf-integrate (partial call (qs/infinitize integrate))
          r-break  (Math/abs breakpoint)
          l-break  (- r-break)]
      (match [[a b]]
-            [(:or [:-infinity :-infinity]
-                  [:+infinity :+infinity])]
+            [(:or [##-Inf ##-Inf]
+                  [##Inf ##Inf])]
             0.0
 
-            [(:or [_ :-infinity] [:+infinity _])]
+            [(:or [_ ##-Inf] [##Inf _])]
             (- (evaluate-infinite-integral f b a opts))
 
             ;; Break the region up into three pieces: a central closed core and
             ;; two open endpoints where we create a change of variables, letting
             ;; the boundary go to infinity. We use an OPEN interval on the
             ;; infinite side.
-            [(:or [:-infinity :+infinity]
-                  [:+infinity :-infinity])]
+            [(:or [##-Inf ##Inf]
+                  [##Inf ##-Inf])]
             (let [-inf->l (inf-integrate a l-break qc/open-closed)
                   l->r    (integrate     l-break r-break qc/closed)
                   r->+inf (inf-integrate r-break b qc/closed-open)]
               (+ -inf->l l->r r->+inf))
 
-            [[:-infinity _]]
+            [[##-Inf _]]
             (if (<= b l-break)
-              (inf-integrate a b interval)
+              (inf-integrate a b ab-interval)
               (let [-inf->l (inf-integrate a l-break qc/open-closed)
-                    l->b    (integrate     l-break b (qc/close-l interval))]
+                    l->b    (integrate     l-break b (qc/close-l ab-interval))]
                 (+ -inf->l l->b)))
 
-            [[_ :+infinity]]
+            [[_ ##Inf]]
             (if (>= a r-break)
-              (inf-integrate a b interval)
-              (let [a->r    (integrate     a r-break (qc/close-r interval))
+              (inf-integrate a b ab-interval)
+              (let [a->r    (integrate     a r-break (qc/close-r ab-interval))
                     r->+inf (inf-integrate r-break b qc/closed-open)]
                 (+ a->r r->+inf)))))))
