@@ -57,6 +57,7 @@
 ;; References:
 ;;
 ;; - Press's Numerical Recipes (p134), Section 4.3 http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-3.pdf
+;; - Numerical Recipes 4.4 for open-interval Romberg http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf
 ;; - Halfant & Sussman, ["Abstraction in Numerical
 ;;   Methods"](https://dspace.mit.edu/bitstream/handle/1721.1/6060/AIM-997.pdf?sequence=2).
 ;; - Wikipedia: https://en.wikipedia.org/wiki/Romberg%27s_method

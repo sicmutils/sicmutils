@@ -18,7 +18,8 @@
 ;;
 
 (ns sicmutils.numerical.quadrature.adaptive
-  (:require [sicmutils.util.aggregate :as ua]))
+  (:require [sicmutils.numerical.quadrature.common :as qc]
+            [sicmutils.util.aggregate :as ua]))
 
 (comment
   ;; Comment from scmutils:
@@ -49,25 +50,10 @@
                   (+ 0.5 (* fuzz-factor (dec (rand 2.0)))))]
      (+ a (* offset width)))))
 
-;; Intervals... these no longer wrap the values themselves, but live alongside.
-
-(def open        [::open ::open])
-(def closed      [::closed ::closed])
-(def open-closed [::open ::closed])
-(def closed-open [::closed ::open])
-
-(defn closed? [x] (= x closed))
-(def open? (complement closed?))
-
-(defn close-l [[_ r]] [::closed r])
-(defn close-r [[l _]] [l ::closed])
-(defn open-l [[_ r]] [::open r])
-(defn open-r [[l _]] [l ::open])
-
 (defn- fill-defaults [opts]
   (merge {:maxterms *adaptive-depth-limit*
           :fuzz-factor *quadrature-neighborhood-width*
-          :interval open}
+          :interval qc/open}
          opts))
 
 (defn adaptive
@@ -86,7 +72,7 @@
      ([f a b opts]
       (let [opts      (fill-defaults opts)
             integrate (fn [l r interval]
-                        (if (closed? interval)
+                        (if (qc/closed? interval)
                           (closed-integrator f l r opts)
                           (open-integrator f l r opts)))]
         (loop [sum   (ua/kahan-sum)
@@ -100,8 +86,8 @@
                 (recur (ua/kahan-sum sum result) remaining)
                 (let [midpoint (split-point l r (:fuzz-factor opts))]
                   (recur sum (conj remaining
-                                   [midpoint r (close-l interval)]
-                                   [l midpoint (close-r interval)]))))))))))))
+                                   [midpoint r (qc/close-l interval)]
+                                   [l midpoint (qc/close-r interval)]))))))))))))
 
 
 ;; Example:

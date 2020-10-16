@@ -23,6 +23,25 @@
 
 (def ^:dynamic *roundoff-cutoff* 1e-14)
 
+;; Intervals... these no longer wrap the values themselves, but live alongside.
+
+(def open        [::open ::open])
+(def closed      [::closed ::closed])
+(def open-closed [::open ::closed])
+(def closed-open [::closed ::open])
+
+(defn closed? [x] (= x closed))
+(def open? (complement closed?))
+
+(defn close-l [[_ r]] [::closed r])
+(defn close-r [[l _]] [l ::closed])
+(defn open-l [[_ r]] [::open r])
+(defn open-r [[l _]] [l ::open])
+(defn flip [[l r]] [r l])
+
+(def infinities #{:-infinity :+infinity})
+(def infinite? (comp boolean infinities))
+
 (defn- narrow-slice?
   "Returns true if we're in the middle of a strip whose width is smaller than the
   roundoff error between the two endpoints, false otherwise. (TODO figure out if
