@@ -36,10 +36,8 @@
 (def ^:dynamic *quadrature-neighborhood-width* 0.05)
 
 (defn split-point
-  "If `fuzz-factor` is non-zero, pick a point within $fuzz-factor \\over 2$ of the
-  midpoint to split some interval.
-
-  Else, returns the midpoint (ie `fuzz-factor` defaults to 0)."
+  "Returns a point within`fuzz-factor` of the midpoint of the interval $[a, b]$.
+  `fuzz-factor` defaults to 0 (ie, `split-point` returns the midpoint)."
   ([a b] (split-point a b 0))
   ([a b fuzz-factor]
    {:pre [(>= fuzz-factor 0)
@@ -50,21 +48,24 @@
                   (+ 0.5 (* fuzz-factor (dec (rand 2.0)))))]
      (+ a (* offset width)))))
 
-(defn- fill-defaults [opts]
+(defn- fill-defaults
+  "Populates the supplied `opts` dictionary with defaults required by `adaptive`.
+  Two of these have values controlled by dynamic variables in `adaptive.cljc`."
+  [opts]
   (merge {:maxterms *adaptive-depth-limit*
           :fuzz-factor *quadrature-neighborhood-width*
           :interval qc/open}
          opts))
 
 (defn adaptive
-  "Accepts two 'integrator' functions of:
+  "Accepts two 'integrators', ie, functions of:
 
   - `f`: some integrand
   - `a` and `b`: the lower and upper endpoints of integration
   - `opts`, a dictionary of configuration options
 
-  And returns a new function of the same signature that adaptively subdivides
-  the region $a, b$ into intervals if integration fails to converge."
+  And returns a new integrator that adaptively subdivides the region $a, b$ into
+  intervals if integration fails to converge."
   ([integrator] (adaptive integrator integrator))
   ([open-integrator closed-integrator]
    (fn rec

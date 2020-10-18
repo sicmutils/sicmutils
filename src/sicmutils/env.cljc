@@ -40,7 +40,7 @@
             [sicmutils.numerical.elliptic]
             [sicmutils.numerical.minimize]
             [sicmutils.numerical.ode]
-            [sicmutils.numerical.integrate]
+            [sicmutils.numerical.quadrature]
             [sicmutils.mechanics.lagrange]
             [sicmutils.mechanics.hamilton]
             [sicmutils.mechanics.rotation]
@@ -285,7 +285,7 @@
   evolve
   integrate-state-derivative
   state-advancer]
- [sicmutils.numerical.integrate definite-integral]
+ [sicmutils.numerical.quadrature definite-integral]
  [sicmutils.numerical.elliptic elliptic-f]
  [sicmutils.numerical.minimize minimize])
 

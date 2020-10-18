@@ -17,9 +17,9 @@
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(ns sicmutils.numerical.integrate-test
+(ns sicmutils.numerical.quadrature-test
   (:require [clojure.test :refer [is deftest testing]]
-            [sicmutils.numerical.integrate :as i]
+            [sicmutils.numerical.quadrature :as q]
             [sicmutils.generic :as g]
             [sicmutils.value :as v]
             [same :refer [ish? zeroish? with-comparator]
@@ -32,14 +32,14 @@
 (def ^:private sine (partial i/definite-integral #(Math/cos %) 0.))
 
 (defn bessel-j0 [x]
-  (/ (i/definite-integral #(Math/cos (- (* x (Math/sin %)))) 0. Math/PI) Math/PI))
+  (/ (q/definite-integral #(Math/cos (- (* x (Math/sin %)))) 0. Math/PI) Math/PI))
 
 (deftest integrals
   (testing "easy"
-    (is (near 0.333333 (i/definite-integral #(* % %) 0. 1.)))
-    (is (near 0.5 (i/definite-integral identity 0. 1.)))
-    (is (near 3 (i/definite-integral (constantly 1.0) 0. 3.)))
-    (is (near 0 (i/definite-integral (constantly 0.0) 0. 1000.)))
+    (is (near 0.333333 (q/definite-integral #(* % %) 0. 1.)))
+    (is (near 0.5 (q/definite-integral identity 0. 1.)))
+    (is (near 3 (q/definite-integral (constantly 1.0) 0. 3.)))
+    (is (near 0 (q/definite-integral (constantly 0.0) 0. 1000.)))
     (is (near 1.0 (natural-log (Math/exp 1.))))
     (is (near 0 (sine Math/PI)))
     (is (near 1 (sine (/ Math/PI 2))))
@@ -56,10 +56,10 @@
           ;; the integrand is improper at the right endpoint: the function is not
           ;; defined there. Delta is the "indent" from the right endpoint used to
           ;; avoid the singularity
-          L (fn [epsilon delta a] (* 4 (i/definite-integral
-                                         (integrand a)
-                                         0 (- a delta)
-                                         :epsilon epsilon)))]
+          L (fn [epsilon delta a] (* 4 (q/definite-integral
+                                        (integrand a)
+                                        0 (- a delta)
+                                        :epsilon epsilon)))]
       (let [delta 1e-6
             epsilon 1e-9
             f (partial L epsilon delta)]
@@ -85,10 +85,10 @@
                    2.0319244
                    2.0325168
                    2.0327042]
-                 (map #(L 1e-6 % 0.45) (map #(Math/pow 10 (- %)) (range 1 10))))))))
+                  (map #(L 1e-6 % 0.45) (map #(Math/pow 10 (- %)) (range 1 10))))))))
   (testing "elliptic integral"
     (let [F (fn [phi k]
-              (i/definite-integral #(/ (Math/sqrt (- 1 (* k k (Math/pow (Math/sin %) 2))))) 0 phi
+              (q/definite-integral #(/ (Math/sqrt (- 1 (* k k (Math/pow (Math/sin %) 2))))) 0 phi
                 :relative-accuracy 0.01
                 :absolute-accuracy 0.001
                 :max-evaluations 1000000))]
@@ -133,7 +133,7 @@
       (fn [x] (* (g/exp (- x)) (g/log x))) 0.0 :+infinity)
 
     (defn foo [m]
-      (i/definite-integral
+      (q/definite-integral
         (fn [x] (g/expt (g/log (/ 1 x)) n)) 0.0 1.0))
     ;; Value: .9999999998053075
     (foo 1)
