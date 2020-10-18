@@ -82,15 +82,15 @@
   ([integrator f a b]
    (evaluate-infinite-integral integrator f a b {}))
   ([integrator f a b opts]
-   (let [{:keys [breakpoint] :as opts} (fill-defaults opts)
+   (let [{:keys [infinite-breakpoint] :as opts} (fill-defaults opts)
          call (fn [integrate l r lr-interval]
                 (let [m (qc/with-interval opts lr-interval)]
                   (:result
                    (integrate f l r m))))
          ab-interval   (qc/interval opts)
          integrate     (partial call integrator)
-         inf-integrate (partial call (qs/infinitize integrate))
-         r-break       (Math/abs breakpoint)
+         inf-integrate (partial call (qs/infinitize integrator))
+         r-break       (Math/abs infinite-breakpoint)
          l-break       (- r-break)]
      (match [[a b]]
             [(:or [##-Inf ##-Inf] [##Inf ##Inf])]
@@ -99,7 +99,8 @@
              :result 0.0}
 
             [(:or [_ ##-Inf] [##Inf _])]
-            (- (evaluate-infinite-integral f b a opts))
+            (-> (evaluate-infinite-integral f b a opts)
+                (update-in [:result] -))
 
             ;; Break the region up into three pieces: a central closed core and
             ;; two open endpoints where we create a change of variables, letting

@@ -21,6 +21,8 @@
   (:require [sicmutils.numerical.quadrature.common :as qc]
             [sicmutils.util.aggregate :as ua]))
 
+;; ## Adaptive Quadrature
+
 (comment
   ;; Comment from scmutils:
   "To make quadrature deterministic, but sensitive to special choices make the
@@ -35,7 +37,7 @@
 (def ^:dynamic *adaptive-depth-limit* 10)
 (def ^:dynamic *quadrature-neighborhood-width* 0.05)
 
-(defn split-point
+(defn- split-point
   "Returns a point within`fuzz-factor` of the midpoint of the interval $[a, b]$.
   `fuzz-factor` defaults to 0 (ie, `split-point` returns the midpoint)."
   ([a b] (split-point a b 0))
@@ -96,12 +98,3 @@
                                [l midpoint (qc/close-r interval)])
                          sum
                          (inc iteration))))))))))))
-
-
-;; Example:
-#_
-(let [f (fn [x] (/ 4 (+ 1 (* x x))))
-      integrate (adaptive
-                 bs/open-integral
-                 bs/closed-integral)]
-  (time (integrate f 0 1)))

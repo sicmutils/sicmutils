@@ -70,11 +70,11 @@
         [method {}]
 
         (keyword? method)
-        (process-method
+        (extract-method
          (quad-methods method))
 
         (map? method)
-        (let [[f m] (process-method
+        (let [[f m] (extract-method
                      (:method method))]
           [f (merge (dissoc method :method) m)])))
 
