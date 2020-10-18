@@ -18,84 +18,87 @@
 ;;
 
 (ns sicmutils.numerical.quadrature
-  "This namespace holds the scmutils-style interface for quadrature methods.
-
-  TODO http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf talks about how you can
-  do a different change of variables to handle integrable power law
-  singularities at the endpoints."
-  (:refer-clojure :exclude [methods])
   (:require [sicmutils.numerical.compile :as c]
+            [sicmutils.numerical.quadrature.adaptive :as qa]
+            [sicmutils.numerical.quadrature.boole :as boole]
+            [sicmutils.numerical.quadrature.common :as qc]
             [sicmutils.numerical.quadrature.bulirsch-stoer :as bs]
             [sicmutils.numerical.quadrature.infinite :as qi]
-            [sicmutils.numerical.quadrature.legendre-gauss :as lg]
-            [sicmutils.numerical.quadrature.rational :as qr]
+            [sicmutils.numerical.quadrature.midpoint :as mid]
+            [sicmutils.numerical.quadrature.milne :as milne]
             [sicmutils.numerical.quadrature.riemann :as riemann]
             [sicmutils.numerical.quadrature.romberg :as romberg]
+            [sicmutils.numerical.quadrature.simpson :as simp]
+            [sicmutils.numerical.quadrature.simpson38 :as simp38]
             [sicmutils.numerical.quadrature.trapezoid :as trap]
-            [sicmutils.util :as u]
-            [sicmutils.value :as v]))
+            [sicmutils.util :as u]))
 
-;;; Default compile integrand
-(def ^:dynamic *compile-integrand?* true)
+(def ^:private quad-methods
+  {:open        {:method :adaptive-bulirsch-stoer
+                 :interval qc/open}
+   :closed      {:method :adaptive-bulirsch-stoer
+                 :interval qc/closed}
+   :closed-open {:method :adaptive-bulirsch-stoer
+                 :interval qc/closed-open}
+   :open-closed {:method :adaptive-bulirsch-stoer
+                 :interval qc/open-closed}
 
-;;; Default error specification
-(def ^:dynamic *definite-integral-allowable-error* 1.0e-11)
+   ;; TODO make it switch internally based on the interval.
+   :bulirsch-stoer-open bs/open-integral
+   :bulirsch-stoer-closed bs/closed-integral
+   :adaptive-bulirsch-stoer (qa/adaptive bs/open-integral bs/closed-integral)
+   :left-riemann riemann/left-integral
+   :right-riemann riemann/right-integral
+   :lower-riemann riemann/lower-integral
+   :upper-riemann riemann/upper-integral
+   :midpoint mid/integral
+   :trapezoid trap/integral
+   :boole boole/integral
+   :milne milne/integral
+   :simpson simp/integral
+   :simpson38 simp38/integral
 
-;;; TODO what the hell is this? Default ditherer off (see rational.scm)
-(def ^:dynamic *quadrature-neighborhood-width* false)
+   ;; TODO make it switch internally based on the interval.
+   :romberg romberg/closed-integral
+   :romberg-open romberg/open-integral})
 
-(def methods
-  ;; Integration methods available below.
-  {:open qr/integrate-open-open
-   :closed-closed qr/integrate-closed-closed
-   :closed-open qr/integrate-closed-open
-   :open-closed qr/integrate-open-closed
-   :open-open qr/integrate-open-open
+(defn- extract-method
+  "Attempts to turn the supplied argument into an integration method; returns nil
+  if method doesn't exist."
+  [method]
+  (cond (fn? method)
+        [method {}]
 
-   ;; specific methods for evaluating finite integrals.
-   :left-riemann riemann/left-riemann-sum
-   :right-riemann riemann/right-riemann-sum
-   :lower-riemann riemann/lower-riemann-sum
-   :upper-riemann riemann/upper-riemann-sum
-   :midpoint riemann/midpoint-better
-   :simpson riemann/simpson-rule
-   :trapezoid trap/integrator
-   :romberg romberg/romberg-quadrature
+        (keyword? method)
+        (process-method
+         (quad-methods method))
 
-   ;; Only supported for Clojure, no CLJS for now.
-   :legendre-gauss lg/integrator
+        (map? method)
+        (let [[f m] (process-method
+                     (:method method))]
+          [f (merge (dissoc method :method) m)])))
 
-   ;; these remain!
-   :bulirsch-stoer bs/integrator
-   :simpson38 nil
-   :boole nil
-   })
+(defn get-integrator
+  "Returns:
 
-(defn integration-method
-  "Returns the integration method appropriate for the supplied endpoints, or nil
-  of the method doesn't match anything known.
+  - an integrator function
+  - new opts
 
-  TODO document and test custom function."
-  [method a b]
-  (cond (fn? method) method
+  TODO document and test custom function, and all of the ways we're supposed to
+  be able to use this."
+  ([method a b] (get-integrator method a b {}))
+  ([method a b m]
+   (let [[integrate opts] (extract-method method)
+         integrate (if (or (qc/infinite? a)
+                           (qc/infinite? b))
+                     (partial qi/evaluate-infinite-integral integrate)
+                     integrate)]
+     [integrate (dissoc (merge opts m) :method)])))
 
-        (or (qi/infinite? a) (qi/infinite? b))
-        qi/evaluate-infinite-integral
-        :else (methods method)))
+;; ## SCMUtils Style Interface
+;;
+;; This is here so that we can match the refman.
 
-(defn evaluate-definite-integral
-  ([{:keys [integrand lower-limit upper-limit error method]}]
-   (evaluate-definite-integral method
-                               integrand
-                               lower-limit
-                               upper-limit
-                               error))
-  ([method integrand lower-limit upper-limit allowable-error]
-   (if-let [f (integration-method method lower-limit upper-limit)]
-     (f integrand lower-limit upper-limit allowable-error)
-     (u/illegal (str "Unknown method -- DEFINITE-INTEGRAL" method)))))
-
-;; Boom, record form of the definite integrator from sicmutils.
 (defrecord DefiniteIntegrator [integrand lower-limit upper-limit error method])
 
 ;; Updater functions.
@@ -115,7 +118,7 @@
 (defn with-method [m method]
   (assoc m :method method))
 
-(defn make-definite-integrator
+(defn definite-integrator
   "Make a definite integrator with defaults set properly."
   [m]
   (let [defaults {:integrand false
@@ -125,31 +128,22 @@
                   :method :open}]
     (map->DefiniteIntegrator (merge defaults m))))
 
-;; Then these are from `defint.cljc`... From scmutils: This is the numerical
-;; definite integration system interface. This seems to be the thing that we've
-;; already implemented, sort of the gateway.
-
-(defn definite-integral-with-tolerance [f x1 x2 tolerance]
-  (evaluate-definite-integral
-   (make-definite-integrator {:integrand f
-                              :lower-limit x1
-                              :upper-limit x2
-                              :error tolerance})))
-
-;;; Assumes f is purely numerical, and no units on t1, t2
-
-(defn definite-integral-numerical
-  ([f t1 t2] (definite-integral-numerical f t1 t2 {}))
-  ([f t1 t2 {:keys [tolerance compile?]
-             :or {tolerance *definite-integral-allowable-error*
-                  compile? *compile-integrand?*}}]
-   (if (and (v/number? t1) (v/number? t2) (= t1 t2))
-     0
-     (let [integrand (if compile? (c/compile-univariate-function f) f)]
-       (definite-integral-with-tolerance f t1 t2 tolerance)))))
-
 (defn definite-integral
-  "Alias, since we don't support different units."
-  ([f t1 t2] (definite-integral f t1 t2 {}))
-  ([f t1 t2 opts]
-   (definite-integral-numerical f t1 t2 opts)))
+  "Evaluates the definite integral. Takes either the scmutils style thing, or the
+  arguments that a general integrator accepts."
+  ([{:keys [integrand lower-limit upper-limit error method]}]
+   (let [opts {:method method
+               :tolerance error}]
+     (definite-integral integrand lower-limit upper-limit opts)))
+
+  ([f a b] (definite-integral f a b {}))
+  ([f a b {:keys [method compile? info?]
+           :or {method :open
+                compile? false
+                info? false}
+           :as opts}]
+   (if-let [[integrate m] (get-integrator method a b opts)]
+     (let [f      (if compile? (c/compile-univariate-function f) f)
+           result (integrate f a b m)]
+       (if info? result (:result result)))
+     (u/illegal (str "Unknown method: " method)))))
