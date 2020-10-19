@@ -51,7 +51,7 @@
 
 (defn simpson38-sequence
   "Returns a (lazy) sequence of successively refined estimates of the integral of
-  `f` over the open interval $(a, b)$ using Simpson's 3/8 rule.
+  `f` over the closed interval $[a, b]$ using Simpson's 3/8 rule.
 
   Simpson's 3/8 rule is equivalent to the trapezoid method subject to:
 
@@ -80,15 +80,15 @@
    (-> (qt/trapezoid-sequence f a b (us/powers 3 n))
        (ir/richardson-column 1 3 2 2))))
 
-(def ^{:doc "Returns an estimate of the integral of `f` over the open interval $(a, b)$
+(qc/defintegrator integral
+  "Returns an estimate of the integral of `f` over the closed interval $[a, b]$
   using Simpson's 3/8 rule with $1, 3, 9 ... 3^n$ windows for each estimate.
 
   Optionally accepts `opts`, a dict of optional arguments. All of these get
   passed on to `us/seq-limit` to configure convergence checking.
 
-  See `simpson38-sequence` for more information about Simpson's 3/8 rule, and
-  caveats that might apply when using this integration method."}
-  integral
-  (qc/make-integrator-fn
-   (comp first simpson38-sequence)
-   simpson38-sequence))
+  See `simpson38-sequence` for more information about Simpson's 3/8 rule, caveats
+  that might apply when using this integration method and information on the
+  optional args in `opts` that customize this function's behavior."
+  :area-fn (comp first simpson38-sequence)
+  :seq-fn simpson38-sequence)

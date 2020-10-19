@@ -154,19 +154,40 @@
        (-> (seq-fn f a b opts)
            (us/seq-limit opts))))))
 
-#_
-(comment
-  ;; TODO move `:accelerate?` into the SEQUENCE functions... so that
-  ;; `make-integrator` can call those sequence fns.
+(defn- name-with-attributes
+  "Taken from `clojure.tools.macro/name-with-attributes`.
 
-  (def integrate-closed-finite
-    (make-integrator
-     trap/single-trapezoid
-     (fn [f a b _]
-       (bs/closed-sequence f a b))))
+  Handles optional docstrings and attribute maps for a name to be defined in a
+  list of macro arguments. If the first macro argument is a string, it is added
+  as a docstring to name and removed from the macro argument list. If afterwards
+  the first macro argument is a map, its entries are added to the name's
+  metadata map and the map is removed from the macro argument list. The return
+  value is a vector containing the name with its extended metadata map and the
+  list of unprocessed macro arguments."
+  ([name body] (name-with-attributes name body {}))
+  ([name body meta]
+   (let [[docstring body] (if (string? (first body))
+                            [(first body) (next body)]
+                            [nil body])
+         [attr body]      (if (map? (first body))
+                            [(first body) (next body)]
+                            [{} body])
+         attr             (merge meta attr)
+         attr             (if docstring
+                            (assoc attr :doc docstring)
+                            attr)
+         attr             (if (meta name)
+                            (conj (meta name) attr)
+                            attr)]
+     [(with-meta name attr) body])))
 
-  (def integrate-open-finite
-    (make-integrator
-     mid/single-midpoint
-     (fn [f a b _]
-       (bs/open-sequence f a b)))))
+(defmacro defintegrator
+  "Helper macro for defining integrators."
+  [sym & body]
+  (let [meta       {:arglists (list 'quote '([f a b] [f a b opts]))}
+        [sym body] (name-with-attributes sym body meta)
+        {:keys [area-fn seq-fn]} (apply hash-map body)]
+    (assert seq-fn (str "defintegrator " sym ": seq-fn cannot be nil"))
+    (assert area-fn (str "defintegrator " sym ": area-fn cannot be nil"))
+    `(def ~sym
+       (make-integrator-fn ~area-fn ~seq-fn))))

@@ -155,7 +155,11 @@
   geometrically increasing by a factor of 3 with each estimate.
 
   If `n` is a sequence, the resulting sequence will hold an estimate for each
-  integer number of slices in that sequence."
+  integer number of slices in that sequence.
+
+  `:accelerate?`: if supplied (and `n` is a number), attempts to accelerate
+  convergence using Richardson extrapolation. If `n` is a sequence this option
+  is ignored."
   ([f a b] (midpoint-sequence f a b {:n 1}))
   ([f a b {:keys [n accelerate?] :or {n 1}}]
    (let [S      (qr/midpoint-sum f a b)
@@ -177,8 +181,8 @@
       n-seq (interleave
              (iterate (fn [x] (* 2 x)) 2)
              (iterate (fn [x] (* 2 x)) 3))]
-  (doall (take 12 (midpoint-sequence f1 0 1 n-seq)))
-  (doall (take 12 (map (midpoint-sum f2 0 1) n-seq)))
+  (doall (take 12 (midpoint-sequence f1 0 1 {:n n-seq})))
+  (doall (take 12 (map (qr/midpoint-sum f2 0 1) n-seq)))
   (= [253 315]
      [@counter1 @counter2]))
 
@@ -211,15 +215,27 @@
 ;; `polynomial.cljc` or `rational.cljc`. The "Bulirsch-Stoer" method uses either
 ;; of these to extrapolate the midpoint method using a non-geometric sequence.
 
-(def ^{:doc "Returns an estimate of the integral of `f` over the open interval $(a, b)$
+(qc/defintegrator integral
+  "Returns an estimate of the integral of `f` over the open interval $(a, b)$
   using the Midpoint method with $1, 3, 9 ... 3^n$ windows for each estimate.
 
   Optionally accepts `opts`, a dict of optional arguments. All of these get
   passed on to `us/seq-limit` to configure convergence checking.
 
-  `opts` entries that configure integral behavior:
+  See `midpoint-sequence` for information on the optional args in `opts` that
+  customize this function's behavior."
+  :area-fn single-midpoint
+  :seq-fn midpoint-sequence)
 
-  `:accelerate?`: if true, use Richardson extrapolation to accelerate
-  convergence. If false, attempts to converge directly."}
-  integral
-  (qc/make-integrator-fn single-midpoint midpoint-sequence))
+;; ## Next Steps
+;;
+;; If you start with the midpoint method, one single step of Richardson
+;; extrapolation (taking the second column of the Richardson tableau) is
+;; equivalent to "Milne's rule" (see `milne.cljc`).
+;;
+;; The full Richardson-accelerated Midpoint method is an open-interval variant
+;; of "Romberg integration" (see `romberg.cljc`).
+;;
+;; See the wikipedia entry on [Open Newton-Cotes
+;; Formulas](https://en.wikipedia.org/wiki/Newton%E2%80%93Cotes_formulas#Open_Newton%E2%80%93Cotes_formulas)
+;; for more details.
