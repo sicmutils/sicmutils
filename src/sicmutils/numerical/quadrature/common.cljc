@@ -148,7 +148,7 @@
              :as opts}]
      (if (narrow-slice? a b roundoff-cutoff)
        (do (log/info "Integrating narrow slice: " a b)
-           {:converged true
+           {:converged? true
             :terms-checked 1
             :result (area-fn f a b)})
        (-> (seq-fn f a b opts)

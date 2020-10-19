@@ -29,5 +29,6 @@
             [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]))
 
 #_
-((power-law sicmutils.numerical.quadrature.simpson/integral 0.8 true)
- (fn  [x] (Math/sin x)) 0 10 {})
+(= {:converged? true, :terms-checked 11, :result 1.8390715311843138}
+   ((power-law sicmutils.numerical.quadrature.simpson/integral 0.8 true)
+    (fn  [x] (Math/sin x)) 0 10 {}))
