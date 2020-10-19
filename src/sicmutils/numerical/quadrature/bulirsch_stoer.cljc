@@ -28,8 +28,8 @@
 
 (def bulirsch-stoer-steps
   (interleave
-   (us/powers 2 2)
-   (us/powers 2 3)))
+   (us/powers 2 4)
+   (us/powers 2 6)))
 
 (defn slice-width [a b]
   (let [width (- b a)]
@@ -42,12 +42,19 @@
   ([a b n-seq]
    (map (slice-width a b) n-seq)))
 
+(defn- fill-defaults
+  "Populates the supplied `opts` dictionary with defaults required by
+  `bs-sequence-fn`."
+  [opts]
+  (merge {:n bulirsch-stoer-steps}
+         opts))
+
 (defn- bs-sequence-fn [integrator-seq]
   (fn call
     ([f a b]
      (call f a b {:n bulirsch-stoer-steps}))
     ([f a b opts]
-     (let [{:keys [n]} (merge {:n bulirsch-stoer-steps} opts)
+     (let [{:keys [n] :as opts} (fill-defaults opts)
            square (fn [x] (* x x))
            xs (map square (h-sequence a b n))
            ys (integrator-seq f a b opts)]

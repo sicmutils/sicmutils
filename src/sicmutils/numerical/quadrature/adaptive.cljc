@@ -81,24 +81,20 @@
         (loop [stack [[a b (:interval opts)]]
                sum   (ua/kahan-sum)
                iteration 0]
-          (cond (empty? stack)
-                {:converged? true
-                 :iterations iteration
-                 :result (first sum)}
-                (> iteration 10)
-                {:converged? false
-                 :iterations iteration
-                 :result (first sum)}
-                :else (let [[l r interval] (peek stack)
-                            remaining      (pop stack)
-                            {:keys [converged? result]} (integrate l r interval)]
-                        (if converged?
-                          (recur remaining
-                                 (ua/kahan-sum sum result)
-                                 (inc iteration))
-                          (let [midpoint (split-point l r (:fuzz-factor opts))]
-                            (recur (conj remaining
-                                         [midpoint r (qc/close-l interval)]
-                                         [l midpoint (qc/close-r interval)])
-                                   sum
-                                   (inc iteration))))))))))))
+          (if (empty? stack)
+            {:converged? true
+             :iterations iteration
+             :result (first sum)}
+            (let [[l r interval] (peek stack)
+                  remaining      (pop stack)
+                  {:keys [converged? result]} (integrate l r interval)]
+              (if converged?
+                (recur remaining
+                       (ua/kahan-sum sum result)
+                       (inc iteration))
+                (let [midpoint (split-point l r (:fuzz-factor opts))]
+                  (recur (conj remaining
+                               [midpoint r (qc/close-l interval)]
+                               [l midpoint (qc/close-r interval)])
+                         sum
+                         (inc iteration))))))))))))
