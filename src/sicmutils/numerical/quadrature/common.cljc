@@ -117,10 +117,11 @@
   False otherwise. This inequality measures how close the two floating point
   values are, scaled by the sum of their magnitudes."
   [a b cutoff]
-  (let [diff   (Math/abs (- b a))
-        sum    (+ (Math/abs a)
-                  (Math/abs b))]
-    (<= diff (* cutoff sum))))
+  (let [sum (+ (Math/abs a)
+               (Math/abs b))]
+    (or (<= sum cutoff)
+        (<= (Math/abs (- b a))
+            (* cutoff sum)))))
 
 (defn make-integrator-fn
   "Generates an `integrator` function from two functions with the following
