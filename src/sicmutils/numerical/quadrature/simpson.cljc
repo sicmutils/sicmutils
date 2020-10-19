@@ -63,7 +63,9 @@
   Returns estimates with $n, 2n, 4n, ...$ slices, geometrically increasing by a
   factor of 2 with each estimate.
 
-  If supplied, `n` (defaults 1) specifies the initial number of slices to use."
+  ## Optional arguments:
+
+  If supplied, `:n` (default 1) specifies the initial number of slices to use."
   ([f a b] (simpson-sequence f a b {:n 1}))
   ([f a b {:keys [n] :or {n 1}}]
    {:pre [(number? n)]}

@@ -151,10 +151,12 @@
   "Returns a (lazy) sequence of successively refined estimates of the integral of
   `f` over the open interval $(a, b)$ using the Midpoint method.
 
-  If `n` is a number, returns estimates with $n, 3n, 9n, ...$ slices,
+  ## Optional arguments:
+
+  `:n`: If `:n` is a number, returns estimates with $n, 3n, 9n, ...$ slices,
   geometrically increasing by a factor of 3 with each estimate.
 
-  If `n` is a sequence, the resulting sequence will hold an estimate for each
+  If `:n` is a sequence, the resulting sequence will hold an estimate for each
   integer number of slices in that sequence.
 
   `:accelerate?`: if supplied (and `n` is a number), attempts to accelerate

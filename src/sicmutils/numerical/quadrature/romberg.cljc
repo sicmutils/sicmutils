@@ -77,7 +77,9 @@
   /not/ smooth this may cause you trouble, and you may want to investigate a
   lower-order method.
 
-  If supplied, `n` (defaults 1) specifies the initial number of slices to use."
+  ## Optional arguments:
+
+  If supplied, `:n` (default 1) specifies the initial number of slices to use."
   ([f a b] (open-sequence f a b {}))
   ([f a b {:keys [n] :or {n 1} :as opts}]
    {:pre [(number? n)]}
@@ -97,7 +99,9 @@
   /not/ smooth this may cause you trouble, and you may want to investigate a
   lower-order method.
 
-  If supplied, `n` (defaults 1) specifies the initial number of slices to use."
+  ## Optional arguments:
+
+  If supplied, `:n` (default 1) specifies the initial number of slices to use."
   ([f a b] (closed-sequence f a b {}))
   ([f a b {:keys [n] :or {n 1} :as opts}]
    {:pre [(number? n)]}

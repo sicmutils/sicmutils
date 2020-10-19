@@ -67,7 +67,9 @@
   Returns estimates with $n, 3n, 9n, ...n3^i$ slices, geometrically increasing by a
   factor of 3 with each estimate.
 
-  If supplied, `n` (defaults 1) specifies the initial number of slices to use.
+  ## Optional arguments:
+
+  If supplied, `:n` (default 1) specifies the initial number of slices to use.
 
   NOTE: the Trapezoid method is able to reuse function evaluations as its
   windows narrow /only/ when increasing the number of integration slices by 2.
