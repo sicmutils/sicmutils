@@ -19,7 +19,8 @@
 
 (ns sicmutils.numerical.quadrature.trapezoid
   "Trapezoid method."
-  (:require [sicmutils.numerical.quadrature.riemann :as qr]
+  (:require [sicmutils.numerical.quadrature.common :as qc]
+            [sicmutils.numerical.quadrature.riemann :as qr]
             [sicmutils.numerical.interpolate.richardson :as ir]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
@@ -216,11 +217,14 @@
 
   If `n` is a sequence, the resulting sequence will hold an estimate for each
   integer number of slices in that sequence."
-  ([f a b] (trapezoid-sequence f a b 1))
-  ([f a b n]
+  ([f a b] (trapezoid-sequence f a b {:n 1}))
+  ([f a b {:keys [n accelerate?] :or {n 1}}]
    (let [S      (trapezoid-sum f a b)
-         next-S (qr/Sn->S2n f a b)]
-     (qr/incrementalize S next-S 2 n))))
+         next-S (qr/Sn->S2n f a b)
+         xs     (qr/incrementalize S next-S 2 n)]
+     (if (and accelerate? (number? n))
+       (ir/richardson-sequence xs 2 2 2)
+       xs))))
 
 ;; The following example shows that for the sequence $2, 3, 4, 6, ...$ (used in
 ;; the Bulirsch-Stoer method!), the incrementally-augmented `trapezoid-sequence`
@@ -265,8 +269,7 @@
 ;; `polynomial.cljc` or `rational.cljc`. The "Bulirsch-Stoer" method uses either
 ;; of these to extrapolate the Trapezoid method using a non-geometric sequence.
 
-(defn integral
-  "Returns an estimate of the integral of `f` over the open interval $(a, b)$
+(def ^{:doc "Returns an estimate of the integral of `f` over the open interval $(a, b)$
   using the Trapezoid method with $1, 2, 4 ... 2^n$ windows for each estimate.
 
   Optionally accepts `opts`, a dict of optional arguments. All of these get
@@ -277,14 +280,9 @@
   `:accelerate?`: if true, use Richardson extrapolation to accelerate
   convergence. (This combination of Trapezoid method and Richardson
   extrapolation is called 'Romberg integration'.) If false, attempts to converge
-  directly."
-  ([f a b] (integral f a b {}))
-  ([f a b opts]
-   (let [xs (trapezoid-sequence f a b)]
-     (-> (if (:accelerate? opts)
-           (ir/richardson-sequence xs 2 2 2)
-           xs)
-         (us/seq-limit opts)))))
+  directly."}
+  integral
+  (qc/make-integrator-fn single-trapezoid trapezoid-sequence))
 
 ;; ## Next Steps
 ;;

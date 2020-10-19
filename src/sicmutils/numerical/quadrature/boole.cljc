@@ -18,7 +18,8 @@
 ;;
 
 (ns sicmutils.numerical.quadrature.boole
-  (:require [sicmutils.numerical.quadrature.trapezoid :as qt]
+  (:require [sicmutils.numerical.quadrature.common :as qc]
+            [sicmutils.numerical.quadrature.trapezoid :as qt]
             [sicmutils.numerical.interpolate.richardson :as ir]
             [sicmutils.util.stream :as us]))
 
@@ -30,19 +31,18 @@
 ;; entries. on the big one.
 
 (defn boole-sequence
-  ([f a b] (boole-sequence f a b 1))
-  ([f a b n]
+  ([f a b] (boole-sequence f a b {:n 1}))
+  ([f a b {:keys [n] :or {n 1}}]
    {:pre [(number? n)]}
    (-> (qt/trapezoid-sequence f a b n)
        (ir/richardson-column 2 2 2 2))))
 
-(defn integral
-  "Returns an estimate of the integral of `f` over the open interval $(a, b)$
+(def ^{:doc "Returns an estimate of the integral of `f` over the open interval $(a, b)$
   using Boole's rule with $1, 2, 4 ... 2^n$ windows for each estimate.
 
   Optionally accepts `opts`, a dict of optional arguments. All of these get
-  passed on to `us/seq-limit` to configure convergence checking."
-  ([f a b] (integral f a b {}))
-  ([f a b opts]
-   (-> (boole-sequence f a b)
-       (us/seq-limit opts))))
+  passed on to `us/seq-limit` to configure convergence checking."}
+  integral
+  (qc/make-integrator-fn
+   (comp first boole-sequence)
+   boole-sequence))

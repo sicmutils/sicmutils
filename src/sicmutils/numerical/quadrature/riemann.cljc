@@ -19,6 +19,7 @@
 
 (ns sicmutils.numerical.quadrature.riemann
   (:require [sicmutils.numerical.interpolate.richardson :as ir]
+            [sicmutils.numerical.quadrature.common :as qc]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
@@ -490,16 +491,23 @@
   "Returns a (lazy) sequence of successively refined estimates of the integral of
   `f` over the closed-open interval $a, b$ by taking left-Riemann sums.
 
-  If `n` is a number, returns estimates with $n, 2n, 4n, ...$ slices,
+  ## Optional Arguments
+
+  `:n`: If `n` is a number, returns estimates with $n, 2n, 4n, ...$ slices,
   geometrically increasing by a factor of 2 with each estimate.
 
   If `n` is a sequence, the resulting sequence will hold an estimate for each
-  integer number of slices in that sequence."
-  ([f a b] (left-sequence f a b 1))
-  ([f a b n]
+  integer number of slices in that sequence.
+
+  `:accelerate?`: "
+  ([f a b] (left-sequence f a b {}))
+  ([f a b {:keys [n accelerate?] :or {n 1}}]
    (let [S      (left-sum f a b)
-         next-S (Sn->S2n f a b)]
-     (incrementalize S next-S 2 n))))
+         next-S (Sn->S2n f a b)
+         estimates (incrementalize S next-S 2 n)]
+     (if (and accelerate? (number? n))
+       (ir/richardson-sequence estimates 2)
+       estimates))))
 
 (defn right-sequence
   "Returns a (lazy) sequence of successively refined estimates of the integral of
@@ -510,7 +518,7 @@
 
   If `n` is a sequence, the resulting sequence will hold an estimate for each
   integer number of slices in that sequence."
-  ([f a b] (left-sequence f a b 1))
+  ([f a b] (right-sequence f a b 1))
   ([f a b n]
    (let [S      (right-sum f a b)
          next-S (Sn->S2n f a b)]
@@ -546,8 +554,7 @@
 ;;   extrapolation. Your sequence of `xs` for each of those methods should be
 ;;   `n-seq`.
 
-(defn left-integral
-  "Returns an estimate of the integral of `f` across the closed-open interval $a,
+(def ^{:doc "Returns an estimate of the integral of `f` across the closed-open interval $a,
   b$ using a left-Riemann sum with $1, 2, 4 ... 2^n$ windows for each estimate.
 
   Optionally accepts `opts`, a dict of optional arguments. All of these get
@@ -557,17 +564,13 @@
 
   `:accelerate?`: if true, use Richardson extrapolation to accelerate
   convergence. If false, attempts to converge directly.
-  "
-  ([f a b] (left-integral f a b {}))
-  ([f a b opts]
-   (let [estimates (left-sequence f a b)]
-     (-> (if (:accelerate? opts)
-           (ir/richardson-sequence estimates 2)
-           estimates)
-         (us/seq-limit opts)))))
+  "}
+  left-integral
+  (qc/make-integrator-fn
+   (fn [f a b] (* (f a) (- b a)))
+   left-sequence))
 
-(defn right-integral
-  "Returns an estimate of the integral of `f` across the closed-open interval $a,
+(def ^{:doc "Returns an estimate of the integral of `f` across the closed-open interval $a,
   b$ using a right-Riemann sum with $1, 2, 4 ... 2^n$ windows for each estimate.
 
   Optionally accepts `opts`, a dict of optional arguments. All of these get
@@ -576,23 +579,18 @@
   `opts` entries that configure integral behavior:
 
   `:accelerate?`: if true, use Richardson extrapolation to accelerate
-  convergence. If false, attempts to converge directly.
-  "
-  ([f a b] (right-integral f a b {}))
-  ([f a b opts]
-   (let [estimates (left-sequence f a b)]
-     (-> (if (:accelerate? opts)
-           (ir/richardson-sequence estimates 2)
-           estimates)
-         (us/seq-limit opts)))))
+  convergence. If false, attempts to converge directly."}
+  right-integral
+  (qc/make-integrator-fn
+   (fn [f a b] (* (f b) (- b a)))
+   right-sequence))
 
 ;; upper and lower Riemann sums have the same interface; internally, they're not
 ;; able to take advantage of incremental summation, since it's not possible to
 ;; know in advance whether or not the left or right side of the interval should
 ;; get reused.
 
-(defn upper-integral
-  "Returns an estimate of the integral of `f` across the closed-open interval $a,
+(def ^{:doc "Returns an estimate of the integral of `f` across the closed-open interval $a,
   b$ using an upper-Riemann sum with $1, 2, 4 ... 2^n$ windows for each estimate.
 
   Optionally accepts `opts`, a dict of optional arguments. All of these get
@@ -602,18 +600,20 @@
 
   `:accelerate?`: if true, use Richardson extrapolation to accelerate
   convergence. If false, attempts to converge directly.
-  "
-  ([f a b] (upper-integral f a b {}))
-  ([f a b opts]
-   (let [estimates (map (upper-sum f a b)
-                        (us/powers 2))]
-     (-> (if (:accelerate? opts)
-           (ir/richardson-sequence estimates 2)
-           estimates)
-         (us/seq-limit opts)))))
+  "}
+  upper-integral
+  (qc/make-integrator-fn
+   (fn [f a b] (* (- b a)
+                 (max (f a) (f b))))
+   (fn [f a b opts]
+     (let [estimates (map (upper-sum f a b)
+                          (us/powers 2))]
+       (if (:accelerate? opts)
+         (ir/richardson-sequence estimates 2)
+         estimates)))))
 
-(defn lower-integral
-  "Returns an estimate of the integral of `f` across the closed-open interval $a,
+(def ^{:doc
+       "Returns an estimate of the integral of `f` across the closed-open interval $a,
   b$ using a lower-Riemann sum with $1, 2, 4 ... 2^n$ windows for each estimate.
 
   Optionally accepts `opts`, a dict of optional arguments. All of these get
@@ -623,15 +623,16 @@
 
   `:accelerate?`: if true, use Richardson extrapolation to accelerate
   convergence. If false, attempts to converge directly.
-  "
-  ([f a b] (lower-integral f a b {}))
-  ([f a b opts]
-   (let [estimates (map (lower-sum f a b)
-                        (us/powers 2))]
-     (-> (if (:accelerate? opts)
-           (ir/richardson-sequence estimates 2)
-           estimates)
-         (us/seq-limit opts)))))
+  "}
+  lower-integral
+  (qc/make-integrator-fn
+   (fn [f a b] (* (- b a) (min (f a) (f b))))
+   (fn [f a b opts]
+     (let [estimates (map (lower-sum f a b)
+                          (us/powers 2))]
+       (if (:accelerate? opts)
+         (ir/richardson-sequence estimates 2)
+         estimates)))))
 
 ;; ## Next Steps
 ;;

@@ -18,7 +18,8 @@
 ;;
 
 (ns sicmutils.numerical.quadrature.simpson
-  (:require [sicmutils.numerical.quadrature.trapezoid :as qt]
+  (:require [sicmutils.numerical.quadrature.common :as qc]
+            [sicmutils.numerical.quadrature.trapezoid :as qt]
             [sicmutils.numerical.interpolate.richardson :as ir]
             [sicmutils.util.stream :as us]))
 
@@ -64,22 +65,21 @@
   factor of 2 with each estimate.
 
   If supplied, `n` (defaults 1) specifies the initial number of slices to use."
-  ([f a b] (simpson-sequence f a b 1))
-  ([f a b n]
+  ([f a b] (simpson-sequence f a b {:n 1}))
+  ([f a b {:keys [n] :or {n 1}}]
    {:pre [(number? n)]}
    (-> (qt/trapezoid-sequence f a b n)
        (ir/richardson-column 1 2 2 2))))
 
-(defn integral
-  "Returns an estimate of the integral of `f` over the open interval $(a, b)$
+(def ^{:doc "Returns an estimate of the integral of `f` over the open interval $(a, b)$
   using Simpson's rule with $1, 2, 4 ... 2^n$ windows for each estimate.
 
   Optionally accepts `opts`, a dict of optional arguments. All of these get
   passed on to `us/seq-limit` to configure convergence checking.
 
   See `simpson-sequence` for more information about Simpson's rule, and caveats
-  that might apply when using this integration method."
-  ([f a b] (integral f a b {}))
-  ([f a b opts]
-   (-> (simpson-sequence f a b)
-       (us/seq-limit opts))))
+  that might apply when using this integration method."}
+  integral
+  (qc/make-integrator-fn
+   (comp first simpson-sequence)
+   simpson-sequence))

@@ -117,15 +117,17 @@
   [integrate gamma lower?]
   {:pre [(<= 0 gamma 1)]}
   (fn [f a b opts]
-    (let [inner-pow (/ 1.0   (- 1 gamma))
-          gamma-pow (/ gamma (- 1 gamma))
+    (let [inner-pow (/ 1 (- 1 gamma))
+          gamma-pow (* gamma inner-pow)
           a' 0
           b' (Math/pow (- b a) (- 1 gamma))
           t->t' (if lower?
                   (fn [t] (+ a (Math/pow t inner-pow)))
                   (fn [t] (- b (Math/pow t inner-pow))))
-          f' #(* gamma-pow (f (t->t' %)))]
-      (* inner-pow (integrate f' a' b' opts)))))
+          f' (fn [t] (* (Math/pow t gamma-pow)
+                       (f (t->t' t))))]
+      (-> (integrate f' a' b' opts)
+          (update-in [:result] (partial * inner-pow))))))
 
 (defn inverse-power-law-lower
   "Implements a change of variables to address a power law singularity at the
@@ -179,7 +181,8 @@
   ;; TODO identical to gamma = 1/2, test...
   (fn [f a b opts]
     (let [f' (fn [t] (* t (f (+ a (* t t)))))]
-      (* 2 (integrate f' 0 (Math/sqrt (- b a)) opts)))))
+      (-> (integrate f' 0 (Math/sqrt (- b a)) opts)
+          (update-in [:result] (partial * 2))))))
 
 (defn inverse-sqrt-upper
   "Implements a change of variables to address an inverse square root singularity
@@ -192,7 +195,8 @@
   ;; TODO identical to gamma = 1/2, test...
   (fn [f a b opts]
     (let [f' (fn [t] (* t (f (- b (* t t)))))]
-      (* 2 (integrate f' 0 (Math/sqrt (- b a)) opts)))))
+      (-> (integrate f' 0 (Math/sqrt (- b a)) opts)
+          (update-in [:result] (partial * 2))))))
 
 ;; ## Exponentially Diverging Endpoints
 

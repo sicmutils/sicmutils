@@ -88,12 +88,12 @@
   be able to use this."
   ([method a b] (get-integrator method a b {}))
   ([method a b m]
-   (let [[integrate opts] (extract-method method)
-         integrate (if (or (qc/infinite? a)
-                           (qc/infinite? b))
-                     (partial qi/evaluate-infinite-integral integrate)
-                     integrate)]
-     [integrate (dissoc (merge opts m) :method)])))
+   (when-let [[integrate opts] (extract-method method)]
+     (let [integrate (if (or (qc/infinite? a)
+                             (qc/infinite? b))
+                       (partial qi/evaluate-infinite-integral integrate)
+                       integrate)]
+       [integrate (dissoc (merge opts m) :method)]))))
 
 ;; ## SCMUtils Style Interface
 ;;

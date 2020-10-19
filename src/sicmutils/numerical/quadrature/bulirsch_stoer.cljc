@@ -19,6 +19,7 @@
 
 (ns sicmutils.numerical.quadrature.bulirsch-stoer
   (:require [sicmutils.numerical.interpolate.rational :as rat]
+            [sicmutils.numerical.quadrature.common :as qc]
             [sicmutils.numerical.quadrature.midpoint :as mid]
             [sicmutils.numerical.quadrature.trapezoid :as trap]
             [sicmutils.generic :as g]
@@ -44,11 +45,12 @@
 (defn- bs-sequence-fn [integrator-seq]
   (fn call
     ([f a b]
-     (call f a b bulirsch-stoer-steps))
-    ([f a b n-seq]
-     (let [square (fn [x] (* x x))
-           xs (map square (h-sequence a b n-seq))
-           ys (integrator-seq f a b n-seq)]
+     (call f a b {:n bulirsch-stoer-steps}))
+    ([f a b opts]
+     (let [{:keys [n]} (merge {:n bulirsch-stoer-steps} opts)
+           square (fn [x] (* x x))
+           xs (map square (h-sequence a b n))
+           ys (integrator-seq f a b opts)]
        (-> (map vector xs ys)
            (rat/modified-bulirsch-stoer 0))))))
 
@@ -60,14 +62,12 @@
   closed-sequence
   (bs-sequence-fn trap/trapezoid-sequence))
 
-(defn open-integral
-  ([f a b] (open-integral f a b {}))
-  ([f a b opts]
-   (-> (open-sequence f a b)
-       (us/seq-limit opts))))
+(def open-integral
+  (qc/make-integrator-fn
+   mid/single-midpoint
+   open-sequence))
 
-(defn closed-integral
-  ([f a b] (closed-integral f a b {}))
-  ([f a b opts]
-   (-> (closed-sequence f a b)
-       (us/seq-limit opts))))
+(def closed-integral
+  (qc/make-integrator-fn
+   trap/single-trapezoid
+   closed-sequence))

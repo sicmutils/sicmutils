@@ -19,6 +19,7 @@
 
 (ns sicmutils.numerical.quadrature.midpoint
   (:require [sicmutils.numerical.interpolate.richardson :as ir]
+            [sicmutils.numerical.quadrature.common :as qc]
             [sicmutils.numerical.quadrature.riemann :as qr]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
@@ -155,11 +156,14 @@
 
   If `n` is a sequence, the resulting sequence will hold an estimate for each
   integer number of slices in that sequence."
-  ([f a b] (midpoint-sequence f a b 1))
-  ([f a b n]
+  ([f a b] (midpoint-sequence f a b {:n 1}))
+  ([f a b {:keys [n accelerate?] :or {n 1}}]
    (let [S      (qr/midpoint-sum f a b)
-         next-S (Sn->S3n f a b)]
-     (qr/incrementalize S next-S 3 n))))
+         next-S (Sn->S3n f a b)
+         xs     (qr/incrementalize S next-S 3 n)]
+     (if (and accelerate? (number? n))
+       (ir/richardson-sequence xs 3 2 2)
+       xs))))
 
 ;; The following example shows that for the sequence $2, 3, 4, 6, ...$ (used in
 ;; the Bulirsch-Stoer method!), the incrementally-augmented `midpoint-sequence`
@@ -207,8 +211,7 @@
 ;; `polynomial.cljc` or `rational.cljc`. The "Bulirsch-Stoer" method uses either
 ;; of these to extrapolate the midpoint method using a non-geometric sequence.
 
-(defn integral
-  "Returns an estimate of the integral of `f` over the open interval $(a, b)$
+(def ^{:doc "Returns an estimate of the integral of `f` over the open interval $(a, b)$
   using the Midpoint method with $1, 3, 9 ... 3^n$ windows for each estimate.
 
   Optionally accepts `opts`, a dict of optional arguments. All of these get
@@ -217,11 +220,6 @@
   `opts` entries that configure integral behavior:
 
   `:accelerate?`: if true, use Richardson extrapolation to accelerate
-  convergence. If false, attempts to converge directly."
-  ([f a b] (integral f a b {}))
-  ([f a b opts]
-   (let [estimates (midpoint-sequence f a b)]
-     (-> (if (:accelerate? opts)
-           (ir/richardson-sequence estimates 3 2 2)
-           estimates)
-         (us/seq-limit opts)))))
+  convergence. If false, attempts to converge directly."}
+  integral
+  (qc/make-integrator-fn single-midpoint midpoint-sequence))

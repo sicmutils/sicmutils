@@ -18,7 +18,8 @@
 ;;
 
 (ns sicmutils.numerical.quadrature.simpson38
-  (:require [sicmutils.numerical.quadrature.trapezoid :as qt]
+  (:require [sicmutils.numerical.quadrature.common :as qc]
+            [sicmutils.numerical.quadrature.trapezoid :as qt]
             [sicmutils.numerical.interpolate.richardson :as ir]
             [sicmutils.util.stream :as us]))
 
@@ -73,22 +74,21 @@
   Simpson's 3/8 rule increases the number of slices geometrically by a factor of
   2 each time, so it will never hit the incremental path. You may want to
   memoize your function before calling `simpson38-sequence`."
-  ([f a b] (simpson38-sequence f a b 1))
-  ([f a b n]
+  ([f a b] (simpson38-sequence f a b {:n 1}))
+  ([f a b {:keys [n] :or {n 1}}]
    {:pre [(number? n)]}
    (-> (qt/trapezoid-sequence f a b (us/powers 3 n))
        (ir/richardson-column 1 3 2 2))))
 
-(defn integral
-  "Returns an estimate of the integral of `f` over the open interval $(a, b)$
+(def ^{:doc "Returns an estimate of the integral of `f` over the open interval $(a, b)$
   using Simpson's 3/8 rule with $1, 3, 9 ... 3^n$ windows for each estimate.
 
   Optionally accepts `opts`, a dict of optional arguments. All of these get
   passed on to `us/seq-limit` to configure convergence checking.
 
   See `simpson38-sequence` for more information about Simpson's 3/8 rule, and
-  caveats that might apply when using this integration method."
-  ([f a b] (integral f a b {}))
-  ([f a b opts]
-   (-> (simpson38-sequence f a b)
-       (us/seq-limit opts))))
+  caveats that might apply when using this integration method."}
+  integral
+  (qc/make-integrator-fn
+   (comp first simpson38-sequence)
+   simpson38-sequence))

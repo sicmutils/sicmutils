@@ -18,7 +18,8 @@
 ;;
 
 (ns sicmutils.numerical.quadrature.milne
-  (:require [sicmutils.numerical.quadrature.midpoint :as qm]
+  (:require [sicmutils.numerical.quadrature.common :as qc]
+            [sicmutils.numerical.quadrature.midpoint :as qm]
             [sicmutils.numerical.interpolate.richardson :as ir]
             [sicmutils.util.stream :as us]))
 
@@ -60,22 +61,21 @@
   method increases the number of slices geometrically by a factor of 2 each
   time, so it will never hit the incremental path. You may want to memoize your
   function before calling `milne-sequence`."
-  ([f a b] (milne-sequence f a b 1))
-  ([f a b n]
+  ([f a b] (milne-sequence f a b {:n 1}))
+  ([f a b {:keys [n] :or {n 1} :as opts}]
    {:pre [(number? n)]}
-   (-> (qm/midpoint-sequence f a b (us/powers 2 n))
+   (-> (qm/midpoint-sequence f a b (assoc opts :n (us/powers 2 n)))
        (ir/richardson-column 1 2 2 2))))
 
-(defn integral
-  "Returns an estimate of the integral of `f` over the open interval $(a, b)$
+(def ^{:doc "Returns an estimate of the integral of `f` over the open interval $(a, b)$
   using Milne's rule with $1, 2, 4 ... 2^n$ windows for each estimate.
 
   Optionally accepts `opts`, a dict of optional arguments. All of these get
   passed on to `us/seq-limit` to configure convergence checking.
 
   See `milne-sequence` for more information about Milne's rule, and caveats that
-  might apply when using this integration method."
-  ([f a b] (integral f a b {}))
-  ([f a b opts]
-   (-> (milne-sequence f a b)
-       (us/seq-limit opts))))
+  might apply when using this integration method."}
+  integral
+  (qc/make-integrator-fn
+   (comp first milne-sequence)
+   milne-sequence))
