@@ -70,7 +70,7 @@
   "Populates the supplied `opts` dictionary with defaults required by
   `evaluate-infinite-integral`."
   [opts]
-  (assoc opts :infinite-breakpoint 1))
+  (merge {:infinite-breakpoint 1} opts))
 
 (defn improper
   "Accepts:
@@ -133,12 +133,11 @@
               (-> (rec f b a opts)
                   (update-in [:result] -))
 
-              ;; Break the region up into three pieces: a central closed core and
-              ;; two open endpoints where we create a change of variables, letting
-              ;; the boundary go to infinity. We use an OPEN interval on the
-              ;; infinite side.
-              [(:or [##-Inf ##Inf]
-                    [##Inf ##-Inf])]
+              ;; Break the region up into three pieces: a central closed core
+              ;; and two open endpoints where we create a change of variables,
+              ;; letting the boundary go to infinity. We use an OPEN interval on
+              ;; the infinite side.
+              [[##-Inf ##Inf]]
               (let [-inf->l (inf-integrate a l-break qc/open-closed)
                     l->r    (integrate     l-break r-break qc/closed)
                     r->+inf (inf-integrate r-break b qc/closed-open)]
@@ -146,8 +145,8 @@
                  :result (+ -inf->l l->r r->+inf)})
 
               ;; If `b` lies to the left of the negative breakpoint, don't cut.
-              ;; Else, cut the integral into two pieces at the negative breakpoint
-              ;; and variable-change the left piece.
+              ;; Else, cut the integral into two pieces at the negative
+              ;; breakpoint and variable-change the left piece.
               [[##-Inf _]]
               (if (<= b l-break)
                 (inf-integrate a b ab-interval)
