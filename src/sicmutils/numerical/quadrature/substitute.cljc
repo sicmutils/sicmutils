@@ -64,17 +64,19 @@
   - Mathworld, \"Improper Integral\": https://mathworld.wolfram.com/ImproperIntegral.html
   - Press, Numerical Recipes, Section 4.4: http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf"
   [integrate]
-  (fn [f a b opts]
-    {:pre [(not
-            (and (qc/infinite? a)
-                 (qc/infinite? b)))]}
-    (let [f' (fn [t]
-               (/ (f (/ 1.0 t))
-                  (* t t)))
-          a' (if (qc/infinite? b) 0.0 (/ 1.0 b))
-          b' (if (qc/infinite? a) 0.0 (/ 1.0 a))
-          opts (qc/update-interval opts qc/flip)]
-      (integrate f' a' b' opts))))
+  (fn call
+    ([f a b] (call f a b {}))
+    ([f a b opts]
+     {:pre [(not
+             (and (qc/infinite? a)
+                  (qc/infinite? b)))]}
+     (let [f' (fn [t]
+                (/ (f (/ 1.0 t))
+                   (* t t)))
+           a' (if (qc/infinite? b) 0.0 (/ 1.0 b))
+           b' (if (qc/infinite? a) 0.0 (/ 1.0 a))
+           opts (qc/update-interval opts qc/flip)]
+       (integrate f' a' b' opts)))))
 
 ;; ## Power Law Singularities
 ;;
@@ -97,11 +99,11 @@
 ;; breakpoint, take separate integrals for both sides and add the values back
 ;; together.
 
-(defn- power-law
+(defn- inverse-power-law
   "Implements a change of variables to address a power law singularity at the
   lower or upper integration endpoint.
 
-  A \"power law singularity\" means that the integrand diverges as
+  An \"inverse power law singularity\" means that the integrand diverges as
 
   $$(x - a)^{-\\gamma}$$
 
@@ -116,24 +118,26 @@
   "
   [integrate gamma lower?]
   {:pre [(<= 0 gamma 1)]}
-  (fn [f a b opts]
-    (let [inner-pow (/ 1 (- 1 gamma))
-          gamma-pow (* gamma inner-pow)
-          a' 0
-          b' (Math/pow (- b a) (- 1 gamma))
-          t->t' (if lower?
-                  (fn [t] (+ a (Math/pow t inner-pow)))
-                  (fn [t] (- b (Math/pow t inner-pow))))
-          f' (fn [t] (* (Math/pow t gamma-pow)
-                       (f (t->t' t))))]
-      (-> (integrate f' a' b' opts)
-          (update-in [:result] (partial * inner-pow))))))
+  (fn call
+    ([f a b] (call f a b {}))
+    ([f a b opts]
+     (let [inner-pow (/ 1 (- 1 gamma))
+           gamma-pow (* gamma inner-pow)
+           a' 0
+           b' (Math/pow (- b a) (- 1 gamma))
+           t->t' (if lower?
+                   (fn [t] (+ a (Math/pow t inner-pow)))
+                   (fn [t] (- b (Math/pow t inner-pow))))
+           f' (fn [t] (* (Math/pow t gamma-pow)
+                        (f (t->t' t))))]
+       (-> (integrate f' a' b' opts)
+           (update-in [:result] (partial * inner-pow)))))))
 
 (defn inverse-power-law-lower
   "Implements a change of variables to address a power law singularity at the
   lower integration endpoint.
 
-  A \"power law singularity\" means that the integrand diverges as
+  An \"inverse power law singularity\" means that the integrand diverges as
 
   $$(x - a)^{-\\gamma}$$
 
@@ -145,13 +149,13 @@
   - Press, Numerical Recipes, Section 4.4: http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf
   - Wikipedia, \"Finite-time Singularity\": https://en.wikipedia.org/wiki/Singularity_(mathematics)#Finite-time_singularity"
   [integrate gamma]
-  (power-law integrate gamma true))
+  (inverse-power-law integrate gamma true))
 
 (defn inverse-power-law-upper
   "Implements a change of variables to address a power law singularity at the
   upper integration endpoint.
 
-  A \"power law singularity\" means that the integrand diverges as
+  An \"inverse power law singularity\" means that the integrand diverges as
 
   $$(x - a)^{-\\gamma}$$
 
@@ -163,7 +167,7 @@
   - Press, Numerical Recipes, Section 4.4: http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf
   - Wikipedia, \"Finite-time Singularity\": https://en.wikipedia.org/wiki/Singularity_(mathematics)#Finite-time_singularity"
   [integrate gamma]
-  (power-law integrate gamma false))
+  (inverse-power-law integrate gamma false))
 
 ;; ## Inverse Square Root singularities
 ;;
@@ -179,10 +183,12 @@
   near the lower endpoint $a$."
   [integrate]
   ;; TODO identical to gamma = 1/2, test...
-  (fn [f a b opts]
-    (let [f' (fn [t] (* t (f (+ a (* t t)))))]
-      (-> (integrate f' 0 (Math/sqrt (- b a)) opts)
-          (update-in [:result] (partial * 2))))))
+  (fn call
+    ([f a b] (call f a b {}))
+    ([f a b opts]
+     (let [f' (fn [t] (* t (f (+ a (* t t)))))]
+       (-> (integrate f' 0 (Math/sqrt (- b a)) opts)
+           (update-in [:result] (partial * 2)))))))
 
 (defn inverse-sqrt-upper
   "Implements a change of variables to address an inverse square root singularity
@@ -193,10 +199,12 @@
   near the upper endpoint $b$."
   [integrate]
   ;; TODO identical to gamma = 1/2, test...
-  (fn [f a b opts]
-    (let [f' (fn [t] (* t (f (- b (* t t)))))]
-      (-> (integrate f' 0 (Math/sqrt (- b a)) opts)
-          (update-in [:result] (partial * 2))))))
+  (fn call
+    ([f a b] (call f a b {}))
+    ([f a b opts]
+     (let [f' (fn [t] (* t (f (- b (* t t)))))]
+       (-> (integrate f' 0 (Math/sqrt (- b a)) opts)
+           (update-in [:result] (partial * 2)))))))
 
 ;; ## Exponentially Diverging Endpoints
 
@@ -218,10 +226,12 @@
   integration endpoint. Use this when the integrand diverges as $\\exp{x}$ near
   the upper endpoint $b$."
   [integrate]
-  (fn [f a b opts]
-    {:pre [(qc/infinite? b)]}
-    (let [f' (fn [t] (* (- (Math/log t))
-                       (/ 1 t)))
-          opts (qc/update-interval opts qc/flip)]
-      (integrate f 0 (Math/exp (- a)) opts))))
+  (fn call
+    ([f a b] (call f a b {}))
+    ([f a b opts]
+     {:pre [(qc/infinite? b)]}
+     (let [f' (fn [t] (* (- (Math/log t))
+                        (/ 1 t)))
+           opts (qc/update-interval opts qc/flip)]
+       (integrate f 0 (Math/exp (- a)) opts)))))
 1
