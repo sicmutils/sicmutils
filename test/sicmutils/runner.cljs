@@ -39,9 +39,9 @@
 
             sicmutils.numerical.compile-test
             sicmutils.numerical.elliptic-test
-            sicmutils.numerical.integrate-test
             sicmutils.numerical.minimize-test
             sicmutils.numerical.ode-test
+            sicmutils.numerical.quadrature-test
 
             sicmutils.numerical.interpolate.polynomial-test
             sicmutils.numerical.interpolate.rational-test
@@ -110,9 +110,9 @@
 
            'sicmutils.numerical.compile-test
            'sicmutils.numerical.elliptic-test
-           'sicmutils.numerical.integrate-test
            'sicmutils.numerical.minimize-test
            'sicmutils.numerical.ode-test
+           'sicmutils.numerical.quadrature-test
 
            'sicmutils.numerical.interpolate.polynomial-test
            'sicmutils.numerical.interpolate.rational-test

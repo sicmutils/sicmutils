@@ -19,7 +19,7 @@
 
 (ns sicmutils.mechanics.lagrange
   (:refer-clojure :exclude [+ - * /  partial])
-  (:require [sicmutils.numerical.integrate :as i]
+  (:require [sicmutils.numerical.quadrature :as q]
             [sicmutils.numerical.minimize :as m]
             [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.generic :as g :refer [cos sin + - * /]]
@@ -133,7 +133,7 @@
 
 (defn Lagrangian-action
   [L q t1 t2]
-  (i/definite-integral (compose L (Γ q)) t1 t2 :compile true))
+  (q/definite-integral (compose L (Γ q)) t1 t2 {:compile? true}))
 
 (defn Lagrange-equations
   [Lagrangian]
