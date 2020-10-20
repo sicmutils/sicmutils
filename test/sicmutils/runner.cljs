@@ -50,12 +50,14 @@
             sicmutils.numerical.quadrature.adaptive-test
             sicmutils.numerical.quadrature.boole-test
             sicmutils.numerical.quadrature.bulirsch-stoer-test
+            sicmutils.numerical.quadrature.infinite-test
             sicmutils.numerical.quadrature.midpoint-test
             sicmutils.numerical.quadrature.milne-test
             sicmutils.numerical.quadrature.riemann-test
             sicmutils.numerical.quadrature.romberg-test
             sicmutils.numerical.quadrature.simpson-test
             sicmutils.numerical.quadrature.simpson38-test
+            sicmutils.numerical.quadrature.substitute-test
             sicmutils.numerical.quadrature.trapezoid-test
 
             sicmutils.numerical.unimin.bracket-test
@@ -119,12 +121,14 @@
            'sicmutils.numerical.quadrature.adaptive-test
            'sicmutils.numerical.quadrature.boole-test
            'sicmutils.numerical.quadrature.bulirsch-stoer-test
+           'sicmutils.numerical.quadrature.infinite-test
            'sicmutils.numerical.quadrature.midpoint-test
            'sicmutils.numerical.quadrature.milne-test
            'sicmutils.numerical.quadrature.riemann-test
            'sicmutils.numerical.quadrature.romberg-test
            'sicmutils.numerical.quadrature.simpson-test
            'sicmutils.numerical.quadrature.simpson38-test
+           'sicmutils.numerical.quadrature.substitute-test
            'sicmutils.numerical.quadrature.trapezoid-test
 
            'sicmutils.numerical.unimin.bracket-test
