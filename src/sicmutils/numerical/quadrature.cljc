@@ -18,8 +18,7 @@
 ;;
 
 (ns sicmutils.numerical.quadrature
-  (:require #?(:clj [potemkin :refer [import-vars]])
-            [sicmutils.numerical.compile :as c]
+  (:require [sicmutils.numerical.compile :as c]
             [sicmutils.numerical.quadrature.adaptive :as qa]
             [sicmutils.numerical.quadrature.boole :as boole]
             [sicmutils.numerical.quadrature.common :as qc]
@@ -32,7 +31,7 @@
             [sicmutils.numerical.quadrature.simpson :as simp]
             [sicmutils.numerical.quadrature.simpson38 :as simp38]
             [sicmutils.numerical.quadrature.trapezoid :as trap]
-            [sicmutils.util :as u #?@(:cljs [:refer-macros [import-vars]])]))
+            [sicmutils.util :as u]))
 
 ;; ## Numerical Quadrature
 ;;
