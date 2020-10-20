@@ -47,6 +47,7 @@
             sicmutils.numerical.interpolate.rational-test
             sicmutils.numerical.interpolate.richardson-test
 
+            sicmutils.numerical.quadrature.midpoint-test
             sicmutils.numerical.quadrature.riemann-test
 
             sicmutils.numerical.unimin.bracket-test
@@ -107,6 +108,7 @@
            'sicmutils.numerical.interpolate.rational-test
            'sicmutils.numerical.interpolate.richardson-test
 
+           'sicmutils.numerical.quadrature.midpoint-test
            'sicmutils.numerical.quadrature.riemann-test
 
            'sicmutils.numerical.unimin.bracket-test
