@@ -20,7 +20,8 @@
 (ns sicmutils.numerical.quadrature.bulirsch-stoer
   (:require [sicmutils.numerical.interpolate.polynomial :as poly]
             [sicmutils.numerical.interpolate.rational :as rat]
-            [sicmutils.numerical.quadrature.common :as qc]
+            [sicmutils.numerical.quadrature.common :as qc
+             #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.midpoint :as mid]
             [sicmutils.numerical.quadrature.trapezoid :as trap]
             [sicmutils.generic :as g]

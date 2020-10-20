@@ -19,7 +19,8 @@
 
 (ns sicmutils.numerical.quadrature.riemann
   (:require [sicmutils.numerical.interpolate.richardson :as ir]
-            [sicmutils.numerical.quadrature.common :as qc]
+            [sicmutils.numerical.quadrature.common :as qc
+             #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]

@@ -18,7 +18,8 @@
 ;;
 
 (ns sicmutils.numerical.quadrature.simpson38
-  (:require [sicmutils.numerical.quadrature.common :as qc]
+  (:require [sicmutils.numerical.quadrature.common :as qc
+             #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.trapezoid :as qt]
             [sicmutils.numerical.interpolate.richardson :as ir]
             [sicmutils.util.stream :as us]))
@@ -67,7 +68,7 @@
   Returns estimates with $n, 3n, 9n, ...n3^i$ slices, geometrically increasing by a
   factor of 3 with each estimate.
 
-  ## Optional arguments:
+    ## Optional arguments:
 
   If supplied, `:n` (default 1) specifies the initial number of slices to use.
 

@@ -33,7 +33,7 @@
       (is (ish? expected (bs/open-integral rom/gaussian 0 1))
           "The sequence converges.")
 
-      (is (= (:result expected)
+      (is (= (:result (bs/open-integral rom/gaussian 0 1))
              (nth terms 4))
           "The sequence converged on the 5 term (index 4).")
 

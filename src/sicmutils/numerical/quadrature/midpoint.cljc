@@ -19,7 +19,8 @@
 
 (ns sicmutils.numerical.quadrature.midpoint
   (:require [sicmutils.numerical.interpolate.richardson :as ir]
-            [sicmutils.numerical.quadrature.common :as qc]
+            [sicmutils.numerical.quadrature.common :as qc
+             #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.riemann :as qr]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]

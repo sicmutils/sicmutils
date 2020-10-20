@@ -18,7 +18,8 @@
 ;;
 
 (ns sicmutils.numerical.quadrature.milne
-  (:require [sicmutils.numerical.quadrature.common :as qc]
+  (:require [sicmutils.numerical.quadrature.common :as qc
+             #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.midpoint :as qm]
             [sicmutils.numerical.interpolate.richardson :as ir]
             [sicmutils.util.stream :as us]))

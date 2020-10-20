@@ -18,7 +18,8 @@
 ;;
 
 (ns sicmutils.numerical.quadrature.simpson
-  (:require [sicmutils.numerical.quadrature.common :as qc]
+  (:require [sicmutils.numerical.quadrature.common :as qc
+             #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.trapezoid :as qt]
             [sicmutils.numerical.interpolate.richardson :as ir]))
 

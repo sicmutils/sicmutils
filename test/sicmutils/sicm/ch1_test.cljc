@@ -54,8 +54,7 @@
                                             (e/Lagrangian-action (L/L-free-particle mass)
                                                                  (+ q (* ε η)) t1 t2))))]
       ;; integral
-      #?(:clj
-         (is (near 2.0 (e/definite-integral sin 0 Math/PI))))
+      (is (near 2.0 (e/definite-integral sin 0 Math/PI)))
 
       ;; p. 18
       (is (= '(up (x t)
