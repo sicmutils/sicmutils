@@ -39,7 +39,7 @@
                  (iterate (fn [x] (* 2 x)) 2)
                  (iterate (fn [x] (* 2 x)) 3))]
       (is
-       (ish? (take 12 (qm/midpoint-sequence f1 0 1 n-seq))
+       (ish? (take 12 (qm/midpoint-sequence f1 0 1 {:n n-seq}))
              (take 12 (map (qr/midpoint-sum f2 0 1) n-seq)))
        "The incremental and non-incremental versions of the midpoint method
        produce ~identical results.")

@@ -98,11 +98,11 @@
     ;; bumps for every even `n`.
     (let [f     g/square
           n-seq (take 20 (iterate inc 1))]
-      (is (ish? (qr/left-sequence f 0 10 n-seq)
+      (is (ish? (qr/left-sequence f 0 10 {:n n-seq})
                 (map (@#'qr/left-sum f 0 10) n-seq))
           "Incremental implementation of left-sequence works.")
 
-      (is (ish? (qr/right-sequence f 0 10 n-seq)
+      (is (ish? (qr/right-sequence f 0 10 {:n n-seq})
                 (map (@#'qr/right-sum f 0 10) n-seq))
           "Incremental implementation of right-sequence works.")
 
@@ -111,7 +111,7 @@
 
         ;; run each sequence fully through, counting the function invocations
         ;; required by each.
-        (doall (qr/left-sequence f1 0 10 n-seq))
+        (doall (qr/left-sequence f1 0 10 {:n n-seq}))
         (doall (map (@#'qr/left-sum f2 0 10) n-seq))
         (is (= 210
                (int (ua/sum identity 1 21))

@@ -47,9 +47,9 @@
                     (/ (+ l r) 2))
           f       (fn [x] (/ 4 (+ 1 (* x x))))
           [a b]   [0 1]
-          left-estimates  (qr/left-sequence f a b points)
-          right-estimates (qr/right-sequence f a b points)]
-      (ish? (qt/trapezoid-sequence f a b points)
+          left-estimates  (qr/left-sequence f a b {:n points})
+          right-estimates (qr/right-sequence f a b {:n points})]
+      (ish? (qt/trapezoid-sequence f a b {:n points})
             (map average
                  left-estimates
                  right-estimates))))
@@ -99,7 +99,7 @@
                                 (iterate (fn [x] (* 2 x)) 2)
                                 (iterate (fn [x] (* 2 x)) 3)))]
             (is (ish?
-                 (qt/trapezoid-sequence f1 0 1 n-seq)
+                 (qt/trapezoid-sequence f1 0 1 {:n n-seq})
                  (map (qt/trapezoid-sum f2 0 1) n-seq))
                 "The incremental and non-incremental versions produce ~identical
        results.")
