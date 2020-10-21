@@ -42,8 +42,8 @@
 
 (defn infinitize
   "Performs a variable substitution targeted at turning a single infinite endpoint
-  of an improper integral evaluation an (open) endpoint at 0 by applying the
-  following substitution:
+  of an improper integral evaluation into an (open) endpoint at 0 by applying
+  the following substitution:
 
   $$u(t) = {1 \\over t}$$ $$du = {-1 \\over t^2}$$
 
@@ -234,4 +234,3 @@
                         (/ 1 t)))
            opts (qc/update-interval opts qc/flip)]
        (integrate f 0 (Math/exp (- a)) opts)))))
-1

@@ -148,7 +148,7 @@
 ;;
 ;; Here we are! The one function you need care about if you're interested in
 ;; definite integrals. Learn to use this, and then dig in to the details of
-;; individual methods if you run inton trouble or want to learn more. Enjoy!
+;; individual methods if you run into trouble or want to learn more. Enjoy!
 
 (defn definite-integral
   "Evaluates the definite integral of integrand `f` across the interval $a, b$.
