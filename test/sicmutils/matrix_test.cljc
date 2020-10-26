@@ -270,8 +270,10 @@
 (defspec a*ainv=i
   (gen/let [n (gen/choose 1 5)]
     (prop/for-all [A (generate-square-matrix n)]
-                  (or (zero? (g/determinant A))
-                      (= (m/I n) (g/* (g/invert A) A) (g/* A (g/invert A)))))))
+                  (or (v/nullity? (g/determinant A))
+                      (= (m/I n)
+                         (g/* (g/invert A) A)
+                         (g/* A (g/invert A)))))))
 
 (deftest matrices-from-structure
   (let [A (s/up (s/up 1 2) (s/up 3 4))
