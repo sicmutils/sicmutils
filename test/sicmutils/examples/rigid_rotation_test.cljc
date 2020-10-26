@@ -31,9 +31,7 @@
 (deftest ^:long smoke
   ;; this test is :long because of the simplification. Remove this
   ;; tag when we fix that.
-  #?(:clj
-     ;; TODO - remove this fork when we get evolver support in cljs.
-     (is (rigid-rotation/evolver 1 0.1 1 1.2 2 0.1 0.1 0.1 1 1 1)))
+  (is (= 11 (count (rigid-rotation/evolver 1 0.1 1 1.2 2 0.1 0.1 0.1 1 1 1))))
 
   ;; Admittedly, I haven't checked this yet.
   (is (= '(up 1

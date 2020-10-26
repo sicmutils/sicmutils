@@ -29,6 +29,7 @@
 (def ^:private near (v/within 1e-6))
 
 #?(:clj
+   ;; TODO Enable for CLJS in `eval`-friendly env.
    (deftest compile-univariate
      (let [f (fn [x] (+ 1 (g/square (g/sin x))))
            cf (c/compile-univariate-function f)]
@@ -44,6 +45,7 @@
     (is (= -4 ((sf 2) s)))
     (is (= 20 ((sf 2) t)))
     #?(:clj
+       ;; TODO enable for CLJS when we get `eval` covered.
        (let [cf (c/compile-state-function sf [1] s)]
          (is (= -2 (cf [2 3 4 5 1])))
          (is (= -4 (cf [2 3 4 5 2])))

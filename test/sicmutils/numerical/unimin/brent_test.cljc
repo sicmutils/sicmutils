@@ -84,8 +84,8 @@
       (is (ish? {:result (* 3 (/ Math/PI 2))
                  :value -1.0
                  :converged? true
-                 :iterations 30
-                 :fncalls 31}
+                 :iterations 15
+                 :fncalls 16}
                 (b/brent-min g/sin 4 5 {:relative-threshold 1e-10
                                         :absolute-threshold 1e-14
                                         :maxfun 200}))))
@@ -94,8 +94,8 @@
       (is (ish? {:result (* 3 (/ Math/PI 2))
                  :value -1.0
                  :converged? true
-                 :iterations 32
-                 :fncalls 33}
+                 :iterations 20
+                 :fncalls 21}
                 (b/brent-min g/sin 1 5 {:relative-threshold 1e-10
                                         :absolute-threshold 1e-14
                                         :maxfun 200}))))

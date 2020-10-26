@@ -133,7 +133,7 @@
 
 (defn Lagrangian-action
   [L q t1 t2]
-  (q/definite-integral (compose L (Γ q)) t1 t2 {:compile? true}))
+  (q/definite-integral (compose L (Γ q)) t1 t2 {:compile? false}))
 
 (defn Lagrange-equations
   [Lagrangian]

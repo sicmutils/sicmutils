@@ -35,8 +35,9 @@
                  [com.taoensso/timbre "4.11.0-alpha1"
                   :exclusions [org.clojure/clojurescript]]
                  [org.apache.commons/commons-math3 "3.6.1"]
-                 [org.clojars.sritchie09/bigfraction "4.0.12-0"]
+                 [cljsjs/bigfraction "4.0.12-0"]
                  [cljsjs/complex "2.0.11-0"]
+                 [cljsjs/odex "2.0.4-0"]
                  [hiccup "1.0.5"]
                  [nrepl "0.7.0"]
                  [potemkin "0.4.5"]]

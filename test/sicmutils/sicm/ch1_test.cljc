@@ -91,42 +91,34 @@
       ;; at this point in the text we should be able to show-expression
       ;; in TeX form XXX.
       ;; p. 20
-      #?(:clj
-         ;; TODO activate when we get integrator support in cljs.
-         (is (= 435.0 (e/Lagrangian-action (L/L-free-particle 3.0) test-path 0.0 10.0))))
+      (is (= 435.0 (e/Lagrangian-action (L/L-free-particle 3.0) test-path 0.0 10.0)))
 
-      #?(:clj
-         ;; TODO activate when we get integrator support in cljs.
-         (let [m (e/minimize
-                  (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0)
-                  -2.0 1.0)]
-           (is (near 0.0 (:result m)))
-           (is (near 435 (:value m)))))
+      (let [m (e/minimize
+               (varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0)
+               -2.0 1.0)]
+        (is (near 0.0 (:result m)))
+        (is (near 435 (:value m))))
 
-      #?(:clj
-         ;; TODO activate when we get integrator support in cljs.
-         (is (near 436.2912143 ((varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) 0.001))))
+      (is (near 436.2912143 ((varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) 0.001)))
 
       ;; This is fairly time consuming since every evaluation of a candidate
       ;; point in the multidimensional minimization of find-path involves
       ;; computing a numeric integration to find the Lagrangian of the path
       ;; induced by the point. But it works.
-      #?(:clj
-         ;; TODO activate when we get integrator support in cljs.
-         (let [values (atom [])
-               minimal-path (e/find-path
-                             (L/L-harmonic 1.0 1.0) 0. 1. (/ Math/PI 2) 0. 3
-                             :observe (fn [_ pt _] (swap! values conj pt)))
-               good? (partial (within 2e-4) 0)
-               errors (for [x (range 0.0 (/ Math/PI 2) 0.02)]
-                        (abs (- (Math/cos x) (minimal-path x))))]
+      (let [values (atom [])
+            minimal-path (e/find-path
+                          (L/L-harmonic 1.0 1.0) 0. 1. (/ Math/PI 2) 0. 3
+                          :observe (fn [_ pt _] (swap! values conj pt)))
+            good? (partial (within 2e-4) 0)
+            errors (for [x (range 0.0 (/ Math/PI 2) 0.02)]
+                     (abs (- (Math/cos x) (minimal-path x))))]
 
-           ;; the minimization is supposed to discover the cosine function in the
-           ;; interval [0..pi/2]. Check that it has done so over a variety of
-           ;; points to within 2e-4.
-           (is ((within 1e-4) 1 (minimal-path 0)))
-           (is ((within 1e-5) 0 (minimal-path (/ Math/PI 2))))
-           (is (every? good? errors)))))))
+        ;; the minimization is supposed to discover the cosine function in the
+        ;; interval [0..pi/2]. Check that it has done so over a variety of
+        ;; points to within 2e-4.
+        (is ((within 1e-4) 1 (minimal-path 0)))
+        (is ((within 1e-5) 0 (minimal-path (/ Math/PI 2))))
+        (is (every? good? errors))))))
 
 (defn ^:private δ
   "The variation operator (p. 28)."
@@ -270,19 +262,17 @@
               (flatten ((harmonic-state-derivative 2. 1.)
                         (up 0 (up 1. 2.) (up 3. 4.)))))))
       ;; p. 72
-      #?(:clj
-         ;; TODO integrator doesn't work yet in cljs.
-         (dotimes [_ 1]  ;; this is just here in case we want to watch in the profiler
-           (let [answer ((e/state-advancer harmonic-state-derivative 2. 1.)
-                         (up 0. (up 1. 2.) (up 3. 4.))
-                         10.
-                         1e-12
-                         :compile true)
-                 expected (up 10.
-                              (up 3.71279166 5.42062082)
-                              (up 1.61480309 1.81891037))
-                 delta (->> answer (- expected) flatten (map abs) (reduce max))]
-             (is (< delta 1e-8))))))))
+      (dotimes [_ 1]  ;; this is just here in case we want to watch in the profiler
+        (let [answer ((e/state-advancer harmonic-state-derivative 2. 1.)
+                      (up 0. (up 1. 2.) (up 3. 4.))
+                      10.
+                      {:epsilon 1e-12
+                       :compile? true})
+              expected (up 10.
+                           (up 3.71279166 5.42062082)
+                           (up 1.61480309 1.81891037))
+              delta (->> answer (- expected) flatten (map abs) (reduce max))]
+          (is (< delta 1e-8)))))))
 
 (deftest section-1-7-2
   (let [pend-state-derivative (fn [m l g a ω]
@@ -302,25 +292,17 @@
            (simplify ((pend-state-derivative 'm 'l 'g 'a 'ω)
                       (up 't 'θ 'θdot)))))
 
-    #?(:clj
-       ;; TODO make-integrator isn't implemented
-       (let [answer ((e/evolve pend-state-derivative
-                               1.0
-                               1.0
-                               9.8
-                               0.1
-                               (* 2.0 (e/sqrt 9.8)))
-                     (up 0.0
-                         1.
-                         0.)
-                     (constantly nil)
-                     0.01
-                     1.0
-                     1.0e-13
-                     :compile true)
-             expected (up 1.0 -1.030115687 -1.40985359)
-             delta (->> answer (- expected) flatten (map abs) (reduce max))]
-         (is (< delta 1e-8))))))
+    (let [opts      {:compile? true :epsilon 1.0e-13}
+          evolve-fn (e/evolve pend-state-derivative
+                              1.0
+                              1.0
+                              9.8
+                              0.1
+                              (* 2.0 (e/sqrt 9.8)))
+          answer (evolve-fn (up 0.0 1. 0.) 0.01 1.0 opts)
+          expected (up 1.0 -1.030115687 -1.40985359)
+          delta (->> answer (- expected) flatten (map abs) (reduce max))]
+      (is (< delta 1e-8)))))
 
 (deftest section-1-8
   (e/with-literal-functions [U V]

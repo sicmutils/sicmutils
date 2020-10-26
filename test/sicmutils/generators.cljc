@@ -22,9 +22,9 @@
      :clj
      gen/size-bounded-bigint))
 
-#?(:clj
-   (def biginteger
-     (gen/fmap u/biginteger bigint)))
+(def biginteger
+  #?(:cljs bigint
+     :clj (gen/fmap u/biginteger bigint)))
 
 (def native-integral
   "non-floating-point integers on cljs, Long on clj."

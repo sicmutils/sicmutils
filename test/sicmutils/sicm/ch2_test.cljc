@@ -96,20 +96,19 @@
         state0 (up 0. (up 1. 0. 0.) (up 0.1 0.1 0.1)) ;; initial state
         L0 ((r/Euler-state->L-space A B C) state0)
         E0 ((r/T-rigid-body A B C) state0)]
-    #?(:clj
-       ;; TODO activate when cljs gets an evolver.
-       (do ((e/evolve r/rigid-sysder A B C)
-            state0
-            (monitor-errors A B C L0 E0)
-            0.1
-            10.0
-            1.0e-12
-            :compile true)
-           ;; check that all observed errors over the whole interval are small
-           (is (> 1e-10 (->> @points
-                             (mapcat #(drop 1 %))
-                             (map e/abs)
-                             (reduce max))))))))
+    (prn L0 E0)
+    ((e/evolve r/rigid-sysder A B C)
+     state0
+     0.1
+     10.0
+     {:compile? true
+      :epsilon 1.0e-12
+      :observe (monitor-errors A B C L0 E0)})
+    ;; check that all observed errors over the whole interval are small
+    (is (> 1e-10 (->> @points
+                      (mapcat #(drop 1 %))
+                      (map e/abs)
+                      (reduce max))))))
 
 (deftest section-2-10
   (is (= '(+ (* (/ 1 2) A (expt φdot 2) (expt (sin θ) 2))

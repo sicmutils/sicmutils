@@ -27,17 +27,18 @@
             [sicmutils.util.stopwatch :as us]
             [taoensso.timbre :as log]))
 
-(def ^:private compiled-function-whitelist {'up `struct/up
-                                            'down `struct/down
-                                            'cos #(Math/cos %)
-                                            'sin #(Math/sin %)
-                                            'tan #(Math/tan %)
-                                            '+ +
-                                            '- -
-                                            '* *
-                                            '/ /
-                                            'expt #(Math/pow %1 %2)
-                                            'sqrt #(Math/sqrt %)})
+(def ^:private compiled-function-whitelist
+  {'up `struct/up
+   'down `struct/down
+   'cos #(Math/cos %)
+   'sin #(Math/sin %)
+   'tan #(Math/tan %)
+   '+ +
+   '- -
+   '* *
+   '/ /
+   'expt #(Math/pow %1 %2)
+   'sqrt #(Math/sqrt %)})
 
 (def ^:private compiled-function-cache (atom {}))
 
@@ -48,7 +49,7 @@
   FIXME: give an example here, since nobody could figure out what's
   going on just by reading this"
   [generic-parameters state-model body]
-  `(fn [~(into [] (concat (-> state-model flatten) generic-parameters))]
+  `(fn [~(into [] (concat (flatten state-model) generic-parameters))]
      ~(w/postwalk-replace compiled-function-whitelist body)))
 
 (defn ^:private discard-unreferenced-variables
@@ -170,8 +171,7 @@
   [f]
   (let [sw (us/stopwatch)
         var (gensym 'x)
-        compiled-function (->> var
-                               f
+        compiled-function (->> (f var)
                                g/simplify
                                common-subexpression-elimination
                                (construct-univariate-function-exp var)
