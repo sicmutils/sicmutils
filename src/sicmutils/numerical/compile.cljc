@@ -44,7 +44,7 @@
    'atan #(Math/atan %)
    'expt #(Math/pow %1 %2)
    'sqrt #(Math/sqrt %)
-   'abs #(Math/abs %)
+   'abs (fn [^double x] (Math/abs x))
    'log #(Math/log %)
    'exp #(Math/exp %)})
 

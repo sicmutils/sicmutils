@@ -30,7 +30,7 @@
 
 (deftest compile-univariate
   (let [f (fn [x] (+ 1 (g/square (g/sin x))))
-        cf (c/compile-univariate-function f)]
+        cf (c/compile-univariate-fn f)]
     (is (near (f 0.5) (cf 0.5)))))
 
 (deftest compile-state
@@ -42,7 +42,7 @@
     (is (= 10 (f t)))
     (is (= -4 ((sf 2) s)))
     (is (= 20 ((sf 2) t)))
-    (let [cf (c/compile-state-function sf [1] s)]
+    (let [cf (c/compile-state-fn sf [1] s)]
       (is (= -2 (cf [2 3 4 5] [1])))
       (is (= -4 (cf [2 3 4 5] [2])))
       (is (= 10 (cf (flatten t) [1])))

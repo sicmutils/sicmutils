@@ -121,7 +121,7 @@
            ab-interval   (qc/interval opts)
            integrate     (partial call integrator)
            inf-integrate (partial call (qs/infinitize integrator))
-           r-break       (Math/abs infinite-breakpoint)
+           r-break       (Math/abs ^double infinite-breakpoint)
            l-break       (- r-break)]
        (match [[a b]]
               [(:or [##-Inf ##-Inf] [##Inf ##Inf])]

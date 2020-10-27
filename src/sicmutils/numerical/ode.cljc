@@ -72,82 +72,6 @@
              (when final-step?
                (observe it1 final-state))))))))
 
-(defn integrator
-  "Returns a map with the following kv pairs:
-
-  - :integrator an instance of GraggBulirschStoerIntegrator
-  - :equations instance of FirstOrderDifferentialEquations
-  - :dimension the total number of entries in the flattened initial state tuple
-  - :stopwatch IStopwatch instance that records total evaluation time inside the
-  computeDerivatives function
-  - :counter an atom containing a Long that increments every time
-  `computeDerivatives` is called.
-
-  TODO fix the interface here... we need to figure out what we actually want to
-  expose. Get Odex working!
-
-  TODO get the options map stuff from `evolve` propagated through."
-  [state-derivative derivative-args initial-state
-   {:keys [compile? epsilon] :or {epsilon 1e-8}}]
-  #?(:cljs
-     (let [evaluation-time  (us/stopwatch :started? false)
-           evaluation-count (atom 0)
-           state->array     (fn [state]
-                              (double-array (map u/double (flatten state))))
-           dimension        (count (flatten initial-state))
-           derivative-fn    (if compile?
-                              (let [f' (c/compile-state-function state-derivative derivative-args initial-state)]
-                                (fn [y] (f' y derivative-args)))
-                              (do (log/warn "Not compiling function for ODE analysis")
-                                  (let [d:dt (apply state-derivative derivative-args)
-                                        array->state #(struct/unflatten % initial-state)]
-                                    (comp d:dt array->state))))
-           equations     (fn [_ y]
-                           (us/start evaluation-time)
-                           (swap! evaluation-count inc)
-                           (let [y' (state->array (derivative-fn y))]
-                             (us/stop evaluation-time)
-                             y'))
-           integrator (o/Solver. dimension)]
-       (set! (.-absoluteTolerance integrator) epsilon)
-       (set! (.-relativeTolerance integrator) epsilon)
-       {:integrator integrator
-        :equations equations
-        :dimension dimension
-        :stopwatch evaluation-time
-        :counter evaluation-count})
-
-     :clj
-     (let [evaluation-time     (us/stopwatch :started? false)
-           evaluation-count    (atom 0)
-           state->array        (comp double-array flatten)
-           dimension           (count (flatten initial-state))
-           derivative-fn
-           (if compile?
-             (let [f' (c/compile-state-function state-derivative derivative-args initial-state)]
-               (fn [y] (f' y derivative-args)))
-             (do (log/warn "Not compiling function for ODE analysis")
-                 (let [d:dt (apply state-derivative derivative-args)
-                       array->state #(struct/unflatten % initial-state)]
-                   (comp d:dt array->state))))
-
-           equations
-           (reify FirstOrderDifferentialEquations
-             (computeDerivatives [_ _ y out]
-               (us/start evaluation-time)
-               (swap! evaluation-count inc)
-               (let [y' (doubles (state->array
-                                  (derivative-fn y)))]
-                 (System/arraycopy y' 0 out 0 (alength y')))
-               (us/stop evaluation-time))
-             (getDimension [_] dimension))
-           integrator (GraggBulirschStoerIntegrator. 0. 1. (double epsilon) (double epsilon))]
-       {:integrator integrator
-        :equations equations
-        :dimension dimension
-        :stopwatch evaluation-time
-        :counter evaluation-count})))
-
 #?(:clj
    (defn attach-handler
      "We implement the observation callback by adding a StepHandler to the
@@ -156,9 +80,78 @@
   function may be accurately evaluated. The handler we install does this,
   invoking the callback for each requested grid point within the valid range,
   ensuring that we also invoke the callback for the final point."
-     [integrator observe step-size initial-state]
+     [^GraggBulirschStoerIntegrator integrator observe step-size initial-state]
      (let [handler (step-handler observe step-size initial-state)]
        (.addStepHandler integrator handler))))
+
+(defn integration-opts
+  "Returns a map with the following kv pairs:
+
+  - `:integrator` an instance of GraggBulirschStoerIntegrator
+  - `:equations` instance of FirstOrderDifferentialEquations
+  - `:dimension` the total number of entries in the flattened initial state tuple
+  - `:stopwatch` IStopwatch instance that records total evaluation time inside
+    the derivative function
+  - `:counter` an atom containing a Long that increments every time derivative fn
+    is called.
+
+  TODO get the options map stuff from `evolve` propagated through."
+  [state-derivative derivative-args initial-state
+   {:keys [compile? epsilon] :or {epsilon 1e-8}}]
+  (let [evaluation-time  (us/stopwatch :started? false)
+        evaluation-count (atom 0)
+        dimension        (count (flatten initial-state))
+        derivative-fn    (if compile?
+                           (let [f' (c/compile-state-fn state-derivative derivative-args initial-state)]
+                             (fn [y] (f' y derivative-args)))
+                           (do (log/warn "Not compiling function for ODE analysis")
+                               (let [d:dt (apply state-derivative derivative-args)
+                                     array->state #(struct/unflatten % initial-state)]
+                                 (comp d:dt array->state))))
+
+        state->array     #?(:clj
+                            (comp double-array flatten)
+
+                            :cljs
+                            (fn [state]
+                              (->> (flatten state)
+                                   (map u/double)
+                                   (into-array))))
+
+        equations        #?(:clj
+                            (reify FirstOrderDifferentialEquations
+                              (computeDerivatives [_ _ y out]
+                                (us/start evaluation-time)
+                                (swap! evaluation-count inc)
+                                (let [y' (-> (derivative-fn y)
+                                             (state->array)
+                                             (doubles))]
+                                  (System/arraycopy y' 0 out 0 (alength y')))
+                                (us/stop evaluation-time))
+                              (getDimension [_] dimension))
+
+                            :cljs
+                            (fn [_ y]
+                              (us/start evaluation-time)
+                              (swap! evaluation-count inc)
+                              (let [y' (state->array (derivative-fn y))]
+                                (us/stop evaluation-time)
+                                y')))
+        integrator #?(:clj
+                      (GraggBulirschStoerIntegrator. 0. 1.
+                                                     (double epsilon)
+                                                     (double epsilon))
+
+                      :cljs
+                      (let [solver (o/Solver. dimension)]
+                        (set! (.-absoluteTolerance solver) epsilon)
+                        (set! (.-relativeTolerance solver) epsilon)
+                        solver))]
+    {:integrator integrator
+     :equations equations
+     :dimension dimension
+     :stopwatch evaluation-time
+     :counter evaluation-count}))
 
 (defn make-integrator
   "make-integrator takes a state derivative function (which in this
@@ -173,11 +166,11 @@
   [state-derivative derivative-args]
   #?(:cljs
      (let [total-time (us/stopwatch :started? false)
-           latest (atom 0)]
+           latest     (atom 0)]
        (fn [initial-state step-size t {:keys [observe] :as opts}]
          (us/start total-time)
          (let [{:keys [integrator equations dimension stopwatch counter]}
-               (integrator state-derivative derivative-args initial-state opts)
+               (integration-opts state-derivative derivative-args initial-state opts)
                initial-state-array (double-array
                                     (flatten initial-state))
                array->state #(struct/unflatten % initial-state)
@@ -195,6 +188,7 @@
              (us/stop total-time)
              (log/info "#" @counter "total" (us/repr total-time) "f" (us/repr stopwatch))
              (us/reset total-time)
+             (reset! latest 0)
              ret))))
 
      :clj
@@ -202,14 +196,15 @@
        (fn [initial-state step-size t {:keys [observe] :as opts}]
          (us/start total-time)
          (let [{:keys [integrator equations dimension stopwatch counter]}
-               (integrator state-derivative derivative-args initial-state opts)
+               (integration-opts state-derivative derivative-args initial-state opts)
                initial-state-array (double-array
                                     (flatten initial-state))
                array->state #(struct/unflatten % initial-state)
                output-buffer (double-array dimension)]
            (when observe
              (attach-handler integrator observe step-size initial-state))
-           (.integrate integrator equations 0
+           (.integrate ^GraggBulirschStoerIntegrator
+                       integrator equations 0
                        initial-state-array t output-buffer)
            (us/stop total-time)
            (log/info "#" @counter "total" (us/repr total-time) "f" (us/repr stopwatch))
