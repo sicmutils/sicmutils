@@ -119,16 +119,18 @@
   "Returns `x + delta`, guarding against any `delta` addition that would return a
   value outside of `(a, b)`. Specifically guards against these two cases:
 
-  - If `x` is already within 2*tol of either edge, `delta` is replaced with
-    `tol1` pointing back toward the center of the interval `(a, b)`.
+  - If `x` + the supplied `delta` results in a point within 2*tol of either
+    edge, `delta` is replaced with `tol1` pointing back toward the center of the
+    interval `(a, b)`.
 
   - If `delta < tol1`, returns `x + tol1` in the direction of `delta`, to force
     a step of at least `tol1`.
 
   NOTE tol2 == 2*tol1."
   [a x b delta tol1 tol2]
-  (let [near-edge? (or (< (- x a) tol2)
-                       (< (- b x) tol2))]
+  (let [x+delta    (+ x delta)
+        near-edge? (or (< (- x+delta a) tol2)
+                       (< (- b x+delta) tol2))]
     (cond near-edge?
           (let [middle (* 0.5 (+ a b))]
             (if (<= x middle)
@@ -141,7 +143,7 @@
             (+ x tol1)
             (- x tol1))
 
-          :else (+ x delta))))
+          :else x+delta)))
 
 (defn- update-history
   "Brent's method tracks the two best (non-candidate) points, so they can be used

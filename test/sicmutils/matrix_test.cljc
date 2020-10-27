@@ -48,8 +48,7 @@
     (is (v/exact? (m/by-rows [1] [2])))
     (is (not (v/exact? (m/by-rows [1.2] [3] [4]))))
     (is (not (v/exact? (m/by-rows [0] [0] [0.00001]))))
-    #?(:clj
-       (is (v/exact? (m/by-rows [0 1 3/2])))))
+    (is (v/exact? (m/by-rows [0 1 (g// 3 2)]))))
 
   (testing "kind"
     (is (= ::m/matrix (v/kind (m/by-rows [1 2]))))))
@@ -268,13 +267,13 @@
                    r (generate-square-matrix n)]
                   (= (g/* (g/* p q) r) (g/* p (g/* q r))))))
 
-;; Both of these are waiting for a fractional implementation, so we don't lose precision.
-#?(:clj
-   (defspec a*ainv=i
-     (gen/let [n (gen/choose 1 5)]
-       (prop/for-all [A (generate-square-matrix n)]
-                     (or (zero? (g/determinant A))
-                         (= (m/I n) (g/* (g/invert A) A) (g/* A (g/invert A))))))))
+(defspec a*ainv=i
+  (gen/let [n (gen/choose 1 5)]
+    (prop/for-all [A (generate-square-matrix n)]
+                  (or (v/nullity? (g/determinant A))
+                      (= (m/I n)
+                         (g/* (g/invert A) A)
+                         (g/* A (g/invert A)))))))
 
 (deftest matrices-from-structure
   (let [A (s/up (s/up 1 2) (s/up 3 4))

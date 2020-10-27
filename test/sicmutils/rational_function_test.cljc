@@ -51,10 +51,9 @@
     (is (= (p 3) (rf/add (rf 3 2) (rf 3 2))))
     (is (= (rf 5 3) (rf/div (rf 5 2) (rf 3 2))))
     (is (= (rf 14 3) (rf/div (rf 8 3) (rf 4 7))))
-
-    #?(:clj
-       (is (= (rf/make (p/make [0 15 10]) (p/make [0 0 15 18]))
-              (rf/make (p/make [0 1/2 1/3]) (p/make [0 0 1/2 3/5])))))))
+    (is (= (rf/make (p/make [0 15 10]) (p/make [0 0 15 18]))
+           (rf/make (p/make [0 #sicm/ratio 1/2 #sicm/ratio 1/3])
+                    (p/make [0 0 #sicm/ratio 1/2 #sicm/ratio 3/5]))))))
 
 (deftest rf-arithmetic
   (testing "invert-hilbert-matrix"
@@ -124,8 +123,7 @@
     (is (= 2 (rf-simp '(gcd (* 2 x y) 2))))
     (is (= 3 (rf-simp '(gcd 9 (* x 6 y)))))
     (is (= '(* 7 y) (rf-simp '(gcd (* 14 x y) (* 21 y z)))))
-    #?(:clj
-       (is (= 1 (rf-simp '(gcd (* 5/2 x y) (* 7/3 y z)))))))
+    (is (= 1 (rf-simp '(gcd (* (/ 5 2) x y) (* (/ 7 3) y z))))))
 
   (testing "quotients"
     (is (= '(/ 1 (* 2 x)) (rf-simp (:expression (g/divide 1 (g/* 2 'x))))))

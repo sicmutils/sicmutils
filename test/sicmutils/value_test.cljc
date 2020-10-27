@@ -57,7 +57,7 @@
   (testing "exact?"
     (is (v/exact? [1 2 3 4]))
     (is (not (v/exact? [1.2 3 4])))
-    #?(:clj (is (v/exact? [0 1 3/2])))
+    (is (v/exact? [0 1 #sicm/ratio 3/2]))
     (is (not (v/exact? [0 0 0.00001]))))
 
   (testing "freeze"
@@ -156,12 +156,9 @@
   (is (not (v/exact? 1.1)))
   (is (not (v/exact? 'a)))
   (is (not (v/exact? :a)))
-  (is (not (v/exact? "a"))))
-
-#?(:clj
-   (deftest exactness-clj
-     (is (v/exact? 3/2))
-     (is (v/exact? (BigInteger/valueOf 111)))))
+  (is (not (v/exact? "a")))
+  (is (v/exact? #sicm/ratio 3/2))
+  (is (v/exact? (u/biginteger 111))))
 
 (deftest argument-kinds
   (let [L #?(:clj Long :cljs ::v/native-integral)

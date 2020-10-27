@@ -148,7 +148,9 @@
            'sicmutils.fdg.ch4-test
            'sicmutils.fdg.ch5-test
            'sicmutils.fdg.ch6-test
-           'sicmutils.fdg.ch7-test
+
+           ;; TODO re-enable once we speed up simplification.
+           ;; 'sicmutils.fdg.ch7-test
 
            'sicmutils.sicm.ch1-test
            'sicmutils.sicm.ch2-test
