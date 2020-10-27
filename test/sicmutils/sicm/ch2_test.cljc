@@ -24,6 +24,7 @@
                                          compose up down]]
             [sicmutils.mechanics.rotation :refer [Euler->M]]
             [sicmutils.mechanics.rigid :as r]
+            [sicmutils.polynomial-gcd :as pg]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
@@ -77,37 +78,39 @@
                     (((e/square (partial 2)) (r/T-rigid-body 'A 'B 'C)) Euler-state))))))
 
 (deftest ^:long section-2-9b
-  (let [relative-error (fn [value reference-value]
-                         (when (zero? reference-value)
-                           (u/illegal "zero reference value"))
-                         (/ (- value reference-value) reference-value))
-        points (atom [])
-        monitor-errors (fn [A B C L0 E0]
-                         (fn [t state]
-                           (let [L ((r/Euler-state->L-space A B C) state)
-                                 E ((r/T-rigid-body A B C) state)]
-                             (swap! points conj
-                                    [t
-                                     (relative-error (ref L 0) (ref L0 0))
-                                     (relative-error (ref L 1) (ref L0 1))
-                                     (relative-error (ref L 2) (ref L0 2))
-                                     (relative-error E E0)]))))
-        A 1. B (Math/sqrt 2.) C 2. ;; moments of inertia
-        state0 (up 0. (up 1. 0. 0.) (up 0.1 0.1 0.1)) ;; initial state
-        L0 ((r/Euler-state->L-space A B C) state0)
-        E0 ((r/T-rigid-body A B C) state0)]
-    ((e/evolve r/rigid-sysder A B C)
-     state0
-     0.1
-     10.0
-     {:compile? true
-      :epsilon 1.0e-12
-      :observe (monitor-errors A B C L0 E0)})
-    ;; check that all observed errors over the whole interval are small
-    (is (> 1e-10 (->> @points
-                      (mapcat #(drop 1 %))
-                      (map e/abs)
-                      (reduce max))))))
+  (binding [pg/*poly-gcd-time-limit* #?(:clj  [2 :seconds]
+                                        :cljs [30 :seconds])]
+    (let [relative-error (fn [value reference-value]
+                           (when (zero? reference-value)
+                             (u/illegal "zero reference value"))
+                           (/ (- value reference-value) reference-value))
+          points (atom [])
+          monitor-errors (fn [A B C L0 E0]
+                           (fn [t state]
+                             (let [L ((r/Euler-state->L-space A B C) state)
+                                   E ((r/T-rigid-body A B C) state)]
+                               (swap! points conj
+                                      [t
+                                       (relative-error (ref L 0) (ref L0 0))
+                                       (relative-error (ref L 1) (ref L0 1))
+                                       (relative-error (ref L 2) (ref L0 2))
+                                       (relative-error E E0)]))))
+          A 1. B (Math/sqrt 2.) C 2. ;; moments of inertia
+          state0 (up 0. (up 1. 0. 0.) (up 0.1 0.1 0.1)) ;; initial state
+          L0 ((r/Euler-state->L-space A B C) state0)
+          E0 ((r/T-rigid-body A B C) state0)]
+      ((e/evolve r/rigid-sysder A B C)
+       state0
+       0.1
+       10.0
+       {:compile? true
+        :epsilon 1.0e-12
+        :observe (monitor-errors A B C L0 E0)})
+      ;; check that all observed errors over the whole interval are small
+      (is (> 1e-10 (->> @points
+                        (mapcat #(drop 1 %))
+                        (map e/abs)
+                        (reduce max)))))))
 
 (deftest section-2-10
   (is (= '(+ (* (/ 1 2) A (expt φdot 2) (expt (sin θ) 2))
