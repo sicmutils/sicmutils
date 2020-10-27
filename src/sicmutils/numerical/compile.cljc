@@ -63,15 +63,14 @@
   going on just by reading this"
   [params state-model body]
   (eval
-   `(fn [~(into [] (concat (flatten state-model) params))]
+   `(fn [~(into [] (flatten state-model))
+        ~(into [] params)]
       ~(w/postwalk-replace compiled-function-whitelist body))))
 
 (defn- compile-state-sci [params state-model body]
-  (prn
-   `(fn [~(into [] (concat (flatten state-model) params))]
-      ~body))
   (sci/eval-form (sci/fork sci-context)
-                 `(fn [~(into [] (concat (flatten state-model) params))]
+                 `(fn [~(into [] (flatten state-model))
+                      ~(into [] params)]
                     ~body)))
 
 ;; ### Non-State Functions
