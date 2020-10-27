@@ -94,7 +94,8 @@
   #?(:cljs
      (let [evaluation-time  (atom (us/stopwatch :started? false))
            evaluation-count (atom 0)
-           state->array     (comp double-array flatten)
+           state->array     (fn [state]
+                              (double-array (map u/double (flatten state))))
            dimension        (count (flatten initial-state))
            derivative-fn (let [d:dt (apply state-derivative derivative-args)
                                array->state #(struct/unflatten % initial-state)]

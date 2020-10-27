@@ -96,7 +96,6 @@
         state0 (up 0. (up 1. 0. 0.) (up 0.1 0.1 0.1)) ;; initial state
         L0 ((r/Euler-state->L-space A B C) state0)
         E0 ((r/T-rigid-body A B C) state0)]
-    (prn L0 E0)
     ((e/evolve r/rigid-sysder A B C)
      state0
      0.1
