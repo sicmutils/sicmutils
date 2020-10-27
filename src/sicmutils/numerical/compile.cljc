@@ -29,7 +29,7 @@
             [sicmutils.util.stopwatch :as us]
             [taoensso.timbre :as log]))
 
-(def ^:private compiled-function-whitelist
+(def ^:private compiled-fn-whitelist
   {'up struct/up
    'down struct/down
    '+ +
@@ -48,7 +48,7 @@
    'log #(Math/log %)
    'exp #(Math/exp %)})
 
-(def ^:private compiled-function-cache (atom {}))
+(def ^:private fn-cache (atom {}))
 
 ;; ## Function Compilation
 
@@ -56,7 +56,7 @@
 
 (def ^:private sci-context
   (sci/init
-   {:bindings compiled-function-whitelist}))
+   {:bindings compiled-fn-whitelist}))
 
 ;; ### State Functions
 
@@ -71,7 +71,7 @@
   (eval
    `(fn [~(into [] (flatten state-model))
         ~(into [] params)]
-      ~(w/postwalk-replace compiled-function-whitelist body))))
+      ~(w/postwalk-replace compiled-fn-whitelist body))))
 
 (defn- compile-state-sci [params state-model body]
   (sci/eval-form (sci/fork sci-context)
@@ -82,7 +82,7 @@
 ;; ### Non-State Functions
 
 (defn- compile-native [x body]
-  (let [body (w/postwalk-replace compiled-function-whitelist body)]
+  (let [body (w/postwalk-replace compiled-fn-whitelist body)]
     (eval `(fn [~x] ~body))))
 
 (defn- compile-sci [x body]
@@ -173,7 +173,7 @@
        new-expression))
    :deterministic? deterministic?))
 
-(defn- compile-state-function* [f params initial-state]
+(defn- compile-state-fn* [f params initial-state]
   (let [sw             (us/stopwatch)
         mode           *mode*
         generic-params (for [_ params] (gensym 'p))
@@ -188,17 +188,17 @@
     (log/info "compiled state function in" (us/repr sw))
     compiled-fn))
 
-(defn compile-state-function
+(defn compile-state-fn
   [f params initial-state]
-  (if-let [cached (@compiled-function-cache f)]
+  (if-let [cached (@fn-cache f)]
     (do
       (log/info "compiled state function cache hit")
       cached)
-    (let [compiled (compile-state-function* f params initial-state)]
-      (swap! compiled-function-cache assoc f compiled)
+    (let [compiled (compile-state-fn* f params initial-state)]
+      (swap! fn-cache assoc f compiled)
       compiled)))
 
-(defn- compile-univariate-function*
+(defn- compile-univariate-fn*
   [f]
   (let [sw       (us/stopwatch)
         mode     *mode*
@@ -211,11 +211,11 @@
     (log/info "compiled univariate function in " (us/repr sw) " with mode " mode)
     compiled))
 
-(defn compile-univariate-function [f]
-  (if-let [cached (@compiled-function-cache f)]
+(defn compile-univariate-fn [f]
+  (if-let [cached (@fn-cache f)]
     (do
       (log/info "compiled univariate function cache hit")
       cached)
-    (let [compiled (compile-univariate-function* f)]
-      (swap! compiled-function-cache assoc f compiled)
+    (let [compiled (compile-univariate-fn* f)]
+      (swap! fn-cache assoc f compiled)
       compiled)))

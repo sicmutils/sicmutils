@@ -90,7 +90,7 @@
   [state-derivative derivative-args initial-state
    {:keys [compile? epsilon] :or {epsilon 1e-8}}]
   #?(:cljs
-     (let [evaluation-time  (atom (us/stopwatch :started? false))
+     (let [evaluation-time  (us/stopwatch :started? false)
            evaluation-count (atom 0)
            state->array     (fn [state]
                               (double-array (map u/double (flatten state))))
@@ -103,10 +103,10 @@
                                         array->state #(struct/unflatten % initial-state)]
                                     (comp d:dt array->state))))
            equations     (fn [_ y]
-                           (swap! evaluation-time us/start)
+                           (us/start evaluation-time)
                            (swap! evaluation-count inc)
                            (let [y' (state->array (derivative-fn y))]
-                             (swap! evaluation-time us/stop)
+                             (us/stop evaluation-time)
                              y'))
            integrator (o/Solver. dimension)]
        (set! (.-absoluteTolerance integrator) epsilon)
@@ -172,10 +172,10 @@
   second, at each intermediate step."
   [state-derivative derivative-args]
   #?(:cljs
-     (let [total-time (atom (us/stopwatch :started? false))
+     (let [total-time (us/stopwatch :started? false)
            latest (atom 0)]
        (fn [initial-state step-size t {:keys [observe] :as opts}]
-         (swap! total-time us/start)
+         (us/start total-time)
          (let [{:keys [integrator equations dimension stopwatch counter]}
                (integrator state-derivative derivative-args initial-state opts)
                initial-state-array (double-array
@@ -192,9 +192,9 @@
                  ret    (array->state (.-y output))]
              (when (and observe (not (near? t @latest)))
                (observe t ret))
-             (swap! total-time us/stop)
-             (log/info "#" @counter "total" (us/repr @total-time) "f" (us/repr @stopwatch))
-             (swap! total-time us/reset)
+             (us/stop total-time)
+             (log/info "#" @counter "total" (us/repr total-time) "f" (us/repr stopwatch))
+             (us/reset total-time)
              ret))))
 
      :clj
