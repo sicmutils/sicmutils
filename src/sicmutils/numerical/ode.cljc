@@ -22,13 +22,17 @@
             [sicmutils.util.stopwatch :as us]
             [sicmutils.util :as u]
             [sicmutils.structure :as struct]
-            [taoensso.timbre :as log])
+            [sicmutils.value :as v]
+            [taoensso.timbre :as log]
+            #?(:cljs [odex :as o]))
   #?(:clj
      (:import (org.apache.commons.math3.ode.nonstiff GraggBulirschStoerIntegrator)
               (org.apache.commons.math3.ode FirstOrderDifferentialEquations)
               (org.apache.commons.math3.ode.sampling StepHandler))))
 
-(defn ^:private round-up
+(def ^:private near? (v/within 1e-8))
+
+(defn- round-up
   "Returns `n` rounded up to the nearest multiple of `step-size`. the returned
   value will always equal `0`, mod `step-size`"
   [n step-size]
@@ -68,9 +72,8 @@
              (when final-step?
                (observe it1 final-state))))))))
 
-#?(:clj
-   (defn integrator
-     "Returns a map with the following kv pairs:
+(defn integrator
+  "Returns a map with the following kv pairs:
 
   - :integrator an instance of GraggBulirschStoerIntegrator
   - :equations instance of FirstOrderDifferentialEquations
@@ -78,16 +81,51 @@
   - :stopwatch IStopwatch instance that records total evaluation time inside the
   computeDerivatives function
   - :counter an atom containing a Long that increments every time
-  `computeDerivatives` is called."
-     [state-derivative derivative-args initial-state
-      & {:keys [compile? epsilon]}]
+  `computeDerivatives` is called.
+
+  TODO fix the interface here... we need to figure out what we actually want to
+  expose. Get Odex working!
+
+  TODO get the options map stuff from `evolve` propagated through."
+  [state-derivative derivative-args initial-state
+   {:keys [compile? epsilon] :or {epsilon 1e-8}}]
+  #?(:cljs
+     (let [evaluation-time  (atom (us/stopwatch :started? false))
+           evaluation-count (atom 0)
+           state->array     (fn [state]
+                              (double-array (map u/double (flatten state))))
+           dimension        (count (flatten initial-state))
+           derivative-fn    (if compile?
+                              (let [f' (c/compile-state-function state-derivative derivative-args initial-state)]
+                                (fn [y] (f' y derivative-args)))
+                              (do (log/warn "Not compiling function for ODE analysis")
+                                  (let [d:dt (apply state-derivative derivative-args)
+                                        array->state #(struct/unflatten % initial-state)]
+                                    (comp d:dt array->state))))
+           equations     (fn [_ y]
+                           (swap! evaluation-time us/start)
+                           (swap! evaluation-count inc)
+                           (let [y' (state->array (derivative-fn y))]
+                             (swap! evaluation-time us/stop)
+                             y'))
+           integrator (o/Solver. dimension)]
+       (set! (.-absoluteTolerance integrator) epsilon)
+       (set! (.-relativeTolerance integrator) epsilon)
+       {:integrator integrator
+        :equations equations
+        :dimension dimension
+        :stopwatch evaluation-time
+        :counter evaluation-count})
+
+     :clj
      (let [evaluation-time     (us/stopwatch :started? false)
            evaluation-count    (atom 0)
            state->array        (comp double-array flatten)
            dimension           (count (flatten initial-state))
            derivative-fn
            (if compile?
-             (c/compile-state-function state-derivative derivative-args initial-state)
+             (let [f' (c/compile-state-function state-derivative derivative-args initial-state)]
+               (fn [y] (f' y derivative-args)))
              (do (log/warn "Not compiling function for ODE analysis")
                  (let [d:dt (apply state-derivative derivative-args)
                        array->state #(struct/unflatten % initial-state)]
@@ -98,9 +136,8 @@
              (computeDerivatives [_ _ y out]
                (us/start evaluation-time)
                (swap! evaluation-count inc)
-               (let [y' (doubles (-> (concat y derivative-args)
-                                     derivative-fn
-                                     state->array))]
+               (let [y' (doubles (state->array
+                                  (derivative-fn y)))]
                  (System/arraycopy y' 0 out 0 (alength y')))
                (us/stop evaluation-time))
              (getDimension [_] dimension))
@@ -120,9 +157,8 @@
   invoking the callback for each requested grid point within the valid range,
   ensuring that we also invoke the callback for the final point."
      [integrator observe step-size initial-state]
-     (.addStepHandler
-      integrator
-      (step-handler observe step-size initial-state))))
+     (let [handler (step-handler observe step-size initial-state)]
+       (.addStepHandler integrator handler))))
 
 (defn make-integrator
   "make-integrator takes a state derivative function (which in this
@@ -136,16 +172,37 @@
   second, at each intermediate step."
   [state-derivative derivative-args]
   #?(:cljs
-     (u/unsupported "make-integrator isn't yet implemented in Clojurescript.")
+     (let [total-time (atom (us/stopwatch :started? false))
+           latest (atom 0)]
+       (fn [initial-state step-size t {:keys [observe] :as opts}]
+         (swap! total-time us/start)
+         (let [{:keys [integrator equations dimension stopwatch counter]}
+               (integrator state-derivative derivative-args initial-state opts)
+               initial-state-array (double-array
+                                    (flatten initial-state))
+               array->state #(struct/unflatten % initial-state)
+               output-buffer (double-array dimension)
+               observe-fn    (when observe
+                               (set! (.-denseOutput integrator) true)
+                               (.grid integrator step-size
+                                      (fn [t y]
+                                        (reset! latest t)
+                                        (observe t (array->state y)))))]
+           (let [output (.solve integrator equations 0 initial-state-array t observe-fn)
+                 ret    (array->state (.-y output))]
+             (when (and observe (not (near? t @latest)))
+               (observe t ret))
+             (swap! total-time us/stop)
+             (log/info "#" @counter "total" (us/repr @total-time) "f" (us/repr @stopwatch))
+             (swap! total-time us/reset)
+             ret))))
 
      :clj
      (let [total-time (us/stopwatch :started? false)]
-       (fn [initial-state observe step-size t ε & {:keys [compile]}]
+       (fn [initial-state step-size t {:keys [observe] :as opts}]
          (us/start total-time)
          (let [{:keys [integrator equations dimension stopwatch counter]}
-               (integrator state-derivative derivative-args initial-state
-                           :epsilon ε
-                           :compile? compile)
+               (integrator state-derivative derivative-args initial-state opts)
                initial-state-array (double-array
                                     (flatten initial-state))
                array->state #(struct/unflatten % initial-state)
@@ -154,28 +211,32 @@
              (attach-handler integrator observe step-size initial-state))
            (.integrate integrator equations 0
                        initial-state-array t output-buffer)
-           (doto total-time (us/stop) (us/reset))
+           (us/stop total-time)
            (log/info "#" @counter "total" (us/repr total-time) "f" (us/repr stopwatch))
+           (us/reset total-time)
            (array->state output-buffer))))))
 
 (defn state-advancer
   "state-advancer takes a state derivative function constructor
   followed by the arguments to construct it with. The state derivative
-  function is constructed and an integrator is produced which takes
-  the initial state, target time, and error tolerance as
+  function is constructed and an integrator is produced which takes:
+
+  - initial state
+  - target time, and error tolerance as
   arguments. The final state is returned. The state derivative is
   expected to map a structure to a structure of the same shape,
   and is required to have the time parameter as the first element."
   [state-derivative & state-derivative-args]
   (let [I (make-integrator state-derivative state-derivative-args)]
-    (fn [initial-state t ε & options]
-      (apply I initial-state nil 0 t ε options))))
+    (fn [initial-state t opts]
+      (I initial-state 0 t opts))))
 
 (defn evolve
-"evolve takes a state derivative function constructor and its
-  arguments, and returns an integrator via make-integrator. In
-  particular, the returned function accepts a callback function which
-  will be invoked at intermediate grid points of the integration."
+  "evolve takes a state derivative function constructor and its arguments, and
+  returns an integrator via make-integrator.
+
+  In particular, the returned function accepts a callback function which will be
+  invoked at intermediate grid points of the integration."
   [state-derivative & state-derivative-args]
   (make-integrator state-derivative state-derivative-args))
 
@@ -188,7 +249,9 @@
   [state-derivative state-derivative-args initial-state t1 dt]
   (let [I (make-integrator state-derivative state-derivative-args)
         out (atom [])
-        collector (fn [t state]
+        collector (fn [_ state]
                     (swap! out conj state))]
-    (I initial-state collector dt t1 1e-6 :compile true)
+    (I initial-state dt t1 {:compile? true
+                            :epsilon 1e-6
+                            :observe collector})
     @out))

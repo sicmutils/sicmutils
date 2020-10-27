@@ -66,13 +66,11 @@
                             (double/L 'm1 'm2 'l1 'l2 'g))
                            (up θ φ))
                           't)))))
-    ;; Integrator doesn't work yet in cljs.
-    #?(:clj
-       (let [o (atom [])
-             observe (fn [t q] (swap! o conj [t q]))]
-         (do
-           (double/evolver {:t (/ 3 60) :dt (/ 1 60) :observe observe})
-           (is (= 4 (count @o))))))))
+    (let [o (atom [])
+          observe (fn [t q] (swap! o conj [t q]))]
+      (do
+        (double/evolver {:t (/ 3 60) :dt (/ 1 60) :observe observe})
+        (is (= 4 (count @o)))))))
 
 (deftest infix-forms
   (let [eq (e/simplify

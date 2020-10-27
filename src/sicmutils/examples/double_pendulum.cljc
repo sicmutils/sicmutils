@@ -69,11 +69,11 @@
    (up 0.0
        (up theta_0 phi_0)
        (up thetadot_0 phidot_0))
-   observe
    dt
    t
-   1.0e-6
-   :compile true))
+   {:compile? true
+    :epsilon 1.0e-6
+    :observe observe}))
 
 (defn equations []
   (e/simplify
