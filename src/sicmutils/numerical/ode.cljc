@@ -86,9 +86,7 @@
   TODO fix the interface here... we need to figure out what we actually want to
   expose. Get Odex working!
 
-  TODO get the options map stuff from `evolve` propagated through.
-
-  TODO support compile?"
+  TODO get the options map stuff from `evolve` propagated through."
   [state-derivative derivative-args initial-state
    {:keys [compile? epsilon] :or {epsilon 1e-8}}]
   #?(:cljs
@@ -97,9 +95,13 @@
            state->array     (fn [state]
                               (double-array (map u/double (flatten state))))
            dimension        (count (flatten initial-state))
-           derivative-fn (let [d:dt (apply state-derivative derivative-args)
-                               array->state #(struct/unflatten % initial-state)]
-                           (comp d:dt array->state))
+           derivative-fn    (if compile?
+                              (let [f' (c/compile-state-function state-derivative derivative-args initial-state)]
+                                (fn [y] (f' (concat y derivative-args))))
+                              (do (log/warn "Not compiling function for ODE analysis")
+                                  (let [d:dt (apply state-derivative derivative-args)
+                                        array->state #(struct/unflatten % initial-state)]
+                                    (comp d:dt array->state))))
            equations     (fn [_ y]
                            (swap! evaluation-time us/start)
                            (swap! evaluation-count inc)
@@ -122,7 +124,8 @@
            dimension           (count (flatten initial-state))
            derivative-fn
            (if compile?
-             (c/compile-state-function state-derivative derivative-args initial-state)
+             (let [f' (c/compile-state-function state-derivative derivative-args initial-state)]
+               (fn [y] (f' (concat y derivative-args))))
              (do (log/warn "Not compiling function for ODE analysis")
                  (let [d:dt (apply state-derivative derivative-args)
                        array->state #(struct/unflatten % initial-state)]
@@ -133,12 +136,8 @@
              (computeDerivatives [_ _ y out]
                (us/start evaluation-time)
                (swap! evaluation-count inc)
-
-               ;; NOTE - we do NOT need to concat the derivative args if we
-               ;; don't compile the function.
-               (let [y' (doubles (-> (concat y derivative-args)
-                                     derivative-fn
-                                     state->array))]
+               (let [y' (doubles (state->array
+                                  (derivative-fn y)))]
                  (System/arraycopy y' 0 out 0 (alength y')))
                (us/stop evaluation-time))
              (getDimension [_] dimension))

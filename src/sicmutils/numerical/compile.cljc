@@ -18,9 +18,11 @@
 ;
 
 (ns sicmutils.numerical.compile
+  "This namespace compiles generic functions down into fast, native functions."
   (:require #?(:cljs [goog.string :refer [format]])
             [clojure.set :as set]
             [clojure.walk :as w]
+            [sci.core :as sci]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.structure :as struct]
@@ -28,8 +30,8 @@
             [taoensso.timbre :as log]))
 
 (def ^:private compiled-function-whitelist
-  {'up `struct/up
-   'down `struct/down
+  {'up struct/up
+   'down struct/down
    'cos #(Math/cos %)
    'sin #(Math/sin %)
    'tan #(Math/tan %)
@@ -42,31 +44,61 @@
 
 (def ^:private compiled-function-cache (atom {}))
 
-(defn ^:private construct-state-function-exp
+;; ## Function Compilation
+
+(def ^:dynamic *mode* :sci)
+
+(def ^:private sci-context
+  (sci/init
+   {:bindings compiled-function-whitelist}))
+
+;; ### State Functions
+
+(defn- compile-state-native
   "Given a state model (a structure which is in the domain and range
   of the function) and its body, produce a function of the flattened
   form of the argument structure as a sequence.
+
   FIXME: give an example here, since nobody could figure out what's
   going on just by reading this"
-  [generic-parameters state-model body]
-  `(fn [~(into [] (concat (flatten state-model) generic-parameters))]
-     ~(w/postwalk-replace compiled-function-whitelist body)))
+  [params state-model body]
+  (eval
+   `(fn [~(into [] (concat (flatten state-model) params))]
+      ~(w/postwalk-replace compiled-function-whitelist body))))
 
-(defn ^:private discard-unreferenced-variables
-  [expression var-to-expr continue]
-  (let [subexpr-vars (into #{} (keys var-to-expr))
+(defn- compile-state-sci [params state-model body]
+  (prn
+   `(fn [~(into [] (concat (flatten state-model) params))]
+      ~body))
+  (sci/eval-form (sci/fork sci-context)
+                 `(fn [~(into [] (concat (flatten state-model) params))]
+                    ~body)))
+
+;; ### Non-State Functions
+
+(defn- compile-native [x body]
+  (let [body (w/postwalk-replace compiled-function-whitelist body)]
+    (eval `(fn [~x] ~body))))
+
+(defn- compile-sci [x body]
+  (sci/eval-form (sci/fork sci-context)
+                 `(fn [~x] ~body)))
+
+(defn- discard-unreferenced-variables
+  [expression var->expr continue]
+  (let [subexpr-vars   (into #{} (keys var->expr))
         variables-in-x (x/variables-in expression)]
     (loop [variables-required #{}
            new-variables (set/intersection subexpr-vars variables-in-x)]
       (if (empty? new-variables)
         ;; we're done. prune and sort the variable list for the consumer.
         (continue
-          expression
-          (sort-by first (filter #(variables-required (first %)) var-to-expr)))
+         expression
+         (sort-by first (filter #(variables-required (first %)) var->expr)))
         ;; not yet. We found new variables in the last pass. See if the
         ;; expressions they refer to flush out variables that we haven't seen.
         (recur (set/union variables-required new-variables)
-               (let [new-vs (into #{} (mapcat #(x/variables-in (var-to-expr %)) new-variables))]
+               (let [new-vs (into #{} (mapcat #(x/variables-in (var->expr %)) new-variables))]
                  (set/difference (set/intersection new-vs subexpr-vars) new-variables)))))))
 
 (defn extract-common-subexpressions
@@ -136,55 +168,49 @@
        new-expression))
    :deterministic? deterministic?))
 
-(defn ^:private compile-state-function2
-  [f parameters initial-state]
-  (let [sw (us/stopwatch)
-        generic-parameters (for [_ parameters] (gensym 'p))
-        generic-initial-state (struct/mapr (fn [_] (gensym 'y)) initial-state)
-        g (apply f generic-parameters)
-        compiled-function (->> generic-initial-state
-                               g
-                               g/simplify
-                               common-subexpression-elimination
-                               (construct-state-function-exp
-                                generic-parameters
-                                generic-initial-state)
-                               eval)]
+(defn- compile-state-function* [f params initial-state]
+  (let [sw             (us/stopwatch)
+        mode           *mode*
+        generic-params (for [_ params] (gensym 'p))
+        generic-state  (struct/mapr (fn [_] (gensym 'y)) initial-state)
+        g              (apply f generic-params)
+        body           (common-subexpression-elimination
+                        (g/simplify (g generic-state)))
+        compiler       (if (= mode :native)
+                         compile-state-native
+                         compile-state-sci)
+        compiled-fn    (compiler generic-params generic-state body)]
     (log/info "compiled state function in" (us/repr sw))
-    compiled-function))
+    compiled-fn))
 
 (defn compile-state-function
-  [f parameters initial-state]
+  [f params initial-state]
   (if-let [cached (@compiled-function-cache f)]
     (do
       (log/info "compiled state function cache hit")
       cached)
-    (let [compiled-function (compile-state-function2 f parameters initial-state)]
-      (swap! compiled-function-cache assoc f compiled-function)
-      compiled-function)))
+    (let [compiled (compile-state-function* f params initial-state)]
+      (swap! compiled-function-cache assoc f compiled)
+      compiled)))
 
-(defn ^:private construct-univariate-function-exp
-  [x body]
-  `(fn [~x] ~(w/postwalk-replace compiled-function-whitelist body)))
-
-(defn ^:private compile-univariate-function2
+(defn- compile-univariate-function*
   [f]
-  (let [sw (us/stopwatch)
-        var (gensym 'x)
-        compiled-function (->> (f var)
-                               g/simplify
-                               common-subexpression-elimination
-                               (construct-univariate-function-exp var)
-                               eval)]
-    (log/info "compiled univariate function in" (us/repr sw))
-    compiled-function))
+  (let [sw       (us/stopwatch)
+        mode     *mode*
+        var      (gensym 'x)
+        body     (common-subexpression-elimination
+                  (g/simplify (f var)))
+        compiled (if (= mode :native)
+                   (compile-native var body)
+                   (compile-sci var body))]
+    (log/info "compiled univariate function in " (us/repr sw) " with mode " mode)
+    compiled))
 
-(defn compile-univariate-function
-  [f]
+(defn compile-univariate-function [f]
   (if-let [cached (@compiled-function-cache f)]
     (do
       (log/info "compiled univariate function cache hit")
       cached)
-    (let [compiled-function (compile-univariate-function2 f)]
-      (swap! compiled-function-cache assoc f compiled-function)
-      compiled-function)))
+    (let [compiled (compile-univariate-function* f)]
+      (swap! compiled-function-cache assoc f compiled)
+      compiled)))

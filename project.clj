@@ -30,10 +30,11 @@
                  [org.clojure/clojurescript "1.10.773" :scope "provided"]
                  [org.clojure/core.match "1.0.0"]
                  [org.clojure/math.numeric-tower "0.0.4"]
-                 [dm3/stopwatch "0.1.1"]
+                 [borkdude/sci "0.1.1-alpha.8"]
                  [com.google.guava/guava "23.0"]
                  [com.taoensso/timbre "4.11.0-alpha1"
                   :exclusions [org.clojure/clojurescript]]
+                 [dm3/stopwatch "0.1.1"]
                  [org.apache.commons/commons-math3 "3.6.1"]
                  [cljsjs/bigfraction "4.0.12-0"]
                  [cljsjs/complex "2.0.11-0"]

@@ -274,6 +274,15 @@
               delta (->> answer (- expected) flatten (map abs) (reduce max))]
           (is (< delta 1e-8)))))))
 
+#_
+(letfn [(harmonic-state-derivative [m k]
+          (e/Lagrangian->state-derivative (L/L-harmonic m k)))]
+  ((e/state-advancer harmonic-state-derivative 2. 1.)
+   (up 0. (up 1. 2.) (up 3. 4.))
+   10.
+   {:epsilon 1e-12
+    :compile? true}))
+
 (deftest section-1-7-2
   (let [pend-state-derivative (fn [m l g a ω]
                                 (e/Lagrangian->state-derivative
