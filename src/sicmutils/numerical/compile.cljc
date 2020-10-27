@@ -32,15 +32,21 @@
 (def ^:private compiled-function-whitelist
   {'up struct/up
    'down struct/down
-   'cos #(Math/cos %)
-   'sin #(Math/sin %)
-   'tan #(Math/tan %)
    '+ +
    '- -
    '* *
    '/ /
+   'cos #(Math/cos %)
+   'sin #(Math/sin %)
+   'tan #(Math/tan %)
+   'acos #(Math/acos %)
+   'asin #(Math/asin %)
+   'atan #(Math/atan %)
    'expt #(Math/pow %1 %2)
-   'sqrt #(Math/sqrt %)})
+   'sqrt #(Math/sqrt %)
+   'abs #(Math/abs %)
+   'log #(Math/log %)
+   'exp #(Math/exp %)})
 
 (def ^:private compiled-function-cache (atom {}))
 
