@@ -20,6 +20,7 @@
 (ns sicmutils.numerical.compile-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing]]
+            [clojure.walk :as w]
             #?(:cljs [goog.string :refer [format]])
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.structure :refer [up down]]
@@ -54,17 +55,30 @@
     (fn []
       (symbol (format "%s%d" s (swap! i inc))))))
 
-(deftest subexp
+(deftest subexp-tests
   (is (= '[(* g1 (+ x z) g1) ([g1 (+ x y)])]
          (c/extract-common-subexpressions
           '(* (+ x y) (+ x z) (+ x y))
-          (make-generator "g")
-          vector)))
+          vector
+          {:symbol-generator (make-generator "g")})))
   (is (= '[(+ K1 (expt K1 2) K2 (sqrt K2)) ([K1 (sin x)] [K2 (cos x)])]
          (c/extract-common-subexpressions
           '(+ (sin x) (expt (sin x) 2) (cos x) (sqrt (cos x)))
-          (make-generator "K")
-          vector))))
+          vector
+          {:symbol-generator (make-generator "K")})))
+
+
+  (let [expr            '(+ (sin x) (expt (sin x) 2)
+                            (cos x) (sqrt (cos x)))
+        [slimmed sym->subexpr]
+        (c/extract-common-subexpressions
+         expr
+         (fn [e bindings]
+           [e (into {} bindings)]))]
+    (is (= expr (w/postwalk-replace sym->subexpr slimmed))
+        "Rehydrating the slimmed expression should result in the original
+        expression. (This test involves a single level of replacement. A better
+        test would recursively postwalk-replace until no change occured.)")))
 
 (deftest subexp-compile
   (let [expr '(+ (sin x) (expt (sin x) 2)
@@ -75,8 +89,7 @@
               g2 (cos x)]
              (+ g1 (expt g1 2)
                 g2 (sqrt g2) (tan x)))
-           (c/common-subexpression-elimination
-            expr :symbol-generator (make-generator "g"))))
+           (c/cse-form expr {:symbol-generator (make-generator "g")})))
 
     (is (= '(+ a b (sin x) (cos y))
-           (c/common-subexpression-elimination '(+ a b (sin x) (cos y)))))))
+           (c/cse-form '(+ a b (sin x) (cos y)))))))
