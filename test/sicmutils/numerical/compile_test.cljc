@@ -67,10 +67,16 @@
           vector))))
 
 (deftest subexp-compile
-  (let [x '(+ (sin x) (expt (sin x) 2) (cos x) (sqrt (cos x)) (tan x))
-        cse (c/common-subexpression-elimination x :symbol-generator (make-generator "g"))]
+  (let [expr '(+ (sin x) (expt (sin x) 2)
+                 (cos x) (sqrt (cos x))
+                 (tan x))]
     (is (= '(#?(:clj clojure.core/let :cljs cljs.core/let)
-             [g1 (sin x) g2 (cos x)]
-             (+ g1 (expt g1 2) g2 (sqrt g2) (tan x))) cse))
+             [g1 (sin x)
+              g2 (cos x)]
+             (+ g1 (expt g1 2)
+                g2 (sqrt g2) (tan x)))
+           (c/common-subexpression-elimination
+            expr :symbol-generator (make-generator "g"))))
+
     (is (= '(+ a b (sin x) (cos y))
            (c/common-subexpression-elimination '(+ a b (sin x) (cos y)))))))

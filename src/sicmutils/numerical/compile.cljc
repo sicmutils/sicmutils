@@ -26,6 +26,7 @@
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.structure :as struct]
+            [sicmutils.util :as u]
             [sicmutils.util.stopwatch :as us]
             [taoensso.timbre :as log]))
 
@@ -103,35 +104,58 @@
 ;; process we use to avoid redundant computation inside of a simplified function
 ;; body.
 
-(defn- discard-unreferenced-variables
+(defn- discard-unreferenced-vars
   "Takes:
 
-  - an expression
   - a map of variable => expression
-  - a continuation function, to be called "
-  [expression var->expr continue]
-  (let [subexpr-vars (into #{} (keys var->expr))
-        all-vars     (x/variables-in expression)]
-    (loop [variables-required #{}
-           new-variables (set/intersection subexpr-vars all-vars)]
-      (if (empty? new-variables)
-        ;; we're done. prune and sort the variable list for the consumer.
-        (continue
-         expression
-         (sort-by first (filter #(variables-required (first %)) var->expr)))
-        ;; not yet. We found new variables in the last pass. See if the
-        ;; expressions they refer to flush out variables that we haven't seen.
-        (recur (set/union variables-required new-variables)
-               (let [new-vs (into #{} (mapcat #(x/variables-in (var->expr %)) new-variables))]
-                 (set/difference (set/intersection new-vs subexpr-vars) new-variables)))))))
+  - an expression with many substitutions already performed
+
+  And returns a
+  "
+  [var->expr expr]
+  (let [all-vars     (x/variables-in expr)
+        subexpr-vars (u/keyset var->expr)
+        xf           (mapcat (comp x/variables-in var->expr))
+        value-vars   (fn [vs]
+                       (-> (into #{} xf vs)
+                           (set/intersection subexpr-vars)))
+        seen-keys    (loop [referenced #{}
+                            new-batch  (set/intersection all-vars subexpr-vars)]
+                       (if (empty? new-batch)
+                         referenced
+                         (let [acc (set/union referenced new-batch)]
+                           (recur acc
+                                  (-> (value-vars new-batch)
+                                      (set/difference acc))))))]
+    (select-keys var->expr seen-keys)
+    ))
+
+(def ^:private inc* (fnil inc 0))
+
+(defn- expr-counts
+  "TODO fill in docs! Generate expr counts...
+
+  - test that all works with the infix stuff.
+  - convert to `ignore` instead of calling it a full-on map
+  - replace below"
+  [expr expr->var]
+  (let [expr->count (atom {})]
+    (w/postwalk (fn [e]
+                  (when (and (seq? e) (not (expr->var e)))
+                    (swap! expr->count update e inc*))
+                  e)
+                expr)
+    @expr->count))
 
 (defn extract-common-subexpressions
   "Considers an S-expression from the point of view of optimizing its evaluation
   by isolating common subexpressions into auxiliary variables. The continuation
-  is called with two arguments: a new equivalent expression with possibly some
-  subexpressions replaced by new variables (delivered by the supplied generator)
-  and a seq of pairs of [aux variable, subexpression] used to reconstitute the
-  value.
+  is called with two arguments:
+
+  - a new equivalent expression with possibly some subexpressions replaced by
+    new variables (delivered by the supplied generator)
+  - a seq of pairs of [aux variable, subexpression] used to reconstitute the
+    value.
 
   If `:deterministic? true` is supplied, the function will assign aux variables
   by sorting the string representations of each term before assignment.
@@ -139,27 +163,22 @@
   guarantee a consistent variable naming convention in the returned function.
   For tests, set `:deterministic? true`."
   [expression symbol-generator continue & {:keys [deterministic?]}]
-  (let [pairs (if deterministic?
-                (partial sort-by (comp str vec first))
-                identity)]
-    (loop [x expression
+  (let [sort (if deterministic?
+               (partial sort-by (comp str vec first))
+               identity)]
+    (loop [x         expression
            expr->var {}]
-      (let [cs (atom {})
-            increment (fnil inc 0)]
-        ;; cs maps subexpressions to the number of times we have seen the
-        ;; expression.
-        (w/postwalk (fn [e]
-                      (when (and (seq? e) (not (expr->var e)))
-                        (swap! cs update e increment))
-                      e)
-                    x)
-        (let [new-syms (into {} (for [[k v] (pairs @cs) :when (> v 1)] [k (symbol-generator)]))]
-          (if (empty? new-syms)
-            (discard-unreferenced-variables x
-                                            (into {} (for [[expr var] expr->var] [var expr]))
-                                            continue)
-            (let [joint-syms (into expr->var new-syms)]
-              (recur (w/postwalk-replace joint-syms x) joint-syms))))))))
+      (let [expr->count (sort (expr-counts x expr->var))
+            new-syms    (into {} (for [[k v] (sort expr->count)
+                                       :when (> v 1)]
+                                   [k (symbol-generator)]))]
+        (if (empty? new-syms)
+          (let [var->expr (-> (set/map-invert expr->var)
+                              (discard-unreferenced-vars x))]
+            (continue x (sort-by key var->expr)))
+          (let [merged (merge expr->var new-syms)]
+            (recur (w/postwalk-replace merged x)
+                   merged)))))))
 
 (defn ^:private initialize-cs-variables
   "Given a list of pairs of (symbol, expression) construct a
@@ -188,7 +207,9 @@
      (if (> (count new-vars) 0)
        (do
          (log/info (format "common subexpression elimination: %d expressions" (count new-vars)))
-         `(let ~(initialize-cs-variables new-vars) ~new-expression))
+         (let [pairs (sort-by first new-vars)]
+           `(let ~(initialize-cs-variables pairs)
+              ~new-expression)))
        new-expression))
    :deterministic? deterministic?))
 
