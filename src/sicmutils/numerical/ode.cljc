@@ -87,7 +87,8 @@
            dimension           (count (flatten initial-state))
            derivative-fn
            (if compile?
-             (c/compile-state-function state-derivative derivative-args initial-state)
+             (let [f' (c/compile-state-fn state-derivative derivative-args initial-state)]
+               (fn [y] (f' y derivative-args)))
              (do (log/warn "Not compiling function for ODE analysis")
                  (let [d:dt (apply state-derivative derivative-args)
                        array->state #(struct/unflatten % initial-state)]
@@ -98,9 +99,9 @@
              (computeDerivatives [_ _ y out]
                (us/start evaluation-time)
                (swap! evaluation-count inc)
-               (let [y' (doubles (-> (concat y derivative-args)
-                                     derivative-fn
-                                     state->array))]
+               (let [y' (doubles (-> (derivative-fn y)
+                                     (state->array)
+                                     (doubles)))]
                  (System/arraycopy y' 0 out 0 (alength y')))
                (us/stop evaluation-time))
              (getDimension [_] dimension))

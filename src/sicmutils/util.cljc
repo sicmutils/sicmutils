@@ -59,6 +59,9 @@
 (def inttype #?(:clj Integer :cljs goog.math.Integer))
 (def longtype #?(:clj Long :cljs goog.math.Long))
 
+(defn keyset [m]
+  (into #{} (keys m)))
+
 (defn bigint [x]
   #?(:clj (core-bigint x)
      :cljs (js/BigInt x)))
