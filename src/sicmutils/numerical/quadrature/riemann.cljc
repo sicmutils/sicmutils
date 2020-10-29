@@ -19,6 +19,8 @@
 
 (ns sicmutils.numerical.quadrature.riemann
   (:require [sicmutils.numerical.interpolate.richardson :as ir]
+            [sicmutils.numerical.quadrature.common :as qc
+             #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
@@ -93,8 +95,7 @@
   [area-fn a b]
   (fn [n]
     (let [width       (/ (- b a) n)
-          grid-points (concat (range a b width)
-                              (lazy-seq [b]))]
+          grid-points (concat (range a b width) [b])]
       (ua/sum
        (map area-fn grid-points (rest grid-points))))))
 
@@ -268,7 +269,49 @@
          (us/seq-limit))))
 
 ;; We now converge to the actual, true value of the integral in 4 terms!
+;;
+;; This is going to be useful for each of our Riemann sums, so let's make a
+;; function that can accelerate a generic sequence of estimates. The following
+;; function takes:
+;;
+;; - the sequence of estimates, `estimate-seq`
+;; - a dictionary of "options"
+;;
+;; This library is going to adopt an interface that allows the user to configure
+;; a potentially very complex integration function by sending a single
+;; dictionary of options down to each of its layers. Adopting that style now is
+;; going to allow this function to grow to accomodate other methods of sequence
+;; acceleration, like polynomial or rational function extrapolation.
+;;
+;; For now, `{:accelerate? true}` configures Richardson extrapolation iff the
+;; user hasn't specified a custom sequence of integration slices using the `:n`
+;; option.
 
+(defn- accelerate
+  "NOTE - this is only appropriate for Richardson-accelerating sequences with t=2,
+  p=q=1.
+
+  This only applies to the Riemann sequences in this namespace!"
+  [estimate-seq {:keys [n accelerate?] :or {n 1}}]
+  (if (and accelerate? (number? n))
+    (ir/richardson-sequence estimate-seq 2 1 1)
+    estimate-seq))
+
+;; Check that this works:
+
+#_
+(= {:converged? true
+    :terms-checked 4
+    :result 333.3333333333333}
+
+   (let [f (fn [x] (* x x))]
+     (-> (map (left-sum f 0 10)
+              (us/powers 2))
+         (accelerate {:accelerate? true})
+         (us/seq-limit))))
+
+;; Excellent!
+;;
 ;; ## Incremental Computation
 ;;
 ;; The results look quite nice; but notice how much redundant computation we're
@@ -485,42 +528,115 @@
 ;; ## Final Incremental Implementations
 ;;
 ;; We can use `incrementalize` to write our final version of `left-sequence`,
-;; along with a matching version for `right-sequence`:
+;; along with a matching version for `right-sequence`.
+;;
+;; Notice that we're using `accelerate` from above. The interface should make
+;; more sense now:
 
 (defn left-sequence
   "Returns a (lazy) sequence of successively refined estimates of the integral of
   `f` over the closed-open interval $a, b$ by taking left-Riemann sums.
 
-  If `n` is a number, returns estimates with $n, 2n, 4n, ...$ slices,
+  ## Optional Arguments
+
+  `:n`: If `n` is a number, returns estimates with $n, 2n, 4n, ...$ slices,
   geometrically increasing by a factor of 2 with each estimate.
 
   If `n` is a sequence, the resulting sequence will hold an estimate for each
-  integer number of slices in that sequence."
-  ([f a b] (left-sequence f a b 1))
-  ([f a b n]
+  integer number of slices in that sequence.
+
+  `:accelerate?`: if supplied (and `n` is a number), attempts to accelerate
+  convergence using Richardson extrapolation. If `n` is a sequence this option
+  is ignored."
+  ([f a b] (left-sequence f a b {}))
+  ([f a b opts]
    (let [S      (left-sum f a b)
          next-S (Sn->S2n f a b)]
-     (incrementalize S next-S 2 n))))
+     (-> (incrementalize S next-S 2 (:n opts 1))
+         (accelerate opts)))))
 
 (defn right-sequence
   "Returns a (lazy) sequence of successively refined estimates of the integral of
   `f` over the closed-open interval $a, b$ by taking right-Riemann sums.
 
-  If `n` is a number, returns estimates with $n, 2n, 4n, ...$ slices,
+  ## Optional Arguments
+
+  `:n`: If `n` is a number, returns estimates with $n, 2n, 4n, ...$ slices,
   geometrically increasing by a factor of 2 with each estimate.
 
   If `n` is a sequence, the resulting sequence will hold an estimate for each
-  integer number of slices in that sequence."
-  ([f a b] (left-sequence f a b 1))
-  ([f a b n]
+  integer number of slices in that sequence.
+
+  `:accelerate?`: if supplied (and `n` is a number), attempts to accelerate
+  convergence using Richardson extrapolation. If `n` is a sequence this option
+  is ignored."
+  ([f a b] (right-sequence f a b {}))
+  ([f a b opts]
    (let [S      (right-sum f a b)
          next-S (Sn->S2n f a b)]
-     (incrementalize S next-S 2 n))))
+     (-> (incrementalize S next-S 2 (:n opts 1))
+         (accelerate opts)))))
+
+;; `lower-sequence` and `upper-sequence` are similar. They can't take advantage
+;; of any incremental speedup, so we generate a sequence of `n`s internally and
+;; map `lower-sum` and `upper-sum` directly across these.
+
+(defn lower-sequence
+  "Returns a (lazy) sequence of successively refined estimates of the integral of
+  `f` over the closed interval $(a, b)$ by taking lower-Riemann sums.
+
+  ## Optional Arguments
+
+  `:n`: If `n` is a number, returns estimates with $n, 2n, 4n, ...$ slices,
+  geometrically increasing by a factor of 2 with each estimate.
+
+  If `n` is a sequence, the resulting sequence will hold an estimate for each
+  integer number of slices in that sequence.
+
+  `:accelerate?`: if supplied (and `n` is a number), attempts to accelerate
+  convergence using Richardson extrapolation. If `n` is a sequence this option
+  is ignored."
+  ([f a b] (lower-sequence f a b {}))
+  ([f a b {:keys [n] :or {n 1} :as opts}]
+   (let [n-seq (if (number? n)
+                 (us/powers 2 n)
+                 n)]
+     (-> (map (lower-sum f a b) n-seq)
+         (accelerate opts)))))
+
+(defn upper-sequence
+  "Returns a (lazy) sequence of successively refined estimates of the integral of
+  `f` over the closed interval $(a, b)$ by taking upper-Riemann sums.
+
+  ## Optional Arguments
+
+  `:n`: If `n` is a number, returns estimates with $n, 2n, 4n, ...$ slices,
+  geometrically increasing by a factor of 2 with each estimate.
+
+  If `n` is a sequence, the resulting sequence will hold an estimate for each
+  integer number of slices in that sequence.
+
+  `:accelerate?`: if supplied (and `n` is a number), attempts to accelerate
+  convergence using Richardson extrapolation. If `n` is a sequence this option
+  is ignored."
+  ([f a b] (upper-sequence f a b {}))
+  ([f a b {:keys [n] :or {n 1} :as opts}]
+   (let [n-seq (if (number? n)
+                 (us/powers 2 n)
+                 n)]
+     (-> (map (upper-sum f a b) n-seq)
+         (accelerate opts)))))
 
 ;; ## Integral API
 ;;
 ;; Finally, we expose four API methods for each of the {left, right, lower,
 ;; upper}-Riemann sums.
+;;
+;; Each of these makes use a special `qc/defintegrator` "macro"; This style
+;; allows us to adopt one final improvement. If the interval $a, b$ is below
+;; some threshold, the integral API will take a single slice using the supplied
+;; `:area-fn` below and not attempt to converge. See `common.cljc` for more
+;; details.
 ;;
 ;; These API interfaces are necessarily limiting. They force the assumptions
 ;; that you:
@@ -539,7 +655,7 @@
 ;;
 ;; - For each of {left, right, lower, upper}-Riemann sums, the order of the
 ;;   error terms is 1, 2, 3, 4..., so always provide `p=1` and `q=1` to
-;;   `richardson-sequence`.
+;;   `richardson-sequence`. `accelerate` does this above.
 ;;
 ;; - If you want to use some NON-geometric seq, you'll need to use the methods
 ;;   in `polynomial.cljc` and `rational.cljc`, which are more general forms of
@@ -547,92 +663,58 @@
 ;;   extrapolation. Your sequence of `xs` for each of those methods should be
 ;;   `n-seq`.
 
-(defn left-integral
+(qc/defintegrator left-integral
   "Returns an estimate of the integral of `f` across the closed-open interval $a,
   b$ using a left-Riemann sum with $1, 2, 4 ... 2^n$ windows for each estimate.
 
   Optionally accepts `opts`, a dict of optional arguments. All of these get
   passed on to `us/seq-limit` to configure convergence checking.
 
-  `opts` entries that configure integral behavior:
+  See `left-sequence` for information on the optional args in `opts` that
+  customize this function's behavior."
+  :area-fn (fn [f a b] (* (f a) (- b a)))
+  :seq-fn left-sequence)
 
-  `:accelerate?`: if true, use Richardson extrapolation to accelerate
-  convergence. If false, attempts to converge directly.
-  "
-  ([f a b] (left-integral f a b {}))
-  ([f a b opts]
-   (let [estimates (left-sequence f a b)]
-     (-> (if (:accelerate? opts)
-           (ir/richardson-sequence estimates 2)
-           estimates)
-         (us/seq-limit opts)))))
-
-(defn right-integral
+(qc/defintegrator right-integral
   "Returns an estimate of the integral of `f` across the closed-open interval $a,
   b$ using a right-Riemann sum with $1, 2, 4 ... 2^n$ windows for each estimate.
 
   Optionally accepts `opts`, a dict of optional arguments. All of these get
   passed on to `us/seq-limit` to configure convergence checking.
 
-  `opts` entries that configure integral behavior:
-
-  `:accelerate?`: if true, use Richardson extrapolation to accelerate
-  convergence. If false, attempts to converge directly.
-  "
-  ([f a b] (right-integral f a b {}))
-  ([f a b opts]
-   (let [estimates (left-sequence f a b)]
-     (-> (if (:accelerate? opts)
-           (ir/richardson-sequence estimates 2)
-           estimates)
-         (us/seq-limit opts)))))
+  See `right-sequence` for information on the optional args in `opts` that
+  customize this function's behavior."
+  :area-fn (fn [f a b] (* (f b) (- b a)))
+  :seq-fn right-sequence)
 
 ;; upper and lower Riemann sums have the same interface; internally, they're not
 ;; able to take advantage of incremental summation, since it's not possible to
 ;; know in advance whether or not the left or right side of the interval should
 ;; get reused.
 
-(defn upper-integral
-  "Returns an estimate of the integral of `f` across the closed-open interval $a,
-  b$ using an upper-Riemann sum with $1, 2, 4 ... 2^n$ windows for each estimate.
-
-  Optionally accepts `opts`, a dict of optional arguments. All of these get
-  passed on to `us/seq-limit` to configure convergence checking.
-
-  `opts` entries that configure integral behavior:
-
-  `:accelerate?`: if true, use Richardson extrapolation to accelerate
-  convergence. If false, attempts to converge directly.
-  "
-  ([f a b] (upper-integral f a b {}))
-  ([f a b opts]
-   (let [estimates (map (upper-sum f a b)
-                        (us/powers 2))]
-     (-> (if (:accelerate? opts)
-           (ir/richardson-sequence estimates 2)
-           estimates)
-         (us/seq-limit opts)))))
-
-(defn lower-integral
+(qc/defintegrator lower-integral
   "Returns an estimate of the integral of `f` across the closed-open interval $a,
   b$ using a lower-Riemann sum with $1, 2, 4 ... 2^n$ windows for each estimate.
 
   Optionally accepts `opts`, a dict of optional arguments. All of these get
   passed on to `us/seq-limit` to configure convergence checking.
 
-  `opts` entries that configure integral behavior:
+  See `lower-sequence` for information on the optional args in `opts` that
+  customize this function's behavior."
+  :area-fn (fn [f a b] (* (min (f a) (f b)) (- b a)))
+  :seq-fn lower-sequence)
 
-  `:accelerate?`: if true, use Richardson extrapolation to accelerate
-  convergence. If false, attempts to converge directly.
-  "
-  ([f a b] (lower-integral f a b {}))
-  ([f a b opts]
-   (let [estimates (map (lower-sum f a b)
-                        (us/powers 2))]
-     (-> (if (:accelerate? opts)
-           (ir/richardson-sequence estimates 2)
-           estimates)
-         (us/seq-limit opts)))))
+(qc/defintegrator upper-integral
+  "Returns an estimate of the integral of `f` across the closed-open interval $a,
+  b$ using an upper-Riemann sum with $1, 2, 4 ... 2^n$ windows for each estimate.
+
+  Optionally accepts `opts`, a dict of optional arguments. All of these get
+  passed on to `us/seq-limit` to configure convergence checking.
+
+  See `upper-sequence` for information on the optional args in `opts` that
+  customize this function's behavior."
+  :area-fn (fn [f a b] (* (max (f a) (f b)) (- b a)))
+  :seq-fn upper-sequence)
 
 ;; ## Next Steps
 ;;

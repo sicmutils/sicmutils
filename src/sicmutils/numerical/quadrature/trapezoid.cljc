@@ -19,7 +19,9 @@
 
 (ns sicmutils.numerical.quadrature.trapezoid
   "Trapezoid method."
-  (:require [sicmutils.numerical.quadrature.riemann :as qr]
+  (:require [sicmutils.numerical.quadrature.common :as qc
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.numerical.quadrature.riemann :as qr]
             [sicmutils.numerical.interpolate.richardson :as ir]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
@@ -139,8 +141,8 @@
                 (/ (+ l r) 2))
       f       (fn [x] (/ 4 (+ 1 (* x x))))
       [a b]   [0 1]
-      left-estimates  (qr/left-sequence f a b points)
-      right-estimates (qr/right-sequence f a b points)]
+      left-estimates  (qr/left-sequence f a b {:n points})
+      right-estimates (qr/right-sequence f a b {:n points})]
   (basically-identical? (map (trapezoid-sum f a b) points)
                         (map average
                              left-estimates
@@ -211,16 +213,25 @@
   "Returns a (lazy) sequence of successively refined estimates of the integral of
   `f` over the open interval $(a, b)$ using the Trapezoid method.
 
-  If `n` is a number, returns estimates with $n, 2n, 4n, ...$ slices,
+  ## Optional arguments:
+
+  `:n`: If `:n` is a number, returns estimates with $n, 2n, 4n, ...$ slices,
   geometrically increasing by a factor of 2 with each estimate.
 
-  If `n` is a sequence, the resulting sequence will hold an estimate for each
-  integer number of slices in that sequence."
-  ([f a b] (trapezoid-sequence f a b 1))
-  ([f a b n]
+  If `:n` is a sequence, the resulting sequence will hold an estimate for each
+  integer number of slices in that sequence.
+
+  `:accelerate?`: if supplied (and `n` is a number), attempts to accelerate
+  convergence using Richardson extrapolation. If `n` is a sequence this option
+  is ignored."
+  ([f a b] (trapezoid-sequence f a b {:n 1}))
+  ([f a b {:keys [n accelerate?] :or {n 1}}]
    (let [S      (trapezoid-sum f a b)
-         next-S (qr/Sn->S2n f a b)]
-     (qr/incrementalize S next-S 2 n))))
+         next-S (qr/Sn->S2n f a b)
+         xs     (qr/incrementalize S next-S 2 n)]
+     (if (and accelerate? (number? n))
+       (ir/richardson-sequence xs 2 2 2)
+       xs))))
 
 ;; The following example shows that for the sequence $1, 2, 4, 8, ..., 2^n$, the
 ;; incrementally-augmented `trapezoid-sequence` only performs $2^n + 1$ function
@@ -279,7 +290,7 @@
       n-seq (take 12 (interleave
                       (iterate (fn [x] (* 2 x)) 2)
                       (iterate (fn [x] (* 2 x)) 3)))]
-  (doall (trapezoid-sequence f1 0 1 n-seq))
+  (doall (trapezoid-sequence f1 0 1 {:n n-seq}))
   (doall (map (trapezoid-sum f2 0 1) n-seq))
   (= [162 327]
      [@counter1 @counter2]))
@@ -297,8 +308,8 @@
 ;; h^6$... (see https://en.wikipedia.org/wiki/Trapezoidal_rule#Error_analysis).
 ;; Because of this, we pass $p = q = 2$ into `ir/richardson-sequence` below.
 ;; Additionally, `integral` hardcodes the factor of `2` and doesn't currently
-;; allow for a custom sequence of $n$. This requires passing $t = 2$ into
-;; `ir/richardson-sequence`.
+;; allow for a custom sequence of $n$. This is configured by passing $t = 2$
+;; into `ir/richardson-sequence`.
 ;;
 ;; If you want to accelerate some other geometric sequence, call
 ;; `ir/richardson-sequence` with some other value of `t.`
@@ -307,33 +318,28 @@
 ;; `polynomial.cljc` or `rational.cljc`. The "Bulirsch-Stoer" method uses either
 ;; of these to extrapolate the Trapezoid method using a non-geometric sequence.
 
-(defn integral
-  "Returns an estimate of the integral of `f` over the open interval $(a, b)$
+(qc/defintegrator integral
+  "Returns an estimate of the integral of `f` over the closed interval $[a, b]$
   using the Trapezoid method with $1, 2, 4 ... 2^n$ windows for each estimate.
 
   Optionally accepts `opts`, a dict of optional arguments. All of these get
   passed on to `us/seq-limit` to configure convergence checking.
 
-  `opts` entries that configure integral behavior:
-
-  `:accelerate?`: if true, use Richardson extrapolation to accelerate
-  convergence. (This combination of Trapezoid method and Richardson
-  extrapolation is called 'Romberg integration'.) If false, attempts to converge
-  directly."
-  ([f a b] (integral f a b {}))
-  ([f a b opts]
-   (let [xs (trapezoid-sequence f a b)]
-     (-> (if (:accelerate? opts)
-           (ir/richardson-sequence xs 2 2 2)
-           xs)
-         (us/seq-limit opts)))))
+  See `trapezoid-sequence` for information on the optional args in `opts` that
+  customize this function's behavior."
+  :area-fn single-trapezoid
+  :seq-fn trapezoid-sequence)
 
 ;; ## Next Steps
 ;;
 ;; If you start with the trapezoid method, one single step of Richardson
 ;; extrapolation (taking the second column of the Richardson tableau) is
-;; equivalent to "Simpson's rule". Two steps of Richardson extrapolation gives
-;; you "Boole's rule".
+;; equivalent to "Simpson's rule". One step using `t=3`, ie, when you /triple/
+;; the number of integration slices per step, gets you "Simpson's 3/8 Rule". Two
+;; steps of Richardson extrapolation gives you "Boole's rule".
+;;
+;; The full Richardson-accelerated Trapezoid method is also known as "Romberg
+;; integration" (see `romberg.cljc`).
 ;;
 ;; These methods will appear in their respective namespaces in the `quadrature`
 ;; package.

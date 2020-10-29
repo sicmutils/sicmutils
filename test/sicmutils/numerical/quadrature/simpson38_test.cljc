@@ -80,8 +80,8 @@
     (let [points (us/powers 2 1)
           f       (fn [x] (/ 4 (+ 1 (* x x))))
           [a b]   [0 1]
-          mid-estimates  (qm/midpoint-sequence f a b points)
-          trap-estimates (qt/trapezoid-sequence f a b points)]
+          mid-estimates  (qm/midpoint-sequence f a b {:n points})
+          trap-estimates (qt/trapezoid-sequence f a b {:n points})]
       (ish? (take 10 (qs/simpson-sequence f a b))
             (take 10 (map (fn [mid trap]
                             (/ (+ (* 2 mid) trap)

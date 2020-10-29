@@ -21,6 +21,7 @@
   (:require [clojure.test :refer [is deftest testing]]
             [same :refer [ish?]]
             [sicmutils.numerical.quadrature.boole :as qb]
+            [sicmutils.numerical.quadrature.common :as qc]
             [sicmutils.numerical.quadrature.romberg :as qr]
             [sicmutils.numerical.quadrature.simpson :as qs]
             [sicmutils.numerical.quadrature.trapezoid :as qt]
@@ -41,12 +42,26 @@
       b (u/illegal (str b " is explosive!"))
       (f x))))
 
+(deftest romberg-sequence-tests
+  (testing "romberg-sequence dispatches appropriately"
+    (is (ish? (take 5 (qr/open-sequence gaussian 0 1))
+              (take 5 (qr/romberg-sequence gaussian 0 1 {:interval qc/open}))
+              (take 5 (-> (exploding gaussian 0 1)
+                          (qr/romberg-sequence 0 1 {:interval qc/open-closed})))
+              (take 5 (qr/romberg-sequence gaussian 0 1 {:interval qc/closed-open})))
+        "romberg-sequence returns an open sequence if either endpoint is open.")
+
+    (is (ish? (take 5 (qr/closed-sequence gaussian 0 1))
+              (take 5 (qr/romberg-sequence gaussian 0 1 {:interval qc/closed})))
+        "romberg-sequence returns a CLOSED sequence if both endpoints are closed.")))
+
 (deftest open-romberg-tests
   (testing "Romberg integration over an open interval converges."
     (let [expected {:converged? true
                     :terms-checked 5
                     :result 0.4213503964748162}
           terms (qr/open-sequence gaussian 0 1)]
+
       (is (ish? expected (qr/open-integral gaussian 0 1))
           "The sequence converges.")
 
