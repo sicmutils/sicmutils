@@ -171,7 +171,7 @@
          (us/start total-time)
          (let [{:keys [integrator equations dimension stopwatch counter]}
                (integration-opts state-derivative derivative-args initial-state opts)
-               initial-state-array (double-array
+               initial-state-array (into-array
                                     (flatten initial-state))
                array->state #(struct/unflatten % initial-state)
                output-buffer (double-array dimension)

@@ -29,25 +29,33 @@
 
 (def ^:private near (v/within 1e-6))
 
-(deftest compile-univariate
-  (let [f (fn [x] (+ 1 (g/square (g/sin x))))
-        cf (c/compile-univariate-fn f)]
-    (is (near (f 0.5) (cf 0.5)))))
+(deftest compile-univariate-tests
+  (let [f  (fn [x] (+ 1 (g/square (g/sin x))))
+        cf         (c/compile-univariate-fn f)
+        cf2        (c/compile-univariate-fn f)
+        cf-nocache (c/compile-univariate-fn* f)]
+    (is (= (f 0.5) (cf 0.5) (cf2 0.5) (cf-nocache 0.5))
+        "the fn has no simplifications available so the results are identical;
+        the compiled fn is faster.")))
 
-(deftest compile-state
-  (let [f (fn [[[a b] [c d]]] (- (* a d) (* b c)))
+(deftest compile-state-tests
+  (let [f  (fn [[[a b] [c d]]]
+             (- (* a d) (* b c)))
         sf (fn [k] (fn [s] (* k (f s))))
         s (up (down 2 3) (down 4 5))
         t (up (down 3 4) (down -1 2))]
-    (is (= -2 (f s)))
-    (is (= 10 (f t)))
-    (is (= -4 ((sf 2) s)))
-    (is (= 20 ((sf 2) t)))
-    (let [cf (c/compile-state-fn sf [1] s)]
-      (is (= -2 (cf [2 3 4 5] [1])))
-      (is (= -4 (cf [2 3 4 5] [2])))
-      (is (= 10 (cf (flatten t) [1])))
-      (is (= 20 (cf [3 4 -1 2] [2]))))))
+    (testing "non-compiled, generic state function results"
+      (is (= -2 (f s)))
+      (is (= 10 (f t)))
+      (is (= -4 ((sf 2) s)))
+      (is (= 20 ((sf 2) t))))
+
+    (testing "compiled state function matches the original."
+      (let [cf (c/compile-state-fn sf [1] s)]
+        (is (= ((sf 1) s) (cf (flatten s) [1])))
+        (is (= ((sf 1) t) (cf (flatten t) [1])))
+        (is (= ((sf 2) s) (cf (flatten s) [2])))
+        (is (= ((sf 2) t) (cf (flatten t) [2])))))))
 
 (defn ^:private make-generator
   [s]
@@ -55,41 +63,76 @@
     (fn []
       (symbol (format "%s%d" s (swap! i inc))))))
 
+(defn- rehydrate
+  "Takes a slimmed-down expression and a potentially-multi-level substitution map
+  and rebuilds the original expression."
+  [slimmed sym->expr]
+  (let [substitute (partial w/postwalk-replace sym->expr)]
+    (reduce #(if (= %1 %2) (reduced %1) %2)
+            (iterate substitute slimmed))))
+
 (deftest subexp-tests
   (is (= '[(* g1 (+ x z) g1) ([g1 (+ x y)])]
          (c/extract-common-subexpressions
           '(* (+ x y) (+ x z) (+ x y))
           vector
-          {:symbol-generator (make-generator "g")})))
-  (is (= '[(+ K1 (expt K1 2) K2 (sqrt K2)) ([K1 (sin x)] [K2 (cos x)])]
-         (c/extract-common-subexpressions
-          '(+ (sin x) (expt (sin x) 2) (cos x) (sqrt (cos x)))
-          vector
-          {:symbol-generator (make-generator "K")})))
+          {:symbol-generator (make-generator "g")}))
+      "common (+ x y) variable is extracted.")
 
+  (let [expr '(+ (* (sin x) (cos x))
+                 (* (sin x) (cos x))
+                 (* (sin x) (cos x)))
+        opts {:symbol-generator (make-generator "g")}
+        slimmed '(+ g4 g4 g4)
+        expected-subs '([g1 (sin x)]
+                        [g2 (cos x)]
+                        [g4 (* g1 g2)])
 
-  (let [expr            '(+ (sin x) (expt (sin x) 2)
-                            (cos x) (sqrt (cos x)))
-        [slimmed sym->subexpr]
-        (c/extract-common-subexpressions
-         expr
-         (fn [e bindings]
-           [e (into {} bindings)]))]
-    (is (= expr (w/postwalk-replace sym->subexpr slimmed))
+        sym->subexpr  (into {} expected-subs)]
+    (is (= [slimmed expected-subs]
+           (c/extract-common-subexpressions expr vector opts))
+        "nested subexpressions are extracted in order, and the substitution map
+        is suitable for a let binding (and has no extra variables).")
+
+    (is (= expr (rehydrate slimmed sym->subexpr))
         "Rehydrating the slimmed expression should result in the original
-        expression. (This test involves a single level of replacement. A better
-        test would recursively postwalk-replace until no change occured.)")))
+        expression."))
 
-(deftest subexp-compile
   (let [expr '(+ (sin x) (expt (sin x) 2)
-                 (cos x) (sqrt (cos x))
+                 (cos x) (sqrt (cos x)))
+        opts {:symbol-generator (make-generator "K")}
+        slimmed '(+ K1 (expt K1 2) K2 (sqrt K2))
+        expected-subs '([K1 (sin x)]
+                        [K2 (cos x)])]
+    (is (= expr (rehydrate slimmed (into {} expected-subs)))
+        "The substitutions are correct.")
+
+    (is (= [slimmed expected-subs]
+           (c/extract-common-subexpressions expr vector opts))
+        "subexpressions are again extracted in order."))  )
+
+(def letsym
+  #?(:clj 'clojure.core/let :cljs 'cljs.core/let))
+
+(deftest subexp-compile-tests
+  (let [expr '(+ (* (sin x) (cos x))
+                 (* (sin x) (cos x))
+                 (* (sin x) (cos x))
+                 (sin x)
+                 (expt (sin x) 2)
+                 (cos x)
+                 (sqrt (cos x))
                  (tan x))]
-    (is (= '(#?(:clj clojure.core/let :cljs cljs.core/let)
-             [g1 (sin x)
-              g2 (cos x)]
-             (+ g1 (expt g1 2)
-                g2 (sqrt g2) (tan x)))
-           (c/cse-form expr {:symbol-generator (make-generator "g")})))
+    (is (= (list letsym
+                 '[g1 (sin x)
+                   g2 (cos x)
+                   g4 (* g1 g2)]
+                 '(+ g4 g4 g4
+                     g1 (expt g1 2)
+                     g2 (sqrt g2) (tan x)))
+           (c/cse-form expr {:symbol-generator (make-generator "g")}))
+        "Bindings appear in the correct order for subs.")
 
     (is (= '(+ a b (sin x) (cos y))
-           (c/cse-form '(+ a b (sin x) (cos y)))))))
+           (c/cse-form '(+ a b (sin x) (cos y))))
+        "No substitutions means no let binding.")))
