@@ -233,9 +233,51 @@
        (ir/richardson-sequence xs 2 2 2)
        xs))))
 
-;; The following example shows that for the sequence $2, 3, 4, 6, ...$ (used in
-;; the Bulirsch-Stoer method!), the incrementally-augmented `trapezoid-sequence`
-;; only performs 162 function evaluations, vs the 327 of the non-incremental
+;; The following example shows that for the sequence $1, 2, 4, 8, ..., 2^n$, the
+;; incrementally-augmented `trapezoid-sequence` only performs $2^n + 1$ function
+;; evaluations; ie, the same number of evaluations as the
+;; non-incremental `(trapezoid-sum f2 0 1)` would perform for $2^n$ slices. (why
+;; $2^n + 1$? each interior point is shared, so each trapezoid contributes one
+;; evaluation, plus a final evaluation for the right side.)
+;;
+;; The example also shows that evaluating /every/ $n$ in the sequence costs
+;; $\sum_{i=0}^n{2^i + 1} = 2^{n+1} + n$ evaluations. As $n$ gets large, this is
+;; roughly twice what the incremental implementation costs.
+;;
+;; When $n=11$, the incremental implementation uses 2049 evaluations, while the
+;; non-incremental takes 4017.
+
+#_
+(let [n-elements 11
+      f (fn [x] (/ 4 (+ 1 (* x x))))
+      [counter1 f1] (u/counted f)
+      [counter2 f2] (u/counted f)
+      [counter3 f3] (u/counted f)
+      n-seq (take (inc n-elements)
+                  (iterate (fn [x] (* 2 x)) 1))]
+  ;; Incremental version evaluating every `n` in the sequence $1, 2, 4, ...$:
+  (doall (trapezoid-sequence f1 0 1 n-seq))
+
+  ;; Non-incremental version evaluating every `n` in the sequence $1, 2, 4, ...$:
+  (doall (map (trapezoid-sum f2 0 1) n-seq))
+
+  ;; A single evaluation of the final `n`
+  ((trapezoid-sum f3 0 1) (last n-seq))
+
+  (let [two**n+1 (inc (g/expt 2 n-elements))
+        n+2**n (+ n-elements (g/expt 2 (inc n-elements)))]
+    (= [2049 4107 2049]
+       [two**n+1 n+2**n two**n+1]
+       [@counter1 @counter2 @counter3])))
+;; => true
+
+;; Another short example that hints of work to come. The incremental
+;; implementation is useful in cases where the sequence includes doublings
+;; nested in among other values.
+;;
+;; For the sequence $2, 3, 4, 6, ...$ (used in the Bulirsch-Stoer method!), the
+;; incrementally-augmented `trapezoid-sequence` only performs 162 function
+;; evaluations, vs the 327 of the non-incremental
 ;; `(trapezoid-sum f2 0 1)` mapped across the points.
 ;;
 ;; This is a good bit more efficient than the Midpoint method's incremental
