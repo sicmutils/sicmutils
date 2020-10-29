@@ -256,7 +256,7 @@
       n-seq (take (inc n-elements)
                   (iterate (fn [x] (* 2 x)) 1))]
   ;; Incremental version evaluating every `n` in the sequence $1, 2, 4, ...$:
-  (doall (trapezoid-sequence f1 0 1 n-seq))
+  (doall (trapezoid-sequence f1 0 1 {:n n-seq}))
 
   ;; Non-incremental version evaluating every `n` in the sequence $1, 2, 4, ...$:
   (doall (map (trapezoid-sum f2 0 1) n-seq))

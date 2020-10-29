@@ -93,15 +93,15 @@
             "With acceleration we hit machine epsilon in 9 iterations.")
 
         (testing "the incremental trapezoid method takes 2^n+1 evaluations"
-          (let [n-elements 11
+          (let [n 11
                 f (fn [x] (/ 4 (+ 1 (* x x))))
                 [counter1 f1] (u/counted f)
                 [counter2 f2] (u/counted f)
                 [counter3 f3] (u/counted f)
-                n-seq (take (inc n-elements)
+                n-seq (take (inc n)
                             (iterate (fn [x] (* 2 x)) 1))]
             ;; Incremental version evaluating every `n` in the sequence $1, 2, 4, ...$:
-            (doall (qt/trapezoid-sequence f1 0 1 n-seq))
+            (doall (qt/trapezoid-sequence f1 0 1 {:n n-seq}))
 
             ;; Non-incremental version evaluating every `n` in the sequence $1, 2, 4, ...$:
             (doall (map (qt/trapezoid-sum f2 0 1) n-seq))
@@ -109,10 +109,9 @@
             ;; A single evaluation of the final `n`
             ((qt/trapezoid-sum f3 0 1) (last n-seq))
 
-            (let [two**n+1 (inc (g/expt 2 n-elements))
-                  n+2**n (+ n-elements (g/expt 2 (inc n-elements)))]
-              (is (= [2049 4107 2049]
-                     [two**n+1 n+2**n two**n+1]
+            (let [two**n+1 (inc (g/expt 2 n))
+                  n+2**n   (+ n (g/expt 2 (inc n)))]
+              (is (= [two**n+1 n+2**n two**n+1]
                      [@counter1 @counter2 @counter3])
                   "We can say exactly how many evaluations we'll use."))))
 
