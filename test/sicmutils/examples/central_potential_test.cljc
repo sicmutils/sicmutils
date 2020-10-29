@@ -177,10 +177,7 @@
                             (* (expt y 2) (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))))))
              (e/simplify ((central/state-derivative 'm 'M) state))))
 
-      #?(:clj
-         ;; Integrator isn't yet implemented in cljs.
-         (let [o (atom [])
-               observe (fn [t q] (swap! o conj [t q]))]
-           (do
-             (central/evolver {:t (/ 3 60) :dt (/ 1 60) :observe observe})
-             (is (= 4 (count @o)))))))))
+      (let [o (atom [])
+            observe (fn [t q] (swap! o conj [t q]))]
+        (central/evolver {:t (/ 3 60) :dt (/ 1 60) :observe observe})
+        (is (= 4 (count @o)))))))

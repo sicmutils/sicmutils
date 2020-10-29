@@ -27,15 +27,15 @@
   (let [state-history (atom [])
         L (r/Euler-state->L-space A B C)]
     ((e/evolve r/rigid-sysder
-               A B C                                                ;; moments of inertia
-               )
+               ;; moments of inertia
+               A B C)
      (up 0.0
          (up θ0 φ0 ψ0)
          (up θdot0 φdot0 ψdot0))
-     (fn [t [_ [θ φ ψ] _ :as local]]
-       (swap! state-history conj [t θ φ ψ (seq (L local))]))
      dt
      t
-     1.0e-6
-     :compile true)
+     {:compile? true
+      :epsilon 1.0e-6
+      :observe (fn [t [_ [θ φ ψ] _ :as local]]
+                 (swap! state-history conj [t θ φ ψ (seq (L local))]))})
     @state-history))

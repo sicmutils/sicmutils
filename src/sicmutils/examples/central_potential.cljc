@@ -73,11 +73,11 @@
                           (up xdot_0 ydot_0 0 0))]
     ((e/evolve state-derivative m M)
      initial-state
-     observe
      dt
      t
-     1.0e-6
-     :compile true)))
+     {:compile? true
+      :epsilon 1.0e-6
+      :observe observe})))
 
 (defn equations
   []
