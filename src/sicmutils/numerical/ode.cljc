@@ -210,19 +210,31 @@
            (array->state output-buffer))))))
 
 (defn state-advancer
-  "state-advancer takes a state derivative function constructor
-  followed by the arguments to construct it with. The state derivative
-  function is constructed and an integrator is produced which takes:
+  "state-advancer takes a state derivative function constructor followed by the
+  arguments to construct it with. The state derivative function is constructed
+  and an integrator is produced which takes:
 
   - initial state
-  - target time, and error tolerance as
-  arguments. The final state is returned. The state derivative is
-  expected to map a structure to a structure of the same shape,
-  and is required to have the time parameter as the first element."
+  - target time
+
+  as arguments. Optionally, supply an options map with these optional fields:
+
+  `:compile?`: If true, the ODE solver will compile your state function.
+
+  `:epsilon`: The maximum error tolerance allowed by the ODE solver, both
+  relative and absolute.
+
+  Returns the final state.
+
+  The state derivative is expected to map a structure to a structure of the same
+  shape, and is required to have the time parameter as the first element."
   [state-derivative & state-derivative-args]
   (let [I (make-integrator state-derivative state-derivative-args)]
-    (fn [initial-state t opts]
-      (I initial-state 0 t opts))))
+    (fn call
+      ([initial-state t]
+       (call initial-state t {}))
+      ([initial-state t opts]
+       (I initial-state 0 t opts)))))
 
 (defn evolve
   "evolve takes a state derivative function constructor and its arguments, and
