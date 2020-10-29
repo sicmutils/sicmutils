@@ -296,7 +296,7 @@
 
 (defn richardson-column
   "Function with an identical interface to `richardson-sequence` above, except for
-  an additional first argument `col`.
+  an additional second argument `col`.
 
   `richardson-column` will return that /column/ offset the interpolation tableau
   instead of the first row. This will give you a sequence of nth-order
@@ -315,13 +315,13 @@
 
   NOTE Given a better interface for `richardson-sequence`, this function could
   be merged with that function."
-  ([col xs t]
+  ([xs col t]
    (nth (make-tableau xs t) col))
-  ([col xs t p-seq]
+  ([xs col t p-seq]
    (nth (make-tableau xs t p-seq) col))
-  ([col xs t p q]
+  ([xs col t p q]
    (let [arithmetic-p-q (iterate #(+ q %) p)]
-     (richardson-column col xs t arithmetic-p-q))))
+     (richardson-column xs col t arithmetic-p-q))))
 
 
 ;; ## Richardson Extrapolation and Polynomial Extrapolation
