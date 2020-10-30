@@ -24,7 +24,7 @@
             [sicmutils.structure :as struct]
             [sicmutils.value :as v]
             [taoensso.timbre :as log]
-            #?(:cljs [odex :as o]))
+            #?(:cljs ["odex" :as o]))
   #?(:clj
      (:import (org.apache.commons.math3.ode.nonstiff GraggBulirschStoerIntegrator)
               (org.apache.commons.math3.ode FirstOrderDifferentialEquations)

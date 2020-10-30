@@ -20,8 +20,8 @@
 (ns sicmutils.calculus.vector-field-test
   (:refer-clojure :exclude [+ - * / partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            #?(:clj  [sicmutils.calculus.coordinate :refer [let-coordinates]]
-               :cljs [sicmutils.calculus.coordinate :refer-macros [let-coordinates]])
+            [sicmutils.calculus.coordinate :refer [let-coordinates]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.calculus.manifold :as m :refer [R2-rect R3-cyl R3-rect]]
             [sicmutils.calculus.vector-field :as vf]

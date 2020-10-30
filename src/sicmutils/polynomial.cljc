@@ -126,7 +126,7 @@
                               (.toString x)
                               "\"]"))]))
 
-(defn ^:private poly->str [p]
+(defn ^:private poly->str [^Polynomial p]
   (let [n 10
         xs->c (.-xs->c p)
         c (count xs->c)]
@@ -172,7 +172,7 @@
 (defn ^:private lead-term
   "Return the leading (i.e., highest degree) term of the polynomial
   p. The return value is [exponents coefficient]."
-  [p]
+  [^Polynomial p]
   (peek (.-xs->c p)))
 
 (defn degree
@@ -182,11 +182,11 @@
     (->> p lead-term exponents (reduce g/+))))
 
 (defn monomial?
-  [p]
+  [^Polynomial p]
   (= 1 (count (.-xs->c p))))
 
 (defn coefficients
-  [p]
+  [^Polynomial p]
   (map coefficient (.-xs->c p)))
 
 (defn check-same-arity [p q]
@@ -198,7 +198,7 @@
 
 (defn map-coefficients
   "Map the function f over the coefficients of p, returning a new Polynomial."
-  [f p]
+  [f ^Polynomial p]
   (->Polynomial (.-arity p)
                 (into empty-coefficients
                       (for [[xs c] (.-xs->c p)
@@ -209,7 +209,7 @@
 (defn map-exponents
   "Map the function f over the exponents of each monomial in p,
   returning a new Polynomial."
-  [f p]
+  [f ^Polynomial p]
   (make (.-arity p)
         (for [[xs c] (.-xs->c p)]
           [(f xs) c])))
@@ -228,7 +228,7 @@
 
 (defn add
   "Adds the polynomials p and q"
-  [p q]
+  [^Polynomial p ^Polynomial q]
   {:pre [(polynomial? p)
          (polynomial? q)]}
   (cond (v/nullity? p) q
@@ -239,7 +239,7 @@
 
 (defn sub
   "Subtract the polynomial q from the polynomial p."
-  [p q]
+  [^Polynomial p ^Polynomial q]
   {:pre [(polynomial? p)
          (polynomial? q)]}
   (cond (v/nullity? p) (negate q)
@@ -251,7 +251,7 @@
 
 (defn mul
   "Multiply polynomials p and q, and return the product."
-  [p q]
+  [^Polynomial p ^Polynomial q]
   {:pre [(polynomial? p)
          (polynomial? q)]}
   (cond (v/nullity? p) p
@@ -265,7 +265,7 @@
 
 (defn raise-arity
   "The opposite of lower-arity."
-  [p]
+  [^Polynomial p]
   {:pre [(polynomial? p)
          (= (.-arity p) 1)]}
   (let [terms (for [[x q] (.-xs->c p)
@@ -277,7 +277,7 @@
 (defn lower-arity
   "Given a nonzero polynomial of arity A > 1, return an equivalent polynomial
   of arity 1 whose coefficients are polynomials of arity A-1."
-  [p]
+  [^Polynomial p]
   {:pre [(polynomial? p)
          (> (.-arity p) 1)
          (not (v/nullity? p))]}
@@ -297,7 +297,7 @@
 
 (defn ^:private evaluate-1
   "Evaluates a univariate polynomial p at x."
-  [p x]
+  [^Polynomial p x]
   (loop [xs->c (.-xs->c p)
          result 0
          x**e 1
@@ -421,7 +421,7 @@
 (defn partial-derivative
   "The partial derivative of the polynomial with respect to the
   i-th indeterminate."
-  [p i]
+  [^Polynomial p i]
   (make (.-arity p)
         (for [[xs c] (.-xs->c p)
               :let [xi (xs i)]
@@ -431,7 +431,7 @@
 (defn partial-derivatives
   "The sequence of partial derivatives of p with respect to each
   indeterminate"
-  [p]
+  [^Polynomial p]
   (for [i (range (.-arity p))]
     (partial-derivative p i)))
 
@@ -480,7 +480,7 @@
     ;; indeterminates extracted from the expression at the start of this
     ;; process.
     (if (polynomial? p)
-      (->> (.-xs->c p)
+      (->> (.-xs->c  ^Polynomial p)
            (sort-by exponents #(monomial-order %2 %1))
            (map (fn [[xs c]]
                   (->> (map (fn [exponent var]
@@ -527,6 +527,9 @@
 
 (defmethod g/div [::polynomial ::v/number] [p c]
   (map-coefficients #(g/divide % c) p))
+
+(defmethod g/div [::v/integral ::polynomial] [c p]
+  (make (make-constant (.-arity p) c) p))
 
 (defmethod g/expt [::polynomial ::v/native-integral] [b x] (expt b x))
 (defmethod g/negate [::polynomial] [a] (negate a))

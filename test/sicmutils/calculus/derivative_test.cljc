@@ -20,7 +20,8 @@
 (ns sicmutils.calculus.derivative-test
   (:refer-clojure :exclude [+ - * / ref partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [sicmutils.calculus.derivative :as d :refer [D partial]]
+            [sicmutils.calculus.derivative :as d
+             :refer [D partial #?(:cljs Differential)]]
             [sicmutils.complex :refer [complex]]
             #?(:clj  [sicmutils.function :as f :refer [with-literal-functions]]
                :cljs [sicmutils.function :as f :refer-macros [with-literal-functions]])
@@ -29,7 +30,9 @@
             [sicmutils.series :as series]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :as s]
-            [sicmutils.value :as v]))
+            [sicmutils.value :as v])
+  #?(:clj
+     (:import [sicmutils.calculus.derivative Differential])))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
@@ -85,8 +88,11 @@
       (is (= 0 (* dx dx)))))
 
   (testing "more terms"
-    (let [d-expr (fn [dx]
-                   (->> dx .-terms (filter (fn [[tags coef]] (= tags [0]))) first second))
+    (let [d-expr (fn [^Differential dx]
+                   (->> (.-terms dx)
+                        (filter (fn [[tags coef]] (= tags [0])))
+                        first
+                        second))
           d-simplify #(-> % d-expr g/simplify)]
       (is (= '(* 3 (expt x 2))
              (d-simplify (g/expt (+ 'x (d/make-differential {[0] 1})) 3))))

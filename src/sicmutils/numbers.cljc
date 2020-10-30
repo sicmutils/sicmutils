@@ -34,9 +34,11 @@
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v]
-            #?(:cljs goog.math.Integer)
-            #?(:cljs goog.math.Long))
-  #?(:clj
+            #?(:cljs [goog.math.Long :as Long])
+            #?(:cljs [goog.math.Integer :as Integer]))
+  #?(:cljs
+     (:import (goog.math Long Integer))
+     :clj
      (:import [clojure.lang BigInt Ratio]
               [java.math BigInteger])))
 
@@ -153,21 +155,7 @@
 ;; don't respond true to number? These each require their own block of method
 ;; implementations.
 #?(:cljs
-   (letfn [(goog-expt
-             ;; Implementation of exponent taken from Clojure's numeric tower's
-             ;; expt-int:
-             ;; https://github.com/clojure/math.numeric-tower/blob/master/src/main/clojure/clojure/math/numeric_tower.clj#L72
-             [base pow]
-             (loop [n pow
-                    y (v/one-like base)
-                    z base]
-               (let [t (not (.isOdd n))
-                     n (.shiftRight n 1)]
-                 (cond
-                   t (recur n y (.multiply z z))
-                   (v/nullity? n) (.multiply z y)
-                   :else (recur n (.multiply z y) (.multiply z z))))))]
-
+   (do
      ;; native BigInt type in JS.
      (defmethod g/add [js/BigInt js/BigInt] [a b] (core-plus a b))
      (defmethod g/mul [js/BigInt js/BigInt] [a b] (core-times a b))
@@ -203,31 +191,77 @@
        (defmethod op [::v/floating-point js/BigInt] [a b]
          (op a (js/Number b))))
 
-     ;; Google Closure library's 64-bit Long and arbitrary-precision Integer
-     ;; type.
-     (doseq [goog-type [goog.math.Long goog.math.Integer]]
-       (defmethod g/add [goog-type goog-type] [a b] (.add a b))
-       (defmethod g/mul [goog-type goog-type] [a b] (.multiply a b))
-       (defmethod g/sub [goog-type goog-type] [a b] (.subtract a b))
-       (defmethod g/negate [goog-type] [a] (.negate a))
-       (defmethod g/abs [goog-type] [a] (if (neg? a) (.negate a) a))
-       (defmethod g/remainder [goog-type goog-type] [a b] (.modulo a b))
-       (defmethod g/magnitude [goog-type] [a b] (if (neg? a) (.negate a) a))
-       (defmethod g/expt [goog-type goog-type] [a b]
-         (if (g/negative? b)
+     ;; Google Closure library's 64-bit Long:
+     (defmethod g/add [Long Long] [a b] (.add a b))
+     (defmethod g/mul [Long Long] [a b] (.multiply a b))
+     (defmethod g/sub [Long Long] [^Long a ^Long b] (.subtract a b))
+     (defmethod g/negate [Long] [^Long a] (.negate a))
+     (defmethod g/abs [Long] [^Long a] (if (.isNegative a) (.negate a) a))
+     (defmethod g/remainder [Long Long] [^Long a ^Long b] (.modulo a b))
+     (defmethod g/magnitude [Long] [^Long a] (if (.isNegative a) (.negate a) a))
+
+     ;; Implementation of exponent taken from Clojure's numeric tower's
+     ;; expt-int:
+     ;; https://github.com/clojure/math.numeric-tower/blob/master/src/main/clojure/clojure/math/numeric_tower.clj#L72
+     (letfn [(goog-expt [base pow]
+               (loop [^Long n pow
+                      ^Long y (v/one-like base)
+                      ^Long z base]
+                 (let [t (not (.isOdd ^Long n))
+                       n (.shiftRight ^Long n 1)]
+                   (cond
+                     t (recur n y (.multiply z z))
+                     (v/nullity? n) (.multiply z y)
+                     :else (recur n (.multiply z y) (.multiply z z))))))]
+       (defmethod g/expt [Long Long] [a ^Long b]
+         (if (.isNegative b)
            (g/invert (goog-expt a (.negate b)))
-           (goog-expt a b)))
+           (goog-expt a b))))
 
-       ;; Compatibility between basic number type and the google numeric types.
-       ;; Any operation between a number and a Long or Integer will promote the
-       ;; number.
-       (doseq [op [g/add g/mul g/sub g/gcd g/lcm g/expt g/remainder g/quotient]]
-         (defmethod op [goog-type ::v/native-integral] [a b]
-           (op a (.fromNumber goog-type b)))
+     ;; Compatibility between basic number type and the google numeric types.
+     ;; Any operation between a number and a Long or Integer will promote the
+     ;; number.
+     (doseq [op [g/add g/mul g/sub g/gcd g/lcm g/expt g/remainder g/quotient]]
+       (defmethod op [Long ::v/native-integral] [a b]
+         (op a (.fromNumber Long b)))
 
-         (defmethod op [::v/native-integral goog-type] [a b]
-           (op (.fromNumber goog-type a) b))))
+       (defmethod op [::v/native-integral Long] [a b]
+         (op (.fromNumber Long a) b)))
+
+     ;; Google Closure's arbitrary-precision Integer:
+     (defmethod g/add [Integer Integer] [a b] (.add a b))
+     (defmethod g/mul [Integer Integer] [a b] (.multiply a b))
+     (defmethod g/sub [Integer Integer] [^Integer a ^Integer b] (.subtract a b))
+     (defmethod g/negate [Integer] [^Integer a] (.negate a))
+     (defmethod g/abs [Integer] [^Integer a] (if (.isNegative a) (.negate a) a))
+     (defmethod g/remainder [Integer Integer] [^Integer a ^Integer b] (.modulo a b))
+     (defmethod g/magnitude [Integer] [^Integer a] (if (.isNegative a) (.negate a) a))
+
+     (letfn [(goog-expt [base pow]
+               (loop [n pow
+                      y (v/one-like base)
+                      z base]
+                 (let [t (not (.isOdd ^Integer n))
+                       n (.shiftRight ^Integer n 1)]
+                   (cond
+                     t (recur n y (.multiply z z))
+                     (v/nullity? n) (.multiply z y)
+                     :else (recur n (.multiply z y) (.multiply z z))))))]
+       (defmethod g/expt [Integer Integer] [a ^Integer b]
+         (if (.isNegative b)
+           (g/invert (goog-expt a (.negate b)))
+           (goog-expt a b))))
+
+     ;; Compatibility between basic number type and the google numeric types.
+     ;; Any operation between a number and a Long or Integer will promote the
+     ;; number.
+     (doseq [op [g/add g/mul g/sub g/gcd g/lcm g/expt g/remainder g/quotient]]
+       (defmethod op [Integer ::v/native-integral] [a b]
+         (op a (.fromNumber Integer b)))
+
+       (defmethod op [::v/native-integral Integer] [a b]
+         (op (.fromNumber Integer a) b)))
 
      ;; These names are slightly different between the two types.
-     (defmethod g/quotient [goog.math.Long goog.math.Long] [a b] (.div a b))
-     (defmethod g/quotient [goog.math.Integer goog.math.Integer] [a b] (.divide a b))))
+     (defmethod g/quotient [Long Long] [^Long a ^Long b] (.div a b))
+     (defmethod g/quotient [Integer Integer] [^Integer a ^Integer b] (.divide a b))))

@@ -203,18 +203,18 @@
 
      (defmethod g/add [Fraction Fraction] [a b] (promote (.add a b)))
      (defmethod g/sub [Fraction Fraction] [a b] (promote (.sub a b)))
-     (defmethod g/mul [Fraction Fraction] [a b] (promote (.mul a b)))
-     (defmethod g/div [Fraction Fraction] [a b] (promote (.div a b)))
-     (defmethod g/exact-divide [Fraction Fraction] [a b] (promote (.div a b)))
-     (defmethod g/negate [Fraction] [a] (promote (.neg a)))
-     (defmethod g/negative? [Fraction] [a] (neg? (.-s a)))
-     (defmethod g/invert [Fraction] [a] (promote (.inverse a)))
-     (defmethod g/square [Fraction] [a] (promote (.mul a a)))
-     (defmethod g/cube [Fraction] [a] (promote (.pow a 3)))
-     (defmethod g/abs [Fraction] [a] (promote (.abs a)))
-     (defmethod g/magnitude [Fraction] [ a] (promote (.abs a)))
-     (defmethod g/gcd [Fraction Fraction] [a b] (promote (.gcd a)))
-     (defmethod g/lcm [Fraction Fraction] [a b] (promote (.lcm a)))
+     (defmethod g/mul [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.mul a b)))
+     (defmethod g/div [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.div a b)))
+     (defmethod g/exact-divide [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.div a b)))
+     (defmethod g/negate [Fraction] [^Fraction a] (promote (.neg a)))
+     (defmethod g/negative? [Fraction] [^Fraction a] (neg? (.-s a)))
+     (defmethod g/invert [Fraction] [^Fraction a] (promote (.inverse a)))
+     (defmethod g/square [Fraction] [^Fraction a] (promote (.mul a a)))
+     (defmethod g/cube [Fraction] [^Fraction a] (promote (.pow a 3)))
+     (defmethod g/abs [Fraction] [^Fraction a] (promote (.abs a)))
+     (defmethod g/magnitude [Fraction] [^Fraction a] (promote (.abs a)))
+     (defmethod g/gcd [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.gcd a b)))
+     (defmethod g/lcm [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.lcm a b)))
      (defmethod g/expt [Fraction ::v/integral] [a b] (pow a b))
 
      ;; Only integral ratios let us stay exact. If a ratio appears in the
@@ -224,14 +224,14 @@
          (promote (.pow a (numerator b)))
          (g/expt (.valueOf a) (.valueOf b))))
 
-     (defmethod g/quotient [Fraction Fraction] [a b]
+     (defmethod g/quotient [Fraction Fraction] [^Fraction a ^Fraction b]
        (promote
         (let [^Fraction x (.div a b)]
           (if (pos? (.-s x))
             (.floor x)
             (.ceil x)))))
 
-     (defmethod g/remainder [Fraction Fraction] [a b]
+     (defmethod g/remainder [Fraction Fraction] [^Fraction a ^Fraction b]
        (promote (.mod a b)))
 
      ;; Cross-compatibility with numbers in CLJS.
@@ -239,10 +239,10 @@
        "Anything that `upcast-number` doesn't catch will hit this and pull a floating
   point value out of the ratio."
        [op]
-       (defmethod op [Fraction ::v/number] [a b]
+       (defmethod op [Fraction ::v/number] [^Fraction a b]
          (op (.valueOf a) b))
 
-       (defmethod op [::v/number Fraction] [a b]
+       (defmethod op [::v/number Fraction] [a ^Fraction b]
          (op a (.valueOf b))))
 
      (defn upcast-number
