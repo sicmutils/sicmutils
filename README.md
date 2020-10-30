@@ -5,17 +5,71 @@
 [![Codecov branch](https://img.shields.io/codecov/c/github/littleredcomputer/sicmutils/master.svg?maxAge=3600)](https://codecov.io/github/littleredcomputer/sicmutils)
 [![Clojars Project](https://img.shields.io/clojars/v/net.littleredcomputer/sicmutils.svg)](https://clojars.org/net.littleredcomputer/sicmutils)
 
-An implementation of the Scmutils system for math and physics
-investigations in the Clojure language. Scmutils is extensively used
-in the textbooks
-[The Structure and Interpretation of Classical Mechanics][SICM] and
-[Functional Differential Geometry][FDG] by G.J. Sussman and J. Wisdom.
+A Clojure(script) implementation of the Scmutils system for math and physics
+investigations in the Clojure language.
 
-These books can be thought of as spiritual successors to
-[The Structure and Interpretation of Computer Programs][SICP], a very
-influential text—as I can attest, since carefully reading this book
-in my 30s changed my life as a programmer. To see the same techniques
-applied to differential geometry and physics is an irresistible lure.
+Scmutils is extensively used in the textbooks [The Structure and Interpretation
+of Classical Mechanics][SICM] and [Functional Differential Geometry][FDG] by
+G.J. Sussman and J. Wisdom.
+
+## Quickstart
+
+Install SICMUtils into your Clojure(script) project using the instructions at
+its Clojars page:
+
+[![Clojars Project](https://img.shields.io/clojars/v/net.littleredcomputer/sicmutils.svg)](https://clojars.org/net.littleredcomputer/sicmutil)
+
+Initialize a REPL and simplify a trigonometric identity:
+
+```clojure
+user=> (require '[sicmutils.env :as env])
+user=> (env/bootstrap-repl!)
+user=> (def render (comp ->infix simplify))
+user=> (render
+        (+ (square (sin 'x))
+           (square (cos 'x))))
+1
+```
+
+Define a Lagrangian and generate the Lagrange equations of motion for the
+physical system it describes, rendered in polar coordinates:
+
+```clojure
+(defn L-central-polar [m U]
+  (fn [[_ [r] [rdot φdot]]]
+    (- (* 1/2 m
+          (+ (square rdot)
+             (square (* r φdot))))
+       (U r))))
+#'user/L-central-polar
+
+user=>
+(let [potential-fn (literal-function 'U)
+      L     (L-central-polar 'm potential-fn)
+      state (up (literal-function 'r)
+                (literal-function 'φ))]
+  (render
+   (((Lagrange-equations L) state) 't)))
+"down(- m (Dφ(t))² r(t) + m D²r(t) + DU(r(t)), 2 m Dφ(t) r(t) Dr(t) + m (r(t))² D²φ(t))"
+```
+
+Confused? You're not alone! This is a very dense library, and not well
+documented (yet). Some suggested next steps, for now:
+
+- Clone this repository and run `lein repl` for a batteries included REPL
+  environment.
+- Read the [SCMUtils Reference Manual][REFMAN] ("refman") for inspiration. This
+  library can do almost everything in the refman.
+- Visit the HTML version of [Structure and Interpretation of Classical
+  Mechanics](https://tgvaughan.github.io/).
+
+## Background
+
+[SICM][SICM] and [FDG][FDG] can be thought of as spiritual successors to [The
+Structure and Interpretation of Computer Programs][SICP], a very influential
+text—as I can attest, since carefully reading this book in my 30s changed my
+life as a programmer. To see the same techniques applied to differential
+geometry and physics is an irresistible lure.
 
 Scmutils is an excellent system, but it is written in an older variant
 of LISP (Scheme) and is tied to a particular implementation of
@@ -182,6 +236,7 @@ yielding
  (* m (expt r 2) (expt φdot 2) (sin θ) (cos θ))
  0)
 ```
+
 Which again agrees with Scmutils modulo notation. (These results are
 examples of "down tuples", or covariant vectors, since they represent
 derivatives of objects in primal space.) The partial derivative
@@ -218,8 +273,11 @@ algorithm is used.)
 
 ### Numerical Methods
 
-This system uses the delightful [Apache Commons Math][ACM] library
-to implement the numerical methods needed for the book.
+This system uses the delightful [Apache Commons Math][ACM] library to implement
+some of the numerical methods needed for the book. Many of the methods we used
+to pull from Commons are now implemented in native Clojure(script); our goal is
+to remove this dependency once we get a pure Clojure implementation of the
+Gragg-Bulirsch-Stoer ODE integrator implemented.
 
 The Scmutils simplifier has three engines: a polynomial-based simplifier
 useful for grouping like terms, a rational-function-based simplifier
@@ -315,14 +373,11 @@ $ lein test
 
 `lein test :all` will run some additional tests that may take a while to execute.
 
-## Clojurescript
+To run the Clojurescript tests, run:
 
-The library is currently (July, 2020) going through a slow port to
-Clojurescript. To run the Clojurescript test suite:
-
-~~~ sh
-$ lein test-cljs
-~~~
+```sh
+lein test-cljs
+```
 
 ## License
 
@@ -335,5 +390,6 @@ GPL v3.
 [GSCM]: http://www.cs.rochester.edu/~gildea/guile-scmutils/
 [ACM]: https://commons.apache.org/proper/commons-math/
 [LEIN]: http://leiningen.org
+[REFMAN]: https://groups.csail.mit.edu/mac/users/gjs/6946/refman.txt
 
 Copyright © 2016 Colin Smith
