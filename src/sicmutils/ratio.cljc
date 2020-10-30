@@ -23,7 +23,8 @@
                               ratio? core-ratio?
                               denominator core-denominator
                               numerator core-numerator}))
-  (:require [sicmutils.expression :as x]
+  (:require #?(:clj [clojure.edn] :cljs [cljs.reader])
+            [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v]
