@@ -18,8 +18,6 @@
 ;
 
 (ns sicmutils.series
-  (:refer-clojure :rename {take core-take}
-                  #?@(:cljs [:exclude [take]]))
   (:require #?(:cljs [goog.string :refer [format]])
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
@@ -37,7 +35,7 @@
   (nullity? [_] (empty? s))
   (unity? [_] false)
   (numerical? [_] false)
-  (freeze [_] `[~'Series ~arity ~@(map g/simplify (core-take 4 s)) ~'...])
+  (freeze [_] `[~'Series ~arity ~@(map g/simplify (take 4 s)) ~'...])
   (kind [_] ::series)
 
   Object
@@ -167,10 +165,6 @@
                                (step (g/+ x (first xs))
                                      (rest xs)))))]
     (->Series (.-arity s) (step (first (.-s s)) (rest (.-s s))))))
-
-(defn take
-  [n s]
-  (->> s seq (core-take n)))
 
 (defn fmap
   [f ^Series s]

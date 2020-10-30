@@ -238,16 +238,14 @@
   (testing "series"
     (is (= '[(* 2 (f x)) (* 3 (f x))]
            (g/simplify
-            (series/take 2
-                         ((g/* (series/starting-with 2 3)
-                               (f/literal-function 'f)) 'x)))))
+            (take 2 ((g/* (series/starting-with 2 3)
+                          (f/literal-function 'f)) 'x)))))
     (is (= '[(* 2 (f y)) (* 3 (f y))]
            (g/simplify
-            (series/take 2
-                         ((g/* (f/literal-function 'f)
-                               (series/starting-with 2 3)) 'y))))))
+            (take 2 ((g/* (f/literal-function 'f)
+                          (series/starting-with 2 3)) 'y))))))
 
-  (let [simp4 (fn [x] (g/simplify (series/take 4 x)))
+  (let [simp4 (fn [x] (g/simplify (take 4 x)))
         S (series/starting-with (f/literal-function 'f)
                                 (f/literal-function 'g))
         T (series/starting-with (f/literal-function 'F [0 1] 0)
@@ -258,13 +256,13 @@
 
     (testing "with functions"
       (is (= '((* (sin x) (f x)) (* (sin x) (g x)) 0 0)
-             (g/simplify (series/take 4 ((g/* S g/sin) 'x)))))
+             (g/simplify (take 4 ((g/* S g/sin) 'x)))))
       (is (= '((* (sin x) (f x)) (* (sin x) (g x)) 0 0)
-             (g/simplify (series/take 4 ((g/* g/sin S) 'x))))))
+             (g/simplify (take 4 ((g/* g/sin S) 'x))))))
 
     (testing "and derivatives"
       (is (= '(((D f) x) ((D g) x) 0 0)
-             (g/simplify (series/take 4 ((D S) 'x)))))
+             (g/simplify (take 4 ((D S) 'x)))))
       (is (= '((F x y) (G x y) 0 0) (simp4 (T 'x 'y))))
       (is (= '((((partial 0) F) x y) (((partial 0) G) x y) 0 0) (simp4 (((partial 0) T) 'x 'y))))
       (is (= '((((partial 1) F) x y) (((partial 1) G) x y) 0 0) (simp4 (((partial 1) T) 'x 'y))))

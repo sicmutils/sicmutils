@@ -75,7 +75,7 @@
              (/ (* α (expt β 2) (expt ε 2) (expt (sin theta) 2)) (* 2 (expt p_theta 2)))
              0
              0)
-           (simplify (series/take 5 E))))
+           (simplify (take 5 E))))
     (is (= '(/ (+ (* (expt α 2) (expt β 2) (expt ε 2) (expt (sin theta) 2)) (expt p_theta 4))
                (* 2 (expt p_theta 2) α))
            (simplify (e/series:sum E 2))))
