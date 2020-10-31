@@ -124,14 +124,11 @@
   If `skip?` returns true given a subexpression it won't be included as a key in
   the returned map."
   [expr skip?]
-  (let [inc* (fnil inc 0)
-        expr->count (atom {})]
-    (w/postwalk (fn [e]
-                  (when (and (seq? e) (not (skip? e)))
-                    (swap! expr->count update e inc*))
-                  e)
-                expr)
-    @expr->count))
+  (let [children (partial filter seq?)]
+    (->> (rest
+          (tree-seq seq? children expr))
+         (remove skip?)
+         (frequencies))))
 
 ;; The next function assumes that we have the two data structures we referenced
 ;; earlier. We want to be careful that we only generate and bind subexpressions
