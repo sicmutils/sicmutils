@@ -66,8 +66,9 @@
   "Return the 'variables' (e.g. symbols) found in the expression x,
   which is an unwrapped expression, as a set"
   [x]
-  (if (symbol? x) #{x}
-                  (->> x flatten (filter symbol?) (into #{}))))
+  (if (symbol? x)
+    #{x}
+    (into #{} (filter symbol?) (flatten x))))
 
 (defn walk-expression
   "Walk the unwrapped expression x in postorder, replacing symbols found there

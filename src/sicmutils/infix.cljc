@@ -356,21 +356,20 @@
       (let [params (set/difference (x/variables-in x) operators-known)
             ordered-params (if (fn? parameter-order)
                              (parameter-order params)
-                             parameter-order)]
+                             parameter-order)
+            callback (fn [new-expression new-vars]
+                       (doseq [[var val] new-vars]
+                         (print "  var ")
+                         (print (str var " = "))
+                         (print (R val))
+                         (print ";\n"))
+                       (print "  return ")
+                       (print (R new-expression))
+                       (print ";\n}"))
+            opts {:deterministic?   deterministic?
+                  :symbol-generator symbol-generator}]
         (with-out-str
           (print "function(")
           (print (s/join ", " ordered-params))
           (print ") {\n")
-          (compile/extract-common-subexpressions
-           x
-           symbol-generator
-           (fn [new-expression new-vars]
-             (doseq [[var val] new-vars]
-               (print "  var ")
-               (print (str var " = "))
-               (print (R val))
-               (print ";\n"))
-             (print "  return ")
-             (print (R new-expression))
-             (print ";\n}"))
-           :deterministic? deterministic?))))))
+          (compile/extract-common-subexpressions x callback opts))))))
