@@ -39,9 +39,9 @@
 
             sicmutils.numerical.compile-test
             sicmutils.numerical.elliptic-test
-            sicmutils.numerical.integrate-test
             sicmutils.numerical.minimize-test
             sicmutils.numerical.ode-test
+            sicmutils.numerical.quadrature-test
 
             sicmutils.numerical.interpolate.polynomial-test
             sicmutils.numerical.interpolate.rational-test
@@ -110,9 +110,9 @@
 
            'sicmutils.numerical.compile-test
            'sicmutils.numerical.elliptic-test
-           'sicmutils.numerical.integrate-test
            'sicmutils.numerical.minimize-test
            'sicmutils.numerical.ode-test
+           'sicmutils.numerical.quadrature-test
 
            'sicmutils.numerical.interpolate.polynomial-test
            'sicmutils.numerical.interpolate.rational-test
@@ -148,7 +148,9 @@
            'sicmutils.fdg.ch4-test
            'sicmutils.fdg.ch5-test
            'sicmutils.fdg.ch6-test
-           'sicmutils.fdg.ch7-test
+
+           ;; TODO re-enable once we speed up simplification.
+           ;; 'sicmutils.fdg.ch7-test
 
            'sicmutils.sicm.ch1-test
            'sicmutils.sicm.ch2-test

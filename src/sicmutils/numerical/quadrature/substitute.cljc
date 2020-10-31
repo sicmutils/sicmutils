@@ -234,4 +234,3 @@
                         (/ 1 t)))
            opts (qc/update-interval opts qc/flip)]
        (integrate f 0 (Math/exp (- a)) opts)))))
-1

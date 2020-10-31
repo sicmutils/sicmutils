@@ -59,13 +59,12 @@
 
 (deftest interpolation
   (testing "lagrange interpolation"
-    #?(:clj
-       (is (= [1/6 1/3 1/2 2/3 5/6] (L/linear-interpolants 0 1 5)))
-       :cljs
-       (is (every?
-            (map near?
-                 [(/ 1 6) (/ 1 3) (/ 1 2) (/ 2 3) (/ 5 6)]
-                 (L/linear-interpolants 0 1 5)))))
+    (is (= [#sicm/ratio 1/6
+            #sicm/ratio 1/3
+            #sicm/ratio 1/2
+            #sicm/ratio 2/3
+            #sicm/ratio 5/6]
+           (L/linear-interpolants 0 1 5)))
     (let [f (L/Lagrange-interpolation-function [3 2 5 1] [1 2 3 4])]
       (is (= (f 1) 3))
       (is (= (f 2) 2))

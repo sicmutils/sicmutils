@@ -88,6 +88,8 @@
            (Stopwatch. (constantly offset') offset' false))
          this))
 
+     (reset [this] (Stopwatch. nil 0 false))
+
      (-elapsed [_ unit]
        (-> (if is-running?
              (+ (elapsed-fn)

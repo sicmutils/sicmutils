@@ -53,7 +53,7 @@
   (testing "exact?"
     (is (v/exact? (s/up 1 2 3 4)))
     (is (not (v/exact? (s/up 1.2 3 4))))
-    #?(:clj (is (v/exact? (s/up 0 1 3/2))))
+    (is (v/exact? (s/up 0 1 #sicm/ratio 3/2)))
     (is (not (v/exact? (s/up 0 0 0.00001)))))
 
   (testing "freeze"

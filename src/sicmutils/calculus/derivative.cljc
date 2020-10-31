@@ -67,10 +67,7 @@
        IPrintWithWriter
        (-pr-writer [x writer _]
                    (write-all writer (.toString x)))
-       ])
-  )
-
-
+       ]))
 
 (defn differential?
   [x]

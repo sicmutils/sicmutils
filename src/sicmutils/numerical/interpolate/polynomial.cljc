@@ -129,7 +129,8 @@
 ;; Neville's algorithm generates each new polynomial from $P_l$ and $P_r$, using
 ;; this recursion to incorporate the full set of points.
 ;;
-;; You can write these out these relationships in a "tableau":
+;; You can write these out these relationships in a "tableau" that grows to the
+;; right from an initial left column:
 ;;
 ;; p0
 ;;  \
@@ -163,14 +164,14 @@
 ;;
 ;; The first column here is the initial set of points. Each entry in each
 ;; successive column is generated through some operation between the entry to
-;; its left, and the entry one left and one up.
+;; its left, and the entry one left and one down.
 ;;
 ;; Look again at Neville's algorithm:
 ;;
 ;; $$P(x) = [(x - x_r) P_l(x) - (x - x_l) P_r(x)] / [x_l - x_r]$$
 ;;
 ;; $l$ refers to the entry in the same row, previous column, while $r$ is one
-;; row higher, previous column.
+;; row lower, previous column.
 ;;
 ;; If each cell in the above tableau tracked:
 ;;

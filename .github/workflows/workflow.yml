@@ -27,4 +27,4 @@ jobs:
         run: lein deps
 
       - name: Clojure tests
-        run: lein test
+        run: lein test :all
