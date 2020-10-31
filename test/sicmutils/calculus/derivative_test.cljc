@@ -549,7 +549,7 @@
                (sin x))
            (v/freeze
             (g/simplify
-             (reduce + (series/take 5 (taylor-series-expander g/sin 'x 'dx)))))))
+             (reduce + (take 5 (taylor-series-expander g/sin 'x 'dx)))))))
     (is (= '(1
              (* (/ 1 2) dx)
              (* (/ -1 8) (expt dx 2))
@@ -558,9 +558,9 @@
              (* (/ 7 256) (expt dx 5)))
            (v/freeze
             (g/simplify
-             (series/take 6 (taylor-series-expander
-                             (fn [x] (g/sqrt (+ (v/one-like x) x)))
-                             0 'dx))))))))
+             (take 6 (taylor-series-expander
+                      (fn [x] (g/sqrt (+ (v/one-like x) x)))
+                      0 'dx))))))))
 
 (deftest derivative-of-matrix
   (let [M (matrix/by-rows [(f/literal-function 'f) (f/literal-function 'g)]
