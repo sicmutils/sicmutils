@@ -60,46 +60,35 @@
                       (g/+ nats0 (series/generate g/square))))))
 
       (is (= '(0 m (* 2 m) (* 3 m))
-             (->> nats0
-                  (g/* 'm)
-                  seq
-                  (take 4)
-                  g/simplify)))
+             (g/simplify
+              (take 4 (g/* 'm nats0)))))
       (is (= '(0 r (* 2 r) (* 3 r))
-             (g/simplify (take 4 (seq (g/* 'r nats0))))))
+             (g/simplify (take 4 (g/* 'r nats0)))))
       (is (= '(3 5 7 0 0 0 0 0)
-             (take 8
-                   (g/+ (series/starting-with 1 2 3)
-                        (series/starting-with 2 3 4)))))
+             (take 8 (g/+ (series/starting-with 1 2 3)
+                          (series/starting-with 2 3 4)))))
       (is (= '(1 4 10 12 9 0 0)
              (g/simplify
-              (take 7
-                    (g/*
-                     (series/starting-with 1 2 3)
-                     (series/starting-with 1 2 3))))))
+              (take 7 (g/*
+                       (series/starting-with 1 2 3)
+                       (series/starting-with 1 2 3))))))
 
       ;; the tetrahedral numbers
       (is (= '(1 4 10 20 35 56 84)
-             (take 7 (seq (g/square nats)))))
+             (take 7 (g/square nats))))
       (is (= '(m (* 4 m) (* 10 m) (* 20 m))
              (->> (series/generate inc)
                   g/square
                   (g/* 'm)
-                  seq
                   (take 4)
                   g/simplify)))
 
       (is (= '(1 2 3 4 5 6)
-             (->> ones
-                  g/square
-                  seq
-                  (take 6))))
+             (take 6 (g/square ones))))
 
       ;; the triangular numbers, via convolution
       (is (= '(1 3 6 10 15 21)
-             (->> (g/* ones nats)
-                  seq
-                  (take 6))))
+             (take 6 (g/* ones nats))))
 
       ;; again, via partial sums
       (is (= '(1 3 6 10 15 21)
