@@ -320,7 +320,7 @@
 
 (defn ^:private M*u
   "Multiply a matrix by an up structure on the right. The return value is up."
-  [m u]
+  [^Matrix m u]
   (when (not= (.-c m) (count u))
     (u/illegal "matrix and tuple incompatible for multiplication"))
   (apply s/up
@@ -332,7 +332,7 @@
 
 (defn ^:private d*M
   "Multiply a matrix by a down tuple on the left. The return value is down."
-  [d m]
+  [d ^Matrix m]
   (when (not= (.-r m) (count d))
     (u/illegal "matrix and tuple incompatible for multiplication"))
   (apply s/down

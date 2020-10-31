@@ -63,7 +63,8 @@
                                   [same/ish "0.1.4"]
                                   [criterium "0.4.5"]
                                   [cider/piggieback "0.5.0"]
-                                  [lein-doo "0.1.11"]]}
+                                  [lein-doo "0.1.11"]
+                                  [thheller/shadow-cljs "2.11.6"]]}
              :test {:jvm-opts ["-Xmx512m"]
                     :dependencies [[org.clojure/test.check "1.0.0"]
                                    [criterium "0.4.5"]]}}

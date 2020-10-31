@@ -197,7 +197,7 @@
 
 (defn structure->vector
   "Return the structure in unoriented vector form."
-  [s]
+  [^Structure s]
   (.-v s))
 
 (defn vector->up

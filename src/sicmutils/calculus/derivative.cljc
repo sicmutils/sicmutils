@@ -88,7 +88,7 @@
 (def ^:private empty-differential [])
 (def ^:private empty-tags [])
 
-(defn canonicalize-differential [dx]
+(defn canonicalize-differential [^Differential dx]
   (let [ts (.-terms dx)]
     (cond (empty? ts) 0
           (and (= (count ts) 1)

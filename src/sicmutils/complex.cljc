@@ -133,19 +133,19 @@
 
    :cljs
    (do
-     (defmethod g/sub [::complex ::complex] [a b] (.sub a b))
-     (defmethod g/sub [::complex v/numtype] [a n] (.sub a (double n)))
-     (defmethod g/sub [v/numtype ::complex] [n a] (.add (.neg a) (double n)))
+     (defmethod g/sub [::complex ::complex] [^Complex a ^Complex b] (.sub a b))
+     (defmethod g/sub [::complex v/numtype] [^Complex a n] (.sub a (double n)))
+     (defmethod g/sub [v/numtype ::complex] [n ^Complex a] (.add (.neg a) (double n)))
 
-     (defmethod g/mul [::complex ::complex] [a b] (.mul a b))
-     (defmethod g/mul [::complex v/numtype] [a n] (.mul a (double n)))
-     (defmethod g/mul [v/numtype ::complex] [n a] (.mul a (double n)))
+     (defmethod g/mul [::complex ::complex] [^Complex a ^Complex b] (.mul a b))
+     (defmethod g/mul [::complex v/numtype] [^Complex a n] (.mul a (double n)))
+     (defmethod g/mul [v/numtype ::complex] [n ^Complex a] (.mul a (double n)))
 
-     (defmethod g/div [::complex ::complex] [a b] (.div a b))
-     (defmethod g/div [::complex v/numtype] [a n] (.div a (double n)))
-     (defmethod g/div [v/numtype ::complex] [n a] (.mul (.inverse a) (double n)))
+     (defmethod g/div [::complex ::complex] [^Complex a ^Complex b] (.div a b))
+     (defmethod g/div [::complex v/numtype] [^Complex a n] (.div a (double n)))
+     (defmethod g/div [v/numtype ::complex] [n ^Complex a] (.mul ^Complex (.inverse a) (double n)))
 
-     (defmethod g/negate [::complex] [a] (.neg a))
-     (defmethod g/invert [::complex] [a] (.inverse a))
-     (defmethod g/square [::complex] [a] (.mul a a))
-     (defmethod g/cube [::complex] [a] (.pow a 3.0))))
+     (defmethod g/negate [::complex] [^Complex a] (.neg a))
+     (defmethod g/invert [::complex] [^Complex a] (.inverse a))
+     (defmethod g/square [::complex] [^Complex a] (.mul a a))
+     (defmethod g/cube [::complex] [^Complex a] (.pow a 3.0))))

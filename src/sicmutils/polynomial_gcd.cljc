@@ -22,11 +22,14 @@
             [sicmutils.polynomial-gcd :refer [dbg gcd-continuation-chain]]))
   (:require #?(:cljs [goog.string :refer [format]])
             [sicmutils.generic :as g]
-            [sicmutils.polynomial :as p]
+            [sicmutils.polynomial :as p
+             #?@(:cljs [:refer [Polynomial]])]
             [sicmutils.util :as u]
             [sicmutils.util.stopwatch :as us]
             [sicmutils.value :as v]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log])
+  #?(:clj
+     (:import (sicmutils.polynomial Polynomial))))
 
 (def ^:dynamic *poly-gcd-time-limit* [1000 :millis])
 (def ^:dynamic *poly-gcd-cache-enable* true)
@@ -111,7 +114,7 @@
   exponent limit for both polynomials. This is basically a test for a
   kind of disjointness of the variables. If this happens we just
   return the constant gcd and do not invoke the continuation."
-  [u v continue]
+  [^Polynomial u ^Polynomial v continue]
   {:pre [(p/polynomial? u)
          (p/polynomial? v)]}
   (let [umax (reduce #(mapv max %1 %2) (map p/exponents (.-xs->c u)))
@@ -142,7 +145,7 @@
   rearrangement on return. Variables are sorted by increasing degree.
   Discussed in 'Evaluation of the Heuristic Polynomial GCD', by Liao
   and Fateman [1995]."
-  [u v continue]
+  [^Polynomial u ^Polynomial v continue]
   {:pre [(p/polynomial? u)
          (p/polynomial? v)]}
   (let [xs (reduce #(mapv max %1 %2)
@@ -174,7 +177,7 @@
 (defn ^:private monomial-gcd
   "Computing the GCD is easy if one of the polynomials is a monomial.
   The monomial is the first argument."
-  [m p]
+  [^Polynomial m ^Polynomial p]
   {:pre [(p/polynomial? m)
          (p/polynomial? p)
          (= (count (.-xs->c m)) 1)]}

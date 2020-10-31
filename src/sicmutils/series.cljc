@@ -161,7 +161,7 @@
 
 (defn partial-sums
   "Form the infinite sequence of partial sums of the given series"
-  [s]
+  [^Series s]
   (let [step (fn step [x xs]
                (lazy-seq (cons x
                                (step (g/+ x (first xs))
@@ -173,7 +173,7 @@
   (->> s seq (core-take n)))
 
 (defn fmap
-  [f s]
+  [f ^Series s]
   (->Series (.-arity s) (map f (.-s s))))
 
 (defn sum
@@ -204,11 +204,11 @@
     [[A1 A2 A3...] [B1 B2 B3...] [C1 C2 C3...]...]
   Then, this series applied to x will yield the series of values
     [(A1 x) (+ (A2 x) (B1 x)) (+ (A3 x) (B2 x) (C1 x)) ...]"
-  [S x]
+  [^Series S x]
   (letfn [(collect [s]
             (let [first-result ((first s) x)]
               (if (series? first-result)
-                (let [fr (.-s first-result)]
+                (let [fr (.-s ^Series first-result)]
                   (lazy-seq (cons (first fr)
                                   (s+s (rest fr)
                                        (collect (rest s))))))
@@ -225,29 +225,29 @@
   [f]
   (->Series [:exactly 0] (map f (range))))
 
-(defmethod g/mul [::coseries ::series] [c s]
+(defmethod g/mul [::coseries ::series] [c ^Series s]
   (->Series (.-arity s) (c*s c (.-s s))))
 
-(defmethod g/mul [::series ::coseries] [s c]
+(defmethod g/mul [::series ::coseries] [^Series s c]
   (->Series (.-arity s) (s*c (.-s s) c)))
 
-(defmethod g/mul [::series ::series] [s t]
+(defmethod g/mul [::series ::series] [^Series s ^Series t]
   {:pre [(= (.-arity s) (.-arity t))]}
   (->Series (.-arity s) (s*s (.-s s) (.-s t))))
 
-(defmethod g/add [::series ::series] [s t]
+(defmethod g/add [::series ::series] [^Series s ^Series t]
   {:pre [(= (.-arity s) (.-arity t))]}
   (->Series (.-arity s) (s+s (.-s s) (.-s t))))
 
 (defmethod g/negate [::series] [s] (fmap g/negate s))
 
-(defmethod g/sub [::series ::series] [s t]
+(defmethod g/sub [::series ::series] [^Series s ^Series t]
   {:pre [(= (.-arity s) (.-arity t))]}
   (->Series (.-arity s) (s+s (.-s s) (map g/negate (.-s t)))))
 
 (defmethod g/square [::series] [s] (g/mul s s))
 
-(defmethod g/partial-derivative [::series v/seqtype] [s selectors]
+(defmethod g/partial-derivative [::series v/seqtype] [^Series s selectors]
   (let [a (.-arity s)]
     (cond (= a [:exactly 0])
           (->Series a (map #(g/partial-derivative % selectors) (.-s s)))

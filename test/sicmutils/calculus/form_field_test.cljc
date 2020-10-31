@@ -21,7 +21,8 @@
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing]]
             [sicmutils.calculus.coordinate :as c
-             #?(:clj :refer :cljs :refer-macros) [let-coordinates]]
+             :refer [let-coordinates]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.manifold :as m :refer [R2-rect R2-polar]]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.vector-field :as vf]

@@ -22,7 +22,8 @@
   (:require [clojure.test :refer [is deftest testing]]
             [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.coordinate :as c
-             #?(:clj :refer :cljs :refer-macros) [let-coordinates]]
+             :refer [let-coordinates]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.map :as m]
