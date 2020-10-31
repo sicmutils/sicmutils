@@ -68,9 +68,7 @@
   [x]
   (if (symbol? x)
     #{x}
-    (->> (flatten x)
-         (filter symbol?)
-         (into #{}))))
+    (into #{} (filter symbol?) (flatten x))))
 
 (defn walk-expression
   "Walk the unwrapped expression x in postorder, replacing symbols found there

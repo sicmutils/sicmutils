@@ -48,25 +48,21 @@
     (is (near -0.2459358 (bessel-j0 10))))
 
   (testing "harder"
-    (let [near (v/within 5e-3)
+    (let [near (v/within 1e-5)
           g 9.8
           integrand (fn [theta0]
                       (fn [theta]
-                        (/ (Math/sqrt (* 2 g (- (Math/cos theta)
-                                                (Math/cos theta0)))))))
-          L (fn [epsilon a]
-              (let [f (integrand a)
-                    m {:tolerance epsilon}]
-                (* 4 (q/definite-integral f 0 a m))))]
-
-      (let [epsilon 1e-9
-            f (partial L epsilon)]
-        (is (near 2.00992 (f 0.15)))
-        (is (near 2.01844 (f 0.30)))
-        (is (near 2.03279 (f 0.45)))
-        (is (near 2.0532 (f 0.60)))
-        (is (near 2.08001 (f 0.75)))
-        (is (near 2.11368 (f 0.9))))))
+                        (/ (Math/sqrt
+                            (* 2 g (- (Math/cos theta)
+                                      (Math/cos theta0)))))))
+          L (fn [a]
+              (* 4 (q/definite-integral (integrand a) 0 a {:method :closed-open})))]
+      (is (near 2.00992 (L 0.15)))
+      (is (near 2.01844 (L 0.30)))
+      (is (near 2.03279 (L 0.45)))
+      (is (near 2.0532 (L 0.60)))
+      (is (near 2.08001 (L 0.75)))
+      (is (near 2.11368 (L 0.9)))))
 
   (testing "elliptic integral"
     (let [F (fn [phi k]
