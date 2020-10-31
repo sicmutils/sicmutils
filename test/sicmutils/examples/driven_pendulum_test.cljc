@@ -34,12 +34,10 @@
                           (driven/L 'm 'l 'g 'a 'ω))
                          θ)
                         't))))
-    #?(:clj
-       ;; TODO - enable once we have an evolver in cljs.
-       (let [o (atom [])
-             observe (fn [t q] (swap! o conj [t q]))]
-         (driven/evolver {:t (/ 3 60) :dt (/ 1 60) :observe observe})
-         (is (= 4 (count @o)))))))
+    (let [o (atom [])
+          observe (fn [t q] (swap! o conj [t q]))]
+      (driven/evolver {:t (/ 3 60) :dt (/ 1 60) :observe observe})
+      (is (= 4 (count @o))))))
 
 (deftest as-javascript
   (let [eq (e/simplify

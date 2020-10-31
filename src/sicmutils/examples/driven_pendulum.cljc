@@ -56,11 +56,9 @@
              g      ;; acceleration due to gravity
              a      ;; amplitude of drive
              omega) ;; frequency of drive
-   (up 0.0
-       theta_0
-       thetadot_0)
-   observe
+   (up 0.0 theta_0 thetadot_0)
    dt
    t
-   1.0e-6
-   :compile true))
+   {:compile? true
+    :epsilon 1.0e-6
+    :observe observe}))
