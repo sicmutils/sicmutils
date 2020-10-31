@@ -117,14 +117,6 @@
 ;; The next group of functions generates `open-sequence` and `closed-sequence`
 ;; methods, analagous to all other quadrature methods in the library.
 
-(defn- fill-defaults
-  "Populates the supplied `opts` dictionary with defaults required by
-  `bs-sequence-fn`."
-  [opts]
-  {:pre [(not (number? (:n opts)))]}
-  (merge {:n bulirsch-stoer-steps}
-         opts))
-
 (defn- extrapolator-fn
   "Allows the user to specify polynomial or rational function extrapolation via
   the `:bs-extrapolator` option."
@@ -133,15 +125,29 @@
     poly/modified-neville
     rat/modified-bulirsch-stoer))
 
+;; This function exists because we wanted to provide an `open-sequence` and
+;; `closed-sequence` option below. The logic for both is the same, other than
+;; the underlying approximation sequence generator.
+
 (defn- bs-sequence-fn
-  "Returns the function body of either `open-sequence` or `closed-sequence` below,
-  depending on the supplied `integrator-seq-fn`."
+  "Accepts some function (like `mid/midpoint-sequence`) that returns a sequence of
+  successively better estimates to the integral, and returns a new function with
+  interface `(f a b opts)` that accelerates the sequence with either
+
+  - polynomial extrapolation
+  - rational function extrapolation
+
+  By default, The `:n` in `opts` (passed on to `integrator-seq-fn`) is set to
+  the sequence of step sizes suggested by Bulirsch-Stoer,
+  `bulirsch-stoer-steps`."
   [integrator-seq-fn]
   (fn call
     ([f a b]
      (call f a b {:n bulirsch-stoer-steps}))
     ([f a b opts]
-     (let [{:keys [n] :as opts} (fill-defaults opts)
+     {:pre [(not (number? (:n opts)))]}
+     (let [{:keys [n] :as opts} (-> {:n bulirsch-stoer-steps}
+                                    (merge opts))
            extrapolate (extrapolator-fn opts)
            square      (fn [x] (* x x))
            xs          (map square (h-sequence a b n))
