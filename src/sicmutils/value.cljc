@@ -51,8 +51,12 @@
 
 (def ^:private object-name-map (atom {}))
 
+(def default ::default)
 (def numtype ::number)
 (def seqtype #?(:clj Sequential :cljs ::seq))
+
+(derive #?(:clj Object :cljs object) ::default)
+(derive numtype ::default)
 
 ;; Allows multimethod dispatch to seqs in CLJS.
 #?(:cljs
@@ -87,9 +91,9 @@
 #?(:clj
    (do
      (derive Number ::number)
-     (derive Double ::floating-pont)
-     (derive Float ::floating-pont)
-     (derive BigDecimal ::floating-pont)
+     (derive Double ::floating-point)
+     (derive Float ::floating-point)
+     (derive BigDecimal ::floating-point)
      (derive Integer ::native-integral)
      (derive Long ::native-integral)
      (derive BigInt ::native-integral)
@@ -427,6 +431,9 @@
   If they are incompatible, an exception is thrown."
   [arities]
   (reduce combine-arities [:at-least 0] arities))
+
+(def arity:exactly-0 [:exactly 0])
+(def arity:exactly-1 [:exactly 1])
 
 (defn ^:private primitive-kind
   [a]

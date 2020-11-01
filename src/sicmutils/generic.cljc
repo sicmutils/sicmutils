@@ -79,15 +79,18 @@
 
 ;; Numeric functions.
 (def-generic-function add 2)
-(def-generic-function mul 2)
-(def-generic-function sub 2)
-(def-generic-function div 2)
 (def-generic-function negate 1)
 (def-generic-function negative? 1
   "Returns true if the argument `a` is less than `(v/zero-like a), false
   otherwise. The default implementation depends on a proper Comparable
   implementation on the type.`")
 (defmethod negative? :default [a] (< a (v/zero-like a)))
+
+(def-generic-function sub 2)
+(defmethod sub :default [a b] (add a (negate a)))
+
+(def-generic-function mul 2)
+(def-generic-function div 2)
 
 (def-generic-function exp 1)
 (def-generic-function log 1)

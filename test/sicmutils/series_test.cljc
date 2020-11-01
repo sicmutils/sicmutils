@@ -33,28 +33,59 @@
           ones (series/generate (constantly 1))
           nats0 (series/generate identity)
           nats (series/generate inc)]
-      (is (= '(4 0 0 0 0 0 0 0) (take 8 Q)))
-      (is (= '(4 3 0 0 0 0 0 0) (take 8 R)))
-      (is (= '(4 3 2 0 0 0 0 0) (take 8 S)))
-      (is (= '(8 6 2 0 0 0 0 0) (take 8 (g/+ R S))))
-      (is (= 4 (series/sum S 0)))
-      (is (= 7 (series/sum S 1)))
-      (is (= 9 (series/sum S 2)))
-      (is (= 7 (series/sum R 8)))
-      (is (= 4 (series/sum Q 20)))
-      (is (= 9 (series/sum S 3)))
-      (is (= 9 (series/sum S 4)))
-      (is (= '(0 1 2 3) (take 4 nats0)))
-      (is (= '(0 1 4 9) (take 4 (series/generate g/square))))
-      (is (= '(0 2 6 12) (take 4 (g/+
-                                  nats0
-                                  (series/generate g/square)))))
-      (is (= '(3 6 9 12) (take 4 (g/* 3 nats))))
-      (is (= '(-3 -6 -9 -12) (take 4 (g/negate (g/* 3 nats)))))
-      (is (= '(1 4 9 16) (take 4 (series/fmap g/square nats))))
-      (is (= '(3 6 9 12) (take 4 (g/* nats 3))))
-      (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε)) (g/simplify (take 4 (g/* nats 'ε)))))
-      (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε)) (g/simplify (take 4 (g/* 'ε nats)))))
+
+      (testing "series act as seqs"
+        (is (= '(4 0 0 0 0 0 0 0) (take 8 Q)))
+        (is (= '(4 3 0 0 0 0 0 0) (take 8 R)))
+        (is (= '(4 3 2 0 0 0 0 0) (take 8 S)))
+        (is (= '(0 1 2 3) (take 4 nats0))))
+
+      (testing "generating series"
+        (is (= '(0 1 4 9)
+               (take 4 (series/generate g/square))))
+
+        (is (= '(0 2 6 12)
+               (->> (series/generate g/square)
+                    (g/+ nats0)
+                    (take 4)))))
+
+      (testing "series addition"
+        (is (= '(8 6 2 0 0 0 0 0) (take 8 (g/+ R S)))))
+
+      (testing "series subtraction"
+        (is (= '(-3 -6 -9 -12) (take 4 (g/negate (g/* nats 3)))))
+        (is (= '(-3 -6 -9 -12) (take 4 (g/negate (g/* 3 nats))))))
+
+      (testing "series multiplication"
+        (is (= '(3 6 9 12) (take 4 (g/* 3 nats))))
+        (is (= '(3 6 9 12) (take 4 (g/* nats 3))))
+        (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε))
+               (g/simplify
+                (take 4 (g/* nats 'ε)))))
+
+        (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε))
+               (g/simplify
+                (take 4 (g/* 'ε nats))))))
+
+      (testing "division"
+        )
+
+      (testing "square"
+        (is (= '(1 2 3 4 5 6)
+               (take 6 (g/square ones)))))
+
+      (testing "fmap"
+        (is (= '(1 4 9 16) (take 4 (series/fmap g/square nats)))))
+
+      (testing "summing N elements of a series"
+        (is (= 4 (series/sum S 0)))
+        (is (= 7 (series/sum S 1)))
+        (is (= 9 (series/sum S 2)))
+        (is (= 7 (series/sum R 8)))
+        (is (= 4 (series/sum Q 20)))
+        (is (= 9 (series/sum S 3)))
+        (is (= 9 (series/sum S 4))))
+
       (is (= '(0 -2 -6 -12)
              (take 4 (g/negate
                       (g/+ nats0 (series/generate g/square))))))
@@ -83,9 +114,6 @@
                   (take 4)
                   g/simplify)))
 
-      (is (= '(1 2 3 4 5 6)
-             (take 6 (g/square ones))))
-
       ;; the triangular numbers, via convolution
       (is (= '(1 3 6 10 15 21)
              (take 6 (g/* ones nats))))
@@ -93,6 +121,7 @@
       ;; again, via partial sums
       (is (= '(1 3 6 10 15 21)
              (take 6 (series/partial-sums nats))))
+
       (is (= '(1 2 3 4 5 6)
              (take 6 (series/partial-sums ones))))
 

@@ -259,8 +259,8 @@
 
 ;; Clojure functions, returns by v/primitive-kind.
 (derive ::v/function ::function)
+(derive ::function ::v/default)
 
-(derive ::function :sicmutils.series/coseries)
 ;; ------------------------------------
 ;; Differentiation of literal functions
 ;;
