@@ -51,12 +51,8 @@
 
 (def ^:private object-name-map (atom {}))
 
-(def default ::default)
 (def numtype ::number)
 (def seqtype #?(:clj Sequential :cljs ::seq))
-
-(derive #?(:clj Object :cljs object) ::default)
-(derive numtype ::default)
 
 ;; Allows multimethod dispatch to seqs in CLJS.
 #?(:cljs

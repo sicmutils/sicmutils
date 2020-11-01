@@ -19,7 +19,8 @@
 
 (ns sicmutils.series
   (:refer-clojure :exclude [identity])
-  (:require [sicmutils.generic :as g]
+  (:require [sicmutils.expression :as x]
+            [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -330,17 +331,26 @@
 
 ;; ## Generic Implementations
 
+(derive ::x/numerical-expression ::coseries)
+
 (defmethod g/add [::series ::series] [^Series s ^Series t]
   {:pre [(= (.-arity s) (.-arity t))]}
   (->Series (.-arity s) (s+s (.-s s) (.-s t))))
 
-(defmethod g/add [::v/default ::series] [c ^Series s]
+;; TODO complete this theme!
+(defmethod g/add [v/seqtype ::series] [xs ^Series s]
+  (g/add (starting-with* xs (.-arity s)) s))
+
+(defmethod g/add [::series v/seqtype] [^Series s xs]
+  (g/add s (starting-with* xs (.-arity s))))
+
+(defmethod g/add [::coseries ::series] [c ^Series s]
   (->Series (.-arity s)
             (let [[h & tail] (.-s s)]
               (lazy-seq
                (cons (g/+ c h) tail)))))
 
-(defmethod g/add [::series ::v/default] [^Series s c]
+(defmethod g/add [::series ::coseries] [^Series s c]
   (->Series (.-arity s)
             (let [[h & tail] (.-s s)]
               (lazy-seq
@@ -352,13 +362,13 @@
   {:pre [(= (.-arity s) (.-arity t))]}
   (->Series (.-arity s) (s-s (.-s s) (.-s t))))
 
-(defmethod g/sub [::v/default ::series] [c ^Series s]
+(defmethod g/sub [::coseries ::series] [c ^Series s]
   (->Series (.-arity s)
             (let [[h & tail] (.-s s)]
               (lazy-seq
                (cons (g/- c h) (map g/negate tail))))))
 
-(defmethod g/sub [::series ::v/default] [^Series s c]
+(defmethod g/sub [::series ::coseries] [^Series s c]
   (->Series (.-arity s)
             (let [[h & tail] (.-s s)]
               (lazy-seq
@@ -368,10 +378,10 @@
   {:pre [(= (.-arity s) (.-arity t))]}
   (->Series (.-arity s) (s*s (.-s s) (.-s t))))
 
-(defmethod g/mul [::v/default ::series] [c ^Series s]
+(defmethod g/mul [::coseries ::series] [c ^Series s]
   (->Series (.-arity s) (c*s c (.-s s))))
 
-(defmethod g/mul [::series ::v/default] [^Series s c]
+(defmethod g/mul [::series ::coseries] [^Series s c]
   (->Series (.-arity s) (s*c (.-s s) c)))
 
 (defmethod g/square [::series] [s] (g/mul s s))
@@ -381,11 +391,11 @@
 (defmethod g/invert [::series] [^Series s]
   (->Series (.-arity s) (s-invert (.-s s))))
 
-(defmethod g/div [::v/default ::series] [c ^Series s]
+(defmethod g/div [::coseries ::series] [c ^Series s]
   (g/mul (constant c (.-arity s))
          (g/invert s)))
 
-(defmethod g/div [::series ::v/default] [^Series s c]
+(defmethod g/div [::series ::coseries] [^Series s c]
   (fmap #(g// % c) s))
 
 (defmethod g/div [::series ::series] [^Series s ^Series t]

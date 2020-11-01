@@ -450,6 +450,7 @@
 (define-unary-operation g/cube #(diff-* % (diff-* % %)))
 (derive ::differential :sicmutils.function/cofunction)
 (derive ::differential ::o/co-operator)
+(derive ::differential ::series/coseries)
 
 (defmethod g/partial-derivative
   [:sicmutils.function/function v/seqtype]
