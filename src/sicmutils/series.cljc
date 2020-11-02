@@ -24,7 +24,7 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
-     (:import (clojure.lang AFn IFn Seqable ISeq ISequential))))
+     (:import (clojure.lang AFn IFn Seqable ISeq Sequential))))
 
 ;; # Power Series
 ;;
@@ -37,6 +37,232 @@
 ;; deftype.
 ;;
 ;; ## Sequence Operations
+;;
+;; First, let's make a function that can get us a series.
+
+(defn- ->series
+  "Form the infinite sequence starting with the supplied values. The
+  remainder of the series will be filled with the zero-value
+  corresponding to the first of the given values."
+  [[x :as xs]]
+  (lazy-cat xs (repeat (v/zero-like x))))
+
+#_
+(= [1 2 3 4 0 0 0 0 0 0]
+   (take 10 (->series [1 2 3 4])))
+
+;; Now, start to define operations. We'll prefix these by `seq` since right now
+;; they operate on sequences, not on the series type we'll later define.
+
+(defn- seq:negate [xs]
+  (map g/negate xs))
+
+#_
+(= [-1 -2 -3 -4 0 0 0]
+   (take 7 (seq:negate (->series [1 2 3 4]))))
+
+;; ### Addition and Subtraction
+;;
+;; The core idea that we'll keep using is that by popping off head from tail, we
+;; can rearrange and get a recursion relation. Here's addition:
+;;
+;; $$F+G=\left(f+x F_{1}\right)+\left(g+x G_{1}\right)=(f+g)+x\left(F_{1}+G_{1}\right)$$
+
+(defn- seq:+ [f g]
+  (map g/+ f g))
+
+#_
+(= [0 2 4 6 8]
+   (take 5 (seq:+ (range) (range))))
+
+;; If we want to add a constant, we simply add it to the first element of the
+;; series and pop it back on. We'll supply two arities here in case `+` on the
+;; constant isn't commutative.
+
+(defn- seq+c [[f & fs] c]
+  (lazy-seq
+   (cons (g/+ f c) fs)))
+
+(defn- c+seq [c [f & fs]]
+  (lazy-seq
+   (cons (g/+ c f) fs)))
+
+#_
+(let [series (->series [1 2 3 4])]
+  (= [11 2 3 4 0 0]
+     (take 6 (seq+c series 10))
+     (take 6 (c+seq 10 series))))
+
+;; Subtraction is easy too... but for reasons I don't understand, we get a
+;; failure later when we use `g/-`, so let me do the negate trick here:
+
+(defn- seq:- [f g]
+  (seq:+ f (seq:negate g)))
+
+#_
+(= [0 0 0 0 0]
+   (take 5 (seq:- (range) (range))))
+
+;; Then constant subtraction is /not/ commutative:
+
+(defn- seq-c [[f & fs] c]
+  (lazy-seq
+   (cons (g/- f c) fs)))
+
+(defn- c-seq [c [f & fs]]
+  (lazy-seq
+   (cons (g/- c f) (seq:negate fs))))
+
+#_
+(= [-10 1 2 3 4]
+   (take 5 (seq-c (range) 10)))
+
+#_
+(= [10 -1 -2 -3 -4]
+   (take 5 (c-seq 10 (range))))
+
+;; ### Multiplication
+;;
+;; First, and go back to Doug for a description of why... but let's first
+;; address multiplication by a scalar.
+
+(defn- seq*c [f c] (map #(g/mul % c) f))
+(defn- c*seq [c f] (map #(g/mul c %) f))
+
+;; Armed with these, examine the general multiplication formula, obtained by
+;; expanding out the head:tail representations of each sequence and multiplying
+;; them out:
+;;
+;; $$F \times G=\left(f+x F_{1}\right) \times\left(g+x G_{1}\right)=f g+x\left(f G_{1}+F_{1} \times G\right)$$
+;;
+;; This is also called the "Cauchy Product" of the two sequences:
+;; https://en.wikipedia.org/wiki/Cauchy_product
+
+(defn- seq:* [f g]
+  (letfn [(step [f]
+            (lazy-seq
+             (let [f*g  (g/mul (first f) (first g))
+                   f*G1 (c*seq (first f) (rest g))
+                   F1*G (step (rest f))]
+               (cons f*g (seq:+ f*G1 F1*G)))))]
+    (step f)))
+
+#_
+(= [0 4 11 20 30 40 50 60 70 80]
+   (take 10 (seq:* (range) (->series [4 3 2 1]))))
+
+;; ### Division
+;;
+;; This is trickier. The quotient $Q$ of $F$ and $G$ should satisfy:
+;;
+;; $$F = Q \times G$$
+;;
+;; See Doug for the derivation on what happens next.
+
+(defn seq:div [[f0 & fs :as f] [g0 & gs :as g]]
+  (if (zero? g0)
+    (if (zero? f0)
+      (seq:div fs gs)
+      (u/arithmetic-ex "ERROR: denominator has a zero constant term"))
+    (lazy-seq
+     (let [q (g/div f0 g0)]
+       (cons q (-> (seq:- fs (c*seq q gs))
+                   (seq:div g)))))))
+
+;; ### Reciprocal
+;;
+;; Power series reciprocal comes in here:
+;; https://swtch.com/~rsc/thread/squint.pdf Talk about what is going on after
+;; absorbing that a bit more.
+
+(defn seq:invert
+  "TODO document."
+  [[f0 & fs :as f]]
+  (lazy-seq
+   (let [finv    (g/invert f0)
+         F1*Finv (seq:* fs (seq:invert f))
+         tail (c*s finv (seq:negate F1*Finv))]
+     (cons finv tail))))
+
+;; BOOM, this works.
+#_
+(let [x 3]
+  (= [1 0 0 0 0]
+     (take 5 (seq:* (iterate inc x) (seq:invert (iterate inc x))))))
+
+;; ### Differentiation and Integration
+
+(defn- differentiate [[_ & tail]]
+  (map g/* tail (generate inc)))
+
+(defn- integrate [s]
+  (map g/div s (generate inc)))
+
+;; ### Functional Composition
+;;
+;; TODO, describe what is going on on page 6:
+
+(defn seq:compose [f g]
+  (letfn [(step [f]
+            (lazy-seq
+             (cons (first f)
+                   (seq:* (rest g) (step (rest f))))))]
+    (step f)))
+
+#_
+(= [1 1 3 8 21 55 144 377 987 2584]
+   (take 10 (seq:compose (iterate (fn [x] x) 1)
+                         (cons 0 (iterate inc 1)))))
+
+(defn seq:revert [f]
+  (lazy-seq
+   ;; TODO this FAILS if I swap in the `seqinvert` .
+   (cons 0 (s-invert
+            (seq:compose (rest f)
+                         (seq:revert f))))))
+
+(defn s-reverse
+  "TODO documention Reversion"
+  [s]
+  (lazy-seq
+   (cons 0
+         (seq:invert
+          (s-compose s (s-reverse s))))))
+
+;; ### Functional Reversion
+;;
+;; Find the functional inverse of a power series.
+
+(defn seq:revert [f]
+  (lazy-seq
+   (let [[_ & fs] f]
+     (cons 0 (seq:invert
+              (seq:compose fs (seq:revert f)))))))
+
+;; TODO exponents!
+
+;; TODO square root
+
+(defn sqrt-series [s]
+  (lazy-seq
+   (cons 1
+         (s+s (repeat 1)
+              (integrate
+               (s-div
+                (differentiate s)
+                (s*c (sqrt-series s) 2)))))))
+
+;; ## Making Series
+;;
+;; TODO promote constant!
+;;
+
+
+
+
+
+;; Before we make full types, let's follow the paper and define the operations
+;; for sequences. We'll prefix them so we can use them internally.
 
 (declare zero one value)
 
@@ -109,7 +335,7 @@
     Seqable
     (seq [_] s)
 
-    ISequential
+    Sequential
 
     ISeq
     (first [_] (first s))
@@ -175,6 +401,8 @@
 
     ISeqable
     (-seq [_] s)
+
+    ISequential
 
     ISeq
     (-first [_] (-first s))
@@ -264,24 +492,6 @@
     (println "ERROR: denominator has a zero constant term")
     (c*s (g/invert (first t))
          (s*s s (s-invert (s*c t (g/invert (first t))))))))
-
-(defn s-compose
-  "TODO document."
-  [f g]
-  (lazy-seq
-   (cons (first f)
-         (s*s (rest g)
-              (s-compose
-               (rest f)
-               (cons 0 (rest g)))))))
-
-(defn s-reverse
-  "TODO documention Reversion"
-  [s]
-  (lazy-seq
-   (cons 0
-         (s-invert
-          (s-compose s (s-reverse s))))))
 
 (defn- differentiate [[_ & tail]]
   (map g/* tail (generate inc)))
