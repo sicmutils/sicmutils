@@ -331,6 +331,7 @@
 (declare cosx)
 (def sinx (lazy-seq (seq:integral cosx)))
 (def cosx (lazy-seq (c-seq 1 (seq:integral sinx))))
+(def tanx (seq:div sinx cosx))
 
 #_
 (= [0
@@ -363,9 +364,9 @@
 (declare sinhx)
 (def coshx (lazy-seq (seq:integral sinhx 1)))
 (def sinhx (lazy-seq (seq:integral coshx)))
-
-(def tanx (seq:div sinx cosx))
 (def tanhx (seq:div sinhx coshx))
+
+
 (def atanx (seq:integral (cycle [1 0 -1 0])))
 
 ;; ## Tests
@@ -409,6 +410,24 @@
 ;; The catalan numbers again!
 
 (def fib (lazy-cat [0 1] (map + fib (rest fib))))
+
+;; See here for the recurrence relation:
+;; https://en.wikipedia.org/wiki/Binomial_coefficient#Multiplicative_formula
+
+(defn- binomial* [n]
+  (letfn [(f [acc prev n k]
+            (if (zero? n)
+              acc
+              (let [next (/ (* prev n) k)
+                    acc' (conj! acc next)]
+                (recur acc' next (dec n) (inc k)))))]
+    (persistent!
+     (f (transient [1]) 1 n 1))))
+
+(defn binomial
+  "The coefficients of (1+x)^n"
+  [n]
+  (->series (binomial* n)))
 
 ;; ## Making Series
 ;;
