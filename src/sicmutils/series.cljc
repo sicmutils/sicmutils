@@ -21,6 +21,7 @@
   (:refer-clojure :exclude [identity])
   (:require [sicmutils.expression :as x]
             [sicmutils.generic :as g]
+            [sicmutils.numbers]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -28,7 +29,7 @@
 
 ;; # Power Series
 ;;
-;; Following Power Series here!
+;; Following Power Serious here!
 ;;
 ;; TODO check for tests: https://github.com/pdonis/powerseries/blob/master/powerseries.py
 ;;
@@ -306,6 +307,7 @@
                      (-> (->series [1 -1])
                          (seq:expt 2)))))
 
+;; ## Various Taylor Series
 
 (def expx
   (lazy-seq
@@ -358,6 +360,14 @@
     ]
    (take 10 cosx))
 
+(declare sinhx)
+(def coshx (lazy-seq (seq:integral sinhx 1)))
+(def sinhx (lazy-seq (seq:integral coshx)))
+
+(def tanx (seq:div sinx cosx))
+(def tanhx (seq:div sinhx coshx))
+(def atanx (seq:integral (cycle [1 0 -1 0])))
+
 ;; ## Tests
 
 #_
@@ -373,9 +383,36 @@
      (take 30)
      (every? zero?))
 
+;; ## Generating Functions
+
+
+;; ### Catalan numbers
+
+(def catalan
+  (lazy-cat [1] (seq:* catalan catalan)))
+
+#_
+(is (= [1 1 2 5 14 42 132 429 1430 4862]
+       (take 10 catalan)))
+
+;; ordered trees...
+
+(declare tree' forest' list')
+(def tree' (lazy-cat [0] forest'))
+(def list' (lazy-cat [1] list'))
+(def forest' (seq:compose list' tree'))
+
+#_
+(= [0 1 1 2 5 14 42 132 429 1430]
+   (take 10 tree'))
+
+;; The catalan numbers again!
+
+(def fib (lazy-cat [0 1] (map + fib (rest fib))))
+
 ;; ## Making Series
 ;;
-;; Get some constructors, then let's get our types going.
+;; Next, we need to wrap all this up in types.
 
 (declare zero one value)
 
