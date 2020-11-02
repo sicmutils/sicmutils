@@ -44,8 +44,8 @@
   "Form the infinite sequence starting with the supplied values. The
   remainder of the series will be filled with the zero-value
   corresponding to the first of the given values."
-  [[x :as xs]]
-  (lazy-cat xs (repeat (v/zero-like x))))
+  [xs]
+  (lazy-cat xs (repeat (v/zero-like (first xs)))))
 
 #_
 (= [1 2 3 4 0 0 0 0 0 0]
@@ -79,13 +79,13 @@
 ;; series and pop it back on. We'll supply two arities here in case `+` on the
 ;; constant isn't commutative.
 
-(defn- seq+c [[f & fs] c]
+(defn- seq+c [f c]
   (lazy-seq
-   (cons (g/+ f c) fs)))
+   (cons (g/+ (first f) c) (rest f))))
 
-(defn- c+seq [c [f & fs]]
+(defn- c+seq [c f]
   (lazy-seq
-   (cons (g/+ c f) fs)))
+   (cons (g/+ c (first f)) (rest f))))
 
 #_
 (let [series (->series [1 2 3 4])]
@@ -105,13 +105,13 @@
 
 ;; Then constant subtraction is /not/ commutative:
 
-(defn- seq-c [[f & fs] c]
+(defn- seq-c [f c]
   (lazy-seq
-   (cons (g/- f c) fs)))
+   (cons (g/- (first f) c) (rest f))))
 
-(defn- c-seq [c [f & fs]]
+(defn- c-seq [c f]
   (lazy-seq
-   (cons (g/- c f) (seq:negate fs))))
+   (cons (g/- c (first f)) (seq:negate (rest f)))))
 
 #_
 (= [-10 1 2 3 4]
@@ -159,15 +159,17 @@
 ;;
 ;; See Doug for the derivation on what happens next.
 
-(defn seq:div [[f0 & fs :as f] [g0 & gs :as g]]
-  (if (zero? g0)
-    (if (zero? f0)
-      (seq:div fs gs)
-      (u/arithmetic-ex "ERROR: denominator has a zero constant term"))
-    (lazy-seq
-     (let [q (g/div f0 g0)]
-       (cons q (-> (seq:- fs (c*seq q gs))
-                   (seq:div g)))))))
+(defn seq:div [f g]
+  (lazy-seq
+   (let [f0 (first f) fs (rest f)
+         g0 (first g) gs (rest g)]
+     (if (zero? g0)
+       (if (zero? f0)
+         (seq:div fs gs)
+         (u/arithmetic-ex "ERROR: denominator has a zero constant term"))
+       (let [q (g/div f0 g0)]
+         (cons q (-> (seq:- fs (c*seq q gs))
+                     (seq:div g))))))))
 
 ;; ### Reciprocal
 ;;
@@ -175,13 +177,11 @@
 ;; https://swtch.com/~rsc/thread/squint.pdf Talk about what is going on after
 ;; absorbing that a bit more.
 
-(defn seq:invert
-  "TODO document."
-  [[f0 & fs :as f]]
+(defn seq:invert [f]
   (lazy-seq
-   (let [finv    (g/invert f0)
-         F1*Finv (seq:* fs (seq:invert f))
-         tail (c*s finv (seq:negate F1*Finv))]
+   (let [finv    (g/invert (first f))
+         F1*Finv (seq:* (rest f) (seq:invert f))
+         tail    (c*s finv (seq:negate F1*Finv))]
      (cons finv tail))))
 
 ;; BOOM, this works.
@@ -190,23 +190,19 @@
   (= [1 0 0 0 0]
      (take 5 (seq:* (iterate inc x) (seq:invert (iterate inc x))))))
 
-;; ### Differentiation and Integration
-
-(defn- differentiate [[_ & tail]]
-  (map g/* tail (generate inc)))
-
-(defn- integrate [s]
-  (map g/div s (generate inc)))
-
 ;; ### Functional Composition
 ;;
 ;; TODO, describe what is going on on page 6:
 
 (defn seq:compose [f g]
-  (letfn [(step [f]
+  (letfn [(step [f-seq]
             (lazy-seq
-             (cons (first f)
-                   (seq:* (rest g) (step (rest f))))))]
+             ;; TODO Annoyingly this assert seems to have to happen in here...
+             (assert (zero? (first g)))
+             (let [[f0 & fs] f-seq
+                   gs   (rest g)
+                   tail (seq:* gs (step fs))]
+               (cons f0 tail))))]
     (step f)))
 
 #_
@@ -214,51 +210,89 @@
    (take 10 (seq:compose (iterate (fn [x] x) 1)
                          (cons 0 (iterate inc 1)))))
 
-(defn seq:revert [f]
-  (lazy-seq
-   ;; TODO this FAILS if I swap in the `seqinvert` .
-   (cons 0 (s-invert
-            (seq:compose (rest f)
-                         (seq:revert f))))))
-
-(defn s-reverse
-  "TODO documention Reversion"
-  [s]
-  (lazy-seq
-   (cons 0
-         (seq:invert
-          (s-compose s (s-reverse s))))))
-
 ;; ### Functional Reversion
 ;;
 ;; Find the functional inverse of a power series.
 
 (defn seq:revert [f]
+  {:pre [(zero? (first f))]}
+  (letfn [(step [g]
+            (lazy-seq
+             (let [G1   (rest g)
+                   R    (step g)]
+               (cons 0 (seq:invert
+                        (seq:compose G1 R))))))]
+    (step f)))
+
+#_
+(= [0 1 -2 5 -14]
+   (take 5 (seq:revert (cons 0 (iterate inc 1)))))
+
+#_
+(let [f (cons 0 (iterate inc 1))]
+  (= [0 1 0 0 0]
+     (take 5 (seq:compose f (seq:revert f)))))
+
+;; ### Differentiation and Integration
+;;
+;; Page 7:
+
+(defn- seq:deriv [f]
+  (map g/* (rest f) (iterate inc 1)))
+
+(defn- seq:integral [s]
+  (cons 0 (map g/div s (iterate inc 1))))
+
+;; ## Exponentiation
+
+;; TODO exponents! Copy this implementation... but this is repeated series
+;; multiplication.
+
+;; ### Square Roots
+;;
+;; This is a series that, multiplied by itself, get you the original thing. This
+;; is from page 8.
+
+(defn seq:sqrt
+  "Implementation only works in a few special cases. Note them, talk about page
+  8!"
+  [[f1 & [f2 & fs] :as f]]
+  (letfn [(step [g]
+            (lazy-seq
+             (c+seq 1 (seq:integral
+                       (seq:div
+                        (seq:deriv g)
+                        (c*seq 2 (step g)))))))]
+    (cond (and (v/nullity? f1)
+               (v/nullity? f2))
+          (cons f1 (step fs))
+
+          (v/unity? f1) (step f)
+
+          :else (u/illegal "Sequence must start with [0, 0] or 1."))))
+
+;; ## Function Examples from Doug
+
+(def expx
   (lazy-seq
-   (let [[_ & fs] f]
-     (cons 0 (seq:invert
-              (seq:compose fs (seq:revert f)))))))
+   (c+seq 1 (seq:integral expx))))
 
-;; TODO exponents!
+#_(= [] (take 10 expx))
 
-;; TODO square root
+(declare cosx)
+(def sinx (lazy-seq (seq:integral cosx)))
+(def cosx (lazy-seq (c-seq 1 (seq:integral sinx))))
 
-(defn sqrt-series [s]
-  (lazy-seq
-   (cons 1
-         (s+s (repeat 1)
-              (integrate
-               (s-div
-                (differentiate s)
-                (s*c (sqrt-series s) 2)))))))
+#_
+(take 10 sinx)
+
+#_
+(take 10 cosx)
 
 ;; ## Making Series
 ;;
 ;; TODO promote constant!
 ;;
-
-
-
 
 
 ;; Before we make full types, let's follow the paper and define the operations
