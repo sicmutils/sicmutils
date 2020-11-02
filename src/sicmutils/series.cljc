@@ -24,12 +24,13 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
-     (:import (clojure.lang AFn IFn
-                            Seqable ISeq))))
+     (:import (clojure.lang AFn IFn Seqable ISeq ISequential))))
 
 ;; # Power Series
 ;;
 ;; Following Power Series here!
+;;
+;; TODO check for tests: https://github.com/pdonis/powerseries/blob/master/powerseries.py
 ;;
 ;; We would prefer to just use native Clojure lazy sequences to represent series
 ;; objects. But, they must be invokable as functions, so we must wrap them in a
@@ -107,6 +108,8 @@
 
     Seqable
     (seq [_] s)
+
+    ISequential
 
     ISeq
     (first [_] (first s))
@@ -313,15 +316,15 @@
   Then, this series applied to x will yield the series of values
     [(A1 x) (+ (A2 x) (B1 x)) (+ (A3 x) (B2 x) (C1 x)) ...]"
   [^Series S x]
-  (letfn [(collect [[s0 & s-more]]
-            (let [first-result (s0 x)]
+  (letfn [(collect [[s & s-tail]]
+            (let [first-result (s x)]
               (if (series? first-result)
-                (let [[r0 & r-more] first-result]
-                  (lazy-seq (cons r0 (s+s r-more (collect s-more)))))
+                (let [[r & r-tail] first-result]
+                  (lazy-seq (cons r (s+s r-tail (collect s-tail)))))
 
                 ;; note that we have already realized first-result,
                 ;; so it does not need to be behind lazy-seq.
-                (cons first-result (lazy-seq (collect s-more))))))]
+                (cons first-result (lazy-seq (collect s-tail))))))]
     (cond (= (.-arity S) v/arity:exactly-0)
           (->Series (.-arity S)
                     (collect (.-s S)))

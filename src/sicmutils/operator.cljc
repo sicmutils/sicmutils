@@ -169,14 +169,25 @@
 ;; e to an operator g means forming the power series
 ;; I + g + 1/2 g^2 + ... + 1/n! g^n
 ;; where (as elsewhere) exponentiating the operator means n-fold composition
+
+;; TODO NOTE that this gives us the exp-series, and we can really simplify this
+;; if we do some work on the power series representation.
+#_
+(letfn [(step [n n! g**n]
+          (lazy-seq (cons (g/divide g**n n!)
+                          (step (inc n) (g/* n! (inc n)) (g/* 'x g**n)))))]
+  (into [] (comp (map g/simplify) (take 10))(step 0 1 1)))
+
 (defmethod g/exp [::operator] [g]
   (letfn [(step [n n! g**n]
             (lazy-seq (cons (g/divide g**n n!)
                             (step (inc n) (* n! (inc n)) (o*o g g**n)))))]
     (->Operator (fn [f]
-                  (partial series/value (series/->Series
-                                         [:exactly 0]
-                                         (map #(% f) (step 0 1 identity-operator)))))
+                  ;; TODO make this more obviously in line with the Scheme implementation!
+                  (partial series/value
+                           (series/->Series
+                            [:exactly 0]
+                            (map #(% f) (step 0 1 identity-operator)))))
                 [:exactly 1]
                 `(~'exp ~(:name g))
                 (:context g))))

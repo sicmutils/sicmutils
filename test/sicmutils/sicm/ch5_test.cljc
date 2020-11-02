@@ -26,7 +26,6 @@
                      p->r s->m F->CT
                      literal-function]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.series :as series]
             [sicmutils.mechanics.hamilton :as H]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 

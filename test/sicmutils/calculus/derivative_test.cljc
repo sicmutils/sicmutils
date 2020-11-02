@@ -27,7 +27,6 @@
                :cljs [sicmutils.function :as f :refer-macros [with-literal-functions]])
             [sicmutils.generic :as g :refer [acos asin atan cos sin tan log exp expt + - * /]]
             [sicmutils.matrix :as matrix]
-            [sicmutils.series :as series]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :as s]
             [sicmutils.value :as v])
