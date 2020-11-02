@@ -90,6 +90,7 @@
 (defmethod sub :default [a b] (add a (negate a)))
 
 (def-generic-function mul 2)
+(def-generic-function invert 1)
 (def-generic-function div 2)
 
 (def-generic-function exp 1)
@@ -109,6 +110,22 @@
       (add m b))))
 
 (def-generic-function expt 2)
+(defmethod expt :default [s e]
+  {:pre [(and (number? e) (v/integral? e))]}
+  (letfn [(expt' [base pow]
+            (loop [n pow
+                   y (v/one-like base)
+                   z base]
+              (let [t (even? n)
+                    n (quot n 2)]
+                (cond
+                  t (recur n y (mul z z))
+                  (zero? n) (mul z y)
+                  :else (recur n (mul z y) (mul z z))))))]
+    (cond (pos? e)  (expt' s e)
+          (zero? e) (v/one-like e)
+          :else (invert (expt' s (negate e))))))
+
 (def-generic-function gcd 2)
 (def-generic-function lcm 2)
 (def-generic-function exact-divide 2)
@@ -128,7 +145,6 @@
 (def-generic-function atan [1 2])
 
 ;; Operations on structures
-(def-generic-function invert 1)
 (def-generic-function transpose 1)
 (def-generic-function magnitude 1)
 (def-generic-function determinant 1)

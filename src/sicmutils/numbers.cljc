@@ -205,13 +205,13 @@
      ;; https://github.com/clojure/math.numeric-tower/blob/master/src/main/clojure/clojure/math/numeric_tower.clj#L72
      (letfn [(goog-expt [base pow]
                (loop [^Long n pow
-                      ^Long y (v/one-like base)
+                      ^Long y (.getOne Long)
                       ^Long z base]
                  (let [t (not (.isOdd ^Long n))
                        n (.shiftRight ^Long n 1)]
                    (cond
                      t (recur n y (.multiply z z))
-                     (v/nullity? n) (.multiply z y)
+                     (.isZero n) (.multiply z y)
                      :else (recur n (.multiply z y) (.multiply z z))))))]
        (defmethod g/expt [Long Long] [a ^Long b]
          (if (.isNegative b)
@@ -238,14 +238,14 @@
      (defmethod g/magnitude [Integer] [^Integer a] (if (.isNegative a) (.negate a) a))
 
      (letfn [(goog-expt [base pow]
-               (loop [n pow
-                      y (v/one-like base)
-                      z base]
+               (loop [^Integer n pow
+                      ^Integer y (.-ONE Integer)
+                      ^Integer z base]
                  (let [t (not (.isOdd ^Integer n))
                        n (.shiftRight ^Integer n 1)]
                    (cond
                      t (recur n y (.multiply z z))
-                     (v/nullity? n) (.multiply z y)
+                     (.isZero n) (.multiply z y)
                      :else (recur n (.multiply z y) (.multiply z z))))))]
        (defmethod g/expt [Integer Integer] [a ^Integer b]
          (if (.isNegative b)

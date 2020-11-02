@@ -181,7 +181,7 @@
   (lazy-seq
    (let [finv    (g/invert (first f))
          F1*Finv (seq:* (rest f) (seq:invert f))
-         tail    (c*s finv (seq:negate F1*Finv))]
+         tail    (c*seq finv (seq:negate F1*Finv))]
      (cons finv tail))))
 
 ;; BOOM, this works.
@@ -195,12 +195,12 @@
 ;; TODO, describe what is going on on page 6:
 
 (defn seq:compose [f g]
-  (letfn [(step [f-seq]
+  (letfn [(step [f]
             (lazy-seq
              ;; TODO Annoyingly this assert seems to have to happen in here...
              (assert (zero? (first g)))
-             (let [[f0 & fs] f-seq
-                   gs   (rest g)
+             (let [[f0 & fs] f
+                   gs (rest g)
                    tail (seq:* gs (step fs))]
                (cons f0 tail))))]
     (step f)))
@@ -240,13 +240,30 @@
 (defn- seq:deriv [f]
   (map g/* (rest f) (iterate inc 1)))
 
-(defn- seq:integral [s]
-  (cons 0 (map g/div s (iterate inc 1))))
+;; This represents... the definite integral, so we don't need a constant term.
+
+(defn- seq:integral
+  ([s] (seq:integral s 0))
+  ([s constant-term]
+   (cons constant-term
+         (map g/div s (iterate inc 1)))))
 
 ;; ## Exponentiation
 
-;; TODO exponents! Copy this implementation... but this is repeated series
-;; multiplication.
+(defn seq:expt [s e]
+  (letfn [(expt [base pow]
+            (loop [n pow
+                   y (->series [1])
+                   z base]
+              (let [t (even? n)
+                    n (quot n 2)]
+                (cond
+                  t (recur n y (seq:* z z))
+                  (zero? n) (seq:* z y)
+                  :else (recur n (seq:* z y) (seq:* z z))))))]
+    (cond (pos? e)  (expt s e)
+          (zero? e) (->series [1])
+          :else (seq:invert (expt s (g/negate e))))))
 
 ;; ### Square Roots
 ;;
@@ -259,10 +276,10 @@
   [[f1 & [f2 & fs] :as f]]
   (letfn [(step [g]
             (lazy-seq
-             (c+seq 1 (seq:integral
-                       (seq:div
-                        (seq:deriv g)
-                        (c*seq 2 (step g)))))))]
+             (-> (seq:div
+                  (seq:deriv g)
+                  (c*seq 2 (step g)))
+                 (seq:integral 1))))]
     (cond (and (v/nullity? f1)
                (v/nullity? f2))
           (cons f1 (step fs))
@@ -273,30 +290,92 @@
 
 ;; ## Function Examples from Doug
 
+;; On page 6, he has this:
+
+(= [1 0 -6 0 12 0 -8 0 0 0]
+   (take 10 (seq:expt (->series [1 0 -2]) 3)))
+
+;; power series that sums to 1/(1-x) in its region of convergence.
+#_
+(take 10 (seq:div (->series [1])
+                  (->series [1 -1])))
+
+#_
+(= (range 1 11)
+   (take 10 (seq:div (->series [1])
+                     (-> (->series [1 -1])
+                         (seq:expt 2)))))
+
+
 (def expx
   (lazy-seq
-   (c+seq 1 (seq:integral expx))))
+   (seq:integral expx 1)))
 
-#_(= [] (take 10 expx))
+#_
+(= [
+    1
+    1
+    #sicm/ratio 1/2
+    #sicm/ratio 1/6
+    #sicm/ratio 1/24
+    #sicm/ratio 1/120
+    #sicm/ratio 1/720
+    #sicm/ratio 1/5040
+    #sicm/ratio 1/40320
+    #sicm/ratio 1/362880
+    ]
+   (take 10 expx2))
 
 (declare cosx)
 (def sinx (lazy-seq (seq:integral cosx)))
 (def cosx (lazy-seq (c-seq 1 (seq:integral sinx))))
 
 #_
-(take 10 sinx)
+(= [0
+    1
+    0
+    #sicm/ratio -1/6
+    0
+    #sicm/ratio 1/120
+    0
+    #sicm/ratio -1/5040
+    0
+    #sicm/ratio 1/362880
+    ]
+   (take 10 sinx))
 
 #_
-(take 10 cosx)
+(= [1
+    0
+    #sicm/ratio -1/2
+    0
+    #sicm/ratio 1/24
+    0
+    #sicm/ratio -1/720
+    0
+    #sicm/ratio 1/40320
+    0
+    ]
+   (take 10 cosx))
+
+;; ## Tests
+
+#_
+(->> (seq:- sinx (seq:sqrt (c-seq 1 (seq:expt cosx 2))))
+     (take 30)
+     (every? zero?))
+
+#_
+(->> (seq:- (seq:div sinx cosx)
+            (seq:revert
+             (seq:integral
+              (seq:invert (->series [1 0 1])))))
+     (take 30)
+     (every? zero?))
 
 ;; ## Making Series
 ;;
-;; TODO promote constant!
-;;
-
-
-;; Before we make full types, let's follow the paper and define the operations
-;; for sequences. We'll prefix them so we can use them internally.
+;; Get some constructors, then let's get our types going.
 
 (declare zero one value)
 
@@ -452,9 +531,8 @@
   "Version that lets us specify arities"
   ([prefix]
    (starting-with* prefix v/arity:exactly-0))
-  ([[x :as prefix] arity]
-   (let [s (lazy-cat prefix (repeat (v/zero-like x)))]
-     (->Series arity s))))
+  ([prefix arity]
+   (->Series arity (->series prefix))))
 
 (defn starting-with
   "Form the infinite sequence starting with the supplied values. The
@@ -489,62 +567,6 @@
 (defn sum [s n]
   (transduce (take (inc n)) g/+ s))
 
-;; Each of these return sequences.
-(defn- c*s [c s] (map #(g/* c %) s))
-(defn- s*c [s c] (map #(g/* % c) s))
-(defn- s+s [s t] (map g/+ s t))
-(defn- s-s [s t]
-  (map (fn [l r]
-         ;; TODO very strange, in ch6 this leads to problems.
-         (g/+ l (g/negate r)))
-       s t))
-
-(defn- s*s
-  "The Cauchy product of the two sequences"
-  [s t]
-  (letfn [(step [s]
-            (lazy-seq
-             (cons (g/mul (first s)
-                          (first t))
-                   (s+s (c*s (first s) (rest t))
-                        (step (rest s))))))]
-    (step s)))
-
-(defn s-invert
-  "TODO document."
-  [s]
-  (lazy-seq
-   (cons 1 (map g/negate
-                (s*s
-                 (rest s)
-                 (s-invert s))))))
-
-(defn s-div
-  "TODO document."
-  [s t]
-  (if (zero? (first t))
-    (println "ERROR: denominator has a zero constant term")
-    (c*s (g/invert (first t))
-         (s*s s (s-invert (s*c t (g/invert (first t))))))))
-
-(defn- differentiate [[_ & tail]]
-  (map g/* tail (generate inc)))
-
-(defn- integrate [s]
-  (map g/div s (generate inc)))
-
-(defn sqrt-series [s]
-  (lazy-seq
-   (cons 1
-         (s+s (repeat 1)
-              (integrate
-               (s-div
-                (differentiate s)
-                (s*c (sqrt-series s) 2)))))))
-
-;; TODO integration
-;; TODO double check differentiation
-
 ;; ## Examples
 
 (defn value
@@ -564,7 +586,7 @@
             (let [first-result (s x)]
               (if (series? first-result)
                 (let [[r & r-tail] first-result]
-                  (lazy-seq (cons r (s+s r-tail (collect s-tail)))))
+                  (lazy-seq (cons r (seq:+ r-tail (collect s-tail)))))
 
                 ;; note that we have already realized first-result,
                 ;; so it does not need to be behind lazy-seq.
@@ -582,7 +604,7 @@
 
 (defmethod g/add [::series ::series] [^Series s ^Series t]
   {:pre [(= (.-arity s) (.-arity t))]}
-  (->Series (.-arity s) (s+s (.-s s) (.-s t))))
+  (->Series (.-arity s) (seq:+ (.-s s) (.-s t))))
 
 ;; TODO complete this theme!
 (defmethod g/add [v/seqtype ::series] [xs ^Series s]
@@ -592,101 +614,49 @@
   (g/add s (starting-with* xs (.-arity s))))
 
 (defmethod g/add [::coseries ::series] [c ^Series s]
-  (->Series (.-arity s)
-            (let [[h & tail] (.-s s)]
-              (lazy-seq
-               (cons (g/+ c h) tail)))))
+  (->Series (.-arity s) (c+seq c s)))
 
 (defmethod g/add [::series ::coseries] [^Series s c]
-  (->Series (.-arity s)
-            (let [[h & tail] (.-s s)]
-              (lazy-seq
-               (cons (g/+ h c) tail)))))
+  (->Series (.-arity s) (seq+c s c)))
 
 (defmethod g/negate [::series] [s] (fmap g/negate s))
 
 (defmethod g/sub [::series ::series] [^Series s ^Series t]
   {:pre [(= (.-arity s) (.-arity t))]}
-  (->Series (.-arity s) (s-s (.-s s) (.-s t))))
+  (->Series (.-arity s) (seq:- (.-s s) (.-s t))))
 
 (defmethod g/sub [::coseries ::series] [c ^Series s]
-  (->Series (.-arity s)
-            (let [[h & tail] (.-s s)]
-              (lazy-seq
-               (cons (g/- c h) (map g/negate tail))))))
+  (->Series (.-arity s) (c-seq c s)))
 
 (defmethod g/sub [::series ::coseries] [^Series s c]
-  (->Series (.-arity s)
-            (let [[h & tail] (.-s s)]
-              (lazy-seq
-               (cons (g/- h c) tail)))))
+  (->Series (.-arity s) (seq-c s c)))
 
 (defmethod g/mul [::series ::series] [^Series s ^Series t]
   {:pre [(= (.-arity s) (.-arity t))]}
-  (->Series (.-arity s) (s*s (.-s s) (.-s t))))
+  (->Series (.-arity s) (seq:* (.-s s) (.-s t))))
 
 (defmethod g/mul [::coseries ::series] [c ^Series s]
-  (->Series (.-arity s) (c*s c (.-s s))))
+  (->Series (.-arity s) (c*seq c (.-s s))))
 
 (defmethod g/mul [::series ::coseries] [^Series s c]
-  (->Series (.-arity s) (s*c (.-s s) c)))
+  (->Series (.-arity s) (seq*c (.-s s) c)))
 
 (defmethod g/square [::series] [s] (g/mul s s))
 
 (defmethod g/cube [::series] [s] (g/mul (g/mul s s) s))
 
 (defmethod g/invert [::series] [^Series s]
-  (->Series (.-arity s) (s-invert (.-s s))))
+  (->Series (.-arity s) (seq:invert (.-s s))))
 
 (defmethod g/div [::coseries ::series] [c ^Series s]
-  (g/mul (constant c (.-arity s))
-         (g/invert s)))
+  (c*seq c (seq:invert (.-s s))))
 
 (defmethod g/div [::series ::coseries] [^Series s c]
   (fmap #(g// % c) s))
 
 (defmethod g/div [::series ::series] [^Series s ^Series t]
   {:pre [(= (.-arity s) (.-arity t))]}
-  (->Series (.-arity s) (s-div (.-s s) (.-s t))))
-
-;; TODO - exponent
-
-(comment
-  (define (series:expt s e)
-    (letrec ((square (lambda (s) (mul-series s s)))
-             (series:one (cons-stream :one zero-stream))
-             (zuras
-              (lambda (t e k)
-                      (cons-stream
-                       :one
-                       (stream:c*s (div-coeff e k)
-                                   (mul-series
-                                    t
-                                    (zuras t
-                                           (sub-coeff e 1)
-                                           (fix:+ k 1)))))))
-             (iexpt
-              (lambda (s e)
-                      (cond ((fix:< e 0) (invert-series (iexpt s (fix:negate e))))
-                            ((fix:= e 0) :one)
-                            ((fix:= e 1) s)
-                            ((even? e) (square
-                                        (iexpt s (fix:quotient e 2))))
-                            (else
-                             (mul-series
-                              s
-                              (square
-                               (iexpt s
-                                      (fix:quotient (fix:- e 1) 2))))))))
-             (expt
-              (lambda (s e)
-                      (if (exact-integer? e)
-                        (iexpt s e)
-                        (stream:c*s
-                         (expt-coeff (head s) e)
-                         (zuras (stream:s/c (tail s) (head s)) e 1))))))
-            (make-series (series:arity s)
-                         (expt (series->stream s) e)))))
+  (->Series (.-arity s) (seq:div (.-s s) (.-s t))))
 
 (defmethod g/partial-derivative [::series v/seqtype] [^Series s selectors]
   (let [a (.-arity s)]
@@ -696,11 +666,9 @@
 
       v/arity:exactly-1
       (if (empty? selectors)
-        (->Series (.-arity s) (differentiate (.-s s)))
+        (->Series (.-arity s) (seq:deriv (.-s s)))
         (u/illegal (str "Cannot yet take partial derivatives of a series: "
                         s selectors)))
 
       :else
       (u/illegal (str "Can't differentiate series with arity " a)))))
-
-;; ## Examples
