@@ -164,13 +164,18 @@
   (lazy-seq
    (let [f0 (first f) fs (rest f)
          g0 (first g) gs (rest g)]
-     (if (zero? g0)
-       (if (zero? f0)
-         (seq:div fs gs)
-         (u/arithmetic-ex "ERROR: denominator has a zero constant term"))
-       (let [q (g/div f0 g0)]
-         (cons q (-> (seq:- fs (c*seq q gs))
-                     (seq:div g))))))))
+     (cond (and (v/nullity? f0) (v/nullity? g0))
+           (seq:div fs gs)
+
+           (v/nullity? f0)
+           (cons f0 (seq:div fs g))
+
+           (v/nullity? g0)
+           (u/arithmetic-ex "ERROR: denominator has a zero constant term")
+
+           :else (let [q (g/div f0 g0)]
+                   (cons q (-> (seq:- fs (c*seq q gs))
+                               (seq:div g))))))))
 
 ;; ### Reciprocal
 ;;
@@ -313,6 +318,13 @@
   (lazy-seq
    (seq:integral expx 1)))
 
+(def log1-x
+  (seq:integral (repeat -1)))
+
+;; https://en.wikipedia.org/wiki/Mercator_series
+(def log1+x
+  (seq:integral (cycle [1 -1])))
+
 #_
 (= [
     1
@@ -326,13 +338,18 @@
     #sicm/ratio 1/40320
     #sicm/ratio 1/362880
     ]
-   (take 10 expx2))
+   (take 10 expx))
 
 (declare cosx)
 (def sinx (lazy-seq (seq:integral cosx)))
 (def cosx (lazy-seq (c-seq 1 (seq:integral sinx))))
 (def tanx (seq:div sinx cosx))
+(def secx (seq:invert cosx))
 
+(def asinx (seq:revert sinx))
+(def acosx (c-seq (g/div 'pi 2) asinx))
+(def atanx (seq:integral (cycle [1 0 -1 0])))
+(def acotx (c-seq (g/div 'pi 2) atanx))
 #_
 (= [0
     1
@@ -365,9 +382,8 @@
 (def coshx (lazy-seq (seq:integral sinhx 1)))
 (def sinhx (lazy-seq (seq:integral coshx)))
 (def tanhx (seq:div sinhx coshx))
-
-
-(def atanx (seq:integral (cycle [1 0 -1 0])))
+(def asinhx (seq:revert sinhx))
+(def atanhx (seq:revert tanhx))
 
 ;; ## Tests
 
@@ -393,8 +409,8 @@
   (lazy-cat [1] (seq:* catalan catalan)))
 
 #_
-(is (= [1 1 2 5 14 42 132 429 1430 4862]
-       (take 10 catalan)))
+(= [1 1 2 5 14 42 132 429 1430 4862]
+   (take 10 catalan))
 
 ;; ordered trees...
 
