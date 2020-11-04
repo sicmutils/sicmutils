@@ -196,6 +196,14 @@
   (= [1 0 0 0 0]
      (take 5 (seq:* (iterate inc x) (seq:invert (iterate inc x))))))
 
+;; ### Constant Division
+
+(defn seq-div-c [f c]
+  (c*seq c (seq:invert f)))
+
+(defn c-div-seq [c f]
+  (map #(g// % c) f))
+
 ;; ### Functional Composition
 ;;
 ;; TODO, describe what is going on on page 6:
@@ -311,6 +319,43 @@
    (take 10 (seq:div (->series [1])
                      (-> (->series [1 -1])
                          (seq:expt 2)))))
+
+;; ## Application
+
+(defn- seq:p-value
+  "Evaluates the power series, and converts it back down to a normal series."
+  [f x]
+  (let [one    (v/one-like x)
+        powers (iterate #(g/* x %) one)]
+    (map g/* f powers)))
+
+(declare series?)
+
+(defn- seq:value
+  "Find the value of the Series S applied to the arguments xs.
+
+  This assumes that S is a series of applicables. If, in fact, S is a
+  series of series-valued applicables, then the result will be a sort
+  of layered sum of the values.
+
+  Concretely, suppose that S has the form
+
+    [[A1 A2 A3...] [B1 B2 B3...] [C1 C2 C3...]...]
+
+  Then, this series applied to x will yield the series of values
+    [(A1 x) (+ (A2 x) (B1 x)) (+ (A3 x) (B2 x) (C1 x)) ...]"
+  [f xs]
+  (letfn [(collect [[f & fs]]
+            (let [result (apply f xs)]
+              (if (series? result)
+                (lazy-seq
+                 (let [[r & r-tail] result]
+                   (cons r (seq:+ r-tail (collect fs)))))
+
+                ;; note that we have already realized first-result,
+                ;; so it does not need to be behind lazy-seq.
+                (cons result (lazy-seq (collect fs))))))]
+    (collect f)))
 
 ;; ## Various Taylor Series
 
@@ -445,25 +490,29 @@
   [n]
   (->series (binomial* n)))
 
-;; ## Making Series
+;; ## Type Wrappers
 ;;
-;; Next, we need to wrap all this up in types.
+;; Next, we need to wrap all this up in types. We'll need two:
+;;
+;; - PowerSeries
+;; - Series
+;;
+;; Both similar, except they apply differently.
 
-(declare zero one value)
+(declare s-zero s-one)
 
-;; TODO make arity a multimethod, so we can support all of these overriders?
-(deftype Series [arity s]
+(deftype Series [xs]
   v/Value
-  (nullity? [_] (empty? s))
+  (nullity? [_] false)
   (unity? [_] false)
-  (zero-like [_] zero)
-  (one-like [_] one)
+  (zero-like [_] s-zero)
+  (one-like [_] s-one)
   (numerical? [_] false)
   (freeze [_]
     (let [prefix (sequence
                   (comp (take 4) (map g/simplify))
-                  s)]
-      `[~'Series ~arity ~@prefix ~'...]))
+                  xs)]
+      `[~'Series ~@prefix ~'...]))
   (kind [_] ::series)
 
   Object
@@ -471,108 +520,59 @@
 
   #?@
   (:clj
-   [IFn
-    (invoke [_] (Series. arity (map #(%) s)))
+   [Seqable
+    (seq [_] xs)
+
+    IFn
+    (invoke [_]
+            (Series. (seq:value xs [])))
     (invoke [_ a]
-            (Series. arity (map #(% a) s)))
+            (Series. (seq:value xs [a])))
     (invoke [_ a b]
-            (Series. arity (map #(% a b) s)))
+            (Series. (seq:value xs [a b])))
     (invoke [_ a b c]
-            (Series. arity (map #(% a b c) s)))
+            (Series. (seq:value xs [a b c])))
     (invoke [_ a b c d]
-            (Series. arity (map #(% a b c d) s)))
+            (Series. (seq:value xs [a b c d])))
     (invoke [_ a b c d e]
-            (Series. arity (map #(% a b c d e) s)))
+            (Series. (seq:value xs [a b c d e])))
     (invoke [_ a b c d e f]
-            (Series. arity (map #(% a b c d e f) s)))
+            (Series. (seq:value xs [a b c d e f])))
     (invoke [_ a b c d e f g]
-            (Series. arity (map #(% a b c d e f g) s)))
+            (Series. (seq:value xs [a b c d e f g])))
     (invoke [_ a b c d e f g h]
-            (Series. arity (map #(% a b c d e f g h) s)))
+            (Series. (seq:value xs [a b c d e f g h])))
     (invoke [_ a b c d e f g h i]
-            (Series. arity (map #(% a b c d e f g h i) s)))
+            (Series. (seq:value xs [a b c d e f g h i])))
     (invoke [_ a b c d e f g h i j]
-            (Series. arity (map #(% a b c d e f g h i j) s)))
+            (Series. (seq:value xs [a b c d e f g h i j])))
     (invoke [_ a b c d e f g h i j k]
-            (Series. arity (map #(% a b c d e f g h i j k) s)))
+            (Series. (seq:value xs [a b c d e f g h i j k])))
     (invoke [_ a b c d e f g h i j k l]
-            (Series. arity (map #(% a b c d e f g h i j k l) s)))
+            (Series. (seq:value xs [a b c d e f g h i j k l])))
     (invoke [_ a b c d e f g h i j k l m]
-            (Series. arity (map #(% a b c d e f g h i j k l m) s)))
+            (Series. (seq:value xs [a b c d e f g h i j k l m])))
     (invoke [_ a b c d e f g h i j k l m n]
-            (Series. arity (map #(% a b c d e f g h i j k l m n) s)))
+            (Series. (seq:value xs [a b c d e f g h i j k l m n])))
     (invoke [_ a b c d e f g h i j k l m n o]
-            (Series. arity (map #(% a b c d e f g h i j k l m n o) s)))
+            (Series. (seq:value xs [a b c d e f g h i j k l m n o])))
     (invoke [_ a b c d e f g h i j k l m n o p]
-            (Series. arity (map #(% a b c d e f g h i j k l m n o p) s)))
+            (Series. (seq:value xs [a b c d e f g h i j k l m n o p])))
     (invoke [_ a b c d e f g h i j k l m n o p q]
-            (Series. arity (map #(% a b c d e f g h i j k l m n o p q) s)))
+            (Series. (seq:value xs [a b c d e f g h i j k l m n o p q])))
     (invoke [_ a b c d e f g h i j k l m n o p q r]
-            (Series. arity (map #(% a b c d e f g h i j k l m n o p q r) s)))
+            (Series. (seq:value xs [a b c d e f g h i j k l m n o p q r])))
     (invoke [_ a b c d e f g h i j k l m n o p q r s]
-            (Series. arity (map #(% a b c d e f g h i j k l m n o p q r s) s)))
+            (Series. (seq:value xs [a b c d e f g h i j k l m n o p q r s])))
     (invoke [_ a b c d e f g h i j k l m n o p q r s t]
-            (Series. arity (map #(% a b c d e f g h i j k l m n o p q r s t) s)))
+            (Series. (seq:value xs [a b c d e f g h i j k l m n o p q r s t])))
     (invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
-            (Series. arity (map #(apply % a b c d e f g h i j k l m n o p q r s t rest) s)))
-    (applyTo [s xs] (AFn/applyToHelper s xs))
-
-    Seqable
-    (seq [_] s)
-
-    Sequential
-
-    ISeq
-    (first [_] (first s))
-    (next [_] (Series. arity (next s)))
-    (more [_] (Series. arity (.more ^ISeq s)))
-    (cons [_ o] (Series. arity (cons o s)))]
+            (Series. (seq:value xs (concat [a b c d e f g h i j k l m n o p q r s t] rest))))
+    (applyTo [s xs] (AFn/applyToHelper s xs))]
 
    :cljs
-   [IFn
-    (-invoke [_] (Series. arity (map #(%) s)))
-    (-invoke [_ a]
-             (Series. arity (map #(% a) s)))
-    (-invoke [_ a b]
-             (Series. arity (map #(% a b) s)))
-    (-invoke [_ a b c]
-             (Series. arity (map #(% a b c) s)))
-    (-invoke [_ a b c d]
-             (Series. arity (map #(% a b c d) s)))
-    (-invoke [_ a b c d e]
-             (Series. arity (map #(% a b c d e) s)))
-    (-invoke [_ a b c d e f]
-             (Series. arity (map #(% a b c d e f) s)))
-    (-invoke [_ a b c d e f g]
-             (Series. arity (map #(% a b c d e f g) s)))
-    (-invoke [_ a b c d e f g h]
-             (Series. arity (map #(% a b c d e f g h) s)))
-    (-invoke [_ a b c d e f g h i]
-             (Series. arity (map #(% a b c d e f g h i) s)))
-    (-invoke [_ a b c d e f g h i j]
-             (Series. arity (map #(% a b c d e f g h i j) s)))
-    (-invoke [_ a b c d e f g h i j k]
-             (Series. arity (map #(% a b c d e f g h i j k) s)))
-    (-invoke [_ a b c d e f g h i j k l]
-             (Series. arity (map #(% a b c d e f g h i j k l) s)))
-    (-invoke [_ a b c d e f g h i j k l m]
-             (Series. arity (map #(% a b c d e f g h i j k l m) s)))
-    (-invoke [_ a b c d e f g h i j k l m n]
-             (Series. arity (map #(% a b c d e f g h i j k l m n) s)))
-    (-invoke [_ a b c d e f g h i j k l m n o]
-             (Series. arity (map #(% a b c d e f g h i j k l m n o) s)))
-    (-invoke [_ a b c d e f g h i j k l m n o p]
-             (Series. arity (map #(% a b c d e f g h i j k l m n o p) s)))
-    (-invoke [_ a b c d e f g h i j k l m n o p q]
-             (Series. arity (map #(% a b c d e f g h i j k l m n o p q) s)))
-    (-invoke [_ a b c d e f g h i j k l m n o p q r]
-             (Series. arity (map #(% a b c d e f g h i j k l m n o p q r) s)))
-    (-invoke [_ a b c d e f g h i j k l m n o p q r s]
-             (Series. arity (map #(% a b c d e f g h i j k l m n o p q r s) s)))
-    (-invoke [_ a b c d e f g h i j k l m n o p q r s t]
-             (Series. arity (map #(% a b c d e f g h i j k l m n o p q r s t) s)))
-    (-invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
-             (Series. arity (map #(apply % a b c d e f g h i j k l m n o p q r s t rest) s)))
+   [ISeqable
+    (-seq [_] s)
 
     IPrintWithWriter
     (-pr-writer [x writer _]
@@ -581,166 +581,229 @@
                            (.toString x)
                            "\"]"))
 
-    ICollection
-    (conj [_ o] (Series. arity (cons o s)))
-
-    ISeqable
-    (-seq [_] s)
-
-    ISequential
-
-    ISeq
-    (-first [_] (-first s))
-    (-rest [_] (-rest s))]))
+    IFn
+    (-invoke [_]
+             (Series. (seq:value xs [])))
+    (-invoke [_ a]
+             (Series. (seq:value xs [a])))
+    (-invoke [_ a b]
+             (Series. (seq:value xs [a b])))
+    (-invoke [_ a b c]
+             (Series. (seq:value xs [a b c])))
+    (-invoke [_ a b c d]
+             (Series. (seq:value xs [a b c d])))
+    (-invoke [_ a b c d e]
+             (Series. (seq:value xs [a b c d e])))
+    (-invoke [_ a b c d e f]
+             (Series. (seq:value xs [a b c d e f])))
+    (-invoke [_ a b c d e f g]
+             (Series. (seq:value xs [a b c d e f g])))
+    (-invoke [_ a b c d e f g h]
+             (Series. (seq:value xs [a b c d e f g h])))
+    (-invoke [_ a b c d e f g h i]
+             (Series. (seq:value xs [a b c d e f g h i])))
+    (-invoke [_ a b c d e f g h i j]
+             (Series. (seq:value xs [a b c d e f g h i j])))
+    (-invoke [_ a b c d e f g h i j k]
+             (Series. (seq:value xs [a b c d e f g h i j k])))
+    (-invoke [_ a b c d e f g h i j k l]
+             (Series. (seq:value xs [a b c d e f g h i j k l])))
+    (-invoke [_ a b c d e f g h i j k l m]
+             (Series. (seq:value xs [a b c d e f g h i j k l m])))
+    (-invoke [_ a b c d e f g h i j k l m n]
+             (Series. (seq:value xs [a b c d e f g h i j k l m n])))
+    (-invoke [_ a b c d e f g h i j k l m n o]
+             (Series. (seq:value xs [a b c d e f g h i j k l m n o])))
+    (-invoke [_ a b c d e f g h i j k l m n o p]
+             (Series. (seq:value xs [a b c d e f g h i j k l m n o p])))
+    (-invoke [_ a b c d e f g h i j k l m n o p q]
+             (Series. (seq:value xs [a b c d e f g h i j k l m n o p q])))
+    (-invoke [_ a b c d e f g h i j k l m n o p q r]
+             (Series. (seq:value xs [a b c d e f g h i j k l m n o p q r])))
+    (-invoke [_ a b c d e f g h i j k l m n o p q r s]
+             (Series. (seq:value xs [a b c d e f g h i j k l m n o p q r s])))
+    (-invoke [_ a b c d e f g h i j k l m n o p q r s t]
+             (Series. (seq:value xs [a b c d e f g h i j k l m n o p q r s t])))
+    (-invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
+             (Series. (seq:value xs (concat [a b c d e f g h i j k l m n o p q r s t] rest))))]))
 
 #?(:clj
    (defmethod print-method Series [^Series s ^java.io.Writer w]
-     (.write w (.toString s))))
+     (.write w (str "#object[sicmutils.series.Series \""
+                    (.toString s)
+                    "\"]"))))
 
-(defn series? [s] (instance? Series s))
+(def s-zero (Series. (->series [0])))
+(def s-one (Series. (->series [1])))
 
-(defn- starting-with*
-  "Version that lets us specify arities"
-  ([prefix]
-   (starting-with* prefix v/arity:exactly-0))
-  ([prefix arity]
-   (->Series arity (->series prefix))))
+;; ### Power Series
+
+(declare zero one)
+
+(deftype PowerSeries [xs]
+  v/Value
+  (nullity? [_] false)
+  (unity? [_] false)
+  (zero-like [_] zero)
+  (one-like [_] one)
+  (numerical? [_] false)
+  (freeze [_]
+    (let [prefix (sequence
+                  (comp (take 4) (map g/simplify))
+                  xs)]
+      `[~'PowerSeries ~@prefix ~'...]))
+  (kind [_] ::power-series)
+
+  Object
+  (toString [S] (str (v/freeze S)))
+
+  #?@
+  (:clj
+   [Seqable
+    (seq [_] xs)
+
+    IFn
+    (invoke [_ a] (Series. (seq:p-value xs a)))]
+
+   :cljs
+   [ISeqable
+    (-seq [_] xs)
+
+    IFn
+    (-invoke [_ a] (Series. (seq:p-value xs a)))
+
+    IPrintWithWriter
+    (-pr-writer [this writer _]
+                (write-all writer
+                           "#object[sicmutils.series.PowerSeries \""
+                           (.toString this)
+                           "\"]"))]))
+
+#?(:clj
+   (defmethod print-method PowerSeries [^PowerSeries s ^java.io.Writer w]
+     (.write w (str "#object[sicmutils.series.PowerSeries \""
+                    (.toString s)
+                    "\"]"))))
+
+;; ## Series Methods
+
+(defn series?
+  "Test if it's a series OR a power series, either one."
+  [s]
+  (or (instance? Series s)
+      (instance? PowerSeries s)))
+
+(defn power-series?
+  "Do we specifically have a power series? The difference is we can apply this
+  thing as a function."
+  [s]
+  (instance? PowerSeries s))
+
+(defn- starting-with* [prefix]
+  (->Series (->series prefix)))
 
 (defn starting-with
   "Form the infinite sequence starting with the supplied values. The
   remainder of the series will be filled with the zero-value
   corresponding to the first of the given values."
   [& prefix]
-  (starting-with* prefix v/arity:exactly-0))
+  (starting-with* prefix))
 
 (defn generate
   "Produce the series generated by (f i) for i in 0, 1, ..."
   [f]
-  (->Series v/arity:exactly-0 (map f (range))))
+  (->Series (map f (range))))
 
-(def zero (starting-with 0))
-(def one (starting-with 1))
-(def identity (starting-with 0 1))
+(def zero (starting-with* [0]))
+(def one (starting-with* [1]))
+(def identity (starting-with* [0 1]))
 
 (defn constant
-  ([c] (constant v/arity:exactly-0))
-  ([c arity] (starting-with* [c] arity)))
+  [c] (starting-with* [c]))
 
 (defn partial-sums
-  "Form the infinite sequence of partial sums of the given series"
+  "Form the series of partial sums of the given series"
   [^Series s]
-  (->Series (.-arity s) (reductions g/+ s)))
+  (->Series (reductions g/+ s)))
 
 (defn fmap
-  [f ^Series s]
-  (->Series (.-arity s)
-            (map f s)))
+  "TODO switch between series, power series"
+  [f s]
+  (->Series (map f s)))
 
 (defn sum [s n]
   (transduce (take (inc n)) g/+ s))
-
-;; ## Examples
-
-(defn value
-  "Find the value of the series S applied to the argument x.
-  This assumes that S is a series of applicables. If, in fact, S is a
-  series of series-valued applicables, then the result will be a sort
-  of layered sum of the values.
-
-  Concretely, suppose that S has the form
-
-    [[A1 A2 A3...] [B1 B2 B3...] [C1 C2 C3...]...]
-
-  Then, this series applied to x will yield the series of values
-    [(A1 x) (+ (A2 x) (B1 x)) (+ (A3 x) (B2 x) (C1 x)) ...]"
-  [^Series S x]
-  (letfn [(collect [[s & s-tail]]
-            (let [first-result (s x)]
-              (if (series? first-result)
-                (let [[r & r-tail] first-result]
-                  (lazy-seq (cons r (seq:+ r-tail (collect s-tail)))))
-
-                ;; note that we have already realized first-result,
-                ;; so it does not need to be behind lazy-seq.
-                (cons first-result (lazy-seq (collect s-tail))))))]
-    (cond (= (.-arity S) v/arity:exactly-0)
-          (->Series (.-arity S)
-                    (collect (.-s S)))
-
-          :else (u/unsupported
-                 (str "Cannot apply series of arity " (:arity S))))))
 
 ;; ## Generic Implementations
 
 (derive ::x/numerical-expression ::coseries)
 
-(defmethod g/add [::series ::series] [^Series s ^Series t]
-  {:pre [(= (.-arity s) (.-arity t))]}
-  (->Series (.-arity s) (seq:+ (.-s s) (.-s t))))
+;; ### Series Implementations
 
-;; TODO complete this theme!
-(defmethod g/add [v/seqtype ::series] [xs ^Series s]
-  (g/add (starting-with* xs (.-arity s)) s))
+(doseq [[ctor kind] [[->Series ::series]
+                     [->PowerSeries ::power-series]]]
+  (defmethod g/add [kind kind] [s t]
+    (ctor (seq:+ (seq s) (seq t))))
 
-(defmethod g/add [::series v/seqtype] [^Series s xs]
-  (g/add s (starting-with* xs (.-arity s))))
+  (defmethod g/add [::coseries kind] [c s]
+    (ctor (c+seq c (seq s))))
 
-(defmethod g/add [::coseries ::series] [c ^Series s]
-  (->Series (.-arity s) (c+seq c s)))
+  (defmethod g/add [kind ::coseries] [s c]
+    (ctor (seq+c (seq s) c)))
 
-(defmethod g/add [::series ::coseries] [^Series s c]
-  (->Series (.-arity s) (seq+c s c)))
+  (defmethod g/negate [kind] [s]
+    (ctor (seq:negate (seq s))))
 
-(defmethod g/negate [::series] [s] (fmap g/negate s))
+  (defmethod g/sub [kind kind] [s t]
+    (ctor (seq:- (seq s) (seq t))))
 
-(defmethod g/sub [::series ::series] [^Series s ^Series t]
-  {:pre [(= (.-arity s) (.-arity t))]}
-  (->Series (.-arity s) (seq:- (.-s s) (.-s t))))
+  (defmethod g/sub [::coseries kind] [c s]
+    (ctor (c-seq c (seq s))))
 
-(defmethod g/sub [::coseries ::series] [c ^Series s]
-  (->Series (.-arity s) (c-seq c s)))
+  (defmethod g/sub [kind ::coseries] [s c]
+    (ctor (seq-c (seq s) c)))
 
-(defmethod g/sub [::series ::coseries] [^Series s c]
-  (->Series (.-arity s) (seq-c s c)))
+  (defmethod g/mul [kind kind] [s t]
+    (ctor (seq:* (seq s) (seq t))))
 
-(defmethod g/mul [::series ::series] [^Series s ^Series t]
-  {:pre [(= (.-arity s) (.-arity t))]}
-  (->Series (.-arity s) (seq:* (.-s s) (.-s t))))
+  (defmethod g/mul [::coseries kind] [c s]
+    (ctor (c*seq c (seq s))))
 
-(defmethod g/mul [::coseries ::series] [c ^Series s]
-  (->Series (.-arity s) (c*seq c (.-s s))))
+  (defmethod g/mul [kind ::coseries] [s c]
+    (ctor (seq*c (seq s) c)))
 
-(defmethod g/mul [::series ::coseries] [^Series s c]
-  (->Series (.-arity s) (seq*c (.-s s) c)))
+  (defmethod g/square [kind] [s]
+    (let [xs (seq s)]
+      (ctor (seq:* xs xs))))
 
-(defmethod g/square [::series] [s] (g/mul s s))
+  (defmethod g/cube [kind] [s]
+    (let [xs (seq s)]
+      (ctor (seq:* (seq:* xs xs) xs))))
 
-(defmethod g/cube [::series] [s] (g/mul (g/mul s s) s))
+  (defmethod g/invert [kind] [s]
+    (ctor (seq:invert (seq s))))
 
-(defmethod g/invert [::series] [^Series s]
-  (->Series (.-arity s) (seq:invert (.-s s))))
+  (defmethod g/div [::coseries kind] [c s]
+    (ctor (c-div-seq c (seq s))))
 
-(defmethod g/div [::coseries ::series] [c ^Series s]
-  (c*seq c (seq:invert (.-s s))))
+  (defmethod g/div [kind ::coseries] [s c]
+    (ctor (seq-div-c (seq s) c)))
 
-(defmethod g/div [::series ::coseries] [^Series s c]
-  (fmap #(g// % c) s))
+  (defmethod g/div [kind kind] [s t]
+    (ctor (seq:div (seq s) (seq t)))))
 
-(defmethod g/div [::series ::series] [^Series s ^Series t]
-  {:pre [(= (.-arity s) (.-arity t))]}
-  (->Series (.-arity s) (seq:div (.-s s) (.-s t))))
+;; ## Derivatives
 
 (defmethod g/partial-derivative [::series v/seqtype] [^Series s selectors]
-  (let [a (.-arity s)]
-    (condp = a
-      v/arity:exactly-0
-      (->Series a (map #(g/partial-derivative % selectors) (.-s s)))
+  (->Series s (map #(g/partial-derivative % selectors)
+                   (.-xs s))))
 
-      v/arity:exactly-1
-      (if (empty? selectors)
-        (->Series (.-arity s) (seq:deriv (.-s s)))
-        (u/illegal (str "Cannot yet take partial derivatives of a series: "
-                        s selectors)))
+(defmethod g/partial-derivative [::power-series v/seqtype] [^PowerSeries s selectors]
+  (if (empty? selectors)
+    (->PowerSeries (seq:deriv (.-xs s)))
+    (u/illegal
+     (str "Cannot yet take partial derivatives of a power series: " s selectors))))
 
-      :else
-      (u/illegal (str "Can't differentiate series with arity " a)))))
+(def exp-series (->PowerSeries expx))
+(def sin-series (->PowerSeries sinx))
+(def cos-series (->PowerSeries cosx))

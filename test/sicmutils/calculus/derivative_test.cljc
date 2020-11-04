@@ -20,6 +20,7 @@
 (ns sicmutils.calculus.derivative-test
   (:refer-clojure :exclude [+ - * / ref partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [same :refer [ish?]]
             [sicmutils.calculus.derivative :as d
              :refer [D partial #?(:cljs Differential)]]
             [sicmutils.complex :refer [complex]]
@@ -27,6 +28,7 @@
                :cljs [sicmutils.function :as f :refer-macros [with-literal-functions]])
             [sicmutils.generic :as g :refer [acos asin atan cos sin tan log exp expt + - * /]]
             [sicmutils.matrix :as matrix]
+            [sicmutils.series :as series]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :as s]
             [sicmutils.value :as v])
@@ -472,7 +474,9 @@
   (testing "eq. 5.291"
     (let [V (fn [[xi eta]] (g/sqrt (+ (g/square (+ xi 'R_0)) (g/square eta))))]
       (is (= '[R_0 xi (/ (expt eta 2) (* 2 R_0))]
-             (take 3 (g/simplify (d/taylor-series-terms V (s/up 0 0) (s/up 'xi 'eta)))))))))
+             (->> (d/taylor-series-terms V (s/up 0 0) (fn [x] (* x (s/up 'xi 'eta))))
+                  (g/simplify)
+                  (take 3)))))))
 
 (deftest moved-from-structure-and-matrix
   (let [vs (s/up
@@ -604,3 +608,18 @@
     (is (= 0 (g/simplify (dU 'x)))))
   (let [odear (fn [z] ((D (f/compose sin cos)) z))]
     (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify (odear 'x))))))
+
+
+(deftest more-tests
+  (testing "from refman"
+    (is (ish? [1 0 -1/2 0 1/24 0 -1/720 0]
+              (take 8 (((g/exp D) g/cos) 0))))
+
+    (is (ish? [1.0 1.0
+               0.5 0.5
+               0.5416666666666667 0.5416666666666667
+               0.5402777777777777 0.5402777777777777
+               0.5403025793650794 0.5403025793650794]
+              (into [] (comp (take 10)
+                             (map double))
+                    (series/partial-sums (((g/exp D) g/cos) 0)))))))

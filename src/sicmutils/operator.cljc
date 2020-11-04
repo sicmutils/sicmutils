@@ -21,6 +21,7 @@
   (:require [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.series :as series]
+            [sicmutils.structure :as struct]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -28,11 +29,17 @@
 
 (defrecord Operator [o arity name context]
   v/Value
-  (freeze [_] (v/freeze name))
-  (kind [_] (:subtype context))
-  (numerical? [_] false)
   (nullity? [_] false)
   (unity? [_] false)
+  (zero-like [_] (Operator. v/zero-like arity 'zero context))
+  (one-like [_] (Operator. identity arity 'identity context))
+  (numerical? [_] false)
+  (freeze [_] (v/freeze name))
+  (kind [_] (:subtype context))
+
+  Object
+  (toString [_] (let [n (v/freeze name)]
+                  (str (if (seqable? n) (seq n) n))))
 
   #?@(:clj
       [IFn
@@ -43,7 +50,11 @@
        (applyTo [_ fns] (apply o fns))]
 
       :cljs
-      [IFn
+      [IPrintWithWriter
+       (-pr-writer [x writer _]
+                   (write-all writer (.toString x)))
+
+       IFn
        (-invoke [_ a] (o a))
        (-invoke [_ a b] (o a b))
        (-invoke [_ a b c] (o a b c))
@@ -66,6 +77,10 @@
        (-invoke [_ a b c d e f g h i j k l m n o p q r s t] (o a b c d e f g h i j k l m n o p q r s t))
        (-invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
                 (apply o a b c d e f g h i j k l m n o p q r s t rest))]))
+
+#?(:clj
+   (defmethod print-method Operator [^Operator s ^java.io.Writer w]
+     (.write w (.toString s))))
 
 (defn make-operator
   [o name & {:keys [] :as context}]
@@ -170,27 +185,26 @@
 ;; I + g + 1/2 g^2 + ... + 1/n! g^n
 ;; where (as elsewhere) exponentiating the operator means n-fold composition
 
-;; TODO NOTE that this gives us the exp-series, and we can really simplify this
-;; if we do some work on the power series representation.
-#_
-(letfn [(step [n n! g**n]
-          (lazy-seq (cons (g/divide g**n n!)
-                          (step (inc n) (g/* n! (inc n)) (g/* 'x g**n)))))]
-  (into [] (comp (map g/simplify) (take 10))(step 0 1 1)))
-
 (defmethod g/exp [::operator] [g]
-  (letfn [(step [n n! g**n]
-            (lazy-seq (cons (g/divide g**n n!)
-                            (step (inc n) (* n! (inc n)) (o*o g g**n)))))]
-    (->Operator (fn [f]
-                  ;; TODO make this more obviously in line with the Scheme implementation!
-                  (partial series/value
-                           (series/->Series
-                            [:exactly 0]
-                            (map #(% f) (step 0 1 identity-operator)))))
-                [:exactly 1]
-                `(~'exp ~(:name g))
-                (:context g))))
+  (assert (= (:arity g) [:exactly 1]) "g/exp ::operator")
+  (->Operator (series/exp-series g)
+              [:exactly 1]
+              `(~'exp ~(:name g))
+              (:context g)))
+
+(defmethod g/cos [::operator] [g]
+  (assert (= (:arity g) [:exactly 1]) "g/cos ::operator")
+  (->Operator (series/cos-series g)
+              [:exactly 1]
+              `(~'cos ~(:name g))
+              (:context g)))
+
+(defmethod g/sin [::operator] [g]
+  (assert (= (:arity g) [:exactly 1]) "g/sin ::operator")
+  (->Operator (series/sin-series g)
+              [:exactly 1]
+              `(~'sin ~(:name g))
+              (:context g)))
 
 (defmethod g/add [::operator ::operator] [o p] (o+o o p))
 

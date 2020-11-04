@@ -64,8 +64,7 @@
 
 (def ^:private fx+h
   (->> (d/taylor-series-terms func 'x 'h)
-       (take 5)
-       (reduce g/+)))
+       (transduce (take 5) g/+)))
 
 ;; Use `show` to print out its infix representation:
 

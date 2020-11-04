@@ -66,8 +66,11 @@
 
        IPrintWithWriter
        (-pr-writer [x writer _]
-                   (write-all writer (.toString x)))
-       ]))
+                   (write-all writer (.toString x)))]))
+
+#?(:clj
+   (defmethod print-method Differential [^Differential s ^java.io.Writer w]
+     (.write w (.toString s))))
 
 (defn differential?
   [x]
@@ -479,11 +482,21 @@
   (o/make-operator #(g/partial-derivative % selectors)
                    :partial-derivative))
 
+(defn old-taylor-series-terms
+  "The (infinite) sequence of terms of the taylor series of the function f
+  evaluated at x, with incremental quantity dx."
+  [f x dx]
+  (letfn [(step [n n! Dnf dxn]
+            (lazy-seq
+             (cons (g/divide (g/* (Dnf x) dxn)
+                             n!)
+                   (step (inc n)
+                         (g/* n! (inc n)) (D Dnf)
+                         (g/* dxn dx)))))]
+    (step 0 1 f 1)))
+
 (defn taylor-series-terms
   "The (infinite) sequence of terms of the taylor series of the function f
   evaluated at x, with incremental quantity dx."
   [f x dx]
-  (let [step (fn step [n n! Dnf dxn]
-               (lazy-seq (cons (g/divide (g/* (Dnf x) dxn) n!)
-                               (step (inc n) (g/* n! (inc n)) (D Dnf) (g/* dxn dx)))))]
-    (step 0 1 f 1)))
+  (((g/exp (g/* dx D)) f) x))
