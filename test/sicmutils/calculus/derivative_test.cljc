@@ -462,7 +462,7 @@
              (* dx (((partial 0) f) (up x y)))
              (* dy (((partial 1) f) (up x y)))
              (f (up x y)))
-         (->> (d/taylor-series-terms
+         (->> (d/taylor-series
                (f/literal-function 'f (s/up 0 0) 0)
                (s/up 'x 'y)
                (s/up 'dx 'dy))
@@ -472,9 +472,13 @@
               (v/freeze))))
 
   (testing "eq. 5.291"
-    (let [V (fn [[xi eta]] (g/sqrt (+ (g/square (+ xi 'R_0)) (g/square eta))))]
+    (let [V  (fn [[xi eta]]
+               (g/sqrt (+ (g/square (+ xi 'R_0))
+                          (g/square eta))))
+          x  (s/up 0 0)
+          dx (s/up 'xi 'eta)]
       (is (= '[R_0 xi (/ (expt eta 2) (* 2 R_0))]
-             (->> (d/taylor-series-terms V (s/up 0 0) (fn [x] (* x (s/up 'xi 'eta))))
+             (->> (d/taylor-series V x dx)
                   (g/simplify)
                   (take 3)))))))
 
@@ -543,27 +547,26 @@
              (g/simplify ((as-matrix (D C-general)) s)))))))
 
 (deftest taylor-moved-from-series
-  (let [taylor-series-expander (fn [f x h]
-                                 (((g/exp (* h D)) f) x))]
-    (is (= '(+ (* (/ 1 24) (expt dx 4) (sin x))
-               (* (/ -1 6) (expt dx 3) (cos x))
-               (* (/ -1 2) (expt dx 2) (sin x))
-               (* dx (cos x))
-               (sin x))
-           (v/freeze
-            (g/simplify
-             (reduce + (take 5 (taylor-series-expander g/sin 'x 'dx)))))))
-    (is (= '(1
-             (* (/ 1 2) dx)
-             (* (/ -1 8) (expt dx 2))
-             (* (/ 1 16) (expt dx 3))
-             (* (/ -5 128) (expt dx 4))
-             (* (/ 7 256) (expt dx 5)))
-           (v/freeze
-            (g/simplify
-             (take 6 (taylor-series-expander
-                      (fn [x] (g/sqrt (+ (v/one-like x) x)))
-                      0 'dx))))))))
+  (is (= '(+ (* (/ 1 24) (expt dx 4) (sin x))
+             (* (/ -1 6) (expt dx 3) (cos x))
+             (* (/ -1 2) (expt dx 2) (sin x))
+             (* dx (cos x))
+             (sin x))
+         (v/freeze
+          (g/simplify
+           (-> (d/taylor-series g/sin 'x 'dx)
+               (series/sum 4))))))
+  (is (= '(1
+           (* (/ 1 2) dx)
+           (* (/ -1 8) (expt dx 2))
+           (* (/ 1 16) (expt dx 3))
+           (* (/ -5 128) (expt dx 4))
+           (* (/ 7 256) (expt dx 5)))
+         (v/freeze
+          (g/simplify
+           (take 6 (d/taylor-series
+                    (fn [x] (g/sqrt (+ (v/one-like x) x)))
+                    0 'dx)))))))
 
 (deftest derivative-of-matrix
   (let [M (matrix/by-rows [(f/literal-function 'f) (f/literal-function 'g)]

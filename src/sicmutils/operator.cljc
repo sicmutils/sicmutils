@@ -83,7 +83,7 @@
      (.write w (.toString s))))
 
 (defn make-operator
-  [o name & {:keys [] :as context}]
+  [o name & {:as context}]
   (->Operator o
               (or (:arity context) [:exactly 1])
               name
@@ -113,14 +113,14 @@
 
 (defn ^:private number->operator
   "Lift a number to an operator which multiplies its
-  applied function by that number (nb: in function arithmentic,
+  applied function by that number (nb: in function arithmetic,
   this is pointwise multiplication)"
   [n]
   (->Operator #(apply g/* n %&) [:at-least 0] n {:subtype ::operator}))
 
 (defn ^:private o-o
-  "Subtract one operator from another. Produces an operator which
-  computes the difference of applying the supplied operators."
+  "Subtract one operator from another. Produces an operator which computes the
+  difference of applying the supplied operators."
   [o p]
   (->Operator #(g/- (apply o %&) (apply p %&))
               (v/joint-arity [(:arity o) (:arity p)])
@@ -128,15 +128,14 @@
               (joint-context o p)))
 
 (defn ^:private o+o
-  "Add two operators. Produces an operator which adds the result of
-  applying the given operators."
+  "Add two operators. Produces an operator which adds the result of applying the
+  given operators."
   [o p]
   (->Operator #(g/+ (apply o %&) (apply p %&))
               (v/joint-arity [(v/arity o) (v/arity p)])
               `(~'+ ~(:name o) ~(:name p))
               (joint-context o p)))
 
-;; multiplication of operators is treated like composition.
 (defn ^:private o*o
   "Multiplication of operators is defined as their composition"
   [o p]
@@ -148,8 +147,8 @@
               (:context p)))
 
 (defn ^:private o*f
-  "Multiply an operator by a non-operator on the right. The
-  non-operator acts on its argument by multiplication."
+  "Multiply an operator by a non-operator on the right. The non-operator acts on
+  its argument by multiplication."
   [o f]
   (->Operator (fn [& gs]
                 (apply o (map (fn [g] (g/* f g)) gs)))

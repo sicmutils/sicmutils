@@ -482,21 +482,10 @@
   (o/make-operator #(g/partial-derivative % selectors)
                    :partial-derivative))
 
-(defn old-taylor-series-terms
+(defn taylor-series
   "The (infinite) sequence of terms of the taylor series of the function f
-  evaluated at x, with incremental quantity dx."
-  [f x dx]
-  (letfn [(step [n n! Dnf dxn]
-            (lazy-seq
-             (cons (g/divide (g/* (Dnf x) dxn)
-                             n!)
-                   (step (inc n)
-                         (g/* n! (inc n)) (D Dnf)
-                         (g/* dxn dx)))))]
-    (step 0 1 f 1)))
+  evaluated at x, with incremental quantity dx.
 
-(defn taylor-series-terms
-  "The (infinite) sequence of terms of the taylor series of the function f
-  evaluated at x, with incremental quantity dx."
+  NOTE explain how this `constantly` trick works for structures."
   [f x dx]
-  (((g/exp (g/* dx D)) f) x))
+  (((g/exp (g/* (constantly dx) D)) f) x))

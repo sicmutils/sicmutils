@@ -23,7 +23,7 @@
             [hiccup.page :refer :all]
             [clojure.string :as s]
             [sicmutils.env :refer :all]
-            [sicmutils.calculus.derivative :refer [taylor-series-terms]]
+            [sicmutils.calculus.derivative :refer [taylor-series]]
             [sicmutils.examples.driven-pendulum :as driven]
             [sicmutils.examples.double-pendulum :as double]
             [sicmutils.examples.central-potential :as central])
@@ -60,14 +60,13 @@
             ["up-of-downs" (simplify (up (down 'a 'b) (down 'c 'd)))]
             ["product" (simplify (* (down 'a 'b) (up 'c 'd)))]
             ["expansion" (simplify
-                          (reduce +
-                                  (take 3 (taylor-series-terms
-                                           (literal-function 'f (up 0 0) 0)
-                                           (up 'x 'y)
-                                           (up 'dx 'dy)))))]
+                          (-> (taylor-series
+                               (literal-function 'f (up 0 0) 0)
+                               (up 'x 'y)
+                               (up 'dx 'dy))
+                              (series:sum 2)))]
 
-            ["dcot" (simplify ((D (/ tan)) 'x))]
-            ]]
+            ["dcot" (simplify ((D (/ tan)) 'x))]]]
        (let [t (->TeX eqn)]
          [:div
           [:h3 name]

@@ -63,7 +63,7 @@
 ;; Here's the taylor series expansions of $f(x + h)$:
 
 (def ^:private fx+h
-  (->> (d/taylor-series-terms func 'x 'h)
+  (->> (d/taylor-series func 'x 'h)
        (transduce (take 5) g/+)))
 
 ;; Use `show` to print out its infix representation:
@@ -104,9 +104,9 @@
 ;; We could also expand $f(x - h)$:
 
 (def ^:private fx-h
-  (->> (d/taylor-series-terms func 'x (g/negate 'h))
-       (take 5)
-       (reduce g/+)))
+
+  (->> (d/taylor-series func 'x (g/negate 'h))
+       (transduce (take 5) g/+)))
 
 #_
 (show fx-h)

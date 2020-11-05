@@ -790,7 +790,10 @@
     (ctor (seq-div-c (seq s) c)))
 
   (defmethod g/div [kind kind] [s t]
-    (ctor (seq:div (seq s) (seq t)))))
+    (ctor (seq:div (seq s) (seq t))))
+
+  (defmethod g/simplify [kind] [s]
+    (map g/simplify (seq s))))
 
 ;; ## Derivatives
 
