@@ -50,11 +50,7 @@
        (applyTo [_ fns] (apply o fns))]
 
       :cljs
-      [IPrintWithWriter
-       (-pr-writer [x writer _]
-                   (write-all writer (.toString x)))
-
-       IFn
+      [IFn
        (-invoke [_ a] (o a))
        (-invoke [_ a b] (o a b))
        (-invoke [_ a b c] (o a b c))
@@ -77,6 +73,12 @@
        (-invoke [_ a b c d e f g h i j k l m n o p q r s t] (o a b c d e f g h i j k l m n o p q r s t))
        (-invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
                 (apply o a b c d e f g h i j k l m n o p q r s t rest))]))
+
+#?(:cljs
+   (extend-type Operator
+     IPrintWithWriter
+     (-pr-writer [x writer _]
+       (write-all writer (.toString x)))))
 
 #?(:clj
    (defmethod print-method Operator [^Operator s ^java.io.Writer w]

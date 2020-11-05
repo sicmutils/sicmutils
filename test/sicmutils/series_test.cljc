@@ -32,9 +32,9 @@
 ")
 (deftest series-test
   (testing "basics"
-    (let [Q (series/starting-with 4)
-          R (series/starting-with 4 3)
-          S (series/starting-with 4 3 2)
+    (let [Q (series/series 4)
+          R (series/series 4 3)
+          S (series/series 4 3 2)
           ones (series/generate (constantly 1))
           nats0 (series/generate identity)
           nats (series/generate inc)]
@@ -101,13 +101,13 @@
       (is (= '(0 r (* 2 r) (* 3 r))
              (g/simplify (take 4 (g/* 'r nats0)))))
       (is (= '(3 5 7 0 0 0 0 0)
-             (take 8 (g/+ (series/starting-with 1 2 3)
-                          (series/starting-with 2 3 4)))))
+             (take 8 (g/+ (series/series 1 2 3)
+                          (series/series 2 3 4)))))
       (is (= '(1 4 10 12 9 0 0)
              (g/simplify
               (take 7 (g/*
-                       (series/starting-with 1 2 3)
-                       (series/starting-with 1 2 3))))))
+                       (series/series 1 2 3)
+                       (series/series 1 2 3))))))
 
       ;; the tetrahedral numbers
       (is (= '(1 4 10 20 35 56 84)

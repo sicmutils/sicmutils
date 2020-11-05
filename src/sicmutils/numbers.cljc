@@ -203,20 +203,20 @@
      ;; Implementation of exponent taken from Clojure's numeric tower's
      ;; expt-int:
      ;; https://github.com/clojure/math.numeric-tower/blob/master/src/main/clojure/clojure/math/numeric_tower.clj#L72
-     (letfn [(goog-expt [base pow]
+     (letfn [(long-expt [base pow]
                (loop [^Long n pow
                       ^Long y (.getOne Long)
                       ^Long z base]
-                 (let [t (not (.isOdd ^Long n))
-                       n (.shiftRight ^Long n 1)]
+                 (let [t (not (.isOdd n))
+                       n ^Long (.shiftRight n 1)]
                    (cond
                      t (recur n y (.multiply z z))
                      (.isZero n) (.multiply z y)
                      :else (recur n (.multiply z y) (.multiply z z))))))]
        (defmethod g/expt [Long Long] [a ^Long b]
          (if (.isNegative b)
-           (g/invert (goog-expt a (.negate b)))
-           (goog-expt a b))))
+           (g/invert (long-expt a (.negate b)))
+           (long-expt a b))))
 
      ;; Compatibility between basic number type and the google numeric types.
      ;; Any operation between a number and a Long or Integer will promote the
@@ -237,20 +237,20 @@
      (defmethod g/remainder [Integer Integer] [^Integer a ^Integer b] (.modulo a b))
      (defmethod g/magnitude [Integer] [^Integer a] (if (.isNegative a) (.negate a) a))
 
-     (letfn [(goog-expt [base pow]
+     (letfn [(int-expt [base pow]
                (loop [^Integer n pow
                       ^Integer y (.-ONE Integer)
                       ^Integer z base]
-                 (let [t (not (.isOdd ^Integer n))
-                       n (.shiftRight ^Integer n 1)]
+                 (let [t (not (.isOdd n))
+                       ^Integer n (.shiftRight n 1)]
                    (cond
                      t (recur n y (.multiply z z))
                      (.isZero n) (.multiply z y)
                      :else (recur n (.multiply z y) (.multiply z z))))))]
        (defmethod g/expt [Integer Integer] [a ^Integer b]
          (if (.isNegative b)
-           (g/invert (goog-expt a (.negate b)))
-           (goog-expt a b))))
+           (g/invert (int-expt a (.negate b)))
+           (int-expt a b))))
 
      ;; Compatibility between basic number type and the google numeric types.
      ;; Any operation between a number and a Long or Integer will promote the

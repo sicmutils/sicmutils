@@ -1,7 +1,7 @@
 {
-    "scripts": {
-        "test": "shadow-cljs compile test && node target/main/node-tests.js;",
-        "watch-test": "shadow-cljs watch test;"
+  "scripts": {
+    "test": "shadow-cljs compile test && node target/main/node-tests.js;",
+    "watch-test": "shadow-cljs watch test;"
   },
   "dependencies": {
     "complex.js": "^2.0.11",

@@ -31,6 +31,7 @@
             [sicmutils.series :as series]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :as s]
+            [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
      (:import [sicmutils.calculus.derivative Differential])))
@@ -615,7 +616,14 @@
 
 (deftest more-tests
   (testing "from refman"
-    (is (ish? [1 0 -1/2 0 1/24 0 -1/720 0]
+    (is (ish? [1
+               0
+               #sicm/ratio -1/2
+               0
+               #sicm/ratio 1/24
+               0
+               #sicm/ratio -1/720
+               0]
               (take 8 (((g/exp D) g/cos) 0))))
 
     (is (ish? [1.0 1.0
@@ -624,5 +632,5 @@
                0.5402777777777777 0.5402777777777777
                0.5403025793650794 0.5403025793650794]
               (into [] (comp (take 10)
-                             (map double))
+                             (map u/double))
                     (series/partial-sums (((g/exp D) g/cos) 0)))))))

@@ -120,7 +120,8 @@
 (def pi Math/PI)
 (def principal-value v/principal-value)
 
-(def series series/starting-with)
+(def series series/series)
+(def power-series series/power-series)
 (def series:sum series/sum)
 
 (defn tex$
