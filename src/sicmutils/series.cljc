@@ -808,12 +808,23 @@
      (str "Cannot yet take partial derivatives of a power series: " s selectors))))
 
 (def exp-series (->PowerSeries expx))
+
 (def sin-series (->PowerSeries sinx))
 (def cos-series (->PowerSeries cosx))
+(def tan-series (->PowerSeries tanx))
+(def sec-series (->PowerSeries secx))
+
+(def asin-series (->PowerSeries asinx))
+(def acos-series (->PowerSeries acosx))
+(def atan-series (->PowerSeries atanx))
+(def acot-series (->PowerSeries acotx))
+
 (def sinh-series (->PowerSeries sinhx))
 (def cosh-series (->PowerSeries coshx))
-(def tan-series (->PowerSeries tanx))
-(def atan-series (->PowerSeries atanx))
+(def tanh-series (->PowerSeries tanhx))
+(def asinh-series (->PowerSeries asinhx))
+(def atanh-series (->PowerSeries atanhx))
+
 (defn binomial-series [n]
   (->PowerSeries (binomial n)))
 

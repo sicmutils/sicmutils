@@ -172,6 +172,24 @@
 (defn anticommutator [o p]
   (g/+ (g/* o p) (g/* p o)))
 
+(defn exp [op]
+  (assert (= (:arity op) [:exactly 1]) "sicmutils.operator/exp")
+  (->Operator (series/exp-series op)
+              [:exactly 1]
+              `(~'exp ~(:name op))
+              (:context op)))
+
+(defn expn
+  "Optional order argument for exponentiation of operators."
+  ([op] (exp op))
+  ([op n]
+   (assert (= (:arity op) [:exactly 1]) "sicmutils.operator/expn")
+   (->Operator (-> (series/exp-series op)
+                   (series/inflate n))
+               [:exactly 1]
+               `(~'exp ~(:name op))
+               (:context op))))
+
 ;; Do we need to promote the second arg type (::v/integral)
 ;; to ::x/numerical-expression?? -- check this ***AG***
 (defmethod g/expt [::operator ::v/integral] [o n]
@@ -184,26 +202,21 @@
 ;; I + g + 1/2 g^2 + ... + 1/n! g^n
 ;; where (as elsewhere) exponentiating the operator means n-fold composition
 
-(defmethod g/exp [::operator] [g]
-  (assert (= (:arity g) [:exactly 1]) "g/exp ::operator")
-  (->Operator (series/exp-series g)
-              [:exactly 1]
-              `(~'exp ~(:name g))
-              (:context g)))
 
-(defmethod g/cos [::operator] [g]
-  (assert (= (:arity g) [:exactly 1]) "g/cos ::operator")
-  (->Operator (series/cos-series g)
-              [:exactly 1]
-              `(~'cos ~(:name g))
-              (:context g)))
-
-(defmethod g/sin [::operator] [g]
-  (assert (= (:arity g) [:exactly 1]) "g/sin ::operator")
-  (->Operator (series/sin-series g)
-              [:exactly 1]
-              `(~'sin ~(:name g))
-              (:context g)))
+(doseq [[op f sym] [[g/exp series/exp-series 'exp]
+                    [g/cos series/cos-series 'cos]
+                    [g/sin series/sin-series 'sin]
+                    [g/tan series/tan-series 'tan]
+                    [g/acos series/acos-series 'acos]
+                    [g/asin series/asin-series 'asin]
+                    [g/atan series/atan-series 'atan]]]
+  (let [assert-str (str "g/" sym " :sicmutils.operator/operator")]
+    (defmethod op [::operator] [g]
+      (assert (= (:arity g) [:exactly 1]) assert-str)
+      (->Operator (f g)
+                  [:exactly 1]
+                  `(~sym ~(:name g))
+                  (:context g)))))
 
 (defmethod g/add [::operator ::operator] [o p] (o+o o p))
 
