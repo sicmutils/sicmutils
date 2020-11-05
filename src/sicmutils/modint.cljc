@@ -35,7 +35,7 @@
       (int:= (modulo (mod:residue x) modulus)
              (modulo (mod:residue y) modulus)))))
 
-(deftype ModInt [i m]
+(defrecord ModInt [i m]
   v/Value
   (nullity? [_] (v/nullity? i))
   (unity? [_] (v/unity? i))
@@ -47,14 +47,13 @@
 
   ;; TODO add a string representation, etc, and a type tag so we can define
   ;; these with a pair.
-  #?@(:clj
-      [Object
-       (equals [_ b])]
+  ;; #?@(:clj
+  ;;     [Object
+  ;;      (equals [_ b])]
 
-      :cljs
-      [IEquiv
-       (-equiv [_ b])])
-
+  ;;     :cljs
+  ;;     [IEquiv
+  ;;      (-equiv [_ b])])
   )
 
 (defn make [i m]
@@ -62,9 +61,9 @@
 
 (defn ^:private modular-binop [op]
   (fn [^ModInt a ^ModInt b]
-    (if-not (= (.-m a) (.-m b))
+    (if-not (= (:m a) (:m b))
       (u/arithmetic-ex "unequal moduli")
-      (make (op (.-i a) (.-i b)) (.-m a)))))
+      (make (op (:i a) (:i b)) (:m a)))))
 
 (defn ^:private modular-inv [^ModInt m]
   (let [modulus (:m m)

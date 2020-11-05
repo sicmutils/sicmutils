@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.series
   (:refer-clojure :exclude [identity])
@@ -25,7 +25,7 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
-     (:import (clojure.lang AFn IFn Seqable ISeq Sequential))))
+     (:import (clojure.lang AFn IFn Seqable Sequential))))
 
 ;; # Power Series
 ;;
@@ -798,8 +798,8 @@
 ;; ## Derivatives
 
 (defmethod g/partial-derivative [::series v/seqtype] [^Series s selectors]
-  (->Series s (map #(g/partial-derivative % selectors)
-                   (.-xs s))))
+  (->Series (map #(g/partial-derivative % selectors)
+                 (.-xs s))))
 
 (defmethod g/partial-derivative [::power-series v/seqtype] [^PowerSeries s selectors]
   (if (empty? selectors)
@@ -810,3 +810,31 @@
 (def exp-series (->PowerSeries expx))
 (def sin-series (->PowerSeries sinx))
 (def cos-series (->PowerSeries cosx))
+(def sinh-series (->PowerSeries sinhx))
+(def cosh-series (->PowerSeries coshx))
+(def tan-series (->PowerSeries tanx))
+(def atan-series (->PowerSeries atanx))
+(defn binomial-series [n]
+  (->PowerSeries (binomial n)))
+
+;; TODO add more.
+
+;; Missing:
+;;
+;; - function-> takes the constant term and generates a power series.
+;; - ->function, turn into a power series
+;; - inflate, not sure yet!
+
+(defn inflate
+  "Inflates each term by a factor of n, so good."
+  [xs n]
+  (if (<= n 1)
+    xs
+    (let [zero  (v/zero-like (first xs))
+          zeros (repeat (dec n) zero)]
+      (->Series
+       (->> (map cons xs (repeat zeros))
+            (apply concat))))))
+
+;; - make nth work!
+;; - constant series
