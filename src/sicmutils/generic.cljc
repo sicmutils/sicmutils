@@ -91,7 +91,9 @@
 
 (def-generic-function mul 2)
 (def-generic-function invert 1)
+
 (def-generic-function div 2)
+(defmethod div :default [a] (mul a (invert a)))
 
 (def-generic-function exp 1)
 (def-generic-function log 1)
