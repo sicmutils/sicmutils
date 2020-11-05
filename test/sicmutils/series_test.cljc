@@ -25,6 +25,11 @@
 
 (use-fixtures :once hermetic-simplify-fixture)
 
+(comment
+  "TODO
+- test that nth works on series.
+- test that power-series, series keeps its type with fmap.
+")
 (deftest series-test
   (testing "basics"
     (let [Q (series/starting-with 4)

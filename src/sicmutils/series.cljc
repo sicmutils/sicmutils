@@ -520,7 +520,9 @@
 
   #?@
   (:clj
-   [Seqable
+   [Sequential
+
+    Seqable
     (seq [_] xs)
 
     IFn
@@ -571,7 +573,9 @@
     (applyTo [s xs] (AFn/applyToHelper s xs))]
 
    :cljs
-   [ISeqable
+   [ISequential
+
+    ISeqable
     (-seq [_] s)
 
     IPrintWithWriter
@@ -659,14 +663,18 @@
 
   #?@
   (:clj
-   [Seqable
+   [Sequential
+
+    Seqable
     (seq [_] xs)
 
     IFn
     (invoke [_ a] (Series. (seq:p-value xs a)))]
 
    :cljs
-   [ISeqable
+   [ISequential
+
+    ISeqable
     (-seq [_] xs)
 
     IFn
@@ -718,8 +726,8 @@
 (def one (starting-with* [1]))
 (def identity (starting-with* [0 1]))
 
-(defn constant
-  [c] (starting-with* [c]))
+(defn constant [c]
+  (starting-with* [c]))
 
 (defn partial-sums
   "Form the series of partial sums of the given series"
@@ -727,9 +735,12 @@
   (->Series (reductions g/+ s)))
 
 (defn fmap
-  "TODO switch between series, power series"
+  "TODO note that this is `elementwise` in the refman."
   [f s]
-  (->Series (map f s)))
+  (let [make (if (power-series? s)
+               ->PowerSeries
+               ->Series)]
+    (make (map f s))))
 
 (defn sum [s n]
   (transduce (take (inc n)) g/+ s))
@@ -828,13 +839,11 @@
 (defn binomial-series [n]
   (->PowerSeries (binomial n)))
 
-;; TODO add more.
-
 ;; Missing:
 ;;
 ;; - function-> takes the constant term and generates a power series.
 ;; - ->function, turn into a power series
-;; - inflate, not sure yet!
+;; - TODO rename `starting-with`, add a power series version.
 
 (defn inflate
   "Inflates each term by a factor of n, so good."
@@ -846,6 +855,3 @@
       (->Series
        (->> (map cons xs (repeat zeros))
             (apply concat))))))
-
-;; - make nth work!
-;; - constant series
