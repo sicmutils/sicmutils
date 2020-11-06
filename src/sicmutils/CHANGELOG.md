@@ -14,6 +14,14 @@ this resulted in a few upgrades along the way:
 
 Here are more explicit details on the release.
 
+### Misc
+
+`generic.cljc` now includes a default implementation of:
+
+- `expt` given a valid `mul`
+- default `sub`, given a valid `add` and `negate`
+- default `div`, given a valid `mul` and `invert`
+
 ### Clojurescript Support
 
 Full conversion of SICMUtils to Clojurescript. All functionality from v0.12.1

@@ -88,13 +88,13 @@
 (defmethod negative? :default [a] (< a (v/zero-like a)))
 
 (def-generic-function sub 2)
-(defmethod sub :default [a b] (add a (negate a)))
+(defmethod sub :default [a b] (add a (negate b)))
 
 (def-generic-function mul 2)
 (def-generic-function invert 1)
 
 (def-generic-function div 2)
-(defmethod div :default [a] (mul a (invert a)))
+(defmethod div :default [a b] (mul a (invert b)))
 
 (def-generic-function exp 1)
 (def-generic-function log 1)

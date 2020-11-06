@@ -60,6 +60,45 @@
     (is (= "foobar" (s+ "foo" "bar")))
     (is (= "zzz" (s+ "" "zzz")))))
 
+;; Install methods on a new, custom defrecord to test default implementations.
+
+(defrecord Wrap [s]
+  v/Value
+  (one-like [_] (Wrap. "1"))
+  (kind [_] ::wrap))
+
+(defmethod g/add [::wrap ::wrap] [l r]
+  (->Wrap (str (:s l) "+" (:s r))))
+
+(defmethod g/negate [::wrap] [s]
+  (->Wrap (str "-" (:s s))))
+
+(defmethod g/mul [::wrap ::wrap] [l r]
+  (cond (= (:s l) "1") r
+        (= (:s r) "1") l
+        :else (->Wrap (str (:s l) "*" (:s r)))))
+
+(defmethod g/invert [::wrap] [s]
+  (->Wrap (str "1/" (:s s))))
+
+(deftest generic-default-tests
+  (let [l (->Wrap "l")
+        r (->Wrap "r")]
+    (testing "sub comes for free from add and negate"
+      (is (= (->Wrap "l+r") (g/add l r)))
+      (is (= (->Wrap "-r") (g/negate r)))
+      (is (= (->Wrap "l+-r") (g/sub l r))))
+
+    (testing "expt comes for free from mul"
+      (is (= (->Wrap "l*r") (g/mul l r)))
+      (is (= (->Wrap "l*l*l*l*l*l") (g/expt l 6)))
+      (is (= (->Wrap "l*l*l*l") (g/expt l 4)))
+      (is (= l (g/expt l 1))))
+
+    (testing "div comes for free from mul and invert"
+      (is (= (->Wrap "1/l") (g/invert l)))
+      (is (= (->Wrap "l*1/r") (g/div l r))))))
+
 (deftest type-assigner
   (testing "types"
     (is (= #?(:clj Long :cljs ::v/native-integral) (v/kind 9)))
