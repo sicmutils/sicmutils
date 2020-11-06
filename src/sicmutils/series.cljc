@@ -488,32 +488,29 @@
 ;; D(Q) = {D(F) \over {2Q}}
 ;;
 ;; When the head term of $F$ is nonzero, ie, $f != 0$, the head of $Q =
-;; \sqrt(F)$ must be $\sqrt(f)$ for the multiplication to work out. The current
-;; implementation asserts that $f = q = 1$ (NOTE feel free to upgrade this!)
+;; \sqrt(F)$ must be $\sqrt(f)$ for the multiplication to work out.
 ;;
 ;; Integrate both sides:
 ;;
-;; Q = 1 + \int_0^x {D(F) \over {2Q}}
+;; Q = \sqrt(f) + \int_0^x {D(F) \over {2Q}}
 ;;
-;; One further optimization appears if the first two terms of $F$ vanish, ie,
+;; One optimization appears if the first two terms of $F$ vanish, ie,
 ;; $F=x^2F_2$. In this case $Q = 0 + x \sqrt(F_2)$.
 ;;
 ;; Here it is in Clojure:
 
 (defn seq:sqrt [[f1 & [f2 & fs] :as f]]
-  (letfn [(step [g]
-            (lazy-seq
-             (-> (seq:div
-                  (seq:deriv g)
-                  (c*seq 2 (step g)))
-                 (seq:integral 1))))]
-    (cond (and (v/nullity? f1)
-               (v/nullity? f2))
-          (cons f1 (step fs))
-
-          (v/unity? f1) (step f)
-
-          :else (u/illegal "Sequence must start with [0, 0] or 1."))))
+  (if (and (v/nullity? f1)
+           (v/nullity? f2))
+    (cons f1 (seq:sqrt fs))
+    (let [const (g/sqrt f1)
+          step  (fn step [g]
+                  (lazy-seq
+                   (-> (seq:div
+                        (seq:deriv g)
+                        (c*seq 2 (step g)))
+                       (seq:integral const))))]
+      (step f))))
 
 ;; And a test that we can recover the naturals:
 
@@ -523,11 +520,20 @@
      (take 6 (seq:* (seq:sqrt xs)
                     (seq:sqrt xs)))))
 
+;; We can maintain precision of the first element is the square of a rational
+;; number:
+
+#_
+(let [xs (iterate inc 9)]
+  (= [9 10 11 12 13 14]
+     (take 6 (seq:* (seq:sqrt xs)
+                    (seq:sqrt xs)))))
+
 ;; We get a correct result if the sequence starts with 0, 0:
 
 #_
-(let [xs (concat [0 0] (iterate inc 1))]
-  (= [0 0 1 2 3 4]
+(let [xs (concat [0 0] (iterate inc 9))]
+  (= [0 0 9 10 11 12]
      (take 6 (seq:* (seq:sqrt xs)
                     (seq:sqrt xs)))))
 

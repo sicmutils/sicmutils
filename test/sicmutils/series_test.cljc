@@ -129,8 +129,14 @@
                         (@#'s/seq:sqrt xs)
                         (@#'s/seq:sqrt xs))))))
 
-      (let [xs (concat [0 0] (iterate inc 1))]
-        (is (= [0 0 1 2 3 4]
+      (let [xs (iterate inc 9)]
+        (is (= [9 10 11 12 13 14]
+               (take 6 (@#'s/seq:*
+                        (@#'s/seq:sqrt xs)
+                        (@#'s/seq:sqrt xs))))))
+
+      (let [xs (concat [0 0] (iterate inc 9))]
+        (is (= [0 0 9 10 11 12]
                (take 6 (@#'s/seq:*
                         (@#'s/seq:sqrt xs)
                         (@#'s/seq:sqrt xs)))))))
@@ -156,7 +162,9 @@
 
 (comment
   "TODO
--seq:p-value tests
+- seq:p-value tests for the case I worked out.
+- test that seq:sqrt is fine with a rational number, and ish? with floating
+  point.
 
 - test that nth works on series.
 - test that power-series, series keeps its type with fmap.
@@ -165,6 +173,7 @@
 - add integrate to the general API JUST for power series!
 - add sqrt
 ")
+
 (deftest series-test
   (testing "basics"
     (let [Q (s/series 4)
