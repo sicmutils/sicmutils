@@ -174,7 +174,17 @@
 (defn anticommutator [o p]
   (g/+ (g/* o p) (g/* p o)))
 
-(defn exp [op]
+(defn exp
+  "Returns an operator represented by a Taylor series expansion of $e^x$, applied
+  to `op`. This expanded series of operators is itself an operator that applies
+  each element to its argument.
+
+  Put another way: `(exp g)` to an operator g means forming the power series
+
+  I + g + 1/2 g^2 + ... + 1/n! g^n
+
+  where (as elsewhere) exponentiating the operator means n-fold composition."
+  [op]
   (assert (= (:arity op) [:exactly 1]) "sicmutils.operator/exp")
   (->Operator (series/exp-series op)
               [:exactly 1]
@@ -182,7 +192,8 @@
               (:context op)))
 
 (defn expn
-  "Optional order argument for exponentiation of operators."
+  "Similar to `exp`, but takes an optional argument `n` that defines an order for
+  each term of the taylor series expansion."
   ([op] (exp op))
   ([op n]
    (assert (= (:arity op) [:exactly 1]) "sicmutils.operator/expn")
@@ -192,18 +203,9 @@
                `(~'exp ~(:name op))
                (:context op))))
 
-;; Do we need to promote the second arg type (::v/integral)
-;; to ::x/numerical-expression?? -- check this ***AG***
-(defmethod g/expt [::operator ::v/integral] [o n]
+(defmethod g/expt [::operator ::v/native-integral] [o n]
   {:pre [(not (g/negative? n))]}
-  (loop [e identity-operator
-         n n]
-    (if (= n 0) e (recur (o*o e o) (dec n)))))
-
-;; e to an operator g means forming the power series
-;; I + g + 1/2 g^2 + ... + 1/n! g^n
-;; where (as elsewhere) exponentiating the operator means n-fold composition
-
+  (reduce o*o identity-operator (repeat n o)))
 
 (doseq [[op f sym] [[g/exp series/exp-series 'exp]
                     [g/cos series/cos-series 'cos]

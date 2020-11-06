@@ -483,9 +483,20 @@
                    :partial-derivative))
 
 (defn taylor-series
-  "The (infinite) sequence of terms of the taylor series of the function f
-  evaluated at x, with incremental quantity dx.
+  "Returns a `Series` of the coefficients of the taylor series of the function `f`
+  evaluated at `x`, with incremental quantity `dx`.
 
-  NOTE explain how this `constantly` trick works for structures."
+  NOTE: The `(constantly dx)` term is what allows this to work with arbitrary
+  structures of `x` and `dx`. Without this wrapper, `((g/* dx D) f)` with `dx`
+  == `(up 'dx 'dy)` would expand to this:
+
+  `(fn [x] (* (s/up ('dx x) ('dy x))
+              ((D f) x)))`
+
+  `constantly` delays the interpretation of `dx` one step:
+
+  `(fn [x] (* (s/up 'dx 'dy)
+              ((D f) x)))`
+  "
   [f x dx]
   (((g/exp (g/* (constantly dx) D)) f) x))
