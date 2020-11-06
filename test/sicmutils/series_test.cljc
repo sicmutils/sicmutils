@@ -21,7 +21,8 @@
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.generic :as g]
             [sicmutils.series :as s]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
+            [sicmutils.value :as v]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 
@@ -151,14 +152,14 @@
   (is (->> (@#'s/seq:- @#'s/sinx
             (@#'s/seq:sqrt (@#'s/c-seq 1 (@#'s/seq:expt @#'s/cosx 2))))
            (take 30)
-           (every? zero?)))
+           (every? v/nullity?)))
 
   (is (->> (@#'s/seq:- (@#'s/seq:div @#'s/sinx @#'s/cosx)
             (@#'s/seq:revert
              (@#'s/seq:integral
               (@#'s/seq:invert (@#'s/->series [1 0 1])))))
            (take 30)
-           (every? zero?))))
+           (every? v/nullity?))))
 
 (comment
   "TODO
