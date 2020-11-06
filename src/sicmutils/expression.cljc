@@ -34,6 +34,10 @@
   (freeze [_] (v/freeze expression))
   (kind [_] type))
 
+#?(:clj
+   (defmethod print-method Expression [^Expression s ^java.io.Writer w]
+     (.write w (.toString s))))
+
 (defn literal-number
   [expression]
   (if (number? expression)

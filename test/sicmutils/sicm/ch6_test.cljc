@@ -24,7 +24,6 @@
              :refer [+ - * / D simplify compose
                      up down
                      sin cos square exp]]
-            [sicmutils.series :as series]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.util :as u]))
 

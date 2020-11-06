@@ -21,7 +21,8 @@
   (:refer-clojure :rename {mod core-mod}
                   :exclude [/ + - * divide #?(:cljs mod)])
   (:require [sicmutils.value :as v]
-            [sicmutils.expression :as x])
+            [sicmutils.expression :as x]
+            [sicmutils.util :as u])
   #?(:cljs (:require-macros [sicmutils.generic :refer [def-generic-function]]))
   #?(:clj
      (:import [clojure.lang LazySeq PersistentVector Symbol Seqable Var])))
@@ -79,15 +80,21 @@
 
 ;; Numeric functions.
 (def-generic-function add 2)
-(def-generic-function mul 2)
-(def-generic-function sub 2)
-(def-generic-function div 2)
 (def-generic-function negate 1)
 (def-generic-function negative? 1
   "Returns true if the argument `a` is less than `(v/zero-like a), false
   otherwise. The default implementation depends on a proper Comparable
   implementation on the type.`")
 (defmethod negative? :default [a] (< a (v/zero-like a)))
+
+(def-generic-function sub 2)
+(defmethod sub :default [a b] (add a (negate b)))
+
+(def-generic-function mul 2)
+(def-generic-function invert 1)
+
+(def-generic-function div 2)
+(defmethod div :default [a b] (mul a (invert b)))
 
 (def-generic-function exp 1)
 (def-generic-function log 1)
@@ -106,6 +113,25 @@
       (add m b))))
 
 (def-generic-function expt 2)
+(defmethod expt :default [s e]
+  {:pre [(v/native-integral? e)]}
+  (let [kind (v/kind s)]
+    (if-let [mul' (get-method mul [kind kind])]
+      (letfn [(expt' [base pow]
+                (loop [n pow
+                       y (v/one-like base)
+                       z base]
+                  (let [t (even? n)
+                        n (quot n 2)]
+                    (cond
+                      t (recur n y (mul' z z))
+                      (zero? n) (mul' z y)
+                      :else (recur n (mul' z y) (mul' z z))))))]
+        (cond (pos? e)  (expt' s e)
+              (zero? e) (v/one-like e)
+              :else (invert (expt' s (negate e)))))
+      (u/illegal (str "No g/mul implementation registered for kind " kind)))))
+
 (def-generic-function gcd 2)
 (def-generic-function lcm 2)
 (def-generic-function exact-divide 2)
@@ -125,7 +151,6 @@
 (def-generic-function atan [1 2])
 
 ;; Operations on structures
-(def-generic-function invert 1)
 (def-generic-function transpose 1)
 (def-generic-function magnitude 1)
 (def-generic-function determinant 1)

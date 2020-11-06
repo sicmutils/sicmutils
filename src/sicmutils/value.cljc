@@ -87,9 +87,9 @@
 #?(:clj
    (do
      (derive Number ::number)
-     (derive Double ::floating-pont)
-     (derive Float ::floating-pont)
-     (derive BigDecimal ::floating-pont)
+     (derive Double ::floating-point)
+     (derive Float ::floating-point)
+     (derive BigDecimal ::floating-point)
      (derive Integer ::native-integral)
      (derive Long ::native-integral)
      (derive BigInt ::native-integral)
