@@ -493,7 +493,6 @@
 (defmethod g/simplify [::matrix] [m] (->> m (fmap g/simplify) v/freeze))
 (defmethod g/determinant [::matrix] [m] (determinant m))
 
-
 (defmethod g/determinant
   [::s/structure]
   [s]

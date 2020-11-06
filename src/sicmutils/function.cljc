@@ -176,18 +176,14 @@
                   f-arity (if f-numeric (v/arity g) (v/arity f))
                   g-arity (if g-numeric f-arity (v/arity g))
                   arity (v/joint-arity [f-arity g-arity])
-                  f1 (if f-numeric
-                       (with-meta
-                         (constantly f)
-                         {:arity arity
-                          :from :binop})
-                       f)
-                  g1 (if g-numeric
-                       (with-meta
-                         (constantly g)
-                         {:arity arity
-                          :from :binop})
-                       g)]
+                  f1 (if f-numeric (with-meta
+                                     (constantly f)
+                                     {:arity arity
+                                      :from :binop}) f)
+                  g1 (if g-numeric (with-meta
+                                     (constantly g)
+                                     {:arity arity
+                                      :from :binop}) g)]
               (let [h (condp = arity
                         [:exactly 0]
                         #(operator (f1) (g1))

@@ -745,6 +745,7 @@
 
 (defn ->function
   "This is series:->function, works to promote a series to a power series."
+  [s]
   (cond (power-series? s) s
         (series? s) (->PowerSeries (seq s))
         :else (u/illegal "non-series provided to ->function.")))

@@ -21,7 +21,8 @@
   (:refer-clojure :rename {mod core-mod}
                   :exclude [/ + - * divide #?(:cljs mod)])
   (:require [sicmutils.value :as v]
-            [sicmutils.expression :as x])
+            [sicmutils.expression :as x]
+            [sicmutils.util :as u])
   #?(:cljs (:require-macros [sicmutils.generic :refer [def-generic-function]]))
   #?(:clj
      (:import [clojure.lang LazySeq PersistentVector Symbol Seqable Var])))
@@ -113,20 +114,23 @@
 
 (def-generic-function expt 2)
 (defmethod expt :default [s e]
-  {:pre [(and (number? e) (v/integral? e))]}
-  (letfn [(expt' [base pow]
-            (loop [n pow
-                   y (v/one-like base)
-                   z base]
-              (let [t (even? n)
-                    n (quot n 2)]
-                (cond
-                  t (recur n y (mul z z))
-                  (zero? n) (mul z y)
-                  :else (recur n (mul z y) (mul z z))))))]
-    (cond (pos? e)  (expt' s e)
-          (zero? e) (v/one-like e)
-          :else (invert (expt' s (negate e))))))
+  {:pre [(v/native-integral? e)]}
+  (let [kind (v/kind s)]
+    (if-let [mul' (get-method mul [kind kind])]
+      (letfn [(expt' [base pow]
+                (loop [n pow
+                       y (v/one-like base)
+                       z base]
+                  (let [t (even? n)
+                        n (quot n 2)]
+                    (cond
+                      t (recur n y (mul' z z))
+                      (zero? n) (mul' z y)
+                      :else (recur n (mul' z y) (mul' z z))))))]
+        (cond (pos? e)  (expt' s e)
+              (zero? e) (v/one-like e)
+              :else (invert (expt' s (negate e)))))
+      (u/illegal (str "No g/mul implementation registered for kind " kind)))))
 
 (def-generic-function gcd 2)
 (def-generic-function lcm 2)

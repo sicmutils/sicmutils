@@ -428,9 +428,6 @@
   [arities]
   (reduce combine-arities [:at-least 0] arities))
 
-(def arity:exactly-0 [:exactly 0])
-(def arity:exactly-1 [:exactly 1])
-
 (defn ^:private primitive-kind
   [a]
   (cond
