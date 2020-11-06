@@ -24,6 +24,7 @@
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.calculus.manifold :as m :refer [R2-rect R3-cyl R3-rect]]
+            [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [cos sin + - * /]]
@@ -61,10 +62,6 @@
                 (g/simplify
                  ((((vf/evolution 6) 'a circular) (m/chart R2-rect))
                   ((m/point R2-rect) (up 1 0))))))))))
-
-  (testing "naming"
-    (let-coordinates [[x y] R2-rect]
-      (is (= 0 ))))
 
   (testing "gjs-examples"
     (let-coordinates [[x y z] R3-rect]
