@@ -36,7 +36,7 @@
 ;;   variable; in other words, a series where the nth entry is interpreted as
 ;;   the coefficient of $x^n$:
 ;;
-;; [a b c d ...] == $a + bx + cx^2 + dx^3 + ...$
+;; $$[a b c d ...] == $a + bx + cx^2 + dx^3 + ...$$
 ;;
 ;; Many of the functions below draw on the `sicmutils.series.impl` namespace,
 ;; which implements many of these operations on bare Clojure sequences.
@@ -641,8 +641,8 @@
 ;; Each of the following act like function composition, and compose their
 ;; operation with the function represented by the `PowerSeries`.
 ;;
-;; If `s` is a `PowerSeries` that applies as `(s x)`, `(g/exp s)` applies as ``
-;; is a series that represents `(g/exp (s x))`.
+;; If `s` is a `PowerSeries` that applies as `(s x)`, `(g/exp s)` returns a
+;; series that represents `(g/exp (s x))`.
 
 (defmethod g/exp [::power-series] [s]
   (->PowerSeries (i/compose i/expx (seq s))))

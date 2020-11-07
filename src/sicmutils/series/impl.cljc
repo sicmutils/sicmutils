@@ -33,7 +33,7 @@
 ;;   variable; in other words, a series where the nth entry is interpreted as
 ;;   the coefficient of $x^n$:
 ;;
-;; [a b c d ...] == $a + bx + cx^2 + dx^3 + ...$
+;; $$[a b c d ...] == $a + bx + cx^2 + dx^3 + ...$$
 ;;
 ;; We'll proceed by building up implementations of the arithmetic operations +,
 ;; -, *, / and a few others on bare Clojure lazy sequences, and then introduce
