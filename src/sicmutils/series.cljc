@@ -19,14 +19,21 @@
 
 (ns sicmutils.series
   (:refer-clojure :exclude [identity])
-  (:require [sicmutils.expression :as x]
+  (:require [sicmutils.series.impl :as i]
+            [sicmutils.expression :as x]
             [sicmutils.generic :as g]
-            [sicmutils.numbers]
-            [sicmutils.numsymb]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang AFn IFn Seqable Sequential))))
+
+;; Missing:
+;;
+;; - TODO function-> takes the constant term and generates a power series.
+;; - TODO ->function, turn into a power series
+;; - TODO rename `starting-with`, add a power series version.
+;; - TODO finish `impl` move of tests
+;; - TODO figure out which fns only make sense between the SAME type...
 
 ;; # Power Series
 ;;
@@ -39,662 +46,7 @@
 ;;
 ;; [a b c d ...] == $a + bx + cx^2 + dx^3 + ...$
 ;;
-;; We'll proceed by building up implementations of the arithmetic operations +,
-;; -, *, / and a few others on bare Clojure lazy sequences, and then introduce
-;; `deftype` wrappers so that we can install these types into the generic
-;; dispatch system.
-;;
-;; The implementation follows Doug McIlroy's beautiful paper, ["Power Series,
-;; Power
-;; Serious"](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.333.3156&rep=rep1&type=pdf).
-;; Doug also has a 10-line version in Haskell on [his
-;; website](https://www.cs.dartmouth.edu/~doug/powser.html).
-;;
-;; Okay, let's proceed, in roughly the same order as the paper.
-;;
-;; ## Sequence Operations
-;;
-;; A 'series' is an infinite sequence of numbers, represented by Clojure's lazy
-;; sequence. First, a function `->series` that takes some existing sequence,
-;; finite or infinite, and coerces it to an infinite seq by concatenating it
-;; with an infinite sequence of zeros. (We use `v/zero-like` so that everything
-;; plays nicely with generic arithmetic.)
-
-(defn- ->series
-  "Form the infinite sequence starting with the supplied values. The
-  remainder of the series will be filled with the zero-value
-  corresponding to the first of the given values."
-  [xs]
-  (lazy-cat xs (repeat (v/zero-like (first xs)))))
-
-;; This works as expected:
-
-#_
-(= [1 2 3 4 0 0 0 0 0 0]
-   (take 10 (->series [1 2 3 4])))
-
-;; The core observation we'll use in the following definitions (courtesy of
-;; McIlroy) is that a power series $F$ in a variable $x$:
-;;
-;; $$F(x)=f_{0}+x f_{1}+x^{2} f_{2}+\cdots$$
-;;
-;; Decomposes into a head element $f_0$ plus a tail series, multiplied by $x$:
-;;
-;; $$F(x) = F_0(x) = f_0 + x F_1(x)$$
-;;
-;; We'll use this observation to derive the more complicated sequence operations
-;; below.
-
-;; ### Negation
-
-;; To negate a series, negate each element:
-
-(defn- seq:negate [xs]
-  (map g/negate xs))
-
-;; (We'll prefix each sequence operation with `seq:` to distinguish it from the
-;; later implementations that act on explicit, non-sequence types.)
-
-#_
-(let [xs [1 2 3 4]]
-  (= [-1 -2 -3 -4 0 0 0]
-     (take 7 (seq:negate (->series xs)))))
-
-;; ### Addition
-;;
-;; We can derive series addition by expanding the series $F$ and $G$ into head
-;; and tail and rearranging terms:
-;;
-;; $$F+G=\left(f+x F_{1}\right)+\left(g+x G_{1}\right)=(f+g)+x\left(F_{1}+G_{1}\right)$$
-;;
-;; This is particularly straightforward in Clojure, where `map` already merges
-;; sequences elementwise:
-(defn- seq:+ [f g]
-  (map g/+ f g))
-
-#_
-(= [0 2 4 6 8]
-   (take 5 (seq:+ (range) (range))))
-
-;; A constant is a series with its first element populated, all zeros otherwise.
-;; To add a constant to another series we only need add it to the first element.
-;; Here are two versions, constant-on-left vs constant-on-right:
-
-(defn- c+seq [c f]
-  (lazy-seq
-   (cons (g/+ c (first f)) (rest f))))
-
-(defn- seq+c [f c]
-  (lazy-seq
-   (cons (g/+ (first f) c) (rest f))))
-
-#_
-(let [series (->series [1 2 3 4])]
-  (= [11 2 3 4 0 0]
-     (take 6 (seq+c series 10))
-     (take 6 (c+seq 10 series))))
-
-;; ### Subtraction
-;;
-;; Subtraction comes for free from the two definitions above:
-
-(defn- seq:- [f g]
-  (seq:+ f (seq:negate g)))
-
-#_
-(= [0 0 0 0 0]
-   (take 5 (seq:- (range) (range))))
-
-;; We /should/ get equivalent results from mapping `g/-` over both sequences,
-;; and in almost all cases we do... but until we understand and fix this bug
-;; https://github.com/littleredcomputer/sicmutils/issues/151 that method would
-;; return different results.
-
-;; Subtract a constant from a sequence by subtracting it from the first element:
-
-(defn- seq-c [f c]
-  (lazy-seq
-   (cons (g/- (first f) c) (rest f))))
-
-#_
-(= [-10 1 2 3 4]
-   (take 5 (seq-c (range) 10)))
-
-;; To subtract a sequence from a constant, subtract the first element as before,
-;; but negate the tail of the sequence:
-
-(defn- c-seq [c f]
-  (lazy-seq
-   (cons (g/- c (first f)) (seq:negate (rest f)))))
-
-#_
-(= [10 -1 -2 -3 -4]
-   (take 5 (c-seq 10 (range))))
-
-;; ### Multiplication
-;;
-;; What does it mean to multiply two infinite sequences? As McIlroy notes,
-;; multiplication is where the lazy-sequence-based approach really comes into
-;; its own.
-;;
-;; First, the simple cases of multiplication by a scalar on either side of a
-;; sequence:
-
-(defn- seq*c [f c] (map #(g/mul % c) f))
-(defn- c*seq [c f] (map #(g/mul c %) f))
-
-;; To multiply sequences, first recall from above that we can decompose each
-;; sequence $F$ and $G$ into a head and tail.
-;;
-;; Mutiply the expanded representations out and rearrange terms:
-;;
-;; $$F \times G=\left(f+x F_{1}\right) \times\left(g+x G_{1}\right)=f g+x\left(f G_{1}+F_{1} \times G\right)$$
-;;
-;; $G$ appears on the left and the right, so use an inner function that closes
-;; over $g$ to simplify matters, and rewrite the above definition in Clojure:
-
-(defn- seq:* [f g]
-  (letfn [(step [f]
-            (lazy-seq
-             (let [f*g  (g/mul (first f) (first g))
-                   f*G1 (c*seq (first f) (rest g))
-                   F1*G (step (rest f))]
-               (cons f*g (seq:+ f*G1 F1*G)))))]
-    (step f)))
-
-;; This works just fine on two infinite sequences:
-
-#_
-(= [0 4 11 20 30 40 50 60 70 80]
-   (take 10 (seq:* (range) (->series [4 3 2 1]))))
-
-;; NOTE This is also called the "Cauchy Product" of the two sequences:
-;; https://en.wikipedia.org/wiki/Cauchy_product The description on the Wikipedia
-;; page has complicated index tracking that simply doesn't come in to play with
-;; the stream-based approach. Amazing!
-
-;; ### Division
-;;
-;; The quotient $Q$ of $F$ and $G$ should satisfy:
-;;
-;; $$F = Q \times G$$
-;;
-;; From McIlroy, first expand out $F$, $Q$ and one instance of $G$:
-;;
-;; $$
-;; \begin{aligned}
-;; f+x F_{1} &=\left(q+x Q_{1}\right) \times G=q G+x Q_{1} \times G=q\left(g+x G_{1}\right)+x Q_{1} \times G \\
-;; &=q g+x\left(q G_{1}+Q_{1} \times G\right)
-;; \end{aligned}
-;; $$
-;;
-;; Look at just the constant terms and note that $q = {f \over g}$.
-;;
-;; Consider the terms multiplied by $x$ and solve for $Q_1$:
-;;
-;; $$Q_1 = {(F_1 - qG_1) \over G}$$.
-;;
-;; There are two special cases to consider:
-;;
-;; - If $g=0$, $q = {f \over g}$ can only succeed if $f=0$; in this case, $Q =
-;;   {F_1 \over G1}$, from the larger formula above.
-;; - If $f=0$, $Q_1 = {(F_1 - 0 G_1) \over G} = {F_1 \over G}$
-;;
-;; Encoded in Clojure:
-
-(defn seq:div [f g]
-  (lazy-seq
-   (let [f0 (first f) fs (rest f)
-         g0 (first g) gs (rest g)]
-     (cond (and (v/nullity? f0) (v/nullity? g0))
-           (seq:div fs gs)
-
-           (v/nullity? f0)
-           (cons f0 (seq:div fs g))
-
-           (v/nullity? g0)
-           (u/arithmetic-ex "ERROR: denominator has a zero constant term")
-
-           :else (let [q (g/div f0 g0)]
-                   (cons q (-> (seq:- fs (c*seq q gs))
-                               (seq:div g))))))))
-
-;; A simple example shows success:
-
-#_
-(let [series (->series [0 0 0 4 3 2 1])]
-  (= [1 0 0 0 0]
-     (take 5 (seq:div series series))))
-
-;; ### Reciprocal
-;;
-;; We could generate the reciprocal of $F$ by dividing $(1, 0, 0, ...)$ by $F$.
-;; Page 21 of an earlier [paper by
-;; McIlroy](https://swtch.com/~rsc/thread/squint.pdf) gives us a more direct
-;; formula.
-;;
-;; We want $R$ such that $FR = 1$. Expand $F$:
-;;
-;; $$(f + xF_1)R = 1$$
-;;
-;; Solve for R:
-;;
-;; $$R = {1 \over f} (1 - x(F_1 R))$$
-;;
-;; A recursive definition is no problem in the stream abstraction:
-
-(defn seq:invert [f]
-  (lazy-seq
-   (let [finv    (g/invert (first f))
-         F1*Finv (seq:* (rest f) (seq:invert f))
-         tail    (c*seq finv (seq:negate F1*Finv))]
-     (cons finv tail))))
-
-;; This definition of `seq:invert` matches the more straightforward division
-;; implementation:
-
-#_
-(let [series (iterate inc 3)]
-  (= (take 5 (seq:invert series))
-     (take 5 (seq:div (->series [1]) series))))
-
-;; An example:
-
-#_
-(let [series (iterate inc 3)]
-  (= [1 0 0 0 0]
-     (take 5 (seq:* series (seq:invert series)))
-     (take 5 (seq:div series series))))
-
-;; Division of a constant by a series comes easily from our previous
-;; multiplication definitions and `seq:invert`:
-
-(defn c-div-seq [c f]
-  (c*seq c (seq:invert f)))
-
-;; It's not obvious that this works:
-
-#_
-(let [nats (iterate inc 1)]
-  (= [4 -8 4 0 0 0]
-     (take 6 (c-div-seq 4 nats))))
-
-;; But we can recover the initial series:
-
-#_
-(let [nats       (iterate inc 1)
-      divided    (c-div-seq 4 nats)
-      seq-over-4 (seq:invert divided)
-      original   (seq*c seq-over-4 4)]
-  (= (take 5 nats)
-     (take 5 original)))
-
-;; To divide a series by a constant, divide each element of the series:
-
-(defn seq-div-c [f c]
-  (map #(g// % c) f))
-
-;; Division by a constant undoes multiplication by a constant:
-
-#_
-(let [nats (iterate inc 1)]
-  (= [1 2 3 4 5]
-     (take 5 (seq-div-c (seq*c nats 2) 2))))
-
-;; ### Functional Composition
-;;
-;; To compose two series $F(x)$ and $G(x)$ means to create a new series
-;; $F(G(x))$. Derive this by substuting $G$ for $x$ in the expansion of $F$:
-;;
-;; $$F(G)=f+G \times F_{1}(G)=f+\left(g+x G_{1}\right) \times F_{1}(G)=\left(f+g F_{1}(G)\right)+x G_{1} \times F_{1}(G)$$
-;;
-;; For the stream-based calculation to work, we need to be able to calculate the
-;; head element and attach it to an infinite tail; unless $g=0$ above the head
-;; element depends on $F_1$, an infinite sequence.
-;;
-;; If $g=0$ the calculation simplifies:
-;;
-;; $$F(G)=f + x G_{1} \times F_{1}(G)$$
-;;
-;; In Clojure, using an inner function that captures $G$:
-
-(defn seq:compose [f g]
-  (letfn [(step [f]
-            (lazy-seq
-             ;; TODO I don't understand why we get a StackOverflow if I move
-             ;; this assertion out of the `letfn`.
-             (assert (zero? (first g)))
-             (let [[f0 & fs] f
-                   gs (rest g)
-                   tail (seq:* gs (step fs))]
-               (cons f0 tail))))]
-    (step f)))
-
-;; Composing $x^2 = (0, 0, 1, 0, 0, ...)$ should square all $x$s, and give us a
-;; sequence of only even powers:
-#_
-(= [1 0 1 0 1 0 1 0 1 0]
-   (take 10 (seq:compose (repeat 1)
-                         (->series [0 0 1]))))
-
-;; ### Reversion
-;;
-;; The functional inverse of a power series $F$ is a series $R$ that satisfies
-;; $F(R(x)) = x$.
-;;
-;; Following McIlroy, we expand $F$ (substituting $R$ for $x$) and one
-;; occurrence of $R$:
-;;
-;; $$F(R(x))=f+R \times F_{1}(R)=f+\left(r+x R_{1}\right) \times F_{1}(R)=x$$
-;;
-;; Just like in the composition derivation, in the general case the head term
-;; depends on an infinite sequence. Set $r=0$ to address this:
-;;
-;; $$f+x R_{1} \times F_{1}(R)=x$$
-;;
-;; For this to work, the constant $f$ must be 0 as well, hence
-;;
-;; $R_1 = {1 \over F_1(R)}$
-;;
-;; This works as an implementation because $r=0$. $R_1$ is allowed to reference
-;; $R$ thanks to the stream-based approach:
-
-(defn seq:revert [f]
-  {:pre [(zero? (first f))]}
-  (letfn [(step [f]
-            (lazy-seq
-             (let [F1   (rest f)
-                   R    (step f)]
-               (cons 0 (seq:invert
-                        (seq:compose F1 R))))))]
-    (step f)))
-
-;; An example, inverting a series starting with 0:
-
-#_
-(let [f (cons 0 (iterate inc 1))]
-  (= [0 1 0 0 0]
-     (take 5 (seq:compose f (seq:revert f)))))
-
-;; ### Series Calculus
-;;
-;; Derivatives of power series are simple and mechanical:
-;;
-;; $$D(a x^n)$ = aD(x^n) = a n x^{n-1}$$
-;;
-;; Implies that all entries shift left by 1, and each new entry gets multiplied
-;; by its former index (ie, its new index plus 1).
-
-(defn- seq:deriv [f]
-  (map g/* (rest f) (iterate inc 1)))
-
-#_
-(= [1 2 3 4 5 6] ;; 1 + 2x + 3x^2 + ...
-   (take 6 (seq:deriv (repeat 1))))
-
-;; The definite integral $\int_0^{x}F(t)dt$ is similar. To take the
-;; anti-derivative of each term, move it to the right by appending a constant
-;; term onto the sequence and divide each element by its new position:
-
-(defn- seq:integral
-  ([s] (seq:integral s 0))
-  ([s constant-term]
-   (cons constant-term
-         (map g/div s (iterate inc 1)))))
-
-;; With a custom constant term:
-
-#_
-(= [5 1 1 1 1 1]
-   (take 6 (seq:integral (iterate inc 1) 5)))
-
-;; By default, the constant term is 0:
-
-#_
-(= [0 1 1 1 1 1]
-   (take 6 (seq:integral (iterate inc 1) 5)))
-
-;; ## Exponentiation
-;;
-;; Exponentiation of a power series by some integer is simply repeated
-;; multiplication. The implementation here is more efficient the iterating
-;; `seq:*`, and handles negative exponent terms by inverting the original
-;; seequence.
-
-(defn seq:expt [s e]
-  (letfn [(expt [base pow]
-            (loop [n pow
-                   y (->series [1])
-                   z base]
-              (let [t (even? n)
-                    n (quot n 2)]
-                (cond
-                  t (recur n y (seq:* z z))
-                  (zero? n) (seq:* z y)
-                  :else (recur n (seq:* z y) (seq:* z z))))))]
-    (cond (pos? e)  (expt s e)
-          (zero? e) (->series [1])
-          :else (seq:invert (expt s (g/negate e))))))
-
-;; ### Square Root of a Series
-;;
-;; The square root of a series $F$ is a series $Q$ such that $Q^2 = F$. We can
-;; find this using our calculus methods from above:
-;;
-;; $$D(F) = 2Q D(Q)$$
-;;
-;; or
-;;
-;; D(Q) = {D(F) \over {2Q}}
-;;
-;; When the head term of $F$ is nonzero, ie, $f != 0$, the head of $Q =
-;; \sqrt(F)$ must be $\sqrt(f)$ for the multiplication to work out.
-;;
-;; Integrate both sides:
-;;
-;; Q = \sqrt(f) + \int_0^x {D(F) \over {2Q}}
-;;
-;; One optimization appears if the first two terms of $F$ vanish, ie,
-;; $F=x^2F_2$. In this case $Q = 0 + x \sqrt(F_2)$.
-;;
-;; Here it is in Clojure:
-
-(defn seq:sqrt [[f1 & [f2 & fs] :as f]]
-  (if (and (v/nullity? f1)
-           (v/nullity? f2))
-    (cons f1 (seq:sqrt fs))
-    (let [const (g/sqrt f1)
-          step  (fn step [g]
-                  (lazy-seq
-                   (-> (seq:div
-                        (seq:deriv g)
-                        (c*seq 2 (step g)))
-                       (seq:integral const))))]
-      (step f))))
-
-;; And a test that we can recover the naturals:
-
-#_
-(let [xs (iterate inc 1)]
-  (= [1 2 3 4 5 6]
-     (take 6 (seq:* (seq:sqrt xs)
-                    (seq:sqrt xs)))))
-
-;; We can maintain precision of the first element is the square of a rational
-;; number:
-
-#_
-(let [xs (iterate inc 9)]
-  (= [9 10 11 12 13 14]
-     (take 6 (seq:* (seq:sqrt xs)
-                    (seq:sqrt xs)))))
-
-;; We get a correct result if the sequence starts with 0, 0:
-
-#_
-(let [xs (concat [0 0] (iterate inc 9))]
-  (= [0 0 9 10 11 12]
-     (take 6 (seq:* (seq:sqrt xs)
-                    (seq:sqrt xs)))))
-
-;; ## Examples
-
-;; Power series computations mirror polynomial computations. Encoding
-;; $(1-2x^2)^3$ as a power series returns the correct result:
-
-#_
-(= [1 0 -6 0 12 0 -8 0 0 0]
-   (take 10 (seq:expt (->series [1 0 -2]) 3)))
-
-;; Encoding $1 \over (1-x)$ returns the power series $1 + x + x^2 + ...$ which
-;; sums to that value in its region of convergence:
-
-#_
-(= (take 10 (repeat 1))
-   n   (take 10 (seq:div (->series [1])
-                         (->series [1 -1]))))
-
-;; $1 \over (1-x)^2$ is the derivative of the above series:
-
-#_
-(= (take 10 (iterate inc 1))
-   (take 10 (seq:div (->series [1])
-                     (-> (->series [1 -1])
-                         (seq:expt 2)))))
-
-;; ## Application
-;;
-;; Given some power series $F$, we can "apply" the series to a value $x$ by
-;; multiplying each entry $f_n$ by $x^n$:
-
-(defn- seq:p-value
-  "Evaluates the power series, and converts it back down to a normal series."
-  [f x]
-  (let [one    (v/one-like x)
-        powers (iterate #(g/* x %) one)]
-    (map g/* f powers)))
-
-;; Once a power series has been applied, what is it? It becomes a more
-;; general "series". We'll work up shortly to a typed distinction between these
-;; two ideas. For now, let's assume that we have some function `series?` that
-;; can distinguish either of these series objects from a Clojure sequence:
-
-(declare series?)
-
-;; What does it mean to apply a non-power series? The concept only makes sense
-;; if the series contains "applicables", or objects that can act as functions
-;; themselves.
-;;
-;; If it does, then application of a series to some argument list `xs` means
-;; applying each series element to `xs`.
-;;
-;; One further wrinkle occurs if the applicable in some position returns a
-;; series. `seq:value` should combine all of these resulting series, with each
-;; series shifted by its initial position in the first series.
-;; Concretely, suppose that $F$ has the form:
-;;
-;; $$(x => (A1, A2, A3, ...), x => (B1, B2, B3, ...) x => (C1, C2, C3, ...), ...)$$
-
-;; Then, this series applied to x should yield the series of values
-;; (A1, (+ A2 B1), (+ A3 B2 C1), ...)
-;;
-;; Here's the implementation:
-
-(defn- seq:value
-  ;; TODO move the docstring down.
-  "Find the value of the Series S applied to the arguments xs.
-
-  This assumes that S is a series of applicables. If, in fact, S is a
-  series of series-valued applicables, then the result will be a sort
-  of layered sum of the values.
-
-  Concretely, suppose that S has the form:
-
-    [x => [A1 A2 A3...], x => [B1 B2 B3...], x => [C1 C2 C3...], ...]
-
-  Then, this series applied to x will yield the new series:
-
-    [A1 (+ A2 B1) (+ A3 B2 C1) ...]"
-  [f xs]
-  (letfn [(collect [[f & fs]]
-            (let [result (apply f xs)]
-              (if (series? result)
-                (lazy-seq
-                 (let [[r & r-tail] result]
-                   (cons r (seq:+ r-tail (collect fs)))))
-
-                ;; note that we have already realized first-result,
-                ;; so it does not need to be behind lazy-seq.
-                (cons result (lazy-seq (collect fs))))))]
-    (collect f)))
-
-;; ## Various Power Series
-;;
-;; With the above primitives we can define a number of series with somewhat
-;; astonishing brevity.
-;;
-;; $e^x$ is its own derivative, so $e^x = 1 + e^x$:
-
-(def expx
-  (lazy-seq
-   (seq:integral expx 1)))
-
-;; This bare definition is enough to generate the power series for $e^x$:
-
-#_
-(= '(1
-     1
-     (/ 1 2)
-     (/ 1 6)
-     (/ 1 24)
-     (/ 1 120)
-     (/ 1 720)
-     (/ 1 5040)
-     (/ 1 40320)
-     (/ 1 362880))
-   (v/freeze (take 10 expx)))
-
-;; $sin$ and $cos$ afford recursive definitions. $D(sin) = cos$ and $D(cos) =
-;; -sin$, so (with appropriate constant terms added) on:
-
-(declare cosx)
-(def sinx (lazy-seq (seq:integral cosx)))
-(def cosx (lazy-seq (c-seq 1 (seq:integral sinx))))
-
-#_
-(= '(0
-     1
-     0
-     (/ -1 6)
-     0
-     (/ 1 120)
-     0
-     (/ -1 5040)
-     0
-     (/ 1 362880))
-   (v/freeze (take 10 sinx)))
-
-#_
-(= '(1
-     0
-     (/ -1 2)
-     0
-     (/ 1 24)
-     0
-     (/ -1 720)
-     0
-     (/ 1 40320)
-     0)
-   (v/freeze (take 10 cosx)))
-
-;; ## Type Wrappers (TODO continue from here.)
-;;
-;; Next, we need to wrap all this up in types. We'll need two:
-;;
-;; - PowerSeries
-;; - Series
-;;
-;; Both similar, except they apply differently.
+;; TODO note that we can see `sicmutils.series.impl` for Power Serious etc.
 
 (declare s-zero s-one)
 
@@ -706,9 +58,9 @@
   (one-like [_] s-one)
   (numerical? [_] false)
   (freeze [_]
-    (let [prefix (sequence
-                  (comp (take 4) (map g/simplify))
-                  xs)]
+    (let [xform (comp (take 4)
+                      (map g/simplify))
+          prefix (sequence xform xs)]
       `[~'Series ~@prefix ~'...]))
   (kind [_] ::series)
 
@@ -723,50 +75,51 @@
     (seq [_] xs)
 
     IFn
+    ;; Invoking a series uses `value` from above to generate a new series.
     (invoke [_]
-            (Series. (seq:value xs [])))
+            (Series. (i/value xs [])))
     (invoke [_ a]
-            (Series. (seq:value xs [a])))
+            (Series. (i/value xs [a])))
     (invoke [_ a b]
-            (Series. (seq:value xs [a b])))
+            (Series. (i/value xs [a b])))
     (invoke [_ a b c]
-            (Series. (seq:value xs [a b c])))
+            (Series. (i/value xs [a b c])))
     (invoke [_ a b c d]
-            (Series. (seq:value xs [a b c d])))
+            (Series. (i/value xs [a b c d])))
     (invoke [_ a b c d e]
-            (Series. (seq:value xs [a b c d e])))
+            (Series. (i/value xs [a b c d e])))
     (invoke [_ a b c d e f]
-            (Series. (seq:value xs [a b c d e f])))
+            (Series. (i/value xs [a b c d e f])))
     (invoke [_ a b c d e f g]
-            (Series. (seq:value xs [a b c d e f g])))
+            (Series. (i/value xs [a b c d e f g])))
     (invoke [_ a b c d e f g h]
-            (Series. (seq:value xs [a b c d e f g h])))
+            (Series. (i/value xs [a b c d e f g h])))
     (invoke [_ a b c d e f g h i]
-            (Series. (seq:value xs [a b c d e f g h i])))
+            (Series. (i/value xs [a b c d e f g h i])))
     (invoke [_ a b c d e f g h i j]
-            (Series. (seq:value xs [a b c d e f g h i j])))
+            (Series. (i/value xs [a b c d e f g h i j])))
     (invoke [_ a b c d e f g h i j k]
-            (Series. (seq:value xs [a b c d e f g h i j k])))
+            (Series. (i/value xs [a b c d e f g h i j k])))
     (invoke [_ a b c d e f g h i j k l]
-            (Series. (seq:value xs [a b c d e f g h i j k l])))
+            (Series. (i/value xs [a b c d e f g h i j k l])))
     (invoke [_ a b c d e f g h i j k l m]
-            (Series. (seq:value xs [a b c d e f g h i j k l m])))
+            (Series. (i/value xs [a b c d e f g h i j k l m])))
     (invoke [_ a b c d e f g h i j k l m n]
-            (Series. (seq:value xs [a b c d e f g h i j k l m n])))
+            (Series. (i/value xs [a b c d e f g h i j k l m n])))
     (invoke [_ a b c d e f g h i j k l m n o]
-            (Series. (seq:value xs [a b c d e f g h i j k l m n o])))
+            (Series. (i/value xs [a b c d e f g h i j k l m n o])))
     (invoke [_ a b c d e f g h i j k l m n o p]
-            (Series. (seq:value xs [a b c d e f g h i j k l m n o p])))
+            (Series. (i/value xs [a b c d e f g h i j k l m n o p])))
     (invoke [_ a b c d e f g h i j k l m n o p q]
-            (Series. (seq:value xs [a b c d e f g h i j k l m n o p q])))
+            (Series. (i/value xs [a b c d e f g h i j k l m n o p q])))
     (invoke [_ a b c d e f g h i j k l m n o p q r]
-            (Series. (seq:value xs [a b c d e f g h i j k l m n o p q r])))
+            (Series. (i/value xs [a b c d e f g h i j k l m n o p q r])))
     (invoke [_ a b c d e f g h i j k l m n o p q r s]
-            (Series. (seq:value xs [a b c d e f g h i j k l m n o p q r s])))
+            (Series. (i/value xs [a b c d e f g h i j k l m n o p q r s])))
     (invoke [_ a b c d e f g h i j k l m n o p q r s t]
-            (Series. (seq:value xs [a b c d e f g h i j k l m n o p q r s t])))
+            (Series. (i/value xs [a b c d e f g h i j k l m n o p q r s t])))
     (invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
-            (Series. (seq:value xs (concat [a b c d e f g h i j k l m n o p q r s t] rest))))
+            (Series. (i/value xs (concat [a b c d e f g h i j k l m n o p q r s t] rest))))
     (applyTo [s xs] (AFn/applyToHelper s xs))]
 
    :cljs
@@ -784,49 +137,49 @@
 
     IFn
     (-invoke [_]
-             (Series. (seq:value xs [])))
+             (Series. (i/value xs [])))
     (-invoke [_ a]
-             (Series. (seq:value xs [a])))
+             (Series. (i/value xs [a])))
     (-invoke [_ a b]
-             (Series. (seq:value xs [a b])))
+             (Series. (i/value xs [a b])))
     (-invoke [_ a b c]
-             (Series. (seq:value xs [a b c])))
+             (Series. (i/value xs [a b c])))
     (-invoke [_ a b c d]
-             (Series. (seq:value xs [a b c d])))
+             (Series. (i/value xs [a b c d])))
     (-invoke [_ a b c d e]
-             (Series. (seq:value xs [a b c d e])))
+             (Series. (i/value xs [a b c d e])))
     (-invoke [_ a b c d e f]
-             (Series. (seq:value xs [a b c d e f])))
+             (Series. (i/value xs [a b c d e f])))
     (-invoke [_ a b c d e f g]
-             (Series. (seq:value xs [a b c d e f g])))
+             (Series. (i/value xs [a b c d e f g])))
     (-invoke [_ a b c d e f g h]
-             (Series. (seq:value xs [a b c d e f g h])))
+             (Series. (i/value xs [a b c d e f g h])))
     (-invoke [_ a b c d e f g h i]
-             (Series. (seq:value xs [a b c d e f g h i])))
+             (Series. (i/value xs [a b c d e f g h i])))
     (-invoke [_ a b c d e f g h i j]
-             (Series. (seq:value xs [a b c d e f g h i j])))
+             (Series. (i/value xs [a b c d e f g h i j])))
     (-invoke [_ a b c d e f g h i j k]
-             (Series. (seq:value xs [a b c d e f g h i j k])))
+             (Series. (i/value xs [a b c d e f g h i j k])))
     (-invoke [_ a b c d e f g h i j k l]
-             (Series. (seq:value xs [a b c d e f g h i j k l])))
+             (Series. (i/value xs [a b c d e f g h i j k l])))
     (-invoke [_ a b c d e f g h i j k l m]
-             (Series. (seq:value xs [a b c d e f g h i j k l m])))
+             (Series. (i/value xs [a b c d e f g h i j k l m])))
     (-invoke [_ a b c d e f g h i j k l m n]
-             (Series. (seq:value xs [a b c d e f g h i j k l m n])))
+             (Series. (i/value xs [a b c d e f g h i j k l m n])))
     (-invoke [_ a b c d e f g h i j k l m n o]
-             (Series. (seq:value xs [a b c d e f g h i j k l m n o])))
+             (Series. (i/value xs [a b c d e f g h i j k l m n o])))
     (-invoke [_ a b c d e f g h i j k l m n o p]
-             (Series. (seq:value xs [a b c d e f g h i j k l m n o p])))
+             (Series. (i/value xs [a b c d e f g h i j k l m n o p])))
     (-invoke [_ a b c d e f g h i j k l m n o p q]
-             (Series. (seq:value xs [a b c d e f g h i j k l m n o p q])))
+             (Series. (i/value xs [a b c d e f g h i j k l m n o p q])))
     (-invoke [_ a b c d e f g h i j k l m n o p q r]
-             (Series. (seq:value xs [a b c d e f g h i j k l m n o p q r])))
+             (Series. (i/value xs [a b c d e f g h i j k l m n o p q r])))
     (-invoke [_ a b c d e f g h i j k l m n o p q r s]
-             (Series. (seq:value xs [a b c d e f g h i j k l m n o p q r s])))
+             (Series. (i/value xs [a b c d e f g h i j k l m n o p q r s])))
     (-invoke [_ a b c d e f g h i j k l m n o p q r s t]
-             (Series. (seq:value xs [a b c d e f g h i j k l m n o p q r s t])))
+             (Series. (i/value xs [a b c d e f g h i j k l m n o p q r s t])))
     (-invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
-             (Series. (seq:value xs (concat [a b c d e f g h i j k l m n o p q r s t] rest))))]))
+             (Series. (i/value xs (concat [a b c d e f g h i j k l m n o p q r s t] rest))))]))
 
 #?(:clj
    (defmethod print-method Series [^Series s ^java.io.Writer w]
@@ -834,10 +187,16 @@
                     (.toString s)
                     "\"]"))))
 
-(def s-zero (Series. (->series [0])))
-(def s-one (Series. (->series [1])))
+(def s-zero (Series. (i/->series [0])))
+(def s-one (Series. (i/->series [1])))
 
 ;; ### Power Series
+;;
+;; The primary difference here is the `IFn` implementation; application of a
+;; power series multiples each coefficient by a successively larger power of
+;; its (single, for now) argument.
+;;
+;; TODO Modify this description once we implement multivariable power series!
 
 (declare zero one)
 
@@ -849,9 +208,8 @@
   (one-like [_] one)
   (numerical? [_] false)
   (freeze [_]
-    (let [prefix (sequence
-                  (comp (take 4) (map g/simplify))
-                  xs)]
+    (let [xform  (comp (take 4) (map g/simplify))
+          prefix (sequence xform xs)]
       `[~'PowerSeries ~@prefix ~'...]))
   (kind [_] ::power-series)
 
@@ -866,7 +224,7 @@
     (seq [_] xs)
 
     IFn
-    (invoke [_ a] (Series. (seq:p-value xs a)))]
+    (invoke [_ a] (Series. (i/p-value xs a)))]
 
    :cljs
    [ISequential
@@ -875,7 +233,7 @@
     (-seq [_] xs)
 
     IFn
-    (-invoke [_ a] (Series. (seq:p-value xs a)))
+    (-invoke [_ a] (Series. (i/p-value xs a)))
 
     IPrintWithWriter
     (-pr-writer [this writer _]
@@ -890,81 +248,131 @@
                     (.toString s)
                     "\"]"))))
 
-;; ## Series Methods
+;; ## Series API
 
 (defn series?
-  "Test if it's a series OR a power series, either one."
+  "Returns true if `s` is either a `Series` or a `PowerSeries`, false otherwise."
   [s]
   (or (instance? Series s)
       (instance? PowerSeries s)))
 
 (defn power-series?
-  "Do we specifically have a power series? The difference is we can apply this
-  thing as a function."
+  "Returns true if `s` is specifically a `PowerSeries`, false otherwise."
   [s]
   (instance? PowerSeries s))
 
-(defn- series* [prefix]
-  (->Series (->series prefix)))
-
-(defn series
-  "Form the infinite sequence starting with the supplied values. The
-  remainder of the series will be filled with the zero-value
-  corresponding to the first of the given values."
-  [& prefix]
-  (series* prefix))
-
-(defn power-series* [prefix]
-  (->PowerSeries (->series prefix)))
-
-(defn power-series
-  "Form the infinite sequence starting with the supplied values. The
-  remainder of the series will be filled with the zero-value
-  corresponding to the first of the given values."
-  [& prefix]
-  (power-series* prefix))
-
-(defn generate
-  "Produce the series generated by (f i) for i in 0, 1, ..."
-  [f]
-  (->Series (map f (range))))
-
-(def zero (power-series* [0]))
-(def one (power-series* [1]))
-(def identity (power-series* [0 1]))
-
-(defn constant [c]
-  (power-series* [c]))
-
 (defn- -make
-  "Returns the appropriate constructor."
+  "Takes a series?-true object and returns the appropriate, more specific
+  constructor."
   [s]
   (if (power-series? s)
     ->PowerSeries
     ->Series))
 
+(defn- kind->make
+  "Takes a keyword - either ::series or ::power-series - and returns the
+  appropriate series constructor. Throws if neither of these are supplied."
+  [kind]
+  (case kind
+    ::series ->Series
+    ::power-series ->PowerSeries
+    (u/illegal (str "Unsupported kind: " kind))))
+
+(defn series*
+  "Given a sequence, returns a new `Series` object that wraps that
+  sequence (potentially padding its tail with zeros if it's finite)."
+  [prefix]
+  (->Series (i/->series prefix)))
+
+(defn series
+  "Return a `Series` starting with the supplied values. The remainder of the
+  series will be filled with the zero-value corresponding to the first of the
+  given values.
+
+  If you have a sequence already, prefer `series*`"
+  [& prefix]
+  (series* prefix))
+
+(defn power-series*
+  "Given a sequence, returns a new `PowerSeries` object that wraps that
+  sequence (potentially padding its tail with zeros if it's finite)."
+  [prefix]
+  (->PowerSeries (i/->series prefix)))
+
+(defn power-series
+  "Return a `PowerSeries` starting with the supplied values. The remainder of the
+  series will be filled with the zero-value corresponding to the first of the
+  given values.
+
+  If you have a sequence already, prefer `power-series*`"
+  [& prefix]
+  (power-series* prefix))
+
+;; ## Higher Level Constructors
+
+(def zero (power-series* [0]))
+(def one (power-series* [1]))
+(def identity (power-series* [0 1]))
+
+(defn constant
+  ([c] (power-series* [c]))
+  ([c kind] ((kind->make kind) (i/->series [c]))))
+
+(defn generate
+  "Returns a `PowerSeries` generated by (f i) for i in 0, 1, ..."
+  ([f] (->PowerSeries (map f (range))))
+  ([f kind]
+   ((kind->make kind) (map f (range)))))
+
 (defn ->function
-  "This is series:->function, works to promote a series to a power series."
+  "Accepts a `Series` or `PowerSeries` and coerces the input to a `PowerSeries`
+  without any application. Any other series will error."
   [s]
   (cond (power-series? s) s
         (series? s) (->PowerSeries (seq s))
         :else (u/illegal "non-series provided to ->function.")))
 
 (defn partial-sums
-  "Form the series of partial sums of the given series"
+  "Returns a series (of the same type as the input) of partial sums of the terms
+  in the supplied series."
   [s]
   ((-make s) (reductions g/+ s)))
 
 (defn fmap
-  "TODO note that this is `elementwise` in the refman."
+  "Returns a new series generated by applying the supplied `f` to each element in
+  the input series `s`.
+
+  NOTE scmutils calls this `series:elementwise`."
   [f s]
   ((-make s) (map f s)))
 
-(defn sum [s n]
+(defn sum
+  "Returns the sum of all elements in the input series `s` up to order
+  `n` (inclusive). For example:
+
+  (sum (series 1 1 1 1 1 1 1) 3)
+  ;; => 4
+
+  NOTE that `sum` sums the first `n + 1` terms, since series starts with an
+  order 0 term."
+  [s n]
   (transduce (take (inc n)) g/+ (seq s)))
 
 (defn inflate
-  "Inflates each term by a factor of n, so good."
+  "Accepts an input series `s` and an exponent `n`, and expands the series in the
+  `n`th power of its argument. Every term `i` maps to position `i*n`, with zeros
+  padded in the new missing slots.
+
+  For example:
+
+  (inflate identity 3)
+  ;; => (series 0 0 0 1)
+
+  (take 6 (inflate (generate inc) 3))
+  ;; => (1 0 2 0 3 0)
+
+  NOTE this operation makes sense as described for a `PowerSeries`, but still
+  works with `Series` objects."
   [s n]
   (if (<= n 1)
     s
@@ -974,66 +382,150 @@
        (->> (map cons s (repeat zeros))
             (apply concat))))))
 
+;; TODO these next three ONLY make sense for power series!
+
+#_
+(defn compose [s t]
+  ((-make s) (i/revert (seq s))))
+
+#_
+(defn revert [s]
+  ((-make s) (i/revert (seq s))))
+
+#_
+(defn integrate [s]
+  ((-make s) (i/integral (seq s))))
+
+
+;; ## Series Wrappers
+
+(def exp-series (->PowerSeries i/expx))
+(def sin-series (->PowerSeries i/sinx))
+(def cos-series (->PowerSeries i/cosx))
+(def tan-series (->PowerSeries i/tanx))
+(def sec-series (->PowerSeries i/secx))
+
+(def asin-series (->PowerSeries i/asinx))
+(def acos-series (->PowerSeries i/acosx))
+(def atan-series (->PowerSeries i/atanx))
+(def acot-series (->PowerSeries i/acotx))
+
+(def sinh-series (->PowerSeries i/sinhx))
+(def cosh-series (->PowerSeries i/coshx))
+(def tanh-series (->PowerSeries i/tanhx))
+(def asinh-series (->PowerSeries i/asinhx))
+(def atanh-series (->PowerSeries i/atanhx))
+
+(def log1+x-series (->PowerSeries i/log1+x))
+(def log1-x-series (->PowerSeries i/log1-x))
+
+(defn binomial-series [n]
+  (->PowerSeries (i/binomial n)))
+
+;; ## Series (vs PowerSeries)
+
+(def fib-series (->Series i/fib))
+(def catalan-series (->Series i/catalan))
+
 ;; ## Generic Implementations
+;;
+;; Next, we implement all generic operations for `Series` and `PowerSeries`. A
+;; key idea here is that all "coefficients" of a series must be some kind
+;; derived from `::coseries`. This is /not/ true in scmutils; in that library,
+;; anything that responds false to `series?` is game for interaction with series
+;; objects.
+;;
+;; NOTE This might be the right way to go. Feel free to experiment.
 
 (derive ::x/numerical-expression ::coseries)
 
-;; ### Series Implementations
+;; All generic methods use the sequence-based operations we defined above on the
+;; series wrapped by each sequence, then packages the series back up.
 
 (doseq [[ctor kind] [[->Series ::series]
                      [->PowerSeries ::power-series]]]
   (defmethod g/add [kind kind] [s t]
-    (ctor (seq:+ (seq s) (seq t))))
+    (ctor (i/seq:+ (seq s) (seq t))))
 
   (defmethod g/add [::coseries kind] [c s]
-    (ctor (c+seq c (seq s))))
+    (ctor (i/c+seq c (seq s))))
 
   (defmethod g/add [kind ::coseries] [s c]
-    (ctor (seq+c (seq s) c)))
+    (ctor (i/seq+c (seq s) c)))
 
   (defmethod g/negate [kind] [s]
-    (ctor (seq:negate (seq s))))
+    (ctor (i/negate (seq s))))
 
   (defmethod g/sub [kind kind] [s t]
-    (ctor (seq:- (seq s) (seq t))))
+    (ctor (i/seq:- (seq s) (seq t))))
 
   (defmethod g/sub [::coseries kind] [c s]
-    (ctor (c-seq c (seq s))))
+    (ctor (i/c-seq c (seq s))))
 
   (defmethod g/sub [kind ::coseries] [s c]
-    (ctor (seq-c (seq s) c)))
+    (ctor (i/seq-c (seq s) c)))
 
   (defmethod g/mul [kind kind] [s t]
-    (ctor (seq:* (seq s) (seq t))))
+    (ctor (i/seq:* (seq s) (seq t))))
 
   (defmethod g/mul [::coseries kind] [c s]
-    (ctor (c*seq c (seq s))))
+    (ctor (i/c*seq c (seq s))))
 
   (defmethod g/mul [kind ::coseries] [s c]
-    (ctor (seq*c (seq s) c)))
+    (ctor (i/seq*c (seq s) c)))
 
   (defmethod g/square [kind] [s]
     (let [xs (seq s)]
-      (ctor (seq:* xs xs))))
+      (ctor (i/seq:* xs xs))))
 
   (defmethod g/cube [kind] [s]
     (let [xs (seq s)]
-      (ctor (seq:* (seq:* xs xs) xs))))
+      (ctor (i/seq:* (i/seq:* xs xs) xs))))
+
+  (defmethod g/expt [kind ::v/native-integral] [s e]
+    (ctor (i/expt (seq s) e)))
 
   (defmethod g/invert [kind] [s]
-    (ctor (seq:invert (seq s))))
+    (ctor (i/invert (seq s))))
 
   (defmethod g/div [::coseries kind] [c s]
-    (ctor (c-div-seq c (seq s))))
+    (ctor (i/c-div-seq c (seq s))))
 
   (defmethod g/div [kind ::coseries] [s c]
-    (ctor (seq-div-c (seq s) c)))
+    (ctor (i/seq-div-c (seq s) c)))
 
   (defmethod g/div [kind kind] [s t]
-    (ctor (seq:div (seq s) (seq t))))
+    (ctor (i/div (seq s) (seq t))))
+
+  (defmethod g/sqrt [kind] [s]
+    (ctor (i/sqrt (seq s))))
 
   (defmethod g/simplify [kind] [s]
     (map g/simplify (seq s))))
+
+
+;; TODO document, Power Series Only!
+
+(defmethod g/exp [::power-series] [s]
+  (->PowerSeries (i/compose i/expx (seq s))))
+
+(defmethod g/cos [::power-series] [s]
+  (->PowerSeries (i/compose i/cosx (seq s))))
+
+(defmethod g/sin [::power-series] [s]
+  (->PowerSeries (i/compose i/sinx (seq s))))
+
+(defmethod g/tan [::power-series] [s]
+  (->PowerSeries (i/compose i/tanx (seq s))))
+
+(defmethod g/asin [::power-series] [s]
+  (->PowerSeries (i/compose i/asinx (seq s))))
+
+(defmethod g/acos [::power-series] [s]
+  (->PowerSeries (i/compose i/acosx (seq s))))
+
+(defmethod g/atan [::power-series] [s]
+  (->PowerSeries (i/compose i/atanx (seq s))))
 
 ;; ## Derivatives
 
@@ -1043,113 +535,6 @@
 
 (defmethod g/partial-derivative [::power-series v/seqtype] [^PowerSeries s selectors]
   (if (empty? selectors)
-    (->PowerSeries (seq:deriv (.-xs s)))
+    (->PowerSeries (i/deriv (.-xs s)))
     (u/illegal
      (str "Cannot yet take partial derivatives of a power series: " s selectors))))
-
-;; tangent and secant come easily from these:
-
-(def tanx (seq:div sinx cosx))
-(def secx (seq:invert cosx))
-
-;; Reversion lets us define arcsine from sin:
-
-(def asinx (seq:revert sinx))
-(def atanx (seq:integral (cycle [1 0 -1 0])))
-
-;; These two are less elegant, perhaps:
-
-(def acosx (c-seq (g/div 'pi 2) asinx))
-(def acotx (c-seq (g/div 'pi 2) atanx))
-
-;; The hyperbolic trig functions are defined similarly too:
-
-(declare sinhx)
-(def coshx (lazy-seq (seq:integral sinhx 1)))
-(def sinhx (lazy-seq (seq:integral coshx)))
-(def tanhx (seq:div sinhx coshx))
-(def asinhx (seq:revert sinhx))
-(def atanhx (seq:revert tanhx))
-
-;; Enough for now. See the bottom of the namespace for more examples of
-;; interesting sequences.
-
-;; ## Series Wrappers
-
-(def exp-series (->PowerSeries expx))
-(def sin-series (->PowerSeries sinx))
-(def cos-series (->PowerSeries cosx))
-(def tan-series (->PowerSeries tanx))
-(def sec-series (->PowerSeries secx))
-
-(def asin-series (->PowerSeries asinx))
-(def acos-series (->PowerSeries acosx))
-(def atan-series (->PowerSeries atanx))
-(def acot-series (->PowerSeries acotx))
-
-(def sinh-series (->PowerSeries sinhx))
-(def cosh-series (->PowerSeries coshx))
-(def tanh-series (->PowerSeries tanhx))
-(def asinh-series (->PowerSeries asinhx))
-(def atanh-series (->PowerSeries atanhx))
-
-(def log1-x
-  (seq:integral (repeat -1)))
-
-;; https://en.wikipedia.org/wiki/Mercator_series
-(def log1+x
-  (seq:integral (cycle [1 -1])))
-
-;; Missing:
-;;
-;; - function-> takes the constant term and generates a power series.
-;; - ->function, turn into a power series
-;; - TODO rename `starting-with`, add a power series version.
-
-
-;; ## Generating Functions
-
-;; ### Catalan numbers
-
-(def catalan
-  (lazy-cat [1] (seq:* catalan catalan)))
-
-#_
-(= [1 1 2 5 14 42 132 429 1430 4862]
-   (take 10 catalan))
-
-;; ordered trees...
-
-(declare tree' forest' list')
-(def tree' (lazy-cat [0] forest'))
-(def list' (lazy-cat [1] list'))
-(def forest' (seq:compose list' tree'))
-
-#_
-(= [0 1 1 2 5 14 42 132 429 1430]
-   (take 10 tree'))
-
-;; The catalan numbers again!
-
-(def fib (lazy-cat [0 1] (map + fib (rest fib))))
-
-;; See here for the recurrence relation:
-;; https://en.wikipedia.org/wiki/Binomial_coefficient#Multiplicative_formula
-
-(defn- binomial* [n]
-  (letfn [(f [acc prev n k]
-            (if (zero? n)
-              acc
-              (let [next (/ (* prev n) k)
-                    acc' (conj! acc next)]
-                (recur acc' next (dec n) (inc k)))))]
-    (persistent!
-     (f (transient [1]) 1 n 1))))
-
-(defn binomial
-  "The coefficients of (1+x)^n"
-  [n]
-  (->series (binomial* n)))
-
-(defn binomial-series [n]
-  (->PowerSeries (binomial n)))

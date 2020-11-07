@@ -19,6 +19,8 @@
 
 (ns sicmutils.series-test
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [same :refer [ish? with-comparator]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
             [sicmutils.series :as s]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
@@ -175,47 +177,88 @@
 - add sqrt
 ")
 
+(deftest new-series-fns-test
+  (testing "inflate"
+    (is (= [0 0 0 1 0]
+           (take 5 (s/inflate identity 3))))
+
+    (is (= [1 0 2 0 3 0]
+           (take 6 (s/inflate (s/generate inc) 3)))))
+
+  (testing "woah, more generics"
+    (with-comparator (v/within 1e-6)
+      (ish? (Math/exp (Math/sin 2.2))
+            (s/sum ((g/exp s/sin-series) 2.2) 50)))))
+
 (deftest series-test
   (testing "basics"
-    (let [Q (s/series 4)
-          R (s/series 4 3)
-          S (s/series 4 3 2)
+    (let [Q (s/power-series 4)
+          R (s/power-series 4 3)
+          S (s/power-series 4 3 2)
           ones (s/generate (constantly 1))
           nats0 (s/generate identity)
           nats (s/generate inc)]
 
       (testing "series act as seqs"
-        (is (= '(4 0 0 0 0 0 0 0) (take 8 Q)))
-        (is (= '(4 3 0 0 0 0 0 0) (take 8 R)))
-        (is (= '(4 3 2 0 0 0 0 0) (take 8 S)))
-        (is (= '(0 1 2 3) (take 4 nats0))))
+        (is (= [4 0 0 0 0 0 0 0] (take 8 Q)))
+        (is (= [4 3 0 0 0 0 0 0] (take 8 R)))
+        (is (= [4 3 2 0 0 0 0 0] (take 8 S)))
+        (is (= [0 1 2 3] (take 4 nats0))))
 
       (testing "generating series"
-        (is (= '(0 1 4 9)
+        (is (= [0 1 4 9]
                (take 4 (s/generate g/square))))
 
-        (is (= '(0 2 6 12)
-               (->> (s/generate g/square)
-                    (g/+ nats0)
+        (is (= [0 2 6 12]
+               (->> (g/+ nats0 (s/generate g/square))
                     (take 4)))))
 
       (testing "series addition"
-        (is (= '(8 6 2 0 0 0 0 0) (take 8 (g/+ R S)))))
+        (is (= [8 6 2 0 0 0 0 0]
+               (take 8 (g/+ R S))))
+
+        (is (= '(3 5 7 0 0 0 0 0)
+               (take 8 (g/+ (s/series 1 2 3)
+                            (s/series 2 3 4))))))
 
       (testing "series subtraction"
-        (is (= '(-3 -6 -9 -12) (take 4 (g/negate (g/* nats 3)))))
-        (is (= '(-3 -6 -9 -12) (take 4 (g/negate (g/* 3 nats))))))
+        (is (= [-3 -6 -9 -12]
+               (take 4 (g/negate (g/* nats 3)))))
+
+        (is (= '(-3 -6 -9 -12)
+               (take 4 (g/negate (g/* 3 nats))))))
 
       (testing "series multiplication"
         (is (= '(3 6 9 12) (take 4 (g/* 3 nats))))
         (is (= '(3 6 9 12) (take 4 (g/* nats 3))))
+        (is (= '(1 4 10 12 9 0 0)
+               (g/simplify
+                (take 7 (g/*
+                         (s/series 1 2 3)
+                         (s/series 1 2 3))))))
+
+        (testing "rational"
+          (is (= [#sicm/ratio 17/4
+                  #sicm/ratio 7/2
+                  #sicm/ratio 11/4
+                  1]
+                 (take 4 (g/+ (g/* #sicm/ratio 1/4 nats) S)))))
+
         (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε))
                (g/simplify
                 (take 4 (g/* nats 'ε)))))
 
+        (is (= '(0 r (* 2 r) (* 3 r))
+               (g/simplify
+                (take 4 (g/* 'r nats0)))))
+
         (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε))
                (g/simplify
-                (take 4 (g/* 'ε nats))))))
+                (take 4 (g/* 'ε nats)))))
+
+        (is (= '(0 m (* 2 m) (* 3 m))
+               (g/simplify
+                (take 4 (g/* 'm nats0))))))
 
       (testing "division"
         )
@@ -236,47 +279,36 @@
         (is (= 9 (s/sum S 3)))
         (is (= 9 (s/sum S 4))))
 
-      (is (= '(0 -2 -6 -12)
-             (take 4 (g/negate
-                      (g/+ nats0 (s/generate g/square))))))
+      (testing "partial-sums"
+        (is (= '(1 2 3 4 5 6)
+               (take 6 (s/partial-sums ones)))))
 
-      (is (= '(0 m (* 2 m) (* 3 m))
-             (g/simplify
-              (take 4 (g/* 'm nats0)))))
-      (is (= '(0 r (* 2 r) (* 3 r))
-             (g/simplify (take 4 (g/* 'r nats0)))))
-      (is (= '(3 5 7 0 0 0 0 0)
-             (take 8 (g/+ (s/series 1 2 3)
-                          (s/series 2 3 4)))))
-      (is (= '(1 4 10 12 9 0 0)
-             (g/simplify
-              (take 7 (g/*
-                       (s/series 1 2 3)
-                       (s/series 1 2 3))))))
+      (testing "miscellaneous"
+        (is (= '(0 -2 -6 -12)
+               (take 4 (g/negate
+                        (g/+ nats0 (s/generate g/square)))))))
 
-      ;; the tetrahedral numbers
-      (is (= '(1 4 10 20 35 56 84)
-             (take 7 (g/square nats))))
-      (is (= '(m (* 4 m) (* 10 m) (* 20 m))
-             (->> (s/generate inc)
-                  g/square
-                  (g/* 'm)
-                  (take 4)
-                  g/simplify)))
+      (let [triangle (g/* ones nats)]
+        (testing "triangular numbers https://en.wikipedia.org/wiki/Triangular_number"
+          (is (= '(1 3 6 10 15 21)
+                 (take 6 triangle))
+              "via convolution")
 
-      ;; the triangular numbers, via convolution
-      (is (= '(1 3 6 10 15 21)
-             (take 6 (g/* ones nats))))
+          (is (= '(1 3 6 10 15 21)
+                 (take 6 (s/partial-sums nats)))
+              "via partial sums"))
 
-      ;; again, via partial sums
-      (is (= '(1 3 6 10 15 21)
-             (take 6 (s/partial-sums nats))))
+        (testing "tetrahedral numbers https://en.wikipedia.org/wiki/Tetrahedral_number"
+          (is (= '(1 4 10 20 35 56 84)
+                 (take 7 (g/square nats))))
+          (is (= '(m (* 4 m) (* 10 m) (* 20 m))
+                 (->> (s/generate inc)
+                      g/square
+                      (g/* 'm)
+                      (take 4)
+                      g/simplify)))
 
-      (is (= '(1 2 3 4 5 6)
-             (take 6 (s/partial-sums ones))))
-
-      (is (= [#sicm/ratio 17/4
-              #sicm/ratio 7/2
-              #sicm/ratio 11/4
-              1]
-             (take 4 (g/+ (g/* #sicm/ratio 1/4 nats) S)))))))
+          (is (= [1 4 10 20 35 56 84]
+                 (take 7 (s/partial-sums triangle)))
+              "The tetrahedral numbers are the partial sums of the triangular
+              numbers"))))))
