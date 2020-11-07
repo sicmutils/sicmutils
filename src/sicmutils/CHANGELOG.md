@@ -118,7 +118,7 @@ future it might work with a pair of `(real, complex)`, like:
 
     #sicm/complex [1 2]
 
-### Power Serious, Power Serious
+### Power Series, Power Serious
 
 The Power Series implementation in `series.cljc` received an overhaul. The
 implementation now follows Doug McIlroy's beautiful paper, ["Power Series, Power
