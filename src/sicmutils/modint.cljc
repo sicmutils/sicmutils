@@ -23,6 +23,18 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
+;; TODO copy this approach. `residue` == i in this case.
+
+(comment
+  (define (mod:= x y)
+    (assert (and (modint? x) (modint? y))
+            "Not modular integers -- =" (list x y))
+    (let ((modulus (mod:modulus x)))
+      (assert (int:= modulus (mod:modulus y))
+              "Not same modulus -- =" (list x y))
+      (int:= (modulo (mod:residue x) modulus)
+             (modulo (mod:residue y) modulus)))))
+
 (defrecord ModInt [i m]
   v/Value
   (nullity? [_] (v/nullity? i))
@@ -31,13 +43,24 @@
   (one-like [_] (ModInt. (v/one-like i) m))
   (exact? [_] true)
   (numerical? [_] true)
-  (kind [_] ::modint))
+  (kind [_] ::modint)
+
+  ;; TODO add a string representation, etc, and a type tag so we can define
+  ;; these with a pair.
+  ;; #?@(:clj
+  ;;     [Object
+  ;;      (equals [_ b])]
+
+  ;;     :cljs
+  ;;     [IEquiv
+  ;;      (-equiv [_ b])])
+  )
 
 (defn make [i m]
   (ModInt. (g/modulo i m) m))
 
 (defn ^:private modular-binop [op]
-  (fn [a b]
+  (fn [^ModInt a ^ModInt b]
     (if-not (= (:m a) (:m b))
       (u/arithmetic-ex "unequal moduli")
       (make (op (:i a) (:i b)) (:m a)))))
@@ -69,6 +92,19 @@
 (defmethod g/exact-divide [::modint ::modint] [a b] (mul a (modular-inv b)))
 (defmethod g/negative? [::modint] [a] (g/negative? (:i a)))
 
+;; TODO add exponent
+(comment
+  (define (modint:expt base exponent p)
+    (define (square x)
+      (modint:* x x p))
+    (let lp ((exponent exponent))
+         (cond ((int:= exponent 0) 1)
+               ((even? exponent)
+                (square (lp (quotient exponent 2))))
+               (else
+                (modint:* base (lp (int:- exponent 1)) p))))))
+
+
 ;; Methods that allow interaction with other integral types. The first block is
 ;; perhaps slightly more efficient:
 (doseq [op [g/add g/mul g/sub g/expt]]
@@ -79,3 +115,26 @@
 (doseq [op [g/quotient g/remainder g/exact-divide]]
   (defmethod op [::v/integral ::modint] [a b] (op (make a (:m b)) b))
   (defmethod op [::modint ::v/integral] [a b] (op a (make b (:m a)))))
+
+(comment
+  ;; TODO get this test going, whatever it is...
+  ;; (define (test p)
+  ;;   (let jlp ((j (- p)))
+  ;;        (cond ((int:= j p) 'ok)
+  ;;              (else
+  ;;               (let ilp ((i (- p)))
+  ;;                    ;;(write-line `(trying ,i ,j))
+  ;;                    (cond ((int:= i p) (jlp (int:+ j 1)))
+  ;;                          ((int:= (modulo i p) 0) (ilp (int:+ i 1)))
+  ;;                          (else
+  ;;                           (let ((jp (mod:make j p))
+  ;;                                 (ip (mod:make i p)))
+  ;;                             (let ((b (mod:/ jp ip)))
+  ;;                               (if (mod:= (mod:* b ip) jp)
+  ;;                                 (ilp (int:+ i 1))
+  ;;                                 (begin (write-line `(problem dividing ,j ,i))
+  ;;                                        (write-line `((/ ,jp ,ip) =  ,(mod:/ jp ip)))
+  ;;                                        (write-line `((* ,b ,ip) = ,(mod:* b ip))))))))))))))
+
+  ;; (test 47)
+  )
