@@ -48,7 +48,7 @@
 ;;
 ;; TODO note that we can see `sicmutils.series.impl` for Power Serious etc.
 
-(declare s-zero s-one)
+(declare s-zero s-one series-value)
 
 (deftype Series [xs]
   v/Value
@@ -77,49 +77,49 @@
     IFn
     ;; Invoking a series uses `value` from above to generate a new series.
     (invoke [_]
-            (Series. (i/value xs [])))
+            (Series. (series-value xs [])))
     (invoke [_ a]
-            (Series. (i/value xs [a])))
+            (Series. (series-value xs [a])))
     (invoke [_ a b]
-            (Series. (i/value xs [a b])))
+            (Series. (series-value xs [a b])))
     (invoke [_ a b c]
-            (Series. (i/value xs [a b c])))
+            (Series. (series-value xs [a b c])))
     (invoke [_ a b c d]
-            (Series. (i/value xs [a b c d])))
+            (Series. (series-value xs [a b c d])))
     (invoke [_ a b c d e]
-            (Series. (i/value xs [a b c d e])))
+            (Series. (series-value xs [a b c d e])))
     (invoke [_ a b c d e f]
-            (Series. (i/value xs [a b c d e f])))
+            (Series. (series-value xs [a b c d e f])))
     (invoke [_ a b c d e f g]
-            (Series. (i/value xs [a b c d e f g])))
+            (Series. (series-value xs [a b c d e f g])))
     (invoke [_ a b c d e f g h]
-            (Series. (i/value xs [a b c d e f g h])))
+            (Series. (series-value xs [a b c d e f g h])))
     (invoke [_ a b c d e f g h i]
-            (Series. (i/value xs [a b c d e f g h i])))
+            (Series. (series-value xs [a b c d e f g h i])))
     (invoke [_ a b c d e f g h i j]
-            (Series. (i/value xs [a b c d e f g h i j])))
+            (Series. (series-value xs [a b c d e f g h i j])))
     (invoke [_ a b c d e f g h i j k]
-            (Series. (i/value xs [a b c d e f g h i j k])))
+            (Series. (series-value xs [a b c d e f g h i j k])))
     (invoke [_ a b c d e f g h i j k l]
-            (Series. (i/value xs [a b c d e f g h i j k l])))
+            (Series. (series-value xs [a b c d e f g h i j k l])))
     (invoke [_ a b c d e f g h i j k l m]
-            (Series. (i/value xs [a b c d e f g h i j k l m])))
+            (Series. (series-value xs [a b c d e f g h i j k l m])))
     (invoke [_ a b c d e f g h i j k l m n]
-            (Series. (i/value xs [a b c d e f g h i j k l m n])))
+            (Series. (series-value xs [a b c d e f g h i j k l m n])))
     (invoke [_ a b c d e f g h i j k l m n o]
-            (Series. (i/value xs [a b c d e f g h i j k l m n o])))
+            (Series. (series-value xs [a b c d e f g h i j k l m n o])))
     (invoke [_ a b c d e f g h i j k l m n o p]
-            (Series. (i/value xs [a b c d e f g h i j k l m n o p])))
+            (Series. (series-value xs [a b c d e f g h i j k l m n o p])))
     (invoke [_ a b c d e f g h i j k l m n o p q]
-            (Series. (i/value xs [a b c d e f g h i j k l m n o p q])))
+            (Series. (series-value xs [a b c d e f g h i j k l m n o p q])))
     (invoke [_ a b c d e f g h i j k l m n o p q r]
-            (Series. (i/value xs [a b c d e f g h i j k l m n o p q r])))
+            (Series. (series-value xs [a b c d e f g h i j k l m n o p q r])))
     (invoke [_ a b c d e f g h i j k l m n o p q r s]
-            (Series. (i/value xs [a b c d e f g h i j k l m n o p q r s])))
+            (Series. (series-value xs [a b c d e f g h i j k l m n o p q r s])))
     (invoke [_ a b c d e f g h i j k l m n o p q r s t]
-            (Series. (i/value xs [a b c d e f g h i j k l m n o p q r s t])))
+            (Series. (series-value xs [a b c d e f g h i j k l m n o p q r s t])))
     (invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
-            (Series. (i/value xs (concat [a b c d e f g h i j k l m n o p q r s t] rest))))
+            (Series. (series-value xs (concat [a b c d e f g h i j k l m n o p q r s t] rest))))
     (applyTo [s xs] (AFn/applyToHelper s xs))]
 
    :cljs
@@ -137,58 +137,55 @@
 
     IFn
     (-invoke [_]
-             (Series. (i/value xs [])))
+             (Series. (series-value xs [])))
     (-invoke [_ a]
-             (Series. (i/value xs [a])))
+             (Series. (series-value xs [a])))
     (-invoke [_ a b]
-             (Series. (i/value xs [a b])))
+             (Series. (series-value xs [a b])))
     (-invoke [_ a b c]
-             (Series. (i/value xs [a b c])))
+             (Series. (series-value xs [a b c])))
     (-invoke [_ a b c d]
-             (Series. (i/value xs [a b c d])))
+             (Series. (series-value xs [a b c d])))
     (-invoke [_ a b c d e]
-             (Series. (i/value xs [a b c d e])))
+             (Series. (series-value xs [a b c d e])))
     (-invoke [_ a b c d e f]
-             (Series. (i/value xs [a b c d e f])))
+             (Series. (series-value xs [a b c d e f])))
     (-invoke [_ a b c d e f g]
-             (Series. (i/value xs [a b c d e f g])))
+             (Series. (series-value xs [a b c d e f g])))
     (-invoke [_ a b c d e f g h]
-             (Series. (i/value xs [a b c d e f g h])))
+             (Series. (series-value xs [a b c d e f g h])))
     (-invoke [_ a b c d e f g h i]
-             (Series. (i/value xs [a b c d e f g h i])))
+             (Series. (series-value xs [a b c d e f g h i])))
     (-invoke [_ a b c d e f g h i j]
-             (Series. (i/value xs [a b c d e f g h i j])))
+             (Series. (series-value xs [a b c d e f g h i j])))
     (-invoke [_ a b c d e f g h i j k]
-             (Series. (i/value xs [a b c d e f g h i j k])))
+             (Series. (series-value xs [a b c d e f g h i j k])))
     (-invoke [_ a b c d e f g h i j k l]
-             (Series. (i/value xs [a b c d e f g h i j k l])))
+             (Series. (series-value xs [a b c d e f g h i j k l])))
     (-invoke [_ a b c d e f g h i j k l m]
-             (Series. (i/value xs [a b c d e f g h i j k l m])))
+             (Series. (series-value xs [a b c d e f g h i j k l m])))
     (-invoke [_ a b c d e f g h i j k l m n]
-             (Series. (i/value xs [a b c d e f g h i j k l m n])))
+             (Series. (series-value xs [a b c d e f g h i j k l m n])))
     (-invoke [_ a b c d e f g h i j k l m n o]
-             (Series. (i/value xs [a b c d e f g h i j k l m n o])))
+             (Series. (series-value xs [a b c d e f g h i j k l m n o])))
     (-invoke [_ a b c d e f g h i j k l m n o p]
-             (Series. (i/value xs [a b c d e f g h i j k l m n o p])))
+             (Series. (series-value xs [a b c d e f g h i j k l m n o p])))
     (-invoke [_ a b c d e f g h i j k l m n o p q]
-             (Series. (i/value xs [a b c d e f g h i j k l m n o p q])))
+             (Series. (series-value xs [a b c d e f g h i j k l m n o p q])))
     (-invoke [_ a b c d e f g h i j k l m n o p q r]
-             (Series. (i/value xs [a b c d e f g h i j k l m n o p q r])))
+             (Series. (series-value xs [a b c d e f g h i j k l m n o p q r])))
     (-invoke [_ a b c d e f g h i j k l m n o p q r s]
-             (Series. (i/value xs [a b c d e f g h i j k l m n o p q r s])))
+             (Series. (series-value xs [a b c d e f g h i j k l m n o p q r s])))
     (-invoke [_ a b c d e f g h i j k l m n o p q r s t]
-             (Series. (i/value xs [a b c d e f g h i j k l m n o p q r s t])))
+             (Series. (series-value xs [a b c d e f g h i j k l m n o p q r s t])))
     (-invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
-             (Series. (i/value xs (concat [a b c d e f g h i j k l m n o p q r s t] rest))))]))
+             (Series. (series-value xs (concat [a b c d e f g h i j k l m n o p q r s t] rest))))]))
 
 #?(:clj
    (defmethod print-method Series [^Series s ^java.io.Writer w]
      (.write w (str "#object[sicmutils.series.Series \""
                     (.toString s)
                     "\"]"))))
-
-(def s-zero (Series. (i/->series [0])))
-(def s-one (Series. (i/->series [1])))
 
 ;; ### Power Series
 ;;
@@ -198,7 +195,7 @@
 ;;
 ;; TODO Modify this description once we implement multivariable power series!
 
-(declare zero one)
+(declare zero one power-series-value)
 
 (deftype PowerSeries [xs]
   v/Value
@@ -224,7 +221,7 @@
     (seq [_] xs)
 
     IFn
-    (invoke [_ a] (Series. (i/p-value xs a)))]
+    (invoke [_ a] (Series. (power-series-value xs a)))]
 
    :cljs
    [ISequential
@@ -233,7 +230,7 @@
     (-seq [_] xs)
 
     IFn
-    (-invoke [_ a] (Series. (i/p-value xs a)))
+    (-invoke [_ a] (Series. (power-series-value xs a)))
 
     IPrintWithWriter
     (-pr-writer [this writer _]
@@ -248,7 +245,7 @@
                     (.toString s)
                     "\"]"))))
 
-;; ## Series API
+;; ## Constructors
 
 (defn series?
   "Returns true if `s` is either a `Series` or a `PowerSeries`, false otherwise."
@@ -308,7 +305,8 @@
   [& prefix]
   (power-series* prefix))
 
-;; ## Higher Level Constructors
+(def ^:private s-zero (series* [0]))
+(def ^:private s-one (series* [1]))
 
 (def zero (power-series* [0]))
 (def one (power-series* [1]))
@@ -331,6 +329,76 @@
   (cond (power-series? s) s
         (series? s) (->PowerSeries (seq s))
         :else (u/illegal "non-series provided to ->function.")))
+
+;; ## Application
+;;
+;; Given some power series $F$, we can "apply" the series to a value $x$ by
+;; multiplying each entry $f_n$ by $x^n$:
+
+(defn power-series-value
+  "Evaluates the power series, and converts it back down to a normal series."
+  [f x]
+  (let [one    (v/one-like x)
+        powers (iterate #(g/* x %) one)]
+    (map g/* f powers)))
+
+;; Once a `PowerSeries` has been applied, it becomes a `Series`.
+;;
+;; What does it mean to apply a `Series`? The concept only makes sense if the
+;; series contains "applicables", or objects that can act as functions
+;; themselves.
+;;
+;; If it does, then application of a series to some argument list `xs` means
+;; applying each series element to `xs`.
+;;
+;; One further wrinkle occurs if the applicable in some position returns a
+;; series. `value` should combine all of these resulting series, with each
+;; series shifted by its initial position in the first series.
+;; Concretely, suppose that $F$ has the form:
+;;
+;; $$(x => (A1, A2, A3, ...), x => (B1, B2, B3, ...) x => (C1, C2, C3, ...), ...)$$
+
+;; Then, this series applied to x should yield the series of values
+;; (A1, (+ A2 B1), (+ A3 B2 C1), ...)
+;;
+;; Here's the implementation:
+
+(defn series-value
+  "Find the value of the Series S applied to the arguments xs.
+
+  This assumes that S is a series of applicables. If, in fact, S is a
+  series of series-valued applicables, then the result will be a sort
+  of layered sum of the values.
+
+  Concretely, suppose that S has the form:
+
+    [x => [A1 A2 A3...], x => [B1 B2 B3...], x => [C1 C2 C3...], ...]
+
+  Then, this series applied to x will yield the new series:
+
+    [A1 (+ A2 B1) (+ A3 B2 C1) ...]"
+  [f xs]
+  (letfn [(collect [[f & fs]]
+            (let [result (apply f xs)]
+              (if (series? result)
+                (lazy-seq
+                 (let [[r & r-tail] result]
+                   (cons r (seq:+ r-tail (collect fs)))))
+
+                ;; note that we have already realized first-result,
+                ;; so it does not need to be behind lazy-seq.
+                (cons result (lazy-seq (collect fs))))))]
+    (collect f)))
+
+(defn value
+  "Returns the value of the supplies `Series` or `PowerSeries`"
+  [s]
+  (cond (power-series? s) (power-series-value s)
+        (series? s) (series-value s)
+        :else
+        (u/illegal (str "value only works on `Series` or `PowerSeries`; received " s))))
+
+;; ## More API
 
 (defn partial-sums
   "Returns a series (of the same type as the input) of partial sums of the terms
@@ -382,19 +450,20 @@
        (->> (map cons s (repeat zeros))
             (apply concat))))))
 
-;; TODO these next three ONLY make sense for power series!
+(defn compose
+  [s t]
+  {:pre [(power-series? s)
+         (power-series? t)]}
+  (->PowerSeries
+   (i/compose (seq s) (seq t))))
 
-#_
-(defn compose [s t]
-  ((-make s) (i/revert (seq s))))
-
-#_
 (defn revert [s]
-  ((-make s) (i/revert (seq s))))
+  {:pre [(power-series? s)]}
+  (->PowerSeries (i/revert (seq s))))
 
-#_
-(defn integrate [s]
-  ((-make s) (i/integral (seq s))))
+(defn integral [s]
+  {:pre [(power-series? s)]}
+  (->PowerSeries (i/integral (seq s))))
 
 
 ;; ## Series Wrappers

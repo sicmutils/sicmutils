@@ -171,9 +171,6 @@
 
 - test that nth works on series.
 - test that power-series, series keeps its type with fmap.
-- add compose to the general API
-- add revert to the general API JUST for power series.
-- add integrate to the general API JUST for power series!
 - add sqrt
 ")
 

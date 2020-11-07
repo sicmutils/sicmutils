@@ -469,6 +469,12 @@
           (zero? e) (->series [1])
           :else (invert (expt s (g/negate e))))))
 
+;; We can use `expt` to verify that $(1+x)^3$ expands to $1 + 3x + 3x^2 + x^3$:
+
+#_
+(= [1 3 3 1 0]
+   (take 5 (expt (->series [1 1]) )))
+
 ;; ### Square Root of a Series
 ;;
 ;; The square root of a series $F$ is a series $Q$ such that $Q^2 = F$. We can
@@ -543,8 +549,8 @@
 
 #_
 (= (take 10 (repeat 1))
-   n   (take 10 (div (->series [1])
-                     (->series [1 -1]))))
+   (take 10 (div (->series [1])
+                 (->series [1 -1]))))
 
 ;; $1 \over (1-x)^2$ is the derivative of the above series:
 
@@ -553,71 +559,6 @@
    (take 10 (div (->series [1])
                  (-> (->series [1 -1])
                      (expt 2)))))
-
-;; ## Application
-;;
-;; Given some power series $F$, we can "apply" the series to a value $x$ by
-;; multiplying each entry $f_n$ by $x^n$:
-
-(defn p-value
-  "Evaluates the power series, and converts it back down to a normal series."
-  [f x]
-  (let [one    (v/one-like x)
-        powers (iterate #(g/* x %) one)]
-    (map g/* f powers)))
-
-;; Once a power series has been applied, what is it? It becomes a more
-;; general "series". We'll work up shortly to a typed distinction between these
-;; two ideas. For now, let's assume that we have some function `series?` that
-;; can distinguish either of these series objects from a Clojure sequence:
-
-(declare series?)
-
-;; What does it mean to apply a non-power series? The concept only makes sense
-;; if the series contains "applicables", or objects that can act as functions
-;; themselves.
-;;
-;; If it does, then application of a series to some argument list `xs` means
-;; applying each series element to `xs`.
-;;
-;; One further wrinkle occurs if the applicable in some position returns a
-;; series. `value` should combine all of these resulting series, with each
-;; series shifted by its initial position in the first series.
-;; Concretely, suppose that $F$ has the form:
-;;
-;; $$(x => (A1, A2, A3, ...), x => (B1, B2, B3, ...) x => (C1, C2, C3, ...), ...)$$
-
-;; Then, this series applied to x should yield the series of values
-;; (A1, (+ A2 B1), (+ A3 B2 C1), ...)
-;;
-;; Here's the implementation:
-
-(defn value
-  "Find the value of the Series S applied to the arguments xs.
-
-  This assumes that S is a series of applicables. If, in fact, S is a
-  series of series-valued applicables, then the result will be a sort
-  of layered sum of the values.
-
-  Concretely, suppose that S has the form:
-
-    [x => [A1 A2 A3...], x => [B1 B2 B3...], x => [C1 C2 C3...], ...]
-
-  Then, this series applied to x will yield the new series:
-
-    [A1 (+ A2 B1) (+ A3 B2 C1) ...]"
-  [f xs]
-  (letfn [(collect [[f & fs]]
-            (let [result (apply f xs)]
-              (if (series? result)
-                (lazy-seq
-                 (let [[r & r-tail] result]
-                   (cons r (seq:+ r-tail (collect fs)))))
-
-                ;; note that we have already realized first-result,
-                ;; so it does not need to be behind lazy-seq.
-                (cons result (lazy-seq (collect fs))))))]
-    (collect f)))
 
 ;; ## Various Power Series
 ;;
@@ -678,18 +619,12 @@
      0)
    (v/freeze (take 10 cosx)))
 
-;; McIlroy covers a few more; before we implement these, let's divert to
-;; implement `Series` and `PowerSeries`, and extend the generic arithmetic
-;; system to these objects.
-;;
-;; ## More Series
-;;
 ;; tangent and secant come easily from these:
 
 (def tanx (div sinx cosx))
 (def secx (invert cosx))
 
-;; Reversion lets us define arcsine from sin:
+;; Reversion lets us define arcsine from sine:
 
 (def asinx (revert sinx))
 (def atanx (integral (cycle [1 0 -1 0])))
@@ -699,7 +634,7 @@
 (def acosx (c-seq (g/div 'pi 2) asinx))
 (def acotx (c-seq (g/div 'pi 2) atanx))
 
-;; The hyperbolic trig functions are defined similarly too:
+;; The hyperbolic trig functions are defined in a similar way:
 
 (declare sinhx)
 (def coshx (lazy-seq (integral sinhx 1)))
@@ -715,16 +650,13 @@
 (def log1+x
   (integral (cycle [1 -1])))
 
-;; Missing:
-;;
-;; - function-> takes the constant term and generates a power series.
-;; - ->function, turn into a power series
-;; - TODO rename `starting-with`, add a power series version.
-;; - TODO move all this stuff to `impl`
-
 ;; ## Generating Functions
 
 ;; ### Catalan numbers
+;;
+;; These are a few more examples from McIlroy's "Power Serious" paper, presented
+;; here without context. (If you have the energy to write about these, please
+;; feel free and send us a PR!)
 
 (def catalan
   (lazy-cat [1] (seq:* catalan catalan)))
