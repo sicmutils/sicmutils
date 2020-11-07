@@ -24,7 +24,8 @@
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
-            [sicmutils.structure :as s])
+            [sicmutils.structure :as s]
+            [sicmutils.series :as series])
   #?(:clj
      (:import [clojure.lang AFn Counted IFn ILookup Seqable Sequential])))
 
@@ -482,6 +483,13 @@
 (defmethod g/mul [::matrix ::s/up] [m u] (M*u m u))
 (defmethod g/mul [::s/down ::matrix] [d m] (d*M d m))
 (defmethod g/div [::s/up ::matrix] [u M] (M*u (invert M) u))
+(defmethod g/exp [::matrix] [m] (series/exp-series m))
+(defmethod g/cos [::matrix] [m] (series/cos-series m))
+(defmethod g/sin [::matrix] [m] (series/sin-series m))
+(defmethod g/tan [::matrix] [m] (series/tan-series m))
+(defmethod g/acos [::matrix] [m] (series/acos-series m))
+(defmethod g/asin [::matrix] [m] (series/asin-series m))
+(defmethod g/atan [::matrix] [m] (series/atan-series m))
 (defmethod g/simplify [::matrix] [m] (->> m (fmap g/simplify) v/freeze))
 (defmethod g/determinant [::matrix] [m] (determinant m))
 

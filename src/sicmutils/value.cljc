@@ -134,19 +134,33 @@
   (freeze [v] (mapv freeze v))
   (kind [v] (type v))
 
+  Symbol
+  (nullity? [o] false)
+  (numerical? [_] false)
+  (unity? [_] false)
+  (exact? [_] false)
+  (zero-like [_] 0)
+  (one-like [_] 1)
+  (freeze [o] o)
+  (kind [_] Symbol)
+
   #?(:clj Object :cljs default)
   (nullity? [o] false)
   (numerical? [_] false)
   (unity? [o] false)
   (exact? [o] false)
-  (zero-like [o] (cond (instance? Symbol o) 0
-                       (or (fn? o) (instance? MultiFn o)) (with-meta
-                                                            (constantly 0)
-                                                            {:arity (arity o)
-                                                             :from :object-zero-like})
+  (zero-like [o] (if (or (fn? o) (instance? MultiFn o))
+                   (-> (constantly 0)
+                       (with-meta {:arity (arity o)
+                                   :from :object-zero-like}))
 
-                       :else (u/unsupported (str "zero-like: " o))))
-  (one-like [o] (u/unsupported (str "one-like: " o)))
+                   (u/unsupported (str "zero-like: " o))))
+  (one-like [o]  (if (or (fn? o) (instance? MultiFn o))
+                   (-> identity
+                       (with-meta {:arity (arity o)
+                                   :from :object-one-like}))
+
+                   (u/unsupported (str "one-like: " o))))
   (freeze [o] (cond
                 (sequential? o) (map freeze o)
                 :else (or (and (instance? MultiFn o)

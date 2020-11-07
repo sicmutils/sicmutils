@@ -238,21 +238,21 @@
   (testing "series"
     (is (= '[(* 2 (f x)) (* 3 (f x))]
            (g/simplify
-            (take 2 ((g/* (series/starting-with 2 3)
+            (take 2 ((g/* (series/series 2 3)
                           (f/literal-function 'f)) 'x)))))
     (is (= '[(* 2 (f y)) (* 3 (f y))]
            (g/simplify
             (take 2 ((g/* (f/literal-function 'f)
-                          (series/starting-with 2 3)) 'y))))))
+                          (series/series 2 3)) 'y))))))
 
   (let [simp4 (fn [x] (g/simplify (take 4 x)))
-        S (series/starting-with (f/literal-function 'f)
-                                (f/literal-function 'g))
-        T (series/starting-with (f/literal-function 'F [0 1] 0)
-                                (f/literal-function 'G [0 1] 0))
-        U (series/starting-with (f/literal-function 'W [(s/up 0 0)] 0)
-                                (f/literal-function 'Z [(s/up 0 0)] 0))
-        V (series/starting-with g/sin g/cos g/tan)]
+        S (series/series (f/literal-function 'f)
+                         (f/literal-function 'g))
+        T (series/series (f/literal-function 'F [0 1] 0)
+                         (f/literal-function 'G [0 1] 0))
+        U (series/series (f/literal-function 'W [(s/up 0 0)] 0)
+                         (f/literal-function 'Z [(s/up 0 0)] 0))
+        V (series/series g/sin g/cos g/tan)]
 
     (testing "with functions"
       (is (= '((* (sin x) (f x)) (* (sin x) (g x)) 0 0)
@@ -272,6 +272,6 @@
       (is (= '[(cos t) (* -1 (sin t)) (/ 1 (expt (cos t) 2)) 0] (simp4 ((D V) 't)))))
 
     (testing "f -> Series"
-      (let [F (fn [k] (series/starting-with (fn [t] (g/* k t)) (fn [t] (g/* k k t))))]
+      (let [F (fn [k] (series/series (fn [t] (g/* k t)) (fn [t] (g/* k k t))))]
         (is (= '((* q z) (* (expt q 2) z) 0 0) (simp4 ((F 'q) 'z))))
         (is (= '(z (* 2 q z) 0 0) (simp4 (((D F) 'q) 'z))))))))

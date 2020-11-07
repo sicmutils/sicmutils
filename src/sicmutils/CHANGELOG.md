@@ -21,6 +21,11 @@ Here are more explicit details on the release.
 - `expt` given a valid `mul`
 - default `sub`, given a valid `add` and `negate`
 - default `div`, given a valid `mul` and `invert`
+- `Expression` and `Operator` both have better `print-method` implementations,
+  so the repl experience feels more like `scmutils`
+- `Operator` now has an `expn` method, which acts like `g/exp` on an operator
+  but expands each term in order `n`.
+- many, many more tests!
 
 ### Clojurescript Support
 
@@ -112,6 +117,108 @@ Currently this only works with a string like `#sicm/complex "1 + 2i"`. In the
 future it might work with a pair of `(real, complex)`, like:
 
     #sicm/complex [1 2]
+
+### Power Serious, Power Serious
+
+The Power Series implementation in `series.cljc` received an overhaul. The
+implementation now follows Doug McIlroy's beautiful paper, ["Power Series, Power
+Serious"](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.333.3156&rep=rep1&type=pdf).
+Doug also has a 10-line version in Haskell on [his
+website](https://www.cs.dartmouth.edu/~doug/powser.html).
+
+The API now offers two types:
+
+ - `Series`, which represents a generic infinite series of arbitrary values, and
+ - `PowerSeries`, a series that represents a power series in a single
+   variable; in other words, a series where the nth entry is interpreted as
+   the coefficient of $x^n$:
+
+    $$[a b c d ...] == $a + bx + cx^2 + dx^3 + ...$$
+
+`series/series?` responds true to both. `series/power-series?` only responds
+true to a `PowerSeries`.
+
+To turn a `PowerSeries` into a `Series`, call it as a function with a single
+argument, or pass the series and one argument to `series/value` to evaluate the
+series using the above equation.
+
+To turn a `Series` into a `PowerSeries`, call `series/->function`. None of the
+functions discussed below can mix series types; you'll have to do the conversion
+explicitly.
+
+Each type supports the following generic operations:
+
+- `*`, `+`, `-`, `/` between series and non-series
+- `g/negate`, `g/invert`, `g/sqrt`, `g/expt` work as expected.
+- `g/add` between series and non-series
+
+`PowerSeries` additionally supports:
+
+- `g/exp`, `g/cos`, `g/sin`, `g/asin`, `g/tan`
+- `g/partial-derivative`, so `PowerSeries` works well with `D`
+
+Each of these acts as function composition for the single variable function that
+the `PowerSeries` represents. If `s` is a `PowerSeries` that applies as `(s x)`,
+`(g/exp s)` returns a series that represents `(g/exp (s x))`.
+
+There are many more new methods (see the namespace for full documentation):
+
+- `starting-with` renamed to `series`
+- `power-series`, analogous `series` but generates a `PowerSeries`
+- `series*` and `power-series*` let you pass an explicit sequence
+- `series/take` removed in favor of `clojure.core/take`, since both series
+  objects act as sequences
+- `generate` takes an additional optional argument to distinguish between series
+  and power series
+- `Series` now implements more of `v/Value`
+- new `zero`, `one`, `identity` constants
+- `constant` returns a constant power series
+- `xpow` generates a series representing a bare power of `x`
+- `->function` turns a `Series` into a `PowerSeries`
+- `value`, `fmap` now handles both `Series` and `PowerSeries`
+- `(inflate s n)` expands each term $x^i$ of `s` to $x^{in}$
+- `compose` returns the functional composition of two `PowerSeries`
+- `revert` returns the functional inverse of two `PowerSeries`
+- `integral` returns a series representing the definite integral of the supplied
+  `PowerSeries`, 0 => infinity (optionally takes an integration constant)
+
+The namespace also provides many built-in `PowerSeries` instances:
+
+- `exp-series`
+- `sin-series`
+- `cos-series`
+- `tan-series`
+- `sec-series`
+- `asin-series`
+- `acos-series`
+- `atan-series`
+- `acot-series`
+- `sinh-series`
+- `cosh-series`
+- `tanh-series`
+- `asinh-series`
+- `atanh-series`
+- `log1+x-series`
+- `log1-x-series`
+- `binomial-series`
+
+And two `Series` (non-power):
+
+- `fib-series`, the fibonacci sequence
+- `catalan-series`, the [Catalan
+  numbers](https://en.wikipedia.org/wiki/Catalan_number)
+
+### Matrix Generic Operations
+
+`::matrix` gained implementations for `exp`, `cos`, `sin`, `asin`, `tan`,
+`acos`, `asin`; these now return taylor series expansions of the operator, where
+multiplication is composition as before.
+
+### Operator Generics
+
+`Operator` gained implementations for `cos`, `sin`, `asin`, `tan`, `acos`,
+`asin`; these now return taylor series expansions of the operator, where
+multiplication is composition as before.
 
 ## [v0.21.1]
 

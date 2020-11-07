@@ -21,11 +21,12 @@
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             #?(:cljs [goog.string :refer [format]])
-            [sicmutils.calculus.derivative :refer [D taylor-series-terms]]
+            [sicmutils.calculus.derivative :refer [D taylor-series]]
             [sicmutils.generic :as g :refer [expt sin cos + - * /]]
             [sicmutils.infix :as i :refer [->infix ->TeX ->JavaScript]]
             [sicmutils.function :as f
              #?(:clj :refer :cljs :refer-macros) [with-literal-functions]]
+            [sicmutils.series :as series]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :refer [up down]]))
 
@@ -142,7 +143,7 @@
               "  var t1 = Math.sin(x);\n"
               "  return -1/2 * Math.pow(dx, 2) * t1 + dx * Math.cos(x) + t1;\n"
               "}")
-         (s->JS (reduce + (take 3 (taylor-series-terms sin 'x 'dx)))
+         (s->JS (series/sum (taylor-series sin 'x 'dx) 2)
                 :symbol-generator (make-symbol-generator "t")
                 :parameter-order '[x dx])))
   (is (= "function(x, y) {\n  return [1, x + y, 2];\n}" (s->JS (up 1 (+ 'x 'y) 2))))
@@ -228,12 +229,11 @@
               "{D}^{2}f\\left(x\\right)"]
              (all-formats ((D (D f)) 'x))))
 
-      (let [expr (->> (taylor-series-terms
-                       (f/literal-function 'f (up 0 0) 0)
-                       (up 'x 'y)
-                       (up 'dx 'dy))
-                      (take 3)
-                      (reduce +))]
+      (let [expr (-> (taylor-series
+                      (f/literal-function 'f (up 0 0) 0)
+                      (up 'x 'y)
+                      (up 'dx 'dy))
+                     (series/sum 2))]
         (is (= "1/2 dx² ∂₀(∂₀f)(up(x, y)) + dx dy ∂₁(∂₀f)(up(x, y)) + 1/2 dy² ∂₁(∂₁f)(up(x, y)) + dx ∂₀f(up(x, y)) + dy ∂₁f(up(x, y)) + f(up(x, y))"
                (s->infix expr)))
 

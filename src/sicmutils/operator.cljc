@@ -21,6 +21,7 @@
   (:require [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.series :as series]
+            [sicmutils.structure :as struct]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -28,11 +29,17 @@
 
 (defrecord Operator [o arity name context]
   v/Value
-  (freeze [_] (v/freeze name))
-  (kind [_] (:subtype context))
-  (numerical? [_] false)
   (nullity? [_] false)
   (unity? [_] false)
+  (zero-like [_] (Operator. v/zero-like arity 'zero context))
+  (one-like [_] (Operator. identity arity 'identity context))
+  (numerical? [_] false)
+  (freeze [_] (v/freeze name))
+  (kind [_] (:subtype context))
+
+  Object
+  (toString [_] (let [n (v/freeze name)]
+                  (str (if (seqable? n) (seq n) n))))
 
   #?@(:clj
       [IFn
@@ -67,8 +74,18 @@
        (-invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
                 (apply o a b c d e f g h i j k l m n o p q r s t rest))]))
 
+#?(:cljs
+   (extend-type Operator
+     IPrintWithWriter
+     (-pr-writer [x writer _]
+       (write-all writer (.toString x)))))
+
+#?(:clj
+   (defmethod print-method Operator [^Operator s ^java.io.Writer w]
+     (.write w (.toString s))))
+
 (defn make-operator
-  [o name & {:keys [] :as context}]
+  [o name & {:as context}]
   (->Operator o
               (or (:arity context) [:exactly 1])
               name
@@ -98,14 +115,14 @@
 
 (defn ^:private number->operator
   "Lift a number to an operator which multiplies its
-  applied function by that number (nb: in function arithmentic,
+  applied function by that number (nb: in function arithmetic,
   this is pointwise multiplication)"
   [n]
   (->Operator #(apply g/* n %&) [:at-least 0] n {:subtype ::operator}))
 
 (defn ^:private o-o
-  "Subtract one operator from another. Produces an operator which
-  computes the difference of applying the supplied operators."
+  "Subtract one operator from another. Produces an operator which computes the
+  difference of applying the supplied operators."
   [o p]
   (->Operator #(g/- (apply o %&) (apply p %&))
               (v/joint-arity [(:arity o) (:arity p)])
@@ -113,15 +130,14 @@
               (joint-context o p)))
 
 (defn ^:private o+o
-  "Add two operators. Produces an operator which adds the result of
-  applying the given operators."
+  "Add two operators. Produces an operator which adds the result of applying the
+  given operators."
   [o p]
   (->Operator #(g/+ (apply o %&) (apply p %&))
               (v/joint-arity [(v/arity o) (v/arity p)])
               `(~'+ ~(:name o) ~(:name p))
               (joint-context o p)))
 
-;; multiplication of operators is treated like composition.
 (defn ^:private o*o
   "Multiplication of operators is defined as their composition"
   [o p]
@@ -133,8 +149,8 @@
               (:context p)))
 
 (defn ^:private o*f
-  "Multiply an operator by a non-operator on the right. The
-  non-operator acts on its argument by multiplication."
+  "Multiply an operator by a non-operator on the right. The non-operator acts on
+  its argument by multiplication."
   [o f]
   (->Operator (fn [& gs]
                 (apply o (map (fn [g] (g/* f g)) gs)))
@@ -158,28 +174,53 @@
 (defn anticommutator [o p]
   (g/+ (g/* o p) (g/* p o)))
 
-;; Do we need to promote the second arg type (::v/integral)
-;; to ::x/numerical-expression?? -- check this ***AG***
-(defmethod g/expt [::operator ::v/integral] [o n]
-  {:pre [(not (g/negative? n))]}
-  (loop [e identity-operator
-         n n]
-    (if (= n 0) e (recur (o*o e o) (dec n)))))
+(defn exp
+  "Returns an operator represented by a Taylor series expansion of $e^x$, applied
+  to `op`. This expanded series of operators is itself an operator that applies
+  each element to its argument.
 
-;; e to an operator g means forming the power series
-;; I + g + 1/2 g^2 + ... + 1/n! g^n
-;; where (as elsewhere) exponentiating the operator means n-fold composition
-(defmethod g/exp [::operator] [g]
-  (letfn [(step [n n! g**n]
-            (lazy-seq (cons (g/divide g**n n!)
-                            (step (inc n) (* n! (inc n)) (o*o g g**n)))))]
-    (->Operator (fn [f]
-                  (partial series/value (series/->Series
-                                         [:exactly 0]
-                                         (map #(% f) (step 0 1 identity-operator)))))
-                [:exactly 1]
-                `(~'exp ~(:name g))
-                (:context g))))
+  Put another way: `(exp g)` to an operator g means forming the power series
+
+  I + g + 1/2 g^2 + ... + 1/n! g^n
+
+  where (as elsewhere) exponentiating the operator means n-fold composition."
+  [op]
+  (assert (= (:arity op) [:exactly 1]) "sicmutils.operator/exp")
+  (->Operator (series/exp-series op)
+              [:exactly 1]
+              `(~'exp ~(:name op))
+              (:context op)))
+
+(defn expn
+  "Similar to `exp`, but takes an optional argument `n` that defines an order for
+  each term of the taylor series expansion."
+  ([op] (exp op))
+  ([op n]
+   (assert (= (:arity op) [:exactly 1]) "sicmutils.operator/expn")
+   (->Operator (-> (series/exp-series op)
+                   (series/inflate n))
+               [:exactly 1]
+               `(~'exp ~(:name op))
+               (:context op))))
+
+(defmethod g/expt [::operator ::v/native-integral] [o n]
+  {:pre [(not (g/negative? n))]}
+  (reduce o*o identity-operator (repeat n o)))
+
+(doseq [[op f sym] [[g/exp series/exp-series 'exp]
+                    [g/cos series/cos-series 'cos]
+                    [g/sin series/sin-series 'sin]
+                    [g/tan series/tan-series 'tan]
+                    [g/acos series/acos-series 'acos]
+                    [g/asin series/asin-series 'asin]
+                    [g/atan series/atan-series 'atan]]]
+  (let [assert-str (str "g/" sym " :sicmutils.operator/operator")]
+    (defmethod op [::operator] [g]
+      (assert (= (:arity g) [:exactly 1]) assert-str)
+      (->Operator (f g)
+                  [:exactly 1]
+                  `(~sym ~(:name g))
+                  (:context g)))))
 
 (defmethod g/add [::operator ::operator] [o p] (o+o o p))
 

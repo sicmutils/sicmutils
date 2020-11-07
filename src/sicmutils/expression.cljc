@@ -29,6 +29,7 @@
   (nullity? [_] false)  ;; XXX what if it's a wrapped zero? one?
   (unity? [_] false)
   (zero-like [_] 0)
+  (one-like [_] 1)
   (numerical? [_] (= type ::numerical-expression))
   (exact? [_] false)
   (freeze [_] (v/freeze expression))

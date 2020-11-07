@@ -20,6 +20,8 @@
 (ns sicmutils.calculus.derivative-test
   (:refer-clojure :exclude [+ - * / ref partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [same :refer [ish? with-comparator]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :as d
              :refer [D partial #?(:cljs Differential)]]
             [sicmutils.complex :refer [complex]]
@@ -27,9 +29,11 @@
                :cljs [sicmutils.function :as f :refer-macros [with-literal-functions]])
             [sicmutils.generic :as g :refer [acos asin atan cos sin tan log exp expt + - * /]]
             [sicmutils.matrix :as matrix]
+            [sicmutils.operator :as o]
             [sicmutils.series :as series]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :as s]
+            [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
      (:import [sicmutils.calculus.derivative Differential])))
@@ -235,6 +239,7 @@
     (is (= (((f/compose D D) ff) 'x 'y 'z) (((g/expt D 2) ff) 'x 'y 'z)))
     (is (= (((* D D D) ff) 'x 'y 'z) (((g/expt D 3) ff) 'x 'y 'z)))
     (is (= (((f/compose D D D) ff) 'x 'y 'z) (((g/expt D 3) ff) 'x 'y 'z))))
+
   (testing "issue #9 regression"
     (let [g (fn [z] (* z z z z))
           f4 (fn [x] (+ (* x x x) (* x x x)))]
@@ -461,7 +466,7 @@
              (* dx (((partial 0) f) (up x y)))
              (* dy (((partial 1) f) (up x y)))
              (f (up x y)))
-         (->> (d/taylor-series-terms
+         (->> (d/taylor-series
                (f/literal-function 'f (s/up 0 0) 0)
                (s/up 'x 'y)
                (s/up 'dx 'dy))
@@ -471,9 +476,15 @@
               (v/freeze))))
 
   (testing "eq. 5.291"
-    (let [V (fn [[xi eta]] (g/sqrt (+ (g/square (+ xi 'R_0)) (g/square eta))))]
+    (let [V  (fn [[xi eta]]
+               (g/sqrt (+ (g/square (+ xi 'R_0))
+                          (g/square eta))))
+          x  (s/up 0 0)
+          dx (s/up 'xi 'eta)]
       (is (= '[R_0 xi (/ (expt eta 2) (* 2 R_0))]
-             (take 3 (g/simplify (d/taylor-series-terms V (s/up 0 0) (s/up 'xi 'eta)))))))))
+             (->> (d/taylor-series V x dx)
+                  (g/simplify)
+                  (take 3)))))))
 
 (deftest moved-from-structure-and-matrix
   (let [vs (s/up
@@ -540,27 +551,26 @@
              (g/simplify ((as-matrix (D C-general)) s)))))))
 
 (deftest taylor-moved-from-series
-  (let [taylor-series-expander (fn [f x h]
-                                 (((g/exp (* h D)) f) x))]
-    (is (= '(+ (* (/ 1 24) (expt dx 4) (sin x))
-               (* (/ -1 6) (expt dx 3) (cos x))
-               (* (/ -1 2) (expt dx 2) (sin x))
-               (* dx (cos x))
-               (sin x))
-           (v/freeze
-            (g/simplify
-             (reduce + (take 5 (taylor-series-expander g/sin 'x 'dx)))))))
-    (is (= '(1
-             (* (/ 1 2) dx)
-             (* (/ -1 8) (expt dx 2))
-             (* (/ 1 16) (expt dx 3))
-             (* (/ -5 128) (expt dx 4))
-             (* (/ 7 256) (expt dx 5)))
-           (v/freeze
-            (g/simplify
-             (take 6 (taylor-series-expander
-                      (fn [x] (g/sqrt (+ (v/one-like x) x)))
-                      0 'dx))))))))
+  (is (= '(+ (* (/ 1 24) (expt dx 4) (sin x))
+             (* (/ -1 6) (expt dx 3) (cos x))
+             (* (/ -1 2) (expt dx 2) (sin x))
+             (* dx (cos x))
+             (sin x))
+         (v/freeze
+          (g/simplify
+           (-> (d/taylor-series g/sin 'x 'dx)
+               (series/sum 4))))))
+  (is (= '(1
+           (* (/ 1 2) dx)
+           (* (/ -1 8) (expt dx 2))
+           (* (/ 1 16) (expt dx 3))
+           (* (/ -5 128) (expt dx 4))
+           (* (/ 7 256) (expt dx 5)))
+         (v/freeze
+          (g/simplify
+           (take 6 (d/taylor-series
+                    (fn [x] (g/sqrt (+ (v/one-like x) x)))
+                    0 'dx)))))))
 
 (deftest derivative-of-matrix
   (let [M (matrix/by-rows [(f/literal-function 'f) (f/literal-function 'g)]
@@ -605,3 +615,67 @@
     (is (= 0 (g/simplify (dU 'x)))))
   (let [odear (fn [z] ((D (f/compose sin cos)) z))]
     (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify (odear 'x))))))
+
+
+;; Tests from the refman that came about while implementing various derivative
+;; and operator functions.
+(deftest refman-tests
+  (testing "o/expn expansion of `D`"
+    (let [f     (f/literal-function 'f)
+          ->seq (comp v/freeze g/simplify #(take 10 %))]
+      (is (= (->seq ((series/->function (((o/exp D) f) 'x)) 'dx))
+             (->seq (((o/exp (g/* 'dx D)) f) 'x)))
+          "Multiplying (* dx D) is identical to NOT doing that, and then
+          promoting the series back to a power series in `dx` after the fact.")
+
+      (let [expected '((f x)
+                       0
+                       (* (expt dx 2) ((D f) x))
+                       0
+                       (* (/ 1 2) (expt dx 4) (((expt D 2) f) x))
+                       0
+                       (* (/ 1 6) (expt dx 6) (((expt D 3) f) x))
+                       0
+                       (* (/ 1 24) (expt dx 8) (((expt D 4) f) x))
+                       0)]
+        (is (= expected
+               (->seq (((o/expn (g/* (g/square 'dx) D) 2) f) 'x)))
+            "power series of f at x with increment dx, expanded as `x^2`. If you
+            call `expn` with an exponent, you also have to exponentiate `'dx`.
+            This is confusing! See the next test for another example.")
+
+        (let [expanded   (((o/expn D 2) f) 'x)
+              f-expanded (series/->function expanded)]
+          (is (= expected (->seq (f-expanded 'dx)))
+              "`(o/expn D 2)` returns an expanded taylor series; if AFTER
+              application to 'x, you turn it back into a function, it becomes a
+              function of `(g/square dx)` (compare to previous test.)")))))
+
+  (testing "d/taylor-series"
+    (is (ish? (take 8 series/cos-series)
+              (take 8 (d/taylor-series g/cos 0 1)))
+        "The taylor series expansion of g/cos around x=0 with dx=1 should be the
+        original cos series."))
+
+  (testing "taylor series approximations"
+    (let [cos-approx (into [] (comp (take 10)
+                                    (map u/double))
+                           (series/partial-sums
+                            (d/taylor-series g/cos 0 1)))]
+      (is (ish? [1.0 1.0
+                 0.5 0.5
+                 0.5416666666666667 0.5416666666666667
+                 0.5402777777777777 0.5402777777777777
+                 0.5403025793650794 0.5403025793650794]
+                cos-approx)
+          "The estimates should approach cos(1)")
+
+      (with-comparator (v/within 1e-6)
+        (letfn [(via-series [x]
+                  (u/double
+                   (-> (d/taylor-series g/cos 0 x)
+                       (series/sum 10))))]
+          (testing "The taylor series approximation of `g/cos` around 1 returns
+          fairly accurate estimates of Math/cos at a few points."
+            (is (ish? (Math/cos 1) (via-series 1)))
+            (is (ish? (Math/cos 0.6) (via-series 0.6)))))))))

@@ -66,8 +66,11 @@
 
        IPrintWithWriter
        (-pr-writer [x writer _]
-                   (write-all writer (.toString x)))
-       ]))
+                   (write-all writer (.toString x)))]))
+
+#?(:clj
+   (defmethod print-method Differential [^Differential s ^java.io.Writer w]
+     (.write w (.toString s))))
 
 (defn differential?
   [x]
@@ -479,11 +482,21 @@
   (o/make-operator #(g/partial-derivative % selectors)
                    :partial-derivative))
 
-(defn taylor-series-terms
-  "The (infinite) sequence of terms of the taylor series of the function f
-  evaluated at x, with incremental quantity dx."
+(defn taylor-series
+  "Returns a `Series` of the coefficients of the taylor series of the function `f`
+  evaluated at `x`, with incremental quantity `dx`.
+
+  NOTE: The `(constantly dx)` term is what allows this to work with arbitrary
+  structures of `x` and `dx`. Without this wrapper, `((g/* dx D) f)` with `dx`
+  == `(up 'dx 'dy)` would expand to this:
+
+  `(fn [x] (* (s/up ('dx x) ('dy x))
+              ((D f) x)))`
+
+  `constantly` delays the interpretation of `dx` one step:
+
+  `(fn [x] (* (s/up 'dx 'dy)
+              ((D f) x)))`
+  "
   [f x dx]
-  (let [step (fn step [n n! Dnf dxn]
-               (lazy-seq (cons (g/divide (g/* (Dnf x) dxn) n!)
-                               (step (inc n) (g/* n! (inc n)) (D Dnf) (g/* dxn dx)))))]
-    (step 0 1 f 1)))
+  (((g/exp (g/* (constantly dx) D)) f) x))
