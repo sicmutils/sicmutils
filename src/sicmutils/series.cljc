@@ -30,9 +30,6 @@
 ;; Missing:
 ;;
 ;; - TODO function-> takes the constant term and generates a power series.
-;; - TODO ->function, turn into a power series
-;; - TODO rename `starting-with`, add a power series version.
-;; - TODO finish `impl` move of tests
 ;; - TODO figure out which fns only make sense between the SAME type...
 
 ;; # Power Series
