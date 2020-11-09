@@ -58,14 +58,16 @@
      []
      (set! nrepl.middleware.print/*print-fn* simp/expression->stream)))
 
-#?(:clj
-   (defmacro bootstrap-repl!
-     "Bootstraps a repl or Clojure namespace by requiring all public vars from
-     sicmutils.env. From (This will only work at a repl in Clojurescript.)"
-     []
-     `(require '~['sicmutils.env
-                  :refer
-                  (into [] (keys (ns-publics 'sicmutils.env)))])))
+(defmacro bootstrap-repl!
+  "Bootstraps a repl or Clojure namespace by requiring all public vars from
+     sicmutils.env. From (This will only work at a repl in Clojurescript.)
+
+  TODO add support for `refer-macros` in Clojurescript
+  TODO add rename, exclude support."
+  []
+  `(require '~['sicmutils.env
+               :refer
+               (into [] (keys (ns-publics 'sicmutils.env)))]))
 
 (defmacro literal-function
   ([f] `(f/literal-function ~f))
@@ -288,7 +290,7 @@
   state-advancer]
  [sicmutils.numerical.quadrature definite-integral]
  [sicmutils.numerical.elliptic elliptic-f]
- [sicmutils.numerical.minimize minimize])
+ [sicmutils.numerical.minimize minimize multidimensional-minimize])
 
 ;; Macros. These work with Potemkin's import, but not with the Clojure version.
 #?(:clj

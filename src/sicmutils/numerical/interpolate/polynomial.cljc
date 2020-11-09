@@ -51,8 +51,9 @@
                            p (reduce g/* (map #(g/- x %) others))
                            q (reduce g/* (map #(g/- a %) others))]
                        (g// (g/* fa p) q)))]
-    (->> (map-indexed build-term points)
-         (reduce g/+))))
+    (transduce (map-indexed build-term)
+               g/+
+               points)))
 
 ;; Lagrange's interpolating polynomial is straightforward, but not terribly
 ;; efficient; every time we change `points` or `x` we have to redo the entire

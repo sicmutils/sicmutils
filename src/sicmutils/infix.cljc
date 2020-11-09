@@ -253,6 +253,9 @@
 
 (def ^:dynamic *TeX-vertical-down-tuples* false)
 
+(defn- displaystyle [s]
+  (str "\\displaystyle{" s "}"))
+
 (def ->TeX
   "Convert the given (simplified) expression to TeX format, as a string."
   (let [TeX-accent (fn [accent]
@@ -278,11 +281,21 @@
       '/ (fn [xs]
            (when (= (count xs) 2)
              (str "\\frac" (brace (first xs)) (brace (second xs)))))
-      'up #(str "\\begin{pmatrix}" (s/join "\\\\" %) "\\end{pmatrix}")
+      'up (fn [x]
+            (let [body (->> (map displaystyle x)
+                            (s/join " \\cr \\cr "))]
+              (str "\\begin{pmatrix}"
+                   body
+                   "\\end{pmatrix}")))
       'down (fn [x]
-              (str "\\begin{bmatrix}"
-                   (s/join (if-not *TeX-vertical-down-tuples* "&" "\\\\") x)
-                   "\\end{bmatrix}"))
+              (let [sep  (if *TeX-vertical-down-tuples*
+                           " \\cr \\cr "
+                           "&")
+                    body (->> (map displaystyle x)
+                              (s/join sep))]
+                (str "\\begin{bmatrix}"
+                     body
+                     "\\end{bmatrix}")))
       'sqrt #(str "\\sqrt " (maybe-brace (first %)))}
      :render-primitive
      (fn r [v]

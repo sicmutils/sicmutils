@@ -17,7 +17,7 @@ G.J. Sussman and J. Wisdom.
 Install SICMUtils into your Clojure(script) project using the instructions at
 its Clojars page:
 
-[![Clojars Project](https://img.shields.io/clojars/v/net.littleredcomputer/sicmutils.svg)](https://clojars.org/net.littleredcomputer/sicmutil)
+[![Clojars Project](https://img.shields.io/clojars/v/net.littleredcomputer/sicmutils.svg)](https://clojars.org/net.littleredcomputer/sicmutils)
 
 Initialize a REPL and simplify a trigonometric identity:
 
