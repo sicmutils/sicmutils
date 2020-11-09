@@ -447,12 +447,12 @@
 (= [0 1 1 1 1 1]
    (take 6 (integral (iterate inc 1) 5)))
 
-;; ## Exponentiation
+;; ### Exponentiation
 ;;
 ;; Exponentiation of a power series by some integer is simply repeated
 ;; multiplication. The implementation here is more efficient the iterating
 ;; `seq:*`, and handles negative exponent terms by inverting the original
-;; seequence.
+;; sequence.
 
 (defn expt [s e]
   (letfn [(expt [base pow]
@@ -473,7 +473,7 @@
 
 #_
 (= [1 3 3 1 0]
-   (take 5 (expt (->series [1 1]) )))
+   (take 5 (expt (->series [1 1]) 3)))
 
 ;; ### Square Root of a Series
 ;;

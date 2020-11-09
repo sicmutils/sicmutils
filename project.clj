@@ -20,7 +20,7 @@
 (def cljsbuild '[lein-cljsbuild "1.1.8"
                  :exclusions [org.clojure/clojurescript]])
 
-(defproject net.littleredcomputer/sicmutils "0.12.2-SNAPSHOT"
+(defproject net.littleredcomputer/sicmutils "0.13.0"
   :description "A port of the Scmutils computer algebra/mechanics system to Clojure"
   :url "http://github.com/littleredcomputer/sicmutils"
   :scm {:name "git" :url "https://github.com/littleredcomputer/sicmutils"}
@@ -70,7 +70,10 @@
                                    [criterium "0.4.5"]]}}
   :aliases {"test-cljs"
             ["doo" "node" "test" "once"]}
-  :deploy-repositories [["clojars" {:sign-releases false}]]
+  :deploy-repositories [["clojars" {:url "https://repo.clojars.org"
+                                    :username :env/clojars_username
+                                    :password :env/clojars_password
+                                    :sign-releases false}]]
   :cljsbuild {:builds
               {:test
                {:source-paths ["src" "test"]

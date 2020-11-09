@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.13.0 [Unreleased]
+##  [Unreleased]
+
+## 0.13.0
 
 The main announcement for this release is _Clojurescript Support!_. Implementing
 this resulted in a few upgrades along the way:
