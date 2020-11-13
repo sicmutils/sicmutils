@@ -228,10 +228,11 @@
 (defn arctangent
   "Similar to arcsine and arccosine, this method should only be reached in cases
   where the expression is symbolic."
-  [y & x]
-  (if (or (nil? x) (v/unity? (first x)))
-    `(~'atan ~y)
-    `(~'atan ~y ~@x)))
+  ([y] `(~'atan ~y))
+  ([y x]
+   (if (v/unity? x)
+     `(~'atan ~y)
+     `(~'atan ~y ~x))))
 
 (defn ^:private abs
   "Symbolic expression handler for abs."

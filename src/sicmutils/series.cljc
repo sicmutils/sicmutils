@@ -656,6 +656,12 @@
 (defmethod g/tan [::power-series] [s]
   (->PowerSeries (i/compose i/tanx (seq s))))
 
+(defmethod g/acot [::power-series] [s]
+  (->PowerSeries (i/compose i/acotx (seq s))))
+
+(defmethod g/sec [::power-series] [s]
+  (->PowerSeries (i/compose i/secx (seq s))))
+
 (defmethod g/asin [::power-series] [s]
   (->PowerSeries (i/compose i/asinx (seq s))))
 
@@ -664,6 +670,21 @@
 
 (defmethod g/atan [::power-series] [s]
   (->PowerSeries (i/compose i/atanx (seq s))))
+
+(defmethod g/cosh [::power-series] [s]
+  (->PowerSeries (i/compose i/coshx (seq s))))
+
+(defmethod g/sinh [::power-series] [s]
+  (->PowerSeries (i/compose i/sinhx (seq s))))
+
+(defmethod g/tanh [::power-series] [s]
+  (->PowerSeries (i/compose i/tanhx (seq s))))
+
+(defmethod g/asinh [::power-series] [s]
+  (->PowerSeries (i/compose i/asinh (seq s))))
+
+(defmethod g/atanh [::power-series] [s]
+  (->PowerSeries (i/compose i/atanhx (seq s))))
 
 ;; ## Derivatives
 ;;
