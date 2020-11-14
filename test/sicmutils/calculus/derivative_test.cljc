@@ -679,3 +679,19 @@
           fairly accurate estimates of Math/cos at a few points."
             (is (ish? (Math/cos 1) (via-series 1)))
             (is (ish? (Math/cos 0.6) (via-series 0.6)))))))))
+
+
+(deftest new-test
+  (letfn [(total-distance [x1 y1 x2 y2]
+            (fn [xp]
+              (s/up (g/sqrt
+                     (g/+ (g/square (+ x1 xp))
+                          (g/square y1)))
+                    (g/sqrt
+                     (g/+ (g/square (g/- x2 (g/+ x1 xp)))
+                          (g/square y2))))))]
+    (let [distance-fn (total-distance 0 'y_1 'x_2 'y_2)
+          minimum     (g// (g/* 'y_1 'x_2)
+                           (g/+ 'y_1 'y_2))
+          [num denom] ((D distance-fn) minimum)]
+      (is (= 0 (g/simplify (- num denom)))))))

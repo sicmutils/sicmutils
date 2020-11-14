@@ -215,3 +215,14 @@
              (m/by-rows '[a b c]
                         '[d e f]
                         '[g h i])))))))
+
+(deftest new-test
+  (letfn [(total-distance [x1 y1 x2 y2]
+            (fn [xp]
+              (s/up (g/sqrt
+                     (g/+ (g/square (+ x1 xp))
+                          (g/square y1)))
+                    (g/sqrt
+                     (g/+ (g/square (g/- x2 (g/+ x1 xp)))
+                          (g/square y2))))))]
+    ))

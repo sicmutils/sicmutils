@@ -80,12 +80,44 @@
     (sqrt (expt :x (:? n even-integer?)))
     => (expt :x (:? #(/ (% 'n) 2)))
 
-    ;; Following are the new rules we added to approach
-    ;; the simplification of the time-invariant-canonical
-    ;; test.
     (expt (sqrt :x) (:? n odd-integer?))
     => (* (sqrt :x) (expt :x (:? #(/ (- (% 'n) 1) 2))))
 
+    (/ :x (sqrt :x)) => :x
+
+    (/ (sqrt :x) :x) => (/ 1 (sqrt :x))
+
+    (/ (* :u* :x :v*) (sqrt :x))
+    =>
+    (* :u* (sqrt :x) :v*)
+
+    (/ (* :u* (sqrt :x) :v*) :x)
+    =>
+    (/ (* :u* :v*) (sqrt :x))
+
+    (/ :x (* :u* (sqrt :x) :v*))
+    =>
+    (/  (sqrt :x) (* :u* :v*))
+
+    (/ (sqrt :x) (* :u* :x :v*))
+    =>
+    (/ 1 (* :u* (sqrt :x) :v*))
+
+    (/ (* :p* :x :q*)
+       (* :u* (sqrt :x) :v*))
+    =>
+    (/ (* :p* (sqrt :x) :q*)
+       (* :u* :v*))
+
+    (/ (* :p* (sqrt :x) :q*)
+       (* :u* :x :v*))
+    =>
+    (/ (* :p* :q*)
+       (* :u* (sqrt :x) :v*))
+
+    ;; Following are the new rules we added to approach
+    ;; the simplification of the time-invariant-canonical
+    ;; test.
     ;; ... (sqrt a) ... (sqrt b) ... => ... (sqrt a b)
     (* :f1* (sqrt :a) :f2* (sqrt :b) :f3*)
     => (* :f1* :f2* :f3* (sqrt (* :a :b)))
@@ -95,11 +127,7 @@
     (/ (* :f1* (sqrt :a) :f2*)
        (* :g1* (sqrt :b) :g2*))
     => (/ (* :f1* :f2* (sqrt (/ :a :b)))
-          (* :g1* :g2*))
-
-
-    ;; others to follow
-    )))
+          (* :g1* :g2*)))))
 
 (def complex-trig
   ;; TODO: clearly more of these are needed.
