@@ -97,6 +97,13 @@
     => (/ (* :f1* :f2* (sqrt (/ :a :b)))
           (* :g1* :g2*))
 
+    ;; (+ ... (sqrt (/ a b)) ... (sqrt (/ c b)) ...) => (+ ... (sqrt (/ (+ a c) b)))
+    (+ :f1* (sqrt (/ :a :b)) :f2* (sqrt (/ :c :b)) :f3* )
+    => (+ :f1* :f2* :f3* (sqrt (/ (+ :a :c) :b)))
+
+    ;; same as above, but for subtraction
+    (+ :f1* (sqrt (/ :a :b)) :f2* (* -1 (sqrt (/ :c :b))) :f3* )
+    => (+ :f1* :f2* :f3* (sqrt (/ (- :a :c) :b)))
 
     ;; others to follow
     )))
