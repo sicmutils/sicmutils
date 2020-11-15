@@ -46,52 +46,76 @@
            (log/warn (str "simplifier timed out: must have been a complicated expression"))
            x))))
 
+;; TODO note that this is equivalent to fpf:simplify. Flat polynomial form.
 (defn ^:private poly-analyzer
   "An analyzer capable of simplifying sums and products, but unable to
   cancel across the fraction bar"
   []
-  (a/make-analyzer (poly/->PolynomialAnalyzer)
-                   (a/monotonic-symbol-generator "-s-")))
+  (a/make-analyzer
+   (poly/->PolynomialAnalyzer)
+   (a/monotonic-symbol-generator "-s-")))
 
+;; TODO note that this is equivalent to rcf:simplify.
 (defn ^:private rational-function-analyzer
   "An analyzer capable of simplifying expressions built out of rational
   functions."
   []
-  (a/make-analyzer (rf/->RationalFunctionAnalyzer (poly/->PolynomialAnalyzer))
-                   (a/monotonic-symbol-generator "-r-")))
+  (a/make-analyzer
+   (rf/->RationalFunctionAnalyzer (poly/->PolynomialAnalyzer))
+   (a/monotonic-symbol-generator "-r-")))
 
+;; TODO note that, again, memoized rcf:simplify
 (def ^:dynamic *rf-analyzer*
   (memoize (unless-timeout (rational-function-analyzer))))
 
+;; TODO note that, again, memoized fpf:simplify
 (def ^:dynamic *poly-analyzer*
   (memoize (poly-analyzer)))
 
 (defn hermetic-simplify-fixture
+  "Wrapper fn that skips the memoization cache."
   [f]
-  (binding [*rf-analyzer* (rational-function-analyzer)
+  (binding [*rf-analyzer*   (rational-function-analyzer)
             *poly-analyzer* (poly-analyzer)]
     (f)))
 
-(def ^:private simplify-and-flatten #'*rf-analyzer*)
+;; ## From scmutils
+;;
+;; This is the good stuff, tying together rules.scm.
 
 (defn- simplify-until-stable
+  "TODO document, key thing."
   [rule-simplify canonicalize]
   (fn [expression]
     (let [new-expression (rule-simplify expression)]
       (if (= expression new-expression)
         expression
-        (let [canonicalized-expression (canonicalize new-expression)]
-          (cond (= canonicalized-expression expression) expression
-                (v/nullity? (*poly-analyzer* `(~'- ~expression ~canonicalized-expression))) canonicalized-expression
-                :else (recur canonicalized-expression)))))))
+        (let [canonicalized (canonicalize new-expression)]
+          (cond (= canonicalized expression) expression
 
-(defn ^:private simplify-and-canonicalize
+                (v/nullity? (*poly-analyzer* `(~'- ~expression ~canonicalized)))
+                canonicalized
+
+                :else (recur canonicalized)))))))
+
+(defn- simplify-and-canonicalize
+  "Single round of `simplify-until-stable` above.
+
+  TODO more docs, consolidate."
   [rule-simplify canonicalize]
   (fn [expression]
     (let [new-expression (rule-simplify expression)]
       (if (= expression new-expression)
         expression
         (canonicalize new-expression)))))
+
+;; TODO they note this as "the usual canonicalizer is"
+;;
+;; And in THEIR system this is `(compose fpf:simplify rcf:simplify)`.
+(def ^:private simplify-and-flatten
+  #'*rf-analyzer*)
+
+;; ## Specific Simplifiers
 
 (def ^:private sin-sq->cos-sq-simplifier
   (simplify-and-canonicalize

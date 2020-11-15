@@ -1,33 +1,35 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+                                        ;
+                                        ; Copyright © 2017 Colin Smith.
+                                        ; This work is based on the Scmutils system of MIT/GNU Scheme:
+                                        ; Copyright © 2002 Massachusetts Institute of Technology
+                                        ;
+                                        ; This is free software;  you can redistribute it and/or modify
+                                        ; it under the terms of the GNU General Public License as published by
+                                        ; the Free Software Foundation; either version 3 of the License, or (at
+                                        ; your option) any later version.
+                                        ;
+                                        ; This software is distributed in the hope that it will be useful, but
+                                        ; WITHOUT ANY WARRANTY; without even the implied warranty of
+                                        ; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+                                        ; General Public License for more details.
+                                        ;
+                                        ; You should have received a copy of the GNU General Public License
+                                        ; along with this code; if not, see <http://www.gnu.org/licenses/>.
+                                        ;
 
 (ns pattern.match-test
   (:require [clojure.test :refer [is deftest testing]]
             [pattern.match :as m]))
 
-(defn ^:private receive [frame xs] [frame xs])
+(defn- receive [frame xs]
+  [frame xs])
 
-(defn ^:private collect-all-results [matcher input & tails]
+(defn- collect-all-results
+  [matcher input & tails]
   (let [results (atom [])]
     (matcher {} input (fn [frame xs]
-                        (swap! results conj
-                               (if tails [frame xs] frame))
+                        (let [elem (if tails [frame xs] frame)]
+                          (swap! results conj elem))
                         false))
     @results))
 
@@ -37,7 +39,7 @@
     (is (not (m/match (m/match-one 'a) [])))
     (is (= [{} nil] ((m/match-one 'a) {} '(a) receive)))
     (is (= [{} '(b c d e)] ((m/match-one 'a) {} '(a b c d e) receive)))
-    (is (not  ((m/match-one 'a) {} '(e d c b a) receive))))
+    (is (not ((m/match-one 'a) {} '(e d c b a) receive))))
 
   (testing "match-var"
     (is (= [{:x 'a} nil] ((m/match-var :x) {} '(a) receive)))
@@ -185,3 +187,59 @@
                {:x* [1 2 3], :y* [4]}
                {:x* [1 2 3 4], :y* []}]
              (collect-all-results xs-ys [[1 2 3 4]]))))))
+
+(comment
+  ((match:->combinators '(a ((? b) 2 3) 1 c))
+   '((a (1 2 3) 1 c))
+   '()
+   (lambda (x y) `(succeed ,x ,y)))
+  ;;Value: (succeed ((b . 1)) ())
+
+  ((match:->combinators `(a ((? b ,number?) 2 3) 1 c))
+   '((a (1 2 3) 1 c))
+   '()
+   (lambda (x y) `(succeed ,x ,y)))
+  ;;Value: (succeed ((b . 1)) ())
+
+  ((match:->combinators `(a ((? b ,symbol?) 2 3) 1 c))
+   '((a (1 2 3) 1 c))
+   '()
+   (lambda (x y) `(succeed ,x ,y)))
+  ;;Value: #f
+
+  ((match:->combinators '(a ((? b) 2 3) (? b) c))
+   '((a (1 2 3) 2 c))
+   '()
+   (lambda (x y) `(succeed ,x ,y)))
+  ;;Value: #f
+
+  ((match:->combinators '(a ((? b) 2 3) (? b) c))
+   '((a (1 2 3) 1 c))
+   '()
+   (lambda (x y) `(succeed ,x ,y)))
+  ;;Value: (succeed ((b . 1)) ())
+
+  ((match:->combinators '(a (?? x) (?? y) (?? x) c))
+   '((a b b b b b b c))
+   '()
+   (lambda (x y)
+           (pp `(succeed ,x ,y))
+           false))
+
+  (succeed ((y . #((b b b b b b c) (c))) (x . #((b b b b b b c) (b b b b b b c)))) ())
+  (succeed ((y . #((b b b b b c) (b c))) (x . #((b b b b b b c) (b b b b b c)))) ())
+  (succeed ((y . #((b b b b c) (b b c))) (x . #((b b b b b b c) (b b b b c)))) ())
+  (succeed ((y . #((b b b c) (b b b c))) (x . #((b b b b b b c) (b b b c)))) ())
+  ;;Value: #f
+
+  (define (palindrome? x)
+    ((match:->combinators '((?? x) ($$ x)))
+     (list x) '() (lambda (x y) (null? y))))
+  ;;Value: palindrome?
+
+  (palindrome? '(a b c c b a))
+  ;;Value: #t
+
+  (palindrome? '(a b c c a b))
+  ;;Value: #f
+  )
