@@ -172,7 +172,7 @@
   Defaults to `:open`, which specifies an adaptive bulirsch-stoer quadrature method.
 
   `:compile?` If true, the generic function will be simplified and compiled
-  before execution. (Clojure only for now.) Defaults to false.
+  before execution.
 
   `:info?` If true, `definite-integral` will return a map of integration
   information returned by the underlying integrator. Else, returns an estimate

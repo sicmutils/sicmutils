@@ -2,6 +2,12 @@
 
 ##  [Unreleased]
 
+- expose `bootstrap-repl!` to Clojurescript, so that this is available in
+  self-hosted CLJS.
+- modified `infix.cljc` to wrap forms in `displaystyle` and add proper carriage
+  returns inside structures.
+- add `multidimensional-minimize` to the `sicmutils.env` namespace.
+
 ## 0.13.0
 
 The main announcement for this release is _Clojurescript Support!_. Implementing
