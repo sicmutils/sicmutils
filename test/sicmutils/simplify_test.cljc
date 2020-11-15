@@ -215,3 +215,32 @@
              (m/by-rows '[a b c]
                         '[d e f]
                         '[g h i])))))))
+
+(deftest radicals
+  (testing "sums of square roots of quotients are collected if denominators match")
+  (is (= '(sqrt (/ (+ a c) b)) (g/simplify (g/+ (g/sqrt (g// 'a 'b)) (g/sqrt (g// 'c 'b))))))
+  (is (= '(sqrt (/ (+ a (* -1 c)) b)) (g/simplify (g/- (g/sqrt (g// 'a 'b)) (g/sqrt (g// 'c 'b))))))
+  (is (= '(sqrt
+           (/
+            (+
+             (* (expt x_2 2) (expt y_1 4))
+             (* (expt x_2 2) (expt y_1 2) (expt y_2 2))
+             (expt y_1 6)
+             (* 2 (expt y_1 5) y_2)
+             (* 2 (expt y_1 4) (expt y_2 2))
+             (* 2 (expt y_1 3) (expt y_2 3))
+             (* (expt y_1 2) (expt y_2 4)))
+            (+ (expt y_1 2) (* 2 y_1 y_2) (expt y_2 2))))
+         (g/simplify
+          (g/+ (g/sqrt (g/* (g/expt 'y_1 2)
+                            (g/divide (g/+ (g/* (g/expt 'x_2 2) (g/expt 'y_1 2))
+                                           (g/expt 'y_1 4)
+                                           (g/* 2 (g/expt 'y_1 3) 'y_2)
+                                           (g/* (g/expt 'y_1 2) (g/expt 'y_2 2)))
+                                      (g/+ (g/expt 'y_1 2) (g/* 2 'y_1 'y_2) (g/expt 'y_2 2)))))
+               (g/sqrt (g/* (g/expt 'y_2 2)
+                            (g/divide (g/+ (g/* (g/expt 'x_2 2) (g/expt 'y_1 2))
+                                           (g/expt 'y_1 4)
+                                           (g/* 2 (g/expt 'y_1 3) 'y_2)
+                                           (g/* (g/expt 'y_1 2) (g/expt 'y_2 2)))
+                                      (g/+ (g/expt 'y_1 2) (g/* 2 'y_1 'y_2) (g/expt 'y_2 2))))))))))
