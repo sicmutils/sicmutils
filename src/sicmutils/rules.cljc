@@ -83,7 +83,7 @@
     (expt (sqrt :x) (:? n odd-integer?))
     => (* (sqrt :x) (expt :x (:? #(/ (- (% 'n) 1) 2))))
 
-    (/ :x (sqrt :x)) => :x
+    (/ :x (sqrt :x)) => (sqrt :x)
 
     (/ (sqrt :x) :x) => (/ 1 (sqrt :x))
 
@@ -97,7 +97,7 @@
 
     (/ :x (* :u* (sqrt :x) :v*))
     =>
-    (/  (sqrt :x) (* :u* :v*))
+    (/ (sqrt :x) (* :u* :v*))
 
     (/ (sqrt :x) (* :u* :x :v*))
     =>
