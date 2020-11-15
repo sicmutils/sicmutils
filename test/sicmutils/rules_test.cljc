@@ -26,8 +26,7 @@
     (is (= '(expt x 4) (s '(expt (sqrt x) 8))))
     (is (= '(* (sqrt x) (expt x 3)) (s '(expt (sqrt x) 7))))
     (is (= '(expt x 4) (s '(sqrt (expt x 8)))))
-    (is (= '(sqrt (expt x 7)) (s '(sqrt (expt x 7)))))
-    (is (= '(+ (sqrt (/ (+ a c) b))) (s '(+ (sqrt (/ a b)) (sqrt (/ c b))))))))
+    (is (= '(sqrt (expt x 7)) (s '(sqrt (expt x 7)))))))
 
 (deftest divide-numbers-through-test
   (let [d r/divide-numbers-through]
