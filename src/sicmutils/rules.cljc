@@ -118,6 +118,7 @@
     ;; Following are the new rules we added to approach
     ;; the simplification of the time-invariant-canonical
     ;; test.
+
     ;; ... (sqrt a) ... (sqrt b) ... => ... (sqrt a b)
     (* :f1* (sqrt :a) :f2* (sqrt :b) :f3*)
     => (* :f1* :f2* :f3* (sqrt (* :a :b)))
@@ -127,7 +128,11 @@
     (/ (* :f1* (sqrt :a) :f2*)
        (* :g1* (sqrt :b) :g2*))
     => (/ (* :f1* :f2* (sqrt (/ :a :b)))
-          (* :g1* :g2*)))))
+          (* :g1* :g2*))
+
+
+    ;; others to follow
+    )))
 
 (def complex-trig
   ;; TODO: clearly more of these are needed.
