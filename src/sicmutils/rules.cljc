@@ -148,7 +148,7 @@
 
     (sqrt (* :x :y)) => (* (sqrt :x) (sqrt :y))
 
-    (sqrt (* :x :y :ys*)) => (* (sqrt :x) (sqrt :y :ys*))
+    (sqrt (* :x :y :ys*)) => (* (sqrt :x) (sqrt (* :y :ys*)))
 
     (sqrt (/ :x :y)) => (/ (sqrt :x) (sqrt :y))
 
