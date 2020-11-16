@@ -134,6 +134,60 @@
     ;; others to follow
     )))
 
+(def sqrt-expand
+  (rule-simplifier
+   (ruleset
+
+    ;; "distribute the radical sign across products and quotients.
+    ;; but doing this may allow equal subexpressions within the
+    ;; radicals to cancel in various ways. The companion rule
+    ;; sqrt-contract reassembles what remains."
+
+    ;; Scmutils, in the expansion step, will `asssume!`
+
+    (sqrt (* :x :y)) => (* (sqrt :x) (sqrt :y))
+
+    (sqrt (* :x :y :ys*)) => (* (sqrt :x) (sqrt :y :ys*))
+
+    (sqrt (/ :x :y)) => (/ (sqrt :x) (sqrt :y))
+
+    (sqrt (/ :x :y :ys*)) => (/ (sqrt :x) (sqrt (* :y :ys*)))
+
+    )))
+
+
+(def sqrt-contract
+  (rule-simplifier
+   (ruleset
+
+    ;; scmutils note: in scmutils, each of these rules checks to see whether,
+    ;; after sub-simplification, x and y are equal, and if so, the opportunity
+    ;; is taken to subsitute a simpler result.
+    ;;
+    ;; It could be that we don't need that, if there were a rule (for example)
+    ;; to replace (* (sqrt x) (sqrt x)) with x. I tend to think that running the
+    ;; simplifier on interior subexpressions is a dubious idea given how
+    ;; much "churn" there is already waiting for the rulesets to stabilize
+
+    (* :a* (sqrt :x) :b* (sqrt :y) :c*)
+    => (* :a* :b* :c* (sqrt (* :x :y)))
+
+    (/ (sqrt :x) (sqrt :y))
+    => (sqrt (/ :x :y))
+
+    (/ (* :a* (sqrt :x) :b*) (sqrt :y))
+    => (* :a* :b* (sqrt (/ :x :y)))
+
+    (/ (sqrt :x) (* :a* (sqrt :y) *b*))
+    => (/ (sqrt (/ :x :y)) (* :a* :b*))
+
+    (/ (* :a* (sqrt :x) :b*)
+       (* :c* (sqrt :y) :d*))
+    => (/ (* :a* :b* (sqrt (/ :x :y)))
+          (* :c* :d*))
+
+    )))
+
 (def complex-trig
   ;; TODO: clearly more of these are needed.
   (rule-simplifier
