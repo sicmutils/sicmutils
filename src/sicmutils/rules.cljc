@@ -143,7 +143,8 @@
     ;; radicals to cancel in various ways. The companion rule
     ;; sqrt-contract reassembles what remains."
 
-    ;; Scmutils, in the expansion step, will `asssume!`
+    ;; Scmutils, in each of these expansions, will `asssume!`
+    ;; that the expressions named :x and :y are non-negative
 
     (sqrt (* :x :y)) => (* (sqrt :x) (sqrt :y))
 
@@ -168,6 +169,9 @@
     ;; to replace (* (sqrt x) (sqrt x)) with x. I tend to think that running the
     ;; simplifier on interior subexpressions is a dubious idea given how
     ;; much "churn" there is already waiting for the rulesets to stabilize
+
+    ;; Scmutils, in each of these contractions, will `asssume!`
+    ;; that the expressions named :x and :y are non-negative
 
     (* :a* (sqrt :x) :b* (sqrt :y) :c*)
     => (* :a* :b* :c* (sqrt (* :x :y)))
