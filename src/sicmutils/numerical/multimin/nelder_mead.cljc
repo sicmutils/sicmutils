@@ -285,10 +285,9 @@
   SciPy](https://github.com/scipy/scipy/blob/589c9afe41774ee96ec121f1867361146add8276/scipy/optimize/optimize.py#L556:5)
   which I have imitated here.
   "
-  [func x0 {:keys [callback]
-            :or {callback (constantly nil)}
-            :as opts}]
-  (let [dimension     (count x0)
+  [func x0 {:keys [callback] :as opts}]
+  (let [callback      (or callback (constantly nil))
+        dimension     (count x0)
         [f-counter f] (counted func)
         step          (step-fn f dimension opts)
         convergence?  (convergence-fn opts)
