@@ -84,3 +84,18 @@
                         (- 1 (expt (cos x) 2)))
                      (- 1 (expt (cos x) 2))) (- 1 (expt (cos x) 2))))
            (s '(+ 3 x (expt (sin x) 7)))))))
+
+(deftest sqrt-expand-contract-test
+  (testing "sqrt-expand works with division"
+    (is (= '(+ (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
+           (r/sqrt-expand '(+ (sqrt (/ a b)) (sqrt (/ c b))))))
+    (is (= '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
+           (r/sqrt-expand '(- (sqrt (/ a b)) (sqrt (/ c b)))))))
+  (testing "sqrt-contract undoes expansion over division"
+    (is (= '(+ (sqrt (/ a b)) (sqrt (/ c b)))
+           (r/sqrt-contract '(+ (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b))))))
+    (is (= '(- (sqrt (/ a b)) (sqrt (/ c b)))
+           (r/sqrt-contract '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b))))))
+    )
+
+  )
