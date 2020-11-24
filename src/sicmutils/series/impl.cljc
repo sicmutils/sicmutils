@@ -189,10 +189,12 @@
 (defn seq:* [f g]
   (letfn [(step [f]
             (lazy-seq
-             (let [f*g  (g/mul (first f) (first g))
-                   f*G1 (c*seq (first f) (rest g))
-                   F1*G (step (rest f))]
-               (cons f*g (seq:+ f*G1 F1*G)))))]
+             (if (v/nullity? (first f))
+               (cons (first f) (step (rest f)))
+               (let [f*g  (g/mul (first f) (first g))
+                     f*G1 (c*seq (first f) (rest g))
+                     F1*G (step (rest f))]
+                 (cons f*g (seq:+ f*G1 F1*G))))))]
     (step f)))
 
 ;; This works just fine on two infinite sequences:
