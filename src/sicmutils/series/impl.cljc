@@ -195,7 +195,10 @@
                      f*G1 (c*seq (first f) (rest g))
                      F1*G (step (rest f))]
                  (cons f*g (seq:+ f*G1 F1*G))))))]
-    (step f)))
+    (lazy-seq
+     (if (v/nullity? (first g))
+       (cons (first g) (seq:* f (rest g)))
+       (step f)))))
 
 ;; This works just fine on two infinite sequences:
 
