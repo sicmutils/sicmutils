@@ -78,7 +78,8 @@
        If you're compiling a function for use with the numerical routines, the
        library assumes that your function operates only on doubles (even though
        you wrote it with generic routines)."}
-
+  ;; NOTE that JS could support acosh, asinh and atanh natively, but the JVM
+  ;; does not. Add these here if these operations survive simplification!
   compiled-fn-whitelist
   {'up struct/up
    'down struct/down
@@ -92,6 +93,9 @@
    'acos #(Math/acos %)
    'asin #(Math/asin %)
    'atan #(Math/atan %)
+   'cosh #(Math/cosh %)
+   'sinh #(Math/sinh %)
+   'tanh #(Math/tanh %)
    'expt #(Math/pow %1 %2)
    'sqrt #(Math/sqrt %)
    'abs (fn [^double x] (Math/abs x))

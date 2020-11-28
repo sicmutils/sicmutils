@@ -351,10 +351,10 @@
    'negate negate
    'invert invert
    'sin sine
-   'asin arcsine
    'cos cosine
-   'acos arccosine
    'tan tangent
+   'asin arcsine
+   'acos arccosine
    'atan arctangent
    'cube #(expt % 3)
    'square #(expt % 2)

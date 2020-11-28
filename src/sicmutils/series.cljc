@@ -656,10 +656,6 @@
 (defmethod g/tan [::power-series] [s]
   (->PowerSeries (i/compose i/tanx (seq s))))
 
-#_
-(defmethod g/acot [::power-series] [s]
-  (->PowerSeries (i/compose i/acotx (seq s))))
-
 (defmethod g/sec [::power-series] [s]
   (->PowerSeries (i/compose i/secx (seq s))))
 

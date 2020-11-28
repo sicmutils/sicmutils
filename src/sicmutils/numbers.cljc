@@ -59,6 +59,16 @@
 (defmethod g/atan [v/numtype] [a] (Math/atan a))
 (defmethod g/atan [v/numtype v/numtype] [a b] (Math/atan2 a b))
 
+(defmethod g/cosh [v/numtype] [a] (Math/cosh a))
+(defmethod g/sinh [v/numtype] [a] (Math/sinh a))
+(defmethod g/tanh [v/numtype] [a] (Math/tanh a))
+
+#?(:cljs
+   (do
+     (defmethod g/acosh [v/numtype] [a] (Math/acosh a))
+     (defmethod g/asinh [v/numtype] [a] (Math/asinh a))
+     (defmethod g/atanh [v/numtype] [a] (Math/atanh a))))
+
 (comment
   ;; As reference documentation, these are the implementations that one would
   ;; provide for the generic operations if there were no simplifications available.

@@ -311,25 +311,37 @@
 (def ^:private diff-+ (binary-op g/+ (constantly 1) (constantly 1) :plus))
 (def ^:private diff-- (binary-op g/- (constantly 1) (constantly -1) :minus))
 (def ^:private diff-* (binary-op g/* (fn [_ y] y) (fn [x _] x) :times))
-(def ^:private diff-div (binary-op g/divide
-                                   (fn [_ y] (g/divide 1 y))
-                                   (fn [x y] (g/negate (g/divide x (g/square y)))) :divide))
+(def ^:private diff-div
+  (binary-op g/divide
+             (fn [_ y] (g/divide 1 y))
+             (fn [x y] (g/negate (g/divide x (g/square y)))) :divide))
+
 (def ^:private sin (unary-op g/sin g/cos))
-(def ^:private asin (unary-op g/asin #(->> % g/square (g/- 1) g/sqrt (g/divide 1))))
-(def ^:private cos (unary-op g/cos #(-> % g/sin g/negate)))
-(def ^:private acos (unary-op g/acos #(->> % g/square (g/- 1) g/sqrt (g/divide 1) (g/* -1))))
-(def ^:private tan (unary-op g/tan #(-> % g/cos g/square g/invert)))
-(def ^:private atan (unary-op g/atan #(->> % g/square (g/+ 1) (g/divide 1))))
-(def ^:private atan2 (binary-op g/atan
-                                      (fn [y x]
-                                        (g/divide x
-                                                  (g/+ (g/square x)
-                                                       (g/square y))))
-                                      (fn [y x]
-                                        (g/divide (g/negate y)
-                                                  (g/+ (g/square x)
-                                                       (g/square y))))
-                                      :atan2))
+(def ^:private cos (unary-op g/cos #(g/negate (g/sin %))))
+(def ^:private tan (unary-op g/tan #(g/invert (g/square (g/cos %)))))
+
+(def ^:private asin
+  (unary-op g/asin #(g/invert (g/sqrt (g/- 1 (g/square %))))))
+(def ^:private acos
+  (unary-op g/acos #(g/* -1 (g/invert (g/sqrt (g/- 1 (g/square %)))))))
+(def ^:private atan
+  (unary-op g/atan #(g/invert (g/+ 1 (g/square %)))))
+(def ^:private atan2
+  (binary-op g/atan
+             (fn [y x]
+               (g/divide x
+                         (g/+ (g/square x)
+                              (g/square y))))
+             (fn [y x]
+               (g/divide (g/negate y)
+                         (g/+ (g/square x)
+                              (g/square y))))
+             :atan2))
+
+(def ^:private sinh (unary-op g/sinh g/cosh))
+(def ^:private cosh (unary-op g/cosh g/sinh))
+(def ^:private tanh (unary-op g/tanh #(g/- 1 (g/square (g/tanh %)))))
+
 (def ^:private sqrt (unary-op g/sqrt #(-> % g/sqrt (g/* 2) g/invert)))
 (def ^:private exp (unary-op g/exp g/exp))
 (def ^:private negate (unary-op g/negate (constantly -1)))
@@ -437,20 +449,29 @@
 (define-binary-operation g/sub diff--)
 (define-binary-operation g/mul diff-*)
 (define-binary-operation g/div diff-div)
-(define-binary-operation g/atan atan2)
+
 (define-unary-operation g/log log)
 (define-unary-operation g/exp exp)
 (define-unary-operation g/sqrt sqrt)
+
 (define-unary-operation g/sin sin)
-(define-unary-operation g/asin asin)
 (define-unary-operation g/cos cos)
-(define-unary-operation g/acos acos)
 (define-unary-operation g/tan tan)
+
+(define-unary-operation g/asin asin)
+(define-unary-operation g/acos acos)
 (define-unary-operation g/atan atan)
+(define-binary-operation g/atan atan2)
+
+(define-unary-operation g/sinh sinh)
+(define-unary-operation g/cosh cosh)
+(define-unary-operation g/tanh tanh)
+
 (define-unary-operation g/negate negate)
 (define-unary-operation g/invert #(diff-div 1 %))
 (define-unary-operation g/square #(diff-* % %))
 (define-unary-operation g/cube #(diff-* % (diff-* % %)))
+
 (derive ::differential :sicmutils.function/cofunction)
 (derive ::differential ::o/co-operator)
 (derive ::differential ::series/coseries)
