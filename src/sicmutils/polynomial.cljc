@@ -69,7 +69,7 @@
         yd (monomial-degree ys)]
     (if (= xd yd) (compare (vec (rseq ys)) (vec (rseq xs))) (g/- xd yd))))
 
-(def monomial-order graded-lex-order)
+(def ^:private monomial-order graded-lex-order)
 (def ^:private empty-coefficients [])
 
 ;; ## Polynomials
