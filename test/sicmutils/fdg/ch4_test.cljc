@@ -32,7 +32,7 @@
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.mechanics.rotation :refer [rotate-x-matrix rotate-y-matrix rotate-z-matrix]]
-            [sicmutils.polynomial-gcd :as pg]
+            [sicmutils.polynomial.gcd :as pg]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :each hermetic-simplify-fixture)

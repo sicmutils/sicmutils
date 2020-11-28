@@ -24,7 +24,7 @@
                                          compose up down]]
             [sicmutils.mechanics.rotation :refer [Euler->M]]
             [sicmutils.mechanics.rigid :as r]
-            [sicmutils.polynomial-gcd :as pg]
+            [sicmutils.polynomial.gcd :as pg]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))

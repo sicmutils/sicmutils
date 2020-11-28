@@ -79,15 +79,15 @@
             sicmutils.modint-test
             sicmutils.operator-test
             sicmutils.polynomial-test
-            sicmutils.polynomial-gcd-test
-            sicmutils.polynomial-factor-test
+            sicmutils.polynomial.gcd-test
+            sicmutils.polynomial.factor-test
             sicmutils.ratio-test
             sicmutils.numbers-test
             sicmutils.numsymb-test
             sicmutils.rational-function-test
-            sicmutils.rules-test
             sicmutils.series-test
             sicmutils.simplify-test
+            sicmutils.simplify.rules-test
             sicmutils.structure-test
             sicmutils.value-test))
 
@@ -173,12 +173,12 @@
            'sicmutils.numsymb-test
            'sicmutils.operator-test
            'sicmutils.polynomial-test
-           'sicmutils.polynomial-gcd-test
-           'sicmutils.polynomial-factor-test
+           'sicmutils.polynomial.gcd-test
+           'sicmutils.polynomial.factor-test
            'sicmutils.ratio-test
            'sicmutils.rational-function-test
-           'sicmutils.rules-test
            'sicmutils.series-test
            'sicmutils.simplify-test
+           'sicmutils.simplify.rules-test
            'sicmutils.structure-test
            'sicmutils.value-test)

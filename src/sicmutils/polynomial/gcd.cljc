@@ -17,9 +17,9 @@
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(ns sicmutils.polynomial-gcd
+(ns sicmutils.polynomial.gcd
   #?(:cljs (:require-macros
-            [sicmutils.polynomial-gcd :refer [dbg gcd-continuation-chain]]))
+            [sicmutils.polynomial.gcd :refer [dbg gcd-continuation-chain]]))
   (:require #?(:cljs [goog.string :refer [format]])
             [sicmutils.generic :as g]
             [sicmutils.polynomial :as p
