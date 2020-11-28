@@ -20,6 +20,7 @@
 (ns sicmutils.operator-test
   (:refer-clojure :exclude [+ - * /  partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [same :refer [ish?]]
             [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [+ - * /]]
@@ -91,35 +92,35 @@
            (v/freeze
             (g/simplify (take 6 (seq (((g/exp (* 'ε D)) (f/literal-function 'f)) 't)))))))
 
-    (is (= '(0
-             ε
-             0
-             (* (/ -1 6) (expt ε 3))
-             0
-             (* (/ 1 120) (expt ε 5))
-             0
-             (* (/ -1 5040) (expt ε 7))
-             0
-             (* (/ 1 362880) (expt ε 9))
-             0
-             (* (/ -1 39916800) (expt ε 11)))
-           (v/freeze
-            (g/simplify (take 12 (seq (((g/exp (* 'ε D)) g/sin) 0)))))))
+    (is (ish? '(0
+                ε
+                0
+                (* (/ -1 6) (expt ε 3))
+                0
+                (* (/ 1 120) (expt ε 5))
+                0
+                (* (/ -1 5040) (expt ε 7))
+                0
+                (* (/ 1 362880) (expt ε 9))
+                0
+                (* (/ -1 39916800) (expt ε 11)))
+              (v/freeze
+               (g/simplify (take 12 (seq (((g/exp (* 'ε D)) g/sin) 0)))))))
 
-    (is (= '(1
-             0
-             (* (/ -1 2) (expt ε 2))
-             0
-             (* (/ 1 24) (expt ε 4))
-             0
-             (* (/ -1 720) (expt ε 6))
-             0
-             (* (/ 1 40320) (expt ε 8))
-             0
-             (* (/ -1 3628800) (expt ε 10))
-             0)
-           (v/freeze
-            (g/simplify (take 12 (seq (((g/exp (* 'ε D)) g/cos) 0)))))))
+    (is (ish? '(1
+                0
+                (* (/ -1 2) (expt ε 2))
+                0
+                (* (/ 1 24) (expt ε 4))
+                0
+                (* (/ -1 720) (expt ε 6))
+                0
+                (* (/ 1 40320) (expt ε 8))
+                0
+                (* (/ -1 3628800) (expt ε 10))
+                0)
+              (v/freeze
+               (g/simplify (take 12 (seq (((g/exp (* 'ε D)) g/cos) 0)))))))
 
     (is (= '(1
              (* (/ 1 2) ε)
