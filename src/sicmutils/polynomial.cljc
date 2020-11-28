@@ -18,7 +18,6 @@
 ;
 
 (ns sicmutils.polynomial
-  (:refer-clojure :exclude [divide + - * /])
   (:require [clojure.set :as set]
             [clojure.string :as cs]
             [sicmutils.analyze :as a]
@@ -29,12 +28,10 @@
             [sicmutils.value :as v]
             #?(:cljs [goog.string :refer [format]])))
 
-(declare operator-table operators-known make-constant)
-
 (def coefficient second)
 (def exponents first)
 
-;; Monomials
+;; ## Monomials
 ;;
 ;; We represent a monomial as a vector of integers representing
 ;; the exponents of the indeterminates over some ring. For example;
@@ -49,7 +46,7 @@
   [m]
   (reduce g/+ m))
 
-;; Monomial Orderings
+;; ## Monomial Orderings
 ;;
 ;; These orderings are in the sense of Java: x.compareTo(y), so that
 ;; this returns 1 if x > y, -1 if x < y, and 0 if x = y.
@@ -60,31 +57,24 @@
   {:pre (= (count xs) (count ys))}
   (compare xs ys))
 
-(defn graded-lex-order
-  ""
-  [xs ys]
+(defn graded-lex-order [xs ys]
   {:pre (= (count xs) (count ys))}
   (let [xd (monomial-degree xs)
         yd (monomial-degree ys)]
     (if (= xd yd) (lex-order xs ys) (g/- xd yd))))
 
-(defn graded-reverse-lex-order
-  ""
-  [xs ys]
+(defn graded-reverse-lex-order [xs ys]
   {:pre (= (count xs) (count ys))}
   (let [xd (monomial-degree xs)
         yd (monomial-degree ys)]
     (if (= xd yd) (compare (vec (rseq ys)) (vec (rseq xs))) (g/- xd yd))))
 
-(def ^:private monomial-order graded-lex-order)
+(def monomial-order graded-lex-order)
 (def ^:private empty-coefficients [])
 
-;;
-;; Polynomials
-;;
+;; ## Polynomials
 
-(declare evaluate poly->str)
-
+(declare evaluate make-constant poly->str)
 
 (deftype Polynomial [arity xs->c]
   v/Value
@@ -435,6 +425,8 @@
   (for [i (range (.-arity p))]
     (partial-derivative p i)))
 
+;; ## Canonicalizer
+
 ;; The operator-table represents the operations that can be understood
 ;; from the point of view of a polynomial over a commutative ring. The
 ;; functions take polynomial inputs and return polynomials.
@@ -442,7 +434,9 @@
 (def ^:private operator-table
   {'+ #(reduce g/add %&)
    '- (fn [arg & args]
-        (if (some? args) (g/sub arg (reduce g/add args)) (g/negate arg)))
+        (if (some? args)
+          (g/sub arg (reduce g/add args))
+          (g/negate arg)))
    '* #(reduce g/mul %&)
    'negate negate
    'expt g/expt
@@ -460,23 +454,24 @@
     (a/expression-> this expr cont compare))
 
   (expression-> [this expr cont v-compare]
-    ;; Convert an expression into Flat Polynomial canonical form. The
-    ;; expression should be an unwrapped expression, i.e., not an instance
-    ;; of the Expression type, nor should subexpressions contain type
-    ;; information. This kind of simplification proceeds purely
-    ;; symbolically over the known Flat Polynomial operations; other
-    ;; operations outside the arithmetic available in polynomials over
-    ;; commutative rings should be factored out by an expression analyzer
-    ;; before we get here. The result is a Polynomial object representing
-    ;; the polynomial structure of the input over the unknowns.
+    ;; Convert an expression into Flat Polynomial canonical form. The expression
+    ;; should be an unwrapped expression, i.e., not an instance of the
+    ;; Expression type, nor should subexpressions contain type information. This
+    ;; kind of simplification proceeds purely symbolically over the known Flat
+    ;; Polynomial operations; other operations outside the arithmetic available
+    ;; in polynomials over commutative rings should be factored out by an
+    ;; expression analyzer before we get here. The result is a Polynomial object
+    ;; representing the polynomial structure of the input over the unknowns.
     (let [expression-vars (sort v-compare (set/difference (x/variables-in expr) operators-known))
           variables (zipmap expression-vars (a/new-variables this (count expression-vars)))]
-      (-> expr (x/walk-expression variables operator-table) (cont expression-vars))))
+      (-> expr
+          (x/walk-expression variables operator-table)
+          (cont expression-vars))))
 
   (->expression [this p vars]
-    ;; This is the output stage of Flat Polynomial canonical form simplification.
-    ;; The input is a Polynomial object, and the output is an expression
-    ;; representing the evaluation of that polynomial over the
+    ;; This is the output stage of Flat Polynomial canonical form
+    ;; simplification. The input is a Polynomial object, and the output is an
+    ;; expression representing the evaluation of that polynomial over the
     ;; indeterminates extracted from the expression at the start of this
     ;; process.
     (if (polynomial? p)
@@ -496,9 +491,11 @@
 
   (new-variables [_ arity]
     (for [a (range arity)]
-      (make arity [[(mapv #(if (= % a) 1 0) (range arity)) 1]]))))
+      (make arity [[(mapv #(if (= % a) 1 0)
+                          (range arity))
+                    1]]))))
 
-;; generic method implementations
+;; ## Generic Implementations
 
 (defmethod g/add [::polynomial ::polynomial] [a b] (add a b))
 (defmethod g/mul [::polynomial ::polynomial] [a b] (mul a b))
@@ -532,4 +529,5 @@
   (make (make-constant (.-arity p) c) p))
 
 (defmethod g/expt [::polynomial ::v/native-integral] [b x] (expt b x))
+
 (defmethod g/negate [::polynomial] [a] (negate a))

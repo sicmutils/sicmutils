@@ -20,7 +20,6 @@
 (ns sicmutils.rational-function
   (:require [clojure.set :as set]
             [sicmutils.analyze :as a]
-            [sicmutils.euclid :as euclid]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as sym]
@@ -31,8 +30,6 @@
             [sicmutils.value :as v])
   #?(:clj
      (:import (sicmutils.polynomial Polynomial))))
-
-(declare operator-table operators-known)
 
 (deftype RationalFunction [arity u v]
   v/Value
@@ -97,16 +94,21 @@
         integerizing-factor (g/*
                              (if (< lcv 0) -1 1)
                              (reduce g/lcm 1 (map r/denominator (filter r/ratio? cs))))
-        u' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) u) u)
-        v' (if (not (v/unity? integerizing-factor)) (p/map-coefficients #(g/* integerizing-factor %) v) v)
+        u' (if (v/unity? integerizing-factor)
+             u
+             (p/map-coefficients #(g/* integerizing-factor %) u))
+        v' (if (v/unity? integerizing-factor)
+             v
+             (p/map-coefficients #(g/* integerizing-factor %) v))
         g (poly/gcd u' v')
         u'' (p/evenly-divide u' g)
         v'' (p/evenly-divide v' g)]
-    (if (v/unity? v'') u''
-        (do (when-not (and (p/polynomial? u'')
-                           (p/polynomial? v''))
-              (u/illegal (str "bad RF" u v u' v' u'' v'')))
-            (->RationalFunction arity  u'' v'')))))
+    (if (v/unity? v'')
+      u''
+      (do (when-not (and (p/polynomial? u'')
+                         (p/polynomial? v''))
+            (u/illegal (str "bad RF" u v u' v' u'' v'')))
+          (->RationalFunction arity  u'' v'')))))
 
 (defn ^:private make-reduced
   [arity u v]
@@ -268,6 +270,7 @@
   (known-operation? [_ o] (operators-known o))
   (new-variables [_ n] (a/new-variables polynomial-analyzer n)))
 
+;; ## Generic Method Implementations
 
 (defmethod g/add [::rational-function ::rational-function] [a b] (add a b))
 
