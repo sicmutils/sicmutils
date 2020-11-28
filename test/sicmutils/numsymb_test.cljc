@@ -19,6 +19,7 @@
 
 (ns sicmutils.numsymb-test
   (:require [clojure.test :refer [is deftest testing]]
+            [same :refer [ish?]]
             [sicmutils.numsymb :as sym]
             [sicmutils.generic :as g]
             [sicmutils.value :as v]))
