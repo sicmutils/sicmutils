@@ -75,7 +75,7 @@ Scmutils is an excellent system, but it is written in an older variant
 of LISP (Scheme) and is tied to a particular implementation of
 Scheme—MIT/GNU Scheme. (There is a [port to Guile][GSCM], but due to
 the fact that Guile does not support MIT Scheme's
-[apply hooks](http://www.gnu.org/software/mit-scheme/documentation/mit-scheme-ref/Application-Hooks.html)
+[apply hooks](https://www.gnu.org/software/mit-scheme/documentation/stable/mit-scheme-ref/Application-Hooks.html)
 some glue code is required to run examples from the book in that
 environment.)
 

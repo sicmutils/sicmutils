@@ -17,16 +17,46 @@
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(ns sicmutils.rules-test
-  (:require [clojure.test :refer [is deftest]]
-            [sicmutils.rules :as r]))
+(ns sicmutils.simplify.rules-test
+  (:require [clojure.test :refer [is deftest testing]]
+            [sicmutils.simplify.rules :as r]))
 
 (deftest simplify-square-roots-test
   (let [s r/simplify-square-roots]
     (is (= '(expt x 4) (s '(expt (sqrt x) 8))))
     (is (= '(* (sqrt x) (expt x 3)) (s '(expt (sqrt x) 7))))
     (is (= '(expt x 4) (s '(sqrt (expt x 8)))))
-    (is (= '(sqrt (expt x 7)) (s '(sqrt (expt x 7)))))))
+    (is (= '(sqrt (expt x 7)) (s '(sqrt (expt x 7)))))
+
+    (testing "simplify across division boundary"
+      (testing "no products, straight division"
+        (is (= '(sqrt x) (s '(/ x (sqrt x)))))
+        (is (= '(/ 1 (sqrt x)) (s '(/ (sqrt x) x)))))
+
+      (testing "product on top only"
+        (is (= '(* 2 (sqrt x) 3)
+               (s '(/ (* 2 x 3) (sqrt x)))))
+        (is (= '(/ (* 2 3) (sqrt x))
+               (s '(/ (* 2 (sqrt x) 3) x)))))
+
+      (testing "product on bottom only"
+        (is (= '(/ 1 (* 2 (sqrt x) 3))
+               (s '(/ (sqrt x) (* 2 x 3)))))
+        (is (= '(/ (sqrt x) (* 2 3))
+               (s '(/ x (* 2 (sqrt x) 3))))))
+
+      (testing "product in num, denom"
+        (is (= '(/ (* 2 (sqrt x) 3)
+                   (* y z))
+               (s '(/ (* 2 x 3)
+                      (* y z (sqrt x)))))
+            "sqrt on bottom")
+
+        (is (= '(/ (* 2 3)
+                   (* y z (sqrt x)))
+               (s '(/ (* 2 (sqrt x) 3)
+                      (* y z x))))
+            "sqrt on top")))))
 
 (deftest divide-numbers-through-test
   (let [d r/divide-numbers-through]
@@ -54,3 +84,18 @@
                         (- 1 (expt (cos x) 2)))
                      (- 1 (expt (cos x) 2))) (- 1 (expt (cos x) 2))))
            (s '(+ 3 x (expt (sin x) 7)))))))
+
+(deftest sqrt-expand-contract-test
+  (testing "sqrt-expand works with division"
+    (is (= '(+ (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
+           (r/sqrt-expand '(+ (sqrt (/ a b)) (sqrt (/ c b))))))
+    (is (= '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
+           (r/sqrt-expand '(- (sqrt (/ a b)) (sqrt (/ c b)))))))
+  (testing "sqrt-contract undoes expansion over division"
+    (is (= '(+ (sqrt (/ a b)) (sqrt (/ c b)))
+           (r/sqrt-contract '(+ (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b))))))
+    (is (= '(- (sqrt (/ a b)) (sqrt (/ c b)))
+           (r/sqrt-contract '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b))))))
+    )
+
+  )

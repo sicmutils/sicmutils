@@ -20,7 +20,7 @@
 (def cljsbuild '[lein-cljsbuild "1.1.8"
                  :exclusions [org.clojure/clojurescript]])
 
-(defproject net.littleredcomputer/sicmutils "0.13.0"
+(defproject net.littleredcomputer/sicmutils "0.13.1-SNAPSHOT"
   :description "A port of the Scmutils computer algebra/mechanics system to Clojure"
   :url "http://github.com/littleredcomputer/sicmutils"
   :scm {:name "git" :url "https://github.com/littleredcomputer/sicmutils"}
@@ -54,7 +54,7 @@
              :dev {:plugins [~cljsbuild
                              [lein-cloverage "1.1.2"]
                              [lein-doo "0.1.11"]]
-                   :cloverage {:ns-exclude-regex [#"sicmutils.rules"
+                   :cloverage {:ns-exclude-regex [#"sicmutils.simplify.rules"
                                                   #"sicmutils.simplify"]}
                    :repl-options {:nrepl-middleware
                                   [cider.piggieback/wrap-cljs-repl]}

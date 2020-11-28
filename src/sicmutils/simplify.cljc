@@ -27,9 +27,9 @@
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as nsy]
             [sicmutils.polynomial :as poly]
-            [sicmutils.polynomial-factor :as factor]
+            [sicmutils.polynomial.factor :as factor]
             [sicmutils.rational-function :as rf]
-            [sicmutils.rules :as rules]
+            [sicmutils.simplify.rules :as rules]
             [sicmutils.structure :as s]
             [sicmutils.value :as v]
             [taoensso.timbre :as log])
@@ -168,9 +168,13 @@
       sin-sq->cos-sq-simplifier
       trig-cleanup
       rules/sincos->trig
+      rules/sqrt-expand
+      simplify-and-flatten
+      rules/sqrt-contract
       square-root-simplifier
       clear-square-roots-of-perfect-squares
-      simplify-and-flatten))
+      simplify-and-flatten
+      ))
 
 (def simplify-expression
   (simplify-until-stable simplify-expression-1 simplify-and-flatten))

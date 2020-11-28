@@ -17,7 +17,7 @@
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(ns sicmutils.rules
+(ns sicmutils.simplify.rules
   (:require [pattern.rule :refer [ruleset rule-simplifier]
              #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
@@ -80,11 +80,44 @@
     (sqrt (expt :x (:? n even-integer?)))
     => (expt :x (:? #(/ (% 'n) 2)))
 
+    (expt (sqrt :x) (:? n odd-integer?))
+    => (* (sqrt :x) (expt :x (:? #(/ (- (% 'n) 1) 2))))
+
+    (/ :x (sqrt :x)) => (sqrt :x)
+
+    (/ (sqrt :x) :x) => (/ 1 (sqrt :x))
+
+    (/ (* :u* :x :v*) (sqrt :x))
+    =>
+    (* :u* (sqrt :x) :v*)
+
+    (/ (* :u* (sqrt :x) :v*) :x)
+    =>
+    (/ (* :u* :v*) (sqrt :x))
+
+    (/ :x (* :u* (sqrt :x) :v*))
+    =>
+    (/ (sqrt :x) (* :u* :v*))
+
+    (/ (sqrt :x) (* :u* :x :v*))
+    =>
+    (/ 1 (* :u* (sqrt :x) :v*))
+
+    (/ (* :p* :x :q*)
+       (* :u* (sqrt :x) :v*))
+    =>
+    (/ (* :p* (sqrt :x) :q*)
+       (* :u* :v*))
+
+    (/ (* :p* (sqrt :x) :q*)
+       (* :u* :x :v*))
+    =>
+    (/ (* :p* :q*)
+       (* :u* (sqrt :x) :v*))
+
     ;; Following are the new rules we added to approach
     ;; the simplification of the time-invariant-canonical
     ;; test.
-    (expt (sqrt :x) (:? n odd-integer?))
-    => (* (sqrt :x) (expt :x (:? #(/ (- (% 'n) 1) 2))))
 
     ;; ... (sqrt a) ... (sqrt b) ... => ... (sqrt a b)
     (* :f1* (sqrt :a) :f2* (sqrt :b) :f3*)
@@ -99,6 +132,64 @@
 
 
     ;; others to follow
+    )))
+
+(def sqrt-expand
+  (rule-simplifier
+   (ruleset
+
+    ;; "distribute the radical sign across products and quotients.
+    ;; but doing this may allow equal subexpressions within the
+    ;; radicals to cancel in various ways. The companion rule
+    ;; sqrt-contract reassembles what remains."
+
+    ;; Scmutils, in each of these expansions, will `asssume!`
+    ;; that the expressions named :x and :y are non-negative
+
+    (sqrt (* :x :y)) => (* (sqrt :x) (sqrt :y))
+
+    (sqrt (* :x :y :ys*)) => (* (sqrt :x) (sqrt (* :y :ys*)))
+
+    (sqrt (/ :x :y)) => (/ (sqrt :x) (sqrt :y))
+
+    (sqrt (/ :x :y :ys*)) => (/ (sqrt :x) (sqrt (* :y :ys*)))
+
+    )))
+
+
+(def sqrt-contract
+  (rule-simplifier
+   (ruleset
+
+    ;; scmutils note: in scmutils, each of these rules checks to see whether,
+    ;; after sub-simplification, x and y are equal, and if so, the opportunity
+    ;; is taken to subsitute a simpler result.
+    ;;
+    ;; It could be that we don't need that, if there were a rule (for example)
+    ;; to replace (* (sqrt x) (sqrt x)) with x. I tend to think that running the
+    ;; simplifier on interior subexpressions is a dubious idea given how
+    ;; much "churn" there is already waiting for the rulesets to stabilize
+
+    ;; Scmutils, in each of these contractions, will `asssume!`
+    ;; that the expressions named :x and :y are non-negative
+
+    (* :a* (sqrt :x) :b* (sqrt :y) :c*)
+    => (* :a* :b* :c* (sqrt (* :x :y)))
+
+    (/ (sqrt :x) (sqrt :y))
+    => (sqrt (/ :x :y))
+
+    (/ (* :a* (sqrt :x) :b*) (sqrt :y))
+    => (* :a* :b* (sqrt (/ :x :y)))
+
+    (/ (sqrt :x) (* :a* (sqrt :y) *b*))
+    => (/ (sqrt (/ :x :y)) (* :a* :b*))
+
+    (/ (* :a* (sqrt :x) :b*)
+       (* :c* (sqrt :y) :d*))
+    => (/ (* :a* :b* (sqrt (/ :x :y)))
+          (* :c* :d*))
+
     )))
 
 (def complex-trig

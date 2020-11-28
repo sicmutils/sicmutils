@@ -17,7 +17,7 @@
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(ns sicmutils.polynomial-gcd-test
+(ns sicmutils.polynomial.gcd-test
   (:require [clojure.test :refer [is deftest testing]]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
@@ -26,7 +26,7 @@
             [sicmutils.expression :refer [variables-in]]
             [sicmutils.generic :as g]
             [sicmutils.polynomial :as p]
-            [sicmutils.polynomial-gcd :as pg]
+            [sicmutils.polynomial.gcd :as pg]
             [sicmutils.polynomial-test :as p-test]
             [sicmutils.util.stopwatch :as us]
             [sicmutils.value :as v]

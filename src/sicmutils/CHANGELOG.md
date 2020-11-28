@@ -2,6 +2,17 @@
 
 ##  [Unreleased]
 
+- expose `bootstrap-repl!` to Clojurescript, so that this is available in
+  self-hosted CLJS (https://github.com/littleredcomputer/sicmutils/pull/157)
+- modified `infix.cljc` to wrap forms in `displaystyle` and add proper carriage
+  returns inside structures
+  (https://github.com/littleredcomputer/sicmutils/pull/157)
+- add `multidimensional-minimize` to the `sicmutils.env` namespace
+  (https://github.com/littleredcomputer/sicmutils/pull/157)
+- add more `sqrt` simplification rules to allow square roots to cancel out
+  across a division boundary, with or without products in the numerator and
+  denominator (https://github.com/littleredcomputer/sicmutils/pull/160)
+
 ## 0.13.0
 
 The main announcement for this release is _Clojurescript Support!_. Implementing
