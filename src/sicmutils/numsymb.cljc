@@ -110,9 +110,21 @@
 
 ;; END
 
-;;
-;; TRIG
-;;
+;; ## Trig Functions
+
+(defn ^:private delegator
+  "Returns a wrapper around f that attempts to preserve exactness if the input is
+  numerically exact, else passes through to f."
+  [f sym]
+  (fn [s]
+    (if (v/number? s)
+      (let [q (f s)]
+        (if-not (v/exact? s)
+          q
+          (if (v/exact? q)
+            q
+            `(~sym ~s))))
+      `(~sym ~s))))
 
 (def ^:private relative-integer-tolerance (* 100 v/machine-epsilon))
 (def ^:private absolute-integer-tolerance 1e-20)
@@ -156,102 +168,111 @@
   (almost-integer? (/ (- x pi-over-4) pi)))
 (def ^:private symb:pi-over-4-mod-pi? #{'pi-over-4 '+pi-over-4})
 
-(defn ^:private sine
+(defn- sin
   "Implementation of sine that attempts to apply optimizations at the call site.
   If it's not possible to do this (if the expression is symbolic, say), returns
-  a symbolic form.
-
-  TODO could we use v/numerical? here? If so, could complex numbers take
-  advantage?"
+  a symbolic form."
   [x]
-  (cond (v/number? x) (cond (zero? x) 0
-                          (n:zero-mod-pi? x) 0
-                          (n:pi-over-2-mod-2pi? x) 1
-                          (n:-pi-over-2-mod-2pi? x) -1
-                          :else (Math/sin x))
+  (cond (v/number? x) (if (v/exact? x)
+                        (if (v/nullity? x) 0 (list 'sin x))
+                        (cond (n:zero-mod-pi? x) 0
+                              (n:pi-over-2-mod-2pi? x) 1
+                              (n:-pi-over-2-mod-2pi? x) -1
+                              :else (Math/sin x)))
         (symbol? x) (cond (symb:zero-mod-pi? x) 0
                           (symb:pi-over-2-mod-2pi? x) 1
                           (symb:-pi-over-2-mod-2pi? x) -1
-                          :else `(~'sin ~x))
-        :else `(~'sin ~x)))
+                          :else (list 'sin x))
+        :else (list 'sin x)))
 
-(defn ^:private arcsine
-  "Implementation of arcsine that should only be reached after the standard
-  installed numeric implementation is bypassed. This is called for non-number
-  numerical expressions."
-  [x]
-  `(~'asin ~x))
-
-(defn ^:private cosine
+(defn- cos
   "Implementation of cosine that attempts to apply optimizations at the call site.
   If it's not possible to do this (if the expression is symbolic, say), returns
   a symbolic form."
   [x]
-  (cond (v/number? x) (cond (zero? x) 1
-                          (n:pi-over-2-mod-pi? x) 0
-                          (n:zero-mod-2pi? x) 1
-                          (n:pi-mod-2pi? x) -1
-                          :else (Math/cos x))
+  (cond (v/number? x) (if (v/exact? x)
+                        (if (v/nullity? x) 1 (list 'cos x))
+                        (cond (n:pi-over-2-mod-pi? x) 0
+                              (n:zero-mod-2pi? x) 1
+                              (n:pi-mod-2pi? x) -1
+                              :else (Math/cos x)))
         (symbol? x) (cond (symb:pi-over-2-mod-pi? x) 0
                           (symb:zero-mod-2pi? x) +1
                           (symb:pi-mod-2pi? x) -1
-                          :else `(~'cos ~x))
-        :else `(~'cos ~x)))
+                          :else (list 'cos x))
+        :else (list 'cos x)))
 
-(defn ^:private arccosine
-  "Similar to arcsine, this method should only be reached in cases where the
-  expression is symbolic."
-  [x]
-  `(~'acos ~x))
-
-(defn ^:private tangent
+(defn- tan
   "Implementation of tangent that attempts to apply optimizations at the call site.
   If it's not possible to do this (if the expression is symbolic, say), returns
   a symbolic form."
   [x]
   (cond (v/number? x) (if (v/exact? x)
-                      (if (zero? x) 0 `(~'tan ~x))
-                      (cond (n:zero-mod-pi? x) 0.
-                            (n:pi-over-4-mod-pi? x) 1.
-                            (n:-pi-over-4-mod-pi? x) -1.
-                            (n:pi-over-2-mod-pi? x)
-                            (u/illegal "Undefined: tan")
-                            :else `(~'tan ~x)))
+                        (if (v/nullity? x) 0 (list 'tan x))
+                        (cond (n:zero-mod-pi? x) 0
+                              (n:pi-over-4-mod-pi? x) 1
+                              (n:-pi-over-4-mod-pi? x) -1
+                              (n:pi-over-2-mod-pi? x) (u/illegal "Undefined: tan")
+                              :else (list 'tan x)))
         (symbol? x) (cond (symb:zero-mod-pi? x) 0
                           (symb:pi-over-4-mod-pi? x) 1
                           (symb:-pi-over-4-mod-pi? x) -1
-                          (symb:pi-over-2-mod-pi? x)
-                          (u/illegal "Undefined: tan")
-                          :else `(~'tan ~x))
-        :else `(~'tan ~x)))
+                          (symb:pi-over-2-mod-pi? x) (u/illegal "Undefined: tan")
+                          :else (list 'tan x))
+        :else (list 'tan x)))
 
-(defn arctangent
-  "Similar to arcsine and arccosine, this method should only be reached in cases
-  where the expression is symbolic."
-  ([y] `(~'atan ~y))
+(defn- asin [x]
+  (if (v/number? x)
+    (if-not (v/exact? x)
+      (g/asin x)
+      (if (v/nullity? x)
+        0
+        (list 'asin x)))
+    (list 'asin x)))
+
+(defn- acos [x]
+  (if (v/number? x)
+    (if-not (v/exact? x)
+      (g/acos x)
+      (if (v/unity? x)
+        0
+        (list 'acos x)))
+    (list 'acos x)))
+
+(defn- atan
+  ([y]
+   (if (v/number? y)
+     (if-not (v/exact? y)
+       (g/atan y)
+       (if (v/nullity? y)
+         0
+         (list 'atan y)))
+     (list 'atan y)))
   ([y x]
    (if (v/unity? x)
-     `(~'atan ~y)
-     `(~'atan ~y ~x))))
+     (atan y)
+     (if (v/number? y)
+       (if (v/exact? y)
+         (if (v/nullity? y)
+           0
+           (if (v/number? x)
+             (if (v/exact? x)
+               (if (v/nullity? x)
+                 (g/atan y x)
+                 (list 'atan y x))
+               (g/atan y x))
+             (list 'atan y x)))
+         (if (v/number? x)
+           (g/atan y x)
+           (list 'atan y x)))
+       (list 'atan y x)))))
 
-(defn ^:private abs
+(defn- abs
   "Symbolic expression handler for abs."
   [x]
-  `(~'abs ~x))
-
-(defn ^:private delegator
-  "Returns a wrapper around f that attempts to preserve exactness if the input is
-  numerically exact, else passes through to f."
-  [f sym]
-  (fn [s]
-    (if (v/number? s)
-      (let [q (f s)]
-        (if-not (v/exact? s)
-          q
-          (if (v/exact? q)
-            q
-            `(~sym ~s))))
-      `(~sym ~s))))
+  (if (v/number? x)
+    (g/abs x)
+    (list 'abs x)))
 
 (def sqrt
   "Square root implementation that attempts to preserve exact numbers wherever
@@ -332,12 +353,12 @@
 (define-binary-operation g/atan arctangent)
 (define-unary-operation g/negate negate)
 (define-unary-operation g/invert invert)
-(define-unary-operation g/sin sine)
-(define-unary-operation g/asin arcsine)
-(define-unary-operation g/cos cosine)
-(define-unary-operation g/acos arccosine)
-(define-unary-operation g/tan tangent)
-(define-unary-operation g/atan arctangent)
+(define-unary-operation g/sin sin)
+(define-unary-operation g/asin asin)
+(define-unary-operation g/cos cos)
+(define-unary-operation g/acos acos)
+(define-unary-operation g/tan tan)
+(define-unary-operation g/atan atan)
 (define-unary-operation g/sqrt sqrt)
 (define-unary-operation g/exp exp)
 (define-unary-operation g/abs abs)
@@ -350,12 +371,12 @@
    '/ div-n
    'negate negate
    'invert invert
-   'sin sine
-   'cos cosine
-   'tan tangent
-   'asin arcsine
-   'acos arccosine
-   'atan arctangent
+   'sin sin
+   'cos cos
+   'tan tan
+   'asin asin
+   'acos acos
+   'atan atan
    'cube #(expt % 3)
    'square #(expt % 2)
    'abs abs
