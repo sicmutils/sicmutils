@@ -55,30 +55,21 @@
 (defmethod g/div [v/numtype v/numtype] [a b] (core-div a b))
 (defmethod g/invert [v/numtype] [a] (core-div a))
 
-;; trig operations
-(defmethod g/atan [v/numtype] [a] (Math/atan a))
-(defmethod g/atan [v/numtype v/numtype] [a b] (Math/atan2 a b))
+;; ## Trig Operations
+
+(comment
+  ;; TODO - once we sort out the type hierarchy and allow numbers to be their
+  ;; own thing, we can uncomment these.
+  (defmethod g/sin [v/numtype] [a] (Math/sin a))
+  (defmethod g/cos [v/numtype] [a] (Math/cos a))
+  (defmethod g/tan [v/numtype] [a] (Math/tan a)))
 
 (defmethod g/cosh [v/numtype] [a] (Math/cosh a))
 (defmethod g/sinh [v/numtype] [a] (Math/sinh a))
 (defmethod g/tanh [v/numtype] [a] (Math/tanh a))
 
-#?(:cljs
-   (do
-     (defmethod g/acosh [v/numtype] [a] (Math/acosh a))
-     (defmethod g/asinh [v/numtype] [a] (Math/asinh a))
-     (defmethod g/atanh [v/numtype] [a] (Math/atanh a))))
-
-(comment
-  ;; As reference documentation, these are the implementations that one would
-  ;; provide for the generic operations if there were no simplifications available.
-  ;;
-  ;; Instead, these implementations for numbers are provided by
-  ;; `sicmutils.numsymb`. This allows us to apply simplifications inside each
-  ;; operation as it's evaluated.
-  (defmethod g/sin [v/numtype] [a] (Math/sin a))
-  (defmethod g/cos [v/numtype] [a] (Math/cos a))
-  (defmethod g/tan [v/numtype] [a] (Math/tan a)))
+(defmethod g/atan [v/numtype] [a] (Math/atan a))
+(defmethod g/atan [v/numtype v/numtype] [a b] (Math/atan2 a b))
 
 ;; Operations which allow promotion to complex numbers when their
 ;; arguments would otherwise result in a NaN if computed on the real
@@ -97,6 +88,13 @@
   (if (> (g/abs a) 1)
     (g/acos (complex a))
     (Math/acos a)))
+
+#?(:cljs
+   (do
+     ;; JS makes these available natively.
+     (defmethod g/acosh [v/numtype] [a] (Math/acosh a))
+     (defmethod g/asinh [v/numtype] [a] (Math/asinh a))
+     (defmethod g/atanh [v/numtype] [a] (Math/atanh a))))
 
 (defmethod g/sqrt
   [v/numtype]

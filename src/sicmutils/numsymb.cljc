@@ -25,6 +25,7 @@
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.numbers]
+            [sicmutils.ratio]
             [sicmutils.value :as v]
             [sicmutils.util :as u])
   #?(:clj
