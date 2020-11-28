@@ -17,15 +17,15 @@
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(ns sicmutils.polynomial-factor-test
+(ns sicmutils.polynomial.factor-test
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.analyze :as a]
             [sicmutils.generic :as g]
             [sicmutils.numbers]
             [sicmutils.polynomial :as p]
+            [sicmutils.polynomial.factor :as pf]
             [sicmutils.value :as v]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.polynomial-factor :as pf]))
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :once hermetic-simplify-fixture)
 

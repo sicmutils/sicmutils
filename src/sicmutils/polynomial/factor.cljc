@@ -17,7 +17,7 @@
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(ns sicmutils.polynomial-factor
+(ns sicmutils.polynomial.factor
   (:require [clojure.walk :as w]
             #?(:cljs [goog.string :refer [format]])
             [sicmutils.value :as v]
@@ -26,7 +26,7 @@
             [sicmutils.expression :as x]
             [sicmutils.numsymb :as sym :refer [operator product? sqrt? operands expt]]
             [sicmutils.polynomial :as poly]
-            [sicmutils.polynomial-gcd :refer [gcd gcd-seq]]
+            [sicmutils.polynomial.gcd :refer [gcd gcd-seq]]
             [taoensso.timbre :as log]))
 
 (defn split

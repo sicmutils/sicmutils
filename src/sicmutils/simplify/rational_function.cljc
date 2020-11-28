@@ -17,7 +17,7 @@
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(ns sicmutils.rational-function
+(ns sicmutils.simplify.rational-function
   (:require [clojure.set :as set]
             [sicmutils.analyze :as a]
             [sicmutils.euclid :as euclid]

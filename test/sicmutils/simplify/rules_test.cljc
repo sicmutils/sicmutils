@@ -17,9 +17,9 @@
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(ns sicmutils.rules-test
+(ns sicmutils.simplify.rules-test
   (:require [clojure.test :refer [is deftest testing]]
-            [sicmutils.rules :as r]))
+            [sicmutils.simplify.rules :as r]))
 
 (deftest simplify-square-roots-test
   (let [s r/simplify-square-roots]

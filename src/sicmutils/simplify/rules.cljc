@@ -17,7 +17,7 @@
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(ns sicmutils.rules
+(ns sicmutils.simplify.rules
   (:require [pattern.rule :refer [ruleset rule-simplifier]
              #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]

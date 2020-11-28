@@ -43,6 +43,7 @@
   [a]
   (instance? Complex a))
 
+(def I (complex 0 1))
 (defn conjugate [^Complex a] (.conjugate a))
 (defn real-part [^Complex a] (#?(:clj .getReal :cljs .-re) a))
 (defn imag-part [^Complex a] (#?(:clj .getImaginary :cljs .-im) a))

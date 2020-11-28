@@ -27,9 +27,9 @@
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as nsy]
             [sicmutils.polynomial :as poly]
-            [sicmutils.polynomial-factor :as factor]
+            [sicmutils.polynomial.factor :as factor]
             [sicmutils.rational-function :as rf]
-            [sicmutils.rules :as rules]
+            [sicmutils.simplify.rules :as rules]
             [sicmutils.structure :as s]
             [sicmutils.value :as v]
             [taoensso.timbre :as log])

@@ -54,7 +54,7 @@
              :dev {:plugins [~cljsbuild
                              [lein-cloverage "1.1.2"]
                              [lein-doo "0.1.11"]]
-                   :cloverage {:ns-exclude-regex [#"sicmutils.rules"
+                   :cloverage {:ns-exclude-regex [#"sicmutils.simplify.rules"
                                                   #"sicmutils.simplify"]}
                    :repl-options {:nrepl-middleware
                                   [cider.piggieback/wrap-cljs-repl]}
