@@ -221,6 +221,24 @@
                           :else (list 'tan x))
         :else (list 'tan x)))
 
+(defn- csc [x]
+  (if (v/number? x)
+    (if-not (v/exact? x)
+      (g/csc x)
+      (if (v/nullity? x)
+        (u/illegal "Zero argument -- g/csc" x)
+        `(~'/ 1 ~(sin x))))
+    `(~'/ 1 ~(sin x))))
+
+(defn- sec [x]
+  (if (v/number? x)
+    (if-not (v/exact? x)
+      (g/sec x)
+      (if (v/nullity? x)
+        1
+        `(~'/ 1 ~(cos x))))
+    `(~'/ 1 ~(cos x))))
+
 (defn- asin [x]
   (if (v/number? x)
     (if-not (v/exact? x)
@@ -266,6 +284,24 @@
            (g/atan y x)
            (list 'atan y x)))
        (list 'atan y x)))))
+
+(defn- cosh [x]
+  (if (v/number? x)
+    (if-not (v/exact? x)
+      (g/cosh x)
+      (if (v/nullity? x)
+        1
+        (list 'cosh x)))
+    (list 'cosh x)))
+
+(defn- sinh [x]
+  (if (v/number? x)
+    (if-not (v/exact? x)
+      (g/sinh x)
+      (if (v/nullity? x)
+        0
+        (list 'sinh x)))
+    (list 'sinh x)))
 
 (defn- abs
   "Symbolic expression handler for abs."
@@ -350,15 +386,23 @@
 (define-binary-operation g/mul mul)
 (define-binary-operation g/div div)
 (define-binary-operation g/expt expt)
-(define-binary-operation g/atan arctangent)
 (define-unary-operation g/negate negate)
 (define-unary-operation g/invert invert)
+
 (define-unary-operation g/sin sin)
-(define-unary-operation g/asin asin)
 (define-unary-operation g/cos cos)
-(define-unary-operation g/acos acos)
 (define-unary-operation g/tan tan)
+
+(define-unary-operation g/asin asin)
+(define-unary-operation g/acos acos)
 (define-unary-operation g/atan atan)
+(define-binary-operation g/atan atan)
+
+(define-unary-operation g/sinh sinh)
+(define-unary-operation g/cosh cosh)
+(define-unary-operation g/sec sec)
+(define-unary-operation g/csc csc)
+
 (define-unary-operation g/sqrt sqrt)
 (define-unary-operation g/exp exp)
 (define-unary-operation g/abs abs)
@@ -377,6 +421,10 @@
    'asin asin
    'acos acos
    'atan atan
+   'sinh sinh
+   'cosh cosh
+   'sec sec
+   'csc csc
    'cube #(expt % 3)
    'square #(expt % 2)
    'abs abs
