@@ -57,12 +57,9 @@
 
 ;; ## Trig Operations
 
-(comment
-  ;; TODO - once we sort out the type hierarchy and allow numbers to be their
-  ;; own thing, we can uncomment these.
-  (defmethod g/sin [v/numtype] [a] (Math/sin a))
-  (defmethod g/cos [v/numtype] [a] (Math/cos a))
-  (defmethod g/tan [v/numtype] [a] (Math/tan a)))
+(defmethod g/sin [v/numtype] [a] (Math/sin a))
+(defmethod g/cos [v/numtype] [a] (Math/cos a))
+(defmethod g/tan [v/numtype] [a] (Math/tan a))
 
 (defmethod g/cosh [v/numtype] [a] (Math/cosh a))
 (defmethod g/sinh [v/numtype] [a] (Math/sinh a))
