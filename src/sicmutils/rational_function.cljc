@@ -250,9 +250,10 @@
     ;; result is a RationalFunction object representing the structure of
     ;; the input over the unknowns."
     (let [expression-vars (sort v-compare (set/difference (x/variables-in expr) operators-known))
-          arity (count expression-vars)]
-      (let [variables (zipmap expression-vars (a/new-variables this arity))]
-        (-> expr (x/walk-expression variables operator-table) (cont expression-vars)))))
+          arity    (count expression-vars)
+          sym->var (zipmap expression-vars (a/new-variables this arity))
+          expr'    (x/evaluate expr sym->var operator-table)]
+      (cont expr' expression-vars)))
   (->expression [_ r vars]
     ;; This is the output stage of Rational Function canonical form simplification.
     ;; The input is a RationalFunction, and the output is an expression

@@ -464,10 +464,9 @@
     ;; expression analyzer before we get here. The result is a Polynomial object
     ;; representing the polynomial structure of the input over the unknowns.
     (let [expression-vars (sort v-compare (set/difference (x/variables-in expr) operators-known))
-          variables (zipmap expression-vars (a/new-variables this (count expression-vars)))]
-      (-> expr
-          (x/walk-expression variables operator-table)
-          (cont expression-vars))))
+          sym->var        (zipmap expression-vars (a/new-variables this (count expression-vars)))
+          expr'           (x/evaluate expr sym->var operator-table)]
+      (cont expr' expression-vars)))
 
   (->expression [this p vars]
     ;; This is the output stage of Flat Polynomial canonical form

@@ -27,11 +27,11 @@
     (is (= '#{a b c d x y * +} (e/variables-in '(+ x (* 3 y) [a [b 9 c] [3 4 5 d]]))))
     (is (= '#{x} (e/variables-in 'x))))
 
-  (testing "walk"
-    (is (= 12 (e/walk-expression '(+ 3 4 x) {'x 5} {'+ +})))
-    (is (= 0 (e/walk-expression '(+ 3 (* 4 y) x) {'x 5 'y -2} {'* * '+ +})))
+  (testing "evaluate"
+    (is (= 12 (e/evaluate '(+ 3 4 x) {'x 5} {'+ +})))
+    (is (= 0 (e/evaluate '(+ 3 (* 4 y) x) {'x 5 'y -2} {'* * '+ +})))
     (is (thrown? #?(:clj Exception :cljs js/Error)
-                 (e/walk-expression '(+ 3 (* 4 y) x) {'x 5 'y -2} {'+ +})))))
+                 (e/evaluate '(+ 3 (* 4 y) x) {'x 5 'y -2} {'+ +})))))
 
 (deftest is-literal-test
   (is (e/literal?

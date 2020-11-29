@@ -70,14 +70,14 @@
 
       (doseq [[l r] pairs]
         (defmethod generic-op [l r] [a b]
-          (x/make-combination ::x/numeric op-sym [a b]))))))
+          (x/literal-apply ::x/numeric op-sym [a b]))))))
 
 (defn- defunary [generic-op op-sym]
   (if-let [op (ns/symbolic-operator op-sym)]
     (defmethod generic-op [::x/numeric] [a]
       (literal-number (op (numerical-expression a))))
     (defmethod generic-op [::x/numeric] [a]
-      (x/make-combination ::x/numeric op-sym [a]))))
+      (x/literal-apply ::x/numeric op-sym [a]))))
 
 (defbinary g/add '+)
 (defbinary g/sub '-)

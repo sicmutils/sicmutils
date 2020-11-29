@@ -18,7 +18,10 @@
 ;
 
 (ns sicmutils.expression
-  (:require [sicmutils.util :as u]
+  (:refer-clojure :rename {compare core-compare}
+                  #?@(:cljs [:exclude [compare]]))
+  (:require [clojure.walk :as w]
+            [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
 ;; TODO talk about what "expression" means here, and how it's related to "freeze". Freeze is the thing that returns, finally, an expression.
@@ -77,20 +80,25 @@
    (defmethod print-method Literal [^Literal s ^java.io.Writer w]
      (.write w (.toString s))))
 
+(defn make-literal [type expr]
+  (->Literal type expr {}))
+
+(defn literal-apply [type op args]
+  (make-literal type (cons op (seq args))))
+
 (defn literal?
   "Returns true if the argument is a literal, false otherwise."
   [x]
   (instance? Literal x))
 
+(defn abstract? [x]
+  (and (literal? x)
+       (contains? abstract-types
+                  (.-type ^Literal x))))
+
 (defn literal-type [x]
   (when (literal? x)
     (.-type ^Literal x)))
-
-(defn make-literal [type expr]
-  (->Literal type expr {}))
-
-(defn make-combination [type op args]
-  (make-literal type (cons op (seq args))))
 
 (defn fmap
   "Applies f to the expression part of e and creates from that a Literal
@@ -100,74 +108,114 @@
              (f (.-expression e))
              (.-meta e)))
 
-(defn abstract? [x]
-  (and (literal? x)
-       (contains? abstract-types
-                  (.-type ^Literal x))))
+;; ## Metadata
+
+(defn properties [x]
+  (when (literal? x)
+    (.-meta ^Literal x)))
+
+(defn has-property? [literal k]
+  (contains? (properties literal) k))
+
+(defn get-property
+  ([literal k]
+   (get (properties literal) k))
+  ([literal k default]
+   (get (properties literal) k default)))
+
+(defn with-property
+  "TODO we probably want a merge version..."
+  [x k v]
+  {:pre [(literal? x)]}
+  (let [x ^Literal x]
+    (->Literal (.-type x)
+               (.-expression x)
+               (assoc (.-meta x) k v))))
 
 (defn expression-of [expr]
   (cond (literal? expr) (.-expression ^Literal expr)
         (symbol? expr)  expr
         :else (u/illegal (str "unknown expression type: " expr))))
 
+;; ## Expression Walking
+
 (defn variables-in
   "Return the 'variables' (e.g. symbols) found in the expression x,
-  which is an unwrapped expression, as a set"
-  [x]
-  (if (symbol? x)
-    #{x}
-    (into #{} (filter symbol?) (flatten x))))
+  which is a wrapped or unwrapped expression, as a set"
+  [expr]
+  (cond (symbol? expr) #{expr}
+        (literal? expr) (recur (expression-of expr))
+        :else (into #{} (filter symbol?) (flatten expr))))
 
-(defn walk-expression
+(defn evaluate
   "Walk the unwrapped expression x in postorder, replacing symbols found there
-  with their values in the map environment, if present; the functions association
-  is used for elements in function application position (first of a sequence)."
-  [x variables functions]
-  (let [walk (fn walk [x]
-               (cond (symbol? x) (or (variables x) x)
-                     (sequential? x) (apply (functions (first x)) (map walk (rest x)))
-                     :else x))]
-    (walk x)))
+  with their values in the map environment, if present; the functions
+  association is used for elements in function application position (first of a
+  sequence)."
+  [expr sym->var sym->f]
+  (let [walk (fn walk [node]
+               (cond (symbol? node) (sym->var node node)
+                     (sequential? node)
+                     (let [[f-sym & args] node]
+                       (if-let [f (sym->f f-sym)]
+                         (apply f (map walk args))
+                         (u/illegal (str "Missing fn for symbol - " f-sym))))
+                     :else node))]
+    (walk expr)))
 
-(comment
-  (define (substitute new old expression)
-    (define (sloop exp)
-      (cond ((equal? old exp) new)
-            ((pair? exp)
-             (cons (sloop (car exp))
-                   (sloop (cdr exp))))
-            ((vector? exp)
-             ((vector-elementwise sloop) exp))
-            (else exp)))
-    (if (equal? new old) expression (sloop expression))))
+(defn substitute
+  "Performs substitutions from the map."
+  ([expr old new]
+   (substitute expr {old new}))
+  ([expr s-map]
+   (w/postwalk-replace s-map expr)))
 
-(comment
-  ;; Returns a checker that checks if we have a particular proerty...
-  (define ((has-property? property-name) abstract-quantity)
-    (cond ((pair? abstract-quantity)
-           (assq property-name (cdr abstract-quantity)))
-          ((symbol? abstract-quantity)
-           (if (eq? property-name 'expression)
-             (list 'expression abstract-quantity)
-             (error "Symbols have only EXPRESSION properties")))
-          (else
-           (error "Bad abstract quantity"))))
+(defn- compare
+  "Compare expressions. The rule is that types have the following ordering:
 
-  (define (get-property abstract-quantity property-name)
-    (cond ((pair? abstract-quantity)
-           (let ((default (if (default-object? default) false default))
-                 (v (assq property-name (cdr abstract-quantity))))
-             (if v (cadr v) default)))
-          ((symbol? abstract-quantity)
-           (if (eq? property-name 'expression)
-             abstract-quantity
-             default))
-          (else
-           (error "Bad abstract quantity"))))
+  - empty sequence is < anything (except another empty seq)
+  - real < symbol < string < sequence
+  - sequences compare element-by-element
 
-  ;; TODO call this with-property
-  (define (add-property! abstract-quantity property-name property-value)
-    (if (pair? abstract-quantity)
-      (set-cdr! (last-pair abstract-quantity)
-                (list (list property-name property-value)))
-      (error "Bad abstract quantity -- ADD-PROPERTY!"))))
+  Any types NOT in this list compare with the other type using hashes."
+  [l r]
+  (let [lseq?    (sequential? l)
+        rseq?    (sequential? r)
+        rsym?    (symbol? r)
+        rstr?    (string? r)
+        l-empty? (and lseq? (empty? l))
+        r-empty? (and rseq? (empty? r))
+        raw-comp (delay (core-compare (hash l) (hash r)))]
+    (cond (and l-empty? r-empty?) 0
+          l-empty?                -1
+          r-empty?                1
+          (v/real? l) (cond (v/real? r) (core-compare l r)
+                            (or rsym? rstr? rseq?)
+                            -1
+                            :else @raw-comp)
+          (v/real? r) 1
+
+          (symbol? l) (cond rsym? (core-compare l r)
+                            (or rstr? rseq?) -1
+                            :else @raw-comp)
+          rsym? 1
+
+          (string? l) (cond rstr? (core-compare l r)
+                            rseq? -1
+                            :else @raw-comp)
+          rstr? 1
+
+          lseq? (if rseq?
+                  (let [n1 (count l)
+                        n2 (count r)]
+                    (cond (< n1 n2) -1
+                          (< n2 n1) 1
+                          :else (let [head-compare (compare
+                                                    (first l) (first r))]
+                                  (if (zero? head-compare)
+                                    (recur (rest l) (rest r))
+                                    head-compare))))
+                  @raw-comp)
+          rseq? 1
+
+          :else @raw-comp)))
