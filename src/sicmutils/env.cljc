@@ -84,10 +84,7 @@
   `(f/with-literal-functions ~@args))
 
 (def zero? v/nullity?)
-
-(def cot (g/divide g/cos g/sin))
-(def csc (g/invert g/sin))
-(def sec (g/invert g/cos))
+(def one? v/unity?)
 
 (def print-expression simp/print-expression)
 

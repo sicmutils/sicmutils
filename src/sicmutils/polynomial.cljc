@@ -18,6 +18,7 @@
 ;
 
 (ns sicmutils.polynomial
+  (:refer-clojure :exclude [divide])
   (:require [clojure.set :as set]
             [clojure.string :as cs]
             [sicmutils.analyze :as a]

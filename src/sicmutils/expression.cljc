@@ -60,7 +60,7 @@
 
   #?@(:cljs
       [IEquiv
-       (-equiv [_ b]
+       (-equiv [a b]
                (if (instance? Literal b)
                  (let [b ^Literal b]
                    (and (= type (.-type b))
