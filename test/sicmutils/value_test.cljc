@@ -86,7 +86,7 @@
 
   (is (= 10 (v/freeze 10)))
   (is (v/numerical? 10))
-  (is (isa? (v/kind 10) v/numtype))
+  (is (isa? (v/kind 10) ::v/real))
   (is (v/exact? 10))
   (is (not (v/exact? 10.1))))
 

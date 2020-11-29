@@ -20,6 +20,7 @@
 (ns sicmutils.simplify-test
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             #?(:cljs [goog.string :refer [format]])
+            [sicmutils.abstract.number]
             [sicmutils.complex :as c]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]

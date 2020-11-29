@@ -214,18 +214,20 @@
                 (with-meta h {:arity f-arity :from :function-binop}))))]
     (with-meta h {:arity [:exactly 2]})))
 
-(defn ^:private make-binary-operation
+(defn- make-binary-operation
   "Given a generic and binary function operation,
   define the multimethods necessary to introduce this operation
   to function arguments."
-  [generic-op binary-op]
-  (let [binop (binary-operation binary-op)]
-    (doseq [signature [[::function ::function]
-                       [::function ::cofunction]
-                       [::cofunction ::function]]]
-      (defmethod generic-op signature [a b] (binop a b)))))
+  ([generic-op]
+   (make-binary-operation generic-op generic-op))
+  ([generic-op binary-op]
+   (let [binop (binary-operation binary-op)]
+     (doseq [signature [[::function ::function]
+                        [::function ::cofunction]
+                        [::cofunction ::function]]]
+       (defmethod generic-op signature [a b] (binop a b))))))
 
-(defn ^:private make-unary-operation
+(defn- make-unary-operation
   [generic-op]
   (let [unary-op (unary-operation generic-op)]
     (defmethod generic-op [::function] [a] (unary-op a))))
@@ -234,7 +236,7 @@
 (make-binary-operation g/sub g/-)
 (make-binary-operation g/mul g/*)
 (make-binary-operation g/div g/divide)
-(make-binary-operation g/expt g/expt)
+(make-binary-operation g/expt)
 
 (make-unary-operation g/negate)
 (make-unary-operation g/invert)
@@ -244,7 +246,10 @@
 (make-unary-operation g/tan)
 (make-unary-operation g/asin)
 (make-unary-operation g/acos)
+
 (make-unary-operation g/atan)
+(make-binary-operation g/atan)
+
 (make-unary-operation g/sinh)
 (make-unary-operation g/cosh)
 (make-unary-operation g/tanh)
@@ -252,12 +257,25 @@
 (make-unary-operation g/cube)
 (make-unary-operation g/exp)
 (make-unary-operation g/log)
-(make-unary-operation g/transpose)
+(defmethod g/transpose [::function] [f]
+  (fn [g]
+    (fn [a]
+      (g (f a)))))
 
-;; TODO sinh cosh ...
+(make-binary-operation g/cross-product)
+(make-binary-operation g/gcd)
+
+;; Complex Operations
+
+(make-unary-operation g/real-part)
+(make-unary-operation g/imag-part)
+(make-unary-operation g/magnitude)
+(make-unary-operation g/angle)
+(make-unary-operation g/conjugate)
 
 (defmethod g/simplify [Function] [a] (g/simplify (:name a)))
 (derive ::x/numeric ::cofunction)
+(derive ::v/number ::cofunction)
 (derive ::s/structure ::cofunction)
 (derive ::m/matrix ::cofunction)
 

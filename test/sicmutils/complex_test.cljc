@@ -185,13 +185,13 @@
 
 (deftest extra-functions
   (testing "functions needed for docs"
-    (is (near (c/real-part (c/complex 3 4)) 3))
-    (is (near (c/imag-part (c/complex 3 4)) 4))
-    (is (near (c/imag-part (c/conjugate (c/complex 3 4))) -4))
+    (is (near (g/real-part (c/complex 3 4)) 3))
+    (is (near (g/imag-part (c/complex 3 4)) 4))
+    (is (near (g/imag-part (g/conjugate (c/complex 3 4))) -4))
     (is (near (g/magnitude (c/complex 0 1)) 1))
     (is (near (g/magnitude (c/complex 1 0)) 1))
     (is (near (g/magnitude (c/complex 1 1)) (g/sqrt 2)))
 
     ;; This looks awkward in cljs due to the ratio literal.
-    (is (near (c/angle (c/complex 3 4))
+    (is (near (g/angle (c/complex 3 4))
               (g/atan #sicm/ratio 4/3)))))

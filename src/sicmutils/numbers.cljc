@@ -43,44 +43,50 @@
               [java.math BigInteger])))
 
 ;; "Backstop" implementations that apply to anything that descends from
-;; v/numtype.
-(defmethod g/add [v/numtype v/numtype] [a b] (#?(:clj +' :cljs core-plus) a b))
-(defmethod g/mul [v/numtype v/numtype] [a b] (#?(:clj *' :cljs core-times) a b))
-(defmethod g/sub [v/numtype v/numtype] [a b] (#?(:clj -' :cljs core-minus) a b))
-(defmethod g/negate [v/numtype] [a] (core-minus a))
-(defmethod g/negative? [v/numtype] [a] (neg? a))
-(defmethod g/expt [v/numtype v/numtype] [a b] (u/compute-expt a b))
-(defmethod g/abs [v/numtype] [a] (u/compute-abs a))
-(defmethod g/magnitude [v/numtype] [a] (u/compute-abs a))
-(defmethod g/div [v/numtype v/numtype] [a b] (core-div a b))
-(defmethod g/invert [v/numtype] [a] (core-div a))
+;; ::v/real.
+(defmethod g/add [::v/real ::v/real] [a b] (#?(:clj +' :cljs core-plus) a b))
+(defmethod g/mul [::v/real ::v/real] [a b] (#?(:clj *' :cljs core-times) a b))
+(defmethod g/sub [::v/real ::v/real] [a b] (#?(:clj -' :cljs core-minus) a b))
+(defmethod g/negate [::v/real] [a] (core-minus a))
+(defmethod g/negative? [::v/real] [a] (neg? a))
+(defmethod g/expt [::v/real ::v/real] [a b] (u/compute-expt a b))
+(defmethod g/abs [::v/real] [a] (u/compute-abs a))
+(defmethod g/magnitude [::v/real] [a] (u/compute-abs a))
+(defmethod g/div [::v/real ::v/real] [a b] (core-div a b))
+(defmethod g/invert [::v/real] [a] (core-div a))
+
+;; ## Complex Operations
+(defmethod g/real-part [::v/real] [a] a)
+(defmethod g/imag-part [::v/real] [a] 0)
+(defmethod g/angle [::v/real] [a] (v/zero-like a))
+(defmethod g/conjugate [::v/real] [a] a)
 
 ;; ## Trig Operations
 
-(defmethod g/sin [v/numtype] [a] (Math/sin a))
-(defmethod g/cos [v/numtype] [a] (Math/cos a))
-(defmethod g/tan [v/numtype] [a] (Math/tan a))
+(defmethod g/sin [::v/real] [a] (Math/sin a))
+(defmethod g/cos [::v/real] [a] (Math/cos a))
+(defmethod g/tan [::v/real] [a] (Math/tan a))
 
-(defmethod g/cosh [v/numtype] [a] (Math/cosh a))
-(defmethod g/sinh [v/numtype] [a] (Math/sinh a))
-(defmethod g/tanh [v/numtype] [a] (Math/tanh a))
+(defmethod g/cosh [::v/real] [a] (Math/cosh a))
+(defmethod g/sinh [::v/real] [a] (Math/sinh a))
+(defmethod g/tanh [::v/real] [a] (Math/tanh a))
 
-(defmethod g/atan [v/numtype] [a] (Math/atan a))
-(defmethod g/atan [v/numtype v/numtype] [a b] (Math/atan2 a b))
+(defmethod g/atan [::v/real] [a] (Math/atan a))
+(defmethod g/atan [::v/real ::v/real] [a b] (Math/atan2 a b))
 
 ;; Operations which allow promotion to complex numbers when their
 ;; arguments would otherwise result in a NaN if computed on the real
 ;; line
 
 (defmethod g/asin
-  [v/numtype]
+  [::v/real]
   [a]
   (if (> (g/abs a) 1)
     (g/asin (complex a))
     (Math/asin a)))
 
 (defmethod g/acos
-  [v/numtype]
+  [::v/real]
   [a]
   (if (> (g/abs a) 1)
     (g/acos (complex a))
@@ -89,12 +95,12 @@
 #?(:cljs
    (do
      ;; JS makes these available natively.
-     (defmethod g/acosh [v/numtype] [a] (Math/acosh a))
-     (defmethod g/asinh [v/numtype] [a] (Math/asinh a))
-     (defmethod g/atanh [v/numtype] [a] (Math/atanh a))))
+     (defmethod g/acosh [::v/real] [a] (Math/acosh a))
+     (defmethod g/asinh [::v/real] [a] (Math/asinh a))
+     (defmethod g/atanh [::v/real] [a] (Math/atanh a))))
 
 (defmethod g/sqrt
-  [v/numtype]
+  [::v/real]
   [a]
   (cond (neg? a) (g/sqrt (complex a))
         (v/nullity? a) a
@@ -104,14 +110,14 @@
 ;; Implementation that converts to complex when negative, and also attempts to
 ;; remain exact if possible.
 (defmethod g/log
-  [v/numtype]
+  [::v/real]
   [a]
   (cond (neg? a) (g/log (complex a))
         (v/unity? a) (v/zero-like a)
         :else (Math/log a)))
 
 (defmethod g/exp
-  [v/numtype]
+  [::v/real]
   [a]
   (if (v/nullity? a)
     (v/one-like a)

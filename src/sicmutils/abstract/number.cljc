@@ -22,6 +22,7 @@
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as ns]
+            [sicmutils.simplify :as s]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -44,10 +45,11 @@
 
 (defmethod v/eq [::x/numeric ::v/number] [l r] (literal=num l r))
 (defmethod v/eq [::v/number ::x/numeric] [l r] (literal=num r l))
-(prefer-method v/eq [::x/numeric ::v/number] [::v/number ::x/numeric])
 
+;; ## Generic Installation
 
-;; ## Generic Installation TODO move these to abstract number...
+(derive Symbol ::x/numeric)
+(derive ::x/numeric ::v/scalar)
 
 (defn- numerical-expression [expr]
   (cond (v/number? expr)        expr
@@ -59,10 +61,6 @@
   (let [pairs [[::x/numeric ::x/numeric]
                [::v/number ::x/numeric]
                [::x/numeric ::v/number]]]
-    ;; TODO fix this once we figure out
-    (prefer-method generic-op
-                   [::x/numeric ::v/number]
-                   [::v/number ::x/numeric])
     (if-let [op (ns/symbolic-operator op-sym)]
       (doseq [[l r] pairs]
         (defmethod generic-op [l r] [a b]
@@ -72,17 +70,14 @@
 
       (doseq [[l r] pairs]
         (defmethod generic-op [l r] [a b]
-          (x/make-combination op-sym [a b]))))))
+          (x/make-combination ::x/numeric op-sym [a b]))))))
 
 (defn- defunary [generic-op op-sym]
   (if-let [op (ns/symbolic-operator op-sym)]
     (defmethod generic-op [::x/numeric] [a]
       (literal-number (op (numerical-expression a))))
     (defmethod generic-op [::x/numeric] [a]
-      (x/make-combination op-sym [a]))))
-
-(derive Symbol ::x/numeric)
-(derive ::v/number ::x/numeric)
+      (x/make-combination ::x/numeric op-sym [a]))))
 
 (defbinary g/add '+)
 (defbinary g/sub '-)
@@ -110,3 +105,14 @@
 (defunary g/sqrt 'sqrt)
 (defunary g/log 'log)
 (defunary g/exp 'exp)
+
+(defunary g/real-part 'real-part)
+(defunary g/imag-part 'imag-part)
+(defunary g/magnitude 'magnitude)
+(defunary g/angle 'angle)
+(defunary g/conjugate 'conjugate)
+
+(defbinary g/gcd 'gcd)
+(defmethod g/determinant [::x/numeric] [a] a)
+(defmethod g/simplify [::x/numeric] [a]
+  (s/simplify-expression (v/freeze a)))

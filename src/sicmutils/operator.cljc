@@ -203,6 +203,9 @@
                `(~'exp ~(:name op))
                (:context op))))
 
+(derive ::x/numeric ::co-operator)
+(derive ::v/number ::co-operator)
+
 (defmethod g/expt [::operator ::v/native-integral] [o n]
   {:pre [(not (g/negative? n))]}
   (reduce o*o identity-operator (repeat n o)))
@@ -231,10 +234,10 @@
 (defmethod g/add [::operator ::operator] [o p] (o+o o p))
 
 ;; In additive operation the value 1 is considered as the identity operator
-(defmethod g/add [::operator ::x/numeric] [o n]
+(defmethod g/add [::operator ::co-operator] [o n]
   (o+o o (number->operator n)))
 
-(defmethod g/add [::x/numeric ::operator] [n o]
+(defmethod g/add [::co-operator ::operator] [n o]
   (o+o (number->operator n) o))
 
 (defmethod g/add [::operator :sicmutils.function/function] [o f]
@@ -245,10 +248,10 @@
 
 (defmethod g/sub [::operator ::operator] [o p] (o-o o p))
 
-(defmethod g/sub [::operator ::x/numeric] [o n]
+(defmethod g/sub [::operator ::co-operator] [o n]
   (o-o o (number->operator n)))
 
-(defmethod g/sub [::x/numeric ::operator] [n o]
+(defmethod g/sub [::co-operator ::operator] [n o]
   (o-o (number->operator n) o))
 
 (defmethod g/sub [::operator :sicmutils.function/function] [o f]
@@ -256,8 +259,6 @@
 
 (defmethod g/sub [:sicmutils.function/function ::operator] [f o]
   (o-o (number->operator f) o))
-
-(derive ::x/numeric ::co-operator)
 
 ;; Multiplication of operators is defined as their application (see o*o, above)
 (defmethod g/mul [::operator ::operator] [o p] (o*o o p))
@@ -267,7 +268,7 @@
 ;; that multiplies its input by the number.
 (defmethod g/mul [::operator ::co-operator] [o n] (o*f o n))
 (defmethod g/mul [::co-operator ::operator] [n o] (f*o n o))
-(defmethod g/div [::operator ::x/numeric] [o n] (o*f o (g/invert n)))
+(defmethod g/div [::operator ::co-operator] [o n] (o*f o (g/invert n)))
 (defmethod g/div [::operator :sicmutils.function/function] [o f] (o*f o (g/invert f)))
 
 (defmethod g/square [::operator] [o] (o*o o o))

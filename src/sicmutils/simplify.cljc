@@ -271,9 +271,6 @@
                         exp)]
     simplified-exp))
 
-(defmethod g/simplify [::x/numeric] [a]
-  (simplify-expression (v/freeze a)))
-
 (defn expression->stream
   "Renders an expression through the simplifier and onto the stream."
   ([expr stream]

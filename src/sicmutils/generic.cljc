@@ -170,9 +170,15 @@
 
 ;; Operations on structures
 (def-generic-function transpose 1)
-(def-generic-function magnitude 1)
 (def-generic-function determinant 1)
 (def-generic-function cross-product 2)
+
+;; Complex Operators
+(def-generic-function real-part 1)
+(def-generic-function imag-part 1)
+(def-generic-function magnitude 1)
+(def-generic-function angle 1)
+(def-generic-function conjugate 1)
 
 ;; More advanced generic operations.
 (def-generic-function Lie-derivative 1)

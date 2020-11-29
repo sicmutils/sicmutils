@@ -431,11 +431,14 @@
           ((d f) (first xs))
           ((d #(apply f %)) (matrix/seq-> xs)))))))
 
+(derive ::x/numeric ::codiff)
+(derive ::v/number ::codiff)
+
 (defn ^:private define-binary-operation
   [generic-operation differential-operation]
   (doseq [signature [[::differential ::differential]
-                     [::x/numeric ::differential]
-                     [::differential ::x/numeric]]]
+                     [::codiff ::differential]
+                     [::differential ::codiff]]]
     (defmethod generic-operation signature [a b] (differential-operation a b))))
 
 (defn ^:private define-unary-operation

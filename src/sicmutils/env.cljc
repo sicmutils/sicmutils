@@ -141,36 +141,46 @@
 
 (import-vars
  [sicmutils.abstract.number literal-number]
- [sicmutils.complex
-  angle
-  complex
-  conjugate
-  imag-part
-  real-part]
+ [sicmutils.complex complex]
  [sicmutils.function compose]
  [sicmutils.operator commutator]
  [sicmutils.generic
   * + - /
   abs
-  acos
-  asin
-  atan
-  cos
-  cross-product
+  square
   cube
-  determinant
   exp
   expt
   invert
   log
-  magnitude
   negate
   simplify
-  sin
   sqrt
-  square
+  cos
+  sin
   tan
+  asin
+  acos
+  atan
+  cosh
+  sinh
+  cot
+  sec
+  csc
+  tanh
+  sech
+  csch
+  acosh
+  asinh
+  atanh
   transpose
+  determinant
+  cross-product
+  real-part
+  imag-part
+  magnitude
+  angle
+  conjugate
   Lie-derivative]
  [sicmutils.structure
   compatible-shape

@@ -427,39 +427,25 @@
 (defmethod g/cross-product [::up ::up] [a b] (cross-product a b))
 (defmethod g/mul [::structure ::structure] [a b] (mul a b))
 
-(defmethod g/mul
-  [::structure ::x/numeric]
-  [a b]
+(defmethod g/mul [::structure ::v/scalar] [a b]
   (outer-product b a))
 
-(defmethod g/mul
-  [::x/numeric ::structure]
-  [a b]
+(defmethod g/mul [::v/scalar ::structure] [a b]
   (outer-product a b))
 
-(defmethod g/mul
-  [::structure :sicmutils.operator/operator]
-  [a b]
+(defmethod g/mul [::structure :sicmutils.operator/operator] [a b]
   (outer-product b a))
 
-(defmethod g/mul
-  [:sicmutils.operator/operator ::structure]
-  [a b]
+(defmethod g/mul [:sicmutils.operator/operator ::structure] [a b]
   (outer-product a b))
 
-(defmethod g/mul
-  [::structure :sicmutils.calculus.derivative/differential]
-  [a b]
+(defmethod g/mul [::structure :sicmutils.calculus.derivative/differential] [a b]
   (outer-product b a))
 
-(defmethod g/mul
-  [:sicmutils.calculus.derivative/differential ::structure]
-  [a b]
+(defmethod g/mul [:sicmutils.calculus.derivative/differential ::structure] [a b]
   (outer-product a b))
 
-(defmethod g/div
-  [::structure ::x/numeric]
-  [a b]
+(defmethod g/div [::structure ::v/scalar] [a b]
   (outer-product (g/invert b) a))
 
 (defmethod g/div [::structure ::structure] [a b] (mul (g/invert b) a))

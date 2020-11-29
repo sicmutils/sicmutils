@@ -51,7 +51,6 @@
 
 (def ^:private object-name-map (atom {}))
 
-(def numtype ::number)
 (def seqtype #?(:clj Sequential :cljs ::seq))
 
 ;; Allows multimethod dispatch to seqs in CLJS.
@@ -65,8 +64,9 @@
 ;; types that represent mathematical integers.
 
 (derive ::native-integral ::integral)
-(derive ::integral ::number)
-(derive ::floating-point ::number)
+(derive ::integral ::real)
+(derive ::floating-point ::real)
+(derive ::real ::number)
 
 (defn native-integral?
   "Returns true if x is an integral number that Clojure's math operations work
@@ -79,14 +79,20 @@
   [x]
   (isa? (kind x) ::integral))
 
-(defn number?
-  [x]
-  #?(:clj (core-number? x)
-     :cljs (isa? (kind x) ::number)))
+(defn real? [x]
+  (isa? (kind x) ::real))
+
+(defn number? [x]
+  (isa? (kind x) ::number))
+
+(defn scalar? [x]
+  (isa? (kind x) ::scalar))
+
+(derive ::number ::scalar)
 
 #?(:clj
    (do
-     (derive Number ::number)
+     (derive Number ::real)
      (derive Double ::floating-point)
      (derive Float ::floating-point)
      (derive BigDecimal ::floating-point)
@@ -96,7 +102,7 @@
      (derive BigInteger ::native-integral))
 
    :cljs
-   (do (derive js/Number ::number)
+   (do (derive js/Number ::real)
        (derive js/BigInt ::integral)
        (derive goog.math.Integer ::integral)
        (derive goog.math.Long ::integral)))

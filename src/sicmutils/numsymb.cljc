@@ -20,7 +20,8 @@
 (ns sicmutils.numsymb
   "Implementations of the generic operations for numeric types that have
   optimizations available, and for the general symbolic case."
-  (:require [sicmutils.euclid]
+  (:require [sicmutils.complex :as c]
+            [sicmutils.euclid]
             [sicmutils.generic :as g]
             [sicmutils.numbers]
             [sicmutils.ratio]
@@ -33,44 +34,55 @@
   [s]
   (fn [x] (and (seq? x) (= (first x) s))))
 
-(def ^:private sum? (is-expression? '+))
+(def sum? (is-expression? '+))
 (def product? (is-expression? '*))
 (def sqrt? (is-expression? 'sqrt))
 (def expt? (is-expression? 'expt))
-(def quotient? (is-expression? (symbol "/")))
+(def quotient? (is-expression? '/))
 (def arctan? (is-expression? 'atan))
 (def operator first)
 (def operands rest)
 
-;; BEGIN
+(defn- delegator
+  "Returns a wrapper around f that attempts to preserve exactness if the input is
+  numerically exact, else passes through to f."
+  [f sym-or-fn]
+  (let [process (if (symbol? sym-or-fn)
+                  (fn [s] (list sym-or-fn s))
+                  sym-or-fn)]
+    (fn [s]
+      (if (v/number? s)
+        (let [q (f s)]
+          (if-not (v/exact? s)
+            q
+            (if (v/exact? q)
+              q
+              (process s))))
+        (process s)))))
+
 ;; these are without constructor simplifications!
-;;
-;; the branches with both arguments equal to v/number? are taken care of by
-;; operations defined by the implementations in `sicmutils.numbers`; they remain
-;; because the implementations in `sicmutils.polynomial` bypass the generic
-;; operations and call these directly.
 
 (defn add [a b]
   (cond (and (v/number? a) (v/number? b)) (g/add a b)
         (v/number? a) (cond (v/nullity? a) b
-                          (sum? b) `(~'+ ~a ~@(operands b))
-                          :else `(~'+ ~a ~b))
+                            (sum? b) `(~'+ ~a ~@(operands b))
+                            :else `(~'+ ~a ~b))
         (v/number? b) (cond (v/nullity? b) a
-                          (sum? a) `(~'+ ~@(operands a) ~b)
-                          :else `(~'+ ~a ~b))
+                            (sum? a) `(~'+ ~@(operands a) ~b)
+                            :else `(~'+ ~a ~b))
         (sum? a) (cond (sum? b) `(~'+ ~@(operands a) ~@(operands b))
                        :else `(~'+ ~@(operands a) ~b))
         (sum? b) `(~'+ ~a ~@(operands b))
         :else `(~'+ ~a ~b)))
 
-(defn ^:private sub [a b]
+(defn- sub [a b]
   (cond (and (v/number? a) (v/number? b)) (g/sub a b)
         (v/number? a) (if (v/nullity? a) `(~'- ~b) `(~'- ~a ~b))
         (v/number? b) (if (v/nullity? b) a `(~'- ~a ~b))
         (= a b) 0
         :else `(~'- ~a ~b)))
 
-(defn ^:private sub-n [& args]
+(defn- sub-n [& args]
   (cond (nil? args) 0
         (nil? (next args)) (g/negate (first args))
         :else (sub (first args) (reduce add (next args)))))
@@ -100,33 +112,17 @@
                           :else `(~'/ ~a ~b))
         :else `(~'/ ~a ~b)))
 
-(defn ^:private div-n [arg & args]
+(defn- div-n [arg & args]
   (cond (nil? arg) 1
         (nil? args) (g/invert arg)
         :else (div arg (reduce mul args))))
 
-;; END
-
 ;; ## Trig Functions
-
-(defn ^:private delegator
-  "Returns a wrapper around f that attempts to preserve exactness if the input is
-  numerically exact, else passes through to f."
-  [f sym]
-  (fn [s]
-    (if (v/number? s)
-      (let [q (f s)]
-        (if-not (v/exact? s)
-          q
-          (if (v/exact? q)
-            q
-            `(~sym ~s))))
-      `(~sym ~s))))
 
 (def ^:private relative-integer-tolerance (* 100 v/machine-epsilon))
 (def ^:private absolute-integer-tolerance 1e-20)
 
-(defn ^:private almost-integer? [x]
+(defn- almost-integer? [x]
   (or (integer? x)
       (and (float? x)
            (let [x (double x)
@@ -342,11 +338,51 @@
                             :else `(~'expt ~b ~e))
         :else `(~'expt ~b ~e)))
 
-(defn ^:private negate [x]
-  (sub 0 x))
+(defn- negate [x] (sub 0 x))
+(defn- invert [x] (div 1 x))
 
-(defn ^:private invert [x]
-  (div 1 x))
+;; ## Complex Operations
+
+(def ^:private conjugate-transparent-operators
+  #{'negate 'invert 'square 'cube
+    'sqrt 'exp 'log
+    'sin 'cos 'tan 'sec 'csc
+    'asin 'acos 'atan
+    'sinh 'cosh 'tanh 'sech 'csch
+    '+ '- '* '/ 'expt 'up 'down})
+
+(defn- conjugate [z]
+  (cond (v/number? z) (g/conjugate z)
+        (and (seq? z)
+             (contains? conjugate-transparent-operators
+                        (operator z)))
+        (cons (operator z) (map conjugate (operands z)))
+        :else (list 'conjugate z)))
+
+(def ^:private magnitude
+  (delegator g/magnitude
+             (fn [a] (sqrt (mul (conjugate a) a)))))
+
+(defn- real-part [z]
+  (if (v/number? z)
+    (g/real-part z)
+    (mul (g/div 1 2)
+         (add z (conjugate z)))))
+
+(defn- imag-part [z]
+  (if (v/number? z)
+    (g/imag-part z)
+    (mul (g/div 1 2)
+         (mul (c/complex 0 -1)
+              (sub z (conjugate z))))))
+
+(def ^:private angle
+  (delegator g/angle
+             (fn [z]
+               (atan (imag-part z)
+                     (real-part z)))))
+
+;; ## Table
 
 (def ^:private symbolic-operator-table
   {'+ #(reduce add 0 %&)
@@ -371,7 +407,12 @@
    'sqrt sqrt
    'log log
    'exp exp
-   'expt expt})
+   'expt expt
+   'real-part real-part
+   'imag-part imag-part
+   'conjugate conjugate
+   'magnitude magnitude
+   'angle angle})
 
 (defn symbolic-operator
   "Given a symbol (like '+) returns an applicable operator if there is a
