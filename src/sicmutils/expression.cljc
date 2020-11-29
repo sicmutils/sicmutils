@@ -153,14 +153,14 @@
   association is used for elements in function application position (first of a
   sequence)."
   [expr sym->var sym->f]
-  (let [walk (fn walk [node]
-               (cond (symbol? node) (sym->var node node)
-                     (sequential? node)
-                     (let [[f-sym & args] node]
-                       (if-let [f (sym->f f-sym)]
-                         (apply f (map walk args))
-                         (u/illegal (str "Missing fn for symbol - " f-sym))))
-                     :else node))]
+  (letfn [(walk [node]
+            (cond (symbol? node) (sym->var node node)
+                  (sequential? node)
+                  (let [[f-sym & args] node]
+                    (if-let [f (sym->f f-sym)]
+                      (apply f (map walk args))
+                      (u/illegal (str "Missing fn for symbol - " f-sym))))
+                  :else node))]
     (walk expr)))
 
 (defn substitute
