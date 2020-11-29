@@ -136,7 +136,7 @@
 
   Symbol
   (nullity? [o] false)
-  (numerical? [_] false)
+  (numerical? [_] true)
   (unity? [_] false)
   (exact? [_] false)
   (zero-like [_] 0)

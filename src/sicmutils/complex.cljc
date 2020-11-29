@@ -30,7 +30,7 @@
 
 (def complextype Complex)
 
-(derive ::complex ::x/numerical-expression)
+(derive ::complex ::x/numeric)
 
 (defn complex
   "Construct a complex number from real, or real and imaginary, components."

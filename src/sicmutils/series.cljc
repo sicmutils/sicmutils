@@ -561,7 +561,7 @@
 ;;
 ;; NOTE This might be the right way to go. Feel free to experiment.
 
-(derive ::x/numerical-expression ::coseries)
+(derive ::x/numeric ::coseries)
 
 ;; All generic methods:
 ;;

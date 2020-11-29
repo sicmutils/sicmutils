@@ -456,7 +456,7 @@
   (expression-> [this expr cont v-compare]
     ;; Convert an expression into Flat Polynomial canonical form. The expression
     ;; should be an unwrapped expression, i.e., not an instance of the
-    ;; Expression type, nor should subexpressions contain type information. This
+    ;; Literal type, nor should subexpressions contain type information. This
     ;; kind of simplification proceeds purely symbolically over the known Flat
     ;; Polynomial operations; other operations outside the arithmetic available
     ;; in polynomials over commutative rings should be factored out by an

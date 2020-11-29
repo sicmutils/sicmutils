@@ -242,7 +242,7 @@
   (expression-> [this expr cont v-compare]
     ;; Convert an expression into Rational Function canonical form. The
     ;; expression should be an unwrapped expression, i.e., not an instance
-    ;; of the Expression type, nor should subexpressions contain type
+    ;; of the Literal type, nor should subexpressions contain type
     ;; information. This kind of simplification proceeds purely
     ;; symbolically over the known Rational Function operations;;  other
     ;; operations outside the arithmetic available R(x...) should be

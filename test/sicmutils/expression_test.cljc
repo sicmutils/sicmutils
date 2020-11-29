@@ -19,6 +19,7 @@
 
 (ns sicmutils.expression-test
   (:require [clojure.test :refer [is deftest testing]]
+            [sicmutils.abstract.number :as an]
             [sicmutils.expression :as e]))
 
 (deftest expressions
@@ -32,7 +33,7 @@
     (is (thrown? #?(:clj Exception :cljs js/Error)
                  (e/walk-expression '(+ 3 (* 4 y) x) {'x 5 'y -2} {'+ +})))))
 
-(deftest is-expression
-  (is (e/expression?
-       (->> (e/literal-number '(* 4 3)))))
-  (is (not (e/expression? "face"))))
+(deftest is-literal-test
+  (is (e/literal?
+       (->> (an/literal-number '(* 4 3)))))
+  (is (not (e/literal? "face"))))

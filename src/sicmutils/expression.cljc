@@ -21,50 +21,106 @@
   (:require [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
-(defrecord Expression [type expression]
+;; TODO talk about what "expression" means here, and how it's related to "freeze". Freeze is the thing that returns, finally, an expression.
+;;
+(def abstract-types
+  #{::numeric
+    ::vector
+    ::abstract-down
+    ::abstract-matrix})
+
+(defrecord Literal [type expression meta]
   Object
   (toString [_] (str expression))
 
   v/Value
-  (nullity? [_] false)  ;; XXX what if it's a wrapped zero? one?
-  (unity? [_] false)
+  (nullity? [_]
+    (and (v/number? expression)
+         (v/nullity? expression)))
+
+  (unity? [_]
+    (and (v/number? expression)
+         (v/unity? expression)))
+
   (zero-like [_] 0)
   (one-like [_] 1)
-  (numerical? [_] (= type ::numerical-expression))
-  (exact? [_] false)
+  (numerical? [_] (= type ::numeric))
+  (exact? [_] (and (v/number? expression)
+                   (v/exact? expression)))
   (freeze [_] (v/freeze expression))
   (kind [_] type))
 
 #?(:clj
-   (defmethod print-method Expression [^Expression s ^java.io.Writer w]
+   (defmethod print-method Literal [^Literal s ^java.io.Writer w]
      (.write w (.toString s))))
 
-(defn literal-number
-  [expression]
-  (if (number? expression)
-    expression
-    (Expression. ::numerical-expression expression)))
-
 (defn fmap
-  "Applies f to the expression part of e and creates from that an Expression otherwise like e."
+  "Applies f to the expression part of e and creates from that a Literal
+  otherwise like e."
   [f e]
-  (->Expression (:type e)
-                (f (:expression e))))
+  (->Literal (:type e)
+             (f (:expression e))
+             (:meta e)))
 
-(defn abstract? [^Expression x]
-  ;; TODO: GJS also allows for up, down, matrix here. We do not yet have
-  ;; abstract structures.
-  (= (:type x) ::numerical-expression))
+(comment
+  (define (substitute new old expression)
+    (define (sloop exp)
+      (cond ((equal? old exp) new)
+            ((pair? exp)
+             (cons (sloop (car exp))
+                   (sloop (cdr exp))))
+            ((vector? exp)
+             ((vector-elementwise sloop) exp))
+            (else exp)))
+    (if (equal? new old) expression (sloop expression))))
 
-(defn expression?
-  "Returns true if the argument is an expression, false otherwise."
+(comment
+  ;; Returns a checker that checks if we have a particular proerty...
+  (define ((has-property? property-name) abstract-quantity)
+    (cond ((pair? abstract-quantity)
+           (assq property-name (cdr abstract-quantity)))
+          ((symbol? abstract-quantity)
+           (if (eq? property-name 'expression)
+             (list 'expression abstract-quantity)
+             (error "Symbols have only EXPRESSION properties")))
+          (else
+           (error "Bad abstract quantity")))))
+
+;; next two let us mess with metadata.
+(comment
+  (define (get-property abstract-quantity property-name)
+    (cond ((pair? abstract-quantity)
+           (let ((default (if (default-object? default) false default))
+                 (v (assq property-name (cdr abstract-quantity))))
+             (if v (cadr v) default)))
+          ((symbol? abstract-quantity)
+           (if (eq? property-name 'expression)
+             abstract-quantity
+             default))
+          (else
+           (error "Bad abstract quantity")))))
+
+
+(comment
+  ;; TODO call this with-property
+  (define (add-property! abstract-quantity property-name property-value)
+    (if (pair? abstract-quantity)
+      (set-cdr! (last-pair abstract-quantity)
+                (list (list property-name property-value)))
+      (error "Bad abstract quantity -- ADD-PROPERTY!"))))
+
+(defn literal?
+  "Returns true if the argument is a literal, false otherwise."
   [x]
-  (instance? Expression x))
+  (instance? Literal x))
 
-(defn expression-of
-  [expr]
-  (cond (instance? Expression expr) (:expression expr)
-        (symbol? expr) expr
+(defn abstract? [x]
+  (and (literal? x)
+       (contains? abstract-types (:type x))))
+
+(defn expression-of [expr]
+  (cond (literal? expr) (:expression expr)
+        (symbol? expr)  expr
         :else (u/illegal (str "unknown expression type:" expr))))
 
 (defn variables-in

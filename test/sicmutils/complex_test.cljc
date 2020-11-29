@@ -175,7 +175,7 @@
                 (c/complex 0.8329812666744317 0.0))))
 
     (testing "arithmetic"
-      (is (g/numerical-quantity? i)))))
+      (is (v/numerical? i)))))
 
 (deftest promotions-from-real
   (is (= (c/complex 0 1) (g/sqrt -1)))

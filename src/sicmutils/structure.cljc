@@ -428,12 +428,12 @@
 (defmethod g/mul [::structure ::structure] [a b] (mul a b))
 
 (defmethod g/mul
-  [::structure ::x/numerical-expression]
+  [::structure ::x/numeric]
   [a b]
   (outer-product b a))
 
 (defmethod g/mul
-  [::x/numerical-expression ::structure]
+  [::x/numeric ::structure]
   [a b]
   (outer-product a b))
 
@@ -458,7 +458,7 @@
   (outer-product a b))
 
 (defmethod g/div
-  [::structure ::x/numerical-expression]
+  [::structure ::x/numeric]
   [a b]
   (outer-product (g/invert b) a))
 

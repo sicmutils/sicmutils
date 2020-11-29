@@ -18,7 +18,8 @@
 ;
 
 (ns sicmutils.function
-  (:require [sicmutils.expression :as x]
+  (:require [sicmutils.abstract.number :as an]
+            [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
             [sicmutils.numsymb :as ns]
@@ -171,8 +172,8 @@
   which computes (+ (f x) (g x)) given x as input."
   [operator]
   (let [h (fn [f g]
-            (let [f-numeric (g/numerical-quantity? f)
-                  g-numeric (g/numerical-quantity? g)
+            (let [f-numeric (v/numerical? f)
+                  g-numeric (v/numerical? g)
                   f-arity (if f-numeric (v/arity g) (v/arity f))
                   g-arity (if g-numeric f-arity (v/arity g))
                   arity (v/joint-arity [f-arity g-arity])
@@ -256,7 +257,7 @@
 ;; TODO sinh cosh ...
 
 (defmethod g/simplify [Function] [a] (g/simplify (:name a)))
-(derive ::x/numerical-expression ::cofunction)
+(derive ::x/numeric ::cofunction)
 (derive ::s/structure ::cofunction)
 (derive ::m/matrix ::cofunction)
 
@@ -303,8 +304,8 @@
                   (s/same vv (map-indexed (fn [i element]
                                             (fd (conj indices i) element))
                                           vv))
-                  (or (g/numerical-quantity? vv)
-                      (g/abstract-quantity? vv))
+                  (or (v/numerical? vv)
+                      (x/abstract? vv))
                   (let [fexp (if (= (:arity f) [:exactly 1])  ; univariate
                                (if (= (first indices) 0)
                                  (if (= (count indices) 1)
@@ -336,7 +337,7 @@
   the exemplar expected."
   [f provided expected indexes]
   (cond (number? expected)
-        (when-not (g/numerical-quantity? provided)
+        (when-not (v/numerical? provided)
           (u/illegal (str "expected numerical quantity in argument " indexes
                           " of function call " f
                           " but got " provided)))
@@ -360,7 +361,7 @@
   (check-argument-type f xs (:domain f) [0])
   (if (some d/differential? xs)
     (literal-derivative f xs)
-    (x/literal-number `(~(:name f) ~@(map v/freeze xs)))))
+    (an/literal-number `(~(:name f) ~@(map v/freeze xs)))))
 
 ;;; Utilities
 
