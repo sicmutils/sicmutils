@@ -74,6 +74,12 @@
 
 (defn literal-type [^Literal x] (.-type x))
 
+(defn make-literal [type expr]
+  (->Literal type expr {}))
+
+(defn make-combination [type op args]
+  (make-literal type (cons op (seq args))))
+
 (defn fmap
   "Applies f to the expression part of e and creates from that a Literal
   otherwise like e."

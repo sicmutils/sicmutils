@@ -20,17 +20,12 @@
 (ns sicmutils.numsymb
   "Implementations of the generic operations for numeric types that have
   optimizations available, and for the general symbolic case."
-  (:require [sicmutils.complex :as c]
-            [sicmutils.euclid]
-            [sicmutils.abstract.number :as an]
-            [sicmutils.expression :as x]
+  (:require [sicmutils.euclid]
             [sicmutils.generic :as g]
             [sicmutils.numbers]
             [sicmutils.ratio]
             [sicmutils.value :as v]
-            [sicmutils.util :as u])
-  #?(:clj
-     (:import (clojure.lang Symbol))))
+            [sicmutils.util :as u]))
 
 (defn ^:private is-expression?
   "Returns a function which will decide if its argument is a sequence
@@ -383,57 +378,3 @@
   corresponding symbolic operator construction available."
   [s]
   (symbolic-operator-table s))
-
-;; ## Generic Installation TODO move these to abstract number...
-
-(defn- numerical-expression [expr]
-  (cond (v/number? expr)           expr
-        (c/complex? expr)          expr
-        (an/abstract-number? expr) (x/expression-of expr)
-        :else expr))
-
-(defn- make-numsymb-expression [operator operands]
-  (->> operands
-       (map numerical-expression)
-       (apply operator)
-       an/literal-number))
-
-(defn- define-binary-operation [generic-op symbolic-op]
-  (defmethod generic-op [::x/numeric ::x/numeric]
-    [a b]
-    (make-numsymb-expression symbolic-op [a b])))
-
-(defn- define-unary-operation [generic-op symbolic-op]
-  (defmethod generic-op [::x/numeric]
-    [a]
-    (make-numsymb-expression symbolic-op [a])))
-
-(derive Symbol ::x/numeric)
-(derive ::v/number ::x/numeric)
-
-(define-binary-operation g/add add)
-(define-binary-operation g/sub sub)
-(define-binary-operation g/mul mul)
-(define-binary-operation g/div div)
-(define-binary-operation g/expt expt)
-(define-unary-operation g/negate negate)
-(define-unary-operation g/invert invert)
-
-(define-unary-operation g/sin sin)
-(define-unary-operation g/cos cos)
-(define-unary-operation g/tan tan)
-
-(define-unary-operation g/asin asin)
-(define-unary-operation g/acos acos)
-(define-unary-operation g/atan atan)
-(define-binary-operation g/atan atan)
-
-(define-unary-operation g/sinh sinh)
-(define-unary-operation g/cosh cosh)
-(define-unary-operation g/sec sec)
-(define-unary-operation g/csc csc)
-
-(define-unary-operation g/sqrt sqrt)
-(define-unary-operation g/exp exp)
-(define-unary-operation g/abs abs)
-(define-unary-operation g/log log)
