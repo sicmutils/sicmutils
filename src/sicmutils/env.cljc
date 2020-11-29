@@ -192,8 +192,8 @@
   structure?
   up
   up?
-  vector->down
-  vector->up]
+  vector->down vector->up
+  literal-up literal-down]
  [sicmutils.infix
   ->infix
   ->TeX
@@ -275,7 +275,8 @@
   Γ]
  [sicmutils.matrix
   s->m
-  m->s]
+  m->s
+  literal-matrix]
  [sicmutils.mechanics.hamilton
   ->H-state
   F->CT

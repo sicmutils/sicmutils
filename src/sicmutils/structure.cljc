@@ -230,6 +230,7 @@
   [& xs]
   (make ::down xs))
 
+
 (defn structure?
   "True if s is a structure."
   [s]
@@ -271,6 +272,22 @@
   where i ranges from [0..dimension)"
   [dimension orientation f]
   (->Structure orientation (mapv f (range dimension))))
+
+(defn- literal-structure [name size orientation]
+  (let [prefix (str name "^")]
+    (generate size orientation
+              (fn [i]
+                (symbol (str prefix i))))))
+
+(defn literal-up
+  "TODO document"
+  [name size]
+  (literal-structure name size ::up))
+
+(defn literal-down
+  "TODO document"
+  [name size]
+  (literal-structure name size ::down))
 
 (defn ^:private map:l
   [f structures]
