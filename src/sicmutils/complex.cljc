@@ -19,6 +19,7 @@
 
 (ns sicmutils.complex
   (:require [sicmutils.generic :as g]
+            [sicmutils.util :as u]
             [sicmutils.value :as v]
             #?(:cljs ["complex.js" :as Complex]))
   #?(:clj
@@ -95,11 +96,11 @@
   (kind [_] ::complex))
 
 (defmethod g/add [::complex ::complex] [^Complex a ^Complex b] (.add a b))
-(defmethod g/add [::complex ::v/real] [^Complex a n] (.add a (double n)))
-(defmethod g/add [::v/real ::complex] [n ^Complex a] (.add a (double n)))
+(defmethod g/add [::complex ::v/real] [^Complex a n] (.add a (u/double n)))
+(defmethod g/add [::v/real ::complex] [n ^Complex a] (.add a (u/double n)))
 
 (defmethod g/expt [::complex ::complex] [^Complex a ^Complex b] (.pow a b))
-(defmethod g/expt [::complex ::v/real] [^Complex a n] (.pow a (double n)))
+(defmethod g/expt [::complex ::v/real] [^Complex a n] (.pow a (u/double n)))
 (defmethod g/expt [::v/real ::complex] [n ^Complex a] (.pow ^Complex (complex n) a))
 
 (defmethod g/abs [::complex] [^Complex a] (.abs a))
@@ -157,16 +158,16 @@
    :cljs
    (do
      (defmethod g/sub [::complex ::complex] [^Complex a ^Complex b] (.sub a b))
-     (defmethod g/sub [::complex ::v/real] [^Complex a n] (.sub a (double n)))
-     (defmethod g/sub [::v/real ::complex] [n ^Complex a] (.add (.neg a) (double n)))
+     (defmethod g/sub [::complex ::v/real] [^Complex a n] (.sub a (u/double n)))
+     (defmethod g/sub [::v/real ::complex] [n ^Complex a] (.add (.neg a) (u/double n)))
 
      (defmethod g/mul [::complex ::complex] [^Complex a ^Complex b] (.mul a b))
-     (defmethod g/mul [::complex ::v/real] [^Complex a n] (.mul a (double n)))
-     (defmethod g/mul [::v/real ::complex] [n ^Complex a] (.mul a (double n)))
+     (defmethod g/mul [::complex ::v/real] [^Complex a n] (.mul a (u/double n)))
+     (defmethod g/mul [::v/real ::complex] [n ^Complex a] (.mul a (u/double n)))
 
      (defmethod g/div [::complex ::complex] [^Complex a ^Complex b] (.div a b))
-     (defmethod g/div [::complex ::v/real] [^Complex a n] (.div a (double n)))
-     (defmethod g/div [::v/real ::complex] [n ^Complex a] (.mul ^Complex (.inverse a) (double n)))
+     (defmethod g/div [::complex ::v/real] [^Complex a n] (.div a (u/double n)))
+     (defmethod g/div [::v/real ::complex] [n ^Complex a] (.mul ^Complex (.inverse a) (u/double n)))
 
      (defmethod g/negate [::complex] [^Complex a] (.neg a))
      (defmethod g/invert [::complex] [^Complex a] (.inverse a))

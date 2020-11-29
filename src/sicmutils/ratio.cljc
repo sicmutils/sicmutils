@@ -32,7 +32,7 @@
   #?(:clj (:import [clojure.lang BigInt Ratio])))
 
 (def ratiotype #?(:clj Ratio :cljs Fraction))
-(derive ratiotype ::v/number)
+(derive ratiotype ::v/real)
 
 (def ratio?
   #?(:clj core-ratio?
@@ -240,10 +240,10 @@
        "Anything that `upcast-number` doesn't catch will hit this and pull a floating
   point value out of the ratio."
        [op]
-       (defmethod op [Fraction ::v/number] [^Fraction a b]
+       (defmethod op [Fraction ::v/real] [^Fraction a b]
          (op (.valueOf a) b))
 
-       (defmethod op [::v/number Fraction] [a ^Fraction b]
+       (defmethod op [::v/real Fraction] [a ^Fraction b]
          (op a (.valueOf b))))
 
      (defn upcast-number

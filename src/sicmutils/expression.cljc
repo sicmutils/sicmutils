@@ -66,7 +66,12 @@
                    (and (= type (.-type b))
                         (= expression (.-expression b))
                         (= meta (.-meta b))))
-                 (v/eq a b)))]))
+                 (v/eq a b)))
+
+       IPrintWithWriter
+       (-pr-writer
+        [_ writer opts]
+        (-write writer (str expression)))]))
 
 #?(:clj
    (defmethod print-method Literal [^Literal s ^java.io.Writer w]
