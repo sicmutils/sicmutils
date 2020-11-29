@@ -19,7 +19,7 @@
 
 (ns sicmutils.series.impl
   (:require [sicmutils.generic :as g]
-            [sicmutils.numbers]
+            [sicmutils.abstract.number]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
