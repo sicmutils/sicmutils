@@ -63,7 +63,8 @@
     (is (not (v/unity? (c/complex 2))))
     (is (not (v/unity? (c/complex 0.0))))
 
-    (is (= '(complex 10.0 0.0) (v/freeze (c/complex 10))))
+    (is (= 10.0 (v/freeze (c/complex 10)))
+        "If the imaginary piece is 0, freeze will return only the real part.")
     (is (v/numerical? (c/complex 10)))
 
     (testing "exact?"

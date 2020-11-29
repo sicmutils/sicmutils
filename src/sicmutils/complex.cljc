@@ -84,9 +84,11 @@
   (unity? [c] (= ONE c))
   (zero-like [_] ZERO)
   (one-like [_] ONE)
-  (freeze [c] (list 'complex
-                    (g/real-part c)
-                    (g/imag-part c)))
+  (freeze [c] (let [re (g/real-part c)
+                    im (g/imag-part c)]
+                (if (v/nullity? im)
+                  re
+                  (list 'complex re im))))
   (exact? [c] (and (v/exact? (g/real-part c))
                    (v/exact? (g/imag-part c))))
   (numerical? [_] true)
