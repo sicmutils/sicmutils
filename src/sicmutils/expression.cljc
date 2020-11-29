@@ -72,7 +72,14 @@
    (defmethod print-method Literal [^Literal s ^java.io.Writer w]
      (.write w (.toString s))))
 
-(defn literal-type [^Literal x] (.-type x))
+(defn literal?
+  "Returns true if the argument is a literal, false otherwise."
+  [x]
+  (instance? Literal x))
+
+(defn literal-type [x]
+  (when (literal? x)
+    (.-type ^Literal x)))
 
 (defn make-literal [type expr]
   (->Literal type expr {}))
@@ -87,58 +94,6 @@
   (->Literal (.-type e)
              (f (.-expression e))
              (.-meta e)))
-
-(comment
-  (define (substitute new old expression)
-    (define (sloop exp)
-      (cond ((equal? old exp) new)
-            ((pair? exp)
-             (cons (sloop (car exp))
-                   (sloop (cdr exp))))
-            ((vector? exp)
-             ((vector-elementwise sloop) exp))
-            (else exp)))
-    (if (equal? new old) expression (sloop expression))))
-
-(comment
-  ;; Returns a checker that checks if we have a particular proerty...
-  (define ((has-property? property-name) abstract-quantity)
-    (cond ((pair? abstract-quantity)
-           (assq property-name (cdr abstract-quantity)))
-          ((symbol? abstract-quantity)
-           (if (eq? property-name 'expression)
-             (list 'expression abstract-quantity)
-             (error "Symbols have only EXPRESSION properties")))
-          (else
-           (error "Bad abstract quantity")))))
-
-;; next two let us mess with metadata.
-(comment
-  (define (get-property abstract-quantity property-name)
-    (cond ((pair? abstract-quantity)
-           (let ((default (if (default-object? default) false default))
-                 (v (assq property-name (cdr abstract-quantity))))
-             (if v (cadr v) default)))
-          ((symbol? abstract-quantity)
-           (if (eq? property-name 'expression)
-             abstract-quantity
-             default))
-          (else
-           (error "Bad abstract quantity")))))
-
-
-(comment
-  ;; TODO call this with-property
-  (define (add-property! abstract-quantity property-name property-value)
-    (if (pair? abstract-quantity)
-      (set-cdr! (last-pair abstract-quantity)
-                (list (list property-name property-value)))
-      (error "Bad abstract quantity -- ADD-PROPERTY!"))))
-
-(defn literal?
-  "Returns true if the argument is a literal, false otherwise."
-  [x]
-  (instance? Literal x))
 
 (defn abstract? [x]
   (and (literal? x)
@@ -168,3 +123,46 @@
                      (sequential? x) (apply (functions (first x)) (map walk (rest x)))
                      :else x))]
     (walk x)))
+
+(comment
+  (define (substitute new old expression)
+    (define (sloop exp)
+      (cond ((equal? old exp) new)
+            ((pair? exp)
+             (cons (sloop (car exp))
+                   (sloop (cdr exp))))
+            ((vector? exp)
+             ((vector-elementwise sloop) exp))
+            (else exp)))
+    (if (equal? new old) expression (sloop expression))))
+
+(comment
+  ;; Returns a checker that checks if we have a particular proerty...
+  (define ((has-property? property-name) abstract-quantity)
+    (cond ((pair? abstract-quantity)
+           (assq property-name (cdr abstract-quantity)))
+          ((symbol? abstract-quantity)
+           (if (eq? property-name 'expression)
+             (list 'expression abstract-quantity)
+             (error "Symbols have only EXPRESSION properties")))
+          (else
+           (error "Bad abstract quantity"))))
+
+  (define (get-property abstract-quantity property-name)
+    (cond ((pair? abstract-quantity)
+           (let ((default (if (default-object? default) false default))
+                 (v (assq property-name (cdr abstract-quantity))))
+             (if v (cadr v) default)))
+          ((symbol? abstract-quantity)
+           (if (eq? property-name 'expression)
+             abstract-quantity
+             default))
+          (else
+           (error "Bad abstract quantity"))))
+
+  ;; TODO call this with-property
+  (define (add-property! abstract-quantity property-name property-value)
+    (if (pair? abstract-quantity)
+      (set-cdr! (last-pair abstract-quantity)
+                (list (list property-name property-value)))
+      (error "Bad abstract quantity -- ADD-PROPERTY!"))))
