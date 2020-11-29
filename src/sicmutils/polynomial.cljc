@@ -21,7 +21,7 @@
   (:refer-clojure :exclude [divide])
   (:require [clojure.set :as set]
             [clojure.string :as cs]
-            [sicmutils.analyze :as a]
+            [sicmutils.expression.analyze :as a]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as sym]

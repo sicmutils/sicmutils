@@ -19,7 +19,7 @@
 
 (ns sicmutils.rational-function
   (:require [clojure.set :as set]
-            [sicmutils.analyze :as a]
+            [sicmutils.expression.analyze :as a]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as sym]

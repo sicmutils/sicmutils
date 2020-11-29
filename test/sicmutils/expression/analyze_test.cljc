@@ -17,10 +17,10 @@
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(ns sicmutils.analyzer-test
+(ns sicmutils.expression.analyze-test
   (:require [clojure.test :refer [is deftest testing]]
             [clojure.string :as cs]
-            [sicmutils.analyze :as a]))
+            [sicmutils.expression.analyze :as a]))
 
 (deftest symbol-generator
   (let [gen (a/monotonic-symbol-generator "cake")

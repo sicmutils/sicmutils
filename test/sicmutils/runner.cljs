@@ -67,10 +67,10 @@
             sicmutils.util.aggregate-test
             sicmutils.util.stream-test
 
-            sicmutils.analyzer-test
             sicmutils.complex-test
             sicmutils.euclid-test
             sicmutils.expression-test
+            sicmutils.expression.analyze-test
             sicmutils.env-test
             sicmutils.function-test
             sicmutils.generic-test
@@ -159,10 +159,10 @@
            'sicmutils.sicm.ch6-test
            'sicmutils.sicm.ch7-test
 
-           'sicmutils.analyzer-test
            'sicmutils.complex-test
            'sicmutils.euclid-test
            'sicmutils.expression-test
+           'sicmutils.expression.analyze-test
            'sicmutils.env-test
            'sicmutils.function-test
            'sicmutils.generic-test

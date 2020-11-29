@@ -17,11 +17,11 @@
 ; along with thixs code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(ns sicmutils.analyze
+(ns sicmutils.expression.analyze
   (:require [sicmutils.expression :as x]
             [sicmutils.numsymb :as sym]))
 
-(defn ^:private make-vcompare
+(defn- make-vcompare
   "Returns a Comparator function taking account of the input variable set in the
   following way: if both inputs to the comparator are in var-set, or both are
   not, then the results are as core compare would return. But if one is in

@@ -19,8 +19,8 @@
 
 (ns sicmutils.rational-function-test
   (:require [clojure.test :refer [is deftest testing]]
-            [sicmutils.analyze :as a]
             [sicmutils.expression :as x]
+            [sicmutils.expression.analyze :as a]
             [sicmutils.generic :as g]
             [sicmutils.matrix]
             [sicmutils.numbers]
@@ -30,7 +30,7 @@
 
 (deftest make-test
   (let [p #(p/make 1 [[[0] %]])      ;; constant arity 1 polynomial
-        rf #(rf/make (p %1) (p %2))       ;; ratio of constant arity 1 polynomials
+        rf #(rf/make (p %1) (p %2))  ;; ratio of constant arity 1 polynomials
         x+1 (p/make [1 1])
         x-1 (p/make [-1 1])
         x+1:x-1 (rf/make x+1 x-1)

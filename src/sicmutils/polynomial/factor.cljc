@@ -21,7 +21,7 @@
   (:require [clojure.walk :as w]
             #?(:cljs [goog.string :refer [format]])
             [sicmutils.value :as v]
-            [sicmutils.analyze :as a]
+            [sicmutils.expression.analyze :as a]
             [sicmutils.generic :as g]
             [sicmutils.expression :as x]
             [sicmutils.numsymb :as sym :refer [operator product? sqrt? operands expt]]
