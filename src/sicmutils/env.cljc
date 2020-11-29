@@ -146,10 +146,10 @@
   abs
   square
   cube
-  exp
+  exp exp2 exp10
   expt
   invert
-  log
+  log log2 log10
   negate
   simplify
   sqrt

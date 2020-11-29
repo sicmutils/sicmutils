@@ -116,6 +116,13 @@
         (v/unity? a) (v/zero-like a)
         :else (Math/log a)))
 
+;; Specialized methods provided by the host platforms.
+
+#?(:clj  (defmethod g/log10 [Double] [x] (Math/log10 x))
+   :cljs (defmethod g/log10 [js/Number] [x] (Math/log10 x)))
+
+#?(:cljs (defmethod g/log2 [js/Number] [x] (Math/log2 x)))
+
 (defmethod g/exp
   [::v/real]
   [a]

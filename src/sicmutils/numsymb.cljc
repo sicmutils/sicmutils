@@ -345,7 +345,9 @@
 
 (def ^:private conjugate-transparent-operators
   #{'negate 'invert 'square 'cube
-    'sqrt 'exp 'log
+    'sqrt
+    'exp 'exp2 'exp10
+    'log 'log2 'log10
     'sin 'cos 'tan 'sec 'csc
     'asin 'acos 'atan
     'sinh 'cosh 'tanh 'sech 'csch
