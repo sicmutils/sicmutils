@@ -21,6 +21,7 @@
   (:require [clojure.test :refer [is deftest testing]]
             [same :refer [ish?]]
             [sicmutils.numsymb :as sym]
+            [sicmutils.abstract.number]
             [sicmutils.generic :as g]
             [sicmutils.value :as v]))
 
@@ -54,14 +55,14 @@
           "The ::v/number implementation takes over for g/sin and returns a float on the JVM.")
       (is (= 0 (sin 0))
           "the symbolic operator is exact.")
-      (is (= 0 (g/sin 'pi)))
-      (is (= 0 (g/sin 'two-pi)))
-      (is (= 0 (g/sin '-pi)))
-      (is (near 0.0 (g/sin Math/PI)))
-      (is (near 0.0 (g/sin (* 2 Math/PI))))
-      (is (near 0.0 (g/sin (- Math/PI))))
-      (is (= 1 (g/sin 'pi-over-2)))
-      (is (= 1.0 (g/sin (/ Math/PI 2))))))
+      (is (v/eq 0 (g/sin 'pi)))
+      (is (v/eq 0 (g/sin 'two-pi)))
+      (is (v/eq 0 (g/sin '-pi)))
+      (is (ish? 0 (g/sin Math/PI)))
+      (is (ish? 0 (g/sin (* 2 Math/PI))))
+      (is (ish? 0 (g/sin (- Math/PI))))
+      (is (v/eq 1 (g/sin 'pi-over-2)))
+      (is (v/eq 1.0 (g/sin (/ Math/PI 2))))))
 
   (let [cos (sym/symbolic-operator 'cos)]
     (testing "trig shortcuts - cos"
@@ -69,12 +70,12 @@
           "The ::v/number implementation takes over for g/cos and returns a float on the JVM.")
       (is (= 1 (cos 0))
           "the symbolic operator is exact.")
-      (is (= -1 (g/cos 'pi)))
-      (is (near -1.0 (g/cos Math/PI)))
-      (is (= 1 (g/cos 'two-pi)))
-      (is (near 1.0 (g/cos (* 2 Math/PI))))
-      (is (= -1 (g/cos '-pi)))
-      (is (= 0 (g/cos 'pi-over-2)))))
+      (is (v/eq -1 (g/cos 'pi)))
+      (is (ish? -1 (g/cos Math/PI)))
+      (is (v/eq 1 (g/cos 'two-pi)))
+      (is (ish? 1 (g/cos (* 2 Math/PI))))
+      (is (v/eq -1 (g/cos '-pi)))
+      (is (v/eq 0 (g/cos 'pi-over-2)))))
 
   (let [tan (sym/symbolic-operator 'tan)]
     (testing "trig shortcuts - tan"
@@ -82,8 +83,8 @@
           "The ::v/number implementation takes over for g/tan and returns a float on the JVM.")
       (is (= 0 (tan 0))
           "The symbolic operator is exact.")
-      (is (= 1 (g/tan 'pi-over-4)))
-      (is (= -1 (g/tan '-pi-over-4)))
+      (is (v/eq 1 (g/tan 'pi-over-4)))
+      (is (v/eq -1 (g/tan '-pi-over-4)))
       (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
                    (g/tan 'pi-over-2)))))
 

@@ -43,7 +43,7 @@
                 (g/+ (g/square (g/sin x))
                      (g/square (g/cos x)))))]
   (= '(sqrt (+ (expt (sin x) 2) (expt (cos x) 2)))
-     (:expression (f 'x))))
+     (x/expression-of (f 'x))))
 
 ;; 2. `g/simplify` the new function body. Sometimes this results in large
 ;;    simplifications:

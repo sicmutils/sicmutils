@@ -29,10 +29,7 @@
     ::abstract-down
     ::abstract-matrix})
 
-(defrecord Literal [type expression meta]
-  Object
-  (toString [_] (str expression))
-
+(deftype Literal [type expression meta]
   v/Value
   (nullity? [_]
     (and (v/number? expression)
@@ -48,19 +45,42 @@
   (exact? [_] (and (v/number? expression)
                    (v/exact? expression)))
   (freeze [_] (v/freeze expression))
-  (kind [_] type))
+  (kind [_] type)
+
+  Object
+  (toString [_] (str expression))
+  #?(:clj
+     (equals [a b]
+             (if (instance? Literal b)
+               (let [b ^Literal b]
+                 (and (= type (.-type b))
+                      (= expression (.-expression b))
+                      (= meta (.-meta b))))
+               (v/eq a b))))
+
+  #?@(:cljs
+      [IEquiv
+       (-equiv [_ b]
+               (if (instance? Literal b)
+                 (let [b ^Literal b]
+                   (and (= type (.-type b))
+                        (= expression (.-expression b))
+                        (= meta (.-meta b))))
+                 (v/eq a b)))]))
 
 #?(:clj
    (defmethod print-method Literal [^Literal s ^java.io.Writer w]
      (.write w (.toString s))))
 
+(defn literal-type [^Literal x] (.-type x))
+
 (defn fmap
   "Applies f to the expression part of e and creates from that a Literal
   otherwise like e."
-  [f e]
-  (->Literal (:type e)
-             (f (:expression e))
-             (:meta e)))
+  [f ^Literal e]
+  (->Literal (.-type e)
+             (f (.-expression e))
+             (.-meta e)))
 
 (comment
   (define (substitute new old expression)
@@ -116,12 +136,13 @@
 
 (defn abstract? [x]
   (and (literal? x)
-       (contains? abstract-types (:type x))))
+       (contains? abstract-types
+                  (.-type ^Literal x))))
 
 (defn expression-of [expr]
-  (cond (literal? expr) (:expression expr)
+  (cond (literal? expr) (.-expression ^Literal expr)
         (symbol? expr)  expr
-        :else (u/illegal (str "unknown expression type:" expr))))
+        :else (u/illegal (str "unknown expression type: " expr))))
 
 (defn variables-in
   "Return the 'variables' (e.g. symbols) found in the expression x,

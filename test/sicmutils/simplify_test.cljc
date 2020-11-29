@@ -173,16 +173,16 @@
     (is (= 'x (g/* 'x 1.0)))
     (is (= 'x (g/divide 'x 1.0)))
     (is (= 'x (g/divide 'x 1)))
-    (is (= 0 (g/divide 0 'x)))
+    (is (v/nullity? (g/divide 0 'x)))
     (is (= 0 (g/* 0 'x)))
     (is (= 0 (g/* 'x 0)))
     (is (thrown? #?(:clj ArithmeticException :cljs js/Error)
                  (g/divide 'x 0))))
 
   (testing "symbolic moves"
-    (is (= 1 (g/expt 'x 0)))
+    (is (v/unity? (g/expt 'x 0)))
     #_(is (= 0 (g/gcd 'x 'x)))
-    (is (= 1 (g/expt 1 'x)))
+    (is (v/unity? (g/expt 1 'x)))
     (is (= (g/negate 'x) (g/- 0 'x)))))
 
 (deftest matrix-tests

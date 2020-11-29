@@ -23,12 +23,20 @@
             [sicmutils.value :as v]))
 
 (defn literal-number [x]
-  (x/->Literal ::x/numeric x #{}))
+  (x/->Literal ::x/numeric x {}))
 
 (defn literal-number? [x]
   (and (x/literal? x)
-       (= (:type x) ::x/numeric)))
+       (= (x/literal-type x) ::x/numeric)))
 
 (defn abstract-number? [x]
   (or (literal-number? x)
       (symbol? x)))
+
+(defn- literal=num [l n]
+  (and (= (x/literal-type l) ::x/numeric)
+       (= (x/expression-of l) n)))
+
+(defmethod v/eq [::x/numeric ::v/number] [l r] (literal=num l r))
+(defmethod v/eq [::v/number ::x/numeric] [l r] (literal=num r l))
+(prefer-method v/eq [::x/numeric ::v/number] [::v/number ::x/numeric])

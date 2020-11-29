@@ -26,6 +26,7 @@
                   :exclude [+ - * / zero? #?(:cljs partial)])
   (:require #?(:clj [potemkin :refer [import-vars]])
             #?(:clj [nrepl.middleware.print])
+            [sicmutils.abstract.number :as an]
             [sicmutils.complex]
             [sicmutils.function :as f #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
@@ -139,6 +140,7 @@
   (str "$$" (-> expr g/simplify infix/->TeX) "$$"))
 
 (import-vars
+ [sicmutils.abstract.number literal-number]
  [sicmutils.complex
   angle
   complex

@@ -205,7 +205,7 @@
        number
        (-equiv [this other]
          (cond (core-number? other) (identical? this other)
-               (number? other)      (eq this other)
+               (numerical? other)   (eq this other)
                :else false))
 
        goog.math.Integer

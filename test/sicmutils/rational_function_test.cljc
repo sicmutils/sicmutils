@@ -20,6 +20,7 @@
 (ns sicmutils.rational-function-test
   (:require [clojure.test :refer [is deftest testing]]
             [sicmutils.analyze :as a]
+            [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.matrix]
             [sicmutils.numbers]
@@ -78,24 +79,24 @@
 
 (deftest rf-as-simplifier
   (testing "expr"
-    (let [exp1 (:expression (g/* (g/+ 1 'x) (g/+ -3 'x)))
-          exp2 (:expression (g/expt (g/+ 1 'y) 5))
-          exp3 (:expression (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5)))]
+    (let [exp1 (x/expression-of (g/* (g/+ 1 'x) (g/+ -3 'x)))
+          exp2 (x/expression-of (g/expt (g/+ 1 'y) 5))
+          exp3 (x/expression-of (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5)))]
       (is (= [(p/make [-3 -2 1]) '(x)] (a/expression-> rf-analyzer exp1 vector)))
       (is (= [(p/make [-3 -2 1]) '(x)] (a/expression-> rf-analyzer exp1 vector)))
       (is (= [(p/make [1 5 10 10 5 1]) '(y)] (a/expression-> rf-analyzer exp2 vector)))
       (is (= [(p/make [0 -11 5 -30 10 -7 1]) '(y)] (a/expression-> rf-analyzer exp3 vector)))))
 
   (testing "expr-simplify"
-    (let [exp1 (:expression (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))
-          exp2 (:expression (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
+    (let [exp1 (x/expression-of (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))
+          exp2 (x/expression-of (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
           exp3 'y]
       (is (= '(+ (expt x 3) (* 2 (expt x 2))) (rf-simp exp1)))
       (is (= '(+ (expt x 3) (* 2 (expt x 2)) (* 2 (expt y 2))) (rf-simp exp2)))
       (is (= 'y (rf-simp exp3)))
-      (is (= '(+ g1 g2) (rf-simp (:expression (g/+ 'g1 'g2)))))
+      (is (= '(+ g1 g2) (rf-simp (x/expression-of (g/+ 'g1 'g2)))))
       (is (= 12 (rf-simp '(+ 3 9))))
-      (is (= '(* 2 g1) (rf-simp (:expression (g/+ 'g1 'g1)))))
+      (is (= '(* 2 g1) (rf-simp (x/expression-of (g/+ 'g1 'g1)))))
       (is (= '(+ b (* -1 f)) (rf-simp '(- (+ a b c) (+ a c f)))))
       (is (= '(+ (* -1 b) f) (rf-simp '(- (+ a c f) (+ c b a)))))
       (is (= '(* a c e) (rf-simp '(/ (* a b c d e f) (* b d f)))))
@@ -126,6 +127,6 @@
     (is (= 1 (rf-simp '(gcd (* (/ 5 2) x y) (* (/ 7 3) y z))))))
 
   (testing "quotients"
-    (is (= '(/ 1 (* 2 x)) (rf-simp (:expression (g/divide 1 (g/* 2 'x))))))
-    (is (= 4 (rf-simp (:expression (g/divide (g/* 28 'x) (g/* 7 'x))))))
-    (is (= '(/ 1 (expt x 21)) (rf-simp (:expression (g/divide (g/expt 'x 7) (g/expt 'x 28))))))))
+    (is (= '(/ 1 (* 2 x)) (rf-simp (x/expression-of (g/divide 1 (g/* 2 'x))))))
+    (is (= 4 (rf-simp (x/expression-of (g/divide (g/* 28 'x) (g/* 7 'x))))))
+    (is (= '(/ 1 (expt x 21)) (rf-simp (x/expression-of (g/divide (g/expt 'x 7) (g/expt 'x 28))))))))
