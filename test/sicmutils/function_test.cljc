@@ -114,18 +114,30 @@
     (let [f (f/compose g/cosh g/acosh)]
       (is (near 10 (f 10))
           "TODO this can't handle the full generic simplification yet. Sub in
-          when we get more rules.")))
+          when we get more rules.")
+
+      (testing "outside real range"
+        (is (near 5 (g/magnitude (f -5)))
+            "This kicks out a complex number, which doesn't yet compare
+          immediately with reals."))))
 
   (testing "asinh"
     (let [f (f/compose g/sinh g/asinh)]
-      (is (near 10 (f 10)))))
+      (is (near 10 (f 10)))
+
+      (testing "outside real range"
+        (is (near 5 (g/magnitude (f -5)))
+            "This kicks out a complex number, which doesn't yet compare
+          immediately with reals."))))
 
   (testing "atanh"
     (let [f (f/compose g/tanh g/atanh)]
       (is (near 0.5 (f 0.5)))
-      (is (near 10 (g/magnitude (f 10)))
-          "This kicks out a complex number, which doesn't yet compare
-          immediately with reals."))))
+
+      (testing "outside real range"
+        (is (near 10 (g/magnitude (f 10)))
+            "This kicks out a complex number, which doesn't yet compare
+          immediately with reals.")))))
 
 (deftest string-form-test
   (is (= "1" (ss/expression->string

@@ -89,9 +89,20 @@
 #?(:cljs
    (do
      ;; JS makes these available natively.
-     (defmethod g/acosh [v/numtype] [a] (Math/acosh a))
-     (defmethod g/asinh [v/numtype] [a] (Math/asinh a))
-     (defmethod g/atanh [v/numtype] [a] (Math/atanh a))))
+     (defmethod g/acosh [v/numtype] [a]
+       (if (>= a 1)
+         (Math/acosh a)
+         (g/acosh (complex a))))
+
+     (defmethod g/asinh [v/numtype] [a]
+       (if (>= a 1)
+         (Math/asinh a)
+         (g/asinh (complex a))))
+
+     (defmethod g/atanh [v/numtype] [a]
+       (if (>= (g/abs a) 1)
+         (g/atanh (complex a))
+         (Math/atanh a)))))
 
 (defmethod g/sqrt
   [v/numtype]
