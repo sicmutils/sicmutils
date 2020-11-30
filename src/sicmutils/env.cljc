@@ -149,14 +149,14 @@
   abs
   square
   cube
-  exp
+  exp exp2 exp10
   expt
   invert
-  log
+  log log2 log10
   negate
   simplify
   sqrt
-  gcd
+  gcd lcm
   cos
   sin
   tan
@@ -189,8 +189,8 @@
   structure?
   up
   up?
-  vector->down
-  vector->up]
+  vector->down vector->up
+  literal-down literal-up]
  [sicmutils.infix
   ->infix
   ->TeX
@@ -272,7 +272,8 @@
   Γ]
  [sicmutils.matrix
   s->m
-  m->s]
+  m->s
+  literal-matrix]
  [sicmutils.mechanics.hamilton
   ->H-state
   F->CT

@@ -209,6 +209,12 @@
                           (range c)))
                   (range r))))
 
+(defn literal-matrix [name nrows ncols]
+  (let [prefix (str name "^")]
+    (generate nrows ncols
+              (fn [i j]
+                (symbol (str prefix i "_" j))))))
+
 (defn get-in
   "Like get-in for matrices, but obeying the scmutils convention: only one
   index is required to get an unboxed element from a column vector. This is
