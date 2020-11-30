@@ -25,8 +25,12 @@
   - `sicmutils.polynomial-gcd` => `sicmutils.polynomial.gcd`
   - `sicmutils.polynomial-factor` => `sicmutils.polynomial.factor`
   - `sicmutils.rules` => `sicmutils.simplify.rules`
-- `sicmutils.env/one?` now exposes/aliases
-  `sicmutils.value/unity?`(https://github.com/littleredcomputer/sicmutils/pull/154)
+- `sicmutils.env/one?` now exposes/aliases `sicmutils.value/unity?`
+  [#154](https://github.com/littleredcomputer/sicmutils/pull/154)
+- Fixed [#93](https://github.com/littleredcomputer/sicmutils/issues/93) by
+  adding an explicit `g/invert` implementation for polynomials in the rational
+  fn namespace. The fix lives in
+  [#169](https://github.com/littleredcomputer/sicmutils/pull/169).
 
 ### Literals
 
