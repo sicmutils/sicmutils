@@ -96,8 +96,6 @@
 (def-generic-function div 2)
 (defmethod div :default [a b] (mul a (invert b)))
 
-(def-generic-function exp 1)
-(def-generic-function log 1)
 (def-generic-function abs 1)
 (def-generic-function sqrt 1)
 (def-generic-function quotient 2)
@@ -131,6 +129,35 @@
               (zero? e) (v/one-like e)
               :else (invert (expt' s (negate e)))))
       (u/illegal (str "No g/mul implementation registered for kind " kind)))))
+
+(def-generic-function exp 1
+  "Returns the base-e exponential of `x`. Equivalent to `(expt e x)`, given
+  some properly-defined `e` symbol.")
+
+(def-generic-function exp2 1
+  "Returns the base-2 exponential of `x`. Equivalent to `(expt 2 x)`.")
+
+(defmethod exp2 :default [x] (expt 2 x))
+
+(def-generic-function exp10 1
+  "Returns the base-10 exponential of `x`. Equivalent to `(expt 10 x)`.")
+
+(defmethod exp10 :default [x] (expt 10 x))
+
+(def-generic-function log 1
+  "Returns the natural logarithm of `x`.")
+
+(def-generic-function log2 1
+  "Returns the base-2 logarithm of `x`, ie, $log_2(x)$.")
+
+(let [l2 (Math/log 2)]
+  (defmethod log2 :default [x] (div (log x) l2)))
+
+(def-generic-function log10 1
+  "Returns the base-10 logarithm of `x`, ie, $log_10(x)$.")
+
+(let [l10 (Math/log 10)]
+  (defmethod log10 :default [x] (div (log x) l10)))
 
 (def-generic-function gcd 2)
 (def-generic-function lcm 2)

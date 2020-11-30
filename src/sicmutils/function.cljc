@@ -72,58 +72,56 @@
 
   #?@(:clj
       [IFn
-       (invoke [f x] (literal-apply f [x]))
-       (invoke [f x y] (literal-apply f [x y]))
-       (invoke [f x y z] (literal-apply f [x y z]))
-       (invoke [f w x y z] (literal-apply f [w x y z]))
-       (applyTo [f xs] (literal-apply f xs))]
+       (invoke [this x] (literal-apply this [x]))
+       (invoke [this x y] (literal-apply this [x y]))
+       (invoke [this x y z] (literal-apply this [x y z]))
+       (invoke [this w x y z] (literal-apply this [w x y z]))
+       (applyTo [this xs] (literal-apply this xs))]
 
       :cljs
       [IFn
-       (-invoke [f a]
-                (literal-apply f [a]))
-       (-invoke [f a b]
-                (literal-apply f [a b]))
-       (-invoke [f a b c]
-                (literal-apply f [a b c]))
-       (-invoke [f a b c d]
-                (literal-apply f [a b c d]))
-       (-invoke [f a b c d e]
-                (literal-apply f [a b c d e]))
-       (-invoke [f a b c d e f]
-                (literal-apply f [a b c d e f]))
-       (-invoke [f a b c d e f g]
-                (literal-apply f [a b c d e f g]))
-       (-invoke [f a b c d e f g h]
-                (literal-apply f [a b c d e f g h]))
-       (-invoke [f a b c d e f g h i]
-                (literal-apply f [a b c d e f g h i]))
-       (-invoke [f a b c d e f g h i j]
-                (literal-apply f [a b c d e f g h i j]))
-       (-invoke [f a b c d e f g h i j k]
-                (literal-apply f [a b c d e f g h i j k]))
-       (-invoke [f a b c d e f g h i j k l]
-                (literal-apply f [a b c d e f g h i j k l]))
-       (-invoke [f a b c d e f g h i j k l m]
-                (literal-apply f [a b c d e f g h i j k l m]))
-       (-invoke [f a b c d e f g h i j k l m n]
-                (literal-apply f [a b c d e f g h i j k l m n]))
-       (-invoke [f a b c d e f g h i j k l m n o]
-                (literal-apply f [a b c d e f g h i j k l m n o]))
-       (-invoke [f a b c d e f g h i j k l m n o p]
-                (literal-apply f [a b c d e f g h i j k l m n o p]))
-       (-invoke [f a b c d e f g h i j k l m n o p q]
-                (literal-apply f [a b c d e f g h i j k l m n o p q]))
-       (-invoke [f a b c d e f g h i j k l m n o p q r]
-                (literal-apply f [a b c d e f g h i j k l m n o p q r]))
-       (-invoke [f a b c d e f g h i j k l m n o p q r s]
-                (literal-apply f [a b c d e f g h i j k l m n o p q r s]))
-       (-invoke [f a b c d e f g h i j k l m n o p q r s t]
-                (literal-apply f [a b c d e f g h i j k l m n o p q r s t]))
-       (-invoke [f a b c d e f g h i j k l m n o p q r s t rest]
-                (literal-apply f (concat [a b c d e f g h i j k l m n o p q r s t]  rest)))]))
-
-(def ^:private orientation->symbol {::s/up "↑" ::s/down "_"})
+       (-invoke [this a]
+                (literal-apply this [a]))
+       (-invoke [this a b]
+                (literal-apply this [a b]))
+       (-invoke [this a b c]
+                (literal-apply this [a b c]))
+       (-invoke [this a b c d]
+                (literal-apply this [a b c d]))
+       (-invoke [this a b c d e]
+                (literal-apply this [a b c d e]))
+       (-invoke [this a b c d e f]
+                (literal-apply this [a b c d e f]))
+       (-invoke [this a b c d e f g]
+                (literal-apply this [a b c d e f g]))
+       (-invoke [this a b c d e f g h]
+                (literal-apply this [a b c d e f g h]))
+       (-invoke [this a b c d e f g h i]
+                (literal-apply this [a b c d e f g h i]))
+       (-invoke [this a b c d e f g h i j]
+                (literal-apply this [a b c d e f g h i j]))
+       (-invoke [this a b c d e f g h i j k]
+                (literal-apply this [a b c d e f g h i j k]))
+       (-invoke [this a b c d e f g h i j k l]
+                (literal-apply this [a b c d e f g h i j k l]))
+       (-invoke [this a b c d e f g h i j k l m]
+                (literal-apply this [a b c d e f g h i j k l m]))
+       (-invoke [this a b c d e f g h i j k l m n]
+                (literal-apply this [a b c d e f g h i j k l m n]))
+       (-invoke [this a b c d e f g h i j k l m n o]
+                (literal-apply this [a b c d e f g h i j k l m n o]))
+       (-invoke [this a b c d e f g h i j k l m n o p]
+                (literal-apply this [a b c d e f g h i j k l m n o p]))
+       (-invoke [this a b c d e f g h i j k l m n o p q]
+                (literal-apply this [a b c d e f g h i j k l m n o p q]))
+       (-invoke [this a b c d e f g h i j k l m n o p q r]
+                (literal-apply this [a b c d e f g h i j k l m n o p q r]))
+       (-invoke [this a b c d e f g h i j k l m n o p q r s]
+                (literal-apply this [a b c d e f g h i j k l m n o p q r s]))
+       (-invoke [this a b c d e f g h i j k l m n o p q r s t]
+                (literal-apply this [a b c d e f g h i j k l m n o p q r s t]))
+       (-invoke [this a b c d e f g h i j k l m n o p q r s t rest]
+                (literal-apply this (concat [a b c d e f g h i j k l m n o p q r s t]  rest)))]))
 
 (defn literal-function
   ([f] (->Function f [:exactly 1] [0] 0))
@@ -132,20 +130,20 @@
      (literal-function f domain range)))
   ([f domain range]
    (cond (number? range)
-         (->Function f [:exactly (if (vector? domain) (count domain) 1)]
-                     (if (vector? domain) domain [domain])
-                     range)
+         (let [arity (if (vector? domain)
+                       (count domain)
+                       1)]
+           (->Function f [:exactly arity]
+                       (if (vector? domain) domain [domain])
+                       range))
 
          (s/structure? range)
-         (s/same range (map-indexed (fn [index component]
-                                      (literal-function
-                                       (symbol (str f
-                                                    (orientation->symbol (s/orientation range))
-                                                    index))
-                                       domain
-                                       component))
-                                    range))
-
+         (let [n           (count range)
+               orientation (s/orientation range)
+               template    (s/literal f n orientation)]
+           (s/mapr #(literal-function %1 domain %2)
+                   template
+                   range))
          :else
          (u/illegal (str "WTF range" domain)))))
 

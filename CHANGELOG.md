@@ -3,6 +3,7 @@
 ##  [Unreleased]
 
 ### Miscellaneous
+
 - expose `bootstrap-repl!` to Clojurescript, so that this is available in
   self-hosted CLJS (https://github.com/littleredcomputer/sicmutils/pull/157)
 - modified `infix.cljc` to wrap forms in `displaystyle` and add proper carriage
@@ -24,13 +25,37 @@
   - `sicmutils.polynomial-gcd` => `sicmutils.polynomial.gcd`
   - `sicmutils.polynomial-factor` => `sicmutils.polynomial.factor`
   - `sicmutils.rules` => `sicmutils.simplify.rules`
-- `sicmutils.env/one?` now exposes/aliases
-  `sicmutils.value/unity?`(https://github.com/littleredcomputer/sicmutils/pull/154)
+- `sicmutils.env/one?` now exposes/aliases `sicmutils.value/unity?`
+  [#154](https://github.com/littleredcomputer/sicmutils/pull/154)
+- Fixed [#93](https://github.com/littleredcomputer/sicmutils/issues/93) by
+  adding an explicit `g/invert` implementation for polynomials in the rational
+  fn namespace. The fix lives in
+  [#169](https://github.com/littleredcomputer/sicmutils/pull/169).
+- fixed issues in `function.cljc` and `operator.cljc` where the Clojurescript
+  `IFn` `-invoke` arguments shadowed either the `this` operator, or some
+  parameter name in the deftype
+  ([#169](https://github.com/littleredcomputer/sicmutils/pull/169))
+
+### Literals
+
+- `literal-matrix` fn generates a symbolic matrix
+  (https://github.com/littleredcomputer/sicmutils/pull/169)
+- `literal`, `literal-up` and `literal-down` generate symbolic structures
+  (https://github.com/littleredcomputer/sicmutils/pull/169)
 
 ### New Generic Functions
 
-These bring us closer to the interface provided by `scmutils`. We now expose the
-following methods in `sicmutils.generic` (courtesy of
+This release brings us closer to the interface provided by `scmutils`.
+
+PR https://github.com/littleredcomputer/sicmutils/pull/169 brings:
+
+- `g/exp2`, `g/exp10` for exponents with base 2 and 10
+- `g/log2`, for base 2 logarithms
+- `g/log10` for base 10 logs
+- `g/lcm` is now exposed in `sicmutils.env`
+
+We now expose the following additional trigonometric functions in
+`sicmutils.generic` (courtesy of
 https://github.com/littleredcomputer/sicmutils/pull/154):
 
 - `cosh`: hyperbolic cosine
@@ -60,6 +85,7 @@ These all work with:
 - symbolic expressions
 - Derivatives and dual numbers! The new functions all work with `D`, the
   forward-mode automatic differentiation operator.
+
 
 ## 0.13.0
 
