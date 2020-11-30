@@ -31,19 +31,17 @@
   adding an explicit `g/invert` implementation for polynomials in the rational
   fn namespace. The fix lives in
   [#169](https://github.com/littleredcomputer/sicmutils/pull/169).
+- fixed issues in `function.cljc` and `operator.cljc` where the Clojurescript
+  `IFn` `-invoke` arguments shadowed either the `this` operator, or some
+  parameter name in the deftype
+  ([#169](https://github.com/littleredcomputer/sicmutils/pull/169))
 
 ### Literals
 
 - `literal-matrix` fn generates a symbolic matrix
   (https://github.com/littleredcomputer/sicmutils/pull/169)
-- `literal-up` and `literal-down` generate symbolic structures
+- `literal`, `literal-up` and `literal-down` generate symbolic structures
   (https://github.com/littleredcomputer/sicmutils/pull/169)
-
-  Note that in `scmutils`, these generate entries like `x^0_0` for the matrix
-  case, or `x^1` for the structure case. We can't follow this convention in
-  Clojure because `^` signals "metadata!" to the reader. Instead we generate
-  entries like `x_1`, sticking the index on as a subscript instead of a
-  superscript.
 
 ### New Generic Functions
 

@@ -63,16 +63,25 @@
        (-invoke [_ a b c d e f g h i j] (o a b c d e f g h i j))
        (-invoke [_ a b c d e f g h i j k] (o a b c d e f g h i j k))
        (-invoke [_ a b c d e f g h i j k l] (o a b c d e f g h i j k l))
-       (-invoke [_ a b c d e f g h i j k l m] (o a b c d e f g h i j k l m))
-       (-invoke [_ a b c d e f g h i j k l m n] (o a b c d e f g h i j k l m n))
-       (-invoke [_ a b c d e f g h i j k l m n o] (o a b c d e f g h i j k l m n o))
-       (-invoke [_ a b c d e f g h i j k l m n o p] (o a b c d e f g h i j k l m n o p))
-       (-invoke [_ a b c d e f g h i j k l m n o p q] (o a b c d e f g h i j k l m n o p q))
-       (-invoke [_ a b c d e f g h i j k l m n o p q r] (o a b c d e f g h i j k l m n o p q r))
-       (-invoke [_ a b c d e f g h i j k l m n o p q r s] (o a b c d e f g h i j k l m n o p q r s))
-       (-invoke [_ a b c d e f g h i j k l m n o p q r s t] (o a b c d e f g h i j k l m n o p q r s t))
-       (-invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
-                (apply o a b c d e f g h i j k l m n o p q r s t rest))]))
+       (-invoke [_ a b c d e f g h i j k l m]
+                (o a b c d e f g h i j k l m))
+       (-invoke [_ a b c d e f g h i j k l m n]
+                (o a b c d e f g h i j k l m n))
+       (-invoke [_ a b c d e f g h i j k l m n o-arg]
+                (o a b c d e f g h i j k l m n o-arg))
+       (-invoke [_ a b c d e f g h i j k l m n o-arg p]
+                (o a b c d e f g h i j k l m n o-arg p))
+       (-invoke [_ a b c d e f g h i j k l m n o-arg p q]
+                (o a b c d e f g h i j k l m n o-arg p q))
+       (-invoke [_ a b c d e f g h i j k l m n o-arg p q r]
+                (o a b c d e f g h i j k l m n o-arg p q r))
+
+       (-invoke [_ a b c d e f g h i j k l m n o-arg p q r s]
+                (o a b c d e f g h i j k l m n o-arg p q r s))
+       (-invoke [_ a b c d e f g h i j k l m n o-arg p q r s t]
+                (o a b c d e f g h i j k l m n o-arg p q r s t))
+       (-invoke [_ a b c d e f g h i j k l m n o-arg p q r s t rest]
+                (apply o a b c d e f g h i j k l m n o-arg p q r s t rest))]))
 
 #?(:cljs
    (extend-type Operator

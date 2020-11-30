@@ -159,9 +159,9 @@
   (testing "literal-matrix"
     (let [M (m/literal-matrix 'x 3 3)]
       (is (m/matrix? M))
-      (is (= M (m/by-rows ['x_00 'x_01 'x_02]
-                          ['x_10 'x_11 'x_12]
-                          ['x_20 'x_21 'x_22]))
+      (is (= M (m/by-rows ['x↑0_0 'x↑0_1 'x↑0_2]
+                          ['x↑1_0 'x↑1_1 'x↑1_2]
+                          ['x↑2_0 'x↑2_1 'x↑2_2]))
           "A literal matrix is a matrix populated by symbols with index refs
           baked in."))))
 

@@ -179,19 +179,32 @@
                   (s/down 7 8 9))))))
 
   (testing "generate"
+    (is (thrown? #?(:clj AssertionError :cljs js/Error)
+                 (s/generate 5 ::random identity))
+        "s/generate guards against wrong orientations.")
+
     (is (= (s/up 1 4 9 16 25)
            (s/generate 5 ::s/up (comp #(* % %) inc)))))
 
   (testing "literal-up,down"
-    (is (= (s/up 'x_0 'x_1 'x_2)
+    (is (thrown? #?(:clj AssertionError :cljs js/Error)
+                 (s/literal 'x 3 ::random))
+        "s/literal guards against invalid orientations.")
+
+    (is (= (s/literal 'x 3 ::s/up)
+           (s/literal-up 'x 3))
+        "s/literal allows for creation of literal structures with a specified,
+        correct orientation.")
+
+    (is (= (s/up 'x↑0 'x↑1 'x↑2)
            (s/literal-up 'x 3)))
 
     (is (= (s/down 'x_0 'x_1 'x_2)
            (s/literal-down 'x 3)))
 
-    (is (= '(+ (* x_0 x_0)
-               (* x_1 x_1)
-               (* x_2 x_2))
+    (is (= '(+ (* x↑0 x_0)
+               (* x↑1 x_1)
+               (* x↑2 x_2))
            (v/freeze
             (g/* (s/literal-up 'x 3)
                  (s/literal-down 'x 3))))
