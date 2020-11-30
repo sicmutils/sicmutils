@@ -39,6 +39,12 @@
 - `literal-up` and `literal-down` generate symbolic structures
   (https://github.com/littleredcomputer/sicmutils/pull/169)
 
+  Note that in `scmutils`, these generate entries like `x^0_0` for the matrix
+  case, or `x^1` for the structure case. We can't follow this convention in
+  Clojure because `^` signals "metadata!" to the reader. Instead we generate
+  entries like `x_1`, sticking the index on as a subscript instead of a
+  superscript.
+
 ### New Generic Functions
 
 This release brings us closer to the interface provided by `scmutils`.
