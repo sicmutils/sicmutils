@@ -35,6 +35,9 @@
 (def ^:private orientation->symbol
   {::up 'up ::down 'down})
 
+(def ^:private orientation->separator
+  {::up "↑" ::down "_"})
+
 (def ^:private opposite-orientation
   {::up ::down ::down ::up})
 
@@ -195,6 +198,9 @@
                 (Structure. orientation (mapv #(apply % a b c d e f g h i j k l m n o p q r s t rest) v)))
        ]))
 
+(defn valid-orientation? [o]
+  (contains? #{::up ::down} o))
+
 (defn structure->vector
   "Return the structure in unoriented vector form."
   [^Structure s]
@@ -266,10 +272,25 @@
   "Generate a structure with the given orientation whose elements are (f i)
   where i ranges from [0..dimension)"
   [dimension orientation f]
+  {:pre [(valid-orientation? orientation)]}
   (->Structure orientation (mapv f (range dimension))))
 
-(defn- literal-structure [sym size orientation]
-  (let [prefix (str sym "_")]
+(defn literal
+  "Generates structure of the specified `orientation` and dimension `size`
+  populated by symbolic entries, each prefixed by the supplied symbol `sym`.
+
+  For example:
+
+  (= (literal 'x 3 ::s/up)
+     (up 'x↑0 'x↑1 'x↑2))
+
+  See [[literal-up]] and [[literal-down]] for constructors with baked in
+  orientations."
+
+  [sym size orientation]
+  {:pre [(valid-orientation? orientation)]}
+  (let [separator (orientation->separator orientation)
+        prefix    (str sym separator)]
     (generate size orientation
               (fn [i]
                 (symbol (str prefix i))))))
@@ -281,9 +302,9 @@
   For example:
 
   (= (literal-up 'x 3)
-     (up 'x_0 'x_1 'x_2))"
+     (up 'x↑0 'x↑1 'x↑2))"
   [sym size]
-  (literal-structure sym size ::up))
+  (literal sym size ::up))
 
 (defn literal-down
   "Generates a `down` structure of dimension `size` populated by symbolic entries,
@@ -294,7 +315,7 @@
   (= (literal-down 'x 3)
      (down 'x_0 'x_1 'x_2))"
   [sym size]
-  (literal-structure sym size ::down))
+  (literal sym size ::down))
 
 (defn ^:private map:l
   [f structures]

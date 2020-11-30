@@ -123,8 +123,6 @@
        (-invoke [f a b c d e f g h i j k l m n o p q r s t rest]
                 (literal-apply f (concat [a b c d e f g h i j k l m n o p q r s t]  rest)))]))
 
-(def ^:private orientation->symbol {::s/up "↑" ::s/down "_"})
-
 (defn literal-function
   ([f] (->Function f [:exactly 1] [0] 0))
   ([f signature]
@@ -132,20 +130,20 @@
      (literal-function f domain range)))
   ([f domain range]
    (cond (number? range)
-         (->Function f [:exactly (if (vector? domain) (count domain) 1)]
-                     (if (vector? domain) domain [domain])
-                     range)
+         (let [arity (if (vector? domain)
+                       (count domain)
+                       1)]
+           (->Function f [:exactly arity]
+                       (if (vector? domain) domain [domain])
+                       range))
 
          (s/structure? range)
-         (s/same range (map-indexed (fn [index component]
-                                      (literal-function
-                                       (symbol (str f
-                                                    (orientation->symbol (s/orientation range))
-                                                    index))
-                                       domain
-                                       component))
-                                    range))
-
+         (let [n           (count range)
+               orientation (s/orientation range)
+               template    (s/literal f n orientation)]
+           (s/mapr #(literal-function %1 domain %2)
+                   template
+                   range))
          :else
          (u/illegal (str "WTF range" domain)))))
 

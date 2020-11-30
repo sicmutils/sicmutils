@@ -216,13 +216,13 @@
   For example:
 
   (= (literal-matrix 'x 2 2)
-     (by-rows ['x_00 'x_01]
-              ['x_10 'x_11]))"
+     (by-rows ['x↑0_0 'x↑0_1]
+              ['x↑1_0 'x↑1_1]))"
   [sym nrows ncols]
-  (let [prefix (str sym "_")]
+  (let [prefix (str sym "↑")]
     (generate nrows ncols
               (fn [i j]
-                (symbol (str prefix i j))))))
+                (symbol (str prefix i "_" j))))))
 
 (defn get-in
   "Like get-in for matrices, but obeying the scmutils convention: only one
