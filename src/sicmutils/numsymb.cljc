@@ -227,7 +227,7 @@
     (if-not (v/exact? x)
       (g/csc x)
       (if (v/nullity? x)
-        (u/illegal "Zero argument -- g/csc" x)
+        (u/illegal (str "Zero argument -- g/csc" x))
         `(~'/ 1 ~(sin x))))
     `(~'/ 1 ~(sin x))))
 

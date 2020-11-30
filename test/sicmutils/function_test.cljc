@@ -73,6 +73,60 @@
       (let [g (f/literal-function 'g [0 0] 0)]
         (is (= '(g a b) (g/simplify (g 'a 'b))))))))
 
+(deftest trig-tests
+  (testing "tan, sin, cos"
+    (let [f (g/- g/tan (g/div g/sin g/cos))]
+      (is (zero? (g/simplify (f 'x))))))
+
+  (testing "cot"
+    (let [f (g/- g/cot (g/invert g/tan))]
+      (is (zero? (g/simplify (f 'x))))))
+
+  (testing "tanh"
+    (let [f (g/- (g/div g/sinh g/cosh) g/tanh)]
+      (is (zero?
+           (g/simplify (f 'x))))))
+
+  (testing "sec"
+    (let [f (g/- (g/invert g/cos) g/sec)]
+      (is (zero?
+           (g/simplify (f 'x))))))
+
+  (testing "csc"
+    (let [f (g/- (g/invert g/sin) g/csc)]
+      (is (zero?
+           (g/simplify (f 'x))))))
+
+  (testing "sech"
+    (let [f (g/- (g/invert g/cosh) g/sech)]
+      (is (zero?
+           (g/simplify (f 'x))))))
+
+  (testing "cosh"
+    (is (near ((g/cosh g/square) 2)
+              (g/cosh 4))))
+
+  (testing "sinh"
+    (is (near ((g/sinh g/square) 2)
+              (g/sinh 4))))
+
+  (testing "acosh"
+    (let [f (f/compose g/cosh g/acosh)]
+      (is (near 10 (f 10))
+          "TODO this can't handle the full generic simplification yet. Sub in
+          when we get more rules.")))
+
+  (testing "asinh"
+    (let [f (f/compose g/sinh g/asinh)]
+      (is (near 10 (f 10)))))
+
+  (testing "atanh"
+    (let [f (f/compose g/tanh g/atanh)]
+      (is (near 0.5 (f 0.5)))
+      (is (near 10 (g/magnitude (f 10)))
+          "This kicks out a complex number, which doesn't yet compare
+          immediately with reals."))))
+
 (deftest string-form-test
   (is (= "1" (ss/expression->string
               ((g/+ (g/square g/sin) (g/square g/cos)) 'x))))

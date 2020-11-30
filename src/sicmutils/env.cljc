@@ -83,10 +83,7 @@
   `(f/with-literal-functions ~@args))
 
 (def zero? v/nullity?)
-
-(def cot (g/divide g/cos g/sin))
-(def csc (g/invert g/sin))
-(def sec (g/invert g/cos))
+(def one? v/unity?)
 
 (def print-expression simp/print-expression)
 
@@ -150,25 +147,37 @@
  [sicmutils.generic
   * + - /
   abs
-  acos
-  asin
-  atan
-  cos
-  cross-product
+  square
   cube
-  determinant
   exp
   expt
   invert
   log
-  magnitude
   negate
   simplify
-  sin
   sqrt
-  square
+  gcd
+  cos
+  sin
   tan
+  acos
+  asin
+  atan
+  cosh
+  sinh
+  cot
+  sec
+  csc
+  tanh
+  sech
+  csch
+  acosh
+  asinh
+  atanh
   transpose
+  determinant
+  cross-product
+  magnitude
   Lie-derivative]
  [sicmutils.structure
   compatible-shape

@@ -76,16 +76,6 @@
     (is (= 1 (g/invert 1)))
     (is (= (g/div 1 21) (g/invert 21))))
 
-  (testing "trig"
-    (is (near (/ Math/PI 4) (g/asin (/ (g/sqrt 2) 2))))
-    (is (near (/ Math/PI 4) (g/acos (/ (g/sqrt 2) 2))))
-    (is (zero? (g/asin 0)))
-    (is (near (/ Math/PI 2) (g/acos 0))))
-
-  (testing ">1 gets promoted to complex for asin, acos"
-    (is (c/complex? (g/asin 2)))
-    (is (c/complex? (g/acos 2))))
-
   (testing "sqrt handles negative numbers, 0"
     (is (= 0 (g/sqrt 0)))
     (is (= 9 (g/sqrt 81)))
@@ -213,3 +203,79 @@
   "numbers provides implementations, so test behaviors."
   (is (= 5 (g/divide 20 4)))
   (is (= 2 (g/divide 8 2 2))))
+
+
+(deftest numeric-trig-tests
+  (testing "trig"
+    (is (near (/ Math/PI 4) (g/asin (/ (g/sqrt 2) 2))))
+    (is (near (/ Math/PI 4) (g/acos (/ (g/sqrt 2) 2))))
+    (is (zero? (g/asin 0)))
+    (is (near (/ Math/PI 2) (g/acos 0))))
+
+  (testing ">1 gets promoted to complex for asin, acos"
+    (is (c/complex? (g/asin 2)))
+    (is (c/complex? (g/acos 2))))
+
+  (testing "sin"
+    (is (near (g/sin 10) (Math/sin 10))))
+
+  (testing "cos"
+    (is (near (g/cos 10) (Math/cos 10))))
+
+  (testing "tan"
+    (is (near (g/div (g/sin 10)
+                     (g/cos 10))
+              (g/tan 10))))
+
+  (testing "asin"
+    (is (near (g/asin 0.5) (Math/asin 0.5)))
+    (is (near 0.5 (g/sin (g/asin 0.5)))))
+
+  (testing "acos"
+    (is (near (g/acos 0.5) (Math/acos 0.5)))
+    (is (near 0.5 (g/cos (g/acos 0.5)))))
+
+  (testing "atan"
+    (is (near (g/atan 1.1) (Math/atan 1.1)))
+    (is (near 1.1 (g/tan (g/atan 1.1)))))
+
+  (let [z 1.5]
+    (testing "cot"
+      (is (near (g/invert (g/tan z))
+                (g/cot z))))
+
+    (testing "cosh"
+      (is (near (g/cosh z) (Math/cosh z))))
+
+    (testing "sinh"
+      (is (near (g/sinh z) (Math/sinh z))))
+
+    (testing "tanh"
+      (is (near (g/div (g/sinh z)
+                       (g/cosh z))
+                (g/tanh z))))
+
+    ;; TODO enable these two in the next PR when this stops being a stack
+    ;; overflow.
+    #_
+    (comment
+      (testing "sec"
+        (is (near (g/invert (g/cos z))
+                  (g/sec z))))
+
+      (testing "csc"
+        (is (near (g/invert (g/sin z))
+                  (g/csc z)))))
+
+    (testing "sech"
+      (is (near (g/invert (g/cosh z))
+                (g/sech z))))
+
+    (testing "acosh"
+      (is (near z (g/cosh (g/acosh z)))))
+
+    (testing "asinh"
+      (is (near z (g/sinh (g/asinh z)))))
+
+    (testing "atanh"
+      (is (near 0.5 (g/tanh (g/atanh 0.5)))))))

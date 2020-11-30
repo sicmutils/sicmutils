@@ -388,3 +388,22 @@
            (take 30)
            (every? v/nullity?))
       "atan(x) = integral(1/(1+x^2))"))
+
+(deftest series-trig-tests
+  (testing "A few tests of various manipulations of the trig functions to flex a
+  bit of the library."
+    (is (= [0 1 0 0 0]
+           (take 5 (g/sin s/asin-series))))
+    (is (= [0 1 0 0 0]
+           (take 5 (g/tan s/atan-series))))
+
+    (is (= [0 1 0 0 0]
+           (take 5 (g/sinh s/asinh-series))))
+    (is (= [0 1 0 0 0]
+           (take 5 (g/tanh s/atanh-series))))
+
+    (is (= (take 20 s/sec-series)
+           (take 20 (g/invert s/cos-series))))
+
+    (is (= (take 20 s/tan-series)
+           (take 20 (g/div s/sin-series s/cos-series))))))
