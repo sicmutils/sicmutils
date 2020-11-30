@@ -54,7 +54,7 @@ PR https://github.com/littleredcomputer/sicmutils/pull/169 brings:
 - `g/exp2`, `g/exp10` for exponents with base 2 and 10
 - `g/log2`, for base 2 logarithms
 - `g/log10` for base 10 logs
-- `g/lcm` is now exposed in `sicmutils.env`
+- `g/gcd` and `g/lcm` are now exposed in `sicmutils.env`
 
 We now expose the following additional trigonometric functions in
 `sicmutils.generic` (courtesy of
