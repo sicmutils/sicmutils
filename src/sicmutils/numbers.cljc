@@ -55,20 +55,18 @@
 (defmethod g/div [v/numtype v/numtype] [a b] (core-div a b))
 (defmethod g/invert [v/numtype] [a] (core-div a))
 
-;; trig operations
+;; ## Trig Operations
+
+(defmethod g/sin [v/numtype] [a] (Math/sin a))
+(defmethod g/cos [v/numtype] [a] (Math/cos a))
+(defmethod g/tan [v/numtype] [a] (Math/tan a))
+
+(defmethod g/cosh [v/numtype] [a] (Math/cosh a))
+(defmethod g/sinh [v/numtype] [a] (Math/sinh a))
+(defmethod g/tanh [v/numtype] [a] (Math/tanh a))
+
 (defmethod g/atan [v/numtype] [a] (Math/atan a))
 (defmethod g/atan [v/numtype v/numtype] [a b] (Math/atan2 a b))
-
-(comment
-  ;; As reference documentation, these are the implementations that one would
-  ;; provide for the generic operations if there were no simplifications available.
-  ;;
-  ;; Instead, these implementations for numbers are provided by
-  ;; `sicmutils.numsymb`. This allows us to apply simplifications inside each
-  ;; operation as it's evaluated.
-  (defmethod g/sin [v/numtype] [a] (Math/sin a))
-  (defmethod g/cos [v/numtype] [a] (Math/cos a))
-  (defmethod g/tan [v/numtype] [a] (Math/tan a)))
 
 ;; Operations which allow promotion to complex numbers when their
 ;; arguments would otherwise result in a NaN if computed on the real
@@ -87,6 +85,24 @@
   (if (> (g/abs a) 1)
     (g/acos (complex a))
     (Math/acos a)))
+
+#?(:cljs
+   (do
+     ;; JS makes these available natively.
+     (defmethod g/acosh [v/numtype] [a]
+       (if (>= a 1)
+         (Math/acosh a)
+         (g/acosh (complex a))))
+
+     (defmethod g/asinh [v/numtype] [a]
+       (if (>= a 1)
+         (Math/asinh a)
+         (g/asinh (complex a))))
+
+     (defmethod g/atanh [v/numtype] [a]
+       (if (>= (g/abs a) 1)
+         (g/atanh (complex a))
+         (Math/atanh a)))))
 
 (defmethod g/sqrt
   [v/numtype]

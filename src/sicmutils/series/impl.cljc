@@ -361,7 +361,7 @@
             (lazy-seq
              ;; TODO I don't understand why we get a StackOverflow if I move
              ;; this assertion out of the `letfn`.
-             (assert (zero? (first g)))
+             (assert (v/nullity? (first g)))
              (let [[f0 & fs] f
                    gs (rest g)
                    tail (seq:* gs (step fs))]
@@ -398,7 +398,7 @@
 ;; $R$ thanks to the stream-based approach:
 
 (defn revert [f]
-  {:pre [(zero? (first f))]}
+  {:pre [(v/nullity? (first f))]}
   (letfn [(step [f]
             (lazy-seq
              (let [F1   (rest f)

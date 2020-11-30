@@ -145,10 +145,49 @@
 ;; Trigonometric functions.
 (def-generic-function cos 1)
 (def-generic-function sin 1)
-(def-generic-function tan 1)
 (def-generic-function asin 1)
 (def-generic-function acos 1)
 (def-generic-function atan [1 2])
+(def-generic-function cosh 1)
+(def-generic-function sinh 1)
+
+;; Trig functions with default implementations provided.
+(def-generic-function tan 1)
+(defmethod tan :default [x] (div (sin x) (cos x)))
+
+(def-generic-function cot 1)
+(defmethod cot :default [x] (div (cos x) (sin x)))
+
+(def-generic-function sec 1)
+(defmethod sec :default [x] (invert (cos x)))
+
+(def-generic-function csc 1)
+(defmethod csc :default [x] (invert (sin x)))
+
+(def-generic-function tanh 1)
+(defmethod tanh :default [x] (div (sinh x) (cosh x)))
+
+(def-generic-function sech 1)
+(defmethod sech :default [x] (invert (cosh x)))
+
+(def-generic-function csch 1)
+(defmethod csch :default [x] (invert (sinh x)))
+
+(def-generic-function acosh 1)
+(defmethod acosh :default [x]
+  (mul 2 (log (add
+               (sqrt (div (add x 1) 2))
+               (sqrt (div (sub x 1) 2))))))
+
+(def-generic-function asinh 1)
+(defmethod asinh :default [x]
+  (log (add x (sqrt (add 1 (square x))))))
+
+(def-generic-function atanh 1)
+(defmethod atanh :default [x]
+  (div (sub (log (add 1 x))
+            (log (sub 1 x)))
+       2))
 
 ;; Operations on structures
 (def-generic-function transpose 1)

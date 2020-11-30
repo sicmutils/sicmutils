@@ -27,7 +27,9 @@
             [sicmutils.complex :refer [complex]]
             #?(:clj  [sicmutils.function :as f :refer [with-literal-functions]]
                :cljs [sicmutils.function :as f :refer-macros [with-literal-functions]])
-            [sicmutils.generic :as g :refer [acos asin atan cos sin tan log exp expt + - * /]]
+            [sicmutils.generic :as g :refer [acos asin atan cos sin tan
+                                             cot sec csc
+                                             log exp expt + - * /]]
             [sicmutils.matrix :as matrix]
             [sicmutils.operator :as o]
             [sicmutils.series :as series]
@@ -298,15 +300,16 @@
 (deftest complex-derivatives
   (let [i (complex 0 1)
         f (fn [z] (* i (sin (* i z))))]
+
     (is (= '(* -1 (cosh z))
            (g/simplify ((D f) 'z))))))
 
 (deftest fun-with-operators
-  (let [f #(g/expt % 3)]
-    (is (= '(+ (* (expt t 3) (cos t)) (* 3 (expt t 2) (sin t)))
-           (g/simplify (((* D sin) f) 't))))
-    (is (= '(* 3 (expt t 2) (sin t) )
-           (g/simplify (((* sin D) f) 't))))))
+  (is (= '(+ (* (expt t 3) (cos t)) (* 3 (expt t 2) (sin t)))
+         (g/simplify (((* D sin) g/cube) 't))))
+
+  (is (= '(* 3 (expt t 2) (sin t) )
+         (g/simplify (((* sin D) g/cube) 't)))))
 
 (deftest vector-calculus
   (let [f (s/up identity sin cos)
@@ -319,20 +322,56 @@
     (is (= '(+ (cos t) (* -1 (sin t)) 1) (g/simplify ((divergence f) 't))))))
 
 (deftest exp-and-log
-  (is (= '(/ 1 x) (g/simplify ((D log) 'x)))))
+  (is (= '(/ 1 x)
+         (g/simplify ((D log) 'x)))))
 
-(deftest more-trig
-  (let [cot (/ cos sin)
-        sec (/ cos)
-        csc (/ sin)]
-    (is (= '(/ (cos x) (sin x)) (g/simplify (cot 'x))))
-    (is (= '(/ -1 (expt (sin x) 2)) (g/simplify ((D cot) 'x))))
-    (is (= '(/ -1 (expt (sin x) 2)) (g/simplify ((D (/ tan)) 'x))))
-    (is (= '(/ (* -1 (cos x)) (expt (sin x) 2)) (g/simplify ((D csc) 'x))))
-    (is (= '(/ (sin x) (expt (cos x) 2)) (g/simplify ((D sec) 'x))))
-    (is (= '(/ 1 (+ (expt x 2) 1)) (g/simplify ((D atan) 'x))))
-    (is (= '(down (/ x (+ (expt x 2) (expt y 2))) (/ (* -1 y) (+ (expt x 2) (expt y 2))))
-           (g/simplify ((D atan) 'y 'x))))))
+(deftest more-trig-tests
+  (testing "cotangent"
+    (is (= '(/ (cos x) (sin x))
+           (g/simplify (cot 'x))))
+
+    (is (= '(/ -1 (expt (sin x) 2))
+           (g/simplify ((D cot) 'x))))
+
+    (is (= '(/ -1 (expt (sin x) 2))
+           (g/simplify ((D (/ tan)) 'x)))
+        "cotangent defined as inverse tangent"))
+
+  (testing "secant"
+    (is (= '(/ (sin x) (expt (cos x) 2))
+           (g/simplify ((D sec) 'x)))))
+
+  (testing "cosecant"
+    (is (= '(/ (* -1 (cos x)) (expt (sin x) 2))
+           (g/simplify ((D csc) 'x)))))
+
+  (testing "arctangent"
+    (is (= '(/ 1 (+ (expt x 2) 1))
+           (g/simplify ((D atan) 'x))))
+
+    (is (= '(down (/ x (+ (expt x 2) (expt y 2)))
+                  (/ (* -1 y) (+ (expt x 2) (expt y 2))))
+           (g/simplify ((D atan) 'y 'x)))))
+
+  (testing "hyperbolic trig"
+    (is (= '(cosh x) (g/simplify ((D g/sinh) 'x))))
+    (is (= '(sinh x) (g/simplify ((D g/cosh) 'x))))
+
+    (is (= '(sinh x)
+           (g/simplify (((g/square D) g/sinh) 'x)))
+        "sinh round trips after two derivatives")
+
+    (testing "tanh"
+      (is (= '(/ (+ (expt (cosh x) 2)
+                    (* -1 (expt (sinh x) 2)))
+                 (expt (cosh x) 2))
+             (g/simplify ((D g/tanh) 'x))))
+
+      (let [l (D g/tanh)
+            r (- 1 (g/square g/tanh))]
+        (is (zero? (g/simplify ((- l r) 'x)))
+            "This style uses function arithmetic and applies 'x at the
+            end.")))))
 
 (deftest alexgian-examples
   (testing "space"

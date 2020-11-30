@@ -102,6 +102,7 @@
 (defmethod g/exp [::complex] [^Complex a] (.exp a))
 (defmethod g/log [::complex] [^Complex a] (.log a))
 (defmethod g/sqrt [::complex] [^Complex a] (.sqrt a))
+
 (defmethod g/sin [::complex] [^Complex a] (.sin a))
 (defmethod g/cos [::complex] [^Complex a] (.cos a))
 (defmethod g/tan [::complex] [^Complex a] (.tan a))
@@ -109,6 +110,23 @@
 (defmethod g/acos [::complex] [^Complex a] (.acos a))
 (defmethod g/atan [::complex] [^Complex a] (.atan a))
 (defmethod g/magnitude [::complex] [^Complex a] (.abs a))
+
+(defmethod g/cosh [::complex] [^Complex a] (.cosh a))
+(defmethod g/sinh [::complex] [^Complex a] (.sinh a))
+(defmethod g/tanh [::complex] [^Complex a] (.tanh a))
+
+#?(:cljs
+   ;; These are all defined explicitly in Complex.js.
+   (do
+     (defmethod g/cot [::complex] [^Complex a] (.cot a))
+     (defmethod g/sec [::complex] [^Complex a] (.sec a))
+     (defmethod g/csc [::complex] [^Complex a] (.csc a))
+     (defmethod g/tanh [::complex] [^Complex a] (.tanh a))
+     (defmethod g/sech [::complex] [^Complex a] (.sech a))
+     (defmethod g/csch [::complex] [^Complex a] (.csch a))
+     (defmethod g/acosh [::complex] [^Complex a] (.acosh a))
+     (defmethod g/asinh [::complex] [^Complex a] (.asinh a))
+     (defmethod g/atanh [::complex] [^Complex a] (.atanh a))))
 
 ;;The remaining methods have different names in the Clojure vs JS
 ;;implementations.
