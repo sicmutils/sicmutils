@@ -1,0 +1,42 @@
+{:cljdoc.doc/tree
+ [["Introduction" {:file "doc/"}]
+  ["Basics" {}
+   ["Generics" {:file "doc/"}]
+   ["Clojurescript" {:file "doc/"}]
+   ["Data Readers" {:file "doc/"}]]
+  ["Data Types" {}
+   ["Number" {:file "doc/"}]
+   ["Complex" {:file "doc/"}]
+   ["Quaternion" {:file "doc/"}]
+   ["Power Series" {:file "doc/"}]
+   ["Polynomial" {:file "doc/"}]
+   ["Rational Function" {:file "doc/"}]
+   ["Modular Int" {:file "doc/"}]
+   ["Function" {:file "doc/"}]
+   ["Quaternion" {:file "doc/"}]
+   ["Structures" {:file "doc/"}]
+   ["Matrix" {:file "doc/"}]]
+  ["Symbolic Extensions" {}
+   ["Literals" {:file "doc/"}]
+   ["Simplification" {}
+    ["Rule Engine" {:file "doc/"}]
+    ["Polynomial Simplifier" {:file "doc/"}]
+    ["Rational Function" {:file "doc/"}]]]
+  ["Numerical Methods" {}
+   ["Univariate Minimization" {:file "doc/"}]
+   ["Multivariate Minimization" {:file "doc/"}]
+   ["Quadrature" {:file "doc/"}]
+   ["Numerical Derivative" {:file "doc/"}]
+   ["Interpolation" {:file "doc/"}]
+   ["ODE, Differential Equations" {:file "doc/"}]]
+  ["Calculus" {}
+   ["Automatic Differentiation" {:file "doc/"}]]
+  ["Textbooks" {}
+   ["Structure and Interpretation of Classical Mechanics" {:file "doc/"}]
+   ["Functional Differential Geometry" {:file "doc/"}]]
+  ["Misc" {}
+   ["scmutils Refman" {:file "doc/refman.adoc"}]
+   ["Historical Notes" {:file "doc/"}]
+   ["Development Instructions" {:file "doc/"}]
+   ["Getting Involved / What's Missing?" {:file "doc/"}]
+   ["FAQ" {:file "doc/faq.md"}]]]}
