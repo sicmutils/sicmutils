@@ -451,9 +451,12 @@
 
 (def machine-epsilon
   (loop [e 1.0]
-    (if (not= 1.0 (+ 1.0 (/ e 2.0)))
-      (recur (/ e 2.0))
-      e)))
+    (if (= 1.0 (+ e 1.0))
+      (* e 2.0)
+      (recur (/ e 2.0)))))
+
+(def sqrt-machine-epsilon
+  (Math/sqrt machine-epsilon))
 
 (defn within
   "Returns a function that tests whether two values are within ε of each other."
