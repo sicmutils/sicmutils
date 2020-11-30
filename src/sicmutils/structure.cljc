@@ -268,21 +268,33 @@
   [dimension orientation f]
   (->Structure orientation (mapv f (range dimension))))
 
-(defn- literal-structure [name size orientation]
-  (let [prefix (str name "^")]
+(defn- literal-structure [sym size orientation]
+  (let [prefix (str sym "_")]
     (generate size orientation
               (fn [i]
                 (symbol (str prefix i))))))
 
 (defn literal-up
-  "TODO document"
-  [name size]
-  (literal-structure name size ::up))
+  "Generates an `up` structure of dimension `size` populated by symbolic entries,
+  each prefixed by the supplied symbol `sym`.
+
+  For example:
+
+  (= (literal-up 'x 3)
+     (up 'x_0 'x_1 'x_2))"
+  [sym size]
+  (literal-structure sym size ::up))
 
 (defn literal-down
-  "TODO document"
-  [name size]
-  (literal-structure name size ::down))
+  "Generates a `down` structure of dimension `size` populated by symbolic entries,
+  each prefixed by the supplied symbol `sym`.
+
+  For example:
+
+  (= (literal-down 'x 3)
+     (down 'x_0 'x_1 'x_2))"
+  [sym size]
+  (literal-structure sym size ::down))
 
 (defn ^:private map:l
   [f structures]

@@ -181,6 +181,22 @@
     (is (= (s/up 1 4 9 16 25)
            (s/generate 5 ::s/up (comp #(* % %) inc)))))
 
+  (testing "literal-up,down"
+    (is (= (s/up 'x_0 'x_1 'x_2)
+           (s/literal-up 'x 3)))
+
+    (is (= (s/down 'x_0 'x_1 'x_2)
+           (s/literal-down 'x 3)))
+
+    (is (= '(+ (* x_0 x_0)
+               (* x_1 x_1)
+               (* x_2 x_2))
+           (v/freeze
+            (g/* (s/literal-up 'x 3)
+                 (s/literal-down 'x 3))))
+        "It can be convenient to generate symbolic structures if you don't care
+        about the entries."))
+
   (testing "mapr"
     (is (= (s/up (s/down 1  4  9)
                  (s/down 16 25 36)
