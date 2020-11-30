@@ -196,19 +196,14 @@
       (is (near (g/div (g/sinh z) (g/cosh z))
                 (g/tanh z))))
 
-    ;; TODO enable these in the next PR, when we can properly force these
-    ;; evaluations.
-    #_
     (testing "sec"
       (is (near (g/invert (g/cos z))
                 (g/sec z))))
 
-    #_
     (testing "csc"
       (is (near (g/invert (g/sin z))
                 (g/csc z))))
 
-    #_
     (testing "sech"
       (is (near (g/invert (g/cosh z))
                 (g/sech z))))

@@ -180,9 +180,9 @@
                  (g/divide 'x 0))))
 
   (testing "symbolic moves"
-    (is (= 1 (g/expt 'x 0)))
+    (is (v/unity? (g/expt 'x 0)))
     #_(is (= 'x (g/gcd 'x 'x)))
-    (is (= 1 (g/expt 1 'x)))
+    (is (v/unity? (g/expt 1 'x)))
     (is (= (g/negate 'x) (g/- 0 'x)))))
 
 (deftest matrix-tests

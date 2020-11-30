@@ -255,17 +255,13 @@
                        (g/cosh z))
                 (g/tanh z))))
 
-    ;; TODO enable these two in the next PR when this stops being a stack
-    ;; overflow.
-    #_
-    (comment
-      (testing "sec"
-        (is (near (g/invert (g/cos z))
-                  (g/sec z))))
+    (testing "sec"
+      (is (near (g/invert (g/cos z))
+                (g/sec z))))
 
-      (testing "csc"
-        (is (near (g/invert (g/sin z))
-                  (g/csc z)))))
+    (testing "csc"
+      (is (near (g/invert (g/sin z))
+                (g/csc z))))
 
     (testing "sech"
       (is (near (g/invert (g/cosh z))
