@@ -114,7 +114,6 @@
 (defmethod g/asin [::complex] [^Complex a] (.asin a))
 (defmethod g/acos [::complex] [^Complex a] (.acos a))
 (defmethod g/atan [::complex] [^Complex a] (.atan a))
-
 (defmethod g/cosh [::complex] [^Complex a] (.cosh a))
 (defmethod g/sinh [::complex] [^Complex a] (.sinh a))
 (defmethod g/tanh [::complex] [^Complex a] (.tanh a))

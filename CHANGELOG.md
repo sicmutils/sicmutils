@@ -2,6 +2,8 @@
 
 ##  [Unreleased]
 
+### Miscellaneous
+
 - expose `bootstrap-repl!` to Clojurescript, so that this is available in
   self-hosted CLJS (https://github.com/littleredcomputer/sicmutils/pull/157)
 - modified `infix.cljc` to wrap forms in `displaystyle` and add proper carriage
@@ -12,6 +14,80 @@
 - add more `sqrt` simplification rules to allow square roots to cancel out
   across a division boundary, with or without products in the numerator and
   denominator (https://github.com/littleredcomputer/sicmutils/pull/160)
+- fix NPE bug that appears in nelder-mead, when callback isn't supplied
+  (https://github.com/littleredcomputer/sicmutils/pull/162)
+- Add `sqrt-expand` and `sqrt-contract`, to allow simplifications to push inside
+  of square roots (https://github.com/littleredcomputer/sicmutils/pull/163)
+- speed up power series multiplication by skipping work when either head term is
+  zero (https://github.com/littleredcomputer/sicmutils/pull/166)
+- File moves! PR (https://github.com/littleredcomputer/sicmutils/pull/167)
+  moved:
+  - `sicmutils.polynomial-gcd` => `sicmutils.polynomial.gcd`
+  - `sicmutils.polynomial-factor` => `sicmutils.polynomial.factor`
+  - `sicmutils.rules` => `sicmutils.simplify.rules`
+- `sicmutils.env/one?` now exposes/aliases `sicmutils.value/unity?`
+  [#154](https://github.com/littleredcomputer/sicmutils/pull/154)
+- Fixed [#93](https://github.com/littleredcomputer/sicmutils/issues/93) by
+  adding an explicit `g/invert` implementation for polynomials in the rational
+  fn namespace. The fix lives in
+  [#169](https://github.com/littleredcomputer/sicmutils/pull/169).
+
+### Literals
+
+- `literal-matrix` fn generates a symbolic matrix
+  (https://github.com/littleredcomputer/sicmutils/pull/169)
+- `literal-up` and `literal-down` generate symbolic structures
+  (https://github.com/littleredcomputer/sicmutils/pull/169)
+
+  Note that in `scmutils`, these generate entries like `x^0_0` for the matrix
+  case, or `x^1` for the structure case. We can't follow this convention in
+  Clojure because `^` signals "metadata!" to the reader. Instead we generate
+  entries like `x_1`, sticking the index on as a subscript instead of a
+  superscript.
+
+### New Generic Functions
+
+This release brings us closer to the interface provided by `scmutils`.
+
+PR https://github.com/littleredcomputer/sicmutils/pull/169 brings:
+
+- `g/exp2`, `g/exp10` for exponents with base 2 and 10
+- `g/log2`, for base 2 logarithms
+- `g/log10` for base 10 logs
+- `g/lcm` is now exposed in `sicmutils.env`
+
+We now expose the following additional trigonometric functions in
+`sicmutils.generic` (courtesy of
+https://github.com/littleredcomputer/sicmutils/pull/154):
+
+- `cosh`: hyperbolic cosine
+- `sinh`: hyperbolic sine
+- `tanh`: hyperbolic tangent, ie sinh/cosh
+- `sech`: hyperbolic secant, ie 1/cosh
+- `csch`: hyperbolic secant, ie 1/sinh
+- `acosh`: inverse hyperbolic cosine, ie, `(= x (cosh (acosh x)))`
+- `asinh`: inverse hyperbolic sine, ie, `(= x (sinh (asinh x)))`
+- `atanh`: inverse hyperbolic tangent, ie, `(= x (tanh (atanh x)))`
+
+These three methods existed in `sicmutils.env`, but not as extensible generics.
+Now they're fully extensible:
+
+- `cot`: cotangent, ie 1/tan
+- `sec`: secant, ie 1/cos
+- `csc`: cosecant, ie 1/sin
+
+These all work with:
+
+- real and complex numbers
+- power series (missing a few implementations, operators and matrices are
+  missing the same ones for this reason)
+- matrices (square matrices return their power series expansions)
+- operators (power series expansion of the operator)
+- functions (where they create composition)
+- symbolic expressions
+- Derivatives and dual numbers! The new functions all work with `D`, the
+  forward-mode automatic differentiation operator.
+
 
 ## 0.13.0
 

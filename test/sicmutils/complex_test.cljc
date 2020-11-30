@@ -29,7 +29,7 @@
             [sicmutils.value :as v]))
 
 (defn ^:private near [w z]
-  (< (g/abs (g/- w z)) 1e-12))
+  (< (g/abs (g/- w z)) 1e-10))
 
 (deftest complex-literal
   (testing "parse-complex can round-trip Complex instances. These show up as
@@ -151,32 +151,76 @@
     (testing "sqrt"
       (is (near (c/complex 10 10) (g/sqrt (g/mul i 200)))))
 
-    (testing "sin"
-      (is (near (g/sin (c/complex 10))
-                (Math/sin 10))))
-
-    (testing "cos"
-      (is (near (g/cos (c/complex 10))
-                (Math/cos 10))))
-
-    (testing "tan"
-      (is (near (g/tan (c/complex 10))
-                (Math/tan 10))))
-
-    (testing "asin"
-      (is (near (g/asin (c/complex 1.1))
-                (c/complex 1.57079632679489 -0.443568254385115))))
-
-    (testing "acos"
-      (is (near (g/acos (c/complex 1.1))
-                (c/complex 0 0.4435682543851153))))
-
-    (testing "atan"
-      (is (near (g/atan (c/complex 1.1))
-                (c/complex 0.8329812666744317 0.0))))
-
     (testing "arithmetic"
       (is (v/numerical? i)))))
+
+(deftest trig-tests
+  (testing "sin"
+    (is (near (g/sin (c/complex 10))
+              (Math/sin 10))))
+
+  (testing "cos"
+    (is (near (g/cos (c/complex 10))
+              (Math/cos 10))))
+
+  (testing "tan"
+    (is (near (g/tan (c/complex 10))
+              (Math/tan 10))))
+
+  (testing "asin"
+    (is (near (g/asin (c/complex 1.1))
+              (c/complex 1.57079632679489 -0.443568254385115))))
+
+  (testing "acos"
+    (is (near (g/acos (c/complex 1.1))
+              (c/complex 0 0.4435682543851153))))
+
+  (testing "atan"
+    (is (near (g/atan (c/complex 1.1))
+              (c/complex 0.8329812666744317 0.0))))
+
+  (let [z (c/complex 3 4)]
+    (testing "cot"
+      (is (near (g/invert (g/tan z))
+                (g/cot z))))
+
+    (testing "cosh"
+      (is (near (c/complex -6.5806630406 -7.5815527427)
+                (g/cosh z))))
+
+    (testing "sinh"
+      (is (near (c/complex -6.5481200409 -7.6192317203)
+                (g/sinh z))))
+
+    (testing "tanh"
+      (is (near (g/div (g/sinh z) (g/cosh z))
+                (g/tanh z))))
+
+    ;; TODO enable these in the next PR, when we can properly force these
+    ;; evaluations.
+    #_
+    (testing "sec"
+      (is (near (g/invert (g/cos z))
+                (g/sec z))))
+
+    #_
+    (testing "csc"
+      (is (near (g/invert (g/sin z))
+                (g/csc z))))
+
+    #_
+    (testing "sech"
+      (is (near (g/invert (g/cosh z))
+                (g/sech z))))
+
+    (testing "acosh"
+      (is (near z (g/cosh (g/acosh z)))))
+
+    (testing "asinh"
+      (is (near z (g/sinh (g/asinh z)))))
+
+    (testing "atanh"
+      (is (near z (g/tanh (g/atanh z)))))))
 
 (deftest promotions-from-real
   (is (= (c/complex 0 1) (g/sqrt -1)))

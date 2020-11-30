@@ -78,16 +78,12 @@
 ;; arguments would otherwise result in a NaN if computed on the real
 ;; line
 
-(defmethod g/asin
-  [::v/real]
-  [a]
+(defmethod g/asin [::v/real] [a]
   (if (> (g/abs a) 1)
     (g/asin (complex a))
     (Math/asin a)))
 
-(defmethod g/acos
-  [::v/real]
-  [a]
+(defmethod g/acos [::v/real] [a]
   (if (> (g/abs a) 1)
     (g/acos (complex a))
     (Math/acos a)))
@@ -95,13 +91,22 @@
 #?(:cljs
    (do
      ;; JS makes these available natively.
-     (defmethod g/acosh [::v/real] [a] (Math/acosh a))
-     (defmethod g/asinh [::v/real] [a] (Math/asinh a))
-     (defmethod g/atanh [::v/real] [a] (Math/atanh a))))
+     (defmethod g/acosh [::v/real] [a]
+       (if (>= a 1)
+         (Math/acosh a)
+         (g/acosh (complex a))))
 
-(defmethod g/sqrt
-  [::v/real]
-  [a]
+     (defmethod g/asinh [::v/real] [a]
+       (if (>= a 1)
+         (Math/asinh a)
+         (g/asinh (complex a))))
+
+     (defmethod g/atanh [::v/real] [a]
+       (if (>= (g/abs a) 1)
+         (g/atanh (complex a))
+         (Math/atanh a)))))
+
+(defmethod g/sqrt [::v/real] [a]
   (cond (neg? a) (g/sqrt (complex a))
         (v/nullity? a) a
         (v/unity? a) (v/one-like a)
@@ -109,9 +114,7 @@
 
 ;; Implementation that converts to complex when negative, and also attempts to
 ;; remain exact if possible.
-(defmethod g/log
-  [::v/real]
-  [a]
+(defmethod g/log [::v/real] [a]
   (cond (neg? a) (g/log (complex a))
         (v/unity? a) (v/zero-like a)
         :else (Math/log a)))
@@ -123,9 +126,7 @@
 
 #?(:cljs (defmethod g/log2 [js/Number] [x] (Math/log2 x)))
 
-(defmethod g/exp
-  [::v/real]
-  [a]
+(defmethod g/exp [::v/real] [a]
   (if (v/nullity? a)
     (v/one-like a)
     (Math/exp a)))

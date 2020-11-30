@@ -209,11 +209,20 @@
                           (range c)))
                   (range r))))
 
-(defn literal-matrix [name nrows ncols]
-  (let [prefix (str name "^")]
+(defn literal-matrix
+  "Generates a `nrows` x `ncols` matrix of symbolic entries, each prefixed by the
+  supplied symbol `sym`.
+
+  For example:
+
+  (= (literal-matrix 'x 2 2)
+     (by-rows ['x_00 'x_01]
+              ['x_10 'x_11]))"
+  [sym nrows ncols]
+  (let [prefix (str sym "_")]
     (generate nrows ncols
               (fn [i j]
-                (symbol (str prefix i "_" j))))))
+                (symbol (str prefix i j))))))
 
 (defn get-in
   "Like get-in for matrices, but obeying the scmutils convention: only one

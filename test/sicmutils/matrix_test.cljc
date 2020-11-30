@@ -155,6 +155,16 @@
     (is (v/nullity? (m/by-rows [0 0]
                                [0 0])))))
 
+(deftest literal-matrix-creation
+  (testing "literal-matrix"
+    (let [M (m/literal-matrix 'x 3 3)]
+      (is (m/matrix? M))
+      (is (= M (m/by-rows ['x_00 'x_01 'x_02]
+                          ['x_10 'x_11 'x_12]
+                          ['x_20 'x_21 'x_22]))
+          "A literal matrix is a matrix populated by symbols with index refs
+          baked in."))))
+
 (deftest matrix-generic-operations
   (let [M (m/by-rows (list 1 2 3)
                      (list 4 5 6))]

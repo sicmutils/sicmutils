@@ -153,11 +153,12 @@
   negate
   simplify
   sqrt
+  gcd lcm
   cos
   sin
   tan
-  asin
   acos
+  asin
   atan
   cosh
   sinh
@@ -190,7 +191,7 @@
   up
   up?
   vector->down vector->up
-  literal-up literal-down]
+  literal-down literal-up]
  [sicmutils.infix
   ->infix
   ->TeX
