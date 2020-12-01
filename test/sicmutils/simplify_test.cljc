@@ -132,7 +132,6 @@
   (testing "symbolic arguments"
     (is (= '(atan y x) (g/simplify (g/atan 'y 'x))))))
 
-
 (deftest moved-from-numbers
   (testing "with-symbols"
     (is (= '(tan x) (g/simplify (g/tan 'x))))
@@ -181,7 +180,7 @@
 
   (testing "symbolic moves"
     (is (= 1 (g/expt 'x 0)))
-    #_(is (= 0 (g/gcd 'x 'x)))
+    #_(is (= 'x (g/gcd 'x 'x)))
     (is (= 1 (g/expt 1 'x)))
     (is (= (g/negate 'x) (g/- 0 'x)))))
 
@@ -215,6 +214,14 @@
              (m/by-rows '[a b c]
                         '[d e f]
                         '[g h i])))))))
+
+(deftest rational-function-tests
+  (testing "GH Issue #93"
+    (is (= '(/ 0.5 (* 2 x))
+           (g/simplify
+            (g/mul 0.5 (g/div 1 (g/mul 2 'x)))))
+        "This test failed until we implemented g/invert for polynomials in the
+        rational-function namespace.")))
 
 (deftest radicals
   (testing "sums of square roots of quotients are collected if denominators match")
