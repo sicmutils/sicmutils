@@ -31,6 +31,8 @@
   adding an explicit `g/invert` implementation for polynomials in the rational
   fn namespace. The fix lives in
   [#169](https://github.com/littleredcomputer/sicmutils/pull/169).
+- added `sicmutils.value/sqrt-machine-epsilon`
+  ([#170](https://github.com/littleredcomputer/sicmutils/pull/170))
 - fixed issues in `function.cljc` and `operator.cljc` where the Clojurescript
   `IFn` `-invoke` arguments shadowed either the `this` operator, or some
   parameter name in the deftype
@@ -52,7 +54,7 @@ PR https://github.com/littleredcomputer/sicmutils/pull/169 brings:
 - `g/exp2`, `g/exp10` for exponents with base 2 and 10
 - `g/log2`, for base 2 logarithms
 - `g/log10` for base 10 logs
-- `g/lcm` is now exposed in `sicmutils.env`
+- `g/gcd` and `g/lcm` are now exposed in `sicmutils.env`
 
 We now expose the following additional trigonometric functions in
 `sicmutils.generic` (courtesy of
