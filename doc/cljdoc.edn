@@ -1,6 +1,7 @@
 {:cljdoc.doc/tree
  [["Introduction" {:file "doc/"}]
   ["Basics" {}
+   ["How to Use SICMUtils" {:file "doc/"}]
    ["Generics" {:file "doc/"}]
    ["Clojurescript" {:file "doc/"}]
    ["Data Readers" {:file "doc/"}]]
