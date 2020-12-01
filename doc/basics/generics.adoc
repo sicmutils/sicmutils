@@ -1,0 +1,3 @@
+= Generics
+
+Discussion about the generic operations that form the base of the library.
