@@ -255,6 +255,16 @@
 (make-unary-operation g/cube)
 (make-unary-operation g/exp)
 (make-unary-operation g/log)
+
+(comment
+  "This comment comes from scmutils, function.scm, in the definition of
+  `transpose-defining-relation`:
+
+  T is a linear transformation T:V -> W
+  the transpose of T, T^t:W* -> V*
+  Forall a in V, g in W*,  g:W -> R
+  (T^t(g))(a) = g(T(a)).")
+
 (defmethod g/transpose [::function] [f]
   (fn [g]
     (fn [a]
@@ -279,7 +289,6 @@
 
 ;; Clojure functions, returns by v/primitive-kind.
 (derive ::v/function ::function)
-
 (derive ::function :sicmutils.series/coseries)
 ;; ------------------------------------
 ;; Differentiation of literal functions

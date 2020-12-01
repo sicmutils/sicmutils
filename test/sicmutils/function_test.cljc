@@ -26,7 +26,9 @@
             [sicmutils.value :as v]
             [sicmutils.operator :as o]
             [sicmutils.series :as series]
-            [sicmutils.structure :as s :refer [up down]]
+            [sicmutils.structure :as s :refer [literal-up
+                                               literal-down
+                                               up down]]
             [sicmutils.simplify :as ss :refer [hermetic-simplify-fixture]]
             [sicmutils.function :as f]))
 
@@ -138,6 +140,46 @@
         (is (near 10 (g/magnitude (f 10)))
             "This kicks out a complex number, which doesn't yet compare
           immediately with reals.")))))
+
+(defn transpose-defining-relation [T g a]
+  "T is a linear transformation T:V -> W
+  the transpose of T, T^t:W* -> V*
+  Forall a in V, g in W*,  g:W -> R
+  (T^t(g))(a) = g(T(a))."
+  (g/- (((g/transpose T) g) a)
+       (g (T a))))
+
+(deftest transpose-test
+  (testing "transpose"
+    (let [f #(str "f" %)
+          g #(str "g" %)]
+      (is (= "fg" (f (g ""))))
+      (is (= "gf" (((g/transpose f) g) ""))
+          "g/transpose for functions returns a fn that takes ANOTHER fn, and
+    returns a fn that applies them in reverse order. Like a curried andThen (the
+    reverse of compose)."))
+
+    (let [T   (f/literal-function 'T '(-> (UP Real Real) (UP Real Real Real)))
+          DT  (D T)
+          DTf (fn [s]
+                (fn [x] (g/* (DT s) x)))
+          a (literal-up 'a 2)
+          g (fn [w] (g/* (literal-down 'g 3) w))
+          s (up 'x 'y)]
+      (is (v/nullity? (transpose-defining-relation (DTf s) g a))
+          "This function, whatever it is (see scmutils function.scm) satisfies
+          the transpose defining relation.")
+
+      (is (= '(+ (* a↑0 g_0 (((partial 0) T↑0) (up x y)))
+                 (* a↑0 g_1 (((partial 0) T↑1) (up x y)))
+                 (* a↑0 g_2 (((partial 0) T↑2) (up x y)))
+                 (* a↑1 g_0 (((partial 1) T↑0) (up x y)))
+                 (* a↑1 g_1 (((partial 1) T↑1) (up x y)))
+                 (* a↑1 g_2 (((partial 1) T↑2) (up x y))))
+             (g/simplify
+              (((g/transpose (DTf s)) g) a)))
+          "A wild test of transpose from scmutils function.scm that I don't
+    understand!"))))
 
 (deftest string-form-test
   (is (= "1" (ss/expression->string

@@ -236,7 +236,6 @@
   [& xs]
   (make ::down xs))
 
-
 (defn structure?
   "True if s is a structure."
   [s]
