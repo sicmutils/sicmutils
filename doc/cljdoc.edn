@@ -9,6 +9,7 @@
    ["Number" {:file "doc/types/number.adoc"}]
    ["Complex" {:file "doc/types/complex.adoc"}]
    ["Quaternion" {:file "doc/types/quaternion.adoc"}]
+   ["Symbolic Expressions" {:file "doc/types/symbolic.adoc"}]
    ["Power Series" {:file "doc/types/power_series.adoc"}]
    ["Polynomial" {:file "doc/types/polynomial.adoc"}]
    ["Rational Function" {:file "doc/types/rational_function.adoc"}]
@@ -16,12 +17,10 @@
    ["Function" {:file "doc/types/function.adoc"}]
    ["Structures" {:file "doc/types/structures.adoc"}]
    ["Matrix" {:file "doc/types/matrix.adoc"}]]
-  ["Symbolic Extensions" {}
-   ["Literals" {:file "doc/symbolic/literal.adoc"}]
-   ["Simplification" {}
-    ["Rule Engine" {:file "doc/symbolic/rules.adoc"}]
-    ["Polynomial Simplifier" {:file "doc/symbolic/poly_simplifier.adoc"}]
-    ["Rational Function" {:file "doc/symbolic/rf_simplifier.adoc"}]]]
+  ["Simplification" {}
+   ["Rule Engine" {:file "doc/symbolic/rules.adoc"}]
+   ["Polynomial Simplifier" {:file "doc/symbolic/poly_simplifier.adoc"}]
+   ["Rational Function" {:file "doc/symbolic/rf_simplifier.adoc"}]]
   ["Numerical Methods" {}
    ["Univariate Minimization" {:file "doc/numerical/unimin.adoc"}]
    ["Multivariate Minimization" {:file "doc/numerical/multimin.adoc"}]

@@ -2,8 +2,11 @@
 :toc: right
 :toclevels: 2
 
-CAUTION: This is an in-progress port of the reference manual for scmutils. Note
-that this does not all work!
+CAUTION: This is an in-progress port of the reference manual for scmutils. Many
+of these examples (not all) work in SICMUtils here in Clojure. The goal here is
+to host an annotated version of the original `refman.txt`, highlighting any
+difference in functionality, behavior and naming so that folks can transition
+between the systems. For now, enjoy this half-ported thing.
 
 This is a description of the Scmutils system, an integrated library of
 procedures, embedded in the programming language Scheme, and intended to support
