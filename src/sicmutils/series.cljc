@@ -563,6 +563,7 @@
 
 (derive ::x/numeric ::coseries)
 (derive ::v/number ::coseries)
+(derive ::v/function ::coseries)
 
 ;; All generic methods:
 ;;

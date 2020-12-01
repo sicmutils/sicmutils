@@ -475,16 +475,15 @@
 (define-unary-operation g/square #(diff-* % %))
 (define-unary-operation g/cube #(diff-* % (diff-* % %)))
 
-(derive ::differential :sicmutils.function/cofunction)
 (derive ::differential ::o/co-operator)
 (derive ::differential ::series/coseries)
 
 (defmethod g/partial-derivative
-  [:sicmutils.function/function v/seqtype]
+  [::v/function v/seqtype]
   [f selectors]
   (multivariate-derivative f selectors))
 
-(defmethod g/partial-derivative [:sicmutils.function/function nil] [f _]
+(defmethod g/partial-derivative [::v/function nil] [f _]
   (multivariate-derivative f []))
 
 (defmethod g/partial-derivative [::struct/structure v/seqtype] [f selectors]
@@ -493,11 +492,14 @@
 (defmethod g/partial-derivative [::matrix/matrix v/seqtype] [f selectors]
   (multivariate-derivative f selectors))
 
+(def derivative-symbol 'D)
+
 (def D
   "Derivative operator. Produces a function whose value at some point can
   multiply an increment in the arguments, to produce the best linear estimate
   of the increment in the function value."
-  (o/make-operator #(g/partial-derivative % []) 'D))
+  (o/make-operator #(g/partial-derivative % [])
+                   derivative-symbol))
 
 (defn partial
   "Partial differentiation of a function at the (zero-based) slot index

@@ -25,7 +25,8 @@
             [sicmutils.generic :as g]
             [sicmutils.operator :as o]
             [sicmutils.series :as series]
-            [sicmutils.structure :as s]))
+            [sicmutils.structure :as s]
+            [sicmutils.value :as v]))
 
 ;; A vector field is an operator that takes a smooth real-valued
 ;; function of a manifold and produces a new function on the manifold
@@ -39,7 +40,7 @@
   (let [name (if name (first name) 'unnamed-vector-field)]
     (o/make-operator vfp name
                      :subtype ::vector-field
-                     :arguments [::f/function])))
+                     :arguments [::v/function])))
 
 (defn vector-field?
   [vf]

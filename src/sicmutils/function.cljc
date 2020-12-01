@@ -62,7 +62,7 @@
 
 (defrecord Function [name arity domain range]
   Object
-  (toString [_] (str name) )
+  (toString [_] (str name))
   v/Value
   (nullity? [_] false)
   (unity? [_] false)
@@ -148,11 +148,18 @@
          :else
          (u/illegal (str "WTF range" domain)))))
 
-(def ^:private derivative-symbol 'D)
-
 ;; --------------------
 ;; Algebra of functions
 ;;
+;; Clojure functions, returns by v/primitive-kind.
+
+(derive ::function ::v/function)
+
+(derive ::x/numeric ::cofunction)
+(derive ::v/number ::cofunction)
+(derive ::d/differential ::cofunction)
+(derive ::s/structure ::cofunction)
+(derive ::m/matrix ::cofunction)
 
 (defn ^:private unary-operation
   "For a unary operator (like sqrt), returns a function of one function
@@ -220,15 +227,15 @@
    (make-binary-operation generic-op generic-op))
   ([generic-op binary-op]
    (let [binop (binary-operation binary-op)]
-     (doseq [signature [[::function ::function]
-                        [::function ::cofunction]
-                        [::cofunction ::function]]]
+     (doseq [signature [[::v/function ::v/function]
+                        [::v/function ::cofunction]
+                        [::cofunction ::v/function]]]
        (defmethod generic-op signature [a b] (binop a b))))))
 
 (defn- make-unary-operation
   [generic-op]
   (let [unary-op (unary-operation generic-op)]
-    (defmethod generic-op [::function] [a] (unary-op a))))
+    (defmethod generic-op [::v/function] [a] (unary-op a))))
 
 (make-binary-operation g/add g/+)
 (make-binary-operation g/sub g/-)
@@ -265,7 +272,7 @@
   Forall a in V, g in W*,  g:W -> R
   (T^t(g))(a) = g(T(a)).")
 
-(defmethod g/transpose [::function] [f]
+(defmethod g/transpose [::v/function] [f]
   (fn [g]
     (fn [a]
       (g (f a)))))
@@ -282,42 +289,33 @@
 (make-unary-operation g/conjugate)
 
 (defmethod g/simplify [Function] [a] (g/simplify (:name a)))
-(derive ::x/numeric ::cofunction)
-(derive ::v/number ::cofunction)
-(derive ::s/structure ::cofunction)
-(derive ::m/matrix ::cofunction)
 
-;; Clojure functions, returns by v/primitive-kind.
-(derive ::v/function ::function)
-(derive ::function :sicmutils.series/coseries)
-;; ------------------------------------
-;; Differentiation of literal functions
-;;
+;; ## Differentiation of literal functions
 
 (defn symbolic-derivative?
   [expr]
   (and (sequential? expr)
        ;; XXX GJS uses 'derivative here; should we? doesn't he just
        ;; have to change it back to D when printing?
-       (= (first expr) derivative-symbol)))
+       (= (first expr) d/derivative-symbol)))
 
 (defn iterated-symbolic-derivative?
   [expr]
   (and (sequential? expr)
        (sequential? (first expr))
        (ns/expt? (first expr))
-       (= (second (first expr)) derivative-symbol)))
+       (= (second (first expr)) d/derivative-symbol)))
 
 (defn symbolic-increase-derivative [expr]
   (cond (symbolic-derivative? expr)
-        (list (ns/expt derivative-symbol 2) (fnext expr))
+        (list (ns/expt d/derivative-symbol 2) (fnext expr))
         (iterated-symbolic-derivative? expr)
-        (list (ns/expt derivative-symbol
+        (list (ns/expt d/derivative-symbol
                        (+ (first (nnext (first expr)))
                           1))
               (fnext expr))
         :else
-        (list derivative-symbol expr)))
+        (list d/derivative-symbol expr)))
 
 (defn ^:private make-partials
   [f v]
@@ -342,7 +340,6 @@
                   :else
                   (u/illegal (str "make-partials WTF " vv))))]
     (fd [] v)))
-
 
 (defn ^:private literal-derivative
   [f xs]
@@ -388,7 +385,7 @@
     (literal-derivative f xs)
     (an/literal-number `(~(:name f) ~@(map v/freeze xs)))))
 
-;;; Utilities
+;; ## Utilities
 
 (defn compose
   "Compose is like Clojure's standard comp, but for this system we
