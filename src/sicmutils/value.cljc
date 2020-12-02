@@ -85,10 +85,12 @@
 (defn number? [x]
   (isa? (kind x) ::number))
 
+;; `::scalar` is a thing that symbolic expressions AND actual numbers both
+;; derive from.
+(derive ::number ::scalar)
+
 (defn scalar? [x]
   (isa? (kind x) ::scalar))
-
-(derive ::number ::scalar)
 
 #?(:clj
    (do

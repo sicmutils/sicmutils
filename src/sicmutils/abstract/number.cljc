@@ -28,34 +28,84 @@
   #?(:clj
      (:import (clojure.lang Symbol))))
 
-(defn literal-number [x]
+(defn literal-number
+  "Returns its argument, wrapped in a marker type that responds to the generic
+  operations registered in `sicmutils.numsymb`.
+
+  Symbols are automatically treated as `literal-number` instances, so
+
+  (* 10 (literal-number 'x))
+
+  is equivalent to
+
+  (* 10 'x).
+
+  If you pass an actual number, sicmutils will attempt to preserve exact values
+  through various operations:
+
+  (g/+ 1 (g/cos (g/* 2 (literal-number 4))))
+  ;;=> (+ 1 (cos 8))
+
+  Notice that the `(g/* 2 ...)` is evaluated, but `cos` evaluation is deferred,
+  since the result is inexact. On the other hand, if the number is inexact to
+  begin with:
+
+  (g/+ 1 (g/cos (g/* 2 (literal-number 2.2))))
+  ;;=> 0.6926671300215806
+
+  the system will go ahead and evaluate it."
+  [x]
   (x/make-literal ::x/numeric x))
 
-(defn literal-number? [x]
+(defn literal-number?
+  "Returns true if `x` is an explicit symbolic expression or something passed to
+  `literal-number`, false otherwise.
+
+  See [[abstract-number?]] for a similar function that also responds true to
+  symbols."
+  [x]
   (and (x/literal? x)
        (= (x/literal-type x) ::x/numeric)))
 
-(defn abstract-number? [x]
+(defn abstract-number?
+  "Returns true if `x` is:
+
+  - a symbolic expression
+  - some object wrapped by a call to `literal-number
+  - a symbol (which implicitly acts as a literal number)
+
+  See [[literal-number?]] for a similar function that won't respond true to
+  symbols, only to explicit symbolic expressions or wrapped literal numbers."
+  [x]
   (or (literal-number? x)
       (symbol? x)))
-
-(defn- literal=num [l n]
-  (and (= (x/literal-type l) ::x/numeric)
-       (= (x/expression-of l) n)))
-
-(defmethod v/eq [::x/numeric ::v/number] [l r] (literal=num l r))
-(defmethod v/eq [::v/number ::x/numeric] [l r] (literal=num r l))
 
 ;; ## Generic Installation
 
 (derive Symbol ::x/numeric)
 (derive ::x/numeric ::v/scalar)
 
-(defn- numerical-expression [expr]
-  (cond (v/number? expr)        expr
-        (c/complex? expr)       expr
-        (abstract-number? expr) (x/expression-of expr)
-        :else expr))
+(defn- literal=num
+  "Equality helper; if the left side's a specifically numerical literal, unwrap
+  and compare (otherwise false)."
+  [l n]
+  (and (= (x/literal-type l) ::x/numeric)
+       (= (x/expression-of l) n)))
+
+;; This installs equality into `v/eq` between symbolic expressions (and symbols,
+;; see inheritance above) and anything in the standard numeric tower.
+
+(defmethod v/eq [::x/numeric ::v/number] [l r] (literal=num l r))
+(defmethod v/eq [::v/number ::x/numeric] [l r] (literal=num r l))
+
+(defn- numerical-expression
+  "For literal numbers, returns the unwrapped form. Else acts as identity. (If
+  you've made it here, you've chosen to be absorbed into a `literal-number`
+  wrapper!)"
+  [expr]
+  (if (literal-number? expr)
+    (x/expression-of expr)
+    expr))
 
 (defn- defbinary [generic-op op-sym]
   (let [pairs [[::x/numeric ::x/numeric]

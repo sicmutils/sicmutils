@@ -4,6 +4,8 @@
             pattern.match-test
             pattern.rule-test
 
+            sicmutils.abstract.number-test
+
             sicmutils.calculus.coordinate-test
             sicmutils.calculus.derivative-test
             sicmutils.calculus.form-field-test
@@ -83,7 +85,6 @@
             sicmutils.polynomial.factor-test
             sicmutils.ratio-test
             sicmutils.numbers-test
-            sicmutils.numsymb-test
             sicmutils.rational-function-test
             sicmutils.series-test
             sicmutils.simplify-test
@@ -93,6 +94,8 @@
 
 (doo-tests 'pattern.match-test
            'pattern.rule-test
+
+           'sicmutils.abstract.number-test
 
            'sicmutils.calculus.coordinate-test
            'sicmutils.calculus.derivative-test
@@ -170,7 +173,6 @@
            'sicmutils.matrix-test
            'sicmutils.modint-test
            'sicmutils.numbers-test
-           'sicmutils.numsymb-test
            'sicmutils.operator-test
            'sicmutils.polynomial-test
            'sicmutils.polynomial.gcd-test

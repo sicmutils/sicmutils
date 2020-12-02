@@ -139,11 +139,21 @@
   (gt/floating-point-tests double :eq near))
 
 (deftest arithmetic
-  (testing "trig"
+  (testing "misc trig"
     (is (near (/ Math/PI 4) (g/asin (/ (g/sqrt 2) 2))))
     (is (near (/ Math/PI 4) (g/acos (/ (g/sqrt 2) 2))))
     (is (zero? (g/asin 0)))
-    (is (near (/ Math/PI 2) (g/acos 0))))
+    (is (near (/ Math/PI 2) (g/acos 0)))
+    (is (ish? (/ Math/PI 2) (g/asin 1)))
+    (is (ish? (/ Math/PI 2) (g/acos 0)))
+    (is (ish? (/ Math/PI 6) (g/asin 0.5)))
+    (is (ish? (/ Math/PI 4) (g/atan 1)))
+    (is (ish? (/ Math/PI 4) (g/atan 1 1)))
+    (is (ish? (- (/ Math/PI 4)) (g/atan -1)))
+    (is (ish? (* -3 (/ Math/PI 4)) (g/atan -1 -1)))
+    (is (ish? (* 3 (/ Math/PI 4)) (g/atan 1 -1)))
+    (is (ish? (/ Math/PI -4) (g/atan -1 1)))
+    (is (ish? (/ Math/PI 3) (g/acos #?(:clj 1/2 :cljs (/ 1 2))))))
 
   (testing ">1 gets promoted to complex for asin, acos"
     (is (c/complex? (g/asin 2)))

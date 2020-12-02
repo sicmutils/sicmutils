@@ -206,7 +206,7 @@
                               (n:pi-over-4-mod-pi? x) 1
                               (n:-pi-over-4-mod-pi? x) -1
                               (n:pi-over-2-mod-pi? x) (u/illegal "Undefined: tan")
-                              :else (list 'tan x)))
+                              :else (Math/tan x)))
         (symbol? x) (cond (symb:zero-mod-pi? x) 0
                           (symb:pi-over-4-mod-pi? x) 1
                           (symb:-pi-over-4-mod-pi? x) -1
