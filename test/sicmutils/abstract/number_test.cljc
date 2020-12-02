@@ -53,7 +53,14 @@
 
   (checking "inexact literal number trig"
             100
-            [x (gen/double* {:infinite? false :NaN? false})]
+            [x (->> (gen/double* {:infinite? false
+                                  :NaN? false
+                                  :min 1e-8
+                                  :max 1e8})
+                    (gen/fmap (fn [x]
+                                (if (v/exact? x)
+                                  (+ x 0.5)
+                                  x))))]
             (testing "cosine"
               (is (ish? (an/literal-number
                          (cond (@#'sym/n:pi-over-2-mod-pi? x) 0

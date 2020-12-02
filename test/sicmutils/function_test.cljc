@@ -20,8 +20,12 @@
 (ns sicmutils.function-test
   (:refer-clojure :exclude [partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.generic :as g]
+            [sicmutils.generators :as sg]
             [sicmutils.matrix :as m]
             [sicmutils.value :as v]
             [sicmutils.operator :as o]
@@ -79,6 +83,30 @@
   (testing "tan, sin, cos"
     (let [f (g/- g/tan (g/div g/sin g/cos))]
       (is (zero? (g/simplify (f 'x))))))
+
+  (testing "sin/asin"
+    (let [f (f/compose g/sin g/asin)]
+      (is (near 0.5 (f 0.5)))
+      (testing "outside real range"
+        (is (near 10 (g/magnitude (f 10)))
+            "This kicks out a complex number, which doesn't yet compare
+          immediately with reals."))))
+
+  (testing "cos/acos"
+    (let [f (f/compose g/cos g/acos)]
+      (is (near 0.5 (f 0.5)))
+
+      (testing "outside real range"
+        (is (near 5 (g/magnitude (f -5)))
+            "This kicks out a complex number, which doesn't yet compare
+          immediately with reals."))))
+
+  (testing "tan/atan"
+    (let [f (f/compose g/tan g/atan)]
+      (is (near (/ 0.5 0.2) (f 0.5 0.2))
+          "two-arity version!")
+      (is (near 0.5 (f 0.5))
+          "one-arity version")))
 
   (testing "cot"
     (let [f (g/- g/cot (g/invert g/tan))]
@@ -140,6 +168,33 @@
         (is (near 10 (g/magnitude (f 10)))
             "This kicks out a complex number, which doesn't yet compare
           immediately with reals.")))))
+
+(deftest complex-tests
+  (let [f (f/literal-function 'f)]
+    (testing "gcd/lcm unit"
+      (is (= (g/gcd 10 5)
+             (let [deferred (g/gcd (g/+ 1 g/square) 5)]
+               (deferred 3))))
+      (is (= (g/lcm 10 6)
+             (let [deferred (g/lcm (g/+ 1 g/square) 6)]
+               (deferred 3)))))
+
+    (checking "gcd/lcm works with fns"
+              100
+              [l gen/nat r gen/nat]
+              (is (= ((g/gcd f r) l)
+                     (g/gcd (f l) r)))
+
+              (is (= ((g/lcm f r) l)
+                     (g/lcm (f l) r))))
+
+    (checking "complex accessors work with fns"
+              100
+              [z sg/complex]
+              (is (= (g/imag-part (f z)) ((g/imag-part f) z)))
+              (is (= (g/real-part (f z)) ((g/real-part f) z)))
+              (is (= (g/magnitude (f z)) ((g/magnitude f) z)))
+              (is (= (g/angle (f z))     ((g/angle f) z))))))
 
 (defn transpose-defining-relation [T g a]
   "T is a linear transformation T:V -> W
@@ -279,7 +334,16 @@
       (is (= 10 ((g/+ mul3 4) 2)))
       (is (= 32 ((g/expt 2 add2) 3)))
       (is (= 25 ((g/expt add2 2) 3)))
-      (is (= ::v/function (v/kind (g/expt add2 2)))))
+      (is (= ::v/function (v/kind (g/expt add2 2))))
+
+      (testing "cross-product"
+        (let [deferred (g/cross-product #(g/* 2 %)
+                                        #(g/+ (s/up 4 3 1) %))
+              v (s/up 1 2 3)]
+          (is (= (g/cross-product (g/* 2 v)
+                                  (g/+ (s/up 4 3 1) v))
+                 (deferred v))
+              "Slightly tougher since this works with structures"))))
 
     (testing "arity 2"
       (let [f (fn [x y] (+ x y))
