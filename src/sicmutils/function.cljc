@@ -155,8 +155,7 @@
 
 (derive ::function ::v/function)
 
-(derive ::x/numeric ::cofunction)
-(derive ::v/number ::cofunction)
+(derive ::v/scalar ::cofunction)
 (derive ::d/differential ::cofunction)
 (derive ::s/structure ::cofunction)
 (derive ::m/matrix ::cofunction)
@@ -277,6 +276,7 @@
     (fn [a]
       (g (f a)))))
 
+(make-binary-operation g/determinant)
 (make-binary-operation g/cross-product)
 (make-binary-operation g/gcd)
 (make-binary-operation g/lcm)

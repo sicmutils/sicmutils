@@ -98,6 +98,13 @@
    (g (f x)))
 ```
 
+- added `g/determinant` implementation to functions
+  ([#171](https://github.com/littleredcomputer/sicmutils/pull/171))
+
+- Switched inheritance order for functions; `:sicmutils.function/function` now
+  inherits from `::v/function` instead of the other way around.
+  ([#171](https://github.com/littleredcomputer/sicmutils/pull/171))
+
 ### Literals
 
 - `literal-matrix` fn generates a symbolic matrix

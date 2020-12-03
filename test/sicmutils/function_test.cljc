@@ -333,6 +333,9 @@
       (is (= 25 ((g/expt add2 2) 3)))
       (is (= ::v/function (v/kind (g/expt add2 2))))
 
+      (testing "determinant"
+        (is (= 20 ((g/determinant *) 4 5))))
+
       (testing "cross-product"
         (let [deferred (g/cross-product #(g/* 2 %)
                                         #(g/+ (s/up 4 3 1) %))
