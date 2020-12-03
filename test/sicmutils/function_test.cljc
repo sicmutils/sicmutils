@@ -42,19 +42,16 @@
 
 (deftest equations-moved-from-simplify
   (testing "moved-from-simplify"
-    (let [xy (s/up (f/literal-function 'x) (f/literal-function 'y))
-          xyt (xy 't)
-          U (f/literal-function 'U)
-          xyt2 (g/square xyt)
+    (let [xy    (s/up (f/literal-function 'x)
+                      (f/literal-function 'y))
+          xyt   (xy 't)
+          U     (f/literal-function 'U)
+          xyt2  (g/square xyt)
           Uxyt2 (U xyt2)]
       (is (= '(up x y) (g/simplify xy)))
       (is (= '(up (x t) (y t)) (g/simplify xyt)))
       (is (= '(+ (expt (x t) 2) (expt (y t) 2)) (g/simplify xyt2)))
-      (is (= '(U (+ (expt (x t) 2) (expt (y t) 2))) (g/simplify Uxyt2)))
-      (is (= 1 (g/simplify (g/+ (g/expt (g/sin 'x) 2) (g/expt (g/cos 'x) 2)))))
-      ;; why doesn't the following work given that the rules are meant
-      ;; to pull sines to the left?
-      (is (= 1 (g/simplify (g/+ (g/expt (g/cos 'x) 2) (g/expt (g/sin 'x) 2)))))))
+      (is (= '(U (+ (expt (x t) 2) (expt (y t) 2))) (g/simplify Uxyt2)))))
 
   (testing "moved-from-matrix"
     (is (= '(matrix-by-rows [(f x) (g x)] [(h x) (k x)])

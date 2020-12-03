@@ -89,7 +89,7 @@
   "Equality helper; if the left side's a specifically numerical literal, unwrap
   and compare (otherwise false)."
   [l n]
-  (and (= (x/literal-type l) ::x/numeric)
+  (and (abstract-number? l)
        (= (x/expression-of l) n)))
 
 ;; This installs equality into `v/eq` between symbolic expressions (and symbols,
@@ -97,6 +97,9 @@
 
 (defmethod v/eq [::x/numeric ::v/number] [l r] (literal=num l r))
 (defmethod v/eq [::v/number ::x/numeric] [l r] (literal=num r l))
+(defmethod v/eq [::x/numeric ::x/numeric] [l r]
+  (= (x/expression-of l)
+     (x/expression-of r)))
 
 (defn- numerical-expression
   "For literal numbers, returns the unwrapped form. Else acts as identity. (If

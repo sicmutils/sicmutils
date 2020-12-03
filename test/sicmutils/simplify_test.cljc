@@ -130,8 +130,18 @@
   (is (= '(* -1 (expt (cos x) 2)) (g/simplify (g/+ (g/expt (g/sin 'x) 2) -1))))
   (is (= '(* -1 (expt (sin x) 2)) (g/simplify (g/+ (g/expt (g/cos 'x) 2) -1))))
 
+  (testing "trig identities"
+    (is (= 1 (g/simplify
+              (g/+ (g/expt (g/sin 'x) 2)
+                   (g/expt (g/cos 'x) 2)))))
+    (is (= 1 (g/simplify
+              (g/+ (g/expt (g/cos 'x) 2)
+                   (g/expt (g/sin 'x) 2))))))
+
   (testing "symbolic arguments"
-    (is (= '(atan y x) (g/simplify (g/atan 'y 'x))))))
+    (is (= '(atan y x)
+           (g/simplify
+            (g/atan 'y 'x))))))
 
 (deftest moved-from-numbers
   (testing "with-symbols"

@@ -107,17 +107,14 @@
          (Math/atanh a)))))
 
 (defmethod g/sqrt [::v/real] [a]
-  (cond (neg? a) (g/sqrt (complex a))
-        (v/nullity? a) a
-        (v/unity? a) (v/one-like a)
-        :else (u/compute-sqrt a)))
+  (if (neg? a)
+    (g/sqrt (complex a))
+    (u/compute-sqrt a)))
 
-;; Implementation that converts to complex when negative, and also attempts to
-;; remain exact if possible.
 (defmethod g/log [::v/real] [a]
-  (cond (neg? a) (g/log (complex a))
-        (v/unity? a) (v/zero-like a)
-        :else (Math/log a)))
+  (if (neg? a)
+    (g/log (complex a))
+    (Math/log a)))
 
 ;; Specialized methods provided by the host platforms.
 

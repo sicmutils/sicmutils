@@ -63,10 +63,8 @@
   (testing "expt goes rational with negative expt"
     (is (= #sicm/ratio 1/4 (g/expt 2 -2))))
 
-  (testing "exp/log preserve exactness together"
-    (is (= 0 (g/log (g/exp 0)))))
-
-  (testing "exp/log goes approx if forced"
+  (testing "exp/log round-trip, but coerce to double on the JVM"
+    (is (= 0.0 (g/log (g/exp 0))))
     (is (= 10.0 (g/log (g/exp 10)))))
 
   (testing "div"
@@ -171,15 +169,11 @@
 
   (testing "log"
     (is (c/complex? (g/log -10)))
-    (is (= 0 (g/log 1)))
+    (is (= 0.0 (g/log 1)))
     (is (= (c/complex 0 Math/PI) (g/log -1))))
 
   (testing "exp"
-    (is (= 1 (g/exp 0))))
-
-  (testing "exp/log preserve exactness together"
-    (is (= 0 (g/log (g/exp 0)))
-        (= 10 (g/log (g/exp 10))))))
+    (is (= 1 (g/exp 0)))))
 
 ;; Test of generic wrapper operations.
 
