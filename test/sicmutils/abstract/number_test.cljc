@@ -22,8 +22,10 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [same :refer [ish?]]
+            [same :refer [ish? with-comparator]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number :as an]
+            [sicmutils.complex :as c]
             [sicmutils.expression :as x]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
@@ -99,94 +101,93 @@
               (when-not (zero? y)
                 (check g// x y))))
 
-  (testing "negate"
-    (is (= (g/+ 'x (g/- 'x) (g/+ 'x (g/negate 'x)))))
-    (is (= '(+ x (- x)) (v/freeze
-                         (g/+ 'x (g/negate 'x))))))
+  (checking "negate" 100 [x (sg/reasonable-double)]
+            (is (= (an/literal-number (- x))
+                   (g/negate (an/literal-number x)))))
 
-  (testing "invert"
-    (is (= (g/div 1 'x) (g/invert 'x)))
-    (is (= '(/ 1 x) (v/freeze
-                     (g/invert 'x))))
-    )
-  (testing "square"
-    (is (= (g/expt 'x 2) (g/square 'x))))
+  (checking "invert" 100 [x (sg/reasonable-double)]
+            (is (= (an/literal-number (/ x))
+                   (g/invert (an/literal-number x)))))
 
-  (testing "cube"
-    (is (= (g/expt 'x 3) (g/cube 'x))))
+  (checking "square" 100 [x (sg/reasonable-double)]
+            (is (ish? (an/literal-number (g/* x x))
+                      (g/square (an/literal-number x)))))
 
-  (testing "expt"
-    (is (v/eq 1 (g/expt 'x 0)))
-    (is (v/eq 'x (g/expt 'x 1))))
+  (checking "cube" 100 [x (sg/reasonable-double :min -1e3 :max 1e3)]
+            (is (= (an/literal-number (g/expt x 3))
+                   (g/cube (an/literal-number x)))))
 
+  (checking "expt" 100 [x (sg/reasonable-double)
+                        e (gen/choose 0 3)]
+            (is (= (an/literal-number (g/expt x e))
+                   (g/expt (an/literal-number x) e))))
 
-  (checking "abs" 100 [x gen/symbol]
+  (checking "abs" 100 [x (sg/reasonable-double)]
+            (is (= (an/literal-number (Math/abs x))
+                   (g/abs (an/literal-number x)))))
+
+  (checking "sqrt" 100 [x (sg/reasonable-double)]
+            (is (= (an/literal-number (g/sqrt x))
+                   (g/sqrt (an/literal-number x)))))
+
+  (checking "log" 100 [x (sg/reasonable-double)]
+            (is (= (an/literal-number (g/log x))
+                   (g/log (an/literal-number x))))
+
+            (is (= (an/literal-number (g/log2 x))
+                   (g/log2 (an/literal-number x))))
+
             (is (= (an/literal-number
-                    (list 'abs x))
-                   (g/abs x))
-                "You can wrap a symbolic expression in literal-number if you
-                like."))
+                    (if (neg? x)
+                      (g/log10 (c/complex x))
+                      (/ (g/log x)
+                         (g/log 10))))
+                   (g/log10 (an/literal-number x)))))
 
-  (checking "sqrt" 100 [x gen/symbol]
-            (is (= (list 'sqrt x)
-                   (v/freeze (g/sqrt x)))))
+  (checking "exp" 100 [x (sg/reasonable-double)]
+            (is (= (an/literal-number (Math/exp x))
+                   (g/exp (an/literal-number x))))
 
-  (checking "log" 100 [x gen/symbol]
-            (is (= (list 'log x)
-                   (v/freeze (g/log x))))
-            (is (v/eq (g// (g/log x)
-                           (Math/log 2))
-                      (g/log2 x))
-                "log2 divides by the inexact (log 2).")
-            (is (v/eq (g// (g/log x)
-                           (Math/log 10))
-                      (g/log10 x))
-                "log10 divides by the inexact (log 10)."))
+            (is (= (an/literal-number (g/exp2 x))
+                   (g/exp2 (an/literal-number x))))
 
-  (checking "exp" 100 [x gen/symbol]
-            (is (= (list 'exp x)
-                   (v/freeze (g/exp x))))
-            (is (= (g/expt 2 x) (g/exp2 x)))
-            (is (= (g/expt 10 x) (g/exp10 x))))
+            (is (= (an/literal-number (g/exp10 x))
+                   (g/exp10 (an/literal-number x)))))
 
-  (testing "conjugate"
-    (is (= '(conjugate (random x))
-           (v/freeze
-            (g/conjugate (an/literal-number
-                          '(random x))))))
-    (doall
-     (for [op @#'sym/conjugate-transparent-operators]
-       (is (= (v/freeze
-               (an/literal-number
-                (list op
-                      (g/conjugate 'x)
-                      (g/conjugate 'y))))
-              (v/freeze
-               (g/conjugate (an/literal-number
-                             (list op 'x 'y)))))
-           "This is a little busted, since we don't check for the proper number
-           of inputs... but conjugates move inside these operators."))))
+  (checking "conjugate" 100 [z sg/complex]
+            (is (= (an/literal-number (g/conjugate z))
+                   (g/conjugate (an/literal-number z)))))
 
-  (checking "real-part" 100 [z gen/symbol]
-            (is (= (g/* (g// 1 2)
-                        (g/+ z (g/conjugate z)))
-                   (g/real-part z))))
+  (checking "real/imag-part" 100 [z sg/complex]
+            (is (= (an/literal-number (g/real-part z))
+                   (g/real-part (an/literal-number z))))
 
-  (checking "imag-part" 100 [z gen/symbol]
-            (is (= (g/* (g// 1 2)
-                        (g/* #sicm/complex "0-1i"
-                             (g/- z (g/conjugate z))))
-                   (g/imag-part z))))
+            (is (= (an/literal-number (g/imag-part z))
+                   (g/imag-part (an/literal-number z))))
 
-  (checking "angle" 100 [z gen/symbol]
-            (is (= (g/atan
-                    (g/imag-part z)
-                    (g/real-part z))
-                   (g/angle z))))
+            (is (= (an/literal-number z)
+                   (g/+ (g/real-part (an/literal-number z))
+                        (g/* #sicm/complex "0+1i"
+                             (g/imag-part (an/literal-number z)))))))
 
-  (checking "magnitude" 100 [z gen/symbol]
-            (is (= (g/sqrt (g/mul (g/conjugate z) z))
-                   (g/magnitude z)))))
+  (checking "angle" 100 [z sg/complex]
+            (let [rt (g/* (g/magnitude z)
+                          (g/exp (g/* #sicm/complex "0+1i"
+                                      (g/angle
+                                       (an/literal-number z)))))]
+              (with-comparator (v/within 1e-8)
+                (is (ish? (g/real-part z)
+                          (x/expression-of (g/real-part rt))))
+                (is (ish? (g/imag-part z)
+                          (x/expression-of (g/imag-part rt)))))))
+
+  (checking "magnitude" 100 [z sg/complex]
+            (is (ish? (g/magnitude z)
+                      (x/expression-of
+                       (g/real-part
+                        (g/sqrt
+                         (g/* z (g/conjugate
+                                 (an/literal-number z))))))))))
 
 (deftest literal-number-trig-tests
   (checking "inexact literal number trig"
@@ -457,4 +458,13 @@
       (is (v/eq 1 (g/tan '+pi-over-4)))
       (is (v/eq -1 (g/tan '-pi-over-4)))
       (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-                   (g/tan 'pi-over-2))))))
+                   (g/tan 'pi-over-2)))))
+
+  (comment
+    'asin
+    'acos
+    'atan
+    'sinh
+    'cosh
+    'sec
+    'csc))
