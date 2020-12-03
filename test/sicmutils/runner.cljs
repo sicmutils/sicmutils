@@ -4,6 +4,7 @@
             pattern.match-test
             pattern.rule-test
 
+            sicmutils.abstract.function-test
             sicmutils.abstract.number-test
 
             sicmutils.calculus.coordinate-test
@@ -95,6 +96,7 @@
 (doo-tests 'pattern.match-test
            'pattern.rule-test
 
+           'sicmutils.abstract.function-test
            'sicmutils.abstract.number-test
 
            'sicmutils.calculus.coordinate-test

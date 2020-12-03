@@ -22,6 +22,7 @@
                   #?@(:cljs [:exclude [get-in]]))
   (:require [sicmutils.value :as v]
             [sicmutils.expression :as x]
+            [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.structure :as s]
@@ -30,6 +31,8 @@
      (:import [clojure.lang AFn Counted IFn ILookup Seqable Sequential])))
 
 (declare generate)
+
+(derive ::matrix ::f/cofunction)
 
 (deftype Matrix [r c v]
   v/Value

@@ -19,9 +19,9 @@
 
 (ns sicmutils.numerical.derivative
   "Different numerical derivative implementations."
-  (:require [sicmutils.calculus.derivative :as d]
+  (:require [sicmutils.abstract.function :as af]
+            [sicmutils.calculus.derivative :as d]
             [sicmutils.numerical.interpolate.richardson :as r]
-            [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.infix :as if]
             [sicmutils.util :as u]
@@ -51,7 +51,7 @@
 ;; And a function to play with:
 
 (def ^:private func
-  (f/literal-function 'f))
+  (af/literal-function 'f))
 
 ;; ## Approximating Derivatives with Taylor Series
 ;;

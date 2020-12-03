@@ -20,6 +20,7 @@
 (ns sicmutils.structure
   (:require [clojure.string :refer [join]]
             [sicmutils.expression :as x]
+            [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.numsymb]
@@ -41,9 +42,13 @@
 (def ^:private opposite-orientation
   {::up ::down ::down ::up})
 
+
 (derive ::up ::structure)
 (derive ::down ::structure)
 (derive PersistentVector ::up)
+
+;; Structures can interact with functions.
+(derive ::structure ::f/cofunction)
 
 (deftype Structure [orientation v]
   v/Value

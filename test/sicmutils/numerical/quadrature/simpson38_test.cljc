@@ -21,11 +21,11 @@
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [same :refer [ish?]]
+            [sicmutils.abstract.function :as f #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.midpoint :as qm]
             [sicmutils.numerical.quadrature.simpson :as qs]
             [sicmutils.numerical.quadrature.simpson38 :as qs38]
             [sicmutils.numerical.quadrature.trapezoid :as qt]
-            [sicmutils.function :as f #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.numsymb]
             [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]

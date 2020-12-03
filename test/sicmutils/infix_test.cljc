@@ -21,11 +21,12 @@
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             #?(:cljs [goog.string :refer [format]])
+            [sicmutils.abstract.function :as af
+             #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :refer [D taylor-series]]
             [sicmutils.generic :as g :refer [expt sin cos + - * /]]
             [sicmutils.infix :as i :refer [->infix ->TeX ->JavaScript]]
-            [sicmutils.function :as f
-             #?(:clj :refer :cljs :refer-macros) [with-literal-functions]]
+            [sicmutils.function :as f]
             [sicmutils.series :as series]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :refer [up down]]))
@@ -63,7 +64,7 @@
     (is (= "- a" (->infix '(- a)))))
 
   (testing "with-simplifier"
-    (with-literal-functions [[f [0 0] 0] h k]
+    (af/with-literal-functions [[f [0 0] 0] h k]
       (is (= "a + b + c" (s->infix (+ 'a 'b 'c))))
       (is (= "a b c" (s->infix (* 'a 'b 'c))))
       (is (= "a b + a c" (s->infix (* 'a (+ 'b 'c)))))
@@ -101,7 +102,7 @@
   (is (= "x^y" (s->infix (expt 'x 'y)))))
 
 (deftest more-with-D
-  (with-literal-functions [f g [p [] 0]]
+  (af/with-literal-functions [f g [p [] 0]]
     (is (= "f(s)" (s->infix (f 's))))
     (is (= "(f + g)(x, y)" (->infix '((+ f g) x y))))
     (is (= "f(x) g(x)" (s->infix ((* f g) 'x))))
@@ -219,7 +220,7 @@
             "function(a, b, c) {\n  return - a * b * c;\n}"
             "- a\\,b\\,c"]
            (all-formats (- (* 'a 'b 'c)))))
-    (let [f (f/literal-function 'f)]
+    (let [f (af/literal-function 'f)]
       (is (= ["Df(x)"
               "function(D, f, x) {\n  return D(f)(x);\n}"
               "Df\\left(x\\right)"]
@@ -230,7 +231,7 @@
              (all-formats ((D (D f)) 'x))))
 
       (let [expr (-> (taylor-series
-                      (f/literal-function 'f (up 0 0) 0)
+                      (af/literal-function 'f (up 0 0) 0)
                       (up 'x 'y)
                       (up 'dx 'dy))
                      (series/sum 2))]

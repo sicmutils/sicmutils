@@ -20,10 +20,10 @@
 (ns sicmutils.mechanics.hamilton-test
   (:refer-clojure :exclude [+ - * / partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [sicmutils.abstract.function :as f #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.mechanics.hamilton :as H]
             [sicmutils.mechanics.lagrange :as L]
-            [sicmutils.function :as f #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.matrix :as m]
             [sicmutils.operator :as o]

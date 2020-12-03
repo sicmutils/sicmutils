@@ -19,8 +19,8 @@
 
 (ns sicmutils.mechanics.lagrange-test
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [sicmutils.abstract.function :as f #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :refer [D]]
-            [sicmutils.function :as f #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
             [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]
             [sicmutils.matrix :as m]

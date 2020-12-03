@@ -22,11 +22,11 @@
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
+            [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :as d
              :refer [D partial #?(:cljs Differential)]]
             [sicmutils.complex :refer [complex]]
-            #?(:clj  [sicmutils.function :as f :refer [with-literal-functions]]
-               :cljs [sicmutils.function :as f :refer-macros [with-literal-functions]])
+            [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [acos asin atan cos sin tan
                                              cot sec csc
                                              log exp expt + - * /]]
@@ -43,9 +43,9 @@
 (use-fixtures :once hermetic-simplify-fixture)
 
 (def ^:private q
-  (s/up (f/literal-function 'x)
-        (f/literal-function 'y)
-        (f/literal-function 'z)))
+  (s/up (af/literal-function 'x)
+        (af/literal-function 'y)
+        (af/literal-function 'z)))
 
 (defn ^:private δ
   [η]
@@ -197,7 +197,7 @@
 
 (deftest diff-test-2
   (testing "delta-eta-test"
-    (with-literal-functions [η q f g]
+    (af/with-literal-functions [η q f g]
       (let [I (fn [q] (fn [t] (q t)))
             F (fn [q] (fn [t] (f (q t))))
             G (fn [q] (fn [t] (g (q t))))
@@ -207,7 +207,7 @@
             δηI (δη I)
             δηIq (δηI q)
             δηFq ((δη F) q)
-            φ (fn [f] (fn [q] (fn [t] ((f/literal-function 'φ) ((f q) t)))))]
+            φ (fn [f] (fn [q] (fn [t] ((af/literal-function 'φ) ((f q) t)))))]
         (is (= '((D f) t) (g/simplify ((D f) 't))))
         (is (= '(+ (* ε (η t)) (q t)) (g/simplify (q+εη 't))))
         (is (= '(+ (* ε (η t)) (q t)) (g/simplify ((g 'ε) 't))))
@@ -282,7 +282,7 @@
     (is (= 0 ((D (fn [& xs] 0)) 'x)))))
 
 (deftest literal-functions
-  (with-literal-functions [f [g [0 0] 0]]
+  (af/with-literal-functions [f [g [0 0] 0]]
     (testing "R -> R"
       (is (= '((D f) x) (g/simplify ((D f) 'x))))
       (is (= '((D f) (+ x y)) (g/simplify ((D f) (+ 'x 'y))))))
@@ -375,8 +375,8 @@
 
 (deftest alexgian-examples
   (testing "space"
-    (let [g (f/literal-function 'g [0 0] 0)
-          h (f/literal-function 'h [0 0] 0)]
+    (let [g (af/literal-function 'g [0 0] 0)
+          h (af/literal-function 'h [0 0] 0)]
       (is (= '(+ (((partial 0) g) x y) (((partial 0) h) x y))
              (g/simplify (((partial 0) (+ g h)) 'x 'y))))
       (is (= '(+ (* (((partial 0) g) x y) (h x y)) (* (((partial 0) h) x y) (g x y)))
@@ -464,8 +464,8 @@
                  (((partial 0 1) f) 'x 'y)))))
 
 (deftest derivative-as-operator
-  (let [f (f/literal-function 'f [0 0] 0)
-        g (f/literal-function 'g (s/up 0 0) 0)
+  (let [f (af/literal-function 'f [0 0] 0)
+        g (af/literal-function 'g (s/up 0 0) 0)
         dX (s/up 'dx 'dy)]
     (is (= '(f x y) (g/simplify (f 'x 'y))))
     (is (= '(g (up (* 3 x) (* 3 y))) (g/simplify (g (* 3 (s/up 'x 'y))))))
@@ -506,7 +506,7 @@
              (* dy (((partial 1) f) (up x y)))
              (f (up x y)))
          (->> (d/taylor-series
-               (f/literal-function 'f (s/up 0 0) 0)
+               (af/literal-function 'f (s/up 0 0) 0)
                (s/up 'x 'y)
                (s/up 'dx 'dy))
               (take 4)
@@ -553,7 +553,7 @@
                       (fn [s]
                         (let [v (F s)]
                           (matrix/s->m (s/compatible-shape (* v s)) v s))))
-          C-general (f/literal-function
+          C-general (af/literal-function
                      'C '(-> (UP Real
                                  (UP Real Real)
                                  (DOWN Real Real))
@@ -612,8 +612,8 @@
                     0 'dx)))))))
 
 (deftest derivative-of-matrix
-  (let [M (matrix/by-rows [(f/literal-function 'f) (f/literal-function 'g)]
-                          [(f/literal-function 'h) (f/literal-function 'k)])]
+  (let [M (matrix/by-rows [(af/literal-function 'f) (af/literal-function 'g)]
+                          [(af/literal-function 'h) (af/literal-function 'k)])]
     (is (= '(matrix-by-rows [(f t) (g t)]
                             [(h t) (k t)])
            (g/simplify (M 't))))
@@ -660,7 +660,7 @@
 ;; and operator functions.
 (deftest refman-tests
   (testing "o/expn expansion of `D`"
-    (let [f     (f/literal-function 'f)
+    (let [f     (af/literal-function 'f)
           ->seq (comp v/freeze g/simplify #(take 10 %))]
       (is (= (->seq ((series/->function (((o/exp D) f) 'x)) 'dx))
              (->seq (((o/exp (g/* 'dx D)) f) 'x)))

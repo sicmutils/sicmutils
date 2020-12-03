@@ -22,6 +22,7 @@
                   #?@(:cljs [:exclude [partial]]))
   (:require [clojure.string :refer [join]]
             [sicmutils.expression :as x]
+            [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as matrix]
             [sicmutils.operator :as o]
@@ -431,14 +432,11 @@
           ((d f) (first xs))
           ((d #(apply f %)) (matrix/seq-> xs)))))))
 
-(derive ::x/numeric ::codiff)
-(derive ::v/number ::codiff)
-
 (defn ^:private define-binary-operation
   [generic-operation differential-operation]
   (doseq [signature [[::differential ::differential]
-                     [::codiff ::differential]
-                     [::differential ::codiff]]]
+                     [::v/scalar ::differential]
+                     [::differential ::v/scalar]]]
     (defmethod generic-operation signature [a b] (differential-operation a b))))
 
 (defn ^:private define-unary-operation
@@ -477,6 +475,7 @@
 
 (derive ::differential ::o/co-operator)
 (derive ::differential ::series/coseries)
+(derive ::differential ::f/cofunction)
 
 (defmethod g/partial-derivative
   [::v/function v/seqtype]
