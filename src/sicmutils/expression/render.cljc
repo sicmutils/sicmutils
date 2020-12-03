@@ -17,7 +17,7 @@
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(ns sicmutils.expression.infix
+(ns sicmutils.expression.render
   (:require [clojure.zip :as z]
             [clojure.set :as set]
             [clojure.string :as s]

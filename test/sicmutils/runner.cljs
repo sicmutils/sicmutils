@@ -23,7 +23,7 @@
 
             sicmutils.expression.analyze-test
             sicmutils.expression.compile-test
-            sicmutils.expression.infix-test
+            sicmutils.expression.render-test
 
             sicmutils.mechanics.hamilton-test
             sicmutils.mechanics.lagrange-test
@@ -116,7 +116,7 @@
 
            'sicmutils.expression.analyze-test
            'sicmutils.expression.compile-test
-           'sicmutils.expression.infix-test
+           'sicmutils.expression.render-test
 
            'sicmutils.numerical.elliptic-test
            'sicmutils.numerical.minimize-test

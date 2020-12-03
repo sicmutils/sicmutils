@@ -32,7 +32,7 @@
   - `sicmutils.polynomial-factor` => `sicmutils.polynomial.factor`
   - `sicmutils.rules`             => `sicmutils.simplify.rules`
   - `sicmutils.analyze`           => `sicmutils.expression.analyze`
-  - `sicmutils.infix`             => `sicmutils.expression.infix`
+  - `sicmutils.infix`             => `sicmutils.expression.render`
   - `sicmutils.numerical.compile` => `sicmutils.expression.compile`
 
 - `sicmutils.env/one?` now exposes/aliases `sicmutils.value/unity?`
@@ -121,7 +121,7 @@
   ([#173](https://github.com/littleredcomputer/sicmutils/pull/173))
 
 - Add support for the hyperbolic trig functions `sinh`, `cosh`, `tanh`, `atanh`,
-  `asinh` and `acosh` to `sicmutils.expression.infix/->Javascript`.
+  `asinh` and `acosh` to `sicmutils.expression.render/->Javascript`.
   ([#174](https://github.com/littleredcomputer/sicmutils/pull/174))
 
 - Add support for the hyperbolic trig functions `atanh`, `asinh` and `acosh` to
