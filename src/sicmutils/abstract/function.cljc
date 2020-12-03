@@ -153,11 +153,12 @@
          (let [n           (count range)
                orientation (s/orientation range)
                template    (s/literal f n orientation)]
+
            (s/mapr #(literal-function %1 domain %2)
                    template
                    range))
          :else
-         (u/illegal (str "WTF range" domain)))))
+         (u/illegal (str "WTF range" range)))))
 
 (defmacro with-literal-functions [litfns & body]
   `(let ~(vec (interleave

@@ -69,14 +69,11 @@
 
 (defn literal-vector-field
   [name coordinate-system]
-  (let [n (:dimension (m/manifold coordinate-system))
+  (let [n      (:dimension (m/manifold coordinate-system))
         domain (apply s/up (repeat n 0))
-        range 0
-        components (s/generate n ::s/up #(af/literal-function
-                                          (symbol (str name \↑ %))
-                                          domain
-                                          range))]
-    (components->vector-field components coordinate-system name)))
+        range  domain]
+    (-> (af/literal-function name domain range)
+        (components->vector-field coordinate-system name))))
 
 (defn ^:private coordinate-basis-vector-field-procedure
   [coordinate-system & i]
