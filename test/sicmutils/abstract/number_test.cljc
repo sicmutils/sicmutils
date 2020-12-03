@@ -85,6 +85,22 @@
                 "You get a floating-point inexact result by calling generic fns
     on a number directly, by comparison.")))
 
+;; Generators
+
+(defn inexact-double
+  ([] (inexact-double {}))
+  ([opts]
+   (->> (sg/reasonable-double opts)
+        (gen/fmap (fn [x]
+                    (if (v/exact? x)
+                      (+ x 0.5)
+                      x))))))
+
+(def double-or-int
+  (gen/one-of
+   [gen/small-integer
+    (sg/reasonable-double)]))
+
 (deftest literal-number-arithmetic-tests
   (letfn [(check [op l r]
             (let [expected (op l r)
@@ -103,36 +119,36 @@
               (when-not (zero? y)
                 (check g// x y))))
 
-  (checking "negate" 100 [x (sg/reasonable-double)]
+  (checking "negate" 100 [x (inexact-double)]
             (is (= (an/literal-number (- x))
                    (g/negate (an/literal-number x)))))
 
-  (checking "invert" 100 [x (sg/reasonable-double)]
-            (is (= (an/literal-number (/ x))
+  (checking "invert" 100 [x (inexact-double)]
+            (is (= (an/literal-number (g// x))
                    (g/invert (an/literal-number x)))))
 
-  (checking "square" 100 [x (sg/reasonable-double)]
+  (checking "square" 100 [x (inexact-double)]
             (is (ish? (an/literal-number (g/* x x))
                       (g/square (an/literal-number x)))))
 
-  (checking "cube" 100 [x (sg/reasonable-double :min -1e3 :max 1e3)]
+  (checking "cube" 100 [x (sg/reasonable-double {:min -1e3 :max 1e3})]
             (is (= (an/literal-number (g/expt x 3))
                    (g/cube (an/literal-number x)))))
 
-  (checking "expt" 100 [x (sg/reasonable-double)
+  (checking "expt" 100 [x (inexact-double)
                         e (gen/choose 0 3)]
             (is (= (an/literal-number (g/expt x e))
                    (g/expt (an/literal-number x) e))))
 
-  (checking "abs" 100 [x (sg/reasonable-double)]
+  (checking "abs" 100 [x (inexact-double)]
             (is (= (an/literal-number (Math/abs x))
                    (g/abs (an/literal-number x)))))
 
-  (checking "sqrt" 100 [x (sg/reasonable-double)]
+  (checking "sqrt" 100 [x (inexact-double)]
             (is (= (an/literal-number (g/sqrt x))
                    (g/sqrt (an/literal-number x)))))
 
-  (checking "log" 100 [x (sg/reasonable-double)]
+  (checking "log" 100 [x (inexact-double)]
             (is (= (an/literal-number (g/log x))
                    (g/log (an/literal-number x))))
 
@@ -146,7 +162,7 @@
                          (g/log 10))))
                    (g/log10 (an/literal-number x)))))
 
-  (checking "exp" 100 [x (sg/reasonable-double)]
+  (checking "exp" 100 [x (inexact-double)]
             (is (= (an/literal-number (Math/exp x))
                    (g/exp (an/literal-number x))))
 
@@ -168,26 +184,31 @@
                    (g/imag-part (an/literal-number z)))))
 
   (checking "angle" 100 [z sg/complex]
-            (is (= (an/literal-number (g/angle z))
-                   (g/angle (an/literal-number z)))))
+            (let [z'       (an/literal-number z)
+                  result   (g/angle z)
+                  expected (cond (and (v/exact? z') (v/exact? result))
+                                 (an/literal-number result)
+
+                                 (v/exact? z')
+                                 (g/atan (g/imag-part z')
+                                         (g/real-part z'))
+
+                                 :else (an/literal-number result))]
+              (is (= expected (g/angle z')))))
 
   (checking "magnitude" 100 [z sg/complex]
-            (is (= (an/literal-number (g/magnitude z))
-                   (g/magnitude (an/literal-number z))))))
-
-(def double-or-int
-  (gen/one-of
-   [gen/small-integer
-    (sg/reasonable-double)]))
+            (let [expected (if (v/exact? z)
+                             (g/sqrt
+                              (an/literal-number
+                               (g/* z (g/conjugate z))))
+                             (an/literal-number (g/magnitude z)))]
+              (is (= expected
+                     (g/magnitude (an/literal-number z)))))))
 
 (deftest literal-number-trig-tests
   (checking "inexact literal number trig"
             100
-            [x (->> (sg/reasonable-double)
-                    (gen/fmap (fn [x]
-                                (if (v/exact? x)
-                                  (+ x 0.5)
-                                  x))))]
+            [x (inexact-double)]
             (testing "cosine"
               (is (ish? (an/literal-number
                          (cond (@#'sym/n:pi-over-2-mod-pi? x) 0

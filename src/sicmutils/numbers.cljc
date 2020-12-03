@@ -193,6 +193,11 @@
          (g/invert (js* "~{} ** ~{}" a (core-minus b)))
          (js* "~{} ** ~{}" a b)))
 
+     ;; Not ideal; TODO find a better way to calculate this without the
+     ;; downcast.
+     (defmethod g/sqrt [js/BigInt] [a]
+       (Math/sqrt (js/Number a)))
+
      (defmethod g/abs [js/BigInt] [a] (if (neg? a) (core-minus a) a))
      (defmethod g/quotient [js/BigInt js/BigInt] [a b] (core-div a b))
      (defmethod g/remainder [js/BigInt js/BigInt] [a b] (js* "~{} % ~{}" a b))
