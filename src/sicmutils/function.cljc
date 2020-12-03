@@ -166,6 +166,7 @@
       (g (f a)))))
 
 (defunary g/determinant)
+(defunary g/trace)
 (defbinary g/cross-product)
 (defbinary g/gcd)
 (defbinary g/lcm)

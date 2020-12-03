@@ -491,8 +491,6 @@
     (when-not (= r c) (u/illegal "not square"))
     (determinant (g/- (g/* x (I r)) m))))
 
-(defmethod g/transpose [::matrix] [m] (transpose m))
-(defmethod g/invert [::matrix] [m] (invert m))
 (defmethod g/negate [::matrix] [a] (fmap g/negate a))
 (defmethod g/sub [::matrix ::matrix] [a b] (elementwise g/- a b))
 (defmethod g/add [::matrix ::matrix] [a b] (elementwise g/+ a b))
@@ -516,16 +514,39 @@
 (defmethod g/asinh [::matrix] [m] (series/asinh-series m))
 (defmethod g/atanh [::matrix] [m] (series/atanh-series m))
 (defmethod g/simplify [::matrix] [m] (->> m (fmap g/simplify) v/freeze))
-(defmethod g/determinant [::matrix] [m] (determinant m))
 
-(defmethod g/determinant
-  [::s/structure]
-  [s]
+(defmethod g/invert [::matrix] [m] (invert m))
+
+;; TODO make this true, and working!
+(declare trace)
+
+(comment
+  ;; TODO From scheme, translate
+  (defn trace [matrix]
+    (assert (matrix? matrix) "Not a matrix -- TRACE")
+    (let [rows (m:num-rows matrix)
+          m (matrix->array matrix)]
+      (assert (= rows (m:num-cols matrix))
+              "Not a square matrix -- TRACE" matrix)
+      (g:sigma (fn [j] (array-ref m j j))
+               0
+               (fix:- rows 1)))))
+
+(defmethod g/transpose [::matrix] [m] (transpose m))
+(defmethod g/trace [::matrix] [m] (trace m))
+(defmethod g/determinant [::matrix] [m] (determinant m))
+(defmethod g/dimension [::matrix] [m]
+  (cond (square? m) (dimension m)
+        ;; TODO add checks for column matrix etc.
+        :else (u/illegal "Unknown!")))
+
+(defmethod g/determinant [::s/structure] [s]
   (square-structure-> s (fn [m _] (determinant m))))
 
-(defmethod g/invert
-  [::s/structure]
-  [a]
+(defmethod g/trace [::s/structure] [s]
+  (square-structure-> s (fn [m _] (trace m))))
+
+(defmethod g/invert [::s/structure] [a]
   (let [a' (square-structure-operation a invert)]
     (if (= (s/orientation a') (s/orientation (first a')))
       (s/opposite a' (map #(s/opposite a' %) a'))
