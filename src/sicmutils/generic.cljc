@@ -40,7 +40,20 @@
 (defmacro ^:private def-generic-function
   "Defines a multifn using the provided symbol. Arranges for the multifn
   to answer the :arity message, reporting either [:exactly a] or
-  [:between a b], according to the arguments given."
+  [:between a b], according to the arguments given.
+
+  - `arities` can be either a single number or a list of numbers.
+
+  The `options` allowed differs slightly from `defmulti`:
+
+  - the first optional argument is a docstring.
+
+  - the second optional argument is a dict of metadata. When you query the
+  defined multimethod with a keyword, it will pass that keyword along as a query
+  to this metadata map. (`:arity` is always overridden if supplied, and `:name`
+  defaults to the symbol `f`.)
+
+  Any remaining options are passed along to `defmulti`."
   {:arglists '([name arities docstring? attr-map? & options])}
   [f arities & options]
   (let [[a b] (if (vector? arities) arities [arities])
@@ -55,29 +68,31 @@
                          [(first options) (next options)]
                          [{} options])
         kwd-klass (fork :clj clojure.lang.Keyword :cljs 'cljs.core/Keyword)
-        name      (:name attr f)]
+        attr (assoc attr
+                    :arity arity
+                    :name (:name attr `'~f))]
     `(do
        (defmulti ~f ~docstring v/argument-kind ~@options)
        (defmethod ~f [~kwd-klass] [k#]
-         ({:arity ~arity :name '~name} k#)))))
+         (~attr k#)))))
 
 ;; Numeric functions.
-(def-generic-function add 2    {:name +})
-(def-generic-function negate 1 {:name -})
+(def-generic-function add 2    {:name '+})
+(def-generic-function negate 1 {:name '-})
 (def-generic-function negative? 1
   "Returns true if the argument `a` is less than `(v/zero-like a), false
   otherwise. The default implementation depends on a proper Comparable
   implementation on the type.`")
 (defmethod negative? :default [a] (< a (v/zero-like a)))
 
-(def-generic-function sub 2 {:name -})
+(def-generic-function sub 2 {:name '-})
 (defmethod sub :default [a b]
   (add a (negate b)))
 
-(def-generic-function mul 2 {:name *})
-(def-generic-function invert 1 {:name /})
+(def-generic-function mul 2 {:name '*})
+(def-generic-function invert 1 {:name '/})
 
-(def-generic-function div 2 {:name /})
+(def-generic-function div 2 {:name '/})
 (defmethod div :default [a b] (mul a (invert b)))
 
 (def-generic-function abs 1)
