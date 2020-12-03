@@ -121,13 +121,10 @@
 (defn literal-oneform-field
   [name coordinate-system]
   (let [n (:dimension (m/manifold coordinate-system))
-        domain (apply s/up (repeat n 0))
-        range 0
-        components (s/generate n ::s/down #(af/literal-function
-                                            (symbol (str name \_ %))
-                                            domain
-                                            range))]
-    (components->oneform-field components coordinate-system name)))
+        domain (apply s/up   (repeat n 0))
+        range  (apply s/down (repeat n 0))]
+    (-> (af/literal-function name domain range)
+        (components->oneform-field coordinate-system name))))
 
 (defn get-rank
   [f]
