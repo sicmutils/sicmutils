@@ -1,0 +1,8 @@
+= How to Use SICMUtils
+
+How do you use this?
+
+- Library
+- Notebook
+- Clojurescript (see cljs page)
+- Shell (via GraalVM)

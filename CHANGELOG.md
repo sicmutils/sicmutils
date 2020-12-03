@@ -41,6 +41,9 @@
   fn namespace. The fix lives in
   [#169](https://github.com/littleredcomputer/sicmutils/pull/169).
 
+- added `sicmutils.value/sqrt-machine-epsilon`
+  ([#170](https://github.com/littleredcomputer/sicmutils/pull/170))
+
 - fixed issues in `function.cljc` and `operator.cljc` where the Clojurescript
   `IFn` `-invoke` arguments shadowed either the `this` operator, or some
   parameter name in the deftype
