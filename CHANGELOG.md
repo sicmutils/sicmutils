@@ -120,9 +120,13 @@
   now freeze to the same symbols as their generic counterparts.
   ([#173](https://github.com/littleredcomputer/sicmutils/pull/173))
 
-- Add support for the hyperbolic trig function `sinh`, `cosh`, `tanh`, `atanh`,
-  `asinh` and `acosh` to `sicmutils.infix/->Javascript`.
+- Add support for the hyperbolic trig functions `sinh`, `cosh`, `tanh`, `atanh`,
+  `asinh` and `acosh` to `sicmutils.expression.infix/->Javascript`.
   ([#174](https://github.com/littleredcomputer/sicmutils/pull/174))
+
+- Add support for the hyperbolic trig functions `atanh`, `asinh` and `acosh` to
+  `sicmutils.expression.compile`.
+  ([#175](https://github.com/littleredcomputer/sicmutils/pull/175))
 
 ### Literals
 
