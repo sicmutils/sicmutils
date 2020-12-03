@@ -21,6 +21,7 @@
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing]]
             [sicmutils.abstract.number]
+            [sicmutils.complex :as c]
             [sicmutils.generic :as g :refer [+ - * / cube expt negate square]]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
@@ -497,7 +498,7 @@
 
     (let [m (g/magnitude [#sicm/complex "3+4i" (g/sqrt 11)])]
       (is (= (g/sqrt (g/square m))
-             (g/abs m)))))
+             (c/complex (g/abs m))))))
 
   (testing "g/conjugate"
     (is (= (s/up 3 4 5) (g/conjugate [3 4 5])))
