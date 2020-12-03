@@ -32,6 +32,22 @@
 
 (def ^:private near (v/within 1.0e-6))
 
+(deftest value-protocol-tests
+  (testing "freeze"
+    (is (= ['+ '- '* '/ 'modulo 'quotient 'remainder 'negative?]
+           (map v/freeze [+ - * / mod quot rem neg?]))
+        "Certain functions freeze to symbols")
+
+    (is (= (map v/freeze [g/+ g/- g/* g//
+                          g/modulo g/quotient g/remainder
+                          g/negative?])
+           (map v/freeze [+ - * / mod quot rem neg?]))
+        "These freeze to the same symbols as their generic counterparts.")
+
+    (let [f (fn [x] (* x x))]
+      (is (= f (v/freeze f))
+          "Unknown functions freeze to themselves"))))
+
 (deftest trig-tests
   (testing "tan, sin, cos"
     (let [f (g/- g/tan (g/div g/sin g/cos))]
@@ -131,14 +147,6 @@
            (let [deferred (g/lcm (g/+ 1 g/square) 6)]
              (deferred 3))))))
 
-(defn transpose-defining-relation [T g a]
-  "T is a linear transformation T:V -> W
-  the transpose of T, T^t:W* -> V*
-  Forall a in V, g in W*,  g:W -> R
-  (T^t(g))(a) = g(T(a))."
-  (g/- (((g/transpose T) g) a)
-       (g (T a))))
-
 (deftest transpose-test
   (testing "transpose"
     (let [f #(str "f" %)
@@ -177,19 +185,19 @@
       (is (= 10 ((g/+ mul3 4) 2)))
       (is (= 32 ((g/expt 2 add2) 3)))
       (is (= 25 ((g/expt add2 2) 3)))
-      (is (= ::v/function (v/kind (g/expt add2 2))))
+      (is (= ::v/function (v/kind (g/expt add2 2)))))
 
-      (testing "determinant"
-        (is (= 20 ((g/determinant *) 4 5))))
+    (testing "determinant"
+      (is (= 20 ((g/determinant *) 4 5))))
 
-      (testing "cross-product"
-        (let [deferred (g/cross-product #(g/* 2 %)
-                                        #(g/+ (s/up 4 3 1) %))
-              v (s/up 1 2 3)]
-          (is (= (g/cross-product (g/* 2 v)
-                                  (g/+ (s/up 4 3 1) v))
-                 (deferred v))
-              "Slightly tougher since this works with structures"))))
+    (testing "cross-product"
+      (let [deferred (g/cross-product #(g/* 2 %)
+                                      #(g/+ (s/up 4 3 1) %))
+            v (s/up 1 2 3)]
+        (is (= (g/cross-product (g/* 2 v)
+                                (g/+ (s/up 4 3 1) v))
+               (deferred v))
+            "Slightly tougher since this works with structures")))
 
     (testing "arity 2"
       (let [f (fn [x y] (+ x y))

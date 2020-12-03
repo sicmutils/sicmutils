@@ -99,6 +99,17 @@
       (is (= (->Wrap "1/l") (g/invert l)))
       (is (= (->Wrap "l*1/r") (g/div l r))))))
 
+(deftest generic-freeze-behavior
+  (testing "freeze should return symbols"
+    (is (= 'abs (v/freeze g/abs))
+        "fn where we don't override the name.")
+
+    (is (= ['+ '- '- '* '/ '/]
+           (map v/freeze [g/add g/sub g/negate g/mul g/div g/invert])
+           (map v/freeze [g/+ g/- g/- g/* g// g/divide]))
+        "v/freeze returns symbols for our generic multimethods. The hidden g/add
+        etc return proper higher-level symbols.")))
+
 (deftest type-assigner
   (testing "types"
     (is (= #?(:clj Long :cljs ::v/native-integral) (v/kind 9)))

@@ -113,6 +113,11 @@
   the other way around.
   ([#171](https://github.com/littleredcomputer/sicmutils/pull/171))
 
+- Enhanced the `g/simplify` behavior for core functions that overlap with
+  generic functions (`+`, `-`, `*`, `/`, `mod`, `quot`, `rem`, `neg?`). These
+  now freeze to the same symbols as their generic counterparts.
+  ([#173](https://github.com/littleredcomputer/sicmutils/pull/173))
+
 ### Literals
 
 - `literal-matrix` fn generates a symbolic matrix
