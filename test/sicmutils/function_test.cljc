@@ -51,6 +51,8 @@
       (is (= '(up x y) (g/simplify xy)))
       (is (= '(up (x t) (y t)) (g/simplify xyt)))
       (is (= '(+ (expt (x t) 2) (expt (y t) 2)) (g/simplify xyt2)))
+      (is (= 1 (g/simplify (g/+ (g/expt (g/sin 'x) 2) (g/expt (g/cos 'x) 2)))))
+      (is (= 1 (g/simplify (g/+ (g/expt (g/cos 'x) 2) (g/expt (g/sin 'x) 2)))))
       (is (= '(U (+ (expt (x t) 2) (expt (y t) 2))) (g/simplify Uxyt2)))))
 
   (testing "moved-from-matrix"
