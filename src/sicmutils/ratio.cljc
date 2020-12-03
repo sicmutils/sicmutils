@@ -220,9 +220,9 @@
      (defmethod g/expt [Fraction ::v/integral] [a b] (pow a b))
      (defmethod g/sqrt [Fraction] [a]
        (if (neg? a)
-         (g/sqrt (complex (.valueOf a)))
-         (g/div (g/sqrt (numerator a))
-                (g/sqrt (denominator a)))))
+         (g/sqrt (c/complex (.valueOf a)))
+         (g/div (g/sqrt (u/double (numerator a)))
+                (g/sqrt (u/double (denominator a))))))
 
      ;; Only integral ratios let us stay exact. If a ratio appears in the
      ;; exponent, convert the base to a number and call g/expt again.

@@ -41,7 +41,10 @@
     (doall
      (for [l [12 (an/literal-number 12)]
            r [12 (an/literal-number 12)]]
-       (is (v/eq l r)))))
+       (do (is (v/eq l r))
+           #?(:cljs (is (= l r)
+                        "cljs overrides equality, and can compare literals with
+                        true numbers on the left side."))))))
 
   (checking "interaction with symbols"
             100

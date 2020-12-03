@@ -79,17 +79,34 @@
   [x]
   (isa? (kind x) ::integral))
 
-(defn real? [x]
+(defn real?
+  "Returns true if `x` is either an integral number or a floating point number (ie,
+  in the numeric tower but not complex), false otherwise."
+  [x]
   (isa? (kind x) ::real))
 
-(defn number? [x]
+(defn number?
+  "Returns true if `x` is any number type in the numeric tower:
+
+  - integral
+  - floating point
+  - complex
+
+  false otherwise."
+  [x]
   (isa? (kind x) ::number))
 
 ;; `::scalar` is a thing that symbolic expressions AND actual numbers both
 ;; derive from.
 (derive ::number ::scalar)
 
-(defn scalar? [x]
+(defn scalar?
+  "Returns true for anything that derives from `::scalar`, ie, any numeric type in
+  the numeric tower that responds true to [[number?]], plus symbolic expressions
+  generated [[sicmutils.abstract.number/literal-number]],
+
+  false otherwise."
+  [x]
   (isa? (kind x) ::scalar))
 
 #?(:clj

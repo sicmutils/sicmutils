@@ -6,52 +6,75 @@
 
 - expose `bootstrap-repl!` to Clojurescript, so that this is available in
   self-hosted CLJS (https://github.com/littleredcomputer/sicmutils/pull/157)
+
 - modified `infix.cljc` to wrap forms in `displaystyle` and add proper carriage
   returns inside structures
   (https://github.com/littleredcomputer/sicmutils/pull/157)
+
 - add `multidimensional-minimize` to the `sicmutils.env` namespace
   (https://github.com/littleredcomputer/sicmutils/pull/157)
+
 - add more `sqrt` simplification rules to allow square roots to cancel out
   across a division boundary, with or without products in the numerator and
   denominator (https://github.com/littleredcomputer/sicmutils/pull/160)
+
 - fix NPE bug that appears in nelder-mead, when callback isn't supplied
   (https://github.com/littleredcomputer/sicmutils/pull/162)
+
 - Add `sqrt-expand` and `sqrt-contract`, to allow simplifications to push inside
   of square roots (https://github.com/littleredcomputer/sicmutils/pull/163)
+
 - speed up power series multiplication by skipping work when either head term is
   zero (https://github.com/littleredcomputer/sicmutils/pull/166)
-- File moves! PR (https://github.com/littleredcomputer/sicmutils/pull/167)
-  moved:
+
+- File moves!
   - `sicmutils.polynomial-gcd` => `sicmutils.polynomial.gcd`
   - `sicmutils.polynomial-factor` => `sicmutils.polynomial.factor`
   - `sicmutils.rules` => `sicmutils.simplify.rules`
+  - `sicmutils.analyze` => `sicmutils.expression.analyze`
+
 - `sicmutils.env/one?` now exposes/aliases `sicmutils.value/unity?`
   [#154](https://github.com/littleredcomputer/sicmutils/pull/154)
+
 - Fixed [#93](https://github.com/littleredcomputer/sicmutils/issues/93) by
   adding an explicit `g/invert` implementation for polynomials in the rational
   fn namespace. The fix lives in
   [#169](https://github.com/littleredcomputer/sicmutils/pull/169).
+
 - fixed issues in `function.cljc` and `operator.cljc` where the Clojurescript
   `IFn` `-invoke` arguments shadowed either the `this` operator, or some
   parameter name in the deftype
   ([#169](https://github.com/littleredcomputer/sicmutils/pull/169))
-- https://github.com/littleredcomputer/sicmutils/pull/168/files
+
+- `g/sqrt` now maintains precision with Clojurescript's rational numbers.
+  `(g/sqrt #sicm/ratio 9/4)` for example returns `#sicm/ratio 3/2`.
+  ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+
+- `g/determinant` and `g/transpose` now act as identity for everything in the
+  numeric tower, plus symbolic expressions
+  ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+
 - `sicmutils.expression.Expression` is now `sicmutils.expression.Literal`; it
   has a new `meta` field, and is a `deftype` instead of a `defrecord`.
   ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
   - To get the internal expression, use `x/expression-of` instead of
     `:expression`.
   - to access the `type` field, use `x/literal-type` instead of `:type`
+
 - 2-arity `g/atan`, `g/cross-product` and `g/gcd` now work for functions
   ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+
 - `Literal` now responds appropriately to `v/unity?` and `v/nullity?` if it
   wraps a numerical "0" or "1". `v/exact?` now returns true if the literal wraps
   an exact number ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+
 - `x/variables-in` now works with wrapped expressions; no more need to
   explicitly unwrap
   ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+
 - `x/walk-expression` renamed `x/evaluate`
   ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+
 - The new `x/substitute` performs substitutions on an _unwrapped_ expression
   ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
 
@@ -98,10 +121,13 @@ The fix comes from these changes:
 - `::v/number` now means, "the numeric tower ascending from integer -> rational
   -> real -> complex numbers. All of these types now respond `true` to
   `v/number?` (prior to this release, Complex numbers did NOT!)
-- `::v/real` now means, "anything in the numeric tower except Complex".
+
+- `::v/real` now means, "anything in the numeric tower except Complex". These
+  all respond true to `v/real?`
+
 - `::x/numeric-expression` has changed to `::x/numeric`, and now means "anything
   that responds to `::"v/number`, plus symbolic expressions, which now clearly
-  _represent_ any number in the numeric tower.
+  _represent_ any number in the numeric tower. Query for these with `v/scalar?`
 
 I can now make some comments that clear up my former misunderstandings:
 
@@ -134,6 +160,8 @@ I can now make some comments that clear up my former misunderstandings:
 
   - `literal-number?` only returns true for explicitly wrapped things and
     symbolic expressions, not symbols.
+
+  - use `v/real?`, `v/number?` and `v/scalar?` to query the numeric tower.
 
 
 - If you want to compare literal numbers and an expression like
