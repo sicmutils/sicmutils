@@ -54,6 +54,8 @@
 (defmethod g/magnitude [::v/real] [a] (u/compute-abs a))
 (defmethod g/div [::v/real ::v/real] [a b] (core-div a b))
 (defmethod g/invert [::v/real] [a] (core-div a))
+(defmethod g/transpose [::v/real] [a] a)
+(defmethod g/determinant [::v/real] [a] a)
 
 ;; ## Complex Operations
 (defmethod g/real-part [::v/real] [a] a)

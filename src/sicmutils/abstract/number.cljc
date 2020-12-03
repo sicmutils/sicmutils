@@ -166,6 +166,7 @@
 (defunary g/conjugate 'conjugate)
 
 (defbinary g/gcd 'gcd)
+(defmethod g/transpose [::x/numeric] [a] a)
 (defmethod g/determinant [::x/numeric] [a] a)
 (defmethod g/simplify [::x/numeric] [a]
   (s/simplify-expression (v/freeze a)))

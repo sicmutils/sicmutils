@@ -123,6 +123,27 @@
                        ::native-integral
                        ::floating-point)))
 
+  #?@(:clj
+      [java.lang.Double
+       (nullity? [x] (core-zero? x))
+       (unity? [x] (== 1 x))
+       (zero-like [_] 0.0)
+       (one-like [_] 1.0)
+       (freeze [x] x)
+       (exact? [x] false)
+       (numerical? [_] true)
+       (kind [x] (type x))
+
+       java.lang.Float
+       (nullity? [x] (core-zero? x))
+       (unity? [x] (== 1 x))
+       (zero-like [_] 0.0)
+       (one-like [_] 1.0)
+       (freeze [x] x)
+       (exact? [x] false)
+       (numerical? [_] true)
+       (kind [x] (type x))])
+
   nil
   (freeze [_] nil)
   (numerical? [_] false)

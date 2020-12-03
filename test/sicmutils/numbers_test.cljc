@@ -19,6 +19,9 @@
 
 (ns sicmutils.numbers-test
   (:require [clojure.test :refer [is deftest testing]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.complex :as c]
@@ -82,7 +85,14 @@
 
   (testing "sqrt of one preserves type"
     (is (v/one-like (g/sqrt c/ONE)))
-    (is (c/complex? (g/sqrt c/ONE)))))
+    (is (c/complex? (g/sqrt c/ONE))))
+
+  (checking "transpose, determinant act as id" 100
+            [x (gen/one-of
+                [(sg/reasonable-double)
+                 sg/any-integral])]
+            (is (= x (g/transpose x)))
+            (is (= x (g/determinant x)))))
 
 (deftest integer-generics
   (gt/integral-tests u/int)

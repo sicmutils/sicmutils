@@ -22,8 +22,7 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [same :refer [ish? with-comparator]
-             #?@(:cljs [:include-macros true])]
+            [same :refer [ish?]]
             [sicmutils.abstract.number :as an]
             [sicmutils.complex :as c]
             [sicmutils.expression :as x]
@@ -163,39 +162,25 @@
                    (g/real-part (an/literal-number z))))
 
             (is (= (an/literal-number (g/imag-part z))
-                   (g/imag-part (an/literal-number z))))
-
-            (is (= (an/literal-number z)
-                   (g/+ (g/real-part (an/literal-number z))
-                        (g/* #sicm/complex "0+1i"
-                             (g/imag-part (an/literal-number z)))))))
+                   (g/imag-part (an/literal-number z)))))
 
   (checking "angle" 100 [z sg/complex]
-            (let [rt (g/* (g/magnitude z)
-                          (g/exp (g/* #sicm/complex "0+1i"
-                                      (g/angle
-                                       (an/literal-number z)))))]
-              (with-comparator (v/within 1e-8)
-                (is (ish? (g/real-part z)
-                          (x/expression-of (g/real-part rt))))
-                (is (ish? (g/imag-part z)
-                          (x/expression-of (g/imag-part rt)))))))
+            (is (= (an/literal-number (g/angle z))
+                   (g/angle (an/literal-number z)))))
 
   (checking "magnitude" 100 [z sg/complex]
-            (is (ish? (g/magnitude z)
-                      (x/expression-of
-                       (g/real-part
-                        (g/sqrt
-                         (g/* z (g/conjugate
-                                 (an/literal-number z))))))))))
+            (is (= (an/literal-number (g/magnitude z))
+                   (g/magnitude (an/literal-number z))))))
+
+(def double-or-int
+  (gen/one-of
+   [gen/small-integer
+    (sg/reasonable-double)]))
 
 (deftest literal-number-trig-tests
   (checking "inexact literal number trig"
             100
-            [x (->> (gen/double* {:infinite? false
-                                  :NaN? false
-                                  :min 1e-8
-                                  :max 1e8})
+            [x (->> (sg/reasonable-double)
                     (gen/fmap (fn [x]
                                 (if (v/exact? x)
                                   (+ x 0.5)
@@ -236,14 +221,84 @@
                     "Otherwise, test out some mild optimizations, and if these
                     don't work bail out to Math/tan."))))
 
-  (comment
-    'asin
-    'acos
-    'atan
-    'sinh
-    'cosh
-    'sec
-    'csc))
+  (checking "asin" 100 [x double-or-int]
+            (is (= (cond (v/nullity? x) (v/zero-like x)
+                         (v/exact? x)   (list 'asin x)
+                         :else          (g/asin x))
+                   (x/expression-of
+                    (g/asin (an/literal-number x))))))
+
+  (checking "acos" 100 [x double-or-int]
+            (is (= (cond (v/unity? x) (v/zero-like x)
+                         (v/exact? x) (list 'acos x)
+                         :else        (g/acos x))
+                   (x/expression-of
+                    (g/acos (an/literal-number x))))))
+
+  (checking "atan, both arities" 100 [x double-or-int
+                                      y double-or-int]
+            (is (= (g/atan (an/literal-number x))
+                   (g/atan (an/literal-number x) 1)))
+
+            (is (= (cond (v/nullity? y) (v/zero-like y)
+                         (v/exact? y)   (list 'atan y)
+                         :else          (g/atan y))
+                   (x/expression-of
+                    (g/atan (an/literal-number y))))
+                "single arity")
+
+            (let [y-exact? (v/exact? y)
+                  x-exact? (v/exact? x)
+                  y-zero?  (v/nullity? y)
+                  x-zero?  (v/nullity? x)
+                  x-one?   (v/unity? x)]
+              (is (= (cond (and x-one? y-zero?)            0
+                           (and x-one? y-exact?)           (list 'atan y)
+                           x-one?                          (g/atan y)
+                           (and y-exact? y-zero?)           0
+                           (and y-exact? x-exact? x-zero?) (g/atan y x)
+                           (and y-exact? x-exact?)         (list 'atan y x)
+                           y-exact?                        (g/atan y x)
+                           :else                           (g/atan y x))
+                     (x/expression-of
+                      (g/atan
+                       (an/literal-number y)
+                       (an/literal-number x))))
+                  "double arity")))
+
+  (checking "cosh" 100 [x double-or-int]
+            (is (= (cond (v/nullity? x) 1
+                         (v/exact? x)   (list 'cosh x)
+                         :else          (g/cosh x))
+                   (x/expression-of
+                    (g/cosh (an/literal-number x))))))
+
+  (checking "sinh" 100 [x double-or-int]
+            (is (= (cond (v/nullity? x) 0
+                         (v/exact? x)   (list 'sinh x)
+                         :else          (g/sinh x))
+                   (x/expression-of
+                    (g/sinh (an/literal-number x))))))
+
+  (checking "sec" 100 [x double-or-int]
+            (is (= (cond (v/nullity? x) 1
+                         (v/exact? x)   (list '/ 1 (list 'cos x))
+                         :else          (g/sec x))
+                   (x/expression-of
+                    (g/sec (an/literal-number x))))))
+
+  (checking "csc" 100 [x (gen/one-of
+                          [gen/small-integer
+                           (sg/reasonable-double)])]
+            (if (v/nullity? x)
+              (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                           (g/csc (an/literal-number x))))
+
+              (is (= (if (v/exact? x)
+                       (list '/ 1 (list 'sin x))
+                       (g/csc x))
+                     (x/expression-of
+                      (g/csc (an/literal-number x))))))))
 
 (deftest symbolic-arithmetic-tests
   (testing "+ constructor optimizations"
@@ -356,6 +411,13 @@
             (is (= (g/expt 2 x) (g/exp2 x)))
             (is (= (g/expt 10 x) (g/exp10 x))))
 
+  (checking "transpose, determinant act as id" 100
+            [x (gen/one-of
+                [gen/symbol
+                 (gen/fmap an/literal-number sg/any-integral)])]
+            (is (= x (g/transpose x)))
+            (is (= x (g/determinant x))))
+
   (testing "conjugate"
     (is (= '(conjugate (random x))
            (v/freeze
@@ -460,11 +522,54 @@
       (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
                    (g/tan 'pi-over-2)))))
 
-  (comment
-    'asin
-    'acos
-    'atan
-    'sinh
-    'cosh
-    'sec
-    'csc))
+  (testing "asin"
+    (is (= '(asin x) (v/freeze (g/asin 'x)))))
+
+  (testing "acos"
+    (is (= '(acos x) (v/freeze (g/acos 'x)))))
+
+  (testing "atan"
+    (is (= '(atan x) (v/freeze (g/atan 'x)))))
+
+  (testing "sinh"
+    (is (= '(sinh x) (v/freeze (g/sinh 'x)))))
+
+  (testing "cosh"
+    (is (= '(cosh x) (v/freeze (g/cosh 'x)))))
+
+  (testing "cot"
+    (is (= '(/ (cos x) (sin x)) (v/freeze (g/cot 'x)))))
+
+  (testing "sec"
+    (is (= '(/ 1 (cos x)) (v/freeze (g/sec 'x)))))
+
+  (testing "csc"
+    (is (= '(/ 1 (sin x)) (v/freeze (g/csc 'x)))))
+
+  (testing "tanh"
+    (is (= '(/ (sinh x) (cosh x))
+           (v/freeze (g/tanh 'x)))))
+
+  (testing "sech"
+    (is (= '(/ 1 (cosh x))
+           (v/freeze (g/sech 'x)))))
+
+  (testing "csch"
+    (is (= '(/ 1 (sinh x))
+           (v/freeze (g/csch 'x)))))
+
+  (testing "acosh"
+    (is (= '(* 2 (log
+                  (+ (sqrt (/ (+ x 1) 2))
+                     (sqrt (/ (- x 1) 2)))))
+           (v/freeze (g/acosh 'x)))))
+
+  (testing "asinh"
+    (is (= '(log (+ x (sqrt (+ 1 (expt x 2)))))
+           (v/freeze (g/asinh 'x)))))
+
+  (testing "atanh"
+    (is (= '(/ (- (log (+ 1 x))
+                  (log (- 1 x)))
+               2)
+           (v/freeze (g/atanh 'x))))))
