@@ -36,7 +36,7 @@
   (let [X (p/make 2 [[[1 0] 1]]) ;; some polynomials of arity 2
         Y (p/make 2 [[[0 1] 1]])]
     (testing "inexact coefficients"
-      (is (= (p/make [1]) (g/gcd (p/make [0.2 0.4 0.6]) (p/make [0.4 0.6 0.8])))))
+      (is (= (p/make [1.0]) (g/gcd (p/make [0.2 0.4 0.6]) (p/make [0.4 0.6 0.8])))))
 
     (testing "GCD: arity 1 case"
       (let [x+1 (p/make [1 1])

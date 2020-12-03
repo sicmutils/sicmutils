@@ -19,6 +19,9 @@
 
 (ns sicmutils.numbers-test
   (:require [clojure.test :refer [is deftest testing]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.complex :as c]
@@ -63,10 +66,8 @@
   (testing "expt goes rational with negative expt"
     (is (= #sicm/ratio 1/4 (g/expt 2 -2))))
 
-  (testing "exp/log preserve exactness together"
-    (is (= 0 (g/log (g/exp 0)))))
-
-  (testing "exp/log goes approx if forced"
+  (testing "exp/log round-trip, but coerce to double on the JVM"
+    (is (= 0.0 (g/log (g/exp 0))))
     (is (= 10.0 (g/log (g/exp 10)))))
 
   (testing "div"
@@ -84,7 +85,14 @@
 
   (testing "sqrt of one preserves type"
     (is (v/one-like (g/sqrt c/ONE)))
-    (is (c/complex? (g/sqrt c/ONE)))))
+    (is (c/complex? (g/sqrt c/ONE))))
+
+  (checking "transpose, determinant act as id" 100
+            [x (gen/one-of
+                [(sg/reasonable-double)
+                 sg/any-integral])]
+            (is (= x (g/transpose x)))
+            (is (= x (g/determinant x)))))
 
 (deftest integer-generics
   (gt/integral-tests u/int)
@@ -139,11 +147,21 @@
   (gt/floating-point-tests double :eq near))
 
 (deftest arithmetic
-  (testing "trig"
+  (testing "misc trig"
     (is (near (/ Math/PI 4) (g/asin (/ (g/sqrt 2) 2))))
     (is (near (/ Math/PI 4) (g/acos (/ (g/sqrt 2) 2))))
     (is (zero? (g/asin 0)))
-    (is (near (/ Math/PI 2) (g/acos 0))))
+    (is (near (/ Math/PI 2) (g/acos 0)))
+    (is (ish? (/ Math/PI 2) (g/asin 1)))
+    (is (ish? (/ Math/PI 2) (g/acos 0)))
+    (is (ish? (/ Math/PI 6) (g/asin 0.5)))
+    (is (ish? (/ Math/PI 4) (g/atan 1)))
+    (is (ish? (/ Math/PI 4) (g/atan 1 1)))
+    (is (ish? (- (/ Math/PI 4)) (g/atan -1)))
+    (is (ish? (* -3 (/ Math/PI 4)) (g/atan -1 -1)))
+    (is (ish? (* 3 (/ Math/PI 4)) (g/atan 1 -1)))
+    (is (ish? (/ Math/PI -4) (g/atan -1 1)))
+    (is (ish? (/ Math/PI 3) (g/acos #?(:clj 1/2 :cljs (/ 1 2))))))
 
   (testing ">1 gets promoted to complex for asin, acos"
     (is (c/complex? (g/asin 2)))
@@ -161,15 +179,11 @@
 
   (testing "log"
     (is (c/complex? (g/log -10)))
-    (is (= 0 (g/log 1)))
+    (is (= 0.0 (g/log 1)))
     (is (= (c/complex 0 Math/PI) (g/log -1))))
 
   (testing "exp"
-    (is (= 1 (g/exp 0))))
-
-  (testing "exp/log preserve exactness together"
-    (is (= 0 (g/log (g/exp 0)))
-        (= 10 (g/log (g/exp 10))))))
+    (is (= 1.0 (g/exp 0)))))
 
 ;; Test of generic wrapper operations.
 

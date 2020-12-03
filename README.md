@@ -1,16 +1,20 @@
 # sicmutils
 
-[![Build Status](https://github.com/littleredcomputer/sicmutils/workflows/Clojure%20CI/badge.svg?branch=master)](https://github.com/littleredcomputer/sicmutils/actions?query=workflow%3A%22Clojure+CI%22)
-[![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/littleredcomputer/sicmutils/blob/master/LICENSE)
-[![Codecov branch](https://img.shields.io/codecov/c/github/littleredcomputer/sicmutils/master.svg?maxAge=3600)](https://codecov.io/github/littleredcomputer/sicmutils)
-[![Clojars Project](https://img.shields.io/clojars/v/net.littleredcomputer/sicmutils.svg)](https://clojars.org/net.littleredcomputer/sicmutils)
-
-A Clojure(script) implementation of the Scmutils system for math and physics
-investigations in the Clojure language.
+A Clojure(script) implementation of the
+[Scmutils](https://groups.csail.mit.edu/mac/users/gjs/6946/refman.txt) system
+for math and physics investigations in the Clojure language.
 
 Scmutils is extensively used in the textbooks [The Structure and Interpretation
 of Classical Mechanics][SICM] and [Functional Differential Geometry][FDG] by
 G.J. Sussman and J. Wisdom.
+
+> :wave: Need help getting started? Say hi on [Twitter](https://twitter.com/sritchie) or [Clojurians Slack](http://clojurians.net/) in [#sicmutils](https://clojurians.slack.com/archives/C01ECA9AA74).
+
+[![Build Status](https://github.com/littleredcomputer/sicmutils/workflows/Clojure%20CI/badge.svg?branch=master)](https://github.com/littleredcomputer/sicmutils/actions?query=workflow%3A%22Clojure+CI%22)
+[![License](https://img.shields.io/badge/license-GPLv3-brightgreen.svg)](https://github.com/littleredcomputer/sicmutils/blob/master/LICENSE)
+[![Codecov branch](https://img.shields.io/codecov/c/github/littleredcomputer/sicmutils/master.svg?maxAge=3600)](https://codecov.io/github/littleredcomputer/sicmutils)
+[![cljdoc badge](https://cljdoc.org/badge/net.littleredcomputer/sicmutils)](https://cljdoc.org/d/net.littleredcomputer/sicmutils/CURRENT)
+[![Clojars Project](https://img.shields.io/clojars/v/net.littleredcomputer/sicmutils.svg)](https://clojars.org/net.littleredcomputer/sicmutils)
 
 ## Quickstart
 

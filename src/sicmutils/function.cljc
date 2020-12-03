@@ -279,6 +279,7 @@
 
 (make-binary-operation g/cross-product)
 (make-binary-operation g/gcd)
+(make-binary-operation g/lcm)
 
 ;; Complex Operations
 

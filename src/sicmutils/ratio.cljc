@@ -24,6 +24,7 @@
                               denominator core-denominator
                               numerator core-numerator}))
   (:require #?(:clj [clojure.edn] :cljs [cljs.reader])
+            [sicmutils.complex :as c]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
@@ -217,6 +218,11 @@
      (defmethod g/gcd [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.gcd a b)))
      (defmethod g/lcm [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.lcm a b)))
      (defmethod g/expt [Fraction ::v/integral] [a b] (pow a b))
+     (defmethod g/sqrt [Fraction] [a]
+       (if (neg? a)
+         (g/sqrt (c/complex (.valueOf a)))
+         (g/div (g/sqrt (u/double (numerator a)))
+                (g/sqrt (u/double (denominator a))))))
 
      ;; Only integral ratios let us stay exact. If a ratio appears in the
      ;; exponent, convert the base to a number and call g/expt again.

@@ -24,13 +24,20 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
-;; TODO talk about what "expression" means here, and how it's related to "freeze". Freeze is the thing that returns, finally, an expression.
-;;
-(def abstract-types
+(def ^{:doc "These keywords reference 'abstract' types that stand in for some
+  concrete data type in the system."}
+  abstract-types
   #{::numeric
     ::vector
     ::abstract-down
     ::abstract-matrix})
+
+;; A Literal is a container type for literal expressions, abstract structures
+;; that stand in for some other type. The canonical example is a symbolic
+;; expression built out of Lisp data structures.
+;;
+;; Currently we only support these, but this type will be able to handle the
+;; other abstract structures referenced in [[abstract-types]].
 
 (deftype Literal [type expression meta]
   v/Value
@@ -45,8 +52,9 @@
   (zero-like [_] 0)
   (one-like [_] 1)
   (numerical? [_] (= type ::numeric))
-  (exact? [_] (and (v/number? expression)
-                   (v/exact? expression)))
+  (exact? [_]
+    (and (v/number? expression)
+         (v/exact? expression)))
   (freeze [_] (v/freeze expression))
   (kind [_] type)
 
@@ -80,23 +88,43 @@
    (defmethod print-method Literal [^Literal s ^java.io.Writer w]
      (.write w (.toString s))))
 
-(defn make-literal [type expr]
+(defn make-literal
+  "Constructs a [[Literal]] instance with the supplied type and an empty metadata
+  map out of the literal form `expr`."
+  [type expr]
   (->Literal type expr {}))
 
-(defn literal-apply [type op args]
+(defn literal-apply
+  "Similar to [[make-literal]], but accepts:
+
+  - some operation
+  - the arguments to which it applies
+
+  Similar to [[clojure.core/apply]].
+
+  For example:
+
+  (literal-apply ::numeric 'cos [1 2 3])
+  ;;=> (cos 1 2 3)"
+  [type op args]
   (make-literal type (cons op (seq args))))
 
 (defn literal?
-  "Returns true if the argument is a literal, false otherwise."
+  "Returns true if `x` is a [[Literal]] instance, false otherwise."
   [x]
   (instance? Literal x))
 
-(defn abstract? [x]
+(defn abstract?
+  "Returns true if `x` is both a [[Literal]] and has a type specified
+  in [[abstract-types]], false otherwise."
+  [x]
   (and (literal? x)
        (contains? abstract-types
                   (.-type ^Literal x))))
 
-(defn literal-type [x]
+(defn literal-type
+  "If `x` is a [[Literal]] instance, returns its type. Else, returns nil."
+  [x]
   (when (literal? x)
     (.-type ^Literal x)))
 
@@ -108,31 +136,40 @@
              (f (.-expression e))
              (.-meta e)))
 
-;; ## Metadata
+(comment
+  ;; ## Metadata
 
-(defn properties [x]
-  (when (literal? x)
-    (.-meta ^Literal x)))
+  "NOTE that this feature is not supported yet. I'm leaving these in a comment
+  here to make implementation easier; this suggested API comes from scmutils."
+  (defn properties [x]
+    (when (literal? x)
+      (.-meta ^Literal x)))
 
-(defn has-property? [literal k]
-  (contains? (properties literal) k))
+  (defn has-property? [literal k]
+    (contains? (properties literal) k))
 
-(defn get-property
-  ([literal k]
-   (get (properties literal) k))
-  ([literal k default]
-   (get (properties literal) k default)))
+  (defn get-property
+    ([literal k]
+     (get (properties literal) k))
+    ([literal k default]
+     (get (properties literal) k default)))
 
-(defn with-property
-  "TODO we probably want a merge version..."
-  [x k v]
-  {:pre [(literal? x)]}
-  (let [x ^Literal x]
-    (->Literal (.-type x)
-               (.-expression x)
-               (assoc (.-meta x) k v))))
+  (defn with-property
+    "We probably want a merge version..."
+    [x k v]
+    {:pre [(literal? x)]}
+    (let [x ^Literal x]
+      (->Literal (.-type x)
+                 (.-expression x)
+                 (assoc (.-meta x) k v)))))
 
-(defn expression-of [expr]
+(defn expression-of
+  "If the supplied argument is a [[Literal]] (or a symbol, interpreted elsewhere
+  as a numerical literal expression), returns the wrapped expression (or the
+  symbol).
+
+  Throws otherwise."
+  [expr]
   (cond (literal? expr) (.-expression ^Literal expr)
         (symbol? expr)  expr
         :else (u/illegal (str "unknown expression type: " expr))))
@@ -140,8 +177,9 @@
 ;; ## Expression Walking
 
 (defn variables-in
-  "Return the 'variables' (e.g. symbols) found in the expression x,
-  which is a wrapped or unwrapped expression, as a set"
+  "Return the set of 'variables' (e.g. symbols) found in `expr`. `expr` is either
+  a symbol, a [[Literal]] instance or some sequence representing a symbolic
+  expression."
   [expr]
   (cond (symbol? expr) #{expr}
         (literal? expr) (recur (expression-of expr))
@@ -170,7 +208,7 @@
   ([expr s-map]
    (w/postwalk-replace s-map expr)))
 
-(defn- compare
+(defn compare
   "Compare expressions. The rule is that types have the following ordering:
 
   - empty sequence is < anything (except another empty seq)

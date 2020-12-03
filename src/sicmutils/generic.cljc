@@ -67,7 +67,8 @@
 (defmethod negative? :default [a] (< a (v/zero-like a)))
 
 (def-generic-function sub 2)
-(defmethod sub :default [a b] (add a (negate b)))
+(defmethod sub :default [a b]
+  (add a (negate b)))
 
 (def-generic-function mul 2)
 (def-generic-function invert 1)

@@ -79,16 +79,35 @@
   [x]
   (isa? (kind x) ::integral))
 
-(defn real? [x]
+(defn real?
+  "Returns true if `x` is either an integral number or a floating point number (ie,
+  in the numeric tower but not complex), false otherwise."
+  [x]
   (isa? (kind x) ::real))
 
-(defn number? [x]
+(defn number?
+  "Returns true if `x` is any number type in the numeric tower:
+
+  - integral
+  - floating point
+  - complex
+
+  false otherwise."
+  [x]
   (isa? (kind x) ::number))
 
-(defn scalar? [x]
-  (isa? (kind x) ::scalar))
-
+;; `::scalar` is a thing that symbolic expressions AND actual numbers both
+;; derive from.
 (derive ::number ::scalar)
+
+(defn scalar?
+  "Returns true for anything that derives from `::scalar`, ie, any numeric type in
+  the numeric tower that responds true to [[number?]], plus symbolic expressions
+  generated [[sicmutils.abstract.number/literal-number]],
+
+  false otherwise."
+  [x]
+  (isa? (kind x) ::scalar))
 
 #?(:clj
    (do
@@ -120,6 +139,27 @@
                :cljs (if (exact? x)
                        ::native-integral
                        ::floating-point)))
+
+  #?@(:clj
+      [java.lang.Double
+       (nullity? [x] (core-zero? x))
+       (unity? [x] (== 1 x))
+       (zero-like [_] 0.0)
+       (one-like [_] 1.0)
+       (freeze [x] x)
+       (exact? [x] false)
+       (numerical? [_] true)
+       (kind [x] (type x))
+
+       java.lang.Float
+       (nullity? [x] (core-zero? x))
+       (unity? [x] (== 1 x))
+       (zero-like [_] 0.0)
+       (one-like [_] 1.0)
+       (freeze [x] x)
+       (exact? [x] false)
+       (numerical? [_] true)
+       (kind [x] (type x))])
 
   nil
   (freeze [_] nil)
@@ -457,9 +497,12 @@
 
 (def machine-epsilon
   (loop [e 1.0]
-    (if (not= 1.0 (+ 1.0 (/ e 2.0)))
-      (recur (/ e 2.0))
-      e)))
+    (if (= 1.0 (+ e 1.0))
+      (* e 2.0)
+      (recur (/ e 2.0)))))
+
+(def sqrt-machine-epsilon
+  (Math/sqrt machine-epsilon))
 
 (defn within
   "Returns a function that tests whether two values are within ε of each other."

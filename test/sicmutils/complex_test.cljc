@@ -20,8 +20,14 @@
 (ns sicmutils.complex-test
   (:require [clojure.test :refer [is deftest testing]]
             #?(:cljs [cljs.reader :refer [read-string]])
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
+            [same :refer [ish? with-comparator]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.numbers]
             [sicmutils.complex :as c]
+            [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.generic-test :as gt]
             [sicmutils.generators :as sg]
@@ -230,8 +236,39 @@
     (is (near (g/imag-part (g/conjugate (c/complex 3 4))) -4))
     (is (near (g/magnitude (c/complex 0 1)) 1))
     (is (near (g/magnitude (c/complex 1 0)) 1))
-    (is (near (g/magnitude (c/complex 1 1)) (g/sqrt 2)))
+    (is (near (g/magnitude (c/complex 1 1)) (g/sqrt 2))))
 
-    ;; This looks awkward in cljs due to the ratio literal.
-    (is (near (g/angle (c/complex 3 4))
-              (g/atan #sicm/ratio 4/3)))))
+  (checking "transpose, determinant act as id" 100 [z sg/complex]
+            (is (= z (g/transpose z)))
+            (is (= z (g/determinant z))))
+
+  (checking "conjugate/magnitude" 100 [z sg/complex]
+            (is (ish? (g/magnitude z)
+                      (g/real-part
+                       (g/sqrt
+                        (g/* z (g/conjugate z)))))))
+
+  (checking "real/imag-part" 100 [z sg/complex]
+            (is (= (g/negate (g/imag-part z))
+                   (g/imag-part (g/conjugate z))))
+
+            (is (= (g/real-part z)
+                   (g/real-part (g/conjugate z))))
+
+            (is (= z (g/+ (g/real-part z)
+                          (g/* #sicm/complex "0+1i"
+                               (g/imag-part z))))))
+
+  (checking "angle" 100 [z sg/complex]
+            (is (near (g/angle z)
+                      (g/atan
+                       (g/imag-part z)
+                       (g/real-part z))))
+            (let [rt (g/* (g/magnitude z)
+                          (g/exp (g/* #sicm/complex "0+1i"
+                                      (g/angle z))))]
+              (with-comparator (v/within 1e-8)
+                (is (ish? (g/real-part z)
+                          (g/real-part rt)))
+                (is (ish? (g/imag-part z)
+                          (g/imag-part rt)))))))

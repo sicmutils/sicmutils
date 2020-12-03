@@ -54,6 +54,8 @@
 (defmethod g/magnitude [::v/real] [a] (u/compute-abs a))
 (defmethod g/div [::v/real ::v/real] [a b] (core-div a b))
 (defmethod g/invert [::v/real] [a] (core-div a))
+(defmethod g/transpose [::v/real] [a] a)
+(defmethod g/determinant [::v/real] [a] a)
 
 ;; ## Complex Operations
 (defmethod g/real-part [::v/real] [a] a)
@@ -107,29 +109,34 @@
          (Math/atanh a)))))
 
 (defmethod g/sqrt [::v/real] [a]
-  (cond (neg? a) (g/sqrt (complex a))
-        (v/nullity? a) a
-        (v/unity? a) (v/one-like a)
-        :else (u/compute-sqrt a)))
+  (if (neg? a)
+    (g/sqrt (complex a))
+    (u/compute-sqrt a)))
 
-;; Implementation that converts to complex when negative, and also attempts to
-;; remain exact if possible.
 (defmethod g/log [::v/real] [a]
-  (cond (neg? a) (g/log (complex a))
-        (v/unity? a) (v/zero-like a)
-        :else (Math/log a)))
+  (if (neg? a)
+    (g/log (complex a))
+    (Math/log a)))
 
 ;; Specialized methods provided by the host platforms.
 
-#?(:clj  (defmethod g/log10 [Double] [x] (Math/log10 x))
-   :cljs (defmethod g/log10 [js/Number] [x] (Math/log10 x)))
+#?(:clj  (defmethod g/log10 [Double] [x]
+           (if (neg? x)
+             (g/log10 (complex x))
+             (Math/log10 x)))
 
-#?(:cljs (defmethod g/log2 [js/Number] [x] (Math/log2 x)))
+   :cljs (defmethod g/log10 [js/Number] [x]
+           (if (neg? x)
+             (g/log10 (complex x))
+             (Math/log10 x))))
+
+#?(:cljs (defmethod g/log2 [js/Number] [x]
+           (if (neg? x)
+             (g/log2 (complex x))
+             (Math/log2 x))))
 
 (defmethod g/exp [::v/real] [a]
-  (if (v/nullity? a)
-    (v/one-like a)
-    (Math/exp a)))
+  (Math/exp a))
 
 (defn ^:private exact-divide
   "Checked implementation of g/exact-divide general enough to use for any type
