@@ -27,11 +27,13 @@
 - speed up power series multiplication by skipping work when either head term is
   zero (https://github.com/littleredcomputer/sicmutils/pull/166)
 
-- File moves!
-  - `sicmutils.polynomial-gcd` => `sicmutils.polynomial.gcd`
+- File moves:
+  - `sicmutils.polynomial-gcd`    => `sicmutils.polynomial.gcd`
   - `sicmutils.polynomial-factor` => `sicmutils.polynomial.factor`
-  - `sicmutils.rules` => `sicmutils.simplify.rules`
-  - `sicmutils.analyze` => `sicmutils.expression.analyze`
+  - `sicmutils.rules`             => `sicmutils.simplify.rules`
+  - `sicmutils.analyze`           => `sicmutils.expression.analyze`
+  - `sicmutils.infix`             => `sicmutils.expression.infix`
+  - `sicmutils.numerical.compile` => `sicmutils.expression.compile`
 
 - `sicmutils.env/one?` now exposes/aliases `sicmutils.value/unity?`
   [#154](https://github.com/littleredcomputer/sicmutils/pull/154)

@@ -31,7 +31,7 @@
             [sicmutils.complex]
             [sicmutils.function]
             [sicmutils.generic :as g]
-            [sicmutils.infix :as infix]
+            [sicmutils.expression.infix :as infix]
             [sicmutils.operator]
             [sicmutils.simplify :as simp]
             [sicmutils.structure]
@@ -193,7 +193,7 @@
   up?
   vector->down vector->up
   literal-down literal-up]
- [sicmutils.infix
+ [sicmutils.expression.infix
   ->infix
   ->TeX
   ->JavaScript]

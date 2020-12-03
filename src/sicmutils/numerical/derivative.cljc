@@ -21,9 +21,9 @@
   "Different numerical derivative implementations."
   (:require [sicmutils.abstract.function :as af]
             [sicmutils.calculus.derivative :as d]
+            [sicmutils.expression.infix :as if]
             [sicmutils.numerical.interpolate.richardson :as r]
             [sicmutils.generic :as g]
-            [sicmutils.infix :as if]
             [sicmutils.util :as u]
             [sicmutils.util.stream :as us]
             [sicmutils.value :as v]))

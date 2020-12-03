@@ -18,7 +18,7 @@
 ;
 
 (ns sicmutils.numerical.ode
-  (:require [sicmutils.numerical.compile :as c]
+  (:require [sicmutils.expression.compile :as c]
             [sicmutils.util.stopwatch :as us]
             [sicmutils.util :as u]
             [sicmutils.structure :as struct]

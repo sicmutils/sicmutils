@@ -1,23 +1,23 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
 
-(ns sicmutils.numerical.compile
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
+
+(ns sicmutils.expression.compile
   "This namespace compiles generic functions down into fast, native functions."
   (:require #?(:cljs [goog.string :refer [format]])
             [clojure.set :as set]
@@ -42,8 +42,8 @@
 (let [f (fn [x] (g/sqrt
                 (g/+ (g/square (g/sin x))
                      (g/square (g/cos x)))))]
-  (= '(sqrt (+ (expt (sin x) 2) (expt (cos x) 2)))
-     (x/expression-of (f 'x))))
+(= '(sqrt (+ (expt (sin x) 2) (expt (cos x) 2)))
+   (x/expression-of (f 'x))))
 
 ;; 2. `g/simplify` the new function body. Sometimes this results in large
 ;;    simplifications:
@@ -78,8 +78,6 @@
        If you're compiling a function for use with the numerical routines, the
        library assumes that your function operates only on doubles (even though
        you wrote it with generic routines)."}
-  ;; NOTE that JS could support acosh, asinh and atanh natively, but the JVM
-  ;; does not. Add these here if these operations survive simplification!
   compiled-fn-whitelist
   {'up struct/up
    'down struct/down
@@ -87,6 +85,11 @@
    '- -
    '* *
    '/ /
+   'expt #(Math/pow %1 %2)
+   'sqrt #(Math/sqrt %)
+   'abs (fn [^double x] (Math/abs x))
+   'log #(Math/log %)
+   'exp #(Math/exp %)
    'cos #(Math/cos %)
    'sin #(Math/sin %)
    'tan #(Math/tan %)
@@ -96,11 +99,11 @@
    'cosh #(Math/cosh %)
    'sinh #(Math/sinh %)
    'tanh #(Math/tanh %)
-   'expt #(Math/pow %1 %2)
-   'sqrt #(Math/sqrt %)
-   'abs (fn [^double x] (Math/abs x))
-   'log #(Math/log %)
-   'exp #(Math/exp %)})
+   #?@(:cljs
+       ;; JS-only entries.
+       ['acosh #(Math.acosh %)
+        'asinh #(Math.asinh %)
+        'atanh #(Math.atanh %)])})
 
 ;; ## Subexpression Elimination
 ;;
