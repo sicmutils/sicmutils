@@ -101,8 +101,16 @@
 - added `g/determinant` implementation to functions
   ([#171](https://github.com/littleredcomputer/sicmutils/pull/171))
 
-- Switched inheritance order for functions; `:sicmutils.function/function` now
-  inherits from `::v/function` instead of the other way around.
+- Moved all `literal-function` machinery and definitions to
+  `sicmutils.abstraction.function`
+  ([#171](https://github.com/littleredcomputer/sicmutils/pull/171)).
+  `sicmutils.function` now contains only the generic method implementations for
+  clojure functions and multimethods.
+
+- Switched inheritance order for functions;
+  `:sicmutils.abstract.function/function` (used to be
+  `:sicmutils.function/function`) now inherits from `::v/function` instead of
+  the other way around.
   ([#171](https://github.com/littleredcomputer/sicmutils/pull/171))
 
 ### Literals
