@@ -172,6 +172,14 @@
             (is (= (an/literal-number (g/exp10 x))
                    (g/exp10 (an/literal-number x)))))
 
+  (checking "trace" 100 [z sg/complex]
+            (is (= (an/literal-number (g/trace z))
+                   (g/trace (an/literal-number z)))))
+
+  (checking "dimension" 100 [z sg/complex]
+            (is (v/eq 1 (an/literal-number (g/dimension z))))
+            (is (v/eq 1 (g/dimension (an/literal-number z)))))
+
   (checking "conjugate" 100 [z sg/complex]
             (is (= (an/literal-number (g/conjugate z))
                    (g/conjugate (an/literal-number z)))))

@@ -87,12 +87,19 @@
     (is (v/one-like (g/sqrt c/ONE)))
     (is (c/complex? (g/sqrt c/ONE))))
 
-  (checking "transpose, determinant act as id" 100
+  (checking "transpose, determinant, trace act as id" 100
             [x (gen/one-of
                 [(sg/reasonable-double)
                  sg/any-integral])]
             (is (= x (g/transpose x)))
-            (is (= x (g/determinant x)))))
+            (is (= x (g/determinant x)))
+            (is (= x (g/trace x))))
+
+  (checking "dimension always returns 1" 100
+            [x (gen/one-of
+                [(sg/reasonable-double)
+                 sg/any-integral])]
+            (is (= 1 (g/dimension x)))))
 
 (deftest integer-generics
   (gt/integral-tests u/int)
