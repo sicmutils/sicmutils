@@ -88,9 +88,7 @@
     (is (c/complex? (g/sqrt c/ONE))))
 
   (checking "transpose, determinant act as id" 100
-            [x (gen/one-of
-                [(sg/reasonable-double)
-                 sg/any-integral])]
+            [x sg/real]
             (is (= x (g/transpose x)))
             (is (= x (g/determinant x)))))
 
@@ -289,3 +287,17 @@
 
     (testing "atanh"
       (is (near 0.5 (g/tanh (g/atanh 0.5)))))))
+
+(deftest complex-accessor-tests
+  (checking "real/imag-part" 100 [x sg/real]
+            (is (= x (g/real-part x)))
+            (is (zero? (g/imag-part x))))
+
+  (checking "conjugate" 100 [x sg/real]
+            (is (= x (g/conjugate x))))
+
+  (checking "angle" 100 [x sg/real]
+            (if (neg? x)
+              (is (ish? Math/PI (g/angle x))
+                  "the angle of a negative number is pi in the complex plane.")
+              (is (v/nullity? (g/angle x)))))  )

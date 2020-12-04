@@ -60,7 +60,12 @@
 ;; ## Complex Operations
 (defmethod g/real-part [::v/real] [a] a)
 (defmethod g/imag-part [::v/real] [a] 0)
-(defmethod g/angle [::v/real] [a] (v/zero-like a))
+
+(defmethod g/angle [::v/real] [a]
+  (if (neg? a)
+    Math/PI
+    (v/zero-like a)))
+
 (defmethod g/conjugate [::v/real] [a] a)
 
 ;; ## Trig Operations
