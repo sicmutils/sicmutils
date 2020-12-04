@@ -311,8 +311,8 @@
 
   (testing "dimension"
     (let [A (s/up 1 2 'a (s/down 3 4) (s/up (s/down 'c 'd) 'e))]
-      (is (= 8 (s/dimension A)))
-      (is (= 1 (s/dimension 99))))))
+      (is (= 8 (g/dimension A)))
+      (is (= 1 (g/dimension 99))))))
 
 (deftest structure-generics
   (testing "up/down +, same kind"

@@ -25,6 +25,7 @@
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
+            [sicmutils.util.aggregate :as ua]
             [sicmutils.structure :as s]
             [sicmutils.series :as series])
   #?(:clj
@@ -32,6 +33,9 @@
 
 (declare generate)
 
+(derive ::square-matrix ::matrix)
+(derive ::column-matrix ::matrix)
+(derive ::row-matrix ::matrix)
 (derive ::matrix ::f/cofunction)
 
 (deftype Matrix [r c v]
@@ -48,7 +52,10 @@
   (freeze [_] (if (= c 1)
                 `(~'column-matrix ~@(map (comp v/freeze first) v))
                 `(~'matrix-by-rows ~@(map v/freeze v))))
-  (kind [_] ::matrix)
+  (kind [_] (cond (= r c) ::square-matrix
+                  (= r 1) ::row-matrix
+                  (= c 1) ::column-matrix
+                  :else ::matrix))
 
   #?@(:clj
       [Object
@@ -197,10 +204,26 @@
   [m]
   (instance? Matrix m))
 
-(defn ^:private square?
-  [^Matrix m]
+(defn square?
+  "Returns true if `m` is a square matrix, false otherwise."
+  [m]
   (and (matrix? m)
-       (= (.-r m) (.-c m))))
+       (= (.-r ^Matrix m)
+          (.-c ^Matrix m))))
+
+(defn column?
+  "Returns true if `m` is a matrix with a single column (a 'column matrix'),
+  false otherwise."
+  [m]
+  (and (matrix? m)
+       (= (.-c ^Matrix m) 1)))
+
+(defn row?
+  "Returns true if `m` is a matrix with a single row (a 'row matrix'), false
+  otherwise."
+  [m]
+  (and (matrix? m)
+       (= (.-r ^Matrix m) 1)))
 
 (defn generate
   "Create the r by c matrix whose entries are (f i j)"
@@ -234,7 +257,9 @@
   [^Matrix m is]
   (let [e (core-get-in (.-v m) is)]
     (if (and (= 1 (count is))
-             (= 1 (.-c m))) (e 0) e)))
+             (= 1 (.-c m)))
+      (e 0)
+      e)))
 
 (defn matrix-some
   "True if f is true for some element of m."
@@ -246,8 +271,7 @@
   [f ^Matrix m]
   (->Matrix (.-r m) (.-c m) (mapv #(mapv f %) (.-v m))))
 
-(defn by-rows
-  [& rs]
+(defn by-rows [& rs]
   {:pre [(seq rs)
          (every? seq rs)]}
   (let [r (count rs)
@@ -256,8 +280,7 @@
       (u/illegal "malformed matrix"))
     (->Matrix r (first cs) (mapv vec rs))))
 
-(defn column
-  [& es]
+(defn column [& es]
   {:pre [(not-empty es)]}
   (->Matrix (count es) 1 (vec (for [e es] [e]))))
 
@@ -383,9 +406,18 @@
 
 ;; (I wonder if tuple multiplication is associative...)
 
-(defn nth-col
-  [^Matrix m j]
-  (apply s/up (mapv #(% j) (.-v m))))
+(defn nth-row [^Matrix m i]
+  (apply s/up ((.-v m) i)))
+
+(defn nth-col [^Matrix m j]
+  (apply s/up (map #(% j) (.-v m))))
+
+(defn diagonal [m]
+  {:pre [(square? m)]}
+  (let [rows  (.-r ^Matrix m)
+        elems (.-v ^Matrix m)]
+    (apply s/up (map #(core-get-in elems [% %])
+                     (range 0 rows)))))
 
 (defn m->s
   "Convert the matrix m into a structure S, guided by the requirement that (* ls S rs)
@@ -420,10 +452,20 @@
   [s i j]
   (if (even? (+ i j)) s (g/negate s)))
 
-(defn dimension
-  [^Matrix m]
+(defn dimension [m]
   {:pre [(square? m)]}
-  (.-r m))
+  (.-r ^Matrix m))
+
+(defn trace
+  "Computes the trace of m, which must be square. Generic operations are
+  used, so this works on symbolic square matrix."
+  [m]
+  {:pre [(square? m)]}
+  (let [rows  (.-r ^Matrix m)
+        elems (.-v ^Matrix m)]
+    (transduce (map #(core-get-in elems [% %]))
+               g/+
+               (range 0 rows))))
 
 (defn determinant
   "Computes the determinant of m, which must be square. Generic
@@ -436,11 +478,11 @@
       1 ((v 0) 0)
       2 (let [[[a b] [c d]] v]
           (g/- (g/* a d) (g/* b c)))
-      (reduce g/+
-              (map g/*
-                   (cycle [1 -1])
-                   (v 0)
-                   (for [i (range (.-r m))] (determinant (without m 0 i))))))))
+      (reduce g/+ (map g/*
+                       (cycle [1 -1])
+                       (v 0)
+                       (for [i (range (.-r m))]
+                         (determinant (without m 0 i))))))))
 
 (defn cofactors
   "Computes the matrix of cofactors of the given structure with the
@@ -517,28 +559,12 @@
 
 (defmethod g/invert [::matrix] [m] (invert m))
 
-;; TODO make this true, and working!
-(declare trace)
-
-(comment
-  ;; TODO From scheme, translate
-  (defn trace [matrix]
-    (assert (matrix? matrix) "Not a matrix -- TRACE")
-    (let [rows (m:num-rows matrix)
-          m (matrix->array matrix)]
-      (assert (= rows (m:num-cols matrix))
-              "Not a square matrix -- TRACE" matrix)
-      (g:sigma (fn [j] (array-ref m j j))
-               0
-               (fix:- rows 1)))))
-
 (defmethod g/transpose [::matrix] [m] (transpose m))
-(defmethod g/trace [::matrix] [m] (trace m))
-(defmethod g/determinant [::matrix] [m] (determinant m))
-(defmethod g/dimension [::matrix] [m]
-  (cond (square? m) (dimension m)
-        ;; TODO add checks for column matrix etc.
-        :else (u/illegal "Unknown!")))
+(defmethod g/trace [::square-matrix] [m] (trace m))
+(defmethod g/determinant [::square-matrix] [m] (determinant m))
+(defmethod g/dimension [::square-matrix] [m] (dimension m))
+(defmethod g/dimension [::column-matrix] [^Matrix m] (.-c m))
+(defmethod g/dimension [::row-matrix] [^Matrix m] (.-r m))
 
 (defmethod g/determinant [::s/structure] [s]
   (square-structure-> s (fn [m _] (determinant m))))
