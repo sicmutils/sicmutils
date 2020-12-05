@@ -27,15 +27,18 @@
             #?(:cljs goog.math.Long)
             #?(:cljs goog.math.Integer))
   #?(:clj
-     (:import (clojure.lang BigInt PersistentVector RestFn Sequential MultiFn Keyword Symbol)
+     (:import (clojure.lang BigInt PersistentVector RestFn Sequential
+                            Fn MultiFn Keyword Symbol)
               (java.lang.reflect Method))))
 
 (defprotocol Value
   (numerical? [this])
   (zero? [this])
-  (one? [this])
   (zero-like [this])
+  (one? [this])
   (one-like [this])
+  (identity? [this])
+  (identity-like [this])
   (exact? [this])
   (freeze [this]
     "Freezing an expression means removing wrappers and other metadata from
@@ -129,9 +132,11 @@
 (extend-protocol Value
   #?(:clj Number :cljs number)
   (zero? [x] (core-zero? x))
-  (one? [x] (== 1 x))
   (zero-like [_] 0)
+  (one? [x] (== 1 x))
   (one-like [_] 1)
+  (identity? [x] (== 1 x))
+  (identity-like [x] 1)
   (freeze [x] x)
   (exact? [x] (or (integer? x) #?(:clj (ratio? x))))
   (numerical? [_] true)
@@ -143,9 +148,11 @@
   #?@(:clj
       [java.lang.Double
        (zero? [x] (core-zero? x))
-       (one? [x] (== 1 x))
        (zero-like [_] 0.0)
+       (one? [x] (== 1 x))
        (one-like [_] 1.0)
+       (identity? [x] (== 1 x))
+       (identity-like [x] 1.0)
        (freeze [x] x)
        (exact? [x] false)
        (numerical? [_] true)
@@ -153,9 +160,11 @@
 
        java.lang.Float
        (zero? [x] (core-zero? x))
-       (one? [x] (== 1 x))
        (zero-like [_] 0.0)
+       (one? [x] (== 1 x))
        (one-like [_] 1.0)
+       (identity? [x] (== 1 x))
+       (identity-like [x] 1.0)
        (freeze [x] x)
        (exact? [x] false)
        (numerical? [_] true)
@@ -172,8 +181,8 @@
 
   PersistentVector
   (zero? [v] (every? zero? v))
-  (one? [_] false)
   (zero-like [v] (mapv zero-like v))
+  (one? [_] false)
   (one-like [o] (u/unsupported (str "one-like: " o)))
   (exact? [v] (every? exact? v))
   (numerical? [_] false)
@@ -182,31 +191,45 @@
 
   Symbol
   (zero? [o] false)
-  (numerical? [_] true)
-  (one? [_] false)
-  (exact? [_] false)
   (zero-like [_] 0)
+  (one? [_] false)
   (one-like [_] 1)
+  (identity? [_] false)
+  (identity-like [_] 1)
+  (exact? [_] false)
+  (numerical? [_] true)
   (freeze [o] o)
   (kind [_] Symbol)
 
-  #?(:clj Object :cljs default)
+  MultiFn
   (zero? [o] false)
-  (numerical? [_] false)
-  (one? [o] false)
-  (exact? [o] false)
   (zero-like [o] (if (or (fn? o) (instance? MultiFn o))
                    (-> (constantly 0)
                        (with-meta {:arity (arity o)
                                    :from :object-zero-like}))
 
                    (u/unsupported (str "zero-like: " o))))
-  (one-like [o]  (if (or (fn? o) (instance? MultiFn o))
-                   (-> identity
-                       (with-meta {:arity (arity o)
-                                   :from :object-one-like}))
 
-                   (u/unsupported (str "one-like: " o))))
+
+  (one? [o] false)
+  (one-like [o]
+    (if (or (fn? o) (instance? MultiFn o))
+      (-> identity
+          (with-meta {:arity (arity o)
+                      :from :object-one-like}))
+
+      (u/unsupported (str "one-like: " o))))
+
+  (identity? [_] false)
+  (identity-like [o]
+    (if (or (fn? o) (instance? MultiFn o))
+      (-> identity
+          (with-meta {:arity (arity o)
+                      :from :object-identity-like}))
+      (u/unsupported (str "identity-like: " o))))
+
+  (exact? [o] false)
+  (numerical? [_] false)
   (freeze [o] (cond
                 (sequential? o) (map freeze o)
                 :else (or (and (instance? MultiFn o)
@@ -214,6 +237,47 @@
                                  (m :name)))
                           (@object-name-map o)
                           o)))
+  (kind [o] (primitive-kind o))
+
+  Fn
+  (zero? [o] false)
+  (zero-like [o]
+    (let [meta {:arity (arity o)
+                :from :zero-like}]
+      (-> (constantly 0)
+          (with-meta meta))))
+
+  (one? [o] false)
+  (one-like [o]
+    (let [meta {:arity (arity o)
+                :from :one-like}]
+      (with-meta identity meta)))
+
+  (identity? [_] false)
+  (identity-like [o]
+    (let [meta {:arity (arity o)
+                :from :identity-like}]
+      (with-meta identity meta)))
+  (exact? [o] false)
+  (numerical? [_] false)
+  (freeze [o]
+    (@object-name-map o o))
+  ;; TODO change to function.
+  (kind [o] (primitive-kind o))
+
+  #?(:clj Object :cljs default)
+  (zero? [o] false)
+  (zero-like [o] (u/unsupported (str "zero-like: " o)))
+  (one? [o] false)
+  (one-like [o] (u/unsupported (str "one-like: " o)))
+  (identity? [_] false)
+  (identity-like [o] (u/unsupported (str "identity-like: " o)))
+  (exact? [o] false)
+  (numerical? [_] false)
+  (freeze [o]
+    (if (sequential? o)
+      (map freeze o)
+      (@object-name-map o o)))
   (kind [o] (primitive-kind o)))
 
 ;; Override equiv for numbers.
