@@ -32,16 +32,16 @@
             [sicmutils.value :as v]))
 
 (defn nullity [options generator type-name]
-  (checking (str type-name " v/nullity? agrees with v/zero-like.")
+  (checking (str type-name " v/zero? agrees with v/zero-like.")
             options
             [a generator]
-            (is (v/nullity? (v/zero-like a)))))
+            (is (v/zero? (v/zero-like a)))))
 
 (defn unity [options generator type-name]
-  (checking (str type-name " v/unity? agrees with v/one-like.")
+  (checking (str type-name " v/one? agrees with v/one-like.")
             options
             [a generator]
-            (is (v/unity? (v/one-like a)))))
+            (is (v/one? (v/one-like a)))))
 
 (defn zero-like [options generator type-name]
   (nullity options generator type-name)
@@ -98,14 +98,14 @@
             options
             [a generator]
             (is (ish? (v/zero-like a) (g/add a (g/negate a))))
-            (is (v/nullity? (g/add a (g/negate a))))
+            (is (v/zero? (g/add a (g/negate a))))
             (is (ish? (v/zero-like a) (g/add (g/negate a) a)))
             (is (ish? (v/zero-like a) (g/sub a a)))))
 
 (defn multiplicative-inverse [options generator type-name]
   (checking (str type-name " has multiplicative inverses via g/div and g/invert (excluding zero.)")
             options
-            [a generator :when (not (v/nullity? a))]
+            [a generator :when (not (v/zero? a))]
             (is (ish? (v/one-like a) (g/mul a (g/invert a))))
             (is (ish? (v/one-like a) (g/mul (g/invert a) a)))
             (is (ish? (v/one-like a) (g/div a a)))))
@@ -146,7 +146,7 @@
       0 + a == a + 0 == a
 
   `(v/zero-like a)` should always return this element,
-  and `(v/nullity? (v/zero-like))` should always be true.`"
+  and `(v/zero? (v/zero-like))` should always be true.`"
   [opts generator type-name & {:keys [commutative?]}]
   (additive-semigroup opts generator type-name :commutative? commutative?)
   (zero-like opts generator type-name))
@@ -175,7 +175,7 @@
       0 * a == a * 0 == a
 
   `(v/one-like a)` should always return this element,
-  and `(v/unity? (v/one-like))` should always be true.`"
+  and `(v/one? (v/one-like))` should always be true.`"
   [opts generator type-name & {:keys [commutative?]}]
   (multiplicative-semigroup opts generator type-name  :commutative? commutative?)
   (one-like opts generator type-name))
@@ -226,15 +226,15 @@
       a * (b + c) == (a * b) + (a * c)
       (b + c) * a == (b * a) + (c * a)
 
-  if `:with-unity? true` is passed, `ring` will check that `a`'s `g/mul`
+  if `:with-one? true` is passed, `ring` will check that `a`'s `g/mul`
   implementation has an identity, ie, that `a` is a multiplicative monoid, not
   just a multiplicative semigroup. A type with this structure is called a \"ring
   with unity\".
 
   If `:commutative? true` is passed, `ring` will check that `a` has a
   commutative `g/mul` implementation; ie, that `a` is a \"commutative ring\". "
-  [opts generator type-name & {:keys [with-unity? commutative?]}]
-  (let [mul-check (if with-unity?
+  [opts generator type-name & {:keys [with-one? commutative?]}]
+  (let [mul-check (if with-one?
                     multiplicative-monoid
                     multiplicative-semigroup)]
     (additive-group opts generator type-name :commutative? true))

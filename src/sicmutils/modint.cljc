@@ -25,8 +25,8 @@
 
 (defrecord ModInt [i m]
   v/Value
-  (nullity? [_] (v/nullity? i))
-  (unity? [_] (v/unity? i))
+  (zero? [_] (v/zero? i))
+  (one? [_] (v/one? i))
   (zero-like [_] (ModInt. (v/zero-like i) m))
   (one-like [_] (ModInt. (v/one-like i) m))
   (exact? [_] true)

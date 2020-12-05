@@ -64,10 +64,10 @@
 
 (defn- add [a b]
   (cond (and (v/number? a) (v/number? b)) (g/add a b)
-        (v/number? a) (cond (v/nullity? a) b
+        (v/number? a) (cond (v/zero? a) b
                             (sum? b) `(~'+ ~a ~@(operands b))
                             :else `(~'+ ~a ~b))
-        (v/number? b) (cond (v/nullity? b) a
+        (v/number? b) (cond (v/zero? b) a
                             (sum? a) `(~'+ ~@(operands a) ~b)
                             :else `(~'+ ~a ~b))
         (sum? a) (cond (sum? b) `(~'+ ~@(operands a) ~@(operands b))
@@ -77,8 +77,8 @@
 
 (defn- sub [a b]
   (cond (and (v/number? a) (v/number? b)) (g/sub a b)
-        (v/number? a) (if (v/nullity? a) `(~'- ~b) `(~'- ~a ~b))
-        (v/number? b) (if (v/nullity? b) a `(~'- ~a ~b))
+        (v/number? a) (if (v/zero? a) `(~'- ~b) `(~'- ~a ~b))
+        (v/number? b) (if (v/zero? b) a `(~'- ~a ~b))
         (= a b) 0
         :else `(~'- ~a ~b)))
 
@@ -89,13 +89,13 @@
 
 (defn- mul [a b]
   (cond (and (v/number? a) (v/number? b)) (g/mul a b)
-        (v/number? a) (cond (v/nullity? a) a
-                            (v/unity? a) b
+        (v/number? a) (cond (v/zero? a) a
+                            (v/one? a) b
                             (product? b) `(~'* ~a ~@(operands b))
                             :else `(~'* ~a ~b)
                             )
-        (v/number? b) (cond (v/nullity? b) b
-                            (v/unity? b) a
+        (v/number? b) (cond (v/zero? b) b
+                            (v/one? b) a
                             (product? a) `(~'* ~@(operands a) ~b)
                             :else `(~'* ~a ~b)
                             )
@@ -106,9 +106,9 @@
 
 (defn- div [a b]
   (cond (and (v/number? a) (v/number? b)) (g/div a b)
-        (v/number? a) (if (v/nullity? a) a `(~'/ ~a ~b))
-        (v/number? b) (cond (v/nullity? b) (u/arithmetic-ex "division by zero")
-                            (v/unity? b) a
+        (v/number? a) (if (v/zero? a) a `(~'/ ~a ~b))
+        (v/number? b) (cond (v/zero? b) (u/arithmetic-ex "division by zero")
+                            (v/one? b) a
                             :else `(~'/ ~a ~b))
         :else `(~'/ ~a ~b)))
 
@@ -167,7 +167,7 @@
   a symbolic form."
   [x]
   (cond (v/number? x) (if (v/exact? x)
-                        (if (v/nullity? x) 0 (list 'sin x))
+                        (if (v/zero? x) 0 (list 'sin x))
                         (cond (n:zero-mod-pi? x) 0
                               (n:pi-over-2-mod-2pi? x) 1
                               (n:-pi-over-2-mod-2pi? x) -1
@@ -184,7 +184,7 @@
   a symbolic form."
   [x]
   (cond (v/number? x) (if (v/exact? x)
-                        (if (v/nullity? x) 1 (list 'cos x))
+                        (if (v/zero? x) 1 (list 'cos x))
                         (cond (n:pi-over-2-mod-pi? x) 0
                               (n:zero-mod-2pi? x) 1
                               (n:pi-mod-2pi? x) -1
@@ -201,7 +201,7 @@
   a symbolic form."
   [x]
   (cond (v/number? x) (if (v/exact? x)
-                        (if (v/nullity? x) 0 (list 'tan x))
+                        (if (v/zero? x) 0 (list 'tan x))
                         (cond (n:zero-mod-pi? x) 0
                               (n:pi-over-4-mod-pi? x) 1
                               (n:-pi-over-4-mod-pi? x) -1
@@ -218,7 +218,7 @@
   (if (v/number? x)
     (if-not (v/exact? x)
       (g/csc x)
-      (if (v/nullity? x)
+      (if (v/zero? x)
         (u/illegal (str "Zero argument -- g/csc" x))
         `(~'/ 1 ~(sin x))))
     `(~'/ 1 ~(sin x))))
@@ -227,7 +227,7 @@
   (if (v/number? x)
     (if-not (v/exact? x)
       (g/sec x)
-      (if (v/nullity? x)
+      (if (v/zero? x)
         1
         `(~'/ 1 ~(cos x))))
     `(~'/ 1 ~(cos x))))
@@ -236,7 +236,7 @@
   (if (v/number? x)
     (if-not (v/exact? x)
       (g/asin x)
-      (if (v/nullity? x)
+      (if (v/zero? x)
         0
         (list 'asin x)))
     (list 'asin x)))
@@ -245,7 +245,7 @@
   (if (v/number? x)
     (if-not (v/exact? x)
       (g/acos x)
-      (if (v/unity? x)
+      (if (v/one? x)
         0
         (list 'acos x)))
     (list 'acos x)))
@@ -255,20 +255,20 @@
    (if (v/number? y)
      (if-not (v/exact? y)
        (g/atan y)
-       (if (v/nullity? y)
+       (if (v/zero? y)
          0
          (list 'atan y)))
      (list 'atan y)))
   ([y x]
-   (if (v/unity? x)
+   (if (v/one? x)
      (atan y)
      (if (v/number? y)
        (if (v/exact? y)
-         (if (v/nullity? y)
+         (if (v/zero? y)
            0
            (if (v/number? x)
              (if (v/exact? x)
-               (if (v/nullity? x)
+               (if (v/zero? x)
                  (g/atan y x)
                  (list 'atan y x))
                (g/atan y x))
@@ -282,7 +282,7 @@
   (if (v/number? x)
     (if-not (v/exact? x)
       (g/cosh x)
-      (if (v/nullity? x)
+      (if (v/zero? x)
         1
         (list 'cosh x)))
     (list 'cosh x)))
@@ -291,7 +291,7 @@
   (if (v/number? x)
     (if-not (v/exact? x)
       (g/sinh x)
-      (if (v/nullity? x)
+      (if (v/zero? x)
         0
         (list 'sinh x)))
     (list 'sinh x)))
@@ -323,10 +323,10 @@
   evaluates symbolically or numerically."
   [b e]
   (cond (and (v/number? b) (v/number? e)) (g/expt b e)
-        (v/number? b) (cond (v/unity? b) 1
+        (v/number? b) (cond (v/one? b) 1
                             :else `(~'expt ~b ~e))
-        (v/number? e) (cond (v/nullity? e) 1
-                            (v/unity? e) b
+        (v/number? e) (cond (v/zero? e) 1
+                            (v/one? e) b
                             (and (integer? e) (even? e) (sqrt? b))
                             (expt (first (operands b)) (quot e 2))
                             (and (expt? b)

@@ -51,7 +51,7 @@
      :cljs (fn [^Fraction x] (.-d x))))
 
 (defn ^:private promote [x]
-  (if (v/unity? (denominator x))
+  (if (v/one? (denominator x))
     (numerator x)
     x))
 
@@ -63,7 +63,7 @@
               (Fraction. x))
       :clj (core-rationalize x)))
   ([n d]
-   #?(:cljs (if (v/unity? d)
+   #?(:cljs (if (v/one? d)
               n
               (promote (Fraction. n d)))
       :clj (core-rationalize (/ n d)))))
@@ -106,13 +106,13 @@
 #?(:clj
    (extend-type Ratio
      v/Value
-     (nullity? [c] (zero? c))
-     (unity? [c] (= 1 c))
+     (zero? [c] (zero? c))
+     (one? [c] (= 1 c))
      (zero-like [_] 0)
      (one-like [_] 1)
      (freeze [x] (let [n (numerator x)
                        d (denominator x)]
-                   (if (v/unity? d)
+                   (if (v/one? d)
                      n
                      `(~'/ ~n ~d))))
      (exact? [c] true)
@@ -124,13 +124,13 @@
          ONE  (Fraction. 1)]
      (extend-type Fraction
        v/Value
-       (nullity? [c] (.equals c ZERO))
-       (unity? [c] (.equals c ONE))
+       (zero? [c] (.equals c ZERO))
+       (one? [c] (.equals c ONE))
        (zero-like [_] 0)
        (one-like [_] 1)
        (freeze [x] (let [n (numerator x)
                          d (denominator x)]
-                     (if (v/unity? d)
+                     (if (v/one? d)
                        (v/freeze n)
                        `(~'/
                          ~(v/freeze n)
@@ -144,7 +144,7 @@
          (cond (ratio? other) (.equals this other)
 
                (v/integral? other)
-               (and (v/unity? (denominator this))
+               (and (v/one? (denominator this))
                     (v/eq (numerator this) other))
 
                ;; Enabling this would work, but would take us away from
@@ -173,7 +173,7 @@
        (-pr-writer [x writer opts]
          (let [n (numerator x)
                d (denominator x)]
-           (if (v/unity? d)
+           (if (v/one? d)
              (-pr-writer n writer opts)
              (write-all writer "#sicm/ratio \""
                         (str n) "/" (str d)
@@ -227,7 +227,7 @@
      ;; Only integral ratios let us stay exact. If a ratio appears in the
      ;; exponent, convert the base to a number and call g/expt again.
      (defmethod g/expt [Fraction Fraction] [a b]
-       (if (v/unity? (denominator b))
+       (if (v/one? (denominator b))
          (promote (.pow a (numerator b)))
          (g/expt (.valueOf a) (.valueOf b))))
 

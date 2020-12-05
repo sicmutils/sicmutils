@@ -122,12 +122,12 @@
             100
             [x gen/any]
             (is (= x (g/+ x)) "single arg should return itself, for any type.")
-            (is (= (if (v/nullity? x) 0 x)
+            (is (= (if (v/zero? x) 0 x)
                    (g/+ x 0))
                 "adding a 0 works for any input. The first zero element gets
                 returned.")
             (is (= x (g/+ 0 x)) "adding a leading 0 acts as identity.")
-            (is (= (if (v/nullity? x) 0 x)
+            (is (= (if (v/zero? x) 0 x)
                    (g/+ 0 x 0.0 0 0)) "multi-arg works as long as zeros
             appear.")))
 
@@ -144,7 +144,7 @@
             100
             [x gen/any]
             (is (= x (g/* x)) "single arg returns itself.")
-            (is (= (if (v/unity? x) 1 x)
+            (is (= (if (v/one? x) 1 x)
                    (g/* x 1)) "First unity gets returned.")
             (is (= x (g/* 1 x)) "Anything times a 1 returns itself.")))
 

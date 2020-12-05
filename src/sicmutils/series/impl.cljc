@@ -188,14 +188,14 @@
 (defn seq:* [f g]
   (letfn [(step [f]
             (lazy-seq
-             (if (v/nullity? (first f))
+             (if (v/zero? (first f))
                (cons (first f) (step (rest f)))
                (let [f*g  (g/mul (first f) (first g))
                      f*G1 (c*seq (first f) (rest g))
                      F1*G (step (rest f))]
                  (cons f*g (seq:+ f*G1 F1*G))))))]
     (lazy-seq
-     (if (v/nullity? (first g))
+     (if (v/zero? (first g))
        (cons (first g) (seq:* f (rest g)))
        (step f)))))
 
@@ -243,13 +243,13 @@
   (lazy-seq
    (let [f0 (first f) fs (rest f)
          g0 (first g) gs (rest g)]
-     (cond (and (v/nullity? f0) (v/nullity? g0))
+     (cond (and (v/zero? f0) (v/zero? g0))
            (div fs gs)
 
-           (v/nullity? f0)
+           (v/zero? f0)
            (cons f0 (div fs g))
 
-           (v/nullity? g0)
+           (v/zero? g0)
            (u/arithmetic-ex "ERROR: denominator has a zero constant term")
 
            :else (let [q (g/div f0 g0)]
@@ -360,7 +360,7 @@
             (lazy-seq
              ;; TODO I don't understand why we get a StackOverflow if I move
              ;; this assertion out of the `letfn`.
-             (assert (v/nullity? (first g)))
+             (assert (v/zero? (first g)))
              (let [[f0 & fs] f
                    gs (rest g)
                    tail (seq:* gs (step fs))]
@@ -397,7 +397,7 @@
 ;; $R$ thanks to the stream-based approach:
 
 (defn revert [f]
-  {:pre [(v/nullity? (first f))]}
+  {:pre [(v/zero? (first f))]}
   (letfn [(step [f]
             (lazy-seq
              (let [F1   (rest f)
@@ -503,8 +503,8 @@
 ;; Here it is in Clojure:
 
 (defn sqrt [[f1 & [f2 & fs] :as f]]
-  (if (and (v/nullity? f1)
-           (v/nullity? f2))
+  (if (and (v/zero? f1)
+           (v/zero? f2))
     (cons f1 (sqrt fs))
     (let [const (g/sqrt f1)
           step  (fn step [g]

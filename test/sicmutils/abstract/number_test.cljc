@@ -254,14 +254,14 @@
                     don't work bail out to Math/tan."))))
 
   (checking "asin" 100 [x double-or-int]
-            (is (= (cond (v/nullity? x) (v/zero-like x)
+            (is (= (cond (v/zero? x) (v/zero-like x)
                          (v/exact? x)   (list 'asin x)
                          :else          (g/asin x))
                    (x/expression-of
                     (g/asin (an/literal-number x))))))
 
   (checking "acos" 100 [x double-or-int]
-            (is (= (cond (v/unity? x) (v/zero-like x)
+            (is (= (cond (v/one? x) (v/zero-like x)
                          (v/exact? x) (list 'acos x)
                          :else        (g/acos x))
                    (x/expression-of
@@ -272,7 +272,7 @@
             (is (= (g/atan (an/literal-number x))
                    (g/atan (an/literal-number x) 1)))
 
-            (is (= (cond (v/nullity? y) (v/zero-like y)
+            (is (= (cond (v/zero? y) (v/zero-like y)
                          (v/exact? y)   (list 'atan y)
                          :else          (g/atan y))
                    (x/expression-of
@@ -281,9 +281,9 @@
 
             (let [y-exact? (v/exact? y)
                   x-exact? (v/exact? x)
-                  y-zero?  (v/nullity? y)
-                  x-zero?  (v/nullity? x)
-                  x-one?   (v/unity? x)]
+                  y-zero?  (v/zero? y)
+                  x-zero?  (v/zero? x)
+                  x-one?   (v/one? x)]
               (is (= (cond (and x-one? y-zero?)            0
                            (and x-one? y-exact?)           (list 'atan y)
                            x-one?                          (g/atan y)
@@ -299,21 +299,21 @@
                   "double arity")))
 
   (checking "cosh" 100 [x double-or-int]
-            (is (= (cond (v/nullity? x) 1
+            (is (= (cond (v/zero? x) 1
                          (v/exact? x)   (list 'cosh x)
                          :else          (g/cosh x))
                    (x/expression-of
                     (g/cosh (an/literal-number x))))))
 
   (checking "sinh" 100 [x double-or-int]
-            (is (= (cond (v/nullity? x) 0
+            (is (= (cond (v/zero? x) 0
                          (v/exact? x)   (list 'sinh x)
                          :else          (g/sinh x))
                    (x/expression-of
                     (g/sinh (an/literal-number x))))))
 
   (checking "sec" 100 [x double-or-int]
-            (is (= (cond (v/nullity? x) 1
+            (is (= (cond (v/zero? x) 1
                          (v/exact? x)   (list '/ 1 (list 'cos x))
                          :else          (g/sec x))
                    (x/expression-of
@@ -322,7 +322,7 @@
   (checking "csc" 100 [x (gen/one-of
                           [gen/small-integer
                            (sg/reasonable-double)])]
-            (if (v/nullity? x)
+            (if (v/zero? x)
               (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
                            (g/csc (an/literal-number x))))
 

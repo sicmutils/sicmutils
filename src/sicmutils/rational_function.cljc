@@ -33,8 +33,8 @@
 
 (deftype RationalFunction [arity u v]
   v/Value
-  (nullity? [_] (v/nullity? u))
-  (unity? [_] (and (v/unity? u) (v/unity? v)))
+  (zero? [_] (v/zero? u))
+  (one? [_] (and (v/one? u) (v/one? v)))
   (numerical? [_] false)
   (kind [_] ::rational-function)
 
@@ -76,7 +76,7 @@
   {:pre [(p/polynomial? u)
          (p/polynomial? v)
          (= (.-arity u) (.-arity v))]}
-  (when (v/nullity? v)
+  (when (v/zero? v)
     (u/arithmetic-ex "Can't form rational function with zero denominator"))
   ;; annoying: we are using native operations here for the base coefficients
   ;; of the polynomial. Can we do better? That would involve exposing gcd as
@@ -94,16 +94,16 @@
         integerizing-factor (g/*
                              (if (< lcv 0) -1 1)
                              (reduce g/lcm 1 (map r/denominator (filter r/ratio? cs))))
-        u' (if (v/unity? integerizing-factor)
+        u' (if (v/one? integerizing-factor)
              u
              (p/map-coefficients #(g/* integerizing-factor %) u))
-        v' (if (v/unity? integerizing-factor)
+        v' (if (v/one? integerizing-factor)
              v
              (p/map-coefficients #(g/* integerizing-factor %) v))
         g (poly/gcd u' v')
         u'' (p/evenly-divide u' g)
         v'' (p/evenly-divide v' g)]
-    (if (v/unity? v'')
+    (if (v/one? v'')
       u''
       (do (when-not (and (p/polynomial? u'')
                          (p/polynomial? v''))
@@ -112,7 +112,7 @@
 
 (defn ^:private make-reduced
   [arity u v]
-  (if (v/unity? v)
+  (if (v/one? v)
     u
     (->RationalFunction arity u v)))
 
@@ -132,7 +132,7 @@
         v (.-u s)
         v' (.-v s)
         d1 (poly/gcd u' v')]
-    (if (v/unity? d1)
+    (if (v/one? d1)
       (make-reduced  a (p/add (p/mul u v') (p/mul u' v)) (p/mul u' v'))
       (let [t (p/add (p/mul u (p/evenly-divide v' d1))
                      (p/mul v (p/evenly-divide u' d1)))
@@ -145,7 +145,7 @@
 (defn addp
   "Add a rational function to a polynomial."
   [^RationalFunction r ^Polynomial p]
-  (if (v/nullity? p)
+  (if (v/zero? p)
     r
     (let [v (.-v r)]
       (make (p/add (.-u r) (p/mul v p)) v))))
@@ -154,7 +154,7 @@
   [^RationalFunction r ^Polynomial p]
   {:pre [(rational-function? r)
          (p/polynomial? p)]}
-  (if (v/nullity? p)
+  (if (v/zero? p)
     r
     (let [v (.-v r)]
       (make (p/sub (.-u r) (p/mul v p)) v))))
@@ -189,10 +189,10 @@
         u' (.-v r)
         v (.-u s)
         v' (.-v s)]
-    (cond (v/nullity? r) r
-          (v/nullity? s) s
-          (v/unity? r) s
-          (v/unity? s) r
+    (cond (v/zero? r) r
+          (v/zero? s) s
+          (v/one? r) s
+          (v/one? s) r
           :else (let [d1 (poly/gcd u v')
                       d2 (poly/gcd u' v)
                       u'' (p/mul (p/evenly-divide u d1) (p/evenly-divide v d2))
@@ -305,10 +305,10 @@
   (let [u (.-u r)
         v (.-v r)
         a (.-arity r)]
-    (cond (v/nullity? p) 0
-          (v/unity? p) r
+    (cond (v/zero? p) 0
+          (v/one? p) r
           :else (let [d (poly/gcd v p)]
-                  (if (v/unity? d)
+                  (if (v/one? d)
                     (make-reduced a (p/mul u p) v)
                     (make-reduced a (p/mul u (p/evenly-divide p d)) (p/evenly-divide v d)))))))
 
@@ -317,10 +317,10 @@
   (let [u (.-u r)
         v (.-v r)
         a (.-arity r)]
-    (cond (v/nullity? p) 0
-          (v/unity? p) r
+    (cond (v/zero? p) 0
+          (v/one? p) r
           :else (let [d (poly/gcd p v) ]
-                  (if (v/unity? d)
+                  (if (v/one? d)
                     (->RationalFunction a (p/mul p u) v)
                     (->RationalFunction a (p/mul (p/evenly-divide p d) u) (p/evenly-divide v d)))))))
 

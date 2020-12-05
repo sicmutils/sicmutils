@@ -29,8 +29,8 @@
 
 (defrecord Operator [o arity name context]
   v/Value
-  (nullity? [_] false)
-  (unity? [_] false)
+  (zero? [_] false)
+  (one? [_] false)
   (zero-like [_] (Operator. v/zero-like arity 'zero context))
   (one-like [_] (Operator. identity arity 'identity context))
   (numerical? [_] false)

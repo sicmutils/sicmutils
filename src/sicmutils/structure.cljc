@@ -52,8 +52,8 @@
 
 (deftype Structure [orientation v]
   v/Value
-  (nullity? [_] (every? v/nullity? v))
-  (unity? [_] false)
+  (zero? [_] (every? v/zero? v))
+  (one? [_] false)
   (zero-like [_] (Structure. orientation (v/zero-like v)))
   (one-like [o] (u/unsupported (str "one-like: " o)))
   (exact? [_] (every? v/exact? v))
@@ -434,7 +434,7 @@
   "Raise the structure s to the nth power."
   [s n]
   (let [one (v/one-like n)]
-    (cond (v/unity? n) s
+    (cond (v/one? n) s
           (> n one) (g/* s (g/expt s (g/- n one)))
           :else (u/arithmetic-ex (str "Cannot: " `(expt ~s ~n))))))
 

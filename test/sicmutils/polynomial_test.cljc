@@ -36,22 +36,22 @@
     (is (= ::p/polynomial (v/kind (p/make [])))))
 
   (testing "zero"
-    (is (v/nullity? (p/make [])))
-    (is (v/nullity? (p/make [0])))
-    (is (v/nullity? (p/make [])))
-    (is (v/nullity? (p/make 2 [])))
-    (is (v/nullity? (p/make 2 [])))
-    (is (not (v/nullity? (p/make [1])))))
+    (is (v/zero? (p/make [])))
+    (is (v/zero? (p/make [0])))
+    (is (v/zero? (p/make [])))
+    (is (v/zero? (p/make 2 [])))
+    (is (v/zero? (p/make 2 [])))
+    (is (not (v/zero? (p/make [1])))))
 
   (testing "unity"
-    (is (v/unity? (p/make [1])))
-    (is (v/unity? (p/make 2 [[[0 0] 1]])))
-    (is (v/unity? (p/make 3 [[[0 0 0] 1]])))
-    (is (not (v/unity? (p/make 3 [[[0 0 0] 1] [[0 0 1] 2]]))))
-    (is (not (v/unity? (p/make [1.1]))))
-    (is (v/unity? (p/make [1.0])))
-    (is (v/unity? (p/make [(p/make [1])])))
-    (is (not (v/unity? (p/make [(p/make [2])])))))
+    (is (v/one? (p/make [1])))
+    (is (v/one? (p/make 2 [[[0 0] 1]])))
+    (is (v/one? (p/make 3 [[[0 0 0] 1]])))
+    (is (not (v/one? (p/make 3 [[[0 0 0] 1] [[0 0 1] 2]]))))
+    (is (not (v/one? (p/make [1.1]))))
+    (is (v/one? (p/make [1.0])))
+    (is (v/one? (p/make [(p/make [1])])))
+    (is (not (v/one? (p/make [(p/make [2])])))))
 
   (testing "make-constant"
     (is (= (p/make [99]) (p/make-constant 1 99)))
@@ -85,11 +85,11 @@
     (is (= (p/make [0 0 2]) (g/add (p/make [2 0 2]) (p/make [-2])))))
 
   (testing "add/sub"
-    (is (v/nullity? (g/add (p/make [0 0 2]) (p/make [0 0 -2]))))
+    (is (v/zero? (g/add (p/make [0 0 2]) (p/make [0 0 -2]))))
     (is (= (p/make []) (g/add (p/make [0 0 2]) (p/make [0 0 -2]))))
     (is (= (p/make [3]) (g/add (p/make [3 0 2]) (p/make [0 0 -2]))))
     (is (= (p/make [-1 1]) (g/add (p/make [0 1]) (p/make [-1]))))
-    (is (v/nullity? (g/sub (p/make [0 0 2]) (p/make [0 0 2]))))
+    (is (v/zero? (g/sub (p/make [0 0 2]) (p/make [0 0 2]))))
     (is (= (p/make [-3]) (g/sub (p/make [0 0 2]) (p/make [3 0 2]))))
     (is (= (p/make [0 1 2]) (g/sub (p/make [3 1 2]) (p/make [3]))))
     (is (= (p/make [-2 -2 -1]) (g/sub (p/make [1]) (p/make [3 2 1]))))
@@ -320,7 +320,7 @@
 
 (defn generate-nonzero-poly
   [arity]
-  (gen/such-that (complement v/nullity?)
+  (gen/such-that (complement v/zero?)
                  (generate-poly arity)))
 
 (def ^:private num-tests 30)
@@ -332,14 +332,14 @@
 
 (defspec ^:long p-p=0 num-tests
   (prop/for-all [p (gen/bind gen/nat generate-poly)]
-                (v/nullity? (g/sub p p))))
+                (v/zero? (g/sub p p))))
 
 (defspec ^:long pq-div-p=q num-tests
   (gen/let [arity gen/nat]
     (prop/for-all [p (generate-poly arity)
                    q (generate-nonzero-poly arity)]
                   (let [[Q R] (p/divide (g/mul p q) q)]
-                    (and (v/nullity? R)
+                    (and (v/zero? R)
                          (= Q p))))))
 
 (defspec ^:long p+q=q+p num-tests

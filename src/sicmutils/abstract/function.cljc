@@ -75,8 +75,8 @@
   Object
   (toString [_] (str name))
   v/Value
-  (nullity? [_] false)
-  (unity? [_] false)
+  (zero? [_] false)
+  (one? [_] false)
   (zero-like [_] (fn [& _] (v/zero-like range)))
   (numerical? [_] false)
   (freeze [_] (v/freeze name))

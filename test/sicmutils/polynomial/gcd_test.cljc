@@ -402,9 +402,9 @@
     (prop/for-all [u (p-test/generate-poly arity)
                    v (p-test/generate-poly arity)]
                   (let [g (g/gcd u v)]
-                    (or (and (v/nullity? u)
-                             (v/nullity? v)
-                             (v/nullity? g))
+                    (or (and (v/zero? u)
+                             (v/zero? v)
+                             (v/zero? g))
                         (and (g/exact-divide u g)
                              (g/exact-divide v g)))))))
 

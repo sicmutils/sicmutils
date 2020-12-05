@@ -32,8 +32,8 @@
 
 (defprotocol Value
   (numerical? [this])
-  (nullity? [this])
-  (unity? [this])
+  (zero? [this])
+  (one? [this])
   (zero-like [this])
   (one-like [this])
   (exact? [this])
@@ -128,8 +128,8 @@
 
 (extend-protocol Value
   #?(:clj Number :cljs number)
-  (nullity? [x] (core-zero? x))
-  (unity? [x] (== 1 x))
+  (zero? [x] (core-zero? x))
+  (one? [x] (== 1 x))
   (zero-like [_] 0)
   (one-like [_] 1)
   (freeze [x] x)
@@ -142,8 +142,8 @@
 
   #?@(:clj
       [java.lang.Double
-       (nullity? [x] (core-zero? x))
-       (unity? [x] (== 1 x))
+       (zero? [x] (core-zero? x))
+       (one? [x] (== 1 x))
        (zero-like [_] 0.0)
        (one-like [_] 1.0)
        (freeze [x] x)
@@ -152,8 +152,8 @@
        (kind [x] (type x))
 
        java.lang.Float
-       (nullity? [x] (core-zero? x))
-       (unity? [x] (== 1 x))
+       (zero? [x] (core-zero? x))
+       (one? [x] (== 1 x))
        (zero-like [_] 0.0)
        (one-like [_] 1.0)
        (freeze [x] x)
@@ -164,15 +164,15 @@
   nil
   (freeze [_] nil)
   (numerical? [_] false)
-  (nullity? [_] true)
+  (zero? [_] true)
   (zero-like [o] (u/unsupported "nil doesn't support zero-like."))
-  (unity?[_] false)
+  (one?[_] false)
   (one-like [o] (u/unsupported "nil doesn't support one-like."))
   (kind [_] nil)
 
   PersistentVector
-  (nullity? [v] (every? nullity? v))
-  (unity? [_] false)
+  (zero? [v] (every? zero? v))
+  (one? [_] false)
   (zero-like [v] (mapv zero-like v))
   (one-like [o] (u/unsupported (str "one-like: " o)))
   (exact? [v] (every? exact? v))
@@ -181,9 +181,9 @@
   (kind [v] (type v))
 
   Symbol
-  (nullity? [o] false)
+  (zero? [o] false)
   (numerical? [_] true)
-  (unity? [_] false)
+  (one? [_] false)
   (exact? [_] false)
   (zero-like [_] 0)
   (one-like [_] 1)
@@ -191,9 +191,9 @@
   (kind [_] Symbol)
 
   #?(:clj Object :cljs default)
-  (nullity? [o] false)
+  (zero? [o] false)
   (numerical? [_] false)
-  (unity? [o] false)
+  (one? [o] false)
   (exact? [o] false)
   (zero-like [o] (if (or (fn? o) (instance? MultiFn o))
                    (-> (constantly 0)
@@ -302,8 +302,8 @@
 
      (extend-protocol Value
        js/BigInt
-       (nullity? [x] (js*  "~{} == ~{}" big-zero x))
-       (unity? [x] (js*  "~{} == ~{}" big-one x))
+       (zero? [x] (js*  "~{} == ~{}" big-zero x))
+       (one? [x] (js*  "~{} == ~{}" big-one x))
        (zero-like [_] big-zero)
        (one-like [_] big-one)
        (freeze [x]
@@ -317,8 +317,8 @@
        (kind [_] js/BigInt)
 
        goog.math.Integer
-       (nullity? [x] (.isZero x))
-       (unity? [x] (= (.-ONE goog.math.Integer) x))
+       (zero? [x] (.isZero x))
+       (one? [x] (= (.-ONE goog.math.Integer) x))
        (zero-like [_] (.-ZERO goog.math.Integer))
        (one-like [_] (.-ONE goog.math.Integer))
        (freeze [x] x)
@@ -327,8 +327,8 @@
        (kind [_] goog.math.Integer)
 
        goog.math.Long
-       (nullity? [x] (.isZero x))
-       (unity? [x] (= (.getOne goog.math.Long) x))
+       (zero? [x] (.isZero x))
+       (one? [x] (= (.getOne goog.math.Long) x))
        (zero-like [_] (.getZero goog.math.Long))
        (one-like [_] (.getOne goog.math.Long))
        (freeze [x] x)

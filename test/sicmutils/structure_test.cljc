@@ -28,16 +28,16 @@
             [sicmutils.value :as v]))
 
 (deftest value-impl
-  (testing "nullity?"
-    (is (v/nullity? (s/up)))
-    (is (v/nullity? (s/down)))
-    (is (v/nullity? (s/down 0)))
-    (is (v/nullity? (s/up 0 0)))
-    (is (v/nullity? (s/up 0)))
-    (is (v/nullity? (s/down 0 0)))
-    (is (v/nullity? (s/up 0 (s/down (s/up 0 0) (s/up 0 0)))))
-    (is (v/nullity? (s/up 0 (u/long 0) (u/int 0))))
-    (is (not (v/nullity? (s/up 1 2 3)))))
+  (testing "zero?"
+    (is (v/zero? (s/up)))
+    (is (v/zero? (s/down)))
+    (is (v/zero? (s/down 0)))
+    (is (v/zero? (s/up 0 0)))
+    (is (v/zero? (s/up 0)))
+    (is (v/zero? (s/down 0 0)))
+    (is (v/zero? (s/up 0 (s/down (s/up 0 0) (s/up 0 0)))))
+    (is (v/zero? (s/up 0 (u/long 0) (u/int 0))))
+    (is (not (v/zero? (s/up 1 2 3)))))
 
   (testing "zero-like"
     (is (= (s/up 0 0 0) (v/zero-like (s/up 1 2 3))))

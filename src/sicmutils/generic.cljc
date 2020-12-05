@@ -103,7 +103,7 @@
 (def-generic-function modulo 2)
 (defmethod modulo :default [a b]
   (let [m (remainder a b)]
-    (if (or (v/nullity? m)
+    (if (or (v/zero? m)
             (= (negative? a)
                (negative? b)))
       m
@@ -254,16 +254,16 @@
   (map simplify a))
 
 (defn ^:private bin+ [a b]
-  (cond (v/nullity? a) b
-        (v/nullity? b) a
+  (cond (v/zero? a) b
+        (v/zero? b) a
         :else (add a b)))
 
 (defn + [& args]
   (reduce bin+ 0 args))
 
 (defn ^:private bin- [a b]
-  (cond (v/nullity? b) a
-        (v/nullity? a) (negate b)
+  (cond (v/zero? b) a
+        (v/zero? a) (negate b)
         :else (sub a b)))
 
 (defn - [& args]
@@ -272,10 +272,10 @@
         :else (bin- (first args) (reduce bin+ (next args)))))
 
 (defn ^:private bin* [a b]
-  (cond (and (v/numerical? a) (v/nullity? a)) (v/zero-like b)
-        (and (v/numerical? b) (v/nullity? b)) (v/zero-like a)
-        (v/unity? a) b
-        (v/unity? b) a
+  (cond (and (v/numerical? a) (v/zero? a)) (v/zero-like b)
+        (and (v/numerical? b) (v/zero? b)) (v/zero-like a)
+        (v/one? a) b
+        (v/one? b) a
         :else (mul a b)))
 
 ;;; In bin* we test for exact (numerical) zero
@@ -286,14 +286,14 @@
 ;;;       |a b c| |0|   |0|       |0|
 ;;;       |d e f| |0| = |0|, not  |0|
 ;;;
-;;; We are less worried about the v/nullity? below,
+;;; We are less worried about the v/zero? below,
 ;;; because any invertible matrix is square.
 
 (defn * [& args]
   (reduce bin* 1 args))
 
 (defn ^:private bin-div [a b]
-  (cond (v/unity? b) a
+  (cond (v/one? b) a
         :else (div a b)))
 
 (defn / [& args]

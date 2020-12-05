@@ -41,8 +41,8 @@
 (deftype Matrix [r c v]
   v/Value
   (numerical? [_] false)
-  (nullity? [_] (every? #(every? v/nullity? %) v))
-  (unity? [_] false)
+  (zero? [_] (every? #(every? v/zero? %) v))
+  (one? [_] false)
   ;; TODO: zero-like and one-like should use a recursive copy to find the 0/1 elements
   (zero-like [_] (Matrix. r c (vec (repeat r (vec (repeat c 0))))))
   (one-like [_] (if-not (= r c)

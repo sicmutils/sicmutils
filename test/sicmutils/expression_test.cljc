@@ -26,10 +26,10 @@
 
 (deftest expressions
   (testing "value protocol impl"
-    (is (v/nullity? (e/make-literal ::blah 0)))
-    (is (v/unity? (e/make-literal ::blah 1)))
-    (is (not (v/nullity? (e/make-literal ::blah 10))))
-    (is (not (v/unity? (e/make-literal ::blah 10))))
+    (is (v/zero? (e/make-literal ::blah 0)))
+    (is (v/one? (e/make-literal ::blah 1)))
+    (is (not (v/zero? (e/make-literal ::blah 10))))
+    (is (not (v/one? (e/make-literal ::blah 10))))
     (is (not (v/exact? (e/make-literal ::blah 10.5))))
     (is (v/exact? (e/make-literal ::blah 10)))
 
