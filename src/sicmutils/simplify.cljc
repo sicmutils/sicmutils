@@ -18,19 +18,16 @@
 ;
 
 (ns sicmutils.simplify
-  (:require [clojure.walk :refer [postwalk]]
-            [clojure.pprint :as pp]
+  (:require [clojure.pprint :as pp]
             [clojure.set :as set]
             [pattern.rule :as rule]
             [sicmutils.expression.analyze :as a]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
-            [sicmutils.numsymb :as nsy]
             [sicmutils.polynomial :as poly]
             [sicmutils.polynomial.factor :as factor]
             [sicmutils.rational-function :as rf]
             [sicmutils.simplify.rules :as rules]
-            [sicmutils.structure :as s]
             [sicmutils.value :as v]
             [taoensso.timbre :as log])
   #?(:clj

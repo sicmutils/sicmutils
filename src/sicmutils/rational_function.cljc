@@ -261,8 +261,9 @@
     ;; indeterminates extracted from the expression at the start of this
     ;; process."
     (cond (rational-function? r)
-          (sym/div (a/->expression polynomial-analyzer (.-u ^RationalFunction r) vars)
-                   (a/->expression polynomial-analyzer (.-v ^RationalFunction r) vars))
+          ((sym/symbolic-operator '/)
+           (a/->expression polynomial-analyzer (.-u ^RationalFunction r) vars)
+           (a/->expression polynomial-analyzer (.-v ^RationalFunction r) vars))
 
           (p/polynomial? r)
           (a/->expression polynomial-analyzer r vars)
