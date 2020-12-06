@@ -31,8 +31,10 @@
   v/Value
   (zero? [_] false)
   (one? [_] false)
+  (identity? [_] false)
   (zero-like [_] (Operator. v/zero-like arity 'zero context))
   (one-like [_] (Operator. identity arity 'identity context))
+  (identity-like [_] (Operator. identity arity 'identity context))
   (numerical? [_] false)
   (freeze [_] (v/freeze name))
   (kind [_] (:subtype context))

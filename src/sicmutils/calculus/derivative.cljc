@@ -38,14 +38,23 @@
 
 (declare differential-of)
 
+(comment
+  ;; TODO fix this for differential one and identity?
+  (define (diff:one? x)
+    (assert (differential? x))
+    (and (g:one? (finite-part x))
+         (diff:zero? (infinitesimal-part x))))
+  )
 ;; A differential is a sequence of differential terms, ordered by the
 ;; tag set.
 (deftype Differential [terms]
   v/Value
   (zero? [_] (every? v/zero? (map coefficient terms)))
   (one? [_] false)
+  (identity? [_] false)
   (zero-like [_] 0)
   (one-like [_] 1)
+  (identity-like [_] 1)
   (freeze [_] `[~'Differential ~@terms])
   (exact? [_] false)
   (numerical? [d] (v/numerical? (differential-of d)))

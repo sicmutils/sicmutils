@@ -54,8 +54,10 @@
   v/Value
   (zero? [_] (every? v/zero? v))
   (one? [_] false)
+  (identity? [_] false)
   (zero-like [_] (Structure. orientation (v/zero-like v)))
   (one-like [o] (u/unsupported (str "one-like: " o)))
+  (identity-like [o] (u/unsupported (str "identity-like: " o)))
   (exact? [_] (every? v/exact? v))
   (numerical? [_] false)
   (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))

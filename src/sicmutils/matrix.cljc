@@ -42,12 +42,20 @@
   v/Value
   (numerical? [_] false)
   (zero? [_] (every? #(every? v/zero? %) v))
+
+  ;; TODO fix these two!
   (one? [_] false)
-  ;; TODO: zero-like and one-like should use a recursive copy to find the 0/1 elements
+  (identity? [_] false)
+
+  ;; TODO: zero-like, one-like, identity-like should use a recursive copy to
+  ;; find the 0/1 elements
   (zero-like [_] (Matrix. r c (vec (repeat r (vec (repeat c 0))))))
   (one-like [_] (if-not (= r c)
                   (u/illegal "one-like on non-square")
                   (generate r c #(if (= %1 %2) 1 0))))
+  (identity-like [_] (if-not (= r c)
+                       (u/illegal "identity-like on non-square")
+                       (generate r c #(if (= %1 %2) 1 0))))
   (exact? [_] (every? #(every? v/exact? %) v))
   (freeze [_] (if (= c 1)
                 `(~'column-matrix ~@(map (comp v/freeze first) v))

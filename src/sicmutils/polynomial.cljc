@@ -83,11 +83,28 @@
   (numerical? [_] false)
   (exact? [_] false)
   (zero-like [_] (Polynomial. arity empty-coefficients))
-  (one-like [_] (make-constant arity (v/one-like (coefficient (exponents xs->c)))))
-  (one? [_] (and (= (count xs->c) 1)
-                 (let [[xs c] (first xs->c)]
-                   (and (every? zero? xs)
-                        (v/one? c)))))
+  (one-like [_]
+    (let [one (if-let [pair (first xs->c)]
+                (v/one-like (coefficient pair))
+                1)]
+      (make-constant arity one)))
+  (identity-like [_]
+    (assert (v/one? arity) "identity-like unsupported on non-monomials!")
+    (let [one (if-let [pair (first xs->c)]
+                (v/one-like (coefficient pair))
+                1)]
+      (Polynomial. arity [[[one] one]])))
+  (one? [_]
+    (and (= (count xs->c) 1)
+         (let [[[xs c]] xs->c]
+           (and (every? v/zero? xs)
+                (v/one? c)))))
+  (identity? [_]
+    (and (v/one? arity)
+         (= (count xs->c) 1)
+         (let [[[[e] c]] xs->c]
+           (and (v/one? e)
+                (v/one? c)))))
   (freeze [_] `(~'polynomial ~arity ~xs->c))
   (kind [_] ::polynomial)
 
@@ -158,7 +175,7 @@
                       (sort-by exponents monomial-order)
                       (into empty-coefficients))))
   ([dense-coefficients]
-   (make 1 (zipmap (map vector (iterate inc 0)) dense-coefficients))))
+   (make 1 (zipmap (map vector (range)) dense-coefficients))))
 
 (defn ^:private lead-term
   "Return the leading (i.e., highest degree) term of the polynomial

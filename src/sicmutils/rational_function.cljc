@@ -35,6 +35,17 @@
   v/Value
   (zero? [_] (v/zero? u))
   (one? [_] (and (v/one? u) (v/one? v)))
+  (identity? [_] (and (v/identity? u) (v/one? v)))
+
+  (zero-like [_]
+    (RationalFunction. arity (v/zero-like u) (v/one-like v)))
+
+  (one-like [_]
+    (RationalFunction. arity (v/one-like u) (v/one-like v)))
+
+  (identity-like [_]
+    (RationalFunction. arity (v/identity-like u) (v/one-like v)))
+
   (numerical? [_] false)
   (kind [_] ::rational-function)
 

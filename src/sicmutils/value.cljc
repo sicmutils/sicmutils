@@ -48,7 +48,7 @@
   before simplification and printing, to simplify those processes.")
   (kind [this]))
 
-(declare arity primitive-kind)
+(declare arity)
 
 (def argument-kind #(mapv kind %&))
 
@@ -111,6 +111,25 @@
   false otherwise."
   [x]
   (isa? (kind x) ::scalar))
+
+(defn- f:zero-like [f]
+  (let [meta {:arity (arity f)
+              :from :zero-like}]
+    (-> (fn [& args]
+          (zero-like (apply f args)))
+        (with-meta meta))))
+
+(defn- f:one-like [f]
+  (let [meta {:arity (arity f)
+              :from :one-like}]
+    (-> (fn [& args]
+          (one-like (apply f args)))
+        (with-meta meta))))
+
+(defn- f:identity-like [f]
+  (let [meta {:arity (arity f)
+              :from :identity-like}]
+    (with-meta identity meta)))
 
 #?(:clj
    (do
@@ -202,68 +221,31 @@
   (kind [_] Symbol)
 
   MultiFn
-  (zero? [o] false)
-  (zero-like [o] (if (or (fn? o) (instance? MultiFn o))
-                   (-> (constantly 0)
-                       (with-meta {:arity (arity o)
-                                   :from :object-zero-like}))
-
-                   (u/unsupported (str "zero-like: " o))))
-
-
-  (one? [o] false)
-  (one-like [o]
-    (if (or (fn? o) (instance? MultiFn o))
-      (-> identity
-          (with-meta {:arity (arity o)
-                      :from :object-one-like}))
-
-      (u/unsupported (str "one-like: " o))))
-
+  (zero? [_] false)
+  (zero-like [f] (f:zero-like f))
+  (one? [_] false)
+  (one-like [f] (f:one-like f))
   (identity? [_] false)
-  (identity-like [o]
-    (if (or (fn? o) (instance? MultiFn o))
-      (-> identity
-          (with-meta {:arity (arity o)
-                      :from :object-identity-like}))
-      (u/unsupported (str "identity-like: " o))))
-
-  (exact? [o] false)
+  (identity-like [f] (f:identity-like f))
+  (exact? [_] false)
   (numerical? [_] false)
-  (freeze [o] (cond
-                (sequential? o) (map freeze o)
-                :else (or (and (instance? MultiFn o)
-                               (if-let [m (get-method o [Keyword])]
-                                 (m :name)))
-                          (@object-name-map o)
-                          o)))
-  (kind [o] (primitive-kind o))
+  (freeze [f]
+    (if-let [m (get-method f [Keyword])]
+      (m :name)
+      (get @object-name-map f f)))
+  (kind [o] ::function)
 
   Fn
-  (zero? [o] false)
-  (zero-like [o]
-    (let [meta {:arity (arity o)
-                :from :zero-like}]
-      (-> (constantly 0)
-          (with-meta meta))))
-
-  (one? [o] false)
-  (one-like [o]
-    (let [meta {:arity (arity o)
-                :from :one-like}]
-      (with-meta identity meta)))
-
+  (zero? [_] false)
+  (zero-like [f] (f:zero-like f))
+  (one? [_] false)
+  (one-like [f] (f:one-like f))
   (identity? [_] false)
-  (identity-like [o]
-    (let [meta {:arity (arity o)
-                :from :identity-like}]
-      (with-meta identity meta)))
-  (exact? [o] false)
+  (identity-like [f] (f:identity-like f))
+  (exact? [_] false)
   (numerical? [_] false)
-  (freeze [o]
-    (@object-name-map o o))
-  ;; TODO change to function.
-  (kind [o] (primitive-kind o))
+  (freeze [f] (get @object-name-map f f))
+  (kind [_] ::function)
 
   #?(:clj Object :cljs default)
   (zero? [o] false)
@@ -277,8 +259,8 @@
   (freeze [o]
     (if (sequential? o)
       (map freeze o)
-      (@object-name-map o o)))
-  (kind [o] (primitive-kind o)))
+      (get @object-name-map o o)))
+  (kind [o] (:type o (type o))))
 
 ;; Override equiv for numbers.
 (defmulti eq argument-kind)
@@ -551,13 +533,6 @@
   If they are incompatible, an exception is thrown."
   [arities]
   (reduce combine-arities [:at-least 0] arities))
-
-(defn ^:private primitive-kind
-  [a]
-  (cond
-    (or (fn? a) (instance? MultiFn a)) ::function
-    :else (or (:type a)
-              (type a))))
 
 (def machine-epsilon
   (loop [e 1.0]
