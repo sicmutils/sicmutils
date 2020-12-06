@@ -84,9 +84,6 @@
   [& args]
   `(af/with-literal-functions ~@args))
 
-(def zero? v/zero?)
-(def one? v/one?)
-
 (def print-expression simp/print-expression)
 
 (defn ref
@@ -302,7 +299,10 @@
   state-advancer]
  [sicmutils.numerical.quadrature definite-integral]
  [sicmutils.numerical.elliptic elliptic-f]
- [sicmutils.numerical.minimize minimize multidimensional-minimize])
+ [sicmutils.numerical.minimize minimize multidimensional-minimize]
+ [sicmutils.value exact? zero? one? identity?
+  zero-like one-like identity-like
+  numerical? freeze kind])
 
 ;; Macros. These work with Potemkin's import, but not with the Clojure version.
 #?(:clj

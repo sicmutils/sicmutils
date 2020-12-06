@@ -126,10 +126,12 @@
           (one-like (apply f args)))
         (with-meta meta))))
 
-(defn- f:identity-like [f]
-  (let [meta {:arity (arity f)
-              :from :identity-like}]
-    (with-meta identity meta)))
+(defn- f:identity-like
+  ([f] (f:identity-like f (arity f)))
+  ([f arity]
+   (let [meta {:arity arity
+               :from :identity-like}]
+     (with-meta identity meta))))
 
 #?(:clj
    (do
