@@ -18,9 +18,14 @@
 ;;
 
 (ns sicmutils.function
-  (:require [sicmutils.generic :as g]
+  (:require [clojure.core.match :refer [match]
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.generic :as g]
             [sicmutils.util :as u]
-            [sicmutils.value :as v]))
+            [sicmutils.value :as v])
+  #?(:clj
+     (:import (clojure.lang RestFn Fn MultiFn Keyword)
+              (java.lang.reflect Method))))
 
 ;; ## Function Algebra
 ;;
@@ -30,6 +35,8 @@
 
 ;; ### Utilities
 
+(declare arity)
+
 (defn compose
   "Compose is like Clojure's standard comp, but for this system we
   like to know the arity of our functions, so that we can calculate
@@ -37,8 +44,203 @@
   simply the arity of its rightmost (that is, first to be applied)
   function term."
   [& fns]
-  (let [a (v/arity (last fns))]
+  (let [a (arity (last fns))]
     (with-meta (apply comp fns) {:arity a})))
+
+(defn- zero-like [f]
+  (let [meta {:arity (arity f)
+              :from :zero-like}]
+    (-> (fn [& args]
+          (zero-like (apply f args)))
+        (with-meta meta))))
+
+(defn- one-like [f]
+  (let [meta {:arity (arity f)
+              :from :one-like}]
+    (-> (fn [& args]
+          (one-like (apply f args)))
+        (with-meta meta))))
+
+(defn- identity-like [f]
+  (let [meta {:arity (arity f)
+              :from :identity-like}]
+    (with-meta identity meta)))
+
+(extend-protocol v/Value
+  MultiFn
+  (zero? [_] false)
+  (zero-like [f] (zero-like f))
+  (one? [_] false)
+  (one-like [f] (one-like f))
+  (identity? [_] false)
+  (identity-like [f] (identity-like f))
+  (exact? [f] (compose v/exact? f))
+  (numerical? [_] false)
+  (freeze [f]
+    (if-let [m (get-method f [Keyword])]
+      (m :name)
+      (get @v/object-name-map f f)))
+  (kind [o] ::v/function)
+
+  Fn
+  (zero? [_] false)
+  (zero-like [f] (zero-like f))
+  (one? [_] false)
+  (one-like [f] (one-like f))
+  (identity? [_] false)
+  (identity-like [f] (identity-like f))
+  (exact? [f] (compose v/exact? f))
+  (numerical? [_] false)
+  (freeze [f] (get @v/object-name-map f f))
+  (kind [_] ::v/function))
+
+;; we record arities as a vector with an initial keyword:
+;;   [:exactly m]
+;;   [:between m n]
+;;   [:at-least m]
+
+#?(:clj
+   (defn jvm-arity [f]
+     (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
+           ;; tally up arities of invoke, doInvoke, and
+           ;; getRequiredArity methods. Filter out invokeStatic.
+           ^RestFn rest-fn f
+           facts (group-by first
+                           (for [^Method m methods
+                                 :let [name (.getName m)]
+                                 :when (not (#{"withMeta" "meta" "invokeStatic"} name))]
+                             (condp = name
+                               "invoke" [:invoke (alength (.getParameterTypes m))]
+                               "doInvoke" [:doInvoke true]
+                               "getRequiredArity" [:getRequiredArity (.getRequiredArity rest-fn)])))]
+       (cond
+         ;; Rule one: if all we have is one single case of invoke, then the
+         ;; arity is the arity of that method. This is the common case.
+         (and (= 1 (count facts))
+              (= 1 (count (:invoke facts))))
+         [:exactly (second (first (:invoke facts)))]
+         ;; Rule two: if we have exactly one doInvoke and getRequiredArity,
+         ;; and possibly an invokeStatic, then the arity at
+         ;; least the result of .getRequiredArity.
+         (and (= 2 (count facts))
+              (= 1 (count (:doInvoke facts)))
+              (= 1 (count (:getRequiredArity facts))))
+         [:at-least (second (first (:getRequiredArity facts)))]
+         ;; Rule three: if we have invokes for the arities 0..3, getRequiredArity
+         ;; says 3, and we have doInvoke, then we consider that this function
+         ;; was probably produced by Clojure's core "comp" function, and
+         ;; we somewhat lamely consider the arity of the composed function 1.
+         (and (= #{0 1 2 3} (into #{} (map second (:invoke facts))))
+              (= 3 (second (first (:getRequiredArity facts))))
+              (:doInvoke facts))
+         [:exactly 1]
+         :else (u/illegal (str "arity? " f " " facts)))))
+
+   :cljs
+   (do
+     (defn variadic?
+       "Returns true if the supplied function is variadic, false otherwise."
+       [f]
+       (boolean (.-cljs$lang$maxFixedArity f)))
+
+     (defn exposed-arities
+       "When CLJS functions have different arities, the function is represented as a js
+  object with each arity storied under its own key."
+       [f]
+       (let [parse (fn [s]
+                     (when-let [arity (re-find (re-pattern #"invoke\$arity\$\d+") s)]
+                       (js/parseInt (subs arity 13))))
+             arities (->> (map parse (js-keys f))
+                          (concat [(.-cljs$lang$maxFixedArity f)])
+                          (remove nil?)
+                          (into #{}))]
+         (if (empty? arities)
+           [(alength f)]
+           (sort arities))))
+
+     (defn js-arity
+       "Returns a data structure indicating the arity of the supplied function."
+       [f]
+       (let [arities (exposed-arities f)]
+         (cond (variadic? f)
+               (if (= [0 1 2 3] arities)
+                 ;; Rule 3, where we assume that any function that's variadic and
+                 ;; that has defined these particular arities is a "compose"
+                 ;; function... and therefore takes a single argument.
+                 [:exactly 1]
+
+                 ;; this case is where we know we have variadic args, so we set
+                 ;; a minimum. This could break if some arity was missing
+                 ;; between the smallest and the variadic case.
+                 [:at-least (first arities)])
+
+               ;; This corresponds to rule 1 in the JVM case. We have a single
+               ;; arity and no evidence of a variadic function.
+               (= 1 (count arities)) [:exactly (first arities)]
+
+               ;; This is a departure from the JVM rules. A potential error here
+               ;; would occur if someone defined arities 1 and 3, but missed 2.
+               :else [:between
+                      (first arities)
+                      (last arities)])))))
+
+(def ^:private reflect-on-arity
+  "Returns the arity of the function f.
+  Computing arities of clojure functions is a bit complicated.
+  It involves reflection, so the results are definitely worth
+  memoizing."
+  (memoize
+   #?(:cljs js-arity :clj jvm-arity)))
+
+(defn arity
+  "Return the cached or obvious arity of the object if we know it.
+  Otherwise delegate to the heavy duty reflection, if we have to."
+  [f]
+  (or (:arity f)
+      (:arity (meta f))
+      (cond (symbol? f) [:exactly 0]
+            ;; If f is a multifunction, then we expect that it has a multimethod
+            ;; responding to the argument :arity, which returns the arity.
+            (instance? MultiFn f) (f :arity)
+            (fn? f) (reflect-on-arity f)
+            ;; Faute de mieux, we assume the function is unary. Most math functions are.
+            :else [:exactly 1])))
+
+(defn ^:private combine-arities
+  "Find the joint arity of arities a and b, i.e. the loosest possible arity specification
+  compatible with both. Throws if the arities are incompatible."
+  [a b]
+  (let [fail #(u/illegal (str "Incompatible arities: " a " " b))]
+    ;; since the combination operation is symmetric, sort the arguments
+    ;; so that we only have to implement the upper triangle of the
+    ;; relation.
+    (if (< 0 (compare (first a) (first b)))
+      (combine-arities b a)
+      (match [a b]
+             [[:at-least k] [:at-least k2]] [:at-least (max k k2)]
+             [[:at-least k] [:between m n]] (let [m (max k m)]
+                                              (cond (= m n) [:exactly m]
+                                                    (< m n) [:between m n]
+                                                    :else (fail)))
+             [[:at-least k] [:exactly l]] (if (>= l k)
+                                            [:exactly l]
+                                            (fail))
+             [[:between m n] [:between m2 n2]] (let [m (max m m2)
+                                                     n (min n n2)]
+                                                 (cond (= m n) [:exactly m]
+                                                       (< m n) [:between m n]
+                                                       :else (fail)))
+             [[:between m n] [:exactly k]] (if (and (<= m k)
+                                                    (<= k n))
+                                             [:exactly k]
+                                             (fail))
+             [[:exactly k] [:exactly l]] (if (= k l) [:exactly k] (fail))))))
+
+(defn joint-arity
+  "Find the most relaxed possible statement of the joint arity of the given arities.
+  If they are incompatible, an exception is thrown."
+  [arities]
+  (reduce combine-arities [:at-least 0] arities))
 
 ;; ## Generic Implementations
 ;;
@@ -65,9 +267,9 @@
   (let [h (fn [f g]
             (let [f-numeric (v/numerical? f)
                   g-numeric (v/numerical? g)
-                  f-arity   (if f-numeric (v/arity g) (v/arity f))
-                  g-arity   (if g-numeric f-arity     (v/arity g))
-                  arity     (v/joint-arity [f-arity g-arity])
+                  f-arity   (if f-numeric (arity g) (arity f))
+                  g-arity   (if g-numeric f-arity   (arity g))
+                  arity     (joint-arity [f-arity g-arity])
                   f1 (if f-numeric (with-meta
                                      (constantly f)
                                      {:arity arity

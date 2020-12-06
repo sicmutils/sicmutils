@@ -39,6 +39,13 @@
 (declare differential-of)
 
 (comment
+  (define (diff:zero? x)
+    (assert (differential? x))
+    (for-all? (differential-term-list x)
+              (lambda (term)
+                      (let ((c (differential-coefficient term)))
+                        (g:zero? c)))))
+
   ;; TODO fix this for differential one and identity?
   (define (diff:one? x)
     (assert (differential? x))
@@ -415,7 +422,7 @@
 
 (defn ^:private multivariate-derivative
   [f selectors]
-  (let [a (v/arity f)
+  (let [a (f/arity f)
         d (core-partial euclidean-structure selectors)
         make-df #(with-meta % {:arity a :from :multivariate-derivative})]
     (condp = a

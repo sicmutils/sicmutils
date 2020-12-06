@@ -38,6 +38,8 @@
 (derive ::row-matrix ::matrix)
 (derive ::matrix ::f/cofunction)
 
+(declare fmap I)
+
 (deftype Matrix [r c v]
   v/Value
   (numerical? [_] false)
@@ -47,15 +49,20 @@
   (one? [_] false)
   (identity? [_] false)
 
-  ;; TODO: zero-like, one-like, identity-like should use a recursive copy to
-  ;; find the 0/1 elements
-  (zero-like [_] (Matrix. r c (vec (repeat r (vec (repeat c 0))))))
-  (one-like [_] (if-not (= r c)
-                  (u/illegal "one-like on non-square")
-                  (generate r c #(if (= %1 %2) 1 0))))
-  (identity-like [_] (if-not (= r c)
-                       (u/illegal "identity-like on non-square")
-                       (generate r c #(if (= %1 %2) 1 0))))
+  (zero-like [this] (fmap v/zero-like this))
+
+  ;; TODO:  one-like, identity-like should use a recursive copy to
+  ;; find the 1 elements
+  (one-like [_]
+    (if-not (= r c)
+      (u/illegal "one-like on non-square")
+      (I r)))
+
+  (identity-like [_]
+    (if-not (= r c)
+      (u/illegal "identity-like on non-square")
+      (I r)))
+
   (exact? [_] (every? #(every? v/exact? %) v))
   (freeze [_] (if (= c 1)
                 `(~'column-matrix ~@(map (comp v/freeze first) v))
@@ -550,19 +557,19 @@
 (defmethod g/mul [::matrix ::s/up] [m u] (M*u m u))
 (defmethod g/mul [::s/down ::matrix] [d m] (d*M d m))
 (defmethod g/div [::s/up ::matrix] [u M] (M*u (invert M) u))
-(defmethod g/exp [::matrix] [m] (series/exp-series m))
-(defmethod g/cos [::matrix] [m] (series/cos-series m))
-(defmethod g/sin [::matrix] [m] (series/sin-series m))
-(defmethod g/tan [::matrix] [m] (series/tan-series m))
-(defmethod g/sec [::matrix] [m] (series/sec-series m))
-(defmethod g/acos [::matrix] [m] (series/acos-series m))
-(defmethod g/asin [::matrix] [m] (series/asin-series m))
-(defmethod g/atan [::matrix] [m] (series/atan-series m))
-(defmethod g/cosh [::matrix] [m] (series/cosh-series m))
-(defmethod g/sinh [::matrix] [m] (series/sinh-series m))
-(defmethod g/tanh [::matrix] [m] (series/tanh-series m))
-(defmethod g/asinh [::matrix] [m] (series/asinh-series m))
-(defmethod g/atanh [::matrix] [m] (series/atanh-series m))
+(defmethod g/exp [::square-matrix] [m] (series/exp-series m))
+(defmethod g/cos [::square-matrix] [m] (series/cos-series m))
+(defmethod g/sin [::square-matrix] [m] (series/sin-series m))
+(defmethod g/tan [::square-matrix] [m] (series/tan-series m))
+(defmethod g/sec [::square-matrix] [m] (series/sec-series m))
+(defmethod g/acos [::square-matrix] [m] (series/acos-series m))
+(defmethod g/asin [::square-matrix] [m] (series/asin-series m))
+(defmethod g/atan [::square-matrix] [m] (series/atan-series m))
+(defmethod g/cosh [::square-matrix] [m] (series/cosh-series m))
+(defmethod g/sinh [::square-matrix] [m] (series/sinh-series m))
+(defmethod g/tanh [::square-matrix] [m] (series/tanh-series m))
+(defmethod g/asinh [::square-matrix] [m] (series/asinh-series m))
+(defmethod g/atanh [::square-matrix] [m] (series/atanh-series m))
 (defmethod g/simplify [::matrix] [m] (->> m (fmap g/simplify) v/freeze))
 
 (defmethod g/invert [::matrix] [m] (invert m))
