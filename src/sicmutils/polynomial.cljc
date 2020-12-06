@@ -158,7 +158,7 @@
                       (sort-by exponents monomial-order)
                       (into empty-coefficients))))
   ([dense-coefficients]
-   (make 1 (zipmap (map vector (iterate inc 0)) dense-coefficients))))
+   (make 1 (zipmap (map vector (range)) dense-coefficients))))
 
 (defn ^:private lead-term
   "Return the leading (i.e., highest degree) term of the polynomial

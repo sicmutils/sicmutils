@@ -22,6 +22,7 @@
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [same :refer [ish?]]
             [sicmutils.abstract.function :as f]
+            [sicmutils.function :refer [arity]]
             [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.operator :as o]
@@ -76,8 +77,8 @@
     (is (= [:exactly 1] (:arity (* D o/identity-operator))))
     (is (= [:exactly 1] (:arity (* 'e D))))
     (is (= [:exactly 1] (:arity (* D 'e))))
-    (is (= [:exactly 1] (v/arity g/sin)))
-    (is (= [:exactly 1] (v/arity (o/identity-operator g/sin))))
+    (is (= [:exactly 1] (arity g/sin)))
+    (is (= [:exactly 1] (arity (o/identity-operator g/sin))))
     (is (= '(sin x) (g/simplify ((o/identity-operator g/sin) 'x))))
     (is (= '(cos x) (g/simplify (((* D o/identity-operator) g/sin) 'x))))
     (is (= '(cos x) (g/simplify (((* o/identity-operator D) g/sin) 'x)))))

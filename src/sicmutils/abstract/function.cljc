@@ -78,6 +78,7 @@
   (zero? [_] false)
   (one? [_] false)
   (zero-like [_] (fn [& _] (v/zero-like range)))
+  (one-like [_] (fn [& _] (v/one-like range)))
   (numerical? [_] false)
   (freeze [_] (v/freeze name))
   (kind [_] ::function)

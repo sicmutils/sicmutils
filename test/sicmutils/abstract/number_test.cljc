@@ -31,6 +31,10 @@
             [sicmutils.numsymb :as sym]
             [sicmutils.value :as v]))
 
+(deftest value-impl-tests
+  (testing "v/exact?"
+    (is (v/exact? 'a))))
+
 (deftest predicate-tests
   (testing "v/eq"
     (doall

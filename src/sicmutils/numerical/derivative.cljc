@@ -486,7 +486,7 @@
   "Fills in default values required by `D-numeric`. Any option not used by
   `D-numeric` gets passed on to `us/seq-limit`."
   [m]
-  (let [defaults {:tolerance (Math/sqrt v/machine-epsilon)
+  (let [defaults {:tolerance v/sqrt-machine-epsilon
                   :method    :central}
         {:keys [method] :as opts} (merge defaults m)]
     (assert (contains? valid-methods method)

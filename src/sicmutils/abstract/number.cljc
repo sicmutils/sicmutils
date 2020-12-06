@@ -28,6 +28,17 @@
   #?(:clj
      (:import (clojure.lang Symbol))))
 
+(extend-protocol v/Value
+  Symbol
+  (zero? [o] false)
+  (one? [_] false)
+  (zero-like [_] 0)
+  (one-like [_] 1)
+  (exact? [sym] (:exact? (meta sym) true))
+  (numerical? [_] true)
+  (freeze [o] o)
+  (kind [_] Symbol))
+
 (defn literal-number
   "Returns its argument, wrapped in a marker type that responds to the generic
   operations registered in `sicmutils.numsymb`.
