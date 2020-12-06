@@ -22,7 +22,9 @@
                   #?@(:cljs [:exclude [compare]]))
   (:require [clojure.walk :as w]
             [sicmutils.util :as u]
-            [sicmutils.value :as v]))
+            [sicmutils.value :as v])
+  #?(:clj
+     (:import (clojure.lang IObj))))
 
 (def ^{:doc "These keywords reference 'abstract' types that stand in for some
   concrete data type in the system."}
@@ -39,7 +41,7 @@
 ;; Currently we only support these, but this type will be able to handle the
 ;; other abstract structures referenced in [[abstract-types]].
 
-(deftype Literal [type expression meta]
+(deftype Literal [type expression m]
   v/Value
   (zero? [_]
     (and (v/number? expression)
@@ -71,11 +73,22 @@
                (let [b ^Literal b]
                  (and (= type (.-type b))
                       (= expression (.-expression b))
-                      (= meta (.-meta b))))
+                      (= m (.-m b))))
                (v/eq a b))))
 
-  #?@(:cljs
-      [IEquiv
+  #?@(:clj
+      [IObj
+       (meta [_] m)
+       (withMeta [_ meta] (Literal. type expression meta))]
+
+      :cljs
+      [IMeta
+       (-meta [_] m)
+
+       IWithMeta
+       (-with-meta [_ meta] (Literal. type expression meta))
+
+       IEquiv
        (-equiv [a b]
                (if (instance? Literal b)
                  (let [b ^Literal b]
@@ -97,7 +110,7 @@
   "Constructs a [[Literal]] instance with the supplied type and an empty metadata
   map out of the literal form `expr`."
   [type expr]
-  (->Literal type expr {}))
+  (->Literal type expr nil))
 
 (defn literal-apply
   "Similar to [[make-literal]], but accepts:
@@ -141,32 +154,21 @@
              (f (.-expression e))
              (.-meta e)))
 
-(comment
-  ;; ## Metadata
+;; ## Metadata
+;;
+;; TODO these need more docs and investigation.
 
-  "NOTE that this feature is not supported yet. I'm leaving these in a comment
-  here to make implementation easier; this suggested API comes from scmutils."
-  (defn properties [x]
-    (when (literal? x)
-      (.-meta ^Literal x)))
+(defn has-property? [literal k]
+  (contains? (meta literal) k))
 
-  (defn has-property? [literal k]
-    (contains? (properties literal) k))
+(defn get-property
+  ([literal k]
+   (get (meta literal) k))
+  ([literal k default]
+   (get (meta literal) k default)))
 
-  (defn get-property
-    ([literal k]
-     (get (properties literal) k))
-    ([literal k default]
-     (get (properties literal) k default)))
-
-  (defn with-property
-    "We probably want a merge version..."
-    [x k v]
-    {:pre [(literal? x)]}
-    (let [x ^Literal x]
-      (->Literal (.-type x)
-                 (.-expression x)
-                 (assoc (.-meta x) k v)))))
+(defn with-property [x k v]
+  (with-meta x (assoc (meta x) k v)))
 
 (defn expression-of
   "If the supplied argument is a [[Literal]] (or a symbol, interpreted elsewhere
