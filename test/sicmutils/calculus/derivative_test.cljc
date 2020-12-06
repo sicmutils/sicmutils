@@ -590,6 +590,22 @@
              (g/simplify ((as-matrix (D C-general)) s)))))))
 
 (deftest taylor-moved-from-series
+  (let [simp4 (fn [x] (g/simplify (take 4 x)))
+        V (series/series g/sin g/cos g/tan)]
+
+    (testing "derivatives"
+      (is (= '[(sin t) (cos t) (tan t) 0]
+             (simp4 (V 't))))
+      (is (= '[(cos t) (* -1 (sin t)) (/ 1 (expt (cos t) 2)) 0]
+             (simp4 ((D V) 't)))))
+
+    (testing "f -> Series"
+      (let [F (fn [k] (series/series
+                      (fn [t] (g/* k t))
+                      (fn [t] (g/* k k t))))]
+        (is (= '((* q z) (* (expt q 2) z) 0 0) (simp4 ((F 'q) 'z))))
+        (is (= '(z (* 2 q z) 0 0) (simp4 (((D F) 'q) 'z)))))))
+
   (is (= '(+ (* (/ 1 24) (expt dx 4) (sin x))
              (* (/ -1 6) (expt dx 3) (cos x))
              (* (/ -1 2) (expt dx 2) (sin x))

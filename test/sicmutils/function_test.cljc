@@ -18,21 +18,16 @@
 ;
 
 (ns sicmutils.function-test
-  (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [sicmutils.calculus.derivative :refer [D]]
+  (:require [clojure.test :refer [is deftest testing]]
+            [same :refer [ish?]]
+            [sicmutils.function :as f]
             [sicmutils.generic :as g]
-            [sicmutils.value :as v]
-            [sicmutils.operator :as o]
-            [sicmutils.series :as series]
-            [sicmutils.structure :as s]
-            [sicmutils.simplify :as ss :refer [hermetic-simplify-fixture]]
-            [sicmutils.function :as f]))
-
-(use-fixtures :once hermetic-simplify-fixture)
+            [sicmutils.value :as v]))
 
 (def ^:private near (v/within 1.0e-6))
 
 (deftest value-protocol-tests
+  (testing "v/zero?")
   (testing "freeze"
     (is (= ['+ '- '* '/ 'modulo 'quotient 'remainder 'negative?]
            (map v/freeze [+ - * / mod quot rem neg?]))
@@ -232,14 +227,6 @@
     returns a fn that applies them in reverse order. Like a curried andThen (the
     reverse of compose)"))))
 
-(deftest string-form-test
-  (is (= "1" (ss/expression->string
-              ((g/+ (g/square g/sin) (g/square g/cos)) 'x))))
-
-  (is (= "(/ (+ (* -1 (expt (cos x) 4)) 1) (expt (cos x) 2))"
-         (ss/expression->string
-          ((g/+ (g/square g/sin) (g/square g/tan)) 'x)))))
-
 (deftest function-algebra
   (let [add2 (fn [x] (g/+ x 2))
         explog (g/exp g/log)
@@ -264,15 +251,6 @@
 
     (testing "determinant"
       (is (= 20 ((g/determinant *) 4 5))))
-
-    (testing "cross-product"
-      (let [deferred (g/cross-product #(g/* 2 %)
-                                      #(g/+ (s/up 4 3 1) %))
-            v (s/up 1 2 3)]
-        (is (= (g/cross-product (g/* 2 v)
-                                (g/+ (s/up 4 3 1) v))
-               (deferred v))
-            "Slightly tougher since this works with structures")))
 
     (testing "arity 2"
       (let [f (fn [x y] (+ x y))
@@ -308,37 +286,3 @@
         (is (= 33 (add+mul 2 3 4)))
         (is (= -15 (add-mul 2 3 4)))
         (is (= 15 (mul-add 2 3 4)))))))
-
-(deftest operators
-  (let [f (fn [x] (+ x 5))
-        double (fn [f] (fn [x] (* 2 (f x))))
-        double-op (o/make-operator double "double")]
-    (is (= 12 ((double f) 1)))
-    (is (= 24 ((double (double f)) 1)))
-    (is (= 12 ((double-op f) 1)))
-    (is (= 24 ((double-op (double-op f)) 1)))
-    (is (= 24 (((g/* double-op double-op) f) 1))) ;; * for operators is composition
-    (is (= 144 (((g/* double double) f) 1)))      ;; * for functions is pointwise multiply
-    (is (= 2 ((double-op identity) 1)))
-    (is (= 6 (((g/expt double-op 0) f) 1)))
-    (is (= 12 (((g/expt double-op 1) f) 1)))
-    (is (= 24 (((g/expt double-op 2) f) 1)))
-    (is (= 18 (((g/+ double-op double-op double-op) identity) 3)))
-    (is (= 24 (((g/+ double-op 4 double-op) identity) 3)))))
-
-(deftest moved-from-series
-  (let [simp4 (fn [x] (g/simplify (take 4 x)))
-        V (series/series g/sin g/cos g/tan)]
-
-    (testing "derivatives"
-      (is (= '[(sin t) (cos t) (tan t) 0]
-             (simp4 (V 't))))
-      (is (= '[(cos t) (* -1 (sin t)) (/ 1 (expt (cos t) 2)) 0]
-             (simp4 ((D V) 't)))))
-
-    (testing "f -> Series"
-      (let [F (fn [k] (series/series
-                      (fn [t] (g/* k t))
-                      (fn [t] (g/* k k t))))]
-        (is (= '((* q z) (* (expt q 2) z) 0 0) (simp4 ((F 'q) 'z))))
-        (is (= '(z (* 2 q z) 0 0) (simp4 (((D F) 'q) 'z))))))))
