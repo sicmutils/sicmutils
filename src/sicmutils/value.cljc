@@ -136,6 +136,16 @@
                        ::native-integral
                        ::floating-point)))
 
+  #?(:clj Boolean :cljs boolean)
+  (zero? [x] false)
+  (one? [x] false)
+  (zero-like [_] 0)
+  (one-like [_] 1)
+  (freeze [x] x)
+  (exact? [x] false)
+  (numerical? [_] false)
+  (kind [x] (type x))
+
   #?@(:clj
       [java.lang.Double
        (zero? [x] (core-zero? x))
@@ -158,12 +168,12 @@
        (kind [x] (type x))])
 
   nil
-  (freeze [_] nil)
-  (numerical? [_] false)
   (zero? [_] true)
   (zero-like [o] (u/unsupported "nil doesn't support zero-like."))
   (one?[_] false)
   (one-like [o] (u/unsupported "nil doesn't support one-like."))
+  (numerical? [_] false)
+  (freeze [_] nil)
   (kind [_] nil)
 
   PersistentVector

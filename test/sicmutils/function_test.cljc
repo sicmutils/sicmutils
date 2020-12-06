@@ -19,16 +19,49 @@
 
 (ns sicmutils.function-test
   (:require [clojure.test :refer [is deftest testing]]
-            [same :refer [ish?]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
+            [same :refer [ish? with-comparator]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.function :as f]
+            [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.value :as v]))
 
-(def ^:private near (v/within 1.0e-6))
-
 (deftest value-protocol-tests
-  (testing "v/zero?")
-  (testing "freeze"
+  (testing "v/zero? returns false for fns"
+    (is (not (v/zero? neg?)))
+    (is (not (v/zero? #'neg?)))
+    (is (not (v/zero? g/add))))
+
+  (testing "v/one? returns false for fns"
+    (is (not (v/one? neg?)))
+    (is (not (v/one? #'neg?)))
+    (is (not (v/one? g/add)))
+    (is (not (v/one? identity))))
+
+  (testing "v/numerical? returns false for fns"
+    (is (not (v/numerical? neg?)))
+    (is (not (v/numerical? #'neg?)))
+    (is (not (v/numerical? g/add)))
+    (is (not (v/numerical? identity))))
+
+  (checking "zero-like, one-like returns 0, 1 for fns, vars" 100
+            [f (gen/elements [g/negative? g/abs g/sin g/cos
+                              #'g/negative? #'g/abs #'g/sin #'g/cos])
+             n sg/any-integral]
+            (is (== 0 ((v/zero-like f) n)))
+            (is (== 1 ((v/one-like f) n))))
+
+  (checking "exact? mirrors input" 100
+            [n (gen/one-of [sg/any-integral
+                            (sg/reasonable-double)])]
+            (if (v/exact? n)
+              (is ((v/exact? identity) n))
+              (is (not ((v/exact? identity) n)))))
+
+  (testing "v/freeze"
     (is (= ['+ '- '* '/ 'modulo 'quotient 'remainder 'negative?]
            (map v/freeze [+ - * / mod quot rem neg?]))
         "Certain functions freeze to symbols")
@@ -41,7 +74,13 @@
 
     (let [f (fn [x] (* x x))]
       (is (= f (v/freeze f))
-          "Unknown functions freeze to themselves"))))
+          "Unknown functions freeze to themselves")))
+
+  (testing "v/kind returns ::v/function"
+    (is (= ::v/function (v/kind neg?)))
+    (is (= ::v/function (v/kind #'neg?)))
+    (is (= ::v/function (v/kind g/add)))
+    (is (= ::v/function (v/kind (fn [x] (* x x)))))))
 
 #?(:cljs
    (deftest exposed-arities-test
@@ -119,94 +158,94 @@
   (is (illegal? #(f/joint-arity [[:exactly 1] [:between 2 3]]))))
 
 (deftest trig-tests
-  (testing "tan, sin, cos"
-    (let [f (g/- g/tan (g/div g/sin g/cos))]
-      (is (zero? (g/simplify (f 'x))))))
+  (with-comparator (v/within 1e-8)
+    (checking "tan, sin, cos" 100
+              [n (gen/one-of [sg/any-integral
+                              (sg/reasonable-double)])]
+              (let [f (g/- g/tan (g/div g/sin g/cos))]
+                (is (ish? 0 (f n)))))
 
-  (testing "sin/asin"
-    (let [f (f/compose g/sin g/asin)]
-      (is (near 0.5 (f 0.5)))
-      (testing "outside real range"
-        (is (near 10 (g/magnitude (f 10)))
-            "This kicks out a complex number, which doesn't yet compare
-          immediately with reals."))))
+    (checking "cos/acos" 100 [n (sg/reasonable-double {:min -100 :max 100})]
+              (let [f (f/compose g/cos g/acos)]
+                (is (ish? n (f n)))))
 
-  (testing "cos/acos"
-    (let [f (f/compose g/cos g/acos)]
-      (is (near 0.5 (f 0.5)))
+    (checking "sin/asin" 100 [n (sg/reasonable-double {:min -100 :max 100})]
+              (let [f (f/compose g/sin g/asin)]
+                (is (ish? n (f n)))))
 
-      (testing "outside real range"
-        (is (near 5 (g/magnitude (f -5)))
-            "This kicks out a complex number, which doesn't yet compare
-          immediately with reals."))))
+    (checking "tan/atan" 100 [n (sg/reasonable-double {:min -100 :max 100})]
+              (let [f (f/compose g/tan g/atan)]
+                (is (ish? n (f n))))))
 
-  (testing "tan/atan"
+  (testing "tan/atan, 2 arity version"
     (let [f (f/compose g/tan g/atan)]
-      (is (near (/ 0.5 0.2) (f 0.5 0.2))
-          "two-arity version!")
-      (is (near 0.5 (f 0.5))
-          "one-arity version")))
+      (is (ish? (/ 0.5 0.2) (f 0.5 0.2)))))
 
-  (testing "cot"
-    (let [f (g/- g/cot (g/invert g/tan))]
-      (is (zero? (g/simplify (f 'x))))))
+  (with-comparator (v/within 1e-10)
+    (checking "tan, sin, cos" 100
+              [n (gen/one-of [sg/any-integral
+                              (sg/reasonable-double)])]
+              (let [f (g/- g/tan (g/div g/sin g/cos))]
+                (when-not (zero? n)
+                  (is (ish? 0 (f n))))))
 
-  (testing "tanh"
-    (let [f (g/- (g/div g/sinh g/cosh) g/tanh)]
-      (is (zero?
-           (g/simplify (f 'x))))))
+    (checking "cot" 100
+              [n (gen/one-of [sg/any-integral
+                              (sg/reasonable-double)])]
+              (let [f (g/- g/cot (g/invert g/tan))]
+                (when-not (zero? n)
+                  (is (ish? 0 (f n)))))))
 
-  (testing "sec"
-    (let [f (g/- (g/invert g/cos) g/sec)]
-      (is (zero?
-           (g/simplify (f 'x))))))
+  (checking "tanh" 100 [n (sg/reasonable-double {:min -100 :max 100})]
+            (let [f (g/- (g/div g/sinh g/cosh) g/tanh)]
+              (is (ish? 0 (f n)))))
 
-  (testing "csc"
-    (let [f (g/- (g/invert g/sin) g/csc)]
-      (is (zero?
-           (g/simplify (f 'x))))))
+  (checking "sec" 100
+            [n (gen/one-of [sg/any-integral
+                            (sg/reasonable-double)])]
+            (let [f (g/- (g/invert g/cos) g/sec)]
+              (is (ish? 0 (f n)))))
 
-  (testing "sech"
-    (let [f (g/- (g/invert g/cosh) g/sech)]
-      (is (zero?
-           (g/simplify (f 'x))))))
+  (checking "csc" 100
+            [n (gen/one-of [sg/any-integral
+                            (sg/reasonable-double)])]
+            (let [f (g/- (g/invert g/sin) g/csc)]
+              (when-not (zero? n)
+                (is (ish? 0 (f n))))))
 
-  (testing "cosh"
-    (is (near ((g/cosh g/square) 2)
-              (g/cosh 4))))
+  (checking "sech" 100
+            [n (gen/one-of [sg/any-integral
+                            (sg/reasonable-double)])]
+            (let [f (g/- (g/invert g/cosh) g/sech)]
+              (is (ish? 0  (f n)))))
 
-  (testing "sinh"
-    (is (near ((g/sinh g/square) 2)
-              (g/sinh 4))))
+  (checking "cosh" 100
+            [n (gen/one-of [sg/any-integral
+                            (sg/reasonable-double)])]
+            (is (ish? ((g/cosh g/square) n)
+                      (g/cosh (g/square n)))))
 
-  (testing "acosh"
-    (let [f (f/compose g/cosh g/acosh)]
-      (is (near 10 (f 10))
-          "TODO this can't handle the full generic simplification yet. Sub in
-          when we get more rules.")
+  (checking "sinh" 100
+            [n (gen/one-of [sg/any-integral
+                            (sg/reasonable-double)])]
+            (is (ish? ((g/sinh g/square) n)
+                      (g/sinh (g/square n)))))
 
-      (testing "outside real range"
-        (is (near 5 (g/magnitude (f -5)))
-            "This kicks out a complex number, which doesn't yet compare
-          immediately with reals."))))
+  (with-comparator (v/within 1e-8)
+    (checking "acosh" 100
+              [n (sg/reasonable-double {:min -100 :max 100})]
+              (let [f (f/compose g/cosh g/acosh)]
+                (is (ish? n (f n)))))
 
-  (testing "asinh"
-    (let [f (f/compose g/sinh g/asinh)]
-      (is (near 10 (f 10)))
+    (checking "asinh" 100
+              [n (sg/reasonable-double {:min -100 :max 100})]
+              (let [f (f/compose g/sinh g/asinh)]
+                (is (ish? n (f n)))))
 
-      (testing "outside real range"
-        (is (near 5 (g/magnitude (f -5)))
-            "This kicks out a complex number, which doesn't yet compare
-          immediately with reals."))))
-
-  (testing "atanh"
-    (let [f (f/compose g/tanh g/atanh)]
-      (is (near 0.5 (f 0.5)))
-
-      (testing "outside real range"
-        (is (near 10 (g/magnitude (f 10)))
-            "This kicks out a complex number, which doesn't yet compare
-          immediately with reals.")))))
+    (checking "atanh" 100
+              [n (sg/reasonable-double {:min -10 :max 10})]
+              (let [f (f/compose g/tanh g/atanh)]
+                (is (ish? n (f n)))))))
 
 (deftest complex-tests
   (testing "gcd/lcm unit"
@@ -237,9 +276,9 @@
       (is (= 9 ((g/sqrt add2) 79)))
       (is (= #sicm/ratio 1/9 ((g/invert add2) 7)))
       (is (= 1.0 (explog 1.0)))
-      (is (near 99.0 (explog 99.0)))
-      (is (near 20.08553692 ((g/exp add2) 1.0)))
-      (is (near 4.718281828 ((add2 g/exp) 1.0))))
+      (is (ish? 99.0 (explog 99.0)))
+      (is (ish? 20.085536923187668 ((g/exp add2) 1.0)))
+      (is (ish? 4.718281828459045 ((add2 g/exp) 1.0))))
 
     (testing "binary"
       (is (= 12 ((g/+ add2 4) 6)))

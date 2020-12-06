@@ -6,6 +6,7 @@
                            long core-long}
                   #?@(:cljs [:exclude [bigint double long]]))
   (:require [clojure.test.check.generators :as gen]
+            [same :refer [zeroish?]]
             [same.ish :as si]
             [sicmutils.complex :as c]
             [sicmutils.generic :as g]
@@ -92,4 +93,30 @@
   #?(:cljs c/complextype :clj Complex)
   (ish [this that]
     (< (g/abs (g/- this that))
-       *complex-tolerance*)))
+       *complex-tolerance*))
+
+  Double
+  (ish [this that]
+    (when (c/complex? that)
+      (prn this that (g/real-part that) (si/ish this (g/real-part that))))
+    (cond (float? that)     (si/*comparator* this that)
+          (number? that)    (== ^Number this ^Number that)
+          (c/complex? that) (and (zeroish? (g/imag-part that))
+                                 (si/ish this (g/real-part that)))
+          :else             (= this that)))
+
+  Float
+  (ish [this that]
+    (cond (float? that)     (si/*comparator* this that)
+          (number? that)    (== ^Number this ^Number that)
+          (c/complex? that) (and (zeroish? (g/imag-part that))
+                                 (si/ish this (g/real-part that)))
+          :else             (= this that)))
+
+  Number
+  (ish [this that]
+    (cond (float? that)     (si/*comparator* (core-double this) that)
+          (number? that)    (== ^Number this ^Number that)
+          (c/complex? that) (and (zeroish? (g/imag-part that))
+                                 (si/ish this (g/real-part that)))
+          :else             (= this that))))
