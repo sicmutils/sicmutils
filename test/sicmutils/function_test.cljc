@@ -48,6 +48,11 @@
       (is (= f (v/freeze f))
           "Unknown functions freeze to themselves"))))
 
+#?(:cljs
+   (deftest exposed-arities-test
+     (is (= [1] (f/exposed-arities (fn [x] (* x x)))))
+     (is (= [1 3] (f/exposed-arities (fn ([x] (* x x)) ([x y z] (+ x y))))))))
+
 (deftest arities
   (is (= [:exactly 0] (f/arity (fn [] 42))))
   (is (= [:exactly 1] (f/arity (fn [x] (+ x 1)))))

@@ -141,11 +141,6 @@
     (- (D (compose ((partial 2) Lagrangian) (Γ q)))
        (compose ((partial 1) Lagrangian) (Γ q)))))
 
-(defn Lagrange-equations [L]
-  (fn [q]
-    (- (D (compose ((partial 2) L) (Gamma q)))
-       (compose ((partial 1) L) (Gamma q)))))
-
 (defn linear-interpolants
   [x0 x1 n]
   (let [n+1 (inc n)

@@ -24,7 +24,7 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
-     (:import (clojure.lang RestFn Fn MultiFn Keyword)
+     (:import (clojure.lang RestFn Fn MultiFn Keyword Var)
               (java.lang.reflect Method))))
 
 ;; ## Function Algebra
@@ -82,7 +82,7 @@
       (get @v/object-name-map f f)))
   (kind [o] ::v/function)
 
-  Fn
+  #?(:clj Fn :cljs function)
   (zero? [_] false)
   (zero-like [f] (zero-like f))
   (one? [_] false)
@@ -92,7 +92,32 @@
   (exact? [f] (compose v/exact? f))
   (numerical? [_] false)
   (freeze [f] (get @v/object-name-map f f))
-  (kind [_] ::v/function))
+  (kind [_] ::v/function)
+
+  Var
+  (zero? [_] false)
+  (zero-like [f] (zero-like f))
+  (one? [_] false)
+  (one-like [f] (one-like f))
+  (identity? [_] false)
+  (identity-like [f] (identity-like f))
+  (exact? [f] (compose v/exact? f))
+  (numerical? [_] false)
+  (freeze [f] (get @v/object-name-map @f f))
+  (kind [_] ::v/function)
+
+  #?@(:cljs
+      [MetaFn
+       (zero? [_] false)
+       (zero-like [f] (zero-like f))
+       (one? [_] false)
+       (one-like [f] (one-like f))
+       (identity? [_] false)
+       (identity-like [f] (identity-like f))
+       (exact? [f] (compose v/exact? f))
+       (numerical? [_] false)
+       (freeze [f] (get @v/object-name-map f f))
+       (kind [_] ::v/function)]))
 
 ;; we record arities as a vector with an initial keyword:
 ;;   [:exactly m]

@@ -101,11 +101,6 @@
   (is (v/exact? 10))
   (is (not (v/exact? 10.1))))
 
-#?(:cljs
-   (deftest exposed-arities-test
-     (is (= [1] (v/exposed-arities (fn [x] (* x x)))))
-     (is (= [1 3] (v/exposed-arities (fn ([x] (* x x)) ([x y z] (+ x y))))))))
-
 (deftest zero-tests
   (is (v/zero? 0))
   (is (v/zero? 0.0))
