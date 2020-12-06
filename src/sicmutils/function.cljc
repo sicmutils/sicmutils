@@ -51,22 +51,22 @@
   (let [meta {:arity (arity f)
               :from :zero-like}]
     (-> (fn [& args]
-          (zero-like (apply f args)))
+          (v/zero-like (apply f args)))
         (with-meta meta))))
 
 (defn- one-like [f]
   (let [meta {:arity (arity f)
               :from :one-like}]
     (-> (fn [& args]
-          (one-like (apply f args)))
+          (v/one-like (apply f args)))
         (with-meta meta))))
 
 (extend-protocol v/Value
   MultiFn
   (zero? [_] false)
-  (zero-like [f] (zero-like f))
+  (zero-like [f] (v/zero-like f))
   (one? [_] false)
-  (one-like [f] (one-like f))
+  (one-like [f] (v/one-like f))
   (exact? [f] (compose v/exact? f))
   (numerical? [_] false)
   (freeze [f]
@@ -77,9 +77,9 @@
 
   #?(:clj Fn :cljs function)
   (zero? [_] false)
-  (zero-like [f] (zero-like f))
+  (zero-like [f] (v/zero-like f))
   (one? [_] false)
-  (one-like [f] (one-like f))
+  (one-like [f] (v/one-like f))
   (exact? [f] (compose v/exact? f))
   (numerical? [_] false)
   (freeze [f] (get @v/object-name-map f f))
@@ -87,9 +87,9 @@
 
   Var
   (zero? [_] false)
-  (zero-like [f] (zero-like f))
+  (zero-like [f] (v/zero-like f))
   (one? [_] false)
-  (one-like [f] (one-like f))
+  (one-like [f] (v/one-like f))
   (exact? [f] (compose v/exact? f))
   (numerical? [_] false)
   (freeze [f] (get @v/object-name-map @f f))
@@ -98,9 +98,9 @@
   #?@(:cljs
       [MetaFn
        (zero? [_] false)
-       (zero-like [f] (zero-like f))
+       (zero-like [f] (v/zero-like f))
        (one? [_] false)
-       (one-like [f] (one-like f))
+       (one-like [f] (v/one-like f))
        (exact? [f] (compose v/exact? f))
        (numerical? [_] false)
        (freeze [f] (get @v/object-name-map f f))
