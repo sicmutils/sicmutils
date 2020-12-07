@@ -316,3 +316,33 @@
               [n (sg/reasonable-double {:min -10 :max 10})]
               (when-not (v/one? (g/abs n))
                 (is (ish? n (g/tanh (g/atanh n))))))))
+
+(deftest complex-constructor-tests
+  (checking "make-rectangular" 100
+            [real-part      sg/real
+             imaginary-part sg/real]
+            (let [z (g/make-rectangular real-part imaginary-part)]
+              (is (== real-part (g/real-part z)))
+              (is (== imaginary-part (g/imag-part z)))))
+
+  (with-comparator (v/within 1e-8)
+    (let [gen-double (sg/reasonable-double {:min -1e3 :max 1e3})]
+      (checking "make-rect, make-polar together" 100
+                [real-part gen-double
+                 imaginary-part gen-double]
+                (let [z (g/make-rectangular real-part imaginary-part)]
+                  (is (ish? z (g/make-polar
+                               (g/magnitude z)
+                               (g/angle z))))))))
+
+  (checking "make-polar" 100
+            [radius sg/real
+             angle  sg/real]
+            (let [z (g/make-polar radius angle)]
+              (is (ish? (g/magnitude z)
+                        (g/sqrt (g/* z (g/conjugate z)))))
+
+              (is (ish? (g/* radius (g/exp (g/* c/I angle)))
+                        z))
+              (is (ish? (g/abs radius)
+                        (g/magnitude z))))))

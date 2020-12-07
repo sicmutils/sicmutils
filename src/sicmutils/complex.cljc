@@ -27,6 +27,7 @@
 
 (def ZERO #?(:clj Complex/ZERO :cljs (.-ZERO Complex)))
 (def ONE #?(:clj Complex/ONE :cljs (.-ONE Complex)))
+(def I #?(:clj Complex/I :cljs (.-I Complex)))
 
 (def complextype Complex)
 
@@ -43,6 +44,13 @@
 (defn complex?
   [a]
   (instance? Complex a))
+
+(defmethod g/make-rectangular [::v/real ::v/real] [re im] (complex re im))
+(defmethod g/make-polar [::v/real ::v/real] [radius angle]
+  #?(:cljs #js {:abs radius :arg angle}
+     :clj (let [angle (u/double angle)]
+            (Complex. (* radius (Math/cos angle))
+                      (* radius (Math/sin angle))))))
 
 (defmethod g/real-part [::complex] [^Complex a] (#?(:clj .getReal :cljs .-re) a))
 (defmethod g/imag-part [::complex] [^Complex a] (#?(:clj .getImaginary :cljs .-im) a))

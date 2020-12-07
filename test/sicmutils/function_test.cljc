@@ -245,7 +245,7 @@
                 (let [f (f/compose g/tanh g/atanh)]
                   (is (ish? n (f n))))))))
 
-(deftest complex-tests
+(deftest misc-tests
   (testing "gcd/lcm unit"
     (is (= (g/gcd 10 5)
            (let [deferred (g/gcd (g/+ 1 g/square) 5)]
@@ -368,3 +368,47 @@
         (is (= 33 (add+mul 2 3 4)))
         (is (= -15 (add-mul 2 3 4)))
         (is (= 15 (mul-add 2 3 4)))))))
+
+(defn complex-checks
+  "Checks the fn-fn, fn-cofn and cofn-fn pairings for a subset of unary and binary
+  fns.
+
+  TODO this is really a general thing we could use to check all fns."
+  [ctor]
+  (checking "unary" 100
+            [f1 (gen/elements [g/abs g/sin g/cos])
+             f2 (gen/elements [g/abs g/sin g/cos])
+             n sg/real]
+            (is (= (ctor (f1 n) (f2 n))
+                   ((ctor f1 f2) n)))
+
+            (is (= (ctor n (f2 n))
+                   ((ctor n f2) n))
+                "# left, fn right")
+
+            (is (= (ctor (f1 n) n)
+                   ((ctor f1 n) n))
+                "fn left, # right"))
+
+  (checking "binary" 100
+            [f1 (gen/elements [g/* g/+ g/-])
+             f2 (gen/elements [g/* g/+ g/-])
+             l sg/real
+             r sg/real]
+            (is (= (ctor (f1 l r) (f2 l r))
+                   ((ctor f1 f2) l r)))
+
+            (is (= (ctor l (f2 l r))
+                   ((ctor l f2) l r))
+                "# left, fn right")
+
+            (is (= (ctor (f1 l r) r)
+                   ((ctor f1 r) l r))
+                "fn left, # right")))
+
+(deftest complex-number-tests
+  (testing "make-rectangular"
+    (complex-checks g/make-rectangular))
+
+  (testing "make-polar"
+    (complex-checks g/make-polar)))

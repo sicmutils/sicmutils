@@ -190,6 +190,9 @@
     general infinite sequences and not necessarily interpreted as polynomials.
     This decision follows `scmutils` convention.
 
+- `sicmutils.complex/I` aliases `i`
+  ([#189](https://github.com/littleredcomputer/sicmutils/pull/189))
+
 ### Literals
 
 - `literal-matrix` fn generates a symbolic matrix
@@ -348,6 +351,14 @@ These now work on:
   - `magnitude` formerly didn't handle structures containing complex numbers by
     taking a proper inner product. This is fixed as of
     [#168](https://github.com/littleredcomputer/sicmutils/pull/168)
+
+- PR [#189](https://github.com/littleredcomputer/sicmutils/pull/189) introduces:
+
+  - `g/make-rectangular`, (build a complex number from real and imaginary parts)
+  - `g/make-polar` (build a complex number from radius and angle)
+
+These work with functions, real numbers and symbolic expressions (and any mix of
+the three).
 
 ## 0.13.0
 

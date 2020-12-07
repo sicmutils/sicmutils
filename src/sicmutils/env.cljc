@@ -172,6 +172,8 @@
   transpose
   determinant
   cross-product
+  make-rectangular
+  make-polar
   real-part
   imag-part
   magnitude
