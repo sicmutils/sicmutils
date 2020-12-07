@@ -213,6 +213,22 @@
             (is (v/= 1 (an/literal-number (g/dimension z))))
             (is (v/= 1 (g/dimension (an/literal-number z)))))
 
+  (checking "make-rectangular" 100 [l sg/real r sg/real]
+            (is (= (an/literal-number (g/make-rectangular l r))
+                   (g/make-rectangular
+                    (an/literal-number l)
+                    (an/literal-number r))
+                   (g/make-rectangular l (an/literal-number r))
+                   (g/make-rectangular (an/literal-number l) r))))
+
+  (checking "make-polar" 100 [l sg/real r sg/real]
+            (is (= (an/literal-number (g/make-polar l r))
+                   (g/make-polar
+                    (an/literal-number l)
+                    (an/literal-number r))
+                   (g/make-polar l (an/literal-number r))
+                   (g/make-polar (an/literal-number l) r))))
+
   (checking "conjugate" 100 [z sg/complex]
             (is (= (an/literal-number (g/conjugate z))
                    (g/conjugate (an/literal-number z)))))
@@ -460,12 +476,12 @@
             (is (= (list 'log x)
                    (v/freeze (g/log x))))
             (is (v/= (g// (g/log x)
-                           (Math/log 2))
-                      (g/log2 x))
+                          (Math/log 2))
+                     (g/log2 x))
                 "log2 divides by the inexact (log 2).")
             (is (v/= (g// (g/log x)
-                           (Math/log 10))
-                      (g/log10 x))
+                          (Math/log 10))
+                     (g/log10 x))
                 "log10 divides by the inexact (log 10)."))
 
   (checking "exp" 100 [x gen/symbol]
@@ -498,6 +514,52 @@
                              (list op 'x 'y)))))
            "This is a little busted, since we don't check for the proper number
            of inputs... but conjugates move inside these operators."))))
+
+  (checking "make-rectangular" 100 [re gen/symbol
+                                    im gen/symbol]
+            (is (= (g/+ re (g/* c/I im))
+                   (g/make-rectangular re im))))
+
+  (checking "make-rectangular with numbers"
+            100 [n   sg/real
+                 sym gen/symbol]
+            (is (v/= (g/+ n (g/* c/I sym))
+                     (g/make-rectangular n sym)))
+            (is (v/= (g/+ sym (g/* c/I n))
+                     (g/make-rectangular sym n))))
+
+  (checking "make-polar" 100 [r     gen/symbol
+                              theta gen/symbol]
+            (is (= (g/* r (g/+ (g/cos theta)
+                               (g/* c/I (g/sin theta))))
+                   (g/make-polar r theta))))
+
+  (checking "make-polar with numbers" 100
+            [n     sg/real
+             sym   gen/symbol]
+            ;; numeric radius, symbolic angle:
+            (is (v/= (g/* n (g/+ (g/cos sym)
+                                 (g/* c/I (g/sin sym))))
+                     (g/make-polar n sym))
+                "for other cases, the complex number is evaluated.")
+
+            ;; Case of symbolic radius, angle `n`:
+            (if (v/exact? n)
+              (if (v/zero? n)
+                (is (v/= sym (g/make-polar sym n))
+                    "an exact zero returns the symbolic radius.")
+                (is (= `(~'* ~sym (~'+ (~'cos ~n)
+                                   (~'* (~'complex 0.0 1.0)
+                                    (~'sin ~n))))
+                       (v/freeze
+                        (g/make-polar sym n)))
+                    "otherwise, an exact numeric angle stays exact and is
+                    treated as a literal number."))
+
+              (is (v/= (g/* sym (g/+ (g/cos n)
+                                     (g/* c/I (g/sin n))))
+                       (g/make-polar sym n))
+                  "for other cases, the complex number is evaluated.")))
 
   (checking "real-part" 100 [z gen/symbol]
             (is (= (g/* (g// 1 2)

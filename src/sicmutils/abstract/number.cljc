@@ -172,6 +172,8 @@
 (defunary g/log 'log)
 (defunary g/exp 'exp)
 
+(defbinary g/make-rectangular 'make-rectangular)
+(defbinary g/make-polar 'make-polar)
 (defunary g/real-part 'real-part)
 (defunary g/imag-part 'imag-part)
 (defunary g/magnitude 'magnitude)

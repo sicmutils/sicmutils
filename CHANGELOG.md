@@ -356,6 +356,8 @@ These now work on:
 
   - `g/make-rectangular`, (build a complex number from real and imaginary parts)
   - `g/make-polar` (build a complex number from radius and angle)
+  - note that these work with real numbers, symbolic numbers, functions and any
+    combination of these.
 
 These work with functions, real numbers and symbolic expressions (and any mix of
 the three).

@@ -353,6 +353,22 @@
     'sinh 'cosh 'tanh 'sech 'csch
     '+ '- '* '/ 'expt 'up 'down})
 
+(defn- make-rectangular [r i]
+  (cond (v/exact-zero? i) r
+
+        (and (v/real? r) (v/real? i))
+        (g/make-rectangular r i)
+
+        :else (add r (mul c/I i))))
+
+(defn- make-polar [m a]
+  (cond (v/exact-zero? m) m
+        (v/exact-zero? a) m
+        (and (v/real? m) (v/real? a)) (g/make-polar m a)
+        :else (mul m (add
+                      (cos a)
+                      (mul c/I (sin a))))))
+
 (defn- conjugate [z]
   (cond (v/number? z) (g/conjugate z)
         (and (seq? z)
@@ -410,6 +426,8 @@
    'log log
    'exp exp
    'expt expt
+   'make-rectangular make-rectangular
+   'make-polar make-polar
    'real-part real-part
    'imag-part imag-part
    'conjugate conjugate

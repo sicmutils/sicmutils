@@ -318,26 +318,48 @@
                 (is (ish? n (g/tanh (g/atanh n))))))))
 
 (deftest complex-constructor-tests
+  (checking "make-rectangular with zero acts as id" 100 [n sg/real]
+            (let [z (g/make-rectangular n 0)]
+              (is (= n z))
+              (is (not (c/complex? z))))
+
+            #?(:clj
+               (is (c/complex? (g/make-rectangular n 0.0))
+                   "On the JVM we can make a non-exact zero and show that this
+                   forces a conversion to complex.")))
+
+  (checking "make-polar with zero angle or radius acts as id" 100 [n sg/real]
+            (let [z (g/make-polar n 0)]
+              (is (= n z))
+              (is (not (c/complex? z))))
+
+            #?(:clj
+               (if (v/exact-zero? n)
+                 (is (not (c/complex? (g/make-polar n 0.0)))
+                     "exactly-zero radius stays itself.")
+                 (is (c/complex? (g/make-polar n 0.0))
+                     "On the JVM we can make a non-exact zero and show that this
+                   forces a conversion to complex."))))
+
   (checking "make-rectangular" 100
-            [real-part      sg/real
-             imaginary-part sg/real]
+            [real-part      (sg/reasonable-real 1e4)
+             imaginary-part (sg/reasonable-real 1e4)]
             (let [z (g/make-rectangular real-part imaginary-part)]
               (is (== real-part (g/real-part z)))
               (is (== imaginary-part (g/imag-part z)))))
 
   (with-comparator (v/within 1e-8)
-    (let [gen-double (sg/reasonable-double {:min -1e3 :max 1e3})]
-      (checking "make-rect, make-polar together" 100
-                [real-part gen-double
-                 imaginary-part gen-double]
-                (let [z (g/make-rectangular real-part imaginary-part)]
-                  (is (ish? z (g/make-polar
-                               (g/magnitude z)
-                               (g/angle z))))))))
+    (checking "make-rect, make-polar together" 100
+              [real-part (sg/reasonable-real 1e3)
+               imaginary-part (sg/reasonable-real 1e3)]
+              (let [z (g/make-rectangular real-part imaginary-part)]
+                (is (ish? z (g/make-polar
+                             (g/magnitude z)
+                             (g/angle z)))))))
 
   (checking "make-polar" 100
-            [radius sg/real
-             angle  sg/real]
+            [radius (sg/reasonable-real 1e4)
+             angle (sg/reasonable-real 1e4)]
             (let [z (g/make-polar radius angle)]
               (is (ish? (g/magnitude z)
                         (g/sqrt (g/* z (g/conjugate z)))))
