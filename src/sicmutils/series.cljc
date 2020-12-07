@@ -47,15 +47,23 @@
 ;; Doug also has a 10-line version in Haskell on [his
 ;; website](https://www.cs.dartmouth.edu/~doug/powser.html).
 
-(declare s-zero s-one series-value)
+(declare s-zero s-one s-identity series-value)
 
 (deftype Series [xs]
   v/Value
   (zero? [_] false)
   (one? [_] false)
+  (identity? [_] false)
   (zero-like [_] s-zero)
   (one-like [_] s-one)
+
+  ;; This is suspect, since [[Series]], unlike [[PowerSeries]], are general
+  ;; infinite sequences and not necessarily interpreted as polynomials. This
+  ;; decision follows `scmutils` convention.
+  (identity-like [_] s-identity)
+
   (numerical? [_] false)
+  (exact? [_] false)
   (freeze [_]
     (let [prefix (g/simplify (take 4 xs))]
       `[~'Series ~@prefix ~'...]))
@@ -192,15 +200,18 @@
 ;;
 ;; TODO Modify this description once we implement multivariable power series!
 
-(declare zero one power-series-value)
+(declare zero one identity power-series-value)
 
 (deftype PowerSeries [xs]
   v/Value
   (zero? [_] false)
   (one? [_] false)
+  (identity? [_] false)
   (zero-like [_] zero)
   (one-like [_] one)
+  (identity-like [_] identity)
   (numerical? [_] false)
+  (exact? [_] false)
   (freeze [_]
     (let [prefix (g/simplify (take 4 xs))]
       `[~'PowerSeries ~@prefix ~'...]))
@@ -304,6 +315,7 @@
 
 (def ^:private s-zero (series* [0]))
 (def ^:private s-one (series* [1]))
+(def ^:private s-identity (series* [0 1]))
 
 ;; These exposed objects are `PowerSeries` instances, because the concepts of
 ;; zero, one and identity don't make sense unless you interpret these as

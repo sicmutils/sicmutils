@@ -44,8 +44,10 @@
   v/Value
   (zero? [_] (every? v/zero? (map coefficient terms)))
   (one? [_] false)
+  (identity? [_] false)
   (zero-like [_] 0)
   (one-like [_] 1)
+  (identity-like [_] 1)
   (freeze [_] `[~'Differential ~@terms])
   (exact? [_] false)
   (numerical? [d] (v/numerical? (differential-of d)))

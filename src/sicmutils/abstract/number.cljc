@@ -32,8 +32,10 @@
   Symbol
   (zero? [o] false)
   (one? [_] false)
+  (identity? [_] false)
   (zero-like [_] 0)
   (one-like [_] 1)
+  (identity-like [_] 1)
   (exact? [sym] false)
   (numerical? [_] true)
   (freeze [o] o)

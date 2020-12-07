@@ -61,12 +61,19 @@
           (v/one-like (apply f args)))
         (with-meta meta))))
 
+(defn- identity-like [f]
+  (let [meta {:arity (arity f)
+              :from :identity-like}]
+    (with-meta identity meta)))
+
 (extend-protocol v/Value
   MultiFn
   (zero? [_] false)
-  (zero-like [f] (zero-like f))
   (one? [_] false)
+  (identity? [_] false)
+  (zero-like [f] (zero-like f))
   (one-like [f] (one-like f))
+  (identity-like [f] (identity-like f))
   (exact? [f] (compose v/exact? f))
   (numerical? [_] false)
   (freeze [f]
@@ -77,9 +84,11 @@
 
   #?(:clj Fn :cljs function)
   (zero? [_] false)
-  (zero-like [f] (zero-like f))
   (one? [_] false)
+  (identity? [_] false)
+  (zero-like [f] (zero-like f))
   (one-like [f] (one-like f))
+  (identity-like [f] (identity-like f))
   (exact? [f] (compose v/exact? f))
   (numerical? [_] false)
   (freeze [f] (get @v/object-name-map f f))
@@ -87,9 +96,11 @@
 
   Var
   (zero? [_] false)
-  (zero-like [f] (zero-like f))
   (one? [_] false)
+  (identity? [_] false)
+  (zero-like [f] (zero-like f))
   (one-like [f] (one-like f))
+  (identity-like [f] (identity-like f))
   (exact? [f] (compose v/exact? f))
   (numerical? [_] false)
   (freeze [f] (get @v/object-name-map @f f))
@@ -98,9 +109,11 @@
   #?@(:cljs
       [MetaFn
        (zero? [_] false)
-       (zero-like [f] (zero-like f))
        (one? [_] false)
+       (identity? [_] false)
+       (zero-like [f] (zero-like f))
        (one-like [f] (one-like f))
+       (identity-like [f] (identity-like f))
        (exact? [f] (compose v/exact? f))
        (numerical? [_] false)
        (freeze [f] (get @v/object-name-map f f))

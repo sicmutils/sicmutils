@@ -300,8 +300,8 @@
  [sicmutils.numerical.quadrature definite-integral]
  [sicmutils.numerical.elliptic elliptic-f]
  [sicmutils.numerical.minimize minimize multidimensional-minimize]
- [sicmutils.value exact? zero? one?
-  zero-like one-like
+ [sicmutils.value exact? zero? one? identity?
+  zero-like one-like identity-like
   numerical? freeze kind])
 
 ;; Macros. These work with Potemkin's import, but not with the Clojure version.

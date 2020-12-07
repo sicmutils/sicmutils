@@ -22,11 +22,11 @@
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
+            [sicmutils.abstract.number]
             [sicmutils.expression :refer [variables-in expression-of]]
             [sicmutils.expression.analyze :as a]
             [sicmutils.generic :as g]
             [sicmutils.modint :as modular]
-            [sicmutils.numbers]
             [sicmutils.polynomial :as p]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
@@ -75,10 +75,10 @@
     (is (= (p/make [1]) (v/one-like (p/make [1 2 3]))))
     (is (= (p/make 2 [[[0 0] 1]]) (v/one-like (p/make 2 [[[1 0] 1] [[2 1] 3]]))))
     (is (= (p/make 3 [[[0 0 0] 1]]) (v/one-like (p/make 3 [[[1 2 1] 4] [[0 1 0] 5]]))))
-    ;; we can't deduce the unit element from the zero polynomial over an
-    ;; "unknown" ring
-    (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
-                 (v/one-like (p/make 2 [])))))
+    (is (= (p/make 2 [[[0 0] 1]])
+           (v/one-like (p/make 2 [])))
+        "If we can't deduce the unit element from the zero polynomial over an
+        unknown ring, assume it's 1"))
 
   (testing "add constant"
     (is (= (p/make [3 0 2]) (g/add (p/make [0 0 2]) (p/make [3]))))
