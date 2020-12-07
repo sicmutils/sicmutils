@@ -143,6 +143,21 @@
   easier to register methods or test specifically for these cases. We've also
   added `m/column?` and `m/row?` predicates to check for these cases.
 
+- [#184](https://github.com/littleredcomputer/sicmutils/pull/184) modifies
+  `v/exact?` on functions; `((v/exact? f) x) == (v/exact? (f x))` now, instead
+  of false as before. `literal-function` forms now have a correct `v/one-like`
+  implementation.
+
+- clojure Vars now respond to function algebra
+  ([#184](https://github.com/littleredcomputer/sicmutils/pull/184)). All
+  functions implement `g/negative?`, `g/abs`, `g/quotient`, `g/remainder`,
+  `g/modulo`, `g/dimension` and `g/exact-divide`, responding to the appropriate
+  arities.
+
+- `sicmutils.complex/complex` can now take any real type in its constructor, vs
+  only numbers
+  ([#184](https://github.com/littleredcomputer/sicmutils/pull/184)).
+
 ### Literals
 
 - `literal-matrix` fn generates a symbolic matrix
