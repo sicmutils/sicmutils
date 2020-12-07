@@ -207,7 +207,7 @@
   (identity? [o] false)
   (zero-like [o] (u/unsupported (str "zero-like: " o)))
   (one-like [o] (u/unsupported (str "one-like: " o)))
-  (identity-like [o] (u/unsupported (str "one-like: " o)))
+  (identity-like [o] (u/unsupported (str "identity-like: " o)))
   (numerical? [_] false)
   (exact? [o] false)
   (freeze [o] (if (sequential? o)
@@ -303,8 +303,10 @@
        js/BigInt
        (zero? [x] (js*  "~{} == ~{}" big-zero x))
        (one? [x] (js*  "~{} == ~{}" big-one x))
+       (identity? [x] (js*  "~{} == ~{}" big-one x))
        (zero-like [_] big-zero)
        (one-like [_] big-one)
+       (identity-like [_] big-one)
        (freeze [x]
          ;; Bigint freezes into a non-bigint if it can be represented as a
          ;; number; otherwise, it turns into its own literal.
@@ -318,8 +320,10 @@
        goog.math.Integer
        (zero? [x] (.isZero x))
        (one? [x] (core= (.-ONE goog.math.Integer) x))
+       (identity? [x] (core= (.-ONE goog.math.Integer) x))
        (zero-like [_] (.-ZERO goog.math.Integer))
        (one-like [_] (.-ONE goog.math.Integer))
+       (identity-like [_] (.-ONE goog.math.Integer))
        (freeze [x] x)
        (exact? [_] true)
        (numerical? [_] true)
@@ -328,8 +332,10 @@
        goog.math.Long
        (zero? [x] (.isZero x))
        (one? [x] (core= (.getOne goog.math.Long) x))
+       (identity? [x] (core= (.getOne goog.math.Long) x))
        (zero-like [_] (.getZero goog.math.Long))
        (one-like [_] (.getOne goog.math.Long))
+       (identity-like [_] (.getOne goog.math.Long))
        (freeze [x] x)
        (exact? [x] true)
        (numerical? [_] true)
