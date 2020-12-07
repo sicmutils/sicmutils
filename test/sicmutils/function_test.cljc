@@ -51,9 +51,9 @@
   (checking "zero-like, one-like returns 0, 1 for fns, vars" 100
             [f (gen/elements [g/negative? g/abs g/sin g/cos
                               #'g/negative? #'g/abs #'g/sin #'g/cos])
-             n sg/any-integral]
-            (is (= 0 ((v/zero-like f) n)))
-            (is (= 1 ((v/one-like f) n))))
+             n sg/real]
+            (is (== 0 ((v/zero-like f) n)))
+            (is (== 1 ((v/one-like f) n))))
 
   (checking "exact? mirrors input" 100 [n sg/real]
             (if (v/exact? n)

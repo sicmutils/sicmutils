@@ -33,11 +33,39 @@
             [sicmutils.structure :as s :refer [literal-up
                                                literal-down
                                                up down]]
-            [sicmutils.simplify :as ss :refer [hermetic-simplify-fixture]]))
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 
-(def ^:private near (v/within 1.0e-6))
+(deftest value-protocol-tests
+  (testing "v/zero? returns false for fns"
+    (is (not (v/zero? (af/literal-function 'f)))))
+
+  (testing "v/one? returns false for fns"
+    (is (not (v/one? (af/literal-function 'f)))))
+
+  (testing "v/numerical? returns false for fns"
+    (is (not (v/numerical? (af/literal-function 'f)))))
+
+  (let [f (af/literal-function 'f)]
+    (checking "zero-like, one-like returns 0, 1 for literal fns" 100
+              [n sg/real]
+              (is (== 0 ((v/zero-like f) n)))
+              (is (== 1 ((v/one-like f) n)))))
+
+  (checking "exact? mirrors input" 100 [n gen/symbol]
+            (let [f (v/exact? (af/literal-function 'f))]
+              (is (not (f n)))))
+
+  (checking "v/freeze" 100 [fsym gen/symbol
+                            n sg/real]
+            (is (= (list fsym n)
+                   (v/freeze ((af/literal-function fsym) n)))))
+
+  (testing "v/kind returns ::v/function"
+    (let [kind (v/kind (af/literal-function 'f))]
+      (is (= ::af/function kind))
+      (is (isa? kind ::v/function)))))
 
 (deftest equations-moved-from-simplify
   (testing "moved-from-simplify"
@@ -93,6 +121,35 @@
               (is (= (g/real-part (f z)) ((g/real-part f) z)))
               (is (= (g/magnitude (f z)) ((g/magnitude f) z)))
               (is (= (g/angle (f z))     ((g/angle f) z))))))
+
+(deftest trig-tests
+  (testing "tan, sin, cos"
+    (let [f (g/- g/tan (g/div g/sin g/cos))]
+      (is (zero? (g/simplify (f 'x))))))
+
+  (testing "cot"
+    (let [f (g/- g/cot (g/invert g/tan))]
+      (is (zero? (g/simplify (f 'x))))))
+
+  (testing "tanh"
+    (let [f (g/- (g/div g/sinh g/cosh) g/tanh)]
+      (is (zero?
+           (g/simplify (f 'x))))))
+
+  (testing "sec"
+    (let [f (g/- (g/invert g/cos) g/sec)]
+      (is (zero?
+           (g/simplify (f 'x))))))
+
+  (testing "csc"
+    (let [f (g/- (g/invert g/sin) g/csc)]
+      (is (zero?
+           (g/simplify (f 'x))))))
+
+  (testing "sech"
+    (let [f (g/- (g/invert g/cosh) g/sech)]
+      (is (zero?
+           (g/simplify (f 'x)))))))
 
 (defn transpose-defining-relation [T g a]
   "T is a linear transformation T:V -> W

@@ -20,7 +20,7 @@
 (ns sicmutils.abstract.function
   (:require [sicmutils.abstract.number :as an]
             [sicmutils.expression :as x]
-            [sicmutils.function]
+            [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
             [sicmutils.numsymb :as sym]
@@ -79,6 +79,7 @@
   (one? [_] false)
   (zero-like [_] (fn [& _] (v/zero-like range)))
   (one-like [_] (fn [& _] (v/one-like range)))
+  (exact? [f] (f/compose v/exact? f))
   (numerical? [_] false)
   (freeze [_] (v/freeze name))
   (kind [_] ::function)
