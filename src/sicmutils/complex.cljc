@@ -54,7 +54,8 @@
   (cond (v/exact-zero? radius) radius
         (v/exact-zero? angle)  radius
         :else
-        #?(:cljs (Complex. #js {:abs radius :arg angle})
+        #?(:cljs (Complex. #js {:abs (js/Number radius)
+                                :arg (js/Number angle)})
            :clj (let [angle (u/double angle)]
                   (Complex. (* radius (Math/cos angle))
                             (* radius (Math/sin angle)))))))
