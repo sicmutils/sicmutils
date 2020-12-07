@@ -43,7 +43,8 @@
     (is (v/zero? (p/make 2 [])))
     (is (not (v/zero? (p/make [1])))))
 
-  (testing "unity"
+  (testing "one"
+    (is (not (v/one? (p/make []))))
     (is (v/one? (p/make [1])))
     (is (v/one? (p/make 2 [[[0 0] 1]])))
     (is (v/one? (p/make 3 [[[0 0 0] 1]])))
@@ -52,6 +53,14 @@
     (is (v/one? (p/make [1.0])))
     (is (v/one? (p/make [(p/make [1])])))
     (is (not (v/one? (p/make [(p/make [2])])))))
+
+  (testing "identity"
+    (is (v/identity? (p/make [0 1])))
+
+    (testing "identity? is only supported for monomials."
+      (is (not (v/identity? (p/make []))))
+      (is (not (v/identity? (p/make [0]))))
+      (is (not (v/identity? (p/make 2 [[[1 0] 1]]))))))
 
   (testing "make-constant"
     (is (= (p/make [99]) (p/make-constant 1 99)))
@@ -79,6 +88,13 @@
            (v/one-like (p/make 2 [])))
         "If we can't deduce the unit element from the zero polynomial over an
         unknown ring, assume it's 1"))
+
+  (testing "identity-like"
+    (is (= (p/make [0 1]) (v/identity-like (p/make []))))
+    (is (= (p/make [0 1]) (v/identity-like (p/make [1 2 3]))))
+    (is (thrown? #?(:clj AssertionError :cljs js/Error)
+                 (v/identity-like (p/make 2 [])))
+        "identity-like is only supported on monomials."))
 
   (testing "add constant"
     (is (= (p/make [3 0 2]) (g/add (p/make [0 0 2]) (p/make [3]))))

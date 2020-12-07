@@ -42,6 +42,13 @@
     (is (not (v/one? g/add)))
     (is (not (v/one? identity))))
 
+  (testing "v/identity? returns false for fns"
+    (is (not (v/identity? neg?)))
+    (is (not (v/identity? #'neg?)))
+    (is (not (v/identity? g/add)))
+    (is (not (v/identity? identity))
+        "We go conservative and say that EVEN the actual identity function is not identity."))
+
   (testing "v/numerical? returns false for fns"
     (is (not (v/numerical? neg?)))
     (is (not (v/numerical? #'neg?)))
@@ -54,6 +61,12 @@
              n sg/real]
             (is (== 0 ((v/zero-like f) n)))
             (is (== 1 ((v/one-like f) n))))
+
+  (checking "identity-like returns the identity fn" 100
+            [f (gen/elements [g/negative? g/abs g/sin g/cos
+                              #'g/negative? #'g/abs #'g/sin #'g/cos])
+             n sg/real]
+            (is (= n ((v/identity-like f) n))))
 
   (checking "exact? mirrors input" 100 [n sg/real]
             (if (v/exact? n)

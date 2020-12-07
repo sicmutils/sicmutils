@@ -31,6 +31,53 @@
             [sicmutils.numsymb :as sym]
             [sicmutils.value :as v]))
 
+(def gen-literal-element
+  (gen/one-of [sg/real sg/complex gen/symbol]))
+
+(def gen-literal
+  (gen/one-of
+   [(gen/fmap an/literal-number gen-literal-element)
+    gen/symbol]))
+
+(deftest value-protocol-tests
+  (checking "v/zero? returns true for wrapped zero"
+            100 [n (gen/one-of [sg/real (gen/fmap v/zero-like sg/real)])]
+            (if (v/zero? n)
+              (is (v/zero? (an/literal-number n)))
+              (is (not (v/zero? (an/literal-number n))))))
+
+  (checking "v/one? returns true for wrapped zero"
+            100 [n (gen/one-of [sg/real (gen/fmap v/one-like sg/real)])]
+            (if (v/one? n)
+              (is (v/one? (an/literal-number n)))
+              (is (not (v/one? (an/literal-number n))))))
+
+  (checking "v/identity? returns true for wrapped zero"
+            100 [n (gen/one-of [sg/real (gen/fmap v/identity-like sg/real)])]
+            (if (v/identity? n)
+              (is (v/identity? (an/literal-number n)))
+              (is (not (v/identity? (an/literal-number n))))))
+
+  (checking "v/{zero?,one?,identity?} etc match v/{zero,one,identity}-like" 100 [n gen-literal]
+            (is (v/zero? (v/zero-like n)))
+            (is (v/one? (v/one-like n)))
+            (is (v/identity? (v/identity-like n))))
+
+  (checking "v/numerical? returns true for all literal-number instances" 100 [n gen-literal]
+            (is (v/numerical? n)))
+
+  (checking "exact? mirrors input" 100 [n gen-literal-element]
+            (if (v/exact? n)
+              (is (v/exact? (an/literal-number n)))
+              (is (not (v/exact? (an/literal-number n))))))
+
+  (checking "v/freeze" 100 [n gen-literal-element]
+            (is (= (v/freeze n)
+                   (v/freeze (an/literal-number n)))))
+
+  (checking "v/kind" 100 [n gen-literal-element]
+            (is (= ::x/numeric (v/kind (an/literal-number n))))))
+
 (deftest predicate-tests
   (testing "v/="
     (doall
@@ -57,7 +104,7 @@
 
   (checking "literal-number? behavior with numbers."
             100
-            [x gen/small-integer]
+            [x sg/native-integral]
             (let [n (an/literal-number x)]
               (is (an/literal-number? n)
                   "Any wrapped number returns true to literal-number?")
@@ -68,7 +115,7 @@
 (deftest abstract-number-tests
   (checking "literal-number"
             100
-            [x gen/small-integer]
+            [x sg/native-integral]
             (let [n (an/literal-number x)
                   result (g/+ 1 (g/cos n))]
               (is (= (if (zero? x)
@@ -79,22 +126,13 @@
         keep the result exact instead of evaluating the fns... UNLESS specific
         values like (cos 0) can be exactly evaluated.")))
 
-  (checking "inexact numbers" 100 [x gen/small-integer]
+  (checking "inexact numbers" 100 [x sg/native-integral]
             (is (=  (+ 1 (Math/cos x))
                     (g/+ 1 (g/cos x)))
                 "You get a floating-point inexact result by calling generic fns
     on a number directly, by comparison.")))
 
 ;; Generators
-
-(defn inexact-double
-  ([] (inexact-double {}))
-  ([opts]
-   (->> (sg/reasonable-double opts)
-        (gen/fmap (fn [x]
-                    (if (v/exact? x)
-                      (+ x 0.5)
-                      x))))))
 
 (deftest literal-number-arithmetic-tests
   (letfn [(check [op l r]
@@ -106,23 +144,23 @@
                (for [[x y] others]
                  (is (v/= expected (op x y)))))))]
     (checking "+, -, *, / fall through to number ops"
-              100 [x gen/small-integer
-                   y gen/small-integer]
+              100 [x sg/native-integral
+                   y sg/native-integral]
               (check g/* x y)
               (check g/+ x y)
               (check g/- x y)
               (when-not (zero? y)
                 (check g// x y))))
 
-  (checking "negate" 100 [x (inexact-double)]
+  (checking "negate" 100 [x (sg/inexact-double)]
             (is (= (an/literal-number (- x))
                    (g/negate (an/literal-number x)))))
 
-  (checking "invert" 100 [x (inexact-double)]
+  (checking "invert" 100 [x (sg/inexact-double)]
             (is (= (an/literal-number (g// x))
                    (g/invert (an/literal-number x)))))
 
-  (checking "square" 100 [x (inexact-double)]
+  (checking "square" 100 [x (sg/inexact-double)]
             (is (ish? (an/literal-number (g/* x x))
                       (g/square (an/literal-number x)))))
 
@@ -130,20 +168,20 @@
             (is (= (an/literal-number (g/expt x 3))
                    (g/cube (an/literal-number x)))))
 
-  (checking "expt" 100 [x (inexact-double)
+  (checking "expt" 100 [x (sg/inexact-double)
                         e (gen/choose 0 3)]
             (is (= (an/literal-number (g/expt x e))
                    (g/expt (an/literal-number x) e))))
 
-  (checking "abs" 100 [x (inexact-double)]
+  (checking "abs" 100 [x (sg/inexact-double)]
             (is (= (an/literal-number (Math/abs x))
                    (g/abs (an/literal-number x)))))
 
-  (checking "sqrt" 100 [x (inexact-double)]
+  (checking "sqrt" 100 [x (sg/inexact-double)]
             (is (= (an/literal-number (g/sqrt x))
                    (g/sqrt (an/literal-number x)))))
 
-  (checking "log" 100 [x (inexact-double)]
+  (checking "log" 100 [x (sg/inexact-double)]
             (is (= (an/literal-number (g/log x))
                    (g/log (an/literal-number x))))
 
@@ -157,7 +195,7 @@
                          (g/log 10))))
                    (g/log10 (an/literal-number x)))))
 
-  (checking "exp" 100 [x (inexact-double)]
+  (checking "exp" 100 [x (sg/inexact-double)]
             (is (= (an/literal-number (Math/exp x))
                    (g/exp (an/literal-number x))))
 
@@ -211,7 +249,7 @@
 (deftest literal-number-trig-tests
   (checking "inexact literal number trig"
             100
-            [x (inexact-double)]
+            [x (sg/inexact-double)]
             (testing "cosine"
               (is (ish? (an/literal-number
                          (cond (@#'sym/n:pi-over-2-mod-pi? x) 0

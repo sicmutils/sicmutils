@@ -19,6 +19,9 @@
 
 (ns sicmutils.series-test
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.generators :as sg]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
@@ -27,6 +30,53 @@
             [sicmutils.value :as v]))
 
 (use-fixtures :once hermetic-simplify-fixture)
+
+(defn check-series [series]
+  (testing "v/kind"
+    (if (s/power-series? series)
+      (= ::s/power-series (v/kind series))
+      (= ::s/series (v/kind series))))
+
+  (testing "v/numerical?"
+    (is (not (v/numerical? series))))
+
+  (testing "v/exact?"
+    (is (not (v/exact? series))))
+
+  (testing "zero-like"
+    (is (= (take 10 s/zero)
+           (take 10 (g/* series (v/zero-like series))))))
+
+  (testing "one-like"
+    (is (= (take 10 series)
+           (take 10 (g/* series (v/one-like series))))))
+
+  (testing "identity-like"
+    (let [id (if (s/power-series? series)
+               (s/power-series* [0 1])
+               (s/series* [0 1]))]
+      (is (= (take 10 (g/* id series))
+             (take 10 (g/* series (v/identity-like series))))
+          "the identity-series is an identity on APPLICATION, not for
+        multiplication with other series.")))
+
+  (testing "one? zero? identity? always return false (for now!)"
+    (is (not (v/zero? (v/zero-like series))))
+    (is (not (v/one? (v/one-like series))))
+    (is (not (v/identity? (v/identity-like series))))))
+
+(deftest value-protocol-tests
+  (testing "power series"
+    (check-series s/sin-series)
+    (check-series (s/power-series 1 2 3 4)))
+
+  (testing "normal (non-power) series"
+    (check-series (s/series 1 2 3 4)))
+
+  (checking "identity-like power-series application" 100 [n sg/real]
+            (is (= n (-> ((v/identity-like s/sin-series) n)
+                         (s/sum 50)))
+                "evaluating the identity series at `n` will return a series that sums to `n`.")))
 
 (deftest generic-series-tests
   (let [Q (s/power-series 4)

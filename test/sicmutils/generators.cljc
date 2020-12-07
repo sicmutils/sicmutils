@@ -57,6 +57,15 @@
                                 :min excluded-upper
                                 :max max})]))))
 
+(defn inexact-double
+  ([] (inexact-double {}))
+  ([opts]
+   (->> (reasonable-double opts)
+        (gen/fmap (fn [x]
+                    (if (v/exact? x)
+                      (+ x 0.5)
+                      x))))))
+
 (def any-integral
   (gen/one-of [native-integral
                bigint

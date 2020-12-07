@@ -31,7 +31,7 @@
             [sicmutils.structure :as s]
             [sicmutils.value :as v]))
 
-(deftest matrix-value-implementation
+(deftest value-protocol-tests
   (testing "zero?"
     (is (v/zero? (m/by-rows [0])))
     (is (v/zero?
@@ -44,7 +44,45 @@
     (is (= (m/by-rows [0 0 0])
            (v/zero-like (m/by-rows [1 2 3]))))
     (is (= (m/by-rows [0])
-           (v/zero-like (m/by-rows [1])))))
+           (v/zero-like (m/by-rows [1]))))
+
+    (is (= (m/by-rows [0.0] [0.0])
+           (v/zero-like (m/by-rows [1.5] [2.5])))
+        "zero-like preserves types"))
+
+  (testing "one?"
+    (comment
+      ;; TODO this is currently buggy. We want one to return true for the
+      ;; identity matrix, false otherwise.
+      (is (v/one? (m/I 10)))))
+
+  (testing "one-like"
+    (is (= (m/I 3)
+           (v/one-like
+            (m/by-rows [1 2 3] [4 5 6] [7 8 9]))))
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                 (v/one-like (m/by-rows [1 2 3 4])))
+        "one-like is only supported on square matrices."))
+
+  (testing "identity?"
+    (comment
+      ;; TODO this is currently buggy. We want one to return true for the
+      ;; identity matrix, false otherwise.
+      (is (v/identity? (m/I 10)))))
+
+  (testing "identity-like"
+    (is (= (m/I 3)
+           (v/identity-like
+            (m/by-rows [1 2 3] [4 5 6] [7 8 9]))))
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                 (v/identity-like (m/by-rows [1 2 3 4])))
+        "identity-like is only supported on square matrices."))
+
+  (testing "numerical? returns false, always"
+    (is (not (v/numerical? (m/by-rows [1] [2]))))
+    (is (not (v/numerical? (m/by-rows [1.2] [3] [4]))))
+    (is (not (v/numerical? (m/by-rows [0] [0] [0.00001]))))
+    (is (not (v/numerical? (m/by-rows [0 1 (g// 3 2)])))))
 
   (testing "exact?"
     (is (v/exact? (m/by-rows [1] [2])))

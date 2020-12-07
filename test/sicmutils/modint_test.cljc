@@ -57,10 +57,16 @@
       (is (= m2_7 (g/negate m5_7))))
 
     (testing "zero?"
-      (is (v/zero? m0_7)))
+      (is (v/zero? m0_7))
+      (is (v/zero? (v/zero-like m5_7))))
 
     (testing "one?"
-      (is (v/one? m1_7)))
+      (is (v/one? m1_7))
+      (is (v/one? (v/one-like m5_7))))
+
+    (testing "identity?"
+      (is (v/identity? m1_7))
+      (is (v/identity? (v/identity-like m5_7))))
 
     (testing "inv"
       (is (= m3_7 (g/invert m5_7)))

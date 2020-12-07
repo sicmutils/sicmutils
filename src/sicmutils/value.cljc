@@ -220,7 +220,7 @@
 
 ;; These two constitute the default cases.
 (defmethod = [::number ::number] [l r]
-  #?(:clj  (core= l r)
+  #?(:clj  (== l r)
      :cljs (identical? l r)))
 
 (defmethod = :default [l r]
