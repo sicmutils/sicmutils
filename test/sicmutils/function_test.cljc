@@ -27,6 +27,7 @@
             [sicmutils.function :as f]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
+            [sicmutils.numbers]
             [sicmutils.value :as v]))
 
 (deftest value-protocol-tests
@@ -51,12 +52,10 @@
             [f (gen/elements [g/negative? g/abs g/sin g/cos
                               #'g/negative? #'g/abs #'g/sin #'g/cos])
              n sg/any-integral]
-            (is (== 0 ((v/zero-like f) n)))
-            (is (== 1 ((v/one-like f) n))))
+            (is (= 0 ((v/zero-like f) n)))
+            (is (= 1 ((v/one-like f) n))))
 
-  (checking "exact? mirrors input" 100
-            [n (gen/one-of [sg/any-integral
-                            (sg/reasonable-double)])]
+  (checking "exact? mirrors input" 100 [n sg/real]
             (if (v/exact? n)
               (is ((v/exact? identity) n))
               (is (not ((v/exact? identity) n)))))
@@ -160,8 +159,7 @@
 (deftest trig-tests
   (with-comparator (v/within 1e-8)
     (checking "tan, sin, cos" 100
-              [n (gen/one-of [sg/any-integral
-                              (sg/reasonable-double)])]
+              [n sg/real]
               (let [f (g/- g/tan (g/div g/sin g/cos))]
                 (is (ish? 0 (f n)))))
 
@@ -182,52 +180,38 @@
       (is (ish? (/ 0.5 0.2) (f 0.5 0.2)))))
 
   (with-comparator (v/within 1e-10)
-    (checking "tan, sin, cos" 100
-              [n (gen/one-of [sg/any-integral
-                              (sg/reasonable-double)])]
+    (checking "tan, sin, cos" 100 [n sg/real]
               (let [f (g/- g/tan (g/div g/sin g/cos))]
-                (when-not (zero? n)
+                (when-not (v/zero? n)
                   (is (ish? 0 (f n))))))
 
-    (checking "cot" 100
-              [n (gen/one-of [sg/any-integral
-                              (sg/reasonable-double)])]
+    (checking "cot" 100 [n sg/real]
               (let [f (g/- g/cot (g/invert g/tan))]
-                (when-not (zero? n)
+                (when-not (v/zero? n)
                   (is (ish? 0 (f n)))))))
 
   (checking "tanh" 100 [n (sg/reasonable-double {:min -100 :max 100})]
             (let [f (g/- (g/div g/sinh g/cosh) g/tanh)]
               (is (ish? 0 (f n)))))
 
-  (checking "sec" 100
-            [n (gen/one-of [sg/any-integral
-                            (sg/reasonable-double)])]
+  (checking "sec" 100 [n sg/real]
             (let [f (g/- (g/invert g/cos) g/sec)]
               (is (ish? 0 (f n)))))
 
-  (checking "csc" 100
-            [n (gen/one-of [sg/any-integral
-                            (sg/reasonable-double)])]
+  (checking "csc" 100 [n sg/real]
             (let [f (g/- (g/invert g/sin) g/csc)]
-              (when-not (zero? n)
+              (when-not (v/zero? n)
                 (is (ish? 0 (f n))))))
 
-  (checking "sech" 100
-            [n (gen/one-of [sg/any-integral
-                            (sg/reasonable-double)])]
+  (checking "sech" 100 [n sg/real]
             (let [f (g/- (g/invert g/cosh) g/sech)]
               (is (ish? 0  (f n)))))
 
-  (checking "cosh" 100
-            [n (gen/one-of [sg/any-integral
-                            (sg/reasonable-double)])]
+  (checking "cosh" 100 [n sg/real]
             (is (ish? ((g/cosh g/square) n)
                       (g/cosh (g/square n)))))
 
-  (checking "sinh" 100
-            [n (gen/one-of [sg/any-integral
-                            (sg/reasonable-double)])]
+  (checking "sinh" 100 [n sg/real]
             (is (ish? ((g/sinh g/square) n)
                       (g/sinh (g/square n)))))
 
@@ -244,8 +228,9 @@
 
     (checking "atanh" 100
               [n (sg/reasonable-double {:min -10 :max 10})]
-              (let [f (f/compose g/tanh g/atanh)]
-                (is (ish? n (f n)))))))
+              (when-not (v/one? (g/abs n))
+                (let [f (f/compose g/tanh g/atanh)]
+                  (is (ish? n (f n))))))))
 
 (deftest complex-tests
   (testing "gcd/lcm unit"
@@ -290,6 +275,51 @@
 
     (testing "determinant"
       (is (= 20 ((g/determinant *) 4 5))))
+
+    (checking "invert" 100 [n sg/real]
+              (when-not (v/zero? n)
+                (is (= ((g/+ 1 g/invert) n)
+                       (g/+ 1 (g/invert n))))))
+
+    (checking "negative?" 100 [n sg/real]
+              (is (not ((g/negative? g/abs) n)))
+              (when-not (v/zero? n)
+                (is ((g/negative? (f/compose g/negate g/abs)) n))))
+
+    (checking "abs" 100 [n sg/real]
+              (is (= ((g/+ 1 g/abs) n)
+                     (g/+ 1 (g/abs n)))))
+
+    (checking "quotient" 100 [l sg/any-integral
+                              r sg/native-integral]
+              (when-not (v/zero? r)
+                (is (= ((g/+ 1 g/quotient) l r)
+                       (g/+ 1 (g/quotient l r))))))
+
+    (checking "exact-divide" 100 [n (gen/choose -200 200)
+                                  m (gen/choose -20 20)]
+              (when-not (v/zero? m)
+                (is (= n ((g/exact-divide g/* m) n m))
+                    "The f position here is a function that takes 2 elements,
+                  passes them to g/*, the calls exact-divide on the result and
+                  `m`.")))
+
+    (checking "dimension" 100 [n sg/real]
+              (is (= ((g/invert g/dimension) n)
+                     (g/dimension n))
+                  "The dimension of a number is always 1."))
+
+    (checking "remainder" 100 [l sg/any-integral
+                               r sg/native-integral]
+              (when-not (v/zero? r)
+                (is (= ((g/+ 1 g/remainder) l r)
+                       (g/+ 1 (g/remainder l r))))))
+
+    (checking "modulo" 100 [l sg/any-integral
+                            r sg/native-integral]
+              (when-not (v/zero? r)
+                (is (= ((g/+ 1 g/modulo) l r)
+                       (g/+ 1 (g/modulo l r))))))
 
     (testing "arity 2"
       (let [f (fn [x y] (+ x y))

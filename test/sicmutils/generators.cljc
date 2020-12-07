@@ -10,6 +10,7 @@
             [same.ish :as si]
             [sicmutils.complex :as c]
             [sicmutils.generic :as g]
+            [sicmutils.matrix :as m]
             [sicmutils.ratio :as r]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
@@ -62,6 +63,9 @@
                long
                integer]))
 
+(def real
+  (gen/one-of [any-integral (reasonable-double)]))
+
 (def complex
   (gen/let [r (reasonable-double)
             i (reasonable-double)]
@@ -82,41 +86,57 @@
               d)]
       (r/rationalize n d))))
 
-(def ^:dynamic *complex-tolerance* 1e-12)
+(defn square-matrix
+  ([n] (square-matrix n ratio))
+  ([n entry-gen]
+   (gen/fmap #(apply m/by-rows %)
+             (gen/vector (gen/vector entry-gen n) n))))
+
+(defn- int=? [this that]
+  (cond (c/complex? that) (and (si/*comparator* 0.0 (g/imag-part that))
+                               (si/*comparator*
+                                (u/double this)
+                                (g/real-part that)))
+        (v/real? that)    (si/*comparator*
+                           (u/double this)
+                           (u/double that))
+        :else             (= this that)))
 
 (extend-protocol si/Approximate
   #?@(:cljs
-      [js/BigInt
-       (ish [this that]
-            (= this that))])
+      [r/ratiotype
+       (ish [this that] (int=? this that))
+
+       u/inttype
+       (ish [this that] (int=? this that))
+
+       u/longtype
+       (ish [this that] (int=? this that))
+
+       js/BigInt
+       (ish [this that] (int=? this that))
+       number
+       (ish [this that] (int=? this that))])
+
+  #?@(:clj
+      [Double
+       (ish [this that] (int=? this that))
+
+       Float
+       (ish [this that] (int=? this that))
+
+       Number
+       (ish [this that] (int=? this that))])
 
   #?(:cljs c/complextype :clj Complex)
   (ish [this that]
-    (< (g/abs (g/- this that))
-       *complex-tolerance*))
-
-  Double
-  (ish [this that]
-    (when (c/complex? that)
-      (prn this that (g/real-part that) (si/ish this (g/real-part that))))
-    (cond (float? that)     (si/*comparator* this that)
-          (number? that)    (== ^Number this ^Number that)
-          (c/complex? that) (and (zeroish? (g/imag-part that))
-                                 (si/ish this (g/real-part that)))
-          :else             (= this that)))
-
-  Float
-  (ish [this that]
-    (cond (float? that)     (si/*comparator* this that)
-          (number? that)    (== ^Number this ^Number that)
-          (c/complex? that) (and (zeroish? (g/imag-part that))
-                                 (si/ish this (g/real-part that)))
-          :else             (= this that)))
-
-  Number
-  (ish [this that]
-    (cond (float? that)     (si/*comparator* (core-double this) that)
-          (number? that)    (== ^Number this ^Number that)
-          (c/complex? that) (and (zeroish? (g/imag-part that))
-                                 (si/ish this (g/real-part that)))
-          :else             (= this that))))
+    (cond (c/complex? that)
+          (and (si/*comparator* (g/real-part this)
+                                (g/real-part that))
+               (si/*comparator* (g/imag-part this)
+                                (g/imag-part that)))
+          (v/real? that)
+          (and (si/*comparator* 0.0 (g/imag-part this))
+               (si/*comparator*
+                (g/real-part this) (core-double that)))
+          :else (= this that))))

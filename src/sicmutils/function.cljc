@@ -340,12 +340,19 @@
 (defbinary g/add g/+)
 (defbinary g/sub g/-)
 (defbinary g/mul g/*)
+(defunary g/invert)
 (defbinary g/div g/divide)
 (defbinary g/expt)
 
 (defunary g/negate)
-(defunary g/invert)
+(defunary g/negative?)
+(defunary g/abs)
 (defunary g/sqrt)
+
+(defbinary g/quotient)
+(defbinary g/remainder)
+(defbinary g/modulo)
+
 (defunary g/sin)
 (defunary g/cos)
 (defunary g/tan)
@@ -381,9 +388,11 @@
 
 (defunary g/determinant)
 (defunary g/trace)
+(defunary g/dimension)
 (defbinary g/cross-product)
 (defbinary g/gcd)
 (defbinary g/lcm)
+(defbinary g/exact-divide)
 
 ;; Complex Operations
 

@@ -87,18 +87,12 @@
     (is (v/one-like (g/sqrt c/ONE)))
     (is (c/complex? (g/sqrt c/ONE))))
 
-  (checking "transpose, determinant, trace act as id" 100
-            [x (gen/one-of
-                [(sg/reasonable-double)
-                 sg/any-integral])]
+  (checking "transpose, determinant, trace act as id" 100 [x sg/real]
             (is (= x (g/transpose x)))
             (is (= x (g/determinant x)))
             (is (= x (g/trace x))))
 
-  (checking "dimension always returns 1" 100
-            [x (gen/one-of
-                [(sg/reasonable-double)
-                 sg/any-integral])]
+  (checking "dimension always returns 1" 100 [x sg/real]
             (is (= 1 (g/dimension x)))))
 
 (deftest integer-generics
@@ -237,62 +231,88 @@
     (is (c/complex? (g/asin 2)))
     (is (c/complex? (g/acos 2))))
 
-  (testing "sin"
-    (is (near (g/sin 10) (Math/sin 10))))
+  (checking "sin" 100 [n (sg/reasonable-double)]
+            (is (ish? (Math/sin n) (g/sin n))))
 
-  (testing "cos"
-    (is (near (g/cos 10) (Math/cos 10))))
+  (checking "cos" 100 [n (sg/reasonable-double)]
+            (is (ish? (Math/cos n) (g/cos n))))
 
-  (testing "tan"
-    (is (near (g/div (g/sin 10)
-                     (g/cos 10))
-              (g/tan 10))))
+  (checking "tan native" 100 [n (sg/reasonable-double)]
+            (is (ish? (Math/tan n) (g/tan n))))
 
-  (testing "asin"
-    (is (near (g/asin 0.5) (Math/asin 0.5)))
-    (is (near 0.5 (g/sin (g/asin 0.5)))))
+  (checking "tan" 100 [n sg/real]
+            (when-not (v/zero? (g/cos n))
+              (is (ish? (g/div (g/sin n)
+                               (g/cos n))
+                        (g/tan n)))))
 
-  (testing "acos"
-    (is (near (g/acos 0.5) (Math/acos 0.5)))
-    (is (near 0.5 (g/cos (g/acos 0.5)))))
+  (checking "asin native" 100 [n (sg/reasonable-double
+                                  {:min (+ -1 1e-10)
+                                   :max (- 1 1e-10)})]
+            (is (ish? (Math/asin n) (g/asin n))))
 
-  (testing "atan"
-    (is (near (g/atan 1.1) (Math/atan 1.1)))
-    (is (near 1.1 (g/tan (g/atan 1.1)))))
+  (with-comparator (v/within 1e-8)
+    (checking "cos/acos" 100 [n (sg/reasonable-double {:min -100 :max 100})]
+              (is (ish? n (g/cos (g/acos n)))))
 
-  (let [z 1.5]
-    (testing "cot"
-      (is (near (g/invert (g/tan z))
-                (g/cot z))))
+    (checking "sin/asin" 100 [n (sg/reasonable-double {:min -100 :max 100})]
+              (is (ish? n (g/sin (g/asin n)))))
 
-    (testing "cosh"
-      (is (near (g/cosh z) (Math/cosh z))))
+    (checking "tan/atan" 100 [n (sg/reasonable-double {:min -100 :max 100})]
+              (is (ish? n (g/tan (g/atan n))))))
 
-    (testing "sinh"
-      (is (near (g/sinh z) (Math/sinh z))))
+  (testing "tan/atan, 2 arity version"
+    (is (ish? (/ 0.5 0.2)
+              (g/tan (g/atan 0.5 0.2)))))
 
-    (testing "tanh"
-      (is (near (g/div (g/sinh z)
-                       (g/cosh z))
-                (g/tanh z))))
+  (checking "cot" 100 [n sg/real]
+            (when-not (or (v/zero? (g/sin n))
+                          (v/zero? (g/cos n)))
+              (is (ish? (g/cot n)
+                        (g/invert (g/tan n))))))
 
-    (testing "sec"
-      (is (near (g/invert (g/cos z))
-                (g/sec z))))
+  (checking "cosh" 100 [n (sg/reasonable-double)]
+            (is (ish? (Math/cosh n) (g/cosh n))))
 
-    (testing "csc"
-      (is (near (g/invert (g/sin z))
-                (g/csc z))))
+  (checking "sinh" 100 [n (sg/reasonable-double)]
+            (is (ish? (Math/sinh n) (g/sinh n))))
 
-    (testing "sech"
-      (is (near (g/invert (g/cosh z))
-                (g/sech z))))
+  (checking "tanh" 100 [n (sg/reasonable-double {:min -100 :max 100})]
+            (when-not (v/zero? (g/cosh n))
+              (is (ish? (g/tanh n)
+                        (g/div (g/sinh n) (g/cosh n))))))
 
-    (testing "acosh"
-      (is (near z (g/cosh (g/acosh z)))))
+  (checking "sec" 100 [n sg/real]
+            (when-not (v/zero? (g/cosh n))
+              (is (ish? (g/sec n)
+                        (g/invert (g/cos n))))))
 
-    (testing "asinh"
-      (is (near z (g/sinh (g/asinh z)))))
+  (checking "csc" 100 [n sg/real]
+            (when-not (v/zero? (g/sin n))
+              (is (ish? (g/csc n)
+                        (g/invert (g/sin n))))))
 
-    (testing "atanh"
-      (is (near 0.5 (g/tanh (g/atanh 0.5)))))))
+  (checking "sech" 100 [n sg/real]
+            (let [cosh-n (g/cosh n)]
+              (when-not (v/zero? cosh-n)
+                (is (ish? (g/sech n)
+                          (g/invert cosh-n))))))
+
+  (testing "acosh, numbers that need to convert to complex"
+    (is (ish? (g/acosh 0) (g/acosh (u/int 0))))
+    (is (ish? (g/acosh 0) (g/acosh (u/long 0))))
+    (is (ish? (g/acosh 0) (g/acosh (u/bigint 0)))))
+
+  (with-comparator (v/within 1e-8)
+    (checking "acosh" 100
+              [n (sg/reasonable-double {:min -100 :max 100})]
+              (is (ish? n (g/cosh (g/acosh n)))))
+
+    (checking "asinh" 100
+              [n (sg/reasonable-double {:min -100 :max 100})]
+              (is (ish? n (g/sinh (g/asinh n)))))
+
+    (checking "atanh" 100
+              [n (sg/reasonable-double {:min -10 :max 10})]
+              (when-not (v/one? (g/abs n))
+                (is (ish? n (g/tanh (g/atanh n))))))))
