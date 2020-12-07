@@ -32,16 +32,16 @@
             [sicmutils.value :as v]))
 
 (deftest predicate-tests
-  (testing "v/eq"
+  (testing "v/="
     (doall
      (for [l ['x (an/literal-number 'x)]
            r ['x (an/literal-number 'x)]]
-       (is (v/eq l r))))
+       (is (v/= l r))))
 
     (doall
      (for [l [12 (an/literal-number 12)]
            r [12 (an/literal-number 12)]]
-       (do (is (v/eq l r))
+       (do (is (v/= l r))
            #?(:cljs (is (= l r)
                         "cljs overrides equality, and can compare literals with
                         true numbers on the left side."))))))
@@ -104,7 +104,7 @@
                             [(an/literal-number l) (an/literal-number r)]]]
               (doall
                (for [[x y] others]
-                 (is (v/eq expected (op x y)))))))]
+                 (is (v/= expected (op x y)))))))]
     (checking "+, -, *, / fall through to number ops"
               100 [x gen/small-integer
                    y gen/small-integer]
@@ -172,8 +172,8 @@
                    (g/trace (an/literal-number z)))))
 
   (checking "dimension" 100 [z sg/complex]
-            (is (v/eq 1 (an/literal-number (g/dimension z))))
-            (is (v/eq 1 (g/dimension (an/literal-number z)))))
+            (is (v/= 1 (an/literal-number (g/dimension z))))
+            (is (v/= 1 (g/dimension (an/literal-number z)))))
 
   (checking "conjugate" 100 [z sg/complex]
             (is (= (an/literal-number (g/conjugate z))
@@ -327,8 +327,8 @@
 
 (deftest symbolic-arithmetic-tests
   (testing "+ constructor optimizations"
-    (is (v/eq 'x (g/add 0 'x)))
-    (is (v/eq 'x (g/add 'x 0))))
+    (is (v/= 'x (g/add 0 'x)))
+    (is (v/= 'x (g/add 'x 0))))
 
   (testing "sums fuse together in the constructor"
     (is (= '(+ x y z) (v/freeze (g/add 'x (g/add 'y 'z)))))
@@ -340,8 +340,8 @@
 
   (testing "sub constructor optimizations"
     (is (= (g/negate 'x) (g/- 0 'x)))
-    (is (v/eq 'x (g/- 'x 0)))
-    (is (v/eq 0 (g/- 'x 'x))))
+    (is (v/= 'x (g/- 'x 0)))
+    (is (v/= 0 (g/- 'x 'x))))
 
   (testing "+/- with symbols"
     (is (= (g/+ 15 'x) (g/+ 10 3 2 'x)))
@@ -354,10 +354,10 @@
     (is (= (g/- 10 (g/+ 20 'x 3 2 1)) (g/- 10 20 'x 3 2 1))))
 
   (testing "mul constructor optimizations"
-    (is (v/eq 0 (g/* 0 'x)))
-    (is (v/eq 0 (g/* 'x 0)))
-    (is (v/eq 'x (g/* 1 'x)))
-    (is (v/eq 'x (g/* 'x 1))))
+    (is (v/= 0 (g/* 0 'x)))
+    (is (v/= 0 (g/* 'x 0)))
+    (is (v/= 'x (g/* 1 'x)))
+    (is (v/= 'x (g/* 'x 1))))
 
   (testing "products fuse together in the constructor"
     (is (= '(* x y z) (v/freeze (g/mul 'x (g/mul 'y 'z)))))
@@ -375,8 +375,8 @@
     (is (= (g/* 200 'x 3 2) (g/* 10 20 'x 3 2 1))))
 
   (testing "div constructor optimizations"
-    (is (v/eq 0 (g/divide 0 'x)))
-    (is (v/eq 'x (g/divide 'x 1)))
+    (is (v/= 0 (g/divide 0 'x)))
+    (is (v/= 'x (g/divide 'x 1)))
     (is (thrown? #?(:clj ArithmeticException :cljs js/Error)
                  (g/divide 'x 0))))
 
@@ -404,8 +404,8 @@
     (is (= (g/expt 'x 3) (g/cube 'x))))
 
   (testing "expt"
-    (is (v/eq 1 (g/expt 'x 0)))
-    (is (v/eq 'x (g/expt 'x 1))))
+    (is (v/= 1 (g/expt 'x 0)))
+    (is (v/= 'x (g/expt 'x 1))))
 
   (checking "abs" 100 [x gen/symbol]
             (is (= (an/literal-number
@@ -421,11 +421,11 @@
   (checking "log" 100 [x gen/symbol]
             (is (= (list 'log x)
                    (v/freeze (g/log x))))
-            (is (v/eq (g// (g/log x)
+            (is (v/= (g// (g/log x)
                            (Math/log 2))
                       (g/log2 x))
                 "log2 divides by the inexact (log 2).")
-            (is (v/eq (g// (g/log x)
+            (is (v/= (g// (g/log x)
                            (Math/log 10))
                       (g/log10 x))
                 "log10 divides by the inexact (log 10)."))
@@ -487,63 +487,63 @@
     (is (ish? 0 (g/sin 0))
         "The ::v/number implementation takes over for g/sin and returns a float
         on the JVM.")
-    (is (v/eq 0 (g/sin (an/literal-number 0)))
+    (is (v/= 0 (g/sin (an/literal-number 0)))
         "the symbolic operator is exact.")
 
     (testing "sin=0 symbolics"
-      (is (v/eq 0 (g/sin 'pi)))
-      (is (v/eq 0 (g/sin 'two-pi)))
-      (is (v/eq 0 (g/sin '-pi)))
-      (is (v/eq 0 (g/sin '-two-pi))))
+      (is (v/= 0 (g/sin 'pi)))
+      (is (v/= 0 (g/sin 'two-pi)))
+      (is (v/= 0 (g/sin '-pi)))
+      (is (v/= 0 (g/sin '-two-pi))))
 
     (testing "sin=1,-1 symbolics"
-      (is (v/eq 1 (g/sin 'pi-over-2)))
-      (is (v/eq -1 (g/sin '-pi-over-2))))
+      (is (v/= 1 (g/sin 'pi-over-2)))
+      (is (v/= -1 (g/sin '-pi-over-2))))
 
     (testing "literal numbers collapse too if they're close to multiples"
-      (is (v/eq 0 (g/sin (an/literal-number Math/PI))))
-      (is (v/eq 0 (g/sin (an/literal-number (* 2 Math/PI)))))
-      (is (v/eq 0 (g/sin (an/literal-number (- Math/PI)))))
-      (is (v/eq 1.0 (g/sin (/ Math/PI 2))))))
+      (is (v/= 0 (g/sin (an/literal-number Math/PI))))
+      (is (v/= 0 (g/sin (an/literal-number (* 2 Math/PI)))))
+      (is (v/= 0 (g/sin (an/literal-number (- Math/PI)))))
+      (is (v/= 1.0 (g/sin (/ Math/PI 2))))))
 
   (testing "trig shortcuts - cos"
     (is (ish? 1 (g/cos 0))
         "The ::v/number implementation takes over for g/cos and returns a float
         on the JVM.")
-    (is (v/eq 1 (g/cos (an/literal-number 0)))
+    (is (v/= 1 (g/cos (an/literal-number 0)))
         "the symbolic operator is exact.")
 
     (testing "cos=0 symbolics"
-      (is (v/eq 0 (g/cos 'pi-over-2)))
-      (is (v/eq 0 (g/cos '-pi-over-2))))
+      (is (v/= 0 (g/cos 'pi-over-2)))
+      (is (v/= 0 (g/cos '-pi-over-2))))
 
     (testing "cos=1,-1 symbolics"
-      (is (v/eq 1 (g/cos 'two-pi)))
-      (is (v/eq 1 (g/cos '-two-pi)))
-      (is (v/eq -1 (g/cos 'pi)))
-      (is (v/eq -1 (g/cos '-pi))))
+      (is (v/= 1 (g/cos 'two-pi)))
+      (is (v/= 1 (g/cos '-two-pi)))
+      (is (v/= -1 (g/cos 'pi)))
+      (is (v/= -1 (g/cos '-pi))))
 
     (testing "literal numbers collapse too"
-      (is (v/eq -1 (g/cos (an/literal-number Math/PI))))
-      (is (v/eq 1 (g/cos (an/literal-number (* 2 Math/PI)))))))
+      (is (v/= -1 (g/cos (an/literal-number Math/PI))))
+      (is (v/= 1 (g/cos (an/literal-number (* 2 Math/PI)))))))
 
   (testing "trig shortcuts - tan"
     (is (ish? 0 (g/tan 0))
         "The ::v/number implementation takes over for g/tan and returns a
           float on the JVM.")
-    (is (v/eq 0 (g/tan (an/literal-number 0)))
+    (is (v/= 0 (g/tan (an/literal-number 0)))
         "The symbolic operator is exact.")
 
     (testing "tan=0 symbolics"
-      (is (v/eq 0 (g/tan 'pi)))
-      (is (v/eq 0 (g/tan '-pi)))
-      (is (v/eq 0 (g/tan '-two-pi)))
-      (is (v/eq 0 (g/tan '-two-pi))))
+      (is (v/= 0 (g/tan 'pi)))
+      (is (v/= 0 (g/tan '-pi)))
+      (is (v/= 0 (g/tan '-two-pi)))
+      (is (v/= 0 (g/tan '-two-pi))))
 
     (testing "tan=1,-1 symbolics"
-      (is (v/eq 1 (g/tan 'pi-over-4)))
-      (is (v/eq 1 (g/tan '+pi-over-4)))
-      (is (v/eq -1 (g/tan '-pi-over-4)))
+      (is (v/= 1 (g/tan 'pi-over-4)))
+      (is (v/= 1 (g/tan '+pi-over-4)))
+      (is (v/= -1 (g/tan '-pi-over-4)))
       (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
                    (g/tan 'pi-over-2)))))
 

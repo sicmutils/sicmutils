@@ -69,7 +69,7 @@
                  (and (= type (.-type b))
                       (= expression (.-expression b))
                       (= m (.-m b))))
-               (v/eq a b))))
+               (v/= a b))))
 
   #?@(:clj
       [IObj
@@ -90,7 +90,7 @@
                    (and (= type (.-type b))
                         (= expression (.-expression b))
                         (= m (.-m b))))
-                 (v/eq a b)))
+                 (v/= a b)))
 
        IPrintWithWriter
        (-pr-writer

@@ -166,6 +166,9 @@
   freezes to that `(modint 1 2)`.
   ([#185](https://github.com/littleredcomputer/sicmutils/pull/185)).
 
+- `v/eq` renamed to `v/=`.
+  ([#186](https://github.com/littleredcomputer/sicmutils/pull/186)).
+
 ### Literals
 
 - `literal-matrix` fn generates a symbolic matrix
@@ -236,12 +239,12 @@ I can now make some comments that clear up my former misunderstandings:
 
 
 - If you want to compare literal numbers and an expression like
-  `(an/literal-number 12)`, use `v/eq`. In Clojurescript, this will work with
+  `(an/literal-number 12)`, use `v/=`. In Clojurescript, this will work with
   the built in `=` as well, since equality is implemented with a protocol that
   we can extend. For example:
 
 ```clojure
-(v/eq 12 (literal-number 12))
+(v/= 12 (literal-number 12))
 ;;=> true
 
 (= 12 (literal-number 12))
