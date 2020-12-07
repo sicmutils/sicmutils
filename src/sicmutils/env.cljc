@@ -122,6 +122,46 @@
 (def power-series series/power-series)
 (def series:sum series/sum)
 
+(comment
+  "Missing from the refman:
+
+((list:elementwise proc) <l1> ... <ln>)
+((vector:elementwise proc) <v1> ... <vn>)
+((structure:elementwise proc) <s1> ... <sn>)
+((matrix:elementwise proc) <M1> ... <Mn>)
+((series:elementwise proc) <p1> ... <pn>) ")
+
+(comment
+  "vector:generate lives below. Access matrix:generate via matrix/generate, same
+   with series. List is not necessary.
+
+(list:generate n proc)
+(vector:generate  n   proc)
+(matrix:generate  m n proc)
+(series:generate      proc)
+(s:generate <n> up/down <procedure>)
+
+More missing items:
+matrix/num-rows, matrix/num-cols
+matrix/by-cols
+matrix-ref => matrix/get-include
+
+column-matrix, row-matrix constructors
+submatrix
+matrix-with-substituted-row
+
+transforms between vector, row/column matrix, structures (maybe covered above?)
+identity? one? implementation for matrices
+diagonal?
+m:make-identity, m:make-diagonal
+series:print, stream:for-each
+arg-shift, arg-scale, good sigma interface
+note expression == freeze
+many numerical aliases...
+")
+(defn vector:generate [n f]
+  (mapv f (range n)))
+
 (defn tex$
   "Render expression in a form convenient for rendering with clojupyter.
   In this case, we want the TeX material wrapped with dollar signs."
@@ -137,7 +177,7 @@
 (import-vars
  [sicmutils.abstract.number literal-number]
  [sicmutils.complex complex]
- [sicmutils.function compose]
+ [sicmutils.function arity compose]
  [sicmutils.operator commutator]
  [sicmutils.generic
   * + - /
@@ -190,6 +230,7 @@
   structure?
   up
   up?
+  ;; missing with-substituted-coord
   vector->down vector->up
   literal-down literal-up]
  [sicmutils.expression.render
@@ -304,7 +345,7 @@
  [sicmutils.numerical.minimize minimize multidimensional-minimize]
  [sicmutils.value exact? zero? one? identity?
   zero-like one-like identity-like
-  numerical? freeze kind])
+  numerical? freeze kind kind-predicate])
 
 ;; Macros. These work with Potemkin's import, but not with the Clojure version.
 #?(:clj

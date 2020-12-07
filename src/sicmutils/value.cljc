@@ -349,6 +349,12 @@
        (numerical? [_] true)
        (kind [_] goog.math.Long))))
 
+(defn kind-predicate
+  "Returns a predicate that returns true if its argument matches the supplied
+  kind-keyword `k`, false otherwise."
+  [k]
+  (fn [x] (isa? k x)))
+
 (defn add-object-symbols!
   [o->syms]
   (swap! object-name-map into o->syms))
