@@ -25,6 +25,10 @@
             [sicmutils.modint :as m]))
 
 (deftest modint
+  (testing "value implementation"
+    (is (= '(modint 1 2)
+           (v/freeze (m/make 1 2)))))
+
   (let [m3_7 (m/make 3 7)
         m0_7 (m/make 0 7)
         m1_7 (m/make 1 7)
