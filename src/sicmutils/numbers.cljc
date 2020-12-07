@@ -275,7 +275,15 @@
          (op a (.fromNumber Long b)))
 
        (defmethod op [::v/native-integral Long] [a b]
-         (op (.fromNumber Long a) b)))
+         (op (.fromNumber Long a) b))
+
+       ;; If this type encounters a floating point type it should lose
+       ;; precision.
+       (defmethod op [Long ::v/floating-point] [a b]
+         (op (js/Number a) b))
+
+       (defmethod op [::v/floating-point Long] [a b]
+         (op a (js/Number b))))
 
      ;; Google Closure's arbitrary-precision Integer:
      (defmethod g/add [Integer Integer] [a b] (.add a b))
@@ -309,6 +317,22 @@
          (op a (.fromNumber Integer b)))
 
        (defmethod op [::v/native-integral Integer] [a b]
+         (op (.fromNumber Integer a) b))
+
+       ;; If this type encounters a floating point type it should lose
+       ;; precision.
+       (defmethod op [Integer ::v/floating-point] [a b]
+         (op (js/Number a) b))
+
+       (defmethod op [::v/floating-point Integer] [a b]
+         (op a (js/Number b)))
+
+       ;; When they encounter each other in binary operations, Long is coerced
+       ;; to Integer.
+       (defmethod op [Integer Long] [a b]
+         (op a (.fromNumber Integer b)))
+
+       (defmethod op [Long Integer] [a b]
          (op (.fromNumber Integer a) b)))
 
      ;; These names are slightly different between the two types.
