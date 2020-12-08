@@ -24,7 +24,6 @@
              #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.riemann :as qr]
             [sicmutils.numerical.interpolate.richardson :as ir]
-
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]

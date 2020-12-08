@@ -60,7 +60,12 @@
 ;; ## Complex Operations
 (defmethod g/real-part [::v/real] [a] a)
 (defmethod g/imag-part [::v/real] [a] 0)
-(defmethod g/angle [::v/real] [a] (v/zero-like a))
+
+(defmethod g/angle [::v/real] [a]
+  (if (neg? a)
+    Math/PI
+    (v/zero-like a)))
+
 (defmethod g/conjugate [::v/real] [a] a)
 
 ;; ## Trig Operations
@@ -220,7 +225,21 @@
          (op (js/Number a) b))
 
        (defmethod op [::v/floating-point js/BigInt] [a b]
-         (op a (js/Number b))))
+         (op a (js/Number b)))
+
+       ;; BigInt can't handle these operations natively, so we override with a
+       ;; downcast to number for now.
+       (doseq [op [g/cos g/sin g/tan
+                   g/asin g/acos g/atan
+                   g/cosh g/sinh g/tanh
+                   g/asinh g/acosh g/acosh
+                   g/cot g/sec g/csc g/sech g/csch]]
+         (defmethod op [js/BigInt] [a]
+           (op (js/Number a))))
+
+       (defmethod g/atan [js/BigInt ::v/real] [l r] (g/atan (js/Number l) r))
+       (defmethod g/atan [::v/real js/BigInt] [l r] (g/atan l (js/Number r)))
+       (defmethod g/atan [js/BigInt js/BigInt] [l r] (g/atan (js/Number l) (js/Number r))))
 
      ;; Google Closure library's 64-bit Long:
      (defmethod g/add [Long Long] [a b] (.add a b))
