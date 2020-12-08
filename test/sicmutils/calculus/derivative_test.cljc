@@ -56,6 +56,19 @@
                 (f (+ q (* ε η))))]
         ((D g) 0)))))
 
+(deftest value-protocol-tests
+  ;; TODO upgrade to generative tests when we make a differential generator.
+  (let [zero-diff (d/make-differential [])
+        dy        (d/make-differential {[1] 1})]
+    (is (v/zero? zero-diff))
+    (is (not (v/zero? dy)))
+    (is (not (v/one? dy)))
+    (is (not (v/identity? dy)))
+
+    (is (v/zero? (v/zero-like dy)))
+    (is (v/one? (v/one-like dy)))
+    (is (v/identity? (v/identity-like dy)))))
+
 (deftest differentials
   (testing "add, mul differentials"
     (let [zero-differential (d/make-differential [])

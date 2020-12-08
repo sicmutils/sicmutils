@@ -28,8 +28,17 @@
   (testing "value protocol impl"
     (is (v/zero? (e/make-literal ::blah 0)))
     (is (v/one? (e/make-literal ::blah 1)))
+    (is (v/identity? (e/make-literal ::blah 1)))
+
     (is (not (v/zero? (e/make-literal ::blah 10))))
+    (is (v/zero? (v/zero-like (e/make-literal ::blah 10))))
+
     (is (not (v/one? (e/make-literal ::blah 10))))
+    (is (v/one? (v/one-like (e/make-literal ::blah 10))))
+
+    (is (not (v/identity? (e/make-literal ::blah 10))))
+    (is (v/identity? (v/identity-like (e/make-literal ::blah 10))))
+
     (is (not (v/exact? (e/make-literal ::blah 10.5))))
     (is (v/exact? (e/make-literal ::blah 10)))
 

@@ -77,8 +77,12 @@
   v/Value
   (zero? [_] false)
   (one? [_] false)
+  (identity? [_] false)
   (zero-like [_] (fn [& _] (v/zero-like range)))
   (one-like [_] (fn [& _] (v/one-like range)))
+  (identity-like [_]
+    (let [meta {:arity arity :from :identity-like}]
+      (with-meta identity meta)))
   (exact? [f] (f/compose v/exact? f))
   (numerical? [_] false)
   (freeze [_] (v/freeze name))

@@ -20,10 +20,13 @@
 (ns sicmutils.operator-test
   (:refer-clojure :exclude [+ - * /  partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
             [same :refer [ish?]]
             [sicmutils.abstract.function :as f]
             [sicmutils.function :refer [arity]]
             [sicmutils.calculus.derivative :refer [D partial]]
+            [sicmutils.generators :as sg]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.operator :as o]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
@@ -36,6 +39,36 @@
 (def g (f/literal-function 'g))
 (def ff (f/literal-function 'ff [0 0] 0))
 (def gg (f/literal-function 'gg [0 0] 0))
+
+(deftest value-protocol-tests
+  (let [x2 (-> (fn [f] (fn [x] (* 2 (f x))))
+               (o/make-operator 'double))]
+    (let [f ((v/zero-like x2) g/sin)]
+      (checking " zero-like" 100 [n sg/real]
+                (is (v/zero? (f n)))))
+
+    (let [f ((v/one-like x2) g/sin)]
+      (checking " one-like" 100 [n sg/real]
+                (is (= (g/sin n) (f n))
+                    "operator one-like is identity")))
+
+    (let [f ((v/identity-like x2) g/sin)]
+      (checking " identity-like" 100 [n sg/real]
+                (is (= (g/sin n) (f n)))))
+
+    (testing "one? zero? identity? always return false (for now!)"
+      (is (not (v/zero? (v/zero-like x2))))
+      (is (not (v/one? (v/one-like x2))))
+      (is (not (v/identity? (v/identity-like x2)))))
+
+    (testing "v/numerical?"
+      (is (not (v/numerical? x2))))
+
+    (testing "v/freeze"
+      (is (= 'double (v/freeze x2))))
+
+    (testing "v/kind"
+      (is (= ::o/operator (v/kind x2))))))
 
 (deftest operators-from-fn-tests
   (let [f (fn [x] (+ x 5))

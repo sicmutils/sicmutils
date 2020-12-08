@@ -169,6 +169,27 @@
 - `v/eq` renamed to `v/=`.
   ([#186](https://github.com/littleredcomputer/sicmutils/pull/186)).
 
+- `v/zero-like` on matrices now fills entries with appropriate `v/zero-like`
+  versions of their existing types
+  ([#188](https://github.com/littleredcomputer/sicmutils/pull/188))
+
+- `v/Value` gains `identity-like` and `identity`
+  ([#188](https://github.com/littleredcomputer/sicmutils/pull/188)). These are
+  aliased into `sicmutils.env`. Implementations are installed on:
+
+  - all numeric types, symbolic expressions, `Differential` (they return 1 of the appropriate type)
+  - native and abstract functions, vars (they return an identity function)
+  - operators (return an identity operator, same as `one-like`)
+  - matrices (identity matrix, only works with `::m/square-matrix`)
+  - `Polynomial` (only works on monomials for now, returns an identity polynomial)
+  - `RationalFunction` (returns the identity poly divided by unit poly, so only
+    works on monomials by extension)
+  - `ModInt` (returns the same as `one-like`)
+  - `Series` and `PowerSeries` (returns `[0 1 0 0 0 0...]`). This is slightly
+    suspect in the case of `Series`, since `Series`, unlike `PowerSeries`, are
+    general infinite sequences and not necessarily interpreted as polynomials.
+    This decision follows `scmutils` convention.
+
 ### Literals
 
 - `literal-matrix` fn generates a symbolic matrix

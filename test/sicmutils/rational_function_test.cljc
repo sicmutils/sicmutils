@@ -19,14 +19,45 @@
 
 (ns sicmutils.rational-function-test
   (:require [clojure.test :refer [is deftest testing]]
+            [sicmutils.abstract.number]
             [sicmutils.expression :as x]
             [sicmutils.expression.analyze :as a]
             [sicmutils.generic :as g]
             [sicmutils.matrix]
-            [sicmutils.numbers]
             [sicmutils.polynomial :as p]
             [sicmutils.rational-function :as rf]
-            [sicmutils.structure :as s]))
+            [sicmutils.structure :as s]
+            [sicmutils.value :as v]))
+
+(deftest value-protocol-tests
+  (let [x+1     (p/make [1 1])
+        x-1     (p/make [-1 1])
+        x+1:x-1 (rf/make x+1 x-1)]
+    (testing "zero?, one-like"
+      (is (v/zero? (v/zero-like x+1:x-1)))
+      (is (v/zero? (g/* x+1:x-1 (v/zero-like x+1:x-1)))))
+
+    (testing "one?, one-like"
+      (is (v/one? (v/one-like x+1:x-1)))
+      (is (= x+1:x-1 (g/* x+1:x-1 (v/one-like x+1:x-1)))))
+
+    (testing "identity?, identity-like"
+      (is (v/identity? (v/identity-like x+1:x-1)))
+      (is (= (g/* (p/make [0 1]) x+1:x-1)
+             (g/* x+1:x-1 (v/identity-like x+1:x-1)))
+          "identity is `x`, multiplying should be equivalent to multiplying by
+          x."))
+
+    (testing "v/freeze"
+      (is (= '(/ (polynomial 1 [[[0] 1] [[1] 1]])
+                 (polynomial 1 [[[0] -1] [[1] 1]]))
+             (v/freeze x+1:x-1))))
+
+    (testing "v/numerical?"
+      (is (not (v/numerical? x+1:x-1))))
+
+    (testing "v/kind"
+      (is (= ::rf/rational-function (v/kind x+1:x-1))))))
 
 (deftest make-test
   (let [p #(p/make 1 [[[0] %]])      ;; constant arity 1 polynomial

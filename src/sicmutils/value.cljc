@@ -33,8 +33,10 @@
   (numerical? [this])
   (zero? [this])
   (one? [this])
+  (identity? [this])
   (zero-like [this])
   (one-like [this])
+  (identity-like [this])
   (exact? [this])
   (freeze [this]
     "Freezing an expression means removing wrappers and other metadata from
@@ -127,8 +129,10 @@
   #?(:clj Number :cljs number)
   (zero? [x] (core-zero? x))
   (one? [x] (== 1 x))
+  (identity? [x] (== 1 x))
   (zero-like [_] 0)
   (one-like [_] 1)
+  (identity-like [_] 1)
   (freeze [x] x)
   (exact? [x] (or (integer? x) #?(:clj (ratio? x))))
   (numerical? [_] true)
@@ -140,8 +144,10 @@
   #?(:clj Boolean :cljs boolean)
   (zero? [x] false)
   (one? [x] false)
+  (identity? [x] false)
   (zero-like [_] 0)
   (one-like [_] 1)
+  (identity-like [_] 1)
   (freeze [x] x)
   (exact? [x] false)
   (numerical? [_] false)
@@ -151,8 +157,10 @@
       [java.lang.Double
        (zero? [x] (core-zero? x))
        (one? [x] (== 1 x))
+       (identity? [x] (== 1 x))
        (zero-like [_] 0.0)
        (one-like [_] 1.0)
+       (identity-like [_] 1.0)
        (freeze [x] x)
        (exact? [x] false)
        (numerical? [_] true)
@@ -161,8 +169,10 @@
        java.lang.Float
        (zero? [x] (core-zero? x))
        (one? [x] (== 1 x))
+       (identity? [x] (== 1 x))
        (zero-like [_] 0.0)
        (one-like [_] 1.0)
+       (identity-like [_] 1.0)
        (freeze [x] x)
        (exact? [x] false)
        (numerical? [_] true)
@@ -170,9 +180,11 @@
 
   nil
   (zero? [_] true)
-  (zero-like [o] (u/unsupported "nil doesn't support zero-like."))
   (one?[_] false)
+  (identity?[_] false)
+  (zero-like [o] (u/unsupported "nil doesn't support zero-like."))
   (one-like [o] (u/unsupported "nil doesn't support one-like."))
+  (identity-like [o] (u/unsupported "nil doesn't support identity-like."))
   (numerical? [_] false)
   (freeze [_] nil)
   (kind [_] nil)
@@ -180,8 +192,10 @@
   PersistentVector
   (zero? [v] (every? zero? v))
   (one? [_] false)
+  (identity? [_] false)
   (zero-like [v] (mapv zero-like v))
   (one-like [o] (u/unsupported (str "one-like: " o)))
+  (identity-like [o] (u/unsupported (str "identity-like: " o)))
   (exact? [v] (every? exact? v))
   (numerical? [_] false)
   (freeze [v] (mapv freeze v))
@@ -189,11 +203,13 @@
 
   #?(:clj Object :cljs default)
   (zero? [o] false)
-  (numerical? [_] false)
   (one? [o] false)
-  (exact? [o] false)
+  (identity? [o] false)
   (zero-like [o] (u/unsupported (str "zero-like: " o)))
   (one-like [o] (u/unsupported (str "one-like: " o)))
+  (identity-like [o] (u/unsupported (str "identity-like: " o)))
+  (numerical? [_] false)
+  (exact? [o] false)
   (freeze [o] (if (sequential? o)
                 (map freeze o)
                 (get @object-name-map o o)))
@@ -204,7 +220,7 @@
 
 ;; These two constitute the default cases.
 (defmethod = [::number ::number] [l r]
-  #?(:clj  (core= l r)
+  #?(:clj  (== l r)
      :cljs (identical? l r)))
 
 (defmethod = :default [l r]
@@ -287,8 +303,10 @@
        js/BigInt
        (zero? [x] (js*  "~{} == ~{}" big-zero x))
        (one? [x] (js*  "~{} == ~{}" big-one x))
+       (identity? [x] (js*  "~{} == ~{}" big-one x))
        (zero-like [_] big-zero)
        (one-like [_] big-one)
+       (identity-like [_] big-one)
        (freeze [x]
          ;; Bigint freezes into a non-bigint if it can be represented as a
          ;; number; otherwise, it turns into its own literal.
@@ -302,8 +320,10 @@
        goog.math.Integer
        (zero? [x] (.isZero x))
        (one? [x] (core= (.-ONE goog.math.Integer) x))
+       (identity? [x] (core= (.-ONE goog.math.Integer) x))
        (zero-like [_] (.-ZERO goog.math.Integer))
        (one-like [_] (.-ONE goog.math.Integer))
+       (identity-like [_] (.-ONE goog.math.Integer))
        (freeze [x] x)
        (exact? [_] true)
        (numerical? [_] true)
@@ -312,8 +332,10 @@
        goog.math.Long
        (zero? [x] (.isZero x))
        (one? [x] (core= (.getOne goog.math.Long) x))
+       (identity? [x] (core= (.getOne goog.math.Long) x))
        (zero-like [_] (.getZero goog.math.Long))
        (one-like [_] (.getOne goog.math.Long))
+       (identity-like [_] (.getOne goog.math.Long))
        (freeze [x] x)
        (exact? [x] true)
        (numerical? [_] true)

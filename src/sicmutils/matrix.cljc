@@ -31,7 +31,7 @@
   #?(:clj
      (:import [clojure.lang AFn Counted IFn ILookup Seqable Sequential])))
 
-(declare generate)
+(declare fmap generate I)
 
 (derive ::square-matrix ::matrix)
 (derive ::column-matrix ::matrix)
@@ -40,18 +40,24 @@
 
 (deftype Matrix [r c v]
   v/Value
-  (numerical? [_] false)
   (zero? [_] (every? #(every? v/zero? %) v))
   (one? [_] false)
-  ;; TODO: zero-like and one-like should use a recursive copy to find the 0/1 elements
-  (zero-like [_] (Matrix. r c (vec (repeat r (vec (repeat c 0))))))
-  (one-like [_] (if-not (= r c)
-                  (u/illegal "one-like on non-square")
-                  (generate r c #(if (= %1 %2) 1 0))))
-  (exact? [_] (every? #(every? v/exact? %) v))
+  (identity? [_] false)
+  (zero-like [this] (fmap v/zero-like this))
+  ;; TODO: one-like/identity-like should use a recursive copy to find the 1 elements
+  (one-like [_]
+    (if-not (= r c)
+      (u/illegal "one-like on non-square")
+      (I r)))
+  (identity-like [_]
+    (if-not (= r c)
+      (u/illegal "identity-like on non-square")
+      (I r)))
   (freeze [_] (if (= c 1)
                 `(~'column-matrix ~@(map (comp v/freeze first) v))
                 `(~'matrix-by-rows ~@(map v/freeze v))))
+  (numerical? [_] false)
+  (exact? [_] (every? #(every? v/exact? %) v))
   (kind [_] (cond (= r c) ::square-matrix
                   (= r 1) ::row-matrix
                   (= c 1) ::column-matrix

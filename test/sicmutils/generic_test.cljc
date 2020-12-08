@@ -64,8 +64,15 @@
 
 (defrecord Wrap [s]
   v/Value
+  (one? [this] (= this (v/one-like this)))
+  (zero? [this] (= this (v/zero-like this)))
+  (identity? [this] (= this (v/identity-like this)))
   (zero-like [_] (Wrap. "0"))
   (one-like [_] (Wrap. "1"))
+  (identity-like [_] (Wrap. "1"))
+  (freeze [_] (list 'wrap s))
+  (exact? [_] false)
+  (numerical? [_] false)
   (kind [_] ::wrap))
 
 (defmethod g/add [::wrap ::wrap] [l r]

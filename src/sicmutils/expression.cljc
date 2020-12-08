@@ -51,8 +51,13 @@
     (and (v/number? expression)
          (v/one? expression)))
 
+  (identity? [_]
+    (and (v/number? expression)
+         (v/one? expression)))
+
   (zero-like [_] 0)
   (one-like [_] 1)
+  (identity-like [_] 1)
   (numerical? [_] (= type ::numeric))
   (exact? [_]
     (and (v/number? expression)
