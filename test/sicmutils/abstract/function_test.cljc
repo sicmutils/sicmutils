@@ -158,11 +158,23 @@
       (is (zero?
            (g/simplify (f 'x)))))))
 
-(defn transpose-defining-relation [T g a]
-  "T is a linear transformation T:V -> W
-  the transpose of T, T^t:W* -> V*
-  Forall a in V, g in W*,  g:W -> R
-  (T^t(g))(a) = g(T(a))."
+(defn transpose-defining-relation
+  "$T$ is a linear transformation
+
+  $$T : V -> W$$
+
+  the transpose of $T$ is
+
+  $$T^t : (W -> R) -> (V -> R)$$
+
+  \\forall a \\in V, g \\in (W -> R),
+
+  T^t : g \\to g \\circ T
+
+  ie:
+
+  (T^t(g))(a) = g(T(a))"
+  [T g a]
   (g/- (((g/transpose T) g) a)
        (g (T a))))
 
