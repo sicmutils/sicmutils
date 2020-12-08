@@ -102,7 +102,7 @@
   ([#171](https://github.com/littleredcomputer/sicmutils/pull/171))
 
 - Moved all `literal-function` machinery and definitions to
-  `sicmutils.abstraction.function`
+  `sicmutils.abstract.function`
   ([#171](https://github.com/littleredcomputer/sicmutils/pull/171)).
   `sicmutils.function` now contains only the generic method implementations for
   clojure functions and multimethods.

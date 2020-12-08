@@ -48,10 +48,12 @@
   [name source target]
   (let [n (:dimension (m/manifold source))
         m (:dimension (m/manifold target))
-        domain (if (= n 1) [0] (apply s/up (repeat n 0)))]
+        domain (if (= n 1)
+                 [0]
+                 (apply s/up (repeat n 0)))
+        range (apply s/up (repeat m 0))]
     (f/compose (m/point target)
-               (s/generate m ::s/up #(af/literal-function
-                                      (symbol (str name "↑" %)) domain 0))
+               (af/literal-function name domain range)
                (m/chart source))))
 
 (defn form-field->form-field-over-map
