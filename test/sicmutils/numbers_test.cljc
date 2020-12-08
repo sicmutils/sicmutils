@@ -317,16 +317,16 @@
               (when-not (v/one? (g/abs n))
                 (is (ish? n (g/tanh (g/atanh n))))))))
 
-  (deftest complex-accessor-tests
-    (checking "real/imag-part" 100 [x sg/real]
-              (is (= x (g/real-part x)))
-              (is (zero? (g/imag-part x))))
+(deftest complex-accessor-tests
+  (checking "real/imag-part" 100 [x sg/real]
+            (is (= x (g/real-part x)))
+            (is (zero? (g/imag-part x))))
 
-    (checking "conjugate" 100 [x sg/real]
-              (is (= x (g/conjugate x))))
+  (checking "conjugate" 100 [x sg/real]
+            (is (= x (g/conjugate x))))
 
-    (checking "angle" 100 [x sg/real]
-              (if (neg? x)
-                (is (ish? Math/PI (g/angle x))
-                    "the angle of a negative number is pi in the complex plane.")
-                (is (v/nullity? (g/angle x))))))
+  (checking "angle" 100 [x sg/real]
+            (if (neg? x)
+              (is (ish? Math/PI (g/angle x))
+                  "the angle of a negative number is pi in the complex plane.")
+              (is (v/nullity? (g/angle x))))))
