@@ -47,7 +47,7 @@
   (one-like [_] 1)
   (freeze [_] `[~'Differential ~@terms])
   (exact? [_] false)
-  (numerical? [d] (g/numerical-quantity? (differential-of d)))
+  (numerical? [d] (v/numerical? (differential-of d)))
   (kind [_] ::differential)
 
   Object
@@ -384,7 +384,7 @@
                                     v))
 
 
-                  (or (g/numerical-quantity? v) (g/abstract-quantity? v))
+                  (or (v/numerical? v) (x/abstract? v))
                   ((derivative g) v)
 
                   :else
@@ -431,11 +431,14 @@
           ((d f) (first xs))
           ((d #(apply f %)) (matrix/seq-> xs)))))))
 
+(derive ::x/numeric ::codiff)
+(derive ::v/number ::codiff)
+
 (defn ^:private define-binary-operation
   [generic-operation differential-operation]
   (doseq [signature [[::differential ::differential]
-                     [::x/numerical-expression ::differential]
-                     [::differential ::x/numerical-expression]]]
+                     [::codiff ::differential]
+                     [::differential ::codiff]]]
     (defmethod generic-operation signature [a b] (differential-operation a b))))
 
 (defn ^:private define-unary-operation

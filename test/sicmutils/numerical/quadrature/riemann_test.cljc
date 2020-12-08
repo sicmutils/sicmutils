@@ -23,7 +23,7 @@
             [sicmutils.numerical.interpolate.richardson :as ir]
             [sicmutils.numerical.quadrature.riemann :as qr]
             [sicmutils.generic :as g]
-            [sicmutils.numsymb]
+            [sicmutils.numbers]
             [sicmutils.util :as u]
             [sicmutils.value :as v]
             [sicmutils.util.aggregate :as ua]

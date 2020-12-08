@@ -20,6 +20,7 @@
 (ns sicmutils.simplify-test
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             #?(:cljs [goog.string :refer [format]])
+            [sicmutils.abstract.number]
             [sicmutils.complex :as c]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
@@ -129,8 +130,18 @@
   (is (= '(* -1 (expt (cos x) 2)) (g/simplify (g/+ (g/expt (g/sin 'x) 2) -1))))
   (is (= '(* -1 (expt (sin x) 2)) (g/simplify (g/+ (g/expt (g/cos 'x) 2) -1))))
 
+  (testing "trig identities"
+    (is (= 1 (g/simplify
+              (g/+ (g/expt (g/sin 'x) 2)
+                   (g/expt (g/cos 'x) 2)))))
+    (is (= 1 (g/simplify
+              (g/+ (g/expt (g/cos 'x) 2)
+                   (g/expt (g/sin 'x) 2))))))
+
   (testing "symbolic arguments"
-    (is (= '(atan y x) (g/simplify (g/atan 'y 'x))))))
+    (is (= '(atan y x)
+           (g/simplify
+            (g/atan 'y 'x))))))
 
 (deftest moved-from-numbers
   (testing "with-symbols"
@@ -172,16 +183,16 @@
     (is (= 'x (g/* 'x 1.0)))
     (is (= 'x (g/divide 'x 1.0)))
     (is (= 'x (g/divide 'x 1)))
-    (is (= 0 (g/divide 0 'x)))
+    (is (v/nullity? (g/divide 0 'x)))
     (is (= 0 (g/* 0 'x)))
     (is (= 0 (g/* 'x 0)))
     (is (thrown? #?(:clj ArithmeticException :cljs js/Error)
                  (g/divide 'x 0))))
 
   (testing "symbolic moves"
-    (is (= 1 (g/expt 'x 0)))
+    (is (v/unity? (g/expt 'x 0)))
     #_(is (= 'x (g/gcd 'x 'x)))
-    (is (= 1 (g/expt 1 'x)))
+    (is (v/unity? (g/expt 1 'x)))
     (is (= (g/negate 'x) (g/- 0 'x)))))
 
 (deftest matrix-tests

@@ -20,8 +20,14 @@
 (ns sicmutils.complex-test
   (:require [clojure.test :refer [is deftest testing]]
             #?(:cljs [cljs.reader :refer [read-string]])
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
+            [same :refer [ish? with-comparator]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.numbers]
             [sicmutils.complex :as c]
+            [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.generic-test :as gt]
             [sicmutils.generators :as sg]
@@ -63,7 +69,8 @@
     (is (not (v/unity? (c/complex 2))))
     (is (not (v/unity? (c/complex 0.0))))
 
-    (is (= '(complex 10.0 0.0) (v/freeze (c/complex 10))))
+    (is (= 10.0 (v/freeze (c/complex 10)))
+        "If the imaginary piece is 0, freeze will return only the real part.")
     (is (v/numerical? (c/complex 10)))
 
     (testing "exact?"
@@ -151,7 +158,7 @@
       (is (near (c/complex 10 10) (g/sqrt (g/mul i 200)))))
 
     (testing "arithmetic"
-      (is (g/numerical-quantity? i)))))
+      (is (v/numerical? i)))))
 
 (deftest trig-tests
   (testing "sin"
@@ -195,19 +202,14 @@
       (is (near (g/div (g/sinh z) (g/cosh z))
                 (g/tanh z))))
 
-    ;; TODO enable these in the next PR, when we can properly force these
-    ;; evaluations.
-    #_
     (testing "sec"
       (is (near (g/invert (g/cos z))
                 (g/sec z))))
 
-    #_
     (testing "csc"
       (is (near (g/invert (g/sin z))
                 (g/csc z))))
 
-    #_
     (testing "sech"
       (is (near (g/invert (g/cosh z))
                 (g/sech z))))
@@ -229,13 +231,44 @@
 
 (deftest extra-functions
   (testing "functions needed for docs"
-    (is (near (c/real-part (c/complex 3 4)) 3))
-    (is (near (c/imag-part (c/complex 3 4)) 4))
-    (is (near (c/imag-part (c/conjugate (c/complex 3 4))) -4))
+    (is (near (g/real-part (c/complex 3 4)) 3))
+    (is (near (g/imag-part (c/complex 3 4)) 4))
+    (is (near (g/imag-part (g/conjugate (c/complex 3 4))) -4))
     (is (near (g/magnitude (c/complex 0 1)) 1))
     (is (near (g/magnitude (c/complex 1 0)) 1))
-    (is (near (g/magnitude (c/complex 1 1)) (g/sqrt 2)))
+    (is (near (g/magnitude (c/complex 1 1)) (g/sqrt 2))))
 
-    ;; This looks awkward in cljs due to the ratio literal.
-    (is (near (c/angle (c/complex 3 4))
-              (g/atan #sicm/ratio 4/3)))))
+  (checking "transpose, determinant act as id" 100 [z sg/complex]
+            (is (= z (g/transpose z)))
+            (is (= z (g/determinant z))))
+
+  (checking "conjugate/magnitude" 100 [z sg/complex]
+            (is (ish? (g/magnitude z)
+                      (g/real-part
+                       (g/sqrt
+                        (g/* z (g/conjugate z)))))))
+
+  (checking "real/imag-part" 100 [z sg/complex]
+            (is (= (g/negate (g/imag-part z))
+                   (g/imag-part (g/conjugate z))))
+
+            (is (= (g/real-part z)
+                   (g/real-part (g/conjugate z))))
+
+            (is (= z (g/+ (g/real-part z)
+                          (g/* #sicm/complex "0+1i"
+                               (g/imag-part z))))))
+
+  (checking "angle" 100 [z sg/complex]
+            (is (near (g/angle z)
+                      (g/atan
+                       (g/imag-part z)
+                       (g/real-part z))))
+            (let [rt (g/* (g/magnitude z)
+                          (g/exp (g/* #sicm/complex "0+1i"
+                                      (g/angle z))))]
+              (with-comparator (v/within 1e-8)
+                (is (ish? (g/real-part z)
+                          (g/real-part rt)))
+                (is (ish? (g/imag-part z)
+                          (g/imag-part rt)))))))

@@ -17,11 +17,11 @@
 ; along with thixs code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(ns sicmutils.analyze
+(ns sicmutils.expression.analyze
   (:require [sicmutils.expression :as x]
             [sicmutils.numsymb :as sym]))
 
-(defn ^:private make-vcompare
+(defn- make-vcompare
   "Returns a Comparator function taking account of the input variable set in the
   following way: if both inputs to the comparator are in var-set, or both are
   not, then the results are as core compare would return. But if one is in
@@ -46,7 +46,9 @@
   rational function backend would include the division operation and be capable
   of cancellation. Canonicalizing an expression with respect to an analyzer is
   therefore effected by a round-trip to and from the canonical form."
-  (expression-> [this x continue] [this x continue compare-variable]
+  (expression->
+    [this x continue]
+    [this x continue compare-variable]
     "Convert an expression to the canonical form represented by this analyzer,
     and invoke continue with the canonicalized input and a (sorted) sequence of
     variables found in the original expression.")
@@ -90,7 +92,8 @@
                           (new-kernels analyzed-expr))))
                     expr))
                 (new-kernels [expr]
-                  ;; use doall to force the variable-binding side effects of base-simplify
+                  ;; use doall to force the variable-binding side effects of
+                  ;; base-simplify
                   (let [simplified-expr (doall (map base-simplify expr))]
                     (if-let [v (sym/symbolic-operator (sym/operator simplified-expr))]
                       (let [w (apply v (sym/operands simplified-expr))]
@@ -117,6 +120,7 @@
                          (alter var->expr assoc var expr)
                          var)))
                     expr))
+
                 (backsubstitute [expr]
                   (cond (sequential? expr) (map backsubstitute expr)
                         (symbol? expr) (if-let [w (@var->expr expr)]

@@ -370,7 +370,8 @@
   (* ls ms rs) were performed, to a matrix."
   [ls ms rs]
   (when *careful-conversion*
-    (assert (g/numerical-quantity? (g/* ls (g/* ms rs)))))  (let [ndowns (s/dimension ls)
+    (assert (v/numerical? (g/* ls (g/* ms rs)))))
+  (let [ndowns (s/dimension ls)
         nups (s/dimension rs)]
     (generate ndowns nups
               #(g/* (s/unflatten (map (partial kronecker %1) (range)) ls)
@@ -393,7 +394,7 @@
                           (s/unflatten (nth-col m j) col-shape))
                         (s/compatible-shape rs))]
     (when *careful-conversion*
-      (assert (g/numerical-quantity? (g/* ls (g/* ms rs)))))
+      (assert (v/numerical? (g/* ls (g/* ms rs)))))
     ms))
 
 (defn s:transpose
@@ -493,8 +494,8 @@
 (defmethod g/sub [::matrix ::matrix] [a b] (elementwise g/- a b))
 (defmethod g/add [::matrix ::matrix] [a b] (elementwise g/+ a b))
 (defmethod g/mul [::matrix ::matrix] [a b] (mul a b))
-(defmethod g/mul [::x/numerical-expression ::matrix] [n a] (fmap #(g/* n %) a))
-(defmethod g/mul [::matrix ::x/numerical-expression] [a n] (fmap #(g/* % n) a))
+(defmethod g/mul [::v/scalar ::matrix] [n a] (fmap #(g/* n %) a))
+(defmethod g/mul [::matrix ::v/scalar] [a n] (fmap #(g/* % n) a))
 (defmethod g/mul [::matrix ::s/up] [m u] (M*u m u))
 (defmethod g/mul [::s/down ::matrix] [d m] (d*M d m))
 (defmethod g/div [::s/up ::matrix] [u M] (M*u (invert M) u))

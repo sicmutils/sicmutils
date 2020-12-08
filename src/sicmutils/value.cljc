@@ -51,7 +51,6 @@
 
 (def ^:private object-name-map (atom {}))
 
-(def numtype ::number)
 (def seqtype #?(:clj Sequential :cljs ::seq))
 
 ;; Allows multimethod dispatch to seqs in CLJS.
@@ -65,8 +64,9 @@
 ;; types that represent mathematical integers.
 
 (derive ::native-integral ::integral)
-(derive ::integral ::number)
-(derive ::floating-point ::number)
+(derive ::integral ::real)
+(derive ::floating-point ::real)
+(derive ::real ::number)
 
 (defn native-integral?
   "Returns true if x is an integral number that Clojure's math operations work
@@ -79,14 +79,39 @@
   [x]
   (isa? (kind x) ::integral))
 
-(defn number?
+(defn real?
+  "Returns true if `x` is either an integral number or a floating point number (ie,
+  in the numeric tower but not complex), false otherwise."
   [x]
-  #?(:clj (core-number? x)
-     :cljs (isa? (kind x) ::number)))
+  (isa? (kind x) ::real))
+
+(defn number?
+  "Returns true if `x` is any number type in the numeric tower:
+
+  - integral
+  - floating point
+  - complex
+
+  false otherwise."
+  [x]
+  (isa? (kind x) ::number))
+
+;; `::scalar` is a thing that symbolic expressions AND actual numbers both
+;; derive from.
+(derive ::number ::scalar)
+
+(defn scalar?
+  "Returns true for anything that derives from `::scalar`, ie, any numeric type in
+  the numeric tower that responds true to [[number?]], plus symbolic expressions
+  generated [[sicmutils.abstract.number/literal-number]],
+
+  false otherwise."
+  [x]
+  (isa? (kind x) ::scalar))
 
 #?(:clj
    (do
-     (derive Number ::number)
+     (derive Number ::real)
      (derive Double ::floating-point)
      (derive Float ::floating-point)
      (derive BigDecimal ::floating-point)
@@ -96,7 +121,7 @@
      (derive BigInteger ::native-integral))
 
    :cljs
-   (do (derive js/Number ::number)
+   (do (derive js/Number ::real)
        (derive js/BigInt ::integral)
        (derive goog.math.Integer ::integral)
        (derive goog.math.Long ::integral)))
@@ -114,6 +139,27 @@
                :cljs (if (exact? x)
                        ::native-integral
                        ::floating-point)))
+
+  #?@(:clj
+      [java.lang.Double
+       (nullity? [x] (core-zero? x))
+       (unity? [x] (== 1 x))
+       (zero-like [_] 0.0)
+       (one-like [_] 1.0)
+       (freeze [x] x)
+       (exact? [x] false)
+       (numerical? [_] true)
+       (kind [x] (type x))
+
+       java.lang.Float
+       (nullity? [x] (core-zero? x))
+       (unity? [x] (== 1 x))
+       (zero-like [_] 0.0)
+       (one-like [_] 1.0)
+       (freeze [x] x)
+       (exact? [x] false)
+       (numerical? [_] true)
+       (kind [x] (type x))])
 
   nil
   (freeze [_] nil)
@@ -136,7 +182,7 @@
 
   Symbol
   (nullity? [o] false)
-  (numerical? [_] false)
+  (numerical? [_] true)
   (unity? [_] false)
   (exact? [_] false)
   (zero-like [_] 0)
@@ -205,7 +251,7 @@
        number
        (-equiv [this other]
          (cond (core-number? other) (identical? this other)
-               (number? other)      (eq this other)
+               (numerical? other)   (eq this other)
                :else false))
 
        goog.math.Integer

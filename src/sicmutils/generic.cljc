@@ -21,31 +21,10 @@
   (:refer-clojure :rename {mod core-mod}
                   :exclude [/ + - * divide #?(:cljs mod)])
   (:require [sicmutils.value :as v]
-            [sicmutils.expression :as x]
             [sicmutils.util :as u])
   #?(:cljs (:require-macros [sicmutils.generic :refer [def-generic-function]]))
   #?(:clj
-     (:import [clojure.lang LazySeq PersistentVector Symbol Seqable Var])))
-
-;;; classifiers
-
-(defn literal-number?
-  [x]
-  (= (:type x) ::x/numerical-expression))
-
-(defn abstract-number?
-  [x]
-  (or (symbol? x) (literal-number? x)))
-
-(defn abstract-quantity?
-  [x]
-  (and (x/expression? x)
-       (x/abstract? x)))
-
-(defn numerical-quantity?
-  [x]
-  (or (abstract-number? x)
-      (v/numerical? x)))
+     (:import [clojure.lang LazySeq PersistentVector Symbol Var])))
 
 (defmacro ^:private fork
   "I borrowed this lovely, mysterious macro from `macrovich`:
@@ -88,7 +67,8 @@
 (defmethod negative? :default [a] (< a (v/zero-like a)))
 
 (def-generic-function sub 2)
-(defmethod sub :default [a b] (add a (negate b)))
+(defmethod sub :default [a b]
+  (add a (negate b)))
 
 (def-generic-function mul 2)
 (def-generic-function invert 1)
@@ -218,9 +198,15 @@
 
 ;; Operations on structures
 (def-generic-function transpose 1)
-(def-generic-function magnitude 1)
 (def-generic-function determinant 1)
 (def-generic-function cross-product 2)
+
+;; Complex Operators
+(def-generic-function real-part 1)
+(def-generic-function imag-part 1)
+(def-generic-function magnitude 1)
+(def-generic-function angle 1)
+(def-generic-function conjugate 1)
 
 ;; More advanced generic operations.
 (def-generic-function Lie-derivative 1)

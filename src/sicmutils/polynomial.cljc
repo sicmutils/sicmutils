@@ -21,7 +21,7 @@
   (:refer-clojure :exclude [divide])
   (:require [clojure.set :as set]
             [clojure.string :as cs]
-            [sicmutils.analyze :as a]
+            [sicmutils.expression.analyze :as a]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as sym]
@@ -457,17 +457,16 @@
   (expression-> [this expr cont v-compare]
     ;; Convert an expression into Flat Polynomial canonical form. The expression
     ;; should be an unwrapped expression, i.e., not an instance of the
-    ;; Expression type, nor should subexpressions contain type information. This
+    ;; Literal type, nor should subexpressions contain type information. This
     ;; kind of simplification proceeds purely symbolically over the known Flat
     ;; Polynomial operations; other operations outside the arithmetic available
     ;; in polynomials over commutative rings should be factored out by an
     ;; expression analyzer before we get here. The result is a Polynomial object
     ;; representing the polynomial structure of the input over the unknowns.
     (let [expression-vars (sort v-compare (set/difference (x/variables-in expr) operators-known))
-          variables (zipmap expression-vars (a/new-variables this (count expression-vars)))]
-      (-> expr
-          (x/walk-expression variables operator-table)
-          (cont expression-vars))))
+          sym->var        (zipmap expression-vars (a/new-variables this (count expression-vars)))
+          expr'           (x/evaluate expr sym->var operator-table)]
+      (cont expr' expression-vars)))
 
   (->expression [this p vars]
     ;; This is the output stage of Flat Polynomial canonical form

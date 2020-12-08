@@ -20,6 +20,8 @@
 (ns sicmutils.structure-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing]]
+            [sicmutils.abstract.number]
+            [sicmutils.complex :as c]
             [sicmutils.generic :as g :refer [+ - * / cube expt negate square]]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
@@ -391,6 +393,7 @@
                  (s/up (s/up 2 4 6) (s/up 4 8 12) (s/up 6 12 18))
                  (s/up (s/up 3 6 9) (s/up 6 12 18) (s/up 9 18 27))) (cube (s/up 1 2 3)))))
 
+
   (testing "matrix-like"
     (let [M (s/down (s/up 'a 'c) (s/up 'b 'd))
           S (s/up (s/down 'a 'b) (s/down 'c 'd))
@@ -480,10 +483,27 @@
 (def ^:private near
   (v/within 1e-12))
 
-(deftest struct-magnitude
+(deftest struct-complex-tests
   (testing "magnitude of structures as per GJS - 'plain' vectors"
     (is (= (g/magnitude [3 4]) 5))
     (is (near (g/magnitude [3 4 5]) (g/sqrt 50))))
+
+  (testing "magnitude of a structure with complex entries"
+    (let [m (g/magnitude [#sicm/complex "3+4i" (g/sqrt 11)])]
+      (is (near 6 (g/real-part m)))
+      (is (near 0 (g/imag-part m)))))
+
+  (testing "g/abs"
+    (is (near (g/abs [3 4 5]) (g/sqrt 50)))
+
+    (let [m (g/magnitude [#sicm/complex "3+4i" (g/sqrt 11)])]
+      (is (= (g/sqrt (g/square m))
+             (c/complex (g/abs m))))))
+
+  (testing "g/conjugate"
+    (is (= (s/up 3 4 5) (g/conjugate [3 4 5])))
+    (is (= (s/up #sicm/complex "3-4i")
+           (g/conjugate [#sicm/complex "3+4i"]))))
 
   (testing "magnitude of structures as per GJS - structures"
     (is (= (g/magnitude (s/up 3 4)) 5))

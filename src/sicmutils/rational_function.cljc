@@ -19,7 +19,7 @@
 
 (ns sicmutils.rational-function
   (:require [clojure.set :as set]
-            [sicmutils.analyze :as a]
+            [sicmutils.expression.analyze :as a]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as sym]
@@ -242,7 +242,7 @@
   (expression-> [this expr cont v-compare]
     ;; Convert an expression into Rational Function canonical form. The
     ;; expression should be an unwrapped expression, i.e., not an instance
-    ;; of the Expression type, nor should subexpressions contain type
+    ;; of the Literal type, nor should subexpressions contain type
     ;; information. This kind of simplification proceeds purely
     ;; symbolically over the known Rational Function operations;;  other
     ;; operations outside the arithmetic available R(x...) should be
@@ -250,9 +250,10 @@
     ;; result is a RationalFunction object representing the structure of
     ;; the input over the unknowns."
     (let [expression-vars (sort v-compare (set/difference (x/variables-in expr) operators-known))
-          arity (count expression-vars)]
-      (let [variables (zipmap expression-vars (a/new-variables this arity))]
-        (-> expr (x/walk-expression variables operator-table) (cont expression-vars)))))
+          arity    (count expression-vars)
+          sym->var (zipmap expression-vars (a/new-variables this arity))
+          expr'    (x/evaluate expr sym->var operator-table)]
+      (cont expr' expression-vars)))
   (->expression [_ r vars]
     ;; This is the output stage of Rational Function canonical form simplification.
     ;; The input is a RationalFunction, and the output is an expression

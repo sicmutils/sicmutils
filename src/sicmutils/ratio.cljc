@@ -24,6 +24,7 @@
                               denominator core-denominator
                               numerator core-numerator}))
   (:require #?(:clj [clojure.edn] :cljs [cljs.reader])
+            [sicmutils.complex :as c]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
@@ -32,7 +33,7 @@
   #?(:clj (:import [clojure.lang BigInt Ratio])))
 
 (def ratiotype #?(:clj Ratio :cljs Fraction))
-(derive ratiotype ::v/number)
+(derive ratiotype ::v/real)
 
 (def ratio?
   #?(:clj core-ratio?
@@ -217,6 +218,11 @@
      (defmethod g/gcd [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.gcd a b)))
      (defmethod g/lcm [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.lcm a b)))
      (defmethod g/expt [Fraction ::v/integral] [a b] (pow a b))
+     (defmethod g/sqrt [Fraction] [a]
+       (if (neg? a)
+         (g/sqrt (c/complex (.valueOf a)))
+         (g/div (g/sqrt (u/double (numerator a)))
+                (g/sqrt (u/double (denominator a))))))
 
      ;; Only integral ratios let us stay exact. If a ratio appears in the
      ;; exponent, convert the base to a number and call g/expt again.
@@ -240,10 +246,10 @@
        "Anything that `upcast-number` doesn't catch will hit this and pull a floating
   point value out of the ratio."
        [op]
-       (defmethod op [Fraction ::v/number] [^Fraction a b]
+       (defmethod op [Fraction ::v/real] [^Fraction a b]
          (op (.valueOf a) b))
 
-       (defmethod op [::v/number Fraction] [a ^Fraction b]
+       (defmethod op [::v/real Fraction] [a ^Fraction b]
          (op a (.valueOf b))))
 
      (defn upcast-number

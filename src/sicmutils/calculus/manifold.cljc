@@ -83,7 +83,7 @@
 (defn diffop-name
   [form]
   (or (:name form)
-      (and (= (:type form) ::x/numerical-expression)
+      (and (= (x/literal-type form) ::x/numeric)
            (x/expression-of form))
       '...))
 

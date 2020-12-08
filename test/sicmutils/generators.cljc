@@ -40,24 +40,29 @@
   "goog.math.Integer in cljs, java.lang.Integer in clj."
   (gen/fmap u/int gen/small-integer))
 
-(defn reasonable-double [& {:keys [min max]
-                            :or {min -10e5
-                                 max 10e5}}]
-  (let [[excluded-lower excluded-upper] [-1e-4 1e-4]]
-    (gen/one-of [(gen/double* {:infinite? false
-                               :NaN? false
-                               :min min
-                               :max excluded-lower})
-                 (gen/double* {:infinite? false
-                               :NaN? false
-                               :min excluded-upper
-                               :max max})])))
+(defn reasonable-double
+  ([] (reasonable-double {}))
+  ([{:keys [min max]
+     :or {min -10e5
+          max 10e5}}]
+   (let [[excluded-lower excluded-upper] [-1e-4 1e-4]]
+     (gen/one-of [(gen/double* {:infinite? false
+                                :NaN? false
+                                :min min
+                                :max excluded-lower})
+                  (gen/double* {:infinite? false
+                                :NaN? false
+                                :min excluded-upper
+                                :max max})]))))
 
 (def any-integral
   (gen/one-of [native-integral
                bigint
                long
                integer]))
+
+(def real
+  (gen/one-of [any-integral (reasonable-double)]))
 
 (def complex
   (gen/let [r (reasonable-double)

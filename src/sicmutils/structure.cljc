@@ -62,7 +62,11 @@
                (and (instance? Structure b)
                     (= orientation (.-orientation b))
                     (= v (.-v b))))
-       (toString [_] (str "(" (orientation orientation->symbol) " " (join " " (map str v)) ")"))
+       (toString [_] (str "("
+                          (orientation orientation->symbol)
+                          " "
+                          (join " " (map str v))
+                          ")"))
 
        Sequential
 
@@ -476,39 +480,25 @@
 (defmethod g/cross-product [::up ::up] [a b] (cross-product a b))
 (defmethod g/mul [::structure ::structure] [a b] (mul a b))
 
-(defmethod g/mul
-  [::structure ::x/numerical-expression]
-  [a b]
+(defmethod g/mul [::structure ::v/scalar] [a b]
   (outer-product b a))
 
-(defmethod g/mul
-  [::x/numerical-expression ::structure]
-  [a b]
+(defmethod g/mul [::v/scalar ::structure] [a b]
   (outer-product a b))
 
-(defmethod g/mul
-  [::structure :sicmutils.operator/operator]
-  [a b]
+(defmethod g/mul [::structure :sicmutils.operator/operator] [a b]
   (outer-product b a))
 
-(defmethod g/mul
-  [:sicmutils.operator/operator ::structure]
-  [a b]
+(defmethod g/mul [:sicmutils.operator/operator ::structure] [a b]
   (outer-product a b))
 
-(defmethod g/mul
-  [::structure :sicmutils.calculus.derivative/differential]
-  [a b]
+(defmethod g/mul [::structure :sicmutils.calculus.derivative/differential] [a b]
   (outer-product b a))
 
-(defmethod g/mul
-  [:sicmutils.calculus.derivative/differential ::structure]
-  [a b]
+(defmethod g/mul [:sicmutils.calculus.derivative/differential ::structure] [a b]
   (outer-product a b))
 
-(defmethod g/div
-  [::structure ::x/numerical-expression]
-  [a b]
+(defmethod g/div [::structure ::v/scalar] [a b]
   (outer-product (g/invert b) a))
 
 (defmethod g/div [::structure ::structure] [a b] (mul (g/invert b) a))
@@ -518,5 +508,12 @@
 (defmethod g/cube [::structure] [a] (mul a (mul a a)))
 (defmethod g/simplify [::structure] [a] (->> a (mapr g/simplify) v/freeze))
 (defmethod g/transpose [::structure] [a] (opposite a (seq a)))
+
 (defmethod g/magnitude [::structure] [a]
-  (g/sqrt (reduce g/+ (map g/square a))))
+  (g/sqrt (inner-product (mapv g/conjugate a) a)))
+
+(defmethod g/abs [::structure] [a]
+  (g/sqrt (inner-product a a)))
+
+(defmethod g/conjugate [::structure] [a]
+  (same a (mapv g/conjugate a)))

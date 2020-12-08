@@ -24,8 +24,7 @@
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
-            [sicmutils.util.stream :as us]
-            [sicmutils.numsymb]))
+            [sicmutils.util.stream :as us]))
 
 ;; Riemann Quadrature
 ;;

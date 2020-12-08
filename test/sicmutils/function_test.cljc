@@ -20,13 +20,19 @@
 (ns sicmutils.function-test
   (:refer-clojure :exclude [partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.generic :as g]
+            [sicmutils.generators :as sg]
             [sicmutils.matrix :as m]
             [sicmutils.value :as v]
             [sicmutils.operator :as o]
             [sicmutils.series :as series]
-            [sicmutils.structure :as s :refer [up down]]
+            [sicmutils.structure :as s :refer [literal-up
+                                               literal-down
+                                               up down]]
             [sicmutils.simplify :as ss :refer [hermetic-simplify-fixture]]
             [sicmutils.function :as f]))
 
@@ -36,19 +42,18 @@
 
 (deftest equations-moved-from-simplify
   (testing "moved-from-simplify"
-    (let [xy (s/up (f/literal-function 'x) (f/literal-function 'y))
-          xyt (xy 't)
-          U (f/literal-function 'U)
-          xyt2 (g/square xyt)
+    (let [xy    (s/up (f/literal-function 'x)
+                      (f/literal-function 'y))
+          xyt   (xy 't)
+          U     (f/literal-function 'U)
+          xyt2  (g/square xyt)
           Uxyt2 (U xyt2)]
       (is (= '(up x y) (g/simplify xy)))
       (is (= '(up (x t) (y t)) (g/simplify xyt)))
       (is (= '(+ (expt (x t) 2) (expt (y t) 2)) (g/simplify xyt2)))
-      (is (= '(U (+ (expt (x t) 2) (expt (y t) 2))) (g/simplify Uxyt2)))
       (is (= 1 (g/simplify (g/+ (g/expt (g/sin 'x) 2) (g/expt (g/cos 'x) 2)))))
-      ;; why doesn't the following work given that the rules are meant
-      ;; to pull sines to the left?
-      (is (= 1 (g/simplify (g/+ (g/expt (g/cos 'x) 2) (g/expt (g/sin 'x) 2)))))))
+      (is (= 1 (g/simplify (g/+ (g/expt (g/cos 'x) 2) (g/expt (g/sin 'x) 2)))))
+      (is (= '(U (+ (expt (x t) 2) (expt (y t) 2))) (g/simplify Uxyt2)))))
 
   (testing "moved-from-matrix"
     (is (= '(matrix-by-rows [(f x) (g x)] [(h x) (k x)])
@@ -77,6 +82,30 @@
   (testing "tan, sin, cos"
     (let [f (g/- g/tan (g/div g/sin g/cos))]
       (is (zero? (g/simplify (f 'x))))))
+
+  (testing "sin/asin"
+    (let [f (f/compose g/sin g/asin)]
+      (is (near 0.5 (f 0.5)))
+      (testing "outside real range"
+        (is (near 10 (g/magnitude (f 10)))
+            "This kicks out a complex number, which doesn't yet compare
+          immediately with reals."))))
+
+  (testing "cos/acos"
+    (let [f (f/compose g/cos g/acos)]
+      (is (near 0.5 (f 0.5)))
+
+      (testing "outside real range"
+        (is (near 5 (g/magnitude (f -5)))
+            "This kicks out a complex number, which doesn't yet compare
+          immediately with reals."))))
+
+  (testing "tan/atan"
+    (let [f (f/compose g/tan g/atan)]
+      (is (near (/ 0.5 0.2) (f 0.5 0.2))
+          "two-arity version!")
+      (is (near 0.5 (f 0.5))
+          "one-arity version")))
 
   (testing "cot"
     (let [f (g/- g/cot (g/invert g/tan))]
@@ -138,6 +167,84 @@
         (is (near 10 (g/magnitude (f 10)))
             "This kicks out a complex number, which doesn't yet compare
           immediately with reals.")))))
+
+(deftest complex-tests
+  (let [f (f/literal-function 'f)]
+    (testing "gcd/lcm unit"
+      (is (= (g/gcd 10 5)
+             (let [deferred (g/gcd (g/+ 1 g/square) 5)]
+               (deferred 3))))
+      (is (= (g/lcm 10 6)
+             (let [deferred (g/lcm (g/+ 1 g/square) 6)]
+               (deferred 3)))))
+
+    (checking "gcd/lcm works with fns"
+              100
+              [l gen/nat r gen/nat]
+              (is (= ((g/gcd f r) l)
+                     (g/gcd (f l) r)))
+
+              (is (= ((g/lcm f r) l)
+                     (g/lcm (f l) r))))
+
+    (checking "complex accessors work with fns"
+              100
+              [z sg/complex]
+              (is (= (g/imag-part (f z)) ((g/imag-part f) z)))
+              (is (= (g/real-part (f z)) ((g/real-part f) z)))
+              (is (= (g/magnitude (f z)) ((g/magnitude f) z)))
+              (is (= (g/angle (f z))     ((g/angle f) z))))))
+
+(defn transpose-defining-relation
+  "$T$ is a linear transformation
+
+  $$T : V -> W$$
+
+  the transpose of $T$ is
+
+  $$T^t : (W -> R) -> (V -> R)$$
+
+  \\forall a \\in V, g \\in (W -> R),
+
+  T^t : g \\to g \\circ T
+
+  ie:
+
+  (T^t(g))(a) = g(T(a))"
+  [T g a]
+  (g/- (((g/transpose T) g) a)
+       (g (T a))))
+
+(deftest transpose-test
+  (testing "transpose"
+    (let [f #(str "f" %)
+          g #(str "g" %)]
+      (is (= "fg" (f (g ""))))
+      (is (= "gf" (((g/transpose f) g) ""))
+          "See `transpose-defining-relation` above for a discussion of why this
+          is sensible.a"))
+
+    (let [T   (f/literal-function 'T '(-> (UP Real Real) (UP Real Real Real)))
+          DT  (D T)
+          DTf (fn [s]
+                (fn [x] (g/* (DT s) x)))
+          a (literal-up 'a 2)
+          g (fn [w] (g/* (literal-down 'g 3) w))
+          s (up 'x 'y)]
+      (is (v/nullity? (transpose-defining-relation (DTf s) g a))
+          "This function, whatever it is (see scmutils function.scm) satisfies
+          the transpose defining relation.")
+
+      (is (= '(+ (* a↑0 g_0 (((partial 0) T↑0) (up x y)))
+                 (* a↑0 g_1 (((partial 0) T↑1) (up x y)))
+                 (* a↑0 g_2 (((partial 0) T↑2) (up x y)))
+                 (* a↑1 g_0 (((partial 1) T↑0) (up x y)))
+                 (* a↑1 g_1 (((partial 1) T↑1) (up x y)))
+                 (* a↑1 g_2 (((partial 1) T↑2) (up x y))))
+             (g/simplify
+              (((g/transpose (DTf s)) g) a)))
+          "A wild test of transpose from scmutils function.scm that I don't
+    understand!"))))
 
 (deftest string-form-test
   (is (= "1" (ss/expression->string
@@ -226,7 +333,7 @@
       (is (= -4 ((g/- add2) 2)))
       (is (= 9 ((g/sqrt add2) 79)))
       (is (= #sicm/ratio 1/9 ((g/invert add2) 7)))
-      (is (= 1 (explog 1.0)))
+      (is (= 1.0 (explog 1.0)))
       (is (near 99.0 (explog 99.0)))
       (is (near 20.08553692 ((g/exp add2) 1.0)))
       (is (near 4.718281828 ((add2 g/exp) 1.0))))
@@ -237,7 +344,16 @@
       (is (= 10 ((g/+ mul3 4) 2)))
       (is (= 32 ((g/expt 2 add2) 3)))
       (is (= 25 ((g/expt add2 2) 3)))
-      (is (= ::v/function (v/kind (g/expt add2 2)))))
+      (is (= ::v/function (v/kind (g/expt add2 2))))
+
+      (testing "cross-product"
+        (let [deferred (g/cross-product #(g/* 2 %)
+                                        #(g/+ (s/up 4 3 1) %))
+              v (s/up 1 2 3)]
+          (is (= (g/cross-product (g/* 2 v)
+                                  (g/+ (s/up 4 3 1) v))
+                 (deferred v))
+              "Slightly tougher since this works with structures"))))
 
     (testing "arity 2"
       (let [f (fn [x y] (+ x y))

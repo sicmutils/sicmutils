@@ -75,18 +75,29 @@
   (is (not (v/nullity? 1)))
   (is (not (v/nullity? 1.0)))
   (is (v/nullity? (v/zero-like 100)))
-  (is (= 0 (v/zero-like 2)))
-  (is (= 0 (v/zero-like 3.14)))
+
+  (testing "zero-like sticks with precision"
+    (is (= 0 (v/zero-like 2)))
+    (is (= 0.0 (v/zero-like 3.14))))
+
+  (testing "one-like sticks with precision"
+    (is (= 1 (v/one-like 1)))
+    (is (= 1.0 (v/one-like 1.2))))
 
   (is (v/unity? 1))
   (is (v/unity? 1.0))
   (is (v/unity? (v/one-like 100)))
+
   (is (not (v/unity? 2)))
   (is (not (v/unity? 0.0)))
 
   (is (= 10 (v/freeze 10)))
   (is (v/numerical? 10))
-  (is (isa? (v/kind 10) v/numtype))
+
+  (is (v/numerical? 'x)
+      "Symbols are abstract numerical things.")
+
+  (is (isa? (v/kind 10) ::v/real))
   (is (v/exact? 10))
   (is (not (v/exact? 10.1))))
 

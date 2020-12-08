@@ -19,8 +19,7 @@
 
 (ns sicmutils.series.impl
   (:require [sicmutils.generic :as g]
-            [sicmutils.numbers]
-            [sicmutils.numsymb]
+            [sicmutils.abstract.number]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
@@ -450,7 +449,7 @@
 
 #_
 (= [0 1 1 1 1 1]
-   (take 6 (integral (iterate inc 1) 5)))
+   (take 6 (integral (iterate inc 1))))
 
 ;; ### Exponentiation
 ;;

@@ -18,7 +18,8 @@
 ;
 
 (ns sicmutils.function
-  (:require [sicmutils.expression :as x]
+  (:require [sicmutils.abstract.number :as an]
+            [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
             [sicmutils.numsymb :as ns]
@@ -169,8 +170,8 @@
   which computes (+ (f x) (g x)) given x as input."
   [operator]
   (let [h (fn [f g]
-            (let [f-numeric (g/numerical-quantity? f)
-                  g-numeric (g/numerical-quantity? g)
+            (let [f-numeric (v/numerical? f)
+                  g-numeric (v/numerical? g)
                   f-arity (if f-numeric (v/arity g) (v/arity f))
                   g-arity (if g-numeric f-arity (v/arity g))
                   arity (v/joint-arity [f-arity g-arity])
@@ -211,18 +212,20 @@
                 (with-meta h {:arity f-arity :from :function-binop}))))]
     (with-meta h {:arity [:exactly 2]})))
 
-(defn ^:private make-binary-operation
+(defn- make-binary-operation
   "Given a generic and binary function operation,
   define the multimethods necessary to introduce this operation
   to function arguments."
-  [generic-op binary-op]
-  (let [binop (binary-operation binary-op)]
-    (doseq [signature [[::function ::function]
-                       [::function ::cofunction]
-                       [::cofunction ::function]]]
-      (defmethod generic-op signature [a b] (binop a b)))))
+  ([generic-op]
+   (make-binary-operation generic-op generic-op))
+  ([generic-op binary-op]
+   (let [binop (binary-operation binary-op)]
+     (doseq [signature [[::function ::function]
+                        [::function ::cofunction]
+                        [::cofunction ::function]]]
+       (defmethod generic-op signature [a b] (binop a b))))))
 
-(defn ^:private make-unary-operation
+(defn- make-unary-operation
   [generic-op]
   (let [unary-op (unary-operation generic-op)]
     (defmethod generic-op [::function] [a] (unary-op a))))
@@ -231,7 +234,7 @@
 (make-binary-operation g/sub g/-)
 (make-binary-operation g/mul g/*)
 (make-binary-operation g/div g/divide)
-(make-binary-operation g/expt g/expt)
+(make-binary-operation g/expt)
 
 (make-unary-operation g/negate)
 (make-unary-operation g/invert)
@@ -241,7 +244,10 @@
 (make-unary-operation g/tan)
 (make-unary-operation g/asin)
 (make-unary-operation g/acos)
+
 (make-unary-operation g/atan)
+(make-binary-operation g/atan)
+
 (make-unary-operation g/sinh)
 (make-unary-operation g/cosh)
 (make-unary-operation g/tanh)
@@ -249,18 +255,51 @@
 (make-unary-operation g/cube)
 (make-unary-operation g/exp)
 (make-unary-operation g/log)
-(make-unary-operation g/transpose)
 
-;; TODO sinh cosh ...
+(comment
+  "This comment expands on a comment from scmutils, function.scm, in the
+  definition of `transpose-defining-relation`:
+
+  $T$ is a linear transformation
+
+  $$T : V -> W$$
+
+  the transpose of $T$ is
+
+  $$T^t : (W -> R) -> (V -> R)$$
+
+  \\forall a \\in V, g \\in (W -> R),
+
+  T^t : g \\to g \\circ T
+
+  ie:
+
+  (T^t(g))(a) = g(T(a))")
+(defmethod g/transpose [::function] [f]
+  (fn [g]
+    (fn [a]
+      (g (f a)))))
+
+(make-binary-operation g/cross-product)
+(make-binary-operation g/gcd)
+(make-binary-operation g/lcm)
+
+;; Complex Operations
+
+(make-unary-operation g/real-part)
+(make-unary-operation g/imag-part)
+(make-unary-operation g/magnitude)
+(make-unary-operation g/angle)
+(make-unary-operation g/conjugate)
 
 (defmethod g/simplify [Function] [a] (g/simplify (:name a)))
-(derive ::x/numerical-expression ::cofunction)
+(derive ::x/numeric ::cofunction)
+(derive ::v/number ::cofunction)
 (derive ::s/structure ::cofunction)
 (derive ::m/matrix ::cofunction)
 
 ;; Clojure functions, returns by v/primitive-kind.
 (derive ::v/function ::function)
-
 (derive ::function :sicmutils.series/coseries)
 ;; ------------------------------------
 ;; Differentiation of literal functions
@@ -301,8 +340,8 @@
                   (s/same vv (map-indexed (fn [i element]
                                             (fd (conj indices i) element))
                                           vv))
-                  (or (g/numerical-quantity? vv)
-                      (g/abstract-quantity? vv))
+                  (or (v/numerical? vv)
+                      (x/abstract? vv))
                   (let [fexp (if (= (:arity f) [:exactly 1])  ; univariate
                                (if (= (first indices) 0)
                                  (if (= (count indices) 1)
@@ -334,7 +373,7 @@
   the exemplar expected."
   [f provided expected indexes]
   (cond (number? expected)
-        (when-not (g/numerical-quantity? provided)
+        (when-not (v/numerical? provided)
           (u/illegal (str "expected numerical quantity in argument " indexes
                           " of function call " f
                           " but got " provided)))
@@ -358,7 +397,7 @@
   (check-argument-type f xs (:domain f) [0])
   (if (some d/differential? xs)
     (literal-derivative f xs)
-    (x/literal-number `(~(:name f) ~@(map v/freeze xs)))))
+    (an/literal-number `(~(:name f) ~@(map v/freeze xs)))))
 
 ;;; Utilities
 

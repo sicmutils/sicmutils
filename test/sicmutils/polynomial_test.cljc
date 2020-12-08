@@ -22,8 +22,8 @@
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
-            [sicmutils.analyze :as a]
-            [sicmutils.expression :refer [variables-in]]
+            [sicmutils.expression :refer [variables-in expression-of]]
+            [sicmutils.expression.analyze :as a]
             [sicmutils.generic :as g]
             [sicmutils.modint :as modular]
             [sicmutils.numbers]
@@ -265,9 +265,9 @@
             (p/make 3 [[[0 0 1] 1]])] (a/new-variables poly-analyzer 3))))
 
   (testing "expr"
-    (let [exp1 (:expression (g/* (g/+ 1 'x) (g/+ -3 'x)))
-          exp2 (:expression (g/expt (g/+ 1 'y) 5))
-          exp3 (:expression (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5)))
+    (let [exp1 (expression-of (g/* (g/+ 1 'x) (g/+ -3 'x)))
+          exp2 (expression-of (g/expt (g/+ 1 'y) 5))
+          exp3 (expression-of (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5)))
           receive (fn [a b] [a b])]
       (is (= '#{* + x} (variables-in exp1)))
       (is (= [(p/make [-3 -2 1]) '(x)] (a/expression-> poly-analyzer exp1 receive)))
@@ -276,7 +276,9 @@
       (is (= [(p/make [0 -11 5 -30 10 -7 1]) '(y)] (a/expression-> poly-analyzer exp3 receive)))))
 
   (testing "monomial order"
-    (let [poly-simp #(a/expression-> poly-analyzer (:expression %) (fn [p vars] (a/->expression poly-analyzer p vars)))]
+    (let [poly-simp #(a/expression-> poly-analyzer
+                                     (expression-of %)
+                                     (fn [p vars] (a/->expression poly-analyzer p vars)))]
       (is (= '(+ (expt x 2) x 1) (poly-simp (g/+ 'x (g/expt 'x 2) 1))))
       (is (= '(+ (expt x 4) (* 4 (expt x 3)) (* 6 (expt x 2)) (* 4 x) 1) (poly-simp (g/expt (g/+ 1 'x) 4))))
       (is (= '(+
@@ -296,14 +298,14 @@
 
   (testing "expr-simplify"
     (let [poly-simp #(a/expression-> poly-analyzer % (fn [p vars] (a/->expression poly-analyzer p vars)))
-          exp1 (:expression (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))
-          exp2 (:expression (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
+          exp1 (expression-of (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))
+          exp2 (expression-of (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
           exp3 'y]
       (is (= '(+ (expt x 3) (* 2 (expt x 2))) (poly-simp exp1)))
       (is (= '(+ (expt x 3) (* 2 (expt x 2)) (* 2 (expt y 2))) (poly-simp exp2)))
       (is (= 'y (poly-simp exp3)))
-      (is (= '(+ g1 g2) (poly-simp (:expression (g/+ 'g1 'g2)))))
-      (is (= '(* 2 g1) (poly-simp (:expression (g/+ 'g1 'g1)))))
+      (is (= '(+ g1 g2) (poly-simp (expression-of (g/+ 'g1 'g2)))))
+      (is (= '(* 2 g1) (poly-simp (expression-of (g/+ 'g1 'g1)))))
       (is (= 3 (poly-simp '(+ 2 1))))
       (is (= '(+ b (* -1 f)) (poly-simp '(- (+ a b c) (+ a c f)))))
       (is (= '(+ (* -1 b) f) (poly-simp '(- (+ a c f) (+ c b a))))))))

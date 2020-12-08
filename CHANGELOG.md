@@ -6,37 +6,97 @@
 
 - expose `bootstrap-repl!` to Clojurescript, so that this is available in
   self-hosted CLJS (https://github.com/littleredcomputer/sicmutils/pull/157)
+
 - modified `infix.cljc` to wrap forms in `displaystyle` and add proper carriage
   returns inside structures
   (https://github.com/littleredcomputer/sicmutils/pull/157)
+
 - add `multidimensional-minimize` to the `sicmutils.env` namespace
   (https://github.com/littleredcomputer/sicmutils/pull/157)
+
 - add more `sqrt` simplification rules to allow square roots to cancel out
   across a division boundary, with or without products in the numerator and
   denominator (https://github.com/littleredcomputer/sicmutils/pull/160)
+
 - fix NPE bug that appears in nelder-mead, when callback isn't supplied
   (https://github.com/littleredcomputer/sicmutils/pull/162)
+
 - Add `sqrt-expand` and `sqrt-contract`, to allow simplifications to push inside
   of square roots (https://github.com/littleredcomputer/sicmutils/pull/163)
+
 - speed up power series multiplication by skipping work when either head term is
   zero (https://github.com/littleredcomputer/sicmutils/pull/166)
-- File moves! PR (https://github.com/littleredcomputer/sicmutils/pull/167)
-  moved:
+
+- File moves!
   - `sicmutils.polynomial-gcd` => `sicmutils.polynomial.gcd`
   - `sicmutils.polynomial-factor` => `sicmutils.polynomial.factor`
   - `sicmutils.rules` => `sicmutils.simplify.rules`
+  - `sicmutils.analyze` => `sicmutils.expression.analyze`
+
 - `sicmutils.env/one?` now exposes/aliases `sicmutils.value/unity?`
   [#154](https://github.com/littleredcomputer/sicmutils/pull/154)
+
 - Fixed [#93](https://github.com/littleredcomputer/sicmutils/issues/93) by
   adding an explicit `g/invert` implementation for polynomials in the rational
   fn namespace. The fix lives in
   [#169](https://github.com/littleredcomputer/sicmutils/pull/169).
+
 - added `sicmutils.value/sqrt-machine-epsilon`
   ([#170](https://github.com/littleredcomputer/sicmutils/pull/170))
+
 - fixed issues in `function.cljc` and `operator.cljc` where the Clojurescript
   `IFn` `-invoke` arguments shadowed either the `this` operator, or some
   parameter name in the deftype
   ([#169](https://github.com/littleredcomputer/sicmutils/pull/169))
+
+- `g/sqrt` now maintains precision with Clojurescript's rational numbers.
+  `(g/sqrt #sicm/ratio 9/4)` for example returns `#sicm/ratio 3/2`.
+  ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+
+- `g/determinant` and `g/transpose` now act as identity for everything in the
+  numeric tower, plus symbolic expressions
+  ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+
+- `sicmutils.expression.Expression` is now `sicmutils.expression.Literal`; it
+  has a new `meta` field, and is a `deftype` instead of a `defrecord`.
+  ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+  - To get the internal expression, use `x/expression-of` instead of
+    `:expression`.
+  - to access the `type` field, use `x/literal-type` instead of `:type`
+
+- 2-arity `g/atan`, `g/cross-product` and `g/gcd` now work for functions
+  ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+
+- `Literal` now responds appropriately to `v/unity?` and `v/nullity?` if it
+  wraps a numerical "0" or "1". `v/exact?` now returns true if the literal wraps
+  an exact number ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+
+- `x/variables-in` now works with wrapped expressions; no more need to
+  explicitly unwrap
+  ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+
+- `x/walk-expression` renamed `x/evaluate`
+  ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+
+- The new `x/substitute` performs substitutions on an _unwrapped_ expression
+  ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+
+-  `x/compare` returns a comparator that works with unwrapped symbolic
+   expression trees
+   ([#168](https://github.com/littleredcomputer/sicmutils/pull/168)). The rules
+   are that that types have the following ordering:
+  - empty sequence is < anything (except another empty seq)
+  - real < symbol < string < sequence
+  - sequences compare element-by-element
+  - Any types NOT in this list compare using hashes
+
+- `g/transpose` now works properly for functions that act as linear maps. The
+  defining relation is:
+
+```clojure
+(= (((transpose f) g) 'x)
+   (g (f x)))
+```
 
 ### Literals
 
@@ -44,6 +104,92 @@
   (https://github.com/littleredcomputer/sicmutils/pull/169)
 - `literal`, `literal-up` and `literal-down` generate symbolic structures
   (https://github.com/littleredcomputer/sicmutils/pull/169)
+
+### Numeric Tower Adjustments
+
+This release (courtesy of
+[#168](https://github.com/littleredcomputer/sicmutils/pull/168)) brings
+the numeric tower in line with the scmutils tower. Prior to this release, all
+numbers, including complex, descended from `::x/numerical-expression`. Symbolic
+expressions _also_ derived from this type! The problem this causes is that all
+of generic implementations for the number types default to the symbolic
+functions.
+
+If I don't specify a `g/sec` method for numbers, for example, then `(g/sec 12)`
+returns a symbolic `(/ 1 (cos 12))`, instead of actually evaluating the
+expression.
+
+The fix comes from these changes:
+
+- `::v/number` now means, "the numeric tower ascending from integer -> rational
+  -> real -> complex numbers. All of these types now respond `true` to
+  `v/number?` (prior to this release, Complex numbers did NOT!)
+
+- `::v/real` now means, "anything in the numeric tower except Complex". These
+  all respond true to `v/real?`
+
+- `::x/numeric-expression` has changed to `::x/numeric`, and now means "anything
+  that responds to `::"v/number`, plus symbolic expressions, which now clearly
+  _represent_ any number in the numeric tower. Query for these with `v/scalar?`
+
+I can now make some comments that clear up my former misunderstandings:
+
+- The `sicmutils.abstract.number` (I'll call this `an` here) namespace is
+  responsible for installing generic implementations of all numeric methods for
+  symbolic expressions and "literal numbers".
+
+- the `an/literal-number` constructor promotes a number, symbol or symbolic
+  expression up to `:xx/numeric`, which means that any operation you perform on
+  it will pass it through the symbolic expressions defined in
+  `sicmutils.numsymb`. A few notes on these expressions:
+
+  - They will try to preserve exactness, but if they can't - ie, if you do
+    something like `(cos (an/literal-number 2.2))` - the system will return
+    `-.588`. If you call `(cos (an/literal-number 2))`, you'll get the
+    expression `(cos 2)`, preserving exactness.
+
+  - Symbols are automatically interpreted as "literal numbers".
+
+  - The only ways to make a proper symbolic expression that works with the
+    generics are:
+
+    - Use the explicit `an/literal-number` constructor
+    - pass a symbol to any generic arithmetic function
+    - perform any unary or binary arithmetic operation on an existing symbolic
+      expression.
+
+  - `an/abstract-number?` returns true for symbolic expressions, anything
+    wrapped in `literal-number` or symbols.
+
+  - `literal-number?` only returns true for explicitly wrapped things and
+    symbolic expressions, not symbols.
+
+  - use `v/real?`, `v/number?` and `v/scalar?` to query the numeric tower.
+
+
+- If you want to compare literal numbers and an expression like
+  `(an/literal-number 12)`, use `v/eq`. In Clojurescript, this will work with
+  the built in `=` as well, since equality is implemented with a protocol that
+  we can extend. For example:
+
+```clojure
+(v/eq 12 (literal-number 12))
+;;=> true
+
+(= 12 (literal-number 12))
+;; true in cljs, false in clj
+```
+
+If you keep the literal on the left side of `=`, this will work in both systems,
+since we've overridden the `=` implementation for literals:
+
+```clojure
+(= (literal-number 12) 12)
+;;=> true in both languages
+```
+
+This paves the way for the other abstract types that exist in `scmutils`, like
+matrices, up and down tuples.
 
 ### New Generic Functions
 
@@ -88,6 +234,22 @@ These all work with:
 - Derivatives and dual numbers! The new functions all work with `D`, the
   forward-mode automatic differentiation operator.
 
+Additionally, four methods that lived in `sicmutils.generic` are now exposed as
+generics:
+
+- `real-part`
+- `imag-part`
+- `angle`
+- `conjugate`
+
+These now work on:
+
+- _all_ numeric types, including symbolic expressions.
+- functions
+- structures (only `magnitude` and `conjugate`)
+  - `magnitude` formerly didn't handle structures containing complex numbers by
+    taking a proper inner product. This is fixed as of
+    [#168](https://github.com/littleredcomputer/sicmutils/pull/168)
 
 ## 0.13.0
 

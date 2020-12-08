@@ -40,8 +40,8 @@
 
 (def string #?(:clj String :cljs js/String))
 
-(defmethod s* [v/numtype string] [n s] (multiply-string n s))
-(defmethod s* [string v/numtype] [s n] (multiply-string n s))
+(defmethod s* [::v/real string] [n s] (multiply-string n s))
+(defmethod s* [string ::v/real] [s n] (multiply-string n s))
 (defmethod s* [string string] [s t] (product-string s t))
 (defmethod s+ [string string] [s t] (str s t))
 

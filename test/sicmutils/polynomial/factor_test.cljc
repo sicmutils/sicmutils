@@ -19,7 +19,7 @@
 
 (ns sicmutils.polynomial.factor-test
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [sicmutils.analyze :as a]
+            [sicmutils.expression.analyze :as a]
             [sicmutils.generic :as g]
             [sicmutils.numbers]
             [sicmutils.polynomial :as p]

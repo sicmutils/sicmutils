@@ -22,7 +22,7 @@
             [clojure.pprint :as pp]
             [clojure.set :as set]
             [pattern.rule :as rule]
-            [sicmutils.analyze :as a]
+            [sicmutils.expression.analyze :as a]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as nsy]
@@ -180,10 +180,10 @@
   (simplify-until-stable simplify-expression-1 simplify-and-flatten))
 
 (defn simplify-numerical-expression
-  "Runs the content of the Expression e through the simplifier, but leaves the result in
-  Expression form."
+  "Runs the content of the Literal e through the simplifier, but leaves the result
+  in Literal form."
   [e]
-  (if (g/abstract-quantity? e)
+  (if (x/abstract? e)
     (x/fmap simplify-expression e)
     e))
 
@@ -270,9 +270,6 @@
                               simplify-and-flatten)
                         exp)]
     simplified-exp))
-
-(defmethod g/simplify [::x/numerical-expression] [a]
-  (simplify-expression (v/freeze a)))
 
 (defn expression->stream
   "Renders an expression through the simplifier and onto the stream."
