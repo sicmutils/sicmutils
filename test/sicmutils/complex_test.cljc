@@ -50,7 +50,7 @@
 (deftest complex-laws
   ;; Complex numbers form a field. We use a custom comparator to control some
   ;; precision loss.
-  (binding [sg/*complex-tolerance* 1e-3]
+  (with-comparator (v/within 1e-3)
     (l/field 100 sg/complex "Complex")))
 
 (deftest value-protocol

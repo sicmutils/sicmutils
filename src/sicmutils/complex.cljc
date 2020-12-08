@@ -35,9 +35,10 @@
 (defn complex
   "Construct a complex number from real, or real and imaginary, components."
   ([re]
-   (Complex. re))
+   (Complex. (u/double re)))
   ([re im]
-   (Complex. re im)))
+   (Complex. (u/double re)
+             (u/double im))))
 
 (defn complex?
   [a]

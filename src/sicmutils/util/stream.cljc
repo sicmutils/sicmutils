@@ -137,7 +137,7 @@
                convergence-fn
                fail-fn]
         :or {minterms       2
-             tolerance      (Math/sqrt v/machine-epsilon)
+             tolerance      v/sqrt-machine-epsilon
              convergence-fn (close-enuf? tolerance)}}]
    (if (empty? xs)
      {:converged? false

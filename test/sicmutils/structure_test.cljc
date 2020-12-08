@@ -381,6 +381,15 @@
   (testing "s*t inner with vars"
     (is (= (+ 'y (* 'x 4)) (* (s/up 1 'x) (s/down 'y 4)))))
 
+  (testing "cross-product with fns"
+    (let [deferred (g/cross-product #(g/* 2 %)
+                                    #(g/+ (s/up 4 3 1) %))
+          v (s/up 1 2 3)]
+      (is (= (g/cross-product (g/* 2 v)
+                              (g/+ (s/up 4 3 1) v))
+             (deferred v))
+          "Slightly tougher since this works with structures")))
+
   (testing "examples from refman"
     (is (= 652 (* (s/up (s/up 2 3) (s/down 5 7 11))
                   (s/down (s/down 13 17) (s/up 19 23 29)))))

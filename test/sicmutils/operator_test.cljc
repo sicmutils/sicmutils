@@ -22,6 +22,7 @@
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [same :refer [ish?]]
             [sicmutils.abstract.function :as f]
+            [sicmutils.function :refer [arity]]
             [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.operator :as o]
@@ -35,6 +36,23 @@
 (def g (f/literal-function 'g))
 (def ff (f/literal-function 'ff [0 0] 0))
 (def gg (f/literal-function 'gg [0 0] 0))
+
+(deftest operators-from-fn-tests
+  (let [f (fn [x] (+ x 5))
+        double (fn [f] (fn [x] (* 2 (f x))))
+        double-op (o/make-operator double "double")]
+    (is (= 12 ((double f) 1)))
+    (is (= 24 ((double (double f)) 1)))
+    (is (= 12 ((double-op f) 1)))
+    (is (= 24 ((double-op (double-op f)) 1)))
+    (is (= 24 (((g/* double-op double-op) f) 1))) ;; * for operators is composition
+    (is (= 144 (((g/* double double) f) 1)))      ;; * for functions is pointwise multiply
+    (is (= 2 ((double-op identity) 1)))
+    (is (= 6 (((g/expt double-op 0) f) 1)))
+    (is (= 12 (((g/expt double-op 1) f) 1)))
+    (is (= 24 (((g/expt double-op 2) f) 1)))
+    (is (= 18 (((g/+ double-op double-op double-op) identity) 3)))
+    (is (= 24 (((g/+ double-op 4 double-op) identity) 3)))))
 
 ;; Test operations with Operators
 (deftest Operator-tests
@@ -76,8 +94,8 @@
     (is (= [:exactly 1] (:arity (* D o/identity-operator))))
     (is (= [:exactly 1] (:arity (* 'e D))))
     (is (= [:exactly 1] (:arity (* D 'e))))
-    (is (= [:exactly 1] (v/arity g/sin)))
-    (is (= [:exactly 1] (v/arity (o/identity-operator g/sin))))
+    (is (= [:exactly 1] (arity g/sin)))
+    (is (= [:exactly 1] (arity (o/identity-operator g/sin))))
     (is (= '(sin x) (g/simplify ((o/identity-operator g/sin) 'x))))
     (is (= '(cos x) (g/simplify (((* D o/identity-operator) g/sin) 'x))))
     (is (= '(cos x) (g/simplify (((* o/identity-operator D) g/sin) 'x)))))

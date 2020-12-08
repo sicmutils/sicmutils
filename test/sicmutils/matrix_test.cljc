@@ -283,15 +283,10 @@
       (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error) 'foo (g/* u M)))
       (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error) (g/* M d))))))
 
-(defn generate-square-matrix [n]
-  (let [entry-gen sg/ratio]
-    (gen/fmap #(apply m/by-rows %)
-              (gen/vector (gen/vector entry-gen n) n))))
-
 (deftest square-tests
   (checking "square matrices return true for square?"
             100 [matrix (gen/bind (gen/choose 1 10)
-                                  generate-square-matrix)]
+                                  sg/square-matrix)]
             (is (m/square? matrix))
 
             (is (= matrix
@@ -320,21 +315,21 @@
 
 (defspec p+q=q+p
   (gen/let [n (gen/choose 1 10)]
-    (prop/for-all [p (generate-square-matrix n)
-                   q (generate-square-matrix n)]
+    (prop/for-all [p (sg/square-matrix n)
+                   q (sg/square-matrix n)]
                   (= (g/+ p q) (g/+ q p)))))
 
 
 (defspec pq*r=p*qr
   (gen/let [n (gen/choose 1 10)]
-    (prop/for-all [p (generate-square-matrix n)
-                   q (generate-square-matrix n)
-                   r (generate-square-matrix n)]
+    (prop/for-all [p (sg/square-matrix n)
+                   q (sg/square-matrix n)
+                   r (sg/square-matrix n)]
                   (= (g/* (g/* p q) r) (g/* p (g/* q r))))))
 
 (defspec a*ainv=i
   (gen/let [n (gen/choose 1 5)]
-    (prop/for-all [A (generate-square-matrix n)]
+    (prop/for-all [A (sg/square-matrix n)]
                   (or (v/zero? (g/determinant A))
                       (= (m/I n)
                          (g/* (g/invert A) A)

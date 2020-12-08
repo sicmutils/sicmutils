@@ -64,6 +64,7 @@
 
 (defrecord Wrap [s]
   v/Value
+  (zero-like [_] (Wrap. "0"))
   (one-like [_] (Wrap. "1"))
   (kind [_] ::wrap))
 

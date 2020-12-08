@@ -6,9 +6,11 @@
                            long core-long}
                   #?@(:cljs [:exclude [bigint double long]]))
   (:require [clojure.test.check.generators :as gen]
+            [same :refer [zeroish?]]
             [same.ish :as si]
             [sicmutils.complex :as c]
             [sicmutils.generic :as g]
+            [sicmutils.matrix :as m]
             [sicmutils.ratio :as r]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
@@ -84,15 +86,69 @@
               d)]
       (r/rationalize n d))))
 
-(def ^:dynamic *complex-tolerance* 1e-12)
+(defn square-matrix
+  ([n] (square-matrix n ratio))
+  ([n entry-gen]
+   (gen/fmap #(apply m/by-rows %)
+             (gen/vector (gen/vector entry-gen n) n))))
+
+(defn- eq-delegate
+  "Takes a real number `this` on the left, and checks it for approximate equality
+  with:
+
+  - complex numbers by comparing to the real part and checking that `that`'s
+    imaginary part is roughly ~0
+  - real numbers with the default approximate check behavior
+  - falls through to `=` for all other types.
+
+  In CLJS, `this` can be `js/BigInt`, `google.math.Long`, `goog.math.Real`,
+  `Fraction` or any of the other types in the numeric tower."
+  [this that]
+  (cond (c/complex? that) (and (si/*comparator* 0.0 (g/imag-part that))
+                               (si/*comparator*
+                                (u/double this)
+                                (g/real-part that)))
+        (v/real? that)    (si/*comparator*
+                           (u/double this)
+                           (u/double that))
+        :else             (= this that)))
 
 (extend-protocol si/Approximate
   #?@(:cljs
-      [js/BigInt
-       (ish [this that]
-            (= this that))])
+      [r/ratiotype
+       (ish [this that] (eq-delegate this that))
+
+       u/inttype
+       (ish [this that] (eq-delegate this that))
+
+       u/longtype
+       (ish [this that] (eq-delegate this that))
+
+       js/BigInt
+       (ish [this that] (eq-delegate this that))
+
+       number
+       (ish [this that] (eq-delegate this that))])
+
+  #?@(:clj
+      [Double
+       (ish [this that] (eq-delegate this that))
+
+       Float
+       (ish [this that] (eq-delegate this that))
+
+       Number
+       (ish [this that] (eq-delegate this that))])
 
   #?(:cljs c/complextype :clj Complex)
   (ish [this that]
-    (< (g/abs (g/- this that))
-       *complex-tolerance*)))
+    (cond (c/complex? that)
+          (and (si/*comparator* (g/real-part this)
+                                (g/real-part that))
+               (si/*comparator* (g/imag-part this)
+                                (g/imag-part that)))
+          (v/real? that)
+          (and (si/*comparator* 0.0 (g/imag-part this))
+               (si/*comparator*
+                (g/real-part this) (core-double that)))
+          :else (= this that))))

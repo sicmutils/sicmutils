@@ -18,7 +18,8 @@
 ;
 
 (ns sicmutils.operator
-  (:require [sicmutils.generic :as g]
+  (:require [sicmutils.function :as f]
+            [sicmutils.generic :as g]
             [sicmutils.series :as series]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
@@ -132,7 +133,7 @@
   difference of applying the supplied operators."
   [o p]
   (->Operator #(g/- (apply o %&) (apply p %&))
-              (v/joint-arity [(:arity o) (:arity p)])
+              (f/joint-arity [(:arity o) (:arity p)])
               `(~'- ~(:name o) ~(:name p))
               (joint-context o p)))
 
@@ -141,7 +142,7 @@
   given operators."
   [o p]
   (->Operator #(g/+ (apply o %&) (apply p %&))
-              (v/joint-arity [(v/arity o) (v/arity p)])
+              (f/joint-arity [(f/arity o) (f/arity p)])
               `(~'+ ~(:name o) ~(:name p))
               (joint-context o p)))
 

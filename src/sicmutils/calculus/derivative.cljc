@@ -406,7 +406,7 @@
 
 (defn ^:private multivariate-derivative
   [f selectors]
-  (let [a (v/arity f)
+  (let [a (f/arity f)
         d (core-partial euclidean-structure selectors)
         make-df #(with-meta % {:arity a :from :multivariate-derivative})]
     (condp = a

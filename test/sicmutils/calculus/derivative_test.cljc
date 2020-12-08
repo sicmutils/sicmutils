@@ -40,7 +40,7 @@
   #?(:clj
      (:import [sicmutils.calculus.derivative Differential])))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (def ^:private q
   (s/up (af/literal-function 'x)
@@ -590,6 +590,22 @@
              (g/simplify ((as-matrix (D C-general)) s)))))))
 
 (deftest taylor-moved-from-series
+  (let [simp4 (fn [x] (g/simplify (take 4 x)))
+        V (series/series g/sin g/cos g/tan)]
+
+    (testing "derivatives"
+      (is (= '[(sin t) (cos t) (tan t) 0]
+             (simp4 (V 't))))
+      (is (= '[(cos t) (* -1 (sin t)) (/ 1 (expt (cos t) 2)) 0]
+             (simp4 ((D V) 't)))))
+
+    (testing "f -> Series"
+      (let [F (fn [k] (series/series
+                      (fn [t] (g/* k t))
+                      (fn [t] (g/* k k t))))]
+        (is (= '((* q z) (* (expt q 2) z) 0 0) (simp4 ((F 'q) 'z))))
+        (is (= '(z (* 2 q z) 0 0) (simp4 (((D F) 'q) 'z)))))))
+
   (is (= '(+ (* (/ 1 24) (expt dx 4) (sin x))
              (* (/ -1 6) (expt dx 3) (cos x))
              (* (/ -1 2) (expt dx 2) (sin x))
@@ -626,10 +642,11 @@
              [(+ (* (f t) (g t)) (* (h t) (k t)))
               (+ (expt (g t) 2) (expt (k t) 2))])
            (g/simplify ((* (g/transpose M) M) 't))))
-    (is (= '(matrix-by-rows [(+ (* 2 ((D f) t) (f t)) (* 2 (h t) ((D h) t)))
-                             (+ (* ((D f) t) (g t)) (* (f t) ((D g) t)) (* (h t) ((D k) t)) (* (k t) ((D h) t)))]
-                            [(+ (* ((D f) t) (g t)) (* (f t) ((D g) t)) (* (h t) ((D k) t)) (* (k t) ((D h) t)))
-                             (+ (* 2 (g t) ((D g) t)) (* 2 (k t) ((D k) t)))])
+    (is (= '(matrix-by-rows
+             [(+ (* 2 (f t) ((D f) t)) (* 2 (h t) ((D h) t)))
+              (+ (* (f t) ((D g) t)) (* (g t) ((D f) t)) (* (h t) ((D k) t)) (* (k t) ((D h) t)))]
+             [(+ (* (f t) ((D g) t)) (* (g t) ((D f) t)) (* (h t) ((D k) t)) (* (k t) ((D h) t)))
+              (+ (* 2 (g t) ((D g) t)) (* 2 (k t) ((D k) t)))])
            (g/simplify ((D (* (g/transpose M) M)) 't))))))
 
 (deftest derivatives-as-values
@@ -642,18 +659,18 @@
     (is (= '(sin (cos x)) (g/simplify (cs0 'x))))
     (is (= '(sin (cos x)) (g/simplify (cs1 'x))))
     (is (= '(sin (cos x)) (g/simplify (cs2 'x))))
-    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify ((D cs0) 'x))))
-    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify ((D cs1) 'x))))
-    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify ((D cs2) 'x))))
-    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify (y0 'x))))
-    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify (y1 'x))))
-    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify (y2 'x)))))
+    (is (= '(* -1 (cos (cos x)) (sin x)) (g/simplify ((D cs0) 'x))))
+    (is (= '(* -1 (cos (cos x)) (sin x)) (g/simplify ((D cs1) 'x))))
+    (is (= '(* -1 (cos (cos x)) (sin x)) (g/simplify ((D cs2) 'x))))
+    (is (= '(* -1 (cos (cos x)) (sin x)) (g/simplify (y0 'x))))
+    (is (= '(* -1 (cos (cos x)) (sin x)) (g/simplify (y1 'x))))
+    (is (= '(* -1 (cos (cos x)) (sin x)) (g/simplify (y2 'x)))))
   (let [unity (reduce + (map g/square [sin cos]))
         dU (D unity)]
     (is (= 1 (g/simplify (unity 'x))))
     (is (= 0 (g/simplify (dU 'x)))))
   (let [odear (fn [z] ((D (f/compose sin cos)) z))]
-    (is (= '(* -1 (sin x) (cos (cos x))) (g/simplify (odear 'x))))))
+    (is (= '(* -1 (cos (cos x)) (sin x)) (g/simplify (odear 'x))))))
 
 
 ;; Tests from the refman that came about while implementing various derivative
