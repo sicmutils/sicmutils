@@ -96,11 +96,6 @@
                       (+ x 0.5)
                       x))))))
 
-(def double-or-int
-  (gen/one-of
-   [gen/small-integer
-    (sg/reasonable-double)]))
-
 (deftest literal-number-arithmetic-tests
   (letfn [(check [op l r]
             (let [expected (op l r)
@@ -245,22 +240,22 @@
                     "Otherwise, test out some mild optimizations, and if these
                     don't work bail out to Math/tan."))))
 
-  (checking "asin" 100 [x double-or-int]
+  (checking "asin" 100 [x sg/real]
             (is (= (cond (v/nullity? x) (v/zero-like x)
                          (v/exact? x)   (list 'asin x)
                          :else          (g/asin x))
                    (x/expression-of
                     (g/asin (an/literal-number x))))))
 
-  (checking "acos" 100 [x double-or-int]
+  (checking "acos" 100 [x sg/real]
             (is (= (cond (v/unity? x) (v/zero-like x)
                          (v/exact? x) (list 'acos x)
                          :else        (g/acos x))
                    (x/expression-of
                     (g/acos (an/literal-number x))))))
 
-  (checking "atan, both arities" 100 [x double-or-int
-                                      y double-or-int]
+  (checking "atan, both arities" 100 [x sg/real
+                                      y sg/real]
             (is (= (g/atan (an/literal-number x))
                    (g/atan (an/literal-number x) 1)))
 
@@ -290,21 +285,21 @@
                        (an/literal-number x))))
                   "double arity")))
 
-  (checking "cosh" 100 [x double-or-int]
+  (checking "cosh" 100 [x sg/real]
             (is (= (cond (v/nullity? x) 1
                          (v/exact? x)   (list 'cosh x)
                          :else          (g/cosh x))
                    (x/expression-of
                     (g/cosh (an/literal-number x))))))
 
-  (checking "sinh" 100 [x double-or-int]
+  (checking "sinh" 100 [x sg/real]
             (is (= (cond (v/nullity? x) 0
                          (v/exact? x)   (list 'sinh x)
                          :else          (g/sinh x))
                    (x/expression-of
                     (g/sinh (an/literal-number x))))))
 
-  (checking "sec" 100 [x double-or-int]
+  (checking "sec" 100 [x sg/real]
             (is (= (cond (v/nullity? x) 1
                          (v/exact? x)   (list '/ 1 (list 'cos x))
                          :else          (g/sec x))
