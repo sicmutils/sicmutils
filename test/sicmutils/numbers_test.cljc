@@ -329,4 +329,4 @@
             (if (neg? x)
               (is (ish? Math/PI (g/angle x))
                   "the angle of a negative number is pi in the complex plane.")
-              (is (v/nullity? (g/angle x))))))
+              (is (v/zero? (g/angle x))))))
