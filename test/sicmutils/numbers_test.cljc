@@ -87,18 +87,12 @@
     (is (v/one-like (g/sqrt c/ONE)))
     (is (c/complex? (g/sqrt c/ONE))))
 
-  (checking "transpose, determinant, trace act as id" 100
-            [x (gen/one-of
-                [(sg/reasonable-double)
-                 sg/any-integral])]
+  (checking "transpose, determinant act as id" 100 [x sg/real]
             (is (= x (g/transpose x)))
             (is (= x (g/determinant x)))
             (is (= x (g/trace x))))
 
-  (checking "dimension always returns 1" 100
-            [x (gen/one-of
-                [(sg/reasonable-double)
-                 sg/any-integral])]
+  (checking "dimension always returns 1" 100 [x sg/real]
             (is (= 1 (g/dimension x)))))
 
 (deftest integer-generics
@@ -296,3 +290,17 @@
 
     (testing "atanh"
       (is (near 0.5 (g/tanh (g/atanh 0.5)))))))
+
+(deftest complex-accessor-tests
+  (checking "real/imag-part" 100 [x sg/real]
+            (is (= x (g/real-part x)))
+            (is (zero? (g/imag-part x))))
+
+  (checking "conjugate" 100 [x sg/real]
+            (is (= x (g/conjugate x))))
+
+  (checking "angle" 100 [x sg/real]
+            (if (neg? x)
+              (is (ish? Math/PI (g/angle x))
+                  "the angle of a negative number is pi in the complex plane.")
+              (is (v/nullity? (g/angle x)))))  )
