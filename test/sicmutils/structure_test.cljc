@@ -371,12 +371,18 @@
     (is (= (s/down (* 3 'x_0) (* 3 'x_1)) (* 3 (s/down 'x_0 'x_1)))))
 
   (testing "s*t outer simple"
-    (is (= (s/up (s/up 3 6) (s/up 4 8))
-           (* (s/up 1 2) (s/up 3 4))))
+    (is (= (s/up (s/up 3 6)
+                 (s/up 4 8))
+           (* (s/up 1 2)
+              (s/up 3 4))))
     (is (= (s/down (s/down 3 6) (s/down 4 8))
-           (* (s/down 1 2) (s/down 3 4))))
-    (is (= (s/down (s/up 3 6) (s/up 4 8) (s/up 5 10))
-           (* (s/up 1 2) (s/down 3 4 5)))))
+           (* (s/down 1 2)
+              (s/down 3 4))))
+    (is (= (s/down (s/up 3 6)
+                   (s/up 4 8)
+                   (s/up 5 10))
+           (* (s/up 1 2)
+              (s/down 3 4 5)))))
 
   (testing "s*t inner simple"
     (is (= 11 (* (s/up 1 2) (s/down 3 4))))
@@ -412,32 +418,57 @@
           S (s/up (s/down 'a 'b) (s/down 'c 'd))
           x (s/up 'x 'y)
           xt (s/down 'x 'y)]
+      (is (= (s/up (+ (* 'a 'x) (* 'b 'y))
+                   (+ (* 'c 'x) (* 'd 'y)))
+             (* M x)))
+
       (is (= (s/up (+ (* 'x 'a) (* 'y 'b))
-                   (+ (* 'x 'c) (* 'y 'd))) (* M x)))
-      (is (= (s/up (+ (* 'x 'a) (* 'y 'b))
-                   (+ (* 'x 'c) (* 'y 'd))) (* x S)))
+                   (+ (* 'x 'c) (* 'y 'd)))
+             (* x S)))
+
       (is (= (s/down (+ (* 'x 'a) (* 'y 'c))
-                     (+ (* 'x 'b) (* 'y 'd))) (* xt M)))
+                     (+ (* 'x 'b) (* 'y 'd)))
+             (* xt M)))
+
       (is (= (+ (* (+ (* 'x 'a) (* 'y 'c)) 'x)
                 (* (+ (* 'x 'b) (* 'y 'd)) 'y))
              (* xt M x)))
+
       (is (= (+ (* (+ (* 'x 'a) (* 'y 'c)) 'x)
                 (* (+ (* 'x 'b) (* 'y 'd)) 'y))
              (* (* xt M) x)))
-      (is (= (+ (* 'x (+ (* 'x 'a) (* 'y 'b)))
-                (* 'y (+ (* 'x 'c) (* 'y 'd))))
+
+      (is (= (+ (* 'x (+ (* 'a 'x) (* 'b 'y)))
+                (* 'y (+ (* 'c 'x) (* 'd 'y))))
              (* xt (* M x)))))
-    (let [M (s/up (s/down 'a 'b) (s/down 'c 'd))
+
+    (let [M (s/up (s/down 'a 'b)
+                  (s/down 'c 'd))
           x (s/down 'x 'y)]
+      (is (= (s/down (+ (* 'a 'x) (* 'c 'y))
+                     (+ (* 'b 'x) (* 'd 'y)))
+             (* M x)))
       (is (= (s/down (+ (* 'x 'a) (* 'y 'c))
-                     (+ (* 'x 'b) (* 'y 'd))) (* M x)))
-      (is (= (s/down (+ (* 'x 'a) (* 'y 'c))
-                     (+ (* 'x 'b) (* 'y 'd))) (* x M))))
-    (let [M (s/up (s/down 'a 'c) (s/down 'b 'd))]
-      (is (= (s/up (s/down (+ (* 'a 'a) (* 'c 'b))
-                           (+ (* 'a 'c) (* 'c 'd)))
-                   (s/down (+ (* 'b 'a) (* 'd 'b))
-                           (+ (* 'b 'c) (* 'd 'd)))) (* M M)))))
+                     (+ (* 'x 'b) (* 'y 'd)))
+             (* x M))))
+
+    (let [M (s/up (s/down 'a 'c)
+                  (s/down 'b 'd))]
+      (is (= (s/up (s/down (s/up (s/down (* 'a 'a) (* 'a 'c))
+                                 (s/down (* 'a 'b) (* 'a 'd)))
+                           (s/up (s/down (* 'c 'a) (* 'c 'c))
+                                 (s/down (* 'c 'b) (* 'c 'd))))
+                   (s/down (s/up (s/down (* 'b 'a) (* 'b 'c))
+                                 (s/down (* 'b 'b) (* 'b 'd)))
+                           (s/up (s/down (* 'd 'a) (* 'd 'c))
+                                 (s/down (* 'd 'b) (* 'd 'd)))))
+             (g/outer-product M M)))
+
+      (is (= (s/up (s/down (+ (* 'a 'a) (* 'b 'c))
+                           (+ (* 'c 'a) (* 'd 'c)))
+                   (s/down (+ (* 'a 'b) (* 'b 'd))
+                           (+ (* 'c 'b) (* 'd 'd))))
+             (* M M)))))
 
   (testing "fibonacci-matrix"
     (let [n 20
@@ -480,6 +511,7 @@
         D (s/up (s/down 3))
         E (s/up 1)
         F (s/down (s/up 1 2) (s/up 3 4))]
+
     (testing "transpose"
       (is (= (s/down (s/up 1 2) (s/up 3 4)) (g/transpose A)))
       (is (= (s/up (s/up 1 2 3) (s/up 3 4 5)) (g/transpose B)))
@@ -523,3 +555,13 @@
     (is (= (g/magnitude (s/down 3 4)) 5))
     (is (near (g/magnitude (s/up 3 4 5)) (g/sqrt 50)))
     (is (near (g/magnitude (s/down 3 4 5)) (g/sqrt 50)))))
+
+(deftest tests-to-file
+  (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+               (g/inner-product
+                (s/up (s/down #sicm/complex "1+2i" 2))
+                (s/up (s/down #sicm/complex "1+2i" 2 3 4)))))
+
+  (is (= 11 (g/dot-product
+             (s/up (s/down 1 2))
+             (s/up (s/down 3 4))))))

@@ -261,6 +261,10 @@
   [^Structure s]
   (if (instance? Structure s) (.-orientation s) ::up))
 
+(defn same-orientation? [l r]
+  (= (orientation l)
+     (orientation r)))
+
 (defn opposite
   "Make a tuple containing xs with the orientation opposite to s."
   [s xs]
@@ -328,15 +332,28 @@
   [sym size]
   (literal sym size ::down))
 
-(defn ^:private map:l
-  [f structures]
-  (if (structure? (first structures))
-    (generate (count (first structures))
-              (orientation (first structures))
-              #(apply f (map (fn [s] (nth s %)) structures)))
-    (apply f structures)))
+(defn- s:nth [s i]
+  (cond (structure? s) (nth s i)
+        (= i 0)        s
+        :else (u/illegal
+               (str "non-struct s:nth not supported on non-structure: "
+                    s " with index: " i))))
 
-(defn ^:private map:r:l
+;; The following mappers only make sense if, when there is more than one
+;; structure they are all isomorphic.
+
+(defn- map:l
+  "map from the left across all structures. Works if you pass a scalar in too."
+  [f [s :as structs]]
+  (if (structure? s)
+    (generate (count s)
+              (orientation s)
+              (fn [i]
+                (let [xs (map #(s:nth % i) structs)]
+                  (apply f xs))))
+    (apply f structs)))
+
+(defn- map:r:l
   [f structures]
   (map:l (fn [& elements]
            (if (structure? (first elements))
@@ -345,8 +362,8 @@
          structures))
 
 (defn mapr
-  "Return a structure with the same shape as s but with f applied to
-  each primitive (that is, not structural) component."
+  "Return a structure with the same shape as s but with f applied to each
+  primitive (that is, not structural) component."
   [f & structures]
   (map:r:l f structures))
 
@@ -389,66 +406,34 @@
       (same s (assoc v k (structure-assoc-in (v k) ks value)))
       (same s (assoc v k value)))))
 
-;; TODO make this a RECURSIVE compatible for contraction?
 (defn- compatible-for-contraction?
   "True if s and t are equal in length but opposite in orientation"
   [s t]
-  (and (= (count s) (count t))
-       (not= (orientation s) (orientation t))))
+  (and (not (same-orientation? s t))
+       (= (count s) (count t))
+       (every? (fn [[l r]]
+                 (or (not (structure? l))
+                     (not (structure? r))
+                     (compatible-for-contraction? l r)))
+               (map vector s t))))
 
-(comment
-  (define (s:compatible-for-contraction? v1 v2)
-    (or (and (down? v1) (up? v2)
-             (s:compatible-elements? v1 v2))
-        (and (up? v1) (down? v2)
-             (s:compatible-elements? v1 v2))))
+(defn v:dot-product [v1 v2]
+  (assert (= (count v1) (count v2))
+          (str "Not same dimension -- v:dot-product"
+               v1 ", " v2))
+  (reduce g/+ (map g/* v1 v2)))
 
-  (define (s:compatible-elements? v1 v2)
-    (let ((n (s:length v1)))
-      (and (fix:= n (s:length v2))
-           (let lp ((i 0))
-                (cond ((fix:= i n) true)
-                      ((or (not (structure? (s:ref v1 i)))
-                           (not (structure? (s:ref v2 i))))
-                       (lp (fix:+ i 1)))
-                      ((s:compatible-for-contraction? (s:ref v1 i)
-                                                      (s:ref v2 i))
-                       (lp (fix:+ i 1)))
-                      (else false)))))))
-
-;; TODO make sure that this checks on length!!
 (defn- dot-product
   "Returns the dot product of the compatible structures `s` and `t` (opposite
-  orientation, same length)."
+  orientation, same )."
   [s t]
-  (reduce g/+ (map g/* s t)))
-
-(comment
-  ;; TODO also note that square should just be dot-product v, v
-
-  ;; should equal 11, actually equals (down (down 3 6) (down 4 8))
-  (= 11 (dot-product (up (down 1 2)) (up (down 3 4))))
-
-  (define (s:dot-product v1 v2)
-    (if (not (and (eq? (s:same v1)
-                       (s:same v2))
-                  (= (s:dimension v1) (s:dimension v2))))
-      (error "Incompatible structures -- S:DOT-PRODUCT" v1 v2))
-    (apply g:+ (map g:*
-                    (s:fringe v1)
-                    (s:fringe v2))))
-
-  (define (s:fringe s)
-    (define (walk s ans)
-      (if (structure? s)
-        (let ((n (s:length s)))
-          (let lp ((i 0) (ans ans))
-               (if (fix:= i n)
-                 ans
-                 (lp (fix:+ i 1)
-                     (walk (s:ref s i) ans)))))
-        (cons s ans)))
-    (walk s '())))
+  (let [s-seq (flatten s)
+        t-seq (flatten t)]
+    (if (and (same-orientation? s t)
+             (= (count s-seq) (count t-seq)))
+      (reduce g/+ (map g/* s-seq t-seq))
+      (u/illegal (str "incompatible structures: dot-product "
+                      s ", " t)))))
 
 (defn- inner-product
   "Returns the inner product of the compatible structures `s` and `t` (opposite
@@ -456,25 +441,16 @@
   [s t]
   (dot-product (g/conjugate s) t))
 
-(comment
-  (define (s:outer-product struct2 struct1)
-    (s:map/r (lambda (s1)
-                     (s:map/r (lambda (s2)
-                                      (g:* s1 s2))
-                              struct2))
-             struct1)))
-
 (defn- outer-product
   "The outer product of s and t is the structure s with each element at the
   first level post-multiplied by all of t, following the usual structure
   multiplication rules."
-  [s t]
-  (mapr (fn [s1]
-          (mapr
-           (fn [s2]
-             (g/* s1 s2))
-           s))
-        t))
+  [struct2 struct1]
+  (letfn [(xform [s1]
+            (mapr (fn [s2]
+                    (g/* s1 s2))
+                  struct2))]
+    (mapr xform struct1)))
 
 (defn- cross-product
   "Cross product of structures of length 3. Input orientations are ignored;
@@ -489,13 +465,20 @@
         (g/- (g/* s2 t0) (g/* s0 t2))
         (g/- (g/* s0 t1) (g/* t0 s1)))))
 
-(defn- mul
+(defn- s:*
   "If s and t are compatible for contraction, returns their dot product,
-  else their outer product."
+  else, not QUITE their outer product. Else, we multiply `s` by all rows of
+  `t`."
   [s t]
   (if (compatible-for-contraction? s t)
-    (dot-product s t)
-    (outer-product s t)))
+    (v:dot-product s t)
+    (same t (map #(g/* s %) t))))
+
+(defn- structure*scalar [v s]
+  (same v (map #(g/* % s) v)))
+
+(defn- scalar*structure [s v]
+  (same v (map #(g/* s %) v)))
 
 ;; hmmm. why not do the repeated-squaring trick here?
 ;; perhaps structures are not typically raised to high
@@ -553,28 +536,29 @@
 (defmethod g/sub [::down ::down] [a b] (elementwise g/- a b))
 (defmethod g/sub [::up ::up] [a b] (elementwise g/- a b))
 
-(defmethod g/mul [::structure ::structure] [a b] (mul a b))
+(defmethod g/mul [::structure ::structure] [a b] (s:* a b))
 
 (defmethod g/mul [::structure ::v/scalar] [a b]
-  (outer-product b a))
+  (structure*scalar a b))
 
 (defmethod g/mul [::v/scalar ::structure] [a b]
-  (outer-product a b))
+  (scalar*structure a b))
 
 (defmethod g/mul [::structure :sicmutils.operator/operator] [a b]
-  (outer-product b a))
+  (structure*scalar a b))
 
 (defmethod g/mul [:sicmutils.operator/operator ::structure] [a b]
-  (outer-product a b))
+  (scalar*structure a b))
 
 (defmethod g/mul [::structure :sicmutils.calculus.derivative/differential] [a b]
-  (outer-product b a))
+  (structure*scalar a b))
 
 (defmethod g/mul [:sicmutils.calculus.derivative/differential ::structure] [a b]
-  (outer-product a b))
+  (scalar*structure a b))
 
 (defmethod g/div [::structure ::v/scalar] [a b]
-  (outer-product (g/invert b) a))
+  (let [b' (g/invert b)]
+    (same a (map #(g/* % b') a))))
 
 (defmethod g/div [::structure ::structure] [a b] (mul (g/invert b) a))
 (defmethod g/expt [::structure ::v/integral] [a b] (expt a b))
@@ -598,4 +582,4 @@
 (defmethod g/dot-product [::structure ::structure] [a b] (dot-product a b))
 (defmethod g/inner-product [::structure ::structure] [a b] (inner-product a b))
 (defmethod g/outer-product [::structure ::structure] [a b] (outer-product a b))
-(defmethod g/cross-product [::structure ::structure] [a b] (cross-product a b))
+(defmethod g/cross-product [::up ::up] [a b] (cross-product a b))
