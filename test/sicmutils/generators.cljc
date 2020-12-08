@@ -79,7 +79,7 @@
 (def big-ratio
   (gen/let [n bigint
             d bigint]
-    (let [d (if (v/nullity? d)
+    (let [d (if (v/zero? d)
               (u/bigint 1)
               d)]
       (r/rationalize n d))))

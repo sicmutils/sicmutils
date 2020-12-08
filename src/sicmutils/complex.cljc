@@ -81,13 +81,13 @@
 
 (extend-type Complex
   v/Value
-  (nullity? [c] #?(:clj (= ZERO c) :cljs (.isZero c)))
-  (unity? [c] (= ONE c))
+  (zero? [c] #?(:clj (= ZERO c) :cljs (.isZero c)))
+  (one? [c] (= ONE c))
   (zero-like [_] ZERO)
   (one-like [_] ONE)
   (freeze [c] (let [re (g/real-part c)
                     im (g/imag-part c)]
-                (if (v/nullity? im)
+                (if (v/zero? im)
                   re
                   (list 'complex re im))))
   (exact? [c] (and (v/exact? (g/real-part c))

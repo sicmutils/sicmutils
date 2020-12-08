@@ -65,7 +65,7 @@
 (defn primitive-gcd
   "A function which will return the gcd of a sequence of numbers."
   [xs]
-  (g/abs ((reduce-until v/unity? native-gcd) xs)))
+  (g/abs ((reduce-until v/one? native-gcd) xs)))
 
 (defn ^:private with-content-removed
   "For multivariate polynomials. u and v are considered here as
@@ -74,7 +74,7 @@
   primitive parts are supplied to the continuation, the result of which
   has the content reattached and is returned."
   [gcd u v continue]
-  (let [gcd-reducer (reduce-until v/unity? gcd)
+  (let [gcd-reducer (reduce-until v/one? gcd)
         content #(-> % p/coefficients gcd-reducer)
         ku (content u)
         kv (content v)
@@ -96,7 +96,7 @@
       (loop [u u v v]
         (*poly-gcd-bail-out*)
         (let [[r _] (p/pseudo-remainder u v)]
-          (if (v/nullity? r) v
+          (if (v/zero? r) v
               (let [kr (content r)]
                 (recur v (p/map-coefficients #(g/exact-divide % kr) r)))))))))
 
@@ -105,7 +105,7 @@
   [u v d]
   (let [[q1 r1] (p/divide u d)
         [q2 r2] (p/divide v d)]
-    (if (and (v/nullity? r1) (v/nullity? r2))
+    (if (and (v/zero? r1) (v/zero? r2))
       [q1 q2 d])))
 
 (defn ^:private with-trivial-constant-gcd-check
@@ -167,10 +167,10 @@
          (= (.-arity u) 1)
          (= (.-arity v) 1)]}
   (cond
-    (v/nullity? u) v
-    (v/nullity? v) u
-    (v/unity? u) u
-    (v/unity? v) v
+    (v/zero? u) v
+    (v/zero? v) u
+    (v/one? u) u
+    (v/one? v) v
     (= u v) u
     :else (with-content-removed native-gcd u v univariate-euclid-inner-loop)))
 
@@ -221,10 +221,10 @@
       (do (swap! gcd-cache-hit inc) g)
       (let [g (cond
                 (= arity 1) (gcd1 u v)
-                (v/nullity? u) v
-                (v/nullity? v) u
-                (v/unity? u) u
-                (v/unity? v) v
+                (v/zero? u) v
+                (v/zero? v) u
+                (v/one? u) u
+                (v/one? v) v
                 (= u v) u
                 (p/monomial? u) (monomial-gcd u v)
                 (p/monomial? v) (monomial-gcd v u)
@@ -266,10 +266,10 @@
     (cond
       (not (and (every? v/integral? (p/coefficients u))
                 (every? v/integral? (p/coefficients v)))) (v/one-like u)
-      (v/nullity? u) v
-      (v/nullity? v) u
-      (v/unity? u) u
-      (v/unity? v) v
+      (v/zero? u) v
+      (v/zero? v) u
+      (v/one? u) u
+      (v/one? v) v
       (= u v) u
       (= arity 1) (g/abs (gcd1 u v))
       :else (binding [*poly-gcd-bail-out* (maybe-bail-out "polynomial GCD" clock *poly-gcd-time-limit*)]
@@ -284,7 +284,7 @@
 (def gcd-seq
   "Compute the GCD of a sequence of polynomials (we take care to
   break early if the gcd of an initial segment is unity)"
-  (reduce-until v/unity? gcd))
+  (reduce-until v/one? gcd))
 
 ;; several observations. many of the gcds we find when attempting the
 ;; troublesome GCD are the case where we have two monomials. This can be done

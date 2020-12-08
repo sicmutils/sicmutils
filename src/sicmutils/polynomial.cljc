@@ -79,15 +79,15 @@
 
 (deftype Polynomial [arity xs->c]
   v/Value
-  (nullity? [_] (empty? xs->c))
+  (zero? [_] (empty? xs->c))
   (numerical? [_] false)
   (exact? [_] false)
   (zero-like [_] (Polynomial. arity empty-coefficients))
   (one-like [_] (make-constant arity (v/one-like (coefficient (exponents xs->c)))))
-  (unity? [_] (and (= (count xs->c) 1)
-                   (let [[xs c] (first xs->c)]
-                     (and (every? zero? xs)
-                          (v/unity? c)))))
+  (one? [_] (and (= (count xs->c) 1)
+                 (let [[xs c] (first xs->c)]
+                   (and (every? zero? xs)
+                        (v/one? c)))))
   (freeze [_] `(~'polynomial ~arity ~xs->c))
   (kind [_] ::polynomial)
 
@@ -153,7 +153,7 @@
    (->Polynomial arity
                  (->> (for [[xs cs] (group-by exponents xc-pairs)
                             :let    [sum-cs (reduce #(g/+ %1 (coefficient %2)) 0 cs)]
-                            :when   (not (v/nullity? sum-cs))]
+                            :when   (not (v/zero? sum-cs))]
                         [xs sum-cs])
                       (sort-by exponents monomial-order)
                       (into empty-coefficients))))
@@ -168,7 +168,7 @@
 
 (defn degree
   [p]
-  (if (v/nullity? p)
+  (if (v/zero? p)
     -1
     (->> p lead-term exponents (reduce g/+))))
 
@@ -194,7 +194,7 @@
                 (into empty-coefficients
                       (for [[xs c] (.-xs->c p)
                             :let [fc (f c)]
-                            :when (not (v/nullity? fc))]
+                            :when (not (v/zero? fc))]
                         [xs fc]))))
 
 (defn map-exponents
@@ -212,7 +212,7 @@
   "Return a constant polynomial of the given arity."
   [arity c]
   (->Polynomial arity
-                (if (v/nullity? c)
+                (if (v/zero? c)
                   empty-coefficients
                   (conj empty-coefficients
                         [(vec (repeat arity 0)) c]))))
@@ -222,8 +222,8 @@
   [^Polynomial p ^Polynomial q]
   {:pre [(polynomial? p)
          (polynomial? q)]}
-  (cond (v/nullity? p) q
-        (v/nullity? q) p
+  (cond (v/zero? p) q
+        (v/zero? q) p
         :else (make (check-same-arity p q)
                     (concat (.-xs->c p)
                             (.-xs->c q)))))
@@ -233,8 +233,8 @@
   [^Polynomial p ^Polynomial q]
   {:pre [(polynomial? p)
          (polynomial? q)]}
-  (cond (v/nullity? p) (negate q)
-        (v/nullity? q) p
+  (cond (v/zero? p) (negate q)
+        (v/zero? q) p
         :else (make (check-same-arity p q)
                     (concat (.-xs->c p)
                             (for [[xs c] (.-xs->c q)]
@@ -245,10 +245,10 @@
   [^Polynomial p ^Polynomial q]
   {:pre [(polynomial? p)
          (polynomial? q)]}
-  (cond (v/nullity? p) p
-        (v/nullity? q) q
-        (v/unity? p) q
-        (v/unity? q) p
+  (cond (v/zero? p) p
+        (v/zero? q) q
+        (v/one? p) q
+        (v/one? q) p
         :else (let [a (check-same-arity p q)]
                 (make a (for [[xp cp] (.-xs->c p)
                               [xq cq] (.-xs->c q)]
@@ -271,7 +271,7 @@
   [^Polynomial p]
   {:pre [(polynomial? p)
          (> (.-arity p) 1)
-         (not (v/nullity? p))]}
+         (not (v/zero? p))]}
   ;; XXX observation:
   ;; XXX we often create polynomials of "one lower arity"
   ;; which are EFFECTIVELY UNIVARIATE. When this happens,
@@ -306,7 +306,7 @@
   [p xs]
   {:pre [(polynomial? p)]}
   (cond (nil? xs) p
-        (v/nullity? p) 0
+        (v/zero? p) 0
         (= (.-arity p) 1) (evaluate-1 p (first xs))
         :else (let [L (evaluate-1 (lower-arity p) (first xs))]
                 (if (polynomial? L)
@@ -320,9 +320,9 @@
   [u v]
   {:pre [(polynomial? u)
          (polynomial? v)]}
-  (cond (v/nullity? v) (u/illegal "internal polynomial division by zero")
-        (v/nullity? u) [u u]
-        (v/unity? v) [u (v/zero-like u)]
+  (cond (v/zero? v) (u/illegal "internal polynomial division by zero")
+        (v/zero? u) [u u]
+        (v/one? v) [u (v/zero-like u)]
         :else (let [arity (check-same-arity u v)
                     [vn-exponents vn-coefficient] (lead-term v)
                     good? (fn [residues]
@@ -358,7 +358,7 @@
   [u v]
   {:pre [(polynomial? u)
          (polynomial? v)
-         (not (v/nullity? v))
+         (not (v/zero? v))
          (= (.-arity u) (.-arity v) 1)]}
   (let [a (check-same-arity u v)
         [vn-exponents vn-coefficient] (lead-term v)
@@ -380,7 +380,7 @@
   {:pre [(polynomial? u)
          (polynomial? v)]}
   (let [[q r] (divide u v)]
-    (when-not (v/nullity? r)
+    (when-not (v/zero? r)
       (u/illegal-state (str "expected even division left a remainder!" u " / " v " r " r)))
     q))
 
@@ -396,15 +396,15 @@
   (when-not (and (v/native-integral? n)
                  (not (g/negative? n)))
     (u/arithmetic-ex (str "can't raise poly to " n)))
-  (cond (v/unity? p) p
-        (v/nullity? p) (if (v/nullity? n)
-                         (u/arithmetic-ex "poly 0^0")
-                         p)
-        (v/nullity? n) (make-constant (.-arity p) 1)
+  (cond (v/one? p) p
+        (v/zero? p) (if (v/zero? n)
+                      (u/arithmetic-ex "poly 0^0")
+                      p)
+        (v/zero? n) (make-constant (.-arity p) 1)
         :else (loop [x p
                      c n
                      a (make-constant (.-arity p) 1)]
-                (if (v/nullity? c) a
+                (if (v/zero? c) a
                     (if (even? c)
                       (recur (mul x x) (g/quotient c 2) a)
                       (recur x (dec c) (mul x a)))))))

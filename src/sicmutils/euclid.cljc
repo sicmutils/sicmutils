@@ -27,10 +27,10 @@
   Returns a list containing the GCD and the Bézout coefficients
   corresponding to the inputs."
   [a b]
-  (cond (v/nullity? a) [(g/abs b) 0 1]
-        (v/nullity? b) [(g/abs a) 1 0]
+  (cond (v/zero? a) [(g/abs b) 0 1]
+        (v/zero? b) [(g/abs a) 1 0]
         :else (loop [s 0 s0 1 t 1 t0 0 r (g/abs b) r0 (g/abs a)]
-                (if (v/nullity? r)
+                (if (v/zero? r)
                   [r0 s0 t0]
                   (let [q (g/quotient r0 r)]
                     (recur (g/- s0 (g/* q s)) s
@@ -38,11 +38,11 @@
                            (g/- r0 (g/* q r)) r))))))
 
 (defn gcd [a b]
-  (cond (v/nullity? a) (g/abs b)
-        (v/nullity? b) (g/abs a)
+  (cond (v/zero? a) (g/abs b)
+        (v/zero? b) (g/abs a)
         (not (and (v/integral? a) (v/integral? b))) 1
         :else (loop [a (g/abs a) b (g/abs b)]
-                (if (v/nullity? b)
+                (if (v/zero? b)
                   a
                   (recur b (g/remainder a b))))))
 

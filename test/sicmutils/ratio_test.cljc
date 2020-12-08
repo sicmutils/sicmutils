@@ -91,8 +91,8 @@
             100
             [n sg/any-integral
              d sg/bigint
-             :when (and (not (v/nullity? d))
-                        (not (v/unity? d)))]
+             :when (and (not (v/zero? d))
+                        (not (v/one? d)))]
             (is (= n (g/mul d (r/rationalize n d)))
                 "multiplying by denominator recovers numerator")
             (let [r      (r/rationalize n d)

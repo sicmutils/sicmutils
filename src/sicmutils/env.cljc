@@ -84,8 +84,8 @@
   [& args]
   `(af/with-literal-functions ~@args))
 
-(def zero? v/nullity?)
-(def one? v/unity?)
+(def zero? v/zero?)
+(def one? v/one?)
 
 (def print-expression simp/print-expression)
 

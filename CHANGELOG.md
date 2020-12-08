@@ -2,6 +2,11 @@
 
 ##  [Unreleased]
 
+- After the work below, `v/nullity?` renamed to `v/zero?`, and `v/unity?`
+  renamed to `v/one?`
+  ([#180](https://github.com/littleredcomputer/sicmutils/pull/180)). This
+  affects the names listed in the CHANGELOG entries below.
+
 ### Miscellaneous
 
 - expose `bootstrap-repl!` to Clojurescript, so that this is available in

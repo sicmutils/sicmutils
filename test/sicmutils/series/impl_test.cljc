@@ -214,17 +214,17 @@
   (is (->> (i/seq:- i/sinx
                     (i/sqrt (i/c-seq 1 (i/expt i/cosx 2))))
            (take 30)
-           (every? v/nullity?))
+           (every? v/zero?))
       "sin(x) = sqrt(1-cos(x)^2) to 30 terms")
 
   (is (->> (i/seq:- i/tanx (i/revert i/atanx))
            (take 30)
-           (every? v/nullity?))
+           (every? v/zero?))
       "tan(x) = revert(arctan(x))")
 
   (is (->> (i/seq:- i/atanx
                     (i/integral
                      (i/invert (i/->series [1 0 1]))))
            (take 30)
-           (every? v/nullity?))
+           (every? v/zero?))
       "atan(x) = integral(1/(1+x^2))"))

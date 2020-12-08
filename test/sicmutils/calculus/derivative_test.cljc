@@ -432,13 +432,13 @@
 
   (testing "arity"
     (let [f100dd (fn [x ct acc]
-                   (if (v/nullity? ct)
+                   (if (v/zero? ct)
                      acc
                      (recur x (dec ct) (sin (+ x acc)))))
           f100d (fn [x] (f100dd x 100 x))
           f100e (fn f100e
                   ([x] (f100e x 100 x))
-                  ([x ct acc] (if (v/nullity? ct) acc (recur x (dec ct) (sin (+ x acc))))))
+                  ([x ct acc] (if (v/zero? ct) acc (recur x (dec ct) (sin (+ x acc))))))
           f100ea (with-meta f100e {:arity [:exactly 1]})]
       (is ((v/within 1e-6) 0.51603111348625 ((D f100d) 6)))
       (let [run (fn [] ((v/within 1e-6) 0.51603111348625 ((D f100e) 6)))]

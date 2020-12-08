@@ -40,7 +40,7 @@
            tracker []
            old-s p
            old-m (v/one-like p)]
-      (if (v/unity? m)
+      (if (v/one? m)
         (answer tracker h)
         (let [gg (-> h poly/partial-derivatives gcd-seq)
               new-s (g/exact-divide h (gcd h gg))
@@ -57,7 +57,7 @@
 (defn actual-factors
   [factors]
   (let [expt (sym/symbolic-operator 'expt)]
-    (filter (complement v/unity?)
+    (filter (complement v/one?)
             (cons (first factors)
                   (map-indexed #(expt %2 (+ %1 1))
                                (next factors))))))

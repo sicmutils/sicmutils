@@ -42,8 +42,8 @@
 ;; tag set.
 (deftype Differential [terms]
   v/Value
-  (nullity? [_] (every? v/nullity? (map coefficient terms)))
-  (unity? [_] false)
+  (zero? [_] (every? v/zero? (map coefficient terms)))
+  (one? [_] false)
   (zero-like [_] 0)
   (one-like [_] 1)
   (freeze [_] `[~'Differential ~@terms])
@@ -110,7 +110,7 @@
          (sort-by first
                   (for [[tags tags-coefs] (group-by tags tags->coefs)
                         :let [c (reduce #(g/+ %1 (coefficient %2)) 0 tags-coefs)]
-                        :when (not (v/nullity? c))]
+                        :when (not (v/zero? c))]
                     [tags c])))))
 
 (defn ^:private differential->terms
@@ -120,7 +120,7 @@
   which case we return the empty term list)."
   [dx]
   (cond (instance? Differential dx) (let [^Differential d dx] (.-terms d))
-        (v/nullity? dx) []
+        (v/zero? dx) []
         :else [[empty-tags dx]]))
 
 ;; The data structure of a tag set. Tags are small integers. Tag sets are
@@ -175,7 +175,7 @@
                    c (compare a-tags b-tags)]
                (cond (= c 0) (let [r-coef (g/+ a-coef b-coef)]
                                (recur (rest dxs) (rest dys)
-                                      (if-not (v/nullity? r-coef)
+                                      (if-not (v/zero? r-coef)
                                         (conj result [a-tags r-coef])
                                         result)))
                      (< c 0) (recur (rest dxs) dys (conj result a))
@@ -301,10 +301,10 @@
           [dx xe] (with-and-without-tag mt x)
           [dy ye] (with-and-without-tag mt y)
           a (f xe ye)
-          b (if (and (v/number? dx) (v/nullity? dx))
+          b (if (and (v/number? dx) (v/zero? dx))
               a
               (dx+dy a (dx*dy dx (df:dx xe ye))))
-          c (if (and (v/number? dy) (v/nullity? dy))
+          c (if (and (v/number? dy) (v/zero? dy))
               b
               (dx+dy b (dx*dy (df:dy xe ye) dy)))]
       (canonicalize-differential c))))
@@ -358,7 +358,7 @@
              (fn [x y]
                (g/* y (g/expt x (g/- y 1))))
              (fn [x y]
-               (if (and (v/number? x) (v/nullity? y))
+               (if (and (v/number? x) (v/zero? y))
                  (if (v/number? y)
                    (if (not (g/negative? y))
                      0

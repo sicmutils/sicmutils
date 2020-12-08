@@ -55,19 +55,19 @@
 
 (deftest value-protocol
   (testing "v/Value protocol implementation"
-    (is (v/nullity? c/ZERO))
-    (is (v/nullity? #sicm/complex "0"))
-    (is (not (v/nullity? c/ONE)))
-    (is (not (v/nullity? (c/complex 1.0))))
-    (is (v/nullity? (v/zero-like (c/complex 100))))
+    (is (v/zero? c/ZERO))
+    (is (v/zero? #sicm/complex "0"))
+    (is (not (v/zero? c/ONE)))
+    (is (not (v/zero? (c/complex 1.0))))
+    (is (v/zero? (v/zero-like (c/complex 100))))
     (is (= c/ZERO (v/zero-like (c/complex 2))))
     (is (= c/ZERO (v/zero-like #sicm/complex "0 + 3.14i")))
 
-    (is (v/unity? c/ONE))
-    (is (v/unity? (c/complex 1.0)))
-    (is (v/unity? (v/one-like c/ZERO)))
-    (is (not (v/unity? (c/complex 2))))
-    (is (not (v/unity? (c/complex 0.0))))
+    (is (v/one? c/ONE))
+    (is (v/one? (c/complex 1.0)))
+    (is (v/one? (v/one-like c/ZERO)))
+    (is (not (v/one? (c/complex 2))))
+    (is (not (v/one? (c/complex 0.0))))
 
     (is (= 10.0 (v/freeze (c/complex 10)))
         "If the imaginary piece is 0, freeze will return only the real part.")
@@ -134,7 +134,7 @@
              (g/negate (c/complex 10 -2)))))
 
     (testing "invert"
-      (is (v/nullity? (g/add i (g/invert i)))))
+      (is (v/zero? (g/add i (g/invert i)))))
 
     (testing "abs"
       (is (= 5.0 (g/abs (c/complex 3 4)))))

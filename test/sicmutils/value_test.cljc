@@ -39,10 +39,10 @@
           "Parsing #sicm/bigint works with big strings too."))))
 
 (deftest vector-value-impl
-  (testing "nullity?"
-    (is (v/nullity? []))
-    (is (v/nullity? [0 0]))
-    (is (not (v/nullity? [1 2 3]))))
+  (testing "zero?"
+    (is (v/zero? []))
+    (is (v/zero? [0 0]))
+    (is (not (v/zero? [1 2 3]))))
 
   (testing "zero-like"
     (is (= [0 0 0] (v/zero-like [1 2 3])))
@@ -70,11 +70,11 @@
   ;; These really want to be generative tests.
   ;;
   ;; TODO convert, once we sort out the cljs test.check story.
-  (is (v/nullity? 0))
-  (is (v/nullity? 0.0))
-  (is (not (v/nullity? 1)))
-  (is (not (v/nullity? 1.0)))
-  (is (v/nullity? (v/zero-like 100)))
+  (is (v/zero? 0))
+  (is (v/zero? 0.0))
+  (is (not (v/zero? 1)))
+  (is (not (v/zero? 1.0)))
+  (is (v/zero? (v/zero-like 100)))
 
   (testing "zero-like sticks with precision"
     (is (= 0 (v/zero-like 2)))
@@ -84,12 +84,12 @@
     (is (= 1 (v/one-like 1)))
     (is (= 1.0 (v/one-like 1.2))))
 
-  (is (v/unity? 1))
-  (is (v/unity? 1.0))
-  (is (v/unity? (v/one-like 100)))
+  (is (v/one? 1))
+  (is (v/one? 1.0))
+  (is (v/one? (v/one-like 100)))
 
-  (is (not (v/unity? 2)))
-  (is (not (v/unity? 0.0)))
+  (is (not (v/one? 2)))
+  (is (not (v/one? 0.0)))
 
   (is (= 10 (v/freeze 10)))
   (is (v/numerical? 10))
@@ -144,17 +144,17 @@
      ;; A single variadic with lots of args works too.
      (is (= [:at-least 4] (v/arity (fn [x y z a & xs] (* x y z a)))))))
 
-(deftest nullity
-  (is (v/nullity? 0))
-  (is (v/nullity? 0.0))
-  (is (not (v/nullity? 1)))
-  (is (not (v/nullity? 0.1))))
+(deftest zero-tests
+  (is (v/zero? 0))
+  (is (v/zero? 0.0))
+  (is (not (v/zero? 1)))
+  (is (not (v/zero? 0.1))))
 
-(deftest unity
-  (is (v/unity? 1))
-  (is (v/unity? 1.0))
-  (is (not (v/unity? 0)))
-  (is (not (v/unity? 0.0))))
+(deftest one-tests
+  (is (v/one? 1))
+  (is (v/one? 1.0))
+  (is (not (v/one? 0)))
+  (is (not (v/one? 0.0))))
 
 (deftest kinds
   (is (= #?(:clj Long :cljs ::v/native-integral) (v/kind 1)))

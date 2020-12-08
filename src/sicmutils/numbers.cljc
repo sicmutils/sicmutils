@@ -145,7 +145,7 @@
   "Checked implementation of g/exact-divide general enough to use for any type
   that defines g/remainder and g/quotient."
   [a b]
-  {:pre [(v/nullity? (g/remainder a b))]}
+  {:pre [(v/zero? (g/remainder a b))]}
   (g/quotient a b))
 
 (defmethod g/exact-divide [::v/integral ::v/integral] [b a] (exact-divide b a))
@@ -171,12 +171,12 @@
 
        (defmethod g/div [::v/integral ::v/integral] [a b]
          (let [rem (g/remainder a b)]
-           (if (v/nullity? rem)
+           (if (v/zero? rem)
              (g/quotient a b)
              (r/rationalize a b))))
 
        (defmethod g/invert [::v/integral] [a]
-         (if (v/unity? a)
+         (if (v/one? a)
            a
            (r/rationalize 1 a)))))
 

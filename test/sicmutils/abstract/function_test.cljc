@@ -123,7 +123,7 @@
           a (literal-up 'a 2)
           g (fn [w] (g/* (literal-down 'g 3) w))
           s (up 'x 'y)]
-      (is (v/nullity? (transpose-defining-relation (DTf s) g a))
+      (is (v/zero? (transpose-defining-relation (DTf s) g a))
           "This function, whatever it is (see scmutils function.scm) satisfies
           the transpose defining relation.")
 

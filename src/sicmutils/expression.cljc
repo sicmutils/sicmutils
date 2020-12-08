@@ -41,13 +41,13 @@
 
 (deftype Literal [type expression meta]
   v/Value
-  (nullity? [_]
+  (zero? [_]
     (and (v/number? expression)
-         (v/nullity? expression)))
+         (v/zero? expression)))
 
-  (unity? [_]
+  (one? [_]
     (and (v/number? expression)
-         (v/unity? expression)))
+         (v/one? expression)))
 
   (zero-like [_] 0)
   (one-like [_] 1)

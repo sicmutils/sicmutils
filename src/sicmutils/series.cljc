@@ -50,8 +50,8 @@
 
 (deftype Series [xs]
   v/Value
-  (nullity? [_] false)
-  (unity? [_] false)
+  (zero? [_] false)
+  (one? [_] false)
   (zero-like [_] s-zero)
   (one-like [_] s-one)
   (numerical? [_] false)
@@ -195,8 +195,8 @@
 
 (deftype PowerSeries [xs]
   v/Value
-  (nullity? [_] false)
-  (unity? [_] false)
+  (zero? [_] false)
+  (one? [_] false)
   (zero-like [_] zero)
   (one-like [_] one)
   (numerical? [_] false)

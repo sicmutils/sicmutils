@@ -79,7 +79,7 @@
         expression
         (let [canonicalized-expression (canonicalize new-expression)]
           (cond (= canonicalized-expression expression) expression
-                (v/nullity? (*poly-analyzer* `(~'- ~expression ~canonicalized-expression))) canonicalized-expression
+                (v/zero? (*poly-analyzer* `(~'- ~expression ~canonicalized-expression))) canonicalized-expression
                 :else (recur canonicalized-expression)))))))
 
 (defn ^:private simplify-and-canonicalize
@@ -107,10 +107,10 @@
 ;; up, but at least things are beginning to simplify adequately.
 
 (def ^:private simplifies-to-zero?
-  #(-> % *poly-analyzer* v/nullity?))
+  #(-> % *poly-analyzer* v/zero?))
 
-(def ^:private simplifies-to-unity?
-  #(-> % *rf-analyzer* v/unity?))
+(def ^:private simplifies-to-one?
+  #(-> % *rf-analyzer* v/one?))
 
 (def trig-cleanup
   "This finds things like a - a cos^2 x and replaces them with a sin^2 x"
@@ -140,7 +140,7 @@
        ;; in the substitution. Idea: provide a binding for the *return value* of the predicate
        ;; in the scope of the substitution.
        (atan :y :x)
-       #(not (simplifies-to-unity? `(~'gcd ~(% :x) ~(% :y))))
+       #(not (simplifies-to-one? `(~'gcd ~(% :x) ~(% :y))))
        (atan (/ :y (gcd :x :y)) (/ :x (gcd :x :y)))
 
        ))

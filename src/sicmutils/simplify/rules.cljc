@@ -30,11 +30,11 @@
   (and (v/number? x) (>= x 2)))
 
 (defn ^:private even-integer? [x]
-  (and (v/integral? x) (v/nullity? (g/modulo x 2))))
+  (and (v/integral? x) (v/zero? (g/modulo x 2))))
 
 (defn ^:private odd-integer? [x]
   (and (v/integral? x)
-       (not (v/nullity? (g/modulo x 2)))))
+       (not (v/zero? (g/modulo x 2)))))
 
 (def sin-sq->cos-sq
   (rule-simplifier

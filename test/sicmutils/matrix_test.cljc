@@ -32,13 +32,13 @@
             [sicmutils.value :as v]))
 
 (deftest matrix-value-implementation
-  (testing "nullity?"
-    (is (v/nullity? (m/by-rows [0])))
-    (is (v/nullity?
+  (testing "zero?"
+    (is (v/zero? (m/by-rows [0])))
+    (is (v/zero?
          (m/by-rows [0 0 0]
                     [0 0 0]
                     [0 0 0])))
-    (is (not (v/nullity? (m/by-rows [1 2 3])))))
+    (is (not (v/zero? (m/by-rows [1 2 3])))))
 
   (testing "zero-like"
     (is (= (m/by-rows [0 0 0])
@@ -162,8 +162,8 @@
                       [1 2 3]
                       [2 3 4])
            (m/generate 3 3 +)))
-    (is (v/nullity? (m/by-rows [0 0]
-                               [0 0])))))
+    (is (v/zero? (m/by-rows [0 0]
+                            [0 0])))))
 
 (deftest literal-matrix-creation
   (testing "literal-matrix"
@@ -335,7 +335,7 @@
 (defspec a*ainv=i
   (gen/let [n (gen/choose 1 5)]
     (prop/for-all [A (generate-square-matrix n)]
-                  (or (v/nullity? (g/determinant A))
+                  (or (v/zero? (g/determinant A))
                       (= (m/I n)
                          (g/* (g/invert A) A)
                          (g/* A (g/invert A)))))))
