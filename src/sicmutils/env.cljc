@@ -171,6 +171,9 @@
   atanh
   transpose
   determinant
+  dot-product
+  inner-product
+  outer-product
   cross-product
   make-rectangular
   make-polar

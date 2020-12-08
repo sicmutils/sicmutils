@@ -351,6 +351,24 @@
               (do (is (not (m/column? matrix)))
                   (is (not (m/row? matrix)))))))
 
+(deftest complex-entry-tests
+  (checking "g/conjugate with real entries acts as id" 100
+            [a sg/real b sg/real
+             c sg/real d sg/real]
+            (is (= (m/by-rows [a b] [c d])
+                   (g/conjugate
+                    (m/by-rows [a b] [c d])))))
+
+  (checking "g/conjugate conjugates entries" 100
+            [a sg/complex b sg/complex
+             c sg/complex d sg/complex]
+            (is (= (m/by-rows [(g/conjugate a)
+                               (g/conjugate b)]
+                              [(g/conjugate c)
+                               (g/conjugate d)])
+                   (g/conjugate
+                    (m/by-rows [a b] [c d]))))))
+
 (defspec p+q=q+p
   (gen/let [n (gen/choose 1 10)]
     (prop/for-all [p (sg/square-matrix n)

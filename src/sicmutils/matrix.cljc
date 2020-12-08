@@ -565,6 +565,9 @@
 
 (defmethod g/invert [::matrix] [m] (invert m))
 
+(defmethod g/conjugate [::matrix] [m]
+  (fmap g/conjugate m))
+
 (defmethod g/transpose [::matrix] [m] (transpose m))
 (defmethod g/trace [::square-matrix] [m] (trace m))
 (defmethod g/determinant [::square-matrix] [m] (determinant m))

@@ -389,30 +389,99 @@
       (same s (assoc v k (structure-assoc-in (v k) ks value)))
       (same s (assoc v k value)))))
 
-(defn ^:private compatible-for-contraction?
+;; TODO make this a RECURSIVE compatible for contraction?
+(defn- compatible-for-contraction?
   "True if s and t are equal in length but opposite in orientation"
   [s t]
   (and (= (count s) (count t))
        (not= (orientation s) (orientation t))))
 
-(defn ^:private inner-product
-  "The inner produce of compatible structures (opposite orientation, same
-  length)."
+(comment
+  (define (s:compatible-for-contraction? v1 v2)
+    (or (and (down? v1) (up? v2)
+             (s:compatible-elements? v1 v2))
+        (and (up? v1) (down? v2)
+             (s:compatible-elements? v1 v2))))
+
+  (define (s:compatible-elements? v1 v2)
+    (let ((n (s:length v1)))
+      (and (fix:= n (s:length v2))
+           (let lp ((i 0))
+                (cond ((fix:= i n) true)
+                      ((or (not (structure? (s:ref v1 i)))
+                           (not (structure? (s:ref v2 i))))
+                       (lp (fix:+ i 1)))
+                      ((s:compatible-for-contraction? (s:ref v1 i)
+                                                      (s:ref v2 i))
+                       (lp (fix:+ i 1)))
+                      (else false)))))))
+
+;; TODO make sure that this checks on length!!
+(defn- dot-product
+  "Returns the dot product of the compatible structures `s` and `t` (opposite
+  orientation, same length)."
   [s t]
   (reduce g/+ (map g/* s t)))
 
-(defn ^:private outer-product
+(comment
+  ;; TODO also note that square should just be dot-product v, v
+
+  ;; should equal 11, actually equals (down (down 3 6) (down 4 8))
+  (= 11 (dot-product (up (down 1 2)) (up (down 3 4))))
+
+  (define (s:dot-product v1 v2)
+    (if (not (and (eq? (s:same v1)
+                       (s:same v2))
+                  (= (s:dimension v1) (s:dimension v2))))
+      (error "Incompatible structures -- S:DOT-PRODUCT" v1 v2))
+    (apply g:+ (map g:*
+                    (s:fringe v1)
+                    (s:fringe v2))))
+
+  (define (s:fringe s)
+    (define (walk s ans)
+      (if (structure? s)
+        (let ((n (s:length s)))
+          (let lp ((i 0) (ans ans))
+               (if (fix:= i n)
+                 ans
+                 (lp (fix:+ i 1)
+                     (walk (s:ref s i) ans)))))
+        (cons s ans)))
+    (walk s '())))
+
+(defn- inner-product
+  "Returns the inner product of the compatible structures `s` and `t` (opposite
+  orientation, same length)."
+  [s t]
+  (dot-product (g/conjugate s) t))
+
+(comment
+  (define (s:outer-product struct2 struct1)
+    (s:map/r (lambda (s1)
+                     (s:map/r (lambda (s2)
+                                      (g:* s1 s2))
+                              struct2))
+             struct1)))
+
+(defn- outer-product
   "The outer product of s and t is the structure s with each element at the
   first level post-multiplied by all of t, following the usual structure
   multiplication rules."
   [s t]
-  (same t (map #(g/* s %) t)))
+  (mapr (fn [s1]
+          (mapr
+           (fn [s2]
+             (g/* s1 s2))
+           s))
+        t))
 
-(defn ^:private cross-product
+(defn- cross-product
   "Cross product of structures of length 3. Input orientations are ignored;
   result is an up-tuple."
   [s t]
-  (when (or (not= (count s) 3) (not= (count t) 3))
+  (when (or (not= (count s) 3)
+            (not= (count t) 3))
     (u/illegal "cross product only works on two elements of ^3"))
   (let [[s0 s1 s2] s
         [t0 t1 t2] t]
@@ -420,12 +489,12 @@
         (g/- (g/* s2 t0) (g/* s0 t2))
         (g/- (g/* s0 t1) (g/* t0 s1)))))
 
-(defn ^:private mul
-  "If s and t are compatible for contraction, returns their inner product,
+(defn- mul
+  "If s and t are compatible for contraction, returns their dot product,
   else their outer product."
   [s t]
   (if (compatible-for-contraction? s t)
-    (inner-product s t)
+    (dot-product s t)
     (outer-product s t)))
 
 ;; hmmm. why not do the repeated-squaring trick here?
@@ -469,7 +538,7 @@
     (-> s flatten count)
     1))
 
-(defn ^:private elementwise
+(defn- elementwise
   "Given a binary operator and two structures of the same size, return
   a structure with the same orientation as the first formed from the
   elementwise binary operation between corresponding elements of the
@@ -483,7 +552,7 @@
 (defmethod g/add [::up ::up] [a b] (elementwise g/+ a b))
 (defmethod g/sub [::down ::down] [a b] (elementwise g/- a b))
 (defmethod g/sub [::up ::up] [a b] (elementwise g/- a b))
-(defmethod g/cross-product [::up ::up] [a b] (cross-product a b))
+
 (defmethod g/mul [::structure ::structure] [a b] (mul a b))
 
 (defmethod g/mul [::structure ::v/scalar] [a b]
@@ -509,19 +578,24 @@
 
 (defmethod g/div [::structure ::structure] [a b] (mul (g/invert b) a))
 (defmethod g/expt [::structure ::v/integral] [a b] (expt a b))
-(defmethod g/negate [::structure] [a] (same a (mapv g/negate a)))
-(defmethod g/square [::structure] [a] (inner-product a a))
+(defmethod g/negate [::structure] [a] (mapr g/negate a))
+(defmethod g/square [::structure] [a] (dot-product a a))
 (defmethod g/cube [::structure] [a] (mul a (mul a a)))
 (defmethod g/simplify [::structure] [a] (->> a (mapr g/simplify) v/freeze))
 
-(defmethod g/transpose [::structure] [a] (opposite a (seq a)))
-(defmethod g/dimension [::structure] [a] (dimension a))
 
 (defmethod g/magnitude [::structure] [a]
-  (g/sqrt (inner-product (mapv g/conjugate a) a)))
-
-(defmethod g/abs [::structure] [a]
   (g/sqrt (inner-product a a)))
 
+(defmethod g/abs [::structure] [a]
+  (g/sqrt (dot-product a a)))
+
 (defmethod g/conjugate [::structure] [a]
-  (same a (mapv g/conjugate a)))
+  (mapr g/conjugate a))
+
+(defmethod g/transpose [::structure] [a] (opposite a (seq a)))
+(defmethod g/dimension [::structure] [a] (dimension a))
+(defmethod g/dot-product [::structure ::structure] [a b] (dot-product a b))
+(defmethod g/inner-product [::structure ::structure] [a b] (inner-product a b))
+(defmethod g/outer-product [::structure ::structure] [a b] (outer-product a b))
+(defmethod g/cross-product [::structure ::structure] [a b] (cross-product a b))
