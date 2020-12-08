@@ -61,6 +61,9 @@
                long
                integer]))
 
+(def real
+  (gen/one-of [any-integral (reasonable-double)]))
+
 (def complex
   (gen/let [r (reasonable-double)
             i (reasonable-double)]
