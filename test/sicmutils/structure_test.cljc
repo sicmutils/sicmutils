@@ -82,19 +82,31 @@
 
   (testing "support take"
     (is (= (s/up 1 2) (take 2 (s/up 1 2 3))))
-    (is (= (s/down (s/up 1 2)
+
+    (let [first-two (take 2 (s/down (s/up 1 2)
+                                    (s/up 3 4)
+                                    (s/up 5 6)))]
+      (is (= (s/up (s/up 1 2)
                    (s/up 3 4))
-           (take 2 (s/down (s/up 1 2)
-                           (s/up 3 4)
-                           (s/up 5 6))))))
+             first-two)
+          "taking creates a lazy sequence and loses orientation information, but
+          bare sequences are interpreted as up.")
+      (is (not= (s/down (s/up 1 2)
+                        (s/up 3 4))
+                first-two)
+          "the bare sequence is NOT equal to this down.")))
 
   (testing "support drop"
     (is (= (s/up 3) (drop 2 (s/up 1 2 3))))
-    (is (= (s/down (s/up 3 4)
-                   (s/up 5 6))
-           (drop 1 (s/down (s/up 1 2)
-                           (s/up 3 4)
-                           (s/up 5 6))))))
+    (let [dropped (drop 1 (s/down (s/up 1 2)
+                                  (s/up 3 4)
+                                  (s/up 5 6)))]
+      (is (not= (s/down (s/up 3 4)
+                        (s/up 5 6))
+                dropped)
+          "bare sequences can't equal downs.")
+      (is (= (s/up (s/up 3 4) (s/up 5 6))
+             dropped))))
 
   (testing "can be mapped"
     (is (= (s/up 1 4 9) (map square (s/up 1 2 3)))))
@@ -285,9 +297,9 @@
 
   (testing "assoc-in"
     (is (= (s/up 4 55 6)
-           (s/structure-assoc-in (s/up 4 5 6) [1] 55)))
+           (assoc-in (s/up 4 5 6) [1] 55)))
     (is (= (s/down (s/up 1 22) (s/up 3 4))
-           (s/structure-assoc-in (s/down (s/up 1 2) (s/up 3 4)) [0 1] 22))))
+           (assoc-in (s/down (s/up 1 2) (s/up 3 4)) [0 1] 22))))
 
   (testing "unflatten"
     (is (= (s/up (s/down 0 1) (s/down 2 3))
@@ -564,4 +576,34 @@
 
   (is (= 11 (g/dot-product
              (s/up (s/down 1 2))
-             (s/up (s/down 3 4))))))
+             (s/up (s/down 3 4)))))
+
+  (let [foo (s/down (s/down (s/up 'x 'y)
+                            (s/up 'z 'w))
+                    (s/down (s/up 'a 'b)
+                            (s/up 'c 'd)))]
+    (is (= (s/down (s/down (s/up 'x 'y)
+                           (s/up 'a 'b))
+                   (s/down (s/up 'z 'w)
+                           (s/up 'c 'd)))
+           (s/transpose-outer foo))))
+
+  (let [s (s/up 't (s/up 'u 'v) (s/down 'r 's) (s/up 'v1 'v2))]
+    ;; one law
+    (is (= s (s/map-chain #(get-in s %2) s)))
+
+    ;; another law
+    (is (= s (s/mapr #(get-in s %) (s/structure->access-chains s))))
+
+    ;; specifics
+    (is (= (s/map-chain (fn [_ chain] (seq chain)) s)
+           (s/structure->access-chains s)))
+
+    (is (= (s/up 'x0
+                 (s/up 'x1:0 'x1:1)
+                 (s/down 'x2:0 'x2:1)
+                 (s/up 'x3:0 'x3:1))
+           (s/structure->prototype 'x s)))
+
+    (is (= 0 (g/* s (s/compatible-zero s))))
+    (is (= 0 (g/* (s/compatible-zero s) s)))))

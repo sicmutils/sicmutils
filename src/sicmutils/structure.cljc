@@ -27,7 +27,7 @@
             [sicmutils.value :as v]
             #?(:cljs [cljs.reader]))
   #?(:clj
-     (:import [clojure.lang AFn Counted IFn ILookup PersistentVector Seqable Sequential])))
+     (:import [clojure.lang Associative AFn IFn PersistentVector Sequential])))
 
 (declare make)
 
@@ -42,13 +42,17 @@
 (def ^:private opposite-orientation
   {::up ::down ::down ::up})
 
-
 (derive ::up ::structure)
 (derive ::down ::structure)
 (derive PersistentVector ::up)
 
 ;; Structures can interact with functions.
 (derive ::structure ::f/cofunction)
+
+;; TODO - start from the top, get it all going...
+
+
+(declare s:=)
 
 (deftype Structure [orientation v]
   v/Value
@@ -65,10 +69,7 @@
 
   #?@(:clj
       [Object
-       (equals [_ b]
-               (and (instance? Structure b)
-                    (= orientation (.-orientation b))
-                    (= v (.-v b))))
+       (equals [this that] (s:= this that))
        (toString [_] (str "("
                           (orientation orientation->symbol)
                           " "
@@ -77,15 +78,16 @@
 
        Sequential
 
-       Counted
+       Associative
+       (assoc [_ k entry] (Structure. orientation (assoc v k entry)))
+       (containsKey [_ k] (contains? v k))
+       (entryAt [_ k] (.entryAt v k))
        (count [_] (count v))
-
-       Seqable
        (seq [_] (seq v))
-
-       ILookup
        (valAt [_ key] (get v key))
        (valAt [_ key default] (get v key default))
+       (empty [_] (Structure. orientation []))
+       (equiv [this that] (s:= this that))
 
        IFn
        (invoke [_ a]
@@ -209,6 +211,20 @@
                 (Structure. orientation (mapv #(apply % a b c d e f g h i j k l m n o p q r s t rest) v)))
        ]))
 
+(defn- s:= [^Structure this that]
+  (cond (instance? Structure that)
+        (let [^Structure s that]
+          (and (= (.-orientation this)
+                  (.-orientation s))
+               (= (.-v this)
+                  (.-v s))))
+
+        (= (.-orientation this) ::up)
+        (cond (vector? that)   (= (.-v this) that)
+              (seqable? that) (= (seq this) (seq that))
+              :else false)
+        :else false))
+
 (defn valid-orientation? [o]
   (contains? #{::up ::down} o))
 
@@ -229,8 +245,7 @@
   {:pre [(vector? v)]}
   (->Structure ::down v))
 
-(defn ^:private make
-  [orientation xs]
+(defn- make [orientation xs]
   (->Structure orientation (into [] xs)))
 
 (defn up
@@ -254,24 +269,29 @@
   [s]
   (or (vector? s)
       (and (instance? Structure s)
-           (= (.-orientation s) ::up))))
+           (= (.-orientation ^Structure s) ::up))))
 
 (defn orientation
   "Return the orientation of s, either ::up or ::down."
-  [^Structure s]
-  (if (instance? Structure s) (.-orientation s) ::up))
+  [s]
+  (if (instance? Structure s)
+    (.-orientation ^Structure s)
+    ::up))
 
-(defn same-orientation? [l r]
-  (= (orientation l)
-     (orientation r)))
+(defn same-orientation?
+  "Returns true if the supplied structures have the same orientation, false
+  otherwise."
+  [s t]
+  (= (orientation s)
+     (orientation t)))
 
 (defn opposite
-  "Make a tuple containing xs with the orientation opposite to s."
+  "Returns a structure containing xs with the orientation opposite to `s`."
   [s xs]
   (make (opposite-orientation (orientation s)) xs))
 
 (defn same
-  "Make a tuple containing xs with the same orientation as s."
+  "Returns a structure containing `xs` with the same orientation as `s`."
   [s xs]
   (make (orientation s) xs))
 
@@ -332,12 +352,28 @@
   [sym size]
   (literal sym size ::down))
 
+(defn kronecker [i j]
+  (if (= i j) 1 0))
+
+(defn basis-unit
+  "[0 0 ... 1 ... 0] n long, 1 in ith position. If `n` is not supplied returns an
+  infinite sequence."
+  ([i] (map (partial kronecker i)
+            (range)))
+  ([n i] (into [] (take n) (basis-unit i))))
+
 (defn- s:nth [s i]
-  (cond (structure? s) (nth s i)
-        (= i 0)        s
-        :else (u/illegal
-               (str "non-struct s:nth not supported on non-structure: "
-                    s " with index: " i))))
+  (cond (sequential? s) (nth s i)
+        (= i 0)         s
+        :else
+        (u/illegal
+         (str "non-sequential s:nth not supported: "
+              s " with index != 0: " i))))
+
+(defn- s:count [s]
+  (if (sequential? s)
+    (count s)
+    1))
 
 ;; The following mappers only make sense if, when there is more than one
 ;; structure they are all isomorphic.
@@ -367,44 +403,101 @@
   [f & structures]
   (map:r:l f structures))
 
+(defn map-chain
+  "Walk down, maintaining an access chain as we go."
+  [f s]
+  (letfn [(walk [s chain]
+            (if (structure? s)
+              (generate (count s)
+                        (orientation s)
+                        (fn [i]
+                          (walk (s:nth s i)
+                                (conj chain i))))
+              (f s chain)))]
+    (walk s [])))
+
 (defn structure->access-chains
   "Return a structure of the same shape as s whose elements are access
   chains corresponding to position of each element (i.e., the sequence
   of indices needed to address that element)."
   [s]
   (when (structure? s)
-    (letfn [(access [chain s]
-              (make (orientation s)
-                    (map-indexed
-                     (fn [i elt]
-                       (if (structure? elt)
-                         (access (conj chain i) elt)
-                         ;; subtle (I'm afraid). Here is where we put
-                         ;; the access chain into the new structure.
-                         ;; But if we put it in as a vector, that would
-                         ;; introduce a new layer of structure since
-                         ;; vectors are considered up-tuples. So we
-                         ;; have to turn it into a seq, which will
-                         ;; forfeit structure-nature.
-                         (seq (conj chain i))))
-                     s)))]
-      (access [] s))))
+    (letfn [(access [s chain]
+              (if (structure? s)
+                (make (orientation s)
+                      (map-indexed
+                       (fn [i elem]
+                         (access elem (conj chain i)))
+                       s))
+                ;; subtle (I'm afraid). Here is where we put
+                ;; the access chain into the new structure.
+                ;; But if we put it in as a vector, that would
+                ;; introduce a new layer of structure since
+                ;; vectors are considered up-tuples. So we
+                ;; have to turn it into a seq, which will
+                ;; forfeit structure-nature.
+                (seq chain)))]
+      (access s []))))
+
+(defn structure->prototype [name s]
+  (mapr (fn [chain]
+          (let [path (join ":" chain)]
+            (symbol
+             (str name path))))
+        (structure->access-chains s)))
+
+(defn unflatten
+  "Given a sequence of values and a model structure, unpack the values into
+  a structure with the same shape as the model."
+  ([values struct]
+   (unflatten same values struct))
+  ([constructor values struct]
+   (letfn [(u [values struct]
+             (if (structure? struct)
+               (let [[values' struct']
+                     (reduce (fn [[values struct] element]
+                               (let [[values' struct'] (u values element)]
+                                 [values' (conj struct struct')]))
+                             [values []]
+                             struct)]
+                 [values' (constructor struct struct')])
+               [(rest values) (first values)]))]
+     (second (u values struct)))))
+
+(defn typical-object
+  "Returns a gensymmed object of the same shape."
+  [s]
+  (mapr (fn [_] (gensym 'x)) s))
+
+(defn compatible-zero
+  "A thing that can multiply s and produces the number zero."
+  [s]
+  (v/zero-like
+   (flip-indices s)))
+
+(defn compatible-shape
+  "Return an object compatible for multiplication with the given one, with the
+  slots filled with gensyms."
+  [s]
+  (typical-object
+   (flip-indices s)))
+
+(defn transpose-outer [s]
+  (let [s0 (s:nth s 0)]
+    (generate (s:count s0)
+              (orientation s0)
+              (fn [i]
+                (generate (s:count s)
+                          (orientation s)
+                          (fn [j]
+                            (-> (s:nth s j)
+                                (s:nth i))))))))
 
 (defn component
   "Given an access chain (a sequence of indices), return a function of
   structures that will retrieve that corresponding element."
   [& indices]
   #(get-in % indices))
-
-(defn structure-assoc-in
-  "Like assoc-in, but works for structures. At this writing we're not
-  sure if we want to overwrite the stock definition of assoc-in to
-  something that would fall through for standard clojure data types"
-  [s [k & ks] value]
-  (let [v (structure->vector s)]
-    (if ks
-      (same s (assoc v k (structure-assoc-in (v k) ks value)))
-      (same s (assoc v k value)))))
 
 (defn- compatible-for-contraction?
   "True if s and t are equal in length but opposite in orientation"
@@ -491,30 +584,6 @@
     (cond (v/one? n) s
           (> n one) (g/* s (g/expt s (g/- n one)))
           :else (u/arithmetic-ex (str "Cannot: " `(expt ~s ~n))))))
-
-(defn unflatten
-  "Given a sequence of values and a model structure, unpack the values into
-  a structure with the same shape as the model."
-  ([values struct]
-   (unflatten same values struct))
-  ([constructor values struct]
-   (letfn [(u [values struct]
-             (if (structure? struct)
-               (let [[values' struct']
-                     (reduce (fn [[values struct] element]
-                               (let [[values' struct'] (u values element)]
-                                 [values' (conj struct struct')]))
-                             [values []]
-                             struct)]
-                 [values' (constructor struct struct')])
-               [(rest values) (first values)]))]
-     (second (u values struct)))))
-
-(defn compatible-shape
-  "Return an object compatible for multiplication with the given one, with
-  the slots filled with gensyms."
-  [s]
-  (unflatten opposite (repeatedly gensym) s))
 
 (defn dimension [s]
   (if (sequential? s)

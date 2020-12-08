@@ -38,6 +38,8 @@
       (is (= '(/ (* -1 m1 m2)
                  (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
              (e/simplify ((central/V 'm1 'm2) state))))
+
+
       ;; (is (println "unsimplified central" ((central/L 'm1 'm2) state)))
       (is (= '(/ (+ (* (expt dX 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
                     (* (expt dY 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
@@ -130,21 +132,15 @@
                     (up 0 0 (/ 1 m2) 0)
                     (up 0 0 0 (/ 1 m2)))
                (e/simplify (/ (A state))))))
-      (is (= '(down (down (up (up (* m (((expt D 2) x) t))
-                                  (* (/ 1 2) m (((expt D 2) y) t)))
-                              (up (* (/ 1 2) m (((expt D 2) y) t))
-                                  0))
-                          (up (up 0
-                                  (* (/ 1 2) m (((expt D 2) x) t)))
-                              (up (* (/ 1 2) m (((expt D 2) x) t))
-                                  (* m (((expt D 2) y) t)))))
-                    (down (up (up 0 0)
-                              (up 0 0))
-                          (up (up 0 0)
-                              (up 0 0))))
+
+      (is (= '(down (down (* m (((expt D 2) x) t))
+                          (* m (((expt D 2) y) t)))
+                    (down 0 0))
              (v/freeze
-              (e/simplify (((e/Lagrange-equations (central/L 'm 'M))
-                            (up (up x y) (up (constantly 0) (constantly 0)))) 't)))))
+              (e/simplify (((e/Lagrange-equations (central/L 'm))
+                            (up (up x y)
+                                (up (constantly 0) (constantly 0))))
+                           't)))))
       (is (= '(up 1
                   (up dx dy dX dY)
                   (up (/ (+ (* M X) (* -1 M x))

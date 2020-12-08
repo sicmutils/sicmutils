@@ -382,10 +382,9 @@
                                     (fn [i v_i]
                                       (structural-derivative
                                        (fn [w]
-                                         (g (struct/structure-assoc-in v [i] w)))
+                                         (g (assoc-in v [i] w)))
                                        v_i))
                                     v))
-
 
                   (or (v/numerical? v) (x/abstract? v))
                   ((derivative g) v)
@@ -396,7 +395,9 @@
             (cond (struct/structure? v)
                   (structural-derivative
                    (fn [w]
-                     (f (if (empty? selectors) w (struct/structure-assoc-in v selectors w))))
+                     (f (if (empty? selectors)
+                          w
+                          (assoc-in v selectors w))))
                    (get-in v selectors))
 
                   (empty? selectors)

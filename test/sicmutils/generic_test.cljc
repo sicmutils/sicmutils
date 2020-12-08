@@ -149,10 +149,10 @@
 (deftest generic-times
   (is (= 1 (g/*)) "No args returns the multiplicative identity.")
   (checking "g/*" 100 [x gen/any]
-            (is (== x (g/* x)) "single arg returns itself.")
-            (is (== (if (v/one? x) 1 x)
-                    (g/* x 1)) "First unity gets returned.")
-            (is (== x (g/* 1 x)) "Anything times a 1 returns itself.")))
+            (is (v/= x (g/* x)) "single arg returns itself.")
+            (is (v/= (if (v/one? x) 1 x)
+                     (g/* x 1)) "First unity gets returned.")
+            (is (v/= x (g/* 1 x)) "Anything times a 1 returns itself.")))
 
 (deftest generic-divide
   (is (= 1 (g/divide)) "division with no args returns multiplicative identity")

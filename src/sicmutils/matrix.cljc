@@ -29,9 +29,9 @@
             [sicmutils.structure :as s]
             [sicmutils.series :as series])
   #?(:clj
-     (:import [clojure.lang AFn Counted IFn ILookup Seqable Sequential])))
+     (:import [clojure.lang Associative AFn IFn Sequential])))
 
-(declare fmap generate I)
+(declare fmap generate I m:=)
 
 (derive ::square-matrix ::matrix)
 (derive ::column-matrix ::matrix)
@@ -65,25 +65,21 @@
 
   #?@(:clj
       [Object
-       (equals [_ b]
-               (and (instance? Matrix b)
-                    (let [^Matrix bm b]
-                      (and (= r (.-r bm))
-                           (= c (.-c bm))
-                           (= v (.-v bm))))))
+       (equals [this that] (m:= this that))
        (toString [_] (str v))
 
        Sequential
 
-       Counted
+       Associative
+       (assoc [_ k entry] (Matrix. r c (assoc v k entry)))
+       (containsKey [_ k] (contains? v k))
+       (entryAt [_ k] (.entryAt v k))
        (count [_] (count v))
-
-       Seqable
        (seq [_] (seq v))
-
-       ILookup
        (valAt [_ key] (get v key))
        (valAt [_ key default] (get v key default))
+       (empty [this] (fmap v/zero-like this))
+       (equiv [this that] (m:= this that))
 
        IFn
        (invoke [_ a]
@@ -210,6 +206,12 @@
   [m]
   (instance? Matrix m))
 
+(defn m:= [^Matrix this that]
+  (and (instance? Matrix that)
+       (let [^Matrix m that]
+         (and (= (.-r this) (.-r that))
+              (= (.-c this) (.-c that))
+              (= (.-v this) (.-v that))))))
 (defn square?
   "Returns true if `m` is a square matrix, false otherwise."
   [m]
@@ -391,24 +393,23 @@
                                    ))))
               (range (.-c m)))))
 
-(defn ^:private kronecker
-  [i j]
-  (if (= i j) 1 0))
-
 (def ^:dynamic *careful-conversion* true)
 
 (defn s->m
-  "Convert the structure ms, which would be a scalar if the (compatible) multiplication
+  "Convert the structure ms, which would be a scalar if the (compatible)
+  multiplication
   (* ls ms rs) were performed, to a matrix."
   [ls ms rs]
   (when *careful-conversion*
     (assert (v/numerical? (g/* ls (g/* ms rs)))))
   (let [ndowns (s/dimension ls)
-        nups (s/dimension rs)]
+        nups   (s/dimension rs)]
     (generate ndowns nups
-              #(g/* (s/unflatten (map (partial kronecker %1) (range)) ls)
-                    (g/* ms
-                         (s/unflatten (map (partial kronecker %2) (range)) rs))))))
+              (fn [i j]
+                (g/* (s/unflatten
+                      (s/basis-unit ndowns i) ls)
+                     (g/* ms (s/unflatten
+                              (s/basis-unit nups j) rs)))))))
 
 ;; (I wonder if tuple multiplication is associative...)
 
