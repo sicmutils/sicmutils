@@ -17,14 +17,14 @@
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(ns sicmutils.infix
+(ns sicmutils.expression.render
   (:require [clojure.zip :as z]
             [clojure.set :as set]
             [clojure.string :as s]
             [pattern.rule :as R #?@(:cljs [:include-macros true])]
             [sicmutils.expression :as x]
             [sicmutils.ratio :as r]
-            [sicmutils.numerical.compile :as compile]))
+            [sicmutils.expression.compile :as compile]))
 
 (defn ^:private make-symbol-generator
   [p]

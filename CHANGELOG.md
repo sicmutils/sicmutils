@@ -27,11 +27,13 @@
 - speed up power series multiplication by skipping work when either head term is
   zero (https://github.com/littleredcomputer/sicmutils/pull/166)
 
-- File moves!
-  - `sicmutils.polynomial-gcd` => `sicmutils.polynomial.gcd`
+- File moves:
+  - `sicmutils.polynomial-gcd`    => `sicmutils.polynomial.gcd`
   - `sicmutils.polynomial-factor` => `sicmutils.polynomial.factor`
-  - `sicmutils.rules` => `sicmutils.simplify.rules`
-  - `sicmutils.analyze` => `sicmutils.expression.analyze`
+  - `sicmutils.rules`             => `sicmutils.simplify.rules`
+  - `sicmutils.analyze`           => `sicmutils.expression.analyze`
+  - `sicmutils.infix`             => `sicmutils.expression.render`
+  - `sicmutils.numerical.compile` => `sicmutils.expression.compile`
 
 - `sicmutils.env/one?` now exposes/aliases `sicmutils.value/unity?`
   [#154](https://github.com/littleredcomputer/sicmutils/pull/154)
@@ -118,9 +120,13 @@
   now freeze to the same symbols as their generic counterparts.
   ([#173](https://github.com/littleredcomputer/sicmutils/pull/173))
 
-- Add support for the hyperbolic trig function `sinh`, `cosh`, `tanh`, `atanh`,
-  `asinh` and `acosh` to `sicmutils.infix/->Javascript`.
+- Add support for the hyperbolic trig functions `sinh`, `cosh`, `tanh`, `atanh`,
+  `asinh` and `acosh` to `sicmutils.expression.render/->Javascript`.
   ([#174](https://github.com/littleredcomputer/sicmutils/pull/174))
+
+- Add support for the hyperbolic trig functions `atanh`, `asinh` and `acosh` to
+  `sicmutils.expression.compile`.
+  ([#175](https://github.com/littleredcomputer/sicmutils/pull/175))
 
 ### Literals
 

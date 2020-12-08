@@ -18,7 +18,7 @@
 ;;
 
 (ns sicmutils.numerical.quadrature
-  (:require [sicmutils.numerical.compile :as c]
+  (:require [sicmutils.expression.compile :as c]
             [sicmutils.numerical.quadrature.adaptive :as qa]
             [sicmutils.numerical.quadrature.boole :as boole]
             [sicmutils.numerical.quadrature.common :as qc]

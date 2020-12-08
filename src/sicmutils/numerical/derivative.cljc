@@ -21,9 +21,9 @@
   "Different numerical derivative implementations."
   (:require [sicmutils.abstract.function :as af]
             [sicmutils.calculus.derivative :as d]
+            [sicmutils.expression.render :refer [->infix]]
             [sicmutils.numerical.interpolate.richardson :as r]
             [sicmutils.generic :as g]
-            [sicmutils.infix :as if]
             [sicmutils.util :as u]
             [sicmutils.util.stream :as us]
             [sicmutils.value :as v]))
@@ -46,7 +46,7 @@
 ;; of (simplified) symbolic expressions:
 
 (defn- show [e]
-  (if/->infix (g/simplify e)))
+  (->infix (g/simplify e)))
 
 ;; And a function to play with:
 

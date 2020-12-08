@@ -29,9 +29,9 @@
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number :as an]
             [sicmutils.complex]
+            [sicmutils.expression.render :as render]
             [sicmutils.function]
             [sicmutils.generic :as g]
-            [sicmutils.infix :as infix]
             [sicmutils.operator]
             [sicmutils.simplify :as simp]
             [sicmutils.structure]
@@ -129,13 +129,13 @@
   "Render expression in a form convenient for rendering with clojupyter.
   In this case, we want the TeX material wrapped with dollar signs."
   [expr]
-  (str "$" (-> expr g/simplify infix/->TeX) "$"))
+  (str "$" (-> expr g/simplify render/->TeX) "$"))
 
 (defn tex$$
   "Render expression in a form convenient for rendering with clojupyter.
   In this case, we want the TeX material wrapped with dollar signs."
   [expr]
-  (str "$$" (-> expr g/simplify infix/->TeX) "$$"))
+  (str "$$" (-> expr g/simplify render/->TeX) "$$"))
 
 (import-vars
  [sicmutils.abstract.number literal-number]
@@ -193,7 +193,7 @@
   up?
   vector->down vector->up
   literal-down literal-up]
- [sicmutils.infix
+ [sicmutils.expression.render
   ->infix
   ->TeX
   ->JavaScript]

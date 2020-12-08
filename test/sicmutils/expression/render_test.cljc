@@ -17,15 +17,15 @@
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(ns sicmutils.infix-test
+(ns sicmutils.expression.render-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             #?(:cljs [goog.string :refer [format]])
             [sicmutils.abstract.function :as af
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :refer [D taylor-series]]
+            [sicmutils.expression.render :as r :refer [->infix ->TeX ->JavaScript]]
             [sicmutils.generic :as g :refer [expt sin cos + - * /]]
-            [sicmutils.infix :as i :refer [->infix ->TeX ->JavaScript]]
             [sicmutils.function :as f]
             [sicmutils.series :as series]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]

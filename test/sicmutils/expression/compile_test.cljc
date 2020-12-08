@@ -17,15 +17,15 @@
 ; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;
 
-(ns sicmutils.numerical.compile-test
+(ns sicmutils.expression.compile-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing]]
             [clojure.walk :as w]
             #?(:cljs [goog.string :refer [format]])
+            [sicmutils.expression.compile :as c]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.structure :refer [up down]]
-            [sicmutils.value :as v]
-            [sicmutils.numerical.compile :as c]))
+            [sicmutils.value :as v]))
 
 (def ^:private near (v/within 1e-6))
 

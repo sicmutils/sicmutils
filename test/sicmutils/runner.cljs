@@ -21,6 +21,10 @@
             sicmutils.examples.rigid-rotation-test
             sicmutils.examples.top-test
 
+            sicmutils.expression.analyze-test
+            sicmutils.expression.compile-test
+            sicmutils.expression.render-test
+
             sicmutils.mechanics.hamilton-test
             sicmutils.mechanics.lagrange-test
             sicmutils.mechanics.rotation-test
@@ -40,7 +44,6 @@
             sicmutils.sicm.ch6-test
             sicmutils.sicm.ch7-test
 
-            sicmutils.numerical.compile-test
             sicmutils.numerical.elliptic-test
             sicmutils.numerical.minimize-test
             sicmutils.numerical.ode-test
@@ -73,11 +76,9 @@
             sicmutils.complex-test
             sicmutils.euclid-test
             sicmutils.expression-test
-            sicmutils.expression.analyze-test
             sicmutils.env-test
             sicmutils.function-test
             sicmutils.generic-test
-            sicmutils.infix-test
             sicmutils.matrix-test
             sicmutils.modint-test
             sicmutils.operator-test
@@ -113,7 +114,10 @@
            'sicmutils.examples.rigid-rotation-test
            'sicmutils.examples.top-test
 
-           'sicmutils.numerical.compile-test
+           'sicmutils.expression.analyze-test
+           'sicmutils.expression.compile-test
+           'sicmutils.expression.render-test
+
            'sicmutils.numerical.elliptic-test
            'sicmutils.numerical.minimize-test
            'sicmutils.numerical.ode-test
@@ -167,11 +171,9 @@
            'sicmutils.complex-test
            'sicmutils.euclid-test
            'sicmutils.expression-test
-           'sicmutils.expression.analyze-test
            'sicmutils.env-test
            'sicmutils.function-test
            'sicmutils.generic-test
-           'sicmutils.infix-test
            'sicmutils.matrix-test
            'sicmutils.modint-test
            'sicmutils.numbers-test
