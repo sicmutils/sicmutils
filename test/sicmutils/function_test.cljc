@@ -195,11 +195,23 @@
               (is (= (g/magnitude (f z)) ((g/magnitude f) z)))
               (is (= (g/angle (f z))     ((g/angle f) z))))))
 
-(defn transpose-defining-relation [T g a]
-  "T is a linear transformation T:V -> W
-  the transpose of T, T^t:W* -> V*
-  Forall a in V, g in W*,  g:W -> R
-  (T^t(g))(a) = g(T(a))."
+(defn transpose-defining-relation
+  "$T$ is a linear transformation
+
+  $$T : V -> W$$
+
+  the transpose of $T$ is
+
+  $$T^t : (W -> R) -> (V -> R)$$
+
+  \\forall a \\in V, g \\in (W -> R),
+
+  T^t : g \\to g \\circ T
+
+  ie:
+
+  (T^t(g))(a) = g(T(a))"
+  [T g a]
   (g/- (((g/transpose T) g) a)
        (g (T a))))
 
@@ -209,9 +221,8 @@
           g #(str "g" %)]
       (is (= "fg" (f (g ""))))
       (is (= "gf" (((g/transpose f) g) ""))
-          "g/transpose for functions returns a fn that takes ANOTHER fn, and
-    returns a fn that applies them in reverse order. Like a curried andThen (the
-    reverse of compose)."))
+          "See `transpose-defining-relation` above for a discussion of why this
+          is sensible.a"))
 
     (let [T   (f/literal-function 'T '(-> (UP Real Real) (UP Real Real Real)))
           DT  (D T)
