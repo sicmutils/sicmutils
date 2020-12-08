@@ -247,9 +247,8 @@
           g #(str "g" %)]
       (is (= "fg" (f (g ""))))
       (is (= "gf" (((g/transpose f) g) ""))
-          "g/transpose for functions returns a fn that takes ANOTHER fn, and
-    returns a fn that applies them in reverse order. Like a curried andThen (the
-    reverse of compose)"))))
+          "See `transpose-defining-relation` above for a discussion of why this
+          is sensible.a"))))
 
 (deftest function-algebra
   (let [add2 (fn [x] (g/+ x 2))
