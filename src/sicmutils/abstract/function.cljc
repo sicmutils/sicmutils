@@ -23,7 +23,7 @@
             [sicmutils.function]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
-            [sicmutils.numsymb :as ns]
+            [sicmutils.numsymb :as sym]
             [sicmutils.polynomial]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
@@ -188,19 +188,20 @@
 (defn iterated-symbolic-derivative? [expr]
   (and (sequential? expr)
        (sequential? (first expr))
-       (ns/expt? (first expr))
+       (sym/expt? (first expr))
        (= (second (first expr)) d/derivative-symbol)))
 
 (defn symbolic-increase-derivative [expr]
-  (cond (symbolic-derivative? expr)
-        (list (ns/expt d/derivative-symbol 2) (fnext expr))
-        (iterated-symbolic-derivative? expr)
-        (list (ns/expt d/derivative-symbol
-                       (+ (first (nnext (first expr)))
-                          1))
-              (fnext expr))
-        :else
-        (list d/derivative-symbol expr)))
+  (let [expt (sym/symbolic-operator 'expt)]
+    (cond (symbolic-derivative? expr)
+          (list (expt d/derivative-symbol 2) (fnext expr))
+          (iterated-symbolic-derivative? expr)
+          (list (expt d/derivative-symbol
+                      (+ (first (nnext (first expr)))
+                         1))
+                (fnext expr))
+          :else
+          (list d/derivative-symbol expr))))
 
 (defn- make-partials [f v]
   ;; GJS calls this function (the loop below) "fd"; we have no idea

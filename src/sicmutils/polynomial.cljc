@@ -474,17 +474,20 @@
     ;; expression representing the evaluation of that polynomial over the
     ;; indeterminates extracted from the expression at the start of this
     ;; process.
-    (if (polynomial? p)
-      (->> (.-xs->c  ^Polynomial p)
-           (sort-by exponents #(monomial-order %2 %1))
-           (map (fn [[xs c]]
-                  (->> (map (fn [exponent var]
-                              (sym/expt var exponent))
-                            xs vars)
-                       (reduce sym/mul 1)
-                       (sym/mul c))))
-           (reduce sym/add 0))
-      p))
+    (let [*    (sym/symbolic-operator '*)
+          +    (sym/symbolic-operator '+)
+          expt (sym/symbolic-operator 'expt)]
+      (if (polynomial? p)
+        (->> (.-xs->c  ^Polynomial p)
+             (sort-by exponents #(monomial-order %2 %1))
+             (map (fn [[xs c]]
+                    (->> (map (fn [exponent var]
+                                (expt var exponent))
+                              xs vars)
+                         (reduce *)
+                         (* c))))
+             (reduce +))
+        p)))
 
   (known-operation? [_ o]
     (operator-table o))

@@ -24,7 +24,7 @@
             [sicmutils.expression.analyze :as a]
             [sicmutils.generic :as g]
             [sicmutils.expression :as x]
-            [sicmutils.numsymb :as sym :refer [operator product? sqrt? operands expt]]
+            [sicmutils.numsymb :as sym]
             [sicmutils.polynomial :as poly]
             [sicmutils.polynomial.gcd :refer [gcd gcd-seq]]
             [taoensso.timbre :as log]))
@@ -56,9 +56,11 @@
 
 (defn actual-factors
   [factors]
-  (filter (complement v/unity?)
-          (cons (first factors)
-                (map-indexed #(expt %2 (+ %1 1)) (next factors)))))
+  (let [expt (sym/symbolic-operator 'expt)]
+    (filter (complement v/unity?)
+            (cons (first factors)
+                  (map-indexed #(expt %2 (+ %1 1))
+                               (next factors))))))
 
 (defn factor-polynomial-expression
   [simplifier analyzer p]
@@ -69,11 +71,14 @@
       (map (fn [factor] (simplifier (a/->expression analyzer factor v)))
            (split p)))))
 
-(defn ^:private flatten-product
+(defn- flatten-product
   "Construct a list with all the top-level products in args spliced
   in; other items left wrapped."
   [factors]
-  (mapcat #(if (product? %) (operands %) (list %)) factors))
+  (mapcat #(if (sym/product? %)
+             (sym/operands %)
+             (list %))
+          factors))
 
 (defn ->factors
   "Recursive generalization. [Rather terse comment. --Ed.]"
@@ -99,36 +104,36 @@
   [thing context]
   (log/warn (format "Assuming %s in %s" thing context)))
 
-(defn ^:private process-sqrt
-  [expr]
-  (let [fact-exp (factor (first (operands expr)))]
-    (loop [factors (if (product? fact-exp)
-                     (operands fact-exp)
+(defn- process-sqrt [expr]
+  (let [fact-exp (factor (first (sym/operands expr)))
+        expt     (sym/symbolic-operator 'expt)
+        *        (sym/symbolic-operator '*)]
+    (loop [factors (if (sym/product? fact-exp)
+                     (sym/operands fact-exp)
                      (list fact-exp))
            odds 1
            evens 1]
       (cond (nil? factors)
             (do (if (not (and (number? evens) (= evens 1)))
                   (assume! `(~'non-negative? ~evens) 'root-out-squares))
-                (sym/mul (sym/sqrt odds) evens))
+                (* (sym/sqrt odds) evens))
 
             (sym/expt? (first factors))
-            (let [b (first (operands (first factors)))
-                  e (second (operands (first factors)))]
+            (let [[b e] (sym/operands (first factors))]
               (if (and (integer? e) (even? e))
                 (recur (next factors)
                        odds
                        (let [power (quot e 2)]
-                         (cond (> power 1) (sym/mul evens (sym/expt b power))
-                               (= power 1) (sym/mul evens b)
+                         (cond (> power 1) (* evens (expt b power))
+                               (= power 1) (* evens b)
                                :else evens)))
                 (recur (next factors)
-                       (sym/mul (first factors) odds)
+                       (* (first factors) odds)
                        evens)))
 
             :else
             (recur (next factors)
-                   (sym/mul (first factors) odds)
+                   (* (first factors) odds)
                    evens)))))
 
 (defn root-out-squares
@@ -136,5 +141,7 @@
   [expr]
   (w/prewalk
    (fn [t]
-     (if (sqrt? t) (process-sqrt t) t ))
+     (if (sym/sqrt? t)
+       (process-sqrt t)
+       t))
    expr))

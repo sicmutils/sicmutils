@@ -21,7 +21,7 @@
   (:require [sicmutils.complex :as c]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
-            [sicmutils.numsymb :as ns]
+            [sicmutils.numsymb :as sym]
             [sicmutils.simplify :as s]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
@@ -111,7 +111,7 @@
     expr))
 
 (defn- defunary [generic-op op-sym]
-  (if-let [op (ns/symbolic-operator op-sym)]
+  (if-let [op (sym/symbolic-operator op-sym)]
     (defmethod generic-op [::x/numeric] [a]
       (literal-number (op (numerical-expression a))))
     (defmethod generic-op [::x/numeric] [a]
@@ -121,7 +121,7 @@
   (let [pairs [[::x/numeric ::x/numeric]
                [::v/number ::x/numeric]
                [::x/numeric ::v/number]]]
-    (if-let [op (ns/symbolic-operator op-sym)]
+    (if-let [op (sym/symbolic-operator op-sym)]
       (doseq [[l r] pairs]
         (defmethod generic-op [l r] [a b]
           (literal-number

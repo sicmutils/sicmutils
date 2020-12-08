@@ -62,7 +62,7 @@
 
 ;; these are without constructor simplifications!
 
-(defn add [a b]
+(defn- add [a b]
   (cond (and (v/number? a) (v/number? b)) (g/add a b)
         (v/number? a) (cond (v/nullity? a) b
                             (sum? b) `(~'+ ~a ~@(operands b))
@@ -87,29 +87,29 @@
         (nil? (next args)) (g/negate (first args))
         :else (sub (first args) (reduce add (next args)))))
 
-(defn mul [a b]
+(defn- mul [a b]
   (cond (and (v/number? a) (v/number? b)) (g/mul a b)
         (v/number? a) (cond (v/nullity? a) a
-                          (v/unity? a) b
-                          (product? b) `(~'* ~a ~@(operands b))
-                          :else `(~'* ~a ~b)
-                          )
+                            (v/unity? a) b
+                            (product? b) `(~'* ~a ~@(operands b))
+                            :else `(~'* ~a ~b)
+                            )
         (v/number? b) (cond (v/nullity? b) b
-                          (v/unity? b) a
-                          (product? a) `(~'* ~@(operands a) ~b)
-                          :else `(~'* ~a ~b)
-                          )
+                            (v/unity? b) a
+                            (product? a) `(~'* ~@(operands a) ~b)
+                            :else `(~'* ~a ~b)
+                            )
         (product? a) (cond (product? b) `(~'* ~@(operands a) ~@(operands b))
                            :else `(~'* ~@(operands a) ~b))
         (product? b) `(~'* ~a ~@(operands b))
         :else `(~'* ~a ~b)))
 
-(defn div [a b]
+(defn- div [a b]
   (cond (and (v/number? a) (v/number? b)) (g/div a b)
         (v/number? a) (if (v/nullity? a) a `(~'/ ~a ~b))
         (v/number? b) (cond (v/nullity? b) (u/arithmetic-ex "division by zero")
-                          (v/unity? b) a
-                          :else `(~'/ ~a ~b))
+                            (v/unity? b) a
+                            :else `(~'/ ~a ~b))
         :else `(~'/ ~a ~b)))
 
 (defn- div-n [arg & args]
@@ -318,7 +318,7 @@
   symbolically or numerically."
   (delegator g/exp 'exp))
 
-(defn expt
+(defn- expt
   "Attempts to preserve exact precision if either argument is exact; else,
   evaluates symbolically or numerically."
   [b e]
