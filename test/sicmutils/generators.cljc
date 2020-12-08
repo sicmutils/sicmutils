@@ -75,6 +75,15 @@
 (def real
   (gen/one-of [any-integral (reasonable-double)]))
 
+(defn reasonable-real [bound]
+  (let [bound    (core-long bound)
+        integral (gen/fmap
+                  #(g/remainder % bound)
+                  any-integral)]
+    (gen/one-of [integral (reasonable-double
+                           {:min (- bound)
+                            :max bound})])))
+
 (def complex
   (gen/let [r (reasonable-double)
             i (reasonable-double)]

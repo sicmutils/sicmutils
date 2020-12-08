@@ -119,7 +119,7 @@
   (is (= "[nil 3 (+ x 2)]" (expression->string [nil 3 (g/+ 2 'x)])))
   (is (= #?(:clj "(complex 0.0 1.0)"
             :cljs "(complex 0 1)")
-         (expression->string (c/complex 0 1))))
+         (expression->string c/I)))
   (is (= "1" (expression->string
               ((g/+ (g/square g/sin) (g/square g/cos)) 'x))))
   (is (= "(/ (+ (* -1 (expt (cos x) 4)) 1) (expt (cos x) 2))"

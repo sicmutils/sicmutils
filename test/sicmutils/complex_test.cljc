@@ -85,12 +85,11 @@
           [(is (v/exact? (c/complex 10)))
            (is (v/exact? (c/complex 10 12)))]))))
 
-(let [i #sicm/complex "0 + 1i"
-      pi Math/PI]
+(let [pi Math/PI]
   (deftest complex-numbers
     (testing "complex constructor and predicate"
       (is (c/complex? c/ONE))
-      (is (c/complex? i))
+      (is (c/complex? c/I))
       (is (c/complex? #sicm/complex "2"))
       (is (not (c/complex? 4))))
 
@@ -117,11 +116,11 @@
 
     (testing "mul between numbers and complex numbers in both orders"
       ;; rotate 7 by pi/2
-      (is (near (g/mul i 7) (g/mul 7 (g/exp (g/mul i (/ pi 2))))))
-      (is (near (c/complex 0 7) (g/mul (c/complex 7) (g/exp (g/mul i (/ pi 2)))))))
+      (is (near (g/mul c/I 7) (g/mul 7 (g/exp (g/mul c/I (/ pi 2))))))
+      (is (near (c/complex 0 7) (g/mul (c/complex 7) (g/exp (g/mul c/I (/ pi 2)))))))
 
     (testing "div in either order"
-      (is (= (c/complex 0 -1) (g/div 1 i)))
+      (is (= (c/complex 0 -1) (g/div 1 c/I)))
       (is (= (c/complex 2 2) (g/div (c/complex 4 4) 2))))
 
     (testing "expt"
@@ -134,31 +133,31 @@
              (g/negate (c/complex 10 -2)))))
 
     (testing "invert"
-      (is (v/zero? (g/add i (g/invert i)))))
+      (is (v/zero? (g/add c/I (g/invert c/I)))))
 
     (testing "abs"
       (is (= 5.0 (g/abs (c/complex 3 4)))))
 
     (testing "exp"
       ;; Euler identity
-      (is (near (c/complex -1) (g/exp (g/mul i pi)))))
+      (is (near (c/complex -1) (g/exp (g/mul c/I pi)))))
 
     (testing "log"
-      (is (= (g/mul i pi) (g/log (g/exp (g/mul i pi))))))
+      (is (= (g/mul c/I pi) (g/log (g/exp (g/mul c/I pi))))))
 
     (testing "square"
-      (is (near (g/mul i 200) (g/square (c/complex 10 10)))))
+      (is (near (g/mul c/I 200) (g/square (c/complex 10 10)))))
 
     (testing "cube"
-      (is (near (c/complex 0 -8) (g/cube (g/* 2 i))))
+      (is (near (c/complex 0 -8) (g/cube (g/* 2 c/I))))
       (is (near (c/complex 27) (g/cube (c/complex 3))))
       (is (near (c/complex -27) (g/cube (c/complex -3)))))
 
     (testing "sqrt"
-      (is (near (c/complex 10 10) (g/sqrt (g/mul i 200)))))
+      (is (near (c/complex 10 10) (g/sqrt (g/mul c/I 200)))))
 
     (testing "arithmetic"
-      (is (v/numerical? i)))))
+      (is (v/numerical? c/I)))))
 
 (deftest trig-tests
   (testing "sin"

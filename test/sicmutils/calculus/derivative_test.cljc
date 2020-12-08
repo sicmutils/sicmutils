@@ -25,7 +25,7 @@
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :as d
              :refer [D partial #?(:cljs Differential)]]
-            [sicmutils.complex :refer [complex]]
+            [sicmutils.complex :as c]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [acos asin atan cos sin tan
                                              cot sec csc
@@ -311,8 +311,7 @@
       (is (= 0 ((D (v/zero-like f)) 'x))))))
 
 (deftest complex-derivatives
-  (let [i (complex 0 1)
-        f (fn [z] (* i (sin (* i z))))]
+  (let [f (fn [z] (* c/I (sin (* c/I z))))]
 
     (is (= '(* -1 (cosh z))
            (g/simplify ((D f) 'z))))))

@@ -232,6 +232,8 @@
 (def-generic-function cross-product 2)
 
 ;; Complex Operators
+(def-generic-function make-rectangular 2)
+(def-generic-function make-polar 2)
 (def-generic-function real-part 1)
 (def-generic-function imag-part 1)
 (def-generic-function magnitude 1)

@@ -419,6 +419,8 @@
 
 ;; Complex Operations
 
+(defbinary g/make-rectangular)
+(defbinary g/make-polar)
 (defunary g/real-part)
 (defunary g/imag-part)
 (defunary g/magnitude)

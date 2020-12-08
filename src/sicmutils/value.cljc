@@ -215,6 +215,14 @@
                 (get @object-name-map o o)))
   (kind [o] (:type o (type o))))
 
+(defn exact-zero?
+  "Returns true if the supplied argument is an exact numerical zero, false
+  otherwise."
+  [n]
+  (and (number? n)
+       (exact? n)
+       (zero? n)))
+
 ;; Override equiv for numbers.
 (defmulti = argument-kind)
 
