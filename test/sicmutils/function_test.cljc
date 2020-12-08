@@ -131,13 +131,7 @@
            (let [deferred (g/lcm (g/+ 1 g/square) 6)]
              (deferred 3))))))
 
-(defn transpose-defining-relation [T g a]
-  "T is a linear transformation T:V -> W
-  the transpose of T, T^t:W* -> V*
-  Forall a in V, g in W*,  g:W -> R
-  (T^t(g))(a) = g(T(a))."
-  (g/- (((g/transpose T) g) a)
-       (g (T a))))
+
 
 (deftest transpose-test
   (testing "transpose"
@@ -145,9 +139,8 @@
           g #(str "g" %)]
       (is (= "fg" (f (g ""))))
       (is (= "gf" (((g/transpose f) g) ""))
-          "g/transpose for functions returns a fn that takes ANOTHER fn, and
-    returns a fn that applies them in reverse order. Like a curried andThen (the
-    reverse of compose)"))))
+          "See `transpose-defining-relation` above for a discussion of why this
+          is sensible.a"))))
 
 (deftest string-form-test
   (is (= "1" (ss/expression->string
