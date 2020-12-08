@@ -103,12 +103,12 @@
   (and (abstract-number? l)
        (= (x/expression-of l) n)))
 
-;; This installs equality into `v/eq` between symbolic expressions (and symbols,
+;; This installs equality into `v/=` between symbolic expressions (and symbols,
 ;; see inheritance above) and anything in the standard numeric tower.
 
-(defmethod v/eq [::x/numeric ::v/number] [l r] (literal=num l r))
-(defmethod v/eq [::v/number ::x/numeric] [l r] (literal=num r l))
-(defmethod v/eq [::x/numeric ::x/numeric] [l r]
+(defmethod v/= [::x/numeric ::v/number] [l r] (literal=num l r))
+(defmethod v/= [::v/number ::x/numeric] [l r] (literal=num r l))
+(defmethod v/= [::x/numeric ::x/numeric] [l r]
   (= (x/expression-of l)
      (x/expression-of r)))
 

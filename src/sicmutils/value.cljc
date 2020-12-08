@@ -19,8 +19,9 @@
 
 (ns sicmutils.value
   (:refer-clojure :rename {zero? core-zero?
-                           number? core-number?}
-                  #?@(:cljs [:exclude [zero? number?]]))
+                           number? core-number?
+                           = core=}
+                  #?@(:cljs [:exclude [zero? number? =]]))
   (:require [sicmutils.util :as u]
             #?@(:cljs
                 [[goog.math.Long]
@@ -199,26 +200,26 @@
   (kind [o] (:type o (type o))))
 
 ;; Override equiv for numbers.
-(defmulti eq argument-kind)
+(defmulti = argument-kind)
 
 ;; These two constitute the default cases.
-(defmethod eq [::number ::number] [l r]
-  #?(:clj  (= l r)
+(defmethod = [::number ::number] [l r]
+  #?(:clj  (core= l r)
      :cljs (identical? l r)))
 
-(defmethod eq :default [l r]
+(defmethod = :default [l r]
   (if (or (isa? (kind l) ::number)
           (isa? (kind r) ::number))
     false
-    (= l r)))
+    (core= l r)))
 
 #?(:cljs
    ;; These definitions are required for the protocol implementation below.
    (do
-     (defmethod eq [::native-integral js/BigInt] [l r]
+     (defmethod = [::native-integral js/BigInt] [l r]
        (js*  "~{} == ~{}" l r))
 
-     (defmethod eq [js/BigInt ::native-integral] [l r]
+     (defmethod = [js/BigInt ::native-integral] [l r]
        (js*  "~{} == ~{}" l r))
 
      (doseq [[from to f] [[goog.math.Long goog.math.Integer u/int]
@@ -226,35 +227,35 @@
                           [::native-integral goog.math.Long u/long]
                           [goog.math.Long js/BigInt u/bigint]
                           [goog.math.Integer js/BigInt u/bigint]]]
-       (defmethod eq [from to] [l r] (= (f l) r))
-       (defmethod eq [to from] [l r] (= l (f r))))
+       (defmethod = [from to] [l r] (core= (f l) r))
+       (defmethod = [to from] [l r] (core= l (f r))))
 
      (extend-protocol IEquiv
        number
        (-equiv [this other]
          (cond (core-number? other) (identical? this other)
-               (numerical? other)   (eq this other)
+               (numerical? other)   (= this other)
                :else false))
 
        goog.math.Integer
        (-equiv [this other]
-         (if (= goog.math.Integer (type other))
+         (if (core= goog.math.Integer (type other))
            (.equals this other)
-           (eq this other)))
+           (= this other)))
 
        goog.math.Long
        (-equiv [this other]
-         (if (= goog.math.Long (type other))
+         (if (core= goog.math.Long (type other))
            (.equals this other)
-           (eq this other))))))
+           (= this other))))))
 
 #?(:cljs
    (extend-type js/BigInt
      IEquiv
      (-equiv [this other]
-       (if (= js/BigInt (type other))
+       (if (core= js/BigInt (type other))
          (js*  "~{} == ~{}" this other)
-         (eq this other)))
+         (= this other)))
 
      IPrintWithWriter
      (-pr-writer [x writer opts]
@@ -300,7 +301,7 @@
 
        goog.math.Integer
        (zero? [x] (.isZero x))
-       (one? [x] (= (.-ONE goog.math.Integer) x))
+       (one? [x] (core= (.-ONE goog.math.Integer) x))
        (zero-like [_] (.-ZERO goog.math.Integer))
        (one-like [_] (.-ONE goog.math.Integer))
        (freeze [x] x)
@@ -310,7 +311,7 @@
 
        goog.math.Long
        (zero? [x] (.isZero x))
-       (one? [x] (= (.getOne goog.math.Long) x))
+       (one? [x] (core= (.getOne goog.math.Long) x))
        (zero-like [_] (.getZero goog.math.Long))
        (one-like [_] (.getOne goog.math.Long))
        (freeze [x] x)
@@ -324,7 +325,7 @@
 
 (def machine-epsilon
   (loop [e 1.0]
-    (if (= 1.0 (+ e 1.0))
+    (if (core= 1.0 (+ e 1.0))
       (* e 2.0)
       (recur (/ e 2.0)))))
 
