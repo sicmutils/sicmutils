@@ -386,14 +386,24 @@
 (defunary g/log)
 
 (comment
-  "This comment comes from scmutils, function.scm, in the definition of
-  `transpose-defining-relation`:
+  "This comment expands on a comment from scmutils, function.scm, in the
+  definition of `transpose-defining-relation`:
 
-  T is a linear transformation T:V -> W
-  the transpose of T, T^t:W* -> V*
-  Forall a in V, g in W*,  g:W -> R
-  (T^t(g))(a) = g(T(a)).")
+  $T$ is a linear transformation
 
+  $$T : V -> W$$
+
+  the transpose of $T$ is
+
+  $$T^t : (W -> R) -> (V -> R)$$
+
+  \\forall a \\in V, g \\in (W -> R),
+
+  T^t : g \\to g \\circ T
+
+  ie:
+
+  (T^t(g))(a) = g(T(a))")
 (defmethod g/transpose [::v/function] [f]
   (fn [g]
     (fn [a]

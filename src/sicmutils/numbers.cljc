@@ -59,11 +59,10 @@
 (defmethod g/real-part [::v/real] [a] a)
 (defmethod g/imag-part [::v/real] [a] 0)
 
-(let [neg-pi (core-minus Math/PI)]
-  (defmethod g/angle [::v/real] [a]
-    (if (g/negative? a)
-      neg-pi
-      (v/zero-like a))))
+(defmethod g/angle [::v/real] [a]
+  (if (neg? a)
+    Math/PI
+    (v/zero-like a)))
 
 (defmethod g/conjugate [::v/real] [a] a)
 
