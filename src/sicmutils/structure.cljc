@@ -560,13 +560,13 @@
   (let [b' (g/invert b)]
     (same a (map #(g/* % b') a))))
 
-(defmethod g/div [::structure ::structure] [a b] (mul (g/invert b) a))
+(defmethod g/div [::structure ::structure] [a b] (s:* (g/invert b) a))
 (defmethod g/expt [::structure ::v/integral] [a b] (expt a b))
 (defmethod g/negate [::structure] [a] (mapr g/negate a))
 (defmethod g/square [::structure] [a] (dot-product a a))
-(defmethod g/cube [::structure] [a] (mul a (mul a a)))
-(defmethod g/simplify [::structure] [a] (->> a (mapr g/simplify) v/freeze))
-
+(defmethod g/cube [::structure] [a] (s:* a (s:* a a)))
+(defmethod g/simplify [::structure] [a]
+  (v/freeze (mapr g/simplify a)))
 
 (defmethod g/magnitude [::structure] [a]
   (g/sqrt (inner-product a a)))
@@ -582,4 +582,5 @@
 (defmethod g/dot-product [::structure ::structure] [a b] (dot-product a b))
 (defmethod g/inner-product [::structure ::structure] [a b] (inner-product a b))
 (defmethod g/outer-product [::structure ::structure] [a b] (outer-product a b))
+
 (defmethod g/cross-product [::up ::up] [a b] (cross-product a b))
