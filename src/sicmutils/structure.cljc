@@ -462,8 +462,7 @@
   [s]
   (unflatten opposite (repeatedly gensym) s))
 
-(defn dimension
-  [s]
+(defn dimension [s]
   (if (sequential? s)
     (-> s flatten count)
     1))
@@ -512,7 +511,9 @@
 (defmethod g/square [::structure] [a] (inner-product a a))
 (defmethod g/cube [::structure] [a] (mul a (mul a a)))
 (defmethod g/simplify [::structure] [a] (->> a (mapr g/simplify) v/freeze))
+
 (defmethod g/transpose [::structure] [a] (opposite a (seq a)))
+(defmethod g/dimension [::structure] [a] (dimension a))
 
 (defmethod g/magnitude [::structure] [a]
   (g/sqrt (inner-product (mapv g/conjugate a) a)))

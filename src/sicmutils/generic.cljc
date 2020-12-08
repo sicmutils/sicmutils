@@ -216,8 +216,19 @@
        2))
 
 ;; Operations on structures
+
 (def-generic-function transpose 1)
+(def-generic-function trace 1)
 (def-generic-function determinant 1)
+(def-generic-function dimension 1)
+
+;; Defaults
+
+(defmethod transpose [::v/scalar] [a] a)
+(defmethod trace [::v/scalar] [a] a)
+(defmethod determinant [::v/scalar] [a] a)
+(defmethod dimension [::v/scalar] [a] 1)
+
 (def-generic-function cross-product 2)
 
 ;; Complex Operators

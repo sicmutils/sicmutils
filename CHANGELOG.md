@@ -128,6 +128,16 @@
   `sicmutils.expression.compile`.
   ([#175](https://github.com/littleredcomputer/sicmutils/pull/175))
 
+- `matrix.cljc` gains `m/nth-col` and `m/diagonal`
+  ([#178](https://github.com/littleredcomputer/sicmutils/pull/178) introduces:)
+
+- As of [#178](https://github.com/littleredcomputer/sicmutils/pull/178)
+  introduces:, we have three new kinds for matrices. Square matrices return
+  `::m/square-matrix`, and columns and rows return `::m/column-matrix` and
+  `::row-matrix` respectively. These all derive from `::m/matrix`. This makes it
+  easier to register methods or test specifically for these cases. We've also
+  added `m/column?` and `m/row?` predicates to check for these cases.
+
 ### Literals
 
 - `literal-matrix` fn generates a symbolic matrix
@@ -231,6 +241,12 @@ PR https://github.com/littleredcomputer/sicmutils/pull/169 brings:
 - `g/log2`, for base 2 logarithms
 - `g/log10` for base 10 logs
 - `g/gcd` and `g/lcm` are now exposed in `sicmutils.env`
+
+[#178](https://github.com/littleredcomputer/sicmutils/pull/178) introduces:
+
+- `g/dimension` for scalars (always 1), structures and matrices (square, column
+  and row)
+- `g/trace` returns the trace for square matrices and square structures
 
 We now expose the following additional trigonometric functions in
 `sicmutils.generic` (courtesy of

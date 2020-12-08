@@ -117,9 +117,6 @@
 (defmethod g/cosh [::complex] [^Complex a] (.cosh a))
 (defmethod g/sinh [::complex] [^Complex a] (.sinh a))
 (defmethod g/tanh [::complex] [^Complex a] (.tanh a))
-
-(defmethod g/transpose [::complex] [a] a)
-(defmethod g/determinant [::complex] [a] a)
 (defmethod g/simplify [::complex] [a] (v/freeze a))
 
 #?(:cljs
