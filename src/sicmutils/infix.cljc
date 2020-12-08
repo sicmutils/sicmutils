@@ -344,22 +344,34 @@
   the nondeterministic order of hash maps inside this function won't guarantee a
   consistent variable naming convention in the returned function. For tests, set
   `:deterministic? true`."
-  (let [operators-known '#{sin cos tan asin acos atan sqrt abs pow + - * /
-                           expt exp log up down}
+  (let [operators-known '#{+ - * /
+                           sin cos tan
+                           asin acos atan
+                           cosh sinh tanh
+                           asinh acosh atanh
+                           sqrt abs expt
+                           exp log
+                           up down}
         make-js-vector #(str \[ (s/join ", " %) \])
         R (make-infix-renderer
            :precedence-map '{D 8, :apply 8, * 5, / 5, - 3, + 3}
            :infix? '#{* + - / u-}
-           :rename-functions {'sin "Math.sin",
-                              'cos "Math.cos",
-                              'tan "Math.tan",
-                              'asin "Math.asin",
-                              'acos "Math.acos",
-                              'atan "Math.atan",
-                              'sqrt "Math.sqrt",
-                              'abs "Math.abs",
-                              'expt "Math.pow",
-                              'log "Math.log",
+           :rename-functions {'sin "Math.sin"
+                              'cos "Math.cos"
+                              'tan "Math.tan"
+                              'asin "Math.asin"
+                              'acos "Math.acos"
+                              'atan "Math.atan"
+                              'cosh "Math.cosh"
+                              'sinh "Math.sinh"
+                              'tanh "Math.tanh"
+                              'asinh "Math.asinh"
+                              'acosh "Math.acosh"
+                              'atanh "Math.atanh"
+                              'sqrt "Math.sqrt"
+                              'abs "Math.abs"
+                              'expt "Math.pow"
+                              'log "Math.log"
                               'exp "Math.exp"}
            :special-handlers {'up make-js-vector
                               'down make-js-vector})]

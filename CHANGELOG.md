@@ -118,6 +118,10 @@
   now freeze to the same symbols as their generic counterparts.
   ([#173](https://github.com/littleredcomputer/sicmutils/pull/173))
 
+- Add support for the hyperbolic trig function `sinh`, `cosh`, `tanh`, `atanh`,
+  `asinh` and `acosh` to `sicmutils.infix/->Javascript`.
+  ([#174](https://github.com/littleredcomputer/sicmutils/pull/174))
+
 ### Literals
 
 - `literal-matrix` fn generates a symbolic matrix
