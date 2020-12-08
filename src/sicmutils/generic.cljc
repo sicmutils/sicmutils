@@ -48,32 +48,36 @@
         docstring (if (string? (first options))
                     (str "generic " f ".\n\n" (first options))
                     (str "generic " f ))
-        options (if (string? (first options))
-                  (next options)
-                  options)
-        kwd-klass (fork :clj clojure.lang.Keyword :cljs 'cljs.core/Keyword)]
+        options   (if (string? (first options))
+                    (next options)
+                    options)
+        [attr options] (if (map? (first options))
+                         [(first options) (next options)]
+                         [{} options])
+        kwd-klass (fork :clj clojure.lang.Keyword :cljs 'cljs.core/Keyword)
+        name      (:name attr f)]
     `(do
        (defmulti ~f ~docstring v/argument-kind ~@options)
        (defmethod ~f [~kwd-klass] [k#]
-         ({:arity ~arity :name '~f} k#)))))
+         ({:arity ~arity :name '~name} k#)))))
 
 ;; Numeric functions.
-(def-generic-function add 2)
-(def-generic-function negate 1)
+(def-generic-function add 2    {:name +})
+(def-generic-function negate 1 {:name -})
 (def-generic-function negative? 1
   "Returns true if the argument `a` is less than `(v/zero-like a), false
   otherwise. The default implementation depends on a proper Comparable
   implementation on the type.`")
 (defmethod negative? :default [a] (< a (v/zero-like a)))
 
-(def-generic-function sub 2)
+(def-generic-function sub 2 {:name -})
 (defmethod sub :default [a b]
   (add a (negate b)))
 
-(def-generic-function mul 2)
-(def-generic-function invert 1)
+(def-generic-function mul 2 {:name *})
+(def-generic-function invert 1 {:name /})
 
-(def-generic-function div 2)
+(def-generic-function div 2 {:name /})
 (defmethod div :default [a b] (mul a (invert b)))
 
 (def-generic-function abs 1)
@@ -273,4 +277,20 @@
 
 (def divide /)
 
-(v/add-object-symbols! {+ '+ * '* - '- / (symbol "/")})
+;; This call registers a symbol for any non-multimethod we care about. These
+;; will be returned instead of the actual function body when the user
+;; calls `(v/freeze fn)`, for example.
+
+(v/add-object-symbols!
+ {+ '+
+  * '*
+  - '-
+  / '/
+  clojure.core/+ '+
+  clojure.core/* '*
+  clojure.core/- '-
+  clojure.core// '/
+  clojure.core/mod 'modulo
+  clojure.core/quot 'quotient
+  clojure.core/rem 'remainder
+  clojure.core/neg? 'negative?})
