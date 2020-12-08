@@ -22,6 +22,7 @@
                   #?@(:cljs [:exclude [partial]]))
   (:require [clojure.string :refer [join]]
             [sicmutils.expression :as x]
+            [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as matrix]
             [sicmutils.operator :as o]
@@ -431,14 +432,11 @@
           ((d f) (first xs))
           ((d #(apply f %)) (matrix/seq-> xs)))))))
 
-(derive ::x/numeric ::codiff)
-(derive ::v/number ::codiff)
-
 (defn ^:private define-binary-operation
   [generic-operation differential-operation]
   (doseq [signature [[::differential ::differential]
-                     [::codiff ::differential]
-                     [::differential ::codiff]]]
+                     [::v/scalar ::differential]
+                     [::differential ::v/scalar]]]
     (defmethod generic-operation signature [a b] (differential-operation a b))))
 
 (defn ^:private define-unary-operation
@@ -475,16 +473,16 @@
 (define-unary-operation g/square #(diff-* % %))
 (define-unary-operation g/cube #(diff-* % (diff-* % %)))
 
-(derive ::differential :sicmutils.function/cofunction)
 (derive ::differential ::o/co-operator)
 (derive ::differential ::series/coseries)
+(derive ::differential ::f/cofunction)
 
 (defmethod g/partial-derivative
-  [:sicmutils.function/function v/seqtype]
+  [::v/function v/seqtype]
   [f selectors]
   (multivariate-derivative f selectors))
 
-(defmethod g/partial-derivative [:sicmutils.function/function nil] [f _]
+(defmethod g/partial-derivative [::v/function nil] [f _]
   (multivariate-derivative f []))
 
 (defmethod g/partial-derivative [::struct/structure v/seqtype] [f selectors]
@@ -493,11 +491,14 @@
 (defmethod g/partial-derivative [::matrix/matrix v/seqtype] [f selectors]
   (multivariate-derivative f selectors))
 
+(def derivative-symbol 'D)
+
 (def D
   "Derivative operator. Produces a function whose value at some point can
   multiply an increment in the arguments, to produce the best linear estimate
   of the increment in the function value."
-  (o/make-operator #(g/partial-derivative % []) 'D))
+  (o/make-operator #(g/partial-derivative % [])
+                   derivative-symbol))
 
 (defn partial
   "Partial differentiation of a function at the (zero-based) slot index

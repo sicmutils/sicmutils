@@ -19,6 +19,7 @@
 
 (ns sicmutils.calculus.manifold
   (:require #?(:cljs [goog.string :refer [format]])
+            [sicmutils.abstract.function :as af]
             [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
@@ -159,12 +160,12 @@
         domain (apply s/up (repeat n 0))
         range 0]
     (vary-meta
-      (f/compose (f/literal-function name domain range)
-                 #(point->coords coordinate-system %))
-      assoc
-      :name name
-      :coordinate-system coordinate-system
-      :type ::manifold-function)))
+     (f/compose (af/literal-function name domain range)
+                #(point->coords coordinate-system %))
+     assoc
+     :name name
+     :coordinate-system coordinate-system
+     :type ::manifold-function)))
 
 (defn ^:private ->Rectangular
   [manifold coordinate-prototype]

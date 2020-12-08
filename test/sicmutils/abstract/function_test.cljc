@@ -1,0 +1,252 @@
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
+
+(ns sicmutils.abstract.function-test
+  (:refer-clojure :exclude [partial])
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.abstract.function :as af]
+            [sicmutils.calculus.derivative :refer [D partial]]
+            [sicmutils.generic :as g]
+            [sicmutils.generators :as sg]
+            [sicmutils.matrix :as m]
+            [sicmutils.value :as v]
+            [sicmutils.series :as series]
+            [sicmutils.structure :as s :refer [literal-up
+                                               literal-down
+                                               up down]]
+            [sicmutils.simplify :as ss :refer [hermetic-simplify-fixture]]))
+
+(use-fixtures :each hermetic-simplify-fixture)
+
+(def ^:private near (v/within 1.0e-6))
+
+(deftest equations-moved-from-simplify
+  (testing "moved-from-simplify"
+    (let [xy    (s/up (af/literal-function 'x)
+                      (af/literal-function 'y))
+          xyt   (xy 't)
+          U     (af/literal-function 'U)
+          xyt2  (g/square xyt)
+          Uxyt2 (U xyt2)]
+      (is (= '(up x y) (g/simplify xy)))
+      (is (= '(up (x t) (y t)) (g/simplify xyt)))
+      (is (= '(+ (expt (x t) 2) (expt (y t) 2)) (g/simplify xyt2)))
+      (is (= '(U (+ (expt (x t) 2) (expt (y t) 2))) (g/simplify Uxyt2)))))
+
+  (testing "moved-from-matrix"
+    (is (= '(matrix-by-rows [(f x) (g x)] [(h x) (k x)])
+           (g/simplify
+            ((m/by-rows (map af/literal-function '[f g])
+                        (map af/literal-function '[h k])) 'x))))
+
+    (let [R2f #(af/literal-function % [0 1] 0)]
+      (is (= '(matrix-by-rows [(f x y) (g x y)] [(h x y) (k x y)])
+             (g/simplify
+              ((m/by-rows [(R2f 'f) (R2f 'g)]
+                          [(R2f 'h) (R2f 'k)]) 'x 'y)))))))
+
+(deftest function-basic
+  (let [f (af/literal-function 'F)]
+    (testing "a"
+      (is (= '(F x) (g/simplify (f 'x))))
+      (is (= '(F 7) (g/simplify (f (g/+ 3 4))))))
+    (testing "kind"
+      (is (= ::af/function (v/kind f))))
+    (testing "arity > 1"
+      (let [g (af/literal-function 'g [0 0] 0)]
+        (is (= '(g a b) (g/simplify (g 'a 'b))))))))
+
+(deftest complex-tests
+  (let [f (af/literal-function 'f)]
+    (checking "gcd/lcm works with fns"
+              100
+              [l gen/nat r gen/nat]
+              (is (= ((g/gcd f r) l)
+                     (g/gcd (f l) r)))
+
+              (is (= ((g/lcm f r) l)
+                     (g/lcm (f l) r))))
+
+    (checking "complex accessors work with fns"
+              100
+              [z sg/complex]
+              (is (= (g/imag-part (f z)) ((g/imag-part f) z)))
+              (is (= (g/real-part (f z)) ((g/real-part f) z)))
+              (is (= (g/magnitude (f z)) ((g/magnitude f) z)))
+              (is (= (g/angle (f z))     ((g/angle f) z))))))
+
+(defn transpose-defining-relation
+  "$T$ is a linear transformation
+
+  $$T : V -> W$$
+
+  the transpose of $T$ is
+
+  $$T^t : (W -> R) -> (V -> R)$$
+
+  \\forall a \\in V, g \\in (W -> R),
+
+  T^t : g \\to g \\circ T
+
+  ie:
+
+  (T^t(g))(a) = g(T(a))"
+  [T g a]
+  (g/- (((g/transpose T) g) a)
+       (g (T a))))
+
+(deftest transpose-test
+  (testing "transpose"
+    (let [T   (af/literal-function 'T '(-> (UP Real Real) (UP Real Real Real)))
+          DT  (D T)
+          DTf (fn [s]
+                (fn [x] (g/* (DT s) x)))
+          a (literal-up 'a 2)
+          g (fn [w] (g/* (literal-down 'g 3) w))
+          s (up 'x 'y)]
+      (is (v/nullity? (transpose-defining-relation (DTf s) g a))
+          "This function, whatever it is (see scmutils function.scm) satisfies
+          the transpose defining relation.")
+
+      (is (= '(+ (* a↑0 g_0 (((partial 0) T↑0) (up x y)))
+                 (* a↑0 g_1 (((partial 0) T↑1) (up x y)))
+                 (* a↑0 g_2 (((partial 0) T↑2) (up x y)))
+                 (* a↑1 g_0 (((partial 1) T↑0) (up x y)))
+                 (* a↑1 g_1 (((partial 1) T↑1) (up x y)))
+                 (* a↑1 g_2 (((partial 1) T↑2) (up x y))))
+             (g/simplify
+              (((g/transpose (DTf s)) g) a)))
+          "A wild test of transpose from scmutils function.scm that I don't
+    understand!"))))
+
+(deftest literal-functions
+  (testing "domain in Rⁿ, range R"
+    (let [f (af/literal-function 'f)             ;; f : R -> R
+          g (af/literal-function 'g [0 0] 0)]     ;; g : R x R -> R
+      (is (= '(f x) (g/simplify (f 'x))))
+      (is (= '(g x y) (g/simplify (g 'x 'y))))
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error) (g/simplify (f 'x 'y))))
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error) (g/simplify (g 'x))))))
+
+  (testing "structured range"
+    (let [h (af/literal-function 'h 0 (up 0 0 0))
+          k (af/literal-function 'k 0 (up 0 (up 0 0) (down 0 0)))
+          q (af/literal-function 'q 0 (down (up 0 1) (up 2 3)))]
+      (is (= '(up (h↑0 t) (h↑1 t) (h↑2 t)) (g/simplify (h 't))))
+      (is (= '(up (k↑0 t)
+                  (up (k↑1↑0 t) (k↑1↑1 t))
+                  (down (k↑2_0 t) (k↑2_1 t)))
+             (g/simplify (k 't))))
+      (is (= '(down (up (q_0↑0 t) (q_0↑1 t))
+                    (up (q_1↑0 t) (q_1↑1 t))) (g/simplify (q 't))))
+      (is (= '(down (up 0 0) (up 0 0)) (g/simplify ((v/zero-like q) 't))))))
+
+  (testing "R^n -> structured range"
+    (let [h (af/literal-function 'h [0 1] 0)]
+      (is (= '(h x y) (g/simplify (h 'x 'y)))))
+    (let [m (af/literal-function 'm [0 1] (up 1 2 3))]
+      (is (= '(up (m↑0 x y) (m↑1 x y) (m↑2 x y))
+             (g/simplify (m 'x 'y)))))
+    (let [z (af/literal-function 'm [0 1] (up (down 1 2) (down 3 4)))]
+      (is (= '(up (down (m↑0_0 x y) (m↑0_1 x y))
+                  (down (m↑1_0 x y) (m↑1_1 x y)))
+             (g/simplify (z 'x 'y)))))
+    (let [g (af/literal-function 'm [0 1 2] (down (down 1 2 3)
+                                                  (down 4 5 6)
+                                                  (down 7 8 9)))]
+      (is (= '(down
+               (down (m_0_0 x y z) (m_0_1 x y z) (m_0_2 x y z))
+               (down (m_1_0 x y z) (m_1_1 x y z) (m_1_2 x y z))
+               (down (m_2_0 x y z) (m_2_1 x y z) (m_2_2 x y z)))
+             (g/simplify (g 'x 'y 'z))))))
+
+  (testing "R -> Rⁿ"
+    ;; NB: GJS doesn't allow a function with vector range, because
+    ;; if this were parallel with structures this would mean
+    ;; having an applicable vector of functions, and such a thing
+    ;; isn't handy. This could probably be done, but for the time
+    ;; being it's easy enough just to make the range an up tuple,
+    ;; which is just as useful as well as being explicit about the
+    ;; variance.
+    #_(let [h (af/literal-function 'h 0 [0 1])]
+        (is (= 'foo (h 'x))))))
+
+(deftest function-signature-conversion
+  (let [k af/sicm-signature->domain-range]
+    (is (= [[0] 0] (k '(-> Real Real))))
+    (is (= [[0 0] 0] (k '(-> (X Real Real) Real))))
+    (is (= [[0 0] 0] (k '(-> (X* Real 2) Real))))
+    (is (= [[0] [0 0]] (k '(-> Real (X Real Real)))))
+    (is (= [[0] [0 0]] (k '(-> Real (X* Real 2)))))
+    (is (= [[0 0] [0 0]] (k '(-> (X Real Real) (X Real Real)))))
+    (is (= [[0 0] [0 0]] (k '(-> (X* Real 2) (X* Real 2)))))
+    (is (= [[0] (up 0 0)] (k '(-> Real (UP Real Real)))))
+    (is (= [[0] (up 0 0)] (k '(-> Real (UP* Real 2)))))
+    (is (= [[(up 0 0)] 0] (k '(-> (UP Real Real) Real))))
+    (is (= [[(up 0 0)] 0] (k '(-> (UP* Real 2) Real))))
+    (is (= [[(up 0 0)] (up 0 0)] (k '(-> (UP Real Real) (UP Real Real)))))
+    (is (= [[(up 0 0)] (up 0 0)] (k '(-> (UP* Real 2) (UP* Real 2)))))
+    (is (= [[(up 0 (up 0 0) (down 0 0))] 0]
+           (k '(-> (UP Real (UP Real Real) (DOWN Real Real)) Real))))))
+
+(deftest function-differential
+  (testing "structural utilities"
+    (is (af/symbolic-derivative? '(D f)))
+    (is (not (af/symbolic-derivative? '(e f))))
+    (is (not (af/iterated-symbolic-derivative? '(expt D 2))))
+    (is (af/iterated-symbolic-derivative? '((expt D 2) f)))
+    (is (= '((expt D 2) f) (af/symbolic-increase-derivative '(D f))))
+    (is (= '((expt D 3) f) (af/symbolic-increase-derivative '((expt D 2) f))))))
+
+(deftest moved-from-series
+  (testing "series"
+    (is (= '[(* 2 (f x)) (* 3 (f x))]
+           (g/simplify
+            (take 2 ((g/* (series/series 2 3)
+                          (af/literal-function 'f)) 'x)))))
+    (is (= '[(* 2 (f y)) (* 3 (f y))]
+           (g/simplify
+            (take 2 ((g/* (af/literal-function 'f)
+                          (series/series 2 3)) 'y))))))
+
+  (let [simp4 (fn [x] (g/simplify (take 4 x)))
+        S (series/series (af/literal-function 'f)
+                         (af/literal-function 'g))
+        T (series/series (af/literal-function 'F [0 1] 0)
+                         (af/literal-function 'G [0 1] 0))
+        U (series/series (af/literal-function 'W [(s/up 0 0)] 0)
+                         (af/literal-function 'Z [(s/up 0 0)] 0))]
+
+    (testing "with functions"
+      (is (= '((* (f x) (sin x)) (* (sin x) (g x)) 0 0)
+             (g/simplify (take 4 ((g/* S g/sin) 'x)))))
+      (is (= '((* (f x) (sin x)) (* (sin x) (g x)) 0 0)
+             (g/simplify (take 4 ((g/* g/sin S) 'x))))))
+
+    (testing "and derivatives"
+      (is (= '(((D f) x) ((D g) x) 0 0)
+             (g/simplify (take 4 ((D S) 'x)))))
+      (is (= '((F x y) (G x y) 0 0) (simp4 (T 'x 'y))))
+      (is (= '((((partial 0) F) x y) (((partial 0) G) x y) 0 0) (simp4 (((partial 0) T) 'x 'y))))
+      (is (= '((((partial 1) F) x y) (((partial 1) G) x y) 0 0) (simp4 (((partial 1) T) 'x 'y))))
+      (is (= '((((partial 0) W) (up r θ)) (((partial 0) Z) (up r θ)) 0 0) (simp4 (((partial 0) U) (up 'r 'θ)))))
+      (is (= '((((partial 1) W) (up r θ)) (((partial 1) Z) (up r θ)) 0 0) (simp4 (((partial 1) U) (up 'r 'θ))))))))

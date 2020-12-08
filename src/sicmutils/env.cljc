@@ -26,9 +26,10 @@
                   :exclude [+ - * / zero? #?(:cljs partial)])
   (:require #?(:clj [potemkin :refer [import-vars]])
             #?(:clj [nrepl.middleware.print])
+            [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number :as an]
             [sicmutils.complex]
-            [sicmutils.function :as f #?@(:cljs [:include-macros true])]
+            [sicmutils.function]
             [sicmutils.generic :as g]
             [sicmutils.infix :as infix]
             [sicmutils.operator]
@@ -71,17 +72,17 @@
                (into [] (keys (ns-publics 'sicmutils.env)))]))
 
 (defmacro literal-function
-  ([f] `(f/literal-function ~f))
+  ([f] `(af/literal-function ~f))
   ([f sicm-signature]
    (if (and (list? sicm-signature)
             (= '-> (first sicm-signature)))
-     `(f/literal-function ~f '~sicm-signature)
-     `(f/literal-function ~f ~sicm-signature)))
-  ([f domain range] `(f/literal-function ~f ~domain ~range)))
+     `(af/literal-function ~f '~sicm-signature)
+     `(af/literal-function ~f ~sicm-signature)))
+  ([f domain range] `(af/literal-function ~f ~domain ~range)))
 
 (defmacro with-literal-functions
   [& args]
-  `(f/with-literal-functions ~@args))
+  `(af/with-literal-functions ~@args))
 
 (def zero? v/nullity?)
 (def one? v/unity?)

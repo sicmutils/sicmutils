@@ -18,12 +18,13 @@
 ;
 
 (ns sicmutils.calculus.form-field
-  (:require [sicmutils.calculus.vector-field :as vf]
+  (:require [sicmutils.abstract.function :as af]
+            [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.operator :as o]
             [sicmutils.structure :as s]
-            [sicmutils.generic :as g]
             [sicmutils.function :as f]
+            [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
@@ -122,7 +123,7 @@
   (let [n (:dimension (m/manifold coordinate-system))
         domain (apply s/up (repeat n 0))
         range 0
-        components (s/generate n ::s/down #(f/literal-function
+        components (s/generate n ::s/down #(af/literal-function
                                             (symbol (str name \_ %))
                                             domain
                                             range))]

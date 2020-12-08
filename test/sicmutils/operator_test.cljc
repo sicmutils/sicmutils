@@ -21,8 +21,8 @@
   (:refer-clojure :exclude [+ - * /  partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [same :refer [ish?]]
+            [sicmutils.abstract.function :as f]
             [sicmutils.calculus.derivative :refer [D partial]]
-            [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.operator :as o]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]

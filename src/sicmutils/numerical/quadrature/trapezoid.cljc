@@ -19,11 +19,11 @@
 
 (ns sicmutils.numerical.quadrature.trapezoid
   "Trapezoid method."
-  (:require [sicmutils.numerical.quadrature.common :as qc
+  (:require [sicmutils.abstract.function :as f]
+            [sicmutils.numerical.quadrature.common :as qc
              #?@(:cljs [:include-macros true])]
             [sicmutils.numerical.quadrature.riemann :as qr]
             [sicmutils.numerical.interpolate.richardson :as ir]
-            [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]

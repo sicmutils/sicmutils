@@ -18,7 +18,8 @@
 ;
 
 (ns sicmutils.calculus.map
-  (:require [sicmutils.calculus.basis :as b]
+  (:require [sicmutils.abstract.function :as af]
+            [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.manifold :as m]
@@ -49,7 +50,8 @@
         m (:dimension (m/manifold target))
         domain (if (= n 1) [0] (apply s/up (repeat n 0)))]
     (f/compose (m/point target)
-               (s/generate m ::s/up #(f/literal-function (symbol (str name "↑" %)) domain 0))
+               (s/generate m ::s/up #(af/literal-function
+                                      (symbol (str name "↑" %)) domain 0))
                (m/chart source))))
 
 (defn form-field->form-field-over-map

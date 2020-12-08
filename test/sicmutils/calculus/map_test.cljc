@@ -20,6 +20,7 @@
 (ns sicmutils.calculus.map-test
   (:refer-clojure :exclude [+ - * /  partial])
   (:require [clojure.test :refer [is deftest testing]]
+            [sicmutils.abstract.function :as af]
             [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.coordinate :as c
              :refer [let-coordinates]
@@ -99,10 +100,10 @@
   (testing "general path on the sphere"
     (let-coordinates [t R1-rect]
       (let [μ (f/compose (man/point S2-spherical)
-                         (up (f/literal-function 'θ)
-                             (f/literal-function 'φ))
+                         (up (af/literal-function 'θ)
+                             (af/literal-function 'φ))
                          (man/chart R1-rect))
-            f (f/compose (f/literal-function 'f '(-> (UP Real Real) Real))
+            f (f/compose (af/literal-function 'f '(-> (UP Real Real) Real))
                          (man/chart S2-spherical))]
         (is (= '(+ (* (((partial 0) f) (up (θ τ) (φ τ))) ((D θ) τ))
                    (* (((partial 1) f) (up (θ τ) (φ τ))) ((D φ) τ)))

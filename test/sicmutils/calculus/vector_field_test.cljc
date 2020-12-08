@@ -21,6 +21,7 @@
   (:refer-clojure :exclude [+ - * / partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [same :refer [ish?]]
+            [sicmutils.abstract.function :as af]
             [sicmutils.calculus.coordinate :refer [let-coordinates]
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :refer [D partial]]
@@ -129,5 +130,5 @@
                      (* (((partial 1) f) (up x0 y0 z0)) (v↑1 (up x0 y0 z0)))
                      (* (((partial 2) f) (up x0 y0 z0)) (v↑2 (up x0 y0 z0))))
                  (g/simplify (((coordinatize (vf/literal-vector-field 'v R3-rect) R3-rect)
-                               (f/literal-function 'f (up 1 2 3) 1))
+                               (af/literal-function 'f (up 1 2 3) 1))
                               (up 'x0 'y0 'z0))))))))))

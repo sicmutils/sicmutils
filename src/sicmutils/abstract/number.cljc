@@ -110,6 +110,13 @@
     (x/expression-of expr)
     expr))
 
+(defn- defunary [generic-op op-sym]
+  (if-let [op (ns/symbolic-operator op-sym)]
+    (defmethod generic-op [::x/numeric] [a]
+      (literal-number (op (numerical-expression a))))
+    (defmethod generic-op [::x/numeric] [a]
+      (x/literal-apply ::x/numeric op-sym [a]))))
+
 (defn- defbinary [generic-op op-sym]
   (let [pairs [[::x/numeric ::x/numeric]
                [::v/number ::x/numeric]
@@ -124,13 +131,6 @@
       (doseq [[l r] pairs]
         (defmethod generic-op [l r] [a b]
           (x/literal-apply ::x/numeric op-sym [a b]))))))
-
-(defn- defunary [generic-op op-sym]
-  (if-let [op (ns/symbolic-operator op-sym)]
-    (defmethod generic-op [::x/numeric] [a]
-      (literal-number (op (numerical-expression a))))
-    (defmethod generic-op [::x/numeric] [a]
-      (x/literal-apply ::x/numeric op-sym [a]))))
 
 (defbinary g/add '+)
 (defbinary g/sub '-)

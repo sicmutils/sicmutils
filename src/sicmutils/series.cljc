@@ -20,7 +20,6 @@
 (ns sicmutils.series
   (:refer-clojure :exclude [identity])
   (:require [sicmutils.series.impl :as i]
-            [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
@@ -561,8 +560,8 @@
 ;;
 ;; NOTE This might be the right way to go. Feel free to experiment.
 
-(derive ::x/numeric ::coseries)
-(derive ::v/number ::coseries)
+(derive ::v/scalar ::coseries)
+(derive ::v/function ::coseries)
 
 ;; All generic methods:
 ;;

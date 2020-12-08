@@ -19,13 +19,15 @@
 
 (ns sicmutils.calculus.vector-field
   (:refer-clojure :exclude [partial])
-  (:require [sicmutils.calculus.manifold :as m]
+  (:require [sicmutils.abstract.function :as af]
+            [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.operator :as o]
             [sicmutils.series :as series]
-            [sicmutils.structure :as s]))
+            [sicmutils.structure :as s]
+            [sicmutils.value :as v]))
 
 ;; A vector field is an operator that takes a smooth real-valued
 ;; function of a manifold and produces a new function on the manifold
@@ -39,7 +41,7 @@
   (let [name (if name (first name) 'unnamed-vector-field)]
     (o/make-operator vfp name
                      :subtype ::vector-field
-                     :arguments [::f/function])))
+                     :arguments [::v/function])))
 
 (defn vector-field?
   [vf]
@@ -70,10 +72,10 @@
   (let [n (:dimension (m/manifold coordinate-system))
         domain (apply s/up (repeat n 0))
         range 0
-        components (s/generate n ::s/up #(f/literal-function
-                                           (symbol (str name \↑ %))
-                                           domain
-                                           range))]
+        components (s/generate n ::s/up #(af/literal-function
+                                          (symbol (str name \↑ %))
+                                          domain
+                                          range))]
     (components->vector-field components coordinate-system name)))
 
 (defn ^:private coordinate-basis-vector-field-procedure
