@@ -52,6 +52,22 @@
     (is (e/abstract?
          (an/literal-number 12))))
 
+  (testing "metadata support"
+    (let [m {:real? true :latex! "face"}]
+      (is (not= (e/make-literal ::blah 12)
+                (-> (e/make-literal ::blah 12)
+                    (with-meta m)))
+          "Metadata currently affects equality.")
+
+      (is (= m (meta
+                (-> (e/make-literal ::blah 12)
+                    (with-meta m))))
+          "metadata can round-trip across expressions.")
+
+      (is (nil? (meta
+                 (e/make-literal ::blah 12)))
+          "metadata defaults to nil")))
+
   (testing "literal-type"
     (is (= ::e/numeric
            (e/literal-type

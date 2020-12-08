@@ -29,6 +29,7 @@
   (one? [_] (v/one? i))
   (zero-like [_] (ModInt. (v/zero-like i) m))
   (one-like [_] (ModInt. (v/one-like i) m))
+  (freeze [_] (list 'modint i m))
   (exact? [_] true)
   (numerical? [_] true)
   (kind [_] ::modint))

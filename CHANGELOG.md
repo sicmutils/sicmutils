@@ -143,6 +143,10 @@
   easier to register methods or test specifically for these cases. We've also
   added `m/column?` and `m/row?` predicates to check for these cases.
 
+- [#185](https://github.com/littleredcomputer/sicmutils/pull/185) specializes
+  all matrix operations that return power series (trig operations and `g/exp` to
+  `::square-matrix`).
+
 - [#184](https://github.com/littleredcomputer/sicmutils/pull/184) modifies
   `v/exact?` on functions; `((v/exact? f) x) == (v/exact? (f x))` now, instead
   of false as before. `literal-function` forms now have a correct `v/one-like`
@@ -157,6 +161,10 @@
 - `sicmutils.complex/complex` can now take any real type in its constructor, vs
   only numbers
   ([#184](https://github.com/littleredcomputer/sicmutils/pull/184)).
+
+- `modint` instances now implement `v/freeze?`: `(sicmutils.modint/make 1 2)`
+  freezes to that `(modint 1 2)`.
+  ([#185](https://github.com/littleredcomputer/sicmutils/pull/185)).
 
 ### Literals
 
