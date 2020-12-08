@@ -18,10 +18,8 @@
 ;
 
 (ns sicmutils.operator
-  (:require [sicmutils.expression :as x]
-            [sicmutils.generic :as g]
+  (:require [sicmutils.generic :as g]
             [sicmutils.series :as series]
-            [sicmutils.structure :as struct]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -212,8 +210,7 @@
                `(~'exp ~(:name op))
                (:context op))))
 
-(derive ::x/numeric ::co-operator)
-(derive ::v/number ::co-operator)
+(derive ::v/scalar ::co-operator)
 
 (defmethod g/expt [::operator ::v/native-integral] [o n]
   {:pre [(not (g/negative? n))]}
