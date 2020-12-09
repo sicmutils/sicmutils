@@ -318,6 +318,11 @@
       (and (instance? Structure s)
            (= ::up (.-orientation ^Structure s)))))
 
+(defn down?
+  "Returns `true` if `s` is a down structure, false otherwise."
+  [s]
+  (and (instance? Structure s)
+       (= ::down (.-orientation ^Structure s))))
 
 (defn valid-orientation?
   "Returns true if the supplied orientation lives in the set of allowed
