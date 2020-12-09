@@ -316,20 +316,7 @@
             (g/* (s/literal-up 'x 3)
                  (s/literal-down 'x 3))))
         "It can be convenient to generate symbolic structures if you don't care
-        about the entries."))
-
-  (testing "flip-indices"
-    (is (= (s/down 1 2 3)
-           (s/flip-indices (s/up 1 2 3))))
-    (is (= (s/up 1 2 3)
-           (s/flip-indices (s/flip-indices (s/up 1 2 3)))))
-    (is (= (s/down (s/up 1 2 3)
-                   (s/up 4 5 6)
-                   (s/up 7 8 9))
-           (s/flip-indices
-            (s/up (s/down 1 2 3)
-                  (s/down 4 5 6)
-                  (s/down 7 8 9)))))))
+        about the entries.")))
 
 (deftest mapper-tests
   (testing "mapr"
@@ -427,7 +414,7 @@
                     (s/unflatten (range) s)))
                 "flattening generates the replaced sequence")
 
-            (is (v/zero? (g/* s (s/flip-indices
+            (is (v/zero? (g/* s (s/transpose
                                  (s/unflatten (repeat 0) s))))
                 "flipping indices after replacing with all zeros creates a
                 structure that annihalates the original on multiplying."))
@@ -460,7 +447,7 @@
                 a compatible shape.")
 
             (is (= (s/structure->prototype 'x (s/typical-object s))
-                   (s/structure->prototype 'x (s/flip-indices
+                   (s/structure->prototype 'x (s/transpose
                                                (s/compatible-shape s))))
                 "structures collapse to numerical expressions when multiplied by
                 a compatible shape."))
@@ -484,6 +471,11 @@
       (is (s/down? o3)))))
 
 (deftest combining-tests
+  (checking "transpose twice is id" 100
+            [s (sg/structure sg/real)]
+            (is (= s (g/transpose
+                      (g/transpose s)))))
+
   (testing "transpose-outer unit"
     (let [foo (s/down (s/down (s/up 'x 'y)
                               (s/up 'z 'w))
@@ -495,7 +487,7 @@
                              (s/up 'c 'd)))
              (s/transpose-outer foo)))))
 
-  (checking "transpose-outer roundtrip" 100
+  (checking "transpose-outer twice is id" 100
             [s (sg/up1 (sg/down1 sg/real 5))]
             (is (= s (s/transpose-outer
                       (s/transpose-outer s)))))
@@ -836,25 +828,55 @@
           M (s/down (s/up 1 1) (s/up 1 0))]
       (is (= (fib n) (-> (expt M n) first second)))))
 
-  (let [A (s/up (s/up 1 2) (s/up 3 4))
-        B (s/down (s/up 1 2 3) (s/up 3 4 5))
-        C (s/down (s/up 1 2 3) (s/up 0 4 5) (s/up 1 0 6))
+  (let [A (s/up (s/up 1 2)
+                (s/up 3 4))
+        B (s/down (s/up 1 2 3)
+                  (s/up 3 4 5))
+        C (s/down (s/up 1 2 3)
+                  (s/up 0 4 5)
+                  (s/up 1 0 6))
         D (s/up (s/down 3))
         E (s/up 1)
-        F (s/down (s/up 1 2) (s/up 3 4))]
+        F (s/down (s/up 1 2)
+                  (s/up 3 4))]
+    (testing "transpose unit tests"
+      (is (= (s/down 1 2 3)
+             (s/transpose (s/up 1 2 3))))
 
-    (testing "transpose"
-      (is (= (s/down (s/up 1 2) (s/up 3 4)) (g/transpose A)))
-      (is (= (s/up (s/up 1 2 3) (s/up 3 4 5)) (g/transpose B)))
-      (is (= (s/up (s/up 1 2 3) (s/up 0 4 5) (s/up 1 0 6)) (g/transpose C)))
-      (is (= (s/down (s/down 3)) (g/transpose D)))
-      (is (= (s/down 1) (g/transpose E)))
-      (is (= (s/up (s/up 1 2) (s/up 3 4)) (g/transpose F))))
+      (is (= (s/up 1 2 3)
+             (s/transpose
+              (s/transpose (s/up 1 2 3)))))
 
-    (testing "flip-indices"
-      (is (= (s/down (s/down 1 2) (s/down 3 4)) (s/flip-indices A)))
-      (is (= (s/up (s/down 1 2 3) (s/down 3 4 5)) (s/flip-indices B)))
-      (is (= (s/down 1) (s/flip-indices E))))))
+      (is (= (s/down (s/up 1 2 3)
+                     (s/up 4 5 6)
+                     (s/up 7 8 9))
+             (s/transpose
+              (s/up (s/down 1 2 3)
+                    (s/down 4 5 6)
+                    (s/down 7 8 9)))))
+
+      (is (= (s/down (s/down 1 2)
+                     (s/down 3 4))
+             (g/transpose A)))
+
+      (is (= (s/up (s/down 1 2 3)
+                   (s/down 3 4 5))
+             (g/transpose B)))
+
+      (is (= (s/up (s/down 1 2 3)
+                   (s/down 0 4 5)
+                   (s/down 1 0 6))
+             (g/transpose C)))
+
+      (is (= (s/down (s/up 3))
+             (g/transpose D)))
+
+      (is (= (s/down 1)
+             (g/transpose E)))
+
+      (is (= (s/up (s/down 1 2)
+                   (s/down 3 4))
+             (g/transpose F))))))
 
 (deftest struct-complex-tests
   (testing "magnitude of structures as per GJS - 'plain' vectors"
