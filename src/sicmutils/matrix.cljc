@@ -527,7 +527,7 @@
 (defn I
   "Return the identity matrix of order n."
   [n]
-  (generate n n #(kronecker %1 %2)))
+  (generate n n s/kronecker))
 
 (defn characteristic-polynomial
   "Compute the characteristic polynomial of the square matrix m, evaluated
