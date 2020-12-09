@@ -49,6 +49,24 @@
 ;; Structures can interact with functions.
 (derive ::structure ::f/cofunction)
 
+;; ## Utilities
+;;
+;; These are related to structures, but probably need a better home.
+(defn kronecker
+  "Returns `1` if `i`== `j`, `0` otherwise."
+  [i j]
+  (if (== i j) 1 0))
+
+(defn basis-unit
+  "Returns a basis vector of `n` 0s, with `1` in the `i`th position.
+
+  If `n` is not supplied returns an infinite sequence."
+  ([i] (map (partial kronecker i)
+            (range)))
+  ([n i] (into [] (take n) (basis-unit i))))
+
+;; ## Structure Type Definition
+
 (declare s:=)
 
 (deftype Structure [orientation v]
@@ -208,6 +226,61 @@
                 (Structure. orientation (mapv #(apply % a b c d e f g h i j k l m n o p q r s t rest) v)))
        ]))
 
+;; ## Component Accessors
+
+(defn structure->vector
+  "Return the structure in unoriented vector form."
+  [s]
+  (cond (vector? s)             s
+        (instance? Structure s) (.-v ^Structure s)
+        :else
+        (u/illegal (str "non-structure supplied: " s))))
+
+(defn orientation
+  "Returns the orientation of s, either `::up` or `::down`. Defaults to `::up`,
+  even for non-structures."
+  [s]
+  (if (instance? Structure s)
+    (.-orientation ^Structure s)
+    ::up))
+
+(defn- s:count
+  "Returns the count for sequential `s`, `1` otherwise."
+  [s]
+  (if (sequential? s)
+    (count s)
+    1))
+
+(defn dimension
+  "If `s` is sequential, returns its dimension, ie, the total number of
+  non-sequential entries in the structure. Else, returns 1."
+  [s]
+  (if (sequential? s)
+    (-> s flatten count)
+    1))
+
+(defn- s:nth
+  "Structure-specific version of nth; acts as [[clojure.core/nth]] for structural
+  things.
+
+  For non-sequential things, if `i` is `0`, acts as identity; throws
+  otherwise."
+  [s i]
+  (cond (sequential? s) (nth s i)
+        (= i 0)         s
+        :else
+        (u/illegal
+         (str "non-sequential s:nth not supported: "
+              s " with index != 0: " i))))
+
+(defn component
+  "Given an access chain (a sequence of indices), return a function that accepts a
+  structure and returns the element at the specified access chain."
+  [& indices]
+  #(get-in % indices))
+
+;; ## Structure Predicates
+
 (defn- s:=
   "Returns true if the supplied structure `this` is equal to the argument on the
   right, false otherwise.
@@ -231,16 +304,35 @@
               :else false)
         :else false))
 
+(defn structure?
+  "Returns `true` if `s` is a structure, false otherwise. (Vectors are treated as
+  up structures.)"
+  [s]
+  (or (instance? Structure s)
+      (vector? s)))
+
+(defn up?
+  "Returns `true` if `s` is an up structure, false otherwise."
+  [s]
+  (or (vector? s)
+      (and (instance? Structure s)
+           (= ::up (.-orientation ^Structure s)))))
+
+
 (defn valid-orientation?
   "Returns true if the supplied orientation lives in the set of allowed
   orientations, false otherwise."
   [o]
   (contains? #{::up ::down} o))
 
-(defn structure->vector
-  "Return the structure in unoriented vector form."
-  [^Structure s]
-  (.-v s))
+(defn same-orientation?
+  "Returns true if the supplied structures have the same orientation, false
+  otherwise."
+  [s t]
+  (= (orientation s)
+     (orientation t)))
+
+;; ## Constructors
 
 (defn vector->up
   "Form an up-tuple from a vector."
@@ -270,35 +362,6 @@
   [& xs]
   (make ::down xs))
 
-(defn structure?
-  "Returns `true` if `s` is a structure, false otherwise. (Vectors are treated as
-  up structures.)"
-  [s]
-  (or (instance? Structure s)
-      (vector? s)))
-
-(defn up?
-  "Returns `true` if `s` is an up structure, false otherwise."
-  [s]
-  (or (vector? s)
-      (and (instance? Structure s)
-           (= ::up (.-orientation ^Structure s)))))
-
-(defn orientation
-  "Returns the orientation of s, either `::up` or `::down`. Defaults to `::up`,
-  even for non-structures."
-  [s]
-  (if (instance? Structure s)
-    (.-orientation ^Structure s)
-    ::up))
-
-(defn same-orientation?
-  "Returns true if the supplied structures have the same orientation, false
-  otherwise."
-  [s t]
-  (= (orientation s)
-     (orientation t)))
-
 (defn same
   "Returns a structure containing `xs` with the same orientation as `s`."
   [s xs]
@@ -307,17 +370,9 @@
 (defn opposite
   "Returns a structure containing `xs` with the orientation opposite to `s`."
   [s xs]
-  (make (opposite-orientation (orientation s)) xs))
-
-(defn flip-indices
-  "Returns a structure with the same shape as `s`, with with all orientations
-  inverted."
-  [s]
-  (if (structure? s)
-    (->Structure
-     (opposite-orientation (orientation s))
-     (mapv flip-indices (seq s)))
-    s))
+  (let [o (opposite-orientation
+           (orientation s))]
+    (make o xs)))
 
 (defn generate
   "Generate a structure with the given `orientation` whose elements are
@@ -370,47 +425,15 @@
   [sym size]
   (literal sym size ::down))
 
-(defn kronecker
-  "Returns `1` if `i`== `j`, `0` otherwise."
-  [i j]
-  (if (== i j) 1 0))
-
-(defn basis-unit
-  "Returns a basis vector of `n` 0s, with `1` in the `i`th position.
-
-  If `n` is not supplied returns an infinite sequence."
-  ([i] (map (partial kronecker i)
-            (range)))
-  ([n i] (into [] (take n) (basis-unit i))))
-
-(defn- s:nth
-  "Structure-specific version of nth; acts as [[clojure.core/nth]] for structural
-  things.
-
-  For non-sequential things, if `i` is `0`, acts as identity; throws
-  otherwise."
-  [s i]
-  (cond (sequential? s) (nth s i)
-        (= i 0)         s
-        :else
-        (u/illegal
-         (str "non-sequential s:nth not supported: "
-              s " with index != 0: " i))))
-
-(defn- s:count
-  "Returns the count for sequential `s`, `1` otherwise."
+(defn flip-indices
+  "Returns a structure with the same shape as `s`, with with all orientations
+  inverted."
   [s]
-  (if (sequential? s)
-    (count s)
-    1))
-
-(defn dimension
-  "If `s` is sequential, returns its dimension, ie, the total number of
-  non-sequential entries in the structure. Else, returns 1."
-  [s]
-  (if (sequential? s)
-    (-> s flatten count)
-    1))
+  (if (structure? s)
+    (->Structure
+     (opposite-orientation (orientation s))
+     (mapv flip-indices (structure->vector s)))
+    s))
 
 ;; ## Structure Mappers
 ;;
@@ -536,48 +559,22 @@
    (flip-indices s)))
 
 (defn transpose-outer
-  "Returns a new structure generated by performing an outer transpose, whatever
-  that means!
+  "Returns a new structure with the same orientation as the first element of `s`,
+  filled with elements of the same orientation as `s`.
 
-  Implemented for completeness. The comment from `scmutils` states:
+  Each element is generating by taking the first element of each entry in `s`,
+  the the second, etc... In that sense this is similar to a traditional matrix
+  transpose.
+
+  A comment from `scmutils` states:
 
   'used only in symmetrize-Christoffel in
   src/calculus/covariant-derivative.scm.'"
   [s]
-  (let [s0 (s:nth s 0)]
-    (generate (s:count s0)
-              (orientation s0)
-              (fn [i]
-                (generate (s:count s)
-                          (orientation s)
-                          (fn [j]
-                            (-> (s:nth s j)
-                                (s:nth i))))))))
-
-(defn component
-  "Given an access chain (a sequence of indices), return a function that accepts a
-  structure and returns the element at the specified access chain."
-  [& indices]
-  #(get-in % indices))
-
-(defn- compatible-for-contraction?
-  "Returns `true` if `s` and `t` are
-
-  - of the same orientation
-  - equal in length
-
-  - are full of elements also compatible for contraction (also true if either
-    pair is NOT a structure)
-
-  false otherwise."
-  [s t]
-  (and (not (same-orientation? s t))
-       (= (count s) (count t))
-       (every? (fn [[l r]]
-                 (or (not (structure? l))
-                     (not (structure? r))
-                     (compatible-for-contraction? l r)))
-               (map vector s t))))
+  (let [o (orientation s)]
+    (map:l (fn [& xs]
+             (make o xs))
+           s)))
 
 (defn- dot-product
   "Returns the structural dot product of the compatible structures `s` and
@@ -665,6 +662,25 @@
   [s v]
   (same v (map #(g/* s %) v)))
 
+(defn- compatible-for-contraction?
+  "Returns `true` if `s` and `t` are
+
+  - of the same orientation
+  - equal in length
+
+  - are full of elements also compatible for contraction (also true if either
+    pair is NOT a structure)
+
+  false otherwise."
+  [s t]
+  (and (not (same-orientation? s t))
+       (= (count s) (count t))
+       (every? (fn [[l r]]
+                 (or (not (structure? l))
+                     (not (structure? r))
+                     (compatible-for-contraction? l r)))
+               (map vector s t))))
+
 (defn- s:*
   "If `s` and `t` are compatible for contraction, returns their vector dot
   product.
@@ -692,8 +708,8 @@
 
         :else (u/illegal "Incompatible multiplication: " s t)))
 
-;; hmmm. why not do the repeated-squaring trick here? perhaps structures are not
-;; typically raised to high exponents.
+;; NOTE hmmm. why not do the repeated-squaring trick here? perhaps structures
+;; are not typically raised to high exponents.
 
 (defn- expt
   "Raise the structure `s` to the nth power."
@@ -702,6 +718,8 @@
     (cond (v/one? n) s
           (> n one) (g/* s (g/expt s (g/- n one)))
           :else (u/arithmetic-ex (str "Cannot: " `(expt ~s ~n))))))
+
+;; ## Generic Method Installation
 
 (defn- elementwise
   "Given a binary operator and two structures of the same size, return
@@ -713,10 +731,10 @@
     (->Structure (orientation s) (mapv op s t))
     (u/arithmetic-ex (str op " provided arguments of differing length"))))
 
-;; ## Generic Method Installation
-
 (defmethod g/add [::down ::down] [a b] (elementwise g/+ a b))
 (defmethod g/add [::up ::up] [a b] (elementwise g/+ a b))
+
+(defmethod g/negate [::structure] [a] (mapr g/negate a))
 (defmethod g/sub [::down ::down] [a b] (elementwise g/- a b))
 (defmethod g/sub [::up ::up] [a b] (elementwise g/- a b))
 
@@ -741,14 +759,14 @@
   (scalar*structure a b))
 
 (defmethod g/div [::structure ::v/scalar] [a b]
-  (let [b' (g/invert b)]
-    (same a (map #(g/* % b') a))))
+  (structure*scalar a (g/invert b)))
 
-(defmethod g/div [::structure ::structure] [a b] (s:* (g/invert b) a))
-(defmethod g/expt [::structure ::v/integral] [a b] (expt a b))
-(defmethod g/negate [::structure] [a] (mapr g/negate a))
+(defmethod g/div [::structure ::structure] [a b]
+  (s:* (g/invert b) a))
+
 (defmethod g/square [::structure] [a] (dot-product a a))
 (defmethod g/cube [::structure] [a] (s:* a (s:* a a)))
+(defmethod g/expt [::structure ::v/integral] [a b] (expt a b))
 (defmethod g/simplify [::structure] [a]
   (v/freeze (mapr g/simplify a)))
 
@@ -761,7 +779,9 @@
 (defmethod g/conjugate [::structure] [a]
   (mapr g/conjugate a))
 
-(defmethod g/transpose [::structure] [a] (opposite a (seq a)))
+(defmethod g/transpose [::structure] [a]
+  (opposite a (structure->vector a)))
+
 (defmethod g/dimension [::structure] [a] (dimension a))
 (defmethod g/dot-product [::structure ::structure] [a b] (dot-product a b))
 (defmethod g/inner-product [::structure ::structure] [a b] (inner-product a b))

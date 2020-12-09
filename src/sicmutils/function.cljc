@@ -411,11 +411,16 @@
 
 (defunary g/determinant)
 (defunary g/trace)
-(defunary g/dimension)
-(defbinary g/cross-product)
+
 (defbinary g/gcd)
 (defbinary g/lcm)
 (defbinary g/exact-divide)
+
+(defunary g/dimension)
+(defbinary g/dot-product)
+(defbinary g/inner-product)
+(defbinary g/outer-product)
+(defbinary g/cross-product)
 
 ;; Complex Operations
 
