@@ -20,8 +20,12 @@
 (ns sicmutils.structure-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number]
             [sicmutils.complex :as c]
+            [sicmutils.generators :as sg]
             [sicmutils.generic :as g :refer [+ - * / cube expt negate square]]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
@@ -569,41 +573,90 @@
     (is (near (g/magnitude (s/down 3 4 5)) (g/sqrt 50)))))
 
 (deftest tests-to-file
-  (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-               (g/inner-product
-                (s/up (s/down #sicm/complex "1+2i" 2))
-                (s/up (s/down #sicm/complex "1+2i" 2 3 4)))))
+  (testing "transpose-outer unit"
+    (let [foo (s/down (s/down (s/up 'x 'y)
+                              (s/up 'z 'w))
+                      (s/down (s/up 'a 'b)
+                              (s/up 'c 'd)))]
+      (is (= (s/down (s/down (s/up 'x 'y)
+                             (s/up 'a 'b))
+                     (s/down (s/up 'z 'w)
+                             (s/up 'c 'd)))
+             (s/transpose-outer foo)))))
 
-  (is (= 11 (g/dot-product
-             (s/up (s/down 1 2))
-             (s/up (s/down 3 4)))))
+  (checking "transpose-outer roundtrip" 100
+            [s (sg/up1 (sg/down1 sg/real 5))]
+            (is (= s (s/transpose-outer
+                      (s/transpose-outer s)))))
 
-  (let [foo (s/down (s/down (s/up 'x 'y)
-                            (s/up 'z 'w))
-                    (s/down (s/up 'a 'b)
-                            (s/up 'c 'd)))]
-    (is (= (s/down (s/down (s/up 'x 'y)
-                           (s/up 'a 'b))
-                   (s/down (s/up 'z 'w)
-                           (s/up 'c 'd)))
-           (s/transpose-outer foo))))
+  (testing "structure->prototype"
+    (let [s (s/up 't (s/up 'u 'v) (s/down 'r 's) (s/up 'v1 'v2))]
+      (is (= (s/up 'x0
+                   (s/up 'x1:0 'x1:1)
+                   (s/down 'x2:0 'x2:1)
+                   (s/up 'x3:0 'x3:1))
+             (s/structure->prototype 'x s)))))
 
-  (let [s (s/up 't (s/up 'u 'v) (s/down 'r 's) (s/up 'v1 'v2))]
-    ;; one law
-    (is (= s (s/map-chain #(get-in s %2) s)))
+  (checking "s/map-chain with get-in is identity" 100
+            [s (sg/structure sg/real)]
+            (is (= s (s/map-chain #(get-in s %2) s)))
 
-    ;; another law
-    (is (= s (s/mapr #(get-in s %) (s/structure->access-chains s))))
+            (is (= (s/map-chain (fn [_ chain] (seq chain)) s)
+                   (s/structure->access-chains s))
+                "map-chain and structure->access-chains are equiv"))
 
-    ;; specifics
-    (is (= (s/map-chain (fn [_ chain] (seq chain)) s)
-           (s/structure->access-chains s)))
+  (checking "s/mapr get-in from structure->access-chains is identity" 100
+            [s (sg/structure sg/real)]
+            (let [chains (s/structure->access-chains s)]
+              (is (= s (s/mapr #(get-in s %) chains)))))
 
-    (is (= (s/up 'x0
-                 (s/up 'x1:0 'x1:1)
-                 (s/down 'x2:0 'x2:1)
-                 (s/up 'x3:0 'x3:1))
-           (s/structure->prototype 'x s)))
+  (checking "s/compatible-zero works" 100
+            [s (sg/structure sg/real)]
+            (is (v/zero? (g/* s (s/compatible-zero s))))
+            (is (v/zero? (g/* (s/compatible-zero s) s)))))
 
-    (is (= 0 (g/* s (s/compatible-zero s))))
-    (is (= 0 (g/* (s/compatible-zero s) s)))))
+(deftest product-tests
+  (testing "dot-product unit"
+    (is (= 11 (g/dot-product
+               (s/up (s/down 1 2))
+               (s/up (s/down 3 4))))))
+
+  (checking "g/dot-product of all 1s == dimension" 100
+            [x (sg/structure (gen/return 1))]
+            (is (= (s/dimension x)
+                   (g/dot-product x x))))
+
+  (checking "g/dot-product of complex" 100
+            [x (sg/structure (gen/return
+                              (g/make-rectangular 1 1)))]
+            (let [dot   (g/dot-product x x)
+                  two*d (g/* 2 (s/dimension x))]
+              (is (== two*d (g/imag-part dot))
+                  "dot product doesn't conjugate, so all magnitude gets rotated
+                  up to the imaginary axis.")
+
+              (is (zero? (g/real-part dot))
+                  "real part is zero!")))
+
+  (checking "g/inner-product of complex" 100
+            [x (sg/structure (gen/return
+                              (g/make-rectangular 1 1)))]
+            (let [ip (g/inner-product x x)]
+              (is (zero? (g/imag-part ip))
+                  "inner product always returns a real.")
+
+              (is (== (g/* 2 (s/dimension x))
+                      (g/real-part ip))
+                  "every entry had magnitude (sqrt 2), so the inner product
+                  should be double the dimension.")))
+
+  (testing "{dot,inner}-product throws at incompatible lengths"
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                 (g/inner-product
+                  (s/up (s/down #sicm/complex "1+2i" 2))
+                  (s/up (s/down #sicm/complex "1+2i" 2 3 4)))))
+
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                 (g/dot-product
+                  (s/up (s/down 1 2))
+                  (s/up (s/down 1 2 3 4)))))))

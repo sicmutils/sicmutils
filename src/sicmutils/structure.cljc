@@ -346,7 +346,7 @@
   {:pre [(vector? v)]}
   (->Structure ::down v))
 
-(defn- make
+(defn make
   "Generate a structure with the supplied orientation, given some sequence `xs`"
   [orientation xs]
   (let [xs (if (vector? xs) xs (into [] xs))]
