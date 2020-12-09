@@ -391,6 +391,44 @@
                          (g/* (g/invert A) A)
                          (g/* A (g/invert A)))))))
 
+(deftest product-tests
+  ;; TODO - fix the case where we have a 1x1 matrix that can't reach these
+  ;; methods, since it gets dispatched as square.
+  (checking "dot-product" 100 [s (sg/up1 sg/real 2 10)]
+            (let [col (m/up->column-matrix s)
+                  row (m/up->row-matrix s)]
+              (is (= (g/dot-product s s)
+                     (g/dot-product col col)))
+
+              (is (= (g/dot-product s s)
+                     (g/dot-product row row)))))
+
+  (checking "inner-product" 100 [s (sg/up1 sg/complex 2 10)]
+            (let [col (m/up->column-matrix s)
+                  row (m/up->row-matrix s)]
+              (is (= (g/inner-product s s)
+                     (g/inner-product col col)))
+
+              (is (= (g/inner-product s s)
+                     (g/inner-product row row)))))
+
+  (checking "cross-product returns matrices" 100 [s (sg/up1 sg/complex 3)]
+            (let [col (m/up->column-matrix s)
+                  row (m/up->row-matrix s)]
+              (is (ish? (m/up->column-matrix
+                         (g/cross-product s s))
+                        (g/cross-product col col)))
+
+              (is (ish? (m/up->row-matrix
+                         (g/cross-product s s))
+                        (g/cross-product row row)))))
+
+  (checking "outer-product" 100 [s (sg/up1 sg/complex 2 10)]
+            (let [col (m/up->column-matrix s)
+                  row (m/up->row-matrix s)]
+              (is (= (g/outer-product s s)
+                     (g/outer-product col row))))))
+
 (deftest matrices-from-structure
   (let [A (s/up (s/up 1 2) (s/up 3 4))
         C (s/down (s/up 1 2 3) (s/up 0 4 5) (s/up 1 0 6))

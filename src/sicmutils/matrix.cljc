@@ -211,8 +211,7 @@
        (-invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
                 (Matrix. r c (mapv (fn [e] (mapv #(apply % a b c d e f g h i j k l m n o p q r s t rest) e)) v)))]))
 
-(defn matrix?
-  [m]
+(defn matrix? [m]
   (instance? Matrix m))
 
 (defn m:= [^Matrix this that]
@@ -221,6 +220,15 @@
          (and (= (.-r this) (.-r that))
               (= (.-c this) (.-c that))
               (= (.-v this) (.-v that))))))
+
+(defn matrix->vector
+  "Return the matrix as a vector of rows."
+  [m]
+  (cond (vector? m)          m
+        (instance? Matrix m) (.-v ^Matrix m)
+        :else
+        (u/illegal (str "non-matrix supplied: " m))))
+
 (defn square?
   "Returns true if `m` is a square matrix, false otherwise."
   [m]
@@ -435,6 +443,34 @@
     (apply s/up (map #(core-get-in elems [% %])
                      (range 0 rows)))))
 
+(defn up->column-matrix
+  "Returns a column matrix with the contents of the supplied `up` structure.
+  Errors if any other type is provided."
+  [v]
+  {:pre [(s/up? v)]}
+  (apply column v))
+
+(defn column-matrix->up
+  "Extracts the single column from the supplied column matrix. Errors if some
+  other type is supplied."
+  [m]
+  {:pre [(column? m)]}
+  (nth-col m 0))
+
+(defn up->row-matrix
+  "Returns a row matrix with the contents of the supplied `up` structure.
+  Errors if any other type is provided."
+  [v]
+  {:pre [(s/up? v)]}
+  (by-rows (seq v)))
+
+(defn row-matrix->up
+  "Extracts the single row from the supplied column matrix. Errors if some other
+  type is supplied."
+  [m]
+  {:pre [(row? m)]}
+  (nth-row m 0))
+
 (defn m->s
   "Convert the matrix m into a structure S, guided by the requirement that (* ls S rs)
   should be a scalar"
@@ -581,10 +617,6 @@
 (defmethod g/transpose [::matrix] [m] (transpose m))
 (defmethod g/trace [::square-matrix] [m] (trace m))
 (defmethod g/determinant [::square-matrix] [m] (determinant m))
-(defmethod g/dimension [::square-matrix] [m] (dimension m))
-(defmethod g/dimension [::column-matrix] [^Matrix m] (.-c m))
-(defmethod g/dimension [::row-matrix] [^Matrix m] (.-r m))
-
 (defmethod g/determinant [::s/structure] [s]
   (square-structure-> s (fn [m _] (determinant m))))
 
@@ -596,3 +628,37 @@
     (if (= (s/orientation a') (s/orientation (first a')))
       (s/opposite a' (map #(s/opposite a' %) a'))
       a')))
+
+(defmethod g/dimension [::square-matrix] [m] (dimension m))
+(defmethod g/dimension [::column-matrix] [^Matrix m] (.-c m))
+(defmethod g/dimension [::row-matrix] [^Matrix m] (.-r m))
+
+;; ## Column / Row Matrices only...
+
+(defmethod g/dot-product [::row-matrix ::row-matrix] [a b]
+  (g/dot-product (row-matrix->up a)
+                 (row-matrix->up b)))
+
+(defmethod g/dot-product [::column-matrix ::column-matrix] [a b]
+  (g/dot-product (column-matrix->up a)
+                 (column-matrix->up b)))
+
+(defmethod g/inner-product [::row-matrix ::row-matrix] [a b]
+  (g/inner-product (row-matrix->up a)
+                   (row-matrix->up b)))
+
+(defmethod g/inner-product [::column-matrix ::column-matrix] [a b]
+  (g/inner-product (column-matrix->up a)
+                   (column-matrix->up b)))
+
+(defmethod g/cross-product [::row-matrix ::row-matrix] [a b]
+  (up->row-matrix
+   (g/cross-product (row-matrix->up a)
+                    (row-matrix->up b))))
+
+(defmethod g/cross-product [::column-matrix ::column-matrix] [a b]
+  (up->column-matrix
+   (g/cross-product (column-matrix->up a)
+                    (column-matrix->up b))))
+
+(defmethod g/outer-product [::column-matrix ::row-matrix] [a b] (mul a b))

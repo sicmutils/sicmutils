@@ -476,6 +476,8 @@
 (define-unary-operation g/square #(diff-* % %))
 (define-unary-operation g/cube #(diff-* % (diff-* % %)))
 
+(define-binary-operation g/dot-product diff-*)
+
 (derive ::differential ::o/co-operator)
 (derive ::differential ::series/coseries)
 (derive ::differential ::f/cofunction)

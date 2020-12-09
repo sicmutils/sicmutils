@@ -579,6 +579,21 @@
                            (s/up (v/zero-like s) s))
                      (g/outer-product s I)))))
 
+  (checking "inner, dot, outer with fns" 100
+            [s (-> (sg/structure1 sg/integer 2)
+                   (sg/structure1 2))
+             n (gen/choose 0 5)]
+            (is (= ((g/dot-product g/* g/*) n s)
+                   (g/dot-product (g/* n s)
+                                  (g/* n s))))
+
+            (is (= ((g/inner-product g/* g/*) n s)
+                   (g/inner-product (g/* n s)
+                                    (g/* n s))))
+
+            (is (= ((g/outer-product g/* g/*) n s)
+                   (g/outer-product (g/* n s)
+                                    (g/* n s)))))
   (testing "cross-product with fns"
     (let [deferred (g/cross-product
                     #(g/* 2 %)
