@@ -97,6 +97,7 @@
        (assoc [_ k entry] (Structure. orientation (assoc v k entry)))
        (containsKey [_ k] (contains? v k))
        (entryAt [_ k] (.entryAt v k))
+       (cons [_ o] (Structure. orientation (conj v o)))
        (count [_] (count v))
        (seq [_] (seq v))
        (valAt [_ key] (get v key))
@@ -150,14 +151,7 @@
        (applyTo [s xs] (AFn/applyToHelper s xs))]
 
       :cljs
-      [IEquiv
-       (-equiv [_ b]
-               (if (instance? Structure b)
-                 (and (= orientation (.-orientation b))
-                      (= v (.-v b)))
-                 (= v b)))
-
-       Object
+      [Object
        (toString [_] (str "("
                           (orientation orientation->symbol) " " (join " " (map str v))
                           ")"))
@@ -169,17 +163,37 @@
                               (.toString x)
                               "\"]"))
 
+       ICollection
+       (-conj [_ item] (Structure. orientation (-conj v item)))
+
+       IEmptyableCollection
+       (-empty [_] (Structure. orientation []))
+
        ISequential
 
-       ICounted
-       (-count [_] (-count v))
+       IEquiv
+       (-equiv [this that] (s:= this that))
 
        ISeqable
        (-seq [_] (-seq v))
 
+       ICounted
+       (-count [_] (-count v))
+
+       IIndexed
+       (-nth [_ n] (-nth v n))
+       (-nth [_ n not-found] (-nth v n not-found))
+
        ILookup
        (-lookup [_ k] (-lookup v k))
-       (-lookup [_ k default] (-lookup v k default))
+       (-lookup [_ k not-found] (-lookup v k not-found))
+
+       IAssociative
+       (-assoc [_ k entry] (Structure. orientation (-assoc v k entry)))
+       (-contains-key? [_ k] (-contains-key? v k))
+
+       IFind
+       (-find [_ n] (-find v n))
 
        IFn
        (-invoke [_ a]
@@ -711,7 +725,8 @@
                          t)))
         (scalar*structure s t)
 
-        :else (u/illegal "Incompatible multiplication: " s t)))
+        :else (u/illegal
+               (str "Incompatible multiplication: " s t))))
 
 ;; NOTE hmmm. why not do the repeated-squaring trick here? perhaps structures
 ;; are not typically raised to high exponents.

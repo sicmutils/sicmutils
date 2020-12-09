@@ -129,6 +129,17 @@
   (testing "seqable"
     (is (= [1 2 3] (into [] (s/up 1 2 3)))))
 
+  (testing "conj pushes onto the end of a structuer"
+    (is (= (s/up 1 2 3 4)
+           (conj (s/up 1 2 3) 4)))
+
+    (is (= (s/down 1 2 3 4)
+           (conj (s/down 1 2 3) 4))))
+
+  (testing "empty returns an empty instance of the same structure"
+    (is (= (s/up) (empty (s/up 1 2 3))))
+    (is (= (s/down) (empty (s/down 1 2 3)))))
+
   (testing "a structure has a nth element (ILookup)"
     (is (= 14 (nth (s/up 10 12 14) 2)))
     (is (= 5 (nth (s/up 4 5 6) 1)))
@@ -416,8 +427,8 @@
                     (s/unflatten (range) s)))
                 "flattening generates the replaced sequence")
 
-            (is (zero? (g/* s (s/flip-indices
-                               (s/unflatten (repeat 0) s))))
+            (is (v/zero? (g/* s (s/flip-indices
+                                 (s/unflatten (repeat 0) s))))
                 "flipping indices after replacing with all zeros creates a
                 structure that annihalates the original on multiplying."))
 

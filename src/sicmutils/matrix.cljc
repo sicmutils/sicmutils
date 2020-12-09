@@ -128,15 +128,7 @@
                 (AFn/applyToHelper m xs))]
 
       :cljs
-      [IEquiv
-       (-equiv [_ b]
-               (if (instance? Matrix b)
-                 (and (= r (.-r b))
-                      (= c (.-c b))
-                      (= v (.-v b)))
-                 (= v (seq b))))
-
-       Object
+      [Object
        (toString [_] (str v))
 
        IPrintWithWriter
@@ -146,17 +138,34 @@
                               (.toString x)
                               "\"]"))
 
+       IEmptyableCollection
+       (-empty [this] (v/zero-like this))
+
        ISequential
 
-       ICounted
-       (-count [_] (-count v))
+       IEquiv
+       (-equiv [this that] (m:= this that))
 
        ISeqable
        (-seq [_] (-seq v))
 
+       ICounted
+       (-count [_] (-count v))
+
+       IIndexed
+       (-nth [_ n] (-nth v n))
+       (-nth [_ n not-found] (-nth v n not-found))
+
        ILookup
        (-lookup [_ k] (-lookup v k))
-       (-lookup [_ k default] (-lookup v k default))
+       (-lookup [_ k not-found] (-lookup v k not-found))
+
+       IAssociative
+       (-assoc [_ k entry] (Matrix. r c (-assoc v k entry)))
+       (-contains-key? [_ k] (-contains-key? v k))
+
+       IFind
+       (-find [_ n] (-find v n))
 
        IFn
        (-invoke [_ a]
