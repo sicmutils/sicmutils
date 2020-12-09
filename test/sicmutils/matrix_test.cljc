@@ -24,6 +24,7 @@
              #?@(:cljs [:include-macros true])]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :as ct :refer [defspec]]
+            [same :refer [ish?]]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
