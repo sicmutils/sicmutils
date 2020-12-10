@@ -87,18 +87,17 @@
 (def print-expression simp/print-expression)
 
 (defn ref
-  "A shim so that ref can act like nth in SICM contexts, as clojure
-  core ref elsewhere."
-  [a & as]
-  (let [m? (matrix/matrix? a)]
-    (if (and as
-             (or (sequential? a) m?)
-             (every? v/integral? as))
-      (if m?
-        (matrix/get-in a as)
-        (get-in a as))
-      #?(:clj (apply core-ref a as)
-         :cljs (get-in a as)))))
+  "A shim so that ref can act like nth in SICM contexts, as clojure core ref
+  elsewhere."
+  ([a] #?(:clj (core-ref a) :cljs a))
+  ([a & ks]
+   (if (and (associative? a)
+            (every? v/integral? ks))
+     (if (matrix/matrix? a)
+       (matrix/get-in a ks)
+       (get-in a ks))
+     #?(:clj (apply core-ref a ks)
+        :cljs (get-in a ks)))))
 
 (defn partial
   "A shim. Dispatches to partial differentiation when all the arguments
@@ -112,7 +111,11 @@
 (def m:transpose matrix/transpose)
 (def qp-submatrix #(matrix/without % 0 0))
 (def m:dimension matrix/dimension)
+
 (def matrix-by-rows matrix/by-rows)
+(def matrix-by-cols matrix/by-rows)
+
+(def row-matrix matrix/row)
 (def column-matrix matrix/column)
 
 (def pi Math/PI)
@@ -121,6 +124,9 @@
 (def series series/series)
 (def power-series series/power-series)
 (def series:sum series/sum)
+
+(defn vector:generate [n f]
+  (mapv f (range n)))
 
 (defn tex$
   "Render expression in a form convenient for rendering with clojupyter.
@@ -137,7 +143,7 @@
 (import-vars
  [sicmutils.abstract.number literal-number]
  [sicmutils.complex complex]
- [sicmutils.function compose]
+ [sicmutils.function arity compose]
  [sicmutils.operator commutator]
  [sicmutils.generic
   * + - /

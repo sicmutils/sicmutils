@@ -3,7 +3,8 @@
   (:refer-clojure :rename {bigint core-bigint
                            biginteger core-biginteger
                            double core-double
-                           long core-long}
+                           long core-long
+                           symbol core-symbol}
                   #?@(:cljs [:exclude [bigint double long symbol]]))
   (:require [clojure.test.check.generators :as gen]
             [same :refer [zeroish?]]

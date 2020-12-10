@@ -241,6 +241,10 @@
       the left
   - structure multiplication with scalars, etc now respects ordering, just in
     case any multiplication is not commutative.
+  - `sicmutils.generators` now holds generators for `up`, `down`, and
+    `structure` generators; these produce potentially deeply nested structures.
+    `up1`, `down1` and `structure1` generate only one level deep. Mix and match!
+    See `structure_test.cljc` for many examples of how to use these.
 
 ### Literals
 

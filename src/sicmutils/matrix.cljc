@@ -221,11 +221,27 @@
               (= (.-c this) (.-c that))
               (= (.-v this) (.-v that))))))
 
+(defn num-rows
+  "Returns the number of rows of the supplied matrix `m`. Throws if a
+  non-matrix is supplied."
+  [m]
+  (if (matrix? m)
+    (.-r ^Matrix m)
+    (u/illegal (str "non-matrix supplied: " m))))
+
+(defn num-cols
+  "Returns the number of columns of the supplied matrix `m`. Throws if a
+  non-matrix is supplied."
+  [m]
+  (if (matrix? m)
+    (.-c ^Matrix m)
+    (u/illegal (str "non-matrix supplied: " m))))
+
 (defn matrix->vector
   "Return the matrix as a vector of rows."
   [m]
-  (cond (vector? m)          m
-        (instance? Matrix m) (.-v ^Matrix m)
+  (cond (vector? m) m
+        (matrix? m) (.-v ^Matrix m)
         :else
         (u/illegal (str "non-matrix supplied: " m))))
 
@@ -233,22 +249,22 @@
   "Returns true if `m` is a square matrix, false otherwise."
   [m]
   (and (matrix? m)
-       (= (.-r ^Matrix m)
-          (.-c ^Matrix m))))
+       (= (num-rows m)
+          (num-cols m))))
 
 (defn column?
   "Returns true if `m` is a matrix with a single column (a 'column matrix'),
   false otherwise."
   [m]
   (and (matrix? m)
-       (= (.-c ^Matrix m) 1)))
+       (= (num-cols m) 1)))
 
 (defn row?
   "Returns true if `m` is a matrix with a single row (a 'row matrix'), false
   otherwise."
   [m]
   (and (matrix? m)
-       (= (.-r ^Matrix m) 1)))
+       (= (num-rows m) 1)))
 
 (defn generate
   "Create the r by c matrix whose entries are (f i j)"
@@ -279,49 +295,67 @@
   "Like get-in for matrices, but obeying the scmutils convention: only one
   index is required to get an unboxed element from a column vector. This is
   perhaps an unprincipled exception..."
-  [^Matrix m is]
-  (let [e (core-get-in (.-v m) is)]
-    (if (and (= 1 (count is))
-             (= 1 (.-c m)))
+  [m is]
+  (let [e (core-get-in m is)]
+    (if (and (column? m)
+             (= 1 (count is)))
       (e 0)
       e)))
 
 (defn matrix-some
   "True if f is true for some element of m."
-  [f ^Matrix m]
-  (some f (flatten (.-v m))))
+  [f m]
+  (some f (flatten m)))
 
 (defn fmap
   "Maps f over the elements of m, returning an object of the same type."
-  [f ^Matrix m]
-  (->Matrix (.-r m) (.-c m) (mapv #(mapv f %) (.-v m))))
+  [f m]
+  (->Matrix (num-rows m)
+            (num-cols m)
+            (mapv #(mapv f %) m)))
 
-(defn by-rows [& rs]
-  {:pre [(seq rs)
-         (every? seq rs)]}
-  (let [r (count rs)
-        cs (map count rs)]
-    (when-not (every? #(= % (first cs)) (next cs))
-      (u/illegal "malformed matrix"))
-    (->Matrix r (first cs) (mapv vec rs))))
+(defn- well-formed? [vs]
+  {:pre [(seq vs) (every? seq vs)]}
+  (let [counts (map count vs)]
+    (every? #(= % (first counts))
+            (next counts))))
 
-(defn column [& es]
-  {:pre [(not-empty es)]}
-  (->Matrix (count es) 1 (vec (for [e es] [e]))))
+(defn by-rows [& rows]
+  (if (well-formed? rows)
+    (->Matrix (count rows)
+              (count (first rows))
+              (mapv vec rows))
+    (u/illegal "malformed matrix")))
+
+(defn by-cols [& cols]
+  (if (well-formed? cols)
+    (->Matrix (count (first cols))
+              (count cols)
+              (apply mapv vector cols))
+    (u/illegal "malformed matrix")))
+
+(defn row [& xs]
+  {:pre [(not-empty xs)]}
+  (->Matrix 1 (count xs) (into [] xs)))
+
+(defn column [& xs]
+  {:pre [(not-empty xs)]}
+  (->Matrix (count xs) 1 (mapv vector xs)))
 
 (defn transpose
   "Transpose the matrix m."
-  [^Matrix m]
-  (let [v (.-v m)]
-    (generate (.-c m) (.-r m) #(core-get-in v [%2 %1]))))
+  [m]
+  (generate (num-cols m)
+            (num-rows m)
+            #(core-get-in m [%2 %1])))
 
 (defn ->structure
   "Convert m to a structure with given outer and inner orientations. Rows of
   M will become the inner tuples, unless t? is true, in which columns of m will
   form the inner tuples."
   [m outer-orientation inner-orientation t?]
-  (let [^Matrix m' (if t? (transpose m) m)
-        v (.-v m')]
+  (let [m' (if t? (transpose m) m)
+        v (matrix->vector m')]
     (s/->Structure outer-orientation
                    (mapv #(s/->Structure inner-orientation %) v))))
 
@@ -330,35 +364,38 @@
   GJS: Any matrix in the argument list wants to be converted to a row of
   columns"
   [s]
-  (apply s/up (map #(if (instance? Matrix %) (->structure % s/down s/up false) %) s)))
+  (apply s/up (map (fn [m]
+                     (if (matrix? m)
+                       (->structure m s/down s/up false)
+                       m))
+                   s)))
 
 (defn ^:private mul
   "Multiplies the two matrices a and b"
-  [^Matrix a ^Matrix b]
-  (let [ra (.-r a)
-        rb (.-r b)
-        ca (.-c a)
-        cb (.-c b)
-        va (.-v a)
-        vb (.-v b)]
-    (when (not= ca rb)
+  [a b]
+  (let [ra (num-rows a)
+        rb (num-rows b)
+        ca (num-cols a)
+        cb (num-cols b)]
+    (when-not (= ca rb)
       (u/illegal "matrices incompatible for multiplication"))
-    (generate ra cb #(reduce g/+ (for [k (range ca)]
-                                   (g/* (core-get-in va [%1 k])
-                                        (core-get-in vb [k %2])))))))
+    (generate ra cb #(reduce
+                      g/+ (for [k (range ca)]
+                            (g/* (core-get-in a [%1 k])
+                                 (core-get-in b [k %2])))))))
 
 (defn ^:private elementwise
   "Applies f elementwise between the matrices a and b."
-  [f ^Matrix a ^Matrix b]
-  (let [ra (.-r a)
-        rb (.-r b)
-        ca (.-c a)
-        cb (.-c b)
-        va (.-v a)
-        vb (.-v b)]
-    (when (or (not= ra rb) (not= ca cb))
+  [f a b]
+  (let [ra (num-rows a)
+        rb (num-rows b)
+        ca (num-cols a)
+        cb (num-cols b)]
+    (when (or (not= ra rb)
+              (not= ca cb))
       (u/illegal "matrices incompatible for operation"))
-    (generate ra ca #(f (core-get-in va [%1 %2]) (core-get-in vb [%1 %2])))))
+    (generate ra ca #(f (core-get-in a [%1 %2])
+                        (core-get-in b [%1 %2])))))
 
 (defn square-structure->
   "Converts the square structure s into a matrix, and calls the
@@ -387,28 +424,28 @@
 
 (defn ^:private M*u
   "Multiply a matrix by an up structure on the right. The return value is up."
-  [^Matrix m u]
-  (when (not= (.-c m) (count u))
+  [m u]
+  (when (not= (num-cols m) (count u))
     (u/illegal "matrix and tuple incompatible for multiplication"))
   (apply s/up
          (map (fn [i]
-                (reduce g/+ (for [k (range (.-c m))]
-                              (g/* (core-get-in (.-v m) [i k])
+                (reduce g/+ (for [k (range (num-cols m))]
+                              (g/* (core-get-in m [i k])
                                    (get u k)))))
-              (range (.-r m)))))
+              (range (num-rows m)))))
 
 (defn ^:private d*M
   "Multiply a matrix by a down tuple on the left. The return value is down."
-  [d ^Matrix m]
-  (when (not= (.-r m) (count d))
+  [d m]
+  (when (not= (num-rows m) (count d))
     (u/illegal "matrix and tuple incompatible for multiplication"))
   (apply s/down
          (map (fn [i]
-                (reduce g/+ (for [k (range (.-r m))]
+                (reduce g/+ (for [k (range (num-rows m))]
                               (g/* (get d k)
-                                   (core-get-in (.-v m) [i k])
+                                   (core-get-in m [i k])
                                    ))))
-              (range (.-c m)))))
+              (range (num-cols m)))))
 
 (def ^:dynamic *careful-conversion* true)
 
@@ -430,17 +467,16 @@
 
 ;; (I wonder if tuple multiplication is associative...)
 
-(defn nth-row [^Matrix m i]
-  (apply s/up ((.-v m) i)))
+(defn nth-row [ m i]
+  (apply s/up (get m i)))
 
-(defn nth-col [^Matrix m j]
-  (apply s/up (map #(% j) (.-v m))))
+(defn nth-col [m j]
+  (apply s/up (map #(% j) m)))
 
 (defn diagonal [m]
   {:pre [(square? m)]}
-  (let [rows  (.-r ^Matrix m)
-        elems (.-v ^Matrix m)]
-    (apply s/up (map #(core-get-in elems [% %])
+  (let [rows  (num-rows m)]
+    (apply s/up (map #(core-get-in m [% %])
                      (range 0 rows)))))
 
 (defn up->column-matrix
@@ -474,8 +510,8 @@
 (defn m->s
   "Convert the matrix m into a structure S, guided by the requirement that (* ls S rs)
   should be a scalar"
-  [ls ^Matrix m rs]
-  (let [ncols (.-c m)
+  [ls m rs]
+  (let [ncols     (num-cols m)
         col-shape (s/compatible-shape ls)
         ms (s/unflatten (for [j (range ncols)]
                           (s/unflatten (nth-col m j) col-shape))
@@ -496,8 +532,8 @@
 
 (defn without
   "The matrix formed by deleting the i'th row and j'th column of the given matrix."
-  [^Matrix m i j]
-  (->Matrix (dec (.-r m)) (dec (.-c m))
+  [m i j]
+  (->Matrix (dec (num-rows m)) (dec (num-cols m))
             (mapv #(vector-disj % j)
                   (vector-disj (.-v m) i))) )
 
@@ -507,26 +543,25 @@
 
 (defn dimension [m]
   {:pre [(square? m)]}
-  (.-r ^Matrix m))
+  (num-rows m))
 
 (defn trace
   "Computes the trace of m, which must be square. Generic operations are
   used, so this works on symbolic square matrix."
   [m]
   {:pre [(square? m)]}
-  (let [rows  (.-r ^Matrix m)
-        elems (.-v ^Matrix m)]
-    (transduce (map #(core-get-in elems [% %]))
+  (let [rows  (num-rows m)]
+    (transduce (map #(core-get-in m [% %]))
                g/+
                (range 0 rows))))
 
 (defn determinant
   "Computes the determinant of m, which must be square. Generic
   operations are used, so this works on symbolic square matrix."
-  [^Matrix m]
+  [m]
   {:pre [(square? m)]}
-  (let [v (.-v m)]
-    (condp = (.-r m)
+  (let [v (matrix->vector m)]
+    (condp = (num-rows m)
       0 m
       1 ((v 0) 0)
       2 (let [[[a b] [c d]] v]
@@ -534,34 +569,36 @@
       (reduce g/+ (map g/*
                        (cycle [1 -1])
                        (v 0)
-                       (for [i (range (.-r m))]
+                       (for [i (range (num-rows m))]
                          (determinant (without m 0 i))))))))
 
 (defn cofactors
   "Computes the matrix of cofactors of the given structure with the
   same shape, if s is square."
-  [^Matrix m]
+  [m]
   {:pre [(square? m)]}
-  (let [r (.-r m)
-        v (.-v m)]
+  (let [r (num-rows m)]
     (cond (< r 2) m
-          (= r 2) (let [[[a b] [c d]] v]
+          (= r 2) (let [[[a b] [c d]] m]
                     (->Matrix 2 2 [[d (g/negate c)]
                                    [(g/negate b) a]]))
           :else (generate r r
-                          #(-> m (without %1 %2) determinant (checkerboard-negate %1 %2))))))
+                          (fn [i j]
+                            (-> (without m i j)
+                                (determinant)
+                                (checkerboard-negate i j)))))))
 
 (defn invert
   "Computes the inverse of a square matrix."
-  [^Matrix m]
+  [m]
   {:pre [(square? m)]}
-  (let [r (.-r m)
-        v (.-v m)]
+  (let [r (num-rows m)
+        v (matrix->vector m)]
     (condp = r
       0 m
       1 (->Matrix 1 1 [[(g/invert ((v 0) 0))]])
-      (let [^Matrix C (cofactors m)
-            Δ (reduce g/+ (map g/* (v 0) (-> C .-v first)))]
+      (let [C (cofactors m)
+            Δ (reduce g/+ (map g/* (v 0) (first C)))]
         (fmap #(g/divide % Δ) (transpose C))))))
 
 (defn s:inverse
@@ -580,9 +617,9 @@
   at x. Typically x will be a dummy variable, but if you wanted to get the
   value of the characteristic polynomial at some particular point, you could
   supply a different expression."
-  [^Matrix m x]
-  (let [r (.-r m)
-        c (.-c m)]
+  [m x]
+  (let [r (num-rows m)
+        c (num-cols m)]
     (when-not (= r c) (u/illegal "not square"))
     (determinant (g/- (g/* x (I r)) m))))
 
@@ -631,8 +668,8 @@
       a')))
 
 (defmethod g/dimension [::square-matrix] [m] (dimension m))
-(defmethod g/dimension [::column-matrix] [^Matrix m] (.-c m))
-(defmethod g/dimension [::row-matrix] [^Matrix m] (.-r m))
+(defmethod g/dimension [::column-matrix] [m] (num-cols m))
+(defmethod g/dimension [::row-matrix] [m] (num-rows m))
 
 ;; ## Column / Row Matrices only...
 

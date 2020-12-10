@@ -42,7 +42,11 @@
     (is (= 2 (ref (up 1 2 3) 1)))
     (is (= 3 (ref (down (up 1 2) (up 3 4)) 1 0))))
 
-  #?(:clj
+  #?(:cljs
+     (testing "ref acts as id in cljs"
+       (is (= [] (ref []))))
+
+     :clj
      ;; Clojurescript doesn't have refs.
      (testing "works clojure-style"
        (let [r (ref [])
