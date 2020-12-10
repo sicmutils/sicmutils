@@ -470,11 +470,70 @@
       (is (s/down? o2))
       (is (s/down? o3)))))
 
+(defn <l|:inner:|r>
+  "Generates a tuple of structures that, when multiplied together, collapse down
+  to a numerical value.
+
+  If `rows` or `cols` is 0, "
+  ([rows cols]
+   (<l|:inner:|r> rows cols sg/symbol))
+  ([rows cols elem-gen]
+   (gen/let [o-inner (gen/elements [::s/up ::s/down])
+             o-outer (gen/elements [::s/up ::s/down])]
+     (let [gen-col (sg/structure1* o-inner elem-gen rows)
+           inner   (sg/structure1* o-outer gen-col cols)
+           <l|     (-> (s/opposite-orientation o-inner)
+                       (sg/structure1* elem-gen rows))
+           |r>   (-> (s/opposite-orientation o-outer)
+                     (sg/structure1* elem-gen cols))]
+       (gen/tuple <l| inner |r>)))))
+
 (deftest combining-tests
-  (checking "transpose twice is id" 100
+  (checking "<l|:inner:|r> == <r|:inner^t:|l> for collapsing structures" 100
+            [[l inner r] (gen/let [rows (gen/choose 1 5)
+                                   cols (gen/choose 1 5)]
+                           (<l|:inner:|r> rows cols))]
+            (is (v/zero?
+                 (g/simplify
+                  (g/- (g/* l (g/* inner r))
+                       (g/* (g/* (g/transpose r)
+                                 (s/transpose inner))
+                            (g/transpose l)))))))
+
+  (checking "<l|:inner:|r> == <r|:inner^t:|l> with empty r" 100
+            [[l inner r] (gen/let [n (gen/choose 1 5)]
+                           (<l|:inner:|r> n 0))]
+
+            (is (= (v/zero-like l)
+                   (g/- (g/* l (g/* inner r))
+                        (g/* (g/transpose r)
+                             (g/* (s/transpose inner)
+                                  (g/transpose l)))))
+                "unlike the previous law, this produces an uncollapsed,
+                fully-zero structure."))
+
+  (checking "s==(s^t)^t" 100
             [s (sg/structure sg/real)]
             (is (= s (g/transpose
                       (g/transpose s)))))
+
+  (checking "transpose-outer relation" 100
+            [[l inner r] (gen/let [rows (gen/choose 0 5)
+                                   cols (gen/choose 1 5)]
+                           (<l|:inner:|r> rows cols))]
+            (is (v/zero?
+                 (g/simplify
+                  (g/- (g/* l (g/* inner r))
+                       (g/* (g/* (s/transpose-outer inner) l) r))))))
+
+  (checking "cols=0 transpose-outer law produces (zero-like l)" 100
+            [[rows [l inner r]] (gen/let [rows (gen/choose 1 5)]
+                                  (gen/tuple (gen/return rows)
+                                             (<l|:inner:|r> rows 0)))]
+            (is (= (v/zero-like l)
+                   (g/- (g/* l (g/* inner r))
+                        (g/* (g/* (s/transpose-outer inner) l) r)))
+                "`r` has no structure to collapse the first result."))
 
   (testing "transpose-outer unit"
     (let [foo (s/down (s/down (s/up 'x 'y)

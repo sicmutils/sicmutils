@@ -30,6 +30,7 @@
             [sicmutils.matrix :as m]
             [sicmutils.numsymb]
             [sicmutils.structure :as s]
+            [sicmutils.structure-test :refer [<l|:inner:|r>]]
             [sicmutils.value :as v]))
 
 (deftest value-protocol-tests
@@ -226,6 +227,26 @@
             #(m/fmap - %))))))
 
 (deftest structure
+  (checking "(s:transpose <l|, inner, |r>)==(s/transpose-outer inner)"
+            100 [[l inner r] (gen/let [rows (gen/choose 1 5)
+                                       cols (gen/choose 1 5)]
+                               (<l|:inner:|r> rows cols))]
+            (is (v/zero?
+                 (g/- (m/s:transpose l inner r)
+                      (s/transpose-outer inner)))))
+
+  ;; this binding is required because `s:transpose` is meant to return a scalar;
+  ;; here, we're testing the relation in a case that returns an uncollapsed
+  ;; empty structure.
+  (binding [m/*careful-conversion* false]
+    (checking "(s:transpose <l|, inner, |r>)==(s/transpose-outer inner) with
+              either side empty returns an empty structure"
+              100 [[l inner r] (gen/let [rows (gen/choose 0 5) cols (gen/choose 0 5)]
+                                 (<l|:inner:|r> rows cols))]
+              (is (v/zero?
+                   (g/- (m/s:transpose l inner r)
+                        (s/transpose-outer inner))))))
+
   (let [A (s/up 1 2 'a (s/down 3 4) (s/up (s/down 'c 'd) 'e))
         M (m/by-rows [1 2 3] [4 5 6])]
     (is (= 8 (g/dimension A)))
