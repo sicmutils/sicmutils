@@ -144,8 +144,56 @@
   (checking "square? is false for numbers" 100 [x sg/any-integral]
             (is (not (m/square? x))))
 
-  (checking "by-rows == by-cols" 100 [x (gen/vector sg/real)]
-            (is (= (by-rows x) (g/transpose (by-cols x)))))
+  (checking "by-rows == (comp transpose by-cols), vice versas" 100
+            [vs (-> (gen/sized #(gen/vector sg/real %))
+                    (gen/vector 1 20))]
+            (is (= (m/by-rows vs)
+                   (g/transpose (m/by-cols vs))))
+            (is (= (m/by-cols vs)
+                   (g/transpose (m/by-rows vs)))))
+
+  (checking "by-rows == row" 100
+            [vs (gen/vector sg/real 1 20)]
+            (let [row (apply m/row vs)]
+              (is (= (m/by-rows vs) row))
+              (is (m/row? row))))
+
+  (checking "by-cols == column" 100
+            [vs (gen/vector sg/real 1 20)]
+            (let [col (apply m/column vs)]
+              (is (= (m/by-cols vs) col))
+              (is (m/column? col))))
+
+  (checking "with-substituted-row works" 100
+            [[m new-row] (gen/let [n (gen/choose 1 10)]
+                           (gen/tuple (sg/square-matrix n)
+                                      (gen/vector sg/real n)))]
+            (doseq [i (range (m/num-rows m))]
+              (is (= new-row
+                     (-> (m/with-substituted-row m i new-row)
+                         (m/nth-row i)))
+                  "swapping in a row should swap the row!")))
+
+  (checking "submatrix matches without" 100
+            [M (gen/let [n (gen/choose 1 10)]
+                 (sg/square-matrix n))]
+            (is (= (m/submatrix
+                    M
+                    1 (dec (m/num-rows M))
+                    1 (dec (m/num-cols M)))
+                   (m/without M 0 0))))
+
+  (testing "submatrix"
+    (let [M (m/by-rows [1 2 3]
+                       [4 5 6]
+                       [7 8 9])]
+      (is (= (m/by-rows [1 2]
+                        [4 5])
+             (m/submatrix M 0 1 0 1)))
+
+      (is (= (m/by-rows [1 2]
+                        [4 5])
+             (m/submatrix M 0 1 0 1)))))
 
   (let [M (m/by-rows (list 1 2 3)
                      (list 4 5 6))

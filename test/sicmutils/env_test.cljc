@@ -20,7 +20,11 @@
 (ns sicmutils.env-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer [is deftest testing]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.complex :as c]
+            [sicmutils.generators :as sg]
             [sicmutils.env :as e :refer [+ - * / zero? partial ref
                                          complex
                                          simplify
@@ -110,3 +114,48 @@
     (is (= (* (/ -1 2) π) (minus-pi-to-pi (* (/ -1 2) π))))
     (is (= (* (/ 1 2) π) (minus-pi-to-pi (* (/ -3 2) π))))
     (is (= 0.0 (zero-to-two-pi (* 2 π))))))
+
+(deftest misc-tests
+  (checking "arg-shift" 100
+            [[shifts args] (gen/sized
+                            #(gen/tuple
+                              (gen/vector sg/real %)
+                              (gen/vector sg/real %)))]
+            (is (= (apply (apply e/arg-shift - shifts) args)
+                   (apply - (map + shifts args)))))
+
+  (testing "arg-shift unit"
+    (is (= 49 ((e/arg-shift e/square 3) 4)))
+
+    (is (= 8
+           ((e/arg-shift + 1 2) 1 1 1 1 1)
+           ((e/arg-shift + 1 2 0 0 0) 1 1 1 1 1))
+        "if you supply fewer shifts than arguments, later arguments are
+        untouched.")
+
+    (is (= 4
+           ((e/arg-shift + 1 1) 1 1)
+           ((e/arg-shift + 1 1 2 3 4) 1 1))
+        "if you supply MORE shifts than arguments, later shifts are ignored."))
+
+  (checking "arg-scale" 100
+            [[shifts args] (gen/sized
+                            #(gen/tuple
+                              (gen/vector sg/real %)
+                              (gen/vector sg/real %)))]
+            (is (= (apply (apply e/arg-scale + shifts) args)
+                   (apply + (map * shifts args)))))
+
+  (testing "arg-scale unit"
+    (is (= 144 ((e/arg-scale e/square 3) 4)))
+
+    (is (= 6
+           ((e/arg-scale + 1 2) 1 1 1 1 1)
+           ((e/arg-scale + 1 2 1 1 1) 1 1 1 1 1))
+        "if you supply fewer shifts than arguments, later arguments are
+        untouched.")
+
+    (is (= 8
+           ((e/arg-scale + 2 2) 2 2)
+           ((e/arg-scale + 2 2 2 3 4) 2 2))
+        "if you supply MORE shifts than arguments, later shifts are ignored.")))

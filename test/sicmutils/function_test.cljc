@@ -261,7 +261,7 @@
       (is (= "fg" (f (g ""))))
       (is (= "gf" (((g/transpose f) g) ""))
           "See `transpose-defining-relation` above for a discussion of why this
-          is sensible.a"))))
+          is sensible."))))
 
 (deftest function-algebra
   (let [add2 (fn [x] (g/+ x 2))

@@ -39,6 +39,7 @@
             [sicmutils.matrix :as matrix]
             [sicmutils.series :as series]
             [sicmutils.util :as u #?@(:cljs [:refer-macros [import-vars]])]
+            [sicmutils.util.aggregate]
             [sicmutils.numerical.elliptic]
             [sicmutils.numerical.minimize]
             [sicmutils.numerical.ode]
@@ -111,10 +112,8 @@
 (def m:transpose matrix/transpose)
 (def qp-submatrix #(matrix/without % 0 0))
 (def m:dimension matrix/dimension)
-
 (def matrix-by-rows matrix/by-rows)
-(def matrix-by-cols matrix/by-rows)
-
+(def matrix-by-cols matrix/by-cols)
 (def row-matrix matrix/row)
 (def column-matrix matrix/column)
 
@@ -124,6 +123,18 @@
 (def series series/series)
 (def power-series series/power-series)
 (def series:sum series/sum)
+
+(defn arg-shift
+  "Takes a function and a series of "
+  [f & shifts]
+  (let [shifts (concat shifts (repeat 0))]
+    (fn [& xs]
+      (apply f (map + xs shifts)))))
+
+(defn arg-scale [f & shifts]
+  (let [shifts (concat shifts (repeat 1))]
+    (fn [& xs]
+      (apply f (map * xs shifts)))))
 
 (defn vector:generate [n f]
   (mapv f (range n)))
@@ -283,7 +294,8 @@
  [sicmutils.matrix
   s->m
   m->s
-  literal-matrix]
+  literal-matrix
+  submatrix]
  [sicmutils.mechanics.hamilton
   ->H-state
   F->CT
@@ -311,9 +323,10 @@
  [sicmutils.numerical.quadrature definite-integral]
  [sicmutils.numerical.elliptic elliptic-f]
  [sicmutils.numerical.minimize minimize multidimensional-minimize]
+ [sicmutils.util.aggregate sum]
  [sicmutils.value exact? zero? one? identity?
   zero-like one-like identity-like
-  numerical? freeze kind])
+  numerical? freeze kind kind-predicate])
 
 ;; Macros. These work with Potemkin's import, but not with the Clojure version.
 #?(:clj
