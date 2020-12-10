@@ -110,7 +110,18 @@
    (gen/fmap #(apply m/by-rows %)
              (gen/vector (gen/vector entry-gen n) n))))
 
-(defn- int=? [this that]
+(defn- eq-delegate
+  "Takes a real number `this` on the left, and checks it for approximate equality
+  with:
+
+  - complex numbers by comparing to the real part and checking that `that`'s
+    imaginary part is roughly ~0
+  - real numbers with the default approximate check behavior
+  - falls through to `=` for all other types.
+
+  In CLJS, `this` can be `js/BigInt`, `google.math.Long`, `goog.math.Real`,
+  `Fraction` or any of the other types in the numeric tower."
+  [this that]
   (cond (c/complex? that) (and (si/*comparator* 0.0 (g/imag-part that))
                                (si/*comparator*
                                 (u/double this)
@@ -123,28 +134,29 @@
 (extend-protocol si/Approximate
   #?@(:cljs
       [r/ratiotype
-       (ish [this that] (int=? this that))
+       (ish [this that] (eq-delegate this that))
 
        u/inttype
-       (ish [this that] (int=? this that))
+       (ish [this that] (eq-delegate this that))
 
        u/longtype
-       (ish [this that] (int=? this that))
+       (ish [this that] (eq-delegate this that))
 
        js/BigInt
-       (ish [this that] (int=? this that))
+       (ish [this that] (eq-delegate this that))
+
        number
-       (ish [this that] (int=? this that))])
+       (ish [this that] (eq-delegate this that))])
 
   #?@(:clj
       [Double
-       (ish [this that] (int=? this that))
+       (ish [this that] (eq-delegate this that))
 
        Float
-       (ish [this that] (int=? this that))
+       (ish [this that] (eq-delegate this that))
 
        Number
-       (ish [this that] (int=? this that))])
+       (ish [this that] (eq-delegate this that))])
 
   #?(:cljs c/complextype :clj Complex)
   (ish [this that]
