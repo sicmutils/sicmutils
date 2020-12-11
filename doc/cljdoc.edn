@@ -15,6 +15,7 @@
    ["Rational Function" {:file "doc/types/rational_function.adoc"}]
    ["Modular Int" {:file "doc/types/modular_int.adoc"}]
    ["Function" {:file "doc/types/function.adoc"}]
+   ["Operator" {:file "doc/types/operator.adoc"}]
    ["Structures" {:file "doc/types/structures.adoc"}]
    ["Matrix" {:file "doc/types/matrix.adoc"}]]
   ["Simplification" {}
@@ -27,7 +28,7 @@
    ["Quadrature" {:file "doc/numerical/quadrature.adoc"}]
    ["Numerical Derivative" {:file "doc/numerical/deriv.adoc"}]
    ["Interpolation" {:file "doc/numerical/interpolation.adoc"}]
-   ["ODE, Differential Equations" {:file "doc/numerical/ode.adoc"}]]
+   ["ODE Initial Value Problems" {:file "doc/numerical/ode.adoc"}]]
   ["Calculus" {}
    ["Automatic Differentiation" {:file "doc/calculus/autodiff.adoc"}]]
   ["Textbooks" {}

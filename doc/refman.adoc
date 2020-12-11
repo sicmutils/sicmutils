@@ -355,7 +355,6 @@ any kind of number.
 (inner-product <a1> <a2>) == (* (conjugate <a1>) <a2>)
 ----
 
-
 == Structured Objects
 
 SICMUtils supports a variety of structured object types, such as
