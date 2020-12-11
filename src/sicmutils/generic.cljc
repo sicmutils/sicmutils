@@ -215,23 +215,8 @@
             (log (sub 1 x)))
        2))
 
-;; Operations on structures
-
-(def-generic-function transpose 1)
-(def-generic-function trace 1)
-(def-generic-function determinant 1)
-(def-generic-function dimension 1)
-
-;; Defaults
-
-(defmethod transpose [::v/scalar] [a] a)
-(defmethod trace [::v/scalar] [a] a)
-(defmethod determinant [::v/scalar] [a] a)
-(defmethod dimension [::v/scalar] [a] 1)
-
-(def-generic-function cross-product 2)
-
 ;; Complex Operators
+
 (def-generic-function make-rectangular 2)
 (def-generic-function make-polar 2)
 (def-generic-function real-part 1)
@@ -239,6 +224,26 @@
 (def-generic-function magnitude 1)
 (def-generic-function angle 1)
 (def-generic-function conjugate 1)
+
+;; Operations on structures
+
+(def-generic-function transpose 1)
+(def-generic-function trace 1)
+(def-generic-function determinant 1)
+(def-generic-function dimension 1)
+(def-generic-function dot-product 2)
+(def-generic-function inner-product 2)
+(def-generic-function outer-product 2)
+(def-generic-function cross-product 2)
+
+;; Structure Defaults
+
+(defmethod transpose [::v/scalar] [a] a)
+(defmethod trace [::v/scalar] [a] a)
+(defmethod determinant [::v/scalar] [a] a)
+(defmethod dimension [::v/scalar] [a] 1)
+(defmethod dot-product [::v/scalar ::v/scalar] [l r] (mul l r))
+(defmethod inner-product [::v/scalar ::v/scalar] [l r] (mul (conjugate l) r))
 
 ;; More advanced generic operations.
 (def-generic-function Lie-derivative 1)

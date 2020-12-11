@@ -24,7 +24,7 @@
             #?(:clj [hiccup.core :refer :all])
             #?(:clj [hiccup.page :refer :all])))
 
-(defn ^:private pairs
+(defn- pairs
   "Return a sequence of pairs of different elements from the given sequence."
   [[x & xs]]
   (when xs
@@ -32,25 +32,28 @@
      (for [y xs] [x y])
      (pairs xs))))
 
-(defn V
-  [& masses]
+(defn V [& masses]
   ;; for V we want each distinct pair
   (fn [[_ x _]]
-    (let [mass-position-pairs (->> x
-                                   (partition 2)
-                                   (apply up)
-                                   (map (fn [m [x y]] [m (up x y)]) masses)
-                                   pairs)]
-      (reduce - 0
-              (map (fn [[[m1 p1] [m2 p2]]]
-                     (/ (* m1 m2) (sqrt (square (- p1 p2)))))
-                   mass-position-pairs)))))
+    (let [mass-position-pairs (->> (partition 2 x)
+                                   (map (fn [m [x y]] [m (up x y)])
+                                        masses)
+                                   (pairs))]
+      (reduce - 0 (map (fn [[[m1 p1] [m2 p2]]]
+                         (/ (* m1 m2)
+                            (sqrt (square (- p1 p2)))))
+                       mass-position-pairs)))))
 
 (defn T
   [& masses]
   (fn [[_ _ v]]
-    (let [velocities (->> v (partition 2) (map #(apply up %)))]
-      (reduce + (map #(* (/ 1 2) %1 (square %2)) masses velocities)))))
+    (let [velocities (->> (partition 2 v)
+                          (map (fn [[vx vy]]
+                                 (up vx vy))))]
+      (reduce + (map (fn [m v]
+                       (* (/ 1 2) m (square v)))
+                     masses
+                     velocities)))))
 
 (def L (- T V))
 

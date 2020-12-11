@@ -29,9 +29,9 @@
             [sicmutils.structure :as s]
             [sicmutils.series :as series])
   #?(:clj
-     (:import [clojure.lang AFn Counted IFn ILookup Seqable Sequential])))
+     (:import [clojure.lang Associative AFn IFn Sequential])))
 
-(declare fmap generate I)
+(declare fmap generate I m:=)
 
 (derive ::square-matrix ::matrix)
 (derive ::column-matrix ::matrix)
@@ -65,25 +65,21 @@
 
   #?@(:clj
       [Object
-       (equals [_ b]
-               (and (instance? Matrix b)
-                    (let [^Matrix bm b]
-                      (and (= r (.-r bm))
-                           (= c (.-c bm))
-                           (= v (.-v bm))))))
+       (equals [this that] (m:= this that))
        (toString [_] (str v))
 
        Sequential
 
-       Counted
+       Associative
+       (assoc [_ k entry] (Matrix. r c (assoc v k entry)))
+       (containsKey [_ k] (contains? v k))
+       (entryAt [_ k] (.entryAt v k))
        (count [_] (count v))
-
-       Seqable
        (seq [_] (seq v))
-
-       ILookup
        (valAt [_ key] (get v key))
        (valAt [_ key default] (get v key default))
+       (empty [this] (fmap v/zero-like this))
+       (equiv [this that] (m:= this that))
 
        IFn
        (invoke [_ a]
@@ -132,15 +128,7 @@
                 (AFn/applyToHelper m xs))]
 
       :cljs
-      [IEquiv
-       (-equiv [_ b]
-               (if (instance? Matrix b)
-                 (and (= r (.-r b))
-                      (= c (.-c b))
-                      (= v (.-v b)))
-                 (= v (seq b))))
-
-       Object
+      [Object
        (toString [_] (str v))
 
        IPrintWithWriter
@@ -150,17 +138,34 @@
                               (.toString x)
                               "\"]"))
 
+       IEmptyableCollection
+       (-empty [this] (v/zero-like this))
+
        ISequential
 
-       ICounted
-       (-count [_] (-count v))
+       IEquiv
+       (-equiv [this that] (m:= this that))
 
        ISeqable
        (-seq [_] (-seq v))
 
+       ICounted
+       (-count [_] (-count v))
+
+       IIndexed
+       (-nth [_ n] (-nth v n))
+       (-nth [_ n not-found] (-nth v n not-found))
+
        ILookup
        (-lookup [_ k] (-lookup v k))
-       (-lookup [_ k default] (-lookup v k default))
+       (-lookup [_ k not-found] (-lookup v k not-found))
+
+       IAssociative
+       (-assoc [_ k entry] (Matrix. r c (-assoc v k entry)))
+       (-contains-key? [_ k] (-contains-key? v k))
+
+       IFind
+       (-find [_ n] (-find v n))
 
        IFn
        (-invoke [_ a]
@@ -206,9 +211,23 @@
        (-invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
                 (Matrix. r c (mapv (fn [e] (mapv #(apply % a b c d e f g h i j k l m n o p q r s t rest) e)) v)))]))
 
-(defn matrix?
-  [m]
+(defn matrix? [m]
   (instance? Matrix m))
+
+(defn m:= [^Matrix this that]
+  (and (instance? Matrix that)
+       (let [^Matrix m that]
+         (and (= (.-r this) (.-r that))
+              (= (.-c this) (.-c that))
+              (= (.-v this) (.-v that))))))
+
+(defn matrix->vector
+  "Return the matrix as a vector of rows."
+  [m]
+  (cond (vector? m)          m
+        (instance? Matrix m) (.-v ^Matrix m)
+        :else
+        (u/illegal (str "non-matrix supplied: " m))))
 
 (defn square?
   "Returns true if `m` is a square matrix, false otherwise."
@@ -391,24 +410,23 @@
                                    ))))
               (range (.-c m)))))
 
-(defn ^:private kronecker
-  [i j]
-  (if (= i j) 1 0))
-
 (def ^:dynamic *careful-conversion* true)
 
 (defn s->m
-  "Convert the structure ms, which would be a scalar if the (compatible) multiplication
+  "Convert the structure ms, which would be a scalar if the (compatible)
+  multiplication
   (* ls ms rs) were performed, to a matrix."
   [ls ms rs]
   (when *careful-conversion*
     (assert (v/numerical? (g/* ls (g/* ms rs)))))
   (let [ndowns (s/dimension ls)
-        nups (s/dimension rs)]
+        nups   (s/dimension rs)]
     (generate ndowns nups
-              #(g/* (s/unflatten (map (partial kronecker %1) (range)) ls)
-                    (g/* ms
-                         (s/unflatten (map (partial kronecker %2) (range)) rs))))))
+              (fn [i j]
+                (g/* (s/unflatten
+                      (s/basis-unit ndowns i) ls)
+                     (g/* ms (s/unflatten
+                              (s/basis-unit nups j) rs)))))))
 
 ;; (I wonder if tuple multiplication is associative...)
 
@@ -424,6 +442,34 @@
         elems (.-v ^Matrix m)]
     (apply s/up (map #(core-get-in elems [% %])
                      (range 0 rows)))))
+
+(defn up->column-matrix
+  "Returns a column matrix with the contents of the supplied `up` structure.
+  Errors if any other type is provided."
+  [v]
+  {:pre [(s/up? v)]}
+  (apply column v))
+
+(defn column-matrix->up
+  "Extracts the single column from the supplied column matrix. Errors if some
+  other type is supplied."
+  [m]
+  {:pre [(column? m)]}
+  (nth-col m 0))
+
+(defn up->row-matrix
+  "Returns a row matrix with the contents of the supplied `up` structure.
+  Errors if any other type is provided."
+  [v]
+  {:pre [(s/up? v)]}
+  (by-rows (seq v)))
+
+(defn row-matrix->up
+  "Extracts the single row from the supplied column matrix. Errors if some other
+  type is supplied."
+  [m]
+  {:pre [(row? m)]}
+  (nth-row m 0))
 
 (defn m->s
   "Convert the matrix m into a structure S, guided by the requirement that (* ls S rs)
@@ -526,7 +572,7 @@
 (defn I
   "Return the identity matrix of order n."
   [n]
-  (generate n n #(kronecker %1 %2)))
+  (generate n n s/kronecker))
 
 (defn characteristic-polynomial
   "Compute the characteristic polynomial of the square matrix m, evaluated
@@ -565,13 +611,12 @@
 
 (defmethod g/invert [::matrix] [m] (invert m))
 
+(defmethod g/conjugate [::matrix] [m]
+  (fmap g/conjugate m))
+
 (defmethod g/transpose [::matrix] [m] (transpose m))
 (defmethod g/trace [::square-matrix] [m] (trace m))
 (defmethod g/determinant [::square-matrix] [m] (determinant m))
-(defmethod g/dimension [::square-matrix] [m] (dimension m))
-(defmethod g/dimension [::column-matrix] [^Matrix m] (.-c m))
-(defmethod g/dimension [::row-matrix] [^Matrix m] (.-r m))
-
 (defmethod g/determinant [::s/structure] [s]
   (square-structure-> s (fn [m _] (determinant m))))
 
@@ -583,3 +628,37 @@
     (if (= (s/orientation a') (s/orientation (first a')))
       (s/opposite a' (map #(s/opposite a' %) a'))
       a')))
+
+(defmethod g/dimension [::square-matrix] [m] (dimension m))
+(defmethod g/dimension [::column-matrix] [^Matrix m] (.-c m))
+(defmethod g/dimension [::row-matrix] [^Matrix m] (.-r m))
+
+;; ## Column / Row Matrices only...
+
+(defmethod g/dot-product [::row-matrix ::row-matrix] [a b]
+  (g/dot-product (row-matrix->up a)
+                 (row-matrix->up b)))
+
+(defmethod g/dot-product [::column-matrix ::column-matrix] [a b]
+  (g/dot-product (column-matrix->up a)
+                 (column-matrix->up b)))
+
+(defmethod g/inner-product [::row-matrix ::row-matrix] [a b]
+  (g/inner-product (row-matrix->up a)
+                   (row-matrix->up b)))
+
+(defmethod g/inner-product [::column-matrix ::column-matrix] [a b]
+  (g/inner-product (column-matrix->up a)
+                   (column-matrix->up b)))
+
+(defmethod g/cross-product [::row-matrix ::row-matrix] [a b]
+  (up->row-matrix
+   (g/cross-product (row-matrix->up a)
+                    (row-matrix->up b))))
+
+(defmethod g/cross-product [::column-matrix ::column-matrix] [a b]
+  (up->column-matrix
+   (g/cross-product (column-matrix->up a)
+                    (column-matrix->up b))))
+
+(defmethod g/outer-product [::column-matrix ::row-matrix] [a b] (mul a b))

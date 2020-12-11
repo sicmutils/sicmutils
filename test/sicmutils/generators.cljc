@@ -12,6 +12,7 @@
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
             [sicmutils.ratio :as r]
+            [sicmutils.structure :as s]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -104,11 +105,74 @@
               d)]
       (r/rationalize n d))))
 
+;; ## Structure Generators
+
+(defn- recursive
+  "Similar to `gen/recursive-gen`, but guaranteed to produce containerized
+  items (no primitives will pop out)."
+  [container elem]
+  (container
+   (gen/recursive-gen
+    container elem)))
+
+(defn- structure*
+  "Returns a generator that produces structures of the supplied orientation with
+  elements chosen via `elem-gen`. All extra args are passed along to
+  `gen/vector`."
+  [orientation elem-gen & args]
+  {:pre [(s/valid-orientation? orientation)]}
+  (gen/fmap (partial s/make orientation)
+            (apply gen/vector elem-gen args)))
+
+(defn up1
+  "Returns a generator that produces `up` structures of elements chosen via
+  `elem-gen`. All extra args are passed along to `gen/vector`."
+  [elem-gen & args]
+  (apply structure* ::s/up elem-gen args))
+
+(defn down1
+  "Returns a generator that produces `down` structures of elements chosen via
+  `elem-gen`. All extra args are passed along to `gen/vector`."
+  [elem-gen & args]
+  (apply structure* ::s/down elem-gen args))
+
+(defn structure1
+  "Returns a generator that produces `up` or `down` structures of elements chosen
+  via `elem-gen`. All extra args are passed along to `gen/vector`."
+  [elem-gen & args]
+  (gen/one-of [(apply up1 elem-gen args)
+               (apply down1 elem-gen args)]))
+
+(defn up
+  "Returns a generator that produces nested `up` structures of either further
+  `up`s, or primitive elements chosen via `elem-gen`. All extra args are passed
+  along to `gen/vector`."
+  [elem-gen & args]
+  (recursive #(apply up1 % args) elem-gen))
+
+(defn down
+  "Returns a generator that produces nested `down` structures of either further
+  `down`s, or primitive elements chosen via `elem-gen`. All extra args are passed
+  along to `gen/vector`."
+  [elem-gen & args]
+  (recursive #(apply down1 % args) elem-gen))
+
+(defn structure
+  "Returns a generator that produces nested `up` or `down` structures of either
+  further containers, or primitive elements chosen via `elem-gen`. All extra
+  args are passed along to `gen/vector`."
+  [elem-gen & args]
+  (recursive #(apply structure1 % args) elem-gen))
+
+;; ## Matrices
+
 (defn square-matrix
   ([n] (square-matrix n ratio))
   ([n entry-gen]
    (gen/fmap #(apply m/by-rows %)
              (gen/vector (gen/vector entry-gen n) n))))
+
+;; ## Custom Almost-Equality
 
 (defn- eq-delegate
   "Takes a real number `this` on the left, and checks it for approximate equality

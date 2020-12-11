@@ -161,11 +161,11 @@
                    (g/invert (an/literal-number x)))))
 
   (checking "square" 100 [x (sg/inexact-double)]
-            (is (ish? (an/literal-number (g/* x x))
+            (is (ish? (an/literal-number (g/square x))
                       (g/square (an/literal-number x)))))
 
   (checking "cube" 100 [x (sg/reasonable-double {:min -1e3 :max 1e3})]
-            (is (= (an/literal-number (g/expt x 3))
+            (is (= (an/literal-number (g/cube x))
                    (g/cube (an/literal-number x)))))
 
   (checking "expt" 100 [x (sg/inexact-double)

@@ -43,7 +43,7 @@
 (def operator first)
 (def operands rest)
 
-(defn- delegator
+(defn- with-exactness-preserved
   "Returns a wrapper around f that attempts to preserve exactness if the input is
   numerically exact, else passes through to f."
   [f sym-or-fn]
@@ -306,17 +306,17 @@
 (def sqrt
   "Square root implementation that attempts to preserve exact numbers wherever
   possible. If the incoming value is not exact, simply computes sqrt."
-  (delegator g/sqrt 'sqrt))
+  (with-exactness-preserved g/sqrt 'sqrt))
 
 (def ^:private log
   "Attempts to preserve exact precision if the argument is exact; else, evaluates
   symbolically or numerically."
-  (delegator g/log 'log))
+  (with-exactness-preserved g/log 'log))
 
 (def ^:private exp
   "Attempts to preserve exact precision if the argument is exact; else, evaluates
   symbolically or numerically."
-  (delegator g/exp 'exp))
+  (with-exactness-preserved g/exp 'exp))
 
 (defn- expt
   "Attempts to preserve exact precision if either argument is exact; else,
@@ -378,8 +378,8 @@
         :else (list 'conjugate z)))
 
 (def ^:private magnitude
-  (delegator g/magnitude
-             (fn [a] (sqrt (mul (conjugate a) a)))))
+  (with-exactness-preserved g/magnitude
+    (fn [a] (sqrt (mul (conjugate a) a)))))
 
 (defn- real-part [z]
   (if (v/number? z)
@@ -395,10 +395,10 @@
               (sub z (conjugate z))))))
 
 (def ^:private angle
-  (delegator g/angle
-             (fn [z]
-               (atan (imag-part z)
-                     (real-part z)))))
+  (with-exactness-preserved g/angle
+    (fn [z]
+      (atan (imag-part z)
+            (real-part z)))))
 
 ;; ## Table
 
