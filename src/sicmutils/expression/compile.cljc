@@ -22,7 +22,7 @@
   (:require #?(:cljs [goog.string :refer [format]])
             [clojure.set :as set]
             [clojure.walk :as w]
-            [sci.core :as sci]
+            [sci.core :as sci] ;; we will start here
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.structure :as struct]
