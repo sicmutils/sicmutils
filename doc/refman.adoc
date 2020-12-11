@@ -965,8 +965,8 @@ There are coercions between Clojure vectors and matrices:
 
 [source, clojure]
 ----
-(apply matrix/column <vector>) ;;=> <M>
-(apply matrix/row    <vector>) ;;=> <M>
+(matrix/column* <vector>) ;;=> <M>
+(matrix/row*    <vector>) ;;=> <M>
 ----
 
 And similarly for up and down tuples:
