@@ -484,16 +484,21 @@
               (is (= (g/inner-product s s)
                      (g/inner-product row row)))))
 
-  (checking "cross-product returns matrices" 100 [s (sg/up1 sg/complex 3)]
+  (checking "cross-product returns matrices" 100
+            [s (sg/up1 sg/complex 3)]
             (let [col (m/up->column-matrix s)
-                  row (m/up->row-matrix s)]
+                  row (m/down->row-matrix (g/transpose s))]
               (is (ish? (m/up->column-matrix
                          (g/cross-product s s))
                         (g/cross-product col col)))
 
-              (is (ish? (m/up->row-matrix
-                         (g/cross-product s s))
-                        (g/cross-product row row)))))
+              (is (ish? (m/down->row-matrix
+                         (g/transpose
+                          (g/cross-product s s)))
+                        (g/transpose
+                         (g/cross-product
+                          (g/transpose row)
+                          (g/transpose row)))))))
 
   (checking "outer-product" 100 [s (sg/up1 sg/complex 2 10)]
             (let [col (m/up->column-matrix s)

@@ -116,6 +116,12 @@
     (is (= 0.0 (zero-to-two-pi (* 2 π))))))
 
 (deftest misc-tests
+  (checking "vector:generate" 100
+            [v (gen/vector sg/real)]
+            (is (= v (e/vector:generate
+                      (count v) (partial get v)))
+                "use generate to rebuild."))
+
   (checking "arg-shift" 100
             [[shifts args] (gen/sized
                             #(gen/tuple
@@ -126,6 +132,12 @@
 
   (testing "arg-shift unit"
     (is (= 49 ((e/arg-shift e/square 3) 4)))
+
+    (testing "arg-shift preserves arity"
+      (is (= (e/arity e/square)
+             (e/arity (e/arg-shift e/square 3))))
+      (is (= (e/arity e/+)
+             (e/arity (e/arg-shift e/+ 3)))))
 
     (is (= 8
            ((e/arg-shift + 1 2) 1 1 1 1 1)
@@ -148,6 +160,15 @@
 
   (testing "arg-scale unit"
     (is (= 144 ((e/arg-scale e/square 3) 4)))
+
+    (testing "arg-scale preserves arity"
+      (is (= (e/arity e/square)
+             (e/arity (e/arg-scale e/square 3))))
+      (is (= (e/arity e/+)
+             (e/arity (e/arg-scale e/+ 3)))))
+
+    (is (= [:exactly 1]  (e/arity (e/arg-scale e/square 3))))
+    (is (= [:at-least 0] (e/arity (e/arg-scale e/+ 3))))
 
     (is (= 6
            ((e/arg-scale + 1 2) 1 1 1 1 1)

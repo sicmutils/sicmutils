@@ -193,6 +193,25 @@
 - `sicmutils.complex/I` aliases `i`
   ([#189](https://github.com/littleredcomputer/sicmutils/pull/189))
 
+- `matrix.cljc` has a new `by-cols` (analogous to `m/by-rows`), and `row` to
+  generate a row matrix (analagous to `column`).
+  [#197](https://github.com/littleredcomputer/sicmutils/pull/197) Also in
+  `matrix.cljc`:
+
+  - `num-rows`, `num-cols` to access these without inspecting the deftype
+    variables directly
+  - `with-substituted-row`, for swapping out a single row in a matrix
+  - `submatrix` generates a submatrix from low and high row and cols
+
+- `sicmutils.value/kind-predicate` takes some item and returns a predicate that
+  returns true if its argument has the same type (or inherits from it)
+  [#197](https://github.com/littleredcomputer/sicmutils/pull/197).
+
+- `sicmutils.env/arg-shift` and `sicmutils.env/arg-scale` take functions and
+  return new functions that shift and scale their arguments (respectively) by
+  the originally supplied shifts
+  [#197](https://github.com/littleredcomputer/sicmutils/pull/197) .
+
 - Structures and matrices both gain the ability to do native `get-in`,
   `assoc-in` and `empty`. These work as expected, like a potentially nested
   vector. ([#193](https://github.com/littleredcomputer/sicmutils/pull/193))

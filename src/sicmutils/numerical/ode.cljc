@@ -191,23 +191,26 @@
 
      :clj
      (let [total-time (us/stopwatch :started? false)]
-       (fn [initial-state step-size t {:keys [observe] :as opts}]
-         (us/start total-time)
-         (let [{:keys [integrator equations dimension stopwatch counter]}
-               (integration-opts state-derivative derivative-args initial-state opts)
-               initial-state-array (double-array
-                                    (flatten initial-state))
-               array->state #(struct/unflatten % initial-state)
-               output-buffer (double-array dimension)]
-           (when observe
-             (attach-handler integrator observe step-size initial-state))
-           (.integrate ^GraggBulirschStoerIntegrator
-                       integrator equations 0
-                       initial-state-array t output-buffer)
-           (us/stop total-time)
-           (log/info "#" @counter "total" (us/repr total-time) "f" (us/repr stopwatch))
-           (us/reset total-time)
-           (array->state output-buffer))))))
+       (fn call
+         ([initial-state step-size t]
+          (call initial-state step-size t {}))
+         ([initial-state step-size t {:keys [observe] :as opts}]
+          (us/start total-time)
+          (let [{:keys [integrator equations dimension stopwatch counter]}
+                (integration-opts state-derivative derivative-args initial-state opts)
+                initial-state-array (double-array
+                                     (flatten initial-state))
+                array->state #(struct/unflatten % initial-state)
+                output-buffer (double-array dimension)]
+            (when observe
+              (attach-handler integrator observe step-size initial-state))
+            (.integrate ^GraggBulirschStoerIntegrator
+                        integrator equations 0
+                        initial-state-array t output-buffer)
+            (us/stop total-time)
+            (log/info "#" @counter "total" (us/repr total-time) "f" (us/repr stopwatch))
+            (us/reset total-time)
+            (array->state output-buffer)))))))
 
 (defn state-advancer
   "state-advancer takes a state derivative function constructor followed by the

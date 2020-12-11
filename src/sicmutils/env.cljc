@@ -30,16 +30,17 @@
             [sicmutils.abstract.number :as an]
             [sicmutils.complex]
             [sicmutils.expression.render :as render]
-            [sicmutils.function]
+            [sicmutils.function :as f]
             [sicmutils.generic :as g]
-            [sicmutils.operator]
+            [sicmutils.operator :as o]
             [sicmutils.simplify :as simp]
-            [sicmutils.structure]
+            [sicmutils.structure :as structure]
             [sicmutils.value :as v]
             [sicmutils.matrix :as matrix]
             [sicmutils.series :as series]
             [sicmutils.util :as u #?@(:cljs [:refer-macros [import-vars]])]
             [sicmutils.util.aggregate]
+            [sicmutils.util.stream :as us]
             [sicmutils.numerical.elliptic]
             [sicmutils.numerical.minimize]
             [sicmutils.numerical.ode]
@@ -109,34 +110,34 @@
     (apply d/partial selectors)
     (apply core-partial selectors)))
 
-(def m:transpose matrix/transpose)
+;; Constants
+
+(def pi Math/PI)
+(def -pi (- Math/PI))
+
+(def s:generate structure/generate)
+(def m:generate matrix/generate)
+(def v:make-basis-unit structure/basis-unit)
 (def qp-submatrix #(matrix/without % 0 0))
-(def m:dimension matrix/dimension)
 (def matrix-by-rows matrix/by-rows)
 (def matrix-by-cols matrix/by-cols)
 (def row-matrix matrix/row)
 (def column-matrix matrix/column)
 
-(def pi Math/PI)
 (def principal-value v/principal-value)
 
 (def series series/series)
 (def power-series series/power-series)
+(def constant-series series/constant)
 (def series:sum series/sum)
 
-(defn arg-shift
-  "Takes a function and a series of "
-  [f & shifts]
-  (let [shifts (concat shifts (repeat 0))]
-    (fn [& xs]
-      (apply f (map + xs shifts)))))
+(def seq:print us/seq-print)
+(def seq:pprint us/pprint)
 
-(defn arg-scale [f & shifts]
-  (let [shifts (concat shifts (repeat 1))]
-    (fn [& xs]
-      (apply f (map * xs shifts)))))
-
-(defn vector:generate [n f]
+(defn vector:generate
+  "Generates a new vector of length `n` by applying the function `f` to integers
+  in the range $[0,n)$."
+  [n f]
   (mapv f (range n)))
 
 (defn tex$
@@ -154,8 +155,9 @@
 (import-vars
  [sicmutils.abstract.number literal-number]
  [sicmutils.complex complex]
- [sicmutils.function arity compose]
+ [sicmutils.function arity compose arg-shift arg-scale]
  [sicmutils.operator commutator]
+ [sicmutils.series binomial-series partial-sums]
  [sicmutils.generic
   * + - /
   abs
@@ -186,6 +188,7 @@
   acosh
   asinh
   atanh
+  dimension
   transpose
   determinant
   dot-product
@@ -199,7 +202,8 @@
   magnitude
   angle
   conjugate
-  Lie-derivative]
+  Lie-derivative
+  factorial]
  [sicmutils.structure
   compatible-shape
   component
@@ -223,7 +227,7 @@
   Christoffel->Cartan
   make-Christoffel
   ]
- [sicmutils.calculus.derivative D]
+ [sicmutils.calculus.derivative derivative D]
  [sicmutils.calculus.form-field
   d
   components->oneform-field
@@ -295,7 +299,12 @@
   s->m
   m->s
   literal-matrix
-  submatrix]
+  submatrix
+  up->column-matrix
+  column-matrix->up
+  down->row-matrix
+  row-matrix->down
+  ]
  [sicmutils.mechanics.hamilton
   ->H-state
   F->CT
@@ -320,8 +329,14 @@
   evolve
   integrate-state-derivative
   state-advancer]
- [sicmutils.numerical.quadrature definite-integral]
  [sicmutils.numerical.elliptic elliptic-f]
+ [sicmutils.numerical.derivative D-numeric]
+ [sicmutils.numerical.quadrature definite-integral]
+ [sicmutils.numerical.unimin.brent
+  brent-min brent-max]
+ [sicmutils.numerical.multimin.nelder-mead nelder-mead]
+ [sicmutils.numerical.unimin.golden
+  golden-section-min golden-section-max]
  [sicmutils.numerical.minimize minimize multidimensional-minimize]
  [sicmutils.util.aggregate sum]
  [sicmutils.value exact? zero? one? identity?

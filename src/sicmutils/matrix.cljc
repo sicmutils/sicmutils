@@ -472,7 +472,7 @@
 ;; (I wonder if tuple multiplication is associative...)
 
 (defn nth-row [ m i]
-  (apply s/up (get m i)))
+  (apply s/down (get m i)))
 
 (defn nth-col [m j]
   (apply s/up (map #(% j) m)))
@@ -491,22 +491,22 @@
   (apply column v))
 
 (defn column-matrix->up
-  "Extracts the single column from the supplied column matrix. Errors if some
-  other type is supplied."
+  "Returns the single column from the supplied column matrix as an `up`. Errors if
+  some other type is supplied."
   [m]
   {:pre [(column? m)]}
   (nth-col m 0))
 
-(defn up->row-matrix
-  "Returns a row matrix with the contents of the supplied `up` structure.
+(defn down->row-matrix
+  "Returns a row matrix with the contents of the supplied `down` structure.
   Errors if any other type is provided."
   [v]
-  {:pre [(s/up? v)]}
+  {:pre [(s/down? v)]}
   (by-rows (seq v)))
 
-(defn row-matrix->up
-  "Extracts the single row from the supplied row matrix. Errors if some other type
-  is supplied."
+(defn row-matrix->down
+  "Returns the single row from the supplied row matrix as a `down`. Errors if some
+  other type is supplied."
   [m]
   {:pre [(row? m)]}
   (nth-row m 0))
@@ -639,10 +639,25 @@
         (invert (s->m ls ms rs))
         (s/compatible-shape ls)))
 
+(defn make-zero
+  "Return a zero-valued matrix of `m` rows and `n` columns (`nXn` if only `n` is
+  supplied)."
+  ([n] (make-zero n n))
+  ([m n] (generate m n (constantly 0))))
+
 (defn I
   "Return the identity matrix of order n."
   [n]
   (generate n n s/kronecker))
+
+(defn make-diagonal
+  "Returns the diagonal matrix of order (count v) with the elements of `v` along
+  the diagonal."
+  [v]
+  (let [v (vec v)
+        n (count v)]
+    (generate n n (fn [i j]
+                    (if (= i j) (v i) 0)))))
 
 (defn characteristic-polynomial
   "Compute the characteristic polynomial of the square matrix m, evaluated

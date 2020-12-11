@@ -24,11 +24,19 @@
             [sicmutils.generic :as g]
             [sicmutils.value :as v]))
 
-(defn pprint
-  "Realizes and pretty-prints `n` elements from the supplied sequence `xs`."
+(defn seq-print
+  "Realizes, simplifies and prints `n` elements from the supplied sequence `xs`."
   [n xs]
   (doseq [x (take n xs)]
-    (pp/pprint x)))
+    (prn (g/simplify x))))
+
+(defn pprint
+  "Realizes, simplifies and pretty-prints `n` elements from the supplied sequence
+  `xs`."
+  [n xs]
+  (doseq [x (take n xs)]
+    (pp/pprint
+     (g/simplify x))))
 
 (defn powers
   "Returns an infinite sequence of `x * n^i`, starting with i == 0. `x` defaults
