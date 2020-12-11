@@ -180,8 +180,9 @@
 (defn square-matrix
   ([n] (square-matrix n ratio))
   ([n entry-gen]
-   (gen/fmap #(apply m/by-rows %)
-             (gen/vector (gen/vector entry-gen n) n))))
+   (gen/fmap m/by-rows*
+             (gen/vector
+              (gen/vector entry-gen n) n))))
 
 ;; ## Custom Almost-Equality
 

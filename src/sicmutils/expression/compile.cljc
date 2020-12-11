@@ -101,9 +101,9 @@
    'tanh #(Math/tanh %)
    #?@(:cljs
        ;; JS-only entries.
-       ['acosh #(Math.acosh %)
-        'asinh #(Math.asinh %)
-        'atanh #(Math.atanh %)])})
+       ['acosh #(Math/acosh %)
+        'asinh #(Math/asinh %)
+        'atanh #(Math/atanh %)])})
 
 ;; ## Subexpression Elimination
 ;;

@@ -141,8 +141,14 @@
     (= (s/up 1 2 3) (s/up 1 2 3))))
 
 (deftest matrix-basics
-  (checking "square? is false for numbers" 100 [x sg/any-integral]
+  (checking "square? is false for numbers" 100
+            [x sg/any-integral]
             (is (not (m/square? x))))
+
+  (checking "square? is true for squares" 100
+            [m (gen/let [n (gen/choose 1 10)]
+                 (sg/square-matrix n))]
+            (is (m/square? m)))
 
   (checking "by-rows == (comp transpose by-cols), vice versas" 100
             [vs (-> (gen/sized #(gen/vector sg/real %))
@@ -152,15 +158,23 @@
             (is (= (m/by-cols vs)
                    (g/transpose (m/by-rows vs)))))
 
+  (checking "row*==row, column*==column" 100
+            [vs (gen/vector sg/real 1 20)]
+            (is (= (m/row* vs)
+                   (apply m/row vs)))
+
+            (is (= (m/column* vs)
+                   (apply m/column vs))))
+
   (checking "by-rows == row" 100
             [vs (gen/vector sg/real 1 20)]
-            (let [row (apply m/row vs)]
+            (let [row (m/row* vs)]
               (is (= (m/by-rows vs) row))
               (is (m/row? row))))
 
   (checking "by-cols == column" 100
             [vs (gen/vector sg/real 1 20)]
-            (let [col (apply m/column vs)]
+            (let [col (m/column* vs)]
               (is (= (m/by-cols vs) col))
               (is (m/column? col))))
 
@@ -194,6 +208,31 @@
       (is (= (m/by-rows [1 2]
                         [4 5])
              (m/submatrix M 0 1 0 1)))))
+
+  (checking "make-zero" 100 [m (gen/choose 0 10)
+                             n (gen/choose 0 10)]
+            (let [M (m/make-zero m n)]
+              (is (v/zero? M))
+              (is (= m (m/num-rows M)))
+              (is (= n (m/num-cols M)))))
+
+  (checking "make-diagonal" 100
+            [vs (gen/vector sg/real 1 20)]
+            (let [M (m/make-diagonal vs)]
+              (is (m/square? M))
+              (is (= (g/dimension M)
+                     (g/dimension vs)))
+              (is (= vs (m/diagonal M)))
+              (is (= vs (m/diagonal M)))))
+
+  (checking "make-diagonal, v/identity? v/one?" 100
+            [v (gen/vector (gen/return 1) 1 20)]
+            (let [M (m/make-diagonal v)]
+              (is (v/identity? M))
+              (is (not (v/identity? (g/* 2 M))))
+
+              (is (v/one? M))
+              (is (not (v/one? (g/* 2 M))))))
 
   (let [M (m/by-rows (list 1 2 3)
                      (list 4 5 6))
@@ -400,16 +439,16 @@
             (is (m/square? matrix))
 
             (is (= matrix
-                   (apply m/by-rows
-                          (for [i (range (g/dimension matrix))]
-                            (seq (m/nth-row matrix i)))))
+                   (m/by-rows*
+                    (for [i (range (g/dimension matrix))]
+                      (seq (m/nth-row matrix i)))))
                 "fusing rows back together should yield the original.")
 
             (is (= matrix
                    (g/transpose
-                    (apply m/by-rows
-                           (for [i (range (g/dimension matrix))]
-                             (seq (m/nth-col matrix i))))))
+                    (m/by-rows*
+                     (for [i (range (g/dimension matrix))]
+                       (seq (m/nth-col matrix i))))))
                 "fusing columns back together, then transposing, should yield
                 the original.")
 
@@ -468,7 +507,7 @@
   ;; methods, since it gets dispatched as square.
   (checking "dot-product" 100 [s (sg/up1 sg/real 2 10)]
             (let [col (m/up->column-matrix s)
-                  row (m/up->row-matrix s)]
+                  row (m/down->row-matrix (g/transpose s))]
               (is (= (g/dot-product s s)
                      (g/dot-product col col)))
 
@@ -477,7 +516,7 @@
 
   (checking "inner-product" 100 [s (sg/up1 sg/complex 2 10)]
             (let [col (m/up->column-matrix s)
-                  row (m/up->row-matrix s)]
+                  row (m/down->row-matrix (g/transpose s))]
               (is (= (g/inner-product s s)
                      (g/inner-product col col)))
 
@@ -492,17 +531,13 @@
                          (g/cross-product s s))
                         (g/cross-product col col)))
 
-              (is (ish? (m/down->row-matrix
-                         (g/transpose
-                          (g/cross-product s s)))
+              (is (ish? (g/cross-product col col)
                         (g/transpose
-                         (g/cross-product
-                          (g/transpose row)
-                          (g/transpose row)))))))
+                         (g/cross-product row row))))))
 
   (checking "outer-product" 100 [s (sg/up1 sg/complex 2 10)]
             (let [col (m/up->column-matrix s)
-                  row (m/up->row-matrix s)]
+                  row (m/down->row-matrix (g/transpose s))]
               (is (= (g/outer-product s s)
                      (g/outer-product col row))))))
 

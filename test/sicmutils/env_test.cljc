@@ -1,30 +1,26 @@
-;; ;
-;; ; Copyright © 2017 Colin Smith.
-;; ; This work is based on the Scmutils system of MIT/GNU Scheme:
-;; ; Copyright © 2002 Massachusetts Institute of Technology
-;; ;
-;; ; This is free software;  you can redistribute it and/or modify
-;; ; it under the terms of the GNU General Public License as published by
-;; ; the Free Software Foundation; either version 3 of the License, or (at
-;; ; your option) any later version.
-;; ;
-;; ; This software is distributed in the hope that it will be useful, but
-;; ; WITHOUT ANY WARRANTY; without even the implied warranty of
-;; ; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; ; General Public License for more details.
-;; ;
-;; ; You should have received a copy of the GNU General Public License
-;; ; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;; ;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.env-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
   (:require [clojure.test :refer [is deftest testing]]
-            [clojure.test.check.generators :as gen]
-            [com.gfredericks.test.chuck.clojure-test :refer [checking]
-             #?@(:cljs [:include-macros true])]
             [sicmutils.complex :as c]
-            [sicmutils.generators :as sg]
             [sicmutils.env :as e :refer [+ - * / zero? partial ref
                                          complex
                                          simplify
@@ -91,7 +87,7 @@
       (is (= (e/matrix-by-rows [5 6]
                                [8 9])
              (e/qp-submatrix A)))
-      (is (= 3 (e/m:dimension A))))))
+      (is (= 3 (e/dimension A))))))
 
 (deftest pe
   (is (re-matches #"\(\* 2 x\)\r?\n"
@@ -114,69 +110,3 @@
     (is (= (* (/ -1 2) π) (minus-pi-to-pi (* (/ -1 2) π))))
     (is (= (* (/ 1 2) π) (minus-pi-to-pi (* (/ -3 2) π))))
     (is (= 0.0 (zero-to-two-pi (* 2 π))))))
-
-(deftest misc-tests
-  (checking "vector:generate" 100
-            [v (gen/vector sg/real)]
-            (is (= v (e/vector:generate
-                      (count v) (partial get v)))
-                "use generate to rebuild."))
-
-  (checking "arg-shift" 100
-            [[shifts args] (gen/sized
-                            #(gen/tuple
-                              (gen/vector sg/real %)
-                              (gen/vector sg/real %)))]
-            (is (= (apply (apply e/arg-shift - shifts) args)
-                   (apply - (map + shifts args)))))
-
-  (testing "arg-shift unit"
-    (is (= 49 ((e/arg-shift e/square 3) 4)))
-
-    (testing "arg-shift preserves arity"
-      (is (= (e/arity e/square)
-             (e/arity (e/arg-shift e/square 3))))
-      (is (= (e/arity e/+)
-             (e/arity (e/arg-shift e/+ 3)))))
-
-    (is (= 8
-           ((e/arg-shift + 1 2) 1 1 1 1 1)
-           ((e/arg-shift + 1 2 0 0 0) 1 1 1 1 1))
-        "if you supply fewer shifts than arguments, later arguments are
-        untouched.")
-
-    (is (= 4
-           ((e/arg-shift + 1 1) 1 1)
-           ((e/arg-shift + 1 1 2 3 4) 1 1))
-        "if you supply MORE shifts than arguments, later shifts are ignored."))
-
-  (checking "arg-scale" 100
-            [[shifts args] (gen/sized
-                            #(gen/tuple
-                              (gen/vector sg/real %)
-                              (gen/vector sg/real %)))]
-            (is (= (apply (apply e/arg-scale + shifts) args)
-                   (apply + (map * shifts args)))))
-
-  (testing "arg-scale unit"
-    (is (= 144 ((e/arg-scale e/square 3) 4)))
-
-    (testing "arg-scale preserves arity"
-      (is (= (e/arity e/square)
-             (e/arity (e/arg-scale e/square 3))))
-      (is (= (e/arity e/+)
-             (e/arity (e/arg-scale e/+ 3)))))
-
-    (is (= [:exactly 1]  (e/arity (e/arg-scale e/square 3))))
-    (is (= [:at-least 0] (e/arity (e/arg-scale e/+ 3))))
-
-    (is (= 6
-           ((e/arg-scale + 1 2) 1 1 1 1 1)
-           ((e/arg-scale + 1 2 1 1 1) 1 1 1 1 1))
-        "if you supply fewer shifts than arguments, later arguments are
-        untouched.")
-
-    (is (= 8
-           ((e/arg-scale + 2 2) 2 2)
-           ((e/arg-scale + 2 2 2 3 4) 2 2))
-        "if you supply MORE shifts than arguments, later shifts are ignored.")))

@@ -80,7 +80,7 @@
                             (let [s* (e/compatible-shape s)
                                   J (s->m s* ((D J-func) s*) s*)
                                   DCs (s->m s* ((D C) s) s)]
-                              (- J (* DCs J (e/m:transpose DCs))))))]
+                              (- J (* DCs J (e/transpose DCs))))))]
         (is (= '(matrix-by-rows [0 0 0 0 0]
                                 [0 0 0 0 0]
                                 [0 0 0 0 0]

@@ -50,6 +50,12 @@
   ([n] (zeno n 1))
   ([n x] (iterate #(/ % n) x)))
 
+(defn vector:generate
+  "Generates a new vector of length `n` by applying the function `f` to integers
+  in the range $[0,n)$."
+  [n f]
+  (mapv f (range n)))
+
 (defn scan
   "Returns a function that accepts a sequence `xs`, and performs a scan by:
 

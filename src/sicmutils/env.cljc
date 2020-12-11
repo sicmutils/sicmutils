@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.env
   "The purpose of these definitions is to let the import of sicmutils.env
@@ -41,6 +41,7 @@
             [sicmutils.util :as u #?@(:cljs [:refer-macros [import-vars]])]
             [sicmutils.util.aggregate]
             [sicmutils.util.stream :as us]
+            [sicmutils.numerical.derivative]
             [sicmutils.numerical.elliptic]
             [sicmutils.numerical.minimize]
             [sicmutils.numerical.ode]
@@ -113,7 +114,7 @@
 ;; Constants
 
 (def pi Math/PI)
-(def -pi (- Math/PI))
+(def -pi (g/- Math/PI))
 
 (def s:generate structure/generate)
 (def m:generate matrix/generate)
@@ -133,12 +134,6 @@
 
 (def seq:print us/seq-print)
 (def seq:pprint us/pprint)
-
-(defn vector:generate
-  "Generates a new vector of length `n` by applying the function `f` to integers
-  in the range $[0,n)$."
-  [n f]
-  (mapv f (range n)))
 
 (defn tex$
   "Render expression in a form convenient for rendering with clojupyter.
@@ -302,9 +297,10 @@
   submatrix
   up->column-matrix
   column-matrix->up
+  column-matrix->vector
   down->row-matrix
   row-matrix->down
-  ]
+  row-matrix->vector]
  [sicmutils.mechanics.hamilton
   ->H-state
   F->CT
@@ -339,6 +335,7 @@
   golden-section-min golden-section-max]
  [sicmutils.numerical.minimize minimize multidimensional-minimize]
  [sicmutils.util.aggregate sum]
+ [sicmutils.util.stream vector:generate]
  [sicmutils.value exact? zero? one? identity?
   zero-like one-like identity-like
   numerical? freeze kind kind-predicate])
