@@ -378,10 +378,16 @@
                 "map-chain and structure->access-chains are equiv"))
 
   (testing "s/structure->access-chains"
-    (is (= (s/up [0] [1] [2]) (s/structure->access-chains (s/up 1 2 3))))
+    (is (nil? (s/structure->access-chains 't))
+        "returns nil on non-structure.")
+
+    (is (= (s/up [0] [1] [2])
+           (s/structure->access-chains (s/up 1 2 3))))
+
     (is (= (s/up [0] (s/up [1 0] [1 1]) (s/down [2 0] [2 1]))
            (s/structure->access-chains
             (s/up 't (s/up 'x 'y) (s/down 'p_x 'p_y)))))
+
     (is (= (s/up (s/down (s/up [0 0 0] [0 0 1])
                          (s/up [0 1 0] [0 1 1]))
                  (s/down (s/up [1 0 0] [1 0 1])
@@ -411,13 +417,13 @@
 
   (testing "structure->prototype"
     (let [s (s/up 't
-                  (s/up 'u 'v)
+                  (s/up   'u 'v)
                   (s/down 'r 's)
-                  (s/up 'v1 'v2))]
+                  (s/up   'v1 'v2))]
       (is (= (s/up 'x↑0
-                   (s/up 'x↑1↑0 'x↑1↑1)
+                   (s/up   'x↑1↑0 'x↑1↑1)
                    (s/down 'x↑2_0 'x↑2_1)
-                   (s/up 'x↑3↑0 'x↑3↑1))
+                   (s/up   'x↑3↑0 'x↑3↑1))
              (s/structure->prototype 'x s)))))
 
   (checking "prototype matches literal" 100

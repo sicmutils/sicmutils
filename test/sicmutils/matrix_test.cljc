@@ -332,20 +332,21 @@
   (testing "literal-matrix"
     (let [M (m/literal-matrix 'x 3 3)]
       (is (m/matrix? M))
-      (is (= M (m/by-rows ['x↑0_0 'x↑0_1 'x↑0_2]
-                          ['x↑1_0 'x↑1_1 'x↑1_2]
-                          ['x↑2_0 'x↑2_1 'x↑2_2]))
+      (is (= M (m/by-rows ['x_0↑0 'x_1↑0 'x_2↑0]
+                          ['x_0↑1 'x_1↑1 'x_2↑1]
+                          ['x_0↑2 'x_1↑2 'x_2↑2]))
           "A literal matrix is a matrix populated by symbols with index refs
           baked in.")))
 
   (checking "structure prototype matches matrix literal" 100
-            [[sym M] (gen/let [sym  sg/symbol
-                               rows (gen/choose 1 10)
+            [[sym M] (gen/let [sym    sg/symbol
+                               rows  (gen/choose 1 10)
                                cols  (gen/choose 1 10)]
                        [sym (m/literal-matrix sym rows cols)])]
             (is (= (m/->structure M)
                    (s/structure->prototype
-                    sym (m/->structure M)))
+                    sym
+                    (m/->structure M)))
                 "literal matrices contain symbols that store their orientation
                 properly. [[s/structure->prototype]] matches this behavior.")))
 
@@ -389,33 +390,86 @@
                         (s/transpose-outer inner))))))
 
   (let [A (s/up 1 2 'a (s/down 3 4) (s/up (s/down 'c 'd) 'e))
-        M (m/by-rows [1 2 3] [4 5 6])]
-    (is (= 8 (g/dimension A)))
-    (is (= (s/down (s/up 1 4)
-                   (s/up 2 5)
-                   (s/up 3 6))
-           (m/->structure M ::s/down ::s/up true)))
-    (is (= (s/up (s/down 1 2 3)
-                 (s/down 4 5 6))
-           (m/->structure M ::s/up ::s/down false)))
-    (is (= (s/up (s/down 1 4)
-                 (s/down 2 5)
-                 (s/down 3 6))
-           (m/->structure M ::s/up ::s/down true)))
-    (is (= (s/up (s/down 1 2 3)
-                 (s/down 4 5 6))
-           (m/->structure M ::s/up ::s/down false))))
-  (doseq [[S M] [[(s/down (s/up 11 12) (s/up 21 22))
-                  (m/by-rows [11 21] [12 22])]
-                 [(s/up (s/down 11 12) (s/down 21 22))
-                  (m/by-rows [11 12] [21 22])]
-                 [(s/up (s/up 11 12) (s/up 21 22))
-                  (m/by-rows [11 21] [12 22])]
-                 [(s/down (s/down 11 12) (s/down 21 22))
-                  (m/by-rows [11 12] [21 22])]]]
-    (m/square-structure-> S (fn [m ->s]
-                              (is (= M m))
-                              (is (= S (->s m))))))
+        M (m/by-rows [1 2 3]
+                     [4 5 6])]
+
+    (is (= 8 (g/dimension A))
+        "The dimension of a structure is the total number of entries,
+        disregarding structure.")
+
+    (testing "->structure"
+      (is (= (s/down (s/up 1 4)
+                     (s/up 2 5)
+                     (s/up 3 6))
+             (m/->structure M)
+             (m/->structure M ::s/down ::s/up true))
+          "default behavior.")
+
+      (is (= (s/up (s/down 1 2 3)
+                   (s/down 4 5 6))
+             (m/->structure M ::s/up ::s/down false)))
+      (is (= (s/up (s/down 1 4)
+                   (s/down 2 5)
+                   (s/down 3 6))
+             (m/->structure M ::s/up ::s/down true)))
+      (is (= (s/up (s/down 1 2 3)
+                   (s/down 4 5 6))
+             (m/->structure M ::s/up ::s/down false)))))
+
+  (checking "->structure laws" 100
+            [outer      sg/orientation
+             inner      sg/orientation
+             transpose? gen/boolean
+             M          (gen/let [rows (gen/choose 1 5)
+                                  cols (gen/choose 1 5)]
+                          (sg/matrix rows cols))]
+            (is (= (m/->structure M outer inner transpose?)
+                   (s/transpose-outer
+                    (m/->structure M inner outer (not transpose?))))
+                "s/transpose-outer flips the inner and outer structures.")
+
+            (let [S (m/->structure M outer inner transpose?)]
+              (is (= outer (s/orientation S))
+                  "Does the outer structure have the correct orientation?")
+
+              (is (every? (comp #{inner} s/orientation) S)
+                  "Does every inner structure have the required orientation?")
+
+              (if transpose?
+                (is (= (map seq (g/transpose M))
+                       (map seq S))
+                    "the structure contains the matrix columns.")
+                (is (= (map seq M)
+                       (map seq S))
+                    "the structure contains the matrix rows."))))
+
+  (checking "seq-> is id for vectors without matrices" 100
+            [xs (gen/vector sg/real)]
+            (is (= (s/vector->up xs)
+                   (m/seq-> xs))))
+
+  (checking "seq-> converts internal matrices" 100
+            [[l M r] (gen/let [rows (gen/choose 1 5)
+                               cols (gen/choose 1 5)]
+                       (gen/tuple (gen/vector sg/real)
+                                  (sg/matrix rows cols)
+                                  (gen/vector sg/real)))]
+            (is (= (s/up*
+                    (concat l [(m/->structure M)] r))
+                   (m/seq-> (concat l [M] r)))))
+
+  (testing "square-structure->"
+    (doseq [[S M] [[(s/down (s/up 11 12) (s/up 21 22))
+                    (m/by-rows [11 21] [12 22])]
+                   [(s/up (s/down 11 12) (s/down 21 22))
+                    (m/by-rows [11 12] [21 22])]
+                   [(s/up (s/up 11 12) (s/up 21 22))
+                    (m/by-rows [11 21] [12 22])]
+                   [(s/down (s/down 11 12) (s/down 21 22))
+                    (m/by-rows [11 12] [21 22])]]]
+      (m/square-structure-> S (fn [m ->s]
+                                (is (= M m))
+                                (is (= S (->s m)))))))
 
   (testing "structure as matrix"
     (let [A (s/up (s/up 1 2)

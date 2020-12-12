@@ -539,17 +539,18 @@
   associated with each step attached to it as metadata, under an `:orientations`
   key. Use this if the orientation of the indices matters."
   [s]
-  (map-chain (fn [_ chain orientations]
-               ;; subtle (I'm afraid). Here is where we put
-               ;; the access chain into the new structure.
-               ;; But if we put it in as a vector, that would
-               ;; introduce a new layer of structure since
-               ;; vectors are considered up-tuples. So we
-               ;; have to turn it into a seq, which will
-               ;; forfeit structure-nature.
-               (->  (seq chain)
-                    (with-meta {:orientations orientations})))
-             s))
+  (when (structure? s)
+    (map-chain (fn [_ chain orientations]
+                 ;; subtle (I'm afraid). Here is where we put
+                 ;; the access chain into the new structure.
+                 ;; But if we put it in as a vector, that would
+                 ;; introduce a new layer of structure since
+                 ;; vectors are considered up-tuples. So we
+                 ;; have to turn it into a seq, which will
+                 ;; forfeit structure-nature.
+                 (-> (seq chain)
+                     (with-meta {:orientations orientations})))
+               s)))
 
 (defn structure->prototype
   "Accepts
