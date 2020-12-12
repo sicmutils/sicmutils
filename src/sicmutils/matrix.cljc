@@ -329,12 +329,14 @@
   and returns a new matrix of the same dimensions as `m`. "
   [f m]
   (letfn [(process-row [i row]
-            (map-indexed (fn [j elem]
-                           (f elem i j))
-                         row))]
-    (->Matrix (num-rows m)
-              (num-cols m)
-              (map-indexed process-row m))))
+            (into [] (map-indexed
+                      (fn [j elem] (f elem i j))
+                      row)))]
+    (let [new-rows (into [] (map-indexed
+                             process-row m))]
+      (->Matrix (num-rows m)
+                (num-cols m)
+                new-rows))))
 
 (defn- well-formed?
   "Returns true if the supplied sequence contains only sequences of the same
