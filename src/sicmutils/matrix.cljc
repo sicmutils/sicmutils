@@ -425,11 +425,12 @@
   "Convert m to a structure with given outer and inner orientations. Rows of
   M will become the inner tuples, unless t? is true, in which columns of m will
   form the inner tuples."
-  [m outer-orientation inner-orientation t?]
-  (let [m' (if t? (transpose m) m)
-        v (matrix->vector m')]
-    (s/->Structure outer-orientation
-                   (mapv #(s/->Structure inner-orientation %) v))))
+  ([m] (->structure m ::s/up ::s/down false))
+  ([m outer-orientation inner-orientation t?]
+   (let [m' (if t? (transpose m) m)
+         v (matrix->vector m')]
+     (s/->Structure outer-orientation
+                    (mapv #(s/->Structure inner-orientation %) v)))))
 
 (defn seq->
   "Convert a sequence (typically, of function arguments) to an up-structure.

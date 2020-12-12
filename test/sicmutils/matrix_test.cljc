@@ -343,8 +343,9 @@
                                rows (gen/choose 1 10)
                                cols  (gen/choose 1 10)]
                        [sym (m/literal-matrix sym rows cols)])]
-            (is (= M (s/structure->prototype
-                      sym (m/->structure M)))
+            (is (= (m/->structure M)
+                   (s/structure->prototype
+                    sym (m/->structure M)))
                 "literal matrices contain symbols that store their orientation
                 properly. [[s/structure->prototype]] matches this behavior.")))
 
