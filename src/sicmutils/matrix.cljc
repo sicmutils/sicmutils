@@ -32,7 +32,7 @@
   #?(:clj
      (:import [clojure.lang Associative AFn IFn Sequential])))
 
-(declare fmap generate I identity? m:=)
+(declare fmap generate I identity-like identity? m:=)
 
 (derive ::square-matrix ::matrix)
 (derive ::column-matrix ::matrix)
@@ -42,21 +42,11 @@
 (deftype Matrix [r c v]
   v/Value
   (zero? [_] (every? #(every? v/zero? %) v))
-  (one? [m] (identity? m))
+  (one? [m] false)
   (identity? [m] (identity? m))
-
   (zero-like [this] (fmap v/zero-like this))
-
-  ;; TODO: one-like/identity-like should use a recursive copy to find the 1
-  ;; elements
-  (one-like [_]
-    (if-not (= r c)
-      (u/illegal "one-like on non-square")
-      (I r)))
-  (identity-like [_]
-    (if-not (= r c)
-      (u/illegal "identity-like on non-square")
-      (I r)))
+  (one-like [this] (identity-like this))
+  (identity-like [this] (identity-like this))
 
   (freeze [_] (if (= c 1)
                 `(~'column-matrix ~@(map (comp v/freeze first) v))
@@ -328,6 +318,23 @@
   (->Matrix (num-rows m)
             (num-cols m)
             (mapv #(mapv f %) m)))
+
+(defn fmap-indexed
+  "Maps `f` over three arguments:
+
+  - each element of the matrix `m`
+  - its row `i`
+  - its column `j`
+
+  and returns a new matrix of the same dimensions as `m`. "
+  [f m]
+  (letfn [(process-row [i row]
+            (map-indexed (fn [j elem]
+                           (f elem i j))
+                         row))]
+    (->Matrix (num-rows m)
+              (num-cols m)
+              (map-indexed process-row m))))
 
 (defn- well-formed?
   "Returns true if the supplied sequence contains only sequences of the same
@@ -736,6 +743,18 @@
   "Return the identity matrix of order n."
   [n]
   (generate n n s/kronecker))
+
+(defn identity-like
+  "Return an identity matrix whose ones and zeros match the types of the supplied
+  square matrix. Errors if a non-square matrix is supplied."
+  [M]
+  (if-not (square? M)
+    (u/illegal "identity-like on non-square")
+    (fmap-indexed (fn [elem i j]
+                    (if (= i j)
+                      (v/one-like elem)
+                      (v/zero-like elem)))
+                  M)))
 
 (defn identity?
   "Returns true if the supplied matrix is an identity matrix, false otherwise."

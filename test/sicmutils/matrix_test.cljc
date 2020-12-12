@@ -124,11 +124,14 @@
   (testing "a structure has a nth element (ILookup)"
     (is (= 14 (nth (s/up 10 12 14) 2)))
     (is (= 5 (nth (s/up 4 5 6) 1)))
-    (is (thrown? #?(:clj IndexOutOfBoundsException :cljs js/Error) (nth (s/up 4 5 6) 4))))
+    (is (thrown? #?(:clj IndexOutOfBoundsException :cljs js/Error)
+                 (nth (s/up 4 5 6) 4))))
 
   (testing "IFn"
-    (is (= (s/up 6 9 1) ((s/up + * /) 3 3)))
-    (is (= (s/up 22 2048 (g/expt 2 -9)) ((s/up + * /) 2 2 2 2 2 2 2 2 2 2 2))))
+    (is (= (s/up 6 9 1)
+           ((s/up + * /) 3 3)))
+    (is (= (s/up 22 2048 (g/expt 2 -9))
+           ((s/up g/+ g/* g//) 2 2 2 2 2 2 2 2 2 2 2))))
 
   (testing "print representation"
     (let [s (pr-str (s/up 1 2 3))]
@@ -231,7 +234,10 @@
               (is (v/identity? M))
               (is (not (v/identity? (g/* 2 M))))
 
-              (is (v/one? M))
+              (is (not (v/one? M))
+                  "matrices don't act as one; they need to maintain their
+                  structure when multiplied by constants.")
+
               (is (not (v/one? (g/* 2 M))))))
 
   (let [M (m/by-rows (list 1 2 3)

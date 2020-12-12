@@ -75,11 +75,18 @@
 
 (deftest structures
   (let [A (m/by-rows [1 2] [3 4])
-        C (m/by-rows [1 2 3] [0 4 5] [1 0 6])]
+        C (m/by-rows [1 2 3]
+                     [0 4 5]
+                     [1 0 6])]
     (testing "characteristic polynomial"
-      (is (= '(+ (expt x 2) (* -5 x) -2) (g/simplify (m/characteristic-polynomial A 'x))))
-      (is (= '(+ (expt y 3) (* -11 (expt y 2)) (* 31 y) -22) (g/simplify (m/characteristic-polynomial C 'y))))
-      (is ((v/within 1e-12) 0.0 (g/simplify (m/characteristic-polynomial A (g/divide (g/- 5 (g/sqrt 33)) 2))))))))
+      (is (= '(+ (expt x 2) (* -5 x) -2)
+             (g/simplify (m/characteristic-polynomial A 'x))))
+
+      (is (= '(+ (expt y 3) (* -11 (expt y 2)) (* 31 y) -22)
+             (g/simplify (m/characteristic-polynomial C 'y))))
+
+      (is ((v/within 1e-12) 0.0
+           (g/simplify (m/characteristic-polynomial A (g/divide (g/- 5 (g/sqrt 33)) 2))))))))
 
 (deftest native-clojure-things
   (is (= "foo" (g/simplify "foo")))
