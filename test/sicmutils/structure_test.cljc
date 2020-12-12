@@ -370,9 +370,10 @@
 
   (checking "s/map-chain with get-in is identity" 100
             [s (sg/structure sg/real)]
-            (is (= s (s/map-chain #(get-in s %2) s)))
+            (is (= s (s/map-chain
+                      (fn [_ chain _] (get-in s chain)) s)))
 
-            (is (= (s/map-chain (fn [_ chain] (seq chain)) s)
+            (is (= (s/map-chain (fn [_ chain _] (seq chain)) s)
                    (s/structure->access-chains s))
                 "map-chain and structure->access-chains are equiv"))
 
@@ -409,12 +410,25 @@
                   "Identical statement built a different way.")))
 
   (testing "structure->prototype"
-    (let [s (s/up 't (s/up 'u 'v) (s/down 'r 's) (s/up 'v1 'v2))]
-      (is (= (s/up 'x0
-                   (s/up 'x1:0 'x1:1)
-                   (s/down 'x2:0 'x2:1)
-                   (s/up 'x3:0 'x3:1))
+    (let [s (s/up 't
+                  (s/up 'u 'v)
+                  (s/down 'r 's)
+                  (s/up 'v1 'v2))]
+      (is (= (s/up 'x↑0
+                   (s/up 'x↑1↑0 'x↑1↑1)
+                   (s/down 'x↑2_0 'x↑2_1)
+                   (s/up 'x↑3↑0 'x↑3↑1))
              (s/structure->prototype 'x s)))))
+
+  (checking "prototype matches literal" 100
+            [[sym lit] (gen/let [sym sg/symbol
+                                 n   (gen/choose 1 10)
+                                 o   sg/orientation]
+                         [sym (s/literal sym n o)])]
+            (is (= lit (s/structure->prototype sym lit))
+                "literal structures generate symbols that store their
+                orientation properly. [[s/structure->prototype]] does this
+                deeply."))
 
   (checking "unflatten" 100 [s (sg/structure sg/real 3)]
             (is (= (range (s/dimension s))
@@ -486,8 +500,8 @@
   ([rows cols]
    (<l|:inner:|r> rows cols sg/symbol))
   ([rows cols elem-gen]
-   (gen/let [o-inner (gen/elements [::s/up ::s/down])
-             o-outer (gen/elements [::s/up ::s/down])]
+   (gen/let [o-inner sg/orientation
+             o-outer sg/orientation]
      (let [gen-col (sg/structure1* o-inner elem-gen rows)
            inner   (sg/structure1* o-outer gen-col cols)
            <l|     (-> (s/opposite-orientation o-inner)

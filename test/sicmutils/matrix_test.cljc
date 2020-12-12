@@ -302,7 +302,17 @@
                           ['x↑1_0 'x↑1_1 'x↑1_2]
                           ['x↑2_0 'x↑2_1 'x↑2_2]))
           "A literal matrix is a matrix populated by symbols with index refs
-          baked in."))))
+          baked in.")))
+
+  (checking "structure prototype matches matrix literal" 100
+            [[sym M] (gen/let [sym  sg/symbol
+                               rows (gen/choose 1 10)
+                               cols  (gen/choose 1 10)]
+                       [sym (m/literal-matrix sym rows cols)])]
+            (is (= M (s/structure->prototype
+                      sym (m/->structure M)))
+                "literal matrices contain symbols that store their orientation
+                properly. [[s/structure->prototype]] matches this behavior.")))
 
 (deftest matrix-generic-operations
   (let [M (m/by-rows (list 1 2 3)
@@ -316,6 +326,13 @@
             #(m/fmap - %))))))
 
 (deftest structure
+  (checking "M^tM is always square" 100
+            [M (gen/let [m (gen/choose 1 5)
+                         n (gen/choose 1 5)]
+                 (sg/matrix m n))]
+            (is (m/square?
+                 (g/* (g/transpose M) M))))
+
   (checking "(s:transpose <l|, inner, |r>)==(s/transpose-outer inner)"
             100 [[l inner r] (gen/let [rows (gen/choose 1 5)
                                        cols (gen/choose 1 5)]
