@@ -217,8 +217,9 @@
   - `make-zero` generates a zero-valued matrix of the supplied dimensions.
   - `make-diagonal` generates a diagonal matrix containing the values of the
     supplied sequence.
-  - `identity?` and `one?` now return true for identity matrices, false
-    otherwise. (Before they returned `false` always.)
+  - `v/identity?` now returns true for identity matrices, false otherwise.
+    `v/one?` returns `false` for identity matrices! If it didn't, `(* 2 (I 10))`
+    would return `2`, since `one?` signals multiplicative identity.
 
 - `sicmutils.structure/up` and `sicmutils.structure/down` now have analogous
   `s/up*` and `s/down*` functions. These behave identically, but are

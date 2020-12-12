@@ -1,3 +1,180 @@
 = Function Generics
 
-More info soon.
+== Functions
+
+In SICMUtils, functions are data just like other mathematical objects, and the
+generic arithmetic system is extended to include them. If `<f>` is an expression
+denoting a function, then:
+
+[source, clojure]
+----
+(fn? <any>)         ;;=> <boolean>
+(kind <f>)          ;;=> :sicmutils.value/function
+----
+
+Operations on functions generally construct new functions that are the
+composition of the operation with its arguments, thus applying the operation to
+the value of the functions: if `U` is a unary operation, if `f` is a function,
+and if `x` is arguments appropriate to `f`, then:
+
+[source, clojure]
+----
+((U f) x) = (U (f x))
+----
+
+If `B` is a binary operation, if `f` and `g` are functions, and if `x` is
+arguments appropriate to both `f` and `g`, then:
+
+[source, clojure]
+----
+((B f g) x) = (B (f x) (g x))
+----
+
+All of the usual unary operations are available. So if `<f>` is an expression
+representing a function, and if `<x>` is any kind of argument for `<f>` then,
+for example,
+
+[source, clojure]
+----
+((negate <f>) <x>) = (negate (f <x>))
+((invert <f>) <x>) = (invert (f <x>))
+((sqrt <f>) <x>)   = (sqrt (f <x>))
+----
+
+The other operations that behave this way are:
+
+[source, clojure]
+----
+exp, log, sin, cos, asin, acos, sinh, cosh, abs,
+real-part, imag-part, magnitude, angle, conjugate, atan
+----
+
+The binary operations are similar, with the exception that mathematical objects
+that may not be normally viewed as functions are coerced to constant functions
+for combination with functions.
+
+[source, clojure]
+----
+((+ <f> <g>) <x>) = (+ (f <x>) (g <x>))
+((- <f> <g>) <x>) = (- (f <x>) (g <x>))
+----
+
+For example:
+
+[source, clojure]
+----
+((+ sin 1) 'x) == (+ (sin 'x) 1)
+----
+
+The other operations that behave in this way are:
+
+[source, clojure]
+----
+*, /, expt, gcd, make-rectangular, make-polar
+----
+
+TIP: All generic operations should work this way, so give them a try even if
+they're not on the list.
+
+== Literal Functions
+
+We often need literal functions in our computations. The object produced by
+`(literal-function 'f)` acts as a function of one real variable that produces a
+real result. The name (expression representation) of this function is the symbol
+`'f`. This literal function has a derivative, which is the literal function with
+expression representation `(D f)`. Thus, we may make up and manipulate
+expressions involving literal functions:
+
+[source, clojure]
+----
+(freeze ((literal-function 'f) 3))
+;;=>  (f 3)
+
+(simplify ((D (* (literal-function 'f) cos)) 'a))
+;;=> (+ (* ((D f) a) (cos a)) (* -1 (f a) (sin a)))
+
+(simplify
+ ((compose (D (* (literal-function 'f) cos))
+           (literal-function 'g))
+  'a))
+;;=> (+ (* ((D f) (g a)) (cos (g a)))
+        (* -1 (f (g a)) (sin (g a))))
+----
+
+We may use such a literal function anywhere that an explicit function of the
+same type may be used.
+
+=== The Literal function descriptor language
+
+We can also specify literal functions with multiple arguments and with
+structured arguments and results. For example, to denote a literal function
+named `g` that takes two real arguments and returns a real value `( g:RXR -> R
+)` we may write:
+
+[source, clojure]
+----
+(def g (literal-function 'g (-> (X Real Real) Real)))
+
+(print-expression (g 'x 'y))
+(g x y)
+----
+
+The descriptors for literal functions look like prefix versions of the standard
+function types. Thus, we write: `(literal-function 'g (-> (X Real Real) Real))`
+
+The base types are the real numbers, designated by `Real`. We will later extend
+the system to include complex numbers, designated by `Complex`.
+
+Types can be combined in several ways. The cartesian product of types is
+designated by:
+
+[source, clojure]
+----
+(X <type1> <type2> ...)
+----
+
+We use this to specify an argument tuple of objects of the given types arranged
+in the given order.
+
+Similarly, we can specify an up tuple or a down tuple with:
+
+[source, clojure]
+----
+(UP <type1> <type2> ...)
+(DOWN <type1> <type2> ...)
+----
+
+We can also specify a uniform tuple of a number of elements of the same type
+using:
+
+[source, clojure]
+----
+(UP* <type> [n])
+(DOWN* <type> [n])
+----
+
+So we can write specifications of more general functions:
+
+[source, clojure]
+----
+(def H
+  (literal-function 'H
+                    (-> (UP Real (UP Real Real)
+                            (DOWN Real Real))
+                        Real)))
+
+(def s (up 't (up 'x 'y) (down 'p_x 'p_y)))
+
+(print-expression (H s))
+;; (H (up t (up x y) (down p_x p_y)))
+
+(print-expression ((D H) s))
+;; (down
+;;  (((partial 0) H) (up t (up x y) (down p_x p_y)))
+;;  (down
+;;   (((partial 1 0) H) (up t (up x y) (down p_x p_y)))
+;;   (((partial 1 1) H) (up t (up x y) (down p_x p_y))))
+;;  (up
+;;   (((partial 2 0) H) (up t (up x y) (down p_x p_y)))
+;;   (((partial 2 1) H) (up t (up x y) (down p_x p_y)))))
+----

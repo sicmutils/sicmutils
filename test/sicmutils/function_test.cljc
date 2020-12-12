@@ -407,10 +407,10 @@
 
 (deftest utility-tests
   (checking "arg-shift" 100
-            [[shifts args] (gen/sized
-                            #(gen/tuple
-                              (gen/vector sg/real %)
-                              (gen/vector sg/real %)))]
+            [[shifts args] (gen/let [n (gen/choose 1 20)]
+                             (gen/tuple
+                              (gen/vector sg/real n)
+                              (gen/vector sg/real n)))]
             (is (= (apply (apply f/arg-shift g/- shifts) args)
                    (apply g/- (map g/+ shifts args)))))
 
@@ -435,10 +435,10 @@
         "if you supply MORE shifts than arguments, later shifts are ignored."))
 
   (checking "arg-scale" 100
-            [[shifts args] (gen/sized
-                            #(gen/tuple
-                              (gen/vector sg/real %)
-                              (gen/vector sg/real %)))]
+            [[shifts args] (gen/let [n (gen/choose 1 20)]
+                             (gen/tuple
+                              (gen/vector sg/real n)
+                              (gen/vector sg/real n)))]
             (is (= (apply (apply f/arg-scale g/+ shifts) args)
                    (apply g/+ (map g/* shifts args)))))
 

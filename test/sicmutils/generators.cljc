@@ -263,5 +263,5 @@
           (v/real? that)
           (and (si/*comparator* 0.0 (g/imag-part this))
                (si/*comparator*
-                (g/real-part this) (core-double that)))
+                (g/real-part this) (u/double that)))
           :else (= this that))))
