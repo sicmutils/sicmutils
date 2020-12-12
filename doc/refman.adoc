@@ -965,15 +965,21 @@ There are coercions between Clojure vectors and matrices:
 
 [source, clojure]
 ----
-(matrix/column* <vector>) ;;=> <M>
-(matrix/row*    <vector>) ;;=> <M>
+(matrix/column* <vector>)   ;;=> <M>
+
+(column-matrix->vector <M>) ;;=> <vector>
+
+
+(matrix/row*    <vector>)   ;;=> <M>
+
+(row-matrix->vector <M>)    ;;=> <vector>
 ----
 
 And similarly for up and down tuples:
 
 [source, clojure]
 ----
-(matrix/up->column-matrix <up>)      ;;=>  <M>
+(up->column-matrix <up>)      ;;=>  <M>
 
 (column-matrix->up <M>)       ;;=>  <up>
 
@@ -996,9 +1002,9 @@ Matrices can be tested with the usual tests:
 
 returns an `nXn` (square) matrix of zeros.
 
-`*(m:make-zero <n> <m>) ;;=> <M>*`
+`*(matrix/make-zero <m> <n>) ;;=> <M>*`
 
-returns an `nXm` matrix of zeros.
+returns an `mXn` matrix of zeros.
 
 Useful matrices can be made easily, with the following constructors:
 
