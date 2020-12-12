@@ -42,7 +42,7 @@
 (deftype Matrix [r c v]
   v/Value
   (zero? [_] (every? #(every? v/zero? %) v))
-  (one? [m] false)
+  (one? [_] false)
   (identity? [m] (identity? m))
   (zero-like [this] (fmap v/zero-like this))
   (one-like [this] (identity-like this))

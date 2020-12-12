@@ -200,6 +200,9 @@
 
   - `num-rows`, `num-cols` access the row or column number without inspecting
     the deftype variables directly
+  - `fmap-indexed`, like `fmap` but receives `i` and `j` indices as second and
+    third arguments.
+  -
   - `with-substituted-row`, for swapping out a single row in a matrix
   - `submatrix` generates a submatrix from low and high row and cols
   - `matrix-some` renamed to `some`: make sure to use a namespace prefix to
@@ -217,6 +220,9 @@
   - `make-zero` generates a zero-valued matrix of the supplied dimensions.
   - `make-diagonal` generates a diagonal matrix containing the values of the
     supplied sequence.
+  - `m/identity-like` returns an identity matrix (given a square matrix) with
+    entries of identical type, but set appropriately to zero or one. This is
+    installed as `v/one-like` and `v/identity-like`.
   - `v/identity?` now returns true for identity matrices, false otherwise.
     `v/one?` returns `false` for identity matrices! If it didn't, `(* 2 (I 10))`
     would return `2`, since `one?` signals multiplicative identity.

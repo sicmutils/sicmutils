@@ -201,7 +201,7 @@
   `entry-gen` defaults to [[ratio]]."
   ([n] (square-matrix n ratio))
   ([n entry-gen]
-   (matrix n n )))
+   (matrix n n entry-gen)))
 
 ;; ## Custom Almost-Equality
 

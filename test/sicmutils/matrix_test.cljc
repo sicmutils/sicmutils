@@ -153,6 +153,34 @@
                  (sg/square-matrix n))]
             (is (m/square? m)))
 
+  (checking "fmap-indexed" 100
+            [M (gen/let [rows (gen/choose 1 5)
+                         cols (gen/choose 1 5)]
+                 (sg/matrix rows cols))]
+            (is (= M (m/fmap-indexed (fn [_ i j]
+                                       (get-in M [i j]))
+                                     M))
+                "fmap-indexed roundtrips"))
+
+  (testing "*-like maintains type"
+    (let [M (m/by-rows [identity g/cube]
+                       [g/square identity])]
+      (is (= (m/by-rows [2 8]
+                        [4 2])
+             (M 2)))
+
+      (is (= (m/I 2)
+             ((v/identity-like M) 2))
+          "identity-like on a matrix of functions returns a new matrix of fns.")
+
+      (is (= (m/I 2)
+             ((v/one-like M) 2))
+          "one-like on a matrix of functions returns a new matrix of fns.")
+
+      (is (= (m/make-zero 2)
+             ((v/zero-like M) 2))
+          "one-like on a matrix of functions returns a new matrix of fns.")))
+
   (checking "by-rows == (comp transpose by-cols), vice versas" 100
             [vs (-> (gen/sized #(gen/vector sg/real %))
                     (gen/vector 1 20))]
