@@ -4,13 +4,14 @@
                            biginteger core-biginteger
                            double core-double
                            long core-long}
-                  #?@(:cljs [:exclude [bigint double long]]))
+                  #?@(:cljs [:exclude [bigint double long symbol]]))
   (:require [clojure.test.check.generators :as gen]
             [same :refer [zeroish?]]
             [same.ish :as si]
             [sicmutils.complex :as c]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
+            [sicmutils.numsymb :as sym]
             [sicmutils.ratio :as r]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
@@ -105,6 +106,15 @@
               d)]
       (r/rationalize n d))))
 
+;; ## Symbolic
+
+(def ^{:doc "generates symbols that won't clash with any of the symbols that
+  generic operations freeze to, like `*`, `+`, `-`, `/` etc."}
+  symbol
+  (let [special-syms (set (keys @#'sym/symbolic-operator-table))]
+    (gen/such-that (complement special-syms)
+                   gen/symbol)))
+
 ;; ## Structure Generators
 
 (defn- recursive
@@ -115,7 +125,7 @@
    (gen/recursive-gen
     container elem)))
 
-(defn- structure*
+(defn structure1*
   "Returns a generator that produces structures of the supplied orientation with
   elements chosen via `elem-gen`. All extra args are passed along to
   `gen/vector`."
@@ -128,13 +138,13 @@
   "Returns a generator that produces `up` structures of elements chosen via
   `elem-gen`. All extra args are passed along to `gen/vector`."
   [elem-gen & args]
-  (apply structure* ::s/up elem-gen args))
+  (apply structure1* ::s/up elem-gen args))
 
 (defn down1
   "Returns a generator that produces `down` structures of elements chosen via
   `elem-gen`. All extra args are passed along to `gen/vector`."
   [elem-gen & args]
-  (apply structure* ::s/down elem-gen args))
+  (apply structure1* ::s/down elem-gen args))
 
 (defn structure1
   "Returns a generator that produces `up` or `down` structures of elements chosen

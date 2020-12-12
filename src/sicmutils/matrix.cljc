@@ -481,7 +481,8 @@
                           (s/unflatten (nth-col m j) col-shape))
                         (s/compatible-shape rs))]
     (when *careful-conversion*
-      (assert (v/numerical? (g/* ls (g/* ms rs)))))
+      (assert (v/numerical? (g/* ls (g/* ms rs)))
+              (str "product is not numerical: " ls ms rs)))
     ms))
 
 (defn s:transpose

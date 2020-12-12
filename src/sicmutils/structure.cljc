@@ -39,7 +39,7 @@
 (def ^:private orientation->separator
   {::up "↑" ::down "_"})
 
-(def ^:private opposite-orientation
+(def opposite-orientation
   {::up ::down ::down ::up})
 
 (derive ::up ::structure)
