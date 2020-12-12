@@ -1,3 +1,91 @@
 = Symbolic Expressions
 
-Coming soon.
+== Symbolic Expressions
+
+All primitive mathematical procedures are extended to be generic over symbolic
+arguments. When given symbolic arguments these procedures construct a symbolic
+representation of the required answer. There are primitive literal numbers. We
+can make a literal number that is represented as an expression by the symbol
+`'a` as follows:
+
+[source, clojure]
+----
+(literal-number 'a)
+----
+
+The literal number is an object that has the type of a number, but its
+representation as an expression is the symbol `'a`:
+
+[source, clojure]
+----
+(kind (literal-number 'a))
+;;=>  :sicmutils.expression/numeric
+
+(freeze (literal-number 'a))
+;;=>  a
+----
+
+Literal numbers may be manipulated, using the generic operators:
+
+[source, clojure]
+----
+(sin (+ (literal-number 'a) 3))
+;;=> (sin (+ 3 a))
+----
+
+To make it easy to work with literal numbers, Clojure symbols are interpreted by
+the generic operations as literal numbers:
+
+[source, clojure]
+----
+(sin (+ 'a 3))
+;;=>  (sin (+ 3 a))
+----
+
+We can extract the numerical expression from its type-tagged representation with
+the `freeze` procedure:
+
+[source, clojure]
+----
+(freeze (sin (+ 'a 3)))
+;;=>  (sin (+ 3 a))
+----
+
+but usually we really don't want to look at raw expressions
+
+[source, clojure]
+----
+(freeze ((D cube) 'x))
+;;=>  (+ (* x (+ x x)) (* x x))
+----
+
+because they are unsimplified. We will talk about simplification later, but for
+now note that `simplify` will usually give a better form:
+
+[source, clojure]
+----
+(simplify ((D cube) 'x))
+;;=>  (* 3 (expt x 2))
+----
+
+and `print-expression`, which incorporates `simplify`, will attempt to format
+the expression nicely.
+
+Besides literal numbers, there are other literal mathematical objects, such as
+vectors and matrices, that can be constructed with appropriate constructors:
+
+[source, clojure]
+----
+(literal-vector <name>)
+(literal-down-tuple <name>)
+(literal-up-tuple <name>)
+(literal-matrix <name>)
+(literal-function <name>)
+----
+
+WARNING: As of version `0.14.0`, these haven't yet been ported over to Clojure
+from `scmutils`. Stay tuned for a future release, as we have all of the
+machinery in place to do this.
+
+There are currently no simplifiers that can manipulate literal objects of these
+types into a nice form.
