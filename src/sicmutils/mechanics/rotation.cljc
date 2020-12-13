@@ -19,11 +19,9 @@
 
 (ns sicmutils.mechanics.rotation
   (:refer-clojure :exclude [+ - * /])
-  (:require [sicmutils.calculus.derivative :as d]
-            [sicmutils.function :as f]
-            [sicmutils.generic :as g :refer [cos sin + - * /]]
+  (:require [sicmutils.generic :refer [cos sin + - * /]]
             [sicmutils.matrix :as matrix]
-            [sicmutils.structure :refer [up down]]))
+            [sicmutils.structure :as s :refer [up down]]))
 
 ;; XXX: R[xyz] should not return an up; they should return a struct
 ;; of the same shape they were given. But do rotations of covectors
@@ -60,7 +58,7 @@
           (+ (* s x) (* c y))
           z))))
 
-(defn ^:private rotate-x-matrix-2
+(defn- rotate-x-matrix-2
   [c s]
   (matrix/by-rows [1 0 0]
                   [0 c (- s)]
@@ -71,8 +69,7 @@
   [α]
   (rotate-x-matrix-2 (cos α) (sin α)))
 
-(defn ^:private rotate-y-matrix-2
-  [c s]
+(defn- rotate-y-matrix-2 [c s]
   (matrix/by-rows  [c 0 s]
                    [0 1 0]
                    [(- s) 0 c]))
@@ -82,17 +79,15 @@
   [α]
   (rotate-y-matrix-2 (cos α) (sin α)))
 
-(defn rotate-y-tuple-2
-  [c s]
-  (matrix/m->s (down 'ignore 'ignore 'ignore)
+(defn rotate-y-tuple-2 [c s]
+  (matrix/m->s (s/literal-down 'l 3)
                (rotate-y-matrix-2 c s)
-               (up 'ignore 'ignore 'ignore)))
+               (s/literal-up 'r 3)))
 
-(defn rotate-y-tuple
-  [α]
+(defn rotate-y-tuple [α]
   (rotate-y-tuple-2 (cos α) (sin α)))
 
-(defn ^:private rotate-z-matrix-2
+(defn- rotate-z-matrix-2
   "Produce the matrix of a rotation of α radians about the z axis."
   [c s]
   (matrix/by-rows [c (- s) 0]
@@ -104,24 +99,20 @@
   [α]
   (rotate-z-matrix-2 (cos α) (sin α)))
 
-(defn ^:private rotate-x-tuple-2
-  [c s]
-  (matrix/m->s (down 'ignore 'ignore 'ignore)
+(defn- rotate-x-tuple-2 [c s]
+  (matrix/m->s (s/literal-down 'l 3)
                (rotate-x-matrix-2 c s)
-               (up 'ignore 'ignore 'ignore)))
+               (s/literal-up 'r 3)))
 
-(defn rotate-x-tuple
-  [α]
+(defn rotate-x-tuple [α]
   (rotate-x-tuple-2 (cos α) (sin α)))
 
-(defn ^:private rotate-z-tuple-2
-  [c s]
-  (matrix/m->s (down 'ignore 'ignore 'ignore)
+(defn- rotate-z-tuple-2 [c s]
+  (matrix/m->s (s/literal-down 'l 3)
                (rotate-z-matrix-2 c s)
-               (up 'ignore 'ignore 'ignore)))
+               (s/literal-up 'r 3)))
 
-(defn rotate-z-tuple
-  [α]
+(defn rotate-z-tuple [α]
   (rotate-z-tuple-2 (cos α) (sin α)))
 
 (defn Euler->M

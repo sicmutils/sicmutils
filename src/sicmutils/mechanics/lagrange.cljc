@@ -85,7 +85,7 @@
 (defn L-central-rectangular [m U]
   (fn [[_ q v]]
     (- (* (/ 1 2) m (g/square v))
-       (U (g/sqrt (g/square q))))))
+       (U (g/abs q)))))
 
 (defn L-central-polar [m U]
   (fn [[_ [r] [rdot φdot]]]

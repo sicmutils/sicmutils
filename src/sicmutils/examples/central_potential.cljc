@@ -19,7 +19,7 @@
 
 (ns sicmutils.examples.central-potential
   (:refer-clojure :exclude [+ - * /])
-  (:require [sicmutils.env :as e :refer [up sqrt square + - * /]]
+  (:require [sicmutils.env :as e :refer [abs square up + - * /]]
             #?(:clj [taoensso.timbre :as log])
             #?(:clj [hiccup.core :refer :all])
             #?(:clj [hiccup.page :refer :all])))
@@ -41,7 +41,7 @@
                                    (pairs))]
       (reduce - 0 (map (fn [[[m1 p1] [m2 p2]]]
                          (/ (* m1 m2)
-                            (sqrt (square (- p1 p2)))))
+                            (abs (- p1 p2))))
                        mass-position-pairs)))))
 
 (defn T
