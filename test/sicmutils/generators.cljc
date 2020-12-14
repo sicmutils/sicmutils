@@ -175,14 +175,33 @@
   [elem-gen & args]
   (recursive #(apply structure1 % args) elem-gen))
 
+(def
+  ^{:doc
+    "Returns a generator that produces a valid structure orientation"}
+  orientation
+  (gen/elements [::s/up ::s/down]))
 ;; ## Matrices
 
+(defn matrix
+  "Returns a generator that produces a matrix of the specified dimensions,
+  populated with entries from `entry-gen` (if supplied.)
+
+  `entry-gen` defaults to [[ratio]]."
+  ([rows cols]
+   (matrix rows cols ratio))
+  ([rows cols entry-gen]
+   (gen/fmap m/by-rows*
+             (-> (gen/vector entry-gen rows)
+                 (gen/vector cols)))))
+
 (defn square-matrix
+  "Returns a generator that produces a square matrix of dimension `n`,
+  populated with entries from `entry-gen` (if supplied.)
+
+  `entry-gen` defaults to [[ratio]]."
   ([n] (square-matrix n ratio))
   ([n entry-gen]
-   (gen/fmap m/by-rows*
-             (gen/vector
-              (gen/vector entry-gen n) n))))
+   (matrix n n entry-gen)))
 
 ;; ## Custom Almost-Equality
 

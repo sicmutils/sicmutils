@@ -20,7 +20,7 @@
 (def cljsbuild '[lein-cljsbuild "1.1.8"
                  :exclusions [org.clojure/clojurescript]])
 
-(defproject net.littleredcomputer/sicmutils "0.13.1-SNAPSHOT"
+(defproject net.littleredcomputer/sicmutils "0.14.0-SNAPSHOT"
   :description "A port of the Scmutils computer algebra/mechanics system to Clojure"
   :url "http://github.com/littleredcomputer/sicmutils"
   :scm {:name "git" :url "https://github.com/littleredcomputer/sicmutils"}
