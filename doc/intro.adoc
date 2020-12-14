@@ -261,7 +261,7 @@ partially apply an integer, `partial` should just do the right thing.
 
 You could render that result in TeX:
 
-image:img/md-eq1.png[TeX result]
+image:/doc/img/md-eq1.png[TeX result]
 
 using the `->TeX` function. You can also use `->infix` to obtain:
 
@@ -285,7 +285,7 @@ used.)
 
 == Next Steps
 
-Please explore the documentation, and send us (`@sritchie`, `@colins` in
+Please explore the documentation, and send us (`@sritchie`, `@colins`) in
 particular a note in the
 https://clojurians.slack.com/archives/C01ECA9AA74[#sicmutils channel on
 Clojurians slack] if you'd like to talk or have any questions at all!

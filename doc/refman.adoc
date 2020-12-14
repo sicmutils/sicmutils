@@ -2,6 +2,8 @@
 :toc: right
 :toclevels: 2
 
+== SICMUTILS Reference Manual
+
 CAUTION: This is a port of the original reference manual for scmutils over to
 Clojure and the SICMUtils API. The goal here is to host an annotated version of
 the original `refman.txt`, highlighting any difference in functionality,
