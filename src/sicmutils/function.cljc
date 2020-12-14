@@ -80,16 +80,16 @@
         (with-meta {:arity (arity f)}))))
 
 (defn arg-scale
-  "Takes a function `f` and a sequence of `shifts`, and returns a new function
-  that multiplies each shift by the corresponding argument of `f`. Too many or
-  two few shifts are ignored.
+  "Takes a function `f` and a sequence of `factors`, and returns a new function
+  that multiplies each factor by the corresponding argument of `f`. Too many or
+  two few factors are ignored.
 
   ((arg-scale square 3) 4) ==> 144
   ((arg-scale square 3 2 1) 4) ==> 144"
-  [f & shifts]
-  (let [shifts (concat shifts (repeat 1))]
+  [f & factors]
+  (let [factors (concat factors (repeat 1))]
     (-> (fn [& xs]
-          (apply f (map g/* xs shifts)))
+          (apply f (map g/* xs factors)))
         (with-meta {:arity (arity f)}))))
 
 (extend-protocol v/Value
