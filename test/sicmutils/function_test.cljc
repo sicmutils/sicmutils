@@ -435,12 +435,12 @@
         "if you supply MORE shifts than arguments, later shifts are ignored."))
 
   (checking "arg-scale" 100
-            [[shifts args] (gen/let [n (gen/choose 1 20)]
-                             (gen/tuple
-                              (gen/vector sg/real n)
-                              (gen/vector sg/real n)))]
-            (is (= (apply (apply f/arg-scale g/+ shifts) args)
-                   (apply g/+ (map g/* shifts args)))))
+            [[factors args] (gen/let [n (gen/choose 1 20)]
+                              (gen/tuple
+                               (gen/vector sg/real n)
+                               (gen/vector sg/real n)))]
+            (is (= (apply (apply f/arg-scale g/+ factors) args)
+                   (apply g/+ (map g/* factors args)))))
 
   (testing "arg-scale unit"
     (is (= 144 ((f/arg-scale g/square 3) 4)))
@@ -457,13 +457,13 @@
     (is (= 6
            ((f/arg-scale g/+ 1 2) 1 1 1 1 1)
            ((f/arg-scale g/+ 1 2 1 1 1) 1 1 1 1 1))
-        "if you supply fewer shifts than arguments, later arguments are
+        "if you supply fewer factors than arguments, later arguments are
         untouched.")
 
     (is (= 8
            ((f/arg-scale g/+ 2 2) 2 2)
            ((f/arg-scale g/+ 2 2 2 3 4) 2 2))
-        "if you supply MORE shifts than arguments, later shifts are ignored.")))
+        "if you supply MORE factors than arguments, later factors are ignored.")))
 
 (deftest complex-number-tests
   (testing "make-rectangular"
