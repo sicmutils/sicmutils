@@ -66,6 +66,32 @@
               :from :identity-like}]
     (with-meta identity meta)))
 
+(defn arg-shift
+  "Takes a function `f` and a sequence of `shifts`, and returns a new function
+  that adds each shift to the corresponding argument of `f`. Too many or two few
+  shifts are ignored.
+
+  ((arg-shift square 3) 4) ==> 49
+  ((arg-shift square 3 2 1) 4) ==> 49"
+  [f & shifts]
+  (let [shifts (concat shifts (repeat 0))]
+    (-> (fn [& xs]
+          (apply f (map g/+ xs shifts)))
+        (with-meta {:arity (arity f)}))))
+
+(defn arg-scale
+  "Takes a function `f` and a sequence of `factors`, and returns a new function
+  that multiplies each factor by the corresponding argument of `f`. Too many or
+  two few factors are ignored.
+
+  ((arg-scale square 3) 4) ==> 144
+  ((arg-scale square 3 2 1) 4) ==> 144"
+  [f & factors]
+  (let [factors (concat factors (repeat 1))]
+    (-> (fn [& xs]
+          (apply f (map g/* xs factors)))
+        (with-meta {:arity (arity f)}))))
+
 (extend-protocol v/Value
   MultiFn
   (zero? [_] false)

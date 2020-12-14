@@ -363,7 +363,6 @@
             (let [z (g/make-polar radius angle)]
               (is (ish? (g/magnitude z)
                         (g/sqrt (g/* z (g/conjugate z)))))
-
               (is (ish? (g/* radius (g/exp (g/* c/I angle)))
                         z))
               (is (ish? (g/abs radius)

@@ -19,7 +19,11 @@
 
 (ns sicmutils.value-test
   (:require [clojure.test :refer [is deftest testing]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
             #?(:cljs [cljs.reader :refer [read-string]])
+            [sicmutils.generators :as sg]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -133,4 +137,30 @@
     (is (= [L] (v/argument-kind 1)))
     (is (= [L L L] (v/argument-kind 1 2 3)))
     (is (= [V] (v/argument-kind [2 3])))
-    (is (= [V V] (v/argument-kind [1] [3 4])))))
+    (is (= [V V] (v/argument-kind [1] [3 4]))))
+
+  (checking "kind-predicate" 100 [l gen/any r gen/any]
+            (let [l-kind  (v/kind l)
+                  r-kind  (v/kind r)
+                  l-kind? (v/kind-predicate l)
+                  r-kind? (v/kind-predicate r)]
+              ;; each item is its own kind.
+              (is (l-kind? l))
+              (is (r-kind? r))
+
+              ;; they only respond true if they match kinds (or one inherits
+              ;; from the other), false otherwise.
+              (cond (= l-kind r-kind)
+                    (do (is (l-kind? r))
+                        (is (r-kind? l)))
+
+                    (isa? l-kind r-kind)
+                    (do (is (not (l-kind? r)))
+                        (is (r-kind? l)))
+
+                    (isa? r-kind l-kind)
+                    (do (is (l-kind? r))
+                        (is (not (r-kind? l))))
+
+                    :else (do (is (not (l-kind? r)))
+                              (is (not (r-kind? l))))))))

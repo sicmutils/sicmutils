@@ -193,6 +193,73 @@
 - `sicmutils.complex/I` aliases `i`
   ([#189](https://github.com/littleredcomputer/sicmutils/pull/189))
 
+- `matrix.cljc` has a new `by-cols` (analogous to `m/by-rows`), and `row` to
+  generate a row matrix (analagous to `column`).
+  [#197](https://github.com/littleredcomputer/sicmutils/pull/197) Also in
+  `matrix.cljc`:
+
+  - `num-rows`, `num-cols` access the row or column number without inspecting
+    the deftype variables directly
+  - `with-substituted-row`, for swapping out a single row in a matrix
+  - `submatrix` generates a submatrix from low and high row and cols
+  - `matrix-some` renamed to `some`: make sure to use a namespace prefix to
+    avoid clashing with `clojure.core/some`.
+  - new-matrix constructor `by-cols` (analogous to `by-rows`, takes a sequence
+    of columns)
+  - `row` constructor takes a sequence of values and returns a row matrix.
+  - `by-rows*`, `by-cols*`, `row*` and `column*` are non-variadic versions of
+    those functions. If you already have a sequence of rows, columns or
+    elements, prefer these.
+  - `up->row-matrix` => `down->row-matrix` and `row-matrix->up` =>
+    `row-matrix->down`. A row is analogous to a `down`, so we make a change to
+    reflect this.
+  - `g/cross-product` between two `down` structures now returns a `down`.
+  - `make-zero` generates a zero-valued matrix of the supplied dimensions.
+  - `make-diagonal` generates a diagonal matrix containing the values of the
+    supplied sequence.
+  - `v/identity?` now returns true for identity matrices, false otherwise.
+    `v/one?` returns `false` for identity matrices! If it didn't, `(* 2 (I 10))`
+    would return `2`, since `one?` signals multiplicative identity.
+
+- `sicmutils.structure/up` and `sicmutils.structure/down` now have analogous
+  `s/up*` and `s/down*` functions. These behave identically, but are
+  non-variadic. If you already have a sequence you'd like to transform, prefer
+  these ([#197](https://github.com/littleredcomputer/sicmutils/pull/197)).
+
+- `sicmutils.value/kind-predicate` takes some item and returns a predicate that
+  returns true if its argument has the same type (or inherits from it)
+  ([#197](https://github.com/littleredcomputer/sicmutils/pull/197)).
+
+- `sicmutils.function/arg-shift` and `sicmutils.function/arg-scale` take
+  functions and return new functions that shift and scale their arguments
+  (respectively) by the originally supplied shifts
+  ([#197](https://github.com/littleredcomputer/sicmutils/pull/197)).
+
+- `sicmutils.generic/factorial` computes the factorial of the supplied integer
+  `n`.
+  ([#197](https://github.com/littleredcomputer/sicmutils/pull/197)).
+
+- Many new functions and constants exposed in `sicmutils.env` via
+  [#197](https://github.com/littleredcomputer/sicmutils/pull/197):
+
+  - `-pi` joins `pi` as a constant
+  - `s:generate`, `m:generate`, `vector:generate` to generate matrices,
+    structures and vectors
+  - `constant-series`, from `series/constant`
+  - `seq:print` and `seq:pprint`
+  - `matrix-by-cols`, `row-matrix`, `v:make-basis-unit`
+  - aliases for `sicmutils.function`'s `arity`, `arg-shift`, `arg-scale`
+  - `dimension`, `factorial` aliased from `sicmutils.generic`
+  - `derivative` aliased from `sicmutils.calculus.derivative`
+  - `submatrix`, `up->column-matrix`, `down->row-matrix`,
+    `row-matrix->{down,vector}`, `column-matrix->{up,vector}` aliased from
+    `sicmutils.matrix`
+  - `D-numeric` from `sicmutils.numerical.derivative`
+  - `brent-min`, `brent-max`, `golden-section-min`, `golden-section-max`
+  - `nelder-mead`
+  - `sum` from `sicmutils.util.aggregate
+  - `kind-predicate` from `sicmutils.value`
+
 - Structures and matrices both gain the ability to do native `get-in`,
   `assoc-in` and `empty`. These work as expected, like a potentially nested
   vector. ([#193](https://github.com/littleredcomputer/sicmutils/pull/193))
@@ -241,6 +308,10 @@
       the left
   - structure multiplication with scalars, etc now respects ordering, just in
     case any multiplication is not commutative.
+  - `sicmutils.generators` now holds generators for `up`, `down`, and
+    `structure` generators; these produce potentially deeply nested structures.
+    `up1`, `down1` and `structure1` generate only one level deep. Mix and match!
+    See `structure_test.cljc` for many examples of how to use these.
 
 ### Literals
 

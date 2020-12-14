@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.env
   "The purpose of these definitions is to let the import of sicmutils.env
@@ -30,15 +30,18 @@
             [sicmutils.abstract.number :as an]
             [sicmutils.complex]
             [sicmutils.expression.render :as render]
-            [sicmutils.function]
+            [sicmutils.function :as f]
             [sicmutils.generic :as g]
-            [sicmutils.operator]
+            [sicmutils.operator :as o]
             [sicmutils.simplify :as simp]
-            [sicmutils.structure]
+            [sicmutils.structure :as structure]
             [sicmutils.value :as v]
             [sicmutils.matrix :as matrix]
             [sicmutils.series :as series]
             [sicmutils.util :as u #?@(:cljs [:refer-macros [import-vars]])]
+            [sicmutils.util.aggregate]
+            [sicmutils.util.stream :as us]
+            [sicmutils.numerical.derivative]
             [sicmutils.numerical.elliptic]
             [sicmutils.numerical.minimize]
             [sicmutils.numerical.ode]
@@ -87,18 +90,17 @@
 (def print-expression simp/print-expression)
 
 (defn ref
-  "A shim so that ref can act like nth in SICM contexts, as clojure
-  core ref elsewhere."
-  [a & as]
-  (let [m? (matrix/matrix? a)]
-    (if (and as
-             (or (sequential? a) m?)
-             (every? v/integral? as))
-      (if m?
-        (matrix/get-in a as)
-        (get-in a as))
-      #?(:clj (apply core-ref a as)
-         :cljs (get-in a as)))))
+  "A shim so that ref can act like nth in SICM contexts, as clojure core ref
+  elsewhere."
+  ([a] #?(:clj (core-ref a) :cljs a))
+  ([a & ks]
+   (if (and (associative? a)
+            (every? v/integral? ks))
+     (if (matrix/matrix? a)
+       (matrix/get-in a ks)
+       (get-in a ks))
+     #?(:clj (apply core-ref a ks)
+        :cljs (get-in a ks)))))
 
 (defn partial
   "A shim. Dispatches to partial differentiation when all the arguments
@@ -109,18 +111,29 @@
     (apply d/partial selectors)
     (apply core-partial selectors)))
 
-(def m:transpose matrix/transpose)
-(def qp-submatrix #(matrix/without % 0 0))
-(def m:dimension matrix/dimension)
-(def matrix-by-rows matrix/by-rows)
-(def column-matrix matrix/column)
+;; Constants
 
 (def pi Math/PI)
+(def -pi (g/- Math/PI))
+
+(def s:generate structure/generate)
+(def m:generate matrix/generate)
+(def v:make-basis-unit structure/basis-unit)
+(def qp-submatrix #(matrix/without % 0 0))
+(def matrix-by-rows matrix/by-rows)
+(def matrix-by-cols matrix/by-cols)
+(def row-matrix matrix/row)
+(def column-matrix matrix/column)
+
 (def principal-value v/principal-value)
 
 (def series series/series)
 (def power-series series/power-series)
+(def constant-series series/constant)
 (def series:sum series/sum)
+
+(def seq:print us/seq-print)
+(def seq:pprint us/pprint)
 
 (defn tex$
   "Render expression in a form convenient for rendering with clojupyter.
@@ -137,8 +150,9 @@
 (import-vars
  [sicmutils.abstract.number literal-number]
  [sicmutils.complex complex]
- [sicmutils.function compose]
+ [sicmutils.function arity compose arg-shift arg-scale]
  [sicmutils.operator commutator]
+ [sicmutils.series binomial-series partial-sums]
  [sicmutils.generic
   * + - /
   abs
@@ -169,6 +183,7 @@
   acosh
   asinh
   atanh
+  dimension
   transpose
   determinant
   dot-product
@@ -182,7 +197,8 @@
   magnitude
   angle
   conjugate
-  Lie-derivative]
+  Lie-derivative
+  factorial]
  [sicmutils.structure
   compatible-shape
   component
@@ -206,7 +222,7 @@
   Christoffel->Cartan
   make-Christoffel
   ]
- [sicmutils.calculus.derivative D]
+ [sicmutils.calculus.derivative derivative D]
  [sicmutils.calculus.form-field
   d
   components->oneform-field
@@ -277,7 +293,14 @@
  [sicmutils.matrix
   s->m
   m->s
-  literal-matrix]
+  literal-matrix
+  submatrix
+  up->column-matrix
+  column-matrix->up
+  column-matrix->vector
+  down->row-matrix
+  row-matrix->down
+  row-matrix->vector]
  [sicmutils.mechanics.hamilton
   ->H-state
   F->CT
@@ -302,12 +325,20 @@
   evolve
   integrate-state-derivative
   state-advancer]
- [sicmutils.numerical.quadrature definite-integral]
  [sicmutils.numerical.elliptic elliptic-f]
+ [sicmutils.numerical.derivative D-numeric]
+ [sicmutils.numerical.quadrature definite-integral]
+ [sicmutils.numerical.unimin.brent
+  brent-min brent-max]
+ [sicmutils.numerical.multimin.nelder-mead nelder-mead]
+ [sicmutils.numerical.unimin.golden
+  golden-section-min golden-section-max]
  [sicmutils.numerical.minimize minimize multidimensional-minimize]
+ [sicmutils.util.aggregate sum]
+ [sicmutils.util.stream vector:generate]
  [sicmutils.value exact? zero? one? identity?
   zero-like one-like identity-like
-  numerical? freeze kind])
+  numerical? freeze kind kind-predicate])
 
 ;; Macros. These work with Potemkin's import, but not with the Clojure version.
 #?(:clj

@@ -32,9 +32,9 @@
   return the column vector of its positive components."
   [a]
   ;; XXX: we should assert anstisymmetricity here
-  (matrix/column (matrix/get-in a [2 1])
-                 (matrix/get-in a [0 2])
-                 (matrix/get-in a [1 0])))
+  (matrix/column (get-in a [2 1])
+                 (get-in a [0 2])
+                 (get-in a [1 0])))
 
 (defn M-of-q->omega-of-t
   [M-of-q]

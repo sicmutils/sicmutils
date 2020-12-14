@@ -3,7 +3,8 @@
   (:refer-clojure :rename {bigint core-bigint
                            biginteger core-biginteger
                            double core-double
-                           long core-long}
+                           long core-long
+                           symbol core-symbol}
                   #?@(:cljs [:exclude [bigint double long symbol]]))
   (:require [clojure.test.check.generators :as gen]
             [same :refer [zeroish?]]
@@ -179,8 +180,9 @@
 (defn square-matrix
   ([n] (square-matrix n ratio))
   ([n entry-gen]
-   (gen/fmap #(apply m/by-rows %)
-             (gen/vector (gen/vector entry-gen n) n))))
+   (gen/fmap m/by-rows*
+             (gen/vector
+              (gen/vector entry-gen n) n))))
 
 ;; ## Custom Almost-Equality
 
@@ -242,5 +244,5 @@
           (v/real? that)
           (and (si/*comparator* 0.0 (g/imag-part this))
                (si/*comparator*
-                (g/real-part this) (core-double that)))
+                (g/real-part this) (u/double that)))
           :else (= this that))))

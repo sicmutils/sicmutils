@@ -261,7 +261,7 @@
       (is (= "fg" (f (g ""))))
       (is (= "gf" (((g/transpose f) g) ""))
           "See `transpose-defining-relation` above for a discussion of why this
-          is sensible.a"))))
+          is sensible."))))
 
 (deftest function-algebra
   (let [add2 (fn [x] (g/+ x 2))
@@ -404,6 +404,66 @@
             (is (= (ctor (f1 l r) r)
                    ((ctor f1 r) l r))
                 "fn left, # right")))
+
+(deftest utility-tests
+  (checking "arg-shift" 100
+            [[shifts args] (gen/let [n (gen/choose 1 20)]
+                             (gen/tuple
+                              (gen/vector sg/real n)
+                              (gen/vector sg/real n)))]
+            (is (= (apply (apply f/arg-shift g/- shifts) args)
+                   (apply g/- (map g/+ shifts args)))))
+
+  (testing "arg-shift unit"
+    (is (= 49 ((f/arg-shift g/square 3) 4)))
+
+    (testing "arg-shift preserves arity"
+      (is (= (f/arity g/square)
+             (f/arity (f/arg-shift g/square 3))))
+      (is (= (f/arity g/+)
+             (f/arity (f/arg-shift g/+ 3)))))
+
+    (is (= 8
+           ((f/arg-shift g/+ 1 2) 1 1 1 1 1)
+           ((f/arg-shift g/+ 1 2 0 0 0) 1 1 1 1 1))
+        "if you supply fewer shifts than arguments, later arguments are
+        untouched.")
+
+    (is (= 4
+           ((f/arg-shift g/+ 1 1) 1 1)
+           ((f/arg-shift g/+ 1 1 2 3 4) 1 1))
+        "if you supply MORE shifts than arguments, later shifts are ignored."))
+
+  (checking "arg-scale" 100
+            [[factors args] (gen/let [n (gen/choose 1 20)]
+                              (gen/tuple
+                               (gen/vector sg/real n)
+                               (gen/vector sg/real n)))]
+            (is (= (apply (apply f/arg-scale g/+ factors) args)
+                   (apply g/+ (map g/* factors args)))))
+
+  (testing "arg-scale unit"
+    (is (= 144 ((f/arg-scale g/square 3) 4)))
+
+    (testing "arg-scale preserves arity"
+      (is (= (f/arity g/square)
+             (f/arity (f/arg-scale g/square 3))))
+      (is (= (f/arity g/+)
+             (f/arity (f/arg-scale g/+ 3)))))
+
+    (is (= [:exactly 1]  (f/arity (f/arg-scale g/square 3))))
+    (is (= [:at-least 0] (f/arity (f/arg-scale g/+ 3))))
+
+    (is (= 6
+           ((f/arg-scale g/+ 1 2) 1 1 1 1 1)
+           ((f/arg-scale g/+ 1 2 1 1 1) 1 1 1 1 1))
+        "if you supply fewer factors than arguments, later arguments are
+        untouched.")
+
+    (is (= 8
+           ((f/arg-scale g/+ 2 2) 2 2)
+           ((f/arg-scale g/+ 2 2 2 3 4) 2 2))
+        "if you supply MORE factors than arguments, later factors are ignored.")))
 
 (deftest complex-number-tests
   (testing "make-rectangular"

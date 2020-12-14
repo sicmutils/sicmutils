@@ -310,6 +310,12 @@
 
 (def divide /)
 
+(defn factorial
+  "Returns
+  the factorial of `n`, ie, the product of 1 to n inclusive."
+  [n]
+  (reduce * (range 1 (inc n))))
+
 ;; This call registers a symbol for any non-multimethod we care about. These
 ;; will be returned instead of the actual function body when the user
 ;; calls `(v/freeze fn)`, for example.

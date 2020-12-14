@@ -388,11 +388,11 @@
         (get-coordinates point this
                          (fn []
                            (let [M (manifold-point-representation point)
-                                 theta (g/acos (matrix/get-in M [2 2]))
-                                 phi (g/atan (matrix/get-in M [0 2])
-                                             (g/negate (matrix/get-in M [1 2])))
-                                 psi (g/atan (matrix/get-in M [2 0])
-                                             (matrix/get-in M [2 1]))]
+                                 theta (g/acos (get-in M [2 2]))
+                                 phi (g/atan (get-in M [0 2])
+                                             (g/negate (get-in M [1 2])))
+                                 psi (g/atan (get-in M [2 0])
+                                             (get-in M [2 1]))]
                              (s/up theta phi psi)))))
       (coordinate-prototype [this] coordinate-prototype)
       (with-coordinate-prototype [this prototype] (->Euler-chart manifold prototype))
@@ -425,11 +425,11 @@
         (get-coordinates point this
                          (fn []
                            (let [M (manifold-point-representation point)
-                                 theta (g/asin (matrix/get-in M [2 1]))
-                                 phi (g/atan (g/negate (matrix/get-in M [0 1]))
-                                             (matrix/get-in M [1 1]))
-                                 psi (g/atan (g/negate (matrix/get-in M [2 0]))
-                                             (matrix/get-in M [2 2]))]
+                                 theta (g/asin (get-in M [2 1]))
+                                 phi (g/atan (g/negate (get-in M [0 1]))
+                                             (get-in M [1 1]))
+                                 psi (g/atan (g/negate (get-in M [2 0]))
+                                             (get-in M [2 2]))]
                              (s/up theta phi psi)))))
       (coordinate-prototype [this] coordinate-prototype)
       (with-coordinate-prototype [this prototype] (->Alternate-chart manifold prototype))

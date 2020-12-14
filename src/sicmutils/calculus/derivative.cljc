@@ -79,7 +79,7 @@
   [x]
   (cond (instance? Differential x) true
         (struct/structure? x) (some differential? x)
-        (matrix/matrix? x) (matrix/matrix-some differential? x)
+        (matrix/matrix? x) (matrix/some differential? x)
         :else false))
 
 (defn differential-of

@@ -223,6 +223,14 @@
             (is (= (count s) (@#'s/s:count s)))
             (is (= (get s n) (@#'s/s:nth s n))))
 
+  (checking "up*==up, down*==down" 100
+            [vs (gen/vector sg/real 1 20)]
+            (is (= (s/up* vs)
+                   (apply s/up vs)))
+
+            (is (= (s/down* vs)
+                   (apply s/down vs))))
+
   (checking "s/component" 100
             [s (sg/structure1
                 (sg/structure1 sg/real 5) 5)]

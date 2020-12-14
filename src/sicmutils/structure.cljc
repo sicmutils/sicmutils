@@ -353,31 +353,54 @@
 
 ;; ## Constructors
 
-(defn vector->up
-  "Form an up-tuple from a vector."
-  [v]
-  {:pre [(vector? v)]}
-  (->Structure ::up v))
-
-(defn vector->down
-  "Form a down-tuple from a vector."
-  [v]
-  {:pre [(vector? v)]}
-  (->Structure ::down v))
-
 (defn make
   "Generate a structure with the supplied orientation, given some sequence `xs`"
   [orientation xs]
   (let [xs (if (vector? xs) xs (into [] xs))]
     (->Structure orientation xs)))
 
-(defn up
-  "Construct an up (contravariant) tuple from the arguments."
-  [& xs]
+(defn up*
+  "Construct an up (contravariant) tuple from the supplied sequence. For a
+  variadic version, see [[up]]."
+  [xs]
   (make ::up xs))
 
+(defn vector->up
+  "Form an up-tuple from a vector.
+
+  NOTE that this is an alias of [[up*]] that is more restrictive, in that it
+  only accepts a vector. Use [[up*]] if you'd like to pass an arbitrary
+  sequence. (If you pass a vector to [[up*]]) it will be just as efficient."
+  [v]
+  {:pre [(vector? v)]}
+  (->Structure ::up v))
+
+(defn up
+  "Construct an up (contravariant) tuple from the arguments.
+
+  Variadic version of [[up*]]."
+  [& xs]
+  (up* xs))
+
+(defn down*
+  "Construct a down (covariant) tuple from the supplied sequence. For a
+  variadic version, see [[down]]."
+  [xs]
+  (make ::down xs))
+
+(defn vector->down
+  "Form a down-tuple from a vector.
+
+  NOTE that this is an alias of [[down*]] that is more restrictive, in that it
+  only accepts a vector. Use [[down*]] if you'd like to pass an arbitrary
+  sequence. (If you pass a vector to [[down*]]) it will be just as efficient."
+  [v]
+  {:pre [(vector? v)]}
+  (->Structure ::down v))
+
 (defn down
-  "Construct a down (covariant) tuple from the arguments."
+  "Construct a down (covariant) tuple from the arguments. Variadic version
+  of [[down*]]."
   [& xs]
   (make ::down xs))
 

@@ -109,41 +109,136 @@
   (testing "support drop"
     (is (= [[4 5 6] [7 8 9]] (drop 1 (m/by-rows [1 2 3] [4 5 6] [7 8 9])))))
 
-  (comment
-    (testing "can be mapped"
-      (is (= (s/up 1 4 9) (map square (s/up 1 2 3)))))
+  (testing "can be mapped"
+    (is (= (s/up 1 4 9) (map g/square (s/up 1 2 3)))))
 
-    (testing "a structure can produce a seq"
-      (is (= [1 2 3] (seq (s/up 1 2 3))))
-      (is (= [4 5 6] (seq (s/down 4 5 6))))
-      (is (= [(s/up 1 2) (s/up 3 4)] (seq (s/down (s/up 1 2) (s/up 3 4)))))
-      (is (= [1 2 3 4] (flatten (s/down (s/up 1 2) (s/up 3 4))))))
+  (testing "a structure can produce a seq"
+    (is (= [1 2 3] (seq (s/up 1 2 3))))
+    (is (= [4 5 6] (seq (s/down 4 5 6))))
+    (is (= [(s/up 1 2) (s/up 3 4)] (seq (s/down (s/up 1 2) (s/up 3 4)))))
+    (is (= [1 2 3 4] (flatten (s/down (s/up 1 2) (s/up 3 4))))))
 
-    (testing "seqable"
-      (is (= [1 2 3] (into [] (s/up 1 2 3)))))
+  (testing "seqable"
+    (is (= [1 2 3] (into [] (s/up 1 2 3)))))
 
-    (testing "a structure has a nth element (ILookup)"
-      (is (= 14 (nth (s/up 10 12 14) 2)))
-      (is (= 5 (nth (s/up 4 5 6) 1)))
-      (is (thrown? #?(:clj IndexOutOfBoundsException :cljs js/Error) (nth (s/up 4 5 6) 4))))
+  (testing "a structure has a nth element (ILookup)"
+    (is (= 14 (nth (s/up 10 12 14) 2)))
+    (is (= 5 (nth (s/up 4 5 6) 1)))
+    (is (thrown? #?(:clj IndexOutOfBoundsException :cljs js/Error)
+                 (nth (s/up 4 5 6) 4))))
 
-    (testing "IFn"
-      (is (= (s/up 6 9 1) ((s/up + * /) 3 3)))
-      (is (= (s/up 22 2048 (g/expt 2 -9)) ((s/up + * /) 2 2 2 2 2 2 2 2 2 2 2))))
+  (testing "IFn"
+    (is (= (s/up 6 9 1)
+           ((s/up + * /) 3 3)))
+    (is (= (s/up 22 2048 (g/expt 2 -9))
+           ((s/up g/+ g/* g//) 2 2 2 2 2 2 2 2 2 2 2))))
 
-    (testing "print representation"
-      (let [s (pr-str (s/up 1 2 3))]
-        (is #?(:clj (clojure.string/includes? s "\"(up 1 2 3)\"")
-               :cljs (= s "#object[sicmutils.structure.Structure \"(up 1 2 3)\"]"))))
-      (is (= "(up 1 2 3)" (str (s/up 1 2 3)))))
+  (testing "print representation"
+    (let [s (pr-str (s/up 1 2 3))]
+      (is #?(:clj (clojure.string/includes? s "\"(up 1 2 3)\"")
+             :cljs (= s "#object[sicmutils.structure.Structure \"(up 1 2 3)\"]"))))
+    (is (= "(up 1 2 3)" (str (s/up 1 2 3)))))
 
-    (testing "equality"
-      (= (s/up 1 2 3) [1 2 3])
-      (= (s/up 1 2 3) (s/up 1 2 3)))))
+  (testing "equality"
+    (= (s/up 1 2 3) [1 2 3])
+    (= (s/up 1 2 3) (s/up 1 2 3))))
 
 (deftest matrix-basics
-  (checking "square? is false for numbers" 100 [x sg/any-integral]
+  (checking "square? is false for numbers" 100
+            [x sg/any-integral]
             (is (not (m/square? x))))
+
+  (checking "square? is true for squares" 100
+            [m (gen/let [n (gen/choose 1 10)]
+                 (sg/square-matrix n))]
+            (is (m/square? m)))
+
+  (checking "by-rows == (comp transpose by-cols), vice versas" 100
+            [vs (-> (gen/sized #(gen/vector sg/real %))
+                    (gen/vector 1 20))]
+            (is (= (m/by-rows vs)
+                   (g/transpose (m/by-cols vs))))
+            (is (= (m/by-cols vs)
+                   (g/transpose (m/by-rows vs)))))
+
+  (checking "row*==row, column*==column" 100
+            [vs (gen/vector sg/real 1 20)]
+            (is (= (m/row* vs)
+                   (apply m/row vs)))
+
+            (is (= (m/column* vs)
+                   (apply m/column vs))))
+
+  (checking "by-rows == row" 100
+            [vs (gen/vector sg/real 1 20)]
+            (let [row (m/row* vs)]
+              (is (= (m/by-rows vs) row))
+              (is (m/row? row))))
+
+  (checking "by-cols == column" 100
+            [vs (gen/vector sg/real 1 20)]
+            (let [col (m/column* vs)]
+              (is (= (m/by-cols vs) col))
+              (is (m/column? col))))
+
+  (checking "with-substituted-row works" 100
+            [[m new-row] (gen/let [n (gen/choose 1 10)]
+                           (gen/tuple (sg/square-matrix n)
+                                      (gen/vector sg/real n)))]
+            (doseq [i (range (m/num-rows m))]
+              (is (= new-row
+                     (-> (m/with-substituted-row m i new-row)
+                         (m/nth-row i)))
+                  "swapping in a row should swap the row!")))
+
+  (checking "submatrix matches without" 100
+            [M (gen/let [n (gen/choose 1 10)]
+                 (sg/square-matrix n))]
+            (is (= (m/submatrix
+                    M
+                    1 (dec (m/num-rows M))
+                    1 (dec (m/num-cols M)))
+                   (m/without M 0 0))))
+
+  (testing "submatrix"
+    (let [M (m/by-rows [1 2 3]
+                       [4 5 6]
+                       [7 8 9])]
+      (is (= (m/by-rows [1 2]
+                        [4 5])
+             (m/submatrix M 0 1 0 1)))
+
+      (is (= (m/by-rows [1 2]
+                        [4 5])
+             (m/submatrix M 0 1 0 1)))))
+
+  (checking "make-zero" 100 [m (gen/choose 0 10)
+                             n (gen/choose 0 10)]
+            (let [M (m/make-zero m n)]
+              (is (v/zero? M))
+              (is (= m (m/num-rows M)))
+              (is (= n (m/num-cols M)))))
+
+  (checking "make-diagonal" 100
+            [vs (gen/vector sg/real 1 20)]
+            (let [M (m/make-diagonal vs)]
+              (is (m/square? M))
+              (is (= (g/dimension M)
+                     (g/dimension vs)))
+              (is (= vs (m/diagonal M)))
+              (is (= vs (m/diagonal M)))))
+
+  (checking "make-diagonal, v/identity? v/one?" 100
+            [v (gen/vector (gen/return 1) 1 20)]
+            (let [M (m/make-diagonal v)]
+              (is (v/identity? M))
+              (is (not (v/identity? (g/* 2 M))))
+
+              (is (not (v/one? M))
+                  "matrices don't act as one; they need to maintain their
+                  structure when multiplied by constants.")
+
+              (is (not (v/one? (g/* 2 M))))))
 
   (let [M (m/by-rows (list 1 2 3)
                      (list 4 5 6))
@@ -350,16 +445,16 @@
             (is (m/square? matrix))
 
             (is (= matrix
-                   (apply m/by-rows
-                          (for [i (range (g/dimension matrix))]
-                            (seq (m/nth-row matrix i)))))
+                   (m/by-rows*
+                    (for [i (range (g/dimension matrix))]
+                      (seq (m/nth-row matrix i)))))
                 "fusing rows back together should yield the original.")
 
             (is (= matrix
                    (g/transpose
-                    (apply m/by-rows
-                           (for [i (range (g/dimension matrix))]
-                             (seq (m/nth-col matrix i))))))
+                    (m/by-rows*
+                     (for [i (range (g/dimension matrix))]
+                       (seq (m/nth-col matrix i))))))
                 "fusing columns back together, then transposing, should yield
                 the original.")
 
@@ -418,7 +513,7 @@
   ;; methods, since it gets dispatched as square.
   (checking "dot-product" 100 [s (sg/up1 sg/real 2 10)]
             (let [col (m/up->column-matrix s)
-                  row (m/up->row-matrix s)]
+                  row (m/down->row-matrix (g/transpose s))]
               (is (= (g/dot-product s s)
                      (g/dot-product col col)))
 
@@ -427,27 +522,28 @@
 
   (checking "inner-product" 100 [s (sg/up1 sg/complex 2 10)]
             (let [col (m/up->column-matrix s)
-                  row (m/up->row-matrix s)]
+                  row (m/down->row-matrix (g/transpose s))]
               (is (= (g/inner-product s s)
                      (g/inner-product col col)))
 
               (is (= (g/inner-product s s)
                      (g/inner-product row row)))))
 
-  (checking "cross-product returns matrices" 100 [s (sg/up1 sg/complex 3)]
+  (checking "cross-product returns matrices" 100
+            [s (sg/up1 sg/complex 3)]
             (let [col (m/up->column-matrix s)
-                  row (m/up->row-matrix s)]
+                  row (m/down->row-matrix (g/transpose s))]
               (is (ish? (m/up->column-matrix
                          (g/cross-product s s))
                         (g/cross-product col col)))
 
-              (is (ish? (m/up->row-matrix
-                         (g/cross-product s s))
-                        (g/cross-product row row)))))
+              (is (ish? (g/cross-product col col)
+                        (g/transpose
+                         (g/cross-product row row))))))
 
   (checking "outer-product" 100 [s (sg/up1 sg/complex 2 10)]
             (let [col (m/up->column-matrix s)
-                  row (m/up->row-matrix s)]
+                  row (m/down->row-matrix (g/transpose s))]
               (is (= (g/outer-product s s)
                      (g/outer-product col row))))))
 
