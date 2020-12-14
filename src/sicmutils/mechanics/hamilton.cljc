@@ -151,7 +151,7 @@
   [m V]
   (fn [[_ q p]]
     (+  (/ (g/square p) (* 2 m))
-        (V (g/sqrt (g/square q))))))
+        (V (g/abs q)))))
 
 ;; page numbers here are references to the PDF; probably
 ;; do not correspond to 1ed.
