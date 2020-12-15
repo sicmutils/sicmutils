@@ -24,7 +24,7 @@ used can be set by the user:
 
 WARNING: In SICMUtils we currently only support the Gragg-Bulirsch-Stoer
 algorithm. If you need any of the others, please
-https://github.com/littleredcomputer/sicmutils/pulls[file a PR] and we can
+https://github.com/sicmutils/sicmutils/pulls[file a PR] and we can
 discuss how to get these in for you.
 
 The integration methods all automatically select the step sizes to maintain the

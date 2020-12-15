@@ -10,9 +10,9 @@ lein install
 echo "---- cljdoc preview: ingesting sicmutils"
 docker run --rm -v "$PWD:/sicmutils" \
        -v "$HOME/.m2:/root/.m2" -v /tmp/cljdoc:/app/data --entrypoint "clojure" \
-       cljdoc/cljdoc -A:cli ingest -p net.littleredcomputer/sicmutils -v "$version" \
+       cljdoc/cljdoc -A:cli ingest -p sicmutils/sicmutils -v "$version" \
        --git /sicmutils
 
 echo "---- cljdoc preview: starting server on port 8000"
-echo "visit to http://localhost:8000/d/net.littleredcomputer/sicmutils/$version"
+echo "visit to http://localhost:8000/d/sicmutils/sicmutils/$version"
 docker run --rm -p 8000:8000 -v /tmp/cljdoc:/app/data cljdoc/cljdoc

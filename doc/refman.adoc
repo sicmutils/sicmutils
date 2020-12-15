@@ -21,7 +21,7 @@ abstract manipulations of functions.
 
 == Clojure and Functional Programming
 
-NOTE: https://github.com/littleredcomputer/sicmutils[SICMUtils] is written in
+NOTE: https://github.com/sicmutils/sicmutils[SICMUtils] is written in
 https://clojure.org/[Clojure]. The original
 https://groups.csail.mit.edu/mac/users/gjs/6946/refman.txt[`scmutils`] is
 written in Scheme, as noted by some of the comments in this historical intro.
@@ -509,7 +509,7 @@ procedure to the corresponding components of the given structures.
 Thus, vector addition is equivalent to `(vector:elementwise +)`.
 
 CAUTION: These do not yet work! If you need any of these, please feel free to
-file an issue https://github.com/littleredcomputer/sicmutils/pulls[here].
+file an issue https://github.com/sicmutils/sicmutils/pulls[here].
 
 == Clojure Vectors
 
@@ -605,7 +605,7 @@ for the `i`-th component, which is one.
 
 WARNING: The following functions are referenced in the `scmutils` refman, but
 don't yet exist in SICMUtils. Please
-https://github.com/littleredcomputer/sicmutils/pulls[file a ticket] if this is
+https://github.com/sicmutils/sicmutils/pulls[file a ticket] if this is
 something you need, or hang on until we get there.
 
 [source, clojure]
@@ -1380,7 +1380,7 @@ negate, invert, +, -, *, /, expt
 
 NOTE: `sicmutils.series` has many more operations than this that aren't
 registered in the generic system. See the
-https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/series.cljc[`sicmutils.series`]
+https://github.com/sicmutils/sicmutils/blob/master/src/sicmutils/series.cljc[`sicmutils.series`]
 namespace for a Literate Programming-style exposition of the capabilities
 SICMUtils affords for series and power series.
 
@@ -1485,7 +1485,7 @@ evaluating a conditional.
 
 NOTE: This note about conditionals is currently true in SICMUtils, but we're
 working on it. See
-https://github.com/littleredcomputer/sicmutils/issues/191[this ticket] for
+https://github.com/sicmutils/sicmutils/issues/191[this ticket] for
 information on the plan to make generic comparisons in conditionals work in
 automatic differentiation.
 
@@ -1863,7 +1863,7 @@ into how Brent's method works. It turns out there is a long history of this
 algorithm being cargo-culted along from library to library. I (@sritchie) now
 _do_ understand Brent's method, and I've tried to disgorge that understanding
 into the
-https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/unimin/brent.cljc[`sicmutils.numerical.unimin.brent`]
+https://github.com/sicmutils/sicmutils/blob/master/src/sicmutils/numerical/unimin/brent.cljc[`sicmutils.numerical.unimin.brent`]
 namespace. Expect this to get better over time.
 
 The actual procedure in the system is:
@@ -1984,7 +1984,7 @@ good an answer as we got with Brent.
 
 NOTE: The following section describing `local-minima` and `local-maxima` does
 not yet work. A port of this work is in progress at
-https://github.com/littleredcomputer/sicmutils/pull/108[this PR], if you'd like
+https://github.com/sicmutils/sicmutils/pull/108[this PR], if you'd like
 to follow along.
 
 We can find a number of local minima of a multimodal function using a search
@@ -2107,13 +2107,13 @@ wander off into oblivion:
 ----
 
 See
-https://github.com/littleredcomputer/sicmutils/blob/master/src/sicmutils/numerical/multimin/nelder_mead.cljc#L238[the
+https://github.com/sicmutils/sicmutils/blob/master/src/sicmutils/numerical/multimin/nelder_mead.cljc#L238[the
 documentation for `nelder-mead`] for the full menu of options and an accounting
 of the available defaults.
 
 WARNING: The following section describes algorithms that aren't yet implemented
 in SICMUtils. If you need these, please
-https://github.com/littleredcomputer/sicmutils/pulls[file an issue] and we can
+https://github.com/sicmutils/sicmutils/pulls[file an issue] and we can
 help you get started.
 
 If we know more than just the function to minimize we can use that information
@@ -2175,7 +2175,7 @@ Optionally you can supply a map of keyword arguments. The top level
   of the definite integral.
 * `*:method*`: Specifies the integration method used. Must be:
 ** a keyword naming one of the available methods in
-   https://github.com/littleredcomputer/sicmutils/blob/1aa81540a8109199ad111bde6ed5021624e62b73/src/sicmutils/numerical/quadrature.cljc#L65[`available-methods`]
+   https://github.com/sicmutils/sicmutils/blob/1aa81540a8109199ad111bde6ed5021624e62b73/src/sicmutils/numerical/quadrature.cljc#L65[`available-methods`]
 ** a function with the proper integrator signature
 ** a dictionary of integrator options with a `:method` key
 
@@ -2282,7 +2282,7 @@ used can be set by the user:
 
 WARNING: In SICMUtils we currently only support the Gragg-Bulirsch-Stoer
 algorithm. If you need any of the others, please
-https://github.com/littleredcomputer/sicmutils/pulls[file a PR] and we can
+https://github.com/sicmutils/sicmutils/pulls[file a PR] and we can
 discuss how to get these in for you.
 
 The integration methods all automatically select the step sizes to maintain the
@@ -2479,16 +2479,16 @@ makes a difference:
 NOTE: `scmutils` describes a number of units and constants in this section that
 aren't actually available in the original system. We're working on an
 implementation of the
-https://github.com/littleredcomputer/sicmutils/issues/181[units system] from
-`scmutils` at https://github.com/littleredcomputer/sicmutils/issues/181[this
+https://github.com/sicmutils/sicmutils/issues/181[units system] from
+`scmutils` at https://github.com/sicmutils/sicmutils/issues/181[this
 ticket]; follow along there for updates.
 
 == MORE TO BE DOCUMENTED
 
 NOTE: These are items mentioned in the original refman, included here for
 completeness. The definitely location of the SICMUtils documentation is our
-https://cljdoc.org/d/net.littleredcomputer/sicmutils/0.13.0/doc/readme[cljdoc
-site], so please visit there for more information.
+https://cljdoc.org/d/sicmutils/sicmutils/CURRENT[cljdoc site], so please visit
+there for more information.
 
 - Solutions of Equations
 - Linear Equations (lu, gauss-jordan, full-pivot)
