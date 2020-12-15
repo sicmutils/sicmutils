@@ -45,7 +45,7 @@ evaluating a conditional.
 
 NOTE: This note about conditionals is currently true in SICMUtils, but we're
 working on it. See
-https://github.com/littleredcomputer/sicmutils/issues/191[this ticket] for
+https://github.com/sicmutils/sicmutils/issues/191[this ticket] for
 information on the plan to make generic comparisons in conditionals work in
 automatic differentiation.
 

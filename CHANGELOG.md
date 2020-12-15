@@ -4,33 +4,33 @@
 
 - After the work below, `v/nullity?` renamed to `v/zero?`, and `v/unity?`
   renamed to `v/one?`
-  ([#180](https://github.com/littleredcomputer/sicmutils/pull/180)). This
+  ([#180](https://github.com/sicmutils/sicmutils/pull/180)). This
   affects the names listed in the CHANGELOG entries below.
 
 ### Miscellaneous
 
 - expose `bootstrap-repl!` to Clojurescript, so that this is available in
-  self-hosted CLJS (https://github.com/littleredcomputer/sicmutils/pull/157)
+  self-hosted CLJS (https://github.com/sicmutils/sicmutils/pull/157)
 
 - modified `infix.cljc` to wrap forms in `displaystyle` and add proper carriage
   returns inside structures
-  (https://github.com/littleredcomputer/sicmutils/pull/157)
+  (https://github.com/sicmutils/sicmutils/pull/157)
 
 - add `multidimensional-minimize` to the `sicmutils.env` namespace
-  (https://github.com/littleredcomputer/sicmutils/pull/157)
+  (https://github.com/sicmutils/sicmutils/pull/157)
 
 - add more `sqrt` simplification rules to allow square roots to cancel out
   across a division boundary, with or without products in the numerator and
-  denominator (https://github.com/littleredcomputer/sicmutils/pull/160)
+  denominator (https://github.com/sicmutils/sicmutils/pull/160)
 
 - fix NPE bug that appears in nelder-mead, when callback isn't supplied
-  (https://github.com/littleredcomputer/sicmutils/pull/162)
+  (https://github.com/sicmutils/sicmutils/pull/162)
 
 - Add `sqrt-expand` and `sqrt-contract`, to allow simplifications to push inside
-  of square roots (https://github.com/littleredcomputer/sicmutils/pull/163)
+  of square roots (https://github.com/sicmutils/sicmutils/pull/163)
 
 - speed up power series multiplication by skipping work when either head term is
-  zero (https://github.com/littleredcomputer/sicmutils/pull/166)
+  zero (https://github.com/sicmutils/sicmutils/pull/166)
 
 - File moves:
   - `sicmutils.polynomial-gcd`    => `sicmutils.polynomial.gcd`
@@ -41,56 +41,56 @@
   - `sicmutils.numerical.compile` => `sicmutils.expression.compile`
 
 - `sicmutils.env/one?` now exposes/aliases `sicmutils.value/unity?`
-  [#154](https://github.com/littleredcomputer/sicmutils/pull/154)
+  [#154](https://github.com/sicmutils/sicmutils/pull/154)
 
-- Fixed [#93](https://github.com/littleredcomputer/sicmutils/issues/93) by
+- Fixed [#93](https://github.com/sicmutils/sicmutils/issues/93) by
   adding an explicit `g/invert` implementation for polynomials in the rational
   fn namespace. The fix lives in
-  [#169](https://github.com/littleredcomputer/sicmutils/pull/169).
+  [#169](https://github.com/sicmutils/sicmutils/pull/169).
 
 - added `sicmutils.value/sqrt-machine-epsilon`
-  ([#170](https://github.com/littleredcomputer/sicmutils/pull/170))
+  ([#170](https://github.com/sicmutils/sicmutils/pull/170))
 
 - fixed issues in `function.cljc` and `operator.cljc` where the Clojurescript
   `IFn` `-invoke` arguments shadowed either the `this` operator, or some
   parameter name in the deftype
-  ([#169](https://github.com/littleredcomputer/sicmutils/pull/169))
+  ([#169](https://github.com/sicmutils/sicmutils/pull/169))
 
 - `g/sqrt` now maintains precision with Clojurescript's rational numbers.
   `(g/sqrt #sicm/ratio 9/4)` for example returns `#sicm/ratio 3/2`.
-  ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+  ([#168](https://github.com/sicmutils/sicmutils/pull/168))
 
 - `g/determinant` and `g/transpose` now act as identity for everything in the
   numeric tower, plus symbolic expressions
-  ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+  ([#168](https://github.com/sicmutils/sicmutils/pull/168))
 
 - `sicmutils.expression.Expression` is now `sicmutils.expression.Literal`; it
   has a new `meta` field, and is a `deftype` instead of a `defrecord`.
-  ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+  ([#168](https://github.com/sicmutils/sicmutils/pull/168))
   - To get the internal expression, use `x/expression-of` instead of
     `:expression`.
   - to access the `type` field, use `x/literal-type` instead of `:type`
 
 - 2-arity `g/atan`, `g/cross-product` and `g/gcd` now work for functions
-  ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+  ([#168](https://github.com/sicmutils/sicmutils/pull/168))
 
 - `Literal` now responds appropriately to `v/unity?` and `v/nullity?` if it
   wraps a numerical "0" or "1". `v/exact?` now returns true if the literal wraps
-  an exact number ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+  an exact number ([#168](https://github.com/sicmutils/sicmutils/pull/168))
 
 - `x/variables-in` now works with wrapped expressions; no more need to
   explicitly unwrap
-  ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+  ([#168](https://github.com/sicmutils/sicmutils/pull/168))
 
 - `x/walk-expression` renamed `x/evaluate`
-  ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+  ([#168](https://github.com/sicmutils/sicmutils/pull/168))
 
 - The new `x/substitute` performs substitutions on an _unwrapped_ expression
-  ([#168](https://github.com/littleredcomputer/sicmutils/pull/168))
+  ([#168](https://github.com/sicmutils/sicmutils/pull/168))
 
 -  `x/compare` returns a comparator that works with unwrapped symbolic
    expression trees
-   ([#168](https://github.com/littleredcomputer/sicmutils/pull/168)). The rules
+   ([#168](https://github.com/sicmutils/sicmutils/pull/168)). The rules
    are that that types have the following ordering:
   - empty sequence is < anything (except another empty seq)
   - real < symbol < string < sequence
@@ -106,11 +106,11 @@
 ```
 
 - added `g/determinant` implementation to functions
-  ([#171](https://github.com/littleredcomputer/sicmutils/pull/171))
+  ([#171](https://github.com/sicmutils/sicmutils/pull/171))
 
 - Moved all `literal-function` machinery and definitions to
   `sicmutils.abstract.function`
-  ([#171](https://github.com/littleredcomputer/sicmutils/pull/171)).
+  ([#171](https://github.com/sicmutils/sicmutils/pull/171)).
   `sicmutils.function` now contains only the generic method implementations for
   clojure functions and multimethods.
 
@@ -118,63 +118,63 @@
   `:sicmutils.abstract.function/function` (used to be
   `:sicmutils.function/function`) now inherits from `::v/function` instead of
   the other way around.
-  ([#171](https://github.com/littleredcomputer/sicmutils/pull/171))
+  ([#171](https://github.com/sicmutils/sicmutils/pull/171))
 
 - Enhanced the `g/simplify` behavior for core functions that overlap with
   generic functions (`+`, `-`, `*`, `/`, `mod`, `quot`, `rem`, `neg?`). These
   now freeze to the same symbols as their generic counterparts.
-  ([#173](https://github.com/littleredcomputer/sicmutils/pull/173))
+  ([#173](https://github.com/sicmutils/sicmutils/pull/173))
 
 - Add support for the hyperbolic trig functions `sinh`, `cosh`, `tanh`, `atanh`,
   `asinh` and `acosh` to `sicmutils.expression.render/->Javascript`.
-  ([#174](https://github.com/littleredcomputer/sicmutils/pull/174))
+  ([#174](https://github.com/sicmutils/sicmutils/pull/174))
 
 - Add support for the hyperbolic trig functions `atanh`, `asinh` and `acosh` to
   `sicmutils.expression.compile`.
-  ([#175](https://github.com/littleredcomputer/sicmutils/pull/175))
+  ([#175](https://github.com/sicmutils/sicmutils/pull/175))
 
 - `matrix.cljc` gains `m/nth-col` and `m/diagonal`
-  ([#178](https://github.com/littleredcomputer/sicmutils/pull/178) introduces:)
+  ([#178](https://github.com/sicmutils/sicmutils/pull/178) introduces:)
 
-- As of [#178](https://github.com/littleredcomputer/sicmutils/pull/178)
+- As of [#178](https://github.com/sicmutils/sicmutils/pull/178)
   introduces:, we have three new kinds for matrices. Square matrices return
   `::m/square-matrix`, and columns and rows return `::m/column-matrix` and
   `::row-matrix` respectively. These all derive from `::m/matrix`. This makes it
   easier to register methods or test specifically for these cases. We've also
   added `m/column?` and `m/row?` predicates to check for these cases.
 
-- [#185](https://github.com/littleredcomputer/sicmutils/pull/185) specializes
+- [#185](https://github.com/sicmutils/sicmutils/pull/185) specializes
   all matrix operations that return power series (trig operations and `g/exp` to
   `::square-matrix`).
 
-- [#184](https://github.com/littleredcomputer/sicmutils/pull/184) modifies
+- [#184](https://github.com/sicmutils/sicmutils/pull/184) modifies
   `v/exact?` on functions; `((v/exact? f) x) == (v/exact? (f x))` now, instead
   of false as before. `literal-function` forms now have a correct `v/one-like`
   implementation.
 
 - clojure Vars now respond to function algebra
-  ([#184](https://github.com/littleredcomputer/sicmutils/pull/184)). All
+  ([#184](https://github.com/sicmutils/sicmutils/pull/184)). All
   functions implement `g/negative?`, `g/abs`, `g/quotient`, `g/remainder`,
   `g/modulo`, `g/dimension` and `g/exact-divide`, responding to the appropriate
   arities.
 
 - `sicmutils.complex/complex` can now take any real type in its constructor, vs
   only numbers
-  ([#184](https://github.com/littleredcomputer/sicmutils/pull/184)).
+  ([#184](https://github.com/sicmutils/sicmutils/pull/184)).
 
 - `modint` instances now implement `v/freeze?`: `(sicmutils.modint/make 1 2)`
   freezes to that `(modint 1 2)`.
-  ([#185](https://github.com/littleredcomputer/sicmutils/pull/185)).
+  ([#185](https://github.com/sicmutils/sicmutils/pull/185)).
 
 - `v/eq` renamed to `v/=`.
-  ([#186](https://github.com/littleredcomputer/sicmutils/pull/186)).
+  ([#186](https://github.com/sicmutils/sicmutils/pull/186)).
 
 - `v/zero-like` on matrices now fills entries with appropriate `v/zero-like`
   versions of their existing types
-  ([#188](https://github.com/littleredcomputer/sicmutils/pull/188))
+  ([#188](https://github.com/sicmutils/sicmutils/pull/188))
 
 - `v/Value` gains `identity-like` and `identity`
-  ([#188](https://github.com/littleredcomputer/sicmutils/pull/188)). These are
+  ([#188](https://github.com/sicmutils/sicmutils/pull/188)). These are
   aliased into `sicmutils.env`. Implementations are installed on:
 
   - all numeric types, symbolic expressions, `Differential` (they return 1 of the appropriate type)
@@ -191,11 +191,11 @@
     This decision follows `scmutils` convention.
 
 - `sicmutils.complex/I` aliases `i`
-  ([#189](https://github.com/littleredcomputer/sicmutils/pull/189))
+  ([#189](https://github.com/sicmutils/sicmutils/pull/189))
 
 - `matrix.cljc` has a new `by-cols` (analogous to `m/by-rows`), and `row` to
   generate a row matrix (analagous to `column`).
-  [#197](https://github.com/littleredcomputer/sicmutils/pull/197) Also in
+  [#197](https://github.com/sicmutils/sicmutils/pull/197) Also in
   `matrix.cljc`:
 
   - `num-rows`, `num-cols` access the row or column number without inspecting
@@ -230,23 +230,23 @@
 - `sicmutils.structure/up` and `sicmutils.structure/down` now have analogous
   `s/up*` and `s/down*` functions. These behave identically, but are
   non-variadic. If you already have a sequence you'd like to transform, prefer
-  these ([#197](https://github.com/littleredcomputer/sicmutils/pull/197)).
+  these ([#197](https://github.com/sicmutils/sicmutils/pull/197)).
 
 - `sicmutils.value/kind-predicate` takes some item and returns a predicate that
   returns true if its argument has the same type (or inherits from it)
-  ([#197](https://github.com/littleredcomputer/sicmutils/pull/197)).
+  ([#197](https://github.com/sicmutils/sicmutils/pull/197)).
 
 - `sicmutils.function/arg-shift` and `sicmutils.function/arg-scale` take
   functions and return new functions that shift and scale their arguments
   (respectively) by the originally supplied shifts
-  ([#197](https://github.com/littleredcomputer/sicmutils/pull/197)).
+  ([#197](https://github.com/sicmutils/sicmutils/pull/197)).
 
 - `sicmutils.generic/factorial` computes the factorial of the supplied integer
   `n`.
-  ([#197](https://github.com/littleredcomputer/sicmutils/pull/197)).
+  ([#197](https://github.com/sicmutils/sicmutils/pull/197)).
 
 - Many new functions and constants exposed in `sicmutils.env` via
-  [#197](https://github.com/littleredcomputer/sicmutils/pull/197):
+  [#197](https://github.com/sicmutils/sicmutils/pull/197):
 
   - `-pi` joins `pi` as a constant
   - `s:generate`, `m:generate`, `vector:generate` to generate matrices,
@@ -268,14 +268,14 @@
 
 - Structures and matrices both gain the ability to do native `get-in`,
   `assoc-in` and `empty`. These work as expected, like a potentially nested
-  vector. ([#193](https://github.com/littleredcomputer/sicmutils/pull/193))
+  vector. ([#193](https://github.com/sicmutils/sicmutils/pull/193))
 
 - `matrix.cljc` gains `up->row-matrix`, `up->column-matrix`, `row-matrix->up`,
   `column-matrix->up`
-  ([#193](https://github.com/littleredcomputer/sicmutils/pull/193))
+  ([#193](https://github.com/sicmutils/sicmutils/pull/193))
 
 - `structure.cljc` gains many features in
-  ([#193](https://github.com/littleredcomputer/sicmutils/pull/193)):
+  ([#193](https://github.com/sicmutils/sicmutils/pull/193)):
 
   - `kronecker` and `basis-unit` for generating potentially infinite basis
     sequences
@@ -322,14 +322,14 @@
 ### Literals
 
 - `literal-matrix` fn generates a symbolic matrix
-  (https://github.com/littleredcomputer/sicmutils/pull/169)
+  (https://github.com/sicmutils/sicmutils/pull/169)
 - `literal`, `literal-up` and `literal-down` generate symbolic structures
-  (https://github.com/littleredcomputer/sicmutils/pull/169)
+  (https://github.com/sicmutils/sicmutils/pull/169)
 
 ### Numeric Tower Adjustments
 
 This release (courtesy of
-[#168](https://github.com/littleredcomputer/sicmutils/pull/168)) brings
+[#168](https://github.com/sicmutils/sicmutils/pull/168)) brings
 the numeric tower in line with the scmutils tower. Prior to this release, all
 numbers, including complex, descended from `::x/numerical-expression`. Symbolic
 expressions _also_ derived from this type! The problem this causes is that all
@@ -416,7 +416,7 @@ matrices, up and down tuples.
 
 This release brings us closer to the interface provided by `scmutils`.
 
-PR [#193](https://github.com/littleredcomputer/sicmutils/pull/193) brings:
+PR [#193](https://github.com/sicmutils/sicmutils/pull/193) brings:
 
 - `g/dot-product`, for scalars, differentials, structures, functions and
   row/column matrices
@@ -426,14 +426,14 @@ PR [#193](https://github.com/littleredcomputer/sicmutils/pull/193) brings:
 - `g/cross-product` now works for row/column matrices in addition to structures
   (and functions that accept these)
 
-PR https://github.com/littleredcomputer/sicmutils/pull/169 brings:
+PR https://github.com/sicmutils/sicmutils/pull/169 brings:
 
 - `g/exp2`, `g/exp10` for exponents with base 2 and 10
 - `g/log2`, for base 2 logarithms
 - `g/log10` for base 10 logs
 - `g/gcd` and `g/lcm` are now exposed in `sicmutils.env`
 
-[#178](https://github.com/littleredcomputer/sicmutils/pull/178) introduces:
+[#178](https://github.com/sicmutils/sicmutils/pull/178) introduces:
 
 - `g/dimension` for scalars (always 1), structures and matrices (square, column
   and row)
@@ -441,7 +441,7 @@ PR https://github.com/littleredcomputer/sicmutils/pull/169 brings:
 
 We now expose the following additional trigonometric functions in
 `sicmutils.generic` (courtesy of
-https://github.com/littleredcomputer/sicmutils/pull/154):
+https://github.com/sicmutils/sicmutils/pull/154):
 
 - `cosh`: hyperbolic cosine
 - `sinh`: hyperbolic sine
@@ -486,9 +486,9 @@ These now work on:
 - structures (only `magnitude` and `conjugate`)
   - `magnitude` formerly didn't handle structures containing complex numbers by
     taking a proper inner product. This is fixed as of
-    [#168](https://github.com/littleredcomputer/sicmutils/pull/168)
+    [#168](https://github.com/sicmutils/sicmutils/pull/168)
 
-- PR [#189](https://github.com/littleredcomputer/sicmutils/pull/189) introduces:
+- PR [#189](https://github.com/sicmutils/sicmutils/pull/189) introduces:
 
   - `g/make-rectangular`, (build a complex number from real and imaginary parts)
   - `g/make-polar` (build a complex number from radius and angle)

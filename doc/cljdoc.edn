@@ -1,6 +1,6 @@
 {:cljdoc.doc/tree
  [["Introduction" {:file "doc/intro.adoc"}]
-  ["SICMUtils Reference Manual" {:file "doc/refman.adoc"}]
+  ["Reference Manual" {:file "doc/refman.adoc"}]
   ["Basics" {}
    ["How to Use SICMUtils" {:file "doc/basics/using_sicmutils.adoc"}]
    ["Generics" {:file "doc/basics/generics.adoc"}]

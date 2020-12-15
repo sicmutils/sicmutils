@@ -20,10 +20,10 @@
 (def cljsbuild '[lein-cljsbuild "1.1.8"
                  :exclusions [org.clojure/clojurescript]])
 
-(defproject net.littleredcomputer/sicmutils "0.14.0-SNAPSHOT"
+(defproject sicmutils "0.14.0"
   :description "A port of the Scmutils computer algebra/mechanics system to Clojure"
-  :url "http://github.com/littleredcomputer/sicmutils"
-  :scm {:name "git" :url "https://github.com/littleredcomputer/sicmutils"}
+  :url "http://github.com/sicmutils/sicmutils"
+  :scm {:name "git" :url "https://github.com/sicmutils/sicmutils"}
   :license {:name "GPLv3"
             :url "http://www.opensource.org/licenses/GPL-3.0"}
   :dependencies [[org.clojure/clojure "1.10.1" :scope "provided"]

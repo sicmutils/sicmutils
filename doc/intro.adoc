@@ -23,17 +23,17 @@ TIP: Need help getting started? Say hi on https://twitter.com/sritchie[Twitter]
 or http://clojurians.net/[Clojurians Slack] in
 https://clojurians.slack.com/archives/C01ECA9AA74[#sicmutils].
 
-image:https://github.com/littleredcomputer/sicmutils/workflows/Clojure%20CI/badge.svg?branch=master[Build Status, link=https://github.com/littleredcomputer/sicmutils/actions?query=workflow%3A%22Clojure+CI%22]
-image:https://img.shields.io/codecov/c/github/littleredcomputer/sicmutils/master.svg?maxAge=3600[Codecov branch, link=https://codecov.io/github/littleredcomputer/sicmutils]
-image:https://cljdoc.org/badge/net.littleredcomputer/sicmutils[cljdoc badge, link=https://cljdoc.org/d/net.littleredcomputer/sicmutils/CURRENT]
-image:https://img.shields.io/clojars/v/net.littleredcomputer/sicmutils.svg[Clojars Project, link=https://clojars.org/net.littleredcomputer/sicmutils]
+image:https://github.com/sicmutils/sicmutils/workflows/Clojure%20CI/badge.svg?branch=master[Build Status, link=https://github.com/sicmutils/sicmutils/actions?query=workflow%3A%22Clojure+CI%22]
+image:https://img.shields.io/codecov/c/github/sicmutils/sicmutils/master.svg?maxAge=3600[Codecov branch, link=https://codecov.io/github/sicmutils/sicmutils]
+image:https://cljdoc.org/badge/sicmutils/sicmutils[cljdoc badge, link=https://cljdoc.org/d/sicmutils/sicmutils/CURRENT]
+image:https://img.shields.io/clojars/v/sicmutils/sicmutils.svg[Clojars Project, link=https://clojars.org/sicmutils/sicmutils]
 
 == Quickstart
 
 Install SICMUtils into your Clojure(script) project using the instructions at
 its Clojars page:
 
-image::https://img.shields.io/clojars/v/net.littleredcomputer/sicmutils.svg[Clojars Project, link=https://clojars.org/net.littleredcomputer/sicmutils]
+image::https://img.shields.io/clojars/v/sicmutils/sicmutils.svg[Clojars Project, link=https://clojars.org/sicmutils/sicmutils]
 
 Initialize a REPL and simplify a trigonometric identity:
 
@@ -261,7 +261,7 @@ partially apply an integer, `partial` should just do the right thing.
 
 You could render that result in TeX:
 
-image:img/md-eq1.png[TeX result]
+image:/doc/img/md-eq1.png[TeX result]
 
 using the `->TeX` function. You can also use `->infix` to obtain:
 
@@ -285,7 +285,7 @@ used.)
 
 == Next Steps
 
-Please explore the documentation, and send us (`@sritchie`, `@colins` in
+Please explore the documentation, and send us (`@sritchie`, `@colins`) in
 particular a note in the
 https://clojurians.slack.com/archives/C01ECA9AA74[#sicmutils channel on
 Clojurians slack] if you'd like to talk or have any questions at all!

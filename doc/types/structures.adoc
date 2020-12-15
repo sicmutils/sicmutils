@@ -152,7 +152,7 @@ procedure to the corresponding components of the given structures.
 Thus, vector addition is equivalent to `(vector:elementwise +)`.
 
 CAUTION: These do not yet work! If you need any of these, please feel free to
-file an issue https://github.com/littleredcomputer/sicmutils/pulls[here].
+file an issue https://github.com/sicmutils/sicmutils/pulls[here].
 
 == Clojure Vectors
 
@@ -248,7 +248,7 @@ for the `i`-th component, which is one.
 
 WARNING: The following functions are referenced in the `scmutils` refman, but
 don't yet exist in SICMUtils. Please
-https://github.com/littleredcomputer/sicmutils/pulls[file a ticket] if this is
+https://github.com/sicmutils/sicmutils/pulls[file a ticket] if this is
 something you need, or hang on until we get there.
 
 [source, clojure]
