@@ -113,9 +113,7 @@
   the negative 2/3 power of the machine overflow limit. BIG must be at most 0.1 × ERRTOL
   times the negative 2/3 power of the machine underflow limit.'
 
-  This is called `Carlson-elliptic-2` in scmutils. This code is a direct port of
-  the scmutils version, so the error tolerances are different, we don't have a
-  tiny/big, etc."
+  This is called `Carlson-elliptic-2` in scmutils."
   [x y z]
   (let [eps 0.0015
         tiny 1.0e-25
