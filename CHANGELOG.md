@@ -1,6 +1,21 @@
 # Changelog
 
-## 0.14.0 [Unreleased]
+## [Unreleased]
+
+- `sicmutils.numerical.elliptic` gains:
+
+  - `carlson-rf-simple`
+  - `carlson-rd`
+  - `complete-elliptic-integral-{K,E}`
+  - `first-elliptic-integral`, `second-elliptic-integral` alternative methods of
+    calculating, respectively, `complete-elliptic-integral-K` and
+    `complete-elliptic-integral-E`
+  - `elliptic-integrals` calculates both at once
+  - `first-elliptic-integral-and-deriv` calls a supplied continuation with `K`
+    and its derivative
+  - `jacobi-elliptic-functions` ported from scmutils, Press
+
+## 0.14.0
 
 - After the work below, `v/nullity?` renamed to `v/zero?`, and `v/unity?`
   renamed to `v/one?`
