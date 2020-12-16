@@ -22,7 +22,7 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [same :refer [zeroish? ish? with-comparator]
+            [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
@@ -58,7 +58,7 @@
 
   (checking "complete-elliptic-E matches second" 100
             [k gen-k]
-            (is (ish? (e/elliptic-integrals k)
+            (is (ish? (e/elliptic-integrals k vector)
                       [(e/first-elliptic-integral k)
                        (e/second-elliptic-integral k)])))
 
