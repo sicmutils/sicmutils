@@ -39,56 +39,45 @@
                 :min 0
                 :max (- 1 v/machine-epsilon)}))
 
-(defn gen-phi-k
-  ([] (gen-phi-k {}))
-  ([phi-opts]
-   (gen/tuple (sg/reasonable-double phi-opts)
-              gen-k)))
+(def gen-phi-k
+  (gen/tuple (sg/reasonable-double)
+             gen-k))
 
-(deftest elliptic-tests
-  (checking "complete-elliptic-K matches first" 100
-            [k gen-k]
-            (is (ish? (e/complete-elliptic-integral-K k)
-                      (e/first-elliptic-integral k))))
+(def ^{:doc "valid arguments for the Legendre form of the elliptic functions."}
+  legendre-phi-k
+  (gen/bind
+   (gen/double* {:infinite? false
+                 :NaN? false
+                 :min 0.0001 :max (/ Math/PI 2)})
+   (fn [phi]
+     (let [s (Math/sin phi)]
+       (gen/tuple
+        (gen/return phi)
+        (if (zero? s)
+          (gen/return 0)
+          (gen/double* {:infinite? false
+                        :NaN? false
+                        :min (/ 0 (Math/sin phi))
+                        :max (/ 1 (Math/sin phi))})))))))
 
-  (checking "complete-elliptic-E matches second" 100
-            [k gen-k]
-            (is (ish? (e/complete-elliptic-integral-E k)
-                      (e/second-elliptic-integral k))))
 
-  (checking "complete-elliptic-E matches second" 100
-            [k gen-k]
-            (is (ish? (e/elliptic-integrals k vector)
-                      [(e/first-elliptic-integral k)
-                       (e/second-elliptic-integral k)])))
+(deftest carlson-elliptic-tests
+  (is (ish? (e/carlson-rc 1 2)
+            (e/carlson-rf 1 2 2))
+      "rf degenerates to rc when y == z")
 
-  (checking "first-elliptic-integral-and-deriv" 100
-            [k (gen/double* {:infinite? false :NaN? false
-                             :min 0.1
-                             :max 0.8})]
-            (let [[K DK] (e/first-elliptic-integral-and-deriv k vector)]
-              (is (ish? K (e/first-elliptic-integral k))
-                  "the returned elliptic integral is correct")
+  (is (ish? (e/carlson-rd 1 2 3)
+            (e/carlson-rj 1 2 3 3))
+      "rj degenerates to rd when y == z")
 
-              (with-comparator (v/within 1e-8)
-                (is (ish? DK ((D-numeric e/first-elliptic-integral) k))
-                    "the returned derivative matches the numerical estimate"))))
+  (is (ish? -0.09324045243867665
+            (e/carlson-rj 1 2 3 -1))
+      "negative rj returns the Cauchy principal value"))
 
-  (checking "elliptic-integral-E" 100
-            [[phi k] (gen-phi-k {:min (- (/ Math/PI 2))
-                                 :max (/ Math/PI 2)})]
-            (is (ish? (e/elliptic-integral-E phi k)
-                      (q/definite-integral
-                        (fn [theta]
-                          (g/sqrt
-                           (- 1.0 (g/square (* k (g/sin theta))))))
-                        0.0
-                        phi {:tolerance 1.e-13}))))
-
-  (with-comparator (v/within 1e-10)
+(deftest legendre-elliptic-tests
+  (with-comparator (v/within 1e-8)
     (checking "elliptic-f" 100
-              [[phi k] (gen-phi-k {:min (- (/ Math/PI 2))
-                                   :max (/ Math/PI 2)})]
+              [[phi k] legendre-phi-k]
               (is (ish? (e/elliptic-f phi k)
                         (q/definite-integral
                           (fn [theta]
@@ -96,6 +85,16 @@
                                     (- 1.0 (g/square
                                             (* k (g/sin theta)))))))
                           0.0 phi {:tolerance 1.e-13})))))
+
+  (checking "elliptic-e" 100
+            [[phi k] legendre-phi-k]
+            (is (ish? (e/elliptic-e phi k)
+                      (q/definite-integral
+                        (fn [theta]
+                          (g/sqrt
+                           (- 1.0 (g/square (* k (g/sin theta))))))
+                        0.0
+                        phi {:tolerance 1.e-13}))))
 
   (testing "direct elliptic"
     (is (near 0.200212 (e/elliptic-f 0.2 0.4)))
@@ -122,11 +121,39 @@
       (is (near 2.332176 (period 1.50)))
       (is (near 2.413836 (period 1.65)))
       (is (near 2.510197 (period 1.80)))
-      (is (near 2.624447 (period 1.95))))))
+      (is (near 2.624447 (period 1.95)))))
+
+  (checking "complete-elliptic-K matches first" 100
+            [k gen-k]
+            (is (ish? (e/complete-elliptic-integral-K k)
+                      (e/first-elliptic-integral k))))
+
+  (checking "complete-elliptic-E matches second" 100
+            [k gen-k]
+            (is (ish? (e/complete-elliptic-integral-E k)
+                      (e/second-elliptic-integral k))))
+
+  (checking "complete-elliptic-E matches second" 100
+            [k gen-k]
+            (is (ish? (e/elliptic-integrals k vector)
+                      [(e/first-elliptic-integral k)
+                       (e/second-elliptic-integral k)])))
+
+  (checking "first-elliptic-integral-and-deriv" 100
+            [k (gen/double* {:infinite? false :NaN? false
+                             :min 0.1
+                             :max 0.8})]
+            (let [[K DK] (e/first-elliptic-integral-and-deriv k vector)]
+              (is (ish? K (e/first-elliptic-integral k))
+                  "the returned elliptic integral is correct")
+
+              (with-comparator (v/within 1e-8)
+                (is (ish? DK ((D-numeric e/first-elliptic-integral) k))
+                    "the returned derivative matches the numerical estimate")))))
 
 (deftest jacobi-elliptic-tests
   (checking "jacobi-elliptic-functions" 100
-            [[phi k] (gen-phi-k)]
+            [[phi k] gen-phi-k]
             (let [u          (e/elliptic-f phi k)
                   [sn cn dn] (e/jacobi-elliptic-functions u k vector)]
               (is (ish? 1 (+ (g/square sn)
@@ -145,7 +172,7 @@
                     "equivalent expression of 6.11.26 relation above"))))
 
   (checking "special-case test for k = 0.0" 100
-            [[phi k] (gen-phi-k)]
+            [[phi k] gen-phi-k]
             (let [u (e/elliptic-f phi k)
                   [sn cn dn] (e/jacobi-elliptic-functions u 0.0 vector)]
               (is (ish? [(g/sin u)
@@ -156,8 +183,7 @@
 
   (with-comparator (v/within 1e-8)
     (checking "jacobi-elliptic phi == asin(sn)" 100
-              [[phi k] (gen-phi-k {:min (- (/ Math/PI 2))
-                                   :max (/ Math/PI 2)})]
+              [[phi k] legendre-phi-k]
               (let [u    (e/elliptic-f phi k)
                     [sn] (e/jacobi-elliptic-functions u k vector)]
                 (is (ish? phi (Math/asin sn)))))))
