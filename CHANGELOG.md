@@ -4,16 +4,20 @@
 
 - `sicmutils.numerical.elliptic` gains:
 
-  - `carlson-rf-simple`
-  - `carlson-rd`
-  - `complete-elliptic-integral-{K,E}`
-  - `first-elliptic-integral`, `second-elliptic-integral` alternative methods of
-    calculating, respectively, `complete-elliptic-integral-K` and
-    `complete-elliptic-integral-E`
-  - `elliptic-integrals` calculates both at once
-  - `first-elliptic-integral-and-deriv` calls a supplied continuation with `K`
-    and its derivative
-  - `jacobi-elliptic-functions` ported from scmutils, Press
+  - Carlson symmetric forms of the elliptic integrals: `carlson-rd`,
+    `carlson-rc`, `carlson-rj` (`carlson-rf` was already present)
+  - the related `carlson-rf-simple` from `scmutils`
+  - Legendre elliptic integrals of the second and third forms: `elliptic-e` and
+    `elliptic-pi` (`elliptic-f` already existed)
+  - A few ways of calculating the complete elliptic integrals:
+    - `complete-elliptic-integral-{K,E,PI}` for all three forms
+    - `first-elliptic-integral`, `second-elliptic-integral` come from `scmutils`
+    and provide alternative methods of calculating, respectively,
+    `complete-elliptic-integral-K` and `complete-elliptic-integral-E`
+    - `elliptic-integrals` calculates both at once
+    - `first-elliptic-integral-and-deriv` calls a supplied continuation with `K`
+      and its derivative
+  - `jacobi-elliptic-functions` ported from `scmutils`, Press
 
 ## 0.14.0
 

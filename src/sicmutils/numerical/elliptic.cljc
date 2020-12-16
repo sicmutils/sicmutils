@@ -21,6 +21,8 @@
   (:require [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
+;; ## Carlson symmetric forms of elliptic integrals
+
 (defn carlson-rf
   "From W.H. Press, Numerical Recipes in C++, 2ed. NR::rf from section 6.11
 
@@ -313,6 +315,8 @@
                         (* 3.0 (- rcx (carlson-rf xp yp zp)))))
                 rj))))))))
 
+;; ## Legendre Forms of elliptic integrals
+
 (defn elliptic-f
   "Legendre elliptic integral of the first kind F(φ, k).
    See W.H. Press, Numerical Recipes in C++, 2ed. eq. 6.11.19
@@ -350,7 +354,7 @@
 (defn complete-elliptic-integral-E
   "Complete elliptic integral of the second kind - see Press, 6.11.20."
   [k]
-  (elliptic-integral-E (/ Math/PI 2) k))
+  (elliptic-e (/ Math/PI 2) k))
 
 (defn elliptic-pi
   "Legendre elliptic integral of the third kind Π(φ, k).
@@ -367,6 +371,13 @@
                (+ 1 sk))]
     (* s (- (carlson-rf cc q 1.0)
             (* nss (/ (carlson-rj cc q 1.0 (+ 1.0 nss)) 3.0))))))
+
+(defn complete-elliptic-integral-PI
+  "Complete elliptic integral of the third kind - see
+  https://en.wikipedia.org/wiki/Carlson_symmetric_form#Complete_elliptic_integrals
+  for reference."
+  [n k]
+  (elliptic-pi (/ Math/PI 2) n k))
 
 ;; Note from `scmutils` to accompany the following ports: "older definition of
 ;; the complete elliptic integrals, probably from A&Stegun"
@@ -417,6 +428,8 @@
                        (/ (- (/ Ek (- 1 (* k k))) Kk)
                           k)))]
       (elliptic-integrals k cont))))
+
+;; ## Jacobi Elliptic Functions
 
 (defn- emc-u-d
   "Internal helper to set constants for `Jacobi-elliptic-functions.`
