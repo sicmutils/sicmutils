@@ -359,7 +359,19 @@
                    (s/up -3 -4))
            (m/square-structure-operation
             (s/down (s/up 1 2) (s/up 3 4))
-            #(m/fmap - %))))))
+            #(m/fmap - %)))))
+
+  (checking "dimension of row matrix is correct" 100
+            [[r M] (gen/let [r (gen/fmap inc gen/nat)]
+                     (gen/tuple (gen/return r)
+                                (sg/matrix r 1)))]
+            (is (= r (g/dimension M))))
+
+  (checking "dimension of column matrix is correct" 100
+            [[c M] (gen/let [c (gen/fmap inc gen/nat)]
+                     (gen/tuple (gen/return c)
+                                (sg/matrix 1 c)))]
+            (is (= c (g/dimension M)))))
 
 (deftest structure
   (checking "M^tM is always square" 100
