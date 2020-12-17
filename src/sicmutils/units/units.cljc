@@ -50,19 +50,11 @@
 
 (deftype Units [system exponents scale])
 
-(deftype WithUnits [value units])
-
 (defn units? [x]
   (isa? x Unit))
 
-(defn with-units? [x]
-  (isa? x WithUnit))
-
 (defn units [system exponents scale]
   (Units. system exponents scale))
-
-(defn with-units [value units]
-  (WithUnits. value units))
 
 (defn unitless? [unit]
   (every? v/zero? (.exponents unit)))
@@ -80,6 +72,7 @@
                 exponents (mapv + (.exponents u1) (.exponents u2))
                 scale (* (.scale u1) (.scale u2))]
             (Unit. system exponents scale)))))
+
 
 (def &meter    (Units. SI [1 0 0 0 0 0 0] 1))
 (def &kilogram (Units. SI [0 1 0 0 0 0 0] 1))
@@ -122,3 +115,4 @@
      (.scale unit)]
     )
   )
+
