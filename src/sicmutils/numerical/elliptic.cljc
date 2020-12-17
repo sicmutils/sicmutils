@@ -356,7 +356,8 @@
   for reference.
 
   The three-arity call returns the Legendre elliptic integral of the third kind
-  Π(φ, k). See W.H. Press, Numerical Recipes in C++, 2ed. eq. 6.11.21.
+  Π(φ, k). See W.H. Press, Numerical Recipes in C++, 2ed. eq. 6.11.21; Note that
+  our sign convention for `n` is opposite theirs.
 
   Page 260 here: http://phys.uri.edu/nigh/NumRec/bookfpdf/f6-11.pdf"
   ([n k] (elliptic-pi (/ Math/PI 2) n k))
@@ -368,8 +369,8 @@
          sk  (* s k)
          q   (* (- 1 sk)
                 (+ 1 sk))]
-     (* s (- (carlson-rf cc q 1.0)
-             (* nss (/ (carlson-rj cc q 1.0 (+ 1.0 nss)) 3.0)))))))
+     (* s (+ (carlson-rf cc q 1.0)
+             (* nss (/ (carlson-rj cc q 1.0 (- 1.0 nss)) 3.0)))))))
 
 ;; ## Jacobi Elliptic Functions
 

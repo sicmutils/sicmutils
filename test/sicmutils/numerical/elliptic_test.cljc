@@ -86,7 +86,10 @@
 
     (checking "carlson-rj definition" 100
               [[x y z] gen-xyz
-               p gen-double]
+               p (gen/double* {:infinite? false
+                               :NaN? false
+                               :min 0.5
+                               :max 10})]
               (is (ish? (e/carlson-rj x y z p)
                         (q/definite-integral
                           (fn [t]
@@ -214,11 +217,11 @@
 
     (checking "elliptic-pi" 100
               [[phi k] legendre-phi-k
-               n       (gen/choose 1 10)]
+               n (gen/choose -10 -1)]
               (is (ish? (e/elliptic-pi phi n k)
                         (q/definite-integral
                           (fn [theta]
-                            (/ (* (+ 1 (* n (g/square (g/sin theta))))
+                            (/ (* (- 1 (* n (g/square (g/sin theta))))
                                   (g/sqrt
                                    (- 1.0 (g/square (* k (g/sin theta))))))))
                           0.0
@@ -313,7 +316,7 @@
 
   (checking "complete elliptic-pi as a special case of elliptic-pi" 100
             [k gen-k
-             n (gen/choose 1 10)]
+             n (gen/choose -10 -1)]
             (is (ish? (e/elliptic-pi (/ Math/PI 2) n k)
                       (e/elliptic-pi n k))))
 
