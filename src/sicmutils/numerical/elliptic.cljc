@@ -85,26 +85,6 @@
                   (* c4 e3))
                (Math/sqrt ave))))))))
 
-(defn carlson-rf-simple
-  "Port of `Carlson-elliptic-1-simple` from `scmutils`."
-  [x y z]
-  (let [eps v/sqrt-machine-epsilon]
-    (loop [xt x
-           yt y
-           zt z]
-      (let [av (/ (+ xt yt zt) 3.0)]
-        (if (< (max (Math/abs (/ (- xt av) av))
-                    (Math/abs (/ (- yt av) av))
-                    (Math/abs (/ (- zt av) av)))
-               eps)
-          (/ 1.0 (Math/sqrt av))
-          (let [lamb (+ (Math/sqrt (* x y))
-                        (Math/sqrt (* x z))
-                        (Math/sqrt (* y z)))]
-            (recur (/ (+ x lamb) 4.0)
-                   (/ (+ y lamb) 4.0)
-                   (/ (+ z lamb) 4.0))))))))
-
 (defn carlson-rd
   "Comment from Press, section 6.11, page 257:
 
