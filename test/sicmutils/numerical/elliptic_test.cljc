@@ -82,7 +82,7 @@
                                            (* (+ t x)
                                               (+ t y)
                                               (+ t z))))))
-                          0.0 ##Inf))))
+                          0.0 ##Inf {:tolerance 1e-10}))))
 
     (checking "carlson-rj definition" 100
               [[x y z] gen-xyz
@@ -96,7 +96,7 @@
                                        (* (+ t x)
                                           (+ t y)
                                           (+ t z))))))
-                          0.0 ##Inf))))
+                          0.0 ##Inf {:tolerance 1e-10}))))
 
     (checking "carlson-rc definition" 100
               [[x y] gen-xyz]
@@ -106,7 +106,7 @@
                             (/ 1.0 (* 2.0
                                       (+ t y)
                                       (g/sqrt (+ t x)))))
-                          0.0 ##Inf))))
+                          0.0 ##Inf {:tolerance 1e-10}))))
 
     (checking "carlson-rd definition" 100
               [[x y z] gen-xyz]
