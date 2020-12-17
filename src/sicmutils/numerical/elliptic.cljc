@@ -343,8 +343,8 @@
   [k]
   (if (= k 0.0)
     [(/ Math/PI 2) 0.0]
-    (let [Kk  (complete-elliptic-integral-K k)
-          Ek  (complete-elliptic-integral-E k)
+    (let [Kk  (elliptic-k k)
+          Ek  (elliptic-e k)
           DKk (/ (- (/ Ek (- 1 (* k k))) Kk)
                  k)]
       [Kk DKk])))
