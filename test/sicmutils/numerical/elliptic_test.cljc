@@ -60,41 +60,169 @@
                         :min (/ 0 (Math/sin phi))
                         :max (/ 1 (Math/sin phi))})))))))
 
+(def gen-double
+  (gen/double* {:infinite? false
+                :NaN? false
+                :min 0.5
+                :max 100}))
+
+(def gen-xyz
+  (gen/tuple gen-double
+             gen-double
+             gen-double))
 
 (deftest carlson-elliptic-tests
-  (is (ish? (e/carlson-rc 1 2)
-            (e/carlson-rf 1 2 2))
-      "rf degenerates to rc when y == z")
+  (with-comparator (v/within 1e-6)
+    (checking "carlson-rf definition" 100
+              [[x y z] gen-xyz]
+              (is (ish? (e/carlson-rf x y z)
+                        (q/definite-integral
+                          (fn [t]
+                            (/ 1.0 (* 2.0 (g/sqrt
+                                           (* (+ t x)
+                                              (+ t y)
+                                              (+ t z))))))
+                          0.0 ##Inf))))
 
-  (is (ish? (e/carlson-rd 1 2 3)
-            (e/carlson-rj 1 2 3 3))
-      "rj degenerates to rd when y == z")
+    (checking "carlson-rj definition" 100
+              [[x y z] gen-xyz
+               p gen-double]
+              (is (ish? (e/carlson-rj x y z p)
+                        (q/definite-integral
+                          (fn [t]
+                            (/ 3.0 (* 2.0
+                                      (+ t p)
+                                      (g/sqrt
+                                       (* (+ t x)
+                                          (+ t y)
+                                          (+ t z))))))
+                          0.0 ##Inf))))
+
+    (checking "carlson-rc definition" 100
+              [[x y] gen-xyz]
+              (is (ish? (e/carlson-rc x y)
+                        (q/definite-integral
+                          (fn [t]
+                            (/ 1.0 (* 2.0
+                                      (+ t y)
+                                      (g/sqrt (+ t x)))))
+                          0.0 ##Inf))))
+
+    (checking "carlson-rd definition" 100
+              [[x y z] gen-xyz]
+              (is (ish? (e/carlson-rd x y z)
+                        (q/definite-integral
+                          (fn [t]
+                            (/ 3.0 (* 2.0
+                                      (+ t z)
+                                      (g/sqrt
+                                       (* (+ t x)
+                                          (+ t y)
+                                          (+ t z))))))
+                          0.0 ##Inf {:tolerance 1e-10})))))
+
+  (checking "carlson-rf can permute all arguments" 100
+            [x gen-double
+             y gen-double
+             z gen-double]
+            (let [expected (e/carlson-rf x y z)]
+              (is (ish? expected (e/carlson-rf x z y)))
+              (is (ish? expected (e/carlson-rf y x z)))
+              (is (ish? expected (e/carlson-rf y z x)))
+              (is (ish? expected (e/carlson-rf z x y)))
+              (is (ish? expected (e/carlson-rf z y x)))))
+
+  (checking "carlson-rf is homogeneous degree -1/2" 100
+            [x      gen-double
+             y      gen-double
+             z      gen-double
+             factor gen-double]
+            (is (ish? (* (Math/pow factor -0.5)
+                         (e/carlson-rf x y z))
+                      (e/carlson-rf (* factor x)
+                                    (* factor y)
+                                    (* factor z)))))
+
+  (checking "rf degenerates to rc when y == z" 100
+            [x gen-double
+             y gen-double]
+            (is (ish? (e/carlson-rc x y)
+                      (e/carlson-rf x y y))))
+
+  (checking "carlson-rj can permute its first 3 args" 100
+            [x      gen-double
+             y      gen-double
+             z      gen-double
+             p      gen-double]
+            (let [expected (e/carlson-rj x y z p)]
+              (is (ish? expected (e/carlson-rj x z y p)))
+              (is (ish? expected (e/carlson-rj y x z p)))
+              (is (ish? expected (e/carlson-rj y z x p)))
+              (is (ish? expected (e/carlson-rj z x y p)))
+              (is (ish? expected (e/carlson-rj z y x p)))))
+
+  (with-comparator (v/within 1e-10)
+    (checking "carlson-rj is homogeneous degree -3/2" 100
+              [x      gen-double
+               y      gen-double
+               z      gen-double
+               p      gen-double
+               factor gen-double]
+              (is (ish? (* (Math/pow factor -1.5)
+                           (e/carlson-rj x y z p))
+                        (e/carlson-rj (* factor x)
+                                      (* factor y)
+                                      (* factor z)
+                                      (* factor p))))))
+
+  (checking "rj degenerates to rd when y == z" 100
+            [x gen-double
+             y gen-double
+             z gen-double]
+            (is (ish? (e/carlson-rd x y z)
+                      (e/carlson-rj x y z z))))
 
   (is (ish? -0.09324045243867665
             (e/carlson-rj 1 2 3 -1))
-      "negative rj returns the Cauchy principal value"))
+      "carlson-rj: negative p returns the Cauchy principal value")
 
-(deftest legendre-elliptic-tests
-  (with-comparator (v/within 1e-8)
+  (is (ish? 0.38017299815047323
+            (e/carlson-rc 1 -2))
+      "carlson-rc: negative y returns the Cauchy principal value"))
+
+(deftest incomplete-elliptic-tests
+  (with-comparator (v/within 1e-6)
     (checking "elliptic-f" 100
               [[phi k] legendre-phi-k]
               (is (ish? (e/elliptic-f phi k)
                         (q/definite-integral
                           (fn [theta]
-                            (/ 1.0 (g/sqrt
-                                    (- 1.0 (g/square
-                                            (* k (g/sin theta)))))))
-                          0.0 phi {:tolerance 1.e-13})))))
+                            (/ 1.0
+                               (g/sqrt
+                                (- 1.0 (g/square (* k (g/sin theta)))))))
+                          0.0 phi))))
 
-  (checking "elliptic-e" 100
-            [[phi k] legendre-phi-k]
-            (is (ish? (e/elliptic-e phi k)
-                      (q/definite-integral
-                        (fn [theta]
-                          (g/sqrt
-                           (- 1.0 (g/square (* k (g/sin theta))))))
-                        0.0
-                        phi {:tolerance 1.e-13}))))
+    (checking "elliptic-e" 100
+              [[phi k] legendre-phi-k]
+              (is (ish? (e/elliptic-e phi k)
+                        (q/definite-integral
+                          (fn [theta]
+                            (g/sqrt
+                             (- 1.0 (g/square (* k (g/sin theta))))))
+                          0.0
+                          phi))))
+
+    (checking "elliptic-pi" 100
+              [[phi k] legendre-phi-k
+               n       (gen/choose 1 10)]
+              (is (ish? (e/elliptic-pi phi n k)
+                        (q/definite-integral
+                          (fn [theta]
+                            (/ (* (+ 1 (* n (g/square (g/sin theta))))
+                                  (g/sqrt
+                                   (- 1.0 (g/square (* k (g/sin theta))))))))
+                          0.0
+                          phi)))))
 
   (testing "direct elliptic"
     (is (near 0.200212 (e/elliptic-f 0.2 0.4)))
@@ -121,35 +249,83 @@
       (is (near 2.332176 (period 1.50)))
       (is (near 2.413836 (period 1.65)))
       (is (near 2.510197 (period 1.80)))
-      (is (near 2.624447 (period 1.95)))))
+      (is (near 2.624447 (period 1.95))))))
 
-  (checking "complete-elliptic-K matches first" 100
-            [k gen-k]
-            (is (ish? (e/complete-elliptic-integral-K k)
-                      (e/first-elliptic-integral k))))
+;; Note from `scmutils` to accompany the following ports: "older definition of
+;; the complete elliptic integrals, probably from A&Stegun"
 
-  (checking "complete-elliptic-E matches second" 100
-            [k gen-k]
-            (is (ish? (e/complete-elliptic-integral-E k)
-                      (e/second-elliptic-integral k))))
+(defn elliptic-integrals
+  "Computes the first and second complete elliptic integrals at once, and passes
+  them to the supplied continuation as args `K` and `E`."
+  [k continue]
+  (if (= k 1)
+    (continue ##Inf 1.0)
+    (loop [a        1.0
+           b        (Math/sqrt (- 1.0 (* k k)))
+           c        k
+           d        0.0
+           powers-2 1.0]
+      (if (< (Math/abs c) v/machine-epsilon)
+        (let [first-elliptic-integral (/ (/ Math/PI 2) a)]
+          (continue first-elliptic-integral
+                    (* first-elliptic-integral
+                       (- 1.0 (/ d 2.0)))))
+        (recur (/ (+ a b) 2.0)
+               (Math/sqrt (* a b))
+               (/ (- a b) 2.0)
+               (+ d (* (* c c) powers-2))
+               (* powers-2 2.0))))))
 
-  (checking "complete-elliptic-E matches second" 100
-            [k gen-k]
-            (is (ish? (e/elliptic-integrals k vector)
-                      [(e/first-elliptic-integral k)
-                       (e/second-elliptic-integral k)])))
+(defn first-elliptic-integral
+  "Complete elliptic integral of the first kind - see Press, 6.11.18."
+  [k]
+  (elliptic-integrals k (fn [K _] K)))
 
+
+(defn second-elliptic-integral
+  "Complete elliptic integral of the second kind - see Press, 6.11.18."
+  [k]
+  (elliptic-integrals k (fn [_ E] E)))
+
+(deftest elliptic-deriv-tests
   (checking "first-elliptic-integral-and-deriv" 100
             [k (gen/double* {:infinite? false :NaN? false
                              :min 0.1
                              :max 0.8})]
-            (let [[K DK] (e/first-elliptic-integral-and-deriv k vector)]
-              (is (ish? K (e/first-elliptic-integral k))
+            (let [[Kk DKk] (e/K-and-deriv k)]
+              (is (ish? Kk (first-elliptic-integral k))
                   "the returned elliptic integral is correct")
 
               (with-comparator (v/within 1e-8)
-                (is (ish? DK ((D-numeric e/first-elliptic-integral) k))
+                (is (ish? DKk ((D-numeric e/complete-elliptic-integral-K) k))
                     "the returned derivative matches the numerical estimate")))))
+
+(deftest complete-elliptic-integral-tests
+  (checking "complete-elliptic-K as a special case of elliptic-f" 100
+            [k gen-k]
+            (is (ish? (e/elliptic-f (/ Math/PI 2) k)
+                      (e/complete-elliptic-integral-K k))))
+
+  (checking "complete-elliptic-E as a special case of elliptic-e" 100
+            [k gen-k]
+            (is (ish? (e/elliptic-e (/ Math/PI 2) k)
+                      (e/complete-elliptic-integral-E k))))
+
+  (checking "complete-elliptic-PI as a special case of elliptic-pi" 100
+            [k gen-k
+             n (gen/choose 1 10)]
+            (is (ish? (e/elliptic-pi (/ Math/PI 2) n k)
+                      (e/complete-elliptic-integral-PI n k))))
+
+  (checking "complete-elliptic-K matches alternate impl" 100
+            [k gen-k]
+            (is (ish? (e/complete-elliptic-integral-K k)
+                      (first-elliptic-integral k))))
+
+  (checking "complete-elliptic-E matches alternate impl" 100
+            [k gen-k]
+            (is (ish? (e/complete-elliptic-integral-E k)
+                      (second-elliptic-integral k)))))
 
 (deftest jacobi-elliptic-tests
   (checking "jacobi-elliptic-functions" 100

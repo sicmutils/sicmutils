@@ -354,6 +354,22 @@
   [k]
   (elliptic-e (/ Math/PI 2) k))
 
+(defn K-and-deriv
+  "Returns a pair of:
+
+  - the elliptic integral of the first kind, `K`
+  - the derivative `dK/dk`
+
+  evaluated at `k`."
+  [k]
+  (if (= k 0.0)
+    [(/ Math/PI 2) 0.0]
+    (let [Kk  (complete-elliptic-integral-K k)
+          Ek  (complete-elliptic-integral-E k)
+          DKk (/ (- (/ Ek (- 1 (* k k))) Kk)
+                 k)]
+      [Kk DKk])))
+
 (defn elliptic-pi
   "Legendre elliptic integral of the third kind Π(φ, k).
    See W.H. Press, Numerical Recipes in C++, 2ed. eq. 6.11.21
@@ -376,56 +392,6 @@
   for reference."
   [n k]
   (elliptic-pi (/ Math/PI 2) n k))
-
-;; Note from `scmutils` to accompany the following ports: "older definition of
-;; the complete elliptic integrals, probably from A&Stegun"
-
-(defn elliptic-integrals
-  "Computes the first and second complete elliptic integrals at once, and passes
-  them to the supplied continuation as args `K` and `E`."
-  [k continue]
-  (if (= k 1)
-    (continue ##Inf 1.0)
-    (loop [a        1.0
-           b        (Math/sqrt (- 1.0 (* k k)))
-           c        k
-           d        0.0
-           powers-2 1.0]
-      (if (< (Math/abs c) v/machine-epsilon)
-        (let [first-elliptic-integral (/ (/ Math/PI 2) a)]
-          (continue first-elliptic-integral
-                    (* first-elliptic-integral
-                       (- 1.0 (/ d 2.0)))))
-        (recur (/ (+ a b) 2.0)
-               (Math/sqrt (* a b))
-               (/ (- a b) 2.0)
-               (+ d (* (* c c) powers-2))
-               (* powers-2 2.0))))))
-
-(defn first-elliptic-integral
-  "Complete elliptic integral of the first kind - see Press, 6.11.18."
-  [k]
-  (elliptic-integrals k (fn [K _] K)))
-
-
-(defn second-elliptic-integral
-  "Complete elliptic integral of the second kind - see Press, 6.11.18."
-  [k]
-  (elliptic-integrals k (fn [_ E] E)))
-
-(defn first-elliptic-integral-and-deriv
-  "Calls the supplied continuation `cont` with:
-
-  - the elliptic integral of the first kind, `K`
-  - the derivative `dK/dk`"
-  [k cont]
-  (if (= k 0.0)
-    [(/ Math/PI 2) 0.0]
-    (let [cont (fn [Kk Ek]
-                 (cont Kk
-                       (/ (- (/ Ek (- 1 (* k k))) Kk)
-                          k)))]
-      (elliptic-integrals k cont))))
 
 ;; ## Jacobi Elliptic Functions
 
