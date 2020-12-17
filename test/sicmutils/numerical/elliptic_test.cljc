@@ -72,7 +72,7 @@
              gen-double))
 
 (deftest carlson-elliptic-tests
-  (with-comparator (v/within 1e-6)
+  (with-comparator (v/within 1e-5)
     (checking "carlson-rf definition" 100
               [[x y z] gen-xyz]
               (is (ish? (e/carlson-rf x y z)
@@ -82,7 +82,7 @@
                                            (* (+ t x)
                                               (+ t y)
                                               (+ t z))))))
-                          0.0 ##Inf {:tolerance 1e-10}))))
+                          0.0 ##Inf {:tolerance 1e-8}))))
 
     (checking "carlson-rj definition" 100
               [[x y z] gen-xyz
@@ -96,7 +96,7 @@
                                        (* (+ t x)
                                           (+ t y)
                                           (+ t z))))))
-                          0.0 ##Inf {:tolerance 1e-10}))))
+                          0.0 ##Inf {:tolerance 1e-8}))))
 
     (checking "carlson-rc definition" 100
               [[x y] gen-xyz]
@@ -106,7 +106,7 @@
                             (/ 1.0 (* 2.0
                                       (+ t y)
                                       (g/sqrt (+ t x)))))
-                          0.0 ##Inf {:tolerance 1e-10}))))
+                          0.0 ##Inf {:tolerance 1e-8}))))
 
     (checking "carlson-rd definition" 100
               [[x y z] gen-xyz]
@@ -119,7 +119,7 @@
                                        (* (+ t x)
                                           (+ t y)
                                           (+ t z))))))
-                          0.0 ##Inf {:tolerance 1e-10})))))
+                          0.0 ##Inf {:tolerance 1e-8})))))
 
   (checking "carlson-rf can permute all arguments" 100
             [x gen-double
@@ -292,39 +292,39 @@
             [k (gen/double* {:infinite? false :NaN? false
                              :min 0.1
                              :max 0.8})]
-            (let [[Kk DKk] (e/K-and-deriv k)]
+            (let [[Kk DKk] (e/k-and-deriv k)]
               (is (ish? Kk (first-elliptic-integral k))
                   "the returned elliptic integral is correct")
 
               (with-comparator (v/within 1e-8)
-                (is (ish? DKk ((D-numeric e/complete-elliptic-integral-K) k))
+                (is (ish? DKk ((D-numeric e/elliptic-k) k))
                     "the returned derivative matches the numerical estimate")))))
 
 (deftest complete-elliptic-integral-tests
-  (checking "complete-elliptic-K as a special case of elliptic-f" 100
+  (checking "complete elliptic-k as a special case of elliptic-f" 100
             [k gen-k]
             (is (ish? (e/elliptic-f (/ Math/PI 2) k)
-                      (e/complete-elliptic-integral-K k))))
+                      (e/elliptic-k k))))
 
-  (checking "complete-elliptic-E as a special case of elliptic-e" 100
+  (checking "complete elliptic-e as a special case of elliptic-e" 100
             [k gen-k]
             (is (ish? (e/elliptic-e (/ Math/PI 2) k)
-                      (e/complete-elliptic-integral-E k))))
+                      (e/elliptic-e k))))
 
-  (checking "complete-elliptic-PI as a special case of elliptic-pi" 100
+  (checking "complete elliptic-pi as a special case of elliptic-pi" 100
             [k gen-k
              n (gen/choose 1 10)]
             (is (ish? (e/elliptic-pi (/ Math/PI 2) n k)
-                      (e/complete-elliptic-integral-PI n k))))
+                      (e/elliptic-pi n k))))
 
-  (checking "complete-elliptic-K matches alternate impl" 100
+  (checking "complete elliptic-k matches alternate impl" 100
             [k gen-k]
-            (is (ish? (e/complete-elliptic-integral-K k)
+            (is (ish? (e/elliptic-k k)
                       (first-elliptic-integral k))))
 
-  (checking "complete-elliptic-E matches alternate impl" 100
+  (checking "complete elliptic-e matches alternate impl" 100
             [k gen-k]
-            (is (ish? (e/complete-elliptic-integral-E k)
+            (is (ish? (e/elliptic-e k)
                       (second-elliptic-integral k)))))
 
 (deftest jacobi-elliptic-tests

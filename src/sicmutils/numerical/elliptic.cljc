@@ -308,33 +308,32 @@
                         (+ 1 sk))
                      1))))
 
-(defn complete-elliptic-integral-K
+(defn elliptic-k
   "Complete elliptic integral of the first kind - see Press, 6.11.18."
   [k]
   (elliptic-f (/ Math/PI 2) k))
 
 (defn elliptic-e
-  "Legendre elliptic integral of the second kind E(φ, k).
-   See W.H. Press, Numerical Recipes in C++, 2ed. eq. 6.11.20
+  "Passing `k` returns the complete elliptic integral of the second kind - see
+  Press, 6.11.20.
+
+  The two-arity version returns the Legendre elliptic integral of the second
+  kind E(φ, k). See W.H. Press, Numerical Recipes in C++, 2ed. eq. 6.11.20.
 
   Page 260 here: http://phys.uri.edu/nigh/NumRec/bookfpdf/f6-11.pdf"
-  [phi k]
-  (let [s  (Math/sin phi)
-        c  (Math/cos phi)
-        cc (* c c)
-        sk (* s k)
-        q  (* (- 1 sk)
-              (+ 1 sk))]
-    (* s (- (carlson-rf cc q 1.0)
-            (* (* sk sk)
-               (/ (carlson-rd cc q 1.0) 3.0))))))
+  ([k] (elliptic-e (/ Math/PI 2) k))
+  ([phi k]
+   (let [s  (Math/sin phi)
+         c  (Math/cos phi)
+         cc (* c c)
+         sk (* s k)
+         q  (* (- 1 sk)
+               (+ 1 sk))]
+     (* s (- (carlson-rf cc q 1.0)
+             (* (* sk sk)
+                (/ (carlson-rd cc q 1.0) 3.0)))))))
 
-(defn complete-elliptic-integral-E
-  "Complete elliptic integral of the second kind - see Press, 6.11.20."
-  [k]
-  (elliptic-e (/ Math/PI 2) k))
-
-(defn K-and-deriv
+(defn k-and-deriv
   "Returns a pair of:
 
   - the elliptic integral of the first kind, `K`
@@ -351,27 +350,26 @@
       [Kk DKk])))
 
 (defn elliptic-pi
-  "Legendre elliptic integral of the third kind Π(φ, k).
-   See W.H. Press, Numerical Recipes in C++, 2ed. eq. 6.11.21
+  "The two-arity call returns the complete elliptic integral of the third kind -
+  see
+  https://en.wikipedia.org/wiki/Carlson_symmetric_form#Complete_elliptic_integrals
+  for reference.
+
+  The three-arity call returns the Legendre elliptic integral of the third kind
+  Π(φ, k). See W.H. Press, Numerical Recipes in C++, 2ed. eq. 6.11.21.
 
   Page 260 here: http://phys.uri.edu/nigh/NumRec/bookfpdf/f6-11.pdf"
-  [phi n k]
-  (let [s   (Math/sin phi)
-        c   (Math/cos phi)
-        nss (* n s s)
-        cc  (* c c)
-        sk  (* s k)
-        q   (* (- 1 sk)
-               (+ 1 sk))]
-    (* s (- (carlson-rf cc q 1.0)
-            (* nss (/ (carlson-rj cc q 1.0 (+ 1.0 nss)) 3.0))))))
-
-(defn complete-elliptic-integral-PI
-  "Complete elliptic integral of the third kind - see
-  https://en.wikipedia.org/wiki/Carlson_symmetric_form#Complete_elliptic_integrals
-  for reference."
-  [n k]
-  (elliptic-pi (/ Math/PI 2) n k))
+  ([n k] (elliptic-pi (/ Math/PI 2) n k))
+  ([phi n k]
+   (let [s   (Math/sin phi)
+         c   (Math/cos phi)
+         nss (* n s s)
+         cc  (* c c)
+         sk  (* s k)
+         q   (* (- 1 sk)
+                (+ 1 sk))]
+     (* s (- (carlson-rf cc q 1.0)
+             (* nss (/ (carlson-rj cc q 1.0 (+ 1.0 nss)) 3.0)))))))
 
 ;; ## Jacobi Elliptic Functions
 
