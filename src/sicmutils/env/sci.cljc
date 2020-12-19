@@ -29,7 +29,7 @@
 
 (def literal-function ^:sci/macro
   (fn
-    ([_ _ f] (af/literal-function f))
+    ([_ _ f] (list af/literal-function f))
     #_#_
     ([f sicm-signature]
      (if (and (list? sicm-signature)q
@@ -60,8 +60,8 @@
   (eval '(simplify (+ (square (sin 'x))
                       (square (cos 'x)))))
 
-  (eval '(->TeX (+ (square (sin 'x))
-                   (square (cos 'x)))))
+  (eval '(->TeX (simplify (+ (square (sin (square 'x)))
+                             (square (cos 'x))))))q
 
   (eval '(literal-function 'U))
   (eval '(do (defn L-central-polar [m U]
