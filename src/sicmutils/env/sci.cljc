@@ -1,9 +1,10 @@
 (ns sicmutils.env.sci
   (:refer-clojure :exclude [eval])
-  (:require [sicmutils.env :as env]
+  (:require [clojure.set :as set]
+            [sci.core :as sci]
+            [sicmutils.env :as env]
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
-            [sicmutils.calculus.coordinate :as cc #?@(:cljs [:include-macros true])]
-            [sci.core :as sci]))
+            [sicmutils.calculus.coordinate :as cc #?@(:cljs [:include-macros true])]))
 
 (defn copy-var
   ([the-var ns-obj ns-name]
@@ -37,8 +38,7 @@
    'sicmutils.abstract.function (make-sci-namespace 'sicmutils.abstract.function (select-keys (ns-publics 'sicmutils.abstract.function) whitelisted-macros))
    'sicmutils.calculus.coordinate (make-sci-namespace 'sicmutils.calculus.coordinate (select-keys (ns-publics 'sicmutils.calculus.coordinate) whitelisted-macros))})
 
-(def opts {:bindings (get namespaces 'sicmutils.env)
-           :namespaces (dissoc namespaces 'sicmutils.env)})
+(def opts {:namespaces (set/rename-keys namespaces {'sicmutils.env 'user})})
 
 (def ctx (sci/init opts))
 
