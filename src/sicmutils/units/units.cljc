@@ -51,7 +51,7 @@
 (deftype Units [system exponents scale])
 
 (defn units? [x]
-  (isa? x Unit))
+  (isa? x Units))
 
 (defn units [system exponents scale]
   (Units. system exponents scale))
@@ -71,7 +71,7 @@
           (let [system (.system u1)
                 exponents (mapv + (.exponents u1) (.exponents u2))
                 scale (* (.scale u1) (.scale u2))]
-            (Unit. system exponents scale)))))
+            (Units. system exponents scale)))))
 
 
 (def &meter    (Units. SI [1 0 0 0 0 0 0] 1))
