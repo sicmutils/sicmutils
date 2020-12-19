@@ -27,6 +27,17 @@
 (def macros (into {} (comp (filter (comp :macro meta second))
                            (filter (comp whitelisted-macros first))) (ns-publics 'sicmutils.env)))
 
+(def literal-function ^:sci/macro
+  (fn
+    ([_ _ f] (af/literal-function f))
+    #_#_
+    ([f sicm-signature]
+     (if (and (list? sicm-signature)q
+              (= '-> (first sicm-signature)))
+       `(af/literal-function ~f '~sicm-signature)
+       `(af/literal-function ~f ~sicm-signature)))
+    ([f domain range] `(af/literal-function ~f ~domain ~range))))
+
 (defn make-sci-namespace [ns-name publics]
   (let [ns (sci/create-ns ns-name nil)]
     (into {} (map (fn [[var-name the-var]]
@@ -34,7 +45,7 @@
 
 (def namespaces
   ;; TODO: get 'let-coordinates and 'using-coordinates working
-  {'sicmutils.env (make-sci-namespace 'sicmutils.env (dissoc (merge public-fns macros) 'let-coordinates 'using-coordinates))
+  {'sicmutils.env (assoc (make-sci-namespace 'sicmutils.env public-fns) 'literal-function literal-function)
    'sicmutils.abstract.function (make-sci-namespace 'sicmutils.abstract.function (select-keys (ns-publics 'sicmutils.abstract.function) whitelisted-macros))
    'sicmutils.calculus.coordinate (make-sci-namespace 'sicmutils.calculus.coordinate (select-keys (ns-publics 'sicmutils.calculus.coordinate) whitelisted-macros))})
 
@@ -49,6 +60,9 @@
   (eval '(simplify (+ (square (sin 'x))
                       (square (cos 'x)))))
 
+  (eval '(->TeX (+ (square (sin 'x))
+                   (square (cos 'x)))))
+
   (eval '(literal-function 'U))
   (eval '(do (defn L-central-polar [m U]
                (fn [[_ [r] [rdot φdot]]]
@@ -60,6 +74,6 @@
                    L     (L-central-polar 'm potential-fn)
                    state (up (literal-function 'r)
                              (literal-function 'φ))]
-               (->infix
+               (->TeX
                 (simplify
                  (((Lagrange-equations L) state) 't)))))))
