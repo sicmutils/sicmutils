@@ -23,8 +23,7 @@
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
-            [sicmutils.calculus.derivative :as d
-             :refer [D partial #?(:cljs Differential)]]
+            [sicmutils.calculus.derivative :as d :refer [D partial]]
             [sicmutils.complex :as c]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [acos asin atan cos sin tan
@@ -36,9 +35,7 @@
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
-            [sicmutils.value :as v])
-  #?(:clj
-     (:import [sicmutils.calculus.derivative Differential])))
+            [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 
@@ -107,8 +104,8 @@
       (is (= 0 (* dx dx)))))
 
   (testing "more terms"
-    (let [d-expr (fn [^Differential dx]
-                   (->> (.-terms dx)
+    (let [d-expr (fn [dx]
+                   (->> (d/terms dx)
                         (filter (fn [[tags coef]] (= tags [0])))
                         first
                         second))
@@ -191,22 +188,21 @@
       (is (= (s/down (s/up 'x 0) (s/up 0 'y)) (((D F) 1 1) (s/up 'x 'y)))))))
 
 (deftest amazing-bug
-  (testing "1"
+  (testing "alexey's amazing bug"
     (let [f (fn [x]
               (fn [g]
                 (fn [y]
                   (g (+ x y)))))
-          f-hat ((D f) 3)
-          f-hat-inexact ((D f) 3.0)]
+          f-hat ((D f) 3)]
+      (is (= (exp 8)
+             ((f-hat exp) 5)))
 
-      ;; exact precision is maintained for exact arguments.
-      (is (= (exp 8) ((f-hat exp) 5)))
+      ;; this is the amazing bug: bbb == 0 is wrong.
+      (is (= 0 ((f-hat (f-hat exp)) 5)))
 
-      ;; with a float instead of an int, evaluation's forced.
-      (is ((v/within 1e-6) 2980.957987 ((f-hat-inexact exp) 5)))
-
-      ;; TODO: this is the amazing bug: bbb == 0 is wrong.
-      #_(is (= 'bbb ((f-hat (f-hat exp)) 5))))))
+      (comment
+        ;; TODO this is the correct answer.
+        (is (= (exp 11) ((f-hat (f-hat exp)) 5)))))))
 
 (deftest diff-test-2
   (testing "delta-eta-test"

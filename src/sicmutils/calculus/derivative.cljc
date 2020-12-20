@@ -33,18 +33,34 @@
 
 ;; A differential term is implemented as a pair whose first element is
 ;; a set of tags and whose second is the coefficient.
+
+
+(def ^:private empty-differential [])
+(def ^:private empty-tags [])
+
+(defn- make-term
+  ([coef] [empty-tags coef])
+  ([tags coef] [tags coef]))
+
 (def ^:private tags first)
 (def ^:private coefficient second)
 
-(declare differential-of)
+(declare canonicalize
+         differential-of
+         with-finite-and-infinitesimal-parts)
 
 ;; A differential is a sequence of differential terms, ordered by the
 ;; tag set.
 (deftype Differential [terms]
   v/Value
-  (zero? [_] (every? v/zero? (map coefficient terms)))
-  (one? [_] false)
-  (identity? [_] false)
+  (zero? [_] (every? (comp v/zero? coefficient) terms))
+  (one? [this]
+    (with-finite-and-infinitesimal-parts this
+      (fn [finite inft]
+        (let [cf (canonicalize finite)]
+          (and (v/one? cf)
+               (v/zero? inft))))))
+  (identity? [this] (v/one? this))
   (zero-like [_] 0)
   (one-like [_] 1)
   (identity-like [_] 1)
@@ -59,53 +75,104 @@
   #?(:clj
      (equals [_ b]
              (and (instance? Differential b)
-                  (= terms (.-terms b)))))
+                  (= terms (.-terms ^Differential b)))))
 
   #?@(:cljs
       [IEquiv
        (-equiv [_ b]
                (and (instance? Differential b)
-                    (= terms (.-terms b))))
+                    (= terms (.-terms ^Differential b))))
 
        IPrintWithWriter
        (-pr-writer [x writer _]
                    (write-all writer (.toString x)))]))
 
 #?(:clj
-   (defmethod print-method Differential [^Differential s ^java.io.Writer w]
+   (defmethod print-method Differential
+     [^Differential s ^java.io.Writer w]
      (.write w (.toString s))))
 
+(defn differential-type?
+  "Returns true if the supplied object is an instance of `Differential`, false
+  otherwise."
+  [dx]
+  (instance? Differential dx))
+
 (defn differential?
+  "Returns true if the supplied `x` is a 'differential' quantity, false
+  otherwise."
   [x]
-  (cond (instance? Differential x) true
-        (struct/structure? x) (some differential? x)
-        (matrix/matrix? x) (matrix/some differential? x)
+  (cond (differential-type? x) true
+        (struct/structure? x)  (some differential? x)
+        (matrix/matrix? x)     (matrix/some differential? x)
         :else false))
 
-(defn differential-of
-  "The differential of a quantity is, if we're a differential, the differential
-  of the coefficient of the highest-order term part, or else the input itself."
+(defn terms
+  "For the supplied `Differential` object, returns its vector of terms."
   [dx]
-  (loop [dx dx]
-    (if (instance? Differential dx)
-      (recur (coefficient (last (.-terms dx))))
-      dx)))
+  {:pre [(differential-type? dx)]}
+  (.-terms ^Differential dx))
 
-(def ^:private empty-differential [])
-(def ^:private empty-tags [])
+(defn- differential->terms
+  "Given a differential, returns the vector of DifferentialTerms
+  within; otherwise, returns a singleton differential term
+  representing d with an empty tag list (unless d is zero, in
+  which case we return the empty term list)."
+  [dx]
+  (cond (differential-type? dx)
+        (filterv (fn [term]
+                   (not (v/zero?
+                         (coefficient term))))
+                 (terms dx))
 
-(defn canonicalize-differential [^Differential dx]
-  (let [ts (.-terms dx)]
+        (v/zero? dx) empty-differential
+        :else        [(make-term empty-tags dx)]))
+
+(defn- terms->differential
+  "Returns a differential instance generated from a vector of terms.
+
+  Similar to [[canonicalize]] if you only have a term list.
+
+  TODO maybe consolidate if `canonicalize` is the only place we use this."
+  [terms]
+  {:pre [(vector? terms)]}
+  (cond (empty? terms) 0
+
+        (and (= (count terms) 1)
+             (empty? (tags (first terms))))
+        (coefficient (first terms))
+
+        :else (->Differential terms)))
+
+(defn canonicalize
+  "Returns the term list of the supplied differential, _unless_ that term list is
+  empty (returns 0) or contains a singleton term (returns its coefficient)"
+  [dx]
+  (let [ts (terms dx)]
     (cond (empty? ts) 0
           (and (= (count ts) 1)
-               (empty? (tags (first ts)))) (coefficient (first ts))
+               (empty? (tags (first ts))))
+          (coefficient (first ts))
           :else dx)))
+
+(defn differential-of
+  "The differential of a quantity is:
+
+  - if we're a differential, the differential of the coefficient of the
+    highest-order term part
+  - or else the input itself."
+  [dx]
+  (if (instance? Differential dx)
+    (recur (coefficient
+            (last (terms dx))))
+    dx))
 
 (defn make-differential
   "The input here is a mapping (loosely defined) between sets of
-  differential tags and coefficients. The mapping can be an actual
-  map, or just a sequence of pairs. The differential tag sets are
-  sequences of integer tags, which should be sorted."
+  differential tags and coefficients.
+
+  The mapping can be an actual map, or just a sequence of pairs. The
+  differential tag sets are sequences of integer tags, which should be sorted."
   [tags->coefs]
   (->Differential
    (into empty-differential
@@ -115,26 +182,21 @@
                         :when (not (v/zero? c))]
                     [tags c])))))
 
-(defn ^:private differential->terms
-  "Given a differential, returns the vector of DifferentialTerms
-  within; otherwise, returns a singleton differential term
-  representing d with an empty tag list (unless d is zero, in
-  which case we return the empty term list)."
-  [dx]
-  (cond (instance? Differential dx) (let [^Differential d dx] (.-terms d))
-        (v/zero? dx) []
-        :else [[empty-tags dx]]))
+
 
 ;; The data structure of a tag set. Tags are small integers. Tag sets are
 ;; typically of small cardinality. So we experiment with implementing them
 ;; as small vectors, instead of sorted sets.
 
-(defn ^:private tag-union
+(defn- tag-union
   "The union of the sorted vectors ts and us."
   [ts us]
-  (-> ts (concat us) sort dedupe vec))
+  (-> (concat ts us)
+      (sort)
+      (dedupe)
+      (vec)))
 
-(defn ^:private tag-intersection
+(defn- tag-intersection
   "Intersection of sorted vectors ts and us."
   [ts us]
   (loop [ts ts
@@ -149,12 +211,12 @@
                         (< c 0) (recur (rest ts) us result)
                         :else (recur ts (rest us) result))))))
 
-(defn ^:private tag-in?
+(defn- tag-in?
   "Return true if t is in the tag-set ts"
   [ts t]
   (some #(= % t) ts))
 
-(defn ^:private tag-without
+(defn- tag-without
   "Return the tag set formed by dropping t from ts"
   [ts t]
   (filterv #(not= % t) ts))
@@ -209,12 +271,11 @@
             ;; from what remains.
             [obj]
             (if (differential? obj)
-              (let [^Differential d obj]
-                (canonicalize-differential
-                 (make-differential
-                  (for [[tags coef] (.-terms d)
-                        :when (tag-in? tags tag)]
-                    [(tag-without tags tag) coef]))))
+              (canonicalize
+               (make-differential
+                (for [[tags coef] (terms obj)
+                      :when (tag-in? tags tag)]
+                  [(tag-without tags tag) coef])))
               0))
           (dist
             [obj]
@@ -228,9 +289,7 @@
                   ;;  (hide-tag-in-procedure dx
                   ;;                         (g:* (make-operator dist 'extract (operator-subtype obj))
                   ;;                              obj)))
-                  ;; note: we had ifn? here, but this is bad, since symbols and
-                  ;; keywords implement IFn.
-                  (fn? obj) #(dist (obj %))                ;; TODO: innocent of the tag-hiding business
+                  (fn? obj) #(dist (obj %)) ;; TODO: innocent of the tag-hiding business
                   :else (extract obj)))]
     (dist obj)))
 
@@ -239,7 +298,7 @@
     (let [dx (make-differential-tag)]
       (extract-dx-part dx (f (make-x+dx x dx))))))
 
-(defn ^:private with-finite-and-infinitesimal-parts
+(defn- with-finite-and-infinitesimal-parts
   "Partition the terms of the given differential into the finite and
   infinite parts. The continuation is called with these two parts."
   [x continue]
@@ -250,15 +309,16 @@
          infinitesimal-part true} (group-by #(tag-in? (tags %) keytag) dts)]
     ;; since input differential is well-formed, it is safe to
     ;; construct differential objects on the split parts.
-    (continue (->Differential finite-part) (->Differential infinitesimal-part))))
+    (continue (->Differential finite-part)
+              (->Differential infinitesimal-part))))
 
-(defn ^:private unary-op
+(defn- unary-op
   [f df:dx]
   (fn [x]
     (with-finite-and-infinitesimal-parts x
       (fn [finite-part infinitesimal-part]
-        (let [canonicalized-finite-part (canonicalize-differential finite-part)]
-          (canonicalize-differential
+        (let [canonicalized-finite-part (canonicalize finite-part)]
+          (canonicalize
            (dx+dy (f canonicalized-finite-part)
                   (dx*dy (df:dx canonicalized-finite-part)
                          infinitesimal-part))))))))
@@ -268,33 +328,38 @@
   order term; then return the greatest tag found in any of these
   terms; i.e., the highest-numbered tag of the highest-order term."
   [ds]
-  (->> ds (mapcat #(-> % differential->terms last tags)) (apply max)))
+  (->> ds
+       (mapcat #(-> % differential->terms last tags))
+       (apply max)))
 
 (defn with-tag
-  "The differential containing only those terms with the given tag"
+  "The differential containing only those terms _with_ the given tag"
   [tag dx]
-  (->> dx
-       differential->terms
-       (filter #(-> % tags (tag-in? tag)))
-       make-differential
-       canonicalize-differential))
+  (->> (differential->terms dx)
+       (filter (fn [term]
+                 (-> (tags term)
+                     (tag-in? tag))))
+       (make-differential)
+       (canonicalize)))
 
 (defn without-tag
-  "The differential containing only those terms without the given tag"
+  "The differential containing only those terms _without_ the given tag"
   [tag dx]
-  (->> dx
-       differential->terms
-       (remove #(tag-in? (tags %) tag))
-       make-differential
-       canonicalize-differential))
+  (->> (differential->terms dx)
+       (remove (fn [term]
+                 (-> (tags term)
+                     (tag-in? tag))))
+       (make-differential)
+       (canonicalize)))
 
 (defn with-and-without-tag
   "Split the differential into the parts with and without tag and return the pair"
   [tag dx]
   (let [{finite-terms nil infinitesimal-terms true}
-        (group-by #(tag-in? (tags %) tag) (differential->terms dx))]
-    [(-> infinitesimal-terms make-differential canonicalize-differential)
-     (-> finite-terms make-differential canonicalize-differential)]))
+        (group-by #(tag-in? (tags %) tag)
+                  (differential->terms dx))]
+    [(-> infinitesimal-terms make-differential canonicalize)
+     (-> finite-terms make-differential canonicalize)]))
 
 (defn ^:private binary-op
   [f df:dx df:dy _kw]
@@ -309,7 +374,7 @@
           c (if (and (v/number? dy) (v/zero? dy))
               b
               (dx+dy b (dx*dy (df:dy xe ye) dy)))]
-      (canonicalize-differential c))))
+      (canonicalize c))))
 
 (def ^:private diff-+ (binary-op g/+ (constantly 1) (constantly 1) :plus))
 (def ^:private diff-- (binary-op g/- (constantly 1) (constantly -1) :minus))

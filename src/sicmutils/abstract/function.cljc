@@ -237,7 +237,7 @@
         maxtag (->> v flatten d/max-order-tag)
         ve (->> v (s/mapr #(d/without-tag maxtag %)) seq)
         dv (->> v (s/mapr #(d/with-tag maxtag %)))]
-    (d/canonicalize-differential
+    (d/canonicalize
      (d/dx+dy (apply f ve)
               (reduce d/dx+dy (map (fn [partialx dx]
                                      (d/dx*dy (apply partialx ve) dx))
