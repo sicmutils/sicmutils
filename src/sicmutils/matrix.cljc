@@ -854,8 +854,8 @@
       a')))
 
 (defmethod g/dimension [::square-matrix] [m] (dimension m))
-(defmethod g/dimension [::column-matrix] [m] (num-cols m))
-(defmethod g/dimension [::row-matrix] [m] (num-rows m))
+(defmethod g/dimension [::column-matrix] [m] (num-rows m))
+(defmethod g/dimension [::row-matrix] [m] (num-cols m))
 
 ;; ## Column / Row Matrices only...
 

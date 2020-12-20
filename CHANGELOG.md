@@ -1,6 +1,11 @@
 # Changelog
 
-## 0.14.0 [Unreleased]
+## [Unreleased]
+
+- fixed bug with `g/dimension` for row and column matrices. previously they
+  returned `1` in both cases; now they return the total number of entries.
+
+## 0.14.0
 
 - After the work below, `v/nullity?` renamed to `v/zero?`, and `v/unity?`
   renamed to `v/one?`
