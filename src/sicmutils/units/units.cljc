@@ -48,6 +48,7 @@
 ;;     	   (eq? (car x) unit-tag-type))))
 
 
+
 (deftype Units [system exponents scale])
 
 (defn units? [x]
@@ -59,7 +60,7 @@
 (defn unitless? [unit]
   (every? v/zero? (.exponents unit)))
 
-(defn ^:private *units [u1 u2]
+(defn *units [u1 u2]
   (cond (unitless? u1) u2
         (unitless? u2) u1
         :else
@@ -73,40 +74,12 @@
                 scale (* (.scale u1) (.scale u2))]
             (Units. system exponents scale)))))
 
-
-(def &meter    (Units. SI [1 0 0 0 0 0 0] 1))
-(def &kilogram (Units. SI [0 1 0 0 0 0 0] 1))
-(def &second   (Units. SI [0 0 1 0 0 0 0] 1))
-(def &ampere   (Units. SI [0 0 0 1 0 0 0] 1))
-(def &kelvin   (Units. SI [0 0 0 0 1 0 0] 1))
-(def &mole     (Units. SI [0 0 0 0 0 1 0] 1))
-(def &candela  (Units. SI [0 0 0 0 0 0 1] 1))
-
-;; Looks like &name is allowed in Clojure after all! I'm not persuaded that this
-;; is the most idiomatic Clojure naming. It does avoid units/second clashing
-;; with clojure.core/second.
-;;
-;; It might make sense to require the SI unit system qualified anyway.
-
-(comment
-  (:require [sicmutils.units.SI :as SI])
-
-  (+ (* 5 SI/meter) (* 10 SI/meter))
-  )
-
 (comment
   (let [meter-squared (*units &meter &meter)]
     [(.exponents meter-squared)
      (.scale meter-squared)]))
 
 (comment
-  (= (Units. SI [0 0 0 0 0 0 0] 1)
-     (Units. SI [0 0 0 0 0 0 0] 1))
-  ;; => false
-
-  (.hashCode (Units. SI [0 0 0 0 0 0 0] 1))
-  ;; new hashcode on each call
-
   (Units. SI [0 0 0 0 0 0 0] 1)
   ;; can I destructure?
   (let [unit (Units. SI [0 0 0 0 0 0 0] 1)]
