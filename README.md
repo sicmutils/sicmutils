@@ -299,14 +299,8 @@ be done.
 
 ### The latter half of FDG
 
-Most of the code in the early sections of FDG will work, but this cannot
-be considered compelte.
-
-### Derivatives of nested functions
-
-Or, what is described as "Alexey's Amazing Bug" in the Scmutils source
-code (and further described by Oleksandr Manzyuk [here][OM]). This should
-be straightforward to fix but hasn't been necessary for the work so far.
+Most of the code in the early sections of FDG will work, but this cannot be
+considered complete.
 
 ### Quaternions, and other exotica
 
