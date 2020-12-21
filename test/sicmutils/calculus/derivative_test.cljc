@@ -55,8 +55,8 @@
 
 (deftest value-protocol-tests
   ;; TODO upgrade to generative tests when we make a differential generator.
-  (let [zero-diff (d/make-differential [])
-        dy        (d/make-differential {[1] 1})]
+  (let [zero-diff (d/sum->differential [])
+        dy        (d/sum->differential {[1] 1})]
     (is (v/zero? zero-diff))
     (is (not (v/zero? dy)))
     (is (not (v/one? dy)))
@@ -68,39 +68,39 @@
 
 (deftest differentials
   (testing "add, mul differentials"
-    (let [zero-differential (d/make-differential [])
-          dx (d/make-differential {[0] 1})
-          -dx (d/make-differential {[0] -1})
-          dy (d/make-differential {[1] 1})
-          dz (d/make-differential {[2] 1})
-          dx-plus-dx (d/make-differential {[0] 2})
-          dxdy (d/make-differential {[0 1] 1})
-          dxdydz (d/make-differential {[0 1 2] 1})
-          dx-plus-dy (d/make-differential {[0] 1 [1] 1})
-          dx-plus-dz (d/make-differential {[0] 1 [2] 1})]
-      (is (= dx-plus-dy (d/dx+dy dx dy)))
-      (is (= dx-plus-dy (d/dx+dy dy dx)))
-      (is (= dx-plus-dz (d/dx+dy dx dz)))
-      (is (= dx-plus-dz (d/dx+dy dz dx)))
-      (is (= dx-plus-dx (d/dx+dy dx dx)))
-      (is (= (d/make-differential {[0] 3 [1] 2 [2] 3})
-             (reduce d/dx+dy 0 [dx dy dz dy dz dx dz dx])))
-      (is (= (d/make-differential {[] 1 [0] 1}) (d/dx+dy dx 1)))
-      (is (= (d/make-differential {[] 'k [0] 1}) (d/dx+dy dx 'k)))
-      (is (= zero-differential (d/dx+dy dx -dx)))
-      (is (= zero-differential (d/dx+dy -dx dx)))
-      (is (= zero-differential (d/dx*dy dx 0)))
-      (let [b (d/dx+dy 0 (d/dx*dy dx 0))
-            c (d/dx*dy 0 dx)]
+    (let [zero-differential (d/->Differential [])
+          dx (d/sum->differential {[0] 1})
+          -dx (d/sum->differential {[0] -1})
+          dy (d/sum->differential {[1] 1})
+          dz (d/sum->differential {[2] 1})
+          dx-plus-dx (d/sum->differential {[0] 2})
+          dxdy (d/sum->differential {[0 1] 1})
+          dxdydz (d/sum->differential {[0 1 2] 1})
+          dx-plus-dy (d/sum->differential {[0] 1 [1] 1})
+          dx-plus-dz (d/sum->differential {[0] 1 [2] 1})]
+      (is (= dx-plus-dy (d/d:+ dx dy)))
+      (is (= dx-plus-dy (d/d:+ dy dx)))
+      (is (= dx-plus-dz (d/d:+ dx dz)))
+      (is (= dx-plus-dz (d/d:+ dz dx)))
+      (is (= dx-plus-dx (d/d:+ dx dx)))
+      (is (= (d/sum->differential {[0] 3 [1] 2 [2] 3})
+             (reduce d/d:+ 0 [dx dy dz dy dz dx dz dx])))
+      (is (= (d/sum->differential {[] 1 [0] 1}) (d/d:+ dx 1)))
+      (is (= (d/sum->differential {[] 'k [0] 1}) (d/d:+ dx 'k)))
+      (is (= zero-differential (d/d:+ dx -dx)))
+      (is (= zero-differential (d/d:+ -dx dx)))
+      (is (= zero-differential (d/d:* dx 0)))
+      (let [b (d/d:+ 0 (d/d:* dx 0))
+            c (d/d:* 0 dx)]
         (is (= zero-differential b))
         (is (= zero-differential c))
-        (is (= zero-differential (d/dx+dy b c))))
-      (is (= dxdy (d/dx*dy dx dy)))
-      (is (= dxdydz (d/dx*dy (d/dx*dy dx dy) dz)))
-      (is (= dxdydz (d/dx*dy (d/dx*dy dz dx) dy)))
-      (is (= dxdydz (d/dx*dy (d/dx*dy dy dz) dx)))
-      (is (= zero-differential (d/dx*dy dx dx)))
-      (is (= zero-differential (d/dx*dy dz (d/dx*dy dy dz))))
+        (is (= zero-differential (d/d:+ b c))))
+      (is (= dxdy (d/d:* dx dy)))
+      (is (= dxdydz (d/d:* (d/d:* dx dy) dz)))
+      (is (= dxdydz (d/d:* (d/d:* dz dx) dy)))
+      (is (= dxdydz (d/d:* (d/d:* dy dz) dx)))
+      (is (= zero-differential (d/d:* dx dx)))
+      (is (= zero-differential (d/d:* dz (d/d:* dy dz))))
       (is (= 0 (* dx dx)))))
 
   (testing "more terms"
@@ -111,10 +111,10 @@
                         second))
           d-simplify #(-> % d-expr g/simplify)]
       (is (= '(* 3 (expt x 2))
-             (d-simplify (g/expt (+ 'x (d/make-differential {[0] 1})) 3))))
+             (d-simplify (g/expt (+ 'x (d/sum->differential {[0] 1})) 3))))
       (is (= '(* 4 (expt x 3))
-             (d-simplify (g/expt (+ 'x (d/make-differential {[0] 1})) 4))))
-      (let [dx (d/make-differential {[0] 1})
+             (d-simplify (g/expt (+ 'x (d/sum->differential {[0] 1})) 4))))
+      (let [dx (d/sum->differential {[0] 1})
             x+dx (+ 'x dx)
             f (fn [x] (* x x x x))]
         (is (= '(* 4 (expt x 3))

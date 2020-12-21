@@ -29,6 +29,7 @@
             [sicmutils.series :as series]
             [sicmutils.structure :as struct]
             [sicmutils.util :as u]
+            [sicmutils.util.stream :as us]
             [sicmutils.value :as v]))
 
 ;; A differential term is implemented as a pair whose first element is
@@ -128,7 +129,7 @@
         (v/zero? dx) empty-differential
         :else        [(make-term empty-tags dx)]))
 
-(defn- terms->differential
+(defn terms->differential
   "Returns a differential instance generated from a vector of terms.
 
   Similar to [[canonicalize]] if you only have a term list.
@@ -160,108 +161,155 @@
 
   - if we're a differential, the differential of the coefficient of the
     highest-order term part
-  - or else the input itself."
+  - or else the input itself.
+
+  TODO why is it the FIRST element, the car, in the scheme edition? Maybe it
+  just doesn't matter and we assume that they're all the same."
   [dx]
-  (if (instance? Differential dx)
+  (if (differential-type? dx)
     (recur (coefficient
-            (last (terms dx))))
+            (peek (terms dx))))
     dx))
 
-(defn make-differential
-  "The input here is a mapping (loosely defined) between sets of
-  differential tags and coefficients.
+(defn arity [x]
+  (if (differential-type? x)
+    (recur (coefficient
+            (peek (terms x))))
+    (f/arity x)))
 
-  The mapping can be an actual map, or just a sequence of pairs. The
-  differential tag sets are sequences of integer tags, which should be sorted."
-  [tags->coefs]
-  (->Differential
-   (into empty-differential
-         (sort-by first
-                  (for [[tags tags-coefs] (group-by tags tags->coefs)
-                        :let [c (reduce #(g/+ %1 (coefficient %2)) 0 tags-coefs)]
-                        :when (not (v/zero? c))]
-                    [tags c])))))
-
-
+(defn diff:apply
+  "If the coefficients are themselves functions, apply them to the args for ALL
+  coefficients."
+  [diff args]
+  (terms->differential
+   (map (fn [term]
+          (make-term (tags term)
+                     (apply (coefficient term) args)))
+        (differential->terms diff))))
 
 ;; The data structure of a tag set. Tags are small integers. Tag sets are
-;; typically of small cardinality. So we experiment with implementing them
-;; as small vectors, instead of sorted sets.
+;; typically of small cardinality. So we experiment with implementing them as
+;; small vectors, instead of sorted sets.
 
-(defn- tag-union
-  "The union of the sorted vectors ts and us."
-  [ts us]
-  (-> (concat ts us)
-      (sort)
-      (dedupe)
-      (vec)))
-
-(defn- tag-intersection
-  "Intersection of sorted vectors ts and us."
-  [ts us]
-  (loop [ts ts
-         us us
-         result []]
-    (cond (empty? ts) result
-          (empty? us) result
-          :else (let [t (first ts)
-                      u (first us)
-                      c (compare t u)]
-                  (cond (= c 0) (recur (rest ts) (rest us) (conj result t))
-                        (< c 0) (recur (rest ts) us result)
-                        :else (recur ts (rest us) result))))))
+(let [next-differential-tag (atom 0)]
+  (defn- make-differential-tag []
+    (swap! next-differential-tag inc)))
 
 (defn- tag-in?
-  "Return true if t is in the tag-set ts"
+  "Return true if `t` is in the tag-set `ts`, false otherwise."
   [ts t]
   (some #(= % t) ts))
 
-(defn- tag-without
+(defn- tag-in-term?
+  "Return true if `t` is in the tag-set of the supplied `term`, false otherwise."
+  [term t]
+  (tag-in? (tags term) t))
+
+(defn- drop-tag
   "Return the tag set formed by dropping t from ts"
   [ts t]
   (filterv #(not= % t) ts))
 
-(defn dx+dy
+(defn- tag-union
+  "Returns a vector that contains the union of the sorted vectors `x` and `y`."
+  [x y]
+  (let [xs (sort (into x y))]
+    (into [] (dedupe) xs)))
+
+(defn- tag-intersection
+  "Returns a vector that contains the intersection of the two sorted vectors `x`
+  and `y`."
+  [x y]
+  (loop [i (long 0)
+         j (long 0)
+         r (transient [])]
+    (let [xi (nth x i nil)
+          yj (nth y j nil)]
+      (cond (not (and xi yj)) (persistent! r)
+            (< xi yj) (recur (inc i) j r)
+            (> xi yj) (recur i (inc j) r)
+            :else     (recur (inc i) (inc j) (conj! r xi))))))
+
+;; ## Term List Algebra
+;;
+;; From scmutils: "Differential term lists represent a kind of power series, so
+;; they can be added and multiplied. It is important to note that when terms are
+;; multiplied, no contribution is made if the terms being multiplied have a
+;; differential tag in common. Thus dx^2 = zero."
+
+(defn terms:+
+  "Iterate and build up the result while preserving order and dropping zero sums."
+  [xs ys]
+  (loop [xs xs
+         ys ys
+         result []]
+    (cond (empty? xs) (into result ys)
+          (empty? ys) (into result xs)
+          :else (let [[a-tags a-coef :as a] (first xs)
+                      [b-tags b-coef :as b] (first ys)
+                      c (compare a-tags b-tags)]
+                  (cond
+                    (= c 0)
+                    (let [r-coef (g/+ a-coef b-coef)]
+                      (recur (rest xs)
+                             (rest ys)
+                             (if (v/zero? r-coef)
+                               result
+                               (conj result (make-term a-tags r-coef)))))
+
+                    (< c 0)
+                    (recur (rest xs) ys (conj result a))
+
+                    :else
+                    (recur xs (rest ys) (conj result b)))))))
+
+(defn terms:* [xs ys]
+  (for [[x-tags x-coef] xs
+        [y-tags y-coef] ys
+        :when (empty? (tag-intersection x-tags y-tags))]
+    (make-term (tag-union x-tags y-tags)
+               (g/* x-coef y-coef))))
+
+(defn- collect-terms [tags->coefs]
+  (into empty-differential
+        (sort-by first
+                 (for [[tags tags-coefs] (group-by tags tags->coefs)
+                       :let [c (transduce (map coefficient) g/+ tags-coefs)]
+                       :when (not (v/zero? c))]
+                   [tags c]))))
+
+(defn sum->differential
+  "The input here is a mapping (loosely defined) between sets of
+  differential tags and coefficients.
+
+  The mapping can be an actual map, or just a sequence of pairs. The
+  differential tag sets are sequences of integer tags, which should be sorted.
+
+  TODO note that this groups and sums; maybe less efficient than doing it the
+  power series way. Check!"
+  [tags->coefs]
+  (terms->differential
+   (collect-terms tags->coefs)))
+
+(defn d:+
   "Adds two objects differentially. (One of the objects might not be
   differential; in which case we lift it into a trivial differential
   before the addition.)"
   [dx dy]
   (->Differential
-   ;; Iterate and build up the result while preserving order and dropping zero sums.
-   (loop [dxs (differential->terms dx)
-          dys (differential->terms dy)
-          result []]
-     (cond
-       (empty? dxs) (into result dys)
-       (empty? dys) (into result dxs)
-       :else (let [[a-tags a-coef :as a] (first dxs)
-                   [b-tags b-coef :as b] (first dys)
-                   c (compare a-tags b-tags)]
-               (cond (= c 0) (let [r-coef (g/+ a-coef b-coef)]
-                               (recur (rest dxs) (rest dys)
-                                      (if-not (v/zero? r-coef)
-                                        (conj result [a-tags r-coef])
-                                        result)))
-                     (< c 0) (recur (rest dxs) dys (conj result a))
-                     :else (recur dxs (rest dys) (conj result b))))))))
+   (terms:+ (differential->terms dx)
+            (differential->terms dy))))
 
-(defn dx*dy
+(defn d:*
   "Form the product of the differentials dx and dy."
   [dx dy]
-  (make-differential
-   (for [[x-tags x-coef] (differential->terms dx)
-         [y-tags y-coef] (differential->terms dy)
-         :when (empty? (tag-intersection x-tags y-tags))]
-     [(tag-union x-tags y-tags) (g/* x-coef y-coef)])))
+  (->Differential
+   (collect-terms
+    (terms:* (differential->terms dx)
+             (differential->terms dy)))))
 
-(def ^:private make-differential-tag
-  (let [next-differential-tag (atom 0)]
-    #(swap! next-differential-tag inc)))
-
-(defn ^:private make-x+dx [x dx]
-  (dx+dy x (->Differential [[[dx] 1]])))
-
-;(defn ^:private hide-tag-in-procedure [& args] false) ; XXX
+(defn- make-x+dx [x dx]
+  (d:+ x (->Differential [[[dx] 1]])))
 
 (defn ^:private extract-dx-part [tag obj]
   (letfn [(extract
@@ -271,11 +319,10 @@
             ;; from what remains.
             [obj]
             (if (differential? obj)
-              (canonicalize
-               (make-differential
-                (for [[tags coef] (terms obj)
-                      :when (tag-in? tags tag)]
-                  [(tag-without tags tag) coef])))
+              (sum->differential
+               (for [[tags coef] (terms obj)
+                     :when (tag-in? tags tag)]
+                 [(drop-tag tags tag) coef]))
               0))
           (dist
             [obj]
@@ -319,47 +366,54 @@
       (fn [finite-part infinitesimal-part]
         (let [canonicalized-finite-part (canonicalize finite-part)]
           (canonicalize
-           (dx+dy (f canonicalized-finite-part)
-                  (dx*dy (df:dx canonicalized-finite-part)
-                         infinitesimal-part))))))))
+           (d:+ (f canonicalized-finite-part)
+                (d:* (df:dx canonicalized-finite-part)
+                     infinitesimal-part))))))))
+
 
 (defn max-order-tag
   "From each of the differentials in the sequence ds, find the highest
   order term; then return the greatest tag found in any of these
   terms; i.e., the highest-numbered tag of the highest-order term."
   [ds]
-  (->> ds
-       (mapcat #(-> % differential->terms last tags))
-       (apply max)))
+  (letfn [(max-termv [d]
+            (if-let [max-order (-> (differential->terms d)
+                                   (peek)
+                                   (tags)
+                                   (peek))]
+              [max-order]
+              []))]
+    (->> (mapcat max-termv ds)
+         (apply max))))
 
 (defn with-tag
   "The differential containing only those terms _with_ the given tag"
   [tag dx]
-  (->> (differential->terms dx)
-       (filter (fn [term]
-                 (-> (tags term)
-                     (tag-in? tag))))
-       (make-differential)
-       (canonicalize)))
+  (if (differential-type? dx)
+    (->> (differential->terms dx)
+         (filterv #(tag-in-term? % tag))
+         (sum->differential))
+    0))
 
 (defn without-tag
   "The differential containing only those terms _without_ the given tag"
   [tag dx]
-  (->> (differential->terms dx)
-       (remove (fn [term]
-                 (-> (tags term)
-                     (tag-in? tag))))
-       (make-differential)
-       (canonicalize)))
+  (if (differential-type? dx)
+    (let [sans-tag? (complement #(tag-in-term? % tag))]
+      (->> (differential->terms dx)
+           (filterv sans-tag?)
+           (sum->differential)))
+    dx))
 
 (defn with-and-without-tag
-  "Split the differential into the parts with and without tag and return the pair"
+  "Split the differential into the parts with and without tag and return the
+  pair."
   [tag dx]
-  (let [{finite-terms nil infinitesimal-terms true}
-        (group-by #(tag-in? (tags %) tag)
-                  (differential->terms dx))]
-    [(-> infinitesimal-terms make-differential canonicalize)
-     (-> finite-terms make-differential canonicalize)]))
+  (let [[infinitesimal-terms finite-terms]
+        (us/separatev #(tag-in-term? % tag)
+                      (differential->terms dx))]
+    [(sum->differential infinitesimal-terms)
+     (sum->differential finite-terms)]))
 
 (defn ^:private binary-op
   [f df:dx df:dy _kw]
@@ -370,10 +424,10 @@
           a (f xe ye)
           b (if (and (v/number? dx) (v/zero? dx))
               a
-              (dx+dy a (dx*dy dx (df:dx xe ye))))
+              (d:+ a (d:* dx (df:dx xe ye))))
           c (if (and (v/number? dy) (v/zero? dy))
               b
-              (dx+dy b (dx*dy (df:dy xe ye) dy)))]
+              (d:+ b (d:* (df:dy xe ye) dy)))]
       (canonicalize c))))
 
 (def ^:private diff-+ (binary-op g/+ (constantly 1) (constantly 1) :plus))
