@@ -237,12 +237,11 @@
         maxtag (->> v flatten d/max-order-tag)
         ve (->> v (s/mapr #(d/without-tag maxtag %)) seq)
         dv (->> v (s/mapr #(d/with-tag maxtag %)))]
-    (d/canonicalize
-     (d/d:+ (apply f ve)
-            (reduce d/d:+ (map (fn [partialx dx]
-                                 (d/d:* (apply partialx ve) dx))
-                               (flatten (make-partials f v))
-                               (flatten dv)))))))
+    (d/d:+ (apply f ve)
+           (reduce d/d:+ (map (fn [partialx dx]
+                                (d/d:* (apply partialx ve) dx))
+                              (flatten (make-partials f v))
+                              (flatten dv))))))
 
 (defn- check-argument-type
   "Check that the argument provided at index i has the same type as

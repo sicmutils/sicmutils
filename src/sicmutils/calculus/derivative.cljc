@@ -30,11 +30,12 @@
             [sicmutils.structure :as struct]
             [sicmutils.util :as u]
             [sicmutils.util.stream :as us]
-            [sicmutils.value :as v]))
+            [sicmutils.value :as v])
+  #?(:clj
+     (:import (clojure.lang MultiFn))))
 
 ;; A differential term is implemented as a pair whose first element is
 ;; a set of tags and whose second is the coefficient.
-
 
 (def ^:private empty-differential [])
 (def ^:private empty-tags [])
@@ -194,6 +195,18 @@
   [ts t]
   (filterv #(not= % t) ts))
 
+(defn insert-tag
+  "Inserts tag into its appropriate sorted space in `tags`."
+  [tags tag]
+  (loop [tags tags
+         ret  []]
+    (cond (empty? tags) (conj ret tag)
+          (< tag (first tags)) (into (conj ret tag) tags)
+          (= tag (first tags))
+          (u/illegal (str "elem " tag "already present in " tags))
+          :else (recur (rest tags)
+                       (conj ret (first tags))))))
+
 (defn- tag-union
   "Returns a vector that contains the union of the sorted vectors `x` and `y`."
   [x y]
@@ -294,33 +307,82 @@
 (defn- make-x+dx [x dx]
   (d:+ x (->Differential [[[dx] 1]])))
 
-(defn ^:private extract-dx-part [tag obj]
-  (letfn [(extract
-            ;; Collect all the terms of the differential in which
-            ;; dx is a member of the term's tag set; drop that
-            ;; tag from each set and return the differential formed
-            ;; from what remains.
-            [obj]
-            (if (differential? obj)
-              (sum->differential
-               (for [[tags coef] (terms obj)
-                     :when (tag-in? tags tag)]
-                 [(drop-tag tags tag) coef]))
-              0))
-          (dist
-            [obj]
+(declare replace-differential-tag)
+
+(defn replace-dx-function [newtag oldtag]
+  (fn [obj]
+    (fn [& args]
+      (let [eps (make-differential-tag)]
+        ((replace-differential-tag eps oldtag)
+         ((replace-differential-tag oldtag newtag)
+          (apply obj (map (replace-differential-tag oldtag eps) args))))))))
+
+(defn replace-differential-tag [oldtag newtag]
+  (fn call [obj]
+    (cond (differential-type? obj)
+          (terms->differential
+           (mapv (fn [term]
+                   (let [tagv (tags term)]
+                     (if (tag-in? tagv oldtag)
+                       (make-term (-> (tags term)
+                                      (drop-tag oldtag)
+                                      (insert-tag newtag))
+                                  (coefficient term))
+                       term)))
+                 (terms obj)))
+          (struct/structure? obj) (struct/mapr call obj)
+          (matrix/matrix? obj)    (matrix/fmap call obj)
+          #_(comment
+              (quaternion? obj)
+              (quaternion
+               (call (quaternion-ref obj 0))
+               (call (quaternion-ref obj 1))
+               (call (quaternion-ref obj 2))
+               (call (quaternion-ref obj 3))))
+          (series/series? obj)    (series/fmap call obj)
+          (fn? obj)               ((replace-dx-function newtag oldtag) obj)
+          (instance? MultiFn obj) ((replace-dx-function newtag oldtag) obj)
+          (o/operator? obj)       ((replace-dx-function newtag oldtag) obj)
+          :else obj)))
+
+(declare extract-dx-part)
+
+(defn extract-dx-function [dx f]
+  (fn [& args]
+    (let [internal-tag (make-differential-tag)]
+      ((replace-differential-tag internal-tag dx)
+       (extract-dx-part
+        dx
+        (apply f (map (replace-differential-tag dx internal-tag) args)))))))
+
+(defn extract-dx-differential [dx obj]
+  (if (differential-type? obj)
+    (sum->differential
+     (mapcat (fn [term]
+               (let [tagv (tags term)]
+                 (if (tag-in? tagv dx)
+                   [(make-term (drop-tag tagv dx)
+                               (coefficient term))]
+                   [])))
+             (terms obj)))
+    0))
+
+(defn- extract-dx-part [dx obj]
+  (letfn [(dist [obj]
             (cond (struct/structure? obj) (struct/mapr dist obj)
-                  (matrix/matrix? obj) (matrix/fmap dist obj)
-                  (series/series? obj) (series/fmap dist obj)
-                  (o/operator? obj) (do (u/illegal "can't differentiate an operator yet")
-                                        (extract obj))      ;; TODO: tag-hiding
-                  ;; (quaternion? obj) XXX
-                  ;; ((operator? obj)
-                  ;;  (hide-tag-in-procedure dx
-                  ;;                         (g:* (make-operator dist 'extract (operator-subtype obj))
-                  ;;                              obj)))
-                  (fn? obj) #(dist (obj %)) ;; TODO: innocent of the tag-hiding business
-                  :else (extract obj)))]
+                  (matrix/matrix? obj)    (matrix/fmap dist obj)
+                  (series/series? obj)    (series/fmap dist obj)
+                  (fn? obj)               (extract-dx-function dx obj)
+                  (instance? MultiFn obj) (extract-dx-function dx obj)
+                  (o/operator? obj)       (extract-dx-function dx obj)
+                  #_(comment
+                      (quaternion? obj)
+                      (quaternion (dist (quaternion-ref obj 0))
+                                  (dist (quaternion-ref obj 1))
+                                  (dist (quaternion-ref obj 2))
+                                  (dist (quaternion-ref obj 3))))
+                  (fn? obj) #(dist (obj %))
+                  :else (extract-dx-differential dx obj)))]
     (dist obj)))
 
 (defn derivative [f]

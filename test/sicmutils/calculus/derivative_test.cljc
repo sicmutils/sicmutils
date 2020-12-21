@@ -197,12 +197,8 @@
       (is (= (exp 8)
              ((f-hat exp) 5)))
 
-      ;; this is the amazing bug: bbb == 0 is wrong.
-      (is (= 0 ((f-hat (f-hat exp)) 5)))
-
-      (comment
-        ;; TODO this is the correct answer.
-        (is (= (exp 11) ((f-hat (f-hat exp)) 5)))))))
+      ;; this is the correct answer.
+      (is (= (exp 11) ((f-hat (f-hat exp)) 5))))))
 
 (deftest diff-test-2
   (testing "delta-eta-test"
