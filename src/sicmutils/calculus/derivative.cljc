@@ -21,7 +21,6 @@
   (:refer-clojure :rename {partial core-partial}
                   #?@(:cljs [:exclude [partial]]))
   (:require [clojure.string :refer [join]]
-            [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as matrix]
@@ -33,6 +32,12 @@
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang MultiFn))))
+
+;; extensions.
+
+(derive ::differential ::o/co-operator)
+(derive ::differential ::series/coseries)
+(derive ::differential ::f/cofunction)
 
 ;; A differential term is implemented as a pair whose first element is
 ;; a set of tags and whose second is the coefficient.
@@ -47,21 +52,19 @@
 (def ^:private tags first)
 (def ^:private coefficient second)
 
-(declare differential-of
-         with-finite-and-infinitesimal-parts)
+(declare d:= d:one? d:zero? differential-of)
 
 ;; A differential is a sequence of differential terms, ordered by the
 ;; tag set.
+;;
+;; TODO implement ifn, compare, equals for clj, cljs, and make `arity` open so
+;; that we can install it for other methods.
+
 (deftype Differential [terms]
   v/Value
-  (zero? [_] (every? (comp v/zero? coefficient) terms))
-  (one? [this]
-    (with-finite-and-infinitesimal-parts this
-      (fn [finite inft]
-        (and (v/one? finite)
-             (v/zero? inft)))))
-
-  (identity? [this] (v/one? this))
+  (zero? [this] (d:zero? this))
+  (one? [this] (d:one? this))
+  (identity? [this] (d:one? this))
   (zero-like [_] 0)
   (one-like [_] 1)
   (identity-like [_] 1)
@@ -74,15 +77,11 @@
   (toString [_] (str "D[" (join " " (map #(join " → " %) terms)) "]"))
 
   #?(:clj
-     (equals [_ b]
-             (and (instance? Differential b)
-                  (= terms (.-terms ^Differential b)))))
+     (equals [a b] (d:= a b)))
 
   #?@(:cljs
       [IEquiv
-       (-equiv [_ b]
-               (and (instance? Differential b)
-                    (= terms (.-terms ^Differential b))))
+       (-equiv [a b] (d:= a b))
 
        IPrintWithWriter
        (-pr-writer [x writer _]
@@ -146,20 +145,17 @@
 
   - if we're a differential, the differential of the coefficient of the
     highest-order term part
-  - or else the input itself.
-
-  TODO why is it the FIRST element, the car, in the scheme edition? Maybe it
-  just doesn't matter and we assume that they're all the same."
+  - or else the input itself."
   [dx]
   (if (differential-type? dx)
     (recur (coefficient
-            (peek (terms dx))))
+            (first (terms dx))))
     dx))
 
 (defn arity [x]
   (if (differential-type? x)
     (recur (coefficient
-            (peek (terms x))))
+            (first (terms x))))
     (f/arity x)))
 
 (defn diff:apply
@@ -390,16 +386,19 @@
     (let [dx (make-differential-tag)]
       (extract-dx-part dx (f (make-x+dx x dx))))))
 
+(defn- keytag [x]
+  (when (differential-type? x)
+    (let [last-term   (peek (differential->terms x))
+          highest-tag (peek (tags last-term))]
+      highest-tag)))
+
 (defn max-order-tag
   "From each of the differentials in the sequence ds, find the highest
   order term; then return the greatest tag found in any of these
   terms; i.e., the highest-numbered tag of the highest-order term."
   [ds]
   (letfn [(max-termv [d]
-            (if-let [max-order (-> (differential->terms d)
-                                   (peek)
-                                   (tags)
-                                   (peek))]
+            (if-let [max-order (keytag d)]
               [max-order]
               []))]
     (->> (mapcat max-termv ds)
@@ -436,12 +435,6 @@
       [(sum->differential infinitesimal-terms)
        (sum->differential finite-terms)])))
 
-(defn- keytag [x]
-  (when (differential-type? x)
-    (let [last-term   (peek (differential->terms x))
-          highest-tag (peek (tags last-term))]
-      highest-tag)))
-
 (defn finite-part [x]
   (without-tag (keytag x) x))
 
@@ -456,6 +449,31 @@
         (with-and-without-tag (keytag x) x)]
     (continue finite-part infinitesimal-part)))
 
+(defn d:zero? [dx]
+  (every? (comp v/zero? coefficient)
+          (terms dx)))
+
+(defn d:one? [dx]
+  (with-finite-and-infinitesimal-parts dx
+    (fn [finite inft]
+      (and (v/one? finite)
+           (v/zero? inft)))))
+
+(defn d:=
+  "Returns true if the [[Differential]] instance `a` equals `b`, false otherwise."
+  [a b]
+  {:pre [(differential-type? a)]}
+  (if (differential-type? b)
+    (= (terms a)
+       (terms b))
+    (= (finite-part a) b)))
+
+(defn diff:compare
+  "Comparator that can compare differentials with non-differentials."
+  [a b]
+  (compare (finite-part a)
+           (finite-part b)))
+
 (defn- unary-op
   [f df:dx]
   (fn [x]
@@ -466,7 +484,7 @@
                   infinitesimal))))))
 
 (defn- binary-op
-  [f df:dx df:dy _kw]
+  [f df:dx df:dy]
   (fn [x y]
     (let [mt      (max-order-tag [x y])
           [dx xe] (with-and-without-tag mt x)
@@ -479,44 +497,37 @@
         b
         (d:+ b (d:* (df:dy xe ye) dy))))))
 
-(defn diff:compare
-  "Comparator that can compare differentials with non-differentials."
-  [a b]
-  (compare (finite-part a)
-           (finite-part b)))
-
-(def ^:private diff-+ (binary-op g/+ (fn [_ _] 1) (fn [_ _] 1) :plus))
-(def ^:private diff-- (binary-op g/- (fn [_ _] 1) (fn [_ _] -1) :minus))
-(def ^:private diff-* (binary-op g/* (fn [_ y] y) (fn [x _] x) :times))
+(def ^:private diff-+ (binary-op g/+ (fn [_ _] 1) (fn [_ _] 1)))
+(def ^:private diff-- (binary-op g/- (fn [_ _] 1) (fn [_ _] -1)))
+(def ^:private diff-* (binary-op g/* (fn [_ y] y) (fn [x _] x)))
 (def ^:private diff-div
-  (binary-op g/divide
-             (fn [_ y] (g/divide 1 y))
-             (fn [x y] (g/negate (g/divide x (g/square y)))) :divide))
+  (binary-op g/div
+             (fn [_ y] (g/invert y))
+             (fn [x y] (g/negate (g/divide x (g/square y))))))
 
 (def ^:private sin (unary-op g/sin g/cos))
 (def ^:private cos (unary-op g/cos #(g/negate (g/sin %))))
 (def ^:private tan (unary-op g/tan #(g/invert (g/square (g/cos %)))))
 
 (def ^:private asin
-  (unary-op g/asin #(g/invert (g/sqrt (g/- 1 (g/square %))))))
+  (unary-op g/asin #(g/invert (g/sqrt (g/sub 1 (g/square %))))))
 
 (def ^:private acos
-  (unary-op g/acos #(g/* -1 (g/invert (g/sqrt (g/- 1 (g/square %)))))))
+  (unary-op g/acos #(g/negate (g/invert (g/sqrt (g/sub 1 (g/square %)))))))
 
 (def ^:private atan
-  (unary-op g/atan #(g/invert (g/+ 1 (g/square %)))))
+  (unary-op g/atan #(g/invert (g/add 1 (g/square %)))))
 
 (def ^:private atan2
   (binary-op g/atan
              (fn [y x]
                (g/divide x
-                         (g/+ (g/square x)
-                              (g/square y))))
+                         (g/add (g/square x)
+                                (g/square y))))
              (fn [y x]
                (g/divide (g/negate y)
-                         (g/+ (g/square x)
-                              (g/square y))))
-             :atan2))
+                         (g/add (g/square x)
+                                (g/square y))))))
 
 (defn- abs [x]
   (let [f (finite-part x)
@@ -528,24 +539,23 @@
 
 (def ^:private sinh (unary-op g/sinh g/cosh))
 (def ^:private cosh (unary-op g/cosh g/sinh))
-(def ^:private tanh (unary-op g/tanh #(g/- 1 (g/square (g/tanh %)))))
+(def ^:private tanh (unary-op g/tanh #(g/sub 1 (g/square (g/tanh %)))))
 
-(def ^:private sqrt (unary-op g/sqrt #(-> % g/sqrt (g/* 2) g/invert)))
+(def ^:private sqrt (unary-op g/sqrt #(-> % g/sqrt (g/mul 2) g/invert)))
 (def ^:private exp (unary-op g/exp g/exp))
 (def ^:private negate (unary-op g/negate (fn [_] -1)))
 
 (def ^:private power
   (binary-op g/expt
              (fn [x y]
-               (g/* y (g/expt x (g/- y 1))))
+               (g/mul y (g/expt x (g/sub y 1))))
              (fn [_ _]
-               (u/illegal "can't get there from here"))
-             :expt))
+               (u/illegal "can't get there from here"))))
 
 (def ^:private expt
   (binary-op g/expt
              (fn [x y]
-               (g/* y (g/expt x (g/- y 1))))
+               (g/mul y (g/expt x (g/sub y 1))))
              (fn [x y]
                (if (and (v/number? x) (v/zero? y))
                  (if (v/number? y)
@@ -553,71 +563,8 @@
                      0
                      (u/illegal "Derivative undefined: expt"))
                    0)
-                 (g/* (g/log x) (g/expt x y))))
-             :expt))
+                 (g/* (g/log x) (g/expt x y))))))
 (def ^:private log (unary-op g/log g/invert))
-
-(defn- euclidean-structure
-  [selectors f]
-  (letfn [(structural-derivative [g v]
-            (cond (struct/structure? v)
-                  (struct/opposite v
-                                   (map-indexed
-                                    (fn [i v_i]
-                                      (structural-derivative
-                                       (fn [w]
-                                         (g (assoc-in v [i] w)))
-                                       v_i))
-                                    v))
-
-                  (or (v/numerical? v) (x/abstract? v))
-                  ((derivative g) v)
-
-                  :else
-                  (u/illegal (str "bad structure " g ", " v))))
-          (a-euclidean-derivative [v]
-            (cond (struct/structure? v)
-                  (structural-derivative
-                   (fn [w]
-                     (f (if (empty? selectors)
-                          w
-                          (assoc-in v selectors w))))
-                   (get-in v selectors))
-
-                  (empty? selectors)
-                  ((derivative f) v)
-
-                  :else
-                  (u/illegal (str "Bad selectors " f selectors v))))]
-    a-euclidean-derivative))
-
-(defn ^:private multivariate-derivative
-  [f selectors]
-  (let [a (f/arity f)
-        d (core-partial euclidean-structure selectors)
-        make-df #(with-meta % {:arity a :from :multivariate-derivative})]
-    (condp = a
-      [:exactly 0] (make-df (constantly 0))
-      [:exactly 1] (make-df (d f))
-      [:exactly 2] (make-df (fn [x y]
-                              ((d (fn [[x y]] (f x y)))
-                               (matrix/seq-> [x y]))))
-      [:exactly 3] (make-df (fn [x y z]
-                              ((d (fn [[x y z]] (f x y z)))
-                               (matrix/seq-> [x y z]))))
-      [:exactly 4] (make-df (fn [w x y z]
-                              ((d (fn [[w x y z]] (f w x y z)))
-                               (matrix/seq-> [w x y z]))))
-      [:between 1 2] (make-df (fn [x & y]
-                                (if (nil? y)
-                                  ((d f) x)
-                                  ((d (fn [[x y]] (f x y)))
-                                   (matrix/seq-> (cons x y))))))
-      (fn [& xs]
-        (when (empty? xs) (u/illegal "No args passed to derivative?"))
-        (if (= (count xs) 1)
-          ((d f) (first xs))
-          ((d #(apply f %)) (matrix/seq-> xs)))))))
 
 (defn- defbinary [generic-op differential-op]
   (doseq [signature [[::differential ::differential]
@@ -628,9 +575,6 @@
 (defn- defunary [generic-op differential-op]
   (defmethod generic-op [::differential] [a] (differential-op a)))
 
-;; TODO missing:
-;; - apply, arity impls
-;; -
 (defmethod g/expt [::differential ::v/number] [d n] (power d n))
 (defbinary g/expt expt)
 
@@ -664,13 +608,68 @@
 
 (defbinary g/dot-product diff-*)
 
-(derive ::differential ::o/co-operator)
-(derive ::differential ::series/coseries)
-(derive ::differential ::f/cofunction)
+;; ## Multivariable Calculus
 
-(defmethod g/partial-derivative
-  [::v/function v/seqtype]
-  [f selectors]
+(defn- euclidean-structure [selectors f]
+  (letfn [(structural-derivative [g v]
+            (cond (struct/structure? v)
+                  (struct/opposite v
+                                   (map-indexed
+                                    (fn [i v_i]
+                                      (structural-derivative
+                                       (fn [w]
+                                         (g (assoc-in v [i] w)))
+                                       v_i))
+                                    v))
+
+                  (v/numerical? v) ((derivative g) v)
+
+                  :else
+                  (u/illegal (str "bad structure " g ", " v))))
+          (a-euclidean-derivative [v]
+            (cond (struct/structure? v)
+                  (structural-derivative
+                   (fn [w]
+                     (f (if (empty? selectors)
+                          w
+                          (assoc-in v selectors w))))
+                   (get-in v selectors))
+
+                  (empty? selectors)
+                  ((derivative f) v)
+
+                  :else
+                  (u/illegal (str "Bad selectors " f selectors v))))]
+    a-euclidean-derivative))
+
+(defn- multivariate-derivative [f selectors]
+  (let [a (f/arity f)
+        d (core-partial euclidean-structure selectors)
+        make-df #(with-meta % {:arity a :from :multivariate-derivative})]
+    (condp = a
+      [:exactly 0] (make-df (constantly 0))
+      [:exactly 1] (make-df (d f))
+      [:exactly 2] (make-df (fn [x y]
+                              ((d (fn [[x y]] (f x y)))
+                               (matrix/seq-> [x y]))))
+      [:exactly 3] (make-df (fn [x y z]
+                              ((d (fn [[x y z]] (f x y z)))
+                               (matrix/seq-> [x y z]))))
+      [:exactly 4] (make-df (fn [w x y z]
+                              ((d (fn [[w x y z]] (f w x y z)))
+                               (matrix/seq-> [w x y z]))))
+      [:between 1 2] (make-df (fn
+                                ([x] ((d f) x))
+                                ([x y]
+                                 ((d (fn [[x y]] (f x y)))
+                                  (matrix/seq-> [x y])))))
+      (fn [& xs]
+        (when (empty? xs) (u/illegal "No args passed to derivative?"))
+        (if (= (count xs) 1)
+          ((d f) (first xs))
+          ((d #(apply f %)) (matrix/seq-> xs)))))))
+
+(defmethod g/partial-derivative [::v/function v/seqtype] [f selectors]
   (multivariate-derivative f selectors))
 
 (defmethod g/partial-derivative [::v/function nil] [f _]
