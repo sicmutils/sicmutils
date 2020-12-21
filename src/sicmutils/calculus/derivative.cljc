@@ -305,13 +305,12 @@
 
 (declare replace-differential-tag)
 
-(defn replace-dx-function [newtag oldtag]
-  (fn [obj]
-    (fn [& args]
-      (let [eps (make-differential-tag)]
-        ((replace-differential-tag eps oldtag)
-         ((replace-differential-tag oldtag newtag)
-          (apply obj (map (replace-differential-tag oldtag eps) args))))))))
+(defn replace-dx-function [f newtag oldtag]
+  (fn [& args]
+    (let [eps (make-differential-tag)]
+      ((replace-differential-tag eps oldtag)
+       ((replace-differential-tag oldtag newtag)
+        (apply f (map (replace-differential-tag oldtag eps) args)))))))
 
 (defn replace-differential-tag [oldtag newtag]
   (fn call [obj]
@@ -336,9 +335,9 @@
                (call (quaternion-ref obj 2))
                (call (quaternion-ref obj 3))))
           (series/series? obj)    (series/fmap call obj)
-          (fn? obj)               ((replace-dx-function newtag oldtag) obj)
-          (instance? MultiFn obj) ((replace-dx-function newtag oldtag) obj)
-          (o/operator? obj)       ((replace-dx-function newtag oldtag) obj)
+          (fn? obj)               (replace-dx-function obj newtag oldtag)
+          (instance? MultiFn obj) (replace-dx-function obj newtag oldtag)
+          (o/operator? obj)       (replace-dx-function obj newtag oldtag)
           :else obj)))
 
 (declare extract-dx-part)
@@ -618,10 +617,9 @@
                                     (fn [i v_i]
                                       (structural-derivative
                                        (fn [w]
-                                         (g (assoc-in v [i] w)))
+                                         (g (assoc v i w)))
                                        v_i))
                                     v))
-
                   (v/numerical? v) ((derivative g) v)
 
                   :else

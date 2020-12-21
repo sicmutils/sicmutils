@@ -153,9 +153,9 @@
     (is (= 4 (get-in (s/down (s/up 1 2) (s/up 3 4)) [1 1])))
     (is (= 2 (get-in (s/down (s/up 1 2) (s/up 3 4)) [0 1]))))
 
-  (testing "assoc-in works for updating structures"
+  (testing "assoc, assoc-in works for updating structures"
     (is (= (s/up 4 55 6)
-           (assoc-in (s/up 4 5 6) [1] 55)))
+           (assoc (s/up 4 5 6) 1 55)))
     (is (= (s/down (s/up 1 22) (s/up 3 4))
            (assoc-in (s/down (s/up 1 2) (s/up 3 4)) [0 1] 22))))
 

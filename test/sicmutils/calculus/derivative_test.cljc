@@ -198,7 +198,8 @@
              ((f-hat exp) 5)))
 
       ;; this is the correct answer.
-      (is (= (exp 11) ((f-hat (f-hat exp)) 5))))))
+      (is (= (exp 11)
+             ((f-hat (f-hat exp)) 5))))))
 
 (deftest diff-test-2
   (testing "delta-eta-test"
