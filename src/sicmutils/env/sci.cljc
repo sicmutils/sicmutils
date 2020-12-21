@@ -11,20 +11,18 @@
               (-> the-var meta :macro)
               (with-meta {:sci/macro true}))])
 
-(defn make-sci-namespace
-  ([ns-name]
-   (make-sci-namespace ns-name (ns-publics ns-name)))
-  ([_ns-name publics]
-   (into {} (map ->sci-var) publics)))
+(defn ->sci-ns [publics]
+  (into {} (map ->sci-var) publics))
 
 (def namespaces
-  {'sicmutils.env (merge (make-sci-namespace 'sicmutils.env (-> (ns-publics 'sicmutils.env)
-                                                                (dissoc 'bootstrap-repl! 'let-coordinates 'using-coordinates)))
-                         (make-sci-namespace 'sicmutils.calculus.coordinate
-                                             (select-keys (ns-publics 'sicmutils.calculus.coordinate)
-                                                          ['let-coordinates 'using-coordinates])))
-   'sicmutils.abstract.function (make-sci-namespace 'sicmutils.abstract.function)
-   'sicmutils.calculus.coordinate (make-sci-namespace 'sicmutils.calculus.coordinate)})
+  {'sicmutils.env (merge (-> 'sicmutils.env
+                             ns-publics
+                             (dissoc 'bootstrap-repl! 'let-coordinates 'using-coordinates))
+                         (->  'sicmutils.calculus.coordinate
+                              ns-publics
+                              (select-keys ['let-coordinates 'using-coordinates])))
+   'sicmutils.abstract.function (-> 'sicmutils.abstract.function ns-publics ->sci-ns)
+   'sicmutils.calculus.coordinate (-> 'sicmutils.calculus.coordinate ns-publics ->sci-ns)})
 
 (def opts {:namespaces (set/rename-keys namespaces {'sicmutils.env 'user})})
 
