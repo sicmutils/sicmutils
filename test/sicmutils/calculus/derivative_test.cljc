@@ -68,7 +68,7 @@
 
 (deftest differentials
   (testing "add, mul differentials"
-    (let [zero-differential (d/->Differential [])
+    (let [zero-differential (d/terms->differential [])
           dx (d/sum->differential {[0] 1})
           -dx (d/sum->differential {[0] -1})
           dy (d/sum->differential {[1] 1})

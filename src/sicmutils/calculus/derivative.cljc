@@ -46,8 +46,7 @@
 (def ^:private tags first)
 (def ^:private coefficient second)
 
-(declare canonicalize
-         differential-of
+(declare differential-of
          with-finite-and-infinitesimal-parts)
 
 ;; A differential is a sequence of differential terms, ordered by the
@@ -58,9 +57,9 @@
   (one? [this]
     (with-finite-and-infinitesimal-parts this
       (fn [finite inft]
-        (let [cf (canonicalize finite)]
-          (and (v/one? cf)
-               (v/zero? inft))))))
+        (and (v/one? finite)
+             (v/zero? inft)))))
+
   (identity? [this] (v/one? this))
   (zero-like [_] 0)
   (one-like [_] 1)
@@ -130,11 +129,7 @@
         :else        [(make-term empty-tags dx)]))
 
 (defn terms->differential
-  "Returns a differential instance generated from a vector of terms.
-
-  Similar to [[canonicalize]] if you only have a term list.
-
-  TODO maybe consolidate if `canonicalize` is the only place we use this."
+  "Returns a differential instance generated from a vector of terms."
   [terms]
   {:pre [(vector? terms)]}
   (cond (empty? terms) 0
@@ -144,17 +139,6 @@
         (coefficient (first terms))
 
         :else (->Differential terms)))
-
-(defn canonicalize
-  "Returns the term list of the supplied differential, _unless_ that term list is
-  empty (returns 0) or contains a singleton term (returns its coefficient)"
-  [dx]
-  (let [ts (terms dx)]
-    (cond (empty? ts) 0
-          (and (= (count ts) 1)
-               (empty? (tags (first ts))))
-          (coefficient (first ts))
-          :else dx)))
 
 (defn differential-of
   "The differential of a quantity is:
@@ -296,17 +280,16 @@
   differential; in which case we lift it into a trivial differential
   before the addition.)"
   [dx dy]
-  (->Differential
+  (terms->differential
    (terms:+ (differential->terms dx)
             (differential->terms dy))))
 
 (defn d:*
   "Form the product of the differentials dx and dy."
   [dx dy]
-  (->Differential
-   (collect-terms
-    (terms:* (differential->terms dx)
-             (differential->terms dy)))))
+  (sum->differential
+   (terms:* (differential->terms dx)
+            (differential->terms dy))))
 
 (defn- make-x+dx [x dx]
   (d:+ x (->Differential [[[dx] 1]])))
@@ -344,32 +327,6 @@
   (fn [x]
     (let [dx (make-differential-tag)]
       (extract-dx-part dx (f (make-x+dx x dx))))))
-
-(defn- with-finite-and-infinitesimal-parts
-  "Partition the terms of the given differential into the finite and
-  infinite parts. The continuation is called with these two parts."
-  [x continue]
-  {:pre [(differential? x)]}
-  (let [dts (differential->terms x)
-        keytag (-> dts last first last)
-        {finite-part nil
-         infinitesimal-part true} (group-by #(tag-in? (tags %) keytag) dts)]
-    ;; since input differential is well-formed, it is safe to
-    ;; construct differential objects on the split parts.
-    (continue (->Differential finite-part)
-              (->Differential infinitesimal-part))))
-
-(defn- unary-op
-  [f df:dx]
-  (fn [x]
-    (with-finite-and-infinitesimal-parts x
-      (fn [finite-part infinitesimal-part]
-        (let [canonicalized-finite-part (canonicalize finite-part)]
-          (canonicalize
-           (d:+ (f canonicalized-finite-part)
-                (d:* (df:dx canonicalized-finite-part)
-                     infinitesimal-part))))))))
-
 
 (defn max-order-tag
   "From each of the differentials in the sequence ds, find the highest
@@ -409,29 +366,65 @@
   "Split the differential into the parts with and without tag and return the
   pair."
   [tag dx]
-  (let [[infinitesimal-terms finite-terms]
-        (us/separatev #(tag-in-term? % tag)
-                      (differential->terms dx))]
-    [(sum->differential infinitesimal-terms)
-     (sum->differential finite-terms)]))
+  (if-not (differential-type? dx)
+    [0 dx]
+    (let [[infinitesimal-terms finite-terms]
+          (us/separatev #(tag-in-term? % tag)
+                        (differential->terms dx))]
+      [(sum->differential infinitesimal-terms)
+       (sum->differential finite-terms)])))
 
-(defn ^:private binary-op
+(defn- keytag [x]
+  (when (differential-type? x)
+    (let [last-term   (peek (differential->terms x))
+          highest-tag (peek (tags last-term))]
+      highest-tag)))
+
+(defn finite-part [x]
+  (without-tag (keytag x) x))
+
+(defn infinitesimal-part [x]
+  (with-tag (keytag x) x))
+
+(defn- with-finite-and-infinitesimal-parts
+  "Partition the terms of the given differential into the finite and infinite
+  parts. The continuation is called with these two parts."
+  [x continue]
+  (let [[infinitesimal-part finite-part]
+        (with-and-without-tag (keytag x) x)]
+    (continue finite-part infinitesimal-part)))
+
+(defn- unary-op
+  [f df:dx]
+  (fn [x]
+    (with-finite-and-infinitesimal-parts x
+      (fn [finite infinitesimal]
+        (d:+ (f finite)
+             (d:* (df:dx finite)
+                  infinitesimal))))))
+
+(defn- binary-op
   [f df:dx df:dy _kw]
   (fn [x y]
-    (let [mt (max-order-tag [x y])
+    (let [mt      (max-order-tag [x y])
           [dx xe] (with-and-without-tag mt x)
           [dy ye] (with-and-without-tag mt y)
           a (f xe ye)
           b (if (and (v/number? dx) (v/zero? dx))
               a
-              (d:+ a (d:* dx (df:dx xe ye))))
-          c (if (and (v/number? dy) (v/zero? dy))
-              b
-              (d:+ b (d:* (df:dy xe ye) dy)))]
-      (canonicalize c))))
+              (d:+ a (d:* dx (df:dx xe ye))))]
+      (if (and (v/number? dy) (v/zero? dy))
+        b
+        (d:+ b (d:* (df:dy xe ye) dy))))))
 
-(def ^:private diff-+ (binary-op g/+ (constantly 1) (constantly 1) :plus))
-(def ^:private diff-- (binary-op g/- (constantly 1) (constantly -1) :minus))
+(defn diff:compare
+  "Comparator that can compare differentials with non-differentials."
+  [a b]
+  (compare (finite-part a)
+           (finite-part b)))
+
+(def ^:private diff-+ (binary-op g/+ (fn [_ _] 1) (fn [_ _] 1) :plus))
+(def ^:private diff-- (binary-op g/- (fn [_ _] 1) (fn [_ _] -1) :minus))
 (def ^:private diff-* (binary-op g/* (fn [_ y] y) (fn [x _] x) :times))
 (def ^:private diff-div
   (binary-op g/divide
@@ -444,10 +437,13 @@
 
 (def ^:private asin
   (unary-op g/asin #(g/invert (g/sqrt (g/- 1 (g/square %))))))
+
 (def ^:private acos
   (unary-op g/acos #(g/* -1 (g/invert (g/sqrt (g/- 1 (g/square %)))))))
+
 (def ^:private atan
   (unary-op g/atan #(g/invert (g/+ 1 (g/square %)))))
+
 (def ^:private atan2
   (binary-op g/atan
              (fn [y x]
@@ -460,13 +456,22 @@
                               (g/square y))))
              :atan2))
 
+(defn- abs [x]
+  (let [f (finite-part x)
+        func (cond (< f 0) (unary-op (fn [x] x) (fn [_] -1))
+                   (> f 0) (unary-op (fn [x] x) (fn [_] 1))
+                   (= f 0) (u/illegal "Derivative of g/abs undefined at zero")
+                   :else (u/illegal "error! derivative of g/abs at" x))]
+    (func x)))
+
 (def ^:private sinh (unary-op g/sinh g/cosh))
 (def ^:private cosh (unary-op g/cosh g/sinh))
 (def ^:private tanh (unary-op g/tanh #(g/- 1 (g/square (g/tanh %)))))
 
 (def ^:private sqrt (unary-op g/sqrt #(-> % g/sqrt (g/* 2) g/invert)))
 (def ^:private exp (unary-op g/exp g/exp))
-(def ^:private negate (unary-op g/negate (constantly -1)))
+(def ^:private negate (unary-op g/negate (fn [_] -1)))
+
 (def ^:private power
   (binary-op g/expt
              (fn [x y]
@@ -474,6 +479,7 @@
              (fn [_ _]
                (u/illegal "can't get there from here"))
              :expt))
+
 (def ^:private expt
   (binary-op g/expt
              (fn [x y]
@@ -489,10 +495,7 @@
              :expt))
 (def ^:private log (unary-op g/log g/invert))
 
-;; XXX unary-op is memoized in scmutils. But rather than memoizing that,
-;; it might be better just to memoize entire simplifications.
-
-(defn ^:private euclidean-structure
+(defn- euclidean-structure
   [selectors f]
   (letfn [(structural-derivative [g v]
             (cond (struct/structure? v)
@@ -554,48 +557,50 @@
           ((d f) (first xs))
           ((d #(apply f %)) (matrix/seq-> xs)))))))
 
-(defn ^:private define-binary-operation
-  [generic-operation differential-operation]
+(defn- defbinary [generic-op differential-op]
   (doseq [signature [[::differential ::differential]
                      [::v/scalar ::differential]
                      [::differential ::v/scalar]]]
-    (defmethod generic-operation signature [a b] (differential-operation a b))))
+    (defmethod generic-op signature [a b] (differential-op a b))))
 
-(defn ^:private define-unary-operation
-  [generic-operation differential-operation]
-  (defmethod generic-operation [::differential] [a] (differential-operation a)))
+(defn- defunary [generic-op differential-op]
+  (defmethod generic-op [::differential] [a] (differential-op a)))
 
+;; TODO missing:
+;; - apply, arity impls
+;; -
 (defmethod g/expt [::differential ::v/number] [d n] (power d n))
-(define-binary-operation g/expt expt)
+(defbinary g/expt expt)
 
-(define-binary-operation g/add diff-+)
-(define-binary-operation g/sub diff--)
-(define-binary-operation g/mul diff-*)
-(define-binary-operation g/div diff-div)
+(defbinary g/add diff-+)
+(defbinary g/sub diff--)
+(defbinary g/mul diff-*)
+(defbinary g/div diff-div)
 
-(define-unary-operation g/log log)
-(define-unary-operation g/exp exp)
-(define-unary-operation g/sqrt sqrt)
+(defunary g/log log)
+(defunary g/exp exp)
+(defunary g/abs abs)
+(defunary g/sqrt sqrt)
 
-(define-unary-operation g/sin sin)
-(define-unary-operation g/cos cos)
-(define-unary-operation g/tan tan)
+(defunary g/sin sin)
+(defunary g/cos cos)
+(defunary g/tan tan)
 
-(define-unary-operation g/asin asin)
-(define-unary-operation g/acos acos)
-(define-unary-operation g/atan atan)
-(define-binary-operation g/atan atan2)
+(defunary g/asin asin)
+(defunary g/acos acos)
+(defunary g/atan atan)
+(defbinary g/atan atan2)
 
-(define-unary-operation g/sinh sinh)
-(define-unary-operation g/cosh cosh)
-(define-unary-operation g/tanh tanh)
+(defunary g/sinh sinh)
+(defunary g/cosh cosh)
+(defunary g/tanh tanh)
 
-(define-unary-operation g/negate negate)
-(define-unary-operation g/invert #(diff-div 1 %))
-(define-unary-operation g/square #(diff-* % %))
-(define-unary-operation g/cube #(diff-* % (diff-* % %)))
+(defunary g/negate negate)
+(defunary g/invert #(diff-div 1 %))
+(defunary g/square #(diff-* % %))
+(defunary g/cube #(diff-* % (diff-* % %)))
 
-(define-binary-operation g/dot-product diff-*)
+(defbinary g/dot-product diff-*)
 
 (derive ::differential ::o/co-operator)
 (derive ::differential ::series/coseries)
