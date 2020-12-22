@@ -34,6 +34,9 @@
      (:import (clojure.lang MultiFn))))
 
 ;; extensions.
+;;
+;; TODO I THINK matrix derivative is NOT what we want here!! Different than
+;; scmutils.
 
 (derive ::differential ::o/co-operator)
 (derive ::differential ::series/coseries)
@@ -667,17 +670,12 @@
           ((d f) (first xs))
           ((d #(apply f %)) (matrix/seq-> xs)))))))
 
-(defmethod g/partial-derivative [::v/function v/seqtype] [f selectors]
-  (multivariate-derivative f selectors))
+(doseq [t [::v/function ::struct/structure ::matrix/matrix]]
+  (defmethod g/partial-derivative [t v/seqtype] [f selectors]
+    (multivariate-derivative f selectors))
 
-(defmethod g/partial-derivative [::v/function nil] [f _]
-  (multivariate-derivative f []))
-
-(defmethod g/partial-derivative [::struct/structure v/seqtype] [f selectors]
-  (multivariate-derivative f selectors))
-
-(defmethod g/partial-derivative [::matrix/matrix v/seqtype] [f selectors]
-  (multivariate-derivative f selectors))
+  (defmethod g/partial-derivative [t nil] [f _]
+    (multivariate-derivative f [])))
 
 (def derivative-symbol 'D)
 

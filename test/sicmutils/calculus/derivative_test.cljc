@@ -39,12 +39,12 @@
 
 (use-fixtures :each hermetic-simplify-fixture)
 
-(def ^:private q
+(def q
   (s/up (af/literal-function 'x)
         (af/literal-function 'y)
         (af/literal-function 'z)))
 
-(defn ^:private δ
+(defn- δ
   [η]
   (fn [f]
     ;; Define g(ε) as in Eq. 1.22; then δ_η f[q] = Dg(0)
