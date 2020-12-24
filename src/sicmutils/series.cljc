@@ -19,7 +19,8 @@
 
 (ns sicmutils.series
   (:refer-clojure :exclude [identity])
-  (:require [sicmutils.series.impl :as i]
+  (:require [sicmutils.differential :as d]
+            [sicmutils.series.impl :as i]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
@@ -573,6 +574,7 @@
 ;; NOTE This might be the right way to go. Feel free to experiment.
 
 (derive ::v/scalar ::coseries)
+(derive ::d/differential ::coseries)
 (derive ::v/function ::coseries)
 
 ;; All generic methods:

@@ -18,7 +18,8 @@
 ;
 
 (ns sicmutils.operator
-  (:require [sicmutils.function :as f]
+  (:require [sicmutils.differential :as d]
+            [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.series :as series]
             [sicmutils.util :as u]
@@ -213,6 +214,7 @@
                `(~'exp ~(:name op))
                (:context op))))
 
+(derive ::d/differential ::co-operator)
 (derive ::v/scalar ::co-operator)
 
 (defmethod g/expt [::operator ::v/native-integral] [o n]

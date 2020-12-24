@@ -19,6 +19,7 @@
 
 (ns sicmutils.structure
   (:require [clojure.string :refer [join]]
+            [sicmutils.differential :as d]
             [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
@@ -81,6 +82,11 @@
   (numerical? [_] false)
   (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
   (kind [_] orientation)
+
+  d/IDifferential
+  (differential? [_]
+    (boolean
+     (some d/differential? v)))
 
   #?@(:clj
       [Object

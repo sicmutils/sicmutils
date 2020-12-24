@@ -21,14 +21,16 @@
   (:refer-clojure :rename {get-in core-get-in
                            some core-some}
                   #?@(:cljs [:exclude [get-in some]]))
-  (:require [sicmutils.value :as v]
+  (:require [sicmutils.differential :as d]
             [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
+            [sicmutils.series :as series]
+            [sicmutils.structure :as s]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
-            [sicmutils.structure :as s]
-            [sicmutils.series :as series])
+
+            [sicmutils.value :as v])
   #?(:clj
      (:import [clojure.lang Associative AFn IFn Sequential])))
 
@@ -38,6 +40,8 @@
 (derive ::column-matrix ::matrix)
 (derive ::row-matrix ::matrix)
 (derive ::matrix ::f/cofunction)
+
+(declare some)
 
 (deftype Matrix [r c v]
   v/Value
@@ -57,6 +61,11 @@
                   (= r 1) ::row-matrix
                   (= c 1) ::column-matrix
                   :else ::matrix))
+
+  d/IDifferential
+  (differential? [_]
+    (boolean
+     (some d/differential? v)))
 
   #?@(:clj
       [Object

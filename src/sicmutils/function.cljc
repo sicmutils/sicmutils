@@ -295,7 +295,7 @@
 
 ;; ## Generic Implementations
 ;;
-;; A `::confunction` is a type that we know how to combine with a function in a
+;; A `::cofunction` is a type that we know how to combine with a function in a
 ;; binary operation.
 
 (derive ::v/scalar ::cofunction)

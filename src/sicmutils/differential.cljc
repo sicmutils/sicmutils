@@ -21,10 +21,6 @@
   (:require [clojure.string :refer [join]]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
-            [sicmutils.matrix :as matrix]
-            [sicmutils.operator :as o]
-            [sicmutils.series :as series]
-            [sicmutils.structure :as struct]
             [sicmutils.util :as u]
             [sicmutils.util.stream :as us]
             [sicmutils.value :as v]))
@@ -34,8 +30,13 @@
 ;; TODO I THINK matrix derivative is NOT what we want here!! Different than
 ;; scmutils.
 
-(derive ::differential ::o/co-operator)
-(derive ::differential ::series/coseries)
+(defprotocol IDifferential
+  (differential? [this]))
+
+(extend-protocol IDifferential
+  #?(:clj Object :cljs default)
+  (differential? [_] false))
+
 (derive ::differential ::f/cofunction)
 
 ;; A differential term is implemented as a pair whose first element is
@@ -60,6 +61,9 @@
 ;; that we can install it for other methods.
 
 (deftype Differential [terms]
+  IDifferential
+  (differential? [_] true)
+
   v/Value
   (zero? [this] (d:zero? this))
   (one? [this] (d:one? this))
@@ -96,18 +100,6 @@
   otherwise."
   [dx]
   (instance? Differential dx))
-
-(defn differential?
-  "Returns true if the supplied `x` is a 'differential' quantity, false
-  otherwise.
-
-  TODO make this a protocol declared here... and implement it in those other
-  things, have them depend on this."
-  [x]
-  (cond (differential-type? x) true
-        (struct/structure? x)  (some differential? x)
-        (matrix/matrix? x)     (matrix/some differential? x)
-        :else false))
 
 (defn terms
   "For the supplied `Differential` object, returns its vector of terms."
