@@ -61,8 +61,6 @@
   ;; infinite sequences and not necessarily interpreted as polynomials. This
   ;; decision follows `scmutils` convention.
   (identity-like [_] s-identity)
-
-  (numerical? [_] false)
   (exact? [_] false)
   (freeze [_]
     (let [prefix (g/simplify (take 4 xs))]
@@ -210,7 +208,6 @@
   (zero-like [_] zero)
   (one-like [_] one)
   (identity-like [_] identity)
-  (numerical? [_] false)
   (exact? [_] false)
   (freeze [_]
     (let [prefix (g/simplify (take 4 xs))]

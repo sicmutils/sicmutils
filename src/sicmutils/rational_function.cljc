@@ -47,8 +47,6 @@
     (RationalFunction. arity (v/identity-like u) (v/one-like v)))
 
   (freeze [_] `(~'/ ~(v/freeze u) ~(v/freeze v)))
-  (exact? [_] false)
-  (numerical? [_] false)
   (kind [_] ::rational-function)
 
   #?@(:clj

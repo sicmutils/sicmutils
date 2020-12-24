@@ -105,6 +105,9 @@
 
 #?(:clj
    (extend-type Ratio
+     v/Numerical
+     (numerical? [_] true)
+
      v/Value
      (zero? [c] (zero? c))
      (one? [c] (= 1 c))
@@ -116,13 +119,16 @@
                      n
                      `(~'/ ~n ~d))))
      (exact? [c] true)
-     (numerical? [_] true)
+
      (kind [_] Ratio))
 
    :cljs
    (let [ZERO (Fraction. 0)
          ONE  (Fraction. 1)]
      (extend-type Fraction
+       v/Numerical
+       (numerical? [_] true)
+
        v/Value
        (zero? [c] (.equals c ZERO))
        (one? [c] (.equals c ONE))
@@ -136,7 +142,7 @@
                          ~(v/freeze n)
                          ~(v/freeze d)))))
        (exact? [c] true)
-       (numerical? [_] true)
+
        (kind [x] Fraction)
 
        IEquiv

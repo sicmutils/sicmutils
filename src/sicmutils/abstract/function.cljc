@@ -85,7 +85,6 @@
     (let [meta {:arity arity :from :identity-like}]
       (with-meta identity meta)))
   (exact? [f] (f/compose v/exact? f))
-  (numerical? [_] false)
   (freeze [_] (v/freeze name))
   (kind [_] ::function)
 

@@ -72,7 +72,6 @@
   (identity-like [_] (Wrap. "1"))
   (freeze [_] (list 'wrap s))
   (exact? [_] false)
-  (numerical? [_] false)
   (kind [_] ::wrap))
 
 (defmethod g/add [::wrap ::wrap] [l r]

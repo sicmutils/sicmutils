@@ -79,7 +79,6 @@
   (one-like [o] (u/unsupported (str "one-like: " o)))
   (identity-like [o] (u/unsupported (str "identity-like: " o)))
   (exact? [_] (every? v/exact? v))
-  (numerical? [_] false)
   (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
   (kind [_] orientation)
 
@@ -808,11 +807,6 @@
 
 (defmethod g/mul [::structure ::structure] [a b] (s:* a b))
 
-(defmethod g/mul [::structure ::v/scalar] [a b]
-  (structure*scalar a b))
-
-(defmethod g/mul [::v/scalar ::structure] [a b]
-  (scalar*structure a b))
 
 (defmethod g/mul [::structure :sicmutils.operator/operator] [a b]
   (structure*scalar a b))
@@ -820,17 +814,17 @@
 (defmethod g/mul [:sicmutils.operator/operator ::structure] [a b]
   (scalar*structure a b))
 
-(defmethod g/mul [::structure :sicmutils.calculus.derivative/differential] [a b]
-  (structure*scalar a b))
+;; TODO these are the same...
+(defmethod g/mul [::structure ::v/scalar] [a b] (structure*scalar a b))
+(defmethod g/mul [::v/scalar ::structure] [a b] (scalar*structure a b))
+(defmethod g/mul [::structure ::d/differential] [a b] (structure*scalar a b))
+(defmethod g/mul [::d/differential ::structure] [a b] (scalar*structure a b))
 
-(defmethod g/mul [:sicmutils.calculus.derivative/differential ::structure] [a b]
-  (scalar*structure a b))
+;; TODO looks like I can't take the derivative of things that DIVIDE. Fix, and
+;; derive scalar? Make a test that shows this problem.
 
-(defmethod g/div [::structure ::v/scalar] [a b]
-  (structure*scalar a (g/invert b)))
-
-(defmethod g/div [::structure ::structure] [a b]
-  (s:* (g/invert b) a))
+(defmethod g/div [::structure ::v/scalar] [a b] (structure*scalar a (g/invert b)))
+(defmethod g/div [::structure ::structure] [a b] (s:* (g/invert b) a))
 
 (defmethod g/square [::structure] [a] (dot-product a a))
 (defmethod g/cube [::structure] [a] (s:* a (s:* a a)))

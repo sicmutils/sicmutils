@@ -101,7 +101,6 @@
   (one-like [f] (one-like f))
   (identity-like [f] (identity-like f))
   (exact? [f] (compose v/exact? f))
-  (numerical? [_] false)
   (freeze [f]
     (if-let [m (get-method f [Keyword])]
       (m :name)
@@ -116,7 +115,6 @@
   (one-like [f] (one-like f))
   (identity-like [f] (identity-like f))
   (exact? [f] (compose v/exact? f))
-  (numerical? [_] false)
   (freeze [f] (get @v/object-name-map f f))
   (kind [_] ::v/function)
 
@@ -128,7 +126,6 @@
   (one-like [f] (one-like f))
   (identity-like [f] (identity-like f))
   (exact? [f] (compose v/exact? f))
-  (numerical? [_] false)
   (freeze [f] (get @v/object-name-map @f f))
   (kind [_] ::v/function)
 
@@ -141,7 +138,6 @@
        (one-like [f] (one-like f))
        (identity-like [f] (identity-like f))
        (exact? [f] (compose v/exact? f))
-       (numerical? [_] false)
        (freeze [f] (get @v/object-name-map f f))
        (kind [_] ::v/function)]))
 

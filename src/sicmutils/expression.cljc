@@ -42,6 +42,9 @@
 ;; other abstract structures referenced in [[abstract-types]].
 
 (deftype Literal [type expression m]
+  v/Numerical
+  (numerical? [_] (= type ::numeric))
+
   v/Value
   (zero? [_]
     (and (v/number? expression)
@@ -58,7 +61,6 @@
   (zero-like [_] 0)
   (one-like [_] 1)
   (identity-like [_] 1)
-  (numerical? [_] (= type ::numeric))
   (exact? [_]
     (and (v/number? expression)
          (v/exact? expression)))

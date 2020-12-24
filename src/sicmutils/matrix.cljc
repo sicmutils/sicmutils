@@ -55,7 +55,6 @@
   (freeze [_] (if (= c 1)
                 `(~'column-matrix ~@(map (comp v/freeze first) v))
                 `(~'matrix-by-rows ~@(map v/freeze v))))
-  (numerical? [_] false)
   (exact? [_] (every? #(every? v/exact? %) v))
   (kind [_] (cond (= r c) ::square-matrix
                   (= r 1) ::row-matrix

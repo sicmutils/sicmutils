@@ -29,6 +29,8 @@
 ;;
 ;; TODO I THINK matrix derivative is NOT what we want here!! Different than
 ;; scmutils.
+;;
+;; TODO derive scalar for now!! I think that will give us everything we want..
 
 (defprotocol IDifferential
   (differential? [this]))
@@ -64,6 +66,9 @@
   IDifferential
   (differential? [_] true)
 
+  v/Numerical
+  (numerical? [d] (v/numerical? (differential-of d)))
+
   v/Value
   (zero? [this] (d:zero? this))
   (one? [this] (d:one? this))
@@ -73,7 +78,7 @@
   (identity-like [_] 1)
   (freeze [_] `[~'Differential ~@terms])
   (exact? [_] false)
-  (numerical? [d] (v/numerical? (differential-of d)))
+
   (kind [_] ::differential)
 
   Object
