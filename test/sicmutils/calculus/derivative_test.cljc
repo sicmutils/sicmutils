@@ -656,3 +656,134 @@
           fairly accurate estimates of Math/cos at a few points."
             (is (ish? (Math/cos 1) (via-series 1)))
             (is (ish? (Math/cos 0.6) (via-series 0.6)))))))))
+
+
+(deftest threeD-op-tests
+  (testing "symbolic representations of Div, Curl, Grad, Lap are correct"
+    (let [F (af/literal-function 'F '(-> (UP Real Real Real) Real))
+          A (af/literal-function 'A '(-> (UP Real Real Real)
+                                         (UP Real Real Real)))]
+      (is (= '(up (((partial 0) F) (up x y z))
+                  (((partial 1) F) (up x y z))
+                  (((partial 2) F) (up x y z)))
+             (g/simplify
+              ((d/Grad F) (s/up 'x 'y 'z)))))
+
+      (is (= '(+ (((partial 0) A↑0) (up x y z))
+                 (((partial 1) A↑1) (up x y z))
+                 (((partial 2) A↑2) (up x y z)))
+             (g/simplify
+              ((d/Div A) (s/up 'x 'y 'z)))))
+
+      (is (= '(up (+ (((partial 1) A↑2) (up x y z))
+                     (* -1 (((partial 2) A↑1) (up x y z))))
+                  (+ (((partial 2) A↑0) (up x y z))
+                     (* -1 (((partial 0) A↑2) (up x y z))))
+                  (+ (((partial 0) A↑1) (up x y z))
+                     (* -1 (((partial 1) A↑0) (up x y z)))))
+             (g/simplify
+              ((d/Curl A) (s/up 'x 'y 'z)))))
+
+      (is (= '(+ (((partial 0) ((partial 0) F)) (up x y z))
+                 (((partial 1) ((partial 1) F)) (up x y z))
+                 (((partial 2) ((partial 2) F)) (up x y z)))
+             (g/simplify
+              ((d/Lap F) (s/up 'x 'y 'z)))))))
+
+  ;; TODO get in more of the identities here!
+  ;;
+  ;; TODO Double check that the newer thing, in scmutils codebase... still
+  ;; works.
+  (testing "Div, Curl, Grad, Lap identities"
+    (let [F (af/literal-function 'F '(-> (UP Real Real Real) Real))
+          G (af/literal-function 'G '(-> (UP Real Real Real) Real))
+          A (af/literal-function 'A '(-> (UP Real Real Real)
+                                         (UP Real Real Real)))]
+      (is (= '(up 0 0 0)
+             (g/simplify
+              ((d/Curl (d/Grad F)) (s/up 'x 'y 'z)))))
+
+      (is (= 0 (g/simplify
+                ((d/Div (d/Curl A)) (s/up 'x 'y 'z)))))
+
+      (is (= 0 (g/simplify
+                ((- (d/Div (d/Grad F))
+                    (d/Lap F))
+                 (s/up 'x 'y 'z)))))
+
+      (is (= '(up 0 0 0)
+             (g/simplify
+              ((- (d/Curl (d/Curl A))
+                  (- (d/Grad (d/Div A)) (d/Lap A)))
+               (s/up 'x 'y 'z)))))
+
+      (is (= 0 (g/simplify
+                ((- (d/Div (* F (d/Grad G)))
+                    (+ (* F (d/Lap G))
+                       (g/dot-product (d/Grad F)
+                                      (d/Grad G))))
+                 (s/up 'x 'y 'z))))))))
+
+(comment
+  (def Del
+    (s/up (partial 0)
+          (partial 1)
+          (partial 2)))
+
+  (defn One [_] 1)
+
+  (def Div
+    (o/make-operator
+     (fn [f3]
+       ((g/dot-product Del (if (fn? f3)
+                             (fn [_] f3)
+                             f3)) One))
+     'Div))
+
+  (def Grad
+    (o/make-operator
+     (fn [f] (Del f))
+     'Grad))
+
+  (def Curl
+    (o/make-operator
+     (fn [f3]
+       ((g/cross-product Del (if (fn? f3)
+                               (fn [_] f3)
+                               f3))
+        One))
+     'Curl))
+
+  (is (= '(up 0 0 0)
+         (g/simplify
+          ((Curl (Grad G)) (s/up 'x 'y 'z)))))
+
+  ((Curl (* F (Grad G))) (s/up 'x 'y 'z))
+
+
+  (is (= '(up (((partial 0) F) (up x y z))
+              (((partial 1) F) (up x y z))
+              (((partial 2) F) (up x y z)))
+         (g/simplify
+          ((Grad F) (s/up 'x 'y 'z)))))
+
+  (is (= '(+ (((partial 0) A↑0) (up x y z))
+             (((partial 1) A↑1) (up x y z))
+             (((partial 2) A↑2) (up x y z)))
+         (g/simplify
+          ((Div A) (s/up 'x 'y 'z)))))
+
+  (is (= '(up (+ (((partial 1) A↑2) (up x y z))
+                 (* -1 (((partial 2) A↑1) (up x y z))))
+              (+ (((partial 2) A↑0) (up x y z))
+                 (* -1 (((partial 0) A↑2) (up x y z))))
+              (+ (((partial 0) A↑1) (up x y z))
+                 (* -1 (((partial 1) A↑0) (up x y z)))))
+         (g/simplify
+          ((d/Curl A) (s/up 'x 'y 'z)))))
+
+  (is (= '(+ (((partial 0) ((partial 0) F)) (up x y z))
+             (((partial 1) ((partial 1) F)) (up x y z))
+             (((partial 2) ((partial 2) F)) (up x y z)))
+         (g/simplify
+          ((d/Lap F) (s/up 'x 'y 'z))))))

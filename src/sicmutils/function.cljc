@@ -18,6 +18,9 @@
 ;;
 
 (ns sicmutils.function
+  (:refer-clojure :rename {get core-get
+                           get-in core-get-in}
+                  #?@(:cljs [:exclude [get get-in]]))
   (:require [clojure.core.match :refer [match]
              #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
@@ -37,6 +40,9 @@
 
 (declare arity)
 
+(defn function? [f]
+  (isa? (v/kind f) ::v/function))
+
 (defn compose
   "Compose is like Clojure's standard comp, but for this system we
   like to know the arity of our functions, so that we can calculate
@@ -46,6 +52,34 @@
   [& fns]
   (let [a (arity (last fns))]
     (with-meta (apply comp fns) {:arity a})))
+
+(defn get
+  "Returns the value mapped to key, not-found or nil if key not present.
+
+  TODO note special-cased for fns."
+  ([f k]
+   (if (function? f)
+     (compose #(get % k) f)
+     (core-get f k)))
+  ([f k not-found]
+   (if (function? f)
+     (compose #(get % k not-found) f)
+     (core-get f k not-found))))
+
+(defn get-in
+  "Returns the value in a nested associative structure, where ks is a sequence of
+  keys. Returns nil if the key is not present, or the not-found value if
+  supplied.
+
+  TODO note special-cased for fns."
+  ([f ks]
+   (if (function? f)
+     (compose #(get-in % ks) f)
+     (core-get-in f ks)))
+  ([f ks not-found]
+   (if (function? f)
+     (compose #(get-in % ks not-found) f)
+     (core-get-in f ks not-found))))
 
 (defn- zero-like [f]
   (let [meta {:arity (arity f)
@@ -104,7 +138,7 @@
   (freeze [f]
     (if-let [m (get-method f [Keyword])]
       (m :name)
-      (get @v/object-name-map f f)))
+      (core-get @v/object-name-map f f)))
   (kind [o] ::v/function)
 
   #?(:clj Fn :cljs function)
@@ -115,7 +149,7 @@
   (one-like [f] (one-like f))
   (identity-like [f] (identity-like f))
   (exact? [f] (compose v/exact? f))
-  (freeze [f] (get @v/object-name-map f f))
+  (freeze [f] (core-get @v/object-name-map f f))
   (kind [_] ::v/function)
 
   Var
@@ -126,7 +160,7 @@
   (one-like [f] (one-like f))
   (identity-like [f] (identity-like f))
   (exact? [f] (compose v/exact? f))
-  (freeze [f] (get @v/object-name-map @f f))
+  (freeze [f] (core-get @v/object-name-map @f f))
   (kind [_] ::v/function)
 
   #?@(:cljs
@@ -138,7 +172,7 @@
        (one-like [f] (one-like f))
        (identity-like [f] (identity-like f))
        (exact? [f] (compose v/exact? f))
-       (freeze [f] (get @v/object-name-map f f))
+       (freeze [f] (core-get @v/object-name-map f f))
        (kind [_] ::v/function)]))
 
 ;; we record arities as a vector with an initial keyword:
@@ -305,53 +339,53 @@
   (-> (partial comp operator)
       (with-meta {:arity [:exactly 1]})))
 
+(defn coerce-to-fn [x arity]
+  (if (function? x)
+    x
+    (let [f (if (v/numerical? x)
+              (constantly x)
+              (fn [& args] (apply x args)))]
+      (with-meta f {:arity arity}))))
+
 (defn- binary-operation
   "For a given binary operator (like +), returns a function of two functions which
   will produce the pointwise operation of the results of applying the two
   functions to the input. That is, (binary-operation +) applied to f and g will
   produce a function which computes (+ (f x) (g x)) given x as input."
   [operator]
-  (let [h (fn [f g]
-            (let [f-numeric (v/numerical? f)
-                  g-numeric (v/numerical? g)
-                  f-arity   (if f-numeric (arity g) (arity f))
-                  g-arity   (if g-numeric f-arity   (arity g))
-                  arity     (joint-arity [f-arity g-arity])
-                  f1 (if f-numeric (with-meta
-                                     (constantly f)
-                                     {:arity arity
-                                      :from :binop}) f)
-                  g1 (if g-numeric (with-meta
-                                     (constantly g)
-                                     {:arity arity
-                                      :from :binop}) g)]
-              (let [h (condp = arity
-                        [:exactly 0]
-                        #(operator (f1) (g1))
-                        [:exactly 1]
-                        #(operator (f1 %) (g1 %))
-                        [:exactly 2]
-                        #(operator (f1 %1 %2) (g1 %1 %2))
-                        [:exactly 3]
-                        #(operator (f1 %1 %2 %3) (g1 %1 %2 %3))
-                        [:exactly 4]
-                        #(operator (f1 %1 %2 %3 %4) (g1 %1 %2 %3 %4))
-                        [:exactly 5]
-                        #(operator (f1 %1 %2 %3 %4 %5) (g1 %1 %2 %3 %4 %5))
-                        [:exactly 6]
-                        #(operator (f1 %1 %2 %3 %4 %5 %6) (g1 %1 %2 %3 %4 %5 %6))
-                        [:exactly 7]
-                        #(operator (f1 %1 %2 %3 %4 %5 %6 %7) (g1 %1 %2 %3 %4 %5 %6 %7))
-                        [:exactly 8]
-                        #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8) (g1 %1 %2 %3 %4 %5 %6 %7 %8))
-                        [:exactly 9]
-                        #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9))
-                        [:exactly 10]
-                        #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10))
-                        [:at-least 0]
-                        #(operator (apply f1 %&) (apply g1 %&))
-                        (u/illegal (str  "unsupported arity for function arithmetic " arity)))]
-                (with-meta h {:arity f-arity :from :function-binop}))))]
+  (letfn [(h [f g]
+            (let [f-arity (if (v/numerical? f) (arity g) (arity f))
+                  g-arity (if (v/numerical? g) f-arity   (arity g))
+                  f1 (coerce-to-fn f f-arity)
+                  g1 (coerce-to-fn g g-arity)
+                  arity (joint-arity [f-arity g-arity])]
+              (-> (condp = arity
+                    [:exactly 0]
+                    #(operator (f1) (g1))
+                    [:exactly 1]
+                    #(operator (f1 %) (g1 %))
+                    [:exactly 2]
+                    #(operator (f1 %1 %2) (g1 %1 %2))
+                    [:exactly 3]
+                    #(operator (f1 %1 %2 %3) (g1 %1 %2 %3))
+                    [:exactly 4]
+                    #(operator (f1 %1 %2 %3 %4) (g1 %1 %2 %3 %4))
+                    [:exactly 5]
+                    #(operator (f1 %1 %2 %3 %4 %5) (g1 %1 %2 %3 %4 %5))
+                    [:exactly 6]
+                    #(operator (f1 %1 %2 %3 %4 %5 %6) (g1 %1 %2 %3 %4 %5 %6))
+                    [:exactly 7]
+                    #(operator (f1 %1 %2 %3 %4 %5 %6 %7) (g1 %1 %2 %3 %4 %5 %6 %7))
+                    [:exactly 8]
+                    #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8) (g1 %1 %2 %3 %4 %5 %6 %7 %8))
+                    [:exactly 9]
+                    #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9))
+                    [:exactly 10]
+                    #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10))
+                    [:at-least 0]
+                    #(operator (apply f1 %&) (apply g1 %&))
+                    (u/illegal (str  "unsupported arity for function arithmetic " arity)))
+                  (with-meta {:arity arity}))))]
     (with-meta h {:arity [:exactly 2]})))
 
 (defn- defunary

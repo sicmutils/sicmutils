@@ -18,6 +18,9 @@
 ;
 
 (ns sicmutils.operator
+  (:refer-clojure :rename {get core-get
+                           get-in core-get-in}
+                  #?@(:cljs [:exclude [get get-in]]))
   (:require [sicmutils.differential :as d]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
@@ -104,6 +107,46 @@
 (defn operator?
   [x]
   (instance? Operator x))
+
+(defn get
+  "Returns the value mapped to key, not-found or nil if key not present.
+
+  TODO note special-cased for operators"
+  ([o k]
+   (if (operator? o)
+     (make-operator
+      (f/get (:o o) k)
+      `(~'compose (~'fn [~'x] (~'get ~'x ~k))
+        ~(:name o)))
+     (core-get o k)))
+  ([o k not-found]
+   (if (operator? o)
+     (make-operator
+      (f/get (:o o) k not-found)
+      `(~'compose (~'fn [~'x] (~'get ~'x ~k ~not-found))
+        ~(:name o)))
+     (core-get o k not-found))))
+
+(defn get-in
+  "Returns the value in a nested associative structure, where ks is a sequence of
+  keys. Returns nil if the key is not present, or the not-found value if
+  supplied.
+
+  TODO note special-cased for operators."
+  ([o ks]
+   (if (operator? o)
+     (make-operator
+      (f/get-in (:o o) ks)
+      `(~'compose (~'fn [~'x] (~'get-in ~'x ~ks))
+        ~(:name o)))
+     (core-get-in o ks)))
+  ([o ks not-found]
+   (if (operator? o)
+     (make-operator
+      (f/get-in (:o o) ks not-found)
+      `(~'compose (~'fn [~'x] (~'get-in ~'x ~ks ~not-found))
+        ~(:name o)))
+     (core-get-in o ks not-found))))
 
 (def identity-operator
   (make-operator identity 'identity))
@@ -215,6 +258,7 @@
 
 (derive ::d/differential ::co-operator)
 (derive ::v/scalar ::co-operator)
+(derive ::v/function ::co-operator)
 
 (defmethod g/expt [::operator ::v/native-integral] [o n]
   {:pre [(not (g/negative? n))]}
@@ -250,12 +294,6 @@
 (defmethod g/add [::co-operator ::operator] [n o]
   (o+o (number->operator n) o))
 
-(defmethod g/add [::operator ::v/function] [o f]
-  (o+o o (number->operator f)))
-
-(defmethod g/add [::v/function ::operator] [f o]
-  (o+o (number->operator f) o))
-
 (defmethod g/sub [::operator ::operator] [o p] (o-o o p))
 
 (defmethod g/sub [::operator ::co-operator] [o n]
@@ -264,34 +302,19 @@
 (defmethod g/sub [::co-operator ::operator] [n o]
   (o-o (number->operator n) o))
 
-(defmethod g/sub [::operator ::v/function] [o f]
-  (o-o o (number->operator f)))
-
-(defmethod g/sub [::v/function ::operator] [f o]
-  (o-o (number->operator f) o))
-
-;; Multiplication of operators is defined as their application (see o*o, above)
+;; Multiplication of operators is defined as their composition (see o*o, above)
 (defmethod g/mul [::operator ::operator] [o p] (o*o o p))
-(defmethod g/mul [::operator ::v/function] [o f] (o*f o f))
-(defmethod g/mul [::v/function ::operator] [f o] (f*o f o))
-;; When multiplied with operators, a number is treated as an operator
-;; that multiplies its input by the number.
 (defmethod g/mul [::operator ::co-operator] [o n] (o*f o n))
 (defmethod g/mul [::co-operator ::operator] [n o] (f*o n o))
 (defmethod g/div [::operator ::co-operator] [o n] (o*f o (g/invert n)))
-(defmethod g/div [::operator ::v/function] [o f] (o*f o (g/invert f)))
 
 (defmethod g/square [::operator] [o] (o*o o o))
 
 (defmethod g/simplify [::operator] [o] (:name o))
 
-(defmethod g/transpose
-  [::operator]
-  [o]
+(defmethod g/transpose [::operator] [o]
   (->Operator (fn [f] #(g/transpose (apply (o f) %&))) 1 'transpose (:context o)))
 
-(defmethod g/cross-product
-  [::operator ::operator]
-  [o p]
+(defmethod g/cross-product [::operator ::operator] [o p]
   (fn [f]
     #(g/cross-product (apply (o f) %&) (apply (p f) %&))))

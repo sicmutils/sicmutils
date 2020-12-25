@@ -61,10 +61,10 @@
                   (= c 1) ::column-matrix
                   :else ::matrix))
 
-  d/IDifferential
-  (differential? [_]
+  d/IPerturbed
+  (perturbed? [_]
     (boolean
-     (some d/differential? v)))
+     (some d/perturbed? v)))
 
   #?@(:clj
       [Object

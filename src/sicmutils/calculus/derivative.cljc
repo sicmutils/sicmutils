@@ -36,14 +36,14 @@
 
 (defn replace-dx-function [f newtag oldtag]
   (fn [& args]
-    (let [eps (d/make-differential-tag)]
+    (let [eps (d/fresh-tag)]
       ((replace-differential-tag eps oldtag)
        ((replace-differential-tag oldtag newtag)
         (apply f (map (replace-differential-tag oldtag eps) args)))))))
 
 (defn replace-differential-tag [oldtag newtag]
   (fn call [obj]
-    (cond (d/differential-type? obj)
+    (cond (d/differential? obj)
           (d/terms->differential
            (mapv (fn [term]
                    (let [tagv (d/tags term)]
@@ -73,14 +73,14 @@
 
 (defn extract-dx-function [dx f]
   (fn [& args]
-    (let [internal-tag (d/make-differential-tag)]
+    (let [internal-tag (d/fresh-tag)]
       ((replace-differential-tag internal-tag dx)
        (extract-dx-part
         dx
         (apply f (map (replace-differential-tag dx internal-tag) args)))))))
 
 (defn extract-dx-differential [dx obj]
-  (if (d/differential-type? obj)
+  (if (d/differential? obj)
     (d/sum->differential
      (mapcat (fn [term]
                (let [tagv (d/tags term)]
@@ -111,8 +111,8 @@
 
 (defn derivative [f]
   (fn [x]
-    (let [dx (d/make-differential-tag)]
-      (extract-dx-part dx (f (d/make-x+dx x dx))))))
+    (let [dx (d/fresh-tag)]
+      (extract-dx-part dx (f (d/bundle x dx))))))
 
 ;; ## Multivariable Calculus
 
@@ -185,19 +185,20 @@
 
 #_
 (defmethod g/partial-derivative [::o/operator v/seqtype] [op selectors]
-  (o/->Operator (g/partial-derivative (:o op) selectors)
+  (o/->Operator (multivariate-derivative (:o op) selectors)
                 (:arity op)
-                `(~'D ~(:name op))
+                (if (empty? selectors)
+                  `(~'D ~(:name op))
+                  `((~'partial ~@selectors) ~(:name op)))
                 (:context op)))
 
 (def derivative-symbol 'D)
 
-(def D
-  "Derivative operator. Produces a function whose value at some point can
-  multiply an increment in the arguments, to produce the best linear estimate
-  of the increment in the function value."
-  (o/make-operator (fn [f]
-                     (g/partial-derivative f []))
+(def ^{:doc "Derivative operator. Produces a function whose value at some point
+  can multiply an increment in the arguments, to produce the best linear
+  estimate of the increment in the function value."}
+  D
+  (o/make-operator #(g/partial-derivative % [])
                    derivative-symbol))
 
 (defn partial
@@ -205,7 +206,47 @@
   provided."
   [& selectors]
   (o/make-operator #(g/partial-derivative % selectors)
-                   :partial-derivative))
+                   `(~'partial ~@selectors)))
+
+(def ^{:doc "takes a 3d vector of functions on 3d space."}
+  Div
+  (-> (fn [f-triple]
+        (let [fx (f/get f-triple 0)
+              fy (f/get f-triple 1)
+              fz (f/get f-triple 2)]
+          (g/+ ((partial 0) fx)
+               ((partial 1) fy)
+               ((partial 2) fz))))
+      (o/make-operator 'Div)))
+
+(def Grad
+  (-> (fn [f]
+        (f/compose struct/opposite
+                   (g/partial-derivative f [])))
+      (o/make-operator 'Grad)))
+
+(def ^{:doc "takes a 3d vector of functions on 3d space."}
+  Curl
+  (-> (fn [f-triple]
+        (let [[Dx Dy Dz] (map partial [0 1 2])
+              fx (f/get f-triple 0)
+              fy (f/get f-triple 1)
+              fz (f/get f-triple 2)]
+          (struct/up (g/- (Dy fz) (Dz fy))
+                     (g/- (Dz fx) (Dx fz))
+                     (g/- (Dx fy) (Dy fx)))))
+      (o/make-operator 'Curl)))
+
+;; TODO make this more general...
+
+(def ^{:doc "takes a 3d vector of functions on 3d space."}
+  Lap
+  (-> (fn [f]
+        (let [[Dx Dy Dz] (map partial [0 1 2])]
+          (g/+ ((g/expt (partial 0) 2) f)
+               ((g/expt (partial 1) 2) f)
+               ((g/expt (partial 2) 2) f))))
+      (o/make-operator 'Lap)))
 
 (defn taylor-series
   "Returns a `Series` of the coefficients of the taylor series of the function `f`

@@ -82,10 +82,10 @@
   (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
   (kind [_] orientation)
 
-  d/IDifferential
-  (differential? [_]
+  d/IPerturbed
+  (perturbed? [_]
     (boolean
-     (some d/differential? v)))
+     (some d/perturbed? v)))
 
   #?@(:clj
       [Object
@@ -415,11 +415,18 @@
   (make (orientation s) xs))
 
 (defn opposite
-  "Returns a structure containing `xs` with the orientation opposite to `s`."
-  [s xs]
-  (let [o (opposite-orientation
-           (orientation s))]
-    (make o xs)))
+  "Returns a structure containing `xs` with the orientation opposite to `s`.
+
+  TODO note, test the new arity. also opposite a non-structured thing is fine,
+  acts as id."
+  ([s]
+   (if (structure? s)
+     (opposite s (structure->vector s))
+     s))
+  ([s xs]
+   (let [o (opposite-orientation
+            (orientation s))]
+     (make o xs))))
 
 (defn generate
   "Generate a structure with the given `orientation` whose elements are
@@ -782,9 +789,9 @@
     (u/illegal "cross product only works on two elements of ^3"))
   (let [[s0 s1 s2] s
         [t0 t1 t2] t]
-    (up (g/- (g/* s1 t2) (g/* t1 s2))
+    (up (g/- (g/* s1 t2) (g/* s2 t1))
         (g/- (g/* s2 t0) (g/* s0 t2))
-        (g/- (g/* s0 t1) (g/* t0 s1)))))
+        (g/- (g/* s0 t1) (g/* s1 t0)))))
 
 ;; ## Generic Method Installation
 
@@ -807,6 +814,9 @@
 
 (defmethod g/mul [::structure ::structure] [a b] (s:* a b))
 
+
+;; TODO does this make sense? Do we really do function and operator differently?
+;; Check how this works vs mechanics... this is very strange!
 
 (defmethod g/mul [::structure :sicmutils.operator/operator] [a b]
   (structure*scalar a b))

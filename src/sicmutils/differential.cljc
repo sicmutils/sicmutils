@@ -32,12 +32,12 @@
 ;;
 ;; TODO derive scalar for now!! I think that will give us everything we want..
 
-(defprotocol IDifferential
-  (differential? [this]))
+(defprotocol IPerturbed
+  (perturbed? [this]))
 
-(extend-protocol IDifferential
+(extend-protocol IPerturbed
   #?(:clj Object :cljs default)
-  (differential? [_] false))
+  (perturbed? [_] false))
 
 (derive ::differential ::f/cofunction)
 
@@ -63,8 +63,8 @@
 ;; that we can install it for other methods.
 
 (deftype Differential [terms]
-  IDifferential
-  (differential? [_] true)
+  IPerturbed
+  (perturbed? [_] true)
 
   v/Numerical
   (numerical? [d] (v/numerical? (differential-of d)))
@@ -100,7 +100,7 @@
      [^Differential s ^java.io.Writer w]
      (.write w (.toString s))))
 
-(defn differential-type?
+(defn differential?
   "Returns true if the supplied object is an instance of `Differential`, false
   otherwise."
   [dx]
@@ -109,7 +109,7 @@
 (defn terms
   "For the supplied `Differential` object, returns its vector of terms."
   [dx]
-  {:pre [(differential-type? dx)]}
+  {:pre [(differential? dx)]}
   (.-terms ^Differential dx))
 
 (defn- differential->terms
@@ -118,7 +118,7 @@
   representing d with an empty tag list (unless d is zero, in
   which case we return the empty term list)."
   [dx]
-  (cond (differential-type? dx)
+  (cond (differential? dx)
         (filterv (fn [term]
                    (not (v/zero?
                          (coefficient term))))
@@ -146,13 +146,13 @@
     highest-order term part
   - or else the input itself."
   [dx]
-  (if (differential-type? dx)
+  (if (differential? dx)
     (recur (coefficient
             (first (terms dx))))
     dx))
 
 (defn arity [x]
-  (if (differential-type? x)
+  (if (differential? x)
     (recur (coefficient
             (first (terms x))))
     (f/arity x)))
@@ -171,9 +171,9 @@
 ;; typically of small cardinality. So we experiment with implementing them as
 ;; small vectors, instead of sorted sets.
 
-(let [next-differential-tag (atom 0)]
-  (defn make-differential-tag []
-    (swap! next-differential-tag inc)))
+(let [next-tag (atom 0)]
+  (defn fresh-tag []
+    (swap! next-tag inc)))
 
 (defn tag-in?
   "Return true if `t` is in the tag-set `ts`, false otherwise."
@@ -299,11 +299,11 @@
    (terms:* (differential->terms dx)
             (differential->terms dy))))
 
-(defn make-x+dx [x dx]
+(defn bundle [x dx]
   (d:+ x (->Differential [[[dx] 1]])))
 
 (defn- keytag [x]
-  (when (differential-type? x)
+  (when (differential? x)
     (let [last-term   (peek (differential->terms x))
           highest-tag (peek (tags last-term))]
       highest-tag)))
@@ -323,7 +323,7 @@
 (defn with-tag
   "The differential containing only those terms _with_ the given tag"
   [tag dx]
-  (if (differential-type? dx)
+  (if (differential? dx)
     (->> (differential->terms dx)
          (filterv #(tag-in-term? % tag))
          (sum->differential))
@@ -332,7 +332,7 @@
 (defn without-tag
   "The differential containing only those terms _without_ the given tag"
   [tag dx]
-  (if (differential-type? dx)
+  (if (differential? dx)
     (let [sans-tag? (complement #(tag-in-term? % tag))]
       (->> (differential->terms dx)
            (filterv sans-tag?)
@@ -343,7 +343,7 @@
   "Split the differential into the parts with and without tag and return the
   pair."
   [tag dx]
-  (if-not (differential-type? dx)
+  (if-not (differential? dx)
     [0 dx]
     (let [[infinitesimal-terms finite-terms]
           (us/separatev #(tag-in-term? % tag)
@@ -378,8 +378,8 @@
 (defn d:=
   "Returns true if the [[Differential]] instance `a` equals `b`, false otherwise."
   [a b]
-  {:pre [(differential-type? a)]}
-  (if (differential-type? b)
+  {:pre [(differential? a)]}
+  (if (differential? b)
     (= (terms a)
        (terms b))
     (= (finite-part a) b)))

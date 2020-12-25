@@ -110,11 +110,11 @@
            (g/simplify ((D ((* (- D g) (+ D 1)) f)) 'x)))))
 
   (testing "that basic arithmetic operations work on multivariate literal functions"
-    (is (= (g/simplify (((+  D  D) ff) 'x 'y))
+    (is (= (g/simplify (((+ D D) ff) 'x 'y))
            '(down (* 2 (((partial 0) ff) x y)) (* 2 (((partial 1) ff) x y)))))
-    (is (= (g/simplify (((-  D  D) ff) 'x 'y))
+    (is (= (g/simplify (((- D D) ff) 'x 'y))
            '(down 0 0)))
-    (is (= (((*  D  D) ff) 'x 'y)
+    (is (= (((* D D) ff) 'x 'y)
            (down
             (down (((partial 0) ((partial 0) ff)) 'x 'y) (((partial 0) ((partial 1) ff)) 'x 'y))
             (down (((partial 1) ((partial 0) ff)) 'x 'y) (((partial 1) ((partial 1) ff)) 'x 'y)))))

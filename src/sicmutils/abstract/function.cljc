@@ -269,7 +269,7 @@
 
 (defn- literal-apply [f xs]
   (check-argument-type f xs (:domain f) [0])
-  (if (some d/differential? xs)
+  (if (some d/perturbed? xs)
     (literal-derivative f xs)
     (an/literal-number `(~(:name f) ~@(map v/freeze xs)))))
 

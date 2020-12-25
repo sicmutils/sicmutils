@@ -28,12 +28,11 @@
   #?(:clj
      (:import (clojure.lang Symbol))))
 
-(extend-protocol v/Numerical
-  Symbol
-  (numerical? [_] true))
+(extend-type Symbol
+  v/Numerical
+  (numerical? [_] true)
 
-(extend-protocol v/Value
-  Symbol
+  v/Value
   (zero? [o] false)
   (one? [_] false)
   (identity? [_] false)
