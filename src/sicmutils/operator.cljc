@@ -32,6 +32,9 @@
      (:import [clojure.lang IFn])))
 
 (defrecord Operator [o arity name context]
+  f/IArity
+  (arity [_] arity)
+
   v/Value
   (zero? [_] false)
   (one? [_] false)
@@ -169,26 +172,26 @@
           (:context o)
           (:context p)))
 
-(defn- number->operator
-  "Lift a number to an operator which multiplies its
-  applied function by that number (nb: in function arithmetic,
-  this is pointwise multiplication)"
-  [n]
-  (->Operator #(apply g/* n %&) [:at-least 0] n {:subtype ::operator}))
-
 (defn- op-o-f [op sym o f]
   (let [h (f/coerce-to-fn f [:exactly 1])]
-    (make-operator (fn [g] (op (o g) (f/compose h g)))
-                   (:arity o)
-	                 `(~sym ~(:name o) ~(v/freeze f))
-                   (:context o))))
+    (->Operator (fn [g] (op (o g) (f/compose h g)))
+                (:arity o)
+	              `(~sym ~(:name o) ~(v/freeze f))
+                (:context o))))
 
 (defn- op-f-o [op sym f o]
   (let [h (f/coerce-to-fn f [:exactly 1])]
-    (make-operator (fn [g] (op (f/compose h g) (o g)))
-                   (:arity o)
-	                 `(~sym ~(v/freeze f) ~(:name o))
-                   (:context o))))
+    (->Operator (fn [g] (op (f/compose h g) (o g)))
+                (:arity o)
+	              `(~sym ~(v/freeze f) ~(:name o))
+                (:context o))))
+
+(defn negate [o]
+  (->Operator (fn [& fs]
+                (g/negate (apply o fs)))
+              (:arity o)
+              (list '- (:name o))
+	            (:context o)))
 
 (defn- o:-
   "Subtract one operator from another. Produces an operator which computes the
@@ -288,10 +291,6 @@
 (derive ::v/scalar ::co-operator)
 (derive ::v/function ::co-operator)
 
-(defmethod g/expt [::operator ::v/native-integral] [o n]
-  {:pre [(not (g/negative? n))]}
-  (reduce o:* identity (repeat n o)))
-
 (doseq [[op f sym] [[g/exp series/exp-series 'exp]
                     [g/cos series/cos-series 'cos]
                     [g/sin series/sin-series 'sin]
@@ -317,6 +316,8 @@
 (defmethod g/add [::operator ::co-operator] [o f] (o+f o f))
 (defmethod g/add [::co-operator ::operator] [f o] (f+o f o))
 
+(defmethod g/negate [::operator] [o] (negate o))
+
 (defmethod g/sub [::operator ::operator] [o p] (o:- o p))
 (defmethod g/sub [::operator ::co-operator] [o f] (o-f o f))
 (defmethod g/sub [::co-operator ::operator] [f o] (f-o f o))
@@ -325,14 +326,12 @@
 (defmethod g/mul [::operator ::co-operator] [o n] (o*f o n))
 (defmethod g/mul [::co-operator ::operator] [n o] (f*o n o))
 
+(defmethod g/expt [::operator ::v/native-integral] [o n]
+  {:pre [(not (g/negative? n))]}
+  (reduce o:* identity (repeat n o)))
+
 (defmethod g/div [::operator ::scalar] [o n] (o-div-n o n))
 
 (defmethod g/square [::operator] [o] (o:* o o))
 
 (defmethod g/simplify [::operator] [o] (:name o))
-
-(defmethod g/transpose [::operator] [o]
-  (->Operator (fn [f] #(g/transpose (apply (o f) %&)))
-              (:arity o)
-              `(~'transpose ~(:name o))
-              (:context o)))

@@ -28,7 +28,7 @@
             [sicmutils.value :as v]
             #?(:cljs [cljs.reader]))
   #?(:clj
-     (:import [clojure.lang Associative AFn IFn PersistentVector Sequential])))
+     (:import (clojure.lang Associative AFn IFn PersistentVector Sequential))))
 
 (def ^:dynamic *allow-incompatible-multiplication* true)
 
@@ -70,6 +70,17 @@
 
 (declare s:=)
 
+;; vectors are ups, so install these here...
+
+(extend-type PersistentVector
+  f/IArity
+  (arity [v]
+    (transduce (map f/arity) f/combine-arities v))
+
+  d/IPerturbed
+  (perturbed? [v]
+    (boolean (some d/perturbed? v))))
+
 (deftype Structure [orientation v]
   v/Value
   (zero? [_] (every? v/zero? v))
@@ -82,10 +93,12 @@
   (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
   (kind [_] orientation)
 
+  f/IArity
+  (arity [_] (f/arity v))
+
   d/IPerturbed
   (perturbed? [_]
-    (boolean
-     (some d/perturbed? v)))
+    (boolean (some d/perturbed? v)))
 
   #?@(:clj
       [Object

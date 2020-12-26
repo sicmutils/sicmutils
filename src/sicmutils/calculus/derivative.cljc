@@ -174,7 +174,7 @@
           ((d f) (first xs))
           ((d #(apply f %)) (matrix/seq-> xs)))))))
 
-(doseq [t [::v/function ::struct/structure ::matrix/matrix]]
+(doseq [t [::v/function ::struct/structure]]
   (defmethod g/partial-derivative [t v/seqtype] [f selectors]
     (multivariate-derivative f selectors))
 
@@ -208,6 +208,15 @@
   (o/make-operator #(g/partial-derivative % selectors)
                    `(~'partial ~@selectors)))
 
+;; TODO note to Colin that I THINK we just flip a single outer layer here...
+(def Grad
+  (-> (fn [f]
+        (f/compose struct/opposite
+                   (g/partial-derivative f [])))
+      (o/make-operator 'Grad)))
+
+;; TODO make THESE more general...
+
 (def ^{:doc "takes a 3d vector of functions on 3d space."}
   Div
   (-> (fn [f-triple]
@@ -218,12 +227,6 @@
                ((partial 1) fy)
                ((partial 2) fz))))
       (o/make-operator 'Div)))
-
-(def Grad
-  (-> (fn [f]
-        (f/compose struct/opposite
-                   (g/partial-derivative f [])))
-      (o/make-operator 'Grad)))
 
 (def ^{:doc "takes a 3d vector of functions on 3d space."}
   Curl
@@ -236,8 +239,6 @@
                      (g/- (Dz fx) (Dx fz))
                      (g/- (Dx fy) (Dy fx)))))
       (o/make-operator 'Curl)))
-
-;; TODO make this more general...
 
 (def ^{:doc "takes a 3d vector of functions on 3d space."}
   Lap

@@ -27,7 +27,7 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
-     (:import (clojure.lang RestFn Fn MultiFn Keyword Var)
+     (:import (clojure.lang RestFn Fn MultiFn Keyword Symbol Var)
               (java.lang.reflect Method))))
 
 ;; ## Function Algebra
@@ -38,7 +38,27 @@
 
 ;; ### Utilities
 
-(declare arity)
+(defprotocol IArity
+  (arity [_]
+    "Return the cached or obvious arity of the object if we know it. Otherwise
+    delegate to the heavy duty reflection, if we have to."))
+
+(extend-protocol IArity
+  #?(:clj Object :cljs default)
+  (arity [o]
+    (or (:arity o)
+        (:arity (meta o))
+        ;; Faute de mieux, we assume the function is unary. Most math functions
+        ;; are.
+        [:exactly 1]))
+
+  Symbol
+  (arity [_] [:exactly 0])
+
+  MultiFn
+  ;; If f is a multifunction, then we expect that it has a multimethod
+  ;; responding to the argument :arity, which returns the arity.
+  (arity [f] (f :arity)))
 
 (defn function? [f]
   (isa? (v/kind f) ::v/function))
@@ -94,6 +114,10 @@
     (-> (fn [& args]
           (v/one-like (apply f args)))
         (with-meta meta))))
+
+(def ^{:doc "Returns its argument."}
+  I
+  identity)
 
 (defn- identity-like [f]
   (let [meta {:arity (arity f)
@@ -265,63 +289,64 @@
                       (first arities)
                       (last arities)])))))
 
-(def ^:private reflect-on-arity
-  "Returns the arity of the function f.
-  Computing arities of clojure functions is a bit complicated.
-  It involves reflection, so the results are definitely worth
-  memoizing."
+(def ^{:private true
+       :doc "Returns the arity of the function f. Computing arities of clojure
+  functions is a bit complicated. It involves reflection, so the results are
+  definitely worth memoizing."}
+  reflect-on-arity
   (memoize
    #?(:cljs js-arity :clj jvm-arity)))
 
-(defn arity
-  "Return the cached or obvious arity of the object if we know it.
-  Otherwise delegate to the heavy duty reflection, if we have to."
-  [f]
-  (or (:arity f)
-      (:arity (meta f))
-      (cond (symbol? f) [:exactly 0]
-            ;; If f is a multifunction, then we expect that it has a multimethod
-            ;; responding to the argument :arity, which returns the arity.
-            (instance? MultiFn f) (f :arity)
-            (fn? f) (reflect-on-arity f)
-            ;; Faute de mieux, we assume the function is unary. Most math functions are.
-            :else [:exactly 1])))
+#?(:clj
+   (extend-protocol IArity
+     Fn
+     (arity [f] (:arity (meta f) (reflect-on-arity f))))
 
-(defn ^:private combine-arities
+   :cljs
+   (extend-protocol IArity
+     function
+     (arity [f] (reflect-on-arity f))
+
+     MetaFn
+     (arity [f] (:arity (meta f) (reflect-on-arity f)))))
+
+(defn combine-arities
   "Find the joint arity of arities a and b, i.e. the loosest possible arity specification
   compatible with both. Throws if the arities are incompatible."
-  [a b]
-  (let [fail #(u/illegal (str "Incompatible arities: " a " " b))]
-    ;; since the combination operation is symmetric, sort the arguments
-    ;; so that we only have to implement the upper triangle of the
-    ;; relation.
-    (if (< 0 (compare (first a) (first b)))
-      (combine-arities b a)
-      (match [a b]
-             [[:at-least k] [:at-least k2]] [:at-least (max k k2)]
-             [[:at-least k] [:between m n]] (let [m (max k m)]
-                                              (cond (= m n) [:exactly m]
-                                                    (< m n) [:between m n]
-                                                    :else (fail)))
-             [[:at-least k] [:exactly l]] (if (>= l k)
-                                            [:exactly l]
-                                            (fail))
-             [[:between m n] [:between m2 n2]] (let [m (max m m2)
-                                                     n (min n n2)]
-                                                 (cond (= m n) [:exactly m]
-                                                       (< m n) [:between m n]
-                                                       :else (fail)))
-             [[:between m n] [:exactly k]] (if (and (<= m k)
-                                                    (<= k n))
-                                             [:exactly k]
+  ([] [:at-least 0])
+  ([a] a)
+  ([a b]
+   (let [fail #(u/illegal (str "Incompatible arities: " a " " b))]
+     ;; since the combination operation is symmetric, sort the arguments
+     ;; so that we only have to implement the upper triangle of the
+     ;; relation.
+     (if (< 0 (compare (first a) (first b)))
+       (combine-arities b a)
+       (match [a b]
+              [[:at-least k] [:at-least k2]] [:at-least (max k k2)]
+              [[:at-least k] [:between m n]] (let [m (max k m)]
+                                               (cond (= m n) [:exactly m]
+                                                     (< m n) [:between m n]
+                                                     :else (fail)))
+              [[:at-least k] [:exactly l]] (if (>= l k)
+                                             [:exactly l]
                                              (fail))
-             [[:exactly k] [:exactly l]] (if (= k l) [:exactly k] (fail))))))
+              [[:between m n] [:between m2 n2]] (let [m (max m m2)
+                                                      n (min n n2)]
+                                                  (cond (= m n) [:exactly m]
+                                                        (< m n) [:between m n]
+                                                        :else (fail)))
+              [[:between m n] [:exactly k]] (if (and (<= m k)
+                                                     (<= k n))
+                                              [:exactly k]
+                                              (fail))
+              [[:exactly k] [:exactly l]] (if (= k l) [:exactly k] (fail)))))))
 
 (defn joint-arity
   "Find the most relaxed possible statement of the joint arity of the given arities.
   If they are incompatible, an exception is thrown."
   [arities]
-  (reduce combine-arities [:at-least 0] arities))
+  (reduce combine-arities arities))
 
 ;; ## Generic Implementations
 ;;

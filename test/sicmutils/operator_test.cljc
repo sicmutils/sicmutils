@@ -24,7 +24,7 @@
              #?@(:cljs [:include-macros true])]
             [same :refer [ish?]]
             [sicmutils.abstract.function :as f]
-            [sicmutils.function :refer [arity]]
+            [sicmutils.function :refer [I arity]]
             [sicmutils.calculus.derivative :refer [D partial]]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g :refer [+ - * /]]
@@ -80,34 +80,47 @@
     (is (= 24 ((double-op (double-op f)) 1)))
     (is (= 24 (((g/* double-op double-op) f) 1))) ;; * for operators is composition
     (is (= 144 (((g/* double double) f) 1)))      ;; * for functions is pointwise multiply
-    (is (= 2 ((double-op identity) 1)))
+    (is (= 2 ((double-op I) 1)))
     (is (= 6 (((g/expt double-op 0) f) 1)))
     (is (= 12 (((g/expt double-op 1) f) 1)))
     (is (= 24 (((g/expt double-op 2) f) 1)))
-    (is (= 18 (((g/+ double-op double-op double-op) identity) 3)))
-    (is (= 24 (((g/+ double-op 4 double-op) identity) 3)))))
+    (is (= 18 (((g/+ double-op double-op double-op) I) 3)))
+    (is (= 16 (((g/+ double-op 4 double-op) I) 3)))))
 
 ;; Test operations with Operators
 (deftest Operator-tests
   (testing "that our known Operators work with basic arithmetic"
-    (is (every? o/operator? [(+ D 1)(+ 2 D)(- D 3)(- 4 D)(* 5 D)(* D 6)]))
-    (is (every? o/operator? [(+ (partial 0) 1)(+ 2 (partial 0))(- (partial 0) 3)(- 4 (partial 0))(* 5 (partial 0))(* (partial 0) 6)])))
+    (is (every? o/operator? [(+ D 1)
+                             (+ 2 D)
+                             (- D 3)
+                             (- 4 D)
+                             (* 5 D)
+                             (* D 6)]))
+
+    (is (every? o/operator? [(+ (partial 0) 1)
+                             (+ 2 (partial 0))
+                             (- (partial 0) 3)
+                             (- 4 (partial 0))
+                             (* 5 (partial 0))
+                             (* (partial 0) 6)])))
 
   (testing "that they compose with other Operators"
-    (is (every? o/operator? [(* D D)(* D (partial 0))(*(partial 0) D)(* (partial 0)(partial 1))])))
+    (is (every? o/operator?
+                [(* D D)
+                 (* D (partial 0))
+                 (* (partial 0) D)
+                 (* (partial 0) (partial 1))])))
 
   (testing "that their arithmetic operations compose correctly, as per SICM -  'Our Notation'"
-    (is (= (g/simplify (((* (+ D 1)(- D 1)) f) 'x))
-           '(+ (((expt D 2) f) x) (* -1 (f x))) )))
+    (is (= '(+ (((expt D 2) f) x) (* -1 (f x)))
+           (g/simplify (((* (+ D I) (- D I)) f) 'x)))))
 
   (testing "that Operators compose correctly with functions"
-    (is (= '(+ (* -1 (((expt D 2) f) x) (g x))
-               (* -1 ((D f) x) ((D g) x))
-               (* -1 ((D f) x) (g x))
-               (* -1 (f x) ((D g) x))
+    (is (= '(+ (* -1 (((expt D 2) f) x) ((D g) (+ ((D f) x) (f x))))
+               (* -1 ((D f) x) ((D g) (+ ((D f) x) (f x))))
                (((expt D 2) f) x)
                (((expt D 3) f) x))
-           (g/simplify ((D ((* (- D g) (+ D 1)) f)) 'x)))))
+           (g/simplify ((D ((* (- D g) (+ D I)) f)) 'x)))))
 
   (testing "that basic arithmetic operations work on multivariate literal functions"
     (is (= (g/simplify (((+ D D) ff) 'x 'y))

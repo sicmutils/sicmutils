@@ -160,7 +160,7 @@
 (import-vars
  [sicmutils.abstract.number literal-number]
  [sicmutils.complex complex]
- [sicmutils.function arity compose arg-shift arg-scale]
+ [sicmutils.function arity compose arg-shift arg-scale I]
  [sicmutils.operator commutator]
  [sicmutils.series binomial-series partial-sums]
  [sicmutils.generic

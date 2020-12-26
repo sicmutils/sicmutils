@@ -59,10 +59,13 @@
 ;; A differential is a sequence of differential terms, ordered by the
 ;; tag set.
 ;;
-;; TODO implement ifn, compare, equals for clj, cljs, and make `arity` open so
-;; that we can install it for other methods.
+;; TODO implement ifn, compare, equals for clj, cljs
 
 (deftype Differential [terms]
+  f/IArity
+  (arity [_]
+    (f/arity (coefficient (first terms))))
+
   IPerturbed
   (perturbed? [_] true)
 
@@ -150,12 +153,6 @@
     (recur (coefficient
             (first (terms dx))))
     dx))
-
-(defn arity [x]
-  (if (differential? x)
-    (recur (coefficient
-            (first (terms x))))
-    (f/arity x)))
 
 (defn diff:apply
   "If the coefficients are themselves functions, apply them to the args for ALL
