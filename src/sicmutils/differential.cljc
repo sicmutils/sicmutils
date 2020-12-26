@@ -23,6 +23,7 @@
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.util.stream :as us]
+            [sicmutils.util.vector-set :as uv]
             [sicmutils.value :as v]))
 
 (defprotocol IPerturbed
@@ -48,48 +49,6 @@
   (defn fresh-tag []
     (swap! next-tag inc)))
 
-(defn tag-in?
-  "Return true if `t` is in the tag-set `ts`, false otherwise."
-  [ts t]
-  (some #(= % t) ts))
-
-(defn drop-tag
-  "Return the tag set formed by dropping t from ts."
-  [ts t]
-  (filterv #(not= % t) ts))
-
-(defn insert-tag
-  "Inserts tag into its appropriate sorted space in `tags`."
-  [tags tag]
-  (loop [tags tags
-         ret  []]
-    (cond (empty? tags) (conj ret tag)
-          (< tag (first tags)) (into (conj ret tag) tags)
-          (= tag (first tags))
-          (u/illegal (str "elem " tag "already present in " tags))
-          :else (recur (rest tags)
-                       (conj ret (first tags))))))
-
-(defn- tag-union
-  "Returns a vector that contains the union of the sorted vectors `x` and `y`."
-  [x y]
-  (let [xs (sort (into x y))]
-    (into [] (dedupe) xs)))
-
-(defn- tag-intersection
-  "Returns a vector that contains the intersection of the two sorted vectors `x`
-  and `y`."
-  [x y]
-  (loop [i (long 0)
-         j (long 0)
-         r (transient [])]
-    (let [xi (nth x i nil)
-          yj (nth y j nil)]
-      (cond (not (and xi yj)) (persistent! r)
-            (< xi yj) (recur (inc i) j r)
-            (> xi yj) (recur i (inc j) r)
-            :else     (recur (inc i) (inc j) (conj! r xi))))))
-
 ;; ## Term List Algebra
 ;;
 ;; Now, we get to 'terms'.
@@ -113,7 +72,7 @@
 (defn- tag-in-term?
   "Return true if `t` is in the tag-set of the supplied `term`, false otherwise."
   [term t]
-  (tag-in? (tags term) t))
+  (uv/contains? (tags term) t))
 
 (defn terms:+
   "Iterate and build up the result while preserving order and dropping zero sums."
@@ -144,17 +103,16 @@
 (defn terms:* [xs ys]
   (for [[x-tags x-coef] xs
         [y-tags y-coef] ys
-        :when (empty? (tag-intersection x-tags y-tags))]
-    (make-term (tag-union x-tags y-tags)
+        :when (empty? (uv/intersection x-tags y-tags))]
+    (make-term (uv/union x-tags y-tags)
                (g/* x-coef y-coef))))
 
 (defn- collect-terms [tags->coefs]
-  (into []
-        (sort-by first
-                 (for [[tags tags-coefs] (group-by tags tags->coefs)
-                       :let [c (transduce (map coefficient) g/+ tags-coefs)]
-                       :when (not (v/zero? c))]
-                   [tags c]))))
+  (let [terms (for [[tags tags-coefs] (group-by tags tags->coefs)
+                    :let [c (transduce (map coefficient) g/+ tags-coefs)]
+                    :when (not (v/zero? c))]
+                [tags c])]
+    (into [] (sort-by tags terms))))
 
 ;; ## Differential
 
@@ -288,10 +246,10 @@
     (terms->differential
      (mapv (fn [term]
              (let [tagv (tags term)]
-               (if (tag-in? tagv oldtag)
+               (if (uv/contains? tagv oldtag)
                  (make-term (-> (tags term)
-                                (drop-tag oldtag)
-                                (insert-tag newtag))
+                                (uv/disj oldtag)
+                                (uv/conj newtag))
                             (coefficient term))
                  term)))
            (terms dx))))
@@ -299,8 +257,8 @@
     (sum->differential
      (mapcat (fn [term]
                (let [tagv (tags term)]
-                 (if (tag-in? tagv tag)
-                   [(make-term (drop-tag tagv tag)
+                 (if (uv/contains? tagv tag)
+                   [(make-term (uv/disj tagv tag)
                                (coefficient term))]
                    [])))
              (terms dx)))))
@@ -325,7 +283,9 @@
   ([primal tag]
    (bundle primal 1 tag))
   ([primal tangent tag]
-   (d:+ primal (->Differential [[[tag] tangent]]))))
+   (let [term (make-term (uv/make [tag])
+                         tangent)]
+     (d:+ primal (->Differential [term])))))
 
 (defn max-order-tag
   "From each of the differentials in the sequence ds, find the highest

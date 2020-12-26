@@ -27,6 +27,7 @@
             [sicmutils.operator :as o]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
+            [sicmutils.util.vector-set :as uv]
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang Fn MultiFn))))
