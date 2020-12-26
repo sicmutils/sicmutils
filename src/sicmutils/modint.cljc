@@ -24,6 +24,9 @@
             [sicmutils.value :as v]))
 
 (defrecord ModInt [i m]
+  v/Numerical
+  (numerical? [_] true)
+
   v/Value
   (zero? [_] (v/zero? i))
   (one? [_] (v/one? i))
@@ -33,7 +36,6 @@
   (identity-like [_] (ModInt. (v/one-like i) m))
   (freeze [_] (list 'modint i m))
   (exact? [_] true)
-  (numerical? [_] true)
   (kind [_] ::modint))
 
 (defn make [i m]

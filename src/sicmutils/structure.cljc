@@ -27,7 +27,7 @@
             [sicmutils.value :as v]
             #?(:cljs [cljs.reader]))
   #?(:clj
-     (:import [clojure.lang Associative AFn IFn PersistentVector Sequential])))
+     (:import (clojure.lang Associative AFn IFn PersistentVector Sequential))))
 
 (def ^:dynamic *allow-incompatible-multiplication* true)
 
@@ -69,6 +69,11 @@
 
 (declare s:=)
 
+(extend-type PersistentVector
+  f/IArity
+  (arity [v]
+    (transduce (map f/arity) f/combine-arities v)))
+
 (deftype Structure [orientation v]
   v/Value
   (zero? [_] (every? v/zero? v))
@@ -78,9 +83,11 @@
   (one-like [o] (u/unsupported (str "one-like: " o)))
   (identity-like [o] (u/unsupported (str "identity-like: " o)))
   (exact? [_] (every? v/exact? v))
-  (numerical? [_] false)
   (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
   (kind [_] orientation)
+
+  f/IArity
+  (arity [_] (f/arity v))
 
   #?@(:clj
       [Object

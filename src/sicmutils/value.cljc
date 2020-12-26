@@ -29,8 +29,14 @@
   #?(:clj
      (:import (clojure.lang BigInt PersistentVector Sequential Symbol))))
 
+(defprotocol Numerical
+  (numerical? [_]))
+
+(extend-protocol Numerical
+  #?(:clj Object :cljs default)
+  (numerical? [_] false))
+
 (defprotocol Value
-  (numerical? [this])
   (zero? [this])
   (one? [this])
   (identity? [this])
@@ -125,6 +131,17 @@
        (derive goog.math.Integer ::integral)
        (derive goog.math.Long ::integral)))
 
+(extend-protocol Numerical
+  #?(:clj Number :cljs number)
+  (numerical? [_] true)
+
+  #?@(:clj
+      [java.lang.Double
+       (numerical? [_] true)
+
+       java.lang.Float
+       (numerical? [_] true)]))
+
 (extend-protocol Value
   #?(:clj Number :cljs number)
   (zero? [x] (core-zero? x))
@@ -135,7 +152,6 @@
   (identity-like [_] 1)
   (freeze [x] x)
   (exact? [x] (or (integer? x) #?(:clj (ratio? x))))
-  (numerical? [_] true)
   (kind [x] #?(:clj (type x)
                :cljs (if (exact? x)
                        ::native-integral
@@ -150,7 +166,6 @@
   (identity-like [_] 1)
   (freeze [x] x)
   (exact? [x] false)
-  (numerical? [_] false)
   (kind [x] (type x))
 
   #?@(:clj
@@ -163,7 +178,6 @@
        (identity-like [_] 1.0)
        (freeze [x] x)
        (exact? [x] false)
-       (numerical? [_] true)
        (kind [x] (type x))
 
        java.lang.Float
@@ -175,7 +189,6 @@
        (identity-like [_] 1.0)
        (freeze [x] x)
        (exact? [x] false)
-       (numerical? [_] true)
        (kind [x] (type x))])
 
   nil
@@ -185,7 +198,6 @@
   (zero-like [o] (u/unsupported "nil doesn't support zero-like."))
   (one-like [o] (u/unsupported "nil doesn't support one-like."))
   (identity-like [o] (u/unsupported "nil doesn't support identity-like."))
-  (numerical? [_] false)
   (freeze [_] nil)
   (kind [_] nil)
 
@@ -197,7 +209,6 @@
   (one-like [o] (u/unsupported (str "one-like: " o)))
   (identity-like [o] (u/unsupported (str "identity-like: " o)))
   (exact? [v] (every? exact? v))
-  (numerical? [_] false)
   (freeze [v] (mapv freeze v))
   (kind [v] (type v))
 
@@ -208,7 +219,6 @@
   (zero-like [o] (u/unsupported (str "zero-like: " o)))
   (one-like [o] (u/unsupported (str "one-like: " o)))
   (identity-like [o] (u/unsupported (str "identity-like: " o)))
-  (numerical? [_] false)
   (exact? [o] false)
   (freeze [o] (if (sequential? o)
                 (map freeze o)
@@ -307,6 +317,16 @@
    (let [big-zero (js/BigInt 0)
          big-one (js/BigInt 1)]
 
+     (extend-protocol Numerical
+       js/BigInt
+       (numerical? [_] true)
+
+       goog.math.Integer
+       (numerical? [_] true)
+
+       goog.math.Long
+       (numerical? [_] true))
+
      (extend-protocol Value
        js/BigInt
        (zero? [x] (js*  "~{} == ~{}" big-zero x))
@@ -322,7 +342,6 @@
            (js/Number x)
            x))
        (exact? [_] true)
-       (numerical? [_] true)
        (kind [_] js/BigInt)
 
        goog.math.Integer
@@ -334,7 +353,6 @@
        (identity-like [_] (.-ONE goog.math.Integer))
        (freeze [x] x)
        (exact? [_] true)
-       (numerical? [_] true)
        (kind [_] goog.math.Integer)
 
        goog.math.Long
@@ -346,7 +364,6 @@
        (identity-like [_] (.getOne goog.math.Long))
        (freeze [x] x)
        (exact? [x] true)
-       (numerical? [_] true)
        (kind [_] goog.math.Long))))
 
 (defn kind-predicate
