@@ -233,21 +233,25 @@
          (g/simplify (((* sin D) g/cube) 't)))))
 
 (deftest vector-calculus
-  (let [f (s/up identity sin cos)
-        divergence #(fn [t] (reduce + ((D %) t)))
-        laplacian  (fn [f]
-                     (* (D f) (d/Grad f)))]
-    (is (= '(up 1 (cos t) (* -1 (sin t)))
-           (g/simplify ((D f) 't))))
+  (let [f (fn [[x y z]]
+            (s/up (identity x) (sin y) (cos z)))
+        xyz (s/up 'x 'y 'z)]
+    (is (= '(down
+             (up 1 0 0)
+             (up 0 (cos y) 0)
+             (up 0 0 (* -1 (sin z))))
+           (g/simplify ((D f) xyz))))
+    (is (= '(up
+             (up 1 0 0)
+             (up 0 (cos y) 0)
+             (up 0 0 (* -1 (sin z))))
+           (g/simplify ((d/Grad f) xyz))))
 
-    (is (= '(down 1 (cos t) (* -1 (sin t)))
-           (g/simplify ((d/Grad f) 't))))
+    (is (= '(up 0 (* -1 (sin y)) (* -1 (cos z)))
+           (g/simplify ((d/Lap f) xyz))))
 
-    (is (= 2 (g/simplify (* ((D f) 't) ((d/Grad f) 't)))))
-    (is (= 2 (g/simplify ((laplacian (s/up identity sin cos)) 't))))
-
-    (is (= '(+ (cos t) (* -1 (sin t)) 1)
-           (g/simplify ((divergence f) 't))))))
+    (is (= '(+ (cos y) (* -1 (sin z)) 1)
+           (g/simplify ((d/Div f) (s/up 'x 'y 'z))))) ))
 
 (deftest exp-and-log
   (is (= '(/ 1 x)
@@ -664,7 +668,6 @@
             (is (ish? (Math/cos 1) (via-series 1)))
             (is (ish? (Math/cos 0.6) (via-series 0.6)))))))))
 
-
 (deftest threeD-op-tests
   (testing "symbolic representations of Div, Curl, Grad, Lap are correct"
     (let [F (af/literal-function 'F '(-> (UP Real Real Real) Real))
@@ -730,67 +733,3 @@
                        (g/dot-product (d/Grad F)
                                       (d/Grad G))))
                  (s/up 'x 'y 'z))))))))
-
-(comment
-  (def Del
-    (s/up (partial 0)
-          (partial 1)
-          (partial 2)))
-
-  (defn One [_] 1)
-
-  (def Div
-    (o/make-operator
-     (fn [f3]
-       ((g/dot-product Del (if (fn? f3)
-                             (fn [_] f3)
-                             f3)) One))
-     'Div))
-
-  (def Grad
-    (o/make-operator
-     (fn [f] (Del f))
-     'Grad))
-
-  (def Curl
-    (o/make-operator
-     (fn [f3]
-       ((g/cross-product Del (if (fn? f3)
-                               (fn [_] f3)
-                               f3))
-        One))
-     'Curl))
-
-  (is (= '(up 0 0 0)
-         (g/simplify
-          ((Curl (Grad G)) (s/up 'x 'y 'z)))))
-
-  ((Curl (* F (Grad G))) (s/up 'x 'y 'z))
-
-
-  (is (= '(up (((partial 0) F) (up x y z))
-              (((partial 1) F) (up x y z))
-              (((partial 2) F) (up x y z)))
-         (g/simplify
-          ((Grad F) (s/up 'x 'y 'z)))))
-
-  (is (= '(+ (((partial 0) A↑0) (up x y z))
-             (((partial 1) A↑1) (up x y z))
-             (((partial 2) A↑2) (up x y z)))
-         (g/simplify
-          ((Div A) (s/up 'x 'y 'z)))))
-
-  (is (= '(up (+ (((partial 1) A↑2) (up x y z))
-                 (* -1 (((partial 2) A↑1) (up x y z))))
-              (+ (((partial 2) A↑0) (up x y z))
-                 (* -1 (((partial 0) A↑2) (up x y z))))
-              (+ (((partial 0) A↑1) (up x y z))
-                 (* -1 (((partial 1) A↑0) (up x y z)))))
-         (g/simplify
-          ((d/Curl A) (s/up 'x 'y 'z)))))
-
-  (is (= '(+ (((partial 0) ((partial 0) F)) (up x y z))
-             (((partial 1) ((partial 1) F)) (up x y z))
-             (((partial 2) ((partial 2) F)) (up x y z)))
-         (g/simplify
-          ((d/Lap F) (s/up 'x 'y 'z))))))

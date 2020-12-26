@@ -215,17 +215,9 @@
                    (g/partial-derivative f [])))
       (o/make-operator 'Grad)))
 
-;; TODO make THESE more general...
-
 (def ^{:doc "takes a 3d vector of functions on 3d space."}
   Div
-  (-> (fn [f-triple]
-        (let [fx (f/get f-triple 0)
-              fy (f/get f-triple 1)
-              fz (f/get f-triple 2)]
-          (g/+ ((partial 0) fx)
-               ((partial 1) fy)
-               ((partial 2) fz))))
+  (-> (f/compose g/trace Grad)
       (o/make-operator 'Div)))
 
 (def ^{:doc "takes a 3d vector of functions on 3d space."}
@@ -242,11 +234,7 @@
 
 (def ^{:doc "takes a 3d vector of functions on 3d space."}
   Lap
-  (-> (fn [f]
-        (let [[Dx Dy Dz] (map partial [0 1 2])]
-          (g/+ ((g/expt (partial 0) 2) f)
-               ((g/expt (partial 1) 2) f)
-               ((g/expt (partial 2) 2) f))))
+  (-> (f/compose g/trace (g/square Grad))
       (o/make-operator 'Lap)))
 
 (defn taylor-series
