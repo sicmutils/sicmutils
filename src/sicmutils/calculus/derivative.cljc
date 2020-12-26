@@ -20,118 +20,124 @@
 (ns sicmutils.calculus.derivative
   (:refer-clojure :rename {partial core-partial}
                   #?@(:cljs [:exclude [partial]]))
-  (:require [sicmutils.differential :as d]
+  (:require [sicmutils.differential :as d #?@(:cljs [:refer [Differential]])]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
-            [sicmutils.matrix :as matrix]
-            [sicmutils.operator :as o]
-            [sicmutils.series :as series]
-            [sicmutils.structure :as struct]
+            [sicmutils.matrix :as matrix #?@(:cljs [:refer [Matrix]])]
+            [sicmutils.operator :as o #?@(:cljs [:refer [Operator]])]
+            [sicmutils.series :as series #?@(:cljs [:refer [Series]])]
+            [sicmutils.structure :as s #?@(:cljs [:refer [Structure]])]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
-     (:import (clojure.lang MultiFn))))
+     (:import (clojure.lang Fn MultiFn)
+              (sicmutils.differential Differential)
+              (sicmutils.matrix Matrix)
+              (sicmutils.operator Operator)
+              (sicmutils.series Series)
+              (sicmutils.structure Structure))))
 
-(declare replace-differential-tag)
+(defprotocol ITagged
+  (replace-tag [this old new])
+  (extract-tangent [this tag]))
 
-(defn replace-dx-function [f newtag oldtag]
-  (fn [& args]
-    (let [eps (d/fresh-tag)]
-      ((replace-differential-tag eps oldtag)
-       ((replace-differential-tag oldtag newtag)
-        (apply f (map (replace-differential-tag oldtag eps) args)))))))
+(declare replace-tag-fn extract-tangent-fn)
 
-(defn replace-differential-tag [oldtag newtag]
-  (fn call [obj]
-    (cond (d/differential? obj)
-          (d/terms->differential
-           (mapv (fn [term]
-                   (let [tagv (d/tags term)]
-                     (if (d/tag-in? tagv oldtag)
-                       (d/make-term (-> (d/tags term)
-                                        (d/replace-tag oldtag newtag))
-                                    (d/coefficient term))
-                       term)))
-                 (d/terms obj)))
-          (struct/structure? obj) (struct/mapr call obj)
-          (matrix/matrix? obj)    (matrix/fmap call obj)
-          #_(comment
-              (quaternion? obj)
-              (quaternion
-               (call (quaternion-ref obj 0))
-               (call (quaternion-ref obj 1))
-               (call (quaternion-ref obj 2))
-               (call (quaternion-ref obj 3))))
-          (series/series? obj)    (series/fmap call obj)
-          (fn? obj)               (replace-dx-function obj newtag oldtag)
-          (instance? MultiFn obj) (replace-dx-function obj newtag oldtag)
-          (o/operator? obj)       (replace-dx-function obj newtag oldtag)
-          :else obj)))
+(extend-protocol ITagged
+  #?(:clj Object :cljs default)
+  (replace-tag [this _ _] this)
+  (extract-tangent [_ _] 0)
 
-(declare extract-dx-part)
-
-(defn extract-dx-function [dx f]
-  (fn [& args]
-    (let [internal-tag (d/fresh-tag)]
-      ((replace-differential-tag internal-tag dx)
-       (extract-dx-part
-        dx
-        (apply f (map (replace-differential-tag dx internal-tag) args)))))))
-
-(defn extract-dx-differential [dx obj]
-  (if (d/differential? obj)
+  Differential
+  (replace-tag [dx oldtag newtag]
+    (d/terms->differential
+     (mapv (fn [term]
+             (let [tagv (d/tags term)]
+               (if (d/tag-in? tagv oldtag)
+                 (d/make-term (-> (d/tags term)
+                                  (d/drop-tag oldtag)
+                                  (d/insert-tag newtag))
+                              (d/coefficient term))
+                 term)))
+           (d/terms dx))))
+  (extract-tangent [dx tag]
     (d/sum->differential
      (mapcat (fn [term]
                (let [tagv (d/tags term)]
-                 (if (d/tag-in? tagv dx)
-                   [(d/make-term (d/drop-tag tagv dx)
+                 (if (d/tag-in? tagv tag)
+                   [(d/make-term (d/drop-tag tagv tag)
                                  (d/coefficient term))]
                    [])))
-             (d/terms obj)))
-    0))
+             (d/terms dx))))
 
-(defn- extract-dx-part [dx obj]
-  (letfn [(dist [obj]
-            (cond (struct/structure? obj) (struct/mapr dist obj)
-                  (matrix/matrix? obj)    (matrix/fmap dist obj)
-                  (series/series? obj)    (series/fmap dist obj)
-                  (fn? obj)               (extract-dx-function dx obj)
-                  (instance? MultiFn obj) (extract-dx-function dx obj)
-                  (o/operator? obj)       (extract-dx-function dx obj)
-                  #_(comment
-                      (quaternion? obj)
-                      (quaternion (dist (quaternion-ref obj 0))
-                                  (dist (quaternion-ref obj 1))
-                                  (dist (quaternion-ref obj 2))
-                                  (dist (quaternion-ref obj 3))))
-                  (fn? obj) #(dist (obj %))
-                  :else (extract-dx-differential dx obj)))]
-    (dist obj)))
+  Structure
+  (replace-tag [s old new] (s/mapr #(replace-tag % old new) s))
+  (extract-tangent [s tag] (s/mapr #(extract-tangent % tag) s))
+
+  Matrix
+  (replace-tag [M old new] (matrix/fmap #(replace-tag % old new) M))
+  (extract-tangent [M tag] (matrix/fmap #(extract-tangent % tag) M))
+
+  Series
+  (replace-tag [s old new] (series/fmap #(replace-tag % old new) s))
+  (extract-tangent [s tag] (series/fmap #(extract-tangent % tag) s))
+
+  #?(:clj Fn :cljs function)
+  (replace-tag [f old new] (replace-tag-fn f old new))
+  (extract-tangent [f tag] (extract-tangent-fn f tag))
+
+  #?@(:cljs
+      [MetaFn
+       (replace-tag [f old new] (replace-tag-fn f old new))
+       (extract-tangent [f tag] (extract-tangent-fn f tag))])
+
+  MultiFn
+  (replace-tag [f old new] (replace-tag-fn f old new))
+  (extract-tangent [f tag] (extract-tangent-fn f tag))
+
+  Operator
+  (replace-tag [f old new] (replace-tag-fn f old new))
+  (extract-tangent [f tag] (extract-tangent-fn f tag)))
+
+(defn replace-tag-fn [f old new]
+  (fn [& args]
+    (let [eps (d/fresh-tag)]
+      (-> (apply f (map #(replace-tag % old eps) args))
+          (replace-tag old new)
+          (replace-tag eps old)))))
+
+(defn extract-tangent-fn [f tag]
+  (fn [& args]
+    (let [eps (d/fresh-tag)]
+      (-> (apply f (map #(replace-tag % tag eps) args))
+          (extract-tangent tag)
+          (replace-tag eps tag)))))
 
 (defn derivative [f]
   (fn [x]
-    (let [dx (d/fresh-tag)]
-      (extract-dx-part dx (f (d/bundle x dx))))))
+    (let [tag (d/fresh-tag)]
+      (-> (f (d/bundle x 1 tag))
+          (extract-tangent tag)))))
 
 ;; ## Multivariable Calculus
 
 (defn- euclidean-structure [selectors f]
   (letfn [(structural-derivative [g v]
-            (cond (struct/structure? v)
-                  (struct/opposite v
-                                   (map-indexed
-                                    (fn [i v_i]
-                                      (structural-derivative
-                                       (fn [w]
-                                         (g (assoc v i w)))
-                                       v_i))
-                                    v))
+            (cond (s/structure? v)
+                  (s/opposite v
+                              (map-indexed
+                               (fn [i v_i]
+                                 (structural-derivative
+                                  (fn [w]
+                                    (g (assoc v i w)))
+                                  v_i))
+                               v))
                   (v/numerical? v) ((derivative g) v)
 
                   :else
                   (u/illegal (str "bad structure " g ", " v))))
           (a-euclidean-derivative [v]
-            (cond (struct/structure? v)
+            (cond (s/structure? v)
                   (structural-derivative
                    (fn [w]
                      (f (if (empty? selectors)
@@ -173,7 +179,7 @@
           ((d f) (first xs))
           ((d #(apply f %)) (matrix/seq-> xs)))))))
 
-(doseq [t [::v/function ::struct/structure]]
+(doseq [t [::v/function ::s/structure]]
   (defmethod g/partial-derivative [t v/seqtype] [f selectors]
     (multivariate-derivative f selectors))
 
@@ -210,7 +216,7 @@
 ;; TODO note to Colin that I THINK we just flip a single outer layer here...
 (def Grad
   (-> (fn [f]
-        (f/compose struct/opposite
+        (f/compose s/opposite
                    (g/partial-derivative f [])))
       (o/make-operator 'Grad)))
 
@@ -226,9 +232,9 @@
               fx (f/get f-triple 0)
               fy (f/get f-triple 1)
               fz (f/get f-triple 2)]
-          (struct/up (g/- (Dy fz) (Dz fy))
-                     (g/- (Dz fx) (Dx fz))
-                     (g/- (Dx fy) (Dy fx)))))
+          (s/up (g/- (Dy fz) (Dz fy))
+                (g/- (Dz fx) (Dx fz))
+                (g/- (Dx fy) (Dy fx)))))
       (o/make-operator 'Curl)))
 
 (def ^{:doc "takes a 3d vector of functions on 3d space."}
