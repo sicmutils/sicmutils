@@ -313,7 +313,6 @@
          (.compare this other)))))
 
 #?(:cljs
-
    ;; Clojurescript-specific implementations of Value.
    (let [big-zero (js/BigInt 0)
          big-one (js/BigInt 1)]
