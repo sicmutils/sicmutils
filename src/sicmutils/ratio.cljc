@@ -119,7 +119,6 @@
                      n
                      `(~'/ ~n ~d))))
      (exact? [c] true)
-
      (kind [_] Ratio))
 
    :cljs
@@ -142,13 +141,11 @@
                          ~(v/freeze n)
                          ~(v/freeze d)))))
        (exact? [c] true)
-
        (kind [x] Fraction)
 
        IEquiv
        (-equiv [this other]
          (cond (ratio? other) (.equals this other)
-
                (v/integral? other)
                (and (v/one? (denominator this))
                     (v/= (numerator this) other))

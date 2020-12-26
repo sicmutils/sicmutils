@@ -29,7 +29,6 @@
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
-
             [sicmutils.value :as v])
   #?(:clj
      (:import [clojure.lang Associative AFn IFn Sequential])))
@@ -863,8 +862,8 @@
       a')))
 
 (defmethod g/dimension [::square-matrix] [m] (dimension m))
-(defmethod g/dimension [::column-matrix] [m] (num-cols m))
-(defmethod g/dimension [::row-matrix] [m] (num-rows m))
+(defmethod g/dimension [::column-matrix] [m] (num-rows m))
+(defmethod g/dimension [::row-matrix] [m] (num-cols m))
 
 ;; ## Column / Row Matrices only...
 
