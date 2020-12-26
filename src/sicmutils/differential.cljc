@@ -23,14 +23,49 @@
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.util.stream :as us]
-            [sicmutils.value :as v]))
+            [sicmutils.value :as v])
+  #?(:clj
+     (:import (clojure.lang Fn MultiFn))))
 
 (defprotocol IPerturbed
-  (perturbed? [this]))
+  (perturbed? [this])
+  (replace-tag [this old new])
+  (extract-tangent [this tag]))
+
+(declare fresh-tag)
+
+(defn replace-tag-fn [f old new]
+  (fn [& args]
+    (let [eps (fresh-tag)]
+      (-> (apply f (map #(replace-tag % old eps) args))
+          (replace-tag old new)
+          (replace-tag eps old)))))
+
+(defn extract-tangent-fn [f tag]
+  (fn [& args]
+    (let [eps (fresh-tag)]
+      (-> (apply f (map #(replace-tag % tag eps) args))
+          (extract-tangent tag)
+          (replace-tag eps tag)))))
 
 (extend-protocol IPerturbed
   #?(:clj Object :cljs default)
-  (perturbed? [_] false))
+  (perturbed? [_] false)
+  (replace-tag [this _ _] this)
+  (extract-tangent [_ _] 0)
+
+  #?(:clj Fn :cljs function)
+  (replace-tag [f old new] (replace-tag-fn f old new))
+  (extract-tangent [f tag] (extract-tangent-fn f tag))
+
+  #?@(:cljs
+      [MetaFn
+       (replace-tag [f old new] (replace-tag-fn f old new))
+       (extract-tangent [f tag] (extract-tangent-fn f tag))])
+
+  MultiFn
+  (replace-tag [f old new] (replace-tag-fn f old new))
+  (extract-tangent [f tag] (extract-tangent-fn f tag)))
 
 (derive ::differential ::v/scalar)
 
@@ -65,12 +100,6 @@
           (u/illegal (str "elem " tag "already present in " tags))
           :else (recur (rest tags)
                        (conj ret (first tags))))))
-
-(defn replace-tag
-  "TODO maybe try doing it the OTHER way so we blow up if we clash?"
-  [ts old new]
-  (-> (drop-tag ts old)
-      (insert-tag new)))
 
 (defn- tag-union
   "Returns a vector that contains the union of the sorted vectors `x` and `y`."
@@ -171,9 +200,6 @@
   f/IArity
   (arity [_]
     (f/arity (coefficient (first terms))))
-
-  IPerturbed
-  (perturbed? [_] true)
 
   v/Numerical
   (numerical? [d] (v/numerical? (bare-coefficient d)))
@@ -283,6 +309,32 @@
   [tags->coefs]
   (terms->differential
    (collect-terms tags->coefs)))
+
+;; TODO sort this? Make things private again?
+
+(extend-protocol IPerturbed
+  Differential
+  (perturbed? [_] true)
+  (replace-tag [dx oldtag newtag]
+    (terms->differential
+     (mapv (fn [term]
+             (let [tagv (tags term)]
+               (if (tag-in? tagv oldtag)
+                 (make-term (-> (tags term)
+                                (drop-tag oldtag)
+                                (insert-tag newtag))
+                            (coefficient term))
+                 term)))
+           (terms dx))))
+  (extract-tangent [dx tag]
+    (sum->differential
+     (mapcat (fn [term]
+               (let [tagv (tags term)]
+                 (if (tag-in? tagv tag)
+                   [(make-term (drop-tag tagv tag)
+                               (coefficient term))]
+                   [])))
+             (terms dx)))))
 
 (defn d:+
   "Adds two objects differentially. (One of the objects might not be
@@ -436,7 +488,7 @@
         func (cond (< f 0) (unary-op (fn [x] x) (fn [_] -1))
                    (> f 0) (unary-op (fn [x] x) (fn [_] 1))
                    (= f 0) (u/illegal "Derivative of g/abs undefined at zero")
-                   :else (u/illegal "error! derivative of g/abs at" x))]
+                   :else (u/illegal (str "error! derivative of g/abs at" x)))]
     (func x)))
 
 (def ^:private sinh (unary-op g/sinh g/cosh))

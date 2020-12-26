@@ -48,11 +48,16 @@
 ;; Doug also has a 10-line version in Haskell on [his
 ;; website](https://www.cs.dartmouth.edu/~doug/powser.html).
 
-(declare s-zero s-one s-identity series-value)
+(declare fmap s-zero s-one s-identity series-value)
 
 (deftype Series [xs]
   f/IArity
   (arity [_] (f/arity (first xs)))
+
+  d/IPerturbed
+  (perturbed? [_] false)
+  (replace-tag [s old new] (fmap #(d/replace-tag % old new) s))
+  (extract-tangent [s tag] (fmap #(d/extract-tangent % tag) s))
 
   v/Value
   (zero? [_] false)
@@ -207,6 +212,11 @@
 (deftype PowerSeries [xs]
   f/IArity
   (arity [_] [:exactly 1])
+
+  d/IPerturbed
+  (perturbed? [_] false)
+  (replace-tag [s old new] (fmap #(d/replace-tag % old new) s))
+  (extract-tangent [s tag] (fmap #(d/extract-tangent % tag) s))
 
   v/Value
   (zero? [_] false)

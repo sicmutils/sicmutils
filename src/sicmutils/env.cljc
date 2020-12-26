@@ -211,7 +211,6 @@
   factorial]
  [sicmutils.structure
   compatible-shape
-  component
   down
   mapr
   orientation

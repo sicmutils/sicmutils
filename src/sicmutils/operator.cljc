@@ -35,6 +35,13 @@
   f/IArity
   (arity [_] arity)
 
+  d/IPerturbed
+  (perturbed? [_] false)
+  (replace-tag [o old new]
+    (Operator. (d/replace-tag-fn o old new) arity name context))
+  (extract-tangent [o tag]
+    (Operator. (d/extract-tangent-fn o tag) arity name context))
+
   v/Value
   (zero? [_] false)
   (one? [_] false)

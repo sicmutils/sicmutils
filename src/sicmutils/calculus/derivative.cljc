@@ -20,104 +20,22 @@
 (ns sicmutils.calculus.derivative
   (:refer-clojure :rename {partial core-partial}
                   #?@(:cljs [:exclude [partial]]))
-  (:require [sicmutils.differential :as d #?@(:cljs [:refer [Differential]])]
+  (:require [sicmutils.differential :as d]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
-            [sicmutils.matrix :as matrix #?@(:cljs [:refer [Matrix]])]
-            [sicmutils.operator :as o #?@(:cljs [:refer [Operator]])]
-            [sicmutils.series :as series #?@(:cljs [:refer [Series]])]
-            [sicmutils.structure :as s #?@(:cljs [:refer [Structure]])]
+            [sicmutils.matrix :as matrix]
+            [sicmutils.operator :as o]
+            [sicmutils.series :as series]
+            [sicmutils.structure :as s]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
-  #?(:clj
-     (:import (clojure.lang Fn MultiFn)
-              (sicmutils.differential Differential)
-              (sicmutils.matrix Matrix)
-              (sicmutils.operator Operator)
-              (sicmutils.series Series)
-              (sicmutils.structure Structure))))
-
-(defprotocol ITagged
-  (replace-tag [this old new])
-  (extract-tangent [this tag]))
-
-(declare replace-tag-fn extract-tangent-fn)
-
-(extend-protocol ITagged
-  #?(:clj Object :cljs default)
-  (replace-tag [this _ _] this)
-  (extract-tangent [_ _] 0)
-
-  Differential
-  (replace-tag [dx oldtag newtag]
-    (d/terms->differential
-     (mapv (fn [term]
-             (let [tagv (d/tags term)]
-               (if (d/tag-in? tagv oldtag)
-                 (d/make-term (-> (d/tags term)
-                                  (d/drop-tag oldtag)
-                                  (d/insert-tag newtag))
-                              (d/coefficient term))
-                 term)))
-           (d/terms dx))))
-  (extract-tangent [dx tag]
-    (d/sum->differential
-     (mapcat (fn [term]
-               (let [tagv (d/tags term)]
-                 (if (d/tag-in? tagv tag)
-                   [(d/make-term (d/drop-tag tagv tag)
-                                 (d/coefficient term))]
-                   [])))
-             (d/terms dx))))
-
-  Structure
-  (replace-tag [s old new] (s/mapr #(replace-tag % old new) s))
-  (extract-tangent [s tag] (s/mapr #(extract-tangent % tag) s))
-
-  Matrix
-  (replace-tag [M old new] (matrix/fmap #(replace-tag % old new) M))
-  (extract-tangent [M tag] (matrix/fmap #(extract-tangent % tag) M))
-
-  Series
-  (replace-tag [s old new] (series/fmap #(replace-tag % old new) s))
-  (extract-tangent [s tag] (series/fmap #(extract-tangent % tag) s))
-
-  #?(:clj Fn :cljs function)
-  (replace-tag [f old new] (replace-tag-fn f old new))
-  (extract-tangent [f tag] (extract-tangent-fn f tag))
-
-  #?@(:cljs
-      [MetaFn
-       (replace-tag [f old new] (replace-tag-fn f old new))
-       (extract-tangent [f tag] (extract-tangent-fn f tag))])
-
-  MultiFn
-  (replace-tag [f old new] (replace-tag-fn f old new))
-  (extract-tangent [f tag] (extract-tangent-fn f tag))
-
-  Operator
-  (replace-tag [f old new] (replace-tag-fn f old new))
-  (extract-tangent [f tag] (extract-tangent-fn f tag)))
-
-(defn replace-tag-fn [f old new]
-  (fn [& args]
-    (let [eps (d/fresh-tag)]
-      (-> (apply f (map #(replace-tag % old eps) args))
-          (replace-tag old new)
-          (replace-tag eps old)))))
-
-(defn extract-tangent-fn [f tag]
-  (fn [& args]
-    (let [eps (d/fresh-tag)]
-      (-> (apply f (map #(replace-tag % tag eps) args))
-          (extract-tangent tag)
-          (replace-tag eps tag)))))
+  )
 
 (defn derivative [f]
   (fn [x]
     (let [tag (d/fresh-tag)]
       (-> (f (d/bundle x 1 tag))
-          (extract-tangent tag)))))
+          (d/extract-tangent tag)))))
 
 ;; ## Multivariable Calculus
 

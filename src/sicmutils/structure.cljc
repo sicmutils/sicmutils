@@ -68,7 +68,7 @@
 
 ;; ## Structure Type Definition
 
-(declare s:=)
+(declare s:= mapr)
 
 ;; vectors are ups, so install these here...
 
@@ -78,8 +78,9 @@
     (transduce (map f/arity) f/combine-arities v))
 
   d/IPerturbed
-  (perturbed? [v]
-    (boolean (some d/perturbed? v))))
+  (perturbed? [v] (boolean (some d/perturbed? v)))
+  (replace-tag [s old new] (mapv #(d/replace-tag % old new) s))
+  (extract-tangent [s tag] (mapv #(d/extract-tangent % tag) s)))
 
 (deftype Structure [orientation v]
   v/Value
@@ -97,8 +98,9 @@
   (arity [_] (f/arity v))
 
   d/IPerturbed
-  (perturbed? [_]
-    (boolean (some d/perturbed? v)))
+  (perturbed? [_] (boolean (some d/perturbed? v)))
+  (replace-tag [s old new] (mapr #(d/replace-tag % old new) s))
+  (extract-tangent [s tag] (mapr #(d/extract-tangent % tag) s))
 
   #?@(:clj
       [Object

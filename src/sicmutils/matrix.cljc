@@ -60,9 +60,9 @@
                   :else ::matrix))
 
   d/IPerturbed
-  (perturbed? [_]
-    (boolean
-     (core-some d/perturbed? v)))
+  (perturbed? [_] (boolean (core-some d/perturbed? v)))
+  (replace-tag [M old new] (fmap #(d/replace-tag % old new) M))
+  (extract-tangent [M tag] (fmap #(d/extract-tangent % tag) M))
 
   f/IArity
   (arity [_] (f/arity v))
