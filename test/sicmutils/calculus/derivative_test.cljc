@@ -235,12 +235,18 @@
 (deftest vector-calculus
   (let [f (s/up identity sin cos)
         divergence #(fn [t] (reduce + ((D %) t)))
-        laplacian #(* (D %) ((g/transpose D) %))]
-    (is (= '(up 1 (cos t) (* -1 (sin t))) (g/simplify ((D f) 't))))
-    (is (= '(down 1 (cos t) (* -1 (sin t))) (g/simplify (((g/transpose D) f) 't))))
+        laplacian  #(* (D %) ((g/transpose D) %))]
+    (is (= '(up 1 (cos t) (* -1 (sin t)))
+           (g/simplify ((D f) 't))))
+
+    (is (= '(down 1 (cos t) (* -1 (sin t)))
+           (g/simplify (((g/transpose D) f) 't))))
+
     (is (= 2 (g/simplify (* ((D f) 't) (((g/transpose D) f) 't)))))
     (is (= 2 (g/simplify ((laplacian (s/up identity sin cos)) 't))))
-    (is (= '(+ (cos t) (* -1 (sin t)) 1) (g/simplify ((divergence f) 't))))))
+
+    (is (= '(+ (cos t) (* -1 (sin t)) 1)
+           (g/simplify ((divergence f) 't))))))
 
 (deftest exp-and-log
   (is (= '(/ 1 x)
