@@ -234,9 +234,9 @@
 
 (defn- literal-derivative [f xs]
   (let [v (m/seq-> xs)
-        maxtag (->> v flatten d/max-order-tag)
-        ve (->> v (s/mapr #(d/without-tag maxtag %)) seq)
-        dv (->> v (s/mapr #(d/with-tag maxtag %)))]
+        maxtag (apply d/max-order-tag (flatten v))
+        ve (s/mapr #(d/primal-part % maxtag) v)
+        dv (s/mapr #(d/tangent-part % maxtag) v)]
     (d/d:+ (apply f ve)
            (reduce d/d:+ (map (fn [partialx dx]
                                 (d/d:* (apply partialx ve) dx))

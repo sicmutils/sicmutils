@@ -49,8 +49,7 @@
                    (let [tagv (d/tags term)]
                      (if (d/tag-in? tagv oldtag)
                        (d/make-term (-> (d/tags term)
-                                        (d/drop-tag oldtag)
-                                        (d/insert-tag newtag))
+                                        (d/replace-tag oldtag newtag))
                                     (d/coefficient term))
                        term)))
                  (d/terms obj)))

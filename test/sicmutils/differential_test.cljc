@@ -17,7 +17,7 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(ns sicmutils.calculus.derivative-test
+(ns sicmutils.differential-test
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [same :refer [ish?]]
             [sicmutils.differential :as d]

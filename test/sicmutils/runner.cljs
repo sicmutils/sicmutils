@@ -74,6 +74,7 @@
             sicmutils.util.stream-test
 
             sicmutils.complex-test
+            sicmutils.differential-test
             sicmutils.euclid-test
             sicmutils.expression-test
             sicmutils.env-test
@@ -169,6 +170,7 @@
            'sicmutils.sicm.ch7-test
 
            'sicmutils.complex-test
+           'sicmutils.differential-test
            'sicmutils.euclid-test
            'sicmutils.expression-test
            'sicmutils.env-test
