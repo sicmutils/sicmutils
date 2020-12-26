@@ -39,7 +39,7 @@
   #?(:clj Object :cljs default)
   (perturbed? [_] false))
 
-(derive ::differential ::f/cofunction)
+(derive ::differential ::v/scalar)
 
 ;; A differential term is implemented as a pair whose first element is
 ;; a set of tags and whose second is the coefficient.

@@ -339,13 +339,12 @@
   (-> (partial comp operator)
       (with-meta {:arity [:exactly 1]})))
 
-(defn coerce-to-fn [x arity]
-  (if (function? x)
-    x
-    (let [f (if (v/numerical? x)
-              (constantly x)
-              (fn [& args] (apply x args)))]
-      (with-meta f {:arity arity}))))
+(defn coerce-to-fn
+  ([x arity]
+   (if (v/numerical? x)
+     (-> (constantly x)
+         (with-meta {:arity arity}))
+     x)))
 
 (defn- binary-operation
   "For a given binary operator (like +), returns a function of two functions which
@@ -356,8 +355,8 @@
   (letfn [(h [f g]
             (let [f-arity (if (v/numerical? f) (arity g) (arity f))
                   g-arity (if (v/numerical? g) f-arity   (arity g))
-                  f1 (coerce-to-fn f f-arity)
-                  g1 (coerce-to-fn g g-arity)
+                  f1      (coerce-to-fn f f-arity)
+                  g1      (coerce-to-fn g g-arity)
                   arity (joint-arity [f-arity g-arity])]
               (-> (condp = arity
                     [:exactly 0]

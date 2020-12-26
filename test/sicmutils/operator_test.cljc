@@ -122,16 +122,16 @@
            (((partial 1) ((partial 0) ff)) 'x 'y))))
 
   (testing "operator derivative shape"
-    (is (= [:exactly 1] (:arity o/identity-operator)))
+    (is (= [:exactly 1] (:arity o/identity)))
     (is (= [:exactly 1] (:arity D)))
-    (is (= [:exactly 1] (:arity (* D o/identity-operator))))
+    (is (= [:exactly 1] (:arity (* D o/identity))))
     (is (= [:exactly 1] (:arity (* 'e D))))
     (is (= [:exactly 1] (:arity (* D 'e))))
     (is (= [:exactly 1] (arity g/sin)))
-    (is (= [:exactly 1] (arity (o/identity-operator g/sin))))
-    (is (= '(sin x) (g/simplify ((o/identity-operator g/sin) 'x))))
-    (is (= '(cos x) (g/simplify (((* D o/identity-operator) g/sin) 'x))))
-    (is (= '(cos x) (g/simplify (((* o/identity-operator D) g/sin) 'x)))))
+    (is (= [:exactly 1] (arity (o/identity g/sin))))
+    (is (= '(sin x) (g/simplify ((o/identity g/sin) 'x))))
+    (is (= '(cos x) (g/simplify (((* D o/identity) g/sin) 'x))))
+    (is (= '(cos x) (g/simplify (((* o/identity D) g/sin) 'x)))))
 
   (testing "exponentiation"
     (is (= '((f t)

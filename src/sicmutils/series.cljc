@@ -571,7 +571,6 @@
 ;; NOTE This might be the right way to go. Feel free to experiment.
 
 (derive ::v/scalar ::coseries)
-(derive ::d/differential ::coseries)
 (derive ::v/function ::coseries)
 
 ;; All generic methods:
