@@ -23,49 +23,18 @@
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.util.stream :as us]
-            [sicmutils.value :as v])
-  #?(:clj
-     (:import (clojure.lang Fn MultiFn))))
+            [sicmutils.value :as v]))
 
 (defprotocol IPerturbed
   (perturbed? [this])
   (replace-tag [this old new])
   (extract-tangent [this tag]))
 
-(declare fresh-tag)
-
-(defn replace-tag-fn [f old new]
-  (fn [& args]
-    (let [eps (fresh-tag)]
-      (-> (apply f (map #(replace-tag % old eps) args))
-          (replace-tag old new)
-          (replace-tag eps old)))))
-
-(defn extract-tangent-fn [f tag]
-  (fn [& args]
-    (let [eps (fresh-tag)]
-      (-> (apply f (map #(replace-tag % tag eps) args))
-          (extract-tangent tag)
-          (replace-tag eps tag)))))
-
 (extend-protocol IPerturbed
   #?(:clj Object :cljs default)
   (perturbed? [_] false)
   (replace-tag [this _ _] this)
-  (extract-tangent [_ _] 0)
-
-  #?(:clj Fn :cljs function)
-  (replace-tag [f old new] (replace-tag-fn f old new))
-  (extract-tangent [f tag] (extract-tangent-fn f tag))
-
-  #?@(:cljs
-      [MetaFn
-       (replace-tag [f old new] (replace-tag-fn f old new))
-       (extract-tangent [f tag] (extract-tangent-fn f tag))])
-
-  MultiFn
-  (replace-tag [f old new] (replace-tag-fn f old new))
-  (extract-tangent [f tag] (extract-tangent-fn f tag)))
+  (extract-tangent [_ _] 0))
 
 (derive ::differential ::v/scalar)
 

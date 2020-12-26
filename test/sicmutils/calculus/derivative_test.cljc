@@ -711,15 +711,18 @@
                                          (UP Real Real Real)))]
       (is (= '(up 0 0 0)
              (g/simplify
-              ((d/Curl (d/Grad F)) (s/up 'x 'y 'z)))))
+              ((d/Curl (d/Grad F)) (s/up 'x 'y 'z))))
+          "Curl of the gradient is zero!")
 
       (is (= 0 (g/simplify
-                ((d/Div (d/Curl A)) (s/up 'x 'y 'z)))))
+                ((d/Div (d/Curl A)) (s/up 'x 'y 'z))))
+          "divergence of curl is 0.")
 
       (is (= 0 (g/simplify
                 ((- (d/Div (d/Grad F))
                     (d/Lap F))
-                 (s/up 'x 'y 'z)))))
+                 (s/up 'x 'y 'z))))
+          "The Laplacian of a scalar field is the div of its gradient.")
 
       (is (= '(up 0 0 0)
              (g/simplify

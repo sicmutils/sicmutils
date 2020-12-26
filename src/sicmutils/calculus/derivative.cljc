@@ -25,11 +25,51 @@
             [sicmutils.generic :as g]
             [sicmutils.matrix :as matrix]
             [sicmutils.operator :as o]
-            [sicmutils.series :as series]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
-  )
+  #?(:clj
+     (:import (clojure.lang Fn MultiFn))))
+
+(defn- replace-tag-fn
+  ([f old new]
+   (replace-tag-fn f old new {}))
+  ([f old new meta]
+   (-> (fn [& args]
+         (let [eps (d/fresh-tag)]
+           (-> (apply f (map #(d/replace-tag % old eps) args))
+               (d/replace-tag old new)
+               (d/replace-tag eps old))))
+       (with-meta (assoc meta :arity (f/arity f))))))
+
+(defn- extract-tangent-fn
+  ([f tag]
+   (extract-tangent-fn f tag {}))
+  ([f tag meta]
+   (-> (fn [& args]
+         (let [eps (d/fresh-tag)]
+           (-> (apply f (map #(d/replace-tag % tag eps) args))
+               (d/extract-tangent tag)
+               (d/replace-tag eps tag))))
+       (with-meta (assoc meta :arity (f/arity f))))))
+
+(extend-protocol d/IPerturbed
+  #?(:clj Fn :cljs function)
+  (replace-tag [f old new] (replace-tag-fn f old new))
+  (extract-tangent [f tag] (extract-tangent-fn f tag))
+
+  #?@(:cljs
+      [MetaFn
+       (replace-tag [f old new]
+                    (replace-tag-fn
+                     (.-afn f) old new (.-meta f)))
+       (extract-tangent [f tag]
+                        (extract-tangent-fn
+                         (.-afn f) tag (.-meta f)))])
+
+  MultiFn
+  (replace-tag [f old new] (replace-tag-fn f old new))
+  (extract-tangent [f tag] (extract-tangent-fn f tag)))
 
 (defn derivative [f]
   (fn [x]
@@ -91,11 +131,12 @@
                                 ([x y]
                                  ((d (fn [[x y]] (f x y)))
                                   (matrix/seq-> [x y])))))
-      (fn [& xs]
-        (when (empty? xs) (u/illegal "No args passed to derivative?"))
-        (if (= (count xs) 1)
-          ((d f) (first xs))
-          ((d #(apply f %)) (matrix/seq-> xs)))))))
+      (make-df
+       (fn [& xs]
+         (when (empty? xs) (u/illegal "No args passed to derivative?"))
+         (if (= (count xs) 1)
+           ((d f) (first xs))
+           ((d #(apply f %)) (matrix/seq-> xs))))))))
 
 (doseq [t [::v/function ::s/structure]]
   (defmethod g/partial-derivative [t v/seqtype] [f selectors]
@@ -103,17 +144,6 @@
 
   (defmethod g/partial-derivative [t nil] [f _]
     (multivariate-derivative f [])))
-
-;; TODO is this sound?? move to operator if so...
-
-#_
-(defmethod g/partial-derivative [::o/operator v/seqtype] [op selectors]
-  (o/->Operator (multivariate-derivative (:o op) selectors)
-                (:arity op)
-                (if (empty? selectors)
-                  `(~'D ~(:name op))
-                  `((~'partial ~@selectors) ~(:name op)))
-                (:context op)))
 
 (def derivative-symbol 'D)
 
