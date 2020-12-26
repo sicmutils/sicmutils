@@ -94,13 +94,23 @@
   elsewhere."
   ([a] #?(:clj (core-ref a) :cljs a))
   ([a & ks]
-   (if (and (associative? a)
-            (every? v/integral? ks))
-     (if (matrix/matrix? a)
-       (matrix/get-in a ks)
-       (get-in a ks))
-     #?(:clj (apply core-ref a ks)
-        :cljs (get-in a ks)))))
+   (cond (f/function? a) (f/compose #(apply ref % ks) a)
+         (o/operator? a) (o/make-operator
+                          (f/compose #(apply ref % ks) (:o a))
+                          `(~'compose (~'component ~@ks)
+                            ~(:name a)))
+         :else (if (and (associative? a)
+                        (every? v/integral? ks))
+                 (if (matrix/matrix? a)
+                   (matrix/get-in a ks)
+                   (get-in a ks))
+                 #?(:clj (apply core-ref a ks)
+                    :cljs (get-in a ks))))))
+
+(defn component
+  "TODO document."
+  [& selectors]
+  (fn [x] (apply ref x selectors)))
 
 (defn partial
   "A shim. Dispatches to partial differentiation when all the arguments
@@ -150,7 +160,7 @@
 (import-vars
  [sicmutils.abstract.number literal-number]
  [sicmutils.complex complex]
- [sicmutils.function arity compose arg-shift arg-scale]
+ [sicmutils.function arity compose arg-shift arg-scale I]
  [sicmutils.operator commutator]
  [sicmutils.series binomial-series partial-sums]
  [sicmutils.generic
@@ -201,7 +211,6 @@
   factorial]
  [sicmutils.structure
   compatible-shape
-  component
   down
   mapr
   orientation
