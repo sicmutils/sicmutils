@@ -28,6 +28,12 @@
 
 (use-fixtures :each hermetic-simplify-fixture)
 
+;; TODO - one law - extract-tangent * tag == tangent-part
+;;
+;; TODO make a vector-set generator
+;;
+;; TODO use that to make a differential generator, given a coefs generator.
+
 (deftest value-protocol-tests
   (let [zero-diff (d/sum->differential [])
         dy        (d/sum->differential {[1] 1})]
@@ -42,7 +48,7 @@
 
 (deftest differentials
   (testing "add, mul differentials"
-    (let [zero-differential (d/terms->differential [])
+    (let [zero-differential (d/->Differential [])
           dx (d/sum->differential {[0] 1})
           -dx (d/sum->differential {[0] -1})
           dy (d/sum->differential {[1] 1})

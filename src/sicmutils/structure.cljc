@@ -19,16 +19,16 @@
 
 (ns sicmutils.structure
   (:require [clojure.string :refer [join]]
+            [sicmutils.collection]
             [sicmutils.differential :as d]
             [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.numsymb]
-            [sicmutils.value :as v]
-            #?(:cljs [cljs.reader]))
+            [sicmutils.value :as v])
   #?(:clj
-     (:import (clojure.lang Associative AFn IFn PersistentVector Sequential))))
+     (:import (clojure.lang Associative AFn IFn IPersistentVector Sequential))))
 
 (def ^:dynamic *allow-incompatible-multiplication* true)
 
@@ -45,7 +45,7 @@
 
 (derive ::up ::structure)
 (derive ::down ::structure)
-(derive PersistentVector ::up)
+(derive #?(:clj IPersistentVector :cljs PersistentVector) ::up)
 
 ;; Structures can interact with functions.
 (derive ::structure ::f/cofunction)
@@ -69,18 +69,6 @@
 ;; ## Structure Type Definition
 
 (declare s:= mapr)
-
-;; vectors are ups, so install these here...
-
-(extend-type PersistentVector
-  f/IArity
-  (arity [v]
-    (transduce (map f/arity) f/combine-arities v))
-
-  d/IPerturbed
-  (perturbed? [v] (boolean (some d/perturbed? v)))
-  (replace-tag [s old new] (mapv #(d/replace-tag % old new) s))
-  (extract-tangent [s tag] (mapv #(d/extract-tangent % tag) s)))
 
 (deftype Structure [orientation v]
   v/Value

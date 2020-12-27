@@ -71,9 +71,10 @@
        (applyTo [_ fns] (apply o fns))]
 
       :cljs
-      [ILookup
-       (-lookup [this k] (op:get this k))
-       (-lookup [this k not-found] (op:get this k not-found))
+      [
+       ;; ILookup
+       ;; (-lookup [this k] (op:get this k))
+       ;; (-lookup [this k not-found] (op:get this k not-found))
 
        IFn
        (-invoke [_ a] (o a))

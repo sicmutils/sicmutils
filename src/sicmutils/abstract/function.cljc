@@ -88,6 +88,9 @@
   (freeze [_] (v/freeze name))
   (kind [_] ::function)
 
+  f/IArity
+  (arity [_] arity)
+
   #?@(:clj
       [IFn
        (invoke [this x] (literal-apply this [x]))

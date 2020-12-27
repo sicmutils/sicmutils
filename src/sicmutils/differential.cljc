@@ -26,53 +26,89 @@
             [sicmutils.util.vector-set :as uv]
             [sicmutils.value :as v]))
 
-(defprotocol IPerturbed
-  (perturbed? [this])
-  (replace-tag [this old new])
-  (extract-tangent [this tag]))
-
-(extend-protocol IPerturbed
-  #?(:clj Object :cljs default)
-  (perturbed? [_] false)
-  (replace-tag [this _ _] this)
-  (extract-tangent [_ _] 0))
-
-(derive ::differential ::v/scalar)
+;; ## Calculus of Infinitesimals
+;;
+;; The idea is that we compute derivatives by passing special
+;; "differential objects" [x,dx] through functions. A first approximation to the
+;; idea is as follows:
+;;
+;; f[x,dx] |---> [f(x), Df(x)*dx]
+;;
+;; Note that the derivative of f at the point x, DF(x), is the coefficient of dx
+;; in the result. If we then pass this result through another function, we
+;; obtain the chain-rule answer we would hope for.
+;;
+;; g[f(x), Df(x)*dx] |---> [g(f(x)), DG(f(x))*DF(x)*dx]
+;;
+;; Thus, we can find the derivative of a composition by this process. We need
+;; only define how each of the primitives act on these "differentials" and then
+;; we can use ordinary Scheme compositions of these to do the job. See the
+;; procedure diff:derivative near the bottom to understand how derivatives are
+;; computed given this differential algebra. This idea was discovered by Dan
+;; Zuras and Gerald Jay Sussman in 1992. DZ and GJS made the first version of
+;; this code during an all nighter in 1992.
+;;
+;; To expand this idea to work for multiple derivatives of functions of several
+;; variables we define an algebra in "infinitesimal space". The objects are
+;; multivariate power series in which no incremental has exponent greater than
+;; 1. This was worked out in detail by Hal Abelson around 1994, and painfully
+;; redone in 1997 by Sussman with the help of Hardy Mayer and Jack Wisdom.
+;;
+;; A rare and surprising bug was discovered by Alexey Radul in 2011. This was
+;; fixed by remapping the infinitesimals for derivatives of functions that
+;; returned functions. This was done kludgerously, but it works.
+;;
+;; ### Data Structures
+;;
+;; A differential quantity is a typed list of differential terms, representing
+;; the power series alluded to earlier. The terms are kept in a sorted order, in
+;; ascending order. (Order is the number of incrementals. So dx*dy is higher
+;; order than dx or dy.)
 
 ;; A differential term is implemented as a pair whose first element is a set of
 ;; tags and whose second is the coefficient. Let's do the tag set implementation
 ;; first.
 
-(def ^:private empty-tags [])
+(def tags first)
+(def coefficient second)
+
+(defn make-term
+  ([coef] [uv/empty-set coef])
+  ([tags coef] [tags coef]))
+
+;; Each differential term has a list of tags. The tags represent the
+;; incrementals. Roughly, "dx" and "dy" are tags in the terms: 3*dx, 4*dy,
+;; 2*dx*dy. There is a tag created for each derivative that is in progress.
+;; Since the only use of a tag is to distinguish unnamed incrementals we use
+;; positive integers for the tags.
 
 (let [next-tag (atom 0)]
   (defn fresh-tag []
     (swap! next-tag inc)))
 
-;; ## Term List Algebra
-;;
-;; Now, we get to 'terms'.
-;;
-;; From scmutils: "Differential term lists represent a kind of power series, so
-;; they can be added and multiplied. It is important to note that when terms are
-;; multiplied, no contribution is made if the terms being multiplied have a
-;; differential tag in common. Thus dx^2 = zero."
-
-(def tags first)
-(def coefficient second)
-
-(defn make-term
-  ([coef] [empty-tags coef])
-  ([tags coef] [tags coef]))
-
-;; The data structure of a tag set. Tags are small integers. Tag sets are
-;; typically of small cardinality. So we experiment with implementing them as
-;; small vectors, instead of sorted sets.
+;; Tags are small integers. Tag sets are typically of small cardinality. So we
+;; experiment with implementing them as small vectors, instead of sorted sets.
+;; This implementation lives in [[sicmutils.util.vector-set]], and we use it
+;; here.
 
 (defn- tag-in-term?
   "Return true if `t` is in the tag-set of the supplied `term`, false otherwise."
   [term t]
   (uv/contains? (tags term) t))
+
+;; ## Term List Algebra
+;;
+;; Now, we get to 'terms'. TODO note what is going on... we've multiplied out a
+;; bunch of these things, but we can always turn them back into a dual number.
+;;
+;; From scmutils: "Differential term lists represent a kind of power series, so
+;; they can be added and multiplied. It is important to note that when terms are
+;; multiplied, no contribution is made if the terms being multiplied have a
+;; differential tag in common. Thus dx^2 = zero."
+;;
+;; TODO also note that Clojure vectors already compare properly, so term lists
+;; can be compared nicely now if we compare by just the first terms, not the
+;; coefs.... maybe this doesn't matter.
 
 (defn terms:+
   "Iterate and build up the result while preserving order and dropping zero sums."
@@ -100,14 +136,21 @@
                     :else
                     (recur xs (rest ys) (conj result b)))))))
 
-(defn terms:* [xs ys]
+(defn terms:*
+  "Eagerly multiply the two term lists."
+  [xs ys]
   (for [[x-tags x-coef] xs
         [y-tags y-coef] ys
         :when (empty? (uv/intersection x-tags y-tags))]
     (make-term (uv/union x-tags y-tags)
                (g/* x-coef y-coef))))
 
-(defn- collect-terms [tags->coefs]
+(defn- collect-terms
+  "Build a term list up of pairs of tags => coefficients by grouping together and
+  summing coefficients paired with the same term list.
+
+  The result will be sorted by term list, and contain no duplicate term lists."
+  [tags->coefs]
   (let [terms (for [[tags tags-coefs] (group-by tags tags->coefs)
                     :let [c (transduce (map coefficient) g/+ tags-coefs)]
                     :when (not (v/zero? c))]
@@ -115,25 +158,35 @@
     (into [] (sort-by tags terms))))
 
 ;; ## Differential
-
-(declare d:= d:one? d:zero? bare-coefficient)
-
-;; A differential is a sequence of differential terms, ordered by the
-;; tag set.
 ;;
-;; TODO implement ifn, compare, equals for clj, cljs
+;; Now that we have term lists, we can define the real deal, the full thing. As
+;; with other types, the step here is to wrap up this thing in a `deftype` so we
+;; can customize it.
+
+;; TODO implement ifn, compare, equals for clj, cljs (note that compare needs to
+;; compare ONLY by the first element, not the coefficient....  think)
+
+;; TODO note that we are extending scalar here for blah reasons.
+
+(derive ::differential ::v/scalar)
+
+(declare d:= one?)
 
 (deftype Differential [terms]
+  ;; TODO handle empty case.
   f/IArity
   (arity [_]
     (f/arity (coefficient (first terms))))
 
   v/Numerical
-  (numerical? [d] (v/numerical? (bare-coefficient d)))
+  (numerical? [d]
+    (v/numerical? (coefficient (first terms))))
 
   v/Value
-  (zero? [this] (d:zero? this))
-  (one? [this] (d:one? this))
+  (zero? [this]
+    (every? (comp v/zero? coefficient) terms))
+
+  (one? [this] (one? this))
   (identity? [this] (d:one? this))
   (zero-like [_] 0)
   (one-like [_] 1)
@@ -162,6 +215,8 @@
      [^Differential s ^java.io.Writer w]
      (.write w (.toString s))))
 
+;; ## Accessor Methods
+
 (defn differential?
   "Returns true if the supplied object is an instance of `Differential`, false
   otherwise."
@@ -174,6 +229,8 @@
   {:pre [(differential? dx)]}
   (.-terms ^Differential dx))
 
+;; TODO rename this to `->terms` maybe?
+
 (defn- differential->terms
   "Given a differential, returns the vector of DifferentialTerms
   within; otherwise, returns a singleton differential term
@@ -182,15 +239,16 @@
   [dx]
   (cond (differential? dx)
         (filterv (fn [term]
-                   (not (v/zero?
-                         (coefficient term))))
+                   (not (v/zero? (coefficient term))))
                  (terms dx))
 
         (v/zero? dx) []
-        :else        [(make-term empty-tags dx)]))
+        :else        [(make-term dx)]))
 
-(defn terms->differential
-  "Returns a differential instance generated from a vector of terms."
+(defn- terms->differential
+  "Returns a differential instance generated from a vector of terms.... TODO note the conditions.
+
+  TODO note that this assumes that they're all properly sorted."
   [terms]
   {:pre [(vector? terms)]}
   (cond (empty? terms) 0
@@ -201,29 +259,6 @@
 
         :else (->Differential terms)))
 
-(defn bare-coefficient
-  "Returns:
-  - if we're a differential, the differential of the coefficient of the first
-  term
-  - or else the input itself.
-
-  TODO note what is happening here."
-  [dx]
-  (if (differential? dx)
-    (recur (coefficient
-            (first (terms dx))))
-    dx))
-
-(defn diff:apply
-  "If the coefficients are themselves functions, apply them to the args for ALL
-  coefficients."
-  [diff args]
-  (terms->differential
-   (map (fn [term]
-          (make-term (tags term)
-                     (apply (coefficient term) args)))
-        (differential->terms diff))))
-
 (defn sum->differential
   "The input here is a mapping (loosely defined) between sets of
   differential tags and coefficients.
@@ -233,13 +268,82 @@
 
   TODO note that this groups and sums; maybe less efficient than doing it the
   power series way. Check!"
-  [tags->coefs]
+  [terms]
   (terms->differential
-   (collect-terms tags->coefs)))
+   (collect-terms terms)))
 
-;; TODO sort this? Make things private again?
+;; TODO Now we use them...
+
+(defn max-order-tag
+  "From each of the differentials in the sequence ds, find the highest
+  order term; then return the greatest tag found in any of these
+  terms; i.e., the highest-numbered tag of the highest-order term."
+  ([dx]
+   (when (differential? dx)
+     (let [last-term   (peek (differential->terms dx))
+           highest-tag (peek (tags last-term))]
+       highest-tag)))
+  ([d & ds]
+   (letfn [(max-termv [d]
+             (if-let [max-order (max-order-tag d)]
+               [max-order]
+               []))]
+     (->> (mapcat max-termv (cons d ds))
+          (apply max)))))
+
+(defn- diff:apply
+  "If the coefficients are themselves functions, apply them to the args for ALL
+  coefficients."
+  [diff args]
+  (terms->differential
+   (mapcat (fn [term]
+             (let [result (apply (coefficient term) args)]
+               (if (v/zero? result)
+                 []
+                 (make-term (tags term) result))))
+           (differential->terms diff))))
+
+(defn d:+
+  "Adds two objects differentially. (One of the objects might not be
+  differential; in which case we lift it into a trivial differential
+  before the addition.)"
+  [dx dy]
+  (terms->differential
+   (terms:+ (differential->terms dx)
+            (differential->terms dy))))
+
+(defn d:*
+  "Form the product of the differentials dx and dy."
+  [dx dy]
+  (sum->differential
+   (terms:* (differential->terms dx)
+            (differential->terms dy))))
+
+(defn bundle
+  "The constructor we care about, finally!"
+  ([primal tag]
+   (bundle primal 1 tag))
+  ([primal tangent tag]
+   (let [term (make-term (uv/make [tag])
+                         tangent)]
+     (d:+ primal (->Differential [term])))))
+
+;; TODO note what is going on with this protocol.
+
+(defprotocol IPerturbed
+  (perturbed? [this]
+    "This is currently only used by a literal fn... TODO note what this does.")
+  (replace-tag [this old new]
+    "TODO note why we need this.")
+  (extract-tangent [this tag]
+    "TODO note!"))
 
 (extend-protocol IPerturbed
+  #?(:clj Object :cljs default)
+  (perturbed? [_] false)
+  (replace-tag [this _ _] this)
+  (extract-tangent [_ _] 0)
+
   Differential
   (perturbed? [_] true)
   (replace-tag [dx oldtag newtag]
@@ -263,53 +367,12 @@
                    [])))
              (terms dx)))))
 
-(defn d:+
-  "Adds two objects differentially. (One of the objects might not be
-  differential; in which case we lift it into a trivial differential
-  before the addition.)"
-  [dx dy]
-  (terms->differential
-   (terms:+ (differential->terms dx)
-            (differential->terms dy))))
-
-(defn d:*
-  "Form the product of the differentials dx and dy."
-  [dx dy]
-  (sum->differential
-   (terms:* (differential->terms dx)
-            (differential->terms dy))))
-
-(defn bundle
-  ([primal tag]
-   (bundle primal 1 tag))
-  ([primal tangent tag]
-   (let [term (make-term (uv/make [tag])
-                         tangent)]
-     (d:+ primal (->Differential [term])))))
-
-(defn max-order-tag
-  "From each of the differentials in the sequence ds, find the highest
-  order term; then return the greatest tag found in any of these
-  terms; i.e., the highest-numbered tag of the highest-order term."
-  ([dx]
-   (when (differential? dx)
-     (let [last-term   (peek (differential->terms dx))
-           highest-tag (peek (tags last-term))]
-       highest-tag)))
-  ([d & ds]
-   (letfn [(max-termv [d]
-             (if-let [max-order (max-order-tag d)]
-               [max-order]
-               []))]
-     (->> (mapcat max-termv (cons d ds))
-          (apply max)))))
-
 (defn primal-part
   "The differential containing only those terms _without_ the given tag"
   ([dx] (primal-part dx (max-order-tag dx)))
   ([dx tag]
    (if (differential? dx)
-     (let [sans-tag? (complement #(tag-in-term? % tag))]
+     (let [sans-tag? #(not (tag-in-term? % tag))]
        (->> (differential->terms dx)
             (filterv sans-tag?)
             (sum->differential)))
@@ -338,26 +401,27 @@
        [(sum->differential primal-terms)
         (sum->differential tangent-terms)]))))
 
-(defn d:zero? [dx]
-  (every? (comp v/zero? coefficient)
-          (terms dx)))
-
-(defn d:one? [dx]
+(defn one? [dx]
   (let [[p t] (primal-tangent-pair dx)]
     (and (v/one? p)
          (v/zero? t))))
 
 (defn d:=
-  "Returns true if the [[Differential]] instance `a` equals `b`, false otherwise."
+  "Returns true if the [[Differential]] instance `a` equals `b`, false otherwise.
+
+  TODO Is this valid? Do we want to compare on differentials... ever? double
+  check with the benchmark dataset..."
   [a b]
   {:pre [(differential? a)]}
   (if (differential? b)
-    (= (terms a)
-       (terms b))
+    (= (terms a) (terms b))
     (= (primal-part a) b)))
 
-(defn diff:compare
-  "Comparator that can compare differentials with non-differentials."
+(defn d:compare
+  "Comparator that can compare differentials with non-differentials.
+
+  TODO if we do it this way, there's no way it's sound to compare above using
+  equals... since they won't match."
   [a b]
   (compare (primal-part a)
            (primal-part b)))
