@@ -2,8 +2,22 @@
 
 ## [Unreleased]
 
-- fixed bug with `g/dimension` for row and column matrices. previously they
-  returned `1` in both cases; now they return the total number of entries.
+- `sicmutils.numerical.elliptic` gains a full complement of elliptic integral
+  utilities (#211):
+
+  - Carlson symmetric forms of the elliptic integrals: `carlson-rd`,
+    `carlson-rc`, `carlson-rj` (`carlson-rf` was already present)
+  - Legendre elliptic integrals of the second and third forms, as the two-arity
+    forms of `elliptic-e` and `elliptic-pi` (`elliptic-f` already existed)
+  - the complete elliptic integrals via `elliptic-k` (first kind) and the
+    single-arity forms of `elliptic-e` and `elliptic-pi`
+  - `k-and-deriv` returns a pair of the complete elliptical integral of the first form,
+    `elliptic-k`, and its derivative with respect to `k`.
+  - `jacobi-elliptic-functions` ported from `scmutils` and Press's Numerical
+    Recipes
+
+- fixed bug with `g/dimension` for row and column matrices (#214). previously
+  they returned `1` in both cases; now they return the total number of entries.
 
 ## 0.14.0
 
