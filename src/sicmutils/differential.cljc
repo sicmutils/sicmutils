@@ -360,7 +360,7 @@
 
         :else (->Differential terms)))
 
-(defn sum->differential
+(defn from-terms
   "The input here is a mapping (loosely defined) between sets of
   differential tags and coefficients.
 
@@ -389,20 +389,20 @@
              (if-let [max-order (max-order-tag d)]
                [max-order]
                []))]
-     (->> (mapcat max-termv (cons d ds))
-          (apply max)))))
+     (when-let [orders (seq (mapcat max-termv (cons d ds)))]
+       (apply max orders)))))
 
-(defn- diff:apply
+(defn- d:apply
   "If the coefficients are themselves functions, apply them to the args for ALL
   coefficients."
   [diff args]
   (terms->differential
-   (mapcat (fn [term]
-             (let [result (apply (coefficient term) args)]
-               (if (v/zero? result)
-                 []
-                 (make-term (tags term) result))))
-           (differential->terms diff))))
+   (into [] (mapcat (fn [term]
+                      (let [result (apply (coefficient term) args)]
+                        (if (v/zero? result)
+                          []
+                          [(make-term (tags term) result)]))))
+         (differential->terms diff))))
 
 (defn d:+
   "Adds two objects differentially. (One of the objects might not be
@@ -416,7 +416,7 @@
 (defn d:*
   "Form the product of the differentials dx and dy."
   [dx dy]
-  (sum->differential
+  (from-terms
    (terms:* (differential->terms dx)
             (differential->terms dy))))
 
@@ -488,7 +488,7 @@
      (let [sans-tag? #(not (tag-in-term? % tag))]
        (->> (differential->terms dx)
             (filterv sans-tag?)
-            (sum->differential)))
+            (from-terms)))
      dx)))
 
 (defn tangent-part
@@ -498,7 +498,7 @@
    (if (differential? dx)
      (->> (differential->terms dx)
           (filterv #(tag-in-term? % tag))
-          (sum->differential))
+          (from-terms))
      0)))
 
 (defn primal-tangent-pair
