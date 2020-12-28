@@ -20,7 +20,8 @@
 (ns sicmutils.operator
   (:refer-clojure :rename {identity core-identity}
                   #?@(:cljs [:exclude [get get-in identity]]))
-  (:require [sicmutils.function :as f]
+  (:require [sicmutils.differential :as d]
+            [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.series :as series]
             [sicmutils.util :as u]
@@ -44,6 +45,13 @@
   f/IArity
   (arity [_] arity)
 
+  d/IPerturbed
+  (perturbed? [_] false)
+  (replace-tag [o old new]
+    (Operator. (d/replace-tag o old new) arity name context))
+  (extract-tangent [o tag]
+    (Operator. (d/extract-tangent o tag) arity name context))
+
   ;; TODO convert to deftype, enable...
   ;; #?@(:clj
   ;;     [ILookup
@@ -63,9 +71,10 @@
        (applyTo [_ fns] (apply o fns))]
 
       :cljs
-      [ILookup
-       (-lookup [this k] (op:get this k))
-       (-lookup [this k not-found] (op:get this k not-found))
+      [
+       ;; ILookup
+       ;; (-lookup [this k] (op:get this k))
+       ;; (-lookup [this k not-found] (op:get this k not-found))
 
        IFn
        (-invoke [_ a] (o a))

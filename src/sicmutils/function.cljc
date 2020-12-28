@@ -46,8 +46,7 @@
 (extend-protocol IArity
   #?(:clj Object :cljs default)
   (arity [o]
-    (or (:arity o)
-        (:arity (meta o))
+    (or (:arity (meta o))
         ;; Faute de mieux, we assume the function is unary. Most math functions
         ;; are.
         [:exactly 1]))
@@ -66,6 +65,7 @@
 (defn with-arity
   "Appends the supplied `arity` to the metadata of `f`, knocking out any
   pre-existing arity notation.
+
   Also takes an optional metadata map to assoc in too.
 
   TODO use `::arity` instead of `:arity`."

@@ -21,7 +21,8 @@
   (:refer-clojure :rename {get-in core-get-in
                            some core-some}
                   #?@(:cljs [:exclude [get-in some]]))
-  (:require [sicmutils.expression :as x]
+  (:require [sicmutils.differential :as d]
+            [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.series :as series]
@@ -56,6 +57,11 @@
                   (= r 1) ::row-matrix
                   (= c 1) ::column-matrix
                   :else ::matrix))
+
+  d/IPerturbed
+  (perturbed? [_] (boolean (core-some d/perturbed? v)))
+  (replace-tag [M old new] (fmap #(d/replace-tag % old new) M))
+  (extract-tangent [M tag] (fmap #(d/extract-tangent % tag) M))
 
   f/IArity
   (arity [_] (f/arity v))
