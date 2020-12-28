@@ -41,7 +41,7 @@
            (-> (apply f (map #(d/replace-tag % old eps) args))
                (d/replace-tag old new)
                (d/replace-tag eps old))))
-       (with-meta (assoc meta :arity (f/arity f))))))
+       (f/with-arity (f/arity f) meta))))
 
 (defn- extract-tangent-fn
   ([f tag]
@@ -52,15 +52,17 @@
            (-> (apply f (map #(d/replace-tag % tag eps) args))
                (d/extract-tangent tag)
                (d/replace-tag eps tag))))
-       (with-meta (assoc meta :arity (f/arity f))))))
+       (f/with-arity (f/arity f) meta))))
 
 (extend-protocol d/IPerturbed
   #?(:clj Fn :cljs function)
+  (perturbed? [f] (:perturbed? (meta f) false))
   (replace-tag [f old new] (replace-tag-fn f old new))
   (extract-tangent [f tag] (extract-tangent-fn f tag))
 
   #?@(:cljs
       [MetaFn
+       (perturbed? [f] (:perturbed? (.-meta f) false))
        (replace-tag [f old new]
                     (replace-tag-fn
                      (.-afn f) old new (.-meta f)))

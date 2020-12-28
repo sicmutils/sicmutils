@@ -107,36 +107,43 @@
       (is (= 0 (g/* dx dx)))))
 
   (testing "more terms"
-    (let [d-expr (fn [dx]
-                   (->> (#'d/get-terms dx)
-                        (filter (fn [[tags coef]] (= tags [0])))
-                        (first)
-                        (second)))
-          d-simplify #(g/simplify (d-expr %))]
+    (let [tangent  (fn [dx] (d/extract-tangent dx 0))
+          simplify (comp g/simplify tangent)]
       (is (= '(* 3 (expt x 2))
-             (d-simplify (g/expt (g/+ 'x (d/from-terms {[0] 1})) 3))))
+             (simplify
+              (g/expt (g/+ 'x (d/from-terms {[0] 1})) 3))))
+
       (is (= '(* 4 (expt x 3))
-             (d-simplify (g/expt (g/+ 'x (d/from-terms {[0] 1})) 4))))
-      (let [dx (d/from-terms {[0] 1})
+             (simplify
+              (g/expt (g/+ 'x (d/from-terms {[0] 1})) 4))))
+
+      (let [dx   (d/bundle 0 0)
             x+dx (g/+ 'x dx)
-            f (fn [x] (g/* x x x x))]
+            f    (fn [x] (g/* x x x x))]
         (is (= '(* 4 (expt x 3))
-               (d-simplify (g/* x+dx x+dx x+dx x+dx))))
+               (simplify (g/* x+dx x+dx x+dx x+dx))))
         (is (= '(* 12 (expt x 2))
-               (d-simplify (g/+ (g/* (g/+ (g/* (g/+ x+dx x+dx) x+dx) (g/* x+dx x+dx)) x+dx)
-                                (g/* x+dx x+dx x+dx)))))
-        (is (= '(* 24 x) (d-simplify (g/+
-                                      (g/* (g/+ (g/* 2 x+dx) x+dx x+dx x+dx x+dx) x+dx)
-                                      (g/* (g/+ x+dx x+dx) x+dx)
-                                      (g/* x+dx x+dx)
-                                      (g/* (g/+ x+dx x+dx) x+dx)
-                                      (g/* x+dx x+dx)))))
-        (is (= 24 (d-expr (g/+ (g/* 6 x+dx)
-                               (g/* 2 x+dx)
-                               x+dx x+dx x+dx x+dx
-                               (g/* 2 x+dx)
-                               x+dx x+dx x+dx x+dx
-                               (g/* 2 x+dx)
-                               x+dx x+dx x+dx x+dx))))
+               (simplify (g/+ (g/* (g/+ (g/* (g/+ x+dx x+dx) x+dx)
+                                        (g/* x+dx x+dx))
+                                   x+dx)
+                              (g/* x+dx x+dx x+dx)))))
+        (is (= '(* 24 x)
+               (simplify
+                (g/+
+                 (g/* (g/+ (g/* 2 x+dx) x+dx x+dx x+dx x+dx) x+dx)
+                 (g/* (g/+ x+dx x+dx) x+dx)
+                 (g/* x+dx x+dx)
+                 (g/* (g/+ x+dx x+dx) x+dx)
+                 (g/* x+dx x+dx)))))
+
+        (is (= 24 (tangent
+                   (g/+ (g/* 6 x+dx)
+                        (g/* 2 x+dx)
+                        x+dx x+dx x+dx x+dx
+                        (g/* 2 x+dx)
+                        x+dx x+dx x+dx x+dx
+                        (g/* 2 x+dx)
+                        x+dx x+dx x+dx x+dx))))
+
         (is (= '(* 4 (expt x 3))
-               (d-simplify (f x+dx))))))))
+               (simplify (f x+dx))))))))
