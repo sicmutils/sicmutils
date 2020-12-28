@@ -1,10 +1,8 @@
 (ns sicmutils.units.scm-api
+  "Copying the original scmutils API here, so that we can evaluate it. Defer
+  finding an idiomatic Clojure API. Consider not pushing this namespace at all."
   (:require [sicmutils.units.units :as u]
             [sicmutils.units.with-units :as wu]))
-
-;; approach: experiement with providing an API that's as tight to the original
-;; Scheme implementation as possible. Put it in its own namespace so that we can
-;; work on it as a piece.
 
 (def &meter    (u/units u/SI [1 0 0 0 0 0 0] 1))
 (def &kilogram (u/units u/SI [0 1 0 0 0 0 0] 1))
@@ -22,4 +20,5 @@
      (.scale meter-squared)])
   ;; => [[2 0 0 0 0 0 0] 1]
 
+  (u/*units &meter &meter)
   )
