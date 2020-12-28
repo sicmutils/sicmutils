@@ -920,4 +920,4 @@
         tx  (extract-tangent a tag)]
     (d:+ (g/partial-derivative px selectors)
          (d:* (g/partial-derivative tx selectors)
-              (bundle 1 tag)))))
+              (bundle 0 1 tag)))))

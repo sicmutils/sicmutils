@@ -24,7 +24,7 @@
             [sicmutils.util :as u])
   #?(:cljs (:require-macros [sicmutils.generic :refer [def-generic-function]]))
   #?(:clj
-     (:import [clojure.lang LazySeq PersistentVector Symbol Var])))
+     (:import [clojure.lang Keyword LazySeq PersistentVector Symbol Var])))
 
 (defmacro ^:private fork
   "I borrowed this lovely, mysterious macro from `macrovich`:
@@ -249,7 +249,7 @@
 (def-generic-function Lie-derivative 1)
 
 (defmulti partial-derivative v/argument-kind)
-(defmethod partial-derivative [clojure.lang.Keyword] [k]
+(defmethod partial-derivative [Keyword] [k]
   (k {:arity [:exactly 2]
       :name 'partial-derivative}))
 
