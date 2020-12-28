@@ -26,8 +26,7 @@
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.numsymb]
-            [sicmutils.value :as v]
-            #?(:cljs [cljs.reader]))
+            [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang Associative AFn IFn IPersistentVector Sequential))))
 
@@ -421,8 +420,8 @@
 (defn opposite
   "Returns a structure containing `xs` with the orientation opposite to `s`.
 
-   TODO note, test the new arity. also opposite a non-structured thing is fine,
-   acts as id."
+  TODO note, test the new arity. also opposite a non-structured thing is fine,
+  acts as id."
   ([s]
    (if (structure? s)
      (opposite s (structure->vector s))
@@ -818,11 +817,9 @@
 
 (defmethod g/mul [::structure ::structure] [a b] (s:* a b))
 
-(defmethod g/mul [::structure ::v/scalar] [a b]
-  (structure*scalar a b))
 
-(defmethod g/mul [::v/scalar ::structure] [a b]
-  (scalar*structure a b))
+;; TODO does this make sense? Do we really do function and operator differently?
+;; Check how this works vs mechanics... this is very strange!
 
 (defmethod g/mul [::structure :sicmutils.operator/operator] [a b]
   (structure*scalar a b))
@@ -830,17 +827,17 @@
 (defmethod g/mul [:sicmutils.operator/operator ::structure] [a b]
   (scalar*structure a b))
 
-(defmethod g/mul [::structure :sicmutils.calculus.derivative/differential] [a b]
-  (structure*scalar a b))
+;; TODO these are the same...
+(defmethod g/mul [::structure ::v/scalar] [a b] (structure*scalar a b))
+(defmethod g/mul [::v/scalar ::structure] [a b] (scalar*structure a b))
+(defmethod g/mul [::structure ::d/differential] [a b] (structure*scalar a b))
+(defmethod g/mul [::d/differential ::structure] [a b] (scalar*structure a b))
 
-(defmethod g/mul [:sicmutils.calculus.derivative/differential ::structure] [a b]
-  (scalar*structure a b))
+;; TODO looks like I can't take the derivative of things that DIVIDE. Fix, and
+;; derive scalar? Make a test that shows this problem.
 
-(defmethod g/div [::structure ::v/scalar] [a b]
-  (structure*scalar a (g/invert b)))
-
-(defmethod g/div [::structure ::structure] [a b]
-  (s:* (g/invert b) a))
+(defmethod g/div [::structure ::v/scalar] [a b] (structure*scalar a (g/invert b)))
+(defmethod g/div [::structure ::structure] [a b] (s:* (g/invert b) a))
 
 (defmethod g/square [::structure] [a] (dot-product a a))
 (defmethod g/cube [::structure] [a] (s:* a (s:* a a)))

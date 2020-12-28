@@ -23,8 +23,7 @@
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
-            [sicmutils.calculus.derivative :as d
-             :refer [D partial #?(:cljs Differential)]]
+            [sicmutils.calculus.derivative :as d :refer [D partial]]
             [sicmutils.complex :as c]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [acos asin atan cos sin tan
@@ -36,18 +35,16 @@
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
-            [sicmutils.value :as v])
-  #?(:clj
-     (:import [sicmutils.calculus.derivative Differential])))
+            [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 
-(def ^:private q
+(def q
   (s/up (af/literal-function 'x)
         (af/literal-function 'y)
         (af/literal-function 'z)))
 
-(defn ^:private δ
+(defn- δ
   [η]
   (fn [f]
     ;; Define g(ε) as in Eq. 1.22; then δ_η f[q] = Dg(0)
@@ -55,90 +52,6 @@
       (let [g (fn [ε]
                 (f (+ q (* ε η))))]
         ((D g) 0)))))
-
-(deftest value-protocol-tests
-  ;; TODO upgrade to generative tests when we make a differential generator.
-  (let [zero-diff (d/make-differential [])
-        dy        (d/make-differential {[1] 1})]
-    (is (v/zero? zero-diff))
-    (is (not (v/zero? dy)))
-    (is (not (v/one? dy)))
-    (is (not (v/identity? dy)))
-
-    (is (v/zero? (v/zero-like dy)))
-    (is (v/one? (v/one-like dy)))
-    (is (v/identity? (v/identity-like dy)))))
-
-(deftest differentials
-  (testing "add, mul differentials"
-    (let [zero-differential (d/make-differential [])
-          dx (d/make-differential {[0] 1})
-          -dx (d/make-differential {[0] -1})
-          dy (d/make-differential {[1] 1})
-          dz (d/make-differential {[2] 1})
-          dx-plus-dx (d/make-differential {[0] 2})
-          dxdy (d/make-differential {[0 1] 1})
-          dxdydz (d/make-differential {[0 1 2] 1})
-          dx-plus-dy (d/make-differential {[0] 1 [1] 1})
-          dx-plus-dz (d/make-differential {[0] 1 [2] 1})]
-      (is (= dx-plus-dy (d/dx+dy dx dy)))
-      (is (= dx-plus-dy (d/dx+dy dy dx)))
-      (is (= dx-plus-dz (d/dx+dy dx dz)))
-      (is (= dx-plus-dz (d/dx+dy dz dx)))
-      (is (= dx-plus-dx (d/dx+dy dx dx)))
-      (is (= (d/make-differential {[0] 3 [1] 2 [2] 3})
-             (reduce d/dx+dy 0 [dx dy dz dy dz dx dz dx])))
-      (is (= (d/make-differential {[] 1 [0] 1}) (d/dx+dy dx 1)))
-      (is (= (d/make-differential {[] 'k [0] 1}) (d/dx+dy dx 'k)))
-      (is (= zero-differential (d/dx+dy dx -dx)))
-      (is (= zero-differential (d/dx+dy -dx dx)))
-      (is (= zero-differential (d/dx*dy dx 0)))
-      (let [b (d/dx+dy 0 (d/dx*dy dx 0))
-            c (d/dx*dy 0 dx)]
-        (is (= zero-differential b))
-        (is (= zero-differential c))
-        (is (= zero-differential (d/dx+dy b c))))
-      (is (= dxdy (d/dx*dy dx dy)))
-      (is (= dxdydz (d/dx*dy (d/dx*dy dx dy) dz)))
-      (is (= dxdydz (d/dx*dy (d/dx*dy dz dx) dy)))
-      (is (= dxdydz (d/dx*dy (d/dx*dy dy dz) dx)))
-      (is (= zero-differential (d/dx*dy dx dx)))
-      (is (= zero-differential (d/dx*dy dz (d/dx*dy dy dz))))
-      (is (= 0 (* dx dx)))))
-
-  (testing "more terms"
-    (let [d-expr (fn [^Differential dx]
-                   (->> (.-terms dx)
-                        (filter (fn [[tags coef]] (= tags [0])))
-                        first
-                        second))
-          d-simplify #(-> % d-expr g/simplify)]
-      (is (= '(* 3 (expt x 2))
-             (d-simplify (g/expt (+ 'x (d/make-differential {[0] 1})) 3))))
-      (is (= '(* 4 (expt x 3))
-             (d-simplify (g/expt (+ 'x (d/make-differential {[0] 1})) 4))))
-      (let [dx (d/make-differential {[0] 1})
-            x+dx (+ 'x dx)
-            f (fn [x] (* x x x x))]
-        (is (= '(* 4 (expt x 3))
-               (d-simplify (* x+dx x+dx x+dx x+dx))))
-        (is (= '(* 12 (expt x 2))
-               (d-simplify (+ (* (+ (* (+ x+dx x+dx) x+dx) (* x+dx x+dx)) x+dx) (* x+dx x+dx x+dx)))))
-        (is (= '(* 24 x) (d-simplify (+
-                                      (* (+ (* 2 x+dx) x+dx x+dx x+dx x+dx) x+dx)
-                                      (* (+ x+dx x+dx) x+dx)
-                                      (* x+dx x+dx)
-                                      (* (+ x+dx x+dx) x+dx)
-                                      (* x+dx x+dx)))))
-        (is (= 24 (d-expr (+ (* 6 x+dx)
-                             (* 2 x+dx)
-                             x+dx x+dx x+dx x+dx
-                             (* 2 x+dx)
-                             x+dx x+dx x+dx x+dx
-                             (* 2 x+dx)
-                             x+dx x+dx x+dx x+dx))))
-        (is (= '(* 4 (expt x 3))
-               (d-simplify (f x+dx))))))))
 
 (deftest diff-test-1
   (testing "some simple functions"
@@ -191,22 +104,18 @@
       (is (= (s/down (s/up 'x 0) (s/up 0 'y)) (((D F) 1 1) (s/up 'x 'y)))))))
 
 (deftest amazing-bug
-  (testing "1"
+  (testing "alexey's amazing bug"
     (let [f (fn [x]
               (fn [g]
                 (fn [y]
                   (g (+ x y)))))
-          f-hat ((D f) 3)
-          f-hat-inexact ((D f) 3.0)]
+          f-hat ((D f) 3)]
+      (is (= (exp 8)
+             ((f-hat exp) 5)))
 
-      ;; exact precision is maintained for exact arguments.
-      (is (= (exp 8) ((f-hat exp) 5)))
-
-      ;; with a float instead of an int, evaluation's forced.
-      (is ((v/within 1e-6) 2980.957987 ((f-hat-inexact exp) 5)))
-
-      ;; TODO: this is the amazing bug: bbb == 0 is wrong.
-      #_(is (= 'bbb ((f-hat (f-hat exp)) 5))))))
+      ;; this is the correct answer.
+      (is (= (exp 11)
+             ((f-hat (f-hat exp)) 5))))))
 
 (deftest diff-test-2
   (testing "delta-eta-test"
