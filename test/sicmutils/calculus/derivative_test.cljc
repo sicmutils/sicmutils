@@ -656,3 +656,18 @@
           fairly accurate estimates of Math/cos at a few points."
             (is (ish? (Math/cos 1) (via-series 1)))
             (is (ish? (Math/cos 0.6) (via-series 0.6)))))))))
+
+(deftest new-tests
+  (letfn [(f [x] (fn [y z] (g/* x y z)))]
+    (is (= 12 (((d/D f) 2) 3 4))
+        "fixed by the new impl"))
+
+  (is (= '(* -1 (sin t))
+         (g/simplify
+          (((d/derivative
+             (fn [eps] [eps]
+               (fn [t]
+	               ((d/D (g/* g/cos eps)) t)))
+             ) 'e)
+           't)))
+      "another test from deriv.scm"))
