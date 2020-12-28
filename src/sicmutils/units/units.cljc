@@ -1,59 +1,32 @@
 (ns sicmutils.units.units
+  (:refer-clojure :exclude [second])
   (:require [sicmutils.value :as v]
             [sicmutils.generic :as g]))
 
-;; how to represent units?
-;; how to represent a unit system?
-;; how do we even add units together?
+(def SI '[meter kilogram second ampere kelvin mole candela])
 
-;; Could start by implementing a unit system with only meters.
-
-(comment
-  ;; A unit
-  ['unit-system 'exponents 'scale]
-  ;; where 'scale allows us to define derived units.
-
-  ;; A unit system
-  '????
-  ;;
-  ;; really just a list of the base units. but ... unit system refers to base
-  ;; units, and base units refer back to system. So define-unit-system
-  ;; establishes a two way binding of sorts.
-  )
-
-;; Skipping all dispatch, unit systems and macros for now, focusing on the data
-;; model
-(def SI [:meter :kilogram :second :ampere :kelvin :mole :candela])
-
-(defn unit-system-equal [sys1 sys2]
-  true)
-
-
-;; but I need this to be generic, so ... it needs to be stored in a deftype. And
-;; I need a kind.
-
-;; Start with matrix.
-
-;; plural or singular?
-;;
-;; Scheme impl uses plural with-units. From kernel/types.scm:
-;;
-;;     (define (with-units? x)
-;;       (and (pair? x)
-;;            (eq? (car x) with-units-type-tag)))
-;;
-;;     (define (units? x)
-;;       (or (eq? x '&unitless)
-;;           (and (pair? x)
-;;     	   (eq? (car x) unit-tag-type))))
+(defn system= [sys1 sys2]
+  (= sys1 sys2))
 
 (declare units=)
 
 (deftype Units [system exponents scale]
   )
 
+(defn ->map [units]
+  {:system (.system units)
+   :exponents (.exponents units)
+   :scale (.scale units)})
 
-
+(defn ->symbolic
+  "convert Units to symbolic expression where each base SI unit is a symbol"
+  [units]
+  (let [{:keys [system exponents scale]} (->map units)]
+    ;; [system exponents scale]
+    (->> (map g/expt system exponents)
+         (reduce g/*)
+         (g/* scale)
+         (g/simplify))))
 
 (defn units? [x]
   (isa? x Units))

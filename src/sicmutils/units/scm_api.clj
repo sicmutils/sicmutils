@@ -66,4 +66,11 @@
   ;; => #object[sicmutils.matrix.Matrix 0x38473da4 "[[70 100] [150 220]]"]
 
   ;; here we go.
+  ;; Now, which function is this?
+
+  ;; How do I control how a deftype prints?
+  (u/*units &meter &meter)
+
+  (e/*
+   (e/expt '&meter 2))
   )
