@@ -249,6 +249,9 @@
 (def-generic-function Lie-derivative 1)
 
 (defmulti partial-derivative v/argument-kind)
+(defmethod partial-derivative [clojure.lang.Keyword] [k]
+  (k {:arity [:exactly 2]
+      :name 'partial-derivative}))
 
 (defmulti simplify v/argument-kind)
 (defmethod simplify :default [a] (v/freeze a))

@@ -913,3 +913,11 @@
   (lift-1 g/tanh
           (fn [x]
             (g/sub 1 (g/square (g/tanh x))))))
+
+(defmethod g/partial-derivative [::differential v/seqtype] [a selectors]
+  (let [tag (max-order-tag a)
+        px  (primal-part a tag)
+        tx  (extract-tangent a tag)]
+    (d:+ (g/partial-derivative px selectors)
+         (d:* (g/partial-derivative tx selectors)
+              (bundle 1 tag)))))
