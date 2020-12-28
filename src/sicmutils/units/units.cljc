@@ -42,7 +42,7 @@
         (unitless? u2) u1
         :else
         (do
-          (assert (unit-system-equal (.system u1) (.system u2)))
+          (assert (system= (.system u1) (.system u2)))
 
           ;; assuming we don't want generic values in exponents and scale =>
           ;; using clojure.core/+ and clojure.core/* here.
