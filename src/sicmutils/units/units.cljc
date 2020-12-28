@@ -13,7 +13,7 @@
 (deftype Units [system exponents scale]
   )
 
-(defn ->map [units]
+(defn ^:private ->map [units]
   {:system (.system units)
    :exponents (.exponents units)
    :scale (.scale units)})
