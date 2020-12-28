@@ -323,7 +323,7 @@
   [dx]
   (instance? Differential dx))
 
-(defn terms
+(defn- get-terms
   "For the supplied `Differential` object, returns its vector of terms."
   [dx]
   {:pre [(differential? dx)]}
@@ -340,7 +340,7 @@
   (cond (differential? dx)
         (filterv (fn [term]
                    (not (v/zero? (coefficient term))))
-                 (terms dx))
+                 (get-terms dx))
 
         (v/zero? dx) []
         :else        [(make-term dx)]))
@@ -457,16 +457,28 @@
                                 (uv/conj newtag))
                             (coefficient term))
                  term)))
-           (terms dx))))
+           (get-terms dx))))
   (extract-tangent [dx tag]
-    (sum->differential
+    (from-terms
      (mapcat (fn [term]
                (let [tagv (tags term)]
                  (if (uv/contains? tagv tag)
                    [(make-term (uv/disj tagv tag)
                                (coefficient term))]
                    [])))
-             (terms dx)))))
+             (get-terms dx)))))
+
+(defn finite-term
+  "Cuts straight to the very bottom, equivalent to calling primal part until we
+  get a non-differential."
+  [dx]
+  (if (differential? dx)
+    (let [[head] (get-terms dx)
+          ts     (tags head)]
+      (if (= [] ts)
+        (coefficient head)
+        0))
+    dx))
 
 (defn primal-part
   "The differential containing only those terms _without_ the given tag"
@@ -499,40 +511,44 @@
      (let [[tangent-terms primal-terms]
            (us/separatev #(tag-in-term? % tag)
                          (differential->terms dx))]
-       [(sum->differential primal-terms)
-        (sum->differential tangent-terms)]))))
+       [(from-terms primal-terms)
+        (from-terms tangent-terms)]))))
 
 (defn one? [dx]
   (let [[p t] (primal-tangent-pair dx)]
     (and (v/one? p)
          (v/zero? t))))
 
-(defn d:=
-  "Returns true if the [[Differential]] instance `a` equals `b`, false otherwise.
-
-  TODO Is this valid? Do we want to compare on differentials... ever? double
-  check with the benchmark dataset..."
+(defn equiv
+  "Comparison between differentials and anything else."
   [a b]
-  {:pre [(differential? a)]}
-  (if (differential? b)
-    (= (terms a) (terms b))
-    (= (primal-part a) b)))
+  (= (finite-term a)
+     (finite-term b)))
 
-(defn d:compare
+(defn eq
+  "Compare in a way that takes the differentials into account."
+  [a b]
+  (= (differential->terms a)
+     (differential->terms b)))
+
+(defn compare
   "Comparator that can compare differentials with non-differentials.
 
   TODO if we do it this way, there's no way it's sound to compare above using
   equals... since they won't match."
   [a b]
-  (compare (primal-part a)
-           (primal-part b)))
+  (core-compare
+   (finite-term a)
+   (finite-term b)))
 
-(defn- unary-op [f df:dx]
+(defn- lift-1 [f df:dx]
   (fn [x]
-    (let [[p t] (primal-tangent-pair x)]
-      (d:+ (f p) (d:* (df:dx p) t)))))
+    (let [[px tx] (primal-tangent-pair x)]
+      (if (and (v/number? tx) (v/zero? tx))
+        (f px)
+        (d:+ (f px) (d:* (df:dx px) tx))))))
 
-(defn- binary-op [f df:dx df:dy]
+(defn- lift-2 [f df:dx df:dy]
   (fn [x y]
     (let [tag     (max-order-tag x y)
           [xe dx] (primal-tangent-pair x tag)
