@@ -164,6 +164,35 @@
   (o/make-operator #(g/partial-derivative % selectors)
                    `(~'partial ~@selectors)))
 
+;; TODO note to Colin that I THINK we just flip a single outer layer here...
+(def Grad
+  (-> (fn [f]
+        (f/compose s/opposite
+                   (g/partial-derivative f [])))
+      (o/make-operator 'Grad)))
+
+(def ^{:doc "takes a 3d vector of functions on 3d space."}
+  Div
+  (-> (f/compose g/trace Grad)
+      (o/make-operator 'Div)))
+
+(def ^{:doc "takes a 3d vector of functions on 3d space."}
+  Curl
+  (-> (fn [f-triple]
+        (let [[Dx Dy Dz] (map partial [0 1 2])
+              fx (f/get f-triple 0)
+              fy (f/get f-triple 1)
+              fz (f/get f-triple 2)]
+          (s/up (g/- (Dy fz) (Dz fy))
+                (g/- (Dz fx) (Dx fz))
+                (g/- (Dx fy) (Dy fx)))))
+      (o/make-operator 'Curl)))
+
+(def ^{:doc "takes a 3d vector of functions on 3d space."}
+  Lap
+  (-> (f/compose g/trace (g/square Grad))
+      (o/make-operator 'Lap)))
+
 (defn taylor-series
   "Returns a `Series` of the coefficients of the taylor series of the function `f`
   evaluated at `x`, with incremental quantity `dx`.

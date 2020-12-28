@@ -323,6 +323,3 @@
 (defmethod g/square [::operator] [o] (o:* o o))
 
 (defmethod g/simplify [::operator] [o] (:name o))
-
-(defmethod g/transpose [::operator] [o]
-  (->Operator (fn [f] #(g/transpose (apply (o f) %&))) 1 'transpose (:context o)))

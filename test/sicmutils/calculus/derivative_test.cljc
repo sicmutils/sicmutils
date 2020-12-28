@@ -233,14 +233,25 @@
          (g/simplify (((* sin D) g/cube) 't)))))
 
 (deftest vector-calculus
-  (let [f (s/up identity sin cos)
-        divergence #(fn [t] (reduce + ((D %) t)))
-        laplacian #(* (D %) ((g/transpose D) %))]
-    (is (= '(up 1 (cos t) (* -1 (sin t))) (g/simplify ((D f) 't))))
-    (is (= '(down 1 (cos t) (* -1 (sin t))) (g/simplify (((g/transpose D) f) 't))))
-    (is (= 2 (g/simplify (* ((D f) 't) (((g/transpose D) f) 't)))))
-    (is (= 2 (g/simplify ((laplacian (s/up identity sin cos)) 't))))
-    (is (= '(+ (cos t) (* -1 (sin t)) 1) (g/simplify ((divergence f) 't))))))
+  (let [f (fn [[x y z]]
+            (s/up (identity x) (sin y) (cos z)))
+        xyz (s/up 'x 'y 'z)]
+    (is (= '(down
+             (up 1 0 0)
+             (up 0 (cos y) 0)
+             (up 0 0 (* -1 (sin z))))
+           (g/simplify ((D f) xyz))))
+    (is (= '(up
+             (up 1 0 0)
+             (up 0 (cos y) 0)
+             (up 0 0 (* -1 (sin z))))
+           (g/simplify ((d/Grad f) xyz))))
+
+    (is (= '(up 0 (* -1 (sin y)) (* -1 (cos z)))
+           (g/simplify ((d/Lap f) xyz))))
+
+    (is (= '(+ (cos y) (* -1 (sin z)) 1)
+           (g/simplify ((d/Div f) (s/up 'x 'y 'z))))) ))
 
 (deftest exp-and-log
   (is (= '(/ 1 x)
@@ -656,3 +667,72 @@
           fairly accurate estimates of Math/cos at a few points."
             (is (ish? (Math/cos 1) (via-series 1)))
             (is (ish? (Math/cos 0.6) (via-series 0.6)))))))))
+
+(deftest threeD-op-tests
+  (testing "symbolic representations of Div, Curl, Grad, Lap are correct"
+    (let [F (af/literal-function 'F '(-> (UP Real Real Real) Real))
+          A (af/literal-function 'A '(-> (UP Real Real Real)
+                                         (UP Real Real Real)))]
+      (is (= '(up (((partial 0) F) (up x y z))
+                  (((partial 1) F) (up x y z))
+                  (((partial 2) F) (up x y z)))
+             (g/simplify
+              ((d/Grad F) (s/up 'x 'y 'z)))))
+
+      (is (= '(+ (((partial 0) A↑0) (up x y z))
+                 (((partial 1) A↑1) (up x y z))
+                 (((partial 2) A↑2) (up x y z)))
+             (g/simplify
+              ((d/Div A) (s/up 'x 'y 'z)))))
+
+      (is (= '(up (+ (((partial 1) A↑2) (up x y z))
+                     (* -1 (((partial 2) A↑1) (up x y z))))
+                  (+ (((partial 2) A↑0) (up x y z))
+                     (* -1 (((partial 0) A↑2) (up x y z))))
+                  (+ (((partial 0) A↑1) (up x y z))
+                     (* -1 (((partial 1) A↑0) (up x y z)))))
+             (g/simplify
+              ((d/Curl A) (s/up 'x 'y 'z)))))
+
+      (is (= '(+ (((partial 0) ((partial 0) F)) (up x y z))
+                 (((partial 1) ((partial 1) F)) (up x y z))
+                 (((partial 2) ((partial 2) F)) (up x y z)))
+             (g/simplify
+              ((d/Lap F) (s/up 'x 'y 'z)))))))
+
+  ;; TODO get in more of the identities here!
+  ;;
+  ;; TODO Double check that the newer thing, in scmutils codebase... still
+  ;; works.
+  (testing "Div, Curl, Grad, Lap identities"
+    (let [F (af/literal-function 'F '(-> (UP Real Real Real) Real))
+          G (af/literal-function 'G '(-> (UP Real Real Real) Real))
+          A (af/literal-function 'A '(-> (UP Real Real Real)
+                                         (UP Real Real Real)))]
+      (is (= '(up 0 0 0)
+             (g/simplify
+              ((d/Curl (d/Grad F)) (s/up 'x 'y 'z))))
+          "Curl of the gradient is zero!")
+
+      (is (= 0 (g/simplify
+                ((d/Div (d/Curl A)) (s/up 'x 'y 'z))))
+          "divergence of curl is 0.")
+
+      (is (= 0 (g/simplify
+                ((- (d/Div (d/Grad F))
+                    (d/Lap F))
+                 (s/up 'x 'y 'z))))
+          "The Laplacian of a scalar field is the div of its gradient.")
+
+      (is (= '(up 0 0 0)
+             (g/simplify
+              ((- (d/Curl (d/Curl A))
+                  (- (d/Grad (d/Div A)) (d/Lap A)))
+               (s/up 'x 'y 'z)))))
+
+      (is (= 0 (g/simplify
+                ((- (d/Div (* F (d/Grad G)))
+                    (+ (* F (d/Lap G))
+                       (g/dot-product (d/Grad F)
+                                      (d/Grad G))))
+                 (s/up 'x 'y 'z))))))))
