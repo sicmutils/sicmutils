@@ -49,8 +49,11 @@
                         (g/* x g/square)
                         (g/* x g/cube))]
                 (g x)))]
-      (is (= 20 (d/extract-tangent (f (d/bundle 10 1 0)) 0)))
-      (is (= (* 3 (g/square 9))
+      (is (= (+ (g/square 10)
+                (* 10 (* 2 10)))
+             (d/extract-tangent (f (d/bundle 10 1 0)) 0)))
+      (is (= (+ (g/cube 9)
+                (* 9 (* 3 (g/square 9))))
              (d/extract-tangent (f (d/bundle 9 1 0)) 0))))))
 
 (deftest value-protocol-tests

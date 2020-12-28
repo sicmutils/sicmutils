@@ -199,15 +199,15 @@
 
   (kind [_] ::differential)
 
-  Comparable
-  (compareTo [a b] (compare a b))
-
   Object
   #?(:clj (equals [a b] (equiv a b)))
   (toString [_] (str "D[" (join " " (map #(join " → " %) terms)) "]"))
 
-  #?@(:clj []
-      [IFn
+  #?@(:clj
+      [Comparable
+       (compareTo [a b] (compare a b))
+
+       IFn
        (invoke [this]
                (d:apply this []))
        (invoke [this a]
@@ -561,74 +561,140 @@
         b
         (d:+ b (d:* (df:dy xe ye) dy))))))
 
-(def ^:private diff-+ (binary-op g/+ (fn [_ _] 1) (fn [_ _] 1)))
-(def ^:private diff-- (binary-op g/- (fn [_ _] 1) (fn [_ _] -1)))
-(def ^:private diff-* (binary-op g/* (fn [_ y] y) (fn [x _] x)))
-(def ^:private diff-div
-  (binary-op g/div
-             (fn [_ y] (g/invert y))
-             (fn [x y] (g/negate (g/divide x (g/square y))))))
+(defn- lift-n
+  "Lifts an n-ary fn"
+  [f df:dx df:dx1 df:dx2]
+  (let [f1 (lift-1 f df:dx)
+        f2 (lift-2 f df:dx1 df:dx2)]
+    (fn call
+      ([] (f))
+      ([x] (f1 x))
+      ([x y] (f2 x y))
+      ([x y & more]
+       (reduce call (call x y) more)))))
 
-(def ^:private sin (unary-op g/sin g/cos))
-(def ^:private cos (unary-op g/cos #(g/negate (g/sin %))))
-(def ^:private tan (unary-op g/tan #(g/invert (g/square (g/cos %)))))
+(def ^:private add
+  (lift-n g/+
+          (fn [_] 1)
+          (fn [_ _] 1)
+          (fn [_ _] 1)))
+
+(def ^:private negate
+  (lift-1 g/negate (fn [_] -1)))
+
+(defn- negative? [x]
+  (g/negative? (finite-term x)))
+
+(def ^:private sub
+  (lift-n g/-
+          (fn [_] -1)
+          (fn [_ _] 1)
+          (fn [_ _] -1)))
+
+(def ^:private mul
+  (lift-n g/*
+          (fn [_] 1)
+          (fn [_ y] y)
+          (fn [x _] x)))
+
+(def ^:private div
+  (lift-n g/div
+          (fn [x]   (g/div -1 (g/square x)))
+          (fn [_ y] (g/div 1 y))
+          (fn [x y] (g/div (g/negate x)
+                          (g/square y)))))
+
+(def ^:private sin
+  (lift-1 g/sin g/cos))
+
+(def ^:private cos
+  (lift-1 g/cos
+          (fn [x] (g/negate (g/sin x)))))
+
+(def ^:private tan
+  (lift-1 g/tan
+          (fn [x]
+            (g/invert
+             (g/square (g/cos x))))))
 
 (def ^:private asin
-  (unary-op g/asin #(g/invert (g/sqrt (g/sub 1 (g/square %))))))
+  (lift-1 g/asin
+          (fn [x]
+            (g/invert
+             (g/sqrt (g/sub 1 (g/square x)))))))
 
 (def ^:private acos
-  (unary-op g/acos #(g/negate (g/invert (g/sqrt (g/sub 1 (g/square %)))))))
+  (lift-1 g/acos
+          (fn [x]
+            (g/negate
+             (g/invert
+              (g/sqrt (g/sub 1 (g/square x))))))))
 
 (def ^:private atan
-  (unary-op g/atan #(g/invert (g/add 1 (g/square %)))))
+  (lift-1 g/atan (fn [x]
+                   (g/invert
+                    (g/add 1 (g/square x))))))
 
 (def ^:private atan2
-  (binary-op g/atan
-             (fn [y x]
-               (g/divide x
-                         (g/add (g/square x)
-                                (g/square y))))
-             (fn [y x]
-               (g/divide (g/negate y)
-                         (g/add (g/square x)
-                                (g/square y))))))
+  (lift-2 g/atan
+          (fn [y x]
+            (g/div x (g/add (g/square x)
+                            (g/square y))))
+          (fn [y x]
+            (g/div (g/negate y)
+                   (g/add (g/square x)
+                          (g/square y))))))
 
 (defn- abs [x]
   (let [f (primal-part x)
-        func (cond (< f 0) (unary-op (fn [x] x) (fn [_] -1))
-                   (> f 0) (unary-op (fn [x] x) (fn [_] 1))
+        func (cond (< f 0) (lift-1 (fn [x] x) (fn [_] -1))
+                   (> f 0) (lift-1 (fn [x] x) (fn [_] 1))
                    (= f 0) (u/illegal "Derivative of g/abs undefined at zero")
                    :else (u/illegal (str "error! derivative of g/abs at" x)))]
     (func x)))
 
-(def ^:private sinh (unary-op g/sinh g/cosh))
-(def ^:private cosh (unary-op g/cosh g/sinh))
-(def ^:private tanh (unary-op g/tanh #(g/sub 1 (g/square (g/tanh %)))))
+(def ^:private sinh
+  (lift-1 g/sinh g/cosh))
 
-(def ^:private sqrt (unary-op g/sqrt #(-> % g/sqrt (g/mul 2) g/invert)))
-(def ^:private exp (unary-op g/exp g/exp))
-(def ^:private negate (unary-op g/negate (fn [_] -1)))
+(def ^:private cosh
+  (lift-1 g/cosh g/sinh))
+
+(def ^:private tanh
+  (lift-1 g/tanh
+          (fn [x]
+            (g/sub 1 (g/square (g/tanh x))))))
+
+(def ^:private sqrt
+  (lift-1 g/sqrt
+          (fn [x]
+            (g/invert
+             (g/mul (g/sqrt x) 2)))))
+
+(def ^:private exp
+  (lift-1 g/exp g/exp))
 
 (def ^:private power
-  (binary-op g/expt
-             (fn [x y]
-               (g/mul y (g/expt x (g/sub y 1))))
-             (fn [_ _]
-               (u/illegal "can't get there from here"))))
+  (lift-2 g/expt
+          (fn [x y]
+            (g/mul y (g/expt x (g/sub y 1))))
+          (fn [_ _]
+            (u/illegal "can't get there from here"))))
 
 (def ^:private expt
-  (binary-op g/expt
-             (fn [x y]
-               (g/mul y (g/expt x (g/sub y 1))))
-             (fn [x y]
-               (if (and (v/number? x) (v/zero? y))
-                 (if (v/number? y)
-                   (if (not (g/negative? y))
-                     0
-                     (u/illegal "Derivative undefined: expt"))
-                   0)
-                 (g/* (g/log x) (g/expt x y))))))
-(def ^:private log (unary-op g/log g/invert))
+  (lift-2 g/expt
+          (fn [x y]
+            (g/mul y (g/expt x (g/sub y 1))))
+          (fn [x y]
+            (if (and (v/number? x) (v/zero? y))
+              (if (v/number? y)
+                (if (not (g/negative? y))
+                  0
+                  (u/illegal "Derivative undefined: expt"))
+                0)
+              (g/* (g/log x) (g/expt x y))))))
+
+(def ^:private log
+  (lift-1 g/log g/invert))
 
 (defn- defbinary [generic-op differential-op]
   (doseq [signature [[::differential ::differential]
@@ -639,18 +705,25 @@
 (defn- defunary [generic-op differential-op]
   (defmethod generic-op [::differential] [a] (differential-op a)))
 
-(defmethod g/expt [::differential ::v/number] [d n] (power d n))
-(defbinary g/expt expt)
+(defbinary g/add add)
+(defunary g/negate negate)
+(defunary g/negative? negative?)
+(defbinary g/sub sub)
+(defbinary g/mul mul)
+(defunary g/invert #(div 1 %))
+(defbinary g/div div)
 
-(defbinary g/add diff-+)
-(defbinary g/sub diff--)
-(defbinary g/mul diff-*)
-(defbinary g/div diff-div)
+(defunary g/abs abs)
+(defunary g/sqrt sqrt)
+
+(defmethod g/expt [::differential ::differential] [d n] (expt d n))
+(defmethod g/expt [::v/scalar ::differential] [d n] (expt d n))
+
+;; TODO note the simpler case here.
+(defmethod g/expt [::differential ::v/scalar] [d n] (power d n))
 
 (defunary g/log log)
 (defunary g/exp exp)
-(defunary g/abs abs)
-(defunary g/sqrt sqrt)
 
 (defunary g/sin sin)
 (defunary g/cos cos)
@@ -665,9 +738,7 @@
 (defunary g/cosh cosh)
 (defunary g/tanh tanh)
 
-(defunary g/negate negate)
-(defunary g/invert #(diff-div 1 %))
-(defunary g/square #(diff-* % %))
-(defunary g/cube #(diff-* % (diff-* % %)))
+(defunary g/square (fn [x] (mul x x)))
+(defunary g/cube (fn [x] (mul x (mul x x))))
 
-(defbinary g/dot-product diff-*)
+(defbinary g/dot-product mul)
