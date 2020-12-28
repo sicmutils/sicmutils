@@ -47,9 +47,13 @@
 ;;           (and (pair? x)
 ;;     	   (eq? (car x) unit-tag-type))))
 
+(declare units=)
+
+(deftype Units [system exponents scale]
+  )
 
 
-(deftype Units [system exponents scale])
+
 
 (defn units? [x]
   (isa? x Units))
@@ -73,11 +77,6 @@
                 exponents (mapv + (.exponents u1) (.exponents u2))
                 scale (* (.scale u1) (.scale u2))]
             (Units. system exponents scale)))))
-
-(comment
-  (let [meter-squared (*units &meter &meter)]
-    [(.exponents meter-squared)
-     (.scale meter-squared)]))
 
 (comment
   (Units. SI [0 0 0 0 0 0 0] 1)
