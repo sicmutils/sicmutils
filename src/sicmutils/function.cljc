@@ -63,6 +63,20 @@
 (defn function? [f]
   (isa? (v/kind f) ::v/function))
 
+(defn with-arity
+  "Appends the supplied `arity` to the metadata of `f`, knocking out any
+  pre-existing arity notation.
+  Also takes an optional metadata map to assoc in too.
+
+  TODO use `::arity` instead of `:arity`."
+  ([f arity]
+   (with-arity f arity {}))
+  ([f arity m]
+   (let [new-meta (-> (meta f)
+                      (merge m)
+                      (assoc :arity arity))]
+     (with-meta f new-meta))))
+
 (defn compose
   "Compose is like Clojure's standard comp, but for this system we
   like to know the arity of our functions, so that we can calculate
