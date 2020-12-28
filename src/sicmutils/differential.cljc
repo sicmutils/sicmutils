@@ -1,5 +1,5 @@
 ;;
-;; Copyright © 2017 Colin Smith.
+;; Copyright © 2020 Sam Ritchie.
 ;; This work is based on the Scmutils system of MIT/GNU Scheme:
 ;; Copyright © 2002 Massachusetts Institute of Technology
 ;;
@@ -18,13 +18,17 @@
 ;;
 
 (ns sicmutils.differential
+  (:refer-clojure :rename {compare core-compare}
+                  #?@(:cljs [:exclude [compare]]))
   (:require [clojure.string :refer [join]]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.util.stream :as us]
             [sicmutils.util.vector-set :as uv]
-            [sicmutils.value :as v]))
+            [sicmutils.value :as v])
+  #?(:clj
+     (:import (clojure.lang AFn IFn))))
 
 ;; ## Calculus of Infinitesimals
 ;;
@@ -69,10 +73,10 @@
 ;; tags and whose second is the coefficient. Let's do the tag set implementation
 ;; first.
 
-(def tags first)
-(def coefficient second)
+(def ^:private tags first)
+(def ^:private coefficient second)
 
-(defn make-term
+(defn- make-term
   ([coef] [uv/empty-set coef])
   ([tags coef] [tags coef]))
 
@@ -110,7 +114,7 @@
 ;; can be compared nicely now if we compare by just the first terms, not the
 ;; coefs.... maybe this doesn't matter.
 
-(defn terms:+
+(defn- terms:+
   "Iterate and build up the result while preserving order and dropping zero sums."
   [xs ys]
   (loop [xs xs
@@ -120,7 +124,7 @@
           (empty? ys) (into result xs)
           :else (let [[a-tags a-coef :as a] (first xs)
                       [b-tags b-coef :as b] (first ys)
-                      c (compare a-tags b-tags)]
+                      c (core-compare a-tags b-tags)]
                   (cond
                     (= c 0)
                     (let [r-coef (g/+ a-coef b-coef)]
@@ -136,7 +140,7 @@
                     :else
                     (recur xs (rest ys) (conj result b)))))))
 
-(defn terms:*
+(defn- terms:*
   "Eagerly multiply the two term lists."
   [xs ys]
   (for [[x-tags x-coef] xs
@@ -163,23 +167,21 @@
 ;; with other types, the step here is to wrap up this thing in a `deftype` so we
 ;; can customize it.
 
-;; TODO implement ifn, compare, equals for clj, cljs (note that compare needs to
-;; compare ONLY by the first element, not the coefficient....  think)
-
 ;; TODO note that we are extending scalar here for blah reasons.
 
 (derive ::differential ::v/scalar)
 
-(declare d:= one?)
+(declare d:apply compare equiv finite-term one?)
+
+;; Contract is that terms is sorted, and never empty.
 
 (deftype Differential [terms]
-  ;; TODO handle empty case.
   f/IArity
   (arity [_]
     (f/arity (coefficient (first terms))))
 
   v/Numerical
-  (numerical? [d]
+  (numerical? [_]
     (v/numerical? (coefficient (first terms))))
 
   v/Value
@@ -187,7 +189,8 @@
     (every? (comp v/zero? coefficient) terms))
 
   (one? [this] (one? this))
-  (identity? [this] (d:one? this))
+  (identity? [this] (one? this))
+
   (zero-like [_] 0)
   (one-like [_] 1)
   (identity-like [_] 1)
@@ -196,19 +199,116 @@
 
   (kind [_] ::differential)
 
+  Comparable
+  (compareTo [a b] (compare a b))
+
   Object
+  #?(:clj (equals [a b] (equiv a b)))
   (toString [_] (str "D[" (join " " (map #(join " → " %) terms)) "]"))
 
-  #?(:clj
-     (equals [a b] (d:= a b)))
+  #?@(:clj []
+      [IFn
+       (invoke [this]
+               (d:apply this []))
+       (invoke [this a]
+               (d:apply this [a]))
+       (invoke [this a b]
+               (d:apply this [a b]))
+       (invoke [this a b c]
+               (d:apply this [a b c]))
+       (invoke [this a b c d]
+               (d:apply this [a b c d]))
+       (invoke [this a b c d e]
+               (d:apply this [a b c d e]))
+       (invoke [this a b c d e f]
+               (d:apply this [a b c d e f]))
+       (invoke [this a b c d e f g]
+               (d:apply this [a b c d e f g]))
+       (invoke [this a b c d e f g h]
+               (d:apply this [a b c d e f g h]))
+       (invoke [this a b c d e f g h i]
+               (d:apply this [a b c d e f g h i]))
+       (invoke [this a b c d e f g h i j]
+               (d:apply this [a b c d e f g h i j]))
+       (invoke [this a b c d e f g h i j k]
+               (d:apply this [a b c d e f g h i j k]))
+       (invoke [this a b c d e f g h i j k l]
+               (d:apply this [a b c d e f g h i j k l]))
+       (invoke [this a b c d e f g h i j k l m]
+               (d:apply this [a b c d e f g h i j k l m]))
+       (invoke [this a b c d e f g h i j k l m n]
+               (d:apply this [a b c d e f g h i j k l m n]))
+       (invoke [this a b c d e f g h i j k l m n o]
+               (d:apply this [a b c d e f g h i j k l m n o]))
+       (invoke [this a b c d e f g h i j k l m n o p]
+               (d:apply this [a b c d e f g h i j k l m n o p]))
+       (invoke [this a b c d e f g h i j k l m n o p q]
+               (d:apply this [a b c d e f g h i j k l m n o p q]))
+       (invoke [this a b c d e f g h i j k l m n o p q r]
+               (d:apply this [a b c d e f g h i j k l m n o p q r]))
+       (invoke [this a b c d e f g h i j k l m n o p q r s]
+               (d:apply this [a b c d e f g h i j k l m n o p q r s]))
+       (invoke [this a b c d e f g h i j k l m n o p q r s t]
+               (d:apply this [a b c d e f g h i j k l m n o p q r s t]))
+       (applyTo [this xs] (AFn/applyToHelper this xs))]
 
-  #?@(:cljs
+      :cljs
       [IEquiv
-       (-equiv [a b] (d:= a b))
+       (-equiv [a b] (equiv a b))
+
+       IComparable
+       (-compare [a b]  (compare a b))
 
        IPrintWithWriter
        (-pr-writer [x writer _]
-                   (write-all writer (.toString x)))]))
+                   (write-all writer (.toString x)))
+
+       IFn
+       (-invoke [this]
+                (d:apply this []))
+       (-invoke [this a]
+                (d:apply this [a]))
+       (-invoke [this a b]
+                (d:apply this [a b]))
+       (-invoke [this a b c]
+                (d:apply this [a b c]))
+       (-invoke [this a b c d]
+                (d:apply this [a b c d]))
+       (-invoke [this a b c d e]
+                (d:apply this [a b c d e]))
+       (-invoke [this a b c d e f]
+                (d:apply this [a b c d e f]))
+       (-invoke [this a b c d e f g]
+                (d:apply this [a b c d e f g]))
+       (-invoke [this a b c d e f g h]
+                (d:apply this [a b c d e f g h]))
+       (-invoke [this a b c d e f g h i]
+                (d:apply this [a b c d e f g h i]))
+       (-invoke [this a b c d e f g h i j]
+                (d:apply this [a b c d e f g h i j]))
+       (-invoke [this a b c d e f g h i j k]
+                (d:apply this [a b c d e f g h i j k]))
+       (-invoke [this a b c d e f g h i j k l]
+                (d:apply this [a b c d e f g h i j k l]))
+       (-invoke [this a b c d e f g h i j k l m]
+                (d:apply this [a b c d e f g h i j k l m]))
+       (-invoke [this a b c d e f g h i j k l m n]
+                (d:apply this [a b c d e f g h i j k l m n]))
+       (-invoke [this a b c d e f g h i j k l m n o]
+                (d:apply this [a b c d e f g h i j k l m n o]))
+       (-invoke [this a b c d e f g h i j k l m n o p]
+                (d:apply this [a b c d e f g h i j k l m n o p]))
+       (-invoke [this a b c d e f g h i j k l m n o p q]
+                (d:apply this [a b c d e f g h i j k l m n o p q]))
+       (-invoke [this a b c d e f g h i j k l m n o p q r]
+                (d:apply this [a b c d e f g h i j k l m n o p q r]))
+       (-invoke [this a b c d e f g h i j k l m n o p q r s]
+                (d:apply this [a b c d e f g h i j k l m n o p q r s]))
+       (-invoke [this a b c d e f g h i j k l m n o p q r s t]
+                (d:apply this [a b c d e f g h i j k l m n o p q r s t]))
+       (-invoke [this a b c d e f g h i j k l m n o p q r s t rest]
+                (d:apply this (concat [a b c d e f g h i j k l m n o p q r s t] rest)))
+       ]))
 
 #?(:clj
    (defmethod print-method Differential
@@ -248,7 +348,8 @@
 (defn- terms->differential
   "Returns a differential instance generated from a vector of terms.... TODO note the conditions.
 
-  TODO note that this assumes that they're all properly sorted."
+  TODO note that this assumes that they're all properly sorted, and ~that zeros
+  are filtered out."
   [terms]
   {:pre [(vector? terms)]}
   (cond (empty? terms) 0
