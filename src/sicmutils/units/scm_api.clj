@@ -3,6 +3,7 @@
   finding an idiomatic Clojure API. Consider not pushing this namespace at all."
   (:require [sicmutils.value :as v]
             [sicmutils.generic :as g]
+            [sicmutils.env :as e]
             [sicmutils.units.units :as u]
             [sicmutils.units.with-units :as wu]))
 
@@ -48,8 +49,21 @@
   ;; => #object[sicmutils.structure.Structure 0x6f544435 "(up (up 10 20 30) (up 20 40 60) (up 30 60 90))"]
 
   (g/* [[1 2] [3 4]] [[10 20] [30 40]])
-  (up (up (up (up 10 20) (up 30 40)) (up (up 20 40) (up 60 80)))
-      (up (up (up 30 60) (up 90 120)) (up (up 40 80) (up 120 160))))
-  ;; this doesn't look like a matrix.
+  (up (up (up (up 10 20) (up 30 40))
+          (up (up 20 40) (up 60 80)))
+      (up (up (up 30 60) (up 90 120))
+          (up (up 40 80) (up 120 160))))
+  ;; this doesn't look like a matrix. Wonder what I'm actually doing here. I
+  ;; suspect it's related to tensors.
 
+  (e/matrix-by-rows [1  2  3  4  5]
+                    [6  7  8  9 10]
+                    [11 12 13 14 15])
+  ;; this looks like a matrix 🎉
+  ;;
+  (g/* (e/matrix-by-rows [1 2] [3 4])
+       (e/matrix-by-rows [10 20] [30 40]))
+  ;; => #object[sicmutils.matrix.Matrix 0x38473da4 "[[70 100] [150 220]]"]
+
+  ;; here we go.
   )
