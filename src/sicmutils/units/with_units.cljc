@@ -7,7 +7,34 @@
 ;; Next step: Acually multiply two values with units. Defer generic /
 ;; multimethod variants.
 
+(declare ->symbolic)
+
 (deftype WithUnits [value units])
+
+;; # Naming: value or quantity?
+;;
+;;  - What does scmutils choose?
+;;  - What does Wikipedia[1] talk about?
+;;
+;; [1]: https://en.wikipedia.org/wiki/International_System_of_Units
+;;
+;; ## smcutils
+;;
+;; mentions only quantities in passing.
+;;
+;; ## Wikipedia
+;;
+;; tabulates:
+;;
+;; Symbol |  Name  | Quantity
+;;   s    | second |  time
+;;
+;; Doesn't look like it's using "quantity" as "value" here.
+;;
+;; # Decision: keep "value" for now.
+
+(defn ->symbolic
+  "convert withunits to symbolic expression multiplying quantity with units")
 
 (defn with-units? [x]
   (isa? x WithUnits))
