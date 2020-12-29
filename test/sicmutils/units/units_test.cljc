@@ -31,13 +31,13 @@
 
   (testing "symbolic meter is equal to symbolic meter"
     (is
-     (symbolic= (u/->symbolic scm-api/&meter)
-                (u/->symbolic scm-api/&meter))))
+     (symbolic= (u/->symbolic scm-api/meter)
+                (u/->symbolic scm-api/meter))))
 
   (testing "symbolic meter is not equal to symbolic kilogram"
     (is
      (not
-      (symbolic= (u/->symbolic scm-api/&meter)
-                 (u/->symbolic scm-api/&kilogram)))))
+      (symbolic= (u/->symbolic scm-api/meter)
+                 (u/->symbolic scm-api/kilogram)))))
 
   )
