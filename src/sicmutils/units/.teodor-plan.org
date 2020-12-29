@@ -16,6 +16,13 @@ wat?
 
 This would let us use generic multiplication calls. Enables writing higher level
 tests, "more natural". Is this hard?
+*** TODO Good place to start: encode some actual constants
+What WithUnits functionality do we need to encode c? We're actually almost
+there.
+
+Note: scmutils keeps /all/ constants in units/constants.scm; not just physics
+constants, but also unitless constants (pi, ...). We already have some unitless
+constants in sicmutils.
 * LOG
 ** 2020-12-29
 *** ->symbolic progression

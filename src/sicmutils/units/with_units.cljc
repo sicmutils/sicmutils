@@ -7,7 +7,7 @@
 ;; Next step: Acually multiply two values with units. Defer generic /
 ;; multimethod variants.
 
-(declare ->symbolic)
+(declare ->symbolic with-units=)
 
 (deftype WithUnits [value units])
 
@@ -18,6 +18,8 @@
 (defn ->symbolic [with-units]
   (let [{:keys [value units]} (->map with-units)]
     (g/* value (u/->symbolic units))))
+
+
 
 (comment
   (->symbolic (WithUnits. 42 sicmutils.units.scm-api/meter))
@@ -48,7 +50,7 @@
 
 (defn ->symbolic
   "convert withunits to symbolic expression multiplying quantity with units"
-  [])
+  [with-units])
 
 (defn with-units? [x]
   (isa? x WithUnits))
