@@ -4,12 +4,11 @@
 ** Core feature parity with scmutils
 ** "Do we have a nice Clojure API, or is this just copied Scheme?"
 * PLAN
-** DONE Symbolic representation of Units and WithUnits
-This lets us see what we're doing from the REPL
 ** Get /SOMETHING/ hooked into sicmutils.generic/*
 wat?
 
-This would let us use generic multiplication calls.
+This would let us use generic multiplication calls. Enables writing higher level
+tests, "more natural". Is this hard?
 * LOG
 ** 2020-12-29
 *** ->symbolic progression
@@ -19,3 +18,5 @@ This would let us use generic multiplication calls.
 *** Hook Units into sicmutils.generic/*
 ???
 * ARCHIVE
+** DONE Symbolic representation of Units and WithUnits
+This lets us see what we're doing from the REPL
