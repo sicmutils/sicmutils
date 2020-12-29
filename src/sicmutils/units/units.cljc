@@ -8,9 +8,33 @@
 (defn system= [sys1 sys2]
   (= sys1 sys2))
 
-(declare units=)
+(declare units= ->symbolic)
 
 (deftype Units [system exponents scale]
+  #?@(:clj
+      [Object
+       (equals [this that] (units= this that))
+       (toString [this] (pr-str (->symbolic this)))]
+
+      ;; cljs? I'm not developing with a CLJS REPL, so I should probably ensure
+      ;; that I have proper CLJS test coverage. Wonder how Sam & Colin prevent
+      ;; CLJS breakage under development.
+      :cljs
+      [IEquiv
+       (-equiv [this that] (units= this that))
+       Object
+       (toString [this] (pr-str (->symbolic this)))])
+  )
+
+(comment
+  sicmutils.units.scm-api/meter
+  ;; => #object[sicmutils.units.units.Units 0x42fb5800 "meter"]
+
+  (let [m sicmutils.units.scm-api/meter]
+    (*units m m))
+  ;; => #object[sicmutils.units.units.Units 0x415c107b "(expt meter 2)"]
+
+  ;; There, a little more readable.
   )
 
 (defn ^:private ->map [units]
