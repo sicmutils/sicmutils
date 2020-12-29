@@ -1,5 +1,5 @@
 (ns sicmutils.units.with-units
-  (:require [sicmutils.units.units]
+  (:require [sicmutils.units.units :as u]
             [sicmutils.value :as v]
             [sicmutils.generic :as g]
             [sicmutils.env :as env]))
@@ -10,6 +10,19 @@
 (declare ->symbolic)
 
 (deftype WithUnits [value units])
+
+(defn ^:private ->map [with-units]
+  {:value (.value with-units)
+   :units (.units with-units)})
+
+(defn ->symbolic [with-units]
+  (let [{:keys [value units]} (->map with-units)]
+    (g/* value (u/->symbolic units))))
+
+(comment
+  (->symbolic (WithUnits. 42 sicmutils.units.scm-api/meter))
+  ;; => (* 42 meter)
+  )
 
 ;; # Naming: value or quantity?
 ;;
