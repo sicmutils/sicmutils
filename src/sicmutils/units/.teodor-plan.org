@@ -1,5 +1,8 @@
 #+TITLE: Plan: unit system
 
+Sam: I expect we'll delete this file before considering merging. I'm using it to
+keep some chaos control.
+
 * OBJECTIVES
 ** Core feature parity with scmutils
 - multiplication for number with units
