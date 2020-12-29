@@ -1,0 +1,21 @@
+#+TITLE: Plan: unit system
+
+* OBJECTIVES
+** Core feature parity with scmutils
+** "Do we have a nice Clojure API, or is this just copied Scheme?"
+* PLAN
+** DONE Symbolic representation of Units and WithUnits
+This lets us see what we're doing from the REPL
+** Get /SOMETHING/ hooked into sicmutils.generic/*
+wat?
+
+This would let us use generic multiplication calls.
+* LOG
+** 2020-12-29
+*** ->symbolic progression
+- [X] Change core SI Unit implementation to keep a list of base units as symbols
+- [X] Hook into sicmutils symbolic computation for comparison and symbolic
+  representation (as used in tests)
+*** Hook Units into sicmutils.generic/*
+???
+* ARCHIVE
