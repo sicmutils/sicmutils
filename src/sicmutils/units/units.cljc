@@ -42,6 +42,10 @@
   ;; There, a little more readable.
   )
 
+;; Should probably delete this before merging, taking a performance penalty for
+;; less verbose destructuring.
+;;
+;; or ... can I implemenet "IMapSomething" on the deftype? Then I won't need it.
 (defn ^:private ->map [units]
   {:system (.system units)
    :exponents (.exponents units)
