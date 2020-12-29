@@ -62,10 +62,14 @@ documented (yet). Some suggested next steps, for now:
 
 - Clone this repository and run `lein repl` for a batteries included REPL
   environment.
-- Read the [SCMUtils Reference Manual][REFMAN] ("refman") for inspiration. This
-  library can do almost everything in the refman.
+- Visit our [CLJDocs][CLJDOCS] page for an introduction and detailed
+  documentation
+- Read the [SICMUtils Reference Manual][REFMAN] ("refman") for inspiration
+- Watch Colin's ["Physics in
+  Clojure"](https://www.youtube.com/watch?v=7PoajCqNKpg) talk for on overview of
+  SICMUtils and its implementation
 - Visit the HTML version of [Structure and Interpretation of Classical
-  Mechanics](https://tgvaughan.github.io/).
+  Mechanics](https://tgvaughan.github.io/)
 
 ## Background
 
@@ -387,6 +391,7 @@ lein test-cljs
 
 GPL v3.
 
+[CLJDOCS]: https://cljdoc.org/d/sicmutils/sicmutils/CURRENT
 [SICM]: http://mitpress.mit.edu/books/structure-and-interpretation-classical-mechanics
 [FDG]: http://mitpress.mit.edu/books/functional-differential-geometry
 [SICP]: http://mitpress.mit.edu/sicp/
@@ -394,6 +399,6 @@ GPL v3.
 [GSCM]: http://www.cs.rochester.edu/~gildea/guile-scmutils/
 [ACM]: https://commons.apache.org/proper/commons-math/
 [LEIN]: http://leiningen.org
-[REFMAN]: https://groups.csail.mit.edu/mac/users/gjs/6946/refman.txt
+[REFMAN]: https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/reference-manual
 
 Copyright © 2016 Colin Smith
