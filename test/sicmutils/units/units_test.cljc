@@ -13,8 +13,8 @@
             [sicmutils.value :as v]))
 
 ;;;; Motivation
-;; By treating units as symbols (for a little while), we can make it easier to
-;; see what we're doing.
+;; By treating units as symbols (for now), we can make it easier to see what
+;; we're doing.
 
 (defn ^:private symbolic= [x y]
   (v/= (g/simplify x)
@@ -44,5 +44,4 @@
   (let [m scm-api/meter]
     (is (u/units= m m))
     (is (u/units= m
-                  (-> m u/invert u/invert))))
-  )
+                  (-> m u/invert u/invert)))))
