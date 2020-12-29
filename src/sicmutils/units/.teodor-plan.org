@@ -24,6 +24,34 @@ tests, "more natural". Is this hard?
 *** Alternatives for next step
 1. Encode a constant from scmutils
 2. Build compatibility with ~sicmutils.value/Value~
+*** Encode a constant from scmutils
+1. where are the constants? How are they defined? How are they queried?
+
+located at
+
+  src/units/constants.scmu
+
+#+begin_src
+(define-constant ':pi "\\pi" "Pi"
+  (* 4 (atan 1 1))
+  &unitless)
+
+(define-constant ':2pi "2\\pi" "2*Pi"
+  (* 8 (atan 1 1))
+  &unitless)
+
+1 ]=> :pi
+#| 3.141592653589793 |#
+
+1 ]=> :2pi
+#| 6.283185307179586 |#
+#+end_src
+**** Observations
+- Leading with : is problematic for Clojure symbols
+- scmutils has constant names with a slash in them, like ~:pi/2~. Namespacing problem.
+*** Constants Approach
+1. put some contants in a constants namespace
+2. normal Clojure values for now;
 * ARCHIVE
 ** DONE Symbolic representation of Units and WithUnits
 This lets us see what we're doing from the REPL
