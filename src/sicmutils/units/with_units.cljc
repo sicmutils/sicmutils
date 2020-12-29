@@ -47,7 +47,8 @@
 ;; # Decision: keep "value" for now.
 
 (defn ->symbolic
-  "convert withunits to symbolic expression multiplying quantity with units")
+  "convert withunits to symbolic expression multiplying quantity with units"
+  [])
 
 (defn with-units? [x]
   (isa? x WithUnits))

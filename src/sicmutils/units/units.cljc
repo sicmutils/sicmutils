@@ -26,6 +26,11 @@
        (toString [this] (pr-str (->symbolic this)))])
   )
 
+(defn units= [this that]
+  (and (system= (.system this) (.system that))
+       (v/= (.exponents this) (.exponents that))
+       (v/= (.scale this) (.scale that))))
+
 (comment
   sicmutils.units.scm-api/meter
   ;; => #object[sicmutils.units.units.Units 0x42fb5800 "meter"]
@@ -74,6 +79,16 @@
                 exponents (mapv + (.exponents u1) (.exponents u2))
                 scale (* (.scale u1) (.scale u2))]
             (Units. system exponents scale)))))
+
+(defn invert [units]
+  (let [scale (g// 1 (.scale units))
+        exponents (mapv #(g/negate %) (.exponents units))]
+    (Units. (.system units) exponents scale)))
+
+#_
+(let [m sicmutils.units.scm-api/meter]
+  (invert
+   (*units m m)))
 
 (comment
   (Units. SI [0 0 0 0 0 0 0] 1)

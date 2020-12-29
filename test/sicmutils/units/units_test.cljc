@@ -38,6 +38,11 @@
     (is
      (not
       (symbolic= (u/->symbolic scm-api/meter)
-                 (u/->symbolic scm-api/kilogram)))))
+                 (u/->symbolic scm-api/kilogram))))))
 
+(deftest inverting-a-unit
+  (let [m scm-api/meter]
+    (is (u/units= m m))
+    (is (u/units= m
+                  (-> m u/invert u/invert))))
   )
