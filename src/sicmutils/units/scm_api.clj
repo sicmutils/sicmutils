@@ -8,9 +8,7 @@
             [sicmutils.units.with-units :as wu]))
 
 (def meter    (u/units u/SI [1 0 0 0 0 0 0] 1))
-(def &meter    meter)
 (def kilogram (u/units u/SI [0 1 0 0 0 0 0] 1))
-(def &kilogram kilogram)
 (def second   (u/units u/SI [0 0 1 0 0 0 0] 1))
 (def ampere   (u/units u/SI [0 0 0 1 0 0 0] 1))
 (def kelvin   (u/units u/SI [0 0 0 0 1 0 0] 1))
