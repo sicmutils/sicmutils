@@ -2,7 +2,11 @@
 
 * OBJECTIVES
 ** Core feature parity with scmutils
+- multiplication for number with units
+- multiplication for symbolic expression with units
+- pull in constants from scmutils
 ** "Do we have a nice Clojure API, or is this just copied Scheme?"
+- Alternatives for ~(& 1 &meter)~ syntax?
 * PLAN
 ** Get /SOMETHING/ hooked into sicmutils.generic/*
 wat?
@@ -17,6 +21,9 @@ tests, "more natural". Is this hard?
   representation (as used in tests)
 *** Hook Units into sicmutils.generic/*
 ???
+*** Alternatives for next step
+1. Encode a constant from scmutils
+2. Build compatibility with ~sicmutils.value/Value~
 * ARCHIVE
 ** DONE Symbolic representation of Units and WithUnits
 This lets us see what we're doing from the REPL
