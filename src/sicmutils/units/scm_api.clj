@@ -19,18 +19,19 @@
 
 (def & wu/with-units)
 
+;; I like having meter bound as a symbol. It would be nice to avoid the
+;; boilerplate. Macro? That's what define-unit-system does in scheme.
+;;
+;; For now: explicit is better han implicit.
+
 (comment
   (let [meter-squared (u/*units meter meter)]
     [(.exponents meter-squared)
      (.scale meter-squared)])
   ;; => [[2 0 0 0 0 0 0] 1]
-
-
-  ;;
   )
 
 (comment
-
   (e/matrix-by-rows [1  2  3  4  5]
                     [6  7  8  9 10]
                     [11 12 13 14 15])
