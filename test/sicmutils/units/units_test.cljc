@@ -40,8 +40,14 @@
       (symbolic= (u/->symbolic scm-api/meter)
                  (u/->symbolic scm-api/kilogram))))))
 
+;; TODO generative test for symbolic equality <==> unit equality
+;; Requires generator for Units and WithUnits
+
 (deftest inverting-a-unit
   (let [m scm-api/meter]
     (is (u/units= m m))
     (is (u/units= m
                   (-> m u/invert u/invert)))))
+
+;; TODO generative test for inverting values, rather than hard-coding meters
+;; Requires generator for Units and WithUnits
