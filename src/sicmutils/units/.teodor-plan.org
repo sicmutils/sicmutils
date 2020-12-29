@@ -49,6 +49,15 @@ located at
 **** Observations
 - Leading with : is problematic for Clojure symbols
 - scmutils has constant names with a slash in them, like ~:pi/2~. Namespacing problem.
+
+.
+
+- Does this actually not work, or is it just bad ergonomically?
+- Consider asking in Clojurians.
+
+I asked in Clojurians: https://clojurians.slack.com/archives/C03S1KBA2/p1609248390053200
+
+CPP does this: https://www.quantstart.com/articles/Mathematical-Constants-in-C/
 *** Constants Approach
 1. put some contants in a constants namespace
 2. normal Clojure values for now;
