@@ -20,6 +20,7 @@
 (ns sicmutils.collection
   (:require [sicmutils.differential :as d]
             [sicmutils.function :as f]
+            [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -29,6 +30,15 @@
                             LazySeq))))
 
 ;; Vector Implementations
+
+#?(:clj
+   (derive IPersistentMap ::map)
+
+   :cljs
+   (do
+     (derive PersistentHashMap ::map)
+     (derive PersistentArrayMap ::map)
+     (derive PersistentTreeMap ::map)))
 
 (extend-type #?(:clj IPersistentVector :cljs PersistentVector)
   v/Value
@@ -76,6 +86,11 @@
           (into (empty m)
                 (map (fn [[k v]] [k (f v)]))
                 m))]
+
+  (defmethod g/partial-derivative [::map v/seqtype] [m selectors]
+    (map-vals #(g/partial-derivative % selectors)
+              m))
+
   (#?@(:clj [do] :cljs [doseq [klass [PersistentHashMap PersistentArrayMap PersistentTreeMap]]])
    (extend-type #?(:clj IPersistentMap :cljs klass)
      v/Value
