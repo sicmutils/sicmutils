@@ -56,6 +56,13 @@
                 (* 9 (* 3 (g/square 9))))
              (d/extract-tangent (f (d/bundle 9 1 0)) 0))))))
 
+(deftest to-file-tests
+  (testing "derivative of a differential"
+    (let [D #(g/partial-derivative % [])]
+      (is (= ((d/bundle (D g/sin) (D g/cos) 0) 't)
+             ((D (d/bundle g/sin g/cos 0)) 't))
+          "Derivative is linear through a differential"))))
+
 (deftest value-protocol-tests
   (let [zero-diff (d/from-terms [])
         dy        (d/from-terms {[1] 1})]
