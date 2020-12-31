@@ -435,69 +435,6 @@
                  (wrapped-d-hat
                   (wrapped-d-hat (wrap exp)))) 1)))))))
 
-(deftest error-examples
-  (testing "sam's amazing bug. Currently fails!"
-    (let [f (fn [x]
-              (fn [cont]
-                (cont
-                 (fn [y] (* x y))
-                 (fn [g] (g x)))))]
-      ;; (D f) is
-      ;; (fn [cont] (cont (fn [y] (+ x y)) (fn [g] (g x))))
-      ;;
-      ;; `f2` passes `x` into its argument.
-      (comment
-        (is (= 10 (((D f) 5)
-                   (fn [f1 f2]
-                     ;; This fails now because `f1` and `f2` both RETURN
-                     ;; differentials that have closed over the required `new`
-                     ;; tag from the outermost scope.
-                     ;;
-                     ;; On the way out, when the outer scope tries to swap `new`
-                     ;; back in for `old`, we get an error. The line that does
-                     ;; this is:
-                     ;;
-                     ;; (replace-differential-tag oldtag newtag)
-                     ;;
-                     ;; in `scmutils`, inside of `replace-dx-function`.
-                     (f2 f1))))))))
-
-  (testing "amazing bug three, from Alexey"
-    ;; This is an identical, but slightly more obfuscated, bug from dvl.
-    ;;
-    ;; Here we have the same program as in amazing-bug-2.dvl, but using a
-    ;; Church-encoded pair rather than a normal one. Should the answer be the
-    ;; same?
-
-    ;; Arguably not.  Consider that under the normal definition of
-    ;; addition on functions and pairs, Church-encoded pairs add
-    ;; differently from normal ones:
-    ;; (fn [cont] (cont x1 y1)) + (fn [cont] (cont x2 y2)) =
-    ;; (fn [cont] (+ (cont x1 y1) (cont x2 y2))) !=
-    ;; (fn [cont] (cont (+ x1 x2) (+ y1 y2)))
-
-    (letfn [(f [x]
-              (fn [recipient]
-                (recipient
-                 (fn [y] (sin (* x y)))
-                 (fn [g]
-                   (fn [z] (g (+ x z)))))))]
-      (comment
-        (is (ish? ((fn [y] (* (cos (* 3 y)) (+ 3 y)))
-                   (+ 3 Math/PI))
-                  (((D f) 3)
-                   (fn [g-hat f-hat]
-                     ((f-hat g-hat) Math/PI)))))))
-
-    ;; These are only different if the CONT procedure is non-linear. The
-    ;; interpretation is that in the Church-encoded case, the encoding respects
-    ;; the non-linearity in the CONT procedure, whereas in the pair case, adding
-    ;; pairs does not respect the non-linearity of the result. (In fact, the
-    ;; same is true of ordinary addition of numbers). Since differentiation is
-    ;; supposed to expose linear structure, it makes sense that it would expose
-    ;; different things in these two cases.
-    ))
-
 (deftest dvl-bug-examples
   ;; These tests all come from Alexey Radul's
   ;; https://github.com/axch/dysvunctional-language. Thanks, Alexey!
@@ -517,6 +454,54 @@
                  (+ Math/PI 3))
                 (let [[g-hat f-hat] ((D f) 3)]
                   ((f-hat g-hat) Math/PI))))))
+
+  (testing "sam's amazing bug. Currently fails!"
+    (let [f (fn [x]
+              (fn [cont]
+                (cont
+                 (fn [y] (* x y))
+                 (fn [g] (g x)))))]
+      ;; (D f) is
+      ;; (fn [cont] (cont (fn [y] (+ x y)) (fn [g] (g x))))
+      ;;
+      ;; `f2` passes `x` into its argument.
+      (is (= 10 (((D f) 5)
+                 (fn [f1 f2]
+                   (f2 f1)))))))
+
+  (testing "amazing bug three, from Alexey"
+    ;; This is an identical, but slightly more obfuscated, bug from dvl.
+    ;;
+    ;; Here we have the same program as in amazing-bug-2.dvl, but using a
+    ;; Church-encoded pair rather than a normal one. Should the answer be the
+    ;; same?
+
+    ;; Arguably not.  Consider that under the normal definition of
+    ;; addition on functions and pairs, Church-encoded pairs add
+    ;; differently from normal ones:
+    ;; (fn [cont] (cont x1 y1)) + (fn [cont] (cont x2 y2)) =
+    ;; (fn [cont] (+ (cont x1 y1) (cont x2 y2))) !=
+    ;; (fn [cont] (cont (+ x1 x2) (+ y1 y2)))
+    (letfn [(f [x]
+              (fn [recipient]
+                (recipient
+                 (fn [y] (sin (* x y)))
+                 (fn [g]
+                   (fn [z] (g (+ x z)))))))]
+      (is (ish? ((fn [y] (* (cos (* 3 y)) (+ 3 y)))
+                 (+ 3 Math/PI))
+                (((D f) 3)
+                 (fn [g-hat f-hat]
+                   ((f-hat g-hat) Math/PI))))))
+
+    ;; These are only different if the CONT procedure is non-linear. The
+    ;; interpretation is that in the Church-encoded case, the encoding respects
+    ;; the non-linearity in the CONT procedure, whereas in the pair case, adding
+    ;; pairs does not respect the non-linearity of the result. (In fact, the
+    ;; same is true of ordinary addition of numbers). Since differentiation is
+    ;; supposed to expose linear structure, it makes sense that it would expose
+    ;; different things in these two cases.
+    )
 
   (testing "amazing bug 4"
     ;; The same as amazing-bug-3.dvl, but supplies the arguments to f in the
