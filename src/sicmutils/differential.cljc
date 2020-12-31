@@ -505,14 +505,17 @@
   (perturbed? [_] true)
   (replace-tag [dx oldtag newtag]
     (terms->differential
-     (mapv (fn [term]
-             (let [tagv (tags term)]
-               (if (uv/contains? tagv oldtag)
-                 (make-term (-> (tags term)
-                                (uv/disj oldtag)
-                                (uv/conj newtag))
-                            (coefficient term))
-                 term)))
+     (into [] (mapcat
+               (fn [term]
+                 (let [tagv (tags term)]
+                   (if-not (uv/contains? tagv oldtag)
+                     [term]
+                     (if-not (uv/contains? tagv newtag)
+                       [(make-term (-> tagv
+                                       (uv/disj oldtag)
+                                       (uv/conj newtag))
+                                   (coefficient term))]
+                       [])))))
            (bare-terms dx))))
   (extract-tangent [dx tag]
     (from-terms
@@ -702,19 +705,18 @@
   Returns a new unary function that operates on both the original type of `f`
   and [[Differential]] instances.
 
-  NOTE: With the current implementation, `f` has to ALREADY be able to
-  handle [[Differential]] instances. This is accomplished today because the
-  function returned by `lift-1` is installed into the generic arithmetic system
-  as, say, `g/exp`, and `g/exp` is passed as the argument.
-
-  As an example, if the [[primal-part]] of `x` is still a [[Differential]], `f`
-  is going to receive a [[Differential]], and must already be lifted too."
+  NOTE: `df:dx` has to ALREADY be able to handle [[Differential]] instances. The
+  best way to accomplish this is by building `df:dx` out of already-lifted
+  functions, and declaring them by forward reference if you need to."
   [f df:dx]
-  (fn [x]
-    (let [[px tx] (primal-tangent-pair x)]
+  (fn call [x]
+    (let [[px tx] (primal-tangent-pair x)
+          fx (if (differential? px)
+               (call px)
+               (f px))]
       (if (and (v/number? tx) (v/zero? tx))
-        (f px)
-        (d:+ (f px) (d:* (df:dx px) tx))))))
+        fx
+        (d:+ fx (d:* (df:dx px) tx))))))
 
 (defn- lift-2
   "Given:
@@ -727,15 +729,19 @@
   Returns a new binary function that operates on both the original type of `f`
   and [[Differential]] instances.
 
-  NOTE: You'll encounter subtle problems if you try to pass some function `f`
-  that has not _already_ been lifted via `lift-2`. See the docs for [[lift-1]]
-  for more detail."
+  NOTE: `df:dx` and `df:dy` have to ALREADY be able to handle [[Differential]]
+  instances. The best way to accomplish this is by building `df:dx` and `df:dy`
+  out of already-lifted functions, and declaring them by forward reference if
+  you need to."
   [f df:dx df:dy]
-  (fn [x y]
+  (fn call [x y]
     (let [tag     (max-order-tag x y)
           [xe dx] (primal-tangent-pair x tag)
           [ye dy] (primal-tangent-pair y tag)
-          a (f xe ye)
+          a (if (or (differential? xe)
+                    (differential? ye))
+              (call xe ye)
+              (f xe ye))
           b (if (and (v/number? dx) (v/zero? dx))
               a
               (d:+ a (d:* dx (df:dx xe ye))))]
