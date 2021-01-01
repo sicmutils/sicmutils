@@ -18,7 +18,7 @@
 ;;
 
 (ns sicmutils.calculus.derivative-test
-  (:refer-clojure :exclude [+ - * / ref partial])
+  (:refer-clojure :exclude [+ - * / partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
@@ -436,7 +436,7 @@
                   (wrapped-d-hat (wrap exp)))) 1)))))))
 
 (deftest dvl-bug-examples
-  ;; These tests all come from Alexey Radul's
+  ;; Many of these tests come from Alexey Radul's
   ;; https://github.com/axch/dysvunctional-language. Thanks, Alexey!
 
   (testing "amazing bug two"
@@ -455,23 +455,90 @@
                 (let [[g-hat f-hat] ((D f) 3)]
                   ((f-hat g-hat) Math/PI))))))
 
-  (testing "sam's amazing bug. Currently fails!"
+  (testing "sam's amazing bug"
+    ;; I find this confusing and subtle, so let me spell it out here (even if
+    ;; what we see is the expected behavior!)
+    ;;
+    ;; This function takes some `x`, then returns a function that takes a
+    ;; continuation that gets to see two functions. The first scales by `x` and
+    ;; the second takes a fn and passes `x` into it.
     (let [f (fn [x]
               (fn [cont]
                 (cont
                  (fn [y] (* x y))
                  (fn [g] (g x)))))]
-      ;; (D f) is
-      ;; (fn [cont] (cont (fn [y] (+ x y)) (fn [g] (g x))))
-      ;;
-      ;; `f2` passes `x` into its argument.
-      (is (= 10 (((D f) 5)
-                 (fn [f1 f2]
-                   (f2 f1)))))))
+
+      ;; If we just returned either of these functions alone, then they would do
+      ;; this:
+      (is (= 't (((D f) 'x) (fn [f1 _] (f1 't))))
+          "f1 alone acts as identity, since d(xy)/dx == y.")
+
+      (is (= '(+ (* 3 (expt x 2)) (cos x))
+             (g/simplify
+              (((D f) 'x)
+               (fn [_ f2]
+                 (f2 (fn [y]
+                       (+ (g/cube y)
+                          (sin y))))))))
+          "f2 alone acts as ((D g) x)")
+
+      ;; Surprisingly (to me), if you pass the FIRST function into the SECOND
+      ;; function -- remember, the second function passes `x` into its argument
+      ;; -- then every `y` in the first function is filled in with an `x` BEFORE
+      ;; the "derivative" of the first function is taken. So:
+      (is (= '(* 2 t)
+             (g/simplify
+              (((D f) 't)
+               (fn [f1 f2] (f2 f1)))))))
+
+    ;; maybe it's more extreme in this example:
+    (let [f-big (fn [x]
+                  (fn [cont]
+                    (cont
+                     (fn [y] (+ (* x y x) (sin x) (cos y)))
+                     (fn [g] (g x)))))]
+      (is (= '(+ (* 2 t x) (cos x))
+             (g/simplify
+              (((D f-big) 'x)
+               (fn [f1 _] (f1 't)))))
+          "Again, f1 alone looks like d(f1)/dx")
+
+      ;; But if you pass f1 into f2, the substitution happens before the
+      ;; derivative machinery comes into play. Strange!
+      (is (= '(+ (* 3 (expt x 2))
+                 (cos x)
+                 (* -1 (sin x)))
+             (g/simplify
+              (((D f-big) 'x)
+               (fn [f1 f2] (f2 f1)))))))
+
+    ;; Here's the same thing that gets the functions out with a pair before
+    ;; evaluation... this works more like what I'd expect.
+    (let [f-pair (fn [x]
+                   (fn [cont]
+                     (cont (fn [y] (+ (* x y x y x) (* y (sin x)) (cos y)))
+                           (fn [g] (g x)))))
+          [f1 f2] (((D f-pair) 'x) list)]
+      (is (= '(+ (* 3 (expt x 2) (expt y 2)) (* y (cos x)))
+             (g/simplify
+              (f1 'y)))
+          "Again, f1 alone looks like d(f1)/dx")
+
+      (is (= '(+ (* 3 (expt x 2)) (cos x))
+             (g/simplify
+              (f2 (fn [y] (+ (* y y y)
+                            (sin y))))))
+          "f2 alone acts as ((D g) x)")
+
+      ;; And if you pass f1 into f2 NOW, then you get the derivative again of
+      ;; the form from the first test, now with respect to the `y` in the
+      ;; argument of `f2`... this is what I would have expected from the
+      ;; first!
+      (is (= '(+ (* 6 (expt x 3)) (cos x))
+             (g/simplify (f2 f1))))))
+
 
   (testing "amazing bug three, from Alexey"
-    ;; This is an identical, but slightly more obfuscated, bug from dvl.
-    ;;
     ;; Here we have the same program as in amazing-bug-2.dvl, but using a
     ;; Church-encoded pair rather than a normal one. Should the answer be the
     ;; same?
@@ -957,8 +1024,8 @@
 
     (testing "f -> Series"
       (let [F (fn [k] (series/series
-                      (fn [t] (g/* k t))
-                      (fn [t] (g/* k k t))))]
+                       (fn [t] (g/* k t))
+                       (fn [t] (g/* k k t))))]
         (is (= '((* q z) (* (expt q 2) z) 0 0) (simp4 ((F 'q) 'z))))
         (is (= '(z (* 2 q z) 0 0) (simp4 (((D F) 'q) 'z)))))))
 
