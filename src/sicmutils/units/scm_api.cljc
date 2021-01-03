@@ -1,6 +1,7 @@
 (ns sicmutils.units.scm-api
   "Copying the original scmutils API here, so that we can evaluate it. Defer
   finding an idiomatic Clojure API. Consider not pushing this namespace at all."
+  (:refer-clojure :exclude [second])
   (:require [sicmutils.value :as v]
             [sicmutils.generic :as g]
             [sicmutils.env :as e]
