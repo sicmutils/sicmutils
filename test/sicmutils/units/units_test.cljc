@@ -17,8 +17,7 @@
 ;; we're doing.
 
 (defn ^:private symbolic= [x y]
-  (v/= (g/simplify x)
-       (g/simplify y)))
+  (v/zero? (g/simplify (g/- x y))))
 
 (deftest symbolic-unit-representation
   (testing "unit system must be reflexive if unit comparison can make sense"
