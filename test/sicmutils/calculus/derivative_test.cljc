@@ -1119,3 +1119,15 @@
         (is (ish? (/ -1 32) (((g/square D) nr-sqrt) 4)))
         (is (ish? (/ -1 108) (((g/square D) nr-sqrt) 9)))
         (is (ish? (/ -1 256) (((g/square D) nr-sqrt) 16)))))))
+
+(deftest more-confusion-examples
+  (testing "don't confuse perturbations, from dvl"
+    (letfn [(one [x]
+              ((D (fn [y] (+ x y))) 3))]
+      (is (= 0 ((D one) 7)))
+      (is (= 1 ((D (fn [x] (* x (one x)))) 7)))
+      (is (= 1 ((D (fn [x] (* x (one (* 2 x))))) 7)))
+      (is (= 60 ((D (fn [y]
+                      ((D (fn [x] (* x (* x y))))
+                       (* y 3))))
+                 5))))))
