@@ -1095,3 +1095,27 @@
              ) 'e)
            't)))
       "another test from deriv.scm"))
+
+(deftest newton-raphson-sqrt
+  (with-comparator (v/within 1e-8)
+    (letfn [(nr-sqrt [x]
+              (loop [y (- (+ x 1.0) x)]
+                (let [y' (- y (/ (- (g/square y) x)
+                                 (+ y y)))]
+                  (if (neg? (compare (g/abs (- y y')) 1e-8))
+                    y
+                    (recur y')))))]
+      (testing "sqrt works (switch to generative tests!)"
+        (is (ish? 2 (nr-sqrt 4)))
+        (is (ish? 3 (nr-sqrt 9)))
+        (is (ish? 4 (nr-sqrt 16))))
+
+      (testing "D(sqrt(x)) == 1 / {2 * sqrt(x)}"
+        (is (ish? (/ 1 4) ((D nr-sqrt) 4)))
+        (is (ish? (/ 1 6) ((D nr-sqrt) 9)))
+        (is (ish? (/ 1 8) ((D nr-sqrt) 16))))
+
+      (testing "D(D(sqrt(x))) == (-1 / {4 * sqrt(x)^3})"
+        (is (ish? (/ -1 32) (((g/square D) nr-sqrt) 4)))
+        (is (ish? (/ -1 108) (((g/square D) nr-sqrt) 9)))
+        (is (ish? (/ -1 256) (((g/square D) nr-sqrt) 16)))))))
