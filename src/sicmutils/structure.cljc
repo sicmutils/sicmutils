@@ -158,10 +158,7 @@
 
        IPrintWithWriter
        (-pr-writer [x writer _]
-                   (write-all writer
-                              "#object[sicmutils.structure.Structure \""
-                              (.toString x)
-                              "\"]"))
+                   (write-all writer (.toString x)))
 
        ICollection
        (-conj [_ item] (Structure. orientation (-conj v item)))
