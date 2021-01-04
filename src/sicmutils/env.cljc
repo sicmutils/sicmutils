@@ -340,7 +340,11 @@
   zero-like one-like identity-like
   numerical? freeze kind kind-predicate])
 
-;; Macros. These work with Potemkin's import, but not with the Clojure version.
+;; Macros. These work with Potemkin's import, but not with the Clojure
+;; version... which tells me that these are currently NOT going to work in
+;; Clojurescript mode, for self-hosted Clojurescript. Figure this out!
+;;
+;; TODO how do you import a macro in self-hosted cljs?
 #?(:clj
    (import-vars
     [sicmutils.calculus.coordinate let-coordinates using-coordinates]))

@@ -12,7 +12,8 @@
             (= '-> (first sicm-signature)))
      `(af/literal-function ~f '~sicm-signature)
      `(af/literal-function ~f ~sicm-signature)))
-  ([_ _ f domain range] `(af/literal-function ~f ~domain ~range)))
+  ([_ _ f domain range]
+   `(af/literal-function ~f ~domain ~range)))
 
 (defn with-literal-functions
   [_ _ & args]
@@ -31,7 +32,7 @@
     `(let [[~@c-systems :as c-systems#]
            (mapv m/with-coordinate-prototype
                  ~c-systems
-                 ~(mapv #(sicmutils.calculus.coordinate/quotify-coordinate-prototype identity %) prototypes))
+                 ~(mapv #(#'sicmutils.calculus.coordinate/quotify-coordinate-prototype identity %) prototypes))
            c-fns# (map coordinate-functions c-systems#)
            c-vfs# (map vf/coordinate-basis-vector-fields c-systems#)
            c-ffs# (map ff/coordinate-basis-oneform-fields c-systems#)
