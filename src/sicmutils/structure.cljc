@@ -240,6 +240,10 @@
                 (Structure. orientation (mapv #(apply % a b c d e f g h i j k l m n o p q r s t rest) v)))
        ]))
 
+#?(:clj
+   (defmethod print-method Structure [^Structure s ^java.io.Writer w]
+     (.write w (.toString s))))
+
 ;; ## Component Accessors
 
 (defn structure->vector
