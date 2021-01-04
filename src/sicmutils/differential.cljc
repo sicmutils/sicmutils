@@ -825,8 +825,8 @@
 
 (defunary g/abs
   (fn [x]
-    (let [f (primal-part x)
-          func (cond (< f 0) (lift-1 (fn [x] x) (fn [_] -1))
+    (let [f (finite-term x)
+          func (cond (< f 0) (lift-1 (fn [x] (g/negate x)) (fn [_] -1))
                      (> f 0) (lift-1 (fn [x] x) (fn [_] 1))
                      (= f 0) (u/illegal "Derivative of g/abs undefined at zero")
                      :else (u/illegal (str "error! derivative of g/abs at" x)))]
