@@ -1,12 +1,34 @@
+;;
+;; Copyright © 2020 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
+
 (ns sicmutils.env.sci.macros
-  (:require [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
-            [sicmutils.calculus.coordinate :as cc #?@(:cljs [:include-macros true])]
+  "This namespace contains reimplementations of various macros from sicmutils,
+  defined in the form required by SCI."
+  (:require [sicmutils.abstract.function :as af]
+            [sicmutils.calculus.coordinate :as cc]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.util :as u]))
 
 (defn literal-function
+  "Originally defined in `sicmutils.env`."
   ([_ _ f] `(af/literal-function ~f))
   ([_ _ f sicm-signature]
    (if (and (list? sicm-signature)
@@ -17,24 +39,14 @@
    `(af/literal-function ~f ~domain ~range)))
 
 (defn with-literal-functions
+  "Originally defined in `sicmutils.abstract.function`."
   [_ _ litfns & body]
-  `(let ~(vec (interleave
-               (map (fn [s]
-                      (if (symbol? s) s (first s)))
-                    litfns)
-               (map (fn [s]
-                      (cond (symbol? s)
-                            `(af/literal-function (quote ~s))
-                            (and (sequential? s)
-                                 (= (count s) 3))
-                            `(af/literal-function (quote ~(first s))
-                                                  ~(second s)
-                                                  ~(nth s 2))
-                            :else (u/illegal (str "unknown literal function type" s))))
-                    litfns)))
-     ~@body))
+  (let [pairs    (af/binding-pairs litfns)
+        bindings (into [] cat pairs)]
+    `(let ~bindings ~@body)))
 
 (defn let-coordinates
+  "Originally defined in `sicmutils.calculus.coordinate`."
   [_ _ bindings & body]
   (when-not (even? (count bindings))
     (u/illegal "let-coordinates requires an even number of bindings"))
@@ -47,7 +59,7 @@
     `(let [[~@c-systems :as c-systems#]
            (mapv m/with-coordinate-prototype
                  ~c-systems
-                 ~(mapv #(#'sicmutils.calculus.coordinate/quotify-coordinate-prototype identity %) prototypes))
+                 ~(mapv #(cc/quotify-coordinate-prototype identity %) prototypes))
            c-fns# (map cc/coordinate-functions c-systems#)
            c-vfs# (map vf/coordinate-basis-vector-fields c-systems#)
            c-ffs# (map ff/coordinate-basis-oneform-fields c-systems#)
@@ -57,17 +69,18 @@
        ~@body)))
 
 (defn using-coordinates
+  "Originally defined in `sicmutils.calculus.coordinate`."
   [env form coordinate-prototype coordinate-system & body]
   (apply let-coordinates
          env form
          [coordinate-prototype coordinate-system]
          body))
 
-(defn- macrofy [f]
+(defn- tag-as-macro [f]
   (with-meta f {:sci/macro true}))
 
 (def all
-  {'literal-function       (macrofy literal-function)
-   'with-literal-functions (macrofy with-literal-functions)
-   'let-coordinates        (macrofy let-coordinates)
-   'using-coordinates      (macrofy using-coordinates)})
+  {'literal-function       (tag-as-macro literal-function)
+   'with-literal-functions (tag-as-macro with-literal-functions)
+   'let-coordinates        (tag-as-macro let-coordinates)
+   'using-coordinates      (tag-as-macro using-coordinates)})

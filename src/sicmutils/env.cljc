@@ -48,6 +48,7 @@
             [sicmutils.numerical.quadrature]
             [sicmutils.mechanics.lagrange]
             [sicmutils.mechanics.hamilton]
+            [sicmutils.mechanics.rigid]
             [sicmutils.mechanics.rotation]
             [sicmutils.calculus.basis]
             [sicmutils.calculus.covariant]

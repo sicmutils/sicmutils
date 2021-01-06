@@ -34,9 +34,11 @@
                     #(m/point->coords coordinate-system %)))
             (s/structure->access-chains prototype))))
 
-(defn ^:private quotify-coordinate-prototype
+(defn quotify-coordinate-prototype
   "Scmutils wants to allow forms like this:
+
      (using-coordinates (up x y) R2-rect ...)
+
    Note that x, y are unquoted. This function converts such an unquoted for
    into a quoted one that could be evaluated to return an up-tuple of the symbols:
      (up 'x 'y)
@@ -66,9 +68,9 @@
   [bindings & body]
   (when-not (even? (count bindings))
     (u/illegal "let-coordinates requires an even number of bindings"))
-  (let [pairs (partition 2 bindings)
+  (let [pairs      (partition 2 bindings)
         prototypes (map first pairs)
-        c-systems (mapv second pairs)
+        c-systems  (mapv second pairs)
         coordinate-names (mapcat symbols-from-prototype prototypes)
         coordinate-vector-field-names (map vf/coordinate-name->vf-name coordinate-names)
         coordinate-form-field-names (map ff/coordinate-name->ff-name coordinate-names)]
