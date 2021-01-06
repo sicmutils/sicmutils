@@ -1,6 +1,7 @@
 (ns sicmutils.env.sci.macros
   (:require [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.coordinate :as cc #?@(:cljs [:include-macros true])]
+            [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.util :as u]))
@@ -16,8 +17,22 @@
    `(af/literal-function ~f ~domain ~range)))
 
 (defn with-literal-functions
-  [_ _ & args]
-  `(af/with-literal-functions ~@args))
+  [_ _ litfns & body]
+  `(let ~(vec (interleave
+               (map (fn [s]
+                      (if (symbol? s) s (first s)))
+                    litfns)
+               (map (fn [s]
+                      (cond (symbol? s)
+                            `(af/literal-function (quote ~s))
+                            (and (sequential? s)
+                                 (= (count s) 3))
+                            `(af/literal-function (quote ~(first s))
+                                                  ~(second s)
+                                                  ~(nth s 2))
+                            :else (u/illegal (str "unknown literal function type" s))))
+                    litfns)))
+     ~@body))
 
 (defn let-coordinates
   [_ _ bindings & body]
@@ -33,7 +48,7 @@
            (mapv m/with-coordinate-prototype
                  ~c-systems
                  ~(mapv #(#'sicmutils.calculus.coordinate/quotify-coordinate-prototype identity %) prototypes))
-           c-fns# (map coordinate-functions c-systems#)
+           c-fns# (map cc/coordinate-functions c-systems#)
            c-vfs# (map vf/coordinate-basis-vector-fields c-systems#)
            c-ffs# (map ff/coordinate-basis-oneform-fields c-systems#)
            ~(vec coordinate-names) (flatten c-fns#)
@@ -42,14 +57,17 @@
        ~@body)))
 
 (defn using-coordinates
-  [_ _ coordinate-prototype coordinate-system & body]
-  `(let-coordinates [~coordinate-prototype ~coordinate-system] ~@body))
+  [env form coordinate-prototype coordinate-system & body]
+  (apply let-coordinates
+         env form
+         [coordinate-prototype coordinate-system]
+         body))
 
-(defn macrofy [f]
+(defn- macrofy [f]
   (with-meta f {:sci/macro true}))
 
 (def all
-  {'literal-function (macrofy literal-function)
+  {'literal-function       (macrofy literal-function)
    'with-literal-functions (macrofy with-literal-functions)
-   'let-coordinates (macrofy let-coordinates)
-   'using-coordinates (macrofy using-coordinates)})
+   'let-coordinates        (macrofy let-coordinates)
+   'using-coordinates      (macrofy using-coordinates)})
