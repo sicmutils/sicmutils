@@ -44,11 +44,8 @@
             (cond
               ;; Inside SCI, macros are replaced by rewritten-as-functions
               ;; versions of themselves, with additional slots for `&form` and
-              ;; `&env`.
-              (macro? var)
-              (if-let [sci-macro (macros/all sym)]
-                [[sym sci-macro]]
-                [])
+              ;; `&env`. We exclude them here so they can be replaced later.
+              (macro? var) []
 
               ;; Keep dynamic variables as unresolved vars, so that they can
               ;; at least be inspected (at which point they'll reveal any
@@ -106,9 +103,10 @@ corresponding namespace."}
   context-opts
   (let [ns-map (into {}
                      (map (fn [[k v]] [k (sci-ns v)]))
-                     ns-map)]
+                     ns-map)
+        with-macros (merge-with merge ns-map macros/ns-bindings)]
     {:namespaces
-     (assoc ns-map 'user (ns-map 'sicmutils.env))}))
+     (assoc with-macros 'user (with-macros 'sicmutils.env))}))
 
 (def ^{:doc "sci context (currently only `:namespace` bindings) required to
   evaluate SICMUtils forms via SCI"}

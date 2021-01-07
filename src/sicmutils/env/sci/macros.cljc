@@ -84,3 +84,12 @@
    'with-literal-functions (tag-as-macro with-literal-functions)
    'let-coordinates        (tag-as-macro let-coordinates)
    'using-coordinates      (tag-as-macro using-coordinates)})
+
+(def ns-bindings
+  {'sicmutils.env all
+
+   'sicmutils.abstract.function
+   (select-keys all ['with-literal-functions])
+
+   'sicmutils.calculus.coordinate
+   (select-keys all ['let-coordinates 'using-coordinates])})
