@@ -79,7 +79,7 @@
              (eval
               '(do (defn L-central-polar [m U]
                      (fn [[_ [r] [rdot φdot]]]
-                       (- (* 1/2 m
+                       (- (* (/ 1 2) m
                              (+ (square rdot)
                                 (square (* r φdot))))
                           (U r))))

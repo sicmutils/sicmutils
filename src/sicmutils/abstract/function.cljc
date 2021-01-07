@@ -170,11 +170,11 @@
   (letfn [(extract-sym [entry]
             (if (symbol? entry) entry (first entry)))
           (entry->fn [entry]
-            (cond (symbol? entry) (literal-function entry)
+            (cond (symbol? entry) `(literal-function (quote ~entry))
 
                   (and (sequential? entry) (= (count entry) 3))
                   (let [[sym domain range] entry]
-                    (literal-function sym domain range))
+                    `(literal-function (quote ~sym) ~domain ~range))
 
                   :else (u/illegal (str "unknown literal function type" entry))))]
     (mapv (fn [entry]
