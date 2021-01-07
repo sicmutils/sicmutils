@@ -47,9 +47,10 @@
                 [])))]
     (into {} (mapcat process) sym->var)))
 
-(def ^{:doc "Set of all namespaces explicitly checked and whitelisted for SCI
-compilation and interesting enough in their own right to expose to a user by
-default."}
+(def ^{:doc "Map whose values are the symbols of of all namespaces explicitly
+checked and whitelisted for SCI compilation and interesting enough in their own
+right to expose to a user by default. Each value is the sym->var map for the
+corresponding namespace."}
   ns-map
   {'sicmutils.env                              (ns-publics 'sicmutils.env)
    'sicmutils.generic                          (ns-publics 'sicmutils.generic)
