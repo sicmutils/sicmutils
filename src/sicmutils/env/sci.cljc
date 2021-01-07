@@ -105,8 +105,7 @@ corresponding namespace."}
                      (map (fn [[k v]] [k (sci-ns v)]))
                      ns-map)
         with-macros (merge-with merge ns-map macros/ns-bindings)]
-    {:namespaces
-     (assoc with-macros 'user (with-macros 'sicmutils.env))}))
+    {:namespaces with-macros}))
 
 (def ^{:doc "sci context (currently only `:namespace` bindings) required to
   evaluate SICMUtils forms via SCI"}
