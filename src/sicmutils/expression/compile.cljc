@@ -463,7 +463,6 @@
   cache, see `compile-state-fn`."
   [f params initial-state]
   (let [sw             (us/stopwatch)
-        mode           *mode*
         generic-params (for [_ params] (gensym 'p))
         generic-state  (struct/mapr (fn [_] (gensym 'y)) initial-state)
         g              (apply f generic-params)
@@ -473,7 +472,7 @@
                          compile-state-native
                          compile-state-sci)
         compiled-fn    (compiler generic-params generic-state body)]
-    (log/info "compiled state function in" (us/repr sw))
+    (log/info "compiled state function in" (us/repr sw) "with mode" *mode*)
     compiled-fn))
 
 (defn compile-state-fn
@@ -543,14 +542,13 @@
   cache, see `compile-univariate-fn`."
   [f]
   (let [sw       (us/stopwatch)
-        mode     *mode*
         var      (gensym 'x)
         body     (cse-form
                   (g/simplify (f var)))
-        compiled (if (= mode :native)
+        compiled (if (native?)
                    (compile-native var body)
                    (compile-sci var body))]
-    (log/info "compiled univariate function in " (us/repr sw) " with mode " mode)
+    (log/info "compiled univariate function in" (us/repr sw) "with mode" *mode*)
     compiled))
 
 (defn compile-univariate-fn
