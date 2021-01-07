@@ -24,6 +24,7 @@
             [sicmutils.util :as u]))
 
 (def macro? (comp :macro meta))
+(def dynamic? (comp :dynamic meta))
 
 (defn ns-macros
   "Given a map of symbol => var, returns a sequence of the symbols associated with
@@ -40,11 +41,23 @@
   - all other values resolved"
   [sym->var]
   (letfn [(process [[sym var]]
-            (if-not (macro? var)
-              [[sym @var]]
+            (cond
+              ;; Inside SCI, macros are replaced by rewritten-as-functions
+              ;; versions of themselves, with additional slots for `&form` and
+              ;; `&env`.
+              (macro? var)
               (if-let [sci-macro (macros/all sym)]
                 [[sym sci-macro]]
-                [])))]
+                [])
+
+              ;; Keep dynamic variables as unresolved vars, so that they can
+              ;; at least be inspected (at which point they'll reveal any
+              ;; rebindings applied by the system)
+              (dynamic? var) [[sym var]]
+
+              ;; by default, the SCI environment holds values, not the vars
+              ;; that they were attached to in non-SCI land.
+              :else [[sym @var]]))]
     (into {} (mapcat process) sym->var)))
 
 (def ^{:doc "Map whose values are the symbols of of all namespaces explicitly
@@ -57,6 +70,7 @@ corresponding namespace."}
    'sicmutils.function                         (ns-publics 'sicmutils.function)
    'sicmutils.operator                         (ns-publics 'sicmutils.operator)
    'sicmutils.series                           (ns-publics 'sicmutils.series)
+   'sicmutils.simplify                         (ns-publics 'sicmutils.simplify)
    'sicmutils.structure                        (ns-publics 'sicmutils.structure)
    'sicmutils.matrix                           (ns-publics 'sicmutils.matrix)
    'sicmutils.abstract.function                (ns-publics 'sicmutils.abstract.function)
@@ -68,6 +82,8 @@ corresponding namespace."}
    'sicmutils.calculus.manifold                (ns-publics 'sicmutils.calculus.manifold)
    'sicmutils.calculus.map                     (ns-publics 'sicmutils.calculus.map)
    'sicmutils.calculus.vector-field            (ns-publics 'sicmutils.calculus.vector-field)
+   'sicmutils.expression.compile               (ns-publics 'sicmutils.expression.compile)
+   'sicmutils.expression.render                (ns-publics 'sicmutils.expression.render)
    'sicmutils.mechanics.lagrange               (ns-publics 'sicmutils.mechanics.lagrange)
    'sicmutils.mechanics.hamilton               (ns-publics 'sicmutils.mechanics.hamilton)
    'sicmutils.mechanics.rigid                  (ns-publics 'sicmutils.mechanics.rigid)
