@@ -158,10 +158,7 @@
 
        IPrintWithWriter
        (-pr-writer [x writer _]
-                   (write-all writer
-                              "#object[sicmutils.structure.Structure \""
-                              (.toString x)
-                              "\"]"))
+                   (write-all writer (.toString x)))
 
        ICollection
        (-conj [_ item] (Structure. orientation (-conj v item)))
@@ -239,6 +236,10 @@
        (-invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
                 (Structure. orientation (mapv #(apply % a b c d e f g h i j k l m n o p q r s t rest) v)))
        ]))
+
+#?(:clj
+   (defmethod print-method Structure [^Structure s ^java.io.Writer w]
+     (.write w (.toString s))))
 
 ;; ## Component Accessors
 
