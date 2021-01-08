@@ -45,8 +45,10 @@
             (let [x   (inc' (apply max (or (seq v) [0])))
                   v+x (vs/conj v x)
                   v'  (vs/disj v+x x)]
-              (is (not (vs/contains? v+x))
+              (is (not (vs/contains? v x))
                   "check that the element greater than the max isn't present")
+
+              (is (vs/contains? v+x x))
 
               (is (= v+x (sort v+x))
                   "conj maintains sort")

@@ -18,6 +18,7 @@
 ;;
 
 (ns sicmutils.differential
+  "This namespace contains an implementation of a "
   (:refer-clojure :rename {compare core-compare}
                   #?@(:cljs [:exclude [compare]]))
   (:require [clojure.string :refer [join]]
@@ -29,6 +30,10 @@
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang AFn IFn))))
+
+;; ## Dual Numbers, Forward-Mode Automatic Differentiation
+;;
+;;
 
 ;; ## Calculus of Infinitesimals
 ;;
@@ -46,21 +51,24 @@
 ;;
 ;; Thus, we can find the derivative of a composition by this process. We need
 ;; only define how each of the primitives act on these "differentials" and then
-;; we can use ordinary Scheme compositions of these to do the job. See the
-;; procedure diff:derivative near the bottom to understand how derivatives are
-;; computed given this differential algebra. This idea was discovered by Dan
+;; we can use ordinary Clojure function compositions of these to do the job. See
+;; the [[sicmutils.calculus.derivative]] namespace to understand how derivatives
+;; are computed given this differential algebra. This idea was discovered by Dan
 ;; Zuras and Gerald Jay Sussman in 1992. DZ and GJS made the first version of
 ;; this code during an all nighter in 1992.
 ;;
 ;; To expand this idea to work for multiple derivatives of functions of several
 ;; variables we define an algebra in "infinitesimal space". The objects are
-;; multivariate power series in which no incremental has exponent greater than
-;; 1. This was worked out in detail by Hal Abelson around 1994, and painfully
-;; redone in 1997 by Sussman with the help of Hardy Mayer and Jack Wisdom.
+;; truncated multivariate power series in which no incremental has exponent
+;; greater than 1. This was worked out in detail by Hal Abelson around 1994, and
+;; painfully redone in 1997 by Sussman with the help of Hardy Mayer and Jack
+;; Wisdom.
 ;;
 ;; A rare and surprising bug was discovered by Alexey Radul in 2011. This was
 ;; fixed by remapping the infinitesimals for derivatives of functions that
 ;; returned functions. This was done kludgerously, but it works.
+;;
+;; NOTE there is a lot of history here to cover!
 ;;
 ;; ### Data Structures
 ;;
