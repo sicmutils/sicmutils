@@ -318,7 +318,19 @@
     (is (= (s/up 4 5 6)
            (-> (s/up 1 2 3)
                (s/opposite [3 2 1])
-               (s/opposite [4 5 6])))))
+               (s/opposite [4 5 6]))))
+
+    (checking "(opposite (opposite x)) == x" 100
+              [s (sg/structure sg/real)]
+              (is (= s (s/opposite (s/opposite s)))))
+
+    (checking "(s/opposite v) == (down* v)" 100
+              [v (gen/vector sg/real)]
+              (is (= (s/down* v) (s/opposite v))))
+
+    (checking "s/opposite acts as id for non-structures" 100
+              [n sg/real]
+              (is (= n (s/opposite n)))))
 
   (testing "generate"
     (is (thrown? #?(:clj AssertionError :cljs js/Error)
