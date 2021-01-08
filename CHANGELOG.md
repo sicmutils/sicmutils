@@ -2,6 +2,35 @@
 
 ## [Unreleased]
 
+- `D` (or `sicmutils.generic/partial-derivative`) applied to a matrix of
+  functions now takes the elementwise partials of every function in the matrix.
+  (#218)
+
+- `sicmutils.function/arity` is now a protocol method, under the
+  `sicmutils.function/IArity` protocol (#218). In addition to functions, `arity`
+  now correctly responds to:
+
+    - `sicmutils.matrix/Matrix`: calling `arity` on a matrix assumes that the
+      matrix has function elements; the returned arity is the most general arity
+      that all functions will respond to.
+    - `sicmutils.operator/Operator`: returns the arity of the operator's wrapped
+      function.
+    - `sicmutils.series/Series`: `arity` on a `Series` assumes that the series
+      contains functions as entries, and returns, conservatively, the arity of
+      the first element of the series.
+   - `sicmutils.series/PowerSeries`: `arity` returns `[:exactly 1]`, since
+     `PowerSeries` are currently single variable.
+   - vectors, and `sicmutils.structure/Structure`: `arity` on these collections
+     assumes that the collection contains functions as entries, and returns the
+     most general arity that is compatible with all of the function elements.
+
+- New functions `sicmutils.function/{get,get-in}` added that act like the
+  `clojure.core` versions; but given a function `f`, they compose `#(get % k)`,
+  or similar with `f`. This deferred action matches the effect of all sicmutils
+  generics on functions. (#218)
+
+- `sicmutils.function/I` aliases `clojure.core/identity` (#218).
+
 - `up` and `down` tuples from `sicmutils.structure` gain a proper `print-method`
   implementation (#229); these now render as `(up 1 2 3)` and `(down 1 2 3)`,
   instead of the former more verbose representation (when using `pr`.)

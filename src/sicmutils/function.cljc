@@ -66,16 +66,17 @@
 (defn with-arity
   "Appends the supplied `arity` to the metadata of `f`, knocking out any
   pre-existing arity notation.
-  Also takes an optional metadata map to assoc in too.
 
-  TODO use `::arity` instead of `:arity`."
+  Optionally accepts a third parameter `m` of metadata to attach to the return
+  function, in addition to the new `:arity` key."
   ([f arity]
    (with-arity f arity {}))
   ([f arity m]
    (let [new-meta (-> (meta f)
                       (merge m)
                       (assoc :arity arity))]
-     (with-meta f new-meta))))
+     (if new-meta
+       (with-meta f new-meta)))))
 
 (defn compose
   "Compose is like Clojure's standard comp, but for this system we
@@ -88,9 +89,13 @@
     (with-meta (apply comp fns) {:arity a})))
 
 (defn get
-  "Returns the value mapped to key, not-found or nil if key not present.
+  "For non-functions, acts like [[clojure.core/get]]. For function
+  arguments (anything that responds true to [[function?]]), returns
 
-  TODO note special-cased for fns."
+  (comp #(clojure.core/get % k) f)
+
+  If `not-found` is supplied it's passed through to the
+  composed [[clojure.core/get]]."
   ([f k]
    (if (function? f)
      (compose #(get % k) f)
@@ -101,11 +106,13 @@
      (core-get f k not-found))))
 
 (defn get-in
-  "Returns the value in a nested associative structure, where ks is a sequence of
-  keys. Returns nil if the key is not present, or the not-found value if
-  supplied.
+  "For non-functions, acts like [[clojure.core/get-in]]. For function
+  arguments (anything that responds true to [[function?]]), returns
 
-  TODO note special-cased for fns."
+  (comp #(clojure.core/get-in % ks) f)
+
+  If `not-found` is supplied it's passed through to the
+  composed [[clojure.core/get-in]]."
   ([f ks]
    (if (function? f)
      (compose #(get-in % ks) f)
