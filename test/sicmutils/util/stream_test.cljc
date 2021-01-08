@@ -46,12 +46,22 @@
     (is (ish? (g/expt 2 10)
               (nth (us/powers 2) 10)))))
 
-(deftest generate-tests
-  (checking "vector:generate" 100
-            [v (gen/vector sg/real)]
+(deftest vector-tests
+  (checking "vector:generate" 100 [v (gen/vector sg/real)]
             (is (= v (us/vector:generate
                       (count v) (partial get v)))
-                "use generate to rebuild.")))
+                "use generate to rebuild."))
+
+  (checking "separatev" 100 [v (gen/vector gen/nat)]
+            (let[[evens odds] (us/separatev even? v)]
+              (is (= [(filterv even? v)
+                      (filterv odd? v)]
+                     [evens odds])
+                  "separatev runs a filterv and filterv on a predicate's
+                  complement in parallel.")
+
+              (is (and (vector? evens) (vector? odds))
+                  "both returned elements are vectors."))))
 
 (deftest scan-tests
   (testing "intermediate + aggregations, all negated by `present`."

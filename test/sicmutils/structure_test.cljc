@@ -26,6 +26,7 @@
             [same :refer [ish?]]
             [sicmutils.abstract.number]
             [sicmutils.complex :as c]
+            [sicmutils.function :as f]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g :refer [+ - * / cube expt negate square]]
             [sicmutils.structure :as s]
@@ -80,6 +81,33 @@
     (is (= ::s/down (v/kind (s/down (s/up 1 2)
                                     (s/up 2 3))))
         "Kind only depends on the outer wrapper, not on the contents.")))
+
+(defn arity-check
+  "Takes a constructor function `build` and a `descriptor` string, and executes a
+  suite of arity checks for collections."
+  [build descriptor]
+  (testing descriptor
+    (testing "f/arity"
+      (is (= [:exactly 2] (f/arity (build [g/add g/sub])))
+          "arity matches the arity of each element, if they all have the same
+        arity.")
+
+      (testing "f/arity narrows arity to the widest-compatible arity with each element."
+        (is (= [:exactly 1] (f/arity (build [g/sin]))))
+        (is (= [:at-least 0] (f/arity (build [g/+]))))
+        (is (= [:exactly 1] (f/arity (build [g/+ g/sin])))))
+
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (f/arity
+                    (build [g/add g/sin])))
+          "If the matrix contains functions whose arities are totally
+        incompatible, then `f/arity` will throw. `g/add` has arity [:exactly 2],
+        `g/sin` has arity [:exactly 1]."))))
+
+(deftest arity-tests
+  (arity-check identity "vector")
+  (arity-check s/up* "s/up")
+  (arity-check s/down* "s/down"))
 
 (deftest structure-interfaces
   (testing "count"
@@ -167,8 +195,7 @@
 
   (testing "print representation"
     (let [s (pr-str (s/up 1 2 3))]
-      (is #?(:clj (clojure.string/includes? s "\"(up 1 2 3)\"")
-             :cljs (= s "#object[sicmutils.structure.Structure \"(up 1 2 3)\"]"))))
+      (is (= "(up 1 2 3)" s)))
     (is (= "(up 1 2 3)" (str (s/up 1 2 3)))))
 
   (testing "equality"
@@ -291,7 +318,19 @@
     (is (= (s/up 4 5 6)
            (-> (s/up 1 2 3)
                (s/opposite [3 2 1])
-               (s/opposite [4 5 6])))))
+               (s/opposite [4 5 6]))))
+
+    (checking "(opposite (opposite x)) == x" 100
+              [s (sg/structure sg/real)]
+              (is (= s (s/opposite (s/opposite s)))))
+
+    (checking "(s/opposite v) == (down* v)" 100
+              [v (gen/vector sg/real)]
+              (is (= (s/down* v) (s/opposite v))))
+
+    (checking "s/opposite acts as id for non-structures" 100
+              [n sg/real]
+              (is (= n (s/opposite n)))))
 
   (testing "generate"
     (is (thrown? #?(:clj AssertionError :cljs js/Error)
