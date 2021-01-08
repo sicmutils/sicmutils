@@ -418,10 +418,17 @@
   (make (orientation s) xs))
 
 (defn opposite
-  "Returns a structure containing `xs` with the orientation opposite to `s`.
+  "For a non-[[Structure]] `s`, the single-arity case acts as [[identity]]. For
+  a [[Structure]], returns an identical structure with its orientation
+  reversed (up becomes down, down becomes up).
 
-   TODO note, test the new arity. also opposite a non-structured thing is fine,
-   acts as id."
+  NOTE that a vector is interpreted as an `up` structure, so:
+
+  (opposite [1 2 3])
+  ;;=> (down 1 2 3)
+
+  The two-arity case returns a new [[Structure]] of opposite orientation to `s`
+  with the contents of the sequence `xs`."
   ([s]
    (if (structure? s)
      (opposite s (structure->vector s))
