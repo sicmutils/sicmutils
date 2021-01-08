@@ -18,6 +18,7 @@
 ;;
 
 (ns sicmutils.env.sci
+  (:refer-clojure :exclude [ns-map])
   (:require [sci.core :as sci]
             [sicmutils.env]
             [sicmutils.env.sci.macros :as macros]
