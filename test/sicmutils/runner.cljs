@@ -74,6 +74,7 @@
 
             sicmutils.util.aggregate-test
             sicmutils.util.stream-test
+            sicmutils.util.vector-set-test
 
             sicmutils.complex-test
             sicmutils.differential-test
@@ -151,6 +152,7 @@
 
            'sicmutils.util.aggregate-test
            'sicmutils.util.stream-test
+           'sicmutils.util.vector-set-test
 
            'sicmutils.mechanics.hamilton-test
            'sicmutils.mechanics.lagrange-test
