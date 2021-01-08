@@ -29,7 +29,8 @@
                                          ->infix
                                          cross-product
                                          cot csc sec]
-             #?@(:cljs [:include-macros true])]))
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.operator :as o]))
 
 (deftest partial-shim
   (testing "partial also works the way Clojure defines it"
@@ -41,6 +42,17 @@
   (testing "works for structures"
     (is (= 2 (ref (up 1 2 3) 1)))
     (is (= 3 (ref (down (up 1 2) (up 3 4)) 1 0))))
+
+  (testing "works for functions"
+    (let [f (fn [x] [[(dec x)] [x] [(inc x)]])]
+      (is (= 2 ((ref f 2 0) 1)))
+      (is (= 2 (((e/component 2 0) f) 1)))))
+
+  (testing "works for operators"
+    (let [op (-> (fn [x] [[(dec x)] [x] [(inc x)]])
+                 (o/make-operator 'f))]
+      (is (= 2 ((ref op 2 0) 1)))
+      (is (= 2 (((e/component 2 0) op) 1)))))
 
   #?(:cljs
      (testing "ref acts as id in cljs"
