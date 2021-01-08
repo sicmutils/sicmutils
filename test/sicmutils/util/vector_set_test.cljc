@@ -42,7 +42,7 @@
 
   (checking "disj, conj maintain sort" 100
             [v (sg/vector-set gen/nat)]
-            (let [x   (inc' (apply max (or (seq v) [0])))
+            (let [x   (inc (apply max (or (seq v) [0])))
                   v+x (vs/conj v x)
                   v'  (vs/disj v+x x)]
               (is (not (vs/contains? v x))
