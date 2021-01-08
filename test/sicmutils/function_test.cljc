@@ -169,6 +169,59 @@
   (is (illegal? #(f/joint-arity [[:between 2 3] [:exactly 1]])))
   (is (illegal? #(f/joint-arity [[:exactly 1] [:between 2 3]]))))
 
+(deftest custom-getter-tests
+  (checking "I == identity" 100 [x gen/any-equatable]
+            (is (= x (f/I x)))
+            (is (= (f/I x) (identity x))))
+
+  (checking "f/get" 100 [m (gen/map gen/keyword gen/any-equatable)
+                         k  gen/keyword
+                         v  gen/any-equatable
+                         not-found gen/any-equatable]
+            (is (= (get m k) (f/get m k))
+                "f/get matches core/get")
+
+            (is (= (get m k not-found) (f/get m k not-found))
+                "f/get matches core/get with not-found value")
+
+            (is (= (get m k) ((f/get identity k) m))
+                "f/get works on functions")
+
+            (is (= not-found
+                   ((f/get identity k not-found)
+                    (dissoc m k)))
+                "always return not-found if the key is explicitly missing.")
+
+            (is (= v ((f/get identity k) (assoc m k v)))
+                "always return v if it's present"))
+
+  (let [inner-gen (gen/map gen/keyword gen/any-equatable
+                           {:max-elements 10})]
+    (checking "f/get-in with 2-deep maps" 100
+              [m (gen/map gen/keyword inner-gen
+                          {:max-elements 4})
+               k1  gen/keyword
+               k2  gen/keyword
+               v   gen/any-equatable
+               not-found gen/any-equatable]
+              (is (= (get-in m [k1 k2]) (f/get-in m [k1 k2]))
+                  "f/get-in matches core/get-in")
+
+              (is (= (get-in m [k1 k2] not-found) (f/get m [k1 k2] not-found))
+                  "f/get-in matches core/get with not-found value")
+
+              (is (= (get-in m [k1 k2]) ((f/get identity [k1 k2]) m))
+                  "f/get-in works on functions")
+
+              (is (= not-found
+                     ((f/get-in identity [k1 k2] not-found)
+                      (update m k1 dissoc k2)))
+                  "always return not-found if the key is explicitly missing from
+                the inner map.")
+
+              (is (= v ((f/get-in identity [k1 k2]) (assoc-in m [k1 k2] v)))
+                  "always return v if it's present"))))
+
 (deftest trig-tests
   (with-comparator (v/within 1e-8)
     (checking "tan, sin, cos" 100

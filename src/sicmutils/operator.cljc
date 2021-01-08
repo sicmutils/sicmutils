@@ -113,7 +113,7 @@
 (defn make-operator
   [o name & {:as context}]
   (->Operator o
-              (or (:arity context) [:exactly 1])
+              (:arity context (f/arity o))
               name
               (into {:subtype ::operator} context)))
 

@@ -83,7 +83,8 @@
             v (/ (- w b) M)]
         (- (* w v) (F v))))))
 
-(def Legendre-transform (make-operator Legendre-transform-fn "Legendre-transform"))
+(def Legendre-transform
+  (make-operator Legendre-transform-fn 'Legendre-transform))
 
 (defn ^:private Lagrangian->Hamiltonian-fn
   [Lagrangian]
@@ -91,7 +92,8 @@
     (let [L #(Lagrangian (up t q %))]
       ((Legendre-transform L) p))))
 
-(def Lagrangian->Hamiltonian (make-operator Lagrangian->Hamiltonian-fn 'Lagrangian->Hamiltonian))
+(def Lagrangian->Hamiltonian
+  (make-operator Lagrangian->Hamiltonian-fn 'Lagrangian->Hamiltonian))
 
 (defn Poisson-bracket
   [f g]
