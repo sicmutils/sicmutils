@@ -19,11 +19,13 @@
 
 (ns sicmutils.expression.compile
   "This namespace compiles generic functions down into fast, native functions."
+  (:refer-clojure :exclude [gensym])
   (:require #?(:cljs [goog.string :refer [format]])
             [clojure.set :as set]
             [clojure.walk :as w]
             [sci.core :as sci]
             [sicmutils.expression :as x]
+            [sicmutils.expression.analyze :as a]
             [sicmutils.generic :as g]
             [sicmutils.structure :as struct]
             [sicmutils.util :as u]
@@ -243,6 +245,9 @@
 ;;   out, since they never appear in this form (since they contain smaller
 ;;   subexpressions).
 
+(def gensym
+  (a/monotonic-symbol-generator "G"))
+
 (defn extract-common-subexpressions
   "Considers an S-expression from the point of view of optimizing its evaluation
   by isolating common subexpressions into auxiliary variables.
@@ -322,7 +327,7 @@
    (letfn [(callback [new-expression bindings]
              (let [n-bindings (count bindings)]
                (if (pos? n-bindings)
-                 (let [binding-vec (into [] (mapcat identity) bindings)]
+                 (let [binding-vec (into [] cat bindings)]
                    (log/info
                     (format "common subexpression elimination: %d expressions" n-bindings))
                    `(let ~binding-vec
