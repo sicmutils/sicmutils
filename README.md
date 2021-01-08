@@ -389,7 +389,6 @@ GPL v3.
 [SICM]: http://mitpress.mit.edu/books/structure-and-interpretation-classical-mechanics
 [FDG]: http://mitpress.mit.edu/books/functional-differential-geometry
 [SICP]: http://mitpress.mit.edu/sicp/
-[OM]: http://oleksandrmanzyuk.files.wordpress.com/2012/04/paper.pdf
 [GSCM]: http://www.cs.rochester.edu/~gildea/guile-scmutils/
 [ACM]: https://commons.apache.org/proper/commons-math/
 [LEIN]: http://leiningen.org

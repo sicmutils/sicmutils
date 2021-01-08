@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `sicmutils.generic/partial-derivative` gains a `Keyword` extension, so it can
+  respond properly to `:name` and `:arity` calls (#221).
+
 - New single-arity case for `sicmutils.structure/opposite` returns an identical
   structure with flipped orientation (#220). acts as `identity` for
   non-structures.
