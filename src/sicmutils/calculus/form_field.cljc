@@ -33,12 +33,16 @@
 (defn form-field?
   [f]
   (and (o/operator? f)
-       (-> f :context :subtype (= ::form-field))))
+       (-> (o/context f)
+           (:subtype)
+           (= ::form-field))))
 
 (defn oneform-field?
   [f]
   (and (form-field? f)
-       (-> f :context :rank (= 1))))
+       (-> (o/context f)
+           (:rank)
+           (= 1))))
 
 (defn procedure->oneform-field
   [fp name]
@@ -128,7 +132,7 @@
 
 (defn get-rank
   [f]
-  (cond (o/operator? f) (or (:rank (:context f))
+  (cond (o/operator? f) (or (:rank (o/context f))
                             (u/illegal (str "operator, but not a differential form: " f)))
         (fn? f) 0
         :else (u/illegal "not a differential form")))

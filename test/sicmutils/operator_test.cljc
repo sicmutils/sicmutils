@@ -20,6 +20,7 @@
 (ns sicmutils.operator-test
   (:refer-clojure :exclude [+ - * /  partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
             [same :refer [ish?]]
@@ -76,6 +77,67 @@
              (arity (o/make-operator g/mul 'mul)))
           "Operator arity reflects the arity of the wrapped function"))))
 
+(deftest custom-getter-tests
+  (checking "I == identity" 100 [x gen/any-equatable]
+            (is (= x (o/identity x)))
+            (is (= (I x) (o/identity x))))
+
+  (testing "get, get-in return operators"
+    (is (o/operator? (get o/identity 'x)))
+    (is (o/operator? (get-in o/identity ['x 'y]))))
+
+  (testing "get names"
+    (is (= '(compose (fn [x] (get x x)) identity)
+           (v/freeze (get o/identity 'x)))
+        "The name of the operator returned by `get` reflects the (sort of
+        awkward) composition that `get` induces."))
+
+  (testing "not-found arity of get throws"
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                 (get o/identity :k 0))
+        "Because Operator implements the ILookup protocol it can't support the
+        not-found arity; internally, `get-in` relies on eager results to check
+        if it should return the not-found value, and that's not possible with
+        this functional implementation."))
+
+  (checking "get for operators" 100
+            [m (gen/map gen/keyword gen/any-equatable)
+             k  gen/keyword
+             v  gen/any-equatable]
+            (is (= (get m k)
+                   ((get o/identity k) m))
+                "get works on operators")
+
+            (let [op (o/make-operator #(dissoc % k) 'dissoc)]
+              (is (nil? ((get op k) m))
+                  "always return nil if the key is explicitly missing."))
+
+            (let [op (o/make-operator #(assoc % k v) 'assoc)]
+              (is (= v ((get op k) m))
+                  "always return v if it's present")))
+
+  (let [inner-gen (gen/map gen/keyword gen/any-equatable
+                           {:max-elements 10})]
+    (checking "get-in with 2-deep maps" 100
+              [m (gen/map gen/keyword inner-gen
+                          {:max-elements 4})
+               k1  gen/keyword
+               k2  gen/keyword
+               v   gen/any-equatable]
+              (is (= (get-in m [k1 k2])
+                     ((get-in o/identity [k1 k2])
+                      m))
+                  "get-in works on operators")
+
+              (let [op (o/make-operator #(update % k1 dissoc k2) 'dissoc)]
+                (is (nil? ((get-in op [k1 k2]) m))
+                    "always return nil if the key is explicitly missing from the
+                inner map."))
+
+              (let [op (o/make-operator #(assoc-in % [k1 k2] v) 'assoc)]
+                (is (= v ((get-in op [k1 k2]) m))
+                    "always return v if it's present")))))
+
 (deftest operators-from-fn-tests
   (let [f (fn [x] (+ x 5))
         double (fn [f] (fn [x] (* 2 (f x))))
@@ -119,7 +181,8 @@
 
   (testing "that their arithmetic operations compose correctly, as per SICM -  'Our Notation'"
     (is (= '(+ (((expt D 2) f) x) (* -1 (f x)))
-           (g/simplify (((* (+ D I) (- D I)) f) 'x)))))
+           (g/simplify
+            (((* (+ D I) (- D I)) f) 'x)))))
 
   (testing "that Operators compose correctly with functions"
     (is (= '(+ (* -1 (((expt D 2) f) x) ((D g) (+ ((D f) x) (f x))))
@@ -221,14 +284,14 @@
           r (o/make-operator identity 'r :subtype ::x :color :green)]
       (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
                    ((+ o p) inc)))
-      (is (= {:subtype ::y} (:context (* o p))))
+      (is (= {:subtype ::y} (o/context (* o p))))
       (is (= 2 (((+ o o) inc) 0)))
       (is (= 1 (((* o o) inc) 0)))
-      (is (= {:subtype ::x} (:context (+ o o))))
-      (is (= {:subtype ::y} (:context (* p p))))
+      (is (= {:subtype ::x} (o/context (+ o o))))
+      (is (= {:subtype ::y} (o/context (* p p))))
       (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
                    ((+ q r) inc)))
-      (is (= {:subtype ::x :color :blue} (:context (+ q o))))
+      (is (= {:subtype ::x :color :blue} (o/context (+ q o))))
       (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
                    (+ q p))))))
 

@@ -102,9 +102,9 @@
   ([a & ks]
    (cond (f/function? a) (f/compose #(apply ref % ks) a)
          (o/operator? a) (o/make-operator
-                          (f/compose #(apply ref % ks) (:o a))
+                          (f/compose #(apply ref % ks) (o/procedure a))
                           `(~'compose (~'component ~@ks)
-                            ~(:name a)))
+                            ~(o/name a)))
          :else (if (and (associative? a)
                         (every? v/integral? ks))
                  (if (matrix/matrix? a)
@@ -114,7 +114,11 @@
                     :cljs (get-in a ks))))))
 
 (defn component
-  "TODO document."
+  "Given a sequence of `selectors`, return a function that accepts some object `x`
+  and returns:
+
+  (apply ref x selectors)
+  "
   [& selectors]
   (fn [x] (apply ref x selectors)))
 

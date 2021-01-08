@@ -43,10 +43,11 @@
                      :subtype ::vector-field
                      :arguments [::v/function])))
 
-(defn vector-field?
-  [vf]
+(defn vector-field? [vf]
   (and (o/operator? vf)
-       (-> vf :context :subtype (= ::vector-field))))
+       (-> (o/context vf)
+           (:subtype)
+           (= ::vector-field))))
 
 (defn vector-field-procedure
   [components coordinate-system]

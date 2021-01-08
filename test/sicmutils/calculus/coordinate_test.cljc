@@ -27,6 +27,7 @@
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.operator :as o]
             [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :refer [up down]]))
 
@@ -58,8 +59,8 @@
   (testing "with-coordinate-prototype"
     (let [A R2-rect
           B (m/with-coordinate-prototype R2-rect '[X Y])]
-      (is (= '[d:dx0 d:dx1] (map :name (c/coordinate-system->vector-basis A))))
-      (is (= '[d:dX d:dY] (map :name (c/coordinate-system->vector-basis B))))))
+      (is (= '[d:dx0 d:dx1] (map o/name (c/coordinate-system->vector-basis A))))
+      (is (= '[d:dX d:dY] (map o/name (c/coordinate-system->vector-basis B))))))
 
   (testing "let-coordinates"
     (let-coordinates [(up x y) R2-rect
