@@ -178,21 +178,27 @@
                          k  gen/keyword
                          v  gen/any-equatable
                          not-found gen/any-equatable]
-            (is (= (get m k) (f/get m k))
+            (is (= (get m k)
+                   (f/get m k))
                 "f/get matches core/get")
 
-            (is (= (get m k not-found) (f/get m k not-found))
+            (is (= (get m k not-found)
+                   (f/get m k not-found))
                 "f/get matches core/get with not-found value")
 
-            (is (= (get m k) ((f/get identity k) m))
+            (is (= (get m k)
+                   ((f/get identity k)
+                    m))
                 "f/get works on functions")
 
             (is (= not-found
-                   ((f/get identity k not-found)
-                    (dissoc m k)))
+                   ((f/get #(dissoc % k) k not-found)
+                    m))
                 "always return not-found if the key is explicitly missing.")
 
-            (is (= v ((f/get identity k) (assoc m k v)))
+            (is (= v
+                   ((f/get #(assoc % k v) k)
+                    m))
                 "always return v if it's present"))
 
   (let [inner-gen (gen/map gen/keyword gen/any-equatable
@@ -204,22 +210,29 @@
                k2  gen/keyword
                v   gen/any-equatable
                not-found gen/any-equatable]
-              (is (= (get-in m [k1 k2]) (f/get-in m [k1 k2]))
+              (is (= (get-in m [k1 k2])
+                     (f/get-in m [k1 k2]))
                   "f/get-in matches core/get-in")
 
-              (is (= (get-in m [k1 k2] not-found) (f/get m [k1 k2] not-found))
+              (is (= (get-in m [k1 k2] not-found)
+                     (f/get-in m [k1 k2] not-found))
                   "f/get-in matches core/get with not-found value")
 
-              (is (= (get-in m [k1 k2]) ((f/get identity [k1 k2]) m))
+              (is (= (get-in m [k1 k2])
+                     ((f/get-in identity [k1 k2])
+                      m))
                   "f/get-in works on functions")
 
               (is (= not-found
-                     ((f/get-in identity [k1 k2] not-found)
-                      (update m k1 dissoc k2)))
+                     ((f/get-in #(update % k1 dissoc k2)
+                                [k1 k2] not-found)
+                      m))
                   "always return not-found if the key is explicitly missing from
                 the inner map.")
 
-              (is (= v ((f/get-in identity [k1 k2]) (assoc-in m [k1 k2] v)))
+              (is (= v
+                     ((f/get-in #(assoc-in % [k1 k2] v) [k1 k2])
+                      m))
                   "always return v if it's present"))))
 
 (deftest trig-tests
