@@ -66,7 +66,8 @@
       :cljs
       [ILookup
        (-lookup [this k] (op:get this k))
-       (-lookup [this k not-found] (op:get this k not-found))
+       (-lookup [this k not-found]
+                (u/illegal "Operators don't support the not-found arity of get!"))
 
        IFn
        (-invoke [_ a] (o a))
@@ -149,11 +150,18 @@
     (u/illegal (str "non-operator supplied: " op))))
 
 (defn make-operator
-  [o name & {:as context}]
-  (->Operator o
-              (:arity context (f/arity o))
-              name
-              (into {:subtype ::operator} context)))
+  "Returns an [[Operator]] wrapping the supplied procedure `f` with the name
+  `name`.
+
+  Optionally accepts a `context` map that will be stored inside the
+  returned [[Operator]]."
+  ([f name]
+   (make-operator f name {}))
+  ([f name context]
+   (->Operator f
+               (:arity context (f/arity f))
+               name
+               (into {:subtype ::operator} context))))
 
 (defn- op:get
   "Returns an [[Operator]] that composes a lookup of the form `#(get % k)` with

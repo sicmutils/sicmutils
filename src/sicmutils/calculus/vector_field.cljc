@@ -40,10 +40,11 @@
   [vfp & name]
   (let [name (if name (first name) 'unnamed-vector-field)]
     (o/make-operator vfp name
-                     :subtype ::vector-field
-                     :arguments [::v/function])))
+                     {:subtype ::vector-field
+                      :arguments [::v/function]})))
 
-(defn vector-field? [vf]
+(defn vector-field?
+  [vf]
   (and (o/operator? vf)
        (-> (o/context vf)
            (:subtype)

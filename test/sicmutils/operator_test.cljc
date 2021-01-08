@@ -278,10 +278,10 @@
   (testing "mixed types don't combine"
     (derive ::x ::o/operator)
     (derive ::y ::o/operator)
-    (let [o (o/make-operator identity 'o :subtype ::x)
-          p (o/make-operator identity 'p :subtype ::y)
-          q (o/make-operator identity 'q :subtype ::x :color :blue)
-          r (o/make-operator identity 'r :subtype ::x :color :green)]
+    (let [o (o/make-operator identity 'o {:subtype ::x})
+          p (o/make-operator identity 'p {:subtype ::y})
+          q (o/make-operator identity 'q {:subtype ::x :color :blue})
+          r (o/make-operator identity 'r {:subtype ::x :color :green})]
       (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
                    ((+ o p) inc)))
       (is (= {:subtype ::y} (o/context (* o p))))

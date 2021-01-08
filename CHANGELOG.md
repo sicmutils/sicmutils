@@ -4,21 +4,15 @@
 
 - #219 introduces a number of changes to `Operator`'s behavior:
 
-  - `sicmutils.operator/identity-operator` has been renamed to
-    `sicmutils.operator/identity`
+  - `Operator` is now a `deftype` (not a `defrecord`); the keyword lookup for
+    its `:name`, `:arity`, `:context` and `:o` fields have been replaced by,
+    respectively, `o/name`, `sicmutils.function/arity`, `o/context` and
+    `o/procedure` functions. This change happened to allow `Operator` to
+    implement protocols like `ILookup`.
 
-  - `g/cross-product` is no longer implemented for `Operator`. operators were
-    introduced by GJS to act like "differential operators", can only add, negate
-    and multiply (defined as composition). We will probably relax this in the
-    future, and add more functions like `g/cross-product` that compose with the
-    operator's output; but for now we're cleaning house, since this function
-    isn't used anywhere.
-
-  - In this same spirit, `Operator` instances can now only be divided by scalars
-    (not functions anymore), reflecting the ring structure of a differential
-    operator.
-
-  - `Operator` now implements `g/negate`
+  - Native `get` and `get-in` now act on `Operator`. Given an operator function
+    `f`, `get` and `get-in` compose `#(get % k)`, or similar with `f`. This
+    deferred action matches the effect of all sicmutils generics on functions.
 
   - Combining an operator and a non-operator via `+` and `-`, the non-operator
     was previously lifted into an operator that multiplied itself by the new
@@ -45,6 +39,25 @@
     ```
 
     because `f/I` composes with its argument.
+
+  - `sicmutils.operator/identity-operator` has been renamed to
+    `sicmutils.operator/identity`
+
+  - `o/make-operator` now takes an explicit `context` map, instead of a
+    multi-arity implementation with key-value pairs.
+
+  - `Operator` now implements `g/negate`.
+
+  - `g/cross-product` is no longer implemented for `Operator`. operators were
+    introduced by GJS to act like "differential operators", can only add, negate
+    and multiply (defined as composition). We will probably relax this in the
+    future, and add more functions like `g/cross-product` that compose with the
+    operator's output; but for now we're cleaning house, since this function
+    isn't used anywhere.
+
+  - In this same spirit, `Operator` instances can now only be divided by scalars
+    (not functions anymore), reflecting the ring structure of a differential
+    operator.
 
 - `sicmutils.env/ref` now accepts function and operators (#219). `(ref f 0 1)`,
   as an example, returns a new function `g` that acts like `f` but calls `(ref

@@ -47,9 +47,9 @@
 (defn procedure->oneform-field
   [fp name]
   (o/make-operator fp name
-                   :subtype ::form-field
-                   :rank 1
-                   :arguments [::vf/vector-field]))
+                   {:subtype ::form-field
+                    :rank 1
+                    :arguments [::vf/vector-field]}))
 
 (declare wedge)
 (defn procedure->nform-field
@@ -57,10 +57,10 @@
   (if (= n 0)
     (proc)
     (o/make-operator proc name
-                     :subtype ::form-field
-                     :arity [:exactly n]
-                     :rank n
-                     :arguments (repeat n ::vf/vector-field))))
+                     {:subtype ::form-field
+                      :arity [:exactly n]
+                      :rank n
+                      :arguments (repeat n ::vf/vector-field)})))
 
 (defn coordinate-name->ff-name
   "From the name of a coordinate, produce the name of the coordinate basis
