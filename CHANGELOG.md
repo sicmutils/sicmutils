@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `up` and `down` tuples from `sicmutils.structure` gain a proper `print-method`
+  implementation (#229); these now render as `(up 1 2 3)` and `(down 1 2 3)`,
+  instead of the former more verbose representation (when using `pr`.)
+
 - `sicmutils.env.sci` contains an SCI context and namespace mapping sufficient
   to evaluate all of sicmutils, macros and all, inside of an
   [SCI](https://github.com/borkdude/sci) environment (#216). Huge thanks to
