@@ -167,8 +167,7 @@
 
   (testing "print representation"
     (let [s (pr-str (s/up 1 2 3))]
-      (is #?(:clj (clojure.string/includes? s "\"(up 1 2 3)\"")
-             :cljs (= s "#object[sicmutils.structure.Structure \"(up 1 2 3)\"]"))))
+      (is (= "(up 1 2 3)" s)))
     (is (= "(up 1 2 3)" (str (s/up 1 2 3)))))
 
   (testing "equality"

@@ -2,8 +2,31 @@
 
 ## [Unreleased]
 
-- fixed bug with `g/dimension` for row and column matrices. previously they
-  returned `1` in both cases; now they return the total number of entries.
+- `up` and `down` tuples from `sicmutils.structure` gain a proper `print-method`
+  implementation (#229); these now render as `(up 1 2 3)` and `(down 1 2 3)`,
+  instead of the former more verbose representation (when using `pr`.)
+
+- `sicmutils.env.sci` contains an SCI context and namespace mapping sufficient
+  to evaluate all of sicmutils, macros and all, inside of an
+  [SCI](https://github.com/borkdude/sci) environment (#216). Huge thanks to
+  @borkdude for support and @mk for implementing this!
+
+- `sicmutils.numerical.elliptic` gains a full complement of elliptic integral
+  utilities (#211):
+
+  - Carlson symmetric forms of the elliptic integrals: `carlson-rd`,
+    `carlson-rc`, `carlson-rj` (`carlson-rf` was already present)
+  - Legendre elliptic integrals of the second and third forms, as the two-arity
+    forms of `elliptic-e` and `elliptic-pi` (`elliptic-f` already existed)
+  - the complete elliptic integrals via `elliptic-k` (first kind) and the
+    single-arity forms of `elliptic-e` and `elliptic-pi`
+  - `k-and-deriv` returns a pair of the complete elliptical integral of the first form,
+    `elliptic-k`, and its derivative with respect to `k`.
+  - `jacobi-elliptic-functions` ported from `scmutils` and Press's Numerical
+    Recipes
+
+- fixed bug with `g/dimension` for row and column matrices (#214). previously
+  they returned `1` in both cases; now they return the total number of entries.
 
 ## 0.14.0
 

@@ -102,7 +102,7 @@
   (is (= "x^y" (s->infix (expt 'x 'y)))))
 
 (deftest more-with-D
-  (af/with-literal-functions [f g [p [] 0]]
+  (af/with-literal-functions [f g]
     (is (= "f(s)" (s->infix (f 's))))
     (is (= "(f + g)(x, y)" (->infix '((+ f g) x y))))
     (is (= "f(x) g(x)" (s->infix ((* f g) 'x))))

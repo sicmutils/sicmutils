@@ -110,38 +110,30 @@
     (is (= [[4 5 6] [7 8 9]] (drop 1 (m/by-rows [1 2 3] [4 5 6] [7 8 9])))))
 
   (testing "can be mapped"
-    (is (= (s/up 1 4 9) (map g/square (s/up 1 2 3)))))
+    (is (= [2 2] (map count (m/by-rows [1 2] [3 4])))))
 
   (testing "a structure can produce a seq"
-    (is (= [1 2 3] (seq (s/up 1 2 3))))
-    (is (= [4 5 6] (seq (s/down 4 5 6))))
-    (is (= [(s/up 1 2) (s/up 3 4)] (seq (s/down (s/up 1 2) (s/up 3 4)))))
-    (is (= [1 2 3 4] (flatten (s/down (s/up 1 2) (s/up 3 4))))))
+    (is (= [[1 2] [3 4]] (seq (m/by-rows [1 2] [3 4])))))
 
   (testing "seqable"
-    (is (= [1 2 3] (into [] (s/up 1 2 3)))))
+    (is (= [1 2 3 4] (into [] cat (m/by-rows [1 2] [3 4])))))
 
-  (testing "a structure has a nth element (ILookup)"
-    (is (= 14 (nth (s/up 10 12 14) 2)))
-    (is (= 5 (nth (s/up 4 5 6) 1)))
-    (is (thrown? #?(:clj IndexOutOfBoundsException :cljs js/Error)
-                 (nth (s/up 4 5 6) 4))))
+  (let [M (m/by-rows [1 2] [3 4])]
+    (testing "a structure has a nth element (ILookup)"
+      (is (= [1 2] (nth M 0)))
+      (is (= [3 4] (nth M 1)))
+      (is (= 2 (get-in M [0 1])))
+      (is (thrown? #?(:clj IndexOutOfBoundsException :cljs js/Error)
+                   (nth M 4)))))
 
   (testing "IFn"
-    (is (= (s/up 6 9 1)
-           ((s/up + * /) 3 3)))
-    (is (= (s/up 22 2048 (g/expt 2 -9))
-           ((s/up g/+ g/* g//) 2 2 2 2 2 2 2 2 2 2 2))))
-
-  (testing "print representation"
-    (let [s (pr-str (s/up 1 2 3))]
-      (is #?(:clj (clojure.string/includes? s "\"(up 1 2 3)\"")
-             :cljs (= s "#object[sicmutils.structure.Structure \"(up 1 2 3)\"]"))))
-    (is (= "(up 1 2 3)" (str (s/up 1 2 3)))))
+    (is (= (m/by-rows [6 9] [1 0])
+           ((m/by-rows [+ *] [/ -]) 3 3))))
 
   (testing "equality"
-    (= (s/up 1 2 3) [1 2 3])
-    (= (s/up 1 2 3) (s/up 1 2 3))))
+    (is (= [[1 2] [3 4]] (m/by-rows [1 2] [3 4])))
+    (is (= (m/by-rows [1 2] [3 4])
+           (m/by-rows [1 2] [3 4])))))
 
 (deftest matrix-basics
   (checking "square? is false for numbers" 100

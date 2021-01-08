@@ -48,6 +48,7 @@
             [sicmutils.numerical.quadrature]
             [sicmutils.mechanics.lagrange]
             [sicmutils.mechanics.hamilton]
+            [sicmutils.mechanics.rigid]
             [sicmutils.mechanics.rotation]
             [sicmutils.calculus.basis]
             [sicmutils.calculus.covariant]
@@ -55,7 +56,7 @@
             [sicmutils.calculus.form-field]
             [sicmutils.calculus.manifold]
             [sicmutils.calculus.map]
-            [sicmutils.calculus.coordinate]
+            [sicmutils.calculus.coordinate :as cc]
             [sicmutils.calculus.vector-field]))
 
 #?(:clj
@@ -83,9 +84,14 @@
      `(af/literal-function ~f ~sicm-signature)))
   ([f domain range] `(af/literal-function ~f ~domain ~range)))
 
-(defmacro with-literal-functions
-  [& args]
+(defmacro with-literal-functions [& args]
   `(af/with-literal-functions ~@args))
+
+(defmacro let-coordinates [& args]
+  `(cc/let-coordinates ~@args))
+
+(defmacro using-coordinates [& args]
+  `(cc/using-coordinates ~@args))
 
 (def print-expression simp/print-expression)
 
@@ -339,8 +345,3 @@
  [sicmutils.value exact? zero? one? identity?
   zero-like one-like identity-like
   numerical? freeze kind kind-predicate])
-
-;; Macros. These work with Potemkin's import, but not with the Clojure version.
-#?(:clj
-   (import-vars
-    [sicmutils.calculus.coordinate let-coordinates using-coordinates]))
