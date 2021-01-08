@@ -122,7 +122,7 @@
                                        (* (+ t x)
                                           (+ t y)
                                           (+ t z))))))
-                          0.0 ##Inf {:tolerance 1e-8})))))
+                          0.0 ##Inf {:tolerance 1e-10})))))
 
   (checking "carlson-rf can permute all arguments" 100
             [x gen-double

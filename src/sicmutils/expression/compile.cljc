@@ -24,6 +24,7 @@
             [clojure.walk :as w]
             [sci.core :as sci]
             [sicmutils.expression :as x]
+            [sicmutils.expression.analyze :as a]
             [sicmutils.generic :as g]
             [sicmutils.structure :as struct]
             [sicmutils.util :as u]
@@ -243,6 +244,9 @@
 ;;   out, since they never appear in this form (since they contain smaller
 ;;   subexpressions).
 
+(def sortable-gensym
+  (a/monotonic-symbol-generator "G"))
+
 (defn extract-common-subexpressions
   "Considers an S-expression from the point of view of optimizing its evaluation
   by isolating common subexpressions into auxiliary variables.
@@ -261,7 +265,7 @@
   ## Optional Arguments
 
   `:symbol-generator`: side-effecting function that returns a new, unique
-  variable name on each invocation. `gensym` by default.
+  variable name on each invocation. `sortable-gensym` by default.
 
   NOTE that the symbols should appear in sorted order! Otherwise we can't
   guarantee that the binding sequence passed to `continue` won't contain entries
@@ -274,7 +278,7 @@
   `:deterministic? true`."
   ([expr continue] (extract-common-subexpressions expr continue {}))
   ([expr continue {:keys [symbol-generator deterministic?]
-                   :or {symbol-generator gensym}}]
+                   :or {symbol-generator sortable-gensym}}]
    (let [sort (if deterministic?
                 (partial sort-by (comp str vec first))
                 identity)]
@@ -307,7 +311,7 @@
 
   `:symbol-generator`: side-effecting function that returns a new, unique symbol
   on each invocation. These generated symbols are used to create unique binding
-  names for extracted subexpressions. `gensym` by default.
+  names for extracted subexpressions. `sortable-gensym` by default.
 
   NOTE that the symbols should appear in sorted order! Otherwise we can't
   guarantee that the binding sequence won't contain entries that reference
@@ -322,7 +326,7 @@
    (letfn [(callback [new-expression bindings]
              (let [n-bindings (count bindings)]
                (if (pos? n-bindings)
-                 (let [binding-vec (into [] (mapcat identity) bindings)]
+                 (let [binding-vec (into [] cat bindings)]
                    (log/info
                     (format "common subexpression elimination: %d expressions" n-bindings))
                    `(let ~binding-vec

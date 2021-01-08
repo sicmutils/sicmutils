@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- `sicmutils.env.sci` contains an SCI context and namespace mapping sufficient
+  to evaluate all of sicmutils, macros and all, inside of an
+  [SCI](https://github.com/borkdude/sci) environment (#216). Huge thanks to
+  @borkdude for support and @mk for implementing this!
+
 - `sicmutils.numerical.elliptic` gains a full complement of elliptic integral
   utilities (#211):
 
