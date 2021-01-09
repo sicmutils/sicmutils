@@ -27,6 +27,85 @@
             [sicmutils.util.vector-set :as vs]))
 
 (deftest vector-set-tests
+  (testing "union"
+    (checking "vs/union is correct" 100
+              [v1 (sg/vector-set gen/nat)
+               v2 (sg/vector-set gen/nat)]
+              (is (= (vs/make (into v1 v2))
+                     (vs/union v1 v2))
+                  "optimized way matches cheap way")
+
+              (is (= (sort (cs/union (set v1) (set v2)))
+                     (vs/union v1 v2))
+                  "vs/union matches clojure.set/union"))
+
+    (checking "union(x, []) == union([], x) == x" 100
+              [v (sg/vector-set gen/nat)]
+              (is (= v (vs/union vs/empty-set v)))
+              (is (= v (vs/union v vs/empty-set)))))
+
+  (testing "intersection"
+    (checking "vs/intersection is correct" 100
+              [v1 (sg/vector-set gen/nat)
+               v2 (sg/vector-set gen/nat)]
+              (is (= (sort (cs/intersection (set v1) (set v2)))
+                     (vs/intersection v1 v2))
+                  "vs/intersection matches clojure.set/intersection"))
+
+    (checking "intersection(v, []) == intersection([], v) == []" 100
+              [v (sg/vector-set gen/nat)]
+              (is (= vs/empty-set (vs/intersection vs/empty-set v)))
+              (is (= vs/empty-set (vs/intersection v vs/empty-set)))))
+
+  (testing "difference"
+    (checking "vs/difference is correct" 100
+              [v1 (sg/vector-set gen/nat)
+               v2 (sg/vector-set gen/nat)]
+              (is (= (sort (cs/difference (set v1) (set v2)))
+                     (vs/difference v1 v2))
+                  "vs/difference matches clojure.set/difference"))
+
+    (checking "difference([], x) == []" 100 [v (sg/vector-set gen/nat)]
+              (is vs/empty-set (vs/difference vs/empty-set v)))
+
+    (checking "difference(x, []) == x" 100 [v (sg/vector-set gen/nat)]
+              (is (= v (vs/difference v vs/empty-set)))))
+
+
+  (testing "conj"
+    (checking "conj every element matches make" 100
+              [v (gen/vector gen/nat)]
+              (is (= (vs/make v)
+                     (reduce vs/conj
+                             vs/empty-set
+                             (distinct v)))
+                  "adding every element matches the original."))
+
+    (testing "conj for existing element throws"
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (vs/conj [1 2 3] 1))))
+
+    (checking "conj(v, x) == union(v, [x]) == union([x])" 100
+              [v (sg/vector-set gen/nat)]
+              (doseq [x v]
+                (is (= v (vs/conj (vs/disj v x) x)))
+                (is (= v (vs/union [x] (vs/disj v x))))
+                (is (= v (vs/union (vs/disj v x) [x]))))))
+
+  (testing "disj"
+    (checking "disj every element == empty" 100
+              [v (sg/vector-set gen/nat)]
+              (is (= vs/empty-set
+                     (reduce vs/disj v (shuffle v)))
+                  "removing every element from the original (in any order)
+                eventually gets to empty."))
+
+    (checking "disj(v, x) == difference(v, [x])" 100
+              [v (sg/vector-set gen/nat)]
+              (doseq [x v]
+                (is (= (vs/disj v x)
+                       (vs/difference v [x]))))))
+
   (checking "disj/conj acts as identity" 100
             [v (sg/vector-set gen/nat)
              x gen/nat]
@@ -35,32 +114,6 @@
                            (vs/conj x))))
               (is (= v (-> (vs/conj v x)
                            (vs/disj x))))))
-
-  (testing "conj for existing element throws"
-    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-                 (vs/conj [1 2 3] 1))))
-
-  (checking "conj every element matches make" 100
-            [v (gen/vector gen/nat)]
-            (is (= (vs/make v)
-                   (reduce vs/conj
-                           vs/empty-set
-                           (distinct v)))
-                "adding every element matches the original."))
-
-  (checking "conj matches singleton union on either side" 100
-            [v (sg/vector-set gen/nat)]
-            (doseq [x v]
-              (is (= v (vs/conj (vs/disj v x) x)))
-              (is (= v (vs/union [x] (vs/disj v x))))
-              (is (= v (vs/union (vs/disj v x) [x])))))
-
-  (checking "disj every element gets to empty set" 100
-            [v (sg/vector-set gen/nat)]
-            (is (= vs/empty-set
-                   (reduce vs/disj v (shuffle v)))
-                "removing every element from the original (in any order)
-                eventually gets to empty."))
 
   (checking "disj, conj maintain sort" 100
             [v (sg/vector-set gen/nat)]
@@ -83,32 +136,4 @@
                   "conj increases length")
 
               (is (= x (peek v+x))
-                  "vector-set is a vector and new max elements go on the end.")))
-
-  (checking "vs/intersection is correct" 100
-            [v1 (sg/vector-set gen/nat)
-             v2 (sg/vector-set gen/nat)]
-            (is (= (sort (cs/intersection (set v1) (set v2)))
-                   (vs/intersection v1 v2))
-                "vs/union matches clojure.set/intersection"))
-
-  (checking "intersection with empty == empty" 100
-            [v (sg/vector-set gen/nat)]
-            (is (= vs/empty-set (vs/intersection vs/empty-set v)))
-            (is (= vs/empty-set (vs/intersection v vs/empty-set))))
-
-  (checking "vs/union is correct" 100
-            [v1 (sg/vector-set gen/nat)
-             v2 (sg/vector-set gen/nat)]
-            (is (= (vs/make (into v1 v2))
-                   (vs/union v1 v2))
-                "optimized way matches cheap way")
-
-            (is (= (sort (cs/union (set v1) (set v2)))
-                   (vs/union v1 v2))
-                "vs/union matches clojure.set/union"))
-
-  (checking "union(x, empty) == x " 100
-            [v (sg/vector-set gen/nat)]
-            (is (= v (vs/union vs/empty-set v)))
-            (is (= v (vs/union v vs/empty-set)))))
+                  "vector-set is a vector and new max elements go on the end."))))
