@@ -33,29 +33,90 @@
 
 ;; ## Dual Numbers, Forward-Mode Automatic Differentiation
 ;;
+;; This namespace builds up to an implementation of a type
+;; called [[Differential]]; this is a form of nested "dual number", a type that
+;; can accumulate a derivative as it's passed through a function.
 ;;
+;; NOTE: A good chunk of this documentation was adapted from material in
+;; 'diff.scm' in scmutils, written by GJS and his collaborators.
+;;
+;; ### The Goal
+;;
+;; For lots of use cases, it's very valuable be able to generate a "derivative"
+;; of a function; given some wiggle in the inputs, how much wobble does the
+;; output produce?
+;;
+;; The key idea is:
+;;
+;; - big programs are built up out of small components
+;; - we know how to take derivatives for many of these small components
+;; - in particular, we know how to take derivatives of many of the generic
+;;   functions exposed by SICMUtils, like [[+]], [[*]], [[g/sin]] and friends.
+;;
+;;  We can compose the derivatives of these smaller functions into derivatives
+;;  of large, complex functions by leaning hard on the [[Chain
+;;  Rule]](https://en.wikipedia.org/wiki/Automatic_differentiation#The_chain_rule,_forward_and_reverse_accumulation).
+;;
+;; ### Chain Rule
+;;
+;; NOTE: there are two main flavors of AD: forward-mode and reverse-mode. This
+;; section describes an implementation technique for forward-mode; this simply
+;; means that the derivative of a function is accumulated along with the
+;; function's return value as it's being evaluated.
 
-;; ## Calculus of Infinitesimals
+;; The idea is that we compute derivatives by passing special "differential
+;; objects" of the form `x + x'*dx` through functions. (You'll also see these
+;; objects called ["Dual Numbers"](https://en.wikipedia.org/wiki/Dual_number).)
 ;;
-;; The idea is that we compute derivatives by passing special
-;; "differential objects" [x,dx] through functions. A first approximation to the
-;; idea is as follows:
+;; In the following text and code, given some differential object `x + x'*dx`:
 ;;
-;; f[x,dx] |---> [f(x), Df(x)*dx]
+;; - `x` is the "primal" component
+;; - `x'` is the "tangent" component
+;; - `dx` is the "tag", or "differential tag"
 ;;
-;; Note that the derivative of f at the point x, DF(x), is the coefficient of dx
-;; in the result. If we then pass this result through another function, we
-;; obtain the chain-rule answer we would hope for.
+;; The strange rule we're going to assert is that tags disappear if they're
+;; squared; ie, ${dx}^2 == 0$.
 ;;
-;; g[f(x), Df(x)*dx] |---> [g(f(x)), DG(f(x))*DF(x)*dx]
+;; Adding or subtracting two differential objects returns a differential object:
 ;;
-;; Thus, we can find the derivative of a composition by this process. We need
-;; only define how each of the primitives act on these "differentials" and then
-;; we can use ordinary Clojure function compositions of these to do the job. See
+;; (x + x'*dx) + (y + y'*dx) == (x + y) + (x' + y')*dx
+;;
+;; Multiplying does too (remember to kill the squared `dx` term!):
+;;
+;; (x + x'*dx) * (y + y'*dx)
+;;   == xy + (xy')*dx + (x'y)*dx + (x'y')*dx^2
+;;   == xy + (xy' + y'x)*dx
+;;
+;; The real payoff of working with these differential objects comes when we
+;; examine what happens when we pass one to the taylor series expansion of some
+;; arbitrary function, `f`:
+;;
+;; f(x + x'*dx) == f(x) + Df(x)*dx + (D^2)f(x)/2*dx^2 + ...
+;;
+;; And, wait, because ${dx}^2$ and above equals 0, only the first two terms
+;; matter:
+;;
+;; f(x + x'*dx) |---> f(x) + Df(x)*x'*dx
+;;
+;; If you interpret the result as a differential object, then the tangent
+;; component -- remember, that's the coefficient of `dx`, ie, $Df(x) \times x'$
+;; -- is the chain rule!
+;;
+;; If we then pass this result through another function, we can see the chain
+;; rule in more obvious glory:
+;;
+;; g(f(x) + Df(x)*x'*dx) |---> g(f(x)) + Dg(f(x))*Df(x)*x'*dx
+;;
+;; TODO continue from here: We need only define how each of the primitives act
+;; on these "differentials" and then we can use ordinary Clojure function
+;; compositions of these to do the job. See
 ;; the [[sicmutils.calculus.derivative]] namespace to understand how derivatives
-;; are computed given this differential algebra. This idea was discovered by Dan
-;; Zuras and Gerald Jay Sussman in 1992. DZ and GJS made the first version of
-;; this code during an all nighter in 1992.
+;; are computed given this differential algebra.
+
+;; NOTE: This idea was discovered by Dan Zuras and Gerald Jay Sussman in 1992.
+;; DZ and GJS made the first version of this code during an all nighter in 1992.
+;;
+;; ### Multiple Variables, Nesting
 ;;
 ;; To expand this idea to work for multiple derivatives of functions of several
 ;; variables we define an algebra in "infinitesimal space". The objects are
@@ -70,7 +131,7 @@
 ;;
 ;; NOTE there is a lot of history here to cover!
 ;;
-;; ### Data Structures
+;; ## Implementation
 ;;
 ;; A differential quantity is a typed list of differential terms, representing
 ;; the power series alluded to earlier. The terms are kept in a sorted order, in
@@ -82,7 +143,7 @@
 ;; first.
 
 (def ^:private tags first)
-(def ^:private coefficient second)
+(def ^:private coefficient peek)
 
 (defn- make-term
   ([coef] [uv/empty-set coef])
@@ -718,13 +779,13 @@
   functions, and declaring them by forward reference if you need to."
   [f df:dx]
   (fn call [x]
-    (let [[px tx] (primal-tangent-pair x)
-          fx (if (differential? px)
-               (call px)
-               (f px))]
-      (if (and (v/number? tx) (v/zero? tx))
-        fx
-        (d:+ fx (d:* (df:dx px) tx))))))
+    (if-not (differential? x)
+      (f x)
+      (let [[px tx] (primal-tangent-pair x)
+            fx      (call px)]
+        (if (and (v/number? tx) (v/zero? tx))
+          fx
+          (d:+ fx (d:* (df:dx px) tx)))))))
 
 (defn- lift-2
   "Given:
@@ -743,19 +804,19 @@
   you need to."
   [f df:dx df:dy]
   (fn call [x y]
-    (let [tag     (max-order-tag x y)
-          [xe dx] (primal-tangent-pair x tag)
-          [ye dy] (primal-tangent-pair y tag)
-          a (if (or (differential? xe)
-                    (differential? ye))
-              (call xe ye)
-              (f xe ye))
-          b (if (and (v/number? dx) (v/zero? dx))
-              a
-              (d:+ a (d:* dx (df:dx xe ye))))]
-      (if (and (v/number? dy) (v/zero? dy))
-        b
-        (d:+ b (d:* (df:dy xe ye) dy))))))
+    (if-not (or (differential? xe)
+                (differential? ye))
+      (f xe ye)
+      (let [tag     (max-order-tag x y)
+            [xe dx] (primal-tangent-pair x tag)
+            [ye dy] (primal-tangent-pair y tag)
+            a (call xe ye)
+            b (if (and (v/number? dx) (v/zero? dx))
+                a
+                (d:+ a (d:* dx (df:dx xe ye))))]
+        (if (and (v/number? dy) (v/zero? dy))
+          b
+          (d:+ b (d:* (df:dy xe ye) dy)))))))
 
 (defn- lift-n
   "Given:
