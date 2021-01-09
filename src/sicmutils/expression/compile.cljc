@@ -1,4 +1,3 @@
-
 ;; Copyright © 2017 Colin Smith.
 ;; This work is based on the Scmutils system of MIT/GNU Scheme:
 ;; Copyright © 2002 Massachusetts Institute of Technology
@@ -25,6 +24,7 @@
             [sci.core :as sci]
             [sicmutils.expression :as x]
             [sicmutils.expression.analyze :as a]
+            [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.structure :as struct]
             [sicmutils.util :as u]
@@ -364,7 +364,7 @@
 ;; a performance problem; sci with its sandboxing is a safer thing to offer in a
 ;; library that might get hosted for others to interact with via remote REPLs.
 
-;; ### State Functions
+;; ## State Functions
 ;;
 ;; `compile.cljc` currently supports compilation of:
 ;;
@@ -496,8 +496,9 @@
   compilation are extracted and computed only once.
 
   NOTE that this function makes use of a global compilation cache, keyed by the
-  value of `f`. Passing in the same `f` twice, even with different arguments,
-  will return the cached value. See `compile-state-fn*` to avoid the cache."
+  value of `f`. Passing in the same `f` twice, even with different arguments for
+  `param` and `initial-state`, will return the cached value. See
+  `compile-state-fn*` to avoid the cache."
   [f params initial-state]
   (if-let [cached (@fn-cache f)]
     (do
@@ -507,71 +508,88 @@
       (swap! fn-cache assoc f compiled)
       compiled)))
 
-;; ### Univariate Functions
+;; ## Non-State-Functions
 ;;
-;; Compiled univariate functions are excellent input for `definite-integral`,
-;; ODE solvers, single variable function minimization, root finding and more.
+;; Compiled functions are excellent input for `definite-integral`, ODE solvers,
+;; single variable function minimization, root finding and more.
 ;;
 ;; The implementation and compilation steps are simpler than the state function
-;; versions above; the function you pass in has to take a single scalar
-;; argument, that's it.
+;; versions above; the function you pass in has to take `n` symbolic arguments,
+;; that's it.
 
 (defn- compile-native
   "Returns a natively-evaluated Clojure function that implements `body`, given
-  some symbol `argsym`.
+  some sequence `args` of argument symbols.
 
-  `body` should of course make use of the symbol `argsym`."
-  [argsym body]
+  `body` should of course make use of the symbols in `args`."
+  [args body]
   (let [body (w/postwalk-replace compiled-fn-whitelist body)]
-    (eval `(fn [~argsym] ~body))))
+    (eval `(fn ~(vec args) ~body))))
 
 (defn- compile-sci
   "Returns a Clojure function evaluated using SCI. The returned fn implements
-  `body`, given some symbol `argsym`.
+  `body`, given some sequence `args` of argument symbols.
 
-  `body` should of course make use of the symbol `argsym`."
-  [arg body]
-  (let [f `(fn [~arg] ~body)]
+  `body` should of course make use of the symbols in `args`."
+  [args body]
+  (let [f `(fn ~(vec args) ~body)]
     (sci/eval-form (sci/fork sci-context) f)))
 
-(defn compile-univariate-fn*
-  "Returns a compiled, simplified version of `f`, given a univariate function `f`
-  able to accept one symbolic argument.
+(defn- retrieve-arity [f]
+  (let [[kwd n :as arity] (f/arity f)]
+    (if (= kwd :exactly)
+      n
+      (u/illegal
+       (str "`compile-fn` can only infer arity for functions with just one
+           arity, not " arity ". Please pass an explicit `n`.")))))
 
-  The returned, compiled function expects a single Double (or js/Number)
-  argument. The function body is simplified and all common subexpressions
+(defn compile-fn*
+  "Returns a compiled, simplified version of `f`, given a function `f` of arity
+  `n` (ie, able to accept `n` symbolic arguments).
+
+  `n` defaults to `([[f/arity]] f)`.
+
+  The returned, compiled function expects `n` `Double` (or `js/Number`)
+  arguments. The function body is simplified and all common subexpressions
   identified during compilation are extracted and computed only once.
 
-  NOTE this function uses no cache. To take advantage of the global compilation
-  cache, see `compile-univariate-fn`."
-  [f]
-  (let [sw       (us/stopwatch)
-        var      (gensym 'x)
-        body     (cse-form
-                  (g/simplify (f var)))
-        compiled (if (native?)
-                   (compile-native var body)
-                   (compile-sci var body))]
-    (log/info "compiled univariate function in" (us/repr sw) "with mode" *mode*)
-    compiled))
+  NOTE: this function uses no cache. To take advantage of the global compilation
+  cache, see `compile-fn`."
+  ([f] (compile-fn* f (retrieve-arity f)))
+  ([f n]
+   (let [sw       (us/stopwatch)
+         args     (repeatedly n #(gensym 'x))
+         body     (cse-form
+                   (g/simplify (apply f args)))
+         compiled (if (native?)
+                    (compile-native args body)
+                    (compile-sci args body))]
+     (log/info "compiled function of arity" n "in" (us/repr sw) "with mode" *mode*)
+     compiled)))
 
-(defn compile-univariate-fn
-  "Returns a compiled, simplified version of `f`, given a univariate function `f`
-  able to accept one symbolic argument.
+(defn compile-fn
+  "Returns a compiled, simplified version of `f`, given a function `f` of arity
+  `n` (ie, able to accept `n` symbolic arguments).
 
-  The returned, compiled function expects a single Double (or js/Number)
-  argument. The function body is simplified and all common subexpressions
+  `n` defaults to `([[f/arity]] f)`.
+
+  The returned, compiled function expects `n` `Double` (or `js/Number`)
+  arguments. The function body is simplified and all common subexpressions
   identified during compilation are extracted and computed only once.
 
-  NOTE that this function makes use of a global compilation cache, keyed by the
-  value of `f`. Passing in the same `f` twice, even with different arguments,
-  will return the cached value. See `compile-univariate-fn*` to avoid the
-  cache."
-  [f]
-  (if-let [cached (@fn-cache f)]
-    (do
-      (log/info "compiled univariate function cache hit")
-      cached)
-    (let [compiled (compile-univariate-fn* f)]
-      (swap! fn-cache assoc f compiled)
-      compiled)))
+  NOTE: that this function makes use of a global compilation cache, keyed by the
+  vector `[f n]`. See `compile-fn*` to avoid the cache."
+  ([f] (let [[kwd n :as arity] (f/arity f)]
+         (when-not (= kwd :exactly)
+           (u/illegal
+            (str "`compile-fn` can only infer arity for functions with just one
+           arity, not " arity ". Please pass an explicit `n`.")))
+         (compile-fn f n)))
+  ([f n]
+   (if-let [cached (@fn-cache [f n])]
+     (do
+       (log/info "compiled function cache hit - arity " n)
+       cached)
+     (let [compiled (compile-fn* f n)]
+       (swap! fn-cache assoc [f n] compiled)
+       compiled))))

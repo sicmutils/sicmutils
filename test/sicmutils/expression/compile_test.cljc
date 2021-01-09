@@ -29,11 +29,11 @@
 
 (def ^:private near (v/within 1e-6))
 
-(deftest compile-univariate-tests
+(deftest compile-fn-test
   (let [f  (fn [x] (+ 1 (g/square (g/sin x))))
-        cf         (c/compile-univariate-fn f)
-        cf2        (c/compile-univariate-fn f)
-        cf-nocache (c/compile-univariate-fn* f)]
+        cf         (c/compile-fn f)
+        cf2        (c/compile-fn f)
+        cf-nocache (c/compile-fn* f)]
     (is (= (f 0.5) (cf 0.5) (cf2 0.5) (cf-nocache 0.5))
         "the fn has no simplifications available so the results are identical;
         the compiled fn is faster.")))
