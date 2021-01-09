@@ -40,6 +40,28 @@
     (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
                  (vs/conj [1 2 3] 1))))
 
+  (checking "conj every element matches make" 100
+            [v (gen/vector gen/nat)]
+            (is (= (vs/make v)
+                   (reduce vs/conj
+                           vs/empty-set
+                           (distinct v)))
+                "adding every element matches the original."))
+
+  (checking "conj matches singleton union on either side" 100
+            [v (sg/vector-set gen/nat)]
+            (doseq [x v]
+              (is (= v (vs/conj (vs/disj v x) x)))
+              (is (= v (vs/union [x] (vs/disj v x))))
+              (is (= v (vs/union (vs/disj v x) [x])))))
+
+  (checking "disj every element gets to empty set" 100
+            [v (sg/vector-set gen/nat)]
+            (is (= vs/empty-set
+                   (reduce vs/disj v (shuffle v)))
+                "removing every element from the original (in any order)
+                eventually gets to empty."))
+
   (checking "disj, conj maintain sort" 100
             [v (sg/vector-set gen/nat)]
             (let [x   (inc (apply max (or (seq v) [0])))
