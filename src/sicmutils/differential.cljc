@@ -1181,7 +1181,7 @@
             a (call xe ye)
             b (if (and (v/number? dx) (v/zero? dx))
                 a
-                (d:+ a (d:* (df:dx xe ye) dx)))]
+                (d:+ a (d:* dx (df:dx xe ye))))]
         (if (and (v/number? dy) (v/zero? dy))
           b
           (d:+ b (d:* (df:dy xe ye) dy)))))))
