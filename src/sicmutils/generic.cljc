@@ -251,7 +251,7 @@
 (defmulti partial-derivative v/argument-kind)
 (defmethod partial-derivative [Keyword] [k]
   (k {:arity [:exactly 2]
-      :name 'partial-d111erivative}))
+      :name 'partial-derivative}))
 
 (defmulti simplify v/argument-kind)
 (defmethod simplify :default [a] (v/freeze a))
