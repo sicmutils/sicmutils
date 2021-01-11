@@ -14,6 +14,8 @@
             sicmutils.calculus.map-test
             sicmutils.calculus.vector-field-test
 
+            sicmutils.env.sci-test
+
             sicmutils.examples.central-potential-test
             sicmutils.examples.double-pendulum-test
             sicmutils.examples.driven-pendulum-test
@@ -72,6 +74,7 @@
 
             sicmutils.util.aggregate-test
             sicmutils.util.stream-test
+            sicmutils.util.vector-set-test
 
             sicmutils.complex-test
             sicmutils.differential-test
@@ -107,6 +110,8 @@
            'sicmutils.calculus.manifold-test
            'sicmutils.calculus.map-test
            'sicmutils.calculus.vector-field-test
+
+           'sicmutils.env.sci-test
 
            'sicmutils.examples.central-potential-test
            'sicmutils.examples.double-pendulum-test
@@ -147,6 +152,7 @@
 
            'sicmutils.util.aggregate-test
            'sicmutils.util.stream-test
+           'sicmutils.util.vector-set-test
 
            'sicmutils.mechanics.hamilton-test
            'sicmutils.mechanics.lagrange-test

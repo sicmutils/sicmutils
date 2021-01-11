@@ -168,22 +168,26 @@
          :else
          (u/illegal (str "WTF range" range)))))
 
+(defn binding-pairs [litfns]
+  (letfn [(extract-sym [entry]
+            (if (symbol? entry) entry (first entry)))
+          (entry->fn [entry]
+            (cond (symbol? entry) `(literal-function (quote ~entry))
+
+                  (and (sequential? entry) (= (count entry) 3))
+                  (let [[sym domain range] entry]
+                    `(literal-function (quote ~sym) ~domain ~range))
+
+                  :else (u/illegal (str "unknown literal function type" entry))))]
+    (mapv (fn [entry]
+            [(extract-sym entry)
+             (entry->fn entry)])
+          litfns)))
+
 (defmacro with-literal-functions [litfns & body]
-  `(let ~(vec (interleave
-               (map (fn [s]
-                      (if (symbol? s) s (first s)))
-                    litfns)
-               (map (fn [s]
-                      (cond (symbol? s)
-                            `(literal-function (quote ~s))
-                            (and (sequential? s)
-                                 (= (count s) 3))
-                            `(literal-function (quote ~(first s))
-                                               ~(second s)
-                                               ~(nth s 2))
-                            :else (u/illegal (str "unknown literal function type" s))))
-                    litfns)))
-     ~@body))
+  (let [pairs    (binding-pairs litfns)
+        bindings (into [] cat pairs)]
+    `(let ~bindings ~@body)))
 
 ;; ## Differentiation of literal functions
 
