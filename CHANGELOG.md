@@ -2,8 +2,133 @@
 
 ## [Unreleased]
 
-- fixed bug with `g/dimension` for row and column matrices. previously they
-  returned `1` in both cases; now they return the total number of entries.
+- `sicmutils.generic/partial-derivative` gains a `Keyword` extension, so it can
+  respond properly to `:name` and `:arity` calls (#221).
+
+- New single-arity case for `sicmutils.structure/opposite` returns an identical
+  structure with flipped orientation (#220). acts as `identity` for
+  non-structures.
+
+- #219 introduces a number of changes to `Operator`'s behavior:
+
+  - `Operator` is now a `deftype` (not a `defrecord`); the keyword lookup for
+    its `:name`, `:arity`, `:context` and `:o` fields have been replaced by,
+    respectively, `o/name`, `sicmutils.function/arity`, `o/context` and
+    `o/procedure` functions. This change happened to allow `Operator` to
+    implement protocols like `ILookup`.
+
+  - Native `get` and `get-in` now act on `Operator`. Given an operator function
+    `f`, `get` and `get-in` compose `#(get % k)`, or similar with `f`. This
+    deferred action matches the effect of all sicmutils generics on functions.
+
+  - Combining an operator and a non-operator via `+` and `-`, the non-operator
+    was previously lifted into an operator that multiplied itself by the new
+    operator's argument. As of #219, this "multiplication" uses the operator
+    definition of multiplication - meaning, the new operator composes the
+    non-operator with its argument. Where does this matter?
+
+    Previously adding the non-operator `sicmutils.function/I` to the identity
+    operator `I` would act like this:
+
+    ```clojure
+    (((g/+ o/identity f/I) f/I) 10)
+    ;; => 110 == (+ 10 (* 10 10))
+    ```
+
+    Because `f/I` multiplied itself by its argument... resulting in `(* f/I f/I)
+    == g/square`.
+
+    After the change, you see this:
+
+    ```clojure
+    (((g/+ o/identity f/I) f/I) 10)
+    ;; => 20
+    ```
+
+    because `f/I` composes with its argument.
+
+  - `sicmutils.operator/identity-operator` has been renamed to
+    `sicmutils.operator/identity`
+
+  - `o/make-operator` now takes an explicit `context` map, instead of a
+    multi-arity implementation with key-value pairs.
+
+  - `Operator` now implements `g/negate`.
+
+  - `g/cross-product` is no longer implemented for `Operator`. operators were
+    introduced by GJS to act like "differential operators", can only add, negate
+    and multiply (defined as composition). We will probably relax this in the
+    future, and add more functions like `g/cross-product` that compose with the
+    operator's output; but for now we're cleaning house, since this function
+    isn't used anywhere.
+
+  - In this same spirit, `Operator` instances can now only be divided by scalars
+    (not functions anymore), reflecting the ring structure of a differential
+    operator.
+
+- `sicmutils.env/ref` now accepts function and operators (#219). `(ref f 0 1)`,
+  as an example, returns a new function `g` that acts like `f` but calls `(ref
+  result 0 1)` on the result.
+
+- The slightly more general `sicmutils.env/component` replaces
+  `sicmutils.structure/component` in the `sicmutils.env` namespace (#219).
+  `((component 0 1) x) == (ref x 0 1)`.
+
+- `D` (or `sicmutils.generic/partial-derivative`) applied to a matrix of
+  functions now takes the elementwise partials of every function in the matrix.
+  (#218)
+
+- `sicmutils.function/arity` is now a protocol method, under the
+  `sicmutils.function/IArity` protocol (#218). In addition to functions, `arity`
+  now correctly responds to:
+
+    - `sicmutils.matrix/Matrix`: calling `arity` on a matrix assumes that the
+      matrix has function elements; the returned arity is the most general arity
+      that all functions will respond to.
+    - `sicmutils.operator/Operator`: returns the arity of the operator's wrapped
+      function.
+    - `sicmutils.series/Series`: `arity` on a `Series` assumes that the series
+      contains functions as entries, and returns, conservatively, the arity of
+      the first element of the series.
+   - `sicmutils.series/PowerSeries`: `arity` returns `[:exactly 1]`, since
+     `PowerSeries` are currently single variable.
+   - vectors, and `sicmutils.structure/Structure`: `arity` on these collections
+     assumes that the collection contains functions as entries, and returns the
+     most general arity that is compatible with all of the function elements.
+
+- New functions `sicmutils.function/{get,get-in}` added that act like the
+  `clojure.core` versions; but given a function `f`, they compose `#(get % k)`,
+  or similar with `f`. This deferred action matches the effect of all sicmutils
+  generics on functions. (#218)
+
+- `sicmutils.function/I` aliases `clojure.core/identity` (#218). #219 exposes
+  `I` in `sicmutils.env`.
+
+- `up` and `down` tuples from `sicmutils.structure` gain a proper `print-method`
+  implementation (#229); these now render as `(up 1 2 3)` and `(down 1 2 3)`,
+  instead of the former more verbose representation (when using `pr`.)
+
+- `sicmutils.env.sci` contains an SCI context and namespace mapping sufficient
+  to evaluate all of sicmutils, macros and all, inside of an
+  [SCI](https://github.com/borkdude/sci) environment (#216). Huge thanks to
+  @borkdude for support and @mk for implementing this!
+
+- `sicmutils.numerical.elliptic` gains a full complement of elliptic integral
+  utilities (#211):
+
+  - Carlson symmetric forms of the elliptic integrals: `carlson-rd`,
+    `carlson-rc`, `carlson-rj` (`carlson-rf` was already present)
+  - Legendre elliptic integrals of the second and third forms, as the two-arity
+    forms of `elliptic-e` and `elliptic-pi` (`elliptic-f` already existed)
+  - the complete elliptic integrals via `elliptic-k` (first kind) and the
+    single-arity forms of `elliptic-e` and `elliptic-pi`
+  - `k-and-deriv` returns a pair of the complete elliptical integral of the first form,
+    `elliptic-k`, and its derivative with respect to `k`.
+  - `jacobi-elliptic-functions` ported from `scmutils` and Press's Numerical
+    Recipes
+
+- fixed bug with `g/dimension` for row and column matrices (#214). previously
+  they returned `1` in both cases; now they return the total number of entries.
 
 ## 0.14.0
 

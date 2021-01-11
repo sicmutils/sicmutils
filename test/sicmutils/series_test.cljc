@@ -19,11 +19,13 @@
 
 (ns sicmutils.series-test
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
             [sicmutils.generators :as sg]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
+            [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.series :as s]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
@@ -63,7 +65,23 @@
   (testing "one? zero? identity? always return false (for now!)"
     (is (not (v/zero? (v/zero-like series))))
     (is (not (v/one? (v/one-like series))))
-    (is (not (v/identity? (v/identity-like series))))))
+    (is (not (v/identity? (v/identity-like series)))))
+
+  (checking "f/arity" 100
+            [v (gen/fmap s/power-series* (gen/vector sg/real))]
+            (is (= [:exactly 1]
+                   (f/arity v))
+                "all power-series instances have arity == 1."))
+
+  (testing "non-power series arity"
+    (let [s (s/series* (cycle [g/add g/sub g/mul]))]
+      (is (= [:exactly 2] (f/arity s))
+          "arity only checks the first element.")
+
+      (is (= [6 0 9 6 0 9 6 0 9]
+             (take 9 (s 3 3)))
+          "applying a series containing functions returns a new series with the
+          results."))))
 
 (deftest value-protocol-tests
   (testing "power series"

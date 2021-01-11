@@ -34,7 +34,7 @@
                     #(m/point->coords coordinate-system %)))
             (s/structure->access-chains prototype))))
 
-(defn ^:private quotify-coordinate-prototype
+(defn quotify-coordinate-prototype
   "Scmutils wants to allow forms like this:
      (using-coordinates (up x y) R2-rect ...)
    Note that x, y are unquoted. This function converts such an unquoted for

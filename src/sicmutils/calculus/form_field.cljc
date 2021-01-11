@@ -33,19 +33,23 @@
 (defn form-field?
   [f]
   (and (o/operator? f)
-       (-> f :context :subtype (= ::form-field))))
+       (-> (o/context f)
+           (:subtype)
+           (= ::form-field))))
 
 (defn oneform-field?
   [f]
   (and (form-field? f)
-       (-> f :context :rank (= 1))))
+       (-> (o/context f)
+           (:rank)
+           (= 1))))
 
 (defn procedure->oneform-field
   [fp name]
   (o/make-operator fp name
-                   :subtype ::form-field
-                   :rank 1
-                   :arguments [::vf/vector-field]))
+                   {:subtype ::form-field
+                    :rank 1
+                    :arguments [::vf/vector-field]}))
 
 (declare wedge)
 (defn procedure->nform-field
@@ -53,10 +57,10 @@
   (if (= n 0)
     (proc)
     (o/make-operator proc name
-                     :subtype ::form-field
-                     :arity [:exactly n]
-                     :rank n
-                     :arguments (repeat n ::vf/vector-field))))
+                     {:subtype ::form-field
+                      :arity [:exactly n]
+                      :rank n
+                      :arguments (repeat n ::vf/vector-field)})))
 
 (defn coordinate-name->ff-name
   "From the name of a coordinate, produce the name of the coordinate basis
@@ -128,7 +132,7 @@
 
 (defn get-rank
   [f]
-  (cond (o/operator? f) (or (:rank (:context f))
+  (cond (o/operator? f) (or (:rank (o/context f))
                             (u/illegal (str "operator, but not a differential form: " f)))
         (fn? f) 0
         :else (u/illegal "not a differential form")))

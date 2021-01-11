@@ -49,13 +49,9 @@
   :target-path "target/%s"
   :test-selectors {:default (complement :long)
                    :benchmark :benchmark}
-  :profiles {:uberjar {:aot :all}
-             :travis {:jvm-opts ["-Xmx512M"]}
-             :dev {:plugins [~cljsbuild
-                             [lein-cloverage "1.1.2"]
+  :profiles {:dev {:plugins [~cljsbuild
+                             [lein-cloverage "1.2.1"]
                              [lein-doo "0.1.11"]]
-                   :cloverage {:ns-exclude-regex [#"sicmutils.simplify.rules"
-                                                  #"sicmutils.simplify"]}
                    :repl-options {:nrepl-middleware
                                   [cider.piggieback/wrap-cljs-repl]}
                    :dependencies [[org.clojure/test.check "1.1.0"]
@@ -83,14 +79,3 @@
                  :target :nodejs
                  :output-dir "target/main"
                  :output-to "target/main/main.js"}}}})
-
-(comment
-  ;; NOTE - if you do decide to run tests in :advanced optimization mode, you'll
-  ;; need to move to phantom, and an older version of clojurescript:
-
-  [org.clojure/clojurescript "1.10.597"]
-
-  ;;Don't ask me why. You may also need to remove `:output-dir`, so try that if
-  ;;you run into problems. Do this, change `:optimizations` to `:advanced` and
-  ;;you should be good to go.
-  )
