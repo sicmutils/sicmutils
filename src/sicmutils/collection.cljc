@@ -18,6 +18,8 @@
 ;;
 
 (ns sicmutils.collection
+  "This namespace contains implementations of various SICMUtils protocols for
+  native Clojure collections."
   (:require [sicmutils.differential :as d]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
@@ -30,15 +32,6 @@
                             LazySeq))))
 
 ;; Vector Implementations
-
-#?(:clj
-   (derive IPersistentMap ::map)
-
-   :cljs
-   (do
-     (derive PersistentHashMap ::map)
-     (derive PersistentArrayMap ::map)
-     (derive PersistentTreeMap ::map)))
 
 (extend-type #?(:clj IPersistentVector :cljs PersistentVector)
   v/Value
@@ -53,7 +46,8 @@
   (kind [v] (type v))
 
   f/IArity
-  (arity [v] [:exactly 1])
+  (arity [v]
+    (transduce (map f/arity) f/combine-arities v))
 
   d/IPerturbed
   (perturbed? [v] (boolean (some d/perturbed? v)))
@@ -82,6 +76,15 @@
 
 ;; ## Maps
 
+#?(:clj
+   (derive IPersistentMap ::map)
+
+   :cljs
+   (do
+     (derive PersistentHashMap ::map)
+     (derive PersistentArrayMap ::map)
+     (derive PersistentTreeMap ::map)))
+
 (letfn [(map-vals [f m]
           (into (empty m)
                 (map (fn [[k v]] [k (f v)]))
@@ -105,7 +108,9 @@
      (kind [m] (:type m (type m)))
 
      f/IArity
-     (arity [_] [:exactly 1])
+     (arity [m]
+       (transduce
+        (map f/arity) f/combine-arities (vals m)))
 
      d/IPerturbed
      (perturbed? [m] (boolean (some d/perturbed? (vals m))))
