@@ -99,7 +99,7 @@
                                        (* (+ t x)
                                           (+ t y)
                                           (+ t z))))))
-                          0.0 ##Inf {:tolerance 1e-8}))))
+                          0.0 ##Inf {:tolerance 1e-9}))))
 
     (checking "carlson-rc definition" 100
               [[x y] gen-xyz]
