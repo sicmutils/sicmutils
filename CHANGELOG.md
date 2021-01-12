@@ -2,6 +2,48 @@
 
 ## [Unreleased]
 
+- New, literate `Differential` implementation lives at at
+  `sicmutils.differential` (#221) (see [this
+  page](https://samritchie.io/dual-numbers-and-automatic-differentiation/) for a
+  readable version.) Notable changes to the original impl at
+  `sicmutils.calculus.derivative` include:
+
+  - We've changed our terminology from GJS's `finite-part`,
+    `infinitesimal-part`, `make-x+dx` to the more modern `primal-part`,
+    `tangent-part`, `bundle` that the Automatic Differentiation community has
+    now adopted.
+
+  - A new `sicmutils.differential.IPerturbed` protocol makes it possible to
+    extend the Automatic Differentiation (AD) system to be able to handle
+    different Functor-shaped return values, like Java or JS lists and objects.
+    See the [cljdoc page on Automatic
+    Differentiation](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/calculus/automatic-differentiation)
+    for more detail.
+
+  - `sicmutils.differential/{lift-1,lift-2,lift-n}` allow you to make custom
+    operations differentiable, provided you can supply a derivative.
+
+  - `Differential` implements `sicmutils.function/arity`, `IFn`, and can be
+    applied to arguments if its coefficients are function values.
+
+  - New `compare` and `equiv` implementations allow `Differential` instances to
+    compare themselves with other objects using only their primal parts; this
+    makes it possible to use functions like `<=`, `>`, `=` to do control flow
+    during automatic differentiation. (Use `compare-full` and `eq` if you want
+    to do full equality comparisons on primal and tangent components.)
+
+  - related, `g/abs` is now implemented for `Differential` instances, making
+    this function available in functions passed to `D`.
+
+  - proper `numerical?`, `one?` and `identity?` implementations. The latter two
+    only respond `true` if there are NO tangent components; This means that
+    `one?` and `(= % 1)` will not agree.
+
+  - The new implementation fixes a subtle bug with nested, higher order
+    automatic differentiation - it's too subtle for the CHANGELOG, so please the
+    "amazing" bug sections in `sicmutils.calculus.derivative-test` for proper
+    exposition.
+
 - `sicmutils.generic/partial-derivative` gains a `Keyword` extension, so it can
   respond properly to `:name` and `:arity` calls (#221).
 
