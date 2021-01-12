@@ -105,7 +105,6 @@
         `g/sin` has arity [:exactly 1]."))))
 
 (deftest arity-tests
-  (arity-check identity "vector")
   (arity-check s/up* "s/up")
   (arity-check s/down* "s/down"))
 

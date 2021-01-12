@@ -84,7 +84,8 @@
   (kind [_] orientation)
 
   f/IArity
-  (arity [_] (f/arity v))
+  (arity [_]
+    (f/seq-arity v))
 
   d/IPerturbed
   (perturbed? [_] (boolean (some d/perturbed? v)))
