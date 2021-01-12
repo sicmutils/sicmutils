@@ -1305,8 +1305,8 @@
 (defunary g/abs
   (fn [x]
     (let [f (finite-term x)
-          func (cond (< f 0) (lift-1 (fn [x] (g/negate x)) (fn [_] -1))
-                     (> f 0) (lift-1 (fn [x] x) (fn [_] 1))
+          func (cond (< f 0) (lift-1 g/negate (fn [_] -1))
+                     (> f 0) (lift-1 identity (fn [_] 1))
                      (= f 0) (u/illegal "Derivative of g/abs undefined at zero")
                      :else (u/illegal (str "error! derivative of g/abs at" x)))]
       (func x))))
@@ -1317,38 +1317,18 @@
             (g/invert
              (g/mul (g/sqrt x) 2)))))
 
-;; This first case of [[g/expt]], where the exponent itself is
-;; non-[[Differential]], is special-cased and slightly simpler. The second
-;; partial derivative throws, since the more general definition below should
-;; always override.
-
-(let [power (lift-2
-             g/expt
-             (fn [x y]
-               (g/mul y (g/expt x (g/sub y 1))))
-             (fn [_ _]
-               (u/illegal "can't get there from here")))]
-  (defmethod g/expt [::differential ::v/scalar] [d n] (power d n)))
-
-;; The remaining two cases allow for a differential exponent. NOTE: I took this
-;; implementation-split from scmutils, but I'm not sure that it matters... if
-;; the second partial never gets called, why is this a good optimization?
-;;
-;; TODO: check if it DOES get called, and if not, consolidate these branches.
-(let [expt (lift-2
-            g/expt
-            (fn [x y]
-              (g/mul y (g/expt x (g/sub y 1))))
-            (fn [x y]
-              (if (and (v/number? x) (v/zero? y))
-                (if (v/number? y)
-                  (if (not (g/negative? y))
-                    0
-                    (u/illegal "Derivative undefined: expt"))
-                  0)
-                (g/* (g/log x) (g/expt x y)))))]
-  (defmethod g/expt [::differential ::differential] [d n] (expt d n))
-  (defmethod g/expt [::v/scalar ::differential] [d n] (expt d n)))
+(defbinary g/expt
+  (lift-2 g/expt
+          (fn [x y]
+            (g/mul y (g/expt x (g/sub y 1))))
+          (fn [x y]
+            (if (and (v/number? x) (v/zero? y))
+              (if (v/number? y)
+                (if (not (g/negative? y))
+                  0
+                  (u/illegal "Derivative undefined: expt"))
+                0)
+              (g/* (g/log x) (g/expt x y))))))
 
 (defunary g/log
   (lift-1 g/log g/invert))
