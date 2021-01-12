@@ -839,7 +839,7 @@
           f3 (fn [x y] (* (tan x) (log y)))
           f4 (fn [x y] (* (tan x) (sin y)))
           f5 (fn [x y] (/ (tan x) (sin y)))]
-      (is (= '(down (* (cos x) (log y))
+      (is (= '(down (* (log y) (cos x))
                     (/ (sin x) y))
              (g/simplify ((D f2) 'x 'y))))
       (is (= '(down (/ (log y) (expt (cos x) 2))
