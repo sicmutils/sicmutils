@@ -254,7 +254,7 @@
                       (d/d:* 1 diff))
                 "1 is a multiplicative identity"))
 
-  (checking "(d:* diff 0) == (d:* 0 diff) == 0" 100 [diff diff-gen]
+  (checking "(d:* diff 0) == (d:* 0 diff) == 0" 100 [diff real-diff-gen]
             (is (d/eq 0
                       (d/d:* diff 0)
                       (d/d:* 0 diff))
@@ -272,7 +272,7 @@
                 "commutative law"))
 
   (checking "adding primal and tangent sepraately matches adding full term" 100
-            [l diff-gen, r diff-gen]
+            [[l r] (gen/vector real-diff-gen 2)]
             (let [[pl tl] (d/primal-tangent-pair l)
                   [pr tr] (d/primal-tangent-pair r)]
               (is (d/eq (d/d:+ l r)
