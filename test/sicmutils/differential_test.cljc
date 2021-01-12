@@ -22,10 +22,12 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [same :refer [ish?]]
+            [same :refer [ish? with-comparator]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.differential :as d]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
+            [sicmutils.numerical.derivative :refer [D-numeric]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
@@ -448,4 +450,39 @@
                          finite-term")))))))
 
 (deftest lifted-fn-tests
-  )
+  (testing "lift-n"
+    (let [*   (d/lift-n g/* (fn [_] 1) (fn [_ y] y) (fn [x _] x))
+          Df7 (derivative
+               (fn x**7 [x] (* x x x x x x x)))
+          Df1 (derivative (fn [x] (* x)))
+          Df0 (derivative (fn [_] (*)))]
+      (is (= '(* 7 (expt x 6))
+             (g/simplify (Df7 'x)))
+          "functions created with lift-n can take many args (they reduce via the
+          binary case!)")
+
+      (is (= 1 (Df1 'x))
+          "single-arity acts as id.")
+
+      (is (zero? (Df0 'x))
+          "zero-arity acts as constant")))
+
+  (testing "exercise some of the lifted fns by comparing them to numeric
+  derivatives."
+    (let [f (fn [x]
+              (g/+ (g/* (g/cos x) (g/sin x))
+                   (g/+ (g/sin x) (g/expt x 2))
+                   (g/+ (g/sin x) x)
+                   (g/log (g/abs x))))
+          Df         (derivative f)
+          Df-numeric (D-numeric f)]
+      (with-comparator (v/within 1e-6)
+        (checking "exercise some lifted fns" 100
+                  [n (gen/double*
+                      {:infinite? false
+                       :NaN? false
+                       :min 1
+                       :max 100})]
+                  (is (ish? (Df-numeric n)
+                            (Df n))
+                      "Does numeric match autodiff?"))))))

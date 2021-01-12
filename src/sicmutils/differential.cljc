@@ -1153,7 +1153,7 @@
 ;; Magically this will all Just Work if you pass an already-lifted function, or
 ;; a function built out of already-lifted components, as `df:dx` or `df:dy`.
 
-(defn- lift-1
+(defn lift-1
   "Given:
 
   - some unary function `f`
@@ -1176,7 +1176,7 @@
           fx
           (d:+ fx (d:* (df:dx px) tx)))))))
 
-(defn- lift-2
+(defn lift-2
   "Given:
 
   - some binary function `f`
@@ -1207,7 +1207,7 @@
           b
           (d:+ b (d:* (df:dy xe ye) dy)))))))
 
-(defn- lift-n
+(defn lift-n
   "Given:
 
   - some function `f` that can handle 0, 1 or 2 arguments
