@@ -1267,10 +1267,7 @@
 ;; provides [[defunary]] and [[defbinary]] calls for all of the generic
 ;; operations for which we know how to declare partial derivatives.
 
-(defbinary g/add
-  (lift-2 g/add
-          (fn [_ _] 1)
-          (fn [_ _] 1)))
+(defbinary g/add d:+)
 
 (defunary g/negate
   (lift-1 g/negate (fn [_] -1)))

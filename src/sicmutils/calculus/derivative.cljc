@@ -75,8 +75,8 @@
   (extract-tangent [f tag] (extract-tangent-fn f tag)))
 
 (defn derivative [f]
-  (fn [x]
-    (let [tag (d/fresh-tag)]
+  (let [tag (d/fresh-tag)]
+    (fn [x]
       (-> (f (d/bundle x 1 tag))
           (d/extract-tangent tag)))))
 
