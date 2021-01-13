@@ -167,6 +167,10 @@
                   (is (= (d/bundle n 1 0) n)
                       "differential on the left works.")
 
+                  #?(:cljs
+                     (is (= n (d/bundle n 1 0))
+                         "differential on the right works in CLJS."))
+
                   (is (d/equiv (d/bundle n 1 0) n n (d/bundle n 1 0) n)
                       "d/equiv matches = behavior, varargs"))
 
@@ -189,8 +193,9 @@
         (checking "compare ignores tangent parts" 100
                   [l sg/real, r sg/real]
                   (is (= (v/compare l r)
-                         (v/compare (d/bundle l 1 0) r))
-                      "differential on the left works.")
+                         (v/compare (d/bundle l 1 0) r)
+                         (v/compare l (d/bundle r 1 0)))
+                      "differential works on either side.")
 
                   (is (= (d/compare l r)
                          (d/compare (d/bundle l r 0) r)
@@ -198,11 +203,11 @@
                       "d/compare can handle non-differential on either side, also
                     ignores tangents.")
 
-                  (is (zero? (d/compare (d/bundle l r 0) l))
-                      "d/compare matches equals behavior, ignores tangents.")
-
-                  (is (zero? (d/compare l (d/bundle l r 0)))
-                      "d/compare matches equals behavior, ignores tangents."))
+                  (testing "{d,v}/compare l, l matches equals behavior, ignores tangents"
+                    (is (zero? (d/compare (d/bundle l r 0) l)))
+                    (is (zero? (d/compare l (d/bundle l r 0))))
+                    (is (zero? (v/compare (d/bundle l r 0) l)))
+                    (is (zero? (v/compare l (d/bundle l r 0))))))
 
         (checking "compare-full takes tags into account" 100
                   [l sg/real, r sg/real]
@@ -216,9 +221,10 @@
 
 (deftest differential-fn-tests
   (testing "differentials can take branches inside functions, PROVIDED (with
-            clojure.core/=) the perturbed variable is on the left!"
+            clojure.core/=) the perturbed variable is on the
+            left! (Clojurescript can handle equals on either side.)"
     (let [f (fn [x]
-              (let [g (if (= x 10)
+              (let [g (if #?(:clj (= x 10) :cljs (= 10 x))
                         (g/* x g/square)
                         (g/* x g/cube))]
                 (g x)))
