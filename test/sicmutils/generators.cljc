@@ -76,8 +76,27 @@
                long
                integer]))
 
+(def ratio
+  "Generates a small ratio (or integer) using gen/small-integer. Shrinks
+  toward simpler ratios, which may be larger or smaller."
+  (gen/fmap
+   (fn [[a b]] (r/rationalize a b))
+   (gen/tuple gen/small-integer (gen/fmap inc gen/nat))))
+
+(def big-ratio
+  (gen/let [n bigint
+            d bigint]
+    (let [d (if (v/zero? d)
+              (u/bigint 1)
+              d)]
+      (r/rationalize n d))))
+
+(def rational
+  (gen/one-of [any-integral ratio]))
+
 (def real
-  (gen/one-of [any-integral (reasonable-double)]))
+  (gen/one-of
+   [any-integral ratio (reasonable-double)]))
 
 (defn reasonable-real [bound]
   (let [bound    (core-long bound)
@@ -93,20 +112,8 @@
             i (reasonable-double)]
     (c/complex r i)))
 
-(def ratio
-  "Generates a small ratio (or integer) using gen/small-integer. Shrinks
-  toward simpler ratios, which may be larger or smaller."
-  (gen/fmap
-   (fn [[a b]] (r/rationalize a b))
-   (gen/tuple gen/small-integer (gen/fmap inc gen/nat))))
-
-(def big-ratio
-  (gen/let [n bigint
-            d bigint]
-    (let [d (if (v/zero? d)
-              (u/bigint 1)
-              d)]
-      (r/rationalize n d))))
+(def number
+  (gen/one-of [real complex]))
 
 ;; ## Symbolic
 
