@@ -23,7 +23,9 @@
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
             #?(:cljs [cljs.reader :refer [read-string]])
+            #?(:cljs [goog.array :as garray])
             [sicmutils.generators :as sg]
+            [sicmutils.ratio :as r]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -70,15 +72,16 @@
   (testing "kind"
     (is (= PersistentVector (v/kind [1 2])))))
 
-(deftest value-protocol-numbers
-  ;; These really want to be generative tests.
-  ;;
-  ;; TODO convert, once we sort out the cljs test.check story.
-  (is (v/zero? 0))
-  (is (v/zero? 0.0))
-  (is (not (v/zero? 1)))
-  (is (not (v/zero? 1.0)))
-  (is (v/zero? (v/zero-like 100)))
+(deftest numeric-value-protocol-tests
+  (checking "*-like properly coerce" 100
+            [n sg/number]
+            (is (v/zero? (v/zero-like n)))
+            (is (not (v/zero? (v/one-like n))))
+
+            (is (v/one? (v/one-like n)))
+            (is (not (v/one? (v/zero-like n))))
+
+            (is (v/identity? (v/identity-like n))))
 
   (testing "zero-like sticks with precision"
     (is (= 0 (v/zero-like 2)))
@@ -88,15 +91,13 @@
     (is (= 1 (v/one-like 1)))
     (is (= 1.0 (v/one-like 1.2))))
 
-  (is (v/one? 1))
-  (is (v/one? 1.0))
-  (is (v/one? (v/one-like 100)))
+  (checking "on non-rational reals, v/freeze is identity" 100
+            [n (gen/one-of [sg/any-integral (sg/reasonable-double)])]
+            (is (= n (v/freeze n))))
 
-  (is (not (v/one? 2)))
-  (is (not (v/one? 0.0)))
-
-  (is (= 10 (v/freeze 10)))
-  (is (v/numerical? 10))
+  (checking "all numbers are numerical" 100
+            [n sg/number]
+            (is (v/numerical? n)))
 
   (is (v/numerical? 'x)
       "Symbols are abstract numerical things.")
@@ -104,6 +105,14 @@
   (is (isa? (v/kind 10) ::v/real))
   (is (v/exact? 10))
   (is (not (v/exact? 10.1))))
+
+(deftest numeric-comparison-tests
+  (checking "v/compare matches <, >, = behavior for reals" 1000
+            [l sg/real, r sg/real]
+            (let [compare-bit (v/compare l r)]
+              (cond (< l r) (is (neg? compare-bit))
+                    (> l r) (is (pos? compare-bit))
+                    :else   (is (zero? compare-bit))))))
 
 (deftest zero-tests
   (is (v/zero? 0))

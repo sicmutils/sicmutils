@@ -66,7 +66,7 @@
 
   (checking "v/freeze" 100 [fsym gen/symbol
                             n sg/real]
-            (is (= (list fsym n)
+            (is (= (list fsym (v/freeze n))
                    (v/freeze ((af/literal-function fsym) n)))))
 
   (testing "v/kind returns ::v/function"

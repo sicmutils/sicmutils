@@ -96,6 +96,12 @@
     (is (v/numerical? (d/->Differential []))
         "An empty term list is interpreted as a 0-valued [[Differential]]."))
 
+  (checking "native comparison operators work with differential" 100
+            [l sg/real, r sg/real]
+            (is (= (v/compare l r)
+                   (v/compare (d/bundle l 1 0) r)
+                   (v/compare l (d/bundle r 1 0)))))
+
   (checking "v/numerical?" 100 [diff (sg/differential sg/real)]
             (is (v/numerical? diff)
                 "True for all differentials populated by v/numerical? things"))

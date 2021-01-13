@@ -29,6 +29,7 @@
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as sym]
+            [sicmutils.ratio :as r]
             [sicmutils.value :as v]))
 
 (def gen-literal-element
@@ -93,24 +94,59 @@
                         "cljs overrides equality, and can compare literals with
                         true numbers on the left side."))))))
 
-  (checking "interaction with symbols"
-            100
-            [x gen/symbol]
+  (checking "interaction with symbols" 100 [x gen/symbol]
             (is (not (an/literal-number? x))
                 "symbols are not literal-numbers")
 
             (is (an/abstract-number? x)
                 "Symbols ARE abstract numbers!"))
 
-  (checking "literal-number? behavior with numbers."
-            100
-            [x sg/native-integral]
+  (checking "literal-number? behavior with numbers." 100 [x sg/real]
             (let [n (an/literal-number x)]
               (is (an/literal-number? n)
                   "Any wrapped number returns true to literal-number?")
 
               (is (not (an/literal-number? x))
-                  "numbers are NOT explicit literal-numbers"))))
+                  "numbers are NOT explicit literal-numbers")))
+
+  (checking "`literal-number` is transparent to compare" 100
+            [l sg/real, r sg/real]
+            (is (= (v/compare l r)
+                   (v/compare (an/literal-number l) r)
+                   (v/compare l (an/literal-number r))
+                   (v/compare (an/literal-number l) (an/literal-number r)))))
+
+  (let [real-minus-rationals (gen/one-of [sg/any-integral (sg/reasonable-double)])]
+    (checking "`literal-number` is transparent to native comparison operators" 100
+              ;; NOTE: This is cased to NOT consider rational numbers for now.
+              [[l-num r-num] (gen/vector real-minus-rationals 2)]
+              (let [compare-bit (v/compare l-num r-num)]
+                (doall
+                 ;; NOTE: Only cljs can handle a native number on the left side of
+                 ;; a literal comparison operator. Once `v/<` and friends come
+                 ;; online, this will work with those versions.
+                 (for [l  #?(:cljs [l-num (an/literal-number l-num)]
+                             :clj [(an/literal-number l-num)])
+                       r  [r-num (an/literal-number r-num)]]
+                   (cond (neg? compare-bit)  (is (< l r))
+                         (zero? compare-bit) (is (and (<= l r) (= l r) (>= l r)))
+                         :else (is (> l r))))))))
+
+  #?(:cljs
+     (checking "`literal-number` implements valueOf properly" 100 [n sg/real]
+               (let [wrapped (an/literal-number n)]
+                 (is (not (v/real? wrapped)))
+                 (is (v/real? (.valueOf wrapped)))
+                 (if (r/ratio? n)
+                   (do (is (not= n (.valueOf wrapped))
+                           "ratios turn into doubles when you call valueOf, so
+                           the passthrough valueOf on literal-number kills
+                           equality."))
+                   (is (= n (.valueOf wrapped))
+                       "other real numbers respond the same way."))
+
+                 (is (= (.valueOf n) (.valueOf wrapped))
+                     "valueOf on both sides always matches.")))))
 
 (deftest abstract-number-tests
   (checking "literal-number"
@@ -548,9 +584,9 @@
               (if (v/zero? n)
                 (is (v/= sym (g/make-polar sym n))
                     "an exact zero returns the symbolic radius.")
-                (is (= `(~'* ~sym (~'+ (~'cos ~n)
+                (is (= `(~'* ~sym (~'+ (~'cos ~(v/freeze n))
                                    (~'* (~'complex 0.0 1.0)
-                                    (~'sin ~n))))
+                                    (~'sin ~(v/freeze n)))))
                        (v/freeze
                         (g/make-polar sym n)))
                     "otherwise, an exact numeric angle stays exact and is

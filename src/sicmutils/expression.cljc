@@ -69,6 +69,11 @@
 
   Object
   (toString [_] (str expression))
+  #?(:cljs
+     (valueOf [this]
+              (cond (number? expression)   expression
+                    (v/number? expression) (.valueOf expression)
+                    :else this)))
   #?(:clj
      (equals [a b]
              (if (instance? Literal b)
@@ -98,6 +103,12 @@
                         (= expression (.-expression b))
                         (= m (.-m b))))
                  (v/= a b)))
+
+       IComparable
+       (-compare [a b]
+                 (if (instance? Literal b)
+                   (-compare expression (.-expression ^Literal b))
+                   (-compare expression b)))
 
        IPrintWithWriter
        (-pr-writer
