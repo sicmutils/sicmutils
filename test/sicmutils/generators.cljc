@@ -95,6 +95,9 @@
 (def rational
   (gen/one-of [any-integral ratio]))
 
+(def real-without-ratio
+  (gen/one-of [any-integral (reasonable-double)]))
+
 (def real
   (gen/one-of
    [any-integral ratio (reasonable-double)]))
