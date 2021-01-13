@@ -112,7 +112,18 @@
             (let [compare-bit (v/compare l r)]
               (cond (neg? compare-bit) (is (< l r))
                     (pos? compare-bit) (is (> l r))
-                    :else (is (and (<= l r) (= l r) (>= l r)))))))
+                    :else (is (and (<= l r) (= l r) (>= l r))))))
+
+  #?(:clj
+     ;; This won't work in cljs because native `compare` can't handle the
+     ;; `Ratio`, `BigInt`, `Long` and `Integer` types that we've pulled in to
+     ;; the numeric tower. TODO: this is probably a bug in the latter two cases,
+     ;; since cljs claims to interop with those types nicely. Report if you
+     ;; like!
+     (checking "v/compare matches core/compare for reals" 100
+               [l sg/real, r sg/real]
+               (is (= (v/compare l r)
+                      (compare l r))))))
 
 (deftest zero-tests
   (is (v/zero? 0))

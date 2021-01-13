@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+- Added missing `identity?`, `identity-like` for complex and rational numbers
+  (#236)
+
+- beefed up the Javascript numeric tower to allow objects like
+  `sicmutils.differential/Differential`, `sicmutils.expression/Expression` and
+  friends that WRAP numbers to compare properly using cljs-native `<`, `<=`,
+  `=`, `>=` and `>` (#236)
+
+- new `sicmutils.value/compare` function exposed in `sicmutils.env` returns a
+  valid comparison bit between native numbers and numbers wrapped in
+  `Differential` or `Expression` in both JVM Clojure and Clojurescript (#236).
+  The behavior matches `clojure.core/compare` for all reals on the JVM; it
+  doesn't in Clojurescript because native `compare` can't handle
+  `goog.math.{Long,Integer}` or `js/BigInt`.
+
 - New single-arity case for `sicmutils.structure/opposite` returns an identical
   structure with flipped orientation (#220). acts as `identity` for
   non-structures.
