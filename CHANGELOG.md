@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+- #222 adds `v/Value` implementations for Clojure sequences and maps. Maps
+  implement `f/Arity` and return `[:exactly 1]`... this probably should be
+  `[:between 1 2]`, but we don't treat these well (yet) in clj-land. `zero?` and
+  `zero-like` work on sequence entries and map values. Maps can specify their
+  `v/kind` return value with a `:type` key, and some of the calculus
+  implementations do already make use of this feature. `g/partial-derivative` on
+  a Clojure Map passes through to its values.
+
 - New, literate `Differential` implementation lives at at
   `sicmutils.differential` (#221) (see [this
   page](https://samritchie.io/dual-numbers-and-automatic-differentiation/) for a
@@ -19,6 +27,15 @@
     See the [cljdoc page on Automatic
     Differentiation](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/calculus/automatic-differentiation)
     for more detail.
+
+    - #222 implements `d/IPerturbed` for Clojure maps, vectors and sequences;
+      all are now valid return types for functions you pass to `D`.
+
+      - #222 also implements `d/IPerturbed` for SICMUtils `Matrix`, `Structure`,
+      `Series`, `PowerSeries` and `Operator`.
+
+      - #223 implements `d/IPerturbed` for Clojure functions and multimethods,
+      handling the attendant subtlety that fixes "Alexey's Amazing Bug".
 
   - `sicmutils.differential/{lift-1,lift-2,lift-n}` allow you to make custom
     operations differentiable, provided you can supply a derivative.
