@@ -106,10 +106,9 @@
   (is (v/exact? 10))
   (is (not (v/exact? 10.1))))
 
-
 (deftest numeric-comparison-tests
-  (checking "v/compare matches <, >, = behavior for reals" 1000
-            [l sg/real, r sg/real]
+  (checking "v/compare matches <, >, = behavior for reals" 100
+            [[l r] (gen/vector sg/real-without-ratio 2)]
             (let [compare-bit (v/compare l r)]
               (cond (neg? compare-bit) (is (< l r))
                     (pos? compare-bit) (is (> l r))

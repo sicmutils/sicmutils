@@ -132,17 +132,16 @@
      ;; NOTE: JVM Clojure won't allow non-numbers on either side of < and
      ;; friends. Once we implement `v/<` we can duplicate this test for those
      ;; overridden versions, which should piggyback on compare.
-     (let [real-minus-rationals (gen/one-of [sg/any-integral (sg/reasonable-double)])]
-       (checking "`literal-number` is transparent to native comparison operators" 100
-                 ;; NOTE: This is cased to NOT consider rational numbers for now.
-                 [[l-num r-num] (gen/vector real-minus-rationals 2)]
-                 (let [compare-bit (v/compare l-num r-num)]
-                   (doall
-                    (for [l [l-num (an/literal-number l-num)]
-                          r [r-num (an/literal-number r-num)]]
-                      (cond (neg? compare-bit)  (is (< l r))
-                            (zero? compare-bit) (is (and (<= l r) (= l r) (>= l r)))
-                            :else (is (> l r)))))))))
+     (checking "`literal-number` is transparent to native comparison operators" 100
+               ;; NOTE: This is cased to NOT consider rational numbers for now.
+               [[l-num r-num] (gen/vector sg/real-without-ratio 2)]
+               (let [compare-bit (v/compare l-num r-num)]
+                 (doall
+                  (for [l [l-num (an/literal-number l-num)]
+                        r [r-num (an/literal-number r-num)]]
+                    (cond (neg? compare-bit)  (is (< l r))
+                          (zero? compare-bit) (is (and (<= l r) (= l r) (>= l r)))
+                          :else (is (> l r))))))))
 
   #?(:cljs
      (checking "`literal-number` implements valueOf properly" 100 [n sg/real]
