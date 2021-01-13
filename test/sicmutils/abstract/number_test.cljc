@@ -111,26 +111,38 @@
 
   (checking "`literal-number` is transparent to compare" 100
             [l sg/real, r sg/real]
-            (is (= (v/compare l r)
-                   (v/compare (an/literal-number l) r)
-                   (v/compare l (an/literal-number r))
-                   (v/compare (an/literal-number l) (an/literal-number r)))))
+            (let [compare-bit (v/compare l r)]
+              (is (= compare-bit
+                     (v/compare (an/literal-number l) r))
+                  "literal left, number right")
 
-  (let [real-minus-rationals (gen/one-of [sg/any-integral (sg/reasonable-double)])]
-    (checking "`literal-number` is transparent to native comparison operators" 100
-              ;; NOTE: This is cased to NOT consider rational numbers for now.
-              [[l-num r-num] (gen/vector real-minus-rationals 2)]
-              (let [compare-bit (v/compare l-num r-num)]
-                (doall
-                 ;; NOTE: Only cljs can handle a native number on the left side of
-                 ;; a literal comparison operator. Once `v/<` and friends come
-                 ;; online, this will work with those versions.
-                 (for [l  #?(:cljs [l-num (an/literal-number l-num)]
-                             :clj [(an/literal-number l-num)])
-                       r  [r-num (an/literal-number r-num)]]
-                   (cond (neg? compare-bit)  (is (< l r))
-                         (zero? compare-bit) (is (and (<= l r) (= l r) (>= l r)))
-                         :else (is (> l r))))))))
+              (is (= compare-bit
+                     (v/compare l (an/literal-number r)))
+                  "number left, literal right")
+
+              (is (= compare-bit
+                     (v/compare (an/literal-number l) (an/literal-number r)))
+                  "literal on both sides")))
+
+  #?(:cljs
+     (testing "comparison unit"
+       (is (= 0 (an/literal-number 0)))))
+
+  #?(:cljs
+     ;; NOTE: JVM Clojure won't allow non-numbers on either side of < and
+     ;; friends. Once we implement `v/<` we can duplicate this test for those
+     ;; overridden versions, which should piggyback on compare.
+     (let [real-minus-rationals (gen/one-of [sg/any-integral (sg/reasonable-double)])]
+       (checking "`literal-number` is transparent to native comparison operators" 100
+                 ;; NOTE: This is cased to NOT consider rational numbers for now.
+                 [[l-num r-num] (gen/vector real-minus-rationals 2)]
+                 (let [compare-bit (v/compare l-num r-num)]
+                   (doall
+                    (for [l [l-num (an/literal-number l-num)]
+                          r [r-num (an/literal-number r-num)]]
+                      (cond (neg? compare-bit)  (is (< l r))
+                            (zero? compare-bit) (is (and (<= l r) (= l r) (>= l r)))
+                            :else (is (> l r)))))))))
 
   #?(:cljs
      (checking "`literal-number` implements valueOf properly" 100 [n sg/real]

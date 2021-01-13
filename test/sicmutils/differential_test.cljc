@@ -102,6 +102,28 @@
                    (v/compare (d/bundle l 1 0) r)
                    (v/compare l (d/bundle r 1 0)))))
 
+  #?(:cljs
+     (testing "comparison unit tests"
+       (is (= 0 (d/bundle 0 1 0)))
+       (is (= (u/bigint 0) (d/bundle 0 1 0)))
+       (is (= (u/long 0) (d/bundle 0 1 0)))
+       (is (= (u/int 0) (d/bundle 0 1 0)))))
+
+  #?(:cljs
+     ;; NOTE: JVM Clojure won't allow non-numbers on either side of < and
+     ;; friends. Once we implement `v/<` we can duplicate this test for those
+     ;; overridden versions, which should piggyback on compare.
+     (let [real-minus-rationals (gen/one-of [sg/any-integral (sg/reasonable-double)])]
+       (checking "[[Differential]] is transparent to native comparison operators" 100
+                 [[l-num r-num] (gen/vector real-minus-rationals 2)]
+                 (let [compare-bit (v/compare l-num r-num)]
+                   (doall
+                    (for [l [l-num (d/bundle l-num 1 0)]
+                          r [r-num (d/bundle r-num 1 0)]]
+                      (cond (neg? compare-bit)  (is (< l r))
+                            (zero? compare-bit) (is (and (<= l r) (= l r) (>= l r)))
+                            :else (is (> l r)))))))))
+
   (checking "v/numerical?" 100 [diff (sg/differential sg/real)]
             (is (v/numerical? diff)
                 "True for all differentials populated by v/numerical? things"))
@@ -219,8 +241,8 @@
               (is (= (g/* (apply g/- xs) dx) ts)
                   "tangent part keeps its dx, but applies fn")
 
-              (is (= (d/extract-tangent diff 0)
-                     (d/extract-tangent ts 0))
+              (is (== (d/extract-tangent diff 0)
+                      (d/extract-tangent ts 0))
                   "the tangent extracted from the tangent-part is identical to
                    the `extract-tangent` of the full diff")))
 

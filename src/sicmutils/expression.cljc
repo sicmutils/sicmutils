@@ -86,7 +86,13 @@
   #?@(:clj
       [IObj
        (meta [_] m)
-       (withMeta [_ meta] (Literal. type expression meta))]
+       (withMeta [_ meta] (Literal. type expression meta))
+
+       Comparable
+       (compareTo [_ b]
+                  (if (instance? Literal b)
+                    (v/compare expression (.-expression ^Literal b))
+                    (v/compare expression b)))]
 
       :cljs
       [IMeta

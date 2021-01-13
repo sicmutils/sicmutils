@@ -271,20 +271,20 @@
        number
        (-equiv [this other]
          (cond (core-number? other) (identical? this other)
-               (numerical? other)   (= this other)
+               (numerical? other)   (= this (.valueOf other))
                :else false))
 
        goog.math.Integer
        (-equiv [this other]
          (if (core= goog.math.Integer (type other))
            (.equals this other)
-           (= this other)))
+           (= this (.valueOf other))))
 
        goog.math.Long
        (-equiv [this other]
          (if (core= goog.math.Long (type other))
            (.equals this other)
-           (= this other))))))
+           (= this (.valueOf other)))))))
 
 #?(:cljs
    (extend-type js/BigInt
@@ -406,7 +406,19 @@
   (let [k (kind x)]
     (fn [x2] (isa? (kind x2) k))))
 
-#?(:clj (import-def core-compare)
+#?(:clj
+   (defn compare
+     "Comparator. Returns a negative number, zero, or a positive number
+  when x is logically 'less than', 'equal to', or 'greater than'
+  y. Same as Java x.compareTo(y) except it also works for nil, and
+  compares numbers and collections in a type-independent manner. x
+  must implement Comparable"
+     [x y]
+     (if (core-number? x)
+       (if (core-number? y)
+         (core-compare x y)
+         (- (core-compare y x)))
+       (core-compare x y)))
    :cljs
    (defn ^number compare
      "Comparator. Clone of [[cljs.core/compare]] that works with the expanded

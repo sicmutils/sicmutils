@@ -110,9 +110,9 @@
   (checking "v/compare matches <, >, = behavior for reals" 1000
             [l sg/real, r sg/real]
             (let [compare-bit (v/compare l r)]
-              (cond (< l r) (is (neg? compare-bit))
-                    (> l r) (is (pos? compare-bit))
-                    :else   (is (zero? compare-bit))))))
+              (cond (neg? compare-bit) (is (< l r))
+                    (pos? compare-bit) (is (> l r))
+                    :else (is (and (<= l r) (= l r) (>= l r)))))))
 
 (deftest zero-tests
   (is (v/zero? 0))
