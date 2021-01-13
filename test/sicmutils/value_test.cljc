@@ -106,13 +106,26 @@
   (is (v/exact? 10))
   (is (not (v/exact? 10.1))))
 
+
 (deftest numeric-comparison-tests
   (checking "v/compare matches <, >, = behavior for reals" 1000
             [l sg/real, r sg/real]
             (let [compare-bit (v/compare l r)]
               (cond (neg? compare-bit) (is (< l r))
                     (pos? compare-bit) (is (> l r))
-                    :else (is (and (<= l r) (= l r) (>= l r))))))
+                    :else (is (and (<= l r)
+                                   ;; NOTE: Another strange observation. == is
+                                   ;; supposed to call out to equiv, but it
+                                   ;; seems like it gets inlined with the
+                                   ;; current value of `-equiv` at call time.
+                                   ;; Invoking the var gets around this.
+                                   #?(:clj (== l r) :cljs (#'== l r))
+
+                                   ;; NOTE: clojure can't compare float and int
+                                   ;; with =, so this is special-cased to only
+                                   ;; make this `=` check for cljs.
+                                   #?(:cljs (= l r) :clj true)
+                                   (>= l r))))))
 
   #?(:clj
      ;; This won't work in cljs because native `compare` can't handle the
