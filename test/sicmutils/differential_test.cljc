@@ -163,7 +163,8 @@
                 (is (v/identity? (v/identity-like diff))))
 
       (testing "equality, comparison"
-        (checking "=, equiv ignore tangent parts" 100 [n sg/real]
+        (checking "=, equiv ignore tangent parts" 100
+                  [n sg/real-without-ratio]
                   (is (= (d/bundle n 1 0) n)
                       "differential on the left works.")
 
@@ -211,11 +212,11 @@
 
         (checking "compare-full takes tags into account" 100
                   [l sg/real, r sg/real]
-                  (is (= 1 (d/compare-full (d/bundle l 1 0) l))
+                  (is (pos? (d/compare-full (d/bundle l 1 0) l))
                       "a [[Differential]] with a positive tangent is ALWAYS
                     greater than a non-[[Differential]] whatever the tangent.")
 
-                  (is (= -1 (d/compare-full l (d/bundle l 1 0)))
+                  (is (neg? (d/compare-full l (d/bundle l 1 0)))
                       "a [[Differential]] with a positive tangent is ALWAYS
                     greater than a non-[[Differential]] whatever the tangent."))))))
 
