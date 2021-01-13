@@ -160,8 +160,8 @@
 
         (checking "compare ignores tangent parts" 100
                   [l sg/real, r sg/real]
-                  (is (= (compare l r)
-                         (compare (d/bundle l 1 0) r))
+                  (is (= (v/compare l r)
+                         (v/compare (d/bundle l 1 0) r))
                       "differential on the left works.")
 
                   (is (= (d/compare l r)

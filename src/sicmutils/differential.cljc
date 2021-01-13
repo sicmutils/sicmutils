@@ -491,7 +491,7 @@
            (empty? ys) (into result xs)
            :else (let [[x-tags x-coef :as x] (first xs)
                        [y-tags y-coef :as y] (first ys)
-                       compare-flag (core-compare x-tags y-tags)]
+                       compare-flag (v/compare x-tags y-tags)]
                    (cond
                      ;; If the terms have the same tag set, add the coefficients
                      ;; together. Include the term in the result only if the new
@@ -1098,7 +1098,7 @@
 
   Acts as [[clojure.core/compare]] for non-differentials."
   [a b]
-  (core-compare
+  (v/compare
    (->terms a)
    (->terms b)))
 
@@ -1127,7 +1127,7 @@
 
   Acts as [[clojure.core/compare]] for non-differentials."
   [a b]
-  (core-compare
+  (v/compare
    (finite-term a)
    (finite-term b)))
 

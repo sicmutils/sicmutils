@@ -20,11 +20,14 @@
 (ns sicmutils.value
   (:refer-clojure :rename {zero? core-zero?
                            number? core-number?
-                           = core=}
-                  #?@(:cljs [:exclude [zero? number? =]]))
+                           = core=
+                           compare core-compare}
+                  #?@(:cljs [:exclude [zero? number? = compare]]))
   (:require [sicmutils.util :as u]
+            #?(:clj [potemkin :refer [import-def]])
             #?@(:cljs
-                [[goog.math.Long]
+                [[goog.array :as garray]
+                 [goog.math.Long]
                  [goog.math.Integer]]))
   #?(:clj
      (:import (clojure.lang BigInt PersistentVector Sequential Symbol))))
@@ -300,17 +303,25 @@
 
 #?(:cljs
    (extend-protocol IComparable
+     number
+     (-compare [this other]
+       (garray/defaultCompare this other))
+
+     js/BigInt
+     (-compare [this other]
+       (garray/defaultCompare this other))
+
      goog.math.Integer
      (-compare [this other]
-       (if (core-number? other)
-         (.compare this (u/int other))
-         (.compare this other)))
+       (if (instance? goog.math.Integer other)
+         (.compare this other)
+         (garray/defaultCompare this other)))
 
      goog.math.Long
      (-compare [this other]
-       (if (core-number? other)
-         (.compare this (u/long other))
-         (.compare this other)))))
+       (if (instance? goog.math.Long other)
+         (.compare this other)
+         (garray/defaultCompare this other)))))
 
 #?(:cljs
    ;; Clojurescript-specific implementations of Value.
@@ -372,6 +383,31 @@
   [x]
   (let [k (kind x)]
     (fn [x2] (isa? (kind x2) k))))
+
+#?(:clj (import-def core-compare)
+   :cljs
+   (defn ^number compare
+     "Comparator. Clone of [[cljs.core/compare]] that works with the expanded
+  SICMUtils numeric tower by removing the special-case branch for numbers.
+
+  Returns a negative number, zero, or a positive number when x is logically
+  'less than', 'equal to', or 'greater than' y. Uses IComparable if available
+  and google.array.defaultCompare for objects of the same type and special-cases
+  nil to be less than any other object."
+     [x y]
+     (cond
+       (identical? x y) 0
+       (nil? x)         -1
+       (nil? y)         1
+
+       (satisfies? IComparable x)
+       (-compare x y)
+
+       :else
+       (if (and (or (string? x) (array? x) (true? x) (false? x))
+                (identical? (type x) (type y)))
+         (garray/defaultCompare x y)
+         (throw (js/Error. (str "Cannot compare " x " to " y)))))))
 
 (defn add-object-symbols!
   [o->syms]
