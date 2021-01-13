@@ -96,6 +96,34 @@
     (is (v/numerical? (d/->Differential []))
         "An empty term list is interpreted as a 0-valued [[Differential]]."))
 
+  (checking "native comparison operators work with differential" 100
+            [l sg/real, r sg/real]
+            (is (= (v/compare l r)
+                   (v/compare (d/bundle l 1 0) r)
+                   (v/compare l (d/bundle r 1 0)))))
+
+  #?(:cljs
+     (testing "comparison unit tests"
+       (is (= 0 (d/bundle 0 1 0)))
+       (is (= (u/bigint 0) (d/bundle 0 1 0)))
+       (is (= (u/long 0) (d/bundle 0 1 0)))
+       (is (= (u/int 0) (d/bundle 0 1 0)))))
+
+  #?(:cljs
+     ;; NOTE: JVM Clojure won't allow non-numbers on either side of < and
+     ;; friends. Once we implement `v/<` we can duplicate this test for those
+     ;; overridden versions, which should piggyback on compare.
+     (let [real-minus-rationals (gen/one-of [sg/any-integral (sg/reasonable-double)])]
+       (checking "[[Differential]] is transparent to native comparison operators" 100
+                 [[l-num r-num] (gen/vector real-minus-rationals 2)]
+                 (let [compare-bit (v/compare l-num r-num)]
+                   (doall
+                    (for [l [l-num (d/bundle l-num 1 0)]
+                          r [r-num (d/bundle r-num 1 0)]]
+                      (cond (neg? compare-bit)  (is (< l r))
+                            (zero? compare-bit) (is (and (<= l r) (= l r) (>= l r)))
+                            :else (is (> l r)))))))))
+
   (checking "v/numerical?" 100 [diff (sg/differential sg/real)]
             (is (v/numerical? diff)
                 "True for all differentials populated by v/numerical? things"))
@@ -139,6 +167,10 @@
                   (is (= (d/bundle n 1 0) n)
                       "differential on the left works.")
 
+                  #?(:cljs
+                     (is (= n (d/bundle n 1 0))
+                         "differential on the right works in CLJS."))
+
                   (is (d/equiv (d/bundle n 1 0) n n (d/bundle n 1 0) n)
                       "d/equiv matches = behavior, varargs"))
 
@@ -160,9 +192,10 @@
 
         (checking "compare ignores tangent parts" 100
                   [l sg/real, r sg/real]
-                  (is (= (compare l r)
-                         (compare (d/bundle l 1 0) r))
-                      "differential on the left works.")
+                  (is (= (v/compare l r)
+                         (v/compare (d/bundle l 1 0) r)
+                         (v/compare l (d/bundle r 1 0)))
+                      "differential works on either side.")
 
                   (is (= (d/compare l r)
                          (d/compare (d/bundle l r 0) r)
@@ -170,11 +203,11 @@
                       "d/compare can handle non-differential on either side, also
                     ignores tangents.")
 
-                  (is (zero? (d/compare (d/bundle l r 0) l))
-                      "d/compare matches equals behavior, ignores tangents.")
-
-                  (is (zero? (d/compare l (d/bundle l r 0)))
-                      "d/compare matches equals behavior, ignores tangents."))
+                  (testing "{d,v}/compare l, l matches equals behavior, ignores tangents"
+                    (is (zero? (d/compare (d/bundle l r 0) l)))
+                    (is (zero? (d/compare l (d/bundle l r 0))))
+                    (is (zero? (v/compare (d/bundle l r 0) l)))
+                    (is (zero? (v/compare l (d/bundle l r 0))))))
 
         (checking "compare-full takes tags into account" 100
                   [l sg/real, r sg/real]
@@ -188,9 +221,10 @@
 
 (deftest differential-fn-tests
   (testing "differentials can take branches inside functions, PROVIDED (with
-            clojure.core/=) the perturbed variable is on the left!"
+            clojure.core/=) the perturbed variable is on the
+            left! (Clojurescript can handle equals on either side.)"
     (let [f (fn [x]
-              (let [g (if (= x 10)
+              (let [g (if #?(:clj (= x 10) :cljs (= 10 x))
                         (g/* x g/square)
                         (g/* x g/cube))]
                 (g x)))
@@ -213,8 +247,8 @@
               (is (= (g/* (apply g/- xs) dx) ts)
                   "tangent part keeps its dx, but applies fn")
 
-              (is (= (d/extract-tangent diff 0)
-                     (d/extract-tangent ts 0))
+              (is (== (d/extract-tangent diff 0)
+                      (d/extract-tangent ts 0))
                   "the tangent extracted from the tangent-part is identical to
                    the `extract-tangent` of the full diff")))
 

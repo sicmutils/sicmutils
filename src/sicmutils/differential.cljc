@@ -491,7 +491,7 @@
            (empty? ys) (into result xs)
            :else (let [[x-tags x-coef :as x] (first xs)
                        [y-tags y-coef :as y] (first ys)
-                       compare-flag (core-compare x-tags y-tags)]
+                       compare-flag (v/compare x-tags y-tags)]
                    (cond
                      ;; If the terms have the same tag set, add the coefficients
                      ;; together. Include the term in the result only if the new
@@ -567,7 +567,7 @@
 ;; Now the actual type. The `terms` field is a term-list vector that will
 ;; remain (contractually!) sorted by its list of tags.
 
-(declare d:apply compare equiv from-terms one?)
+(declare d:apply compare equiv finite-term from-terms one?)
 
 (deftype Differential [terms]
   ;; A [[Differential]] as implemented can act as a chain-rule accounting device
@@ -638,6 +638,7 @@
   ;; If you want to compare two instances using their full term lists,
   ;; See [[eq]].
   #?(:clj (equals [a b] (equiv a b)))
+  #?(:cljs (valueOf [this] (.valueOf (finite-term this))))
   (toString [_] (str "D[" (join " " (map #(join " → " %) terms)) "]"))
 
   ;; Because a [[Differential]] is an accounting device that augments other
@@ -1029,7 +1030,7 @@
   (if (differential? dx)
     (let [[head] (bare-terms dx)
           ts     (tags head)]
-      (if (= [] ts)
+      (if (empty? ts)
         (coefficient head)
         0))
     dx))
@@ -1098,7 +1099,7 @@
 
   Acts as [[clojure.core/compare]] for non-differentials."
   [a b]
-  (core-compare
+  (v/compare
    (->terms a)
    (->terms b)))
 
@@ -1127,7 +1128,7 @@
 
   Acts as [[clojure.core/compare]] for non-differentials."
   [a b]
-  (core-compare
+  (v/compare
    (finite-term a)
    (finite-term b)))
 
