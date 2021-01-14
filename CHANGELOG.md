@@ -2,9 +2,8 @@
 
 ## [Unreleased]
 
-- #222 adds `v/Value` implementations for Clojure sequences and maps. Maps
-  implement `f/Arity` and return `[:exactly 1]`... this probably should be
-  `[:between 1 2]`, but we don't treat these well (yet) in clj-land. `zero?` and
+- #222 adds `v/Value` implementations for Clojure sequences and maps. Maps and
+  vectors implement `f/Arity` and return `[:between 1 2]. `zero?` and
   `zero-like` work on sequence entries and map values. Maps can specify their
   `v/kind` return value with a `:type` key, and some of the calculus
   implementations do already make use of this feature. `g/partial-derivative` on

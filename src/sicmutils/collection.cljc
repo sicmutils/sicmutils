@@ -50,12 +50,13 @@
   (freeze [v] (mapv v/freeze v))
   (kind [v] (type v))
 
-  ;; Another difference from [[sicmutils.structure/Structure]] is that a structure
-  ;; of functions acts as a function itself that applies its entries to its
-  ;; arguments. Vectors already implement IFn (they take an index and look it up),
-  ;; so they can't respond the same way as a structure via arity.
+  ;; Another difference from [[sicmutils.structure/Structure]] is that a
+  ;; structure of functions acts as a function itself that applies its entries
+  ;; to its arguments. Vectors already implement IFn (they take an index and
+  ;; look it up), so they can't respond the same way as a structure via
+  ;; arity. (the `2` arity takes an additional default value.)
   f/IArity
-  (arity [v] [:exactly 1])
+  (arity [v] [:between 1 2])
 
   ;; Vectors are functors, so they can be perturbed if any of their elements are
   ;; perturbed. [[d/replace-tag]] and [[d/extract-tangent]] pass the buck down
@@ -131,7 +132,7 @@
      (kind [m] (:type m (type m)))
 
      f/IArity
-     (arity [m] [:exactly 1])
+     (arity [m] [:between 1 2])
 
      d/IPerturbed
      (perturbed? [m] (boolean (some d/perturbed? (vals m))))
