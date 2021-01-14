@@ -66,6 +66,14 @@
   #?(:clj (core-bigint x)
      :cljs (js/BigInt x)))
 
+(defn ^boolean bigint?
+  "Returns true if the supplied `x` is a `BigInt`, false otherwise."
+  [x]
+  #?(:clj (instance? BigInt x)
+     :cljs (if-not (nil? x)
+             (identical? (.-constructor x) js/BigInt)
+             false)))
+
 (defn parse-bigint [x]
   `(bigint ~x))
 

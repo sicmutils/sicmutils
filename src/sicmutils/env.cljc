@@ -22,8 +22,9 @@
    bring all the functions in the book into scope without qualification,
    so you can just start working with examples."
   (:refer-clojure :rename {ref core-ref
-                           partial core-partial}
-                  :exclude [+ - * / zero? #?(:cljs partial)])
+                           partial core-partial
+                           compare core-compare}
+                  :exclude [+ - * / zero? compare #?(:cljs partial)])
   (:require #?(:clj [potemkin :refer [import-vars]])
             #?(:clj [nrepl.middleware.print])
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
@@ -355,6 +356,6 @@
  [sicmutils.numerical.minimize minimize multidimensional-minimize]
  [sicmutils.util.aggregate sum]
  [sicmutils.util.stream vector:generate]
- [sicmutils.value exact? zero? one? identity?
+ [sicmutils.value compare exact? zero? one? identity?
   zero-like one-like identity-like
   numerical? freeze kind kind-predicate])

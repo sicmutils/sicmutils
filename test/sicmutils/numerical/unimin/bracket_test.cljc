@@ -73,8 +73,8 @@
 (defn quadratic-bracket [minimize maximize suffix]
   (checking (str "bracket-{min,max}" suffix " properly brackets a quadratic")
             100
-            [lower gen/large-integer
-             upper  gen/large-integer
+            [lower  gen/small-integer
+             upper  gen/small-integer
              offset gen/small-integer]
             (let [upper (if (= lower upper) (inc lower) upper)
                   min-f (fn [x] (g/square (- x offset)))]
