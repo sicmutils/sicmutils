@@ -60,10 +60,10 @@
                   "Kind reflects type back out."))
 
     (testing "v/one-like, v/identity-like throw"
-      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+      (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
                    (v/one-like [1 2 3])))
 
-      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+      (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
                    (v/identity-like {:k "v"}))))
 
     (checking "v/exact?" 100
@@ -128,10 +128,10 @@
                    TODO should this in value, with ::v/function and friends?"))
 
     (testing "v/one-like, v/identity-like throw"
-      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+      (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
                    (v/one-like {:k "v"})))
 
-      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+      (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
                    (v/identity-like {:k "v"}))))
 
     (checking "v/exact?" 100
