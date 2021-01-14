@@ -243,7 +243,7 @@
             (let [dx      (d/bundle 0 1 0)
                   diff    (apply (d/bundle g/+ g/- 0) xs)
                   [ps ts] (d/primal-tangent-pair diff)]
-              (is (= (apply g/+ xs) ps)
+              (is (== (apply g/+ xs) ps)
                   "primal passes through")
               (is (= (g/* (apply g/- xs) dx) ts)
                   "tangent part keeps its dx, but applies fn")
