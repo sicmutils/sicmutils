@@ -76,7 +76,7 @@
 ;; function so that:
 ;;
 ;; - it extracts the originally-asked-for tag when someone eventually calls the
-;;   function!
+;;   function
 ;;
 ;; - if some caller passes a new [[d/Differential]] instance into the function,
 ;;   any tags in that [[d/Differential]] will survive on their way back out...
@@ -85,71 +85,118 @@
 ;; We do this by:
 ;;
 ;; - replacing any instance of the original `tag` in the returned fn's arguments
-;;   with a fresh, temporary tag;
-
-;; - calling the function and extracting `tag`, as requested (note now that the only instances of `tag`)
+;;   with a temporary tag, (let's call it `fresh`)
+;; - calling the function and extracting `tag`, as requested (note now that the
+;;   only instances of `tag` that can appear in the result come from variables
+;;   captured in the function's close)
+;; - remapping `fresh` back to `tag`.
 ;;
-;; NOTE: I think there is still a lurking bug here! If some functional input
-;; PRODUCES a captured perturbation with `tag`, that ALSO needs to get remapped
-;; on the way out of any internal call. And then mapped BACK again if it escapes
-;; this function, after extraction.
+;; This last step ensures that any input tagged with `tag` can make it back out
+;; without tangling with closure-captured `tag` instances that some higher level
+;; might want.
+;;
+;; NOTE (@sritchie): I think there is still a lurking bug here! If some
+;; functional input PRODUCES a captured perturbation with `tag`, that ALSO needs
+;; to get remapped on the way out of any internal call. And then mapped BACK
+;; again if it escapes this function, after extraction. See `sams-amazing-bug`
+;; and [Discussion #237](https://github.com/sicmutils/sicmutils/discussions/237)
+;; for more detail and color about this problem.
 
 (defn- extract-tangent-fn
-  ([f tag]
-   (extract-tangent-fn f tag {}))
-  ([f tag meta]
-   (-> (fn [& args]
-         (let [fresh (d/fresh-tag)]
-           (-> (apply f (map #(d/replace-tag % tag fresh) args))
-               (d/extract-tangent tag)
-               (d/replace-tag fresh tag))))
-       (f/with-arity (f/arity f) meta))))
+  "Returns a new function that composes a 'tag extraction' step with `f`. The
+  returned fn will
+
+  - call the underlying `f`, producing `result`
+  - return `(extract-tangent result tag)`
+
+  The returned function will also remap any instance of `tag` that appears in
+  any differential argument passed to it to a private `fresh` tag, to prevent
+  internal perturbation confusion. Any `fresh` instances that appear in the
+  output will be remapped in the final result back to `tag`."
+  [f tag]
+  (-> (fn [& args]
+        (let [fresh (d/fresh-tag)]
+          (-> (apply f (map #(d/replace-tag % tag fresh) args))
+              (d/extract-tangent tag)
+              (d/replace-tag fresh tag))))
+      (f/with-arity (f/arity f))))
+
+;; Note that the tag-remapping that the docstring for `extract-tag-fn` describes
+;; might _also_ have to apply to a functional argument.
+;;
+;; `replace-tag` on a function is meant to be a `replace-tag` call applied to
+;; the function's _output_. To prevent perturbation confusion inside the
+;; function, we perform a similar remapping of any occurrence of `tag` in the
+;; function's arguments.
 
 (defn- replace-tag-fn
-  ([f old new]
-   (replace-tag-fn f old new {}))
-  ([f old new meta]
-   (-> (fn [& args]
-         (let [fresh (d/fresh-tag)
-               args  (map #(d/replace-tag % old fresh) args)]
-           (-> (apply f args)
-               (d/replace-tag old new)
-               (d/replace-tag fresh old))))
-       (f/with-arity (f/arity f) meta))))
+  "Returns a new function that composes a 'tag replacement' step with `f`. The
+  returned fn will:
+
+  - call the underlying `f`, producing `result`
+  - return `(replace-tag result old new)`
+
+
+  ;; - make a fresh tag, and replace all `old` tags with `fresh` in the inputs
+  ;; - call `f`, producing `result`
+  ;; - return `(replace-tag result old new)`
+  ;; - remap any leaked `fresh` in the result back to `old`
+
+  The returned function will also remap any instance of `old` that appears in
+  any differential argument passed to it to a private `fresh` tag, to prevent
+  internal perturbation confusion. Any `fresh` instances that appear in the
+  output will be remapped in the final result back to `old`.
+
+  NOTE: `new` instances can also leak out! See [Discussion
+  #237](https://github.com/sicmutils/sicmutils/discussions/237)
+  and [[sicmutils.calculus.derivative-test/sams-amazing-bug]] for a particularly
+  subtle example. This seems like a form of perturbation confusion that we need
+  to address."
+  [f old new]
+  (-> (fn [& args]
+        (let [fresh (d/fresh-tag)
+              args  (map #(d/replace-tag % old fresh) args)]
+          (-> (apply f args)
+              (d/replace-tag old new)
+              (d/replace-tag fresh old))))
+      (f/with-arity (f/arity f))))
+
+;; ## Protocol Implementation
+;;
+;; The implementation for functions handles functions, multimethods, and, in
+;; CLJS, MetaFns. Metadata in the original function is preserved by tag
+;; replacement and extraction.
 
 (extend-protocol d/IPerturbed
   #?(:clj Fn :cljs function)
   (perturbed? [f]
     #?(:clj (:perturbed? (meta f) false)
        :cljs false))
-  (replace-tag [f old new]
-    #?(:clj (replace-tag-fn f old new (meta f))
-       :cljs (replace-tag-fn f old new)))
-  (extract-tangent [f tag]
-    #?(:clj  (extract-tangent-fn f tag (meta f))
-       :cljs (extract-tangent-fn f tag)))
+  (replace-tag [f old new] (replace-tag-fn f old new))
+  (extract-tangent [f tag] (extract-tangent-fn f tag))
 
   #?@(:cljs
       [MetaFn
        (perturbed? [f] (:perturbed? (.-meta f) false))
        (replace-tag [f old new]
-                    (replace-tag-fn
-                     (.-afn f) old new (.-meta f)))
+                    (replace-tag-fn (.-afn f) old new))
        (extract-tangent [f tag]
-                        (extract-tangent-fn
-                         (.-afn f) tag (.-meta f)))])
+                        (extract-tangent-fn (.-afn f) tag))])
 
   MultiFn
+  (perturbed? [f] false)
   (replace-tag [f old new] (replace-tag-fn f old new))
   (extract-tangent [f tag] (extract-tangent-fn f tag)))
+
+
+
+;; ## Single and Multivariable Calculus
 
 (defn derivative [f]
   (let [tag (d/fresh-tag)]
     (fn [x]
       (-> (f (d/bundle x 1 tag))
           (d/extract-tangent tag)))))
-
-;; ## Multivariable Calculus
 
 (defn- euclidean-structure [selectors f]
   (letfn [(structural-derivative [g v]

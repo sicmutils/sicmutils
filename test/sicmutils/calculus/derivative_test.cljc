@@ -435,9 +435,71 @@
                  (wrapped-d-hat
                   (wrapped-d-hat (wrap exp)))) 1)))))))
 
+(deftest sams-amazing-bug
+  ;; This `deftest` holds an example of the... bug? strange behavior? described
+  ;; by https://github.com/sicmutils/sicmutils/discussions/237.
+  ;;
+  ;; GJS came up with the nice idea of using a `literal-function` to make the
+  ;; discrepancy very claer.
+  (testing "D on a higher-order function responds differently to evaluations
+  inside a continuation vs outside."
+    (let [
+          ;; Make some literal function that takes TWO inputs:
+          a (af/literal-function 'a '(-> (X Real Real) Real))
+
+          ;; (D f) returns a function that takes a continuation that received
+          ;; two functions, `f1` and `f2`:
+          ;;
+          ;; - `f1` passes `x` (the arg that `D` is with respect to) and `y`,
+          ;;    its argument, into the literal function
+          ;; - `f2` passes its captive `x` into its argument `g`, a function
+          f (fn [x]
+              (fn [cont]
+                (cont (fn f1 [y] (a x y))
+                      (fn f2 [g] (g x)))))]
+
+      ;; If you pass a continuation that feeds `f1` into `f2`, internally this
+      ;; is the same as feeding the captured `x` into the body of `f1`. In fact,
+      ;; you get the same result as IF you'd made the replacement of `x` for `y`
+      ;; in the body of `f1` BEFORE taking the derivative!
+      (is (= '(+ (((partial 0) a) t t)
+                 (((partial 1) a) t t))
+
+             (g/simplify
+              ((D (fn [t] (a t t))) 't))
+
+             (g/simplify
+              (((D f) 't)
+               (fn [f1 f2] (f2 f1)))))
+          "All three cases identically sub `x` into the body of `f1` before
+          taking the derivative.")
+
+      ;; If instead you pass `list` as a continuation, to effectively get `f1`
+      ;; and `f2` OUT before you call `(f2 f1)`, then you instead see a "mixed
+      ;; partial" result. This is the same as if:
+      ;;
+      ;; - `f1` was bound to `(D f1)` with respect to `x`
+      ;; - you passed `(D f1)` as `g` into `Df2 == ((D g) x)`, noting that `(D
+      ;;   g)` here is the derivative of `g` with respect to ITS argument.
+      ;;
+      ;; This is confusing, so see
+      ;; https://github.com/sicmutils/sicmutils/discussions/237 for a longer
+      ;; discussion.
+      (let [[f1 f2] (((D f) 't) list)]
+        (is (= '(((partial 1) ((partial 0) a)) t t)
+               (g/simplify
+                (f2 f1)))
+            "If you first get `f1` and `f2` out and THEN call (f2 f1), you see a
+            mixed partial instead.")))))
+
 (deftest dvl-bug-examples
-  ;; These tests all come from Alexey Radul's
+  ;; These tests and comments all come from Alexey Radul's
   ;; https://github.com/axch/dysvunctional-language. Thanks, Alexey!
+
+  ;; NOTE from sritchie - amazing bugs two and three listed here are more
+  ;; complicated (to me) versions of the thing that's exposed in
+  ;; `sams-amazing-bug` above. I don't buy the comments, but I'm including them
+  ;; for completeness, since maybe they will provide a clue about the fix.
 
   (testing "amazing bug two"
     ;; What should happen if we differentiate a function that returns a pair of
@@ -455,30 +517,18 @@
                 (let [[g-hat f-hat] ((D f) 3)]
                   ((f-hat g-hat) Math/PI))))))
 
-  (testing "sam's amazing bug."
-    (let [f (fn [x]
-              (fn [cont]
-                (cont
-                 (fn [y] (* x y))
-                 (fn [g] (g x)))))]
-      ;; (D f) is
-      ;; (fn [cont] (cont (fn [y] (+ x y)) (fn [g] (g x))))
-      ;;
-      ;; `f2` passes `x` into its argument.
-      (is (= 10 (((D f) 5)
-                 (fn [f1 f2]
-                   (f2 f1)))))))
-
   (testing "amazing bug three, from Alexey"
-    ;; This is an identical, but slightly more obfuscated, bug from dvl.
+    ;; NOTE: from sritchie - I don't buy the explanation below, about how the
+    ;; answer should arguably not be the same. Compare with the result above;
+    ;; something strange is going on.
     ;;
-    ;; Here we have the same program as in amazing-bug-2.dvl, but using a
-    ;; Church-encoded pair rather than a normal one. Should the answer be the
-    ;; same?
+    ;; From Alexey: "Here we have the same program as in amazing-bug-2.dvl, but
+    ;; using a Church-encoded pair rather than a normal one. Should the answer
+    ;; be the same?"
 
-    ;; Arguably not.  Consider that under the normal definition of
+    ;; "Arguably not.  Consider that under the normal definition of
     ;; addition on functions and pairs, Church-encoded pairs add
-    ;; differently from normal ones:
+    ;; differently from normal ones:"
     ;; (fn [cont] (cont x1 y1)) + (fn [cont] (cont x2 y2)) =
     ;; (fn [cont] (+ (cont x1 y1) (cont x2 y2))) !=
     ;; (fn [cont] (cont (+ x1 x2) (+ y1 y2)))
@@ -488,7 +538,8 @@
                  (fn [y] (sin (* x y)))
                  (fn [g]
                    (fn [z] (g (+ x z)))))))]
-      (is (ish? ((fn [y] (* (cos (* 3 y)) (+ 3 y)))
+      (is (ish? ((fn [y] (+ (* 3 (cos (* 3 y)))
+                           (* y (cos (* 3 y)))))
                  (+ 3 Math/PI))
                 (((D f) 3)
                  (fn [g-hat f-hat]
@@ -501,6 +552,9 @@
     ;; same is true of ordinary addition of numbers). Since differentiation is
     ;; supposed to expose linear structure, it makes sense that it would expose
     ;; different things in these two cases.
+    ;;
+    ;; NOTE (@sritchie): I don't buy it! See
+    ;; https://github.com/sicmutils/sicmutils/discussions/237 for discussion.
     )
 
   (testing "amazing bug 4"
