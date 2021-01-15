@@ -1,23 +1,25 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.calculus.derivative
+  "This namespace implements a number of differential operators like [[D]], and
+  the machinery to apply [[D]] to various structures."
   (:refer-clojure :rename {partial core-partial}
                   #?@(:cljs [:exclude [partial]]))
   (:require [sicmutils.differential :as d]
@@ -32,33 +34,100 @@
   #?(:clj
      (:import (clojure.lang Fn MultiFn))))
 
-(defn- replace-tag-fn
-  ([f old new]
-   (replace-tag-fn f old new {}))
-  ([f old new meta]
-   (-> (fn [& args]
-         (let [eps (d/fresh-tag)]
-           (-> (apply f (map #(d/replace-tag % old eps) args))
-               (d/replace-tag old new)
-               (d/replace-tag eps old))))
-       (f/with-arity (f/arity f) meta))))
+;; ## IPerturbed Implementation for Functions
+;;
+;; The following section, along with [[sicmutils.collection]]
+;; and [[sicmutils.differential]], rounds out the implementations
+;; of [[d/IPerturbed]] for native Clojure(script) data types. The function
+;; implementation is quite subtle, as described by [Manzyuk et al.
+;; 2019](https://www.cambridge.org/core/journals/journal-of-functional-programming/article/perturbation-confusion-in-forward-automatic-differentiation-of-higherorder-functions/A808189A3875A2EDAC6E0D62CF2AD262).
+;; ([[sicmutils.derivative.calculus-test]], in the "Amazing Bug" sections,
+;; describes the pitfalls at length.)
+;;
+;; [[sicmutils.differential]] describes how each in-progress perturbed variable
+;; in a derivative is assigned a "tag" that accumulates the variable's partial
+;; derivative.
+;;
+;; What subtleties do we have to track when calling a a function's
+;; derivative `(D f)` produces a _function_?
+;;
+;; It's all about Closures! The returned function has probably captured an
+;; internal reference to the original [[d/Differential]] input; Our goal is to
+;; place a barrier in its way, so that the original tangent component gets
+;; extracted whenever someone calls this returned $f$ down the road.
+;;
+;; This is true for any Functor-shaped return value, like a structure or Map.
+;; The difference with functions is that they take _inputs_. If you contrive a
+;; situation where you can feed the original captured [[d/Differential]] into
+;; the returned function, this can trigger "perturbation confusion", where two
+;; different layers try to extract the tangent corresponding to the SAME tag,
+;; and one is left with nothing.
+;;
+;; See [[sicmutils.calculus.derivative-test/amazing-bug]] and its surrounding
+;; tests for lengthy examples of this problem. You can manufacture your own bugs
+;; by taking the derivative of a function that returns a function that _itself_
+;; takes a function. Feed that function to itself and you've got a nice arena
+;; for perturbation confusion.
+;;
+;; ### Tag Replacement
+;;
+;; The key to the solution lives in [[extract-tangent-fn]], called when
+;; something like `((D f) x)` produces a function. We have to armor the returned
+;; function so that:
+;;
+;; - it extracts the originally-asked-for tag when someone eventually calls the
+;;   function!
+;;
+;; - if some caller passes a new [[d/Differential]] instance into the function,
+;;   any tags in that [[d/Differential]] will survive on their way back out...
+;;   even if they happen to contain the originally-requested tag.
+;;
+;; We do this by:
+;;
+;; - replacing any instance of the original `tag` in the returned fn's arguments
+;;   with a fresh, temporary tag;
+
+;; - calling the function and extracting `tag`, as requested (note now that the only instances of `tag`)
+;;
+;; NOTE: I think there is still a lurking bug here! If some functional input
+;; PRODUCES a captured perturbation with `tag`, that ALSO needs to get remapped
+;; on the way out of any internal call. And then mapped BACK again if it escapes
+;; this function, after extraction.
 
 (defn- extract-tangent-fn
   ([f tag]
    (extract-tangent-fn f tag {}))
   ([f tag meta]
    (-> (fn [& args]
-         (let [eps (d/fresh-tag)]
-           (-> (apply f (map #(d/replace-tag % tag eps) args))
+         (let [fresh (d/fresh-tag)]
+           (-> (apply f (map #(d/replace-tag % tag fresh) args))
                (d/extract-tangent tag)
-               (d/replace-tag eps tag))))
+               (d/replace-tag fresh tag))))
+       (f/with-arity (f/arity f) meta))))
+
+(defn- replace-tag-fn
+  ([f old new]
+   (replace-tag-fn f old new {}))
+  ([f old new meta]
+   (-> (fn [& args]
+         (let [fresh (d/fresh-tag)
+               args  (map #(d/replace-tag % old fresh) args)]
+           (-> (apply f args)
+               (d/replace-tag old new)
+               (d/replace-tag fresh old))))
        (f/with-arity (f/arity f) meta))))
 
 (extend-protocol d/IPerturbed
   #?(:clj Fn :cljs function)
-  (perturbed? [f] (:perturbed? (meta f) false))
-  (replace-tag [f old new] (replace-tag-fn f old new))
-  (extract-tangent [f tag] (extract-tangent-fn f tag))
+  (perturbed? [f]
+    #?(:clj (:perturbed? (meta f) false)
+       :cljs false))
+  (replace-tag [f old new]
+    #?(:clj (replace-tag-fn f old new (meta f))
+       :cljs (replace-tag-fn f old new)))
+  (extract-tangent [f tag]
+    #?(:clj  (extract-tangent-fn f tag (meta f))
+       :cljs (extract-tangent-fn f tag)))
 
   #?@(:cljs
       [MetaFn

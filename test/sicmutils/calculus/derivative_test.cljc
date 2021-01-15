@@ -455,7 +455,7 @@
                 (let [[g-hat f-hat] ((D f) 3)]
                   ((f-hat g-hat) Math/PI))))))
 
-  (testing "sam's amazing bug. Currently fails!"
+  (testing "sam's amazing bug."
     (let [f (fn [x]
               (fn [cont]
                 (cont

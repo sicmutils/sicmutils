@@ -639,7 +639,13 @@
   ;; See [[eq]].
   #?(:clj (equals [a b] (equiv a b)))
   #?(:cljs (valueOf [this] (.valueOf (finite-term this))))
-  (toString [_] (str "D[" (join " " (map #(join " → " %) terms)) "]"))
+  (toString [_]
+    (let [term-strs (map (fn [term]
+                           (str (tags term)
+                                " → "
+                                (pr-str (coefficient term))))
+                         terms)]
+      (str "D[" (join " " term-strs) "]")))
 
   ;; Because a [[Differential]] is an accounting device that augments other
   ;; operations with the ability to carry around derivatives, it's possible that
@@ -1251,6 +1257,14 @@
     (d:+ (g/partial-derivative px selectors)
          (d:* (g/partial-derivative tx selectors)
               (bundle 0 1 tag)))))
+
+(defmethod g/simplify [::differential] [d]
+  (->Differential
+   (mapv (fn [term]
+           (make-term (tags term)
+                      (g/simplify
+                       (coefficient term))))
+         (bare-terms d))))
 
 ;; ## Generic Method Installation
 ;;
