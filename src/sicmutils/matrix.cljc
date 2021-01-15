@@ -895,7 +895,3 @@
                     (column-matrix->up b))))
 
 (defmethod g/outer-product [::column-matrix ::row-matrix] [a b] (mul a b))
-
-(defmethod g/partial-derivative [::matrix v/seqtype] [M selectors]
-  (fmap #(g/partial-derivative % selectors)
-        M))

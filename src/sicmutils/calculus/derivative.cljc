@@ -188,81 +188,206 @@
   (replace-tag [f old new] (replace-tag-fn f old new))
   (extract-tangent [f tag] (extract-tangent-fn f tag)))
 
-
-
 ;; ## Single and Multivariable Calculus
+;;
+;; These functions put together the pieces laid out
+;; in [[sicmutils.differential]] and declare an interface for taking
+;; derivatives.
 
-(defn derivative [f]
+(defn derivative
+  "Returns a single-argument function of that, when called with an argument `x`,
+  returns the derivative of `f` at `x` using forward-mode automatic
+  differentiation.
+
+  For numerical differentiation,
+  see [[sicmutils.numerical.derivative/D-numeric]].
+
+  `f` must be built out of generic operations that know how to
+  handle [[d/Differential]] inputs in addition to any types that a normal `(f
+  x)` call would present. This restriction does _not_ apply to operations like
+  putting `x` into a container or destructuring; just primitive function calls."
+  [f]
   (let [tag (d/fresh-tag)]
     (fn [x]
       (-> (f (d/bundle x 1 tag))
           (d/extract-tangent tag)))))
 
-(defn- euclidean-structure [selectors f]
-  (letfn [(structural-derivative [g v]
-            (cond (s/structure? v)
-                  (s/opposite v
-                              (map-indexed
-                               (fn [i v_i]
-                                 (structural-derivative
-                                  (fn [w]
-                                    (g (assoc v i w)))
-                                  v_i))
-                               v))
-                  (v/numerical? v) ((derivative g) v)
+;; Multivariable derivatives are performed by bundling up all arguments into a
+;; single [[s/Structure]] instance, and then calling `((derivative f) x)` for
+;; every entry `x` in the input structure.
+;;
+;; [[jacobian]] handles this main logic. [[jacobian]] can only take a structural
+;; input. [[euclidean]] and [[multivariate]] below widen handle, respectively,
+;; optionally-structural and multivariable arguments.
 
-                  :else
-                  (u/illegal (str "bad structure " g ", " v))))
-          (a-euclidean-derivative [v]
-            (cond (s/structure? v)
-                  (structural-derivative
-                   (fn [w]
-                     (f (if (empty? selectors)
-                          w
-                          (assoc-in v selectors w))))
-                   (get-in v selectors))
+(defn- jacobian
+  "Takes:
 
-                  (empty? selectors)
-                  ((derivative f) v)
+  - some function `f` of a single [[s/structure?]] argument
+  - the unperturbed structural `input`
+  - a `selectors` vector that can be empty or contain a valid path into the
+    `input` structure
 
-                  :else
-                  (u/illegal (str "Bad selectors " f selectors v))))]
-    a-euclidean-derivative))
+  and returns either:
 
-(defn- multivariate-derivative [f selectors]
-  (let [a (f/arity f)
-        d (core-partial euclidean-structure selectors)
-        make-df #(with-meta % {:arity a :from :multivariate-derivative})]
-    (condp = a
-      [:exactly 0] (make-df (constantly 0))
-      [:exactly 1] (make-df (d f))
-      [:exactly 2] (make-df (fn [x y]
-                              ((d (fn [[x y]] (f x y)))
-                               (matrix/seq-> [x y]))))
-      [:exactly 3] (make-df (fn [x y z]
-                              ((d (fn [[x y z]] (f x y z)))
-                               (matrix/seq-> [x y z]))))
-      [:exactly 4] (make-df (fn [w x y z]
-                              ((d (fn [[w x y z]] (f w x y z)))
-                               (matrix/seq-> [w x y z]))))
-      [:between 1 2] (make-df (fn
-                                ([x] ((d f) x))
-                                ([x y]
-                                 ((d (fn [[x y]] (f x y)))
-                                  (matrix/seq-> [x y])))))
-      (make-df
-       (fn [& xs]
-         (when (empty? xs) (u/illegal "No args passed to derivative?"))
-         (if (= (count xs) 1)
-           ((d f) (first xs))
-           ((d #(apply f %)) (matrix/seq-> xs))))))))
+  - The
+  full [Jacobian](https://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant)
+  of `f` at `input`, if `selectors` is empty
+  - the entry of the Jacobian at `selectors`.
 
-(doseq [t [::v/function ::s/structure]]
+  The Jacobian has the same shape as `input` (or the entry at `selectors`) with
+  all orientations flipped. Multiplying this by an increment in the shape of
+  `input` will give you a proper increment in the output of `f`."
+  ([f input] (jacobian f input []))
+  ([f input selectors]
+   (letfn [(prefixed [path]
+             (if (empty? selectors)
+               path
+               (into selectors path)))
+
+           (substitute [path entry]
+             (assoc-in input (prefixed path) entry))]
+     (if-let [piece (get-in input selectors)]
+       (let [frame         (s/transpose piece)
+             perturb-entry (fn [entry path]
+                             (letfn [(f-entry [x]
+                                       (f (substitute path x)))]
+
+                               ;; Each entry takes the derivative of a function
+                               ;; of THAT entry; internally, `f-entry`
+                               ;; substitutes the perturbed entry into the
+                               ;; appropriate place in the full `input` before
+                               ;; calling `f`.
+                               ((derivative f-entry) entry)))]
+
+         ;; Visit each entry in `frame`, a copy of either the full input or the
+         ;; sub-piece living at `selectors` (with all orientations flipped), and
+         ;; replace the entry with the result of the partial derivative of `f`
+         ;; with that entry perturbed.
+         (s/map-chain (fn [entry path _]
+                        (if (v/numerical? entry)
+                          (perturb-entry entry path)
+                          (u/illegal
+                           (str "non-numerical entry " entry " in input structure " input))))
+                      frame))
+
+       ;; The call to `get-in` will return nil if the `selectors` don't index
+       ;; correctly into the supplied `input`, triggering this exception.
+       (u/illegal (str "Bad selectors " selectors " for structure " input))))))
+
+(defn- euclidean
+  "Slightly more general version of [[jacobian]] that can handle a single
+  non-structural input; dispatches to either [[jacobian]] or [[derivative]]
+  depending on the input type.
+
+  If you pass non-empty `selectors`, the returned function will throw if it
+  receives a non-structural, non-numerical argument."
+  ([f] (euclidean f []))
+  ([f selectors]
+   (let [selectors (vec selectors)]
+     (fn [input]
+       (cond (s/structure? input)
+             (jacobian f input selectors)
+
+             ;; non-empty selectors are only allowed for functions that receive
+             ;; a structural argument. This case passes that single,
+             ;; non-structural argument on to `(derivative f)`.
+             (empty? selectors)
+             ((derivative f) input)
+
+             ;; Any attempt to index (via non-empty selectors) into a
+             ;; non-structural argument will throw.
+             ;;
+             ;; NOTE: What about matrices, maps or sequences? The current
+             ;; implementation (as of 0.14.0) pushes the derivative operator
+             ;; into the entries, or values, of those types, so they won't reach
+             ;; this clause. There is a case I (@sritchie) can make for actually
+             ;; allowing the first clause here to work for ANY associative
+             ;; structure; then you're on your own if you want to call this fn
+             ;; directly.
+             :else
+             (u/illegal
+              (str "Selectors " selectors
+                   " not allowed for non-structural input " input)))))))
+
+(defn- multivariate
+  "Slightly wider version of [[euclidean]]. Accepts:
+
+  - some function `f` of potentially many arguments
+  - optionally, a sequence of selectors meant to index into the structural
+    argument, or argument vector, of `f`
+
+  And returns a new function that computes either the
+  full [Jacobian](https://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant)
+  or the entry at `selectors`.
+
+  Any multivariable function will have its argument vector coerced into an `up`
+  structure. Any [[matrix/Matrix]] in a multiple-arg function call will be
+  converted into a `down` of `up`s (a row of columns).
+
+  Single-argument functions don't transform their arguments."
+  ([f] (multivariate f []))
+  ([f selectors]
+   (let [a  (f/arity f)
+         d  #(euclidean % selectors)
+         df (condp = a
+              [:exactly 0]   (constantly 0)
+              [:exactly 1]   (d f)
+              [:exactly 2]   (fn [x y]
+                               ((d (fn [[x y]] (f x y)))
+                                (matrix/seq-> [x y])))
+              [:exactly 3]   (fn [x y z]
+                               ((d (fn [[x y z]] (f x y z)))
+                                (matrix/seq-> [x y z])))
+              [:exactly 4]   (fn [w x y z]
+                               ((d (fn [[w x y z]] (f w x y z)))
+                                (matrix/seq-> [w x y z])))
+              [:between 1 2] (fn
+                               ([x] ((d f) x))
+                               ([x y]
+                                ((d (fn [[x y]] (f x y)))
+                                 (matrix/seq-> [x y]))))
+              (fn [& xs]
+                (when (empty? xs) (u/illegal "No args passed to derivative?"))
+                (if (= (count xs) 1)
+                  ((d f) (first xs))
+                  ((d #(apply f %)) (matrix/seq-> xs)))))]
+     (f/with-arity df a {:from ::multivariate}))))
+
+;; ## Generic [[g/partial-derivative]] Installation
+;;
+;; [[g/partial-derivative]] is meant to produce either a full Jacobian or some
+;; entry specified by a `selectors` vector.
+;;
+;; When called on a function `f`, [[g/partial-derivative]] returns a function
+;; wrapped in the machinery provided by [[multivariate]]; this allows the same
+;; operator to serve functions of:
+;;
+;; - a single numerical input
+;; - a single structural input
+;; - multiple numerical OR structural inputs
+;;
+;; NOTE: The reason that this implementation is also installed
+;; for [[s/Structure]] and [[matrix/Matrix]] is that structures act as functions
+;; that apply their args to every (functional) entry. Calling `(multivariate
+;; structure selectors)` allows all of the machinery that handles
+;; structure-walking and argument conversion to run a SINGLE time before getting
+;; passed to the structure of functions, instead of separately for every entry
+;; in the structure.
+;;
+;; TODO: install this for other IFn entries like `Series`?
+
+(doseq [t [::v/function ::s/structure ::matrix/matrix]]
   (defmethod g/partial-derivative [t v/seqtype] [f selectors]
-    (multivariate-derivative f selectors))
+    (multivariate f selectors))
 
   (defmethod g/partial-derivative [t nil] [f _]
-    (multivariate-derivative f [])))
+    (multivariate f [])))
+
+;; ## Operators
+;;
+;; This section exposes various differential operators as [[o/Operator]]
+;; instances.
 
 (def derivative-symbol 'D)
 
@@ -274,15 +399,21 @@
                    derivative-symbol))
 
 (defn partial
-  "Partial differentiation of a function at the (zero-based) slot index
-  provided."
+  "Returns an operator that, when applied to a function `f`, produces a function
+  that computes the partial derivative of `f` at the (zero-based) slot index
+  provided via `selectors`."
   [& selectors]
   (o/make-operator #(g/partial-derivative % selectors)
                    `(~'partial ~@selectors)))
 
+;; ## Derivative Utilities
+;;
+;; Functions that make use of the differential operators defined above in
+;; standard ways.
+
 (defn taylor-series
-  "Returns a `Series` of the coefficients of the taylor series of the function `f`
-  evaluated at `x`, with incremental quantity `dx`.
+  "Returns a [[s/Series]] of the coefficients of the taylor series of the function
+  `f` evaluated at `x`, with incremental quantity `dx`.
 
   NOTE: The `(constantly dx)` term is what allows this to work with arbitrary
   structures of `x` and `dx`. Without this wrapper, `((g/* dx D) f)` with `dx`
