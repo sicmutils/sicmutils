@@ -72,7 +72,7 @@
      (if (vector? d) d [d]))
    (sicm-set->exemplar range)])
 
-(defrecord Function [name arity domain range]
+(deftype Function [name arity domain range]
   Object
   (toString [_] (str name))
   v/Value
@@ -227,14 +227,14 @@
                                           vv))
                   (or (v/numerical? vv)
                       (x/abstract? vv))
-                  (let [fexp (if (= (:arity f) [:exactly 1])  ; univariate
+                  (let [fexp (if (= (.-arity f) [:exactly 1])  ; univariate
                                (if (= (first indices) 0)
                                  (if (= (count indices) 1)
-                                   (symbolic-increase-derivative (:name f))
-                                   `((~'partial ~@(next indices)) ~(:name f)))
+                                   (symbolic-increase-derivative (.-name f))
+                                   `((~'partial ~@(next indices)) ~(.-name f)))
                                  (u/illegal "wrong indices"))
-                               `((~'partial ~@indices) ~(:name f)))]
-                    (->Function fexp (:arity f) (:domain f) (:range f)))
+                               `((~'partial ~@indices) ~(.-name f)))]
+                    (->Function fexp (.-arity f) (.-domain f) (.-range f)))
                   :else
                   (u/illegal (str "make-partials WTF " vv))))]
     (fd [] v)))
@@ -275,14 +275,15 @@
         :else (u/illegal (str "unexpected argument example. got " provided " want " expected))))
 
 (defn- literal-apply [f xs]
-  (check-argument-type f xs (:domain f) [0])
+  (check-argument-type f xs (.-domain f) [0])
   (if (some d/perturbed? xs)
     (literal-derivative f xs)
-    (an/literal-number `(~(:name f) ~@(map v/freeze xs)))))
+    (an/literal-number `(~(.-name f) ~@(map v/freeze xs)))))
 
 ;; ## Specific Generics
 ;;
 ;; We can install one more method - [[sicmutils.generic/simplify]] simplifies
 ;; the attached name, but does not return its own function.
 
-(defmethod g/simplify [Function] [a] (g/simplify (:name a)))
+(defmethod g/simplify [Function] [a]
+  (g/simplify (.-name a)))
