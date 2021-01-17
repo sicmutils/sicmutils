@@ -328,31 +328,14 @@
   Single-argument functions don't transform their arguments."
   ([f] (multivariate f []))
   ([f selectors]
-   (let [a  (f/arity f)
-         d  #(euclidean % selectors)
-         df (condp = a
-              [:exactly 0]   (constantly 0)
-              [:exactly 1]   (d f)
-              [:exactly 2]   (fn [x y]
-                               ((d (fn [[x y]] (f x y)))
-                                (matrix/seq-> [x y])))
-              [:exactly 3]   (fn [x y z]
-                               ((d (fn [[x y z]] (f x y z)))
-                                (matrix/seq-> [x y z])))
-              [:exactly 4]   (fn [w x y z]
-                               ((d (fn [[w x y z]] (f w x y z)))
-                                (matrix/seq-> [w x y z])))
-              [:between 1 2] (fn
-                               ([x] ((d f) x))
-                               ([x y]
-                                ((d (fn [[x y]] (f x y)))
-                                 (matrix/seq-> [x y]))))
-              (fn [& xs]
-                (when (empty? xs) (u/illegal "No args passed to derivative?"))
-                (if (= (count xs) 1)
-                  ((d f) (first xs))
-                  ((d #(apply f %)) (matrix/seq-> xs)))))]
-     (f/with-arity df a {:from ::multivariate}))))
+   (let [d #(euclidean % selectors)]
+     (-> (fn
+           ([] (constantly 0))
+           ([x] ((d f) x))
+           ([x & more]
+            ((d #(apply f %))
+             (matrix/seq-> (cons x more)))))
+         (f/with-arity (f/arity f) {:from ::multivariate})))))
 
 ;; ## Generic [[g/partial-derivative]] Installation
 ;;
