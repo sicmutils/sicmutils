@@ -412,10 +412,6 @@
              (g/simplify
               ((d/Lap F) (s/up 'x 'y 'z)))))))
 
-  ;; TODO get in more of the identities here!
-  ;;
-  ;; TODO Double check that the newer thing, in scmutils codebase... still
-  ;; works.
   (testing "Div, Curl, Grad, Lap identities"
     (let [F (af/literal-function 'F '(-> (UP Real Real Real) Real))
           G (af/literal-function 'G '(-> (UP Real Real Real) Real))

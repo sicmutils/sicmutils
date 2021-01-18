@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- #224 adds new `Div`, `Grad`, `Curl` and `Lap` operators in
+  `sicmutils.calculus.derivative`. #224 also removes the `g/transpose`
+  implementation for `Operator` instances.
+
 - #223 fixes a problem where `(operator * structure)` would return a structure
   of operators instead of an operator that closed over the multiplication.
   `::s/structure` is now properly a `::o/co-operator`, matching its status as a
