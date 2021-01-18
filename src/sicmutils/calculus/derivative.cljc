@@ -39,7 +39,7 @@
 ;; The following section, along with [[sicmutils.collection]]
 ;; and [[sicmutils.differential]], rounds out the implementations
 ;; of [[d/IPerturbed]] for native Clojure(script) data types. The function
-;; implementation is quite subtle, as described by [Manzyuk et al.
+;; implementation is subtle, as described by [Manzyuk et al.
 ;; 2019](https://www.cambridge.org/core/journals/journal-of-functional-programming/article/perturbation-confusion-in-forward-automatic-differentiation-of-higherorder-functions/A808189A3875A2EDAC6E0D62CF2AD262).
 ;; ([[sicmutils.derivative.calculus-test]], in the "Amazing Bug" sections,
 ;; describes the pitfalls at length.)
@@ -48,8 +48,7 @@
 ;; in a derivative is assigned a "tag" that accumulates the variable's partial
 ;; derivative.
 ;;
-;; What subtleties do we have to track when calling a a function's
-;; derivative `(D f)` produces a _function_?
+;; What subtleties do we have to track when `((D f) x)` produces a _function_?
 ;;
 ;; It's all about Closures! The returned function has probably captured an
 ;; internal reference to the original [[d/Differential]] input; Our goal is to
@@ -71,36 +70,31 @@
 ;;
 ;; ### Tag Replacement
 ;;
-;; The key to the solution lives in [[extract-tangent-fn]], called when
-;; something like `((D f) x)` produces a function. We have to armor the returned
-;; function so that:
+;; The key to the solution lives in [[extract-tangent-fn]], called on the result
+;; of `((D f) x)` when `((D f) x)` produces a function. We have to armor the
+;; returned function so that:
 ;;
-;; - it extracts the originally-asked-for tag when someone eventually calls the
+;; - it extracts the originally-injected tag when someone eventually calls the
 ;;   function
 ;;
 ;; - if some caller passes a new [[d/Differential]] instance into the function,
 ;;   any tags in that [[d/Differential]] will survive on their way back out...
-;;   even if they happen to contain the originally-requested tag.
+;;   even if they happen to contain the originally-injected tag.
 ;;
 ;; We do this by:
 ;;
-;; - replacing any instance of the original `tag` in the returned fn's arguments
-;;   with a temporary tag, (let's call it `fresh`)
-;; - calling the function and extracting `tag`, as requested (note now that the
-;;   only instances of `tag` that can appear in the result come from variables
-;;   captured in the function's close)
-;; - remapping `fresh` back to `tag`.
+;; - replacing any instance of the original `tag` in the returned function's
+;;   arguments with a temporary tag (let's call it `fresh`)
+;; - calling the function and extracting the tangent component associated with
+;;   `tag`, as requested (note now that the only instances of `tag` that can
+;;   appear in the result come from variables captured in the function's
+;;   closure)
+;; - remapping `fresh` back to `tag` inside the remaining [[d/Differential]]
+;;   instance.
 ;;
-;; This last step ensures that any input tagged with `tag` can make it back out
-;; without tangling with closure-captured `tag` instances that some higher level
-;; might want.
-;;
-;; NOTE (@sritchie): I think there is still a lurking bug here! If some
-;; functional input PRODUCES a captured perturbation with `tag`, that ALSO needs
-;; to get remapped on the way out of any internal call. And then mapped BACK
-;; again if it escapes this function, after extraction. See `sams-amazing-bug`
-;; and [Discussion #237](https://github.com/sicmutils/sicmutils/discussions/237)
-;; for more detail and color about this problem.
+;; This last step ensures that any tangent tagged with `tag` in the input can
+;; make it back out without tangling with closure-captured `tag` instances that
+;; some higher level might want.
 
 (defn- extract-tangent-fn
   "Returns a new function that composes a 'tag extraction' step with `f`. The
@@ -111,8 +105,8 @@
 
   The returned function will also remap any instance of `tag` that appears in
   any differential argument passed to it to a private `fresh` tag, to prevent
-  internal perturbation confusion. Any `fresh` instances that appear in the
-  output will be remapped in the final result back to `tag`."
+  internal perturbation confusion. Any tangent components in the final result
+  tagged with `fresh` will be remapped in the final result back to `tag`."
   [f tag]
   (-> (fn [& args]
         (let [fresh (d/fresh-tag)]
@@ -121,8 +115,8 @@
               (d/replace-tag fresh tag))))
       (f/with-arity (f/arity f))))
 
-;; Note that the tag-remapping that the docstring for `extract-tag-fn` describes
-;; might _also_ have to apply to a functional argument.
+;; NOTE: that the tag-remapping that the docstring for `extract-tag-fn`
+;; describes might _also_ have to apply to a functional argument!
 ;;
 ;; `replace-tag` on a function is meant to be a `replace-tag` call applied to
 ;; the function's _output_. To prevent perturbation confusion inside the
@@ -131,27 +125,12 @@
 
 (defn- replace-tag-fn
   "Returns a new function that composes a 'tag replacement' step with `f`. The
-  returned fn will:
+  returned function will:
 
-  - call the underlying `f`, producing `result`
+  - make a fresh tag, and replace all `old` tags with `fresh` in the inputs
+  - call `f`, producing `result`
   - return `(replace-tag result old new)`
-
-
-  ;; - make a fresh tag, and replace all `old` tags with `fresh` in the inputs
-  ;; - call `f`, producing `result`
-  ;; - return `(replace-tag result old new)`
-  ;; - remap any leaked `fresh` in the result back to `old`
-
-  The returned function will also remap any instance of `old` that appears in
-  any differential argument passed to it to a private `fresh` tag, to prevent
-  internal perturbation confusion. Any `fresh` instances that appear in the
-  output will be remapped in the final result back to `old`.
-
-  NOTE: `new` instances can also leak out! See [Discussion
-  #237](https://github.com/sicmutils/sicmutils/discussions/237)
-  and [[sicmutils.calculus.derivative-test/sams-amazing-bug]] for a particularly
-  subtle example. This seems like a form of perturbation confusion that we need
-  to address."
+  - remap any tangent component in the result tagged with `fresh` back to `old`."
   [f old new]
   (-> (fn [& args]
         (let [fresh (d/fresh-tag)
@@ -164,8 +143,8 @@
 ;; ## Protocol Implementation
 ;;
 ;; The implementation for functions handles functions, multimethods, and, in
-;; CLJS, MetaFns. Metadata in the original function is preserved by tag
-;; replacement and extraction.
+;; Clojurescript, [[MetaFn]] instances. Metadata in the original function is
+;; preserved through tag replacement and extraction.
 
 (extend-protocol d/IPerturbed
   #?(:clj Fn :cljs function)
@@ -212,147 +191,86 @@
       (-> (f (d/bundle x 1 tag))
           (d/extract-tangent tag)))))
 
-;; Multivariable derivatives are performed by bundling up all arguments into a
-;; single [[s/Structure]] instance, and then calling `((derivative f) x)` for
-;; every entry `x` in the input structure.
+;; The result of applying the derivative `(D f)` of a multivariable function `f`
+;; to a sequence of `args` is a structure of the same shape as `args` with all
+;; orientations flipped. (For a partial derivative like `((partial 0 1) f)` the
+;; result has the same-but-flipped shape as `(get-in args [0 1])`.)
 ;;
-;; [[jacobian]] handles this main logic. [[jacobian]] can only take a structural
-;; input. [[euclidean]] and [[multivariate]] below widen handle, respectively,
-;; optionally-structural and multivariable arguments.
+;; `args` is coerced into an `up` structure. The only special case where this
+;; does not happen is if `(= 1 (count args))`.
+;;
+;; To generate the result:
+;;
+;; - For a single non-structural argument, return `(derivative f)`
+;; - else, bundle up all arguments into a single [[s/Structure]] instance `xs`
+;; - Generate `xs'` by replacing each entry in `xs` with `((derivative f')
+;;   entry)`, where `f'` is a function of ONLY that entry that
+;;   calls `(f (assoc-in xs path entry))`. In other words, replace each entry
+;;   with the result of the partial derivative of `f` at only that entry.
+;; - Return `(s/transpose xs')` (the same structure with all orientations
+;;   flipped.)
+;;
+;; A multivariable derivative is a multiple-arity function that performs the
+;; above.
 
-(defn- jacobian
-  "Takes:
+(defn- euclidean-structure [selectors f]
+  (letfn [(structural-derivative [g v]
+            (cond (s/structure? v)
+                  (s/opposite v
+                              (map-indexed
+                               (fn [i v_i]
+                                 (structural-derivative
+                                  (fn [w]
+                                    (g (assoc v i w)))
+                                  v_i))
+                               v))
+                  (v/numerical? v) ((derivative g) v)
 
-  - some function `f` of a single [[s/structure?]] argument
-  - the unperturbed structural `input`
-  - a `selectors` vector that can be empty or contain a valid path into the
-    `input` structure
+                  :else
+                  (u/illegal (str "bad structure " g ", " v))))
+          (a-euclidean-derivative [v]
+            (cond (s/structure? v)
+                  (structural-derivative
+                   (fn [w]
+                     (f (if (empty? selectors)
+                          w
+                          (assoc-in v selectors w))))
+                   (get-in v selectors))
 
-  and returns either:
+                  (empty? selectors)
+                  ((derivative f) v)
 
-  - The
-  full [Jacobian](https://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant)
-  of `f` at `input`, if `selectors` is empty
-  - the entry of the Jacobian at `selectors`.
+                  :else
+                  (u/illegal (str "Bad selectors " f selectors v))))]
+    a-euclidean-derivative))
 
-  The Jacobian has the same shape as `input` (or the entry at `selectors`) with
-  all orientations flipped. Multiplying this by an increment in the shape of
-  `input` will give you a proper increment in the output of `f`."
-  ([f input] (jacobian f input []))
-  ([f input selectors]
-   (letfn [(prefixed [path]
-             (if (empty? selectors)
-               path
-               (into selectors path)))
-
-           (substitute [path entry]
-             (assoc-in input (prefixed path) entry))]
-     (if-let [piece (get-in input selectors)]
-       (let [frame         (s/transpose piece)
-             perturb-entry (fn [entry path]
-                             (letfn [(f-entry [x]
-                                       (f (substitute path x)))]
-
-                               ;; Each entry takes the derivative of a function
-                               ;; of THAT entry; internally, `f-entry`
-                               ;; substitutes the perturbed entry into the
-                               ;; appropriate place in the full `input` before
-                               ;; calling `f`.
-                               ((derivative f-entry) entry)))]
-
-         ;; Visit each entry in `frame`, a copy of either the full input or the
-         ;; sub-piece living at `selectors` (with all orientations flipped), and
-         ;; replace the entry with the result of the partial derivative of `f`
-         ;; with that entry perturbed.
-         (s/map-chain (fn [entry path _]
-                        (if (v/numerical? entry)
-                          (perturb-entry entry path)
-                          (u/illegal
-                           (str "non-numerical entry " entry " in input structure " input))))
-                      frame))
-
-       ;; The call to `get-in` will return nil if the `selectors` don't index
-       ;; correctly into the supplied `input`, triggering this exception.
-       (u/illegal (str "Bad selectors " selectors " for structure " input))))))
-
-(defn- euclidean
-  "Slightly more general version of [[jacobian]] that can handle a single
-  non-structural input; dispatches to either [[jacobian]] or [[derivative]]
-  depending on the input type.
-
-  If you pass non-empty `selectors`, the returned function will throw if it
-  receives a non-structural, non-numerical argument."
-  ([f] (euclidean f []))
-  ([f selectors]
-   (let [selectors (vec selectors)]
-     (fn [input]
-       (cond (s/structure? input)
-             (jacobian f input selectors)
-
-             ;; non-empty selectors are only allowed for functions that receive
-             ;; a structural argument. This case passes that single,
-             ;; non-structural argument on to `(derivative f)`.
-             (empty? selectors)
-             ((derivative f) input)
-
-             ;; Any attempt to index (via non-empty selectors) into a
-             ;; non-structural argument will throw.
-             ;;
-             ;; NOTE: What about matrices, maps or sequences? The current
-             ;; implementation (as of 0.14.0) pushes the derivative operator
-             ;; into the entries, or values, of those types, so they won't reach
-             ;; this clause. There is a case I (@sritchie) can make for actually
-             ;; allowing the first clause here to work for ANY associative
-             ;; structure; then you're on your own if you want to call this fn
-             ;; directly.
-             :else
-             (u/illegal
-              (str "Selectors " selectors
-                   " not allowed for non-structural input " input)))))))
-
-(defn- multivariate
-  "Slightly wider version of [[euclidean]]. Accepts:
-
-  - some function `f` of potentially many arguments
-  - optionally, a sequence of selectors meant to index into the structural
-    argument, or argument vector, of `f`
-
-  And returns a new function that computes either the
-  full [Jacobian](https://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant)
-  or the entry at `selectors`.
-
-  Any multivariable function will have its argument vector coerced into an `up`
-  structure. Any [[matrix/Matrix]] in a multiple-arg function call will be
-  converted into a `down` of `up`s (a row of columns).
-
-  Single-argument functions don't transform their arguments."
-  ([f] (multivariate f []))
-  ([f selectors]
-   (let [a  (f/arity f)
-         d  #(euclidean % selectors)
-         df (condp = a
-              [:exactly 0]   (constantly 0)
-              [:exactly 1]   (d f)
-              [:exactly 2]   (fn [x y]
-                               ((d (fn [[x y]] (f x y)))
-                                (matrix/seq-> [x y])))
-              [:exactly 3]   (fn [x y z]
-                               ((d (fn [[x y z]] (f x y z)))
-                                (matrix/seq-> [x y z])))
-              [:exactly 4]   (fn [w x y z]
-                               ((d (fn [[w x y z]] (f w x y z)))
-                                (matrix/seq-> [w x y z])))
-              [:between 1 2] (fn
-                               ([x] ((d f) x))
-                               ([x y]
-                                ((d (fn [[x y]] (f x y)))
-                                 (matrix/seq-> [x y]))))
-              (fn [& xs]
-                (when (empty? xs) (u/illegal "No args passed to derivative?"))
-                (if (= (count xs) 1)
-                  ((d f) (first xs))
-                  ((d #(apply f %)) (matrix/seq-> xs)))))]
-     (f/with-arity df a {:from ::multivariate}))))
+(defn- multivariate-derivative [f selectors]
+  (let [a (f/arity f)
+        d (core-partial euclidean-structure selectors)
+        make-df #(with-meta % {:arity a :from :multivariate-derivative})]
+    (condp = a
+      [:exactly 0] (make-df (constantly 0))
+      [:exactly 1] (make-df (d f))
+      [:exactly 2] (make-df (fn [x y]
+                              ((d (fn [[x y]] (f x y)))
+                               (matrix/seq-> [x y]))))
+      [:exactly 3] (make-df (fn [x y z]
+                              ((d (fn [[x y z]] (f x y z)))
+                               (matrix/seq-> [x y z]))))
+      [:exactly 4] (make-df (fn [w x y z]
+                              ((d (fn [[w x y z]] (f w x y z)))
+                               (matrix/seq-> [w x y z]))))
+      [:between 1 2] (make-df (fn
+                                ([x] ((d f) x))
+                                ([x y]
+                                 ((d (fn [[x y]] (f x y)))
+                                  (matrix/seq-> [x y])))))
+      (make-df
+       (fn [& xs]
+         (when (empty? xs) (u/illegal "No args passed to derivative?"))
+         (if (= (count xs) 1)
+           ((d f) (first xs))
+           ((d #(apply f %)) (matrix/seq-> xs))))))))
 
 ;; ## Generic [[g/partial-derivative]] Installation
 ;;
@@ -368,21 +286,23 @@
 ;; - multiple numerical OR structural inputs
 ;;
 ;; NOTE: The reason that this implementation is also installed
-;; for [[s/Structure]] and [[matrix/Matrix]] is that structures act as functions
-;; that apply their args to every (functional) entry. Calling `(multivariate
-;; structure selectors)` allows all of the machinery that handles
-;; structure-walking and argument conversion to run a SINGLE time before getting
-;; passed to the structure of functions, instead of separately for every entry
-;; in the structure.
+;; for [[s/Structure]] is that structures act as functions that apply their args
+;; to every (functional) entry. Calling `(multivariate structure selectors)`
+;; allows all of the machinery that handles structure-walking and argument
+;; conversion to run a SINGLE time before getting passed to the structure of
+;; functions, instead of separately for every entry in the structure.
 ;;
-;; TODO: install this for other IFn entries like `Series`?
+;; TODO: I think this is going to cause problems for, say, a Structure of
+;; PowerSeries, where there is actually a cheap `g/partial-derivative`
+;; implementation for the components. I vote to back out this `::s/structure`
+;; installation.
 
-(doseq [t [::v/function ::s/structure ::matrix/matrix]]
+(doseq [t [::v/function ::s/structure]]
   (defmethod g/partial-derivative [t v/seqtype] [f selectors]
-    (multivariate f selectors))
+    (multivariate-derivative f selectors))
 
   (defmethod g/partial-derivative [t nil] [f _]
-    (multivariate f [])))
+    (multivariate-derivative f [])))
 
 ;; ## Operators
 ;;
@@ -391,10 +311,18 @@
 
 (def derivative-symbol 'D)
 
-(def ^{:doc "Derivative operator. Produces a function whose value at some point
-  can multiply an increment in the arguments, to produce the best linear
-  estimate of the increment in the function value."}
-  D
+(def ^{:doc "Derivative operator. Takes some function `f` and returns a function
+  whose value at some point can multiply an increment in the arguments, to
+  produce the best linear estimate of the increment in the function value.
+
+  For univariate functions, [[D]] computes a derivative. For vector-valued
+  functions, [[D]] computes
+  the [Jacobian](https://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant)
+  of `f`.
+
+  The related [[Grad]] returns a function that produces a structure of the
+  opposite orientation as [[D]]. Both of these functions use forward-mode
+  automatic differentiation."} D
   (o/make-operator #(g/partial-derivative % [])
                    derivative-symbol))
 
@@ -405,6 +333,51 @@
   [& selectors]
   (o/make-operator #(g/partial-derivative % selectors)
                    `(~'partial ~@selectors)))
+
+(def ^{:doc "Operator that takes a function `f` and returns a new function that
+  calculates the [Gradient](https://en.wikipedia.org/wiki/Gradient) of `f`.
+
+  The related [[D]] operator returns a function that produces a structure of the
+  opposite orientation as [[Grad]]. Both of these functions use forward-mode
+  automatic differentiation."}
+  Grad
+  (-> (fn [f]
+        (f/compose s/opposite
+                   (g/partial-derivative f [])))
+      (o/make-operator 'Grad)))
+
+(def ^{:doc "Operator that takes a function `f` and returns a function that
+  calculates the [Divergence](https://en.wikipedia.org/wiki/Divergence) of
+  `f` at its input point.
+
+ The divergence is a one-level contraction of the gradient."}
+  Div
+  (-> (f/compose g/trace Grad)
+      (o/make-operator 'Div)))
+
+(def ^{:doc "Operator that takes a function `f` and returns a function that
+  calculates the [Curl](https://en.wikipedia.org/wiki/Curl_(mathematics)) of `f`
+  at its input point.
+
+  `f` must be a function from $\\mathbb{R}^3 \\to \\mathbb{R}^3$."}
+  Curl
+  (-> (fn [f-triple]
+        (let [[Dx Dy Dz] (map partial [0 1 2])
+              fx (f/get f-triple 0)
+              fy (f/get f-triple 1)
+              fz (f/get f-triple 2)]
+          (s/up (g/- (Dy fz) (Dz fy))
+                (g/- (Dz fx) (Dx fz))
+                (g/- (Dx fy) (Dy fx)))))
+      (o/make-operator 'Curl)))
+
+(def ^{:doc "Operator that takes a function `f` and returns a function that
+  calculates the [Vector
+  Laplacian](https://en.wikipedia.org/wiki/Laplace_operator#Vector_Laplacian) of
+  `f` at its input point."}
+  Lap
+  (-> (f/compose g/trace (g/* Grad Grad))
+      (o/make-operator 'Lap)))
 
 ;; ## Derivative Utilities
 ;;
