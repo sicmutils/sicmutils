@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- Fix a bug where `f/arity` would throw an exception with multiple-arity
+  functions on the JVM (#240). It now responds properly with `[:between
+  min-arity max-arity]`, or `[:at-least n]` if there is a variadic case too.
+
 - `D` (or `sicmutils.generic/partial-derivative`) applied to a matrix of
   functions now takes the elementwise partials of every function in the matrix.
   (#218)
