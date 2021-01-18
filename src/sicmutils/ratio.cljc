@@ -24,6 +24,7 @@
                               denominator core-denominator
                               numerator core-numerator}))
   (:require #?(:clj [clojure.edn] :cljs [cljs.reader])
+            #?(:cljs [goog.array :as garray])
             [sicmutils.complex :as c]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
@@ -111,8 +112,10 @@
      v/Value
      (zero? [c] (zero? c))
      (one? [c] (= 1 c))
+     (identity? [c] (= 1 c))
      (zero-like [_] 0)
      (one-like [_] 1)
+     (identity-like [_] 1)
      (freeze [x] (let [n (numerator x)
                        d (denominator x)]
                    (if (v/one? d)
@@ -131,8 +134,10 @@
        v/Value
        (zero? [c] (.equals c ZERO))
        (one? [c] (.equals c ONE))
+       (identity? [c] (.equals c ONE))
        (zero-like [_] 0)
        (one-like [_] 1)
+       (identity-like [_] 1)
        (freeze [x] (let [n (numerator x)
                          d (denominator x)]
                      (if (v/one? d)
@@ -159,10 +164,12 @@
 
        IComparable
        (-compare [this other]
-         (if (or (number? other)
-                 (ratio? other))
+         (if (ratio? other)
            (.compare this other)
-           (.compare this (rationalize other))))
+           (let [o-value (.valueOf other)]
+             (if (v/real? o-value)
+               (garray/defaultCompare this o-value)
+               (throw (js/Error. (str "Cannot compare " this " to " other)))))))
 
        Object
        (toString [r]

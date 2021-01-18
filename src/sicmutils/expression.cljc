@@ -69,6 +69,11 @@
 
   Object
   (toString [_] (str expression))
+  #?(:cljs
+     (valueOf [this]
+              (cond (number? expression)   expression
+                    (v/number? expression) (.valueOf expression)
+                    :else this)))
   #?(:clj
      (equals [a b]
              (if (instance? Literal b)
@@ -81,7 +86,13 @@
   #?@(:clj
       [IObj
        (meta [_] m)
-       (withMeta [_ meta] (Literal. type expression meta))]
+       (withMeta [_ meta] (Literal. type expression meta))
+
+       Comparable
+       (compareTo [_ b]
+                  (if (instance? Literal b)
+                    (v/compare expression (.-expression ^Literal b))
+                    (v/compare expression b)))]
 
       :cljs
       [IMeta
@@ -98,6 +109,12 @@
                         (= expression (.-expression b))
                         (= m (.-m b))))
                  (v/= a b)))
+
+       IComparable
+       (-compare [a b]
+                 (if (instance? Literal b)
+                   (-compare expression (.-expression ^Literal b))
+                   (-compare expression b)))
 
        IPrintWithWriter
        (-pr-writer

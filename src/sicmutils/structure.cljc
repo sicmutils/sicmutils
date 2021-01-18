@@ -24,6 +24,7 @@
             [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
+            [sicmutils.operator :as o]
             [sicmutils.util :as u]
             [sicmutils.numsymb]
             [sicmutils.value :as v])
@@ -49,6 +50,7 @@
 
 ;; Structures can interact with functions.
 (derive ::structure ::f/cofunction)
+(derive ::structure ::o/co-operator)
 
 ;; ## Utilities
 ;;
@@ -83,7 +85,8 @@
   (kind [_] orientation)
 
   f/IArity
-  (arity [_] (f/arity v))
+  (arity [_]
+    (f/seq-arity v))
 
   d/IPerturbed
   (perturbed? [_] (boolean (some d/perturbed? v)))
@@ -824,25 +827,8 @@
 (defmethod g/sub [::up ::up] [a b] (elementwise g/- a b))
 
 (defmethod g/mul [::structure ::structure] [a b] (s:* a b))
-
-
-;; TODO does this make sense? Do we really do function and operator differently?
-;; Check how this works vs mechanics... this is very strange!
-
-(defmethod g/mul [::structure :sicmutils.operator/operator] [a b]
-  (structure*scalar a b))
-
-(defmethod g/mul [:sicmutils.operator/operator ::structure] [a b]
-  (scalar*structure a b))
-
-;; TODO these are the same...
 (defmethod g/mul [::structure ::v/scalar] [a b] (structure*scalar a b))
 (defmethod g/mul [::v/scalar ::structure] [a b] (scalar*structure a b))
-(defmethod g/mul [::structure ::d/differential] [a b] (structure*scalar a b))
-(defmethod g/mul [::d/differential ::structure] [a b] (scalar*structure a b))
-
-;; TODO looks like I can't take the derivative of things that DIVIDE. Fix, and
-;; derive scalar? Make a test that shows this problem.
 
 (defmethod g/div [::structure ::v/scalar] [a b] (structure*scalar a (g/invert b)))
 (defmethod g/div [::structure ::structure] [a b] (s:* (g/invert b) a))

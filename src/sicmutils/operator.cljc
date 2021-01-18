@@ -48,10 +48,10 @@
 
   d/IPerturbed
   (perturbed? [_] false)
-  (replace-tag [o old new]
+  (replace-tag [_ old new]
     (Operator. (d/replace-tag o old new) arity name context))
-  (extract-tangent [o tag]
-                   (Operator. (d/extract-tangent o tag) arity name context))
+  (extract-tangent [_ tag]
+    (Operator. (d/extract-tangent o tag) arity name context))
 
   #?@(:clj
       [ILookup

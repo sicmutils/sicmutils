@@ -31,8 +31,13 @@
                             ISeq
                             LazySeq))))
 
-;; Vector Implementations
-
+;; ## Vector Implementations
+;;
+;; Vectors are implicitly treated as [[sicmutils.structure/Structure]] instances
+;; with an `up` orientation. They can act as `zero?`, but they can't act as
+;; `one?` or `identity?`; those are reserved for instances that have no effect
+;; on multiplication.
+;;
 (extend-type #?(:clj IPersistentVector :cljs PersistentVector)
   v/Value
   (zero? [v] (every? v/zero? v))
@@ -45,16 +50,27 @@
   (freeze [v] (mapv v/freeze v))
   (kind [v] (type v))
 
+  ;; Another difference from [[sicmutils.structure/Structure]] is that a
+  ;; structure of functions acts as a function itself that applies its entries
+  ;; to its arguments. Vectors already implement IFn (they take an index and
+  ;; look it up), so they can't respond the same way as a structure via
+  ;; arity. (the `2` arity takes an additional default value.)
   f/IArity
-  (arity [v]
-    (transduce (map f/arity) f/combine-arities v))
+  (arity [v] [:between 1 2])
 
+  ;; Vectors are functors, so they can be perturbed if any of their elements are
+  ;; perturbed. [[d/replace-tag]] and [[d/extract-tangent]] pass the buck down
+  ;; the vector's elements.
   d/IPerturbed
   (perturbed? [v] (boolean (some d/perturbed? v)))
   (replace-tag [v old new] (mapv #(d/replace-tag % old new) v))
   (extract-tangent [v tag] (mapv #(d/extract-tangent % tag) v)))
 
 ;; ## Sequences
+;;
+;; Sequences can't act as functions or respond to any of
+;; the [[v/zero?]]-and-friends predicates. They pass along the operations that
+;; they can implement to their elements via [[map]].
 
 (#?@(:clj [do] :cljs [doseq [klass [Cons IndexedSeq LazySeq List]]])
  (extend-type #?(:clj ISeq :cljs klass)
@@ -75,6 +91,14 @@
    (extract-tangent [xs tag] (map #(d/extract-tangent % tag) xs))))
 
 ;; ## Maps
+;;
+;; Maps acts as functors that can be perturbed and zeroed out (and pass along
+;; calls to [[g/partial-derivative]] to their elements!), but not much else.
+;;
+;; NOTE: There is probably a case for making something
+;; like [[sicmutils.structure/Structure]] backed by a map, for a sort of sparse
+;; structure, or a dataframe-like structure with named fields instead of
+;; positional fields. Nothing like this exists yet!
 
 #?(:clj
    (derive IPersistentMap ::map)
@@ -89,6 +113,9 @@
           (into (empty m)
                 (map (fn [[k v]] [k (f v)]))
                 m))]
+
+  (defmethod g/simplify [::map] [m]
+    (map-vals g/simplify m))
 
   (defmethod g/partial-derivative [::map v/seqtype] [m selectors]
     (map-vals #(g/partial-derivative % selectors)
@@ -108,9 +135,7 @@
      (kind [m] (:type m (type m)))
 
      f/IArity
-     (arity [m]
-       (transduce
-        (map f/arity) f/combine-arities (vals m)))
+     (arity [m] [:between 1 2])
 
      d/IPerturbed
      (perturbed? [m] (boolean (some d/perturbed? (vals m))))

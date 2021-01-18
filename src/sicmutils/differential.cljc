@@ -410,7 +410,7 @@
 ;; backed by a Clojure vector. vector sets provide cheap "max" and "min"
 ;; operations, and acceptable union, intersection and difference performance.
 
-(defn- make-term
+(defn make-term
   "Returns a [[Differential]] term with the supplied vector-set of `tags` paired
   with coefficient `coef`.
 
@@ -483,31 +483,33 @@
 
   Each input must be sequence of `[tag-set, coefficient]` pairs, sorted by
   `tag-set`."
-  [xs ys]
-  (loop [xs xs, ys ys, result []]
-    (cond (empty? xs) (into result ys)
-          (empty? ys) (into result xs)
-          :else (let [[x-tags x-coef :as x] (first xs)
-                      [y-tags y-coef :as y] (first ys)
-                      compare-flag (core-compare x-tags y-tags)]
-                  (cond
-                    ;; If the terms have the same tag set, add the coefficients
-                    ;; together. Include the term in the result only if the new
-                    ;; coefficient is non-zero.
-                    (zero? compare-flag)
-                    (let [sum (g/+ x-coef y-coef)]
-                      (recur (rest xs)
-                             (rest ys)
-                             (if (v/zero? sum)
-                               result
-                               (conj result (make-term x-tags sum)))))
+  ([] [])
+  ([xs] xs)
+  ([xs ys]
+   (loop [xs xs, ys ys, result []]
+     (cond (empty? xs) (into result ys)
+           (empty? ys) (into result xs)
+           :else (let [[x-tags x-coef :as x] (first xs)
+                       [y-tags y-coef :as y] (first ys)
+                       compare-flag (v/compare x-tags y-tags)]
+                   (cond
+                     ;; If the terms have the same tag set, add the coefficients
+                     ;; together. Include the term in the result only if the new
+                     ;; coefficient is non-zero.
+                     (zero? compare-flag)
+                     (let [sum (g/+ x-coef y-coef)]
+                       (recur (rest xs)
+                              (rest ys)
+                              (if (v/zero? sum)
+                                result
+                                (conj result (make-term x-tags sum)))))
 
-                    ;; Else, pass the smaller term on unchanged and proceed.
-                    (neg? compare-flag)
-                    (recur (rest xs) ys (conj result x))
+                     ;; Else, pass the smaller term on unchanged and proceed.
+                     (neg? compare-flag)
+                     (recur (rest xs) ys (conj result x))
 
-                    :else
-                    (recur xs (rest ys) (conj result y)))))))
+                     :else
+                     (recur xs (rest ys) (conj result y))))))))
 
 ;; Because we've decided to store terms as a vector, we can multiply two vectors
 ;; of terms by:
@@ -540,13 +542,15 @@
 (defn- terms:*
   "Returns a vector of non-zero [[Differential]] terms that represent the product
   of the differential term lists `xs` and `ys`."
-  [xs ys]
-  (collect-terms
-   (for [[x-tags x-coef] xs
-         [y-tags y-coef] ys
-         :when (empty? (uv/intersection x-tags y-tags))]
-     (make-term (uv/union x-tags y-tags)
-                (g/* x-coef y-coef)))))
+  ([] [])
+  ([xs] xs)
+  ([xs ys]
+   (collect-terms
+    (for [[x-tags x-coef] xs
+          [y-tags y-coef] ys
+          :when (empty? (uv/intersection x-tags y-tags))]
+      (make-term (uv/union x-tags y-tags)
+                 (g/* x-coef y-coef))))))
 
 ;; ## Differential Type Implementation
 ;;
@@ -563,15 +567,18 @@
 ;; Now the actual type. The `terms` field is a term-list vector that will
 ;; remain (contractually!) sorted by its list of tags.
 
-(declare d:apply compare equiv from-terms one?)
+(declare d:apply compare equiv finite-term from-terms one?)
 
 (deftype Differential [terms]
   ;; A [[Differential]] as implemented can act as a chain-rule accounting device
   ;; for all sorts of types, not just numbers. A [[Differential]] is
-  ;; only [[v/numerical?]] if its coefficients are numerical.
+  ;; only [[v/numerical?]] if its coefficients are numerical (or if `terms` is
+  ;; empty, interpreted as a [[Differential]] equal to `0`.)
   v/Numerical
   (numerical? [_]
-    (v/numerical? (coefficient (first terms))))
+    (or (empty? terms)
+        (v/numerical?
+         (coefficient (nth terms 0)))))
 
   IPerturbed
   (perturbed? [_] true)
@@ -621,9 +628,13 @@
   (zero-like [_] 0)
   (one-like [_] 1)
   (identity-like [_] 1)
-  (freeze [_] `[~'Differential ~@terms])
+  (freeze [_]
+    (letfn [(freeze-term [term]
+              (make-term (tags term)
+                         (v/freeze (coefficient term))))]
+      `[~'Differential
+        ~@(mapv freeze-term terms)]))
   (exact? [_] false)
-
   (kind [_] ::differential)
 
   Object
@@ -632,7 +643,14 @@
   ;; If you want to compare two instances using their full term lists,
   ;; See [[eq]].
   #?(:clj (equals [a b] (equiv a b)))
-  (toString [_] (str "D[" (join " " (map #(join " → " %) terms)) "]"))
+  #?(:cljs (valueOf [this] (.valueOf (finite-term this))))
+  (toString [_]
+    (let [term-strs (map (fn [term]
+                           (str (tags term)
+                                " → "
+                                (pr-str (coefficient term))))
+                         terms)]
+      (str "D[" (join " " term-strs) "]")))
 
   ;; Because a [[Differential]] is an accounting device that augments other
   ;; operations with the ability to carry around derivatives, it's possible that
@@ -646,7 +664,10 @@
   ;; have the same arity by definition.
   f/IArity
   (arity [_]
-    (f/arity (coefficient (first terms))))
+    (f/arity
+     (if (empty? terms)
+       0
+       (coefficient (nth terms 0)))))
 
   #?@(:clj
       ;; This one is slightly subtle. To participate in control flow operations,
@@ -815,8 +836,8 @@
   (cond (empty? terms) 0
 
         (and (= (count terms) 1)
-             (empty? (tags (first terms))))
-        (coefficient (first terms))
+             (empty? (tags (nth terms 0))))
+        (coefficient (nth terms 0))
 
         :else (->Differential terms)))
 
@@ -845,10 +866,12 @@
 
     Works with non-[[Differential]] instances on either or both sides, and returns
   a [[Differential]] only if it contains any non-zero tangent components."
-  [dx dy]
-  (terms->differential
-   (terms:+ (->terms dx)
-            (->terms dy))))
+  ([] 0)
+  ([dx] dx)
+  ([dx dy]
+   (terms->differential
+    (terms:+ (->terms dx)
+             (->terms dy)))))
 
 (defn d:*
   "Returns an object representing the product of the two objects `dx` and `dy`.
@@ -861,10 +884,12 @@
 
   Works with non-[[Differential]] instances on either or both sides, and returns
   a [[Differential]] only if it contains any non-zero tangent components."
-  [dx dy]
-  (terms->differential
-   (terms:* (->terms dx)
-            (->terms dy))))
+  ([] 1)
+  ([dx] dx)
+  ([dx dy]
+   (terms->differential
+    (terms:* (->terms dx)
+             (->terms dy)))))
 
 (defn- d:apply
   "Accepts a [[Differential]] and a sequence of `args`, interprets each
@@ -1016,7 +1041,7 @@
   (if (differential? dx)
     (let [[head] (bare-terms dx)
           ts     (tags head)]
-      (if (= [] ts)
+      (if (empty? ts)
         (coefficient head)
         0))
     dx))
@@ -1072,7 +1097,11 @@
    (= (->terms a)
       (->terms b)))
   ([a b & more]
-   (reduce eq (eq a b) more)))
+   (if (eq a b)
+     (if (next more)
+       (recur b (first more) (next more))
+       (eq b (first more)))
+     false)))
 
 (defn compare-full
   "Comparator that compares [[Differential]] instances with each other or
@@ -1081,7 +1110,7 @@
 
   Acts as [[clojure.core/compare]] for non-differentials."
   [a b]
-  (core-compare
+  (v/compare
    (->terms a)
    (->terms b)))
 
@@ -1097,7 +1126,11 @@
    (= (finite-term a)
       (finite-term b)))
   ([a b & more]
-   (reduce equiv (equiv a b) more)))
+   (if (equiv a b)
+     (if (next more)
+       (recur b (first more) (next more))
+       (equiv b (first more)))
+     false)))
 
 (defn compare
   "Comparator that compares [[Differential]] instances with each other or
@@ -1106,7 +1139,7 @@
 
   Acts as [[clojure.core/compare]] for non-differentials."
   [a b]
-  (core-compare
+  (v/compare
    (finite-term a)
    (finite-term b)))
 
@@ -1132,7 +1165,7 @@
 ;; Magically this will all Just Work if you pass an already-lifted function, or
 ;; a function built out of already-lifted components, as `df:dx` or `df:dy`.
 
-(defn- lift-1
+(defn lift-1
   "Given:
 
   - some unary function `f`
@@ -1155,7 +1188,7 @@
           fx
           (d:+ fx (d:* (df:dx px) tx)))))))
 
-(defn- lift-2
+(defn lift-2
   "Given:
 
   - some binary function `f`
@@ -1186,7 +1219,7 @@
           b
           (d:+ b (d:* (df:dy xe ye) dy)))))))
 
-(defn- lift-n
+(defn lift-n
   "Given:
 
   - some function `f` that can handle 0, 1 or 2 arguments
@@ -1230,6 +1263,14 @@
          (d:* (g/partial-derivative tx selectors)
               (bundle 0 1 tag)))))
 
+(defmethod g/simplify [::differential] [d]
+  (->Differential
+   (mapv (fn [term]
+           (make-term (tags term)
+                      (g/simplify
+                       (coefficient term))))
+         (bare-terms d))))
+
 ;; ## Generic Method Installation
 ;;
 ;; Armed with [[lift-1]] and [[lift-2]], we can install [[Differential]] into
@@ -1267,10 +1308,7 @@
 ;; provides [[defunary]] and [[defbinary]] calls for all of the generic
 ;; operations for which we know how to declare partial derivatives.
 
-(defbinary g/add
-  (lift-2 g/add
-          (fn [_ _] 1)
-          (fn [_ _] 1)))
+(defbinary g/add d:+)
 
 (defunary g/negate
   (lift-1 g/negate (fn [_] -1)))
@@ -1305,8 +1343,8 @@
 (defunary g/abs
   (fn [x]
     (let [f (finite-term x)
-          func (cond (< f 0) (lift-1 (fn [x] (g/negate x)) (fn [_] -1))
-                     (> f 0) (lift-1 (fn [x] x) (fn [_] 1))
+          func (cond (< f 0) (lift-1 g/negate (fn [_] -1))
+                     (> f 0) (lift-1 identity (fn [_] 1))
                      (= f 0) (u/illegal "Derivative of g/abs undefined at zero")
                      :else (u/illegal (str "error! derivative of g/abs at" x)))]
       (func x))))
@@ -1317,38 +1355,18 @@
             (g/invert
              (g/mul (g/sqrt x) 2)))))
 
-;; This first case of [[g/expt]], where the exponent itself is
-;; non-[[Differential]], is special-cased and slightly simpler. The second
-;; partial derivative throws, since the more general definition below should
-;; always override.
-
-(let [power (lift-2
-             g/expt
-             (fn [x y]
-               (g/mul y (g/expt x (g/sub y 1))))
-             (fn [_ _]
-               (u/illegal "can't get there from here")))]
-  (defmethod g/expt [::differential ::v/scalar] [d n] (power d n)))
-
-;; The remaining two cases allow for a differential exponent. NOTE: I took this
-;; implementation-split from scmutils, but I'm not sure that it matters... if
-;; the second partial never gets called, why is this a good optimization?
-;;
-;; TODO: check if it DOES get called, and if not, consolidate these branches.
-(let [expt (lift-2
-            g/expt
-            (fn [x y]
-              (g/mul y (g/expt x (g/sub y 1))))
-            (fn [x y]
-              (if (and (v/number? x) (v/zero? y))
-                (if (v/number? y)
-                  (if (not (g/negative? y))
-                    0
-                    (u/illegal "Derivative undefined: expt"))
-                  0)
-                (g/* (g/log x) (g/expt x y)))))]
-  (defmethod g/expt [::differential ::differential] [d n] (expt d n))
-  (defmethod g/expt [::v/scalar ::differential] [d n] (expt d n)))
+(defbinary g/expt
+  (lift-2 g/expt
+          (fn [x y]
+            (g/mul y (g/expt x (g/sub y 1))))
+          (fn [x y]
+            (if (and (v/number? x) (v/zero? y))
+              (if (v/number? y)
+                (if (not (g/negative? y))
+                  0
+                  (u/illegal "Derivative undefined: expt"))
+                0)
+              (g/* (g/log x) (g/expt x y))))))
 
 (defunary g/log
   (lift-1 g/log g/invert))

@@ -10,6 +10,7 @@
             [same :refer [zeroish?]]
             [same.ish :as si]
             [sicmutils.complex :as c]
+            [sicmutils.differential :as d]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
             [sicmutils.numsymb :as sym]
@@ -76,8 +77,30 @@
                long
                integer]))
 
-(def real
+(def ratio
+  "Generates a small ratio (or integer) using gen/small-integer. Shrinks
+  toward simpler ratios, which may be larger or smaller."
+  (gen/fmap
+   (fn [[a b]] (r/rationalize a b))
+   (gen/tuple gen/small-integer (gen/fmap inc gen/nat))))
+
+(def big-ratio
+  (gen/let [n bigint
+            d bigint]
+    (let [d (if (v/zero? d)
+              (u/bigint 1)
+              d)]
+      (r/rationalize n d))))
+
+(def rational
+  (gen/one-of [any-integral ratio]))
+
+(def real-without-ratio
   (gen/one-of [any-integral (reasonable-double)]))
+
+(def real
+  (gen/one-of
+   [any-integral ratio (reasonable-double)]))
 
 (defn reasonable-real [bound]
   (let [bound    (core-long bound)
@@ -93,20 +116,8 @@
             i (reasonable-double)]
     (c/complex r i)))
 
-(def ratio
-  "Generates a small ratio (or integer) using gen/small-integer. Shrinks
-  toward simpler ratios, which may be larger or smaller."
-  (gen/fmap
-   (fn [[a b]] (r/rationalize a b))
-   (gen/tuple gen/small-integer (gen/fmap inc gen/nat))))
-
-(def big-ratio
-  (gen/let [n bigint
-            d bigint]
-    (let [d (if (v/zero? d)
-              (u/bigint 1)
-              d)]
-      (r/rationalize n d))))
+(def number
+  (gen/one-of [real complex]))
 
 ;; ## Symbolic
 
@@ -217,6 +228,26 @@
   ([] (vector-set gen/nat))
   ([entry-gen]
    (gen/fmap vs/make (gen/set entry-gen))))
+
+;; ## Differential
+
+(defn differential
+  "Returns a generator that produces proper instances of [[d/Differential]]."
+  ([] (differential real))
+  ([coef-gen]
+   (let [term-gen   (gen/let [tags (vector-set gen/nat)
+                              coef coef-gen]
+                      (let [tags (if (empty? tags) [0] tags)
+                            coef (if (v/zero? coef) 1 coef)]
+                        (#'d/make-term tags coef)))]
+     (gen/let [terms  (gen/vector term-gen 1 5)
+               primal coef-gen]
+       (let [tangent-part (d/from-terms terms)
+             ret          (d/d:+ primal tangent-part)]
+         (cond (d/differential? ret)          ret
+               (d/differential? tangent-part) tangent-part
+               :else (d/from-terms [(#'d/make-term [] primal)
+                                    (#'d/make-term [0] 1)])))))))
 
 ;; ## Custom Almost-Equality
 

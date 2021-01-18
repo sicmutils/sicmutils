@@ -64,7 +64,7 @@
   (extract-tangent [M tag] (fmap #(d/extract-tangent % tag) M))
 
   f/IArity
-  (arity [_] (f/arity v))
+  (arity [_] (transduce (map f/seq-arity) f/combine-arities v))
 
   #?@(:clj
       [Object
