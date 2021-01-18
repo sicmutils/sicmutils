@@ -368,6 +368,12 @@
   [arities]
   (reduce combine-arities arities))
 
+(defn seq-arity
+  "Returns the most general arity compatible with all entries in the supplied
+  sequence of values."
+  [xs]
+  (transduce (map arity) combine-arities xs))
+
 ;; ## Generic Implementations
 ;;
 ;; A `::cofunction` is a type that we know how to combine with a function in a
