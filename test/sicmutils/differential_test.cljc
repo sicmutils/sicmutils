@@ -218,7 +218,27 @@
 
                   (is (neg? (d/compare-full l (d/bundle l 1 0)))
                       "a [[Differential]] with a positive tangent is ALWAYS
-                    greater than a non-[[Differential]] whatever the tangent."))))))
+                    greater than a non-[[Differential]] whatever the tangent."))
+
+        (testing "freeze, simplify, str"
+          (let [not-simple (g/square
+                            (g/square (d/bundle 'x 1 0)))]
+            (is (= '[Differential
+                     [[]  (* x x x x)]
+                     [[0] (+ (* (+ x x) x x) (* x x (+ x x)))]]
+                   (v/freeze not-simple))
+                "A frozen differential freezes each entry")
+
+            (is (= '[Differential
+                     [[]  (expt x 4)]
+                     [[0] (* 4 (expt x 3))]]
+                   (v/freeze
+                    (g/simplify not-simple)))
+                "simplify simplifies each tangent term")
+
+            (is (= "D[[] → (expt x 4) [0] → (* 4 (expt x 3))]"
+                   (str (g/simplify not-simple)))
+                "str representation properly simplifies.")))))))
 
 (deftest differential-fn-tests
   (testing "differentials can take branches inside functions, PROVIDED (with

@@ -39,39 +39,48 @@
 
 (use-fixtures :each hermetic-simplify-fixture)
 
-(def q
-  (s/up (af/literal-function 'x)
-        (af/literal-function 'y)
-        (af/literal-function 'z)))
-
-(defn- δ
-  [η]
-  (fn [f]
-    ;; Define g(ε) as in Eq. 1.22; then δ_η f[q] = Dg(0)
-    (fn [q]
-      (let [g (fn [ε]
-                (f (+ q (* ε η))))]
-        ((D g) 0)))))
-
-(deftest diff-test-1
-  (testing "some simple functions"
+(deftest D-unit-tests
+  (testing "D of linear returns slope"
     (is (= 2 ((D #(* 2 %)) 1)))
-    (is (= 2 ((D #(* 2 %)) 'w)))
-    (is (= (+ 'z 'z) ((D #(* % %)) 'z)))
+    (is (= 2 ((D #(* 2 %)) 'w))))
+
+  (testing "square, cube"
+    (is (= (+ 'z 'z)
+           ((D g/square) 'z)))
     (is (= (* 3 (g/expt 'y 2))
-           ((D #(g/expt % 3)) 'y)))
-    (is (= (* (cos (* 2 'u)) 2) ((D #(sin (* 2 %))) 'u)))
-    (is (= (/ 1 (g/expt (cos 'x) 2)) ((D tan) 'x)))
-    (is (= (s/up 2 (+ 't 't)) ((D #(s/up (* 2 %) (* % %))) 't)))
-    (is (= (s/up (- (sin 't)) (cos 't)) ((D #(s/up (cos %) (sin %))) 't)))
-    (is (= '(/ 1 (sqrt (+ (* -1 (expt x 2)) 1))) (g/simplify ((D asin) 'x))))
-    (is (= '(/ -1 (sqrt (+ (* -1 (expt x 2)) 1))) (g/simplify ((D acos) 'x)))))
+           ((D #(g/expt % 3)) 'y))))
+
+  (is (= (/ 1 (g/expt (cos 'x) 2))
+         ((D tan) 'x)))
+
+  (testing "D of a fn returning a structure returns the componentwise
+            derivative"
+    (is (= (s/up 2 (+ 't 't))
+           ((D #(s/up (* 2 %) (* % %))) 't)))
+
+    (is (= (s/up (- (sin 't)) (cos 't))
+           ((D #(s/up (cos %) (sin %))) 't))))
+
+  (testing "trig derivatives"
+    (is (= '(/ 1 (sqrt (+ (* -1 (expt x 2)) 1)))
+           (g/simplify ((D asin) 'x))))
+
+    (is (= '(/ -1 (sqrt (+ (* -1 (expt x 2)) 1)))
+           (g/simplify ((D acos) 'x)))))
+
+  (testing "log"
+    (is (= '(/ 1 x)
+           (g/simplify ((D log) 'x)))))
 
   (testing "chain rule"
+    (is (= (* (cos (* 2 'u)) 2)
+           ((D #(sin (* 2 %))) 'u)))
+
     (let [s (fn [t] (g/sqrt t))
           u (fn [t] (g/expt (- (* 3 (s t)) 1) (/ 2 3)))
           y (fn [t] (/ (+ (u t) 2) (- (u t) 1)))]
-      (is ((v/within 1e-6) (/ -1 18.) ((D y) 9)))))
+      (is (ish? (/ -1 18)
+                ((D y) 9)))))
 
   (testing "structural-functions"
     (is (= '(up (cos t) (* -1 (sin t))) (g/simplify ((D (s/up sin cos)) 't))))))
@@ -88,627 +97,212 @@
                [b (* 2 c)]]
              (for [i (range 2)]
                (for [j (range 2)]
-                 (g/simplify (((* (partial i) (partial j)) f) 'x 'y))))))
+                 (g/simplify
+                  (((* (partial i) (partial j)) f) 'x 'y)))))
+          "generate matrix of second partials through operator *")
+
       (is (= '[[(* 2 a) b]
                [b (* 2 c)]]
              (for [i (range 2)]
                (for [j (range 2)]
-                 (g/simplify (((f/compose (partial i) (partial j)) f) 'x 'y)))))))
+                 (g/simplify
+                  (((f/compose (partial i) (partial j)) f) 'x 'y)))))
+          "matrix of second partials through explicit operator composition"))
+
     (let [F (fn [a b]
               (fn [[x y]]
                 (s/up (* a x) (* b y))))]
-      (is (= (s/up 'x 'y) ((F 1 1) (s/up 'x 'y))))
-      (is (= (s/up (* 2 'x) (* 3 'y)) ((F 2 3) (s/up 'x 'y))))
-      (is (= (s/up 'x 0)  ((((partial 0) F) 1 1) (s/up 'x 'y))))
-      (is (= (s/up 0 'y)  ((((partial 1) F) 1 1) (s/up 'x 'y))))
-      (is (= (s/down (s/up 'x 0) (s/up 0 'y)) (((D F) 1 1) (s/up 'x 'y)))))))
-
-(deftest amazing-bug
-  (testing "alexey's amazing bug"
-    (let [shift (fn [x]
-                  (fn [g]
-                    (fn [y]
-                      (g (+ x y)))))
-          f-hat ((D shift) 3)]
-      ;; (D shift) == (D (fn [x] (fn [g] (fn [a] (g (+ a x))))))
-      ;;
-      ;; should be, given some constant `x`,
-      ;;
-      ;; (fn [g] (fn [a] ((D g) (+ a x))))
-      ;;
-      ;; of course they chose the example to work out nicely after applying the
-      ;; chain rule, by passing in `x` == 3 and `g` == `exp`:
-      ;;
-      ;; (fn [a] (exp (+ a 3)))
-      ;;
-      ;; And indeed it is:
-      (is (= (exp 8) ((f-hat exp) 5))
-          "Nothing tough expected in this case.")
-
-      ;; Now, what is the Amazing Bug?
-
-      (comment
-        (is (= 0 ((f-hat (f-hat exp)) 5))
-            "IN the bug version, this passed!"))
-
-      ;; Read on for a longer description of why the result should ACTUALLY
-      ;; be `(exp 11)`.
-      ;;
-      ;; We can make the Amazing Bug appear because of the following:
-      ;;
-      ;; `(D f)` is a function that takes an argument, and RETURNS a function
-      ;; with a captured tag (let's call it `0`). Stare at this definition of
-      ;; `D`:
-
-      (comment
-        (defn D [f]
-          (fn [x]
-            (let [;; make a fresh tag that we expect to survive only inside this
-                  ;; fn call:
-                  tag (d/fresh-tag)
-
-                  ;; perturb the argument with that tag
-                  perturbed-arg (d/bundle x 1 tag)]
-              ;; pass that in to the original function, then extract the tangent
-              ;; for that tag. The final return value might have OTHER tags and
-              ;; perturbations in it if this is a nested call! But this
-              ;; particular tag `tag` is now toast; it can't escape this call.
-              (-> (f perturbed-arg)
-                  (d/extract-tangent tag))))))
-
-      ;; `(D f)` is a function from a number to ANOTHER function that has a
-      ;; CAPTURED internal tag assigned to its argument (the `g` in the first
-      ;; comment lines above.)
-      ;;
-      ;; Th buggy approach to a functional return value was to re-wrap the
-      ;; returned function in a new function that extracted the original tag.
-      ;; That code lived here:
-      ;; https://github.com/sicmutils/sicmutils/blob/9b4f9c5983cd0f9b209ef27036bc2dbb8f7ffb1c/src/sicmutils/calculus/derivative.cljc#L233
-
-      ;; The reason this is a bug is that the returned fn uses the same tag over
-      ;; and over again, every time you call it.
-      ;;
-      ;; You can trigger the "Amazing Bug" by nesting calls to `f-hat` == `((D
-      ;; f) 3)`, like `(f-hat (f-hat exp))`; the inner call will wipe out any
-      ;; perturbation with the captured tag before it returns, leaving nothing
-      ;; for the outer `f-hat` to extract (forcing it to return `0`).
-      ;;
-      ;; The following example makes a nested call so `f-hat`, in the same
-      ;; evaluation, has to deal with two distinct arguments - `exp` in the
-      ;; inner call, and `(f-hat exp)` in the outer call. Both get the same tag
-      ;; `0`:
-
-      (is (= (exp 11) ((f-hat (f-hat exp)) 5))
-          "This case is susceptible to tag confusion, if `f-hat` uses the same
-          tag for every invocation. The inner `f-hat` extracts the tangent of
-          that tag; when the outer call tries to extract it it finds only
-          `0`.")
-
-      ;; I'll spell this out and point out where the tags get confused. Remember
-      ;; that `f-hat` == `((D f) 3)` is:
-      ;;
-      ;; (fn [g] (fn [a] (g (+ a 3))))
-      ;;
-      ;; So
-      ;;
-      ;; ((f-hat (f-hat exp)) 5)
-      ;;
-      ;; expands out in steps like this:
-
-      (comment
-        (let [f-hat   (fn [g]
-                        ;; tags `g` with `0`, extracts at the end.
-                        (fn [a] (g (+ a 3))))
-              inner-f (f-hat exp)
-              outer-f (f-hat inner-f)]
-          (outer-f 5))
-
-        ;; sub in `f-hat` definition everywhere:
-        (let [inner-f ((fn [g1]
-                         ;; tags g1 with `0`
-                         (fn [a] (g1 (+ a 3)))) exp)
-              outer-f ((fn [g2]
-                         ;; tags g2 with `0`
-                         (fn [b] (g2 (+ b 3)))) inner-f)]
-          (outer-f 5))
-
-        ;; sub `exp` into `inner-f`:
-        (let [inner-f (fn [a]
-                        ;; tags `a` with `0` (in the old implementation!)
-                        (exp (+ a 3)))
-              outer-f ((fn [g2]
-                         ;; tags g2 with `0`
-                         (fn [b] (g2 (+ b 3)))) inner-f)]
-          (outer-f 5))
-
-        ;; sub `inner-f` into `outer-f`:
-        (let [outer-f (fn [a]
-                        ;; tags `a` with `0`
-                        (let [inner-f (fn [b]
-                                        ;; tags `b` with `0` (pushed down from `g2`)
-                                        (exp (+ b 3)))]
-                          (inner-f (+ a 3))))]
-          (outer-f 5))
-
-        ;; This is the point where the tag confusion comes in! Sub in `5` for
-        ;; `a` (I'll write the perturbed argument using a vector of the
-        ;; form [primal, (tangent,tag)], like `[5, (1,0)]`):
-
-        (let [inner-f (fn [b]
-                        ;; tags `b` with `0`
-                        (exp (+ b 3)))]
-          ;; extract `0` tag on the way out
-          (inner-f (+ [5, (1,0)] 3)))
-
-        ;; final substitution (remember that when you "tag" a dual number
-        ;; like [5, (1,0)] with the same tag, you're adding 5 + 1*tag + 1*tag == 5 +
-        ;; 2*tag)
-
-        ;; extract `0` tag on the way out
-        ;; extract `0` tag on the way out
-        (exp (+ [(+ 5 3), (2, 0)] 3))
-
-        ;; At this point it doesn't even matter what's going on inside the
-        ;; function. the double "extract 0" is the problem here, and also the
-        ;; fact that the two tangent pieces added together. The tag gets killed
-        ;; on the inner extraction, so the outer one finds `0` for the tangent
-        ;; component of the now-missing tag.
-
-        ;; If the tags had been distinct, this would have been the final step:
-
-        (let [inner-f (fn [b]
-                        ;; tags `b` with `1`
-                        (exp (+ b 3)))]
-          ;; extract `0` tag on the way out
-          (inner-f (+ [(+ 5 3), (1,0)] 3)))
-
-        ;; extract `0` tag on the way out
-        ;; extract `1` tag on the way out
-        (exp (+ [[(+ 5 3), (1,0)], (1, 1)] 3))
-
-        ;; group the perturbations:
-
-        ;; extract `0` tag on the way out
-        ;; extract `1` tag on the way out
-        (exp (+ [(+ 5 3) (+ (1,0) (1, 1))] 3))
-
-        ;; add:
-
-        ;; extract `0` tag on the way out
-        ;; extract `1` tag on the way out
-        (exp [(+ 5 3 3) (+ (1,0) (1, 1))])
-
-        ;; derivative of `(exp x)` is, conveniently, `(exp x)`:
-
-        ;; extract `0` tag on the way out
-        ;; extract `1` tag on the way out
-        [(exp 11) (+ ((exp 11), 0) ((exp 11), 1))]
-
-        ;; The outer function now gives back the expected `(exp 11)` when we
-        ;; extract the tag associated with `0`.
-
-        ;; The solution lives in `derivative.cljc` and is roughly what you'd
-        ;; expect. If a derivative returns a function, instead of implementing
-        ;; `extract-tangent` by simply pushing the original tag down, you do
-        ;; this:
-
-        (comment
-          (fn [& args]
-            ;; make a NEW fresh tag that gets used for any new arguments; this
-            ;; way every new invocation of this returned fn will generate new
-            ;; tags. `new-tag` was either `0` or `1` depending on the call in
-            ;; the second example. Let's track the outer call through
-            (let [new-tag (d/fresh-tag)
-
-                  ;; replace any occurrence of the original tag in the new fn's
-                  ;; arguments with that new, fresh tag `new-tag`. This is
-                  ;; exactly the case where the outer `f-exp` in `(f-exp (f-exp
-                  ;; 3))` got an argument that was tracking the original `tag`
-                  ;; already.
-                  new-args (map (fn [arg] (d/replace-tag arg tag new-tag))
-                                args)]
-
-              ;; apply the function to the new arguments. (This is the whole
-              ;; machine we described above, now with non-clashing tags).
-              (-> (apply returned-f new-args)
-
-                  ;; go extract the original tag that we were looking for in the
-                  ;; first place! This is important because this is the job of
-                  ;; this function; but this extracts
-                  (d/extract-tangent tag)
-
-                  ;; Sub `tag` back in so that any wrapping fn can extract it.
-                  ;;
-                  ;; NOTE: This case is actually NOT checked by the amazing
-                  ;; bug... and I can't seem to cook up a case where I can force
-                  ;; it to matter!! Asking Pearlmutter about it on Twitter.
-                  (d/replace-tag new-tag tag)))))
-
-        ;; Before the fix, every call to `D` generated (and froze, closed over)
-        ;; a new tag. Now every invocation generates a new tag.
-        )))
-
-  (testing "more subtle amazing bug!"
-    ;; Here's an example of a variant on the bug above that shows why the
-    ;; substitution above is not QUITE sufficient.
-    ;;
-    ;; Let's say you pass some fn `f` as an argument to the `extract-tangent` fn
-    ;; laid out above. It's going to hit this line:
-    ;;
-    ;; `(d/replace-tag f tag new-tag)`
-    ;;
-    ;; `replace-tag` is only supposed to replace tags on the way OUT of some
-    ;; function call. The seemingly obvious implementation will replace tags on
-    ;; the way in, too:
-
-    (comment
-      (fn [& args]
-        (-> (apply f (map #(d/replace-tag % old new-tag) args))
-            (d/replace-tag new-tag old))))
-
-    ;; Why does this matter? If you cook up a situation where some function has
-    ;; already captured the `new-tag` internally, then replacing `old` with
-    ;; `new-tag` on the way in will clobber `new-tag` perturbations inside the
-    ;; fn.
-
-    ;; here's an example. With the suggested implementation this will return 0:
-
-    (let [v (fn [u]
-              (fn [f1]
-                (fn [f2]
-                  (fn [x]
-                    ((f1 f2) (+ x u))))))
-          v-hat ((D v) 0)]
-      (is (= (exp 1)
-             (((v-hat (v-hat identity)) exp) 1))))
-
-    ;; The reason for this is that `f1`and `f2` both capture the the same tag
-    ;; from the definition of `v-hat` == `(D v)` internally; so when `f2` gets
-    ;; passed on to `f1`, `f1` needs to never pass this same tag back down. (It
-    ;; does need to respect requests to `replace-tag` by replacing its outputs.)
-
-    ;; The solution is to only substitute `new-tag` for `old` in the output, and
-    ;; to use a temporary tag on the arguments to protect them from tag
-    ;; substitution, and render them "unique" in the eyes of the fn. Here is the
-    ;; correct implementation:
-
-    (comment
-      (fn [& args]
-        (let [eps (d/fresh-tag)]
-          (-> (apply f (map #(d/replace-tag % old eps) args))
-              (d/replace-tag old new-tag)
-              (d/replace-tag eps old)))))
-
-    ;; The `old -> new-tag` swap only applies to the result; any `old` that goes
-    ;; in will stay tagged as `old` if it happens to leak out of this level, and
-    ;; stay tagged as `eps` internally so it can never get confused if someone
-    ;; ELSE passes `old` in.
-    )
-
-  (testing "church box example"
-    ;; According to
-    ;; https://www.cambridge.org/core/journals/journal-of-functional-programming/article/perturbation-confusion-in-forward-automatic-differentiation-of-higherorder-functions/A808189A3875A2EDAC6E0D62CF2AD262,
-    ;; GJS suggested a different fix: why not just do NO tag substitution at all
-    ;; for functions? Then you can't clobber any tags internally, right? Just
-    ;; let the function itself be transparent!
-    ;;
-    ;; I haven't done the good work of staring at WHY this example exposes the
-    ;; problem, but if you work it out I'm sure it has to do with this problem
-    ;; of perturbation capture. I'll leave it as an exercise ;) but the test
-    ;; does fail if you swap the implementation of `replace-tags` to `identity`
-    ;; for functions.
-
-    (letfn [;; R-> (box R)
-            (box    [x] (fn [m] (m x)))
-
-            ;; (box R)->R
-            (unbox  [x] (x (fn [x] x)))
-
-            ;; (R->R) -> ((box R)->(box R))
-            (wrap   [f] (fn [x] (box (f (unbox x)))))
-
-            ;; ((box R)->(box R)) -> (R -> R)
-            (unwrap [f] (fn [x] (unbox (f (box x)))))
-
-            ;; ((R->R) -> (R->R))
-            ;;   -> (((box R) -> (box R)) -> ((box R) -> (box R)))
-            (wrap2 [f]
-              (fn [g]
-                (fn [x]
-                  (box ((f (unwrap g)) (unbox x))))))
-
-            ;; (R -> ((R->R) -> (R->R)))
-            ;;   -> (R-> (((box R) -> (box R)) -> ((box R)->(box R))))
-            (wrap2-result [f]
-              (fn [x] (wrap2 (f x))))]
-
-      (let [
-            ;; R -> ((R->R) -> (R->R)))
-            s (fn [x]
-                (fn [g]
-                  (fn [y]
-                    (g (+ x y)))))
-            ;; R-> (((box R) -> (box R)) -> ((box R)->(box R)))
-            wrapped-d-hat ((D (wrap2-result s)) 0)]
-        (is (= (exp 1)
-               ((unwrap
-                 (wrapped-d-hat
-                  (wrapped-d-hat (wrap exp)))) 1)))))))
-
-(deftest sams-amazing-bug
-  ;; This `deftest` holds an example of the... bug? strange behavior? described
-  ;; by https://github.com/sicmutils/sicmutils/discussions/237.
-  ;;
-  ;; GJS came up with the nice idea of using a `literal-function` to make the
-  ;; discrepancy very claer.
-  (testing "D on a higher-order function responds differently to evaluations
-  inside a continuation vs outside."
-    (let [
-          ;; Make some literal function that takes TWO inputs:
-          a (af/literal-function 'a '(-> (X Real Real) Real))
-
-          ;; (D f) returns a function that takes a continuation that received
-          ;; two functions, `f1` and `f2`:
-          ;;
-          ;; - `f1` passes `x` (the arg that `D` is with respect to) and `y`,
-          ;;    its argument, into the literal function
-          ;; - `f2` passes its captive `x` into its argument `g`, a function
-          f (fn [x]
-              (fn [cont]
-                (cont (fn f1 [y] (a x y))
-                      (fn f2 [g] (g x)))))]
-
-      ;; If you pass a continuation that feeds `f1` into `f2`, internally this
-      ;; is the same as feeding the captured `x` into the body of `f1`. In fact,
-      ;; you get the same result as IF you'd made the replacement of `x` for `y`
-      ;; in the body of `f1` BEFORE taking the derivative!
-      (is (= '(+ (((partial 0) a) t t)
-                 (((partial 1) a) t t))
-
-             (g/simplify
-              ((D (fn [t] (a t t))) 't))
-
-             (g/simplify
-              (((D f) 't)
-               (fn [f1 f2] (f2 f1)))))
-          "All three cases identically sub `x` into the body of `f1` before
-          taking the derivative.")
-
-      ;; If instead you pass `list` as a continuation, to effectively get `f1`
-      ;; and `f2` OUT before you call `(f2 f1)`, then you instead see a "mixed
-      ;; partial" result. This is the same as if:
-      ;;
-      ;; - `f1` was bound to `(D f1)` with respect to `x`
-      ;; - you passed `(D f1)` as `g` into `Df2 == ((D g) x)`, noting that `(D
-      ;;   g)` here is the derivative of `g` with respect to ITS argument.
-      ;;
-      ;; This is confusing, so see
-      ;; https://github.com/sicmutils/sicmutils/discussions/237 for a longer
-      ;; discussion.
-      (let [[f1 f2] (((D f) 't) list)]
-        (is (= '(((partial 1) ((partial 0) a)) t t)
-               (g/simplify
-                (f2 f1)))
-            "If you first get `f1` and `f2` out and THEN call (f2 f1), you see a
-            mixed partial instead.")))))
-
-(deftest dvl-bug-examples
-  ;; These tests and comments all come from Alexey Radul's
-  ;; https://github.com/axch/dysvunctional-language. Thanks, Alexey!
-
-  ;; NOTE from sritchie - amazing bugs two and three listed here are more
-  ;; complicated (to me) versions of the thing that's exposed in
-  ;; `sams-amazing-bug` above. I don't buy the comments, but I'm including them
-  ;; for completeness, since maybe they will provide a clue about the fix.
-
-  (testing "amazing bug two"
-    ;; What should happen if we differentiate a function that returns a pair of
-    ;; functions? And then tries to confuse their perturbations with each other
-    ;; like the amazing-bug trick? They should refuse to confuse, and be
-    ;; separate.
-    (letfn [(f [x]
-              [(fn [y] (sin (* x y)))
-               (fn [g]
-                 (fn [z] (g (+ x z))))])]
-      (is (ish? ((fn [y]
-                   (- (cos (* 3 y))
-                      (* 3 y (sin (* 3 y)))))
-                 (+ Math/PI 3))
-                (let [[g-hat f-hat] ((D f) 3)]
-                  ((f-hat g-hat) Math/PI))))))
-
-  (testing "amazing bug three, from Alexey"
-    ;; NOTE: from sritchie - I don't buy the explanation below, about how the
-    ;; answer should arguably not be the same. Compare with the result above;
-    ;; something strange is going on.
-    ;;
-    ;; From Alexey: "Here we have the same program as in amazing-bug-2.dvl, but
-    ;; using a Church-encoded pair rather than a normal one. Should the answer
-    ;; be the same?"
-
-    ;; "Arguably not.  Consider that under the normal definition of
-    ;; addition on functions and pairs, Church-encoded pairs add
-    ;; differently from normal ones:"
-    ;; (fn [cont] (cont x1 y1)) + (fn [cont] (cont x2 y2)) =
-    ;; (fn [cont] (+ (cont x1 y1) (cont x2 y2))) !=
-    ;; (fn [cont] (cont (+ x1 x2) (+ y1 y2)))
-    (letfn [(f [x]
-              (fn [recipient]
-                (recipient
-                 (fn [y] (sin (* x y)))
-                 (fn [g]
-                   (fn [z] (g (+ x z)))))))]
-      (is (ish? ((fn [y] (+ (* 3 (cos (* 3 y)))
-                           (* y (cos (* 3 y)))))
-                 (+ 3 Math/PI))
-                (((D f) 3)
-                 (fn [g-hat f-hat]
-                   ((f-hat g-hat) Math/PI))))))
-
-    ;; These are only different if the CONT procedure is non-linear. The
-    ;; interpretation is that in the Church-encoded case, the encoding respects
-    ;; the non-linearity in the CONT procedure, whereas in the pair case, adding
-    ;; pairs does not respect the non-linearity of the result. (In fact, the
-    ;; same is true of ordinary addition of numbers). Since differentiation is
-    ;; supposed to expose linear structure, it makes sense that it would expose
-    ;; different things in these two cases.
-    ;;
-    ;; NOTE (@sritchie): I don't buy it! See
-    ;; https://github.com/sicmutils/sicmutils/discussions/237 for discussion.
-    )
-
-  (testing "amazing bug 4"
-    ;; The same as amazing-bug-3.dvl, but supplies the arguments to f in the
-    ;; opposite order. It is clear that the answers should be identical, and
-    ;; makes it easier to check the correctness of the answer.
-    (letfn [(f [recipient]
-              (fn [x]
-                (recipient
-                 (fn [y] (sin (* x y)))
-                 (fn [g]
-                   (fn [z] (g (+ x z)))))))
-            (recip [g-hat f-hat]
-              ((f-hat g-hat) Math/PI))]
-      (is (ish? ((fn [y] (* (cos (* 3 y)) (+ 3 y)))
-                 (+ 3 Math/PI))
-                ((D (f recip)) 3)))))
-
-  (testing "amazing bug 5"
-    (letfn [(church-output [f]
-              (fn [x]
-                (fn [recipient]
-                  (recipient (f x)))))
-            (continue [x]
-              (* x x))
-            (flip [f]
-              (fn [x] (fn [y] ((f y) x))))]
-      (is (= (* (cos 1) (cos 1))
-             (continue ((D sin) 1))))
-
-      (is (= (* 2 (sin 1) (cos 1))
-             (((D (church-output sin)) 1) continue)))
-
-      (is (= ((D ((flip (church-output sin)) continue)) 1)
-             (((D       (church-output sin)) 1) continue))
-          "(((D f) x) y) === ((D ((flip f) y)) x)")
-
-      (is (= (* 2 (sin 1) (cos 1))
-             ((D (fn [x] (* (sin x) (sin x)))) 1))))))
-
-(deftest diff-test-2
-  (testing "delta-eta-test"
-    (af/with-literal-functions [η q f g]
-      (let [I (fn [q] (fn [t] (q t)))
-            F (fn [q] (fn [t] (f (q t))))
-            G (fn [q] (fn [t] (g (q t))))
-            q+εη (+ q (* 'ε η))
-            g (fn [ε] (+ q (* ε η)))
-            δη (δ η)
-            δηI (δη I)
-            δηIq (δηI q)
-            δηFq ((δη F) q)
-            φ (fn [f] (fn [q] (fn [t] ((af/literal-function 'φ) ((f q) t)))))]
-        (is (= '((D f) t) (g/simplify ((D f) 't))))
-        (is (= '(+ (* ε (η t)) (q t)) (g/simplify (q+εη 't))))
-        (is (= '(+ (* ε (η t)) (q t)) (g/simplify ((g 'ε) 't))))
-        (is (= '(η a) (g/simplify (((D g) 'dt) 'a))))
-        (is (= '(η t) (g/simplify (δηIq 't))))
-        (is (= '(f (q t)) (g/simplify ((F q) 't))))
-        (is (= '(* (η t) ((D f) (q t))) (g/simplify (δηFq 't))))
-        ;; sum rule for variation: δ(F+G) = δF + δG
+      (is (= (s/up 'x 'y)
+             ((F 1 1) (s/up 'x 'y))))
+
+      (is (= (s/up (* 2 'x) (* 3 'y))
+             ((F 2 3) (s/up 'x 'y))))
+
+      (is (= (s/up 'x 0)
+             ((((partial 0) F) 1 1) (s/up 'x 'y))))
+
+      (is (= (s/up 0 'y)
+             ((((partial 1) F) 1 1) (s/up 'x 'y))))
+
+      (is (= (s/down (s/up 'x 0) (s/up 0 'y))
+             (((D F) 1 1) (s/up 'x 'y)))))))
+
+(defn- δ [η]
+  (fn [f]
+    ;; Define g(ε) as in Eq. 1.22; then δ_η f[q] = Dg(0)
+    (fn [q]
+      (let [g (fn [ε]
+                (f (+ q (* ε η))))]
+        ((D g) 0)))))
+
+(deftest delta-eta-tests
+  (af/with-literal-functions [η q f g]
+    (let [I (fn [q] (fn [t] (q t)))
+          F (fn [q] (fn [t] (f (q t))))
+          G (fn [q] (fn [t] (g (q t))))
+          q+εη (+ q (* 'ε η))
+          g (fn [ε] (+ q (* ε η)))
+          δη (δ η)
+          δηI (δη I)
+          δηIq (δηI q)
+          δηFq ((δη F) q)
+          φ (fn [f] (fn [q] (fn [t] ((af/literal-function 'φ) ((f q) t)))))]
+      (is (= '((D f) t) (g/simplify ((D f) 't))))
+      (is (= '(+ (* ε (η t)) (q t)) (g/simplify (q+εη 't))))
+      (is (= '(+ (* ε (η t)) (q t)) (g/simplify ((g 'ε) 't))))
+      (is (= '(η a) (g/simplify (((D g) 'dt) 'a))))
+      (is (= '(η t) (g/simplify (δηIq 't))))
+      (is (= '(f (q t)) (g/simplify ((F q) 't))))
+      (is (= '(* (η t) ((D f) (q t))) (g/simplify (δηFq 't))))
+
+      (testing "sum rule for variation: δ(F+G) = δF + δG"
         (is (= '(+ (* (η t) ((D f) (q t)))
                    (* (η t) ((D g) (q t))))
-               (g/simplify (((δη (+ F G)) q) 't))))
-        ;; scalar product rule for variation: δ(cF) = cδF
-        (is (= '(* c (η t) ((D f) (q t))) (g/simplify (((δη (* 'c F)) q) 't))))
-        ;; product rule for variation: δ(FG) = δF G + F δG
+               (g/simplify (((δη (+ F G)) q) 't)))))
+
+
+      (testing "scalar product rule for variation: δ(cF) = cδF"
+        (is (= '(* c (η t) ((D f) (q t))) (g/simplify (((δη (* 'c F)) q) 't)))))
+
+
+      (testing "product rule for variation: δ(FG) = δF G + F δG"
         (is (= (g/simplify (+ (* (((δη F) q) 't) ((G q) 't))
                               (* ((F q) 't) (((δη G) q) 't))))
-               (g/simplify (((δη (* F G)) q) 't))))
-        ;; path-independent chain rule for variation
-        (is (= '(φ (f (q t))) (g/simplify (((φ F) q) 't))))
-        (is (= '(* (η t) ((D f) (q t)) ((D φ) (f (q t)))) (g/simplify (((δη (φ F)) q) 't))))))))
+               (g/simplify (((δη (* F G)) q) 't)))))
+
+      (testing "path-independent chain rule for variation"
+        (is (= '(φ (f (q t)))
+               (g/simplify (((φ F) q) 't))))
+        (is (= '(* (η t) ((D f) (q t)) ((D φ) (f (q t))))
+               (g/simplify (((δη (φ F)) q) 't))))))))
 
 (deftest exponentiation-and-composition
-  (let [ff (fn [x y z] (+ (* x x y) (* y y z)(* z z x)))
-        ]
+  (let [ff (fn [x y z]
+             (+ (* x x y)
+                (* y y z)
+                (* z z x)))]
     (is (= '(down
              (down (* 2 y) (* 2 x) (* 2 z))
              (down (* 2 x) (* 2 z) (* 2 y))
              (down (* 2 z) (* 2 y) (* 2 x)))
-           (g/simplify (((g/expt D 2) ff) 'x 'y 'z))))
-    (is (= (((* D D) ff) 'x 'y 'z) (((g/expt D 2) ff) 'x 'y 'z)))
-    (is (= (((f/compose D D) ff) 'x 'y 'z) (((g/expt D 2) ff) 'x 'y 'z)))
-    (is (= (((* D D D) ff) 'x 'y 'z) (((g/expt D 3) ff) 'x 'y 'z)))
-    (is (= (((f/compose D D D) ff) 'x 'y 'z) (((g/expt D 3) ff) 'x 'y 'z))))
+           (g/simplify (((g/expt D 2) ff) 'x 'y 'z)))
+        "second derivative via nesting of D")
 
-  (testing "issue #9 regression"
-    (let [g (fn [z] (* z z z z))
-          f4 (fn [x] (+ (* x x x) (* x x x)))]
+    (is (= (((* D D) ff) 'x 'y 'z)
+           (((g/expt D 2) ff) 'x 'y 'z))
+        "expt matches * behavior")
+
+    (testing "D is an operator, so expt == compose"
+      (is (= (((f/compose D D) ff) 'x 'y 'z)
+             (((g/expt D 2) ff) 'x 'y 'z)))
+
+      (is (= (((* D D D) ff) 'x 'y 'z)
+             (((g/expt D 3) ff) 'x 'y 'z)))
+
+      (is (= (((f/compose D D D) ff) 'x 'y 'z)
+             (((g/expt D 3) ff) 'x 'y 'z)))))
+
+  (testing "issue #9 regression. These check that composition and exponentiation
+  work properly on various function arities."
+    (let [g (fn [z] (* z z z z))]
       (is (= '(expt t 4) (g/simplify (g 't))))
       (is (= '(* 4 (expt t 3)) (g/simplify ((D g) 't))))
       (is (= '(* 12 (expt t 2)) (g/simplify ((D (D g)) 't))))
-      (is (= '(* 24 t) (g/simplify ((D (D (D g))) 't))))
-      (is (= '(* 24 z) (g/simplify (((g/expt D 3) g) 'z))))
-      (is (= '(* 2 (expt s 3)) (g/simplify (f4 's))))
-      (is (= '(* 6 (expt s 2)) (g/simplify ((D f4) 's))))
-      (is (= '(* 12 s) (g/simplify ((D (D f4)) 's))))
-      (is (= 12 (g/simplify ((D (D (D f4))) 's))))
-      (is (= 12 (g/simplify (((* D D D) f4) 's))))
-      (is (= 12 (g/simplify (((f/compose D D D) f4) 's))))
-      (is (= 12 (g/simplify (((g/expt D 3) f4) 's)))))
-    (let [fff (fn [x y z] (+ (* x x y)(* y y y z)(* z z z z x)))]
-      (is (= '(+ (* x (expt z 4)) (* (expt y 3) z) (* (expt x 2) y))
-             (g/simplify (((g/expt D 0) fff) 'x 'y 'z))))
-      (is (= '(down
-               (+ (expt z 4) (* 2 x y))
-               (+ (* 3 (expt y 2) z) (expt x 2))
-               (+ (* 4 x (expt z 3)) (expt y 3)))
-             (g/simplify (((g/expt D 1) fff) 'x 'y 'z))))
-      (is (= '(down
-               (down (* 2 y) (* 2 x) (* 4 (expt z 3)))
-               (down (* 2 x) (* 6 y z) (* 3 (expt y 2)))
-               (down (* 4 (expt z 3)) (* 3 (expt y 2)) (* 12 x (expt z 2))))
-             (g/simplify (((g/expt D 2) fff) 'x 'y 'z))))
-      (is (= '(down
-               (down (down 0 2 0) (down 2 0 0) (down 0 0 (* 12 (expt z 2))))
-               (down (down 2 0 0) (down 0 (* 6 z) (* 6 y)) (down 0 (* 6 y) 0))
-               (down
-                (down 0 0 (* 12 (expt z 2)))
-                (down 0 (* 6 y) 0)
-                (down (* 12 (expt z 2)) 0 (* 24 x z))))
-             (g/simplify (((g/expt D 3) fff) 'x 'y 'z)))))
-    (is (= 0 ((D (fn [x] 0)) 'x)))
-    (is (= 0 ((D (fn [& xs] 0)) 'x)))))
 
-(deftest literal-functions
+      (testing "expt matches explicit compose"
+        (is (= '(* 24 t) (g/simplify ((D (D (D g))) 't))))
+        (is (= '(* 24 z) (g/simplify (((g/expt D 3) g) 'z))))))
+
+    (testing "another test of explicit composition vs expt, *"
+      (let [f4 (fn [x]
+                 (+ (* x x x)
+                    (* x x x)))]
+        (is (= '(* 2 (expt s 3)) (g/simplify (f4 's))))
+        (is (= '(* 6 (expt s 2)) (g/simplify ((D f4) 's))))
+        (is (= '(* 12 s) (g/simplify ((D (D f4)) 's))))
+        (is (= 12 (g/simplify ((D (D (D f4))) 's))))
+
+        (testing "*, compose, expt match"
+          (is (= 12 (g/simplify (((* D D D) f4) 's))))
+          (is (= 12 (g/simplify (((f/compose D D D) f4) 's))))
+          (is (= 12 (g/simplify (((g/expt D 3) f4) 's)))))))
+
+    (let [fff (fn [x y z]
+                (+ (* x x y)
+                   (* y y y z)
+                   (* z z z z x)))]
+      (testing "identity, first, second, third multivariate derivatives via expt"
+        (is (= '(+ (* x (expt z 4))
+                   (* (expt y 3) z)
+                   (* (expt x 2) y))
+               (g/simplify
+                (((g/expt D 0) fff) 'x 'y 'z))))
+
+        (is (= '(down
+                 (+ (expt z 4) (* 2 x y))
+                 (+ (* 3 (expt y 2) z) (expt x 2))
+                 (+ (* 4 x (expt z 3)) (expt y 3)))
+               (g/simplify
+                (((g/expt D 1) fff) 'x 'y 'z))))
+
+        (is (= '(down
+                 (down (* 2 y) (* 2 x) (* 4 (expt z 3)))
+                 (down (* 2 x) (* 6 y z) (* 3 (expt y 2)))
+                 (down (* 4 (expt z 3))
+                       (* 3 (expt y 2))
+                       (* 12 x (expt z 2))))
+               (g/simplify
+                (((g/expt D 2) fff) 'x 'y 'z))))
+
+        (is (= '(down
+                 (down (down 0 2 0) (down 2 0 0) (down 0 0 (* 12 (expt z 2))))
+                 (down (down 2 0 0) (down 0 (* 6 z) (* 6 y)) (down 0 (* 6 y) 0))
+                 (down
+                  (down 0 0 (* 12 (expt z 2)))
+                  (down 0 (* 6 y) 0)
+                  (down (* 12 (expt z 2)) 0 (* 24 x z))))
+               (g/simplify (((g/expt D 3) fff) 'x 'y 'z))))))
+
+    (testing "derivative of constant == 0 whatever the arity."
+      (is (= 0 ((D (fn [x] 0)) 'x)))
+      (is (= 0 ((D (fn [& xs] 0)) 'x))))))
+
+(deftest literal-function-tests
   (af/with-literal-functions [f [g [0 0] 0]]
     (testing "R -> R"
       (is (= '((D f) x) (g/simplify ((D f) 'x))))
       (is (= '((D f) (+ x y)) (g/simplify ((D f) (+ 'x 'y))))))
 
     (testing "R^2 -> R"
-      (is (= '(((partial 0) g) x y) (g/simplify (((partial 0) g) 'x 'y))))
-      (is (= '(((partial 1) g) x y) (g/simplify (((partial 1) g) 'x 'y))))
-      (is (= '(down (((partial 0) g) x y) (((partial 1) g) x y))
+      (is (= '(((partial 0) g) x y)
+             (g/simplify (((partial 0) g) 'x 'y))))
+
+      (is (= '(((partial 1) g) x y)
+             (g/simplify (((partial 1) g) 'x 'y))))
+
+      (is (= '(down (((partial 0) g) x y)
+                    (((partial 1) g) x y))
              (g/simplify ((D g) 'x 'y)))))
 
-    (testing "zero-like"
+    (testing "D of zero-like"
       (is (= 0 ((v/zero-like f) 'x)))
       (is (= 0 ((D (v/zero-like f)) 'x))))))
 
 (deftest complex-derivatives
   (let [f (fn [z] (* c/I (sin (* c/I z))))]
-
     (is (= '(* -1 (cosh z))
            (g/simplify ((D f) 'z))))))
 
-(deftest fun-with-operators
-  (is (= '(+ (* (expt t 3) (cos t)) (* 3 (expt t 2) (sin t)))
-         (g/simplify (((* D sin) g/cube) 't))))
+(deftest operator-tests
+  (testing "operator multiplication by fn == "
+    (is (= '(+ (* (expt t 3) (cos t))
+               (* 3 (expt t 2) (sin t)))
+           (g/simplify (((* D sin) g/cube) 't)))
+        "D * fn == multiplies before D"))
 
-  (is (= '(* 3 (expt t 2) (sin t) )
-         (g/simplify (((* sin D) g/cube) 't)))))
+  (is (= '(* 3 (expt t 2) (sin t))
+         (g/simplify (((* sin D) g/cube) 't)))
+      "fn * D == multiplies after D"))
 
 (deftest vector-calculus
   (let [f (s/up identity sin cos)
@@ -719,10 +313,6 @@
     (is (= 2 (g/simplify (* ((D f) 't) (((g/transpose D) f) 't)))))
     (is (= 2 (g/simplify ((laplacian (s/up identity sin cos)) 't))))
     (is (= '(+ (cos t) (* -1 (sin t)) 1) (g/simplify ((divergence f) 't))))))
-
-(deftest exp-and-log
-  (is (= '(/ 1 x)
-         (g/simplify ((D log) 'x)))))
 
 (deftest more-trig-tests
   (testing "cotangent"
@@ -1135,56 +725,573 @@
             (is (ish? (Math/cos 1) (via-series 1)))
             (is (ish? (Math/cos 0.6) (via-series 0.6)))))))))
 
-(deftest new-tests
-  (letfn [(f [x] (fn [y z] (g/* x y z)))]
-    (is (= 12 (((d/D f) 2) 3 4))
-        "fixed by the new impl"))
+(deftest higher-order-fn-tests
+  (letfn [(f [x]
+            (fn [y z]
+              (g/* x y z)))]
+    (is (= 12
+           (((D f) 2) 3 4)
+           (((d/partial 0) g/*) 2 3 4))
+        "D should be able to handle curried functions. This is curried
+        multiplication."))
 
   (is (= '(* -1 (sin t))
          (g/simplify
-          (((d/derivative
-             (fn [eps] [eps]
-               (fn [t]
-	               ((d/D (g/* g/cos eps)) t)))
-             ) 'e)
+          (((D (fn [eps]
+                 (fn [t]
+	                 ((d/D (g/* g/cos eps)) t))))
+            'e)
            't)))
-      "another test from deriv.scm"))
+      "another nesting test from deriv.scm."))
 
 #?(:clj
    ;; NOTE these are disabled for cljs because they force themselves into ratio
    ;; arithmetic!
    (deftest newton-raphson-sqrt
-     (with-comparator (v/within 1e-8)
-       (letfn [(nr-sqrt [x]
-                 (loop [y (- (+ x 1.0) x)]
-                   (let [y' (- y (/ (- (g/square y) x)
-                                    (+ y y)))]
-                     (if (neg? (compare (g/abs (- y y')) 1e-8))
-                       y
-                       (recur y')))))]
-         (testing "sqrt works (switch to generative tests!)"
-           (is (ish? 2 (nr-sqrt 4)))
-           (is (ish? 3 (nr-sqrt 9)))
-           (is (ish? 4 (nr-sqrt 16))))
+     (testing "autodiff works through arbitrary optimization loops!"
+       (with-comparator (v/within 1e-8)
+         (letfn [(nr-sqrt [x]
+                   (loop [y (- (+ x 1.0) x)]
+                     (let [y' (- y (/ (- (g/square y) x)
+                                      (+ y y)))]
+                       (if (neg? (compare (g/abs (- y y')) 1e-8))
+                         y
+                         (recur y')))))]
+           (testing "sqrt works (switch to generative tests!)"
+             (is (ish? 2 (nr-sqrt 4)))
+             (is (ish? 3 (nr-sqrt 9)))
+             (is (ish? 4 (nr-sqrt 16))))
 
-         (testing "D(sqrt(x)) == 1 / {2 * sqrt(x)}"
-           (is (ish? (/ 1 4) ((D nr-sqrt) 4)))
-           (is (ish? (/ 1 6) ((D nr-sqrt) 9)))
-           (is (ish? (/ 1 8) ((D nr-sqrt) 16))))
+           (testing "D(sqrt(x)) == 1 / {2 * sqrt(x)}"
+             (is (ish? (/ 1 4) ((D nr-sqrt) 4)))
+             (is (ish? (/ 1 6) ((D nr-sqrt) 9)))
+             (is (ish? (/ 1 8) ((D nr-sqrt) 16))))
 
-         (testing "D(D(sqrt(x))) == (-1 / {4 * sqrt(x)^3})"
-           (is (ish? (/ -1 32) (((g/square D) nr-sqrt) 4)))
-           (is (ish? (/ -1 108) (((g/square D) nr-sqrt) 9)))
-           (is (ish? (/ -1 256) (((g/square D) nr-sqrt) 16))))))))
+           (testing "D(D(sqrt(x))) == (-1 / {4 * sqrt(x)^3})"
+             (is (ish? (/ -1 32) (((g/square D) nr-sqrt) 4)))
+             (is (ish? (/ -1 108) (((g/square D) nr-sqrt) 9)))
+             (is (ish? (/ -1 256) (((g/square D) nr-sqrt) 16)))))))))
 
-(deftest more-confusion-examples
+(deftest amazing-bug
+  (testing "alexey's amazing bug"
+    (let [shift (fn [offset]
+                  (fn [g]
+                    (fn [a]
+                      (g (+ a offset)))))
+          f-hat ((D shift) 3)]
+      ;; This is the example that triggered [Manzyuk et al.
+      ;; 2019](https://www.cambridge.org/core/journals/journal-of-functional-programming/article/perturbation-confusion-in-forward-automatic-differentiation-of-higherorder-functions/A808189A3875A2EDAC6E0D62CF2AD262)
+      ;; and the research that led to the current (0.15.0) SICMUtils
+      ;; implementation of [[D]].
+      ;;
+      ;; [[D]] does its work by generating a function that lifts its input into
+      ;; a tangent space tagged with a unique `tag`. Multiple, nested calls
+      ;; to [[D]] generate unique tags; but if calling `(D f)` produces ANOTHER
+      ;; function that captures its input, you can trick a non-careful
+      ;; implementation into confusing tangents that are supposed to be
+      ;; associated with distinct tags.
+      ;;
+      ;; Forgetting how it works, now that:
+      ;;
+      ;; (D shift) == (D (fn [offset] (fn [g] (fn [a] (g (+ a offset))))))
+      ;;
+      ;; should be, given some constant `x`,
+      ;;
+      ;; (fn [g] (fn [a] ((D g) (+ a x))))
+      ;;
+      ;; of course Alexey chose the example to work out nicely after applying
+      ;; the chain rule, by passing in `x` == 3 and `g` == `exp`:
+      ;;
+      ;; (fn [a] (exp (+ a 3)))
+      ;;
+      ;; And indeed it is:
+      (is (= (exp 8) ((f-hat exp) 5))
+          "Nothing tough expected in this case.")
+
+      ;; Now, what is the Amazing Bug?
+      (comment
+        (is (= 0 ((f-hat (f-hat exp)) 5))
+            "IN the bug version, this passed!"))
+
+      ;; Read on for a longer description of why the result should ACTUALLY
+      ;; be `(exp 11)`.
+      ;;
+      ;; We can make the Amazing Bug appear because of the following:
+      ;;
+      ;; `(D f)` is a function that takes an argument, and RETURNS a function
+      ;; with a captured tag (let's call it `0`). Stare at this definition of
+      ;; `D`:
+
+      (comment
+        (defn D [f]
+          ;; make a fresh tag that we expect to survive only inside this
+          ;; calls of the returned fn:
+          (let [tag (d/fresh-tag)]
+            (fn [x]
+              ;; perturb the argument with that tag
+              (let [perturbed-arg (d/bundle x 1 tag)]
+                ;; pass that in to the original function, then extract the
+                ;; tangent for that tag. The final return value might have OTHER
+                ;; tags and perturbations in it if this is a nested call! But
+                ;; any tangent associated with this particular tag `tag` is
+                ;; dropped down to "primal space"; no tangent associated with
+                ;; `tag` can escape.
+                (-> (f perturbed-arg)
+                    (d/extract-tangent tag)))))))
+
+      ;; `(D f)` is a function from a number to ANOTHER function that has a
+      ;; CAPTURED internal tag assigned to its argument (the `g` in the first
+      ;; comment lines above.)
+      ;;
+      ;; Th buggy approach to a functional return value was to re-wrap the
+      ;; returned function in a new function that extracted the original tag.
+      ;; That code
+      ;; lived [here](https://github.com/sicmutils/sicmutils/blob/9b4f9c5983cd0f9b209ef27036bc2dbb8f7ffb1c/src/sicmutils/calculus/derivative.cljc#L233).
+
+      ;; The reason this is a bug is that the returned function uses the same
+      ;; tag over and over again, every time you call it.
+      ;;
+      ;; You can trigger the "Amazing Bug" by nesting calls to `f-hat` == `((D
+      ;; f) 3)`:
+      ;;
+      ;; (f-hat (f-hat exp))
+      ;;
+      ;; the inner call will extract any tangent associated with the captured
+      ;; tag before it returns, leaving nothing for the outer `f-hat` to
+      ;; extract (and forcing it to return `0`).
+      ;;
+      ;; The following example makes a nested call so `f-hat`, in the same
+      ;; evaluation, has to deal with two distinct arguments - `exp` in the
+      ;; inner call, and `(f-hat exp)` in the outer call. Both get the same tag
+      ;; `0`:
+      (is (= (exp 11) ((f-hat (f-hat exp)) 5))
+          "This case is susceptible to tag confusion, if `f-hat` uses the same
+          tag for every invocation. The inner `f-hat` extracts the tangent of
+          that tag; when the outer call tries to extract it it finds only
+          `0`.")
+
+      ;; I'll spell this out and point out where the tags get confused. Remember
+      ;; that `f-hat` == `((D f) 3)` is:
+      ;;
+      ;; (fn [g] (fn [a] (g (+ a 3))))
+      ;;
+      ;; So
+      ;;
+      ;; ((f-hat (f-hat exp)) 5)
+      ;;
+      ;; expands out in steps like this:
+      (comment
+        (let [f-hat   (fn [g]
+                        ;; tags `g` with `0`, extracts at the end.
+                        (fn [a] (g (+ a 3))))
+              inner-f (f-hat exp)
+              outer-f (f-hat inner-f)]
+          (outer-f 5))
+
+        ;; sub in `f-hat` definition everywhere:
+        (let [inner-f ((fn [g1]
+                         ;; tags g1 with `0`
+                         (fn [a] (g1 (+ a 3)))) exp)
+              outer-f ((fn [g2]
+                         ;; tags g2 with `0`
+                         (fn [b] (g2 (+ b 3)))) inner-f)]
+          (outer-f 5))
+
+        ;; sub `exp` into `inner-f`:
+        (let [inner-f (fn [a]
+                        ;; tags `a` with `0` (in the old implementation!)
+                        (exp (+ a 3)))
+              outer-f ((fn [g2]
+                         ;; tags g2 with `0`
+                         (fn [b] (g2 (+ b 3)))) inner-f)]
+          (outer-f 5))
+
+        ;; sub `inner-f` into `outer-f`:
+        (let [outer-f (fn [a]
+                        ;; tags `a` with `0`
+                        (let [inner-f (fn [b]
+                                        ;; tags `b` with `0` (pushed down from `g2`)
+                                        (exp (+ b 3)))]
+                          (inner-f (+ a 3))))]
+          (outer-f 5))
+
+        ;; This is the point where the tag confusion comes in! Sub in `5` for
+        ;; `a` (I'll write the perturbed argument using a vector of the
+        ;; form [primal, (tangent,tag)], like `[5, (1,0)]`):
+        (let [inner-f (fn [b]
+                        ;; tags `b` with `0`
+                        (exp (+ b 3)))]
+          ;; extract `0` tag on the way out
+          (inner-f (+ [5, (1,0)] 3)))
+
+        ;; final substitution (remember that when you "tag" a dual number
+        ;; like [5, (1,0)] with the same tag, you're adding 5 + 1*tag + 1*tag == 5 +
+        ;; 2*tag)
+
+        ;; extract `0` tag on the way out
+        ;; extract `0` tag on the way out
+        (exp (+ [(+ 5 3), (2, 0)] 3))
+
+        ;; At this point it doesn't even matter what's going on inside the
+        ;; function. the double "extract 0" is the problem here, and also the
+        ;; fact that the two tangent pieces added together. The tag gets killed
+        ;; on the inner extraction, so the outer one finds `0` for the tangent
+        ;; component of the now-missing tag.
+
+        ;; If the tags had been distinct, this would have been the final step:
+        (let [inner-f (fn [b]
+                        ;; tags `b` with `1`
+                        (exp (+ b 3)))]
+          ;; extract `0` tag on the way out
+          (inner-f (+ [(+ 5 3), (1,0)] 3)))
+
+        ;; extract `0` tag on the way out
+        ;; extract `1` tag on the way out
+        (exp (+ [[(+ 5 3), (1,0)], (1, 1)] 3))
+
+        ;; group the perturbations:
+
+        ;; extract `0` tag on the way out
+        ;; extract `1` tag on the way out
+        (exp (+ [(+ 5 3) (+ (1,0) (1, 1))] 3))
+
+        ;; add:
+
+        ;; extract `0` tag on the way out
+        ;; extract `1` tag on the way out
+        (exp [(+ 5 3 3) (+ (1,0) (1, 1))])
+
+        ;; derivative of `(exp x)` is, conveniently, `(exp x)`:
+
+        ;; extract `0` tag on the way out
+        ;; extract `1` tag on the way out
+        [(exp 11) (+ ((exp 11), 0) ((exp 11), 1))]
+
+        ;; The outer function now gives back the expected `(exp 11)` when we
+        ;; extract the tag associated with `0`.
+
+        ;; The solution lives in `derivative.cljc` and is roughly what you'd
+        ;; expect. If a derivative returns a function, instead of implementing
+        ;; `extract-tangent` by simply pushing the original tag down, you return
+        ;; a function like this:
+        (comment
+          (fn [& args]
+            ;; make a NEW fresh tag that gets used for any new arguments; this
+            ;; way every new invocation of this returned fn will generate new
+            ;; tags. `new-tag` was either `0` or `1` depending on the call in
+            ;; the second example. Let's track the outer call through
+            (let [fresh (d/fresh-tag)
+
+                  ;; replace any occurrence of the original tag in the new fn's
+                  ;; arguments with `fresh`. This is exactly the case where the
+                  ;; outer `f-exp` in `(f-exp (f-exp 3))` got an argument that
+                  ;; was tracking the original `tag` already.
+                  new-args (map (fn [arg] (d/replace-tag arg tag fresh))
+                                args)]
+
+              ;; apply the function to the new arguments. (This is the whole
+              ;; machine we described above, now with non-clashing tags).
+              (-> (apply returned-f new-args)
+
+                  ;; go extract the original tag that we were looking for in the
+                  ;; first place.
+                  (d/extract-tangent tag)
+
+                  ;; Sub `tag` back in so that any wrapping fn can extract it.
+                  ;;
+                  ;; NOTE: This case is actually NOT checked by the amazing
+                  ;; bug... and I can't seem to cook up a case where I can force
+                  ;; it to matter! Keep trying.
+                  (d/replace-tag fresh tag)))))
+
+        ;; Before the fix, every call to `D` generated (and froze, closed over)
+        ;; a new tag. Now every invocation generates a new tag.
+        )))
+
+  (testing "more subtle amazing bug!"
+    ;; Here's an example of a variant on the bug above that shows why the
+    ;; substitution above is not QUITE sufficient.
+    ;;
+    ;; Let's say you pass some fn `f` as an argument to the `extract-tangent` fn
+    ;; laid out above. It's going to hit this line:
+    ;;
+    ;; `(d/replace-tag f tag fresh)`
+    ;;
+    ;; `replace-tag` is only supposed to replace tags on the way OUT of some
+    ;; function call. The seemingly obvious implementation will replace tags on
+    ;; the way in, too:
+    (comment
+      (fn [& args]
+        (-> (apply f (map #(d/replace-tag % old fresh) args))
+            (d/replace-tag fresh old))))
+
+    ;; Why does this matter? If you cook up a situation where some function has
+    ;; already captured the `new-tag` internally, then replacing `old` with
+    ;; `fresh` on the way in will clobber `fresh` perturbations inside the fn.
+    ;;
+    ;; here's an example. With the suggested implementation this will return 0:
+
+    (let [v (fn [u]
+              (fn [f1]
+                (fn [f2]
+                  (fn [x]
+                    ((f1 f2) (+ x u))))))
+          v-hat ((D v) 0)]
+      (is (= (exp 1)
+             (((v-hat (v-hat identity)) exp) 1))))
+
+    ;; The reason for this is that `f1`and `f2` both capture the the same tag
+    ;; from the definition of `v-hat` == `(D v)` internally; so when `f2` gets
+    ;; passed on to `f1`, `f1` needs to never pass this same tag back down. (It
+    ;; does need to respect requests to `replace-tag` by replacing its outputs.)
+    ;;
+    ;; The solution is to only substitute `new-tag` for `old` in the output, and
+    ;; to use a temporary tag on the arguments to protect them from tag
+    ;; substitution, and render them "unique" in the eyes of the fn. Here is the
+    ;; correct implementation:
+
+    (comment
+      (fn [& args]
+        (let [fresh (d/fresh-tag)]
+          (-> (apply f (map #(d/replace-tag % old fresh) args))
+              (d/replace-tag old new-tag)
+              (d/replace-tag fresh old)))))
+
+    ;; The `old -> fresh` swap only applies to the result; any `old` that goes
+    ;; in will stay tagged as `old` if it happens to leak out of this level, and
+    ;; stay tagged as `fresh` internally so it can never get confused if someone
+    ;; ELSE passes `old` in.
+    )
+
+  (testing "church box example"
+    ;; According to [Manzyuk et al.
+    ;; 2019](https://www.cambridge.org/core/journals/journal-of-functional-programming/article/perturbation-confusion-in-forward-automatic-differentiation-of-higherorder-functions/A808189A3875A2EDAC6E0D62CF2AD262),
+    ;; GJS suggested a different fix: why not just do NO tag substitution at all
+    ;; for functions? Then you can't clobber any tags internally, right? Just
+    ;; let the function itself be transparent!
+    ;;
+    ;; I haven't done the good work of staring at WHY this example exposes the
+    ;; problem, but if you work it out I'm sure it has to do with this problem
+    ;; of perturbation capture. I'll leave it as an exercise ;) but the test
+    ;; does fail if you swap the implementation of `replace-tags` to `identity`
+    ;; for functions.
+    (letfn [;; R-> (box R)
+            (box    [x] (fn [m] (m x)))
+
+            ;; (box R)->R
+            (unbox  [x] (x (fn [x] x)))
+
+            ;; (R->R) -> ((box R)->(box R))
+            (wrap   [f] (fn [x] (box (f (unbox x)))))
+
+            ;; ((box R)->(box R)) -> (R -> R)
+            (unwrap [f] (fn [x] (unbox (f (box x)))))
+
+            ;; ((R->R) -> (R->R))
+            ;;   -> (((box R) -> (box R)) -> ((box R) -> (box R)))
+            (wrap2 [f]
+              (fn [g]
+                (fn [x]
+                  (box ((f (unwrap g)) (unbox x))))))
+
+            ;; (R -> ((R->R) -> (R->R)))
+            ;;   -> (R-> (((box R) -> (box R)) -> ((box R)->(box R))))
+            (wrap2-result [f]
+              (fn [x] (wrap2 (f x))))]
+
+      (let [
+            ;; R -> ((R->R) -> (R->R)))
+            s (fn [x]
+                (fn [g]
+                  (fn [y]
+                    (g (+ x y)))))
+            ;; R-> (((box R) -> (box R)) -> ((box R)->(box R)))
+            wrapped-d-hat ((D (wrap2-result s)) 0)]
+        (is (= (exp 1)
+               ((unwrap
+                 (wrapped-d-hat
+                  (wrapped-d-hat (wrap exp)))) 1)))))))
+
+(deftest sams-amazing-bug
+  ;; This test shows a potential pitfall that might bite you if you're not
+  ;; careful about tracking the scope introduced by each call to [[d/D]]. This
+  ;; gets tricky with derivatives of higher order functions.
+
+  (testing "D on a higher-order function responds differently to evaluations
+  inside a continuation vs outside."
+    (let [
+          ;; Make some literal function that takes TWO inputs:
+          a (af/literal-function 'a '(-> (X Real Real) Real))
+
+          ;; (D f) returns a function that takes a continuation that received
+          ;; two functions, `f1` and `f2`:
+          ;;
+          ;; - `f1` passes `x` (the arg that `D` is with respect to) and `y`,
+          ;;    its argument, into the literal function
+          ;; - `f2` passes its captive `x` into its argument `g`, a function
+          f (fn [x]
+              (fn [cont]
+                (cont (fn f1 [y] (a x y))
+                      (fn f2 [g] (g x)))))]
+
+      ;; If you pass a continuation that feeds `f1` into `f2`, then `(f2 f1)` is
+      ;; called _inside_ the scope introduced by `(D f)`. The `x` instances
+      ;; captured by `f1` and `f2` are both still "live" and their tangent
+      ;; components can interact.
+      ;;
+      ;; The result is a sum of partials:
+      (is (= '(+ (((partial 0) a) t t)
+                 (((partial 1) a) t t))
+
+             (g/simplify
+              ((D (fn [t] (a t t))) 't))
+
+             (g/simplify
+              (((D f) 't)
+               (fn [f1 f2] (f2 f1)))))
+          "All three cases identically sub `x` into the body of `f1` before
+          taking the derivative.")
+
+      ;; If instead you pass `list` as a continuation and _remove_ `f1` and `f2`
+      ;; from context associated with _x_ before you call `(f2 f1)`, then you
+      ;; instead see a "mixed partial" result:
+      (let [[f1 f2] (((D f) 't) list)]
+        (is (= '(((partial 1) ((partial 0) a)) t t)
+               (g/simplify
+                (f2 f1)))
+            "If you first get `f1` and `f2` out and THEN call (f2 f1), you see a
+            mixed partial instead."))
+
+      ;; You see this because the `list` continuation triggers
+      ;; an `(extract-tangent ,,, tag)` call on each component of the `list`
+      ;; separately, so the returned `f1`and `f2` are both composed with
+      ;; `extract-tangent` calls for the tangent associated with the scope
+      ;; introduced by `(D f)`.
+      ;;
+      ;; This means that the tangents of the `x` instances captured by `f1` and
+      ;; `f2` can no longer interact. There is no context waiting to bind them
+      ;; together!
+      )))
+
+(deftest dvl-bug-examples
+  ;; These tests and comments all come from Alexey Radul's
+  ;; https://github.com/axch/dysvunctional-language. Thanks, Alexey!
+
+  (testing "amazing bug two"
+    ;; What should happen if we differentiate a function that returns a pair of
+    ;; functions? And then tries to confuse their perturbations with each other
+    ;; like the amazing-bug trick? They should refuse to confuse, and be
+    ;; separate.
+    (letfn [(f [x]
+              [(fn [y] (sin (* x y)))
+               (fn [g]
+                 (fn [z] (g (+ x z))))])]
+      (is (ish? ((fn [y]
+                   (- (cos (* 3 y))
+                      (* 3 y (sin (* 3 y)))))
+                 (+ Math/PI 3))
+                (let [[g-hat f-hat] ((D f) 3)]
+                  ((f-hat g-hat) Math/PI))))))
+
+  (testing "amazing bug three, from Alexey"
+    ;; Here we have the same program as in amazing-bug-2.dvl, but using a
+    ;; Church-encoded pair rather than a normal one. Should the answer be the
+    ;; same?
+
+    ;; Arguably not.  Consider that under the normal definition of
+    ;; addition on functions and pairs, Church-encoded pairs add
+    ;; differently from normal ones:
+    ;; (fn [cont] (cont x1 y1)) + (fn [cont] (cont x2 y2)) =
+    ;; (fn [cont] (+ (cont x1 y1) (cont x2 y2))) !=
+    ;; (fn [cont] (cont (+ x1 x2) (+ y1 y2)))
+    (letfn [(f [x]
+              (fn [recipient]
+                (recipient
+                 (fn [y] (sin (* x y)))
+                 (fn [g]
+                   (fn [z] (g (+ x z)))))))]
+      (is (ish? ((fn [y] (+ (* 3 (cos (* 3 y)))
+                           (* y (cos (* 3 y)))))
+                 (+ 3 Math/PI))
+                (((D f) 3)
+                 (fn [g-hat f-hat]
+                   ((f-hat g-hat) Math/PI))))))
+
+    ;; These are only different if the CONT procedure is non-linear. The
+    ;; interpretation is that in the Church-encoded case, the encoding respects
+    ;; the non-linearity in the CONT procedure, whereas in the pair case, adding
+    ;; pairs does not respect the non-linearity of the result. (In fact, the
+    ;; same is true of ordinary addition of numbers). Since differentiation is
+    ;; supposed to expose linear structure, it makes sense that it would expose
+    ;; different things in these two cases.
+    ;;
+    ;; NOTE from @sritchie: I think the linear vs nonlinear comment is not the
+    ;; right point of focus. What causes the difference is whether or not you
+    ;; break the scope introduced by `((D f) 3)`. That call sets up a
+    ;; unique "tangent space" that follows `3` around, and when you leave that
+    ;; scope, the tangent associated with that space gets dropped down to primal
+    ;; space.
+    ;;
+    ;; Doing work inside a continuation means you're actually working
+    ;; with [[sicmutils.differential/Differential]] instances whose tangents can
+    ;; interact. Once you break out of the continuation, as in "bug two", the
+    ;; two components separately drop their tangents, so they can't talk
+    ;; anymore.
+    ;;
+    ;; The "linear" comment matters because if you only combine the dropped-down
+    ;; pieces linearly, then their tangents wouldn't have interacted anyway, so
+    ;; you can't tell that there are different cases here.
+    )
+
+  (testing "amazing bug 4"
+    ;; The same as amazing-bug-3.dvl, but supplies the arguments to f in the
+    ;; opposite order. It is clear that the answers should be identical, and
+    ;; makes it easier to check the correctness of the answer.
+    (letfn [(f [recipient]
+              (fn [x]
+                (recipient
+                 (fn [y] (sin (* x y)))
+                 (fn [g]
+                   (fn [z] (g (+ x z)))))))
+            (recip [g-hat f-hat]
+              ((f-hat g-hat) Math/PI))]
+      (is (ish? ((fn [y] (* (cos (* 3 y)) (+ 3 y)))
+                 (+ 3 Math/PI))
+                ((D (f recip)) 3)))))
+
+  (testing "amazing bug 5"
+    (letfn [(church-output [f]
+              (fn [x]
+                (fn [recipient]
+                  (recipient (f x)))))
+            (continue [x]
+              (* x x))
+            (flip [f]
+              (fn [x] (fn [y] ((f y) x))))]
+      (is (= (* (cos 1) (cos 1))
+             (continue ((D sin) 1))))
+
+      (is (= (* 2 (sin 1) (cos 1))
+             (((D (church-output sin)) 1) continue)))
+
+      (is (= ((D ((flip (church-output sin)) continue)) 1)
+             (((D       (church-output sin)) 1) continue))
+          "(((D f) x) y) === ((D ((flip f) y)) x)")
+
+      (is (= (* 2 (sin 1) (cos 1))
+             ((D (fn [x] (* (sin x) (sin x)))) 1))))))
+
+(deftest confusion-tests
+  ;; More tests from dvl stressing perturbation confusion.
   (testing "don't confuse perturbations, from dvl"
     (letfn [(one [x]
               ((D (fn [y] (+ x y))) 3))]
-      (is (= 0 ((D one) 7)))
-      (is (= 1 ((D (fn [x] (* x (one x)))) 7)))
-      (is (= 1 ((D (fn [x] (* x (one (* 2 x))))) 7)))
-      (is (= 60 ((D (fn [y]
-                      ((D (fn [x] (* x (* x y))))
-                       (* y 3))))
-                 5))))))
+      (is (= 0 ((D one) 'x)))
+      (is (= 1 ((D (fn [x] (* x (one x)))) 'x)))
+      (is (= 1 ((D (fn [x] (* x (one (* 2 x))))) 'x)))
+      (is (= '(* 12 x)
+             (g/simplify
+              ((D (fn [y]
+                    ((D (fn [x] (* x (* x y))))
+                     (* y 3))))
+               'x)))))))

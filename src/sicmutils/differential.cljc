@@ -628,7 +628,12 @@
   (zero-like [_] 0)
   (one-like [_] 1)
   (identity-like [_] 1)
-  (freeze [_] `[~'Differential ~@terms])
+  (freeze [_]
+    (letfn [(freeze-term [term]
+              (make-term (tags term)
+                         (v/freeze (coefficient term))))]
+      `[~'Differential
+        ~@(mapv freeze-term terms)]))
   (exact? [_] false)
   (kind [_] ::differential)
 
