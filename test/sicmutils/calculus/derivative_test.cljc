@@ -39,7 +39,7 @@
 
 (use-fixtures :each hermetic-simplify-fixture)
 
-(deftest D-unit-tests
+(deftest basic-D-tests
   (testing "D of linear returns slope"
     (is (= 2 ((D #(* 2 %)) 1)))
     (is (= 2 ((D #(* 2 %)) 'w))))
@@ -83,7 +83,62 @@
                 ((D y) 9)))))
 
   (testing "structural-functions"
-    (is (= '(up (cos t) (* -1 (sin t))) (g/simplify ((D (s/up sin cos)) 't))))))
+    (is (= '(up (cos t) (* -1 (sin t)))
+           (g/simplify ((D (s/up sin cos)) 't)))))
+
+  (testing "structure / x works"
+    (letfn [(f [x]
+              (g// (s/up 1 2 3) x))]
+      (is (= '(up (/ -1 (expt x 2))
+                  (/ -2 (expt x 2))
+                  (/ -3 (expt x 2)))
+             (g/simplify
+              ((D f) 'x)))))))
+
+(deftest derivative-return-tests
+  (testing "Series, PowerSeries"
+    (let [series-D ((D (fn [x] (series/exp-series x))) 'x)]
+      (is (series/series? series-D)
+          "we get a proper series back out")
+
+      (is (not (series/power-series? series-D))
+          "the result is NOT a power series! It's already been applied.")
+
+      (is (= '(0 1 x (* (/ 1 2) (expt x 2)))
+             (v/freeze
+              (g/simplify (take 4 series-D))))
+          "which is why the first element is 0.")
+
+      (is (series/power-series? (D series/exp-series))
+          "Derivative of a [[series/PowerSeries]] returns a
+        new [[series/PowerSeries]].")
+
+      (is (= (take 10 series/exp-series)
+             (take 10 (D series/exp-series)))
+          "derivative of exp matches (and you can get it via the `D`
+        operator!)")))
+
+  (testing "Clojure Maps"
+    (letfn [(f [x]
+              {:x x
+               :square (g/square x)
+               :cube   (g/cube x)})]
+      (is (= {:x 1
+              :square '(* 2 x)
+              :cube '(* 3 (expt x 2))}
+             (g/simplify ((D f) 'x)))
+          "derivative of a fn returning a map returns the derivative for each
+          value")))
+
+  (testing "Operator"
+    (letfn [(f [x]
+              (o/make-operator (g/* x g/sin) 'D-op))]
+      (is (o/operator? ((D f) 'x))
+          "if f returns an operator, (D f) does too.")
+      (is (= '(sin y)
+             (v/freeze
+              (((D f) 'x) 'y)))
+          "derivative pushes into the operator's fn.."))))
 
 (deftest partial-diff-test
   (testing "partial derivatives"
