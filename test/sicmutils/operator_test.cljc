@@ -68,12 +68,18 @@
       (is (= 'double (v/freeze x2))))
 
     (testing "v/kind"
-      (is (= ::o/operator (v/kind x2))))))
+      (is (= ::o/operator (v/kind x2))))
+
+    (testing "f/arity"
+      (is (= [:exactly 2]
+             (arity g/mul)
+             (arity (o/make-operator g/mul 'mul)))
+          "Operator arity reflects the arity of the wrapped function"))))
 
 (deftest operators-from-fn-tests
   (let [f (fn [x] (+ x 5))
         double (fn [f] (fn [x] (* 2 (f x))))
-        double-op (o/make-operator double "double")]
+        double-op (o/make-operator double 'double)]
     (is (= 12 ((double f) 1)))
     (is (= 24 ((double (double f)) 1)))
     (is (= 12 ((double-op f) 1)))
@@ -122,11 +128,11 @@
            (((partial 1) ((partial 0) ff)) 'x 'y))))
 
   (testing "operator derivative shape"
-    (is (= [:exactly 1] (:arity o/identity-operator)))
-    (is (= [:exactly 1] (:arity D)))
-    (is (= [:exactly 1] (:arity (* D o/identity-operator))))
-    (is (= [:exactly 1] (:arity (* 'e D))))
-    (is (= [:exactly 1] (:arity (* D 'e))))
+    (is (= [:exactly 1] (arity o/identity-operator)))
+    (is (= [:exactly 1] (arity D)))
+    (is (= [:exactly 1] (arity (* D o/identity-operator))))
+    (is (= [:exactly 1] (arity (* 'e D))))
+    (is (= [:exactly 1] (arity (* D 'e))))
     (is (= [:exactly 1] (arity g/sin)))
     (is (= [:exactly 1] (arity (o/identity-operator g/sin))))
     (is (= '(sin x) (g/simplify ((o/identity-operator g/sin) 'x))))

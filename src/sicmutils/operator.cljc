@@ -34,9 +34,11 @@
   (zero-like [_] (Operator. v/zero-like arity 'zero context))
   (one-like [_] (Operator. identity arity 'identity context))
   (identity-like [_] (Operator. identity arity 'identity context))
-  (numerical? [_] false)
   (freeze [_] (v/freeze name))
   (kind [_] (:subtype context))
+
+  f/IArity
+  (arity [_] arity)
 
   Object
   (toString [_] (let [n (v/freeze name)]
@@ -97,7 +99,7 @@
 (defn make-operator
   [o name & {:as context}]
   (->Operator o
-              (or (:arity context) [:exactly 1])
+              (:arity context (f/arity o))
               name
               (into {:subtype ::operator} context)))
 

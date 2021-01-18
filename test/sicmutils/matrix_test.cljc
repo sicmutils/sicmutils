@@ -25,6 +25,7 @@
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :as ct :refer [defspec]]
             [same :refer [ish?]]
+            [sicmutils.function :as f]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
@@ -52,11 +53,15 @@
            (v/zero-like (m/by-rows [1.5] [2.5])))
         "zero-like preserves types"))
 
-  (testing "one?"
-    (comment
-      ;; TODO this is currently buggy. We want one to return true for the
-      ;; identity matrix, false otherwise.
-      (is (v/one? (m/I 10)))))
+  (testing "one? vs identity?"
+    (let [I10 (m/I 10)]
+      (is (not (v/one? I10))
+          "one? implies that multiplying by this acts as identity, which is only
+          true for matrices of the correct shape (not for scalars!) so one? will
+          always return false for a matrix.")
+
+      (is (v/identity? I10)
+          "identity? exists to check for an identity matrix.")))
 
   (testing "one-like"
     (is (= (m/I 3)
@@ -65,12 +70,6 @@
     (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
                  (v/one-like (m/by-rows [1 2 3 4])))
         "one-like is only supported on square matrices."))
-
-  (testing "identity?"
-    (comment
-      ;; TODO this is currently buggy. We want one to return true for the
-      ;; identity matrix, false otherwise.
-      (is (v/identity? (m/I 10)))))
 
   (testing "identity-like"
     (is (= (m/I 3)
@@ -96,7 +95,24 @@
     (is (= ::m/row-matrix (v/kind (m/by-rows [1 2]))))
     (is (= ::m/column-matrix (v/kind (m/by-rows [1] [2]))))
     (is (= ::m/square-matrix (v/kind (m/by-rows [1 2] [3 4]))))
-    (is (= ::m/matrix (v/kind (m/by-rows [1 2 3] [3 4 5]))))))
+    (is (= ::m/matrix (v/kind (m/by-rows [1 2 3] [3 4 5])))))
+
+  (testing "f/arity"
+    (is (= [:exactly 2] (f/arity (m/by-rows [g/add g/sub])))
+        "arity matches the arity of each element, if they all have the same
+        arity.")
+
+    (testing "f/arity narrows arity to the widest-compatible arity with each element."
+      (is (= [:exactly 1] (f/arity (m/by-rows [g/sin]))))
+      (is (= [:at-least 0] (f/arity (m/by-rows [g/+]))))
+      (is (= [:exactly 1] (f/arity (m/by-rows [g/+ g/sin])))))
+
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                 (f/arity
+                  (m/by-rows [g/add g/sin])))
+        "If the matrix contains functions whose arities are totally
+        incompatible, then `f/arity` will throw. `g/add` has arity [:exactly 2],
+        `g/sin` has arity [:exactly 1].")))
 
 (deftest matrix-interfaces
   (testing "count"

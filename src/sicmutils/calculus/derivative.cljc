@@ -41,6 +41,9 @@
 ;; A differential is a sequence of differential terms, ordered by the
 ;; tag set.
 (deftype Differential [terms]
+  v/Numerical
+  (numerical? [d] (v/numerical? (differential-of d)))
+
   v/Value
   (zero? [_] (every? v/zero? (map coefficient terms)))
   (one? [_] false)
@@ -50,7 +53,6 @@
   (identity-like [_] 1)
   (freeze [_] `[~'Differential ~@terms])
   (exact? [_] false)
-  (numerical? [d] (v/numerical? (differential-of d)))
   (kind [_] ::differential)
 
   Object
@@ -491,9 +493,6 @@
   (multivariate-derivative f []))
 
 (defmethod g/partial-derivative [::struct/structure v/seqtype] [f selectors]
-  (multivariate-derivative f selectors))
-
-(defmethod g/partial-derivative [::matrix/matrix v/seqtype] [f selectors]
   (multivariate-derivative f selectors))
 
 (def derivative-symbol 'D)
