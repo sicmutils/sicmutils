@@ -64,6 +64,7 @@ right to expose to a user by default. Each value is the sym->var map for the
 corresponding namespace."}
   ns-map
   {'sicmutils.env                              (ns-publics 'sicmutils.env)
+   'sicmutils.differential                     (ns-publics 'sicmutils.differential)
    'sicmutils.generic                          (ns-publics 'sicmutils.generic)
    'sicmutils.function                         (ns-publics 'sicmutils.function)
    'sicmutils.operator                         (ns-publics 'sicmutils.operator)

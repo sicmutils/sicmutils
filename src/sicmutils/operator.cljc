@@ -116,8 +116,8 @@
        (write-all writer (.toString x)))))
 
 #?(:clj
-   (defmethod print-method Operator [^Operator s ^java.io.Writer w]
-     (.write w (.toString s))))
+   (defmethod print-method Operator [^Operator op ^java.io.Writer w]
+     (.write w (.toString op))))
 
 (defn operator?
   "Returns true if the supplied `x` is an instance of [[Operator]], false

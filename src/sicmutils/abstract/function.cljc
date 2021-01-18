@@ -18,6 +18,7 @@
 ;;
 
 (ns sicmutils.abstract.function
+  (:refer-clojure :exclude [name])
   (:require [sicmutils.abstract.number :as an]
             [sicmutils.differential :as d]
             [sicmutils.expression :as x]
@@ -38,7 +39,7 @@
 ;; This namespace declares an abstract function type, along with the support
 ;; structure to process the scmutils domain/range language.
 
-(declare literal-apply)
+(declare literal-apply f:=)
 
 ;; This derivation allows `::function` to take advantage of all generic
 ;; operations installed via [[sicmutils.function]].
@@ -73,8 +74,6 @@
    (sicm-set->exemplar range)])
 
 (deftype Function [name arity domain range]
-  Object
-  (toString [_] (str name))
   v/Value
   (zero? [_] false)
   (one? [_] false)
@@ -91,6 +90,10 @@
   f/IArity
   (arity [_] arity)
 
+  Object
+  (toString [_] (str name))
+  #?(:clj (equals [a b] (f:= a b)))
+
   #?@(:clj
       [IFn
        (invoke [this x] (literal-apply this [x]))
@@ -100,7 +103,14 @@
        (applyTo [this xs] (literal-apply this xs))]
 
       :cljs
-      [IFn
+      [IEquiv
+       (-equiv [a b] (f:= a b))
+
+       IPrintWithWriter
+       (-pr-writer [x writer _]
+                   (write-all writer (.toString x)))
+
+       IFn
        (-invoke [this a]
                 (literal-apply this [a]))
        (-invoke [this a b]
@@ -143,6 +153,45 @@
                 (literal-apply this [a b c d e f g h i j k l m n o p q r s t]))
        (-invoke [this a b c d e f g h i j k l m n o p q r s t rest]
                 (literal-apply this (concat [a b c d e f g h i j k l m n o p q r s t]  rest)))]))
+
+#?(:clj
+   (defmethod print-method Function [^Function f ^java.io.Writer w]
+     (.write w (.toString f))))
+
+(defn literal-function?
+  "Returns true if the supplied object is an instance of [[Function]], false
+  otherwise."
+  [f]
+  (instance? Function f))
+
+(defn- name
+  "Returns the `-name` field of the supplied [[Function]] object. Errors if any
+  other type is supplied."
+  [f]
+  {:pre [(literal-function? f)]}
+  (.-name ^Function f))
+
+(defn- domain-types
+  "Returns the `-domain` field of the supplied [[Function]] object. Errors if any
+  other type is supplied."
+  [f]
+  {:pre [(literal-function? f)]}
+  (.-domain ^Function f))
+
+(defn- range-type
+  "Returns the `-range` field of the supplied [[Function]] object. Errors if any
+  other type is supplied."
+  [f]
+  {:pre [(literal-function? f)]}
+  (.-range ^Function f))
+
+(defn- f:=
+  "Returns true if the function `a` equals `b`, false otherwise."
+  [a b]
+  (and (literal-function? b)
+       (= (name a) (name b))
+       (= (domain-types a) (domain-types b))
+       (= (range-type a) (range-type b))))
 
 (defn literal-function
   ([f] (->Function f [:exactly 1] [0] 0))
@@ -227,14 +276,15 @@
                                           vv))
                   (or (v/numerical? vv)
                       (x/abstract? vv))
-                  (let [fexp (if (= (.-arity f) [:exactly 1])  ; univariate
+                  (let [fexp (if (= (f/arity f) [:exactly 1])  ; univariate
                                (if (= (first indices) 0)
                                  (if (= (count indices) 1)
-                                   (symbolic-increase-derivative (.-name f))
-                                   `((~'partial ~@(next indices)) ~(.-name f)))
+                                   (symbolic-increase-derivative (name f))
+                                   `((~'partial ~@(next indices)) ~(name f)))
                                  (u/illegal "wrong indices"))
-                               `((~'partial ~@indices) ~(.-name f)))]
-                    (->Function fexp (.-arity f) (.-domain f) (.-range f)))
+                               `((~'partial ~@indices) ~(name f)))]
+                    (->Function
+                     fexp (f/arity f) (domain-types f) (range-type f)))
                   :else
                   (u/illegal (str "make-partials WTF " vv))))]
     (fd [] v)))
@@ -275,10 +325,10 @@
         :else (u/illegal (str "unexpected argument example. got " provided " want " expected))))
 
 (defn- literal-apply [f xs]
-  (check-argument-type f xs (.-domain f) [0])
+  (check-argument-type f xs (domain-types f) [0])
   (if (some d/perturbed? xs)
     (literal-derivative f xs)
-    (an/literal-number `(~(.-name f) ~@(map v/freeze xs)))))
+    (an/literal-number `(~(name f) ~@(map v/freeze xs)))))
 
 ;; ## Specific Generics
 ;;
@@ -286,4 +336,4 @@
 ;; the attached name, but does not return its own function.
 
 (defmethod g/simplify [Function] [a]
-  (g/simplify (.-name a)))
+  (g/simplify (name a)))

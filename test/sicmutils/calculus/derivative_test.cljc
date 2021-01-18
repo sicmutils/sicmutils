@@ -1265,6 +1265,18 @@
                 (cont (fn f1 [y] (a x y))
                       (fn f2 [g] (g x)))))]
 
+      ;; Calling f1 or f2 separately work as expected:
+      (is (= '(((partial 0) a) t t)
+             (v/freeze
+              (((D f) 't) (fn [f1 _] (f1 't)))))
+          "`a` received `x` as its first arg, so we see `(partial 0)`")
+
+      (let [g (af/literal-function 'g)]
+        (is (= '((D g) t)
+               (v/freeze
+                (((D f) 't) (fn [_ f2] (f2 g)))))
+            "derivative of (g x) == ((D g) x)."))
+
       ;; If you pass a continuation that feeds `f1` into `f2`, then `(f2 f1)` is
       ;; called _inside_ the scope introduced by `(D f)`. The `x` instances
       ;; captured by `f1` and `f2` are both still "live" and their tangent
