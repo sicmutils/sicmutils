@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- `->infix`, `->TeX` and `->JavaScript` in `sicmutils.expression.render` can now
+  accept unfrozen and unsimplified `Expression` instances (#241). This makes it
+  a bit more convenient to use `->infix` and `->TeX` at the REPL, or in a
+  Notebook environment. Additionally, the return values of renderers are always
+  coerced to strings. (Previously, `(->infix 10)` would return a number
+  directly.)
+
 - `D` (or `sicmutils.generic/partial-derivative`) applied to a matrix of
   functions now takes the elementwise partials of every function in the matrix.
   (#218)
