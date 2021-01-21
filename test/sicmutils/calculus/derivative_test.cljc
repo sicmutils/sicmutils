@@ -1426,11 +1426,3 @@
                     ((D (fn [x] (* x (* x y))))
                      (* y 3))))
                'x)))))))
-
-(deftest amazing-unit
-  (let [shift (fn [offset]
-                (fn [g]
-                  (fn [a]
-                    (g (+ a offset)))))
-        f-hat ((D shift) 3)]
-    ((f-hat (f-hat exp)) 5)))
