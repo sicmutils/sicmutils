@@ -16,6 +16,7 @@
             [sicmutils.ratio :as r]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
+            [sicmutils.util.vector-set :as vs]
             [sicmutils.value :as v])
   #?(:clj
      (:import [org.apache.commons.math3.complex Complex])))
@@ -180,6 +181,7 @@
     "Returns a generator that produces a valid structure orientation"}
   orientation
   (gen/elements [::s/up ::s/down]))
+
 ;; ## Matrices
 
 (defn matrix
@@ -202,6 +204,19 @@
   ([n] (square-matrix n ratio))
   ([n entry-gen]
    (matrix n n entry-gen)))
+
+;; ## Vector Set
+;;
+;; These are used in the implementation of [[sicmutils.differential]].
+
+(defn vector-set
+  "Generates a sorted vector of distinct elements drawn from `entry-gen`.
+  `entry-gen` must produce comparable elements.
+
+  `entry-gen` defaults to [[gen/nat]]."
+  ([] (vector-set gen/nat))
+  ([entry-gen]
+   (gen/fmap vs/make (gen/set entry-gen))))
 
 ;; ## Custom Almost-Equality
 

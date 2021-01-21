@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- New single-arity case for `sicmutils.structure/opposite` returns an identical
+  structure with flipped orientation (#220). acts as `identity` for
+  non-structures.
+
 - #219 introduces a number of changes to `Operator`'s behavior:
 
   - `Operator` is now a `deftype` (not a `defrecord`); the keyword lookup for
