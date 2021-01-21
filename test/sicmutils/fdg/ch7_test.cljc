@@ -26,6 +26,7 @@
                                          point chart wedge
                                          R2-rect R2-polar R3-rect]
              #?@(:cljs [:include-macros true])]
+            [sicmutils.operator :as o]
             [sicmutils.value :as v]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
@@ -86,8 +87,8 @@
        (is (= :sicmutils.calculus.vector-field/vector-field (v/kind V)))
        (is (= :sicmutils.operator/operator (v/kind (e/Lie-derivative V))))
        (is (= :sicmutils.calculus.form-field/form-field (v/kind theta)))
-       (is (= 1 (:rank (:context theta))))
-       (is (= 2 (:rank (:context omega))))
+       (is (= 1 (:rank (o/context theta))))
+       (is (= 2 (:rank (o/context omega))))
        #_(is (= 'a
                 (simplify (((d ((e/Lie-derivative V) theta))
                             X Y)
