@@ -353,6 +353,9 @@
     extracted via [[extract-tangent]], false otherwise. (Return `false` by
     default if you can't detect a perturbation.)")
 
+  (get-tags [this]
+    "Returns the set of all tags in play for this object.")
+
   (replace-tag [this old-tag new-tag]
     "If `this` is perturbed, Returns a similar object with the perturbation
     modified by replacing any appearance of `old-tag` with `new-tag`. Else,
@@ -372,6 +375,7 @@
 (extend-protocol IPerturbed
   #?(:clj Object :cljs default)
   (perturbed? [_] false)
+  (get-tags [_] [])
   (replace-tag [this _ _] this)
   (extract-tangent [this _] (v/zero-like this)))
 
@@ -582,6 +586,7 @@
 
   IPerturbed
   (perturbed? [_] true)
+  (get-tags [_] (mapcat tags terms))
 
   ;; There are 3 cases to consider when replacing some tag in a term, annotated
   ;; below:
@@ -786,6 +791,19 @@
      (.write w (.toString s))))
 
 ;; ## Accessor Methods
+
+(def ^:dynamic *active* {})
+
+(defn register-tags [m tags]
+  (reduce (fn [acc tag]
+            (update acc tag (fnil inc 0)))
+          m
+          tags))
+
+(defn tag-active? [m tag]
+  (let [count (get m tag)]
+    (boolean
+     (and count (pos? count)))))
 
 (defn differential?
   "Returns true if the supplied object is an instance of `Differential`, false

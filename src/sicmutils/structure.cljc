@@ -90,6 +90,7 @@
 
   d/IPerturbed
   (perturbed? [_] (boolean (some d/perturbed? v)))
+  (get-tags [s] (mapcat d/get-tags v))
   (replace-tag [s old new] (mapr #(d/replace-tag % old new) s))
   (extract-tangent [s tag] (mapr #(d/extract-tangent % tag) s))
 

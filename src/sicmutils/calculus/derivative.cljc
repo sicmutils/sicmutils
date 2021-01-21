@@ -96,6 +96,11 @@
 ;; make it back out without tangling with closure-captured `tag` instances that
 ;; some higher level might want.
 
+(defn get-all-tags
+  "returns the distinct set of tags found across all args."
+  [args]
+  (into #{} (mapcat d/get-tags) args))
+
 (defn- extract-tangent-fn
   "Returns a new function that composes a 'tag extraction' step with `f`. The
   returned fn will
@@ -109,11 +114,19 @@
   tagged with `fresh` will be remapped in the final result back to `tag`."
   [f tag]
   (-> (fn [& args]
-        (let [fresh (d/fresh-tag)]
-          (-> (apply f (map #(d/replace-tag % tag fresh) args))
-              (d/extract-tangent tag)
-              (d/replace-tag fresh tag))))
-      (f/with-arity (f/arity f))))
+        ;; - get-all-tags from all stickies (needs to be generic, because it has
+        ;;   to apply to diffs, vectors, etc)
+        (let [incoming-tags (get-all-tags args)]
+          (binding [d/*active*
+                    (d/register-tags d/*active* incoming-tags)]
+            (let [result (apply f args)]
+              (if (and (d/tag-active? d/*active* tag)
+                       (not (f/function? result)))
+                result
+                (d/extract-tangent result tag))))))
+      (f/with-arity
+        (f/arity f)
+        {:tags #{tag}})))
 
 ;; NOTE: that the tag-remapping that the docstring for `extract-tag-fn`
 ;; describes might _also_ have to apply to a functional argument!
@@ -132,13 +145,15 @@
   - return `(replace-tag result old new)`
   - remap any tangent component in the result tagged with `fresh` back to `old`."
   [f old new]
-  (-> (fn [& args]
-        (let [fresh (d/fresh-tag)
-              args  (map #(d/replace-tag % old fresh) args)]
-          (-> (apply f args)
-              (d/replace-tag old new)
-              (d/replace-tag fresh old))))
-      (f/with-arity (f/arity f))))
+  ;; Let's see if we can get it working!!
+  f
+  #_(-> (fn [& args]
+          (let [fresh (d/fresh-tag)
+                args  (map #(d/replace-tag % old fresh) args)]
+            (-> (apply f args)
+                (d/replace-tag old new)
+                (d/replace-tag fresh old))))
+        (f/with-arity (f/arity f))))
 
 ;; ## Protocol Implementation
 ;;
@@ -151,12 +166,14 @@
   (perturbed? [f]
     #?(:clj (:perturbed? (meta f) false)
        :cljs false))
+  (get-tags [f] (:tags (meta f) []))
   (replace-tag [f old new] (replace-tag-fn f old new))
   (extract-tangent [f tag] (extract-tangent-fn f tag))
 
   #?@(:cljs
       [MetaFn
        (perturbed? [f] (:perturbed? (.-meta f) false))
+       (get-tags [f] (:tags (meta f) []))
        (replace-tag [f old new]
                     (replace-tag-fn (.-afn f) old new))
        (extract-tangent [f tag]
@@ -164,6 +181,7 @@
 
   MultiFn
   (perturbed? [f] false)
+  (get-tags [f] (:tags (meta f) []))
   (replace-tag [f old new] (replace-tag-fn f old new))
   (extract-tangent [f tag] (extract-tangent-fn f tag)))
 
@@ -188,8 +206,10 @@
   [f]
   (let [tag (d/fresh-tag)]
     (fn [x]
-      (-> (f (d/bundle x 1 tag))
-          (d/extract-tangent tag)))))
+      (let [result
+            (binding [d/*active* (d/register-tags d/*active* [tag])]
+              (f (d/bundle x 1 tag)))]
+        (d/extract-tangent result tag)))))
 
 ;; The result of applying the derivative `(D f)` of a multivariable function `f`
 ;; to a sequence of `args` is a structure of the same shape as `args` with all
