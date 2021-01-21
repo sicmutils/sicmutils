@@ -106,7 +106,7 @@
   (-> (fn [& args]
         (-> (d/with-active-tag tag f args)
             (d/extract-tangent tag)))
-      (f/with-arity (f/arity f))))
+      (f/with-arity (f/arity f) {::d/perturbed? true})))
 
 ;; ## Protocol Implementation
 ;;
@@ -116,12 +116,12 @@
 
 (extend-protocol d/IPerturbed
   #?(:clj Fn :cljs function)
-  (perturbed? [f] (:perturbed? (meta f) false))
+  (perturbed? [f] (::d/perturbed? (meta f) false))
   (extract-tangent [f tag] (extract-tangent-fn f tag))
 
   #?@(:cljs
       [MetaFn
-       (perturbed? [f] (:perturbed? (.-meta f) false))
+       (perturbed? [f] (::d/perturbed? (.-meta f) false))
        (extract-tangent [f tag]
                         (extract-tangent-fn (.-afn f) tag))])
 
