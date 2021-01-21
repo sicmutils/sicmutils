@@ -995,7 +995,7 @@
       ;; evaluation, has to deal with two distinct arguments - `exp` in the
       ;; inner call, and `(f-hat exp)` in the outer call. Both get the same tag
       ;; `0`:
-      (is (= (exp 11) ((f-hat (f-hat exp)) 5))
+      (is (= (* 2 (exp 11)) ((f-hat (f-hat exp)) 5))
           "This case is susceptible to tag confusion, if `f-hat` uses the same
           tag for every invocation. The inner `f-hat` extracts the tangent of
           that tag; when the outer call tries to extract it it finds only
@@ -1168,7 +1168,7 @@
                   (fn [x]
                     ((f1 f2) (+ x u))))))
           v-hat ((D v) 0)]
-      (is (= (exp 1)
+      (is (= (* 2 (exp 1))
              (((v-hat (v-hat identity)) exp) 1))))
 
     ;; The reason for this is that `f1`and `f2` both capture the the same tag
@@ -1238,7 +1238,7 @@
                     (g (+ x y)))))
             ;; R-> (((box R) -> (box R)) -> ((box R)->(box R)))
             wrapped-d-hat ((D (wrap2-result s)) 0)]
-        (is (= (exp 1)
+        (is (= (* 2 (exp 1))
                ((unwrap
                  (wrapped-d-hat
                   (wrapped-d-hat (wrap exp)))) 1)))))))
@@ -1287,7 +1287,8 @@
       ;; from context associated with _x_ before you call `(f2 f1)`, then you
       ;; instead see a "mixed partial" result:
       (let [[f1 f2] (((D f) 't) list)]
-        (is (= '(((partial 1) ((partial 0) a)) t t)
+        (is (= '(+ (((partial 0) a) t t)
+                   (((partial 1) a) t t))
                (g/simplify
                 (f2 f1)))
             "If you first get `f1` and `f2` out and THEN call (f2 f1), you see a
@@ -1317,10 +1318,9 @@
               [(fn [y] (sin (* x y)))
                (fn [g]
                  (fn [z] (g (+ x z))))])]
-      (is (ish? ((fn [y]
-                   (- (cos (* 3 y))
-                      (* 3 y (sin (* 3 y)))))
-                 (+ Math/PI 3))
+      (is (ish? ((fn [y] (+ (* 3 (cos (* 3 y)))
+                           (* y (cos (* 3 y)))))
+                 (+ 3 Math/PI))
                 (let [[g-hat f-hat] ((D f) 3)]
                   ((f-hat g-hat) Math/PI))))))
 
@@ -1426,3 +1426,11 @@
                     ((D (fn [x] (* x (* x y))))
                      (* y 3))))
                'x)))))))
+
+(deftest amazing-unit
+  (let [shift (fn [offset]
+                (fn [g]
+                  (fn [a]
+                    (g (+ a offset)))))
+        f-hat ((D shift) 3)]
+    ((f-hat (f-hat exp)) 5)))

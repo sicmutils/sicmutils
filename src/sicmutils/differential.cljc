@@ -356,27 +356,16 @@
   (get-tags [this]
     "Returns the set of all tags in play for this object.")
 
-  (replace-tag [this old-tag new-tag]
-    "If `this` is perturbed, Returns a similar object with the perturbation
-    modified by replacing any appearance of `old-tag` with `new-tag`. Else,
-    return `this`.")
-
   (extract-tangent [this tag]
     "If `this` is perturbed, return the tangent component paired with the
     supplied tag. Else, returns `([[sicmutils.value/zero-like]] this)`."))
 
-;; `replace-tag` exists to handle subtle bugs that can arise in the case of
-;; functional return values. See the "Amazing Bug" sections
-;; in [[sicmutils.calculus.derivative-test]] for detailed examples on how this
-;; might bite you.
-;;
 ;; The default implementations are straightforward, and match the docstrings:
 
 (extend-protocol IPerturbed
   #?(:clj Object :cljs default)
   (perturbed? [_] false)
   (get-tags [_] [])
-  (replace-tag [this _ _] this)
   (extract-tangent [this _] (v/zero-like this)))
 
 ;; ## Differential Implementation
@@ -571,7 +560,7 @@
 ;; Now the actual type. The `terms` field is a term-list vector that will
 ;; remain (contractually!) sorted by its list of tags.
 
-(declare d:apply compare equiv finite-term from-terms one?)
+(declare d:apply compare equiv finite-term from-terms one? tag-active?)
 
 (deftype Differential [terms]
   ;; A [[Differential]] as implemented can act as a chain-rule accounting device
@@ -588,42 +577,21 @@
   (perturbed? [_] true)
   (get-tags [_] (mapcat tags terms))
 
-  ;; There are 3 cases to consider when replacing some tag in a term, annotated
-  ;; below:
-  (replace-tag [_ oldtag newtag]
-    (letfn [(process [term]
-              (let [tagv (tags term)]
-                (if-not (uv/contains? tagv oldtag)
-                  ;; if the term doesn't contain the old tag, ignore it.
-                  [term]
-                  (if (uv/contains? tagv newtag)
-                    ;; if the term _already contains_ the new tag
-                    ;; $\varepsilon_{new}$, then replacing $\varepsilon_1$
-                    ;; with a new instance of $\varepsilon_2$ would cause a
-                    ;; clash. Since $\varepsilon_2^2=0$, the term should be
-                    ;; removed.
-                    []
-                    ;; else, perform the replacement.
-                    [(make-term (-> tagv
-                                    (uv/disj oldtag)
-                                    (uv/conj newtag))
-                                (coefficient term))]))))]
-      (from-terms
-       (mapcat process terms))))
-
   ;; To extract the tangent (with respect to `tag`) from a differential, return
   ;; all terms that contain the tag (with the tag removed!) This can create
   ;; duplicate terms, so use [[from-terms]] to massage the result into
   ;; well-formedness again.
-  (extract-tangent [_ tag]
-    (from-terms
-     (mapcat (fn [term]
-               (let [tagv (tags term)]
-                 (if (uv/contains? tagv tag)
-                   [(make-term (uv/disj tagv tag)
-                               (coefficient term))]
-                   [])))
-             terms)))
+  (extract-tangent [this tag]
+    (if (tag-active? tag)
+      this
+      (from-terms
+       (mapcat (fn [term]
+                 (let [tagv (tags term)]
+                   (if (uv/contains? tagv tag)
+                     [(make-term (uv/disj tagv tag)
+                                 (coefficient term))]
+                     [])))
+               terms))))
 
   v/Value
   (zero? [this]
@@ -794,14 +762,24 @@
 
 (def ^:dynamic *active* {})
 
-(defn register-tags [m tags]
+(defn- get-all-tags
+  "returns the distinct set of tags found across all args."
+  [args]
+  (into #{} (mapcat get-tags) args))
+
+(defn- register-tags [tags]
   (reduce (fn [acc tag]
             (update acc tag (fnil inc 0)))
-          m
+          *active*
           tags))
 
-(defn tag-active? [m tag]
-  (let [count (get m tag)]
+(defn diff-apply [tag f args]
+  (let [incoming-tags (get-all-tags args)]
+    (binding [*active* (register-tags (into [tag] incoming-tags))]
+      (apply f args))))
+
+(defn tag-active? [tag]
+  (let [count (get *active* tag)]
     (boolean
      (and count (pos? count)))))
 

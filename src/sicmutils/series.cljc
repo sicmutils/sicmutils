@@ -56,7 +56,6 @@
 
   d/IPerturbed
   (perturbed? [_] false)
-  (replace-tag [s old new] (fmap #(d/replace-tag % old new) s))
   (extract-tangent [s tag] (fmap #(d/extract-tangent % tag) s))
 
   v/Value
@@ -215,7 +214,6 @@
 
   d/IPerturbed
   (perturbed? [_] false)
-  (replace-tag [s old new] (fmap #(d/replace-tag % old new) s))
   (extract-tangent [s tag] (fmap #(d/extract-tangent % tag) s))
 
   v/Value

@@ -59,12 +59,11 @@
   (arity [v] [:between 1 2])
 
   ;; Vectors are functors, so they can be perturbed if any of their elements are
-  ;; perturbed. [[d/replace-tag]] and [[d/extract-tangent]] pass the buck down
-  ;; the vector's elements.
+  ;; perturbed. [[d/extract-tangent]] passes the buck down the vector's
+  ;; elements.
   d/IPerturbed
   (perturbed? [v] (boolean (some d/perturbed? v)))
   (get-tags [v] (mapcat d/get-tags v))
-  (replace-tag [v old new] (mapv #(d/replace-tag % old new) v))
   (extract-tangent [v tag] (mapv #(d/extract-tangent % tag) v)))
 
 ;; ## Sequences
@@ -89,7 +88,6 @@
    d/IPerturbed
    (perturbed? [_] false)
    (get-tags [v] (mapcat d/get-tags v))
-   (replace-tag [xs old new] (map #(d/replace-tag % old new) xs))
    (extract-tangent [xs tag] (map #(d/extract-tangent % tag) xs))))
 
 ;; ## Maps
@@ -142,5 +140,4 @@
      d/IPerturbed
      (perturbed? [m] (boolean (some d/perturbed? (vals m))))
      (get-tags [m] (mapcat d/get-tags (vals m)))
-     (replace-tag [m old new] (map-vals #(d/replace-tag % old new) m))
      (extract-tangent [m tag] (map-vals #(d/extract-tangent % tag) m)))))
