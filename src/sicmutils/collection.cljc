@@ -63,7 +63,6 @@
   ;; elements.
   d/IPerturbed
   (perturbed? [v] (boolean (some d/perturbed? v)))
-  (get-tags [v] (mapcat d/get-tags v))
   (extract-tangent [v tag] (mapv #(d/extract-tangent % tag) v)))
 
 ;; ## Sequences
@@ -87,7 +86,6 @@
 
    d/IPerturbed
    (perturbed? [_] false)
-   (get-tags [v] (mapcat d/get-tags v))
    (extract-tangent [xs tag] (map #(d/extract-tangent % tag) xs))))
 
 ;; ## Maps
@@ -139,5 +137,4 @@
 
      d/IPerturbed
      (perturbed? [m] (boolean (some d/perturbed? (vals m))))
-     (get-tags [m] (mapcat d/get-tags (vals m)))
      (extract-tangent [m tag] (map-vals #(d/extract-tangent % tag) m)))))

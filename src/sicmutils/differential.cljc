@@ -353,9 +353,6 @@
     extracted via [[extract-tangent]], false otherwise. (Return `false` by
     default if you can't detect a perturbation.)")
 
-  (get-tags [this]
-    "Returns the set of all tags in play for this object.")
-
   (extract-tangent [this tag]
     "If `this` is perturbed, return the tangent component paired with the
     supplied tag. Else, returns `([[sicmutils.value/zero-like]] this)`."))
@@ -365,7 +362,6 @@
 (extend-protocol IPerturbed
   #?(:clj Object :cljs default)
   (perturbed? [_] false)
-  (get-tags [_] [])
   (extract-tangent [this _] (v/zero-like this)))
 
 ;; ## Differential Implementation
@@ -575,7 +571,6 @@
 
   IPerturbed
   (perturbed? [_] true)
-  (get-tags [_] (mapcat tags terms))
 
   ;; To extract the tangent (with respect to `tag`) from a differential, return
   ;; all terms that contain the tag (with the tag removed!) This can create
@@ -760,28 +755,14 @@
 
 ;; ## Accessor Methods
 
-(def ^:dynamic *active* {})
+(def ^:dynamic *active-tags* #{})
 
-(defn- get-all-tags
-  "returns the distinct set of tags found across all args."
-  [args]
-  (into #{} (mapcat get-tags) args))
-
-(defn- register-tags [tags]
-  (reduce (fn [acc tag]
-            (update acc tag (fnil inc 0)))
-          *active*
-          tags))
-
-(defn diff-apply [tag f args]
-  (let [incoming-tags (get-all-tags args)]
-    (binding [*active* (register-tags (into [tag] incoming-tags))]
-      (apply f args))))
+(defn with-active-tag [tag f args]
+  (binding [*active-tags* (conj *active-tags* tag)]
+    (apply f args)))
 
 (defn tag-active? [tag]
-  (let [count (get *active* tag)]
-    (boolean
-     (and count (pos? count)))))
+  (contains? *active-tags* tag))
 
 (defn differential?
   "Returns true if the supplied object is an instance of `Differential`, false

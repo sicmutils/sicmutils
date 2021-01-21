@@ -104,7 +104,7 @@
   - return `(extract-tangent result tag)`"
   [f tag]
   (-> (fn [& args]
-        (-> (d/diff-apply tag f args)
+        (-> (d/with-active-tag tag f args)
             (d/extract-tangent tag)))
       (f/with-arity (f/arity f))))
 
@@ -116,20 +116,17 @@
 
 (extend-protocol d/IPerturbed
   #?(:clj Fn :cljs function)
-  (perturbed? [f] (not (empty? (d/get-tags f))))
-  (get-tags [f] (:tags (meta f) []))
+  (perturbed? [f] (:perturbed? (meta f) false))
   (extract-tangent [f tag] (extract-tangent-fn f tag))
 
   #?@(:cljs
       [MetaFn
-       (perturbed? [f] (not (empty? (d/get-tags f))))
-       (get-tags [f] (:tags (.-meta f) []))
+       (perturbed? [f] (:perturbed? (.-meta f) false))
        (extract-tangent [f tag]
                         (extract-tangent-fn (.-afn f) tag))])
 
   MultiFn
   (perturbed? [f] false)
-  (get-tags [f] [])
   (extract-tangent [f tag] (extract-tangent-fn f tag)))
 
 ;; ## Single and Multivariable Calculus
