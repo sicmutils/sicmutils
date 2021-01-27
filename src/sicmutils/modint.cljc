@@ -95,10 +95,10 @@
   (if (g/negative? i)
     (make i m)
     a))
-(defmethod g/quotient [::modint ::modint] [a b] (mul a (modular-inv b)))
+(defmethod g/quotient [::modint ::modint] [a b] (mul a (invert b)))
 (defmethod g/remainder [::modint ::modint] [a b] (remainder a b))
 (defmethod g/modulo [::modint ::modint] [a b] (modulo a b))
-(defmethod g/exact-divide [::modint ::modint] [a b] (mul a (modular-inv b)))
+(defmethod g/exact-divide [::modint ::modint] [a b] (mul a (invert b)))
 (defmethod g/negative? [::modint] [a] (g/negative? (:i a)))
 
 ;; Methods that allow interaction with other integral types. The first block is
