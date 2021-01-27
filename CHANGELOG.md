@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `sicmutils.modint` gains more efficient implementations for `inverse`,
+  `quotient`, `exact-divide` and `expt` on the JVM.
+
 - New single-arity case for `sicmutils.structure/opposite` returns an identical
   structure with flipped orientation (#220). acts as `identity` for
   non-structures.

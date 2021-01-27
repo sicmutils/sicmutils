@@ -12,6 +12,7 @@
             [sicmutils.complex :as c]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
+            [sicmutils.modint :as mi]
             [sicmutils.numsymb :as sym]
             [sicmutils.ratio :as r]
             [sicmutils.structure :as s]
@@ -107,6 +108,22 @@
               (u/bigint 1)
               d)]
       (r/rationalize n d))))
+
+;; ## Modular Arithmetic
+
+(defn- not-zero [x]
+  (if (zero? x) 1 x))
+
+(defn modint
+  ([] (modint 30))
+  ([modulus-max]
+   (gen/let [i gen/small-integer
+             m (gen/fmap
+                (fn [i]
+                  (not-zero
+                   (mod i modulus-max)))
+                gen/small-integer)]
+     (mi/make i m))))
 
 ;; ## Symbolic
 
