@@ -23,10 +23,11 @@
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
             [sicmutils.generators :as sg]
-            [sicmutils.value :as v]
             [sicmutils.generic :as g]
             [sicmutils.generic-test :as gt]
-            [sicmutils.modint :as m]))
+            [sicmutils.modint :as m]
+            [sicmutils.util :as u]
+            [sicmutils.value :as v]))
 
 (deftest modint
   (testing "value implementation"
@@ -66,8 +67,10 @@
                e (gen/fmap g/abs sg/native-integral)]
               (let [i       (:i m)
                     modulus (:m m)]
-                (is (= (g/expt m e)
-                       (m/make (g/expt i e) modulus)))))
+                (is (= (:i (g/expt m e))
+                       (-> (g/expt (u/bigint i)
+                                   (u/bigint e))
+                           (g/modulo modulus))))))
 
     (testing "zero?"
       (is (v/zero? m0_7))
