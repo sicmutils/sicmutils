@@ -188,7 +188,7 @@
   [f]
   (let [tag (d/fresh-tag)]
     (fn [x]
-      (-> (f (d/bundle x 1 tag))
+      (-> (f (d/bundle-element x 1 tag))
           (d/extract-tangent tag)))))
 
 ;; The result of applying the derivative `(D f)` of a multivariable function `f`

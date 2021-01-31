@@ -222,7 +222,7 @@
 
         (testing "freeze, simplify, str"
           (let [not-simple (g/square
-                            (g/square (d/bundle 'x 1 0)))]
+                            (g/square (d/bundle-element 'x 1 0)))]
             (is (= '[Differential
                      [[]  (* x x x x)]
                      [[0] (+ (* (+ x x) x x) (* x x (+ x x)))]]
@@ -268,8 +268,8 @@
               (is (= (g/* (apply g/- xs) dx) ts)
                   "tangent part keeps its dx, but applies fn")
 
-              (is (= (d/extract-tangent diff 0)
-                     (d/extract-tangent ts 0))
+              (is (== (d/extract-tangent diff 0)
+                      (d/extract-tangent ts 0))
                   "the tangent extracted from the tangent-part is identical to
                    the `extract-tangent` of the full diff")))
 
