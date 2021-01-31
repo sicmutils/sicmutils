@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- `->infix`, `->TeX` and `->JavaScript` in `sicmutils.expression.render` can now
+  accept unfrozen and unsimplified `Expression` instances (#241). This makes it
+  a bit more convenient to use `->infix` and `->TeX` at the REPL, or in a
+  Notebook environment. Additionally, the return values of renderers are always
+  coerced to strings. (Previously, `(->infix 10)` would return a number
+  directly.)
+
 - Fix a bug where `f/arity` would throw an exception with multiple-arity
   functions on the JVM (#240). It now responds properly with `[:between
   min-arity max-arity]`, or `[:at-least n]` if there is a variadic case too.
@@ -89,6 +96,7 @@
 - The slightly more general `sicmutils.env/component` replaces
   `sicmutils.structure/component` in the `sicmutils.env` namespace (#219).
   `((component 0 1) x) == (ref x 0 1)`.
+>>>>>>> master
 >>>>>>> master
 
 - `D` (or `sicmutils.generic/partial-derivative`) applied to a matrix of
