@@ -46,8 +46,7 @@
 (extend-protocol IArity
   #?(:clj Object :cljs default)
   (arity [o]
-    (or (:arity o)
-        (:arity (meta o))
+    (or (:arity (meta o))
         ;; Faute de mieux, we assume the function is unary. Most math functions
         ;; are.
         [:exactly 1]))
@@ -386,6 +385,12 @@
   If they are incompatible, an exception is thrown."
   [arities]
   (reduce combine-arities arities))
+
+(defn seq-arity
+  "Returns the most general arity compatible with all entries in the supplied
+  sequence of values."
+  [xs]
+  (transduce (map arity) combine-arities xs))
 
 ;; ## Generic Implementations
 ;;

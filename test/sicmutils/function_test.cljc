@@ -128,7 +128,6 @@
   (is (= [:at-least 2] (f/arity (fn [x y & zs] (+ x y (reduce * 1 zs))))))
   (is (= [:exactly 0] (f/arity 'x)))
   (is (= [:at-least 0] (f/arity (constantly 42))))
-  (is (= [:exactly 1] (f/arity [1 2 3])))
   (let [f (fn [x] (+ x x))
         g (fn [y] (* y y))]
     (is (= [:exactly 1] (f/arity (comp f g))))))

@@ -21,7 +21,8 @@
   (:refer-clojure :rename {identity core-identity
                            name core-name}
                   #?@(:cljs [:exclude [get get-in identity name]]))
-  (:require [sicmutils.function :as f]
+  (:require [sicmutils.differential :as d]
+            [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.series :as series]
             [sicmutils.util :as u]
@@ -44,6 +45,13 @@
 
   f/IArity
   (arity [_] arity)
+
+  d/IPerturbed
+  (perturbed? [_] false)
+  (replace-tag [o old new]
+    (Operator. (d/replace-tag o old new) arity name context))
+  (extract-tangent [o tag]
+                   (Operator. (d/extract-tangent o tag) arity name context))
 
   #?@(:clj
       [ILookup

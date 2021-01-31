@@ -64,9 +64,11 @@
 ;; Allows multimethod dispatch to seqs in CLJS.
 #?(:cljs
    (do
+     (derive Cons ::seq)
      (derive IndexedSeq ::seq)
      (derive PersistentVector ::seq)
-     (derive LazySeq ::seq)))
+     (derive LazySeq ::seq)
+     (derive List ::seq)))
 
 ;; Smaller inheritance tree to enabled shared implementations between numeric
 ;; types that represent mathematical integers.
@@ -203,17 +205,6 @@
   (identity-like [o] (u/unsupported "nil doesn't support identity-like."))
   (freeze [_] nil)
   (kind [_] nil)
-
-  PersistentVector
-  (zero? [v] (every? zero? v))
-  (one? [_] false)
-  (identity? [_] false)
-  (zero-like [v] (mapv zero-like v))
-  (one-like [o] (u/unsupported (str "one-like: " o)))
-  (identity-like [o] (u/unsupported (str "identity-like: " o)))
-  (exact? [v] (every? exact? v))
-  (freeze [v] (mapv freeze v))
-  (kind [v] (type v))
 
   #?(:clj Object :cljs default)
   (zero? [o] false)
