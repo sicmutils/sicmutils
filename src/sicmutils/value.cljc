@@ -20,11 +20,14 @@
 (ns sicmutils.value
   (:refer-clojure :rename {zero? core-zero?
                            number? core-number?
-                           = core=}
-                  #?@(:cljs [:exclude [zero? number? =]]))
+                           = core=
+                           compare core-compare}
+                  #?@(:cljs [:exclude [zero? number? = compare]]))
   (:require [sicmutils.util :as u]
+            #?(:clj [potemkin :refer [import-def]])
             #?@(:cljs
-                [[goog.math.Long]
+                [[goog.array :as garray]
+                 [goog.math.Long]
                  [goog.math.Integer]]))
   #?(:clj
      (:import (clojure.lang BigInt PersistentVector Sequential Symbol))))
@@ -268,28 +271,29 @@
        number
        (-equiv [this other]
          (cond (core-number? other) (identical? this other)
-               (numerical? other)   (= this other)
+               (numerical? other)   (= this (.valueOf other))
                :else false))
 
        goog.math.Integer
        (-equiv [this other]
          (if (core= goog.math.Integer (type other))
            (.equals this other)
-           (= this other)))
+           (= this (.valueOf other))))
 
        goog.math.Long
        (-equiv [this other]
          (if (core= goog.math.Long (type other))
            (.equals this other)
-           (= this other))))))
+           (= this (.valueOf other)))))))
 
 #?(:cljs
    (extend-type js/BigInt
      IEquiv
-     (-equiv [this other]
-       (if (core= js/BigInt (type other))
-         (js*  "~{} == ~{}" this other)
-         (= this other)))
+     (-equiv [this o]
+       (let [other (.valueOf o)]
+         (if (u/bigint? other)
+           (js*  "~{} == ~{}" this other)
+           (= this other))))
 
      IPrintWithWriter
      (-pr-writer [x writer opts]
@@ -299,18 +303,47 @@
          (write-all writer "#sicm/bigint " rep)))))
 
 #?(:cljs
+   ;; goog.math.{Long, Integer} won't compare properly using <, > etc unless they
+   ;; can convert themselves to numbers via `valueOf.` This extension takes care of
+   ;; that modification.
+   (do
+     (extend-type goog.math.Long
+       Object
+       (valueOf [this] (.toNumber this)))
+
+     (extend-type goog.math.Integer
+       Object
+       (valueOf [this] (.toNumber this)))))
+
+#?(:cljs
    (extend-protocol IComparable
+     number
+     (-compare [this o]
+       (let [other (.valueOf o)]
+         (if (real? other)
+           (garray/defaultCompare this other)
+           (throw (js/Error. (str "Cannot compare " this " to " o))))))
+
+     js/BigInt
+     (-compare [this o]
+       (let [other (.valueOf o)]
+         (if (real? other)
+           (garray/defaultCompare this other)
+           (throw (js/Error. (str "Cannot compare " this " to " o))))))
+
      goog.math.Integer
-     (-compare [this other]
-       (if (core-number? other)
-         (.compare this (u/int other))
-         (.compare this other)))
+     (-compare [this o]
+       (let [other (.valueOf o)]
+         (cond (instance? goog.math.Integer other) (.compare this other)
+               (real? other) (garray/defaultCompare this other)
+               :else (throw (js/Error. (str "Cannot compare " this " to " o))))))
 
      goog.math.Long
-     (-compare [this other]
-       (if (core-number? other)
-         (.compare this (u/long other))
-         (.compare this other)))))
+     (-compare [this o]
+       (let [other (.valueOf o)]
+         (cond (instance? goog.math.Long other) (.compare this other)
+               (real? other) (garray/defaultCompare this other)
+               :else (throw (js/Error. (str "Cannot compare " this " to " o))))))))
 
 #?(:cljs
    ;; Clojurescript-specific implementations of Value.
@@ -372,6 +405,47 @@
   [x]
   (let [k (kind x)]
     (fn [x2] (isa? (kind x2) k))))
+
+#?(:clj
+   (defn compare
+     "Comparator. Returns a negative number, zero, or a positive number
+  when x is logically 'less than', 'equal to', or 'greater than'
+  y. Same as Java x.compareTo(y) except it also works for nil, and
+  compares numbers and collections in a type-independent manner. x
+  must implement Comparable"
+     [x y]
+     (if (core-number? x)
+       (if (core-number? y)
+         (core-compare x y)
+         (- (core-compare y x)))
+       (core-compare x y)))
+   :cljs
+   (defn ^number compare
+     "Comparator. Clone of [[cljs.core/compare]] that works with the expanded
+      SICMUtils numeric tower.
+
+  Returns a negative number, zero, or a positive number when x is logically
+  'less than', 'equal to', or 'greater than' y. Uses IComparable if available
+  and google.array.defaultCompare for objects of the same type and special-cases
+  nil to be less than any other object."
+     [x y]
+     (cond
+       (identical? x y) 0
+       (nil? x)         -1
+       (nil? y)         1
+       (core-number? x) (let [yv (.valueOf y)]
+                          (if (real? yv)
+                            (garray/defaultCompare x yv)
+                            (throw (js/Error. (str "Cannot compare " x " to " y)))))
+
+       (satisfies? IComparable x)
+       (-compare x y)
+
+       :else
+       (if (and (or (string? x) (array? x) (true? x) (false? x))
+                (identical? (type x) (type y)))
+         (garray/defaultCompare x y)
+         (throw (js/Error. (str "Cannot compare " x " to " y)))))))
 
 (defn add-object-symbols!
   [o->syms]

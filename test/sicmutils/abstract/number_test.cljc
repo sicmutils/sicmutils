@@ -29,6 +29,7 @@
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as sym]
+            [sicmutils.ratio :as r]
             [sicmutils.value :as v]))
 
 (def gen-literal-element
@@ -93,24 +94,70 @@
                         "cljs overrides equality, and can compare literals with
                         true numbers on the left side."))))))
 
-  (checking "interaction with symbols"
-            100
-            [x gen/symbol]
+  (checking "interaction with symbols" 100 [x gen/symbol]
             (is (not (an/literal-number? x))
                 "symbols are not literal-numbers")
 
             (is (an/abstract-number? x)
                 "Symbols ARE abstract numbers!"))
 
-  (checking "literal-number? behavior with numbers."
-            100
-            [x sg/native-integral]
+  (checking "literal-number? behavior with numbers." 100 [x sg/real]
             (let [n (an/literal-number x)]
               (is (an/literal-number? n)
                   "Any wrapped number returns true to literal-number?")
 
               (is (not (an/literal-number? x))
-                  "numbers are NOT explicit literal-numbers"))))
+                  "numbers are NOT explicit literal-numbers")))
+
+  (checking "`literal-number` is transparent to compare" 100
+            [l sg/real, r sg/real]
+            (let [compare-bit (v/compare l r)]
+              (is (= compare-bit
+                     (v/compare (an/literal-number l) r))
+                  "literal left, number right")
+
+              (is (= compare-bit
+                     (v/compare l (an/literal-number r)))
+                  "number left, literal right")
+
+              (is (= compare-bit
+                     (v/compare (an/literal-number l) (an/literal-number r)))
+                  "literal on both sides")))
+
+  #?(:cljs
+     (testing "comparison unit"
+       (is (= 0 (an/literal-number 0)))))
+
+  #?(:cljs
+     ;; NOTE: JVM Clojure won't allow non-numbers on either side of < and
+     ;; friends. Once we implement `v/<` we can duplicate this test for those
+     ;; overridden versions, which should piggyback on compare.
+     (checking "`literal-number` is transparent to native comparison operators" 100
+               ;; NOTE: This is cased to NOT consider rational numbers for now.
+               [[l-num r-num] (gen/vector sg/real-without-ratio 2)]
+               (let [compare-bit (v/compare l-num r-num)]
+                 (doall
+                  (for [l [l-num (an/literal-number l-num)]
+                        r [r-num (an/literal-number r-num)]]
+                    (cond (neg? compare-bit)  (is (< l r))
+                          (zero? compare-bit) (is (and (<= l r) (= l r) (>= l r)))
+                          :else (is (> l r))))))))
+
+  #?(:cljs
+     (checking "`literal-number` implements valueOf properly" 100 [n sg/real]
+               (let [wrapped (an/literal-number n)]
+                 (is (not (v/real? wrapped)))
+                 (is (v/real? (.valueOf wrapped)))
+                 (if (r/ratio? n)
+                   (do (is (not= n (.valueOf wrapped))
+                           "ratios turn into doubles when you call valueOf, so
+                           the passthrough valueOf on literal-number kills
+                           equality."))
+                   (is (= n (.valueOf wrapped))
+                       "other real numbers respond the same way."))
+
+                 (is (= (.valueOf n) (.valueOf wrapped))
+                     "valueOf on both sides always matches.")))))
 
 (deftest abstract-number-tests
   (checking "literal-number"
@@ -548,9 +595,9 @@
               (if (v/zero? n)
                 (is (v/= sym (g/make-polar sym n))
                     "an exact zero returns the symbolic radius.")
-                (is (= `(~'* ~sym (~'+ (~'cos ~n)
+                (is (= `(~'* ~sym (~'+ (~'cos ~(v/freeze n))
                                    (~'* (~'complex 0.0 1.0)
-                                    (~'sin ~n))))
+                                    (~'sin ~(v/freeze n)))))
                        (v/freeze
                         (g/make-polar sym n)))
                     "otherwise, an exact numeric angle stays exact and is

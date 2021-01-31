@@ -20,10 +20,12 @@
 (ns sicmutils.calculus.manifold
   (:require #?(:cljs [goog.string :refer [format]])
             [sicmutils.abstract.function :as af]
+            [sicmutils.abstract.number :as an]
             [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as matrix]
+            [sicmutils.operator :as o]
             [sicmutils.simplify :refer [simplify-numerical-expression]]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
@@ -81,12 +83,10 @@
    manifold
    (default-coordinate-prototype manifold)))
 
-(defn diffop-name
-  [form]
-  (or (:name form)
-      (and (= (x/literal-type form) ::x/numeric)
-           (x/expression-of form))
-      '...))
+(defn diffop-name [form]
+  (cond (o/operator? form)        (o/name form)
+        (an/literal-number? form) (x/expression-of form)
+        :else '...))
 
 (defprotocol ICoordinateSystem
   (check-coordinates [this coords])

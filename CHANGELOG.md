@@ -9,6 +9,96 @@
   coerced to strings. (Previously, `(->infix 10)` would return a number
   directly.)
 
+- Fix a bug where `f/arity` would throw an exception with multiple-arity
+  functions on the JVM (#240). It now responds properly with `[:between
+  min-arity max-arity]`, or `[:at-least n]` if there is a variadic case too.
+
+- Added missing `identity?`, `identity-like` for complex and rational numbers
+  (#236)
+
+- beefed up the Javascript numeric tower to allow objects like
+  `sicmutils.differential/Differential`, `sicmutils.expression/Expression` and
+  friends that WRAP numbers to compare properly using cljs-native `<`, `<=`,
+  `=`, `>=` and `>` (#236)
+
+- new `sicmutils.value/compare` function exposed in `sicmutils.env` returns a
+  valid comparison bit between native numbers and numbers wrapped in
+  `Differential` or `Expression` in both JVM Clojure and Clojurescript (#236).
+  The behavior matches `clojure.core/compare` for all reals on the JVM; it
+  doesn't in Clojurescript because native `compare` can't handle
+  `goog.math.{Long,Integer}` or `js/BigInt`.
+
+- New single-arity case for `sicmutils.structure/opposite` returns an identical
+  structure with flipped orientation (#220). acts as `identity` for
+  non-structures.
+
+- #219 introduces a number of changes to `Operator`'s behavior:
+
+  - `Operator` is now a `deftype` (not a `defrecord`); the keyword lookup for
+    its `:name`, `:arity`, `:context` and `:o` fields have been replaced by,
+    respectively, `o/name`, `sicmutils.function/arity`, `o/context` and
+    `o/procedure` functions. This change happened to allow `Operator` to
+    implement protocols like `ILookup`.
+
+  - Native `get` and `get-in` now act on `Operator`. Given an operator function
+    `f`, `get` and `get-in` compose `#(get % k)`, or similar with `f`. This
+    deferred action matches the effect of all sicmutils generics on functions.
+
+  - Combining an operator and a non-operator via `+` and `-`, the non-operator
+    was previously lifted into an operator that multiplied itself by the new
+    operator's argument. As of #219, this "multiplication" uses the operator
+    definition of multiplication - meaning, the new operator composes the
+    non-operator with its argument. Where does this matter?
+
+    Previously adding the non-operator `sicmutils.function/I` to the identity
+    operator `I` would act like this:
+
+    ```clojure
+    (((g/+ o/identity f/I) f/I) 10)
+    ;; => 110 == (+ 10 (* 10 10))
+    ```
+
+    Because `f/I` multiplied itself by its argument... resulting in `(* f/I f/I)
+    == g/square`.
+
+    After the change, you see this:
+
+    ```clojure
+    (((g/+ o/identity f/I) f/I) 10)
+    ;; => 20
+    ```
+
+    because `f/I` composes with its argument.
+
+  - `sicmutils.operator/identity-operator` has been renamed to
+    `sicmutils.operator/identity`
+
+  - `o/make-operator` now takes an explicit `context` map, instead of a
+    multi-arity implementation with key-value pairs.
+
+  - `Operator` now implements `g/negate`.
+
+  - `g/cross-product` is no longer implemented for `Operator`. operators were
+    introduced by GJS to act like "differential operators", can only add, negate
+    and multiply (defined as composition). We will probably relax this in the
+    future, and add more functions like `g/cross-product` that compose with the
+    operator's output; but for now we're cleaning house, since this function
+    isn't used anywhere.
+
+  - In this same spirit, `Operator` instances can now only be divided by scalars
+    (not functions anymore), reflecting the ring structure of a differential
+    operator.
+
+- `sicmutils.env/ref` now accepts function and operators (#219). `(ref f 0 1)`,
+  as an example, returns a new function `g` that acts like `f` but calls `(ref
+  result 0 1)` on the result.
+
+- The slightly more general `sicmutils.env/component` replaces
+  `sicmutils.structure/component` in the `sicmutils.env` namespace (#219).
+  `((component 0 1) x) == (ref x 0 1)`.
+>>>>>>> master
+>>>>>>> master
+
 - `D` (or `sicmutils.generic/partial-derivative`) applied to a matrix of
   functions now takes the elementwise partials of every function in the matrix.
   (#218)
@@ -36,7 +126,8 @@
   or similar with `f`. This deferred action matches the effect of all sicmutils
   generics on functions. (#218)
 
-- `sicmutils.function/I` aliases `clojure.core/identity` (#218).
+- `sicmutils.function/I` aliases `clojure.core/identity` (#218). #219 exposes
+  `I` in `sicmutils.env`.
 
 - `up` and `down` tuples from `sicmutils.structure` gain a proper `print-method`
   implementation (#229); these now render as `(up 1 2 3)` and `(down 1 2 3)`,

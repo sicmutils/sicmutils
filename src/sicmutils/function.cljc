@@ -226,41 +226,59 @@
 ;;   [:at-least m]
 
 #?(:clj
-   (defn jvm-arity [f]
-     (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
-           ;; tally up arities of invoke, doInvoke, and
-           ;; getRequiredArity methods. Filter out invokeStatic.
-           ^RestFn rest-fn f
-           facts (group-by first
-                           (for [^Method m methods
-                                 :let [name (.getName m)]
-                                 :when (not (#{"withMeta" "meta" "invokeStatic"} name))]
-                             (condp = name
-                               "invoke" [:invoke (alength (.getParameterTypes m))]
-                               "doInvoke" [:doInvoke true]
-                               "getRequiredArity" [:getRequiredArity (.getRequiredArity rest-fn)])))]
-       (cond
-         ;; Rule one: if all we have is one single case of invoke, then the
-         ;; arity is the arity of that method. This is the common case.
-         (and (= 1 (count facts))
-              (= 1 (count (:invoke facts))))
-         [:exactly (second (first (:invoke facts)))]
-         ;; Rule two: if we have exactly one doInvoke and getRequiredArity,
-         ;; and possibly an invokeStatic, then the arity at
-         ;; least the result of .getRequiredArity.
-         (and (= 2 (count facts))
-              (= 1 (count (:doInvoke facts)))
-              (= 1 (count (:getRequiredArity facts))))
-         [:at-least (second (first (:getRequiredArity facts)))]
-         ;; Rule three: if we have invokes for the arities 0..3, getRequiredArity
-         ;; says 3, and we have doInvoke, then we consider that this function
-         ;; was probably produced by Clojure's core "comp" function, and
-         ;; we somewhat lamely consider the arity of the composed function 1.
-         (and (= #{0 1 2 3} (into #{} (map second (:invoke facts))))
-              (= 3 (second (first (:getRequiredArity facts))))
-              (:doInvoke facts))
-         [:exactly 1]
-         :else (u/illegal (str "arity? " f " " facts)))))
+   (do (defn- arity-map [f]
+         (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
+               ;; tally up arities of invoke, doInvoke, and getRequiredArity
+               ;; methods. Filter out invokeStatic.
+               pairs (for [^Method m methods
+                           :let [name (.getName m)]
+                           :when (not (#{"withMeta" "meta" "invokeStatic"} name))]
+                       (condp = name
+                         "invoke"   [:invoke (alength (.getParameterTypes m))]
+                         "doInvoke" [:doInvoke true]
+                         "getRequiredArity" [:getRequiredArity
+                                             (.getRequiredArity ^RestFn f)]))
+               facts (group-by first pairs)]
+           {:arities        (into #{} (map peek) (:invoke facts))
+            :required-arity (second (first (:getRequiredArity facts)))
+            :invoke?        (boolean (seq (:doInvoke facts)))}))
+
+       (defn jvm-arity [f]
+         (let [{:keys [arities required-arity invoke?] :as m} (arity-map f)]
+           (cond
+             ;; Rule one: if all we have is one single case of invoke, then the
+             ;; arity is the arity of that method. This is the common case.
+             (and (= 1 (count arities))
+                  (not required-arity)
+                  (not invoke?))
+             [:exactly (first arities)]
+
+             ;; Rule two: if we have invokes for the arities 0..3,
+             ;; getRequiredArity says 3, and we have doInvoke, then we consider that
+             ;; this function was probably produced by Clojure's core "comp"
+             ;; function, and we somewhat lamely consider the arity of the composed
+             ;; function 1.
+             (and (= #{0 1 2 3} arities)
+                  (= 3 required-arity)
+                  invoke?)
+             [:exactly 1]
+
+             ;; Rule three: if we have exactly one doInvoke and getRequiredArity,
+             ;; then the arity at least the result of .getRequiredArity.
+             (and required-arity
+                  invoke?)
+             [:at-least (apply min required-arity arities)]
+
+             ;; Rule four: If we have more than 1 `invoke` clause, return a
+             ;; `:between`. This won't account for gaps between the arities.
+             (seq arities)
+             [:between
+              (apply min arities)
+              (apply max arities)]
+
+             :else
+             (u/illegal
+              (str "Not enough info to determine jvm-arity of " f " :" m))))))
 
    :cljs
    (do

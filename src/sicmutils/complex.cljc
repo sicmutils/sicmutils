@@ -103,8 +103,10 @@
   v/Value
   (zero? [c] #?(:clj (= ZERO c) :cljs (.isZero c)))
   (one? [c] (= ONE c))
+  (identity? [c] (= ONE c))
   (zero-like [_] ZERO)
   (one-like [_] ONE)
+  (identity-like [_] ONE)
   (freeze [c] (let [re (g/real-part c)
                     im (g/imag-part c)]
                 (if (v/zero? im)
