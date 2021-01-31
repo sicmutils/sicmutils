@@ -10,8 +10,11 @@
 
   - We've changed our terminology from GJS's `finite-part`,
     `infinitesimal-part`, `make-x+dx` to the more modern `primal-part`,
-    `tangent-part`, `bundle` that the Automatic Differentiation community has
-    now adopted.
+    `tangent-part`, `bundle-element` that the Automatic Differentiation
+    community has adopted. His comment is that he doesn't take terms from
+    mathematics unless he's _sure_ that he's using it in the correct way; the
+    safer way is to stick with his terms, but we go boldly forth with the
+    masses.
 
   - A new `sicmutils.differential.IPerturbed` protocol makes it possible to
     extend the Automatic Differentiation (AD) system to be able to handle
@@ -57,7 +60,6 @@
 - Fix a bug where `f/arity` would throw an exception with multiple-arity
   functions on the JVM (#240). It now responds properly with `[:between
   min-arity max-arity]`, or `[:at-least n]` if there is a variadic case too.
->>>>>>> master
 
 - Added missing `identity?`, `identity-like` for complex and rational numbers
   (#236)
@@ -142,8 +144,6 @@
 - The slightly more general `sicmutils.env/component` replaces
   `sicmutils.structure/component` in the `sicmutils.env` namespace (#219).
   `((component 0 1) x) == (ref x 0 1)`.
->>>>>>> master
->>>>>>> master
 
 - `D` (or `sicmutils.generic/partial-derivative`) applied to a matrix of
   functions now takes the elementwise partials of every function in the matrix.
