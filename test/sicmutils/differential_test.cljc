@@ -41,7 +41,7 @@
   [f]
   (let [tag (d/fresh-tag)]
     (fn [x]
-      (-> (f (d/bundle x 1 tag))
+      (-> (f (d/bundle-element x 1 tag))
           (d/extract-tangent tag)))))
 
 (def real-diff-gen
@@ -99,15 +99,15 @@
   (checking "native comparison operators work with differential" 100
             [l sg/real, r sg/real]
             (is (= (v/compare l r)
-                   (v/compare (d/bundle l 1 0) r)
-                   (v/compare l (d/bundle r 1 0)))))
+                   (v/compare (d/bundle-element l 1 0) r)
+                   (v/compare l (d/bundle-element r 1 0)))))
 
   #?(:cljs
      (testing "comparison unit tests"
-       (is (= 0 (d/bundle 0 1 0)))
-       (is (= (u/bigint 0) (d/bundle 0 1 0)))
-       (is (= (u/long 0) (d/bundle 0 1 0)))
-       (is (= (u/int 0) (d/bundle 0 1 0)))))
+       (is (= 0 (d/bundle-element 0 1 0)))
+       (is (= (u/bigint 0) (d/bundle-element 0 1 0)))
+       (is (= (u/long 0) (d/bundle-element 0 1 0)))
+       (is (= (u/int 0) (d/bundle-element 0 1 0)))))
 
   #?(:cljs
      ;; NOTE: JVM Clojure won't allow non-numbers on either side of < and
@@ -118,8 +118,8 @@
                  [[l-num r-num] (gen/vector real-minus-rationals 2)]
                  (let [compare-bit (v/compare l-num r-num)]
                    (doall
-                    (for [l [l-num (d/bundle l-num 1 0)]
-                          r [r-num (d/bundle r-num 1 0)]]
+                    (for [l [l-num (d/bundle-element l-num 1 0)]
+                          r [r-num (d/bundle-element r-num 1 0)]]
                       (cond (neg? compare-bit)  (is (< l r))
                             (zero? compare-bit) (is (and (<= l r) (= l r) (>= l r)))
                             :else (is (> l r)))))))))
@@ -165,58 +165,58 @@
       (testing "equality, comparison"
         (checking "=, equiv ignore tangent parts" 100
                   [n sg/real-without-ratio]
-                  (is (= (d/bundle n 1 0) n)
+                  (is (= (d/bundle-element n 1 0) n)
                       "differential on the left works.")
 
                   #?(:cljs
-                     (is (= n (d/bundle n 1 0))
+                     (is (= n (d/bundle-element n 1 0))
                          "differential on the right works in CLJS."))
 
-                  (is (d/equiv (d/bundle n 1 0) n n (d/bundle n 1 0) n)
+                  (is (d/equiv (d/bundle-element n 1 0) n n (d/bundle-element n 1 0) n)
                       "d/equiv matches = behavior, varargs"))
 
         (checking "eq uses tangent parts" 100 [n sg/real]
-                  (is (d/eq (d/bundle n 0 0) n n (d/bundle n 0 0) n)
+                  (is (d/eq (d/bundle-element n 0 0) n n (d/bundle-element n 0 0) n)
                       "eq is true with no tangent, varargs")
 
-                  (is (not (d/eq (d/bundle n 1 0) n))
+                  (is (not (d/eq (d/bundle-element n 1 0) n))
                       "eq is FALSE with a tangent, bundle on left")
 
-                  (is (not (d/eq n (d/bundle n 1 0)))
+                  (is (not (d/eq n (d/bundle-element n 1 0)))
                       "eq is FALSE with a tangent, bundle on right")
 
-                  (is (= (d/eq (d/bundle n 1 0) (d/bundle n 1 0)))
+                  (is (= (d/eq (d/bundle-element n 1 0) (d/bundle-element n 1 0)))
                       "d/eq handles equality")
 
-                  (is (= (d/eq (d/bundle n 1 0) (d/bundle n 2 0)))
+                  (is (= (d/eq (d/bundle-element n 1 0) (d/bundle-element n 2 0)))
                       "d/eq is false for [[Differential]]s with diff tags"))
 
         (checking "compare ignores tangent parts" 100
                   [l sg/real, r sg/real]
                   (is (= (v/compare l r)
-                         (v/compare (d/bundle l 1 0) r)
-                         (v/compare l (d/bundle r 1 0)))
+                         (v/compare (d/bundle-element l 1 0) r)
+                         (v/compare l (d/bundle-element r 1 0)))
                       "differential works on either side.")
 
                   (is (= (d/compare l r)
-                         (d/compare (d/bundle l r 0) r)
-                         (d/compare l (d/bundle r l 0)))
+                         (d/compare (d/bundle-element l r 0) r)
+                         (d/compare l (d/bundle-element r l 0)))
                       "d/compare can handle non-differential on either side, also
                     ignores tangents.")
 
                   (testing "{d,v}/compare l, l matches equals behavior, ignores tangents"
-                    (is (zero? (d/compare (d/bundle l r 0) l)))
-                    (is (zero? (d/compare l (d/bundle l r 0))))
-                    (is (zero? (v/compare (d/bundle l r 0) l)))
-                    (is (zero? (v/compare l (d/bundle l r 0))))))
+                    (is (zero? (d/compare (d/bundle-element l r 0) l)))
+                    (is (zero? (d/compare l (d/bundle-element l r 0))))
+                    (is (zero? (v/compare (d/bundle-element l r 0) l)))
+                    (is (zero? (v/compare l (d/bundle-element l r 0))))))
 
         (checking "compare-full takes tags into account" 100
                   [l sg/real, r sg/real]
-                  (is (pos? (d/compare-full (d/bundle l 1 0) l))
+                  (is (pos? (d/compare-full (d/bundle-element l 1 0) l))
                       "a [[Differential]] with a positive tangent is ALWAYS
                     greater than a non-[[Differential]] whatever the tangent.")
 
-                  (is (neg? (d/compare-full l (d/bundle l 1 0)))
+                  (is (neg? (d/compare-full l (d/bundle-element l 1 0)))
                       "a [[Differential]] with a positive tangent is ALWAYS
                     greater than a non-[[Differential]] whatever the tangent."))
 
@@ -260,23 +260,23 @@
 
   (checking "applying a Differential with fn coefs works!" 200
             [xs (gen/vector (sg/reasonable-double) 1 20)]
-            (let [dx      (d/bundle 0 1 0)
-                  diff    (apply (d/bundle g/+ g/- 0) xs)
+            (let [dx      (d/bundle-element 0 1 0)
+                  diff    (apply (d/bundle-element g/+ g/- 0) xs)
                   [ps ts] (d/primal-tangent-pair diff)]
               (is (== (apply g/+ xs) ps)
                   "primal passes through")
               (is (= (g/* (apply g/- xs) dx) ts)
                   "tangent part keeps its dx, but applies fn")
 
-              (is (== (d/extract-tangent diff 0)
-                      (d/extract-tangent ts 0))
+              (is (= (d/extract-tangent diff 0)
+                     (d/extract-tangent ts 0))
                   "the tangent extracted from the tangent-part is identical to
                    the `extract-tangent` of the full diff")))
 
   (testing "partial-derivative of a differential"
     (let [D #(g/partial-derivative % [])]
-      (is (= ((d/bundle (D g/sin) (D g/cos) 0) 't)
-             ((D (d/bundle g/sin g/cos 0)) 't))
+      (is (= ((d/bundle-element (D g/sin) (D g/cos) 0) 't)
+             ((D (d/bundle-element g/sin g/cos 0)) 't))
           "partial-derivative is linear through a differential"))))
 
 (deftest differential-arithmetic-tests
@@ -347,20 +347,20 @@
           dx+dz  (d/from-terms {[0] 1, [2] 1})
           =      d/eq]
       (testing "d:+ is commutative"
-        (is (= dx+dy
-               (d/d:+ dx dy)
-               (d/d:+ dy dx)))
-        (is (= dx+dz
-               (d/d:+ dx dz)
-               (d/d:+ dz dx))))
+        (is (d/eq dx+dy
+                  (d/d:+ dx dy)
+                  (d/d:+ dy dx)))
+        (is (d/eq dx+dz
+                  (d/d:+ dx dz)
+                  (d/d:+ dz dx))))
 
-      (is (= (d/from-terms {[0] 3, [1] 2, [2] 3})
-             (reduce d/d:+ [dx dy dz dy dz dx dz dx]))
+      (is (d/eq (d/from-terms {[0] 3, [1] 2, [2] 3})
+                (reduce d/d:+ [dx dy dz dy dz dx dz dx]))
           "d:+ groups terms appropriately")
 
       (testing "addition preserves primal"
-        (is (= (d/from-terms {[] 1, [0] 1}) (d/d:+ dx 1)))
-        (is (= (d/from-terms {[] 'k [0] 1}) (d/d:+ dx 'k))))
+        (is (d/eq (d/from-terms {[] 1, [0] 1}) (d/d:+ dx 1)))
+        (is (d/eq (d/from-terms {[] 'k [0] 1}) (d/d:+ dx 'k))))
 
       (testing "various ways to get to zero"
         (is (v/zero? (d/d:+ dx -dx)))
@@ -370,10 +370,10 @@
         (is (v/zero? (g/* dx dx))))
 
       (testing "associative, commutative multiplication"
-        (is (= dxdy (d/d:* dx dy)))
-        (is (= dxdydz (d/d:* (d/d:* dx dy) dz)))
-        (is (= dxdydz (d/d:* (d/d:* dz dx) dy)))
-        (is (= dxdydz (d/d:* (d/d:* dy dz) dx))))
+        (is (d/eq dxdy (d/d:* dx dy)))
+        (is (d/eq dxdydz (d/d:* (d/d:* dx dy) dz)))
+        (is (d/eq dxdydz (d/d:* (d/d:* dz dx) dy)))
+        (is (d/eq dxdydz (d/d:* (d/d:* dy dz) dx))))
 
       (testing "infinitesimals go to zero when multiplied!"
         (is (v/zero? (d/d:* dx dx))
@@ -386,13 +386,13 @@
           simplify (comp g/simplify tangent)]
       (is (= '(* 3 (expt x 2))
              (simplify
-              (g/expt (g/+ 'x (d/bundle 0 1 0)) 3))))
+              (g/expt (g/+ 'x (d/bundle-element 0 1 0)) 3))))
 
       (is (= '(* 4 (expt x 3))
              (simplify
-              (g/expt (g/+ 'x (d/bundle 0 1 0)) 4))))
+              (g/expt (g/+ 'x (d/bundle-element 0 1 0)) 4))))
 
-      (let [dx   (d/bundle 0 1 0)
+      (let [dx   (d/bundle-element 0 1 0)
             x+dx (g/+ 'x dx)
             f    (fn [x] (g/* x x x x))]
         (is (= '(* 4 (expt x 3))
@@ -427,17 +427,25 @@
                (simplify (f x+dx))))))))
 
 (deftest differential-api-tests
+  (testing "bundle-element can flatten bundle-element primal, tangent"
+    (is (d/eq (g/+ (g/sin (d/bundle-element 1 1 0))
+                   (g/* (g/cos (d/bundle-element 1 1 0))
+                        (d/bundle-element 0 1 1)))
+              (d/bundle-element (g/sin (d/bundle-element 1 1 0))
+                                (g/cos (d/bundle-element 1 1 0))
+                                1))))
+
   (checking "to, from terms == id" 100
             [diff real-diff-gen]
-            (is (= diff
-                   (-> (#'d/->terms diff)
-                       (#'d/terms->differential)))))
+            (is (d/eq diff
+                      (-> (#'d/->terms diff)
+                          (#'d/terms->differential)))))
 
   (checking "round-trip to terms and back" 100
             [n sg/real]
             (let [rt (-> (#'d/->terms n)
                          (#'d/terms->differential))]
-              (is (= n rt)
+              (is (d/eq n rt)
                   "round tripping doesn't change equality")
               (is (not (d/differential? rt))
                   "round trip keeps non-differentials as non-diff")))
@@ -468,7 +476,7 @@
     (checking "(extract-tangent diff) == dx*(tangent-part diff)" 100
               [diff real-diff-gen]
               (doseq [tag (all-tags diff)
-                      :let [dx (d/bundle 0 1 tag)]]
+                      :let [dx (d/bundle-element 0 1 tag)]]
                 (is (d/eq (d/tangent-part diff tag)
                           (d/d:* dx (d/extract-tangent diff tag))))))
 
@@ -488,7 +496,7 @@
               [primal  (sg/reasonable-double)
                tangent (sg/reasonable-double)
                tag     gen/nat]
-              (let [diff (d/bundle primal tangent tag)]
+              (let [diff (d/bundle-element primal tangent tag)]
                 (is (= primal (d/finite-term diff)))
                 (is (= (d/finite-term diff)
                        (d/primal-part diff)))))

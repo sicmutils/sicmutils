@@ -474,25 +474,23 @@
                (/ (* -1 (sin x) (cos y)) (* (cos x) (expt (sin y) 2))))
              (g/simplify ((D f5) 'x 'y))))))
 
-  (testing "arity"
-    (let [f100dd (fn [x ct acc]
-                   (if (v/zero? ct)
+  (testing "D can handle functions of varying arities"
+    (let [f100dd (fn [x n acc]
+                   (if (v/zero? n)
                      acc
-                     (recur x (dec ct) (sin (+ x acc)))))
-          f100d (fn [x] (f100dd x 100 x))
-          f100e (fn f100e
-                  ([x] (f100e x 100 x))
-                  ([x ct acc] (if (v/zero? ct) acc (recur x (dec ct) (sin (+ x acc))))))
-          f100ea (with-meta f100e {:arity [:exactly 1]})]
-      (is ((v/within 1e-6) 0.51603111348625 ((D f100d) 6)))
-      (let [run (fn [] ((v/within 1e-6) 0.51603111348625 ((D f100e) 6)))]
-        #?(:clj
-           (is (thrown? IllegalArgumentException (run)))
-           :cljs
-           ;; The CLJS implementation doesn't have trouble here.
-           (is (run))))
-      (is ((v/within 1e-6) 0.51603111348625
-           ((D (with-meta f100e {:arity [:exactly 1]})) 6))))))
+                     (recur x (dec n) (sin (+ x acc)))))
+          f100d  (fn [x] (f100dd x 100 x))
+          f100e  (fn f100e
+                   ([x] (f100e x 100 x))
+                   ([x n acc]
+                    (if (v/zero? n)
+                      acc
+                      (recur x (dec n) (sin (+ x acc))))))
+          f100ea (f/with-arity f100e [:exactly 1])
+          expected 0.51603111348625]
+      (is (ish? expected ((D f100d) 6)))
+      (is (ish? expected ((D f100e) 6)))
+      (is (ish? expected ((D f100ea) 6))))))
 
 (deftest deep-partials
   (let [f (fn [x y] (+ (g/square x) (g/square (g/square y))))]
@@ -645,8 +643,8 @@
 
     (testing "f -> Series"
       (let [F (fn [k] (series/series
-                      (fn [t] (g/* k t))
-                      (fn [t] (g/* k k t))))]
+                       (fn [t] (g/* k t))
+                       (fn [t] (g/* k k t))))]
         (is (= '((* q z) (* (expt q 2) z) 0 0) (simp4 ((F 'q) 'z))))
         (is (= '(z (* 2 q z) 0 0) (simp4 (((D F) 'q) 'z)))))))
 
