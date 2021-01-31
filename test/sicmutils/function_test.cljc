@@ -74,8 +74,10 @@
               (is (not ((v/exact? identity) n)))))
 
   (testing "v/freeze"
-    (is (= ['+ '- '* '/ 'modulo 'quotient 'remainder 'negative?]
-           (map v/freeze [+ - * / mod quot rem neg?]))
+    (is (= ['+ '- '* '/ 'modulo 'quotient 'remainder 'negative?
+            'partial-derivative]
+           (map v/freeze [+ - * / mod quot rem neg?
+                          g/partial-derivative]))
         "Certain functions freeze to symbols")
 
     (is (= (map v/freeze [g/+ g/- g/* g//
@@ -114,6 +116,9 @@
      (is (= [1 3] (f/exposed-arities (fn ([x] (* x x)) ([x y z] (+ x y))))))))
 
 (deftest arities
+  (is (= [:exactly 2] (f/arity g/partial-derivative))
+      "generic multimethod responds correctly to f/arity.")
+
   (is (= [:exactly 0] (f/arity (fn [] 42))))
   (is (= [:exactly 1] (f/arity (fn [x] (+ x 1)))))
   (is (= [:exactly 2] (f/arity (fn [x y] (+ x y)))))
@@ -123,7 +128,6 @@
   (is (= [:at-least 2] (f/arity (fn [x y & zs] (+ x y (reduce * 1 zs))))))
   (is (= [:exactly 0] (f/arity 'x)))
   (is (= [:at-least 0] (f/arity (constantly 42))))
-  ;; the following is dubious until we attach arity metadata to MultiFns
   (is (= [:exactly 1] (f/arity [1 2 3])))
   (let [f (fn [x] (+ x x))
         g (fn [y] (* y y))]
