@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- Fix a bug where `f/arity` would throw an exception with multiple-arity
+  functions on the JVM (#240). It now responds properly with `[:between
+  min-arity max-arity]`, or `[:at-least n]` if there is a variadic case too.
+
 - Added missing `identity?`, `identity-like` for complex and rational numbers
   (#236)
 
@@ -85,6 +89,7 @@
 - The slightly more general `sicmutils.env/component` replaces
   `sicmutils.structure/component` in the `sicmutils.env` namespace (#219).
   `((component 0 1) x) == (ref x 0 1)`.
+>>>>>>> master
 
 - `D` (or `sicmutils.generic/partial-derivative`) applied to a matrix of
   functions now takes the elementwise partials of every function in the matrix.
