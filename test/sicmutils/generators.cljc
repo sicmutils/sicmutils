@@ -16,6 +16,7 @@
             [sicmutils.ratio :as r]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
+            [sicmutils.util.vector-set :as vs]
             [sicmutils.value :as v])
   #?(:clj
      (:import [org.apache.commons.math3.complex Complex])))
@@ -75,8 +76,30 @@
                long
                integer]))
 
-(def real
+(def ratio
+  "Generates a small ratio (or integer) using gen/small-integer. Shrinks
+  toward simpler ratios, which may be larger or smaller."
+  (gen/fmap
+   (fn [[a b]] (r/rationalize a b))
+   (gen/tuple gen/small-integer (gen/fmap inc gen/nat))))
+
+(def big-ratio
+  (gen/let [n bigint
+            d bigint]
+    (let [d (if (v/zero? d)
+              (u/bigint 1)
+              d)]
+      (r/rationalize n d))))
+
+(def rational
+  (gen/one-of [any-integral ratio]))
+
+(def real-without-ratio
   (gen/one-of [any-integral (reasonable-double)]))
+
+(def real
+  (gen/one-of
+   [any-integral ratio (reasonable-double)]))
 
 (defn reasonable-real [bound]
   (let [bound    (core-long bound)
@@ -92,20 +115,8 @@
             i (reasonable-double)]
     (c/complex r i)))
 
-(def ratio
-  "Generates a small ratio (or integer) using gen/small-integer. Shrinks
-  toward simpler ratios, which may be larger or smaller."
-  (gen/fmap
-   (fn [[a b]] (r/rationalize a b))
-   (gen/tuple gen/small-integer (gen/fmap inc gen/nat))))
-
-(def big-ratio
-  (gen/let [n bigint
-            d bigint]
-    (let [d (if (v/zero? d)
-              (u/bigint 1)
-              d)]
-      (r/rationalize n d))))
+(def number
+  (gen/one-of [real complex]))
 
 ;; ## Symbolic
 
@@ -180,6 +191,7 @@
     "Returns a generator that produces a valid structure orientation"}
   orientation
   (gen/elements [::s/up ::s/down]))
+
 ;; ## Matrices
 
 (defn matrix
@@ -202,6 +214,19 @@
   ([n] (square-matrix n ratio))
   ([n entry-gen]
    (matrix n n entry-gen)))
+
+;; ## Vector Set
+;;
+;; These are used in the implementation of [[sicmutils.differential]].
+
+(defn vector-set
+  "Generates a sorted vector of distinct elements drawn from `entry-gen`.
+  `entry-gen` must produce comparable elements.
+
+  `entry-gen` defaults to [[gen/nat]]."
+  ([] (vector-set gen/nat))
+  ([entry-gen]
+   (gen/fmap vs/make (gen/set entry-gen))))
 
 ;; ## Custom Almost-Equality
 

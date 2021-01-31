@@ -42,10 +42,10 @@
          (eval '(literal-function 'U)))
       "Literal functions use value equality.")
 
-  (is (= o/identity-operator
+  (is (= o/identity
          (eval
           '(do (require '[sicmutils.operator :as o])
-               o/identity-operator)))
+               o/identity)))
       "can sci internally require namespaces?")
 
   (is (= '(* 10 face)

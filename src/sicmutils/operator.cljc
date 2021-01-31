@@ -18,27 +18,38 @@
 ;
 
 (ns sicmutils.operator
+  (:refer-clojure :rename {identity core-identity
+                           name core-name}
+                  #?@(:cljs [:exclude [get get-in identity name]]))
   (:require [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.series :as series]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
-     (:import [clojure.lang IFn])))
+     (:import (clojure.lang IFn ILookup))))
 
-(defrecord Operator [o arity name context]
+(declare op:get)
+
+(deftype Operator [o arity name context]
   v/Value
   (zero? [_] false)
   (one? [_] false)
   (identity? [_] false)
   (zero-like [_] (Operator. v/zero-like arity 'zero context))
-  (one-like [_] (Operator. identity arity 'identity context))
-  (identity-like [_] (Operator. identity arity 'identity context))
+  (one-like [_] (Operator. core-identity arity 'identity context))
+  (identity-like [_] (Operator. core-identity arity 'identity context))
   (freeze [_] (v/freeze name))
   (kind [_] (:subtype context))
 
   f/IArity
   (arity [_] arity)
+
+  #?@(:clj
+      [ILookup
+       (valAt [this k] (op:get this k))
+       (valAt [this k not-found]
+              (u/illegal "Operators don't support the not-found arity of get!"))])
 
   Object
   (toString [_] (let [n (v/freeze name)]
@@ -53,7 +64,12 @@
        (applyTo [_ fns] (apply o fns))]
 
       :cljs
-      [IFn
+      [ILookup
+       (-lookup [this k] (op:get this k))
+       (-lookup [this k not-found]
+                (u/illegal "Operators don't support the not-found arity of get!"))
+
+       IFn
        (-invoke [_ a] (o a))
        (-invoke [_ a b] (o a b))
        (-invoke [_ a b c] (o a b c))
@@ -78,7 +94,6 @@
                 (o a b c d e f g h i j k l m n o-arg p q))
        (-invoke [_ a b c d e f g h i j k l m n o-arg p q r]
                 (o a b c d e f g h i j k l m n o-arg p q r))
-
        (-invoke [_ a b c d e f g h i j k l m n o-arg p q r s]
                 (o a b c d e f g h i j k l m n o-arg p q r s))
        (-invoke [_ a b c d e f g h i j k l m n o-arg p q r s t]
@@ -96,21 +111,72 @@
    (defmethod print-method Operator [^Operator s ^java.io.Writer w]
      (.write w (.toString s))))
 
-(defn make-operator
-  [o name & {:as context}]
-  (->Operator o
-              (:arity context (f/arity o))
-              name
-              (into {:subtype ::operator} context)))
-
 (defn operator?
+  "Returns true if the supplied `x` is an instance of [[Operator]], false
+  otherwise."
   [x]
   (instance? Operator x))
 
-(def identity-operator
-  (make-operator identity 'identity))
+(defn procedure
+  "Returns the backing procedure of the supplied [[Operator]]. Errors if a
+  non-[[Operator]] is supplied."
+  [op]
+  (if (operator? op)
+    (.-o ^Operator op)
+    (u/illegal (str "non-operator supplied: " op))))
 
-(defn ^:private joint-context
+(defn arity
+  "Returns the arity of the supplied [[Operator]]. Errors if a non-[[Operator]] is
+  supplied."
+  [op]
+  (if (operator? op)
+    (.-arity ^Operator op)
+    (u/illegal (str "non-operator supplied: " op))))
+
+(defn name
+  "Returns the stored name of the supplied [[Operator]]. Errors if a
+  non-[[Operator]] is supplied."
+  [op]
+  (if (operator? op)
+    (.-name ^Operator op)
+    (u/illegal (str "non-operator supplied: " op))))
+
+(defn context
+  "Returns the context field of the supplied [[Operator]]. Errors if a
+  non-[[Operator]] is supplied."
+  [op]
+  (if (operator? op)
+    (.-context ^Operator op)
+    (u/illegal (str "non-operator supplied: " op))))
+
+(defn make-operator
+  "Returns an [[Operator]] wrapping the supplied procedure `f` with the name
+  `name`.
+
+  Optionally accepts a `context` map that will be stored inside the
+  returned [[Operator]]."
+  ([f name]
+   (make-operator f name {}))
+  ([f name context]
+   (->Operator f
+               (:arity context (f/arity f))
+               name
+               (into {:subtype ::operator} context))))
+
+(defn- op:get
+  "Returns an [[Operator]] that composes a lookup of the form `#(get % k)` with
+  the wrapped procedure of the [[Operator]] `o`."
+  [o k]
+  (make-operator
+   (f/get (procedure o) k)
+   `(~'compose (~'fn [~'x] (~'get ~'x ~k))
+     ~(name o))))
+
+(def ^{:doc "Identity operator. Returns its argument unchanged."}
+  identity
+  (make-operator core-identity 'identity))
+
+(defn- joint-context
   "Merges type context maps of the two operators. Where the maps have keys in
   common, they must agree; disjoint keys become part of the new joint context."
   [o p]
@@ -120,65 +186,133 @@
             (if-let [cv (k joint-ctx)]
               (if (= cv v)
                 joint-ctx
-                (u/illegal (str "incompatible operator context: " (:context o) (:context p))))
+                (u/illegal (str "incompatible operator context: " (context o) (context p))))
               (assoc joint-ctx k v)))
-          (:context o)
-          (:context p)))
+          (context o)
+          (context p)))
 
-(defn ^:private number->operator
-  "Lift a number to an operator which multiplies its
-  applied function by that number (nb: in function arithmetic,
-  this is pointwise multiplication)"
-  [n]
-  (->Operator #(apply g/* n %&) [:at-least 0] n {:subtype ::operator}))
+(defn- combine-f-op
+  "Returns a new operator generated by combining a non-operator `f` on the left
+  with an operator `o` on the right, using the binary operation `op`.
 
-(defn ^:private o-o
+  `sym` is used to generate a proper symbolic name for the new operator.
+
+  The combination occurs by coercing `f` to an operator that composes with its
+  argument before combining with `operator`. As an example, the following two
+  expressions are equivalent:
+
+  (+ <f> <operator>)
+
+  (+ (make-operator (fn [g] (comp <f> g)) <name>)
+     <operator>)
+
+  If `f` isn't already a function it's coerced to a function via `(constantly
+  <f>)`."
+  [op sym f o]
+  (let [h (f/coerce-to-fn f [:exactly 1])]
+    (->Operator (fn [g] (op (f/compose h g) (o g)))
+                (arity o)
+	              `(~sym ~(v/freeze f) ~(name o))
+                (context o))))
+
+(defn- combine-op-f
+  "Returns a new operator generated by combining an operator `o` on the left with
+  a non-operator `f` on the right, using the binary operation `op`.
+
+  `sym` is used to generate a proper symbolic name for the new operator.
+
+  The combination occurs by coercing `f` to an operator that composes with its
+  argument before combining with `operator`. As an example, the following two
+  expressions are equivalent:
+
+  (+ <operator> <f>)
+
+  (+ <operator>
+     (make-operator (fn [g] (comp <f> g)) <name>))
+
+  If `f` isn't already a function it's coerced to a function via `(constantly
+  <f>)`."
+  [op sym o f]
+  (let [h (f/coerce-to-fn f [:exactly 1])]
+    (->Operator (fn [g] (op (o g) (f/compose h g)))
+                (arity o)
+	              `(~sym ~(name o) ~(v/freeze f))
+                (context o))))
+
+(defn negate
+  "Returns a new operator that composes [[g/negate]] with its own wrapped
+  operation. Equivalent to:
+
+  (g/* (make-operator g/negate 'negate) o)"
+  [o]
+  (->Operator (fn [& fs]
+                (g/negate (apply o fs)))
+              (arity o)
+              (list '- (name o))
+	            (context o)))
+
+(defn- o:-
   "Subtract one operator from another. Produces an operator which computes the
   difference of applying the supplied operators."
   [o p]
-  (->Operator #(g/- (apply o %&) (apply p %&))
-              (f/joint-arity [(:arity o) (:arity p)])
-              `(~'- ~(:name o) ~(:name p))
+  (->Operator #(g/sub (apply o %&) (apply p %&))
+              (f/joint-arity [(arity o) (arity p)])
+              `(~'- ~(name o) ~(name p))
               (joint-context o p)))
 
-(defn ^:private o+o
+(defn- f-o [f o] (combine-f-op g/sub '- f o))
+(defn- o-f [o f] (combine-op-f g/sub '- o f))
+
+(defn- o:+
   "Add two operators. Produces an operator which adds the result of applying the
   given operators."
   [o p]
-  (->Operator #(g/+ (apply o %&) (apply p %&))
+  (->Operator #(g/add (apply o %&) (apply p %&))
               (f/joint-arity [(f/arity o) (f/arity p)])
-              `(~'+ ~(:name o) ~(:name p))
+              `(~'+ ~(name o) ~(name p))
               (joint-context o p)))
 
-(defn ^:private o*o
-  "Multiplication of operators is defined as their composition"
-  [o p]
-  (->Operator (with-meta (comp o p) {:arity (:arity p)})
-              (:arity p)
-              `(~'* ~(:name o) ~(:name p))
-              ;; Since operator p is applied first, it determines the type/arity
-              ;; of the composition.
-              (:context p)))
+(defn- f+o [f o] (combine-f-op g/add '+ f o))
+(defn- o+f [o f] (combine-op-f g/add '+ o f))
 
-(defn ^:private o*f
+(defn- o:*
+  "Multiplication of operators is defined as their composition."
+  [o p]
+  (->Operator (f/compose o p)
+              (arity p)
+              `(~'* ~(name o) ~(name p))
+              ;; TODO this seems fishy... why not unite them?
+              (context p)))
+
+(defn- f*o
+  "Multiply an operator by a non-operator on the left. The non-operator acts on
+  its argument by multiplication."
+  [f o]
+  (->Operator (fn [& gs]
+                (g/mul f (apply o gs)))
+              (arity o)
+              `(~'* ~(v/freeze f) ~(name o))
+              (context o)))
+
+(defn- o*f
   "Multiply an operator by a non-operator on the right. The non-operator acts on
   its argument by multiplication."
   [o f]
   (->Operator (fn [& gs]
-                (apply o (map (fn [g] (g/* f g)) gs)))
-              (:arity o)
-              `(~'* ~(:name o) ~f)
-              (:context o)))
+                (apply o (map (fn [g] (g/mul f g)) gs)))
+              (arity o)
+              `(~'* ~(name o) ~(v/freeze f))
+              (context o)))
 
-(defn ^:private f*o
-  "Multiply an operator by a non-operator on the left. The
-  non-operator acts on its argument by multiplication."
-  [f o]
+(defn o-div-n
+  "Returns a new operator that multiplies the output of `o` by the inverse of
+  `n`."
+  [o n]
   (->Operator (fn [& gs]
-                (g/* f (apply o gs)))
-              (:arity o)
-              `(~'* ~f ~(:name o))
-              (:context o)))
+                (g/mul (g/invert n) (apply o gs)))
+              (arity o)
+	            `(~'/ ~(name o) ~n)
+              (context o)))
 
 (defn commutator [o p]
   (g/- (g/* o p) (g/* p o)))
@@ -197,29 +331,26 @@
 
   where (as elsewhere) exponentiating the operator means n-fold composition."
   [op]
-  (assert (= (:arity op) [:exactly 1]) "sicmutils.operator/exp")
+  (assert (= (arity op) [:exactly 1]) "sicmutils.operator/exp")
   (->Operator (series/exp-series op)
               [:exactly 1]
-              `(~'exp ~(:name op))
-              (:context op)))
+              `(~'exp ~(name op))
+              (context op)))
 
 (defn expn
   "Similar to `exp`, but takes an optional argument `n` that defines an order for
   each term of the taylor series expansion."
   ([op] (exp op))
   ([op n]
-   (assert (= (:arity op) [:exactly 1]) "sicmutils.operator/expn")
+   (assert (= (arity op) [:exactly 1]) "sicmutils.operator/expn")
    (->Operator (-> (series/exp-series op)
                    (series/inflate n))
                [:exactly 1]
-               `(~'exp ~(:name op))
-               (:context op))))
+               `(~'exp ~(name op))
+               (context op))))
 
 (derive ::v/scalar ::co-operator)
-
-(defmethod g/expt [::operator ::v/native-integral] [o n]
-  {:pre [(not (g/negative? n))]}
-  (reduce o*o identity-operator (repeat n o)))
+(derive ::v/function ::co-operator)
 
 (doseq [[op f sym] [[g/exp series/exp-series 'exp]
                     [g/cos series/cos-series 'cos]
@@ -236,63 +367,36 @@
                     [g/atanh series/atanh-series 'atanh]]]
   (let [assert-str (str "g/" sym " :sicmutils.operator/operator")]
     (defmethod op [::operator] [g]
-      (assert (= (:arity g) [:exactly 1]) assert-str)
+      (assert (= (arity g) [:exactly 1]) assert-str)
       (->Operator (f g)
                   [:exactly 1]
-                  `(~sym ~(:name g))
-                  (:context g)))))
+                  `(~sym ~(name g))
+                  (context g)))))
 
-(defmethod g/add [::operator ::operator] [o p] (o+o o p))
+(defmethod g/add [::operator ::operator] [o p] (o:+ o p))
+(defmethod g/add [::operator ::co-operator] [o f] (o+f o f))
+(defmethod g/add [::co-operator ::operator] [f o] (f+o f o))
 
-;; In additive operation the value 1 is considered as the identity operator
-(defmethod g/add [::operator ::co-operator] [o n]
-  (o+o o (number->operator n)))
+(defmethod g/negate [::operator] [o] (negate o))
 
-(defmethod g/add [::co-operator ::operator] [n o]
-  (o+o (number->operator n) o))
+(defmethod g/sub [::operator ::operator] [o p] (o:- o p))
+(defmethod g/sub [::operator ::co-operator] [o f] (o-f o f))
+(defmethod g/sub [::co-operator ::operator] [f o] (f-o f o))
 
-(defmethod g/add [::operator ::v/function] [o f]
-  (o+o o (number->operator f)))
+(defmethod g/mul [::operator ::operator] [o p] (o:* o p))
+(defmethod g/mul [::operator ::co-operator] [o f] (o*f o f))
+(defmethod g/mul [::co-operator ::operator] [f o] (f*o f o))
 
-(defmethod g/add [::v/function ::operator] [f o]
-  (o+o (number->operator f) o))
+(defmethod g/expt [::operator ::v/native-integral] [o n]
+  {:pre [(not (g/negative? n))]}
+  (reduce o:* identity (repeat n o)))
 
-(defmethod g/sub [::operator ::operator] [o p] (o-o o p))
+(defmethod g/div [::operator ::scalar] [o n] (o-div-n o n))
 
-(defmethod g/sub [::operator ::co-operator] [o n]
-  (o-o o (number->operator n)))
+(defmethod g/square [::operator] [o] (o:* o o))
+(defmethod g/cube [::operator] [o] (o:* o (o:* o o)))
 
-(defmethod g/sub [::co-operator ::operator] [n o]
-  (o-o (number->operator n) o))
+(defmethod g/simplify [::operator] [o] (name o))
 
-(defmethod g/sub [::operator ::v/function] [o f]
-  (o-o o (number->operator f)))
-
-(defmethod g/sub [::v/function ::operator] [f o]
-  (o-o (number->operator f) o))
-
-;; Multiplication of operators is defined as their application (see o*o, above)
-(defmethod g/mul [::operator ::operator] [o p] (o*o o p))
-(defmethod g/mul [::operator ::v/function] [o f] (o*f o f))
-(defmethod g/mul [::v/function ::operator] [f o] (f*o f o))
-;; When multiplied with operators, a number is treated as an operator
-;; that multiplies its input by the number.
-(defmethod g/mul [::operator ::co-operator] [o n] (o*f o n))
-(defmethod g/mul [::co-operator ::operator] [n o] (f*o n o))
-(defmethod g/div [::operator ::co-operator] [o n] (o*f o (g/invert n)))
-(defmethod g/div [::operator ::v/function] [o f] (o*f o (g/invert f)))
-
-(defmethod g/square [::operator] [o] (o*o o o))
-
-(defmethod g/simplify [::operator] [o] (:name o))
-
-(defmethod g/transpose
-  [::operator]
-  [o]
-  (->Operator (fn [f] #(g/transpose (apply (o f) %&))) 1 'transpose (:context o)))
-
-(defmethod g/cross-product
-  [::operator ::operator]
-  [o p]
-  (fn [f]
-    #(g/cross-product (apply (o f) %&) (apply (p f) %&))))
+(defmethod g/transpose [::operator] [o]
+  (->Operator (fn [f] #(g/transpose (apply (o f) %&))) 1 'transpose (context o)))
