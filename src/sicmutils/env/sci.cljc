@@ -64,6 +64,7 @@
  corresponding namespace."}
   ns->publics
   {'sicmutils.env                              (ns-publics 'sicmutils.env)
+   'sicmutils.differential                     (ns-publics 'sicmutils.differential)
    'sicmutils.generic                          (ns-publics 'sicmutils.generic)
    'sicmutils.function                         (ns-publics 'sicmutils.function)
    'sicmutils.operator                         (ns-publics 'sicmutils.operator)
