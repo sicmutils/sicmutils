@@ -861,15 +861,34 @@
    (collect-terms tags->coefs)))
 
 ;; ## Differential API
+;;
+;; These first two functions create a way to globally declare, via a dynamic
+;; binding, the stack of tags that are currently in play. If three nested
+;; derivatives are being taken, [[*active-tags*]] will contain three entries
+;; from a perspective inside the function at the deepest level.
+;;
+;; The [[IPerturbed]] implementation for functions uses this information to
+;; determine whether or not to use [[replace-tag]] to protect its tag from
+;; perturbation confusion. If some higher level is not trying to extract the
+;; same tag, there's no need.
 
-(def ^:dynamic *active-tags* #{})
+(def ^:dynamic *active-tags* [])
 
-(defn with-active-tag [tag f args]
+(defn with-active-tag
+  "Like `apply`, but conj-es `tag` onto the dynamic variable [[*active-tags*]]
+  inside the scope of `f`.
+
+  Returns the result of applying `f` to `args`."
+  [tag f args]
   (binding [*active-tags* (conj *active-tags* tag)]
     (apply f args)))
 
-(defn tag-active? [tag]
-  (contains? *active-tags* tag))
+(defn tag-active?
+  "Returns true if `tag` is an element of [[*active-tags*]] (and therefore pending
+  for extraction by some nested derivative), false otherwise."
+  [tag]
+  (boolean
+   (some #{tag} (rseq *active-tags*))))
 
 ;; This next section lifts slightly-augmented versions of [[terms:+]]
 ;; and [[terms:*]] up to operate on [[Differential]] instances. These work just

@@ -25,6 +25,7 @@
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :as d :refer [D partial]]
             [sicmutils.complex :as c]
+            [sicmutils.differential :as sd]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [acos asin atan cos sin tan
                                              cot sec csc
@@ -38,6 +39,24 @@
             [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)
+
+(deftest fn-iperturbed-tests
+  (testing "tag-active? responds appropriately"
+    (let [tag 0
+          f   (fn [x] (fn [g] (g x)))
+          Df  (-> (f (sd/bundle-element 'x 1 tag))
+                  (sd/extract-tangent tag))]
+      (is (not (sd/tag-active? tag))
+          "Outside the context of a derivative, the tag is not marked as
+          active.")
+
+      (is (= '(* 3 (expt x 2))
+             (g/simplify
+              (Df (fn [x]
+                    (is (sd/tag-active? tag)
+                        "Df is a function looking to extract `tag`, so inside a
+                        call to Df the `tag` IS active.")
+                    (g/cube x)))))))))
 
 (deftest basic-D-tests
   (testing "D of linear returns slope"

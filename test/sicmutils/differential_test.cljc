@@ -279,6 +279,19 @@
              ((D (d/bundle-element g/sin g/cos 0)) 't))
           "partial-derivative is linear through a differential"))))
 
+(deftest active-tag-tests
+  (testing "with-active-tag works"
+    (is (not (d/tag-active? 'tag))
+        "this tag is not active if it's not bound.")
+
+    (is (= 6 (d/with-active-tag 'tag
+               (fn [& xs]
+                 (is (d/tag-active? 'tag)
+                     "the supplied tag is active inside the scope of `f`.")
+                 (reduce + xs))
+               [1 2 3]))
+        "d/with-active-tag calls its fn with the supplied args.")))
+
 (deftest differential-arithmetic-tests
   (checking "(d:+ diff 0) == (d:+ 0 diff) == diff" 100 [diff real-diff-gen]
             (is (d/eq diff
