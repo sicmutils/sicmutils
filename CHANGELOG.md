@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- #253 adds proper `:arglists` metadata for all generic functions, and moves the
+  derivative implementations (where relevant) onto the metadata of generic
+  functions. You can access these by calling `(<generic-function> :dfdx)` or
+  `(<generic-function> :dfdy)`, depending on whether the generic is unary or
+  binary. #253 also changes the name of macro
+  `sicmutils.generic/def-generic-function` to `sicmutils.generic/defgeneric`.
+
 - #224 adds new `Div`, `Grad`, `Curl` and `Lap` operators in
   `sicmutils.calculus.derivative` and installs them into `sicmutils.env`. #224
   also removes the `g/transpose` implementation for `Operator` instances, and
