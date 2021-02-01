@@ -40,7 +40,7 @@
 ;; and [[sicmutils.differential]], rounds out the implementations
 ;; of [[d/IPerturbed]] for native Clojure(script) data types. The function
 ;; implementation is subtle, as described by [Manzyuk et al.
-;; 2019](https://www.cambridge.org/core/journals/journal-of-functional-programming/article/perturbation-confusion-in-forward-automatic-differentiation-of-higherorder-functions/A808189A3875A2EDAC6E0D62CF2AD262).
+;; 2019](https://arxiv.org/pdf/1211.4892.pdf).
 ;; ([[sicmutils.derivative.calculus-test]], in the "Amazing Bug" sections,
 ;; describes the pitfalls at length.)
 ;;
@@ -48,25 +48,76 @@
 ;; in a derivative is assigned a "tag" that accumulates the variable's partial
 ;; derivative.
 ;;
-;; What subtleties do we have to track when `((D f) x)` produces a _function_?
+;; How do we interpret the case where `((D f) x)` produces a _function_?
 ;;
-;; It's all about Closures! The returned function has probably captured an
-;; internal reference to the original [[d/Differential]] input; Our goal is to
-;; place a barrier in its way, so that the original tangent component gets
-;; extracted whenever someone calls this returned $f$ down the road.
+;; [Manzyuk et al. 2019](https://arxiv.org/pdf/1211.4892.pdf) extends =D= to
+;; functions =f= of type $\mathbb{R}^n \rightarrow \alpha$, where
 ;;
-;; This is true for any Functor-shaped return value, like a structure or Map.
+;; $$\alpha::=\mathbb{R}^m \mid \alpha_{1} \rightarrow \alpha_{2}$$
+;;
+;; By viewing
+;;
+;; - =f= as a (maybe curried) multivariable function that /eventually/ must
+;;   produce an $\mathbb{R}^m$
+;; - The derivative =(D f)= as the partial derivative with respect to the first
+;;   argument of =f=
+;;
+;; A 3-level nest of functions will respond to =D= just like the flattened,
+;; non-higher-order version would respond to =(partial 0)=. In other words,
+;; these two forms should evaluate to equivalent results:
+
+(comment
+  (let [f (fn [x]
+            (fn [y]
+              (fn [z]
+                (g/* x y z))))]
+    ((((D f) 'x) 'y) 'z)))
+;;=> (* y z)
+
+(comment
+  (((partial 0) g/*) 'x 'y 'z))
+;;=> (* y z)
+
+;; To `extract-tangent` from a function, we need to compose the
+;; `extract-tangent` operation with the returned function.
+;;
+;; The returned function needs to capture an internal reference to the
+;; original [[d/Differential]] input. This is true for any Functor-shaped return
+;; value, like a structure or Map. However! There is a subtlety present with
+;; functions that's not present with vectors or other containers.
+;;
 ;; The difference with functions is that they take _inputs_. If you contrive a
 ;; situation where you can feed the original captured [[d/Differential]] into
 ;; the returned function, this can trigger "perturbation confusion", where two
 ;; different layers try to extract the tangent corresponding to the SAME tag,
 ;; and one is left with nothing.
 ;;
-;; See [[sicmutils.calculus.derivative-test/amazing-bug]] and its surrounding
-;; tests for lengthy examples of this problem. You can manufacture your own bugs
-;; by taking the derivative of a function that returns a function that _itself_
-;; takes a function. Feed that function to itself and you've got a nice arena
-;; for perturbation confusion.
+;; If you engineer an
+;; example (see [[sicmutils.calculus.derivative-test/amazing-bug]]) where:
+;;
+;; - this function takes another function, which then receives the closed-over
+;;   `x` as an argument
+;; - you pass this function to itself, so the closed-over `x` instances can both
+;;   be multiplied
+;;
+;; Then your program isn't going to make any distinction between the instances
+;; of `x`. They're both references to the same value.
+;;
+;; HOWEVER! `((D f) x)` returns a function which, when you eventually provide
+;; all arguments, will return the sensitivity of `f` to the first argument `x`.
+;;
+;; If you perform the trick above, pass `((D f) x)` into itself, and the `x`
+;; instances meet (multiply, say) - should final return value treat them as the
+;; /same/ instance?
+;;
+;; Manzyuk et al. says /NO!/. If `((D f) x)` returns a function, that function
+;; closes over:
+;;
+;; - the value of `x`
+;; - an _intention_ to start the derivative-taking process on that isolated copy
+;;   of =x= once the final argument is supplied.
+;;
+;; How does the implementation keep the values separate?
 ;;
 ;; ### Tag Replacement
 ;;
@@ -76,7 +127,6 @@
 ;;
 ;; - it extracts the originally-injected tag when someone eventually calls the
 ;;   function
-;;
 ;; - if some caller passes a new [[d/Differential]] instance into the function,
 ;;   any tags in that [[d/Differential]] will survive on their way back out...
 ;;   even if they happen to contain the originally-injected tag.
@@ -188,7 +238,7 @@
   [f]
   (let [tag (d/fresh-tag)]
     (fn [x]
-      (-> (f (d/bundle x 1 tag))
+      (-> (f (d/bundle-element x 1 tag))
           (d/extract-tangent tag)))))
 
 ;; The result of applying the derivative `(D f)` of a multivariable function `f`

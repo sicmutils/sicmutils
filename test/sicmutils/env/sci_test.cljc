@@ -25,12 +25,8 @@
             [sicmutils.env.sci :as es]
             [sicmutils.operator :as o]))
 
-(let [ns-map  (:namespaces es/context-opts)
-      env     (ns-map 'sicmutils.env)
-      context (sci/init {:namespaces
-                         (assoc ns-map 'user env)})]
-  (defn eval [form]
-    (sci/eval-form (sci/fork context) form)))
+(defn eval [form]
+  (sci/eval-form (sci/fork es/context) form))
 
 (deftest basic-sci-tests
   (is (= 1 (eval '(simplify (+ (square (sin 'x))

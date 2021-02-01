@@ -46,14 +46,14 @@
 ;; built out of the [[sicmutils.generic]] operators allows us to build up the
 ;; _derivative_ of $f$ in parallel to our evaluation of $f$. Complex programs
 ;; are built out of simple pieces that we know how to evaluate; we can build up
-;; derivatives of entire programs in a similar way, building them out of the
+;; derivatives of entire programs in a similar way by building them out of the
 ;; derivatives of the smaller pieces of those programs.
 ;;
 ;; ### Forward-Mode Automatic Differentiation
 ;;
 ;; For many scientific computing applications, it's valuable be able to generate
-;; a "derivative" of a function; given some wiggle in the inputs, how much
-;; wobble does the output produce?
+;; a "derivative" of a function; given some tiny increment in the inputs, what
+;; tiny increment will the function produce in the output values?
 ;;
 ;; we know how to take derivatives of many of the generic functions exposed by
 ;; SICMUtils, like [[+]], [[*]], [[g/sin]] and friends. It turns out that we can
@@ -94,15 +94,12 @@
 ;; NOTE: This might remind you of the definition of a complex number of the form
 ;; $a + bi$, where $i$ is also a new thing with the property that $i^2 = -1$.
 ;; You are very wise! The bigger idea lurking here is the ["generalized complex
-;; number"](https://people.rit.edu/harkin/research/articles/generalized_complex_numbers.pdf),
-;; and of course mathematicians have pushed this very far. You might explore
-;; the ["Split-complex
-;; numbers"](https://en.wikipedia.org/wiki/Split-complex_number) too, which
-;; arise when you set $i^2 = 1$.
+;; number"](https://people.rit.edu/harkin/research/articles/generalized_complex_numbers.pdf).
 ;;
 ;; Why are dual numbers useful (in SICMUtils)? If you pass $a+b\varepsilon$ in
 ;; to a function $f$, the result is a dual number $f(a) + Df(a) b \varepsilon$;
-;; you get both the function and its derivative evaluated at the same time!
+;; the result contains both the function evaluation and the derivative
+;; evaluation at $a$!
 
 ;; To see why, look at what happens when you pass a dual number into the [Taylor
 ;; series expansion](https://en.wikipedia.org/wiki/Taylor_series) of some
@@ -128,8 +125,8 @@
 ;;
 ;; NOTE: See [[lift-1]] for an implementation of this idea.
 ;;
-;; Interesting! This justifies our claim above: applying a function to some dual
-;; number $a+\varepsilon$ returns a new dual number, where
+;; This justifies our claim above: applying a function to some dual number
+;; $a+\varepsilon$ returns a new dual number, where
 ;;
 ;; - the first component is $f(a)$, the normal function evaluation
 ;; - the second component is $Df(a)$, the derivative.
@@ -145,7 +142,7 @@
 ;; \end{aligned}
 ;; $$
 ;;
-;; ### Terminology Change!
+;; ### Terminology Change
 ;;
 ;; A "dual number" is a very general idea. Because we're interested in dual
 ;; numbers as a bookkeeping device for derivatives, we're going to specialize
@@ -221,7 +218,6 @@
 ;; As long as `f` is built out of functions that know how to apply themselves to
 ;; dual numbers, this will all Just Work.
 ;;
-;;
 ;; ### Multiple Variables, Nesting
 ;;
 ;; All of the examples above are about first-order derivatives. Taking
@@ -254,11 +250,11 @@
 ;;   number! So the SECOND call to `extract-tangent` have nothing to extract,
 ;;   and can only sensibly return 0.
 ;;
-;; The problem here is called "perturbation confusion", and is covered
-;; beautifully in
+;; The problem here is called "perturbation confusion", and is covered in great
+;; detail in
 ;; ["Confusion of Tagged Perturbations in Forward Automatic Differentiation of
 ;; Higher-Order Functions"](https://arxiv.org/abs/1211.4892), by Manzyuk et
-;; pal. (2019).
+;; al. (2019).
 ;;
 ;; The solution is to introduce a new $\varepsilon$ for every level, and allow
 ;; different $\varepsilon$ instances to multiply without annihalating. Each
@@ -277,7 +273,7 @@
             (extract-tangent tag))))))
 
 ;; This is close to the final form you'll find
-;; in [[sicmutils.calculus.derivative/derivative]].
+;; at [[sicmutils.calculus.derivative/derivative]].
 ;;
 ;; ### What Return Values are Allowed?
 ;;
@@ -296,7 +292,7 @@
           x3 (g/cube x)]
       [x2 x3])))
 
-;; Vectors don't care what they hold! We want the derivative of
+;; Vectors don't care what they contain! We want the derivative of
 ;; `square-and-cube` to also return a vector, whose entries represent the
 ;; derivative of _that entry_ with respect to the function's input.
 ;;
@@ -304,15 +300,15 @@
 ;; know how to handle vectors and other collections; in the case of a vector `v`
 ;; by returning `(mapv extract-tangent v)`
 ;;
-;; The dual number implementation is called [[Differential]]; the way
-;; that [[Differential]] instances interact with container types in SICMUtils
-;; makes it easy for these captures to occur all over. Whenever we multiply
-;; a [[Differential]] by a structure, a function, a vector, any of those things,
-;; our implementation of the SICMUtils generics pushes the [[Differential]]
-;; inside those objects, rather than forming a [[Differential]] with, for
-;; example, a vector in the primal and tangent parts.
+;; The way that [[Differential]] instances interact with container types in
+;; SICMUtils makes it easy for these captures to occur all over. Whenever we
+;; multiply a [[Differential]] by a structure, a function, a vector, any of
+;; those things, our implementation of the SICMUtils generics pushes
+;; the [[Differential]] inside those objects, rather than forming
+;; a [[Differential]] with, for example, a vector in the primal and tangent
+;; parts.
 ;;
-;; Functions... interesting. what _about_ higher-order functions?
+;; What about higher-order functions?
 
 (comment
   (defn offset-fn
@@ -323,8 +319,19 @@
       (fn [x]
         (g (+ x offset))))))
 
-;; `(derivative offset-fn)` here returns a function! Ideally we'd like the
-;; returned function to act exactly like:
+;; `(derivative offset-fn)` here returns a function! Manzyuk et al. 2019 makes
+;; the reasonable claim that, if =(f x)= returns a function, then =(derivative
+;; f)= should treat =f= as a multi-argument function with its first argument
+;; curried.
+;;
+;; Let's say =f= takes a number =x= and returns a function =g= that maps number
+;; => number. =(((derivative f) x) y)= should act just like the partial
+;; derivative of the equivalent multi-argument function, with respect to the
+;; first argument:
+;;
+;; =(((partial 0) f-flattened) x y)=
+;;
+;; In other words, =(derivative offset-fn)= should act just like:
 
 (comment
   (derivative
@@ -333,10 +340,9 @@
 ;; for some known `g` and `x`, but with the ability to store `(derivative
 ;; offset-fn)` and call it later with many different `g`.
 ;;
-;; We might accomplish this by composing `extract-tangent` with the returned
-;; function, so that the extraction happens later, when the function's called.
-;;
-;; NOTE: The real implementation is more subtle! See
+;; NOTE: We might accomplish this by composing `extract-tangent` with the
+;; returned function, so that the extraction happens later, when the function's
+;; called... but that will fail. The real implementation is more subtle! See
 ;; the [[sicmutils.calculus.derivative]] namespace for the actual implementation
 ;; of [[IPerturbed]] for functions and multimethods.
 ;;
@@ -658,7 +664,7 @@
   ;; becomes possible to "apply" a [[Differential]] to some arguments (apply
   ;; each coefficient to the arguments).
   ;;
-  ;; TODO the arity, if anyone cares to ask, might be better implemented as the
+  ;; NOTE: the arity, if anyone cares to ask, might be better implemented as the
   ;; joint arity of all coefficients; but my guess here is that the tangent
   ;; terms all have to be tracking derivatives of the primal term, which have to
   ;; have the same arity by definition.
@@ -904,12 +910,12 @@
                           [(make-term (tags term) result)]))))
          (->terms diff))))
 
-;; Finally, the function we've been waiting for! [[bundle]] allows you to
-;; augment some non-[[Differential]] thing with a tag and push it through the
+;; Finally, the function we've been waiting for! [[bundle-element]] allows you
+;; to augment some non-[[Differential]] thing with a tag and push it through the
 ;; generic arithmetic system, where it will accumulate the derivative of your
 ;; original input (tagged with `tag`.)
 
-(defn bundle
+(defn bundle-element
   "Generate a new [[Differential]] object with the supplied `primal` and `tangent`
   components, and the supplied internal `tag` that this [[Differential]] will
   carry around to prevent perturbation confusion.
@@ -918,14 +924,16 @@
   defaults to 1.
 
   `tag` defaults to a side-effecting call to [[fresh-tag]]; you can retrieve
-  this unknown tag by calling [[max-order-tag]]."
+  this unknown tag by calling [[max-order-tag]]"
   ([primal]
-   (bundle primal 1 (fresh-tag)))
+   {:pre [(v/numerical? primal)]}
+   (bundle-element primal 1 (fresh-tag)))
   ([primal tag]
-   (bundle primal 1 tag))
+   {:pre [(v/numerical? primal)]}
+   (bundle-element primal 1 tag))
   ([primal tangent tag]
-   (let [term (make-term (uv/make [tag]) tangent)]
-     (d:+ primal (->Differential [term])))))
+   (let [term (make-term (uv/make [tag]) 1)]
+     (d:+ primal (d:* tangent (->Differential [term]))))))
 
 ;; ## Differential Parts API
 ;;
@@ -1259,9 +1267,9 @@
   (let [tag (max-order-tag a)
         px  (primal-part a tag)
         tx  (extract-tangent a tag)]
-    (d:+ (g/partial-derivative px selectors)
-         (d:* (g/partial-derivative tx selectors)
-              (bundle 0 1 tag)))))
+    (bundle-element (g/partial-derivative px selectors)
+                    (g/partial-derivative tx selectors)
+                    tag)))
 
 (defmethod g/simplify [::differential] [d]
   (->Differential

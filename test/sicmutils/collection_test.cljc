@@ -152,7 +152,7 @@
             (is (not (d/perturbed? m))
                 "maps with no [[Differential]] aren't perturbed.")
 
-            (let [diff (d/bundle 1 1 0)]
+            (let [diff (d/bundle-element 1 1 0)]
               (is (d/perturbed? (assoc m :key diff))
                   "adding a perturbed entry perturbs the map.")
 
