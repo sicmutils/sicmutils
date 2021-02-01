@@ -108,7 +108,6 @@
                 (v/one-like (coefficient pair))
                 1)]
       (Polynomial. arity [[[one] one]])))
-  (numerical? [_] false)
   (exact? [_] false)
   (freeze [_] `(~'polynomial ~arity ~xs->c))
   (kind [_] ::polynomial)

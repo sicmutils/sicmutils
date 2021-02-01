@@ -8,6 +8,217 @@
   just arity == 1. The new version takes an arity parameter `n` that defaults to
   `(sicmutils.function/arity f)`.
 
+- #224 adds new `Div`, `Grad`, `Curl` and `Lap` operators in
+  `sicmutils.calculus.derivative` and installs them into `sicmutils.env`. #224
+  also removes the `g/transpose` implementation for `Operator` instances, and
+  exposes `sicmutils.calculus.derivative/taylor-series` to `sicmutils.env`.
+
+- #223 fixes a problem where `(operator * structure)` would return a structure
+  of operators instead of an operator that closed over the multiplication.
+  `::s/structure` is now properly a `::o/co-operator`, matching its status as a
+  `::f/cofunction`.
+
+- The operator returned by `sicmutils.calculus.derivative/partial` now has a
+  proper name field like `(partial 0)`, instead of `:partial-derivative` (#223).
+
+- #223 converts the implementation of `sicmutils.calculus.derivative/D` to use
+  the new `Differential` type; this fixes "Alexey's Amazing Bug" and allows `D`
+  to operate on higher order functions. For some function `f` that returns
+  another function, `((D f) x)` will return a function that keeps `x` "alive"
+  for the purposes of differentiation inside its body. See
+  `sicmutils.calculus.derivative-test/amazing-bug` for an extended example.
+
+- #222 adds `v/Value` implementations for Clojure sequences and maps. Maps and
+  vectors implement `f/Arity` and return `[:between 1 2]. `zero?` and
+  `zero-like` work on sequence entries and map values. Maps can specify their
+  `v/kind` return value with a `:type` key, and some of the calculus
+  implementations do already make use of this feature. `g/partial-derivative` on
+  a Clojure Map passes through to its values.
+
+- New, literate `Differential` implementation lives at at
+  `sicmutils.differential` (#221) (see [this
+  page](https://samritchie.io/dual-numbers-and-automatic-differentiation/) for a
+  readable version.) Notable changes to the original impl at
+  `sicmutils.calculus.derivative` include:
+
+  - We've changed our terminology from GJS's `finite-part`,
+    `infinitesimal-part`, `make-x+dx` to the more modern `primal-part`,
+    `tangent-part`, `bundle-element` that the Automatic Differentiation
+    community has adopted. His comment is that he doesn't take terms from
+    mathematics unless he's _sure_ that he's using it in the correct way; the
+    safer way is to stick with his terms, but we go boldly forth with the
+    masses.
+
+  - A new `sicmutils.differential.IPerturbed` protocol makes it possible to
+    extend the Automatic Differentiation (AD) system to be able to handle
+    different Functor-shaped return values, like Java or JS lists and objects.
+    See the [cljdoc page on Automatic
+    Differentiation](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/calculus/automatic-differentiation)
+    for more detail.
+
+    - #222 implements `d/IPerturbed` for Clojure maps, vectors and sequences;
+      all are now valid return types for functions you pass to `D`.
+
+    - #222 also implements `d/IPerturbed` for SICMUtils `Matrix`, `Structure`,
+      `Series`, `PowerSeries` and `Operator`.
+
+    - #223 implements `d/IPerturbed` for Clojure functions and multimethods,
+      handling the attendant subtlety that fixes "Alexey's Amazing Bug".
+
+  - `sicmutils.differential/{lift-1,lift-2,lift-n}` allow you to make custom
+    operations differentiable, provided you can supply a derivative.
+
+  - `Differential` implements `sicmutils.function/arity`, `IFn`, and can be
+    applied to arguments if its coefficients are function values. `Differential`
+    instances also `v/freeze` and `g/simplify` properly (by pushing these
+    actions into their coefficients).
+
+  - New `compare` and `equiv` implementations allow `Differential` instances to
+    compare themselves with other objects using only their primal parts; this
+    makes it possible to use functions like `<=`, `>`, `=` to do control flow
+    during automatic differentiation. (Use `compare-full` and `eq` if you want
+    to do full equality comparisons on primal and tangent components.)
+
+  - related, `g/abs` is now implemented for `Differential` instances, making
+    this function available in functions passed to `D`.
+
+  - proper `numerical?`, `one?` and `identity?` implementations. The latter two
+    only respond `true` if there are NO tangent components; This means that
+    `one?` and `(= % 1)` will not agree.
+
+  - The new implementation fixes a subtle bug with nested, higher order
+    automatic differentiation - it's too subtle for the CHANGELOG, so please the
+    "amazing" bug sections in `sicmutils.calculus.derivative-test` for proper
+    exposition.
+
+- `sicmutils.generic/partial-derivative` gains a `Keyword` extension, so it can
+  respond properly to `:name` and `:arity` calls (#221).
+
+- `->infix`, `->TeX` and `->JavaScript` in `sicmutils.expression.render` can now
+  accept unfrozen and unsimplified `Expression` instances (#241). This makes it
+  a bit more convenient to use `->infix` and `->TeX` at the REPL, or in a
+  Notebook environment. Additionally, the return values of renderers are always
+  coerced to strings. (Previously, `(->infix 10)` would return a number
+  directly.)
+
+- Fix a bug where `f/arity` would throw an exception with multiple-arity
+  functions on the JVM (#240). It now responds properly with `[:between
+  min-arity max-arity]`, or `[:at-least n]` if there is a variadic case too.
+
+- Added missing `identity?`, `identity-like` for complex and rational numbers
+  (#236)
+
+- beefed up the Javascript numeric tower to allow objects like
+  `sicmutils.differential/Differential`, `sicmutils.expression/Expression` and
+  friends that WRAP numbers to compare properly using cljs-native `<`, `<=`,
+  `=`, `>=` and `>` (#236)
+
+- new `sicmutils.value/compare` function exposed in `sicmutils.env` returns a
+  valid comparison bit between native numbers and numbers wrapped in
+  `Differential` or `Expression` in both JVM Clojure and Clojurescript (#236).
+  The behavior matches `clojure.core/compare` for all reals on the JVM; it
+  doesn't in Clojurescript because native `compare` can't handle
+  `goog.math.{Long,Integer}` or `js/BigInt`.
+
+- New single-arity case for `sicmutils.structure/opposite` returns an identical
+  structure with flipped orientation (#220). acts as `identity` for
+  non-structures.
+
+- #219 introduces a number of changes to `Operator`'s behavior:
+
+  - `Operator` is now a `deftype` (not a `defrecord`); the keyword lookup for
+    its `:name`, `:arity`, `:context` and `:o` fields have been replaced by,
+    respectively, `o/name`, `sicmutils.function/arity`, `o/context` and
+    `o/procedure` functions. This change happened to allow `Operator` to
+    implement protocols like `ILookup`.
+
+  - Native `get` and `get-in` now act on `Operator`. Given an operator function
+    `f`, `get` and `get-in` compose `#(get % k)`, or similar with `f`. This
+    deferred action matches the effect of all sicmutils generics on functions.
+
+  - Combining an operator and a non-operator via `+` and `-`, the non-operator
+    was previously lifted into an operator that multiplied itself by the new
+    operator's argument. As of #219, this "multiplication" uses the operator
+    definition of multiplication - meaning, the new operator composes the
+    non-operator with its argument. Where does this matter?
+
+    Previously adding the non-operator `sicmutils.function/I` to the identity
+    operator `I` would act like this:
+
+    ```clojure
+    (((g/+ o/identity f/I) f/I) 10)
+    ;; => 110 == (+ 10 (* 10 10))
+    ```
+
+    Because `f/I` multiplied itself by its argument... resulting in `(* f/I f/I)
+    == g/square`.
+
+    After the change, you see this:
+
+    ```clojure
+    (((g/+ o/identity f/I) f/I) 10)
+    ;; => 20
+    ```
+
+    because `f/I` composes with its argument.
+
+  - `sicmutils.operator/identity-operator` has been renamed to
+    `sicmutils.operator/identity`
+
+  - `o/make-operator` now takes an explicit `context` map, instead of a
+    multi-arity implementation with key-value pairs.
+
+  - `Operator` now implements `g/negate`.
+
+  - `g/cross-product` is no longer implemented for `Operator`. operators were
+    introduced by GJS to act like "differential operators", can only add, negate
+    and multiply (defined as composition). We will probably relax this in the
+    future, and add more functions like `g/cross-product` that compose with the
+    operator's output; but for now we're cleaning house, since this function
+    isn't used anywhere.
+
+  - In this same spirit, `Operator` instances can now only be divided by scalars
+    (not functions anymore), reflecting the ring structure of a differential
+    operator.
+
+- `sicmutils.env/ref` now accepts function and operators (#219). `(ref f 0 1)`,
+  as an example, returns a new function `g` that acts like `f` but calls `(ref
+  result 0 1)` on the result.
+
+- The slightly more general `sicmutils.env/component` replaces
+  `sicmutils.structure/component` in the `sicmutils.env` namespace (#219).
+  `((component 0 1) x) == (ref x 0 1)`.
+
+- `D` (or `sicmutils.generic/partial-derivative`) applied to a matrix of
+  functions now takes the elementwise partials of every function in the matrix.
+  (#218)
+
+- `sicmutils.function/arity` is now a protocol method, under the
+  `sicmutils.function/IArity` protocol (#218). In addition to functions, `arity`
+  now correctly responds to:
+
+    - `sicmutils.matrix/Matrix`: calling `arity` on a matrix assumes that the
+      matrix has function elements; the returned arity is the most general arity
+      that all functions will respond to.
+    - `sicmutils.operator/Operator`: returns the arity of the operator's wrapped
+      function.
+    - `sicmutils.series/Series`: `arity` on a `Series` assumes that the series
+      contains functions as entries, and returns, conservatively, the arity of
+      the first element of the series.
+   - `sicmutils.series/PowerSeries`: `arity` returns `[:exactly 1]`, since
+     `PowerSeries` are currently single variable.
+   - vectors, and `sicmutils.structure/Structure`: `arity` on these collections
+     assumes that the collection contains functions as entries, and returns the
+     most general arity that is compatible with all of the function elements.
+
+- New functions `sicmutils.function/{get,get-in}` added that act like the
+  `clojure.core` versions; but given a function `f`, they compose `#(get % k)`,
+  or similar with `f`. This deferred action matches the effect of all sicmutils
+  generics on functions. (#218)
+
+- `sicmutils.function/I` aliases `clojure.core/identity` (#218). #219 exposes
+  `I` in `sicmutils.env`.
+
 - `up` and `down` tuples from `sicmutils.structure` gain a proper `print-method`
   implementation (#229); these now render as `(up 1 2 3)` and `(down 1 2 3)`,
   instead of the former more verbose representation (when using `pr`.)

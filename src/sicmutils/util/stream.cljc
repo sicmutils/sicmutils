@@ -56,6 +56,21 @@
   [n f]
   (mapv f (range n)))
 
+(defn separatev
+  "Returns a pair of vectors:
+
+  - the first contains the items in coll for which (pred item) returns true
+  - the second contains the items for which (pred item) returns false
+
+  pred must be free of side-effects."
+  [pred coll]
+  (let [[ts fs] (reduce (fn [[t f] o] (if (pred o)
+                                       [(conj! t o) f]
+                                       [t (conj! f o)]))
+                        [(transient []) (transient [])]
+                        coll)]
+    [(persistent! ts) (persistent! fs)]))
+
 (defn scan
   "Returns a function that accepts a sequence `xs`, and performs a scan by:
 

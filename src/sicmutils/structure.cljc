@@ -19,15 +19,17 @@
 
 (ns sicmutils.structure
   (:require [clojure.string :refer [join]]
+            [sicmutils.collection]
+            [sicmutils.differential :as d]
             [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
+            [sicmutils.operator :as o]
             [sicmutils.util :as u]
             [sicmutils.numsymb]
-            [sicmutils.value :as v]
-            #?(:cljs [cljs.reader]))
+            [sicmutils.value :as v])
   #?(:clj
-     (:import [clojure.lang Associative AFn IFn PersistentVector Sequential])))
+     (:import (clojure.lang Associative AFn IFn IPersistentVector Sequential))))
 
 (def ^:dynamic *allow-incompatible-multiplication* true)
 
@@ -44,10 +46,11 @@
 
 (derive ::up ::structure)
 (derive ::down ::structure)
-(derive PersistentVector ::up)
+(derive #?(:clj IPersistentVector :cljs PersistentVector) ::up)
 
 ;; Structures can interact with functions.
 (derive ::structure ::f/cofunction)
+(derive ::structure ::o/co-operator)
 
 ;; ## Utilities
 ;;
@@ -67,7 +70,7 @@
 
 ;; ## Structure Type Definition
 
-(declare s:=)
+(declare s:= mapr)
 
 (deftype Structure [orientation v]
   v/Value
@@ -78,9 +81,17 @@
   (one-like [o] (u/unsupported (str "one-like: " o)))
   (identity-like [o] (u/unsupported (str "identity-like: " o)))
   (exact? [_] (every? v/exact? v))
-  (numerical? [_] false)
   (freeze [_] `(~(orientation orientation->symbol) ~@(map v/freeze v)))
   (kind [_] orientation)
+
+  f/IArity
+  (arity [_]
+    (f/seq-arity v))
+
+  d/IPerturbed
+  (perturbed? [_] (boolean (some d/perturbed? v)))
+  (replace-tag [s old new] (mapr #(d/replace-tag % old new) s))
+  (extract-tangent [s tag] (mapr #(d/extract-tangent % tag) s))
 
   #?@(:clj
       [Object
@@ -411,11 +422,25 @@
   (make (orientation s) xs))
 
 (defn opposite
-  "Returns a structure containing `xs` with the orientation opposite to `s`."
-  [s xs]
-  (let [o (opposite-orientation
-           (orientation s))]
-    (make o xs)))
+  "For a non-[[Structure]] `s`, the single-arity case acts as [[identity]]. For
+  a [[Structure]], returns an identical structure with its orientation
+  reversed (up becomes down, down becomes up).
+
+  NOTE that a vector is interpreted as an `up` structure, so:
+
+  (opposite [1 2 3])
+  ;;=> (down 1 2 3)
+
+  The two-arity case returns a new [[Structure]] of opposite orientation to `s`
+  with the contents of the sequence `xs`."
+  ([s]
+   (if (structure? s)
+     (opposite s (structure->vector s))
+     s))
+  ([s xs]
+   (let [o (opposite-orientation
+            (orientation s))]
+     (make o xs))))
 
 (defn generate
   "Generate a structure with the given `orientation` whose elements are
@@ -778,9 +803,9 @@
     (u/illegal "cross product only works on two elements of ^3"))
   (let [[s0 s1 s2] s
         [t0 t1 t2] t]
-    (up (g/- (g/* s1 t2) (g/* t1 s2))
+    (up (g/- (g/* s1 t2) (g/* s2 t1))
         (g/- (g/* s2 t0) (g/* s0 t2))
-        (g/- (g/* s0 t1) (g/* t0 s1)))))
+        (g/- (g/* s0 t1) (g/* s1 t0)))))
 
 ;; ## Generic Method Installation
 
@@ -802,30 +827,11 @@
 (defmethod g/sub [::up ::up] [a b] (elementwise g/- a b))
 
 (defmethod g/mul [::structure ::structure] [a b] (s:* a b))
+(defmethod g/mul [::structure ::v/scalar] [a b] (structure*scalar a b))
+(defmethod g/mul [::v/scalar ::structure] [a b] (scalar*structure a b))
 
-(defmethod g/mul [::structure ::v/scalar] [a b]
-  (structure*scalar a b))
-
-(defmethod g/mul [::v/scalar ::structure] [a b]
-  (scalar*structure a b))
-
-(defmethod g/mul [::structure :sicmutils.operator/operator] [a b]
-  (structure*scalar a b))
-
-(defmethod g/mul [:sicmutils.operator/operator ::structure] [a b]
-  (scalar*structure a b))
-
-(defmethod g/mul [::structure :sicmutils.calculus.derivative/differential] [a b]
-  (structure*scalar a b))
-
-(defmethod g/mul [:sicmutils.calculus.derivative/differential ::structure] [a b]
-  (scalar*structure a b))
-
-(defmethod g/div [::structure ::v/scalar] [a b]
-  (structure*scalar a (g/invert b)))
-
-(defmethod g/div [::structure ::structure] [a b]
-  (s:* (g/invert b) a))
+(defmethod g/div [::structure ::v/scalar] [a b] (structure*scalar a (g/invert b)))
+(defmethod g/div [::structure ::structure] [a b] (s:* (g/invert b) a))
 
 (defmethod g/square [::structure] [a] (dot-product a a))
 (defmethod g/cube [::structure] [a] (s:* a (s:* a a)))

@@ -22,8 +22,9 @@
    bring all the functions in the book into scope without qualification,
    so you can just start working with examples."
   (:refer-clojure :rename {ref core-ref
-                           partial core-partial}
-                  :exclude [+ - * / zero? #?(:cljs partial)])
+                           partial core-partial
+                           compare core-compare}
+                  :exclude [+ - * / zero? compare #?(:cljs partial)])
   (:require #?(:clj [potemkin :refer [import-vars]])
             #?(:clj [nrepl.middleware.print])
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
@@ -100,13 +101,27 @@
   elsewhere."
   ([a] #?(:clj (core-ref a) :cljs a))
   ([a & ks]
-   (if (and (associative? a)
-            (every? v/integral? ks))
-     (if (matrix/matrix? a)
-       (matrix/get-in a ks)
-       (get-in a ks))
-     #?(:clj (apply core-ref a ks)
-        :cljs (get-in a ks)))))
+   (cond (f/function? a) (f/compose #(apply ref % ks) a)
+         (o/operator? a) (o/make-operator
+                          (f/compose #(apply ref % ks) (o/procedure a))
+                          `(~'compose (~'component ~@ks)
+                            ~(o/name a)))
+         :else (if (and (associative? a)
+                        (every? v/integral? ks))
+                 (if (matrix/matrix? a)
+                   (matrix/get-in a ks)
+                   (get-in a ks))
+                 #?(:clj (apply core-ref a ks)
+                    :cljs (get-in a ks))))))
+
+(defn component
+  "Given a sequence of `selectors`, return a function that accepts some object `x`
+  and returns:
+
+  (apply ref x selectors)
+  "
+  [& selectors]
+  (fn [x] (apply ref x selectors)))
 
 (defn partial
   "A shim. Dispatches to partial differentiation when all the arguments
@@ -156,7 +171,7 @@
 (import-vars
  [sicmutils.abstract.number literal-number]
  [sicmutils.complex complex]
- [sicmutils.function arity compose arg-shift arg-scale]
+ [sicmutils.function arity compose arg-shift arg-scale I]
  [sicmutils.operator commutator]
  [sicmutils.series binomial-series partial-sums]
  [sicmutils.generic
@@ -207,7 +222,6 @@
   factorial]
  [sicmutils.structure
   compatible-shape
-  component
   down
   mapr
   orientation
@@ -228,7 +242,8 @@
   Christoffel->Cartan
   make-Christoffel
   ]
- [sicmutils.calculus.derivative derivative D]
+ [sicmutils.calculus.derivative
+  derivative D Div Grad Curl Lap taylor-series]
  [sicmutils.calculus.form-field
   d
   components->oneform-field
@@ -342,6 +357,6 @@
  [sicmutils.numerical.minimize minimize multidimensional-minimize]
  [sicmutils.util.aggregate sum]
  [sicmutils.util.stream vector:generate]
- [sicmutils.value exact? zero? one? identity?
+ [sicmutils.value compare exact? zero? one? identity?
   zero-like one-like identity-like
   numerical? freeze kind kind-predicate])

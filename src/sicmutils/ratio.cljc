@@ -24,6 +24,7 @@
                               denominator core-denominator
                               numerator core-numerator}))
   (:require #?(:clj [clojure.edn] :cljs [cljs.reader])
+            #?(:cljs [goog.array :as garray])
             [sicmutils.complex :as c]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
@@ -105,29 +106,38 @@
 
 #?(:clj
    (extend-type Ratio
+     v/Numerical
+     (numerical? [_] true)
+
      v/Value
      (zero? [c] (zero? c))
      (one? [c] (= 1 c))
+     (identity? [c] (= 1 c))
      (zero-like [_] 0)
      (one-like [_] 1)
+     (identity-like [_] 1)
      (freeze [x] (let [n (numerator x)
                        d (denominator x)]
                    (if (v/one? d)
                      n
                      `(~'/ ~n ~d))))
      (exact? [c] true)
-     (numerical? [_] true)
      (kind [_] Ratio))
 
    :cljs
    (let [ZERO (Fraction. 0)
          ONE  (Fraction. 1)]
      (extend-type Fraction
+       v/Numerical
+       (numerical? [_] true)
+
        v/Value
        (zero? [c] (.equals c ZERO))
        (one? [c] (.equals c ONE))
+       (identity? [c] (.equals c ONE))
        (zero-like [_] 0)
        (one-like [_] 1)
+       (identity-like [_] 1)
        (freeze [x] (let [n (numerator x)
                          d (denominator x)]
                      (if (v/one? d)
@@ -136,13 +146,11 @@
                          ~(v/freeze n)
                          ~(v/freeze d)))))
        (exact? [c] true)
-       (numerical? [_] true)
        (kind [x] Fraction)
 
        IEquiv
        (-equiv [this other]
          (cond (ratio? other) (.equals this other)
-
                (v/integral? other)
                (and (v/one? (denominator this))
                     (v/= (numerator this) other))
@@ -156,10 +164,12 @@
 
        IComparable
        (-compare [this other]
-         (if (or (number? other)
-                 (ratio? other))
+         (if (ratio? other)
            (.compare this other)
-           (.compare this (rationalize other))))
+           (let [o-value (.valueOf other)]
+             (if (v/real? o-value)
+               (garray/defaultCompare this o-value)
+               (throw (js/Error. (str "Cannot compare " this " to " other)))))))
 
        Object
        (toString [r]

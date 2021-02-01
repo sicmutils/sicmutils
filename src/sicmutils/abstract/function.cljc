@@ -19,6 +19,7 @@
 
 (ns sicmutils.abstract.function
   (:require [sicmutils.abstract.number :as an]
+            [sicmutils.differential :as d]
             [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
@@ -28,7 +29,7 @@
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
             [sicmutils.value :as v]
-            [sicmutils.calculus.derivative :as d])
+            [sicmutils.calculus.derivative :refer [derivative-symbol]])
   #?(:clj
      (:import [clojure.lang IFn])))
 
@@ -84,9 +85,11 @@
     (let [meta {:arity arity :from :identity-like}]
       (with-meta identity meta)))
   (exact? [f] (f/compose v/exact? f))
-  (numerical? [_] false)
   (freeze [_] (v/freeze name))
   (kind [_] ::function)
+
+  f/IArity
+  (arity [_] arity)
 
   #?@(:clj
       [IFn
@@ -193,25 +196,25 @@
   (and (sequential? expr)
        ;; XXX GJS uses 'derivative here; should we? doesn't he just
        ;; have to change it back to D when printing?
-       (= (first expr) d/derivative-symbol)))
+       (= (first expr) derivative-symbol)))
 
 (defn iterated-symbolic-derivative? [expr]
   (and (sequential? expr)
        (sequential? (first expr))
        (sym/expt? (first expr))
-       (= (second (first expr)) d/derivative-symbol)))
+       (= (second (first expr)) derivative-symbol)))
 
 (defn symbolic-increase-derivative [expr]
   (let [expt (sym/symbolic-operator 'expt)]
     (cond (symbolic-derivative? expr)
-          (list (expt d/derivative-symbol 2) (fnext expr))
+          (list (expt derivative-symbol 2) (fnext expr))
           (iterated-symbolic-derivative? expr)
-          (list (expt d/derivative-symbol
+          (list (expt derivative-symbol
                       (+ (first (nnext (first expr)))
                          1))
                 (fnext expr))
           :else
-          (list d/derivative-symbol expr))))
+          (list derivative-symbol expr))))
 
 (defn- make-partials [f v]
   ;; GJS calls this function (the loop below) "fd"; we have no idea
@@ -238,15 +241,14 @@
 
 (defn- literal-derivative [f xs]
   (let [v (m/seq-> xs)
-        maxtag (->> v flatten d/max-order-tag)
-        ve (->> v (s/mapr #(d/without-tag maxtag %)) seq)
-        dv (->> v (s/mapr #(d/with-tag maxtag %)))]
-    (d/canonicalize-differential
-     (d/dx+dy (apply f ve)
-              (reduce d/dx+dy (map (fn [partialx dx]
-                                     (d/dx*dy (apply partialx ve) dx))
-                                   (flatten (make-partials f v))
-                                   (flatten dv)))))))
+        maxtag (apply d/max-order-tag (flatten v))
+        ve (s/mapr #(d/primal-part % maxtag) v)
+        dv (s/mapr #(d/tangent-part % maxtag) v)]
+    (d/d:+ (apply f ve)
+           (reduce d/d:+ (map (fn [partialx dx]
+                                (d/d:* (apply partialx ve) dx))
+                              (flatten (make-partials f v))
+                              (flatten dv))))))
 
 (defn- check-argument-type
   "Check that the argument provided at index i has the same type as
@@ -274,7 +276,7 @@
 
 (defn- literal-apply [f xs]
   (check-argument-type f xs (:domain f) [0])
-  (if (some d/differential? xs)
+  (if (some d/perturbed? xs)
     (literal-derivative f xs)
     (an/literal-number `(~(:name f) ~@(map v/freeze xs)))))
 

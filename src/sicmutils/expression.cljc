@@ -42,6 +42,9 @@
 ;; other abstract structures referenced in [[abstract-types]].
 
 (deftype Literal [type expression m]
+  v/Numerical
+  (numerical? [_] (= type ::numeric))
+
   v/Value
   (zero? [_]
     (and (v/number? expression)
@@ -58,7 +61,6 @@
   (zero-like [_] 0)
   (one-like [_] 1)
   (identity-like [_] 1)
-  (numerical? [_] (= type ::numeric))
   (exact? [_]
     (and (v/number? expression)
          (v/exact? expression)))
@@ -67,6 +69,11 @@
 
   Object
   (toString [_] (str expression))
+  #?(:cljs
+     (valueOf [this]
+              (cond (number? expression)   expression
+                    (v/number? expression) (.valueOf expression)
+                    :else this)))
   #?(:clj
      (equals [a b]
              (if (instance? Literal b)
@@ -79,7 +86,13 @@
   #?@(:clj
       [IObj
        (meta [_] m)
-       (withMeta [_ meta] (Literal. type expression meta))]
+       (withMeta [_ meta] (Literal. type expression meta))
+
+       Comparable
+       (compareTo [_ b]
+                  (if (instance? Literal b)
+                    (v/compare expression (.-expression ^Literal b))
+                    (v/compare expression b)))]
 
       :cljs
       [IMeta
@@ -96,6 +109,12 @@
                         (= expression (.-expression b))
                         (= m (.-m b))))
                  (v/= a b)))
+
+       IComparable
+       (-compare [a b]
+                 (if (instance? Literal b)
+                   (-compare expression (.-expression ^Literal b))
+                   (-compare expression b)))
 
        IPrintWithWriter
        (-pr-writer

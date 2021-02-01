@@ -97,11 +97,16 @@
                       "\"")))))
 
 (extend-type Complex
+  v/Numerical
+  (numerical? [_] true)
+
   v/Value
   (zero? [c] #?(:clj (= ZERO c) :cljs (.isZero c)))
   (one? [c] (= ONE c))
+  (identity? [c] (= ONE c))
   (zero-like [_] ZERO)
   (one-like [_] ONE)
+  (identity-like [_] ONE)
   (freeze [c] (let [re (g/real-part c)
                     im (g/imag-part c)]
                 (if (v/zero? im)
@@ -109,7 +114,6 @@
                   (list 'complex re im))))
   (exact? [c] (and (v/exact? (g/real-part c))
                    (v/exact? (g/imag-part c))))
-  (numerical? [_] true)
   (kind [_] ::complex))
 
 (defmethod g/add [::complex ::complex] [^Complex a ^Complex b] (.add a b))

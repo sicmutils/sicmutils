@@ -42,10 +42,10 @@
          (eval '(literal-function 'U)))
       "Literal functions use value equality.")
 
-  (is (= o/identity-operator
+  (is (= o/identity
          (eval
           '(do (require '[sicmutils.operator :as o])
-               o/identity-operator)))
+               o/identity)))
       "can sci internally require namespaces?")
 
   (is (= '(* 10 face)
@@ -75,7 +75,7 @@
         "using-coordinates works")
 
     (testing "internal defn, funky symbols, internal with-literal-functions macro"
-      (is (= "down(- m (Dφ(t))² r(t) + m D²r(t) + DU(r(t)), 2 m Dφ(t) r(t) Dr(t) + m (r(t))² D²φ(t))"
+      (is (= "down(- m r(t) (Dφ(t))² + m D²r(t) + DU(r(t)), m (r(t))² D²φ(t) + 2 m r(t) Dφ(t) Dr(t))"
              (eval
               '(do (defn L-central-polar [m U]
                      (fn [[_ [r] [rdot φdot]]]

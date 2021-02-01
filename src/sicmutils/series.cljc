@@ -19,7 +19,9 @@
 
 (ns sicmutils.series
   (:refer-clojure :exclude [identity])
-  (:require [sicmutils.series.impl :as i]
+  (:require [sicmutils.differential :as d]
+            [sicmutils.function :as f]
+            [sicmutils.series.impl :as i]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
@@ -46,9 +48,17 @@
 ;; Doug also has a 10-line version in Haskell on [his
 ;; website](https://www.cs.dartmouth.edu/~doug/powser.html).
 
-(declare s-zero s-one s-identity series-value)
+(declare fmap s-zero s-one s-identity series-value)
 
 (deftype Series [xs]
+  f/IArity
+  (arity [_] (f/arity (first xs)))
+
+  d/IPerturbed
+  (perturbed? [_] false)
+  (replace-tag [s old new] (fmap #(d/replace-tag % old new) s))
+  (extract-tangent [s tag] (fmap #(d/extract-tangent % tag) s))
+
   v/Value
   (zero? [_] false)
   (one? [_] false)
@@ -60,8 +70,6 @@
   ;; infinite sequences and not necessarily interpreted as polynomials. This
   ;; decision follows `scmutils` convention.
   (identity-like [_] s-identity)
-
-  (numerical? [_] false)
   (exact? [_] false)
   (freeze [_]
     (let [prefix (g/simplify (take 4 xs))]
@@ -202,6 +210,14 @@
 (declare zero one identity power-series-value)
 
 (deftype PowerSeries [xs]
+  f/IArity
+  (arity [_] [:exactly 1])
+
+  d/IPerturbed
+  (perturbed? [_] false)
+  (replace-tag [s old new] (fmap #(d/replace-tag % old new) s))
+  (extract-tangent [s tag] (fmap #(d/extract-tangent % tag) s))
+
   v/Value
   (zero? [_] false)
   (one? [_] false)
@@ -209,7 +225,6 @@
   (zero-like [_] zero)
   (one-like [_] one)
   (identity-like [_] identity)
-  (numerical? [_] false)
   (exact? [_] false)
   (freeze [_]
     (let [prefix (g/simplify (take 4 xs))]
