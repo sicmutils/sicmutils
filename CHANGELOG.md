@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+- #223 fixes a problem where `(operator * structure)` would return a structure
+  of operators instead of an operator that closed over the multiplication.
+  `::s/structure` is now properly a `::o/co-operator`, matching its status as a
+  `::f/cofunction`.
+
+- The operator returned by `sicmutils.calculus.derivative/partial` now has a
+  proper name field like `(partial 0)`, instead of `:partial-derivative` (#223).
+
+- #223 converts the implementation of `sicmutils.calculus.derivative/D` to use
+  the new `Differential` type; this fixes "Alexey's Amazing Bug" and allows `D`
+  to operate on higher order functions. For some function `f` that returns
+  another function, `((D f) x)` will return a function that keeps `x` "alive"
+  for the purposes of differentiation inside its body. See
+  `sicmutils.calculus.derivative-test/amazing-bug` for an extended example.
+
 - #222 adds `v/Value` implementations for Clojure sequences and maps. Maps and
   vectors implement `f/Arity` and return `[:between 1 2]. `zero?` and
   `zero-like` work on sequence entries and map values. Maps can specify their
@@ -33,17 +48,19 @@
     - #222 implements `d/IPerturbed` for Clojure maps, vectors and sequences;
       all are now valid return types for functions you pass to `D`.
 
-      - #222 also implements `d/IPerturbed` for SICMUtils `Matrix`, `Structure`,
+    - #222 also implements `d/IPerturbed` for SICMUtils `Matrix`, `Structure`,
       `Series`, `PowerSeries` and `Operator`.
 
-      - #223 implements `d/IPerturbed` for Clojure functions and multimethods,
+    - #223 implements `d/IPerturbed` for Clojure functions and multimethods,
       handling the attendant subtlety that fixes "Alexey's Amazing Bug".
 
   - `sicmutils.differential/{lift-1,lift-2,lift-n}` allow you to make custom
     operations differentiable, provided you can supply a derivative.
 
   - `Differential` implements `sicmutils.function/arity`, `IFn`, and can be
-    applied to arguments if its coefficients are function values.
+    applied to arguments if its coefficients are function values. `Differential`
+    instances also `v/freeze` and `g/simplify` properly (by pushing these
+    actions into their coefficients).
 
   - New `compare` and `equiv` implementations allow `Differential` instances to
     compare themselves with other objects using only their primal parts; this

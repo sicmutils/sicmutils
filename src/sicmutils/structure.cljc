@@ -24,10 +24,10 @@
             [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
+            [sicmutils.operator :as o]
             [sicmutils.util :as u]
             [sicmutils.numsymb]
-            [sicmutils.value :as v]
-            #?(:cljs [cljs.reader]))
+            [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang Associative AFn IFn IPersistentVector Sequential))))
 
@@ -50,6 +50,7 @@
 
 ;; Structures can interact with functions.
 (derive ::structure ::f/cofunction)
+(derive ::structure ::o/co-operator)
 
 ;; ## Utilities
 ;;
@@ -826,30 +827,11 @@
 (defmethod g/sub [::up ::up] [a b] (elementwise g/- a b))
 
 (defmethod g/mul [::structure ::structure] [a b] (s:* a b))
+(defmethod g/mul [::structure ::v/scalar] [a b] (structure*scalar a b))
+(defmethod g/mul [::v/scalar ::structure] [a b] (scalar*structure a b))
 
-(defmethod g/mul [::structure ::v/scalar] [a b]
-  (structure*scalar a b))
-
-(defmethod g/mul [::v/scalar ::structure] [a b]
-  (scalar*structure a b))
-
-(defmethod g/mul [::structure :sicmutils.operator/operator] [a b]
-  (structure*scalar a b))
-
-(defmethod g/mul [:sicmutils.operator/operator ::structure] [a b]
-  (scalar*structure a b))
-
-(defmethod g/mul [::structure :sicmutils.calculus.derivative/differential] [a b]
-  (structure*scalar a b))
-
-(defmethod g/mul [:sicmutils.calculus.derivative/differential ::structure] [a b]
-  (scalar*structure a b))
-
-(defmethod g/div [::structure ::v/scalar] [a b]
-  (structure*scalar a (g/invert b)))
-
-(defmethod g/div [::structure ::structure] [a b]
-  (s:* (g/invert b) a))
+(defmethod g/div [::structure ::v/scalar] [a b] (structure*scalar a (g/invert b)))
+(defmethod g/div [::structure ::structure] [a b] (s:* (g/invert b) a))
 
 (defmethod g/square [::structure] [a] (dot-product a a))
 (defmethod g/cube [::structure] [a] (s:* a (s:* a a)))

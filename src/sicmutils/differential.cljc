@@ -634,7 +634,12 @@
   (zero-like [_] 0)
   (one-like [_] 1)
   (identity-like [_] 1)
-  (freeze [_] `[~'Differential ~@terms])
+  (freeze [_]
+    (letfn [(freeze-term [term]
+              (make-term (tags term)
+                         (v/freeze (coefficient term))))]
+      `[~'Differential
+        ~@(mapv freeze-term terms)]))
   (exact? [_] false)
   (kind [_] ::differential)
 
@@ -645,7 +650,13 @@
   ;; See [[eq]].
   #?(:clj (equals [a b] (equiv a b)))
   #?(:cljs (valueOf [this] (.valueOf (finite-term this))))
-  (toString [_] (str "D[" (join " " (map #(join " → " %) terms)) "]"))
+  (toString [_]
+    (let [term-strs (map (fn [term]
+                           (str (tags term)
+                                " → "
+                                (pr-str (coefficient term))))
+                         terms)]
+      (str "D[" (join " " term-strs) "]")))
 
   ;; Because a [[Differential]] is an accounting device that augments other
   ;; operations with the ability to carry around derivatives, it's possible that
@@ -1259,6 +1270,14 @@
     (bundle-element (g/partial-derivative px selectors)
                     (g/partial-derivative tx selectors)
                     tag)))
+
+(defmethod g/simplify [::differential] [d]
+  (->Differential
+   (mapv (fn [term]
+           (make-term (tags term)
+                      (g/simplify
+                       (coefficient term))))
+         (bare-terms d))))
 
 ;; ## Generic Method Installation
 ;;
