@@ -550,25 +550,23 @@
                (/ (* -1 (sin x) (cos y)) (* (cos x) (expt (sin y) 2))))
              (g/simplify ((D f5) 'x 'y))))))
 
-  (testing "arity"
-    (let [f100dd (fn [x ct acc]
-                   (if (v/zero? ct)
+  (testing "D can handle functions of varying arities"
+    (let [f100dd (fn [x n acc]
+                   (if (v/zero? n)
                      acc
-                     (recur x (dec ct) (sin (+ x acc)))))
-          f100d (fn [x] (f100dd x 100 x))
-          f100e (fn f100e
-                  ([x] (f100e x 100 x))
-                  ([x ct acc] (if (v/zero? ct) acc (recur x (dec ct) (sin (+ x acc))))))
-          f100ea (with-meta f100e {:arity [:exactly 1]})]
-      (is ((v/within 1e-6) 0.51603111348625 ((D f100d) 6)))
-      (let [run (fn [] ((v/within 1e-6) 0.51603111348625 ((D f100e) 6)))]
-        #?(:clj
-           (is (thrown? IllegalArgumentException (run)))
-           :cljs
-           ;; The CLJS implementation doesn't have trouble here.
-           (is (run))))
-      (is ((v/within 1e-6) 0.51603111348625
-           ((D (with-meta f100e {:arity [:exactly 1]})) 6))))))
+                     (recur x (dec n) (sin (+ x acc)))))
+          f100d  (fn [x] (f100dd x 100 x))
+          f100e  (fn f100e
+                   ([x] (f100e x 100 x))
+                   ([x n acc]
+                    (if (v/zero? n)
+                      acc
+                      (recur x (dec n) (sin (+ x acc))))))
+          f100ea (f/with-arity f100e [:exactly 1])
+          expected 0.51603111348625]
+      (is (ish? expected ((D f100d) 6)))
+      (is (ish? expected ((D f100e) 6)))
+      (is (ish? expected ((D f100ea) 6))))))
 
 (deftest deep-partials
   (let [f (fn [x y] (+ (g/square x) (g/square (g/square y))))]
@@ -721,8 +719,8 @@
 
     (testing "f -> Series"
       (let [F (fn [k] (series/series
-                      (fn [t] (g/* k t))
-                      (fn [t] (g/* k k t))))]
+                       (fn [t] (g/* k t))
+                       (fn [t] (g/* k k t))))]
         (is (= '((* q z) (* (expt q 2) z) 0 0) (simp4 ((F 'q) 'z))))
         (is (= '(z (* 2 q z) 0 0) (simp4 (((D F) 'q) 'z)))))))
 
@@ -795,6 +793,7 @@
 
 ;; Tests from the refman that came about while implementing various derivative
 ;; and operator functions.
+
 (deftest refman-tests
   (testing "o/expn expansion of `D`"
     (let [f     (af/literal-function 'f)
@@ -911,9 +910,8 @@
                       (g (+ a offset)))))
           f-hat ((D shift) 3)]
       ;; This is the example that triggered [Manzyuk et al.
-      ;; 2019](https://www.cambridge.org/core/journals/journal-of-functional-programming/article/perturbation-confusion-in-forward-automatic-differentiation-of-higherorder-functions/A808189A3875A2EDAC6E0D62CF2AD262)
-      ;; and the research that led to the current (0.15.0) SICMUtils
-      ;; implementation of [[D]].
+      ;; 2019](https://arxiv.org/pdf/1211.4892.pdf) and the research that led to
+      ;; the current (0.15.0) SICMUtils implementation of [[D]].
       ;;
       ;; [[D]] does its work by generating a function that lifts its input into
       ;; a tangent space tagged with a unique `tag`. Multiple, nested calls
@@ -922,16 +920,20 @@
       ;; implementation into confusing tangents that are supposed to be
       ;; associated with distinct tags.
       ;;
-      ;; Forgetting how it works, now that:
+      ;; Forgetting how it works, note that the derivative of a higher-order
+      ;; function `shift`:
       ;;
       ;; (D shift) == (D (fn [offset] (fn [g] (fn [a] (g (+ a offset))))))
       ;;
-      ;; should be, given some constant `x`,
+      ;; should act like the partial derivative of the first argument of the
+      ;; equivalent multi-argument function:
       ;;
-      ;; (fn [g] (fn [a] ((D g) (+ a x))))
+      ;; (D shift) == ((partial 0) (fn [offset g a] (g (+ a offset))))
+      ;;           == (fn [offset g a] ((D g) (+ a offset)))
       ;;
-      ;; of course Alexey chose the example to work out nicely after applying
-      ;; the chain rule, by passing in `x` == 3 and `g` == `exp`:
+      ;; Of course Alexey chose the example to work out nicely after applying
+      ;; the chain rule, by passing in `x` == 3 and `g` == `exp` ( `(D exp)` ==
+      ;; `exp` ):
       ;;
       ;; (fn [a] (exp (+ a 3)))
       ;;
@@ -939,62 +941,32 @@
       (is (= (exp 8) ((f-hat exp) 5))
           "Nothing tough expected in this case.")
 
-      ;; Now, what is the Amazing Bug?
+      ;; What is the Amazing Bug?
       (comment
         (is (= 0 ((f-hat (f-hat exp)) 5))
             "IN the bug version, this passed!"))
 
-      ;; Read on for a longer description of why the result should ACTUALLY
-      ;; be `(exp 11)`.
+      ;; The correct answer is `(exp 11)`; each nested invocation should simply
+      ;; add `3` to the argument. Why would we see a return of 0?
       ;;
-      ;; We can make the Amazing Bug appear because of the following:
-      ;;
-      ;; `(D f)` is a function that takes an argument, and RETURNS a function
-      ;; with a captured tag (let's call it `0`). Stare at this definition of
-      ;; `D`:
-
-      (comment
-        (defn D [f]
-          ;; make a fresh tag that we expect to survive only inside this
-          ;; calls of the returned fn:
-          (let [tag (d/fresh-tag)]
-            (fn [x]
-              ;; perturb the argument with that tag
-              (let [perturbed-arg (d/bundle x 1 tag)]
-                ;; pass that in to the original function, then extract the
-                ;; tangent for that tag. The final return value might have OTHER
-                ;; tags and perturbations in it if this is a nested call! But
-                ;; any tangent associated with this particular tag `tag` is
-                ;; dropped down to "primal space"; no tangent associated with
-                ;; `tag` can escape.
-                (-> (f perturbed-arg)
-                    (d/extract-tangent tag)))))))
-
-      ;; `(D f)` is a function from a number to ANOTHER function that has a
-      ;; CAPTURED internal tag assigned to its argument (the `g` in the first
-      ;; comment lines above.)
-      ;;
-      ;; Th buggy approach to a functional return value was to re-wrap the
-      ;; returned function in a new function that extracted the original tag.
-      ;; That code
+      ;; The problem is that `(D f)` is a function that takes an argument, and
+      ;; RETURNS a function with a captured tag (say, `0`). The buggy approach
+      ;; to a functional return value was to re-wrap the returned function in a
+      ;; new function that extracted the original tag. That code
       ;; lived [here](https://github.com/sicmutils/sicmutils/blob/9b4f9c5983cd0f9b209ef27036bc2dbb8f7ffb1c/src/sicmutils/calculus/derivative.cljc#L233).
+      ;;
+      ;; The reason this is a bug is that both instances of `f-hat` attempted to
+      ;; extract the same tag `0`. The outer call saw no tangent associated with
+      ;; tag `0` (it was already extracted!), and returned the default value of
+      ;; `0.`
+      ;;
+      ;; The fixed implementation for a functional return from `(D f)`
+      ;; responsible for extracting `tag` remaps any instance of `tag` in the
+      ;; function's input to some fresh tag before extracting `tag`, then back
+      ;; from `fresh` to `tag` after extraction. This leaves tag `0` available
+      ;; for _both_ nested calls, but prevents them from getting confused inside
+      ;; the body of the other `f-hat` call:
 
-      ;; The reason this is a bug is that the returned function uses the same
-      ;; tag over and over again, every time you call it.
-      ;;
-      ;; You can trigger the "Amazing Bug" by nesting calls to `f-hat` == `((D
-      ;; f) 3)`:
-      ;;
-      ;; (f-hat (f-hat exp))
-      ;;
-      ;; the inner call will extract any tangent associated with the captured
-      ;; tag before it returns, leaving nothing for the outer `f-hat` to
-      ;; extract (and forcing it to return `0`).
-      ;;
-      ;; The following example makes a nested call so `f-hat`, in the same
-      ;; evaluation, has to deal with two distinct arguments - `exp` in the
-      ;; inner call, and `(f-hat exp)` in the outer call. Both get the same tag
-      ;; `0`:
       (is (= (exp 11) ((f-hat (f-hat exp)) 5))
           "This case is susceptible to tag confusion, if `f-hat` uses the same
           tag for every invocation. The inner `f-hat` extracts the tangent of
@@ -1056,8 +1028,8 @@
           (inner-f (+ [5, (1,0)] 3)))
 
         ;; final substitution (remember that when you "tag" a dual number
-        ;; like [5, (1,0)] with the same tag, you're adding 5 + 1*tag + 1*tag == 5 +
-        ;; 2*tag)
+        ;; like [5, (1,0)] with the same tag, you're adding 5 + 1*tag + 1*tag ==
+        ;; 5 + 2*tag)
 
         ;; extract `0` tag on the way out
         ;; extract `0` tag on the way out
@@ -1249,7 +1221,7 @@
   ;; gets tricky with derivatives of higher order functions.
 
   (testing "D on a higher-order function responds differently to evaluations
-  inside a continuation vs outside."
+  inside the 'body' of the multi-argument version of the function, vs outside."
     (let [
           ;; Make some literal function that takes TWO inputs:
           a (af/literal-function 'a '(-> (X Real Real) Real))

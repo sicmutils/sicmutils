@@ -242,7 +242,8 @@
   Christoffel->Cartan
   make-Christoffel
   ]
- [sicmutils.calculus.derivative derivative D]
+ [sicmutils.calculus.derivative
+  derivative D Div Grad Curl Lap taylor-series]
  [sicmutils.calculus.form-field
   d
   components->oneform-field
