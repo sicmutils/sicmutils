@@ -361,10 +361,18 @@
 
 (def derivative-symbol 'D)
 
-(def ^{:doc "Derivative operator. Produces a function whose value at some point
-  can multiply an increment in the arguments, to produce the best linear
-  estimate of the increment in the function value."}
-  D
+(def ^{:doc "Derivative operator. Takes some function `f` and returns a function
+  whose value at some point can multiply an increment in the arguments, to
+  produce the best linear estimate of the increment in the function value.
+
+  For univariate functions, [[D]] computes a derivative. For vector-valued
+  functions, [[D]] computes
+  the [Jacobian](https://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant)
+  of `f`.
+
+  The related [[Grad]] returns a function that produces a structure of the
+  opposite orientation as [[D]]. Both of these functions use forward-mode
+  automatic differentiation."} D
   (o/make-operator #(g/partial-derivative % [])
                    derivative-symbol))
 
@@ -375,6 +383,51 @@
   [& selectors]
   (o/make-operator #(g/partial-derivative % selectors)
                    `(~'partial ~@selectors)))
+
+(def ^{:doc "Operator that takes a function `f` and returns a new function that
+  calculates the [Gradient](https://en.wikipedia.org/wiki/Gradient) of `f`.
+
+  The related [[D]] operator returns a function that produces a structure of the
+  opposite orientation as [[Grad]]. Both of these functions use forward-mode
+  automatic differentiation."}
+  Grad
+  (-> (fn [f]
+        (f/compose s/opposite
+                   (g/partial-derivative f [])))
+      (o/make-operator 'Grad)))
+
+(def ^{:doc "Operator that takes a function `f` and returns a function that
+  calculates the [Divergence](https://en.wikipedia.org/wiki/Divergence) of
+  `f` at its input point.
+
+ The divergence is a one-level contraction of the gradient."}
+  Div
+  (-> (f/compose g/trace Grad)
+      (o/make-operator 'Div)))
+
+(def ^{:doc "Operator that takes a function `f` and returns a function that
+  calculates the [Curl](https://en.wikipedia.org/wiki/Curl_(mathematics)) of `f`
+  at its input point.
+
+  `f` must be a function from $\\mathbb{R}^3 \\to \\mathbb{R}^3$."}
+  Curl
+  (-> (fn [f-triple]
+        (let [[Dx Dy Dz] (map partial [0 1 2])
+              fx (f/get f-triple 0)
+              fy (f/get f-triple 1)
+              fz (f/get f-triple 2)]
+          (s/up (g/- (Dy fz) (Dz fy))
+                (g/- (Dz fx) (Dx fz))
+                (g/- (Dx fy) (Dy fx)))))
+      (o/make-operator 'Curl)))
+
+(def ^{:doc "Operator that takes a function `f` and returns a function that
+  calculates the [Vector
+  Laplacian](https://en.wikipedia.org/wiki/Laplace_operator#Vector_Laplacian) of
+  `f` at its input point."}
+  Lap
+  (-> (f/compose g/trace (g/* Grad Grad))
+      (o/make-operator 'Lap)))
 
 ;; ## Derivative Utilities
 ;;
