@@ -1183,18 +1183,25 @@
   Returns a new unary function that operates on both the original type of `f`
   and [[Differential]] instances.
 
+  If called without `df:dx`, `df:dx` defaults to `(f :dfdx)`; this will return
+  the derivative registered to a generic function defined with [[g/defgeneric]].
+
   NOTE: `df:dx` has to ALREADY be able to handle [[Differential]] instances. The
   best way to accomplish this is by building `df:dx` out of already-lifted
   functions, and declaring them by forward reference if you need to."
-  [f df:dx]
-  (fn call [x]
-    (if-not (differential? x)
-      (f x)
-      (let [[px tx] (primal-tangent-pair x)
-            fx      (call px)]
-        (if (and (v/number? tx) (v/zero? tx))
-          fx
-          (d:+ fx (d:* (df:dx px) tx)))))))
+  ([f]
+   (if-let [df:dx (f :dfdx)]
+     (lift-1 f df:dx)
+     (u/illegal "No df:dx supplied for `f` or registered generically.")))
+  ([f df:dx]
+   (fn call [x]
+     (if-not (differential? x)
+       (f x)
+       (let [[px tx] (primal-tangent-pair x)
+             fx      (call px)]
+         (if (and (v/number? tx) (v/zero? tx))
+           fx
+           (d:+ fx (d:* (df:dx px) tx))))))))
 
 (defn lift-2
   "Given:
@@ -1211,21 +1218,27 @@
   instances. The best way to accomplish this is by building `df:dx` and `df:dy`
   out of already-lifted functions, and declaring them by forward reference if
   you need to."
-  [f df:dx df:dy]
-  (fn call [x y]
-    (if-not (or (differential? x)
-                (differential? y))
-      (f x y)
-      (let [tag     (max-order-tag x y)
-            [xe dx] (primal-tangent-pair x tag)
-            [ye dy] (primal-tangent-pair y tag)
-            a (call xe ye)
-            b (if (and (v/number? dx) (v/zero? dx))
-                a
-                (d:+ a (d:* (df:dx xe ye) dx)))]
-        (if (and (v/number? dy) (v/zero? dy))
-          b
-          (d:+ b (d:* (df:dy xe ye) dy)))))))
+  ([f]
+   (let [df:dx (f :dfdx)
+         df:dy (f :dfdy)]
+     (if (and df:dx df:dy)
+       (lift-2 f df:dx df:dy)
+       (u/illegal "No df:dx, df:dy supplied for `f` or registered generically."))))
+  ([f df:dx df:dy]
+   (fn call [x y]
+     (if-not (or (differential? x)
+                 (differential? y))
+       (f x y)
+       (let [tag     (max-order-tag x y)
+             [xe dx] (primal-tangent-pair x tag)
+             [ye dy] (primal-tangent-pair y tag)
+             a (call xe ye)
+             b (if (and (v/number? dx) (v/zero? dx))
+                 a
+                 (d:+ a (d:* (df:dx xe ye) dx)))]
+         (if (and (v/number? dy) (v/zero? dy))
+           b
+           (d:+ b (d:* (df:dy xe ye) dy))))))))
 
 (defn lift-n
   "Given:
@@ -1317,119 +1330,41 @@
 ;; operations for which we know how to declare partial derivatives.
 
 (defbinary g/add d:+)
+(defunary g/negate (lift-1 g/negate))
+(defbinary g/sub (lift-2 g/sub))
 
-(defunary g/negate
-  (lift-1 g/negate (fn [_] -1)))
-
-(defunary g/negative?
-  (fn [x] (g/negative? (finite-term x))))
-
-(defbinary g/sub
-  (lift-2 g/sub
-          (fn [_ _] 1)
-          (fn [_ _] -1)))
-
-(let [mul (lift-2
-           g/mul
-           (fn [_ y] y)
-           (fn [x _] x))]
+(let [mul (lift-2 g/mul)]
   (defbinary g/mul mul)
   (defunary g/square (fn [x] (mul x x)))
   (defunary g/cube (fn [x] (mul x (mul x x))))
   (defbinary g/dot-product mul))
 
-(defunary g/invert
-  (lift-1 g/invert
-          (fn [x] (g/div -1 (g/square x)))))
+(defunary g/invert (lift-1 g/invert))
+(defbinary g/div (lift-2 g/div))
 
-(defbinary g/div
-  (lift-2 g/div
-          (fn [_ y] (g/div 1 y))
-          (fn [x y] (g/div (g/negate x)
-                          (g/square y)))))
+(defunary g/negative?
+  (fn [x] (g/negative? (finite-term x))))
 
 (defunary g/abs
   (fn [x]
     (let [f (finite-term x)
-          func (cond (< f 0) (lift-1 g/negate (fn [_] -1))
+          func (cond (< f 0) (lift-1 g/negate)
                      (> f 0) (lift-1 identity (fn [_] 1))
                      (= f 0) (u/illegal "Derivative of g/abs undefined at zero")
                      :else (u/illegal (str "error! derivative of g/abs at" x)))]
       (func x))))
 
-(defunary g/sqrt
-  (lift-1 g/sqrt
-          (fn [x]
-            (g/invert
-             (g/mul (g/sqrt x) 2)))))
-
-(defbinary g/expt
-  (lift-2 g/expt
-          (fn [x y]
-            (g/mul y (g/expt x (g/sub y 1))))
-          (fn [x y]
-            (if (and (v/number? x) (v/zero? y))
-              (if (v/number? y)
-                (if (not (g/negative? y))
-                  0
-                  (u/illegal "Derivative undefined: expt"))
-                0)
-              (g/* (g/log x) (g/expt x y))))))
-
-(defunary g/log
-  (lift-1 g/log g/invert))
-
-(defunary g/exp
-  (lift-1 g/exp g/exp))
-
-(defunary g/sin
-  (lift-1 g/sin g/cos))
-
-(defunary g/cos
-  (lift-1 g/cos
-          (fn [x] (g/negate (g/sin x)))))
-
-(defunary g/tan
-  (lift-1 g/tan
-          (fn [x]
-            (g/invert
-             (g/square (g/cos x))))))
-
-(defunary g/asin
-  (lift-1 g/asin
-          (fn [x]
-            (g/invert
-             (g/sqrt (g/sub 1 (g/square x)))))))
-
-(defunary g/acos
-  (lift-1 g/acos
-          (fn [x]
-            (g/negate
-             (g/invert
-              (g/sqrt (g/sub 1 (g/square x))))))))
-
-(defunary g/atan
-  (lift-1 g/atan (fn [x]
-                   (g/invert
-                    (g/add 1 (g/square x))))))
-
-(defbinary g/atan
-  (lift-2 g/atan
-          (fn [y x]
-            (g/div x (g/add (g/square x)
-                            (g/square y))))
-          (fn [y x]
-            (g/div (g/negate y)
-                   (g/add (g/square x)
-                          (g/square y))))))
-
-(defunary g/sinh
-  (lift-1 g/sinh g/cosh))
-
-(defunary g/cosh
-  (lift-1 g/cosh g/sinh))
-
-(defunary g/tanh
-  (lift-1 g/tanh
-          (fn [x]
-            (g/sub 1 (g/square (g/tanh x))))))
+(defunary g/sqrt (lift-1 g/sqrt))
+(defbinary g/expt (lift-2 g/expt))
+(defunary g/log (lift-1 g/log))
+(defunary g/exp (lift-1 g/exp))
+(defunary g/sin (lift-1 g/sin))
+(defunary g/cos (lift-1 g/cos))
+(defunary g/tan (lift-1 g/tan))
+(defunary g/asin (lift-1 g/asin))
+(defunary g/acos (lift-1 g/acos))
+(defunary g/atan (lift-1 g/atan))
+(defbinary g/atan (lift-2 g/atan))
+(defunary g/sinh (lift-1 g/sinh))
+(defunary g/cosh (lift-1 g/cosh))
+(defunary g/tanh (lift-1 g/tanh))
