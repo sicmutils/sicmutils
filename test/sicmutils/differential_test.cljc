@@ -225,7 +225,7 @@
                             (g/square (d/bundle-element 'x 1 0)))]
             (is (= '[Differential
                      [[]  (* x x x x)]
-                     [[0] (+ (* (+ x x) x x) (* x x (+ x x)))]]
+                     [[0] (+ (* x x (+ x x)) (* x x (+ x x)))]]
                    (v/freeze not-simple))
                 "A frozen differential freezes each entry")
 

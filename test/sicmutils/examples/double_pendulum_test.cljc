@@ -53,7 +53,7 @@
             (e/simplify (L state)))))
     (e/with-literal-functions [θ φ]
       (is (= '(down (+ (* l1 l2 m2 (expt ((D φ) t) 2) (sin (+ (θ t) (* -1 (φ t)))))
-                       (* l1 l2 m2 (((expt D 2) φ) t) (cos (+ (θ t) (* -1 (φ t)))))
+                       (* l1 l2 m2 (cos (+ (θ t) (* -1 (φ t)))) (((expt D 2) φ) t))
                        (* g l1 m1 (sin (θ t)))
                        (* g l1 m2 (sin (θ t)))
                        (* (expt l1 2) m1 (((expt D 2) θ) t))
