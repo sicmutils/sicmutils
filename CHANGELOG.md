@@ -9,6 +9,10 @@
   binary. #253 also changes the name of macro
   `sicmutils.generic/def-generic-function` to `sicmutils.generic/defgeneric`.
 
+- #238 converts `sicmutils.abstract.function/Function` from a `defrecord` to a
+  `deftype`, fixing a subtle bug where (empty f) was getting called in a nested
+  derivative test.
+
 - #224 adds new `Div`, `Grad`, `Curl` and `Lap` operators in
   `sicmutils.calculus.derivative` and installs them into `sicmutils.env`. #224
   also removes the `g/transpose` implementation for `Operator` instances, and

@@ -794,14 +794,14 @@
 ;; ## Accessor Methods
 
 (defn differential?
-  "Returns true if the supplied object is an instance of `Differential`, false
+  "Returns true if the supplied object is an instance of [[Differential]], false
   otherwise."
   [dx]
   (instance? Differential dx))
 
 (defn- bare-terms
-  "Returns the `-terms` field of the supplied `Differential` object. Errors if any
-  other type is supplied."
+  "Returns the `-terms` field of the supplied [[Differential]] object. Errors if
+  any other type is supplied."
   [dx]
   {:pre [(differential? dx)]}
   (.-terms ^Differential dx))
