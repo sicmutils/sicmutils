@@ -33,14 +33,17 @@
 
 (use-fixtures :once hermetic-simplify-fixture)
 
-(def ^:private s->infix (f/compose ->infix g/simplify))
-(def ^:private s->TeX (f/compose ->TeX g/simplify))
-(defn ^:private s->JS
-  [x & options]
+(def ^:private s->infix
+  (f/compose ->infix g/simplify))
+
+(def ^:private s->TeX
+  (f/compose ->TeX g/simplify))
+
+(defn ^:private s->JS [x & options]
   (apply ->JavaScript (g/simplify x) options))
 
 (deftest basic
-  (testing "raw epxressions"
+  (testing "raw expressions"
     (is (= "Df(x, y)" (->infix '((D f) x y))))
     (is (= "D(f + g)(x, y)" (->infix '((D (+ f g)) x y))))
     (is (= "D(f g)(x, y)" (->infix '((D (* f g)) x y))))
@@ -87,42 +90,67 @@
 (deftest exponents
   (is (= '"x⁴ + 4 x³ + 6 x² + 4 x + 1"
          (s->infix (expt (+ 1 'x) 4))))
-  (is (= "x¹²" (s->infix (expt 'x 12))))
+  (is (= "x¹²" (->infix (expt 'x 12))))
   (is (= "y¹⁵ + 3 x⁴ y¹⁰ + 3 x⁸ y⁵ + x¹²"
          (s->infix (expt (+ (expt 'x 4) (expt 'y 5)) 3))))
-  (is (= "x² + x^-2" (s->infix '(+ (expt x 2) (expt x -2)))))
+  (is (= "x² + x^-2" (->infix '(+ (expt x 2) (expt x -2)))))
   (is (= "sin²(x)" (->infix '((expt sin 2) x))))
   (is (= "(x y)²" (->infix '(expt (* x y) 2))))
-  (is (= "sin²(x)" (s->infix ((expt sin 2) 'x))))
-  (is (= "(sin(x))^y" (s->infix (expt (sin 'x) 'y))))
+  (is (= "sin²(x)" (->infix ((expt sin 2) 'x))))
+  (is (= "(sin(x))^y" (->infix (expt (sin 'x) 'y))))
   (is (= "(a + b)²" (->infix '(expt (+ a b) 2))))
   (is (= "(a + b)^(x + y)" (->infix '(expt (+ a b) (+ x y)))))
   (is (= "(a + b)^x" (->infix '(expt (+ a b) x))))
   (is (= "a^(x + y)" (->infix '(expt a (+ x y)))))
-  (is (= "x^y" (s->infix (expt 'x 'y)))))
+  (is (= "x^y" (->infix (expt 'x 'y)))))
 
 (deftest more-with-D
   (af/with-literal-functions [f g]
-    (is (= "f(s)" (s->infix (f 's))))
+    (is (= "f(s)" (->infix (f 's))))
     (is (= "(f + g)(x, y)" (->infix '((+ f g) x y))))
-    (is (= "f(x) g(x)" (s->infix ((* f g) 'x))))
-    (is (= "f(t)" (s->infix (f 't))))
-    (is (= "Df(s)" (s->infix ((D f) 's))))
-    (is (= "D²f(s)" (s->infix (((expt D 2) f) 's))))))
+    (is (= "f(x) g(x)" (->infix ((* f g) 'x))))
+    (is (= "f(t)" (->infix (f 't))))
+    (is (= "Df(s)" (->infix ((D f) 's))))
+    (is (= "D²f(s)" (->infix (((expt D 2) f) 's))))))
 
 (deftest structures
-  (is (= "down(up(1, 2), up(3, 4))" (->infix (g/simplify (down (up 1 2) (up 3 4)))))))
+  (is (= "down(up(1, 2), up(3, 4))"
+         (->infix (g/simplify
+                   (down (up 1 2) (up 3 4)))))))
 
 (deftest variable-subscripts
-  (is (= "x₀ + y₁ + z₂" (s->infix (+ 'x_0 'y_1 'z_2)))))
+  (is (= "x₀ + y₁ + z₂" (->infix (+ 'x_0 'y_1 'z_2)))))
+
+(deftest ratio-tests
+  (testing "one-arg / == inverse"
+    (is (= "1/2" (->infix (/ 2))))
+    (is (= "\\frac{1}{2}" (->TeX (/ 2)))))
+
+  (testing "two-arg / with numbers renders as a ratio, no parens"
+    (is (= "x + 3/2" (->infix (+ 'x (/ 3 2)))))
+    (is (= "x + \\frac{3}{2}" (->TeX (+ 'x (/ 3 2))))))
+
+  (testing "two-arg / with numbers renders as a ratio"
+    (is (= "x + 3 / y" (->infix (+ 'x (/ 3 'y))))
+        "spaces around / for non-integrals")
+
+    (is (= "x + \\left(\\frac{3}{y}\\right)"
+           (->TeX (+ 'x (/ 3 'y)))))))
+
+(deftest non-expression-literal-tests
+  (testing "literal inputs render to strings"
+    (is (= "10" (->infix 10)))
+    (is (= "x" (->infix 'x)))
+    (is (= "10" (->TeX 10)))
+    (is (= "x" (->TeX 'x)))))
 
 (deftest TeX-easy
-  (is (= "a + b" (s->TeX (+ 'a 'b))))
-  (is (= "\\lambda + \\mu" (s->TeX (+ 'lambda 'mu))))
-  (is (= "x_0 + y_s" (s->TeX (+ 'x_0 'y_s))))
-  (is (= "\\frac{1}{x}" (s->TeX (/ 1 'x))))
-  (is (= "\\frac{a + b}{c + d}" (s->TeX (/ (+ 'a 'b) (+ 'c 'd)))))
-  (is (= "\\frac{a}{b}" (s->TeX (/ 'a 'b)))))
+  (is (= "a + b" (->TeX (+ 'a 'b))))
+  (is (= "\\lambda + \\mu" (->TeX (+ 'lambda 'mu))))
+  (is (= "x_0 + y_s" (->TeX (+ 'x_0 'y_s))))
+  (is (= "\\frac{1}{x}" (->TeX (/ 1 'x))))
+  (is (= "\\frac{a + b}{c + d}" (->TeX (/ (+ 'a 'b) (+ 'c 'd)))))
+  (is (= "\\frac{a}{b}" (->TeX (/ 'a 'b)))))
 
 (defn ^:private make-symbol-generator
   [p]
@@ -131,13 +159,13 @@
 
 (deftest JS
   (is (= "function(a, b, theta) {\n  return a + b + Math.sin(theta);\n}"
-         (s->JS (+ 'a 'b (sin 'theta)))))
+         (->JavaScript (+ 'a 'b (sin 'theta)))))
   (is (= "function(j) {\n  return 1 / j;\n}"
-         (s->JS (g/invert 'j))))
+         (->JavaScript (g/invert 'j))))
   (is (= "function(y) {\n  return Math.pow(2.71828, y);\n}"
-         (s->JS (expt 2.71828 'y))))
+         (->JavaScript (expt 2.71828 'y))))
   (is (= "function(a, b, x) {\n  return a * Math.exp(b * Math.log(x));\n}"
-         (s->JS (* 'a (g/exp (* 'b (g/log 'x)))))))
+         (->JavaScript (* 'a (g/exp (* 'b (g/log 'x)))))))
   (is (= "function(x) {\n  var _0001 = Math.sin(x);\n  return Math.pow(_0001, 2) + _0001;\n}"
          (s->JS (+ (sin 'x) (expt (sin 'x) 2)))))
   (is (= (str "function(x, dx) {\n"
@@ -147,8 +175,11 @@
          (s->JS (series/sum (taylor-series sin 'x 'dx) 2)
                 :symbol-generator (make-symbol-generator "t")
                 :parameter-order '[x dx])))
-  (is (= "function(x, y) {\n  return [1, x + y, 2];\n}" (s->JS (up 1 (+ 'x 'y) 2))))
-  (is (= "function(a, b) {\n  return [[1, a], [b, 2]];\n}" (s->JS (down (up 1 'a) (up 'b 2))))))
+  (is (= "function(x, y) {\n  return [1, x + y, 2];\n}"
+         (s->JS (up 1 (+ 'x 'y) 2))))
+
+  (is (= "function(a, b) {\n  return [[1, a], [b, 2]];\n}"
+         (->JavaScript (down (up 1 'a) (up 'b 2))))))
 
 (deftest systematic
   (let [all-formats (juxt s->infix s->JS s->TeX)]

@@ -7,8 +7,9 @@
   derivative test.
 
 - #224 adds new `Div`, `Grad`, `Curl` and `Lap` operators in
-  `sicmutils.calculus.derivative`. #224 also removes the `g/transpose`
-  implementation for `Operator` instances.
+  `sicmutils.calculus.derivative` and installs them into `sicmutils.env`. #224
+  also removes the `g/transpose` implementation for `Operator` instances, and
+  exposes `sicmutils.calculus.derivative/taylor-series` to `sicmutils.env`.
 
 - #223 fixes a problem where `(operator * structure)` would return a structure
   of operators instead of an operator that closed over the multiplication.
@@ -40,8 +41,11 @@
 
   - We've changed our terminology from GJS's `finite-part`,
     `infinitesimal-part`, `make-x+dx` to the more modern `primal-part`,
-    `tangent-part`, `bundle` that the Automatic Differentiation community has
-    now adopted.
+    `tangent-part`, `bundle-element` that the Automatic Differentiation
+    community has adopted. His comment is that he doesn't take terms from
+    mathematics unless he's _sure_ that he's using it in the correct way; the
+    safer way is to stick with his terms, but we go boldly forth with the
+    masses.
 
   - A new `sicmutils.differential.IPerturbed` protocol makes it possible to
     extend the Automatic Differentiation (AD) system to be able to handle
@@ -87,6 +91,17 @@
 
 - `sicmutils.generic/partial-derivative` gains a `Keyword` extension, so it can
   respond properly to `:name` and `:arity` calls (#221).
+
+- `->infix`, `->TeX` and `->JavaScript` in `sicmutils.expression.render` can now
+  accept unfrozen and unsimplified `Expression` instances (#241). This makes it
+  a bit more convenient to use `->infix` and `->TeX` at the REPL, or in a
+  Notebook environment. Additionally, the return values of renderers are always
+  coerced to strings. (Previously, `(->infix 10)` would return a number
+  directly.)
+
+- Fix a bug where `f/arity` would throw an exception with multiple-arity
+  functions on the JVM (#240). It now responds properly with `[:between
+  min-arity max-arity]`, or `[:at-least n]` if there is a variadic case too.
 
 - Added missing `identity?`, `identity-like` for complex and rational numbers
   (#236)

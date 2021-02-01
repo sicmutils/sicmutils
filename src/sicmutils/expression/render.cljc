@@ -23,8 +23,10 @@
             [clojure.string :as s]
             [pattern.rule :as R #?@(:cljs [:include-macros true])]
             [sicmutils.expression :as x]
+            [sicmutils.expression.compile :as compile]
             [sicmutils.ratio :as r]
-            [sicmutils.expression.compile :as compile]))
+            [sicmutils.util :as u]
+            [sicmutils.value :as v]))
 
 (defn ^:private make-symbol-generator
   [p]
@@ -53,6 +55,22 @@
    (* -1 :X) => (u- :X)
    (* -1 :X*) => (u- (* :X*))))
 
+(defn render-infix-ratio
+  "renders a pair of the form `[numerator denominator]` as a infix ratio of the
+  form `num/denom`.
+
+  If the pair contains only one entry `x`, it's coerced to `[1 x]` (and treated
+  as a denominator)."
+  [[num denom :as xs]]
+  (let [n (count xs)]
+    (cond (and (= n 1) (v/integral? num))
+          (str "1/" num)
+
+          (and (= n 2)
+               (v/integral? num)
+               (v/integral? denom))
+          (str num "/" denom))))
+
 (defn ^:private make-infix-renderer
   "Base function for infix renderers. This is meant to be specialized via
   options for the treatment desired. Returns a rendering function. The options are:
@@ -62,7 +80,7 @@
     product. Defaults to `*`.
   - `infix?` A function mapping symbols to boolean, used to decide if a function
     application should be written as `x f y` or `f(x, y)`.
-  - `render-primitive` is a function used to render symbols, numeeric constants
+  - `render-primitive` is a function used to render symbols, numeric constants
     etc. into string form.
   - `parenthesize` is a function used to wrap parens around objects when
     needed. It defaults to the obvious thing.
@@ -80,7 +98,12 @@
            rewrite-trig-squares false
            rename-functions {}
            infix? {}}}]
-  (letfn [(precedence [op] (or (precedence-map op)
+  (letfn [(ratio-expr? [op [num denom]]
+            (and (= '/ op)
+                 (v/integral? num)
+                 (or (nil? denom)
+                     (v/integral? denom))))
+          (precedence [op] (or (precedence-map op)
                                (cond (seq? op)
                                      ;; Some special cases:
                                      ;; - give (expt X n) the precedence of X
@@ -110,7 +133,9 @@
               (case op
                 (+ *) (str a)
                 u- (str "- " a)
-                / (str "1 / " a)
+                / (if (v/integral? a)
+                    (str "1/" a)
+                    (str "1 / " a))
                 (str op " " a))))
           (render-loc [loc]
             (if (z/branch? loc)
@@ -129,11 +154,20 @@
                   (parenthesize-if
                    (and (infix? upper-op)
                         (and (precedence<= op upper-op)
-                             ;; respect precedence, except in the special case
-                             ;;   (- (* a b c...))
-                             ;; which we would prefer to write as "- a b c..." rather than "- (a b c...)"
-                             ;; as strict precedence rules would require.
-                             (not (and (= op '*) (= upper-op 'u-)))))
+                             ;; respect precedence, except in the special cases
+                             ;; of ratios rendered as calls to `/`:
+                             ;;
+                             ;; (/ x), (/ x y)
+                             ;;
+                             ;; which should render as 1/x or x/y, or
+                             ;;
+                             ;; (- (* a b c...))
+                             ;;
+                             ;; which we would prefer to write as "- a b c..."
+                             ;; rather than "- (a b c...)" as strict precedence
+                             ;; rules would require.
+                             (not (or (and (= op '*) (= upper-op 'u-))
+                                      (ratio-expr? op args)))))
                    (or (and (special-handlers op)
                             ((special-handlers op) args))
                        (and (= (count args) 1)
@@ -172,7 +206,13 @@
               (let [n (z/node loc)]
                 (or (and render-primitive (render-primitive n))
                     n))))]
-    #(-> % z/seq-zip render-loc)))
+    (fn [expr]
+      (let [result (-> (v/freeze expr)
+                       (z/seq-zip)
+                       (render-loc))]
+        (if (string? result)
+          result
+          (str result))))))
 
 (def ^:private decimal-superscripts
   [\⁰ \¹ \² \³ \⁴ \⁵ \⁶ \⁷ \⁸ \⁹])
@@ -209,7 +249,8 @@
               (str x (n->superscript e))))
     'partial (fn [ds]
                (when (and (= (count ds) 1) (integer? (first ds)))
-                 (str "∂" (n->subscript (first ds)))))}
+                 (str "∂" (n->subscript (first ds)))))
+    '/ render-infix-ratio}
    :render-primitive (fn r [v]
                        (let [s (str v)
                              [_ stem subscript] (re-find #"(.+)_(\d+)$" s)]
@@ -279,8 +320,11 @@
      {'expt (fn [[x e]] (str (maybe-brace x) "^" (maybe-brace e)))
       'partial (fn [ds] (str "\\partial_" (maybe-brace (s/join "," ds))))
       '/ (fn [xs]
-           (when (= (count xs) 2)
-             (str "\\frac" (brace (first xs)) (brace (second xs)))))
+           (let [n (count xs)]
+             (cond (= n 1)
+                   (str "\\frac" (brace 1) (brace (first xs)))
+                   (= n 2)
+                   (str "\\frac" (brace (first xs)) (brace (second xs))))))
       'up (fn [x]
             (let [body (->> (map displaystyle x)
                             (s/join " \\cr \\cr "))]
@@ -374,7 +418,8 @@
                               'log "Math.log"
                               'exp "Math.exp"}
            :special-handlers {'up make-js-vector
-                              'down make-js-vector})]
+                              'down make-js-vector
+                              '/ render-infix-ratio})]
     (fn [x & {:keys [symbol-generator parameter-order deterministic?]
              :or {symbol-generator (make-symbol-generator "_")
                   parameter-order sort}}]
