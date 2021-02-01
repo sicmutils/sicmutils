@@ -861,7 +861,16 @@
    (collect-terms tags->coefs)))
 
 ;; ## Differential API
-;;
+
+(def ^:dynamic *active-tags* #{})
+
+(defn with-active-tag [tag f args]
+  (binding [*active-tags* (conj *active-tags* tag)]
+    (apply f args)))
+
+(defn tag-active? [tag]
+  (contains? *active-tags* tag))
+
 ;; This next section lifts slightly-augmented versions of [[terms:+]]
 ;; and [[terms:*]] up to operate on [[Differential]] instances. These work just
 ;; as before, but handle wrapping and unwrapping the term list.
