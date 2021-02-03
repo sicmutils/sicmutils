@@ -152,7 +152,7 @@
   (is (= "\\frac{a + b}{c + d}" (->TeX (/ (+ 'a 'b) (+ 'c 'd)))))
   (is (= "\\frac{a}{b}" (->TeX (/ 'a 'b)))))
 
-(deftest equations
+(deftest equation-tests
   (is (= "x = 4" (->infix '(= x 4))))
   (is (= "x = 4" (->TeX '(= x 4))))
 
@@ -182,6 +182,12 @@
          (->TeX '(<= 4 (+ 2 2) (+ 1 3)))))
   (is (= "4 \\geq 2 + 2 \\geq 1 + 3"
          (->TeX '(>= 4 (+ 2 2) (+ 1 3))))))
+
+(deftest symbol-rendering-tests
+  (is (= "x" (->TeX 'x)))
+  (is (= "\\mathsf{PV}" (->TeX 'PV)))
+  (binding [sicmutils.expression.render/*TeX-sans-serif-symbols* false]
+    (is (= "{PV}" (->TeX 'PV)))))
 
 (defn ^:private make-symbol-generator
   [p]
