@@ -267,6 +267,24 @@
 ;; input. [[euclidean]] and [[multivariate]] below widen handle, respectively,
 ;; optionally-structural and multivariable arguments.
 
+(defn- deep-partial
+  "Returns the partial derivative of `f` with respect to the entry in `structure`
+  at the location `path`.
+
+  `entry` defaults to `(get-in structure path)`."
+  ([f structure path]
+   (let [entry (get-in structure path)]
+     (deep-partial f structure path entry)))
+  ([f structure path entry]
+   (if (v/numerical? entry)
+     (letfn [(f-entry [x]
+               (f (assoc-in structure path x)))]
+       ((derivative f-entry) entry))
+     (u/illegal
+      (str "non-numerical entry " entry
+           " at path " path
+           " in input structure " structure)))))
+
 (defn- jacobian
   "Takes:
 
@@ -277,46 +295,29 @@
 
   and returns either:
 
-  - The
-  full [Jacobian](https://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant)
-  of `f` at `input`, if `selectors` is empty
-  - the entry of the Jacobian at `selectors`.
+  - The full [Jacobian](https://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant)
+    of `f` at `input`, if `selectors` is empty
+  - the entry of the Jacobian at `selectors`
 
   The Jacobian has the same shape as `input` (or the entry at `selectors`) with
-  all orientations flipped. Multiplying this by an increment in the shape of
-  `input` will give you a proper increment in the output of `f`."
+  all orientations flipped. Multiply this by an increment in the shape of
+  `input` to produce an increment in the output of `f`."
   ([f input] (jacobian f input []))
   ([f input selectors]
    (letfn [(prefixed [path]
              (if (empty? selectors)
                path
-               (into selectors path)))
-
-           (substitute [path entry]
-             (assoc-in input (prefixed path) entry))]
+               (into selectors path)))]
      (if-let [piece (get-in input selectors)]
-       (let [frame         (s/transpose piece)
-             perturb-entry (fn [entry path]
-                             (letfn [(f-entry [x]
-                                       (f (substitute path x)))]
-
-                               ;; Each entry takes the derivative of a function
-                               ;; of THAT entry; internally, `f-entry`
-                               ;; substitutes the perturbed entry into the
-                               ;; appropriate place in the full `input` before
-                               ;; calling `f`.
-                               ((derivative f-entry) entry)))]
-
+       (let [frame (s/transpose piece)]
          ;; Visit each entry in `frame`, a copy of either the full input or the
          ;; sub-piece living at `selectors` (with all orientations flipped), and
          ;; replace the entry with the result of the partial derivative of `f`
          ;; with that entry perturbed.
-         (s/map-chain (fn [entry path _]
-                        (if (v/numerical? entry)
-                          (perturb-entry entry path)
-                          (u/illegal
-                           (str "non-numerical entry " entry " in input structure " input))))
-                      frame))
+         (s/map-chain
+          (fn [entry path _]
+            (deep-partial f input (prefixed path) entry))
+          frame))
 
        ;; The call to `get-in` will return nil if the `selectors` don't index
        ;; correctly into the supplied `input`, triggering this exception.
@@ -380,8 +381,9 @@
            ([] (constantly 0))
            ([x] ((d f) x))
            ([x & more]
-            ((d #(apply f %))
-             (matrix/seq-> (cons x more)))))
+            (let [arg-structure (matrix/seq-> (cons x more))]
+              ((d (fn [args] (apply f args)))
+               arg-structure))))
          (f/with-arity (f/arity f) {:from ::multivariate})))))
 
 ;; ## Generic [[g/partial-derivative]] Installation
