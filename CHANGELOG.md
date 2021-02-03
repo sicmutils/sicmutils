@@ -4,13 +4,13 @@
 
 - `sicmutils.expression/Literal` instances now use `pr-str` to generate a string
   representation; this allows this type to wrap lazy-sequence expressions such
-  as those returned from `g/simplify`.
+  as those returned from `g/simplify` (#259)
 
-- `sicmutils.expression.render/->infix` and `sicmutils.expression.render/->TeX` now
-  handle equality/inequality symbols (`=`, `>=`, `>`, ...) as infix.
+- `sicmutils.expression.render/->infix` and `sicmutils.expression.render/->TeX`
+  now handle equality/inequality symbols (`=`, `>=`, `>`, ...) as infix (#257).
 
 - `sicmutils.expression.render/*TeX-sans-serif-symbols*` binding to control if
-  symbols longer than 1 char should have `\mathsf` applied.
+  symbols longer than 1 char should have `\mathsf` applied (#258).
 
 - `sicmutils.modint` gains more efficient implementations for `inverse`,
   `quotient`, `exact-divide` and `expt` on the JVM (#251).
