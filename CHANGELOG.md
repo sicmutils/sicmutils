@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `sicmutils.expression/Literal` instances now use `pr-str` to generate a string
+  representation; this allows this type to wrap lazy-sequence expressions such
+  as those returned from `g/simplify`.
+
 - `sicmutils.expression.render/->infix` and `sicmutils.expression.render/->TeX` now
   handle equality/inequality symbols (`=`, `>=`, `>`, ...) as infix.
 
