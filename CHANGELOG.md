@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- `sicmutils.expression.render/->infix` and `sicmutils.expression.render/->TeX` now
+  handle equality/inequality symbols (`=`, `>=`, `>`, ...) as infix.
+
 - `sicmutils.modint` gains more efficient implementations for `inverse`,
   `quotient`, `exact-divide` and `expt` on the JVM (#251).
 
