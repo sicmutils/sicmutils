@@ -298,15 +298,7 @@
 ;;
 ;; But this implies that [[extract-tangent]] from the example above needs to
 ;; know how to handle vectors and other collections; in the case of a vector `v`
-;; by returning `(mapv extract-tangent v)`
-;;
-;; The way that [[Differential]] instances interact with container types in
-;; SICMUtils makes it easy for these captures to occur all over. Whenever we
-;; multiply a [[Differential]] by a structure, a function, a vector, any of
-;; those things, our implementation of the SICMUtils generics pushes
-;; the [[Differential]] inside those objects, rather than forming
-;; a [[Differential]] with, for example, a vector in the primal and tangent
-;; parts.
+;; by returning `(mapv extract-tangent v)`.
 ;;
 ;; What about higher-order functions?
 
