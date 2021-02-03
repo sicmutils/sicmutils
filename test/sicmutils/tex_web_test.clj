@@ -18,12 +18,11 @@
 ;
 
 (ns sicmutils.tex-web-test
-  (:refer-clojure :exclude [+ - * / ref partial zero?])
+  (:refer-clojure :exclude [+ - * / compare ref partial zero?])
   (:require [hiccup.core :refer :all]
             [hiccup.page :refer :all]
             [clojure.string :as s]
             [sicmutils.env :refer :all]
-            [sicmutils.calculus.derivative :refer [taylor-series]]
             [sicmutils.examples.driven-pendulum :as driven]
             [sicmutils.examples.double-pendulum :as double]
             [sicmutils.examples.central-potential :as central])

@@ -303,14 +303,8 @@ be done.
 
 ### The latter half of FDG
 
-Most of the code in the early sections of FDG will work, but this cannot
-be considered compelte.
-
-### Derivatives of nested functions
-
-Or, what is described as "Alexey's Amazing Bug" in the Scmutils source
-code (and further described by Oleksandr Manzyuk [here][OM]). This should
-be straightforward to fix but hasn't been necessary for the work so far.
+Most of the code in the early sections of FDG will work, but this cannot be
+considered complete.
 
 ### Quaternions, and other exotica
 
@@ -395,7 +389,6 @@ GPL v3.
 [SICM]: http://mitpress.mit.edu/books/structure-and-interpretation-classical-mechanics
 [FDG]: http://mitpress.mit.edu/books/functional-differential-geometry
 [SICP]: http://mitpress.mit.edu/sicp/
-[OM]: http://oleksandrmanzyuk.files.wordpress.com/2012/04/paper.pdf
 [GSCM]: http://www.cs.rochester.edu/~gildea/guile-scmutils/
 [ACM]: https://commons.apache.org/proper/commons-math/
 [LEIN]: http://leiningen.org
