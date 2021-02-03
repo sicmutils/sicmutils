@@ -13,6 +13,7 @@
             [sicmutils.differential :as d]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
+            [sicmutils.modint :as mi]
             [sicmutils.numsymb :as sym]
             [sicmutils.ratio :as r]
             [sicmutils.structure :as s]
@@ -118,6 +119,22 @@
 
 (def number
   (gen/one-of [real complex]))
+
+;; ## Modular Arithmetic
+
+(defn- not-zero [x]
+  (if (zero? x) 1 x))
+
+(defn modint
+  ([] (modint 30))
+  ([modulus-max]
+   (gen/let [i gen/small-integer
+             m (gen/fmap
+                (fn [i]
+                  (not-zero
+                   (mod i modulus-max)))
+                gen/small-integer)]
+     (mi/make i m))))
 
 ;; ## Symbolic
 
