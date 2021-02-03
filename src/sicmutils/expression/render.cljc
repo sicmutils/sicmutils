@@ -293,6 +293,7 @@
     (brace s)))
 
 (def ^:dynamic *TeX-vertical-down-tuples* false)
+(def ^:dynamic *TeX-sans-serif-symbols* true)
 
 (defn- displaystyle [s]
   (str "\\displaystyle{" s "}"))
@@ -367,7 +368,9 @@
                              (if (and (symbol? v)
                                       (> (count s) 1)
                                       (not (re-matches #"^d[a-zαωθφ]" s)))
-                               (str "\\mathsf" (brace s))
+                               (if *TeX-sans-serif-symbols*
+                                 (str "\\mathsf" (brace s))
+                                 (brace s))
                                v)))))))))
 
 (def ->JavaScript
