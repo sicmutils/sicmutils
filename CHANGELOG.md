@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+=======
+- `sicmutils.expression.render/*TeX-sans-serif-symbols*` binding to control if
+  symbols longer than 1 char should have `\mathsf` applied.
+
 - `sicmutils.modint` gains more efficient implementations for `inverse`,
   `quotient`, `exact-divide` and `expt` on the JVM (#251).
 

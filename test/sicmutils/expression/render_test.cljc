@@ -152,6 +152,12 @@
   (is (= "\\frac{a + b}{c + d}" (->TeX (/ (+ 'a 'b) (+ 'c 'd)))))
   (is (= "\\frac{a}{b}" (->TeX (/ 'a 'b)))))
 
+(deftest symbols
+  (is (= "x" (->TeX 'x)))
+  (is (= "\\mathsf{PV}" (->TeX 'PV)))
+  (binding [sicmutils.expression.render/*TeX-sans-serif-symbols* false]
+    (is (= "{PV}" (->TeX 'PV)))))
+
 (defn ^:private make-symbol-generator
   [p]
   (let [i (atom 0)]
