@@ -294,6 +294,7 @@
 
 (def ^:dynamic *TeX-vertical-down-tuples* false)
 (def ^:dynamic *TeX-sans-serif-symbols* true)
+(def ^:dynamic *TeX-render-infinite-series* true)
 
 (defn- displaystyle [s]
   (str "\\displaystyle{" s "}"))
@@ -348,6 +349,20 @@
      (fn r [v]
        (cond (r/ratio? v)
              (str "\\frac" (brace (r/numerator v)) (brace (r/denominator v)))
+
+             (and *TeX-render-infinite-series* (vector? v) (= (first v) 'Series))
+             (brace (-> `(~'+ ~@(subvec v 1 5)) ;; frozen value
+                        ->TeX
+                        (str " + \\ldots")))
+
+             (and *TeX-render-infinite-series* (vector? v) (= (first v) 'PowerSeries))
+             (brace (-> `(~'+
+                          ~@(map (fn [a n]
+                                   `(~'* ~a ~`(~'expt ~'x ~n)))
+                                 (subvec v 1 5) ;; frozen value
+                                 (range 4)))
+                        ->TeX
+                        (str " + \\ldots")))
 
              :else
              (let [s (str v)]

@@ -189,6 +189,16 @@
   (binding [sicmutils.expression.render/*TeX-sans-serif-symbols* false]
     (is (= "{PV}" (->TeX 'PV)))))
 
+(deftest series-tests
+  (is (= "{1 + 1 + \\frac{1}{2} + \\frac{1}{6} + \\ldots}"
+         (->TeX (series/exp-series 1))))
+  (is (= "{1 + a + \\frac{1}{2}\\,{a}^{2} + \\frac{1}{6}\\,{a}^{3} + \\ldots}"
+         (->TeX (series/exp-series 'a))))
+  (is (= "{1\\,{x}^{0} + 2\\,{x}^{1} + 3\\,{x}^{2} + 4\\,{x}^{3} + \\ldots}"
+         (->TeX (series/power-series 1 2 3 4))))
+  (is (= "{i\\,{x}^{0} + j\\,{x}^{1} + k\\,{x}^{2} + l\\,{x}^{3} + \\ldots}"
+         (->TeX (series/power-series 'i 'j 'k 'l 'm 'n)))))
+
 (defn ^:private make-symbol-generator
   [p]
   (let [i (atom 0)]
