@@ -2,9 +2,10 @@
 
 ## [Unreleased]
 
-- `sicmutils.render/->TeX` will render `Series` and `PowerSeries` as an infinite
-  series (showing the first four terms). In the case of `PowerSeries`, it will
-  default to `ax^n`.
+- `sicmutils.render/->infix` and `sicmutils.render/->TeX` will render `Series`
+  and `PowerSeries` as an infinite sum (showing the first four terms).
+  In the case of unnaplied `PowerSeries`, it will represent the unbound
+  variable as `_`.
 
 - `sicmutils.expression.render/->infix` and `sicmutils.expression.render/->TeX` now
   handle equality/inequality symbols (`=`, `>=`, `>`, ...) as infix.

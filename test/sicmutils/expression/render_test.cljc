@@ -190,14 +190,22 @@
     (is (= "{PV}" (->TeX 'PV)))))
 
 (deftest series-tests
-  (is (= "{1 + 1 + \\frac{1}{2} + \\frac{1}{6} + \\ldots}"
+  (is (= "1 + 1 + 1/2 + 1/6 + ..."
+         (->infix (series/exp-series 1))))
+  (is (= "1 + 1 + \\frac{1}{2} + \\frac{1}{6} + \\ldots"
          (->TeX (series/exp-series 1))))
-  (is (= "{1 + a + \\frac{1}{2}\\,{a}^{2} + \\frac{1}{6}\\,{a}^{3} + \\ldots}"
-         (->TeX (series/exp-series 'a))))
-  (is (= "{1\\,{x}^{0} + 2\\,{x}^{1} + 3\\,{x}^{2} + 4\\,{x}^{3} + \\ldots}"
+  (is (= "(k + 1) + 1 + 1/2 + 1/6 + ..."
+         (->infix (+ 'k (series/exp-series 1)))))
+  (is (= "\\left(k + 1\\right) + 1 + \\frac{1}{2} + \\frac{1}{6} + \\ldots"
+         (->TeX (+ 'k (series/exp-series 1)))))
+  (is (= "1 _⁰ + 2 _¹ + 3 _² + 4 _³ + ..."
+         (->infix (series/power-series 1 2 3 4))))
+  (is (= "1\\,{_}^{0} + 2\\,{_}^{1} + 3\\,{_}^{2} + 4\\,{_}^{3} + \\ldots"
          (->TeX (series/power-series 1 2 3 4))))
-  (is (= "{i\\,{x}^{0} + j\\,{x}^{1} + k\\,{x}^{2} + l\\,{x}^{3} + \\ldots}"
-         (->TeX (series/power-series 'i 'j 'k 'l 'm 'n)))))
+  (is (= "1 + 2 x + 3 x² + 4 x³ + ..."
+         (->infix ((series/power-series 1 2 3 4) 'x))))
+  (is (= "1 + 2\\,x + 3\\,{x}^{2} + 4\\,{x}^{3} + \\ldots"
+         (->TeX ((series/power-series 1 2 3 4) 'x)))))
 
 (defn ^:private make-symbol-generator
   [p]
