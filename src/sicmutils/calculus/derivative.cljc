@@ -153,16 +153,23 @@
   - call the underlying `f`, producing `result`
   - return `(extract-tangent result tag)`
 
-  The returned function will also remap any instance of `tag` that appears in
-  any differential argument passed to it to a private `fresh` tag, to prevent
+  If called within the scope of a function waiting for the same `tag`, the
+  returned function will remap any instance of `tag` that appears in any
+  differential argument passed to it to a private `fresh` tag, to prevent
   internal perturbation confusion. Any tangent components in the final result
-  tagged with `fresh` will be remapped in the final result back to `tag`."
+  tagged with `fresh` will be remapped in the final result back to `tag`.
+
+  If called _outside_ of a function waiting for `tag` no tag remapping will
+  occur."
   [f tag]
   (-> (fn [& args]
-        (let [fresh (d/fresh-tag)]
-          (-> (apply f (map #(d/replace-tag % tag fresh) args))
-              (d/extract-tangent tag)
-              (d/replace-tag fresh tag))))
+        (if (d/tag-active? tag)
+          (let [fresh (d/fresh-tag)]
+            (-> (d/with-active-tag tag f (map #(d/replace-tag % tag fresh) args))
+                (d/extract-tangent tag)
+                (d/replace-tag fresh tag)))
+          (-> (d/with-active-tag tag f args)
+              (d/extract-tangent tag))))
       (f/with-arity (f/arity f))))
 
 ;; NOTE: that the tag-remapping that the docstring for `extract-tag-fn`
@@ -174,20 +181,29 @@
 ;; function's arguments.
 
 (defn- replace-tag-fn
-  "Returns a new function that composes a 'tag replacement' step with `f`. The
+  "Returns a new function that composes a 'tag replacement' step with `f`.
+
+  If called within the scope of a function waiting for the same `tag`, the
   returned function will:
 
   - make a fresh tag, and replace all `old` tags with `fresh` in the inputs
   - call `f`, producing `result`
   - return `(replace-tag result old new)`
-  - remap any tangent component in the result tagged with `fresh` back to `old`."
+  - remap any tangent component in the result tagged with `fresh` back to `old`.
+
+  If called _outside_ of a function waiting for `tag`, the returned function
+  will apply `f` to its arguments and call `(replace-tag result old new)` with
+  no tag-rerouting."
   [f old new]
   (-> (fn [& args]
-        (let [fresh (d/fresh-tag)
-              args  (map #(d/replace-tag % old fresh) args)]
+        (if (d/tag-active? old)
+          (let [fresh (d/fresh-tag)
+                args  (map #(d/replace-tag % old fresh) args)]
+            (-> (apply f args)
+                (d/replace-tag old new)
+                (d/replace-tag fresh old)))
           (-> (apply f args)
-              (d/replace-tag old new)
-              (d/replace-tag fresh old))))
+              (d/replace-tag old new))))
       (f/with-arity (f/arity f))))
 
 ;; ## Protocol Implementation
@@ -236,9 +252,10 @@
   x)` call would present. This restriction does _not_ apply to operations like
   putting `x` into a container or destructuring; just primitive function calls."
   [f]
-  (let [tag (d/fresh-tag)]
-    (fn [x]
-      (-> (f (d/bundle-element x 1 tag))
+  (fn [x]
+    (let [tag    (d/fresh-tag)
+          lifted (d/bundle-element x 1 tag)]
+      (-> (d/with-active-tag tag f [lifted])
           (d/extract-tangent tag)))))
 
 ;; The result of applying the derivative `(D f)` of a multivariable function `f`
