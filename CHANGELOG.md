@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- As of #232, `sicmutils.expression.compile/compile-univariate-fn` is now
+  `compile-fn` (same change for the non-cached `compile-fn*` in the same
+  namespace). The new implementation can compile arguments of any arity, not
+  just arity == 1. The new version takes an arity parameter `n` that defaults to
+  `(sicmutils.function/arity f)`.
+
 - `sicmutils.expression.render/->infix` and `sicmutils.expression.render/->TeX` now
   handle equality/inequality symbols (`=`, `>=`, `>`, ...) as infix.
 
