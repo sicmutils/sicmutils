@@ -104,3 +104,27 @@
     )
   )
 
+
+
+(comment
+  ;; from Slack @ 2021-01-19
+
+  ;; Great point about tagged literals. I really like that approach.
+  ;;
+  ;; I agree that we should separate machinery for creating a unit system from
+  ;; the machinery from the "default registered unit system".
+  ;;
+  ;; Perhaps a macro for defining a unit system that emits a tagged literal for
+  ;; reading units back in?
+
+  (defn register-unit-system! [conf]
+    ,,,)
+  (defmacro def-unit-system [& args]
+    ,,,)
+
+  (register-unit-system! {:sym `SI #_ "we emit a def to this symbol"
+                          :unit-tagged-literal `SI-unit #_ "we create a tagged literal for reading meter, second, etc back in"
+                          :base-units [:meter :second ,,,] #_ "not sure whether this should be a vector or a set. Do we represent the exponents as a vector or a map?"
+                          :derived-units [{:derived-unit :foot
+                                           :definition {,,,}}]})
+  )
