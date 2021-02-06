@@ -239,8 +239,8 @@
   "Converts an S-expression to printable infix form. Numeric exponents are
   written as superscripts. Partial derivatives get subscripts."
   (make-infix-renderer
-   :precedence-map '{D 9, expt 7, :apply 5, u- 4, / 3, * 3, + 1, - 1}
-   :infix? '#{* + - / expt u-}
+   :precedence-map '{D 9, expt 7, :apply 5, u- 4, / 3, * 3, + 1, - 1, = 0, > 0, < 0, >= 0, <= 0}
+   :infix? '#{* + - / expt u- = > < >= <=}
    :juxtapose-multiply " "
    :rewrite-trig-squares true
    :special-handlers
@@ -293,6 +293,7 @@
     (brace s)))
 
 (def ^:dynamic *TeX-vertical-down-tuples* false)
+(def ^:dynamic *TeX-sans-serif-symbols* true)
 
 (defn- displaystyle [s]
   (str "\\displaystyle{" s "}"))
@@ -311,9 +312,9 @@
     (make-infix-renderer
      ;; here we set / to a very low precedence because the fraction bar we will
      ;; use in the rendering groups things very strongly.
-     :precedence-map '{D 9, expt 8, :apply 7, u- 6, * 5, + 3, - 3, / 1}
+     :precedence-map '{D 9, expt 8, :apply 7, u- 6, * 5, + 3, - 3, / 1, = 0, > 0, < 0, >= 0, <= 0}
      :parenthesize #(str "\\left(" % "\\right)")
-     :infix? '#{* + - / expt u-}
+     :infix? '#{* + - / expt u- = > < >= <=}
      :juxtapose-multiply "\\,"
      :rewrite-trig-squares true
      :special-handlers
@@ -340,7 +341,9 @@
                 (str "\\begin{bmatrix}"
                      body
                      "\\end{bmatrix}")))
-      'sqrt #(str "\\sqrt " (maybe-brace (first %)))}
+      'sqrt #(str "\\sqrt " (maybe-brace (first %)))
+      '<= #(s/join " \\leq " %)
+      '>= #(s/join " \\geq " %)}
      :render-primitive
      (fn r [v]
        (cond (r/ratio? v)
@@ -367,7 +370,9 @@
                              (if (and (symbol? v)
                                       (> (count s) 1)
                                       (not (re-matches #"^d[a-zαωθφ]" s)))
-                               (str "\\mathsf" (brace s))
+                               (if *TeX-sans-serif-symbols*
+                                 (str "\\mathsf" (brace s))
+                                 (brace s))
                                v)))))))))
 
 (def ->JavaScript
