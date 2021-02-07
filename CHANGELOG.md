@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- `sicmutils.render/->infix` and `sicmutils.render/->TeX` will render `Series`
+  and `PowerSeries` as an infinite sum (showing the first four terms).
+  In the case of unnaplied `PowerSeries`, it will represent the unbound
+  variable as `_`.
+
 - `sicmutils.expression/Literal` instances now use `pr-str` to generate a string
   representation; this allows this type to wrap lazy-sequence expressions such
   as those returned from `g/simplify` (#259)
