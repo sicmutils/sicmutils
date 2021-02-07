@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- #253 adds proper `:arglists` metadata for all generic functions, and moves the
+  derivative implementations (where relevant) onto the metadata of generic
+  functions. You can access these by calling `(<generic-function> :dfdx)` or
+  `(<generic-function> :dfdy)`, depending on whether the generic is unary or
+  binary. #253 also changes the name of macro
+  `sicmutils.generic/def-generic-function` to `sicmutils.generic/defgeneric`.
+
 - As of #232, `sicmutils.expression.compile/compile-univariate-fn` is now
   `compile-fn` (same change for the non-cached `compile-fn*` in the same
   namespace). The new implementation can compile arguments of any arity, not
