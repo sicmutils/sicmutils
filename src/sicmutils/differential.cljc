@@ -27,14 +27,11 @@
   (:refer-clojure :rename {compare core-compare}
                   #?@(:cljs [:exclude [compare]]))
   (:require [clojure.string :refer [join]]
-            [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.util.stream :as us]
             [sicmutils.util.vector-set :as uv]
-            [sicmutils.value :as v])
-  #?(:clj
-     (:import (clojure.lang AFn IFn))))
+            [sicmutils.value :as v]))
 
 ;; Differentials, Dual Numbers and Automatic Differentiation
 ;;
@@ -298,15 +295,7 @@
 ;;
 ;; But this implies that [[extract-tangent]] from the example above needs to
 ;; know how to handle vectors and other collections; in the case of a vector `v`
-;; by returning `(mapv extract-tangent v)`
-;;
-;; The way that [[Differential]] instances interact with container types in
-;; SICMUtils makes it easy for these captures to occur all over. Whenever we
-;; multiply a [[Differential]] by a structure, a function, a vector, any of
-;; those things, our implementation of the SICMUtils generics pushes
-;; the [[Differential]] inside those objects, rather than forming
-;; a [[Differential]] with, for example, a vector in the primal and tangent
-;; parts.
+;; by returning `(mapv extract-tangent v)`.
 ;;
 ;; What about higher-order functions?
 
@@ -658,23 +647,6 @@
                          terms)]
       (str "D[" (join " " term-strs) "]")))
 
-  ;; Because a [[Differential]] is an accounting device that augments other
-  ;; operations with the ability to carry around derivatives, it's possible that
-  ;; the coefficient slots could be occupied by function objects. If so, then it
-  ;; becomes possible to "apply" a [[Differential]] to some arguments (apply
-  ;; each coefficient to the arguments).
-  ;;
-  ;; NOTE: the arity, if anyone cares to ask, might be better implemented as the
-  ;; joint arity of all coefficients; but my guess here is that the tangent
-  ;; terms all have to be tracking derivatives of the primal term, which have to
-  ;; have the same arity by definition.
-  f/IArity
-  (arity [_]
-    (f/arity
-     (if (empty? terms)
-       0
-       (coefficient (nth terms 0)))))
-
   #?@(:clj
       ;; This one is slightly subtle. To participate in control flow operations,
       ;; like comparison with both [[Differential]] and non-[[Differential]]
@@ -682,52 +654,7 @@
       ;; non-tagged ("finite") terms. This means that comparison will totally
       ;; ignore any difference in tags.
       [Comparable
-       (compareTo [a b] (compare a b))
-
-       IFn
-       (invoke [this]
-               (d:apply this []))
-       (invoke [this a]
-               (d:apply this [a]))
-       (invoke [this a b]
-               (d:apply this [a b]))
-       (invoke [this a b c]
-               (d:apply this [a b c]))
-       (invoke [this a b c d]
-               (d:apply this [a b c d]))
-       (invoke [this a b c d e]
-               (d:apply this [a b c d e]))
-       (invoke [this a b c d e f]
-               (d:apply this [a b c d e f]))
-       (invoke [this a b c d e f g]
-               (d:apply this [a b c d e f g]))
-       (invoke [this a b c d e f g h]
-               (d:apply this [a b c d e f g h]))
-       (invoke [this a b c d e f g h i]
-               (d:apply this [a b c d e f g h i]))
-       (invoke [this a b c d e f g h i j]
-               (d:apply this [a b c d e f g h i j]))
-       (invoke [this a b c d e f g h i j k]
-               (d:apply this [a b c d e f g h i j k]))
-       (invoke [this a b c d e f g h i j k l]
-               (d:apply this [a b c d e f g h i j k l]))
-       (invoke [this a b c d e f g h i j k l m]
-               (d:apply this [a b c d e f g h i j k l m]))
-       (invoke [this a b c d e f g h i j k l m n]
-               (d:apply this [a b c d e f g h i j k l m n]))
-       (invoke [this a b c d e f g h i j k l m n o]
-               (d:apply this [a b c d e f g h i j k l m n o]))
-       (invoke [this a b c d e f g h i j k l m n o p]
-               (d:apply this [a b c d e f g h i j k l m n o p]))
-       (invoke [this a b c d e f g h i j k l m n o p q]
-               (d:apply this [a b c d e f g h i j k l m n o p q]))
-       (invoke [this a b c d e f g h i j k l m n o p q r]
-               (d:apply this [a b c d e f g h i j k l m n o p q r]))
-       (invoke [this a b c d e f g h i j k l m n o p q r s]
-               (d:apply this [a b c d e f g h i j k l m n o p q r s]))
-       (invoke [this a b c d e f g h i j k l m n o p q r s t]
-               (d:apply this [a b c d e f g h i j k l m n o p q r s t]))
-       (applyTo [this xs] (AFn/applyToHelper this xs))]
+       (compareTo [a b] (compare a b))]
 
       :cljs
       [IEquiv
@@ -738,53 +665,7 @@
 
        IPrintWithWriter
        (-pr-writer [x writer _]
-                   (write-all writer (.toString x)))
-
-       IFn
-       (-invoke [this]
-                (d:apply this []))
-       (-invoke [this a]
-                (d:apply this [a]))
-       (-invoke [this a b]
-                (d:apply this [a b]))
-       (-invoke [this a b c]
-                (d:apply this [a b c]))
-       (-invoke [this a b c d]
-                (d:apply this [a b c d]))
-       (-invoke [this a b c d e]
-                (d:apply this [a b c d e]))
-       (-invoke [this a b c d e f]
-                (d:apply this [a b c d e f]))
-       (-invoke [this a b c d e f g]
-                (d:apply this [a b c d e f g]))
-       (-invoke [this a b c d e f g h]
-                (d:apply this [a b c d e f g h]))
-       (-invoke [this a b c d e f g h i]
-                (d:apply this [a b c d e f g h i]))
-       (-invoke [this a b c d e f g h i j]
-                (d:apply this [a b c d e f g h i j]))
-       (-invoke [this a b c d e f g h i j k]
-                (d:apply this [a b c d e f g h i j k]))
-       (-invoke [this a b c d e f g h i j k l]
-                (d:apply this [a b c d e f g h i j k l]))
-       (-invoke [this a b c d e f g h i j k l m]
-                (d:apply this [a b c d e f g h i j k l m]))
-       (-invoke [this a b c d e f g h i j k l m n]
-                (d:apply this [a b c d e f g h i j k l m n]))
-       (-invoke [this a b c d e f g h i j k l m n o]
-                (d:apply this [a b c d e f g h i j k l m n o]))
-       (-invoke [this a b c d e f g h i j k l m n o p]
-                (d:apply this [a b c d e f g h i j k l m n o p]))
-       (-invoke [this a b c d e f g h i j k l m n o p q]
-                (d:apply this [a b c d e f g h i j k l m n o p q]))
-       (-invoke [this a b c d e f g h i j k l m n o p q r]
-                (d:apply this [a b c d e f g h i j k l m n o p q r]))
-       (-invoke [this a b c d e f g h i j k l m n o p q r s]
-                (d:apply this [a b c d e f g h i j k l m n o p q r s]))
-       (-invoke [this a b c d e f g h i j k l m n o p q r s t]
-                (d:apply this [a b c d e f g h i j k l m n o p q r s t]))
-       (-invoke [this a b c d e f g h i j k l m n o p q r s t rest]
-                (d:apply this (concat [a b c d e f g h i j k l m n o p q r s t] rest)))]))
+                   (write-all writer (.toString x)))]))
 
 #?(:clj
    (defmethod print-method Differential
@@ -1294,23 +1175,13 @@
       ([x y & more]
        (reduce call (call x y) more)))))
 
-;; ## Derivatives of Differentials
+;; ## Generic Method Installation
 ;;
-;; One more treat before we augment the generic arithmetic system. The
-;; derivative operation is linear, so:
+;; Armed with [[lift-1]] and [[lift-2]], we can install [[Differential]] into
+;; the SICMUtils generic arithmetic system.
 ;;
-;; $$D(x+x'\varepsilon) = D(x)+D(x')\varepsilon$$
-;;
-;; This implementation is valid because the coefficients of a [[Differential]]
-;; can be functions.
-
-(defmethod g/partial-derivative [::differential v/seqtype] [a selectors]
-  (let [tag (max-order-tag a)
-        px  (primal-part a tag)
-        tx  (extract-tangent a tag)]
-    (bundle-element (g/partial-derivative px selectors)
-                    (g/partial-derivative tx selectors)
-                    tag)))
+;; Any function built out of these components will work with
+;; the [[sicmutils.calculus.derivative/D]] operator.
 
 (defmethod g/simplify [::differential] [d]
   (->Differential
@@ -1319,14 +1190,6 @@
                       (g/simplify
                        (coefficient term))))
          (bare-terms d))))
-
-;; ## Generic Method Installation
-;;
-;; Armed with [[lift-1]] and [[lift-2]], we can install [[Differential]] into
-;; the SICMUtils generic arithmetic system.
-;;
-;; Any function built out of these components will work with
-;; the [[sicmutils.calculus.derivative/D]] operator.
 
 (defn- defunary
   "Given:

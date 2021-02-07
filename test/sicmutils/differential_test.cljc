@@ -256,28 +256,7 @@
           "providing 10 takes the x*g/square branch")
       (is (= ((derivative (g/* identity g/cube)) 9)
              (Df 9))
-          "providing 9 takes the x*g/cube branch")))
-
-  (checking "applying a Differential with fn coefs works!" 200
-            [xs (gen/vector (sg/reasonable-double) 1 20)]
-            (let [dx      (d/bundle-element 0 1 0)
-                  diff    (apply (d/bundle-element g/+ g/- 0) xs)
-                  [ps ts] (d/primal-tangent-pair diff)]
-              (is (== (apply g/+ xs) ps)
-                  "primal passes through")
-              (is (= (g/* (apply g/- xs) dx) ts)
-                  "tangent part keeps its dx, but applies fn")
-
-              (is (== (d/extract-tangent diff 0)
-                      (d/extract-tangent ts 0))
-                  "the tangent extracted from the tangent-part is identical to
-                   the `extract-tangent` of the full diff")))
-
-  (testing "partial-derivative of a differential"
-    (let [D #(g/partial-derivative % [])]
-      (is (= ((d/bundle-element (D g/sin) (D g/cos) 0) 't)
-             ((D (d/bundle-element g/sin g/cos 0)) 't))
-          "partial-derivative is linear through a differential"))))
+          "providing 9 takes the x*g/cube branch"))))
 
 (deftest active-tag-tests
   (testing "with-active-tag works"
