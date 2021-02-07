@@ -68,7 +68,7 @@
   (kind [_] type)
 
   Object
-  (toString [_] (str expression))
+  (toString [_] (pr-str expression))
   #?(:cljs
      (valueOf [this]
               (cond (number? expression)   expression
