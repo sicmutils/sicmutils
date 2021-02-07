@@ -29,14 +29,50 @@
 
 (def ^:private near (v/within 1e-6))
 
-(deftest compile-univariate-tests
-  (let [f  (fn [x] (+ 1 (g/square (g/sin x))))
-        cf         (c/compile-univariate-fn f)
-        cf2        (c/compile-univariate-fn f)
-        cf-nocache (c/compile-univariate-fn* f)]
-    (is (= (f 0.5) (cf 0.5) (cf2 0.5) (cf-nocache 0.5))
+(deftest compile-fn-test
+  (let [f          (fn [x] (+ 1 (g/square (g/sin x))))
+        cf         (c/compile-fn f)
+        cf2        (c/compile-fn f)
+        cf-nocache (c/compile-fn* f)]
+    (is (= (f 0.5)
+           (cf 0.5)
+           (cf2 0.5)
+           (cf-nocache 0.5))
         "the fn has no simplifications available so the results are identical;
-        the compiled fn is faster.")))
+        the compiled fn is faster."))
+
+  (testing "multivariate function, arity detection"
+    (let [f3 (fn [x y z]
+               (g/sqrt
+                (+ (g/square x)
+                   (g/square y)
+                   (g/square z))))]
+      (is (= (f3 1 2 3)
+             ((c/compile-fn f3) 1 2 3)
+             ((c/compile-fn f3) 1 2 3)
+             ((c/compile-fn* f3) 1 2 3))
+          "multi-arity functions work.")))
+
+  (testing "compile-fn can only detect single-arity fns"
+    (let [f (fn
+              ([x] x)
+              ([x y z]
+               (g/sqrt
+                (+ (g/square x)
+                   (g/square y)
+                   (g/square z)))))]
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (c/compile-fn f))
+          "you have to specify an arity for compile-fn to work on a multi-arity
+          fn.")
+      (is (= 1
+             (f 1)
+             ((c/compile-fn f 1) 1))
+          "If you specify an arity, you avoid the error.")
+
+      (is (== 3.0 (f 1 2 2)))
+      (is (== (f 1 2 2) ((c/compile-fn f 3) 1 2 2))
+          "If you specify an arity, you avoid the error."))))
 
 (deftest compile-state-tests
   (let [f  (fn [[[a b] [c d]]]
