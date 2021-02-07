@@ -27,14 +27,11 @@
   (:refer-clojure :rename {compare core-compare}
                   #?@(:cljs [:exclude [compare]]))
   (:require [clojure.string :refer [join]]
-            [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.util.stream :as us]
             [sicmutils.util.vector-set :as uv]
-            [sicmutils.value :as v])
-  #?(:clj
-     (:import (clojure.lang AFn IFn))))
+            [sicmutils.value :as v]))
 
 ;; Differentials, Dual Numbers and Automatic Differentiation
 ;;
@@ -298,15 +295,7 @@
 ;;
 ;; But this implies that [[extract-tangent]] from the example above needs to
 ;; know how to handle vectors and other collections; in the case of a vector `v`
-;; by returning `(mapv extract-tangent v)`
-;;
-;; The way that [[Differential]] instances interact with container types in
-;; SICMUtils makes it easy for these captures to occur all over. Whenever we
-;; multiply a [[Differential]] by a structure, a function, a vector, any of
-;; those things, our implementation of the SICMUtils generics pushes
-;; the [[Differential]] inside those objects, rather than forming
-;; a [[Differential]] with, for example, a vector in the primal and tangent
-;; parts.
+;; by returning `(mapv extract-tangent v)`.
 ;;
 ;; What about higher-order functions?
 
@@ -658,23 +647,6 @@
                          terms)]
       (str "D[" (join " " term-strs) "]")))
 
-  ;; Because a [[Differential]] is an accounting device that augments other
-  ;; operations with the ability to carry around derivatives, it's possible that
-  ;; the coefficient slots could be occupied by function objects. If so, then it
-  ;; becomes possible to "apply" a [[Differential]] to some arguments (apply
-  ;; each coefficient to the arguments).
-  ;;
-  ;; NOTE: the arity, if anyone cares to ask, might be better implemented as the
-  ;; joint arity of all coefficients; but my guess here is that the tangent
-  ;; terms all have to be tracking derivatives of the primal term, which have to
-  ;; have the same arity by definition.
-  f/IArity
-  (arity [_]
-    (f/arity
-     (if (empty? terms)
-       0
-       (coefficient (nth terms 0)))))
-
   #?@(:clj
       ;; This one is slightly subtle. To participate in control flow operations,
       ;; like comparison with both [[Differential]] and non-[[Differential]]
@@ -682,52 +654,7 @@
       ;; non-tagged ("finite") terms. This means that comparison will totally
       ;; ignore any difference in tags.
       [Comparable
-       (compareTo [a b] (compare a b))
-
-       IFn
-       (invoke [this]
-               (d:apply this []))
-       (invoke [this a]
-               (d:apply this [a]))
-       (invoke [this a b]
-               (d:apply this [a b]))
-       (invoke [this a b c]
-               (d:apply this [a b c]))
-       (invoke [this a b c d]
-               (d:apply this [a b c d]))
-       (invoke [this a b c d e]
-               (d:apply this [a b c d e]))
-       (invoke [this a b c d e f]
-               (d:apply this [a b c d e f]))
-       (invoke [this a b c d e f g]
-               (d:apply this [a b c d e f g]))
-       (invoke [this a b c d e f g h]
-               (d:apply this [a b c d e f g h]))
-       (invoke [this a b c d e f g h i]
-               (d:apply this [a b c d e f g h i]))
-       (invoke [this a b c d e f g h i j]
-               (d:apply this [a b c d e f g h i j]))
-       (invoke [this a b c d e f g h i j k]
-               (d:apply this [a b c d e f g h i j k]))
-       (invoke [this a b c d e f g h i j k l]
-               (d:apply this [a b c d e f g h i j k l]))
-       (invoke [this a b c d e f g h i j k l m]
-               (d:apply this [a b c d e f g h i j k l m]))
-       (invoke [this a b c d e f g h i j k l m n]
-               (d:apply this [a b c d e f g h i j k l m n]))
-       (invoke [this a b c d e f g h i j k l m n o]
-               (d:apply this [a b c d e f g h i j k l m n o]))
-       (invoke [this a b c d e f g h i j k l m n o p]
-               (d:apply this [a b c d e f g h i j k l m n o p]))
-       (invoke [this a b c d e f g h i j k l m n o p q]
-               (d:apply this [a b c d e f g h i j k l m n o p q]))
-       (invoke [this a b c d e f g h i j k l m n o p q r]
-               (d:apply this [a b c d e f g h i j k l m n o p q r]))
-       (invoke [this a b c d e f g h i j k l m n o p q r s]
-               (d:apply this [a b c d e f g h i j k l m n o p q r s]))
-       (invoke [this a b c d e f g h i j k l m n o p q r s t]
-               (d:apply this [a b c d e f g h i j k l m n o p q r s t]))
-       (applyTo [this xs] (AFn/applyToHelper this xs))]
+       (compareTo [a b] (compare a b))]
 
       :cljs
       [IEquiv
@@ -738,53 +665,7 @@
 
        IPrintWithWriter
        (-pr-writer [x writer _]
-                   (write-all writer (.toString x)))
-
-       IFn
-       (-invoke [this]
-                (d:apply this []))
-       (-invoke [this a]
-                (d:apply this [a]))
-       (-invoke [this a b]
-                (d:apply this [a b]))
-       (-invoke [this a b c]
-                (d:apply this [a b c]))
-       (-invoke [this a b c d]
-                (d:apply this [a b c d]))
-       (-invoke [this a b c d e]
-                (d:apply this [a b c d e]))
-       (-invoke [this a b c d e f]
-                (d:apply this [a b c d e f]))
-       (-invoke [this a b c d e f g]
-                (d:apply this [a b c d e f g]))
-       (-invoke [this a b c d e f g h]
-                (d:apply this [a b c d e f g h]))
-       (-invoke [this a b c d e f g h i]
-                (d:apply this [a b c d e f g h i]))
-       (-invoke [this a b c d e f g h i j]
-                (d:apply this [a b c d e f g h i j]))
-       (-invoke [this a b c d e f g h i j k]
-                (d:apply this [a b c d e f g h i j k]))
-       (-invoke [this a b c d e f g h i j k l]
-                (d:apply this [a b c d e f g h i j k l]))
-       (-invoke [this a b c d e f g h i j k l m]
-                (d:apply this [a b c d e f g h i j k l m]))
-       (-invoke [this a b c d e f g h i j k l m n]
-                (d:apply this [a b c d e f g h i j k l m n]))
-       (-invoke [this a b c d e f g h i j k l m n o]
-                (d:apply this [a b c d e f g h i j k l m n o]))
-       (-invoke [this a b c d e f g h i j k l m n o p]
-                (d:apply this [a b c d e f g h i j k l m n o p]))
-       (-invoke [this a b c d e f g h i j k l m n o p q]
-                (d:apply this [a b c d e f g h i j k l m n o p q]))
-       (-invoke [this a b c d e f g h i j k l m n o p q r]
-                (d:apply this [a b c d e f g h i j k l m n o p q r]))
-       (-invoke [this a b c d e f g h i j k l m n o p q r s]
-                (d:apply this [a b c d e f g h i j k l m n o p q r s]))
-       (-invoke [this a b c d e f g h i j k l m n o p q r s t]
-                (d:apply this [a b c d e f g h i j k l m n o p q r s t]))
-       (-invoke [this a b c d e f g h i j k l m n o p q r s t rest]
-                (d:apply this (concat [a b c d e f g h i j k l m n o p q r s t] rest)))]))
+                   (write-all writer (.toString x)))]))
 
 #?(:clj
    (defmethod print-method Differential
@@ -862,6 +743,34 @@
 
 ;; ## Differential API
 ;;
+;; These first two functions create a way to globally declare, via a dynamic
+;; binding, the stack of tags that are currently in play. If three nested
+;; derivatives are being taken, [[*active-tags*]] will contain three entries
+;; from a perspective inside the function at the deepest level.
+;;
+;; The [[IPerturbed]] implementation for functions uses this information to
+;; determine whether or not to use [[replace-tag]] to protect its tag from
+;; perturbation confusion. If some higher level is not trying to extract the
+;; same tag, there's no need.
+
+(def ^:dynamic *active-tags* [])
+
+(defn with-active-tag
+  "Like `apply`, but conj-es `tag` onto the dynamic variable [[*active-tags*]]
+  inside the scope of `f`.
+
+  Returns the result of applying `f` to `args`."
+  [tag f args]
+  (binding [*active-tags* (conj *active-tags* tag)]
+    (apply f args)))
+
+(defn tag-active?
+  "Returns true if `tag` is an element of [[*active-tags*]] (and therefore pending
+  for extraction by some nested derivative), false otherwise."
+  [tag]
+  (boolean
+   (some #{tag} (rseq *active-tags*))))
+
 ;; This next section lifts slightly-augmented versions of [[terms:+]]
 ;; and [[terms:*]] up to operate on [[Differential]] instances. These work just
 ;; as before, but handle wrapping and unwrapping the term list.
@@ -1183,18 +1092,25 @@
   Returns a new unary function that operates on both the original type of `f`
   and [[Differential]] instances.
 
+  If called without `df:dx`, `df:dx` defaults to `(f :dfdx)`; this will return
+  the derivative registered to a generic function defined with [[g/defgeneric]].
+
   NOTE: `df:dx` has to ALREADY be able to handle [[Differential]] instances. The
   best way to accomplish this is by building `df:dx` out of already-lifted
   functions, and declaring them by forward reference if you need to."
-  [f df:dx]
-  (fn call [x]
-    (if-not (differential? x)
-      (f x)
-      (let [[px tx] (primal-tangent-pair x)
-            fx      (call px)]
-        (if (and (v/number? tx) (v/zero? tx))
-          fx
-          (d:+ fx (d:* (df:dx px) tx)))))))
+  ([f]
+   (if-let [df:dx (f :dfdx)]
+     (lift-1 f df:dx)
+     (u/illegal "No df:dx supplied for `f` or registered generically.")))
+  ([f df:dx]
+   (fn call [x]
+     (if-not (differential? x)
+       (f x)
+       (let [[px tx] (primal-tangent-pair x)
+             fx      (call px)]
+         (if (and (v/number? tx) (v/zero? tx))
+           fx
+           (d:+ fx (d:* (df:dx px) tx))))))))
 
 (defn lift-2
   "Given:
@@ -1211,21 +1127,27 @@
   instances. The best way to accomplish this is by building `df:dx` and `df:dy`
   out of already-lifted functions, and declaring them by forward reference if
   you need to."
-  [f df:dx df:dy]
-  (fn call [x y]
-    (if-not (or (differential? x)
-                (differential? y))
-      (f x y)
-      (let [tag     (max-order-tag x y)
-            [xe dx] (primal-tangent-pair x tag)
-            [ye dy] (primal-tangent-pair y tag)
-            a (call xe ye)
-            b (if (and (v/number? dx) (v/zero? dx))
-                a
-                (d:+ a (d:* (df:dx xe ye) dx)))]
-        (if (and (v/number? dy) (v/zero? dy))
-          b
-          (d:+ b (d:* (df:dy xe ye) dy)))))))
+  ([f]
+   (let [df:dx (f :dfdx)
+         df:dy (f :dfdy)]
+     (if (and df:dx df:dy)
+       (lift-2 f df:dx df:dy)
+       (u/illegal "No df:dx, df:dy supplied for `f` or registered generically."))))
+  ([f df:dx df:dy]
+   (fn call [x y]
+     (if-not (or (differential? x)
+                 (differential? y))
+       (f x y)
+       (let [tag     (max-order-tag x y)
+             [xe dx] (primal-tangent-pair x tag)
+             [ye dy] (primal-tangent-pair y tag)
+             a (call xe ye)
+             b (if (and (v/number? dx) (v/zero? dx))
+                 a
+                 (d:+ a (d:* (df:dx xe ye) dx)))]
+         (if (and (v/number? dy) (v/zero? dy))
+           b
+           (d:+ b (d:* (df:dy xe ye) dy))))))))
 
 (defn lift-n
   "Given:
@@ -1253,23 +1175,13 @@
       ([x y & more]
        (reduce call (call x y) more)))))
 
-;; ## Derivatives of Differentials
+;; ## Generic Method Installation
 ;;
-;; One more treat before we augment the generic arithmetic system. The
-;; derivative operation is linear, so:
+;; Armed with [[lift-1]] and [[lift-2]], we can install [[Differential]] into
+;; the SICMUtils generic arithmetic system.
 ;;
-;; $$D(x+x'\varepsilon) = D(x)+D(x')\varepsilon$$
-;;
-;; This implementation is valid because the coefficients of a [[Differential]]
-;; can be functions.
-
-(defmethod g/partial-derivative [::differential v/seqtype] [a selectors]
-  (let [tag (max-order-tag a)
-        px  (primal-part a tag)
-        tx  (extract-tangent a tag)]
-    (bundle-element (g/partial-derivative px selectors)
-                    (g/partial-derivative tx selectors)
-                    tag)))
+;; Any function built out of these components will work with
+;; the [[sicmutils.calculus.derivative/D]] operator.
 
 (defmethod g/simplify [::differential] [d]
   (->Differential
@@ -1278,14 +1190,6 @@
                       (g/simplify
                        (coefficient term))))
          (bare-terms d))))
-
-;; ## Generic Method Installation
-;;
-;; Armed with [[lift-1]] and [[lift-2]], we can install [[Differential]] into
-;; the SICMUtils generic arithmetic system.
-;;
-;; Any function built out of these components will work with
-;; the [[sicmutils.calculus.derivative/D]] operator.
 
 (defn- defunary
   "Given:
@@ -1317,119 +1221,41 @@
 ;; operations for which we know how to declare partial derivatives.
 
 (defbinary g/add d:+)
+(defunary g/negate (lift-1 g/negate))
+(defbinary g/sub (lift-2 g/sub))
 
-(defunary g/negate
-  (lift-1 g/negate (fn [_] -1)))
-
-(defunary g/negative?
-  (fn [x] (g/negative? (finite-term x))))
-
-(defbinary g/sub
-  (lift-2 g/sub
-          (fn [_ _] 1)
-          (fn [_ _] -1)))
-
-(let [mul (lift-2
-           g/mul
-           (fn [_ y] y)
-           (fn [x _] x))]
+(let [mul (lift-2 g/mul)]
   (defbinary g/mul mul)
   (defunary g/square (fn [x] (mul x x)))
   (defunary g/cube (fn [x] (mul x (mul x x))))
   (defbinary g/dot-product mul))
 
-(defunary g/invert
-  (lift-1 g/invert
-          (fn [x] (g/div -1 (g/square x)))))
+(defunary g/invert (lift-1 g/invert))
+(defbinary g/div (lift-2 g/div))
 
-(defbinary g/div
-  (lift-2 g/div
-          (fn [_ y] (g/div 1 y))
-          (fn [x y] (g/div (g/negate x)
-                          (g/square y)))))
+(defunary g/negative?
+  (fn [x] (g/negative? (finite-term x))))
 
 (defunary g/abs
   (fn [x]
     (let [f (finite-term x)
-          func (cond (< f 0) (lift-1 g/negate (fn [_] -1))
+          func (cond (< f 0) (lift-1 g/negate)
                      (> f 0) (lift-1 identity (fn [_] 1))
                      (= f 0) (u/illegal "Derivative of g/abs undefined at zero")
                      :else (u/illegal (str "error! derivative of g/abs at" x)))]
       (func x))))
 
-(defunary g/sqrt
-  (lift-1 g/sqrt
-          (fn [x]
-            (g/invert
-             (g/mul (g/sqrt x) 2)))))
-
-(defbinary g/expt
-  (lift-2 g/expt
-          (fn [x y]
-            (g/mul y (g/expt x (g/sub y 1))))
-          (fn [x y]
-            (if (and (v/number? x) (v/zero? y))
-              (if (v/number? y)
-                (if (not (g/negative? y))
-                  0
-                  (u/illegal "Derivative undefined: expt"))
-                0)
-              (g/* (g/log x) (g/expt x y))))))
-
-(defunary g/log
-  (lift-1 g/log g/invert))
-
-(defunary g/exp
-  (lift-1 g/exp g/exp))
-
-(defunary g/sin
-  (lift-1 g/sin g/cos))
-
-(defunary g/cos
-  (lift-1 g/cos
-          (fn [x] (g/negate (g/sin x)))))
-
-(defunary g/tan
-  (lift-1 g/tan
-          (fn [x]
-            (g/invert
-             (g/square (g/cos x))))))
-
-(defunary g/asin
-  (lift-1 g/asin
-          (fn [x]
-            (g/invert
-             (g/sqrt (g/sub 1 (g/square x)))))))
-
-(defunary g/acos
-  (lift-1 g/acos
-          (fn [x]
-            (g/negate
-             (g/invert
-              (g/sqrt (g/sub 1 (g/square x))))))))
-
-(defunary g/atan
-  (lift-1 g/atan (fn [x]
-                   (g/invert
-                    (g/add 1 (g/square x))))))
-
-(defbinary g/atan
-  (lift-2 g/atan
-          (fn [y x]
-            (g/div x (g/add (g/square x)
-                            (g/square y))))
-          (fn [y x]
-            (g/div (g/negate y)
-                   (g/add (g/square x)
-                          (g/square y))))))
-
-(defunary g/sinh
-  (lift-1 g/sinh g/cosh))
-
-(defunary g/cosh
-  (lift-1 g/cosh g/sinh))
-
-(defunary g/tanh
-  (lift-1 g/tanh
-          (fn [x]
-            (g/sub 1 (g/square (g/tanh x))))))
+(defunary g/sqrt (lift-1 g/sqrt))
+(defbinary g/expt (lift-2 g/expt))
+(defunary g/log (lift-1 g/log))
+(defunary g/exp (lift-1 g/exp))
+(defunary g/sin (lift-1 g/sin))
+(defunary g/cos (lift-1 g/cos))
+(defunary g/tan (lift-1 g/tan))
+(defunary g/asin (lift-1 g/asin))
+(defunary g/acos (lift-1 g/acos))
+(defunary g/atan (lift-1 g/atan))
+(defbinary g/atan (lift-2 g/atan))
+(defunary g/sinh (lift-1 g/sinh))
+(defunary g/cosh (lift-1 g/cosh))
+(defunary g/tanh (lift-1 g/tanh))

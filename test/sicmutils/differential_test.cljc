@@ -256,28 +256,20 @@
           "providing 10 takes the x*g/square branch")
       (is (= ((derivative (g/* identity g/cube)) 9)
              (Df 9))
-          "providing 9 takes the x*g/cube branch")))
+          "providing 9 takes the x*g/cube branch"))))
 
-  (checking "applying a Differential with fn coefs works!" 200
-            [xs (gen/vector (sg/reasonable-double) 1 20)]
-            (let [dx      (d/bundle-element 0 1 0)
-                  diff    (apply (d/bundle-element g/+ g/- 0) xs)
-                  [ps ts] (d/primal-tangent-pair diff)]
-              (is (== (apply g/+ xs) ps)
-                  "primal passes through")
-              (is (= (g/* (apply g/- xs) dx) ts)
-                  "tangent part keeps its dx, but applies fn")
+(deftest active-tag-tests
+  (testing "with-active-tag works"
+    (is (not (d/tag-active? 'tag))
+        "this tag is not active if it's not bound.")
 
-              (is (== (d/extract-tangent diff 0)
-                      (d/extract-tangent ts 0))
-                  "the tangent extracted from the tangent-part is identical to
-                   the `extract-tangent` of the full diff")))
-
-  (testing "partial-derivative of a differential"
-    (let [D #(g/partial-derivative % [])]
-      (is (= ((d/bundle-element (D g/sin) (D g/cos) 0) 't)
-             ((D (d/bundle-element g/sin g/cos 0)) 't))
-          "partial-derivative is linear through a differential"))))
+    (is (= 6 (d/with-active-tag 'tag
+               (fn [& xs]
+                 (is (d/tag-active? 'tag)
+                     "the supplied tag is active inside the scope of `f`.")
+                 (reduce + xs))
+               [1 2 3]))
+        "d/with-active-tag calls its fn with the supplied args.")))
 
 (deftest differential-arithmetic-tests
   (checking "(d:+ diff 0) == (d:+ 0 diff) == diff" 100 [diff real-diff-gen]

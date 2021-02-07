@@ -177,7 +177,15 @@
             (is (=  (+ 1 (Math/cos x))
                     (g/+ 1 (g/cos x)))
                 "You get a floating-point inexact result by calling generic fns
-    on a number directly, by comparison.")))
+    on a number directly, by comparison."))
+
+  (testing "literal-number properly prints wrapped sequences, even if they're lazy."
+    (is (= "(* 2 x)"
+           (pr-str
+            (an/literal-number (g/simplify (g/* 'x 2))))))
+    (is (= "(* x 2)"
+           (pr-str
+            (an/literal-number (lazy-seq ['* 'x 2])))))))
 
 ;; Generators
 
