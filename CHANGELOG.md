@@ -9,6 +9,22 @@
 - `sicmutils.expression.render/->infix` and `sicmutils.expression.render/->TeX`
   now handle equality/inequality symbols (`=`, `>=`, `>`, ...) as infix (#257).
 
+- #253 adds proper `:arglists` metadata for all generic functions, and moves the
+  derivative implementations (where relevant) onto the metadata of generic
+  functions. You can access these by calling `(<generic-function> :dfdx)` or
+  `(<generic-function> :dfdy)`, depending on whether the generic is unary or
+  binary. #253 also changes the name of macro
+  `sicmutils.generic/def-generic-function` to `sicmutils.generic/defgeneric`.
+
+- As of #232, `sicmutils.expression.compile/compile-univariate-fn` is now
+  `compile-fn` (same change for the non-cached `compile-fn*` in the same
+  namespace). The new implementation can compile arguments of any arity, not
+  just arity == 1. The new version takes an arity parameter `n` that defaults to
+  `(sicmutils.function/arity f)`.
+
+- `sicmutils.expression.render/->infix` and `sicmutils.expression.render/->TeX` now
+  handle equality/inequality symbols (`=`, `>=`, `>`, ...) as infix.
+
 - `sicmutils.expression.render/*TeX-sans-serif-symbols*` binding to control if
   symbols longer than 1 char should have `\mathsf` applied (#258).
 

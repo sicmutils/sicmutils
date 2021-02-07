@@ -22,7 +22,7 @@
                   :exclude [/ + - * divide #?(:cljs mod)])
   (:require [sicmutils.value :as v]
             [sicmutils.util :as u])
-  #?(:cljs (:require-macros [sicmutils.generic :refer [def-generic-function]]))
+  #?(:cljs (:require-macros [sicmutils.generic :refer [defgeneric]]))
   #?(:clj
      (:import [clojure.lang Keyword LazySeq PersistentVector Symbol Var])))
 
@@ -37,12 +37,26 @@
       cljs
       clj)))
 
-(defmacro ^:private def-generic-function
+(def ^:private lowercase-symbols
+  (map (comp symbol str char)
+       (range 97 123)))
+
+(defn- arglists
+  "returns a list of :arglists entries appropriate for a generic function with
+  arities between `a` and `b` inclusive."
+  [a b]
+  (let [arities (if b
+                  (range a (inc b))
+                  [a])]
+    (map #(into [] (take %) lowercase-symbols)
+         arities)))
+
+(defmacro ^:private defgeneric
   "Defines a multifn using the provided symbol. Arranges for the multifn
   to answer the :arity message, reporting either [:exactly a] or
   [:between a b], according to the arguments given.
 
-  - `arities` can be either a single number or a list of numbers.
+  - `arities` can be either a single or a vector of 2 numbers.
 
   The `options` allowed differs slightly from `defmulti`:
 
@@ -56,7 +70,7 @@
   Any remaining options are passed along to `defmulti`."
   {:arglists '([name arities docstring? attr-map? & options])}
   [f arities & options]
-  (let [[a b] (if (vector? arities) arities [arities])
+  (let [[a b]     (if (vector? arities) arities [arities])
         arity     (if b [:between a b] [:exactly a])
         docstring (if (string? (first options))
                     (str "generic " f ".\n\n" (first options))
@@ -72,35 +86,80 @@
                     :arity arity
                     :name (:name attr `'~f))]
     `(do
-       (defmulti ~f ~docstring v/argument-kind ~@options)
+       (defmulti ~f
+         ~docstring
+         {:arglists '~(arglists a b)}
+         v/argument-kind ~@options)
        (defmethod ~f [~kwd-klass] [k#]
          (~attr k#)))))
 
 ;; Numeric functions.
-(def-generic-function add 2    {:name '+})
-(def-generic-function negate 1 {:name '-})
-(def-generic-function negative? 1
-  "Returns true if the argument `a` is less than `(v/zero-like a), false
+(defgeneric add 2
+  "Returns the sum of arguments `a` and `b`.
+
+See [[+]] for a variadic version of [[add]]."
+  {:name '+
+   :dfdx (fn [_ _] 1)
+   :dfdy (fn [_ _] 1)})
+
+(defgeneric negate 1
+  "Returns the negation of `a`. Equivalent to `([[sub]] 0 a)`."
+  {:name '-
+   :dfdx (fn [_] -1)})
+
+(defgeneric negative? 1
+  "Returns true if the argument `a` is less than `([[v/zero-like]] a)`, false
   otherwise. The default implementation depends on a proper Comparable
   implementation on the type.`")
+
 (defmethod negative? :default [a] (< a (v/zero-like a)))
 
-(def-generic-function sub 2 {:name '-})
+(defgeneric sub 2
+  "Returns the difference of `a` and `b`. Equivalent to `([[add]] a ([[negate]]
+  b))`.
+
+See [[-]] for a variadic version of [[sub]]."
+  {:name '-
+   :dfdx (fn [_ _] 1)
+   :dfdy (fn [_ _] -1)})
+
 (defmethod sub :default [a b]
   (add a (negate b)))
 
-(def-generic-function mul 2 {:name '*})
-(def-generic-function invert 1 {:name '/})
+(defgeneric mul 2
+  "Returns the product of `a` and `b`.
 
-(def-generic-function div 2 {:name '/})
-(defmethod div :default [a b] (mul a (invert b)))
+See [[*]] for a variadic version of [[mul]]."
+  {:name '*
+   :dfdx (fn [_ y] y)
+   :dfdy (fn [x _] x)})
 
-(def-generic-function abs 1)
-(def-generic-function sqrt 1)
-(def-generic-function quotient 2)
+(declare div)
 
-(def-generic-function remainder 2)
-(def-generic-function modulo 2)
+(defgeneric invert 1
+  {:name '/
+   :dfdx (fn [x] (div -1 (mul x x)))})
+
+(defgeneric div 2
+  {:name '/
+   :dfdx (fn [_ y] (div 1 y))
+   :dfdy (fn [x y] (div (negate x)
+                       (mul y y)))})
+
+(defmethod div :default [a b]
+  (mul a (invert b)))
+
+(defgeneric abs 1)
+
+(defgeneric sqrt 1
+  {:dfdx (fn [x]
+           (invert
+            (mul (sqrt x) 2)))})
+
+(defgeneric quotient 2)
+
+(defgeneric remainder 2)
+(defgeneric modulo 2)
 (defmethod modulo :default [a b]
   (let [m (remainder a b)]
     (if (or (v/zero? m)
@@ -109,7 +168,20 @@
       m
       (add m b))))
 
-(def-generic-function expt 2)
+(declare log)
+
+(defgeneric expt 2
+  {:dfdx (fn [x y]
+           (mul y (expt x (sub y 1))))
+   :dfdy (fn [x y]
+           (if (and (v/number? x) (v/zero? y))
+             (if (v/number? y)
+               (if (not (negative? y))
+                 0
+                 (u/illegal "Derivative undefined: expt"))
+               0)
+             (mul (log x) (expt x y))))})
+
 (defmethod expt :default [s e]
   {:pre [(v/native-integral? e)]}
   (let [kind (v/kind s)]
@@ -129,87 +201,127 @@
               :else (invert (expt' s (negate e)))))
       (u/illegal (str "No g/mul implementation registered for kind " kind)))))
 
-(def-generic-function exp 1
+(defgeneric exp 1
   "Returns the base-e exponential of `x`. Equivalent to `(expt e x)`, given
-  some properly-defined `e` symbol.")
+  some properly-defined `e` symbol."
+  {:dfdx exp})
 
-(def-generic-function exp2 1
+(defgeneric exp2 1
   "Returns the base-2 exponential of `x`. Equivalent to `(expt 2 x)`.")
 
 (defmethod exp2 :default [x] (expt 2 x))
 
-(def-generic-function exp10 1
+(defgeneric exp10 1
   "Returns the base-10 exponential of `x`. Equivalent to `(expt 10 x)`.")
 
 (defmethod exp10 :default [x] (expt 10 x))
 
-(def-generic-function log 1
-  "Returns the natural logarithm of `x`.")
+(defgeneric log 1
+  "Returns the natural logarithm of `x`."
+  {:dfdx invert})
 
-(def-generic-function log2 1
+(defgeneric log2 1
   "Returns the base-2 logarithm of `x`, ie, $log_2(x)$.")
 
 (let [l2 (Math/log 2)]
   (defmethod log2 :default [x] (div (log x) l2)))
 
-(def-generic-function log10 1
+(defgeneric log10 1
   "Returns the base-10 logarithm of `x`, ie, $log_10(x)$.")
 
 (let [l10 (Math/log 10)]
   (defmethod log10 :default [x] (div (log x) l10)))
 
-(def-generic-function gcd 2)
-(def-generic-function lcm 2)
-(def-generic-function exact-divide 2)
+(defgeneric gcd 2)
+(defgeneric lcm 2)
+(defgeneric exact-divide 2)
 
-(def-generic-function square 1)
+(defgeneric square 1)
 (defmethod square :default [x] (expt x 2))
 
-(def-generic-function cube 1)
+(defgeneric cube 1)
 (defmethod cube :default [x] (expt x 3))
 
 ;; Trigonometric functions.
-(def-generic-function cos 1)
-(def-generic-function sin 1)
-(def-generic-function asin 1)
-(def-generic-function acos 1)
-(def-generic-function atan [1 2])
-(def-generic-function cosh 1)
-(def-generic-function sinh 1)
+
+(declare sin)
+
+(defgeneric cos 1
+  {:dfdx (fn [x] (negate (sin x)))})
+
+(defgeneric sin 1 {:dfdx cos})
+
+(defgeneric asin 1
+  {:dfdx (fn [x]
+           (invert
+            (sqrt (sub 1 (square x)))))})
+
+(defgeneric acos 1
+  {:dfdx (fn [x]
+           (negate
+            (invert
+             (sqrt (sub 1 (square x))))))})
+
+(defgeneric atan [1 2]
+  {:dfdx (fn
+           ([x]
+            (invert (add 1 (square x))))
+           ([y x]
+            (div x (add (square x)
+                        (square y)))))
+   :dfdy (fn [y x]
+           (div (negate y)
+                (add (square x)
+                     (square y))))})
+
+(declare sinh)
+
+(defgeneric cosh 1
+  {:dfdx sinh})
+
+(defgeneric sinh 1
+  {:dfdx cosh})
 
 ;; Trig functions with default implementations provided.
-(def-generic-function tan 1)
+(defgeneric tan 1
+  {:dfdx (fn [x]
+           (invert
+            (square (cos x))))})
+
 (defmethod tan :default [x] (div (sin x) (cos x)))
 
-(def-generic-function cot 1)
+(defgeneric cot 1)
 (defmethod cot :default [x] (div (cos x) (sin x)))
 
-(def-generic-function sec 1)
+(defgeneric sec 1)
 (defmethod sec :default [x] (invert (cos x)))
 
-(def-generic-function csc 1)
+(defgeneric csc 1)
 (defmethod csc :default [x] (invert (sin x)))
 
-(def-generic-function tanh 1)
+(defgeneric tanh 1
+  {:dfdx (fn [x]
+           (sub 1 (square (tanh x))))})
+
 (defmethod tanh :default [x] (div (sinh x) (cosh x)))
 
-(def-generic-function sech 1)
+(defgeneric sech 1)
 (defmethod sech :default [x] (invert (cosh x)))
 
-(def-generic-function csch 1)
+(defgeneric csch 1)
 (defmethod csch :default [x] (invert (sinh x)))
 
-(def-generic-function acosh 1)
+(defgeneric acosh 1)
 (defmethod acosh :default [x]
   (mul 2 (log (add
                (sqrt (div (add x 1) 2))
                (sqrt (div (sub x 1) 2))))))
 
-(def-generic-function asinh 1)
+(defgeneric asinh 1)
 (defmethod asinh :default [x]
   (log (add x (sqrt (add 1 (square x))))))
 
-(def-generic-function atanh 1)
+(defgeneric atanh 1)
 (defmethod atanh :default [x]
   (div (sub (log (add 1 x))
             (log (sub 1 x)))
@@ -217,24 +329,24 @@
 
 ;; Complex Operators
 
-(def-generic-function make-rectangular 2)
-(def-generic-function make-polar 2)
-(def-generic-function real-part 1)
-(def-generic-function imag-part 1)
-(def-generic-function magnitude 1)
-(def-generic-function angle 1)
-(def-generic-function conjugate 1)
+(defgeneric make-rectangular 2)
+(defgeneric make-polar 2)
+(defgeneric real-part 1)
+(defgeneric imag-part 1)
+(defgeneric magnitude 1)
+(defgeneric angle 1)
+(defgeneric conjugate 1)
 
 ;; Operations on structures
 
-(def-generic-function transpose 1)
-(def-generic-function trace 1)
-(def-generic-function determinant 1)
-(def-generic-function dimension 1)
-(def-generic-function dot-product 2)
-(def-generic-function inner-product 2)
-(def-generic-function outer-product 2)
-(def-generic-function cross-product 2)
+(defgeneric transpose 1)
+(defgeneric trace 1)
+(defgeneric determinant 1)
+(defgeneric dimension 1)
+(defgeneric dot-product 2)
+(defgeneric inner-product 2)
+(defgeneric outer-product 2)
+(defgeneric cross-product 2)
 
 ;; Structure Defaults
 
@@ -246,7 +358,7 @@
 (defmethod inner-product [::v/scalar ::v/scalar] [l r] (mul (conjugate l) r))
 
 ;; More advanced generic operations.
-(def-generic-function Lie-derivative 1)
+(defgeneric Lie-derivative 1)
 
 (defmulti partial-derivative v/argument-kind)
 (defmethod partial-derivative [Keyword] [k]
