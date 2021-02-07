@@ -73,7 +73,7 @@
   (exact? [_] false)
   (freeze [_]
     (let [prefix (g/simplify (take 4 xs))]
-      `[~'Series ~@prefix ~'...]))
+      `(~'+ ~@prefix ~'...)))
   (kind [_] ::series)
 
   Object
@@ -227,8 +227,9 @@
   (identity-like [_] identity)
   (exact? [_] false)
   (freeze [_]
-    (let [prefix (g/simplify (take 4 xs))]
-      `[~'PowerSeries ~@prefix ~'...]))
+    (let [prefix (map-indexed (fn [n a] `(~'* ~a (~'expt ~'_ ~n)))
+                              (g/simplify (take 4 xs)))]
+      `(~'+ ~@prefix ~'...)))
   (kind [_] ::power-series)
 
   Object

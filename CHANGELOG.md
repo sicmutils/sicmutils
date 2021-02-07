@@ -4,6 +4,9 @@
 
 ## 0.15.0
 
+Thanks to @hcarvalhoalves and @mk for their contributions, and to @borkdude for
+his help with SCI.
+
 What are the broad themes?
 
 - Autodiff upgrades
@@ -118,6 +121,11 @@ What's coming next?
 - `up` and `down` tuples from `sicmutils.structure` gain a proper `print-method`
   implementation (#229); these now render as `(up 1 2 3)` and `(down 1 2 3)`,
   instead of the former more verbose representation (when using `pr`.)
+
+- `sicmutils.render/->infix` and `sicmutils.render/->TeX` will render `Series`
+  and `PowerSeries` as an infinite sum (showing the first four terms).
+  In the case of unnaplied `PowerSeries`, it will represent the unbound
+  variable as `_` (#260).
 
 ### Performance Improvements
 

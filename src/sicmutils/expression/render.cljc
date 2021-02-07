@@ -278,6 +278,8 @@
    "asin" "\\arcsin",
    "acos" "\\arccos",
    "atan" "\\arctan",
+   "_" "\\_"
+   "..." "\\ldots"
    })
 
 (defn ^:private brace
