@@ -9,6 +9,15 @@
   binary. #253 also changes the name of macro
   `sicmutils.generic/def-generic-function` to `sicmutils.generic/defgeneric`.
 
+- `sicmutils.expression.render/->infix` and `sicmutils.expression.render/->TeX` now
+  handle equality/inequality symbols (`=`, `>=`, `>`, ...) as infix.
+
+- `sicmutils.expression.render/*TeX-sans-serif-symbols*` binding to control if
+  symbols longer than 1 char should have `\mathsf` applied.
+
+- `sicmutils.modint` gains more efficient implementations for `inverse`,
+  `quotient`, `exact-divide` and `expt` on the JVM (#251).
+
 - #238 converts `sicmutils.abstract.function/Function` from a `defrecord` to a
   `deftype`, fixing a subtle bug where (empty f) was getting called in a nested
   derivative test.

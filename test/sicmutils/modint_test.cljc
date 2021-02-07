@@ -19,10 +19,15 @@
 
 (ns sicmutils.modint-test
   (:require [clojure.test :refer [is deftest testing]]
-            [sicmutils.value :as v]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.generic-test :as gt]
-            [sicmutils.modint :as m]))
+            [sicmutils.modint :as m]
+            [sicmutils.util :as u]
+            [sicmutils.value :as v]))
 
 (deftest modint
   (testing "value implementation"
@@ -40,6 +45,7 @@
         m5_13 (m/make 5 13)
         m2_4 (m/make 2 4)
         m3_4 (m/make 3 4)]
+
     (testing "easy"
       (is (= m5_7 m5_7))
       (is (= m12_7 m5_7))
@@ -55,6 +61,16 @@
 
     (testing "neg"
       (is (= m2_7 (g/negate m5_7))))
+
+    (checking "m^i matches simple implementation" 100
+              [m (sg/modint)
+               e (gen/fmap g/abs sg/native-integral)]
+              (let [i       (:i m)
+                    modulus (:m m)]
+                (is (= (:i (g/expt m e))
+                       (-> (g/expt (u/bigint i)
+                                   (u/bigint e))
+                           (g/modulo modulus))))))
 
     (testing "zero?"
       (is (v/zero? m0_7))
