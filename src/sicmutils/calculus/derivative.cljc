@@ -364,7 +364,7 @@
              ;; non-structural argument will throw.
              ;;
              ;; NOTE: What about matrices, maps or sequences? The current
-             ;; implementation (as of 0.14.0) pushes the derivative operator
+             ;; implementation (as of 0.15.0) pushes the derivative operator
              ;; into the entries, or values, of those types, so they won't reach
              ;; this clause. There is a case I (@sritchie) can make for actually
              ;; allowing the first clause here to work for ANY associative
@@ -440,7 +440,7 @@
 ;; This section exposes various differential operators as [[o/Operator]]
 ;; instances.
 
-(def derivative-symbol 'D)
+(def ^:no-doc derivative-symbol 'D)
 
 (def ^{:doc "Derivative operator. Takes some function `f` and returns a function
   whose value at some point can multiply an increment in the arguments, to
@@ -523,13 +523,17 @@
   structures of `x` and `dx`. Without this wrapper, `((g/* dx D) f)` with `dx`
   == `(up 'dx 'dy)` would expand to this:
 
-  `(fn [x] (* (s/up ('dx x) ('dy x))
-              ((D f) x)))`
+  ```clojure
+  (fn [x] (* (s/up ('dx x) ('dy x))
+             ((D f) x)))
+  ```
 
   `constantly` delays the interpretation of `dx` one step:
 
-  `(fn [x] (* (s/up 'dx 'dy)
-              ((D f) x)))`
+  ```clojure
+  (fn [x] (* (s/up 'dx 'dy)
+             ((D f) x)))
+  ```
   "
   [f x dx]
   (((g/exp (g/* (constantly dx) D)) f) x))

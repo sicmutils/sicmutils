@@ -68,7 +68,7 @@
   Returns estimates with $n, 3n, 9n, ...n3^i$ slices, geometrically increasing by a
   factor of 3 with each estimate.
 
-    ## Optional arguments:
+  ### Optional arguments:
 
   If supplied, `:n` (default 1) specifies the initial number of slices to use.
 
@@ -90,7 +90,7 @@
   Optionally accepts `opts`, a dict of optional arguments. All of these get
   passed on to `us/seq-limit` to configure convergence checking.
 
-  See `simpson38-sequence` for more information about Simpson's 3/8 rule, caveats
+  See [[simpson38-sequence]] for more information about Simpson's 3/8 rule, caveats
   that might apply when using this integration method and information on the
   optional args in `opts` that customize this function's behavior."
   :area-fn (comp first simpson38-sequence)

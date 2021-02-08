@@ -1,23 +1,24 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.numerical.ode
+  "ODE solvers for working with initial value problems."
   (:require [sicmutils.expression.compile :as c]
             [sicmutils.util.stopwatch :as us]
             [sicmutils.util :as u]
@@ -87,12 +88,12 @@
 (defn integration-opts
   "Returns a map with the following kv pairs:
 
-  - `:integrator` an instance of GraggBulirschStoerIntegrator
-  - `:equations` instance of FirstOrderDifferentialEquations
+  - `:integrator` an instance of `GraggBulirschStoerIntegrator`
+  - `:equations` instance of `FirstOrderDifferentialEquations`
   - `:dimension` the total number of entries in the flattened initial state tuple
-  - `:stopwatch` IStopwatch instance that records total evaluation time inside
+  - `:stopwatch` [[IStopwatch]] instance that records total evaluation time inside
     the derivative function
-  - `:counter` an atom containing a Long that increments every time derivative fn
+  - `:counter` an atom containing a `Long` that increments every time derivative fn
     is called."
   [state-derivative derivative-args initial-state
    {:keys [compile? epsilon] :or {epsilon 1e-8}}]

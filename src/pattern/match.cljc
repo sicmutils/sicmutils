@@ -1,26 +1,30 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
-(ns pattern.match)
+(ns pattern.match
+  "Implementation of a pattern matching system inspired by [Gerald Jay Sussman's
+  lecture notes for MIT
+  6.945](http://groups.csail.mit.edu/mac/users/gjs/6.945/).
+  See [[pattern.rules]] for a higher-level API.
 
-;; Inspired by Gerald Jay Sussman's lecture notes for MIT 6.945
-;; http://groups.csail.mit.edu/mac/users/gjs/6.945/
+  [[pattern.match]] is spiritually similar to Alexey
+  Radul's [Rules](https://github.com/axch/rules) library for Scheme.")
 
 (def ^:private zero [{} nil])
 
@@ -76,42 +80,41 @@
         (step frame (first xs) matchers)))))
 
 (defn variable-reference?
-  "True if x is a variable reference (i.e., it looks like (:? ...)) or
-  is a simple keyword"
+  "Returns true if x is a variable reference (i.e., it looks like (:? ...)) or is
+  a simple keyword, false otherwise."
   [x]
   (or (keyword? x)
       (and (sequential? x)
            (= (first x) :?))))
 
 (defn variable-reference-with-predicate?
-  "True if x is a variable reference and is also equipped with a
-  constraint on matched values"
+  "Returns true if x is a variable reference and is also equipped with a
+  constraint on matched values, false otherwise."
   [x]
   (and (variable-reference? x)
        (sequential? x)
        (> (count x) 2)))
 
 (defn segment-reference?
-  "True if x is a segment reference (i.e., it looks like (:?? ...))
-  or is a keyword ending in `*`"
+  "Returns true if x is a segment reference (i.e., it looks like (:?? ...)) or is
+  a keyword ending in `*`, false otherwise."
   [x]
   (or (and (keyword? x)
            (let [s (name x)
                  c (count s)]
              (= \* (nth s (dec c)))))
       (and (sequential? x)
-        (= (first x) :??))))
+           (= (first x) :??))))
 
 (def ^:private no-constraint (constantly true))
 
 (defn variable
-  "Return the variable contained in a variable or segment reference
-  form"
+  "Returns the variable contained in a variable or segment reference form."
   [x]
   (if (keyword? x) x
       (second x)))
 
-(defn ^:private variable-constraint
+(defn- variable-constraint
   "If x is a variable reference in a pattern with a constraint,
   returns that constraint; else returns a stock function which
   enforces no constraint at all."
@@ -133,6 +136,7 @@
 
 (defn match
   "Convenience function for applying a match combinator to some data.
+
   Primes the process with an empty frame and supplies a continuation
   which will return the pattern bindings if the match is successful,
   nil otherwise. If predicate is supplied, then the resulting frame of

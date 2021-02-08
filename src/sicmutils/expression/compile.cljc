@@ -17,7 +17,9 @@
 ;;
 
 (ns sicmutils.expression.compile
-  "This namespace compiles generic functions down into fast, native functions."
+  "This namespace contains tools for compiling functions implemented with the
+  numeric operations defined in [[sicmutils.generic]] down to fast, native
+  functions."
   (:require #?(:cljs [goog.string :refer [format]])
             [clojure.set :as set]
             [clojure.walk :as w]
@@ -257,12 +259,12 @@
   - a continuation fn `continue` of two arguments:
     - a new equivalent expression with possibly some subexpressions replaced by
       new variables (delivered by the supplied generator, see below)
-    - a seq of pairs of [aux variable, subexpression] used to reconstitute the
+    - a seq of pairs of `[aux variable, subexpression]` used to reconstitute the
       value.
 
   Calls the continuation at completion and returns the continuation's value.
 
-  ## Optional Arguments
+  ### Optional Arguments
 
   `:symbol-generator`: side-effecting function that returns a new, unique
   variable name on each invocation. `sortable-gensym` by default.
@@ -348,7 +350,9 @@
 ;; We enable SCI mode by default since this allows function compilation to work
 ;; in Clojure and Clojurescript.
 
-(def ^:dynamic *mode* :sci)
+(def ^{:dynamic true
+       :no-doc true}
+  *mode* :sci)
 
 (defn- native?
   "Returns true if native compilation mode is enabled, false otherwise."
@@ -459,9 +463,9 @@
     by the fn returned by the state function `f`. Only the shape matters; the
     values are ignored.
 
-  The returned, compiled function expects Double (or js/Number) arguments. The
-  function body is simplified and all common subexpressions identified during
-  compilation are extracted and computed only once.
+  The returned, compiled function expects `Double` (or `js/Number`) arguments.
+  The function body is simplified and all common subexpressions identified
+  during compilation are extracted and computed only once.
 
   NOTE this function uses no cache. To take advantage of the global compilation
   cache, see `compile-state-fn`."
@@ -491,9 +495,9 @@
     by the fn returned by the state function `f`. Only the shape matters; the
     values are ignored.
 
-  The returned, compiled function expects Double (or js/Number) arguments. The
-  function body is simplified and all common subexpressions identified during
-  compilation are extracted and computed only once.
+  The returned, compiled function expects `Double` (or `js/Number`) arguments.
+  The function body is simplified and all common subexpressions identified
+  during compilation are extracted and computed only once.
 
   NOTE that this function makes use of a global compilation cache, keyed by the
   value of `f`. Passing in the same `f` twice, even with different arguments for
@@ -527,7 +531,8 @@
     (eval `(fn ~(vec args) ~body))))
 
 (defn- compile-sci
-  "Returns a Clojure function evaluated using SCI. The returned fn implements
+  "Returns a Clojure function evaluated
+  using [SCI](https://github.com/borkdude/sci) The returned fn implements
   `body`, given some sequence `args` of argument symbols.
 
   `body` should of course make use of the symbols in `args`."

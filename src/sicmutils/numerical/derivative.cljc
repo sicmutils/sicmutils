@@ -18,7 +18,19 @@
 ;;
 
 (ns sicmutils.numerical.derivative
-  "Different numerical derivative implementations."
+  "This namespace contains implementations of various approaches to [numerical
+  differentiation](https://en.wikipedia.org/wiki/Numerical_differentiation).
+
+  Each of these methods uses [Richardson
+  extrapolation](https://en.wikipedia.org/wiki/Richardson_extrapolation) to
+  accelerate convergence, and roundoff error estimation to bail out of the
+  computation when roundoff error threatens to overwhelm the calculation.
+
+  For an implementation of [forward-mode automatic
+  differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation),
+  see [[sicmutils.differential]] (for the backing implementation)
+  and [[sicmutils.calculus.derivative]] (for the [[sicmutils.operator/Operator]]
+  instances that make it pleasant to use this method.)"
   (:require [sicmutils.abstract.function :as af]
             [sicmutils.calculus.derivative :as d]
             [sicmutils.expression.render :refer [->infix]]
@@ -92,7 +104,9 @@
   "Returns a single-variable function of a step size `h` that calculates the
   forward-difference estimate of the the first derivative of `f` at point `x`:
 
+  ```
   f'(x) = [f(x + h) - f(x)] / h
+  ```
 
   Optionally accepts a third argument `fx == (f x)`, in case you've already
   calculated it elsewhere and would like to save a function evaluation."
@@ -124,7 +138,9 @@
   "Returns a single-variable function of a step size `h` that calculates the
   backward-difference estimate of the first derivative of `f` at point `x`:
 
+  ```
   f'(x) = [f(x) - f(x - h)] / h
+  ```
 
   Optionally accepts a third argument `fx == (f x)`, in case you've already
   calculated it elsewhere and would like to save a function evaluation."
@@ -165,7 +181,9 @@
   "Returns a single-variable function of a step size `h` that calculates the
   central-difference estimate of the first derivative of `f` at point `x`:
 
-  f'(x) = [f(x + h) - f(x - h)] / 2h"
+  ```
+  f'(x) = [f(x + h) - f(x - h)] / 2h
+  ```"
   [f x]
   (fn [h]
     (/ (- (f (+ x h)) (f (- x h)))
@@ -501,21 +519,23 @@
   Returns the estimated value of the derivative at `x`. If you pass `:info?
   true`, the fn returns a dictionary of the results of `us/seq-limit`:
 
+  ```clojure
   {:converged? <boolean>
    :terms-checked <int>
    :result <derivative estimate>}
+  ```
 
-  Make sure to visit `sicmutils.calculus.derivative/D` if you want symbolic or
+  Make sure to visit [[sicmutils.calculus.derivative/D]] if you want symbolic or
   automatic differentiation.
 
-  ## Roundoff Estimate
+  ### Roundoff Estimate
 
   The returned function will attempt to estimate how many times it can halve the
   step size used to estimate the derivative before roundoff error swamps the
   calculation, and force the function to return (with `:converged? false`, if
   you pass `:info?`)
 
-  ## Optional Arguments
+  ### Optional Arguments
 
   `D-numeric` takes optional args as its second param. Any of these can be
   overridden by passing a second argument to the function returned by
@@ -536,7 +556,7 @@
   more info.)
 
   - `:initial-h`: the initial `h` to use for derivative estimates before $h \to
-  0$. Defaults to 0.1 * abs(x).
+  0$. Defaults to `0.1 * abs(x)`.
 
   - `:tolerance`: see `us/stream-limit` for a discussion of how this value
   handles relative vs absolute tolerance. $\\sqrt(\\epsilon)$ by default, where

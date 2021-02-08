@@ -2,70 +2,69 @@
 
 ## [Unreleased]
 
-- `sicmutils.render/->infix` and `sicmutils.render/->TeX` will render `Series`
-  and `PowerSeries` as an infinite sum (showing the first four terms).
-  In the case of unnaplied `PowerSeries`, it will represent the unbound
-  variable as `_`.
+## 0.15.0
 
-- `sicmutils.expression/Literal` instances now use `pr-str` to generate a string
-  representation; this allows this type to wrap lazy-sequence expressions such
-  as those returned from `g/simplify` (#259)
+(If you have any questions about how to use any of the following, please ask us
+at our [Github Discussions](https://github.com/sicmutils/sicmutils/discussions)
+page!)
 
-- `sicmutils.expression.render/->infix` and `sicmutils.expression.render/->TeX`
-  now handle equality/inequality symbols (`=`, `>=`, `>`, ...) as infix (#257).
+This release was focused on a small number of themes:
 
-- #253 adds proper `:arglists` metadata for all generic functions, and moves the
-  derivative implementations (where relevant) onto the metadata of generic
-  functions. You can access these by calling `(<generic-function> :dfdx)` or
-  `(<generic-function> :dfdy)`, depending on whether the generic is unary or
-  binary. #253 also changes the name of macro
-  `sicmutils.generic/def-generic-function` to `sicmutils.generic/defgeneric`.
+**Automatic differentiation**:
 
-- As of #232, `sicmutils.expression.compile/compile-univariate-fn` is now
-  `compile-fn` (same change for the non-cached `compile-fn*` in the same
-  namespace). The new implementation can compile arguments of any arity, not
-  just arity == 1. The new version takes an arity parameter `n` that defaults to
-  `(sicmutils.function/arity f)`.
+The goal for this cycle's automatic differentiation (AD) work was to expand the
+set of functions and types that can play with AD. AD now works on functions that
+return all Clojure sequences, maps, and vectors, in addition to SICMUtils types
+like `Operator`, `Series`, `PowerSeries` and `Structure`. The system is now
+fully extensible, so if you want to differentiate functions that return custom
+records or Java collections, it's now no problem.
 
-- `sicmutils.expression.render/->infix` and `sicmutils.expression.render/->TeX` now
-  handle equality/inequality symbols (`=`, `>=`, `>`, ...) as infix.
+SICMUtils can now differentiate functions in Clojurescript that use comparison
+operations like `<`, `=`, `<=` and friends. Clojure can't quite do this yet, but
+you can differentiate through `v/compare` and `v/=` calls.
 
-- `sicmutils.expression.render/*TeX-sans-serif-symbols*` binding to control if
-  symbols longer than 1 char should have `\mathsf` applied (#258).
+We can also differentiate functions that return other functions with no trouble;
+only a few libraries can do this, and the behavior is subtle. Hold tight for
+comprehensive docs describing this behavior.
 
-- `sicmutils.modint` gains more efficient implementations for `inverse`,
-  `quotient`, `exact-divide` and `expt` on the JVM (#251).
+New `Div`, `Grad`, `Curl` and `Lap` operators build on this foundation.
 
-- #238 converts `sicmutils.abstract.function/Function` from a `defrecord` to a
-  `deftype`, fixing a subtle bug where (empty f) was getting called in a nested
-  derivative test.
+**SCI Integration**
 
-- #224 adds new `Div`, `Grad`, `Curl` and `Lap` operators in
-  `sicmutils.calculus.derivative` and installs them into `sicmutils.env`. #224
-  also removes the `g/transpose` implementation for `Operator` instances, and
-  exposes `sicmutils.calculus.derivative/taylor-series` to `sicmutils.env`.
+To support safe execution inside of a browser-based Notebook or REPL
+environment, SICMUtils now has full support for @borkdude's
+[SCI](https://github.com/borkdude/sci), the Small Clojure Interpreter, via the
+[sicmutils.sci](https://github.com/sicmutils/sicmutils/blob/master/src/sicmutils/env/sci.cljc)
+namespace. Every function and macro in the library now works in SCI. (Thanks for
+@borkdude and @mk for your help and contributions.
 
-- #223 fixes a problem where `(operator * structure)` would return a structure
-  of operators instead of an operator that closed over the multiplication.
-  `::s/structure` is now properly a `::o/co-operator`, matching its status as a
-  `::f/cofunction`.
+**Rendering**
 
-- The operator returned by `sicmutils.calculus.derivative/partial` now has a
-  proper name field like `(partial 0)`, instead of `:partial-derivative` (#223).
+@hcarvalhoalves made a number of contributions to the LaTeX and infix renderers;
+`PowerSeries` and `Series` now render beautifully, as well as `=` and the
+various inequality symbols. Expect a lot more action here as we move into more
+browser-based notebook environments.
 
-- #223 converts the implementation of `sicmutils.calculus.derivative/D` to use
-  the new `Differential` type; this fixes "Alexey's Amazing Bug" and allows `D`
-  to operate on higher order functions. For some function `f` that returns
-  another function, `((D f) x)` will return a function that keeps `x` "alive"
-  for the purposes of differentiation inside its body. See
-  `sicmutils.calculus.derivative-test/amazing-bug` for an extended example.
+There's a lot more that went into this release; give the detailed notes below a
+look for more details.
 
-- #222 adds `v/Value` implementations for Clojure sequences and maps. Maps and
-  vectors implement `f/Arity` and return `[:between 1 2]. `zero?` and
-  `zero-like` work on sequence entries and map values. Maps can specify their
-  `v/kind` return value with a `:type` key, and some of the calculus
-  implementations do already make use of this feature. `g/partial-derivative` on
-  a Clojure Map passes through to its values.
+**What's coming next?**
+
+The next release will focus on getting SICMUtils integrated with 2D and 3D
+rendering libraries like [three.js](https://threejs.org),
+[babylon.js](https://www.babylonjs.com) and
+[Quil](https://github.com/quil/quil). The long-term goal is for SICMUtils to
+support the sort of workflow I described in ["The Dynamic
+Notebook"](https://roadtoreality.substack.com/p/the-dynamic-notebook). This will
+require a big push on generic, pluggable representations for the various types
+and expressions in the library.
+
+Thanks again to @hcarvalhoalves and @mk for their contributions, and to @borkdude for
+his help with SCI!
+
+On to the detailed release notes:
+
+### Automatic Differentiation
 
 - New, literate `Differential` implementation lives at at
   `sicmutils.differential` (#221) (see [this
@@ -123,8 +122,37 @@
     "amazing" bug sections in `sicmutils.calculus.derivative-test` for proper
     exposition.
 
+- #223 converts the implementation of `sicmutils.calculus.derivative/D` to use
+  the new `Differential` type; this fixes "Alexey's Amazing Bug" and allows `D`
+  to operate on higher order functions. For some function `f` that returns
+  another function, `((D f) x)` will return a function that keeps `x` "alive"
+  for the purposes of differentiation inside its body. See
+  `sicmutils.calculus.derivative-test/amazing-bug` for an extended example.
+
 - `sicmutils.generic/partial-derivative` gains a `Keyword` extension, so it can
   respond properly to `:name` and `:arity` calls (#221).
+
+- `D` (or `sicmutils.generic/partial-derivative`) applied to a matrix of
+  functions now takes the elementwise partials of every function in the matrix.
+  (#218)
+
+- #253 moves the derivative implementations (where relevant) onto the metadata
+  of generic functions. You can access these by calling `(<generic-function>
+  :dfdx)` or `(<generic-function> :dfdy)`, depending on whether the generic is
+  unary or binary. #253 also changes the name of macro
+  `sicmutils.generic/def-generic-function` to `sicmutils.generic/defgeneric`.
+
+### Rendering
+
+- `sicmutils.expression/Literal` instances now use `pr-str` to generate a string
+  representation; this allows this type to wrap lazy-sequence expressions such
+  as those returned from `g/simplify` (#259)
+
+- `sicmutils.expression.render/->infix` and `sicmutils.expression.render/->TeX`
+  now handle equality/inequality symbols (`=`, `>=`, `>`, ...) as infix (#257).
+
+- `sicmutils.expression.render/*TeX-sans-serif-symbols*` binding to control if
+  symbols longer than 1 char should have `\mathsf` applied (#258).
 
 - `->infix`, `->TeX` and `->JavaScript` in `sicmutils.expression.render` can now
   accept unfrozen and unsimplified `Expression` instances (#241). This makes it
@@ -133,12 +161,21 @@
   coerced to strings. (Previously, `(->infix 10)` would return a number
   directly.)
 
-- Fix a bug where `f/arity` would throw an exception with multiple-arity
-  functions on the JVM (#240). It now responds properly with `[:between
-  min-arity max-arity]`, or `[:at-least n]` if there is a variadic case too.
+- `up` and `down` tuples from `sicmutils.structure` gain a proper `print-method`
+  implementation (#229); these now render as `(up 1 2 3)` and `(down 1 2 3)`,
+  instead of the former more verbose representation (when using `pr`.)
 
-- Added missing `identity?`, `identity-like` for complex and rational numbers
-  (#236)
+- `sicmutils.render/->infix` and `sicmutils.render/->TeX` will render `Series`
+  and `PowerSeries` as an infinite sum (showing the first four terms).
+  In the case of unnaplied `PowerSeries`, it will represent the unbound
+  variable as `_` (#260).
+
+### Performance Improvements
+
+- `sicmutils.modint` gains more efficient implementations for `inverse`,
+  `quotient`, `exact-divide` and `expt` on the JVM (#251).
+
+### Comparison / Native Type Integration
 
 - beefed up the Javascript numeric tower to allow objects like
   `sicmutils.differential/Differential`, `sicmutils.expression/Expression` and
@@ -152,9 +189,7 @@
   doesn't in Clojurescript because native `compare` can't handle
   `goog.math.{Long,Integer}` or `js/BigInt`.
 
-- New single-arity case for `sicmutils.structure/opposite` returns an identical
-  structure with flipped orientation (#220). acts as `identity` for
-  non-structures.
+### Operator
 
 - #219 introduces a number of changes to `Operator`'s behavior:
 
@@ -213,17 +248,25 @@
     (not functions anymore), reflecting the ring structure of a differential
     operator.
 
-- `sicmutils.env/ref` now accepts function and operators (#219). `(ref f 0 1)`,
-  as an example, returns a new function `g` that acts like `f` but calls `(ref
-  result 0 1)` on the result.
+### Additions
 
-- The slightly more general `sicmutils.env/component` replaces
-  `sicmutils.structure/component` in the `sicmutils.env` namespace (#219).
-  `((component 0 1) x) == (ref x 0 1)`.
+- #224 adds new `Div`, `Grad`, `Curl` and `Lap` operators in
+  `sicmutils.calculus.derivative` and installs them into `sicmutils.env`. #224
+  also removes the `g/transpose` implementation for `Operator` instances, and
+  exposes `sicmutils.calculus.derivative/taylor-series` to `sicmutils.env`.
 
-- `D` (or `sicmutils.generic/partial-derivative`) applied to a matrix of
-  functions now takes the elementwise partials of every function in the matrix.
-  (#218)
+- #222 adds `v/Value` implementations for Clojure sequences and maps. Maps and
+  vectors implement `f/Arity` and return `[:between 1 2]. `zero?` and
+  `zero-like` work on sequence entries and map values. Maps can specify their
+  `v/kind` return value with a `:type` key, and some of the calculus
+  implementations do already make use of this feature. `g/partial-derivative` on
+  a Clojure Map passes through to its values.
+
+- As of #232, `sicmutils.expression.compile/compile-univariate-fn` is now
+  `compile-fn` (same change for the non-cached `compile-fn*` in the same
+  namespace). The new implementation can compile arguments of any arity, not
+  just arity == 1. The new version takes an arity parameter `n` that defaults to
+  `(sicmutils.function/arity f)`.
 
 - `sicmutils.function/arity` is now a protocol method, under the
   `sicmutils.function/IArity` protocol (#218). In addition to functions, `arity`
@@ -243,6 +286,21 @@
      assumes that the collection contains functions as entries, and returns the
      most general arity that is compatible with all of the function elements.
 
+- New single-arity case for `sicmutils.structure/opposite` returns an identical
+  structure with flipped orientation (#220). acts as `identity` for
+  non-structures.
+
+- Added missing `identity?`, `identity-like` for complex and rational numbers
+  (#236)
+
+- `sicmutils.env/ref` now accepts function and operators (#219). `(ref f 0 1)`,
+  as an example, returns a new function `g` that acts like `f` but calls `(ref
+  result 0 1)` on the result.
+
+- The slightly more general `sicmutils.env/component` replaces
+  `sicmutils.structure/component` in the `sicmutils.env` namespace (#219).
+  `((component 0 1) x) == (ref x 0 1)`.
+
 - New functions `sicmutils.function/{get,get-in}` added that act like the
   `clojure.core` versions; but given a function `f`, they compose `#(get % k)`,
   or similar with `f`. This deferred action matches the effect of all sicmutils
@@ -250,10 +308,6 @@
 
 - `sicmutils.function/I` aliases `clojure.core/identity` (#218). #219 exposes
   `I` in `sicmutils.env`.
-
-- `up` and `down` tuples from `sicmutils.structure` gain a proper `print-method`
-  implementation (#229); these now render as `(up 1 2 3)` and `(down 1 2 3)`,
-  instead of the former more verbose representation (when using `pr`.)
 
 - `sicmutils.env.sci` contains an SCI context and namespace mapping sufficient
   to evaluate all of sicmutils, macros and all, inside of an
@@ -274,8 +328,28 @@
   - `jacobi-elliptic-functions` ported from `scmutils` and Press's Numerical
     Recipes
 
+### Fixes / Misc
+
+- The operator returned by `sicmutils.calculus.derivative/partial` now has a
+  proper name field like `(partial 0)`, instead of `:partial-derivative` (#223).
+
+- #223 fixes a problem where `(operator * structure)` would return a structure
+  of operators instead of an operator that closed over the multiplication.
+  `::s/structure` is now properly a `::o/co-operator`, matching its status as a
+  `::f/cofunction`.
+
+- Fix a bug where `f/arity` would throw an exception with multiple-arity
+  functions on the JVM (#240). It now responds properly with `[:between
+  min-arity max-arity]`, or `[:at-least n]` if there is a variadic case too.
+
+- #238 converts `sicmutils.abstract.function/Function` from a `defrecord` to a
+  `deftype`, fixing a subtle bug where (empty f) was getting called in a nested
+  derivative test.
+
 - fixed bug with `g/dimension` for row and column matrices (#214). previously
   they returned `1` in both cases; now they return the total number of entries.
+
+- #253 adds proper `:arglists` metadata for all generic functions.
 
 ## 0.14.0
 

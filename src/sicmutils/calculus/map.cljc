@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.calculus.map
   (:require [sicmutils.abstract.function :as af]
@@ -27,7 +27,7 @@
             [sicmutils.structure :as s]))
 
 (defn vector-field->vector-field-over-map
-  "FDG p.72"
+  "Defined on FDG p.72."
   [mu:N->M]
   (fn [v-on-M]
     (vf/procedure->vector-field
@@ -36,7 +36,7 @@
      `((~'vector-field->vector-field-over-map ~(m/diffop-name mu:N->M)) ~(m/diffop-name v-on-M)))))
 
 (defn differential
-  "FDG p.72"
+  "Defined on FDG p.72."
   [mu:N->M]
   (fn [v-on-N]
     (let [v-on-M (fn [g-on-M] (v-on-N (f/compose g-on-M mu:N->M)))]
@@ -113,12 +113,11 @@
          `((~'pullback ~(m/diffop-name mu:N->M)) ~(m/diffop-name omega-on-M)))))))
 
 (defn pullback
+  ([mu:N->M] (pullback mu:N->M nil))
   ([mu:N->M mu-inverse:M->N]
    (fn [thing]
      (if (vf/vector-field? thing)
-      (do
-        (assert mu-inverse:M->N "Pullback of a vector requires inverse map")
-        ((pullback-vector-field mu:N->M mu-inverse:M->N) thing))
-      ((pullback-form mu:N->M) thing))))
-  ([mu:N->M]
-   (pullback mu:N->M nil)))
+       (do
+         (assert mu-inverse:M->N "Pullback of a vector requires inverse map")
+         ((pullback-vector-field mu:N->M mu-inverse:M->N) thing))
+       ((pullback-form mu:N->M) thing)))))

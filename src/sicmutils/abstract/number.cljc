@@ -18,6 +18,12 @@
 ;;
 
 (ns sicmutils.abstract.number
+  "Symbolic expressions in SICMUtils are created through the [[literal-number]]
+  constructor, or implicitly by performing arithmetic between symbols and
+  numbers.
+
+  This namespace implements the [[literal-number]] constructor and installs the
+  underlying type into the generic arithmetic system."
   (:require [sicmutils.complex :as c]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
@@ -45,28 +51,36 @@
 
 (defn literal-number
   "Returns its argument, wrapped in a marker type that responds to the generic
-  operations registered in `sicmutils.numsymb`.
+  operations registered in [[sicmutils.numsymb]].
 
-  Symbols are automatically treated as `literal-number` instances, so
+  Symbols are automatically treated as [[literal-number]] instances, so
 
+  ```clojure
   (* 10 (literal-number 'x))
+  ```
 
   is equivalent to
 
-  (* 10 'x).
+  ```clojure
+  (* 10 'x)
+  ```
 
   If you pass an actual number, sicmutils will attempt to preserve exact values
   through various operations:
 
+  ```clojure`
   (g/+ 1 (g/cos (g/* 2 (literal-number 4))))
   ;;=> (+ 1 (cos 8))
+  ````
 
   Notice that the `(g/* 2 ...)` is evaluated, but `cos` evaluation is deferred,
   since the result is inexact. On the other hand, if the number is inexact to
   begin with:
 
+  ```clojure
   (g/+ 1 (g/cos (g/* 2 (literal-number 2.2))))
   ;;=> 0.6926671300215806
+  ```
 
   the system will go ahead and evaluate it."
   [x]
@@ -86,8 +100,8 @@
   "Returns true if `x` is:
 
   - a symbolic expression
-  - some object wrapped by a call to `literal-number
-  - a symbol (which implicitly acts as a literal number)
+  - some object wrapped by a call to [[literal-number]]
+  - a symbol (which implicitly acts as a [[literal-number]])
 
   See [[literal-number?]] for a similar function that won't respond true to
   symbols, only to explicit symbolic expressions or wrapped literal numbers."

@@ -1,3 +1,22 @@
+;;
+;; Copyright © 2020 Sam Ritchie.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
+
 (ns sicmutils.util
   "Shared utilities between clojure and clojurescript."
   (:refer-clojure :rename {bigint core-bigint
@@ -26,18 +45,23 @@
               (f x))])))
 
 (defmacro import-def
-  "import a single fn or var
-   (import-def a b) => (def b a/b)
-  "
+  "import a single fn or var:
+
+  ```clojure
+  (import-def a b) => (def b a/b)
+  ```"
   [from-ns def-name]
   (let [from-sym# (symbol (str from-ns) (str def-name))]
     `(def ~def-name ~from-sym#)))
 
 (defmacro import-vars
-  "import multiple defs from multiple namespaces
-   works for vars and fns. not macros.
-   (same syntax as potemkin.namespaces/import-vars)
-   (import-vars
+  "import multiple defs from multiple namespaces. works for vars and fns. not
+  macros.
+
+  [[import-vars]] has the same syntax as `potemkin.namespaces/import-vars`:
+
+   ```clojure
+  (import-vars
      [m.n.ns1 a b]
      [x.y.ns2 d e f]) =>
    (def a m.n.ns1/a)
@@ -45,6 +69,7 @@
     ...
    (def d m.n.ns2/d)
     ... etc
+  ```
   "
   [& imports]
   (let [expanded-imports (for [[from-ns & defs] imports

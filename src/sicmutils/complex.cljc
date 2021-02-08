@@ -1,23 +1,29 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.complex
+  "This namespace provides a number of functions and constructors for working
+  with [[Complex]] numbers in Clojure and Clojurescript, and
+  installs [[Complex]] into the SICMUtils generic arithmetic system.
+
+  For other numeric extensions, see [[sicmutils.ratio]]
+  and [[sicmutils.numbers]]."
   (:require [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v]
@@ -25,16 +31,24 @@
   #?(:clj
      (:import [org.apache.commons.math3.complex Complex ComplexFormat])))
 
-(def ZERO #?(:clj Complex/ZERO :cljs (.-ZERO Complex)))
-(def ONE #?(:clj Complex/ONE :cljs (.-ONE Complex)))
-(def I #?(:clj Complex/I :cljs (.-I Complex)))
+(def ^{:doc "A [[Complex]] value equal to 0 (south pole on the Riemann Sphere)."}
+  ZERO
+  #?(:clj Complex/ZERO :cljs (.-ZERO Complex)))
 
-(def complextype Complex)
+(def ^{:doc "A [[Complex]] value equal to 1."}
+  ONE #?(:clj Complex/ONE :cljs (.-ONE Complex)))
+
+(def  ^{:doc "A [[Complex]] value equal to `i`."}
+  I
+  #?(:clj Complex/I :cljs (.-I Complex)))
+
+(def ^:no-doc complextype Complex)
 
 (derive ::complex ::v/number)
 
 (defn complex
-  "Construct a complex number from real, or real and imaginary, components."
+  "Returns a [[Complex]] number with the supplied real part `re` and imaginary
+  part `im`. `im` defaults to 0."
   ([re]
    (Complex. (u/double re)))
   ([re im]
@@ -42,6 +56,7 @@
              (u/double im))))
 
 (defn complex?
+  "Returns true if `a` is an instance of [[Complex]], false otherwise."
   [a]
   (instance? Complex a))
 
@@ -67,7 +82,7 @@
 (defmethod g/conjugate [::complex] [^Complex a] (.conjugate a))
 
 (def ^{:doc "Parser that converts a string representation of a complex number,
-  like `1 + 3i`, into a Complex number object in clj or cljs."}
+  like `1 + 3i`, into a [[Complex]] number object in clj or cljs."}
   parse-complex
   #?(:clj (let [cf (ComplexFormat.)]
             (fn [s]

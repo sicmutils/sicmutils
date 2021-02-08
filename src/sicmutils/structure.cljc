@@ -255,7 +255,7 @@
 ;; ## Component Accessors
 
 (defn structure->vector
-  "Return the structure in unoriented vector form."
+  "Return the structure `s` in unoriented vector form."
   [s]
   (cond (vector? s)             s
         (instance? Structure s) (.-v ^Structure s)
@@ -263,7 +263,7 @@
         (u/illegal (str "non-structure supplied: " s))))
 
 (defn orientation
-  "Returns the orientation of s, either `::up` or `::down`. Defaults to `::up`,
+  "Returns the orientation of `s`, either `::up` or `::down`. Defaults to `::up`,
   even for non-structures."
   [s]
   (if (instance? Structure s)
@@ -286,11 +286,10 @@
     1))
 
 (defn- s:nth
-  "Structure-specific version of nth; acts as [[clojure.core/nth]] for structural
-  things.
+  "Structure-specific version of `nth`; acts as [[clojure.core/nth]] for
+  structural things.
 
-  For non-sequential things, if `i` is `0`, acts as identity; throws
-  otherwise."
+  For non-sequential things, if `i` is `0`, acts as identity. Throws otherwise."
   [s i]
   (cond (sequential? s) (nth s i)
         (= i 0)         s
@@ -447,7 +446,7 @@
 
   (f i)
 
-  where i ranges from [0..`dimension`)."
+  where i ranges from `[0..dimension)`."
   [dimension orientation f]
   {:pre [(valid-orientation? orientation)]}
   (->Structure orientation (mapv f (range dimension))))
@@ -477,8 +476,10 @@
 
   For example:
 
+  ```clojure
   (= (literal-up 'x 3)
-     (up 'x↑0 'x↑1 'x↑2))"
+     (up 'x↑0 'x↑1 'x↑2))
+  ```"
   [sym size]
   (literal sym size ::up))
 
@@ -488,8 +489,10 @@
 
   For example:
 
+  ```clojure
   (= (literal-down 'x 3)
-     (down 'x_0 'x_1 'x_2))"
+     (down 'x_0 'x_1 'x_2))
+  ```"
   [sym size]
   (literal sym size ::down))
 
@@ -537,12 +540,14 @@
 
   For example:
 
+  ```clojure
   (doall (map-chain print (s/down (s/up 1 2) (s/up 3 4))))
 
   1 [0 0] [:s/down :s/up]
   2 [0 1] [:s/down :s/up]
   3 [1 0] [:s/down :s/up]
-  4 [1 1] [:s/down :s/up]"
+  4 [1 1] [:s/down :s/up]
+  ```"
   [f s]
   (letfn [(walk [s chain orientations]
             (if (structure? s)
@@ -683,7 +688,6 @@
 
   - of the same orientation
   - equal in length
-
   - are full of elements also compatible for contraction (also true if either
     pair is NOT a structure)
 

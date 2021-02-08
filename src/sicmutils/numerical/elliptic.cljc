@@ -18,6 +18,11 @@
 ;;
 
 (ns sicmutils.numerical.elliptic
+  "This namespace contains function to compute various [elliptic
+  integrals](https://en.wikipedia.org/wiki/Elliptic_integral) in [Carlson
+  symmetric form](https://en.wikipedia.org/wiki/Carlson_symmetric_form), as well
+  as the [Jacobi elliptic
+  functions](https://en.wikipedia.org/wiki/Jacobi_elliptic_functions)."
   (:require [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
@@ -199,14 +204,17 @@
                     (Math/sqrt ave)))))))))
 
 (defn carlson-rj
-  "Computes Carlson’s elliptic integral of the third kind, RJ (x, y, z, p).
+  "Computes
+  [Carlson’s elliptic
+  integral](https://en.wikipedia.org/wiki/Carlson_symmetric_form) of the third
+  kind, `RJ(x, y, z, p)`.
 
   `x`, `y`, and `z` must be nonnegative, and at most one can be zero. `p` must
   be nonzero.
 
-  If p < 0, the Cauchy principal value is returned. TINY must be at least twice
-  the cube root of the machine underflow limit, BIG at most one fifth the cube
-  root of the machine overflow limit."
+  If `p < 0`, the Cauchy principal value is returned. `tiny` internally must be
+  at least twice the cube root of the machine underflow limit, `big` at most one
+  fifth the cube root of the machine overflow limit."
   [x y z p]
   (let [errtol 0.0015
         tiny 2.5e-13
@@ -299,7 +307,7 @@
   "Legendre elliptic integral of the first kind F(φ, k).
    See W.H. Press, Numerical Recipes in C++, 2ed. eq. 6.11.19
 
-  Page 260 here: http://phys.uri.edu/nigh/NumRec/bookfpdf/f6-11.pdf"
+  See [page 260](http://phys.uri.edu/nigh/NumRec/bookfpdf/f6-11.pdf)."
   [phi k]
   (let [s  (Math/sin phi)
         sk (* s k)]
@@ -320,7 +328,7 @@
   The two-arity version returns the Legendre elliptic integral of the second
   kind E(φ, k). See W.H. Press, Numerical Recipes in C++, 2ed. eq. 6.11.20.
 
-  Page 260 here: http://phys.uri.edu/nigh/NumRec/bookfpdf/f6-11.pdf"
+  See [page 260](http://phys.uri.edu/nigh/NumRec/bookfpdf/f6-11.pdf)."
   ([k] (elliptic-e (/ Math/PI 2) k))
   ([phi k]
    (let [s  (Math/sin phi)
@@ -359,7 +367,7 @@
   Π(φ, k). See W.H. Press, Numerical Recipes in C++, 2ed. eq. 6.11.21; Note that
   our sign convention for `n` is opposite theirs.
 
-  Page 260 here: http://phys.uri.edu/nigh/NumRec/bookfpdf/f6-11.pdf"
+  See [page 260](http://phys.uri.edu/nigh/NumRec/bookfpdf/f6-11.pdf)."
   ([n k] (elliptic-pi (/ Math/PI 2) n k))
   ([phi n k]
    (let [s   (Math/sin phi)
@@ -402,16 +410,22 @@
 
   Consider the _inverse_ function:
 
+  ```
   $$y = \\sin \\phi = \\mathrm{sn}(u, k)$$
+  ```
 
   Equivalently,
 
+  ```
   $$u=\\int_{0}^{\\mathrm{sn}} \\frac{d y}{\\sqrt{\\left(1-y^{2}\\right)\\left(1-k^{2} y^{2}\\right)}}$$
+  ```
 
   When $k = 0$, $sn$ is just $\\sin$. The functions $cn$ and $dn$ are defined by
   the relations
 
+  ```
   $$\\mathrm{sn}^{2}+\\mathrm{cn}^{2}=1, \\quad k^{2} \\mathrm{sn}^{2}+\\mathrm{dn}^{2}=1$$
+  ```
 
   The function calls the continuation with all three functions $sn$, $cn$, and
   $dn$ since computing all three is no harder than computing any one of them."

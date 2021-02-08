@@ -224,7 +224,9 @@
   from some `f(x)` trying to approximate `A`, then `[p_1, p_2...]` etc are the
   correction terms:
 
-    $$f(x) = A + B x^{p_1} + C x^{p_2}...$$
+  ```
+  $$f(x) = A + B x^{p_1} + C x^{p_2}...$$
+  ```
 
   The two-arity version uses a default `p-sequence` of `[1, 2, 3, ...]`
 
@@ -253,8 +255,8 @@
 
   References:
 
-  - Wikipedia: https://en.wikipedia.org/wiki/Richardson_extrapolation
-  - GJS, 'Abstraction in Numerical Methods': https://dspace.mit.edu/bitstream/handle/1721.1/6060/AIM-997.pdf?sequence=2"
+  - Wikipedia, [\"Richardson Extrapolation\"](https://en.wikipedia.org/wiki/Richardson_extrapolation)
+  - GJS, ['Abstraction in Numerical Methods'](https://dspace.mit.edu/bitstream/handle/1721.1/6060/AIM-997.pdf?sequence=2)"
   ([xs t]
    (ip/first-terms
     (make-tableau xs t)))
@@ -295,25 +297,27 @@
 ;; `richardson-sequence` above.
 
 (defn richardson-column
-  "Function with an identical interface to `richardson-sequence` above, except for
-  an additional second argument `col`.
+  "Function with an identical interface to [[richardson-sequence]], except for an
+  additional second argument `col`.
 
-  `richardson-column` will return that /column/ offset the interpolation tableau
+  `richardson-column` will return that _column_ offset the interpolation tableau
   instead of the first row. This will give you a sequence of nth-order
   Richardson accelerations taken between point `i` and the next `n` points.
 
   As a reminder, this is the shape of the Richardson tableau:
 
-   p0 p01 p012 p0123 p01234
-   p1 p12 p123 p1234 .
-   p2 p23 p234 .     .
-   p3 p34 .    .     .
-   p4 .   .    .     .
+  ```
+  p0 p01 p012 p0123 p01234
+  p1 p12 p123 p1234 .
+  p2 p23 p234 .     .
+  p3 p34 .    .     .
+  p4 .   .    .     .
+  ```
 
   So supplying a `column` of `1` gives a single acceleration by combining points
   from column 0; `2` kills two terms from the error sequence, etc.
 
-  NOTE Given a better interface for `richardson-sequence`, this function could
+  NOTE Given a better interface for [[richardson-sequence]] this function could
   be merged with that function."
   ([xs col t]
    (nth (make-tableau xs t) col))

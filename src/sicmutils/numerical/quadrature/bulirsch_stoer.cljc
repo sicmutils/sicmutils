@@ -55,7 +55,12 @@
 ;;
 ;; Here are the default step sizes:
 
-(def bulirsch-stoer-steps
+(def ^{:doc "Default step sizes used by the Bulirsch-Stoer quadrature algorithm:
+
+  ```
+2, 3, 4, 6, 8, 12, 16, 24, 32, ...
+  ```"}
+  bulirsch-stoer-steps
   (interleave
    (us/powers 2 2)
    (us/powers 2 3)))
@@ -163,7 +168,7 @@
   Returns estimates formed from the same estimates used by the Bulirsch-Stoer
   ODE solver, stored in `bulirsch-stoer-steps`.
 
-  ## Optional arguments:
+  ### Optional arguments:
 
   `:n`: If supplied, `n` (sequence) overrides the sequence of steps to use.
 
@@ -181,7 +186,7 @@
   Returns estimates formed from the same estimates used by the Bulirsch-Stoer
   ODE solver, stored in `bulirsch-stoer-steps`.
 
-  ## Optional arguments:
+  ### Optional arguments:
 
   `:n`: If supplied, `:n` (sequence) overrides the sequence of steps to use.
 
@@ -207,7 +212,7 @@
   Optionally accepts `opts`, a dict of optional arguments. All of these get
   passed on to `us/seq-limit` to configure convergence checking.
 
-  See `open-sequence` for more information about Bulirsch-Stoer quadrature,
+  See [[open-sequence]] for more information about Bulirsch-Stoer quadrature,
   caveats that might apply when using this integration method and information on
   the optional args in `opts` that customize this function's behavior."
   :area-fn mid/single-midpoint
@@ -224,7 +229,7 @@
   Optionally accepts `opts`, a dict of optional arguments. All of these get
   passed on to `us/seq-limit` to configure convergence checking.
 
-  See `closed-sequence` for more information about Bulirsch-Stoer quadrature,
+  See [[closed-sequence]] for more information about Bulirsch-Stoer quadrature,
   caveats that might apply when using this integration method and information on
   the optional args in `opts` that customize this function's behavior."
   :area-fn trap/single-trapezoid

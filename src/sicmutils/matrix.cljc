@@ -18,6 +18,11 @@
 ;
 
 (ns sicmutils.matrix
+  "This namespace contains an implementation of a [[Matrix]] datatype and various
+  operations for creating and working with [[Matrix]] instances.
+
+  [[sicmutils.matrix]] also extends many SICMUtils generic operations
+  to the [[Matrix]] datatype."
   (:refer-clojure :rename {get-in core-get-in
                            some core-some}
                   #?@(:cljs [:exclude [get-in some]]))
@@ -297,9 +302,11 @@
 
   For example:
 
+  ```clojure
   (= (literal-matrix 'x 2 2)
      (by-rows ['x_0↑0 'x_1↑0]
-              ['x_0↑1 'x_1↑1]))"
+              ['x_0↑1 'x_1↑1]))
+  ```"
   [sym nrows ncols]
   (let [prefix (str sym "_")]
     (generate nrows ncols
@@ -455,10 +462,10 @@
                    rows)))))
 
 (defn seq->
-  "Convert a sequence (typically, of function arguments) to an up-structure.
+  "Convert a sequence `xs` (typically, of function arguments) to an up-structure.
 
-  GJS: Any matrix in the argument list wants to be converted to a row of
-  columns"
+  Any matrix present in the argument list will be converted to row of columns
+  via [[->structure]]."
   [xs]
   (s/up* (map (fn [m]
                 (if (matrix? m)
@@ -467,7 +474,8 @@
               xs)))
 
 (defn- mul
-  "Multiplies the two matrices a and b"
+  "Returns the matrix product of `a` and `b`. Throws if `a` and `b` are
+  incompatible for multiplication."
   [a b]
   (let [ra (num-rows a)
         rb (num-rows b)
@@ -481,7 +489,8 @@
                                  (core-get-in b [k %2])))))))
 
 (defn- elementwise
-  "Applies f elementwise between the matrices a and b."
+  "Applies `f` elementwise between the matrices `a` and `b`. Throws if `a` and `b`
+  don't have the same dimensions."
   [f a b]
   (let [ra (num-rows a)
         rb (num-rows b)
@@ -497,11 +506,11 @@
   "Converts the square structure `s` into a matrix, and calls the supplied
   continuation `continue` with
 
-  - the generated matrix.
+  - the generated matrix
   - a function which will restore a matrix to a structure with the same inner
-    and outer orientations as s.
+    and outer orientations as s
 
-  Returns the result of the continuation."
+  Returns the result of the continuation call."
   [s continue]
   (let [major-size (count s)
         major-orientation (s/orientation s)
@@ -535,7 +544,8 @@
               (range (num-rows m)))))
 
 (defn- d*M
-  "Multiply a matrix by a down tuple on the left. The return value is down."
+  "Multiply a matrix `m` by down tuple `d` on the left. The return value has
+  orientation `down`."
   [d m]
   (when (not= (num-rows m) (count d))
     (u/illegal "matrix and tuple incompatible for multiplication"))
@@ -548,14 +558,13 @@
         (range (num-cols m)))))
 
 (def ^{:dynamic true
-       :doc "Set this dynamic variable to `false` to allow `s->m` to operate on
-  structures for which `(* ls ms rs)` does NOT yield a numerical value."}
+       :doc "Set this dynamic variable to `false` to allow [[s->m]] to operate
+  on structures for which `(* ls ms rs)` does NOT yield a numerical value."}
   *careful-conversion* true)
 
 (defn s->m
-  "Convert the structure ms, which would be a scalar if the (compatible)
-  multiplication
-  (* ls ms rs) were performed, to a matrix."
+  "Convert the structure `ms`, which would be a scalar if the (compatible)
+  multiplication`(* ls ms rs)` were performed, to a matrix."
   [ls ms rs]
   (when *careful-conversion*
     (assert (v/numerical? (g/* ls (g/* ms rs)))))
@@ -630,8 +639,8 @@
   (first m))
 
 (defn m->s
-  "Convert the matrix m into a structure S, guided by the requirement that (* ls S rs)
-  should be a scalar"
+  "Convert the matrix `m` into a structure `S`, guided by the requirement that `(*
+  ls S rs)` should be a scalar."
   [ls m rs]
   (let [ncols     (num-cols m)
         col-shape (s/compatible-shape ls)
@@ -647,7 +656,8 @@
   (m->s rs (transpose (s->m ls ms rs)) ls))
 
 (defn- delete
-  "The vector formed by deleting the i'th element of the given vector."
+  "Returns the vector formed by deleting the `i`'th element of the given vector
+  `v`."
   [v i]
   (vec
    (concat (take i v)
@@ -700,6 +710,7 @@
 
 (defn trace
   "Returns the trace (the sum of diagonal elements) of the square matrix `m`.
+
   Generic operations are used, so this works on symbolic square matrices."
   [m]
   {:pre [(square? m)]}
@@ -709,8 +720,9 @@
                (range 0 rows))))
 
 (defn determinant
-  "Returns the determinant of the supplied square matrix `m`. Generic operations
-  are used, so this works on symbolic square matrices."
+  "Returns the determinant of the supplied square matrix `m`.
+
+  Generic operations are used, so this works on symbolic square matrices."
   [m]
   {:pre [(square? m)]}
   (let [v (matrix->vector m)]
@@ -766,13 +778,13 @@
   ([m n] (generate m n (constantly 0))))
 
 (defn I
-  "Return the identity matrix of order n."
+  "Return the identity matrix of order `n`."
   [n]
   (generate n n s/kronecker))
 
 (defn identity-like
   "Return an identity matrix whose ones and zeros match the types of the supplied
-  square matrix. Errors if a non-square matrix is supplied."
+  square matrix `M`. Errors if a non-square matrix `M` is supplied."
   [M]
   (if-not (square? M)
     (u/illegal "identity-like on non-square")
@@ -783,7 +795,8 @@
                   M)))
 
 (defn identity?
-  "Returns true if the supplied matrix is an identity matrix, false otherwise."
+  "Returns true if the supplied matrix `m` is an identity matrix, false
+  otherwise."
   [m]
   (and (square? m)
        (let [n (dimension m)]
@@ -796,8 +809,8 @@
                      (v/zero? entry)))))))
 
 (defn make-diagonal
-  "Returns the diagonal matrix of order (count v) with the elements of `v` along
-  the diagonal."
+  "Returns the diagonal matrix of order `(count v)` with the elements of the
+  sequence `v` along the diagonal."
   [v]
   (let [v (vec v)
         n (count v)]
@@ -805,10 +818,11 @@
                     (if (= i j) (v i) 0)))))
 
 (defn characteristic-polynomial
-  "Compute the characteristic polynomial of the square matrix m, evaluated
-  at x. Typically x will be a dummy variable, but if you wanted to get the
-  value of the characteristic polynomial at some particular point, you could
-  supply a different expression."
+  "Compute the characteristic polynomial of the square matrix m, evaluated at `x`.
+
+  Typically `x` will be a symbolic variable, but if you wanted to get the value
+  of the characteristic polynomial at some particular numerical point `x'` you
+  could pass that too."
   [m x]
   (let [r (num-rows m)
         c (num-cols m)]

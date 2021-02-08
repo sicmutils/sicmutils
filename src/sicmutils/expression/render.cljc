@@ -1,23 +1,25 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;;; it under the terms of the GNU General Public License as published by
+;;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.expression.render
+  "Functions and utilities for rendering symbolic expressions to various backends
+  like LaTeX, infix or Javascript."
   (:require [clojure.zip :as z]
             [clojure.set :as set]
             [clojure.string :as s]
@@ -28,8 +30,7 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
-(defn ^:private make-symbol-generator
-  [p]
+(defn ^:private make-symbol-generator [p]
   (let [i (atom 0)]
     (fn [] (symbol
            #?(:clj
@@ -41,21 +42,24 @@
                                (.padStart 4 "0"))]
                 (str p suffix)))))))
 
-(def ^:private rewrite-trig-powers
-  "Historical preference is to write sin^2(x) rather than (sin(x))^2."
+(def ^{:private true
+       :doc "Historical preference is to write `sin^2(x)` rather
+       than `(sin(x))^2`."}
+  rewrite-trig-powers
   (let [ok? #(and ('#{sin cos tan} (% :T))
                   (= 2 (% :N)))]
     (R/rule (expt (:T :X) :N) ok? ((expt :T :N) :X))))
 
-(def ^:private rewrite-negation
-  "The simplifier returns sums of products; for negative summands the
-  simplifier negates by wrapping with (* -1 ...). For rendering, we
-  prefer to use a unary minus"
+(def ^{:private true
+       :doc "The simplifier returns sums of products; for negative summands the
+  simplifier negates by wrapping with `(* -1 ...)`. For rendering, we prefer to
+  use a unary minus."}
+  rewrite-negation
   (R/ruleset
    (* -1 :X) => (u- :X)
    (* -1 :X*) => (u- (* :X*))))
 
-(defn render-infix-ratio
+(defn- render-infix-ratio
   "renders a pair of the form `[numerator denominator]` as a infix ratio of the
   form `num/denom`.
 
@@ -74,6 +78,7 @@
 (defn ^:private make-infix-renderer
   "Base function for infix renderers. This is meant to be specialized via
   options for the treatment desired. Returns a rendering function. The options are:
+
   - `precedence-map`: a map from (symbol or keyword) to numbers. Higher numbers
     mean higher precedence. This guides parenthesization.
   - `juxtapose-multiply`: a string that will be placed between factors in a
@@ -88,8 +93,7 @@
     arguments, used to provide custom rendering for things like exponentiation
     which might not be rendered either as infix or prefix.
   - `rename-functions` is a map supplying replacement function names to be used
-    just before the expression is written.
-  "
+    just before the expression is written."
   [& {:keys [juxtapose-multiply special-handlers infix? render-primitive
              rename-functions parenthesize precedence-map rewrite-trig-squares]
       :or {special-handlers {}
@@ -216,6 +220,7 @@
 
 (def ^:private decimal-superscripts
   [\⁰ \¹ \² \³ \⁴ \⁵ \⁶ \⁷ \⁸ \⁹])
+
 (def ^:private decimal-subscripts
   [\₀ \₁ \₂ \₃ \₄ \₅ \₆ \₇ \₈ \₉])
 
@@ -235,9 +240,9 @@
 (def ^:private n->subscript #(n->script % decimal-subscripts))
 (def ^:private n->superscript #(n->script % decimal-superscripts))
 
-(def ->infix
-  "Converts an S-expression to printable infix form. Numeric exponents are
-  written as superscripts. Partial derivatives get subscripts."
+(def ^{:doc "Converts an S-expression to printable infix form. Numeric exponents
+  are written as superscripts. Partial derivatives get subscripts."}
+  ->infix
   (make-infix-renderer
    :precedence-map '{D 9, expt 7, :apply 5, u- 4, / 3, * 3, + 1, - 1, = 0, > 0, < 0, >= 0, <= 0}
    :infix? '#{* + - / expt u- = > < >= <=}
@@ -257,17 +262,19 @@
                          (when stem
                            (str stem (n->subscript subscript)))))))
 
-(def ^:private TeX-letters
-  "The set of names of TeX letters (e.g., the Greek letters). Symbols
-  whose names match this set are prefixed with \\, as in alpha -> \\alpha."
+(def ^{:private true
+       :doc "The set of names of TeX letters (e.g., the Greek letters). Symbols
+  whose names match this set are prefixed with \\, as in alpha -> \\alpha."}
+  TeX-letters
   #{"alpha" "beta" "gamma" "delta" "epsilon" "varepsilon" "zeta" "eta"
     "theta" "vartheta" "kappa" "lambda" "mu" "nu" "xi" "pi" "varpi"
     "rho" "varrho" "sigma" "varsigma" "tau" "upsilon" "phi" "varphi"
     "chi" "psi" "omega" "Gamma" "Delta" "Theta" "Lambda" "Xi" "Pi" "Sigma"
     "Upsilon" "Phi" "Psi" "Omega" "ell"})
 
-(def ^:private TeX-map
-  "Direct mapping of symbols to TeX."
+(def ^{:private true
+       :doc "Direct mapping of symbols to TeX."}
+  TeX-map
   {"α" "\\alpha",
    "ω" "\\omega",
    "θ" "\\theta",
@@ -294,14 +301,21 @@
     s
     (brace s)))
 
-(def ^:dynamic *TeX-vertical-down-tuples* false)
-(def ^:dynamic *TeX-sans-serif-symbols* true)
+(def ^{:dynamic true
+       :doc "If true, [[->TeX]] will render down tuples as vertical matrices
+  with square braces. Defaults to false."}
+  *TeX-vertical-down-tuples* false)
+
+(def ^{:dynamic true
+       :doc "If true, [[->TeX]] will render symbols with more than 1 character
+  using a sans-serif typestyle via `\\mathsf`. Defaults to true."}
+  *TeX-sans-serif-symbols* true)
 
 (defn- displaystyle [s]
   (str "\\displaystyle{" s "}"))
 
-(def ->TeX
-  "Convert the given (simplified) expression to TeX format, as a string."
+(def ^{:doc "Convert the given expression to TeX format, as a string."}
+  ->TeX
   (let [TeX-accent (fn [accent]
                      (fn [[_ stem]]
                        (str "\\" accent " " (maybe-brace (->TeX stem)))))
@@ -377,24 +391,30 @@
                                  (brace s))
                                v)))))))))
 
-(def ->JavaScript
-  "Convert the given (simplified) expression to a JavaScript function.
-  Parameters to the function will be extracted from the symbols in the
-  expression. Common subexpression elimination will be performed and auxiliary
-  variables will be bound in the body of the function; the names of these
-  symbols are obtained from the nullary function option :symbol-generator, which
-  defaults to a function yielding `_1, ...`. If `:parameter-order is specified,
-  it is used to determine function parameter order in one of two ways: if it is
-  set to a function, that function will be called on the sequence of parameters
-  and is expected to return the parameters in the desired sequence. Otherwise,
-  it is interpreted as the sequence of parameters itself. If not specified, the
-  default behavior is `sort`.
+(def ^{:doc "Convert the given expression to a string representation of a
+  JavaScript function.
+
+  Parameters to the function will be extracted from the symbols in the expression.
+  Common subexpression elimination will be performed and auxiliary variables
+  will be bound in the body of the function; the names of these symbols are
+  obtained from the nullary function option :symbol-generator, which defaults to
+  a function yielding `_1, ...`.
+
+  If `:parameter-order` is specified, it is used to determine function parameter
+  order in one of two ways:
+
+  If it is set to a function, that function will be called on the sequence of
+  parameters and is expected to return the parameters in the desired sequence.
+
+  Otherwise, it is interpreted as the sequence of parameters itself. If not
+  specified, the default behavior is `sort`.
 
   If `:deterministic? true` is supplied, the function will assign variables by
   sorting the string representations of each term before assignment. Otherwise,
   the nondeterministic order of hash maps inside this function won't guarantee a
   consistent variable naming convention in the returned function. For tests, set
-  `:deterministic? true`."
+  `:deterministic? true`."}
+  ->JavaScript
   (let [operators-known '#{+ - * /
                            sin cos tan
                            asin acos atan

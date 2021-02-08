@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.calculus.form-field
   (:require [sicmutils.abstract.function :as af]
@@ -167,17 +167,20 @@
 (def d (o/make-operator exterior-derivative-procedure 'd))
 
 (defn permutation-sequence
-  "This is an unusual way to go about this in a functional language,
-  but it's fun. Produces an iterable sequence developing the
-  permutations of the input sequence of objects (which are considered
-  distinct) in church-bell-changes order, that is, each permutation
-  differs from the previous by a transposition of adjacent
-  elements (Algorithm P from §7.2.1.2 of Knuth). This has the
-  side-effect of arranging for the parity of the generated
-  permutations to alternate; the first permutation yielded is the
-  identity permutation (which of course is even). Inside, there is a
-  great deal of mutable state, but this cannot be observed by the
-  user."
+  "Produces an iterable sequence developing the permutations of the input sequence
+  of objects (which are considered distinct) in church-bell-changes order - that
+  is, each permutation differs from the previous by a transposition of adjacent
+  elements (Algorithm P from §7.2.1.2 of Knuth).
+
+  This is an unusual way to go about this in a functional language, but it's
+  fun.
+
+  This approach has the side-effect of arranging for the parity of the generated
+  permutations to alternate; the first permutation yielded is the identity
+  permutation (which of course is even).
+
+  Inside, there is a great deal of mutable state, but this cannot be observed by
+  the user."
   [as]
   (let [n (count as)
         a (object-array as)
@@ -226,10 +229,6 @@
            [IIterable
             (-iterator [this] this)])))))
 
-(defn ^:private factorial
-  [n]
-  (reduce g/* (range 2 (inc n))))
-
 (defn ^:private wedge2
   [form1 form2]
   (let [n1 (get-rank form1)
@@ -239,7 +238,7 @@
       (let [n (+ n1 n2)
             w (fn [& args]
                 (assert (= (count args) n) "Wrong number of args to wedge product")
-                (g/* (/ 1 (factorial n1) (factorial n2))
+                (g/* (/ 1 (g/factorial n1) (g/factorial n2))
                      (reduce g/+ (map (fn [permutation parity]
                                         (let [a1 (take n1 permutation)
                                               a2 (drop n1 permutation)]
@@ -248,6 +247,5 @@
                                       (cycle [1 -1])))))]
         (procedure->nform-field w n `(~'wedge ~(m/diffop-name form1) ~(m/diffop-name form2)))))))
 
-(defn wedge
-  [& fs]
+(defn wedge [& fs]
   (reduce wedge2 fs))

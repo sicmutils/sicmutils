@@ -213,7 +213,7 @@
   "Returns a (lazy) sequence of successively refined estimates of the integral of
   `f` over the open interval $(a, b)$ using the Trapezoid method.
 
-  ## Optional arguments:
+  ### Optional arguments:
 
   `:n`: If `:n` is a number, returns estimates with $n, 2n, 4n, ...$ slices,
   geometrically increasing by a factor of 2 with each estimate.
@@ -325,7 +325,7 @@
   Optionally accepts `opts`, a dict of optional arguments. All of these get
   passed on to `us/seq-limit` to configure convergence checking.
 
-  See `trapezoid-sequence` for information on the optional args in `opts` that
+  See [[trapezoid-sequence]] for information on the optional args in `opts` that
   customize this function's behavior."
   :area-fn single-trapezoid
   :seq-fn trapezoid-sequence)

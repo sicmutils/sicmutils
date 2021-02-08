@@ -1,23 +1,29 @@
-
+;;
 ;; Copyright © 2017 Colin Smith.
 ;; This work is based on the Scmutils system of MIT/GNU Scheme:
 ;; Copyright © 2002 Massachusetts Institute of Technology
-
+;;
 ;; This is free software;  you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 3 of the License, or (at
 ;; your option) any later version.
-
+;;
 ;; This software is distributed in the hope that it will be useful, but
 ;; WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 ;; General Public License for more details.
-
+;;
 ;; You should have received a copy of the GNU General Public License
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
 (ns sicmutils.function
+  "Procedures that act on Clojure's function and multimethod types, along with
+  extensions of the SICMUtils generic operations to functions.
+
+  See [the `Function`
+  cljdocs](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/data-types/function)
+  for a discussion of generic function arithmetic."
   (:refer-clojure :rename {get core-get
                            get-in core-get-in}
                   #?@(:cljs [:exclude [get get-in]]))
@@ -39,9 +45,9 @@
 ;; ### Utilities
 
 (defprotocol IArity
-  (arity [_]
-    "Return the cached or obvious arity of the object if we know it. Otherwise
-    delegate to the heavy duty reflection, if we have to."))
+  (arity [f]
+    "Return the cached or obvious arity of `f` if we know it. Otherwise
+    delegates to heavy duty reflection."))
 
 (extend-protocol IArity
   #?(:clj Object :cljs default)
@@ -59,7 +65,9 @@
   ;; responding to the argument :arity, which returns the arity.
   (arity [f] (f :arity)))
 
-(defn function? [f]
+(defn function?
+  "Returns true if `f` is of [[v/kind]] `::v/function`, false otherwise."
+  [f]
   (isa? (v/kind f) ::v/function))
 
 (defn with-arity
@@ -78,11 +86,10 @@
        (with-meta f new-meta)))))
 
 (defn compose
-  "Compose is like Clojure's standard comp, but for this system we
-  like to know the arity of our functions, so that we can calculate
-  their derivatives with structure, etc. The arity of a composition is
-  simply the arity of its rightmost (that is, first to be applied)
-  function term."
+  "Arity-preserving version of `clojure.core/comp`.
+
+  The arity of a composition is the arity of the rightmost (that is, first to be
+  applied) function term in `fns`."
   [& fns]
   (let [a (arity (last fns))]
     (with-meta (apply comp fns) {:arity a})))
@@ -91,7 +98,9 @@
   "For non-functions, acts like [[clojure.core/get]]. For function
   arguments (anything that responds true to [[function?]]), returns
 
+  ```clojure
   (comp #(clojure.core/get % k) f)
+  ```
 
   If `not-found` is supplied it's passed through to the
   composed [[clojure.core/get]]."
@@ -108,7 +117,9 @@
   "For non-functions, acts like [[clojure.core/get-in]]. For function
   arguments (anything that responds true to [[function?]]), returns
 
+  ```clojure
   (comp #(clojure.core/get-in % ks) f)
+  ```
 
   If `not-found` is supplied it's passed through to the
   composed [[clojure.core/get-in]]."
@@ -135,7 +146,7 @@
           (v/one-like (apply f args)))
         (with-meta meta))))
 
-(def ^{:doc "Returns its argument."}
+(def ^{:doc "Identity function. Returns its argument."}
   I
   identity)
 
@@ -149,8 +160,10 @@
   that adds each shift to the corresponding argument of `f`. Too many or two few
   shifts are ignored.
 
+  ```clojure
   ((arg-shift square 3) 4) ==> 49
-  ((arg-shift square 3 2 1) 4) ==> 49"
+  ((arg-shift square 3 2 1) 4) ==> 49
+  ```"
   [f & shifts]
   (let [shifts (concat shifts (repeat 0))]
     (-> (fn [& xs]
@@ -162,8 +175,10 @@
   that multiplies each factor by the corresponding argument of `f`. Too many or
   two few factors are ignored.
 
+  ```clojure
   ((arg-scale square 3) 4) ==> 144
-  ((arg-scale square 3 2 1) 4) ==> 144"
+  ((arg-scale square 3 2 1) 4) ==> 144
+  ```"
   [f & factors]
   (let [factors (concat factors (repeat 1))]
     (-> (fn [& xs]
@@ -242,7 +257,7 @@
             :required-arity (second (first (:getRequiredArity facts)))
             :invoke?        (boolean (seq (:doInvoke facts)))}))
 
-       (defn jvm-arity [f]
+       (defn- jvm-arity [f]
          (let [{:keys [arities required-arity invoke?] :as m} (arity-map f)]
            (cond
              ;; Rule one: if all we have is one single case of invoke, then the
@@ -281,7 +296,7 @@
 
    :cljs
    (do
-     (defn variadic?
+     (defn- variadic?
        "Returns true if the supplied function is variadic, false otherwise."
        [f]
        (boolean (.-cljs$lang$maxFixedArity f)))
@@ -349,8 +364,10 @@
      (arity [f] (:arity (meta f) (reflect-on-arity f)))))
 
 (defn combine-arities
-  "Find the joint arity of arities a and b, i.e. the loosest possible arity specification
-  compatible with both. Throws if the arities are incompatible."
+  "Returns the joint arity of arities `a` and `b`.
+
+  The joint arity is the loosest possible arity specification compatible with
+  both `a` and `b`. Throws if `a` and `b` are incompatible."
   ([] [:at-least 0])
   ([a] a)
   ([a b]
@@ -381,14 +398,14 @@
               [[:exactly k] [:exactly l]] (if (= k l) [:exactly k] (fail)))))))
 
 (defn joint-arity
-  "Find the most relaxed possible statement of the joint arity of the given arities.
+  "Find the most relaxed possible statement of the joint arity of the given sequence of `arities`.
   If they are incompatible, an exception is thrown."
   [arities]
   (reduce combine-arities arities))
 
 (defn seq-arity
-  "Returns the most general arity compatible with all entries in the supplied
-  sequence of values."
+  "Returns the most general arity compatible with the aritiies of all entries in
+  the supplied sequence `xs` of values."
   [xs]
   (transduce (map arity) combine-arities xs))
 
@@ -400,15 +417,22 @@
 (derive ::v/scalar ::cofunction)
 
 (defn- unary-operation
-  "For a unary operator (like sqrt), returns a function of one function which when
-  called will apply the operation to the result of the original function (so
-  that ((unary-operation sqrt) f) x) will return
-  (sqrt (f x))."
-  [operator]
-  (-> (partial comp operator)
+  "For a unary function `f` (like [[g/sqrt]]), returns a function of one function
+  `g`. The returned function acts like `(comp f g)`. For example:
+
+  ```clojure
+  (([[unary-operation]] f) g)
+  ;;=> (fn [x] (f (g x)))
+  ```"
+  [f]
+  (-> (partial comp f)
       (with-meta {:arity [:exactly 1]})))
 
 (defn coerce-to-fn
+  "Given a [[value/numerical?]] input `x`, returns a function of arity `arity`
+  that always returns `x` no matter what input it receives.
+
+  For non-numerical `x`, returns `x`."
   ([x arity]
    (if (v/numerical? x)
      (-> (constantly x)
@@ -416,11 +440,16 @@
      x)))
 
 (defn- binary-operation
-  "For a given binary operator (like +), returns a function of two functions which
-  will produce the pointwise operation of the results of applying the two
-  functions to the input. That is, (binary-operation +) applied to f and g will
-  produce a function which computes (+ (f x) (g x)) given x as input."
-  [operator]
+  "Accepts a binary function `op` (like [[+]]), and returns a function of two
+  functions `f` and `g` which will produce the pointwise operation `op` of the
+  results of applying both `f` and `g` to the input.
+
+
+  ```clojure
+  (([[binary-operation]] op) f g)
+  ;;=> (fn [x] (op (f x) (g x)))
+  ```"
+  [op]
   (letfn [(h [f g]
             (let [f-arity (if (v/numerical? f) (arity g) (arity f))
                   g-arity (if (v/numerical? g) f-arity   (arity g))
@@ -429,50 +458,53 @@
                   arity (joint-arity [f-arity g-arity])]
               (-> (condp = arity
                     [:exactly 0]
-                    #(operator (f1) (g1))
+                    #(op (f1) (g1))
                     [:exactly 1]
-                    #(operator (f1 %) (g1 %))
+                    #(op (f1 %) (g1 %))
                     [:exactly 2]
-                    #(operator (f1 %1 %2) (g1 %1 %2))
+                    #(op (f1 %1 %2) (g1 %1 %2))
                     [:exactly 3]
-                    #(operator (f1 %1 %2 %3) (g1 %1 %2 %3))
+                    #(op (f1 %1 %2 %3) (g1 %1 %2 %3))
                     [:exactly 4]
-                    #(operator (f1 %1 %2 %3 %4) (g1 %1 %2 %3 %4))
+                    #(op (f1 %1 %2 %3 %4) (g1 %1 %2 %3 %4))
                     [:exactly 5]
-                    #(operator (f1 %1 %2 %3 %4 %5) (g1 %1 %2 %3 %4 %5))
+                    #(op (f1 %1 %2 %3 %4 %5) (g1 %1 %2 %3 %4 %5))
                     [:exactly 6]
-                    #(operator (f1 %1 %2 %3 %4 %5 %6) (g1 %1 %2 %3 %4 %5 %6))
+                    #(op (f1 %1 %2 %3 %4 %5 %6) (g1 %1 %2 %3 %4 %5 %6))
                     [:exactly 7]
-                    #(operator (f1 %1 %2 %3 %4 %5 %6 %7) (g1 %1 %2 %3 %4 %5 %6 %7))
+                    #(op (f1 %1 %2 %3 %4 %5 %6 %7) (g1 %1 %2 %3 %4 %5 %6 %7))
                     [:exactly 8]
-                    #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8) (g1 %1 %2 %3 %4 %5 %6 %7 %8))
+                    #(op (f1 %1 %2 %3 %4 %5 %6 %7 %8) (g1 %1 %2 %3 %4 %5 %6 %7 %8))
                     [:exactly 9]
-                    #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9))
+                    #(op (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9))
                     [:exactly 10]
-                    #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10))
+                    #(op (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10))
                     [:at-least 0]
-                    #(operator (apply f1 %&) (apply g1 %&))
+                    #(op (apply f1 %&) (apply g1 %&))
                     (u/illegal (str  "unsupported arity for function arithmetic " arity)))
                   (with-meta {:arity arity}))))]
     (with-meta h {:arity [:exactly 2]})))
 
 (defn- defunary
+  "Given a generic unary function `generic-op`, define the multimethods necessary
+  to introduce this operation to function arguments."
   [generic-op]
   (let [unary-op (unary-operation generic-op)]
-    (defmethod generic-op [::v/function] [a] (unary-op a))))
+    (defmethod generic-op [::v/function] [a]
+      (unary-op a))))
 
 (defn- defbinary
-  "Given a generic and binary function operation,
-  define the multimethods necessary to introduce this operation
-  to function arguments."
-  ([generic-op]
-   (defbinary generic-op generic-op))
+  "Given a generic binary function `generic-op` (and an optional `binary-op` to
+  perform the work), define the multimethods necessary to introduce this
+  operation to function arguments."
+  ([generic-op] (defbinary generic-op generic-op))
   ([generic-op binary-op]
    (let [binop (binary-operation binary-op)]
      (doseq [signature [[::v/function ::v/function]
                         [::v/function ::cofunction]
                         [::cofunction ::v/function]]]
-       (defmethod generic-op signature [a b] (binop a b))))))
+       (defmethod generic-op signature [a b]
+         (binop a b))))))
 
 (defbinary g/add g/+)
 (defbinary g/sub g/-)

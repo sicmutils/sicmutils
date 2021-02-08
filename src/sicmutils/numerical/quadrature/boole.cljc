@@ -65,7 +65,7 @@
   Returns estimates with $n, 2n, 4n, ...$ slices, geometrically increasing by a
   factor of 2 with each estimate.
 
-  ## Optional arguments:
+  ### Optional arguments:
 
   If supplied, `:n` (default 1) specifies the initial number of slices to use."
   ([f a b] (boole-sequence f a b {:n 1}))
