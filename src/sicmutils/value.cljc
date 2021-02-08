@@ -18,6 +18,13 @@
 ;
 
 (ns sicmutils.value
+  "The home of most of the protocol-based extensible generic operations offered by
+  SICMUtils. The bulk of the others live in [[sicmutils.generic]].
+
+  See [the `Generics`
+  cljdocs](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/basics/generics)
+  for a detailed discussion of how to use and extend the generic operations
+  defined in [[sicmutils.generic]] and [[sicmutils.value]]."
   (:refer-clojure :rename {zero? core-zero?
                            number? core-number?
                            = core=

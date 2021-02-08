@@ -18,6 +18,13 @@
 ;;
 
 (ns sicmutils.generic
+  "The home of most of the SICMUtils extensible generic operations. The bulk of
+  the others live in [[sicmutils.value]].
+
+  See [the `Generics`
+  cljdocs](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/basics/generics)
+  for a detailed discussion of how to use and extend the generic operations
+  defined in [[sicmutils.generic]] and [[sicmutils.value]]."
   (:refer-clojure :rename {mod core-mod}
                   :exclude [/ + - * divide #?(:cljs mod)])
   (:require [sicmutils.value :as v]
@@ -42,7 +49,7 @@
        (range 97 123)))
 
 (defn- arglists
-  "returns a list of :arglists entries appropriate for a generic function with
+  "returns a list of `:arglists` entries appropriate for a generic function with
   arities between `a` and `b` inclusive."
   [a b]
   (let [arities (if b
@@ -108,8 +115,8 @@ See [[+]] for a variadic version of [[add]]."
    :dfdx (fn [_] -1)})
 
 (defgeneric negative? 1
-  "Returns true if the argument `a` is less than `([[v/zero-like]] a)`, false
-  otherwise. The default implementation depends on a proper Comparable
+  "Returns true if the argument `a` is less than `([[value/zero-like]] a)`,
+  false otherwise. The default implementation depends on a proper Comparable
   implementation on the type.`")
 
 (defmethod negative? :default [a] (< a (v/zero-like a)))
@@ -422,7 +429,7 @@ See [[*]] for a variadic version of [[mul]]."
 (defn * [& args]
   (reduce bin* 1 args))
 
-(defn ^:private bin-div [a b]
+(defn- bin-div [a b]
   (cond (v/one? b) a
         :else (div a b)))
 
@@ -434,8 +441,7 @@ See [[*]] for a variadic version of [[mul]]."
 (def divide /)
 
 (defn factorial
-  "Returns
-  the factorial of `n`, ie, the product of 1 to n inclusive."
+  "Returns the factorial of `n`, ie, the product of 1 to n inclusive."
   [n]
   (reduce * (range 1 (inc n))))
 
