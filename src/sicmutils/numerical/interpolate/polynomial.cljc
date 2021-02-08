@@ -261,7 +261,7 @@
 ;;
 ;; So define a function to grab that:
 
-(defn- first-terms [tableau]
+(defn ^:no-doc first-terms [tableau]
   (map first tableau))
 
 ;; the final piece we need is a function that will extract the estimate from our
@@ -500,7 +500,7 @@
           d      (* factor (- xr x))]
       [xl xr c d])))
 
-(defn- mn-present
+(defn ^:no-doc mn-present
   "Returns a (lazy) sequence of estimates by successively adding C values from the
   first entry of each tableau column. Each C value is the delta from the
   previous estimate."

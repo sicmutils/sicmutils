@@ -48,18 +48,18 @@
 ;; ratio could degenerate into you selecting the larger of the two pieces every
 ;; time, slowing your search.
 
-(def ^{:doc "$\phi$, the golden ratio."}
+(def ^{:doc "$\\phi$, the golden ratio."}
   phi
   (/ (+ (g/sqrt 5) 1) 2))
 
 
-(def ^{:doc "$1 \over \phi$. Multiply by this to scale some distance down to the
+(def ^{:doc "$1 \\over \\phi$. Multiply by this to scale some distance down to the
 larger-sized golden ratio piece."}
   inv-phi
   (/ (- (g/sqrt 5) 1) 2))
 
 
-(def ^{:doc "$1 \over \phi^2$. Scales down twice, compared to [[inv-phi]]."}
+(def ^{:doc "$1 \\over \\phi^2$. Scales down twice, compared to [[inv-phi]]."}
   inv-phi2
   (- 1 inv-phi))
 
@@ -75,8 +75,7 @@ larger-sized golden ratio piece."}
   to---x2------from
   ```
 
-  Such that `from->x1 / from->to == to->x2 / from->x1`.
-  "
+  Such that `from->x1 / from->to == to->x2 / from->x1`."
   [from to]
   (+ (* inv-phi2 from)
      (* inv-phi to)))
