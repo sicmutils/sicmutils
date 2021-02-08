@@ -18,6 +18,11 @@
 ;;
 
 (ns sicmutils.abstract.function
+  "Implementation of a [[literal-function]] constructor. Literal functions can be
+  applied to structures and numeric inputs, and differentiated.
+
+  The namespace also contains an implementation of a small language for
+  declaring the input and output types of [[literal-function]] instances."
   (:refer-clojure :exclude [name])
   (:require [sicmutils.abstract.number :as an]
             [sicmutils.differential :as d]

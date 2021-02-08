@@ -38,7 +38,7 @@
    ["Functional Differential Geometry"
     {:file "doc/books/fdg.adoc"}]]
   ["Misc" {}
-   ["Historical Notes" {:file "doc/history.adoc"}]
+   ["History, References" {:file "doc/history.adoc"}]
    ["Development Instructions" {:file "doc/development.adoc"}]
    ["Getting Involved / What's Missing?" {:file "doc/contributing.adoc"}]
    ["FAQ" {:file "doc/faq.adoc"}]]]}

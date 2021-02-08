@@ -105,9 +105,6 @@ What's coming next?
 - `sicmutils.expression.render/->infix` and `sicmutils.expression.render/->TeX`
   now handle equality/inequality symbols (`=`, `>=`, `>`, ...) as infix (#257).
 
-- `sicmutils.expression.render/->infix` and `sicmutils.expression.render/->TeX` now
-  handle equality/inequality symbols (`=`, `>=`, `>`, ...) as infix.
-
 - `sicmutils.expression.render/*TeX-sans-serif-symbols*` binding to control if
   symbols longer than 1 char should have `\mathsf` applied (#258).
 

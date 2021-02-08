@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.calculus.manifold
   (:require #?(:cljs [goog.string :refer [format]])
@@ -74,8 +74,8 @@
 
 (defn coordinate-system-at
   "Looks up the named coordinate system in the named patch of the given
-  manifold; this locates a constructor, which is then applied to manifold
-  to produce the result: an object implementing ICoordinateSystem."
+  `manifold`; this locates a constructor, which is then applied to manifold to
+  return an object implementing [[ICoordinateSystem]]."
   [coordinate-system-name patch-name manifold]
   ((get-in manifold [:manifold-family
                      :patch patch-name
@@ -113,11 +113,11 @@
   (manifold-point :spec))
 
 (defn get-coordinates
-  "Get the representation of manifold-point in coordinate-system. The
-  point contains a cache of the coordinate system->representation
-  mapping.  If an entry for the given coordinate system is not found,
-  thunk is called to produce the representation, which is then
-  installed in the cache."
+  "Returns the representation of `manifold-point` in `coordinate-system`.
+
+  The point contains a cache of the coordinate system -> representation mapping.
+  If an entry for the given `coordinate-system` is not found, `thunk` is called
+  to produce the representation, which is then installed in the cache."
   [manifold-point coordinate-system thunk]
   (let [reps (manifold-point :coordinate-representation)]
     (if-let [rep (@reps coordinate-system)]
@@ -137,14 +137,14 @@
   (= (point->manifold point) manifold))
 
 (defn ^:private frame?
-  "True if this coordinate system is actually a frame. FIXME: frames aren't
-  implemented yet."
+  "True if this coordinate system is actually a frame.
+
+  FIXME: frames aren't implemented yet."
   ;; Note: when we get around to doing so, it probably makes sense to have
   ;; frames implement ICoordinateSystem in their own way, rather than the
   ;; hacky polymorphism used in scmutils
   [coordinate-system]
-  false                                                     ; FIXME
-  )
+  false)
 
 (defn chart
   [coordinate-system]
@@ -441,7 +441,6 @@
             (attach-coordinate-system :rectangular :origin ->Rectangular)
             (attach-coordinate-system :polar-cylindrical :origin ->PolarCylindrical)))
 
-
 (def R1 (make-manifold Rn 1))
 (def R2 (make-manifold Rn 2))
 (def R3 (make-manifold Rn 3))
@@ -476,7 +475,6 @@
 (def S2-stereographic (coordinate-system-at :stereographic :north-pole S2))
 (def S2-Riemann S2-stereographic)
 ;; double-check these: what goes in S2-type, and what goes in Sn(2)?
-
 
 (def SO3-type (-> "SO3"
                   make-manifold-family

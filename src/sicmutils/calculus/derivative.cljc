@@ -440,7 +440,7 @@
 ;; This section exposes various differential operators as [[o/Operator]]
 ;; instances.
 
-(def derivative-symbol 'D)
+(def ^:no-doc derivative-symbol 'D)
 
 (def ^{:doc "Derivative operator. Takes some function `f` and returns a function
   whose value at some point can multiply an increment in the arguments, to
@@ -523,13 +523,17 @@
   structures of `x` and `dx`. Without this wrapper, `((g/* dx D) f)` with `dx`
   == `(up 'dx 'dy)` would expand to this:
 
-  `(fn [x] (* (s/up ('dx x) ('dy x))
-              ((D f) x)))`
+  ```clojure
+  (fn [x] (* (s/up ('dx x) ('dy x))
+             ((D f) x)))
+  ```
 
   `constantly` delays the interpretation of `dx` one step:
 
-  `(fn [x] (* (s/up 'dx 'dy)
-              ((D f) x)))`
+  ```clojure
+  (fn [x] (* (s/up 'dx 'dy)
+             ((D f) x)))
+  ```
   "
   [f x dx]
   (((g/exp (g/* (constantly dx) D)) f) x))
