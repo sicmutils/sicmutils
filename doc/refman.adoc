@@ -1710,8 +1710,8 @@ vectors and matrices, that can be constructed with appropriate constructors:
 (literal-function <name>)
 ----
 
-WARNING: As of version `0.14.0`, these haven't yet been ported over to Clojure
-from `scmutils`. Stay tuned for a future release, as we have all of the
+WARNING: As of version `0.15.0`, most of these haven't yet been ported over to
+Clojure from `scmutils`. Stay tuned for a future release, as we have all of the
 machinery in place to do this.
 
 There are currently no simplifiers that can manipulate literal objects of these

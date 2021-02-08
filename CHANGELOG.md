@@ -4,19 +4,65 @@
 
 ## 0.15.0
 
-Thanks to @hcarvalhoalves and @mk for their contributions, and to @borkdude for
-his help with SCI.
+(If you have any questions about how to use any of the following, please ask us
+at our [Github Discussions](https://github.com/sicmutils/sicmutils/discussions)
+page!)
 
-What are the broad themes?
+This release was focused on a small number of themes:
 
-- Autodiff upgrades
-- Focus on rendering
-- native integration via comparison operators, `get-in` protocols etc
-- Fleshing out numerical methods
+**Automatic differentiation**:
 
-What's coming next?
+The goal for this cycle's automatic differentiation (AD) work was to expand the
+set of functions and types that can play with AD. AD now works on functions that
+return all Clojure sequences, maps, and vectors, in addition to SICMUtils types
+like `Operator`, `Series`, `PowerSeries` and `Structure`. The system is now
+fully extensible, so if you want to differentiate functions that return custom
+records or Java collections, it's now no problem.
 
-- animation, simulation, rendering / representation
+SICMUtils can now differentiate functions in Clojurescript that use comparison
+operations like `<`, `=`, `<=` and friends. Clojure can't quite do this yet, but
+you can differentiate through `v/compare` and `v/=** calls.
+
+We can also differentiate functions that return other functions with no trouble;
+only a few libraries can do this, and the behavior is subtle. Hold tight for
+comprehensive docs describing this behavior.
+
+New `Div`, `Grad`, `Curl` and `Lap` operators build on this foundation.
+
+**SCI Integration**
+
+To support safe execution inside of a browser-based Notebook or REPL
+environment, SICMUtils now has full support for @borkdude's
+[SCI](https://github.com/borkdude/sci), the Small Clojure Interpreter, via the
+[sicmutils.sci](https://github.com/sicmutils/sicmutils/blob/master/src/sicmutils/env/sci.cljc)
+namespace. Every function and macro in the library now works in SCI. (Thanks for
+@borkdude and @mk for your help and contributions.**
+
+**Rendering**
+
+@hcarvalhoalves made a number of contributions to the LaTeX and infix renderers;
+`PowerSeries` and `Series` now render beautifully, as well as `=` and the
+various inequality symbols. Expect a lot more action here as we move into more
+browser-based notebook environments.
+
+There's a lot more that went into this release; give the detailed notes below a
+look for more details.
+
+**What's coming next?**
+
+The next release will focus on getting SICMUtils integrated with 2D and 3D
+rendering libraries like [three.js](https://threejs.org),
+[babylon.js](https://www.babylonjs.com) and
+[Quil](https://github.com/quil/quil). The long-term goal is for SICMUtils to
+support the sort of workflow I described in ["The Dynamic
+Notebook"](https://roadtoreality.substack.com/p/the-dynamic-notebook). This will
+require a big push on generic, pluggable representations for the various types
+and expressions in the library.
+
+Thanks again to @hcarvalhoalves and @mk for their contributions, and to @borkdude for
+his help with SCI!
+
+On to the detailed release notes:
 
 ### Automatic Differentiation
 

@@ -249,7 +249,7 @@
                     (concat (.-xs->c p)
                             (.-xs->c q)))))
 
-(defn- sub
+(defn sub
   "Subtract the polynomial q from the polynomial p."
   [^Polynomial p ^Polynomial q]
   {:pre [(polynomial? p)
