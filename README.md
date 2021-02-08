@@ -68,7 +68,7 @@ documented (yet). Some suggested next steps, for now:
 - Watch Colin's ["Physics in Clojure"][PHYSICS_IN_CLOJURE] talk for on overview
   of SICMUtils and its implementation
 - Visit the HTML version of [Structure and Interpretation of Classical
-  Mechanics](https://tgvaughan.github.io/)
+  Mechanics](https://tgvaughan.github.io/sicm/)
 
 ## Background
 

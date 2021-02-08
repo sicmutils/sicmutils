@@ -18,9 +18,25 @@
 ;;
 
 (ns sicmutils.env
-  "The purpose of these definitions is to let the import of sicmutils.env
-   bring all the functions in the book into scope without qualification,
-   so you can just start working with examples."
+  "Batteries-included namespace for the SICMUtils library.
+
+  The purpose of [[sicmutils.env]] is to bundle all of the functions used
+  in [Structure and Interpretation of Classical
+  Mechanics](https://tgvaughan.github.io/sicm/) and [Functional Differential
+  Geometry](https://mitpress.mit.edu/books/functional-differential-geometry)
+  into a single scope. The following form will import everything
+  from [[sicmutils.env]] into your REPL:
+
+  ```clojure
+  (require '[sicmutils.env :as e])
+  (e/bootstrap-repl!)
+  ```
+
+  Or, in Clojure:
+
+  ```clojure
+  (require '[sicmutils.env :as e :refer :all])
+  ```"
   (:refer-clojure :rename {ref core-ref
                            partial core-partial
                            compare core-compare}
@@ -66,8 +82,10 @@
      (set! nrepl.middleware.print/*print-fn* simp/expression->stream)))
 
 (defmacro bootstrap-repl!
-  "Bootstraps a repl or Clojure namespace by requiring all public vars from
-     sicmutils.env. From (This will only work at a repl in Clojurescript.)
+  "Bootstraps a repl or Clojure namespace by requiring all public vars
+  from [[sicmutils.env]].
+
+  (This will only work at a repl in Clojurescript.)
 
   TODO add support for `refer-macros` in Clojurescript
   TODO add rename, exclude support."
@@ -118,15 +136,16 @@
   "Given a sequence of `selectors`, return a function that accepts some object `x`
   and returns:
 
+  ```clojure
   (apply ref x selectors)
+  ```
   "
   [& selectors]
   (fn [x] (apply ref x selectors)))
 
 (defn partial
-  "A shim. Dispatches to partial differentiation when all the arguments
-  are integers; falls back to the core meaning (partial function application)
-  otherwise."
+  "A shim. Dispatches to [[d/partial]] when all the arguments are integers; falls
+  back to [[clojure.core/partial]] (partial function application) otherwise."
   [& selectors]
   (if (every? integer? selectors)
     (apply d/partial selectors)
@@ -157,14 +176,14 @@
 (def seq:pprint us/pprint)
 
 (defn tex$
-  "Render expression in a form convenient for rendering with clojupyter.
-  In this case, we want the TeX material wrapped with dollar signs."
+  "Returns a string containing a LaTeX representation of `expr`, wrapped in single
+  `$` to mark the string as an inline LaTeX form."
   [expr]
   (str "$" (-> expr g/simplify render/->TeX) "$"))
 
 (defn tex$$
-  "Render expression in a form convenient for rendering with clojupyter.
-  In this case, we want the TeX material wrapped with dollar signs."
+  "Returns a string containing a LaTeX representation of `expr`, wrapped in double
+  `$$` to mark the string as a block LaTeX form."
   [expr]
   (str "$$" (-> expr g/simplify render/->TeX) "$$"))
 

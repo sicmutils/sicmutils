@@ -232,8 +232,16 @@ See [[*]] for a variadic version of [[mul]]."
 (let [l10 (Math/log 10)]
   (defmethod log10 :default [x] (div (log x) l10)))
 
-(defgeneric gcd 2)
-(defgeneric lcm 2)
+(defgeneric gcd 2
+  "Returns the [greatest common
+  divisor](https://en.wikipedia.org/wiki/Greatest_common_divisor) of the two
+  inputs `a` and `b`.")
+
+(defgeneric lcm 2
+  "Returns the [least common
+  multiple](https://en.wikipedia.org/wiki/Least_common_multiple) of the two
+  inputs `a` and `b`.")
+
 (defgeneric exact-divide 2)
 
 (defgeneric square 1)

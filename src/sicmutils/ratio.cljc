@@ -18,6 +18,11 @@
 ;;
 
 (ns sicmutils.ratio
+  "This namespace provides a number of functions and constructors for working
+  with ratios in Clojure and Clojurescript.
+
+  [[clojure.lang.Ratio]] is native in Clojure. The Clojurescript implementation
+  uses [Fraction.js](https://github.com/infusion/Fraction.js/)."
   #?(:clj
      (:refer-clojure :rename {rationalize core-rationalize
                               ratio? core-ratio?
@@ -33,7 +38,7 @@
             #?(:cljs ["fraction.js/bigfraction.js" :as Fraction]))
   #?(:clj (:import [clojure.lang BigInt Ratio])))
 
-(def ratiotype #?(:clj Ratio :cljs Fraction))
+(def ^:no-doc ratiotype #?(:clj Ratio :cljs Fraction))
 (derive ratiotype ::v/real)
 
 (def ratio?
@@ -51,7 +56,7 @@
   #?(:clj core-denominator
      :cljs (fn [^Fraction x] (.-d x))))
 
-(defn ^:private promote [x]
+(defn- promote [x]
   (if (v/one? (denominator x))
     (numerator x)
     x))
@@ -88,7 +93,7 @@
       (u/bigint ~denominator))))
 
 (defn parse-ratio
-  "Parser for the #sicm/ratio literal."
+  "Parser for the `#sicm/ratio` literal."
   [x]
   (cond #?@(:clj
             [(ratio? x)
@@ -200,7 +205,7 @@
 
    :cljs
    (do
-     (defn pow [r m]
+     (defn- pow [r m]
        (let [n (numerator r)
              d (denominator r)]
          (if (neg? m)
@@ -252,7 +257,7 @@
        (promote (.mod a b)))
 
      ;; Cross-compatibility with numbers in CLJS.
-     (defn downcast-fraction
+     (defn- downcast-fraction
        "Anything that `upcast-number` doesn't catch will hit this and pull a floating
   point value out of the ratio."
        [op]
@@ -262,7 +267,7 @@
        (defmethod op [::v/real Fraction] [a ^Fraction b]
          (op a (.valueOf b))))
 
-     (defn upcast-number
+     (defn- upcast-number
        "Integrals can stay exact, so they become ratios before op."
        [op]
        (defmethod op [Fraction ::v/integral] [a b]
