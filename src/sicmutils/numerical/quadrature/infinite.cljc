@@ -91,11 +91,15 @@
   this function will internally perform a change of variables on the regions
   from:
 
-  `(:infinite-breakpoint opts) => ##Inf`
+  ```
+  (:infinite-breakpoint opts) => ##Inf
+  ```
 
   or
 
-  `##-Inf => (- (:infinite-breakpoint opts))`
+  ```
+  ##-Inf => (- (:infinite-breakpoint opts))
+  ```
 
   using $u(t) = {1 \\over t}$, as described in the `infinitize` method of
   `substitute.cljc`. This has the effect of mapping the infinite endpoint to an
@@ -108,7 +112,7 @@
 
   References:
 
-  - Press, Numerical Recipes (p138), Section 4.4: http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf"
+  - Press, Numerical Recipes (p138), [Section 4.4](http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf)"
   [integrator]
   (fn rec
     ([f a b] (rec f a b {}))

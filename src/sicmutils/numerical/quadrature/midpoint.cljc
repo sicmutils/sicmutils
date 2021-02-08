@@ -60,7 +60,7 @@
 ;; Here's an implementation of a function that can take the midpoint of a single
 ;; slice:
 
-(defn single-midpoint [f a b]
+(defn ^:no-doc single-midpoint [f a b]
   (let [width      (g/- b a)
         half-width (g// width 2)
         midpoint   (g/+ a half-width)]
@@ -152,7 +152,7 @@
   "Returns a (lazy) sequence of successively refined estimates of the integral of
   `f` over the open interval $(a, b)$ using the Midpoint method.
 
-  ## Optional arguments:
+  ### Optional arguments:
 
   `:n`: If `:n` is a number, returns estimates with $n, 3n, 9n, ...$ slices,
   geometrically increasing by a factor of 3 with each estimate.
@@ -225,7 +225,7 @@
   Optionally accepts `opts`, a dict of optional arguments. All of these get
   passed on to `us/seq-limit` to configure convergence checking.
 
-  See `midpoint-sequence` for information on the optional args in `opts` that
+  See [[midpoint-sequence]] for information on the optional args in `opts` that
   customize this function's behavior."
   :area-fn single-midpoint
   :seq-fn midpoint-sequence)

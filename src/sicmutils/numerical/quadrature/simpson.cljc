@@ -64,7 +64,7 @@
   Returns estimates with $n, 2n, 4n, ...$ slices, geometrically increasing by a
   factor of 2 with each estimate.
 
-  ## Optional arguments:
+  ### Optional arguments:
 
   If supplied, `:n` (default 1) specifies the initial number of slices to use."
   ([f a b] (simpson-sequence f a b {:n 1}))
@@ -80,7 +80,7 @@
   Optionally accepts `opts`, a dict of optional arguments. All of these get
   passed on to `us/seq-limit` to configure convergence checking.
 
-  See `simpson-sequence` for more information about Simpson's rule, caveats that
+  See [[simpson-sequence]] for more information about Simpson's rule, caveats that
   might apply when using this integration method and information on the optional
   args in `opts` that customize this function's behavior."
   :area-fn (comp first simpson-sequence)

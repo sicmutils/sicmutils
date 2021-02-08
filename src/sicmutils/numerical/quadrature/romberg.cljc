@@ -78,7 +78,7 @@
   /not/ smooth this may cause you trouble, and you may want to investigate a
   lower-order method.
 
-  ## Optional arguments:
+  ### Optional arguments:
 
   If supplied, `:n` (default 1) specifies the initial number of slices to use."
   ([f a b] (open-sequence f a b {}))
@@ -100,7 +100,7 @@
   /not/ smooth this may cause you trouble, and you may want to investigate a
   lower-order method.
 
-  ## Optional arguments:
+  ### Optional arguments:
 
   If supplied, `:n` (default 1) specifies the initial number of slices to use."
   ([f a b] (closed-sequence f a b {}))
@@ -134,7 +134,7 @@
   Optionally accepts `opts`, a dict of optional arguments. All of these get
   passed on to `us/seq-limit` to configure convergence checking.
 
-  See `open-sequence` for more information about Romberg integration, caveats
+  See [[open-sequence]] for more information about Romberg integration, caveats
   that might apply when using this integration method and information on the
   optional args in `opts` that customize this function's behavior."
   :area-fn qm/single-midpoint
@@ -151,7 +151,7 @@
   Optionally accepts `opts`, a dict of optional arguments. All of these get
   passed on to `us/seq-limit` to configure convergence checking.
 
-  See `closed-sequence` for more information about Romberg integration, caveats
+  See [[closed-sequence]] for more information about Romberg integration, caveats
   that might apply when using this integration method and information on the
   optional args in `opts` that customize this function's behavior."
   :area-fn qt/single-trapezoid

@@ -17,7 +17,9 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(ns sicmutils.series.impl
+(ns ^:no-doc sicmutils.series.impl
+  "Backing implementation for the types defined in [[sicmutils.series]], written
+  against pure Clojure sequences."
   (:require [sicmutils.generic :as g]
             [sicmutils.abstract.number]
             [sicmutils.util :as u]

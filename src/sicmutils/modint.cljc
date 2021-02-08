@@ -18,6 +18,13 @@
 ;
 
 (ns sicmutils.modint
+  "This namespace contains an implementation of a [[ModInt]] datatype and various
+  operations for creating and working with [[ModInt]] instances. See [\"Modular
+  Arithmetic\"](https://en.wikipedia.org/wiki/Modular_arithmetic) on Wikipedia
+  for more details about modular arithmetic.
+
+  [[sicmutils.modint]] also extends many SICMUtils generic operations
+  to the [[ModInt]] datatype."
   (:require [sicmutils.euclid :as e]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
@@ -41,7 +48,7 @@
 (defn make [i m]
   (->ModInt (g/modulo i m) m))
 
-(defn ^:private modular-binop [op]
+(defn- modular-binop [op]
   (fn [a b]
     (if-not (= (:m a) (:m b))
       (u/arithmetic-ex "unequal moduli")

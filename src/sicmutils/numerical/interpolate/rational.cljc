@@ -19,8 +19,8 @@
 
 (ns sicmutils.numerical.interpolate.rational
   "This namespace contains a discussion of rational function interpolation, and
-  different methods for fitting rational functions N points and evaluating them
-  at some value `x`."
+  different methods for fitting rational functions to `N` points and evaluating
+  them at some value `x`."
   (:require [sicmutils.numerical.interpolate.polynomial :as ip]
             [sicmutils.generic :as g]
             [sicmutils.util.aggregate :as ua]
@@ -46,23 +46,24 @@
 (defn bulirsch-stoer-recursive
   "Returns the value of `P(x)`, where `P` is rational function fit (using the
   Bulirsch-Stoer algorithm, of similar style to Neville's algorithm described in
-  `polynomial.cljc`) to every point in the supplied sequence `points`.
+  [[sicmutils.numerical.interpolate.polynomial]]) to every point in the supplied
+  sequence `points`.
 
-  `points`: is a sequence of pairs of the form `[x (f x)]`
+  `points`: is a sequence of pairs of the form `[x (f x)]`.
 
   \"The Bulirsch-Stoer algorithm produces the so-called diagonal rational
   function, with the degrees of numerator and denominator equal (if m is even)
   or with the degree of the denominator larger by one if m is odd.\" ~ Press,
   Numerical Recipes, p105
 
-  The implementation follows Equation 3.2.3 on on page 105 of Press:
-  http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-2.pdf.
+  The implementation follows [Equation 3.2.3 on on page 105 of
+  Press](http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-2.pdf).
 
   References:
 
-    - Stoer & Bulirsch, 'Introduction to Numerical Analysis': https://www.amazon.com/Introduction-Numerical-Analysis-Applied-Mathematics/dp/144193006X
-    - PDF of the same: http://www.math.uni.wroc.pl/~olech/metnum2/Podreczniki/(eBook)%20Introduction%20to%20Numerical%20Analysis%20-%20J.Stoer,R.Bulirsch.pdf
-    - Press's Numerical Recipes (p105), Section 3.2 http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-2.pdf"
+    - Stoer & Bulirsch, ['Introduction to Numerical Analysis'](https://www.amazon.com/Introduction-Numerical-Analysis-Applied-Mathematics/dp/144193006X)
+    - [PDF of the same reference](http://www.math.uni.wroc.pl/~olech/metnum2/Podreczniki/(eBook)%20Introduction%20to%20Numerical%20Analysis%20-%20J.Stoer,R.Bulirsch.pdf)
+    - Press's Numerical Recipes (p105), [Section 3.2](http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-2.pdf)"
   [points x]
   (letfn [(evaluate [points x]
             (cond (empty? points) 0
@@ -99,22 +100,23 @@
   - a point `x` to interpolate
 
   and generates a lazy sequence of approximations of `P(x)`. Each entry in the
-  return sequence incorporates one more point from `points` into the P(x)
+  return sequence incorporates one more point from `points` into the `P(x)`
   estimate.
 
   `P(x)` is rational function fit (using the Bulirsch-Stoer algorithm, of
-  similar style to Neville's algorithm described in `polynomial.cljc`) to every
-  point in the supplied sequence `points`.
+  similar style to Neville's algorithm described
+  in [[sicmutils.numerical.interpolate.polynomial]]) to every point in the
+  supplied sequence `points`.
 
   \"The Bulirsch-Stoer algorithm produces the so-called diagonal rational
   function, with the degrees of numerator and denominator equal (if m is even)
   or with the degree of the denominator larger by one if m is odd.\" ~ Press,
   Numerical Recipes, p105
 
-  The implementation follows Equation 3.2.3 on on page 105 of Press:
-  http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-2.pdf.
+  The implementation follows [Equation 3.2.3 on on page 105 of
+  Press](http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-2.pdf).
 
-  ## Column
+  ### Column
 
   If you supply an integer for the third (optional) `column` argument,
   `bulirsch-stoer` will return that /column/ offset the interpolation tableau
@@ -123,11 +125,13 @@
 
   As a reminder, this is the shape of the tableau:
 
-   p0 p01 p012 p0123 p01234
-   p1 p12 p123 p1234 .
-   p2 p23 p234 .     .
-   p3 p34 .    .     .
-   p4 .   .    .     .
+  ```
+  p0 p01 p012 p0123 p01234
+  p1 p12 p123 p1234 .
+  p2 p23 p234 .     .
+  p3 p34 .    .     .
+  p4 .   .    .     .
+  ```
 
   So supplying a `column` of `1` gives a sequence of 2-point approximations
   between pairs of points; `2` gives 3-point approximations between successive
@@ -135,24 +139,25 @@
 
   References:
 
-    - Stoer & Bulirsch, 'Introduction to Numerical Analysis': https://www.amazon.com/Introduction-Numerical-Analysis-Applied-Mathematics/dp/144193006X
-    - PDF of the same: http://www.math.uni.wroc.pl/~olech/metnum2/Podreczniki/(eBook)%20Introduction%20to%20Numerical%20Analysis%20-%20J.Stoer,R.Bulirsch.pdf
-    - Press's Numerical Recipes (p105), Section 3.2 http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-2.pdf"
-  [points x & [column]]
-  (let [prepare (fn [[x fx]] [x x 0 fx])
-        merge   (fn [[xl _ _ rl] [_ xr rc rr]]
-                  (let [p  (- rr rl)
-                        q  (-> (/ (- x xl)
-                                  (- x xr))
-                               (* (- 1 (/ p (- rr rc))))
-                               (- 1))]
-                    [xl xr rl (+ rr (/ p q))]))
-        present (fn [row] (map (fn [[_ _ _ r]] r) row))
-        tableau (ip/tableau-fn prepare merge points)]
-    (present
-     (if column
-       (nth tableau column)
-       (ip/first-terms tableau)))))
+    - Stoer & Bulirsch, ['Introduction to Numerical Analysis'](https://www.amazon.com/Introduction-Numerical-Analysis-Applied-Mathematics/dp/144193006X)
+    - [PDF of the same reference](http://www.math.uni.wroc.pl/~olech/metnum2/Podreczniki/(eBook)%20Introduction%20to%20Numerical%20Analysis%20-%20J.Stoer,R.Bulirsch.pdf)
+    - Press's Numerical Recipes (p105), [Section 3.2](http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-2.pdf)"
+  ([points x] (bulirsch-stoer points x nil))
+  ([points x column]
+   (let [prepare (fn [[x fx]] [x x 0 fx])
+         merge   (fn [[xl _ _ rl] [_ xr rc rr]]
+                   (let [p  (- rr rl)
+                         q  (-> (/ (- x xl)
+                                   (- x xr))
+                                (* (- 1 (/ p (- rr rc))))
+                                (- 1))]
+                     [xl xr rl (+ rr (/ p q))]))
+         present (fn [row] (map (fn [[_ _ _ r]] r) row))
+         tableau (ip/tableau-fn prepare merge points)]
+     (present
+      (if column
+        (nth tableau column)
+        (ip/first-terms tableau))))))
 
 ;; ## Incremental Bulirsch-Stoer
 ;;
@@ -162,25 +167,27 @@
 ;; the left and left-up entries in the tableau, just like the modified Neville
 ;; method in `polynomial.cljc`. the algorithm is implemented below.
 
-(defn bs-prepare
-  "Processes an initial point [x (f x)] into the required state:
+(defn- bs-prepare
+  "Processes an initial point `[x (f x)]` into the required state:
 
+  ```
   [x_l, x_r, C, D]
+  ```
 
   The recursion starts with $C = D = f(x)$."
   [[x fx]] [x x fx fx])
 
-(defn bs-merge
-  "Implements the recursion rules described in Press's Numerical Recipes, section
-  3.2 http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-2.pdf to generate x_l, x_r, C
-  and D for a tableau node, given the usual left and left-up tableau entries.
+(defn- bs-merge
+  "Implements the recursion rules described in Press's Numerical Recipes, [section
+  3.2](http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-2.pdf) to generate x_l, x_r,
+  C and D for a tableau node, given the usual left and left-up tableau entries.
 
   This merge function ALSO includes a 'zero denominator fix used by Bulirsch and
   Stoer and Henon', in the words of Sussman from `rational.scm` in the scmutils
   package.
 
-  If the denominator is 0, we pass along C from the up-left node and d from the
-  previous entry in the row. Otherwise, we use the algorithm to calculate.
+  If the denominator is 0, we pass along `C` from the up-left node and `d` from
+  the previous entry in the row. Otherwise, we use the algorithm to calculate.
 
   TODO understand why this works, or where it helps!"
   [x]
@@ -198,19 +205,19 @@
           [xl xr (/ cnum den) (/ dnum den)])))))
 
 (defn modified-bulirsch-stoer
-  "Similar to `bulirsch-stoer` (the interface is identical) but slightly more efficient.
-  Internally this builds up its estimates by tracking the delta from the
-  previous estimate.
+  "Similar to [[bulirsch-stoer]] (the interface is identical) but slightly more
+  efficient. Internally this builds up its estimates by tracking the delta from
+  the previous estimate.
 
   This non-obvious change lets us swap an addition in for a division,
   making the algorithm slightly more efficient.
 
-  See the `bulirsch-stoer` docstring for usage information, and info about the
-  required structure of the arguments.
+  See [[bulirsch-stoer]] for usage information, and info about the required
+  structure of the arguments.
 
   References:
 
-   - Press's Numerical Recipes (p105), Section 3.2 http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-2.pdf"
+   - Press's Numerical Recipes (p105), [Section 3.2](http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-2.pdf)"
   [points x]
   (ip/mn-present
    (ip/first-terms
@@ -230,7 +237,7 @@
   - a new point of the form `[x (f x)]`
 
   and returns the next row of the tableau using the algorithm described in
-  `modified-bulirsch-stoer`."
+  [[modified-bulirsch-stoer]]."
   [x]
   (ip/tableau-fold-fn
    bs-prepare
@@ -250,12 +257,14 @@
   a sequence of SEQUENCES of successive rational function approximations of `x`;
   one for each of the supplied points.
 
-  For a sequence a, b, c... you'll see:
+  For a sequence `a, b, c...` you'll see:
 
-  [(modified-bulirsch-stoer [a] x)
-   (modified-bulirsch-stoer [b a] x)
-   (modified-bulirsch-stoer [c b a] x)
-   ...]"
+  ```clojure
+  [([[modified-bulirsch-stoer]] [a] x)
+   ([[modified-bulirsch-stoer]] [b a] x)
+   ([[modified-bulirsch-stoer]] [c b a] x)
+   ...]
+  ```"
   [x]
   (ip/tableau-scan
    (modified-bulirsch-stoer-fold-fn x)

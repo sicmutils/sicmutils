@@ -426,7 +426,7 @@
 
 ;; And another version of `left-sequence`, implemented using the new function:
 
-(defn left-sequence**
+(defn- left-sequence**
   "Returns a (lazy) sequence of successively refined estimates of the integral of
   `f` over the closed-open interval $a, b$ by taking left-Riemann sums with
 
@@ -536,7 +536,7 @@
   "Returns a (lazy) sequence of successively refined estimates of the integral of
   `f` over the closed-open interval $a, b$ by taking left-Riemann sums.
 
-  ## Optional Arguments
+  ### Optional Arguments
 
   `:n`: If `n` is a number, returns estimates with $n, 2n, 4n, ...$ slices,
   geometrically increasing by a factor of 2 with each estimate.
@@ -558,7 +558,7 @@
   "Returns a (lazy) sequence of successively refined estimates of the integral of
   `f` over the closed-open interval $a, b$ by taking right-Riemann sums.
 
-  ## Optional Arguments
+  ### Optional Arguments
 
   `:n`: If `n` is a number, returns estimates with $n, 2n, 4n, ...$ slices,
   geometrically increasing by a factor of 2 with each estimate.
@@ -584,7 +584,7 @@
   "Returns a (lazy) sequence of successively refined estimates of the integral of
   `f` over the closed interval $(a, b)$ by taking lower-Riemann sums.
 
-  ## Optional Arguments
+  ### Optional Arguments
 
   `:n`: If `n` is a number, returns estimates with $n, 2n, 4n, ...$ slices,
   geometrically increasing by a factor of 2 with each estimate.
@@ -607,7 +607,7 @@
   "Returns a (lazy) sequence of successively refined estimates of the integral of
   `f` over the closed interval $(a, b)$ by taking upper-Riemann sums.
 
-  ## Optional Arguments
+  ### Optional Arguments
 
   `:n`: If `n` is a number, returns estimates with $n, 2n, 4n, ...$ slices,
   geometrically increasing by a factor of 2 with each estimate.

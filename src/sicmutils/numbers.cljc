@@ -18,8 +18,12 @@
 ;
 
 (ns sicmutils.numbers
-  "Implementations of the unoptimized generic operations for the numeric types
-  available on the executing platform."
+  "This namespace extends of all appropriate SICMUtils generic operations
+  from [[sicmutils.generic]] and [[sicmutils.value]] to the Clojure(script)
+  numeric tower.
+
+  For other numeric extensions, see [[sicmutils.ratio]]
+  and [[sicmutils.complex]]."
   (:refer-clojure :rename {zero? core-zero?
                            / core-div
                            + core-plus

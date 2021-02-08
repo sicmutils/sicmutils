@@ -18,14 +18,16 @@
 ;;
 
 (ns sicmutils.numerical.minimize
+  "Entrypoint for univariate and multivariate minimization routines."
   (:require [sicmutils.util :as u]
             [sicmutils.numerical.unimin.brent :as b]
             [sicmutils.numerical.multimin.nelder-mead :as nm]))
 
 (defn minimize
-  "Find the minimum of the function f: R -> R in the interval [a,b]. If
-  observe is supplied, will be invoked with the iteration count and the
-  values of x and f(x) at each search step."
+  "Find the minimum of the function `f: R -> R` in the interval `[a, b]`.
+
+  If an `observe` function is supplied, it will be invoked with the iteration
+  count and the values of x and f(x) at each search step."
   ([f a b] (minimize f a b (constantly nil)))
   ([f a b observe]
    (b/brent-min f a b {:callback observe})))
@@ -33,7 +35,7 @@
 (defn multidimensional-minimize
   "Entrypoint for multidimensional minimization routines.
 
-  See `sicmutils.numerical.multimin.nelder-mead/nelder-mead` for the only
+  See [[sicmutils.numerical.multimin.nelder-mead/nelder-mead]] for the only
   supported option."
   [func x0 & {:keys [info?] :as opts}]
   (let [result (nm/nelder-mead func x0 opts)]

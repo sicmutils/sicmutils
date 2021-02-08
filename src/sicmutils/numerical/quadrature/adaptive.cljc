@@ -120,7 +120,7 @@
 
   All `opts` will be passed through to the supplied `integrate` functions.
 
-  ## Optional arguments relevant to `adaptive`:
+  ### Optional arguments relevant to `adaptive`:
 
   `:maxterms`: defaults to `*adaptive-maxterms*`. This is passed to the
   underlying integrators, and determines how long each interval attempts to

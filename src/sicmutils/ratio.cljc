@@ -22,7 +22,10 @@
   with ratios in Clojure and Clojurescript.
 
   [[clojure.lang.Ratio]] is native in Clojure. The Clojurescript implementation
-  uses [Fraction.js](https://github.com/infusion/Fraction.js/)."
+  uses [Fraction.js](https://github.com/infusion/Fraction.js/).
+
+  For other numeric extensions, see [[sicmutils.numbers]]
+  and [[sicmutils.complex]]."
   #?(:clj
      (:refer-clojure :rename {rationalize core-rationalize
                               ratio? core-ratio?

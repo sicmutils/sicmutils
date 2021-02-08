@@ -20,7 +20,10 @@
 (ns sicmutils.complex
   "This namespace provides a number of functions and constructors for working
   with [[Complex]] numbers in Clojure and Clojurescript, and
-  installs [[Complex]] into the SICMUtils generic arithmetic system."
+  installs [[Complex]] into the SICMUtils generic arithmetic system.
+
+  For other numeric extensions, see [[sicmutils.ratio]]
+  and [[sicmutils.numbers]]."
   (:require [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v]
