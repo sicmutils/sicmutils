@@ -21,7 +21,7 @@ records or Java collections, it's now no problem.
 
 SICMUtils can now differentiate functions in Clojurescript that use comparison
 operations like `<`, `=`, `<=` and friends. Clojure can't quite do this yet, but
-you can differentiate through `v/compare` and `v/=** calls.
+you can differentiate through `v/compare` and `v/=` calls.
 
 We can also differentiate functions that return other functions with no trouble;
 only a few libraries can do this, and the behavior is subtle. Hold tight for
@@ -36,7 +36,7 @@ environment, SICMUtils now has full support for @borkdude's
 [SCI](https://github.com/borkdude/sci), the Small Clojure Interpreter, via the
 [sicmutils.sci](https://github.com/sicmutils/sicmutils/blob/master/src/sicmutils/env/sci.cljc)
 namespace. Every function and macro in the library now works in SCI. (Thanks for
-@borkdude and @mk for your help and contributions.**
+@borkdude and @mk for your help and contributions.
 
 **Rendering**
 
