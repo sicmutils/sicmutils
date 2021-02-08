@@ -249,7 +249,6 @@
 
 (deftype RationalFunctionAnalyzer [polynomial-analyzer]
   a/ICanonicalize
-  (expression-> [this expr cont] (a/expression-> this expr cont compare))
   (expression-> [this expr cont v-compare]
     ;; Convert an expression into Rational Function canonical form. The
     ;; expression should be an unwrapped expression, i.e., not an instance
