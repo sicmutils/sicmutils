@@ -3,8 +3,8 @@
 ## [Unreleased]
 
 - `Series`, `PowerSeries` and `Operator` can hold metadata and respond properly
-  to `meta` and `with-meta`. `sicmutils.series/{->Series, ->PowerSeries}` each
-  take a new arity for metadata. (`Operator` responds to `meta` with its
+  to `meta` and `with-meta` (#265). `sicmutils.series/{->Series, ->PowerSeries}`
+  each take a new arity for metadata. (`Operator` responds to `meta` with its
   `-context` field, so `meta` and `sicmutils.operator/context` now act
   identically when applied to `Operator` instances.)
 
