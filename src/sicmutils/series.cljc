@@ -145,7 +145,7 @@
     IWithMeta
     (-with-meta [_ meta] (Series. xs meta))
 
-    Sequential
+    ISequential
 
     ISeqable
     (-seq [_] xs)
@@ -203,14 +203,17 @@
     (-invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
              (Series. (series-value xs (concat [a b c d e f g h i j k l m n o p q r s t] rest)) nil))]))
 
-(defn ->Series
-  "Returns a [[Series]] instance wrapping the supplied lazy (infinite) sequence
+;; Unmap the auto-generated constructor and replace it with a better one.
+
+(do (ns-unmap 'sicmutils.series '->Series)
+    (defn ->Series
+      "Returns a [[Series]] instance wrapping the supplied lazy (infinite) sequence
   `xs`.
 
   If `m` is supplied, `m` will be attached as metadata to the
   returned [[Series]] instance."
-  ([xs] (Series. xs nil))
-  ([xs m] (Series. xs m)))
+      ([xs] (Series. xs nil))
+      ([xs m] (Series. xs m))))
 
 #?(:clj
    (defmethod print-method Series [^Series s ^java.io.Writer w]
@@ -291,14 +294,17 @@
                            (.toString this)
                            "\"]"))]))
 
-(defn ->PowerSeries
-  "Returns a [[PowerSeries]] instance wrapping the supplied lazy (infinite)
+;; Unmap the auto-generated constructor and replace it with a better one.
+
+(do (ns-unmap 'sicmutils.series '->PowerSeries)
+    (defn ->PowerSeries
+      "Returns a [[PowerSeries]] instance wrapping the supplied lazy (infinite)
   sequence `xs`.
 
   If `m` is supplied, `m` will be attached as metadata to the
   returned [[PowerSeries]] instance."
-  ([xs] (PowerSeries. xs nil))
-  ([xs m] (PowerSeries. xs m)))
+      ([xs] (PowerSeries. xs nil))
+      ([xs m] (PowerSeries. xs m))))
 
 #?(:clj
    (defmethod print-method PowerSeries [^PowerSeries s ^java.io.Writer w]

@@ -77,36 +77,15 @@
              (arity (o/make-operator g/mul 'mul)))
           "Operator arity reflects the arity of the wrapped function"))
 
-    (testing "context acts as metadata"
-      (let [op (o/make-operator g/mul 'mul)]
-        (is (= (o/context op)
-               (meta op))
-            "operators return their context field as metadata`")))
-
-    (testing "with-meta preserves subtype, unit"
-      (is (= {:subtype (:subtype (o/context o/identity))
-              :a "b"}
-             (meta
-              (with-meta o/identity {:a "b"}))))
-
-      (is (= {:subtype "face"}
-             (meta
-              (with-meta o/identity {:subtype "face"})))
-          "with-meta lets you explicitly override subtype")
-
+    (testing "metadata support"
       (is (= (meta o/identity)
-             (meta (with-meta o/identity nil))
-             (meta (with-meta o/identity {})))
-          "with-meta with nil or {} does nothing"))
+             (meta (with-meta o/identity nil)))
+          "with-meta with nil does nothing")
 
-    (checking "with-meta works, preserves subtype" 100
-              [m (gen/map gen/keyword gen/any)]
-              (let [subtype (or (:subtype m)
-                                (:subtype (o/context o/identity)))]
-                (is (= (assoc m :subtype subtype)
-                       (meta
-                        (with-meta o/identity m)))
-                    "with-meta always preserves subtype.")))))
+      (checking "with-meta works" 100
+                [m (gen/map gen/keyword gen/any)]
+                (is (= m (meta
+                          (with-meta o/identity m))))))))
 
 (deftest custom-getter-tests
   (checking "I == identity" 100 [x gen/any-equatable]
@@ -202,6 +181,12 @@
                              (- 4 (partial 0))
                              (* 5 (partial 0))
                              (* (partial 0) 6)])))
+
+  (testing "metadata does NOT survive operations on operators"
+    (is (nil?
+         (meta
+          (* (with-meta D {:a "b"})
+             (with-meta D {:c "d"}))))))
 
   (testing "that they compose with other Operators"
     (is (every? o/operator?

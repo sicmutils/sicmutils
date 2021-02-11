@@ -4,9 +4,7 @@
 
 - `Series`, `PowerSeries` and `Operator` can hold metadata and respond properly
   to `meta` and `with-meta` (#265). `sicmutils.series/{->Series, ->PowerSeries}`
-  each take a new arity for metadata. (`Operator` responds to `meta` with its
-  `-context` field, so `meta` and `sicmutils.operator/context` now act
-  identically when applied to `Operator` instances.)
+  and `sicmutils.operator/->Operator` all take a new arity for metadata.
 
 - Add a proper namespace to `demo.clj`, to make it easier to use outside of
   `lein repl` (#264).

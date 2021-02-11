@@ -32,14 +32,14 @@
 
 (declare op:get)
 
-(deftype Operator [o arity name context]
+(deftype Operator [o arity name context m]
   v/Value
   (zero? [_] false)
   (one? [_] false)
   (identity? [_] false)
-  (zero-like [_] (Operator. v/zero-like arity 'zero context))
-  (one-like [_] (Operator. core-identity arity 'identity context))
-  (identity-like [_] (Operator. core-identity arity 'identity context))
+  (zero-like [_] (Operator. v/zero-like arity 'zero context m))
+  (one-like [_] (Operator. core-identity arity 'identity context m))
+  (identity-like [_] (Operator. core-identity arity 'identity context m))
   (freeze [_] (v/freeze name))
   (kind [_] (:subtype context))
 
@@ -49,9 +49,9 @@
   d/IPerturbed
   (perturbed? [_] false)
   (replace-tag [_ old new]
-    (Operator. (d/replace-tag o old new) arity name context))
+    (Operator. (d/replace-tag o old new) arity name context m))
   (extract-tangent [_ tag]
-    (Operator. (d/extract-tangent o tag) arity name context))
+    (Operator. (d/extract-tangent o tag) arity name context m))
 
   #?@(:clj
       [ILookup
@@ -65,11 +65,8 @@
 
   #?@(:clj
       [IObj
-       (meta [_] context)
-       (withMeta [_ meta]
-                 (let [m (-> (select-keys context [:subtype])
-                             (into meta))]
-                   (Operator. o arity name m)))
+       (meta [_] m)
+       (withMeta [_ meta] (Operator. o arity name context meta))
 
        IFn
        (invoke [_ f] (o f))
@@ -80,13 +77,10 @@
 
       :cljs
       [IMeta
-       (-meta [_] context)
+       (-meta [_] m)
 
        IWithMeta
-       (-with-meta [_ meta]
-                   (let [m (-> (select-keys context [:subtype])
-                               (into meta))]
-                     (Operator. o arity name m)))
+       (-with-meta [_ meta] (Operator. o arity name context meta))
 
        ILookup
        (-lookup [this k] (op:get this k))
@@ -124,6 +118,16 @@
                 (o a b c d e f g h i j k l m n o-arg p q r s t))
        (-invoke [_ a b c d e f g h i j k l m n o-arg p q r s t rest]
                 (apply o a b c d e f g h i j k l m n o-arg p q r s t rest))]))
+
+(do (ns-unmap 'sicmutils.operator '->Operator)
+    (defn ->Operator
+      "Positional factory function for [[Operator]].
+
+  The final argument `m` defaults to nil if not supplied."
+      ([o arity name context]
+       (Operator. o arity name context nil))
+      ([o arity name context m]
+       (Operator. o arity name context m))))
 
 #?(:cljs
    (extend-type Operator
@@ -185,7 +189,8 @@
    (->Operator f
                (:arity context (f/arity f))
                name
-               (into {:subtype ::operator} context))))
+               (into {:subtype ::operator} context)
+               nil)))
 
 (defn- op:get
   "Returns an [[Operator]] that composes a lookup of the form `#(get % k)` with
