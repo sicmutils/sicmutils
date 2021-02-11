@@ -16,6 +16,7 @@
             [sicmutils.modint :as mi]
             [sicmutils.numsymb :as sym]
             [sicmutils.ratio :as r]
+            [sicmutils.series :as ss]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
             [sicmutils.util.vector-set :as vs]
@@ -232,6 +233,24 @@
   ([n] (square-matrix n ratio))
   ([n entry-gen]
    (matrix n n entry-gen)))
+
+;; ## Series
+
+(defn series
+  "Generates a [[series/PowerSeries]] instance of elements drawn from `entry-gen`.
+
+  `entry-gen` defaults to [[gen/nat]]."
+  ([] (series gen/nat))
+  ([entry-gen]
+   (gen/fmap ss/series* (gen/vector entry-gen))))
+
+(defn power-series
+  "Generates a [[series/PowerSeries]] instance of elements drawn from `entry-gen`.
+
+  `entry-gen` defaults to [[gen/nat]]."
+  ([] (power-series gen/nat))
+  ([entry-gen]
+   (gen/fmap ss/power-series* (gen/vector entry-gen))))
 
 ;; ## Vector Set
 ;;

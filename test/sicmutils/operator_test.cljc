@@ -75,7 +75,38 @@
       (is (= [:exactly 2]
              (arity g/mul)
              (arity (o/make-operator g/mul 'mul)))
-          "Operator arity reflects the arity of the wrapped function"))))
+          "Operator arity reflects the arity of the wrapped function"))
+
+    (testing "context acts as metadata"
+      (let [op (o/make-operator g/mul 'mul)]
+        (is (= (o/context op)
+               (meta op))
+            "operators return their context field as metadata`")))
+
+    (testing "with-meta preserves subtype, unit"
+      (is (= {:subtype (:subtype (o/context o/identity))
+              :a "b"}
+             (meta
+              (with-meta o/identity {:a "b"}))))
+
+      (is (= {:subtype "face"}
+             (meta
+              (with-meta o/identity {:subtype "face"})))
+          "with-meta lets you explicitly override subtype")
+
+      (is (= (meta o/identity)
+             (meta (with-meta o/identity nil))
+             (meta (with-meta o/identity {})))
+          "with-meta with nil or {} does nothing"))
+
+    (checking "with-meta works, preserves subtype" 100
+              [m (gen/map gen/keyword gen/any)]
+              (let [subtype (or (:subtype m)
+                                (:subtype (o/context o/identity)))]
+                (is (= (assoc m :subtype subtype)
+                       (meta
+                        (with-meta o/identity m)))
+                    "with-meta always preserves subtype.")))))
 
 (deftest custom-getter-tests
   (checking "I == identity" 100 [x gen/any-equatable]

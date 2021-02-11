@@ -28,7 +28,7 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
-     (:import (clojure.lang IFn ILookup))))
+     (:import (clojure.lang IFn ILookup IObj))))
 
 (declare op:get)
 
@@ -64,7 +64,14 @@
                   (str (if (seqable? n) (seq n) n))))
 
   #?@(:clj
-      [IFn
+      [IObj
+       (meta [_] context)
+       (withMeta [_ meta]
+                 (let [m (-> (select-keys context [:subtype])
+                             (into meta))]
+                   (Operator. o arity name m)))
+
+       IFn
        (invoke [_ f] (o f))
        (invoke [_ f g] (o f g))
        (invoke [_ f g h] (o f g h))
@@ -72,7 +79,16 @@
        (applyTo [_ fns] (apply o fns))]
 
       :cljs
-      [ILookup
+      [IMeta
+       (-meta [_] context)
+
+       IWithMeta
+       (-with-meta [_ meta]
+                   (let [m (-> (select-keys context [:subtype])
+                               (into meta))]
+                     (Operator. o arity name m)))
+
+       ILookup
        (-lookup [this k] (op:get this k))
        (-lookup [this k not-found]
                 (u/illegal "Operators don't support the not-found arity of get!"))
