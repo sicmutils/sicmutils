@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Add a proper namespace to `demo.clj`, to make it easier to use outside of
+  `lein repl` (#264).
+
 ## 0.15.0
 
 (If you have any questions about how to use any of the following, please ask us

@@ -1,23 +1,26 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
-(use 'sicmutils.mechanics.lagrange)
+(ns sicmutils.demo
+  (:refer-clojure :exclude [+ - * / zero? ref compare])
+  (:require [sicmutils.env :refer :all]
+            [sicmutils.mechanics.lagrange :as l]))
 
 (def q
   ;; See p. 17
@@ -44,10 +47,10 @@
   [mass q ν t1 t2]
   (fn [ε]
     (let [η (make-η ν t1 t2)]
-      (Lagrangian-action (L-free-particle mass)
+      (Lagrangian-action (l/L-free-particle mass)
                          (+ q (* ε η)) t1 t2))))
 
-(Lagrangian-action (L-free-particle 3.0) test-path 0.0 10.0)
+(Lagrangian-action (l/L-free-particle 3.0) test-path 0.0 10.0)
 
 ((varied-free-particle-action 3.0 test-path (up sin cos square) 0.0 10.0) 0.001)
 
@@ -92,27 +95,27 @@
 (((δ_η    (+ F G)) literal-q) 't) ; sum rule for variation
 (((δ_η      (φ F)) literal-q) 't) ; composition rule for variation
 ;; p. 34
-(((Lagrange-equations (L-free-particle 'm)) (literal-function 'q)) 't)
+(((Lagrange-equations (l/L-free-particle 'm)) (literal-function 'q)) 't)
 ;; p. 35
-(((Lagrange-equations (L-free-particle 'm)) test-path) 't)
+(((Lagrange-equations (l/L-free-particle 'm)) test-path) 't)
 ;; p.36
 (defn proposed-solution [t]
   (* 'a (cos (+ (* 'omega t) 'φ))))
-(((Lagrange-equations (L-harmonic 'm 'k)) proposed-solution) 't)
+(((Lagrange-equations (l/L-harmonic 'm 'k)) proposed-solution) 't)
 ;; p. 40
-(((Lagrange-equations (L-uniform-acceleration 'm 'g)) (up (literal-function 'x) (literal-function 'y))) 't)
+(((Lagrange-equations (l/L-uniform-acceleration 'm 'g)) (up (literal-function 'x) (literal-function 'y))) 't)
 ;; p. 41
-(((Lagrange-equations (L-central-rectangular 'm (literal-function 'U)))
+(((Lagrange-equations (l/L-central-rectangular 'm (literal-function 'U)))
   (up (literal-function 'x)
       (literal-function 'y)))
-  't)
+ 't)
 
 ;; p. 43
 (prn "central polar")
-(((Lagrange-equations (L-central-polar 'm (literal-function 'U)))
+(((Lagrange-equations (l/L-central-polar 'm (literal-function 'U)))
   (up (literal-function 'r)
       (literal-function 'φ)))
-  't)
+ 't)
 
 ;; Coordinate transformation (p. 47)
 (velocity ((F->C p->r)
@@ -120,7 +123,7 @@
 
 (defn L-alternate-central-polar
   [m U]
-  (comp (L-central-rectangular m U) (F->C p->r)))
+  (comp (l/L-central-rectangular m U) (F->C p->r)))
 
 (println "alternate central polar Lagrangian")
 
