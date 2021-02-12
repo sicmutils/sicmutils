@@ -21,7 +21,7 @@
   (:refer-clojure :exclude [+ - * / partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :as e
-             :refer [+ - * / D simplify compose
+             :refer [+ - * / D I simplify compose
                      literal-function
                      up down
                      sin cos square cube exp]
@@ -75,8 +75,9 @@
 (deftest section-3
   (let [derivative-of-sine (D sin)]
     (is (= '(cos x) (simplify (derivative-of-sine 'x)))))
+
   (is (= '(+ (((expt D 2) f) x) (* -1 (f x)))
-         (simplify (((* (- D 1) (+ D 1)) (literal-function 'f)) 'x)))))
+         (simplify (((* (- D I) (+ D I)) (literal-function 'f)) 'x)))))
 
 (deftest section-4
   (let [g (fn [x y] (up (square (+ x y)) (cube (- y x)) (exp (+ x y))))]

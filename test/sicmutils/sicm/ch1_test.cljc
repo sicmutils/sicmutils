@@ -179,11 +179,11 @@
                          (up x y))
                         't))))
 
-      (is (= '(down (+ (* -1 m (expt ((D φ) t) 2) (r t))
+      (is (= '(down (+ (* -1 m (r t) (expt ((D φ) t) 2))
                        (* m (((expt D 2) r) t))
                        ((D U) (r t)))
-                    (+ (* 2 m ((D φ) t) (r t) ((D r) t))
-                       (* m (expt (r t) 2) (((expt D 2) φ) t))))
+                    (+ (* m (expt (r t) 2) (((expt D 2) φ) t))
+                       (* 2 m (r t) ((D φ) t) ((D r) t))))
              (simplify (((Lagrange-equations (L/L-central-polar 'm U))
                          (up r φ))
                         't))))
@@ -201,19 +201,19 @@
               (simplify ((L-alternate-central-polar 'm U)
                          (->local 't (up 'r 'φ) (up 'rdot 'φdot)))))))
 
-      (is (= '(down (+ (* -1 m (expt ((D φ) t) 2) (r t))
+      (is (= '(down (+ (* -1 m (r t) (expt ((D φ) t) 2))
                        (* m (((expt D 2) r) t))
                        ((D U) (r t)))
-                    (+ (* 2 m ((D φ) t) (r t) ((D r) t))
-                       (* m (expt (r t) 2) (((expt D 2) φ) t))))
+                    (+ (* m (expt (r t) 2) (((expt D 2) φ) t))
+                       (* 2 m (r t) ((D φ) t) ((D r) t))))
              (simplify (((Lagrange-equations (L-alternate-central-polar 'm U))
                          (up r φ))
                         't))))
 
-      (is (= '(+ (* g l m (sin (θ t)))
-                 (* (expt l 2) m (((expt D 2) θ) t))
-                 (* l m (((expt D 2) y_s) t) (sin (θ t))))
-             (simplify (((Lagrange-equations (pendulum/L 'm 'l 'g (up (fn [t] 0) y_s))) θ) 't))))
+      (is (=  '(+ (* g l m (sin (θ t)))
+                  (* (expt l 2) m (((expt D 2) θ) t))
+                  (* l m (sin (θ t)) (((expt D 2) y_s) t)))
+              (simplify (((Lagrange-equations (pendulum/L 'm 'l 'g (up (fn [t] 0) y_s))) θ) 't))))
 
       ;; p. 61
       (let [Lf (fn [m g]

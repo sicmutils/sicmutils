@@ -82,8 +82,8 @@
   (with-comparator (v/within 1e-5)
     (checking description
               100
-              [lower gen/large-integer
-               upper  gen/large-integer
+              [lower gen/small-integer
+               upper  gen/small-integer
                offset gen/small-integer]
               (let [f (f offset)
                     upper (if (= lower upper) (inc lower) upper)

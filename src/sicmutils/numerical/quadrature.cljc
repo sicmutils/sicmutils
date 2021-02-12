@@ -18,7 +18,7 @@
 ;;
 
 (ns sicmutils.numerical.quadrature
-  (:require [sicmutils.numerical.compile :as c]
+  (:require [sicmutils.expression.compile :as c]
             [sicmutils.numerical.quadrature.adaptive :as qa]
             [sicmutils.numerical.quadrature.boole :as boole]
             [sicmutils.numerical.quadrature.common :as qc]
@@ -172,7 +172,7 @@
   Defaults to `:open`, which specifies an adaptive bulirsch-stoer quadrature method.
 
   `:compile?` If true, the generic function will be simplified and compiled
-  before execution. (Clojure only for now.) Defaults to false.
+  before execution.
 
   `:info?` If true, `definite-integral` will return a map of integration
   information returned by the underlying integrator. Else, returns an estimate
@@ -184,8 +184,7 @@
                 info? false}
            :as opts}]
    (if-let [[integrate m] (get-integrator method a b opts)]
-     (let [f      #?(:clj (if compile? (c/compile-univariate-fn f) f)
-                     :cljs f)
+     (let [f      (if compile? (c/compile-fn f 1) f)
            result (integrate f a b m)]
        (if info? result (:result result)))
      (u/illegal (str "Unknown method: " method

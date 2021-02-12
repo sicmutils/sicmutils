@@ -83,7 +83,8 @@
             v (/ (- w b) M)]
         (- (* w v) (F v))))))
 
-(def Legendre-transform (make-operator Legendre-transform-fn "Legendre-transform"))
+(def Legendre-transform
+  (make-operator Legendre-transform-fn 'Legendre-transform))
 
 (defn ^:private Lagrangian->Hamiltonian-fn
   [Lagrangian]
@@ -91,7 +92,8 @@
     (let [L #(Lagrangian (up t q %))]
       ((Legendre-transform L) p))))
 
-(def Lagrangian->Hamiltonian (make-operator Lagrangian->Hamiltonian-fn 'Lagrangian->Hamiltonian))
+(def Lagrangian->Hamiltonian
+  (make-operator Lagrangian->Hamiltonian-fn 'Lagrangian->Hamiltonian))
 
 (defn Poisson-bracket
   [f g]
@@ -151,7 +153,7 @@
   [m V]
   (fn [[_ q p]]
     (+  (/ (g/square p) (* 2 m))
-        (V (g/sqrt (g/square q))))))
+        (V (g/abs q)))))
 
 ;; page numbers here are references to the PDF; probably
 ;; do not correspond to 1ed.
@@ -221,7 +223,7 @@
    #(Poisson-bracket % H)
    `(~'Lie-derivative ~H)))
 
-(defmethod g/Lie-derivative [::f/function] [f] (Hamiltonian-Lie-derivative f))
+(defmethod g/Lie-derivative [::v/function] [f] (Hamiltonian-Lie-derivative f))
 
 (defn Lie-transform
   "p. 428"

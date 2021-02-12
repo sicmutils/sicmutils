@@ -91,8 +91,8 @@
             100
             [n sg/any-integral
              d sg/bigint
-             :when (and (not (v/nullity? d))
-                        (not (v/unity? d)))]
+             :when (and (not (v/zero? d))
+                        (not (v/one? d)))]
             (is (= n (g/mul d (r/rationalize n d)))
                 "multiplying by denominator recovers numerator")
             (let [r      (r/rationalize n d)
@@ -152,6 +152,14 @@
         "a rational exponent on a float will drop precision."))
 
   (testing "ratio-operations"
+    (is (= #sicm/ratio 3/2
+           (g/sqrt #sicm/ratio 9/4))
+        "Ratios should stay exact if the numerator and denominator are exact.")
+
+    (is (= #sicm/complex "0+1.5i"
+           (g/sqrt #sicm/ratio -9/4))
+        "sqrt of a negative returns a complex number.")
+
     (is (= #sicm/ratio 13/40
            (g/add #sicm/ratio 1/5
                   #sicm/ratio 1/8)))

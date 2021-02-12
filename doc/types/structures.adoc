@@ -1,0 +1,483 @@
+= Structures
+
+== Structured Objects
+
+SICMUtils supports a variety of structured object types, such as
+
+* lists
+* vectors
+* up and down tuples
+* matrices
+* power series
+
+The explicit constructor for a structured object is a procedure whose name is
+what we call objects of that type. For example, we make explicit vectors with
+the procedure named `vector`, and explicit lists with the procedure named
+`list`. For example:
+
+----
+(list 1 2 3 4 5)  a list of the first five positive integers
+[1 2 3 4 5]       a vector of the first five positive integers
+(up 10 3 4)       an up tuple with three components
+(down 10 3 4)     a down tuple with three components
+----
+
+There is no natural way to notate a matrix, except by giving its rows (or
+columns). To make a matrix with three rows and five columns:
+
+[source, clojure]
+----
+(def M
+  (matrix-by-rows [1  2  3  4  5]
+                  [6  7  8  9 10]
+                  [11 12 13 14 15]))
+----
+
+A power series may be constructed from an explicit set of coefficients. For
+example:
+
+[source, clojure]
+----
+(power-series 1 2 3 4 5)
+----
+
+is the power series whose first five coefficients are the first five positive
+integers and all of the rest of the coefficients are zero.
+
+Although each datatype has its own specialized procedures, there are a variety
+of generic procedures for selecting the components from structured objects. To
+get the `n`-th component from a linear data structure, `v`, such as a vector or
+a list, one may in general use the generic selector, `ref` (or `nth`, the native
+Clojure operation that we recommend you prefer):
+
+----
+(ref x n)
+----
+
+NOTE: `ref` is the name of this procedure in the original `scmutils`, so we
+alias it into `sicmutils.env` for compatibility. In Clojure, a `ref` is a
+https://clojure.org/reference/refs[transactional reference], used for safe,
+shared mutable state. [[sicmutils.env/ref]] will attempt to act like the native
+Clojure `nth` with one argument, or `get-in` for multiple arguments, and fall
+back to [[clojure.core/ref]] if it's not successful. You should become
+comfortable with [[clojure.core/nth]] and [[clojure.core/get-in]] and switch to
+those.
+
+All structured objects are accessed by zero-based indexing, as is the custom in
+Clojure programs and in relativity. For example, to get the third element (index
+`= 2`) of a vector or a list we can use:
+
+[source, clojure]
+----
+;; either works for a vector, which is associative:
+(get [1 2 3 4 5 2] 2)      ;; = 3
+(ref [1 2 3 4 5 2] 2)      ;; = 3
+
+;; Lists are not associative, so we need `nth`:
+(nth (list 1 2 3 4 5 2) 2) ;; = 3
+----
+
+If `M` is a matrix, then the component in the `i`-th row and `j`-th column can
+be obtained by `(ref M i j)` (or `(get-in M [i j])`. For the matrix given above:
+
+[source, clojure]
+----
+(ref M 1 3)      ;; = 9
+(get-in M [1 3]) ;; = 9
+----
+
+Other structured objects are more magical:
+
+[source, clojure]
+----
+(ref cos-series 6)         = -1/720
+----
+
+The magic is due to Clojure's beautiful
+https://clojure.org/reference/sequences[Sequence API]. All native collections
+can be turned into generic sequences. SICMUtils containers all implement this
+interface, and respond appropriately to `seq`.
+
+The number of components of a structured object can be found with the `count`
+function:
+
+[source, clojure]
+----
+(count [1 2 3 4 5]) = 5
+----
+
+Besides the extensional constructors, most structured-object datatypes can be
+intentionally constructed by giving a procedure whose values are the components
+of the object. These `generate` procedures are:
+
+[source, clojure]
+----
+(vector:generate  n   proc)
+(m:generate       m n proc)
+(s:generate           proc)
+----
+
+For example, one may make a 6 component vector each of whose components is `pi`
+times the index of that component, as follows:
+
+[source, clojure]
+----
+(vector:generate 6 (fn [i] (* pi i)))
+----
+
+Or a `3x5` matrix whose components are
+
+* the sum of `pi` times the row number
+* `6` times the column number:
+
+[source, clojure]
+----
+(m:generate 3 5 (fn [i j] (+ (* pi i) (* 6 j))))
+----
+
+Also, it is commonly useful to deal with a structured object in an elementwise
+fashion. We provide special combinators for many structured datatypes that allow
+one to make a new structure, of the same type and size of the given ones, where
+the components of the new structure are the result of applying the given
+procedure to the corresponding components of the given structures.
+
+[source, clojure]
+----
+((vector:elementwise proc) <v1> ... <vn>)
+((structure:elementwise proc) <s1> ... <sn>)
+((matrix:elementwise proc) <M1> ... <Mn>)
+((series:elementwise proc) <p1> ... <pn>)
+----
+
+Thus, vector addition is equivalent to `(vector:elementwise +)`.
+
+CAUTION: These do not yet work! If you need any of these, please feel free to
+file an issue https://github.com/sicmutils/sicmutils/pulls[here].
+
+== Clojure Vectors
+
+We identify the Clojure vector data type with mathematical `n`-dimensional vectors.
+These are interpreted as up tuples when a distinction between up tuples and down
+tuples is made.
+
+We inherit from Clojure the `vector` constructor, as well as the literal `[x y
+z]` form of construction. Select elements with `nth`. `count` returns the length
+of a vector. We also get the type predicate `vector?`.
+
+In the documentation that follows, `<v>` will stand for a vector-valued
+expression. Operations on vectors typically return an `up` structure, which is
+equivalent but explicit about its variance.
+
+[source, clojure]
+----
+(vector? <any>)           ;;=> <boolean>
+(kind <v>)                ;;=> clojure.lang.PersistentVector
+
+(exact? <v>).             ;;=> <boolean>
+     Is true if any component of <v> is inexact, otherwise it is false.
+
+(count <v>)               ;;=> <+integer>
+     gets the number of components of <v>
+
+(nth <v> <i>)
+     gets the <i>th (zero-based) component of vector <v>
+
+(get-in <v> [<i> <j> ,,,])
+     gets the <j>th element of the <i>th (zero-based) component of vector <v>
+
+(vector:generate <n> <procedure>)
+     generates an <n>-dimensional vector whose <i>th component is the
+     result of the application of the <procedure> to the number <i>.
+
+(zero-like <v>)           ;;=> <vector>
+     Gives the zero vector of the dimension of vector <v>.
+
+(zero? <v>)               ;;=> <boolean>
+(negate <v>)              ;;=> <up>
+
+(conjugate <v>)           ;;=> <vector>
+     Elementwise complex-conjugate of <v>
+----
+
+Simple arithmetic on vectors is componentwise:
+
+[source, clojure]
+----
+(= <v1> <v2> ...)         ;;=> <boolean>
+(+ <v1> <v2> ...)         ;;=> <up>
+(- <v1> <v2> ...)         ;;=> <up>
+----
+
+There are a variety of products defined on vectors.
+
+[source, clojure]
+----
+(dot-product   <v1> <v2>)    ;;=> <x>
+(inner-product <v1> <v2>)    ;;=> <x>
+(cross-product <v1> <v2>)
+----
+
+Cross product only makes sense for 3-dimensional vectors.
+
+[source, clojure]
+----
+(* <x> <v>)    =  (scalar*vector <x> <v>)       ;;=> <up>
+(* <v> <x>)    =  (vector*scalar <v> <x>)       ;;=> <up>
+(/ <v> <x>)    =  (vector*scalar <v> (/ 1 <x>)) ;;=> <up>
+----
+
+The product of two vectors makes an outer product structure:
+
+[source, clojure]
+----
+(* <v> <v>)    =  (outer-product <v> <v>) ;;=> <structure>
+----
+
+[source, clojure]
+----
+(abs <v>) = (sqrt (dot-product <v> <v>))
+
+(inner-product <v1> <v2>) = (dot-product (conjugate <v1>) <v2>)
+(magnitude <v>)      = (complex-norm <v>)
+----
+
+`*(v:make-basis-unit <n> <i>)*`
+
+Makes the `n`-dimensional basis unit vector with zero in all components except
+for the `i`-th component, which is one.
+
+WARNING: The following functions are referenced in the `scmutils` refman, but
+don't yet exist in SICMUtils. Please
+https://github.com/sicmutils/sicmutils/pulls[file a ticket] if this is
+something you need, or hang on until we get there.
+
+[source, clojure]
+----
+(maxnorm <v>)
+
+    Gives the maximum of the magnitudes of the components of `<v>`
+
+(v:make-unit <v>)  =  (/ <v> (euclidean-norm <v>))
+(v:unit? <v>)      =  (one? (euclidean-norm <v>))
+
+(v:basis-unit? <v>)
+
+    Is true if and only if <v> is a basis unit vector.
+----
+
+== Up Tuples and Down Tuples
+
+Sometimes it is advantageous to distinguish down tuples and up tuples. If the
+elements of up tuples are interpreted to be the components of vectors in a
+particular coordinate system, the elements of the down tuples may be thought of
+as the components of the dual vectors in that coordinate system. The union of
+the up tuple and the down tuple data types is the data type we call
+"structures."
+
+Structures may be recursive and they need not be uniform. Thus it is possible to
+have an up structure with three components: the first is a number, the second is
+an up structure with two numerical components, and the third is a down structure
+with two numerical components. Such a structure has size (or length) 3, but it
+has five dimensions.
+
+In SICMUtils, Clojure vectors are interpreted as up tuples, and the down tuples
+are distinguished. The predicate `structure?` is true of any down or up tuple,
+but the two can be distinguished by the predicates `up?` and `down?`.
+
+[source, clojure]
+----
+(up?    <any>) ;;=> <boolean>
+(down?  <any>) ;;=> <boolean>
+
+(structure? <any>) = (or (down? <any>) (up? <any>))
+----
+
+In the following, `<s>` stands for any structure-valued expression; `<up>` and
+`<down>` will be used if necessary to make the distinction.
+
+The generic `kind` operation distinguishes the types:
+
+[source, clojure]
+----
+(kind <s>) ;; => :sicmutils.structure/up or :sicmutils.structure/down
+----
+
+We reserve the right to change this implementation to distinguish Clojure
+vectors from up tuples. Thus, we provide (identity) conversions between vectors
+and up tuples.
+
+[source, clojure]
+----
+(vector->up <vector>)    ;;=> <up>
+(vector->down <vector>)  ;;=> <down>
+
+(structure->vector <structure>) ;;=> <clojure-vector>
+----
+
+Constructors are provided for these types, analogous to `list` and `vector`:
+
+[source, clojure]
+----
+(up . args)      ;;=> <up>
+(down . args)    ;;=> <down>
+----
+
+The dimension of a structure is the number of entries, adding up the numbers of
+entries from substructures. The dimension of any structure can be determined by
+
+[source, clojure]
+----
+(dimension <s>)       ;;=> <+integer>
+----
+
+Processes that need to traverse a structure need to know the number of
+components at the top level. This is the length of the structure:
+
+[source, clojure]
+----
+(count <s>)         ;;=> <+integer>
+----
+
+The `i`-th component (zero-based) can be accessed by:
+
+[source, clojure]
+----
+(ref <s> i)
+
+;; Or, to use the preferred native `get`:
+(get <s> i)
+----
+
+For example:
+
+[source, clojure]
+----
+(ref (up 3 (up 5 6) (down 2 4)) 1)
+;; (up 5 6)
+----
+
+As usual, the generic `ref` procedure or the native `get-in` can recursively
+access substructure:
+
+[source, clojure]
+----
+(get-in (up 3 (up 5 6) (down 2 4)) [1 0])
+;; => 5
+
+(ref (up 3 (up 5 6) (down 2 4)) 1 0)
+;; => 5
+----
+
+Given a structure `<s>` we can make a new structure of the same type with `<x>`
+substituted for the `<n>`-th component of the given structure using `assoc`:
+
+[source, clojure]
+----
+(assoc <s> <n> <x>)
+----
+
+We can construct an entirely new structure of length `<n>` whose components are
+the values of a procedure using `s:generate`:
+
+[source, clojure]
+----
+(s:generate <n> <up/down> <procedure>)
+----
+
+The `up/down` argument may be either `::structure/up` or `::structure/down`.
+
+The following generic arithmetic operations are defined for structures.
+
+
+`*(zero? <s>) ;;=> <boolean>*`
+
+is true if all of the components of the structure are zero.
+
+`*(zero-like <s>) ;;=> <s>*`
+
+produces a new structure with the same shape as the given structure but with all
+components being zero-like the corresponding component in the given structure.
+
+[source, clojure]
+----
+(negate <s>)    ;;=> <s>
+(magnitude <s>) ;;=> <s>
+(abs <s>)       ;;=> <s>
+(conjugate <s>) ;;=> <s>
+----
+
+produce new structures which are the result of applying the generic procedure
+elementwise to the given structure.
+
+[source, clojure]
+----
+(= <s1> ... <sn>) ;;=> <boolean>
+----
+
+is true only when the corresponding components are `=`.
+
+[source, clojure]
+----
+(+ <s1> ... <sn>) ;;=> <s>
+(- <s1> ... <sn>) ;;=> <s>
+----
+
+These are componentwise addition and subtraction.
+
+----
+(* <s1> <s2>) ;;=> <s> or <x> , a structure or a number
+----
+
+magically does what you want: If the structures are compatible for contraction
+the product is the contraction (the sum of the products of the corresponding
+components.) If the structures are not compatible for contraction the product is
+the structure of the shape and length of `<s2>` whose components are the
+products of `<s1>` with the corresponding components of `<s2>`.
+
+Structures are compatible for contraction if they are of the same length, of
+opposite type, and if their corresponding elements are compatible for
+contraction (or if either paired-up element is not a structure).
+
+It is not obvious why this is what you want, but try it, you'll like it!
+
+For example, the following are compatible for contraction:
+
+[source, clojure]
+----
+(* (up (up 2 3) (down 5 7 11))
+   (down (down 13 17) (up 19 23 29)))
+;;=> 652
+----
+
+Two up tuples are not compatible for contraction. Their product is an outer
+product:
+
+[source, clojure]
+----
+(* (up 2 3) (up 5 7 11))
+;; (up (up 10 15) (up 14 21) (up 22 33))
+
+(* (up 5 7 11) (up 2 3))
+;; (up (up 10 14 22) (up 15 21 33))
+----
+
+This product is not generally associative or commutative. It is commutative for
+structures that contract, and it is associative for structures that represent
+linear transformations.
+
+To yield additional flavor, the definition of `square` for structures is
+inconsistent with the definition of product. (It's defined as the `dot-product`
+of the structures.)
+
+It is possible to square an up tuple or a down tuple. The result is the sum of
+the squares of the components. This makes it convenient to write such things as
+`(/ (square p) (* 2 m))`, but it is sometimes confusing.
+
+Some structures, such as the ones that represent inertia tensors, must be
+inverted. (The `m` above may be an inertia tensor!)
+
+Division is arranged to make this work, when possible. The details are too hairy
+to explain in this short document. We probably need to write a book about this!
+
+NOTE: The "we" here is a comment from the authors of the original scmutils
+refman, not us!

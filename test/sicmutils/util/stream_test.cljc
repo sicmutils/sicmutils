@@ -21,8 +21,12 @@
   "Tests of the various sequence convergence and generation utilities in the SICM
   library."
   (:require [clojure.test :refer [is deftest testing]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
+            [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.numbers]
             [sicmutils.util.stream :as us]))
@@ -41,6 +45,23 @@
 
     (is (ish? (g/expt 2 10)
               (nth (us/powers 2) 10)))))
+
+(deftest vector-tests
+  (checking "vector:generate" 100 [v (gen/vector sg/real)]
+            (is (= v (us/vector:generate
+                      (count v) (partial get v)))
+                "use generate to rebuild."))
+
+  (checking "separatev" 100 [v (gen/vector gen/nat)]
+            (let[[evens odds] (us/separatev even? v)]
+              (is (= [(filterv even? v)
+                      (filterv odd? v)]
+                     [evens odds])
+                  "separatev runs a filterv and filterv on a predicate's
+                  complement in parallel.")
+
+              (is (and (vector? evens) (vector? odds))
+                  "both returned elements are vectors."))))
 
 (deftest scan-tests
   (testing "intermediate + aggregations, all negated by `present`."

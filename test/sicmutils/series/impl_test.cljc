@@ -122,7 +122,13 @@
   (testing "expt"
     (is (= (take 11 (i/binomial 10))
            (take 11 (i/expt (i/->series [1 1]) 10)))
-        "(1 + x)^10 = binomial expansion"))
+        "(1 + x)^10 = binomial expansion")
+
+    (let [s (i/->series [1 0 3 1])]
+      (is (= (take 13 (i/seq:* (i/seq:* s s)
+                               (i/seq:* s s)))
+             (take 13 (i/expt s 4)))
+          "(1 + 3x^2 + x^3)^4, expt matches mul")))
 
   (testing "series sqrt"
     (let [xs (iterate inc 1)]
@@ -208,17 +214,17 @@
   (is (->> (i/seq:- i/sinx
                     (i/sqrt (i/c-seq 1 (i/expt i/cosx 2))))
            (take 30)
-           (every? v/nullity?))
+           (every? v/zero?))
       "sin(x) = sqrt(1-cos(x)^2) to 30 terms")
 
   (is (->> (i/seq:- i/tanx (i/revert i/atanx))
            (take 30)
-           (every? v/nullity?))
+           (every? v/zero?))
       "tan(x) = revert(arctan(x))")
 
   (is (->> (i/seq:- i/atanx
                     (i/integral
                      (i/invert (i/->series [1 0 1]))))
            (take 30)
-           (every? v/nullity?))
+           (every? v/zero?))
       "atan(x) = integral(1/(1+x^2))"))

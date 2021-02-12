@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.calculus.coordinate
   (:require [sicmutils.calculus.basis :as b]
@@ -34,13 +34,23 @@
                     #(m/point->coords coordinate-system %)))
             (s/structure->access-chains prototype))))
 
-(defn ^:private quotify-coordinate-prototype
+(defn quotify-coordinate-prototype
   "Scmutils wants to allow forms like this:
-     (using-coordinates (up x y) R2-rect ...)
-   Note that x, y are unquoted. This function converts such an unquoted for
-   into a quoted one that could be evaluated to return an up-tuple of the symbols:
-     (up 'x 'y)
-   Such an object is useful for s/mapr. The function xf is applied before quoting."
+
+  ```clojure
+  (using-coordinates (up x y) R2-rect ...)
+  ```
+
+   Note that `x`, `y` are unquoted. This function converts such an unquoted for
+  into a quoted one that could be evaluated to return an up-tuple of the
+  symbols:
+
+  ```clojure
+  (up 'x 'y)
+  ```
+
+  Such an object is useful for [[s/mapr]]. The function `xf` is applied before
+  quoting."
   [xf p]
   (let [q (fn q [p]
             (cond (and (sequential? p)
@@ -50,8 +60,7 @@
                   :else (u/illegal "Invalid coordinate prototype")))]
     (q p)))
 
-(defn ^:private symbols-from-prototype
-  [p]
+(defn- symbols-from-prototype [p]
   (cond (and (sequential? p)
              ('#{up down} (first p))) (mapcat symbols-from-prototype (rest p))
         (vector? p) (mapcat symbols-from-prototype p)
@@ -60,9 +69,12 @@
 
 (defmacro let-coordinates
   "Example:
-    (let-coordinates [[x y] R2-rect
-                      [r theta] R2-polar]
-      body...)"
+
+  ```clojure
+  (let-coordinates [[x y] R2-rect
+                  [r theta] R2-polar]
+    body...)
+  ```"
   [bindings & body]
   (when-not (even? (count bindings))
     (u/illegal "let-coordinates requires an even number of bindings"))
@@ -86,11 +98,14 @@
 
 (defmacro using-coordinates
   "Example:
-    (using-coordinates (up x y) R2-rect
-      body...)
 
-  Note: this is just a macro wrapping let-coordinates, the use of which is
-  preferred."
+  ```clojure
+  (using-coordinates (up x y) R2-rect
+                     body...)
+  ```
+
+  Note: [[using-coordinates]] is just a macro wrapping [[let-coordinates]].
+  Prefer [[let-coordinates]] when possible."
   [coordinate-prototype coordinate-system & body]
   `(let-coordinates [~coordinate-prototype ~coordinate-system] ~@body))
 
@@ -102,7 +117,7 @@
   [coordinate-system]
   (ff/coordinate-basis-oneform-fields coordinate-system))
 
-(defn ^:private c:generate
+(defn- c:generate
   [n orientation f]
   (if (= n 1)
     (f 0)
@@ -126,14 +141,14 @@
     oneform-basis))
 
 (defn coordinate-system->basis
-  "Return the standard basis object for the coordinate system."
+  "Returns the standard basis object for `coordinate-system`."
   [coordinate-system]
   (b/make-basis
    (vf/coordinate-basis-vector-fields coordinate-system)
    (ff/coordinate-basis-oneform-fields coordinate-system)))
 
 (defn Jacobian
-  "Compute the Jacobian of transition from from-basis to to-basis."
+  "Returns the Jacobian of transition from `from-basis` to `to-basis`."
   [to-basis from-basis]
   (s/mapr (b/basis->oneform-basis to-basis)
           (b/basis->vector-basis from-basis)))

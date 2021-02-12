@@ -24,23 +24,52 @@
             [sicmutils.generic :as g]
             [sicmutils.value :as v]))
 
-(defn pprint
-  "Realizes and pretty-prints `n` elements from the supplied sequence `xs`."
+(defn seq-print
+  "Realizes, simplifies and prints `n` elements from the supplied sequence `xs`."
   [n xs]
   (doseq [x (take n xs)]
-    (pp/pprint x)))
+    (prn (g/simplify x))))
+
+(defn pprint
+  "Realizes, simplifies and pretty-prints `n` elements from the supplied sequence
+  `xs`."
+  [n xs]
+  (doseq [x (take n xs)]
+    (pp/pprint
+     (g/simplify x))))
 
 (defn powers
-  "Returns an infinite sequence of `x * n^i`, starting with i == 0. `x` defaults
+  "Returns an infinite sequence of `x * n^i`, starting with `i == 0`. `x` defaults
   to 1."
   ([n] (powers n 1))
   ([n x] (iterate #(* n %) x)))
 
 (defn zeno
-  "Returns an infinite sequence of x / n^i, starting with i == 0. `x` defaults to
-  1."
+  "Returns an infinite sequence of `x / n^i`, starting with `i == 0`. `x` defaults
+  to 1."
   ([n] (zeno n 1))
   ([n x] (iterate #(/ % n) x)))
+
+(defn vector:generate
+  "Generates a new vector of length `n` by applying the function `f` to integers
+  in the range $[0,n)$."
+  [n f]
+  (mapv f (range n)))
+
+(defn separatev
+  "Returns a pair of vectors:
+
+  - the first contains the items in coll for which (pred item) returns true
+  - the second contains the items for which (pred item) returns false
+
+  pred must be free of side-effects."
+  [pred coll]
+  (let [[ts fs] (reduce (fn [[t f] o] (if (pred o)
+                                       [(conj! t o) f]
+                                       [t (conj! f o)]))
+                        [(transient []) (transient [])]
+                        coll)]
+    [(persistent! ts) (persistent! fs)]))
 
 (defn scan
   "Returns a function that accepts a sequence `xs`, and performs a scan by:
@@ -137,7 +166,7 @@
                convergence-fn
                fail-fn]
         :or {minterms       2
-             tolerance      (Math/sqrt v/machine-epsilon)
+             tolerance      v/sqrt-machine-epsilon
              convergence-fn (close-enuf? tolerance)}}]
    (if (empty? xs)
      {:converged? false

@@ -18,138 +18,339 @@
 ;
 
 (ns sicmutils.function-test
-  (:refer-clojure :exclude [partial])
-  (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            [sicmutils.calculus.derivative :refer [D partial]]
+  (:require [clojure.test :refer [is deftest testing]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
+            [same :refer [ish? with-comparator]
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.function :as f]
+            [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
-            [sicmutils.matrix :as m]
-            [sicmutils.value :as v]
-            [sicmutils.operator :as o]
-            [sicmutils.series :as series]
-            [sicmutils.structure :as s :refer [up down]]
-            [sicmutils.simplify :as ss :refer [hermetic-simplify-fixture]]
-            [sicmutils.function :as f]))
+            [sicmutils.numbers]
+            [sicmutils.value :as v]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(deftest value-protocol-tests
+  (testing "v/zero? returns false for fns"
+    (is (not (v/zero? neg?)))
+    (is (not (v/zero? #'neg?)))
+    (is (not (v/zero? g/add))))
 
-(def ^:private near (v/within 1.0e-6))
+  (testing "v/one? returns false for fns"
+    (is (not (v/one? neg?)))
+    (is (not (v/one? #'neg?)))
+    (is (not (v/one? g/add)))
+    (is (not (v/one? identity))))
 
-(deftest equations-moved-from-simplify
-  (testing "moved-from-simplify"
-    (let [xy (s/up (f/literal-function 'x) (f/literal-function 'y))
-          xyt (xy 't)
-          U (f/literal-function 'U)
-          xyt2 (g/square xyt)
-          Uxyt2 (U xyt2)]
-      (is (= '(up x y) (g/simplify xy)))
-      (is (= '(up (x t) (y t)) (g/simplify xyt)))
-      (is (= '(+ (expt (x t) 2) (expt (y t) 2)) (g/simplify xyt2)))
-      (is (= '(U (+ (expt (x t) 2) (expt (y t) 2))) (g/simplify Uxyt2)))
-      (is (= 1 (g/simplify (g/+ (g/expt (g/sin 'x) 2) (g/expt (g/cos 'x) 2)))))
-      ;; why doesn't the following work given that the rules are meant
-      ;; to pull sines to the left?
-      (is (= 1 (g/simplify (g/+ (g/expt (g/cos 'x) 2) (g/expt (g/sin 'x) 2)))))))
+  (testing "v/identity? returns false for fns"
+    (is (not (v/identity? neg?)))
+    (is (not (v/identity? #'neg?)))
+    (is (not (v/identity? g/add)))
+    (is (not (v/identity? identity))
+        "We go conservative and say that EVEN the actual identity function is not identity."))
 
-  (testing "moved-from-matrix"
-    (is (= '(matrix-by-rows [(f x) (g x)] [(h x) (k x)])
-           (g/simplify
-            ((m/by-rows (map f/literal-function '[f g])
-                        (map f/literal-function '[h k])) 'x))))
+  (testing "v/numerical? returns false for fns"
+    (is (not (v/numerical? neg?)))
+    (is (not (v/numerical? #'neg?)))
+    (is (not (v/numerical? g/add)))
+    (is (not (v/numerical? identity))))
 
-    (let [R2f #(f/literal-function % [0 1] 0)]
-      (is (= '(matrix-by-rows [(f x y) (g x y)] [(h x y) (k x y)])
-             (g/simplify
-              ((m/by-rows [(R2f 'f) (R2f 'g)]
-                          [(R2f 'h) (R2f 'k)]) 'x 'y)))))))
+  (checking "zero-like, one-like returns 0, 1 for fns, vars" 100
+            [f (gen/elements [g/negative? g/abs g/sin g/cos
+                              #'g/negative? #'g/abs #'g/sin #'g/cos])
+             n sg/real]
+            (is (== 0 ((v/zero-like f) n)))
+            (is (== 1 ((v/one-like f) n))))
 
-(deftest function-basic
-  (let [f (f/literal-function 'F)]
-    (testing "a"
-      (is (= '(F x) (g/simplify (f 'x))))
-      (is (= '(F 7) (g/simplify (f (g/+ 3 4))))))
-    (testing "kind"
-      (is (= ::f/function (v/kind f))))
-    (testing "arity > 1"
-      (let [g (f/literal-function 'g [0 0] 0)]
-        (is (= '(g a b) (g/simplify (g 'a 'b))))))))
+  (checking "identity-like returns the identity fn" 100
+            [f (gen/elements [g/negative? g/abs g/sin g/cos
+                              #'g/negative? #'g/abs #'g/sin #'g/cos])
+             n sg/real]
+            (is (= n ((v/identity-like f) n))))
 
-(deftest string-form-test
-  (is (= "1" (ss/expression->string
-              ((g/+ (g/square g/sin) (g/square g/cos)) 'x))))
+  (checking "exact? mirrors input" 100 [n sg/real]
+            (if (v/exact? n)
+              (is ((v/exact? identity) n))
+              (is (not ((v/exact? identity) n)))))
 
-  (is (= "(/ (+ (* -1 (expt (cos x) 4)) 1) (expt (cos x) 2))"
-         (ss/expression->string
-          ((g/+ (g/square g/sin) (g/square g/tan)) 'x)))))
+  (testing "v/freeze"
+    (is (= ['+ '- '* '/ 'modulo 'quotient 'remainder 'negative?
+            'partial-derivative]
+           (map v/freeze [+ - * / mod quot rem neg?
+                          g/partial-derivative]))
+        "Certain functions freeze to symbols")
 
-(deftest literal-functions
-  (testing "domain in Rⁿ, range R"
-    (let [f (f/literal-function 'f)             ;; f : R -> R
-          g (f/literal-function 'g [0 0] 0)]     ;; g : R x R -> R
-      (is (= '(f x) (g/simplify (f 'x))))
-      (is (= '(g x y) (g/simplify (g 'x 'y))))
-      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error) (g/simplify (f 'x 'y))))
-      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error) (g/simplify (g 'x))))))
+    (is (= (map v/freeze [g/+ g/- g/* g//
+                          g/modulo g/quotient g/remainder
+                          g/negative?])
+           (map v/freeze [+ - * / mod quot rem neg?]))
+        "These freeze to the same symbols as their generic counterparts.")
 
-  (testing "structured range"
-    (let [h (f/literal-function 'h 0 (up 0 0 0))
-          k (f/literal-function 'k 0 (up 0 (up 0 0) (down 0 0)))
-          q (f/literal-function 'q 0 (down (up 0 1) (up 2 3)))]
-      (is (= '(up (h↑0 t) (h↑1 t) (h↑2 t)) (g/simplify (h 't))))
-      (is (= '(up (k↑0 t)
-                  (up (k↑1↑0 t) (k↑1↑1 t))
-                  (down (k↑2_0 t) (k↑2_1 t)))
-             (g/simplify (k 't))))
-      (is (= '(down (up (q_0↑0 t) (q_0↑1 t))
-                    (up (q_1↑0 t) (q_1↑1 t))) (g/simplify (q 't))))
-      (is (= '(down (up 0 0) (up 0 0)) (g/simplify ((v/zero-like q) 't))))))
+    (let [f (fn [x] (* x x))]
+      (is (= f (v/freeze f))
+          "Unknown functions freeze to themselves")))
 
-  (testing "R^n -> structured range"
-    (let [h (f/literal-function 'h [0 1] 0)]
-      (is (= '(h x y) (g/simplify (h 'x 'y)))))
-    (let [m (f/literal-function 'm [0 1] (up 1 2 3))]
-      (is (= '(up (m↑0 x y) (m↑1 x y) (m↑2 x y))
-             (g/simplify (m 'x 'y)))))
-    (let [z (f/literal-function 'm [0 1] (up (down 1 2) (down 3 4)))]
-      (is (= '(up (down (m↑0_0 x y) (m↑0_1 x y))
-                  (down (m↑1_0 x y) (m↑1_1 x y)))
-             (g/simplify (z 'x 'y)))))
-    (let [g (f/literal-function 'm [0 1 2] (down (down 1 2 3)
-                                                 (down 4 5 6)
-                                                 (down 7 8 9)))]
-      (is (= '(down
-               (down (m_0_0 x y z) (m_0_1 x y z) (m_0_2 x y z))
-               (down (m_1_0 x y z) (m_1_1 x y z) (m_1_2 x y z))
-               (down (m_2_0 x y z) (m_2_1 x y z) (m_2_2 x y z)))
-             (g/simplify (g 'x 'y 'z))))))
+  (testing "v/kind returns ::v/function"
+    (is (= ::v/function (v/kind neg?)))
+    (is (= ::v/function (v/kind #'neg?)))
+    (is (= ::v/function (v/kind g/add)))
+    (is (= ::v/function (v/kind (fn [x] (* x x)))))))
 
-  (testing "R -> Rⁿ"
-    ;; NB: GJS doesn't allow a function with vector range, because
-    ;; if this were parallel with structures this would mean
-    ;; having an applicable vector of functions, and such a thing
-    ;; isn't handy. This could probably be done, but for the time
-    ;; being it's easy enough just to make the range an up tuple,
-    ;; which is just as useful as well as being explicit about the
-    ;; variance.
-    #_(let [h (f/literal-function 'h 0 [0 1])]
-        (is (= 'foo (h 'x))))))
+#?(:clj
+   (deftest exposed-arities-test
+     (is (= {:arities #{1}
+             :required-arity nil
+             :invoke? false}
+            (#'f/arity-map
+             (fn [x] (* x x)))))
 
-(deftest function-signature-conversion
-  (let [k f/sicm-signature->domain-range]
-    (is (= [[0] 0] (k '(-> Real Real))))
-    (is (= [[0 0] 0] (k '(-> (X Real Real) Real))))
-    (is (= [[0 0] 0] (k '(-> (X* Real 2) Real))))
-    (is (= [[0] [0 0]] (k '(-> Real (X Real Real)))))
-    (is (= [[0] [0 0]] (k '(-> Real (X* Real 2)))))
-    (is (= [[0 0] [0 0]] (k '(-> (X Real Real) (X Real Real)))))
-    (is (= [[0 0] [0 0]] (k '(-> (X* Real 2) (X* Real 2)))))
-    (is (= [[0] (up 0 0)] (k '(-> Real (UP Real Real)))))
-    (is (= [[0] (up 0 0)] (k '(-> Real (UP* Real 2)))))
-    (is (= [[(up 0 0)] 0] (k '(-> (UP Real Real) Real))))
-    (is (= [[(up 0 0)] 0] (k '(-> (UP* Real 2) Real))))
-    (is (= [[(up 0 0)] (up 0 0)] (k '(-> (UP Real Real) (UP Real Real)))))
-    (is (= [[(up 0 0)] (up 0 0)] (k '(-> (UP* Real 2) (UP* Real 2)))))
-    (is (= [[(up 0 (up 0 0) (down 0 0))] 0]
-           (k '(-> (UP Real (UP Real Real) (DOWN Real Real)) Real))))))
+     (is (= {:arities #{1 3}
+             :required-arity nil
+             :invoke? false}
+            (#'f/arity-map
+             (fn ([x] (* x x))
+               ([x y z] (+ x y)))))))
+   :cljs
+   (deftest exposed-arities-test
+     (is (= [1] (f/exposed-arities (fn [x] (* x x)))))
+     (is (= [1 3] (f/exposed-arities (fn ([x] (* x x)) ([x y z] (+ x y))))))))
+
+(deftest arities
+  (is (= [:exactly 2] (f/arity g/partial-derivative))
+      "generic multimethod responds correctly to f/arity.")
+
+  (is (= [:exactly 0] (f/arity (fn [] 42))))
+  (is (= [:exactly 1] (f/arity (fn [x] (+ x 1)))))
+  (is (= [:exactly 2] (f/arity (fn [x y] (+ x y)))))
+  (is (= [:exactly 3] (f/arity (fn [x y z] (* x y z)))))
+  (is (= [:at-least 0] (f/arity (fn [& xs] (reduce + 0 xs)))))
+  (is (= [:at-least 1] (f/arity (fn [x & xs] (+ x (reduce * 1 xs))))))
+  (is (= [:at-least 2] (f/arity (fn [x y & zs] (+ x y (reduce * 1 zs))))))
+  (is (= [:exactly 0] (f/arity 'x)))
+  (is (= [:at-least 0] (f/arity (constantly 42))))
+  (let [f (fn [x] (+ x x))
+        g (fn [y] (* y y))]
+    (is (= [:exactly 1] (f/arity (comp f g))))))
+
+(deftest multiple-arities-test
+  ;; :between means a fn accepts some bounded number of arguments.
+  (is (= [:between 1 3]
+         (f/arity (fn ([x] (inc x))
+                    ([x y] (+ x y))
+                    ([x y z] (* x y z))))))
+
+  ;; Noting the case here where we're missing the arity-2, but we still
+  ;; return a :between.
+  (is (= [:between 1 3]
+         (f/arity (fn ([x] (inc x)) ([x y z] (* x y z))))))
+
+  ;; Adding a variadic triggers :at-least...
+  (is (= [:at-least 1]
+         (f/arity (fn ([x] (inc x)) ([x y z & xs] (* x y z))))))
+
+  ;; Unless you add ALL arities from 0 to 3 and variadic. Then we assume you were
+  ;; generated by comp.
+  (is (= [:exactly 1]
+         (f/arity (fn ([] 10)
+                    ([x] (inc x))
+                    ([x y])
+                    ([x y z])
+                    ([x y z & xs] (* x y z))))))
+
+  ;; A single variadic with lots of args works too.
+  (is (= [:at-least 4] (f/arity (fn [x y z a & xs] (* x y z a))))))
+
+(defn illegal? [f]
+  (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+               (f))))
+
+(deftest joint-arities
+  (is (= [:exactly 1] (f/joint-arity [[:exactly 1] [:exactly 1]])))
+  (is (= [:exactly 5] (f/joint-arity [[:exactly 5] [:exactly 5]])))
+  (is (illegal? #(f/joint-arity [[:exactly 2] [:exactly 1]])))
+  (is (illegal? #(f/joint-arity [[:exactly 1] [:exactly 2]])))
+  (is (= [:exactly 3] (f/joint-arity [[:exactly 3] [:at-least 2]])))
+  (is (= [:exactly 3] (f/joint-arity [[:exactly 3] [:at-least 3]])))
+  (is (= [:exactly 3] (f/joint-arity [[:at-least 1] [:exactly 3]])))
+  (is (= [:exactly 3] (f/joint-arity [[:at-least 3] [:exactly 3]])))
+  (is (illegal? #(f/joint-arity [[:exactly 1] [:at-least 2]])))
+  (is (illegal? #(f/joint-arity [[:at-least 2] [:exactly 1]])))
+  (is (= [:at-least 3] (f/joint-arity [[:at-least 2] [:at-least 3]])))
+  (is (= [:at-least 3] (f/joint-arity [[:at-least 3] [:at-least 2]])))
+  (is (= [:between 2 3] (f/joint-arity [[:between 1 3] [:between 2 5]])))
+  (is (= [:between 2 3] (f/joint-arity [[:between 2 5] [:between 1 3]])))
+  (is (illegal? #(f/joint-arity [[:between 1 3] [:between 4 6]])))
+  (is (illegal? #(f/joint-arity [[:between 4 6] [:between 1 3]])))
+  (is (= [:exactly 3] (f/joint-arity [[:between 1 3] [:between 3 4]])))
+  (is (= [:exactly 3] (f/joint-arity [[:between 3 4] [:between 1 3]])))
+  (is (= [:between 2 4] (f/joint-arity [[:at-least 2] [:between 1 4]])))
+  (is (= [:between 2 4] (f/joint-arity [[:between 1 4] [:at-least 2]])))
+  (is (illegal? #(f/joint-arity [[:at-least 4] [:between 1 3]])))
+  (is (illegal? #(f/joint-arity [[:between 1 3] [:at-least 4]])))
+  (is (= [:exactly 2] (f/joint-arity [[:exactly 2] [:between 2 3]])))
+  (is (= [:exactly 2] (f/joint-arity [[:between 2 3] [:exactly 2]])))
+  (is (illegal? #(f/joint-arity [[:between 2 3] [:exactly 1]])))
+  (is (illegal? #(f/joint-arity [[:exactly 1] [:between 2 3]]))))
+
+(deftest custom-getter-tests
+  (checking "I == identity" 100 [x gen/any-equatable]
+            (is (= x (f/I x)))
+            (is (= (f/I x) (identity x))))
+
+  (checking "f/get" 100 [m (gen/map gen/keyword gen/any-equatable)
+                         k  gen/keyword
+                         v  gen/any-equatable
+                         not-found gen/any-equatable]
+            (is (= (get m k)
+                   (f/get m k))
+                "f/get matches core/get")
+
+            (is (= (get m k not-found)
+                   (f/get m k not-found))
+                "f/get matches core/get with not-found value")
+
+            (is (= (get m k)
+                   ((f/get identity k)
+                    m))
+                "f/get works on functions")
+
+            (is (= not-found
+                   ((f/get #(dissoc % k) k not-found)
+                    m))
+                "always return not-found if the key is explicitly missing.")
+
+            (is (= v
+                   ((f/get #(assoc % k v) k)
+                    m))
+                "always return v if it's present"))
+
+  (let [inner-gen (gen/map gen/keyword gen/any-equatable
+                           {:max-elements 10})]
+    (checking "f/get-in with 2-deep maps" 100
+              [m (gen/map gen/keyword inner-gen
+                          {:max-elements 4})
+               k1  gen/keyword
+               k2  gen/keyword
+               v   gen/any-equatable
+               not-found gen/any-equatable]
+              (is (= (get-in m [k1 k2])
+                     (f/get-in m [k1 k2]))
+                  "f/get-in matches core/get-in")
+
+              (is (= (get-in m [k1 k2] not-found)
+                     (f/get-in m [k1 k2] not-found))
+                  "f/get-in matches core/get with not-found value")
+
+              (is (= (get-in m [k1 k2])
+                     ((f/get-in identity [k1 k2])
+                      m))
+                  "f/get-in works on functions")
+
+              (is (= not-found
+                     ((f/get-in #(update % k1 dissoc k2)
+                                [k1 k2] not-found)
+                      m))
+                  "always return not-found if the key is explicitly missing from
+                the inner map.")
+
+              (is (= v
+                     ((f/get-in #(assoc-in % [k1 k2] v) [k1 k2])
+                      m))
+                  "always return v if it's present"))))
+
+(deftest trig-tests
+  (with-comparator (v/within 1e-8)
+    (checking "tan, sin, cos" 100
+              [n sg/real]
+              (let [f (g/- g/tan (g/div g/sin g/cos))]
+                (is (ish? 0 (f n)))))
+
+    (checking "cos/acos" 100 [n (sg/reasonable-double {:min -100 :max 100})]
+              (let [f (f/compose g/cos g/acos)]
+                (is (ish? n (f n)))))
+
+    (checking "sin/asin" 100 [n (sg/reasonable-double {:min -100 :max 100})]
+              (let [f (f/compose g/sin g/asin)]
+                (is (ish? n (f n)))))
+
+    (checking "tan/atan" 100 [n (sg/reasonable-double {:min -100 :max 100})]
+              (let [f (f/compose g/tan g/atan)]
+                (is (ish? n (f n))))))
+
+  (testing "tan/atan, 2 arity version"
+    (let [f (f/compose g/tan g/atan)]
+      (is (ish? (/ 0.5 0.2) (f 0.5 0.2)))))
+
+  (with-comparator (v/within 1e-10)
+    (checking "tan, sin, cos" 100 [n sg/real]
+              (let [f (g/- g/tan (g/div g/sin g/cos))]
+                (when-not (v/zero? n)
+                  (is (ish? 0 (f n))))))
+
+    (checking "cot" 100 [n sg/real]
+              (let [f (g/- g/cot (g/invert g/tan))]
+                (when-not (v/zero? n)
+                  (is (ish? 0 (f n)))))))
+
+  (checking "tanh" 100 [n (sg/reasonable-double {:min -100 :max 100})]
+            (let [f (g/- (g/div g/sinh g/cosh) g/tanh)]
+              (is (ish? 0 (f n)))))
+
+  (checking "sec" 100 [n sg/real]
+            (let [f (g/- (g/invert g/cos) g/sec)]
+              (is (ish? 0 (f n)))))
+
+  (checking "csc" 100 [n sg/real]
+            (let [f (g/- (g/invert g/sin) g/csc)]
+              (when-not (v/zero? n)
+                (is (ish? 0 (f n))))))
+
+  (checking "sech" 100 [n sg/real]
+            (let [f (g/- (g/invert g/cosh) g/sech)]
+              (is (ish? 0  (f n)))))
+
+  (checking "cosh" 100 [n sg/real]
+            (is (ish? ((g/cosh g/square) n)
+                      (g/cosh (g/square n)))))
+
+  (checking "sinh" 100 [n sg/real]
+            (is (ish? ((g/sinh g/square) n)
+                      (g/sinh (g/square n)))))
+
+  (with-comparator (v/within 1e-8)
+    (checking "acosh" 100
+              [n (sg/reasonable-double {:min -100 :max 100})]
+              (let [f (f/compose g/cosh g/acosh)]
+                (is (ish? n (f n)))))
+
+    (checking "asinh" 100
+              [n (sg/reasonable-double {:min -100 :max 100})]
+              (let [f (f/compose g/sinh g/asinh)]
+                (is (ish? n (f n)))))
+
+    (checking "atanh" 100
+              [n (sg/reasonable-double {:min -10 :max 10})]
+              (when-not (v/one? (g/abs n))
+                (let [f (f/compose g/tanh g/atanh)]
+                  (is (ish? n (f n))))))))
+
+(deftest misc-tests
+  (testing "gcd/lcm unit"
+    (is (= (g/gcd 10 5)
+           (let [deferred (g/gcd (g/+ 1 g/square) 5)]
+             (deferred 3))))
+    (is (= (g/lcm 10 6)
+           (let [deferred (g/lcm (g/+ 1 g/square) 6)]
+             (deferred 3))))))
+
+(deftest transpose-test
+  (testing "transpose"
+    (let [f #(str "f" %)
+          g #(str "g" %)]
+      (is (= "fg" (f (g ""))))
+      (is (= "gf" (((g/transpose f) g) ""))
+          "See `transpose-defining-relation` above for a discussion of why this
+          is sensible."))))
 
 (deftest function-algebra
   (let [add2 (fn [x] (g/+ x 2))
@@ -160,10 +361,10 @@
       (is (= -4 ((g/- add2) 2)))
       (is (= 9 ((g/sqrt add2) 79)))
       (is (= #sicm/ratio 1/9 ((g/invert add2) 7)))
-      (is (= 1 (explog 1.0)))
-      (is (near 99.0 (explog 99.0)))
-      (is (near 20.08553692 ((g/exp add2) 1.0)))
-      (is (near 4.718281828 ((add2 g/exp) 1.0))))
+      (is (= 1.0 (explog 1.0)))
+      (is (ish? 99.0 (explog 99.0)))
+      (is (ish? 20.085536923187668 ((g/exp add2) 1.0)))
+      (is (ish? 4.718281828459045 ((add2 g/exp) 1.0))))
 
     (testing "binary"
       (is (= 12 ((g/+ add2 4) 6)))
@@ -172,6 +373,54 @@
       (is (= 32 ((g/expt 2 add2) 3)))
       (is (= 25 ((g/expt add2 2) 3)))
       (is (= ::v/function (v/kind (g/expt add2 2)))))
+
+    (testing "determinant"
+      (is (= 20 ((g/determinant *) 4 5))))
+
+    (checking "invert" 100 [n sg/real]
+              (when-not (v/zero? n)
+                (is (= ((g/+ 1 g/invert) n)
+                       (g/+ 1 (g/invert n))))))
+
+    (checking "negative?" 100 [n sg/real]
+              (is (not ((g/negative? g/abs) n)))
+              (when-not (v/zero? n)
+                (is ((g/negative? (f/compose g/negate g/abs)) n))))
+
+    (checking "abs" 100 [n sg/real]
+              (is (= ((g/+ 1 g/abs) n)
+                     (g/+ 1 (g/abs n)))))
+
+    (checking "quotient" 100 [l sg/any-integral
+                              r sg/native-integral]
+              (when-not (v/zero? r)
+                (is (= ((g/+ 1 g/quotient) l r)
+                       (g/+ 1 (g/quotient l r))))))
+
+    (checking "exact-divide" 100 [n (gen/choose -200 200)
+                                  m (gen/choose -20 20)]
+              (when-not (v/zero? m)
+                (is (= n ((g/exact-divide g/* m) n m))
+                    "The f position here is a function that takes 2 elements,
+                  passes them to g/*, the calls exact-divide on the result and
+                  `m`.")))
+
+    (checking "dimension" 100 [n sg/real]
+              (is (= ((g/invert g/dimension) n)
+                     (g/dimension n))
+                  "The dimension of a number is always 1."))
+
+    (checking "remainder" 100 [l sg/any-integral
+                               r sg/native-integral]
+              (when-not (v/zero? r)
+                (is (= ((g/+ 1 g/remainder) l r)
+                       (g/+ 1 (g/remainder l r))))))
+
+    (checking "modulo" 100 [l sg/any-integral
+                            r sg/native-integral]
+              (when-not (v/zero? r)
+                (is (= ((g/+ 1 g/modulo) l r)
+                       (g/+ 1 (g/modulo l r))))))
 
     (testing "arity 2"
       (let [f (fn [x y] (+ x y))
@@ -201,77 +450,113 @@
             add+mul (g/+ add mul)
             add-mul (g/- add mul)
             mul-add (g/- mul add)]
-        (is (= [:at-least 0] (v/arity add)))
-        (is (= [:at-least 0] (v/arity mul)))
-        (is (= [:at-least 0] (v/arity add+mul)))
+        (is (= [:at-least 0] (f/arity add)))
+        (is (= [:at-least 0] (f/arity mul)))
+        (is (= [:at-least 0] (f/arity add+mul)))
         (is (= 33 (add+mul 2 3 4)))
         (is (= -15 (add-mul 2 3 4)))
         (is (= 15 (mul-add 2 3 4)))))))
 
-(deftest operators
-  (let [f (fn [x] (+ x 5))
-        double (fn [f] (fn [x] (* 2 (f x))))
-        double-op (o/make-operator double "double")]
-    (is (= 12 ((double f) 1)))
-    (is (= 24 ((double (double f)) 1)))
-    (is (= 12 ((double-op f) 1)))
-    (is (= 24 ((double-op (double-op f)) 1)))
-    (is (= 24 (((g/* double-op double-op) f) 1)))           ;; * for operators is composition
-    (is (= 144 (((g/* double double) f) 1)))                ;; * for functions is pointwise multiply
-    (is (= 2 ((double-op identity) 1)))
-    (is (= 6 (((g/expt double-op 0) f) 1)))
-    (is (= 12 (((g/expt double-op 1) f) 1)))
-    (is (= 24 (((g/expt double-op 2) f) 1)))
-    (is (= 18 (((g/+ double-op double-op double-op) identity) 3)))
-    (is (= 24 (((g/+ double-op 4 double-op) identity) 3)))))
+(defn complex-checks
+  "Checks the fn-fn, fn-cofn and cofn-fn pairings for a subset of unary and binary
+  fns.
 
-(deftest function-differential
-  (testing "structural utilities"
-    (is (f/symbolic-derivative? '(D f)))
-    (is (not (f/symbolic-derivative? '(e f))))
-    (is (not (f/iterated-symbolic-derivative? '(expt D 2))))
-    (is (f/iterated-symbolic-derivative? '((expt D 2) f)))
-    (is (= '((expt D 2) f) (f/symbolic-increase-derivative '(D f))))
-    (is (= '((expt D 3) f) (f/symbolic-increase-derivative '((expt D 2) f))))))
+  TODO this is really a general thing we could use to check all fns."
+  [ctor]
+  (checking "unary" 100
+            [f1 (gen/elements [g/abs g/sin g/cos])
+             f2 (gen/elements [g/abs g/sin g/cos])
+             n sg/real]
+            (is (= (ctor (f1 n) (f2 n))
+                   ((ctor f1 f2) n)))
 
-(deftest moved-from-series
-  (testing "series"
-    (is (= '[(* 2 (f x)) (* 3 (f x))]
-           (g/simplify
-            (take 2 ((g/* (series/series 2 3)
-                          (f/literal-function 'f)) 'x)))))
-    (is (= '[(* 2 (f y)) (* 3 (f y))]
-           (g/simplify
-            (take 2 ((g/* (f/literal-function 'f)
-                          (series/series 2 3)) 'y))))))
+            (is (= (ctor n (f2 n))
+                   ((ctor n f2) n))
+                "# left, fn right")
 
-  (let [simp4 (fn [x] (g/simplify (take 4 x)))
-        S (series/series (f/literal-function 'f)
-                         (f/literal-function 'g))
-        T (series/series (f/literal-function 'F [0 1] 0)
-                         (f/literal-function 'G [0 1] 0))
-        U (series/series (f/literal-function 'W [(s/up 0 0)] 0)
-                         (f/literal-function 'Z [(s/up 0 0)] 0))
-        V (series/series g/sin g/cos g/tan)]
+            (is (= (ctor (f1 n) n)
+                   ((ctor f1 n) n))
+                "fn left, # right"))
 
-    (testing "with functions"
-      (is (= '((* (sin x) (f x)) (* (sin x) (g x)) 0 0)
-             (g/simplify (take 4 ((g/* S g/sin) 'x)))))
-      (is (= '((* (sin x) (f x)) (* (sin x) (g x)) 0 0)
-             (g/simplify (take 4 ((g/* g/sin S) 'x))))))
+  (checking "binary" 100
+            [f1 (gen/elements [g/* g/+ g/-])
+             f2 (gen/elements [g/* g/+ g/-])
+             l sg/real
+             r sg/real]
+            (is (= (ctor (f1 l r) (f2 l r))
+                   ((ctor f1 f2) l r)))
 
-    (testing "and derivatives"
-      (is (= '(((D f) x) ((D g) x) 0 0)
-             (g/simplify (take 4 ((D S) 'x)))))
-      (is (= '((F x y) (G x y) 0 0) (simp4 (T 'x 'y))))
-      (is (= '((((partial 0) F) x y) (((partial 0) G) x y) 0 0) (simp4 (((partial 0) T) 'x 'y))))
-      (is (= '((((partial 1) F) x y) (((partial 1) G) x y) 0 0) (simp4 (((partial 1) T) 'x 'y))))
-      (is (= '((((partial 0) W) (up r θ)) (((partial 0) Z) (up r θ)) 0 0) (simp4 (((partial 0) U) (up 'r 'θ)))))
-      (is (= '((((partial 1) W) (up r θ)) (((partial 1) Z) (up r θ)) 0 0) (simp4 (((partial 1) U) (up 'r 'θ)))))
-      (is (= '[(sin t) (cos t) (tan t) 0] (simp4 (V 't))))
-      (is (= '[(cos t) (* -1 (sin t)) (/ 1 (expt (cos t) 2)) 0] (simp4 ((D V) 't)))))
+            (is (= (ctor l (f2 l r))
+                   ((ctor l f2) l r))
+                "# left, fn right")
 
-    (testing "f -> Series"
-      (let [F (fn [k] (series/series (fn [t] (g/* k t)) (fn [t] (g/* k k t))))]
-        (is (= '((* q z) (* (expt q 2) z) 0 0) (simp4 ((F 'q) 'z))))
-        (is (= '(z (* 2 q z) 0 0) (simp4 (((D F) 'q) 'z))))))))
+            (is (= (ctor (f1 l r) r)
+                   ((ctor f1 r) l r))
+                "fn left, # right")))
+
+(deftest utility-tests
+  (checking "arg-shift" 100
+            [[shifts args] (gen/let [n (gen/choose 1 20)]
+                             (gen/tuple
+                              (gen/vector sg/real n)
+                              (gen/vector sg/real n)))]
+            (is (= (apply (apply f/arg-shift g/- shifts) args)
+                   (apply g/- (map g/+ shifts args)))))
+
+  (testing "arg-shift unit"
+    (is (= 49 ((f/arg-shift g/square 3) 4)))
+
+    (testing "arg-shift preserves arity"
+      (is (= (f/arity g/square)
+             (f/arity (f/arg-shift g/square 3))))
+      (is (= (f/arity g/+)
+             (f/arity (f/arg-shift g/+ 3)))))
+
+    (is (= 8
+           ((f/arg-shift g/+ 1 2) 1 1 1 1 1)
+           ((f/arg-shift g/+ 1 2 0 0 0) 1 1 1 1 1))
+        "if you supply fewer shifts than arguments, later arguments are
+        untouched.")
+
+    (is (= 4
+           ((f/arg-shift g/+ 1 1) 1 1)
+           ((f/arg-shift g/+ 1 1 2 3 4) 1 1))
+        "if you supply MORE shifts than arguments, later shifts are ignored."))
+
+  (checking "arg-scale" 100
+            [[factors args] (gen/let [n (gen/choose 1 20)]
+                              (gen/tuple
+                               (gen/vector sg/real n)
+                               (gen/vector sg/real n)))]
+            (is (= (apply (apply f/arg-scale g/+ factors) args)
+                   (apply g/+ (map g/* factors args)))))
+
+  (testing "arg-scale unit"
+    (is (= 144 ((f/arg-scale g/square 3) 4)))
+
+    (testing "arg-scale preserves arity"
+      (is (= (f/arity g/square)
+             (f/arity (f/arg-scale g/square 3))))
+      (is (= (f/arity g/+)
+             (f/arity (f/arg-scale g/+ 3)))))
+
+    (is (= [:exactly 1]  (f/arity (f/arg-scale g/square 3))))
+    (is (= [:at-least 0] (f/arity (f/arg-scale g/+ 3))))
+
+    (is (= 6
+           ((f/arg-scale g/+ 1 2) 1 1 1 1 1)
+           ((f/arg-scale g/+ 1 2 1 1 1) 1 1 1 1 1))
+        "if you supply fewer factors than arguments, later arguments are
+        untouched.")
+
+    (is (= 8
+           ((f/arg-scale g/+ 2 2) 2 2)
+           ((f/arg-scale g/+ 2 2 2 3 4) 2 2))
+        "if you supply MORE factors than arguments, later factors are ignored.")))
+
+(deftest complex-number-tests
+  (testing "make-rectangular"
+    (complex-checks g/make-rectangular))
+
+  (testing "make-polar"
+    (complex-checks g/make-polar)))

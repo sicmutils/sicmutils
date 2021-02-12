@@ -1,0 +1,154 @@
+= Power Series
+
+== Power Series
+
+Power series are often needed in mathematical computations. There are a few
+primitive power series, and new power series can be formed by operations on
+existing power series. If `<p>` is an expression denoting a power series, then:
+
+[source, clojure]
+----
+(series/series? <any>)    ;;=> <boolean>
+(kind <p>)                ;;=> :sicmutils.series/series
+----
+
+Series can be constructed in a variety of ways. If one has a procedure that
+implements the general form of a coefficient then this gives the most direct
+method:
+
+For example, the `n`-th coefficient of the power series for the exponential
+function is `1/n!`. We can write this as
+
+[source, clojure]
+----
+(series/generate (fn [n] (/ 1 (factorial n))))
+----
+
+Sometimes we have a finite number of coefficients and we want to make a series
+with those given coefficients (assuming zeros for all higher-order
+coefficients). We can do this with the extensional constructor. Thus:
+
+[source, clojure]
+----
+(series 1 2 3 4 5)
+----
+
+is the series whose first coefficients are the arguments given.
+
+There are some nice initial series:
+
+`*series/zero*`
+
+is the series of all zero coefficients.
+
+`*series/one*`
+
+is the series of all zero coefficients except for the first (constant), which
+is one.
+
+`*(constant-series c)*`
+
+is the series of all zero coefficients except for the first (constant), which is
+the given constant.
+
+`*((binomial-series a) x)*`
+
+Returns a series containing the coefficients of the expansion of `(1+x)^a`.
+
+In addition, we provide the following initial series:
+
+[source, clojure]
+----
+exp-series, cos-series, sin-series, tan-series, sec-series,
+asin-series, acos-series, atan-series, acot-series,
+sinh-series, cosh-series, tanh-series, asinh-series, atanh-series,
+log1+x-series, log1-x-series,
+fib-series, catalan-series
+----
+
+Series can also be formed by processes such as exponentiation of an operator or
+a square matrix.
+
+For example, if `f` is any function of one argument, and if `x` and `dx` are
+numerical expressions, then this expression denotes the Taylor expansion of f
+around x.
+
+[source, clojure]
+----
+(let [f (literal-function 'f)]
+  (((exp (* 'dx D)) f) 'x))
+
+;; (f x)
+;; (* dx ((D f) x))
+;; (* 1/2 (expt dx 2) (((expt D 2) f) x))
+;; (* 1/6 (expt dx 3) (((expt D 3) f) x))
+;; (* 1/24 (expt dx 4) (((expt D 4) f) x))
+;; (* 1/120 (expt dx 5) (((expt D 5) f) x))
+;; (* 1/720 (expt dx 6) (((expt D 6) f) x))
+;; ...
+----
+
+We often want to show a few (`n`) terms of a series:
+
+[source, clojure]
+----
+(seq:print <n> <p>)
+
+;; pretty-printing version
+(seq:pprint <n> <p>)
+----
+
+For example, to show eight coefficients of the cosine series we might write:
+
+[source, clojure]
+----
+(seq:print 8 (((exp D) cos) 0))
+;; 1.0
+;; 0
+;; -1/2
+;; 0
+;; 1/24
+;; 0
+;; -1/720
+;; 0
+----
+
+We can make the sequence of partial sums of a series. The sequence is a stream,
+not a series.
+
+[source, clojure]
+----
+(seq:print 10 (partial-sums (((exp D) cos) 0.)))
+1.
+1.
+.5
+.5
+.5416666666666666
+.5416666666666666
+.5402777777777777
+.5402777777777777
+.5403025793650793
+.5403025793650793
+----
+
+Note that the sequence of partial sums approaches `(cos 1)`.
+
+[source, clojure]
+----
+(cos 1)
+;;=> .5403023058681398
+----
+
+In addition to the special operations for series, the following generic
+operations are defined for series:
+
+[source, clojure]
+----
+negate, invert, +, -, *, /, expt
+----
+
+NOTE: `sicmutils.series` has many more operations than this that aren't
+registered in the generic system. See the
+https://github.com/sicmutils/sicmutils/blob/master/src/sicmutils/series.cljc[`sicmutils.series`]
+namespace for a Literate Programming-style exposition of the capabilities
+SICMUtils affords for series and power series.

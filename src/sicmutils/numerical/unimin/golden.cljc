@@ -48,15 +48,20 @@
 ;; ratio could degenerate into you selecting the larger of the two pieces every
 ;; time, slowing your search.
 
-;; $\phi$, the golden ratio.
-(def phi      (/ (+ (g/sqrt 5) 1) 2))
+(def ^{:doc "$\\phi$, the golden ratio."}
+  phi
+  (/ (+ (g/sqrt 5) 1) 2))
 
-;; $1 \over \phi$. Multiply by this to scale some distance down to the
-;; larger-sized golden ratio piece.
-(def inv-phi  (/ (- (g/sqrt 5) 1) 2))
 
-;; $1 \over \phi^2$. Scales down twice!
-(def inv-phi2 (- 1 inv-phi))
+(def ^{:doc "$1 \\over \\phi$. Multiply by this to scale some distance down to the
+larger-sized golden ratio piece."}
+  inv-phi
+  (/ (- (g/sqrt 5) 1) 2))
+
+
+(def ^{:doc "$1 \\over \\phi^2$. Scales down twice, compared to [[inv-phi]]."}
+  inv-phi2
+  (- 1 inv-phi))
 
 (defn golden-cut
   "Returns the point between `from` and `to` that cuts the region between the two
@@ -65,12 +70,12 @@
   For example, depending on the ordering of `from` and `to`, `x` would be
   either:
 
-  `from------x1---to`
+  ```
+  from------x1---to
+  to---x2------from
+  ```
 
-  `to---x2------from`
-
-  Such that `from->x1 / from->to == to->x2 / from->x1`.
-  "
+  Such that `from->x1 / from->to == to->x2 / from->x1`."
   [from to]
   (+ (* inv-phi2 from)
      (* inv-phi to)))
@@ -171,11 +176,11 @@
 
   `:converged?` is an optional predicate accepting five arguments:
 
-  `[a fa]`
-  `[l fl]`
-  `[r fr]`
-  `[b fb]`
-  `current-iteration`
+  - `[a fa]`
+  - `[l fl]`
+  - `[r fr]`
+  - `[b fb]`
+  - `current-iteration`
 
   If the supplied `fn` returns true, it will signal convergence and the
   optimizer will return. Returning false will continue.

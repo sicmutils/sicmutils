@@ -1,36 +1,33 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.simplify
-  (:require [clojure.walk :refer [postwalk]]
-            [clojure.pprint :as pp]
+  (:require [clojure.pprint :as pp]
             [clojure.set :as set]
             [pattern.rule :as rule]
-            [sicmutils.analyze :as a]
+            [sicmutils.expression.analyze :as a]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
-            [sicmutils.numsymb :as nsy]
             [sicmutils.polynomial :as poly]
-            [sicmutils.polynomial-factor :as factor]
+            [sicmutils.polynomial.factor :as factor]
             [sicmutils.rational-function :as rf]
-            [sicmutils.rules :as rules]
-            [sicmutils.structure :as s]
+            [sicmutils.simplify.rules :as rules]
             [sicmutils.value :as v]
             [taoensso.timbre :as log])
   #?(:clj
@@ -82,7 +79,7 @@
         expression
         (let [canonicalized-expression (canonicalize new-expression)]
           (cond (= canonicalized-expression expression) expression
-                (v/nullity? (*poly-analyzer* `(~'- ~expression ~canonicalized-expression))) canonicalized-expression
+                (v/zero? (*poly-analyzer* `(~'- ~expression ~canonicalized-expression))) canonicalized-expression
                 :else (recur canonicalized-expression)))))))
 
 (defn ^:private simplify-and-canonicalize
@@ -110,10 +107,10 @@
 ;; up, but at least things are beginning to simplify adequately.
 
 (def ^:private simplifies-to-zero?
-  #(-> % *poly-analyzer* v/nullity?))
+  #(-> % *poly-analyzer* v/zero?))
 
-(def ^:private simplifies-to-unity?
-  #(-> % *rf-analyzer* v/unity?))
+(def ^:private simplifies-to-one?
+  #(-> % *rf-analyzer* v/one?))
 
 (def trig-cleanup
   "This finds things like a - a cos^2 x and replaces them with a sin^2 x"
@@ -143,7 +140,7 @@
        ;; in the substitution. Idea: provide a binding for the *return value* of the predicate
        ;; in the scope of the substitution.
        (atan :y :x)
-       #(not (simplifies-to-unity? `(~'gcd ~(% :x) ~(% :y))))
+       #(not (simplifies-to-one? `(~'gcd ~(% :x) ~(% :y))))
        (atan (/ :y (gcd :x :y)) (/ :x (gcd :x :y)))
 
        ))
@@ -168,18 +165,22 @@
       sin-sq->cos-sq-simplifier
       trig-cleanup
       rules/sincos->trig
+      rules/sqrt-expand
+      simplify-and-flatten
+      rules/sqrt-contract
       square-root-simplifier
       clear-square-roots-of-perfect-squares
-      simplify-and-flatten))
+      simplify-and-flatten
+      ))
 
 (def simplify-expression
   (simplify-until-stable simplify-expression-1 simplify-and-flatten))
 
 (defn simplify-numerical-expression
-  "Runs the content of the Expression e through the simplifier, but leaves the result in
-  Expression form."
+  "Runs the content of the Literal e through the simplifier, but leaves the result
+  in Literal form."
   [e]
-  (if (g/abstract-quantity? e)
+  (if (x/abstract? e)
     (x/fmap simplify-expression e)
     e))
 
@@ -266,9 +267,6 @@
                               simplify-and-flatten)
                         exp)]
     simplified-exp))
-
-(defmethod g/simplify [::x/numerical-expression] [a]
-  (simplify-expression (v/freeze a)))
 
 (defn expression->stream
   "Renders an expression through the simplifier and onto the stream."

@@ -18,7 +18,7 @@
 ;;
 
 (ns sicmutils.numerical.quadrature.substitute
-  "## U Substitution and Variable Changes
+  "### U Substitution and Variable Changes
 
   This namespace provides implementations of functions that accept an
   `integrator` and perform a variable change to address some singularity, like
@@ -61,8 +61,8 @@
 
   References:
 
-  - Mathworld, \"Improper Integral\": https://mathworld.wolfram.com/ImproperIntegral.html
-  - Press, Numerical Recipes, Section 4.4: http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf"
+  - Mathworld, [\"Improper Integral\"](https://mathworld.wolfram.com/ImproperIntegral.html)
+  - Press, Numerical Recipes, [Section 4.4](http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf)"
   [integrate]
   (fn call
     ([f a b] (call f a b {}))
@@ -112,10 +112,9 @@
 
   References:
 
-  - Mathworld, \"Improper Integral\": https://mathworld.wolfram.com/ImproperIntegral.html
-  - Press, Numerical Recipes, Section 4.4: http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf
-  - Wikipedia, \"Finite-time Singularity\": https://en.wikipedia.org/wiki/Singularity_(mathematics)#Finite-time_singularity
-  "
+  - Mathworld, [\"Improper Integral\"](https://mathworld.wolfram.com/ImproperIntegral.html)
+  - Press, Numerical Recipes, [Section 4.4](http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf)
+  - Wikipedia, [\"Finite-time Singularity\"](https://en.wikipedia.org/wiki/Singularity_(mathematics)#Finite-time_singularity)"
   [integrate gamma lower?]
   {:pre [(<= 0 gamma 1)]}
   (fn call
@@ -145,9 +144,9 @@
 
   References:
 
-  - Mathworld, \"Improper Integral\": https://mathworld.wolfram.com/ImproperIntegral.html
-  - Press, Numerical Recipes, Section 4.4: http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf
-  - Wikipedia, \"Finite-time Singularity\": https://en.wikipedia.org/wiki/Singularity_(mathematics)#Finite-time_singularity"
+  - Mathworld, [\"Improper Integral\"](https://mathworld.wolfram.com/ImproperIntegral.html)
+  - Press, Numerical Recipes, [Section 4.4](http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf)
+  - Wikipedia, [\"Finite-time Singularity\"](https://en.wikipedia.org/wiki/Singularity_(mathematics)#Finite-time_singularity)"
   [integrate gamma]
   (inverse-power-law integrate gamma true))
 
@@ -163,9 +162,9 @@
 
   References:
 
-  - Mathworld, \"Improper Integral\": https://mathworld.wolfram.com/ImproperIntegral.html
-  - Press, Numerical Recipes, Section 4.4: http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf
-  - Wikipedia, \"Finite-time Singularity\": https://en.wikipedia.org/wiki/Singularity_(mathematics)#Finite-time_singularity"
+  - Mathworld, [\"Improper Integral\"](https://mathworld.wolfram.com/ImproperIntegral.html)
+  - Press, Numerical Recipes, [Section 4.4](http://phys.uri.edu/nigh/NumRec/bookfpdf/f4-4.pdf)
+  - Wikipedia, [\"Finite-time Singularity\"](https://en.wikipedia.org/wiki/Singularity_(mathematics)#Finite-time_singularity)"
   [integrate gamma]
   (inverse-power-law integrate gamma false))
 
@@ -182,7 +181,6 @@
 
   near the lower endpoint $a$."
   [integrate]
-  ;; TODO identical to gamma = 1/2, test...
   (fn call
     ([f a b] (call f a b {}))
     ([f a b opts]
@@ -198,7 +196,6 @@
 
   near the upper endpoint $b$."
   [integrate]
-  ;; TODO identical to gamma = 1/2, test...
   (fn call
     ([f a b] (call f a b {}))
     ([f a b opts]

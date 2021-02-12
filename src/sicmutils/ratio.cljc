@@ -18,12 +18,22 @@
 ;;
 
 (ns sicmutils.ratio
+  "This namespace provides a number of functions and constructors for working
+  with ratios in Clojure and Clojurescript.
+
+  [[clojure.lang.Ratio]] is native in Clojure. The Clojurescript implementation
+  uses [Fraction.js](https://github.com/infusion/Fraction.js/).
+
+  For other numeric extensions, see [[sicmutils.numbers]]
+  and [[sicmutils.complex]]."
   #?(:clj
      (:refer-clojure :rename {rationalize core-rationalize
                               ratio? core-ratio?
                               denominator core-denominator
                               numerator core-numerator}))
   (:require #?(:clj [clojure.edn] :cljs [cljs.reader])
+            #?(:cljs [goog.array :as garray])
+            [sicmutils.complex :as c]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
@@ -31,8 +41,8 @@
             #?(:cljs ["fraction.js/bigfraction.js" :as Fraction]))
   #?(:clj (:import [clojure.lang BigInt Ratio])))
 
-(def ratiotype #?(:clj Ratio :cljs Fraction))
-(derive ratiotype ::v/number)
+(def ^:no-doc ratiotype #?(:clj Ratio :cljs Fraction))
+(derive ratiotype ::v/real)
 
 (def ratio?
   #?(:clj core-ratio?
@@ -49,8 +59,8 @@
   #?(:clj core-denominator
      :cljs (fn [^Fraction x] (.-d x))))
 
-(defn ^:private promote [x]
-  (if (v/unity? (denominator x))
+(defn- promote [x]
+  (if (v/one? (denominator x))
     (numerator x)
     x))
 
@@ -62,7 +72,7 @@
               (Fraction. x))
       :clj (core-rationalize x)))
   ([n d]
-   #?(:cljs (if (v/unity? d)
+   #?(:cljs (if (v/one? d)
               n
               (promote (Fraction. n d)))
       :clj (core-rationalize (/ n d)))))
@@ -86,7 +96,7 @@
       (u/bigint ~denominator))))
 
 (defn parse-ratio
-  "Parser for the #sicm/ratio literal."
+  "Parser for the `#sicm/ratio` literal."
   [x]
   (cond #?@(:clj
             [(ratio? x)
@@ -104,47 +114,54 @@
 
 #?(:clj
    (extend-type Ratio
+     v/Numerical
+     (numerical? [_] true)
+
      v/Value
-     (nullity? [c] (zero? c))
-     (unity? [c] (= 1 c))
+     (zero? [c] (zero? c))
+     (one? [c] (= 1 c))
+     (identity? [c] (= 1 c))
      (zero-like [_] 0)
      (one-like [_] 1)
+     (identity-like [_] 1)
      (freeze [x] (let [n (numerator x)
                        d (denominator x)]
-                   (if (v/unity? d)
+                   (if (v/one? d)
                      n
                      `(~'/ ~n ~d))))
      (exact? [c] true)
-     (numerical? [_] true)
      (kind [_] Ratio))
 
    :cljs
    (let [ZERO (Fraction. 0)
          ONE  (Fraction. 1)]
      (extend-type Fraction
+       v/Numerical
+       (numerical? [_] true)
+
        v/Value
-       (nullity? [c] (.equals c ZERO))
-       (unity? [c] (.equals c ONE))
+       (zero? [c] (.equals c ZERO))
+       (one? [c] (.equals c ONE))
+       (identity? [c] (.equals c ONE))
        (zero-like [_] 0)
        (one-like [_] 1)
+       (identity-like [_] 1)
        (freeze [x] (let [n (numerator x)
                          d (denominator x)]
-                     (if (v/unity? d)
+                     (if (v/one? d)
                        (v/freeze n)
                        `(~'/
                          ~(v/freeze n)
                          ~(v/freeze d)))))
        (exact? [c] true)
-       (numerical? [_] true)
        (kind [x] Fraction)
 
        IEquiv
        (-equiv [this other]
          (cond (ratio? other) (.equals this other)
-
                (v/integral? other)
-               (and (v/unity? (denominator this))
-                    (v/eq (numerator this) other))
+               (and (v/one? (denominator this))
+                    (v/= (numerator this) other))
 
                ;; Enabling this would work, but would take us away from
                ;; Clojure's behavior.
@@ -155,10 +172,12 @@
 
        IComparable
        (-compare [this other]
-         (if (or (number? other)
-                 (ratio? other))
+         (if (ratio? other)
            (.compare this other)
-           (.compare this (rationalize other))))
+           (let [o-value (.valueOf other)]
+             (if (v/real? o-value)
+               (garray/defaultCompare this o-value)
+               (throw (js/Error. (str "Cannot compare " this " to " other)))))))
 
        Object
        (toString [r]
@@ -172,7 +191,7 @@
        (-pr-writer [x writer opts]
          (let [n (numerator x)
                d (denominator x)]
-           (if (v/unity? d)
+           (if (v/one? d)
              (-pr-writer n writer opts)
              (write-all writer "#sicm/ratio \""
                         (str n) "/" (str d)
@@ -189,7 +208,7 @@
 
    :cljs
    (do
-     (defn pow [r m]
+     (defn- pow [r m]
        (let [n (numerator r)
              d (denominator r)]
          (if (neg? m)
@@ -200,7 +219,7 @@
 
      ;; The -equiv implementation handles equality with any number, so flip the
      ;; arguments around and invoke equiv.
-     (defmethod v/eq [::v/number Fraction] [l r] (= r l))
+     (defmethod v/= [::v/number Fraction] [l r] (= r l))
 
      (defmethod g/add [Fraction Fraction] [a b] (promote (.add a b)))
      (defmethod g/sub [Fraction Fraction] [a b] (promote (.sub a b)))
@@ -217,11 +236,16 @@
      (defmethod g/gcd [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.gcd a b)))
      (defmethod g/lcm [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.lcm a b)))
      (defmethod g/expt [Fraction ::v/integral] [a b] (pow a b))
+     (defmethod g/sqrt [Fraction] [a]
+       (if (neg? a)
+         (g/sqrt (c/complex (.valueOf a)))
+         (g/div (g/sqrt (u/double (numerator a)))
+                (g/sqrt (u/double (denominator a))))))
 
      ;; Only integral ratios let us stay exact. If a ratio appears in the
      ;; exponent, convert the base to a number and call g/expt again.
      (defmethod g/expt [Fraction Fraction] [a b]
-       (if (v/unity? (denominator b))
+       (if (v/one? (denominator b))
          (promote (.pow a (numerator b)))
          (g/expt (.valueOf a) (.valueOf b))))
 
@@ -236,17 +260,17 @@
        (promote (.mod a b)))
 
      ;; Cross-compatibility with numbers in CLJS.
-     (defn downcast-fraction
+     (defn- downcast-fraction
        "Anything that `upcast-number` doesn't catch will hit this and pull a floating
   point value out of the ratio."
        [op]
-       (defmethod op [Fraction ::v/number] [^Fraction a b]
+       (defmethod op [Fraction ::v/real] [^Fraction a b]
          (op (.valueOf a) b))
 
-       (defmethod op [::v/number Fraction] [a ^Fraction b]
+       (defmethod op [::v/real Fraction] [a ^Fraction b]
          (op a (.valueOf b))))
 
-     (defn upcast-number
+     (defn- upcast-number
        "Integrals can stay exact, so they become ratios before op."
        [op]
        (defmethod op [Fraction ::v/integral] [a b]

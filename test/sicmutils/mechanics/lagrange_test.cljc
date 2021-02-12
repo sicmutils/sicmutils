@@ -19,8 +19,8 @@
 
 (ns sicmutils.mechanics.lagrange-test
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [sicmutils.abstract.function :as f #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :refer [D]]
-            [sicmutils.function :as f #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
             [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]
             [sicmutils.matrix :as m]
@@ -145,16 +145,22 @@
                            (up x y))
                           't))))
 
-      (is (= '(down (/ (+ (* m (((expt D 2) x) t) (sqrt (+ (expt (x t) 2) (expt (y t) 2)))) (* (x t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
+      (is (= '(down (/ (+ (* m (((expt D 2) x) t) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
+                          (* (x t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
                        (sqrt (+ (expt (x t) 2) (expt (y t) 2))))
-                    (/ (+ (* m (sqrt (+ (expt (x t) 2) (expt (y t) 2))) (((expt D 2) y) t)) (* (y t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
-                       (sqrt (+ (expt (x t) 2) (expt (y t) 2)))))
+                    (/ (+ (* m (sqrt (+ (expt (x t) 2) (expt (y t) 2))) (((expt D 2) y) t))
+                          (* (y t) ((D U) (sqrt (+ (expt (x t) 2) (expt (y t) 2))))))
+                       (sqrt (+ (expt (x t) 2)
+                                (expt (y t) 2)))))
              (g/simplify (((L/Lagrange-equations (L/L-central-rectangular 'm U))
                            (up x y))
                           't))))
 
-      (is (= '(down (+ (* -1 m (expt ((D φ) t) 2) (r t)) (* m (((expt D 2) r) t)) ((D U) (r t)))
-                    (+ (* 2 m ((D φ) t) (r t) ((D r) t)) (* m (expt (r t) 2) (((expt D 2) φ) t))))
+      (is (= '(down (+ (* -1 m (r t) (expt ((D φ) t) 2))
+                       (* m (((expt D 2) r) t))
+                       ((D U) (r t)))
+                    (+ (* m (expt (r t) 2) (((expt D 2) φ) t))
+                       (* 2 m (r t) ((D φ) t) ((D r) t))))
              (g/simplify (((L/Lagrange-equations (L/L-central-polar 'm U))
                            (up r φ))
                           't))))

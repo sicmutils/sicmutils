@@ -1,0 +1,219 @@
+= Generics
+
+== Generic Arithmetic
+
+In the SICMUtils library arithmetic operators are generic over a variety of
+mathematical datatypes. For example, addition makes sense when applied to such
+diverse data as numbers, vectors, matrices, and functions. Additionally, many
+operations can be given a meaning when applied to different datatypes. For
+example, multiplication makes sense when applied to a number and a vector.
+
+The traditional operator symbols, such as `+` and `*` are bound to procedures
+that implement the generic operations. The details of which operations are
+defined for which datatypes is described below, organized by the datatype.
+
+In addition to the standard operations, every piece of mathematical data, `x`,
+can give answers to the following questions:
+
+`*(kind x)*`
+
+Returns a symbol or class instance describing the type of x. For example:
+
+[source, clojure]
+----
+(kind 3.14)
+;; => java.lang.Double
+
+(kind [1 2 3])
+;; => clojure.lang.PersistentVector
+----
+
+`*(kind-predicate x)*`
+
+Returns a predicate that is true on objects that are the same type as `x`.
+
+`*(arity p)*`
+
+Returns a description of the number of arguments that `p`, interpreted as a
+procedure, accepts, except that it is extended for datatypes that are not
+usually interpreted as procedures. A structured object, like an `up` structure,
+may be applied as a vector of procedures, and its arity is the intersection of
+the arities of the components.
+
+An arity is a newly allocated pair, like the following examples:
+
+[source, clojure]
+----
+(arity (fn [] 3))            ;; [:exactly 0]
+(arity (fn [x] x))           ;; [:exactly 1]
+(arity first)                ;; [:exactly 1]
+(arity (fn [& xs] xs))       ;; [:at-least 0]
+(arity (fn [x & y] x))       ;; [:at-least 1]
+(arity (fn [x y & _] [x y])) ;; [:at-least 2]
+(arity [cos sin])            ;; [:exactly 1]
+----
+
+We will now describe each of the generic operations. These operations are
+defined for many but not all of the mathematical datatypes. For particular
+datatypes we will list and discuss the operations that only make sense for them.
+
+`*(exact? x)*`
+
+This procedure is a predicate - a boolean-valued procedure. Exact numbers are
+integers, or rational numbers. A compound object, such as a vector or a matrix,
+is inexact if it has inexact components.
+
+`*(zero-like x)*`
+
+In general, this procedure returns the additive identity of the type of its
+argument, if it exists. For numbers this is 0.
+
+`*(one-like x)*`
+
+In general, this procedure returns the multiplicative identity of the type of
+its argument, if it exists. For numbers this is 1.
+
+`*(zero? x)*`
+
+Is true if `x` is an additive identity.
+
+`*(one? x)*`
+
+Is true if `x` is a multiplicative identity.
+
+`*(negate x) == (- (zero-like x) x)*`
+
+Gives an object that when added to `x` yields zero.
+
+`*(invert x) ==  (/ (one-like x) x)*`
+
+Gives an object that when multiplied by `x` yields one.
+
+Most of the numerical functions have been generalized to many of the datatypes,
+but the meaning may depend upon the particular datatype. Some are defined for
+numerical data only.
+
+[source, clojure]
+----
+(negative? x)
+(= x1 x2 ,,,)
+(+ x1 x2 ,,,)
+(* x1 x2 ,,,)
+(- x1 x2 ,,,)
+(/ x1 x2 ,,,)
+
+(expt x1 x2)
+
+;; Gives a square root of x, or an approximation to it.
+(sqrt x)
+
+(exp x)     ==   e^x
+(exp10 x)   ==  10^x
+(exp2 x)    == 2^x
+
+(log x)
+(log10 x)   == (/ (log x) (log 10))
+(log2 x)    == (/ (log x) (log 2))
+
+(sin x), (cos x), (tan x)
+(sec x), (csc x), (cot x)
+
+(asin x), (acos x), (atan x)
+(atan x1 x2) = (atan (/ x1 x2)) but retains quadrant information
+
+(sinh x), (cosh x), (tanh x)
+(sech x), (csch x)
+
+(asinh x), (acosh x), (atanh x)
+
+(abs x)
+(quotient n1 n2)
+(remainder n1 n2)
+(modulo n1 n2)
+
+;; for integrals that divide with remainder 0
+(exact-divide n1 n2)
+
+(gcd n1 n2)
+(lcm n1 n2)
+
+(make-rectangular a1 a2)  =  a1+ia2
+(make-polar a1 a2)        =  a1*:e^(* +i a2)
+(real-part z)
+(imag-part z)
+(magnitude z)
+(angle z)
+(conjugate z)
+
+;; Structural operations
+(transpose M)
+(dimension M)
+(dot-product l r)
+(inner-product l r)
+(outer-product l r)
+(cross-product l r)
+----
+
+If `M` is a quantity that can be interpreted as a square matrix:
+
+[source, clojure]
+----
+(determinant M)
+(trace M)
+----
+
+== Generic Extensions
+
+In addition to ordinary generic operations, there are a few important generic
+extensions. These are operations that apply to a whole class of datatypes,
+because they are defined in terms of more primitive generic operations.
+
+[source, clojure]
+----
+(identity x) = x
+
+(square x)   = (* x x)
+(cube x)     = (* x x x)
+----
+
+[source, clojure]
+----
+(arg-shift <f> <k1> ... <kn>)
+(arg-scale <f> <k1> ... <kn>)
+----
+
+Takes a function, `f`, of `n` arguments and returns a new function of `n`
+arguments that is the old function with arguments shifted or scaled by the given
+offsets or factors:
+
+[source, clojure]
+----
+((arg-shift square 3) 4) ;;=> 49
+((arg-scale square 3) 4) ;;=> 144
+----
+
+`*(sum <f> <lo> <hi>)*`
+
+Produces the sum of the values of the function f when called with the numbers
+between `lo` and `hi` exclusive.
+
+----
+(sum square 1 6)       ;;=> 30.0
+(sum identity 1 101)   ;;=> 5050
+----
+
+[source, clojure]
+----
+(compose <f1> ... <fn>)
+----
+
+Produces a procedure that computes composition of the functions represented by
+the procedures that are its arguments. This is like Clojure's `comp` function;
+the only difference is `compose` preserves the arity of the returned function
+when it can.
+
+[source, clojure]
+----
+((compose square sin) 3)    ;;=> .01991485667481699
+(square (sin 3))            ;;=> .01991485667481699
+----

@@ -40,8 +40,8 @@
 
 (def string #?(:clj String :cljs js/String))
 
-(defmethod s* [v/numtype string] [n s] (multiply-string n s))
-(defmethod s* [string v/numtype] [s n] (multiply-string n s))
+(defmethod s* [::v/real string] [n s] (multiply-string n s))
+(defmethod s* [string ::v/real] [s n] (multiply-string n s))
 (defmethod s* [string string] [s t] (product-string s t))
 (defmethod s+ [string string] [s t] (str s t))
 
@@ -64,7 +64,14 @@
 
 (defrecord Wrap [s]
   v/Value
+  (one? [this] (= this (v/one-like this)))
+  (zero? [this] (= this (v/zero-like this)))
+  (identity? [this] (= this (v/identity-like this)))
+  (zero-like [_] (Wrap. "0"))
   (one-like [_] (Wrap. "1"))
+  (identity-like [_] (Wrap. "1"))
+  (freeze [_] (list 'wrap s))
+  (exact? [_] false)
   (kind [_] ::wrap))
 
 (defmethod g/add [::wrap ::wrap] [l r]
@@ -99,6 +106,17 @@
       (is (= (->Wrap "1/l") (g/invert l)))
       (is (= (->Wrap "l*1/r") (g/div l r))))))
 
+(deftest generic-freeze-behavior
+  (testing "freeze should return symbols"
+    (is (= 'abs (v/freeze g/abs))
+        "fn where we don't override the name.")
+
+    (is (= ['+ '- '- '* '/ '/]
+           (map v/freeze [g/add g/sub g/negate g/mul g/div g/invert])
+           (map v/freeze [g/+ g/- g/- g/* g// g/divide]))
+        "v/freeze returns symbols for our generic multimethods. The hidden g/add
+        etc return proper higher-level symbols.")))
+
 (deftest type-assigner
   (testing "types"
     (is (= #?(:clj Long :cljs ::v/native-integral) (v/kind 9)))
@@ -111,12 +129,12 @@
             100
             [x gen/any]
             (is (= x (g/+ x)) "single arg should return itself, for any type.")
-            (is (= (if (v/nullity? x) 0 x)
+            (is (= (if (v/zero? x) 0 x)
                    (g/+ x 0))
                 "adding a 0 works for any input. The first zero element gets
                 returned.")
             (is (= x (g/+ 0 x)) "adding a leading 0 acts as identity.")
-            (is (= (if (v/nullity? x) 0 x)
+            (is (= (if (v/zero? x) 0 x)
                    (g/+ 0 x 0.0 0 0)) "multi-arg works as long as zeros
             appear.")))
 
@@ -129,13 +147,11 @@
 
 (deftest generic-times
   (is (= 1 (g/*)) "No args returns the multiplicative identity.")
-  (checking "g/*"
-            100
-            [x gen/any]
-            (is (= x (g/* x)) "single arg returns itself.")
-            (is (= (if (v/unity? x) 1 x)
-                   (g/* x 1)) "First unity gets returned.")
-            (is (= x (g/* 1 x)) "Anything times a 1 returns itself.")))
+  (checking "g/*" 100 [x gen/any]
+            (is (v/= x (g/* x)) "single arg returns itself.")
+            (is (v/= (if (v/one? x) 1 x)
+                     (g/* x 1)) "First unity gets returned.")
+            (is (v/= x (g/* 1 x)) "Anything times a 1 returns itself.")))
 
 (deftest generic-divide
   (is (= 1 (g/divide)) "division with no args returns multiplicative identity")
@@ -360,3 +376,8 @@
   [float->a & {:keys [exclusions eq]}]
   (floating-point-unary-tests float->a :exclusions exclusions :eq (or eq =))
   (floating-point-binary-tests float->a float->a :exclusions exclusions :eq (or eq =)))
+
+(deftest misc-tests
+  (testing "factorial"
+    (is (= (apply g/* (range 1 8))
+           (g/factorial 7)))))

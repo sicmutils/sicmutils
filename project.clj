@@ -20,10 +20,10 @@
 (def cljsbuild '[lein-cljsbuild "1.1.8"
                  :exclusions [org.clojure/clojurescript]])
 
-(defproject net.littleredcomputer/sicmutils "0.12.2-SNAPSHOT"
+(defproject sicmutils "0.15.0"
   :description "A port of the Scmutils computer algebra/mechanics system to Clojure"
-  :url "http://github.com/littleredcomputer/sicmutils"
-  :scm {:name "git" :url "https://github.com/littleredcomputer/sicmutils"}
+  :url "http://github.com/sicmutils/sicmutils"
+  :scm {:name "git" :url "https://github.com/sicmutils/sicmutils"}
   :license {:name "GPLv3"
             :url "http://www.opensource.org/licenses/GPL-3.0"}
   :dependencies [[org.clojure/clojure "1.10.1" :scope "provided"]
@@ -49,13 +49,9 @@
   :target-path "target/%s"
   :test-selectors {:default (complement :long)
                    :benchmark :benchmark}
-  :profiles {:uberjar {:aot :all}
-             :travis {:jvm-opts ["-Xmx512M"]}
-             :dev {:plugins [~cljsbuild
-                             [lein-cloverage "1.1.2"]
+  :profiles {:dev {:plugins [~cljsbuild
+                             [lein-cloverage "1.2.1"]
                              [lein-doo "0.1.11"]]
-                   :cloverage {:ns-exclude-regex [#"sicmutils.rules"
-                                                  #"sicmutils.simplify"]}
                    :repl-options {:nrepl-middleware
                                   [cider.piggieback/wrap-cljs-repl]}
                    :dependencies [[org.clojure/test.check "1.1.0"]
@@ -70,7 +66,10 @@
                                    [criterium "0.4.5"]]}}
   :aliases {"test-cljs"
             ["doo" "node" "test" "once"]}
-  :deploy-repositories [["clojars" {:sign-releases false}]]
+  :deploy-repositories [["clojars" {:url "https://repo.clojars.org"
+                                    :username :env/clojars_username
+                                    :password :env/clojars_password
+                                    :sign-releases false}]]
   :cljsbuild {:builds
               {:test
                {:source-paths ["src" "test"]
@@ -80,14 +79,3 @@
                  :target :nodejs
                  :output-dir "target/main"
                  :output-to "target/main/main.js"}}}})
-
-(comment
-  ;; NOTE - if you do decide to run tests in :advanced optimization mode, you'll
-  ;; need to move to phantom, and an older version of clojurescript:
-
-  [org.clojure/clojurescript "1.10.597"]
-
-  ;;Don't ask me why. You may also need to remove `:output-dir`, so try that if
-  ;;you run into problems. Do this, change `:optimizations` to `:advanced` and
-  ;;you should be good to go.
-  )

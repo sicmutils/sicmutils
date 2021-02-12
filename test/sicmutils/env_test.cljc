@@ -1,21 +1,21 @@
-;; ;
-;; ; Copyright © 2017 Colin Smith.
-;; ; This work is based on the Scmutils system of MIT/GNU Scheme:
-;; ; Copyright © 2002 Massachusetts Institute of Technology
-;; ;
-;; ; This is free software;  you can redistribute it and/or modify
-;; ; it under the terms of the GNU General Public License as published by
-;; ; the Free Software Foundation; either version 3 of the License, or (at
-;; ; your option) any later version.
-;; ;
-;; ; This software is distributed in the hope that it will be useful, but
-;; ; WITHOUT ANY WARRANTY; without even the implied warranty of
-;; ; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; ; General Public License for more details.
-;; ;
-;; ; You should have received a copy of the GNU General Public License
-;; ; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;; ;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.env-test
   (:refer-clojure :exclude [+ - * / zero? partial ref])
@@ -29,7 +29,8 @@
                                          ->infix
                                          cross-product
                                          cot csc sec]
-             #?@(:cljs [:include-macros true])]))
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.operator :as o]))
 
 (deftest partial-shim
   (testing "partial also works the way Clojure defines it"
@@ -42,7 +43,22 @@
     (is (= 2 (ref (up 1 2 3) 1)))
     (is (= 3 (ref (down (up 1 2) (up 3 4)) 1 0))))
 
-  #?(:clj
+  (testing "works for functions"
+    (let [f (fn [x] [[(dec x)] [x] [(inc x)]])]
+      (is (= 2 ((ref f 2 0) 1)))
+      (is (= 2 (((e/component 2 0) f) 1)))))
+
+  (testing "works for operators"
+    (let [op (-> (fn [x] [[(dec x)] [x] [(inc x)]])
+                 (o/make-operator 'f))]
+      (is (= 2 ((ref op 2 0) 1)))
+      (is (= 2 (((e/component 2 0) op) 1)))))
+
+  #?(:cljs
+     (testing "ref acts as id in cljs"
+       (is (= [] (ref []))))
+
+     :clj
      ;; Clojurescript doesn't have refs.
      (testing "works clojure-style"
        (let [r (ref [])
@@ -83,7 +99,7 @@
       (is (= (e/matrix-by-rows [5 6]
                                [8 9])
              (e/qp-submatrix A)))
-      (is (= 3 (e/m:dimension A))))))
+      (is (= 3 (e/dimension A))))))
 
 (deftest pe
   (is (re-matches #"\(\* 2 x\)\r?\n"

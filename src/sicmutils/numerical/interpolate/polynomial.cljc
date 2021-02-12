@@ -19,8 +19,8 @@
 
 (ns sicmutils.numerical.interpolate.polynomial
   "This namespace contains a discussion of polynomial interpolation, and different
-  methods for fitting a polynomial of degree N-1 to N points and evaluating that
-  polynomial at some different `x`."
+  methods for fitting a polynomial of degree `N-1` to `N` points and evaluating
+  that polynomial at some different `x`."
   (:require [sicmutils.generic :as g]
             [sicmutils.util.aggregate :as ua]
             [sicmutils.util.stream :as us]))
@@ -32,14 +32,16 @@
 
   The Lagrange polynomial has this form:
 
+  ```
   g(x) =  (f(a) * [(x-b)(x-c)...] / [(a-b)(a-c)...])
         + (f(b) * [(x-a)(x-c)...] / [(b-a)(b-c)...])
         + ...
+  ```
 
   for points `[a f(a)], [b f(b)], [c f(c)]` etc.
 
   This particular method of interpolating `x` into the polynomial is
-  inefficient; any new calculation requires fully recomputing. Takes O(n^2)
+  inefficient; any new calculation requires fully recomputing. Takes `O(n^2)`
   operations in the number of points.
   "
   [points x]
@@ -51,8 +53,9 @@
                            p (reduce g/* (map #(g/- x %) others))
                            q (reduce g/* (map #(g/- a %) others))]
                        (g// (g/* fa p) q)))]
-    (->> (map-indexed build-term points)
-         (reduce g/+))))
+    (transduce (map-indexed build-term)
+               g/+
+               points)))
 
 ;; Lagrange's interpolating polynomial is straightforward, but not terribly
 ;; efficient; every time we change `points` or `x` we have to redo the entire
@@ -96,20 +99,21 @@
 ;; at all points except $x_l$ and $x_r$.
 
 (defn neville-recursive
-  "Top-down implementation of Neville's algorithm.
+  "Top-down implementation of [Neville's
+  algorithm]((https://en.wikipedia.org/wiki/Neville%27s_algorithm))
 
   Returns the value of `P(x)`, where `P` is a polynomial fit (using Neville's
   algorithm) to every point in the supplied sequence `points` (of form `[x (f
   x)]`)
 
   The efficiency and results should be identical to
-  `sicmutils.numerical.interpolate/lagrange`. This function represents a step on
-  the journey toward more incremental methods of polynomial interpolation.
+  [[sicmutils.numerical.interpolate/lagrange]]. This function represents a step
+  on the journey toward more incremental methods of polynomial interpolation.
 
   References:
 
-  - Press's Numerical Recipes (p103), chapter 3: http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-1.pdf
-  - Wikipedia: https://en.wikipedia.org/wiki/Neville%27s_algorithm"
+  - Press's Numerical Recipes (p103), [chapter 3](http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-1.pdf)
+  - Wikipedia, [Neville's Algorithm](https://en.wikipedia.org/wiki/Neville%27s_algorithm)"
   [points x]
   (letfn [(evaluate [points]
             (if (= 1 (count points))
@@ -183,12 +187,12 @@
 ;; function of this signature:
 
 (comment
-  (defn neville-incremental*
+  (defn- neville-incremental*
     "Takes a potentially lazy sequence of `points` and a point `x` and generates a
   lazy sequence of approximations of P(x).
 
-  entry N in the returned sequence is the estimate using a polynomial generated
-  from the first N points of the input sequence."
+  entry `N` in the returned sequence is the estimate using a polynomial
+  generated from the first `N` points of the input sequence."
     [points x]
     ,,,))
 ;;
@@ -196,9 +200,11 @@
 ;; contains each of those required elements:
 
 (defn- neville-prepare
-  "Processes each point of the form [x, (f x)] into:
+  "Processes each point of the form `[x, (f x)]` into:
 
+  ```
   $$[x_l, x_r, p]$$
+  ```
 
   where $p$ is the polynomial that spans all points from $l$ to $r$. The
   recursion starts with $p = f(x)$.
@@ -212,11 +218,13 @@
   "Given some value $x$, returns a function that combines $l$ and $r$ entries in
   the tableau, arranged like this:
 
+  ```
   l -- return
      /
     /
    /
   r
+  ```
 
   generates the `return` entry of the form
 
@@ -253,7 +261,7 @@
 ;;
 ;; So define a function to grab that:
 
-(defn first-terms [tableau]
+(defn ^:no-doc first-terms [tableau]
   (map first tableau))
 
 ;; the final piece we need is a function that will extract the estimate from our
@@ -323,11 +331,13 @@
 
   - `merge`: a fn of `l`and `r` the tableau entries:
 
+  ```
   l -- return
      /
     /
    /
   r
+  ```
 
   the inputs are of the same form returned by `prepare`. `merge` should return a
   new structure of the same form.
@@ -348,7 +358,7 @@
 ;; native operations:
 
 (defn- neville-merge
-  "Returns a tableau merge function. Identical to `neville-combine-fn` but uses
+  "Returns a tableau merge function. Identical to [[neville-combine-fn]] but uses
   native operations instead of generic operations."
   [x]
   (fn [[xl _ pl] [_ xr pr]]
@@ -373,20 +383,24 @@
   - a (potentially lazy) sequence of `points` of the form `[x (f x)]` and
   - a point `x` to interpolate
 
-  and generates a lazy sequence of approximations of P(x). Each entry in the
-  return sequence incorporates one more point from `points` into the P(x)
+  and generates a lazy sequence of approximations of `P(x)`. Each entry in the
+  return sequence incorporates one more point from `points` into the `P(x)`
   estimate.
 
   Said another way: the Nth in the returned sequence is the estimate using a
-  polynomial generated from the first N points of the input sequence:
+  polynomial generated from the first `N` points of the input sequence:
 
+  ```
   p0 p01 p012 p0123 p01234
+  ```
 
   This function generates each estimate using Neville's algorithm:
 
+  ```
   $$P(x) = [(x - x_r) P_l(x) - (x - x_l) P_r(x)] / [x_l - x_r]$$
+  ```
 
-  ## Column
+  ### Column
 
   If you supply an integer for the third `column` argument, `neville` will
   return that /column/ of the interpolation tableau instead of the first row.
@@ -395,11 +409,13 @@
 
   As a reminder, this is the shape of the tableau:
 
+  ```
    p0 p01 p012 p0123 p01234
    p1 p12 p123 p1234 .
    p2 p23 p234 .     .
    p3 p34 .    .     .
    p4 .   .    .     .
+  ```
 
   So supplying a `column` of `1` gives a sequence of linear approximations
   between pairs of points; `2` gives quadratic approximations between successive
@@ -407,9 +423,8 @@
 
   References:
 
-  - Press's Numerical Recipes (p103), chapter 3: http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-1.pdf
-  - Wikipedia: https://en.wikipedia.org/wiki/Neville%27s_algorithm
-  "
+  - [Press's Numerical Recipes (p103), chapter 3](http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-1.pdf)
+  - Wikipedia, [Neville's Algorithm](https://en.wikipedia.org/wiki/Neville%27s_algorithm)"
   ([points x]
    (neville-present
     (first-terms
@@ -485,7 +500,7 @@
           d      (* factor (- xr x))]
       [xl xr c d])))
 
-(defn mn-present
+(defn ^:no-doc mn-present
   "Returns a (lazy) sequence of estimates by successively adding C values from the
   first entry of each tableau column. Each C value is the delta from the
   previous estimate."
@@ -498,26 +513,24 @@
 ;; obfuscated but slightly more efficient.
 
 (defn modified-neville
-  "Similar to `neville` (the interface is identical) but slightly more efficient.
+  "Similar to [[neville]] (the interface is identical) but slightly more efficient.
   Internally this builds up its estimates by tracking the delta from the
   previous estimate.
 
   This non-obvious change lets us swap an addition in for a multiplication,
   making the algorithm slightly more efficient.
 
-  See the `neville` docstring for usage information, and info about the required
-  structure of the arguments.
+  See [[neville]] for usage information, and info about the required structure
+  of the arguments.
 
-  The structure of the `modified-neville` algorithm makes it difficult to select
-  a particular column. See `neville` if you'd like to generate polynomial
-  approximations between successive sequences of points.
+  The structure of the [[modified-neville]] algorithm makes it difficult to
+  select a particular column. See [[neville]] if you'd like to generate
+  polynomial approximations between successive sequences of points.
 
   References:
 
-  - \"A comparison of algorithms for polynomial interpolation\", A. Macleod,
-    https://www.sciencedirect.com/science/article/pii/0771050X82900511
-  - Press's Numerical Recipes (p103), chapter 3: http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-1.pdf
-  "
+  - [\"A comparison of algorithms for polynomial interpolation\"](https://www.sciencedirect.com/science/article/pii/0771050X82900511), A. Macleod
+  - [Press's Numerical Recipes (p103), chapter 3](http://phys.uri.edu/nigh/NumRec/bookfpdf/f3-1.pdf)"
   [points x]
   (mn-present
    (first-terms
@@ -717,15 +730,14 @@
          (map present-fn)
          (rest))))
 
-;; And finally, we specialize to our two incremental methods. TODO add
-;; docstrings here.
+;; And finally, we specialize to our two incremental methods.
 
 (defn neville-fold
   "Returns a function that consumes an entire sequence `xs` of points, and returns
   a sequence of successive approximations of `x` using polynomials fitted to the
   points in reverse order.
 
-  This function uses the `neville` algorithm internally."
+  This function uses the [[neville]] algorithm internally."
   [x]
   (tableau-fold (neville-fold-fn x)
                 neville-present))
@@ -735,12 +747,14 @@
   a sequence of SEQUENCES of successive polynomial approximations of `x`; one
   for each of the supplied points.
 
-  For a sequence a, b, c... you'll see:
+  For a sequence `a, b, c...` you'll see:
 
-  [(neville [a] x)
-   (neville [b a] x)
-   (neville [c b a] x)
-   ...]"
+  ```clojure
+  [([[neville]] [a] x)
+   ([[neville]] [b a] x)
+   ([[neville]] [c b a] x)
+   ...]
+  ```"
   [x]
   (tableau-scan (neville-fold-fn x)
                 neville-present))
@@ -750,7 +764,7 @@
   a sequence of successive approximations of `x` using polynomials fitted to the
   points in reverse order.
 
-  This function uses the `modified-neville` algorithm internally."
+  This function uses the [[modified-neville]] algorithm internally."
   [x]
   (tableau-fold (modified-neville-fold-fn x)
                 mn-present))
@@ -762,10 +776,12 @@
 
   For a sequence a, b, c... you'll see:
 
-  [(modified-neville [a] x)
-   (modified-neville [b a] x)
-   (modified-neville [c b a] x)
-   ...]"
+  ```clojure
+  [([[modified-neville]] [a] x)
+   ([[modified-neville]] [b a] x)
+   ([[modified-neville]] [c b a] x)
+   ...]
+  ```"
   [x]
   (tableau-scan (modified-neville-fold-fn x)
                 mn-present))

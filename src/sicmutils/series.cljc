@@ -18,47 +18,62 @@
 ;;
 
 (ns sicmutils.series
+  "This namespace contains an implementation of two data types:
+
+  - [[Series]], which represents a generic infinite series of arbitrary values, and
+  - [[PowerSeries]], a series that represents a power series in a single
+  variable; in other words, a series where the nth entry is interpreted as
+  the coefficient of $x^n$:
+
+  ```
+  $$[a b c d ...] == $a + bx + cx^2 + dx^3 + ...$$
+  ```
+
+  Many of the functions below draw on the [[sicmutils.series.impl]] namespace,
+  which implements many of these operations on bare Clojure sequences.
+
+  The implementation follows Doug McIlroy's beautiful paper, [\"Power Series,
+  Power
+  Serious\"](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.333.3156&rep=rep1&type=pdf).
+
+  Doug also has a 10-line version in Haskell on [his
+  website](https://www.cs.dartmouth.edu/~doug/powser.html)."
   (:refer-clojure :exclude [identity])
-  (:require [sicmutils.series.impl :as i]
-            [sicmutils.expression :as x]
+  (:require [sicmutils.differential :as d]
+            [sicmutils.function :as f]
+            [sicmutils.series.impl :as i]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang AFn IFn Seqable Sequential))))
 
-;; # Power Series
-;;
-;; This namespace contains an implementation of two data types:
-;;
-;; - `Series`, which represents a generic infinite series of arbitrary values, and
-;; - `PowerSeries`, a series that represents a power series in a single
-;;   variable; in other words, a series where the nth entry is interpreted as
-;;   the coefficient of $x^n$:
-;;
-;; $$[a b c d ...] == $a + bx + cx^2 + dx^3 + ...$$
-;;
-;; Many of the functions below draw on the `sicmutils.series.impl` namespace,
-;; which implements many of these operations on bare Clojure sequences.
-;;
-;; The implementation follows Doug McIlroy's beautiful paper, ["Power Series,
-;; Power
-;; Serious"](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.333.3156&rep=rep1&type=pdf).
-;; Doug also has a 10-line version in Haskell on [his
-;; website](https://www.cs.dartmouth.edu/~doug/powser.html).
-
-(declare s-zero s-one series-value)
+(declare fmap s-zero s-one s-identity series-value)
 
 (deftype Series [xs]
+  f/IArity
+  (arity [_] (f/arity (first xs)))
+
+  d/IPerturbed
+  (perturbed? [_] false)
+  (replace-tag [s old new] (fmap #(d/replace-tag % old new) s))
+  (extract-tangent [s tag] (fmap #(d/extract-tangent % tag) s))
+
   v/Value
-  (nullity? [_] false)
-  (unity? [_] false)
+  (zero? [_] false)
+  (one? [_] false)
+  (identity? [_] false)
   (zero-like [_] s-zero)
   (one-like [_] s-one)
-  (numerical? [_] false)
+
+  ;; This is suspect, since [[Series]], unlike [[PowerSeries]], are general
+  ;; infinite sequences and not necessarily interpreted as polynomials. This
+  ;; decision follows `scmutils` convention.
+  (identity-like [_] s-identity)
+  (exact? [_] false)
   (freeze [_]
     (let [prefix (g/simplify (take 4 xs))]
-      `[~'Series ~@prefix ~'...]))
+      `(~'+ ~@prefix ~'...)))
   (kind [_] ::series)
 
   Object
@@ -192,18 +207,29 @@
 ;;
 ;; TODO Modify this description once we implement multivariable power series!
 
-(declare zero one power-series-value)
+(declare zero one identity power-series-value)
 
 (deftype PowerSeries [xs]
+  f/IArity
+  (arity [_] [:exactly 1])
+
+  d/IPerturbed
+  (perturbed? [_] false)
+  (replace-tag [s old new] (fmap #(d/replace-tag % old new) s))
+  (extract-tangent [s tag] (fmap #(d/extract-tangent % tag) s))
+
   v/Value
-  (nullity? [_] false)
-  (unity? [_] false)
+  (zero? [_] false)
+  (one? [_] false)
+  (identity? [_] false)
   (zero-like [_] zero)
   (one-like [_] one)
-  (numerical? [_] false)
+  (identity-like [_] identity)
+  (exact? [_] false)
   (freeze [_]
-    (let [prefix (g/simplify (take 4 xs))]
-      `[~'PowerSeries ~@prefix ~'...]))
+    (let [prefix (map-indexed (fn [n a] `(~'* ~a (~'expt ~'_ ~n)))
+                              (g/simplify (take 4 xs)))]
+      `(~'+ ~@prefix ~'...)))
   (kind [_] ::power-series)
 
   Object
@@ -245,18 +271,19 @@
 ;; ## Constructors
 
 (defn series?
-  "Returns true if `s` is either a `Series` or a `PowerSeries`, false otherwise."
+  "Returns true if `s` is either a [[Series]] or a [[PowerSeries]], false
+  otherwise."
   [s]
   (or (instance? Series s)
       (instance? PowerSeries s)))
 
 (defn power-series?
-  "Returns true if `s` is specifically a `PowerSeries`, false otherwise."
+  "Returns true if `s` is specifically a [[PowerSeries]], false otherwise."
   [s]
   (instance? PowerSeries s))
 
 (defn- -make
-  "Takes a series?-true object and returns the appropriate, more specific
+  "Takes a [[series?]]-true object and returns the appropriate, more specific
   constructor."
   [s]
   (if (power-series? s)
@@ -264,7 +291,7 @@
     ->Series))
 
 (defn- kind->make
-  "Takes a keyword - either ::series or ::power-series - and returns the
+  "Takes a keyword - either `::series` or `::power-series` - and returns the
   appropriate series constructor. Throws if neither of these are supplied."
   [kind]
   (case kind
@@ -273,48 +300,57 @@
     (u/illegal (str "Unsupported kind: " kind))))
 
 (defn series*
-  "Given a sequence, returns a new `Series` object that wraps that
+  "Given a sequence, returns a new [[Series]] object that wraps that
   sequence (potentially padding its tail with zeros if it's finite)."
   [prefix]
   (->Series (i/->series prefix)))
 
 (defn series
-  "Return a `Series` starting with the supplied values. The remainder of the
+  "Return a [[Series]] starting with the supplied values. The remainder of the
   series will be filled with the zero-value corresponding to the first of the
   given values.
 
-  If you have a sequence already, prefer `series*`"
+  If you have a sequence already, prefer [[series*]]."
   [& prefix]
   (series* prefix))
 
 (defn power-series*
-  "Given a sequence, returns a new `PowerSeries` object that wraps that
+  "Given a sequence, returns a new [[PowerSeries]] object that wraps that
   sequence (potentially padding its tail with zeros if it's finite)."
   [prefix]
   (->PowerSeries (i/->series prefix)))
 
 (defn power-series
-  "Return a `PowerSeries` starting with the supplied values. The remainder of the
-  series will be filled with the zero-value corresponding to the first of the
-  given values.
+  "Return a [[PowerSeries]] starting with the supplied values. The remainder of
+  the series will be filled with the zero-value corresponding to the first of
+  the given values.
 
-  If you have a sequence already, prefer `power-series*`"
+  If you have a sequence already, prefer [[power-series*]]."
   [& prefix]
   (power-series* prefix))
 
 (def ^:private s-zero (series* [0]))
 (def ^:private s-one (series* [1]))
+(def ^:private s-identity (series* [0 1]))
 
 ;; These exposed objects are `PowerSeries` instances, because the concepts of
 ;; zero, one and identity don't make sense unless you interpret these as
 ;; coefficients on a power series.
 
-(def zero (power-series* [0]))
-(def one (power-series* [1]))
-(def identity (power-series* [0 1]))
+(def ^{:doc "[[PowerSeries]] instance representing the constant 0."}
+  zero
+  (power-series* [0]))
+
+(def ^{:doc "[[PowerSeries]] instance representing the constant 1."}
+  one
+  (power-series* [1]))
+
+(def ^{:doc "[[PowerSeries]] instance representing the identity function."}
+  identity
+  (power-series* [0 1]))
 
 (defn constant
-  "Returns a `PowerSeries` representing the supplied constant term.
+  "Returns a [[PowerSeries]] representing the supplied constant term.
 
   Optionally, pass `kind` of either `::series` or `::power-series` to specify
   the type of series returned."
@@ -322,13 +358,13 @@
   ([c kind] ((kind->make kind) (i/->series [c]))))
 
 (defn xpow
-  "Returns a `PowerSeries` instance representing $x^n$."
+  "Returns a [[PowerSeries]] instance representing $x^n$."
   [n]
   {:pre [(>= n 0)]}
   (power-series* (concat (repeat n 0) [1])))
 
 (defn generate
-  "Returns a `PowerSeries` generated by (f i) for i in 0, 1, ...
+  "Returns a [[PowerSeries]] generated by `(f i)` for `i` in `0, 1, ...`
 
   Optionally, pass `kind` of either `::series` or `::power-series` to specify
   the type of series returned."
@@ -337,8 +373,9 @@
    ((kind->make kind) (map f (range)))))
 
 (defn ->function
-  "Accepts a `Series` or `PowerSeries` and coerces the input to a `PowerSeries`
-  without any application. Returns the coerced `PowerSeries` instance.
+  "Accepts a [[Series]] or [[PowerSeries]] and coerces the input to
+  a [[PowerSeries]] without any application. Returns the coerced [[PowerSeries]]
+  instance.
 
   Supplying a non-series will throw."
   [s]
@@ -393,25 +430,29 @@
     (collect (seq f))))
 
 (defn value
-  "Returns the value of the supplied `Series` or `PowerSeries` applied to `xs`.
+  "Returns the value of the supplied [[Series]] or [[PowerSeries]] applied to `xs`.
 
-  If a `PowerSeries` is supplied, `xs` (despite its name) must be a single
-  value. Returns a `Series` generated by multiplying each `i`th term in `s` by
+  If a [[PowerSeries]] is supplied, `xs` (despite its name) must be a single
+  value. Returns a [[Series]] generated by multiplying each `i`th term in `s` by
   $x^i$, where $x$ is the `xs` argument.
 
-  If a `Series` is supplied:
+  If a [[Series]] `s` is supplied:
 
-  Assumes that S is a series of applicables of arity equal to the count of `xs`.
-  If, in fact, S is a series of series-valued applicables, then the result will
-  be a sort of layered sum of the values.
+  Assumes that `s` is a series of applicables of arity equal to the count of
+  `xs`. If, in fact, `s` is a series of series-valued applicables, then the
+  result will be a sort of layered sum of the values.
 
-  Concretely, suppose that S has the form:
+  Concretely, suppose that `s` has the form:
 
-    [x => [A1 A2 A3...], x => [B1 B2 B3...], x => [C1 C2 C3...], ...]
+  ```
+  [x => [A1 A2 A3...], x => [B1 B2 B3...], x => [C1 C2 C3...], ...]
+  ```
 
   Then, this series applied to x will yield the new series:
 
-    [A1 (+ A2 B1) (+ A3 B2 C1) ...]
+  ```
+  [A1 (+ A2 B1) (+ A3 B2 C1) ...]
+  ```
 
   The way to think about this is, that if a power series has some other series
   as the coefficient of the $x^n$ term, the series must shift by $n$ positions
@@ -425,7 +466,7 @@
 (defn fmap
   "Returns a new series generated by applying the supplied `f` to each element in
   the input series `s`. The returned series will be the same type as the input
-  series, either `Series` or `PowerSeries`.
+  series, either [[Series]] or [[PowerSeries]].
 
   NOTE scmutils calls this `series:elementwise`."
   [f s]
@@ -438,15 +479,17 @@
 
   For example:
 
+  ```clojure
   (inflate identity 3)
   ;; => (series 0 0 0 1)
 
   (take 6 (inflate (generate inc) 3))
   ;; => (1 0 2 0 3 0)
+  ```
 
-  NOTE this operation makes sense as described for a `PowerSeries`, where each
+  NOTE this operation makes sense as described for a [[PowerSeries]], where each
   entry represents the coefficient of some power of `x`; functionally it still
-  works with `Series` objects."
+  works with [[Series]] objects."
   [s n]
   (if (<= n 1)
     s
@@ -466,10 +509,12 @@
   "Returns the sum of all elements in the input series `s` up to order
   `n` (inclusive). For example:
 
+  ```clojure
   (sum (series 1 1 1 1 1 1 1) 3)
   ;; => 4
+  ```
 
-  NOTE that `sum` sums the first `n + 1` terms, since series starts with an
+  NOTE that [[sum]] sums the first `n + 1` terms, since a series starts with an
   order 0 term."
   [s n]
   (transduce (take (inc n)) g/+ (seq s)))
@@ -477,10 +522,12 @@
 ;; ## Power Series Specific Functions
 
 (defn compose
-  "Returns a new `PowerSeries` $U$ that represents the composition of the two
+  "Returns a new [[PowerSeries]] $U$ that represents the composition of the two
   input power series $S$ and $T$, where $U$ evaluates like:
 
-  $$U(x) = S(T(x))$$"
+  ```
+  $$U(x) = S(T(x))$$
+  ```"
   [s t]
   {:pre [(power-series? s)
          (power-series? t)]}
@@ -488,19 +535,23 @@
    (i/compose (seq s) (seq t))))
 
 (defn revert
-  "Returns a new `PowerSeries` $U$ that represents the compositional inverse (the
+  "Returns a new [[PowerSeries]] $U$ that represents the compositional inverse (the
   'reversion') of the input power series $S$, satisfying:
 
-  $$S(U(x)) = x$$"
+  ```
+  $$S(U(x)) = x$$
+  ```"
   [s]
   {:pre [(power-series? s)]}
   (->PowerSeries (i/revert (seq s))))
 
 (defn integral
-  "Returns a `PowerSeries` $U$ that represents the definite integral of the input
-  power series $S$ with constant term $c$:
+  "Returns a [[PowerSeries]] $U$ that represents the definite integral of the
+  input power series $S$ with constant term $c$:
 
-  $$U = c + \\int_0^{\\infty} S$$"
+  ```
+  $$U = c + \\int_0^{\\infty} S$$
+  ```"
   ([s] (integral s 0))
   ([s constant]
    {:pre [(power-series? s)]}
@@ -533,11 +584,13 @@
 (def log1-x-series (->PowerSeries i/log1-x))
 
 (defn binomial-series
-  "Returns a `PowerSeries` instance representing a
+  "Returns a [[PowerSeries]] instance representing a
   [Binomial series](https://en.wikipedia.org/wiki/Binomial_series), ie, the
   taylor series of the function $f$ given by
 
-  $$f(x) = (1 + x)^\\alpha$$"
+  ```
+  $$f(x) = (1 + x)^\\alpha$$
+  ```"
   [alpha]
   (->PowerSeries (i/binomial alpha)))
 
@@ -561,7 +614,8 @@
 ;;
 ;; NOTE This might be the right way to go. Feel free to experiment.
 
-(derive ::x/numerical-expression ::coseries)
+(derive ::v/scalar ::coseries)
+(derive ::v/function ::coseries)
 
 ;; All generic methods:
 ;;
@@ -656,6 +710,9 @@
 (defmethod g/tan [::power-series] [s]
   (->PowerSeries (i/compose i/tanx (seq s))))
 
+(defmethod g/sec [::power-series] [s]
+  (->PowerSeries (i/compose i/secx (seq s))))
+
 (defmethod g/asin [::power-series] [s]
   (->PowerSeries (i/compose i/asinx (seq s))))
 
@@ -664,6 +721,21 @@
 
 (defmethod g/atan [::power-series] [s]
   (->PowerSeries (i/compose i/atanx (seq s))))
+
+(defmethod g/cosh [::power-series] [s]
+  (->PowerSeries (i/compose i/coshx (seq s))))
+
+(defmethod g/sinh [::power-series] [s]
+  (->PowerSeries (i/compose i/sinhx (seq s))))
+
+(defmethod g/tanh [::power-series] [s]
+  (->PowerSeries (i/compose i/tanhx (seq s))))
+
+(defmethod g/asinh [::power-series] [s]
+  (->PowerSeries (i/compose i/asinhx (seq s))))
+
+(defmethod g/atanh [::power-series] [s]
+  (->PowerSeries (i/compose i/atanhx (seq s))))
 
 ;; ## Derivatives
 ;;

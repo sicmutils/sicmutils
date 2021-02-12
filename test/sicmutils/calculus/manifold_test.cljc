@@ -20,6 +20,7 @@
 (ns sicmutils.calculus.manifold-test
   (:refer-clojure :exclude [* - / +])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [same :refer [ish?]]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [cos sin * - / +]]
@@ -29,10 +30,6 @@
             [sicmutils.value :as v]))
 
 (use-fixtures :once hermetic-simplify-fixture)
-
-(defn ^:private near
-  [p q]
-  ((v/within 1e-12) 0 (g/sqrt (g/square (- p q)))))
 
 (deftest coordinate-systems
   (testing "R2"
@@ -56,7 +53,7 @@
           (is (m/check-point m/R1-rect Tp))
           (is (= 99 (m/point->coords m/R1-rect (m/coords->point m/R1-rect 99))))
           (is (= ::m/manifold-point (v/kind p)))
-          (is (not (g/numerical-quantity? p))))))
+          (is (not (v/numerical? p))))))
 
     (testing "Polar"
       (testing "polar m/check-coordinates"
@@ -74,7 +71,7 @@
             xy (m/coords->point m/R2-rect (up 'x 'y))
             rt (m/coords->point m/R2-polar (up 'ρ 'θ))]
         (is (= (up 'x 'y) (m/point->coords m/R2-rect xy)))
-        (is (near (up 2 (/ Math/PI 4)) (m/point->coords m/R2-polar Pr)))
+        (is (ish? (up 2 (/ Math/PI 4)) (m/point->coords m/R2-polar Pr)))
         (is (= (up 'ρ 'θ) (m/point->coords m/R2-polar rt)))
         (is (= (up (g/sqrt (+ (g/square 'x) (g/square 'y)))
                    (g/atan 'y 'x)) (m/point->coords m/R2-polar xy)))

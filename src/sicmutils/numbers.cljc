@@ -18,8 +18,12 @@
 ;
 
 (ns sicmutils.numbers
-  "Implementations of the unoptimized generic operations for the numeric types
-  available on the executing platform."
+  "This namespace extends of all appropriate SICMUtils generic operations
+  from [[sicmutils.generic]] and [[sicmutils.value]] to the Clojure(script)
+  numeric tower.
+
+  For other numeric extensions, see [[sicmutils.ratio]]
+  and [[sicmutils.complex]]."
   (:refer-clojure :rename {zero? core-zero?
                            / core-div
                            + core-plus
@@ -43,80 +47,109 @@
               [java.math BigInteger])))
 
 ;; "Backstop" implementations that apply to anything that descends from
-;; v/numtype.
-(defmethod g/add [v/numtype v/numtype] [a b] (#?(:clj +' :cljs core-plus) a b))
-(defmethod g/mul [v/numtype v/numtype] [a b] (#?(:clj *' :cljs core-times) a b))
-(defmethod g/sub [v/numtype v/numtype] [a b] (#?(:clj -' :cljs core-minus) a b))
-(defmethod g/negate [v/numtype] [a] (core-minus a))
-(defmethod g/negative? [v/numtype] [a] (neg? a))
-(defmethod g/expt [v/numtype v/numtype] [a b] (u/compute-expt a b))
-(defmethod g/abs [v/numtype] [a] (u/compute-abs a))
-(defmethod g/magnitude [v/numtype] [a] (u/compute-abs a))
-(defmethod g/div [v/numtype v/numtype] [a b] (core-div a b))
-(defmethod g/invert [v/numtype] [a] (core-div a))
+;; ::v/real.
+(defmethod g/add [::v/real ::v/real] [a b] (#?(:clj +' :cljs core-plus) a b))
+(defmethod g/mul [::v/real ::v/real] [a b] (#?(:clj *' :cljs core-times) a b))
+(defmethod g/sub [::v/real ::v/real] [a b] (#?(:clj -' :cljs core-minus) a b))
+(defmethod g/negate [::v/real] [a] (core-minus a))
+(defmethod g/negative? [::v/real] [a] (neg? a))
+(defmethod g/expt [::v/real ::v/real] [a b] (u/compute-expt a b))
+(defmethod g/abs [::v/real] [a] (u/compute-abs a))
+(defmethod g/magnitude [::v/real] [a] (u/compute-abs a))
+(defmethod g/div [::v/real ::v/real] [a b] (core-div a b))
+(defmethod g/invert [::v/real] [a] (core-div a))
 
-;; trig operations
-(defmethod g/atan [v/numtype] [a] (Math/atan a))
-(defmethod g/atan [v/numtype v/numtype] [a b] (Math/atan2 a b))
+;; ## Complex Operations
+(defmethod g/real-part [::v/real] [a] a)
+(defmethod g/imag-part [::v/real] [a] 0)
 
-(comment
-  ;; As reference documentation, these are the implementations that one would
-  ;; provide for the generic operations if there were no simplifications available.
-  ;;
-  ;; Instead, these implementations for numbers are provided by
-  ;; `sicmutils.numsymb`. This allows us to apply simplifications inside each
-  ;; operation as it's evaluated.
-  (defmethod g/sin [v/numtype] [a] (Math/sin a))
-  (defmethod g/cos [v/numtype] [a] (Math/cos a))
-  (defmethod g/tan [v/numtype] [a] (Math/tan a)))
+(defmethod g/angle [::v/real] [a]
+  (if (neg? a)
+    Math/PI
+    (v/zero-like a)))
+
+(defmethod g/conjugate [::v/real] [a] a)
+
+;; ## Trig Operations
+
+(defmethod g/sin [::v/real] [a] (Math/sin a))
+(defmethod g/cos [::v/real] [a] (Math/cos a))
+(defmethod g/tan [::v/real] [a] (Math/tan a))
+
+(defmethod g/cosh [::v/real] [a] (Math/cosh a))
+(defmethod g/sinh [::v/real] [a] (Math/sinh a))
+(defmethod g/tanh [::v/real] [a] (Math/tanh a))
+
+(defmethod g/atan [::v/real] [a] (Math/atan a))
+(defmethod g/atan [::v/real ::v/real] [a b] (Math/atan2 a b))
 
 ;; Operations which allow promotion to complex numbers when their
 ;; arguments would otherwise result in a NaN if computed on the real
 ;; line
 
-(defmethod g/asin
-  [v/numtype]
-  [a]
+(defmethod g/asin [::v/real] [a]
   (if (> (g/abs a) 1)
     (g/asin (complex a))
     (Math/asin a)))
 
-(defmethod g/acos
-  [v/numtype]
-  [a]
+(defmethod g/acos [::v/real] [a]
   (if (> (g/abs a) 1)
     (g/acos (complex a))
     (Math/acos a)))
 
-(defmethod g/sqrt
-  [v/numtype]
-  [a]
-  (cond (neg? a) (g/sqrt (complex a))
-        (v/nullity? a) a
-        (v/unity? a) (v/one-like a)
-        :else (u/compute-sqrt a)))
+#?(:cljs
+   (do
+     ;; JS makes these available natively.
+     (defmethod g/acosh [::v/real] [a]
+       (if (>= a 1)
+         (Math/acosh a)
+         (g/acosh (complex a))))
 
-;; Implementation that converts to complex when negative, and also attempts to
-;; remain exact if possible.
-(defmethod g/log
-  [v/numtype]
-  [a]
-  (cond (neg? a) (g/log (complex a))
-        (v/unity? a) (v/zero-like a)
-        :else (Math/log a)))
+     (defmethod g/asinh [::v/real] [a]
+       (if (>= a 1)
+         (Math/asinh a)
+         (g/asinh (complex a))))
 
-(defmethod g/exp
-  [v/numtype]
-  [a]
-  (if (v/nullity? a)
-    (v/one-like a)
-    (Math/exp a)))
+     (defmethod g/atanh [::v/real] [a]
+       (if (>= (g/abs a) 1)
+         (g/atanh (complex a))
+         (Math/atanh a)))))
+
+(defmethod g/sqrt [::v/real] [a]
+  (if (neg? a)
+    (g/sqrt (complex a))
+    (u/compute-sqrt a)))
+
+(defmethod g/log [::v/real] [a]
+  (if (neg? a)
+    (g/log (complex a))
+    (Math/log a)))
+
+;; Specialized methods provided by the host platforms.
+
+#?(:clj  (defmethod g/log10 [Double] [x]
+           (if (neg? x)
+             (g/log10 (complex x))
+             (Math/log10 x)))
+
+   :cljs (defmethod g/log10 [js/Number] [x]
+           (if (neg? x)
+             (g/log10 (complex x))
+             (Math/log10 x))))
+
+#?(:cljs (defmethod g/log2 [js/Number] [x]
+           (if (neg? x)
+             (g/log2 (complex x))
+             (Math/log2 x))))
+
+(defmethod g/exp [::v/real] [a]
+  (Math/exp a))
 
 (defn ^:private exact-divide
   "Checked implementation of g/exact-divide general enough to use for any type
   that defines g/remainder and g/quotient."
   [a b]
-  {:pre [(v/nullity? (g/remainder a b))]}
+  {:pre [(v/zero? (g/remainder a b))]}
   (g/quotient a b))
 
 (defmethod g/exact-divide [::v/integral ::v/integral] [b a] (exact-divide b a))
@@ -142,12 +175,12 @@
 
        (defmethod g/div [::v/integral ::v/integral] [a b]
          (let [rem (g/remainder a b)]
-           (if (v/nullity? rem)
+           (if (v/zero? rem)
              (g/quotient a b)
              (r/rationalize a b))))
 
        (defmethod g/invert [::v/integral] [a]
-         (if (v/unity? a)
+         (if (v/one? a)
            a
            (r/rationalize 1 a)))))
 
@@ -166,6 +199,11 @@
        (if (g/negative? b)
          (g/invert (js* "~{} ** ~{}" a (core-minus b)))
          (js* "~{} ** ~{}" a b)))
+
+     ;; Not ideal; TODO find a better way to calculate this without the
+     ;; downcast.
+     (defmethod g/sqrt [js/BigInt] [a]
+       (Math/sqrt (js/Number a)))
 
      (defmethod g/abs [js/BigInt] [a] (if (neg? a) (core-minus a) a))
      (defmethod g/quotient [js/BigInt js/BigInt] [a b] (core-div a b))
@@ -189,7 +227,21 @@
          (op (js/Number a) b))
 
        (defmethod op [::v/floating-point js/BigInt] [a b]
-         (op a (js/Number b))))
+         (op a (js/Number b)))
+
+       ;; BigInt can't handle these operations natively, so we override with a
+       ;; downcast to number for now.
+       (doseq [op [g/cos g/sin g/tan
+                   g/asin g/acos g/atan
+                   g/cosh g/sinh g/tanh
+                   g/asinh g/acosh g/acosh
+                   g/cot g/sec g/csc g/sech g/csch]]
+         (defmethod op [js/BigInt] [a]
+           (op (js/Number a))))
+
+       (defmethod g/atan [js/BigInt ::v/real] [l r] (g/atan (js/Number l) r))
+       (defmethod g/atan [::v/real js/BigInt] [l r] (g/atan l (js/Number r)))
+       (defmethod g/atan [js/BigInt js/BigInt] [l r] (g/atan (js/Number l) (js/Number r))))
 
      ;; Google Closure library's 64-bit Long:
      (defmethod g/add [Long Long] [a b] (.add a b))
@@ -226,7 +278,15 @@
          (op a (.fromNumber Long b)))
 
        (defmethod op [::v/native-integral Long] [a b]
-         (op (.fromNumber Long a) b)))
+         (op (.fromNumber Long a) b))
+
+       ;; If this type encounters a floating point type it should lose
+       ;; precision.
+       (defmethod op [Long ::v/floating-point] [a b]
+         (op (js/Number a) b))
+
+       (defmethod op [::v/floating-point Long] [a b]
+         (op a (js/Number b))))
 
      ;; Google Closure's arbitrary-precision Integer:
      (defmethod g/add [Integer Integer] [a b] (.add a b))
@@ -260,6 +320,22 @@
          (op a (.fromNumber Integer b)))
 
        (defmethod op [::v/native-integral Integer] [a b]
+         (op (.fromNumber Integer a) b))
+
+       ;; If this type encounters a floating point type it should lose
+       ;; precision.
+       (defmethod op [Integer ::v/floating-point] [a b]
+         (op (js/Number a) b))
+
+       (defmethod op [::v/floating-point Integer] [a b]
+         (op a (js/Number b)))
+
+       ;; When they encounter each other in binary operations, Long is coerced
+       ;; to Integer.
+       (defmethod op [Integer Long] [a b]
+         (op a (.fromNumber Integer b)))
+
+       (defmethod op [Long Integer] [a b]
          (op (.fromNumber Integer a) b)))
 
      ;; These names are slightly different between the two types.

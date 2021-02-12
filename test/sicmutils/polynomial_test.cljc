@@ -22,11 +22,11 @@
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
-            [sicmutils.analyze :as a]
-            [sicmutils.expression :refer [variables-in]]
+            [sicmutils.abstract.number]
+            [sicmutils.expression :refer [variables-in expression-of]]
+            [sicmutils.expression.analyze :as a]
             [sicmutils.generic :as g]
             [sicmutils.modint :as modular]
-            [sicmutils.numbers]
             [sicmutils.polynomial :as p]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
@@ -36,22 +36,31 @@
     (is (= ::p/polynomial (v/kind (p/make [])))))
 
   (testing "zero"
-    (is (v/nullity? (p/make [])))
-    (is (v/nullity? (p/make [0])))
-    (is (v/nullity? (p/make [])))
-    (is (v/nullity? (p/make 2 [])))
-    (is (v/nullity? (p/make 2 [])))
-    (is (not (v/nullity? (p/make [1])))))
+    (is (v/zero? (p/make [])))
+    (is (v/zero? (p/make [0])))
+    (is (v/zero? (p/make [])))
+    (is (v/zero? (p/make 2 [])))
+    (is (v/zero? (p/make 2 [])))
+    (is (not (v/zero? (p/make [1])))))
 
-  (testing "unity"
-    (is (v/unity? (p/make [1])))
-    (is (v/unity? (p/make 2 [[[0 0] 1]])))
-    (is (v/unity? (p/make 3 [[[0 0 0] 1]])))
-    (is (not (v/unity? (p/make 3 [[[0 0 0] 1] [[0 0 1] 2]]))))
-    (is (not (v/unity? (p/make [1.1]))))
-    (is (v/unity? (p/make [1.0])))
-    (is (v/unity? (p/make [(p/make [1])])))
-    (is (not (v/unity? (p/make [(p/make [2])])))))
+  (testing "one"
+    (is (not (v/one? (p/make []))))
+    (is (v/one? (p/make [1])))
+    (is (v/one? (p/make 2 [[[0 0] 1]])))
+    (is (v/one? (p/make 3 [[[0 0 0] 1]])))
+    (is (not (v/one? (p/make 3 [[[0 0 0] 1] [[0 0 1] 2]]))))
+    (is (not (v/one? (p/make [1.1]))))
+    (is (v/one? (p/make [1.0])))
+    (is (v/one? (p/make [(p/make [1])])))
+    (is (not (v/one? (p/make [(p/make [2])])))))
+
+  (testing "identity"
+    (is (v/identity? (p/make [0 1])))
+
+    (testing "identity? is only supported for monomials."
+      (is (not (v/identity? (p/make []))))
+      (is (not (v/identity? (p/make [0]))))
+      (is (not (v/identity? (p/make 2 [[[1 0] 1]]))))))
 
   (testing "make-constant"
     (is (= (p/make [99]) (p/make-constant 1 99)))
@@ -75,21 +84,28 @@
     (is (= (p/make [1]) (v/one-like (p/make [1 2 3]))))
     (is (= (p/make 2 [[[0 0] 1]]) (v/one-like (p/make 2 [[[1 0] 1] [[2 1] 3]]))))
     (is (= (p/make 3 [[[0 0 0] 1]]) (v/one-like (p/make 3 [[[1 2 1] 4] [[0 1 0] 5]]))))
-    ;; we can't deduce the unit element from the zero polynomial over an
-    ;; "unknown" ring
-    (is (thrown? #?(:clj UnsupportedOperationException :cljs js/Error)
-                 (v/one-like (p/make 2 [])))))
+    (is (= (p/make 2 [[[0 0] 1]])
+           (v/one-like (p/make 2 [])))
+        "If we can't deduce the unit element from the zero polynomial over an
+        unknown ring, assume it's 1"))
+
+  (testing "identity-like"
+    (is (= (p/make [0 1]) (v/identity-like (p/make []))))
+    (is (= (p/make [0 1]) (v/identity-like (p/make [1 2 3]))))
+    (is (thrown? #?(:clj AssertionError :cljs js/Error)
+                 (v/identity-like (p/make 2 [])))
+        "identity-like is only supported on monomials."))
 
   (testing "add constant"
     (is (= (p/make [3 0 2]) (g/add (p/make [0 0 2]) (p/make [3]))))
     (is (= (p/make [0 0 2]) (g/add (p/make [2 0 2]) (p/make [-2])))))
 
   (testing "add/sub"
-    (is (v/nullity? (g/add (p/make [0 0 2]) (p/make [0 0 -2]))))
+    (is (v/zero? (g/add (p/make [0 0 2]) (p/make [0 0 -2]))))
     (is (= (p/make []) (g/add (p/make [0 0 2]) (p/make [0 0 -2]))))
     (is (= (p/make [3]) (g/add (p/make [3 0 2]) (p/make [0 0 -2]))))
     (is (= (p/make [-1 1]) (g/add (p/make [0 1]) (p/make [-1]))))
-    (is (v/nullity? (g/sub (p/make [0 0 2]) (p/make [0 0 2]))))
+    (is (v/zero? (g/sub (p/make [0 0 2]) (p/make [0 0 2]))))
     (is (= (p/make [-3]) (g/sub (p/make [0 0 2]) (p/make [3 0 2]))))
     (is (= (p/make [0 1 2]) (g/sub (p/make [3 1 2]) (p/make [3]))))
     (is (= (p/make [-2 -2 -1]) (g/sub (p/make [1]) (p/make [3 2 1]))))
@@ -265,9 +281,9 @@
             (p/make 3 [[[0 0 1] 1]])] (a/new-variables poly-analyzer 3))))
 
   (testing "expr"
-    (let [exp1 (:expression (g/* (g/+ 1 'x) (g/+ -3 'x)))
-          exp2 (:expression (g/expt (g/+ 1 'y) 5))
-          exp3 (:expression (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5)))
+    (let [exp1 (expression-of (g/* (g/+ 1 'x) (g/+ -3 'x)))
+          exp2 (expression-of (g/expt (g/+ 1 'y) 5))
+          exp3 (expression-of (g/- (g/expt (g/- 1 'y) 6) (g/expt (g/+ 'y 1) 5)))
           receive (fn [a b] [a b])]
       (is (= '#{* + x} (variables-in exp1)))
       (is (= [(p/make [-3 -2 1]) '(x)] (a/expression-> poly-analyzer exp1 receive)))
@@ -276,7 +292,9 @@
       (is (= [(p/make [0 -11 5 -30 10 -7 1]) '(y)] (a/expression-> poly-analyzer exp3 receive)))))
 
   (testing "monomial order"
-    (let [poly-simp #(a/expression-> poly-analyzer (:expression %) (fn [p vars] (a/->expression poly-analyzer p vars)))]
+    (let [poly-simp #(a/expression-> poly-analyzer
+                                     (expression-of %)
+                                     (fn [p vars] (a/->expression poly-analyzer p vars)))]
       (is (= '(+ (expt x 2) x 1) (poly-simp (g/+ 'x (g/expt 'x 2) 1))))
       (is (= '(+ (expt x 4) (* 4 (expt x 3)) (* 6 (expt x 2)) (* 4 x) 1) (poly-simp (g/expt (g/+ 1 'x) 4))))
       (is (= '(+
@@ -296,14 +314,14 @@
 
   (testing "expr-simplify"
     (let [poly-simp #(a/expression-> poly-analyzer % (fn [p vars] (a/->expression poly-analyzer p vars)))
-          exp1 (:expression (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))
-          exp2 (:expression (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
+          exp1 (expression-of (g/+ (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x)))
+          exp2 (expression-of (g/+ (g/* 'y 'y) (g/* 'x 'x 'x) (g/* 'x 'x) (g/* 'x 'x) (g/* 'y 'y)))
           exp3 'y]
       (is (= '(+ (expt x 3) (* 2 (expt x 2))) (poly-simp exp1)))
       (is (= '(+ (expt x 3) (* 2 (expt x 2)) (* 2 (expt y 2))) (poly-simp exp2)))
       (is (= 'y (poly-simp exp3)))
-      (is (= '(+ g1 g2) (poly-simp (:expression (g/+ 'g1 'g2)))))
-      (is (= '(* 2 g1) (poly-simp (:expression (g/+ 'g1 'g1)))))
+      (is (= '(+ g1 g2) (poly-simp (expression-of (g/+ 'g1 'g2)))))
+      (is (= '(* 2 g1) (poly-simp (expression-of (g/+ 'g1 'g1)))))
       (is (= 3 (poly-simp '(+ 2 1))))
       (is (= '(+ b (* -1 f)) (poly-simp '(- (+ a b c) (+ a c f)))))
       (is (= '(+ (* -1 b) f) (poly-simp '(- (+ a c f) (+ c b a))))))))
@@ -318,7 +336,7 @@
 
 (defn generate-nonzero-poly
   [arity]
-  (gen/such-that (complement v/nullity?)
+  (gen/such-that (complement v/zero?)
                  (generate-poly arity)))
 
 (def ^:private num-tests 30)
@@ -330,14 +348,14 @@
 
 (defspec ^:long p-p=0 num-tests
   (prop/for-all [p (gen/bind gen/nat generate-poly)]
-                (v/nullity? (g/sub p p))))
+                (v/zero? (g/sub p p))))
 
 (defspec ^:long pq-div-p=q num-tests
   (gen/let [arity gen/nat]
     (prop/for-all [p (generate-poly arity)
                    q (generate-nonzero-poly arity)]
                   (let [[Q R] (p/divide (g/mul p q) q)]
-                    (and (v/nullity? R)
+                    (and (v/zero? R)
                          (= Q p))))))
 
 (defspec ^:long p+q=q+p num-tests

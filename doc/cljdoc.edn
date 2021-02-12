@@ -1,0 +1,44 @@
+{:cljdoc.doc/tree
+ [["Introduction" {:file "doc/intro.adoc"}]
+  ["Reference Manual" {:file "doc/refman.adoc"}]
+  ["Basics" {}
+   ["How to Use SICMUtils" {:file "doc/basics/using_sicmutils.adoc"}]
+   ["Generics" {:file "doc/basics/generics.adoc"}]
+   ["Clojurescript" {:file "doc/basics/clojurescript.adoc"}]
+   ["Data Readers" {:file "doc/basics/data_readers.adoc"}]]
+  ["Data Types" {}
+   ["Number" {:file "doc/types/number.adoc"}]
+   ["Complex" {:file "doc/types/complex.adoc"}]
+   ["Quaternion" {:file "doc/types/quaternion.adoc"}]
+   ["Symbolic Expressions" {:file "doc/types/symbolic.adoc"}]
+   ["Power Series" {:file "doc/types/power_series.adoc"}]
+   ["Polynomial" {:file "doc/types/polynomial.adoc"}]
+   ["Rational Function" {:file "doc/types/rational_function.adoc"}]
+   ["Modular Int" {:file "doc/types/modular_int.adoc"}]
+   ["Function" {:file "doc/types/function.adoc"}]
+   ["Operator" {:file "doc/types/operator.adoc"}]
+   ["Structures" {:file "doc/types/structures.adoc"}]
+   ["Matrix" {:file "doc/types/matrix.adoc"}]]
+  ["Simplification" {}
+   ["Rule Engine" {:file "doc/symbolic/rules.adoc"}]
+   ["Polynomial Simplifier" {:file "doc/symbolic/poly_simplifier.adoc"}]
+   ["Rational Function" {:file "doc/symbolic/rf_simplifier.adoc"}]]
+  ["Numerical Methods" {}
+   ["Univariate Minimization" {:file "doc/numerical/unimin.adoc"}]
+   ["Multivariate Minimization" {:file "doc/numerical/multimin.adoc"}]
+   ["Quadrature" {:file "doc/numerical/quadrature.adoc"}]
+   ["Numerical Derivative" {:file "doc/numerical/deriv.adoc"}]
+   ["Interpolation" {:file "doc/numerical/interpolation.adoc"}]
+   ["ODE Initial Value Problems" {:file "doc/numerical/ode.adoc"}]]
+  ["Calculus" {}
+   ["Automatic Differentiation" {:file "doc/calculus/autodiff.adoc"}]]
+  ["Textbooks" {}
+   ["Structure and Interpretation of Classical Mechanics"
+    {:file "doc/books/sicm.adoc"}]
+   ["Functional Differential Geometry"
+    {:file "doc/books/fdg.adoc"}]]
+  ["Misc" {}
+   ["History, References" {:file "doc/history.adoc"}]
+   ["Development Instructions" {:file "doc/development.adoc"}]
+   ["Getting Involved / What's Missing?" {:file "doc/contributing.adoc"}]
+   ["FAQ" {:file "doc/faq.adoc"}]]]}

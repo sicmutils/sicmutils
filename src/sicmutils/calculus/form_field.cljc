@@ -1,29 +1,30 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.calculus.form-field
-  (:require [sicmutils.calculus.vector-field :as vf]
+  (:require [sicmutils.abstract.function :as af]
+            [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.operator :as o]
             [sicmutils.structure :as s]
-            [sicmutils.generic :as g]
             [sicmutils.function :as f]
+            [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
@@ -32,19 +33,23 @@
 (defn form-field?
   [f]
   (and (o/operator? f)
-       (-> f :context :subtype (= ::form-field))))
+       (-> (o/context f)
+           (:subtype)
+           (= ::form-field))))
 
 (defn oneform-field?
   [f]
   (and (form-field? f)
-       (-> f :context :rank (= 1))))
+       (-> (o/context f)
+           (:rank)
+           (= 1))))
 
 (defn procedure->oneform-field
   [fp name]
   (o/make-operator fp name
-                   :subtype ::form-field
-                   :rank 1
-                   :arguments [::vf/vector-field]))
+                   {:subtype ::form-field
+                    :rank 1
+                    :arguments [::vf/vector-field]}))
 
 (declare wedge)
 (defn procedure->nform-field
@@ -52,10 +57,10 @@
   (if (= n 0)
     (proc)
     (o/make-operator proc name
-                     :subtype ::form-field
-                     :arity [:exactly n]
-                     :rank n
-                     :arguments (repeat n ::vf/vector-field))))
+                     {:subtype ::form-field
+                      :arity [:exactly n]
+                      :rank n
+                      :arguments (repeat n ::vf/vector-field)})))
 
 (defn coordinate-name->ff-name
   "From the name of a coordinate, produce the name of the coordinate basis
@@ -120,17 +125,14 @@
 (defn literal-oneform-field
   [name coordinate-system]
   (let [n (:dimension (m/manifold coordinate-system))
-        domain (apply s/up (repeat n 0))
-        range 0
-        components (s/generate n ::s/down #(f/literal-function
-                                            (symbol (str name \_ %))
-                                            domain
-                                            range))]
-    (components->oneform-field components coordinate-system name)))
+        domain (apply s/up   (repeat n 0))
+        range  (apply s/down (repeat n 0))]
+    (-> (af/literal-function name domain range)
+        (components->oneform-field coordinate-system name))))
 
 (defn get-rank
   [f]
-  (cond (o/operator? f) (or (:rank (:context f))
+  (cond (o/operator? f) (or (:rank (o/context f))
                             (u/illegal (str "operator, but not a differential form: " f)))
         (fn? f) 0
         :else (u/illegal "not a differential form")))
@@ -165,17 +167,20 @@
 (def d (o/make-operator exterior-derivative-procedure 'd))
 
 (defn permutation-sequence
-  "This is an unusual way to go about this in a functional language,
-  but it's fun. Produces an iterable sequence developing the
-  permutations of the input sequence of objects (which are considered
-  distinct) in church-bell-changes order, that is, each permutation
-  differs from the previous by a transposition of adjacent
-  elements (Algorithm P from §7.2.1.2 of Knuth). This has the
-  side-effect of arranging for the parity of the generated
-  permutations to alternate; the first permutation yielded is the
-  identity permutation (which of course is even). Inside, there is a
-  great deal of mutable state, but this cannot be observed by the
-  user."
+  "Produces an iterable sequence developing the permutations of the input sequence
+  of objects (which are considered distinct) in church-bell-changes order - that
+  is, each permutation differs from the previous by a transposition of adjacent
+  elements (Algorithm P from §7.2.1.2 of Knuth).
+
+  This is an unusual way to go about this in a functional language, but it's
+  fun.
+
+  This approach has the side-effect of arranging for the parity of the generated
+  permutations to alternate; the first permutation yielded is the identity
+  permutation (which of course is even).
+
+  Inside, there is a great deal of mutable state, but this cannot be observed by
+  the user."
   [as]
   (let [n (count as)
         a (object-array as)
@@ -224,10 +229,6 @@
            [IIterable
             (-iterator [this] this)])))))
 
-(defn ^:private factorial
-  [n]
-  (reduce g/* (range 2 (inc n))))
-
 (defn ^:private wedge2
   [form1 form2]
   (let [n1 (get-rank form1)
@@ -237,7 +238,7 @@
       (let [n (+ n1 n2)
             w (fn [& args]
                 (assert (= (count args) n) "Wrong number of args to wedge product")
-                (g/* (/ 1 (factorial n1) (factorial n2))
+                (g/* (/ 1 (g/factorial n1) (g/factorial n2))
                      (reduce g/+ (map (fn [permutation parity]
                                         (let [a1 (take n1 permutation)
                                               a2 (drop n1 permutation)]
@@ -246,6 +247,5 @@
                                       (cycle [1 -1])))))]
         (procedure->nform-field w n `(~'wedge ~(m/diffop-name form1) ~(m/diffop-name form2)))))))
 
-(defn wedge
-  [& fs]
+(defn wedge [& fs]
   (reduce wedge2 fs))

@@ -1,41 +1,58 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.value
+  "The home of most of the protocol-based extensible generic operations offered by
+  SICMUtils. The bulk of the others live in [[sicmutils.generic]].
+
+  See [the `Generics`
+  cljdocs](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/basics/generics)
+  for a detailed discussion of how to use and extend the generic operations
+  defined in [[sicmutils.generic]] and [[sicmutils.value]]."
   (:refer-clojure :rename {zero? core-zero?
-                           number? core-number?}
-                  #?@(:cljs [:exclude [zero? number?]]))
+                           number? core-number?
+                           = core=
+                           compare core-compare}
+                  #?@(:cljs [:exclude [zero? number? = compare]]))
   (:require [sicmutils.util :as u]
-            #?(:clj [clojure.core.match :refer [match]]
-               :cljs [cljs.core.match :refer-macros [match]])
-            #?(:cljs goog.math.Long)
-            #?(:cljs goog.math.Integer))
+            #?(:clj [potemkin :refer [import-def]])
+            #?@(:cljs
+                [[goog.array :as garray]
+                 [goog.math.Long]
+                 [goog.math.Integer]]))
   #?(:clj
-     (:import (clojure.lang BigInt PersistentVector RestFn Sequential MultiFn Keyword Symbol)
-              (java.lang.reflect Method))))
+     (:import (clojure.lang BigInt PersistentVector Sequential Symbol))))
+
+(defprotocol Numerical
+  (numerical? [_]))
+
+(extend-protocol Numerical
+  #?(:clj Object :cljs default)
+  (numerical? [_] false))
 
 (defprotocol Value
-  (numerical? [this])
-  (nullity? [this])
-  (unity? [this])
+  (zero? [this])
+  (one? [this])
+  (identity? [this])
   (zero-like [this])
   (one-like [this])
+  (identity-like [this])
   (exact? [this])
   (freeze [this]
     "Freezing an expression means removing wrappers and other metadata from
@@ -45,28 +62,28 @@
   before simplification and printing, to simplify those processes.")
   (kind [this]))
 
-(declare arity primitive-kind)
-
 (def argument-kind #(mapv kind %&))
 
-(def ^:private object-name-map (atom {}))
+(def object-name-map (atom {}))
 
-(def numtype ::number)
 (def seqtype #?(:clj Sequential :cljs ::seq))
 
 ;; Allows multimethod dispatch to seqs in CLJS.
 #?(:cljs
    (do
+     (derive Cons ::seq)
      (derive IndexedSeq ::seq)
      (derive PersistentVector ::seq)
-     (derive LazySeq ::seq)))
+     (derive LazySeq ::seq)
+     (derive List ::seq)))
 
 ;; Smaller inheritance tree to enabled shared implementations between numeric
 ;; types that represent mathematical integers.
 
 (derive ::native-integral ::integral)
-(derive ::integral ::number)
-(derive ::floating-point ::number)
+(derive ::integral ::real)
+(derive ::floating-point ::real)
+(derive ::real ::number)
 
 (defn native-integral?
   "Returns true if x is an integral number that Clojure's math operations work
@@ -79,14 +96,39 @@
   [x]
   (isa? (kind x) ::integral))
 
-(defn number?
+(defn real?
+  "Returns true if `x` is either an integral number or a floating point number (ie,
+  in the numeric tower but not complex), false otherwise."
   [x]
-  #?(:clj (core-number? x)
-     :cljs (isa? (kind x) ::number)))
+  (isa? (kind x) ::real))
+
+(defn number?
+  "Returns true if `x` is any number type in the numeric tower:
+
+  - integral
+  - floating point
+  - complex
+
+  false otherwise."
+  [x]
+  (isa? (kind x) ::number))
+
+;; `::scalar` is a thing that symbolic expressions AND actual numbers both
+;; derive from.
+(derive ::number ::scalar)
+
+(defn scalar?
+  "Returns true for anything that derives from `::scalar`, ie, any numeric type in
+  the numeric tower that responds true to [[number?]], plus symbolic expressions
+  generated [[sicmutils.abstract.number/literal-number]],
+
+  false otherwise."
+  [x]
+  (isa? (kind x) ::scalar))
 
 #?(:clj
    (do
-     (derive Number ::number)
+     (derive Number ::real)
      (derive Double ::floating-point)
      (derive Float ::floating-point)
      (derive BigDecimal ::floating-point)
@@ -96,101 +138,123 @@
      (derive BigInteger ::native-integral))
 
    :cljs
-   (do (derive js/Number ::number)
+   (do (derive js/Number ::real)
        (derive js/BigInt ::integral)
        (derive goog.math.Integer ::integral)
        (derive goog.math.Long ::integral)))
 
+(extend-protocol Numerical
+  #?(:clj Number :cljs number)
+  (numerical? [_] true)
+
+  #?@(:clj
+      [java.lang.Double
+       (numerical? [_] true)
+
+       java.lang.Float
+       (numerical? [_] true)]))
+
 (extend-protocol Value
   #?(:clj Number :cljs number)
-  (nullity? [x] (core-zero? x))
-  (unity? [x] (== 1 x))
+  (zero? [x] (core-zero? x))
+  (one? [x] (== 1 x))
+  (identity? [x] (== 1 x))
   (zero-like [_] 0)
   (one-like [_] 1)
+  (identity-like [_] 1)
   (freeze [x] x)
   (exact? [x] (or (integer? x) #?(:clj (ratio? x))))
-  (numerical? [_] true)
   (kind [x] #?(:clj (type x)
                :cljs (if (exact? x)
                        ::native-integral
                        ::floating-point)))
 
-  nil
-  (freeze [_] nil)
-  (numerical? [_] false)
-  (nullity? [_] true)
-  (zero-like [o] (u/unsupported "nil doesn't support zero-like."))
-  (unity?[_] false)
-  (one-like [o] (u/unsupported "nil doesn't support one-like."))
-  (kind [_] nil)
-
-  PersistentVector
-  (nullity? [v] (every? nullity? v))
-  (unity? [_] false)
-  (zero-like [v] (mapv zero-like v))
-  (one-like [o] (u/unsupported (str "one-like: " o)))
-  (exact? [v] (every? exact? v))
-  (numerical? [_] false)
-  (freeze [v] (mapv freeze v))
-  (kind [v] (type v))
-
-  Symbol
-  (nullity? [o] false)
-  (numerical? [_] false)
-  (unity? [_] false)
-  (exact? [_] false)
+  #?(:clj Boolean :cljs boolean)
+  (zero? [x] false)
+  (one? [x] false)
+  (identity? [x] false)
   (zero-like [_] 0)
   (one-like [_] 1)
-  (freeze [o] o)
-  (kind [_] Symbol)
+  (identity-like [_] 1)
+  (freeze [x] x)
+  (exact? [x] false)
+  (kind [x] (type x))
+
+  #?@(:clj
+      [java.lang.Double
+       (zero? [x] (core-zero? x))
+       (one? [x] (== 1 x))
+       (identity? [x] (== 1 x))
+       (zero-like [_] 0.0)
+       (one-like [_] 1.0)
+       (identity-like [_] 1.0)
+       (freeze [x] x)
+       (exact? [x] false)
+       (kind [x] (type x))
+
+       java.lang.Float
+       (zero? [x] (core-zero? x))
+       (one? [x] (== 1 x))
+       (identity? [x] (== 1 x))
+       (zero-like [_] 0.0)
+       (one-like [_] 1.0)
+       (identity-like [_] 1.0)
+       (freeze [x] x)
+       (exact? [x] false)
+       (kind [x] (type x))])
+
+  nil
+  (zero? [_] true)
+  (one?[_] false)
+  (identity?[_] false)
+  (zero-like [o] (u/unsupported "nil doesn't support zero-like."))
+  (one-like [o] (u/unsupported "nil doesn't support one-like."))
+  (identity-like [o] (u/unsupported "nil doesn't support identity-like."))
+  (freeze [_] nil)
+  (kind [_] nil)
 
   #?(:clj Object :cljs default)
-  (nullity? [o] false)
-  (numerical? [_] false)
-  (unity? [o] false)
+  (zero? [o] false)
+  (one? [o] false)
+  (identity? [o] false)
+  (zero-like [o] (u/unsupported (str "zero-like: " o)))
+  (one-like [o] (u/unsupported (str "one-like: " o)))
+  (identity-like [o] (u/unsupported (str "identity-like: " o)))
   (exact? [o] false)
-  (zero-like [o] (if (or (fn? o) (instance? MultiFn o))
-                   (-> (constantly 0)
-                       (with-meta {:arity (arity o)
-                                   :from :object-zero-like}))
+  (freeze [o] (if (sequential? o)
+                (map freeze o)
+                (get @object-name-map o o)))
+  (kind [o] (:type o (type o))))
 
-                   (u/unsupported (str "zero-like: " o))))
-  (one-like [o]  (if (or (fn? o) (instance? MultiFn o))
-                   (-> identity
-                       (with-meta {:arity (arity o)
-                                   :from :object-one-like}))
-
-                   (u/unsupported (str "one-like: " o))))
-  (freeze [o] (cond
-                (sequential? o) (map freeze o)
-                :else (or (and (instance? MultiFn o)
-                               (if-let [m (get-method o [Keyword])]
-                                 (m :name)))
-                          (@object-name-map o)
-                          o)))
-  (kind [o] (primitive-kind o)))
+(defn exact-zero?
+  "Returns true if the supplied argument is an exact numerical zero, false
+  otherwise."
+  [n]
+  (and (number? n)
+       (exact? n)
+       (zero? n)))
 
 ;; Override equiv for numbers.
-(defmulti eq argument-kind)
+(defmulti = argument-kind)
 
 ;; These two constitute the default cases.
-(defmethod eq [::number ::number] [l r]
-  #?(:clj  (= l r)
+(defmethod = [::number ::number] [l r]
+  #?(:clj  (== l r)
      :cljs (identical? l r)))
 
-(defmethod eq :default [l r]
+(defmethod = :default [l r]
   (if (or (isa? (kind l) ::number)
           (isa? (kind r) ::number))
     false
-    (= l r)))
+    (core= l r)))
 
 #?(:cljs
    ;; These definitions are required for the protocol implementation below.
    (do
-     (defmethod eq [::native-integral js/BigInt] [l r]
+     (defmethod = [::native-integral js/BigInt] [l r]
        (js*  "~{} == ~{}" l r))
 
-     (defmethod eq [js/BigInt ::native-integral] [l r]
+     (defmethod = [js/BigInt ::native-integral] [l r]
        (js*  "~{} == ~{}" l r))
 
      (doseq [[from to f] [[goog.math.Long goog.math.Integer u/int]
@@ -198,35 +262,36 @@
                           [::native-integral goog.math.Long u/long]
                           [goog.math.Long js/BigInt u/bigint]
                           [goog.math.Integer js/BigInt u/bigint]]]
-       (defmethod eq [from to] [l r] (= (f l) r))
-       (defmethod eq [to from] [l r] (= l (f r))))
+       (defmethod = [from to] [l r] (core= (f l) r))
+       (defmethod = [to from] [l r] (core= l (f r))))
 
      (extend-protocol IEquiv
        number
        (-equiv [this other]
          (cond (core-number? other) (identical? this other)
-               (number? other)      (eq this other)
+               (numerical? other)   (= this (.valueOf other))
                :else false))
 
        goog.math.Integer
        (-equiv [this other]
-         (if (= goog.math.Integer (type other))
+         (if (core= goog.math.Integer (type other))
            (.equals this other)
-           (eq this other)))
+           (= this (.valueOf other))))
 
        goog.math.Long
        (-equiv [this other]
-         (if (= goog.math.Long (type other))
+         (if (core= goog.math.Long (type other))
            (.equals this other)
-           (eq this other))))))
+           (= this (.valueOf other)))))))
 
 #?(:cljs
    (extend-type js/BigInt
      IEquiv
-     (-equiv [this other]
-       (if (= js/BigInt (type other))
-         (js*  "~{} == ~{}" this other)
-         (eq this other)))
+     (-equiv [this o]
+       (let [other (.valueOf o)]
+         (if (u/bigint? other)
+           (js*  "~{} == ~{}" this other)
+           (= this other))))
 
      IPrintWithWriter
      (-pr-writer [x writer opts]
@@ -236,30 +301,71 @@
          (write-all writer "#sicm/bigint " rep)))))
 
 #?(:cljs
+   ;; goog.math.{Long, Integer} won't compare properly using <, > etc unless they
+   ;; can convert themselves to numbers via `valueOf.` This extension takes care of
+   ;; that modification.
+   (do
+     (extend-type goog.math.Long
+       Object
+       (valueOf [this] (.toNumber this)))
+
+     (extend-type goog.math.Integer
+       Object
+       (valueOf [this] (.toNumber this)))))
+
+#?(:cljs
    (extend-protocol IComparable
+     number
+     (-compare [this o]
+       (let [other (.valueOf o)]
+         (if (real? other)
+           (garray/defaultCompare this other)
+           (throw (js/Error. (str "Cannot compare " this " to " o))))))
+
+     js/BigInt
+     (-compare [this o]
+       (let [other (.valueOf o)]
+         (if (real? other)
+           (garray/defaultCompare this other)
+           (throw (js/Error. (str "Cannot compare " this " to " o))))))
+
      goog.math.Integer
-     (-compare [this other]
-       (if (core-number? other)
-         (.compare this (u/int other))
-         (.compare this other)))
+     (-compare [this o]
+       (let [other (.valueOf o)]
+         (cond (instance? goog.math.Integer other) (.compare this other)
+               (real? other) (garray/defaultCompare this other)
+               :else (throw (js/Error. (str "Cannot compare " this " to " o))))))
 
      goog.math.Long
-     (-compare [this other]
-       (if (core-number? other)
-         (.compare this (u/long other))
-         (.compare this other)))))
+     (-compare [this o]
+       (let [other (.valueOf o)]
+         (cond (instance? goog.math.Long other) (.compare this other)
+               (real? other) (garray/defaultCompare this other)
+               :else (throw (js/Error. (str "Cannot compare " this " to " o))))))))
 
 #?(:cljs
    ;; Clojurescript-specific implementations of Value.
    (let [big-zero (js/BigInt 0)
          big-one (js/BigInt 1)]
 
+     (extend-protocol Numerical
+       js/BigInt
+       (numerical? [_] true)
+
+       goog.math.Integer
+       (numerical? [_] true)
+
+       goog.math.Long
+       (numerical? [_] true))
+
      (extend-protocol Value
        js/BigInt
-       (nullity? [x] (js*  "~{} == ~{}" big-zero x))
-       (unity? [x] (js*  "~{} == ~{}" big-one x))
+       (zero? [x] (js*  "~{} == ~{}" big-zero x))
+       (one? [x] (js*  "~{} == ~{}" big-one x))
+       (identity? [x] (js*  "~{} == ~{}" big-one x))
        (zero-like [_] big-zero)
        (one-like [_] big-one)
+       (identity-like [_] big-one)
        (freeze [x]
          ;; Bigint freezes into a non-bigint if it can be represented as a
          ;; number; otherwise, it turns into its own literal.
@@ -267,193 +373,90 @@
            (js/Number x)
            x))
        (exact? [_] true)
-       (numerical? [_] true)
        (kind [_] js/BigInt)
 
        goog.math.Integer
-       (nullity? [x] (.isZero x))
-       (unity? [x] (= (.-ONE goog.math.Integer) x))
+       (zero? [x] (.isZero x))
+       (one? [x] (core= (.-ONE goog.math.Integer) x))
+       (identity? [x] (core= (.-ONE goog.math.Integer) x))
        (zero-like [_] (.-ZERO goog.math.Integer))
        (one-like [_] (.-ONE goog.math.Integer))
+       (identity-like [_] (.-ONE goog.math.Integer))
        (freeze [x] x)
        (exact? [_] true)
-       (numerical? [_] true)
        (kind [_] goog.math.Integer)
 
        goog.math.Long
-       (nullity? [x] (.isZero x))
-       (unity? [x] (= (.getOne goog.math.Long) x))
+       (zero? [x] (.isZero x))
+       (one? [x] (core= (.getOne goog.math.Long) x))
+       (identity? [x] (core= (.getOne goog.math.Long) x))
        (zero-like [_] (.getZero goog.math.Long))
        (one-like [_] (.getOne goog.math.Long))
+       (identity-like [_] (.getOne goog.math.Long))
        (freeze [x] x)
        (exact? [x] true)
-       (numerical? [_] true)
        (kind [_] goog.math.Long))))
+
+(defn kind-predicate
+  "Returns a predicate that returns true if its argument matches the supplied
+  kind-keyword `k`, false otherwise."
+  [x]
+  (let [k (kind x)]
+    (fn [x2] (isa? (kind x2) k))))
+
+#?(:clj
+   (defn compare
+     "Comparator. Returns a negative number, zero, or a positive number
+  when x is logically 'less than', 'equal to', or 'greater than'
+  y. Same as Java x.compareTo(y) except it also works for nil, and
+  compares numbers and collections in a type-independent manner. x
+  must implement Comparable"
+     [x y]
+     (if (core-number? x)
+       (if (core-number? y)
+         (core-compare x y)
+         (- (core-compare y x)))
+       (core-compare x y)))
+   :cljs
+   (defn ^number compare
+     "Comparator. Clone of [[cljs.core/compare]] that works with the expanded
+      SICMUtils numeric tower.
+
+  Returns a negative number, zero, or a positive number when x is logically
+  'less than', 'equal to', or 'greater than' y. Uses IComparable if available
+  and google.array.defaultCompare for objects of the same type and special-cases
+  nil to be less than any other object."
+     [x y]
+     (cond
+       (identical? x y) 0
+       (nil? x)         -1
+       (nil? y)         1
+       (core-number? x) (let [yv (.valueOf y)]
+                          (if (real? yv)
+                            (garray/defaultCompare x yv)
+                            (throw (js/Error. (str "Cannot compare " x " to " y)))))
+
+       (satisfies? IComparable x)
+       (-compare x y)
+
+       :else
+       (if (and (or (string? x) (array? x) (true? x) (false? x))
+                (identical? (type x) (type y)))
+         (garray/defaultCompare x y)
+         (throw (js/Error. (str "Cannot compare " x " to " y)))))))
 
 (defn add-object-symbols!
   [o->syms]
   (swap! object-name-map into o->syms))
 
-;; we record arities as a vector with an initial keyword:
-;;   [:exactly m]
-;;   [:between m n]
-;;   [:at-least m]
-
-#?(:clj
-   (defn jvm-arity [f]
-     (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
-           ;; tally up arities of invoke, doInvoke, and
-           ;; getRequiredArity methods. Filter out invokeStatic.
-           ^RestFn rest-fn f
-           facts (group-by first
-                           (for [^Method m methods
-                                 :let [name (.getName m)]
-                                 :when (not (#{"withMeta" "meta" "invokeStatic"} name))]
-                             (condp = name
-                               "invoke" [:invoke (alength (.getParameterTypes m))]
-                               "doInvoke" [:doInvoke true]
-                               "getRequiredArity" [:getRequiredArity (.getRequiredArity rest-fn)])))]
-       (cond
-         ;; Rule one: if all we have is one single case of invoke, then the
-         ;; arity is the arity of that method. This is the common case.
-         (and (= 1 (count facts))
-              (= 1 (count (:invoke facts))))
-         [:exactly (second (first (:invoke facts)))]
-         ;; Rule two: if we have exactly one doInvoke and getRequiredArity,
-         ;; and possibly an invokeStatic, then the arity at
-         ;; least the result of .getRequiredArity.
-         (and (= 2 (count facts))
-              (= 1 (count (:doInvoke facts)))
-              (= 1 (count (:getRequiredArity facts))))
-         [:at-least (second (first (:getRequiredArity facts)))]
-         ;; Rule three: if we have invokes for the arities 0..3, getRequiredArity
-         ;; says 3, and we have doInvoke, then we consider that this function
-         ;; was probably produced by Clojure's core "comp" function, and
-         ;; we somewhat lamely consider the arity of the composed function 1.
-         (and (= #{0 1 2 3} (into #{} (map second (:invoke facts))))
-              (= 3 (second (first (:getRequiredArity facts))))
-              (:doInvoke facts))
-         [:exactly 1]
-         :else (u/illegal (str "arity? " f " " facts)))))
-
-   :cljs
-   (do
-     (defn variadic?
-       "Returns true if the supplied function is variadic, false otherwise."
-       [f]
-       (boolean (.-cljs$lang$maxFixedArity f)))
-
-     (defn exposed-arities
-       "When CLJS functions have different arities, the function is represented as a js
-  object with each arity storied under its own key."
-       [f]
-       (let [parse (fn [s]
-                     (when-let [arity (re-find (re-pattern #"invoke\$arity\$\d+") s)]
-                       (js/parseInt (subs arity 13))))
-             arities (->> (map parse (js-keys f))
-                          (concat [(.-cljs$lang$maxFixedArity f)])
-                          (remove nil?)
-                          (into #{}))]
-         (if (empty? arities)
-           [(alength f)]
-           (sort arities))))
-
-     (defn js-arity
-       "Returns a data structure indicating the arity of the supplied function."
-       [f]
-       (let [arities (exposed-arities f)]
-         (cond (variadic? f)
-               (if (= [0 1 2 3] arities)
-                 ;; Rule 3, where we assume that any function that's variadic and
-                 ;; that has defined these particular arities is a "compose"
-                 ;; function... and therefore takes a single argument.
-                 [:exactly 1]
-
-                 ;; this case is where we know we have variadic args, so we set
-                 ;; a minimum. This could break if some arity was missing
-                 ;; between the smallest and the variadic case.
-                 [:at-least (first arities)])
-
-               ;; This corresponds to rule 1 in the JVM case. We have a single
-               ;; arity and no evidence of a variadic function.
-               (= 1 (count arities)) [:exactly (first arities)]
-
-               ;; This is a departure from the JVM rules. A potential error here
-               ;; would occur if someone defined arities 1 and 3, but missed 2.
-               :else [:between
-                      (first arities)
-                      (last arities)])))))
-
-(def ^:private reflect-on-arity
-  "Returns the arity of the function f.
-  Computing arities of clojure functions is a bit complicated.
-  It involves reflection, so the results are definitely worth
-  memoizing."
-  (memoize
-   #?(:cljs js-arity :clj jvm-arity)))
-
-(defn arity
-  "Return the cached or obvious arity of the object if we know it.
-  Otherwise delegate to the heavy duty reflection, if we have to."
-  [f]
-  (or (:arity f)
-      (:arity (meta f))
-      (cond (symbol? f) [:exactly 0]
-            ;; If f is a multifunction, then we expect that it has a multimethod
-            ;; responding to the argument :arity, which returns the arity.
-            (instance? MultiFn f) (f :arity)
-            (fn? f) (reflect-on-arity f)
-            ;; Faute de mieux, we assume the function is unary. Most math functions are.
-            :else [:exactly 1])))
-
-(defn ^:private combine-arities
-  "Find the joint arity of arities a and b, i.e. the loosest possible arity specification
-  compatible with both. Throws if the arities are incompatible."
-  [a b]
-  (let [fail #(u/illegal (str "Incompatible arities: " a " " b))]
-    ;; since the combination operation is symmetric, sort the arguments
-    ;; so that we only have to implement the upper triangle of the
-    ;; relation.
-    (if (< 0 (compare (first a) (first b)))
-      (combine-arities b a)
-      (match [a b]
-             [[:at-least k] [:at-least k2]] [:at-least (max k k2)]
-             [[:at-least k] [:between m n]] (let [m (max k m)]
-                                              (cond (= m n) [:exactly m]
-                                                    (< m n) [:between m n]
-                                                    :else (fail)))
-             [[:at-least k] [:exactly l]] (if (>= l k)
-                                            [:exactly l]
-                                            (fail))
-             [[:between m n] [:between m2 n2]] (let [m (max m m2)
-                                                     n (min n n2)]
-                                                 (cond (= m n) [:exactly m]
-                                                       (< m n) [:between m n]
-                                                       :else (fail)))
-             [[:between m n] [:exactly k]] (if (and (<= m k)
-                                                    (<= k n))
-                                             [:exactly k]
-                                             (fail))
-             [[:exactly k] [:exactly l]] (if (= k l) [:exactly k] (fail))))))
-
-(defn joint-arity
-  "Find the most relaxed possible statement of the joint arity of the given arities.
-  If they are incompatible, an exception is thrown."
-  [arities]
-  (reduce combine-arities [:at-least 0] arities))
-
-(defn ^:private primitive-kind
-  [a]
-  (cond
-    (or (fn? a) (instance? MultiFn a)) ::function
-    :else (or (:type a)
-              (type a))))
-
 (def machine-epsilon
   (loop [e 1.0]
-    (if (not= 1.0 (+ 1.0 (/ e 2.0)))
-      (recur (/ e 2.0))
-      e)))
+    (if (core= 1.0 (+ e 1.0))
+      (* e 2.0)
+      (recur (/ e 2.0)))))
+
+(def sqrt-machine-epsilon
+  (Math/sqrt machine-epsilon))
 
 (defn within
   "Returns a function that tests whether two values are within ε of each other."

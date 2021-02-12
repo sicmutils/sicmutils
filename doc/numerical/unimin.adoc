@@ -1,0 +1,192 @@
+= Univariate Minimization
+
+== Univariate Minimization
+
+One may search for local minima of a univariate function in a number of ways.
+The procedure `minimize`, used as follows:
+
+[source, clojure]
+----
+(minimize f lowx highx)
+----
+
+is the default minimizer. It searches for a minimum of the univariate function f
+in the region of the argument delimited by the values `lowx` and `highx`. Our
+univariate optimization programs typically return a map of the form
+
+[source, clojure]
+----
+{:result 1.0000131781122956
+ :value 1.000039534857877
+ :iterations 26
+ :converged? true
+ :fncalls 27}
+----
+
+where `:value` is the argument at which the extremal value `fx`, keyed by
+`:result`, is achieved.
+
+The procedure minimize uses Brent's method (don't ask how it works!).
+
+NOTE: This comment in the original `refman.txt` triggered a big investigation
+into how Brent's method works. It turns out there is a long history of this
+algorithm being cargo-culted along from library to library. I (@sritchie) now
+_do_ understand Brent's method, and I've tried to disgorge that understanding
+into the
+https://github.com/sicmutils/sicmutils/blob/master/src/sicmutils/numerical/unimin/brent.cljc[`sicmutils.numerical.unimin.brent`]
+namespace. Expect this to get better over time.
+
+The actual procedure in the system is:
+
+[source, clojure]
+----
+(defn minimize [f lowx highx]
+  (let [brent-error 1.0e-5]
+    (brent-min f lowx highx {:relative-threshold brent-error})))
+----
+
+We personally like Brent's algorithm for univariate minimization, as found on
+pages 79-80 of his book "Algorithms for Minimization Without Derivatives". It is
+pretty reliable and pretty fast, but we cannot explain how it works. (wink, see
+comment above.)
+
+Brent's method supports the following optional parameters:
+
+`*:callback*`
+
+if supplied, the supplied fn will be invoked at each intermediate point with the
+iteration count and the values of x and f(x) at each search step.
+
+`*:relative-threshold*`
+
+defaults to around `1.49e8`, the `sqrt` of the machine tolerance. You won't gain
+any benefit attempting to set the value less than the default.
+
+`*:absolute-threshold*`
+
+a smaller absolute threshold that applies when the candidate minimum point is
+close to 0.
+
+`*:maxiter*`
+
+Maximum number of iterations allowed for the minimizer. Defaults to 1000.
+
+`*:maxfun*`
+
+Maximum number of times the function can be evaluated before exiting. Defaults
+to `(inc maxiter)`.
+
+Thus, for example, if we make a function that is a quadratic polynomial with a
+minimum of `1` at `3`,
+
+[source, clojure]
+----
+(def foo (Lagrange-interpolation-function [2 1 2] [2 3 4]))
+----
+
+we can find the minimum quickly (in five iterations) with Brent's method:
+
+[source, clojure]
+----
+(brent-min foo 0 5 {:relative-threshold 1e-2})
+;;=> {:result 3.0, :value 1.0, :iterations 5, :converged? true, :fncalls 6}
+----
+
+Pretty good, eh?
+
+Golden Section search is sometimes an effective method, but it must be supplied
+with a convergence-test procedure, called `:converged?`. We have a nice default
+convergence test installed that you can customize instead with the parameters
+`:fn-tolerance` and `:arg-tolerance`:
+
+`*:fn-tolerance*`
+
+check that the minimal value of any of the checked points is within the maximum
+of `f(a)` or `f(b)`.
+
+`*:arg-tolerance*`
+
+check that `a` and `b` are within this supplied absolute distance.
+
+[source, clojure]
+----
+(golden-section-min f lowx highx {:fn-tolerance tol})
+(golden-section-max f lowx highx {:arg-tolerance tol})
+----
+
+If you supply a predicate to `:converged?`, it must take 5 arguments:
+
+[source, clojure]
+----
+[lowx flowx]      ;; current x, f(x) of the left bound
+[l fl]            ;; current x, f(x) of the left interior candidate point
+[r fr]            ;; current x, f(x) of the right interior candidate point
+[highx fhighx]    ;; current x, f(x) of the left bound
+current-iteration
+----
+
+`lowx` and `highx` are values of the argument that the minimum has been
+localized to be between, and `l` and `r` are the interior arguments currently
+being tendered.
+
+The values `flowx`, `fl`, `fr` and `fhighx` are the values of the function at
+the corresponding points; `current-iteration` is the number of iterations of the
+search.
+
+For example, suppose we want to squeeze the minimum of the polynomial function
+`foo` to a difference of argument positions of `0.001`:
+
+[source, clojure]
+----
+(let [halt? (fn [[lowx flowx] _ _ [highx fhighx] _]
+              (< (abs (- highx lowx)) 0.001))]
+  (golden-section-min foo 0 5 {:convergence-fn halt?}))
+
+;; {:result 3.0000059608609866
+;;  :value 1.0000000000355318
+;;  :converged? true
+;;  :iterations 22
+;;  :fncalls 26}
+----
+
+This is not so nice. It took 22 iterations and we didn't get anywhere near as
+good an answer as we got with Brent.
+
+NOTE: The following section describing `local-minima` and `local-maxima` does
+not yet work. A port of this work is in progress at
+https://github.com/sicmutils/sicmutils/pull/108[this PR], if you'd like
+to follow along.
+
+We can find a number of local minima of a multimodal function using a search
+that divides the initial interval up into a number of subintervals and then does
+Golden Section search in each interval. For example, we may make a quartic
+polynomial:
+
+[source, clojure]
+----
+(def bar
+  (Lagrange-interpolation-function [2 1 2 0 3] '(2 3 4 5 6)))
+----
+
+Now we can look for local minima of this function in the range `-10` to `+10`,
+breaking the region up into 15 intervals as follows:
+
+[source, clojure]
+----
+(local-minima bar -10 10 15 .0000001)
+  ;;=> ((5.303446964995252 -.32916549541536905 18)
+       (2.5312725379910592 .42583263999526233 18))
+----
+
+The search has found two local minima, each requiring 18 iterations to localize.
+The local maxima are also worth chasing:
+
+[source, clojure]
+----
+(local-maxima bar -10 10 15 .0000001)
+  ;;=> ((3.8192274368217713 2.067961961032311 17)
+       (10 680 31)
+       (-10 19735 29))
+----
+
+Here we found three maxima, but two are at the endpoints of the search.

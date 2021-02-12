@@ -20,6 +20,7 @@
 (ns sicmutils.simplify-test
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             #?(:cljs [goog.string :refer [format]])
+            [sicmutils.abstract.number]
             [sicmutils.complex :as c]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
@@ -74,11 +75,18 @@
 
 (deftest structures
   (let [A (m/by-rows [1 2] [3 4])
-        C (m/by-rows [1 2 3] [0 4 5] [1 0 6])]
+        C (m/by-rows [1 2 3]
+                     [0 4 5]
+                     [1 0 6])]
     (testing "characteristic polynomial"
-      (is (= '(+ (expt x 2) (* -5 x) -2) (g/simplify (m/characteristic-polynomial A 'x))))
-      (is (= '(+ (expt y 3) (* -11 (expt y 2)) (* 31 y) -22) (g/simplify (m/characteristic-polynomial C 'y))))
-      (is ((v/within 1e-12) 0.0 (g/simplify (m/characteristic-polynomial A (g/divide (g/- 5 (g/sqrt 33)) 2))))))))
+      (is (= '(+ (expt x 2) (* -5 x) -2)
+             (g/simplify (m/characteristic-polynomial A 'x))))
+
+      (is (= '(+ (expt y 3) (* -11 (expt y 2)) (* 31 y) -22)
+             (g/simplify (m/characteristic-polynomial C 'y))))
+
+      (is ((v/within 1e-12) 0.0
+           (g/simplify (m/characteristic-polynomial A (g/divide (g/- 5 (g/sqrt 33)) 2))))))))
 
 (deftest native-clojure-things
   (is (= "foo" (g/simplify "foo")))
@@ -118,7 +126,12 @@
   (is (= "[nil 3 (+ x 2)]" (expression->string [nil 3 (g/+ 2 'x)])))
   (is (= #?(:clj "(complex 0.0 1.0)"
             :cljs "(complex 0 1)")
-         (expression->string (c/complex 0 1)))))
+         (expression->string c/I)))
+  (is (= "1" (expression->string
+              ((g/+ (g/square g/sin) (g/square g/cos)) 'x))))
+  (is (= "(/ (+ (* -1 (expt (cos x) 4)) 1) (expt (cos x) 2))"
+         (expression->string
+          ((g/+ (g/square g/sin) (g/square g/tan)) 'x)))))
 
 (deftest more-trig
   (is (= '(tan x) (g/simplify (g/tan 'x))))
@@ -129,9 +142,18 @@
   (is (= '(* -1 (expt (cos x) 2)) (g/simplify (g/+ (g/expt (g/sin 'x) 2) -1))))
   (is (= '(* -1 (expt (sin x) 2)) (g/simplify (g/+ (g/expt (g/cos 'x) 2) -1))))
 
-  (testing "symbolic arguments"
-    (is (= '(atan y x) (g/simplify (g/atan 'y 'x))))))
+  (testing "trig identities"
+    (is (= 1 (g/simplify
+              (g/+ (g/expt (g/sin 'x) 2)
+                   (g/expt (g/cos 'x) 2)))))
+    (is (= 1 (g/simplify
+              (g/+ (g/expt (g/cos 'x) 2)
+                   (g/expt (g/sin 'x) 2))))))
 
+  (testing "symbolic arguments"
+    (is (= '(atan y x)
+           (g/simplify
+            (g/atan 'y 'x))))))
 
 (deftest moved-from-numbers
   (testing "with-symbols"
@@ -173,16 +195,16 @@
     (is (= 'x (g/* 'x 1.0)))
     (is (= 'x (g/divide 'x 1.0)))
     (is (= 'x (g/divide 'x 1)))
-    (is (= 0 (g/divide 0 'x)))
+    (is (v/zero? (g/divide 0 'x)))
     (is (= 0 (g/* 0 'x)))
     (is (= 0 (g/* 'x 0)))
     (is (thrown? #?(:clj ArithmeticException :cljs js/Error)
                  (g/divide 'x 0))))
 
   (testing "symbolic moves"
-    (is (= 1 (g/expt 'x 0)))
-    #_(is (= 0 (g/gcd 'x 'x)))
-    (is (= 1 (g/expt 1 'x)))
+    (is (v/one? (g/expt 'x 0)))
+    #_(is (= 'x (g/gcd 'x 'x)))
+    (is (v/one? (g/expt 1 'x)))
     (is (= (g/negate 'x) (g/- 0 'x)))))
 
 (deftest matrix-tests
@@ -215,3 +237,37 @@
              (m/by-rows '[a b c]
                         '[d e f]
                         '[g h i])))))))
+
+(deftest rational-function-tests
+  (testing "GH Issue #93"
+    (is (= '(/ 0.5 (* 2 x))
+           (g/simplify
+            (g/mul 0.5 (g/div 1 (g/mul 2 'x)))))
+        "This test failed until we implemented g/invert for polynomials in the
+        rational-function namespace.")))
+
+(deftest radicals
+  (testing "sums of square roots of quotients are collected if denominators match")
+  (is (= '(/ (+ (sqrt a) (sqrt c)) (sqrt b))
+         (g/simplify (g/+ (g/sqrt (g// 'a 'b)) (g/sqrt (g// 'c 'b))))))
+  (is (= '(/ (+ (sqrt a) (* -1 (sqrt c))) (sqrt b))
+         (g/simplify (g/- (g/sqrt (g// 'a 'b)) (g/sqrt (g// 'c 'b))))))
+  (testing "issue #156"
+    (is (= '(* y_1 (sqrt (+ (expt x_2 2) (expt y_1 2) (* 2 y_1 y_2) (expt y_2 2))))
+           (g/simplify
+            (g/+ (g/sqrt (g/* (g/expt 'y_1 2)
+                              (g// (g/+ (g/* (g/expt 'x_2 2) (g/expt 'y_1 2))
+                                        (g/expt 'y_1 4)
+                                        (g/* 2 (g/expt 'y_1 3) 'y_2)
+                                        (g/* (g/expt 'y_1 2) (g/expt 'y_2 2)))
+                                   (g/+ (g/expt 'y_1 2)
+                                        (g/* 2 'y_1 'y_2)
+                                        (g/expt 'y_2 2)))))
+                 (g/sqrt (g/* (g/expt 'y_2 2)
+                              (g// (g/+ (g/* (g/expt 'x_2 2) (g/expt 'y_1 2))
+                                        (g/expt 'y_1 4)
+                                        (g/* 2 (g/expt 'y_1 3) 'y_2)
+                                        (g/* (g/expt 'y_1 2) (g/expt 'y_2 2)))
+                                   (g/+ (g/expt 'y_1 2)
+                                        (g/* 2 'y_1 'y_2)
+                                        (g/expt 'y_2 2)))))))))))

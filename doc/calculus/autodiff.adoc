@@ -1,0 +1,188 @@
+= Automatic Differentiation
+
+== Automatic Differentiation
+
+In this system we work in terms of functions; the derivative of a function is a
+function. The procedure for producing the derivative of a function is named
+"derivative", though we also use the single-letter symbol `D` to denote this
+operator.
+
+NOTE: The differentation offered by SICMUtils uses "forward mode Automatic
+Differentation". We plan to implement reverse-mode AD at some point, but it
+doesn't exist here yet.
+
+We start with functions of a real variable to a real variable:
+
+[source, clojure]
+----
+((D cube) 5) ;;=> 75
+----
+
+It is possible to compute the derivative of any composition of functions:
+
+[source, clojure]
+----
+((D (+ (square sin) (square cos))) 3)
+;;=> 0
+
+(defn unity1 [x]
+  (+ (square (sin x))
+     (square (cos x))))
+
+((D unity1) 4)
+;;=> 0
+
+(def unity2
+  (+ (compose square sin)
+     (compose square cos)))
+
+((D unity2) 4)
+;;=> 0
+----
+
+except that the computation of the value of the function may not require
+evaluating a conditional.
+
+NOTE: This note about conditionals is currently true in SICMUtils, but we're
+working on it. See
+https://github.com/sicmutils/sicmutils/issues/191[this ticket] for
+information on the plan to make generic comparisons in conditionals work in
+automatic differentiation.
+
+These derivatives are not numerical approximations estimated by some limiting
+process. However, as usual, some of the procedures that are used to compute the
+derivative may be numerical approximations.
+
+----
+((D sin) 3)    ;;=> -.9899924966004454
+(cos 3)        ;;=> -.9899924966004454
+----
+
+NOTE: If you _do_ want a numerical derivative, see the docstring for the
+`D-numeric` function.
+
+Of course, not all functions are simple compositions of univariate real-valued
+functions of real arguments. Some functions have multiple arguments, and some
+have structured values.
+
+First we consider the case of multiple arguments. If a function maps several
+real arguments to a real value, then its derivative is a representation of the
+gradient of that function -- we must be able to multiply the derivative by an
+incremental up tuple to get a linear approximation to an increment of the
+function, if we take a step described by the incremental up tuple. Thus the
+derivative must be a down tuple of partial derivatives. We will talk about
+computing partial derivatives later.
+
+Let's understand this in a simple case. Let `f(x,y) = x^3 y^5`:
+
+[source, clojure]
+----
+(defn f [x y]
+  (* (expt x 3)
+     (expt y 5)))
+----
+
+Then `Df(x,y)` is a down tuple with components `[2 x^2 y^5, 5 x^3 y^4]`:
+
+[source, clojure]
+----
+(simplify ((D f) 2 3)) ;;=> (down 2916 3240)
+----
+
+And the inner product with an incremental up tuple is the appropriate increment.
+
+----
+(* ((D f) 2 3) (up 0.1 0.2)) ;;=> 939.6
+----
+
+This is exactly the same as if we had a function of one up-tuple argument. Of
+course, we must supply an up-tuple to the derivative in this case:
+
+[source, clojure]
+----
+(defn g [[x y]]
+  (* (expt x 3)
+     (expt y 5)))
+
+(simplify ((D g) (up 2 3)))
+;;=> (down 2916 3240)
+
+(* ((D g) (up 2 3)) (up 0.1 0.2))
+;;=> 939.6
+----
+
+Things get somewhat more complicated when we have functions with multiple
+structured arguments. Consider a function whose first argument is an up tuple
+and whose second argument is a number, which adds the cube of the number to the
+dot product of the up tuple with itself.
+
+[source, clojure]
+----
+(defn h [v x]
+  (+ (cube x)
+     (square v)))
+----
+
+What is its derivative? Well, it had better be something that can multiply an
+increment in the arguments, to get an increment in the function. The increment
+in the first argument is an incremental up tuple. The increment in the second
+argument is a small number. Thus we need a down-tuple of two parts, a row of the
+values of the partial derivatives with respect to each component of the first
+argument and the value of the partial derivative with respect to the second
+argument. This is easier to see symbolically:
+
+[source, clojure]
+----
+(simplify ((D h) (up 'a 'b) 'c))
+;;=> (down (down (* 2 a) (* 2 b)) (* 3 (expt c 2)))
+----
+
+The idea generalizes.
+
+=== Partial Derivatives
+
+Partial derivatives are just the components of the derivative of a function that
+takes multiple arguments or structured arguments or both. Thus, a partial
+derivative of a function is a composition of a component selector and the
+derivative of that function.
+
+The procedure that makes a partial derivative operator given a selection chain
+is named `partial`.
+
+NOTE: Clojure also has a `partial` function, that returns the partial
+application of some function `f` to whatever arguments you supply. In the
+`sicmutils.env` namespace this is aliased as `core-partial`.
+
+For example:
+
+[source, clojure]
+----
+(simplify (((partial 0) h) (up 'a 'b) 'c))
+;;=> (down (* 2 a) (* 2 b))
+
+(simplify (((partial 1) h) (up 'a 'b) 'c))
+;;=> (* 3 (expt c 2))
+
+(simplify (((partial 0 0) h) (up 'a 'b) 'c))
+;;=> (* 2 a)
+
+(simplify (((partial 0 1) h) (up 'a 'b) 'c))
+;;=> (* 2 b)
+----
+
+This naming scheme is consistent, except for one special case. If a function
+takes exactly one up-tuple argument then one level of the hierarchy is
+eliminated, allowing one to naturally write:
+
+[source, clojure]
+----
+(simplify ((D g) (up 'a 'b)))
+;;=> (down (* 3 (expt a 2) (expt b 5))
+           (* 5 (expt a 3) (expt b 4)))
+
+(simplify (((partial 0) g) (up 'a 'b)))
+;;=> (* 3 (expt a 2) (expt b 5))
+
+(simplify (((partial 1) g) (up 'a 'b)))
+;;=> (* 5 (expt a 3) (expt b 4))
+----

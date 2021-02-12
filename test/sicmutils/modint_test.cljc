@@ -19,12 +19,21 @@
 
 (ns sicmutils.modint-test
   (:require [clojure.test :refer [is deftest testing]]
-            [sicmutils.value :as v]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.generic-test :as gt]
-            [sicmutils.modint :as m]))
+            [sicmutils.modint :as m]
+            [sicmutils.util :as u]
+            [sicmutils.value :as v]))
 
 (deftest modint
+  (testing "value implementation"
+    (is (= '(modint 1 2)
+           (v/freeze (m/make 1 2)))))
+
   (let [m3_7 (m/make 3 7)
         m0_7 (m/make 0 7)
         m1_7 (m/make 1 7)
@@ -36,6 +45,7 @@
         m5_13 (m/make 5 13)
         m2_4 (m/make 2 4)
         m3_4 (m/make 3 4)]
+
     (testing "easy"
       (is (= m5_7 m5_7))
       (is (= m12_7 m5_7))
@@ -52,11 +62,27 @@
     (testing "neg"
       (is (= m2_7 (g/negate m5_7))))
 
-    (testing "nullity?"
-      (is (v/nullity? m0_7)))
+    (checking "m^i matches simple implementation" 100
+              [m (sg/modint)
+               e (gen/fmap g/abs sg/native-integral)]
+              (let [i       (:i m)
+                    modulus (:m m)]
+                (is (= (:i (g/expt m e))
+                       (-> (g/expt (u/bigint i)
+                                   (u/bigint e))
+                           (g/modulo modulus))))))
 
-    (testing "unity?"
-      (is (v/unity? m1_7)))
+    (testing "zero?"
+      (is (v/zero? m0_7))
+      (is (v/zero? (v/zero-like m5_7))))
+
+    (testing "one?"
+      (is (v/one? m1_7))
+      (is (v/one? (v/one-like m5_7))))
+
+    (testing "identity?"
+      (is (v/identity? m1_7))
+      (is (v/identity? (v/identity-like m5_7))))
 
     (testing "inv"
       (is (= m3_7 (g/invert m5_7)))

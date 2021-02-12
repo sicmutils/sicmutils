@@ -1,30 +1,30 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.examples.central-potential
   (:refer-clojure :exclude [+ - * /])
-  (:require [sicmutils.env :as e :refer [up sqrt square + - * /]]
+  (:require [sicmutils.env :as e :refer [abs square up + - * /]]
             #?(:clj [taoensso.timbre :as log])
             #?(:clj [hiccup.core :refer :all])
             #?(:clj [hiccup.page :refer :all])))
 
-(defn ^:private pairs
+(defn- pairs
   "Return a sequence of pairs of different elements from the given sequence."
   [[x & xs]]
   (when xs
@@ -32,25 +32,28 @@
      (for [y xs] [x y])
      (pairs xs))))
 
-(defn V
-  [& masses]
+(defn V [& masses]
   ;; for V we want each distinct pair
   (fn [[_ x _]]
-    (let [mass-position-pairs (->> x
-                                   (partition 2)
-                                   (apply up)
-                                   (map (fn [m [x y]] [m (up x y)]) masses)
-                                   pairs)]
-      (reduce - 0
-              (map (fn [[[m1 p1] [m2 p2]]]
-                     (/ (* m1 m2) (sqrt (square (- p1 p2)))))
-                   mass-position-pairs)))))
+    (let [mass-position-pairs (->> (partition 2 x)
+                                   (map (fn [m [x y]] [m (up x y)])
+                                        masses)
+                                   (pairs))]
+      (reduce - 0 (map (fn [[[m1 p1] [m2 p2]]]
+                         (/ (* m1 m2)
+                            (abs (- p1 p2))))
+                       mass-position-pairs)))))
 
 (defn T
   [& masses]
   (fn [[_ _ v]]
-    (let [velocities (->> v (partition 2) (map #(apply up %)))]
-      (reduce + (map #(* (/ 1 2) %1 (square %2)) masses velocities)))))
+    (let [velocities (->> (partition 2 v)
+                          (map (fn [[vx vy]]
+                                 (up vx vy))))]
+      (reduce + (map (fn [m v]
+                       (* (/ 1 2) m (square v)))
+                     masses
+                     velocities)))))
 
 (def L (- T V))
 
@@ -105,7 +108,7 @@
 ;; T =12T =6.32591398, I(0)=2, m1=m2=m3=1
 
 #?(:clj
-   (defn -main
+   (defn ^:no-doc -main
      [& _]
      (let [head [:head {:title "foo"}]
            counter (atom 0)

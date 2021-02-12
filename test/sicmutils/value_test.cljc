@@ -19,7 +19,13 @@
 
 (ns sicmutils.value-test
   (:require [clojure.test :refer [is deftest testing]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
             #?(:cljs [cljs.reader :refer [read-string]])
+            #?(:cljs [goog.array :as garray])
+            [sicmutils.generators :as sg]
+            [sicmutils.ratio :as r]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -39,10 +45,10 @@
           "Parsing #sicm/bigint works with big strings too."))))
 
 (deftest vector-value-impl
-  (testing "nullity?"
-    (is (v/nullity? []))
-    (is (v/nullity? [0 0]))
-    (is (not (v/nullity? [1 2 3]))))
+  (testing "zero?"
+    (is (v/zero? []))
+    (is (v/zero? [0 0]))
+    (is (not (v/zero? [1 2 3]))))
 
   (testing "zero-like"
     (is (= [0 0 0] (v/zero-like [1 2 3])))
@@ -66,84 +72,82 @@
   (testing "kind"
     (is (= PersistentVector (v/kind [1 2])))))
 
-(deftest value-protocol-numbers
-  ;; These really want to be generative tests.
-  ;;
-  ;; TODO convert, once we sort out the cljs test.check story.
-  (is (v/nullity? 0))
-  (is (v/nullity? 0.0))
-  (is (not (v/nullity? 1)))
-  (is (not (v/nullity? 1.0)))
-  (is (v/nullity? (v/zero-like 100)))
-  (is (= 0 (v/zero-like 2)))
-  (is (= 0 (v/zero-like 3.14)))
+(deftest numeric-value-protocol-tests
+  (checking "*-like properly coerce" 100
+            [n sg/number]
+            (is (v/zero? (v/zero-like n)))
+            (is (not (v/zero? (v/one-like n))))
 
-  (is (v/unity? 1))
-  (is (v/unity? 1.0))
-  (is (v/unity? (v/one-like 100)))
-  (is (not (v/unity? 2)))
-  (is (not (v/unity? 0.0)))
+            (is (v/one? (v/one-like n)))
+            (is (not (v/one? (v/zero-like n))))
 
-  (is (= 10 (v/freeze 10)))
-  (is (v/numerical? 10))
-  (is (isa? (v/kind 10) v/numtype))
+            (is (v/identity? (v/identity-like n))))
+
+  (testing "zero-like sticks with precision"
+    (is (= 0 (v/zero-like 2)))
+    (is (= 0.0 (v/zero-like 3.14))))
+
+  (testing "one-like sticks with precision"
+    (is (= 1 (v/one-like 1)))
+    (is (= 1.0 (v/one-like 1.2))))
+
+  (checking "on non-rational reals, v/freeze is identity" 100
+            [n (gen/one-of [sg/any-integral (sg/reasonable-double)])]
+            (is (= n (v/freeze n))))
+
+  (checking "all numbers are numerical" 100
+            [n sg/number]
+            (is (v/numerical? n)))
+
+  (is (v/numerical? 'x)
+      "Symbols are abstract numerical things.")
+
+  (is (isa? (v/kind 10) ::v/real))
   (is (v/exact? 10))
   (is (not (v/exact? 10.1))))
 
-#?(:cljs
-   (deftest exposed-arities-test
-     (is (= [1] (v/exposed-arities (fn [x] (* x x)))))
-     (is (= [1 3] (v/exposed-arities (fn ([x] (* x x)) ([x y z] (+ x y))))))))
+(deftest numeric-comparison-tests
+  (checking "v/compare matches <, >, = behavior for reals" 100
+            [[l r] (gen/vector sg/real-without-ratio 2)]
+            (let [compare-bit (v/compare l r)]
+              (cond (neg? compare-bit) (is (< l r))
+                    (pos? compare-bit) (is (> l r))
+                    :else (is (and (<= l r)
+                                   ;; NOTE: Another strange observation. == is
+                                   ;; supposed to call out to equiv, but it
+                                   ;; seems like it gets inlined with the
+                                   ;; current value of `-equiv` at call time.
+                                   ;; Invoking the var gets around this.
+                                   #?(:clj (== l r) :cljs (#'== l r))
 
-(deftest arities
-  (is (= [:exactly 0] (v/arity (fn [] 42))))
-  (is (= [:exactly 1] (v/arity (fn [x] (+ x 1)))))
-  (is (= [:exactly 2] (v/arity (fn [x y] (+ x y)))))
-  (is (= [:exactly 3] (v/arity (fn [x y z] (* x y z)))))
-  (is (= [:at-least 0] (v/arity (fn [& xs] (reduce + 0 xs)))))
-  (is (= [:at-least 1] (v/arity (fn [x & xs] (+ x (reduce * 1 xs))))))
-  (is (= [:at-least 2] (v/arity (fn [x y & zs] (+ x y (reduce * 1 zs))))))
-  (is (= [:exactly 0] (v/arity 'x)))
-  (is (= [:at-least 0] (v/arity (constantly 42))))
-  ;; the following is dubious until we attach arity metadata to MultiFns
-  (is (= [:exactly 1] (v/arity [1 2 3])))
-  (let [f (fn [x] (+ x x))
-        g (fn [y] (* y y))]
-    (is (= [:exactly 1] (v/arity (comp f g))))))
+                                   ;; NOTE: clojure can't compare float and int
+                                   ;; with =, so this is special-cased to only
+                                   ;; make this `=` check for cljs.
+                                   #?(:cljs (= l r) :clj true)
+                                   (>= l r))))))
 
-#?(:cljs
-   (deftest arities-cljs
-     ;; in cljs, we can figure out that a fn accepts some bounded number of
-     ;; arguments.
-     (is (= [:between 1 3] (v/arity (fn ([x] (inc x))
-                                      ([x y] (+ x y))
-                                      ([x y z] (* x y z))))))
+  #?(:clj
+     ;; This won't work in cljs because native `compare` can't handle the
+     ;; `Ratio`, `BigInt`, `Long` and `Integer` types that we've pulled in to
+     ;; the numeric tower. TODO: this is probably a bug in the latter two cases,
+     ;; since cljs claims to interop with those types nicely. Report if you
+     ;; like!
+     (checking "v/compare matches core/compare for reals" 100
+               [l sg/real, r sg/real]
+               (is (= (v/compare l r)
+                      (compare l r))))))
 
-     ;; Noting the case here where we're missing the arity-2, but we still
-     ;; return a :between.
-     (is (= [:between 1 3] (v/arity (fn ([x] (inc x)) ([x y z] (* x y z))))))
+(deftest zero-tests
+  (is (v/zero? 0))
+  (is (v/zero? 0.0))
+  (is (not (v/zero? 1)))
+  (is (not (v/zero? 0.1))))
 
-     ;; Adding a variadic triggers :at-least...
-     (is (= [:at-least 1] (v/arity (fn ([x] (inc x)) ([x y z & xs] (* x y z))))))
-
-     ;; Unless you add ALL arities from 0 to 3 and variadic. Then we assume you were
-     ;; generated by comp.
-     (is (= [:exactly 1] (v/arity (fn ([] 10) ([x] (inc x)) ([x y]) ([x y z & xs] (* x y z))))))
-
-     ;; A single variadic with lots of args works too.
-     (is (= [:at-least 4] (v/arity (fn [x y z a & xs] (* x y z a)))))))
-
-(deftest nullity
-  (is (v/nullity? 0))
-  (is (v/nullity? 0.0))
-  (is (not (v/nullity? 1)))
-  (is (not (v/nullity? 0.1))))
-
-(deftest unity
-  (is (v/unity? 1))
-  (is (v/unity? 1.0))
-  (is (not (v/unity? 0)))
-  (is (not (v/unity? 0.0))))
+(deftest one-tests
+  (is (v/one? 1))
+  (is (v/one? 1.0))
+  (is (not (v/one? 0)))
+  (is (not (v/one? 0.0))))
 
 (deftest kinds
   (is (= #?(:clj Long :cljs ::v/native-integral) (v/kind 1)))
@@ -154,7 +158,6 @@
   (is (v/exact? 1))
   (is (v/exact? 4N))
   (is (not (v/exact? 1.1)))
-  (is (not (v/exact? 'a)))
   (is (not (v/exact? :a)))
   (is (not (v/exact? "a")))
   (is (v/exact? #sicm/ratio 3/2))
@@ -166,36 +169,30 @@
     (is (= [L] (v/argument-kind 1)))
     (is (= [L L L] (v/argument-kind 1 2 3)))
     (is (= [V] (v/argument-kind [2 3])))
-    (is (= [V V] (v/argument-kind [1] [3 4])))))
+    (is (= [V V] (v/argument-kind [1] [3 4]))))
 
-(defn illegal? [f]
-  (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-               (f))))
+  (checking "kind-predicate" 100 [l gen/any r gen/any]
+            (let [l-kind  (v/kind l)
+                  r-kind  (v/kind r)
+                  l-kind? (v/kind-predicate l)
+                  r-kind? (v/kind-predicate r)]
+              ;; each item is its own kind.
+              (is (l-kind? l))
+              (is (r-kind? r))
 
-(deftest joint-arities
-  (is (= [:exactly 1] (v/joint-arity [[:exactly 1] [:exactly 1]])))
-  (is (= [:exactly 5] (v/joint-arity [[:exactly 5] [:exactly 5]])))
-  (is (illegal? #(v/joint-arity [[:exactly 2] [:exactly 1]])))
-  (is (illegal? #(v/joint-arity [[:exactly 1] [:exactly 2]])))
-  (is (= [:exactly 3] (v/joint-arity [[:exactly 3] [:at-least 2]])))
-  (is (= [:exactly 3] (v/joint-arity [[:exactly 3] [:at-least 3]])))
-  (is (= [:exactly 3] (v/joint-arity [[:at-least 1] [:exactly 3]])))
-  (is (= [:exactly 3] (v/joint-arity [[:at-least 3] [:exactly 3]])))
-  (is (illegal? #(v/joint-arity [[:exactly 1] [:at-least 2]])))
-  (is (illegal? #(v/joint-arity [[:at-least 2] [:exactly 1]])))
-  (is (= [:at-least 3] (v/joint-arity [[:at-least 2] [:at-least 3]])))
-  (is (= [:at-least 3] (v/joint-arity [[:at-least 3] [:at-least 2]])))
-  (is (= [:between 2 3] (v/joint-arity [[:between 1 3] [:between 2 5]])))
-  (is (= [:between 2 3] (v/joint-arity [[:between 2 5] [:between 1 3]])))
-  (is (illegal? #(v/joint-arity [[:between 1 3] [:between 4 6]])))
-  (is (illegal? #(v/joint-arity [[:between 4 6] [:between 1 3]])))
-  (is (= [:exactly 3] (v/joint-arity [[:between 1 3] [:between 3 4]])))
-  (is (= [:exactly 3] (v/joint-arity [[:between 3 4] [:between 1 3]])))
-  (is (= [:between 2 4] (v/joint-arity [[:at-least 2] [:between 1 4]])))
-  (is (= [:between 2 4] (v/joint-arity [[:between 1 4] [:at-least 2]])))
-  (is (illegal? #(v/joint-arity [[:at-least 4] [:between 1 3]])))
-  (is (illegal? #(v/joint-arity [[:between 1 3] [:at-least 4]])))
-  (is (= [:exactly 2] (v/joint-arity [[:exactly 2] [:between 2 3]])))
-  (is (= [:exactly 2] (v/joint-arity [[:between 2 3] [:exactly 2]])))
-  (is (illegal? #(v/joint-arity [[:between 2 3] [:exactly 1]])))
-  (is (illegal? #(v/joint-arity [[:exactly 1] [:between 2 3]]))))
+              ;; they only respond true if they match kinds (or one inherits
+              ;; from the other), false otherwise.
+              (cond (= l-kind r-kind)
+                    (do (is (l-kind? r))
+                        (is (r-kind? l)))
+
+                    (isa? l-kind r-kind)
+                    (do (is (not (l-kind? r)))
+                        (is (r-kind? l)))
+
+                    (isa? r-kind l-kind)
+                    (do (is (l-kind? r))
+                        (is (not (r-kind? l))))
+
+                    :else (do (is (not (l-kind? r)))
+                              (is (not (r-kind? l))))))))

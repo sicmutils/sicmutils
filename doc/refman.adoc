@@ -1,0 +1,2504 @@
+= SICMUTILS Reference Manual
+:toc: right
+:toclevels: 2
+
+== SICMUTILS Reference Manual
+
+CAUTION: This is a port of the original reference manual for scmutils over to
+Clojure and the SICMUtils API. The goal here is to host an annotated version of
+the original `refman.txt`, highlighting any difference in functionality,
+behavior and naming so that folks can transition between the systems. The code
+here assumes that you're working at a REPL initialized to the the
+`sicmutils.env` namespace.
+
+This is a description of the SICMUtils system, an integrated library of
+procedures, embedded in the programming language Clojure, and intended to
+support teaching and research in mathematical physics and electrical
+engineering. SICMUtils and Clojure are particularly effective in work where the
+almost-functional nature of Clojure is advantageous, such as classical
+mechanics, where many of the procedures are most easily formulated as quite
+abstract manipulations of functions.
+
+== Clojure and Functional Programming
+
+NOTE: https://github.com/sicmutils/sicmutils[SICMUtils] is written in
+https://clojure.org/[Clojure]. The original
+https://groups.csail.mit.edu/mac/users/gjs/6946/refman.txt[`scmutils`] is
+written in Scheme, as noted by some of the comments in this historical intro.
+The text is close to the original refman, but all code snippets and any API
+descriptions have been changed to work in Clojure.
+
+Scheme is a simple computer language in the Lisp family of languages, with
+important structural features derived from Algol-60. We will not attempt to
+document Scheme here, as it is adequately documented in the IEEE standard
+(IEEE-1178) and in numerous articles and books. The
+https://people.csail.mit.edu/jaffer/r4rs_toc.html[R^4RS] is a terse document
+describing Scheme in detail. We assume that a reader of this document is
+familiar with Scheme and has read a book such as
+
+    Harold Abelson, Gerald Jay Sussman and Julie Sussman
+    Structure and Interpretation of Computer Programs
+    MIT Press and McGraw-Hill (1985, 1996)
+
+NOTE: Now, we switch our references to https://clojure.org/["Clojure"] from
+"Scheme".
+
+As a reminder, https://clojure.org/[Clojure] is an expression-oriented language.
+Expressions have values. The value of an expression is constructed from the
+values of the constituent parts of the expression and the way the expression is
+constructed. Thus, the value of
+
+[source, clojure]
+----
+(+ (* pi (square r)) 1)
+----
+
+is constructed from the values of the symbols
+
+[source, clojure]
+----
++, *, pi, square, r, 1
+----
+
+and by the parenthetical organization.
+
+In any Lisp-based language, an expression is constructed from parts with
+parentheses. The first subexpresson always denotes a procedure and the rest of
+the subexpressions denote arguments. So in the case of the expression above,
+`square` is a symbol whose value is a procedure that is applied to a thing
+(probably a number) denoted by `r`.
+
+That value of the application of `square` to `r` is then combined with the
+number denoted by `pi` using the procedure denoted by `*` to make an object
+(again probably a number) that is combined with the number denoted by `1` using
+the procedure denoted by `+`. Indeed, if the symbols have the values we expect
+from their (hopefully mnemonic) names:
+
+----
+    +        = a means of addition
+    *        = a means of multiplication
+    pi       = a number approximately equal to 3.14159265358979
+    square   = a means of squaring
+    1        = the multiplicative identity in the reals
+    r        = some number, say for example 4
+----
+
+then this expression would have the approximate value denoted by the numeral
+`51.26548245743669`.
+
+We can write expressions denoting procedures. For example the procedure for
+squaring can be written
+
+[source, clojure]
+----
+(fn [x] (* x x))
+----
+
+which may be read
+
+> "the procedure of one argument x that multiplies x by x" .
+
+We may bind a symbol to a value by definition:
+
+[source, clojure]
+----
+(def square
+  (fn [x] (* x x)))
+----
+
+or equivalently, by
+
+[source, clojure]
+----
+(defn square [x] (* x x))
+----
+
+The application of a defined procedure to operands will bind the symbols that
+are the formal parameters to the actual arguments that are the values of the
+operands:
+
+[source, clojure]
+----
+(+ (square 3) (square 4))
+;; => 25
+----
+
+This concludes the reminders about Clojure. You must consult an alternate source
+for more information.
+
+NOTE: There are many great resources for learning Clojure. Give
+https://www.braveclojure.com/["Clojure for the Brave and True"] a try as a first
+pass, or visit the https://clojurians.slack.com/[Clojurians slack channel] for
+in-person help.
+
+== Generic Arithmetic
+
+In the SICMUtils library arithmetic operators are generic over a variety of
+mathematical datatypes. For example, addition makes sense when applied to such
+diverse data as numbers, vectors, matrices, and functions. Additionally, many
+operations can be given a meaning when applied to different datatypes. For
+example, multiplication makes sense when applied to a number and a vector.
+
+The traditional operator symbols, such as `+` and `*` are bound to procedures
+that implement the generic operations. The details of which operations are
+defined for which datatypes is described below, organized by the datatype.
+
+In addition to the standard operations, every piece of mathematical data, `x`,
+can give answers to the following questions:
+
+`*(kind x)*`
+
+Returns a symbol or class instance describing the type of x. For example:
+
+[source, clojure]
+----
+(kind 3.14)
+;; => java.lang.Double
+
+(kind [1 2 3])
+;; => clojure.lang.PersistentVector
+----
+
+`*(kind-predicate x)*`
+
+Returns a predicate that is true on objects that are the same type as `x`.
+
+`*(arity p)*`
+
+Returns a description of the number of arguments that `p`, interpreted as a
+procedure, accepts, except that it is extended for datatypes that are not
+usually interpreted as procedures. A structured object, like an `up` structure,
+may be applied as a vector of procedures, and its arity is the intersection of
+the arities of the components.
+
+An arity is a newly allocated pair, like the following examples:
+
+[source, clojure]
+----
+(arity (fn [] 3))            ;; [:exactly 0]
+(arity (fn [x] x))           ;; [:exactly 1]
+(arity first)                ;; [:exactly 1]
+(arity (fn [& xs] xs))       ;; [:at-least 0]
+(arity (fn [x & y] x))       ;; [:at-least 1]
+(arity (fn [x y & _] [x y])) ;; [:at-least 2]
+(arity [cos sin])            ;; [:exactly 1]
+----
+
+We will now describe each of the generic operations. These operations are
+defined for many but not all of the mathematical datatypes. For particular
+datatypes we will list and discuss the operations that only make sense for them.
+
+`*(exact? x)*`
+
+This procedure is a predicate - a boolean-valued procedure. Exact numbers are
+integers, or rational numbers. A compound object, such as a vector or a matrix,
+is inexact if it has inexact components.
+
+`*(zero-like x)*`
+
+In general, this procedure returns the additive identity of the type of its
+argument, if it exists. For numbers this is 0.
+
+`*(one-like x)*`
+
+In general, this procedure returns the multiplicative identity of the type of
+its argument, if it exists. For numbers this is 1.
+
+`*(zero? x)*`
+
+Is true if `x` is an additive identity.
+
+`*(one? x)*`
+
+Is true if `x` is a multiplicative identity.
+
+`*(negate x) == (- (zero-like x) x)*`
+
+Gives an object that when added to `x` yields zero.
+
+`*(invert x) ==  (/ (one-like x) x)*`
+
+Gives an object that when multiplied by `x` yields one.
+
+Most of the numerical functions have been generalized to many of the datatypes,
+but the meaning may depend upon the particular datatype. Some are defined for
+numerical data only.
+
+[source, clojure]
+----
+(negative? x)
+(= x1 x2 ,,,)
+(+ x1 x2 ,,,)
+(* x1 x2 ,,,)
+(- x1 x2 ,,,)
+(/ x1 x2 ,,,)
+
+(expt x1 x2)
+
+;; Gives a square root of x, or an approximation to it.
+(sqrt x)
+
+(exp x)     ==   e^x
+(exp10 x)   ==  10^x
+(exp2 x)    == 2^x
+
+(log x)
+(log10 x)   == (/ (log x) (log 10))
+(log2 x)    == (/ (log x) (log 2))
+
+(sin x), (cos x), (tan x)
+(sec x), (csc x), (cot x)
+
+(asin x), (acos x), (atan x)
+(atan x1 x2) = (atan (/ x1 x2)) but retains quadrant information
+
+(sinh x), (cosh x), (tanh x)
+(sech x), (csch x)
+
+(asinh x), (acosh x), (atanh x)
+
+(abs x)
+(quotient n1 n2)
+(remainder n1 n2)
+(modulo n1 n2)
+
+;; for integrals that divide with remainder 0
+(exact-divide n1 n2)
+
+(gcd n1 n2)
+(lcm n1 n2)
+
+(make-rectangular a1 a2)  =  a1+ia2
+(make-polar a1 a2)        =  a1*:e^(* +i a2)
+(real-part z)
+(imag-part z)
+(magnitude z)
+(angle z)
+(conjugate z)
+
+;; Structural operations
+(transpose M)
+(dimension M)
+(dot-product l r)
+(inner-product l r)
+(outer-product l r)
+(cross-product l r)
+----
+
+If `M` is a quantity that can be interpreted as a square matrix:
+
+[source, clojure]
+----
+(determinant M)
+(trace M)
+----
+
+== Clojure Numbers
+
+Operations on the Clojure numeric datatypes that are part of standard Clojure
+are listed here without comment; those that are not part of standard Clojure are
+described. In the following `<n>` is (any expression that denotes) an integer.
+`<a>` is any real number, `<z>` is any complex number, and `<x>` and `<y>` are
+any kind of number.
+
+----
+(kind <x>)            = *number*
+(exact? <x>)          ;;=> <boolean>
+(negative? x)         ;;=> <boolean>
+(zero-like <x>)       = 0
+(one-like <x>)        = 1
+(zero? <x>)           ;;=> <boolean>
+(one? <x>)            ;;=> <boolean>
+
+(negate <x>), (invert <x>), (sqrt <x>)
+
+(exp <x>), (exp10 <x>), (exp2 <x>)
+
+(log <x>), (log10 <x>), (log2 <x>)
+
+(sin <x>), (cos <x>), (tan <x>), (sec <x>), (csc <x>)
+
+(asin <x>), (acos <x>), (atan <x>)
+(atan <x1> <x2>)
+
+(sinh <x>), (cosh <x>), (tanh <x>), (sech <x>), (csch <x>)
+
+(asinh <x>), (acosh <x>), (atanh <x>)
+
+(= <x1> <x2> ...)    ;;=> <boolean>
+(+ <x1> <x2> ...)
+(* <x1> <x2> ...)
+(- <x1> <x2> ...)
+(/ <x1> <x2> ...)
+
+(expt <x1> <x2>)
+
+(abs <x>)
+(quotient <n1> <n2>)
+(remainder <n1> <n2>)
+(modulo <n1> <n2>)
+(exact-divide <n1> <n2>)
+
+(gcd <n1> <n2>)
+(lcm <n1> <n2>)
+
+(make-rectangular <a1> <a2>) ==  <a1>+i<a2>
+(make-polar <a1> <a2>)       ==  <a1>*:e^(* +i <a2>)
+(real-part <z>)
+(imag-part <z>)
+(magnitude <z>)
+(angle <z>)
+
+(conjugate <z>)
+
+(transpose <a>)           == a
+(dimension <a>)           == 1
+(dot-product <a1> <a2>)   == (* <a1> <a2>)
+(inner-product <a1> <a2>) == (* (conjugate <a1>) <a2>)
+----
+
+== Structured Objects
+
+SICMUtils supports a variety of structured object types, such as
+
+* lists
+* vectors
+* up and down tuples
+* matrices
+* power series
+
+The explicit constructor for a structured object is a procedure whose name is
+what we call objects of that type. For example, we make explicit vectors with
+the procedure named `vector`, and explicit lists with the procedure named
+`list`. For example:
+
+----
+(list 1 2 3 4 5)  a list of the first five positive integers
+[1 2 3 4 5]       a vector of the first five positive integers
+(up 10 3 4)       an up tuple with three components
+(down 10 3 4)     a down tuple with three components
+----
+
+There is no natural way to notate a matrix, except by giving its rows (or
+columns). To make a matrix with three rows and five columns:
+
+[source, clojure]
+----
+(def M
+  (matrix-by-rows [1  2  3  4  5]
+                  [6  7  8  9 10]
+                  [11 12 13 14 15]))
+----
+
+A power series may be constructed from an explicit set of coefficients. For
+example:
+
+[source, clojure]
+----
+(power-series 1 2 3 4 5)
+----
+
+is the power series whose first five coefficients are the first five positive
+integers and all of the rest of the coefficients are zero.
+
+Although each datatype has its own specialized procedures, there are a variety
+of generic procedures for selecting the components from structured objects. To
+get the `n`-th component from a linear data structure, `v`, such as a vector or
+a list, one may in general use the generic selector, `ref` (or `nth`, the native
+Clojure operation that we recommend you prefer):
+
+----
+(ref x n)
+----
+
+NOTE: `ref` is the name of this procedure in the original `scmutils`, so we
+alias it into `sicmutils.env` for compatibility. In Clojure, a `ref` is a
+https://clojure.org/reference/refs[transactional reference], used for safe,
+shared mutable state. [[sicmutils.env/ref]] will attempt to act like the native
+Clojure `nth` with one argument, or `get-in` for multiple arguments, and fall
+back to [[clojure.core/ref]] if it's not successful. You should become
+comfortable with [[clojure.core/nth]] and [[clojure.core/get-in]] and switch to
+those.
+
+All structured objects are accessed by zero-based indexing, as is the custom in
+Clojure programs and in relativity. For example, to get the third element (index
+`= 2`) of a vector or a list we can use:
+
+[source, clojure]
+----
+;; either works for a vector, which is associative:
+(get [1 2 3 4 5 2] 2)      ;; = 3
+(ref [1 2 3 4 5 2] 2)      ;; = 3
+
+;; Lists are not associative, so we need `nth`:
+(nth (list 1 2 3 4 5 2) 2) ;; = 3
+----
+
+If `M` is a matrix, then the component in the `i`-th row and `j`-th column can
+be obtained by `(ref M i j)` (or `(get-in M [i j])`. For the matrix given above:
+
+[source, clojure]
+----
+(ref M 1 3)      ;; = 9
+(get-in M [1 3]) ;; = 9
+----
+
+Other structured objects are more magical:
+
+[source, clojure]
+----
+(ref cos-series 6)         = -1/720
+----
+
+The magic is due to Clojure's beautiful
+https://clojure.org/reference/sequences[Sequence API]. All native collections
+can be turned into generic sequences. SICMUtils containers all implement this
+interface, and respond appropriately to `seq`.
+
+The number of components of a structured object can be found with the `count`
+function:
+
+[source, clojure]
+----
+(count [1 2 3 4 5]) = 5
+----
+
+Besides the extensional constructors, most structured-object datatypes can be
+intentionally constructed by giving a procedure whose values are the components
+of the object. These `generate` procedures are:
+
+[source, clojure]
+----
+(vector:generate  n   proc)
+(m:generate       m n proc)
+(s:generate           proc)
+----
+
+For example, one may make a 6 component vector each of whose components is `pi`
+times the index of that component, as follows:
+
+[source, clojure]
+----
+(vector:generate 6 (fn [i] (* pi i)))
+----
+
+Or a `3x5` matrix whose components are
+
+* the sum of `pi` times the row number
+* `6` times the column number:
+
+[source, clojure]
+----
+(m:generate 3 5 (fn [i j] (+ (* pi i) (* 6 j))))
+----
+
+Also, it is commonly useful to deal with a structured object in an elementwise
+fashion. We provide special combinators for many structured datatypes that allow
+one to make a new structure, of the same type and size of the given ones, where
+the components of the new structure are the result of applying the given
+procedure to the corresponding components of the given structures.
+
+[source, clojure]
+----
+((vector:elementwise proc) <v1> ... <vn>)
+((structure:elementwise proc) <s1> ... <sn>)
+((matrix:elementwise proc) <M1> ... <Mn>)
+((series:elementwise proc) <p1> ... <pn>)
+----
+
+Thus, vector addition is equivalent to `(vector:elementwise +)`.
+
+CAUTION: These do not yet work! If you need any of these, please feel free to
+file an issue https://github.com/sicmutils/sicmutils/pulls[here].
+
+== Clojure Vectors
+
+We identify the Clojure vector data type with mathematical `n`-dimensional vectors.
+These are interpreted as up tuples when a distinction between up tuples and down
+tuples is made.
+
+We inherit from Clojure the `vector` constructor, as well as the literal `[x y
+z]` form of construction. Select elements with `nth`. `count` returns the length
+of a vector. We also get the type predicate `vector?`.
+
+In the documentation that follows, `<v>` will stand for a vector-valued
+expression. Operations on vectors typically return an `up` structure, which is
+equivalent but explicit about its variance.
+
+[source, clojure]
+----
+(vector? <any>)           ;;=> <boolean>
+(kind <v>)                ;;=> clojure.lang.PersistentVector
+
+(exact? <v>).             ;;=> <boolean>
+     Is true if any component of <v> is inexact, otherwise it is false.
+
+(count <v>)               ;;=> <+integer>
+     gets the number of components of <v>
+
+(nth <v> <i>)
+     gets the <i>th (zero-based) component of vector <v>
+
+(get-in <v> [<i> <j> ,,,])
+     gets the <j>th element of the <i>th (zero-based) component of vector <v>
+
+(vector:generate <n> <procedure>)
+     generates an <n>-dimensional vector whose <i>th component is the
+     result of the application of the <procedure> to the number <i>.
+
+(zero-like <v>)           ;;=> <vector>
+     Gives the zero vector of the dimension of vector <v>.
+
+(zero? <v>)               ;;=> <boolean>
+(negate <v>)              ;;=> <up>
+
+(conjugate <v>)           ;;=> <vector>
+     Elementwise complex-conjugate of <v>
+----
+
+Simple arithmetic on vectors is componentwise:
+
+[source, clojure]
+----
+(= <v1> <v2> ...)         ;;=> <boolean>
+(+ <v1> <v2> ...)         ;;=> <up>
+(- <v1> <v2> ...)         ;;=> <up>
+----
+
+There are a variety of products defined on vectors.
+
+[source, clojure]
+----
+(dot-product   <v1> <v2>)    ;;=> <x>
+(inner-product <v1> <v2>)    ;;=> <x>
+(cross-product <v1> <v2>)
+----
+
+Cross product only makes sense for 3-dimensional vectors.
+
+[source, clojure]
+----
+(* <x> <v>)    =  (scalar*vector <x> <v>)       ;;=> <up>
+(* <v> <x>)    =  (vector*scalar <v> <x>)       ;;=> <up>
+(/ <v> <x>)    =  (vector*scalar <v> (/ 1 <x>)) ;;=> <up>
+----
+
+The product of two vectors makes an outer product structure:
+
+[source, clojure]
+----
+(* <v> <v>)    =  (outer-product <v> <v>) ;;=> <structure>
+----
+
+[source, clojure]
+----
+(abs <v>) = (sqrt (dot-product <v> <v>))
+
+(inner-product <v1> <v2>) = (dot-product (conjugate <v1>) <v2>)
+(magnitude <v>)      = (complex-norm <v>)
+----
+
+`*(v:make-basis-unit <n> <i>)*`
+
+Makes the `n`-dimensional basis unit vector with zero in all components except
+for the `i`-th component, which is one.
+
+WARNING: The following functions are referenced in the `scmutils` refman, but
+don't yet exist in SICMUtils. Please
+https://github.com/sicmutils/sicmutils/pulls[file a ticket] if this is
+something you need, or hang on until we get there.
+
+[source, clojure]
+----
+(maxnorm <v>)
+
+    Gives the maximum of the magnitudes of the components of `<v>`
+
+(v:make-unit <v>)  =  (/ <v> (euclidean-norm <v>))
+(v:unit? <v>)      =  (one? (euclidean-norm <v>))
+
+(v:basis-unit? <v>)
+
+    Is true if and only if <v> is a basis unit vector.
+----
+
+== Up Tuples and Down Tuples
+
+Sometimes it is advantageous to distinguish down tuples and up tuples. If the
+elements of up tuples are interpreted to be the components of vectors in a
+particular coordinate system, the elements of the down tuples may be thought of
+as the components of the dual vectors in that coordinate system. The union of
+the up tuple and the down tuple data types is the data type we call
+"structures."
+
+Structures may be recursive and they need not be uniform. Thus it is possible to
+have an up structure with three components: the first is a number, the second is
+an up structure with two numerical components, and the third is a down structure
+with two numerical components. Such a structure has size (or length) 3, but it
+has five dimensions.
+
+In SICMUtils, Clojure vectors are interpreted as up tuples, and the down tuples
+are distinguished. The predicate `structure?` is true of any down or up tuple,
+but the two can be distinguished by the predicates `up?` and `down?`.
+
+[source, clojure]
+----
+(up?    <any>) ;;=> <boolean>
+(down?  <any>) ;;=> <boolean>
+
+(structure? <any>) = (or (down? <any>) (up? <any>))
+----
+
+In the following, `<s>` stands for any structure-valued expression; `<up>` and
+`<down>` will be used if necessary to make the distinction.
+
+The generic `kind` operation distinguishes the types:
+
+[source, clojure]
+----
+(kind <s>) ;; => :sicmutils.structure/up or :sicmutils.structure/down
+----
+
+We reserve the right to change this implementation to distinguish Clojure
+vectors from up tuples. Thus, we provide (identity) conversions between vectors
+and up tuples.
+
+[source, clojure]
+----
+(vector->up <vector>)    ;;=> <up>
+(vector->down <vector>)  ;;=> <down>
+
+(structure->vector <structure>) ;;=> <clojure-vector>
+----
+
+Constructors are provided for these types, analogous to `list` and `vector`:
+
+[source, clojure]
+----
+(up . args)      ;;=> <up>
+(down . args)    ;;=> <down>
+----
+
+The dimension of a structure is the number of entries, adding up the numbers of
+entries from substructures. The dimension of any structure can be determined by
+
+[source, clojure]
+----
+(dimension <s>)       ;;=> <+integer>
+----
+
+Processes that need to traverse a structure need to know the number of
+components at the top level. This is the length of the structure:
+
+[source, clojure]
+----
+(count <s>)         ;;=> <+integer>
+----
+
+The `i`-th component (zero-based) can be accessed by:
+
+[source, clojure]
+----
+(ref <s> i)
+
+;; Or, to use the preferred native `get`:
+(get <s> i)
+----
+
+For example:
+
+[source, clojure]
+----
+(ref (up 3 (up 5 6) (down 2 4)) 1)
+;; (up 5 6)
+----
+
+As usual, the generic `ref` procedure or the native `get-in` can recursively
+access substructure:
+
+[source, clojure]
+----
+(get-in (up 3 (up 5 6) (down 2 4)) [1 0])
+;; => 5
+
+(ref (up 3 (up 5 6) (down 2 4)) 1 0)
+;; => 5
+----
+
+Given a structure `<s>` we can make a new structure of the same type with `<x>`
+substituted for the `<n>`-th component of the given structure using `assoc`:
+
+[source, clojure]
+----
+(assoc <s> <n> <x>)
+----
+
+We can construct an entirely new structure of length `<n>` whose components are
+the values of a procedure using `s:generate`:
+
+[source, clojure]
+----
+(s:generate <n> <up/down> <procedure>)
+----
+
+The `up/down` argument may be either `::structure/up` or `::structure/down`.
+
+The following generic arithmetic operations are defined for structures.
+
+
+`*(zero? <s>) ;;=> <boolean>*`
+
+is true if all of the components of the structure are zero.
+
+`*(zero-like <s>) ;;=> <s>*`
+
+produces a new structure with the same shape as the given structure but with all
+components being zero-like the corresponding component in the given structure.
+
+[source, clojure]
+----
+(negate <s>)    ;;=> <s>
+(magnitude <s>) ;;=> <s>
+(abs <s>)       ;;=> <s>
+(conjugate <s>) ;;=> <s>
+----
+
+produce new structures which are the result of applying the generic procedure
+elementwise to the given structure.
+
+[source, clojure]
+----
+(= <s1> ... <sn>) ;;=> <boolean>
+----
+
+is true only when the corresponding components are `=`.
+
+[source, clojure]
+----
+(+ <s1> ... <sn>) ;;=> <s>
+(- <s1> ... <sn>) ;;=> <s>
+----
+
+These are componentwise addition and subtraction.
+
+----
+(* <s1> <s2>) ;;=> <s> or <x> , a structure or a number
+----
+
+magically does what you want: If the structures are compatible for contraction
+the product is the contraction (the sum of the products of the corresponding
+components.) If the structures are not compatible for contraction the product is
+the structure of the shape and length of `<s2>` whose components are the
+products of `<s1>` with the corresponding components of `<s2>`.
+
+Structures are compatible for contraction if they are of the same length, of
+opposite type, and if their corresponding elements are compatible for
+contraction (or if either paired-up element is not a structure).
+
+It is not obvious why this is what you want, but try it, you'll like it!
+
+For example, the following are compatible for contraction:
+
+[source, clojure]
+----
+(* (up (up 2 3) (down 5 7 11))
+   (down (down 13 17) (up 19 23 29)))
+;;=> 652
+----
+
+Two up tuples are not compatible for contraction. Their product is an outer
+product:
+
+[source, clojure]
+----
+(* (up 2 3) (up 5 7 11))
+;; (up (up 10 15) (up 14 21) (up 22 33))
+
+(* (up 5 7 11) (up 2 3))
+;; (up (up 10 14 22) (up 15 21 33))
+----
+
+This product is not generally associative or commutative. It is commutative for
+structures that contract, and it is associative for structures that represent
+linear transformations.
+
+To yield additional flavor, the definition of `square` for structures is
+inconsistent with the definition of product. (It's defined as the `dot-product`
+of the structures.)
+
+It is possible to square an up tuple or a down tuple. The result is the sum of
+the squares of the components. This makes it convenient to write such things as
+`(/ (square p) (* 2 m))`, but it is sometimes confusing.
+
+Some structures, such as the ones that represent inertia tensors, must be
+inverted. (The `m` above may be an inertia tensor!)
+
+Division is arranged to make this work, when possible. The details are too hairy
+to explain in this short document. We probably need to write a book about this!
+
+NOTE: The "we" here is a comment from the authors of the original scmutils
+refman, not us!
+
+== Matrices
+
+There is an extensive set of operations for manipulating matrices. Let `<M>`,
+`<N>` be matrix-valued expressions. The following operations are provided:
+
+[source, clojure]
+----
+(matrix? <any>)           ;;=> <boolean>
+(kind <M>)                ;;=> ::m/matrix
+(exact? <M>)              ;;=> <boolean>
+----
+
+`*(matrix/num-rows <M>) ;;=> <n>*`
+
+the number of rows in matrix `M`.
+
+`*(matrix/num-cols <M>) ;;=> <n>*`
+
+the number of columns in matrix `M`.
+
+`*(dimension <M>) ;;=> <n>*``
+
+the number of rows (or columns) in a square matrix `M`. It is an error to try to
+get the dimension of a matrix that is not square.
+
+`*(matrix/column? <M>)*`
+
+is true if `M` is a matrix with one column. Note: neither a tuple nor a Clojure
+vector is a column matrix.
+
+`*(matrix/row? <M>)*`
+
+is true if `M` is a matrix with one row. Note: neither a tuple nor a Clojure
+vector is a row matrix.
+
+There are general constructors for matrices:
+
+[source, clojure]
+----
+(matrix-by-rows <row-list-1> ... <row-list-n>)
+----
+
+where the row lists are lists of elements that are to appear in the
+corresponding row of the matrix.
+
+[source, clojure]
+----
+(matrix-by-cols <col-list-1> ... <col-list-n>)
+----
+
+where the column lists are lists of elements that are to appear in the
+corresponding column of the matrix.
+
+`*(column-matrix <x1> ,,, <xn>)*`
+
+returns a column matrix with the given elements.
+
+`*(row-matrix <x1> ,,, <xn>)*`
+
+returns a row matrix with the given elements.
+
+Clojure's standard `get-in` selector works for the elements of a matrix:
+
+----
+(get-in <M> <n> <m>)
+----
+
+returns the element in the `m`-th column and the `n`-th row of matrix `M`.
+Remember, this is zero-based indexing.
+
+We can access various parts of a matrix like so:
+
+`*(matrix/nth-col <M> <n>) ;;=> <up>*`
+
+returns an up tuple with the elements of the `n`-th column of `M`.
+
+`*(matrix/nth-row <M> <n>) ;;=> <up>*`
+
+returns an up tuple with the elements of the `n`-th row of `M`.
+
+`*(m:diagonal <M>) ;;=> <up>*`
+
+returns an up tuple with the elements of the diagonal of the square matrix `M`.
+
+`*(matrix/submatrix <M> <from-row> <to-row> <from-col> <to-col>)*`
+
+extracts a submatrix from `M`, as in the following example:
+
+[source, clojure]
+----
+(-> (m:generate 3 4
+                (fn [i j]
+                  (* (square i)
+                     (cube j))))
+    (matrix/submatrix 1 2 1 3))
+;; (matrix-by-rows [1 8 27] [4 32 108])
+----
+
+`*(m:generate <n> <m> <procedure>) ;;=> <M>*`
+
+returns the `nXm` (`n` rows by `m` columns) matrix whose `ij`-th element is the
+value of the procedure when applied to arguments `i`, `j`.
+
+[source, clojure]
+----
+(let [f (fn [i j]
+          (* (square i) (cube j)))]
+  (m:generate 3 4 f))
+;; (matrix-by-rows [0 0 0 0] [0 1 8 27] [0 4 32 108])
+----
+
+`*(matrix/with-substituted-row <M> <n> <vector>)*`
+
+returns a new matrix constructed from `M` by substituting the Clojure vector `v`
+for the `n`-th row in `M`.
+
+We can transpose a matrix (producing a new matrix whose columns are the rows of
+the given matrix and whose rows are the columns of the given matrix with:
+
+[source, clojure]
+----
+(transpose <M>)
+----
+
+There are coercions between Clojure vectors and matrices:
+
+[source, clojure]
+----
+(matrix/column* <vector>)   ;;=> <M>
+
+(column-matrix->vector <M>) ;;=> <vector>
+
+
+(matrix/row*    <vector>)   ;;=> <M>
+
+(row-matrix->vector <M>)    ;;=> <vector>
+----
+
+And similarly for up and down tuples:
+
+[source, clojure]
+----
+(up->column-matrix <up>)      ;;=>  <M>
+
+(column-matrix->up <M>)       ;;=>  <up>
+
+
+(down->row-matrix <down>)     ;;=>  <M>
+
+(row-matrix->down <M>)        ;;=>  <down>
+----
+
+Matrices can be tested with the usual tests:
+
+[source, clojure]
+----
+(zero? <M>)
+(identity? <M>)
+(matrix/diagonal? <M>)
+----
+
+`*(matrix/make-zero <n>) ;;=> <M>*`
+
+returns an `nXn` (square) matrix of zeros.
+
+`*(matrix/make-zero <m> <n>) ;;=> <M>*`
+
+returns an `mXn` matrix of zeros.
+
+Useful matrices can be made easily, with the following constructors:
+
+`*(zero-like <M>) ;;=> <N>*`
+
+returns a zero matrix of the same dimensions as the given matrix.
+
+`*(matrix/I <n>) ;;=> <M>*`
+
+returns an identity matrix of dimension `n`.
+
+`*(matrix/make-diagonal <vector>) ;;=> <M>*`
+
+returns a square matrix with the given vector elements on the diagonal and zeros
+everywhere else.
+
+Matrices have the usual unary generic operators:
+
+----
+negate, invert, conjugate
+----
+
+However the generic operators
+
+----
+exp, sin, cos, tan, sec,
+acos, asin, atan,
+cosh, sinh, tanh,
+asinh, atanh
+----
+
+yield power series in the given matrix.
+
+Square matrices may be exponentiated to any exact positive integer power:
+
+[source, clojure]
+----
+(expt <M> <n>)
+----
+
+We may also get the determinant and the trace of a square matrix:
+
+[source, clojure]
+----
+(determinant <M>)
+(trace <M>)
+----
+
+The usual binary generic operators make sense when applied to matrices. However
+they have been extended to interact with other datatypes in a few useful ways.
+The componentwise operators
+
+[source, clojure]
+----
+=, +, -
+----
+
+are extended so that
+
+* if one argument is a square matrix, `M`,
+* and the other is a scalar, `x`,
+
+then the scalar is promoted to a diagonal matrix of the correct dimension and
+then the operation is done on those:
+
+[source, clojure]
+----
+(= <M> <x>) and (= <x> <M>)  tests if M = xI
+(+ <M> <x>) and (+ <x> <M>)  = M+xI
+(- <M> <x>) = M-xI and (- <x> <M>) = xI-M
+----
+
+Multiplication, `*`, is extended to allow a matrix to be multiplied on either
+side by a scalar.
+
+Additionally, a matrix may be multiplied on the left by a conforming down tuple,
+or on the right by a conforming up tuple.
+
+Division is interpreted to mean a number of different things depending on the
+types of the arguments. For any matrix `M` and scalar `x`:
+
+[source, clojure]
+----
+(/ <M> <x>)  =  (* <M> (/ 1 <x>))
+----
+
+If `M` is a square matrix then it is possible that it is invertible, so if `<x>`
+is either a scalar or a matrix, then `(/ <x> <M>) = (* <x> <N>)`, where `N` is
+the matrix inverse of `M`.
+
+In general, if `M` is a square matrix and `v` is either an up tuple or a column
+matrix, then `(/ <v> <M>) = <w>`, where `w` is of the same type as `v` and where
+`v=Mw`.
+
+Similarly, for `v` a down tuple `(/ <v> <M>) = <w>`, where `w` is a down tuple
+and where `v=wM`.
+
+== Functions
+
+In SICMUtils, functions are data just like other mathematical objects, and the
+generic arithmetic system is extended to include them. If `<f>` is an expression
+denoting a function, then:
+
+[source, clojure]
+----
+(fn? <any>)         ;;=> <boolean>
+(kind <f>)          ;;=> :sicmutils.value/function
+----
+
+Operations on functions generally construct new functions that are the
+composition of the operation with its arguments, thus applying the operation to
+the value of the functions: if `U` is a unary operation, if `f` is a function,
+and if `x` is arguments appropriate to `f`, then:
+
+[source, clojure]
+----
+((U f) x) = (U (f x))
+----
+
+If `B` is a binary operation, if `f` and `g` are functions, and if `x` is
+arguments appropriate to both `f` and `g`, then:
+
+[source, clojure]
+----
+((B f g) x) = (B (f x) (g x))
+----
+
+All of the usual unary operations are available. So if `<f>` is an expression
+representing a function, and if `<x>` is any kind of argument for `<f>` then,
+for example,
+
+[source, clojure]
+----
+((negate <f>) <x>) = (negate (f <x>))
+((invert <f>) <x>) = (invert (f <x>))
+((sqrt <f>) <x>)   = (sqrt (f <x>))
+----
+
+The other operations that behave this way are:
+
+[source, clojure]
+----
+exp, log, sin, cos, asin, acos, sinh, cosh, abs,
+real-part, imag-part, magnitude, angle, conjugate, atan
+----
+
+The binary operations are similar, with the exception that mathematical objects
+that may not be normally viewed as functions are coerced to constant functions
+for combination with functions.
+
+[source, clojure]
+----
+((+ <f> <g>) <x>) = (+ (f <x>) (g <x>))
+((- <f> <g>) <x>) = (- (f <x>) (g <x>))
+----
+
+For example:
+
+[source, clojure]
+----
+((+ sin 1) 'x) == (+ (sin 'x) 1)
+----
+
+The other operations that behave in this way are:
+
+[source, clojure]
+----
+*, /, expt, gcd, make-rectangular, make-polar
+----
+
+TIP: All generic operations should work this way, so give them a try even if
+they're not on the list.
+
+== Operators
+
+Operators are a special class of functions that manipulate functions. They
+differ from other functions in that multiplication of operators is understood as
+their composition, rather than the product of their values for each input. The
+prototypical operator is the derivative, `D`. For an ordinary function, such as
+`sin`:
+
+[source, clojure]
+----
+((expt sin 2) x) == (expt (sin x) 2)
+----
+
+but derivative is treated differently:
+
+[source, clojure]
+----
+((expt D 2) f) ==  (D (D f))
+----
+
+New operators can be made by combining others. So, for example, `(expt D 2)` is
+an operator, as is `(+ (expt D 2) (* 2 D) 3)`.
+
+We start with a few primitive operators, the total and partial derivatives,
+which will be explained in detail later.
+
+----
+o/identity
+
+derivative (also named D)
+
+(partial <component-selectors>)
+----
+
+If `<O>` is an expression representing an operator then
+
+----
+(o/operator? <any>)       ;;=> <boolean>
+(kind <O>)                ;;=> :sicmutils.operator/operator
+----
+
+Operators can be added, subtracted, multiplied, and scaled. If they are combined
+with an object that is not an operator, the non-operator is coerced to an
+operator that multiplies its input by the non-operator.
+
+The transcendental functions `exp`, `sin`, and `cos` are extended to take
+operator arguments. The resulting operators are expanded as power series.
+
+NOTE: this works for almost all of the trigonometric functions. If an operation
+is implemented for `:sicmutils.series/power-series` it will work for operators.
+
+== Power Series
+
+Power series are often needed in mathematical computations. There are a few
+primitive power series, and new power series can be formed by operations on
+existing power series. If `<p>` is an expression denoting a power series, then:
+
+[source, clojure]
+----
+(series/series? <any>)    ;;=> <boolean>
+(kind <p>)                ;;=> :sicmutils.series/series
+----
+
+Series can be constructed in a variety of ways. If one has a procedure that
+implements the general form of a coefficient then this gives the most direct
+method:
+
+For example, the `n`-th coefficient of the power series for the exponential
+function is `1/n!`. We can write this as
+
+[source, clojure]
+----
+(series/generate (fn [n] (/ 1 (factorial n))))
+----
+
+Sometimes we have a finite number of coefficients and we want to make a series
+with those given coefficients (assuming zeros for all higher-order
+coefficients). We can do this with the extensional constructor. Thus:
+
+[source, clojure]
+----
+(series 1 2 3 4 5)
+----
+
+is the series whose first coefficients are the arguments given.
+
+There are some nice initial series:
+
+`*series/zero*`
+
+is the series of all zero coefficients.
+
+`*series/one*`
+
+is the series of all zero coefficients except for the first (constant), which
+is one.
+
+`*(constant-series c)*`
+
+is the series of all zero coefficients except for the first (constant), which is
+the given constant.
+
+`*((binomial-series a) x)*`
+
+Returns a series containing the coefficients of the expansion of `(1+x)^a`.
+
+In addition, we provide the following initial series:
+
+[source, clojure]
+----
+exp-series, cos-series, sin-series, tan-series, sec-series,
+asin-series, acos-series, atan-series, acot-series,
+sinh-series, cosh-series, tanh-series, asinh-series, atanh-series,
+log1+x-series, log1-x-series,
+fib-series, catalan-series
+----
+
+Series can also be formed by processes such as exponentiation of an operator or
+a square matrix.
+
+For example, if `f` is any function of one argument, and if `x` and `dx` are
+numerical expressions, then this expression denotes the Taylor expansion of f
+around x.
+
+[source, clojure]
+----
+(let [f (literal-function 'f)]
+  (((exp (* 'dx D)) f) 'x))
+
+;; (f x)
+;; (* dx ((D f) x))
+;; (* 1/2 (expt dx 2) (((expt D 2) f) x))
+;; (* 1/6 (expt dx 3) (((expt D 3) f) x))
+;; (* 1/24 (expt dx 4) (((expt D 4) f) x))
+;; (* 1/120 (expt dx 5) (((expt D 5) f) x))
+;; (* 1/720 (expt dx 6) (((expt D 6) f) x))
+;; ...
+----
+
+We often want to show a few (`n`) terms of a series:
+
+[source, clojure]
+----
+(seq:print <n> <p>)
+
+;; pretty-printing version
+(seq:pprint <n> <p>)
+----
+
+For example, to show eight coefficients of the cosine series we might write:
+
+[source, clojure]
+----
+(seq:print 8 (((exp D) cos) 0))
+;; 1.0
+;; 0
+;; -1/2
+;; 0
+;; 1/24
+;; 0
+;; -1/720
+;; 0
+----
+
+We can make the sequence of partial sums of a series. The sequence is a stream,
+not a series.
+
+[source, clojure]
+----
+(seq:print 10 (partial-sums (((exp D) cos) 0.)))
+1.
+1.
+.5
+.5
+.5416666666666666
+.5416666666666666
+.5402777777777777
+.5402777777777777
+.5403025793650793
+.5403025793650793
+----
+
+Note that the sequence of partial sums approaches `(cos 1)`.
+
+[source, clojure]
+----
+(cos 1)
+;;=> .5403023058681398
+----
+
+In addition to the special operations for series, the following generic
+operations are defined for series:
+
+[source, clojure]
+----
+negate, invert, +, -, *, /, expt
+----
+
+NOTE: `sicmutils.series` has many more operations than this that aren't
+registered in the generic system. See the
+https://github.com/sicmutils/sicmutils/blob/master/src/sicmutils/series.cljc[`sicmutils.series`]
+namespace for a Literate Programming-style exposition of the capabilities
+SICMUtils affords for series and power series.
+
+== Generic extensions
+
+In addition to ordinary generic operations, there are a few important generic
+extensions. These are operations that apply to a whole class of datatypes,
+because they are defined in terms of more primitive generic operations.
+
+[source, clojure]
+----
+(identity x) = x
+
+(square x)   = (* x x)
+(cube x)     = (* x x x)
+----
+
+[source, clojure]
+----
+(arg-shift <f> <k1> ... <kn>)
+(arg-scale <f> <k1> ... <kn>)
+----
+
+Takes a function, `f`, of `n` arguments and returns a new function of `n`
+arguments that is the old function with arguments shifted or scaled by the given
+offsets or factors:
+
+[source, clojure]
+----
+((arg-shift square 3) 4) ;;=> 49
+((arg-scale square 3) 4) ;;=> 144
+----
+
+`*(sum <f> <lo> <hi>)*`
+
+Produces the sum of the values of the function f when called with the numbers
+between `lo` and `hi` exclusive.
+
+----
+(sum square 1 6)       ;;=> 30.0
+(sum identity 1 101)   ;;=> 5050
+----
+
+[source, clojure]
+----
+(compose <f1> ... <fn>)
+----
+
+Produces a procedure that computes composition of the functions represented by
+the procedures that are its arguments. This is like Clojure's `comp` function;
+the only difference is `compose` preserves the arity of the returned function
+when it can.
+
+[source, clojure]
+----
+((compose square sin) 3)    ;;=> .01991485667481699
+(square (sin 3))            ;;=> .01991485667481699
+----
+
+== Differentiation
+
+In this system we work in terms of functions; the derivative of a function is a
+function. The procedure for producing the derivative of a function is named
+"derivative", though we also use the single-letter symbol `D` to denote this
+operator.
+
+NOTE: The differentation offered by SICMUtils uses "forward mode Automatic
+Differentation". We plan to implement reverse-mode AD at some point, but it
+doesn't exist here yet.
+
+We start with functions of a real variable to a real variable:
+
+[source, clojure]
+----
+((D cube) 5) ;;=> 75
+----
+
+It is possible to compute the derivative of any composition of functions:
+
+[source, clojure]
+----
+((D (+ (square sin) (square cos))) 3)
+;;=> 0
+
+(defn unity1 [x]
+  (+ (square (sin x))
+     (square (cos x))))
+
+((D unity1) 4)
+;;=> 0
+
+(def unity2
+  (+ (compose square sin)
+     (compose square cos)))
+
+((D unity2) 4)
+;;=> 0
+----
+
+except that the computation of the value of the function may not require
+evaluating a conditional.
+
+NOTE: This note about conditionals is currently true in SICMUtils, but we're
+working on it. See
+https://github.com/sicmutils/sicmutils/issues/191[this ticket] for
+information on the plan to make generic comparisons in conditionals work in
+automatic differentiation.
+
+These derivatives are not numerical approximations estimated by some limiting
+process. However, as usual, some of the procedures that are used to compute the
+derivative may be numerical approximations.
+
+----
+((D sin) 3)    ;;=> -.9899924966004454
+(cos 3)        ;;=> -.9899924966004454
+----
+
+NOTE: If you _do_ want a numerical derivative, see the docstring for the
+`D-numeric` function.
+
+Of course, not all functions are simple compositions of univariate real-valued
+functions of real arguments. Some functions have multiple arguments, and some
+have structured values.
+
+First we consider the case of multiple arguments. If a function maps several
+real arguments to a real value, then its derivative is a representation of the
+gradient of that function -- we must be able to multiply the derivative by an
+incremental up tuple to get a linear approximation to an increment of the
+function, if we take a step described by the incremental up tuple. Thus the
+derivative must be a down tuple of partial derivatives. We will talk about
+computing partial derivatives later.
+
+Let's understand this in a simple case. Let `f(x,y) = x^3 y^5`:
+
+[source, clojure]
+----
+(defn f [x y]
+  (* (expt x 3)
+     (expt y 5)))
+----
+
+Then `Df(x,y)` is a down tuple with components `[2 x^2 y^5, 5 x^3 y^4]`:
+
+[source, clojure]
+----
+(simplify ((D f) 2 3)) ;;=> (down 2916 3240)
+----
+
+And the inner product with an incremental up tuple is the appropriate increment.
+
+----
+(* ((D f) 2 3) (up 0.1 0.2)) ;;=> 939.6
+----
+
+This is exactly the same as if we had a function of one up-tuple argument. Of
+course, we must supply an up-tuple to the derivative in this case:
+
+[source, clojure]
+----
+(defn g [[x y]]
+  (* (expt x 3)
+     (expt y 5)))
+
+(simplify ((D g) (up 2 3)))
+;;=> (down 2916 3240)
+
+(* ((D g) (up 2 3)) (up 0.1 0.2))
+;;=> 939.6
+----
+
+Things get somewhat more complicated when we have functions with multiple
+structured arguments. Consider a function whose first argument is an up tuple
+and whose second argument is a number, which adds the cube of the number to the
+dot product of the up tuple with itself.
+
+[source, clojure]
+----
+(defn h [v x]
+  (+ (cube x)
+     (square v)))
+----
+
+What is its derivative? Well, it had better be something that can multiply an
+increment in the arguments, to get an increment in the function. The increment
+in the first argument is an incremental up tuple. The increment in the second
+argument is a small number. Thus we need a down-tuple of two parts, a row of the
+values of the partial derivatives with respect to each component of the first
+argument and the value of the partial derivative with respect to the second
+argument. This is easier to see symbolically:
+
+[source, clojure]
+----
+(simplify ((D h) (up 'a 'b) 'c))
+;;=> (down (down (* 2 a) (* 2 b)) (* 3 (expt c 2)))
+----
+
+The idea generalizes.
+
+=== Partial Derivatives
+
+Partial derivatives are just the components of the derivative of a function that
+takes multiple arguments or structured arguments or both. Thus, a partial
+derivative of a function is a composition of a component selector and the
+derivative of that function.
+
+The procedure that makes a partial derivative operator given a selection chain
+is named `partial`.
+
+NOTE: Clojure also has a `partial` function, that returns the partial
+application of some function `f` to whatever arguments you supply. In the
+`sicmutils.env` namespace this is aliased as `core-partial`.
+
+For example:
+
+[source, clojure]
+----
+(simplify (((partial 0) h) (up 'a 'b) 'c))
+;;=> (down (* 2 a) (* 2 b))
+
+(simplify (((partial 1) h) (up 'a 'b) 'c))
+;;=> (* 3 (expt c 2))
+
+(simplify (((partial 0 0) h) (up 'a 'b) 'c))
+;;=> (* 2 a)
+
+(simplify (((partial 0 1) h) (up 'a 'b) 'c))
+;;=> (* 2 b)
+----
+
+This naming scheme is consistent, except for one special case. If a function
+takes exactly one up-tuple argument then one level of the hierarchy is
+eliminated, allowing one to naturally write:
+
+[source, clojure]
+----
+(simplify ((D g) (up 'a 'b)))
+;;=> (down (* 3 (expt a 2) (expt b 5))
+           (* 5 (expt a 3) (expt b 4)))
+
+(simplify (((partial 0) g) (up 'a 'b)))
+;;=> (* 3 (expt a 2) (expt b 5))
+
+(simplify (((partial 1) g) (up 'a 'b)))
+;;=> (* 5 (expt a 3) (expt b 4))
+----
+
+== Symbolic Extensions
+
+All primitive mathematical procedures are extended to be generic over symbolic
+arguments. When given symbolic arguments these procedures construct a symbolic
+representation of the required answer. There are primitive literal numbers. We
+can make a literal number that is represented as an expression by the symbol
+`'a` as follows:
+
+[source, clojure]
+----
+(literal-number 'a)
+----
+
+The literal number is an object that has the type of a number, but its
+representation as an expression is the symbol `'a`:
+
+[source, clojure]
+----
+(kind (literal-number 'a))
+;;=>  :sicmutils.expression/numeric
+
+(freeze (literal-number 'a))
+;;=>  a
+----
+
+Literal numbers may be manipulated, using the generic operators:
+
+[source, clojure]
+----
+(sin (+ (literal-number 'a) 3))
+;;=> (sin (+ 3 a))
+----
+
+To make it easy to work with literal numbers, Clojure symbols are interpreted by
+the generic operations as literal numbers:
+
+[source, clojure]
+----
+(sin (+ 'a 3))
+;;=>  (sin (+ 3 a))
+----
+
+We can extract the numerical expression from its type-tagged representation with
+the `freeze` procedure:
+
+[source, clojure]
+----
+(freeze (sin (+ 'a 3)))
+;;=>  (sin (+ 3 a))
+----
+
+but usually we really don't want to look at raw expressions
+
+[source, clojure]
+----
+(freeze ((D cube) 'x))
+;;=>  (+ (* x (+ x x)) (* x x))
+----
+
+because they are unsimplified. We will talk about simplification later, but for
+now note that `simplify` will usually give a better form:
+
+[source, clojure]
+----
+(simplify ((D cube) 'x))
+;;=>  (* 3 (expt x 2))
+----
+
+and `print-expression`, which incorporates `simplify`, will attempt to format
+the expression nicely.
+
+Besides literal numbers, there are other literal mathematical objects, such as
+vectors and matrices, that can be constructed with appropriate constructors:
+
+[source, clojure]
+----
+(literal-vector <name>)
+(literal-down-tuple <name>)
+(literal-up-tuple <name>)
+(literal-matrix <name>)
+(literal-function <name>)
+----
+
+WARNING: As of version `0.15.0`, most of these haven't yet been ported over to
+Clojure from `scmutils`. Stay tuned for a future release, as we have all of the
+machinery in place to do this.
+
+There are currently no simplifiers that can manipulate literal objects of these
+types into a nice form.
+
+== Literal Functions
+
+We often need literal functions in our computations. The object produced by
+`(literal-function 'f)` acts as a function of one real variable that produces a
+real result. The name (expression representation) of this function is the symbol
+`'f`. This literal function has a derivative, which is the literal function with
+expression representation `(D f)`. Thus, we may make up and manipulate
+expressions involving literal functions:
+
+[source, clojure]
+----
+(freeze ((literal-function 'f) 3))
+;;=>  (f 3)
+
+(simplify ((D (* (literal-function 'f) cos)) 'a))
+;;=> (+ (* ((D f) a) (cos a)) (* -1 (f a) (sin a)))
+
+(simplify
+ ((compose (D (* (literal-function 'f) cos))
+           (literal-function 'g))
+  'a))
+;;=> (+ (* ((D f) (g a)) (cos (g a)))
+        (* -1 (f (g a)) (sin (g a))))
+----
+
+We may use such a literal function anywhere that an explicit function of the
+same type may be used.
+
+=== The Literal function descriptor language
+
+We can also specify literal functions with multiple arguments and with
+structured arguments and results. For example, to denote a literal function
+named `g` that takes two real arguments and returns a real value `( g:RXR -> R
+)` we may write:
+
+[source, clojure]
+----
+(def g (literal-function 'g (-> (X Real Real) Real)))
+
+(print-expression (g 'x 'y))
+(g x y)
+----
+
+The descriptors for literal functions look like prefix versions of the standard
+function types. Thus, we write: `(literal-function 'g (-> (X Real Real) Real))`
+
+The base types are the real numbers, designated by `Real`. We will later extend
+the system to include complex numbers, designated by `Complex`.
+
+Types can be combined in several ways. The cartesian product of types is
+designated by:
+
+[source, clojure]
+----
+(X <type1> <type2> ...)
+----
+
+We use this to specify an argument tuple of objects of the given types arranged
+in the given order.
+
+Similarly, we can specify an up tuple or a down tuple with:
+
+[source, clojure]
+----
+(UP <type1> <type2> ...)
+(DOWN <type1> <type2> ...)
+----
+
+We can also specify a uniform tuple of a number of elements of the same type
+using:
+
+[source, clojure]
+----
+(UP* <type> [n])
+(DOWN* <type> [n])
+----
+
+So we can write specifications of more general functions:
+
+[source, clojure]
+----
+(def H
+  (literal-function 'H
+                    (-> (UP Real (UP Real Real)
+                            (DOWN Real Real))
+                        Real)))
+
+(def s (up 't (up 'x 'y) (down 'p_x 'p_y)))
+
+(print-expression (H s))
+;; (H (up t (up x y) (down p_x p_y)))
+
+(print-expression ((D H) s))
+;; (down
+;;  (((partial 0) H) (up t (up x y) (down p_x p_y)))
+;;  (down
+;;   (((partial 1 0) H) (up t (up x y) (down p_x p_y)))
+;;   (((partial 1 1) H) (up t (up x y) (down p_x p_y))))
+;;  (up
+;;   (((partial 2 0) H) (up t (up x y) (down p_x p_y)))
+;;   (((partial 2 1) H) (up t (up x y) (down p_x p_y)))))
+----
+
+== Numerical Methods
+
+There are a great variety of numerical methods that are coded in Clojure and are
+available in the SICMUtils system. Here we give a a short description of a few
+that are needed in the
+http://groups.csail.mit.edu/mac/users/gjs/6946/index.html[Mechanics course] that
+follows the book
+https://mitpress.mit.edu/books/structure-and-interpretation-classical-mechanics-second-edition[Structure
+and Interpretation of Classical Mechanics].
+
+=== Univariate Minimization
+
+One may search for local minima of a univariate function in a number of ways.
+The procedure `minimize`, used as follows:
+
+[source, clojure]
+----
+(minimize f lowx highx)
+----
+
+is the default minimizer. It searches for a minimum of the univariate function f
+in the region of the argument delimited by the values `lowx` and `highx`. Our
+univariate optimization programs typically return a map of the form
+
+[source, clojure]
+----
+{:result 1.0000131781122956
+ :value 1.000039534857877
+ :iterations 26
+ :converged? true
+ :fncalls 27}
+----
+
+where `:value` is the argument at which the extremal value `fx`, keyed by
+`:result`, is achieved.
+
+The procedure minimize uses Brent's method (don't ask how it works!).
+
+NOTE: This comment in the original `refman.txt` triggered a big investigation
+into how Brent's method works. It turns out there is a long history of this
+algorithm being cargo-culted along from library to library. I (@sritchie) now
+_do_ understand Brent's method, and I've tried to disgorge that understanding
+into the
+https://github.com/sicmutils/sicmutils/blob/master/src/sicmutils/numerical/unimin/brent.cljc[`sicmutils.numerical.unimin.brent`]
+namespace. Expect this to get better over time.
+
+The actual procedure in the system is:
+
+[source, clojure]
+----
+(defn minimize [f lowx highx]
+  (let [brent-error 1.0e-5]
+    (brent-min f lowx highx {:relative-threshold brent-error})))
+----
+
+We personally like Brent's algorithm for univariate minimization, as found on
+pages 79-80 of his book "Algorithms for Minimization Without Derivatives". It is
+pretty reliable and pretty fast, but we cannot explain how it works. (wink, see
+comment above.)
+
+Brent's method supports the following optional parameters:
+
+`*:callback*`
+
+if supplied, the supplied fn will be invoked at each intermediate point with the
+iteration count and the values of x and f(x) at each search step.
+
+`*:relative-threshold*`
+
+defaults to around `1.49e8`, the `sqrt` of the machine tolerance. You won't gain
+any benefit attempting to set the value less than the default.
+
+`*:absolute-threshold*`
+
+a smaller absolute threshold that applies when the candidate minimum point is
+close to 0.
+
+`*:maxiter*`
+
+Maximum number of iterations allowed for the minimizer. Defaults to 1000.
+
+`*:maxfun*`
+
+Maximum number of times the function can be evaluated before exiting. Defaults
+to `(inc maxiter)`.
+
+Thus, for example, if we make a function that is a quadratic polynomial with a
+minimum of `1` at `3`,
+
+[source, clojure]
+----
+(def foo (Lagrange-interpolation-function [2 1 2] [2 3 4]))
+----
+
+we can find the minimum quickly (in five iterations) with Brent's method:
+
+[source, clojure]
+----
+(brent-min foo 0 5 {:relative-threshold 1e-2})
+;;=> {:result 3.0, :value 1.0, :iterations 5, :converged? true, :fncalls 6}
+----
+
+Pretty good, eh?
+
+Golden Section search is sometimes an effective method, but it must be supplied
+with a convergence-test procedure, called `:converged?`. We have a nice default
+convergence test installed that you can customize instead with the parameters
+`:fn-tolerance` and `:arg-tolerance`:
+
+`*:fn-tolerance*`
+
+check that the minimal value of any of the checked points is within the maximum
+of `f(a)` or `f(b)`.
+
+`*:arg-tolerance*`
+
+check that `a` and `b` are within this supplied absolute distance.
+
+[source, clojure]
+----
+(golden-section-min f lowx highx {:fn-tolerance tol})
+(golden-section-max f lowx highx {:arg-tolerance tol})
+----
+
+If you supply a predicate to `:converged?`, it must take 5 arguments:
+
+[source, clojure]
+----
+[lowx flowx]      ;; current x, f(x) of the left bound
+[l fl]            ;; current x, f(x) of the left interior candidate point
+[r fr]            ;; current x, f(x) of the right interior candidate point
+[highx fhighx]    ;; current x, f(x) of the left bound
+current-iteration
+----
+
+`lowx` and `highx` are values of the argument that the minimum has been
+localized to be between, and `l` and `r` are the interior arguments currently
+being tendered.
+
+The values `flowx`, `fl`, `fr` and `fhighx` are the values of the function at
+the corresponding points; `current-iteration` is the number of iterations of the
+search.
+
+For example, suppose we want to squeeze the minimum of the polynomial function
+`foo` to a difference of argument positions of `0.001`:
+
+[source, clojure]
+----
+(let [halt? (fn [[lowx flowx] _ _ [highx fhighx] _]
+              (< (abs (- highx lowx)) 0.001))]
+  (golden-section-min foo 0 5 {:convergence-fn halt?}))
+
+;; {:result 3.0000059608609866
+;;  :value 1.0000000000355318
+;;  :converged? true
+;;  :iterations 22
+;;  :fncalls 26}
+----
+
+This is not so nice. It took 22 iterations and we didn't get anywhere near as
+good an answer as we got with Brent.
+
+NOTE: The following section describing `local-minima` and `local-maxima` does
+not yet work. A port of this work is in progress at
+https://github.com/sicmutils/sicmutils/pull/108[this PR], if you'd like
+to follow along.
+
+We can find a number of local minima of a multimodal function using a search
+that divides the initial interval up into a number of subintervals and then does
+Golden Section search in each interval. For example, we may make a quartic
+polynomial:
+
+[source, clojure]
+----
+(def bar
+  (Lagrange-interpolation-function [2 1 2 0 3] '(2 3 4 5 6)))
+----
+
+Now we can look for local minima of this function in the range `-10` to `+10`,
+breaking the region up into 15 intervals as follows:
+
+[source, clojure]
+----
+(local-minima bar -10 10 15 .0000001)
+  ;;=> ((5.303446964995252 -.32916549541536905 18)
+       (2.5312725379910592 .42583263999526233 18))
+----
+
+The search has found two local minima, each requiring 18 iterations to localize.
+The local maxima are also worth chasing:
+
+[source, clojure]
+----
+(local-maxima bar -10 10 15 .0000001)
+  ;;=> ((3.8192274368217713 2.067961961032311 17)
+       (10 680 31)
+       (-10 19735 29))
+----
+
+Here we found three maxima, but two are at the endpoints of the search.
+
+=== Multivariate minimization
+
+The default multivariate minimizer is `multidimensional-minimize`, which is a
+heavily sugared call to the Nelder-Mead minimizer. The function `f` being
+minimized is a function of a Clojure vector. The search starts at the given
+initial point, and proceeds to search for a point that is a local minimum of
+`f`.
+
+When the process terminates, the continuation function is called with three
+arguments. The first is true if the process converged and false if the minimizer
+gave up. The second is the actual point that the minimizer has found, and the
+third is the value of the function at that point.
+
+[source, clojure]
+----
+(multidimensional-minimize f initial-point continuation)
+----
+
+Thus, for example, to find a minimum of the function
+
+[source, clojure]
+----
+(defn baz [v]
+  (* (foo (ref v 0))
+     (bar (ref v 1))))
+----
+
+made from the two polynomials we constructed before, near the point `[4 3]`, we
+can try:
+
+[source, clojure]
+----
+(multidimensional-minimize baz [4 3] :info? true)
+;; {:result [2.99997171081307 2.5312072328438284]
+;;  :value 0.42583261986962734
+;; :converged? true
+;; :iterations 37
+;; :fncalls 74}
+----
+
+Indeed, a minimum was found, at about `[3 2.53]` with value `0.4258`.
+
+Of course, we usually need to have more control of the minimizer when searching
+a large space. ALl minimizers act on functions of Clojure vectors. The simplest
+minimizer is the Nelder Mead downhill simplex method, a slow but reasonably
+reliable method.
+
+[source, clojure]
+----
+(nelder-mead f start-pt start-step epsilon maxiter)
+----
+
+We give it a function, a starting point, a measure of the acceptable error, and
+a maximum number of iterations we want it to try before giving up. It returns a
+map telling whether it found a minimum, the place and value of the purported
+minimum, and the number of iterations it performed.
+
+For example, we can allow the algorithm to perturb each point by `0.05` as a
+starting step, and it will find the minimum after 43 steps:
+
+[source, clojure]
+----
+(nelder-mead baz [4 3] {:simplex-tolerance 0.00001 :nonzer-delta 0.05 :maxiter 100})
+;; {:result [3.000001515197215 2.531198812861102]
+;;  :value 0.42583261929212135
+;;  :converged? true
+;;  :iterations 43
+;; :fncalls 86}
+----
+
+or we can let it scale each point by a factor of 3, which will allow it to
+wander off into oblivion:
+
+[source, clojure]
+----
+(nelder-mead baz [4 3]
+  {:simplex-tolerance 0.00001 :nonzero-delta 3 :maxiter 100})
+
+;; {:result [-4.440321127041113E10 5.194986411837181]
+;;  :value -5.531848706349067E20
+;;  :converged? false
+;;  :iterations 101
+;;  :fncalls 200}
+----
+
+See
+https://github.com/sicmutils/sicmutils/blob/master/src/sicmutils/numerical/multimin/nelder_mead.cljc#L238[the
+documentation for `nelder-mead`] for the full menu of options and an accounting
+of the available defaults.
+
+WARNING: The following section describes algorithms that aren't yet implemented
+in SICMUtils. If you need these, please
+https://github.com/sicmutils/sicmutils/pulls[file an issue] and we can
+help you get started.
+
+If we know more than just the function to minimize we can use that information
+to obtain a better minimum faster than with the Nelder-Mead algorithm.
+
+In the Davidon-Fletcher-Powell algorithm, `f` is a function of a single vector
+argument that returns a real value to be minimized, `g` is the vector-valued
+gradient of `f`, `x0` is a (vector) starting point, and estimate is an estimate
+of the minimum function value. ftol is the convergence criterion: the search is
+stopped when the relative change in `f` falls below `ftol` or when the maximum
+number of iterations is exceeded.
+
+The procedure `dfp` uses Davidon's line search algorithm, which is efficient and
+would be the normal choice, but dfp-brent uses Brent's line search, which is
+less efficient but more reliable. The procedure `bfgs`, due to Broyden,
+Fletcher, Goldfarb, and Shanno, is said to be more immune than `dfp` to
+imprecise line search.
+
+[source, clojure]
+----
+(dfp f g x0 estimate ftol maxiter)
+(dfp-brent f g x0 estimate ftol maxiter)
+(bfgs f g x0 estimate ftol maxiter)
+----
+
+These are all used in the same way:
+
+[source, clojure]
+----
+(dfp baz (compose down->vector (D baz)) #(4 3) .4 .00001 100)
+ ;;=> (ok (#(2.9999717563962305 2.5312137271310036) . .4258326204265246) 4)
+----
+
+They all converge very fast, four iterations in this case.
+
+=== Quadrature
+
+Quadrature is the process of computing definite integrals of functions. A
+sugared default procedure for quadrature is provided, and we hope that it is
+adequate for most purposes.
+
+[source, clojure]
+----
+(definite-integral <integrand>
+                   <lower-limit> <upper-limit>
+                   {:compile? true})
+----
+
+The integrand must be a real-valued function of a real argument. The limits of
+integration are specified as additional arguments.
+
+Optionally you can supply a map of keyword arguments. The top level
+`definite-integral` function uses the following three arguments:
+
+* `*:compile?*` can be used to suppress compilation of the integrand, thus
+  forcing it to be interpreted. This is usually to be ignored.
+* `*:info?*`: If true, `definite-integral` will return a map of integration
+  information returned by the underlying integrator. Else, returns an estimate
+  of the definite integral.
+* `*:method*`: Specifies the integration method used. Must be:
+** a keyword naming one of the available methods in
+   https://github.com/sicmutils/sicmutils/blob/1aa81540a8109199ad111bde6ed5021624e62b73/src/sicmutils/numerical/quadrature.cljc#L65[`available-methods`]
+** a function with the proper integrator signature
+** a dictionary of integrator options with a `:method` key
+
+`:method` defaults to `:open`, which specifies an adaptive bulirsch-stoer
+quadrature method. The other allowed / supported methods are:
+
+[source, clojure]
+----
+:open
+:closed
+:closed-open
+:open-closed
+:bulirsch-stoer-open
+:bulirsch-stoer-closed
+:adaptive-bulirsch-stoer
+:left-riemann
+:right-riemann
+:lower-riemann
+:upper-riemann
+:midpoint
+:trapezoid
+:boole
+:milne
+:simpson
+:simpson38
+:romberg
+:romberg-open
+----
+
+The quadrature methods are all based on extrapolation. The Romberg method is a
+Richardson extrapolation of the trapezoid rule. It is usually worse than the
+other methods, which are adaptive rational function extrapolations of Trapezoid
+and Midpoint rules.
+
+Closed integrators are best if we can include the endpoints of integration. This
+cannot be done if the endpoint is singular: thus the open formulas. Also, open
+formulas are forced when we have infinite limits.
+
+Let's do an example, it is as easy as pi!
+
+[source, clojure]
+----
+(defn witch [x]
+  (/ 4.0 (+ 1.0 (* x x))))
+
+(definite-integral witch 0.0 1.0
+  {:method :romberg :tolerance 1e-12})
+;; => 3.141592653589793
+----
+
+Here's another example for fun:
+
+[source, clojure]
+----
+(defn foo [n]
+  (let [f (fn [x] (expt (log (/ 1 x)) n))]
+    (definite-integral
+      f 0.0 1.0
+      {:tolerance 1e-12
+       :method :open-closed})))
+
+(foo 0)
+;;=> 1.0
+
+(foo 1)
+;;=> 0.9999999999983304
+
+(foo 2)
+;;=> 1.999999999998337
+
+(foo 3)
+;;=> 5.999999999998272
+
+(foo 4)
+;;=> 23.99999999949962
+
+(foo 5)
+;;=> 119.99999998778476
+----
+
+Do you recognize this function?  What is `(foo 6)`?
+
+=== ODE Initial Value Problems
+
+Initial-value problems for ordinary differential equations can be attacked by a
+great many specialized methods. Numerical analysts agree that there is no best
+method. Each has situations where it works best and other situations where it
+fails or is not very good. Also, each technique has numerous parameters, options
+and defaults.
+
+The default integration method is Bulirsch-Stoer. Usually, the Bulirsch-Stoer
+algorithm will give better and faster results than others, but there are
+applications where a quality-controlled trapezoidal method or a
+quality-controlled 4th order Runge-Kutta method is appropriate. The algorithm
+used can be set by the user:
+
+[source, clojure]
+----
+(set-ode-integration-method! 'qcrk4)
+(set-ode-integration-method! 'bulirsch-stoer)
+(set-ode-integration-method! 'qcctrap2)
+(set-ode-integration-method! 'explicit-gear)
+----
+
+WARNING: In SICMUtils we currently only support the Gragg-Bulirsch-Stoer
+algorithm. If you need any of the others, please
+https://github.com/sicmutils/sicmutils/pulls[file a PR] and we can
+discuss how to get these in for you.
+
+The integration methods all automatically select the step sizes to maintain the
+error tolerances. But if we have an exceptionally stiff system, or a bad
+discontinuity, for most integrators the step size will go down to zero and the
+integrator will make no progress. If you encounter such a disaster try
+`explicit-gear`.
+
+We have programs that implement other methods of integration, such as an
+implicit version of Gear's stiff solver, and we have a whole language for
+describing error control, but these features are not available through this
+interface.
+
+The two main interfaces are `evolve` and `state-advancer`.
+
+The procedure `state-advancer` is used to advance the state of a system
+according to a system of first order ordinary differential equations for a
+specified interval of the independent variable. The state may have arbitrary
+structure, however we require that the first component of the state is the
+independent variable.
+
+The procedure `evolve` uses `state-advancer` to repeatedly advance the state of
+the system by a specified interval, examining aspects of the state as the
+evolution proceeds.
+
+In the following descriptions we assume that `sysder` is a user provided
+procedure that gives the parametric system derivative. The parametric system
+derivative takes parameters, such as a mass or length, and produces a procedure
+that takes a state and returns the derivative of the state. Thus, the system
+derivative takes arguments in the following way:
+
+[source, clojure]
+----
+((sysder parameter-1 ... parameter-n) state)
+----
+
+There may be no parameters, but then the system derivative procedure must still
+be called with no arguments to produce the procedure that takes states to the
+derivative of the state.
+
+For example, if we have the differential equations for an ellipse centered on
+the origin and aligned with the coordinate axes:
+
+    Dx(t) = -a y(t)
+    Dy(t) = +b x(t)
+
+We can make a parametric system derivative for this system as follows:
+
+[source, clojure]
+----
+(defn ellipse-sysder [a b]
+  (fn [[t x y]]
+    (up 1				   ;; dt/dt
+        (* -1 a y) ;; dx/dt
+        (* b x)))) ;; dy/dt
+----
+
+The procedure `evolve` is invoked as follows:
+
+[source, clojure]
+----
+((evolve sysder . parameters)
+ initial-state dt final-t optional-opts)
+----
+
+The user can pass a procedure via the keyword `:observe` in `optional-opts` that
+takes the state as an argument.
+
+The `:observe` fn is passed successive states of the system as the evolution
+proceeds. For example it might be used to print the state or to plot some
+interesting function of the state.
+
+The interval between calls to the monitor is the argument `dt`. The evolution
+stops when the independent variable is larger than `final-t`. The optional
+keyword argument parameter `:epsilon` specifies the allowable error.
+
+For example, we can evolve our state forward for 10 seconds:
+
+[source, clojure]
+----
+((evolve ellipse-sysder 0.5 2.0)
+ (up 0. .5 .5)	;; initial state
+ 0.01           ;; step size
+ 10.0)          ;; final value of t
+;;=> (up 9.99999999999992 -0.2835304866702712 -0.9635568769766077)
+----
+
+To take more control of the integration one may use the state advancer directly.
+
+The procedure `state-advancer` is invoked as follows:
+
+[source, clojure]
+----
+((state-advancer sysder . parameters) start-state dt optional-args)
+----
+
+The state advancer will give a new state resulting from evolving the start state
+by the increment `dt` of the independent variable. The allowed local truncation
+error is specified by the optional keyword argument `:epsilon`:
+
+For example,
+
+[source, clojure]
+----
+((state-advancer ellipse-sysder 0.5 2.0)
+  (up 0 0.5 0.5) 3.0 {:epsilon 1e-10})
+;;=> (up 2.999999999999995 -0.530276250315008 -0.35387624023977055)
+----
+
+For a more complex example that shows the use of substructure in the state,
+consider the two-dimensional harmonic oscillator:
+
+[source, clojure]
+----
+(defn harmonic-sysder [m k]
+  (fn [state]
+    (let [[x y]   (coordinate state)
+          [px py] (momentum state)]
+      (up 1                                ;; dt/dt
+          (up (/ px m) (/ py m))           ;; dq/dt
+          (down (* -1 k x) (* -1 k y)))))) ;; dp/dt
+----
+
+We could monitor the energy (the Hamiltonian):
+
+[source, clojure]
+----
+(defn H [m k]
+  (fn [state]
+    (+ (/ (square (momentum state))
+          (* 2 m))
+       (* (/ 1 2) k
+          (square (coordinate state))))))
+
+(let [initial-state (up 0
+                        (up 0.5 0.5)
+                        (down 0.1 0.0))
+      monitor (fn [_ state]
+                (println
+                 (state->t state)
+                 "\t"
+                 ((H m k) state)))
+      step-size 1.0
+      final-time 10
+      m 0.5
+      k 2.0]
+  ((evolve harmonic-sysder m k)
+   initial-state
+   step-size
+   final-time
+   {:observe monitor}))
+
+;; 0.0                  0.51
+;; 0.9999999999999986 	 0.5100000000359725
+;; 1.9999999999999933 	 0.5100000001529045
+;; 2.9999999999999893 	 0.5100000002789965
+;; 3.999999999999993 	 0.5100000004050876
+;; 5.000000000000025 	 0.5100000005311794
+;; 6.0000000000000515 	 0.5100000006572705
+;; 7.000000000000078 	 0.510000000783362
+;; 8.000000000000105 	 0.5100000009094526
+;; 9.0000000000001 	   0.5100000010355437
+;; 10.000000000000103 	 0.510000001191079
+----
+
+== Constants
+
+There are a few constants that we find useful, and are thus provided in
+SICMUtils.
+
+[source, clojure]
+----
+(def pi (* 4 (atan 1 1)))
+(def -pi (- pi))
+----
+
+For numerical analysis, we provide the smallest number that when added to `1.0`
+makes a difference:
+
+[source, clojure]
+----
+(def machine-epsilon
+  (loop [e 1.0]
+    (if (= 1.0 (+ e 1.0))
+      (* e 2.0)
+      (recur (/ e 2.0)))))
+
+(def sqrt-machine-epsilon
+  (Math/sqrt machine-epsilon))
+----
+
+==  Physical Units
+
+NOTE: `scmutils` describes a number of units and constants in this section that
+aren't actually available in the original system. We're working on an
+implementation of the
+https://github.com/sicmutils/sicmutils/issues/181[units system] from
+`scmutils` at https://github.com/sicmutils/sicmutils/issues/181[this
+ticket]; follow along there for updates.
+
+== MORE TO BE DOCUMENTED
+
+NOTE: These are items mentioned in the original refman, included here for
+completeness. The definitely location of the SICMUtils documentation is our
+https://cljdoc.org/d/sicmutils/sicmutils/CURRENT[cljdoc site], so please visit
+there for more information.
+
+- Solutions of Equations
+- Linear Equations (lu, gauss-jordan, full-pivot)
+- Linear Least Squares (svd)
+- Roots of Polynomials
+- Searching for roots of other nonlinear disasters
+- Matrices
+- Eigenvalues and Eigenvectors
+- Series and Sequence Extrapolation
+- Special Functions
+- Displaying results
+
+Lots of other stuff that we cannot remember.

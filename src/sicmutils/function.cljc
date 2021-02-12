@@ -1,390 +1,589 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.function
-  (:require [sicmutils.expression :as x]
+  "Procedures that act on Clojure's function and multimethod types, along with
+  extensions of the SICMUtils generic operations to functions.
+
+  See [the `Function`
+  cljdocs](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/data-types/function)
+  for a discussion of generic function arithmetic."
+  (:refer-clojure :rename {get core-get
+                           get-in core-get-in}
+                  #?@(:cljs [:exclude [get get-in]]))
+  (:require [clojure.core.match :refer [match]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.generic :as g]
-            [sicmutils.matrix :as m]
-            [sicmutils.numsymb :as ns]
-            [sicmutils.polynomial]
-            [sicmutils.structure :as s]
             [sicmutils.util :as u]
-            [sicmutils.value :as v]
-            [sicmutils.calculus.derivative :as d])
+            [sicmutils.value :as v])
   #?(:clj
-     (:import [clojure.lang IFn])))
+     (:import (clojure.lang RestFn Fn MultiFn Keyword Symbol Var)
+              (java.lang.reflect Method))))
 
-(declare literal-apply)
-
-(defn ^:private sicm-set->exemplar
-  "Convert a SICM-style set (e.g., Real or (UP Real Real)) to
-  an exemplar (an instance of the relevant type)."
-  [s]
-  (cond
-    (= s 'Real) 0
-
-    (sequential? s)
-    (let [[constructor & args] s]
-      (case constructor
-        X     (mapv sicm-set->exemplar args)
-        UP    (apply s/up (map sicm-set->exemplar args))
-        DOWN  (apply s/down (map sicm-set->exemplar args))
-        UP*   (apply s/up (repeat (second args) (sicm-set->exemplar (first args))))
-        DOWN* (apply s/down (repeat (second args) (sicm-set->exemplar (first args))))
-        X*    (into [] (repeat (second args) (sicm-set->exemplar (first args))))))))
-
-(defn sicm-signature->domain-range
-  "Convert a SICM-style literal function signature (e.g.,
-  '(-> Real (X Real Real)) ) to our 'exemplar' format."
-  [[arrow domain range]]
-  (when-not (and (= '-> arrow) domain range)
-    (u/illegal (str "A SICM signature is of the form '(-> domain range), got: " arrow domain range)))
-  [(let [d (sicm-set->exemplar domain)]
-     (if (vector? d) d [d]))
-   (sicm-set->exemplar range)])
-
-(defrecord Function [name arity domain range]
-  Object
-  (toString [_] (str name) )
-  v/Value
-  (nullity? [_] false)
-  (unity? [_] false)
-  (zero-like [_] (fn [& _] (v/zero-like range)))
-  (numerical? [_] false)
-  (freeze [_] (v/freeze name))
-  (kind [_] ::function)
-
-  #?@(:clj
-      [IFn
-       (invoke [f x] (literal-apply f [x]))
-       (invoke [f x y] (literal-apply f [x y]))
-       (invoke [f x y z] (literal-apply f [x y z]))
-       (invoke [f w x y z] (literal-apply f [w x y z]))
-       (applyTo [f xs] (literal-apply f xs))]
-
-      :cljs
-      [IFn
-       (-invoke [f a]
-                (literal-apply f [a]))
-       (-invoke [f a b]
-                (literal-apply f [a b]))
-       (-invoke [f a b c]
-                (literal-apply f [a b c]))
-       (-invoke [f a b c d]
-                (literal-apply f [a b c d]))
-       (-invoke [f a b c d e]
-                (literal-apply f [a b c d e]))
-       (-invoke [f a b c d e f]
-                (literal-apply f [a b c d e f]))
-       (-invoke [f a b c d e f g]
-                (literal-apply f [a b c d e f g]))
-       (-invoke [f a b c d e f g h]
-                (literal-apply f [a b c d e f g h]))
-       (-invoke [f a b c d e f g h i]
-                (literal-apply f [a b c d e f g h i]))
-       (-invoke [f a b c d e f g h i j]
-                (literal-apply f [a b c d e f g h i j]))
-       (-invoke [f a b c d e f g h i j k]
-                (literal-apply f [a b c d e f g h i j k]))
-       (-invoke [f a b c d e f g h i j k l]
-                (literal-apply f [a b c d e f g h i j k l]))
-       (-invoke [f a b c d e f g h i j k l m]
-                (literal-apply f [a b c d e f g h i j k l m]))
-       (-invoke [f a b c d e f g h i j k l m n]
-                (literal-apply f [a b c d e f g h i j k l m n]))
-       (-invoke [f a b c d e f g h i j k l m n o]
-                (literal-apply f [a b c d e f g h i j k l m n o]))
-       (-invoke [f a b c d e f g h i j k l m n o p]
-                (literal-apply f [a b c d e f g h i j k l m n o p]))
-       (-invoke [f a b c d e f g h i j k l m n o p q]
-                (literal-apply f [a b c d e f g h i j k l m n o p q]))
-       (-invoke [f a b c d e f g h i j k l m n o p q r]
-                (literal-apply f [a b c d e f g h i j k l m n o p q r]))
-       (-invoke [f a b c d e f g h i j k l m n o p q r s]
-                (literal-apply f [a b c d e f g h i j k l m n o p q r s]))
-       (-invoke [f a b c d e f g h i j k l m n o p q r s t]
-                (literal-apply f [a b c d e f g h i j k l m n o p q r s t]))
-       (-invoke [f a b c d e f g h i j k l m n o p q r s t rest]
-                (literal-apply f (concat [a b c d e f g h i j k l m n o p q r s t]  rest)))]))
-
-(def ^:private orientation->symbol {::s/up "↑" ::s/down "_"})
-
-(defn literal-function
-  ([f] (->Function f [:exactly 1] [0] 0))
-  ([f signature]
-   (let [[domain range] (sicm-signature->domain-range signature)]
-     (literal-function f domain range)))
-  ([f domain range]
-   (cond (number? range)
-         (->Function f [:exactly (if (vector? domain) (count domain) 1)]
-                     (if (vector? domain) domain [domain])
-                     range)
-
-         (s/structure? range)
-         (s/same range (map-indexed (fn [index component]
-                                      (literal-function
-                                       (symbol (str f
-                                                    (orientation->symbol (s/orientation range))
-                                                    index))
-                                       domain
-                                       component))
-                                    range))
-
-         :else
-         (u/illegal (str "WTF range" domain)))))
-
-(def ^:private derivative-symbol 'D)
-
-;; --------------------
-;; Algebra of functions
+;; ## Function Algebra
 ;;
+;; this namespace extends the sicmutils generic operations to Clojure functions
+;; and multimethods. (Of course, this includes the generic operations
+;; themselves!)
 
-(defn ^:private unary-operation
-  "For a unary operator (like sqrt), returns a function of one function
-  which when called will apply the operation to the result of the
-  original function (so that ((unary-operation sqrt) f) x) will return
-  (sqrt (f x))."
-  [operator]
-  (with-meta (partial comp operator) {:arity [:exactly 1]}))
+;; ### Utilities
 
-(defn ^:private binary-operation
-  "For a given binary operator (like +), returns a function of two
-  functions which will produce the pointwise operation of the results
-  of applying the two functions to the input. That
-  is, (binary-operation +) applied to f and g will produce a function
-  which computes (+ (f x) (g x)) given x as input."
-  [operator]
-  (let [h (fn [f g]
-            (let [f-numeric (g/numerical-quantity? f)
-                  g-numeric (g/numerical-quantity? g)
-                  f-arity (if f-numeric (v/arity g) (v/arity f))
-                  g-arity (if g-numeric f-arity (v/arity g))
-                  arity (v/joint-arity [f-arity g-arity])
-                  f1 (if f-numeric (with-meta
-                                     (constantly f)
-                                     {:arity arity
-                                      :from :binop}) f)
-                  g1 (if g-numeric (with-meta
-                                     (constantly g)
-                                     {:arity arity
-                                      :from :binop}) g)]
-              (let [h (condp = arity
-                        [:exactly 0]
-                        #(operator (f1) (g1))
-                        [:exactly 1]
-                        #(operator (f1 %) (g1 %))
-                        [:exactly 2]
-                        #(operator (f1 %1 %2) (g1 %1 %2))
-                        [:exactly 3]
-                        #(operator (f1 %1 %2 %3) (g1 %1 %2 %3))
-                        [:exactly 4]
-                        #(operator (f1 %1 %2 %3 %4) (g1 %1 %2 %3 %4))
-                        [:exactly 5]
-                        #(operator (f1 %1 %2 %3 %4 %5) (g1 %1 %2 %3 %4 %5))
-                        [:exactly 6]
-                        #(operator (f1 %1 %2 %3 %4 %5 %6) (g1 %1 %2 %3 %4 %5 %6))
-                        [:exactly 7]
-                        #(operator (f1 %1 %2 %3 %4 %5 %6 %7) (g1 %1 %2 %3 %4 %5 %6 %7))
-                        [:exactly 8]
-                        #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8) (g1 %1 %2 %3 %4 %5 %6 %7 %8))
-                        [:exactly 9]
-                        #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9))
-                        [:exactly 10]
-                        #(operator (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10))
-                        [:at-least 0]
-                        #(operator (apply f1 %&) (apply g1 %&))
-                        (u/illegal (str  "unsupported arity for function arithmetic " arity)))]
-                (with-meta h {:arity f-arity :from :function-binop}))))]
-    (with-meta h {:arity [:exactly 2]})))
+(defprotocol IArity
+  (arity [f]
+    "Return the cached or obvious arity of `f` if we know it. Otherwise
+    delegates to heavy duty reflection."))
 
-(defn ^:private make-binary-operation
-  "Given a generic and binary function operation,
-  define the multimethods necessary to introduce this operation
-  to function arguments."
-  [generic-op binary-op]
-  (let [binop (binary-operation binary-op)]
-    (doseq [signature [[::function ::function]
-                       [::function ::cofunction]
-                       [::cofunction ::function]]]
-      (defmethod generic-op signature [a b] (binop a b)))))
+(extend-protocol IArity
+  #?(:clj Object :cljs default)
+  (arity [o]
+    (or (:arity (meta o))
+        ;; Faute de mieux, we assume the function is unary. Most math functions
+        ;; are.
+        [:exactly 1]))
 
-(defn ^:private make-unary-operation
-  [generic-op]
-  (let [unary-op (unary-operation generic-op)]
-    (defmethod generic-op [::function] [a] (unary-op a))))
+  Symbol
+  (arity [_] [:exactly 0])
 
-(make-binary-operation g/add g/+)
-(make-binary-operation g/sub g/-)
-(make-binary-operation g/mul g/*)
-(make-binary-operation g/div g/divide)
-(make-binary-operation g/expt g/expt)
+  MultiFn
+  ;; If f is a multifunction, then we expect that it has a multimethod
+  ;; responding to the argument :arity, which returns the arity.
+  (arity [f] (f :arity)))
 
-(make-unary-operation g/negate)
-(make-unary-operation g/invert)
-(make-unary-operation g/sqrt)
-(make-unary-operation g/sin)
-(make-unary-operation g/asin)
-(make-unary-operation g/cos)
-(make-unary-operation g/acos)
-(make-unary-operation g/tan)
-(make-unary-operation g/atan)
-(make-unary-operation g/square)
-(make-unary-operation g/cube)
-(make-unary-operation g/exp)
-(make-unary-operation g/log)
-(make-unary-operation g/transpose)
+(defn function?
+  "Returns true if `f` is of [[v/kind]] `::v/function`, false otherwise."
+  [f]
+  (isa? (v/kind f) ::v/function))
 
-;; TODO sinh cosh ...
+(defn with-arity
+  "Appends the supplied `arity` to the metadata of `f`, knocking out any
+  pre-existing arity notation.
 
-(defmethod g/simplify [Function] [a] (g/simplify (:name a)))
-(derive ::x/numerical-expression ::cofunction)
-(derive ::s/structure ::cofunction)
-(derive ::m/matrix ::cofunction)
-
-;; Clojure functions, returns by v/primitive-kind.
-(derive ::v/function ::function)
-
-(derive ::function :sicmutils.series/coseries)
-;; ------------------------------------
-;; Differentiation of literal functions
-;;
-
-(defn symbolic-derivative?
-  [expr]
-  (and (sequential? expr)
-       ;; XXX GJS uses 'derivative here; should we? doesn't he just
-       ;; have to change it back to D when printing?
-       (= (first expr) derivative-symbol)))
-
-(defn iterated-symbolic-derivative?
-  [expr]
-  (and (sequential? expr)
-       (sequential? (first expr))
-       (ns/expt? (first expr))
-       (= (second (first expr)) derivative-symbol)))
-
-(defn symbolic-increase-derivative [expr]
-  (cond (symbolic-derivative? expr)
-        (list (ns/expt derivative-symbol 2) (fnext expr))
-        (iterated-symbolic-derivative? expr)
-        (list (ns/expt derivative-symbol
-                       (+ (first (nnext (first expr)))
-                          1))
-              (fnext expr))
-        :else
-        (list derivative-symbol expr)))
-
-(defn ^:private make-partials
-  [f v]
-  ;; GJS calls this function (the loop below) "fd"; we have no idea
-  ;; what that stands for or what
-  ;; is being attempted here
-  (letfn [(fd [indices vv]
-            (cond (s/structure? vv)
-                  (s/same vv (map-indexed (fn [i element]
-                                            (fd (conj indices i) element))
-                                          vv))
-                  (or (g/numerical-quantity? vv)
-                      (g/abstract-quantity? vv))
-                  (let [fexp (if (= (:arity f) [:exactly 1])  ; univariate
-                               (if (= (first indices) 0)
-                                 (if (= (count indices) 1)
-                                   (symbolic-increase-derivative (:name f))
-                                   `((~'partial ~@(next indices)) ~(:name f)))
-                                 (u/illegal "wrong indices"))
-                               `((~'partial ~@indices) ~(:name f)))]
-                    (->Function fexp (:arity f) (:domain f) (:range f)))
-                  :else
-                  (u/illegal (str "make-partials WTF " vv))))]
-    (fd [] v)))
-
-
-(defn ^:private literal-derivative
-  [f xs]
-  (let [v (m/seq-> xs)
-        maxtag (->> v flatten d/max-order-tag)
-        ve (->> v (s/mapr #(d/without-tag maxtag %)) seq)
-        dv (->> v (s/mapr #(d/with-tag maxtag %)))]
-    (d/canonicalize-differential
-     (d/dx+dy (apply f ve)
-              (reduce d/dx+dy (map (fn [partialx dx]
-                                     (d/dx*dy (apply partialx ve) dx))
-                                   (flatten (make-partials f v))
-                                   (flatten dv)))))))
-
-(defn ^:private check-argument-type
-  "Check that the argument provided at index i has the same type as
-  the exemplar expected."
-  [f provided expected indexes]
-  (cond (number? expected)
-        (when-not (g/numerical-quantity? provided)
-          (u/illegal (str "expected numerical quantity in argument " indexes
-                          " of function call " f
-                          " but got " provided)))
-        (s/structure? expected)
-        (do (when-not (and (or (s/structure? provided) (sequential? provided))
-                           (= (s/orientation provided) (s/orientation expected))
-                           (= (count provided) (count expected)))
-              (u/illegal (str "expected structure matching " expected
-                              " but got " provided )))
-            (doseq [[provided expected sub-index] (map list provided expected (range))]
-              (check-argument-type f provided expected (conj indexes sub-index))))
-        (keyword? expected) ;; a keyword has to match the argument's kind
-        (when-not (= (v/kind provided) expected)
-          (u/illegal (str "expected argument of type " expected " but got " (v/kind provided)
-                          " in call to function " f)))
-
-        :else (u/illegal (str "unexpected argument example. got " provided " want " expected))))
-
-(defn ^:private literal-apply
-  [f xs]
-  (check-argument-type f xs (:domain f) [0])
-  (if (some d/differential? xs)
-    (literal-derivative f xs)
-    (x/literal-number `(~(:name f) ~@(map v/freeze xs)))))
-
-;;; Utilities
+  Optionally accepts a third parameter `m` of metadata to attach to the return
+  function, in addition to the new `:arity` key."
+  ([f arity]
+   (with-arity f arity {}))
+  ([f arity m]
+   (let [new-meta (-> (meta f)
+                      (merge m)
+                      (assoc :arity arity))]
+     (if new-meta
+       (with-meta f new-meta)))))
 
 (defn compose
-  "Compose is like Clojure's standard comp, but for this system we
-  like to know the arity of our functions, so that we can calculate
-  their derivatives with structure, etc. The arity of a composition is
-  simply the arity of its rightmost (that is, first to be applied)
-  function term."
+  "Arity-preserving version of `clojure.core/comp`.
+
+  The arity of a composition is the arity of the rightmost (that is, first to be
+  applied) function term in `fns`."
   [& fns]
-  (let [a (v/arity (last fns))]
+  (let [a (arity (last fns))]
     (with-meta (apply comp fns) {:arity a})))
 
-(defmacro with-literal-functions
-  [litfns & body]
-  `(let ~(vec (interleave
-               (map (fn [s]
-                      (if (symbol? s) s (first s)))
-                    litfns)
-               (map (fn [s]
-                      (cond (symbol? s)
-                            `(literal-function (quote ~s))
-                            (and (sequential? s)
-                                 (= (count s) 3))
-                            `(literal-function (quote ~(first s))
-                                               ~(second s)
-                                               ~(nth s 2))
-                            :else (u/illegal (str "unknown literal function type" s))))
-                    litfns)))
-     ~@body))
+(defn get
+  "For non-functions, acts like [[clojure.core/get]]. For function
+  arguments (anything that responds true to [[function?]]), returns
+
+  ```clojure
+  (comp #(clojure.core/get % k) f)
+  ```
+
+  If `not-found` is supplied it's passed through to the
+  composed [[clojure.core/get]]."
+  ([f k]
+   (if (function? f)
+     (compose #(get % k) f)
+     (core-get f k)))
+  ([f k not-found]
+   (if (function? f)
+     (compose #(get % k not-found) f)
+     (core-get f k not-found))))
+
+(defn get-in
+  "For non-functions, acts like [[clojure.core/get-in]]. For function
+  arguments (anything that responds true to [[function?]]), returns
+
+  ```clojure
+  (comp #(clojure.core/get-in % ks) f)
+  ```
+
+  If `not-found` is supplied it's passed through to the
+  composed [[clojure.core/get-in]]."
+  ([f ks]
+   (if (function? f)
+     (compose #(get-in % ks) f)
+     (core-get-in f ks)))
+  ([f ks not-found]
+   (if (function? f)
+     (compose #(get-in % ks not-found) f)
+     (core-get-in f ks not-found))))
+
+(defn- zero-like [f]
+  (let [meta {:arity (arity f)
+              :from :zero-like}]
+    (-> (fn [& args]
+          (v/zero-like (apply f args)))
+        (with-meta meta))))
+
+(defn- one-like [f]
+  (let [meta {:arity (arity f)
+              :from :one-like}]
+    (-> (fn [& args]
+          (v/one-like (apply f args)))
+        (with-meta meta))))
+
+(def ^{:doc "Identity function. Returns its argument."}
+  I
+  identity)
+
+(defn- identity-like [f]
+  (let [meta {:arity (arity f)
+              :from :identity-like}]
+    (with-meta identity meta)))
+
+(defn arg-shift
+  "Takes a function `f` and a sequence of `shifts`, and returns a new function
+  that adds each shift to the corresponding argument of `f`. Too many or two few
+  shifts are ignored.
+
+  ```clojure
+  ((arg-shift square 3) 4) ==> 49
+  ((arg-shift square 3 2 1) 4) ==> 49
+  ```"
+  [f & shifts]
+  (let [shifts (concat shifts (repeat 0))]
+    (-> (fn [& xs]
+          (apply f (map g/+ xs shifts)))
+        (with-meta {:arity (arity f)}))))
+
+(defn arg-scale
+  "Takes a function `f` and a sequence of `factors`, and returns a new function
+  that multiplies each factor by the corresponding argument of `f`. Too many or
+  two few factors are ignored.
+
+  ```clojure
+  ((arg-scale square 3) 4) ==> 144
+  ((arg-scale square 3 2 1) 4) ==> 144
+  ```"
+  [f & factors]
+  (let [factors (concat factors (repeat 1))]
+    (-> (fn [& xs]
+          (apply f (map g/* xs factors)))
+        (with-meta {:arity (arity f)}))))
+
+(extend-protocol v/Value
+  MultiFn
+  (zero? [_] false)
+  (one? [_] false)
+  (identity? [_] false)
+  (zero-like [f] (zero-like f))
+  (one-like [f] (one-like f))
+  (identity-like [f] (identity-like f))
+  (exact? [f] (compose v/exact? f))
+  (freeze [f]
+    (if-let [m (get-method f [Keyword])]
+      (m :name)
+      (core-get @v/object-name-map f f)))
+  (kind [o] ::v/function)
+
+  #?(:clj Fn :cljs function)
+  (zero? [_] false)
+  (one? [_] false)
+  (identity? [_] false)
+  (zero-like [f] (zero-like f))
+  (one-like [f] (one-like f))
+  (identity-like [f] (identity-like f))
+  (exact? [f] (compose v/exact? f))
+  (freeze [f] (core-get @v/object-name-map f f))
+  (kind [_] ::v/function)
+
+  Var
+  (zero? [_] false)
+  (one? [_] false)
+  (identity? [_] false)
+  (zero-like [f] (zero-like f))
+  (one-like [f] (one-like f))
+  (identity-like [f] (identity-like f))
+  (exact? [f] (compose v/exact? f))
+  (freeze [f] (core-get @v/object-name-map @f f))
+  (kind [_] ::v/function)
+
+  #?@(:cljs
+      [MetaFn
+       (zero? [_] false)
+       (one? [_] false)
+       (identity? [_] false)
+       (zero-like [f] (zero-like f))
+       (one-like [f] (one-like f))
+       (identity-like [f] (identity-like f))
+       (exact? [f] (compose v/exact? f))
+       (freeze [f] (core-get @v/object-name-map f f))
+       (kind [_] ::v/function)]))
+
+;; we record arities as a vector with an initial keyword:
+;;   [:exactly m]
+;;   [:between m n]
+;;   [:at-least m]
+
+#?(:clj
+   (do (defn- arity-map [f]
+         (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
+               ;; tally up arities of invoke, doInvoke, and getRequiredArity
+               ;; methods. Filter out invokeStatic.
+               pairs (for [^Method m methods
+                           :let [name (.getName m)]
+                           :when (not (#{"withMeta" "meta" "invokeStatic"} name))]
+                       (condp = name
+                         "invoke"   [:invoke (alength (.getParameterTypes m))]
+                         "doInvoke" [:doInvoke true]
+                         "getRequiredArity" [:getRequiredArity
+                                             (.getRequiredArity ^RestFn f)]))
+               facts (group-by first pairs)]
+           {:arities        (into #{} (map peek) (:invoke facts))
+            :required-arity (second (first (:getRequiredArity facts)))
+            :invoke?        (boolean (seq (:doInvoke facts)))}))
+
+       (defn- jvm-arity [f]
+         (let [{:keys [arities required-arity invoke?] :as m} (arity-map f)]
+           (cond
+             ;; Rule one: if all we have is one single case of invoke, then the
+             ;; arity is the arity of that method. This is the common case.
+             (and (= 1 (count arities))
+                  (not required-arity)
+                  (not invoke?))
+             [:exactly (first arities)]
+
+             ;; Rule two: if we have invokes for the arities 0..3,
+             ;; getRequiredArity says 3, and we have doInvoke, then we consider that
+             ;; this function was probably produced by Clojure's core "comp"
+             ;; function, and we somewhat lamely consider the arity of the composed
+             ;; function 1.
+             (and (= #{0 1 2 3} arities)
+                  (= 3 required-arity)
+                  invoke?)
+             [:exactly 1]
+
+             ;; Rule three: if we have exactly one doInvoke and getRequiredArity,
+             ;; then the arity at least the result of .getRequiredArity.
+             (and required-arity
+                  invoke?)
+             [:at-least (apply min required-arity arities)]
+
+             ;; Rule four: If we have more than 1 `invoke` clause, return a
+             ;; `:between`. This won't account for gaps between the arities.
+             (seq arities)
+             [:between
+              (apply min arities)
+              (apply max arities)]
+
+             :else
+             (u/illegal
+              (str "Not enough info to determine jvm-arity of " f " :" m))))))
+
+   :cljs
+   (do
+     (defn- variadic?
+       "Returns true if the supplied function is variadic, false otherwise."
+       [f]
+       (boolean (.-cljs$lang$maxFixedArity f)))
+
+     (defn exposed-arities
+       "When CLJS functions have different arities, the function is represented as a js
+  object with each arity storied under its own key."
+       [f]
+       (let [parse (fn [s]
+                     (when-let [arity (re-find (re-pattern #"invoke\$arity\$\d+") s)]
+                       (js/parseInt (subs arity 13))))
+             arities (->> (map parse (js-keys f))
+                          (concat [(.-cljs$lang$maxFixedArity f)])
+                          (remove nil?)
+                          (into #{}))]
+         (if (empty? arities)
+           [(alength f)]
+           (sort arities))))
+
+     (defn js-arity
+       "Returns a data structure indicating the arity of the supplied function."
+       [f]
+       (let [arities (exposed-arities f)]
+         (cond (variadic? f)
+               (if (= [0 1 2 3] arities)
+                 ;; Rule 3, where we assume that any function that's variadic and
+                 ;; that has defined these particular arities is a "compose"
+                 ;; function... and therefore takes a single argument.
+                 [:exactly 1]
+
+                 ;; this case is where we know we have variadic args, so we set
+                 ;; a minimum. This could break if some arity was missing
+                 ;; between the smallest and the variadic case.
+                 [:at-least (first arities)])
+
+               ;; This corresponds to rule 1 in the JVM case. We have a single
+               ;; arity and no evidence of a variadic function.
+               (= 1 (count arities)) [:exactly (first arities)]
+
+               ;; This is a departure from the JVM rules. A potential error here
+               ;; would occur if someone defined arities 1 and 3, but missed 2.
+               :else [:between
+                      (first arities)
+                      (last arities)])))))
+
+(def ^{:private true
+       :doc "Returns the arity of the function f. Computing arities of clojure
+  functions is a bit complicated. It involves reflection, so the results are
+  definitely worth memoizing."}
+  reflect-on-arity
+  (memoize
+   #?(:cljs js-arity :clj jvm-arity)))
+
+#?(:clj
+   (extend-protocol IArity
+     Fn
+     (arity [f] (:arity (meta f) (reflect-on-arity f))))
+
+   :cljs
+   (extend-protocol IArity
+     function
+     (arity [f] (reflect-on-arity f))
+
+     MetaFn
+     (arity [f] (:arity (meta f) (reflect-on-arity f)))))
+
+(defn combine-arities
+  "Returns the joint arity of arities `a` and `b`.
+
+  The joint arity is the loosest possible arity specification compatible with
+  both `a` and `b`. Throws if `a` and `b` are incompatible."
+  ([] [:at-least 0])
+  ([a] a)
+  ([a b]
+   (let [fail #(u/illegal (str "Incompatible arities: " a " " b))]
+     ;; since the combination operation is symmetric, sort the arguments
+     ;; so that we only have to implement the upper triangle of the
+     ;; relation.
+     (if (< 0 (compare (first a) (first b)))
+       (combine-arities b a)
+       (match [a b]
+              [[:at-least k] [:at-least k2]] [:at-least (max k k2)]
+              [[:at-least k] [:between m n]] (let [m (max k m)]
+                                               (cond (= m n) [:exactly m]
+                                                     (< m n) [:between m n]
+                                                     :else (fail)))
+              [[:at-least k] [:exactly l]] (if (>= l k)
+                                             [:exactly l]
+                                             (fail))
+              [[:between m n] [:between m2 n2]] (let [m (max m m2)
+                                                      n (min n n2)]
+                                                  (cond (= m n) [:exactly m]
+                                                        (< m n) [:between m n]
+                                                        :else (fail)))
+              [[:between m n] [:exactly k]] (if (and (<= m k)
+                                                     (<= k n))
+                                              [:exactly k]
+                                              (fail))
+              [[:exactly k] [:exactly l]] (if (= k l) [:exactly k] (fail)))))))
+
+(defn joint-arity
+  "Find the most relaxed possible statement of the joint arity of the given sequence of `arities`.
+  If they are incompatible, an exception is thrown."
+  [arities]
+  (reduce combine-arities arities))
+
+(defn seq-arity
+  "Returns the most general arity compatible with the aritiies of all entries in
+  the supplied sequence `xs` of values."
+  [xs]
+  (transduce (map arity) combine-arities xs))
+
+;; ## Generic Implementations
+;;
+;; A `::cofunction` is a type that we know how to combine with a function in a
+;; binary operation.
+
+(derive ::v/scalar ::cofunction)
+
+(defn- unary-operation
+  "For a unary function `f` (like [[g/sqrt]]), returns a function of one function
+  `g`. The returned function acts like `(comp f g)`. For example:
+
+  ```clojure
+  (([[unary-operation]] f) g)
+  ;;=> (fn [x] (f (g x)))
+  ```"
+  [f]
+  (-> (partial comp f)
+      (with-meta {:arity [:exactly 1]})))
+
+(defn coerce-to-fn
+  "Given a [[value/numerical?]] input `x`, returns a function of arity `arity`
+  that always returns `x` no matter what input it receives.
+
+  For non-numerical `x`, returns `x`."
+  ([x arity]
+   (if (v/numerical? x)
+     (-> (constantly x)
+         (with-meta {:arity arity}))
+     x)))
+
+(defn- binary-operation
+  "Accepts a binary function `op` (like [[+]]), and returns a function of two
+  functions `f` and `g` which will produce the pointwise operation `op` of the
+  results of applying both `f` and `g` to the input.
+
+
+  ```clojure
+  (([[binary-operation]] op) f g)
+  ;;=> (fn [x] (op (f x) (g x)))
+  ```"
+  [op]
+  (letfn [(h [f g]
+            (let [f-arity (if (v/numerical? f) (arity g) (arity f))
+                  g-arity (if (v/numerical? g) f-arity   (arity g))
+                  f1      (coerce-to-fn f f-arity)
+                  g1      (coerce-to-fn g g-arity)
+                  arity (joint-arity [f-arity g-arity])]
+              (-> (condp = arity
+                    [:exactly 0]
+                    #(op (f1) (g1))
+                    [:exactly 1]
+                    #(op (f1 %) (g1 %))
+                    [:exactly 2]
+                    #(op (f1 %1 %2) (g1 %1 %2))
+                    [:exactly 3]
+                    #(op (f1 %1 %2 %3) (g1 %1 %2 %3))
+                    [:exactly 4]
+                    #(op (f1 %1 %2 %3 %4) (g1 %1 %2 %3 %4))
+                    [:exactly 5]
+                    #(op (f1 %1 %2 %3 %4 %5) (g1 %1 %2 %3 %4 %5))
+                    [:exactly 6]
+                    #(op (f1 %1 %2 %3 %4 %5 %6) (g1 %1 %2 %3 %4 %5 %6))
+                    [:exactly 7]
+                    #(op (f1 %1 %2 %3 %4 %5 %6 %7) (g1 %1 %2 %3 %4 %5 %6 %7))
+                    [:exactly 8]
+                    #(op (f1 %1 %2 %3 %4 %5 %6 %7 %8) (g1 %1 %2 %3 %4 %5 %6 %7 %8))
+                    [:exactly 9]
+                    #(op (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9))
+                    [:exactly 10]
+                    #(op (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10))
+                    [:at-least 0]
+                    #(op (apply f1 %&) (apply g1 %&))
+                    (u/illegal (str  "unsupported arity for function arithmetic " arity)))
+                  (with-meta {:arity arity}))))]
+    (with-meta h {:arity [:exactly 2]})))
+
+(defn- defunary
+  "Given a generic unary function `generic-op`, define the multimethods necessary
+  to introduce this operation to function arguments."
+  [generic-op]
+  (let [unary-op (unary-operation generic-op)]
+    (defmethod generic-op [::v/function] [a]
+      (unary-op a))))
+
+(defn- defbinary
+  "Given a generic binary function `generic-op` (and an optional `binary-op` to
+  perform the work), define the multimethods necessary to introduce this
+  operation to function arguments."
+  ([generic-op] (defbinary generic-op generic-op))
+  ([generic-op binary-op]
+   (let [binop (binary-operation binary-op)]
+     (doseq [signature [[::v/function ::v/function]
+                        [::v/function ::cofunction]
+                        [::cofunction ::v/function]]]
+       (defmethod generic-op signature [a b]
+         (binop a b))))))
+
+(defbinary g/add g/+)
+(defbinary g/sub g/-)
+(defbinary g/mul g/*)
+(defunary g/invert)
+(defbinary g/div g/divide)
+(defbinary g/expt)
+
+(defunary g/negate)
+(defunary g/negative?)
+(defunary g/abs)
+(defunary g/sqrt)
+
+(defbinary g/quotient)
+(defbinary g/remainder)
+(defbinary g/modulo)
+
+(defunary g/sin)
+(defunary g/cos)
+(defunary g/tan)
+(defunary g/asin)
+(defunary g/acos)
+
+(defunary g/atan)
+(defbinary g/atan)
+
+(defunary g/sinh)
+(defunary g/cosh)
+(defunary g/tanh)
+
+(defunary g/square)
+(defunary g/cube)
+
+(defunary g/exp)
+(defunary g/log)
+
+(comment
+  "This comment expands on a comment from scmutils, function.scm, in the
+  definition of `transpose-defining-relation`:
+
+  $T$ is a linear transformation
+
+  $$T : V -> W$$
+
+  the transpose of $T$ is
+
+  $$T^t : (W -> R) -> (V -> R)$$
+
+  \\forall a \\in V, g \\in (W -> R),
+
+  T^t : g \\to g \\circ T
+
+  ie:
+
+  (T^t(g))(a) = g(T(a))")
+(defmethod g/transpose [::v/function] [f]
+  (fn [g]
+    (fn [a]
+      (g (f a)))))
+
+(defunary g/determinant)
+(defunary g/trace)
+
+(defbinary g/gcd)
+(defbinary g/lcm)
+(defbinary g/exact-divide)
+
+(defunary g/dimension)
+(defbinary g/dot-product)
+(defbinary g/inner-product)
+(defbinary g/outer-product)
+(defbinary g/cross-product)
+
+;; Complex Operations
+
+(defbinary g/make-rectangular)
+(defbinary g/make-polar)
+(defunary g/real-part)
+(defunary g/imag-part)
+(defunary g/magnitude)
+(defunary g/angle)
+(defunary g/conjugate)

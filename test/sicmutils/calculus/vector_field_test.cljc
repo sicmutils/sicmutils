@@ -20,6 +20,8 @@
 (ns sicmutils.calculus.vector-field-test
   (:refer-clojure :exclude [+ - * / partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [same :refer [ish?]]
+            [sicmutils.abstract.function :as af]
             [sicmutils.calculus.coordinate :refer [let-coordinates]
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :refer [D partial]]
@@ -106,8 +108,13 @@
                    (g/simplify ((vf/vector-field->components A R3-rect) (up 'x 'y 'z))))))))
       (is (= (up 0 1 0) ((vf/vector-field->components d:dy R3-rect) (up 'x0 'y0 'z0))))
       (is (= (up 0 1 0) ((vf/vector-field->components d:dy R3-rect) (up 'r0 'theta0 'z0))))
-      (is (= (up 1. 0 0) ((vf/vector-field->components d:dy R3-cyl) (up 1 (/ Math/PI 2) 0))))
-      (is (= (up 0 1 0) ((vf/vector-field->components d:dy R3-cyl) (up 1 0 0))))
+
+      (is (ish? (up 1 0 0)
+                ((vf/vector-field->components d:dy R3-cyl) (up 1 (/ Math/PI 2) 0))))
+
+      (is (ish? (up 0 1 0)
+                ((vf/vector-field->components d:dy R3-cyl) (up 1 0 0))))
+
       (is (= '(up (sin theta0) (/ (cos theta0) r0) 0)
              (g/simplify ((vf/vector-field->components d:dy R3-cyl) (up 'r0 'theta0 'z)))))
 
@@ -123,5 +130,5 @@
                      (* (((partial 1) f) (up x0 y0 z0)) (v↑1 (up x0 y0 z0)))
                      (* (((partial 2) f) (up x0 y0 z0)) (v↑2 (up x0 y0 z0))))
                  (g/simplify (((coordinatize (vf/literal-vector-field 'v R3-rect) R3-rect)
-                               (f/literal-function 'f (up 1 2 3) 1))
+                               (af/literal-function 'f (up 1 2 3) 1))
                               (up 'x0 'y0 'z0))))))))))

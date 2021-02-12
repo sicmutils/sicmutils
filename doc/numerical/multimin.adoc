@@ -1,0 +1,129 @@
+= Multivariate Minimization
+
+== Multivariate minimization
+
+The default multivariate minimizer is `multidimensional-minimize`, which is a
+heavily sugared call to the Nelder-Mead minimizer. The function `f` being
+minimized is a function of a Clojure vector. The search starts at the given
+initial point, and proceeds to search for a point that is a local minimum of
+`f`.
+
+When the process terminates, the continuation function is called with three
+arguments. The first is true if the process converged and false if the minimizer
+gave up. The second is the actual point that the minimizer has found, and the
+third is the value of the function at that point.
+
+[source, clojure]
+----
+(multidimensional-minimize f initial-point continuation)
+----
+
+Thus, for example, to find a minimum of the function
+
+[source, clojure]
+----
+(defn baz [v]
+  (* (foo (ref v 0))
+     (bar (ref v 1))))
+----
+
+made from the two polynomials we constructed before, near the point `[4 3]`, we
+can try:
+
+[source, clojure]
+----
+(multidimensional-minimize baz [4 3] :info? true)
+;; {:result [2.99997171081307 2.5312072328438284]
+;;  :value 0.42583261986962734
+;; :converged? true
+;; :iterations 37
+;; :fncalls 74}
+----
+
+Indeed, a minimum was found, at about `[3 2.53]` with value `0.4258`.
+
+Of course, we usually need to have more control of the minimizer when searching
+a large space. ALl minimizers act on functions of Clojure vectors. The simplest
+minimizer is the Nelder Mead downhill simplex method, a slow but reasonably
+reliable method.
+
+[source, clojure]
+----
+(nelder-mead f start-pt start-step epsilon maxiter)
+----
+
+We give it a function, a starting point, a measure of the acceptable error, and
+a maximum number of iterations we want it to try before giving up. It returns a
+map telling whether it found a minimum, the place and value of the purported
+minimum, and the number of iterations it performed.
+
+For example, we can allow the algorithm to perturb each point by `0.05` as a
+starting step, and it will find the minimum after 43 steps:
+
+[source, clojure]
+----
+(nelder-mead baz [4 3] {:simplex-tolerance 0.00001 :nonzer-delta 0.05 :maxiter 100})
+;; {:result [3.000001515197215 2.531198812861102]
+;;  :value 0.42583261929212135
+;;  :converged? true
+;;  :iterations 43
+;; :fncalls 86}
+----
+
+or we can let it scale each point by a factor of 3, which will allow it to
+wander off into oblivion:
+
+[source, clojure]
+----
+(nelder-mead baz [4 3]
+  {:simplex-tolerance 0.00001 :nonzero-delta 3 :maxiter 100})
+
+;; {:result [-4.440321127041113E10 5.194986411837181]
+;;  :value -5.531848706349067E20
+;;  :converged? false
+;;  :iterations 101
+;;  :fncalls 200}
+----
+
+See
+https://github.com/sicmutils/sicmutils/blob/master/src/sicmutils/numerical/multimin/nelder_mead.cljc#L238[the
+documentation for `nelder-mead`] for the full menu of options and an accounting
+of the available defaults.
+
+WARNING: The following section describes algorithms that aren't yet implemented
+in SICMUtils. If you need these, please
+https://github.com/sicmutils/sicmutils/pulls[file an issue] and we can
+help you get started.
+
+If we know more than just the function to minimize we can use that information
+to obtain a better minimum faster than with the Nelder-Mead algorithm.
+
+In the Davidon-Fletcher-Powell algorithm, `f` is a function of a single vector
+argument that returns a real value to be minimized, `g` is the vector-valued
+gradient of `f`, `x0` is a (vector) starting point, and estimate is an estimate
+of the minimum function value. ftol is the convergence criterion: the search is
+stopped when the relative change in `f` falls below `ftol` or when the maximum
+number of iterations is exceeded.
+
+The procedure `dfp` uses Davidon's line search algorithm, which is efficient and
+would be the normal choice, but dfp-brent uses Brent's line search, which is
+less efficient but more reliable. The procedure `bfgs`, due to Broyden,
+Fletcher, Goldfarb, and Shanno, is said to be more immune than `dfp` to
+imprecise line search.
+
+[source, clojure]
+----
+(dfp f g x0 estimate ftol maxiter)
+(dfp-brent f g x0 estimate ftol maxiter)
+(bfgs f g x0 estimate ftol maxiter)
+----
+
+These are all used in the same way:
+
+[source, clojure]
+----
+(dfp baz (compose down->vector (D baz)) #(4 3) .4 .00001 100)
+ ;;=> (ok (#(2.9999717563962305 2.5312137271310036) . .4258326204265246) 4)
+----
+
+They all converge very fast, four iterations in this case.

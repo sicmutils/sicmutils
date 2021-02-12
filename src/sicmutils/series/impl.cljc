@@ -17,10 +17,11 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(ns sicmutils.series.impl
+(ns ^:no-doc sicmutils.series.impl
+  "Backing implementation for the types defined in [[sicmutils.series]], written
+  against pure Clojure sequences."
   (:require [sicmutils.generic :as g]
-            [sicmutils.numbers]
-            [sicmutils.numsymb]
+            [sicmutils.abstract.number]
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
@@ -140,7 +141,7 @@
 
 ;; We /should/ get equivalent results from mapping `g/-` over both sequences,
 ;; and in almost all cases we do... but until we understand and fix this bug
-;; https://github.com/littleredcomputer/sicmutils/issues/151 that method would
+;; https://github.com/sicmutils/sicmutils/issues/151 that method would
 ;; return different results.
 
 ;; Subtract a constant from a sequence by subtracting it from the first element:
@@ -189,11 +190,16 @@
 (defn seq:* [f g]
   (letfn [(step [f]
             (lazy-seq
-             (let [f*g  (g/mul (first f) (first g))
-                   f*G1 (c*seq (first f) (rest g))
-                   F1*G (step (rest f))]
-               (cons f*g (seq:+ f*G1 F1*G)))))]
-    (step f)))
+             (if (v/zero? (first f))
+               (cons (first f) (step (rest f)))
+               (let [f*g  (g/mul (first f) (first g))
+                     f*G1 (c*seq (first f) (rest g))
+                     F1*G (step (rest f))]
+                 (cons f*g (seq:+ f*G1 F1*G))))))]
+    (lazy-seq
+     (if (v/zero? (first g))
+       (cons (first g) (seq:* f (rest g)))
+       (step f)))))
 
 ;; This works just fine on two infinite sequences:
 
@@ -239,13 +245,13 @@
   (lazy-seq
    (let [f0 (first f) fs (rest f)
          g0 (first g) gs (rest g)]
-     (cond (and (v/nullity? f0) (v/nullity? g0))
+     (cond (and (v/zero? f0) (v/zero? g0))
            (div fs gs)
 
-           (v/nullity? f0)
+           (v/zero? f0)
            (cons f0 (div fs g))
 
-           (v/nullity? g0)
+           (v/zero? g0)
            (u/arithmetic-ex "ERROR: denominator has a zero constant term")
 
            :else (let [q (g/div f0 g0)]
@@ -356,7 +362,7 @@
             (lazy-seq
              ;; TODO I don't understand why we get a StackOverflow if I move
              ;; this assertion out of the `letfn`.
-             (assert (zero? (first g)))
+             (assert (v/zero? (first g)))
              (let [[f0 & fs] f
                    gs (rest g)
                    tail (seq:* gs (step fs))]
@@ -393,7 +399,7 @@
 ;; $R$ thanks to the stream-based approach:
 
 (defn revert [f]
-  {:pre [(zero? (first f))]}
+  {:pre [(v/zero? (first f))]}
   (letfn [(step [f]
             (lazy-seq
              (let [F1   (rest f)
@@ -445,14 +451,14 @@
 
 #_
 (= [0 1 1 1 1 1]
-   (take 6 (integral (iterate inc 1) 5)))
+   (take 6 (integral (iterate inc 1))))
 
-;; ## Exponentiation
+;; ### Exponentiation
 ;;
 ;; Exponentiation of a power series by some integer is simply repeated
 ;; multiplication. The implementation here is more efficient the iterating
 ;; `seq:*`, and handles negative exponent terms by inverting the original
-;; seequence.
+;; sequence.
 
 (defn expt [s e]
   (letfn [(expt [base pow]
@@ -473,7 +479,7 @@
 
 #_
 (= [1 3 3 1 0]
-   (take 5 (expt (->series [1 1]) )))
+   (take 5 (expt (->series [1 1]) 3)))
 
 ;; ### Square Root of a Series
 ;;
@@ -499,8 +505,8 @@
 ;; Here it is in Clojure:
 
 (defn sqrt [[f1 & [f2 & fs] :as f]]
-  (if (and (v/nullity? f1)
-           (v/nullity? f2))
+  (if (and (v/zero? f1)
+           (v/zero? f2))
     (cons f1 (sqrt fs))
     (let [const (g/sqrt f1)
           step  (fn step [g]

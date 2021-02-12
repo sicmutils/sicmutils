@@ -4,6 +4,9 @@
             pattern.match-test
             pattern.rule-test
 
+            sicmutils.abstract.function-test
+            sicmutils.abstract.number-test
+
             sicmutils.calculus.coordinate-test
             sicmutils.calculus.derivative-test
             sicmutils.calculus.form-field-test
@@ -11,12 +14,18 @@
             sicmutils.calculus.map-test
             sicmutils.calculus.vector-field-test
 
+            sicmutils.env.sci-test
+
             sicmutils.examples.central-potential-test
             sicmutils.examples.double-pendulum-test
             sicmutils.examples.driven-pendulum-test
             sicmutils.examples.pendulum-test
             sicmutils.examples.rigid-rotation-test
             sicmutils.examples.top-test
+
+            sicmutils.expression.analyze-test
+            sicmutils.expression.compile-test
+            sicmutils.expression.render-test
 
             sicmutils.mechanics.hamilton-test
             sicmutils.mechanics.lagrange-test
@@ -37,7 +46,6 @@
             sicmutils.sicm.ch6-test
             sicmutils.sicm.ch7-test
 
-            sicmutils.numerical.compile-test
             sicmutils.numerical.elliptic-test
             sicmutils.numerical.minimize-test
             sicmutils.numerical.ode-test
@@ -66,33 +74,35 @@
 
             sicmutils.util.aggregate-test
             sicmutils.util.stream-test
+            sicmutils.util.vector-set-test
 
-            sicmutils.analyzer-test
             sicmutils.complex-test
+            sicmutils.differential-test
             sicmutils.euclid-test
             sicmutils.expression-test
             sicmutils.env-test
             sicmutils.function-test
             sicmutils.generic-test
-            sicmutils.infix-test
             sicmutils.matrix-test
             sicmutils.modint-test
             sicmutils.operator-test
             sicmutils.polynomial-test
-            sicmutils.polynomial-gcd-test
-            sicmutils.polynomial-factor-test
+            sicmutils.polynomial.gcd-test
+            sicmutils.polynomial.factor-test
             sicmutils.ratio-test
             sicmutils.numbers-test
-            sicmutils.numsymb-test
             sicmutils.rational-function-test
-            sicmutils.rules-test
             sicmutils.series-test
             sicmutils.simplify-test
+            sicmutils.simplify.rules-test
             sicmutils.structure-test
             sicmutils.value-test))
 
 (doo-tests 'pattern.match-test
            'pattern.rule-test
+
+           'sicmutils.abstract.function-test
+           'sicmutils.abstract.number-test
 
            'sicmutils.calculus.coordinate-test
            'sicmutils.calculus.derivative-test
@@ -101,6 +111,8 @@
            'sicmutils.calculus.map-test
            'sicmutils.calculus.vector-field-test
 
+           'sicmutils.env.sci-test
+
            'sicmutils.examples.central-potential-test
            'sicmutils.examples.double-pendulum-test
            'sicmutils.examples.driven-pendulum-test
@@ -108,7 +120,10 @@
            'sicmutils.examples.rigid-rotation-test
            'sicmutils.examples.top-test
 
-           'sicmutils.numerical.compile-test
+           'sicmutils.expression.analyze-test
+           'sicmutils.expression.compile-test
+           'sicmutils.expression.render-test
+
            'sicmutils.numerical.elliptic-test
            'sicmutils.numerical.minimize-test
            'sicmutils.numerical.ode-test
@@ -137,6 +152,7 @@
 
            'sicmutils.util.aggregate-test
            'sicmutils.util.stream-test
+           'sicmutils.util.vector-set-test
 
            'sicmutils.mechanics.hamilton-test
            'sicmutils.mechanics.lagrange-test
@@ -159,26 +175,24 @@
            'sicmutils.sicm.ch6-test
            'sicmutils.sicm.ch7-test
 
-           'sicmutils.analyzer-test
            'sicmutils.complex-test
+           'sicmutils.differential-test
            'sicmutils.euclid-test
            'sicmutils.expression-test
            'sicmutils.env-test
            'sicmutils.function-test
            'sicmutils.generic-test
-           'sicmutils.infix-test
            'sicmutils.matrix-test
            'sicmutils.modint-test
            'sicmutils.numbers-test
-           'sicmutils.numsymb-test
            'sicmutils.operator-test
            'sicmutils.polynomial-test
-           'sicmutils.polynomial-gcd-test
-           'sicmutils.polynomial-factor-test
+           'sicmutils.polynomial.gcd-test
+           'sicmutils.polynomial.factor-test
            'sicmutils.ratio-test
            'sicmutils.rational-function-test
-           'sicmutils.rules-test
            'sicmutils.series-test
            'sicmutils.simplify-test
+           'sicmutils.simplify.rules-test
            'sicmutils.structure-test
            'sicmutils.value-test)

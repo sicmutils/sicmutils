@@ -1,28 +1,31 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.calculus.manifold
   (:require #?(:cljs [goog.string :refer [format]])
+            [sicmutils.abstract.function :as af]
+            [sicmutils.abstract.number :as an]
             [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as matrix]
+            [sicmutils.operator :as o]
             [sicmutils.simplify :refer [simplify-numerical-expression]]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
@@ -71,8 +74,8 @@
 
 (defn coordinate-system-at
   "Looks up the named coordinate system in the named patch of the given
-  manifold; this locates a constructor, which is then applied to manifold
-  to produce the result: an object implementing ICoordinateSystem."
+  `manifold`; this locates a constructor, which is then applied to manifold to
+  return an object implementing [[ICoordinateSystem]]."
   [coordinate-system-name patch-name manifold]
   ((get-in manifold [:manifold-family
                      :patch patch-name
@@ -80,12 +83,10 @@
    manifold
    (default-coordinate-prototype manifold)))
 
-(defn diffop-name
-  [form]
-  (or (:name form)
-      (and (= (:type form) ::x/numerical-expression)
-           (x/expression-of form))
-      '...))
+(defn diffop-name [form]
+  (cond (o/operator? form)        (o/name form)
+        (an/literal-number? form) (x/expression-of form)
+        :else '...))
 
 (defprotocol ICoordinateSystem
   (check-coordinates [this coords])
@@ -112,11 +113,11 @@
   (manifold-point :spec))
 
 (defn get-coordinates
-  "Get the representation of manifold-point in coordinate-system. The
-  point contains a cache of the coordinate system->representation
-  mapping.  If an entry for the given coordinate system is not found,
-  thunk is called to produce the representation, which is then
-  installed in the cache."
+  "Returns the representation of `manifold-point` in `coordinate-system`.
+
+  The point contains a cache of the coordinate system -> representation mapping.
+  If an entry for the given `coordinate-system` is not found, `thunk` is called
+  to produce the representation, which is then installed in the cache."
   [manifold-point coordinate-system thunk]
   (let [reps (manifold-point :coordinate-representation)]
     (if-let [rep (@reps coordinate-system)]
@@ -136,14 +137,14 @@
   (= (point->manifold point) manifold))
 
 (defn ^:private frame?
-  "True if this coordinate system is actually a frame. FIXME: frames aren't
-  implemented yet."
+  "True if this coordinate system is actually a frame.
+
+  FIXME: frames aren't implemented yet."
   ;; Note: when we get around to doing so, it probably makes sense to have
   ;; frames implement ICoordinateSystem in their own way, rather than the
   ;; hacky polymorphism used in scmutils
   [coordinate-system]
-  false                                                     ; FIXME
-  )
+  false)
 
 (defn chart
   [coordinate-system]
@@ -159,12 +160,12 @@
         domain (apply s/up (repeat n 0))
         range 0]
     (vary-meta
-      (f/compose (f/literal-function name domain range)
-                 #(point->coords coordinate-system %))
-      assoc
-      :name name
-      :coordinate-system coordinate-system
-      :type ::manifold-function)))
+     (f/compose (af/literal-function name domain range)
+                #(point->coords coordinate-system %))
+     assoc
+     :name name
+     :coordinate-system coordinate-system
+     :type ::manifold-function)))
 
 (defn ^:private ->Rectangular
   [manifold coordinate-prototype]
@@ -223,7 +224,7 @@
                              (u/illegal "PolarCylindrical bad point"))
                            (let [[x y] prep
                                  rsq (g/+ (g/square x) (g/square y))]
-                             (when (v/nullity? rsq)
+                             (when (v/zero? rsq)
                                (u/illegal-state "PolarCylindrical singular"))
                              (s/generate (count prep) ::s/up
                                          (fn [^long i]
@@ -310,7 +311,7 @@
                              (u/illegal "SphericalCylindrical bad point"))
                            (let [[x y z] prep
                                  r (g/sqrt (g/+ (g/square x) (g/square y) (g/square z)))]
-                             (when (v/nullity? r)
+                             (when (v/zero? r)
                                (u/illegal-state "SphericalCylindrical singular"))
                              (s/generate (s/dimension prep) ::s/up
                                          (fn [^long i]
@@ -387,11 +388,11 @@
         (get-coordinates point this
                          (fn []
                            (let [M (manifold-point-representation point)
-                                 theta (g/acos (matrix/get-in M [2 2]))
-                                 phi (g/atan (matrix/get-in M [0 2])
-                                             (g/negate (matrix/get-in M [1 2])))
-                                 psi (g/atan (matrix/get-in M [2 0])
-                                             (matrix/get-in M [2 1]))]
+                                 theta (g/acos (get-in M [2 2]))
+                                 phi (g/atan (get-in M [0 2])
+                                             (g/negate (get-in M [1 2])))
+                                 psi (g/atan (get-in M [2 0])
+                                             (get-in M [2 1]))]
                              (s/up theta phi psi)))))
       (coordinate-prototype [this] coordinate-prototype)
       (with-coordinate-prototype [this prototype] (->Euler-chart manifold prototype))
@@ -424,11 +425,11 @@
         (get-coordinates point this
                          (fn []
                            (let [M (manifold-point-representation point)
-                                 theta (g/asin (matrix/get-in M [2 1]))
-                                 phi (g/atan (g/negate (matrix/get-in M [0 1]))
-                                             (matrix/get-in M [1 1]))
-                                 psi (g/atan (g/negate (matrix/get-in M [2 0]))
-                                             (matrix/get-in M [2 2]))]
+                                 theta (g/asin (get-in M [2 1]))
+                                 phi (g/atan (g/negate (get-in M [0 1]))
+                                             (get-in M [1 1]))
+                                 psi (g/atan (g/negate (get-in M [2 0]))
+                                             (get-in M [2 2]))]
                              (s/up theta phi psi)))))
       (coordinate-prototype [this] coordinate-prototype)
       (with-coordinate-prototype [this prototype] (->Alternate-chart manifold prototype))
@@ -439,7 +440,6 @@
             (attach-patch :origin)
             (attach-coordinate-system :rectangular :origin ->Rectangular)
             (attach-coordinate-system :polar-cylindrical :origin ->PolarCylindrical)))
-
 
 (def R1 (make-manifold Rn 1))
 (def R2 (make-manifold Rn 2))
@@ -475,7 +475,6 @@
 (def S2-stereographic (coordinate-system-at :stereographic :north-pole S2))
 (def S2-Riemann S2-stereographic)
 ;; double-check these: what goes in S2-type, and what goes in Sn(2)?
-
 
 (def SO3-type (-> "SO3"
                   make-manifold-family
