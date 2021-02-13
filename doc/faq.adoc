@@ -1,3 +1,13 @@
 = FAQ
+:toc: right
+:toclevels: 2
 
-Coming soon.
+== FAQ
+
+=== Who is using SICMUtils?
+
+- https://github.com/kloimhardt[@kloimhardt] has integrated SICMUtils into his
+  https://scratch.mit.edu[Scratch]-like, blocks-based language at
+  https://github.com/kloimhardt/clj-tiles[clj-tiles]. See
+  https://kloimhardt.github.io/cljtiles.html?page=freeparticle[this demo] for a
+  lovely example of Lagrangian Mechanics in ``clj-tiles``.
