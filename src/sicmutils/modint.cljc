@@ -45,6 +45,11 @@
   (exact? [_] true)
   (kind [_] ::modint))
 
+(defn modint?
+  "Returns true if `x` is an instance of [[ModInt]], false otherwise."
+  [x]
+  (instance? x ModInt))
+
 (defn make [i m]
   (->ModInt (g/modulo i m) m))
 
@@ -68,8 +73,9 @@
 
       :cljs
       (let [[g a _] (e/extended-gcd i modulus)]
-        (if (< g 2) (make a modulus)
-            (u/arithmetic-ex (str i " is not invertible mod " modulus)))))))
+        (if (< g 2)
+          (make a modulus)
+          (u/arithmetic-ex (str i " is not invertible mod " modulus)))))))
 
 (defn- mod-expt
   "Modular exponentiation, more efficient on the JVM."
@@ -89,29 +95,30 @@
                (js/Number)
                (->ModInt modulus))))
 
-;;; Chinese Remainder Algorithm
-;;;   Takes a list of modular integers, m[i] (modulo p[i])
-;;;   where the p[i] are relatively prime.
-;;;   Finds x such that  m[i] = x mod p[i]
+(defn chinese-remainder
+  "[Chinese Remainder Algorithm](https://en.wikipedia.org/wiki/Chinese_remainder_theorem).
 
-(defn modint:chinese-remainder [moduli]
-  (comment
-    (let [prod (apply * moduli)
-          cofactors (map (fn [p] (quotient prod p))
-		                     moduli)
-          f (map (fn [c p]
-		               (* c (modint:invert c p)))
-		             cofactors
-		             moduli)]
-      (fn [residues]
-        (mod:reduce (apply + (map * residues f))
-	                  prod)))))
+  Accepts a sequence of [[ModInt]] instances (where the modulus `:m` of
+  all [[ModInt]] instances are relatively prime), and returns a [[ModInt]] `x`
+  such that `(:i input) == (mod x (:m input))`.
 
-(defn mod:chinese-remainder [& modints]
-  ;; (assert (for-all? modints modint?))
-  (let [moduli (map mod:modulus modints)
-	      residues (map mod:residue modints)]
-    ((modint:chinese-remainder moduli) residues)))
+  For example:
+
+  ```clojure
+  (let [a1 (m/make 2 5)
+        a2 (m/make 3 13)]
+    [(= 42 (chinese-remainder a1 a2))
+     (= (:i a1) (mod cr (:m a1)))
+     (= (:i a2) (mod cr (:m a2)))])
+  ;;=> [true true true]
+  ```"
+  [& modints]
+  (let [prod  (transduce (map :m) g/* modints)
+        xform (map (fn [{:keys [i m]}]
+		                 (let [c (g/quotient prod m)]
+                       (g/* i c (:i (invert c m))))))]
+    (-> (transduce xform g/+ modints)
+        (g/modulo prod))))
 
 (def ^:private add (modular-binop g/add))
 (def ^:private sub (modular-binop g/sub))

@@ -94,8 +94,11 @@
 
     (testing "Chinese Remainder Algorithm"
       (let [a1 (m/make 2 5)
-            a2 (m/make 3 13)]
-        (is (= 42 (m/chinese-remainder a1 a2)))))))
+            a2 (m/make 3 13)
+            cr (m/chinese-remainder a1 a2)]
+        (is (= 42 cr))
+        (is (= (:i a1) (mod cr (:m a1))))
+        (is (= (:i a2) (mod cr (:m a2))))))))
 
 (defn div-mul-inverse-test
   "Test that Modular division and exponentiation are inverses.
