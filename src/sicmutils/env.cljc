@@ -194,53 +194,33 @@
  [sicmutils.operator commutator]
  [sicmutils.series binomial-series partial-sums]
  [sicmutils.generic
-  * + - /
-  abs
-  square
-  cube
-  exp exp2 exp10
-  expt
-  invert
-  log log2 log10
+  * + - / divide
   negate
-  simplify
+  negative?
+  invert
+  abs
   sqrt
+  quotient remainder modulo
+  expt
+  exp exp2 exp10
+  log log2 log10
   gcd lcm
-  cos
-  sin
-  tan
-  acos
-  asin
-  atan
-  cosh
-  sinh
-  cot
-  sec
-  csc
-  tanh
-  sech
-  csch
-  acosh
-  asinh
-  atanh
-  dimension
-  transpose
-  trace
-  determinant
-  dot-product
-  inner-product
-  outer-product
-  cross-product
-  make-rectangular
-  make-polar
-  real-part
-  imag-part
-  magnitude
-  angle
-  conjugate
-  Lie-derivative
-  factorial
-  quotient modulo remainder partial-derivative]
+  exact-divide
+  square cube
+  cos sin tan
+  acos asin atan
+  cosh sinh tanh
+  acosh asinh atanh
+  sec csc cot
+  sech csch
+  make-rectangular make-polar
+  real-part imag-part
+  magnitude angle conjugate
+  transpose trace determinant dimension
+  dot-product inner-product outer-product cross-product
+  partial-derivative Lie-derivative
+  simplify
+  factorial]
  [sicmutils.structure
   compatible-shape
   down
