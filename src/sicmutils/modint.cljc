@@ -89,6 +89,30 @@
                (js/Number)
                (->ModInt modulus))))
 
+;;; Chinese Remainder Algorithm
+;;;   Takes a list of modular integers, m[i] (modulo p[i])
+;;;   where the p[i] are relatively prime.
+;;;   Finds x such that  m[i] = x mod p[i]
+
+(defn modint:chinese-remainder [moduli]
+  (comment
+    (let [prod (apply * moduli)
+          cofactors (map (fn [p] (quotient prod p))
+		                     moduli)
+          f (map (fn [c p]
+		               (* c (modint:invert c p)))
+		             cofactors
+		             moduli)]
+      (fn [residues]
+        (mod:reduce (apply + (map * residues f))
+	                  prod)))))
+
+(defn mod:chinese-remainder [& modints]
+  ;; (assert (for-all? modints modint?))
+  (let [moduli (map mod:modulus modints)
+	      residues (map mod:residue modints)]
+    ((modint:chinese-remainder moduli) residues)))
+
 (def ^:private add (modular-binop g/add))
 (def ^:private sub (modular-binop g/sub))
 (def ^:private mul (modular-binop g/mul))

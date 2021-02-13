@@ -90,7 +90,12 @@
       (is (= m4_7 (g/invert m2_7)))
       (is (= m2_7 (g/invert m4_7)))
       (is (thrown? #?(:clj ArithmeticException :cljs js/Error) (g/invert m2_4)))
-      (is (= m3_4 (g/invert m3_4))))))
+      (is (= m3_4 (g/invert m3_4))))
+
+    (testing "Chinese Remainder Algorithm"
+      (let [a1 (m/make 2 5)
+            a2 (m/make 3 13)]
+        (is (= 42 (m/chinese-remainder a1 a2)))))))
 
 (defn div-mul-inverse-test
   "Test that Modular division and exponentiation are inverses.
