@@ -225,6 +225,7 @@
   atanh
   dimension
   transpose
+  trace
   determinant
   dot-product
   inner-product
@@ -238,7 +239,8 @@
   angle
   conjugate
   Lie-derivative
-  factorial]
+  factorial
+  quotient modulo remainder partial-derivative]
  [sicmutils.structure
   compatible-shape
   down
