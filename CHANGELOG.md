@@ -6,6 +6,10 @@
   to `meta` and `with-meta` (#265). `sicmutils.series/{->Series, ->PowerSeries}`
   and `sicmutils.operator/->Operator` all take a new arity for metadata.
 
+- Install `sicmutils.generic/{quotient,modulo,remainder,partial-derivative}`
+  into `sicmutils.env` (#273). Thanks to @pangloss for pointing out that these
+  were missing!
+
 - Add a proper namespace to `demo.clj`, to make it easier to use outside of
   `lein repl` (#264).
 
