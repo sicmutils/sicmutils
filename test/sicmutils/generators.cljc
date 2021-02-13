@@ -237,7 +237,7 @@
 ;; ## Series
 
 (defn series
-  "Generates a [[series/PowerSeries]] instance of elements drawn from `entry-gen`.
+  "Generates a [[series/Series]] instance of elements drawn from `entry-gen`.
 
   `entry-gen` defaults to [[gen/nat]]."
   ([] (series gen/nat))
