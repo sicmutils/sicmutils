@@ -206,15 +206,18 @@
         J (symplectic-unit (quot twoN 2))]
     (- J (* M J (matrix/transpose M)))))
 
+(defn qp-submatrix [m]
+  (matrix/without m 0 0))
+
 (defn symplectic-transform?
   "p. 334"
   [C]
   (fn [s]
     (symplectic-matrix?
-     (matrix/without
+     (qp-submatrix
       (matrix/s->m (s/compatible-shape s)
                    ((D C) s)
-                   s) 0 0))))
+                   s)))))
 
 (defn ^:private Hamiltonian-Lie-derivative
   "p. 428"
