@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `Series`, `PowerSeries` and `Operator` can hold metadata and respond properly
+  to `meta` and `with-meta` (#265). `sicmutils.series/{->Series, ->PowerSeries}`
+  and `sicmutils.operator/->Operator` all take a new arity for metadata.
+
 - #149 adds a `sicmutils.modint/modint?` predicate, and
   `sicmutils.modint/chinese-remainder`. The latter efficiently performs the
   [Chinese Remainder

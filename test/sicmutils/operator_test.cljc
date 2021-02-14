@@ -75,7 +75,17 @@
       (is (= [:exactly 2]
              (arity g/mul)
              (arity (o/make-operator g/mul 'mul)))
-          "Operator arity reflects the arity of the wrapped function"))))
+          "Operator arity reflects the arity of the wrapped function"))
+
+    (testing "metadata support"
+      (is (= (meta o/identity)
+             (meta (with-meta o/identity nil)))
+          "with-meta with nil does nothing")
+
+      (checking "with-meta works" 100
+                [m (gen/map gen/keyword gen/any)]
+                (is (= m (meta
+                          (with-meta o/identity m))))))))
 
 (deftest custom-getter-tests
   (checking "I == identity" 100 [x gen/any-equatable]
@@ -171,6 +181,12 @@
                              (- 4 (partial 0))
                              (* 5 (partial 0))
                              (* (partial 0) 6)])))
+
+  (testing "metadata does NOT survive operations on operators"
+    (is (nil?
+         (meta
+          (* (with-meta D {:a "b"})
+             (with-meta D {:c "d"}))))))
 
   (testing "that they compose with other Operators"
     (is (every? o/operator?

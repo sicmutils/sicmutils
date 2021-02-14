@@ -26,6 +26,7 @@
             [same :refer [ish? with-comparator]
              #?@(:cljs [:include-macros true])]
             [sicmutils.function :as f]
+            [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.series :as s]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
@@ -62,13 +63,13 @@
           "the identity-series is an identity on APPLICATION, not for
         multiplication with other series.")))
 
+  (testing "meta / with-meta work")
   (testing "one? zero? identity? always return false (for now!)"
     (is (not (v/zero? (v/zero-like series))))
     (is (not (v/one? (v/one-like series))))
     (is (not (v/identity? (v/identity-like series)))))
 
-  (checking "f/arity" 100
-            [v (gen/fmap s/power-series* (gen/vector sg/real))]
+  (checking "f/arity" 100 [v (sg/power-series sg/real)]
             (is (= [:exactly 1]
                    (f/arity v))
                 "all power-series instances have arity == 1."))
@@ -97,6 +98,25 @@
                 "evaluating the identity series at `n` will return a series that sums to `n`.")))
 
 (deftest generic-series-tests
+  (checking "metadata arity of constructors works" 100
+            [xs (gen/vector gen/nat)
+             m (gen/map gen/keyword gen/nat)]
+            (is (nil? (meta (s/->PowerSeries xs))))
+            (is (= m (meta (s/->PowerSeries xs m))))
+
+            (is (nil? (meta (s/->Series xs))))
+            (is (= m (meta (s/->Series xs m)))))
+
+  (checking "with-meta / meta for [[Series]], [[PowerSeries]]" 100
+            [m (gen/map gen/keyword gen/any)
+             s (gen/one-of [(sg/series)
+                            (sg/power-series)])]
+            (is (nil? (meta s))
+                "meta is empty by default")
+
+            (is (= m (meta (with-meta s m)))
+                "with-meta works"))
+
   (let [Q (s/power-series 4)
         R (s/power-series 4 3)
         S (s/power-series 4 3 2)
