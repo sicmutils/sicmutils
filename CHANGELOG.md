@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- #279: Function aliases in `sicmutils.env` now properly mirror over docstrings
+  and other `Var` metadata, thanks to
+  [Potemkin](https://github.com/clj-commons/potemkin)'s `import-def`. This
+  doesn't quite work in Clojurescript since we can't use `resolve` inside of a
+  macro (special form!).
+
 - Install `sicmutils.generic/{quotient,modulo,remainder,partial-derivative}`
   into `sicmutils.env` (#273). Thanks to @pangloss for pointing out that these
   were missing!

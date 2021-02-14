@@ -44,8 +44,6 @@
               (swap! count inc)
               (f x))])))
 
-(declare illegal)
-
 (defmacro import-def
   "Given a regular def'd var from another namespace, defined a new var with the
    same name in the current namespace.."
