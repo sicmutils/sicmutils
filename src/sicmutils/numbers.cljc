@@ -58,6 +58,10 @@
 (defmethod g/magnitude [::v/real] [a] (u/compute-abs a))
 (defmethod g/div [::v/real ::v/real] [a b] (core-div a b))
 (defmethod g/invert [::v/real] [a] (core-div a))
+(defmethod g/integer-part [::v/real] [a] (int a))
+(defmethod g/floor [::v/real] [a] (int (Math/floor a)))
+(defmethod g/ceiling [::v/real] [a] (int (Math/ceil a)))
+(defmethod g/modulo [::v/real ::v/real] [a b] (mod a b))
 
 ;; ## Complex Operations
 (defmethod g/real-part [::v/real] [a] a)

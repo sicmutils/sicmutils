@@ -117,6 +117,16 @@
         (nil? args) (g/invert arg)
         :else (div arg (reduce mul args))))
 
+(defn- modulo [a b]
+  (if (and (v/number? a) (v/number? b))
+    (g/modulo a b)
+    (list 'modulo a b)))
+
+(defn- remainder [a b]
+  (if (and (v/number? a) (v/number? b))
+    (g/modulo a b)
+    (list 'modulo a b)))
+
 ;; ## Trig Functions
 
 (def ^:private relative-integer-tolerance (* 100 v/machine-epsilon))
@@ -407,6 +417,8 @@
    '- sub-n
    '* #(reduce mul 1 %&)
    '/ div-n
+   'modulo modulo
+   'remainder remainder
    'negate negate
    'invert invert
    'sin sin

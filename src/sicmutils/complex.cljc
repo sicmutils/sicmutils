@@ -155,6 +155,22 @@
 (defmethod g/tanh [::complex] [^Complex a] (.tanh a))
 (defmethod g/simplify [::complex] [a] (v/freeze a))
 
+(defmethod g/integer-part [::complex] [^Complex a]
+  (complex (g/integer-part (.getReal a))
+           (g/integer-part (.getImaginary a))))
+
+(defmethod g/fractional-part [::complex] [^Complex a]
+  (complex (g/fractional-part (.getReal a))
+           (g/fractional-part (.getImaginary a))))
+
+(defmethod g/floor [::complex] [^Complex a]
+  (complex (g/floor (.getReal a))
+           (g/floor (.getImaginary a))))
+
+(defmethod g/ceiling [::complex] [^Complex a]
+  (complex (g/ceiling (.getReal a))
+           (g/ceiling (.getImaginary a))))
+
 #?(:cljs
    ;; These are all defined explicitly in Complex.js.
    (do

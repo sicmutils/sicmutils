@@ -197,6 +197,10 @@
                         (str n) "/" (str d)
                         "\"")))))))
 
+(defmethod g/floor [Ratio] [a] (int (Math/floor a)))
+(defmethod g/ceiling [Ratio] [a] (int (Math/ceil a)))
+(defmethod g/integer-part [Ratio] [a] (int a))
+
 #?(:clj
    (doseq [[op f] [[g/exact-divide /]
                    [g/quotient quot]

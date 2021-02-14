@@ -147,6 +147,9 @@ See [[*]] for a variadic version of [[mul]]."
   {:name '/
    :dfdx (fn [x] (div -1 (mul x x)))})
 
+(defmethod invert :default [a]
+  (div 1 a))
+
 (defgeneric div 2
   {:name '/
    :dfdx (fn [_ y] (div 1 y))
@@ -165,15 +168,40 @@ See [[*]] for a variadic version of [[mul]]."
 
 (defgeneric quotient 2)
 
-(defgeneric remainder 2)
+;; for a complex, return the integer/fractional part of both parts
+(defgeneric integer-part 1)
+(defgeneric fractional-part 1)
+(defmethod fractional-part :default [a]
+  (sub a (integer-part a)))
+
+;; complex floor/ceiling does floor/ceiling on both parts
+(defgeneric floor 1)
+(defmethod floor :default [a]
+  (integer-part a))
+
+(defgeneric ceiling 1)
+(defmethod ceiling :default [a]
+  (negate (floor (negate a))))
+
 (defgeneric modulo 2)
 (defmethod modulo :default [a b]
-  (let [m (remainder a b)]
-    (if (or (v/zero? m)
-            (= (negative? a)
-               (negative? b)))
-      m
-      (add m b))))
+  (sub a (mul b (floor (div a b)))))
+
+;; complex remainder returns numerator in maxima
+;; remainder in wolfram alpha == modulo
+(defgeneric remainder 2)
+(defmethod remainder :default [n d]
+  (if (= (negative? n) (negative? d))
+    (mul d
+         (sub (div n
+                   d)
+              (floor (div n
+                          d))))
+    (mul d
+         (sub (div n
+                   d)
+              (ceiling (div n
+                            d))))))
 
 (declare log)
 
