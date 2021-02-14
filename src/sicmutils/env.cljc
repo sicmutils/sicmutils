@@ -201,6 +201,8 @@
   abs
   sqrt
   quotient remainder modulo
+  floor ceiling
+  integer-part fractional-part
   expt
   exp exp2 exp10
   log log2 log10

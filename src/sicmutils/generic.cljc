@@ -177,7 +177,9 @@ See [[*]] for a variadic version of [[mul]]."
 ;; complex floor/ceiling does floor/ceiling on both parts
 (defgeneric floor 1)
 (defmethod floor :default [a]
-  (integer-part a))
+  (if (negative? a)
+    (sub (integer-part a) 1)
+    (integer-part a)))
 
 (defgeneric ceiling 1)
 (defmethod ceiling :default [a]

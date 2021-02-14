@@ -117,15 +117,38 @@
         (nil? args) (g/invert arg)
         :else (div arg (reduce mul args))))
 
+(defn- mod-rem [a b f sym]
+  (cond (and (v/number? a) (v/number? b)) (f a b)
+        (= a b) 0
+        (v/one? b) a
+        :else (list sym a b)))
+
 (defn- modulo [a b]
-  (if (and (v/number? a) (v/number? b))
-    (g/modulo a b)
-    (list 'modulo a b)))
+  (mod-rem a b modulo 'modulo))
 
 (defn- remainder [a b]
-  (if (and (v/number? a) (v/number? b))
-    (g/modulo a b)
-    (list 'modulo a b)))
+  (mod-rem a b remainder 'remainder))
+
+(defn- floor [a]
+  ;; TODO: should almost-integer? be used in floor and ceiling? (dw Feb 13 2021)
+  (if (v/number? a)
+    (g/floor a)
+    (list 'floor a)))
+
+(defn- ceiling [a]
+  (if (v/number? a)
+    (g/ceiling a)
+    (list 'ceiling a)))
+
+(defn- integer-part [a]
+  (if (v/number? a)
+    (g/integer-part a)
+    (list 'integer-part a)))
+
+(defn- fractional-part [a]
+  (if (v/number? a)
+    (g/fractional-part a)
+    (list 'fractional-part a)))
 
 ;; ## Trig Functions
 
@@ -417,8 +440,12 @@
    '- sub-n
    '* #(reduce mul 1 %&)
    '/ div-n
-   'modulo modulo
-   'remainder remainder
+   'modulo #'modulo
+   'remainder #'remainder
+   'floor #'floor
+   'ceiling #'ceiling
+   'integer-part #'integer-part
+   'fractional-part #'fractional-part
    'negate negate
    'invert invert
    'sin sin
