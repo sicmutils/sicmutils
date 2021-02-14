@@ -6,6 +6,12 @@
   to `meta` and `with-meta` (#265). `sicmutils.series/{->Series, ->PowerSeries}`
   and `sicmutils.operator/->Operator` all take a new arity for metadata.
 
+- #149 adds a `sicmutils.modint/modint?` predicate, and
+  `sicmutils.modint/chinese-remainder`. The latter efficiently performs the
+  [Chinese Remainder
+  algorithm](https://en.wikipedia.org/wiki/Chinese_remainder_theorem) for
+  solving systems of linear congruences.
+
 - Install `sicmutils.generic/{quotient,modulo,remainder,partial-derivative}`
   into `sicmutils.env` (#273). Thanks to @pangloss for pointing out that these
   were missing!
