@@ -191,9 +191,12 @@ See [[*]] for a variadic version of [[mul]]."
 (defmethod ceiling :default [a]
   (negate (floor (negate a))))
 
+(defn modulo-default [a b]
+  (sub a (mul b (floor (div a b)))))
+
 (defgeneric modulo 2)
 (defmethod modulo :default [a b]
-  (sub a (mul b (floor (div a b)))))
+  (modulo-default a b))
 
 ;; complex remainder returns numerator in maxima
 ;; fractional remainder returns 0 in maxima

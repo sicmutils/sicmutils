@@ -200,6 +200,7 @@
      ;; native BigInt type in JS.
      (defmethod g/add [js/BigInt js/BigInt] [a b] (core-plus a b))
      (defmethod g/mul [js/BigInt js/BigInt] [a b] (core-times a b))
+     (defmethod g/modulo [js/BigInt js/BigInt] [a b] (g/modulo-default a b))
      (defmethod g/sub [js/BigInt js/BigInt] [a b] (core-minus a b))
      (defmethod g/negate [js/BigInt] [a] (core-minus a))
 
@@ -220,7 +221,7 @@
        (if (neg? a) (core-minus a) a))
 
 
-     (doseq [op [g/add g/mul g/sub g/expt g/remainder g/quotient]]
+     (doseq [op [g/add g/mul g/sub g/expt g/modulo g/remainder g/quotient]]
        ;; Compatibility between js/BigInt and the other integral types.
        (defmethod op [js/BigInt ::v/integral] [a b]
          (op a (u/bigint b)))
