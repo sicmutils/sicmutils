@@ -47,7 +47,7 @@
   (one-like [v] (u/unsupported (str "one-like: " v)))
   (identity-like [v] (u/unsupported (str "identity-like: " v)))
   (exact? [v] (every? v/exact? v))
-  (freeze [v] (mapv v/freeze v))
+  (freeze [v] `(~'up ~@(map v/freeze v)))
   (kind [v] (type v))
 
   ;; Another difference from [[sicmutils.structure/Structure]] is that a
