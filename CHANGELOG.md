@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- #279: Function aliases in `sicmutils.env` now properly mirror over docstrings
+  and other `Var` metadata, thanks to
+  [Potemkin](https://github.com/clj-commons/potemkin)'s `import-def`. This
+  doesn't quite work in Clojurescript since we can't use `resolve` inside of a
+  macro (special form!).
+
 - `Series`, `PowerSeries` and `Operator` can hold metadata and respond properly
   to `meta` and `with-meta` (#265). `sicmutils.series/{->Series, ->PowerSeries}`
   and `sicmutils.operator/->Operator` all take a new arity for metadata.

@@ -30,6 +30,7 @@
                                          cross-product
                                          cot csc sec]
              #?@(:cljs [:include-macros true])]
+            [sicmutils.matrix :as matrix]
             [sicmutils.operator :as o]))
 
 (deftest partial-shim
@@ -82,6 +83,15 @@
              (simplify (f5 (down 'p_x 'p_y))))))))
 
 (deftest shortcuts
+  (testing "env aliases alias the actual object from the original namespace"
+    (is (= matrix/by-rows
+           e/matrix-by-rows)))
+
+  #?(:clj
+     (testing "aliases keep metadata from original var. Only works in Clojure."
+       (is (= (meta #'matrix/by-rows)
+              (meta #'e/matrix-by-rows)))))
+
   (testing "cot"
     (is (= '(/ (cos x) (sin x)) (simplify (cot 'x))))
     (is (= '(/ 1 (sin x)) (simplify (csc 'x))))

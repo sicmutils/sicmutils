@@ -40,8 +40,8 @@
   (:refer-clojure :rename {ref core-ref
                            partial core-partial
                            compare core-compare}
-                  :exclude [+ - * / zero? compare #?(:cljs partial)])
-  (:require #?(:clj [potemkin :refer [import-vars]])
+                  :exclude [+ - * / zero? compare divide #?(:cljs partial)])
+  (:require #?(:clj [potemkin :refer [import-def import-vars]])
             #?(:clj [nrepl.middleware.print])
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number :as an]
@@ -55,7 +55,9 @@
             [sicmutils.value :as v]
             [sicmutils.matrix :as matrix]
             [sicmutils.series :as series]
-            [sicmutils.util :as u #?@(:cljs [:refer-macros [import-vars]])]
+            [sicmutils.util :as u
+             #?@(:cljs [:refer [import-def import-vars]
+                        :include-macros true])]
             [sicmutils.util.aggregate]
             [sicmutils.util.stream :as us]
             [sicmutils.numerical.derivative]
@@ -112,7 +114,7 @@
 (defmacro using-coordinates [& args]
   `(cc/using-coordinates ~@args))
 
-(def print-expression simp/print-expression)
+(import-def simp/print-expression)
 
 (defn ref
   "A shim so that ref can act like nth in SICM contexts, as clojure core ref
@@ -153,27 +155,30 @@
 
 ;; Constants
 
-(def pi Math/PI)
-(def -pi (g/- Math/PI))
+(def ^{:doc "The mathematical constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
+  pi Math/PI)
+(def ^{:doc "The negation of the mathematical
+constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
+  -pi (g/- Math/PI))
 
-(def s:generate structure/generate)
-(def m:generate matrix/generate)
-(def v:make-basis-unit structure/basis-unit)
-(def qp-submatrix #(matrix/without % 0 0))
-(def matrix-by-rows matrix/by-rows)
-(def matrix-by-cols matrix/by-cols)
-(def row-matrix matrix/row)
-(def column-matrix matrix/column)
+(import-def structure/generate s:generate)
+(import-def matrix/generate m:generate)
+(import-def structure/basis-unit v:make-basis-unit)
 
-(def principal-value v/principal-value)
+(import-def matrix/by-rows matrix-by-rows)
+(import-def matrix/by-cols matrix-by-cols)
+(import-def matrix/row row-matrix)
+(import-def matrix/column column-matrix)
 
-(def series series/series)
-(def power-series series/power-series)
-(def constant-series series/constant)
-(def series:sum series/sum)
+(import-def v/principal-value principal-value)
 
-(def seq:print us/seq-print)
-(def seq:pprint us/pprint)
+(import-def series/series series)
+(import-def series/power-series power-series)
+(import-def series/constant constant-series)
+(import-def series/sum series:sum)
+
+(import-def us/seq-print seq:print)
+(import-def us/pprint seq:pprint)
 
 (defn tex$
   "Returns a string containing a LaTeX representation of `expr`, wrapped in single
@@ -339,6 +344,7 @@
   momentum-tuple
   polar-canonical
   standard-map
+  qp-submatrix
   symplectic-transform?
   symplectic-unit
   time-independent-canonical?]
