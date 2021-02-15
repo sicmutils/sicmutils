@@ -58,10 +58,9 @@
 (defmethod g/magnitude [::v/real] [a] (u/compute-abs a))
 (defmethod g/div [::v/real ::v/real] [a b] (core-div a b))
 (defmethod g/invert [::v/real] [a] (core-div a))
-(defmethod g/integer-part [::v/real] [a] (int a))
-(defmethod g/floor [::v/real] [a] (int (Math/floor a)))
-(defmethod g/ceiling [::v/real] [a] (int (Math/ceil a)))
-(defmethod g/modulo [::v/real ::v/real] [a b] (mod a b))
+(defmethod g/integer-part [::v/real] [a] (long a))
+(defmethod g/floor [::v/real] [a] (long (Math/floor a)))
+(defmethod g/ceiling [::v/real] [a] (long (Math/ceil a)))
 
 ;; ## Complex Operations
 (defmethod g/real-part [::v/real] [a] a)
@@ -161,8 +160,8 @@
 ;; All JVM and JS types that respond to ::native-integral behave correctly with
 ;; Clojure's native `quot`, `rem`, `mod`.
 (defmethod g/quotient [::v/native-integral ::v/native-integral] [a b] (quot a b))
-(defmethod g/remainder [::v/native-integral ::v/native-integral] [a b] (rem a b))
-(defmethod g/modulo [::v/native-integral ::v/native-integral] [a b] (mod a b))
+(defmethod g/remainder [::v/real ::v/real] [a b] (rem a b))
+(defmethod g/modulo [::v/real ::v/real] [a b] (mod a b))
 
 ;; This section defines methods that act differently between Clojurescript and
 ;; Clojure. The clojure methods are all slightly more refined based on Java's

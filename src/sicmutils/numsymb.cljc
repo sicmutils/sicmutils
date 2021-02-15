@@ -60,6 +60,14 @@
               (process s))))
         (process s)))))
 
+(defn- mod-rem
+  "Modulo and remainder are very similar, so can benefit from a shared set of simplifications."
+  [a b f sym]
+  (cond (and (v/number? a) (v/number? b)) (f a b)
+        (= a b) 0
+        (v/one? b) a
+        :else (list sym a b)))
+
 ;; these are without constructor simplifications!
 
 (defn- add [a b]
@@ -116,12 +124,6 @@
   (cond (nil? arg) 1
         (nil? args) (g/invert arg)
         :else (div arg (reduce mul args))))
-
-(defn- mod-rem [a b f sym]
-  (cond (and (v/number? a) (v/number? b)) (f a b)
-        (= a b) 0
-        (v/one? b) a
-        :else (list sym a b)))
 
 (defn- modulo [a b]
   (mod-rem a b modulo 'modulo))
@@ -440,12 +442,12 @@
    '- sub-n
    '* #(reduce mul 1 %&)
    '/ div-n
-   'modulo #'modulo
-   'remainder #'remainder
-   'floor #'floor
-   'ceiling #'ceiling
-   'integer-part #'integer-part
-   'fractional-part #'fractional-part
+   'modulo modulo
+   'remainder remainder
+   'floor floor
+   'ceiling ceiling
+   'integer-part integer-part
+   'fractional-part fractional-part
    'negate negate
    'invert invert
    'sin sin
