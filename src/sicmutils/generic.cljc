@@ -173,18 +173,19 @@ See [[*]] for a variadic version of [[mul]]."
 
 (defgeneric quotient 2)
 
-;; for a complex, return the integer/fractional part of both parts
 (defgeneric integer-part 1)
-(defgeneric fractional-part 1)
-(defmethod fractional-part :default [a]
-  (sub a (integer-part a)))
 
-;; complex floor/ceiling does floor/ceiling on both parts
 (defgeneric floor 1)
 (defmethod floor :default [a]
   (if (negative? a)
     (sub (integer-part a) 1)
     (integer-part a)))
+
+(defgeneric fractional-part 1)
+(defmethod fractional-part :default [a]
+  ;; It's counterintuitive but apparently accepted that for negative numbers
+  ;; (= x (+ (integer-part x) (fractional-part x))) does not hold.
+  (sub a (floor a)))
 
 (defgeneric ceiling 1)
 (defmethod ceiling :default [a]

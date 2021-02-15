@@ -173,7 +173,7 @@
     (is (= 2 (g/integer-part #sicm/ratio 9/4)))
     (is (= -2 (g/integer-part #sicm/ratio -9/4)))
     (is (= #sicm/ratio 1/4 (g/fractional-part #sicm/ratio 9/4)))
-    (is (= #sicm/ratio -1/4 (g/fractional-part #sicm/ratio -9/4)))
+    (is (= #sicm/ratio 3/4 (g/fractional-part #sicm/ratio -9/4)))
 
     (is (= 2 (g/floor #sicm/ratio 9/4)))
     (is (= -3 (g/floor #sicm/ratio -9/4)))
