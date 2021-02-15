@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+- #284 added:
+
+  - new functions `sicmutils.mechanics.lagrange/acceleration-tuple` for creating
+    the acceleration entry in a local tuple
+
+  - `sicmutils.mechanics.lagrange/acceleration` for extracting the acceleration
+    component of a local tuple
+
+  - An upgraded `sicmutils.mechanics.lagrange/F->C` to handle local tuples of
+    arbitrary length. This version of `F->C` is more general than the version
+    from the textbook that was previously included.
+
+  - These are all aliased in `sicmutils.env`, along with a new `Γ-bar` alias for
+    `sicmutils.mechanics.lagrange/Γ-bar`.
+
 - #280 adds a new `:equation` keyword argument to `sicmutils.render/->TeX`. If
   you pass a truthy value to `:equation`, the result will be wrapped in an
   equation environment. `:equation <string>` will insert a `\\label{<string>}`
