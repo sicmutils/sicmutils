@@ -195,6 +195,7 @@ See [[*]] for a variadic version of [[mul]]."
   (sub a (mul b (floor (div a b)))))
 
 ;; complex remainder returns numerator in maxima
+;; fractional remainder returns 0 in maxima
 ;; remainder in wolfram alpha == modulo
 (defgeneric remainder 2)
 (defmethod remainder :default [n d]
