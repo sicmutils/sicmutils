@@ -45,6 +45,11 @@
   (exact? [_] true)
   (kind [_] ::modint))
 
+(defn modint?
+  "Returns true if `x` is an instance of [[ModInt]], false otherwise."
+  [x]
+  (instance? x ModInt))
+
 (defn make [i m]
   (->ModInt (g/modulo i m) m))
 
@@ -68,8 +73,9 @@
 
       :cljs
       (let [[g a _] (e/extended-gcd i modulus)]
-        (if (< g 2) (make a modulus)
-            (u/arithmetic-ex (str i " is not invertible mod " modulus)))))))
+        (if (< g 2)
+          (make a modulus)
+          (u/arithmetic-ex (str i " is not invertible mod " modulus)))))))
 
 (defn- mod-expt
   "Modular exponentiation, more efficient on the JVM."
@@ -88,6 +94,31 @@
                (g/modulo modulus)
                (js/Number)
                (->ModInt modulus))))
+
+(defn chinese-remainder
+  "[Chinese Remainder Algorithm](https://en.wikipedia.org/wiki/Chinese_remainder_theorem).
+
+  Accepts a sequence of [[ModInt]] instances (where the modulus `:m` of
+  all [[ModInt]] instances are relatively prime), and returns a [[ModInt]] `x`
+  such that `(:i input) == (mod x (:m input))`.
+
+  For example:
+
+  ```clojure
+  (let [a1 (m/make 2 5)
+        a2 (m/make 3 13)]
+    [(= 42 (chinese-remainder a1 a2))
+     (= (:i a1) (mod cr (:m a1)))
+     (= (:i a2) (mod cr (:m a2)))])
+  ;;=> [true true true]
+  ```"
+  [& modints]
+  (let [prod  (transduce (map :m) g/* modints)
+        xform (map (fn [{:keys [i m]}]
+		                 (let [c (g/quotient prod m)]
+                       (g/* i c (:i (invert c m))))))]
+    (-> (transduce xform g/+ modints)
+        (g/modulo prod))))
 
 (def ^:private add (modular-binop g/add))
 (def ^:private sub (modular-binop g/sub))

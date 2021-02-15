@@ -31,11 +31,9 @@
                            compare core-compare}
                   #?@(:cljs [:exclude [zero? number? = compare]]))
   (:require [sicmutils.util :as u]
-            #?(:clj [potemkin :refer [import-def]])
-            #?@(:cljs
-                [[goog.array :as garray]
-                 [goog.math.Long]
-                 [goog.math.Integer]]))
+            #?@(:cljs [[goog.array :as garray]
+                       [goog.math.Long]
+                       [goog.math.Integer]]))
   #?(:clj
      (:import (clojure.lang BigInt PersistentVector Sequential Symbol))))
 

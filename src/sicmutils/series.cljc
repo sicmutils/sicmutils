@@ -46,11 +46,11 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
-     (:import (clojure.lang AFn IFn Seqable Sequential))))
+     (:import (clojure.lang AFn IFn IObj Seqable Sequential))))
 
 (declare fmap s-zero s-one s-identity series-value)
 
-(deftype Series [xs]
+(deftype Series [xs m]
   f/IArity
   (arity [_] (f/arity (first xs)))
 
@@ -81,61 +81,71 @@
 
   #?@
   (:clj
-   [Sequential
+   [IObj
+    (meta [_] m)
+    (withMeta [_ meta] (Series. xs meta))
+
+    Sequential
 
     Seqable
     (seq [_] xs)
 
     IFn
-    ;; Invoking a series uses `value` from above to generate a new series.
+    ;; Invoking a series uses `series-value` to generate a new series.
     (invoke [_]
-            (Series. (series-value xs [])))
+            (Series. (series-value xs []) nil))
     (invoke [_ a]
-            (Series. (series-value xs [a])))
+            (Series. (series-value xs [a]) nil))
     (invoke [_ a b]
-            (Series. (series-value xs [a b])))
+            (Series. (series-value xs [a b]) nil))
     (invoke [_ a b c]
-            (Series. (series-value xs [a b c])))
+            (Series. (series-value xs [a b c]) nil))
     (invoke [_ a b c d]
-            (Series. (series-value xs [a b c d])))
+            (Series. (series-value xs [a b c d]) nil))
     (invoke [_ a b c d e]
-            (Series. (series-value xs [a b c d e])))
+            (Series. (series-value xs [a b c d e]) nil))
     (invoke [_ a b c d e f]
-            (Series. (series-value xs [a b c d e f])))
+            (Series. (series-value xs [a b c d e f]) nil))
     (invoke [_ a b c d e f g]
-            (Series. (series-value xs [a b c d e f g])))
+            (Series. (series-value xs [a b c d e f g]) nil))
     (invoke [_ a b c d e f g h]
-            (Series. (series-value xs [a b c d e f g h])))
+            (Series. (series-value xs [a b c d e f g h]) nil))
     (invoke [_ a b c d e f g h i]
-            (Series. (series-value xs [a b c d e f g h i])))
+            (Series. (series-value xs [a b c d e f g h i]) nil))
     (invoke [_ a b c d e f g h i j]
-            (Series. (series-value xs [a b c d e f g h i j])))
+            (Series. (series-value xs [a b c d e f g h i j]) nil))
     (invoke [_ a b c d e f g h i j k]
-            (Series. (series-value xs [a b c d e f g h i j k])))
+            (Series. (series-value xs [a b c d e f g h i j k]) nil))
     (invoke [_ a b c d e f g h i j k l]
-            (Series. (series-value xs [a b c d e f g h i j k l])))
+            (Series. (series-value xs [a b c d e f g h i j k l]) nil))
     (invoke [_ a b c d e f g h i j k l m]
-            (Series. (series-value xs [a b c d e f g h i j k l m])))
+            (Series. (series-value xs [a b c d e f g h i j k l m]) nil))
     (invoke [_ a b c d e f g h i j k l m n]
-            (Series. (series-value xs [a b c d e f g h i j k l m n])))
+            (Series. (series-value xs [a b c d e f g h i j k l m n]) nil))
     (invoke [_ a b c d e f g h i j k l m n o]
-            (Series. (series-value xs [a b c d e f g h i j k l m n o])))
+            (Series. (series-value xs [a b c d e f g h i j k l m n o]) nil))
     (invoke [_ a b c d e f g h i j k l m n o p]
-            (Series. (series-value xs [a b c d e f g h i j k l m n o p])))
+            (Series. (series-value xs [a b c d e f g h i j k l m n o p]) nil))
     (invoke [_ a b c d e f g h i j k l m n o p q]
-            (Series. (series-value xs [a b c d e f g h i j k l m n o p q])))
+            (Series. (series-value xs [a b c d e f g h i j k l m n o p q]) nil))
     (invoke [_ a b c d e f g h i j k l m n o p q r]
-            (Series. (series-value xs [a b c d e f g h i j k l m n o p q r])))
+            (Series. (series-value xs [a b c d e f g h i j k l m n o p q r]) nil))
     (invoke [_ a b c d e f g h i j k l m n o p q r s]
-            (Series. (series-value xs [a b c d e f g h i j k l m n o p q r s])))
+            (Series. (series-value xs [a b c d e f g h i j k l m n o p q r s]) nil))
     (invoke [_ a b c d e f g h i j k l m n o p q r s t]
-            (Series. (series-value xs [a b c d e f g h i j k l m n o p q r s t])))
+            (Series. (series-value xs [a b c d e f g h i j k l m n o p q r s t]) nil))
     (invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
-            (Series. (series-value xs (concat [a b c d e f g h i j k l m n o p q r s t] rest))))
+            (Series. (series-value xs (concat [a b c d e f g h i j k l m n o p q r s t] rest)) nil))
     (applyTo [s xs] (AFn/applyToHelper s xs))]
 
    :cljs
-   [ISequential
+   [IMeta
+    (-meta [_] m)
+
+    IWithMeta
+    (-with-meta [_ meta] (Series. xs meta))
+
+    ISequential
 
     ISeqable
     (-seq [_] xs)
@@ -149,49 +159,61 @@
 
     IFn
     (-invoke [_]
-             (Series. (series-value xs [])))
+             (Series. (series-value xs []) nil))
     (-invoke [_ a]
-             (Series. (series-value xs [a])))
+             (Series. (series-value xs [a]) nil))
     (-invoke [_ a b]
-             (Series. (series-value xs [a b])))
+             (Series. (series-value xs [a b]) nil))
     (-invoke [_ a b c]
-             (Series. (series-value xs [a b c])))
+             (Series. (series-value xs [a b c]) nil))
     (-invoke [_ a b c d]
-             (Series. (series-value xs [a b c d])))
+             (Series. (series-value xs [a b c d]) nil))
     (-invoke [_ a b c d e]
-             (Series. (series-value xs [a b c d e])))
+             (Series. (series-value xs [a b c d e]) nil))
     (-invoke [_ a b c d e f]
-             (Series. (series-value xs [a b c d e f])))
+             (Series. (series-value xs [a b c d e f]) nil))
     (-invoke [_ a b c d e f g]
-             (Series. (series-value xs [a b c d e f g])))
+             (Series. (series-value xs [a b c d e f g]) nil))
     (-invoke [_ a b c d e f g h]
-             (Series. (series-value xs [a b c d e f g h])))
+             (Series. (series-value xs [a b c d e f g h]) nil))
     (-invoke [_ a b c d e f g h i]
-             (Series. (series-value xs [a b c d e f g h i])))
+             (Series. (series-value xs [a b c d e f g h i]) nil))
     (-invoke [_ a b c d e f g h i j]
-             (Series. (series-value xs [a b c d e f g h i j])))
+             (Series. (series-value xs [a b c d e f g h i j]) nil))
     (-invoke [_ a b c d e f g h i j k]
-             (Series. (series-value xs [a b c d e f g h i j k])))
+             (Series. (series-value xs [a b c d e f g h i j k]) nil))
     (-invoke [_ a b c d e f g h i j k l]
-             (Series. (series-value xs [a b c d e f g h i j k l])))
+             (Series. (series-value xs [a b c d e f g h i j k l]) nil))
     (-invoke [_ a b c d e f g h i j k l m]
-             (Series. (series-value xs [a b c d e f g h i j k l m])))
+             (Series. (series-value xs [a b c d e f g h i j k l m]) nil))
     (-invoke [_ a b c d e f g h i j k l m n]
-             (Series. (series-value xs [a b c d e f g h i j k l m n])))
+             (Series. (series-value xs [a b c d e f g h i j k l m n]) nil))
     (-invoke [_ a b c d e f g h i j k l m n o]
-             (Series. (series-value xs [a b c d e f g h i j k l m n o])))
+             (Series. (series-value xs [a b c d e f g h i j k l m n o]) nil))
     (-invoke [_ a b c d e f g h i j k l m n o p]
-             (Series. (series-value xs [a b c d e f g h i j k l m n o p])))
+             (Series. (series-value xs [a b c d e f g h i j k l m n o p]) nil))
     (-invoke [_ a b c d e f g h i j k l m n o p q]
-             (Series. (series-value xs [a b c d e f g h i j k l m n o p q])))
+             (Series. (series-value xs [a b c d e f g h i j k l m n o p q]) nil))
     (-invoke [_ a b c d e f g h i j k l m n o p q r]
-             (Series. (series-value xs [a b c d e f g h i j k l m n o p q r])))
+             (Series. (series-value xs [a b c d e f g h i j k l m n o p q r]) nil))
     (-invoke [_ a b c d e f g h i j k l m n o p q r s]
-             (Series. (series-value xs [a b c d e f g h i j k l m n o p q r s])))
+             (Series. (series-value xs [a b c d e f g h i j k l m n o p q r s]) nil))
     (-invoke [_ a b c d e f g h i j k l m n o p q r s t]
-             (Series. (series-value xs [a b c d e f g h i j k l m n o p q r s t])))
+             (Series. (series-value xs [a b c d e f g h i j k l m n o p q r s t]) nil))
     (-invoke [_ a b c d e f g h i j k l m n o p q r s t rest]
-             (Series. (series-value xs (concat [a b c d e f g h i j k l m n o p q r s t] rest))))]))
+             (Series. (series-value xs (concat [a b c d e f g h i j k l m n o p q r s t] rest)) nil))]))
+
+;; Unmap the auto-generated constructor and replace it with a better one.
+
+(do (ns-unmap 'sicmutils.series '->Series)
+    (defn ->Series
+      "Returns a [[Series]] instance wrapping the supplied lazy (infinite) sequence
+  `xs`.
+
+  If `m` is supplied, `m` will be attached as metadata to the
+  returned [[Series]] instance."
+      ([xs] (Series. xs nil))
+      ([xs m] (Series. xs m))))
 
 #?(:clj
    (defmethod print-method Series [^Series s ^java.io.Writer w]
@@ -209,7 +231,7 @@
 
 (declare zero one identity power-series-value)
 
-(deftype PowerSeries [xs]
+(deftype PowerSeries [xs m]
   f/IArity
   (arity [_] [:exactly 1])
 
@@ -237,23 +259,33 @@
 
   #?@
   (:clj
-   [Sequential
+   [IObj
+    (meta [_] m)
+    (withMeta [_ meta] (PowerSeries. xs meta))
+
+    Sequential
 
     Seqable
     (seq [_] xs)
 
     IFn
-    (invoke [_ a] (Series. (power-series-value xs a)))
+    (invoke [_ a] (Series. (power-series-value xs a) nil))
     (applyTo [s xs] (AFn/applyToHelper s xs))]
 
    :cljs
-   [ISequential
+   [IMeta
+    (-meta [_] m)
+
+    IWithMeta
+    (-with-meta [_ meta] (PowerSeries. xs meta))
+
+    ISequential
 
     ISeqable
     (-seq [_] xs)
 
     IFn
-    (-invoke [_ a] (Series. (power-series-value xs a)))
+    (-invoke [_ a] (Series. (power-series-value xs a) nil))
 
     IPrintWithWriter
     (-pr-writer [this writer _]
@@ -261,6 +293,18 @@
                            "#object[sicmutils.series.PowerSeries \""
                            (.toString this)
                            "\"]"))]))
+
+;; Unmap the auto-generated constructor and replace it with a better one.
+
+(do (ns-unmap 'sicmutils.series '->PowerSeries)
+    (defn ->PowerSeries
+      "Returns a [[PowerSeries]] instance wrapping the supplied lazy (infinite)
+  sequence `xs`.
+
+  If `m` is supplied, `m` will be attached as metadata to the
+  returned [[PowerSeries]] instance."
+      ([xs] (PowerSeries. xs nil))
+      ([xs m] (PowerSeries. xs m))))
 
 #?(:clj
    (defmethod print-method PowerSeries [^PowerSeries s ^java.io.Writer w]
