@@ -28,9 +28,7 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
-(defn momentum-tuple
-  [& ps]
-  (apply down ps))
+(def momentum-tuple down)
 
 (defn momentum
   "See coordinate: this returns the momentum element of a
