@@ -147,8 +147,11 @@ See [[*]] for a variadic version of [[mul]]."
   {:name '/
    :dfdx (fn [x] (div -1 (mul x x)))})
 
+(def ^:dynamic *in-default-invert* false)
+
 (defmethod invert :default [a]
-  (div 1 a))
+  (binding [*in-default-invert* true]
+    (div 1 a)))
 
 (defgeneric div 2
   {:name '/
@@ -157,7 +160,9 @@ See [[*]] for a variadic version of [[mul]]."
                        (mul y y)))})
 
 (defmethod div :default [a b]
-  (mul a (invert b)))
+  (if *in-default-invert*
+    (throw (ex-info "No implementation of invert or div." {:method 'div :args [a b]}))
+    (mul a (invert b))))
 
 (defgeneric abs 1)
 
