@@ -314,11 +314,11 @@
 (defn- displaystyle [s]
   (str "\\displaystyle{" s "}"))
 
-(def ^{:doc "Convert the given expression to TeX format, as a string."}
-  ->TeX
+(def ^:no-doc ->TeX*
   (let [TeX-accent (fn [accent]
                      (fn [[_ stem]]
-                       (str "\\" accent " " (maybe-brace (->TeX stem)))))
+                       (str "\\" accent " " (maybe-brace
+                                             (->TeX* stem)))))
         dot (TeX-accent "dot")
         ddot (TeX-accent "ddot")
         hat (TeX-accent "hat")
@@ -390,6 +390,38 @@
                                  (str "\\mathsf" (brace s))
                                  (brace s))
                                v)))))))))
+
+(defn ->TeX
+  "Convert the given expression to TeX format, as a string.
+
+  If you set the `:equation` keyword argument to a truthy value, the result will
+  be wrapped in an equation environment. `:equation <string>` will insert a
+  `\\label{<string>}` entry inside the equation environment.
+
+  For example:
+
+  ```clojure
+  (let [expr (+ 'x 'xy)]
+    (println
+      (->TeX expr :equation \"label!\")))
+
+  \\begin{equation}
+  \\label{label!}
+  x + y
+  \\end{equation}
+  ```
+  "
+  [expr & {:keys [equation]}]
+  (let [tex-string (->TeX* expr)]
+    (if equation
+      (let [label (if (and (string? equation)
+                           (not (empty? equation)))
+                    (str "\\label{" equation "}\n")
+                    "")]
+        (str "\\begin{equation}\n"
+             label tex-string
+             "\n\\end{equation}"))
+      tex-string)))
 
 (def ^{:doc "Convert the given expression to a string representation of a
   JavaScript function.

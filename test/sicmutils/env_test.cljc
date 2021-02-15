@@ -68,6 +68,23 @@
          (is (= [99] (dosync (alter r conj 99))))
          (is (= {:b 88} (dosync (alter s assoc :b 88))))))))
 
+(deftest tex-tests
+  (testing "inline and block tex environments"
+    (is (= "$x + y$" (e/tex$ (+ 'x 'y))))
+    (is (= "$$x + y$$" (e/tex$$ (+ 'x 'y)))))
+
+  (testing "tex equation environment"
+    (is (= (str "\\begin{equation}\n"
+                "x + y\n"
+                "\\end{equation}")
+           (e/->tex-equation (+ 'x 'y))))
+
+    (is (= (str "\\begin{equation}\n"
+                "\\label{face}\n"
+                "x + y\n"
+                "\\end{equation}")
+           (e/->tex-equation (+ 'x 'y) :label "face")))))
+
 (deftest literal-function-shim
   (testing "works for signatures"
     (let [f1 (literal-function 'f)

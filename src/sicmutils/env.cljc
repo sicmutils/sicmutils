@@ -192,6 +192,15 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   [expr]
   (str "$$" (-> expr g/simplify render/->TeX) "$$"))
 
+(defn ->tex-equation
+  "Returns a string containing a LaTeX representation of `expr`, wrapped in an
+  `equation` environment.
+
+  Optionally supply a `:label` keyword argument to set a custom label."
+  [expr & {:keys [label]}]
+  (-> (g/simplify expr)
+      (render/->TeX :equation (or label true))))
+
 (import-vars
  [sicmutils.abstract.number literal-number]
  [sicmutils.complex complex]

@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+- #280 adds a new `:equation` keyword argument to `sicmutils.render/->TeX`. If
+  you pass a truthy value to `:equation`, the result will be wrapped in an
+  equation environment. `:equation <string>` will insert a `\\label{<string>}`
+  entry inside the equation environment.
+
+    - `sicmutils.env/->tex-equation` is identical to `#(sicmutils.render/->TeX
+      (g/simplify %) :equation true)`; If you pass a `:label` keyword argument
+      to `->tex-equation` it will be forwarded to `->TeX`, creating the expected
+      label entry.
+
 - #279: Function aliases in `sicmutils.env` now properly mirror over docstrings
   and other `Var` metadata, thanks to
   [Potemkin](https://github.com/clj-commons/potemkin)'s `import-def`. This
