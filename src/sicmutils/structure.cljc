@@ -29,7 +29,10 @@
             [sicmutils.numsymb]
             [sicmutils.value :as v])
   #?(:clj
-     (:import (clojure.lang Associative AFn IFn IPersistentVector Sequential))))
+     (:import (clojure.lang Associative
+                            AFn IFn
+                            IPersistentVector IReduce
+                            Indexed Sequential))))
 
 (def ^:dynamic *allow-incompatible-multiplication* true)
 
@@ -106,15 +109,23 @@
 
        Associative
        (assoc [_ k entry] (Structure. orientation (assoc v k entry)))
-       (containsKey [_ k] (contains? v k))
-       (entryAt [_ k] (.entryAt v k))
+       (containsKey [_ k] (.containsKey ^Associative v k))
+       (entryAt [_ k] (.entryAt ^Associative v k))
        (cons [_ o] (Structure. orientation (conj v o)))
-       (count [_] (count v))
-       (seq [_] (seq v))
-       (valAt [_ key] (get v key))
-       (valAt [_ key default] (get v key default))
+       (count [_] (.count ^Associative v))
+       (seq [_] (.seq ^Associative v))
+       (valAt [_ key] (.valAt ^Associative v key))
+       (valAt [_ key default] (.valAt ^Associative v key default))
        (empty [_] (Structure. orientation []))
        (equiv [this that] (s:= this that))
+
+       Indexed
+       (nth [_ key] (.nth ^Indexed v key))
+       (nth [_ key default] (.nth ^Indexed v key default))
+
+       IReduce
+       (reduce [_ f] (.reduce ^IReduce v f))
+       (reduce [_ f start] (.reduce ^IReduce v f start))
 
        IFn
        (invoke [_ a]
@@ -202,6 +213,10 @@
 
        IFind
        (-find [_ n] (-find v n))
+
+       IReduce
+       (-reduce [_ f] (-reduce v f))
+       (-reduce [_ f start] (-reduce v f start))
 
        IFn
        (-invoke [_ a]

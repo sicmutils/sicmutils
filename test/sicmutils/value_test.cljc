@@ -67,7 +67,8 @@
     (is (not (v/exact? [0 0 0.00001]))))
 
   (testing "freeze"
-    (is (= [1 2 3] (v/freeze [1 2 3]))))
+    (is (= '(up 1 2 3)
+           (v/freeze [1 2 3]))))
 
   (testing "kind"
     (is (= PersistentVector (v/kind [1 2])))))

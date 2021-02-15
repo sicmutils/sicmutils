@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- `sicmutils.structure.Structure` implements `clojure.lang.{Indexed, IReduce}`
+  on the JVM, allowing it to act more like a vector. (The CLJS implementation
+  already did this.)
+
 - #280 adds a new `:equation` keyword argument to `sicmutils.render/->TeX`. If
   you pass a truthy value to `:equation`, the result will be wrapped in an
   equation environment. `:equation <string>` will insert a `\\label{<string>}`
