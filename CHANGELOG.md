@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- #285 fixes a bug that prevented `sin / cos` from simplifying into a `tan` in
+  the numerator, and makes `seq:-` slightly more efficient (closing heisenbug
+  #151).
+
 - #280 adds a new `:equation` keyword argument to `sicmutils.render/->TeX`. If
   you pass a truthy value to `:equation`, the result will be wrapped in an
   equation environment. `:equation <string>` will insert a `\\label{<string>}`
