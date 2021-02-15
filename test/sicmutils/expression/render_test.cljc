@@ -183,6 +183,25 @@
   (is (= "4 \\geq 2 + 2 \\geq 1 + 3"
          (->TeX '(>= 4 (+ 2 2) (+ 1 3))))))
 
+(deftest equation-wrapper-tests
+  (is (= (str "\\begin{equation}\n"
+              "x + y\n"
+              "\\end{equation}")
+         (->TeX (g/+ 'x 'y) :equation true)
+         (->TeX (g/+ 'x 'y) :equation 5)
+         (->  (g/+ 'x 'y)
+              (->TeX :equation "")))
+      "truthy (including empty-string) :equation option wraps the result in an
+      equation environment.")
+
+  (is (= (str "\\begin{equation}\n"
+              "\\label{label}\n"
+              "x + y\n"
+              "\\end{equation}")
+         (->TeX (g/+ 'x 'y)
+                :equation "label"))
+      "Supplying a non-empty string triggers a label."))
+
 (deftest symbol-rendering-tests
   (is (= "x" (->TeX 'x)))
   (is (= "\\mathsf{PV}" (->TeX 'PV)))

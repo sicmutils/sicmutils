@@ -317,7 +317,8 @@
 (def ^:no-doc ->TeX*
   (let [TeX-accent (fn [accent]
                      (fn [[_ stem]]
-                       (str "\\" accent " " (maybe-brace (->TeX stem)))))
+                       (str "\\" accent " " (maybe-brace
+                                             (->TeX* stem)))))
         dot (TeX-accent "dot")
         ddot (TeX-accent "ddot")
         hat (TeX-accent "hat")
@@ -360,7 +361,7 @@
       '<= #(s/join " \\leq " %)
       '>= #(s/join " \\geq " %)}
      :render-primitive
-     (fn [v]
+     (fn r [v]
        (cond (r/ratio? v)
              (str "\\frac" (brace (r/numerator v)) (brace (r/denominator v)))
 
@@ -404,16 +405,17 @@
     (println
       (->TeX expr :equation \"label!\")))
 
-  \begin{equation}
-  \label{label!}
+  \\begin{equation}
+  \\label{label!}
   x + y
-  \end{equation}
+  \\end{equation}
   ```
   "
   [expr & {:keys [equation]}]
   (let [tex-string (->TeX* expr)]
     (if equation
-      (let [label (if (string? equation)
+      (let [label (if (and (string? equation)
+                           (not (empty? equation)))
                     (str "\\label{" equation "}\n")
                     "")]
         (str "\\begin{equation}\n"
