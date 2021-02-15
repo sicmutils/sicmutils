@@ -157,6 +157,11 @@
 
 (defmethod g/exact-divide [::v/integral ::v/integral] [b a] (exact-divide b a))
 
+(defmethod g/integer-part [::v/integral] [a] a)
+(defmethod g/fractional-part [::v/integral] [a] 0)
+(defmethod g/floor [::v/integral] [a] a)
+(defmethod g/ceiling [::v/integral] [a] a)
+
 ;; All JVM and JS types that respond to ::native-integral behave correctly with
 ;; Clojure's native `quot`, `rem`, `mod`.
 (defmethod g/quotient [::v/native-integral ::v/native-integral] [a b] (quot a b))

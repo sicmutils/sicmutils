@@ -226,6 +226,10 @@
      (defmethod g/mul [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.mul a b)))
      (defmethod g/div [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.div a b)))
      (defmethod g/exact-divide [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.div a b)))
+
+     (defmethod g/modulo [Fraction Fraction] [a b] (rationalize (g/sub a (g/mul b (g/floor (g/div a b))))))
+     (defmethod g/modulo [::v/integral Fraction] [a b] (rationalize (g/sub a (g/mul b (g/floor (g/div a b))))))
+     (defmethod g/modulo [Fraction ::v/integral] [a b] (rationalize (g/sub a (g/mul b (g/floor (g/div a b))))))
      (defmethod g/negate [Fraction] [^Fraction a] (promote (.neg a)))
      (defmethod g/negative? [Fraction] [^Fraction a] (neg? (.-s a)))
      (defmethod g/invert [Fraction] [^Fraction a] (promote (.inverse a)))
