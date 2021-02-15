@@ -70,8 +70,8 @@
 
 (deftest tex-tests
   (testing "inline and block tex environments"
-    (is (= "$x+y$" (e/tex$ (+ 'x 'y))))
-    (is (= "$$x+y$$" (e/tex$$ (+ 'x 'y)))))
+    (is (= "$x + y$" (e/tex$ (+ 'x 'y))))
+    (is (= "$$x + y$$" (e/tex$$ (+ 'x 'y)))))
 
   (testing "tex equation environment"
     (is (= (str "\\begin{equation}\n"
