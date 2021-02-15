@@ -106,8 +106,9 @@
 
   #?(:clj
      (testing "aliases keep metadata from original var. Only works in Clojure."
-       (is (= (meta #'matrix/by-rows)
-              (meta #'e/matrix-by-rows)))))
+       (let [ks [:doc :file :ns :line :column :arglists]]
+         (is (= (select-keys (meta #'matrix/by-rows) ks)
+                (select-keys (meta #'e/matrix-by-rows) ks))))))
 
   (testing "cot"
     (is (= '(/ (cos x) (sin x)) (simplify (cot 'x))))
