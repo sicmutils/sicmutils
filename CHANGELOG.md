@@ -2,9 +2,14 @@
 
 ## [Unreleased]
 
+- #282 modifies the `sicmutils.value/freeze` implementation for Clojure vector
+  to freeze vectors into the same representation as an `up` structure. This
+  makes rendering these forms much more simple and matches the `scmutils`
+  behavior.
+
 - `sicmutils.structure.Structure` implements `clojure.lang.{Indexed, IReduce}`
-  on the JVM, allowing it to act more like a vector. (The CLJS implementation
-  already did this.)
+  on the JVM, allowing it to act more like a vector (#282). (The CLJS
+  implementation already did this.) `(vec (up 1 2 3))` now works correctly.
 
 - #280 adds a new `:equation` keyword argument to `sicmutils.render/->TeX`. If
   you pass a truthy value to `:equation`, the result will be wrapped in an
