@@ -425,9 +425,9 @@
              (g/simplify
               ((d/Curl A) (s/up 'x 'y 'z)))))
 
-      (is (= '(+ (((partial 0) ((partial 0) F)) (up x y z))
-                 (((partial 1) ((partial 1) F)) (up x y z))
-                 (((partial 2) ((partial 2) F)) (up x y z)))
+      (is (= '(+ (((expt (partial 0) 2) F) (up x y z))
+                 (((expt (partial 1) 2) F) (up x y z))
+                 (((expt (partial 2) 2) F) (up x y z)))
              (g/simplify
               ((d/Lap F) (s/up 'x 'y 'z)))))))
 
@@ -604,41 +604,46 @@
   (let [f (af/literal-function 'f [0 0] 0)
         g (af/literal-function 'g (s/up 0 0) 0)
         dX (s/up 'dx 'dy)]
-    (is (= '(f x y) (g/simplify (f 'x 'y))))
-    (is (= '(g (up (* 3 x) (* 3 y))) (g/simplify (g (* 3 (s/up 'x 'y))))))
-    (is (= '(down (down (((partial 0) ((partial 0) f)) x y)
-                        (((partial 1) ((partial 0) f)) x y))
-                  (down (((partial 1) ((partial 0) f)) x y)
-                        (((partial 1) ((partial 1) f)) x y)))
-           (g/simplify (((g/expt D 2) f) 'x 'y))))
-    (is (= '(down (((partial 0) f) x y) (((partial 1) f) x y))
-           (g/simplify ((D f) 'x 'y))))
-    (is (= '(+ (* dx (((partial 0) f) x y)) (* dy (((partial 1) f) x y)))
-           (g/simplify (* ((D f) 'x 'y) dX))))
-    (is (= '(+ (* (expt dx 2) (((partial 0) ((partial 0) f)) x y))
-               (* 2 dx dy (((partial 1) ((partial 0) f)) x y))
-               (* (expt dy 2) (((partial 1) ((partial 1) f)) x y)))
-           (g/simplify (* dX (((g/expt D 2) f) 'x 'y) dX))))))
+    (is (= '(f x y)
+           (g/simplify (f 'x 'y))))
 
+    (is (= '(g (up (* 3 x) (* 3 y)))
+           (g/simplify (g (* 3 (s/up 'x 'y))))))
+
+    (is (= '(down
+             (down (((expt (partial 0) 2) f) x y)
+                   (((* (partial 0) (partial 1)) f) x y))
+             (down (((* (partial 0) (partial 1)) f) x y)
+                   (((expt (partial 1) 2) f) x y)))
+           (g/simplify (((g/expt D 2) f) 'x 'y))))
+
+    (is (= '(down (((partial 0) f) x y)
+                  (((partial 1) f) x y))
+           (g/simplify ((D f) 'x 'y))))
+
+    (is (= '(+ (* dx (((partial 0) f) x y))
+               (* dy (((partial 1) f) x y)))
+           (g/simplify (* ((D f) 'x 'y) dX))))
+
+    (is (= '(+ (* (expt dx 2) (((expt (partial 0) 2) f) x y))
+               (* 2 dx dy (((* (partial 0) (partial 1)) f) x y))
+               (* (expt dy 2) (((expt (partial 1) 2) f) x y)))
+           (g/simplify (* dX (((g/expt D 2) f) 'x 'y) dX))))))
 
 (deftest taylor
   (is (= '(+ (* (/ 1 6)
-                (expt dx 3) (((partial 0) ((partial 0) ((partial 0) f))) (up x y)))
-             (* (/ 1 6)
-                (expt dx 2) dy (((partial 0) ((partial 0) ((partial 1) f))) (up x y)))
-             (* (/ 1 3)
-                (expt dx 2) dy (((partial 1) ((partial 0) ((partial 0) f))) (up x y)))
-             (* (/ 1 3)
-                dx (expt dy 2) (((partial 1) ((partial 0) ((partial 1) f))) (up x y)))
-             (* (/ 1 6)
-                dx (expt dy 2) (((partial 1) ((partial 1) ((partial 0) f))) (up x y)))
-             (* (/ 1 6)
-                (expt dy 3) (((partial 1) ((partial 1) ((partial 1) f))) (up x y)))
+                (expt dx 3) (((expt (partial 0) 3) f) (up x y)))
              (* (/ 1 2)
-                (expt dx 2) (((partial 0) ((partial 0) f)) (up x y)))
-             (* dx dy (((partial 1) ((partial 0) f)) (up x y)))
+                (expt dx 2) dy (((* (expt (partial 0) 2) (partial 1)) f) (up x y)))
              (* (/ 1 2)
-                (expt dy 2) (((partial 1) ((partial 1) f)) (up x y)))
+                dx (expt dy 2) (((* (partial 0) (expt (partial 1) 2)) f) (up x y)))
+             (* (/ 1 6)
+                (expt dy 3) (((expt (partial 1) 3) f) (up x y)))
+             (* (/ 1 2)
+                (expt dx 2) (((expt (partial 0) 2) f) (up x y)))
+             (* dx dy (((* (partial 0) (partial 1)) f) (up x y)))
+             (* (/ 1 2)
+                (expt dy 2) (((expt (partial 1) 2) f) (up x y)))
              (* dx (((partial 0) f) (up x y)))
              (* dy (((partial 1) f) (up x y)))
              (f (up x y)))
@@ -1290,7 +1295,7 @@
       ;; from context associated with _x_ before you call `(f2 f1)`, then you
       ;; instead see a "mixed partial" result:
       (let [[f1 f2] (((D f) 't) list)]
-        (is (= '(((partial 1) ((partial 0) a)) t t)
+        (is (= '(((* (partial 0) (partial 1)) a) t t)
                (g/simplify
                 (f2 f1)))
             "If you first get `f1` and `f2` out and THEN call (f2 f1), you see a
