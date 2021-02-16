@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- #285 fixes a bug that prevented `sin / cos` from simplifying into a `tan` in
+  the numerator, and makes `seq:-` slightly more efficient (closing heisenbug
+  #151).
+
 - #284 added:
 
   - new functions `sicmutils.mechanics.lagrange/acceleration-tuple` for creating
@@ -23,6 +27,7 @@
 - Symbols like `'qprime` ending with `prime` or `primeprime` will render as `q'`
   or `q''` respectively in `TeX`, rather than the fully-spelled-out
   `\mathsf{qprime}` (#282).
+>>>>>>> master
 
 - #280 adds a new `:equation` keyword argument to `sicmutils.render/->TeX`. If
   you pass a truthy value to `:equation`, the result will be wrapped in an
