@@ -211,8 +211,9 @@
   "Tests that use g/simplify, moved here from sicmutils.matrix-test"
   (let [M (m/by-rows '[a b] '[c d])
         S (m/by-rows '[e f] '[g h])]
-    (is (= '(matrix-by-rows [(+ (* a e) (* b g)) (+ (* a f) (* b h))]
-                            [(+ (* c e) (* d g)) (+ (* c f) (* d h))])
+    (is (= '(matrix-by-rows
+             (up (+ (* a e) (* b g)) (+ (* a f) (* b h)))
+             (up (+ (* c e) (* d g)) (+ (* c f) (* d h))))
            (g/simplify (g/* M S)))))
 
   (testing "div"

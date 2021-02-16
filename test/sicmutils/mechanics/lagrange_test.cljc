@@ -97,13 +97,12 @@
                   (down (down (down 0 0) (down m2 0))
                         (down (down 0 0) (down 0 m2))))
            (g/simplify (((g/expt D 2) L1) vs))))
-    (is (= '(matrix-by-rows [m1 0 0 0]
-                            [0 m1 0 0]
-                            [0 0 m2 0]
-                            [0 0 0 m2])
+    (is (= '(matrix-by-rows
+             (up m1 0 0 0)
+             (up 0 m1 0 0)
+             (up 0 0 m2 0)
+             (up 0 0 0 m2))
            (g/simplify (m/s->m vs (((g/expt D 2) L1) vs) vs))))))
-
-
 
 (deftest lagrange-equations
   (testing "moved-from-simplify"

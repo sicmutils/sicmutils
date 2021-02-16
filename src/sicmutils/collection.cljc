@@ -34,10 +34,10 @@
 ;; ## Vector Implementations
 ;;
 ;; Vectors are implicitly treated as [[sicmutils.structure/Structure]] instances
-;; with an `up` orientation. They can act as `zero?`, but they can't act as
-;; `one?` or `identity?`; those are reserved for instances that have no effect
-;; on multiplication.
-;;
+;; with an `up` orientation, and implement [[v/freeze]] identically. They can
+;; act as `zero?`, but they can't act as `one?` or `identity?`; those are
+;; reserved for instances that have no effect on multiplication.
+
 (extend-type #?(:clj IPersistentVector :cljs PersistentVector)
   v/Value
   (zero? [v] (every? v/zero? v))
@@ -47,7 +47,7 @@
   (one-like [v] (u/unsupported (str "one-like: " v)))
   (identity-like [v] (u/unsupported (str "identity-like: " v)))
   (exact? [v] (every? v/exact? v))
-  (freeze [v] (mapv v/freeze v))
+  (freeze [v] `(~'up ~@(map v/freeze v)))
   (kind [v] (type v))
 
   ;; Another difference from [[sicmutils.structure/Structure]] is that a

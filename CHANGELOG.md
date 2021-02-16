@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+- #282 modifies the `sicmutils.value/freeze` implementation for Clojure vector
+  to freeze vectors into the same representation as an `up` structure. This
+  makes rendering these forms much more simple and matches the `scmutils`
+  behavior.
+
+- `sicmutils.structure.Structure` implements `clojure.lang.{Indexed, IReduce}`
+  on the JVM, allowing it to act more like a vector (#282). (The CLJS
+  implementation already did this.) `(vec (up 1 2 3))` now works correctly.
+
 - #285 fixes a bug that prevented `sin / cos` from simplifying into a `tan` in
   the numerator, and makes `seq:-` slightly more efficient (closing heisenbug
   #151).
@@ -27,7 +36,6 @@
 - Symbols like `'qprime` ending with `prime` or `primeprime` will render as `q'`
   or `q''` respectively in `TeX`, rather than the fully-spelled-out
   `\mathsf{qprime}` (#282).
->>>>>>> master
 
 - #280 adds a new `:equation` keyword argument to `sicmutils.render/->TeX`. If
   you pass a truthy value to `:equation`, the result will be wrapped in an

@@ -115,8 +115,19 @@
 
 (deftest structures
   (is (= "down(up(1, 2), up(3, 4))"
-         (->infix (g/simplify
-                   (down (up 1 2) (up 3 4))))))
+         (->infix (down (up 1 2) (up 3 4)))
+         (->infix (down [1 2] [3 4])))
+      "vector renders as an up, infix")
+
+  (is (= (str "\\begin{pmatrix}\\displaystyle{1} \\cr \\cr "
+              "\\displaystyle{2} \\cr \\cr "
+              "\\displaystyle{3}\\end{pmatrix}")
+         (->TeX [1 2 3]))
+      "vector renders as an up, TeX")
+
+  (is (= "down(up(1, 2), up(3, 4))"
+         (->infix
+          (down (up 1 2) (up 3 4)))))
 
   (testing "customizable down tuple rendering in TeX"
     (is (= (str "\\begin{bmatrix}\\"

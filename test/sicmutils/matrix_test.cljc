@@ -283,7 +283,10 @@
                      [31 32 33])
         v (m/column 7 8 9)]
     (is (= ::m/matrix (v/kind M)))
-    (is (= '(matrix-by-rows [1 2 3] [4 5 6]) (v/freeze M)))
+    (is (= '(matrix-by-rows
+             (up 1 2 3)
+             (up 4 5 6))
+           (v/freeze M)))
     (is (= (m/by-rows [1 4] [2 5] [3 6]) (g/transpose M)))
     (is (= (m/by-rows [0 0 0] [0 0 0]) (v/zero-like M)))
     (is (= (m/by-rows [1 0 0] [0 1 0] [0 0 1]) (v/one-like A)))

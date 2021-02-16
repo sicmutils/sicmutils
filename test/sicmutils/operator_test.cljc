@@ -97,7 +97,7 @@
     (is (o/operator? (get-in o/identity ['x 'y]))))
 
   (testing "get names"
-    (is (= '(compose (fn [x] (get x x)) identity)
+    (is (= '(compose (component x) identity)
            (v/freeze (get o/identity 'x)))
         "The name of the operator returned by `get` reflects the (sort of
         awkward) composition that `get` induces."))

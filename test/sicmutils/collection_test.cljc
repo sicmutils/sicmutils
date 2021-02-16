@@ -75,7 +75,7 @@
                   "conj-ing an inexact value removes the exact? designation"))
 
     (testing "v/freeze"
-      (is (= '[(/ 1 2)]
+      (is (= '(up (/ 1 2))
              (v/freeze [#sicm/ratio 1/2]))
           "v/freeze freezes entries"))))
 
