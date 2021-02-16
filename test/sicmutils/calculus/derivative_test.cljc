@@ -160,6 +160,15 @@
           "derivative pushes into the operator's fn.."))))
 
 (deftest partial-diff-test
+  (testing "partial derivative simplification rules"
+    (let [f (af/literal-function 'f '(-> (UP Real Real) Real))]
+      (is (= '(((* (expt (partial 0) 2) (partial 1)) f) (up x y))
+             (g/simplify
+              (((partial 0)
+                ((partial 1)
+                 ((partial 0) f))) (s/up 'x 'y))))
+          "partials are collected, sorted and exponentiated")))
+
   (testing "partial derivatives"
     (let [f (fn [x y] (+ (* 'a x x) (* 'b x y) (* 'c y y)))]
       (is (= '(+ (* 4 a) (* 3 b)) (g/simplify (((partial 0) f) 2 3))))
