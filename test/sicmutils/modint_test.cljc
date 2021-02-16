@@ -106,14 +106,14 @@
   For some p, for all $1 < i < p$, $1 < j < p$ such that $i \\mod p \\neq 0$,
   the modular quotient b of j and i times b gets back to j."
   [p]
-  (doall
-   (for [i (range 1 (inc p))
-         j (range 1 (inc p))
-         :when (not (zero? (mod i p)))
-         :let [jp (m/make j p)
-               ip (m/make i p)]]
-     (is (= jp (-> (g// jp ip)
-                   (g/* ip)))))))
+  (is (every? true?
+              (for [i (range 1 (inc p))
+                    j (range 1 (inc p))
+                    :when (not (zero? (mod i p)))
+                    :let [jp (m/make j p)
+                          ip (m/make i p)]]
+                (= jp (-> (g// jp ip)
+                          (g/* ip)))))))
 
 (deftest div-mul-tests
   (testing "Modular division and exponentiation are inverses."

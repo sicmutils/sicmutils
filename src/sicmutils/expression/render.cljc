@@ -304,8 +304,8 @@
 
 (def ^{:dynamic true
        :doc "If true, [[->TeX]] will render down tuples as vertical matrices
-  with square braces. Defaults to false."}
-  *TeX-vertical-down-tuples* false)
+  with square braces. Defaults to true."}
+  *TeX-vertical-down-tuples* true)
 
 (def ^{:dynamic true
        :doc "If true, [[->TeX]] will render symbols with more than 1 character
@@ -320,12 +320,19 @@
                      (fn [[_ stem]]
                        (str "\\" accent " " (maybe-brace
                                              (->TeX* stem)))))
-        dot (TeX-accent "dot")
-        ddot (TeX-accent "ddot")
-        hat (TeX-accent "hat")
-        bar (TeX-accent "bar")
-        vec (TeX-accent "vec")
-        tilde (TeX-accent "tilde")]
+        dot   (TeX-accent "dot")
+        ddot  (TeX-accent "ddot")
+        hat   (TeX-accent "hat")
+        bar   (TeX-accent "bar")
+        vec   (TeX-accent "vec")
+        tilde (TeX-accent "tilde")
+        prime (fn [[_ stem]]
+                (let [x (maybe-brace (->TeX* stem))]
+                  (str x "^\\prime")))
+        primeprime
+        (fn [[_ stem]]
+          (let [x (maybe-brace (->TeX* stem))]
+            (str x "^{\\prime\\prime}")))]
     (make-infix-renderer
      ;; here we set / to a very low precedence because the fraction bar we will
      ;; use in the rendering groups things very strongly.
@@ -380,6 +387,8 @@
                              #"(.+)dotdot$" :>> ddot
                              #"(.+)dot$" :>> dot
                              #"(.+)hat$" :>> hat
+                             #"(.+)primeprime$" :>> primeprime
+                             #"(.+)prime$" :>> prime
                              #"(.+)bar$" :>> bar
                              #"(.+)vec$" :>> vec
                              #"(.+)tilde$" :>> tilde

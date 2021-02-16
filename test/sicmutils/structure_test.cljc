@@ -115,6 +115,11 @@
     (is (= 2 (count (s/down (s/up 1 2) (s/up 3 4)))))
     (is (= [2 3] (map count (s/down (s/up 1 2) (s/up 3 4 5))))))
 
+  (testing "IReduce, vec"
+    (is (= [1 2 3]
+           (vec (s/up 1 2 3)))
+        "Structures can become vectors via vec"))
+
   (testing "structures support take"
     (is (= (s/up 1 2) (take 2 (s/up 1 2 3))))
 

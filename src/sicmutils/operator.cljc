@@ -20,7 +20,7 @@
 (ns sicmutils.operator
   (:refer-clojure :rename {identity core-identity
                            name core-name}
-                  #?@(:cljs [:exclude [get get-in identity name]]))
+                  #?@(:cljs [:exclude [get identity name]]))
   (:require [sicmutils.differential :as d]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
@@ -198,7 +198,7 @@
   [o k]
   (make-operator
    (f/get (procedure o) k)
-   `(~'compose (~'fn [~'x] (~'get ~'x ~k))
+   `(~'compose (~'component ~k)
      ~(name o))))
 
 (def ^{:doc "Identity operator. Returns its argument unchanged."}

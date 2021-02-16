@@ -115,11 +115,56 @@
 
 (deftest structures
   (is (= "down(up(1, 2), up(3, 4))"
-         (->infix (g/simplify
-                   (down (up 1 2) (up 3 4)))))))
+         (->infix (down (up 1 2) (up 3 4)))
+         (->infix (down [1 2] [3 4])))
+      "vector renders as an up, infix")
+
+  (is (= (str "\\begin{pmatrix}\\displaystyle{1} \\cr \\cr "
+              "\\displaystyle{2} \\cr \\cr "
+              "\\displaystyle{3}\\end{pmatrix}")
+         (->TeX [1 2 3]))
+      "vector renders as an up, TeX")
+
+  (is (= "down(up(1, 2), up(3, 4))"
+         (->infix
+          (down (up 1 2) (up 3 4)))))
+
+  (testing "customizable down tuple rendering in TeX"
+    (is (= (str "\\begin{bmatrix}\\"
+                "displaystyle{1} \\cr \\cr "
+                "\\displaystyle{2} \\cr \\cr "
+                "\\displaystyle{3}"
+                "\\end{bmatrix}")
+           (->TeX (down 1 2 3)))
+        "Downs render vertically by default")
+
+    (binding [r/*TeX-vertical-down-tuples* false]
+      (is (= (str "\\begin{bmatrix}"
+                  "\\displaystyle{1}&\\displaystyle{2}&\\displaystyle{3}"
+                  "\\end{bmatrix}")
+             (->TeX (down 1 2 3)))
+          "bind the dynamic variable falsey to get horz down tuples."))))
 
 (deftest variable-subscripts
   (is (= "x₀ + y₁ + z₂" (->infix (+ 'x_0 'y_1 'z_2)))))
+
+(deftest accent-tests
+  (testing "various accents and special exponents in TeX"
+    (is (= (str "\\begin{pmatrix}"
+                "\\displaystyle{\\dot q} \\cr \\cr "
+                "\\displaystyle{\\dot {qd}} \\cr \\cr "
+                "\\displaystyle{\\hat {vz}} \\cr \\cr "
+                "\\displaystyle{\\bar {cake}} \\cr \\cr "
+                "\\displaystyle{\\vec x} \\cr \\cr "
+                "\\displaystyle{\\tilde {zcake}} \\cr \\cr "
+                "\\displaystyle{q^\\prime} \\cr \\cr "
+                "\\displaystyle{{xx}^{\\prime\\prime}}"
+                "\\end{pmatrix}")
+           (->TeX (up 'qdot 'qddot
+                      'vzhat 'cakebar
+                      'xvec
+                      'zcaketilde
+                      'qprime 'xxprimeprime))))))
 
 (deftest ratio-tests
   (testing "one-arg / == inverse"

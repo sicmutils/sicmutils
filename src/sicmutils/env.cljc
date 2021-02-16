@@ -307,25 +307,21 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   ->local
   Euler-Lagrange-operator
   F->C
-  Gamma
-  Gamma-bar
+  Gamma Γ
+  Gamma-bar Γ-bar
   Lagrange-equations
   Lagrange-equations-first-order
   Lagrange-interpolation-function
   Lagrangian->energy
   Lagrangian->state-derivative
   Lagrangian-action
-  coordinate
-  coordinate-tuple
   find-path
   linear-interpolants
   osculating-path
   p->r
   s->r
-  velocity
-  velocity-tuple
-  state->t
-  Γ]
+  state->t coordinate velocity acceleration
+  coordinate-tuple velocity-tuple acceleration-tuple]
  [sicmutils.matrix
   s->m
   m->s
