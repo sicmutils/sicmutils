@@ -489,6 +489,11 @@
     (is (thrown? #?(:clj ArithmeticException :cljs js/Error)
                  (g/divide 'x 0))))
 
+  (testing "modulo constructor optimizations"
+    (is (v/= 0 (g/modulo 0 'x)))
+    (is (v/= 0 (g/modulo 'x 'x)))
+    (is (v/= 'x (g/modulo 'x 1))))
+
   (testing "/ with symbols"
     (is (= (g// 'x (g/* 10 'x 3 2))
            (g// 'x 10 'x 3 2 1)))

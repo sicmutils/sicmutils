@@ -65,6 +65,7 @@
   [a b f sym]
   (cond (and (v/number? a) (v/number? b)) (f a b)
         (= a b) 0
+        (v/zero? a) 0
         (v/one? b) a
         :else (list sym a b)))
 

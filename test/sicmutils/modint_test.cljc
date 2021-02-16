@@ -84,6 +84,12 @@
       (is (v/identity? m1_7))
       (is (v/identity? (v/identity-like m5_7))))
 
+    (testing "compatibility"
+      (is 4 (g/integer-part m4_7))
+      (is 0 (g/fractional-part m4_7))
+      (is 4 (g/floor m4_7))
+      (is 4 (g/ceiling m4_7)))
+
     (testing "inv"
       (is (= m3_7 (g/invert m5_7)))
       (is (= m5_7 (g/invert m3_7)))
