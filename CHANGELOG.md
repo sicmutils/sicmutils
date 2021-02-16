@@ -17,6 +17,13 @@
   - These are all aliased in `sicmutils.env`, along with a new `Γ-bar` alias for
     `sicmutils.mechanics.lagrange/Γ-bar`.
 
+- #283 changes the default `TeX` rendering style for `down` tuples to vertical
+  vs horizontal.
+
+- Symbols like `'qprime` ending with `prime` or `primeprime` will render as `q'`
+  or `q''` respectively in `TeX`, rather than the fully-spelled-out
+  `\mathsf{qprime}` (#282).
+
 - #280 adds a new `:equation` keyword argument to `sicmutils.render/->TeX`. If
   you pass a truthy value to `:equation`, the result will be wrapped in an
   equation environment. `:equation <string>` will insert a `\\label{<string>}`
