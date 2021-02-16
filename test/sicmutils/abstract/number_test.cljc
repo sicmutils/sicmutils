@@ -492,7 +492,14 @@
   (testing "modulo constructor optimizations"
     (is (v/= 0 (g/modulo 0 'x)))
     (is (v/= 0 (g/modulo 'x 'x)))
+    (is (= '(modulo x y) (v/freeze (g/modulo 'x 'y))))
     (is (v/= 'x (g/modulo 'x 1))))
+
+  (testing "unary ops with symbols"
+    (is (= '(floor x) (v/freeze (g/floor 'x))))
+    (is (= '(ceiling x) (v/freeze (g/ceiling 'x))))
+    (is (= '(integer-part x) (v/freeze (g/integer-part 'x))))
+    (is (= '(fractional-part x) (v/freeze (g/fractional-part 'x)))))
 
   (testing "/ with symbols"
     (is (= (g// 'x (g/* 10 'x 3 2))
@@ -502,7 +509,7 @@
            (g// (g/* 10 20 'x) (g/* 'x 3 2 1)))))
 
   (testing "negate"
-    (is (= (g/+ 'x (g/- 'x) (g/+ 'x (g/negate 'x)))))
+    (is (= (g/+ 'x (g/- 'x)) (g/+ 'x (g/negate 'x))))
     (is (= '(+ x (- x)) (v/freeze
                          (g/+ 'x (g/negate 'x))))))
 
