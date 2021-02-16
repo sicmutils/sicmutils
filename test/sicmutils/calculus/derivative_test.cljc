@@ -566,7 +566,8 @@
              (g/simplify ((D f4) 'x 'y))))
       (is (= '(down
                (/ 1 (* (expt (cos x) 2) (sin y)))
-               (/ (* -1 (sin x) (cos y)) (* (cos x) (expt (sin y) 2))))
+               (/ (* -1 (tan x) (cos y))
+                  (expt (sin y) 2)))
              (g/simplify ((D f5) 'x 'y))))))
 
   (testing "D can handle functions of varying arities"

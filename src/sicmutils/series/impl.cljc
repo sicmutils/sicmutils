@@ -133,7 +133,7 @@
 ;; Subtraction comes for free from the two definitions above:
 
 (defn seq:- [f g]
-  (seq:+ f (negate g)))
+  (map g/- f g))
 
 #_
 (= [0 0 0 0 0]

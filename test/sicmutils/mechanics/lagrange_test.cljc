@@ -74,14 +74,28 @@
       (is (= 'a (g/simplify (f 'w)))))))
 
 (deftest misc
+  (let [local (up 't
+                  (L/coordinate-tuple 'x 'y)
+                  (L/velocity-tuple 'xdot 'ydot)
+                  (L/acceleration-tuple 'xdotdot 'ydotdot))]
+    (testing "constructors and accessors round-trip"
+      (is (= (up 'x 'y)
+             (L/coordinate local)))
+      (is (= (up 'xdot 'ydot)
+             (L/velocity local)))
+      (is (= (up 'xdotdot 'ydotdot)
+             (L/acceleration local)))))
+
   (let [vs (L/velocity-tuple
             (L/velocity-tuple 'vx1 'vy1)
             (L/velocity-tuple 'vx2 'vy2))
         L1 (fn [[v1 v2]]
              (g/+ (g/* (/ 1 2) 'm1 (g/square v1))
                   (g/* (/ 1 2) 'm2 (g/square v2))))]
-    (is (= '(down (down (down (down m1 0) (down 0 0)) (down (down 0 m1) (down 0 0)))
-                  (down (down (down 0 0) (down m2 0)) (down (down 0 0) (down 0 m2))))
+    (is (= '(down (down (down (down m1 0) (down 0 0))
+                        (down (down 0 m1) (down 0 0)))
+                  (down (down (down 0 0) (down m2 0))
+                        (down (down 0 0) (down 0 m2))))
            (g/simplify (((g/expt D 2) L1) vs))))
     (is (= '(matrix-by-rows
              (up m1 0 0 0)
@@ -164,9 +178,25 @@
                            (up r φ))
                           't))))
 
-      (is (= '(up (+ (* -1 r φdot (sin φ)) (* rdot (cos φ)))
-                  (+ (* r φdot (cos φ)) (* rdot (sin φ))))
-             (g/simplify
-              (L/velocity
-               ((L/F->C L/p->r)
-                (L/->local 't (up 'r 'φ) (up 'rdot 'φdot))))))))))
+      (testing "F->C correctly transforms local tuples of any arity you supply"
+        (is (= '(up t
+                    (up (* r (cos φ))
+                        (* r (sin φ)))
+                    (up (+ (* -1 r φdot (sin φ))
+                           (* rdot (cos φ)))
+                        (+ (* r φdot (cos φ))
+                           (* rdot (sin φ))))
+                    (up (+ (* -1 r (expt φdot 2) (cos φ))
+                           (* -1 r φdotdot (sin φ))
+                           (* -2 rdot φdot (sin φ))
+                           (* rdotdot (cos φ)))
+                        (+ (* -1 r (expt φdot 2) (sin φ))
+                           (* r φdotdot (cos φ))
+                           (* 2 rdot φdot (cos φ))
+                           (* rdotdot (sin φ)))))
+               (g/simplify
+                ((L/F->C L/p->r)
+                 (L/->local 't
+                            (up 'r 'φ)
+                            (up 'rdot 'φdot)
+                            (up 'rdotdot 'φdotdot))))))))))

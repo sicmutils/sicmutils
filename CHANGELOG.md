@@ -11,6 +11,32 @@
   on the JVM, allowing it to act more like a vector (#282). (The CLJS
   implementation already did this.) `(vec (up 1 2 3))` now works correctly.
 
+- #285 fixes a bug that prevented `sin / cos` from simplifying into a `tan` in
+  the numerator, and makes `seq:-` slightly more efficient (closing heisenbug
+  #151).
+
+- #284 added:
+
+  - new functions `sicmutils.mechanics.lagrange/acceleration-tuple` for creating
+    the acceleration entry in a local tuple
+
+  - `sicmutils.mechanics.lagrange/acceleration` for extracting the acceleration
+    component of a local tuple
+
+  - An upgraded `sicmutils.mechanics.lagrange/F->C` to handle local tuples of
+    arbitrary length. This version of `F->C` is more general than the version
+    from the textbook that was previously included.
+
+  - These are all aliased in `sicmutils.env`, along with a new `Γ-bar` alias for
+    `sicmutils.mechanics.lagrange/Γ-bar`.
+
+- #283 changes the default `TeX` rendering style for `down` tuples to vertical
+  vs horizontal.
+
+- Symbols like `'qprime` ending with `prime` or `primeprime` will render as `q'`
+  or `q''` respectively in `TeX`, rather than the fully-spelled-out
+  `\mathsf{qprime}` (#282).
+
 - #280 adds a new `:equation` keyword argument to `sicmutils.render/->TeX`. If
   you pass a truthy value to `:equation`, the result will be wrapped in an
   equation environment. `:equation <string>` will insert a `\\label{<string>}`
