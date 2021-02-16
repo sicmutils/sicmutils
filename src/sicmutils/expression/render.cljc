@@ -244,7 +244,8 @@
   are written as superscripts. Partial derivatives get subscripts."}
   ->infix
   (make-infix-renderer
-   :precedence-map '{D 9, expt 7, :apply 5, u- 4, / 3, * 3, + 1, - 1, = 0, > 0, < 0, >= 0, <= 0}
+   :precedence-map '{D 9, partial 9,
+                     expt 7, :apply 5, u- 4, / 3, * 3, + 1, - 1, = 0, > 0, < 0, >= 0, <= 0}
    :infix? '#{* + - / expt u- = > < >= <=}
    :juxtapose-multiply " "
    :rewrite-trig-squares true
@@ -335,7 +336,8 @@
     (make-infix-renderer
      ;; here we set / to a very low precedence because the fraction bar we will
      ;; use in the rendering groups things very strongly.
-     :precedence-map '{D 9, expt 8, :apply 7, u- 6, * 5, + 3, - 3, / 1, = 0, > 0, < 0, >= 0, <= 0}
+     :precedence-map '{D 9, partial 9,
+                       expt 8, :apply 7, u- 6, * 5, + 3, - 3, / 1, = 0, > 0, < 0, >= 0, <= 0}
      :parenthesize #(str "\\left(" % "\\right)")
      :infix? '#{* + - / expt u- = > < >= <=}
      :juxtapose-multiply "\\,"
