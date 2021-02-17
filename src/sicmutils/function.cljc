@@ -82,8 +82,7 @@
    (let [new-meta (-> (meta f)
                       (merge m)
                       (assoc :arity arity))]
-     (if new-meta
-       (with-meta f new-meta)))))
+     (with-meta f new-meta))))
 
 (defn compose
   "Arity-preserving version of `clojure.core/comp`.
@@ -240,7 +239,7 @@
 ;;   [:at-least m]
 
 #?(:clj
-   (do (defn- arity-map [f]
+   (do (defn ^:no-doc arity-map [f]
          (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
                ;; tally up arities of invoke, doInvoke, and getRequiredArity
                ;; methods. Filter out invokeStatic.
@@ -257,7 +256,7 @@
             :required-arity (second (first (:getRequiredArity facts)))
             :invoke?        (boolean (seq (:doInvoke facts)))}))
 
-       (defn- jvm-arity [f]
+       (defn ^:no-doc jvm-arity [f]
          (let [{:keys [arities required-arity invoke?] :as m} (arity-map f)]
            (cond
              ;; Rule one: if all we have is one single case of invoke, then the
@@ -296,12 +295,12 @@
 
    :cljs
    (do
-     (defn- variadic?
+     (defn ^:no-doc variadic?
        "Returns true if the supplied function is variadic, false otherwise."
        [f]
        (boolean (.-cljs$lang$maxFixedArity f)))
 
-     (defn exposed-arities
+     (defn ^:no-doc exposed-arities
        "When CLJS functions have different arities, the function is represented as a js
   object with each arity storied under its own key."
        [f]
@@ -316,7 +315,7 @@
            [(alength f)]
            (sort arities))))
 
-     (defn js-arity
+     (defn ^:no-doc js-arity
        "Returns a data structure indicating the arity of the supplied function."
        [f]
        (let [arities (exposed-arities f)]
@@ -342,7 +341,7 @@
                       (first arities)
                       (last arities)])))))
 
-(def ^{:private true
+(def ^{:no-doc true
        :doc "Returns the arity of the function f. Computing arities of clojure
   functions is a bit complicated. It involves reflection, so the results are
   definitely worth memoizing."}
