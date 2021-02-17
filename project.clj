@@ -21,7 +21,7 @@
                  :exclusions [org.clojure/clojurescript]])
 
 (defproject sicmutils "0.15.0"
-  :description "A port of the Scmutils computer algebra/mechanics system to Clojure"
+  :description "A port of the Scmutils computer algebra/mechanics system to Clojure."
   :url "http://github.com/sicmutils/sicmutils"
   :scm {:name "git" :url "https://github.com/sicmutils/sicmutils"}
   :license {:name "GPLv3"
