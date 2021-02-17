@@ -12,7 +12,7 @@
   https://kloimhardt.github.io/cljtiles.html?page=freeparticle[this demo] for a
   lovely example of Lagrangian Mechanics in ``clj-tiles``.
 
-- @light-matters and @MagusMachine are collaborating on
+- @light-matters and @MagusMachinae are collaborating on
   [Peek](https://gitlab.com/LightMatters/peek): "A Clojure implementation of
   symbolic quantum mechanics, or, as it could be called, measurement mechanics.
   The current name reflects my idea of one of the, if not most, distinguishing
