@@ -385,17 +385,15 @@
                       (up 'x 'y)
                       (up 'dx 'dy))
                      (series/sum 2))]
-        (is (= "1/2 dx² ∂₀(∂₀f)(up(x, y)) + dx dy ∂₁(∂₀f)(up(x, y)) + 1/2 dy² ∂₁(∂₁f)(up(x, y)) + dx ∂₀f(up(x, y)) + dy ∂₁f(up(x, y)) + f(up(x, y))"
+        (is (= "1/2 dx² ∂₀²f(up(x, y)) + dx dy (∂₀ ∂₁)(f)(up(x, y)) + 1/2 dy² ∂₁²f(up(x, y)) + dx ∂₀f(up(x, y)) + dy ∂₁f(up(x, y)) + f(up(x, y))"
                (s->infix expr)))
 
         (is (= (str "function(dx, dy, f, partial, x, y) {\n"
-                    "  var _0003 = partial(0);\n"
-                    "  var _0004 = partial(1);\n"
-                    "  var _0005 = [x, y];\n"
-                    "  var _0006 = _0003(f);\n"
-                    "  var _0007 = _0004(f);\n"
-                    "  return 1/2 * Math.pow(dx, 2) * _0003(_0006)(_0005) + dx * dy * _0004(_0006)(_0005) + 1/2 * Math.pow(dy, 2) * _0004(_0007)(_0005) + dx * _0006(_0005) + dy * _0007(_0005) + f(_0005);\n}")
+                    "  var _0001 = partial(0);\n"
+                    "  var _0002 = partial(1);\n"
+                    "  var _0003 = [x, y];\n"
+                    "  return 1/2 * Math.pow(dx, 2) * Math.pow(_0001, 2)(f)(_0003) + dx * dy * (_0001 * _0002)(f)(_0003) + 1/2 * Math.pow(dy, 2) * Math.pow(_0002, 2)(f)(_0003) + dx * _0001(f)(_0003) + dy * _0002(f)(_0003) + f(_0003);\n}")
                (s->JS expr :deterministic? true)))
 
-        (is (= "\\frac{1}{2}\\,{dx}^{2}\\,\\partial_0\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}\\displaystyle{x} \\cr \\cr \\displaystyle{y}\\end{pmatrix}\\right) + dx\\,dy\\,\\partial_1\\left(\\partial_0f\\right)\\left(\\begin{pmatrix}\\displaystyle{x} \\cr \\cr \\displaystyle{y}\\end{pmatrix}\\right) + \\frac{1}{2}\\,{dy}^{2}\\,\\partial_1\\left(\\partial_1f\\right)\\left(\\begin{pmatrix}\\displaystyle{x} \\cr \\cr \\displaystyle{y}\\end{pmatrix}\\right) + dx\\,\\partial_0f\\left(\\begin{pmatrix}\\displaystyle{x} \\cr \\cr \\displaystyle{y}\\end{pmatrix}\\right) + dy\\,\\partial_1f\\left(\\begin{pmatrix}\\displaystyle{x} \\cr \\cr \\displaystyle{y}\\end{pmatrix}\\right) + f\\left(\\begin{pmatrix}\\displaystyle{x} \\cr \\cr \\displaystyle{y}\\end{pmatrix}\\right)"
+        (is (= "\\frac{1}{2}\\,{dx}^{2}\\,{\\partial_0}^{2}f\\left(\\begin{pmatrix}\\displaystyle{x} \\cr \\cr \\displaystyle{y}\\end{pmatrix}\\right) + dx\\,dy\\,\\left(\\partial_0\\,\\partial_1\\right)\\left(f\\right)\\left(\\begin{pmatrix}\\displaystyle{x} \\cr \\cr \\displaystyle{y}\\end{pmatrix}\\right) + \\frac{1}{2}\\,{dy}^{2}\\,{\\partial_1}^{2}f\\left(\\begin{pmatrix}\\displaystyle{x} \\cr \\cr \\displaystyle{y}\\end{pmatrix}\\right) + dx\\,\\partial_0f\\left(\\begin{pmatrix}\\displaystyle{x} \\cr \\cr \\displaystyle{y}\\end{pmatrix}\\right) + dy\\,\\partial_1f\\left(\\begin{pmatrix}\\displaystyle{x} \\cr \\cr \\displaystyle{y}\\end{pmatrix}\\right) + f\\left(\\begin{pmatrix}\\displaystyle{x} \\cr \\cr \\displaystyle{y}\\end{pmatrix}\\right)"
                (s->TeX expr)))))))

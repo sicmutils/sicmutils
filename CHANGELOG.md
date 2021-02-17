@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+- #286 adds a batch of rules to `sicmutils.simplify.rules/canonicalize-partials`
+  that act to gather up nested `partial` (derivative) applications into products
+  and exponentiated partials. `->TeX` and `->infix` both produce better-looking
+  forms with this change.
+
+  This example shows how `g/simplify` can organize a nested application of many
+  partial derivatives into a product:
+
+  ```clojure
+(let [f (literal-function 'f (-> (UP Real Real) Real))]
+  (simplify
+   (((partial 0)
+     ((partial 1)
+      ((partial 0) f))) (up 'x 'y))))
+;;=> (((* (expt (partial 0) 2) (partial 1)) f) (up x y))
+```
+
 - #282 modifies the `sicmutils.value/freeze` implementation for Clojure vector
   to freeze vectors into the same representation as an `up` structure. This
   makes rendering these forms much more simple and matches the `scmutils`

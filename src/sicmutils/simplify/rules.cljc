@@ -277,21 +277,57 @@
     (atan (sin :x) (cos :x)) => :x
     (atan (* :c (sin :x)) (* :c (cos :x))) => :x)))
 
-(def sincos-flush-ones (rule-simplifier split-high-degree-cosines
-                                        split-high-degree-sines
-                                        flush-obvious-ones))
+(def sincos-flush-ones
+  (rule-simplifier split-high-degree-cosines
+                   split-high-degree-sines
+                   flush-obvious-ones))
 
-(defn universal-reductions
-  [x]
+(defn universal-reductions [x]
   (triginv x))
 
 (def canonicalize-partials
   (rule-simplifier
    (ruleset
-    ;; example: (((partial 2 1) ((partial 1 1) FF)) (up t (up x y) (down p_x p_y)))
+    ;; Convert nests into products.
+    ((partial :i*) ((partial :j*) :f))
+    =>
+    ((* (partial :i*) (partial :j*)) :f)
+
+    ((partial :i*) ((* (partial :j*) :more*) :f))
+    =>
+    ((* (partial :i*) (partial :j*) :more*) :f)
+
+    ;; Gather exponentiated partials into products
+    ((expt (partial :i*) :n) ((partial :j*) :f))
+    =>
+    ((* (expt (partial :i*) :n) (partial :j*)) :f)
+
+    ((partial :i*) ((expt (partial :j*) :n) :f))
+    =>
+    ((* (partial :i*) (expt (partial :j*) :n)) :f)
+
+    ((expt (partial :i*) :n) ((expt (partial :j*) :m) :f))
+    =>
+    ((* (expt (partial :i*) :n) (expt (partial :j*) :m)) :f)
+
+    ;; Same idea, trickier when some accumulation has already occurred.
+    ((expt (partial :i*) :n) ((* (partial :j*) :more*) :f))
+    =>
+    ((* (expt (partial :i*) :n) (partial :j*) :more*) :f)
+
+    ((partial :i*) ((* (expt (partial :j*) :m) :more*) :f))
+    =>
+    ((* (partial :i*) (expt (partial :j*) :m) :more*) :f)
+
+    ((expt (partial :i*) :n) ((* (expt (partial :j*) :m) :more*) :f))
+    =>
+    ((* (expt (partial :i*) :n) (expt (partial :j*) :m) :more*) :f)
+
+    ;; example:
+    #_(((* (partial 2 1) (partial 1 1)) FF) (up t (up x y) (down p_x p_y)))
     ;; since the partial indices in the outer derivative are lexically
     ;; greater than those of the inner, we canonicalize by swapping the
     ;; order. This is the "equality of mixed partials."
-    (((partial :i*) ((partial :j*) :x)) :y*)
-    #(> 0 (compare (% :i*) (% :j*)))
-    (((partial :j*) ((partial :i*) :x)) :y*))))
+    (((* :xs* (partial :i*) :ys* (partial :j*) :zs*) :f) :args*)
+    #(neg? (compare (% :i*) (% :j*)))
+    (((* :xs* (partial :j*) :ys* (partial :i*) :zs*) :f) :args*))))
