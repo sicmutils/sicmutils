@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+- #289 adds many namespaces to `sicmutils.env.sci`:
+
+  - `sicmutils.{complex,expression,modint,numsymb,polynomial,ratio,rational-function,util,value}`
+  - `sicmutils.abstract.number`
+  - `sicmutils.expression.analyze`
+  - `sicmutils.numerical.elliptic`
+  - `sicmutils.util.{aggregate,stream}`
+
+  - #289 also introduces `sicmutils.function/*strict-arity-checks*` to allow the
+    user to toggle whether or not to throw exceptions if the system thinks that
+    arities are incompatible. It turns out that inside of an SCI environment,
+    the usual tricks for detecting arities fail, causing errors in many
+    expressions. To get around this, `*strict-arity-checks*` is FALSE by
+    default.
+
 - #286 adds a batch of rules to `sicmutils.simplify.rules/canonicalize-partials`
   that act to gather up nested `partial` (derivative) applications into products
   and exponentiated partials. `->TeX` and `->infix` both produce better-looking
@@ -78,7 +93,8 @@
   `sicmutils.modint/chinese-remainder`. The latter efficiently performs the
   [Chinese Remainder
   algorithm](https://en.wikipedia.org/wiki/Chinese_remainder_theorem) for
-  solving systems of linear congruences.
+  solving systems of linear congruences. Available via
+  `sicmutils.env/chinese-remainder`.
 
 - Install `sicmutils.generic/{quotient,modulo,remainder,partial-derivative}`
   into `sicmutils.env` (#273). Thanks to @pangloss for pointing out that these

@@ -304,18 +304,18 @@
      (defn ^:no-doc exposed-arities
        "When CLJS functions have different arities, the function is represented as a js
   object with each arity storied under its own key."
-       ([f]
-        (let [pattern (re-pattern #"invoke\$arity\$\d+")
-              parse   (fn [s]
-                        (when-let [arity (re-find pattern s)]
-                          (js/parseInt (subs arity 13))))
-              arities (->> (map parse (js-keys f))
-                           (concat [(.-cljs$lang$maxFixedArity f)])
-                           (remove nil?)
-                           (into #{}))]
-          (if (empty? arities)
-            [(alength f)]
-            (sort arities)))))
+       [f]
+       (let [pattern (re-pattern #"invoke\$arity\$\d+")
+             parse   (fn [s]
+                       (when-let [arity (re-find pattern s)]
+                         (js/parseInt (subs arity 13))))
+             arities (->> (map parse (js-keys f))
+                          (concat [(.-cljs$lang$maxFixedArity f)])
+                          (remove nil?)
+                          (into #{}))]
+         (if (empty? arities)
+           [(alength f)]
+           (sort arities))))
 
      (defn ^:no-doc js-arity
        "Returns a data structure indicating the arity of the supplied function."
