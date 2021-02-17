@@ -29,6 +29,12 @@
   (sci/eval-form (sci/fork es/context) form))
 
 (deftest basic-sci-tests
+  (is (= [:at-least 0]
+         (eval '(arity
+                 (fn ([x] 1) ([x y] x)))))
+      "This isn't a GOOD thing; but this documents that arity inside an SCI
+      environment isn't something we can trust.")
+
   (is (= 1 (eval '(simplify (+ (square (sin 'x))
                                (square (cos 'x))))))
       "simplifications work inside sci")

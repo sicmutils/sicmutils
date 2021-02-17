@@ -184,30 +184,47 @@
 (deftest joint-arities
   (is (= [:exactly 1] (f/joint-arity [[:exactly 1] [:exactly 1]])))
   (is (= [:exactly 5] (f/joint-arity [[:exactly 5] [:exactly 5]])))
-  (is (illegal? #(f/joint-arity [[:exactly 2] [:exactly 1]])))
-  (is (illegal? #(f/joint-arity [[:exactly 1] [:exactly 2]])))
   (is (= [:exactly 3] (f/joint-arity [[:exactly 3] [:at-least 2]])))
   (is (= [:exactly 3] (f/joint-arity [[:exactly 3] [:at-least 3]])))
   (is (= [:exactly 3] (f/joint-arity [[:at-least 1] [:exactly 3]])))
   (is (= [:exactly 3] (f/joint-arity [[:at-least 3] [:exactly 3]])))
-  (is (illegal? #(f/joint-arity [[:exactly 1] [:at-least 2]])))
-  (is (illegal? #(f/joint-arity [[:at-least 2] [:exactly 1]])))
   (is (= [:at-least 3] (f/joint-arity [[:at-least 2] [:at-least 3]])))
   (is (= [:at-least 3] (f/joint-arity [[:at-least 3] [:at-least 2]])))
   (is (= [:between 2 3] (f/joint-arity [[:between 1 3] [:between 2 5]])))
   (is (= [:between 2 3] (f/joint-arity [[:between 2 5] [:between 1 3]])))
-  (is (illegal? #(f/joint-arity [[:between 1 3] [:between 4 6]])))
-  (is (illegal? #(f/joint-arity [[:between 4 6] [:between 1 3]])))
   (is (= [:exactly 3] (f/joint-arity [[:between 1 3] [:between 3 4]])))
   (is (= [:exactly 3] (f/joint-arity [[:between 3 4] [:between 1 3]])))
   (is (= [:between 2 4] (f/joint-arity [[:at-least 2] [:between 1 4]])))
   (is (= [:between 2 4] (f/joint-arity [[:between 1 4] [:at-least 2]])))
-  (is (illegal? #(f/joint-arity [[:at-least 4] [:between 1 3]])))
-  (is (illegal? #(f/joint-arity [[:between 1 3] [:at-least 4]])))
   (is (= [:exactly 2] (f/joint-arity [[:exactly 2] [:between 2 3]])))
   (is (= [:exactly 2] (f/joint-arity [[:between 2 3] [:exactly 2]])))
-  (is (illegal? #(f/joint-arity [[:between 2 3] [:exactly 1]])))
-  (is (illegal? #(f/joint-arity [[:exactly 1] [:between 2 3]]))))
+
+  (binding [f/*strict-arity-checks* true]
+    (testing "when strict checks are true, incompatible combos throw."
+      (is (illegal? #(f/joint-arity [[:exactly 2] [:exactly 1]])))
+      (is (illegal? #(f/joint-arity [[:exactly 1] [:exactly 2]])))
+      (is (illegal? #(f/joint-arity [[:exactly 1] [:at-least 2]])))
+      (is (illegal? #(f/joint-arity [[:at-least 2] [:exactly 1]])))
+      (is (illegal? #(f/joint-arity [[:between 1 3] [:between 4 6]])))
+      (is (illegal? #(f/joint-arity [[:between 4 6] [:between 1 3]])))
+      (is (illegal? #(f/joint-arity [[:at-least 4] [:between 1 3]])))
+      (is (illegal? #(f/joint-arity [[:between 1 3] [:at-least 4]])))
+      (is (illegal? #(f/joint-arity [[:between 2 3] [:exactly 1]])))
+      (is (illegal? #(f/joint-arity [[:exactly 1] [:between 2 3]])))))
+
+  (binding [f/*strict-arity-checks* false]
+    (testing "when false, they don't! They default to [:at-least 0]."
+      (is (every? #{[:at-least 0]}
+                  [(f/joint-arity [[:exactly 2] [:exactly 1]])
+                   (f/joint-arity [[:exactly 1] [:exactly 2]])
+                   (f/joint-arity [[:exactly 1] [:at-least 2]])
+                   (f/joint-arity [[:at-least 2] [:exactly 1]])
+                   (f/joint-arity [[:between 1 3] [:between 4 6]])
+                   (f/joint-arity [[:between 4 6] [:between 1 3]])
+                   (f/joint-arity [[:at-least 4] [:between 1 3]])
+                   (f/joint-arity [[:between 1 3] [:at-least 4]])
+                   (f/joint-arity [[:between 2 3] [:exactly 1]])
+                   (f/joint-arity [[:exactly 1] [:between 2 3]])])))))
 
 (deftest custom-getter-tests
   (checking "I == identity" 100 [x gen/any-equatable]

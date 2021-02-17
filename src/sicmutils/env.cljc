@@ -49,6 +49,7 @@
             [sicmutils.expression.render :as render]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
+            [sicmutils.modint]
             [sicmutils.operator :as o]
             [sicmutils.simplify :as simp]
             [sicmutils.structure :as structure]
@@ -205,6 +206,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
  [sicmutils.abstract.number literal-number]
  [sicmutils.complex complex]
  [sicmutils.function arity compose arg-shift arg-scale I]
+ [sicmutils.modint chinese-remainder]
  [sicmutils.operator commutator]
  [sicmutils.series binomial-series partial-sums]
  [sicmutils.generic
