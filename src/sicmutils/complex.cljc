@@ -156,12 +156,14 @@
 (defmethod g/simplify [::complex] [a] (v/freeze a))
 
 (defmethod g/integer-part [::complex] [^Complex a]
-  (complex (g/integer-part (g/real-part a))
-           (g/integer-part (g/imag-part a))))
+  (complex
+   (g/integer-part (#?(:clj .getReal :cljs .-re) a))
+   (g/integer-part (#?(:clj .getImaginary :cljs .-im) a))))
 
 (defmethod g/fractional-part [::complex] [^Complex a]
-  (complex (g/fractional-part (g/real-part a))
-           (g/fractional-part (g/imag-part a))))
+  (complex
+   (g/fractional-part (#?(:clj .getReal :cljs .-re) a))
+   (g/fractional-part (#?(:clj .getImaginary :cljs .-im) a))))
 
 #?(:cljs
    ;; These are all defined explicitly in Complex.js.

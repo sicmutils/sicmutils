@@ -181,10 +181,15 @@ See [[*]] for a variadic version of [[mul]]."
     (sub (integer-part a) 1)
     (integer-part a)))
 
-(defgeneric fractional-part 1)
+(defgeneric fractional-part 1
+  "Returns the fractional part of the given value.
+
+  It's counterintuitive but apparently accepted that this is implemented with
+  floor instead of integer-part, meaning that for negative numbers
+
+     (not= x (+ (integer-part x) (fractional-part x)))")
+
 (defmethod fractional-part :default [a]
-  ;; It's counterintuitive but apparently accepted that for negative numbers
-  ;; (= x (+ (integer-part x) (fractional-part x))) does not hold.
   (sub a (floor a)))
 
 (defgeneric ceiling 1)
@@ -198,22 +203,18 @@ See [[*]] for a variadic version of [[mul]]."
 (defmethod modulo :default [a b]
   (modulo-default a b))
 
+(defn remainder-default [n d]
+  (let [divnd (div n d)]
+    (if (= (negative? n) (negative? d))
+      (mul d (sub divnd (floor divnd)))
+      (mul d (sub divnd (ceiling divnd))))))
+
 ;; complex remainder returns numerator in maxima
 ;; fractional remainder returns 0 in maxima
 ;; remainder in wolfram alpha == modulo
 (defgeneric remainder 2)
 (defmethod remainder :default [n d]
-  (if (= (negative? n) (negative? d))
-    (mul d
-         (sub (div n
-                   d)
-              (floor (div n
-                          d))))
-    (mul d
-         (sub (div n
-                   d)
-              (ceiling (div n
-                            d))))))
+  (remainder-default n d))
 
 (declare log)
 
