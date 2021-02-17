@@ -82,8 +82,7 @@
    (let [new-meta (-> (meta f)
                       (merge m)
                       (assoc :arity arity))]
-     (if new-meta
-       (with-meta f new-meta)))))
+     (with-meta f new-meta))))
 
 (defn compose
   "Arity-preserving version of `clojure.core/comp`.
@@ -240,7 +239,7 @@
 ;;   [:at-least m]
 
 #?(:clj
-   (do (defn- arity-map [f]
+   (do (defn ^:no-doc arity-map [f]
          (let [^"[java.lang.reflect.Method" methods (.getDeclaredMethods (class f))
                ;; tally up arities of invoke, doInvoke, and getRequiredArity
                ;; methods. Filter out invokeStatic.
@@ -257,7 +256,7 @@
             :required-arity (second (first (:getRequiredArity facts)))
             :invoke?        (boolean (seq (:doInvoke facts)))}))
 
-       (defn- jvm-arity [f]
+       (defn ^:no-doc jvm-arity [f]
          (let [{:keys [arities required-arity invoke?] :as m} (arity-map f)]
            (cond
              ;; Rule one: if all we have is one single case of invoke, then the
@@ -296,18 +295,20 @@
 
    :cljs
    (do
-     (defn- variadic?
+     (defn ^:no-doc variadic?
        "Returns true if the supplied function is variadic, false otherwise."
        [f]
-       (boolean (.-cljs$lang$maxFixedArity f)))
+       (boolean
+        (.-cljs$core$IFn$_invoke$arity$variadic f)))
 
-     (defn exposed-arities
+     (defn ^:no-doc exposed-arities
        "When CLJS functions have different arities, the function is represented as a js
   object with each arity storied under its own key."
        [f]
-       (let [parse (fn [s]
-                     (when-let [arity (re-find (re-pattern #"invoke\$arity\$\d+") s)]
-                       (js/parseInt (subs arity 13))))
+       (let [pattern (re-pattern #"invoke\$arity\$\d+")
+             parse   (fn [s]
+                       (when-let [arity (re-find pattern s)]
+                         (js/parseInt (subs arity 13))))
              arities (->> (map parse (js-keys f))
                           (concat [(.-cljs$lang$maxFixedArity f)])
                           (remove nil?)
@@ -316,7 +317,7 @@
            [(alength f)]
            (sort arities))))
 
-     (defn js-arity
+     (defn ^:no-doc js-arity
        "Returns a data structure indicating the arity of the supplied function."
        [f]
        (let [arities (exposed-arities f)]
@@ -342,13 +343,20 @@
                       (first arities)
                       (last arities)])))))
 
-(def ^{:private true
+(def ^{:no-doc true
        :doc "Returns the arity of the function f. Computing arities of clojure
   functions is a bit complicated. It involves reflection, so the results are
   definitely worth memoizing."}
   reflect-on-arity
   (memoize
    #?(:cljs js-arity :clj jvm-arity)))
+
+(def ^{:dynamic true
+       :doc "If true, attempting to pass two functions of incompatible arity
+  into any binary function, or into [[combine-arities]], will throw. False by
+  default."}
+  *strict-arity-checks*
+  false)
 
 #?(:clj
    (extend-protocol IArity
@@ -371,31 +379,34 @@
   ([] [:at-least 0])
   ([a] a)
   ([a b]
-   (let [fail #(u/illegal (str "Incompatible arities: " a " " b))]
+   (let [fail (fn []
+                (if *strict-arity-checks*
+                  (u/illegal (str "Incompatible arities: " a " " b))
+                  [:at-least 0]))]
      ;; since the combination operation is symmetric, sort the arguments
      ;; so that we only have to implement the upper triangle of the
      ;; relation.
      (if (< 0 (compare (first a) (first b)))
        (combine-arities b a)
        (match [a b]
-              [[:at-least k] [:at-least k2]] [:at-least (max k k2)]
-              [[:at-least k] [:between m n]] (let [m (max k m)]
-                                               (cond (= m n) [:exactly m]
-                                                     (< m n) [:between m n]
-                                                     :else (fail)))
-              [[:at-least k] [:exactly l]] (if (>= l k)
-                                             [:exactly l]
-                                             (fail))
-              [[:between m n] [:between m2 n2]] (let [m (max m m2)
-                                                      n (min n n2)]
-                                                  (cond (= m n) [:exactly m]
-                                                        (< m n) [:between m n]
-                                                        :else (fail)))
-              [[:between m n] [:exactly k]] (if (and (<= m k)
-                                                     (<= k n))
-                                              [:exactly k]
-                                              (fail))
-              [[:exactly k] [:exactly l]] (if (= k l) [:exactly k] (fail)))))))
+         [[:at-least k] [:at-least k2]] [:at-least (max k k2)]
+         [[:at-least k] [:between m n]] (let [m (max k m)]
+                                          (cond (= m n) [:exactly m]
+                                                (< m n) [:between m n]
+                                                :else (fail)))
+         [[:at-least k] [:exactly l]] (if (>= l k)
+                                        [:exactly l]
+                                        (fail))
+         [[:between m n] [:between m2 n2]] (let [m (max m m2)
+                                                 n (min n n2)]
+                                             (cond (= m n) [:exactly m]
+                                                   (< m n) [:between m n]
+                                                   :else (fail)))
+         [[:between m n] [:exactly k]] (if (and (<= m k)
+                                                (<= k n))
+                                         [:exactly k]
+                                         (fail))
+         [[:exactly k] [:exactly l]] (if (= k l) [:exactly k] (fail)))))))
 
 (defn joint-arity
   "Find the most relaxed possible statement of the joint arity of the given sequence of `arities`.
@@ -440,10 +451,11 @@
      x)))
 
 (defn- binary-operation
-  "Accepts a binary function `op` (like [[+]]), and returns a function of two
-  functions `f` and `g` which will produce the pointwise operation `op` of the
-  results of applying both `f` and `g` to the input.
+  "Accepts a binary function `op`, and returns a function of two functions `f` and
+  `g` which will produce the pointwise operation `op` of the results of applying
+  both `f` and `g` to the input.
 
+  For example:
 
   ```clojure
   (([[binary-operation]] op) f g)
@@ -456,32 +468,9 @@
                   f1      (coerce-to-fn f f-arity)
                   g1      (coerce-to-fn g g-arity)
                   arity (joint-arity [f-arity g-arity])]
-              (-> (condp = arity
-                    [:exactly 0]
-                    #(op (f1) (g1))
-                    [:exactly 1]
-                    #(op (f1 %) (g1 %))
-                    [:exactly 2]
-                    #(op (f1 %1 %2) (g1 %1 %2))
-                    [:exactly 3]
-                    #(op (f1 %1 %2 %3) (g1 %1 %2 %3))
-                    [:exactly 4]
-                    #(op (f1 %1 %2 %3 %4) (g1 %1 %2 %3 %4))
-                    [:exactly 5]
-                    #(op (f1 %1 %2 %3 %4 %5) (g1 %1 %2 %3 %4 %5))
-                    [:exactly 6]
-                    #(op (f1 %1 %2 %3 %4 %5 %6) (g1 %1 %2 %3 %4 %5 %6))
-                    [:exactly 7]
-                    #(op (f1 %1 %2 %3 %4 %5 %6 %7) (g1 %1 %2 %3 %4 %5 %6 %7))
-                    [:exactly 8]
-                    #(op (f1 %1 %2 %3 %4 %5 %6 %7 %8) (g1 %1 %2 %3 %4 %5 %6 %7 %8))
-                    [:exactly 9]
-                    #(op (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9))
-                    [:exactly 10]
-                    #(op (f1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10) (g1 %1 %2 %3 %4 %5 %6 %7 %8 %9 %10))
-                    [:at-least 0]
-                    #(op (apply f1 %&) (apply g1 %&))
-                    (u/illegal (str  "unsupported arity for function arithmetic " arity)))
+              (-> (fn [& args]
+                    (op (apply f1 args)
+                        (apply g1 args)))
                   (with-meta {:arity arity}))))]
     (with-meta h {:arity [:exactly 2]})))
 

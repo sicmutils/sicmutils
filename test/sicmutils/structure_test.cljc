@@ -97,12 +97,20 @@
         (is (= [:at-least 0] (f/arity (build [g/+]))))
         (is (= [:exactly 1] (f/arity (build [g/+ g/sin])))))
 
-      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-                   (f/arity
-                    (build [g/add g/sin])))
-          "If the matrix contains functions whose arities are totally
+      (binding [f/*strict-arity-checks* true]
+        (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                     (f/arity
+                      (build [g/add g/sin])))
+            "If the structure contains functions whose arities are totally
         incompatible, then `f/arity` will throw. `g/add` has arity [:exactly 2],
-        `g/sin` has arity [:exactly 1]."))))
+        `g/sin` has arity [:exactly 1]."))
+
+      (binding [f/*strict-arity-checks* false]
+        (is (= [:at-least 0]
+               (f/arity
+                (build [g/add g/sin])))
+            "If arity checks are disabled incompatible arities widen to the widest
+          possible arity.")))))
 
 (deftest arity-tests
   (arity-check s/up* "s/up")
