@@ -68,14 +68,16 @@
     expression" 100
             [x gen/any-equatable]
             (if (coll? x)
-              (is (not= (an/literal-number x) x)
-                  "expressions don't support `seq`, so can't compare against
-                  proper collections. ")
+              (is (#?(:clj not= :cljs =)
+                   (an/literal-number x) x)
+                  "in CLJ, expressions don't support `seq`, so can't compare
+                  against proper collections. Not so in CLJS!")
               (is (= (an/literal-number x) x)
                   "Anything else's equality passes through."))
 
-            (is (zero? (compare (an/literal-number x) x))
-                "comparison properly passes through."))
+            (when #?(:clj true :cljs (instance? IComparable x))
+              (is (zero? (compare (an/literal-number x) x))
+                  "comparison properly passes through.")))
 
   (testing "metadata support"
     (let [m {:real? true :latex! "face"}]

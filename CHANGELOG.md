@@ -4,9 +4,9 @@
 
 - #292 fixes a `StackOverflow` that would sometimes appear when comparing
   symbolic expressions to non-expressions. `(= (literal-number x) y)` now
-  returns true if `(= x y)` (AND if `y` is not a collection!), false otherwise.
-  #255 is currently blocking pass-through equality with collections. Thanks to
-  @daslu for the report here!
+  returns true if `(= x y)` (AND, in clj, if `y` is not a collection!), false
+  otherwise. #255 is currently blocking pass-through equality with collections
+  on the JVM. Thanks to @daslu for the report here!
 
 - #289 adds many namespaces to `sicmutils.env.sci`:
 
