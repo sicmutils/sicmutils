@@ -19,6 +19,9 @@
 
 (ns sicmutils.expression-test
   (:require [clojure.test :refer [is deftest testing]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number :as an]
             [sicmutils.expression :as e]
             [sicmutils.generic :as g]
@@ -61,12 +64,27 @@
     (is (e/abstract?
          (an/literal-number 12))))
 
+  (checking "(= expr non-expr) compares non-expr against internally captured
+    expression" 100
+            [x gen/any-equatable]
+            (if (coll? x)
+              (is (#?(:clj not= :cljs =)
+                   (an/literal-number x) x)
+                  "in CLJ, expressions don't support `seq`, so can't compare
+                  against proper collections. Not so in CLJS!")
+              (is (= (an/literal-number x) x)
+                  "Anything else's equality passes through."))
+
+            (when #?(:clj true :cljs (instance? IComparable x))
+              (is (zero? (compare (an/literal-number x) x))
+                  "comparison properly passes through.")))
+
   (testing "metadata support"
     (let [m {:real? true :latex! "face"}]
       (is (not= (e/make-literal ::blah 12)
                 (-> (e/make-literal ::blah 12)
                     (with-meta m)))
-          "Metadata currently affects equality.")
+          "Metadata affects equality")
 
       (is (= m (meta
                 (-> (e/make-literal ::blah 12)
