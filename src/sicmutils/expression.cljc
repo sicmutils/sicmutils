@@ -86,7 +86,7 @@
                  (and (= type (.-type b))
                       (= expression (.-expression b))
                       (= m (.-m b))))
-               (v/= a b))))
+               (v/= expression b))))
 
   #?@(:clj
       [IObj
@@ -113,7 +113,7 @@
                    (and (= type (.-type b))
                         (= expression (.-expression b))
                         (= m (.-m b))))
-                 (v/= a b)))
+                 (v/= expression b)))
 
        IComparable
        (-compare [a b]

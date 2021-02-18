@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- #292 fixes a `StackOverflow` that would sometimes appear when comparing
+  symbolic expressions to non-expressions. `(= (literal-number x) y)` now
+  returns true if `(= x y)` (AND if `y` is not a collection!), false otherwise.
+  #255 is currently blocking pass-through equality with collections. Thanks to
+  @daslu for the report here!
+
 - #289 adds many namespaces to `sicmutils.env.sci`:
 
   - `sicmutils.{complex,expression,modint,numsymb,polynomial,ratio,rational-function,util,value}`
