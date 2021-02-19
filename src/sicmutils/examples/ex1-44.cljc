@@ -218,11 +218,24 @@
                    (fn [t state] state))}))))
 
 (comment
+  ;; this blows up:
+  (let [Lagrangian->acceleration
+        (fn [L]
+          (let [P ((e/partial 2) L)
+                F ((e/partial 1) L)]
+            #_(/ (- F
+                    (+ ((e/partial 0) P)
+                       (* ((e/partial 1) P) e/velocity)))
+                 ((e/partial 2) P))
+            ((e/partial 2) P)))
+        [_ params state] (run-double-double (up (/ Math/PI 2) 0))
+        ff (apply (comp Lagrangian->acceleration
+                        L-double-double-pendulum)
+                  params)]
+    (e/invert (ff state)))
+
   "regular:"
   (run-double-double (up (/ Math/PI 2) 0))
 
   "Chaotic:"
   (run-double-double (up (/ Math/PI 2) Math/PI)))
-
-(comment
-  (run-double-double (up (/ Math/PI 2) 0)))
