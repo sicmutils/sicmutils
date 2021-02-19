@@ -102,6 +102,9 @@
    'cosh #(Math/cosh %)
    'sinh #(Math/sinh %)
    'tanh #(Math/tanh %)
+   'floor #(Math/floor %)
+   'ceiling #(Math/ceil %)
+   ;; TODO: modulo, remainder
    #?@(:cljs
        ;; JS-only entries.
        ['acosh #(Math/acosh %)

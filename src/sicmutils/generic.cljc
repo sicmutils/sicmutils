@@ -196,14 +196,14 @@ See [[*]] for a variadic version of [[mul]]."
 (defmethod ceiling :default [a]
   (negate (floor (negate a))))
 
-(defn modulo-default [a b]
+(defn- modulo-default [a b]
   (sub a (mul b (floor (div a b)))))
 
 (defgeneric modulo 2)
 (defmethod modulo :default [a b]
   (modulo-default a b))
 
-(defn remainder-default [n d]
+(defn- remainder-default [n d]
   (let [divnd (div n d)]
     (if (= (negative? n) (negative? d))
       (mul d (sub divnd (floor divnd)))
