@@ -126,6 +126,10 @@
 (def ^:private remainder (modular-binop g/remainder))
 (def ^:private modulo (modular-binop g/modulo))
 
+(defmethod g/integer-part [::modint] [a] (:i a))
+(defmethod g/fractional-part [::modint] [a] 0)
+(defmethod g/floor [::modint] [a] a)
+(defmethod g/ceiling [::modint] [a] a)
 (defmethod g/add [::modint ::modint] [a b] (add a b))
 (defmethod g/mul [::modint ::modint] [a b] (mul a b))
 (defmethod g/sub [::modint ::modint] [a b] (sub a b))

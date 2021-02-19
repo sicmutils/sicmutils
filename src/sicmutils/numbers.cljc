@@ -58,6 +58,9 @@
 (defmethod g/magnitude [::v/real] [a] (u/compute-abs a))
 (defmethod g/div [::v/real ::v/real] [a b] (core-div a b))
 (defmethod g/invert [::v/real] [a] (core-div a))
+(defmethod g/integer-part [::v/real] [a] (long a))
+(defmethod g/floor [::v/real] [a] (long (Math/floor a)))
+(defmethod g/ceiling [::v/real] [a] (long (Math/ceil a)))
 
 ;; ## Complex Operations
 (defmethod g/real-part [::v/real] [a] a)
@@ -154,11 +157,16 @@
 
 (defmethod g/exact-divide [::v/integral ::v/integral] [b a] (exact-divide b a))
 
+(defmethod g/integer-part [::v/integral] [a] a)
+(defmethod g/fractional-part [::v/integral] [a] 0)
+(defmethod g/floor [::v/integral] [a] a)
+(defmethod g/ceiling [::v/integral] [a] a)
+
 ;; All JVM and JS types that respond to ::native-integral behave correctly with
 ;; Clojure's native `quot`, `rem`, `mod`.
 (defmethod g/quotient [::v/native-integral ::v/native-integral] [a b] (quot a b))
-(defmethod g/remainder [::v/native-integral ::v/native-integral] [a b] (rem a b))
-(defmethod g/modulo [::v/native-integral ::v/native-integral] [a b] (mod a b))
+(defmethod g/remainder [::v/real ::v/real] [a b] (rem a b))
+(defmethod g/modulo [::v/real ::v/real] [a b] (mod a b))
 
 ;; This section defines methods that act differently between Clojurescript and
 ;; Clojure. The clojure methods are all slightly more refined based on Java's
@@ -192,6 +200,8 @@
      ;; native BigInt type in JS.
      (defmethod g/add [js/BigInt js/BigInt] [a b] (core-plus a b))
      (defmethod g/mul [js/BigInt js/BigInt] [a b] (core-times a b))
+     (defmethod g/modulo [js/BigInt js/BigInt] [a b] (g/modulo-default a b))
+     (defmethod g/remainder [js/BigInt js/BigInt] [a b] (g/remainder-default a b))
      (defmethod g/sub [js/BigInt js/BigInt] [a b] (core-minus a b))
      (defmethod g/negate [js/BigInt] [a] (core-minus a))
 
@@ -212,7 +222,7 @@
        (if (neg? a) (core-minus a) a))
 
 
-     (doseq [op [g/add g/mul g/sub g/expt g/remainder g/quotient]]
+     (doseq [op [g/add g/mul g/sub g/expt g/modulo g/remainder g/quotient]]
        ;; Compatibility between js/BigInt and the other integral types.
        (defmethod op [js/BigInt ::v/integral] [a b]
          (op a (u/bigint b)))
@@ -227,21 +237,22 @@
          (op (js/Number a) b))
 
        (defmethod op [::v/floating-point js/BigInt] [a b]
-         (op a (js/Number b)))
+         (op a (js/Number b))))
 
-       ;; BigInt can't handle these operations natively, so we override with a
-       ;; downcast to number for now.
-       (doseq [op [g/cos g/sin g/tan
-                   g/asin g/acos g/atan
-                   g/cosh g/sinh g/tanh
-                   g/asinh g/acosh g/acosh
-                   g/cot g/sec g/csc g/sech g/csch]]
-         (defmethod op [js/BigInt] [a]
-           (op (js/Number a))))
+     ;; BigInt can't handle these operations natively, so we override with a
+     ;; downcast to number for now.
 
-       (defmethod g/atan [js/BigInt ::v/real] [l r] (g/atan (js/Number l) r))
-       (defmethod g/atan [::v/real js/BigInt] [l r] (g/atan l (js/Number r)))
-       (defmethod g/atan [js/BigInt js/BigInt] [l r] (g/atan (js/Number l) (js/Number r))))
+     (doseq [op [g/cos g/sin g/tan
+                 g/asin g/acos g/atan
+                 g/cosh g/sinh g/tanh
+                 g/asinh g/acosh g/acosh
+                 g/cot g/sec g/csc g/sech g/csch]]
+       (defmethod op [js/BigInt] [a]
+         (op (js/Number a))))
+
+     (defmethod g/atan [js/BigInt ::v/real] [l r] (g/atan (js/Number l) r))
+     (defmethod g/atan [::v/real js/BigInt] [l r] (g/atan l (js/Number r)))
+     (defmethod g/atan [js/BigInt js/BigInt] [l r] (g/atan (js/Number l) (js/Number r)))
 
      ;; Google Closure library's 64-bit Long:
      (defmethod g/add [Long Long] [a b] (.add a b))

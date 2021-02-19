@@ -155,6 +155,16 @@
 (defmethod g/tanh [::complex] [^Complex a] (.tanh a))
 (defmethod g/simplify [::complex] [a] (v/freeze a))
 
+(defmethod g/integer-part [::complex] [^Complex a]
+  (complex
+   (g/integer-part (#?(:clj .getReal :cljs .-re) a))
+   (g/integer-part (#?(:clj .getImaginary :cljs .-im) a))))
+
+(defmethod g/fractional-part [::complex] [^Complex a]
+  (complex
+   (g/fractional-part (#?(:clj .getReal :cljs .-re) a))
+   (g/fractional-part (#?(:clj .getImaginary :cljs .-im) a))))
+
 #?(:cljs
    ;; These are all defined explicitly in Complex.js.
    (do
@@ -172,6 +182,13 @@
 ;;implementations.
 #?(:clj
    (do
+     (defmethod g/floor [::complex] [^Complex a]
+       (complex (g/floor (.getReal a))
+                (g/floor (.getImaginary a))))
+     (defmethod g/ceiling [::complex] [^Complex a]
+       (complex (g/ceiling (.getReal a))
+                (g/ceiling (.getImaginary a))))
+
      (defmethod g/sub [::complex ::complex] [^Complex a ^Complex b] (.subtract a b))
      (defmethod g/sub [::complex ::v/real] [^Complex a n] (.subtract a (double n)))
      (defmethod g/sub [::v/real ::complex] [n ^Complex a] (.add (.negate a) (double n)))
@@ -191,6 +208,8 @@
 
    :cljs
    (do
+     (defmethod g/floor [::complex] [^Complex a] (.floor a))
+     (defmethod g/ceiling [::complex] [^Complex a] (.ceil a))
      (defmethod g/sub [::complex ::complex] [^Complex a ^Complex b] (.sub a b))
      (defmethod g/sub [::complex ::v/real] [^Complex a n] (.sub a (u/double n)))
      (defmethod g/sub [::v/real ::complex] [n ^Complex a] (.add (.neg a) (u/double n)))

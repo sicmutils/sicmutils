@@ -219,6 +219,25 @@
   (is (= 5 (g/divide 20 4)))
   (is (= 2 (g/divide 8 2 2))))
 
+(deftest floor-identity
+  ;; via https://www.johndcook.com/blog/2020/08/14/multiply-divide-and-floor/
+  (checking "floor identity" 100
+            [n (->> gen/pos-int
+                    (gen/fmap u/int)
+                    (gen/such-that (complement v/zero?)))
+             x sg/real]
+            (is (= (g/floor x)
+                   (g/floor (g/div (g/floor (g/mul n x))
+                                   n)))))
+
+  (checking "ceiling identity" 100
+            [n (->> gen/pos-int
+                    (gen/fmap u/int)
+                    (gen/such-that (complement v/zero?)))
+             x sg/real]
+            (is (= (g/ceiling x)
+                   (g/ceiling (g/div (g/ceiling (g/mul n x))
+                                     n))))))
 
 (deftest numeric-trig-tests
   (testing "trig"

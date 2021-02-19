@@ -123,6 +123,47 @@
       (is (= (c/complex 0 -1) (g/div 1 c/I)))
       (is (= (c/complex 2 2) (g/div (c/complex 4 4) 2))))
 
+
+    (testing "modulo examples"
+      ;; https://stackoverflow.com/questions/54553489/how-to-calculate-a-modulo-of-complex-numbers
+      (is (= (c/complex 1 1)
+             (g/modulo (c/complex 8 2) (c/complex 2 1))))
+      (is (= (c/complex -1 -1)
+             (g/modulo (g/- (c/complex 8 2)) (g/- (c/complex 2 1)))))
+
+      ;; https://www.quora.com/How-do-I-find-Modulo-of-complex-numbers
+      (is (near (c/complex (g/- 24 (* 8 pi)))
+                (g/modulo 24 (c/complex 0 (* 2 pi)))))
+
+      ;; https://pressbooks.howardcc.edu/jrip3/chapter/equivalence-classes-of-complex-numbers-modulo-a-natural-number/
+      (is (= (c/complex 1 2) (g/modulo (c/complex 4 5) 3)))
+      (is (= (c/complex 1 1) (g/modulo (c/complex 4 -5) 3)))
+      (is (= (c/complex 2 2) (g/modulo (c/complex -4 5) 3)))
+      (is (= (c/complex 2 1) (g/modulo (c/complex -4 -5) 3)))
+
+      (is (= (c/complex -2 2)
+             (g/modulo (c/complex 6 4) (c/complex 3 5)))))
+
+    (testing "integer-part"
+      (is (= (c/complex 1 2) (g/integer-part (c/complex 1 2))))
+      (is (= (c/complex 1 2) (g/integer-part (c/complex 1.5 2.9))))
+      (is (= (c/complex -1 -2) (g/integer-part (c/complex -1.5 -2.9)))))
+
+    (testing "fractional-part"
+      (is (= (c/complex 0 0) (g/fractional-part (c/complex 1 2))))
+      (is (near (c/complex 0.5 0.9) (g/fractional-part (c/complex 1.5 2.9))))
+      (is (near (c/complex 0.5 0.1) (g/fractional-part (c/complex -1.5 -2.9)))))
+
+    (testing "floor"
+      (is (= (c/complex 1 2) (g/floor (c/complex 1 2))))
+      (is (= (c/complex 1 2) (g/floor (c/complex 1.5 2.9))))
+      (is (= (c/complex -2 -3) (g/floor (c/complex -1.5 -2.9)))))
+
+    (testing "ceiling"
+      (is (= (c/complex 1 2) (g/ceiling (c/complex 1 2))))
+      (is (= (c/complex 2 3) (g/ceiling (c/complex 1.5 2.9))))
+      (is (= (c/complex -1 -2) (g/ceiling (c/complex -1.5 -2.9)))))
+
     (testing "expt"
       (is (near -1 (g/expt (c/complex 0 1) 2)))
       (is (near (c/complex 16) (g/expt 2 (c/complex 4))))

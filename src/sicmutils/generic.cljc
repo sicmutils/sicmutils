@@ -147,6 +147,12 @@ See [[*]] for a variadic version of [[mul]]."
   {:name '/
    :dfdx (fn [x] (div -1 (mul x x)))})
 
+(def ^:dynamic *in-default-invert* false)
+
+(defmethod invert :default [a]
+  (binding [*in-default-invert* true]
+    (div 1 a)))
+
 (defgeneric div 2
   {:name '/
    :dfdx (fn [_ y] (div 1 y))
@@ -154,7 +160,9 @@ See [[*]] for a variadic version of [[mul]]."
                        (mul y y)))})
 
 (defmethod div :default [a b]
-  (mul a (invert b)))
+  (if *in-default-invert*
+    (throw (ex-info "No implementation of invert or div." {:method 'div :args [a b]}))
+    (mul a (invert b))))
 
 (defgeneric abs 1)
 
@@ -165,15 +173,48 @@ See [[*]] for a variadic version of [[mul]]."
 
 (defgeneric quotient 2)
 
-(defgeneric remainder 2)
+(defgeneric integer-part 1)
+
+(defgeneric floor 1)
+(defmethod floor :default [a]
+  (if (negative? a)
+    (sub (integer-part a) 1)
+    (integer-part a)))
+
+(defgeneric fractional-part 1
+  "Returns the fractional part of the given value.
+
+  It's counterintuitive but apparently accepted that this is implemented with
+  floor instead of integer-part, meaning that for negative numbers
+
+     (not= x (+ (integer-part x) (fractional-part x)))")
+
+(defmethod fractional-part :default [a]
+  (sub a (floor a)))
+
+(defgeneric ceiling 1)
+(defmethod ceiling :default [a]
+  (negate (floor (negate a))))
+
+(defn modulo-default [a b]
+  (sub a (mul b (floor (div a b)))))
+
 (defgeneric modulo 2)
 (defmethod modulo :default [a b]
-  (let [m (remainder a b)]
-    (if (or (v/zero? m)
-            (= (negative? a)
-               (negative? b)))
-      m
-      (add m b))))
+  (modulo-default a b))
+
+(defn remainder-default [n d]
+  (let [divnd (div n d)]
+    (if (= (negative? n) (negative? d))
+      (mul d (sub divnd (floor divnd)))
+      (mul d (sub divnd (ceiling divnd))))))
+
+;; complex remainder returns numerator in maxima
+;; fractional remainder returns 0 in maxima
+;; remainder in wolfram alpha == modulo
+(defgeneric remainder 2)
+(defmethod remainder :default [n d]
+  (remainder-default n d))
 
 (declare log)
 
