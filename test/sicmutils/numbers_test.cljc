@@ -224,7 +224,7 @@
   (checking "floor identity" 100
             [n (->> gen/pos-int
                     (gen/fmap u/int)
-                    (gen/such-that (complement zero?)))
+                    (gen/such-that (complement v/zero?)))
              x sg/real]
             (is (= (g/floor x)
                    (g/floor (g/div (g/floor (g/mul n x))
@@ -233,7 +233,7 @@
   (checking "ceiling identity" 100
             [n (->> gen/pos-int
                     (gen/fmap u/int)
-                    (gen/such-that (complement zero?)))
+                    (gen/such-that (complement v/zero?)))
              x sg/real]
             (is (= (g/ceiling x)
                    (g/ceiling (g/div (g/ceiling (g/mul n x))
