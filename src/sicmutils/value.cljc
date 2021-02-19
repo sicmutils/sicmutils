@@ -60,7 +60,8 @@
   before simplification and printing, to simplify those processes.")
   (kind [this]))
 
-(def argument-kind #(mapv kind %&))
+(defn argument-kind [& args]
+  (mapv kind args))
 
 (def object-name-map (atom {}))
 
@@ -463,8 +464,7 @@
 
 (def twopi (* 2 Math/PI))
 
-(defn principal-value
-  [cuthigh]
+(defn principal-value [cuthigh]
   (let [cutlow (- cuthigh twopi)]
     (fn [x]
       (if (and (<= cutlow x) (< x cuthigh))
