@@ -221,8 +221,13 @@
      (defmethod g/magnitude [js/BigInt] [a b]
        (if (neg? a) (core-minus a) a))
 
+     (defmethod g/div [js/BigInt js/BigInt] [a b]
+       (let [rem (js* "~{} % ~{}" a b)]
+         (if (v/zero? rem)
+           (core-div a b)
+           (r/rationalize a b))))
 
-     (doseq [op [g/add g/mul g/sub g/expt g/modulo g/remainder g/quotient]]
+     (doseq [op [g/add g/mul g/sub g/div g/expt g/modulo g/remainder g/quotient]]
        ;; Compatibility between js/BigInt and the other integral types.
        (defmethod op [js/BigInt ::v/integral] [a b]
          (op a (u/bigint b)))
@@ -231,8 +236,7 @@
          (op (u/bigint a) b))
 
        ;; For NON integrals, we currently have no choice but to downcast the
-       ;; BigInt to a floating point number. TODO if we introduce BigDecimal
-       ;; support this could get cleaner.
+       ;; BigInt to a floating point number.
        (defmethod op [js/BigInt ::v/floating-point] [a b]
          (op (js/Number a) b))
 

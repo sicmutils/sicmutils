@@ -196,14 +196,29 @@ See [[*]] for a variadic version of [[mul]]."
 (defmethod ceiling :default [a]
   (negate (floor (negate a))))
 
-(defn- modulo-default [a b]
+(defn ^:no-doc modulo-default
+  "The default implementation for [[modulo]] depends on the identity:
+
+  x mod y == x - y ⌊x/y⌋
+
+  This is the Knuth definition described
+  by [Wikipedia](https://en.wikipedia.org/wiki/Modulo_operation)."
+  [a b]
   (sub a (mul b (floor (div a b)))))
 
-(defgeneric modulo 2)
+(defgeneric modulo 2
+  "Returns the result of the
+  mathematical [Modulo](https://en.wikipedia.org/wiki/Modulo_operation)
+  operation between `a` and `b`.
+
+ TODO note remainder and friends.
+
+ Truncates toward negative infinity.")
+
 (defmethod modulo :default [a b]
   (modulo-default a b))
 
-(defn- remainder-default [n d]
+(defn ^:no-doc remainder-default [n d]
   (let [divnd (div n d)]
     (if (= (negative? n) (negative? d))
       (mul d (sub divnd (floor divnd)))
@@ -212,7 +227,9 @@ See [[*]] for a variadic version of [[mul]]."
 ;; complex remainder returns numerator in maxima
 ;; fractional remainder returns 0 in maxima
 ;; remainder in wolfram alpha == modulo
-(defgeneric remainder 2)
+(defgeneric remainder 2
+  "TODO describe the difference here.")
+
 (defmethod remainder :default [n d]
   (remainder-default n d))
 

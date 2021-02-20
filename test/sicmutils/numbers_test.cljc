@@ -35,6 +35,18 @@
 
 (def near (v/within 1e-12))
 
+(defn gen-integer
+  "Integral generator that takes a `max` magnitude size parameter."
+  ([] sg/any-integral)
+  ([max] (gen/fmap #(g/modulo % (int max))
+                   sg/any-integral)))
+
+(defn gen-real
+  "Integral generator that takes a `max` magnitude size parameter."
+  ([] sg/real)
+  ([max] (gen/fmap #(g/modulo % (int max))
+                   sg/real)))
+
 (deftest numeric-laws
   ;; All native types available on clj and cljs form fields.
   (l/field 100 sg/bigint #?(:clj "clojure.lang.BigInt" :cljs "js/BigInt"))
@@ -222,8 +234,6 @@
 (deftest fractional-integer-tests
   ;; TODO document that the negative and pos behavior match, strangely. Method 1
   ;; here: https://en.wikipedia.org/wiki/Fractional_part
-
-  ;; TODO modulo tests!
   (checking "fractional-part" 100
             [x sg/real]
             (testing "0 <= frac(x) < 1"
@@ -234,11 +244,10 @@
                    (g/- x (g/floor x)))
                 "for neg or pos x, x - floor(x) == frac(x)"))
 
-  ;; TODO what is the real test here? This is failing...
-  (checking "frac(x) + int(x) == x" 100 [x sg/real]
-            (is (= x
-                   (g/+ (g/integer-part x)
-                        (g/fractional-part x)))))
+  (checking "frac(x) + int(x) == x for non-negative real x" 100
+            [x (gen/fmap g/abs sg/real)]
+            (is (= x (g/+ (g/integer-part x)
+                          (g/fractional-part x)))))
 
   (checking "fractional, integer-part are idempotent" 100
             [x sg/real]
@@ -252,7 +261,7 @@
 
 (deftest floor-ceil-tests
   (checking "floor and ceiling relations" 100
-            [n sg/integer]
+            [n sg/any-integral]
             (is (= n (g/floor n) (g/ceiling n))
                 "floor(n) == ceiling(n) == n for ints")
 
@@ -262,7 +271,7 @@
                 "floor(n) <= ceiling(n)"))
 
   (checking "negating arg switches floor and ceiling, changes sign" 100
-            [n sg/integer]
+            [n sg/any-integral]
             (is (v/zero?
                  (g/+ (g/floor n)
                       (g/ceiling (g/- n))))
@@ -285,16 +294,16 @@
                    (g/ceiling (g/ceiling x)))))
 
   (checking "⌊x + n⌋ == ⌊x⌋ + n for all integers n" 100
-            [x sg/real
-             n sg/integer]
-            (is (= (g/floor (g/+ x n))
-                   (g/+ (g/floor x) n))))
+            [x (gen-real 1e4)
+             n (gen-integer 1e4)]
+            (is (ish? (g/floor (g/+ x n))
+                      (g/+ (g/floor x) n))))
 
   (checking "⌈x + n⌉ == ⌈x⌉ + n for all integers n" 100
-            [x sg/real
-             n sg/integer]
-            (is (= (g/ceiling (g/+ x n))
-                   (g/+ (g/ceiling x) n))))
+            [x (gen-real 1e4)
+             n (gen-integer 1e4)]
+            (is (ish? (g/ceiling (g/+ x n))
+                      (g/+ (g/ceiling x) n))))
 
   ;; These nice identities come from [John Cook's
   ;; blog](https://www.johndcook.com/blog/2020/08/14/multiply-divide-and-floor/).
@@ -313,7 +322,42 @@
                     (g// (g/ceiling (g/* n x)) n))))))
 
 (deftest modulo-remainder-tests
-  ;; TODO lock down these!
+  (letfn [(nonzero [g]
+            (gen/fmap (fn [x]
+                        (if (v/zero? x)
+                          (v/one-like x)
+                          x))
+                      g))]
+
+    ;; TODO unit test with real side for anything that bakes in integer.
+    (checking "mod, rem identity" 100
+              [x (gen-real 1e4)
+               y (nonzero (gen-integer 1e4))]
+              (is (ish? (g/modulo x y)
+                        (g/modulo
+                         (g/modulo x y) y)))
+
+              (is (ish? (g/remainder x y)
+                        (g/remainder
+                         (g/remainder x y) y))))
+
+    (with-comparator (v/within 1e-6)
+      (checking "x mod y == x - y ⌊x/y⌋ for real x, y" 100
+                [x (gen-real 1e4)
+                 y (nonzero (gen-real 1e4))]
+                (is (ish? (g/modulo x y)
+                          (g/- x (g/* y (g/floor
+                                         (g/div x y)))))
+                    "y == int to keep things numerically stable."))
+
+      (checking "mod(x y) == rem(x y) for positive x, y" 100
+                [x (gen/fmap g/abs (gen-real 1e4))
+                 y (nonzero
+                    (gen/fmap g/abs (gen-real 1e4)))]
+                (is (ish? (g/modulo x y)
+                          (g/remainder x y))))))
+
+  ;; TODO mod truncates toward infinity
   )
 
 (deftest numeric-trig-tests
