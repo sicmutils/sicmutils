@@ -227,12 +227,25 @@
      (defmethod g/div [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.div a b)))
      (defmethod g/exact-divide [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.div a b)))
 
-     (defmethod g/remainder [Fraction Fraction] [a b] (.mod a b))
-     (defmethod g/remainder [::v/integral Fraction] [a b] (.mod (Fraction. a) b))
-     (defmethod g/remainder [Fraction ::v/integral] [a b] (.mod a b))
-     (defmethod g/modulo [Fraction Fraction] [a b] (.. a (mod b) (add b) (mod b)))
-     (defmethod g/modulo [::v/integral Fraction] [a b] (.. (Fraction. a) (mod b) (add b) (mod b)))
-     (defmethod g/modulo [Fraction ::v/integral] [a b] (.. a (mod b) (add b) (mod b)))
+     (defmethod g/remainder [Fraction Fraction] [^Fraction a ^Fraction b]
+       (promote (.mod a b)))
+
+     (defmethod g/remainder [::v/integral Fraction] [a ^Fraction b]
+       (promote (.mod (Fraction. a 1) b)))
+
+     (defmethod g/remainder [Fraction ::v/integral] [^Fraction a b]
+       (promote (.mod a (Fraction. b 1))))
+
+     (defmethod g/modulo [Fraction Fraction] [^Fraction a ^Fraction b]
+       (.mod ^Fraction (.add ^Fraction (.mod a b) b) b))
+
+     (defmethod g/modulo [::v/integral Fraction] [a ^Fraction b]
+       (.. (Fraction. a 1) (mod b) (add b) (mod b)))
+
+     (defmethod g/modulo [Fraction ::v/integral] [^Fraction a b]
+       (let [^Fraction b (Fraction. b 1)]
+         (.mod ^Fraction (.add ^Fraction (.mod a b) b) b)))
+
      (defmethod g/negate [Fraction] [^Fraction a] (promote (.neg a)))
      (defmethod g/negative? [Fraction] [^Fraction a] (neg? (.-s a)))
      (defmethod g/invert [Fraction] [^Fraction a] (promote (.inverse a)))

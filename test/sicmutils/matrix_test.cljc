@@ -679,18 +679,36 @@
                      (g/outer-product col row))))))
 
 (deftest matrices-from-structure
-  (let [A (s/up (s/up 1 2) (s/up 3 4))
-        C (s/down (s/up 1 2 3) (s/up 0 4 5) (s/up 1 0 6))
+  (let [A (s/up (s/up 1 2)
+                (s/up 3 4))
+        C (s/down (s/up 1 2 3)
+                  (s/up 0 4 5)
+                  (s/up 1 0 6))
         D (s/up (s/down 3))
-        F (s/down (s/up 1 2) (s/up 3 4))
-        G (s/down (s/up 4 0 0 0) (s/up 0 0 2 0) (s/up 0 1 2 0) (s/up 1 0 0 1))]
+        F (s/down (s/up 1 2)
+                  (s/up 3 4))
+        G (s/down (s/up 4 0 0 0)
+                  (s/up 0 0 2 0)
+                  (s/up 0 1 2 0)
+                  (s/up 1 0 0 1))]
 
     (testing "inverse"
-      (is (= (s/up (s/down 1)) (g/* D (g/divide D))))
-      (is (= (s/down (s/up 1 0) (s/up 0 1)) (g/* F (g/divide F))))
-      (is (= (s/down (s/up 1 0) (s/up 0 1)) (g/divide F F)))
-      (is (= (s/down (s/up 1 0) (s/up 0 1)) (g/* (g/divide F) F)))
-      (is (= (s/down (s/up 1 0 0 0) (s/up 0 1 0 0) (s/up 0 0 1 0) (s/up 0 0 0 1)) (g/divide G G))))
+      (is (= (s/up (s/down 1))
+             (g/* D (g/divide D))))
+
+      (is (= (s/down (s/up 1 0)
+                     (s/up 0 1))
+             (g/* F (g/divide F))))
+
+      (is (= (s/down (s/up 1 0)
+                     (s/up 0 1))
+             (g/* (g/divide F) F)))
+
+      (is (= (s/down (s/up 1 0 0 0)
+                     (s/up 0 1 0 0)
+                     (s/up 0 0 1 0)
+                     (s/up 0 0 0 1))
+             (g/* (g/divide G) G))))
 
     (testing "ratio literals"
       (is (= (s/down (s/down -2 1)

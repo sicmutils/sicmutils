@@ -264,6 +264,14 @@
        (defmethod = [from to] [l r] (core= (f l) r))
        (defmethod = [to from] [l r] (core= l (f r))))
 
+     (defmethod = [goog.math.Long goog.math.Long]
+       [^goog.math.Long l ^goog.math.Long r]
+       (.equals l r))
+
+     (defmethod = [goog.math.Integer goog.math.Integer]
+       [^goog.math.Integer l ^goog.math.Integer r]
+       (.equals l r))
+
      (extend-protocol IEquiv
        number
        (-equiv [this other]
