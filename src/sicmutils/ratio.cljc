@@ -237,14 +237,17 @@
        (promote (.mod a (Fraction. b 1))))
 
      (defmethod g/modulo [Fraction Fraction] [^Fraction a ^Fraction b]
-       (.mod ^Fraction (.add ^Fraction (.mod a b) b) b))
+       (promote
+        (.mod ^Fraction (.add ^Fraction (.mod a b) b) b)))
 
      (defmethod g/modulo [::v/integral Fraction] [a ^Fraction b]
-       (.. (Fraction. a 1) (mod b) (add b) (mod b)))
+       (promote
+        (.. (Fraction. a 1) (mod b) (add b) (mod b))))
 
      (defmethod g/modulo [Fraction ::v/integral] [^Fraction a b]
        (let [^Fraction b (Fraction. b 1)]
-         (.mod ^Fraction (.add ^Fraction (.mod a b) b) b)))
+         (promote
+          (.mod ^Fraction (.add ^Fraction (.mod a b) b) b))))
 
      (defmethod g/negate [Fraction] [^Fraction a] (promote (.neg a)))
      (defmethod g/negative? [Fraction] [^Fraction a] (neg? (.-s a)))
