@@ -252,10 +252,10 @@
    :special-handlers
    {'floor (fn [[x]] (str "⌊" x "⌋"))
     'ceiling (fn [[x]] (str "⌈" x "⌉"))
-    'integer-part (fn [[x]] (str "[" x "]"))
-    'fractional-part (fn [[x]] (str "{" x "}"))
-    'modulo (fn [[x y]])
-    'remainder (fn [[x y]] (str " % "))
+    'integer-part (fn [[x]] (str "int(" x ")"))
+    'fractional-part (fn [[x]] (str "frac(" x ")"))
+    'modulo (fn [[x y]] (str x " mod " y))
+    'remainder (fn [[x y]] (str x " % " y))
     'expt (fn [[x e]]
             (if (and (integer? e) ((complement neg?) e))
               (str x (n->superscript e))))
@@ -359,11 +359,11 @@
 
       'integer-part
       (fn [[x]]
-        (str "\\left[ " x " \\right]"))
+        (str "\\mathsf{int} \\left(" x "\\right)"))
 
       'fractional-part
       (fn [[x]]
-        (str "\\left \\{ " x " \\right \\}"))
+        (str "\\mathsf{frac} \\left(" x "\\right)"))
 
       'modulo
       (fn [[x y]]

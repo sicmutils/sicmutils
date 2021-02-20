@@ -219,25 +219,102 @@
   (is (= 5 (g/divide 20 4)))
   (is (= 2 (g/divide 8 2 2))))
 
-(deftest floor-identity
-  ;; via https://www.johndcook.com/blog/2020/08/14/multiply-divide-and-floor/
-  (checking "floor identity" 100
-            [n (->> gen/pos-int
-                    (gen/fmap u/int)
-                    (gen/such-that (complement v/zero?)))
+(deftest fractional-integer-tests
+  ;; TODO document that the negative and pos behavior match, strangely. Method 1
+  ;; here: https://en.wikipedia.org/wiki/Fractional_part
+
+  ;; TODO modulo tests!
+  (checking "fractional-part" 100
+            [x sg/real]
+            (testing "0 <= frac(x) < 1"
+              (is (<= 0 (g/fractional-part x)))
+              (is (< (g/fractional-part x) 1)))
+
+            (is (= (g/fractional-part x)
+                   (g/- x (g/floor x)))
+                "for neg or pos x, x - floor(x) == frac(x)"))
+
+  ;; TODO what is the real test here? This is failing...
+  (checking "frac(x) + int(x) == x" 100 [x sg/real]
+            (is (= x
+                   (g/+ (g/integer-part x)
+                        (g/fractional-part x)))))
+
+  (checking "fractional, integer-part are idempotent" 100
+            [x sg/real]
+            (is (= (g/fractional-part x)
+                   (g/fractional-part
+                    (g/fractional-part x))))
+
+            (is (= (g/integer-part x)
+                   (g/integer-part
+                    (g/integer-part x))))))
+
+(deftest floor-ceil-tests
+  (checking "floor and ceiling relations" 100
+            [n sg/integer]
+            (is (= n (g/floor n) (g/ceiling n))
+                "floor(n) == ceiling(n) == n for ints")
+
+            (is (not
+                 (pos?
+                  (v/compare (g/floor n) (g/ceiling n))))
+                "floor(n) <= ceiling(n)"))
+
+  (checking "negating arg switches floor and ceiling, changes sign" 100
+            [n sg/integer]
+            (is (v/zero?
+                 (g/+ (g/floor n)
+                      (g/ceiling (g/- n))))
+                "floor(x) + ceil(-x) == 0")
+
+            (is (= (g/- (g/floor n))
+                   (g/ceiling (g/- n)))
+                "-floor(x) == ceil(-x)")
+
+            (is (= (g/- (g/ceiling n))
+                   (g/floor (g/- n)))
+                "-ceil(x) == floor(-x)"))
+
+  (checking "floor, ceiling are idempotent" 100
+            [x sg/real]
+            (is (= (g/floor x)
+                   (g/floor (g/floor x))))
+
+            (is (= (g/ceiling x)
+                   (g/ceiling (g/ceiling x)))))
+
+  (checking "⌊x + n⌋ == ⌊x⌋ + n for all integers n" 100
+            [x sg/real
+             n sg/integer]
+            (is (= (g/floor (g/+ x n))
+                   (g/+ (g/floor x) n))))
+
+  (checking "⌈x + n⌉ == ⌈x⌉ + n for all integers n" 100
+            [x sg/real
+             n sg/integer]
+            (is (= (g/ceiling (g/+ x n))
+                   (g/+ (g/ceiling x) n))))
+
+  ;; These nice identities come from [John Cook's
+  ;; blog](https://www.johndcook.com/blog/2020/08/14/multiply-divide-and-floor/).
+  (checking "for nat n, real x, ⌊⌊n x⌋ / n⌋ == ⌊x⌋" 100
+            [n (gen/fmap inc gen/nat)
              x sg/real]
             (is (= (g/floor x)
-                   (g/floor (g/div (g/floor (g/mul n x))
-                                   n)))))
+                   (g/floor
+                    (g/div (g/floor (g/* n x)) n)))))
 
-  (checking "ceiling identity" 100
-            [n (->> gen/pos-int
-                    (gen/fmap u/int)
-                    (gen/such-that (complement v/zero?)))
+  (checking "for nat n, real x, ⌈⌈n x⌉ / n⌉ == ⌈x⌉" 100
+            [n (gen/fmap inc gen/nat)
              x sg/real]
             (is (= (g/ceiling x)
-                   (g/ceiling (g/div (g/ceiling (g/mul n x))
-                                     n))))))
+                   (g/ceiling
+                    (g// (g/ceiling (g/* n x)) n))))))
+
+(deftest modulo-remainder-tests
+  ;; TODO lock down these!
+  )
 
 (deftest numeric-trig-tests
   (testing "trig"
