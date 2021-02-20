@@ -210,30 +210,14 @@
      ((e/evolve dd-state-derivative m1 m2 l1 l2 g)
       initial-state
       0.01
-      0.04
+      50
       {:compile? true
        :epsilon 1.0e-13 ; = (max-norm 1.e-13)
        :observe
-       nil #_(comp (divergence-monitor window)
-                   (fn [t state] state))}))))
+       (comp (divergence-monitor window)
+             (fn [t state] state))}))))
 
 (comment
-  ;; this blows up:
-  (let [Lagrangian->acceleration
-        (fn [L]
-          (let [P ((e/partial 2) L)
-                F ((e/partial 1) L)]
-            #_(/ (- F
-                    (+ ((e/partial 0) P)
-                       (* ((e/partial 1) P) e/velocity)))
-                 ((e/partial 2) P))
-            ((e/partial 2) P)))
-        [_ params state] (run-double-double (up (/ Math/PI 2) 0))
-        ff (apply (comp Lagrangian->acceleration
-                        L-double-double-pendulum)
-                  params)]
-    (e/invert (ff state)))
-
   "regular:"
   (run-double-double (up (/ Math/PI 2) 0))
 

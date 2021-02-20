@@ -873,6 +873,11 @@
       (s/opposite a' (map #(s/opposite a' %) a'))
       a')))
 
+(defmethod g/div [::s/structure ::s/structure] [rv s]
+  (let [cp (s/compatible-shape rv)
+        cr (s/compatible-shape (s/s:* cp s))]
+    (s/s:* (s:inverse cp s cr) rv)))
+
 (defmethod g/dimension [::square-matrix] [m] (dimension m))
 (defmethod g/dimension [::column-matrix] [m] (num-rows m))
 (defmethod g/dimension [::row-matrix] [m] (num-cols m))
