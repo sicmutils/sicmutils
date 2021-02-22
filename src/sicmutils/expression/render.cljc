@@ -523,11 +523,20 @@
                               'floor "Math.floor"
                               'ceiling "Math.ceil"
                               'integer-part "Math.trunc"}
-           :special-handlers {'up make-js-vector
-                              'down make-js-vector
-                              'remainder (fn [[a b]]
-                                           (str a " % "))
-                              '/ render-infix-ratio})]
+           :special-handlers (let [parens (fn [x]
+                                            (str "(" x ")"))]
+                               {'up make-js-vector
+                                'down make-js-vector
+                                'modulo (fn [[a b]]
+                                          (-> (str a " % " b)
+                                              (parens)
+                                              (str " + " b)
+                                              (parens)
+                                              (str " % " b)
+                                              (parens)))
+                                'remainder (fn [[a b]]
+                                             (str a " % "))
+                                '/ render-infix-ratio}))]
     (fn [x & {:keys [symbol-generator parameter-order deterministic?]
              :or {symbol-generator (make-symbol-generator "_")
                   parameter-order sort}}]
