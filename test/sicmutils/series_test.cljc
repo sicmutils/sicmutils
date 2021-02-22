@@ -82,7 +82,16 @@
       (is (= [6 0 9 6 0 9 6 0 9]
              (take 9 (s 3 3)))
           "applying a series containing functions returns a new series with the
-          results."))))
+          results.")))
+
+  (checking "simplify returns a series" 100
+            [s (sg/series)]
+            (is (s/series? (g/simplify s))))
+
+  (checking "simplify returns a power series" 100
+            [s (sg/power-series)]
+            (is (s/series? (g/simplify s)))
+            (is (s/power-series? (g/simplify s)))))
 
 (deftest value-protocol-tests
   (testing "power series"

@@ -679,18 +679,62 @@
                      (g/outer-product col row))))))
 
 (deftest matrices-from-structure
-  (let [A (s/up (s/up 1 2) (s/up 3 4))
-        C (s/down (s/up 1 2 3) (s/up 0 4 5) (s/up 1 0 6))
+  (let [A (s/up (s/up 1 2)
+                (s/up 3 4))
+        C (s/down (s/up 1 2 3)
+                  (s/up 0 4 5)
+                  (s/up 1 0 6))
         D (s/up (s/down 3))
-        F (s/down (s/up 1 2) (s/up 3 4))
-        G (s/down (s/up 4 0 0 0) (s/up 0 0 2 0) (s/up 0 1 2 0) (s/up 1 0 0 1))]
+        F (s/down (s/up 1 2)
+                  (s/up 3 4))
+        G (s/down (s/up 4 0 0 0)
+                  (s/up 0 0 2 0)
+                  (s/up 0 1 2 0)
+                  (s/up 1 0 0 1))]
+
+    (checking "structure division returns a structure compatible for contraction
+    with the denominator." 100
+              [s (sg/up1 sg/any-integral 5)
+               x (gen/fmap (fn [x]
+                             (if (v/zero? x) 1 x))
+                           sg/any-integral)]
+              (is (= (s/down (g// s x))
+                     (g// s (s/up x))))
+
+              (is (= s (g/* x (g// s x)))))
+
+    (testing "structural division unit test"
+      (is (= (s/down
+              (s/up #sicm/ratio 1/2
+                    1
+                    #sicm/ratio 3/2))
+             (g/div (s/up 1 2 3)
+                    (s/up 2)))
+          "one compatible for contraction layer added")
+
+      (is (= (s/up 1 2 3)
+             (g/* (s/up 2)
+                  (g/div (s/up 1 2 3)
+                         (s/up 2))))
+          "s = x*(s/x)"))
 
     (testing "inverse"
-      (is (= (s/up (s/down 1)) (g/* D (g/divide D))))
-      (is (= (s/down (s/up 1 0) (s/up 0 1)) (g/* F (g/divide F))))
-      (is (= (s/down (s/up 1 0) (s/up 0 1)) (g/divide F F)))
-      (is (= (s/down (s/up 1 0) (s/up 0 1)) (g/* (g/divide F) F)))
-      (is (= (s/down (s/up 1 0 0 0) (s/up 0 1 0 0) (s/up 0 0 1 0) (s/up 0 0 0 1)) (g/divide G G))))
+      (is (= (s/up (s/down 1))
+             (g/* D (g/divide D))))
+
+      (is (= (s/down (s/up 1 0)
+                     (s/up 0 1))
+             (g/* F (g/divide F))))
+
+      (is (= (s/down (s/up 1 0)
+                     (s/up 0 1))
+             (g/* (g/divide F) F)))
+
+      (is (= (s/down (s/up 1 0 0 0)
+                     (s/up 0 1 0 0)
+                     (s/up 0 0 1 0)
+                     (s/up 0 0 0 1))
+             (g/* (g/divide G) G))))
 
     (testing "ratio literals"
       (is (= (s/down (s/down -2 1)

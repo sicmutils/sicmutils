@@ -729,8 +729,7 @@
     (ctor (i/sqrt (seq s))))
 
   (defmethod g/simplify [kind] [s]
-    (map g/simplify (seq s))))
-
+    (fmap g/simplify s)))
 
 ;; ## Power Series Generic Extensions
 ;;

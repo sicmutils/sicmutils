@@ -60,7 +60,8 @@
   before simplification and printing, to simplify those processes.")
   (kind [this]))
 
-(def argument-kind #(mapv kind %&))
+(defn argument-kind [& args]
+  (mapv kind args))
 
 (def object-name-map (atom {}))
 
@@ -263,6 +264,14 @@
        (defmethod = [from to] [l r] (core= (f l) r))
        (defmethod = [to from] [l r] (core= l (f r))))
 
+     (defmethod = [goog.math.Long goog.math.Long]
+       [^goog.math.Long l ^goog.math.Long r]
+       (.equals l r))
+
+     (defmethod = [goog.math.Integer goog.math.Integer]
+       [^goog.math.Integer l ^goog.math.Integer r]
+       (.equals l r))
+
      (extend-protocol IEquiv
        number
        (-equiv [this other]
@@ -463,8 +472,7 @@
 
 (def twopi (* 2 Math/PI))
 
-(defn principal-value
-  [cuthigh]
+(defn principal-value [cuthigh]
   (let [cutlow (- cuthigh twopi)]
     (fn [x]
       (if (and (<= cutlow x) (< x cuthigh))
