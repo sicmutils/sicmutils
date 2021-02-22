@@ -698,9 +698,6 @@
                x (gen/fmap (fn [x]
                              (if (v/zero? x) 1 x))
                            sg/any-integral)]
-              (is (= (s/down (g// s x))
-                     (g// s (s/up x))))
-
               (is (= s (g/* x (g// s x)))))
 
     (testing "structural division unit test"
