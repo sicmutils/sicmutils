@@ -1252,7 +1252,7 @@
     (fn [x]
       (if (v/integral? (finite-term x))
         (u/illegal
-         (str "Derivative of g/" f-name " undefined at non-integer points."))
+         (str "Derivative of g/" f-name " undefined at integral points."))
         (f x)))))
 
 (defunary g/floor
@@ -1266,14 +1266,6 @@
 
 (defunary g/fractional-part
   (discont-at-integers g/fractional-part 1))
-
-(defunary g/floor
-  (let [f (lift-1 g/floor (fn [_] 0))]
-    (fn [x]
-      (if (v/integral? (finite-term x))
-        (u/illegal
-         (str "Derivative of g/floor undefined at non-integer points."))
-        (f x)))))
 
 (defunary g/sqrt (lift-1 g/sqrt))
 (defbinary g/expt (lift-2 g/expt))
