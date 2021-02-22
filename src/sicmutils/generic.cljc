@@ -34,33 +34,39 @@
   #?(:clj
      (:import [clojure.lang Keyword LazySeq PersistentVector Symbol Var])))
 
-;; Numeric functions.
+;; Numeric functions. Start with +, *, -, /
 
 (defgeneric add 2
   "Returns the sum of arguments `a` and `b`.
 
-See [[+]] for a variadic version of [[add]]."
+  See [[+]] for a variadic version of [[add]]."
   {:name '+
    :dfdx (fn [_ _] 1)
    :dfdy (fn [_ _] 1)})
 
+(defn +
+  "TODO docs!"
+  ([] 0)
+  ([x] x)
+  ([x y]
+   (cond (v/zero? x) y
+         (v/zero? y) x
+         :else (add x y)))
+  ([x y & more]
+   (reduce + (+ x y) more)))
+
 (defgeneric negate 1
-  "Returns the negation of `a`. Equivalent to `([[sub]] 0 a)`."
+  "Returns the negation of `a`.
+
+  Equivalent to `([[-]] ([[value/zero-like]] a) a)`."
   {:name '-
    :dfdx (fn [_] -1)})
 
-(defgeneric negative? 1
-  "Returns true if the argument `a` is less than `([[value/zero-like]] a)`,
-  false otherwise. The default implementation depends on a proper Comparable
-  implementation on the type.`")
-
-(defmethod negative? :default [a] (< a (v/zero-like a)))
-
-(defgeneric sub 2
+(defgeneric ^:no-doc sub 2
   "Returns the difference of `a` and `b`. Equivalent to `([[add]] a ([[negate]]
   b))`.
 
-See [[-]] for a variadic version of [[sub]]."
+  See [[-]] for a variadic version of [[sub]]."
   {:name '-
    :dfdx (fn [_ _] 1)
    :dfdy (fn [_ _] -1)})
@@ -68,13 +74,47 @@ See [[-]] for a variadic version of [[sub]]."
 (defmethod sub :default [a b]
   (add a (negate b)))
 
-(defgeneric mul 2
+(defn -
+  "TODO docs!"
+  ([] 0)
+  ([x] (negate x))
+  ([x y]
+   (cond (v/zero? y) x
+         (v/zero? x) (negate y)
+         :else (sub x y)))
+  ([x y & more]
+   (- x (apply + y more))))
+
+(defgeneric ^:no-doc mul 2
   "Returns the product of `a` and `b`.
 
-See [[*]] for a variadic version of [[mul]]."
+  See [[*]] for a variadic version of [[mul]]."
   {:name '*
    :dfdx (fn [_ y] y)
    :dfdy (fn [x _] x)})
+
+;;; In the binary arity of [[*]] we test for exact (numerical) zero because it
+;;; is possible to produce a wrong-type zero here, as follows:
+;;;
+;;;               |0|             |0|
+;;;       |a b c| |0|   |0|       |0|
+;;;       |d e f| |0| = |0|, not  |0|
+;;;
+;;; We are less worried about the v/zero? below,
+;;; because any invertible matrix is square.
+
+(defn *
+  "TODO docs"
+  ([] 1)
+  ([x] x)
+  ([x y]
+   (cond (and (v/numerical? x) (v/zero? x)) (v/zero-like y)
+         (and (v/numerical? y) (v/zero? y)) (v/zero-like x)
+         (v/one? x) y
+         (v/one? y) x
+         :else (mul x y)))
+  ([x y & more]
+   (reduce * (* x y) more)))
 
 (declare div)
 
@@ -101,17 +141,113 @@ See [[*]] for a variadic version of [[mul]]."
               {:method 'div :args [a b]}))
     (mul a (invert b))))
 
-(defgeneric abs 1)
+(defn /
+  "TODO docs"
+  ([] 1)
+  ([x] (invert x))
+  ([x y]
+   (if (v/one? y)
+     x
+     (div x y)))
+  ([x y & more]
+   (/ x (apply * y more))))
+
+(def ^{:doc "Alias for [[/]]."}
+  divide
+  /)
+
+(defgeneric exact-divide 2)
+
+;; ### Exponentiation, Log, Roots
+
+(declare negative? log)
+
+(defgeneric expt 2
+  {:dfdx (fn [x y]
+           (mul y (expt x (sub y 1))))
+   :dfdy (fn [x y]
+           (if (and (v/number? x) (v/zero? y))
+             (if (v/number? y)
+               (if (not (negative? y))
+                 0
+                 (u/illegal "Derivative undefined: expt"))
+               0)
+             (mul (log x) (expt x y))))})
+
+(defmethod expt :default [s e]
+  {:pre [(v/native-integral? e)]}
+  (let [kind (v/kind s)]
+    (if-let [mul' (get-method mul [kind kind])]
+      (letfn [(expt' [base pow]
+                (loop [n pow
+                       y (v/one-like base)
+                       z base]
+                  (let [t (even? n)
+                        n (quot n 2)]
+                    (cond
+                      t (recur n y (mul' z z))
+                      (zero? n) (mul' z y)
+                      :else (recur n (mul' z y) (mul' z z))))))]
+        (cond (pos? e)  (expt' s e)
+              (zero? e) (v/one-like e)
+              :else (invert (expt' s (negate e)))))
+      (u/illegal (str "No g/mul implementation registered for kind " kind)))))
+
+(defgeneric square 1)
+(defmethod square :default [x] (expt x 2))
+
+(defgeneric cube 1)
+(defmethod cube :default [x] (expt x 3))
+
+(defgeneric exp 1
+  "Returns the base-e exponential of `x`. Equivalent to `(expt e x)`, given
+  some properly-defined `e` symbol."
+  {:dfdx exp})
+
+(defgeneric exp2 1
+  "Returns the base-2 exponential of `x`. Equivalent to `(expt 2 x)`.")
+
+(defmethod exp2 :default [x] (expt 2 x))
+
+(defgeneric exp10 1
+  "Returns the base-10 exponential of `x`. Equivalent to `(expt 10 x)`.")
+
+(defmethod exp10 :default [x] (expt 10 x))
+
+(defgeneric log 1
+  "Returns the natural logarithm of `x`."
+  {:dfdx invert})
+
+(defgeneric log2 1
+  "Returns the base-2 logarithm of `x`, ie, $log_2(x)$.")
+
+(let [l2 (Math/log 2)]
+  (defmethod log2 :default [x] (div (log x) l2)))
+
+(defgeneric log10 1
+  "Returns the base-10 logarithm of `x`, ie, $log_10(x)$.")
+
+(let [l10 (Math/log 10)]
+  (defmethod log10 :default [x] (div (log x) l10)))
 
 (defgeneric sqrt 1
   {:dfdx (fn [x]
            (invert
             (mul (sqrt x) 2)))})
 
-(defgeneric quotient 2)
+;; ## More Generics
 
-(defgeneric integer-part 1
-  "Returns the integer part of `a` by removing any fractional digits.")
+(defgeneric negative? 1
+  "Returns true if the argument `a` is less than `([[value/zero-like]] a)`,
+  false otherwise. The default implementation depends on a proper Comparable
+  implementation on the type.`")
+
+(defmethod negative? :default [a]
+  (< a (v/zero-like a)))
+
+(defgeneric abs 1)
+
+(declare integer-part)
 
 (defgeneric floor 1
   "Returns the largest integer less than or equal to `a`.
@@ -124,6 +260,19 @@ See [[*]] for a variadic version of [[mul]]."
   (if (negative? a)
     (sub (integer-part a) 1)
     (integer-part a)))
+
+(defgeneric ceiling 1
+  "Returns the result of rounding `a` up to the next largest integer.
+
+  Extensions beyond real numbers may behave differently; see the [Documentation
+  site](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/basics/generics)
+  for more detail.")
+
+(defmethod ceiling :default [a]
+  (negate (floor (negate a))))
+
+(defgeneric integer-part 1
+  "Returns the integer part of `a` by removing any fractional digits.")
 
 (defgeneric fractional-part 1
   "Returns the fractional part of the given value, defined as `x - ⌊x⌋`.
@@ -140,15 +289,7 @@ See [[*]] for a variadic version of [[mul]]."
 (defmethod fractional-part :default [a]
   (sub a (floor a)))
 
-(defgeneric ceiling 1
-  "Returns the result of rounding `a` up to the next largest integer.
-
-  Extensions beyond real numbers may behave differently; see the [Documentation
-  site](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/basics/generics)
-  for more detail.")
-
-(defmethod ceiling :default [a]
-  (negate (floor (negate a))))
+(defgeneric quotient 2)
 
 (defn ^:no-doc modulo-default
   "The default implementation for [[modulo]] depends on the identity:
@@ -206,70 +347,6 @@ See [[*]] for a variadic version of [[mul]]."
 (defmethod remainder :default [n d]
   (remainder-default n d))
 
-(declare log)
-
-(defgeneric expt 2
-  {:dfdx (fn [x y]
-           (mul y (expt x (sub y 1))))
-   :dfdy (fn [x y]
-           (if (and (v/number? x) (v/zero? y))
-             (if (v/number? y)
-               (if (not (negative? y))
-                 0
-                 (u/illegal "Derivative undefined: expt"))
-               0)
-             (mul (log x) (expt x y))))})
-
-(defmethod expt :default [s e]
-  {:pre [(v/native-integral? e)]}
-  (let [kind (v/kind s)]
-    (if-let [mul' (get-method mul [kind kind])]
-      (letfn [(expt' [base pow]
-                (loop [n pow
-                       y (v/one-like base)
-                       z base]
-                  (let [t (even? n)
-                        n (quot n 2)]
-                    (cond
-                      t (recur n y (mul' z z))
-                      (zero? n) (mul' z y)
-                      :else (recur n (mul' z y) (mul' z z))))))]
-        (cond (pos? e)  (expt' s e)
-              (zero? e) (v/one-like e)
-              :else (invert (expt' s (negate e)))))
-      (u/illegal (str "No g/mul implementation registered for kind " kind)))))
-
-(defgeneric exp 1
-  "Returns the base-e exponential of `x`. Equivalent to `(expt e x)`, given
-  some properly-defined `e` symbol."
-  {:dfdx exp})
-
-(defgeneric exp2 1
-  "Returns the base-2 exponential of `x`. Equivalent to `(expt 2 x)`.")
-
-(defmethod exp2 :default [x] (expt 2 x))
-
-(defgeneric exp10 1
-  "Returns the base-10 exponential of `x`. Equivalent to `(expt 10 x)`.")
-
-(defmethod exp10 :default [x] (expt 10 x))
-
-(defgeneric log 1
-  "Returns the natural logarithm of `x`."
-  {:dfdx invert})
-
-(defgeneric log2 1
-  "Returns the base-2 logarithm of `x`, ie, $log_2(x)$.")
-
-(let [l2 (Math/log 2)]
-  (defmethod log2 :default [x] (div (log x) l2)))
-
-(defgeneric log10 1
-  "Returns the base-10 logarithm of `x`, ie, $log_10(x)$.")
-
-(let [l10 (Math/log 10)]
-  (defmethod log10 :default [x] (div (log x) l10)))
-
 (defgeneric gcd 2
   "Returns the [greatest common
   divisor](https://en.wikipedia.org/wiki/Greatest_common_divisor) of the two
@@ -280,15 +357,7 @@ See [[*]] for a variadic version of [[mul]]."
   multiple](https://en.wikipedia.org/wiki/Least_common_multiple) of the two
   inputs `a` and `b`.")
 
-(defgeneric exact-divide 2)
-
-(defgeneric square 1)
-(defmethod square :default [x] (expt x 2))
-
-(defgeneric cube 1)
-(defmethod cube :default [x] (expt x 3))
-
-;; Trigonometric functions.
+;; ### Trigonometric functions
 
 (declare sin)
 
@@ -404,75 +473,12 @@ See [[*]] for a variadic version of [[mul]]."
 (defmethod inner-product [::v/scalar ::v/scalar] [l r] (mul (conjugate l) r))
 
 ;; More advanced generic operations.
-(defgeneric Lie-derivative 1)
 
-(defmulti partial-derivative v/argument-kind)
-(defmethod partial-derivative [Keyword] [k]
-  (k {:arity [:exactly 2]
-      :name 'partial-derivative}))
+(defgeneric partial-derivative 2)
+(defgeneric Lie-derivative 1)
 
 (defgeneric simplify 1)
 (defmethod simplify :default [a] a)
-
-(defn +
-  "TODO docs!"
-  ([] 0)
-  ([x] x)
-  ([x y]
-   (cond (v/zero? x) y
-         (v/zero? y) x
-         :else (add x y)))
-  ([x y & more]
-   (reduce + (+ x y) more)))
-
-(defn -
-  "TODO docs!"
-  ([] 0)
-  ([x] (negate x))
-  ([x y]
-   (cond (v/zero? y) x
-         (v/zero? x) (negate y)
-         :else (sub x y)))
-  ([x y & more]
-   (- x (apply + y more))))
-
-;;; In the binary arity of [[*]] we test for exact (numerical) zero because it
-;;; is possible to produce a wrong-type zero here, as follows:
-;;;
-;;;               |0|             |0|
-;;;       |a b c| |0|   |0|       |0|
-;;;       |d e f| |0| = |0|, not  |0|
-;;;
-;;; We are less worried about the v/zero? below,
-;;; because any invertible matrix is square.
-
-(defn *
-  "TODO docs"
-  ([] 1)
-  ([x] x)
-  ([x y]
-   (cond (and (v/numerical? x) (v/zero? x)) (v/zero-like y)
-         (and (v/numerical? y) (v/zero? y)) (v/zero-like x)
-         (v/one? x) y
-         (v/one? y) x
-         :else (mul x y)))
-  ([x y & more]
-   (reduce * (* x y) more)))
-
-(defn /
-  "TODO docs"
-  ([] 1)
-  ([x] (invert x))
-  ([x y]
-   (if (v/one? y)
-     x
-     (div x y)))
-  ([x y & more]
-   (/ x (apply * y more))))
-
-(def ^{:doc "Alias for [[/]]."}
-  divide
-  /)
 
 (defn factorial
   "Returns the factorial of `n`, ie, the product of 1 to `n` (inclusive)."
