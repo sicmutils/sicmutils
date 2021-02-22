@@ -41,7 +41,7 @@
   (using-coordinates (up x y) R2-rect ...)
   ```
 
-   Note that `x`, `y` are unquoted. This function converts such an unquoted for
+   Note that `x`, `y` are unquoted. This function converts such an unquoted form
   into a quoted one that could be evaluated to return an up-tuple of the
   symbols:
 
@@ -49,8 +49,8 @@
   (up 'x 'y)
   ```
 
-  Such an object is useful for [[s/mapr]]. The function `xf` is applied before
-  quoting."
+  Such an object is useful for [[structure/mapr]]. The function `xf` is applied
+  before quoting."
   [xf p]
   (let [q (fn q [p]
             (cond (and (sequential? p)

@@ -729,7 +729,8 @@
         :else (->Differential terms)))
 
 (defn from-terms
-  "Accepts a sequence of terms (pairs of [tag-list, coefficient]), and returns:
+  "Accepts a sequence of terms (ie, pairs of `[tag-list, coefficient]`), and
+  returns:
 
   - a well-formed [[Differential]] instance, if the terms resolve to a
     differential with non-zero infinitesimal terms
@@ -833,7 +834,7 @@
   defaults to 1.
 
   `tag` defaults to a side-effecting call to [[fresh-tag]]; you can retrieve
-  this unknown tag by calling [[max-order-tag]]"
+  this unknown tag by calling [[max-order-tag]]."
   ([primal]
    {:pre [(v/numerical? primal)]}
    (bundle-element primal 1 (fresh-tag)))
