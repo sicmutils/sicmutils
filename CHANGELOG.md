@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+- `g/simplify` on `Series` or `PowerSeries` now keeps the type intact; before
+  #297, simplifying a series returned a bare Clojure sequence.
+
+- division between two `Structure` instances `a` and `b` now (as of #297)
+  returns a new structure instance `(/ a b)` that matches the contract `(= a (*
+  b (/ a b)))`. Previously, the division would not necessarily contract with `b`
+  to return `a`, resulting in problems with the double pendulum exercise of
+  #296.
+
 - #292 fixes a `StackOverflow` that would sometimes appear when comparing
   symbolic expressions to non-expressions. `(= (literal-number x) y)` now
   returns true if `(= x y)` (AND, in clj, if `y` is not a collection!), false
