@@ -156,9 +156,11 @@
 (defmethod g/simplify [::complex] [a] (v/freeze a))
 
 (defmethod g/integer-part [::complex] [^Complex a]
-  (complex
-   (g/integer-part (#?(:clj .getReal :cljs .-re) a))
-   (g/integer-part (#?(:clj .getImaginary :cljs .-im) a))))
+  (let [re (g/integer-part (#?(:clj .getReal :cljs .-re) a))
+        im (g/integer-part (#?(:clj .getImaginary :cljs .-im) a))]
+    (if (v/zero? im)
+      re
+      (complex re im))))
 
 (defmethod g/fractional-part [::complex] [^Complex a]
   (complex
@@ -183,11 +185,18 @@
 #?(:clj
    (do
      (defmethod g/floor [::complex] [^Complex a]
-       (complex (g/floor (.getReal a))
-                (g/floor (.getImaginary a))))
+       (let [re (g/floor (.getReal a))
+             im (g/floor (.getImaginary a))]
+         (if (v/zero? im)
+           re
+           (complex re im))))
+
      (defmethod g/ceiling [::complex] [^Complex a]
-       (complex (g/ceiling (.getReal a))
-                (g/ceiling (.getImaginary a))))
+       (let [re (g/ceiling (.getReal a))
+             im (g/ceiling (.getImaginary a))]
+         (if (v/zero? im)
+           re
+           (complex re im))))
 
      (defmethod g/sub [::complex ::complex] [^Complex a ^Complex b] (.subtract a b))
      (defmethod g/sub [::complex ::v/real] [^Complex a n] (.subtract a (double n)))

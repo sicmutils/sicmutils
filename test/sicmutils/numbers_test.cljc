@@ -232,8 +232,6 @@
   (is (= 2 (g/divide 8 2 2))))
 
 (deftest fractional-integer-tests
-  ;; TODO document that the negative and pos behavior match, strangely. Method 1
-  ;; here: https://en.wikipedia.org/wiki/Fractional_part
   (checking "fractional-part" 100
             [x sg/real]
             (testing "0 <= frac(x) < 1"
@@ -246,8 +244,8 @@
 
   (checking "frac(x) + int(x) == x for non-negative real x" 100
             [x (gen/fmap g/abs sg/real)]
-            (is (= x (g/+ (g/integer-part x)
-                          (g/fractional-part x)))))
+            (is (== x (g/+ (g/integer-part x)
+                           (g/fractional-part x)))))
 
   (checking "fractional, integer-part are idempotent" 100
             [x sg/real]
@@ -322,14 +320,16 @@
                     (g// (g/ceiling (g/* n x)) n))))))
 
 (deftest modulo-remainder-tests
+  ;; NOTE: Some of these use integer on one side simply to control numerical
+  ;; instability, not because the operations are invalid for real.
+  ;;
+  ;; TODO unit test with real side for anything that bakes in integer.
   (letfn [(nonzero [g]
             (gen/fmap (fn [x]
                         (if (v/zero? x)
                           (v/one-like x)
                           x))
                       g))]
-
-    ;; TODO unit test with real side for anything that bakes in integer.
     (checking "mod, rem identity" 100
               [x (gen-real 1e4)
                y (nonzero (gen-integer 1e4))]
@@ -341,24 +341,46 @@
                         (g/remainder
                          (g/remainder x y) y))))
 
-    (with-comparator (v/within 1e-6)
-      (checking "x mod y == x - y ⌊x/y⌋ for real x, y" 100
-                [x (gen-real 1e4)
-                 y (nonzero (gen-real 1e4))]
-                (is (ish? (g/modulo x y)
-                          (g/- x (g/* y (g/floor
-                                         (g/div x y)))))
-                    "y == int to keep things numerically stable."))
+    (checking "x mod y == x - y ⌊x/y⌋ for real x, y" 100
+              [x (gen-real 1e4)
+               y (nonzero (gen-integer 1e4))]
+              (is (ish? (g/modulo x y)
+                        (g/- x (g/* y (g/floor
+                                       (g/div x y)))))
+                  "y == int to keep things numerically stable."))
 
-      (checking "mod(x y) == rem(x y) for positive x, y" 100
-                [x (gen/fmap g/abs (gen-real 1e4))
-                 y (nonzero
-                    (gen/fmap g/abs (gen-real 1e4)))]
-                (is (ish? (g/modulo x y)
-                          (g/remainder x y))))))
+    (checking "mod(x y) == rem(x y) for positive x, y" 100
+              [x (gen/fmap g/abs (gen-real 1e4))
+               y (nonzero
+                  (gen/fmap g/abs (gen-integer 1e4)))]
+              (is (ish? (g/modulo x y)
+                        (g/remainder x y))))
 
-  ;; TODO mod truncates toward infinity
-  )
+    (checking "x == y*quot(x,y) + rem(x,y)" 100
+              [x (gen-integer 1e4)
+               y (nonzero (gen-integer 1e4))]
+              (let [rem (g/remainder x y)]
+                (is (= x (g/+ (g/* y (g/quotient x y))
+                              rem)))
+
+                (when-not (v/zero? rem)
+                  (is (= (v/compare 0 x)
+                         (v/compare 0 rem))
+                      "`g/remainder` returns a result of either 0 or the same
+              sign as the numerator."))))
+
+    (checking "x == y*floor(x/y) + mod(x,y)" 100
+              [x (gen-integer 1e4)
+               y (nonzero (gen-integer 1e4))]
+              (let [mod (g/modulo x y)]
+                (is (= x (g/+ (g/* y (g/floor (g// x y)))
+                              mod)))
+
+                (when-not (v/zero? mod)
+                  (is (= (v/compare 0 y)
+                         (v/compare 0 mod))
+                      "`g/modulo` returns a result of either 0 or the same sign
+              as the denominator."))))))
 
 (deftest numeric-trig-tests
   (testing "trig"

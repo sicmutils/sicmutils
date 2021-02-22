@@ -161,7 +161,9 @@ See [[*]] for a variadic version of [[mul]]."
 
 (defmethod div :default [a b]
   (if *in-default-invert*
-    (throw (ex-info "No implementation of invert or div." {:method 'div :args [a b]}))
+    (throw
+     (ex-info "No implementation of [[invert]] or [[div]]."
+              {:method 'div :args [a b]}))
     (mul a (invert b))))
 
 (defgeneric abs 1)
@@ -173,26 +175,43 @@ See [[*]] for a variadic version of [[mul]]."
 
 (defgeneric quotient 2)
 
-(defgeneric integer-part 1)
+(defgeneric integer-part 1
+  "Returns the integer part of `a` by removing any fractional digits.")
 
-(defgeneric floor 1)
+(defgeneric floor 1
+  "Returns the largest integer less than or equal to `a`.
+
+  Extensions beyond real numbers may behave differently; see the [Documentation
+  site](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/basics/generics)
+  for more detail.")
+
 (defmethod floor :default [a]
   (if (negative? a)
     (sub (integer-part a) 1)
     (integer-part a)))
 
 (defgeneric fractional-part 1
-  "Returns the fractional part of the given value.
+  "Returns the fractional part of the given value, defined as `x - ⌊x⌋`.
 
-  It's counterintuitive but apparently accepted that this is implemented with
-  floor instead of integer-part, meaning that for negative numbers
+  For positive numbers, this is identical to `(- a ([[integer-part]] a))`. For
+  negative `a`, because [[floor]] truncates toward negative infinity, you might
+  be surprised to find that [[fractional-part]] returns the distance between `a`
+  and the next-lowest integer:
 
-     (not= x (+ (integer-part x) (fractional-part x)))")
+```clojure
+(= 0.6 (g/fractional-part -0.4))
+```")
 
 (defmethod fractional-part :default [a]
   (sub a (floor a)))
 
-(defgeneric ceiling 1)
+(defgeneric ceiling 1
+  "Returns the result of rounding `a` up to the next largest integer.
+
+  Extensions beyond real numbers may behave differently; see the [Documentation
+  site](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/basics/generics)
+  for more detail.")
+
 (defmethod ceiling :default [a]
   (negate (floor (negate a))))
 
@@ -209,11 +228,20 @@ See [[*]] for a variadic version of [[mul]]."
 (defgeneric modulo 2
   "Returns the result of the
   mathematical [Modulo](https://en.wikipedia.org/wiki/Modulo_operation)
-  operation between `a` and `b`.
+  operation between `a` and `b` (using the Knuth definition listed).
 
- TODO note remainder and friends.
+ The contract satisfied by [[modulo]] is:
 
- Truncates toward negative infinity.")
+```clojure
+(= a (+ (* b ([[floor]] (/ a b)))
+        ([[modulo]] a b)))
+```
+
+ For numbers, this differs from the contract offered by [[remainder]]
+ because `([[floor]] (/ a b))` rounds toward negative infinity, while
+ the [[quotient]] operation in the contract for [[remainder]] rounds toward 0.
+
+ The result will be either `0` or of the same sign as the divisor `b`.")
 
 (defmethod modulo :default [a b]
   (modulo-default a b))
@@ -224,11 +252,21 @@ See [[*]] for a variadic version of [[mul]]."
       (mul d (sub divnd (floor divnd)))
       (mul d (sub divnd (ceiling divnd))))))
 
-;; complex remainder returns numerator in maxima
-;; fractional remainder returns 0 in maxima
-;; remainder in wolfram alpha == modulo
 (defgeneric remainder 2
-  "TODO describe the difference here.")
+  "Returns the remainder of dividing the dividend `a` by divisor `b`.
+
+ The contract satisfied by [[remainder]] is:
+
+```clojure
+(= a (+ (* b ([[quotient]] a b))
+        ([[remainder]] a b)))
+```
+
+ For numbers, this differs from the contract offered by [[modulo]]
+ because [[quotient]] rounds toward 0, while `([[floor]] (/ a b))` rounds toward
+ negative infinity.
+
+ The result will be either `0` or of the same sign as the dividend `a`.")
 
 (defmethod remainder :default [n d]
   (remainder-default n d))

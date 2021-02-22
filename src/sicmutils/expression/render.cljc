@@ -249,11 +249,12 @@
    :infix? '#{* + - / modulo remainder expt u- = > < >= <=}
    :juxtapose-multiply " "
    :rewrite-trig-squares true
+   :rename-functions
+   {'fractional-part "frac"
+    'integer-part "int"}
    :special-handlers
    {'floor (fn [[x]] (str "⌊" x "⌋"))
     'ceiling (fn [[x]] (str "⌈" x "⌉"))
-    'integer-part (fn [[x]] (str "int(" x ")"))
-    'fractional-part (fn [[x]] (str "frac(" x ")"))
     'modulo (fn [[x y]] (str x " mod " y))
     'remainder (fn [[x y]] (str x " % " y))
     'expt (fn [[x e]]
@@ -520,9 +521,12 @@
                               'log "Math.log"
                               'exp "Math.exp"
                               'floor "Math.floor"
-                              'ceiling "Math.ceil"}
+                              'ceiling "Math.ceil"
+                              'integer-part "Math.trunc"}
            :special-handlers {'up make-js-vector
                               'down make-js-vector
+                              'remainder (fn [[a b]]
+                                           (str a " % "))
                               '/ render-infix-ratio})]
     (fn [x & {:keys [symbol-generator parameter-order deterministic?]
              :or {symbol-generator (make-symbol-generator "_")

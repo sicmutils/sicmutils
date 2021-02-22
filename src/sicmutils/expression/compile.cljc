@@ -90,7 +90,7 @@
    '/ /
    'expt #(Math/pow %1 %2)
    'sqrt #(Math/sqrt %)
-   'abs (fn [^double x] (Math/abs x))
+   'abs #(Math/abs %)
    'log #(Math/log %)
    'exp #(Math/exp %)
    'cos #(Math/cos %)
@@ -104,7 +104,13 @@
    'tanh #(Math/tanh %)
    'floor #(Math/floor %)
    'ceiling #(Math/ceil %)
-   ;; TODO: modulo, remainder
+   'modulo mod
+   'remainder rem
+   'quotient quot
+   'integer-part #?(:clj long
+                    :cljs #(Math/trunc %))
+   'fractional-part (fn [^double x]
+                      (- x (Math/floor x)))
    #?@(:cljs
        ;; JS-only entries.
        ['acosh #(Math/acosh %)
