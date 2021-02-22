@@ -61,7 +61,8 @@
         (process s)))))
 
 (defn- mod-rem
-  "Modulo and remainder are very similar, so can benefit from a shared set of simplifications."
+  "Modulo and remainder are very similar, so can benefit from a shared set of
+  simplifications."
   [a b f sym]
   (cond (and (v/number? a) (v/number? b)) (f a b)
         (= a b) 0
@@ -133,7 +134,6 @@
   (mod-rem a b remainder 'remainder))
 
 (defn- floor [a]
-  ;; TODO: should almost-integer? be used in floor and ceiling? (dw Feb 13 2021)
   (if (v/number? a)
     (g/floor a)
     (list 'floor a)))

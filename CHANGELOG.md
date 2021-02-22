@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+- #278 adds new generic `floor`, `ceiling`, `integer-part` and `fractional-part`
+  generic functions, along with:
+
+  - implementations for all types in the numeric tower - ratios, integers,
+    reals, complex
+  - symbolic expression implementations
+  - symbolic implementations for `modulo` and `remainder`
+  - new support for these four generics plus `modulo` and `remainder` in
+    function compilation via `sicmutils.expression.compile` (#295)
+  - rendering support by `->infix`, `->TeX`, `->Javascript` (#295)
+
+  Thank you to @pangloss for this major contribution!
+
 - #292 fixes a `StackOverflow` that would sometimes appear when comparing
   symbolic expressions to non-expressions. `(= (literal-number x) y)` now
   returns true if `(= x y)` (AND, in clj, if `y` is not a collection!), false
