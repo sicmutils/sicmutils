@@ -363,6 +363,17 @@
        :no-doc true}
   *mode* :sci)
 
+(def ^{:doc "Set of all supported compilation modes."}
+  valid-modes
+  #{:sci :native})
+
+(defn set-compiler-mode!
+  "Set the default compilation mode by supplying an entry from [[valid-modes]]."
+  [mode]
+  (when-not (valid-modes mode)
+    (u/illegal (str "Invalid compilation mode supplied: " mode
+                    ". Please supply one of " valid-modes))))
+
 (defn- native?
   "Returns true if native compilation mode is enabled, false otherwise."
   []
@@ -373,10 +384,6 @@
 ;;
 ;; `(binding [*mode* :native] ,,,)`
 ;;
-;; NOTE that we may remove native compilation support if it doesn't prove to be
-;; a performance problem; sci with its sandboxing is a safer thing to offer in a
-;; library that might get hosted for others to interact with via remote REPLs.
-
 ;; ## State Functions
 ;;
 ;; `compile.cljc` currently supports compilation of:

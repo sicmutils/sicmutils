@@ -968,7 +968,7 @@
           f-hat ((D shift) 3)]
       ;; This is the example that triggered [Manzyuk et al.
       ;; 2019](https://arxiv.org/pdf/1211.4892.pdf) and the research that led to
-      ;; the current (0.15.0) SICMUtils implementation of [[D]].
+      ;; the current as of (0.15.0) SICMUtils implementation of [[D]].
       ;;
       ;; [[D]] does its work by generating a function that lifts its input into
       ;; a tangent space tagged with a unique `tag`. Multiple, nested calls

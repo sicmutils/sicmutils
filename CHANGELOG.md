@@ -2,20 +2,47 @@
 
 ## [Unreleased]
 
-- TODO NOTE consolidate arities for +, - and friends
-- TODO NOTE Var implementation for Value
-- TODO NOTE modint forces integral now
-- TODO NOTE derivatives
+## 0.16.0
 
-- TODO note:
+- In JVM Clojure (as of #298), `sicmutils.expression.compile` uses
+  `clojure.core/eval` to compile functions, while JS Clojurescript uses
+  [SCI](https://github.com/borkdude/sci). This change is happening because
+  `eval` is a _lot_ faster on the JVM, and `eval` is available (unlike CLJS,
+  which requires self-hosted Clojurescript for `eval` to work interactively in a
+  browser.)
 
-  - g/simplify keeps literal functions intact
-  - complex numbers stay complex now, vs freezing
-  - matrix stays; operator too. structure and literal don't because it would be
-    hard now, #255, but coming soon!
+  To use to SCI compilation on the JVM, wrap your form in a binding:
 
-- `g/simplify` on `Series` or `PowerSeries` now keeps the type intact; before
-  #297, simplifying a series returned a bare Clojure sequence.
+  ```clojure
+  (require '[sicmutils.expression.compile :as compile])
+
+  (binding [compile/*mode* :sci]
+    (my-compiler-triggering-function))
+  ```
+
+  To set the mode permanently, use `compile/set-compiler-mode!`:
+
+  ```clojure
+  (compile/set-compiler-mode! :sci)
+
+  (my-compiler-triggering-function)
+  ```
+
+  The options allowed as of `0.16.0` are `:sci` and `:native`.
+
+- `clojure.lang.Var` implements the `sicmutils.value/Value` protocol, allowing
+  it to respond appropriately with its name to `v/freeze` (#298).
+
+- `sicmutils.modint/make` now verifies with a precondition that its two
+  arguments are both `v/integral?` (#298). We need this constraint now that
+  `g/modulo` is defined for more types.
+
+- `g/simplify` called with an argument `x` of type `Series`, `PowerSeries`,
+  `Matrix`, `Operator`, `Complex` and `sicmutils.abstract.function/Function` now
+  return an instance of type `x`, performing appropriate simplifications if
+  possible. before #297 and #298, these operation would return bare symbols or
+  sequences. A future release will make this change for `Structure` and
+  `Literal` too, once #255 is resolved.
 
 - division between two `Structure` instances `a` and `b` now (as of #297)
   returns a new structure instance `(/ a b)` that matches the contract `(= a (*
@@ -27,7 +54,7 @@
   generic functions, along with:
 
   - implementations for all types in the numeric tower - ratios, integers,
-    reals, complex
+    reals, complex, and `Differential` (so derivatives of these functions work!)
   - symbolic expression implementations
   - symbolic implementations for `modulo` and `remainder`
   - new support for these four generics plus `modulo` and `remainder` in
