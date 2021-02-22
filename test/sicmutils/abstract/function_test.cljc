@@ -91,17 +91,19 @@
     (is (= '(matrix-by-rows
              (up (f x) (g x))
              (up (h x) (k x)))
-           (g/simplify
-            ((m/by-rows (map af/literal-function '[f g])
-                        (map af/literal-function '[h k])) 'x))))
+           (v/freeze
+            (g/simplify
+             ((m/by-rows (map af/literal-function '[f g])
+                         (map af/literal-function '[h k])) 'x)))))
 
     (let [R2f #(af/literal-function % [0 1] 0)]
       (is (= '(matrix-by-rows
                (up (f x y) (g x y))
                (up (h x y) (k x y)))
-             (g/simplify
-              ((m/by-rows [(R2f 'f) (R2f 'g)]
-                          [(R2f 'h) (R2f 'k)]) 'x 'y)))))))
+             (v/freeze
+              (g/simplify
+               ((m/by-rows [(R2f 'f) (R2f 'g)]
+                           [(R2f 'h) (R2f 'k)]) 'x 'y))))))))
 
 (deftest function-basic
   (let [f (af/literal-function 'F)]

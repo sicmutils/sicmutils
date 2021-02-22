@@ -305,7 +305,7 @@
 (defn- jacobian
   "Takes:
 
-  - some function `f` of a single [[s/structure?]] argument
+  - some function `f` of a single [[sicmutils.structure/structure?]] argument
   - the unperturbed structural `input`
   - a `selectors` vector that can be empty or contain a valid path into the
     `input` structure
@@ -417,11 +417,12 @@
 ;; - multiple numerical OR structural inputs
 ;;
 ;; NOTE: The reason that this implementation is also installed
-;; for [[s/Structure]] is that structures act as functions that apply their args
-;; to every (functional) entry. Calling `(multivariate structure selectors)`
-;; allows all of the machinery that handles structure-walking and argument
-;; conversion to run a SINGLE time before getting passed to the structure of
-;; functions, instead of separately for every entry in the structure.
+;; for [[sicmutils.structure/Structure]] is that structures act as functions
+;; that apply their args to every (functional) entry. Calling `(multivariate
+;; structure selectors)` allows all of the machinery that handles
+;; structure-walking and argument conversion to run a SINGLE time before getting
+;; passed to the structure of functions, instead of separately for every entry
+;; in the structure.
 ;;
 ;; TODO: I think this is going to cause problems for, say, a Structure of
 ;; PowerSeries, where there is actually a cheap `g/partial-derivative`
@@ -516,8 +517,8 @@
 ;; standard ways.
 
 (defn taylor-series
-  "Returns a [[s/Series]] of the coefficients of the taylor series of the function
-  `f` evaluated at `x`, with incremental quantity `dx`.
+  "Returns a [[sicmutils.series/Series]] of the coefficients of the taylor series
+  of the function `f` evaluated at `x`, with incremental quantity `dx`.
 
   NOTE: The `(constantly dx)` term is what allows this to work with arbitrary
   structures of `x` and `dx`. Without this wrapper, `((g/* dx D) f)` with `dx`

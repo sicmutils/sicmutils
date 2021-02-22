@@ -271,12 +271,15 @@
 (defn expression->stream
   "Renders an expression through the simplifier and onto the stream."
   ([expr stream]
-   (-> (g/simplify expr)
+   (-> (v/freeze
+        (g/simplify expr))
        (pp/write :stream stream)))
   ([expr stream options]
    (let [opt-seq (->> (assoc options :stream stream)
-                      (apply concat))]
-     (apply pp/write (g/simplify expr) opt-seq))))
+                      (apply concat))
+         simple  (v/freeze
+                  (g/simplify expr))]
+     (apply pp/write simple opt-seq))))
 
 (defn expression->string
   "Renders an expression through the simplifier and into a string,
@@ -285,5 +288,9 @@
   (with-out-str
     (expression->stream expr true)))
 
-(def print-expression #(pp/pprint (g/simplify %)))
+(defn print-expression [expr]
+  (pp/pprint
+   (v/freeze
+    (g/simplify expr))))
+
 (def pe print-expression)

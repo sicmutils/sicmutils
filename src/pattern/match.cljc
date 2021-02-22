@@ -21,7 +21,7 @@
   "Implementation of a pattern matching system inspired by [Gerald Jay Sussman's
   lecture notes for MIT
   6.945](http://groups.csail.mit.edu/mac/users/gjs/6.945/).
-  See [[pattern.rules]] for a higher-level API.
+  See [[pattern.rule]] for a higher-level API.
 
   [[pattern.match]] is spiritually similar to Alexey
   Radul's [Rules](https://github.com/axch/rules) library for Scheme.")

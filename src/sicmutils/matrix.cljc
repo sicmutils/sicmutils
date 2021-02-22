@@ -851,7 +851,7 @@
 (defmethod g/tanh [::square-matrix] [m] (series/tanh-series m))
 (defmethod g/asinh [::square-matrix] [m] (series/asinh-series m))
 (defmethod g/atanh [::square-matrix] [m] (series/atanh-series m))
-(defmethod g/simplify [::matrix] [m] (->> m (fmap g/simplify) v/freeze))
+(defmethod g/simplify [::matrix] [m] (fmap g/simplify m))
 
 (defmethod g/invert [::matrix] [m] (invert m))
 

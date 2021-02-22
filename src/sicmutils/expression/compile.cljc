@@ -1,4 +1,4 @@
-;; Copyright © 2017 Colin Smith.
+;; Copyright © 2021 Sam Ritchie.
 ;; This work is based on the Scmutils system of MIT/GNU Scheme:
 ;; Copyright © 2002 Massachusetts Institute of Technology
 
@@ -356,12 +356,24 @@
 ;; - interpreted compilation via [SCI](https://github.com/borkdude/sci), the
 ;;   Small Clojure Interpreter.
 ;;
-;; We enable SCI mode by default since this allows function compilation to work
-;; in Clojure and Clojurescript.
+;; We default to SCI mode in CLJS, but :native in Clojure for performance.
 
 (def ^{:dynamic true
        :no-doc true}
-  *mode* :sci)
+  *mode*
+  #?(:clj :native
+     :cljs :sci))
+
+(def ^{:doc "Set of all supported compilation modes."}
+  valid-modes
+  #{:sci :native})
+
+(defn set-compiler-mode!
+  "Set the default compilation mode by supplying an entry from [[valid-modes]]."
+  [mode]
+  (when-not (valid-modes mode)
+    (u/illegal (str "Invalid compilation mode supplied: " mode
+                    ". Please supply one of " valid-modes))))
 
 (defn- native?
   "Returns true if native compilation mode is enabled, false otherwise."
@@ -373,10 +385,6 @@
 ;;
 ;; `(binding [*mode* :native] ,,,)`
 ;;
-;; NOTE that we may remove native compilation support if it doesn't prove to be
-;; a performance problem; sci with its sandboxing is a safer thing to offer in a
-;; library that might get hosted for others to interact with via remote REPLs.
-
 ;; ## State Functions
 ;;
 ;; `compile.cljc` currently supports compilation of:

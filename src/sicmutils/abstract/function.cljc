@@ -68,7 +68,7 @@
         DOWN* (apply s/down (repeat (second args) (sicm-set->exemplar (first args))))
         X*    (into [] (repeat (second args) (sicm-set->exemplar (first args))))))))
 
-(defn sicm-signature->domain-range
+(defn ^:no-doc sicm-signature->domain-range
   "Convert a SICM-style literal function signature (e.g.,
   '(-> Real (X Real Real)) ) to our 'exemplar' format."
   [[arrow domain range]]
@@ -223,7 +223,7 @@
          :else
          (u/illegal (str "WTF range" range)))))
 
-(defn binding-pairs [litfns]
+(defn ^:no-doc binding-pairs [litfns]
   (letfn [(extract-sym [entry]
             (if (symbol? entry) entry (first entry)))
           (entry->fn [entry]
@@ -246,19 +246,19 @@
 
 ;; ## Differentiation of literal functions
 
-(defn symbolic-derivative? [expr]
+(defn ^:no-doc symbolic-derivative? [expr]
   (and (sequential? expr)
        ;; XXX GJS uses 'derivative here; should we? doesn't he just
        ;; have to change it back to D when printing?
        (= (first expr) derivative-symbol)))
 
-(defn iterated-symbolic-derivative? [expr]
+(defn ^:no-doc iterated-symbolic-derivative? [expr]
   (and (sequential? expr)
        (sequential? (first expr))
        (sym/expt? (first expr))
        (= (second (first expr)) derivative-symbol)))
 
-(defn symbolic-increase-derivative [expr]
+(defn ^:no-doc symbolic-increase-derivative [expr]
   (let [expt (sym/symbolic-operator 'expt)]
     (cond (symbolic-derivative? expr)
           (list (expt derivative-symbol 2) (fnext expr))
@@ -337,8 +337,11 @@
 
 ;; ## Specific Generics
 ;;
-;; We can install one more method - [[sicmutils.generic/simplify]] simplifies
-;; the attached name, but does not return its own function.
+;; We can install one more method - [[sicmutils.generic/simplify]] returns its
+;; argument with the internally captured name simplified.
 
-(defmethod g/simplify [Function] [a]
-  (g/simplify (name a)))
+(defmethod g/simplify [::function] [f]
+  (->Function (g/simplify (name f))
+              (f/arity f)
+              (domain-types f)
+              (range-type f)))

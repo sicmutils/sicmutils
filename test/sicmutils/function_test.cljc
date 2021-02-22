@@ -74,15 +74,16 @@
               (is (not ((v/exact? identity) n)))))
 
   (testing "v/freeze"
-    (is (= ['+ '- '* '/ 'modulo 'quotient 'remainder 'negative?
+    (is (= ['+ '- '* '/ 'modulo 'quotient 'remainder
+            'negative? '< '<= '> '>= '=
             'partial-derivative]
-           (map v/freeze [+ - * / mod quot rem neg?
+           (map v/freeze [+ - * / mod quot rem
+                          neg? < <= > >= =
                           g/partial-derivative]))
         "Certain functions freeze to symbols")
 
     (is (= (map v/freeze [g/+ g/- g/* g//
-                          g/modulo g/quotient g/remainder
-                          g/negative?])
+                          g/modulo g/quotient g/remainder g/negative?])
            (map v/freeze [+ - * / mod quot rem neg?]))
         "These freeze to the same symbols as their generic counterparts.")
 

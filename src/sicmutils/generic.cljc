@@ -25,107 +25,88 @@
   cljdocs](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/basics/generics)
   for a detailed discussion of how to use and extend the generic operations
   defined in [[sicmutils.generic]] and [[sicmutils.value]]."
-  (:refer-clojure :rename {mod core-mod}
-                  :exclude [/ + - * divide #?(:cljs mod)])
+  (:refer-clojure :exclude [/ + - * divide])
   (:require [sicmutils.value :as v]
-            [sicmutils.util :as u])
-  #?(:cljs (:require-macros [sicmutils.generic :refer [defgeneric]]))
-  #?(:clj
-     (:import [clojure.lang Keyword LazySeq PersistentVector Symbol Var])))
+            [sicmutils.util :as u]
+            [sicmutils.util.def :refer [defgeneric]
+             #?@(:cljs [:include-macros true])]))
 
-(defmacro ^:private fork
-  "I borrowed this lovely, mysterious macro from `macrovich`:
-  https://github.com/cgrand/macrovich. This allows us to fork behavior inside of
-  a macro at macroexpansion time, not at read time."
-  [& {:keys [cljs clj]}]
-  (if (contains? &env '&env)
-    `(if (:ns ~'&env) ~cljs ~clj)
-    (if #?(:clj (:ns &env) :cljs true)
-      cljs
-      clj)))
+;; ## Generic Numerics
+;;
+;; The first section introduces generic versions of
+;; Clojure's [[+]], [[-]], [[*]] and [[/]] operations. Any type that can
+;; implement all four of these operations forms a
+;; mathematical [Field](https://en.wikipedia.org/wiki/Field_(mathematics)).
+;;
+;; There are, of course, other technical names for types that can only implement
+;; a subset of these operations, and more specializations of those names
+;; depending on whether or not the implementation of these binary operations is
+;; commutative or
+;; associative. (See [Semigroup](https://en.wikipedia.org/wiki/Semigroup)
+;; and [Monoid](https://en.wikipedia.org/wiki/Monoid) first, and start exploring
+;; the realm of abstract algebra from there.)
+;;
+;; This library takes a permissive stance on extensibility. Types extend the
+;; arithmetic operators by extending their unary or binary cases:
+;;
+;; - [[add]] for [[+]]
+;; - [[sub]] and [[negate]] for [[-]]
+;; - [[mul]] for [[*]]
+;; - [[invert]] and [[div]] for [[/]]
+;;
+;; And the higher arity version reduces its list of arguments using this binary
+;; operation. This makes it possible and easy to make the arithmetic operators
+;; combine different types! It's up to you to do this in a mathematically
+;; responsible way.
+;;
+;; Dispatch occurs via [[value/argument-kind]]. Documentation on how to extend
+;; each generic operation to some new type is sparse. Have a look
+;; at [[sicmutils.complex]] for an example of how to do this.
 
-(def ^:private lowercase-symbols
-  (map (comp symbol str char)
-       (range 97 123)))
-
-(defn- arglists
-  "returns a list of `:arglists` entries appropriate for a generic function with
-  arities between `a` and `b` inclusive."
-  [a b]
-  (let [arities (if b
-                  (range a (inc b))
-                  [a])]
-    (map #(into [] (take %) lowercase-symbols)
-         arities)))
-
-(defmacro ^:private defgeneric
-  "Defines a multifn using the provided symbol. Arranges for the multifn
-  to answer the :arity message, reporting either [:exactly a] or
-  [:between a b], according to the arguments given.
-
-  - `arities` can be either a single or a vector of 2 numbers.
-
-  The `options` allowed differs slightly from `defmulti`:
-
-  - the first optional argument is a docstring.
-
-  - the second optional argument is a dict of metadata. When you query the
-  defined multimethod with a keyword, it will pass that keyword along as a query
-  to this metadata map. (`:arity` is always overridden if supplied, and `:name`
-  defaults to the symbol `f`.)
-
-  Any remaining options are passed along to `defmulti`."
-  {:arglists '([name arities docstring? attr-map? & options])}
-  [f arities & options]
-  (let [[a b]     (if (vector? arities) arities [arities])
-        arity     (if b [:between a b] [:exactly a])
-        docstring (if (string? (first options))
-                    (str "generic " f ".\n\n" (first options))
-                    (str "generic " f ))
-        options   (if (string? (first options))
-                    (next options)
-                    options)
-        [attr options] (if (map? (first options))
-                         [(first options) (next options)]
-                         [{} options])
-        kwd-klass (fork :clj clojure.lang.Keyword :cljs 'cljs.core/Keyword)
-        attr (assoc attr
-                    :arity arity
-                    :name (:name attr `'~f))]
-    `(do
-       (defmulti ~f
-         ~docstring
-         {:arglists '~(arglists a b)}
-         v/argument-kind ~@options)
-       (defmethod ~f [~kwd-klass] [k#]
-         (~attr k#)))))
-
-;; Numeric functions.
-(defgeneric add 2
+(defgeneric ^:no-doc add 2
   "Returns the sum of arguments `a` and `b`.
 
-See [[+]] for a variadic version of [[add]]."
+  See [[+]] for a variadic version of [[add]]."
   {:name '+
    :dfdx (fn [_ _] 1)
    :dfdy (fn [_ _] 1)})
 
+(defn +
+  "Generic implementation of `+`. Returns the sum of all supplied arguments. `(+)`
+  returns 0, the additive identity.
+
+  When applied between numbers, acts like `clojure.core/+`. Dispatch is open,
+  however, making it possible to 'add' types wherever the behavior is
+  mathematically sound.
+
+  For example:
+
+  ```clojure
+  (+ [1 2 3] [2 3 4])
+  ;;=> ([[structure/up]] 3 5 7)
+  ```"
+  ([] 0)
+  ([x] x)
+  ([x y]
+   (cond (v/zero? x) y
+         (v/zero? y) x
+         :else (add x y)))
+  ([x y & more]
+   (reduce + (+ x y) more)))
+
 (defgeneric negate 1
-  "Returns the negation of `a`. Equivalent to `([[sub]] 0 a)`."
+  "Returns the negation of `a`.
+
+  Equivalent to `([[-]] ([[value/zero-like]] a) a)`."
   {:name '-
    :dfdx (fn [_] -1)})
 
-(defgeneric negative? 1
-  "Returns true if the argument `a` is less than `([[value/zero-like]] a)`,
-  false otherwise. The default implementation depends on a proper Comparable
-  implementation on the type.`")
+(defgeneric ^:no-doc sub 2
+  "Returns the difference of `a` and `b`.
 
-(defmethod negative? :default [a] (< a (v/zero-like a)))
+  Equivalent to `([[add]] a ([[negate]] b))`.
 
-(defgeneric sub 2
-  "Returns the difference of `a` and `b`. Equivalent to `([[add]] a ([[negate]]
-  b))`.
-
-See [[-]] for a variadic version of [[sub]]."
+  See [[-]] for a variadic version of [[sub]]."
   {:name '-
    :dfdx (fn [_ _] 1)
    :dfdy (fn [_ _] -1)})
@@ -133,17 +114,84 @@ See [[-]] for a variadic version of [[sub]]."
 (defmethod sub :default [a b]
   (add a (negate b)))
 
-(defgeneric mul 2
+(defn -
+  "Generic implementation of `-`.
+
+  If one argument is supplied, returns the negation of `a`. Else returns the
+  difference of the first argument `a` and the sum of all remaining
+  arguments. `(-)` returns 0.
+
+  When applied between numbers, acts like `clojure.core/-`. Dispatch is open,
+  however, making it possible to 'subtract' types wherever the behavior is
+  mathematically sound.
+
+  For example:
+
+  ```clojure
+  (- [1 2 3] [2 3 4])
+  ;;=> ([[structure/up]] -1 -1 -1)
+
+  (- [1 10])
+  ;;=> ([[structure/up]] -1 -10)
+  ```"
+  ([] 0)
+  ([x] (negate x))
+  ([x y]
+   (cond (v/zero? y) x
+         (v/zero? x) (negate y)
+         :else (sub x y)))
+  ([x y & more]
+   (- x (apply + y more))))
+
+(defgeneric ^:no-doc mul 2
   "Returns the product of `a` and `b`.
 
-See [[*]] for a variadic version of [[mul]]."
+  See [[*]] for a variadic version of [[mul]]."
   {:name '*
    :dfdx (fn [_ y] y)
    :dfdy (fn [x _] x)})
 
+;;; In the binary arity of [[*]] we test for exact (numerical) zero because it
+;;; is possible to produce a wrong-type zero here, as follows:
+;;;
+;;;               |0|             |0|
+;;;       |a b c| |0|   |0|       |0|
+;;;       |d e f| |0| = |0|, not  |0|
+;;;
+;;; We are less worried about the v/zero? below,
+;;; because any invertible matrix is square.
+
+(defn *
+  "Generic implementation of `*`. Returns the product of all supplied
+  arguments. `(*)` returns 1, the multiplicative identity.
+
+  When applied between numbers, acts like `clojure.core/*`. Dispatch is open,
+  however, making it possible to 'multiply' types wherever the behavior is
+  mathematically sound.
+
+  For example:
+
+  ```clojure
+  (* 2 #sicm/complex \"3 + 1i\")
+  ;;=> #sicm/complex \"6 + 2i\"
+  ```"
+  ([] 1)
+  ([x] x)
+  ([x y]
+   (cond (and (v/numerical? x) (v/zero? x)) (v/zero-like y)
+         (and (v/numerical? y) (v/zero? y)) (v/zero-like x)
+         (v/one? x) y
+         (v/one? y) x
+         :else (mul x y)))
+  ([x y & more]
+   (reduce * (* x y) more)))
+
 (declare div)
 
 (defgeneric invert 1
+  "Returns the multiplicative inverse of `a`.
+
+  Equivalent to `([[/]] 1 a)`."
   {:name '/
    :dfdx (fn [x] (div -1 (mul x x)))})
 
@@ -154,6 +202,11 @@ See [[*]] for a variadic version of [[mul]]."
     (div 1 a)))
 
 (defgeneric div 2
+  "Returns the result of dividing `a` and `b`.
+
+  Equivalent to `([[mul]] a ([[negate]] b))`.
+
+  See [[/]] for a variadic version of [[div]]."
   {:name '/
    :dfdx (fn [_ y] (div 1 y))
    :dfdy (fn [x y] (div (negate x)
@@ -166,17 +219,132 @@ See [[*]] for a variadic version of [[mul]]."
               {:method 'div :args [a b]}))
     (mul a (invert b))))
 
-(defgeneric abs 1)
+(defn /
+  "Generic implementation of `/`.
+
+  If one argument is supplied, returns the multiplicative inverse of `a`. Else
+  returns the result of dividing first argument `a` by the product of all
+  remaining arguments. `(/)` returns 1, the multiplicative identity.
+
+  When applied between numbers, acts like `clojure.core//`. Dispatch is open,
+  however, making it possible to 'divide' types wherever the behavior is
+  mathematically sound.
+
+  For example:
+
+  ```clojure
+  (/ [2 4 6] 2)
+  ([[structure/up]] 1 2 3)
+  ```"
+  ([] 1)
+  ([x] (invert x))
+  ([x y]
+   (if (v/one? y)
+     x
+     (div x y)))
+  ([x y & more]
+   (/ x (apply * y more))))
+
+(def ^{:doc "Alias for [[/]]."}
+  divide
+  /)
+
+(defgeneric exact-divide 2
+  "Similar to the binary case of [[/]], but throws if the `([[value/exact?]]
+  <result>)` returns false. ")
+
+;; ### Exponentiation, Log, Roots
+;;
+;; This next batch of generics exponentation and its inverse.
+
+(declare negative? log)
+
+(defgeneric expt 2
+  {:dfdx (fn [x y]
+           (mul y (expt x (sub y 1))))
+   :dfdy (fn [x y]
+           (if (and (v/number? x) (v/zero? y))
+             (if (v/number? y)
+               (if (not (negative? y))
+                 0
+                 (u/illegal "Derivative undefined: expt"))
+               0)
+             (mul (log x) (expt x y))))})
+
+(defmethod expt :default [s e]
+  {:pre [(v/native-integral? e)]}
+  (let [kind (v/kind s)]
+    (if-let [mul' (get-method mul [kind kind])]
+      (letfn [(expt' [base pow]
+                (loop [n pow
+                       y (v/one-like base)
+                       z base]
+                  (let [t (even? n)
+                        n (quot n 2)]
+                    (cond
+                      t (recur n y (mul' z z))
+                      (zero? n) (mul' z y)
+                      :else (recur n (mul' z y) (mul' z z))))))]
+        (cond (pos? e)  (expt' s e)
+              (zero? e) (v/one-like e)
+              :else (invert (expt' s (negate e)))))
+      (u/illegal (str "No g/mul implementation registered for kind " kind)))))
+
+(defgeneric square 1)
+(defmethod square :default [x] (expt x 2))
+
+(defgeneric cube 1)
+(defmethod cube :default [x] (expt x 3))
+
+(defgeneric exp 1
+  "Returns the base-e exponential of `x`. Equivalent to `(expt e x)`, given
+  some properly-defined `e` symbol."
+  {:dfdx exp})
+
+(defgeneric exp2 1
+  "Returns the base-2 exponential of `x`. Equivalent to `(expt 2 x)`.")
+
+(defmethod exp2 :default [x] (expt 2 x))
+
+(defgeneric exp10 1
+  "Returns the base-10 exponential of `x`. Equivalent to `(expt 10 x)`.")
+
+(defmethod exp10 :default [x] (expt 10 x))
+
+(defgeneric log 1
+  "Returns the natural logarithm of `x`."
+  {:dfdx invert})
+
+(defgeneric log2 1
+  "Returns the base-2 logarithm of `x`, ie, $log_2(x)$.")
+
+(let [l2 (Math/log 2)]
+  (defmethod log2 :default [x] (div (log x) l2)))
+
+(defgeneric log10 1
+  "Returns the base-10 logarithm of `x`, ie, $log_10(x)$.")
+
+(let [l10 (Math/log 10)]
+  (defmethod log10 :default [x] (div (log x) l10)))
 
 (defgeneric sqrt 1
   {:dfdx (fn [x]
            (invert
             (mul (sqrt x) 2)))})
 
-(defgeneric quotient 2)
+;; ## More Generics
 
-(defgeneric integer-part 1
-  "Returns the integer part of `a` by removing any fractional digits.")
+(defgeneric negative? 1
+  "Returns true if the argument `a` is less than `([[value/zero-like]] a)`,
+  false otherwise. The default implementation depends on a proper Comparable
+  implementation on the type.`")
+
+(defmethod negative? :default [a]
+  (< a (v/zero-like a)))
+
+(defgeneric abs 1)
+
+(declare integer-part)
 
 (defgeneric floor 1
   "Returns the largest integer less than or equal to `a`.
@@ -189,6 +357,19 @@ See [[*]] for a variadic version of [[mul]]."
   (if (negative? a)
     (sub (integer-part a) 1)
     (integer-part a)))
+
+(defgeneric ceiling 1
+  "Returns the result of rounding `a` up to the next largest integer.
+
+  Extensions beyond real numbers may behave differently; see the [Documentation
+  site](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/basics/generics)
+  for more detail.")
+
+(defmethod ceiling :default [a]
+  (negate (floor (negate a))))
+
+(defgeneric integer-part 1
+  "Returns the integer part of `a` by removing any fractional digits.")
 
 (defgeneric fractional-part 1
   "Returns the fractional part of the given value, defined as `x - ⌊x⌋`.
@@ -205,15 +386,7 @@ See [[*]] for a variadic version of [[mul]]."
 (defmethod fractional-part :default [a]
   (sub a (floor a)))
 
-(defgeneric ceiling 1
-  "Returns the result of rounding `a` up to the next largest integer.
-
-  Extensions beyond real numbers may behave differently; see the [Documentation
-  site](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/basics/generics)
-  for more detail.")
-
-(defmethod ceiling :default [a]
-  (negate (floor (negate a))))
+(defgeneric quotient 2)
 
 (defn ^:no-doc modulo-default
   "The default implementation for [[modulo]] depends on the identity:
@@ -271,70 +444,6 @@ See [[*]] for a variadic version of [[mul]]."
 (defmethod remainder :default [n d]
   (remainder-default n d))
 
-(declare log)
-
-(defgeneric expt 2
-  {:dfdx (fn [x y]
-           (mul y (expt x (sub y 1))))
-   :dfdy (fn [x y]
-           (if (and (v/number? x) (v/zero? y))
-             (if (v/number? y)
-               (if (not (negative? y))
-                 0
-                 (u/illegal "Derivative undefined: expt"))
-               0)
-             (mul (log x) (expt x y))))})
-
-(defmethod expt :default [s e]
-  {:pre [(v/native-integral? e)]}
-  (let [kind (v/kind s)]
-    (if-let [mul' (get-method mul [kind kind])]
-      (letfn [(expt' [base pow]
-                (loop [n pow
-                       y (v/one-like base)
-                       z base]
-                  (let [t (even? n)
-                        n (quot n 2)]
-                    (cond
-                      t (recur n y (mul' z z))
-                      (zero? n) (mul' z y)
-                      :else (recur n (mul' z y) (mul' z z))))))]
-        (cond (pos? e)  (expt' s e)
-              (zero? e) (v/one-like e)
-              :else (invert (expt' s (negate e)))))
-      (u/illegal (str "No g/mul implementation registered for kind " kind)))))
-
-(defgeneric exp 1
-  "Returns the base-e exponential of `x`. Equivalent to `(expt e x)`, given
-  some properly-defined `e` symbol."
-  {:dfdx exp})
-
-(defgeneric exp2 1
-  "Returns the base-2 exponential of `x`. Equivalent to `(expt 2 x)`.")
-
-(defmethod exp2 :default [x] (expt 2 x))
-
-(defgeneric exp10 1
-  "Returns the base-10 exponential of `x`. Equivalent to `(expt 10 x)`.")
-
-(defmethod exp10 :default [x] (expt 10 x))
-
-(defgeneric log 1
-  "Returns the natural logarithm of `x`."
-  {:dfdx invert})
-
-(defgeneric log2 1
-  "Returns the base-2 logarithm of `x`, ie, $log_2(x)$.")
-
-(let [l2 (Math/log 2)]
-  (defmethod log2 :default [x] (div (log x) l2)))
-
-(defgeneric log10 1
-  "Returns the base-10 logarithm of `x`, ie, $log_10(x)$.")
-
-(let [l10 (Math/log 10)]
-  (defmethod log10 :default [x] (div (log x) l10)))
-
 (defgeneric gcd 2
   "Returns the [greatest common
   divisor](https://en.wikipedia.org/wiki/Greatest_common_divisor) of the two
@@ -345,15 +454,7 @@ See [[*]] for a variadic version of [[mul]]."
   multiple](https://en.wikipedia.org/wiki/Least_common_multiple) of the two
   inputs `a` and `b`.")
 
-(defgeneric exact-divide 2)
-
-(defgeneric square 1)
-(defmethod square :default [x] (expt x 2))
-
-(defgeneric cube 1)
-(defmethod cube :default [x] (expt x 3))
-
-;; Trigonometric functions.
+;; ### Trigonometric functions
 
 (declare sin)
 
@@ -469,77 +570,17 @@ See [[*]] for a variadic version of [[mul]]."
 (defmethod inner-product [::v/scalar ::v/scalar] [l r] (mul (conjugate l) r))
 
 ;; More advanced generic operations.
+
+(defgeneric partial-derivative 2)
 (defgeneric Lie-derivative 1)
 
-(defmulti partial-derivative v/argument-kind)
-(defmethod partial-derivative [Keyword] [k]
-  (k {:arity [:exactly 2]
-      :name 'partial-derivative}))
-
-(defmulti simplify v/argument-kind)
-(defmethod simplify :default [a] (v/freeze a))
-(defmethod simplify [::v/number] [a] a)
-(defmethod simplify [Var] [a] (-> a meta :name))
-(defmethod simplify [Symbol] [a] a)
-(defmethod simplify [LazySeq] [a] (map simplify a))
-(defmethod simplify [PersistentVector] [a] (mapv simplify a))
-(defmethod simplify [v/seqtype] [a]
-  (map simplify a))
-
-(defn ^:private bin+ [a b]
-  (cond (v/zero? a) b
-        (v/zero? b) a
-        :else (add a b)))
-
-(defn + [& args]
-  (reduce bin+ 0 args))
-
-(defn ^:private bin- [a b]
-  (cond (v/zero? b) a
-        (v/zero? a) (negate b)
-        :else (sub a b)))
-
-(defn - [& args]
-  (cond (nil? args) 0
-        (nil? (next args)) (negate (first args))
-        :else (bin- (first args) (reduce bin+ (next args)))))
-
-(defn ^:private bin* [a b]
-  (cond (and (v/numerical? a) (v/zero? a)) (v/zero-like b)
-        (and (v/numerical? b) (v/zero? b)) (v/zero-like a)
-        (v/one? a) b
-        (v/one? b) a
-        :else (mul a b)))
-
-;;; In bin* we test for exact (numerical) zero
-;;; because it is possible to produce a wrong-type
-;;; zero here, as follows:
-;;;
-;;;               |0|             |0|
-;;;       |a b c| |0|   |0|       |0|
-;;;       |d e f| |0| = |0|, not  |0|
-;;;
-;;; We are less worried about the v/zero? below,
-;;; because any invertible matrix is square.
-
-(defn * [& args]
-  (reduce bin* 1 args))
-
-(defn- bin-div [a b]
-  (cond (v/one? b) a
-        :else (div a b)))
-
-(defn / [& args]
-  (cond (nil? args) 1
-        (nil? (next args)) (invert (first args))
-        :else (bin-div (first args) (reduce bin* (next args)))))
-
-(def divide /)
+(defgeneric simplify 1)
+(defmethod simplify :default [a] a)
 
 (defn factorial
-  "Returns the factorial of `n`, ie, the product of 1 to n inclusive."
+  "Returns the factorial of `n`, ie, the product of 1 to `n` (inclusive)."
   [n]
-  (reduce * (range 1 (inc n))))
+  (apply * (range 1 (inc n))))
 
 ;; This call registers a symbol for any non-multimethod we care about. These
 ;; will be returned instead of the actual function body when the user
@@ -557,4 +598,9 @@ See [[*]] for a variadic version of [[mul]]."
   clojure.core/mod 'modulo
   clojure.core/quot 'quotient
   clojure.core/rem 'remainder
-  clojure.core/neg? 'negative?})
+  clojure.core/neg? 'negative?
+  clojure.core/< '<
+  clojure.core/<= '<=
+  clojure.core/> '>
+  clojure.core/>= '>=
+  clojure.core/= '=})

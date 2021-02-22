@@ -50,7 +50,12 @@
   [x]
   (instance? x ModInt))
 
-(defn make [i m]
+(defn make
+  "Returns an instance of [[ModInt]] that represents integer `i` with integral
+  modulus `m`."
+  [i m]
+  {:pre [(v/integral? i)
+         (v/integral? m)]}
   (->ModInt (g/modulo i m) m))
 
 (defn- modular-binop [op]

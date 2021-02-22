@@ -73,9 +73,10 @@
                (up 0 0 0 0 1)
                (up 0 -1 0 0 0)
                (up 0 0 -1 0 0))
-             (simplify (let [s (up 't (up 'x 'y) (down 'px 'py))
-                             s* (e/compatible-shape s)]
-                         (s->m s* ((D J-func) s*) s*)))))
+             (e/freeze
+              (simplify (let [s (up 't (up 'x 'y) (down 'px 'py))
+                              s* (e/compatible-shape s)]
+                          (s->m s* ((D J-func) s*) s*))))))
       (let [symplectic? (fn [C]
                           (fn [s]
                             (let [s* (e/compatible-shape s)
@@ -88,11 +89,12 @@
                  (up 0 0 0 0 0)
                  (up 0 0 0 0 0)
                  (up 0 0 0 0 0))
-               (simplify
-                ((symplectic? (F->CT p->r))
-                 (up 't
-                     (up 'r 'varphi)
-                     (down 'p_r 'p_varphi))))))))
+               (e/freeze
+                (simplify
+                 ((symplectic? (F->CT p->r))
+                  (up 't
+                      (up 'r 'varphi)
+                      (down 'p_r 'p_varphi)))))))))
 
     (testing "symplectic"
       (is (= '(matrix-by-rows
@@ -100,11 +102,12 @@
                (up 0 0 0 0)
                (up 0 0 0 0)
                (up 0 0 0 0))
-             (simplify
-              ((e/symplectic-transform? (F->CT p->r))
-               (up 't
-                   (up 'r 'theta)
-                   (down 'p_r 'p_theta)))))))
+             (e/freeze
+              (simplify
+               ((e/symplectic-transform? (F->CT p->r))
+                (up 't
+                    (up 'r 'theta)
+                    (down 'p_r 'p_theta))))))))
 
     (testing "rotating coordinates p. 336"
       (let [canonical-K? (fn [C K]
@@ -130,11 +133,12 @@
                  (up 0 0 0 0 0 0)
                  (up 0 0 0 0 0 0)
                  (up 0 0 0 0 0 0))
-               (simplify
-                ((e/symplectic-transform? (C-rotating 'Omega))
-                 (up 't
-                     (up 'x 'y 'z)
-                     (down 'p_x 'p_y 'p_z))))))
+               (e/freeze
+                (simplify
+                 ((e/symplectic-transform? (C-rotating 'Omega))
+                  (up 't
+                      (up 'x 'y 'z)
+                      (down 'p_x 'p_y 'p_z)))))))
 
         ;; Note that the definition of K, above, differs from that given in
         ;; the 1st Ed. of SICM (our definition has the opposite sign). The
