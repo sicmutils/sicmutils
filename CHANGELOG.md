@@ -4,12 +4,39 @@
 
 ## 0.16.0
 
-- In JVM Clojure (as of #298), `sicmutils.expression.compile` uses
-  `clojure.core/eval` to compile functions, while JS Clojurescript uses
-  [SCI](https://github.com/borkdude/sci). This change is happening because
-  `eval` is a _lot_ faster on the JVM, and `eval` is available (unlike CLJS,
-  which requires self-hosted Clojurescript for `eval` to work interactively in a
-  browser.)
+> (If you have any questions about how to use any of the following, please ask us
+> at our [Github Discussions](https://github.com/sicmutils/sicmutils/discussions)
+> page!)
+
+This release contains a few correctness fixes, a number of new
+`sicmutils.generic` function implementations contributed by @pangloss, and a
+large expansion of the namespaces available to SCI-hosted environments.
+
+There is a lot of great, scattered stuff that defies thematic organization. A
+major goal was to develop SICMUtils into an environment that could host all of
+the exercises from the SICM textbook. We have many of those hosted at the
+https://github.com/sicmutils/sicm-exercises repository, and they all work and
+generate correctly rendered TeX!
+
+The goals for the next release roll over from 0.15.0:
+
+we'll focus on getting SICMUtils integrated with 2D and 3D rendering libraries
+like [three.js](https://threejs.org), [babylon.js](https://www.babylonjs.com)
+and [Quil](https://github.com/quil/quil). The long-term goal is for SICMUtils to
+support the sort of workflow I described in ["The Dynamic
+Notebook"](https://roadtoreality.substack.com/p/the-dynamic-notebook).
+
+Out-of-the-box charting and animation primitives are missing and sorely needed.
+Onward!
+
+Detailed release notes:
+
+### Release Details
+
+- In JVM Clojure (as of #298), `sicmutils.expression.compile` defaults to
+  `clojure.core/eval` to compile functions, while Clojurescript defaults to
+  [SCI](https://github.com/borkdude/sci). The performance is much faster for
+  numerical routines and worth the slightly different default behavior.
 
   To use to SCI compilation on the JVM, wrap your form in a binding:
 
@@ -172,9 +199,9 @@
 
 ## 0.15.0
 
-(If you have any questions about how to use any of the following, please ask us
-at our [Github Discussions](https://github.com/sicmutils/sicmutils/discussions)
-page!)
+> (If you have any questions about how to use any of the following, please ask us
+> at our [Github Discussions](https://github.com/sicmutils/sicmutils/discussions)
+> page!)
 
 This release was focused on a small number of themes:
 
