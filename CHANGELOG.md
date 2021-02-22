@@ -2,8 +2,10 @@
 
 ## [Unreleased]
 
-- TODO fix tests from these simplify, matrix changes
 - TODO NOTE consolidate arities for +, - and friends
+- TODO NOTE Var implementation for Value
+- TODO NOTE modint forces integral now
+- TODO NOTE derivatives
 
 - TODO note:
 

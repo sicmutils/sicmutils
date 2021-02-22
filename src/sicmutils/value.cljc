@@ -35,7 +35,8 @@
                        [goog.math.Long]
                        [goog.math.Integer]]))
   #?(:clj
-     (:import (clojure.lang BigInt PersistentVector Sequential Var))))
+     (:import
+      (clojure.lang BigInt PersistentVector Sequential Var))))
 
 (defprotocol Numerical
   (numerical? [_]))

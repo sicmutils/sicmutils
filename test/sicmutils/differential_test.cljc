@@ -318,7 +318,7 @@
             (is (d/eq (d/d:* a b) (d/d:* b a))
                 "commutative law"))
 
-  (checking "adding primal and tangent sepraately matches adding full term" 100
+  (checking "adding primal and tangent separately matches adding full term" 100
             [[l r] (gen/vector real-diff-gen 2)]
             (let [[pl tl] (d/primal-tangent-pair l)
                   [pr tr] (d/primal-tangent-pair r)]
@@ -505,6 +505,21 @@
                          finite-term")))))))
 
 (deftest lifted-fn-tests
+  (letfn [(breaks? [f x]
+            (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                         ((derivative f) x))))]
+    (checking "integer-discontinuous derivatives work" 100 [x sg/real]
+              (if (v/integral? x)
+                (do (breaks? g/floor x)
+                    (breaks? g/ceiling x)
+                    (breaks? g/integer-part x)
+                    (breaks? g/fractional-part x))
+
+                (do (is (zero? ((derivative g/floor) x)))
+                    (is (zero? ((derivative g/ceiling) x)))
+                    (is (zero? ((derivative g/integer-part) x)))
+                    (is (v/one? ((derivative g/fractional-part) x)))))))
+
   (testing "lift-n"
     (let [*   (d/lift-n g/* (fn [_] 1) (fn [_ y] y) (fn [x _] x))
           Df7 (derivative

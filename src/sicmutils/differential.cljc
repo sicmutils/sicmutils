@@ -1245,6 +1245,35 @@
                      :else (u/illegal (str "error! derivative of g/abs at" x)))]
       (func x))))
 
+(defn- discont-at-integers [f dfdx]
+  (let [f (lift-1 f (fn [_] dfdx))
+        f-name (v/freeze f)]
+    (fn [x]
+      (if (v/integral? (finite-term x))
+        (u/illegal
+         (str "Derivative of g/" f-name " undefined at non-integer points."))
+        (f x)))))
+
+(defunary g/floor
+  (discont-at-integers g/floor 0))
+
+(defunary g/ceiling
+  (discont-at-integers g/ceiling 0))
+
+(defunary g/integer-part
+  (discont-at-integers g/integer-part 0))
+
+(defunary g/fractional-part
+  (discont-at-integers g/fractional-part 1))
+
+(defunary g/floor
+  (let [f (lift-1 g/floor (fn [_] 0))]
+    (fn [x]
+      (if (v/integral? (finite-term x))
+        (u/illegal
+         (str "Derivative of g/floor undefined at non-integer points."))
+        (f x)))))
+
 (defunary g/sqrt (lift-1 g/sqrt))
 (defbinary g/expt (lift-2 g/expt))
 (defunary g/log (lift-1 g/log))

@@ -25,18 +25,45 @@
   cljdocs](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/basics/generics)
   for a detailed discussion of how to use and extend the generic operations
   defined in [[sicmutils.generic]] and [[sicmutils.value]]."
-  (:refer-clojure :rename {mod core-mod}
-                  :exclude [/ + - * divide #?(:cljs mod)])
+  (:refer-clojure :exclude [/ + - * divide])
   (:require [sicmutils.value :as v]
             [sicmutils.util :as u]
             [sicmutils.util.def :refer [defgeneric]
-             #?@(:cljs [:include-macros true])])
-  #?(:clj
-     (:import [clojure.lang Keyword LazySeq PersistentVector Symbol Var])))
+             #?@(:cljs [:include-macros true])]))
 
-;; Numeric functions. Start with +, *, -, /
+;; ## Generic Numerics
+;;
+;; The first section introduces generic versions of
+;; Clojure's [[+]], [[-]], [[*]] and [[/]] operations. Any type that can
+;; implement all four of these operations forms a
+;; mathematical [Field](https://en.wikipedia.org/wiki/Field_(mathematics)).
+;;
+;; There are, of course, other technical names for types that can only implement
+;; a subset of these operations, and more specializations of those names
+;; depending on whether or not the implementation of these binary operations is
+;; commutative or
+;; associative. (See [Semigroup](https://en.wikipedia.org/wiki/Semigroup)
+;; and [Monoid](https://en.wikipedia.org/wiki/Monoid) first, and start exploring
+;; the realm of abstract algebra from there.)
+;;
+;; This library takes a permissive stance on extensibility. Types extend the
+;; arithmetic operators by extending their unary or binary cases:
+;;
+;; - [[add]] for [[+]]
+;; - [[sub]] and [[negate]] for [[-]]
+;; - [[mul]] for [[*]]
+;; - [[invert]] and [[div]] for [[/]]
+;;
+;; And the higher arity version reduces its list of arguments using this binary
+;; operation. This makes it possible and easy to make the arithmetic operators
+;; combine different types! It's up to you to do this in a mathematically
+;; responsible way.
+;;
+;; Dispatch occurs via [[value/argument-kind]]. Documentation on how to extend
+;; each generic operation to some new type is sparse. Have a look
+;; at [[sicmutils.complex]] for an example of how to do this.
 
-(defgeneric add 2
+(defgeneric ^:no-doc add 2
   "Returns the sum of arguments `a` and `b`.
 
   See [[+]] for a variadic version of [[add]]."
@@ -45,7 +72,19 @@
    :dfdy (fn [_ _] 1)})
 
 (defn +
-  "TODO docs!"
+  "Generic implementation of `+`. Returns the sum of all supplied arguments. `(+)`
+  returns 0, the additive identity.
+
+  When applied between numbers, acts like `clojure.core/+`. Dispatch is open,
+  however, making it possible to 'add' types wherever the behavior is
+  mathematically sound.
+
+  For example:
+
+  ```clojure
+  (+ [1 2 3] [2 3 4])
+  ;;=> ([[structure/up]] 3 5 7)
+  ```"
   ([] 0)
   ([x] x)
   ([x y]
@@ -63,8 +102,9 @@
    :dfdx (fn [_] -1)})
 
 (defgeneric ^:no-doc sub 2
-  "Returns the difference of `a` and `b`. Equivalent to `([[add]] a ([[negate]]
-  b))`.
+  "Returns the difference of `a` and `b`.
+
+  Equivalent to `([[add]] a ([[negate]] b))`.
 
   See [[-]] for a variadic version of [[sub]]."
   {:name '-
@@ -75,7 +115,25 @@
   (add a (negate b)))
 
 (defn -
-  "TODO docs!"
+  "Generic implementation of `-`.
+
+  If one argument is supplied, returns the negation of `a`. Else returns the
+  difference of the first argument `a` and the sum of all remaining
+  arguments. `(-)` returns 0.
+
+  When applied between numbers, acts like `clojure.core/-`. Dispatch is open,
+  however, making it possible to 'subtract' types wherever the behavior is
+  mathematically sound.
+
+  For example:
+
+  ```clojure
+  (- [1 2 3] [2 3 4])
+  ;;=> ([[structure/up]] -1 -1 -1)
+
+  (- [1 10])
+  ;;=> ([[structure/up]] -1 -10)
+  ```"
   ([] 0)
   ([x] (negate x))
   ([x y]
@@ -104,7 +162,19 @@
 ;;; because any invertible matrix is square.
 
 (defn *
-  "TODO docs"
+  "Generic implementation of `*`. Returns the product of all supplied
+  arguments. `(*)` returns 1, the multiplicative identity.
+
+  When applied between numbers, acts like `clojure.core/*`. Dispatch is open,
+  however, making it possible to 'multiply' types wherever the behavior is
+  mathematically sound.
+
+  For example:
+
+  ```clojure
+  (* 2 #sicm/complex \"3 + 1i\")
+  ;;=> #sicm/complex \"6 + 2i\"
+  ```"
   ([] 1)
   ([x] x)
   ([x y]
@@ -119,6 +189,9 @@
 (declare div)
 
 (defgeneric invert 1
+  "Returns the multiplicative inverse of `a`.
+
+  Equivalent to `([[/]] 1 a)`."
   {:name '/
    :dfdx (fn [x] (div -1 (mul x x)))})
 
@@ -129,6 +202,11 @@
     (div 1 a)))
 
 (defgeneric div 2
+  "Returns the result of dividing `a` and `b`.
+
+  Equivalent to `([[mul]] a ([[negate]] b))`.
+
+  See [[/]] for a variadic version of [[div]]."
   {:name '/
    :dfdx (fn [_ y] (div 1 y))
    :dfdy (fn [x y] (div (negate x)
@@ -142,7 +220,22 @@
     (mul a (invert b))))
 
 (defn /
-  "TODO docs"
+  "Generic implementation of `/`.
+
+  If one argument is supplied, returns the multiplicative inverse of `a`. Else
+  returns the result of dividing first argument `a` by the product of all
+  remaining arguments. `(/)` returns 1, the multiplicative identity.
+
+  When applied between numbers, acts like `clojure.core//`. Dispatch is open,
+  however, making it possible to 'divide' types wherever the behavior is
+  mathematically sound.
+
+  For example:
+
+  ```clojure
+  (/ [2 4 6] 2)
+  ([[structure/up]] 1 2 3)
+  ```"
   ([] 1)
   ([x] (invert x))
   ([x y]
@@ -156,9 +249,13 @@
   divide
   /)
 
-(defgeneric exact-divide 2)
+(defgeneric exact-divide 2
+  "Similar to the binary case of [[/]], but throws if the `([[value/exact?]]
+  <result>)` returns false. ")
 
 ;; ### Exponentiation, Log, Roots
+;;
+;; This next batch of generics exponentation and its inverse.
 
 (declare negative? log)
 
@@ -501,4 +598,9 @@
   clojure.core/mod 'modulo
   clojure.core/quot 'quotient
   clojure.core/rem 'remainder
-  clojure.core/neg? 'negative?})
+  clojure.core/neg? 'negative?
+  clojure.core/< '<
+  clojure.core/<= '<=
+  clojure.core/> '>
+  clojure.core/>= '>=
+  clojure.core/= '=})
