@@ -12,8 +12,14 @@ This release contains a few correctness fixes, a number of new
 `sicmutils.generic` function implementations contributed by @pangloss, and a
 large expansion of the namespaces available to SCI-hosted environments.
 
-There is a lot of great, scattered stuff that defies thematic organization. A
-major goal was to develop SICMUtils into an environment that could host all of
+The themes of the release are:
+
+- Many new functions and functionality for existing types
+- Upgraded rendering for forms like nested partials
+- Better and better documentation!
+- Easier interop with interactive hosts via SCI
+
+A major goal was to develop SICMUtils into an environment that could host all of
 the exercises from the SICM textbook. We have many of those hosted at the
 https://github.com/sicmutils/sicm-exercises repository, and they all work and
 generate correctly rendered TeX!
@@ -31,7 +37,143 @@ Onward!
 
 Detailed release notes:
 
-### Release Details
+### New Functions, Functionality
+
+- #278 adds new generic `floor`, `ceiling`, `integer-part` and `fractional-part`
+  generic functions, along with:
+
+  - implementations for all types in the numeric tower - ratios, integers,
+    reals, complex, and `Differential` (so derivatives of these functions work!)
+  - symbolic expression implementations
+  - symbolic implementations for `modulo` and `remainder`
+  - new support for these four generics plus `modulo` and `remainder` in
+    function compilation via `sicmutils.expression.compile` (#295)
+  - rendering support by `->infix`, `->TeX`, `->Javascript` (#295)
+
+  Thank you to @pangloss for this major contribution!
+
+- division between two `Structure` instances `a` and `b` now (as of #297)
+  returns a new structure instance `(/ a b)` that matches the contract `(= a (*
+  b (/ a b)))`. Previously, the division would not necessarily contract with `b`
+  to return `a`, resulting in problems with the double pendulum exercise of
+  #296.
+
+- #149 adds a `sicmutils.modint/modint?` predicate, and
+  `sicmutils.modint/chinese-remainder`. The latter efficiently performs the
+  [Chinese Remainder
+  algorithm](https://en.wikipedia.org/wiki/Chinese_remainder_theorem) for
+  solving systems of linear congruences. Available via
+  `sicmutils.env/chinese-remainder`.
+
+- `clojure.lang.Var` implements the `sicmutils.value/Value` protocol, allowing
+  it to respond appropriately with its name to `v/freeze` (#298).
+
+- Install `sicmutils.generic/{quotient,modulo,remainder,partial-derivative}`
+  into `sicmutils.env` (#273). Thanks to @pangloss for pointing out that these
+  were missing!
+
+- #284 added:
+
+  - new functions `sicmutils.mechanics.lagrange/acceleration-tuple` for creating
+    the acceleration entry in a local tuple
+
+  - `sicmutils.mechanics.lagrange/acceleration` for extracting the acceleration
+    component of a local tuple
+
+  - An upgraded `sicmutils.mechanics.lagrange/F->C` to handle local tuples of
+    arbitrary length. This version of `F->C` is more general than the version
+    from the textbook that was previously included.
+
+  These are all aliased in `sicmutils.env`, along with a new `Γ-bar` alias for
+  `sicmutils.mechanics.lagrange/Γ-bar`.
+
+- #282 modifies the `sicmutils.value/freeze` implementation for Clojure vector
+  to freeze vectors into the same representation as an `up` structure. This
+  makes rendering these forms much more simple and matches the `scmutils`
+  behavior.
+
+- `sicmutils.structure.Structure` implements `clojure.lang.{Indexed, IReduce}`
+  on the JVM, allowing it to act more like a vector (#282). (The CLJS
+  implementation already did this.) `(vec (up 1 2 3))` now works correctly.
+
+- `Series`, `PowerSeries` and `Operator` can hold metadata and respond properly
+  to `meta` and `with-meta` (#265). `sicmutils.series/{->Series, ->PowerSeries}`
+  and `sicmutils.operator/->Operator` all take a new arity for metadata.
+
+### g/simplify changes
+
+- `g/simplify` called with an argument `x` of type `Series`, `PowerSeries`,
+  `Matrix`, `Operator`, `Complex` and `sicmutils.abstract.function/Function` now
+  return an instance of type `x`, performing appropriate simplifications if
+  possible. before #297 and #298, these operation would return bare symbols or
+  sequences.
+
+  A future release will make this change for `Structure` and `Literal` too, once
+  #255 is resolved.
+
+### Rendering, Docs
+
+- #286 adds a batch of rules to `sicmutils.simplify.rules/canonicalize-partials`
+  that act to gather up nested `partial` (derivative) applications into products
+  and exponentiated partials. `->TeX` and `->infix` both produce better-looking
+  forms with this change.
+
+  This example shows how `g/simplify` can organize a nested application of many
+  partial derivatives into a product:
+
+```clojure
+(let [f (literal-function 'f (-> (UP Real Real) Real))]
+  (simplify
+   (((partial 0)
+     ((partial 1)
+      ((partial 0) f))) (up 'x 'y))))
+;;=> (((* (expt (partial 0) 2) (partial 1)) f) (up x y))
+```
+
+- #283 changes the default `TeX` rendering style for `down` tuples to vertical
+  vs horizontal.
+
+- Symbols like `'qprime` ending with `prime` or `primeprime` will render as `q'`
+  or `q''` respectively in `TeX`, rather than the fully-spelled-out
+  `\mathsf{qprime}` (#282).
+
+- #280 adds a new `:equation` keyword argument to `sicmutils.render/->TeX`. If
+  you pass a truthy value to `:equation`, the result will be wrapped in an
+  equation environment. `:equation <string>` will insert a `\\label{<string>}`
+  entry inside the equation environment.
+
+    - `sicmutils.env/->tex-equation` is identical to `#(sicmutils.render/->TeX
+      (g/simplify %) :equation true)`; If you pass a `:label` keyword argument
+      to `->tex-equation` it will be forwarded to `->TeX`, creating the expected
+      label entry.
+
+- #279: Function aliases in `sicmutils.env` now properly mirror over docstrings
+  and other `Var` metadata, thanks to
+  [Potemkin](https://github.com/clj-commons/potemkin)'s `import-def`. This
+  doesn't quite work in Clojurescript since we can't use `resolve` inside of a
+  macro (special form!).
+
+- Add a proper namespace to `demo.clj`, to make it easier to use outside of
+  `lein repl` (#264).
+
+### SCI Upgrades
+
+- #289 adds many namespaces to `sicmutils.env.sci`:
+
+  - `sicmutils.{complex,expression,modint,numsymb,polynomial,ratio,rational-function,util,value}`
+  - `sicmutils.abstract.number`
+  - `sicmutils.expression.analyze`
+  - `sicmutils.numerical.elliptic`
+  - `sicmutils.util.{aggregate,stream}`
+
+  - #289 also introduces `sicmutils.function/*strict-arity-checks*` to allow the
+    user to toggle whether or not to throw exceptions if the system thinks that
+    arities are incompatible. It turns out that inside of an SCI environment,
+    the usual tricks for detecting arities fail, causing errors in many
+    expressions. To get around this, `*strict-arity-checks*` is FALSE by
+    default.
+
+### Behavior changes, bug fixes
 
 - In JVM Clojure (as of #298), `sicmutils.expression.compile` defaults to
   `clojure.core/eval` to compile functions, while Clojurescript defaults to
@@ -57,145 +199,19 @@ Detailed release notes:
 
   The options allowed as of `0.16.0` are `:sci` and `:native`.
 
-- `clojure.lang.Var` implements the `sicmutils.value/Value` protocol, allowing
-  it to respond appropriately with its name to `v/freeze` (#298).
-
-- `sicmutils.modint/make` now verifies with a precondition that its two
-  arguments are both `v/integral?` (#298). We need this constraint now that
-  `g/modulo` is defined for more types.
-
-- `g/simplify` called with an argument `x` of type `Series`, `PowerSeries`,
-  `Matrix`, `Operator`, `Complex` and `sicmutils.abstract.function/Function` now
-  return an instance of type `x`, performing appropriate simplifications if
-  possible. before #297 and #298, these operation would return bare symbols or
-  sequences. A future release will make this change for `Structure` and
-  `Literal` too, once #255 is resolved.
-
-- division between two `Structure` instances `a` and `b` now (as of #297)
-  returns a new structure instance `(/ a b)` that matches the contract `(= a (*
-  b (/ a b)))`. Previously, the division would not necessarily contract with `b`
-  to return `a`, resulting in problems with the double pendulum exercise of
-  #296.
-
-- #278 adds new generic `floor`, `ceiling`, `integer-part` and `fractional-part`
-  generic functions, along with:
-
-  - implementations for all types in the numeric tower - ratios, integers,
-    reals, complex, and `Differential` (so derivatives of these functions work!)
-  - symbolic expression implementations
-  - symbolic implementations for `modulo` and `remainder`
-  - new support for these four generics plus `modulo` and `remainder` in
-    function compilation via `sicmutils.expression.compile` (#295)
-  - rendering support by `->infix`, `->TeX`, `->Javascript` (#295)
-
-  Thank you to @pangloss for this major contribution!
-
 - #292 fixes a `StackOverflow` that would sometimes appear when comparing
   symbolic expressions to non-expressions. `(= (literal-number x) y)` now
   returns true if `(= x y)` (AND, in clj, if `y` is not a collection!), false
   otherwise. #255 is currently blocking pass-through equality with collections
   on the JVM. Thanks to @daslu for the report here!
 
-- #289 adds many namespaces to `sicmutils.env.sci`:
-
-  - `sicmutils.{complex,expression,modint,numsymb,polynomial,ratio,rational-function,util,value}`
-  - `sicmutils.abstract.number`
-  - `sicmutils.expression.analyze`
-  - `sicmutils.numerical.elliptic`
-  - `sicmutils.util.{aggregate,stream}`
-
-  - #289 also introduces `sicmutils.function/*strict-arity-checks*` to allow the
-    user to toggle whether or not to throw exceptions if the system thinks that
-    arities are incompatible. It turns out that inside of an SCI environment,
-    the usual tricks for detecting arities fail, causing errors in many
-    expressions. To get around this, `*strict-arity-checks*` is FALSE by
-    default.
-
-- #286 adds a batch of rules to `sicmutils.simplify.rules/canonicalize-partials`
-  that act to gather up nested `partial` (derivative) applications into products
-  and exponentiated partials. `->TeX` and `->infix` both produce better-looking
-  forms with this change.
-
-  This example shows how `g/simplify` can organize a nested application of many
-  partial derivatives into a product:
-
-  ```clojure
-(let [f (literal-function 'f (-> (UP Real Real) Real))]
-  (simplify
-   (((partial 0)
-     ((partial 1)
-      ((partial 0) f))) (up 'x 'y))))
-;;=> (((* (expt (partial 0) 2) (partial 1)) f) (up x y))
-```
-
-- #282 modifies the `sicmutils.value/freeze` implementation for Clojure vector
-  to freeze vectors into the same representation as an `up` structure. This
-  makes rendering these forms much more simple and matches the `scmutils`
-  behavior.
-
-- `sicmutils.structure.Structure` implements `clojure.lang.{Indexed, IReduce}`
-  on the JVM, allowing it to act more like a vector (#282). (The CLJS
-  implementation already did this.) `(vec (up 1 2 3))` now works correctly.
+- `sicmutils.modint/make` now verifies with a precondition that its two
+  arguments are both `v/integral?` (#298). We need this constraint now that
+  `g/modulo` is defined for more types.
 
 - #285 fixes a bug that prevented `sin / cos` from simplifying into a `tan` in
   the numerator, and makes `seq:-` slightly more efficient (closing heisenbug
   #151).
-
-- #284 added:
-
-  - new functions `sicmutils.mechanics.lagrange/acceleration-tuple` for creating
-    the acceleration entry in a local tuple
-
-  - `sicmutils.mechanics.lagrange/acceleration` for extracting the acceleration
-    component of a local tuple
-
-  - An upgraded `sicmutils.mechanics.lagrange/F->C` to handle local tuples of
-    arbitrary length. This version of `F->C` is more general than the version
-    from the textbook that was previously included.
-
-  - These are all aliased in `sicmutils.env`, along with a new `Γ-bar` alias for
-    `sicmutils.mechanics.lagrange/Γ-bar`.
-
-- #283 changes the default `TeX` rendering style for `down` tuples to vertical
-  vs horizontal.
-
-- Symbols like `'qprime` ending with `prime` or `primeprime` will render as `q'`
-  or `q''` respectively in `TeX`, rather than the fully-spelled-out
-  `\mathsf{qprime}` (#282).
-
-- #280 adds a new `:equation` keyword argument to `sicmutils.render/->TeX`. If
-  you pass a truthy value to `:equation`, the result will be wrapped in an
-  equation environment. `:equation <string>` will insert a `\\label{<string>}`
-  entry inside the equation environment.
-
-    - `sicmutils.env/->tex-equation` is identical to `#(sicmutils.render/->TeX
-      (g/simplify %) :equation true)`; If you pass a `:label` keyword argument
-      to `->tex-equation` it will be forwarded to `->TeX`, creating the expected
-      label entry.
-
-- #279: Function aliases in `sicmutils.env` now properly mirror over docstrings
-  and other `Var` metadata, thanks to
-  [Potemkin](https://github.com/clj-commons/potemkin)'s `import-def`. This
-  doesn't quite work in Clojurescript since we can't use `resolve` inside of a
-  macro (special form!).
-
-- `Series`, `PowerSeries` and `Operator` can hold metadata and respond properly
-  to `meta` and `with-meta` (#265). `sicmutils.series/{->Series, ->PowerSeries}`
-  and `sicmutils.operator/->Operator` all take a new arity for metadata.
-
-- #149 adds a `sicmutils.modint/modint?` predicate, and
-  `sicmutils.modint/chinese-remainder`. The latter efficiently performs the
-  [Chinese Remainder
-  algorithm](https://en.wikipedia.org/wiki/Chinese_remainder_theorem) for
-  solving systems of linear congruences. Available via
-  `sicmutils.env/chinese-remainder`.
-
-- Install `sicmutils.generic/{quotient,modulo,remainder,partial-derivative}`
-  into `sicmutils.env` (#273). Thanks to @pangloss for pointing out that these
-  were missing!
-
-- Add a proper namespace to `demo.clj`, to make it easier to use outside of
-  `lein repl` (#264).
 
 ## 0.15.0
 
