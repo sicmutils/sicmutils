@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- On the JVM, `sicmutils.expression.compile` defaults to native compilation vs
+  SCI (#296). The performance is much faster for numerical routines and worth
+  the slightly different default behavior.
+
 - #292 fixes a `StackOverflow` that would sometimes appear when comparing
   symbolic expressions to non-expressions. `(= (literal-number x) y)` now
   returns true if `(= x y)` (AND, in clj, if `y` is not a collection!), false

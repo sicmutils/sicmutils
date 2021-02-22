@@ -347,12 +347,13 @@
 ;; - interpreted compilation via [SCI](https://github.com/borkdude/sci), the
 ;;   Small Clojure Interpreter.
 ;;
-;; We enable SCI mode by default since this allows function compilation to work
-;; in Clojure and Clojurescript.
+;; We default to SCI mode in CLJS, but :native in Clojure for performance.
 
 (def ^{:dynamic true
        :no-doc true}
-  *mode* :sci)
+  *mode*
+  #?(:clj :native
+     :cljs :sci))
 
 (defn- native?
   "Returns true if native compilation mode is enabled, false otherwise."
