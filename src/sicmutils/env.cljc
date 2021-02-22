@@ -18,7 +18,7 @@
 ;;
 
 (ns sicmutils.env
-  "Batteries-included namespace for the SICMUtils library.
+  "Batteries-included namespace for the [SICMUtils](https://github.com/sicmutils/sicmutils/) library.
 
   The purpose of [[sicmutils.env]] is to bundle all of the functions used
   in [Structure and Interpretation of Classical
@@ -56,10 +56,10 @@
             [sicmutils.value :as v]
             [sicmutils.matrix :as matrix]
             [sicmutils.series :as series]
-            [sicmutils.util :as u
+            [sicmutils.util.aggregate]
+            [sicmutils.util.def :as util.def
              #?@(:cljs [:refer [import-def import-vars]
                         :include-macros true])]
-            [sicmutils.util.aggregate]
             [sicmutils.util.stream :as us]
             [sicmutils.numerical.derivative]
             [sicmutils.numerical.elliptic]

@@ -35,7 +35,7 @@
                        [goog.math.Long]
                        [goog.math.Integer]]))
   #?(:clj
-     (:import (clojure.lang BigInt PersistentVector Sequential Symbol))))
+     (:import (clojure.lang BigInt PersistentVector Sequential Var))))
 
 (defprotocol Numerical
   (numerical? [_]))
@@ -210,7 +210,19 @@
   (one-like [o] (u/unsupported "nil doesn't support one-like."))
   (identity-like [o] (u/unsupported "nil doesn't support identity-like."))
   (freeze [_] nil)
+  (exact? [x] false)
   (kind [_] nil)
+
+  Var
+  (zero? [_] false)
+  (one?[_] false)
+  (identity?[_] false)
+  (zero-like [v] (u/unsupported (str "zero-like: " v)))
+  (one-like [v] (u/unsupported (str "one-like: " v)))
+  (identity-like [v] (u/unsupported (str "identity-like: " v)))
+  (freeze [v] (:name (meta v)))
+  (exact? [_] false)
+  (kind [v] (type v))
 
   #?(:clj Object :cljs default)
   (zero? [o] false)

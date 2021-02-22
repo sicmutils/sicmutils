@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+- TODO fix tests from these simplify, matrix changes
+- TODO NOTE consolidate arities for +, - and friends
+
+- TODO note:
+
+  - g/simplify keeps literal functions intact
+  - complex numbers stay complex now, vs freezing
+  - matrix stays; operator too. structure and literal don't because it would be
+    hard now, #255, but coming soon!
+
 - `g/simplify` on `Series` or `PowerSeries` now keeps the type intact; before
   #297, simplifying a series returned a bare Clojure sequence.
 

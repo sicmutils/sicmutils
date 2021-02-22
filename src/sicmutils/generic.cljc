@@ -28,79 +28,14 @@
   (:refer-clojure :rename {mod core-mod}
                   :exclude [/ + - * divide #?(:cljs mod)])
   (:require [sicmutils.value :as v]
-            [sicmutils.util :as u])
-  #?(:cljs (:require-macros [sicmutils.generic :refer [defgeneric]]))
+            [sicmutils.util :as u]
+            [sicmutils.util.def :refer [defgeneric]
+             #?@(:cljs [:include-macros true])])
   #?(:clj
      (:import [clojure.lang Keyword LazySeq PersistentVector Symbol Var])))
 
-(defmacro ^:private fork
-  "I borrowed this lovely, mysterious macro from `macrovich`:
-  https://github.com/cgrand/macrovich. This allows us to fork behavior inside of
-  a macro at macroexpansion time, not at read time."
-  [& {:keys [cljs clj]}]
-  (if (contains? &env '&env)
-    `(if (:ns ~'&env) ~cljs ~clj)
-    (if #?(:clj (:ns &env) :cljs true)
-      cljs
-      clj)))
-
-(def ^:private lowercase-symbols
-  (map (comp symbol str char)
-       (range 97 123)))
-
-(defn- arglists
-  "returns a list of `:arglists` entries appropriate for a generic function with
-  arities between `a` and `b` inclusive."
-  [a b]
-  (let [arities (if b
-                  (range a (inc b))
-                  [a])]
-    (map #(into [] (take %) lowercase-symbols)
-         arities)))
-
-(defmacro ^:private defgeneric
-  "Defines a multifn using the provided symbol. Arranges for the multifn
-  to answer the :arity message, reporting either [:exactly a] or
-  [:between a b], according to the arguments given.
-
-  - `arities` can be either a single or a vector of 2 numbers.
-
-  The `options` allowed differs slightly from `defmulti`:
-
-  - the first optional argument is a docstring.
-
-  - the second optional argument is a dict of metadata. When you query the
-  defined multimethod with a keyword, it will pass that keyword along as a query
-  to this metadata map. (`:arity` is always overridden if supplied, and `:name`
-  defaults to the symbol `f`.)
-
-  Any remaining options are passed along to `defmulti`."
-  {:arglists '([name arities docstring? attr-map? & options])}
-  [f arities & options]
-  (let [[a b]     (if (vector? arities) arities [arities])
-        arity     (if b [:between a b] [:exactly a])
-        docstring (if (string? (first options))
-                    (str "generic " f ".\n\n" (first options))
-                    (str "generic " f ))
-        options   (if (string? (first options))
-                    (next options)
-                    options)
-        [attr options] (if (map? (first options))
-                         [(first options) (next options)]
-                         [{} options])
-        kwd-klass (fork :clj clojure.lang.Keyword :cljs 'cljs.core/Keyword)
-        attr (assoc attr
-                    :arity arity
-                    :name (:name attr `'~f))]
-    `(do
-       (defmulti ~f
-         ~docstring
-         {:arglists '~(arglists a b)}
-         v/argument-kind ~@options)
-       (defmethod ~f [~kwd-klass] [k#]
-         (~attr k#)))))
-
 ;; Numeric functions.
+
 (defgeneric add 2
   "Returns the sum of arguments `a` and `b`.
 
@@ -476,44 +411,33 @@ See [[*]] for a variadic version of [[mul]]."
   (k {:arity [:exactly 2]
       :name 'partial-derivative}))
 
-(defmulti simplify v/argument-kind)
-(defmethod simplify :default [a] (v/freeze a))
-(defmethod simplify [::v/number] [a] a)
-(defmethod simplify [Var] [a] (-> a meta :name))
-(defmethod simplify [Symbol] [a] a)
-(defmethod simplify [LazySeq] [a] (map simplify a))
-(defmethod simplify [PersistentVector] [a] (mapv simplify a))
-(defmethod simplify [v/seqtype] [a]
-  (map simplify a))
+(defgeneric simplify 1)
+(defmethod simplify :default [a] a)
 
-(defn ^:private bin+ [a b]
-  (cond (v/zero? a) b
-        (v/zero? b) a
-        :else (add a b)))
+(defn +
+  "TODO docs!"
+  ([] 0)
+  ([x] x)
+  ([x y]
+   (cond (v/zero? x) y
+         (v/zero? y) x
+         :else (add x y)))
+  ([x y & more]
+   (reduce + (+ x y) more)))
 
-(defn + [& args]
-  (reduce bin+ 0 args))
+(defn -
+  "TODO docs!"
+  ([] 0)
+  ([x] (negate x))
+  ([x y]
+   (cond (v/zero? y) x
+         (v/zero? x) (negate y)
+         :else (sub x y)))
+  ([x y & more]
+   (- x (apply + y more))))
 
-(defn ^:private bin- [a b]
-  (cond (v/zero? b) a
-        (v/zero? a) (negate b)
-        :else (sub a b)))
-
-(defn - [& args]
-  (cond (nil? args) 0
-        (nil? (next args)) (negate (first args))
-        :else (bin- (first args) (reduce bin+ (next args)))))
-
-(defn ^:private bin* [a b]
-  (cond (and (v/numerical? a) (v/zero? a)) (v/zero-like b)
-        (and (v/numerical? b) (v/zero? b)) (v/zero-like a)
-        (v/one? a) b
-        (v/one? b) a
-        :else (mul a b)))
-
-;;; In bin* we test for exact (numerical) zero
-;;; because it is possible to produce a wrong-type
-;;; zero here, as follows:
+;;; In the binary arity of [[*]] we test for exact (numerical) zero because it
+;;; is possible to produce a wrong-type zero here, as follows:
 ;;;
 ;;;               |0|             |0|
 ;;;       |a b c| |0|   |0|       |0|
@@ -522,24 +446,38 @@ See [[*]] for a variadic version of [[mul]]."
 ;;; We are less worried about the v/zero? below,
 ;;; because any invertible matrix is square.
 
-(defn * [& args]
-  (reduce bin* 1 args))
+(defn *
+  "TODO docs"
+  ([] 1)
+  ([x] x)
+  ([x y]
+   (cond (and (v/numerical? x) (v/zero? x)) (v/zero-like y)
+         (and (v/numerical? y) (v/zero? y)) (v/zero-like x)
+         (v/one? x) y
+         (v/one? y) x
+         :else (mul x y)))
+  ([x y & more]
+   (reduce * (* x y) more)))
 
-(defn- bin-div [a b]
-  (cond (v/one? b) a
-        :else (div a b)))
+(defn /
+  "TODO docs"
+  ([] 1)
+  ([x] (invert x))
+  ([x y]
+   (if (v/one? y)
+     x
+     (div x y)))
+  ([x y & more]
+   (/ x (apply * y more))))
 
-(defn / [& args]
-  (cond (nil? args) 1
-        (nil? (next args)) (invert (first args))
-        :else (bin-div (first args) (reduce bin* (next args)))))
-
-(def divide /)
+(def ^{:doc "Alias for [[/]]."}
+  divide
+  /)
 
 (defn factorial
-  "Returns the factorial of `n`, ie, the product of 1 to n inclusive."
+  "Returns the factorial of `n`, ie, the product of 1 to `n` (inclusive)."
   [n]
-  (reduce * (range 1 (inc n))))
+  (apply * (range 1 (inc n))))
 
 ;; This call registers a symbol for any non-multimethod we care about. These
 ;; will be returned instead of the actual function body when the user

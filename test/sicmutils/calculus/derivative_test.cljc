@@ -697,8 +697,9 @@
                (up 0 m1 0 0)
                (up 0 0 m2 0)
                (up 0 0 0 m2))
-             (g/simplify
-              (matrix/s->m vs (((g/expt D 2) L1) vs) vs)))))))
+             (v/freeze
+              (g/simplify
+               (matrix/s->m vs (((g/expt D 2) L1) vs) vs))))))))
 
 (deftest moved-from-matrix
   (testing "s->m->s"
@@ -740,7 +741,9 @@
                    (((partial 1 1) C↑2_1) (up t (up x y) (down px py)))
                    (((partial 2 0) C↑2_1) (up t (up x y) (down px py)))
                    (((partial 2 1) C↑2_1) (up t (up x y) (down px py)))))
-             (g/simplify ((as-matrix (D C-general)) s)))))))
+             (v/freeze
+              (g/simplify
+               ((as-matrix (D C-general)) s))))))))
 
 (deftest taylor-moved-from-series
   (let [simp4 (fn [x] (g/simplify (take 4 x)))
@@ -786,17 +789,24 @@
     (is (= '(matrix-by-rows
              (up (f t) (g t))
              (up (h t) (k t)))
-           (g/simplify (M 't))))
+           (v/freeze
+            (g/simplify (M 't)))))
+
     (is (= '(matrix-by-rows
              (up ((D f) t) ((D g) t))
              (up ((D h) t) ((D k) t)))
-           (g/simplify ((D M) 't))))
+           (v/freeze
+            (g/simplify ((D M) 't)))))
+
     (is (= '(matrix-by-rows
              (up (+ (expt (f t) 2) (expt (h t) 2))
                  (+ (* (f t) (g t)) (* (h t) (k t))))
              (up (+ (* (f t) (g t)) (* (h t) (k t)))
                  (+ (expt (g t) 2) (expt (k t) 2))))
-           (g/simplify ((* (g/transpose M) M) 't))))
+           (v/freeze
+            (g/simplify
+             ((* (g/transpose M) M) 't)))))
+
     (is (= '(matrix-by-rows
              (up (+ (* 2 (f t) ((D f) t))
                     (* 2 (h t) ((D h) t)))
@@ -810,8 +820,9 @@
                     (* (k t) ((D h) t)))
                  (+ (* 2 (g t) ((D g) t))
                     (* 2 (k t) ((D k) t)))))
-           (g/simplify
-            ((D (* (g/transpose M) M)) 't))))))
+           (v/freeze
+            (g/simplify
+             ((D (* (g/transpose M) M)) 't)))))))
 
 (deftest derivatives-as-values
   (let [cs0 (fn [x] (sin (cos x)))
