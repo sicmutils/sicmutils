@@ -741,7 +741,7 @@
   (vector-dot-product
    (g/conjugate v1) v2))
 
-(defn- s:*
+(defn ^:no-doc s:*
   "If `s` and `t` are compatible for contraction, returns their vector dot
   product.
 
@@ -850,7 +850,6 @@
 (defmethod g/mul [::v/scalar ::structure] [a b] (scalar*structure a b))
 
 (defmethod g/div [::structure ::v/scalar] [a b] (structure*scalar a (g/invert b)))
-(defmethod g/div [::structure ::structure] [a b] (s:* (g/invert b) a))
 
 (defmethod g/square [::structure] [a] (dot-product a a))
 (defmethod g/cube [::structure] [a] (s:* a (s:* a a)))
