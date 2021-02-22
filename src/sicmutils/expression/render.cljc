@@ -246,11 +246,18 @@
   (make-infix-renderer
    :precedence-map '{D 9, partial 9,
                      expt 7, :apply 5, u- 4, / 3, * 3, + 1, - 1, = 0, > 0, < 0, >= 0, <= 0}
-   :infix? '#{* + - / expt u- = > < >= <=}
+   :infix? '#{* + - / modulo remainder expt u- = > < >= <=}
    :juxtapose-multiply " "
    :rewrite-trig-squares true
+   :rename-functions
+   {'fractional-part "frac"
+    'integer-part "int"}
    :special-handlers
-   {'expt (fn [[x e]]
+   {'floor (fn [[x]] (str "⌊" x "⌋"))
+    'ceiling (fn [[x]] (str "⌈" x "⌉"))
+    'modulo (fn [[x y]] (str x " mod " y))
+    'remainder (fn [[x y]] (str x " % " y))
+    'expt (fn [[x e]]
             (if (and (integer? e) ((complement neg?) e))
               (str x (n->superscript e))))
     'partial (fn [ds]
@@ -343,7 +350,33 @@
      :juxtapose-multiply "\\,"
      :rewrite-trig-squares true
      :special-handlers
-     {'expt (fn [[x e]] (str (maybe-brace x) "^" (maybe-brace e)))
+     {'floor
+      (fn [[x]]
+        (str "\\left\\lfloor " x " \\right\\rfloor"))
+
+      'ceiling
+      (fn [[x]]
+        (str "\\left\\lceil " x " \\right\\rceil"))
+
+      'integer-part
+      (fn [[x]]
+        (str "\\mathsf{int} \\left(" x "\\right)"))
+
+      'fractional-part
+      (fn [[x]]
+        (str "\\mathsf{frac} \\left(" x "\\right)"))
+
+      'modulo
+      (fn [[x y]]
+        (str (maybe-brace x) " \\bmod " (maybe-brace y)))
+
+      'remainder
+      (fn [[x y]]
+        (str (maybe-brace x) " \\mathbin{\\%} " (maybe-brace y)))
+
+      'expt (fn [[x e]]
+              (str (maybe-brace x) "^" (maybe-brace e)))
+
       'partial (fn [ds] (str "\\partial_" (maybe-brace (s/join "," ds))))
       '/ (fn [xs]
            (let [n (count xs)]
@@ -486,10 +519,24 @@
                               'abs "Math.abs"
                               'expt "Math.pow"
                               'log "Math.log"
-                              'exp "Math.exp"}
-           :special-handlers {'up make-js-vector
-                              'down make-js-vector
-                              '/ render-infix-ratio})]
+                              'exp "Math.exp"
+                              'floor "Math.floor"
+                              'ceiling "Math.ceil"
+                              'integer-part "Math.trunc"}
+           :special-handlers (let [parens (fn [x]
+                                            (str "(" x ")"))]
+                               {'up make-js-vector
+                                'down make-js-vector
+                                'modulo (fn [[a b]]
+                                          (-> (str a " % " b)
+                                              (parens)
+                                              (str " + " b)
+                                              (parens)
+                                              (str " % " b)
+                                              (parens)))
+                                'remainder (fn [[a b]]
+                                             (str a " % "))
+                                '/ render-infix-ratio}))]
     (fn [x & {:keys [symbol-generator parameter-order deterministic?]
              :or {symbol-generator (make-symbol-generator "_")
                   parameter-order sort}}]

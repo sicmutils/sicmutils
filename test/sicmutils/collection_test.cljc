@@ -33,7 +33,7 @@
 
 (deftest vector-tests
   (testing "Vector protocol implementations"
-    (checking "f/arity" 100 [v (gen/vector sg/integer)]
+    (checking "f/arity" 100 [v (gen/vector sg/any-integral)]
               (is (= [:between 1 2] (f/arity v))
                   "vectors respond to f/arity correctly"))
 
@@ -49,7 +49,7 @@
                 (is (every? v/zero? zero-v)
                     "zero-like zeros out all values.")))
 
-    (checking "v/kind, one?, identity?" 100 [v (gen/vector sg/integer)]
+    (checking "v/kind, one?, identity?" 100 [v (gen/vector sg/any-integral)]
               (is (not (v/one? v))
                   "no vector is a multiplicative identity.")
 
@@ -67,7 +67,7 @@
                    (v/identity-like {:k "v"}))))
 
     (checking "v/exact?" 100
-              [v (gen/vector sg/integer)]
+              [v (gen/vector sg/any-integral)]
               (is (v/exact? v)
                   "all integral values == exact vector")
 
@@ -100,7 +100,7 @@
 
 (deftest map-tests
   (testing "Map protocol implementations"
-    (checking "f/arity" 100 [m (gen/map gen/keyword sg/integer)]
+    (checking "f/arity" 100 [m (gen/map gen/keyword sg/any-integral)]
               (is (= [:between 1 2] (f/arity m))
                   "maps respond to f/arity correctly"))
 
@@ -116,7 +116,7 @@
                 (is (= (u/keyset m) (u/keyset zero-m))
                     "The keyset is identical after zeroing.")))
 
-    (checking "v/kind, one?, identity?" 100 [m (gen/map gen/keyword sg/integer)]
+    (checking "v/kind, one?, identity?" 100 [m (gen/map gen/keyword sg/any-integral)]
               (is (not (v/one? m))
                   "no map is a multiplicative identity.")
 
@@ -135,7 +135,7 @@
                    (v/identity-like {:k "v"}))))
 
     (checking "v/exact?" 100
-              [m (gen/map gen/keyword sg/integer)]
+              [m (gen/map gen/keyword sg/any-integral)]
               (is (v/exact? m)
                   "all integral values == exact map")
 
@@ -148,7 +148,7 @@
           "v/freeze freezes values")))
 
   (checking "d/perturbed?" 100
-            [m (gen/map gen/keyword sg/integer)]
+            [m (gen/map gen/keyword sg/any-integral)]
             (is (not (d/perturbed? m))
                 "maps with no [[Differential]] aren't perturbed.")
 

@@ -692,6 +692,29 @@
                   (s/up 0 1 2 0)
                   (s/up 1 0 0 1))]
 
+    (checking "structure division returns a structure compatible for contraction
+    with the denominator." 100
+              [s (sg/up1 sg/any-integral 5)
+               x (gen/fmap (fn [x]
+                             (if (v/zero? x) 1 x))
+                           sg/any-integral)]
+              (is (= s (g/* x (g// s x)))))
+
+    (testing "structural division unit test"
+      (is (= (s/down
+              (s/up #sicm/ratio 1/2
+                    1
+                    #sicm/ratio 3/2))
+             (g/div (s/up 1 2 3)
+                    (s/up 2)))
+          "one compatible for contraction layer added")
+
+      (is (= (s/up 1 2 3)
+             (g/* (s/up 2)
+                  (g/div (s/up 1 2 3)
+                         (s/up 2))))
+          "s = x*(s/x)"))
+
     (testing "inverse"
       (is (= (s/up (s/down 1))
              (g/* D (g/divide D))))
