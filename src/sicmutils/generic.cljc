@@ -83,7 +83,7 @@
 
   ```clojure
   (+ [1 2 3] [2 3 4])
-  ;;=> ([[structure/up]] 3 5 7)
+  ;;=> (up 3 5 7)
   ```"
   ([] 0)
   ([x] x)
@@ -97,14 +97,14 @@
 (defgeneric negate 1
   "Returns the negation of `a`.
 
-  Equivalent to `([[-]] ([[value/zero-like]] a) a)`."
+  Equivalent to `(- (v/zero-like a) a)`."
   {:name '-
    :dfdx (fn [_] -1)})
 
 (defgeneric ^:no-doc sub 2
   "Returns the difference of `a` and `b`.
 
-  Equivalent to `([[add]] a ([[negate]] b))`.
+  Equivalent to `(+ a (negate b))`.
 
   See [[-]] for a variadic version of [[sub]]."
   {:name '-
@@ -129,10 +129,10 @@
 
   ```clojure
   (- [1 2 3] [2 3 4])
-  ;;=> ([[structure/up]] -1 -1 -1)
+  ;;=> (up -1 -1 -1)
 
   (- [1 10])
-  ;;=> ([[structure/up]] -1 -10)
+  ;;=> (up -1 -10)
   ```"
   ([] 0)
   ([x] (negate x))
@@ -191,11 +191,14 @@
 (defgeneric invert 1
   "Returns the multiplicative inverse of `a`.
 
-  Equivalent to `([[/]] 1 a)`."
+  Equivalent to `(/ 1 a)`."
   {:name '/
    :dfdx (fn [x] (div -1 (mul x x)))})
 
-(def ^:dynamic *in-default-invert* false)
+(def ^{:dynamic true
+       :no-doc true}
+  *in-default-invert*
+  false)
 
 (defmethod invert :default [a]
   (binding [*in-default-invert* true]
@@ -204,7 +207,7 @@
 (defgeneric div 2
   "Returns the result of dividing `a` and `b`.
 
-  Equivalent to `([[mul]] a ([[negate]] b))`.
+  Equivalent to `(* a (negate b))`.
 
   See [[/]] for a variadic version of [[div]]."
   {:name '/
@@ -234,7 +237,7 @@
 
   ```clojure
   (/ [2 4 6] 2)
-  ([[structure/up]] 1 2 3)
+  ;;=> (up 1 2 3)
   ```"
   ([] 1)
   ([x] (invert x))
@@ -250,8 +253,8 @@
   /)
 
 (defgeneric exact-divide 2
-  "Similar to the binary case of [[/]], but throws if the `([[value/exact?]]
-  <result>)` returns false. ")
+  "Similar to the binary case of [[/]], but throws if `(v/exact? <result>)`
+  returns false.")
 
 ;; ### Exponentiation, Log, Roots
 ;;
@@ -335,7 +338,7 @@
 ;; ## More Generics
 
 (defgeneric negative? 1
-  "Returns true if the argument `a` is less than `([[value/zero-like]] a)`,
+  "Returns true if the argument `a` is less than `(v/zero-like a)`,
   false otherwise. The default implementation depends on a proper Comparable
   implementation on the type.`")
 
@@ -374,13 +377,13 @@
 (defgeneric fractional-part 1
   "Returns the fractional part of the given value, defined as `x - ⌊x⌋`.
 
-  For positive numbers, this is identical to `(- a ([[integer-part]] a))`. For
+  For positive numbers, this is identical to `(- a (integer-part a))`. For
   negative `a`, because [[floor]] truncates toward negative infinity, you might
   be surprised to find that [[fractional-part]] returns the distance between `a`
   and the next-lowest integer:
 
 ```clojure
-(= 0.6 (g/fractional-part -0.4))
+(= 0.6 (fractional-part -0.4))
 ```")
 
 (defmethod fractional-part :default [a]
@@ -406,12 +409,12 @@
  The contract satisfied by [[modulo]] is:
 
 ```clojure
-(= a (+ (* b ([[floor]] (/ a b)))
-        ([[modulo]] a b)))
+(= a (+ (* b (floor (/ a b)))
+        (modulo a b)))
 ```
 
  For numbers, this differs from the contract offered by [[remainder]]
- because `([[floor]] (/ a b))` rounds toward negative infinity, while
+ because `(floor (/ a b))` rounds toward negative infinity, while
  the [[quotient]] operation in the contract for [[remainder]] rounds toward 0.
 
  The result will be either `0` or of the same sign as the divisor `b`.")
@@ -431,12 +434,12 @@
  The contract satisfied by [[remainder]] is:
 
 ```clojure
-(= a (+ (* b ([[quotient]] a b))
-        ([[remainder]] a b)))
+(= a (+ (* b (quotient a b))
+        (remainder a b)))
 ```
 
  For numbers, this differs from the contract offered by [[modulo]]
- because [[quotient]] rounds toward 0, while `([[floor]] (/ a b))` rounds toward
+ because [[quotient]] rounds toward 0, while `(floor (/ a b))` rounds toward
  negative infinity.
 
  The result will be either `0` or of the same sign as the dividend `a`.")
