@@ -426,5 +426,3 @@
 
 (defmethod g/square [::operator] [o] (o:* o o))
 (defmethod g/cube [::operator] [o] (o:* o (o:* o o)))
-
-(defmethod g/simplify [::operator] [o] (name o))

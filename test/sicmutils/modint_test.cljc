@@ -30,6 +30,16 @@
             [sicmutils.value :as v]))
 
 (deftest modint
+  (testing "ModInt throws with non-integer arguments"
+    (is (thrown? #?(:clj AssertionError :cljs js/Error)
+                 (m/make 12.2 3)))
+
+    (is (thrown? #?(:clj AssertionError :cljs js/Error)
+                 (m/make 12.2 3.2)))
+
+    (is (thrown? #?(:clj AssertionError :cljs js/Error)
+                 (m/make 12 3.2))))
+
   (testing "value implementation"
     (is (= '(modint 1 2)
            (v/freeze (m/make 1 2)))))

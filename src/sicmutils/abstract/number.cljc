@@ -68,10 +68,10 @@
   If you pass an actual number, sicmutils will attempt to preserve exact values
   through various operations:
 
-  ```clojure`
+  ```clojure
   (g/+ 1 (g/cos (g/* 2 (literal-number 4))))
   ;;=> (+ 1 (cos 8))
-  ````
+  ```
 
   Notice that the `(g/* 2 ...)` is evaluated, but `cos` evaluation is deferred,
   since the result is inexact. On the other hand, if the number is inexact to

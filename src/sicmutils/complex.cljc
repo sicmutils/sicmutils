@@ -153,7 +153,6 @@
 (defmethod g/cosh [::complex] [^Complex a] (.cosh a))
 (defmethod g/sinh [::complex] [^Complex a] (.sinh a))
 (defmethod g/tanh [::complex] [^Complex a] (.tanh a))
-(defmethod g/simplify [::complex] [a] (v/freeze a))
 
 (defmethod g/integer-part [::complex] [^Complex a]
   (let [re (g/integer-part (#?(:clj .getReal :cljs .-re) a))

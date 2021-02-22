@@ -123,7 +123,7 @@
   (is (= "(up sin cos tan)" (expression->string (s/up g/sin g/cos g/tan))))
   (is (= "+" (expression->string g/+)))
   (is (= "nil" (expression->string nil)))
-  (is (= "[nil 3 (+ x 2)]" (expression->string [nil 3 (g/+ 2 'x)])))
+  (is (= "(up nil 3 (+ x 2))" (expression->string [nil 3 (g/+ 2 'x)])))
   (is (= #?(:clj "(complex 0.0 1.0)"
             :cljs "(complex 0 1)")
          (expression->string c/I)))
@@ -214,7 +214,8 @@
     (is (= '(matrix-by-rows
              (up (+ (* a e) (* b g)) (+ (* a f) (* b h)))
              (up (+ (* c e) (* d g)) (+ (* c f) (* d h))))
-           (g/simplify (g/* M S)))))
+           (v/freeze
+            (g/simplify (g/* M S))))))
 
   (testing "div"
     (let [M (m/by-rows '[a b] '[c d])

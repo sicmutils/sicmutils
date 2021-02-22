@@ -44,48 +44,6 @@
               (swap! count inc)
               (f x))])))
 
-(defmacro import-def
-  "Given a regular def'd var from another namespace, defined a new var with the
-   same name in the current namespace.
-
-  This macro is modeled after `potemkin.namespaces/import-def` but meant to be
-  usable from Clojurescript. In Clojurescript, it's not possible to:
-
-  - alter the metadata of a var after definition
-  - call `resolve` at macro-time
-
-  And therefore not possible to mirror the metadata from one var to another.
-  This simplified version therefore suffices in the cljs case."
-  ([sym]
-   `(import-def ~sym nil))
-  ([sym var-name]
-   (let [n (or var-name (symbol (name sym)))]
-     `(def ~n ~sym))))
-
-(defmacro import-vars
-  "import multiple defs from multiple namespaces. works for vars and fns. not
-  macros.
-
-  [[import-vars]] has the same syntax as `potemkin.namespaces/import-vars`:
-
-   ```clojure
-  (import-vars
-     [m.n.ns1 a b]
-     [x.y.ns2 d e f]) =>
-   (def a m.n.ns1/a)
-   (def b m.n.ns1/b)
-    ...
-   (def d m.n.ns2/d)
-    ... etc
-  ```"
-  [& imports]
-  (let [expanded-imports (for [[from-ns & defs] imports
-                               d defs
-                               :let [sym (symbol (str from-ns)
-                                                 (str d))]]
-                           `(def ~d ~sym))]
-    `(do ~@expanded-imports)))
-
 (def compute-sqrt #?(:clj nt/sqrt :cljs Math/sqrt))
 (def compute-expt #?(:clj nt/expt :cljs Math/pow))
 (def compute-abs #?(:clj nt/abs :cljs Math/abs))

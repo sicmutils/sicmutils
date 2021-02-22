@@ -52,15 +52,22 @@
                (up (* (sin (ψ t)) (sin (θ t)))
                    (* (cos (ψ t)) (sin (θ t)))
                    (cos (θ t))))
-             (simplify (M-on-path 't))))
+             (e/freeze
+              (simplify (M-on-path 't)))))
+
       (is (= '(column-matrix (+ (* (sin (ψ t)) (sin (θ t)) ((D φ) t)) (* (cos (ψ t)) ((D θ) t)))
                              (+ (* (cos (ψ t)) (sin (θ t)) ((D φ) t)) (* -1 (sin (ψ t)) ((D θ) t)))
                              (+ (* (cos (θ t)) ((D φ) t)) ((D ψ) t)))
-             (simplify (((r/M-of-q->omega-body-of-t Euler->M) q) 't))))
+             (e/freeze
+              (simplify
+               (((r/M-of-q->omega-body-of-t Euler->M) q) 't)))))
+
       (is (= '(column-matrix (+ (* φdot (sin ψ) (sin θ)) (* θdot (cos ψ)))
                              (+ (* φdot (cos ψ) (sin θ)) (* -1 θdot (sin ψ)))
                              (+ (* φdot (cos θ)) ψdot))
-             (simplify ((r/M->omega-body Euler->M) Euler-state)))))))
+             (e/freeze
+              (simplify
+               ((r/M->omega-body Euler->M) Euler-state))))))))
 
 (deftest section-2-9
   (is (= '(+ (* A φdot (expt (sin ψ) 2) (expt (sin θ) 2))

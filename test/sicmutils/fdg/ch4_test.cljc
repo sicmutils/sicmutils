@@ -188,7 +188,8 @@
                      (+ (* a (cos psi) (cos theta))
                         (* -1 c (sin psi) (sin theta)))
                      (* -1 a (sin theta))))
-               (simplify ((D g) 0))))
+               (e/freeze
+                (simplify ((D g) 0)))))
 
         (is (= '(matrix-by-rows
                  (up 0 0 0)
@@ -200,7 +201,8 @@
                      (+ (* (cos psi) (cos phi) (cos theta))
                         (* -1 (sin phi) (sin psi)))
                      (* -1 (cos phi) (sin theta))))
-               (simplify ((D h) 0))))))))
+               (e/freeze
+                (simplify ((D h) 0)))))))))
 
 (deftest section-4-3
   (e/let-coordinates

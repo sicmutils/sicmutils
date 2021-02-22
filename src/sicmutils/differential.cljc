@@ -729,7 +729,8 @@
         :else (->Differential terms)))
 
 (defn from-terms
-  "Accepts a sequence of terms (pairs of [tag-list, coefficient]), and returns:
+  "Accepts a sequence of terms (ie, pairs of `[tag-list, coefficient]`), and
+  returns:
 
   - a well-formed [[Differential]] instance, if the terms resolve to a
     differential with non-zero infinitesimal terms
@@ -833,7 +834,7 @@
   defaults to 1.
 
   `tag` defaults to a side-effecting call to [[fresh-tag]]; you can retrieve
-  this unknown tag by calling [[max-order-tag]]"
+  this unknown tag by calling [[max-order-tag]]."
   ([primal]
    {:pre [(v/numerical? primal)]}
    (bundle-element primal 1 (fresh-tag)))
@@ -1244,6 +1245,27 @@
                      (= f 0) (u/illegal "Derivative of g/abs undefined at zero")
                      :else (u/illegal (str "error! derivative of g/abs at" x)))]
       (func x))))
+
+(defn- discont-at-integers [f dfdx]
+  (let [f (lift-1 f (fn [_] dfdx))
+        f-name (v/freeze f)]
+    (fn [x]
+      (if (v/integral? (finite-term x))
+        (u/illegal
+         (str "Derivative of g/" f-name " undefined at integral points."))
+        (f x)))))
+
+(defunary g/floor
+  (discont-at-integers g/floor 0))
+
+(defunary g/ceiling
+  (discont-at-integers g/ceiling 0))
+
+(defunary g/integer-part
+  (discont-at-integers g/integer-part 0))
+
+(defunary g/fractional-part
+  (discont-at-integers g/fractional-part 1))
 
 (defunary g/sqrt (lift-1 g/sqrt))
 (defbinary g/expt (lift-2 g/expt))
