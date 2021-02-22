@@ -226,13 +226,6 @@
      (defmethod g/mul [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.mul a b)))
      (defmethod g/div [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.div a b)))
      (defmethod g/exact-divide [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.div a b)))
-
-     (defmethod g/remainder [Fraction Fraction] [a b] (.mod a b))
-     (defmethod g/remainder [::v/integral Fraction] [a b] (.mod (Fraction. a) b))
-     (defmethod g/remainder [Fraction ::v/integral] [a b] (.mod a b))
-     (defmethod g/modulo [Fraction Fraction] [a b] (.. a (mod b) (add b) (mod b)))
-     (defmethod g/modulo [::v/integral Fraction] [a b] (.. (Fraction. a) (mod b) (add b) (mod b)))
-     (defmethod g/modulo [Fraction ::v/integral] [a b] (.. a (mod b) (add b) (mod b)))
      (defmethod g/negate [Fraction] [^Fraction a] (promote (.neg a)))
      (defmethod g/negative? [Fraction] [^Fraction a] (neg? (.-s a)))
      (defmethod g/invert [Fraction] [^Fraction a] (promote (.inverse a)))
@@ -249,12 +242,17 @@
          (g/div (g/sqrt (u/double (numerator a)))
                 (g/sqrt (u/double (denominator a))))))
 
+     (defmethod g/modulo [Fraction Fraction] [^Fraction a ^Fraction b]
+       (promote
+        (.mod ^Fraction (.add ^Fraction (.mod a b) b) b)))
+
      ;; Only integral ratios let us stay exact. If a ratio appears in the
      ;; exponent, convert the base to a number and call g/expt again.
      (defmethod g/expt [Fraction Fraction] [a b]
        (if (v/one? (denominator b))
          (promote (.pow a (numerator b)))
-         (g/expt (.valueOf a) (.valueOf b))))
+         (g/expt (.valueOf a)
+                 (.valueOf b))))
 
      (defmethod g/quotient [Fraction Fraction] [^Fraction a ^Fraction b]
        (promote
@@ -294,6 +292,9 @@
      ;; We handle the cases above where the exponent connects with integrals and
      ;; stays exact.
      (downcast-fraction g/expt)
-     (doseq [op [g/add g/mul g/sub g/gcd g/remainder g/quotient g/div]]
+
+     (doseq [op [g/add g/mul g/sub g/gcd g/lcm
+                 g/modulo g/remainder
+                 g/quotient g/div]]
        (upcast-number op)
        (downcast-fraction op))))

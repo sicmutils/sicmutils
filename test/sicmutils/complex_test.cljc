@@ -149,20 +149,48 @@
       (is (= (c/complex 1 2) (g/integer-part (c/complex 1.5 2.9))))
       (is (= (c/complex -1 -2) (g/integer-part (c/complex -1.5 -2.9)))))
 
-    (testing "fractional-part"
+    (checking "integer-part pushes through to complex components" 100
+              [x sg/complex]
+              (is (= (g/integer-part x)
+                     (g/make-rectangular
+                      (g/integer-part (g/real-part x))
+                      (g/integer-part (g/imag-part x))))))
+
+    (testing "fractional-part unit tests"
       (is (= (c/complex 0 0) (g/fractional-part (c/complex 1 2))))
       (is (near (c/complex 0.5 0.9) (g/fractional-part (c/complex 1.5 2.9))))
       (is (near (c/complex 0.5 0.1) (g/fractional-part (c/complex -1.5 -2.9)))))
+
+    (checking "fractional-part pushes through to complex components" 100
+              [x sg/complex]
+              (is (= (g/fractional-part x)
+                     (g/make-rectangular
+                      (g/fractional-part (g/real-part x))
+                      (g/fractional-part (g/imag-part x))))))
 
     (testing "floor"
       (is (= (c/complex 1 2) (g/floor (c/complex 1 2))))
       (is (= (c/complex 1 2) (g/floor (c/complex 1.5 2.9))))
       (is (= (c/complex -2 -3) (g/floor (c/complex -1.5 -2.9)))))
 
+    (checking "floor pushes through to complex components" 100
+              [x sg/complex]
+              (is (= (g/floor x)
+                     (g/make-rectangular
+                      (g/floor (g/real-part x))
+                      (g/floor (g/imag-part x))))))
+
     (testing "ceiling"
       (is (= (c/complex 1 2) (g/ceiling (c/complex 1 2))))
       (is (= (c/complex 2 3) (g/ceiling (c/complex 1.5 2.9))))
       (is (= (c/complex -1 -2) (g/ceiling (c/complex -1.5 -2.9)))))
+
+    (checking "ceiling pushes through to complex components" 100
+              [x sg/complex]
+              (is (= (g/ceiling x)
+                     (g/make-rectangular
+                      (g/ceiling (g/real-part x))
+                      (g/ceiling (g/imag-part x))))))
 
     (testing "expt"
       (is (near -1 (g/expt (c/complex 0 1) 2)))
