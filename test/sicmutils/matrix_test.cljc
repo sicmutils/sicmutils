@@ -713,7 +713,34 @@
              (g/* (s/up 2)
                   (g/div (s/up 1 2 3)
                          (s/up 2))))
-          "s = x*(s/x)"))
+          "s = x*(s/x)")
+
+      (testing "structure multiplication, division are associative"
+        (let [a (s/up (s/down 'a 'b)
+                      (s/down 'c 'd))
+              b (s/down 'e 'f)]
+          (is (= '(down 0 0)
+                 (g/simplify
+                  (g/- b (g// (g/* a b) a))))
+              "(ab)/a == b with up-down, down")
+
+          (is (= '(down 0 0)
+                 (g/simplify
+                  (g/- b (g/* a (g// b a)))))
+              "a(b/a) == b with up-down, down")))
+
+      (let [a (s/down (s/up 'a 'b)
+                      (s/up 'c 'd))
+            b (s/up 'e 'f)]
+        (is (= '(up 0 0)
+               (g/simplify
+                (g/- b (g// (g/* a b) a))))
+            "(ab)/a == b with down-up, up")
+
+        (is (= '(up 0 0)
+               (g/simplify
+                (g/- b (g/* a (g// b a)))))
+            "a(b/a) == b with down-up, up")))
 
     (testing "inverse"
       (is (= (s/up (s/down 1))

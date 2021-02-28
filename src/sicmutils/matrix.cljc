@@ -827,6 +827,66 @@
     (when-not (= r c) (u/illegal "not square"))
     (determinant (g/- (g/* x (I r)) m))))
 
+;; ## Solving
+
+(defn cramers-rule
+  "Linear equations solved by Cramer's rule.
+
+   Solves an inhomogeneous system of linear equations, `A*x=b`, where the matrix
+   `A` and the column matrix `b` are given.
+
+   returns the column matrix `X`.
+
+   Unlike LU decomposition, Cramer's rule generalizes to symbolic solutions."
+  [A b]
+  {:pre [(square? A)
+         (column? b)
+         (= (dimension A) (num-rows b))]}
+  (let [bv (nth-col b 0)
+        d  (determinant A)
+        At (transpose A)]
+    (column*
+     (mapv (fn [i]
+             (g/div (determinant
+                     (with-substituted-row At i bv))
+                    d))
+           (range bv)))))
+
+(defn solve [A b]
+  (cramers-rule A b))
+
+(defn rsolve [b A]
+  (cond (s/up? b)   (column-matrix->up
+                     (solve A (up->column-matrix b)))
+        (column? b) (solve A b)
+        (s/down? b) (row-matrix->down
+                     (transpose
+                      (solve (transpose A)
+                             (transpose
+                              (down->row-matrix b)))))
+        (row? b)
+        (transpose
+         (solve (transpose A)
+                (transpose b)))
+        :else (u/illegal (str "I don't know how to solve:" b A))))
+
+(defn solve-linear [A b]
+  (rsolve b A))
+
+;; NOTE to get this to work, special-case the one matrix case with its type
+;; dispatch.
+
+(defmethod g/solve-linear [::square-matrix ::s/up] [A b] (solve-linear A b))
+(defmethod g/solve-linear [::square-matrix ::s/down] [A b] (solve-linear A b))
+(defmethod g/solve-linear [::square-matrix ::column-matrix] [A b] (solve-linear A b))
+(defmethod g/solve-linear [::square-matrix ::row-matrix] [A b] (solve-linear A b))
+
+(defmethod g/solve-linear-left [::square-matrix ::column-matrix] [A b] (solve-linear A b))
+(defmethod g/solve-linear-left [::square-matrix ::up] [A b] (solve-linear A b))
+
+(defmethod g/solve-linear-right [::row-matrix ::square-matrix] [b A] (rsolve b A))
+(defmethod g/solve-linear-right [::down ::square-matrix] [b A] (solve-linear b A))
+
 ;; ## Generic Operation Installation
 
 (defmethod g/negate [::matrix] [a] (fmap g/negate a))
@@ -873,10 +933,27 @@
       (s/opposite a' (map #(s/opposite a' %) a'))
       a')))
 
+(defn- s:solve-linear-left [M product]
+  (let [cp (s/compatible-shape product)
+        cr (s/compatible-shape (s/s:* cp M))]
+    (s/s:* (s:inverse cp M cr) product)))
+
+(defn- s:solve-linear-right [product M]
+  (let [cp (s/compatible-shape product)
+        cr (s/compatible-shape (s/s:* M cp))]
+    (s/s:* product (s:inverse cr M cp))))
+
 (defmethod g/div [::s/structure ::s/structure] [rv s]
-  (let [cp (s/compatible-shape rv)
-        cr (s/compatible-shape (s/s:* cp s))]
-    (s/s:* (s:inverse cp s cr) rv)))
+  (s:solve-linear-left s rv))
+
+(defmethod g/solve-linear [::s/structure ::s/structure] [a b]
+  (s:solve-linear-left a b))
+
+(defmethod g/solve-linear-left [::s/structure ::s/structure] [a b]
+  (s:solve-linear-left a b))
+
+(defmethod g/solve-linear-right [::s/structure ::s/structure] [a b]
+  (s:solve-linear-right a b))
 
 (defmethod g/dimension [::square-matrix] [m] (dimension m))
 (defmethod g/dimension [::column-matrix] [m] (num-rows m))
