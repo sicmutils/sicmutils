@@ -172,7 +172,8 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   constant [𝜑](https://en.wikipedia.org/wiki/Golden_ratio), also known as the
   Golden Ratio."}
   phi
-  (/ (inc (Math/sqrt 5.0)) 2.0))
+  (g/divide
+   (inc (Math/sqrt 5.0)) 2.0))
 
 (import-def structure/generate s:generate)
 (import-def matrix/generate m:generate)
