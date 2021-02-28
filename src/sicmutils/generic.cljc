@@ -466,8 +466,8 @@
   ([] 1)
   ([x] x)
   ([x y] (gcd x y))
-  ([x & rest]
-   (reduce gcd x rest)))
+  ([x y & rest]
+   (reduce gcd (gcd x y) rest)))
 
 (defgeneric lcm 2
   "Returns the [least common
