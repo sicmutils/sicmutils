@@ -542,7 +542,7 @@
             (log (sub 1 x)))
        2))
 
-;; Complex Operators
+;; ## Complex Operators
 
 (defgeneric make-rectangular 2)
 (defgeneric make-polar 2)
@@ -552,7 +552,7 @@
 (defgeneric angle 1)
 (defgeneric conjugate 1)
 
-;; Operations on structures
+;; ## Operations on structures
 
 (defgeneric transpose 1)
 (defgeneric trace 1)
@@ -563,7 +563,7 @@
 (defgeneric outer-product 2)
 (defgeneric cross-product 2)
 
-;; Structure Defaults
+;; ## Structure Defaults
 
 (defmethod transpose [::v/scalar] [a] a)
 (defmethod trace [::v/scalar] [a] a)
@@ -572,7 +572,19 @@
 (defmethod dot-product [::v/scalar ::v/scalar] [l r] (mul l r))
 (defmethod inner-product [::v/scalar ::v/scalar] [l r] (mul (conjugate l) r))
 
-;; More advanced generic operations.
+;; ## Solvers
+
+(defgeneric solve-linear 2)
+(defgeneric solve-linear-left 2)
+(defgeneric solve-linear-right 2)
+
+;; ### Solver Defaults
+
+(defmethod solve-linear [::v/scalar ::v/scalar] [x y] (div y x))
+(defmethod solve-linear-left [::v/scalar ::v/scalar] [x y] (div y x))
+(defmethod solve-linear-right [::v/scalar ::v/scalar] [x y] (div x y))
+
+;; ## More advanced generic operations
 
 (defgeneric partial-derivative 2)
 (defgeneric Lie-derivative 1)

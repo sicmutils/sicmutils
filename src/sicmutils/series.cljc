@@ -716,14 +716,28 @@
   (defmethod g/invert [kind] [s]
     (ctor (i/invert (seq s))))
 
-  (defmethod g/div [::coseries kind] [c s]
-    (ctor (i/c-div-seq c (seq s))))
+  ;; `g/div` and `g/solve-linear-right` act identically;
+  (doseq [generic-op [g/div g/solve-linear-right]]
+    (defmethod generic-op [::coseries kind] [c s]
+      (ctor (i/c-div-seq c (seq s))))
 
-  (defmethod g/div [kind ::coseries] [s c]
-    (ctor (i/seq-div-c (seq s) c)))
+    (defmethod generic-op [kind ::coseries] [s c]
+      (ctor (i/seq-div-c (seq s) c)))
 
-  (defmethod g/div [kind kind] [s t]
-    (ctor (i/div (seq s) (seq t))))
+    (defmethod generic-op [kind kind] [s t]
+      (ctor (i/div (seq s) (seq t)))))
+
+  ;; `g/solve-linear` and `g/solve-linear-left` are just like `g/div`, but
+  ;; reverse their arguments.
+  (doseq [generic-op [g/solve-linear g/solve-linear-left]]
+    (defmethod generic-op [::coseries kind] [c s]
+      (ctor (i/seq-div-c (seq s) c)))
+
+    (defmethod generic-op [kind ::coseries] [s c]
+      (ctor (i/c-div-seq c (seq s))))
+
+    (defmethod generic-op [kind kind] [s t]
+      (ctor (i/div (seq t) (seq s)))))
 
   (defmethod g/sqrt [kind] [s]
     (ctor (i/sqrt (seq s))))

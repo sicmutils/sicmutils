@@ -1267,6 +1267,11 @@
 (defunary g/fractional-part
   (discont-at-integers g/fractional-part 1))
 
+(let [div (lift-2 g/div)]
+  (defbinary g/solve-linear (fn [l r] (div r l)))
+  (defbinary g/solve-linear-left (fn [l r] (div r l)))
+  (defbinary g/solve-linear-right div))
+
 (defunary g/sqrt (lift-1 g/sqrt))
 (defbinary g/expt (lift-2 g/expt))
 (defunary g/log (lift-1 g/log))

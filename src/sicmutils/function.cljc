@@ -561,6 +561,10 @@
 (defbinary g/lcm)
 (defbinary g/exact-divide)
 
+(defbinary g/solve-linear)
+(defbinary g/solve-linear-left)
+(defbinary g/solve-linear-right)
+
 (defunary g/dimension)
 (defbinary g/dot-product)
 (defbinary g/inner-product)

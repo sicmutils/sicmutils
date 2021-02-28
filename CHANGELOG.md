@@ -1,6 +1,16 @@
 # Changelog
 
-## [Unreleased]
+## [unreleased]
+
+- Added `g/solve-linear`, `g/solve-linear-left`, `g/solve-linear-right`, with
+  implementations for:
+
+  - `sicmutils.series.{Series,PowerSeries}`
+  - all numeric types
+  - functions, operators
+  - `sicmutils.modint.ModInt`
+  - `sicmutils.differential.Differential`, so you can differentiate through this
+    operation
 
 ## 0.16.0
 
