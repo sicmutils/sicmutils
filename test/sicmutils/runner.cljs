@@ -72,6 +72,7 @@
             sicmutils.numerical.unimin.brent-test
             sicmutils.numerical.unimin.golden-test
 
+            sicmutils.util-test
             sicmutils.util.aggregate-test
             sicmutils.util.stream-test
             sicmutils.util.vector-set-test
@@ -150,6 +151,7 @@
            'sicmutils.numerical.unimin.brent-test
            'sicmutils.numerical.unimin.golden-test
 
+           'sicmutils.util-test
            'sicmutils.util.aggregate-test
            'sicmutils.util.stream-test
            'sicmutils.util.vector-set-test

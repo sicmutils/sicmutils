@@ -224,6 +224,85 @@
 (def ^:private decimal-subscripts
   [\₀ \₁ \₂ \₃ \₄ \₅ \₆ \₇ \₈ \₉])
 
+(def ^{:private true
+       :doc "Greek letter names we want to recognize that aren't supported by
+  TeX, mapped to their unicode characters."}
+  non-TeX-greek
+  {"Alpha" "Α"
+   "Beta" "Β"
+   "Epsilon" "Ε"
+   "Zeta" "Ζ"
+   "Eta" "Η"
+   "Iota" "Ι"
+   "Kappa" "Κ"
+   "Mu" "Μ"
+   "Nu" "Ν"
+   "omicron" "ο" "Omicron" "O"
+   "Rho" "Ρ"
+   "Tau" "Τ"
+   "Chi" "Χ"})
+
+(def  ^{:private true
+        :doc "Mapping of TeX-supported characters (Greek letter names and a few
+  others) to their corresponding unicode characters."}
+  sym->unicode
+  {"alpha" "α"
+   "beta" "β"
+   "gamma" "γ" "Gamma" "Γ"
+   "delta" "δ" "Delta" "Δ"
+   "epsilon" "ε" "varepsilon" "ϵ"
+   "zeta" "ζ"
+   "eta" "η"
+   "theta" "θ" "Theta" "Θ" "vartheta" "ϑ"
+   "iota" "ι"
+   "kappa" "κ"
+   "lambda" "λ" "Lambda" "Λ"
+   "mu" "μ"
+   "nu" "ν"
+   "xi" "ξ" "Xi" "Ξ"
+   "pi" "π" "Pi" "Π" "varpi" "ϖ"
+   "rho" "ρ" "varrho" "ϱ"
+   "sigma" "σ"  "Sigma" "Σ" "varsigma" "ς"
+   "tau" "τ"
+   "upsilon" "υ" "Upsilon" "Υ"
+   "phi" "φ" "Phi" "Φ" "varphi" "φ"
+   "chi" "χ"
+   "psi" "ψ" "Psi" "Ψ"
+   "omega" "ω" "Omega" "Ω"
+   "ell" "ℓ"
+   "ldots" "..."})
+
+(def ^{:private true
+       :doc "Map of of TeX-compatible greek letter names to their \\-prefixed
+  LaTeX code versions. alpha -> \\alpha, for example."}
+  TeX-letters
+  (into {} (map (fn [[k]]
+                  [k (str "\\" k)]))
+        sym->unicode))
+
+(def ^{:private true
+       :doc "Full mapping of special-cased TeX symbols to their TeX codes. This
+  includes all greek letters in both english ('alpha') and unicode ('α')
+  versions, plus a few more special-cased symbols."}
+  TeX-map
+  (let [sym->tex (->> (set/map-invert sym->unicode)
+                      (u/map-vals #(str "\\" %)))]
+    (merge TeX-letters
+           sym->tex
+           {"sin" "\\sin"
+            "cos" "\\cos"
+            "tan" "\\tan"
+            "asin" "\\arcsin"
+            "acos" "\\arccos"
+            "atan" "\\arctan"
+            "sinh" "\\sinh"
+            "cosh" "\\sinh"
+            "tanh" "\\sinh"
+            "cot" "\\cot"
+            "sec" "\\sec"
+            "csc" "\\csc"
+            "_" "\\_"})))
+
 (defn ^:private digit->int
   [^Character d]
   #?(:clj (Character/digit d 10)
@@ -239,6 +318,10 @@
 
 (def ^:private n->subscript #(n->script % decimal-subscripts))
 (def ^:private n->superscript #(n->script % decimal-superscripts))
+
+(def infix-sym->unicode
+  (merge non-TeX-greek
+         sym->unicode))
 
 (def ^{:doc "Converts an S-expression to printable infix form. Numeric exponents
   are written as superscripts. Partial derivatives get subscripts."}
@@ -264,38 +347,12 @@
                (when (and (= (count ds) 1) (integer? (first ds)))
                  (str "∂" (n->subscript (first ds)))))
     '/ render-infix-ratio}
-   :render-primitive (fn r [v]
-                       (let [s (str v)
-                             [_ stem subscript] (re-find #"(.+)_(\d+)$" s)]
-                         (when stem
-                           (str stem (n->subscript subscript)))))))
-
-(def ^{:private true
-       :doc "The set of names of TeX letters (e.g., the Greek letters). Symbols
-  whose names match this set are prefixed with \\, as in alpha -> \\alpha."}
-  TeX-letters
-  #{"alpha" "beta" "gamma" "delta" "epsilon" "varepsilon" "zeta" "eta"
-    "theta" "vartheta" "kappa" "lambda" "mu" "nu" "xi" "pi" "varpi"
-    "rho" "varrho" "sigma" "varsigma" "tau" "upsilon" "phi" "varphi"
-    "chi" "psi" "omega" "Gamma" "Delta" "Theta" "Lambda" "Xi" "Pi" "Sigma"
-    "Upsilon" "Phi" "Psi" "Omega" "ell"})
-
-(def ^{:private true
-       :doc "Direct mapping of symbols to TeX."}
-  TeX-map
-  {"α" "\\alpha",
-   "ω" "\\omega",
-   "θ" "\\theta",
-   "φ" "\\varphi",
-   "sin" "\\sin",
-   "cos" "\\cos",
-   "tan" "\\tan",
-   "asin" "\\arcsin",
-   "acos" "\\arccos",
-   "atan" "\\arctan",
-   "_" "\\_"
-   "..." "\\ldots"
-   })
+   :render-primitive (fn [v]
+                       (let [s (str v)]
+                         (or (infix-sym->unicode s)
+                             (let [[_ stem subscript] (re-find #"(.+)_(\d+)$" s)]
+                               (when stem
+                                 (str stem (n->subscript subscript)))))))))
 
 (defn ^:private brace
   "Wrap the argument, as a string, in braces"
@@ -409,31 +466,30 @@
 
              :else
              (let [s (str v)]
-               (cond (TeX-letters s) (str "\\" s)
-                     (TeX-map s) (TeX-map s)
-                     :else (condp re-find s
-                             ;; TODO: add support for superscripts
-                             #"(.+)_([0-9a-zA-Zαωθφ]+)$"
-                             :>> (fn [[_ stem subscript]]
-                                   (str (maybe-brace (r stem)) "_" (maybe-brace (r subscript))))
-                             ;; KaTeX doesn't do \dddot.
-                             #"(.+)dotdot$" :>> ddot
-                             #"(.+)dot$" :>> dot
-                             #"(.+)hat$" :>> hat
-                             #"(.+)primeprime$" :>> primeprime
-                             #"(.+)prime$" :>> prime
-                             #"(.+)bar$" :>> bar
-                             #"(.+)vec$" :>> vec
-                             #"(.+)tilde$" :>> tilde
-                             ;; wrap it if it's a multiletter variable... unless it looks
-                             ;; like a differential. (Too hacky?)
-                             (if (and (symbol? v)
-                                      (> (count s) 1)
-                                      (not (re-matches #"^d[a-zαωθφ]" s)))
-                               (if *TeX-sans-serif-symbols*
-                                 (str "\\mathsf" (brace s))
-                                 (brace s))
-                               v)))))))))
+               (or (TeX-map s)
+                   (condp re-find s
+                     ;; TODO: add support for superscripts
+                     #"(.+)_([0-9a-zA-Zαωθφ]+)$"
+                     :>> (fn [[_ stem subscript]]
+                           (str (maybe-brace (r stem)) "_" (maybe-brace (r subscript))))
+                     ;; KaTeX doesn't do \dddot.
+                     #"(.+)dotdot$" :>> ddot
+                     #"(.+)dot$" :>> dot
+                     #"(.+)hat$" :>> hat
+                     #"(.+)primeprime$" :>> primeprime
+                     #"(.+)prime$" :>> prime
+                     #"(.+)bar$" :>> bar
+                     #"(.+)vec$" :>> vec
+                     #"(.+)tilde$" :>> tilde
+                     ;; wrap it if it's a multiletter variable... unless it looks
+                     ;; like a differential. (Too hacky?)
+                     (if (and (symbol? v)
+                              (> (count s) 1)
+                              (not (re-matches #"^d[a-zαωθφ]" s)))
+                       (if *TeX-sans-serif-symbols*
+                         (str "\\mathsf" (brace s))
+                         (brace s))
+                       v)))))))))
 
 (defn ->TeX
   "Convert the given expression to TeX format, as a string.

@@ -213,7 +213,7 @@
   (is (= "x <= 4" (->infix '(<= x 4))))
   (is (= "x \\leq 4" (->TeX '(<= x 4))))
 
-  (is (= "e^(i pi) + 1 = 0"
+  (is (= "e^(i π) + 1 = 0"
          (->infix '(= (+ (expt e (* i pi)) 1) 0))))
   (is (= "{e}^{\\left(i\\,\\pi\\right)} + 1 = 0"
          (->TeX '(= (+ (expt e (* i pi)) 1) 0))))
@@ -226,7 +226,14 @@
   (is (= "4 \\leq 2 + 2 \\leq 1 + 3"
          (->TeX '(<= 4 (+ 2 2) (+ 1 3)))))
   (is (= "4 \\geq 2 + 2 \\geq 1 + 3"
-         (->TeX '(>= 4 (+ 2 2) (+ 1 3))))))
+         (->TeX '(>= 4 (+ 2 2) (+ 1 3)))))
+
+  (testing "infix symbols"
+    (= "sin(π) + sin(Π) + cos(ο) + atan(Α) + ..."
+       (->infix
+        '(+ (sin pi) (sin Pi)
+            (cos omicron) (atan Alpha)
+            ldots)))))
 
 (deftest equation-wrapper-tests
   (is (= (str "\\begin{equation}\n"
