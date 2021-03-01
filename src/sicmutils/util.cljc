@@ -70,10 +70,8 @@
 (defn ^boolean bigint?
   "Returns true if the supplied `x` is a `BigInt`, false otherwise."
   [x]
-  #?(:clj (instance? BigInt x)
-     :cljs (if-not (nil? x)
-             (identical? (.-constructor x) js/BigInt)
-             false)))
+  #?(:clj  (instance? BigInt x)
+     :cljs (= "bigint" (goog/typeOf x))))
 
 (defn parse-bigint [x]
   `(bigint ~x))
