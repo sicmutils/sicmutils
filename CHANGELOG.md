@@ -2,9 +2,14 @@
 
 ## [Unreleased]
 
+- #309: `sicmutils.util/bigint` is aliased as `sicmutils.env/bigint` in
+  Clojurescript only. This is available natively in Clojure.
+
 - #308 adds:
 
-  - `sicmutils.env/{numerator, denominator}` aliases in Clojurescript
+  - `sicmutils.ratio/{numerator,denominator}` are now aliased as
+    `sicmutils.env/{numerator, denominator}` in Clojurescript. These are
+    available natively in Clojure.
 
   - Proper superscript support in `->infix` and `->TeX` renderers.
 
