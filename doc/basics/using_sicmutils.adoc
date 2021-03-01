@@ -51,7 +51,7 @@ and hitting ``<space>`` in any block, and evaluating the following form:
 ----
 
 Any subsequent Clojurescript block will have every function in
-https://github.com/sicmutils/sicmutils/blob/master/src/sicmutils/env.cljc[``sicmutils.env``]
+https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/api/sicmutils.env[``sicmutils.env``]
 available.
 
 Visit the https://nextjournal.com/try/samritchie/sicmutils[SICMUtils Tutorial on
