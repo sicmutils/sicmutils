@@ -220,6 +220,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
  [sicmutils.abstract.number literal-number]
  [sicmutils.complex complex]
  #?(:cljs [sicmutils.ratio numerator denominator])
+ #?(:cljs [sicmutils.util bigint])
  [sicmutils.function arity compose arg-shift arg-scale I]
  [sicmutils.modint chinese-remainder]
  [sicmutils.operator commutator]
