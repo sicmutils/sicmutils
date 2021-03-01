@@ -2,8 +2,19 @@
 
 ## [Unreleased]
 
-- Added the mathematical constants `phi` and `e` bound to, respectively,
-  `sicmutils.env/{phi,euler}` (#306).
+- #308 adds:
+
+  - `sicmutils.env/{numerator, denominator}` aliases in Clojurescript
+
+  - Proper superscript support in `->infix` and `->TeX` renderers.
+
+  - `->infix` now renders any symbol named as an upper and lowercase greek
+    characters (`'alpha`, `'Phi` etc) as their proper unicode characters.
+    `'ldots` renders to '...', and `'ell` renders to a pretty "ℓ", matching the
+    TeX renderer.
+
+- #306: Added the mathematical constants `phi` and `e` bound to, respectively,
+  `sicmutils.env/{phi,euler}`.
 
 ## 0.16.0
 

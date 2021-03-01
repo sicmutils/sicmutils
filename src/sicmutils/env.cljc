@@ -51,6 +51,7 @@
             [sicmutils.generic :as g]
             [sicmutils.modint]
             [sicmutils.operator :as o]
+            [sicmutils.ratio]
             [sicmutils.simplify :as simp]
             [sicmutils.structure :as structure]
             [sicmutils.value :as v]
@@ -218,6 +219,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
 (import-vars
  [sicmutils.abstract.number literal-number]
  [sicmutils.complex complex]
+ #?(:cljs [sicmutils.ratio numerator denominator])
  [sicmutils.function arity compose arg-shift arg-scale I]
  [sicmutils.modint chinese-remainder]
  [sicmutils.operator commutator]

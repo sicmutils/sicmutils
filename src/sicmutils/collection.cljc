@@ -116,35 +116,30 @@
      (derive PersistentArrayMap ::map)
      (derive PersistentTreeMap ::map)))
 
-(letfn [(map-vals [f m]
-          (into (empty m)
-                (map (fn [[k v]] [k (f v)]))
-                m))]
+(defmethod g/simplify [::map] [m]
+  (u/map-vals g/simplify m))
 
-  (defmethod g/simplify [::map] [m]
-    (map-vals g/simplify m))
-
-  (defmethod g/partial-derivative [::map v/seqtype] [m selectors]
-    (map-vals #(g/partial-derivative % selectors)
+(defmethod g/partial-derivative [::map v/seqtype] [m selectors]
+  (u/map-vals #(g/partial-derivative % selectors)
               m))
 
-  (#?@(:clj [do] :cljs [doseq [klass [PersistentHashMap PersistentArrayMap PersistentTreeMap]]])
-   (extend-type #?(:clj IPersistentMap :cljs klass)
-     v/Value
-     (zero? [m] (every? v/zero? (vals m)))
-     (one? [_] false)
-     (identity? [_] false)
-     (zero-like [m] (map-vals v/zero-like m))
-     (one-like [m] (u/unsupported (str "one-like: " m)))
-     (identity-like [m] (u/unsupported (str "identity-like: " m)))
-     (exact? [m] (every? v/exact? (vals m)))
-     (freeze [m] (map-vals v/freeze m))
-     (kind [m] (:type m (type m)))
+(#?@(:clj [do] :cljs [doseq [klass [PersistentHashMap PersistentArrayMap PersistentTreeMap]]])
+ (extend-type #?(:clj IPersistentMap :cljs klass)
+   v/Value
+   (zero? [m] (every? v/zero? (vals m)))
+   (one? [_] false)
+   (identity? [_] false)
+   (zero-like [m] (u/map-vals v/zero-like m))
+   (one-like [m] (u/unsupported (str "one-like: " m)))
+   (identity-like [m] (u/unsupported (str "identity-like: " m)))
+   (exact? [m] (every? v/exact? (vals m)))
+   (freeze [m] (u/map-vals v/freeze m))
+   (kind [m] (:type m (type m)))
 
-     f/IArity
-     (arity [m] [:between 1 2])
+   f/IArity
+   (arity [m] [:between 1 2])
 
-     d/IPerturbed
-     (perturbed? [m] (boolean (some d/perturbed? (vals m))))
-     (replace-tag [m old new] (map-vals #(d/replace-tag % old new) m))
-     (extract-tangent [m tag] (map-vals #(d/extract-tangent % tag) m)))))
+   d/IPerturbed
+   (perturbed? [m] (boolean (some d/perturbed? (vals m))))
+   (replace-tag [m old new] (u/map-vals #(d/replace-tag % old new) m))
+   (extract-tangent [m tag] (u/map-vals #(d/extract-tangent % tag) m))))

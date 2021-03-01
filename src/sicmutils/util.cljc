@@ -54,6 +54,15 @@
 (defn keyset [m]
   (into #{} (keys m)))
 
+(defn map-vals
+  "Returns a map of identical type and key set to `m`, with each value `v`
+  transformed by the supplied function`f` into `(f v)`."
+  [f m]
+  (reduce-kv (fn [acc k v]
+               (assoc acc k (f v)))
+             (empty m)
+             m))
+
 (defn bigint [x]
   #?(:clj (core-bigint x)
      :cljs (js/BigInt x)))
