@@ -2,13 +2,15 @@
 
 ## [Unreleased]
 
-- `->infix` now renders any symbol named as an upper and lowercase greek
+- #308: Proper superscript support in `->infix` and `->TeX` renderers.
+
+- #308: `->infix` now renders any symbol named as an upper and lowercase greek
   characters (`'alpha`, `'Phi` etc) as their proper unicode characters. `'ldots`
   renders to '...', and `'ell` renders to a pretty "ℓ", matching the TeX
   renderer.
 
-- Added the mathematical constants `phi` and `e` bound to, respectively,
-  `sicmutils.env/{phi,euler}` (#306).
+- #306: Added the mathematical constants `phi` and `e` bound to, respectively,
+  `sicmutils.env/{phi,euler}`.
 
 ## 0.16.0
 

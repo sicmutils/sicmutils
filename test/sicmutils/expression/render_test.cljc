@@ -145,8 +145,14 @@
              (->TeX (down 1 2 3)))
           "bind the dynamic variable falsey to get horz down tuples."))))
 
-(deftest variable-subscripts
-  (is (= "x₀ + y₁ + z₂" (->infix (+ 'x_0 'y_1 'z_2)))))
+(deftest variable-sub-super-scripts
+  (testing "infix"
+    (is (= "x⁰ + y¹ + z²" (->infix (+ 'x↑0 'y↑1 'z↑2))))
+    (is (= "x₀ + y₁ + z₂" (->infix (+ 'x_0 'y_1 'z_2)))))
+
+  (testing "TeX"
+    (is (= "x^0 + y^1 + z^2" (->TeX (+ 'x↑0 'y↑1 'z↑2))))
+    (is (= "x_0 + y_1 + z_2" (->TeX (+ 'x_0 'y_1 'z_2))))))
 
 (deftest accent-tests
   (testing "various accents and special exponents in TeX"
@@ -233,7 +239,33 @@
        (->infix
         '(+ (sin pi) (sin Pi)
             (cos omicron) (atan Alpha)
-            ldots)))))
+            ldots))))
+
+  (testing "unicode->tex"
+    (is (= (str "\\begin{pmatrix}"
+                "\\displaystyle{{\\Delta}_{\\rho}} \\cr \\cr"
+                " \\displaystyle{{\\varepsilon}^{\\omega}} \\cr \\cr"
+                " \\displaystyle{{\\varrho}_{\\varsigma}}"
+                "\\end{pmatrix}")
+           (->TeX '(up Δ_ρ ϵ↑ω ϱ_ς)))
+        "->TeX can handle unicode greek characters in subscript and superscript
+        position."))
+
+  (testing "superscript support"
+    (is (= "{{{p^2}_1}^{12}}^{12}"
+           (->TeX 'p↑2_1↑12↑12))
+        "nested sequences don't look great; they certainly don't render as
+        tensor indexing notation.")
+
+    (is (= "p²₁¹²¹²"
+           (->infix 'p↑2_1↑12↑12))
+        "nested sequences don't look great; succcessive superscripts and
+        subscripts don't demarcate.")
+
+    (testing "Both sides if a subscript or superscript are rendered."
+      (is (= "φ_θ" (->infix "phi_theta")))
+      (is (= "φ↑θ₁↑ζ_π" (->infix 'phi↑theta_1↑zeta_pi))
+          "numbers are subscripted when they appear"))))
 
 (deftest equation-wrapper-tests
   (is (= (str "\\begin{equation}\n"

@@ -224,6 +224,12 @@
 (def ^:private decimal-subscripts
   [\₀ \₁ \₂ \₃ \₄ \₅ \₆ \₇ \₈ \₉])
 
+(def ^:private subscript-pattern
+  #"(.+)_([0-9a-zA-ZϖγηΦνΩδυσιΔρϵωϱςψΠπϑΞκφχζΨτΓΛΘΥμθαℓβΣξλφε]+)$")
+
+(def ^:private superscript-pattern
+  #"(.+)↑([0-9a-zA-ZϖγηΦνΩδυσιΔρϵωϱςψΠπϑΞκφχζΨτΓΛΘΥμθαℓβΣξλφε]+)$")
+
 (def ^{:private true
        :doc "Greek letter names we want to recognize that aren't supported by
   TeX, mapped to their unicode characters."}
@@ -347,12 +353,23 @@
                (when (and (= (count ds) 1) (integer? (first ds)))
                  (str "∂" (n->subscript (first ds)))))
     '/ render-infix-ratio}
-   :render-primitive (fn [v]
-                       (let [s (str v)]
-                         (or (infix-sym->unicode s)
-                             (let [[_ stem subscript] (re-find #"(.+)_(\d+)$" s)]
-                               (when stem
-                                 (str stem (n->subscript subscript)))))))))
+   :render-primitive
+   (fn r [v]
+     (let [s (str v)]
+       (or (infix-sym->unicode s)
+           (condp re-find s
+             superscript-pattern
+             :>> (fn [[_ stem superscript]]
+                   (if-let [n (re-matches #"[0-9]+" superscript)]
+                     (str (r stem) (n->superscript n))
+                     (str (r stem) "↑" (r superscript))))
+
+             subscript-pattern
+             :>> (fn [[_ stem subscript]]
+                   (if-let [n (re-matches #"[0-9]+" subscript)]
+                     (str (r stem) (n->subscript n))
+                     (str (r stem) "_" (r subscript))))
+             v))))))
 
 (defn ^:private brace
   "Wrap the argument, as a string, in braces"
@@ -468,10 +485,16 @@
              (let [s (str v)]
                (or (TeX-map s)
                    (condp re-find s
-                     ;; TODO: add support for superscripts
-                     #"(.+)_([0-9a-zA-Zαωθφ]+)$"
+                     superscript-pattern
+                     :>> (fn [[_ stem superscript]]
+                           (str (maybe-brace (r stem))
+                                "^" (maybe-brace (r superscript))))
+
+                     subscript-pattern
                      :>> (fn [[_ stem subscript]]
-                           (str (maybe-brace (r stem)) "_" (maybe-brace (r subscript))))
+                           (str (maybe-brace (r stem))
+                                "_" (maybe-brace (r subscript))))
+
                      ;; KaTeX doesn't do \dddot.
                      #"(.+)dotdot$" :>> ddot
                      #"(.+)dot$" :>> dot
