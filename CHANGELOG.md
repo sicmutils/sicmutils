@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Added the mathematical constants `phi` and `e` bound to, respectively,
+  `sicmutils.env/{phi,euler}` (#306).
+
 ## 0.16.0
 
 > (If you have any questions about how to use any of the following, please ask us
