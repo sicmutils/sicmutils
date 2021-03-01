@@ -92,7 +92,7 @@ and
 (square (sin (+ 'a 3)))
 ;;=> (expt (sin (+ a 3)) 2)
 
-(render (sin (+ 'a 3)))
+(render (square (sin (+ 'a 3))))
 ;;=> "sin²(a + 3)"
 ```
 
