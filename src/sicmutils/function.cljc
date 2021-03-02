@@ -501,11 +501,15 @@
 (defunary g/invert)
 (defbinary g/div g/divide)
 (defbinary g/expt)
+(defunary g/sqrt)
 
 (defunary g/negate)
 (defunary g/negative?)
 (defunary g/abs)
-(defunary g/sqrt)
+(defunary g/floor)
+(defunary g/ceiling)
+(defunary g/integer-part)
+(defunary g/fractional-part)
 
 (defbinary g/quotient)
 (defbinary g/remainder)
@@ -580,3 +584,5 @@
 (defunary g/magnitude)
 (defunary g/angle)
 (defunary g/conjugate)
+
+(defunary g/simplify)
