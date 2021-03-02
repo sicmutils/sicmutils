@@ -128,9 +128,11 @@
 (def ^:private add (modular-binop g/add))
 (def ^:private sub (modular-binop g/sub))
 (def ^:private mul (modular-binop g/mul))
-(def ^:private div (modular-binop g/div))
 (def ^:private remainder (modular-binop g/remainder))
 (def ^:private modulo (modular-binop g/modulo))
+
+(defn- div [a b]
+  (mul a (invert b)))
 
 (defmethod g/integer-part [::modint] [a] (:i a))
 (defmethod g/fractional-part [::modint] [a] 0)
