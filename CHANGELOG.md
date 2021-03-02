@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- #310: `g/make-rectangular` and `g/make-polar` now return non-Complex numbers
+  on the JVM if you pass `0` for the (respectively) imaginary or angle
+  components. Previously this behavior only occurred on an integer 0; now it
+  happens with 0.0 too, matching CLJS.
+
 - #309: `sicmutils.util/bigint` is aliased as `sicmutils.env/bigint` in
   Clojurescript only. This is available natively in Clojure.
 

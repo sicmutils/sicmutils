@@ -480,28 +480,19 @@
                 (is (ish? n (g/tanh (g/atanh n))))))))
 
 (deftest complex-constructor-tests
-  (checking "make-rectangular with zero acts as id" 100 [n sg/real]
-            (let [z (g/make-rectangular n 0)]
+  (checking "make-rectangular with zero (exact and inexact) acts as id" 100
+            [n sg/real]
+            (doseq [z [(g/make-rectangular n 0.0)
+                       (g/make-rectangular n 0)]]
               (is (= n z))
-              (is (not (c/complex? z))))
+              (is (not (c/complex? z)))))
 
-            #?(:clj
-               (is (c/complex? (g/make-rectangular n 0.0))
-                   "On the JVM we can make a non-exact zero and show that this
-                   forces a conversion to complex.")))
-
-  (checking "make-polar with zero angle or radius acts as id" 100 [n sg/real]
-            (let [z (g/make-polar n 0)]
+  (checking "make-polar with zero angle or radius acts as id" 100
+            [n sg/real]
+            (doseq [z [(g/make-polar n 0)
+                       (g/make-polar n 0.0)]]
               (is (= n z))
-              (is (not (c/complex? z))))
-
-            #?(:clj
-               (if (v/exact-zero? n)
-                 (is (not (c/complex? (g/make-polar n 0.0)))
-                     "exactly-zero radius stays itself.")
-                 (is (c/complex? (g/make-polar n 0.0))
-                     "On the JVM we can make a non-exact zero and show that this
-                   forces a conversion to complex."))))
+              (is (not (c/complex? z)))))
 
   (checking "make-rectangular" 100
             [real-part      (sg/reasonable-real 1e4)
