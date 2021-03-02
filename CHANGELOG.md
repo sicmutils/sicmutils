@@ -2,14 +2,20 @@
 
 ## [Unreleased]
 
+- #310: `g/make-rectangular` and `g/make-polar` now return non-Complex numbers
+  on the JVM if you pass `0` for the (respectively) imaginary or angle
+  components. Previously this behavior only occurred on an integer 0; now it
+  happens with 0.0 too, matching CLJS.
+
 - #309: `sicmutils.util/bigint` is aliased as `sicmutils.env/bigint` in
   Clojurescript only. This is available natively in Clojure.
 
-- #308 adds:
+- #308 and #310 add:
 
-  - `sicmutils.ratio/{numerator,denominator}` are now aliased as
-    `sicmutils.env/{numerator, denominator}` in Clojurescript. These are
-    available natively in Clojure.
+  - `sicmutils.ratio/{numerator,denominator,ratio?,rationalize}` and are now
+    aliased into `sicmutils.env` in Clojurescript. These are available natively
+    in Clojure. `sicmutils.complex/complex?` is aliased into `sicmutils.env` for
+    both platforms.
 
   - Proper superscript support in `->infix` and `->TeX` renderers.
 

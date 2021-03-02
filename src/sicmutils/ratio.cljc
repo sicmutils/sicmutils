@@ -33,6 +33,7 @@
                               numerator core-numerator}))
   (:require #?(:clj [clojure.edn] :cljs [cljs.reader])
             #?(:cljs [goog.array :as garray])
+            #?(:cljs [goog.object :as obj])
             [sicmutils.complex :as c]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
@@ -51,13 +52,13 @@
 (def numerator
   #?(:clj core-numerator
      :cljs (fn [^Fraction x]
-             (if (pos? (.-s x))
-               (.-n x)
-               (- (.-n x))))))
+             (if (pos? (obj/get x "s"))
+               (obj/get x "n")
+               (- (obj/get x "n"))))))
 
 (def denominator
   #?(:clj core-denominator
-     :cljs (fn [^Fraction x] (.-d x))))
+     :cljs #(obj/get % "d")))
 
 (defn- promote [x]
   (if (v/one? (denominator x))
@@ -227,7 +228,7 @@
      (defmethod g/div [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.div a b)))
      (defmethod g/exact-divide [Fraction Fraction] [^Fraction a ^Fraction b] (promote (.div a b)))
      (defmethod g/negate [Fraction] [^Fraction a] (promote (.neg a)))
-     (defmethod g/negative? [Fraction] [^Fraction a] (neg? (.-s a)))
+     (defmethod g/negative? [Fraction] [^Fraction a] (neg? (obj/get a "s")))
      (defmethod g/invert [Fraction] [^Fraction a] (promote (.inverse a)))
      (defmethod g/square [Fraction] [^Fraction a] (promote (.mul a a)))
      (defmethod g/cube [Fraction] [^Fraction a] (promote (.pow a 3)))
@@ -257,7 +258,7 @@
      (defmethod g/quotient [Fraction Fraction] [^Fraction a ^Fraction b]
        (promote
         (let [^Fraction x (.div a b)]
-          (if (pos? (.-s x))
+          (if (pos? (obj/get x "s"))
             (.floor x)
             (.ceil x)))))
 
