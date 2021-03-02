@@ -218,8 +218,9 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
 
 (import-vars
  [sicmutils.abstract.number literal-number]
- [sicmutils.complex complex]
- #?(:cljs [sicmutils.ratio numerator denominator])
+ [sicmutils.complex complex complex?]
+ #?(:cljs [sicmutils.ratio
+           ratio? rationalize numerator denominator])
  #?(:cljs [sicmutils.util bigint])
  [sicmutils.function arity compose arg-shift arg-scale I]
  [sicmutils.modint chinese-remainder]

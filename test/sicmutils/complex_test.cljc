@@ -147,7 +147,9 @@
     (testing "integer-part"
       (is (= (c/complex 1 2) (g/integer-part (c/complex 1 2))))
       (is (= (c/complex 1 2) (g/integer-part (c/complex 1.5 2.9))))
-      (is (= (c/complex -1 -2) (g/integer-part (c/complex -1.5 -2.9)))))
+      (is (= (c/complex -1 -2) (g/integer-part (c/complex -1.5 -2.9))))
+      (is (= -1 (g/integer-part (c/complex -1.5 0.9)))
+          "imaginary part drops off if == zero"))
 
     (checking "integer-part pushes through to complex components" 100
               [x sg/complex]
@@ -159,7 +161,9 @@
     (testing "fractional-part unit tests"
       (is (= (c/complex 0 0) (g/fractional-part (c/complex 1 2))))
       (is (near (c/complex 0.5 0.9) (g/fractional-part (c/complex 1.5 2.9))))
-      (is (near (c/complex 0.5 0.1) (g/fractional-part (c/complex -1.5 -2.9)))))
+      (is (near (c/complex 0.5 0.1) (g/fractional-part (c/complex -1.5 -2.9))))
+      (is (= 0.5 (g/fractional-part (c/complex -1.5 2)))
+          "imaginary part drops off if == zero"))
 
     (checking "fractional-part pushes through to complex components" 100
               [x sg/complex]
