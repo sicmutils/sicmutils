@@ -73,13 +73,13 @@
      :cljs (obj/get a "im")))
 
 (defmethod g/make-rectangular [::v/real ::v/real] [re im]
-  (if (v/exact-zero? im)
+  (if (v/zero? im)
     re
     (complex re im)))
 
 (defmethod g/make-polar [::v/real ::v/real] [radius angle]
-  (cond (v/exact-zero? radius) radius
-        (v/exact-zero? angle)  radius
+  (cond (v/zero? radius) radius
+        (v/zero? angle)  radius
         :else
         #?(:cljs (Complex. #js {:abs (js/Number radius)
                                 :arg (js/Number angle)})
