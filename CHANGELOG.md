@@ -12,6 +12,31 @@
   - `sicmutils.differential.Differential`, so you can differentiate through this
     operation
 
+- #310: `g/make-rectangular` and `g/make-polar` now return non-Complex numbers
+  on the JVM if you pass `0` for the (respectively) imaginary or angle
+  components. Previously this behavior only occurred on an integer 0; now it
+  happens with 0.0 too, matching CLJS.
+
+- #309: `sicmutils.util/bigint` is aliased as `sicmutils.env/bigint` in
+  Clojurescript only. This is available natively in Clojure.
+
+- #308 and #310 add:
+
+  - `sicmutils.ratio/{numerator,denominator,ratio?,rationalize}` and are now
+    aliased into `sicmutils.env` in Clojurescript. These are available natively
+    in Clojure. `sicmutils.complex/complex?` is aliased into `sicmutils.env` for
+    both platforms.
+
+  - Proper superscript support in `->infix` and `->TeX` renderers.
+
+  - `->infix` now renders any symbol named as an upper and lowercase greek
+    characters (`'alpha`, `'Phi` etc) as their proper unicode characters.
+    `'ldots` renders to '...', and `'ell` renders to a pretty "ℓ", matching the
+    TeX renderer.
+
+- #306: Added the mathematical constants `phi` and `e` bound to, respectively,
+  `sicmutils.env/{phi,euler}`.
+
 ## 0.16.0
 
 > (If you have any questions about how to use any of the following, please ask us

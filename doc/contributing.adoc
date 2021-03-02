@@ -1,5 +1,59 @@
 = Getting Involved / What's Missing?
 
-More info coming soon!
+== Getting Involved / What's Missing?
 
-- SICMUtils Study Group
+Here's a short overview. More info coming soon!
+
+=== Developing in SICMUtils
+
+To run all tests in Clojure, you'll need the https://leiningen.org[Leiningen]
+build tool. The Clojurescript tests require https://nodejs.org/en/[Node.js]. If
+you're on a Mac, install https://brew.sh[Homebrew]:
+
+[source, bash]
+----
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+----
+
+Then run
+
+[source, bash]
+----
+brew install leiningen node
+----
+
+To get both dependencies.
+
+=== Clojure Tests
+
+To run the full Clojure test suite:
+
+[source, bash]
+----
+lein test
+----
+
+=== Clojurescript Tests
+
+To run the full Clojurescript test suite:
+
+[source, bash]
+----
+lein test-cljs
+----
+
+We check for advanced compilation warnings using [shadow-cljs].
+
+In the ``sicmutils`` directory, run
+
+[source, bash]
+----
+npm install
+----
+
+Then, to compile cljs and see any warnings:
+
+[source, bash]
+----
+shadow-cljs watch test
+----

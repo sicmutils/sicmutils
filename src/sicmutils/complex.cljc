@@ -27,20 +27,24 @@
   (:require [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v]
+            #?(:cljs [goog.object :as obj])
             #?(:cljs ["complex.js" :as Complex]))
   #?(:clj
      (:import [org.apache.commons.math3.complex Complex ComplexFormat])))
 
 (def ^{:doc "A [[Complex]] value equal to 0 (south pole on the Riemann Sphere)."}
   ZERO
-  #?(:clj Complex/ZERO :cljs (.-ZERO Complex)))
+  #?(:clj Complex/ZERO
+     :cljs (obj/get Complex "ZERO")))
 
 (def ^{:doc "A [[Complex]] value equal to 1."}
-  ONE #?(:clj Complex/ONE :cljs (.-ONE Complex)))
+  ONE #?(:clj Complex/ONE
+         :cljs (obj/get Complex "ONE")))
 
 (def  ^{:doc "A [[Complex]] value equal to `i`."}
   I
-  #?(:clj Complex/I :cljs (.-I Complex)))
+  #?(:clj Complex/I
+     :cljs (obj/get Complex "I")))
 
 (def ^:no-doc complextype Complex)
 
@@ -60,14 +64,22 @@
   [a]
   (instance? Complex a))
 
+(defn- real [^Complex a]
+  #?(:clj (.getReal a)
+     :cljs (obj/get a "re")))
+
+(defn- imaginary [^Complex a]
+  #?(:clj (.getImaginary a)
+     :cljs (obj/get a "im")))
+
 (defmethod g/make-rectangular [::v/real ::v/real] [re im]
-  (if (v/exact-zero? im)
+  (if (v/zero? im)
     re
     (complex re im)))
 
 (defmethod g/make-polar [::v/real ::v/real] [radius angle]
-  (cond (v/exact-zero? radius) radius
-        (v/exact-zero? angle)  radius
+  (cond (v/zero? radius) radius
+        (v/zero? angle)  radius
         :else
         #?(:cljs (Complex. #js {:abs (js/Number radius)
                                 :arg (js/Number angle)})
@@ -75,8 +87,8 @@
                   (Complex. (* radius (Math/cos angle))
                             (* radius (Math/sin angle)))))))
 
-(defmethod g/real-part [::complex] [^Complex a] (#?(:clj .getReal :cljs .-re) a))
-(defmethod g/imag-part [::complex] [^Complex a] (#?(:clj .getImaginary :cljs .-im) a))
+(defmethod g/real-part [::complex] [a] (real a))
+(defmethod g/imag-part [::complex] [a] (imaginary a))
 (defmethod g/magnitude [::complex] [^Complex a] (.abs a))
 (defmethod g/angle [::complex] [^Complex a] (#?(:clj .getArgument :cljs .arg) a))
 (defmethod g/conjugate [::complex] [^Complex a] (.conjugate a))
@@ -87,8 +99,8 @@
   #?(:clj (let [cf (ComplexFormat.)]
             (fn [s]
               (let [v (.parse cf s)]
-                `(complex ~(g/real-part v)
-                          ~(g/imag-part v)))))
+                `(complex ~(real v)
+                          ~(imaginary v)))))
 
      :cljs (fn [s] `(complex ~s))))
 
@@ -122,13 +134,13 @@
   (zero-like [_] ZERO)
   (one-like [_] ONE)
   (identity-like [_] ONE)
-  (freeze [c] (let [re (g/real-part c)
-                    im (g/imag-part c)]
+  (freeze [c] (let [re (real c)
+                    im (imaginary c)]
                 (if (v/zero? im)
                   re
                   (list 'complex re im))))
-  (exact? [c] (and (v/exact? (g/real-part c))
-                   (v/exact? (g/imag-part c))))
+  (exact? [c] (and (v/exact? (real c))
+                   (v/exact? (imaginary c))))
   (kind [_] ::complex))
 
 (defmethod g/add [::complex ::complex] [^Complex a ^Complex b] (.add a b))
@@ -154,17 +166,19 @@
 (defmethod g/sinh [::complex] [^Complex a] (.sinh a))
 (defmethod g/tanh [::complex] [^Complex a] (.tanh a))
 
-(defmethod g/integer-part [::complex] [^Complex a]
-  (let [re (g/integer-part (#?(:clj .getReal :cljs .-re) a))
-        im (g/integer-part (#?(:clj .getImaginary :cljs .-im) a))]
+(defmethod g/integer-part [::complex] [a]
+  (let [re (g/integer-part (real a))
+        im (g/integer-part (imaginary a))]
     (if (v/zero? im)
       re
       (complex re im))))
 
-(defmethod g/fractional-part [::complex] [^Complex a]
-  (complex
-   (g/fractional-part (#?(:clj .getReal :cljs .-re) a))
-   (g/fractional-part (#?(:clj .getImaginary :cljs .-im) a))))
+(defmethod g/fractional-part [::complex] [a]
+  (let [re (g/fractional-part (real a))
+        im (g/fractional-part (imaginary a))]
+    (if (v/zero? im)
+      re
+      (complex re im))))
 
 #?(:cljs
    ;; These are all defined explicitly in Complex.js.

@@ -145,8 +145,14 @@
              (->TeX (down 1 2 3)))
           "bind the dynamic variable falsey to get horz down tuples."))))
 
-(deftest variable-subscripts
-  (is (= "x₀ + y₁ + z₂" (->infix (+ 'x_0 'y_1 'z_2)))))
+(deftest variable-sub-super-scripts
+  (testing "infix"
+    (is (= "x⁰ + y¹ + z²" (->infix (+ 'x↑0 'y↑1 'z↑2))))
+    (is (= "x₀ + y₁ + z₂" (->infix (+ 'x_0 'y_1 'z_2)))))
+
+  (testing "TeX"
+    (is (= "x^0 + y^1 + z^2" (->TeX (+ 'x↑0 'y↑1 'z↑2))))
+    (is (= "x_0 + y_1 + z_2" (->TeX (+ 'x_0 'y_1 'z_2))))))
 
 (deftest accent-tests
   (testing "various accents and special exponents in TeX"
@@ -213,7 +219,7 @@
   (is (= "x <= 4" (->infix '(<= x 4))))
   (is (= "x \\leq 4" (->TeX '(<= x 4))))
 
-  (is (= "e^(i pi) + 1 = 0"
+  (is (= "e^(i π) + 1 = 0"
          (->infix '(= (+ (expt e (* i pi)) 1) 0))))
   (is (= "{e}^{\\left(i\\,\\pi\\right)} + 1 = 0"
          (->TeX '(= (+ (expt e (* i pi)) 1) 0))))
@@ -226,7 +232,40 @@
   (is (= "4 \\leq 2 + 2 \\leq 1 + 3"
          (->TeX '(<= 4 (+ 2 2) (+ 1 3)))))
   (is (= "4 \\geq 2 + 2 \\geq 1 + 3"
-         (->TeX '(>= 4 (+ 2 2) (+ 1 3))))))
+         (->TeX '(>= 4 (+ 2 2) (+ 1 3)))))
+
+  (testing "infix symbols"
+    (= "sin(π) + sin(Π) + cos(ο) + atan(Α) + ..."
+       (->infix
+        '(+ (sin pi) (sin Pi)
+            (cos omicron) (atan Alpha)
+            ldots))))
+
+  (testing "unicode->tex"
+    (is (= (str "\\begin{pmatrix}"
+                "\\displaystyle{{\\Delta}_{\\rho}} \\cr \\cr"
+                " \\displaystyle{{\\varepsilon}^{\\omega}} \\cr \\cr"
+                " \\displaystyle{{\\varrho}_{\\varsigma}}"
+                "\\end{pmatrix}")
+           (->TeX '(up Δ_ρ ϵ↑ω ϱ_ς)))
+        "->TeX can handle unicode greek characters in subscript and superscript
+        position."))
+
+  (testing "superscript support"
+    (is (= "{{{p^2}_1}^{12}}^{12}"
+           (->TeX 'p↑2_1↑12↑12))
+        "nested sequences don't look great; they certainly don't render as
+        tensor indexing notation.")
+
+    (is (= "p²₁¹²¹²"
+           (->infix 'p↑2_1↑12↑12))
+        "nested sequences don't look great; succcessive superscripts and
+        subscripts don't demarcate.")
+
+    (testing "Both sides if a subscript or superscript are rendered."
+      (is (= "φ_θ" (->infix "phi_theta")))
+      (is (= "φ↑θ₁↑ζ_π" (->infix 'phi↑theta_1↑zeta_pi))
+          "numbers are subscripted when they appear"))))
 
 (deftest equation-wrapper-tests
   (is (= (str "\\begin{equation}\n"
