@@ -58,6 +58,8 @@ Alternatively, visit the [SICMUtils Tutorial on
 Nextjournal](https://nextjournal.com/try/samritchie/sicmutils) to try all of the
 examples below in your browser with no setup required.
 
+<img width="1152" alt="nje" src="https://user-images.githubusercontent.com/462255/109587851-9e1be280-7abc-11eb-9369-6d56519fb3cd.png">
+
 Initialize the `sicmutils.env` "Batteries Included" environment at the REPL:
 
 ```clojure
