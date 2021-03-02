@@ -54,18 +54,18 @@ its Clojars page:
 
 [![Clojars Project](https://img.shields.io/clojars/v/sicmutils/sicmutils.svg)](https://clojars.org/sicmutils/sicmutils)
 
-Alternatively, visit the [SICMUtils Tutorial on
-Nextjournal](https://nextjournal.com/try/samritchie/sicmutils) to try all of the
-examples below in your browser with no setup required.
-
-<img width="1152" alt="nje" src="https://user-images.githubusercontent.com/462255/109587851-9e1be280-7abc-11eb-9369-6d56519fb3cd.png">
-
 Initialize the `sicmutils.env` "Batteries Included" environment at the REPL:
 
 ```clojure
 (require '[sicmutils.env :as env])
 (env/bootstrap-repl!)
 ```
+
+Alternatively, visit the [SICMUtils Tutorial on
+Nextjournal](https://nextjournal.com/try/samritchie/sicmutils) to try all of the
+examples below in your browser with no setup required:
+
+<img width="1152" alt="nje" src="https://user-images.githubusercontent.com/462255/109587851-9e1be280-7abc-11eb-9369-6d56519fb3cd.png">
 
 Math works as expected (see
 [Generics](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/basics/generics)
