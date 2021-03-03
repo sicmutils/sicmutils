@@ -44,6 +44,13 @@
       (-> (f (d/bundle-element x 1 tag))
           (d/extract-tangent tag)))))
 
+(defn nonzero [gen]
+  (gen/fmap (fn [x]
+              (if (= x 0)
+                (v/one-like x)
+                x))
+            gen))
+
 (def real-diff-gen
   (sg/differential))
 
@@ -372,6 +379,25 @@
             "dx^2==0")
         (is (v/zero? (d/d:* dz (d/d:* dy dz)))
             "dy*dz^2==0"))))
+
+  (checking "(a/b)*b == a, (a*b)/b == a" 100
+            [x integral-diff-gen
+             y (nonzero integral-diff-gen)]
+            (is (d/eq x (g/* (g// x y) y)))
+            (is (d/eq x (g// (g/* x y) y))))
+
+  (checking "solve-linear, div relationships" 100
+            [x  real-diff-gen
+             y (nonzero sg/real)]
+            (let [y (d/bundle-element y 1 0)]
+              (is (d/eq (g/solve-linear-left y x)
+                        (g// x y)))
+
+              (is (d/eq (g/solve-linear-left y x)
+                        (g/solve-linear-right x y)))
+
+              (is (d/eq (g/solve-linear-left y x)
+                        (g/solve-linear y x)))))
 
   (testing "various unit tests with more terms"
     (let [tangent  (fn [dx] (d/extract-tangent dx 0))

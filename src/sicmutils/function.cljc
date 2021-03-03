@@ -90,7 +90,8 @@
   The arity of a composition is the arity of the rightmost (that is, first to be
   applied) function term in `fns`."
   [& fns]
-  (let [a (arity (last fns))]
+  (let [a (arity (or (last fns)
+                     identity))]
     (with-meta (apply comp fns) {:arity a})))
 
 (defn get
@@ -501,11 +502,15 @@
 (defunary g/invert)
 (defbinary g/div g/divide)
 (defbinary g/expt)
+(defunary g/sqrt)
 
 (defunary g/negate)
 (defunary g/negative?)
 (defunary g/abs)
-(defunary g/sqrt)
+(defunary g/floor)
+(defunary g/ceiling)
+(defunary g/integer-part)
+(defunary g/fractional-part)
 
 (defbinary g/quotient)
 (defbinary g/remainder)
@@ -560,6 +565,9 @@
 (defbinary g/gcd)
 (defbinary g/lcm)
 (defbinary g/exact-divide)
+
+(defbinary g/solve-linear)
+(defbinary g/solve-linear-right)
 
 (defunary g/dimension)
 (defbinary g/dot-product)

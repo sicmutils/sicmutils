@@ -117,7 +117,10 @@
         (is (= (:i a2) (mod cr (:m a2))))))))
 
 (defn div-mul-inverse-test
-  "Test that Modular division and exponentiation are inverses.
+  "Test that:
+
+  - Modular division and exponentiation are inverses
+  - solve-linear-left and solve-linear-right behave appropriately
 
   For some p, for all $1 < i < p$, $1 < j < p$ such that $i \\mod p \\neq 0$,
   the modular quotient b of j and i times b gets back to j."
@@ -128,8 +131,12 @@
                     :when (not (zero? (mod i p)))
                     :let [jp (m/make j p)
                           ip (m/make i p)]]
-                (= jp (-> (g// jp ip)
-                          (g/* ip)))))))
+                (and (= (g// jp ip)
+                        (g/solve-linear-right jp ip))
+                     (= (g// jp ip)
+                        (g/solve-linear-left ip jp))
+                     (= jp (-> (g// jp ip)
+                               (g/* ip))))))))
 
 (deftest div-mul-tests
   (testing "Modular division and exponentiation are inverses."

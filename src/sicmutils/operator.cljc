@@ -418,11 +418,12 @@
 (defmethod g/mul [::operator ::co-operator] [o f] (o*f o f))
 (defmethod g/mul [::co-operator ::operator] [f o] (f*o f o))
 
+(defmethod g/square [::operator] [o] (o:* o o))
+(defmethod g/cube [::operator] [o] (o:* o (o:* o o)))
 (defmethod g/expt [::operator ::v/native-integral] [o n]
   {:pre [(not (g/negative? n))]}
   (reduce o:* identity (repeat n o)))
 
-(defmethod g/div [::operator ::scalar] [o n] (o-div-n o n))
-
-(defmethod g/square [::operator] [o] (o:* o o))
-(defmethod g/cube [::operator] [o] (o:* o (o:* o o)))
+(defmethod g/div [::operator ::v/scalar] [o n] (o-div-n o n))
+(defmethod g/solve-linear-right [::operator ::v/scalar] [o n] (o-div-n o n))
+(defmethod g/solve-linear [::v/scalar ::operator] [n o] (o-div-n o n))

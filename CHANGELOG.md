@@ -1,6 +1,26 @@
 # Changelog
 
-## [Unreleased]
+## [unreleased]
+
+- #207:
+
+  - fixes a bug where `sicmutils.function/compose` would fail when provided with
+    no arguments. Now it appropriately returns `identity`.
+
+  - adds missing implementations of `g/floor`, `g/ceiling`, `g/integer-part` and
+    `g/fractional-part` for functions, both literal and abstract.
+
+  - adds `g/solve-linear`, `g/solve-linear-left`, `g/solve-linear-right`.
+    `(g/solve-linear-right a b)` returns `x` such that `a = x*b`, while
+    `g/solve-linear` (and its alias, `g/solve-linear-left`) returns `x` such
+    that `a*x = b`. These functions are implemented for:
+
+    - `sicmutils.series.{Series, PowerSeries}`
+    - all numeric types
+    - functions, operators
+    - `sicmutils.modint.ModInt`
+    - `sicmutils.differential.Differential`, so you can differentiate through
+      this operation
 
 - #310: `g/make-rectangular` and `g/make-polar` now return non-Complex numbers
   on the JVM if you pass `0` for the (respectively) imaginary or angle

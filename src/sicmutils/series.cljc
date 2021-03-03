@@ -725,6 +725,15 @@
   (defmethod g/div [kind kind] [s t]
     (ctor (i/div (seq s) (seq t))))
 
+  (defmethod g/solve-linear-right [::coseries kind] [c s] (g/div c s))
+  (defmethod g/solve-linear-right [kind ::coseries] [s c] (g/div s c))
+  (defmethod g/solve-linear-right [kind kind] [s t] (g/div s t))
+
+  ;; `g/solve-linear` acts identically to `g/div` with arguments reversed.
+  (defmethod g/solve-linear [::coseries kind] [c s] (g/div s c))
+  (defmethod g/solve-linear [kind ::coseries] [s c] (g/div c s))
+  (defmethod g/solve-linear [kind kind] [s t] (g/div t s))
+
   (defmethod g/sqrt [kind] [s]
     (ctor (i/sqrt (seq s))))
 
