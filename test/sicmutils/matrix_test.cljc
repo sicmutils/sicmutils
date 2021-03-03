@@ -729,28 +729,40 @@
                   (g/- b (g/* a (g// b a)))))
               "a(b/a) == b with up-down, down")
 
-          (is (= (g// b a)
-                 (g/solve-linear a b)
-                 (g/solve-linear-right a b))
-              "solve-linear functions match structure division")))
+          (is (= (v/freeze b)
+                 (g/simplify
+                  (g/solve-linear a (g/* a b))))
+              "solve-linear works properly")
 
-      (let [a (s/down (s/up 'a 'b)
-                      (s/up 'c 'd))
-            b (s/up 'e 'f)]
-        (is (= '(up 0 0)
-               (g/simplify
-                (g/- b (g// (g/* a b) a))))
-            "(ab)/a == b with down-up, up")
+          (is (= (v/freeze (s/opposite b))
+                 (-> (g/solve-linear-right (s/opposite b) a)
+                     (g/* a)
+                     (g/simplify)))
+              "solve-linear-right contract"))
 
-        (is (= '(up 0 0)
-               (g/simplify
-                (g/- b (g/* a (g// b a)))))
-            "a(b/a) == b with down-up, up")
+        (let [a (s/down (s/up 'a 'b)
+                        (s/up 'c 'd))
+              b (s/up 'e 'f)]
+          (is (= '(up 0 0)
+                 (g/simplify
+                  (g/- b (g// (g/* a b) a))))
+              "(ab)/a == b with down-up, up")
 
-        (is (= (g// b a)
-               (g/solve-linear a b)
-               (g/solve-linear-right a b))
-            "solve-linear functions match structure division")))
+          (is (= '(up 0 0)
+                 (g/simplify
+                  (g/- b (g/* a (g// b a)))))
+              "a(b/a) == b with down-up, up")
+
+          (is (= (v/freeze b)
+                 (g/simplify
+                  (g/solve-linear a (g/* a b))))
+              "solve-linear works properly")
+
+          (is (= (v/freeze (s/opposite b))
+                 (-> (g/solve-linear-right (s/opposite b) a)
+                     (g/* a)
+                     (g/simplify)))
+              "solve-linear-right contract"))))
 
     (testing "inverse"
       (is (= (s/up (s/down 1))
