@@ -232,6 +232,9 @@
             (is (= x (f/I x)))
             (is (= (f/I x) (identity x))))
 
+  (checking "(compose) == identity" 100 [x gen/any-equatable]
+            (is (= x ((f/compose) x))))
+
   (checking "f/get" 100 [m (gen/map gen/keyword gen/any-equatable)
                          k  gen/keyword
                          v  gen/any-equatable

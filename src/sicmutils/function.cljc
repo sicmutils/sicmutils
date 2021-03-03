@@ -90,7 +90,8 @@
   The arity of a composition is the arity of the rightmost (that is, first to be
   applied) function term in `fns`."
   [& fns]
-  (let [a (arity (last fns))]
+  (let [a (arity (or (last fns)
+                     identity))]
     (with-meta (apply comp fns) {:arity a})))
 
 (defn get
