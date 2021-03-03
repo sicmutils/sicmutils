@@ -221,7 +221,9 @@
     (testing "division"
       (let [series (s/series 0 0 0 4 3 2 1)]
         (= [1 0 0 0 0]
-           (take 5 (g/div series series)))))
+           (take 5 (g/div series series))
+           (take 5 (g/solve-linear series series))
+           (take 5 (g/solve-linear-right series series)))))
 
     (testing "constant division"
       (is (= [4 -8 4 0 0 0]
@@ -237,10 +239,12 @@
       (is (= [1 2 3 4 5]
              (take 5 (g// (g/* nats 2) 2)))))
 
-    (testing "series invert"
+    (testing "series invert, solve linear"
       (let [series (s/->PowerSeries (iterate inc 3))]
         (is (= (take 5 (g/invert series))
-               (take 5 (g/div s/one series)))
+               (take 5 (g/div s/one series))
+               (take 5 (g/solve-linear-right s/one series))
+               (take 5 (g/solve-linear series s/one)))
             "invert(xs) matches div(1, xs)")
 
         (is (= [1 0 0 0 0]

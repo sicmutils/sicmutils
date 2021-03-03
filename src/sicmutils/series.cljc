@@ -716,28 +716,23 @@
   (defmethod g/invert [kind] [s]
     (ctor (i/invert (seq s))))
 
-  ;; `g/div` and `g/solve-linear-right` act identically;
-  (doseq [generic-op [g/div g/solve-linear-right]]
-    (defmethod generic-op [::coseries kind] [c s]
-      (ctor (i/c-div-seq c (seq s))))
+  (defmethod g/div [::coseries kind] [c s]
+    (ctor (i/c-div-seq c (seq s))))
 
-    (defmethod generic-op [kind ::coseries] [s c]
-      (ctor (i/seq-div-c (seq s) c)))
+  (defmethod g/div [kind ::coseries] [s c]
+    (ctor (i/seq-div-c (seq s) c)))
 
-    (defmethod generic-op [kind kind] [s t]
-      (ctor (i/div (seq s) (seq t)))))
+  (defmethod g/div [kind kind] [s t]
+    (ctor (i/div (seq s) (seq t))))
 
-  ;; `g/solve-linear` and `g/solve-linear-left` are just like `g/div`, but
-  ;; reverse their arguments.
-  (doseq [generic-op [g/solve-linear g/solve-linear-left]]
-    (defmethod generic-op [::coseries kind] [c s]
-      (ctor (i/seq-div-c (seq s) c)))
+  (defmethod g/solve-linear-right [::coseries kind] [c s] (g/div c s))
+  (defmethod g/solve-linear-right [kind ::coseries] [s c] (g/div s c))
+  (defmethod g/solve-linear-right [kind kind] [s t] (g/div s t))
 
-    (defmethod generic-op [kind ::coseries] [s c]
-      (ctor (i/c-div-seq c (seq s))))
-
-    (defmethod generic-op [kind kind] [s t]
-      (ctor (i/div (seq t) (seq s)))))
+  ;; `g/solve-linear` acts identically to `g/div` with arguments reversed.
+  (defmethod g/solve-linear [::coseries kind] [c s] (g/div s c))
+  (defmethod g/solve-linear [kind ::coseries] [s c] (g/div c s))
+  (defmethod g/solve-linear [kind kind] [s t] (g/div t s))
 
   (defmethod g/sqrt [kind] [s]
     (ctor (i/sqrt (seq s))))

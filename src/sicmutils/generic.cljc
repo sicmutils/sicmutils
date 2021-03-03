@@ -574,14 +574,32 @@
 
 ;; ## Solvers
 
-(defgeneric solve-linear 2)
-(defgeneric solve-linear-left 2)
-(defgeneric solve-linear-right 2)
+(defgeneric solve-linear 2
+  "For a given `a` and `b`, returns `x` such that `a*x = b`.
+
+  See[[solve-linear-right]] for a similar function that solves for `a = x*b`.")
+
+(defgeneric solve-linear-right 2
+  "For a given `a` and `b`, returns `x` such that `a = x*b`.
+
+  See[[solve-linear-right]] for a similar function that solves for `a*x = b`.")
+
+(defn solve-linear-left
+  "Alias for [[solve-linear]]; present for compatibility with the original
+  `scmutils` codebase.
+
+  NOTE: In `scmutils`, `solve-linear-left` and `solve-linear` act identically in
+  all cases except matrices. `solve-linear-left` only accepted a column
+  matrix (or up structure) in the `b` position, while `solve-linear` accepted
+  either a column or row (up or down structure).
+
+  In SICMUtils, both functions accept either type."
+  [a b]
+  (solve-linear a b))
 
 ;; ### Solver Defaults
 
 (defmethod solve-linear [::v/scalar ::v/scalar] [x y] (div y x))
-(defmethod solve-linear-left [::v/scalar ::v/scalar] [x y] (div y x))
 (defmethod solve-linear-right [::v/scalar ::v/scalar] [x y] (div x y))
 
 ;; ## More advanced generic operations

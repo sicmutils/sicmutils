@@ -51,6 +51,7 @@
             [sicmutils.generic :as g]
             [sicmutils.modint]
             [sicmutils.operator :as o]
+            [sicmutils.ratio]
             [sicmutils.simplify :as simp]
             [sicmutils.structure :as structure]
             [sicmutils.value :as v]
@@ -162,6 +163,19 @@
 constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   -pi (g/- Math/PI))
 
+(def ^{:doc "The mathematical
+  constant [e](https://en.wikipedia.org/wiki/E_(mathematical_constant)),
+  sometimes known as Euler's Number."}
+  euler
+  0.57721566490153286)
+
+(def ^{:doc "The mathematical
+  constant [𝜑](https://en.wikipedia.org/wiki/Golden_ratio), also known as the
+  Golden Ratio."}
+  phi
+  (g/divide
+   (inc (Math/sqrt 5.0)) 2.0))
+
 (import-def structure/generate s:generate)
 (import-def matrix/generate m:generate)
 (import-def structure/basis-unit v:make-basis-unit)
@@ -204,7 +218,10 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
 
 (import-vars
  [sicmutils.abstract.number literal-number]
- [sicmutils.complex complex]
+ [sicmutils.complex complex complex?]
+ #?(:cljs [sicmutils.ratio
+           ratio? rationalize numerator denominator])
+ #?(:cljs [sicmutils.util bigint])
  [sicmutils.function arity compose arg-shift arg-scale I]
  [sicmutils.modint chinese-remainder]
  [sicmutils.operator commutator]

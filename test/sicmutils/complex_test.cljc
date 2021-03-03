@@ -144,10 +144,30 @@
       (is (= (c/complex -2 2)
              (g/modulo (c/complex 6 4) (c/complex 3 5)))))
 
+    (checking "make-rectangular with 0 complex == identity" 100
+              [x sg/real]
+              (is (= x (g/make-rectangular x 0.0))
+                  "inexact zero on JVM")
+
+              (is (= x (g/make-rectangular x 0))
+                  "exact zero"))
+
+    (checking "make-polar with 0 radius or angle == radius" 100
+              [x sg/real]
+              (is (= x (g/make-polar x 0.0)))
+              (is (= 0.0 (g/make-polar 0.0 x)))
+              (is (= 0 (g/make-polar 0 x))))
+
+    (checking "make-rectangular with 0 complex == identity" 100
+              [x sg/real]
+              (is (= x (g/make-rectangular x 0.0))))
+
     (testing "integer-part"
       (is (= (c/complex 1 2) (g/integer-part (c/complex 1 2))))
       (is (= (c/complex 1 2) (g/integer-part (c/complex 1.5 2.9))))
-      (is (= (c/complex -1 -2) (g/integer-part (c/complex -1.5 -2.9)))))
+      (is (= (c/complex -1 -2) (g/integer-part (c/complex -1.5 -2.9))))
+      (is (= -1 (g/integer-part (c/complex -1.5 0.9)))
+          "imaginary part drops off if == zero"))
 
     (checking "integer-part pushes through to complex components" 100
               [x sg/complex]
@@ -157,9 +177,11 @@
                       (g/integer-part (g/imag-part x))))))
 
     (testing "fractional-part unit tests"
-      (is (= (c/complex 0 0) (g/fractional-part (c/complex 1 2))))
       (is (near (c/complex 0.5 0.9) (g/fractional-part (c/complex 1.5 2.9))))
-      (is (near (c/complex 0.5 0.1) (g/fractional-part (c/complex -1.5 -2.9)))))
+      (is (near (c/complex 0.5 0.1) (g/fractional-part (c/complex -1.5 -2.9))))
+      (is (= 0.0 (g/fractional-part (c/complex 1 2))))
+      (is (= 0.5 (g/fractional-part (c/complex -1.5 2)))
+          "imaginary part drops off if == zero"))
 
     (checking "fractional-part pushes through to complex components" 100
               [x sg/complex]
