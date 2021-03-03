@@ -2,6 +2,9 @@
 
 ## [unreleased]
 
+- #313 aliases `sicmutils.util/bigint?` into `sicmutils.env`. This function is
+  _not_ present in Clojure normally!
+
 - #305 adds `g/solve-linear` and `g/solve-linear-left` implementations between
   `sicmutils.structure/Structure` instances.
 
