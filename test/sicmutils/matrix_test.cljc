@@ -727,7 +727,12 @@
           (is (= '(down 0 0)
                  (g/simplify
                   (g/- b (g/* a (g// b a)))))
-              "a(b/a) == b with up-down, down")))
+              "a(b/a) == b with up-down, down")
+
+          (is (= (g// b a)
+                 (g/solve-linear a b)
+                 (g/solve-linear-right a b))
+              "solve-linear functions match structure division")))
 
       (let [a (s/down (s/up 'a 'b)
                       (s/up 'c 'd))
@@ -740,7 +745,12 @@
         (is (= '(up 0 0)
                (g/simplify
                 (g/- b (g/* a (g// b a)))))
-            "a(b/a) == b with down-up, up")))
+            "a(b/a) == b with down-up, up")
+
+        (is (= (g// b a)
+               (g/solve-linear a b)
+               (g/solve-linear-right a b))
+            "solve-linear functions match structure division")))
 
     (testing "inverse"
       (is (= (s/up (s/down 1))
