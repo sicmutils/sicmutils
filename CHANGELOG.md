@@ -2,6 +2,9 @@
 
 ## [unreleased]
 
+- #305 adds `g/solve-linear` and `g/solve-linear-left` implementations between
+  `sicmutils.structure/Structure` instances.
+
 - #207:
 
   - fixes a bug where `sicmutils.function/compose` would fail when provided with

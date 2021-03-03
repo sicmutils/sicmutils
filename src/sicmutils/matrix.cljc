@@ -873,10 +873,24 @@
       (s/opposite a' (map #(s/opposite a' %) a'))
       a')))
 
+(defn- s:solve-linear-left [M product]
+  (let [cp (s/compatible-shape product)
+        cr (s/compatible-shape (s/s:* cp M))]
+    (s/s:* (s:inverse cp M cr) product)))
+
+(defn- s:solve-linear-right [product M]
+  (let [cp (s/compatible-shape product)
+        cr (s/compatible-shape (s/s:* M cp))]
+    (s/s:* product (s:inverse cr M cp))))
+
 (defmethod g/div [::s/structure ::s/structure] [rv s]
-  (let [cp (s/compatible-shape rv)
-        cr (s/compatible-shape (s/s:* cp s))]
-    (s/s:* (s:inverse cp s cr) rv)))
+  (s:solve-linear-left s rv))
+
+(defmethod g/solve-linear [::s/structure ::s/structure] [s product]
+  (s:solve-linear-left s product))
+
+(defmethod g/solve-linear-right [::s/structure ::s/structure] [product s]
+  (s:solve-linear-right product s))
 
 (defmethod g/dimension [::square-matrix] [m] (dimension m))
 (defmethod g/dimension [::column-matrix] [m] (num-rows m))
