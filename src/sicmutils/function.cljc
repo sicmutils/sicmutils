@@ -567,7 +567,6 @@
 (defbinary g/exact-divide)
 
 (defbinary g/solve-linear)
-(defbinary g/solve-linear-left)
 (defbinary g/solve-linear-right)
 
 (defunary g/dimension)
@@ -585,5 +584,3 @@
 (defunary g/magnitude)
 (defunary g/angle)
 (defunary g/conjugate)
-
-(defunary g/simplify)

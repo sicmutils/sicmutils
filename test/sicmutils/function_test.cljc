@@ -430,7 +430,7 @@
                      (g/+ 1 (g/abs n)))))
 
     (checking "quotient" 100 [l sg/any-integral
-                              r sg/native-integral]
+                              r sg/any-integral]
               (when-not (v/zero? r)
                 (is (= ((g/+ 1 g/quotient) l r)
                        (g/+ 1 (g/quotient l r))))))
@@ -449,16 +449,48 @@
                   "The dimension of a number is always 1."))
 
     (checking "remainder" 100 [l sg/any-integral
-                               r sg/native-integral]
+                               r sg/any-integral]
               (when-not (v/zero? r)
                 (is (= ((g/+ 1 g/remainder) l r)
                        (g/+ 1 (g/remainder l r))))))
 
     (checking "modulo" 100 [l sg/any-integral
-                            r sg/native-integral]
+                            r sg/any-integral]
               (when-not (v/zero? r)
                 (is (= ((g/+ 1 g/modulo) l r)
                        (g/+ 1 (g/modulo l r))))))
+
+    (checking "floor" 100 [x sg/real]
+              (is (= ((g/+ 1 g/floor) x)
+                     (g/+ 1 (g/floor x)))))
+
+    (checking "ceiling" 100 [x sg/real]
+              (is (= ((g/+ 1 g/ceiling) x)
+                     (g/+ 1 (g/ceiling x)))))
+
+    (checking "integer-part" 100 [x sg/real]
+              (is (= ((g/+ 1 g/integer-part) x)
+                     (g/+ 1 (g/integer-part x)))))
+
+    (checking "fractional-part" 100 [x sg/real]
+              (is (= ((g/+ 1 g/fractional-part) x)
+                     (g/+ 1 (g/fractional-part x)))))
+
+    (letfn [(passthrough [f]
+              (f (fn [l _] l)
+                 (fn [_ r] r)))]
+      (checking "solve-linear, div pass through correctly" 100
+                [l sg/real
+                 r sg/real]
+                (when-not (v/zero? r)
+                  (is (= (g// l r)
+                         ((passthrough g//) l r)))
+
+                  (is (= (g/solve-linear-right l r)
+                         ((passthrough g/solve-linear-right) l r)))
+
+                  (is (= (g/solve-linear r l)
+                         ((passthrough g/solve-linear) r l))))))
 
     (testing "arity 2"
       (let [f (fn [x y] (+ x y))

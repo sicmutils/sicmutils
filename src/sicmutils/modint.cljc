@@ -150,10 +150,6 @@
     (make i m)
     a))
 
-(defmethod g/solve-linear [::modint ::modint] [a b] (div b a))
-(defmethod g/solve-linear-left [::modint ::modint] [a b] (div b a))
-(defmethod g/solve-linear-right [::modint ::modint] [a b] (div a b))
-
 (defmethod g/quotient [::modint ::modint] [a b] (mul a (invert b)))
 (defmethod g/remainder [::modint ::modint] [a b] (remainder a b))
 (defmethod g/modulo [::modint ::modint] [a b] (modulo a b))
@@ -165,7 +161,6 @@
 (defmethod g/expt [::modint ::v/integral] [a b] (mod-expt (:i a) b (:m a)))
 
 (defmethod g/solve-linear [::modint ::modint] [a b] (div b a))
-(defmethod g/solve-linear-left [::modint ::modint] [a b] (div b a))
 (defmethod g/solve-linear-right [::modint ::modint] [a b] (div a b))
 
 ;; Methods that allow interaction with other integral types. The first block is
@@ -175,7 +170,7 @@
   (defmethod op [::modint ::v/integral] [a b] (make (op (:i a) b) (:m a))))
 
 ;; The second block promotes any integral type to a ModInt before operating.
-(doseq [op [g/div g/solve-linear g/solve-linear-left g/solve-linear-right
+(doseq [op [g/div g/solve-linear g/solve-linear-right
             g/quotient g/remainder g/exact-divide]]
   (defmethod op [::v/integral ::modint] [a b] (op (make a (:m b)) b))
   (defmethod op [::modint ::v/integral] [a b] (op a (make b (:m a)))))

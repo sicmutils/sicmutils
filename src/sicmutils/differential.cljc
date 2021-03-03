@@ -1012,8 +1012,8 @@
   If you want to ignore the tangent components, use [[equiv]]."
   ([_] true)
   ([a b]
-   (= (->terms a)
-      (->terms b)))
+   (v/= (->terms a)
+        (->terms b)))
   ([a b & more]
    (if (eq a b)
      (if (next more)
@@ -1041,8 +1041,8 @@
   the tangent components into account, prefer [[eq]]."
   ([_] true)
   ([a b]
-   (= (finite-term a)
-      (finite-term b)))
+   (v/= (finite-term a)
+        (finite-term b)))
   ([a b & more]
    (if (equiv a b)
      (if (next more)
@@ -1269,7 +1269,6 @@
 
 (let [div (lift-2 g/div)]
   (defbinary g/solve-linear (fn [l r] (div r l)))
-  (defbinary g/solve-linear-left (fn [l r] (div r l)))
   (defbinary g/solve-linear-right div))
 
 (defunary g/sqrt (lift-1 g/sqrt))

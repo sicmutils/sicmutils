@@ -425,6 +425,5 @@
   (reduce o:* identity (repeat n o)))
 
 (defmethod g/div [::operator ::v/scalar] [o n] (o-div-n o n))
-(defmethod g/solve-linear [::v/scalar ::operator] [n o] (o-div-n o n))
-(defmethod g/solve-linear-left [::v/scalar ::operator] [n o] (o-div-n o n))
 (defmethod g/solve-linear-right [::operator ::v/scalar] [o n] (o-div-n o n))
+(defmethod g/solve-linear [::v/scalar ::operator] [n o] (o-div-n o n))
