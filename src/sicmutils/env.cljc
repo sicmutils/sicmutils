@@ -254,6 +254,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   transpose trace determinant dimension
   dot-product inner-product outer-product cross-product
   partial-derivative Lie-derivative
+  solve-linear solve-linear-left solve-linear-right
   simplify
   factorial]
  [sicmutils.structure
