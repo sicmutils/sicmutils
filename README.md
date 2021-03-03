@@ -1,4 +1,4 @@
-# sicmutils
+# SICMUtils
 
 A Clojure(script) implementation of the
 [Scmutils](https://groups.csail.mit.edu/mac/users/gjs/6946/refman.txt) system
@@ -9,7 +9,7 @@ SICMUtils provides facilities for
   computation](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/data-types/symbolic-expressions),
   including state of the art TeX rendering and [expression
   simplification](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/simplification)
-- [automatic](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/calculus/automatic-differentiation)
+- [automatic](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/calculus/automatic-differentiation),
   [numerical](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/numerical-methods/numerical-derivative)
   and
   [symbolic](https://cljdoc.org/d/sicmutils/sicmutils/CURRENT/doc/calculus/automatic-differentiation)
