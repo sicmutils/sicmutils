@@ -221,7 +221,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
  [sicmutils.complex complex complex?]
  #?(:cljs [sicmutils.ratio
            ratio? rationalize numerator denominator])
- #?(:cljs [sicmutils.util bigint])
+ [sicmutils.util bigint? #@?(:cljs [bigint])]
  [sicmutils.function arity compose arg-shift arg-scale I]
  [sicmutils.modint chinese-remainder]
  [sicmutils.operator commutator]
