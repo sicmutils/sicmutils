@@ -36,7 +36,7 @@
                        [goog.math.Integer]]))
   #?(:clj
      (:import
-      (clojure.lang BigInt Cons Sequential Var))))
+      (clojure.lang BigInt Sequential Var))))
 
 (defprotocol Numerical
   (numerical? [_]))

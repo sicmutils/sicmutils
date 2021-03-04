@@ -2,8 +2,42 @@
 
 ## [unreleased]
 
-- #313 aliases `sicmutils.util/bigint?` into `sicmutils.env`. This function is
-  _not_ present in Clojure normally!
+- #304:
+
+  - aliases `sicmutils.operator/anticommutator` and `sicmutils.util/bigint?`
+    into `sicmutils.env`
+
+  - implements `v/=` properly for sequences, `Differential`, `Complex`,
+    `Structure` and `Matrix` instances
+
+  - in `sicmutils.env`, `v/=` now overrides `clojure.core/=`. `v/=` should act
+    identically to `clojure.core/=` everywhere; the difference is that its
+    behavior is customizable, so we can make `Differential` instances equal to
+    numbers, or complex numbers with a 0 imaginary part equal to real numbers
+    with the same real part.
+
+    `v/=` may not drop recursively down into, say, Clojure maps. Please open an
+    issue if you find a case like this!
+
+  - BIG CHANGE: `Literal` and `Structure` instances now KEEP their type under
+    `g/simplify`. This means that you can no longer make comparisons like this:
+
+```clojure
+;; this worked before, and was used all over the tests (probably not in much
+;; user code!)
+(clojure.core/= '(* 3 x)
+                (simplify (+ 'x 'x 'x)))
+;;=> false
+```
+
+  Instead, use `v/=` (which is now aliased into `sicmutils.env`):
+
+```clojure
+;; `v/=` will do the right thing by unwrapping the literal expression on the
+;; right:
+(v/= '(+ x y) (+ 'x 'y))
+;;=> true
+```
 
 - #305 adds `g/solve-linear` and `g/solve-linear-left` implementations between
   `sicmutils.structure/Structure` instances.

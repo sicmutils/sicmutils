@@ -320,6 +320,16 @@
   #(get-in % indices))
 
 ;; ## Structure Predicates
+;;
+;; `::down` instances should never be equal to collections, or `::up`. By
+;; default in Clojure, all collections compare as if they were sequences, so an
+;; up can't equal a down... but a vector would! This change fixes that.
+
+(defmethod v/= [::down ::up] [_ _] false)
+(defmethod v/= [::up ::down] [_ _] false)
+(defmethod v/= [::down v/seqtype] [_ _] false)
+(defmethod v/= [v/seqtype ::down] [_ _] false)
+(prefer-method v/= [::up ::down] [v/seqtype ::down])
 
 (defn- s:=
   "Returns true if the supplied structure `this` is equal to the argument on the
