@@ -37,6 +37,9 @@
 
 (use-fixtures :once hermetic-simplify-fixture)
 
+(def simplify
+  (comp v/freeze g/simplify))
+
 (deftest vectorfield
   (testing "literal"
     (let [f (m/literal-manifold-function 'f-rect R2-rect)
@@ -45,9 +48,9 @@
           p (R2-rect-chi-inverse (up 'x0 'y0))]
       (is (= '(+ (* (((partial 0) f-rect) (up x0 y0)) (b↑0 (up x0 y0)))
                  (* (((partial 1) f-rect) (up x0 y0)) (b↑1 (up x0 y0))))
-             (g/simplify ((v f) p))))
+             (simplify ((v f) p))))
       (is (= '(up (b↑0 (up x0 y0)) (b↑1 (up x0 y0)))
-             (g/simplify ((v (m/chart R2-rect)) p))))
+             (simplify ((v (m/chart R2-rect)) p))))
       (is (= ::vf/vector-field (v/kind v)))))
 
   (testing "exponential"
@@ -61,24 +64,24 @@
                        (* (/ -1 6) (expt a 3))
                        a))
                (v/freeze
-                (g/simplify
+                (simplify
                  ((((vf/evolution 6) 'a circular) (m/chart R2-rect))
                   ((m/point R2-rect) (up 1 0))))))))))
 
   (testing "gjs-examples"
     (let-coordinates [[x y z] R3-rect]
       (is (= '(+ (* -1 a b (cos a) (cos b)) (* -2 a (cos a) (sin b)))
-             (g/simplify (((* (g/expt d:dy 2) x y d:dx) (* (sin x) (cos y)))
-                          ((m/point R3-rect) (up 'a 'b 'c))))))
+             (simplify (((* (g/expt d:dy 2) x y d:dx) (* (sin x) (cos y)))
+                        ((m/point R3-rect) (up 'a 'b 'c))))))
       (let [counter-clockwise (- (* x d:dy) (* y d:dx))
             outward (+ (* x d:dx) (* y d:dy))
             mr ((m/point R3-rect) (up 'x0 'y0 'z0))]
-        (is (= 0 (g/simplify ((counter-clockwise
-                               (g/sqrt (+ (g/square x)
-                                          (g/square y)))) mr))))
+        (is (= 0 (simplify ((counter-clockwise
+                             (g/sqrt (+ (g/square x)
+                                        (g/square y)))) mr))))
         (is (= '(+ (expt x0 2) (* -1 (expt y0 2)))
-               (g/simplify ((counter-clockwise (* x y)) mr))))
-        (is (= '(* 2 x0 y0) (g/simplify ((outward (* x y)) mr))))))
+               (simplify ((counter-clockwise (* x y)) mr))))
+        (is (= '(* 2 x0 y0) (simplify ((outward (* x y)) mr))))))
 
     (let-coordinates [[r theta zeta] R3-cyl
                       [x y z] R3-rect]
@@ -89,14 +92,14 @@
           (is (= '(up (/ (+ (* -1N A_theta y (sqrt (+ (expt x 2) (expt y 2)))) (* A_r x)) (sqrt (+ (expt x 2) (expt y 2))))
                       (/ (+ (* A_theta x (sqrt (+ (expt x 2) (expt y 2)))) (* A_r y)) (sqrt (+ (expt x 2) (expt y 2))))
                       A_z)
-                 (g/simplify ((vf/vector-field->components A R3-rect) (up 'x 'y 'z)))))
-          (is (= '(up (* -1 y) x 0) (g/simplify ((d:dtheta (up x y z)) p))))
+                 (simplify ((vf/vector-field->components A R3-rect) (up 'x 'y 'z)))))
+          (is (= '(up (* -1 y) x 0) (simplify ((d:dtheta (up x y z)) p))))
           (is (= '(up (/ x (sqrt (+ (expt x 2) (expt y 2))))
                       (/ y (sqrt (+ (expt x 2) (expt y 2))))
                       0)
-                 (g/simplify ((d:dr (up x y z)) p))))
-          (is (= '(up 0 0 1) (g/simplify ((d:dzeta (up x y z)) p))))
-          (is (= '(up 0 0 1) (g/simplify ((d:dz (up x y z)) p)))) ;; suspicious. GJS has d:dz but I think d:dzeta was meant here (as above)
+                 (simplify ((d:dr (up x y z)) p))))
+          (is (= '(up 0 0 1) (simplify ((d:dzeta (up x y z)) p))))
+          (is (= '(up 0 0 1) (simplify ((d:dz (up x y z)) p)))) ;; suspicious. GJS has d:dz but I think d:dzeta was meant here (as above)
           ;; "so introduce..."
           (let [e-theta (* (/ 1 r) d:dtheta)
                 e-r d:dr
@@ -105,7 +108,7 @@
             (is (= '(up (/ (+ (* A_r x) (* -1 A_theta y)) (sqrt (+ (expt x 2) (expt y 2))))
                         (/ (+ (* A_r y) (* A_theta x)) (sqrt (+ (expt x 2) (expt y 2))))
                         A_z)
-                   (g/simplify ((vf/vector-field->components A R3-rect) (up 'x 'y 'z))))))))
+                   (simplify ((vf/vector-field->components A R3-rect) (up 'x 'y 'z))))))))
       (is (= (up 0 1 0) ((vf/vector-field->components d:dy R3-rect) (up 'x0 'y0 'z0))))
       (is (= (up 0 1 0) ((vf/vector-field->components d:dy R3-rect) (up 'r0 'theta0 'z0))))
 
@@ -116,7 +119,7 @@
                 ((vf/vector-field->components d:dy R3-cyl) (up 1 0 0))))
 
       (is (= '(up (sin theta0) (/ (cos theta0) r0) 0)
-             (g/simplify ((vf/vector-field->components d:dy R3-cyl) (up 'r0 'theta0 'z)))))
+             (simplify ((vf/vector-field->components d:dy R3-cyl) (up 'r0 'theta0 'z)))))
 
       (testing "coordinatize"
         (let [coordinatize (fn [sfv coordsys]
@@ -129,6 +132,6 @@
           (is (= '(+ (* (((partial 0) f) (up x0 y0 z0)) (v↑0 (up x0 y0 z0)))
                      (* (((partial 1) f) (up x0 y0 z0)) (v↑1 (up x0 y0 z0)))
                      (* (((partial 2) f) (up x0 y0 z0)) (v↑2 (up x0 y0 z0))))
-                 (g/simplify (((coordinatize (vf/literal-vector-field 'v R3-rect) R3-rect)
-                               (af/literal-function 'f (up 1 2 3) 1))
-                              (up 'x0 'y0 'z0))))))))))
+                 (simplify (((coordinatize (vf/literal-vector-field 'v R3-rect) R3-rect)
+                             (af/literal-function 'f (up 1 2 3) 1))
+                            (up 'x0 'y0 'z0))))))))))

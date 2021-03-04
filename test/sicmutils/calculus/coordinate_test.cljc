@@ -29,9 +29,13 @@
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.operator :as o]
             [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]
-            [sicmutils.structure :refer [up down]]))
+            [sicmutils.structure :refer [up down]]
+            [sicmutils.value :as v]))
 
 (use-fixtures :once hermetic-simplify-fixture)
+
+(def simplify
+  (comp v/freeze g/simplify))
 
 (deftest smoke
   (let-coordinates [[x y] R2-rect
@@ -54,7 +58,7 @@
             h (+ (* x (g/square r)) (g/cube y))]
         (is (= '(+ (* (expt r0 3) (expt (sin theta0) 3))
                    (* (expt r0 3) (cos theta0)))
-               (g/simplify (h (R2-polar-chi-inverse (up 'r0 'theta0))))))))))
+               (simplify (h (R2-polar-chi-inverse (up 'r0 'theta0))))))))))
 
   (testing "with-coordinate-prototype"
     (let [A R2-rect
@@ -69,7 +73,7 @@
             h (+ (* x (g/square r)) (g/cube y))]
         (is (= '(+ (* (expt r0 3) (expt (sin theta0) 3))
                    (* (expt r0 3) (cos theta0)))
-               (g/simplify (h (R2-polar-chi-inverse (up 'r0 'theta0))))))))
+               (simplify (h (R2-polar-chi-inverse (up 'r0 'theta0))))))))
     (let-coordinates [[x y] R2-rect
                       [r theta] R2-polar]
       (let [R2-rect-chi (m/chart R2-rect)
@@ -80,12 +84,12 @@
             h (+ (* x (g/square r)) (g/cube y))]
         (is (= '(+ (* (expt r0 3) (expt (sin theta0) 3))
                    (* (expt r0 3) (cos theta0)))
-               (g/simplify (h (R2-polar-chi-inverse (up 'r0 'theta0))))))
-        (is (= 'x0 (g/simplify (x (R2-rect-chi-inverse (up 'x0 'y0))))))
-        (is (= '(* r0 (cos theta0)) (g/simplify (x (R2-polar-chi-inverse (up 'r0 'theta0))))))
-        (is (= 'r0 (g/simplify (r (R2-polar-chi-inverse (up 'r0 'theta0))))))
-        (is (= '(sqrt (+ (expt x0 2) (expt y0 2))) (g/simplify (r (R2-rect-chi-inverse (up 'x0 'y0))))))
-        (is (= '(atan y0 x0) (g/simplify (theta (R2-rect-chi-inverse (up 'x0 'y0))))))))))
+               (simplify (h (R2-polar-chi-inverse (up 'r0 'theta0))))))
+        (is (= 'x0 (simplify (x (R2-rect-chi-inverse (up 'x0 'y0))))))
+        (is (= '(* r0 (cos theta0)) (simplify (x (R2-polar-chi-inverse (up 'r0 'theta0))))))
+        (is (= 'r0 (simplify (r (R2-polar-chi-inverse (up 'r0 'theta0))))))
+        (is (= '(sqrt (+ (expt x0 2) (expt y0 2))) (simplify (r (R2-rect-chi-inverse (up 'x0 'y0))))))
+        (is (= '(atan y0 x0) (simplify (theta (R2-rect-chi-inverse (up 'x0 'y0))))))))))
 
 (deftest various-manifold-operations
   ;; being the test material found in the comments of manifold.scm of scmutils
@@ -101,23 +105,23 @@
           residual (- g-polar g-rect)
           vp (vf/literal-vector-field 'v R2-polar)
           vr (vf/literal-vector-field 'v R2-rect)]
-      (is (= 0 (g/simplify ((dr circular) mr))))
+      (is (= 0 (simplify ((dr circular) mr))))
       (is (= '(/ (+ (* x0 (v↑0 (up x0 y0))) (* y0 (v↑1 (up x0 y0))))
                  (sqrt (+ (expt x0 2) (expt y0 2))))
-             (g/simplify ((dr vr) mr))))
+             (simplify ((dr vr) mr))))
       (is (= '(/ (+ (* x0 (v↑0 (up x0 y0))) (* y0 (v↑1 (up x0 y0))))
                  (sqrt (+ (expt x0 2) (expt y0 2))))
-             (g/simplify (((ff/d r) vr) mr))))
-      (is (= 0 (g/simplify ((residual vr vr) mr))))
-      (is (= 0 (g/simplify ((residual vp vp) mr))))
-      (is (= 0 (g/simplify ((residual vp vp) mp))))
-      (is (= 0 (g/simplify ((residual vr vr) mp))))
-      (is (= 1 (g/simplify ((circular theta) mr))))
+             (simplify (((ff/d r) vr) mr))))
+      (is (= 0 (simplify ((residual vr vr) mr))))
+      (is (= 0 (simplify ((residual vp vp) mr))))
+      (is (= 0 (simplify ((residual vp vp) mp))))
+      (is (= 0 (simplify ((residual vr vr) mp))))
+      (is (= 1 (simplify ((circular theta) mr))))
 
       ;; TODO(colin.smith): implement little d
       (is (= 1 (((ff/d r) d:dr) mr)))
-      (is (= 1 (g/simplify ((dr d:dr) mr))))
+      (is (= 1 (simplify ((dr d:dr) mr))))
       (is (= '(v↑0 (up (sqrt (+ (expt x0 2) (expt y0 2))) (atan y0 x0)))
-             (g/simplify ((dr vp) mr))))
+             (simplify ((dr vp) mr))))
       (is (= '(v↑0 (up (sqrt (+ (expt x0 2) (expt y0 2))) (atan y0 x0)))
-             (g/simplify (((ff/d r) vp) mr)))))))
+             (simplify (((ff/d r) vp) mr)))))))

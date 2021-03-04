@@ -224,7 +224,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
  [sicmutils.util bigint? #?@(:cljs [bigint])]
  [sicmutils.function arity compose arg-shift arg-scale I]
  [sicmutils.modint chinese-remainder]
- [sicmutils.operator commutator]
+ [sicmutils.operator commutator anticommutator]
  [sicmutils.series binomial-series partial-sums]
  [sicmutils.generic
   * + - / divide

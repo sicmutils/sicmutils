@@ -122,13 +122,20 @@
                    (-compare expression b)))
 
        IPrintWithWriter
-       (-pr-writer
-        [_ writer opts]
-        (-write writer (str expression)))]))
+       (-pr-writer [_ writer opts]
+                   (-write writer (str expression))
+                   #_
+                   (let [rep (str "#" (.-sym (type s))
+                                  " " (pr-str expression))]
+                     (-write writer rep)))]))
 
 #?(:clj
    (defmethod print-method Literal [^Literal s ^java.io.Writer w]
-     (.write w (.toString s))))
+     (.write w (.toString s))
+     #_
+     (let [rep (str "#" (.-sym (.-type s))
+                    " " (.toString s))]
+       (.write w ^String rep))))
 
 (defn make-literal
   "Constructs a [[Literal]] instance with the supplied type and an empty metadata

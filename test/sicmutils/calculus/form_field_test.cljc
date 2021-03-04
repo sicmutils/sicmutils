@@ -27,7 +27,8 @@
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.generic :as g :refer [+ - * /]]
-            [sicmutils.structure :refer [up down]]))
+            [sicmutils.structure :refer [up down]]
+            [sicmutils.value :as v]))
 
 (deftest permutation-test
   (is (thrown? #?(:clj Exception :cljs js/Error)
@@ -83,7 +84,7 @@
       (is (= '(/ (+ (* x0 (v↑0 (up x0 y0))) (* y0 (v↑1 (up x0 y0))))
                  (sqrt (+ (expt x0 2) (expt y0 2))))
              (g/simplify (((ff/d r) vr) mr))))
-      (is (= 0 (g/simplify ((residual vr vr) mr))))
-      (is (= 0 (g/simplify ((residual vp vp) mr))))
-      (is (= 0 (g/simplify ((residual vp vp) mp))))
-      (is (= 0 (g/simplify ((residual vr vr) mp)))))))
+      (is (v/= 0 (g/simplify ((residual vr vr) mr))))
+      (is (v/= 0 (g/simplify ((residual vp vp) mr))))
+      (is (v/= 0 (g/simplify ((residual vp vp) mp))))
+      (is (v/= 0 (g/simplify ((residual vr vr) mp)))))))
