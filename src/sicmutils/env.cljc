@@ -39,8 +39,9 @@
   ```"
   (:refer-clojure :rename {ref core-ref
                            partial core-partial
-                           compare core-compare}
-                  :exclude [+ - * / zero? compare divide #?(:cljs partial)])
+                           compare core-compare
+                           = core=}
+                  :exclude [+ - * / = zero? compare divide partial])
   (:require #?(:clj [potemkin :refer [import-def import-vars]])
             #?(:clj [nrepl.middleware.print])
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
@@ -391,6 +392,6 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
  [sicmutils.numerical.minimize minimize multidimensional-minimize]
  [sicmutils.util.aggregate sum]
  [sicmutils.util.stream vector:generate]
- [sicmutils.value compare exact? zero? one? identity?
+ [sicmutils.value = compare exact? zero? one? identity?
   zero-like one-like identity-like
   numerical? freeze kind kind-predicate])

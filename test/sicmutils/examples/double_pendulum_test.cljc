@@ -25,7 +25,7 @@
             [sicmutils.env :as e :refer [up down expt cos sin + - * /]]
             [sicmutils.value :as v]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (deftest equations
   (let [state (up 't (up 'θ 'φ) (up 'θdot 'φdot))
@@ -35,7 +35,9 @@
     (is (= '(+ (* -1 g l1 m1 (cos θ))
                (* -1 g l1 m2 (cos θ))
                (* -1 g l2 m2 (cos φ)))
-           (e/simplify (V state))))
+           (v/freeze
+            (e/simplify (V state)))))
+
     (is (= '(+ (* l1 l2 m2 θdot φdot (cos (+ θ (* -1 φ))))
                (* (/ 1 2) (expt l1 2) m1 (expt θdot 2))
                (* (/ 1 2) (expt l1 2) m2 (expt θdot 2))
@@ -51,6 +53,7 @@
                (* g l2 m2 (cos φ)))
            (v/freeze
             (e/simplify (L state)))))
+
     (e/with-literal-functions [θ φ]
       (is (= '(down (+ (* l1 l2 m2 (expt ((D φ) t) 2) (sin (+ (θ t) (* -1 (φ t)))))
                        (* l1 l2 m2 (cos (+ (θ t) (* -1 (φ t)))) (((expt D 2) φ) t))
@@ -62,10 +65,11 @@
                        (* l1 l2 m2 (((expt D 2) θ) t) (cos (+ (θ t) (* -1 (φ t)))))
                        (* g l2 m2 (sin (φ t)))
                        (* (expt l2 2) m2 (((expt D 2) φ) t))))
-             (e/simplify (((e/Lagrange-equations
-                            (double/L 'm1 'm2 'l1 'l2 'g))
-                           (up θ φ))
-                          't)))))
+             (v/freeze
+              (e/simplify (((e/Lagrange-equations
+                             (double/L 'm1 'm2 'l1 'l2 'g))
+                            (up θ φ))
+                           't))))))
     (let [o (atom [])
           observe (fn [t q] (swap! o conj [t q]))]
       (double/evolver {:t (/ 3 60) :dt (/ 1 60) :observe observe})

@@ -335,12 +335,12 @@
         (let [^Structure s that]
           (and (= (.-orientation this)
                   (.-orientation s))
-               (= (.-v this)
-                  (.-v s))))
+               (v/= (.-v this)
+                    (.-v s))))
 
         (= (.-orientation this) ::up)
-        (cond (vector? that)   (= (.-v this) that)
-              (seqable? that) (= (seq this) (seq that))
+        (cond (vector? that)   (v/= (.-v this) that)
+              (seqable? that) (v/= (seq this) (seq that))
               :else false)
         :else false))
 

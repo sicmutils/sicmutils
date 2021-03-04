@@ -21,7 +21,7 @@
   (:refer-clojure :exclude [+ - * /  partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :as e :refer [+ - * /
-                                         D simplify compose partial
+                                         D compose partial
                                          literal-function
                                          literal-manifold-function
                                          literal-vector-field
@@ -34,6 +34,9 @@
             [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)
+
+(def simplify
+  (comp e/freeze e/simplify))
 
 (deftest section-3-1
   (let [R2-rect-point ((point R2-rect) (up 'x0 'y0))

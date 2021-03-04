@@ -21,7 +21,7 @@
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :as e :refer [+ - * /
-                                         D simplify compose
+                                         D compose
                                          literal-function
                                          literal-manifold-function
                                          up down
@@ -32,7 +32,10 @@
              #?@(:cljs [:include-macros true])]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
+
+(def simplify
+  (comp e/freeze e/simplify))
 
 (def ^:private R2-rect-chi (chart R2-rect))
 (def ^:private R2-rect-chi-inverse (point R2-rect))

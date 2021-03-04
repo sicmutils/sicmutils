@@ -21,7 +21,7 @@
   (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :as e :refer [+ - * / zero?
-                                         D simplify partial
+                                         D partial
                                          literal-manifold-function
                                          literal-vector-field
                                          up down
@@ -36,6 +36,9 @@
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :each hermetic-simplify-fixture)
+
+(def simplify
+  (comp e/freeze e/simplify))
 
 (deftest section-4-0
   (e/let-coordinates
@@ -145,13 +148,17 @@
                (+ (* a epsilon) theta)
                (+ (* b epsilon) phi)
                (+ (* c epsilon) psi))
-             (simplify  (f 'epsilon))))
+             (simplify (f 'epsilon))))
+
       (is (= '(up
                (+ (* a epsilon) theta)
                (+ (* b epsilon) phi)
                (+ (* c epsilon) psi))
-             (simplify ((comp (chart e/Euler-angles) (point e/Euler-angles) f) 'epsilon))))
-      (is (= '(up a b c) (simplify ((D f) 'epsilon))))
+             (simplify
+              ((comp (chart e/Euler-angles) (point e/Euler-angles) f) 'epsilon))))
+
+      (is (= '(up a b c)
+             (simplify ((D f) 'epsilon))))
 
       (let [g (comp M f)
             h #(* (rotate-x-matrix %) (M (up 'theta 'phi 'psi)))]
@@ -188,8 +195,7 @@
                      (+ (* a (cos psi) (cos theta))
                         (* -1 c (sin psi) (sin theta)))
                      (* -1 a (sin theta))))
-               (e/freeze
-                (simplify ((D g) 0)))))
+               (simplify ((D g) 0))))
 
         (is (= '(matrix-by-rows
                  (up 0 0 0)
@@ -201,8 +207,7 @@
                      (+ (* (cos psi) (cos phi) (cos theta))
                         (* -1 (sin phi) (sin psi)))
                      (* -1 (cos phi) (sin theta))))
-               (e/freeze
-                (simplify ((D h) 0)))))))))
+               (simplify ((D h) 0))))))))
 
 (deftest section-4-3
   (e/let-coordinates
@@ -218,11 +223,12 @@
          p ((point R2-rect) (up 'X 'Y))]
      (binding [pg/*poly-gcd-time-limit* #?(:clj  [1 :seconds]
                                            :cljs [4 :seconds])]
-       (is (zero? (simplify ((- ((e/commutator e0 e1) f)
-                                (* (- (e0 (polar-dual-basis e1))
-                                      (e1 (polar-dual-basis e0)))
-                                   (polar-vector-basis f)))
-                             p)))))))
+       (is (e/zero?
+            (simplify ((- ((e/commutator e0 e1) f)
+                          (* (- (e0 (polar-dual-basis e1))
+                                (e1 (polar-dual-basis e0)))
+                             (polar-vector-basis f)))
+                       p)))))))
   (e/let-coordinates
    [[x y z] R3-rect]
    (let [p ((point R3-rect) (up 'x0 'y0 'z0))

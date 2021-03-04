@@ -24,17 +24,18 @@
             [sicmutils.examples.driven-pendulum :as driven]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (deftest equations
   (e/with-literal-functions [θ y]
     (is (= '(+ (* -1 a l m (expt ω 2) (sin (θ t)) (cos (* t ω)))
                (* g l m (sin (θ t)))
                (* (expt l 2) m (((expt D 2) θ) t)))
-           (e/simplify (((e/Lagrange-equations
-                          (driven/L 'm 'l 'g 'a 'ω))
-                         θ)
-                        't))))
+           (e/freeze
+            (e/simplify (((e/Lagrange-equations
+                           (driven/L 'm 'l 'g 'a 'ω))
+                          θ)
+                         't)))))
     (let [o (atom [])
           observe (fn [t q] (swap! o conj [t q]))]
       (driven/evolver {:t (/ 3 60) :dt (/ 1 60) :observe observe})
