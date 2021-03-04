@@ -2,9 +2,21 @@
 
 ## [unreleased]
 
+- `g/log2` and `g/log10` on symbolic expressions now stay exact, instead of
+  evaluating `(log 2)` or `(log 10)` and getting a non-simplifiable real number
+  in the denominator:
+
+```clojure
+(g/log2 'x)
+;;=> (/ (log x) (log 2))
+
+(g/log10 'x)
+;;=> (/ (log x) (log 10))
+```
+
 - #304:
 
-  - aliases `sicmutils.operator/anticommutator` and `sicmutils.util/bigint?`
+  - aliases `sicmutils.operator/anticommutator`, `sicmutils.util/bigint?` and
     into `sicmutils.env`
 
   - implements `v/=` properly for sequences, `Differential`, `Complex`,
