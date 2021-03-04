@@ -330,6 +330,7 @@
 (defmethod v/= [::down v/seqtype] [_ _] false)
 (defmethod v/= [v/seqtype ::down] [_ _] false)
 (prefer-method v/= [::up ::down] [v/seqtype ::down])
+(prefer-method v/= [::down ::up] [::down v/seqtype])
 
 (defn- s:=
   "Returns true if the supplied structure `this` is equal to the argument on the

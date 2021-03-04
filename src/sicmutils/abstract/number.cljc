@@ -120,6 +120,8 @@
 
 (defmethod v/= [Symbol v/seqtype] [_ _] false)
 (defmethod v/= [v/seqtype Symbol] [_ _] false)
+(defmethod v/= [Symbol ::v/number] [_ _] false)
+(defmethod v/= [::v/number Symbol] [_ _] false)
 (defmethod v/= [::x/numeric v/seqtype] [l r] (v/= (x/expression-of l) r))
 (defmethod v/= [v/seqtype ::x/numeric] [l r] (v/= l (x/expression-of r)))
 (defmethod v/= [::x/numeric ::v/number] [l r] (v/= (x/expression-of l) r))
