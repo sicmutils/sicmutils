@@ -34,7 +34,7 @@
             [sicmutils.structure :refer [up down]]
             [sicmutils.value :as v]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (def f (f/literal-function 'f))
 (def g (f/literal-function 'g))
@@ -196,27 +196,33 @@
                  (* (partial 0) (partial 1))])))
 
   (testing "that their arithmetic operations compose correctly, as per SICM -  'Our Notation'"
-    (is (= '(+ (((expt D 2) f) x) (* -1 (f x)))
-           (g/simplify
-            (((* (+ D I) (- D I)) f) 'x)))))
+    (is (v/= '(+ (((expt D 2) f) x) (* -1 (f x)))
+             (g/simplify
+              (((* (+ D I) (- D I)) f) 'x)))))
 
   (testing "that Operators compose correctly with functions"
-    (is (= '(+ (* -1 (((expt D 2) f) x) ((D g) (+ ((D f) x) (f x))))
-               (* -1 ((D f) x) ((D g) (+ ((D f) x) (f x))))
-               (((expt D 2) f) x)
-               (((expt D 3) f) x))
-           (g/simplify ((D ((* (- D g) (+ D I)) f)) 'x)))))
+    (is (v/= '(+ (* -1 (((expt D 2) f) x) ((D g) (+ ((D f) x) (f x))))
+                 (* -1 ((D f) x) ((D g) (+ ((D f) x) (f x))))
+                 (((expt D 2) f) x)
+                 (((expt D 3) f) x))
+             (g/simplify ((D ((* (- D g) (+ D I)) f)) 'x)))))
 
   (testing "that basic arithmetic operations work on multivariate literal functions"
-    (is (= (g/simplify (((+ D D) ff) 'x 'y))
-           '(down (* 2 (((partial 0) ff) x y)) (* 2 (((partial 1) ff) x y)))))
-    (is (= (g/simplify (((- D D) ff) 'x 'y))
-           '(down 0 0)))
+    (is (= '(down (* 2 (((partial 0) ff) x y))
+                  (* 2 (((partial 1) ff) x y)))
+           (v/freeze
+            (g/simplify
+             (((+ D D) ff) 'x 'y)))))
+
+    (is (= (down 0 0)
+           (g/simplify (((- D D) ff) 'x 'y))))
+
     (is (= (((* D D) ff) 'x 'y)
            (down
             (down (((partial 0) ((partial 0) ff)) 'x 'y) (((partial 0) ((partial 1) ff)) 'x 'y))
             (down (((partial 1) ((partial 0) ff)) 'x 'y) (((partial 1) ((partial 1) ff)) 'x 'y)))))
-    (is (= (((*  (partial 1)  (partial 0)) ff) 'x 'y)
+
+    (is (= (((* (partial 1) (partial 0)) ff) 'x 'y)
            (((partial 1) ((partial 0) ff)) 'x 'y))))
 
   (testing "operator derivative shape"
@@ -227,9 +233,9 @@
     (is (= [:exactly 1] (arity (* D 'e))))
     (is (= [:exactly 1] (arity g/sin)))
     (is (= [:exactly 1] (arity (o/identity g/sin))))
-    (is (= '(sin x) (g/simplify ((o/identity g/sin) 'x))))
-    (is (= '(cos x) (g/simplify (((* D o/identity) g/sin) 'x))))
-    (is (= '(cos x) (g/simplify (((* o/identity D) g/sin) 'x)))))
+    (is (= (g/sin 'x) (g/simplify ((o/identity g/sin) 'x))))
+    (is (= (g/cos 'x) (g/simplify (((* D o/identity) g/sin) 'x))))
+    (is (= (g/cos 'x) (g/simplify (((* o/identity D) g/sin) 'x)))))
 
   (testing "exponentiation"
     (is (= '((f t)

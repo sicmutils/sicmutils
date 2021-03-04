@@ -29,7 +29,7 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (deftest coordinate-systems
   (testing "R2"

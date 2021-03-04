@@ -21,7 +21,7 @@
   (:refer-clojure :exclude [+ - * / zero? partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :as e
-             :refer [+ - * / D zero? partial simplify
+             :refer [+ - * / D zero? partial
                      up down
                      literal-function]
              #?@(:cljs [:include-macros true])]
@@ -32,6 +32,9 @@
             [sicmutils.examples.top :as top]))
 
 (use-fixtures :each hermetic-simplify-fixture)
+
+(def simplify
+  (comp e/freeze e/simplify))
 
 (deftest section-3-1
   (testing "p.189"

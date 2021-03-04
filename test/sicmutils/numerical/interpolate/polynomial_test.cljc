@@ -24,9 +24,10 @@
             [sicmutils.numerical.interpolate.polynomial :as ip]
             [sicmutils.generic :as g]
             [sicmutils.numsymb]
-            [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]))
+            [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]
+            [sicmutils.value :as v]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (deftest symbolic-tests
   (letfn [(lagrange-incremental [points x]
@@ -39,18 +40,18 @@
 
     (testing "Neville and Lagrange interpolation are equivalent"
       (let [points [['x_1 'y_1] ['x_2 'y_2]]]
-        (is (zeroish?
+        (is (v/zero?
              (diff (ip/lagrange points 'x)
                    (ip/neville-recursive points 'x))))))
 
     (testing "points ordering doesn't matter for the final value. (Should test
     all permutations...)"
-      (is (zeroish?
+      (is (v/zero?
            (diff
             (ip/lagrange [['x_1 'y_1] ['x_2 'y_2] ['x_3 'y_3]] 'x)
             (ip/lagrange [['x_2 'y_2] ['x_1 'y_1] ['x_3 'y_3]] 'x))))
 
-      (is (zeroish?
+      (is (v/zero?
            (diff
             (ip/lagrange [['x_2 'y_2] ['x_1 'y_1] ['x_3 'y_3]] 'x)
             (ip/lagrange [['x_3 'y_3] ['x_2 'y_2] ['x_1 'y_1]] 'x)))))
@@ -61,7 +62,7 @@
             diffs  (map diff
                         (lagrange-incremental points 'x)
                         (ip/neville-incremental* points 'x))]
-        (is (ish? [0 0 0 0] diffs))))))
+        (is (v/= [0 0 0 0] diffs))))))
 
 (deftest performance-tests
   (let [points [[0 1] [2 1] [5 2] [8 10]]

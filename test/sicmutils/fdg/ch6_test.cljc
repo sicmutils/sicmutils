@@ -30,7 +30,7 @@
              #?@(:cljs [:include-macros true])]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (deftest section-6-3
   (testing "walking on a sphere"

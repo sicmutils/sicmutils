@@ -28,9 +28,10 @@
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.numsymb]
             [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]
-            [sicmutils.util.stream :as us]))
+            [sicmutils.util.stream :as us]
+            [sicmutils.value :as v]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (defn simpson-step
   "Implements a single step of Simpson's method, as laid out in the [Wikipedia
@@ -59,7 +60,7 @@
             richardson-step (let [t**2 (g/square 2)]
                               (/ (- (* t**2 t2) t1)
                                  (- t**2 1)))]
-        (is (zero?
+        (is (v/zero?
              (g/simplify
               (- richardson-step
                  (simpson-step f 'a 'b))))

@@ -25,7 +25,7 @@
             [sicmutils.structure :refer [up down]]
             [sicmutils.mechanics.rotation :as r]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (deftest hello
   (let [P (up 'x 'y 'z)]

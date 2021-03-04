@@ -21,7 +21,7 @@
   (:refer-clojure :exclude [+ - * / partial])
   (:require [clojure.test :refer [is deftest use-fixtures]]
             [sicmutils.env :as e
-             :refer [+ - * / D partial simplify
+             :refer [+ - * / D partial
                      compose up down abs sin cos square expt
                      Lagrange-equations
                      F->C p->r s->r ->local
@@ -34,7 +34,10 @@
             [sicmutils.examples.pendulum :as pendulum]
             [sicmutils.examples.driven-pendulum :as driven]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
+
+(def simplify
+  (comp e/freeze e/simplify))
 
 (def ^:private near (within 1e-6))
 
@@ -288,9 +291,10 @@
     ;; NB. fraction simplification not happening here
     (is (= '(up 1
                 θdot
-                (/ (+ (* a (expt ω 2) (sin θ) (cos (* t ω))) (* -1 g (sin θ))) l))
-           (simplify ((pend-state-derivative 'm 'l 'g 'a 'ω)
-                      (up 't 'θ 'θdot)))))
+                (/ (+ (* a (expt ω 2) (cos (* t ω)) (sin θ)) (* -1 g (sin θ))) l))
+           (simplify
+            ((pend-state-derivative 'm 'l 'g 'a 'ω)
+             (up 't 'θ 'θdot)))))
 
     (let [opts      {:compile? true :epsilon 1.0e-13}
           evolve-fn (e/evolve pend-state-derivative
@@ -324,13 +328,16 @@
       (is (= '(down (+ (* m r (expt φdot 2) (expt (sin θ) 2))
                        (* m r (expt θdot 2))
                        (* -1 ((D V) r)))
-                    (* m (expt r 2) (expt φdot 2) (cos θ) (sin θ))
+                    (* m (expt r 2) (expt φdot 2) (sin θ) (cos θ))
                     0)
-             (simplify (((partial 1) (L3-central 'm V)) spherical-state))))
+             (simplify
+              (((partial 1) (L3-central 'm V)) spherical-state))))
+
       (is (= '(down (* m rdot)
                     (* m (expt r 2) θdot)
                     (* m (expt r 2) φdot (expt (sin θ) 2)))
              (simplify (((partial 2) (L3-central 'm V)) spherical-state))))
+
       ;; p. 82
       (is (= '(* m (expt r 2) φdot (expt (sin θ) 2))
              (simplify ((compose (ang-mom-z 'm) (F->C s->r)) spherical-state))))

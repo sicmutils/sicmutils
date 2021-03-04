@@ -103,7 +103,7 @@
                                   (* A B C θdot φdot))
                                (* A B C (sin θ)))))]
       (is (= expected
-             (v/freeze
+             (e/freeze
               (e/simplify ((rigid/rigid-sysder 'A 'B 'C)
                            (up 't
                                (up 'θ 'φ 'ψ)

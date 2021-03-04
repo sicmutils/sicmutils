@@ -35,7 +35,7 @@
             [sicmutils.structure :refer [up down]]
             [sicmutils.value :as v]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (def simplify
   (comp v/freeze g/simplify))

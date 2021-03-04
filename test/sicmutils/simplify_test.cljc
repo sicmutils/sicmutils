@@ -32,7 +32,7 @@
             [sicmutils.structure :as s]
             [sicmutils.value :as v :refer [=]]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (defn ^:private symbol-generator
   "Returns a function which generates a sequence of symbols

@@ -41,7 +41,7 @@
                            partial core-partial
                            compare core-compare
                            = core=}
-                  :exclude [+ - * / = zero? compare divide partial])
+                  :exclude [+ - * / zero? compare divide #?@(:cljs [= partial])])
   (:require #?(:clj [potemkin :refer [import-def import-vars]])
             #?(:clj [nrepl.middleware.print])
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
@@ -103,7 +103,7 @@
   ([f] `(af/literal-function ~f))
   ([f sicm-signature]
    (if (and (list? sicm-signature)
-            (= '-> (first sicm-signature)))
+            (core= '-> (first sicm-signature)))
      `(af/literal-function ~f '~sicm-signature)
      `(af/literal-function ~f ~sicm-signature)))
   ([f domain range] `(af/literal-function ~f ~domain ~range)))
