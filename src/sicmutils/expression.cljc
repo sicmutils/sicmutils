@@ -188,11 +188,11 @@
   as a numerical literal expression), returns the wrapped expression (or the
   symbol).
 
-  Throws otherwise."
+  Else, returns `expr`."
   [expr]
-  (cond (literal? expr) (.-expression ^Literal expr)
-        (symbol? expr)  expr
-        :else expr))
+  (if (literal? expr)
+    (.-expression ^Literal expr)
+    expr))
 
 ;; ## Expression Walking
 
