@@ -855,7 +855,7 @@
 (defmethod g/cube [::structure] [a] (s:* a (s:* a a)))
 (defmethod g/expt [::structure ::v/integral] [a b] (expt a b))
 (defmethod g/simplify [::structure] [a]
-  (v/freeze (mapr g/simplify a)))
+  (mapr g/simplify a))
 
 (defmethod g/magnitude [::structure] [a]
   (g/sqrt (inner-product a a)))
