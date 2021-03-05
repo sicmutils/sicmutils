@@ -36,7 +36,7 @@
                        [goog.math.Integer]]))
   #?(:clj
      (:import
-      (clojure.lang BigInt PersistentVector Sequential Var))))
+      (clojure.lang BigInt Sequential Var))))
 
 (defprotocol Numerical
   (numerical? [_]))
@@ -253,6 +253,10 @@
 (defmethod = [::number ::number] [l r]
   #?(:clj  (== l r)
      :cljs (identical? l r)))
+
+(defmethod = [seqtype seqtype] [l r]
+  (and (= (count l) (count r))
+       (every? true? (map = l r))))
 
 (defmethod = :default [l r]
   (if (or (isa? (kind l) ::number)

@@ -27,7 +27,7 @@
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :as v]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (defn Lfree
   [mass]

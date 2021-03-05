@@ -23,7 +23,8 @@
             [sci.core :as sci]
             [sicmutils.env :as e]
             [sicmutils.env.sci :as es]
-            [sicmutils.operator :as o]))
+            [sicmutils.operator :as o]
+            [sicmutils.value :as v]))
 
 (defn eval [form]
   (sci/eval-form (sci/fork es/context) form))
@@ -35,8 +36,8 @@
       "This isn't a GOOD thing; but this documents that arity inside an SCI
       environment isn't something we can trust.")
 
-  (is (= 1 (eval '(simplify (+ (square (sin 'x))
-                               (square (cos 'x))))))
+  (is (v/= 1 (eval '(simplify (+ (square (sin 'x))
+                                 (square (cos 'x))))))
       "simplifications work inside sci")
 
   (is (= "{\\cos}^{2}\\left(x\\right) + {\\sin}^{2}\\left({x}^{2}\\right)"
@@ -54,10 +55,10 @@
                o/identity)))
       "can sci internally require namespaces?")
 
-  (is (= '(* 10 face)
-         (eval
-          '(do (require '[sicmutils.env :as e])
-               (e/simplify (e/* 'face 10)))))
+  (is (v/= '(* 10 face)
+           (eval
+            '(do (require '[sicmutils.env :as e])
+                 (e/simplify (e/* 'face 10)))))
       "sicmutils.env is available as a namespace and also included as the
       default bindings in `user`.")
 

@@ -23,6 +23,7 @@
             [sicmutils.complex :as c]
             [sicmutils.env :as e :refer [+ - * / zero? partial ref
                                          complex
+                                         freeze
                                          simplify
                                          literal-function
                                          orientation up down
@@ -31,7 +32,8 @@
                                          cot csc sec]
              #?@(:cljs [:include-macros true])]
             [sicmutils.matrix :as matrix]
-            [sicmutils.operator :as o]))
+            [sicmutils.operator :as o]
+            [sicmutils.value :as v]))
 
 (deftest partial-shim
   (testing "partial also works the way Clojure defines it"
@@ -92,12 +94,20 @@
           f3 (literal-function 'f (-> Real (UP Real Real)))
           f4 (literal-function 'f [0] (up 1 2))
           f5 (literal-function 'f (-> (DOWN Real Real) (X Real Real)))]
-      (is (= '(f x) (simplify (f1 'x))))
-      (is (= '(f x) (simplify (f2 'x))))
-      (is (= '(up (f↑0 x) (f↑1 x)) (simplify (f3 'x))))
-      (is (= '(up (f↑0 x) (f↑1 x)) (simplify (f4 'x))))
+      (is (v/= '(f x) (simplify (f1 'x))))
+      (is (v/= '(f x) (simplify (f2 'x))))
+
+      (is (= '(up (f↑0 x) (f↑1 x))
+             (freeze
+              (simplify (f3 'x)))))
+
+      (is (= '(up (f↑0 x) (f↑1 x))
+             (freeze
+              (simplify (f4 'x)))))
+
       (is (= '(up (f↑0 (down p_x p_y)) (f↑1 (down p_x p_y)))
-             (simplify (f5 (down 'p_x 'p_y))))))))
+             (freeze
+              (simplify (f5 (down 'p_x 'p_y)))))))))
 
 (deftest shortcuts
   (testing "env aliases alias the actual object from the original namespace"
@@ -111,9 +121,9 @@
                 (select-keys (meta #'e/matrix-by-rows) ks))))))
 
   (testing "cot"
-    (is (= '(/ (cos x) (sin x)) (simplify (cot 'x))))
-    (is (= '(/ 1 (sin x)) (simplify (csc 'x))))
-    (is (= '(/ 1 (cos x)) (simplify (sec 'x))))
+    (is (v/= '(/ (cos x) (sin x)) (simplify (cot 'x))))
+    (is (v/= '(/ 1 (sin x)) (simplify (csc 'x))))
+    (is (v/= '(/ 1 (cos x)) (simplify (sec 'x))))
     (is (= (c/complex 1 2) (complex 1 2)))
     (is (= :sicmutils.structure/up (orientation (up 1 2))))
     (is (= "up(b z - c y, - a z + c x, a y - b x)"

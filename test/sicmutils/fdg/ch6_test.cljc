@@ -30,7 +30,7 @@
              #?@(:cljs [:include-macros true])]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (deftest section-6-3
   (testing "walking on a sphere"
@@ -47,17 +47,22 @@
        (is (= '(down
                 (((partial 0) h-spherical) (up (theta t0) (phi t0)))
                 (((partial 1) h-spherical) (up (theta t0) (phi t0))))
-              (simplify (((e/basis->vector-basis S2-basis-over-mu) h)
-                         ((point R1-rect) 't0)))))
+              (e/freeze
+               (simplify (((e/basis->vector-basis S2-basis-over-mu) h)
+                          ((point R1-rect) 't0))))))
+
        (is (= '(up (down 1 0)
                    (down 0 1))
-              (simplify (((e/basis->oneform-basis S2-basis-over-mu)
-                          (e/basis->vector-basis S2-basis-over-mu))
-                         ((point R1-rect) 't0)))))
+              (e/freeze
+               (simplify (((e/basis->oneform-basis S2-basis-over-mu)
+                           (e/basis->vector-basis S2-basis-over-mu))
+                          ((point R1-rect) 't0))))))
+
        (is (= '(up ((D theta) t0) ((D phi) t0))
-              (simplify (((e/basis->oneform-basis S2-basis-over-mu)
-                          ((e/differential mu) d:dt))
-                         ((point R1-rect) 't0)))))))))
+              (e/freeze
+               (simplify (((e/basis->oneform-basis S2-basis-over-mu)
+                           ((e/differential mu) d:dt))
+                          ((point R1-rect) 't0))))))))))
 
 (deftest section-6-4
   (let [mu (e/literal-manifold-map 'MU R2-rect R3-rect)

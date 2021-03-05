@@ -27,7 +27,8 @@
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.generic :as g :refer [+ - * /]]
-            [sicmutils.structure :refer [up down]]))
+            [sicmutils.structure :refer [up down]]
+            [sicmutils.value :as v]))
 
 (deftest permutation-test
   (is (thrown? #?(:clj Exception :cljs js/Error)
@@ -68,22 +69,26 @@
           residual (- g-polar g-rect)
           vp (vf/literal-vector-field 'v R2-polar)
           vr (vf/literal-vector-field 'v R2-rect)]
-      (is (= 1 (g/simplify ((circular theta) mr))))
-      (is (= 0 (g/simplify ((dr circular) mr))))
-      (is (= 1 (((ff/d r) d:dr) mr)))
-      (is (= 1 (g/simplify ((dr d:dr) mr))))
-      (is (= '(v↑0 (up (sqrt (+ (expt x0 2) (expt y0 2))) (atan y0 x0)))
-             (g/simplify ((dr vp) mr))))
-      (is (= '(v↑0 (up (sqrt (+ (expt x0 2) (expt y0 2))) (atan y0 x0)))
-             (g/simplify (((ff/d r) vp) mr))))
-      (is (= '(/ (+ (* x0 (v↑0 (up x0 y0))) (* y0 (v↑1 (up x0 y0))))
-                 (sqrt (+ (expt x0 2) (expt y0 2))))
-             (g/simplify ((dr vr) mr))))
+      (is (v/= 1 (g/simplify ((circular theta) mr))))
+      (is (v/= 0 (g/simplify ((dr circular) mr))))
+      (is (v/= 1 (((ff/d r) d:dr) mr)))
+      (is (v/= 1 (g/simplify ((dr d:dr) mr))))
 
-      (is (= '(/ (+ (* x0 (v↑0 (up x0 y0))) (* y0 (v↑1 (up x0 y0))))
-                 (sqrt (+ (expt x0 2) (expt y0 2))))
-             (g/simplify (((ff/d r) vr) mr))))
-      (is (= 0 (g/simplify ((residual vr vr) mr))))
-      (is (= 0 (g/simplify ((residual vp vp) mr))))
-      (is (= 0 (g/simplify ((residual vp vp) mp))))
-      (is (= 0 (g/simplify ((residual vr vr) mp)))))))
+      (is (v/= '(v↑0 (up (sqrt (+ (expt x0 2) (expt y0 2))) (atan y0 x0)))
+               (g/simplify ((dr vp) mr))))
+
+      (is (v/= '(v↑0 (up (sqrt (+ (expt x0 2) (expt y0 2))) (atan y0 x0)))
+               (g/simplify (((ff/d r) vp) mr))))
+
+      (is (v/= '(/ (+ (* x0 (v↑0 (up x0 y0))) (* y0 (v↑1 (up x0 y0))))
+                   (sqrt (+ (expt x0 2) (expt y0 2))))
+               (g/simplify ((dr vr) mr))))
+
+      (is (v/= '(/ (+ (* x0 (v↑0 (up x0 y0))) (* y0 (v↑1 (up x0 y0))))
+                   (sqrt (+ (expt x0 2) (expt y0 2))))
+               (g/simplify (((ff/d r) vr) mr))))
+
+      (is (v/= 0 (g/simplify ((residual vr vr) mr))))
+      (is (v/= 0 (g/simplify ((residual vp vp) mr))))
+      (is (v/= 0 (g/simplify ((residual vp vp) mp))))
+      (is (v/= 0 (g/simplify ((residual vr vr) mp)))))))

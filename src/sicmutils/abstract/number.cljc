@@ -114,18 +114,18 @@
 (derive Symbol ::x/numeric)
 (derive ::x/numeric ::v/scalar)
 
-(defn- literal=num
-  "Equality helper; if the left side's a specifically numerical literal, unwrap
-  and compare (otherwise false)."
-  [l n]
-  (and (abstract-number? l)
-       (= (x/expression-of l) n)))
-
 ;; This installs equality into `v/=` between symbolic expressions (and symbols,
-;; see inheritance above) and anything in the standard numeric tower.
+;; see inheritance above), sequences where appropriate, and anything in the
+;; standard numeric tower.
 
-(defmethod v/= [::x/numeric ::v/number] [l r] (literal=num l r))
-(defmethod v/= [::v/number ::x/numeric] [l r] (literal=num r l))
+(defmethod v/= [Symbol v/seqtype] [_ _] false)
+(defmethod v/= [v/seqtype Symbol] [_ _] false)
+(defmethod v/= [Symbol ::v/number] [_ _] false)
+(defmethod v/= [::v/number Symbol] [_ _] false)
+(defmethod v/= [::x/numeric v/seqtype] [l r] (v/= (x/expression-of l) r))
+(defmethod v/= [v/seqtype ::x/numeric] [l r] (v/= l (x/expression-of r)))
+(defmethod v/= [::x/numeric ::v/number] [l r] (v/= (x/expression-of l) r))
+(defmethod v/= [::v/number ::x/numeric] [l r] (v/= l (x/expression-of r)))
 (defmethod v/= [::x/numeric ::x/numeric] [l r]
   (= (x/expression-of l)
      (x/expression-of r)))
@@ -203,5 +203,8 @@
 (defunary g/conjugate 'conjugate)
 
 (defbinary g/gcd 'gcd)
+
+(defmethod g/simplify [Symbol] [a] a)
 (defmethod g/simplify [::x/numeric] [a]
-  (s/simplify-expression (v/freeze a)))
+  (literal-number
+   (s/simplify-expression (v/freeze a))))

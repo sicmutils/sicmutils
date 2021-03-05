@@ -21,7 +21,7 @@
   (:refer-clojure :exclude [+ - * /  ref partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :as e
-             :refer [+ - * / D ref partial simplify compose
+             :refer [+ - * / D ref partial compose
                      up down sin cos square
                      p->r s->m F->CT
                      literal-function]
@@ -29,7 +29,10 @@
             [sicmutils.mechanics.hamilton :as H]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
+
+(def simplify
+  (comp e/freeze e/simplify))
 
 (deftest section-5-1
   (testing "central field"
@@ -37,9 +40,9 @@
                (* 2 m (expt r 2)))
            (simplify ((compose (H/H-central 'm (literal-function 'V))
                                (F->CT p->r))
-                       (up 't
-                           (up 'r 'phi)
-                           (down 'p_r 'p_phi))))))))
+                      (up 't
+                          (up 'r 'phi)
+                          (down 'p_r 'p_phi))))))))
 
 (deftest section-5-2
   (let [J-func (fn [[_ dh1 dh2]] (up 0 dh2 (- dh1)))

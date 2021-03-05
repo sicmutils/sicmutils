@@ -33,7 +33,11 @@
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [+ - * /]]
-            [sicmutils.structure :refer [up down]]))
+            [sicmutils.structure :refer [up down]]
+            [sicmutils.value :as v]))
+
+(def simplify
+  (comp v/freeze g/simplify))
 
 (deftest map-tests
   (testing "the basics"
@@ -43,22 +47,22 @@
             R3-cyl-point ((man/point R3-cyl) (up 'r0 'theta0 'zeta0))
             counter-clockwise (- (* x d:dy) (* y d:dx))
             outward (+ (* x d:dx) (* y d:dy))]
-        (is (= '(* -1 y0) (g/simplify ((dx counter-clockwise) R3-rect-point))))
-        (is (= '(* -1 y0) (g/simplify ((((m/differential x) counter-clockwise) identity) R3-rect-point))))
-        (is (= 'x0 (g/simplify ((dx outward) R3-rect-point))))
-        (is (= 'x0 (g/simplify ((((m/differential x) outward) identity) R3-rect-point))))
+        (is (= '(* -1 y0) (simplify ((dx counter-clockwise) R3-rect-point))))
+        (is (= '(* -1 y0) (simplify ((((m/differential x) counter-clockwise) identity) R3-rect-point))))
+        (is (= 'x0 (simplify ((dx outward) R3-rect-point))))
+        (is (= 'x0 (simplify ((((m/differential x) outward) identity) R3-rect-point))))
         (is (= 'x0 ((dy counter-clockwise) R3-rect-point)))
         (is (= 'x0 ((((m/differential y) counter-clockwise) identity) R3-rect-point)))
         (is (= 'y0 ((dy outward) R3-rect-point)))
         (is (= 'y0 ((((m/differential y) outward) identity) R3-rect-point)))
-        (is (= '0 (g/simplify ((dr counter-clockwise) R3-cyl-point))))
-        (is (= '0 (g/simplify ((((m/differential r) counter-clockwise) identity) R3-cyl-point))))
-        (is (= 'r0 (g/simplify ((dr outward) R3-cyl-point))))
-        (is (= 'r0 (g/simplify ((((m/differential r) outward) identity) R3-cyl-point))))
-        (is (= 1 (g/simplify ((dtheta counter-clockwise) R3-cyl-point))))
-        (is (= 1 (g/simplify ((((m/differential theta) counter-clockwise) identity) R3-cyl-point))))
-        (is (= 0 (g/simplify ((dtheta outward) R3-cyl-point))))
-        (is (= 0 (g/simplify ((((m/differential theta) outward) identity) R3-cyl-point)))))))
+        (is (= '0 (simplify ((dr counter-clockwise) R3-cyl-point))))
+        (is (= '0 (simplify ((((m/differential r) counter-clockwise) identity) R3-cyl-point))))
+        (is (= 'r0 (simplify ((dr outward) R3-cyl-point))))
+        (is (= 'r0 (simplify ((((m/differential r) outward) identity) R3-cyl-point))))
+        (is (= 1 (simplify ((dtheta counter-clockwise) R3-cyl-point))))
+        (is (= 1 (simplify ((((m/differential theta) counter-clockwise) identity) R3-cyl-point))))
+        (is (= 0 (simplify ((dtheta outward) R3-cyl-point))))
+        (is (= 0 (simplify ((((m/differential theta) outward) identity) R3-cyl-point)))))))
 
   (testing "literal manifold map"
     (let-coordinates [[x y] R2-rect
@@ -69,11 +73,11 @@
 
         (is (= '(+ (* (((partial 0) f) (up (μ↑0 τ) (μ↑1 τ))) ((D μ↑0) τ))
                    (* (((partial 1) f) (up (μ↑0 τ) (μ↑1 τ))) ((D μ↑1) τ)))
-               (g/simplify ((((m/differential μ) d:dt) f)
-                            ((man/point R1-rect) 'τ)))))
+               (simplify ((((m/differential μ) d:dt) f)
+                          ((man/point R1-rect) 'τ)))))
         (is (= '((D μ↑0) τ)
-               (g/simplify ((dx ((m/differential μ) d:dt))
-                            ((man/point R1-rect) 'τ)))))
+               (simplify ((dx ((m/differential μ) d:dt))
+                          ((man/point R1-rect) 'τ)))))
         (let [e0 (vf/literal-vector-field 'e0 R2-rect)
               e1 (vf/literal-vector-field 'e1 R2-rect)
               edual (c/vector-basis->dual (down e0 e1) R2-rect)]
@@ -89,13 +93,13 @@
                         (* -1 ((D μ↑1) τ) (e1↑0 (up x0 y0))))
                      (+ (* (e1↑1 (up x0 y0)) (e0↑0 (up x0 y0)))
                         (* -1 (e1↑0 (up x0 y0)) (e0↑1 (up x0 y0)))))
-                 (g/simplify (((nth edual 0)
-                               (vf/procedure->vector-field
-                                (fn [f]
-                                  (fn [m]
-                                    ((((m/differential μ) d:dt) f)
-                                     ((man/point R1-rect) 'τ))))))
-                              R2-rect-point))))))))
+                 (simplify (((nth edual 0)
+                             (vf/procedure->vector-field
+                              (fn [f]
+                                (fn [m]
+                                  ((((m/differential μ) d:dt) f)
+                                   ((man/point R1-rect) 'τ))))))
+                            R2-rect-point))))))))
 
   (testing "general path on the sphere"
     (let-coordinates [t R1-rect]
@@ -107,24 +111,22 @@
                          (man/chart S2-spherical))]
         (is (= '(+ (* (((partial 0) f) (up (θ τ) (φ τ))) ((D θ) τ))
                    (* (((partial 1) f) (up (θ τ) (φ τ))) ((D φ) τ)))
-               (g/simplify ((((m/differential μ) d:dt) f)
-                            ((man/point R1-rect) 'τ)))))
+               (simplify ((((m/differential μ) d:dt) f)
+                          ((man/point R1-rect) 'τ)))))
         (let-coordinates [[θ φ] S2-spherical]
           (is (= '(((partial 0) f) (up (θ τ) (φ τ)))
-                 (g/simplify ((((m/vector-field->vector-field-over-map μ) d:dθ) f)
-                              ((man/point R1-rect) 'τ)))))
+                 (simplify ((((m/vector-field->vector-field-over-map μ) d:dθ) f)
+                            ((man/point R1-rect) 'τ)))))
           (is (= '((D θ) τ)
-                 (g/simplify ((((m/form-field->form-field-over-map μ) dθ)
-                               ((m/differential μ) d:dt))
-                              ((man/point R1-rect) 'τ)))))
+                 (simplify ((((m/form-field->form-field-over-map μ) dθ)
+                             ((m/differential μ) d:dt))
+                            ((man/point R1-rect) 'τ)))))
           (let [foo (m/basis->basis-over-map μ (c/coordinate-system->basis S2-spherical))]
             (is (= '(up (down 1 0) (down 0 1))
-                   (g/simplify (((b/basis->oneform-basis foo)
-                                 (b/basis->vector-basis foo))
-                                ((man/point R1-rect) 'τ)))))
+                   (simplify (((b/basis->oneform-basis foo)
+                               (b/basis->vector-basis foo))
+                              ((man/point R1-rect) 'τ)))))
             (is (= '(up ((D θ) τ) ((D φ) τ))
-                   (g/simplify (((b/basis->oneform-basis foo)
-                                 ((m/differential μ) d:dt))
-                                ((man/point R1-rect) 'τ)))))))
-        )))
-  )
+                   (simplify (((b/basis->oneform-basis foo)
+                               ((m/differential μ) d:dt))
+                              ((man/point R1-rect) 'τ)))))))))))

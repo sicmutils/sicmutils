@@ -102,7 +102,9 @@
                                   (* -1N A B C θdot ψdot (cos θ))
                                   (* A B C θdot φdot))
                                (* A B C (sin θ)))))]
-      (is (= expected (e/simplify ((rigid/rigid-sysder 'A 'B 'C)
-                                   (up 't
-                                       (up 'θ 'φ 'ψ)
-                                       (up 'θdot 'φdot 'ψdot)))))))))
+      (is (= expected
+             (e/freeze
+              (e/simplify ((rigid/rigid-sysder 'A 'B 'C)
+                           (up 't
+                               (up 'θ 'φ 'ψ)
+                               (up 'θdot 'φdot 'ψdot))))))))))

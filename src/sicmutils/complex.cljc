@@ -143,6 +143,17 @@
                    (v/exact? (imaginary c))))
   (kind [_] ::complex))
 
+(defmethod v/= [::complex ::complex] [^Complex a ^Complex b]
+  (.equals a b))
+
+(defmethod v/= [::complex ::v/real] [^Complex a n]
+  (and (zero? (imaginary a))
+       (v/= (real a) n)))
+
+(defmethod v/= [::v/real ::complex] [n ^Complex a]
+  (and (zero? (imaginary a))
+       (v/= n (real a))))
+
 (defmethod g/add [::complex ::complex] [^Complex a ^Complex b] (.add a b))
 (defmethod g/add [::complex ::v/real] [^Complex a n] (.add a (u/double n)))
 (defmethod g/add [::v/real ::complex] [n ^Complex a] (.add a (u/double n)))

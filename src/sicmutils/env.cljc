@@ -39,8 +39,9 @@
   ```"
   (:refer-clojure :rename {ref core-ref
                            partial core-partial
-                           compare core-compare}
-                  :exclude [+ - * / zero? compare divide #?(:cljs partial)])
+                           compare core-compare
+                           = core=}
+                  :exclude [+ - * / zero? compare divide #?@(:cljs [= partial])])
   (:require #?(:clj [potemkin :refer [import-def import-vars]])
             #?(:clj [nrepl.middleware.print])
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
@@ -102,7 +103,7 @@
   ([f] `(af/literal-function ~f))
   ([f sicm-signature]
    (if (and (list? sicm-signature)
-            (= '-> (first sicm-signature)))
+            (core= '-> (first sicm-signature)))
      `(af/literal-function ~f '~sicm-signature)
      `(af/literal-function ~f ~sicm-signature)))
   ([f domain range] `(af/literal-function ~f ~domain ~range)))
@@ -221,10 +222,10 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
  [sicmutils.complex complex complex?]
  #?(:cljs [sicmutils.ratio
            ratio? rationalize numerator denominator])
- #?(:cljs [sicmutils.util bigint])
+ [sicmutils.util bigint? #?@(:cljs [bigint])]
  [sicmutils.function arity compose arg-shift arg-scale I]
  [sicmutils.modint chinese-remainder]
- [sicmutils.operator commutator]
+ [sicmutils.operator commutator anticommutator]
  [sicmutils.series binomial-series partial-sums]
  [sicmutils.generic
   * + - / divide
@@ -391,6 +392,6 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
  [sicmutils.numerical.minimize minimize multidimensional-minimize]
  [sicmutils.util.aggregate sum]
  [sicmutils.util.stream vector:generate]
- [sicmutils.value compare exact? zero? one? identity?
+ [sicmutils.value = compare exact? zero? one? identity?
   zero-like one-like identity-like
   numerical? freeze kind kind-predicate])

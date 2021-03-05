@@ -32,22 +32,23 @@
                  (* (/ 1 2) (expt dY 2) m2)
                  (* (/ 1 2) (expt dx 2) m1)
                  (* (/ 1 2) (expt dy 2) m1))
-             (v/freeze
+             (e/freeze
               (e/simplify ((central/T 'm1 'm2) state)))))
       ;; NB: teach simplifier to recognize difference of squares below
-      (is (= '(/ (* -1 m1 m2)
-                 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-             (e/simplify ((central/V 'm1 'm2) state))))
+      (is (v/= '(/ (* -1 m1 m2)
+                   (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+               (e/simplify
+                ((central/V 'm1 'm2) state))))
 
 
       ;; (is (println "unsimplified central" ((central/L 'm1 'm2) state)))
-      (is (= '(/ (+ (* (expt dX 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                    (* (expt dY 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                    (* (expt dx 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                    (* (expt dy 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
-                    (* 2 m1 m2))
-                 (* 2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2)))))
-             (e/simplify ((central/L 'm1 'm2) state))))
+      (is (v/= '(/ (+ (* (expt dX 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+                      (* (expt dY 2) m2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+                      (* (expt dx 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+                      (* (expt dy 2) m1 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
+                      (* 2 m1 m2))
+                   (* 2 (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2)))))
+               (e/simplify ((central/L 'm1 'm2) state))))
       (let [F ((partial 1) (central/L 'm1 'm2))
             P ((partial 2) (central/L 'm1 'm2))
             N (- F
@@ -84,12 +85,14 @@
                             (* -2 Y y (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
                             (* (expt x 2) (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
                             (* (expt y 2) (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2)))))))
-               (e/simplify (F state))))
+               (e/freeze
+                (e/simplify (F state)))))
         (is (= '(down (* dx m1)
                       (* dy m1)
                       (* dX m2)
                       (* dY m2))
-               (e/simplify (P state))))
+               (e/freeze
+                (e/simplify (P state)))))
         (is (= '(down (/ (+ (* X m1 m2) (* -1 m1 m2 x))
                          (+ (* (expt X 2) (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
                             (* -2 X x (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
@@ -118,25 +121,33 @@
                             (* -2 Y y (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
                             (* (expt x 2) (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
                             (* (expt y 2) (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2)))))))
-               (e/simplify (N state))))
-        (is (= '(down 0 0 0 0) (e/simplify ((- F N) state))))
+               (e/freeze
+                (e/simplify (N state)))))
+
+        (is (= '(down 0 0 0 0)
+               (e/freeze
+                (e/simplify ((- F N) state)))))
+
         (is (= 4 (count (A state))))
         (is (= [4 4 4 4] (map count (A state))))
         (is (= '(down (down m1 0 0 0)
                       (down 0 m1 0 0)
                       (down 0 0 m2 0)
                       (down 0 0 0 m2))
-               (e/simplify (A state))))
+               (e/freeze
+                (e/simplify (A state)))))
+
         (is (= '(up (up (/ 1 m1) 0 0 0)
                     (up 0 (/ 1 m1) 0 0)
                     (up 0 0 (/ 1 m2) 0)
                     (up 0 0 0 (/ 1 m2)))
-               (e/simplify (/ (A state))))))
+               (e/freeze
+                (e/simplify (/ (A state)))))))
 
       (is (= '(down (down (* m (((expt D 2) x) t))
                           (* m (((expt D 2) y) t)))
                     (down 0 0))
-             (v/freeze
+             (e/freeze
               (e/simplify (((e/Lagrange-equations (central/L 'm))
                             (up (up x y)
                                 (up (constantly 0) (constantly 0))))
@@ -171,7 +182,9 @@
                             (* -2 Y y (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
                             (* (expt x 2) (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))
                             (* (expt y 2) (sqrt (+ (expt X 2) (* -2 X x) (expt Y 2) (* -2 Y y) (expt x 2) (expt y 2))))))))
-             (e/simplify ((central/state-derivative 'm 'M) state))))
+             (e/freeze
+              (e/simplify
+               ((central/state-derivative 'm 'M) state)))))
 
       (let [o (atom [])
             observe (fn [t q] (swap! o conj [t q]))]

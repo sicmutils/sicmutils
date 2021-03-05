@@ -230,7 +230,7 @@
        (let [^Matrix m that]
          (and (= (.-r this) (.-r m))
               (= (.-c this) (.-c m))
-              (= (.-v this) (.-v m))))))
+              (v/= (.-v this) (.-v m))))))
 
 (defn num-rows
   "Returns the number of rows of the supplied matrix `m`. Throws if a

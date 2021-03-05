@@ -29,7 +29,7 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (deftest coordinate-systems
   (testing "R2"
@@ -79,11 +79,13 @@
 
     (testing "SO(3)"
       (is (= '(up theta phi psi)
-             (g/simplify ((f/compose (m/chart m/Euler-angles)
-                                     (m/point m/alternate-angles)
-                                     (m/chart m/alternate-angles)
-                                     (m/point m/Euler-angles))
-                          (up 'theta 'phi 'psi)))))
+             (v/freeze
+              (g/simplify
+               ((f/compose (m/chart m/Euler-angles)
+                           (m/point m/alternate-angles)
+                           (m/chart m/alternate-angles)
+                           (m/point m/Euler-angles))
+                (up 'theta 'phi 'psi))))))
 
       (is (= '(up (asin (* (sin theta) (cos psi)))
                   (atan (+ (* (cos psi) (sin phi) (cos theta))
@@ -91,6 +93,8 @@
                         (+ (* (cos psi) (cos phi) (cos theta))
                            (* -1 (sin psi) (sin phi))))
                   (atan (* -1 (sin theta) (sin psi)) (cos theta)))
-             (g/simplify ((f/compose (m/chart m/alternate-angles)
-                                     (m/point m/Euler-angles))
-                          (up 'theta 'phi 'psi))))))))
+             (v/freeze
+              (g/simplify
+               ((f/compose (m/chart m/alternate-angles)
+                           (m/point m/Euler-angles))
+                (up 'theta 'phi 'psi)))))))))

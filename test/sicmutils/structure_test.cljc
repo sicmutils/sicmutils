@@ -210,6 +210,18 @@
       (is (= "(up 1 2 3)" s)))
     (is (= "(up 1 2 3)" (str (s/up 1 2 3)))))
 
+  (testing "down is not equal to up or seqs"
+    (is (= [1 2 3] (s/down 1 2 3))
+        "It is with clojure.core/=! not good.")
+
+    (is (not (= (s/down 1 2 3) [1 2 3]))
+        "core= does the right thing with the args flipped. Not good that these
+        don't match.")
+
+    (is (and (not (v/= [1 2 3] (s/down 1 2 3)))
+             (not (v/= (s/down 1 2 3) [1 2 3])))
+        "v/= does the right thing both ways."))
+
   (testing "equality"
     (is (= (s/up 1 2 3) [1 2 3]))
     (is (= (s/up 1 2 3) (list 1 2 3)))

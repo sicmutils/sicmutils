@@ -32,7 +32,7 @@
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :as v]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (defn check-series [series]
   (testing "v/kind"
@@ -202,21 +202,21 @@
                 1]
                (take 4 (g/+ (g/* #sicm/ratio 1/4 nats) S)))))
 
-      (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε))
-             (g/simplify
-              (take 4 (g/* nats 'ε)))))
+      (is (v/= '(ε (* 2 ε) (* 3 ε) (* 4 ε))
+               (g/simplify
+                (take 4 (g/* nats 'ε)))))
 
-      (is (= '(0 r (* 2 r) (* 3 r))
-             (g/simplify
-              (take 4 (g/* 'r nats0)))))
+      (is (v/= '(0 r (* 2 r) (* 3 r))
+               (g/simplify
+                (take 4 (g/* 'r nats0)))))
 
-      (is (= '(ε (* 2 ε) (* 3 ε) (* 4 ε))
-             (g/simplify
-              (take 4 (g/* 'ε nats)))))
+      (is (v/= '(ε (* 2 ε) (* 3 ε) (* 4 ε))
+               (g/simplify
+                (take 4 (g/* 'ε nats)))))
 
-      (is (= '(0 m (* 2 m) (* 3 m))
-             (g/simplify
-              (take 4 (g/* 'm nats0))))))
+      (is (v/= '(0 m (* 2 m) (* 3 m))
+               (g/simplify
+                (take 4 (g/* 'm nats0))))))
 
     (testing "division"
       (let [series (s/series 0 0 0 4 3 2 1)]
@@ -396,12 +396,13 @@
       (testing "tetrahedral numbers https://en.wikipedia.org/wiki/Tetrahedral_number"
         (is (= '(1 4 10 20 35 56 84)
                (take 7 (g/square nats))))
-        (is (= '(m (* 4 m) (* 10 m) (* 20 m))
-               (->> (s/generate inc)
-                    g/square
-                    (g/* 'm)
-                    (take 4)
-                    g/simplify)))
+
+        (is (v/= '(m (* 4 m) (* 10 m) (* 20 m))
+                 (->> (s/generate inc)
+                      (g/square)
+                      (g/* 'm)
+                      (take 4)
+                      (g/simplify))))
 
         (is (= [1 4 10 20 35 56 84]
                (take 7 (s/partial-sums triangular)))

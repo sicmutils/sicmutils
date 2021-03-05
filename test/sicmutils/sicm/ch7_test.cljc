@@ -18,10 +18,10 @@
 ;
 
 (ns sicmutils.sicm.ch7-test
-  (:refer-clojure :exclude [+ - * / partial])
+  (:refer-clojure :exclude [+ - * / = partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :as e
-             :refer [+ - * / D I simplify compose
+             :refer [+ - * / = D I simplify compose
                      literal-function
                      up down
                      sin cos square cube exp]
@@ -70,7 +70,8 @@
                             (((partial 1 1) H) (up t (up x y) (down p_x p_y))))
                       (up (((partial 2 0) H) (up t (up x y) (down p_x p_y)))
                           (((partial 2 1) H) (up t (up x y) (down p_x p_y)))))
-               (-> s ((D H)) simplify)))))))
+               (e/freeze
+                (simplify ((D H) s)))))))))
 
 (deftest section-3
   (let [derivative-of-sine (D sin)]
@@ -88,4 +89,5 @@
              (up (+ (* 2 x) (* 2 y))
                  (+ (* 3 (expt x 2)) (* -6 x y) (* 3 (expt y 2)))
                  (exp (+ x y))))
-           (simplify ((D g) 'x 'y))))))
+           (e/freeze
+            (simplify ((D g) 'x 'y)))))))

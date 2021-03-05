@@ -18,6 +18,7 @@
 ;;
 
 (ns sicmutils.simplify-test
+  (:refer-clojure :exclude [=])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             #?(:cljs [goog.string :refer [format]])
             [sicmutils.abstract.number]
@@ -29,9 +30,9 @@
                                         expression->string
                                         trig-cleanup]]
             [sicmutils.structure :as s]
-            [sicmutils.value :as v]))
+            [sicmutils.value :as v :refer [=]]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (defn ^:private symbol-generator
   "Returns a function which generates a sequence of symbols
@@ -224,7 +225,9 @@
       (is (= '(up
                (/ (+ (* -1 b y) (* d x)) (+ (* a d) (* -1 b c)))
                (/ (+ (* a y) (* -1 c x)) (+ (* a d) (* -1 b c))))
-             (g/simplify (g/divide u M))))))
+             (v/freeze
+              (g/simplify
+               (g/divide u M)))))))
 
   (testing "determinant"
     (is (= '(+

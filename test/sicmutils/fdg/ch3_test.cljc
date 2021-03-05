@@ -1,27 +1,27 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.fdg.ch3-test
   (:refer-clojure :exclude [+ - * /  partial])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.env :as e :refer [+ - * /
-                                         D simplify compose partial
+                                         D compose partial
                                          literal-function
                                          literal-manifold-function
                                          literal-vector-field
@@ -34,6 +34,9 @@
             [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)
+
+(def simplify
+  (comp e/freeze e/simplify))
 
 (deftest section-3-1
   (let [R2-rect-point ((point R2-rect) (up 'x0 'y0))

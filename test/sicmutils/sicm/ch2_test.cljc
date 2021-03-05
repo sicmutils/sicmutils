@@ -29,7 +29,7 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (def ^:private Euler-state
   (up 't
@@ -70,20 +70,24 @@
                ((r/M->omega-body Euler->M) Euler-state))))))))
 
 (deftest section-2-9
-  (is (= '(+ (* A φdot (expt (sin ψ) 2) (expt (sin θ) 2))
-             (* B φdot (expt (cos ψ) 2) (expt (sin θ) 2))
-             (* A θdot (cos ψ) (sin ψ) (sin θ))
-             (* -1 B θdot (cos ψ) (sin ψ) (sin θ))
-             (* C φdot (expt (cos θ) 2))
-             (* C ψdot (cos θ)))
-         (simplify (ref (((partial 2) (r/T-rigid-body 'A 'B 'C)) Euler-state) 1))))
+  (is (v/= '(+ (* A φdot (expt (sin ψ) 2) (expt (sin θ) 2))
+               (* B φdot (expt (sin θ) 2) (expt (cos ψ) 2))
+               (* A θdot (sin ψ) (sin θ) (cos ψ))
+               (* -1 B θdot (sin ψ) (sin θ) (cos ψ))
+               (* C φdot (expt (cos θ) 2))
+               (* C ψdot (cos θ)))
+           (simplify
+            (ref (((partial 2) (r/T-rigid-body 'A 'B 'C)) Euler-state) 1))))
 
-  (is (zero? (simplify (- (ref ((r/Euler-state->L-space 'A 'B 'C) Euler-state) 2)
-                          (ref (((partial 2) (r/T-rigid-body 'A 'B 'C)) Euler-state) 1)))))
+  (is (zero?
+       (simplify
+        (- (ref ((r/Euler-state->L-space 'A 'B 'C) Euler-state) 2)
+           (ref (((partial 2) (r/T-rigid-body 'A 'B 'C)) Euler-state) 1)))))
 
-  (is (= '(* A B C (expt (sin θ) 2))
-         (simplify (e/determinant
-                    (((e/square (partial 2)) (r/T-rigid-body 'A 'B 'C)) Euler-state))))))
+  (is (v/= '(* A B C (expt (sin θ) 2))
+           (simplify
+            (e/determinant
+             (((e/square (partial 2)) (r/T-rigid-body 'A 'B 'C)) Euler-state))))))
 
 (deftest ^:long section-2-9b
   (binding [pg/*poly-gcd-time-limit* #?(:clj  [2 :seconds]

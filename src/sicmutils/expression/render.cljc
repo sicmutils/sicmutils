@@ -619,7 +619,8 @@
     (fn [x & {:keys [symbol-generator parameter-order deterministic?]
              :or {symbol-generator (make-symbol-generator "_")
                   parameter-order sort}}]
-      (let [params (set/difference (x/variables-in x) operators-known)
+      (let [x      (v/freeze x)
+            params (set/difference (x/variables-in x) operators-known)
             ordered-params (if (fn? parameter-order)
                              (parameter-order params)
                              parameter-order)

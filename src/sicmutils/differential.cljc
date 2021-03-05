@@ -1221,6 +1221,12 @@
 ;; provides [[defunary]] and [[defbinary]] calls for all of the generic
 ;; operations for which we know how to declare partial derivatives.
 
+;; First, install `equiv` as to perform proper equality between `Differential`
+;; instances and scalars. `equiv` compares on only the finite part, not the
+;; differential parts.
+
+(defbinary v/= equiv)
+
 (defbinary g/add d:+)
 (defunary g/negate (lift-1 g/negate))
 (defbinary g/sub (lift-2 g/sub))

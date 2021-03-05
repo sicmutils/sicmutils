@@ -23,20 +23,23 @@
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :refer [up down]]
-            [sicmutils.mechanics.rotation :as r]))
+            [sicmutils.mechanics.rotation :as r]
+            [sicmutils.value :as v]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
+
+(def simplify
+  (comp v/freeze g/simplify))
 
 (deftest hello
   (let [P (up 'x 'y 'z)]
     (is (= '(up x (+ (* y (cos a)) (* -1 z (sin a))) (+ (* y (sin a)) (* z (cos a))))
-           (g/simplify ((r/Rx 'a) P))))
+           (simplify ((r/Rx 'a) P))))
     (is (= '(up x (+ (* y (cos a)) (* -1 z (sin a))) (+ (* y (sin a)) (* z (cos a))))
-           (g/simplify (* (r/rotate-x-matrix 'a) P))))
-    (is (= '(up 0 0 0) (g/simplify (- ((r/Rx 'a) P) (* (r/rotate-x-matrix 'a) P)))))
-    (is (= '(up 0 0 0) (g/simplify (- ((r/Ry 'a) P) (* (r/rotate-y-matrix 'a) P)))))
-    (is (= '(up 0 0 0) (g/simplify (- ((r/Rz 'a) P) (* (r/rotate-z-matrix 'a) P)))))
-    ))
+           (simplify (* (r/rotate-x-matrix 'a) P))))
+    (is (= '(up 0 0 0) (simplify (- ((r/Rx 'a) P) (* (r/rotate-x-matrix 'a) P)))))
+    (is (= '(up 0 0 0) (simplify (- ((r/Ry 'a) P) (* (r/rotate-y-matrix 'a) P)))))
+    (is (= '(up 0 0 0) (simplify (- ((r/Rz 'a) P) (* (r/rotate-z-matrix 'a) P)))))))
 
 (deftest rotation-from-structure-tests
   (testing "function - rotate about x axis"

@@ -719,22 +719,21 @@
         (let [a (s/up (s/down 'a 'b)
                       (s/down 'c 'd))
               b (s/down 'e 'f)]
-          (is (= '(down 0 0)
+          (is (= (s/down 0 0)
                  (g/simplify
                   (g/- b (g// (g/* a b) a))))
               "(ab)/a == b with up-down, down")
 
-          (is (= '(down 0 0)
+          (is (= (s/down 0 0)
                  (g/simplify
                   (g/- b (g/* a (g// b a)))))
               "a(b/a) == b with up-down, down")
 
-          (is (= (v/freeze b)
-                 (g/simplify
-                  (g/solve-linear a (g/* a b))))
+          (is (= b (g/simplify
+                    (g/solve-linear a (g/* a b))))
               "solve-linear works properly")
 
-          (is (= (v/freeze (s/opposite b))
+          (is (= (s/opposite b)
                  (-> (g/solve-linear-right (s/opposite b) a)
                      (g/* a)
                      (g/simplify)))
@@ -743,22 +742,21 @@
         (let [a (s/down (s/up 'a 'b)
                         (s/up 'c 'd))
               b (s/up 'e 'f)]
-          (is (= '(up 0 0)
+          (is (= (s/up 0 0)
                  (g/simplify
                   (g/- b (g// (g/* a b) a))))
               "(ab)/a == b with down-up, up")
 
-          (is (= '(up 0 0)
+          (is (= (s/up 0 0)
                  (g/simplify
                   (g/- b (g/* a (g// b a)))))
               "a(b/a) == b with down-up, up")
 
-          (is (= (v/freeze b)
-                 (g/simplify
-                  (g/solve-linear a (g/* a b))))
+          (is (= b (g/simplify
+                    (g/solve-linear a (g/* a b))))
               "solve-linear works properly")
 
-          (is (= (v/freeze (s/opposite b))
+          (is (= (s/opposite b)
                  (-> (g/solve-linear-right (s/opposite b) a)
                      (g/* a)
                      (g/simplify)))

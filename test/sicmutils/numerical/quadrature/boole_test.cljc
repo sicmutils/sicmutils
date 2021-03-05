@@ -26,9 +26,10 @@
             [sicmutils.numerical.quadrature.trapezoid :as qt]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.numsymb]
-            [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]))
+            [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]
+            [sicmutils.value :as v]))
 
-(use-fixtures :once hermetic-simplify-fixture)
+(use-fixtures :each hermetic-simplify-fixture)
 
 (defn boole-step
   "Implements a single step of Boole's method, as laid out in the [Wikipedia
@@ -69,7 +70,7 @@
                               (let [t**p (g/expt 2 p)]
                                 (/ (- (* t**p b) a)
                                    (- t**p 1))))]
-        (is (zero?
+        (is (v/zero?
              (g/simplify
               (- (richardson-step 4
                                   (richardson-step 2 t1 t2)

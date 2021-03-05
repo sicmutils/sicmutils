@@ -320,6 +320,17 @@
   #(get-in % indices))
 
 ;; ## Structure Predicates
+;;
+;; `::down` instances should never be equal to collections, or `::up`. By
+;; default in Clojure, all collections compare as if they were sequences, so an
+;; up can't equal a down... but a vector would! This change fixes that.
+
+(defmethod v/= [::down ::up] [_ _] false)
+(defmethod v/= [::up ::down] [_ _] false)
+(defmethod v/= [::down v/seqtype] [_ _] false)
+(defmethod v/= [v/seqtype ::down] [_ _] false)
+(prefer-method v/= [::up ::down] [v/seqtype ::down])
+(prefer-method v/= [::down ::up] [::down v/seqtype])
 
 (defn- s:=
   "Returns true if the supplied structure `this` is equal to the argument on the
@@ -335,12 +346,12 @@
         (let [^Structure s that]
           (and (= (.-orientation this)
                   (.-orientation s))
-               (= (.-v this)
-                  (.-v s))))
+               (v/= (.-v this)
+                    (.-v s))))
 
         (= (.-orientation this) ::up)
-        (cond (vector? that)   (= (.-v this) that)
-              (seqable? that) (= (seq this) (seq that))
+        (cond (vector? that)   (v/= (.-v this) that)
+              (seqable? that) (v/= (seq this) (seq that))
               :else false)
         :else false))
 
@@ -855,7 +866,7 @@
 (defmethod g/cube [::structure] [a] (s:* a (s:* a a)))
 (defmethod g/expt [::structure ::v/integral] [a b] (expt a b))
 (defmethod g/simplify [::structure] [a]
-  (v/freeze (mapr g/simplify a)))
+  (mapr g/simplify a))
 
 (defmethod g/magnitude [::structure] [a]
   (g/sqrt (inner-product a a)))
