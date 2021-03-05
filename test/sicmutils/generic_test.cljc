@@ -125,9 +125,7 @@
 
 (deftest generic-plus
   (is (= 0 (g/+)) "no args returns additive identity")
-  (checking "g/+"
-            100
-            [x gen/any]
+  (checking "g/+" 100 [x gen/any-equatable]
             (is (= x (g/+ x)) "single arg should return itself, for any type.")
             (is (= (if (v/zero? x) 0 x)
                    (g/+ x 0))
@@ -141,13 +139,12 @@
 (deftest generic-minus
   (is (= 0 (g/-)) "no-arity returns the additive identity.")
   (checking "Subtracting a zero acts as id, with no implementations registered."
-            100
-            [x gen/any]
+            100 [x gen/any-equatable]
             (is (= x (g/- x 0)))))
 
 (deftest generic-times
   (is (= 1 (g/*)) "No args returns the multiplicative identity.")
-  (checking "g/*" 100 [x gen/any]
+  (checking "g/*" 100 [x gen/any-equatable]
             (is (v/= x (g/* x)) "single arg returns itself.")
             (is (v/= (if (v/one? x) 1 x)
                      (g/* x 1)) "First unity gets returned.")
@@ -155,9 +152,7 @@
 
 (deftest generic-divide
   (is (= 1 (g/divide)) "division with no args returns multiplicative identity")
-  (checking "g/divide"
-            100
-            [x gen/any]
+  (checking "g/divide" 100 [x gen/any-equatable]
             (is (= x (g/divide x 1)) "dividing by one a single time returns the input")
             (is (= x (g/divide x 1 1 1 1.0 1)) "dividing by 1 returns the input")))
 

@@ -188,11 +188,11 @@
   as a numerical literal expression), returns the wrapped expression (or the
   symbol).
 
-  Throws otherwise."
+  Else, returns `expr`."
   [expr]
-  (cond (literal? expr) (.-expression ^Literal expr)
-        (symbol? expr)  expr
-        :else (u/illegal (str "unknown expression type: " expr))))
+  (if (literal? expr)
+    (.-expression ^Literal expr)
+    expr))
 
 ;; ## Expression Walking
 
@@ -221,7 +221,8 @@
                       (apply f (map walk args))
                       (u/illegal (str "Missing fn for symbol - " f-sym))))
                   :else node))]
-    (walk expr)))
+    (walk
+     (expression-of expr))))
 
 (defn substitute
   "Returns a form similar to `expr`, with all instances of `old` replaced by

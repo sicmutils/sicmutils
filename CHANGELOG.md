@@ -2,9 +2,21 @@
 
 ## [unreleased]
 
+- #315: `g/log2` and `g/log10` on symbolic expressions now stay exact, instead
+  of evaluating `(log 2)` or `(log 10)` and getting a non-simplifiable real
+  number in the denominator:
+
+```clojure
+(g/log2 'x)
+;;=> (/ (log x) (log 2))
+
+(g/log10 'x)
+;;=> (/ (log x) (log 10))
+```
+
 - #304:
 
-  - aliases `sicmutils.operator/anticommutator` and `sicmutils.util/bigint?`
+  - aliases `sicmutils.operator/anticommutator`, `sicmutils.util/bigint?` and
     into `sicmutils.env`
 
   - implements `v/=` properly for sequences, `Differential`, `Complex`,
@@ -20,7 +32,11 @@
     issue if you find a case like this!
 
   - BIG CHANGE: `Literal` and `Structure` instances now KEEP their type under
-    `g/simplify`. This means that you can no longer make comparisons like this:
+    `g/simplify`. If you want to get the expression back out of its `Literal`
+    wrapper, use `sicmutils.expression/expression-of`, also aliased into
+    `sicmutils.env`.
+
+    This means that you can no longer make comparisons like this:
 
 ```clojure
 ;; this worked before, and was used all over the tests (probably not in much

@@ -47,6 +47,7 @@
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number :as an]
             [sicmutils.complex]
+            [sicmutils.expression]
             [sicmutils.expression.render :as render]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
@@ -269,6 +270,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   up?
   vector->down vector->up
   literal-down literal-up]
+ [sicmutils.expression expression-of]
  [sicmutils.expression.render
   ->infix
   ->TeX

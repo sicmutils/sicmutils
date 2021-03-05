@@ -130,19 +130,10 @@
   (= (x/expression-of l)
      (x/expression-of r)))
 
-(defn- numerical-expression
-  "For literal numbers, returns the unwrapped form. Else acts as identity. (If
-  you've made it here, you've chosen to be absorbed into a `literal-number`
-  wrapper!)"
-  [expr]
-  (if (literal-number? expr)
-    (x/expression-of expr)
-    expr))
-
 (defn- defunary [generic-op op-sym]
   (if-let [op (sym/symbolic-operator op-sym)]
     (defmethod generic-op [::x/numeric] [a]
-      (literal-number (op (numerical-expression a))))
+      (literal-number (op (x/expression-of a))))
     (defmethod generic-op [::x/numeric] [a]
       (x/literal-apply ::x/numeric op-sym [a]))))
 
@@ -154,8 +145,8 @@
       (doseq [[l r] pairs]
         (defmethod generic-op [l r] [a b]
           (literal-number
-           (op (numerical-expression a)
-               (numerical-expression b)))))
+           (op (x/expression-of a)
+               (x/expression-of b)))))
 
       (doseq [[l r] pairs]
         (defmethod generic-op [l r] [a b]
@@ -191,7 +182,22 @@
 
 (defunary g/abs 'abs)
 (defunary g/sqrt 'sqrt)
+
 (defunary g/log 'log)
+
+(let [log (sym/symbolic-operator 'log)
+      div (sym/symbolic-operator '/)]
+  (defmethod g/log2 [::x/numeric] [a]
+    (let [a (x/expression-of a)]
+      (literal-number
+       (div (log a)
+            (log 2)))))
+
+  (defmethod g/log10 [::x/numeric] [a]
+    (let [a (x/expression-of a)]
+      (literal-number
+       (div (log a) (log 10))))))
+
 (defunary g/exp 'exp)
 
 (defbinary g/make-rectangular 'make-rectangular)

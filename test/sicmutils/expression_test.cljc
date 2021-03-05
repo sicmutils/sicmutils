@@ -116,9 +116,9 @@
     (is (= 'x (e/expression-of 'x))
         "symbols get round-tripped")
 
-    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-                 (e/expression-of 12))
-        "Any other type throws"))
+    (checking "expression-of acts as identity for non Literal" 100
+              [x gen/any-equatable]
+              (is (= x (e/expression-of x)))))
 
   (testing "variables-in"
     (let [expr '(+ x (* 3 y) [a [b 9 c] [3 4 5 d]])]

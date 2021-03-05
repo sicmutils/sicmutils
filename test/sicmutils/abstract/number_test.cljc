@@ -241,14 +241,34 @@
                    (g/log (an/literal-number x))))
 
             (is (= (an/literal-number (g/log2 x))
-                   (g/log2 (an/literal-number x))))
+                   (-> (g/log2 (an/literal-number x))
+                       (x/evaluate {} {'/ g// 'log g/log})))
+                "(log 2) in the denom stays exact, so force evaluation.")
 
             (is (= (an/literal-number
                     (if (neg? x)
                       (g/log10 (c/complex x))
-                      (/ (g/log x)
-                         (g/log 10))))
-                   (g/log10 (an/literal-number x)))))
+                      (/ (g/log x) (g/log 10))))
+                   (-> (g/log10 (an/literal-number x))
+                       (x/evaluate {} {'/ g// 'log g/log})))
+                "(log 10) in the denom stays exact, so force evaluation."))
+
+  (testing "log2, log10 stay exact"
+    (is (v/= '(/ (log x) (log 2))
+             (g/simplify (g/log2 'x))))
+
+    (is (v/= '(log x)
+             (g/simplify
+              (g/* (g/log (an/literal-number 2))
+                   (g/log2 'x)))))
+
+    (is (v/= '(/ (log x) (log 10))
+             (g/simplify (g/log10 'x))))
+
+    (is (v/= '(log x)
+             (g/simplify
+              (g/* (g/log (an/literal-number 10))
+                   (g/log10 'x))))))
 
   (checking "exp" 100 [x (sg/inexact-double)]
             (is (= (an/literal-number (Math/exp x))
@@ -540,16 +560,17 @@
                    (v/freeze (g/sqrt x)))))
 
   (checking "log" 100 [x gen/symbol]
-            (is (= (list 'log x)
-                   (v/freeze (g/log x))))
+            (is (v/= (list 'log x)
+                     (g/log x)))
+
             (is (v/= (g// (g/log x)
-                          (Math/log 2))
+                          (g/log (an/literal-number 2)))
                      (g/log2 x))
-                "log2 divides by the inexact (log 2).")
+                "log2 divides by the exact (log 2).")
             (is (v/= (g// (g/log x)
-                          (Math/log 10))
+                          (g/log (an/literal-number 10)))
                      (g/log10 x))
-                "log10 divides by the inexact (log 10)."))
+                "log10 divides by the exact (log 10)."))
 
   (checking "exp" 100 [x gen/symbol]
             (is (= (list 'exp x)
