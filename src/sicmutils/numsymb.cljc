@@ -40,6 +40,7 @@
 (def expt? (is-expression? 'expt))
 (def quotient? (is-expression? '/))
 (def arctan? (is-expression? 'atan))
+(def derivative? (is-expression? g/derivative-symbol))
 (def operator first)
 (def operands rest)
 
@@ -436,10 +437,84 @@
       (atan (imag-part z)
             (real-part z)))))
 
+(defn iterated-derivative? [expr]
+  (and (seq? expr)
+       (expt? (operator expr))
+       (= g/derivative-symbol
+          (second
+           (operator expr)))))
+
+;; sicmutils.numsymb> (derivative '(g f))
+;; (D (g f))
+;; sicmutils.numsymb> (derivative (derivative '(g f)))
+;; ((expt D 2) (g f))
+;; sicmutils.numsymb> (derivative (derivative (derivative '(g f))))
+;; ((expt D 3) (g f))
+
+(defn derivative [expr]
+  (cond (derivative? expr)
+        (list (expt g/derivative-symbol 2)
+              (first (operands expr)))
+
+        (iterated-derivative? expr)
+        (let [pow (nth (operator expr) 2)]
+          (list (expt g/derivative-symbol (inc pow))
+                (fnext expr)))
+        :else
+        (list g/derivative-symbol expr)))
+
+(comment
+  (defn &
+    "Units!"
+    ([e u1]
+     (list '& e u1))
+    ([e u1 u2]
+     (list '& e u1 u2))))
+
+(defn bin= [l r]
+  (let [num-l? (v/number? l)
+        num-r? (v/number? r)]
+    (cond (and num-l? num-r?)
+          (and (v/exact? l) (v/exact? r) (= l r))
+
+          (or num-l? num-r?) false
+          (= l r) true
+          :else (list '= l r))))
+
+(defn sym:=
+  ([] true)
+  ([x] true)
+  ([x y] (bin= x y))
+  ([x y & more]
+   (loop [args more
+          larg y
+          ans (bin= x y)]
+     (if (empty? args)
+       ans
+       (recur (rest args)
+              (first args)
+              ;; TODO this is broken... if the first one is not `true` we'll
+              ;; continue!
+              (and ans (bin= larg (first args))))))))
+
+(defn sym:zero? [x]
+  (if (v/number? x)
+    (v/zero? x)
+    (list '= 0 x)))
+
+(defn sym:one? [x]
+  (if (v/number? x)
+    (v/one? x)
+    (list '= 1 x)))
+
 ;; ## Table
 
 (def ^:private symbolic-operator-table
-  {'+ #(reduce add 0 %&)
+  {'zero? sym:zero?
+   'one? sym:one?
+   'identity? sym:one?
+   '= sym:=
+   '+ #(reduce add 0 %&)
    '- sub-n
    '* #(reduce mul 1 %&)
    '/ div-n
@@ -474,7 +549,8 @@
    'imag-part imag-part
    'conjugate conjugate
    'magnitude magnitude
-   'angle angle})
+   'angle angle
+   'derivative derivative})
 
 (defn symbolic-operator
   "Given a symbol (like `'+`) returns an applicable operator if there is a

@@ -441,8 +441,6 @@
 ;; This section exposes various differential operators as [[o/Operator]]
 ;; instances.
 
-(def ^:no-doc derivative-symbol 'D)
-
 (def ^{:doc "Derivative operator. Takes some function `f` and returns a function
   whose value at some point can multiply an increment in the arguments, to
   produce the best linear estimate of the increment in the function value.
@@ -456,7 +454,7 @@
   opposite orientation as [[D]]. Both of these functions use forward-mode
   automatic differentiation."} D
   (o/make-operator #(g/partial-derivative % [])
-                   derivative-symbol))
+                   g/derivative-symbol))
 
 (defn partial
   "Returns an operator that, when applied to a function `f`, produces a function

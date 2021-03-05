@@ -787,7 +787,12 @@
   ([dx dy]
    (terms->differential
     (terms:+ (->terms dx)
-             (->terms dy)))))
+             (->terms dy))))
+  ([dx dy & more]
+   (terms->differential
+    (transduce (map ->terms)
+               terms:+
+               (cons dx (cons dy more))))))
 
 (defn d:*
   "Returns an object representing the product of the two objects `dx` and `dy`.

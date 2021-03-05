@@ -786,3 +786,12 @@
                   (log (- 1 x)))
                2)
            (v/freeze (g/atanh 'x))))))
+
+(deftest symbolic-derivative-tests
+  (testing "structural utilities"
+    (is (sym/derivative? '(D f)))
+    (is (not (sym/derivative? '(e f))))
+    (is (not (sym/iterated-derivative? '(expt D 2))))
+    (is (sym/iterated-derivative? '((expt D 2) f)))
+    (is (= '((expt D 2) f) (sym/derivative '(D f))))
+    (is (= '((expt D 3) f) (sym/derivative '((expt D 2) f))))))
