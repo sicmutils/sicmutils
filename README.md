@@ -202,7 +202,7 @@ To cite this repository:
 ```
 @software{sicmutils2016github,
   author = {Colin Smith and Sam Ritchie},
-  title = {{SICMUtils}: functional {C}omputer {A}lgebra in {C}clojure@+{N}um{P}y programs},
+  title = {{SICMU}tils: {F}unctional {C}omputer {A}lgebra in {C}lojure},
   url = {http://github.com/sicmutils/sicmutils},
   version = {0.16.0},
   year = {2016},
