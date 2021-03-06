@@ -21,7 +21,9 @@
   (:refer-clojure :rename {identity core-identity
                            name core-name}
                   #?@(:cljs [:exclude [get identity name]]))
-  (:require [sicmutils.differential :as d]
+  (:require [pattern.rule :refer [ruleset rule-simplifier]
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.differential :as d]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.series :as series]
@@ -29,6 +31,79 @@
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang IFn ILookup IObj))))
+
+(def ^:private simplify-operator
+  (rule-simplifier
+   (ruleset
+    ;; internal multiplication on both sides:
+    (* (* :pre* (expt :op (:? lexpt v/integral?)))
+       (* (expt :op (:? rexpt v/integral?)) :post*))
+    => (* :pre*
+          (expt :op (:? #(g/+ (% 'lexpt)
+                              (% 'rexpt))))
+          :post*)
+
+    (* (* :pre* :op)
+       (* (expt :op (:? n v/integral?)) :post*))
+    => (* :pre* (expt :op (:? #(g/+ (% 'n) 1))) :post*)
+
+    (* (* :pre* (expt :op (:? n v/integral?)))
+       (* :op :post*))
+    => (* :pre* (expt :op (:? #(g/+ (% 'n) 1))) :post*)
+
+    (* (* :pre* :op) (* :op :post*))
+    => (* :pre* (expt :op 2) :post*)
+
+    (* (* :pre*) (* :post*))
+    => (* :pre* :post*)
+
+    ;; Internal multiplication on left:
+    (* (* :pre* (expt :op (:? lexpt v/integral?)))
+       (expt :op (:? rexpt v/integral?)))
+    => (* :pre* (expt :op (:? #(g/+ (% 'lexpt)
+                                    (% 'rexpt)))))
+
+    (* (* :pre* :op)
+       (expt :op (:? n v/integral?)) :post*)
+    => (* :pre* (expt :op (:? #(g/+ (% 'n) 1))))
+
+    (* (* :pre* (expt :op (:? n v/integral?)))
+       :op)
+    => (* :pre* (expt :op (:? #(g/+ (% 'n) 1))))
+
+    (* (* :pre* :op) :op) => (* :pre* (expt :op 2))
+    (* (* :pre*) :op) => (* :pre* :op)
+
+    ;; internal multiplication on right:
+    (* (expt :op (:? lexpt v/integral?))
+       (* (expt :op (:? rexpt v/integral?)) :post*))
+    => (* (expt :op (:? #(g/+ (% 'lexpt)
+                              (% 'rexpt))))
+          :post*)
+
+    (* (expt :op (:? n v/integral?))
+       (* :op :post*))
+    => (* (expt :op (:? #(g/+ (% 'n) 1))) :post*)
+
+    (* :op (* (expt :op (:? n v/integral?)) :post*))
+    => (* (expt :op (:? #(g/+ (% 'n) 1))) :post*)
+
+    (* :op (* :op :post*)) => (* (expt :op 2) :post*)
+    (* :op (* :post*)) => (* :op :post*)
+
+    ;; no internal multiplication:
+    (* (expt :op (:? lexpt v/integral?))
+       (expt :op (:? rexpt v/integral?)))
+    => (expt :op (:? #(g/+ (% 'lexpt)
+                           (% 'rexpt))))
+
+    (* :op (expt :op (:? n v/integral?)))
+    => (expt :op (:? #(g/+ (% 'n) 1)))
+
+    (* (expt :op (:? n v/integral?)) :op)
+    => (expt :op (:? #(g/+ (% 'n) 1)))
+
+    (* :op :op) => (expt :op 2))))
 
 (declare op:get)
 
@@ -40,7 +115,9 @@
   (zero-like [_] (Operator. v/zero-like arity 'zero context m))
   (one-like [_] (Operator. core-identity arity 'identity context m))
   (identity-like [_] (Operator. core-identity arity 'identity context m))
-  (freeze [_] (v/freeze name))
+  (freeze [_]
+    (simplify-operator
+     (v/freeze name)))
   (kind [_] (:subtype context))
 
   f/IArity
@@ -60,8 +137,11 @@
               (u/illegal "Operators don't support the not-found arity of get!"))])
 
   Object
-  (toString [_] (let [n (v/freeze name)]
-                  (str (if (seqable? n) (seq n) n))))
+  (toString [o]
+    (let [n (v/freeze o)]
+      (str (if (seqable? n)
+             (seq n)
+             n))))
 
   #?@(:clj
       [IObj
@@ -306,12 +386,14 @@
 
 (defn- o:*
   "Multiplication of operators is defined as their composition."
-  [o p]
-  (->Operator (f/compose o p)
-              (arity p)
-              `(~'* ~(name o) ~(name p))
-              ;; TODO this seems fishy... why not unite them?
-              (context p)))
+  ([] identity)
+  ([o] o)
+  ([o p]
+   (->Operator (f/compose o p)
+               (arity p)
+               `(~'* ~(name o) ~(name p))
+               ;; TODO this seems fishy... why not unite them?
+               (context p))))
 
 (defn- f*o
   "Multiply an operator by a non-operator on the left. The non-operator acts on
@@ -422,7 +504,7 @@
 (defmethod g/cube [::operator] [o] (o:* o (o:* o o)))
 (defmethod g/expt [::operator ::v/native-integral] [o n]
   {:pre [(not (g/negative? n))]}
-  (reduce o:* identity (repeat n o)))
+  (reduce o:* (repeat n o)))
 
 (defmethod g/div [::operator ::v/scalar] [o n] (o-div-n o n))
 (defmethod g/solve-linear-right [::operator ::v/scalar] [o n] (o-div-n o n))
