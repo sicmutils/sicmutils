@@ -786,3 +786,81 @@
                   (log (- 1 x)))
                2)
            (v/freeze (g/atanh 'x))))))
+
+(deftest boolean-tests
+  ;; These don't QUITE belong in the namespace for abstract number; TODO move
+  ;; these to sicmutils.abstract.boolean when we make that namespace.
+  (let [sym:or  (sym/symbolic-operator 'or)
+        sym:and (sym/symbolic-operator 'and)
+        sym:not (sym/symbolic-operator 'not)
+        sym:=   (sym/symbolic-operator '=)]
+    (is (= '(= (and (or a b) (not (or c d)))
+               (or x z))
+           (sym:= (sym:and (sym:or 'a 'b)
+                           (sym:not (sym:or 'c 'd)))
+                  (sym:or 'x 'z)))
+        "all forms work as expected with symbols.")
+
+    (checking "symbolic matches actual" 100 [l gen/boolean
+                                             r gen/boolean]
+              (is (= (and l r) (sym:and l r)))
+              (is (= (or l r) (sym:or l r)))
+              (is (= (not l) (sym:not l))))
+
+    (checking "sym:= matches = for numbers"
+              100 [l sg/number
+                   r sg/number]
+              (is (= (= l r)
+                     (sym:= l r)))
+
+              (is (false? (sym:= l 'x))
+                  "numbers are never equal to symbols, so false comes back")
+
+              (is (false? (sym:= 'x r))
+                  "numbers are never equal to symbols, so false comes back"))
+
+    (checking "symbolic `or` behavior with boolean"
+              100 [n gen/any-equatable]
+              (is (true? (sym:or n true))
+                  "true on right is always true")
+
+              (is (true? (sym:or true n))
+                  "true on left is always true")
+
+              (is (= n (sym:or false n))
+                  "false on left returns right side")
+
+              (is (= n (sym:or n false))
+                  "false on right returns left side"))
+
+    (checking "symbolic `and` behavior with boolean"
+              100 [n gen/any-equatable]
+              (is (false? (sym:and n false))
+                  "false on right is always false")
+
+              (is (false? (sym:and false n))
+                  "false on left is always false")
+
+              (is (= n (sym:and true n))
+                  "true on left returns right side")
+
+              (is (= n (sym:and n true))
+                  "true on right returns left side"))))
+
+(deftest symbolic-derivative-tests
+  (let [derivative (sym/symbolic-operator 'derivative)]
+    (testing "structural utilities"
+      (is (sym/derivative? '(D f)))
+      (is (not (sym/derivative? '(e f))))
+
+      (is (not (sym/iterated-derivative?
+                '(expt D 2))))
+
+      (is (sym/iterated-derivative?
+           '((expt D 2) f)))
+
+      (is (= '((expt D 2) f)
+             (derivative '(D f))))
+
+      (is (= '((expt D 3) f)
+             (derivative '((expt D 2) f)))))))

@@ -78,6 +78,18 @@
     (ruleset
      (:op :x) #(op-set (% :op)) :x)))
 
+(defn constant-elimination
+  "Takes an operation `op` and an identity element `constant` and returns a rule
+  that eliminates instances of `constant` inside binary forms like `(<op> l
+  r)`."
+  [op constant]
+  (ruleset (:op :l :r)
+           #(and (= op (% :op))
+                 (or (= constant (% :l))
+                     (= constant (% :r))))
+           (:? (fn [{:keys [l r]}]
+                 (if (= constant l) r l)))))
+
 (def ^{:doc "Set of rules that collect adjacent products, exponents and nested
  exponents into exponent terms."}
   exponent-contract
