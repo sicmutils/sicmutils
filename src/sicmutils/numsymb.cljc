@@ -437,7 +437,7 @@
       (atan (imag-part z)
             (real-part z)))))
 
-(defn iterated-derivative? [expr]
+(defn- iterated-derivative? [expr]
   (and (seq? expr)
        (expt? (operator expr))
        (= g/derivative-symbol
@@ -451,7 +451,7 @@
 ;; sicmutils.numsymb> (derivative (derivative (derivative '(g f))))
 ;; ((expt D 3) (g f))
 
-(defn derivative [expr]
+(defn- derivative [expr]
   (cond (derivative? expr)
         (list (expt g/derivative-symbol 2)
               (first (operands expr)))
@@ -463,46 +463,38 @@
         :else
         (list g/derivative-symbol expr)))
 
-(comment
-  (defn &
-    "Units!"
-    ([e u1]
-     (list '& e u1))
-    ([e u1 u2]
-     (list '& e u1 u2))))
+;; ## Boolean Operations
 
-(defn bin= [l r]
+(defn- sym:or [l r]
+  (cond (true? l)   l
+        (false? l)  r
+        (true?  r)  r
+        (false?  r) l
+        (= l r)     r
+        :else (list 'or l r)))
+
+(defn- sym:and [l r]
+  (cond (true? l)  r
+        (false? l) l
+        (true? r)  l
+        (false? r) r
+        (= l r)    r
+        :else (list 'and l r)))
+
+(defn- sym:= [l r]
   (let [num-l? (v/number? l)
         num-r? (v/number? r)]
-    (cond (and num-l? num-r?)
-          (and (v/exact? l) (v/exact? r) (= l r))
-
-          (or num-l? num-r?) false
-          (= l r) true
+    (cond (and num-l? num-r?) (v/= l r)
+          (or num-l? num-r?)  false
+          (= l r)             true
           :else (list '= l r))))
 
-(defn sym:=
-  ([] true)
-  ([x] true)
-  ([x y] (bin= x y))
-  ([x y & more]
-   (loop [args more
-          larg y
-          ans (bin= x y)]
-     (if (empty? args)
-       ans
-       (recur (rest args)
-              (first args)
-              ;; TODO this is broken... if the first one is not `true` we'll
-              ;; continue!
-              (and ans (bin= larg (first args))))))))
-
-(defn sym:zero? [x]
+(defn- sym:zero? [x]
   (if (v/number? x)
     (v/zero? x)
     (list '= 0 x)))
 
-(defn sym:one? [x]
+(defn- sym:one? [x]
   (if (v/number? x)
     (v/one? x)
     (list '= 1 x)))
@@ -514,6 +506,8 @@
    'one? sym:one?
    'identity? sym:one?
    '= sym:=
+   'and sym:and
+   'or sym:or
    '+ #(reduce add 0 %&)
    '- sub-n
    '* #(reduce mul 1 %&)
