@@ -54,7 +54,7 @@
   (one-like [_] (Operator. core-identity arity 'identity context m))
   (identity-like [_] (Operator. core-identity arity 'identity context m))
   (freeze [_]
-    (simplify-operator
+    (simplify-operator-name
      (v/freeze name)))
   (kind [_] (:subtype context))
 
