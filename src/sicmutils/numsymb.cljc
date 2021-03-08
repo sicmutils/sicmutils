@@ -28,11 +28,16 @@
             [sicmutils.value :as v]
             [sicmutils.util :as u]))
 
+(def operator first)
+(def operands rest)
+
 (defn- is-expression?
-  "Returns a function which will decide if its argument is a sequence
-  commencing with s."
+  "Returns a function which will decide if its argument is a sequence commencing
+  with s."
   [s]
-  (fn [x] (and (seq? x) (= (first x) s))))
+  (fn [x]
+    (and (seq? x)
+         (= (operator x) s))))
 
 (def sum? (is-expression? '+))
 (def product? (is-expression? '*))
@@ -41,8 +46,13 @@
 (def quotient? (is-expression? '/))
 (def arctan? (is-expression? 'atan))
 (def derivative? (is-expression? g/derivative-symbol))
-(def operator first)
-(def operands rest)
+
+(defn iterated-derivative? [expr]
+  (and (seq? expr)
+       (expt? (operator expr))
+       (= g/derivative-symbol
+          (second
+           (operator expr)))))
 
 (defn- with-exactness-preserved
   "Returns a wrapper around f that attempts to preserve exactness if the input is
@@ -437,29 +447,17 @@
       (atan (imag-part z)
             (real-part z)))))
 
-(defn- iterated-derivative? [expr]
-  (and (seq? expr)
-       (expt? (operator expr))
-       (= g/derivative-symbol
-          (second
-           (operator expr)))))
-
-;; sicmutils.numsymb> (derivative '(g f))
-;; (D (g f))
-;; sicmutils.numsymb> (derivative (derivative '(g f)))
-;; ((expt D 2) (g f))
-;; sicmutils.numsymb> (derivative (derivative (derivative '(g f))))
-;; ((expt D 3) (g f))
-
 (defn- derivative [expr]
   (cond (derivative? expr)
-        (list (expt g/derivative-symbol 2)
-              (first (operands expr)))
+        (let [f (first (operands expr))]
+          (list (expt g/derivative-symbol 2)
+                f))
 
         (iterated-derivative? expr)
-        (let [pow (nth (operator expr) 2)]
+        (let [pow (nth (operator expr) 2)
+              f   (first (operands expr))]
           (list (expt g/derivative-symbol (inc pow))
-                (fnext expr)))
+                f))
         :else
         (list g/derivative-symbol expr)))
 
