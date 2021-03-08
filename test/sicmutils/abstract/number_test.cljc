@@ -807,10 +807,10 @@
               (is (= (or l r) (sym:or l r)))
               (is (= (not l) (sym:not l))))
 
-    (checking "sym:= matches = for numbers"
+    (checking "sym:= matches v/= for numbers"
               100 [l sg/number
                    r sg/number]
-              (is (= (= l r)
+              (is (= (v/= l r)
                      (sym:= l r)))
 
               (is (false? (sym:= l 'x))

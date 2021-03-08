@@ -220,7 +220,7 @@
 
      ;; The -equiv implementation handles equality with any number, so flip the
      ;; arguments around and invoke equiv.
-     (defmethod v/= [::v/number Fraction] [l r] (= r l))
+     (defmethod v/= [::v/real Fraction] [l r] (= r l))
 
      (defmethod g/add [Fraction Fraction] [a b] (promote (.add a b)))
      (defmethod g/sub [Fraction Fraction] [a b] (promote (.sub a b)))
