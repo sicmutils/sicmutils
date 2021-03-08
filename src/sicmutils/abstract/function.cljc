@@ -34,8 +34,7 @@
             [sicmutils.polynomial]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
-            [sicmutils.value :as v]
-            [sicmutils.calculus.derivative :refer [derivative-symbol]])
+            [sicmutils.value :as v])
   #?(:clj
      (:import [clojure.lang IFn])))
 
@@ -250,25 +249,25 @@
   (and (sequential? expr)
        ;; XXX GJS uses 'derivative here; should we? doesn't he just
        ;; have to change it back to D when printing?
-       (= (first expr) derivative-symbol)))
+       (= (first expr) g/derivative-symbol)))
 
 (defn ^:no-doc iterated-symbolic-derivative? [expr]
   (and (sequential? expr)
        (sequential? (first expr))
        (sym/expt? (first expr))
-       (= (second (first expr)) derivative-symbol)))
+       (= (second (first expr)) g/derivative-symbol)))
 
 (defn ^:no-doc symbolic-increase-derivative [expr]
   (let [expt (sym/symbolic-operator 'expt)]
     (cond (symbolic-derivative? expr)
-          (list (expt derivative-symbol 2) (fnext expr))
+          (list (expt g/derivative-symbol 2) (fnext expr))
           (iterated-symbolic-derivative? expr)
-          (list (expt derivative-symbol
+          (list (expt g/derivative-symbol
                       (+ (first (nnext (first expr)))
                          1))
                 (fnext expr))
           :else
-          (list derivative-symbol expr))))
+          (list g/derivative-symbol expr))))
 
 (defn- make-partials [f v]
   ;; GJS calls this function (the loop below) "fd"; we have no idea
