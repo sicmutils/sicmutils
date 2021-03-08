@@ -78,8 +78,7 @@
     (ruleset
      (:op :x) #(op-set (% :op)) :x)))
 
-(def ^{:private true
-       :doc "Set of rules that collect adjacent products into exponents."}
+(def ^{:doc "Set of rules that collect adjacent products into exponents."}
   product->expt
   (ruleset
    (* :pre*
