@@ -334,18 +334,27 @@
   ->infix
   (make-infix-renderer
    :precedence-map '{D 9, partial 9,
-                     expt 7, :apply 5, u- 4, / 3, * 3, + 1, - 1, = 0, > 0, < 0, >= 0, <= 0}
-   :infix? '#{* + - / modulo remainder expt u- = > < >= <=}
+                     expt 8,
+                     :apply 7,
+                     u- 6,
+                     * 5, modulo 5, remainder 5, / 5,
+                     + 4, - 4, not 4,
+                     = 3, > 3, < 3, >= 3, <= 3,
+                     and 2, or 1}
+   :infix? '#{* + - / modulo remainder expt u- = > < >= <= and or}
    :juxtapose-multiply " "
    :rewrite-trig-squares true
    :rename-functions
    {'fractional-part "frac"
-    'integer-part "int"}
+    'integer-part "int"
+    'not "¬"}
    :special-handlers
    {'floor (fn [[x]] (str "⌊" x "⌋"))
     'ceiling (fn [[x]] (str "⌈" x "⌉"))
     'modulo (fn [[x y]] (str x " mod " y))
     'remainder (fn [[x y]] (str x " % " y))
+    'and (fn [[x y]] (str x " ∧ " y))
+    'or  (fn [[x y]] (str x " ∨ " y))
     'expt (fn [[x e]]
             (if (and (integer? e) ((complement neg?) e))
               (str x (n->superscript e))))
@@ -413,14 +422,22 @@
         primeprime
         (fn [[_ stem]]
           (let [x (maybe-brace (->TeX* stem))]
-            (str x "^{\\prime\\prime}")))]
+            (str x "^{\\prime\\prime}")))
+        parenthesize
+        #(str "\\left(" % "\\right)")]
     (make-infix-renderer
      ;; here we set / to a very low precedence because the fraction bar we will
      ;; use in the rendering groups things very strongly.
      :precedence-map '{D 9, partial 9,
-                       expt 8, :apply 7, u- 6, * 5, + 3, - 3, / 1, = 0, > 0, < 0, >= 0, <= 0}
-     :parenthesize #(str "\\left(" % "\\right)")
-     :infix? '#{* + - / expt u- = > < >= <=}
+                       expt 8,
+                       :apply 7,
+                       u- 6,
+                       * 5, modulo 5, remainder 5,
+                       + 4, - 4,
+                       = 3, > 3, < 3, >= 3, <= 3,
+                       and 2, or 1, not 1, / 0}
+     :parenthesize parenthesize
+     :infix? '#{* + - / modulo remainder and or expt u- = > < >= <=}
      :juxtapose-multiply "\\,"
      :rewrite-trig-squares true
      :special-handlers
@@ -434,11 +451,11 @@
 
       'integer-part
       (fn [[x]]
-        (str "\\mathsf{int} \\left(" x "\\right)"))
+        (str "\\mathsf{int} " (parenthesize x)))
 
       'fractional-part
       (fn [[x]]
-        (str "\\mathsf{frac} \\left(" x "\\right)"))
+        (str "\\mathsf{frac} " (parenthesize x)))
 
       'modulo
       (fn [[x y]]
@@ -447,6 +464,18 @@
       'remainder
       (fn [[x y]]
         (str (maybe-brace x) " \\mathbin{\\%} " (maybe-brace y)))
+
+      'and
+      (fn [[x y]]
+        (str x " \\land " y))
+
+      'or
+      (fn [[x y]]
+        (str x " \\lor " y))
+
+      'not
+      (fn [[x]]
+        (str "\\lnot" (parenthesize x)))
 
       'expt (fn [[x e]]
               (str (maybe-brace x) "^" (maybe-brace e)))
@@ -580,8 +609,10 @@
                            up down}
         make-js-vector #(str \[ (s/join ", " %) \])
         R (make-infix-renderer
-           :precedence-map '{D 8, :apply 8, * 5, / 5, - 3, + 3}
-           :infix? '#{* + - / u-}
+           :precedence-map '{not 9, D 8, :apply 8, * 5, / 5, - 3, + 3,
+                             = 2, > 2, < 2, >= 2, <= 2,
+                             and 1, or 1}
+           :infix? '#{* + - / u- =}
            :rename-functions {'sin "Math.sin"
                               'cos "Math.cos"
                               'tan "Math.tan"
@@ -601,7 +632,8 @@
                               'exp "Math.exp"
                               'floor "Math.floor"
                               'ceiling "Math.ceil"
-                              'integer-part "Math.trunc"}
+                              'integer-part "Math.trunc"
+                              'not "!"}
            :special-handlers (let [parens (fn [x]
                                             (str "(" x ")"))]
                                {'up make-js-vector
@@ -615,6 +647,8 @@
                                               (parens)))
                                 'remainder (fn [[a b]]
                                              (str a " % "))
+                                'and (fn [[a b]] (str a " && " b))
+                                'or (fn [[a b]] (str a " || " b))
                                 '/ render-infix-ratio}))]
     (fn [x & {:keys [symbol-generator parameter-order deterministic?]
              :or {symbol-generator (make-symbol-generator "_")

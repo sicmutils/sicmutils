@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.expression.render-test
   (:refer-clojure :exclude [+ - * /])
@@ -27,6 +27,7 @@
             [sicmutils.expression.render :as r :refer [->infix ->TeX ->JavaScript]]
             [sicmutils.generic :as g :refer [expt sin cos + - * /]]
             [sicmutils.function :as f]
+            [sicmutils.numsymb :as sym]
             [sicmutils.series :as series]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :refer [up down]]))
@@ -265,7 +266,21 @@
     (testing "Both sides if a subscript or superscript are rendered."
       (is (= "φ_θ" (->infix "phi_theta")))
       (is (= "φ↑θ₁↑ζ_π" (->infix 'phi↑theta_1↑zeta_pi))
-          "numbers are subscripted when they appear"))))
+          "numbers are subscripted when they appear")))
+
+  (testing "boolean operations"
+    (let [or    (sym/symbolic-operator 'or)
+          and   (sym/symbolic-operator 'and)
+          not   (sym/symbolic-operator 'not)
+          sym:= (sym/symbolic-operator '=)]
+      (is (= "\\left(a \\lor b\\right) \\land \\left(\\lnot\\left(c \\lor d\\right)\\right)"
+             (->TeX (and (or 'a 'b)
+                         (not (or 'c 'd))))))
+
+      (is (= "((a ∨ b) ∧ ¬(c ∨ d)) = (x ∨ z)"
+             (->infix (sym:= (and (or 'a 'b)
+                                  (not (or 'c 'd)))
+                             (or 'x 'z))))))))
 
 (deftest equation-wrapper-tests
   (is (= (str "\\begin{equation}\n"

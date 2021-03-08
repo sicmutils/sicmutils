@@ -463,6 +463,14 @@
 
 ;; ## Boolean Operations
 
+(defn- sym:and [l r]
+  (cond (true? l)  r
+        (false? l) l
+        (true? r)  l
+        (false? r) r
+        (= l r)    r
+        :else (list 'and l r)))
+
 (defn- sym:or [l r]
   (cond (true? l)   l
         (false? l)  r
@@ -471,13 +479,10 @@
         (= l r)     r
         :else (list 'or l r)))
 
-(defn- sym:and [l r]
-  (cond (true? l)  r
-        (false? l) l
-        (true? r)  l
-        (false? r) r
-        (= l r)    r
-        :else (list 'and l r)))
+(defn- sym:not [x]
+  (if (boolean? x)
+    (not x)
+    (list 'not x)))
 
 (defn- sym:= [l r]
   (let [num-l? (v/number? l)
@@ -506,6 +511,7 @@
    '= sym:=
    'and sym:and
    'or sym:or
+   'not sym:not
    '+ #(reduce add 0 %&)
    '- sub-n
    '* #(reduce mul 1 %&)

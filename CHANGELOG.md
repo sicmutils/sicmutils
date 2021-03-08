@@ -2,11 +2,27 @@
 
 ## [unreleased]
 
+- #319: adds
+
+  - symbolic boolean implementations for `sym:=`, `sym:and`, `sym:or` and
+    `sym:not` with infix, latex and JavaScript renderers.
+  - `sym:derivative`, for purely symbolic derivatives
+
+  The boolean operators will act just like `=`, `and` and `or` on booleans, and
+  appropriately respond if just one side is a boolean. If both sides are
+  symbolic, These return a form like `(= a b)`, `(and a b)` or `(or a b)`.
+
+  The functions currently live in `sicmutils.numsymb` only; access them via
+  `(numsymb/symbolic-operator <sym>)`, where `<sym>` is one of `'=`, `'and`,
+  `'or`, `'not` or `'derivative'`.
+
 - #320: `Operator` gains a new simplifier for its `name` field; the simplifier
-  applies the associative rule to products and sums of operators, and collapses
-  (adjacent) products down into exponents. `Operator` multiplication (function
-  composition) is associative but NOT commutative, so the default simplifier is
-  not appropriate.
+  applies the associative rule to products and sums of operators, collapses
+  (adjacent) products down into exponents, and removes instances of `identity`
+  (the multiplicative identity for operators).
+
+  `Operator` multiplication (function composition) is associative but NOT
+  commutative, so the default simplifier is not appropriate.
 
   Before this change:
 
@@ -25,8 +41,8 @@ sicmutils.env> (series/exp-series D)
 sicmutils.env> (series/exp-series D)
 #object[sicmutils.series.Series
   "(+ identity
-      (* D identity)
-      (* (/ 1 2) (expt D 2) identity)
+      D
+      (* (/ 1 2) (expt D 2))
       (* (/ 1 6) (expt D 3)) ...)"]
 ```
 

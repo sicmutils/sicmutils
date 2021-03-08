@@ -88,10 +88,13 @@
                           (with-meta o/identity m))))))))
 
 (deftest simplifier-tests
-  (is (= '(+ D (* D identity (expt D 2)))
-         (v/freeze
-          (g/+ D (g/* D o/identity D D))))
-      "operators next to each other are gathered into exponents.")
+  (let [x2 (-> (fn [f] (fn [x] (* 2 (f x))))
+               (o/make-operator 'double))]
+    (is (= '(+ D (* D double (expt D 2)))
+           (v/freeze
+            (g/+ D (g/* D x2 o/identity D D))))
+        "operators next to each other are gathered into exponents, and `identity`
+      gets removed (since it's the multiplicative identity)"))
 
   (is (= '(expt D 2)
          (v/freeze (g/* D D))))
@@ -355,4 +358,5 @@
       (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
                    (+ q p))))))
 
-    ;;; more testing to come as we implement multivariate literal functions that rely on operations on structures....
+    ;;; more testing to come as we implement multivariate literal functions that
+    ;;; rely on operations on structures....

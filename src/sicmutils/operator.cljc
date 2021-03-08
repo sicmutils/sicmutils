@@ -35,10 +35,14 @@
 
 (def ^{:private true
        :doc "Simplifier that acts on associative products and sums, and collects
-  products into exponents. Operator multiplication is NOT associative, so only
-  adjacent products are collected."}
+  products into exponents. Any operator named `identity` is removed (we can't
+  verify that the operator does in fact _act_ like a proper `identity`.)
+
+  Operator multiplication is NOT associative, so only adjacent products are
+  collected."}
   simplify-operator-name
   (rule-simplifier
+   (rules/constant-elimination '* 'identity)
    (rules/associative '+ '*)
    rules/exponent-contract
    (rules/unary-elimination '+ '*)))
