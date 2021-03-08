@@ -84,8 +84,9 @@
   r)`."
   [op constant]
   (ruleset (:op :l :r)
-           #(or (= constant (% :l))
-                (= constant (% :r)))
+           #(and (= op (% :op))
+                 (or (= constant (% :l))
+                     (= constant (% :r))))
            (:? (fn [{:keys [l r]}]
                  (if (= constant l) r l)))))
 

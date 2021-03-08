@@ -14,7 +14,7 @@
 
   The functions currently live in `sicmutils.numsymb` only; access them via
   `(numsymb/symbolic-operator <sym>)`, where `<sym>` is one of `'=`, `'and`,
-  `'or`, `'not` or `'derivative'`.
+  `'or`, `'not` or `'derivative`.
 
 - #320: `Operator` gains a new simplifier for its `name` field; the simplifier
   applies the associative rule to products and sums of operators, collapses

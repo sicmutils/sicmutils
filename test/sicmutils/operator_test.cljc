@@ -88,21 +88,35 @@
                           (with-meta o/identity m))))))))
 
 (deftest simplifier-tests
+  (testing "identity gets stripped from products"
+    (is (= 'D
+           (v/freeze (g/* D o/identity))
+           (v/freeze (g/* o/identity D)))))
+
+  (testing "identity does NOT get stripped from sums"
+    (is (= '(+ identity D)
+           (v/freeze
+            (g/+ o/identity D))))
+
+    (is (= '(+ D identity)
+           (v/freeze
+            (g/+ D o/identity)))))
+
   (let [x2 (-> (fn [f] (fn [x] (* 2 (f x))))
                (o/make-operator 'double))]
     (is (= '(+ D (* D double (expt D 2)))
            (v/freeze
             (g/+ D (g/* D x2 o/identity D D))))
         "operators next to each other are gathered into exponents, and `identity`
-      gets removed (since it's the multiplicative identity)"))
+      gets removed (since it's the multiplicative identity)")
 
-  (is (= '(expt D 2)
-         (v/freeze (g/* D D))))
+    (is (= '(expt D 2)
+           (v/freeze (g/* D D))))
 
-  (is (= '(* D identity D)
-         (v/freeze (g/* (* D o/identity) D)))
-      "multiplication is commutative but NOT associative, so we gather these
-       together.")
+    (is (= '(* D double D)
+           (v/freeze (g/* (* D x2) D)))
+        "multiplication is commutative but NOT associative, so we gather these
+       together."))
 
   (testing "internal multiplication on both sides"
     (is (= '(expt D 6)
