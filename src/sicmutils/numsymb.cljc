@@ -83,18 +83,21 @@
 
 ;; these are without constructor simplifications!
 
-(defn- add [a b]
-  (cond (and (v/number? a) (v/number? b)) (g/add a b)
-        (v/number? a) (cond (v/zero? a) b
-                            (sum? b) `(~'+ ~a ~@(operands b))
-                            :else `(~'+ ~a ~b))
-        (v/number? b) (cond (v/zero? b) a
-                            (sum? a) `(~'+ ~@(operands a) ~b)
-                            :else `(~'+ ~a ~b))
-        (sum? a) (cond (sum? b) `(~'+ ~@(operands a) ~@(operands b))
-                       :else `(~'+ ~@(operands a) ~b))
-        (sum? b) `(~'+ ~a ~@(operands b))
-        :else `(~'+ ~a ~b)))
+(defn- add
+  ([] 0)
+  ([a] a)
+  ([a b]
+   (cond (and (v/number? a) (v/number? b)) (g/add a b)
+         (v/number? a) (cond (v/zero? a) b
+                             (sum? b) `(~'+ ~a ~@(operands b))
+                             :else `(~'+ ~a ~b))
+         (v/number? b) (cond (v/zero? b) a
+                             (sum? a) `(~'+ ~@(operands a) ~b)
+                             :else `(~'+ ~a ~b))
+         (sum? a) (cond (sum? b) `(~'+ ~@(operands a) ~@(operands b))
+                        :else `(~'+ ~@(operands a) ~b))
+         (sum? b) `(~'+ ~a ~@(operands b))
+         :else `(~'+ ~a ~b))))
 
 (defn- sub [a b]
   (cond (and (v/number? a) (v/number? b)) (g/sub a b)
@@ -108,22 +111,25 @@
         (nil? (next args)) (g/negate (first args))
         :else (sub (first args) (reduce add (next args)))))
 
-(defn- mul [a b]
-  (cond (and (v/number? a) (v/number? b)) (g/mul a b)
-        (v/number? a) (cond (v/zero? a) a
-                            (v/one? a) b
-                            (product? b) `(~'* ~a ~@(operands b))
-                            :else `(~'* ~a ~b)
-                            )
-        (v/number? b) (cond (v/zero? b) b
-                            (v/one? b) a
-                            (product? a) `(~'* ~@(operands a) ~b)
-                            :else `(~'* ~a ~b)
-                            )
-        (product? a) (cond (product? b) `(~'* ~@(operands a) ~@(operands b))
-                           :else `(~'* ~@(operands a) ~b))
-        (product? b) `(~'* ~a ~@(operands b))
-        :else `(~'* ~a ~b)))
+(defn- mul
+  ([] 1)
+  ([a] a)
+  ([a b]
+   (cond (and (v/number? a) (v/number? b)) (g/mul a b)
+         (v/number? a) (cond (v/zero? a) a
+                             (v/one? a) b
+                             (product? b) `(~'* ~a ~@(operands b))
+                             :else `(~'* ~a ~b)
+                             )
+         (v/number? b) (cond (v/zero? b) b
+                             (v/one? b) a
+                             (product? a) `(~'* ~@(operands a) ~b)
+                             :else `(~'* ~a ~b)
+                             )
+         (product? a) (cond (product? b) `(~'* ~@(operands a) ~@(operands b))
+                            :else `(~'* ~@(operands a) ~b))
+         (product? b) `(~'* ~a ~@(operands b))
+         :else `(~'* ~a ~b))))
 
 (defn- div [a b]
   (cond (and (v/number? a) (v/number? b)) (g/div a b)
@@ -447,7 +453,21 @@
       (atan (imag-part z)
             (real-part z)))))
 
-(defn- derivative [expr]
+(defn- derivative
+  "Returns the symbolic derivative of the expression `expr`, which should
+  represent a function like `f`.
+
+  If the expression is already a derivative like `(D f)` or `((expt D 2) f)`,
+  `derivative` will increase the power of the exponent.
+
+  For example:
+
+  ```clojure
+  (derivative 'f)              ;;=> (D f)
+  (derivative '(D f))          ;;=> ((expt D 2) f)
+  (derivative '((expt D 2) f)) ;;=> ((expt D 3) f)
+  ```"
+  [expr]
   (cond (derivative? expr)
         (let [f (first (operands expr))]
           (list (expt g/derivative-symbol 2)
@@ -463,7 +483,13 @@
 
 ;; ## Boolean Operations
 
-(defn- sym:and [l r]
+(defn- sym:and
+  "For symbolic arguments, returns a symbolic expression representing the logical
+  conjuction of `l` and `r`.
+
+  If either side is `true?`, returns the other side. If either side is `false?`,
+  returns `false`."
+  [l r]
   (cond (true? l)  r
         (false? l) l
         (true? r)  l
@@ -471,7 +497,13 @@
         (= l r)    r
         :else (list 'and l r)))
 
-(defn- sym:or [l r]
+(defn- sym:or
+  "For symbolic arguments, returns a symbolic expression representing the logical
+  disjunction of `l` and `r`.
+
+  If either side is `true?`, returns `true`. If either side is `false?`,
+  returns the other side."
+  [l r]
   (cond (true? l)   l
         (false? l)  r
         (true?  r)  r
@@ -479,7 +511,10 @@
         (= l r)     r
         :else (list 'or l r)))
 
-(defn- sym:not [x]
+(defn- sym:not
+  "For symbolic `x`, returns a symbolic expression representing the logical
+  negation of `x`. For boolean `x`, returns the negation of `x`."
+  [x]
   (if (boolean? x)
     (not x)
     (list 'not x)))
@@ -512,9 +547,9 @@
    'and sym:and
    'or sym:or
    'not sym:not
-   '+ #(reduce add 0 %&)
+   '+ #(reduce add %&)
    '- sub-n
-   '* #(reduce mul 1 %&)
+   '* #(reduce mul %&)
    '/ div-n
    'modulo modulo
    'remainder remainder
