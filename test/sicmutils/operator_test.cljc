@@ -87,6 +87,44 @@
                 (is (= m (meta
                           (with-meta o/identity m))))))))
 
+(deftest simplifier-tests
+  (is (= '(+ D (* D identity (expt D 2)))
+         (v/freeze
+          (g/+ D (g/* D o/identity D D))))
+      "operators next to each other are gathered into exponents.")
+
+  (is (= '(expt D 2)
+         (v/freeze (g/* D D))))
+
+  (is (= '(* D identity D)
+         (v/freeze (g/* (* D o/identity) D)))
+      "multiplication is commutative but NOT associative, so we gather these
+       together.")
+
+  (testing "internal multiplication on both sides"
+    (is (= '(expt D 6)
+           (v/freeze (g/* (g/* D D D) (g/* D D D)))
+           (v/freeze (g/* (g/* D (g/expt D 2) D) (g/* D D)))
+           (v/freeze (g/* (g/* (g/expt D 2) D) (g/* D D D)))
+           (v/freeze (g/* (g/* D D D) (g/* D (g/expt D 2))))
+           (v/freeze (g/* (g/* D D D) (g/* (g/expt D 2) D)))
+           (v/freeze (g/* (g/* D D D) (g/* D (g/expt D 2))))
+           (v/freeze (g/* (g/* D D D) (g/* (g/expt D 2) D))))))
+
+  (testing "internal multiplication on right"
+    (is (= '(expt D 4)
+           (v/freeze (g/* D (g/* D D D)))
+           (v/freeze (g/* (g/expt D 2) (g/* D D)))
+           (v/freeze (g/* D (g/* D (g/expt D 2))))
+           (v/freeze (g/* D (g/* (g/expt D 2) D)))
+           (v/freeze (g/* D (g/* D (g/expt D 2))))
+           (v/freeze (g/* D (g/* (g/expt D 2) D))))))
+
+  (testing "sums collapse too via the associative rule"
+    (is (= '(+ D (partial 1) (expt D 3))
+           (v/freeze
+            (g/+ D (g/+ (partial 1) (g/* D (g/expt D 2)))))))))
+
 (deftest custom-getter-tests
   (checking "I == identity" 100 [x gen/any-equatable]
             (is (= x (o/identity x)))

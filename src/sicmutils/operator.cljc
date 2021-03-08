@@ -21,14 +21,27 @@
   (:refer-clojure :rename {identity core-identity
                            name core-name}
                   #?@(:cljs [:exclude [get identity name]]))
-  (:require [sicmutils.differential :as d]
+  (:require [pattern.rule :refer [rule-simplifier]
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.differential :as d]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.series :as series]
+            [sicmutils.simplify.rules :as rules]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang IFn ILookup IObj))))
+
+(def ^{:private true
+       :doc "Simplifier that acts on associative products and sums, and collects
+  products into exponents. Operator multiplication is NOT associative, so only
+  adjacent products are collected."}
+  simplify-operator-name
+  (rule-simplifier
+   (rules/associative '+ '*)
+   rules/exponent-contract
+   (rules/unary-elimination '+ '*)))
 
 (declare op:get)
 
@@ -40,7 +53,9 @@
   (zero-like [_] (Operator. v/zero-like arity 'zero context m))
   (one-like [_] (Operator. core-identity arity 'identity context m))
   (identity-like [_] (Operator. core-identity arity 'identity context m))
-  (freeze [_] (v/freeze name))
+  (freeze [_]
+    (simplify-operator-name
+     (v/freeze name)))
   (kind [_] (:subtype context))
 
   f/IArity
@@ -60,8 +75,11 @@
               (u/illegal "Operators don't support the not-found arity of get!"))])
 
   Object
-  (toString [_] (let [n (v/freeze name)]
-                  (str (if (seqable? n) (seq n) n))))
+  (toString [o]
+    (let [n (v/freeze o)]
+      (str (if (seqable? n)
+             (seq n)
+             n))))
 
   #?@(:clj
       [IObj
@@ -306,12 +324,14 @@
 
 (defn- o:*
   "Multiplication of operators is defined as their composition."
-  [o p]
-  (->Operator (f/compose o p)
-              (arity p)
-              `(~'* ~(name o) ~(name p))
-              ;; TODO this seems fishy... why not unite them?
-              (context p)))
+  ([] identity)
+  ([o] o)
+  ([o p]
+   (->Operator (f/compose o p)
+               (arity p)
+               `(~'* ~(name o) ~(name p))
+               ;; TODO this seems fishy... why not unite them?
+               (context p))))
 
 (defn- f*o
   "Multiply an operator by a non-operator on the left. The non-operator acts on
@@ -422,7 +442,7 @@
 (defmethod g/cube [::operator] [o] (o:* o (o:* o o)))
 (defmethod g/expt [::operator ::v/native-integral] [o n]
   {:pre [(not (g/negative? n))]}
-  (reduce o:* identity (repeat n o)))
+  (reduce o:* (repeat n o)))
 
 (defmethod g/div [::operator ::v/scalar] [o n] (o-div-n o n))
 (defmethod g/solve-linear-right [::operator ::v/scalar] [o n] (o-div-n o n))
