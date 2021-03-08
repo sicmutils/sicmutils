@@ -36,6 +36,73 @@
   (and (v/integral? x)
        (not (v/zero? (g/modulo x 2)))))
 
+(defn associative
+  "Takes a sequence `ops` of operator symbols like `'+`, `'*` and returns a rule
+  that collapses nested applications of each operation into a single list. (The
+  associative property lets us strip parentheses.)
+
+  ```clojure
+  (let [rule (associative '+ '*)
+        f    (rule-simplifier rule)]
+    (f '(+ x (+ y (+ z a) (* b (* c d))
+                (+ cake face)))))
+  ;;=> (+ x y z a (* b c d) cake face)
+  ```"
+  [& ops]
+  (let [op-set  (into #{} ops)
+        flatten (fn [op]
+                  (fn [term]
+                    (if (and (sequential? term)
+                             (= op (first term)))
+                      (rest term)
+                      [term])))]
+    (ruleset
+     (:op :a* (:op :b*) :c*)
+     #(op-set (% :op))
+     (:op :a* (:?? (fn [{:keys [op b* c*] :as m}]
+                     (mapcat (flatten op)
+                             (concat b* c*))))))))
+
+(defn unary-elimination
+  "Takes a sequence `ops` of operator symbols like `'+`, `'*` and returns a rule
+  that strips these operations off of unary applications.
+
+  ```clojure
+  (let [rule (unary-elimination '+ '*)
+        f    (rule-simplifier rule)]
+    (f '(+ x y (* z) (+ a))))
+  ;;=> (+ x y z a)
+  ```"
+  [& ops]
+  (let [op-set (into #{} ops)]
+    (ruleset
+     (:op :x) #(op-set (% :op)) :x)))
+
+(def ^{:private true
+       :doc "Set of rules that collect adjacent products into exponents."}
+  product->expt
+  (ruleset
+   (* :pre*
+      (expt :op (:? lexpt v/integral?))
+      (expt :op (:? rexpt v/integral?))
+      :post*)
+   => (* :pre*
+         (expt :op (:? #(g/+ (% 'lexpt)
+                             (% 'rexpt))))
+         :post*)
+   (* :pre*
+      :op (expt :op (:? n v/integral?))
+      :post*)
+   => (expt :op (:? #(g/+ (% 'n) 1)))
+
+   (* :pre*
+      (expt :op (:? n v/integral?)) :op
+      :post*)
+   => (* :pre* (expt :op (:? #(g/+ (% 'n) 1))) :post*)
+
+   (* :pre* :op :op :post*)
+   => (* :pre* (expt :op 2) :post*)))
+
 (def sin-sq->cos-sq
   (rule-simplifier
    (ruleset

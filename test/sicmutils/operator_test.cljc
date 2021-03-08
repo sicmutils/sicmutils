@@ -104,7 +104,7 @@
   (testing "internal multiplication on both sides"
     (is (= '(expt D 6)
            (v/freeze (g/* (g/* D D D) (g/* D D D)))
-           (v/freeze (g/* (g/* D (g/expt D 2)) (g/* D D D)))
+           (v/freeze (g/* (g/* D (g/expt D 2) D) (g/* D D)))
            (v/freeze (g/* (g/* (g/expt D 2) D) (g/* D D D)))
            (v/freeze (g/* (g/* D D D) (g/* D (g/expt D 2))))
            (v/freeze (g/* (g/* D D D) (g/* (g/expt D 2) D)))
@@ -118,7 +118,12 @@
            (v/freeze (g/* D (g/* D (g/expt D 2))))
            (v/freeze (g/* D (g/* (g/expt D 2) D)))
            (v/freeze (g/* D (g/* D (g/expt D 2))))
-           (v/freeze (g/* D (g/* (g/expt D 2) D)))))))
+           (v/freeze (g/* D (g/* (g/expt D 2) D))))))
+
+  (testing "sums collapse too via the associative rule"
+    (is (= '(+ D (partial 1) (expt D 3))
+           (v/freeze
+            (g/+ D (g/+ (partial 1) (g/* D (g/expt D 2)))))))))
 
 (deftest custom-getter-tests
   (checking "I == identity" 100 [x gen/any-equatable]

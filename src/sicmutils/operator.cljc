@@ -21,89 +21,27 @@
   (:refer-clojure :rename {identity core-identity
                            name core-name}
                   #?@(:cljs [:exclude [get identity name]]))
-  (:require [pattern.rule :refer [ruleset rule-simplifier]
+  (:require [pattern.rule :refer [rule-simplifier]
              #?@(:cljs [:include-macros true])]
             [sicmutils.differential :as d]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.series :as series]
+            [sicmutils.simplify.rules :as rules]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
      (:import (clojure.lang IFn ILookup IObj))))
 
-(def ^:private simplify-operator
+(def ^{:private true
+       :doc "Simplifier that acts on associative products and sums, and collects
+  products into exponents. Operator multiplication is NOT associative, so only
+  adjacent products are collected."}
+  simplify-operator-name
   (rule-simplifier
-   (ruleset
-    ;; internal multiplication on both sides:
-    (* (* :pre* (expt :op (:? lexpt v/integral?)))
-       (* (expt :op (:? rexpt v/integral?)) :post*))
-    => (* :pre*
-          (expt :op (:? #(g/+ (% 'lexpt)
-                              (% 'rexpt))))
-          :post*)
-
-    (* (* :pre* :op)
-       (* (expt :op (:? n v/integral?)) :post*))
-    => (* :pre* (expt :op (:? #(g/+ (% 'n) 1))) :post*)
-
-    (* (* :pre* (expt :op (:? n v/integral?)))
-       (* :op :post*))
-    => (* :pre* (expt :op (:? #(g/+ (% 'n) 1))) :post*)
-
-    (* (* :pre* :op) (* :op :post*))
-    => (* :pre* (expt :op 2) :post*)
-
-    (* (* :pre*) (* :post*))
-    => (* :pre* :post*)
-
-    ;; Internal multiplication on left:
-    (* (* :pre* (expt :op (:? lexpt v/integral?)))
-       (expt :op (:? rexpt v/integral?)))
-    => (* :pre* (expt :op (:? #(g/+ (% 'lexpt)
-                                    (% 'rexpt)))))
-
-    (* (* :pre* :op)
-       (expt :op (:? n v/integral?)) :post*)
-    => (* :pre* (expt :op (:? #(g/+ (% 'n) 1))))
-
-    (* (* :pre* (expt :op (:? n v/integral?)))
-       :op)
-    => (* :pre* (expt :op (:? #(g/+ (% 'n) 1))))
-
-    (* (* :pre* :op) :op) => (* :pre* (expt :op 2))
-    (* (* :pre*) :op) => (* :pre* :op)
-
-    ;; internal multiplication on right:
-    (* (expt :op (:? lexpt v/integral?))
-       (* (expt :op (:? rexpt v/integral?)) :post*))
-    => (* (expt :op (:? #(g/+ (% 'lexpt)
-                              (% 'rexpt))))
-          :post*)
-
-    (* (expt :op (:? n v/integral?))
-       (* :op :post*))
-    => (* (expt :op (:? #(g/+ (% 'n) 1))) :post*)
-
-    (* :op (* (expt :op (:? n v/integral?)) :post*))
-    => (* (expt :op (:? #(g/+ (% 'n) 1))) :post*)
-
-    (* :op (* :op :post*)) => (* (expt :op 2) :post*)
-    (* :op (* :post*)) => (* :op :post*)
-
-    ;; no internal multiplication:
-    (* (expt :op (:? lexpt v/integral?))
-       (expt :op (:? rexpt v/integral?)))
-    => (expt :op (:? #(g/+ (% 'lexpt)
-                           (% 'rexpt))))
-
-    (* :op (expt :op (:? n v/integral?)))
-    => (expt :op (:? #(g/+ (% 'n) 1)))
-
-    (* (expt :op (:? n v/integral?)) :op)
-    => (expt :op (:? #(g/+ (% 'n) 1)))
-
-    (* :op :op) => (expt :op 2))))
+   (rules/associative '+ '*)
+   rules/product->expt
+   (rules/unary-elimination '+ '*)))
 
 (declare op:get)
 
