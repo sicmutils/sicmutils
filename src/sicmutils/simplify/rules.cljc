@@ -78,27 +78,37 @@
     (ruleset
      (:op :x) #(op-set (% :op)) :x)))
 
-(def ^{:doc "Set of rules that collect adjacent products into exponents."}
-  product->expt
+(def ^{:doc "Set of rules that collect adjacent products, exponents and nested
+ exponents into exponent terms."}
+  exponent-contract
   (ruleset
+   ;; nested exponent case.
+   (expt (expt :op (:? n v/integral?))
+         (:? m v/integral?))
+   => (expt :op (:? #(g/+ (% 'n) (% 'm))))
+
+   ;; adjacent pairs of exponents
    (* :pre*
-      (expt :op (:? lexpt v/integral?))
-      (expt :op (:? rexpt v/integral?))
+      (expt :op (:? n v/integral?))
+      (expt :op (:? m v/integral?))
       :post*)
    => (* :pre*
-         (expt :op (:? #(g/+ (% 'lexpt)
-                             (% 'rexpt))))
+         (expt :op (:? #(g/+ (% 'n) (% 'm))))
          :post*)
+
+   ;; exponent on right, non-expt on left
    (* :pre*
       :op (expt :op (:? n v/integral?))
       :post*)
    => (expt :op (:? #(g/+ (% 'n) 1)))
 
+   ;; exponent on left, non-expt on right
    (* :pre*
       (expt :op (:? n v/integral?)) :op
       :post*)
    => (* :pre* (expt :op (:? #(g/+ (% 'n) 1))) :post*)
 
+   ;; non-exponent pairs
    (* :pre* :op :op :post*)
    => (* :pre* (expt :op 2) :post*)))
 

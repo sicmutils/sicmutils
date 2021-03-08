@@ -40,7 +40,7 @@
   simplify-operator-name
   (rule-simplifier
    (rules/associative '+ '*)
-   rules/product->expt
+   rules/exponent-contract
    (rules/unary-elimination '+ '*)))
 
 (declare op:get)
