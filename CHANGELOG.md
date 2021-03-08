@@ -2,6 +2,34 @@
 
 ## [unreleased]
 
+- #320: `Operator` gains a new simplifier for its `name` field; the simplifier
+  applies the associative rule to products and sums of operators, and collapses
+  (adjacent) products down into exponents. `Operator` multiplication (function
+  composition) is associative but NOT commutative, so the default simplifier is
+  not appropriate.
+
+  Before this change:
+
+```clojure
+sicmutils.env> (series/exp-series D)
+#object[sicmutils.series.Series
+  "(+ identity
+      (* D identity)
+      (* (/ 1 2) (* D (* D identity)))
+      (* (/ 1 6) (* D (* D (* D identity)))) ...)"]
+```
+
+  After:
+
+```clojure
+sicmutils.env> (series/exp-series D)
+#object[sicmutils.series.Series
+  "(+ identity
+      (* D identity)
+      (* (/ 1 2) (expt D 2) identity)
+      (* (/ 1 6) (expt D 3)) ...)"]
+```
+
 - #315: `g/log2` and `g/log10` on symbolic expressions now stay exact, instead
   of evaluating `(log 2)` or `(log 10)` and getting a non-simplifiable real
   number in the denominator:
