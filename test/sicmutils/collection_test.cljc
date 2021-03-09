@@ -23,6 +23,7 @@
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :refer [D]]
+            [sicmutils.complex :refer [complex]]
             [sicmutils.collection :as collection]
             [sicmutils.differential :as d]
             [sicmutils.function :as f]
@@ -145,7 +146,32 @@
     (testing "v/freeze"
       (is (= {:ratio '(/ 1 2)}
              (v/freeze {:ratio #sicm/ratio 1/2}))
-          "v/freeze freezes values")))
+          "v/freeze freezes values"))
+
+    (testing "v/= on collections"
+      #?(:cljs
+         (testing "in cljs, clojure.core/= can do the right thing for nested
+             values, since we've overridden equality of numbers."
+           (is (= {:one 1
+                   :two 2}
+                  {:one (complex 1 0)
+                   :two (complex 2 0)}))
+           (is (= [1 2] [(complex 1 0)
+                         (complex 2 0)]))))
+
+      (testing "Both jvm and js work with v/=."
+        (is (v/= {:one 1
+                  :two 2}
+                 {:one (complex 1 0)
+                  :two (complex 2 0)}))
+
+        (is (v/= [1 2] [(complex 1 0)
+                        (complex 2 0)])))
+
+      (is (not (v/= {:one 1 :two 2}
+                    {:one (complex 1 0)
+                     :two-prime (complex 2 0)}))
+          " with unequal keys, we fail.")))
 
   (checking "d/perturbed?" 100
             [m (gen/map gen/keyword sg/any-integral)]

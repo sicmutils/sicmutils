@@ -119,6 +119,19 @@
 (defmethod g/simplify [::map] [m]
   (u/map-vals g/simplify m))
 
+(let [sentinel #?(:cljs (NeverEquiv.)
+                  :clj (Object.))]
+  (defmethod v/= [::map ::map] [x y]
+    (boolean
+     (when (== (count x) (count y))
+       (reduce-kv
+        (fn [_ k v]
+          (if (v/= (get y k sentinel) v)
+            true
+            (reduced false)))
+        true
+        x)))))
+
 (defmethod g/partial-derivative [::map v/seqtype] [m selectors]
   (u/map-vals #(g/partial-derivative % selectors)
               m))
