@@ -131,20 +131,20 @@
           (down (up 1 2) (up 3 4)))))
 
   (testing "customizable down tuple rendering in TeX"
-    (is (= (str "\\begin{bmatrix}\\"
-                "displaystyle{1} \\cr \\cr "
-                "\\displaystyle{2} \\cr \\cr "
-                "\\displaystyle{3}"
+    (is (= (str "\\begin{bmatrix}"
+                "\\displaystyle{1}&\\displaystyle{2}&\\displaystyle{3}"
                 "\\end{bmatrix}")
            (->TeX (down 1 2 3)))
-        "Downs render vertically by default")
+        "Downs render horizontally by default")
 
-    (binding [r/*TeX-vertical-down-tuples* false]
-      (is (= (str "\\begin{bmatrix}"
-                  "\\displaystyle{1}&\\displaystyle{2}&\\displaystyle{3}"
+    (binding [r/*TeX-vertical-down-tuples* true]
+      (is (= (str "\\begin{bmatrix}\\"
+                  "displaystyle{1} \\cr \\cr "
+                  "\\displaystyle{2} \\cr \\cr "
+                  "\\displaystyle{3}"
                   "\\end{bmatrix}")
              (->TeX (down 1 2 3)))
-          "bind the dynamic variable falsey to get horz down tuples."))))
+          "bind the dynamic variable truthy to get vertical down tuples."))))
 
 (deftest variable-sub-super-scripts
   (testing "infix"
