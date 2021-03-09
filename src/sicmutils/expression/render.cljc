@@ -394,8 +394,9 @@
 
 (def ^{:dynamic true
        :doc "If true, [[->TeX]] will render down tuples as vertical matrices
-  with square braces. Defaults to true."}
-  *TeX-vertical-down-tuples* true)
+  with square braces. Defaults to false."}
+  *TeX-vertical-down-tuples*
+  false)
 
 (def ^{:dynamic true
        :doc "If true, [[->TeX]] will render symbols with more than 1 character

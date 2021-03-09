@@ -2,6 +2,12 @@
 
 ## [unreleased]
 
+- #321 changes the default `TeX` rendering style for `down` tuples back to
+  horizontal, undoing #283. @kloimhardt made a solid case that because `down`
+  tuples represent row vectors, it's not helpful for building knowledge and
+  intuition to only distinguish these with differently-shaped braces.
+  Intuition-builders win!
+
 - #319: adds
 
   - symbolic boolean implementations for `sym:=`, `sym:and`, `sym:or` and
