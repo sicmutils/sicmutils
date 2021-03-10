@@ -582,7 +582,7 @@
 (defgeneric solve-linear-right 2
   "For a given `a` and `b`, returns `x` such that `a = x*b`.
 
-  See[[solve-linear-right]] for a similar function that solves for `a*x = b`.")
+  See[[solve-linear]] for a similar function that solves for `a*x = b`.")
 
 (defn solve-linear-left
   "Alias for [[solve-linear]]; present for compatibility with the original
