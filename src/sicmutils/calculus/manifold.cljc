@@ -163,7 +163,7 @@
   (coords->point [this coords])
   (point->coords [this point])
   (check-point [this point])
-  ;; missing check-coords, typical-coords, access-chains, dual-chains
+  ;; missing check-coords,  access-chains, dual-chains
   (coordinate-prototype [this])
   (with-coordinate-prototype [this coordinate-prototype])
 
@@ -259,21 +259,18 @@
 (defn point [coordinate-system]
   #(coords->point coordinate-system %))
 
-(comment
-  (define (typical-coords coordinate-system)
-    (s:map/r generate-uninterned-symbol
-	           (coordinate-system 'coordinate-prototype)))
+(defn typical-coords [coordinate-system]
+  (s/typical-object
+	 (coordinate-prototype coordinate-system)))
 
-  (define (typical-point coordinate-system)
-    ((point coordinate-system)
-     (typical-coords coordinate-system)))
+(defn typical-point [coordinate-system]
+  ((point coordinate-system)
+   (typical-coords coordinate-system)))
 
-  (define (corresponding-velocities coords)
-    (s:map/r (lambda (x)
-	                   (string->uninterned-symbol
-	                    (string-append "v:"
-			                               (symbol->string x))))
-	           coords)))
+(defn corresponding-velocities [coords]
+  (s/mapr (fn [x]
+            (symbol (str "v:" x)))
+          coords))
 
 (defn literal-manifold-function
   [name coordinate-system]
@@ -639,6 +636,10 @@
                                 (->S2-coordinates (s/down (s/up 1 0 0)
                                                           (s/up 0 1 0)
                                                           (s/up 0 0 1))))
+      (attach-coordinate-system :spherical :tilted
+                                (->S2-coordinates (s/down (s/up 1 0 0)
+                                                          (s/up 0 0 1)
+                                                          (s/up 0 -1 0))))
       (attach-coordinate-system :spherical :south-pole
                                 (->S2-coordinates (s/down (s/up 1 0 0)
                                                           (s/up 0 1 0)
@@ -649,7 +650,6 @@
 (def S2-spherical (coordinate-system-at :spherical :north-pole S2))
 (def S2-tilted (coordinate-system-at :spherical :tilted S2))
 (def S2-stereographic (coordinate-system-at :stereographic :north-pole S2))
-
 (def S2-Riemann S2-stereographic)
 
 ;; TODO double-check these: what goes in S2-type, and what goes in Sn(2)?
