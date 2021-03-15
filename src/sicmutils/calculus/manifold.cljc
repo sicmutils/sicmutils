@@ -34,11 +34,12 @@
 
 ;; Manifolds
 
+;; NOTE: this is a chunk of `specify-manifold`, `type` there is `over` here.
 (defn make-manifold-family
   [name-format & {:keys [over] :or {over 'Real}}]
   {:over over
    :name-format name-format
-   :patch {}})
+   :patches {}})
 
 (defn make-manifold
   "Specialize a manifold-family into a particular manifold by specifying
@@ -47,44 +48,87 @@
    (make-manifold manifold-family n n))
   ([manifold-family n embedding-dimension]
    {:pre [(integer? n)
-          (> n 0)]}
+          (> n 0)
+          (>= embedding-dimension n)]}
    {:manifold-family     manifold-family
     :name                (format (:name-format manifold-family) n)
     :dimension           n
     :embedding-dimension embedding-dimension}))
 
+(defn patch
+  "Returns the patch named by `patch-name` within the supplied `manifold` if
+  registered. Throws otherwise."
+  [patch-name manifold]
+  (or (get-in manifold [:manifold-family
+                        :patches patch-name])
+      (throw
+       (ex-info "Unknown patch."
+                {:patch-name patch-name
+                 :manifold manifold}))))
+
+;; TODO :dimension, :embedding-dimension use keyword lookup. Weird?
+
+(defn patch-names
+  "Returns a set of patch names registered in the supplied manifold."
+  [manifold]
+  (u/keyset
+   (get-in manifold [:manifold-family :patches])))
+
+;; maybe missing...
+;; - `manifold` identity
+
 (defn make-patch
   "Constructor for patches."
   [name]
   {:name name
-   :coordinate-system {}})
+   :coordinate-systems {}})
 
-(defn attach-patch
-  "Produces a new manifold with the supplied patch attached."
-  [manifold-family patch-name]
-  (update manifold-family :patch assoc patch-name (make-patch patch-name)))
+(defn coordinate-system [system-name patch]
+  (or (get-in patch [:coordinate-systems system-name])
+      (throw
+       (ex-info "Unknown coordinate system."
+                {:coordinate-system-name system-name
+                 :patch patch}))))
+
+(defn coordinate-system-names
+  "Returns a set of coordinate system names registered in the supplied patch."
+  [patch]
+  (u/keyset
+   (:coordinate-systems patch)))
 
 (defn attach-coordinate-system
   "Produces a new manifold family with the given coordinate system
   constructor attached and indexed by the patch and coordinate system
   names."
   [manifold-family coordinate-system-name patch-name coordinate-system-ctor]
-  (update-in manifold-family [:patch patch-name :coordinate-system]
+  (update-in manifold-family [:patches patch-name :coordinate-systems]
              assoc coordinate-system-name coordinate-system-ctor))
 
-(defn ^:private default-coordinate-prototype
+;; now we get patches back into manifolds...
+(defn attach-patch
+  "Produces a new manifold with the supplied patch attached."
+  [manifold-family patch-name]
+  (update manifold-family
+          :patches
+          assoc patch-name (make-patch patch-name)))
+
+(defn- default-coordinate-prototype
+  "similar to `literal-up` without the variance superscript in the generated
+  symbols."
   [manifold]
   (let [k (:dimension manifold)]
-    (s/generate k ::s/up #(symbol (str "x" %)))))
+    (s/generate k ::s/up (fn [i]
+                           (symbol (str "x" i))))))
+
+;; then joint accessors.
 
 (defn coordinate-system-at
   "Looks up the named coordinate system in the named patch of the given
   `manifold`; this locates a constructor, which is then applied to manifold to
   return an object implementing [[ICoordinateSystem]]."
   [coordinate-system-name patch-name manifold]
-  ((get-in manifold [:manifold-family
-                     :patch patch-name
-                     :coordinate-system coordinate-system-name])
+  ((coordinate-system coordinate-system-name
+                      (patch patch-name manifold))
    manifold
    (default-coordinate-prototype manifold)))
 
@@ -200,7 +244,7 @@
                 #(point->coords coordinate-system %))
      assoc
      :name name
-     :coordinate-system coordinate-system
+     :coordinate-systems coordinate-system
      :type ::manifold-function)))
 
 (defn ^:private ->Rectangular
@@ -474,11 +518,12 @@
       (with-coordinate-prototype [this prototype] (->Alternate-chart manifold prototype))
       (manifold [this] manifold))))
 
-(def Rn (-> "R(%d)"
-            make-manifold-family
-            (attach-patch :origin)
-            (attach-coordinate-system :rectangular :origin ->Rectangular)
-            (attach-coordinate-system :polar-cylindrical :origin ->PolarCylindrical)))
+(def Rn
+  (-> "R(%d)"
+      (make-manifold-family)
+      (attach-patch :origin)
+      (attach-coordinate-system :rectangular :origin ->Rectangular)
+      (attach-coordinate-system :polar-cylindrical :origin ->PolarCylindrical)))
 
 (def R1 (make-manifold Rn 1))
 (def R2 (make-manifold Rn 2))
