@@ -118,6 +118,8 @@
   (ff/coordinate-basis-oneform-fields coordinate-system))
 
 (defn- c:generate
+  "NOTE: from GJS, this is a kludge, because a single coordinate is NOT a
+  structure, it's just the number."
   [n orientation f]
   (if (= n 1)
     (f 0)

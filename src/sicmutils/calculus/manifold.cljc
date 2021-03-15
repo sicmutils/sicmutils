@@ -32,6 +32,8 @@
             [sicmutils.value :as v]
             [sicmutils.mechanics.rotation :refer [rotate-x-matrix rotate-y-matrix rotate-z-matrix]]))
 
+;; Manifolds
+
 (defn make-manifold-family
   [name-format & {:keys [over] :or {over 'Real}}]
   {:over over
@@ -41,16 +43,19 @@
 (defn make-manifold
   "Specialize a manifold-family into a particular manifold by specifying
   its dimension."
-  [manifold-family n & [embedding-dimension]]
-  {:pre [(integer? n)
-         (> n 0)]}
-  {:manifold-family     manifold-family
-   :name                (format (manifold-family :name-format) n)
-   :dimension           n
-   :embedding-dimension (or embedding-dimension n)})
+  ([manifold-family n]
+   (make-manifold manifold-family n n))
+  ([manifold-family n embedding-dimension]
+   {:pre [(integer? n)
+          (> n 0)]}
+   {:manifold-family     manifold-family
+    :name                (format (:name-format manifold-family) n)
+    :dimension           n
+    :embedding-dimension embedding-dimension}))
 
-(defn make-patch [name]
+(defn make-patch
   "Constructor for patches."
+  [name]
   {:name name
    :coordinate-system {}})
 
@@ -97,20 +102,53 @@
   (with-coordinate-prototype [this coordinate-prototype])
   (manifold [this]))
 
-(defn ^:private make-manifold-point
+;; ## Manifold Points!
+
+(defn- make-manifold-point
   "Make a point in an abstract manifold, specified by a concrete point
   in some coordinate system, and the concrete coordinates in Euclidean
-  space. The map of coordinate representaions can be lazily extended to
-  yet other coordinate systems."
-  [spec manifold coordinate-system coordinate-rep]
-  {:type ::manifold-point
-   :spec spec
-   :manifold manifold
-   :coordinate-representation (atom {coordinate-system coordinate-rep})})
+  space.
 
-(defn ^:private manifold-point-representation
+  The map of coordinate representaions can be lazily extended to yet other
+  coordinate systems."
+  ([spec manifold]
+   {:type ::manifold-point
+    :spec spec
+    :manifold manifold
+    :coordinate-representation (atom {})})
+  ([spec manifold coordinate-system coordinate-rep]
+   (let [point (make-manifold-point spec manifold)
+         reps  (:coordinate-representation point)]
+     (swap! reps assoc coordinate-system coordinate-rep)
+     point)))
+
+(defn manifold-point?
+  "Returns true if `p` is a manifold point, false otherwise."
+  [p]
+  (= (v/kind p) ::manifold-point))
+
+(defn- manifold-point-representation
   [manifold-point]
-  (manifold-point :spec))
+  (:spec manifold-point))
+
+(defn point->manifold
+  "Return the manifold upon which this point was defined."
+  [point]
+  (:manifold point))
+
+(defn transfer-point
+  "TODO docs, this is new."
+  [embedded embedding]
+  (fn [point]
+    (assert (= (manifold embedded) (point->manifold point)))
+    (assert (= (:embedding-dimension (manifold embedded))
+	             (:embedding-dimension (manifold embedding))))
+    (make-manifold-point
+	   (manifold-point-representation point)
+	   (manifold embedding))))
+
+;; NOTE missing coordinate-reps, set-coordinate-reps!... but we only use them
+;; internally here, so no stress.
 
 (defn get-coordinates
   "Returns the representation of `manifold-point` in `coordinate-system`.
@@ -119,22 +157,20 @@
   If an entry for the given `coordinate-system` is not found, `thunk` is called
   to produce the representation, which is then installed in the cache."
   [manifold-point coordinate-system thunk]
-  (let [reps (manifold-point :coordinate-representation)]
+  (let [reps (:coordinate-representation manifold-point)]
     (if-let [rep (@reps coordinate-system)]
-     rep
-     (let [rep (s/mapr simplify-numerical-expression (thunk))]
-       (swap! reps assoc coordinate-system rep)
-       rep))))
+      rep
+      ;; TODO I think this can just be "simplify" now.
+      (let [rep (s/mapr simplify-numerical-expression (thunk))]
+        (swap! reps assoc coordinate-system rep)
+        rep))))
 
-(defn point->manifold
-  "Return the manifold upon which this point was defined."
-  [point]
-  (point :manifold))
-
-(defn ^:private my-manifold-point?
-  "True if this point was created under the aegis of manifold"
+(defn- my-manifold-point?
+  "Returns true if `point` was created under the aegis of `manifold`, false
+  otherwise."
   [point manifold]
-  (= (point->manifold point) manifold))
+  (and (manifold-point? point)
+       (= (point->manifold point) manifold)))
 
 (defn ^:private frame?
   "True if this coordinate system is actually a frame.
@@ -220,7 +256,8 @@
                        (fn []
                          (let [prep (manifold-point-representation point)]
                            (when-not (and (s/up? prep)
-                                          (= (s/dimension prep) (manifold :embedding-dimension)))
+                                          (= (s/dimension prep)
+                                             (:embedding-dimension manifold)))
                              (u/illegal "PolarCylindrical bad point"))
                            (let [[x y] prep
                                  rsq (g/+ (g/square x) (g/square y))]
@@ -268,7 +305,8 @@
                            (fn []
                              (let [prep (g/* inverse-orientation (manifold-point-representation point))]
                                (when-not (and (s/up? prep)
-                                              (= (s/dimension prep) (manifold :embedding-dimension)))
+                                              (= (s/dimension prep)
+                                                 (:embedding-dimension manifold)))
                                  (u/illegal "S2-coordinates bad point"))
                                (let [[x y z] prep]
                                  (s/up (g/acos z) (g/atan y x)))))))
@@ -307,7 +345,8 @@
                        (fn []
                          (let [prep (manifold-point-representation point)]
                            (when-not (and (s/up? prep)
-                                          (= (s/dimension prep) (manifold :embedding-dimension)))
+                                          (= (s/dimension prep)
+                                             (:embedding-dimension manifold)))
                              (u/illegal "SphericalCylindrical bad point"))
                            (let [[x y z] prep
                                  r (g/sqrt (g/+ (g/square x) (g/square y) (g/square z)))]
