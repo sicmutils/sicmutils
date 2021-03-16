@@ -151,25 +151,16 @@
     (s/generate k ::s/up (fn [i]
                            (symbol (str "x" i))))))
 
-;; then joint accessors.
-
-(defn diffop-name [form]
-  (cond (o/operator? form)        (o/name form)
-        (an/literal-number? form) (x/expression-of form)
-        :else '...))
-
 (defprotocol ICoordinateSystem
   (check-coordinates [this coords])
+  (check-point [this point])
   (coords->point [this coords])
   (point->coords [this point])
-  (check-point [this point])
-  ;; missing check-coords,  access-chains, dual-chains
   (coordinate-prototype [this])
   (with-coordinate-prototype [this coordinate-prototype])
-
-  ;; TODO maybe this should be `patch` instead... and then THAT can give us a
-  ;; manifold?
-  (manifold [this]))
+  (manifold [this])
+  ;; TODO do we need `patch`?
+  )
 
 ;; ## Manifold Points!
 
@@ -381,7 +372,27 @@
      (with-coordinate-prototype [this prototype] (->PolarCylindrical manifold prototype))
      (manifold [this] manifold))))
 
-(defn ^:private ->S2-coordinates
+(defn- ->Sn-coordinates [orientation-function]
+  (fn ctor
+    ([manifold]
+     (let [proto (default-coordinate-prototype manifold)]
+       (ctor manifold proto)))
+    ([manifold coordinate-prototype]
+     (reify ICoordinateSystem
+       (check-coordinates [this coords]
+         )
+       (coords->point [this coords]
+         )
+       (check-point [this point]
+         )
+       (point->coords [this point]
+         )
+       (coordinate-prototype [this] coordinate-prototype)
+       (with-coordinate-prototype [this prototype]
+         (ctor manifold prototype))
+       (manifold [this] manifold)))))
+
+(defn- ->S2-coordinates
   "Colatitude-longitude coordinates for the surface of the sphere
   S(2). The orientation map (on vectors) can be used to reposition the
   polar coordinate singularities."
@@ -475,10 +486,30 @@
                                               2 (g/atan y x)
                                               (nth prep i)))))))))
      (coordinate-prototype [this] coordinate-prototype)
-     (with-coordinate-prototype [this prototype] (->SphericalCylindrical manifold prototype))
+     (with-coordinate-prototype [this prototype]
+       (->SphericalCylindrical manifold prototype))
      (manifold [this] manifold))))
 
-(defn- ->Stereographic
+(defn- ->SpacetimeSpherical
+  ([manifold]
+   (let [proto (default-coordinate-prototype manifold)]
+     (->SpacetimeSpherical manifold proto)))
+  ([manifold coordinate-prototype]
+   (reify ICoordinateSystem
+     (check-coordinates [this coords]
+       )
+     (coords->point [this coords]
+       )
+     (check-point [this point]
+       )
+     (point->coords [this point]
+       )
+     (coordinate-prototype [this] coordinate-prototype)
+     (with-coordinate-prototype [this prototype]
+       (->SpacetimeSpherical manifold prototype))
+     (manifold [this] manifold))))
+
+(defn- ->Sn-stereographic
   "Stereographic projection from the final coordinate.
 
   The default pole is (0 0 ... 1).
@@ -528,9 +559,8 @@
          (with-coordinate-prototype [this prototype] (ctor manifold prototype))
          (manifold [this] manifold))))))
 
-
-(defn- ->Gnomic
-  "Gnomic Projection of the sphere.
+(defn- ->Sn-gnomonic
+  "Gnomonic Projection of the sphere.
 
    We map the nothern hemisphere to the plane by firing a ray from the origin.
    The coordinates are given by the intersection with the z = 1 plane.
@@ -652,10 +682,8 @@
       (make-manifold-family)
       (attach-patch :origin)
       (attach-coordinate-system :rectangular :origin ->Rectangular)
-      (attach-coordinate-system :polar-cylindrical :origin ->PolarCylindrical)))
-
-;; NOTE spherical-cylindrical missing, attached at origin. same?
-;; NOTE spacetime-spherical missing
+      (attach-coordinate-system :polar-cylindrical :origin ->PolarCylindrical)
+      (attach-coordinate-system :spherical-cylindrical :origin ->SphericalCylindrical)))
 
 (def R1 (make-manifold Rn 1))
 (def R1-rect (coordinate-system-at :rectangular :origin R1))
@@ -668,25 +696,21 @@
 (def R3 (make-manifold Rn 3))
 (def R3-rect (coordinate-system-at :rectangular :origin R3))
 (def R3-cyl (coordinate-system-at :polar-cylindrical :origin R3))
+(def R3-spherical (coordinate-system-at :spherical-cylindrical :origin R3))
 
-(comment
-  (def R3-spherical (coordinate-system-at :spherical-cylindrical :origin R3)))
+(def R4 (make-manifold Rn 4))
+(def R4-rect (coordinate-system-at :rectangular :origin R4))
+(def R4-cyl (coordinate-system-at :polar-cylindrical :origin R4))
 
-(comment
-  (def R4 (make-manifold Rn 4))
-  (def R4-rect (coordinate-system-at :rectangular :origin R4))
-  (def R4-cyl (coordinate-system-at :polar-cylindrical :origin R4)))
+(def spacetime
+  (-> Rn
+      (attach-coordinate-system :spacetime-spherical :origin ->SpacetimeSpherical)
+      (make-manifold 4)))
 
-(comment
-  (def spacetime (make-manifold Rn 4))
-  (def spacetime-rect
-    (coordinate-system-at :rectangular :origin spacetime))
-  (def spacetime-sphere
-    (coordinate-system-at :spacetime-spherical :origin spacetime)))
+(def spacetime-rect (coordinate-system-at :rectangular :origin spacetime))
+(def spacetime-sphere (coordinate-system-at :spacetime-spherical :origin spacetime))
 
 ;; The surface of a sphere, specialized to two dimensions.
-;;
-;; TODO continue later, up to line 795
 
 (def S2-type
   (-> "S2"
@@ -707,9 +731,9 @@
                                                           (s/up 0 1 0)
                                                           (s/up 0 0 -1))))
       (attach-coordinate-system :stereographic :north-pole
-                                (->Stereographic matrix/I))
+                                (->Sn-stereographic matrix/I))
       (attach-coordinate-system :stereographic :south-pole
-                                (->Stereographic
+                                (->Sn-stereographic
                                  (fn [n]
                                    ;; TODO: just go flip that coordinate in matrix/I
                                    (matrix/generate
@@ -718,10 +742,10 @@
 		                                  (if (= i j)
 		                                    (if (= j n) -1 1)
 		                                    0))))))
-      (attach-coordinate-system :gnomic :north-pole
-                                (->Gnomic matrix/I))
-      (attach-coordinate-system :gnomic :south-pole
-                                (->Gnomic
+      (attach-coordinate-system :gnomonic :north-pole
+                                (->Sn-gnomonic matrix/I))
+      (attach-coordinate-system :gnomonic :south-pole
+                                (->Sn-gnomonic
                                  (fn [n]
                                    ;; TODO: just go flip that coordinate in matrix/I
                                    (matrix/generate
@@ -736,22 +760,20 @@
 (def S2-tilted (coordinate-system-at :spherical :tilted S2))
 (def S2-stereographic (coordinate-system-at :stereographic :north-pole S2))
 (def S2-Riemann S2-stereographic)
-(def S2-gnomic (coordinate-system-at :gnomic :north-pole S2))
+(def S2-gnomonic (coordinate-system-at :gnomonic :north-pole S2))
 
 ;; TODO double-check these: what goes in S2-type, and what goes in Sn(2)?
 
 (def Sn
-  (-> "S(%d)"
-      make-manifold-family
+  (-> (make-manifold-family "S(%d)")
       (attach-patch :north-pole)
       (attach-patch :south-pole)
       (attach-patch :tilted)
+      (attach-coordinate-system :spherical :north-pole
+                                (->Sn-coordinates matrix/I))
 
-      ;; TODO broken!!
-      (attach-coordinate-system :spherical :north-pole ->SphericalCylindrical)
-      (attach-coordinate-system :gnomic :north-pole (->Gnomic matrix/I))
-      (attach-coordinate-system :gnomic :south-pole
-                                (->Gnomic
+      (attach-coordinate-system :spherical :south-pole
+                                (->Sn-coordinates
                                  (fn [n]
                                    ;; TODO: just go flip that coordinate in matrix/I
                                    (matrix/generate
@@ -760,9 +782,38 @@
 		                                  (if (= i j)
 		                                    (if (= j n) -1 1)
 		                                    0))))))
-      (attach-coordinate-system :stereographic :north-pole (->Stereographic matrix/I))
+
+      (attach-coordinate-system :spherical :tilted
+                                (->Sn-coordinates
+                                 (let [c (g/cos (/ Math/PI 2))
+                                       s (g/sin (/ Math/PI 2))]
+                                   (fn [n]
+                                     (s/generate
+                                      n ::s/down
+                                      (fn [col]
+	                                      (s/generate
+                                         n ::s/up
+		                                     (fn [row]
+			                                     (cond (and (= row (- n 2)) (= col (- n 1)) -1)
+			                                           (and (= row (- n 1)) (= col (- n 2)) 1)
+			                                           (and (= row col) (< row (- n 2))) 1
+			                                           :else 0)))))))))
+
+      (attach-coordinate-system :gnomonic :north-pole (->Sn-gnomonic matrix/I))
+      (attach-coordinate-system :gnomonic :south-pole
+                                (->Sn-gnomonic
+                                 (fn [n]
+                                   ;; TODO: just go flip that coordinate in matrix/I
+                                   (matrix/generate
+                                    n n
+		                                (fn [i j]
+		                                  (if (= i j)
+		                                    (if (= j n) -1 1)
+		                                    0))))))
+
+      (attach-coordinate-system :stereographic :north-pole (->Sn-stereographic matrix/I))
       (attach-coordinate-system :stereographic :south-pole
-                                (->Stereographic
+                                (->Sn-stereographic
                                  (fn [n]
                                    ;; TODO: just go flip that coordinate in matrix/I
                                    (matrix/generate
@@ -774,28 +825,22 @@
 
 (def S1 (make-manifold Sn 2))
 (def S1-circular (coordinate-system-at :spherical :north-pole S1))
-(comment
-  (def S1-tilted (coordinate-system-at :spherical :tilted S1)))
-
+(def S1-tilted (coordinate-system-at :spherical :tilted S1))
 (def S1-slope (coordinate-system-at :stereographic :north-pole S1))
-(def S1-gnomic (coordinate-system-at :gnomic :north-pole S1))
-
+(def S1-gnomonic (coordinate-system-at :gnomonic :north-pole S1))
 
 (def S2p (make-manifold Sn 2))
 (def S2p-spherical (coordinate-system-at :spherical :north-pole S2p))
-(comment
-  (def S2p-tilted (coordinate-system-at :spherical :tilted S2p)))
-
+(def S2p-tilted (coordinate-system-at :spherical :tilted S2p))
 (def S2p-stereographic (coordinate-system-at :stereographic :north-pole S2p))
 (def S2p-Riemann S2p-stereographic)
-(def S2p-gnomic (coordinate-system-at :gnomic :north-pole S2p))
+(def S2p-gnomonic (coordinate-system-at :gnomonic :north-pole S2p))
 
 (def S3 (make-manifold Sn 3))
 (def S3-spherical (coordinate-system-at :spherical :north-pole S3))
-(comment
-  (def S3-tilted (coordinate-system-at :spherical :tilted S3)))
+(def S3-tilted (coordinate-system-at :spherical :tilted S3))
 
-(def S3-gnomic (coordinate-system-at :gnomic :north-pole S3))
+(def S3-gnomonic (coordinate-system-at :gnomonic :north-pole S3))
 
 ;; TODO is south pole right??
 (def S3-stereographic (coordinate-system-at :stereographic :south-pole S3))
@@ -808,8 +853,7 @@
 ;; the name is not SOn but rather SO3-type.
 
 (def SO3-type
-  (-> "SO3"
-      make-manifold-family
+  (-> (make-manifold-family "SO3")
       (attach-patch :Euler-patch)
       (attach-patch :alternate-patch)
       (attach-coordinate-system :Euler :Euler-patch ->Euler-chart)

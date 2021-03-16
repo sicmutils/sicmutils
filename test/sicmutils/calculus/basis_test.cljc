@@ -27,7 +27,7 @@
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.abstract.function :refer [literal-function]]
             [sicmutils.generic :as g]
-            [sicmutils.structure :refer [up down]]
+            [sicmutils.structure :as s :refer [up down]]
             [sicmutils.value :as v]))
 
 (deftest basis-tests
@@ -62,4 +62,16 @@
                   (+ (expt x 2) (expt y 2))))
              (v/freeze
               (g/simplify
-               (vjp ((m/point m/R2-rect) (up 'x 'y))))))))))
+               (vjp ((m/point m/R2-rect) (up 'x 'y)))))))))
+
+  (testing "test ported from dgutils.scm"
+    (let [chi-R2         (m/chart m/R2-rect)
+          chi-inverse-R2 (m/point m/R2-rect)
+          R2-basis       (b/coordinate-system->basis m/R2-rect)]
+      (is (v/= '(+ (((partial 0) f) (up x0 y0))
+                   (((partial 1) f) (up x0 y0)))
+               (s/sumr (fn [e]
+		                     ((e (comp (literal-function 'f '(-> (UP Real Real) Real))
+			                             chi-R2))
+		                      (chi-inverse-R2 (up 'x0 'y0))))
+		                   (b/basis->vector-basis R2-basis)))))))

@@ -124,7 +124,7 @@
                     (assert (vf/vector-field? v))
                     (fn [m] ((v f) m)))
                   v))
-   `(~'d ~(m/diffop-name f))))
+   `(~'d ~(v/freeze f))))
 
 (defn literal-oneform-field
   [name coordinate-system]
@@ -166,7 +166,7 @@
                                                                              (without (dec j) rest)))
                                                                      point))))))))
                             0))))]
-        (procedure->nform-field k+1form (inc k) `(~'d ~(m/diffop-name kform)))))))
+        (procedure->nform-field k+1form (inc k) `(~'d ~(v/freeze kform)))))))
 
 (def d (o/make-operator exterior-derivative-procedure 'd))
 
@@ -249,7 +249,7 @@
                                           (g/* parity (apply form1 a1) (apply form2 a2))))
                                       (permutation-sequence args)
                                       (cycle [1 -1])))))]
-        (procedure->nform-field w n `(~'wedge ~(m/diffop-name form1) ~(m/diffop-name form2)))))))
+        (procedure->nform-field w n `(~'wedge ~(v/freeze form1) ~(v/freeze form2)))))))
 
 (defn wedge [& fs]
   (reduce wedge2 fs))

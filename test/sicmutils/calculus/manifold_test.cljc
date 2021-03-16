@@ -229,8 +229,8 @@
                "The equator is invariant.")))))
 
   (comment
-    (testing "s2p gnomic"
-      (let [point (m/coords->point m/S2p-gnomic (up 'x 'y))]
+    (testing "s2p gnomonic"
+      (let [point (m/coords->point m/S2p-gnomonic (up 'x 'y))]
         (is (= '(up (/ x (sqrt (+ 1 (expt x 2) (expt y 2))))
                     (/ y (sqrt (+ 1 (expt x 2) (expt y 2))))
                     (/ 1 (sqrt (+ 1 (expt x 2) (expt y 2)))))
@@ -240,26 +240,26 @@
                      (/ y (sqrt (+ 1 (expt x 2) (expt y 2))))
                      (/ 1 (sqrt (+ 1 (expt x 2) (expt y 2)))))
                 (m/manifold-point-representation
-                 ((compose (m/point m/S2p-gnomic)
-                           (m/chart m/S2p-gnomic))
+                 ((compose (m/point m/S2p-gnomonic)
+                           (m/chart m/S2p-gnomonic))
                   point)))))
 
       (is (= '(up x y)
-             ((compose (m/chart m/S2p-gnomic)
-                       (m/point S2p-gnomic))
+             ((compose (m/chart m/S2p-gnomonic)
+                       (m/point S2p-gnomonic))
               (up 'x 'y))))
 
       (is  (= '(up (/ (cos theta) (sqrt 2))
                    (/ (sin theta) (sqrt 2))
                    (/ 1 (sqrt 2)))
               (m/manifold-point-representation
-               ((m/point m/S2p-gnomic)
+               ((m/point m/S2p-gnomonic)
                 (up (cos 'theta) (sin 'theta))))))
 
       ;; The unit circle on the plane represents the intersection of S2 and z
       ;; = (/ 1 (sqrt 2))
 
-      ;; Straight lines in the gnomic coordinates are geodesics. We compute a
+      ;; Straight lines in the gnomonic coordinates are geodesics. We compute a
       ;; straight line, then transform it back to stereographic coordinates.
 
       (let [q ((m/point m/S2p-stereographic) (up -1.5 1.5))
@@ -278,9 +278,9 @@
                               2.4693877551020407)))))
              (simplify
               ((S2p-stereographic '->coords)
-               ((S2p-gnomic '->point)
-                (+ (* 't ((S2p-gnomic '->coords) p))
-                   (* (- 1 't) ((S2p-gnomic '->coords) q))))))))))
+               ((S2p-gnomonic '->point)
+                (+ (* 't ((S2p-gnomonic '->coords) p))
+                   (* (- 1 't) ((S2p-gnomonic '->coords) q))))))))))
 
   (comment
     (testing "tests ported from S3"
@@ -316,13 +316,13 @@
       ;; S3 is one-to-one with the quaternions.
       ;; We interpret the first three components of the embedding space as the
       ;; i,j,k imaginary party and the 4th component as the real part.
-      ;; The gnomic projection removes the double-cover of quaternions to rotations.
+      ;; The gnomonic projection removes the double-cover of quaternions to rotations.
       ;; The solid unit-sphere of the stereographic projection from the south pole likewise.
 
       (is (= '(up (/ (* 2 x) (+ -1 (expt x 2) (expt y 2) (expt z 2)))
                   (/ (* 2 y) (+ -1 (expt y 2) (expt x 2) (expt z 2)))
                   (/ (* 2 z) (+ -1 (expt z 2) (expt x 2) (expt y 2))))
-             ((m/chart m/S3-gnomic)
+             ((m/chart m/S3-gnomonic)
               ((m/point m/S3-stereographic)
                (up 'x 'y 'z)))))
 
@@ -331,7 +331,7 @@
                    (/ y (+ -1 (sqrt (+ 1 (expt y 2) (expt x 2) (expt z 2)))))
                    (/ z (+ -1 (sqrt (+ 1 (expt z 2) (expt x 2) (expt y 2))))))
               ((m/chart m/S3-stereographic)
-               ((m/point m/S3-gnomic)
+               ((m/point m/S3-gnomonic)
                 (up 'x 'y 'z)))))
 
       ;; NOTE: was euclidean norm...
@@ -341,4 +341,4 @@
                           (* -2
                              (sqrt (+ 1 (expt x 2) (expt y 2) (expt z 2)))))))
              (g/magnitude ((S3-stereographic '->coords)
-                           ((S3-gnomic '->point) (up 'x 'y 'z)))))))))
+                           ((S3-gnomonic '->point) (up 'x 'y 'z)))))))))

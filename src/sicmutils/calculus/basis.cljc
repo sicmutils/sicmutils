@@ -30,8 +30,8 @@
 (defn coordinate-system->basis
   "Returns the standard basis object for `coordinate-system`."
   [coordinate-system]
-  (let [vector-basis  (vf/coordinate-basis-vector-fields coordinate-system)
-        oneform-basis (ff/coordinate-basis-oneform-fields coordinate-system)]
+  (let [vector-basis  (vf/coordinate-system->vector-basis coordinate-system)
+        oneform-basis (ff/coordinate-system->oneform-basis coordinate-system)]
     {:type ::coordinate-basis
      :dimension (:dimension coordinate-system)
      :vector-basis vector-basis
@@ -84,13 +84,10 @@
   {:pre [(basis? b)]}
   (:dimension b))
 
-;; TODO write this in structure.cljc
-(declare s:sum-r)
-
 (defn contract [f basis]
   (let [vector-basis  (basis->vector-basis basis)
 	      oneform-basis (basis->oneform-basis basis)]
-    (s:sum-r f vector-basis oneform-basis)))
+    (s/sumr f vector-basis oneform-basis)))
 
 (defn vector-basis->dual [vector-basis coordinate-system]
   (let [prototype (m/coordinate-prototype coordinate-system)
@@ -118,7 +115,7 @@
       (let [vector-basis  (basis->vector-basis basis)
 	          oneform-basis (basis->oneform-basis basis)]
         (g/* (vector-basis f)
-             (s/mapr (fn  [onefb] (fn [m] ((onefb v) m0)))
+             (s/mapr (fn [onefb] (fn [m] ((onefb v) m0)))
 		                 oneform-basis))))))
 
 (defn Jacobian
