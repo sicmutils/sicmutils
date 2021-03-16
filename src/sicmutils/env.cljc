@@ -262,7 +262,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
  [sicmutils.structure
   compatible-shape
   down
-  mapr
+  mapr sumr
   orientation
   structure->vector
   structure?
