@@ -392,10 +392,10 @@
 
 (deftest mapper-tests
   (testing "sumr"
-    (checking "sumr sums all entries when passed a single structure" 100
-              [s (-> (gen/fmap #(g/modulo % 10000) sg/real)
-                     (sg/structure 4))]
-              (is (ish? (ua/sum (flatten s))
+    (checking "sumr sums all entries when passed a single structure" 50
+              [s (-> (gen/fmap #(g/modulo % 1000) sg/real)
+                     (sg/structure 3))]
+              (is (ish? (reduce g/+ (flatten s))
                         (s/sumr identity s))))
 
     (is (== (ua/sum g/square 0 10)
