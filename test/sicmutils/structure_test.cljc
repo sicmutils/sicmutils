@@ -31,6 +31,7 @@
             [sicmutils.generic :as g :refer [+ - * / cube expt negate square]]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
+            [sicmutils.util.aggregate :as ua]
             [sicmutils.value :as v]))
 
 (deftest value-protocol-tests
@@ -390,6 +391,37 @@
         about the entries.")))
 
 (deftest mapper-tests
+  (testing "sumr"
+    (checking "sumr sums all entries when passed a single structure" 50
+              [s (-> (gen/fmap #(g/modulo % 1000) sg/real)
+                     (sg/structure 3))]
+              (is (ish? (reduce g/+ (flatten s))
+                        (s/sumr identity s))))
+
+    (is (== (ua/sum g/square 0 10)
+            (s/sumr g/square
+                    (s/up (s/down 1 2 3)
+                          (s/down 4 5 6)
+                          (s/down 7 8 9))))
+        "sumr on one structure sums single entries")
+
+    (is (== (ua/sum (map inc [1 3 5 7]))
+            (s/sumr g/+
+                    (s/up (s/down 1 3)
+                          (s/down 5 7))
+                    (s/up (s/down 1 1)
+                          (s/down 1 1))))
+        "sumr applies functions across multiple structures before summing")
+
+    (is (= (g/+ 'a 'b 'c 'd 'e 'f 'g 'h)
+           (g/simplify
+            (s/sumr g/+
+                    (s/up (s/down 'a 'b)
+                          (s/down 'c 'd))
+                    (s/up (s/down 'e 'f)
+                          (s/down 'g 'h)))))
+        "sumr uses g/+, so symbols etc can be added too."))
+
   (testing "mapr"
     (is (= (s/up (s/down 1  4  9)
                  (s/down 16 25 36)

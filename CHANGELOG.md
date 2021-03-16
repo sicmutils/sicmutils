@@ -2,6 +2,11 @@
 
 ## [unreleased]
 
+- #327 adds `sicmutils.structure/sumr`, also aliased into `sicmutils.env` Given
+  some function `f` and any number of isomorphic `structures`, `sumr` returns
+  the sum of the results of applying `f` to each associated set of entries in
+  each `structure`.
+
 - #321 changes the default `TeX` rendering style for `down` tuples back to
   horizontal, undoing #283. @kloimhardt made a solid case that because `down`
   tuples represent row vectors, it's not helpful for building knowledge and
