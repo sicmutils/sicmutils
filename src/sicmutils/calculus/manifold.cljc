@@ -27,7 +27,8 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]
             [sicmutils.mechanics.rotation
-             :refer [rotate-x-matrix rotate-y-matrix rotate-z-matrix]]))
+             :refer [rotate-x-matrix rotate-y-matrix rotate-z-matrix]]
+            [taoensso.timbre :as log]))
 
 ;; Manifolds
 
@@ -486,24 +487,79 @@
          (manifold [this] manifold))))))
 
 (defn- ->Sn-coordinates [orientation-function]
-  (fn ctor
-    ([manifold]
-     (let [proto (default-coordinate-prototype manifold)]
-       (ctor manifold proto)))
-    ([manifold coordinate-prototype]
-     (reify ICoordinateSystem
-       (check-coordinates [this coords]
-         )
-       (coords->point [this coords]
-         )
-       (check-point [this point]
-         )
-       (point->coords [this point]
-         )
-       (coordinate-prototype [this] coordinate-prototype)
-       (with-coordinate-prototype [this prototype]
-         (ctor manifold prototype))
-       (manifold [this] manifold)))))
+  (letfn [(list-top-to-bottom [l]
+            (concat (rest l) [(first l)]))
+          (list-bottom-to-top [l]
+            (cons (last l) (butlast l)))]
+    (fn ctor
+      ([manifold]
+       (let [proto (default-coordinate-prototype manifold)]
+         (ctor manifold proto)))
+      ([manifold coordinate-prototype]
+       (let [n (:dimension manifold)
+             orientation-matrix (orientation-function (+ n 1))
+             orientation-inverse-matrix (g/invert orientation-matrix)]
+         (reify ICoordinateSystem
+           (check-coordinates [this coords]
+             (or (and (= n 1) (= (s/dimension coords) 1))
+		             (and (s/up? coords)
+		                  (= (s/dimension coords) n)
+		                  (let [remaining-coords (butlast coords)]
+			                  (every? (fn [coord]
+				                          (or (not (v/number? coord))
+                                      (not (g/negative? coord))))
+			                          remaining-coords)))))
+
+           (check-point [this point]
+             (my-manifold-point? point manifold))
+
+           (coords->point [this coords]
+             (assert (check-coordinates this coords))
+             (if (= n 1)
+		           (let [pt (s/up (g/cos coords)
+                              (g/sin coords))]
+		             (make-manifold-point (g/* orientation-matrix pt)
+					                            manifold this coords))
+		           (let [sines   (map g/sin coords)
+                     cosines (map g/cos coords)
+			               pt      (s/up*
+			                        (list-top-to-bottom
+                               (map (fn [i]
+			                                (if (= i n)
+				                                (apply g/* sines)
+				                                (apply g/* (cons (nth cosines i) (take sines i)))))
+                                    (range (inc n)))))]
+		             (make-manifold-point (g/* orientation-matrix pt)
+					                            manifold this coords))))
+
+           (point->coords [this point]
+             (assert (check-point this point))
+             (letfn [(safe-atan [y x]
+                       (when (and (number? y) (number? x) (= y 0) (= x 0))
+		                     (log/warn (str "Sn-coordinates singular: " point this)))
+                       (g/atan y x))]
+               (let [pt (reverse
+		                     (list-bottom-to-top
+		                      (g/* orientation-inverse-matrix
+			                         (manifold-point-representation point))))]
+	               (if (= n 1)
+		               (safe-atan (nth pt 1) (nth pt 0))
+	                 (loop [r    (first pt)
+                          more (rest pt)
+			                    ans  [(safe-atan (first pt) (second pt))]]
+		                 (if-not (rest more)
+			                 (prn "Done!" (s/up* ans))
+			                 (let [r' (g/sqrt (g/+ (g/square (first more))
+                                             (g/square r)))]
+			                   (recur r'
+                                (rest more)
+			                          (cons (safe-atan r (second more))
+                                      ans)))))))))
+
+           (coordinate-prototype [this] coordinate-prototype)
+           (with-coordinate-prototype [this prototype]
+             (ctor manifold prototype))
+           (manifold [this] manifold)))))))
 
 (defn- ->Sn-stereographic
   "Stereographic projection from the final coordinate.
@@ -524,7 +580,7 @@
      (let [proto (default-coordinate-prototype manifold)]
        (ctor manifold proto)))
     ([manifold coordinate-prototype]
-     (let [n        (:dimension manifold)
+     (let [n (:dimension manifold)
            orientation-matrix (orientation-function (+ n 1))
            orientation-inverse-matrix (g/invert orientation-matrix)]
        (reify ICoordinateSystem
@@ -786,8 +842,8 @@
 	                                      (s/generate
                                          n ::s/up
 		                                     (fn [row]
-			                                     (cond (and (= row (- n 2)) (= col (- n 1)) -1)
-			                                           (and (= row (- n 1)) (= col (- n 2)) 1)
+			                                     (cond (and (= row (- n 2)) (= col (- n 1))) -1
+			                                           (and (= row (- n 1)) (= col (- n 2))) 1
 			                                           (and (= row col) (< row (- n 2))) 1
 			                                           :else 0)))))))))
 
@@ -815,7 +871,7 @@
 		                                    (if (= j n) -1 1)
 		                                    0))))))))
 
-(def S1 (make-manifold Sn 2))
+(def S1 (make-manifold Sn 1))
 (def S1-circular (coordinate-system-at :spherical :north-pole S1))
 (def S1-tilted (coordinate-system-at :spherical :tilted S1))
 (def S1-slope (coordinate-system-at :stereographic :north-pole S1))

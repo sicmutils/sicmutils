@@ -119,43 +119,48 @@
                             (g/cos 'phi))))
              (m/point->coords m/S2-tilted point)))))
 
-  (comment
-    (testing "S1"
-      (let [point (m/coords->point m/S1-circular 'theta)]
+  (testing "S1"
+    (let [point (m/coords->point m/S1-circular 'theta)]
+      (is (= (up (g/cos 'theta) (g/sin 'theta))
+             (m/manifold-point-representation point))))
 
-        (is (= '(up (cos theta) (sin theta))
-               (m/manifold-point-representation point))))
+    (is (v/= 'theta
+             (g/simplify
+              ((compose (m/chart m/S1-circular)
+                        (m/point m/S1-circular))
+               'theta))))
 
-      (is (= 'theta
-             ((compose (m/chart m/S1-circular)
-                       (m/point m/S1-circular))
-              'theta)))
-
-      (is  (= '(atan (cos theta) (* -1 (sin theta)))
+    (is (v/= '(atan (cos theta) (* -1 (sin theta)))
+             (g/simplify
               ((compose (m/chart m/S1-circular)
                         (m/point m/S1-tilted))
-               'theta)))
+               'theta))))
 
-      (testing "S1-slope"
-        (let [point ((m/point m/S1-slope) 's)]
-          (is (= '(up (/ (* 2 s)
-                         (+ 1 (expt s 2)))
-                      (/ (+ -1 (expt s 2))
-                         (+ 1 (expt s 2))))
-                 (m/manifold-point-representation point)))
+    (testing "S1-slope"
+      (let [point ((m/point m/S1-slope) 's)]
+        (is (= '(up (/ (* 2 s)
+                       (+ (expt s 2) 1))
+                    (/ (+ (expt s 2) -1)
+                       (+ (expt s 2) 1)))
+               (v/freeze
+                (g/simplify
+                 (m/manifold-point-representation point)))))
 
-          (is (= '(up (/ (* 2 s)
-                         (+ 1 (expt s 2)))
-                      (/ (+ -1 (expt s 2))
-                         (+ 1 (expt s 2))))
-                 (m/manifold-point-representation
-                  ((compose (m/point m/S1-slope)
-                            (m/chart m/S1-slope))
-                   point)))))
+        ;; TODO get rid of the extra `up` around the first coordinate in BOTH of
+        ;; the following tests!
+        (is (= '(up (/ (* 2 s)
+                       (+ (expt s 2) 1))
+                    (/ (+ (expt s 2) -1)
+                       (+ (expt s 2) 1)))
+               (g/simplify
+                (m/manifold-point-representation
+                 ((compose (m/point m/S1-slope)
+                           (m/chart m/S1-slope))
+                  point))))))
 
-        (is (= 's ((compose (m/chart m/S1-slope)
-                            (m/point m/S1-slope))
-                   's))))))
+      (is (= 's ((compose (m/chart m/S1-slope)
+                          (m/point m/S1-slope))
+                 's)))))
 
   (testing "tests ported after s2p"
     (comment
