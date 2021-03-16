@@ -270,54 +270,54 @@
       ;; Straight lines in the gnomonic coordinates are geodesics. We compute a
       ;; straight line, then transform it back to stereographic coordinates.
 
-      (let [q ((m/point m/S2p-stereographic) (up -1.5 1.5))
-            p ((m/point m/S2p-stereographic) (up 1.5 0))])
+      (comment
+        (let [q ((m/point m/S2p-stereographic) (up -1.5 1.5))
+              p ((m/point m/S2p-stereographic) (up 1.5 0))]
+          (is (= '(up
+                   (/ (+ (* 3.257142857142857 t) -.8571428571428571)
+                      (+ -1
+                         (sqrt (+ (* 11.343673469387754 (expt t 2))
+                                  (* -7.053061224489795 t)
+                                  2.4693877551020407))))
+                   (/ (+ (* -.8571428571428571 t) .8571428571428571)
+                      (+ -1
+                         (sqrt (+ (* 11.343673469387754 (expt t 2))
+                                  (* -7.053061224489795 t)
+                                  2.4693877551020407)))))
+                 (s-freeze
+                  ((m/chart m/S2p-stereographic)
+                   ((m/point m/S2p-gnomonic)
+                    (+ (* 't ((m/chart S2p-gnomonic) p))
+                       (* (- 1 't) ((m/chart S2p-gnomonic) q))))))))))))
 
-      (is (= '(up
-               (/ (+ (* 3.257142857142857 t) -.8571428571428571)
-                  (+ -1
-                     (sqrt (+ (* 11.343673469387754 (expt t 2))
-                              (* -7.053061224489795 t)
-                              2.4693877551020407))))
-               (/ (+ (* -.8571428571428571 t) .8571428571428571)
-                  (+ -1
-                     (sqrt (+ (* 11.343673469387754 (expt t 2))
-                              (* -7.053061224489795 t)
-                              2.4693877551020407)))))
-             (simplify
-              ((S2p-stereographic '->coords)
-               ((S2p-gnomonic '->point)
-                (+ (* 't ((S2p-gnomonic '->coords) p))
-                   (* (- 1 't) ((S2p-gnomonic '->coords) q))))))))))
+  (testing "tests ported from S3"
+    (is (= '(up a b c)
+           (s-freeze
+            ((compose (m/chart m/S3-spherical)
+                      (m/point m/S3-spherical))
+             (up 'a 'b 'c)))))
 
-  (comment
-    (testing "tests ported from S3"
-      (is (= '(up a b c)
-             ((compose (m/chart m/S3-spherical)
-                       (m/point m/S3-spherical))
-              (up 'a 'b 'c))))
+    (comment
+      (is (= '(up (atan
+                   (sqrt
+                    (+ (* (expt (sin b) 2) (expt (sin c) 2) (expt (cos a) 2))
+                       (* (expt (sin c) 2) (expt (cos b) 2))
+                       (expt (cos c) 2)))
+                   (* (sin c) (sin b) (sin a)))
+                  (atan (sqrt (+ (* (expt (sin b) 2) (expt (sin a) 2) (expt (cos c) 2))
+                                 (expt (cos a) 2)))
+                        (* (sin a) (cos b)))
+                  (atan (* -1 (cos a)) (* (sin a) (cos c) (sin b))))
+             (s-freeze
+              ((compose (m/chart m/S3-spherical)
+                        (m/point m/S3-tilted))
+               (up 'a 'b 'c))))))
 
-      (is (= '(up
-               (atan
-                (sqrt
-                 (+ (* (expt (sin c) 2) (expt (sin b) 2) (expt (cos a) 2))
-                    (* (expt (sin c) 2) (expt (cos b) 2))
-                    (expt (cos c) 2)))
-                (* (sin c) (sin b) (sin a)))
-               (atan (sqrt (+ (* (expt (sin b) 2) (expt (sin a) 2) (expt (cos c) 2))
-                              (expt (cos a) 2)))
-                     (* (sin a) (cos b)))
-               (atan (* -1 (cos a)) (* (sin b) (sin a) (cos c))))
-             ((compose (m/chart m/S3-spherical)
-                       (m/point m/S3-tilted))
-              (up 'a 'b 'c))))
-
-
-      (is (= '(up 0 0 0)
-             ((compose (m/chart m/S3-spherical)
-                       (m/point m/S3-spherical))
-              (up 0 0 0)))
-          "NOTE: Should be warned singular!")))
+    (is (= (up 0 0 0)
+           ((compose (m/chart m/S3-spherical)
+                     (m/point m/S3-spherical))
+            (up 0 0 0)))
+        "NOTE: Should be warned singular!"))
 
   (comment
     (testing "Now a fun example synthesizing the to projective coordinates."
