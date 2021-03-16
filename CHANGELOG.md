@@ -2,7 +2,7 @@
 
 ## [unreleased]
 
-- # adds `sicmutils.structure/sumr`, also aliased into `sicmutils.env` Given
+- #327 adds `sicmutils.structure/sumr`, also aliased into `sicmutils.env` Given
   some real-valued function `f` and any number of isomorphic `structures`,
   `sumr` returns the real sum of the results of applying `f` to each associated
   set of entries in each `structure`.
