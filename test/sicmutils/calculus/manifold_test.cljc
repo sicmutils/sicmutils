@@ -179,16 +179,17 @@
                (up 'theta 'phi))))
           "round trip back to coords")
 
-      (is (= '(up (atan (sqrt (+ (* (expt (sin phi) 2)
-                                    (expt (cos theta) 2))
-                                 (expt (cos phi) 2)))
-                        (* (sin theta) (sin phi)))
-                  (atan (* -1 (cos theta))
-                        (* (cos phi) (sin theta))))
-             (s-freeze
-              ((compose (m/chart m/S2p-spherical)
-                        (m/point m/S2p-tilted))
-               (up 'theta 'phi)))))
+      (is (= (up 0 0)
+             (g/simplify
+              (- (up (g/atan (g/sqrt (+ (* (g/expt (g/sin 'phi) 2)
+                                           (g/expt (g/cos 'theta) 2))
+                                        (g/expt (g/cos 'phi) 2)))
+                             (* (g/sin 'theta) (g/sin 'phi)))
+                     (g/atan (* -1 (g/cos 'theta))
+                             (* (g/sin 'theta) (g/cos 'phi))))
+                 ((compose (m/chart m/S2p-spherical)
+                           (m/point m/S2p-tilted))
+                  (up 'theta 'phi))))))
 
       (is (= (up 1 0)
              ((compose (m/chart m/S2p-spherical)
@@ -297,21 +298,21 @@
                       (m/point m/S3-spherical))
              (up 'a 'b 'c)))))
 
-    (comment
-      (is (= '(up (atan
-                   (sqrt
-                    (+ (* (expt (sin b) 2) (expt (sin c) 2) (expt (cos a) 2))
-                       (* (expt (sin c) 2) (expt (cos b) 2))
-                       (expt (cos c) 2)))
-                   (* (sin c) (sin b) (sin a)))
-                  (atan (sqrt (+ (* (expt (sin b) 2) (expt (sin a) 2) (expt (cos c) 2))
-                                 (expt (cos a) 2)))
-                        (* (sin a) (cos b)))
-                  (atan (* -1 (cos a)) (* (sin a) (cos c) (sin b))))
-             (s-freeze
-              ((compose (m/chart m/S3-spherical)
-                        (m/point m/S3-tilted))
-               (up 'a 'b 'c))))))
+    (is (= (up 0 0 0)
+           (g/simplify
+            (- (up (g/atan
+                    (g/sqrt
+                     (+ (* (g/expt (g/sin 'b) 2) (g/expt (g/sin 'c) 2) (g/expt (g/cos 'a) 2))
+                        (* (g/expt (g/sin 'c) 2) (g/expt (g/cos 'b) 2))
+                        (g/expt (g/cos 'c) 2)))
+                    (* (g/sin 'c) (g/sin 'b) (g/sin 'a)))
+                   (g/atan (g/sqrt (+ (* (g/expt (g/sin 'b) 2) (g/expt (g/sin 'a) 2) (g/expt (g/cos 'c) 2))
+                                      (g/expt (g/cos 'a) 2)))
+                           (* (g/sin 'a) (g/cos 'b)))
+                   (g/atan (* -1 (g/cos 'a)) (* (g/sin 'a) (g/cos 'c) (g/sin 'b))))
+               ((compose (m/chart m/S3-spherical)
+                         (m/point m/S3-tilted))
+                (up 'a 'b 'c))))))
 
     (is (= (up 0 0 0)
            ((compose (m/chart m/S3-spherical)
