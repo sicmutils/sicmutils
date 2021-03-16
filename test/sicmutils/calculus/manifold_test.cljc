@@ -1,28 +1,28 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.calculus.manifold-test
   (:refer-clojure :exclude [* - / +])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [same :refer [ish?]]
             [sicmutils.calculus.manifold :as m]
-            [sicmutils.function :as f]
+            [sicmutils.function :as f :refer [compose]]
             [sicmutils.generic :as g :refer [cos sin * - / +]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :refer [up down]]
@@ -43,6 +43,11 @@
         (is (not (m/check-coordinates m/R2-rect 99))))
 
       (testing "coords->point"
+        (let [m (m/coords->point m/R2-rect (up 3 4))]
+          (is (= (up 5 (g/atan 4 3))
+                 (m/point->coords m/R2-polar m))
+              "TODO make a generative test."))
+
         (let [p (m/coords->point m/R2-rect (up 3 4))
               Tp (m/coords->point m/R1-rect 3)]
           ;; the throw continuation is meant to assert that the thunk is
@@ -99,3 +104,241 @@
                ((f/compose (m/chart m/alternate-angles)
                            (m/point m/Euler-angles))
                 (up 'theta 'phi 'psi)))))))))
+
+(deftest new-tests
+  ;; TODO lots of these will fail at the compose step, since we can't pass just
+  ;; one argument.
+  ;;
+  ;; TODO if any are left, replace m/point->coords with m/chart and
+  ;; m/coords->point with m/point.
+  (testing "s2-tilted?"
+    (let [point (m/coords->point m/S2-spherical (up 'theta 'phi))]
+      (is (= (up (g/acos (* -1 (g/sin 'theta) (g/sin 'phi)))
+                 (g/atan (g/cos 'theta)
+                         (* (g/sin 'theta)
+                            (g/cos 'phi))))
+             (m/point->coords m/S2-tilted point)))))
+
+  (comment
+    (testing "S1"
+      (let [point (m/coords->point m/S1-circular 'theta)]
+
+        (is (= '(up (cos theta) (sin theta))
+               (m/manifold-point-representation point))))
+
+      (is (= 'theta
+             ((compose (m/chart m/S1-circular)
+                       (m/point m/S1-circular))
+              'theta)))
+
+      (is  (= '(atan (cos theta) (* -1 (sin theta)))
+              ((compose (m/chart m/S1-circular)
+                        (m/point m/S1-tilted))
+               'theta)))
+
+      (testing "S1-slope"
+        (let [point ((m/point m/S1-slope) 's)]
+          (is (= '(up (/ (* 2 s)
+                         (+ 1 (expt s 2)))
+                      (/ (+ -1 (expt s 2))
+                         (+ 1 (expt s 2))))
+                 (m/manifold-point-representation point)))
+
+          (is (= '(up (/ (* 2 s)
+                         (+ 1 (expt s 2)))
+                      (/ (+ -1 (expt s 2))
+                         (+ 1 (expt s 2))))
+                 (m/manifold-point-representation
+                  ((compose (m/point m/S1-slope)
+                            (m/chart m/S1-slope))
+                   point)))))
+
+        (is (= 's ((compose (m/chart m/S1-slope)
+                            (m/point m/S1-slope))
+                   's))))))
+
+  (testing "tests ported after s2p"
+    (comment
+      ;; TODO: This test is busted! fix the spherical north pole coordinate
+      ;; system for Sn.
+      (let [point (m/coords->point m/S2p-spherical (up 'theta 'phi))]
+        (is (= '(up (* (sin theta) (cos phi))
+                    (* (sin phi) (sin theta))
+                    (cos theta))
+               (m/manifold-point-representation point)))
+
+        (is (= '(up theta phi)
+               ((compose (m/chart  m/S2p-spherical)
+                         (m/point m/S2p-spherical))
+                (up 'theta 'phi)))
+            "round trip back to coords")
+
+        (is (= '(up (atan (sqrt (+ (* (expt (cos theta) 2) (expt (cos phi) 2))
+                                   (expt (sin phi) 2)))
+                          (* -1 (sin theta) (cos phi)))
+                    (atan (* (sin phi) (sin theta)) (cos theta)))
+               ((compose (m/chart m/S2p-spherical)
+                         ( m/point m/S2p-tilted))
+                (up 'theta 'phi))))
+
+
+
+        (is (= (up 1 0)
+               ((compose (m/chart m/S2p-spherical)
+                         (m/point S2p-spherical))
+                (up 1 0))))
+
+        (is (= (up 0 0)
+               ((compose (m/chart m/S2p-spherical)
+                         (m/point m/S2p-spherical))
+                (up 0 1)))
+            "NOTE: Should be warned singular!"))))
+
+  (comment
+    (testing "more s2p"
+      (let [point ((m/coords->point m/S2p-Riemann (up 'x 'y)))]
+
+        (is (= '(up (/ (* 2 x)
+                       (+ 1 (expt x 2) (expt y 2)))
+                    (/ (* 2 y)
+                       (+ 1 (expt y 2) (expt x 2)))
+                    (/ (+ -1 (expt x 2) (expt y 2))
+                       (+ +1 (expt x 2) (expt y 2))))
+               (m/manifold-point-representation point))))
+
+      (is  (= '(up (/ (* 2 x)
+                      (+ 1 (expt x 2) (expt y 2)))
+                   (/ (* 2 y)
+                      (+ 1 (expt x 2) (expt y 2)))
+                   (/ (+ -1 (expt x 2) (expt y 2))
+                      (+ 1 (expt x 2) (expt y 2))))
+              (m/manifold-point-representation
+               ((compose (m/point m/S2p-Riemann)
+                         (m/chart m/S2p-Riemann))
+                m))))
+
+      (is  (= '(up x y)
+              ((compose (m/chart m/S2p-Riemann)
+                        (m/point m/S2p-Riemann))
+               (up 'x 'y))))
+
+      (is  (= '(up (cos theta) (sin theta) 0)
+              (m/manifold-point-representation
+               ((m/point m/S2p-Riemann)
+                (up (cos 'theta) (sin 'theta)))
+               "The equator is invariant.")))))
+
+  (comment
+    (testing "s2p gnomic"
+      (let [point (m/coords->point m/S2p-gnomic (up 'x 'y))]
+        (is (= '(up (/ x (sqrt (+ 1 (expt x 2) (expt y 2))))
+                    (/ y (sqrt (+ 1 (expt x 2) (expt y 2))))
+                    (/ 1 (sqrt (+ 1 (expt x 2) (expt y 2)))))
+               (m/manifold-point-representation point)))
+
+        (is  (= '(up (/ x (sqrt (+ 1 (expt x 2) (expt y 2))))
+                     (/ y (sqrt (+ 1 (expt x 2) (expt y 2))))
+                     (/ 1 (sqrt (+ 1 (expt x 2) (expt y 2)))))
+                (m/manifold-point-representation
+                 ((compose (m/point m/S2p-gnomic)
+                           (m/chart m/S2p-gnomic))
+                  point)))))
+
+      (is (= '(up x y)
+             ((compose (m/chart m/S2p-gnomic)
+                       (m/point S2p-gnomic))
+              (up 'x 'y))))
+
+      (is  (= '(up (/ (cos theta) (sqrt 2))
+                   (/ (sin theta) (sqrt 2))
+                   (/ 1 (sqrt 2)))
+              (m/manifold-point-representation
+               ((m/point m/S2p-gnomic)
+                (up (cos 'theta) (sin 'theta))))))
+
+      ;; The unit circle on the plane represents the intersection of S2 and z
+      ;; = (/ 1 (sqrt 2))
+
+      ;; Straight lines in the gnomic coordinates are geodesics. We compute a
+      ;; straight line, then transform it back to stereographic coordinates.
+
+      (let [q ((m/point m/S2p-stereographic) (up -1.5 1.5))
+            p ((m/point m/S2p-stereographic) (up 1.5 0))])
+
+      (is (= '(up
+               (/ (+ (* 3.257142857142857 t) -.8571428571428571)
+                  (+ -1
+                     (sqrt (+ (* 11.343673469387754 (expt t 2))
+                              (* -7.053061224489795 t)
+                              2.4693877551020407))))
+               (/ (+ (* -.8571428571428571 t) .8571428571428571)
+                  (+ -1
+                     (sqrt (+ (* 11.343673469387754 (expt t 2))
+                              (* -7.053061224489795 t)
+                              2.4693877551020407)))))
+             (simplify
+              ((S2p-stereographic '->coords)
+               ((S2p-gnomic '->point)
+                (+ (* 't ((S2p-gnomic '->coords) p))
+                   (* (- 1 't) ((S2p-gnomic '->coords) q))))))))))
+
+  (comment
+    (testing "tests ported from S3"
+      (is (= '(up a b c)
+             ((compose (m/chart m/S3-spherical)
+                       (m/point m/S3-spherical))
+              (up 'a 'b 'c))))
+
+      (is (= '(up
+               (atan
+                (sqrt
+                 (+ (* (expt (sin c) 2) (expt (sin b) 2) (expt (cos a) 2))
+                    (* (expt (sin c) 2) (expt (cos b) 2))
+                    (expt (cos c) 2)))
+                (* (sin c) (sin b) (sin a)))
+               (atan (sqrt (+ (* (expt (sin b) 2) (expt (sin a) 2) (expt (cos c) 2))
+                              (expt (cos a) 2)))
+                     (* (sin a) (cos b)))
+               (atan (* -1 (cos a)) (* (sin b) (sin a) (cos c))))
+             ((compose (m/chart m/S3-spherical)
+                       (m/point m/S3-tilted))
+              (up 'a 'b 'c))))
+
+
+      (is (= '(up 0 0 0)
+             ((compose (m/chart m/S3-spherical)
+                       (m/point m/S3-spherical))
+              (up 0 0 0)))
+          "NOTE: Should be warned singular!")))
+
+  (comment
+    (testing "Now a fun example synthesizing the to projective coordinates."
+      ;; S3 is one-to-one with the quaternions.
+      ;; We interpret the first three components of the embedding space as the
+      ;; i,j,k imaginary party and the 4th component as the real part.
+      ;; The gnomic projection removes the double-cover of quaternions to rotations.
+      ;; The solid unit-sphere of the stereographic projection from the south pole likewise.
+
+      (is (= '(up (/ (* 2 x) (+ -1 (expt x 2) (expt y 2) (expt z 2)))
+                  (/ (* 2 y) (+ -1 (expt y 2) (expt x 2) (expt z 2)))
+                  (/ (* 2 z) (+ -1 (expt z 2) (expt x 2) (expt y 2))))
+             ((m/chart m/S3-gnomic)
+              ((m/point m/S3-stereographic)
+               (up 'x 'y 'z)))))
+
+
+      (is  (= '(up (/ x (+ -1 (sqrt (+ 1 (expt x 2) (expt y 2) (expt z 2)))))
+                   (/ y (+ -1 (sqrt (+ 1 (expt y 2) (expt x 2) (expt z 2)))))
+                   (/ z (+ -1 (sqrt (+ 1 (expt z 2) (expt x 2) (expt y 2))))))
+              ((m/chart m/S3-stereographic)
+               ((m/point m/S3-gnomic)
+                (up 'x 'y 'z)))))
+
+      ;; NOTE: was euclidean norm...
+      (is (= '(/ (sqrt (+ (expt x 2) (expt y 2) (expt z 2)))
+                 (sqrt (+ 2
+                          (expt x 2) (expt y 2) (expt z 2)
+                          (* -2
+                             (sqrt (+ 1 (expt x 2) (expt y 2) (expt z 2)))))))
+             (g/magnitude ((S3-stereographic '->coords)
+                           ((S3-gnomic '->point) (up 'x 'y 'z)))))))))

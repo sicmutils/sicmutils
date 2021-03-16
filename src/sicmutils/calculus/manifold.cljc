@@ -196,7 +196,7 @@
   [p]
   (= (v/kind p) ::manifold-point))
 
-(defn- manifold-point-representation
+(defn manifold-point-representation
   [manifold-point]
   (:spec manifold-point))
 
@@ -272,8 +272,9 @@
             (symbol (str "v:" x)))
           coords))
 
-(defn literal-manifold-function
-  [name coordinate-system]
+;; from bottom of manifold.scm
+
+(defn literal-scalar-field [name coordinate-system]
   (let [n (:dimension (manifold coordinate-system))
         domain (apply s/up (repeat n 0))
         range 0]
@@ -284,6 +285,21 @@
      :name name
      :coordinate-systems coordinate-system
      :type ::manifold-function)))
+
+(def literal-manifold-function literal-scalar-field)
+
+(defn zero-manifold-function [m]
+  {:pre [(manifold-point? m)]}
+  0)
+
+(defn one-manifold-function [m]
+  {:pre [(manifold-point? m)]}
+  1)
+
+(defn constant-manifold-function [c]
+  (fn [m]
+    {:pre [(manifold-point? m)]}
+    c))
 
 (defn- ->Rectangular
   ([manifold]
@@ -462,10 +478,19 @@
      (with-coordinate-prototype [this prototype] (->SphericalCylindrical manifold prototype))
      (manifold [this] manifold))))
 
-(defn ^:private ->Stereographic
-  "Stereographic projection from the final coordinate. The default pole is (0 0 ... 1),
-  but this can be moved by the orthogonal (n+1) by (n+1) matrix
-  returned by orientation function."
+(defn- ->Stereographic
+  "Stereographic projection from the final coordinate.
+
+  The default pole is (0 0 ... 1).
+  We fire a ray through m = (m_0 ... m_n)
+
+  x(t) = p + t(m - p)
+  x(0) = p, x(1) = m
+  x_n(t) = 1-t(1+m_n), 0 = x_n(1/(1+m_n))
+
+  The `orientation-function` should return an orthogonal (n+1)-by-(n+1) matrix.
+  It can be interpreted as moving the pole / plane of projection and possibly
+  reflecting."
   [orientation-function]
   (fn ctor
     ([manifold]
@@ -502,6 +527,43 @@
          (coordinate-prototype [this] coordinate-prototype)
          (with-coordinate-prototype [this prototype] (ctor manifold prototype))
          (manifold [this] manifold))))))
+
+
+(defn- ->Gnomic
+  "Gnomic Projection of the sphere.
+
+   We map the nothern hemisphere to the plane by firing a ray from the origin.
+   The coordinates are given by the intersection with the z = 1 plane.
+   x(t) = t*m
+   x_n(t) = t*m_n, 1 = x_n(1/m_n)
+
+   `orientation-function` should should return an n+1-by-n+1 orthogonal matrix.
+  It can be interpreted as moving the plane of projection, and point mapped to
+  the origin, as well as possibly reflecting.
+
+   Given the coordinates x we have  <x,x> = (1-m_n^2)/m_n^2
+   1 + <x,x> = (m_n^2 + 1 - m_n^2)/m_n^2
+   m_n = sqrt(1/(1+<x,x>))
+   where positive square root is sufficient for the northern hemisphere."
+  [orientation-function]
+  (fn ctor
+    ([manifold]
+     (let [proto (default-coordinate-prototype manifold)]
+       (ctor manifold proto)))
+    ([manifold coordinate-prototype]
+     (reify ICoordinateSystem
+       (check-coordinates [this coords]
+         )
+       (coords->point [this coords]
+         )
+       (check-point [this point]
+         )
+       (point->coords [this point]
+         )
+       (coordinate-prototype [this] coordinate-prototype)
+       (with-coordinate-prototype [this prototype]
+         (ctor manifold prototype))
+       (manifold [this] manifold)))))
 
 (defn ^:private ->Euler-chart
   "Euler angles for SO(3)."
@@ -644,13 +706,37 @@
                                 (->S2-coordinates (s/down (s/up 1 0 0)
                                                           (s/up 0 1 0)
                                                           (s/up 0 0 -1))))
-      (attach-coordinate-system :stereographic :north-pole (->Stereographic matrix/I))))
+      (attach-coordinate-system :stereographic :north-pole
+                                (->Stereographic matrix/I))
+      (attach-coordinate-system :stereographic :south-pole
+                                (->Stereographic
+                                 (fn [n]
+                                   ;; TODO: just go flip that coordinate in matrix/I
+                                   (matrix/generate
+                                    n n
+		                                (fn [i j]
+		                                  (if (= i j)
+		                                    (if (= j n) -1 1)
+		                                    0))))))
+      (attach-coordinate-system :gnomic :north-pole
+                                (->Gnomic matrix/I))
+      (attach-coordinate-system :gnomic :south-pole
+                                (->Gnomic
+                                 (fn [n]
+                                   ;; TODO: just go flip that coordinate in matrix/I
+                                   (matrix/generate
+                                    n n
+		                                (fn [i j]
+		                                  (if (= i j)
+		                                    (if (= j n) -1 1)
+		                                    0))))))))
 
 (def S2 (make-manifold S2-type 2 3))
 (def S2-spherical (coordinate-system-at :spherical :north-pole S2))
 (def S2-tilted (coordinate-system-at :spherical :tilted S2))
 (def S2-stereographic (coordinate-system-at :stereographic :north-pole S2))
 (def S2-Riemann S2-stereographic)
+(def S2-gnomic (coordinate-system-at :gnomic :north-pole S2))
 
 ;; TODO double-check these: what goes in S2-type, and what goes in Sn(2)?
 
@@ -658,8 +744,68 @@
   (-> "S(%d)"
       make-manifold-family
       (attach-patch :north-pole)
+      (attach-patch :south-pole)
+      (attach-patch :tilted)
+
+      ;; TODO broken!!
       (attach-coordinate-system :spherical :north-pole ->SphericalCylindrical)
-      (attach-coordinate-system :stereographic :north-pole (->Stereographic matrix/I))))
+      (attach-coordinate-system :gnomic :north-pole (->Gnomic matrix/I))
+      (attach-coordinate-system :gnomic :south-pole
+                                (->Gnomic
+                                 (fn [n]
+                                   ;; TODO: just go flip that coordinate in matrix/I
+                                   (matrix/generate
+                                    n n
+		                                (fn [i j]
+		                                  (if (= i j)
+		                                    (if (= j n) -1 1)
+		                                    0))))))
+      (attach-coordinate-system :stereographic :north-pole (->Stereographic matrix/I))
+      (attach-coordinate-system :stereographic :south-pole
+                                (->Stereographic
+                                 (fn [n]
+                                   ;; TODO: just go flip that coordinate in matrix/I
+                                   (matrix/generate
+                                    n n
+		                                (fn [i j]
+		                                  (if (= i j)
+		                                    (if (= j n) -1 1)
+		                                    0))))))))
+
+(def S1 (make-manifold Sn 2))
+(def S1-circular (coordinate-system-at :spherical :north-pole S1))
+(comment
+  (def S1-tilted (coordinate-system-at :spherical :tilted S1)))
+
+(def S1-slope (coordinate-system-at :stereographic :north-pole S1))
+(def S1-gnomic (coordinate-system-at :gnomic :north-pole S1))
+
+
+(def S2p (make-manifold Sn 2))
+(def S2p-spherical (coordinate-system-at :spherical :north-pole S2p))
+(comment
+  (def S2p-tilted (coordinate-system-at :spherical :tilted S2p)))
+
+(def S2p-stereographic (coordinate-system-at :stereographic :north-pole S2p))
+(def S2p-Riemann S2p-stereographic)
+(def S2p-gnomic (coordinate-system-at :gnomic :north-pole S2p))
+
+(def S3 (make-manifold Sn 3))
+(def S3-spherical (coordinate-system-at :spherical :north-pole S3))
+(comment
+  (def S3-tilted (coordinate-system-at :spherical :tilted S3)))
+
+(def S3-gnomic (coordinate-system-at :gnomic :north-pole S3))
+
+;; TODO is south pole right??
+(def S3-stereographic (coordinate-system-at :stereographic :south-pole S3))
+
+;; ## SO(3)
+;;
+;; Points are represented by 3x3 (down (up ...) ...)
+;;
+;; There is only one instance of an SOn manifold defined, SO3. As a consequence
+;; the name is not SOn but rather SO3-type.
 
 (def SO3-type
   (-> "SO3"
