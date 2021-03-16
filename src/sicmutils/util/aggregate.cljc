@@ -18,7 +18,8 @@
 ;;
 
 (ns sicmutils.util.aggregate
-  "Utilities for aggregating sequences.")
+  "Utilities for aggregating sequences."
+  (:require [sicmutils.generic :as g]))
 
 ;; I learned about "Kahan's summation trick" from `rational.scm` in the
 ;; `scmutils` package, where it shows up in the `sigma` function.
@@ -62,3 +63,15 @@
   ([f low high]
    (scanning-sum
     (map f (range low high)))))
+
+(defn generic-sum
+  "Sums either:
+
+  - a series `xs` of numbers, or
+  - the result of mapping function `f` to `(range low high)`
+
+  Using the generic [[sicmutils.generic/+]] function."
+  ([xs]
+   (reduce g/+ xs))
+  ([f low high]
+   (transduce (map f) g/+ (range low high))))
