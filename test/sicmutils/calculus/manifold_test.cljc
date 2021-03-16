@@ -237,59 +237,62 @@
               (up (cos 'theta) (sin 'theta))))))
         "The equator is invariant."))
 
-  (comment
-    (testing "s2p gnomonic"
-      (let [point (m/coords->point m/S2p-gnomonic (up 'x 'y))]
-        (is (= '(up (/ x (sqrt (+ 1 (expt x 2) (expt y 2))))
-                    (/ y (sqrt (+ 1 (expt x 2) (expt y 2))))
-                    (/ 1 (sqrt (+ 1 (expt x 2) (expt y 2)))))
-               (m/manifold-point-representation point)))
+  (testing "s2p gnomonic"
+    (let [point (m/coords->point m/S2p-gnomonic (up 'x 'y))]
+      (is (= '(up (/ x (sqrt (+ (expt x 2) (expt y 2) 1)))
+                  (/ y (sqrt (+ (expt x 2) (expt y 2) 1)))
+                  (/ 1 (sqrt (+ (expt x 2) (expt y 2) 1))))
+             (s-freeze
+              (m/manifold-point-representation point))))
 
-        (is  (= '(up (/ x (sqrt (+ 1 (expt x 2) (expt y 2))))
-                     (/ y (sqrt (+ 1 (expt x 2) (expt y 2))))
-                     (/ 1 (sqrt (+ 1 (expt x 2) (expt y 2)))))
-                (m/manifold-point-representation
-                 ((compose (m/point m/S2p-gnomonic)
-                           (m/chart m/S2p-gnomonic))
-                  point)))))
+      (is  (= '(up (/ x (sqrt (+ (expt x 2) (expt y 2) 1)))
+                   (/ y (sqrt (+ (expt x 2) (expt y 2) 1)))
+                   (/ 1 (sqrt (+ (expt x 2) (expt y 2) 1))))
+              (s-freeze
+               (m/manifold-point-representation
+                ((compose (m/point m/S2p-gnomonic)
+                          (m/chart m/S2p-gnomonic))
+                 point))))))
 
-      (is (= '(up x y)
-             ((compose (m/chart m/S2p-gnomonic)
-                       (m/point S2p-gnomonic))
-              (up 'x 'y))))
+    (is (= (up 'x 'y)
+           ((compose (m/chart m/S2p-gnomonic)
+                     (m/point m/S2p-gnomonic))
+            (up 'x 'y))))
 
-      (is  (= '(up (/ (cos theta) (sqrt 2))
-                   (/ (sin theta) (sqrt 2))
-                   (/ 1 (sqrt 2)))
+    (comment
+      ;; TODO this is busted until we get the simplifier fine with expressions
+      ;; like `(sqrt 2)`.
+      (is (= '(up (/ (cos theta) (sqrt 2))
+                  (/ (sin theta) (sqrt 2))
+                  (/ 1 (sqrt 2)))
+             (s-freeze
               (m/manifold-point-representation
                ((m/point m/S2p-gnomonic)
-                (up (cos 'theta) (sin 'theta))))))
+                (up (g/cos 'theta) (g/sin 'theta))))))))
 
-      ;; The unit circle on the plane represents the intersection of S2 and z
-      ;; = (/ 1 (sqrt 2))
+    ;; The unit circle on the plane represents the intersection of S2 and z
+    ;; = (/ 1 (sqrt 2))
 
-      ;; Straight lines in the gnomonic coordinates are geodesics. We compute a
-      ;; straight line, then transform it back to stereographic coordinates.
-
-      (comment
-        (let [q ((m/point m/S2p-stereographic) (up -1.5 1.5))
-              p ((m/point m/S2p-stereographic) (up 1.5 0))]
-          (is (= '(up
-                   (/ (+ (* 3.257142857142857 t) -.8571428571428571)
-                      (+ -1
-                         (sqrt (+ (* 11.343673469387754 (expt t 2))
-                                  (* -7.053061224489795 t)
-                                  2.4693877551020407))))
-                   (/ (+ (* -.8571428571428571 t) .8571428571428571)
-                      (+ -1
-                         (sqrt (+ (* 11.343673469387754 (expt t 2))
-                                  (* -7.053061224489795 t)
-                                  2.4693877551020407)))))
-                 (s-freeze
-                  ((m/chart m/S2p-stereographic)
-                   ((m/point m/S2p-gnomonic)
-                    (+ (* 't ((m/chart S2p-gnomonic) p))
-                       (* (- 1 't) ((m/chart S2p-gnomonic) q))))))))))))
+    ;; Straight lines in the gnomonic coordinates are geodesics. We compute a
+    ;; straight line, then transform it back to stereographic coordinates.
+    (let [q ((m/point m/S2p-stereographic) (up -1.5 1.5))
+          p ((m/point m/S2p-stereographic) (up 1.5 0))]
+      (is (= '(up
+               (/ (+ (* 3.257142857142857 t) -0.8571428571428571)
+                  (+ (sqrt (+ (* 11.343673469387754 (expt t 2))
+                              (* -7.053061224489795 t)
+                              2.4693877551020407))
+                     -1))
+               (/ (+ (* -0.8571428571428571 t) 0.8571428571428571)
+                  (+ (sqrt (+ (* 11.343673469387754 (expt t 2))
+                              (* -7.053061224489795 t)
+                              2.4693877551020407))
+                     -1)))
+             (s-freeze
+              ((m/chart m/S2p-stereographic)
+               ((m/point m/S2p-gnomonic)
+                (+ (* 't ((m/chart m/S2p-gnomonic) p))
+                   (* (- 1 't) ((m/chart m/S2p-gnomonic) q))))))))))
 
   (testing "tests ported from S3"
     (is (= '(up a b c)
@@ -320,34 +323,34 @@
             (up 0 0 0)))
         "NOTE: Should be warned singular!"))
 
-  (comment
-    (testing "Now a fun example synthesizing the to projective coordinates."
-      ;; S3 is one-to-one with the quaternions.
-      ;; We interpret the first three components of the embedding space as the
-      ;; i,j,k imaginary party and the 4th component as the real part.
-      ;; The gnomonic projection removes the double-cover of quaternions to rotations.
-      ;; The solid unit-sphere of the stereographic projection from the south pole likewise.
+  (testing "Now a fun example synthesizing the to projective coordinates."
+    ;; S3 is one-to-one with the quaternions.
+    ;; We interpret the first three components of the embedding space as the
+    ;; i,j,k imaginary party and the 4th component as the real part.
+    ;; The gnomonic projection removes the double-cover of quaternions to rotations.
+    ;; The solid unit-sphere of the stereographic projection from the south pole likewise.
+    (is (= '(up (/ (* 2 x) (+ (expt x 2) (expt y 2) (expt z 2) -1))
+                (/ (* 2 y) (+ (expt x 2) (expt y 2) (expt z 2) -1))
+                (/ (* 2 z) (+ (expt x 2) (expt y 2) (expt z 2) -1)))
+           (s-freeze
+            ((m/chart m/S3-gnomonic)
+             ((m/point m/S3-stereographic)
+              (up 'x 'y 'z))))))
 
-      (is (= '(up (/ (* 2 x) (+ -1 (expt x 2) (expt y 2) (expt z 2)))
-                  (/ (* 2 y) (+ -1 (expt y 2) (expt x 2) (expt z 2)))
-                  (/ (* 2 z) (+ -1 (expt z 2) (expt x 2) (expt y 2))))
-             ((m/chart m/S3-gnomonic)
-              ((m/point m/S3-stereographic)
-               (up 'x 'y 'z)))))
+    (is  (= '(up (/ x (+ (sqrt (+ (expt x 2) (expt y 2) (expt z 2) 1)) -1))
+                 (/ y (+ (sqrt (+ (expt x 2) (expt y 2) (expt z 2) 1)) -1))
+                 (/ z (+ (sqrt (+ (expt x 2) (expt y 2) (expt z 2) 1)) -1)))
+            (s-freeze
+             ((m/chart m/S3-stereographic)
+              ((m/point m/S3-gnomonic)
+               (up 'x 'y 'z))))))
 
-
-      (is  (= '(up (/ x (+ -1 (sqrt (+ 1 (expt x 2) (expt y 2) (expt z 2)))))
-                   (/ y (+ -1 (sqrt (+ 1 (expt y 2) (expt x 2) (expt z 2)))))
-                   (/ z (+ -1 (sqrt (+ 1 (expt z 2) (expt x 2) (expt y 2))))))
-              ((m/chart m/S3-stereographic)
-               ((m/point m/S3-gnomonic)
-                (up 'x 'y 'z)))))
-
-      ;; NOTE: was euclidean norm...
-      (is (= '(/ (sqrt (+ (expt x 2) (expt y 2) (expt z 2)))
-                 (sqrt (+ 2
-                          (expt x 2) (expt y 2) (expt z 2)
-                          (* -2
-                             (sqrt (+ 1 (expt x 2) (expt y 2) (expt z 2)))))))
-             (g/magnitude ((S3-stereographic '->coords)
-                           ((S3-gnomonic '->point) (up 'x 'y 'z)))))))))
+    (is (= '(sqrt (/ (+ (expt x 2) (expt y 2) (expt z 2))
+                     (+ (expt x 2) (expt y 2) (expt z 2)
+                        (* -2 (sqrt (+ (expt x 2) (expt y 2) (expt z 2) 1)))
+                        2)))
+           (s-freeze
+            (g/abs
+             ((m/chart m/S3-stereographic)
+              ((m/point m/S3-gnomonic)
+               (up 'x 'y 'z)))))))))

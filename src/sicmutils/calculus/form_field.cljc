@@ -150,7 +150,7 @@
             k+1form (fn [& vectors]
                       (assert (= (count vectors) (inc k)))
                       (fn [point]
-                        (let [n ((m/point->manifold point) :dimension)]
+                        (let [n (:dimension (m/point->manifold point))]
                           (if (< k n)
                             (reduce g/+ (for [i (range 0 (inc k))]
                                           (let [rest (without i vectors)]
