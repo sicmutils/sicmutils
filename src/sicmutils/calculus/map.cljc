@@ -78,9 +78,10 @@
 (defn basis->basis-over-map
   [mu:N->M basis-on-M]
   (let [vector-basis-on-M (b/basis->vector-basis basis-on-M)
-        dual-basis-on-M (b/basis->oneform-basis basis-on-M)]
-    (b/make-basis (s/mapr (vector-field->vector-field-over-map mu:N->M) vector-basis-on-M)
-                  (s/mapr (form-field->form-field-over-map mu:N->M) dual-basis-on-M))))
+        dual-basis-on-M   (b/basis->oneform-basis basis-on-M)]
+    (b/make-basis
+     (s/mapr (vector-field->vector-field-over-map mu:N->M) vector-basis-on-M)
+     (s/mapr (form-field->form-field-over-map mu:N->M) dual-basis-on-M))))
 
 (defn pullback-function
   [mu:N->M]

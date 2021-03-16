@@ -62,12 +62,6 @@
                    (* (expt r0 3) (cos theta0)))
                (simplify (h (R2-polar-chi-inverse (up 'r0 'theta0))))))))))
 
-  (testing "with-coordinate-prototype"
-    (let [A R2-rect
-          B (m/with-coordinate-prototype R2-rect '[X Y])]
-      (is (= '[d:dx0 d:dx1] (map o/name (c/coordinate-system->vector-basis A))))
-      (is (= '[d:dX d:dY] (map o/name (c/coordinate-system->vector-basis B))))))
-
   (testing "let-coordinates"
     (let-coordinates [(up x y) R2-rect
                       (up r theta) R2-polar]

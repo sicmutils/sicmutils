@@ -287,6 +287,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
  [sicmutils.calculus.form-field
   d
   components->oneform-field
+  coordinate-system->oneform-basis
   literal-oneform-field
   wedge]
  [sicmutils.calculus.manifold
@@ -303,16 +304,17 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   S2-spherical
   S2-stereographic
   S2-Riemann
-  SO3]
+  SO3
+  ]
  [sicmutils.calculus.basis
   basis->vector-basis
-  basis->oneform-basis]
- [sicmutils.calculus.coordinate
-  Jacobian
+  basis->oneform-basis
   coordinate-system->basis
-  coordinate-system->oneform-basis
-  coordinate-system->vector-basis
+  Jacobian
   vector-basis->dual]
+ [sicmutils.calculus.coordinate
+
+  ]
  [sicmutils.calculus.map
   basis->basis-over-map
   differential
@@ -326,7 +328,8 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   coordinatize
   evolution
   literal-vector-field
-  vector-field->components]
+  vector-field->components
+  coordinate-system->vector-basis]
  [sicmutils.mechanics.lagrange
   ->L-state
   ->local

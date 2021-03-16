@@ -112,15 +112,19 @@
             prototype
             (s/structure->access-chains prototype))))
 
+(def ^{:doc "TODO note alias."}
+  coordinate-system->oneform-basis
+  coordinate-basis-oneform-fields)
+
 (defn function->oneform-field
   [f]
   {:pre [(fn? f)]}
   (procedure->oneform-field
-    (fn [v] (s/mapr (fn [v]
-                      (assert (vf/vector-field? v))
-                      (fn [m] ((v f) m)))
-                    v))
-    `(~'d ~(m/diffop-name f))))
+   (fn [v] (s/mapr (fn [v]
+                    (assert (vf/vector-field? v))
+                    (fn [m] ((v f) m)))
+                  v))
+   `(~'d ~(m/diffop-name f))))
 
 (defn literal-oneform-field
   [name coordinate-system]
