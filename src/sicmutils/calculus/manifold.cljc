@@ -526,8 +526,8 @@
 			                        (list-top-to-bottom
                                (map (fn [i]
 			                                (if (= i n)
-				                                (apply g/* sines)
-				                                (apply g/* (cons (nth cosines i) (take sines i)))))
+                                        (apply g/* sines)
+				                                (apply g/* (cons (nth cosines i) (take i sines)))))
                                     (range (inc n)))))]
 		             (make-manifold-point (g/* orientation-matrix pt)
 					                            manifold this coords))))
@@ -535,8 +535,9 @@
            (point->coords [this point]
              (assert (check-point this point))
              (letfn [(safe-atan [y x]
-                       (when (and (number? y) (number? x) (= y 0) (= x 0))
-		                     (log/warn (str "Sn-coordinates singular: " point this)))
+                       (when (and (number? y) (number? x)
+                                  (v/zero? y) (v/zero? x))
+		                     (log/warn "Sn-coordinates singular!"))
                        (g/atan y x))]
                (let [pt (reverse
 		                     (list-bottom-to-top
@@ -547,13 +548,13 @@
 	                 (loop [r    (first pt)
                           more (rest pt)
 			                    ans  [(safe-atan (first pt) (second pt))]]
-		                 (if-not (rest more)
-			                 (prn "Done!" (s/up* ans))
+		                 (if-not (next more)
+			                 (s/up* ans)
 			                 (let [r' (g/sqrt (g/+ (g/square (first more))
                                              (g/square r)))]
 			                   (recur r'
                                 (rest more)
-			                          (cons (safe-atan r (second more))
+			                          (cons (safe-atan r' (second more))
                                       ans)))))))))
 
            (coordinate-prototype [this] coordinate-prototype)
@@ -587,26 +588,39 @@
          (check-coordinates [this coords]
            (or (and (= n 1) (= (s/dimension coords) 1))
                (and (s/up? coords) (= (s/dimension coords) n))))
-         (coords->point [this coords]
-           (assert (check-coordinates this coords))
-           (let [coords (if (= n 1) (s/up coords) coords)
-                 delta (g/square coords)
-                 xn (g/divide (g/- delta 1) (g/+ 1 delta))
-                 pt (s/generate (+ n 1) ::s/up #(if (= % n) xn
-                                                    (g/divide (g/* 2 (nth coords %))
-                                                              (g/+ 1 delta))))]
-             (make-manifold-point (g/* orientation-matrix pt) manifold this coords)))
+
          (check-point [this point]
            (my-manifold-point? point manifold))
+
+         (coords->point [this coords]
+           (assert (check-coordinates this coords))
+           (let [coords' (if (= n 1) (s/up coords) coords)
+                 delta  (g/dot-product coords' coords')
+                 xn (g/divide (g/- delta 1)
+                              (g/+ 1 delta))
+                 pt (s/generate (+ n 1)
+                                ::s/up
+                                #(if (= % n) xn
+                                     (g/divide (g/* 2 (nth coords' %))
+                                               (g/+ 1 delta))))]
+             (make-manifold-point (g/* orientation-matrix pt)
+                                  manifold this coords)))
+
          (point->coords [this point]
            (assert (check-point this point))
-           (get-coordinates point this
-                            (fn []
-                              (let [pt (g/* orientation-inverse-matrix (manifold-point-representation point))]
-                                (when (and (number? (nth pt n)) (= (nth pt n) 1))
-                                  (u/illegal-state "S^n stereographic singular"))
-                                (let [coords (s/generate n ::s/up #(g/divide (nth pt %) (g/- 1 (nth pt n))))]
-                                  (if (= n 1) (first coords) coords))))))
+           (get-coordinates
+            point this
+            (fn []
+              (let [pt (g/* orientation-inverse-matrix (manifold-point-representation point))]
+                (when (and (number? (nth pt n))
+                           (= (nth pt n) 1))
+                  (u/illegal-state "S^n stereographic singular"))
+                (let [coords (s/generate
+                              n ::s/up #(g/divide (nth pt %)
+                                                  (g/- 1 (nth pt n))))]
+                  (if (= n 1)
+                    (first coords)
+                    coords))))))
          (coordinate-prototype [this] coordinate-prototype)
          (with-coordinate-prototype [this prototype] (ctor manifold prototype))
          (manifold [this] manifold))))))
@@ -833,19 +847,17 @@
 
       (attach-coordinate-system :spherical :tilted
                                 (->Sn-coordinates
-                                 (let [c (g/cos (/ Math/PI 2))
-                                       s (g/sin (/ Math/PI 2))]
-                                   (fn [n]
-                                     (s/generate
-                                      n ::s/down
-                                      (fn [col]
-	                                      (s/generate
-                                         n ::s/up
-		                                     (fn [row]
-			                                     (cond (and (= row (- n 2)) (= col (- n 1))) -1
-			                                           (and (= row (- n 1)) (= col (- n 2))) 1
-			                                           (and (= row col) (< row (- n 2))) 1
-			                                           :else 0)))))))))
+                                 (fn [n]
+                                   (s/generate
+                                    n ::s/down
+                                    (fn [col]
+	                                    (s/generate
+                                       n ::s/up
+		                                   (fn [row]
+			                                   (cond (and (= row (- n 2)) (= col (- n 1))) -1
+			                                         (and (= row (- n 1)) (= col (- n 2))) 1
+			                                         (and (= row col) (< row (- n 2))) 1
+			                                         :else 0))))))))
 
       (attach-coordinate-system :gnomonic :north-pole (->Sn-gnomonic matrix/I))
       (attach-coordinate-system :gnomonic :south-pole

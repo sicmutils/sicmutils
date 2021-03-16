@@ -31,6 +31,9 @@
 
 (use-fixtures :each hermetic-simplify-fixture)
 
+(def s-freeze
+  (comp v/freeze g/simplify))
+
 (deftest coordinate-systems
   (testing "R2"
     (testing "Rect"
@@ -146,92 +149,92 @@
                 (g/simplify
                  (m/manifold-point-representation point)))))
 
-        ;; TODO get rid of the extra `up` around the first coordinate in BOTH of
-        ;; the following tests!
         (is (= '(up (/ (* 2 s)
                        (+ (expt s 2) 1))
                     (/ (+ (expt s 2) -1)
                        (+ (expt s 2) 1)))
-               (g/simplify
-                (m/manifold-point-representation
-                 ((compose (m/point m/S1-slope)
-                           (m/chart m/S1-slope))
-                  point))))))
+               (v/freeze
+                (g/simplify
+                 (m/manifold-point-representation
+                  ((compose (m/point m/S1-slope)
+                            (m/chart m/S1-slope))
+                   point)))))))
 
       (is (= 's ((compose (m/chart m/S1-slope)
                           (m/point m/S1-slope))
                  's)))))
 
   (testing "tests ported after s2p"
-    (comment
-      ;; TODO: This test is busted! fix the spherical north pole coordinate
-      ;; system for Sn.
-      (let [point (m/coords->point m/S2p-spherical (up 'theta 'phi))]
-        (is (= '(up (* (sin theta) (cos phi))
-                    (* (sin phi) (sin theta))
-                    (cos theta))
-               (m/manifold-point-representation point)))
+    (let [point (m/coords->point m/S2p-spherical (up 'theta 'phi))]
+      (is (= '(up (* (cos phi) (sin theta))
+                  (* (sin theta) (sin phi))
+                  (cos theta))
+             (v/freeze
+              (m/manifold-point-representation point))))
 
-        (is (= '(up theta phi)
-               ((compose (m/chart  m/S2p-spherical)
-                         (m/point m/S2p-spherical))
-                (up 'theta 'phi)))
-            "round trip back to coords")
+      (is (= '(up theta phi)
+             (s-freeze
+              ((compose (m/chart m/S2p-spherical)
+                        (m/point m/S2p-spherical))
+               (up 'theta 'phi))))
+          "round trip back to coords")
 
-        (is (= '(up (atan (sqrt (+ (* (expt (cos theta) 2) (expt (cos phi) 2))
-                                   (expt (sin phi) 2)))
-                          (* -1 (sin theta) (cos phi)))
-                    (atan (* (sin phi) (sin theta)) (cos theta)))
-               ((compose (m/chart m/S2p-spherical)
-                         ( m/point m/S2p-tilted))
-                (up 'theta 'phi))))
+      (is (= '(up (atan (sqrt (+ (* (expt (sin phi) 2)
+                                    (expt (cos theta) 2))
+                                 (expt (cos phi) 2)))
+                        (* (sin theta) (sin phi)))
+                  (atan (* -1 (cos theta))
+                        (* (cos phi) (sin theta))))
+             (s-freeze
+              ((compose (m/chart m/S2p-spherical)
+                        (m/point m/S2p-tilted))
+               (up 'theta 'phi)))))
 
+      (is (= (up 1 0)
+             ((compose (m/chart m/S2p-spherical)
+                       (m/point m/S2p-spherical))
+              (up 1 0))))
 
+      (is (= (up 0 0)
+             ((compose (m/chart m/S2p-spherical)
+                       (m/point m/S2p-spherical))
+              (up 0 1)))
+          "NOTE: Should be warned singular! Can we check for that?")))
 
-        (is (= (up 1 0)
-               ((compose (m/chart m/S2p-spherical)
-                         (m/point S2p-spherical))
-                (up 1 0))))
-
-        (is (= (up 0 0)
-               ((compose (m/chart m/S2p-spherical)
-                         (m/point m/S2p-spherical))
-                (up 0 1)))
-            "NOTE: Should be warned singular!"))))
-
-  (comment
-    (testing "more s2p"
-      (let [point ((m/coords->point m/S2p-Riemann (up 'x 'y)))]
-
-        (is (= '(up (/ (* 2 x)
-                       (+ 1 (expt x 2) (expt y 2)))
-                    (/ (* 2 y)
-                       (+ 1 (expt y 2) (expt x 2)))
-                    (/ (+ -1 (expt x 2) (expt y 2))
-                       (+ +1 (expt x 2) (expt y 2))))
-               (m/manifold-point-representation point))))
+  (testing "more s2p"
+    (let [point (m/coords->point m/S2p-Riemann (up 'x 'y))]
+      (is (= '(up (/ (* 2 x)
+                     (+ (expt x 2) (expt y 2) 1))
+                  (/ (* 2 y)
+                     (+ (expt x 2) (expt y 2) 1))
+                  (/ (+ (expt x 2) (expt y 2) -1)
+                     (+ (expt x 2) (expt y 2) 1)))
+             (s-freeze
+              (m/manifold-point-representation point))))
 
       (is  (= '(up (/ (* 2 x)
-                      (+ 1 (expt x 2) (expt y 2)))
+                      (+ (expt x 2) (expt y 2) 1))
                    (/ (* 2 y)
-                      (+ 1 (expt x 2) (expt y 2)))
-                   (/ (+ -1 (expt x 2) (expt y 2))
-                      (+ 1 (expt x 2) (expt y 2))))
-              (m/manifold-point-representation
-               ((compose (m/point m/S2p-Riemann)
-                         (m/chart m/S2p-Riemann))
-                m))))
+                      (+ (expt x 2) (expt y 2) 1))
+                   (/ (+ (expt x 2) (expt y 2) -1)
+                      (+ (expt x 2) (expt y 2) 1)))
+              (s-freeze
+               (m/manifold-point-representation
+                ((compose (m/point m/S2p-Riemann)
+                          (m/chart m/S2p-Riemann))
+                 point))))))
 
-      (is  (= '(up x y)
-              ((compose (m/chart m/S2p-Riemann)
-                        (m/point m/S2p-Riemann))
-               (up 'x 'y))))
+    (is (= (up 'x 'y)
+           ((compose (m/chart m/S2p-Riemann)
+                     (m/point m/S2p-Riemann))
+            (up 'x 'y))))
 
-      (is  (= '(up (cos theta) (sin theta) 0)
-              (m/manifold-point-representation
-               ((m/point m/S2p-Riemann)
-                (up (cos 'theta) (sin 'theta)))
-               "The equator is invariant.")))))
+    (is (= '(up (cos theta) (sin theta) 0)
+           (s-freeze
+            (m/manifold-point-representation
+             ((m/point m/S2p-Riemann)
+              (up (cos 'theta) (sin 'theta))))))
+        "The equator is invariant."))
 
   (comment
     (testing "s2p gnomonic"
