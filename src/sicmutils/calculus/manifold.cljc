@@ -20,17 +20,14 @@
 (ns sicmutils.calculus.manifold
   (:require #?(:cljs [goog.string :refer [format]])
             [sicmutils.abstract.function :as af]
-            [sicmutils.abstract.number :as an]
-            [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as matrix]
-            [sicmutils.operator :as o]
-            [sicmutils.simplify :refer [simplify-numerical-expression]]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
             [sicmutils.value :as v]
-            [sicmutils.mechanics.rotation :refer [rotate-x-matrix rotate-y-matrix rotate-z-matrix]]))
+            [sicmutils.mechanics.rotation
+             :refer [rotate-x-matrix rotate-y-matrix rotate-z-matrix]]))
 
 ;; Manifolds
 
@@ -220,8 +217,7 @@
   (let [reps (:coordinate-representation manifold-point)]
     (if-let [rep (@reps coordinate-system)]
       rep
-      ;; TODO I think this can just be "simplify" now.
-      (let [rep (s/mapr simplify-numerical-expression (thunk))]
+      (let [rep (g/simplify (thunk))]
         (swap! reps assoc coordinate-system rep)
         rep))))
 
@@ -271,7 +267,7 @@
         range 0]
     (vary-meta
      (f/compose (af/literal-function name domain range)
-                #(point->coords coordinate-system %))
+                (chart coordinate-system))
      assoc
      :name name
      :coordinate-systems coordinate-system
@@ -372,72 +368,7 @@
      (with-coordinate-prototype [this prototype] (->PolarCylindrical manifold prototype))
      (manifold [this] manifold))))
 
-(defn- ->Sn-coordinates [orientation-function]
-  (fn ctor
-    ([manifold]
-     (let [proto (default-coordinate-prototype manifold)]
-       (ctor manifold proto)))
-    ([manifold coordinate-prototype]
-     (reify ICoordinateSystem
-       (check-coordinates [this coords]
-         )
-       (coords->point [this coords]
-         )
-       (check-point [this point]
-         )
-       (point->coords [this point]
-         )
-       (coordinate-prototype [this] coordinate-prototype)
-       (with-coordinate-prototype [this prototype]
-         (ctor manifold prototype))
-       (manifold [this] manifold)))))
-
-(defn- ->S2-coordinates
-  "Colatitude-longitude coordinates for the surface of the sphere
-  S(2). The orientation map (on vectors) can be used to reposition the
-  polar coordinate singularities."
-  [orientation]
-  (let [inverse-orientation (g/invert orientation)]
-    (fn ctor
-      ([manifold]
-       (let [proto (default-coordinate-prototype manifold)]
-         (ctor manifold proto)))
-      ([manifold coordinate-prototype]
-       (reify ICoordinateSystem
-         (check-coordinates [this coords]
-           (and (s/up? coords)
-                (= (s/dimension coords) 2)
-                (or (not (number? coords))
-                    (>= (nth coords 0) 0))))
-         (coords->point [this coords]
-           (assert (check-coordinates this coords))
-           (let [[colatitude longitude] coords]
-             (make-manifold-point
-              (g/* orientation
-                   (s/up (g/* (g/sin colatitude) (g/cos longitude))
-                         (g/* (g/sin colatitude) (g/sin longitude))
-                         (g/cos colatitude)))
-              manifold
-              this
-              coords)))
-         (check-point [this point]
-           (my-manifold-point? point manifold))
-         (point->coords [this point]
-           (assert (check-point this point))
-           (get-coordinates point this
-                            (fn []
-                              (let [prep (g/* inverse-orientation (manifold-point-representation point))]
-                                (when-not (and (s/up? prep)
-                                               (= (s/dimension prep)
-                                                  (:embedding-dimension manifold)))
-                                  (u/illegal "S2-coordinates bad point"))
-                                (let [[x y z] prep]
-                                  (s/up (g/acos z) (g/atan y x)))))))
-         (coordinate-prototype [this] coordinate-prototype)
-         (with-coordinate-prototype [this prototype] (ctor manifold prototype))
-         (manifold [this] manifold))))))
-
-(defn ^:private ->SphericalCylindrical
+(defn- ->SphericalCylindrical
   ([manifold]
    (let [proto (default-coordinate-prototype manifold)]
      (->SphericalCylindrical manifold proto)))
@@ -508,6 +439,71 @@
      (with-coordinate-prototype [this prototype]
        (->SpacetimeSpherical manifold prototype))
      (manifold [this] manifold))))
+
+(defn- ->S2-coordinates
+  "Colatitude-longitude coordinates for the surface of the sphere
+  S(2). The orientation map (on vectors) can be used to reposition the
+  polar coordinate singularities."
+  [orientation]
+  (let [inverse-orientation (g/invert orientation)]
+    (fn ctor
+      ([manifold]
+       (let [proto (default-coordinate-prototype manifold)]
+         (ctor manifold proto)))
+      ([manifold coordinate-prototype]
+       (reify ICoordinateSystem
+         (check-coordinates [this coords]
+           (and (s/up? coords)
+                (= (s/dimension coords) 2)
+                (or (not (number? coords))
+                    (>= (nth coords 0) 0))))
+         (coords->point [this coords]
+           (assert (check-coordinates this coords))
+           (let [[colatitude longitude] coords]
+             (make-manifold-point
+              (g/* orientation
+                   (s/up (g/* (g/sin colatitude) (g/cos longitude))
+                         (g/* (g/sin colatitude) (g/sin longitude))
+                         (g/cos colatitude)))
+              manifold
+              this
+              coords)))
+         (check-point [this point]
+           (my-manifold-point? point manifold))
+         (point->coords [this point]
+           (assert (check-point this point))
+           (get-coordinates point this
+                            (fn []
+                              (let [prep (g/* inverse-orientation (manifold-point-representation point))]
+                                (when-not (and (s/up? prep)
+                                               (= (s/dimension prep)
+                                                  (:embedding-dimension manifold)))
+                                  (u/illegal "S2-coordinates bad point"))
+                                (let [[x y z] prep]
+                                  (s/up (g/acos z) (g/atan y x)))))))
+         (coordinate-prototype [this] coordinate-prototype)
+         (with-coordinate-prototype [this prototype] (ctor manifold prototype))
+         (manifold [this] manifold))))))
+
+(defn- ->Sn-coordinates [orientation-function]
+  (fn ctor
+    ([manifold]
+     (let [proto (default-coordinate-prototype manifold)]
+       (ctor manifold proto)))
+    ([manifold coordinate-prototype]
+     (reify ICoordinateSystem
+       (check-coordinates [this coords]
+         )
+       (coords->point [this coords]
+         )
+       (check-point [this point]
+         )
+       (point->coords [this point]
+         )
+       (coordinate-prototype [this] coordinate-prototype)
+       (with-coordinate-prototype [this prototype]
+         (ctor manifold prototype))
+       (manifold [this] manifold)))))
 
 (defn- ->Sn-stereographic
   "Stereographic projection from the final coordinate.
@@ -595,7 +591,7 @@
          (ctor manifold prototype))
        (manifold [this] manifold)))))
 
-(defn ^:private ->Euler-chart
+(defn- ->Euler-chart
   "Euler angles for SO(3)."
   ([manifold]
    (let [proto (default-coordinate-prototype manifold)]
@@ -762,16 +758,12 @@
 (def S2-Riemann S2-stereographic)
 (def S2-gnomonic (coordinate-system-at :gnomonic :north-pole S2))
 
-;; TODO double-check these: what goes in S2-type, and what goes in Sn(2)?
-
 (def Sn
   (-> (make-manifold-family "S(%d)")
       (attach-patch :north-pole)
       (attach-patch :south-pole)
       (attach-patch :tilted)
-      (attach-coordinate-system :spherical :north-pole
-                                (->Sn-coordinates matrix/I))
-
+      (attach-coordinate-system :spherical :north-pole (->Sn-coordinates matrix/I))
       (attach-coordinate-system :spherical :south-pole
                                 (->Sn-coordinates
                                  (fn [n]
