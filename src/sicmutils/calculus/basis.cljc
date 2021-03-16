@@ -122,7 +122,12 @@
 		                 oneform-basis))))))
 
 (defn Jacobian
-  "Returns the Jacobian of transition from `from-basis` to `to-basis`."
+  "Returns the Jacobian of transition from `from-basis` to `to-basis`.
+
+  The Jacobian is a structure of manifold functions. The outer index is the
+  from-basis index, so this structure can be multiplied by tuple of component
+  functions of a vector field relative to `from-basis` to get component
+  functions for a vector field in `to-basis`."
   [to-basis from-basis]
   (s/mapr (basis->oneform-basis to-basis)
           (basis->vector-basis from-basis)))
