@@ -72,6 +72,12 @@
 (def Christoffel->basis :basis)
 (def Christoffel->symbols :symbols)
 
+(defn symmetrize-Christoffel [G]
+  (let [s (Christoffel->symbols G)]
+    (make-Christoffel
+     (* (/ 1 2) (+ s (s/transpose-outer s)))
+     (Christoffel->basis G))))
+
 (defn make-Cartan
   [forms basis]
   {:type ::Cartan
@@ -81,6 +87,15 @@
 (def Cartan->basis :basis)
 (def Cartan->forms :forms)
 
+(defn Cartan->Christoffel [Cartan]
+  (assert (= (:type Cartan) ::Cartan))
+  (let [basis (Cartan->basis Cartan)
+ 	      Cartan-forms (Cartan->forms Cartan)]
+    (make-Christoffel
+     (s/mapr Cartan-forms
+ 	           (b/basis->vector-basis basis))
+     basis)))
+
 (defn Christoffel->Cartan
   [Christoffel]
   (assert (= (:type Christoffel) ::Christoffel))
@@ -88,6 +103,11 @@
         Christoffel-symbols (Christoffel->symbols Christoffel)]
     (make-Cartan (g/* Christoffel-symbols (b/basis->oneform-basis basis))
                  basis)))
+
+(defn symmetrize-Cartan [Cartan]
+  (Christoffel->Cartan
+   (symmetrize-Christoffel
+    (Cartan->Christoffel Cartan))))
 
 (defn Cartan-transform
   [cartan basis-prime]
