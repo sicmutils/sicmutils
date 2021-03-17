@@ -88,6 +88,7 @@
    'sicmutils.calculus.covariant               (ns-publics 'sicmutils.calculus.covariant)
    'sicmutils.calculus.derivative              (ns-publics 'sicmutils.calculus.derivative)
    'sicmutils.calculus.form-field              (ns-publics 'sicmutils.calculus.form-field)
+   'sicmutils.calculus.frame                   (ns-publics 'sicmutils.calculus.frame)
    'sicmutils.calculus.manifold                (ns-publics 'sicmutils.calculus.manifold)
    'sicmutils.calculus.map                     (ns-publics 'sicmutils.calculus.map)
    'sicmutils.calculus.vector-field            (ns-publics 'sicmutils.calculus.vector-field)

@@ -219,7 +219,9 @@
 
 (defn- get-coordinate-system
   "If a coordinate system constructor registered at `system-name` exists in the
-  supplied `patch`, return it. Else, error."
+  supplied `patch`, return it. Else, error.
+
+  NOTE for FDG-goers: This is called `coordinate-system` in scmutils."
   [patch system-name]
   (or (get-in patch [:coordinate-systems system-name])
       (throw
@@ -1159,7 +1161,7 @@ codebase compatibility."}
 (def spacetime-rect
   (coordinate-system-at spacetime :rectangular :origin))
 
-(def spacetime-sphere
+(def spacetime-spherical
   (coordinate-system-at spacetime :spacetime-spherical :origin))
 
 ;; The surface of a sphere, specialized to two dimensions. See [[S2p]] for the 2
@@ -1170,7 +1172,7 @@ codebase compatibility."}
 
 (def S2-type
   (-> "S2"
-      make-manifold-family
+      (make-manifold-family)
       (attach-patch :north-pole)
       (attach-patch :south-pole)
       (attach-patch :tilted)

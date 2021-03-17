@@ -64,25 +64,45 @@
     (q p)))
 
 (defn ^:no-doc symbols-from-prototype
-  "TODO note that this allows the prototype to be `up` etc..."
+  "Generates a list of symbols from the supplied argument prototype. The protype
+  is allowed to be a vector, a list like `(up x y)` or a bare symbol. Anything
+  else causes an exception.
+
+  Nested structures are fine! The return value is a flat sequence."
   [p]
   (cond (and (sequential? p)
              ('#{up down} (first p))) (mapcat symbols-from-prototype (rest p))
         (vector? p) (mapcat symbols-from-prototype p)
-        (symbol? p) `(~p)
+        (symbol? p) [p]
         :else (u/illegal (str "Invalid coordinate prototype: " p))))
 
-(defmacro let-coordinates
-  "TODO note WHAT this is binding! For everything, we get vector field and form
-  field names, PLUS coordinate bindings. And, remember, bindings for the
-  `m/R2-rect` vs `R2-rect`. These get bound with the coordinate prototype bound
-  to the symbols that you've referenced.
+(defn let-coordinates
+  "similar to a `let` binding that holds pairs of
+
+  <coordinate-structure-prototype>, <coordinate-system>
+
+  And internally binds, for each pair: (take `[x y]` and `m/R2-rect` as
+  examples):
+
+  - The coordinate system symbol `R2-rect` to a new version of the coordinate
+    system with its `coordinate-prototype` replaced by the one you supplied.
+    That's `(up x y)` in this example.
+
+  - the entries `x` and `y` to coordinate functions, ie, functions from manifold
+    point to this particular coordinate
+
+  - `d:dx` and `d:dy` vector field procedures (I'm fuzzy here!)
+
+  - `dx` and `dy` 1-forms for each coordinate (fuzzy here too!)
 
   Example:
 
   ```clojure
   (let-coordinates [[x y]    R2-rect
                    [r theta] R2-polar]
+    ;; bindings:
+    ;; R2-rect, x, y, d:dx, d:dy, dx, dy
+    ;; R2-polar, r, theta, d:dr, d:dtheta, dr, dtheta
     body...)
   ```"
   [bindings & body]
@@ -114,22 +134,30 @@
        ~@body)))
 
 (defmacro using-coordinates
-  "Example:
+  "[[using-coordinates]] wraps [[let-coordinates]] and allows you to supply a
+  single coordinate prototype and a single coordinate system.
+  See [[let-coordinates]] for details about what symbols are bound inside the
+  body.
+
+  NOTE: Prefer [[let-coordinates]] when possible.
+
+  Example:
 
   ```clojure
   (using-coordinates (up x y) R2-rect
                      body...)
-  ```
-
-  NOTE: [[using-coordinates]] is just a macro wrapping [[let-coordinates]].
-  Prefer [[let-coordinates]] when possible."
+  ```"
   [coordinate-prototype coordinate-system & body]
   `(let-coordinates [~coordinate-prototype ~coordinate-system]
      ~@body))
 
 (defn generate
-  "NOTE: from GJS, this is a kludge, because a single coordinate is NOT a
-  structure, it's just the number."
+  "Generates a coordinate structure of the supplied dimension `n`, and
+  `orientation` using the supplied function `f` for entries. See the very
+  similar [[sicmutils.structure/generate]] for more details.
+
+  NOTE from GJS: this is a kludge introduced only to allow a coordinate of
+  dimension 1 to automatically unwrap itself."
   [n orientation f]
   (if (= n 1)
     (f 0)

@@ -86,7 +86,7 @@
 
 (defn contract [f basis]
   (let [vector-basis  (basis->vector-basis basis)
-	      oneform-basis (basis->oneform-basis basis)]
+        oneform-basis (basis->oneform-basis basis)]
     (s/sumr f vector-basis oneform-basis)))
 
 (defn vector-basis->dual [vector-basis coordinate-system]
@@ -116,10 +116,10 @@
   (fn [v]
     (fn [f]
       (let [vector-basis  (basis->vector-basis basis)
-	          oneform-basis (basis->oneform-basis basis)]
+            oneform-basis (basis->oneform-basis basis)]
         (g/* (vector-basis f)
              (s/mapr (fn [onefb] (fn [m] ((onefb v) m0)))
-		                 oneform-basis))))))
+                     oneform-basis))))))
 
 (defn Jacobian
   "Returns the Jacobian of transition from `from-basis` to `to-basis`.
