@@ -18,21 +18,24 @@
 ;;
 
 (ns sicmutils.calculus.coordinate
-  (:require [sicmutils.calculus.basis :as b]
-            [sicmutils.calculus.manifold :as m]
+  (:require [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.form-field :as ff]
-            [sicmutils.matrix :as matrix]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]))
 
 (defn coordinate-functions
+  "Returns a structure similar to the [[manifold/coordinate-prototype]] of
+  `coordinate-system`, where every entry is a function from manifold point =>
+  the associated component of the point in the coordinate representation
+  described by `coordinate-system`."
   [coordinate-system]
   (let [prototype (m/coordinate-prototype coordinate-system)]
-    (s/mapr (fn [access-chain]
-              (comp (apply s/component access-chain)
-                    #(m/point->coords coordinate-system %)))
-            (s/structure->access-chains prototype))))
+    (s/map-chain (fn [_ chain _]
+                   (fn [point]
+                     (-> (m/point->coords coordinate-system point)
+                         (get-in chain))))
+                 prototype)))
 
 (defn quotify-coordinate-prototype
   "Scmutils wants to allow forms like this:
@@ -52,7 +55,7 @@
   Such an object is useful for [[structure/mapr]]. The function `xf` is applied
   before quoting."
   [xf p]
-  (let [q (fn q [p]
+  (letfn [(q [p]
             (cond (and (sequential? p)
                        ('#{up down} (first p))) `(~(first p) ~@(map q (rest p)))
                   (vector? p) (mapv q p)
@@ -60,95 +63,102 @@
                   :else (u/illegal "Invalid coordinate prototype")))]
     (q p)))
 
-(defn- symbols-from-prototype [p]
+(defn ^:no-doc symbols-from-prototype
+  "Generates a list of symbols from the supplied argument prototype. The protype
+  is allowed to be a vector, a list like `(up x y)` or a bare symbol. Anything
+  else causes an exception.
+
+  Nested structures are fine! The return value is a flat sequence."
+  [p]
   (cond (and (sequential? p)
              ('#{up down} (first p))) (mapcat symbols-from-prototype (rest p))
         (vector? p) (mapcat symbols-from-prototype p)
-        (symbol? p) `(~p)
+        (symbol? p) [p]
         :else (u/illegal (str "Invalid coordinate prototype: " p))))
 
 (defmacro let-coordinates
-  "Example:
+  "similar to a `let` binding that holds pairs of
+
+  <coordinate-structure-prototype>, <coordinate-system>
+
+  And internally binds, for each pair: (take `[x y]` and `m/R2-rect` as
+  examples):
+
+  - The coordinate system symbol `R2-rect` to a new version of the coordinate
+    system with its `coordinate-prototype` replaced by the one you supplied.
+    That's `(up x y)` in this example.
+
+  - the entries `x` and `y` to coordinate functions, ie, functions from manifold
+    point to this particular coordinate
+
+  - `d:dx` and `d:dy` vector field procedures (I'm fuzzy here!)
+
+  - `dx` and `dy` 1-forms for each coordinate (fuzzy here too!)
+
+  Example:
 
   ```clojure
-  (let-coordinates [[x y] R2-rect
-                  [r theta] R2-polar]
+  (let-coordinates [[x y]    R2-rect
+                   [r theta] R2-polar]
+    ;; bindings:
+    ;; R2-rect, x, y, d:dx, d:dy, dx, dy
+    ;; R2-polar, r, theta, d:dr, d:dtheta, dr, dtheta
     body...)
   ```"
   [bindings & body]
   (when-not (even? (count bindings))
     (u/illegal "let-coordinates requires an even number of bindings"))
-  (let [pairs (partition 2 bindings)
-        prototypes (map first pairs)
-        c-systems (mapv second pairs)
-        coordinate-names (mapcat symbols-from-prototype prototypes)
+  (let [pairs                         (partition 2 bindings)
+        prototypes                    (map first pairs)
+        c-systems                     (map second pairs)
+        system-names                  (map (comp symbol name) c-systems)
+        coordinate-names              (mapcat symbols-from-prototype prototypes)
         coordinate-vector-field-names (map vf/coordinate-name->vf-name coordinate-names)
-        coordinate-form-field-names (map ff/coordinate-name->ff-name coordinate-names)]
-    `(let [[~@c-systems :as c-systems#]
+        coordinate-form-field-names   (map ff/coordinate-name->ff-name coordinate-names)]
+    `(let [[~@system-names :as c-systems#]
            (mapv m/with-coordinate-prototype
-                 ~c-systems
+                 ~(into [] c-systems)
                  ~(mapv #(quotify-coordinate-prototype identity %) prototypes))
-           c-fns# (map coordinate-functions c-systems#)
-           c-vfs# (map vf/coordinate-basis-vector-fields c-systems#)
-           c-ffs# (map ff/coordinate-basis-oneform-fields c-systems#)
-           ~(vec coordinate-names) (flatten c-fns#)
-           ~(vec coordinate-vector-field-names) (flatten c-vfs#)
-           ~(vec coordinate-form-field-names) (flatten c-ffs#)]
+
+           ~(into [] coordinate-names)
+           (flatten
+            (map coordinate-functions c-systems#))
+
+           ~(into [] coordinate-vector-field-names)
+           (flatten
+            (map vf/coordinate-system->vector-basis c-systems#))
+
+           ~(into [] coordinate-form-field-names)
+           (flatten
+            (map ff/coordinate-system->oneform-basis c-systems#))]
        ~@body)))
 
 (defmacro using-coordinates
-  "Example:
+  "[[using-coordinates]] wraps [[let-coordinates]] and allows you to supply a
+  single coordinate prototype and a single coordinate system.
+  See [[let-coordinates]] for details about what symbols are bound inside the
+  body.
+
+  NOTE: Prefer [[let-coordinates]] when possible.
+
+  Example:
 
   ```clojure
   (using-coordinates (up x y) R2-rect
                      body...)
-  ```
-
-  Note: [[using-coordinates]] is just a macro wrapping [[let-coordinates]].
-  Prefer [[let-coordinates]] when possible."
+  ```"
   [coordinate-prototype coordinate-system & body]
-  `(let-coordinates [~coordinate-prototype ~coordinate-system] ~@body))
+  `(let-coordinates [~coordinate-prototype ~coordinate-system]
+     ~@body))
 
-(defn coordinate-system->vector-basis
-  [coordinate-system]
-  (vf/coordinate-basis-vector-fields coordinate-system))
+(defn generate
+  "Generates a coordinate structure of the supplied dimension `n`, and
+  `orientation` using the supplied function `f` for entries. See the very
+  similar [[sicmutils.structure/generate]] for more details.
 
-(defn coordinate-system->oneform-basis
-  [coordinate-system]
-  (ff/coordinate-basis-oneform-fields coordinate-system))
-
-(defn- c:generate
+  NOTE from GJS: this is a kludge introduced only to allow a coordinate of
+  dimension 1 to automatically unwrap itself."
   [n orientation f]
   (if (= n 1)
     (f 0)
     (s/generate n orientation f)))
-
-(defn vector-basis->dual
-  [vector-basis coordinate-system]
-  (let [prototype (m/coordinate-prototype coordinate-system)
-        vector-basis-coefficient-functions (s/mapr #(vf/vector-field->components % coordinate-system) vector-basis)
-        guts (fn [coords]
-               (matrix/s:transpose (s/compatible-shape prototype)
-                                   (matrix/s:inverse
-                                    (s/compatible-shape prototype)
-                                    (s/mapr #(% coords) vector-basis-coefficient-functions)
-                                    prototype)
-                                   prototype))
-        oneform-basis-coefficient-functions (c:generate (:dimension (m/manifold coordinate-system))
-                                                        ::s/up
-                                                        #(comp (s/component %) guts))
-        oneform-basis (s/mapr #(ff/components->oneform-field % coordinate-system) oneform-basis-coefficient-functions)]
-    oneform-basis))
-
-(defn coordinate-system->basis
-  "Returns the standard basis object for `coordinate-system`."
-  [coordinate-system]
-  (b/make-basis
-   (vf/coordinate-basis-vector-fields coordinate-system)
-   (ff/coordinate-basis-oneform-fields coordinate-system)))
-
-(defn Jacobian
-  "Returns the Jacobian of transition from `from-basis` to `to-basis`."
-  [to-basis from-basis]
-  (s/mapr (b/basis->oneform-basis to-basis)
-          (b/basis->vector-basis from-basis)))

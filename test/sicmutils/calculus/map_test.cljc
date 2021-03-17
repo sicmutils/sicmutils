@@ -80,7 +80,7 @@
                           ((man/point R1-rect) 'τ)))))
         (let [e0 (vf/literal-vector-field 'e0 R2-rect)
               e1 (vf/literal-vector-field 'e1 R2-rect)
-              edual (c/vector-basis->dual (down e0 e1) R2-rect)]
+              edual (b/vector-basis->dual (down e0 e1) R2-rect)]
           ;; "But this is a fraud... Note that if we have a non-coordinate
           ;; basis the dual does not work on the transported vector."  [–- MIT]
           (is (thrown? #?(:clj AssertionError :cljs js/Error)
@@ -121,7 +121,7 @@
                  (simplify ((((m/form-field->form-field-over-map μ) dθ)
                              ((m/differential μ) d:dt))
                             ((man/point R1-rect) 'τ)))))
-          (let [foo (m/basis->basis-over-map μ (c/coordinate-system->basis S2-spherical))]
+          (let [foo (m/basis->basis-over-map μ (b/coordinate-system->basis S2-spherical))]
             (is (= '(up (down 1 0) (down 0 1))
                    (simplify (((b/basis->oneform-basis foo)
                                (b/basis->vector-basis foo))

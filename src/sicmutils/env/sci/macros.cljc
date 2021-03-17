@@ -50,22 +50,29 @@
   [_ _ bindings & body]
   (when-not (even? (count bindings))
     (u/illegal "let-coordinates requires an even number of bindings"))
-  (let [pairs (partition 2 bindings)
-        prototypes (map first pairs)
-        c-systems (mapv second pairs)
-        coordinate-names (mapcat #'cc/symbols-from-prototype prototypes)
+  (let [pairs                         (partition 2 bindings)
+        prototypes                    (map first pairs)
+        c-systems                     (map second pairs)
+        system-names                  (map (comp symbol name) c-systems)
+        coordinate-names              (mapcat cc/symbols-from-prototype prototypes)
         coordinate-vector-field-names (map vf/coordinate-name->vf-name coordinate-names)
-        coordinate-form-field-names (map ff/coordinate-name->ff-name coordinate-names)]
+        coordinate-form-field-names   (map ff/coordinate-name->ff-name coordinate-names)]
     `(let [[~@c-systems :as c-systems#]
            (mapv m/with-coordinate-prototype
-                 ~c-systems
+                 ~(into [] c-systems)
                  ~(mapv #(cc/quotify-coordinate-prototype identity %) prototypes))
-           c-fns# (map cc/coordinate-functions c-systems#)
-           c-vfs# (map vf/coordinate-basis-vector-fields c-systems#)
-           c-ffs# (map ff/coordinate-basis-oneform-fields c-systems#)
-           ~(vec coordinate-names) (flatten c-fns#)
-           ~(vec coordinate-vector-field-names) (flatten c-vfs#)
-           ~(vec coordinate-form-field-names) (flatten c-ffs#)]
+
+           ~(into [] coordinate-names)
+           (flatten
+            (map cc/coordinate-functions c-systems#))
+
+           ~(into [] coordinate-vector-field-names)
+           (flatten
+            (map vf/coordinate-system->vector-basis c-systems#))
+
+           ~(into [] coordinate-form-field-names)
+           (flatten
+            (map ff/coordinate-system->oneform-basis c-systems#))]
        ~@body)))
 
 (defn using-coordinates

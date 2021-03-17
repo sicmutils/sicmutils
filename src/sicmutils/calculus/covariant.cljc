@@ -20,7 +20,6 @@
 (ns sicmutils.calculus.covariant
   (:require [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.form-field :as ff]
-            [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.generic :as g]
             [sicmutils.operator :as o]
@@ -28,8 +27,7 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
-(defn ^:private vector-field-Lie-derivative
-  [X]
+(defn- vector-field-Lie-derivative [X]
   (o/make-operator
    (fn [Y]
      (cond (fn? Y) (X Y)
@@ -46,9 +44,9 @@
                                                                                 v))
                                                                             vectors))))))
                                  k
-                                 `((~'Lie-derivative ~(m/diffop-name X)) ~(m/diffop-name Y))))
+                                 `((~'Lie-derivative ~(v/freeze X)) ~(v/freeze Y))))
            :else (u/unsupported "Can't take the Lie derivative of that yet")))
-   `(~'Lie-derivative ~(m/diffop-name X))))
+   `(~'Lie-derivative ~(v/freeze X))))
 
 (defmethod g/Lie-derivative [::vf/vector-field] [V] (vector-field-Lie-derivative V))
 
@@ -63,7 +61,7 @@
          (assert (= (dec k) (count vectors)))
          (apply omega V vectors))
        (dec k)
-       `((~'interior-product ~(m/diffop-name V)) ~(m/diffop-name omega))))))
+       `((~'interior-product ~(v/freeze V)) ~(v/freeze omega))))))
 
 (defn make-Christoffel
   [symbols basis]
@@ -123,7 +121,7 @@
                                       (g/* CV u-components))]
             (vf/procedure->vector-field
              #(g/* (vector-basis %) deriv-components)
-             `((~'nabla ~(m/diffop-name V)) ~(m/diffop-name U)))))))))
+             `((~'nabla ~(v/freeze V)) ~(v/freeze U)))))))))
 
 (defn ^:private covariant-derivative-form
   [Cartan]
@@ -142,7 +140,7 @@
                                                           v))
                                                       vectors))))))
          k
-         `((~'nabla ~(m/diffop-name V)) ~(m/diffop-name tau)))))))
+         `((~'nabla ~(v/freeze V)) ~(v/freeze tau)))))))
 
 (defn ^:private covariant-derivative-function
   [Cartan]
@@ -172,7 +170,7 @@
              :else
              (u/unsupported
               (str "Can't do this kind of covariant derivative yet " (v/freeze X) " @ " (v/freeze V)))))
-     `(~'nabla ~(m/diffop-name X)))
+     `(~'nabla ~(v/freeze X)))
     ))
 
 

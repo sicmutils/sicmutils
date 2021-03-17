@@ -76,6 +76,7 @@
             [sicmutils.calculus.basis]
             [sicmutils.calculus.covariant]
             [sicmutils.calculus.derivative :as d]
+            [sicmutils.calculus.frame]
             [sicmutils.calculus.form-field]
             [sicmutils.calculus.manifold]
             [sicmutils.calculus.map]
@@ -287,32 +288,41 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
  [sicmutils.calculus.form-field
   d
   components->oneform-field
+  coordinate-system->oneform-basis
   literal-oneform-field
   wedge]
  [sicmutils.calculus.manifold
-  chart
-  point
+  make-manifold coordinate-system-at
+  manifold-type
+  patch-names coordinate-system-names
+  manifold-point?
+  chart point
+  typical-coords typical-point transfer-point
+  corresponding-velocities
   literal-manifold-function
-  Euler-angles
-  alternate-angles
-  R1-rect
-  R2-rect
-  R2-polar
-  R3-rect
-  R3-cyl
-  S2-spherical
-  S2-stereographic
-  S2-Riemann
-  SO3]
+  zero-manifold-function one-manifold-function
+  constant-manifold-function
+  Rn
+  R1 R1-rect the-real-line
+  R2 R2-rect R2-polar
+  R3 R3-rect R3-cyl R3-spherical
+  R4 R4-rect R4-cyl
+  spacetime spacetime-rect spacetime-spherical
+  Sn
+  S1 S1-circular S1-tilted S1-slope S1-gnomonic
+  S2-type S2 S2-spherical S2-tilted S2-stereographic S2-Riemann S2-gnomonic
+  S2p S2p-spherical S2p-tilted S2p-stereographic S2p-Riemann S2p-gnomonic
+  S3 S3-spherical S3-tilted S3-stereographic S3-gnomonic
+  SO3-type SO3 Euler-angles alternate-angles]
  [sicmutils.calculus.basis
-  basis->vector-basis
-  basis->oneform-basis]
- [sicmutils.calculus.coordinate
-  Jacobian
+  basis? coordinate-basis? make-basis
   coordinate-system->basis
-  coordinate-system->oneform-basis
-  coordinate-system->vector-basis
-  vector-basis->dual]
+  basis->oneform-basis
+  basis->vector-basis
+  basis->dimension
+  vector-basis->dual
+  make-constant-vector-field
+  Jacobian]
  [sicmutils.calculus.map
   basis->basis-over-map
   differential
@@ -326,7 +336,8 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   coordinatize
   evolution
   literal-vector-field
-  vector-field->components]
+  vector-field->components
+  coordinate-system->vector-basis]
  [sicmutils.mechanics.lagrange
   ->L-state
   ->local

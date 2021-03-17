@@ -7,6 +7,7 @@
             sicmutils.abstract.function-test
             sicmutils.abstract.number-test
 
+            sicmutils.calculus.basis-test
             sicmutils.calculus.coordinate-test
             sicmutils.calculus.derivative-test
             sicmutils.calculus.form-field-test
@@ -105,6 +106,7 @@
            'sicmutils.abstract.function-test
            'sicmutils.abstract.number-test
 
+           'sicmutils.calculus.basis-test
            'sicmutils.calculus.coordinate-test
            'sicmutils.calculus.derivative-test
            'sicmutils.calculus.form-field-test

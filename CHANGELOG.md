@@ -2,6 +2,52 @@
 
 ## [unreleased]
 
+- #326 is a large PR that marks the start of a big push toward full
+  implementation of the ideas in "Functional Differential Geometry". Here is the
+  full list of changes:
+
+  - `sicmutils.calculus.basis` gains a new `::coordinate-basis` type, along with
+    `coordinate-basis?`, `basis->coordinate-system`, `basis->dimension`,
+    `contract` and `make-constant-vector-field` from scmutils. More functions
+    moved here.
+
+  - In `sicmutils.calculus.coordinate`, `let-coordinates` and
+    `using-coordinates` can now handle namespaced coordinate systems like
+    `m/R2-rect` in their coordinate system position! Their docstrings are far
+    better too.
+
+  - `sicmutils.calculus.vector-field/coordinate-basis-vector-fields` was renamed
+    to `coordinate-system->vector-basis`.
+
+  - `sicmutils.calculus.form-field/coordinate-basis-oneform-fields` was renamed
+    to `coordinate-system->oneform-basis`.
+
+  - `sicmutils.calculus.manifold` gets a LOT of restructuring, and many new
+    manifolds out of the box. Here's the full list of new functions:
+
+    - `manifold-type`, `patch-names`, `coordinate-system-names`,
+      `manifold-point?`, `typical-coords`, `typical-point`, `transfer-point`,
+      `corresponding-velocities`
+    - `zero-manifold-function`, `one-manifold-function`,
+      `constant-manifold-function`
+
+    And new manifolds and coordinate systems. Here's the full list of manifolds
+    that are now present:
+
+    - From the `Rn` family: `R1`, `R2`, `R3`, `R4`, `spacetime`
+    - From `S2-type`: `S2`
+    - From `Sn`: `S1`, `S2p`, `S3`
+    - From `SO3-type`: `SO3`
+
+    And coordinate systems, prefixed by their manifold in all cases:
+
+    - `R1-rect`, `the-real-line` (alias for `R1-rect`)
+    - `R2-rect`, `R2-polar`,
+    - `R3-rect`, `R3-cyl`, `R3-spherical`,
+    - `R4-rect`, `R4-cyl`,
+    - `spacetime-rect`, `spacetime-spherical`
+    -
+
 - #327 adds `sicmutils.structure/sumr`, also aliased into `sicmutils.env` Given
   some function `f` and any number of isomorphic `structures`, `sumr` returns
   the sum of the results of applying `f` to each associated set of entries in

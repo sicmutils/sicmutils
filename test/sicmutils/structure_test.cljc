@@ -23,7 +23,8 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
-            [same :refer [ish?]]
+            [same :refer [ish? with-comparator]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number]
             [sicmutils.complex :as c]
             [sicmutils.function :as f]
@@ -392,11 +393,12 @@
 
 (deftest mapper-tests
   (testing "sumr"
-    (checking "sumr sums all entries when passed a single structure" 50
-              [s (-> (gen/fmap #(g/modulo % 1000) sg/real)
-                     (sg/structure 3))]
-              (is (ish? (reduce g/+ (flatten s))
-                        (s/sumr identity s))))
+    (with-comparator (v/within 1e-7)
+      (checking "sumr sums all entries when passed a single structure" 100
+                [s (-> (gen/fmap #(g/modulo % 100) sg/real)
+                       (sg/structure 3))]
+                (is (ish? (reduce g/+ (flatten s))
+                          (s/sumr identity s)))))
 
     (is (== (ua/sum g/square 0 10)
             (s/sumr g/square

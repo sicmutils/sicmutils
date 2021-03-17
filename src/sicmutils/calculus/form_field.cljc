@@ -86,7 +86,7 @@
 (defn oneform-field->components
   [form coordinate-system]
   {:pre [(form-field? form)]}
-  (let [X (vf/coordinate-basis-vector-fields coordinate-system)]
+  (let [X (vf/coordinate-system->vector-basis coordinate-system)]
     (f/compose (form X) #(m/point coordinate-system))))
 
 ;;; To get the elements of a coordinate basis for the 1-form fields
@@ -105,22 +105,22 @@
    (apply coordinate-basis-oneform-field-procedure coordinate-system i)
    name))
 
-(defn coordinate-basis-oneform-fields
-  [coordinate-system]
-  (let [prototype (s/mapr coordinate-name->ff-name (m/coordinate-prototype coordinate-system))]
-    (s/mapr #(apply coordinate-basis-oneform-field coordinate-system %1 %2)
-            prototype
-            (s/structure->access-chains prototype))))
+(defn coordinate-system->oneform-basis [coordinate-system]
+  (let [prototype (s/mapr coordinate-name->ff-name
+                          (m/coordinate-prototype coordinate-system))]
+    (s/mapr
+     #(apply coordinate-basis-oneform-field coordinate-system %1 %2)
+     prototype
+     (s/structure->access-chains prototype))))
 
-(defn function->oneform-field
-  [f]
+(defn function->oneform-field [f]
   {:pre [(fn? f)]}
   (procedure->oneform-field
-    (fn [v] (s/mapr (fn [v]
-                      (assert (vf/vector-field? v))
-                      (fn [m] ((v f) m)))
-                    v))
-    `(~'d ~(m/diffop-name f))))
+   (fn [v] (s/mapr (fn [v]
+                    (assert (vf/vector-field? v))
+                    (fn [m] ((v f) m)))
+                  v))
+   `(~'d ~(v/freeze f))))
 
 (defn literal-oneform-field
   [name coordinate-system]
@@ -146,7 +146,7 @@
             k+1form (fn [& vectors]
                       (assert (= (count vectors) (inc k)))
                       (fn [point]
-                        (let [n ((m/point->manifold point) :dimension)]
+                        (let [n (:dimension (m/point->manifold point))]
                           (if (< k n)
                             (reduce g/+ (for [i (range 0 (inc k))]
                                           (let [rest (without i vectors)]
@@ -162,7 +162,7 @@
                                                                              (without (dec j) rest)))
                                                                      point))))))))
                             0))))]
-        (procedure->nform-field k+1form (inc k) `(~'d ~(m/diffop-name kform)))))))
+        (procedure->nform-field k+1form (inc k) `(~'d ~(v/freeze kform)))))))
 
 (def d (o/make-operator exterior-derivative-procedure 'd))
 
@@ -245,7 +245,7 @@
                                           (g/* parity (apply form1 a1) (apply form2 a2))))
                                       (permutation-sequence args)
                                       (cycle [1 -1])))))]
-        (procedure->nform-field w n `(~'wedge ~(m/diffop-name form1) ~(m/diffop-name form2)))))))
+        (procedure->nform-field w n `(~'wedge ~(v/freeze form1) ~(v/freeze form2)))))))
 
 (defn wedge [& fs]
   (reduce wedge2 fs))

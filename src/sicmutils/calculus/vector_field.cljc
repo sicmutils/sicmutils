@@ -58,7 +58,8 @@
 (defn components->vector-field
   [components coordinate-system & [name]]
   (let [name (or name `(~'vector-field ~components))]
-    (procedure->vector-field (vector-field-procedure components coordinate-system) name)))
+    (-> (vector-field-procedure components coordinate-system)
+        (procedure->vector-field name))))
 
 (defn vector-field->components
   [vf coordinate-system]
@@ -93,13 +94,14 @@
     (apply coordinate-basis-vector-field-procedure coordinate-system i)
     name))
 
-(defn coordinate-basis-vector-fields
-  [coordinate-system]
-  (let [prototype (s/mapr coordinate-name->vf-name (m/coordinate-prototype coordinate-system))]
+(defn coordinate-system->vector-basis [coordinate-system]
+  (let [prototype (s/mapr coordinate-name->vf-name
+                          (m/coordinate-prototype coordinate-system))]
     (s/transpose
-     (s/mapr #(apply coordinate-basis-vector-field coordinate-system %1 %2)
-             prototype
-             (s/structure->access-chains prototype)))))
+     (s/mapr
+      #(apply coordinate-basis-vector-field coordinate-system %1 %2)
+      prototype
+      (s/structure->access-chains prototype)))))
 
 (defn coordinatize
   [v coordinate-system]

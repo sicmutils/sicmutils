@@ -41,6 +41,12 @@
   (comp v/freeze g/simplify))
 
 (deftest vectorfield
+  (testing "with-coordinate-prototype"
+    (let [A R2-rect
+          B (m/with-coordinate-prototype R2-rect '[X Y])]
+      (is (= '[d:dx0 d:dx1] (map o/name (vf/coordinate-system->vector-basis A))))
+      (is (= '[d:dX d:dY] (map o/name (vf/coordinate-system->vector-basis B))))))
+
   (testing "literal"
     (let [f (m/literal-manifold-function 'f-rect R2-rect)
           v (vf/literal-vector-field 'b R2-rect)
