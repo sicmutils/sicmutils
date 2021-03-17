@@ -76,6 +76,7 @@
             [sicmutils.calculus.basis]
             [sicmutils.calculus.covariant]
             [sicmutils.calculus.derivative :as d]
+            [sicmutils.calculus.frame]
             [sicmutils.calculus.form-field]
             [sicmutils.calculus.manifold]
             [sicmutils.calculus.map]

@@ -76,7 +76,7 @@
         (symbol? p) [p]
         :else (u/illegal (str "Invalid coordinate prototype: " p))))
 
-(defn let-coordinates
+(defmacro let-coordinates
   "similar to a `let` binding that holds pairs of
 
   <coordinate-structure-prototype>, <coordinate-system>
