@@ -136,7 +136,7 @@
 
   (checking "R2-rect->polar" 100 [x sg/real
                                   y sg/real]
-            (when-not (and (zero? x) (zero? y))
+            (when-not (and (v/zero? x) (v/zero? y))
               (let [r     (g/abs (up x y))
                     theta (g/atan y x)]
                 (is (= (up r theta)
