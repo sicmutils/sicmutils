@@ -54,7 +54,7 @@
           vjp (g/* (b/Jacobian
                     (b/coordinate-system->basis m/R2-polar)
                     (b/coordinate-system->basis m/R2-rect))
-                   ((ff/coordinate-basis-oneform-fields m/R2-rect) v))]
+                   ((ff/coordinate-system->oneform-basis m/R2-rect) v))]
       (is (= '(up
                (/ (+ (* x (v↑0 (up x y))) (* y (v↑1 (up x y))))
                   (sqrt (+ (expt x 2) (expt y 2))))

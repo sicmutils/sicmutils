@@ -91,8 +91,11 @@
 
 (defn vector-basis->dual [vector-basis coordinate-system]
   (let [prototype (m/coordinate-prototype coordinate-system)
-        vector-basis-coefficient-functions (s/mapr #(vf/vector-field->components % coordinate-system)
-                                                   vector-basis)
+
+        vector-basis-coefficient-functions
+        (s/mapr #(vf/vector-field->components % coordinate-system)
+                vector-basis)
+
         guts (fn [coords]
                (let [shape (s/compatible-shape prototype)
                      invert #(matrix/s:inverse shape % prototype)

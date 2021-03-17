@@ -63,7 +63,7 @@
                   :else (u/illegal "Invalid coordinate prototype")))]
     (q p)))
 
-(defn- symbols-from-prototype
+(defn ^:no-doc symbols-from-prototype
   "TODO note that this allows the prototype to be `up` etc..."
   [p]
   (cond (and (sequential? p)
@@ -106,11 +106,11 @@
 
            ~(into [] coordinate-vector-field-names)
            (flatten
-            (map vf/coordinate-basis-vector-fields c-systems#))
+            (map vf/coordinate-system->vector-basis c-systems#))
 
            ~(into [] coordinate-form-field-names)
            (flatten
-            (map ff/coordinate-basis-oneform-fields c-systems#))]
+            (map ff/coordinate-system->oneform-basis c-systems#))]
        ~@body)))
 
 (defmacro using-coordinates

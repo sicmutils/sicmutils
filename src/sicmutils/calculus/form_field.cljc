@@ -86,7 +86,7 @@
 (defn oneform-field->components
   [form coordinate-system]
   {:pre [(form-field? form)]}
-  (let [X (vf/coordinate-basis-vector-fields coordinate-system)]
+  (let [X (vf/coordinate-system->vector-basis coordinate-system)]
     (f/compose (form X) #(m/point coordinate-system))))
 
 ;;; To get the elements of a coordinate basis for the 1-form fields
@@ -105,19 +105,15 @@
    (apply coordinate-basis-oneform-field-procedure coordinate-system i)
    name))
 
-(defn coordinate-basis-oneform-fields
-  [coordinate-system]
-  (let [prototype (s/mapr coordinate-name->ff-name (m/coordinate-prototype coordinate-system))]
-    (s/mapr #(apply coordinate-basis-oneform-field coordinate-system %1 %2)
-            prototype
-            (s/structure->access-chains prototype))))
+(defn coordinate-system->oneform-basis [coordinate-system]
+  (let [prototype (s/mapr coordinate-name->ff-name
+                          (m/coordinate-prototype coordinate-system))]
+    (s/mapr
+     #(apply coordinate-basis-oneform-field coordinate-system %1 %2)
+     prototype
+     (s/structure->access-chains prototype))))
 
-(def ^{:doc "TODO note alias."}
-  coordinate-system->oneform-basis
-  coordinate-basis-oneform-fields)
-
-(defn function->oneform-field
-  [f]
+(defn function->oneform-field [f]
   {:pre [(fn? f)]}
   (procedure->oneform-field
    (fn [v] (s/mapr (fn [v]

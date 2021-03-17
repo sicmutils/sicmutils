@@ -94,17 +94,14 @@
     (apply coordinate-basis-vector-field-procedure coordinate-system i)
     name))
 
-(defn coordinate-basis-vector-fields
-  [coordinate-system]
-  (let [prototype (s/mapr coordinate-name->vf-name (m/coordinate-prototype coordinate-system))]
+(defn coordinate-system->vector-basis [coordinate-system]
+  (let [prototype (s/mapr coordinate-name->vf-name
+                          (m/coordinate-prototype coordinate-system))]
     (s/transpose
-     (s/mapr #(apply coordinate-basis-vector-field coordinate-system %1 %2)
-             prototype
-             (s/structure->access-chains prototype)))))
-
-(def ^{:doc "TODO note alias."}
-  coordinate-system->vector-basis
-  coordinate-basis-vector-fields)
+     (s/mapr
+      #(apply coordinate-basis-vector-field coordinate-system %1 %2)
+      prototype
+      (s/structure->access-chains prototype)))))
 
 (defn coordinatize
   [v coordinate-system]

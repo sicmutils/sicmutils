@@ -51,7 +51,7 @@
   touching any internal cache."
   [coordinate-system coords]
   (let [p (-> (m/coords->point coordinate-system coords)
-              (assoc :coordinate-representation (atom {})))]
+              (assoc :coordinate-representations (atom {})))]
     (m/point->coords coordinate-system p)))
 
 (defn roundtrips?
@@ -338,8 +338,8 @@
 
   (testing "S3-{spherical,tilted}"
     (is (= '(up (atan (sqrt (+ (* (expt (sin b) 2)
-                                  (expt (cos a) 2)
-                                  (expt (sin c) 2))
+                                  (expt (sin c) 2)
+                                  (expt (cos a) 2))
                                (* (expt (cos c) 2)
                                   (expt (sin b) 2))
                                (expt (cos b) 2)))
