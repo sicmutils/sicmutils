@@ -20,9 +20,14 @@
 (ns sicmutils.calculus.manifold-test
   (:refer-clojure :exclude [* - / +])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
             [same :refer [ish?]]
+            [sicmutils.abstract.number :refer [literal-number]]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.function :as f :refer [compose]]
+            [sicmutils.generators :as sg]
             [sicmutils.generic :as g :refer [cos sin * - / +]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :refer [up down]]
@@ -49,70 +54,120 @@
               (assoc :coordinate-representation (atom {})))]
     (m/point->coords coordinate-system p)))
 
+(defn roundtrips?
+  "Checks that `coords` round-trips using the cache and skipping the cache."
+  [coordinate-system coords]
+  (is (ish? coords (cacheless-rt coordinate-system coords))
+      "coordinates round-trip without the cache.")
+
+  (is (ish? coords (rt coordinate-system coords))
+      "coordinates round-trip potentially using the cache."))
+
+(defn rep-roundtrips? [coord-system point rep]
+  (is (= rep (s-freeze
+              (m/manifold-point-representation point)))
+      "check the point representation.")
+
+  (is (= rep (s-freeze
+              (m/manifold-point-representation
+               ((compose (m/point coord-system)
+                         (m/chart coord-system))
+                point))))
+      "rep stays the same after round-tripping back through the coordinate
+      system."))
+
+(defn check-coord-system [coord-system coords]
+  (is (m/check-coordinates coord-system coords)
+      "Coordinates pass.")
+
+  (let [point (m/coords->point coord-system coords)]
+    (is (m/manifold-point? point)
+        "coords->point returns a valid point.")
+
+    (is (m/check-point coord-system point)
+        "point returned by `m/coords->point` is always valid.")
+
+    (is (= coords
+           (m/get-coordinates
+            point coord-system
+            #(u/exception "Cache not installed!")))
+        "the throw continuation is meant to assert that the thunk is not
+        called when retrieving the coordinates from the system with which the
+        manifold-point was created.")))
+
 (deftest Rn-manifold-tests
-  (testing "R1-rect"
-    (testing "check-coordinates"
-      (is (m/check-coordinates m/R1-rect 1))
-      (is (m/check-coordinates m/R1-rect (up 1))))
+  (checking "R1-rect" 100 [x sg/real]
+            ;; Both a bare number and a single-entry structure are valid for R1.
+            (check-coord-system m/R1-rect x)
+            (roundtrips? m/R1-rect x)
+            (check-coord-system m/R1-rect (up x))
+            (roundtrips? m/R1-rect (up x)))
 
-    (let [Tp (m/coords->point m/R1-rect 3)]
-      (is (m/check-point m/R1-rect Tp))
-      (is (= 99 (m/point->coords
-                 m/R1-rect
-                 (m/coords->point m/R1-rect 99))))))
+  (checking "the-real-line alias for R1-rect" 100 [x sg/real]
+            (check-coord-system m/the-real-line x)
+            (roundtrips? m/the-real-line x)
+            (check-coord-system m/the-real-line (up x))
+            (roundtrips? m/the-real-line (up x)))
 
-  (testing "R2-rect"
+  (checking "R2-rect" 100 [coords (sg/up1 sg/real 2)]
+            (check-coord-system m/R2-rect coords)
+            (roundtrips? m/R2-rect coords))
+
+  (testing "R2-rect unit"
     (testing "check-coordinates"
       (is (not (m/check-coordinates m/R2-rect (up 1))))
-      (is (m/check-coordinates m/R2-rect (up 1 2)))
       (is (not (m/check-coordinates m/R2-rect (up 1 2 3))))
-      (is (not (m/check-coordinates m/R2-rect 99))))
+      (is (not (m/check-coordinates m/R2-rect 99)))))
 
-    (testing "coords->point"
-      (let [m (m/coords->point m/R2-rect (up 3 4))]
-        (is (= (up 5 (g/atan 4 3))
-               (m/point->coords m/R2-polar m))
-            "TODO make a generative test."))
+  (checking "R2-polar" 100 [coords (sg/up1 sg/real 2)]
+            (let [c0 (nth coords 0)]
+              (if (neg? c0)
+                (is (not (m/check-coordinates m/R2-polar coords)))
+                (check-coord-system m/R2-polar coords))
 
-      (let [p (m/coords->point m/R2-rect (up 3 4))]
-        (is (= (up 3 4)
-               (m/get-coordinates p m/R2-rect #(u/exception "")))
-            "the throw continuation is meant to assert that the thunk is not
-        called when retrieving the coordinates from the system with which the
-        manifold-point was created.")
+              (when (pos? c0)
+                (roundtrips? m/R2-rect coords))))
 
-        (is (m/check-point m/R2-rect p))
-        (is (= ::m/manifold-point (v/kind p)))
-        (is (m/manifold-point? p))
-        (is (not (v/numerical? p))))))
-
-  (testing "R2-polar"
+  (testing "R2-polar unit"
     (testing "check-coordinates"
       (is (not (m/check-coordinates m/R2-polar (up 1))))
-      (is (m/check-coordinates m/R2-polar (up 1 2)))
       (is (not (m/check-coordinates m/R2-polar (up 1 2 3))))
-      (is (not (m/check-coordinates m/R2-polar 99))))
+      (is (not (m/check-coordinates m/R2-polar 99)))))
 
-    (testing "coords->point"
-      (let [p (m/coords->point m/R2-polar (up 1 2))]
-        (is (= (up 1 2)
-               (m/get-coordinates p m/R2-polar #(u/exception "")))))))
+  (checking "R2-rect->polar" 100 [x sg/real
+                                  y sg/real]
+            (when-not (and (zero? x) (zero? y))
+              (let [r     (g/abs (up x y))
+                    theta (g/atan y x)]
+                (is (= (up r theta)
+                       (->> (up x y)
+                            (m/coords->point m/R2-rect)
+                            (m/point->coords m/R2-polar)))
+                    "Rectangular to polar works."))))
 
-  (testing "R2-rect <-> R2-polar"
-    (let [Pr (m/coords->point m/R2-rect (up (Math/sqrt 2) (Math/sqrt 2)))
-          xy (m/coords->point m/R2-rect (up 'x 'y))
-          rt (m/coords->point m/R2-polar (up 'ρ 'θ))]
-      (is (= (up 'x 'y) (m/point->coords m/R2-rect xy)))
-      (is (ish? (up 2 (/ Math/PI 4)) (m/point->coords m/R2-polar Pr)))
-      (is (= (up 'ρ 'θ) (m/point->coords m/R2-polar rt)))
-      (is (= (up (g/sqrt (+ (g/square 'x) (g/square 'y)))
-                 (g/atan 'y 'x)) (m/point->coords m/R2-polar xy)))
-      (is (= (up (* 'ρ (cos 'θ)) (* 'ρ (sin 'θ))) (m/point->coords m/R2-rect rt))))))
+  (testing "R2-polar->rect unit"
+    (is (= (up (* 'ρ (cos 'θ))
+               (* 'ρ (sin 'θ)))
+           (->> (up 'ρ 'θ)
+                (m/coords->point m/R2-polar)
+                (m/point->coords m/R2-rect)))))
+
+  (checking "R3-rect" 100 [coords (sg/structure1 sg/real 3)]
+            (check-coord-system m/R3-rect coords)
+            (roundtrips? m/R3-rect coords))
+
+  (checking "R4-rect" 100 [coords (sg/structure1 sg/real 4)]
+            (check-coord-system m/R4-rect coords)
+            (roundtrips? m/R4-rect coords))
+
+  (checking "spacetime-rect" 100 [coords (sg/structure1 sg/real 4)]
+            (check-coord-system m/spacetime-rect coords)
+            (roundtrips? m/spacetime-rect coords)))
 
 (defn run-S2-tests
   [prefix S2-spherical S2-tilted S2-Riemann S2-gnomonic S2-stereographic]
   (testing prefix
-    (testing "tilted -> spherical"
+    (testing "tilted->spherical"
       (let [point (m/coords->point m/S2p-spherical (up 'theta 'phi))]
         (is (= '(up (* (cos phi) (sin theta))
                     (* (sin theta) (sin phi))
@@ -120,17 +175,9 @@
                (v/freeze
                 (m/manifold-point-representation point))))
 
-        (is (= '(up theta phi)
-               (s-freeze
-                ((compose (m/chart S2-spherical)
-                          (m/point S2-spherical))
-                 (up 'theta 'phi))))
-            "round trip back to coords")
-
-        (is (= (up 1 0)
-               ((compose (m/chart S2-spherical)
-                         (m/point S2-spherical))
-                (up 1 0))))
+        (testing "sample points roundtrip through cache, non-cache"
+          (roundtrips? S2-spherical (up 1 0))
+          (roundtrips? S2-spherical (up 'theta 'phi)))
 
         (is (= (up 0 1) (rt S2-spherical (up 0 1)))
             "Even though this point is singular, the cache takes care of getting
@@ -141,64 +188,36 @@
             the right result.")))
 
     (testing "Riemann"
-      (let [point (m/coords->point S2-Riemann (up 'x 'y))]
-        (is (= '(up (/ (* 2 x)
-                       (+ (expt x 2) (expt y 2) 1))
-                    (/ (* 2 y)
-                       (+ (expt x 2) (expt y 2) 1))
-                    (/ (+ (expt x 2) (expt y 2) -1)
-                       (+ (expt x 2) (expt y 2) 1)))
-               (s-freeze
-                (m/manifold-point-representation point))))
+      (roundtrips? S2-Riemann (up 'x 'y))
 
-        (is  (= '(up (/ (* 2 x)
-                        (+ (expt x 2) (expt y 2) 1))
-                     (/ (* 2 y)
-                        (+ (expt x 2) (expt y 2) 1))
-                     (/ (+ (expt x 2) (expt y 2) -1)
-                        (+ (expt x 2) (expt y 2) 1)))
-                (s-freeze
-                 (m/manifold-point-representation
-                  ((compose (m/point S2-Riemann)
-                            (m/chart S2-Riemann))
-                   point))))))
-
-      (is (= (up 'x 'y)
-             ((compose (m/chart S2-Riemann)
-                       (m/point S2-Riemann))
-              (up 'x 'y))))
+      (let [point (m/coords->point S2-Riemann (up 'x 'y))
+            rep   '(up (/ (* 2 x)
+                          (+ (expt x 2) (expt y 2) 1))
+                       (/ (* 2 y)
+                          (+ (expt x 2) (expt y 2) 1))
+                       (/ (+ (expt x 2) (expt y 2) -1)
+                          (+ (expt x 2) (expt y 2) 1)))]
+        (rep-roundtrips? S2-Riemann point rep))
 
       (is (= '(up (cos theta) (sin theta) 0)
              (s-freeze
               (m/manifold-point-representation
                ((m/point S2-Riemann)
                 (up (cos 'theta) (sin 'theta))))))
-          "The equator is invariant."))
+          "The equator is invariant, so points map to themselves with an extra 0
+          coordinate for the height."))
 
     (testing "gnomonic"
-      (let [point (m/coords->point S2-gnomonic (up 'x 'y))]
-        (is (= '(up (/ x (sqrt (+ (expt x 2) (expt y 2) 1)))
-                    (/ y (sqrt (+ (expt x 2) (expt y 2) 1)))
-                    (/ 1 (sqrt (+ (expt x 2) (expt y 2) 1))))
-               (s-freeze
-                (m/manifold-point-representation point))))
+      (roundtrips? S2-gnomonic (up 'x 'y))
 
-        (is  (= '(up (/ x (sqrt (+ (expt x 2) (expt y 2) 1)))
-                     (/ y (sqrt (+ (expt x 2) (expt y 2) 1)))
-                     (/ 1 (sqrt (+ (expt x 2) (expt y 2) 1))))
-                (s-freeze
-                 (m/manifold-point-representation
-                  ((compose (m/point S2-gnomonic)
-                            (m/chart S2-gnomonic))
-                   point))))))
-
-      (is (= (up 'x 'y)
-             ((compose (m/chart S2-gnomonic)
-                       (m/point S2-gnomonic))
-              (up 'x 'y))))
+      (let [point (m/coords->point S2-gnomonic (up 'x 'y))
+            rep   '(up (/ x (sqrt (+ (expt x 2) (expt y 2) 1)))
+                       (/ y (sqrt (+ (expt x 2) (expt y 2) 1)))
+                       (/ 1 (sqrt (+ (expt x 2) (expt y 2) 1))))]
+        (rep-roundtrips? S2-gnomonic point rep))
 
       (comment
-        ;; TODO this is busted until we get the simplifier fine with expressions
+        ;; TODO this is broken until we get the simplifier fine with expressions
         ;; like `(sqrt 2)`.
         (is (= '(up (/ (cos theta) (sqrt 2))
                     (/ (sin theta) (sqrt 2))
@@ -234,46 +253,29 @@
 
 (deftest S1-tests
   (testing "S1"
+    (roundtrips? m/S1-circular (literal-number 'theta))
+
     (let [point (m/coords->point m/S1-circular 'theta)]
-      (is (= (up (g/cos 'theta) (g/sin 'theta))
+      (is (= (up (g/cos 'theta)
+                 (g/sin 'theta))
              (m/manifold-point-representation point))))
 
-    (is (v/= 'theta
-             (g/simplify
-              ((compose (m/chart m/S1-circular)
-                        (m/point m/S1-circular))
-               'theta))))
-
-    (is (v/= '(atan (cos theta) (* -1 (sin theta)))
-             (g/simplify
-              ((compose (m/chart m/S1-circular)
-                        (m/point m/S1-tilted))
-               'theta)))))
+    (is (= '(atan (cos theta) (* -1 (sin theta)))
+           (s-freeze
+            ((compose (m/chart m/S1-circular)
+                      (m/point m/S1-tilted))
+             'theta)))
+        "S1-tilted->circular"))
 
   (testing "S1-slope"
-    (let [point ((m/point m/S1-slope) 's)]
-      (is (= '(up (/ (* 2 s)
-                     (+ (expt s 2) 1))
-                  (/ (+ (expt s 2) -1)
-                     (+ (expt s 2) 1)))
-             (v/freeze
-              (g/simplify
-               (m/manifold-point-representation point)))))
+    (roundtrips? m/S1-slope (literal-number 's))
 
-      (is (= '(up (/ (* 2 s)
-                     (+ (expt s 2) 1))
-                  (/ (+ (expt s 2) -1)
-                     (+ (expt s 2) 1)))
-             (v/freeze
-              (g/simplify
-               (m/manifold-point-representation
-                ((compose (m/point m/S1-slope)
-                          (m/chart m/S1-slope))
-                 point)))))))
-
-    (is (= 's ((compose (m/chart m/S1-slope)
-                        (m/point m/S1-slope))
-               's)))))
+    (let [point ((m/point m/S1-slope) 's)
+          rep   '(up (/ (* 2 s)
+                        (+ (expt s 2) 1))
+                     (/ (+ (expt s 2) -1)
+                        (+ (expt s 2) 1)))]
+      (rep-roundtrips? m/S1-slope point rep))))
 
 (deftest S2-tests
   (run-S2-tests "S2"
@@ -329,36 +331,35 @@
                (up 'theta 'phi))))))))
 
 (deftest S3-tests
+  ;; NOTE: Should be warned singular!
+  (roundtrips? m/S3-spherical (up 0 0 0))
+  (roundtrips? m/S3-spherical (up 'a 'b 'c))
+  (roundtrips? m/S3-tilted (up 'a 'b 'c))
+
   (testing "S3-{spherical,tilted}"
-    (is (= '(up a b c)
+    (is (= '(up (atan (sqrt (+ (* (expt (sin b) 2)
+                                  (expt (cos a) 2)
+                                  (expt (sin c) 2))
+                               (* (expt (cos c) 2)
+                                  (expt (sin b) 2))
+                               (expt (cos b) 2)))
+                      (* (sin a) (sin b) (sin c)))
+                (atan (sqrt (+ (* (expt (sin a) 2)
+                                  (expt (cos c) 2)
+                                  (expt (sin b) 2))
+                               (expt (cos a) 2)))
+                      (* (cos b) (sin a)))
+                (atan (* -1 (cos a))
+                      (* (sin a) (cos c) (sin b))))
            (s-freeze
             ((compose (m/chart m/S3-spherical)
-                      (m/point m/S3-spherical))
-             (up 'a 'b 'c)))))
-
-    (is (= (up 0 0 0)
-           (g/simplify
-            (- (up (g/atan
-                    (g/sqrt
-                     (+ (* (g/expt (g/sin 'b) 2) (g/expt (g/sin 'c) 2) (g/expt (g/cos 'a) 2))
-                        (* (g/expt (g/sin 'c) 2) (g/expt (g/cos 'b) 2))
-                        (g/expt (g/cos 'c) 2)))
-                    (* (g/sin 'c) (g/sin 'b) (g/sin 'a)))
-                   (g/atan (g/sqrt (+ (* (g/expt (g/sin 'b) 2) (g/expt (g/sin 'a) 2) (g/expt (g/cos 'c) 2))
-                                      (g/expt (g/cos 'a) 2)))
-                           (* (g/sin 'a) (g/cos 'b)))
-                   (g/atan (* -1 (g/cos 'a)) (* (g/sin 'a) (g/cos 'c) (g/sin 'b))))
-               ((compose (m/chart m/S3-spherical)
-                         (m/point m/S3-tilted))
-                (up 'a 'b 'c))))))
-
-    (is (= (up 0 0 0)
-           ((compose (m/chart m/S3-spherical)
-                     (m/point m/S3-spherical))
-            (up 0 0 0)))
-        "NOTE: Should be warned singular!"))
+                      (m/point m/S3-tilted))
+             (up 'a 'b 'c))))))
 
   (testing "S3-{gnomonic,stereographic}"
+    (roundtrips? m/S3-gnomonic (up 'x 'y 'z))
+    (roundtrips? m/S3-stereographic (up 'x 'y 'z))
+
     ;; S3 is one-to-one with the quaternions.
     ;; We interpret the first three components of the embedding space as the
     ;; i,j,k imaginary party and the 4th component as the real part.
@@ -392,23 +393,24 @@
 
 (deftest SO3-tests
   (testing "SO(3)"
+    (roundtrips? m/alternate-angles (up 'theta 'phi 'psi))
+    (roundtrips? m/Euler-angles (up 'theta 'phi 'psi))
+
     (is (= '(up theta phi psi)
-           (v/freeze
-            (g/simplify
-             ((f/compose (m/chart m/Euler-angles)
-                         (m/point m/alternate-angles)
-                         (m/chart m/alternate-angles)
-                         (m/point m/Euler-angles))
-              (up 'theta 'phi 'psi))))))
+           (s-freeze
+            ((f/compose (m/chart m/Euler-angles)
+                        (m/point m/alternate-angles)
+                        (m/chart m/alternate-angles)
+                        (m/point m/Euler-angles))
+             (up 'theta 'phi 'psi)))))
 
     (is (= '(up (asin (* (sin theta) (cos psi)))
-                (atan (+ (* (cos psi) (cos theta) (sin phi))
+                (atan (+ (* (cos theta) (sin phi) (cos psi))
                          (* (cos phi) (sin psi)))
-                      (+ (* (cos psi) (cos phi) (cos theta))
-                         (* -1 (sin psi) (sin phi))))
+                      (+ (* (cos theta) (cos phi) (cos psi))
+                         (* -1 (sin phi) (sin psi))))
                 (atan (* -1 (sin theta) (sin psi)) (cos theta)))
-           (v/freeze
-            (g/simplify
-             ((f/compose (m/chart m/alternate-angles)
-                         (m/point m/Euler-angles))
-              (up 'theta 'phi 'psi))))))))
+           (s-freeze
+            ((f/compose (m/chart m/alternate-angles)
+                        (m/point m/Euler-angles))
+             (up 'theta 'phi 'psi)))))))

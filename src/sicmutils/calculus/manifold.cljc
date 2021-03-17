@@ -367,8 +367,9 @@
             (= (s/dimension coords)
                (:dimension manifold))
             (> (s/dimension coords) 1)
-            (or (not (v/number? coords))
-                (>= (nth coords 0) 0))))
+            (let [c0 (nth coords 0)]
+              (or (not (v/number? c0))
+                  (>= c0 0)))))
 
      (check-point [this point]
        (my-manifold-point? point manifold))
