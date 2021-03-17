@@ -28,7 +28,15 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
+;; this has stuff from form-fields.scm AND wedge.scm.
+
 (derive ::form-field ::o/operator)
+
+;; ## 1Form fields
+;;
+;; A form-field of rank n is an operator that takes n vector fields to a
+;; real-valued function on the manifold. A 1form field takes a single vector
+;; field.
 
 (defn form-field?
   [f]
@@ -45,31 +53,36 @@
            (= 1))))
 
 (defn procedure->oneform-field
-  [fp name]
-  (o/make-operator fp name
-                   {:subtype ::form-field
-                    :rank 1
-                    :arguments [::vf/vector-field]}))
+  ([fp]
+   (let [name 'unnamed-1form-field]
+     (procedure->oneform-field fp name)))
+  ([fp name]
+   (o/make-operator fp name
+                    {:subtype ::form-field
+                     :rank 1
+                     :arguments [::vf/vector-field]})))
 
-(declare wedge)
-(defn procedure->nform-field
-  [proc n name]
-  (if (= n 0)
-    (proc)
-    (o/make-operator proc name
-                     {:subtype ::form-field
-                      :arity [:exactly n]
-                      :rank n
-                      :arguments (repeat n ::vf/vector-field)})))
+(comment
+  (define (ff:zero vf) zero-manifold-function)
 
-(defn coordinate-name->ff-name
-  "From the name of a coordinate, produce the name of the coordinate basis
-  one-form field (as a symbol)"
-  [n]
-  (symbol (str \d n)))
+  (define (ff:zero-like op)
+    (assert (form-field? op) "ff:zero-like")
+    (make-op ff:zero
+	           'ff:zero
+	           (operator-subtype op)
+	           (operator-arity op)
+	           (operator-optionals op)))
 
-(defn oneform-field-procedure
-  [components coordinate-system]
+  (assign-operation 'zero-like ff:zero-like form-field?)
+
+
+  (define (ff:zero? ff)
+    (assert (form-field? ff) "ff:zero?")
+    (eq? (operator-procedure ff) ff:zero))
+
+  (assign-operation 'zero? ff:zero? form-field?))
+
+(defn oneform-field-procedure [components coordinate-system]
   (fn [f]
     (s/mapr (fn [f]
               (assert (vf/vector-field? f))
@@ -79,9 +92,16 @@
             f)))
 
 (defn components->oneform-field
-  [components coordinate-system & [name]]
-  (let [name (or name `(~'oneform-field ~(v/freeze components)))]
-    (procedure->oneform-field (oneform-field-procedure components coordinate-system) name)))
+  ([components coordinate-system]
+   (let [name `(~'oneform-field ~(v/freeze components))]
+     (components->oneform-field
+      components coordinate-system name)))
+  ([components coordinate-system name]
+   (procedure->oneform-field
+    (oneform-field-procedure components coordinate-system) name)))
+
+;; We can extract the components function for a form, given a
+;; coordinate system.
 
 (defn oneform-field->components
   [form coordinate-system]
@@ -89,18 +109,24 @@
   (let [X (vf/coordinate-system->vector-basis coordinate-system)]
     (f/compose (form X) #(m/point coordinate-system))))
 
-;;; To get the elements of a coordinate basis for the 1-form fields
+(defn literal-oneform-field
+  [name coordinate-system]
+  (let [n (:dimension (m/manifold coordinate-system))
+        domain (apply s/up   (repeat n 0))
+        range  (apply s/down (repeat n 0))]
+    (-> (af/literal-function name domain range)
+        (components->oneform-field coordinate-system name))))
 
-(defn coordinate-basis-oneform-field-procedure
-  [coordinate-system & i]
+;; To get the elements of a coordinate basis for the 1-form fields
+
+(defn coordinate-basis-oneform-field-procedure [coordinate-system & i]
   (fn [vf]
     (let [internal (fn [vf]
                      (assert (vf/vector-field? vf))
                      (vf (f/compose (apply s/component i) (m/chart coordinate-system))))]
       (s/mapr internal vf))))
 
-(defn coordinate-basis-oneform-field
-  [coordinate-system name & i]
+(defn coordinate-basis-oneform-field [coordinate-system name & i]
   (procedure->oneform-field
    (apply coordinate-basis-oneform-field-procedure coordinate-system i)
    name))
@@ -113,6 +139,21 @@
      prototype
      (s/structure->access-chains prototype))))
 
+;; Given component functions defined on manifold points and a 1-form basis, to
+;; produce the 1-form field as a linear combination.
+
+(defn basis-components->oneform-field [components oneform-basis]
+  (procedure->oneform-field
+   (fn [v]
+     (g/* components (oneform-basis v)))))
+
+(defn oneform-field->basis-components [w vector-basis]
+  (s/mapr w vector-basis))
+
+;; This is one of the two incompatible definitions of "differential".
+;; This differential is a special case of exterior derivative.
+;; The other one appears in maps.scm.
+
 (defn function->oneform-field [f]
   {:pre [(fn? f)]}
   (procedure->oneform-field
@@ -122,13 +163,37 @@
                   v))
    `(~'d ~(v/freeze f))))
 
-(defn literal-oneform-field
-  [name coordinate-system]
-  (let [n (:dimension (m/manifold coordinate-system))
-        domain (apply s/up   (repeat n 0))
-        range  (apply s/down (repeat n 0))]
-    (-> (af/literal-function name domain range)
-        (components->oneform-field coordinate-system name))))
+(def differential-of-function
+  function->oneform-field)
+
+;; ## Wedge.scm
+;;
+;; Now we transition to wedge.
+
+;; TODO needed?
+(declare wedge)
+
+(defn procedure->nform-field
+  ([proc n]
+   (procedure->nform-field proc n 'unnamed-nform-field))
+  ([proc n name]
+   (if (= n 0)
+     (proc)
+     (o/make-operator proc name
+                      {:subtype ::form-field
+                       :arity [:exactly n]
+                       :rank n
+                       :arguments (repeat n ::vf/vector-field)}))))
+
+(defn coordinate-name->ff-name
+  "From the name of a coordinate, produce the name of the coordinate basis
+  one-form field (as a symbol)"
+  [n]
+  (symbol (str \d n)))
+
+;; See Spivak p275 v1 "Differential Geometry" to see the correct
+;; definition.  The key is that the wedge of the coordinate basis
+;; forms had better be the volume element.
 
 (defn get-rank
   [f]
@@ -137,8 +202,7 @@
         (fn? f) 0
         :else (u/illegal "not a differential form")))
 
-(defn exterior-derivative-procedure
-  [kform]
+(defn exterior-derivative-procedure [kform]
   (let [k (get-rank kform)]
     (if (= k 0)
       (function->oneform-field kform)
@@ -229,6 +293,12 @@
            [IIterable
             (-iterator [this] this)])))))
 
+;; Higher rank forms can be constructed from 1forms by wedging them
+;; together.  This antisymmetric tensor product is computed as a
+;; determinant.  The purpose of this is to allow us to use the
+;; construction dx^dy to compute the area described by the vectors
+;; that are given to it.
+
 (defn ^:private wedge2
   [form1 form2]
   (let [n1 (get-rank form1)
@@ -245,7 +315,9 @@
                                           (g/* parity (apply form1 a1) (apply form2 a2))))
                                       (permutation-sequence args)
                                       (cycle [1 -1])))))]
-        (procedure->nform-field w n `(~'wedge ~(v/freeze form1) ~(v/freeze form2)))))))
+        (procedure->nform-field w n `(~'wedge
+                                      ~(v/freeze form1)
+                                      ~(v/freeze form2)))))))
 
 (defn wedge [& fs]
   (reduce wedge2 fs))
