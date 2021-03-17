@@ -18,6 +18,14 @@
 ;;
 
 (ns sicmutils.calculus.manifold
+  "This namespace defines a functional API for:
+
+  - differentiable manifolds (both manifold families like [[Rn]] and manifolds
+    specialized to a concrete dimension)
+  - manifold points
+  - coordinate patches
+
+  As well as a whole bunch of defined manifolds and coordinate systems."
   (:require #?(:cljs [goog.string :refer [format]])
             [sicmutils.abstract.function :as af]
             [sicmutils.function :as f]
@@ -30,17 +38,38 @@
              :refer [rotate-x-matrix rotate-y-matrix rotate-z-matrix]]
             [taoensso.timbre :as log]))
 
-;; Manifolds
+;; TODO:
+;;
+;; - let coordinate systems access their patches
+;;
+;; # Disclaimer (from @sritchie)
+;;
+;; I'm convinced that the scmutils code used to implement the ideas
+;; in "Functional Differential Geometry" doesn't have the final say on the best
+;; API for differential geometry. I'm going to leave notes throughout the
+;; namespace suggesting ways that we might make it better; please take these as
+;; challenges and erase the notes as you make improvements!
+;;
+;;
+;; ## Manifold Families
+;;
+;; Manifolds like R1, R2, S1, S2 etc are specialized versions of "manifold
+;; templates" like Rn and Sn. We call these "manifold families".
 
 ;; NOTE: this is a chunk of `specify-manifold`, `type` there is `over` here.
 ;;
 ;; NOTE: GJS calls this a `manifold-type` in scmutils.
 
 (defn make-manifold-family
-  [name-format & {:keys [over] :or {over 'Real}}]
-  {:over over
-   :name-format name-format
-   :patches {}})
+  "Generates a manifold family (a template for building manifolds) from the
+  supplied `name-format` and, optionally, "
+  ([name-format]
+   (make-manifold-family name-format 'Real))
+  ([name-format over]
+   {:pre [(contains? #{'Real 'Complex} over)]}
+   {:over over
+    :name-format name-format
+    :patches {}}))
 
 (defn make-manifold
   "Specialize a manifold-family into a particular manifold by specifying
@@ -271,10 +300,12 @@
                 (chart coordinate-system))
      assoc
      :name name
-     :coordinate-systems coordinate-system
+     :coordinate-system coordinate-system
      :type ::manifold-function)))
 
-(def literal-manifold-function literal-scalar-field)
+(def ^{:doc "Alias for [[literal-scalar-field]]."}
+  literal-manifold-function
+  literal-scalar-field)
 
 (defn zero-manifold-function [m]
   {:pre [(manifold-point? m)]}
@@ -538,8 +569,8 @@
                             (:embedding-dimension manifold)))
                   (let [[x y z] rep]
                     (s/up (g/acos z) (g/atan y x)))
-                  (u/illegal "S2-coordinates bad point"))
-                ))))
+                  (u/illegal "S2-coordinates bad point"))))))
+
          (coordinate-prototype [this]
            coordinate-prototype)
 
@@ -608,32 +639,35 @@
 
            (point->coords [this point]
              (assert (check-point this point))
-             (letfn [(safe-atan [y x]
-                       (when (and (number? y) (number? x)
-                                  (v/zero? y) (v/zero? x))
-		                     (log/warn "Sn-coordinates singular!"))
-                       (g/atan y x))]
-               (let [pt (rotate-left
-		                     (reverse
-                          (g/* orientation-inverse-matrix
-			                         (manifold-point-representation point))))]
-	               (if (= n 1)
-		               (safe-atan (nth pt 1) (nth pt 0))
-	                 (loop [r    (first pt)
-                          more (rest pt)
-			                    ans  [(safe-atan (first pt) (second pt))]]
-                     ;; There is almost certainly a more efficient way to do
-                     ;; this. Study the transformation here, and see how many
-                     ;; times we're taking square roots and then squaring again.
-                     ;; https://en.wikipedia.org/wiki/N-sphere#Spherical_coordinates
-		                 (if-not (next more)
-			                 (s/up* ans)
-			                 (let [r' (g/sqrt (g/+ (g/square (first more))
-                                             (g/square r)))]
-			                   (recur r'
-                                (rest more)
-			                          (cons (safe-atan r' (second more))
-                                      ans)))))))))
+             (get-coordinates
+              point this
+              (fn []
+                (letfn [(safe-atan [y x]
+                          (when (and (number? y) (number? x)
+                                     (v/zero? y) (v/zero? x))
+		                        (log/warn "Sn-coordinates singular!"))
+                          (g/atan y x))]
+                  (let [pt (rotate-left
+		                        (reverse
+                             (g/* orientation-inverse-matrix
+			                            (manifold-point-representation point))))]
+	                  (if (= n 1)
+		                  (safe-atan (nth pt 1) (nth pt 0))
+	                    (loop [r    (first pt)
+                             more (rest pt)
+			                       ans  [(safe-atan (first pt) (second pt))]]
+                        ;; There is almost certainly a more efficient way to do
+                        ;; this. Study the transformation here, and see how many
+                        ;; times we're taking square roots and then squaring again.
+                        ;; https://en.wikipedia.org/wiki/N-sphere#Spherical_coordinates
+		                    (if-not (next more)
+			                    (s/up* ans)
+			                    (let [r' (g/sqrt (g/+ (g/square (first more))
+                                                (g/square r)))]
+			                      (recur r'
+                                   (rest more)
+			                             (cons (safe-atan r' (second more))
+                                         ans)))))))))))
 
            (coordinate-prototype [this]
              coordinate-prototype)
@@ -926,17 +960,20 @@
       (attach-patch :south-pole)
       (attach-patch :tilted)
       (attach-coordinate-system :spherical :north-pole
-                                (->S2-coordinates (s/down (s/up 1 0 0)
-                                                          (s/up 0 1 0)
-                                                          (s/up 0 0 1))))
+                                (->S2-coordinates
+                                 (s/down (s/up 1 0 0)
+                                         (s/up 0 1 0)
+                                         (s/up 0 0 1))))
       (attach-coordinate-system :spherical :tilted
-                                (->S2-coordinates (s/down (s/up 1 0 0)
-                                                          (s/up 0 0 1)
-                                                          (s/up 0 -1 0))))
+                                (->S2-coordinates
+                                 (s/down (s/up 1 0 0)
+                                         (s/up 0 0 1)
+                                         (s/up 0 -1 0))))
       (attach-coordinate-system :spherical :south-pole
-                                (->S2-coordinates (s/down (s/up 1 0 0)
-                                                          (s/up 0 1 0)
-                                                          (s/up 0 0 -1))))
+                                (->S2-coordinates
+                                 (s/down (s/up 1 0 0)
+                                         (s/up 0 1 0)
+                                         (s/up 0 0 -1))))
       (attach-coordinate-system :stereographic :north-pole
                                 (->Sn-stereographic matrix/I))
       (attach-coordinate-system :stereographic :south-pole
