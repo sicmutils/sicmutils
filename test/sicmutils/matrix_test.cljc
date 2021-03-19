@@ -615,7 +615,17 @@
                               [(g/conjugate c)
                                (g/conjugate d)])
                    (g/conjugate
-                    (m/by-rows [a b] [c d]))))))
+                    (m/by-rows [a b] [c d])))))
+
+  (checking "g/real-part, g/imag-part pass through to values" 100
+            [a sg/complex b sg/complex
+             c sg/complex d sg/complex]
+            (let [M (m/by-rows [a b] [c d])]
+              (is (= (m/fmap g/real-part M)
+                     (g/real-part M)))
+
+              (is (= (m/fmap g/imag-part M)
+                     (g/imag-part M))))))
 
 (defspec p+q=q+p
   (gen/let [n (gen/choose 1 10)]
