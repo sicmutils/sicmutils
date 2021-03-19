@@ -598,8 +598,8 @@
                               (gen/tuple
                                (gen/vector sg/real n)
                                (gen/vector sg/real n)))]
-            (is (== (apply (apply f/arg-scale g/+ factors) args)
-                    (apply g/+ (map g/* factors args)))))
+            (is (ish? (apply (apply f/arg-scale g/+ factors) args)
+                      (apply g/+ (map g/* factors args)))))
 
   (testing "arg-scale unit"
     (is (= 144 ((f/arg-scale g/square 3) 4)))
