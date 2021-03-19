@@ -29,8 +29,15 @@
             [sicmutils.value :as v]
             #?(:cljs [goog.string :refer [format]])))
 
-(def coefficient second)
-(def exponents first)
+(defn exponents [term]
+  (if term
+    (nth term 0)
+    []))
+
+(defn coefficient [term]
+  (if term
+    (nth term 1)
+    0))
 
 ;; ## Monomials
 ;;
@@ -75,7 +82,7 @@
 
 ;; ## Polynomials
 
-(declare evaluate make-constant poly->str)
+(declare evaluate make-constant poly->str poly:zero poly:one)
 
 (deftype Polynomial [arity xs->c]
   v/Value
@@ -443,9 +450,11 @@
 (defn partial-derivatives
   "The sequence of partial derivatives of p with respect to each
   indeterminate"
-  [^Polynomial p]
-  (for [i (range (.-arity p))]
-    (partial-derivative p i)))
+  [p]
+  (if (v/number? p)
+    [1]
+    (for [i (range (.-arity ^Polynomial p))]
+      (partial-derivative p i))))
 
 ;; ## Canonicalizer
 

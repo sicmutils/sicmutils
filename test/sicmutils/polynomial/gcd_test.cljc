@@ -22,8 +22,11 @@
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.expression :refer [variables-in]]
             [sicmutils.expression.analyze :as a]
+            [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.polynomial :as p]
             [sicmutils.polynomial.gcd :as pg]
@@ -140,19 +143,31 @@
       (is (= II (g/gcd (g/add Z Z) II)))
       (is (= II (g/gcd II (g/add (g/add X X) (g/add Z Z))))))))
 
-(def ^:private poly-analyzer (p/->PolynomialAnalyzer))
-(defn ^:private ->poly [x] (a/expression-> poly-analyzer x (fn [p _] p)))
+(def poly-analyzer
+  (p/->PolynomialAnalyzer))
 
-(defn ^:private gcd-test [name dx fx gx]
+(defn ->poly [x]
+  (a/expression-> poly-analyzer x (fn [p _] p)))
+
+(defn gcd-test [name dx fx gx]
+  (is (= 0 (pg/gcd)))
+
+  (checking "gcd between numbers" 100 [x sg/any-integral
+                                       y sg/any-integral]
+            (is (= (pg/gcd x y)
+                   (g/gcd x y))))
+
   (let [d (->poly dx)
         f (->poly fx)
         g (->poly gx)
         df (g/mul d f)
         dg (g/mul d g)
-        sw (us/stopwatch)
-        a (binding [pg/*poly-gcd-time-limit* [10 :seconds]
-                    pg/*poly-gcd-cache-enable* false]
-            (is (= d (pg/gcd df dg))))]
+        sw (us/stopwatch)]
+    (is (= df (pg/gcd df)))
+    (is (= dg (pg/gcd dg)))
+    (binding [pg/*poly-gcd-time-limit* [10 :seconds]
+              pg/*poly-gcd-cache-enable* false]
+      (is (= d (pg/gcd df dg))))
     (log/info "gcd-test" name (us/repr sw))))
 
 (deftest ^:long ^:benchmark gjs

@@ -42,7 +42,7 @@
            old-m (v/one-like p)]
       (if (v/one? m)
         (answer tracker h)
-        (let [gg (-> h poly/partial-derivatives gcd-seq)
+        (let [gg    (gcd-seq (poly/partial-derivatives h))
               new-s (g/exact-divide h (gcd h gg))
               new-m (gcd gg new-s)
               facts (g/exact-divide old-s new-s)
@@ -65,11 +65,13 @@
 (defn factor-polynomial-expression
   [simplifier analyzer p]
   (a/expression->
-    analyzer
-    (x/expression-of p)
-    (fn [p v]
-      (map (fn [factor] (simplifier (a/->expression analyzer factor v)))
-           (split p)))))
+   analyzer
+   (x/expression-of p)
+   (fn [p v]
+     (map (fn [factor]
+            (simplifier
+             (a/->expression analyzer factor v)))
+          (split p)))))
 
 (defn- flatten-product
   "Construct a list with all the top-level products in args spliced
@@ -95,9 +97,12 @@
         poly-> (partial a/->expression poly-analyzer)]
     (a/make-analyzer
      (reify a/ICanonicalize
-       (expression-> [_ expr cont v-compare] (a/expression-> poly-analyzer expr cont v-compare))
-       (->expression [_ p vars] (->factors p poly-> vars))
-       (known-operation? [_ o] (a/known-operation? poly-analyzer o)))
+       (expression-> [_ expr cont v-compare]
+         (a/expression-> poly-analyzer expr cont v-compare))
+       (->expression [_ p vars]
+         (->factors p poly-> vars))
+       (known-operation? [_ o]
+         (a/known-operation? poly-analyzer o)))
      (a/monotonic-symbol-generator "-f-"))))
 
 (defn ^:private assume!
