@@ -30,14 +30,10 @@
             #?(:cljs [goog.string :refer [format]])))
 
 (defn exponents [term]
-  (if term
-    (nth term 0)
-    []))
+  (nth term 0 []))
 
 (defn coefficient [term]
-  (if term
-    (nth term 1)
-    0))
+  (nth term 1 0))
 
 ;; ## Monomials
 ;;
@@ -82,7 +78,7 @@
 
 ;; ## Polynomials
 
-(declare evaluate make-constant poly->str poly:zero poly:one)
+(declare evaluate make-constant poly->str)
 
 (deftype Polynomial [arity xs->c]
   v/Value
