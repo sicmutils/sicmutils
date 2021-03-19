@@ -2,6 +2,10 @@
 
 ## [unreleased]
 
+- #329 fixes a bug where the simplifier couldn't handle expressions like `(sqrt
+  (literal-number 2))`, where literal numbers with no symbols were nested inside
+  of symbolic expressions.
+
 - #326 is a large PR that marks the start of a big push toward full
   implementation of the ideas in "Functional Differential Geometry". Here is the
   full list of changes:

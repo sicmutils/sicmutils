@@ -142,7 +142,6 @@
        (atan :y :x)
        #(not (simplifies-to-one? `(~'gcd ~(% :x) ~(% :y))))
        (atan (/ :y (gcd :x :y)) (/ :x (gcd :x :y)))
-
        ))
      simplify-and-flatten)))
 
@@ -157,38 +156,32 @@
   stabilizes.)"
   [x]
   (-> x
-      rules/canonicalize-partials
-      rules/trig->sincos
-      simplify-and-flatten
-      rules/complex-trig
-      sincos-simplifier
-      sin-sq->cos-sq-simplifier
-      trig-cleanup
-      rules/sincos->trig
-      rules/sqrt-expand
-      simplify-and-flatten
-      rules/sqrt-contract
-      square-root-simplifier
-      clear-square-roots-of-perfect-squares
-      simplify-and-flatten
-      ))
+      (rules/canonicalize-partials)
+      (rules/trig->sincos)
+      (simplify-and-flatten)
+      (rules/complex-trig)
+      (sincos-simplifier)
+      (sin-sq->cos-sq-simplifier)
+      (trig-cleanup)
+      (rules/sincos->trig)
+      (rules/sqrt-expand)
+      (simplify-and-flatten)
+      (rules/sqrt-contract)
+      (square-root-simplifier)
+      (clear-square-roots-of-perfect-squares)
+      (simplify-and-flatten)))
 
 (def simplify-expression
   (simplify-until-stable simplify-expression-1 simplify-and-flatten))
 
-(defn simplify-numerical-expression
-  "Runs the content of the Literal e through the simplifier, but leaves the result
-  in Literal form."
-  [e]
-  (if (x/abstract? e)
-    (x/fmap simplify-expression e)
-    e))
-
-(defn ^:private haz
+(defn- haz
   "Returns a function which checks whether its argument, a set, has a nonempty
   intersection with thing-set."
   [thing-set]
-  #(-> % x/variables-in (set/intersection thing-set) not-empty))
+  (fn [expr]
+    (-> (x/variables-in expr)
+        (set/intersection thing-set)
+        (not-empty))))
 
 (defn only-if
   "returns a function that will apply f to its argument x if (p x), else returns x."
