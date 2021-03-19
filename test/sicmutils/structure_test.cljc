@@ -1086,6 +1086,16 @@
       (is (= (g/sqrt (g/square m))
              (c/complex (g/abs m))))))
 
+  (testing "g/real-part, g/imag-part"
+    (let [struct [#sicm/complex "3+4i"
+                  (s/up #sicm/complex "3+4i")
+                  (s/down #sicm/complex "3+4i")]]
+      (is (= (s/up 3.0 (s/up 3.0) (s/down 3.0))
+             (g/real-part struct)))
+
+      (is (= (s/up 4.0 (s/up 4.0) (s/down 4.0))
+             (g/imag-part struct)))))
+
   (testing "g/conjugate"
     (is (= (s/up 3 4 5) (g/conjugate [3 4 5])))
     (is (= (s/up #sicm/complex "3-4i")

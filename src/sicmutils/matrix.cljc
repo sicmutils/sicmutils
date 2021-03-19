@@ -855,8 +855,9 @@
 
 (defmethod g/invert [::matrix] [m] (invert m))
 
-(defmethod g/conjugate [::matrix] [m]
-  (fmap g/conjugate m))
+(defmethod g/real-part [::matrix] [m] (fmap g/real-part m))
+(defmethod g/imag-part [::matrix] [m] (fmap g/imag-part m))
+(defmethod g/conjugate [::matrix] [m]  (fmap g/conjugate m))
 
 (defmethod g/transpose [::matrix] [m] (transpose m))
 (defmethod g/trace [::square-matrix] [m] (trace m))

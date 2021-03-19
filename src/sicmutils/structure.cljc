@@ -904,8 +904,9 @@
 (defmethod g/abs [::structure] [a]
   (g/sqrt (dot-product a a)))
 
-(defmethod g/conjugate [::structure] [a]
-  (mapr g/conjugate a))
+(defmethod g/real-part [::structure] [m] (mapr g/real-part m))
+(defmethod g/imag-part [::structure] [m] (mapr g/imag-part m))
+(defmethod g/conjugate [::structure] [a] (mapr g/conjugate a))
 
 (defmethod g/transpose [::structure] [a] (transpose a))
 (defmethod g/dimension [::structure] [a] (dimension a))
