@@ -4,7 +4,8 @@
 
 - #330 adds `g/real-part` and `g/imag-part` implementations for
   `sicmutils.structure.Structure` and `sicmutils.matrix.Matrix` instances. These
-  pass through to the entries in the structure or matrix.
+  pass through to the entries in the structure or matrix. #331 adds similar
+  implementations for `g/make-rectangular` and `g/make-polar`.
 
 - #329 fixes a bug where the simplifier couldn't handle expressions like `(sqrt
   (literal-number 2))`, where literal numbers with no symbols were nested inside

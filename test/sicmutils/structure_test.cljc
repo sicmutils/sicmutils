@@ -1086,15 +1086,26 @@
       (is (= (g/sqrt (g/square m))
              (c/complex (g/abs m))))))
 
-  (testing "g/real-part, g/imag-part"
-    (let [struct [#sicm/complex "3+4i"
-                  (s/up #sicm/complex "3+4i")
-                  (s/down #sicm/complex "3+4i")]]
-      (is (= (s/up 3.0 (s/up 3.0) (s/down 3.0))
-             (g/real-part struct)))
+  (testing "g/real-part, g/imag-part, g/make-rectangular, g/make-polar"
+    (let [s3      [3 (s/up 3) (s/down 3)]
+          s4      [4 (s/up 4) (s/down 4)]
+          s-rect  (g/make-rectangular s3 s4)
+          s-polar (g/make-polar s3 s4)]
+      (is (ish? s3 (g/real-part s-rect)))
+      (is (ish? s4 (g/imag-part s-rect)))
 
-      (is (= (s/up 4.0 (s/up 4.0) (s/down 4.0))
-             (g/imag-part struct)))))
+      (is (ish? s3 (s/mapr g/magnitude s-polar))
+          "magnitudes are mirrored back out")
+      (is (ish? s4 (s/mapr (comp #(g/modulo % (* 2 Math/PI))
+                                 g/angle)
+                           s-polar))
+          "angles are mirrored back out, but only equal after we mod by 2pi.")))
+
+  (checking "g/make-rectangular rebuilds the original structure" 100
+            [s (sg/structure sg/complex 3)]
+            (is (= s (g/make-rectangular
+                      (g/real-part s)
+                      (g/imag-part s)))))
 
   (testing "g/conjugate"
     (is (= (s/up 3 4 5) (g/conjugate [3 4 5])))

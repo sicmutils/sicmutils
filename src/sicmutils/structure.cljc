@@ -103,7 +103,7 @@
        (toString [_] (str "("
                           (orientation orientation->symbol)
                           " "
-                          (join " " (map str v))
+                          (join " " (map pr-str v))
                           ")"))
 
        Sequential
@@ -176,7 +176,8 @@
       :cljs
       [Object
        (toString [_] (str "("
-                          (orientation orientation->symbol) " " (join " " (map str v))
+                          (orientation orientation->symbol)
+                          " " (join " " (map pr-str v))
                           ")"))
 
        IPrintWithWriter
@@ -903,6 +904,22 @@
 
 (defmethod g/abs [::structure] [a]
   (g/sqrt (dot-product a a)))
+
+;; NOTE: `g/make-rectangular` and `g/make-polar` _should_ check that both
+;; dimensions match all the way down, but they currently don't. Use with that in
+;; mind!
+
+(defmethod g/make-rectangular [::up ::up] [a b]
+  (mapr g/make-rectangular a b))
+
+(defmethod g/make-rectangular [::down ::down] [a b]
+  (mapr g/make-rectangular a b))
+
+(defmethod g/make-polar [::up ::up] [a b]
+  (mapr g/make-polar a b))
+
+(defmethod g/make-polar [::down ::down] [a b]
+  (mapr g/make-polar a b))
 
 (defmethod g/real-part [::structure] [m] (mapr g/real-part m))
 (defmethod g/imag-part [::structure] [m] (mapr g/imag-part m))
