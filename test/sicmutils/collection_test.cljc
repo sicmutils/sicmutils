@@ -166,7 +166,13 @@
                          (g/make-rectangular m m)))
                 "real-part"))
 
-  (testing "make-rectangular etc for maps"
+  (checking "g/make-rectangular round trip on maps" 100
+            [m (gen/map gen/keyword sg/complex {:max-elements 5})]
+            (is (= m (g/make-rectangular
+                      (g/real-part m)
+                      (g/imag-part m)))))
+
+  (testing "make-rectangular etc for maps, unit"
     (is (v/= {:a (g/make-rectangular 1 2)
               :b 1
               :c (g/make-rectangular 0 1)}
