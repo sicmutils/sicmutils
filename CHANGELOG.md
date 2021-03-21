@@ -2,6 +2,15 @@
 
 ## [unreleased]
 
+- #334 adds implementations of `g/add` and the `sicmutils.value.Value` protocol
+  for clojure's Set data structure. Addition is defined as set union, and
+  `(zero-like <set>)` returns the empty set.
+
+- #334 implements `g/add`, `g/negate` and `g/sub` for Clojure's Map data
+  structure. Map addition is defined as a merge using `g/add` on clashing
+  values; `g/sub` is the same, but any values on the right side not on the left
+  side are negated.
+
 ## 0.17.0
 
 > (If you have any questions about how to use any of the following, please ask us
