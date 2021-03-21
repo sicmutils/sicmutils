@@ -188,7 +188,7 @@
 
    :cljs
    (do
-     (derive PersistentHashSet ::map)
+     (derive PersistentHashSet ::set)
      (derive PersistentTreeSet ::set)))
 
 (defmethod g/add [::set ::set] [a b]
