@@ -136,6 +136,25 @@
 (defmethod g/div [::map ::v/scalar] [m x]
   (u/map-vals #(g/div % x) m))
 
+(defn- combine [f m1 m2 l-default]
+  (letfn [(merge-entry [m e]
+			      (let [k (key e)
+                  v (val e)]
+			        (assoc m k (f (get m k l-default) v))))]
+    (reduce merge-entry m1 (seq m2))))
+
+(defmethod g/make-rectangular [::map ::map] [m1 m2]
+  (combine g/make-rectangular m1 m2 0))
+
+(defmethod g/make-polar [::map ::map] [m1 m2]
+  (combine g/make-polar m1 m2 0))
+
+(defmethod g/real-part [::map] [m]
+  (u/map-vals g/real-part m))
+
+(defmethod g/imag-part [::map] [m]
+  (u/map-vals g/imag-part m))
+
 (defmethod g/simplify [::map] [m]
   (u/map-vals g/simplify m))
 
