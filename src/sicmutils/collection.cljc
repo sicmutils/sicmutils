@@ -127,6 +127,15 @@
 (defmethod g/sub [::map ::map] [a b]
   (merge-with g/add a (u/map-vals g/negate b)))
 
+(defmethod g/mul [::map ::v/scalar] [m x]
+  (u/map-vals #(g/mul % x) m))
+
+(defmethod g/mul [::v/scalar ::map] [x m]
+  (u/map-vals #(g/mul x %) m))
+
+(defmethod g/div [::map ::v/scalar] [m x]
+  (u/map-vals #(g/div % x) m))
+
 (defmethod g/simplify [::map] [m]
   (u/map-vals g/simplify m))
 
