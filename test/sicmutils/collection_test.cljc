@@ -23,7 +23,7 @@
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.derivative :refer [D]]
-            [sicmutils.complex :refer [complex]]
+            [sicmutils.complex :refer [complex I]]
             [sicmutils.collection :as collection]
             [sicmutils.differential :as d]
             [sicmutils.function :as f]
@@ -114,7 +114,7 @@
 
   (checking "map is a sparse vector space over complex" 100
             [m1 (gen/map gen/keyword sg/real {:max-elements 5})
-             m2 (gen/map gen/keyword sg/real  {:max-elements 5})
+             m2 (gen/map gen/keyword sg/real {:max-elements 5})
              x sg/real]
             (is (ish? (u/map-vals #(g/* x %) m1)
                       (g/* x m1))
@@ -133,6 +133,57 @@
                              (g/* x m2))
                       (g/* x (g/add m1 m2)))
                 "multiplication distributes over group addition"))
+
+  (checking "g/make-{rectangular,polar} on maps" 100
+            [m (gen/map gen/keyword sg/real {:max-elements 5})]
+            (is (= m (g/make-rectangular m {}))
+                "make-rectangular with no imaginary parts is identity.")
+
+            (is (ish? (g/* m I)
+                      (g/make-rectangular {} m))
+                "every entry turns turns imaginary!")
+
+            (is (= m (g/make-polar m {}))
+                "make-polar with no angles is identity.")
+
+            (is (ish? (v/zero-like m)
+                      (g/make-polar {} m))
+                "if all angles comes from m, but every radius is 0, then the
+                resulting entries will be zero.")
+
+            (is (= m (g/real-part m))
+                "real-part on all real is id.")
+
+            (is (ish? (v/zero-like m)
+                      (g/imag-part m))
+                "imag-part on all real is zeor-like.")
+
+            (is (ish? m (g/imag-part
+                         (g/make-rectangular m m)))
+                "imag-part recovers all imaginary pieces")
+
+            (is (ish? m (g/real-part
+                         (g/make-rectangular m m)))
+                "real-part"))
+
+  (checking "g/make-rectangular round trip on maps" 100
+            [m (gen/map gen/keyword sg/complex {:max-elements 5})]
+            (is (= m (g/make-rectangular
+                      (g/real-part m)
+                      (g/imag-part m)))))
+
+  (testing "make-rectangular etc for maps, unit"
+    (is (v/= {:a (g/make-rectangular 1 2)
+              :b 1
+              :c (g/make-rectangular 0 1)}
+             (g/make-rectangular {:a 1 :b 1}
+                                 {:a 2 :c 1})))
+
+    (is (v/= {:a (g/make-polar 1 2)
+              :b 1
+              :c (g/make-polar 0 1)}
+             (g/make-polar {:a 1 :b 1}
+                           {:a 2 :c 1}))))
 
   (testing "Map protocol implementations"
     (checking "f/arity" 100 [m (gen/map gen/keyword sg/any-integral)]

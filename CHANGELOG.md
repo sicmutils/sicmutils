@@ -2,6 +2,12 @@
 
 ## [unreleased]
 
+- #335 implements `g/make-rectangular`, `g/make-polar` `g/real-part` and
+  `g/imag-part` for clojure's Map data structure. Maps are treated as sparse
+  vectors, any missing key on either side of `make-rectangular` or
+  `make-polar`is treated as a 0 (rather than an error because the keys don't
+  match, as in vectors).
+
 - #334 adds implementations of `g/add` and the `sicmutils.value.Value` protocol
   for clojure's Set data structure. Addition is defined as set union, and
   `(zero-like <set>)` returns the empty set.
