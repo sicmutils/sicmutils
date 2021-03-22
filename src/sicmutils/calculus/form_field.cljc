@@ -118,7 +118,7 @@
 (defn components->oneform-field
   "TODO fix...
 
-  takes components of the One-form field relative to a coordinate system AND the
+  takes components of the one-form field relative to a coordinate system AND the
   coordinate system... and returns the One-form field."
   ([components coordinate-system]
    (let [name `(~'oneform-field ~(v/freeze components))]
@@ -474,4 +474,4 @@
   (o/make-operator
    exterior-derivative-procedure 'd))
 
-(def d exterior-derivative-procedure)
+(def d exterior-derivative)
