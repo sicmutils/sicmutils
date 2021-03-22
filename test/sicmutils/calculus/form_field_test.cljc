@@ -1,25 +1,26 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns sicmutils.calculus.form-field-test
   (:refer-clojure :exclude [+ - * /])
-  (:require [clojure.test :refer [is deftest testing]]
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [sicmutils.abstract.function :as af]
             [sicmutils.calculus.coordinate :as c
              :refer [let-coordinates]
              #?@(:cljs [:include-macros true])]
@@ -27,8 +28,11 @@
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :refer [up down]]
             [sicmutils.value :as v]))
+
+(use-fixtures :each hermetic-simplify-fixture)
 
 (def simplify
   (comp v/freeze g/simplify))
@@ -86,155 +90,134 @@
       (is (= 0 (simplify ((residual vp vp) mp))))
       (is (= 0 (simplify ((residual vr vr) mp)))))))
 
-(comment
-  ;; tests from form-field.
-  (install-coordinates R3-rect (up 'x 'y 'z))
+(deftest form-field-tests
+  ;; tests from form-fields.scm.
+  (let-coordinates [[x y z]        m/R3-rect
+                    [r theta zeta] m/R3-cyl]
+    (let [mr ((m/point R3-rect) (up 'x0 'y0 'z0))
+          ;; TODO replace with literal-oneform-field
+          a-oneform      (ff/components->oneform-field
+                          (down (af/literal-function 'ax '(-> (UP* Real 3) Real))
+                                (af/literal-function 'ay '(-> (UP* Real 3) Real))
+                                (af/literal-function 'az '(-> (UP* Real 3) Real)))
+                          R3-rect)
+          a-vector-field (vf/components->vector-field
+                          (up (af/literal-function 'vx '(-> (UP* Real 3) Real))
+                              (af/literal-function 'vy '(-> (UP* Real 3) Real))
+                              (af/literal-function 'vz '(-> (UP* Real 3) Real)))
+                          R3-rect)]
+      (is (= '(+ (* (ax (up x0 y0 z0)) (vx (up x0 y0 z0)))
+                 (* (ay (up x0 y0 z0)) (vy (up x0 y0 z0)))
+                 (* (az (up x0 y0 z0)) (vz (up x0 y0 z0))))
+             (simplify
+              ((a-oneform a-vector-field) mr)))
+          "NOTE: GJS has each product flipped. Does this matter, since these are
+          real-valued?")
 
-  (def mr ((R3-rect '->point) (up 'x0 'y0 'z0)))
+      (is (= '(down (ax (up x0 y0 z0))
+                    (ay (up x0 y0 z0))
+                    (az (up x0 y0 z0)))
+             (simplify
+              ((ff/oneform-field->components a-oneform R3-rect)
+               (up 'x0 'y0 'z0)))))
 
-  (def a-oneform
-    (components->oneform-field
-     (down (literal-function 'ax (-> (UP* Real) Real))
-	         (literal-function 'ay (-> (UP* Real) Real))
-	         (literal-function 'az (-> (UP* Real) Real)))
-     R3-rect))
+      (is (= '(down (+ (* (cos theta0)
+                          (ax (up (* r0 (cos theta0))
+                                  (* r0 (sin theta0))
+                                  z0)))
+                       (* (sin theta0)
+                          (ay (up (* r0 (cos theta0))
+                                  (* r0 (sin theta0))
+                                  z0))))
+                    (+ (* r0 (cos theta0)
+                          (ay (up (* r0 (cos theta0))
+                                  (* r0 (sin theta0))
+                                  z0)))
+                       (* -1 r0 (sin theta0)
+                          (ax (up (* r0 (cos theta0))
+                                  (* r0 (sin theta0))
+                                  z0))))
+                    (az (up (* r0 (cos theta0))
+                            (* r0 (sin theta0))
+                            z0)))
+             (simplify
+              ((ff/oneform-field->components a-oneform R3-cyl)
+               (up 'r0 'theta0 'z0))))))
 
-  (def a-vector-field
-    (components->vector-field
-     (up (literal-function 'vx (-> (UP* Real) Real))
-         (literal-function 'vy (-> (UP* Real) Real))
-         (literal-function 'vz (-> (UP* Real) Real)))
-     R3-rect))
+    (let [mr ((m/point R3-rect) (up 'x0 'y0 'z0))
+          mp ((m/point R3-cyl) (up 'r0 'theta0 'z0))]
+      (is (= 1 ((dx d:dx) mr)))
+      (is (= 1 ((dx d:dx) mp)))
 
-  (pec ((a-oneform a-vector-field) mr))
-  ;; Result:
-  (+ (* (vx (up x0 y0 z0)) (ax (up x0 y0 z0)))
-     (* (vy (up x0 y0 z0)) (ay (up x0 y0 z0)))
-     (* (vz (up x0 y0 z0)) (az (up x0 y0 z0))))
+      (is (= '(down (/ x0 (sqrt (+ (expt x0 2) (expt y0 2))))
+                    (/ y0 (sqrt (+ (expt x0 2) (expt y0 2))))
+                    0)
+             (v/freeze
+              ((ff/oneform-field->components dr R3-rect)
+               (up 'x0 'y0 'z0)))))
 
+      (is (= '(down (/ (* -1 y0) (+ (expt x0 2) (expt y0 2)))
+                    (/ x0 (+ (expt x0 2) (expt y0 2)))
+                    0)
+             (v/freeze
+              ((ff/oneform-field->components dtheta R3-rect)
+               (up 'x0 'y0 'z0)))))
+      (is (= '(/ (+ (* V↑0 r0 w_0 (cos theta0))
+                    (* V↑1 r0 w_0 (sin theta0))
+                    (* -1 V↑0 w_1 (sin theta0))
+                    (* V↑1 w_1 (cos theta0)))
+                 r0)
+             (simplify
+              (((+ (* 'w_0 dr) (* 'w_1 dtheta))
+                (+ (* 'V↑0 d:dx) (* 'V↑1 d:dy)))
+               mp))))
 
-  (pec ((oneform-field->components a-oneform R3-rect) (up 'x0 'y0 'z0)))
-  ;; Result:
-  (down (ax (up x0 y0 z0)) (ay (up x0 y0 z0)) (az (up x0 y0 z0)))
+      (is (= '(/ (+ (* V↑0 r0 w_0 (cos theta0))
+                    (* V↑1 r0 w_0 (sin theta0))
+                    (* -1 V↑0 w_1 (sin theta0))
+                    (* V↑1 w_1 (cos theta0)))
+                 r0)
+             (simplify
+              (((-> (+ (* 'w_0 dr) (* 'w_1 dtheta))
+                    (ff/oneform-field->components R3-rect)
+                    (ff/components->oneform-field R3-rect))
+                (+ (* 'V↑0 d:dx) (* 'V↑1 d:dy)))
+               mp))))
 
+      (let [counter-clockwise (- (* x d:dy) (* y d:dx))
+            outward (+ (* x d:dx) (* y d:dy))]
+        (is (= (- 'y0)
+               ((dx counter-clockwise) mr)))
 
-  (install-coordinates R3-cyl (up 'r 'theta 'zeta))
+        (is (= 'x0 ((dx outward) mr)))
 
-  (pec ((oneform-field->components a-oneform R3-cyl) (up 'r0 'theta0 'z0)))
-  ;; Result:
-  (down
-   (+ (* (sin theta0) (ay (up (* r0 (cos theta0)) (* r0 (sin theta0)) z0)))
-      (* (cos theta0) (ax (up (* r0 (cos theta0)) (* r0 (sin theta0)) z0))))
-   (+ (* -1 r0 (sin theta0) (ax (up (* r0 (cos theta0)) (* r0 (sin theta0)) z0)))
-      (* r0 (cos theta0) (ay (up (* r0 (cos theta0)) (* r0 (sin theta0)) z0))))
-   (az (up (* r0 (cos theta0)) (* r0 (sin theta0)) z0)))
+        (is (zero?
+             (simplify
+              ((dr counter-clockwise) mp))))
 
+        (is (= 'r0 (simplify
+                    ((dr outward) mp))))
 
+        (is (= '(sqrt (+ (expt x0 2) (expt y0 2)))
+               (simplify
+                ((dr outward) mr))))
 
+        (is (= '(* v x0)
+               (simplify
+                (((* x dy) (+ (* 'u d:dx) (* 'v d:dy)))
+                 mr))))))
 
+    (is (= 1 ((dr d:dr)
+              ((m/point R3-rect) (up 'x↑0 'y↑0 'z↑0)))))
 
-  (def mr ((R3-rect '->point) (up 'x0 'y0 'z0)))
-  (def mp ((R3-cyl '->point) (up 'r0 'theta0 'z0)))
+    (is (= 0 ((dr d:dtheta)
+              ((m/point R3-rect) (up 'x↑0 'y↑0 'z↑0)))))
 
-  ((dx d/dx) mr)
-                                        ;Value 1
+    (is (= 0 ((dtheta d:dr)
+              ((m/point R3-rect) (up 'x↑0 'y↑0 'z↑0)))))
 
-  ((dx d/dx) mp)
-                                        ;Value 1
-
-  (pec ((oneform-field->components dr R3-rect) (up 'x0 'y0 'z0)))
-  ;; Result:
-  (down (/ x0 (sqrt (+ (expt x0 2) (expt y0 2))))
-        (/ y0 (sqrt (+ (expt x0 2) (expt y0 2))))
-        0)
-
-
-  (pec ((oneform-field->components dtheta R3-rect) (up 'x0 'y0 'z0)))
-  ;; Result:
-  (down (/ (* -1 y0) (+ (expt x0 2) (expt y0 2)))
-        (/ x0 (+ (expt x0 2) (expt y0 2)))
-        0)
-
-
-  (pec (((+ (* 'w_0 dr) (* 'w_1 dtheta)) (+ (* 'V↑0 d/dx) (* 'V↑1 d/dy))) mp))
-  ;; Result:
-  (+ (* V↑0 w_0 (cos theta0))
-     (* V↑1 w_0 (sin theta0))
-     (/ (* -1 V↑0 w_1 (sin theta0)) r0)
-     (/ (* V↑1 w_1 (cos theta0)) r0))
-
-
-  (pec
-   (((components->oneform-field (oneform-field->components
-			                           (+ (* 'w_0 dr) (* 'w_1 dtheta))
-			                           R3-rect)
-			                          R3-rect)
-     (+ (* 'V↑0 d/dx) (* 'V↑1 d/dy)))
-    mp))
-  ;; Result:
-  (+ (* V↑0 w_0 (cos theta0))
-     (* V↑1 w_0 (sin theta0))
-     (/ (* -1 V↑0 w_1 (sin theta0)) r0)
-     (/ (* V↑1 w_1 (cos theta0)) r0))
-
-  (def counter-clockwise (- (* x d/dy) (* y d/dx)))
-
-  (def outward (+ (* x d/dx) (* y d/dy)))
-
-
-  (pec ((dx counter-clockwise) mr))
-  ;; Result:
-  (* -1 y0)
-
-
-  (pec ((dx outward) mr))
-  ;; Result:
-  x0
-
-
-  (pec ((dr counter-clockwise) mp))
-  ;; Result:
-  0
-
-
-  (pec ((dr outward) mp))
-  ;; Result:
-  r0
-
-
-  (pec ((dr outward) mr))
-  ;; Result:
-  (sqrt (+ (expt x0 2) (expt y0 2)))
-
-
-  (pec (((* x dy) (+ (* 'u d/dx) (* 'v d/dy))) mr))
-  ;; Result:
-  (* v x0)
-
-
-  (pec ((dr d/dr) ((R3-rect '->point) (up 'x↑0 'y↑0 'z↑0))))
-  ;; Result:
-  1
-
-
-  (pec ((dr d/dtheta) ((R3-rect '->point) (up 'x↑0 'y↑0 'z↑0))))
-  ;; Result:
-  0
-
-
-  (pec ((dtheta d/dr) ((R3-rect '->point) (up 'x↑0 'y↑0 'z↑0))))
-  ;; Result:
-  0
-
-
-  (pec ((dtheta d/dtheta) ((R3-rect '->point) (up 'x↑0 'y↑0 'z↑0))))
-  ;; Result:
-  1
-
-
-
-
-  )
+    (is (= 1 ((dtheta d:dtheta)
+              ((m/point R3-rect) (up 'x↑0 'y↑0 'z↑0)))))))
 
 (deftest permutation-test
   (is (thrown? #?(:clj Exception :cljs js/Error)
@@ -258,3 +241,49 @@
           [1 2 0 3] [1 2 3 0] [1 3 2 0] [3 1 2 0]
           [3 1 0 2] [1 3 0 2] [1 0 3 2] [1 0 2 3]]
          (ff/permutation-sequence (range 4)))))
+
+(deftest wedge-tests
+  (let-coordinates [[x y z] m/R3-rect]
+    (let [R3-point ((m/point R3-rect) (up 'x0 'y0 'z0))
+          w (ff/literal-oneform-field 'w R3-rect)
+          u (ff/literal-oneform-field 'u R3-rect)
+          v (ff/literal-oneform-field 'v R3-rect)
+
+          X (vf/literal-vector-field 'X R3-rect)
+          Y (vf/literal-vector-field 'Y R3-rect)
+          Z (vf/literal-vector-field 'Z R3-rect)
+          W (vf/literal-vector-field 'W R3-rect)]
+
+      (is (= '(+ (* (w_0 (up x0 y0 z0)) (X↑0 (up x0 y0 z0)))
+                 (* (w_1 (up x0 y0 z0)) (X↑1 (up x0 y0 z0)))
+                 (* (w_2 (up x0 y0 z0)) (X↑2 (up x0 y0 z0))))
+             (v/freeze ((w X) R3-point))))
+
+      ;; A few theorems
+
+      (is (= 0 (simplify
+                (((- (ff/wedge (ff/wedge w u) v)
+                     (ff/wedge w (ff/wedge u v))) X Y Z)
+                 R3-point))))
+
+      (is (= 0 (simplify
+                (((- (ff/wedge (+ w u) v)
+                     (+ (ff/wedge w v) (ff/wedge u v)))
+                  X Y)
+                 R3-point))))
+
+      (is (= 0 (simplify
+                (((- (ff/wedge u v) (* u v)) X Y)
+                 R3-point)))
+          "a product of forms is their wedge!")
+
+      (is (= 0 (simplify
+                (((- (ff/wedge u v)
+                     (ff/alt-wedge u v)) X Y)
+                 R3-point)))
+          "alt-wedge matches wedge")
+
+      (let [dx:dy (ff/wedge dx dy)]
+        (is (= 1 ((dx:dy d:dx d:dy) R3-point)))
+        (is (= 0 ((dx:dy d:dx d:dx) R3-point)))
+        (is (= -1 ((dx:dy d:dy d:dx) R3-point)))))))

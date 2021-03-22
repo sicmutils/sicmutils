@@ -89,6 +89,28 @@
                      :rank 1
                      :arguments [::vf/vector-field]})))
 
+(defn procedure->nform-field
+  "TODO note how we just... CALL it if `n` is zero, since there are no arguments
+  to supply."
+  ([proc n]
+   (procedure->nform-field proc n 'unnamed-nform-field))
+  ([proc n name]
+   (if (= n 0)
+     (proc)
+     (o/make-operator proc name
+                      {:subtype ::form-field
+                       :arity [:exactly n]
+                       :rank n
+                       :arguments (repeat n ::vf/vector-field)}))))
+
+(defn get-rank [f]
+  (cond (o/operator? f)
+        (or (:rank (o/context f))
+            (u/illegal (str "operator, but not a differential form: " f)))
+
+        (f/function? f) 0
+        :else (u/illegal (str "not a differential form: " f))))
+
 (defn oneform-field-procedure
   "A One-form is specified by a function that gives `components`, in a down tuple,
   relative to a given `coordinate-system`."
@@ -137,7 +159,7 @@
   {:pre [(form-field? op)]}
   (o/make-operator ff:zero
                    'ff:zero
-	                 (o/context op)))
+                   (o/context op)))
 
 (defn ff:zero? [ff]
   {:pre [(form-field? ff)]}
@@ -181,7 +203,7 @@
 
 (defn coordinate-system->oneform-basis
   [coordinate-system]
-  (s/mapr
+  (s/map-chain
    (fn [c-name chain _]
      (let [ff-name (coordinate-name->ff-name c-name)]
        (apply coordinate-basis-oneform-field
@@ -219,28 +241,6 @@
 ;; ## Wedge.scm
 ;;
 ;; Now we transition to wedge.
-
-(defn procedure->nform-field
-  ([proc n]
-   (procedure->nform-field proc n 'unnamed-nform-field))
-  ([proc n name]
-   (if (= n 0)
-     (proc)
-     (o/make-operator proc name
-                      {:subtype ::form-field
-                       :arity [:exactly n]
-                       :rank n
-                       :arguments (repeat n ::vf/vector-field)}))))
-
-;; See Spivak p275 v1 "Differential Geometry" to see the correct
-;; definition.  The key is that the wedge of the coordinate basis
-;; forms had better be the volume element.
-
-(defn get-rank [f]
-  (cond (o/operator? f) (or (:rank (o/context f))
-                            (u/illegal (str "operator, but not a differential form: " f)))
-        (fn? f) 0
-        :else (u/illegal "not a differential form")))
 
 (defn permutation-sequence
   "Produces an iterable sequence developing the permutations of the input sequence
@@ -305,82 +305,124 @@
            [IIterable
             (-iterator [this] this)])))))
 
-;; Higher rank forms can be constructed from 1forms by wedging them
-;; together.  This antisymmetric tensor product is computed as a
-;; determinant.  The purpose of this is to allow us to use the
-;; construction dx^dy to compute the area described by the vectors
-;; that are given to it.
+;; Higher rank forms can be constructed from 1forms by wedging them together.
+;; This antisymmetric tensor product is computed as a determinant. The purpose
+;; of this is to allow us to use the construction dx^dy to compute the area
+;; described by the vectors that are given to it.
 
-(defn ^:private wedge2
-  [form1 form2]
+(defn- wedge2 [form1 form2]
   (let [n1 (get-rank form1)
         n2 (get-rank form2)]
     (if (or (zero? n1) (zero? n2))
       (g/* form1 form2)
       (let [n (+ n1 n2)
+            k (/ 1
+                 (* (g/factorial n1)
+                    (g/factorial n2)))
             w (fn [& args]
-                (assert (= (count args) n) "Wrong number of args to wedge product")
-                (g/* (/ 1 (g/factorial n1) (g/factorial n2))
-                     (reduce g/+ (map (fn [permutation parity]
-                                        (let [a1 (take n1 permutation)
-                                              a2 (drop n1 permutation)]
-                                          (g/* parity (apply form1 a1) (apply form2 a2))))
-                                      (permutation-sequence args)
-                                      (cycle [1 -1])))))]
-        (procedure->nform-field w n `(~'wedge
-                                      ~(v/freeze form1)
-                                      ~(v/freeze form2)))))))
+                (assert (= (count args) n)
+                        "Wrong number of args to wedge product")
+                ;; "Error in Singer" comment from GJS.
+                (g/* k (apply
+                        g/+ (map (fn [permutation parity]
+                                   (let [[a1 a2] (split-at n1 permutation)]
+                                     (g/* parity
+                                          (apply form1 a1)
+                                          (apply form2 a2))))
+                                 (permutation-sequence args)
+                                 (cycle [1 -1])))))
+            name `(~'wedge
+                   ~(v/freeze form1)
+                   ~(v/freeze form2))]
+        (procedure->nform-field w n name)))))
+
+;; See Spivak p275 v1 "Differential Geometry" to see the correct
+;; definition.  The key is that the wedge of the coordinate basis
+;; forms had better be the volume element.
 
 (defn wedge [& fs]
   (reduce wedge2 fs))
 
-(comment
-  (define (Alt form)
-    (let ((n (get-rank form)))
-      (if (zero? n)
-	      form
-	      (let ()
-	        (define (the-alternation . args)
-	          (assert (fix:= (length args) n)
-		                "Wrong number of args to alternation")
-	          (let ((perms (permutations (iota n))))
-	            (g:* (/ 1 (factorial n))
-		               (apply g:+
-			                    (map (lambda (p)
-				                               (let ((pargs (permute p args)))
-				                                 (let ((order (permutation-interchanges p)))
-				                                   (g:* (if (even? order) 1 -1)
-					                                      (apply form pargs)))))
-			                         perms)))))
-	        (procedure->nform-field the-alternation
-				                          n
-				                          `(Alt ,(diffop-name form)))))))
+;; TODO document, figure out WHERE this happened in scmutils.
 
-  (define (tensor-product2 t1 t2)
-    (let ((n1 (get-rank t1)) (n2 (get-rank t2)))
-      (if (or (zero? n1) (zero? n2))
-	      (* form1 form2)
-	      (let ((n (fix:+ n1 n2)))
-	        (define (the-product . args)
-	          (assert (fix:= (length args) n)
-		                "Wrong number of args to tensor product")
-	          (* (apply t1 (list-head args n1))
-	             (apply t2 (list-tail args n1))))
-	        (procedure->nform-field the-product
-				                          n
-				                          `(tensor-product ,(diffop-name t1)
-						                                        ,(diffop-name t2)))))))
+(defmethod g/mul [::form-field ::form-field] [a b]
+  (wedge2 a b))
 
-  (define (w2 form1 form2)
-    (let ((n1 (get-rank form1)) (n2 (get-rank form2)))
-      (* (/ (factorial (+ n1 n2))
-	          (* (factorial n1) (factorial n2)))
+;; Alternative definition in terms of alternation.
+
+(defn Alt [form]
+  (let [n (get-rank form)]
+    (if (zero? n)
+      form
+      (letfn [(alternation [& args]
+                (assert (= (count args) n)
+                        "Wrong number of args to alternation")
+                (g/* (/ 1 (g/factorial n))
+                     (apply g/+
+                            (map (fn [permutation parity]
+                                   (g/* parity (apply form permutation)))
+                                 (permutation-sequence args)
+                                 (cycle [1 -1])))))]
+        (procedure->nform-field
+         alternation n `(~'Alt ~(v/freeze form)))))))
+
+(defn tensor-product2 [t1 t2]
+  (let [n1 (get-rank t1)
+        n2 (get-rank t2)]
+    (if (or (zero? n1) (zero? n2))
+      (g/* t1 t2)
+      (let [n  (+ n1 n2)
+            tp (fn [& args]
+                 (assert (= (count args) n)
+                         "Wrong number of args to tensor product")
+                 (let [[a1 a2] (split-at n1 args)]
+                   (g/* (apply t1 a1)
+                        (apply t2 a2))))]
+        (procedure->nform-field
+         tp n `(~'tensor-product
+                ~(v/freeze t1)
+                ~(v/freeze t2)))))))
+
+(defn w2 [form1 form2]
+  (let [n1 (get-rank form1)
+        n2 (get-rank form2)]
+    (g/* (/ (g/factorial (+ n1 n2))
+            (* (g/factorial n1)
+               (g/factorial n2)))
          (Alt (tensor-product2 form1 form2)))))
 
-  (define (alt-wedge . args)
-    (reduce w2 (constant 1) args)))
+(defn alt-wedge [& args]
+  (reduce w2 (constantly 1) args))
 
 ;; ## Exterior Derivative
+;;
+;; A form field is a function of a place and a number of vector fields. The
+;; exterior derivative of this form field is a derivative of the form with
+;; respect to the place, removing any dependence on place of the vector fields.
+
+;; Consider w(v)(x), where b is the coefficient function for w in coordinates X:
+;;
+;; v1(w(v2))(x) - v2(w(v1))(x)
+;; = v1(b v2(X))(x) - v2(b v1(X))(x)
+;; = v1(b)(x) v2(X)(x) + b(x) v1(v2(X))(x)
+;; - v2(b)(x) v1(X)(x) - b(x) v2(v1(X))(x)
+;; = v1(b)(x) v2(X)(x) - v2(b)(x) v1(X)(x) + b(x)[v1, v2](X)(x)
+;; = v1(b)(x) v2(X)(x) - v2(b)(x) v1(X)(x) + w([v1, v2])(x)
+;;
+;;
+;; We define exterior derivative as follows:
+;;
+;; dw(v1, v2)(x)
+;; = v1(b)(x) v2(X)(x) - v2(b)(x) v1(X)(x)
+;; = v1(w(v2))(x) - v2(w(v1))(x) - w([v1, v2])(x)
+;;
+;; It is not obvious that this is equivalent to the standard definition. See
+;; page 91 in Spivak.
+;;
+;; Another way to think about this is that if we were able to define constant
+;; vector fields (v1_bar, v2_bar) that have constant coefficient functions equal
+;; to the value of the coefficient function at the point, then dw(v1, v2)(x)
+;; would be just v1_bar(w(v2_bar))(x) - v2_bar(w(v1_bar))(x).
 
 ;; This definition is a generalization to k-forms, by recursion on the vector
 ;; argument list.
@@ -395,29 +437,34 @@
 (defn- exterior-derivative-procedure [kform]
   (let [k (get-rank kform)]
     (if (= k 0)
-      (function->oneform-field kform)
-      (let [without #(concat (take %1 %2) (drop (inc %1) %2))
+      (differential-of-function kform)
+      (let [without #(concat (take %1 %2)
+                             (drop (inc %1) %2))
             k+1form (fn [& vectors]
                       (assert (= (count vectors) (inc k)))
                       (fn [point]
                         (let [n (:dimension
                                  (m/point->manifold point))]
                           (if (< k n)
-                            (reduce g/+ (for [i (range 0 (inc k))]
-                                          (let [rest (without i vectors)]
-                                            (g/+ (g/* (if (even? i) 1 -1)
-                                                      (((nth vectors i) (apply kform rest))
-                                                       point))
-                                                 (reduce g/+ (for [j (range (inc i) (inc k))]
-                                                               (g/* (if (even? (+ i j)) 1 -1)
-                                                                    ((apply kform
-                                                                            (cons
-                                                                             (o/commutator (nth vectors i)
-                                                                                           (nth vectors j))
-                                                                             (without (dec j) rest)))
-                                                                     point))))))))
+                            (apply
+                             g/+
+                             (for [i (range 0 (inc k))]
+                               (let [rest (without i vectors)]
+                                 (g/+ (g/* (if (even? i) 1 -1)
+                                           (((nth vectors i) (apply kform rest))
+                                            point))
+                                      (apply
+                                       g/+ (for [j (range (inc i) (inc k))]
+                                             (g/* (if (even? (+ i j)) 1 -1)
+                                                  ((apply kform
+                                                          (cons
+                                                           (o/commutator (nth vectors i)
+                                                                         (nth vectors j))
+                                                           (without (dec j) rest)))
+                                                   point))))))))
                             0))))]
-        (procedure->nform-field k+1form (inc k) `(~'d ~(v/freeze kform)))))))
+        (procedure->nform-field
+         k+1form (inc k) `(~'d ~(v/freeze kform)))))))
 
 (def d
   (o/make-operator
