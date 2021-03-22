@@ -43,6 +43,10 @@
 ;; field.
 
 (defn form-field?
+  "Returns true if the supplied `f` is a form field operator, false otherwise.
+
+  A form-field of rank n is an operator that takes n vector fields to a
+  real-valued function on the manifold."
   [f]
   (and (o/operator? f)
        (-> (o/context f)
@@ -50,12 +54,32 @@
            (= ::form-field))))
 
 (defn oneform-field?
+  "Returns true if the supplied `f` is
+  a [One-form](https://en.wikipedia.org/wiki/One-form) field operator, false
+  otherwise.
+
+  A form-field of rank n is an operator that takes n vector fields to a
+  real-valued function on the manifold.
+  A [One-form](https://en.wikipedia.org/wiki/One-form) field takes a single
+  vector field."
   [f]
   (and (form-field? f)
        (= 1 (:rank
              (o/context f)))))
 
+;; One-form fields multiply by [[wedge]].
+
 (defn procedure->oneform-field
+  "Accepts a function `f` and an optional symbolic `name`, and returns
+  a [One-form](https://en.wikipedia.org/wiki/One-form) field, ie, a subtype
+  of [[sicmutils.operator/Operator]].
+
+  A form-field of rank n is an operator that takes n vector fields to a
+  real-valued function on the manifold. A One-form field takes a single vector
+  field.
+
+  `f` should be a function from a single vector field to a real-valued function
+  on the manifold."
   ([fp]
    (let [name 'unnamed-1form-field]
      (procedure->oneform-field fp name)))
@@ -65,74 +89,89 @@
                      :rank 1
                      :arguments [::vf/vector-field]})))
 
-(comment
-  (define (ff:zero vf) zero-manifold-function)
-
-  (define (ff:zero-like op)
-    (assert (form-field? op) "ff:zero-like")
-    (make-op ff:zero
-	           'ff:zero
-	           (operator-subtype op)
-	           (operator-arity op)
-	           (operator-optionals op)))
-
-  (assign-operation 'zero-like ff:zero-like form-field?)
-
-
-  (define (ff:zero? ff)
-    (assert (form-field? ff) "ff:zero?")
-    (eq? (operator-procedure ff) ff:zero))
-
-  (assign-operation 'zero? ff:zero? form-field?))
-
-(defn oneform-field-procedure [components coordinate-system]
+(defn oneform-field-procedure
+  "A One-form is specified by a function that gives `components`, in a down tuple,
+  relative to a given `coordinate-system`."
+  [components coordinate-system]
   (fn [f]
     (s/mapr (fn [f]
-              (assert (vf/vector-field? f))
+              {:pre [(vf/vector-field? f)]}
               (f/compose (g/* components
                               (vf/vector-field->components f coordinate-system))
                          (m/chart coordinate-system)))
             f)))
 
 (defn components->oneform-field
+  "TODO fix...
+
+  takes components of the One-form field relative to a coordinate system AND the
+  coordinate system... and returns the One-form field."
   ([components coordinate-system]
    (let [name `(~'oneform-field ~(v/freeze components))]
      (components->oneform-field
       components coordinate-system name)))
   ([components coordinate-system name]
-   (procedure->oneform-field
-    (oneform-field-procedure components coordinate-system) name)))
+   (-> (oneform-field-procedure components coordinate-system)
+       (procedure->oneform-field name))))
 
 ;; We can extract the components function for a form, given a
 ;; coordinate system.
 
 (defn oneform-field->components
+  "TODO this goes backwards; takes a One-form field `form` and a
+  `coordinate-system`... describe!
+
+  The returned function is from coordinates => something! TODO describe!"
   [form coordinate-system]
   {:pre [(form-field? form)]}
-  (let [X (vf/coordinate-system->vector-basis coordinate-system)]
-    (f/compose (form X) #(m/point coordinate-system))))
+  (let [basis (vf/coordinate-system->vector-basis coordinate-system)]
+    (f/compose (form basis)
+               (m/point coordinate-system))))
+
+;; ### API
+
+(defn ff:zero [f]
+  m/zero-manifold-function)
+
+(defn ff:zero-like [op]
+  {:pre [(form-field? op)]}
+  (o/make-operator ff:zero
+                   'ff:zero
+	                 (o/context op)))
+
+(defn ff:zero? [ff]
+  {:pre [(form-field? ff)]}
+  (= (o/procedure ff) ff:zero))
+
+(comment
+  ;; TODO install these for form fields! We can't do it until they have their
+  ;; own types...
+  (assign-operation 'zero-like ff:zero-like form-field?)
+  (assign-operation 'zero? ff:zero? form-field?))
 
 (defn literal-oneform-field
   [name coordinate-system]
   (let [n (:dimension (m/manifold coordinate-system))
-        domain (apply s/up   (repeat n 0))
-        range  (apply s/down (repeat n 0))]
+        domain (if (= n 1) 0 (s/up* (repeat n 0)))
+        range  (s/down* (repeat n 0))]
     (-> (af/literal-function name domain range)
         (components->oneform-field coordinate-system name))))
 
 ;; To get the elements of a coordinate basis for the 1-form fields
 
-(defn coordinate-basis-oneform-field-procedure [coordinate-system & i]
+(defn coordinate-basis-oneform-field-procedure
+  [coordinate-system & indices]
   (fn [vf]
-    (let [internal (fn [vf]
-                     (assert (vf/vector-field? vf))
-                     (vf (f/compose (apply s/component i) (m/chart coordinate-system))))]
+    (letfn [(internal [vf]
+              {:pre [(vf/vector-field? vf)]}
+              (vf (f/compose (apply s/component indices)
+                             (m/chart coordinate-system))))]
       (s/mapr internal vf))))
 
-(defn coordinate-basis-oneform-field [coordinate-system name & i]
-  (procedure->oneform-field
-   (apply coordinate-basis-oneform-field-procedure coordinate-system i)
-   name))
+(defn coordinate-basis-oneform-field
+  [coordinate-system name & indices]
+  (-> (apply coordinate-basis-oneform-field-procedure coordinate-system indices)
+      (procedure->oneform-field name)))
 
 (defn coordinate-name->ff-name
   "From the name of a coordinate, produce the name of the coordinate basis
@@ -140,36 +179,38 @@
   [n]
   (symbol (str \d n)))
 
-(defn coordinate-system->oneform-basis [coordinate-system]
-  (let [prototype (s/mapr coordinate-name->ff-name
-                          (m/coordinate-prototype coordinate-system))]
-    (s/mapr
-     #(apply coordinate-basis-oneform-field coordinate-system %1 %2)
-     prototype
-     (s/structure->access-chains prototype))))
+(defn coordinate-system->oneform-basis
+  [coordinate-system]
+  (s/mapr
+   (fn [c-name chain _]
+     (let [ff-name (coordinate-name->ff-name c-name)]
+       (apply coordinate-basis-oneform-field
+              coordinate-system ff-name chain)))
+   (m/coordinate-prototype coordinate-system)))
 
 ;; Given component functions defined on manifold points and a 1-form basis, to
 ;; produce the 1-form field as a linear combination.
 
 (defn basis-components->oneform-field [components oneform-basis]
   (procedure->oneform-field
-   (fn [v]
-     (g/* components (oneform-basis v)))))
+   (fn [vf]
+     (g/* components (oneform-basis vf)))))
 
 (defn oneform-field->basis-components [w vector-basis]
   (s/mapr w vector-basis))
 
-;; This is one of the two incompatible definitions of "differential".
-;; This differential is a special case of exterior derivative.
-;; The other one appears in maps.scm.
+;; This is one of the two incompatible definitions of "differential". This
+;; differential is a special case of exterior derivative. The other one appears
+;; in map.cljc.
 
 (defn function->oneform-field [f]
-  {:pre [(fn? f)]}
+  {:pre [(f/function? f)]}
   (procedure->oneform-field
-   (fn [v] (s/mapr (fn [v]
-                    (assert (vf/vector-field? v))
-                    (fn [m] ((v f) m)))
-                  v))
+   (fn [vf]
+     (s/mapr (fn [v]
+               {:pre [(vf/vector-field? v)]}
+               (fn [m] ((v f) m)))
+             vf))
    `(~'d ~(v/freeze f))))
 
 (def differential-of-function

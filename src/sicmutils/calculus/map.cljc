@@ -49,10 +49,12 @@
   [name source target]
   (let [n (:dimension (m/manifold source))
         m (:dimension (m/manifold target))
+        ;; TODO note that these are identical and we probably want an UNWRAPPED
+        ;; 0.
         domain (if (= n 1)
                  [0]
-                 (apply s/up (repeat n 0)))
-        range (apply s/up (repeat m 0))]
+                 (s/up* (repeat n 0)))
+        range (s/up* (repeat m 0))]
     (f/compose (m/point target)
                (af/literal-function name domain range)
                (m/chart source))))

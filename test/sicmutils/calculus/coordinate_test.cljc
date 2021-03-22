@@ -90,7 +90,7 @@
 (deftest various-manifold-operations
   ;; These comprise the first block of test material in manifold.scm of
   ;; scmutils.
-  (let-coordinates [[x y] R2-rect
+  (let-coordinates [[x y]     R2-rect
                     [r theta] R2-polar]
     (let [mr ((m/point R2-rect) (up 'x0 'y0))
           mp ((m/point R2-polar) (up 'r0 'theta0))

@@ -104,10 +104,9 @@
   So the returned function is from coordinates => the components of the
   directional derivative in each component."
   [vf coordinate-system]
-  (fn [coords]
-    (assert (vector-field? vf))
-    ((vf (m/chart coordinate-system))
-     (m/coords->point coordinate-system coords))))
+  {:pre [(vector-field? vf)]}
+  (f/compose (vf (m/chart coordinate-system))
+             (m/point coordinate-system)))
 
 (defn vf:zero [f]
   m/zero-manifold-function)
@@ -128,11 +127,13 @@
   (assign-operation 'zero-like vf:zero-like vector-field?)
   (assign-operation 'zero? vf:zero? vector-field?))
 
+;; TODO test case of n==1 with Real input, not an up.
+
 (defn literal-vector-field [name coordinate-system]
   (let [n      (:dimension
                 (m/manifold coordinate-system))
-        domain (apply s/up (repeat n 0))
-        range  domain]
+        domain (if (= n 1) 0   (s/up* (repeat n 0)))
+        range  (if (= n 1) [0] domain)]
     (-> (af/literal-function name domain range)
         (components->vector-field coordinate-system name))))
 
