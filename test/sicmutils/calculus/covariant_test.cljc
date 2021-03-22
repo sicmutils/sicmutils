@@ -19,24 +19,26 @@
 
 (ns sicmutils.calculus.covariant-test
   (:refer-clojure :exclude [+ - * /  partial])
-  (:require [clojure.test :refer [is deftest testing]]
-            #_[sicmutils.abstract.function :as af]
+  (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.coordinate :as c
              :refer [let-coordinates]
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.covariant :as cov]
+            [sicmutils.calculus.derivative :refer [D]]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.manifold :as man
-             :refer [R1-rect R2-rect R3-rect R3-cyl S2-spherical]]
+             :refer [R2-rect R3-rect R3-cyl]]
             [sicmutils.calculus.map :as cm]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :as s :refer [up down]]
-            ;; [sicmutils.value :as v]
-            ))
+            [sicmutils.value :as v]))
+
+(use-fixtures :each hermetic-simplify-fixture)
 
 (def simplify
   (comp v/freeze g/simplify))
@@ -61,24 +63,24 @@
             present (fn [expr]
                       (-> (simplify expr)
                           (x/substitute '(up x0 y0 z0) 'p)))]
-        (is (= '(+ (* (w_0 p) (Y↑0 p) (((partial 0) X↑0) p))
-                   (* (w_0 p) (Y↑1 p) (((partial 1) X↑0) p))
-                   (* (w_0 p) (Y↑2 p) (((partial 2) X↑0) p))
-                   (* (X↑0 p) (Y↑0 p) (((partial 0) w_0) p))
+        (is (= '(+ (* (X↑0 p) (Y↑0 p) (((partial 0) w_0) p))
                    (* (X↑0 p) (Y↑1 p) (((partial 0) w_1) p))
                    (* (X↑0 p) (Y↑2 p) (((partial 0) w_2) p))
-                   (* (w_1 p) (Y↑0 p) (((partial 0) X↑1) p))
-                   (* (w_1 p) (Y↑1 p) (((partial 1) X↑1) p))
+                   (* (Y↑0 p) (w_0 p) (((partial 0) X↑0) p))
+                   (* (Y↑0 p) (w_1 p) (((partial 0) X↑1) p))
+                   (* (Y↑0 p) (w_2 p) (((partial 0) X↑2) p))
+                   (* (Y↑0 p) (X↑1 p) (((partial 1) w_0) p))
+                   (* (Y↑0 p) (X↑2 p) (((partial 2) w_0) p))
+                   (* (w_0 p) (Y↑1 p) (((partial 1) X↑0) p))
+                   (* (w_0 p) (Y↑2 p) (((partial 2) X↑0) p))
+                   (* (Y↑1 p) (w_1 p) (((partial 1) X↑1) p))
+                   (* (Y↑1 p) (w_2 p) (((partial 1) X↑2) p))
+                   (* (Y↑1 p) (X↑1 p) (((partial 1) w_1) p))
+                   (* (Y↑1 p) (X↑2 p) (((partial 2) w_1) p))
                    (* (w_1 p) (Y↑2 p) (((partial 2) X↑1) p))
-                   (* (X↑1 p) (Y↑0 p) (((partial 1) w_0) p))
-                   (* (X↑1 p) (Y↑1 p) (((partial 1) w_1) p))
-                   (* (X↑1 p) (Y↑2 p) (((partial 1) w_2) p))
-                   (* (w_2 p) (Y↑0 p) (((partial 0) X↑2) p))
-                   (* (w_2 p) (Y↑1 p) (((partial 1) X↑2) p))
-                   (* (w_2 p) (Y↑2 p) (((partial 2) X↑2) p))
-                   (* (X↑2 p) (Y↑0 p) (((partial 2) w_0) p))
-                   (* (X↑2 p) (Y↑1 p) (((partial 2) w_1) p))
-                   (* (X↑2 p) (Y↑2 p) (((partial 2) w_2) p)))
+                   (* (Y↑2 p) (w_2 p) (((partial 2) X↑2) p))
+                   (* (Y↑2 p) (X↑1 p) (((partial 1) w_2) p))
+                   (* (Y↑2 p) (X↑2 p) (((partial 2) w_2) p)))
                (present
                 ((((g/Lie-derivative X) w) Y) R3-rect-point))))
 
@@ -162,11 +164,11 @@
             oneform-basis (b/vector-basis->dual (down e_0 e_1) R2-rect)
             basis (b/make-basis vector-basis oneform-basis)
 
-            Y↑i (oneform-basis Y)]
+            Yi (oneform-basis Y)]
         (is (= 0 (simplify
                   ((- (((g/Lie-derivative V) Y) f)
-                      (+ (* (s/mapr (g/Lie-derivative V) Y↑i) (vector-basis f))
-                         (* Y↑i ((s/mapr (g/Lie-derivative V) vector-basis) f))))
+                      (+ (* (s/mapr (g/Lie-derivative V) Yi) (vector-basis f))
+                         (* Yi ((s/mapr (g/Lie-derivative V) vector-basis) f))))
                    m))))))
 
     (testing "Computation of Lie derivatives by difference quotient."
@@ -188,9 +190,9 @@
                      (man/point R2-rect)
                      (q ((man/chart R2-rect) initial-point))))
 
-            phi↑X (fn [t]
-                    (fn [point]
-                      ((gamma point) t)))
+            phiX (fn [t]
+                   (fn [point]
+                     ((gamma point) t)))
             f (man/literal-manifold-function 'f R2-rect)
             result-via-Lie ((((g/Lie-derivative X) Y) f) m_0)
             present (fn [expr]
@@ -207,32 +209,32 @@
                    (* (((partial 1) f) p) (((partial 1) Y↑1) p) (X↑1 p)))
                (present
                 ((D (fn [t]
-                      (- ((Y f) ((phi↑X t) m_0))
-                         ((Y (f/compose f (phi↑X t))) m_0))))
+                      (- ((Y f) ((phiX t) m_0))
+                         ((Y (f/compose f (phiX t))) m_0))))
                  0))))
 
         (is (= 0 (simplify
                   (- result-via-Lie
                      ((D (fn [t]
-                           (- ((Y f) ((phi↑X t) m_0))
-                              ((Y (f/compose f (phi↑X t))) m_0))))
+                           (- ((Y f) ((phiX t) m_0))
+                              ((Y (f/compose f (phiX t))) m_0))))
                       0)))
                ))
 
         (is (= 0 (simplify
                   (- result-via-Lie
                      ((D (fn [t]
-                           (- ((Y f) ((phi↑X t) m_0))
-                              ((((cm/pushforward-vector (phi↑X t) (phi↑X (- t)))
+                           (- ((Y f) ((phiX t) m_0))
+                              ((((cm/pushforward-vector (phiX t) (phiX (- t)))
                                  Y)
                                 f)
-                               ((phi↑X t) m_0)))))
+                               ((phiX t) m_0)))))
                       0)))))
 
         (is (= 0 (simplify
                   (- result-via-Lie
                      ((D (fn [t]
-                           ((((cm/pushforward-vector (phi↑X (- t)) (phi↑X t))
+                           ((((cm/pushforward-vector (phiX (- t)) (phiX t))
                               Y)
                              f)
                             m_0)))
@@ -248,25 +250,23 @@
 
             vector-basis (down e_0 e_1)
             oneform-basis (b/vector-basis->dual (down e_0 e_1) R2-rect)
-            [e↑0 e↑1] oneform-basis
-
             basis (b/make-basis vector-basis oneform-basis)
 
-            Delta↑i_j (fn [v]
-                        (oneform-basis
-                         (s/mapr (g/Lie-derivative v) vector-basis)))]
+            Deltai_j (fn [v]
+                       (oneform-basis
+                        (s/mapr (g/Lie-derivative v) vector-basis)))]
         (is (= 0 (simplify
                   ((- (((g/Lie-derivative V) Y) f)
                       (* (vector-basis f)
                          (+ (V (oneform-basis Y))
-                            (* (oneform-basis Y) (Delta↑i_j V)))))
+                            (* (oneform-basis Y) (Deltai_j V)))))
                    m))))
 
         (is (= 0 (simplify
                   ((- (* (oneform-basis Y)
                          ((s/mapr (g/Lie-derivative V) vector-basis) f))
                       (* (oneform-basis Y)
-                         (Delta↑i_j V)
+                         (Deltai_j V)
                          (vector-basis f)))
                    m))))
 
@@ -274,7 +274,7 @@
         (is (= (down 0 0)
                (g/simplify
                 ((- (* ((s/mapr (g/Lie-derivative V) vector-basis) f))
-                    (* (Delta↑i_j V) (vector-basis f)))
+                    (* (Deltai_j V) (vector-basis f)))
                  m))))))))
 
 (deftest interior-product-tests
