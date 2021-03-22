@@ -48,10 +48,10 @@
            :else (u/unsupported "Can't take the Lie derivative of that yet")))
    `(~'Lie-derivative ~(v/freeze X))))
 
-(defmethod g/Lie-derivative [::vf/vector-field] [V] (vector-field-Lie-derivative V))
+(defmethod g/Lie-derivative [::vf/vector-field] [V]
+  (vector-field-Lie-derivative V))
 
-(defn interior-product
-  [V]
+(defn interior-product [V]
   (assert (vf/vector-field? V))
   (fn [omega]
     (assert (ff/form-field? omega))

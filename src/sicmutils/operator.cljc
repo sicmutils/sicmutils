@@ -334,8 +334,7 @@
    (->Operator (f/compose o p)
                (arity p)
                `(~'* ~(name o) ~(name p))
-               ;; TODO this seems fishy... why not unite them?
-               (context p))))
+               (joint-context o p))))
 
 (defn- f*o
   "Multiply an operator by a non-operator on the left. The non-operator acts on

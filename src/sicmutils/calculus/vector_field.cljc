@@ -34,6 +34,8 @@
 
 (derive ::vector-field ::o/operator)
 
+;; ## Vector Fields
+;;
 ;; A vector field is an operator that takes a smooth real-valued function of a
 ;; manifold and produces a new function on the manifold which computes the
 ;; directional derivative of the given function at each point of the manifold.
@@ -43,28 +45,46 @@
 ;; function of a point.
 
 (defn procedure->vector-field
-  ([vfp]
-   (procedure->vector-field vfp 'unnamed-vector-field))
-  ([vfp name]
-   (o/make-operator vfp name
-                    {:subtype ::vector-field
-                     :arguments [::v/function]})))
+  "Accepts a function `f` and an optional symbolic `name`, and returns a vector
+  field, ie, a subtype of [[sicmutils.operator/Operator]].
+
+  `f` should be a function from a smooth real-valued function `g` of a manifold
+  to a new function on the manifold which computes the directional derivative of
+  `g` at each point of the manifold."
+  ([f]
+   (procedure->vector-field f 'unnamed-vector-field))
+  ([f name]
+   (let [context {:subtype ::vector-field
+                  :arguments [::v/function]}]
+     (o/make-operator f name context))))
 
 (defn vector-field?
+  "Returns true if the supplied argument `vf` is a vector field operator, false
+  otherwise."
   [vf]
   (and (o/operator? vf)
        (-> (o/context vf)
            (:subtype)
            (= ::vector-field))))
 
-(defn vector-field-procedure
+;; TODO fix this docstring... what is going on?
+
+(defn- vector-field-procedure
+  "A vector field is specified by a function that gives components, as an up
+  tuple, relative to a coordinate system, for each point, specified in the given
+  coordinate system."
   [components coordinate-system]
   (fn [f]
-    (f/compose (g/* (D (comp f (m/point coordinate-system)))
-                    components)
-               (m/chart coordinate-system))))
+    (f/compose
+     (g/* (D (f/compose f (m/point coordinate-system)))
+          components)
+     (m/chart coordinate-system))))
 
 (defn components->vector-field
+  "TODO fix...
+
+  takes components of the vector field relative to a coordinate system AND the
+  coordinate system... and returns the vector field."
   ([components coordinate-system]
    (let [name `(~'vector-field ~components)]
      (components->vector-field
@@ -77,33 +97,40 @@
 ;; system.
 
 (defn vector-field->components
+  "TODO this goes backwards; takes a vector field and a coordinate system, then
+  applies the vector field to the chart function (which, remember, takes points
+  to coordinate representations).
+
+  So the returned function is from coordinates => the components of the
+  directional derivative in each component."
   [vf coordinate-system]
   (fn [coords]
     (assert (vector-field? vf))
     ((vf (m/chart coordinate-system))
      (m/coords->point coordinate-system coords))))
 
+(defn vf:zero [f]
+  m/zero-manifold-function)
+
+(defn vf:zero-like [op]
+  {:pre [(vector-field? op)]}
+  (o/make-operator vf:zero
+                   'vf:zero
+	                 (o/context op)))
+
+(defn vf:zero? [vf]
+  {:pre [(vector-field? vf)]}
+  (= (o/procedure vf) vf:zero))
+
 (comment
-  (define (vf:zero f) zero-manifold-function)
-
-  (define (vf:zero-like op)
-    (assert (vector-field? op) "vf:zero-like")
-    (make-op vf:zero
-	           'vf:zero
-	           (operator-subtype op)
-	           (operator-arity op)
-	           (operator-optionals op)))
-
-  (define (vf:zero? vf)
-    (assert (vector-field? vf) "vf:zero?")
-    (eq? (operator-procedure vf) vf:zero))
-
+  ;; TODO install these for vector fields! We can't do it until they have their
+  ;; own types...
   (assign-operation 'zero-like vf:zero-like vector-field?)
   (assign-operation 'zero? vf:zero? vector-field?))
 
-(defn literal-vector-field
-  [name coordinate-system]
-  (let [n      (:dimension (m/manifold coordinate-system))
+(defn literal-vector-field [name coordinate-system]
+  (let [n      (:dimension
+                (m/manifold coordinate-system))
         domain (apply s/up (repeat n 0))
         range  domain]
     (-> (af/literal-function name domain range)
@@ -111,11 +138,12 @@
 
 ;; For any coordinate system we can make a coordinate basis.
 
-(defn ^:private coordinate-basis-vector-field-procedure
+(defn- coordinate-basis-vector-field-procedure
   [coordinate-system & i]
   (fn [f]
-    (f/compose ((apply partial i) (f/compose f (m/point coordinate-system)))
-               (m/chart coordinate-system))))
+    (f/compose
+     ((apply partial i) (f/compose f (m/point coordinate-system)))
+     (m/chart coordinate-system))))
 
 (defn coordinate-basis-vector-field
   [coordinate-system name & i]
@@ -129,54 +157,60 @@
   [n]
   (symbol (str "d:d" n)))
 
-(defn coordinate-system->vector-basis [coordinate-system]
-  (let [prototype (s/mapr coordinate-name->vf-name
-                          (m/coordinate-prototype coordinate-system))]
-    (s/transpose
-     (s/mapr
-      #(apply coordinate-basis-vector-field coordinate-system %1 %2)
-      prototype
-      (s/structure->access-chains prototype)))))
+(defn coordinate-system->vector-basis
+  "TODO simplify the heck out of this with FEWER mapr instances... document what
+  is going on now, and use this intel to get the stuff above figured out."
+  [coordinate-system]
+  (s/transpose
+   (s/map-chain
+    (fn [c-name chain _]
+      (let [vf-name (coordinate-name->vf-name c-name)]
+        (apply coordinate-basis-vector-field
+               coordinate-system vf-name chain)))
+    (m/coordinate-prototype coordinate-system))))
 
-(defn coordinatize
-  [v coordinate-system]
-  (let [coordinatized-v (fn [f]
-                          (fn [x]
-                            (let [b (f/compose (v (m/chart coordinate-system))
-                                               (m/point coordinate-system))]
-                              (g/* ((D f) x) (b x)))))]
-    (o/make-operator coordinatized-v `(~'coordinatized ~v))))
+;; Given a vector basis, can make a vector field as a linear combination. This
+;; is for any basis, not just a coordinate basis. The components are evaluated
+;; at the point, not the coordinates.
+
+;; TODO this is clearly busted... how can we do this in a way that we STAY
+;; operator?
+;;
+;; Is the problem that multiplication makes the thing NOT an operator anymore? Fix this and give it a test!
 
 (comment
-  ;;; Given a vector basis, can make a vector field as a linear
-;;; combination.  This is for any basis, not just a coordinate basis.
-;;; The components are evaluated at the point, not the coordinates.
+  ;; TODO maybe we could do it like this?
+  (defn basis-components->vector-field
+    [components vector-basis]
+    (g/* vector-basis
+         (fn [_] components))))
 
-  (define (basis-components->vector-field components vector-basis)
-    (procedure->vector-field
-     (lambda (f)
-             (lambda (point)
-                     (* ((vector-basis f) point)
-	                      (components point))))
-     `(+ ,@(map (lambda (component basis-element)
-		                    `(* ,(diffop-name component)
-		                         ,(diffop-name basis-element)))
-	              (s:fringe components)
-	              (s:fringe vector-basis)))))
-
+(defn basis-components->vector-field
+  [components vector-basis]
+  (let [op (fn [f]
+             (fn [point]
+               (g/* ((vector-basis f) point)
+	                  (components point))))
+        name `(~'+ ~@(map (fn [component basis-element]
+		                        `(~'*
+                              ~(v/freeze component)
+		                          ~(v/freeze basis-element)))
+	                        (flatten components)
+	                        (flatten vector-basis)))]
+    (procedure->vector-field op name)))
 
 ;;; And the inverse
 
-  (define (vector-field->basis-components v dual-basis)
-    (s:map/r (lambda (w) (w v)) dual-basis)))
+(defn vector-field->basis-components [v dual-basis]
+  (s/mapr (fn [w] (w v)) dual-basis))
 
-(defn coordinatize [sfv coordsys]
-  (let [v (fn [f]
+(defn coordinatize [v coordinate-system]
+  (letfn [(coordinatized-v [f]
             (fn [x]
-              (let [b (f/compose (sfv (m/chart coordsys))
-                                 (m/point coordsys))]
-                (* ((D f) x) (b x)))))]
-    (o/make-operator v 'coordinatize)))
+              (let [b (f/compose (v (m/chart coordinate-system))
+                                 (m/point coordinate-system))]
+                (g/* ((D f) x) (b x)))))]
+    (o/make-operator coordinatized-v `(~'coordinatized ~v))))
 
 (defn evolution
   "We can use the coordinatized vector field to build an evolution along an

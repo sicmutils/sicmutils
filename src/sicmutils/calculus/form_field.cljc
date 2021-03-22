@@ -28,7 +28,11 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
-;; this has stuff from form-fields.scm AND wedge.scm.
+;; this has stuff from form-fields.scm, wedge.scm and exterior-derivative.scm.
+;;
+;; TODO:
+;; - get all tests ported, or ID old tests
+;; - get all functions ported from the three files above.
 
 (derive ::form-field ::o/operator)
 
@@ -48,9 +52,8 @@
 (defn oneform-field?
   [f]
   (and (form-field? f)
-       (-> (o/context f)
-           (:rank)
-           (= 1))))
+       (= 1 (:rank
+             (o/context f)))))
 
 (defn procedure->oneform-field
   ([fp]
@@ -131,6 +134,12 @@
    (apply coordinate-basis-oneform-field-procedure coordinate-system i)
    name))
 
+(defn coordinate-name->ff-name
+  "From the name of a coordinate, produce the name of the coordinate basis
+  one-form field (as a symbol)"
+  [n]
+  (symbol (str \d n)))
+
 (defn coordinate-system->oneform-basis [coordinate-system]
   (let [prototype (s/mapr coordinate-name->ff-name
                           (m/coordinate-prototype coordinate-system))]
@@ -170,9 +179,6 @@
 ;;
 ;; Now we transition to wedge.
 
-;; TODO needed?
-(declare wedge)
-
 (defn procedure->nform-field
   ([proc n]
    (procedure->nform-field proc n 'unnamed-nform-field))
@@ -185,50 +191,15 @@
                        :rank n
                        :arguments (repeat n ::vf/vector-field)}))))
 
-(defn coordinate-name->ff-name
-  "From the name of a coordinate, produce the name of the coordinate basis
-  one-form field (as a symbol)"
-  [n]
-  (symbol (str \d n)))
-
 ;; See Spivak p275 v1 "Differential Geometry" to see the correct
 ;; definition.  The key is that the wedge of the coordinate basis
 ;; forms had better be the volume element.
 
-(defn get-rank
-  [f]
+(defn get-rank [f]
   (cond (o/operator? f) (or (:rank (o/context f))
                             (u/illegal (str "operator, but not a differential form: " f)))
         (fn? f) 0
         :else (u/illegal "not a differential form")))
-
-(defn exterior-derivative-procedure [kform]
-  (let [k (get-rank kform)]
-    (if (= k 0)
-      (function->oneform-field kform)
-      (let [without #(concat (take %1 %2) (drop (inc %1) %2))
-            k+1form (fn [& vectors]
-                      (assert (= (count vectors) (inc k)))
-                      (fn [point]
-                        (let [n (:dimension (m/point->manifold point))]
-                          (if (< k n)
-                            (reduce g/+ (for [i (range 0 (inc k))]
-                                          (let [rest (without i vectors)]
-                                            (g/+ (g/* (if (even? i) 1 -1)
-                                                      (((nth vectors i) (apply kform rest))
-                                                       point))
-                                                 (reduce g/+ (for [j (range (inc i) (inc k))]
-                                                               (g/* (if (even? (+ i j)) 1 -1)
-                                                                    ((apply kform
-                                                                            (cons
-                                                                             (o/commutator (nth vectors i)
-                                                                                           (nth vectors j))
-                                                                             (without (dec j) rest)))
-                                                                     point))))))))
-                            0))))]
-        (procedure->nform-field k+1form (inc k) `(~'d ~(v/freeze kform)))))))
-
-(def d (o/make-operator exterior-derivative-procedure 'd))
 
 (defn permutation-sequence
   "Produces an iterable sequence developing the permutations of the input sequence
@@ -321,3 +292,92 @@
 
 (defn wedge [& fs]
   (reduce wedge2 fs))
+
+(comment
+  (define (Alt form)
+    (let ((n (get-rank form)))
+      (if (zero? n)
+	      form
+	      (let ()
+	        (define (the-alternation . args)
+	          (assert (fix:= (length args) n)
+		                "Wrong number of args to alternation")
+	          (let ((perms (permutations (iota n))))
+	            (g:* (/ 1 (factorial n))
+		               (apply g:+
+			                    (map (lambda (p)
+				                               (let ((pargs (permute p args)))
+				                                 (let ((order (permutation-interchanges p)))
+				                                   (g:* (if (even? order) 1 -1)
+					                                      (apply form pargs)))))
+			                         perms)))))
+	        (procedure->nform-field the-alternation
+				                          n
+				                          `(Alt ,(diffop-name form)))))))
+
+  (define (tensor-product2 t1 t2)
+    (let ((n1 (get-rank t1)) (n2 (get-rank t2)))
+      (if (or (zero? n1) (zero? n2))
+	      (* form1 form2)
+	      (let ((n (fix:+ n1 n2)))
+	        (define (the-product . args)
+	          (assert (fix:= (length args) n)
+		                "Wrong number of args to tensor product")
+	          (* (apply t1 (list-head args n1))
+	             (apply t2 (list-tail args n1))))
+	        (procedure->nform-field the-product
+				                          n
+				                          `(tensor-product ,(diffop-name t1)
+						                                        ,(diffop-name t2)))))))
+
+  (define (w2 form1 form2)
+    (let ((n1 (get-rank form1)) (n2 (get-rank form2)))
+      (* (/ (factorial (+ n1 n2))
+	          (* (factorial n1) (factorial n2)))
+         (Alt (tensor-product2 form1 form2)))))
+
+  (define (alt-wedge . args)
+    (reduce w2 (constant 1) args)))
+
+;; ## Exterior Derivative
+
+;; This definition is a generalization to k-forms, by recursion on the vector
+;; argument list.
+
+;; The test for k<n is best if the n is the dimension of the manifold under
+;; study. However, if the manifold is embedded in a higher dimensional manifold
+;; n will be the dimension of the bigger manifold, making this test less
+;; effective (cutting off fewer branches).
+
+;; Formula is from Spivak Vol. 1 p289.
+
+(defn- exterior-derivative-procedure [kform]
+  (let [k (get-rank kform)]
+    (if (= k 0)
+      (function->oneform-field kform)
+      (let [without #(concat (take %1 %2) (drop (inc %1) %2))
+            k+1form (fn [& vectors]
+                      (assert (= (count vectors) (inc k)))
+                      (fn [point]
+                        (let [n (:dimension
+                                 (m/point->manifold point))]
+                          (if (< k n)
+                            (reduce g/+ (for [i (range 0 (inc k))]
+                                          (let [rest (without i vectors)]
+                                            (g/+ (g/* (if (even? i) 1 -1)
+                                                      (((nth vectors i) (apply kform rest))
+                                                       point))
+                                                 (reduce g/+ (for [j (range (inc i) (inc k))]
+                                                               (g/* (if (even? (+ i j)) 1 -1)
+                                                                    ((apply kform
+                                                                            (cons
+                                                                             (o/commutator (nth vectors i)
+                                                                                           (nth vectors j))
+                                                                             (without (dec j) rest)))
+                                                                     point))))))))
+                            0))))]
+        (procedure->nform-field k+1form (inc k) `(~'d ~(v/freeze kform)))))))
+
+(def d
+  (o/make-operator
+   exterior-derivative-procedure 'd))
