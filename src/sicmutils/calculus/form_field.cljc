@@ -64,16 +64,10 @@
        (= 1 (:rank
              (o/context f)))))
 
-;; One-form fields multiply by [[wedge]].
-
 (defn procedure->oneform-field
   "Accepts a function `f` and an optional symbolic `name`, and returns
   a [One-form](https://en.wikipedia.org/wiki/One-form) field, ie, a subtype
   of [[sicmutils.operator/Operator]].
-
-  A form-field of rank n is an operator that takes n vector fields to a
-  real-valued function on the manifold. A One-form field takes a single vector
-  field.
 
   `f` should be a function from a single vector field to a real-valued function
   on the manifold."
@@ -115,9 +109,10 @@
   (fn [f]
     (s/mapr (fn [f]
               {:pre [(vf/vector-field? f)]}
-              (f/compose (g/* components
-                              (vf/vector-field->components f coordinate-system))
-                         (m/chart coordinate-system)))
+              (f/compose
+               (g/* components
+                    (vf/vector-field->components f coordinate-system))
+               (m/chart coordinate-system)))
             f)))
 
 (defn components->oneform-field
@@ -341,6 +336,8 @@
   (reduce wedge2 fs))
 
 ;; TODO document, figure out WHERE this happened in scmutils.
+
+;; One-form fields multiply by [[wedge]].
 
 (defmethod g/mul [::form-field ::form-field] [a b]
   (wedge2 a b))
