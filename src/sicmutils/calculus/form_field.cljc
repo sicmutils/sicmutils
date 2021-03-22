@@ -26,13 +26,10 @@
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
+            [sicmutils.util.aggregate :as ua]
             [sicmutils.value :as v]))
 
 ;; this has stuff from form-fields.scm, wedge.scm and exterior-derivative.scm.
-;;
-;; TODO:
-;; - get all tests ported, or ID old tests
-;; - get all functions ported from the three files above.
 
 (derive ::form-field ::o/operator)
 
@@ -433,6 +430,12 @@
 ;; effective (cutting off fewer branches).
 
 ;; Formula is from Spivak Vol. 1 p289.
+;;
+;; NOTE: This is an excessively complicated program. Another, more elementary
+;; program would, for a k-form, extract the cofficient functions relative to a
+;; literal basis, by applying it to the basis vectors, do the derivatives of the
+;; coefficients, to make one forms, and form the sum of the wedges of the new
+;; 1-forms with the wedges of the corresponding dual basis elements.
 
 (defn- exterior-derivative-procedure [kform]
   (let [k (get-rank kform)]
@@ -446,26 +449,32 @@
                         (let [n (:dimension
                                  (m/point->manifold point))]
                           (if (< k n)
-                            (apply
-                             g/+
-                             (for [i (range 0 (inc k))]
+                            (ua/generic-sum
+                             (fn [i]
                                (let [rest (without i vectors)]
                                  (g/+ (g/* (if (even? i) 1 -1)
                                            (((nth vectors i) (apply kform rest))
                                             point))
-                                      (apply
-                                       g/+ (for [j (range (inc i) (inc k))]
-                                             (g/* (if (even? (+ i j)) 1 -1)
-                                                  ((apply kform
-                                                          (cons
-                                                           (o/commutator (nth vectors i)
-                                                                         (nth vectors j))
-                                                           (without (dec j) rest)))
-                                                   point))))))))
+                                      (ua/generic-sum
+                                       (fn [j]
+                                         (g/* (if (even? (+ i j)) 1 -1)
+                                              ((apply kform
+                                                      (cons
+                                                       (o/commutator (nth vectors i)
+                                                                     (nth vectors j))
+                                                       ;; (dec j) because
+                                                       ;; already deleted i.
+                                                       (without (dec j) rest)))
+                                               point)))
+                                       (inc i)
+                                       (inc k)))))
+                             0 (inc k))
                             0))))]
         (procedure->nform-field
          k+1form (inc k) `(~'d ~(v/freeze kform)))))))
 
-(def d
+(def exterior-derivative
   (o/make-operator
    exterior-derivative-procedure 'd))
+
+(def d exterior-derivative-procedure)

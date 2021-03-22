@@ -27,6 +27,7 @@
             [sicmutils.calculus.manifold :as m :refer [R2-rect R2-polar]]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.vector-field :as vf]
+            [sicmutils.expression :as x]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :refer [up down]]
@@ -245,6 +246,7 @@
 (deftest wedge-tests
   (let-coordinates [[x y z] m/R3-rect]
     (let [R3-point ((m/point R3-rect) (up 'x0 'y0 'z0))
+
           w (ff/literal-oneform-field 'w R3-rect)
           u (ff/literal-oneform-field 'u R3-rect)
           v (ff/literal-oneform-field 'v R3-rect)
@@ -254,36 +256,110 @@
           Z (vf/literal-vector-field 'Z R3-rect)
           W (vf/literal-vector-field 'W R3-rect)]
 
-      (is (= '(+ (* (w_0 (up x0 y0 z0)) (X↑0 (up x0 y0 z0)))
-                 (* (w_1 (up x0 y0 z0)) (X↑1 (up x0 y0 z0)))
-                 (* (w_2 (up x0 y0 z0)) (X↑2 (up x0 y0 z0))))
-             (v/freeze ((w X) R3-point))))
+      (testing "wedge tests"
+        (is (= '(+ (* (w_0 (up x0 y0 z0)) (X↑0 (up x0 y0 z0)))
+                   (* (w_1 (up x0 y0 z0)) (X↑1 (up x0 y0 z0)))
+                   (* (w_2 (up x0 y0 z0)) (X↑2 (up x0 y0 z0))))
+               (v/freeze ((w X) R3-point))))
 
-      ;; A few theorems
+        ;; A few theorems
 
-      (is (= 0 (simplify
-                (((- (ff/wedge (ff/wedge w u) v)
-                     (ff/wedge w (ff/wedge u v))) X Y Z)
-                 R3-point))))
+        (is (= 0 (simplify
+                  (((- (ff/wedge (ff/wedge w u) v)
+                       (ff/wedge w (ff/wedge u v))) X Y Z)
+                   R3-point))))
 
-      (is (= 0 (simplify
-                (((- (ff/wedge (+ w u) v)
-                     (+ (ff/wedge w v) (ff/wedge u v)))
-                  X Y)
-                 R3-point))))
+        (is (= 0 (simplify
+                  (((- (ff/wedge (+ w u) v)
+                       (+ (ff/wedge w v) (ff/wedge u v)))
+                    X Y)
+                   R3-point))))
 
-      (is (= 0 (simplify
-                (((- (ff/wedge u v) (* u v)) X Y)
-                 R3-point)))
-          "a product of forms is their wedge!")
+        (is (= 0 (simplify
+                  (((- (ff/wedge u v) (* u v)) X Y)
+                   R3-point)))
+            "a product of forms is their wedge!")
 
-      (is (= 0 (simplify
-                (((- (ff/wedge u v)
-                     (ff/alt-wedge u v)) X Y)
-                 R3-point)))
-          "alt-wedge matches wedge")
+        (is (= 0 (simplify
+                  (((- (ff/wedge u v)
+                       (ff/alt-wedge u v)) X Y)
+                   R3-point)))
+            "alt-wedge matches wedge")
 
-      (let [dx:dy (ff/wedge dx dy)]
-        (is (= 1 ((dx:dy d:dx d:dy) R3-point)))
-        (is (= 0 ((dx:dy d:dx d:dx) R3-point)))
-        (is (= -1 ((dx:dy d:dy d:dx) R3-point)))))))
+        (let [dx:dy (ff/wedge dx dy)]
+          (is (= 1 ((dx:dy d:dx d:dy) R3-point)))
+          (is (= 0 ((dx:dy d:dx d:dx) R3-point)))
+          (is (= -1 ((dx:dy d:dy d:dx) R3-point))))))))
+
+(deftest exterior-derivative-tests
+  (testing "tests from exterior-derivative.scm"
+    (let-coordinates [[x y z]        m/R3-rect
+                      [r theta zeta] m/R3-cyl]
+      (let [R3-rect-point ((m/point R3-rect) (up 'x0 'y0 'z0))
+            R3-cyl-point  ((m/point R3-cyl) (up 'r0 'theta0 'zeta0))
+
+            w (ff/literal-oneform-field 'w R3-rect)
+            u (ff/literal-oneform-field 'u R3-rect)
+            v (ff/literal-oneform-field 'v R3-rect)
+
+            X (vf/literal-vector-field 'X R3-rect)
+            Y (vf/literal-vector-field 'Y R3-rect)
+            Z (vf/literal-vector-field 'Z R3-rect)
+            W (vf/literal-vector-field 'W R3-rect)]
+
+        (is (= '(+ (* (((partial 0) f) (up x0 y0 z0)) (X↑0 (up x0 y0 z0)))
+                   (* (((partial 1) f) (up x0 y0 z0)) (X↑1 (up x0 y0 z0)))
+                   (* (((partial 2) f) (up x0 y0 z0)) (X↑2 (up x0 y0 z0))))
+               (simplify
+                (((ff/d (m/literal-scalar-field 'f R3-rect)) X)
+                 R3-rect-point))))
+
+        (is (= 0 (simplify
+                  ((((g/square ff/d) (m/literal-scalar-field 'f R3-rect)) X Y)
+                   R3-cyl-point))))
+
+        (is (= '(+ (* (X↑0 p) (Y↑1 p) (((partial 0) w_1) p))
+                   (* -1 (X↑0 p) (Y↑1 p) (((partial 1) w_0) p))
+                   (* (X↑0 p) (Y↑2 p) (((partial 0) w_2) p))
+                   (* -1 (X↑0 p) (Y↑2 p) (((partial 2) w_0) p))
+                   (* -1 (X↑1 p) (Y↑0 p) (((partial 0) w_1) p))
+                   (* (X↑1 p) (Y↑0 p) (((partial 1) w_0) p))
+                   (* (X↑1 p) (Y↑2 p) (((partial 1) w_2) p))
+                   (* -1 (X↑1 p) (Y↑2 p) (((partial 2) w_1) p))
+                   (* -1 (X↑2 p) (Y↑0 p) (((partial 0) w_2) p))
+                   (* (X↑2 p) (Y↑0 p) (((partial 2) w_0) p))
+                   (* -1 (X↑2 p) (Y↑1 p) (((partial 1) w_2) p))
+                   (* (X↑2 p) (Y↑1 p) (((partial 2) w_1) p)))
+               (-> (((ff/d w) X Y) R3-rect-point)
+                   (simplify)
+                   (x/substitute '(up x0 y0 z0) 'p))))
+
+        (let [omega (+ (* (m/literal-scalar-field 'omega_0 R3-rect)
+	                        (ff/wedge dx dy))
+                       (* (m/literal-scalar-field 'omega_1 R3-rect)
+	                        (ff/wedge dy dz))
+                       (* (m/literal-scalar-field 'omega_2 R3-rect)
+	                        (ff/wedge dz dx)))]
+          (is (= '(+ (* (X↑0 p) (Y↑1 p) (((partial 0) omega_1) p) (Z↑2 p))
+                     (* (X↑0 p) (Y↑1 p) (Z↑2 p) (((partial 1) omega_2) p))
+                     (* (X↑0 p) (Y↑1 p) (Z↑2 p) (((partial 2) omega_0) p))
+                     (* -1 (X↑0 p) (Y↑2 p) (Z↑1 p) (((partial 0) omega_1) p))
+                     (* -1 (X↑0 p) (Y↑2 p) (Z↑1 p) (((partial 1) omega_2) p))
+                     (* -1 (X↑0 p) (Y↑2 p) (Z↑1 p) (((partial 2) omega_0) p))
+                     (* -1 (X↑1 p) (Y↑0 p) (((partial 0) omega_1) p) (Z↑2 p))
+                     (* -1 (X↑1 p) (Y↑0 p) (Z↑2 p) (((partial 1) omega_2) p))
+                     (* -1 (X↑1 p) (Y↑0 p) (Z↑2 p) (((partial 2) omega_0) p))
+                     (* (X↑1 p) (Y↑2 p) (Z↑0 p) (((partial 0) omega_1) p))
+                     (* (X↑1 p) (Y↑2 p) (Z↑0 p) (((partial 1) omega_2) p))
+                     (* (X↑1 p) (Y↑2 p) (Z↑0 p) (((partial 2) omega_0) p))
+                     (* (X↑2 p) (Y↑0 p) (Z↑1 p) (((partial 0) omega_1) p))
+                     (* (X↑2 p) (Y↑0 p) (Z↑1 p) (((partial 1) omega_2) p))
+                     (* (X↑2 p) (Y↑0 p) (Z↑1 p) (((partial 2) omega_0) p))
+                     (* -1 (X↑2 p) (Y↑1 p) (Z↑0 p) (((partial 0) omega_1) p))
+                     (* -1 (X↑2 p) (Y↑1 p) (Z↑0 p) (((partial 1) omega_2) p))
+                     (* -1 (X↑2 p) (Y↑1 p) (Z↑0 p) (((partial 2) omega_0) p)))
+                 (-> (((ff/d omega) X Y Z) R3-rect-point)
+                     (simplify)
+                     (x/substitute '(up x0 y0 z0) 'p))))
+
+          (is (= 0 (((ff/d (ff/d omega)) X Y Z W) R3-rect-point))))))))
