@@ -21,35 +21,50 @@
   (:require [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.vector-field :as vf]
+            [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.operator :as o]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
+            [sicmutils.util.aggregate :as ua]
             [sicmutils.value :as v]))
+
+;; This comes from `Lie.scm`.
 
 (defn- vector-field-Lie-derivative [X]
   (o/make-operator
    (fn [Y]
-     (cond (fn? Y) (X Y)
+     (cond (f/function? Y)      (X Y)
            (vf/vector-field? Y) (o/commutator X Y)
-           (ff/form-field? Y) (let [k (ff/get-rank Y)]
-                                (ff/procedure->nform-field
-                                 (fn [& vectors]
-                                   (assert (= k (count vectors)) `(~'≠ ~k ~(count vectors) ~@vectors ~@(map meta vectors)))
-                                   (g/- ((g/Lie-derivative X) (apply Y vectors))
-                                        (reduce g/+ (for [i (range 0 k)]
-                                                      (apply Y (map-indexed (fn [j v]
-                                                                              (if (= j i)
-                                                                                ((g/Lie-derivative X) v)
-                                                                                v))
-                                                                            vectors))))))
-                                 k
-                                 `((~'Lie-derivative ~(v/freeze X)) ~(v/freeze Y))))
+           (ff/form-field? Y)
+           (let [k (ff/get-rank Y)
+                 op (fn [& vectors]
+                      (assert (= k (count vectors))
+                              `(~'≠ ~k ~(count vectors)
+                                ~@vectors
+                                ~@(map meta vectors)))
+                      (g/- ((g/Lie-derivative X) (apply Y vectors))
+                           (ua/generic-sum
+                            (fn [i]
+                              (apply Y (map-indexed (fn [j v]
+                                                      (if (= j i)
+                                                        ((g/Lie-derivative X) v)
+                                                        v))
+                                                    vectors)))
+                            0 k)))
+                 name `((~'Lie-derivative ~(v/freeze X))
+                        ~(v/freeze Y))]
+             (ff/procedure->nform-field op k name))
+           (s/structure? Y)
+	         (s/mapr (vector-field-Lie-derivative X) Y)
+
            :else (u/unsupported "Can't take the Lie derivative of that yet")))
    `(~'Lie-derivative ~(v/freeze X))))
 
 (defmethod g/Lie-derivative [::vf/vector-field] [V]
   (vector-field-Lie-derivative V))
+
+;; ## Interior Product, from interior-product.scm
 
 (defn interior-product [V]
   (assert (vf/vector-field? V))
@@ -62,6 +77,8 @@
          (apply omega V vectors))
        (dec k)
        `((~'interior-product ~(v/freeze V)) ~(v/freeze omega))))))
+
+;; ## Covariant Derivative, from covariant-derivative.scm
 
 (defn make-Christoffel
   [symbols basis]

@@ -82,7 +82,7 @@
         "using-coordinates works")
 
     (testing "internal defn, funky symbols, internal with-literal-functions macro"
-      (is (= "down(- m r(t) (Dφ(t))² + m D²r(t) + DU(r(t)), m (r(t))² D²φ(t) + 2 m r(t) Dφ(t) Dr(t))"
+      (is (= "down(- m (Dφ(t))² r(t) + m D²r(t) + DU(r(t)), 2 m Dφ(t) r(t) Dr(t) + m (r(t))² D²φ(t))"
              (eval
               '(do (defn L-central-polar [m U]
                      (fn [[_ [r] [rdot φdot]]]
