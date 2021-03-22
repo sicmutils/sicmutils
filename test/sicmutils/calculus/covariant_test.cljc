@@ -20,364 +20,298 @@
 (ns sicmutils.calculus.covariant-test
   (:refer-clojure :exclude [+ - * /  partial])
   (:require [clojure.test :refer [is deftest testing]]
-            [sicmutils.abstract.function :as af]
+            #_[sicmutils.abstract.function :as af]
             [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.coordinate :as c
              :refer [let-coordinates]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.calculus.derivative :refer [D partial]]
+            [sicmutils.calculus.covariant :as cov]
             [sicmutils.calculus.form-field :as ff]
-            [sicmutils.calculus.map :as m]
             [sicmutils.calculus.manifold :as man
              :refer [R1-rect R2-rect R3-rect R3-cyl S2-spherical]]
+            [sicmutils.calculus.map :as cm]
             [sicmutils.calculus.vector-field :as vf]
+            [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [+ - * /]]
-            [sicmutils.structure :refer [up down]]
-            [sicmutils.value :as v]))
+            [sicmutils.structure :as s :refer [up down]]
+            ;; [sicmutils.value :as v]
+            ))
+
+(def simplify
+  (comp v/freeze g/simplify))
 
 (deftest lie-derivative-tests
   (testing "Lie derivative."
+    (let-coordinates [[x y z]        R3-rect
+                      [r theta zeta] R3-cyl]
+      (let [R3-rect-point ((man/point R3-rect) (up 'x0 'y0 'z0))
+            R3-cyl-point ((man/point R3-cyl) (up 'r0 'theta0 'zeta0))
 
-    (comment
-      (install-coordinates R3-rect (up 'x 'y 'z))
+            w (ff/literal-oneform-field 'w R3-rect)
+            u (ff/literal-oneform-field 'u R3-rect)
+            v (ff/literal-oneform-field 'v R3-rect)
 
-      (define R3-rect-point ((R3-rect '->point) (up 'x0 'y0 'z0)))
+            X (vf/literal-vector-field 'X R3-rect)
+            Y (vf/literal-vector-field 'Y R3-rect)
+            Z (vf/literal-vector-field 'Z R3-rect)
+            W (vf/literal-vector-field 'W R3-rect)
 
-      (install-coordinates R3-cyl (up 'r 'theta 'zeta))
+            f (man/literal-scalar-field 'f R3-rect)
+            present (fn [expr]
+                      (-> (simplify expr)
+                          (x/substitute '(up x0 y0 z0) 'p)))]
+        (is (= '(+ (* (w_0 p) (Y↑0 p) (((partial 0) X↑0) p))
+                   (* (w_0 p) (Y↑1 p) (((partial 1) X↑0) p))
+                   (* (w_0 p) (Y↑2 p) (((partial 2) X↑0) p))
+                   (* (X↑0 p) (Y↑0 p) (((partial 0) w_0) p))
+                   (* (X↑0 p) (Y↑1 p) (((partial 0) w_1) p))
+                   (* (X↑0 p) (Y↑2 p) (((partial 0) w_2) p))
+                   (* (w_1 p) (Y↑0 p) (((partial 0) X↑1) p))
+                   (* (w_1 p) (Y↑1 p) (((partial 1) X↑1) p))
+                   (* (w_1 p) (Y↑2 p) (((partial 2) X↑1) p))
+                   (* (X↑1 p) (Y↑0 p) (((partial 1) w_0) p))
+                   (* (X↑1 p) (Y↑1 p) (((partial 1) w_1) p))
+                   (* (X↑1 p) (Y↑2 p) (((partial 1) w_2) p))
+                   (* (w_2 p) (Y↑0 p) (((partial 0) X↑2) p))
+                   (* (w_2 p) (Y↑1 p) (((partial 1) X↑2) p))
+                   (* (w_2 p) (Y↑2 p) (((partial 2) X↑2) p))
+                   (* (X↑2 p) (Y↑0 p) (((partial 2) w_0) p))
+                   (* (X↑2 p) (Y↑1 p) (((partial 2) w_1) p))
+                   (* (X↑2 p) (Y↑2 p) (((partial 2) w_2) p)))
+               (present
+                ((((g/Lie-derivative X) w) Y) R3-rect-point))))
 
-      (define R3-cyl-point ((R3-cyl '->point) (up 'r0 'theta0 'zeta0)))
+        (is (= 0 (simplify
+                  ((- ((ff/d ((g/Lie-derivative X) f)) Y)
+                      (((g/Lie-derivative X) (ff/d f)) Y) )
+                   R3-rect-point))))
 
+        (is (= 0 (simplify
+                  ((- ((ff/d ((g/Lie-derivative X) w)) Y Z)
+                      (((g/Lie-derivative X) (ff/d w)) Y Z))
+                   ((man/point R3-rect)
+                    (up 'x↑0 'y↑0 'z↑0))))))))
 
-      (define w (literal-oneform-field 'w R3-rect))
-      (define u (literal-oneform-field 'u R3-rect))
-      (define v (literal-oneform-field 'v R3-rect))
+    (let-coordinates [[x y] R2-rect]
+      (let [R2-rect-point ((man/point R2-rect) (up 'x0 'y0))
+            X (vf/literal-vector-field 'X R2-rect)
+            Y (vf/literal-vector-field 'Y R2-rect)
 
-      (define X (literal-vector-field 'X R3-rect))
-      (define Y (literal-vector-field 'Y R3-rect))
-      (define Z (literal-vector-field 'Z R3-rect))
-      (define W (literal-vector-field 'W R3-rect))
+            f (man/literal-scalar-field 'f R2-rect)
+            present (fn [expr]
+                      (-> (simplify expr)
+                          (x/substitute '(up x0 y0) 'p)))]
 
-      (define f (literal-scalar-field 'f R3-rect))
+        (is (= '(+ (* (X↑0 p) (((partial 0) f) p) (((partial 0) Y↑0) p))
+                   (* (X↑0 p) (((partial 1) f) p) (((partial 0) Y↑1) p))
+                   (* -1 (Y↑0 p) (((partial 0) f) p) (((partial 0) X↑0) p))
+                   (* -1 (Y↑0 p) (((partial 1) f) p) (((partial 0) X↑1) p))
+                   (* -1 (((partial 0) f) p) (Y↑1 p) (((partial 1) X↑0) p))
+                   (* (((partial 0) f) p) (X↑1 p) (((partial 1) Y↑0) p))
+                   (* -1 (Y↑1 p) (((partial 1) f) p) (((partial 1) X↑1) p))
+                   (* (((partial 1) f) p) (X↑1 p) (((partial 1) Y↑1) p)))
+               (present
+                ((((g/Lie-derivative X) Y) f) R2-rect-point))))
 
-      (clear-arguments)
-      (suppress-arguments (list '(up x0 y0 z0)))
+        ;; Let phi_t(x) be the integral curve of V from x for interval t
 
-      (pec ((((Lie-derivative X) w) Y) R3-rect-point)
-           (compose arg-suppressor simplify))
-      ;; Result:
-      (+ (* ((partial 0) w_0) X↑0 Y↑0)
-         (* ((partial 0) w_1) X↑0 Y↑1)
-         (* ((partial 0) w_2) X↑0 Y↑2)
-         (* ((partial 1) w_0) X↑1 Y↑0)
-         (* ((partial 1) w_1) X↑1 Y↑1)
-         (* ((partial 1) w_2) X↑1 Y↑2)
-         (* ((partial 2) w_0) X↑2 Y↑0)
-         (* ((partial 2) w_1) X↑2 Y↑1)
-         (* ((partial 2) w_2) X↑2 Y↑2)
-         (* ((partial 0) X↑0) w_0 Y↑0)
-         (* ((partial 1) X↑0) w_0 Y↑1)
-         (* ((partial 2) X↑0) w_0 Y↑2)
-         (* ((partial 0) X↑1) w_1 Y↑0)
-         (* ((partial 1) X↑1) w_1 Y↑1)
-         (* ((partial 2) X↑1) w_1 Y↑2)
-         (* ((partial 0) X↑2) Y↑0 w_2)
-         (* ((partial 1) X↑2) Y↑1 w_2)
-         (* ((partial 2) X↑2) w_2 Y↑2))
+        ;; L_V Y (f) (x) = lim_t->0 ( Y(f) (phi_t (x)) - (d phi_t)(Y)(f)(x))/t
+        ;; = D (lambda (t)
+        ;;             ( Y(f) (phi_t (x)) - (d phi_t)(Y)(f)(x)))
+        ;; (t=0)
+        ;; so let g(t) = ( Y(f) (phi_t (x)) - (d phi_t)(Y)(f)(x))
+        ;; = ( Y(f) (phi_t (x)) - Y(f circ phi_t)(x))
 
-
-
-      (pec ((- ((d ((Lie-derivative X) f)) Y)
-               (((Lie-derivative X) (d f)) Y) )
-            R3-rect-point)
-           (compose arg-suppressor simplify))
-      ;; Result:
-      0
-
-
-      (pec ((- ((d ((Lie-derivative X) w)) Y Z)
-               (((Lie-derivative X) (d w)) Y Z) )
-            ((R3-rect '->point) (up 'x↑0 'y↑0 'z↑0)))
-           (compose arg-suppressor simplify))
-      ;; Result:
-      0
-
-
-
-
-      (install-coordinates R2-rect (up 'x 'y))
-
-      (define R2-rect-point ((R2-rect '->point) (up 'x0 'y0)))
-
-      (define X (literal-vector-field 'X R2-rect))
-      (define Y (literal-vector-field 'Y R2-rect))
-
-      (define f (literal-scalar-field 'f R2-rect))
-
-      (clear-arguments)
-      (suppress-arguments (list '(up x0 y0)))
-
-      (pec ((((Lie-derivative X) Y) f) R2-rect-point)
-           (compose arg-suppressor simplify))
-      ;; Result:
-      (+ (* ((partial 0) Y↑0) X↑0 ((partial 0) f))
-         (* ((partial 0) Y↑1) X↑0 ((partial 1) f))
-         (* ((partial 1) Y↑0) X↑1 ((partial 0) f))
-         (* ((partial 1) Y↑1) X↑1 ((partial 1) f))
-         (* -1 ((partial 0) X↑0) Y↑0 ((partial 0) f))
-         (* -1 ((partial 0) X↑1) Y↑0 ((partial 1) f))
-         (* -1 ((partial 1) X↑0) ((partial 0) f) Y↑1)
-         (* -1 ((partial 1) X↑1) Y↑1 ((partial 1) f)))
+        ;; we only need linear terms in phi_t(x)
 
 
+        ;; Perhaps
 
-      ;; Let phi_t(x) be the integral curve of V from x for interval t
+        ;; phi_t(x) = (I + t v(I))(x)
 
-      ;; L_V Y (f) (x) = lim_t->0 ( Y(f) (phi_t (x)) - (d phi_t)(Y)(f)(x))/t
-      ;; = D (lambda (t)
-      ;;             ( Y(f) (phi_t (x)) - (d phi_t)(Y)(f)(x)))
-      ;; (t=0)
-      ;; so let g(t) = ( Y(f) (phi_t (x)) - (d phi_t)(Y)(f)(x))
-      ;; = ( Y(f) (phi_t (x)) - Y(f circ phi_t)(x))
+        ;; Is this correct? No! Cannot add to a manifold point.
 
-      ;; we only need linear terms in phi_t(x)
+        ;; g(t) = ( Y(f) ((I + t v(I))(x)) - Y(f circ (I + t v(I)))(x))
+        (letfn [(Lie-test [V]
+                  (fn [Y]
+                    (fn [f]
+                      (fn [x]
+                        (letfn [(g [t]
+                                  (- ((Y f) ((+ identity (* t (V identity))) x))
+                                     ((Y (f/compose f (+ identity (* t (V identity))))) x)))]
+                          ((D g) 0))))))]
+          (comment
+            ;; TODO I think this is broken in Lie.scm; it only works because
+            ;; zero-like on a point returns 0.
+            (is (= 0 (- ((((Lie-test X) Y) f) R2-rect-point)
+                        ((((g/Lie-derivative X) Y) f) R2-rect-point))))))))
 
+    (testing "Lie derivative satisfies extended Leibnitz rule"
+      (let [V (vf/literal-vector-field 'V R2-rect)
+            Y (vf/literal-vector-field 'Y R2-rect)
 
-      ;; Perhaps
+            q_0 (up 'q_x 'q_y)
+            m ((man/point R2-rect) q_0)
+            f (man/literal-manifold-function 'f R2-rect)
 
-      ;; phi_t(x) = (I + t v(I))(x)
+            e_0 (vf/literal-vector-field 'e_0 R2-rect)
+            e_1 (vf/literal-vector-field 'e_1 R2-rect)
 
-      ;; Is this correct?  No!, cannot add to a manifold point. ***********
+            vector-basis (down e_0 e_1)
+            oneform-basis (b/vector-basis->dual (down e_0 e_1) R2-rect)
+            basis (b/make-basis vector-basis oneform-basis)
 
-      ;; g(t) = ( Y(f) ((I + t v(I))(x)) - Y(f circ (I + t v(I)))(x))
+            Y↑i (oneform-basis Y)]
+        (is (= 0 (simplify
+                  ((- (((g/Lie-derivative V) Y) f)
+                      (+ (* (s/mapr (g/Lie-derivative V) Y↑i) (vector-basis f))
+                         (* Y↑i ((s/mapr (g/Lie-derivative V) vector-basis) f))))
+                   m))))))
 
+    (testing "Computation of Lie derivatives by difference quotient."
+      (let [X (vf/literal-vector-field 'X R2-rect)
+            Y (vf/literal-vector-field 'Y R2-rect)
 
-      (define ((((Lie-test V) Y) f) x)
-        (define (g t)
-          (- ((Y f) ((+ identity (* t (V identity))) x))
-             ((Y (compose f (+ identity (* t (V identity))))) x)))
-        ((D g) 0))
+            q_0 (up 'q_x 'q_y)
 
+            m_0 ((man/point R2-rect) q_0)
 
-      (pec (- ((((Lie-test X) Y) f) R2-rect-point)
-              ((((Lie-derivative X) Y) f) R2-rect-point)))
-      ;; Result:
-      0
+            q (fn [coords]
+                (fn [t]
+                  (+ coords
+                     (* t ((X (man/chart R2-rect))
+                           ((man/point R2-rect) coords))))))
 
+            gamma (fn [initial-point]
+                    (f/compose
+                     (man/point R2-rect)
+                     (q ((man/chart R2-rect) initial-point))))
 
-      ;; this result is a consequence of confusing manifold points
-      ;; with tuples of coordinates in the embedding space.
-      (clear-arguments)
-
-      ;; Lie derivative satisfies extended Leibnitz rule
-
-      (define V (literal-vector-field 'V R2-rect))
-      (define Y (literal-vector-field 'Y R2-rect))
-      (define q_0 (up 'q_x 'q_y))
-      (define m ((R2-rect '->point) q_0))
-      ;; Value: m
-
-
-      (define f (literal-manifold-function 'f R2-rect))
-
-      (define e_0 (literal-vector-field 'e_0 R2-rect))
-      (define e_1 (literal-vector-field 'e_1 R2-rect))
-
-      (define vector-basis (down e_0 e_1))
-      (define oneform-basis (vector-basis->dual (down e_0 e_1) R2-rect))
-      (define basis (make-basis vector-basis oneform-basis))
-
-      (define Y↑i (oneform-basis Y))
-
-      (pe ((- (((Lie-derivative V) Y) f)
-              (+ (* (s:map/r (Lie-derivative V) Y↑i) (vector-basis f))
-                 (* Y↑i ((s:map/r (Lie-derivative V) vector-basis) f))))
-           m))
-      0
-
-      ;; Computation of Lie derivatives by difference quotient.
-
-      (define X (literal-vector-field 'X R2-rect))
-      (define Y (literal-vector-field 'Y R2-rect))
-
-      (define q_0 (up 'q_x 'q_y))
-
-      (define m_0 ((R2-rect '->point) q_0))
-
-      (define ((q coords)  t)
-        (+ coords
-           (* t
-              ((X (R2-rect '->coords))
-               ((R2-rect '->point) coords)))))
-
-      (define (gamma initial-point)
-        (compose (R2-rect '->point)
-                 (q ((R2-rect '->coords) initial-point))))
-
-      (define ((phi↑X t) point)
-        ((gamma point) t))
-
-      (define f (literal-manifold-function 'f R2-rect))
-
-
-      (pe ((D (lambda (t)
+            phi↑X (fn [t]
+                    (fn [point]
+                      ((gamma point) t)))
+            f (man/literal-manifold-function 'f R2-rect)
+            result-via-Lie ((((g/Lie-derivative X) Y) f) m_0)
+            present (fn [expr]
+                      (-> (simplify expr)
+                          (x/substitute '(up q_x q_y) 'p)))
+            ]
+        (is (= '(+ (* -1 (Y↑0 p) (((partial 0) f) p) (((partial 0) X↑0) p))
+                   (* -1 (Y↑0 p) (((partial 1) f) p) (((partial 0) X↑1) p))
+                   (* (((partial 0) f) p) (((partial 0) Y↑0) p) (X↑0 p))
+                   (* -1 (((partial 0) f) p) (Y↑1 p) (((partial 1) X↑0) p))
+                   (* (((partial 0) f) p) (((partial 1) Y↑0) p) (X↑1 p))
+                   (* -1 (Y↑1 p) (((partial 1) f) p) (((partial 1) X↑1) p))
+                   (* (((partial 1) f) p) (((partial 0) Y↑1) p) (X↑0 p))
+                   (* (((partial 1) f) p) (((partial 1) Y↑1) p) (X↑1 p)))
+               (present
+                ((D (fn [t]
                       (- ((Y f) ((phi↑X t) m_0))
-                         ((Y (compose f (phi↑X t))) m_0))))
-           0))
-      (+ (* -1 (((partial 1) X↑0) (up q_x q_y)) (Y↑1 (up q_x q_y)) (((partial 0) f) (up q_x q_y)))
-         (* -1 (Y↑1 (up q_x q_y)) (((partial 1) X↑1) (up q_x q_y)) (((partial 1) f) (up q_x q_y)))
-         (* (((partial 1) Y↑0) (up q_x q_y)) (((partial 0) f) (up q_x q_y)) (X↑1 (up q_x q_y)))
-         (* (((partial 0) f) (up q_x q_y)) (((partial 0) Y↑0) (up q_x q_y)) (X↑0 (up q_x q_y)))
-         (* -1 (((partial 0) f) (up q_x q_y)) (((partial 0) X↑0) (up q_x q_y)) (Y↑0 (up q_x q_y)))
-         (* (((partial 1) Y↑1) (up q_x q_y)) (((partial 1) f) (up q_x q_y)) (X↑1 (up q_x q_y)))
-         (* (((partial 1) f) (up q_x q_y)) (((partial 0) Y↑1) (up q_x q_y)) (X↑0 (up q_x q_y)))
-         (* -1 (((partial 1) f) (up q_x q_y)) (((partial 0) X↑1) (up q_x q_y)) (Y↑0 (up q_x q_y))))
+                         ((Y (f/compose f (phi↑X t))) m_0))))
+                 0))))
 
+        (is (= 0 (simplify
+                  (- result-via-Lie
+                     ((D (fn [t]
+                           (- ((Y f) ((phi↑X t) m_0))
+                              ((Y (f/compose f (phi↑X t))) m_0))))
+                      0)))
+               ))
 
-      (pe ((((Lie-derivative X) Y) f) m_0))
-      (+ (* -1 (((partial 1) X↑0) (up q_x q_y)) (Y↑1 (up q_x q_y)) (((partial 0) f) (up q_x q_y)))
-         (* -1 (Y↑1 (up q_x q_y)) (((partial 1) X↑1) (up q_x q_y)) (((partial 1) f) (up q_x q_y)))
-         (* (((partial 1) Y↑0) (up q_x q_y)) (((partial 0) f) (up q_x q_y)) (X↑1 (up q_x q_y)))
-         (* (((partial 0) f) (up q_x q_y)) (((partial 0) Y↑0) (up q_x q_y)) (X↑0 (up q_x q_y)))
-         (* -1 (((partial 0) f) (up q_x q_y)) (((partial 0) X↑0) (up q_x q_y)) (Y↑0 (up q_x q_y)))
-         (* (((partial 1) Y↑1) (up q_x q_y)) (((partial 1) f) (up q_x q_y)) (X↑1 (up q_x q_y)))
-         (* (((partial 1) f) (up q_x q_y)) (((partial 0) Y↑1) (up q_x q_y)) (X↑0 (up q_x q_y)))
-         (* -1 (((partial 1) f) (up q_x q_y)) (((partial 0) X↑1) (up q_x q_y)) (Y↑0 (up q_x q_y))))
+        (is (= 0 (simplify
+                  (- result-via-Lie
+                     ((D (fn [t]
+                           (- ((Y f) ((phi↑X t) m_0))
+                              ((((cm/pushforward-vector (phi↑X t) (phi↑X (- t)))
+                                 Y)
+                                f)
+                               ((phi↑X t) m_0)))))
+                      0)))))
 
+        (is (= 0 (simplify
+                  (- result-via-Lie
+                     ((D (fn [t]
+                           ((((cm/pushforward-vector (phi↑X (- t)) (phi↑X t))
+                              Y)
+                             f)
+                            m_0)))
+                      0))))))
 
-      (pe (- ((D (lambda (t)
-                         (- ((Y f) ((phi↑X t) m_0))
-                            ((Y (compose f (phi↑X t))) m_0))))
-              0)
-             ((((Lie-derivative X) Y) f) m_0)))
-      0
+      (let [m ((man/point R2-rect) (up 'x 'y))
+            V (vf/literal-vector-field 'V R2-rect)
+            Y (vf/literal-vector-field 'Y R2-rect)
+            f (man/literal-manifold-function 'f R2-rect)
 
-      (pe (- ((D (lambda (t)
-                         (- ((Y f) ((phi↑X t) m_0))
-                            ((((pushforward-vector (phi↑X t) (phi↑X (- t)))
-                               Y)
-                              f)
-                             ((phi↑X t) m_0)))))
-              0)
-             ((((Lie-derivative X) Y) f) m_0)))
-      0
+            e_0 (vf/literal-vector-field 'e_0 R2-rect)
+            e_1 (vf/literal-vector-field 'e_1 R2-rect)
 
-      (pe (- ((D (lambda (t)
-                         ((((pushforward-vector (phi↑X (- t)) (phi↑X t))
-                            Y)
-                           f)
-                          m_0)))
-              0)
-             ((((Lie-derivative X) Y) f) m_0)))
-      0
+            vector-basis (down e_0 e_1)
+            oneform-basis (b/vector-basis->dual (down e_0 e_1) R2-rect)
+            [e↑0 e↑1] oneform-basis
 
+            basis (b/make-basis vector-basis oneform-basis)
 
+            Delta↑i_j (fn [v]
+                        (oneform-basis
+                         (s/mapr (g/Lie-derivative v) vector-basis)))]
+        (is (= 0 (simplify
+                  ((- (((g/Lie-derivative V) Y) f)
+                      (* (vector-basis f)
+                         (+ (V (oneform-basis Y))
+                            (* (oneform-basis Y) (Delta↑i_j V)))))
+                   m))))
 
+        (is (= 0 (simplify
+                  ((- (* (oneform-basis Y)
+                         ((s/mapr (g/Lie-derivative V) vector-basis) f))
+                      (* (oneform-basis Y)
+                         (Delta↑i_j V)
+                         (vector-basis f)))
+                   m))))
 
-      (define m ((R2-rect '->point) (up 'x 'y)))
-      (define V (literal-vector-field 'V R2-rect))
-      (define Y (literal-vector-field 'Y R2-rect))
-      (define f (literal-manifold-function  'f R2-rect))
-
-
-      (define e_0 (literal-vector-field 'e_0 R2-rect))
-      (define e_1 (literal-vector-field 'e_1 R2-rect))
-
-      (define vector-basis (down e_0 e_1))
-      (define oneform-basis (vector-basis->dual (down e_0 e_1) R2-rect))
-
-      (define e↑0 (ref oneform-basis 0))
-      (define e↑1 (ref oneform-basis 1))
-
-      (define basis (make-basis vector-basis oneform-basis))
-
-      (define (Delta↑i_j v)
-        (oneform-basis (s:map/r (Lie-derivative v) vector-basis)))
-
-;;; Verifying equation 0.184
-
-      (pec ((- (((Lie-derivative V) Y) f)
-               (* (vector-basis f)
-                  (+ (V (oneform-basis Y))
-                     (* (oneform-basis Y) (Delta↑i_j V)))))
-            m))
-
-      ;; Result:
-      0
-
-      ;; Indeed, a painful detail:
-
-      (pec ((- (* (oneform-basis Y) ((s:map/r (Lie-derivative V) vector-basis) f))
-               (* (oneform-basis Y) (Delta↑i_j V) (vector-basis f)))
-            m))
-      ;; Result:
-      0
-
-      ;; Even simpler
-      (pec ((- (* ((s:map/r (Lie-derivative V) vector-basis) f))
-               (* (Delta↑i_j V) (vector-basis f)))
-            m))
-
-      ;; Result:
-      (down 0 0)
-      )))
+        ;; even simpler:
+        (is (= (down 0 0)
+               (g/simplify
+                ((- (* ((s/mapr (g/Lie-derivative V) vector-basis) f))
+                    (* (Delta↑i_j V) (vector-basis f)))
+                 m))))))))
 
 (deftest interior-product-tests
+  (testing "Claim: L_x omega = i_x d omega + d i_x omega (Cartan Homotopy Formula)"
+    (let-coordinates [[x y z] R3-rect]
+      (let [R3-rect-point ((man/point R3-rect) (up 'x0 'y0 'z0))
 
-  (comment
+            X (vf/literal-vector-field 'X R3-rect)
+            Y (vf/literal-vector-field 'Y R3-rect)
+            Z (vf/literal-vector-field 'Z R3-rect)
+            W (vf/literal-vector-field 'W R3-rect)
 
-    ;; Claim L_x omega = i_x d omega + d i_x omega (Cartan Homotopy Formula)
+            alpha (man/literal-manifold-function 'alpha R3-rect)
+            beta  (man/literal-manifold-function 'beta R3-rect)
+            gamma (man/literal-manifold-function 'gamma R3-rect)
+            omega
+            (+ (* alpha (ff/wedge dx dy))
+               (* beta (ff/wedge dy dz))
+               (* gamma (ff/wedge dz dx)))
 
-    (install-coordinates R3-rect (up 'x 'y 'z))
+            L1 (fn [X]
+                 (fn [omega]
+                   (+ ((cov/interior-product X) (ff/d omega))
+                      (ff/d ((cov/interior-product X) omega)))))]
+        (is (= 0 (simplify
+                  ((- (((g/Lie-derivative X) omega) Y Z)
+	                    (((L1 X) omega) Y Z))
+                   R3-rect-point))))
 
-    (define R3-rect-point ((R3-rect '->point) (up 'x0 'y0 'z0)))
+        (let [omega (ff/literal-oneform-field 'omega R3-rect)]
+          (is (= 0 (simplify
+                    ((- (((g/Lie-derivative X) omega) Y)
+	                      (((L1 X) omega) Y))
+	                   R3-rect-point)))))
 
-    (define X (literal-vector-field 'X R3-rect))
-    (define Y (literal-vector-field 'Y R3-rect))
-    (define Z (literal-vector-field 'Z R3-rect))
-    (define W (literal-vector-field 'W R3-rect))
-
-    (define alpha
-      (compose (literal-function 'alpha (-> (UP Real Real Real) Real))
-	             (R3-rect '->coords)))
-    (define beta
-      (compose (literal-function 'beta (-> (UP Real Real Real) Real))
-	             (R3-rect '->coords)))
-    (define gamma
-      (compose (literal-function 'gamma (-> (UP Real Real Real) Real))
-	             (R3-rect '->coords)))
-
-    (define omega
-      (+ (* alpha (wedge dx dy))
-         (* beta (wedge dy dz))
-         (* gamma (wedge dz dx))))
-
-    (define ((L1 X) omega)
-      (+ ((interior-product X) (d omega))
-         (d ((interior-product X) omega))))
-
-
-    (pec ((- (((Lie-derivative X) omega) Y Z)
-	           (((L1 X) omega) Y Z))
-          ((R3-rect '->point) (up 'x0 'y0 'z0))))
-    ;; Result:
-    0
-
-
-    (pec (let ((omega (literal-1form-field 'omega R3-rect)))
-           ((- (((Lie-derivative X) omega) Y)
-	             (((L1 X) omega) Y))
-	          ((R3-rect '->point) (up 'x0 'y0 'z0)))))
-    ;; Result:
-    0
-
-
-    (pec (let ((omega (* alpha (wedge dx dy dz))))
-           ((- (((Lie-derivative X) omega) Y Z W)
-	             (((L1 X) omega) Y Z W))
-	          ((R3-rect '->point) (up 'x0 'y0 'z0)))))
-    ;; Result:
-    0
-    )
-
-  )
+        (let [omega (* alpha (ff/wedge dx dy dz))]
+          (is (= 0 (simplify
+                    ((- (((g/Lie-derivative X) omega) Y Z W)
+	                      (((L1 X) omega) Y Z W))
+	                   R3-rect-point)))))))))

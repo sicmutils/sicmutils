@@ -210,7 +210,7 @@ and the differentials of coordinate functions."
                       d:dt d:dt)
                      ((man/point R1-rect) 't)))))))))
 
-  (let-coordinates [[x y z] R3-rect
+  (let-coordinates [[x y z]        R3-rect
                     [r theta zeta] R3-cyl]
     (let [mu (f/compose
               (man/point R3-cyl)
@@ -225,41 +225,35 @@ and the differentials of coordinate functions."
              (v/freeze
               ((((m/pullback mu) dtheta) d:dx)
                ((man/point R3-rect) (up 'x 'y 'z))))))
+
+      (is (= '(((partial 1) mu↑theta) (up x y z))
+             (v/freeze
+              ((((m/pullback mu) dtheta) d:dy)
+               ((man/point R3-rect) (up 'x 'y 'z))))))
+
+      (is (= '(((partial 0) mu↑r) (up x y z))
+             (v/freeze
+              ((((m/pullback mu) dr) d:dx)
+               ((man/point R3-rect) (up 'x 'y 'z))))))
+
+      (is (= '(((partial 1) mu↑r) (up x y z))
+             (v/freeze
+              ((((m/pullback mu) dr) d:dy)
+               ((man/point R3-rect) (up 'x 'y 'z))))))
+
+      (is (= '(+ (* (((partial 0) mu↑r) (up x y z))
+                    (((partial 1) mu↑theta) (up x y z)))
+                 (* -1
+                    (((partial 1) mu↑r) (up x y z))
+                    (((partial 0) mu↑theta) (up x y z))))
+             (simplify
+              ((((m/pullback mu)
+                 (ff/wedge dr dtheta))
+                d:dx d:dy)
+               ((man/point R3-rect)
+                (up 'x 'y 'z))))))
+
       (comment
-        (pec
-         ((((m/pullback mu) dtheta) d:dy)
-          ((R3-rect '->point) (up 'x 'y 'z))))
-        ;; Result:
-        (((partial 1) mu↑theta) (up x y z))
-
-
-        (pec
-         ((((m/pullback mu) dr) d:dx)
-          ((R3-rect '->point) (up 'x 'y 'z))))
-        ;; Result:
-        (((partial 0) mu↑r) (up x y z))
-
-
-        (pec
-         ((((m/pullback mu) dr) d:dy)
-          ((R3-rect '->point) (up 'x 'y 'z))))
-        ;; Result:
-        (((partial 1) mu↑r) (up x y z))
-
-
-        (pec
-         ((((m/pullback mu)
-            (ff/wedge dr dtheta))
-           d:dx d:dy)
-          ((R3-rect '->point)
-           (up 'x 'y 'z))))
-        ;; Result:
-        (+ (* (((partial 1) mu↑theta) (up x y z))
-              (((partial 0) mu↑r) (up x y z)))
-           (* -1
-              (((partial 1) mu↑r) (up x y z))
-              (((partial 0) mu↑theta) (up x y z))))
-
         (define m ((R2-rect '->point) (up 3 4)))
 
         (install-coordinates R2-rect (up 'x 'y))
