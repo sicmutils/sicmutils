@@ -204,13 +204,18 @@
 (defn vector-field->basis-components [v dual-basis]
   (s/mapr (fn [w] (w v)) dual-basis))
 
-(defn coordinatize [v coordinate-system]
+(defn coordinatize
+  "Returns an operator that acts as a coordinate version of the supplied vector
+  field `v`."
+  [vf coordinate-system]
   (letfn [(coordinatized-v [f]
             (fn [x]
-              (let [b (f/compose (v (m/chart coordinate-system))
+              (let [b (f/compose (vf (m/chart coordinate-system))
                                  (m/point coordinate-system))]
                 (g/* ((D f) x) (b x)))))]
-    (o/make-operator coordinatized-v `(~'coordinatized ~v))))
+    (o/make-operator
+     coordinatized-v
+     `(~'coordinatized ~(o/name vf)))))
 
 (defn evolution
   "We can use the coordinatized vector field to build an evolution along an
