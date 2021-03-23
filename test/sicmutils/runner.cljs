@@ -9,6 +9,7 @@
 
             sicmutils.calculus.basis-test
             sicmutils.calculus.coordinate-test
+            sicmutils.calculus.covariant-test
             sicmutils.calculus.derivative-test
             sicmutils.calculus.form-field-test
             sicmutils.calculus.manifold-test
@@ -75,6 +76,7 @@
 
             sicmutils.util-test
             sicmutils.util.aggregate-test
+            sicmutils.util.permute-test
             sicmutils.util.stream-test
             sicmutils.util.vector-set-test
 
@@ -108,6 +110,7 @@
 
            'sicmutils.calculus.basis-test
            'sicmutils.calculus.coordinate-test
+           'sicmutils.calculus.covariant-test
            'sicmutils.calculus.derivative-test
            'sicmutils.calculus.form-field-test
            'sicmutils.calculus.manifold-test
@@ -155,6 +158,7 @@
 
            'sicmutils.util-test
            'sicmutils.util.aggregate-test
+           'sicmutils.util.permute-test
            'sicmutils.util.stream-test
            'sicmutils.util.vector-set-test
 

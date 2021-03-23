@@ -857,9 +857,9 @@
 
     (testing "invert-hilbert-matrix"
       (let [N 3
-            H (apply s/up (for [i (range 1 (inc N))]
-                            (apply s/up (for [j (range 1 (inc N))]
-                                          (g/divide 1 (g/+ i j -1))))))]
+            H (s/up* (for [i (range 1 (inc N))]
+                       (s/up* (for [j (range 1 (inc N))]
+                                (g/divide 1 (g/+ i j -1))))))]
         (is (= (s/down (s/down 9 -36 30)
                        (s/down -36 192 -180)
                        (s/down 30 -180 180))

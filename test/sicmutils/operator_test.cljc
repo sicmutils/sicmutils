@@ -57,10 +57,10 @@
       (checking " identity-like" 100 [n sg/real]
                 (is (= (g/sin n) (f n)))))
 
-    (testing "one? zero? identity? always return false (for now!)"
-      (is (not (v/zero? (v/zero-like x2))))
-      (is (not (v/one? (v/one-like x2))))
-      (is (not (v/identity? (v/identity-like x2)))))
+    (testing "one? zero? identity? return true appropriately"
+      (is (v/zero? (v/zero-like x2)))
+      (is (v/one? (v/one-like x2)))
+      (is (v/identity? (v/identity-like x2))))
 
     (testing "v/numerical?"
       (is (not (v/numerical? x2))))
@@ -360,17 +360,23 @@
           q (o/make-operator identity 'q {:subtype ::x :color :blue})
           r (o/make-operator identity 'r {:subtype ::x :color :green})]
       (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-                   ((+ o p) inc)))
-      (is (= {:subtype ::y} (o/context (* o p))))
+                   (g/add o p)))
+
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (g/mul o p)))
+
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (g/add q r)))
+
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (g/add q p)))
+
       (is (= 2 (((+ o o) inc) 0)))
       (is (= 1 (((* o o) inc) 0)))
       (is (= {:subtype ::x} (o/context (+ o o))))
       (is (= {:subtype ::y} (o/context (* p p))))
-      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-                   ((+ q r) inc)))
-      (is (= {:subtype ::x :color :blue} (o/context (+ q o))))
-      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-                   (+ q p))))))
+      (is (= {:subtype ::x :color :blue}
+             (o/context (+ q o)))))))
 
     ;;; more testing to come as we implement multivariate literal functions that
     ;;; rely on operations on structures....

@@ -2,6 +2,52 @@
 
 ## [unreleased]
 
+- #328 adds many utilities for "Functional Differential Geometry".
+
+  - Closes #249; operators now verify compatible contexts on multiplication
+  - `Operator` instances can now provides custom `zero?`, `one?`, `identity?`,
+    `zero-like`, `one-like` and `identity-like` implementations by setting a
+    function of a single (operator-typed) argument to a keyword like `:zero?` in
+    their context.
+  - structures implement the 0-arity case of IFn now.
+
+  - vector fields, in `sicmutils.calculus.vector-field`:
+
+    - new functions! `basis-components->vector-field`, `vector-field->basis-components`
+
+    - vector fields now implement `v/zero?` and `v/zero-like` by returning
+      proper vector fields.
+
+  - form fields, in `sicmutils.calculus.vector-field`:
+
+    - new functions: `nform-field?`, `basis-components->oneform-field`,
+    `oneform-field->basis-components` and `function->oneform-field` (aliased as
+    `differential-of-function`)
+
+    - `Alt`, `alt-wedge` provide alternate wedge product definitions
+
+    - form fields now implement `v/zero?` and `v/zero-like` by returning
+      proper form fields that retain their rank.
+
+    - form fields now correctly multiply via `*` by using
+      `sicmutils.calculus.form-field/wedge`, instead of composition.
+
+  - maps between manifolds, in `sicmutils.calculus.map`:
+
+    - new function: `pushforward-function`
+    - `differential` becomes `differential-of-map`, aliased back as `differential`
+
+  - `sicmutils.calculus.covariant`:
+
+    - New functions: `Cartan?`, `Christoffel?`, `Cartan->Christoffel`,
+      `symmetrize-Christoffel`, `symmetrize-Cartan`, `Cartan->Cartan-over-map`,
+      `geodesic-equation`, `parallel-transport-equation`
+
+    - `vector-field-Lie-derivative` handles structures now
+
+    - Functions in progress: `has-argument-types?`, `argument-types`,
+      `covariant-derivative-argument-types`, `covariant-derivative-function`.
+
 - #335 implements `g/make-rectangular`, `g/make-polar` `g/real-part` and
   `g/imag-part` for clojure's Map data structure. Maps are treated as sparse
   vectors, any missing key on either side of `make-rectangular` or
