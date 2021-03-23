@@ -31,6 +31,7 @@
             [sicmutils.calculus.manifold :as man
              :refer [R1-rect R2-rect R3-rect R3-cyl S2-spherical]]
             [sicmutils.calculus.vector-field :as vf]
+            [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.structure :refer [up down]]
@@ -144,13 +145,14 @@ and the differentials of coordinate functions."
                         (* -1 ((D μ↑1) τ) (e1↑0 (up x0 y0))))
                      (+ (* (e1↑1 (up x0 y0)) (e0↑0 (up x0 y0)))
                         (* -1 (e1↑0 (up x0 y0)) (e0↑1 (up x0 y0)))))
-                 (simplify (((nth edual 0)
-                             (vf/procedure->vector-field
-                              (fn [f]
-                                (fn [m]
-                                  ((((m/differential μ) d:dt) f)
-                                   ((man/point R1-rect) 'τ))))))
-                            R2-rect-point))))))))
+                 (simplify
+                  (((nth edual 0)
+                    (vf/procedure->vector-field
+                     (fn [f]
+                       (fn [m]
+                         ((((m/differential μ) d:dt) f)
+                          ((man/point R1-rect) 'τ))))))
+                   R2-rect-point))))))))
 
   (testing "general path on the sphere"
     (let-coordinates [[θ φ] S2-spherical
@@ -212,34 +214,33 @@ and the differentials of coordinate functions."
 
   (let-coordinates [[x y z]        R3-rect
                     [r theta zeta] R3-cyl]
-    (let [mu (f/compose
+    (let [R3-rect->R '(-> (UP Real Real Real) Real)
+          mu (f/compose
               (man/point R3-cyl)
-              (up (af/literal-function 'mu↑r
-			                                 '(-> (UP Real Real Real) Real))
-                  (af/literal-function 'mu↑theta
-			                                 '(-> (UP Real Real Real) Real))
-                  (af/literal-function 'mu↑zeta
-			                                 '(-> (UP Real Real Real) Real)))
-              (man/chart R3-rect))]
+              (up (af/literal-function 'mu↑r R3-rect->R)
+                  (af/literal-function 'mu↑theta R3-rect->R)
+                  (af/literal-function 'mu↑zeta R3-rect->R))
+              (man/chart R3-rect))
+          R3-rect-point ((man/point R3-rect) (up 'x 'y 'z))]
       (is (= '(((partial 0) mu↑theta) (up x y z))
              (v/freeze
               ((((m/pullback mu) dtheta) d:dx)
-               ((man/point R3-rect) (up 'x 'y 'z))))))
+               R3-rect-point))))
 
       (is (= '(((partial 1) mu↑theta) (up x y z))
              (v/freeze
               ((((m/pullback mu) dtheta) d:dy)
-               ((man/point R3-rect) (up 'x 'y 'z))))))
+               R3-rect-point))))
 
       (is (= '(((partial 0) mu↑r) (up x y z))
              (v/freeze
               ((((m/pullback mu) dr) d:dx)
-               ((man/point R3-rect) (up 'x 'y 'z))))))
+               R3-rect-point))))
 
       (is (= '(((partial 1) mu↑r) (up x y z))
              (v/freeze
               ((((m/pullback mu) dr) d:dy)
-               ((man/point R3-rect) (up 'x 'y 'z))))))
+               R3-rect-point))))
 
       (is (= '(+ (* (((partial 0) mu↑r) (up x y z))
                     (((partial 1) mu↑theta) (up x y z)))
@@ -250,137 +251,120 @@ and the differentials of coordinate functions."
               ((((m/pullback mu)
                  (ff/wedge dr dtheta))
                 d:dx d:dy)
-               ((man/point R3-rect)
-                (up 'x 'y 'z))))))
+               R3-rect-point)))))
 
-      (comment
-        (define m ((R2-rect '->point) (up 3 4)))
+    (let-coordinates [[x y] R2-rect
+                      t     R1-rect]
+      (let [m   ((man/point R2-rect) (up 3 4))
+            phi (f/compose (man/point R2-rect)
+	                         (up g/square g/cube)
+	                         (man/chart R1-rect))
+            psi (f/compose (man/point R1-rect)
+	                         (fn [[x y]] (- x y))
+	                         (man/chart R2-rect))]
+        (is (= '(* 3 (expt t0 4))
+               (simplify
+                ((((m/pullback phi) (* x dy)) d:dt)
+                 ((man/point R1-rect) 't0)))))
 
-        (install-coordinates R2-rect (up 'x 'y))
-
-        (define phi
-          (compose (R2-rect '->point)
-	                 (up square cube)
-	                 (R1-rect '->coords)))
-
-        (pec ((((m/pullback phi) (* x dy)) d:dt)
-              ((R1-rect '->point) 't0)))
-        ;; Result:
-        (* 3 (expt t0 4))
-
-
-        (define psi
-          (compose (R1-rect '->point)
-	                 (lambda (v)
-	                         (let ((x (ref v 0))
-		                             (y (ref v 1)))
-	                           (- x y)))
-	                 (R2-rect '->coords)))
-
-        (pec ((((m/pullback psi) dt)
-               (literal-vector-field 'u R2-rect))
-              ((R2-rect '->point) (up 'x0 'y0))))
-        ;; Result:
-        (+ (u↑0 (up x0 y0)) (* -1 (u↑1 (up x0 y0))))))
-    )
+        (is  (= '(+ (u↑0 (up x0 y0)) (* -1 (u↑1 (up x0 y0))))
+                (simplify
+                 ((((m/pullback psi) dt)
+                   (vf/literal-vector-field 'u R2-rect))
+                  ((man/point R2-rect) (up 'x0 'y0)))))))))
 
   (testing "pullback commutes with exterior derivative"
     (let-coordinates [[x y z] R3-rect]
-      (comment
-        (define R3-rect-chi (R3-rect '->coords))
-        (define R3-rect-chi-inverse (R3-rect '->point))
-        (define R3-rect->R (-> (UP Real Real Real) Real))
-        (define m3 ((R3-rect '->point) (up 'x0 'y0 'z0)))
+      (let [R3-rect-chi (man/chart R3-rect)
+            R3-rect-chi-inverse (man/point R3-rect)
+            R3-rect->R '(-> (UP Real Real Real) Real)
+            m3 ((man/point R3-rect) (up 'x0 'y0 'z0))
 
-        (define alpha (literal-function 'alpha R3-rect->R))
-        (define beta (literal-function 'beta R3-rect->R))
-        (define gamma (literal-function 'gamma R3-rect->R))
+            alpha (af/literal-function 'alpha R3-rect->R)
+            beta (af/literal-function 'beta R3-rect->R)
+            gamma (af/literal-function 'gamma R3-rect->R)
 
-        (define theta
-          (+ (* (compose alpha R3-rect-chi) dx)
-             (* (compose beta R3-rect-chi) dy)
-             (* (compose gamma R3-rect-chi) dz)))
+            theta
+            (+ (* (f/compose alpha R3-rect-chi) dx)
+               (* (f/compose beta R3-rect-chi) dy)
+               (* (f/compose gamma R3-rect-chi) dz))
 
-        (define R2-chi (R2-rect '->coords))
-        (define R2-chi-inverse (R2-rect '->point))
-        (define R2-rect->R (-> (UP Real Real) Real))
-        (define X2 (literal-vector-field 'X R2-rect))
-        (define Y2 (literal-vector-field 'Y R2-rect))
-        (define m2 ((R2-rect '->point) (up 'u0 'v0)))
+            R2-chi (man/chart R2-rect)
+            R2-chi-inverse (man/point R2-rect)
+            R2-rect->R '(-> (UP Real Real) Real)
+            X2 (vf/literal-vector-field 'X R2-rect)
+            Y2 (vf/literal-vector-field 'Y R2-rect)
+            m2 ((man/point R2-rect) (up 'u0 'v0))
 
-        (define mu
-          (compose R3-rect-chi-inverse
-	                 (up (literal-function 'mu↑x R2-rect->R)
-	                     (literal-function 'mu↑y R2-rect->R)
-	                     (literal-function 'mu↑z R2-rect->R))
-	                 R2-chi))
-
+            mu
+            (f/compose R3-rect-chi-inverse
+	                     (up (af/literal-function 'mu↑x R2-rect->R)
+	                         (af/literal-function 'mu↑y R2-rect->R)
+	                         (af/literal-function 'mu↑z R2-rect->R))
+	                     R2-chi)]
         ;; first pullback a function
-        (let [f (f/compose (literal-function 'f R3-rect->R)
+        (let [f (f/compose (af/literal-function 'f R3-rect->R)
 	                         R3-rect-chi)]
-          (is (= 0 (((- ((m/pullback mu) (d f))
-                        (d ((m/pullback mu) f)))
-                     X2)
-                    m2))))
+          (is (= 0 (v/freeze
+                    (((- ((m/pullback mu) (ff/d f))
+                         (ff/d ((m/pullback mu) f)))
+                      X2)
+                     m2)))))
 
         ;; now pullback a form
         (is (= '(up (mu↑x (up u0 v0))
                     (mu↑y (up u0 v0))
                     (mu↑z (up u0 v0)))
-               (R3-rect-chi (mu m2))))
+               (v/freeze
+                (R3-rect-chi (mu m2)))))
 
-        (is (= '(+ (* (((partial 0) mu↑x) (up u0 v0))
-                      (alpha (up (mu↑x (up u0 v0))
-                                 (mu↑y (up u0 v0))
-                                 (mu↑z (up u0 v0))))
-                      (X↑0 (up u0 v0)))
-                   (* (((partial 1) mu↑x) (up u0 v0))
-                      (alpha (up (mu↑x (up u0 v0))
-                                 (mu↑y (up u0 v0))
-                                 (mu↑z (up u0 v0))))
-                      (X↑1 (up u0 v0)))
-                   (* (((partial 0) mu↑y) (up u0 v0))
-                      (beta (up (mu↑x (up u0 v0))
-                                (mu↑y (up u0 v0))
-                                (mu↑z (up u0 v0))))
-                      (X↑0 (up u0 v0)))
-                   (* (((partial 1) mu↑y) (up u0 v0))
-                      (beta (up (mu↑x (up u0 v0))
-                                (mu↑y (up u0 v0))
-                                (mu↑z (up u0 v0))))
-                      (X↑1 (up u0 v0)))
-                   (* (((partial 0) mu↑z) (up u0 v0))
-                      (X↑0 (up u0 v0))
-                      (gamma (up (mu↑x (up u0 v0))
-                                 (mu↑y (up u0 v0))
-                                 (mu↑z (up u0 v0)))))
-                   (* (((partial 1) mu↑z) (up u0 v0))
-                      (gamma (up (mu↑x (up u0 v0))
-                                 (mu↑y (up u0 v0))
-                                 (mu↑z (up u0 v0))))
-                      (X↑1 (up u0 v0))))
-               ((((m/pullback mu) theta) X2) m2)))
+        (let [present (fn [expr]
+                        (-> (simplify expr)
+                            (x/substitute '(up u0 v0) 'p)))]
 
-        (is (= 0 (((- ((m/pullback mu) (d theta))
-                      (d ((m/pullback mu) theta)))
-                   X2 Y2)
-                  m2))))))
+          (is (= '(+ (* (alpha (up (mu↑x p) (mu↑y p) (mu↑z p)))
+                        (((partial 0) mu↑x) p)
+                        (X↑0 p))
+                     (* (alpha (up (mu↑x p) (mu↑y p) (mu↑z p)))
+                        (((partial 1) mu↑x) p)
+                        (X↑1 p))
+                     (* (X↑0 p)
+                        (beta (up (mu↑x p) (mu↑y p) (mu↑z p)))
+                        (((partial 0) mu↑y) p))
+                     (* (X↑0 p)
+                        (gamma (up (mu↑x p) (mu↑y p) (mu↑z p)))
+                        (((partial 0) mu↑z) p))
+                     (* (X↑1 p)
+                        (beta (up (mu↑x p) (mu↑y p) (mu↑z p)))
+                        (((partial 1) mu↑y) p))
+                     (* (X↑1 p)
+                        (gamma (up (mu↑x p) (mu↑y p) (mu↑z p)))
+                        (((partial 1) mu↑z) p)))
+                 (present
+                  ((((m/pullback mu) theta) X2) m2)))))
 
-  (testing "pullback commutes with wedge"
-    (comment
-      (let [theta (ff/literal-oneform-field 'theta R3-rect)
-            phi (ff/literal-oneform-field 'phi R3-rect)]
-        (is (= 0 (((- (ff/wedge ((m/pullback mu) theta)
-                                ((m/pullback mu) phi))
-	                    ((m/pullback mu) (ff/wedge theta phi)))
-                   X2
-                   Y2)
-                  m2))))
+        (is (= 0 (simplify
+                  (((- ((m/pullback mu) (ff/d theta))
+                       (ff/d ((m/pullback mu) theta)))
+                    X2 Y2)
+                   m2))))
 
-      (let [theta (man/literal-manifold-function 'f R3-rect)
-            phi (ff/literal-oneform-field 'phi R3-rect)]
-        (is (= 0 (((- (ff/wedge ((m/pullback mu) theta)
-                                ((m/pullback mu) phi))
-	                    ((m/pullback mu) (ff/wedge theta phi)))
-                   X2)
-                  m2)))))))
+        (testing "pullback commutes with wedge"
+          (let [theta (ff/literal-oneform-field 'theta R3-rect)
+                phi   (ff/literal-oneform-field 'phi R3-rect)]
+            (is (= 0 (simplify
+                      (((- (ff/wedge ((m/pullback mu) theta)
+                                     ((m/pullback mu) phi))
+	                         ((m/pullback mu) (ff/wedge theta phi)))
+                        X2
+                        Y2)
+                       m2)))))
+
+          (let [theta (man/literal-manifold-function 'f R3-rect)
+                phi (ff/literal-oneform-field 'phi R3-rect)]
+            (is (= 0 (simplify
+                      (((- (ff/wedge ((m/pullback mu) theta)
+                                     ((m/pullback mu) phi))
+	                         ((m/pullback mu) (ff/wedge theta phi)))
+                        X2)
+                       m2))))))))))
