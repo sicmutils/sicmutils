@@ -116,6 +116,19 @@
                     {:subtype ::oneform-field
                      :zero? ff:zero?
                      :zero-like ff:zero-like
+
+                     :one-like
+                     (fn [_]
+                       (u/unsupported
+                        "one-form fields don't have an identity."))
+
+                     :identity? (fn [_] false)
+
+                     :identity-like
+                     (fn [_]
+                       (u/unsupported
+                        "one-form fields don't have a multiplicative identity."))
+
                      :arity [:exactly 1]
                      :rank 1
                      :arguments [::vf/vector-field]})))

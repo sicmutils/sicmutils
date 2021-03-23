@@ -57,10 +57,12 @@
       (checking " identity-like" 100 [n sg/real]
                 (is (= (g/sin n) (f n)))))
 
-    (testing "one? zero? identity? return true appropriately"
+    (testing " zero? identity? return true appropriately; one? is false."
       (is (v/zero? (v/zero-like x2)))
-      (is (v/one? (v/one-like x2)))
-      (is (v/identity? (v/identity-like x2))))
+      (is (v/identity? (v/identity-like x2)))
+      (is (v/identity? (v/one-like x2)))
+      (is (not (v/one?
+                (v/one-like x2)))))
 
     (testing "v/numerical?"
       (is (not (v/numerical? x2))))

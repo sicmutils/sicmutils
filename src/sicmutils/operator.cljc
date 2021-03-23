@@ -56,10 +56,15 @@
       (z-fn this)
       (= o v/zero-like)))
 
+  ;; NOTE: `one?` is the multiplicative identity; by default, we return false
+  ;; because the system doesn't currently check if the types match for
+  ;; multiplicative identity. So `(* o:identity 5)` would return 5, which is
+  ;; incorrect. (We should get back a new operator that carries the scale-by-5
+  ;; along until the final function resolves.)
   (one? [this]
     (if-let [one-fn (:one? context)]
       (one-fn this)
-      (= o core-identity)))
+      false))
 
   (identity? [this]
     (if-let [id-fn (:identity? context)]
