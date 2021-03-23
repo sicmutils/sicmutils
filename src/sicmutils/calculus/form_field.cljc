@@ -18,6 +18,12 @@
 ;;
 
 (ns sicmutils.calculus.form-field
+  "This namespace implements a form field operator and a number of functions for
+  creating and working with form fields.
+
+  A form-field of rank n is an operator that takes n vector fields to a
+  real-valued function on the manifold. A one-form field takes a single vector
+  field."
   (:require [sicmutils.abstract.function :as af]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.manifold :as m]
@@ -27,101 +33,118 @@
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
+            [sicmutils.util.permute :as permute]
             [sicmutils.value :as v]))
 
-;; this has stuff from form-fields.scm, wedge.scm and exterior-derivative.scm.
+;; ## Form fields
+;;
+;; A form-field of rank n is an operator that takes n vector fields to a
+;; real-valued function on the manifold. A one-form field takes a single vector
+;; field.
 
 (derive ::form-field ::o/operator)
 
-;; ## 1Form fields
-;;
-;; A form-field of rank n is an operator that takes n vector fields to a
-;; real-valued function on the manifold. A 1form field takes a single vector
-;; field.
+(declare ff:zero? ff:zero-like)
 
 (defn form-field?
-  "Returns true if the supplied `f` is a form field operator, false otherwise.
-
-  A form-field of rank n is an operator that takes n vector fields to a
-  real-valued function on the manifold."
-  [f]
-  (and (o/operator? f)
-       (-> (o/context f)
+  "Returns true if the supplied `f` is a form field operator, false otherwise."
+  [ff]
+  (and (o/operator? ff)
+       (-> (o/context ff)
            (:subtype)
            (= ::form-field))))
 
-(defn oneform-field?
-  "Returns true if the supplied `f` is
-  a [One-form](https://en.wikipedia.org/wiki/One-form) field operator, false
-  otherwise.
+(defn nform-field?
+  "Returns true if the supplied `f` is an [form field of rank
+  n](https://en.wikipedia.org/wiki/Differential_form), false otherwise.
 
   A form-field of rank n is an operator that takes n vector fields to a
-  real-valued function on the manifold.
-  A [One-form](https://en.wikipedia.org/wiki/One-form) field takes a single
-  vector field."
-  [f]
+  real-valued function on the manifold."
+  [f n]
   (and (form-field? f)
-       (= 1 (:rank
+       (= n (:rank
              (o/context f)))))
 
-(defn procedure->oneform-field
-  "Accepts a function `f` and an optional symbolic `name`, and returns
-  a [One-form](https://en.wikipedia.org/wiki/One-form) field, ie, a subtype
-  of [[sicmutils.operator/Operator]].
+(defn oneform-field?
+  "Returns true if the supplied `f` is
+  a [One-form](https://en.wikipedia.org/wiki/One-form), false
+  otherwise.
 
-  `f` should be a function from a single vector field to a real-valued function
-  on the manifold."
-  ([fp]
-   (let [name 'unnamed-1form-field]
-     (procedure->oneform-field fp name)))
-  ([fp name]
-   (o/make-operator fp name
-                    {:subtype ::form-field
-                     :rank 1
-                     :arguments [::vf/vector-field]})))
+  A [One-form](https://en.wikipedia.org/wiki/One-form) takes a single vector
+  field to a real-valued function on the manifold."
+  [f]
+  (nform-field? f 1))
 
-(defn procedure->nform-field
-  "TODO note how we just... CALL it if `n` is zero, since there are no arguments
-  to supply."
-  ([proc n]
-   (procedure->nform-field proc n 'unnamed-nform-field))
-  ([proc n name]
+(defn ^:no-doc procedure->nform-field
+  "Accepts a function `f` and an optional symbolic `name`, and returns an n-form
+  field, ie, a subtype of [[sicmutils.operator/Operator]].
+
+  `f` should be a function from n vector field arguments to a smooth real-valued
+  function `g` of a manifold.
+
+  If `n` is 0, the function will be called immediately and its return value
+  returned."
+  ([f n]
+   (procedure->nform-field f n 'unnamed-nform-field))
+  ([f n name]
    (if (= n 0)
-     (proc)
-     (o/make-operator proc name
-                      {:subtype ::form-field
-                       :arity [:exactly n]
-                       :rank n
-                       :arguments (repeat n ::vf/vector-field)}))))
+     (f)
+     (let [args (into [] (repeat n ::vf/vector-field))]
+       (o/make-operator f name
+                        {:subtype ::form-field
+                         :zero? ff:zero?
+                         :zero-like ff:zero-like
+                         :arity [:exactly n]
+                         :rank n
+                         :arguments args})))))
 
-(defn get-rank [f]
-  (cond (o/operator? f)
-        (or (:rank (o/context f))
-            (u/illegal (str "operator, but not a differential form: " f)))
+(defn ^:no-doc procedure->oneform-field
+  "Accepts a function `f` and an optional symbolic `name`, and returns a one-form
+  field, ie, a subtype of [[sicmutils.operator/Operator]].
 
-        (f/function? f) 0
-        :else (u/illegal (str "not a differential form: " f))))
+  `f` should be a function from a vector field to a smooth real-valued function
+  `g` of a manifold."
+  ([f]
+   (procedure->nform-field
+    f 1 'unnamed-1form-field))
+  ([f name]
+   (procedure->nform-field f 1 name)))
 
-(defn oneform-field-procedure
-  "A One-form is specified by a function that gives `components`, in a down tuple,
-  relative to a given `coordinate-system`."
+(defn ^:no-doc oneform-field-procedure
+  "Takes:
+
+  - a `down` tuple of `components` of the one-form field relative to
+    `coordinate-system`
+  - the `coordinate-system`
+
+  And returns a procedure (not yet an operator!) that takes a structure of vector fields
+  and produces a new structure of functions of manifold points.
+
+  TODO flesh this out, please!"
   [components coordinate-system]
-  (fn [f]
-    (s/mapr (fn [f]
-              {:pre [(vf/vector-field? f)]}
+  (fn [vf-components]
+    (s/mapr (fn [vf]
+              {:pre [(vf/vector-field? vf)]}
               (f/compose
                (g/* components
-                    (vf/vector-field->components f coordinate-system))
+                    (vf/vector-field->components vf coordinate-system))
                (m/chart coordinate-system)))
-            f)))
+            vf-components)))
 
 (defn components->oneform-field
-  "TODO fix...
+  "Takes:
 
-  takes components of the one-form field relative to a coordinate system AND the
-  coordinate system... and returns the One-form field."
+  - a `down` tuple of `components` of the one-form field relative to
+    `coordinate-system`
+  - the `coordinate-system`
+
+  And returns a full one-form field.
+
+  A one-field field is an operator that takes a vector field to a real-valued
+  function on the manifold."
   ([components coordinate-system]
-   (let [name `(~'oneform-field ~(v/freeze components))]
+   (let [name `(~'oneform-field
+                ~(v/freeze components))]
      (components->oneform-field
       components coordinate-system name)))
   ([components coordinate-system name]
@@ -132,10 +155,22 @@
 ;; coordinate system.
 
 (defn oneform-field->components
-  "TODO this goes backwards; takes a One-form field `form` and a
-  `coordinate-system`... describe!
+  "Given a one-form field `form` and a `coordinate-system`, returns a function
+  from the coordinate representation of a manifold point to a coordinate
+  representation of the coordinatized components of the form field at that
+  point.
 
-  The returned function is from coordinates => something! TODO describe!"
+  For example:
+
+  ```clojure
+  (let-coordinates [[x y] R2-rect]
+    (let [f (literal-oneform-field 'f R2-rect)]
+      ((oneform-field->components f R2-rect)
+       (up 'x0 'y0))))
+
+  ;;=> (down (f_0 (up x0 y0))
+  ;;         (f_1 (up x0 y0)))
+  ```"
   [form coordinate-system]
   {:pre [(form-field? form)]}
   (let [basis (vf/coordinate-system->vector-basis coordinate-system)]
@@ -144,26 +179,56 @@
 
 ;; ### API
 
-(defn ff:zero [f]
+(defn ff:zero
+  "Returns a form field that returns, for any supplied vector field `vf`, a
+  manifold function [[manifold/zero-manifold-function]] that maps every input
+  manifold `point` to the scalar value 0."
+  [vf]
   m/zero-manifold-function)
 
-(defn ff:zero-like [op]
+(defn- ff:zero-like
+  "Given some form field `op`, returns a form field with the same context and
+  its procedure replaced by `ff:zero`.
+
+  The returned form field responds `true` to `v/zero?`."
+  [op]
   {:pre [(form-field? op)]}
   (o/make-operator ff:zero
                    'ff:zero
                    (o/context op)))
 
-(defn ff:zero? [ff]
-  {:pre [(form-field? ff)]}
-  (= (o/procedure ff) ff:zero))
+(defn- ff:zero?
+  "Returns true if the supplied form field `op` is a form field with a procedure
+  equal to `ff:zero`, false otherwise."
+  [op]
+  (and (form-field? op)
+       (= (o/procedure op) ff:zero)))
 
-(comment
-  ;; TODO install these for form fields! We can't do it until they have their
-  ;; own types...
-  (assign-operation 'zero-like ff:zero-like form-field?)
-  (assign-operation 'zero? ff:zero? form-field?))
+(defn get-rank
+  "Returns the rank of the supplied differential form `f`. Functions are treated
+  as differential forms of rank 0.
+
+  Throws for any non differential form supplied."
+  [f]
+  (cond (o/operator? f)
+        (or (:rank (o/context f))
+            (u/illegal
+             (str "operator, but not a differential form: " f)))
+
+        (f/function? f) 0
+        :else (u/illegal
+               (str "not a differential form: " f))))
 
 (defn literal-oneform-field
+  "Given a symbolic name `sym` and a `coordinate-system`, returns a one-form field
+  consisting of literal real-valued functions from the coordinate system's
+  dimension for each coordinate component.
+
+  These functions are passed to [[components->oneform-field]], along with the
+  supplied `coordinate-system` and symbolic name `sym`.
+
+  For coordinate systems of dimension 1, `literal-form-field`'s component
+  functions will accept a single non-structural argument."
   [name coordinate-system]
   (let [n (:dimension (m/manifold coordinate-system))
         domain (if (= n 1) 0 (s/up* (repeat n 0)))
@@ -171,29 +236,51 @@
     (-> (af/literal-function name domain range)
         (components->oneform-field coordinate-system name))))
 
-;; To get the elements of a coordinate basis for the 1-form fields
+;; To get the elements of a coordinate basis for the 1-form fields:
 
-(defn coordinate-basis-oneform-field-procedure
+(defn- coordinate-basis-oneform-field-procedure
   [coordinate-system & indices]
-  (fn [vf]
+  (fn [vf-structure]
     (letfn [(internal [vf]
               {:pre [(vf/vector-field? vf)]}
               (vf (f/compose (apply s/component indices)
                              (m/chart coordinate-system))))]
-      (s/mapr internal vf))))
+      (s/mapr internal vf-structure))))
 
 (defn coordinate-basis-oneform-field
+  "Given some `coordinate-system`, a symbolic `name` and a sequence of indices
+  into the structure of the coordinate system's representation, returns a
+  one-form field.
+
+  The returned one-form field at each structural spot takes a vector field and
+  returns a function that takes the directional derivative in that coordinate's
+  direction using the vector field."
   [coordinate-system name & indices]
-  (-> (apply coordinate-basis-oneform-field-procedure coordinate-system indices)
+  (-> (apply coordinate-basis-oneform-field-procedure
+             coordinate-system indices)
       (procedure->oneform-field name)))
 
-(defn coordinate-name->ff-name
+(defn ^:no-doc coordinate-name->ff-name
   "From the name of a coordinate, produce the name of the coordinate basis
   one-form field (as a symbol)"
   [n]
   (symbol (str \d n)))
 
 (defn coordinate-system->oneform-basis
+  "Given some `coordinate-system`, returns a structure of
+  `coordinate-basis-oneform-field` instances.
+
+  The one-form field at each structural spot takes a vector field and returns a
+  function that takes the directional derivative in that coordinate's direction
+  using the vector field.
+
+  When applied as a function, the structure behaves equivalently to
+
+  ```clojure
+  (coordinate-basis-oneform-field <coordinate-system> 'ignored-name)
+  ```
+
+  With no indices supplied."
   [coordinate-system]
   (s/map-chain
    (fn [c-name chain _]
@@ -205,137 +292,123 @@
 ;; Given component functions defined on manifold points and a 1-form basis, to
 ;; produce the 1-form field as a linear combination.
 
-(defn basis-components->oneform-field [components oneform-basis]
+(defn basis-components->oneform-field
+  "Given a structure of `components` functions defined on manifold points and and
+  a matching `oneform-basis` (of identical structure),
+
+  Returns a new one-form field that
+
+  - passes its vector-field argument to `oneform-basis`, returning a new
+    equivalent structure with each slot populated by functions from a manifold
+    point to the directional derivative (using the vector field) in that
+    coordinate direction
+
+  - contracts the result of that operation with the result of applying each
+    component in `components` to the manifold point.
+
+  NOTE:
+  - This is for any basis, not just a coordinate basis
+  - The `components` are evaluated at a manifold point, not its coordinates
+  - Given a dual basis, you can retrieve the original components
+    with [[oneform-field->basis-components]]"
+  [components oneform-basis]
   (procedure->oneform-field
    (fn [vf]
      (g/* components (oneform-basis vf)))))
 
-(defn oneform-field->basis-components [w vector-basis]
+(defn oneform-field->basis-components
+  "Given a structure `w` of and a vector field basis `vector-basis`, returns a new
+  structure generated by applying the full vector basis to each element of `w`.
+
+  Here's an example of how to use this function to round trip a structure of
+  basis components:
+
+  ```clojure
+  (let [vb    (vf/coordinate-system->vector-basis coordsys)
+        basis (coordinate-system->oneform-basis coordsys)
+        components (down d:dx d:dy)]
+    (= components
+       (-> components
+           (basis-components->oneform-field basis)
+           (oneform-field->basis-components vb))))
+  ```"
+  [w vector-basis]
   (s/mapr w vector-basis))
 
-;; This is one of the two incompatible definitions of "differential". This
-;; differential is a special case of exterior derivative. The other one appears
-;; in map.cljc.
+(defn function->oneform-field
+  "One of the two incompatible definitions of differential.
 
-(defn function->oneform-field [f]
+  This differential is a special case of exterior derivative. The other one
+  lives at [[map/differential]]."
+  [f]
   {:pre [(f/function? f)]}
-  (procedure->oneform-field
-   (fn [vf]
-     (s/mapr (fn [v]
-               {:pre [(vf/vector-field? v)]}
-               (fn [m] ((v f) m)))
-             vf))
-   `(~'d ~(v/freeze f))))
+  (let [op (fn [vf-structure]
+             (s/mapr (fn [vf]
+                       {:pre [(vf/vector-field? vf)]}
+                       (fn [m] ((vf f) m)))
+                     vf-structure))
+        name `(~'d ~(v/freeze f))]
+    (procedure->oneform-field op name)))
 
-(def differential-of-function
+(def ^{:doc "Alias for [[function->oneform-field]].
+  One of the two incompatible definitions of differential.
+
+  This differential is a special case of exterior derivative. The other one
+  lives at [[map/differential]]."}
+  differential-of-function
   function->oneform-field)
 
-;; ## Wedge.scm
+;; ## Wedge Product (from Wedge.scm)
 ;;
 ;; Now we transition to wedge.
-
-(defn permutation-sequence
-  "Produces an iterable sequence developing the permutations of the input sequence
-  of objects (which are considered distinct) in church-bell-changes order - that
-  is, each permutation differs from the previous by a transposition of adjacent
-  elements (Algorithm P from §7.2.1.2 of Knuth).
-
-  This is an unusual way to go about this in a functional language, but it's
-  fun.
-
-  This approach has the side-effect of arranging for the parity of the generated
-  permutations to alternate; the first permutation yielded is the identity
-  permutation (which of course is even).
-
-  Inside, there is a great deal of mutable state, but this cannot be observed by
-  the user."
-  [as]
-  (let [n (count as)
-        a (object-array as)
-        c (int-array n (repeat 0)) ;; P1. [Initialize.]
-        o (int-array n (repeat 1))
-        return #(into [] %)
-        the-next (atom (return a))
-        has-next (atom true)
-        ;; step implements one-through of algorithm P up to step P2,
-        ;; at which point we return false if we have terminated, true
-        ;; if a has been set to a new permutation. Knuth's code is
-        ;; one-based; this is zero-based.
-        step (fn [j s]
-               (let [q (int (+ (aget c j) (aget o j)))] ;; P4. [Ready to change?]
-                 (cond (< q 0)
-                       (do ;; P7. [Switch direction.]
-                         (aset o j (int (- (aget o j))))
-                         (recur (dec j) s))
-
-                       (= q (inc j))
-                       (if (zero? j)
-                         false ;; All permutations have been delivered.
-                         (do (aset o j (int (- (aget o j)))) ;; P6. [Increase s.]
-                             (recur (dec j) (inc s)))) ;; P7. [Switch direction.]
-
-                       :else ;; P5. [Change.]
-                       (let [i1 (+ s (- j (aget c j)))
-                             i2 (+ s (- j q))
-                             t (aget a i1)
-                             ]
-                         (aset a i1 (aget a i2))
-                         (aset a i2 t)
-                         (aset c j q)
-                         true ;; More permutations are forthcoming.
-                         ))))]
-    (#?(:clj iterator-seq :cljs #'cljs.core/chunkIteratorSeq)
-     (reify #?(:clj java.util.Iterator :cljs Object)
-       (hasNext [_] @has-next)
-       (next [_]  ;; P2. [Visit.]
-         (let [prev @the-next]
-           (reset! has-next (step (dec n) 0))
-           (reset! the-next (return a))
-           prev))
-
-       #?@(:cljs
-           [IIterable
-            (-iterator [this] this)])))))
-
+;;
 ;; Higher rank forms can be constructed from 1forms by wedging them together.
 ;; This antisymmetric tensor product is computed as a determinant. The purpose
 ;; of this is to allow us to use the construction dx^dy to compute the area
 ;; described by the vectors that are given to it.
 
-(defn- wedge2 [form1 form2]
-  (let [n1 (get-rank form1)
-        n2 (get-rank form2)]
-    (if (or (zero? n1) (zero? n2))
-      (g/* form1 form2)
-      (let [n (+ n1 n2)
-            k (/ 1
-                 (* (g/factorial n1)
-                    (g/factorial n2)))
-            w (fn [& args]
-                (assert (= (count args) n)
-                        "Wrong number of args to wedge product")
-                ;; "Error in Singer" comment from GJS.
-                (g/* k (apply
-                        g/+ (map (fn [permutation parity]
-                                   (let [[a1 a2] (split-at n1 permutation)]
-                                     (g/* parity
-                                          (apply form1 a1)
-                                          (apply form2 a2))))
-                                 (permutation-sequence args)
-                                 (cycle [1 -1])))))
-            name `(~'wedge
-                   ~(v/freeze form1)
-                   ~(v/freeze form2))]
-        (procedure->nform-field w n name)))))
+(defn- wedge2
+  "Binary and unary cases of the wedge product."
+  ([form1] form1)
+  ([form1 form2]
+   (let [n1 (get-rank form1)
+         n2 (get-rank form2)]
+     (if (or (zero? n1) (zero? n2))
+       (g/* form1 form2)
+       (let [n (+ n1 n2)
+             k (/ 1
+                  (* (g/factorial n1)
+                     (g/factorial n2)))
+             w (fn [& args]
+                 (assert (= (count args) n)
+                         "Wrong number of args to wedge product")
+                 ;; "Error in Singer" comment from GJS.
+                 (g/* k (apply
+                         g/+ (map (fn [permutation parity]
+                                    (let [[a1 a2] (split-at n1 permutation)]
+                                      (g/* parity
+                                           (apply form1 a1)
+                                           (apply form2 a2))))
+                                  (permute/permutation-sequence args)
+                                  (cycle [1 -1])))))
+             name `(~'wedge
+                    ~(v/freeze form1)
+                    ~(v/freeze form2))]
+         (procedure->nform-field w n name))))))
 
-;; See Spivak p275 v1 "Differential Geometry" to see the correct
-;; definition.  The key is that the wedge of the coordinate basis
-;; forms had better be the volume element.
+(defn wedge
+  "Computes the wedge product of the sequence `fs` of one-forms.
 
-(defn wedge [& fs]
+  Higher rank forms can be constructed from one-forms by wedging them together.
+  This antisymmetric tensor product is computed as a determinant. The purpose of
+  this is to allow us to use the construction dx^dy to compute the area
+  described by the vectors that are given to it.
+
+  See Spivak p275 v1 of 'Differential Geometry' to see the correct definition.
+  The key is that the wedge of the coordinate basis forms had better be the
+  volume element."
+  [& fs]
   (reduce wedge2 fs))
-
-;; TODO document, figure out WHERE this happened in scmutils.
 
 ;; One-form fields multiply by [[wedge]].
 
@@ -355,37 +428,43 @@
                      (apply g/+
                             (map (fn [permutation parity]
                                    (g/* parity (apply form permutation)))
-                                 (permutation-sequence args)
+                                 (permute/permutation-sequence args)
                                  (cycle [1 -1])))))]
         (procedure->nform-field
          alternation n `(~'Alt ~(v/freeze form)))))))
 
-(defn tensor-product2 [t1 t2]
-  (let [n1 (get-rank t1)
-        n2 (get-rank t2)]
-    (if (or (zero? n1) (zero? n2))
-      (g/* t1 t2)
-      (let [n  (+ n1 n2)
-            tp (fn [& args]
-                 (assert (= (count args) n)
-                         "Wrong number of args to tensor product")
-                 (let [[a1 a2] (split-at n1 args)]
-                   (g/* (apply t1 a1)
-                        (apply t2 a2))))]
-        (procedure->nform-field
-         tp n `(~'tensor-product
-                ~(v/freeze t1)
-                ~(v/freeze t2)))))))
+(defn tensor-product2
+  ([t1] t1)
+  ([t1 t2]
+   (let [n1 (get-rank t1)
+         n2 (get-rank t2)]
+     (if (or (zero? n1) (zero? n2))
+       (g/* t1 t2)
+       (let [n  (+ n1 n2)
+             tp (fn [& args]
+                  (assert (= (count args) n)
+                          "Wrong number of args to tensor product")
+                  (let [[a1 a2] (split-at n1 args)]
+                    (g/* (apply t1 a1)
+                         (apply t2 a2))))]
+         (procedure->nform-field
+          tp n `(~'tensor-product
+                 ~(v/freeze t1)
+                 ~(v/freeze t2))))))))
 
-(defn w2 [form1 form2]
-  (let [n1 (get-rank form1)
-        n2 (get-rank form2)]
-    (g/* (/ (g/factorial (+ n1 n2))
-            (* (g/factorial n1)
-               (g/factorial n2)))
-         (Alt (tensor-product2 form1 form2)))))
+(defn w2
+  ([form1] form1)
+  ([form1 form2]
+   (let [n1 (get-rank form1)
+         n2 (get-rank form2)]
+     (g/* (/ (g/factorial (+ n1 n2))
+             (* (g/factorial n1)
+                (g/factorial n2)))
+          (Alt (tensor-product2 form1 form2))))))
 
-(defn alt-wedge [& args]
+(defn alt-wedge
+  "Alternative definition of [[wedge]] in terms of alternation."
+  [& args]
   (reduce w2 (constantly 1) args))
 
 ;; ## Exterior Derivative

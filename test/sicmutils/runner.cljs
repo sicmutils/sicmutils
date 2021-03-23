@@ -76,6 +76,7 @@
 
             sicmutils.util-test
             sicmutils.util.aggregate-test
+            sicmutils.util.permute-test
             sicmutils.util.stream-test
             sicmutils.util.vector-set-test
 
@@ -157,6 +158,7 @@
 
            'sicmutils.util-test
            'sicmutils.util.aggregate-test
+           'sicmutils.util.permute-test
            'sicmutils.util.stream-test
            'sicmutils.util.vector-set-test
 

@@ -51,15 +51,40 @@
 
 (deftype Operator [o arity name context m]
   v/Value
-  (zero? [_] false)
-  (one? [_] false)
-  (identity? [_] false)
-  (zero-like [_] (Operator. v/zero-like arity 'zero context m))
-  (one-like [_] (Operator. core-identity arity 'identity context m))
-  (identity-like [_] (Operator. core-identity arity 'identity context m))
+  (zero? [this]
+    (if-let [z-fn (:zero? context)]
+      (z-fn this)
+      (= o v/zero-like)))
+
+  (one? [this]
+    (if-let [one-fn (:one? context)]
+      (one-fn this)
+      (= o core-identity)))
+
+  (identity? [this]
+    (if-let [id-fn (:identity? context)]
+      (id-fn this)
+      (= o core-identity)))
+
+  (zero-like [this]
+    (if-let [z-fn (:zero-like context)]
+      (z-fn this)
+      (Operator. v/zero-like arity 'zero context m)))
+
+  (one-like [this]
+    (if-let [one-fn (:one-like context)]
+      (one-fn this)
+      (Operator. core-identity arity 'identity context m)))
+
+  (identity-like [this]
+    (if-let [id-fn (:identity-like context)]
+      (id-fn this)
+      (Operator. core-identity arity 'identity context m)))
+
   (freeze [_]
     (simplify-operator-name
      (v/freeze name)))
+
   (kind [_] (:subtype context))
 
   f/IArity

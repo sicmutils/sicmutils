@@ -129,6 +129,8 @@
        (reduce [_ f start] (.reduce ^IReduce v f start))
 
        IFn
+       (invoke [_]
+               (Structure. orientation (mapv #(%) v)))
        (invoke [_ a]
                (Structure. orientation (mapv #(% a) v)))
        (invoke [_ a b]
@@ -221,6 +223,8 @@
        (-reduce [_ f start] (-reduce v f start))
 
        IFn
+       (-invoke [_]
+                (Structure. orientation (mapv #(%) v)))
        (-invoke [_ a]
                 (Structure. orientation (mapv #(% a) v)))
        (-invoke [_ a b]
@@ -740,10 +744,10 @@
   [s v]
   (same v (map #(g/* s %) v)))
 
-(defn- compatible-for-contraction?
+(defn ^:no-doc compatible-for-contraction?
   "Returns `true` if `s` and `t` are
 
-  - of the same orientation
+  - of opposite orientation
   - equal in length
   - are full of elements also compatible for contraction (also true if either
     pair is NOT a structure)

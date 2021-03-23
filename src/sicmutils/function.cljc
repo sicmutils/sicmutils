@@ -208,7 +208,10 @@
   (one-like [f] (one-like f))
   (identity-like [f] (identity-like f))
   (exact? [f] (compose v/exact? f))
-  (freeze [f] (core-get @v/object-name-map f f))
+  (freeze [f] (core-get
+               @v/object-name-map
+               f #?(:clj (:name (meta f) f)
+                    :cljs f)))
   (kind [_] ::v/function)
 
   Var
@@ -231,7 +234,8 @@
        (one-like [f] (one-like f))
        (identity-like [f] (identity-like f))
        (exact? [f] (compose v/exact? f))
-       (freeze [f] (core-get @v/object-name-map f f))
+       (freeze [f] (core-get
+                    @v/object-name-map f (:name (.-meta f) f)))
        (kind [_] ::v/function)]))
 
 ;; we record arities as a vector with an initial keyword:

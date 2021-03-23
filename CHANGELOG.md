@@ -2,6 +2,11 @@
 
 ## [unreleased]
 
+- #328:
+
+  - fixes the joint context bug for operators
+  -
+
 - #335 implements `g/make-rectangular`, `g/make-polar` `g/real-part` and
   `g/imag-part` for clojure's Map data structure. Maps are treated as sparse
   vectors, any missing key on either side of `make-rectangular` or
