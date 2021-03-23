@@ -79,6 +79,21 @@
   [f]
   (nform-field? f 1))
 
+(defn- ff-context [m]
+  (merge {:zero? ff:zero?
+          :zero-like ff:zero-like
+          :one-like
+          (fn [_]
+            (u/unsupported
+             "form fields don't have an identity."))
+
+          :identity? (fn [_] false)
+          :identity-like
+          (fn [_]
+            (u/unsupported
+             "form fields don't have a multiplicative identity."))}
+         m))
+
 (defn ^:no-doc procedure->nform-field
   "Accepts a function `f` and an optional symbolic `name`, and returns an n-form
   field, ie, a subtype of [[sicmutils.operator/Operator]].
@@ -95,12 +110,11 @@
      (f)
      (let [args (into [] (repeat n ::vf/vector-field))]
        (o/make-operator f name
-                        {:subtype ::form-field
-                         :zero? ff:zero?
-                         :zero-like ff:zero-like
-                         :arity [:exactly n]
-                         :rank n
-                         :arguments args})))))
+                        (ff-context
+                         {:subtype ::form-field
+                          :arity [:exactly n]
+                          :rank n
+                          :arguments args}))))))
 
 (defn ^:no-doc procedure->oneform-field
   "Accepts a function `f` and an optional symbolic `name`, and returns a one-form
@@ -113,25 +127,11 @@
      (procedure->oneform-field f name)))
   ([f name]
    (o/make-operator f name
-                    {:subtype ::oneform-field
-                     :zero? ff:zero?
-                     :zero-like ff:zero-like
-
-                     :one-like
-                     (fn [_]
-                       (u/unsupported
-                        "one-form fields don't have an identity."))
-
-                     :identity? (fn [_] false)
-
-                     :identity-like
-                     (fn [_]
-                       (u/unsupported
-                        "one-form fields don't have a multiplicative identity."))
-
-                     :arity [:exactly 1]
-                     :rank 1
-                     :arguments [::vf/vector-field]})))
+                    (ff-context
+                     {:subtype ::oneform-field
+                      :arity [:exactly 1]
+                      :rank 1
+                      :arguments [::vf/vector-field]}))))
 
 (defn ^:no-doc oneform-field-procedure
   "Takes:
