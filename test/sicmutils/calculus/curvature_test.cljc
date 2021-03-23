@@ -175,38 +175,36 @@
                       dphi d:dtheta d:dphi d:dtheta)
                      a-point))))
 
-          ;; R↑alpha_{beta gamma delta}
-          ;;
           (testing "p351 MTW has efficient method for computing curvature (eq
-          14.18)")
-          (letfn [(check! [expected alpha beta gamma delta]
-                    (is (= expected
-                           (simplify
-                            (((c/Riemann nabla)
-                              alpha beta gamma delta)
-                             a-point)))))]
-            (check! 0 dtheta d:dtheta d:dtheta d:dtheta)
-            (check! 0 dtheta d:dtheta d:dtheta d:dphi)
-            (check! 0 dtheta d:dtheta d:dphi d:dtheta)
-            (check! 0 dtheta d:dtheta d:dphi d:dphi)
-            (check! 0 dtheta d:dphi d:dtheta d:dtheta)
+          14.18)"
+            ;; R↑alpha_{beta gamma delta}
+            (letfn [(check! [expected alpha beta gamma delta]
+                      (is (= expected
+                             (simplify
+                              (((c/Riemann nabla)
+                                alpha beta gamma delta)
+                               a-point)))))]
+              (check! 0 dtheta d:dtheta d:dtheta d:dtheta)
+              (check! 0 dtheta d:dtheta d:dtheta d:dphi)
+              (check! 0 dtheta d:dtheta d:dphi d:dtheta)
+              (check! 0 dtheta d:dtheta d:dphi d:dphi)
+              (check! 0 dtheta d:dphi d:dtheta d:dtheta)
 
-            (check! '(expt (sin theta↑0) 2)
-                    dtheta d:dphi d:dtheta d:dphi)
+              (check! '(expt (sin theta↑0) 2)
+                      dtheta d:dphi d:dtheta d:dphi)
 
-            (check! '(* -1 (expt (sin theta↑0) 2))
-                    dtheta d:dphi d:dphi d:dtheta)
+              (check! '(* -1 (expt (sin theta↑0) 2))
+                      dtheta d:dphi d:dphi d:dtheta)
 
-            (check! 0 dtheta d:dphi d:dphi d:dphi)
-            (check! 0 dphi d:dtheta d:dtheta d:dtheta)
-            (check! -1 dphi d:dtheta d:dtheta d:dphi)
-            (check! 1 dphi d:dtheta d:dphi d:dtheta)
-            (check! 0 dphi d:dtheta d:dphi d:dphi)
-            (check! 0 dphi d:dphi d:dtheta d:dtheta)
-            (check! 0 dphi d:dphi d:dtheta d:dphi)
-            (check! 0 dphi d:dphi d:dphi d:dtheta)
-            (check! 0 dphi d:dphi d:dphi d:dphi)))
-        ))
+              (check! 0 dtheta d:dphi d:dphi d:dphi)
+              (check! 0 dphi d:dtheta d:dtheta d:dtheta)
+              (check! -1 dphi d:dtheta d:dtheta d:dphi)
+              (check! 1 dphi d:dtheta d:dphi d:dtheta)
+              (check! 0 dphi d:dtheta d:dphi d:dphi)
+              (check! 0 dphi d:dphi d:dtheta d:dtheta)
+              (check! 0 dphi d:dphi d:dtheta d:dphi)
+              (check! 0 dphi d:dphi d:dphi d:dtheta)
+              (check! 0 dphi d:dphi d:dphi d:dphi))))))
 
     ;; The Christoffel symbols (for R=1) (p.341 MTW) are:
     ;; (the up-down-down Christoffel symbols do not depend on R)
@@ -285,6 +283,7 @@
                          (expt (sin theta) 2)))
                  (simplify
                   (an/literal-number s14)))))
+
         ))
     ))
 
@@ -312,39 +311,39 @@
         oneform-basis))))
 
   ;; do all substitutions again...
-  (pec s12)
+  s12
   ;; ;; Result:
   (up
-   (+ (* -2 eta phidot thetadot (expt (g/cos theta) 2))
-      (* -2 (expt phidot 2) xi (expt (g/cos theta) 2))
-      (* -1 eta phidotdot (g/cos theta) (g/sin theta))
-      (* -2 etadot phidot (g/cos theta) (g/sin theta))
+   (+ (* -2 eta phidot thetadot (expt (cos theta) 2))
+      (* -2 (expt phidot 2) xi (expt (cos theta) 2))
+      (* -1 eta phidotdot (cos theta) (sin theta))
+      (* -2 etadot phidot (cos theta) (sin theta))
       (* (expt phidot 2) xi)
       xidotdot)
    (/
-    (+ (* -1 eta (expt phidot 2) (expt (g/cos theta) 2) (g/sin theta))
-       (* -2 phidot thetadot xi (g/sin theta))
-       (* eta thetadotdot (g/cos theta))
-       (* 2 etadot thetadot (g/cos theta))
-       (* 2 phidot xidot (g/cos theta))
-       (* phidotdot xi (g/cos theta))
-       (* etadotdot (g/sin theta)))
-    (g/sin theta)))
+    (+ (* -1 eta (expt phidot 2) (expt (cos theta) 2) (sin theta))
+       (* -2 phidot thetadot xi (sin theta))
+       (* eta thetadotdot (cos theta))
+       (* 2 etadot thetadot (cos theta))
+       (* 2 phidot xidot (cos theta))
+       (* phidotdot xi (cos theta))
+       (* etadotdot (sin theta)))
+    (sin theta)))
 
 
-  (pec s14)
+  s14
   ;; ;; Result:
   (up
-   (+ (* -2 (expt phidot 2) xi (expt (g/cos theta) 2))
-      (* -2 etadot phidot (g/cos theta) (g/sin theta))
+   (+ (* -2 (expt phidot 2) xi (expt (cos theta) 2))
+      (* -2 etadot phidot (cos theta) (sin theta))
       (* (expt phidot 2) xi)
       xidotdot)
    (/
-    (+ (* 2 etadot thetadot (g/cos theta) (g/sin theta))
-       (* 2 phidot xidot (g/cos theta) (g/sin theta))
-       (* etadotdot (expt (g/sin theta) 2))
+    (+ (* 2 etadot thetadot (cos theta) (sin theta))
+       (* 2 phidot xidot (cos theta) (sin theta))
+       (* etadotdot (expt (sin theta) 2))
        (* -2 phidot thetadot xi))
-    (expt (g/sin theta) 2)))
+    (expt (sin theta) 2)))
 
 
   ;; agrees with Riemann calculation
@@ -392,92 +391,92 @@
   ;; ;; Result:
   (up
    (+ (((expt D 2) f↑theta) tau)
-      (* -1 (g/cos (f↑theta tau)) (g/sin (f↑theta tau)) (expt ((D f↑phi) tau) 2)))
-   (/ (+ (* (g/sin (f↑theta tau)) (((expt D 2) f↑phi) tau))
-         (* 2 (g/cos (f↑theta tau)) ((D f↑phi) tau) ((D f↑theta) tau)))
-      (g/sin (f↑theta tau))))
+      (* -1 (cos (f↑theta tau)) (sin (f↑theta tau)) (expt ((D f↑phi) tau) 2)))
+   (/ (+ (* (sin (f↑theta tau)) (((expt D 2) f↑phi) tau))
+         (* 2 (cos (f↑theta tau)) ((D f↑phi) tau) ((D f↑theta) tau)))
+      (sin (f↑theta tau))))
 
 
   ;; Parallel transport of vector W over path mu
 
-  (pec (let ((U d:dt)
-             (mu:N->M (compose (m/point S2-spherical)
-                               (up (af/literal-function 'f↑theta)
-                                   (af/literal-function 'f↑phi))
-                               (m/chart the-real-line))))
-         (let* ((basis-over-mu
-                 (cm/basis->basis-over-map mu:N->M S2-spherical-basis))
-                (oneform-basis (b/basis->oneform-basis basis-over-mu))
-                (vector-basis (basis->vector-basis basis-over-mu))
-                (Cartan (Christoffel->Cartan G-S2-1))
-                (transported-vector-over-map
-                 (basis-components->vector-field
-                  (up (compose (af/literal-function 'w↑0)
-                               (m/chart the-real-line))
-                      (compose (af/literal-function 'w↑1)
-                               (m/chart the-real-line)))
-                  vector-basis)))
-           (s/mapr
-            (fn [w]
-              ((w
-                (((cov/covariant-derivative Cartan mu:N->M) U)
-                 transported-vector-over-map))
-               ((m/point the-real-line) 'tau)))
-            oneform-basis))))
+  (let ((U d:dt)
+        (mu:N->M (compose (m/point S2-spherical)
+                          (up (af/literal-function 'f↑theta)
+                              (af/literal-function 'f↑phi))
+                          (m/chart the-real-line))))
+    (let* ((basis-over-mu
+            (cm/basis->basis-over-map mu:N->M S2-spherical-basis))
+           (oneform-basis (b/basis->oneform-basis basis-over-mu))
+           (vector-basis (basis->vector-basis basis-over-mu))
+           (Cartan (Christoffel->Cartan G-S2-1))
+           (transported-vector-over-map
+            (basis-components->vector-field
+             (up (compose (af/literal-function 'w↑0)
+                          (m/chart the-real-line))
+                 (compose (af/literal-function 'w↑1)
+                          (m/chart the-real-line)))
+             vector-basis)))
+      (s/mapr
+       (fn [w]
+         ((w
+           (((cov/covariant-derivative Cartan mu:N->M) U)
+            transported-vector-over-map))
+          ((m/point the-real-line) 'tau)))
+       oneform-basis)))
 
   ;; Result:
   (up
    (+ ((D w↑0) tau)
-      (* -1 (g/cos (f↑theta tau)) ((D f↑phi) tau) (w↑1 tau) (g/sin (f↑theta tau))))
-   (/ (+ (* (g/sin (f↑theta tau)) ((D w↑1) tau))
-         (* (g/cos (f↑theta tau)) ((D f↑phi) tau) (w↑0 tau))
-         (* (g/cos (f↑theta tau)) (w↑1 tau) ((D f↑theta) tau)))
-      (g/sin (f↑theta tau))))
+      (* -1 (cos (f↑theta tau)) ((D f↑phi) tau) (w↑1 tau) (sin (f↑theta tau))))
+   (/ (+ (* (sin (f↑theta tau)) ((D w↑1) tau))
+         (* (cos (f↑theta tau)) ((D f↑phi) tau) (w↑0 tau))
+         (* (cos (f↑theta tau)) (w↑1 tau) ((D f↑theta) tau)))
+      (sin (f↑theta tau))))
 
 
   ;; was  ...  looks like right hand side
 
-  (up (* (g/sin (theta tau)) (g/cos (theta tau)) (w↑1 tau)
+  (up (* (sin (theta tau)) (cos (theta tau)) (w↑1 tau)
          ((D phi) tau))
-      (/ (+ (* -1 (w↑0 tau) (g/cos (theta tau)) ((D phi) tau))
-            (* -1 ((D theta) tau) (g/cos (theta tau)) (w↑1 tau)))
-         (g/sin (theta tau))))
+      (/ (+ (* -1 (w↑0 tau) (cos (theta tau)) ((D phi) tau))
+            (* -1 ((D theta) tau) (cos (theta tau)) (w↑1 tau)))
+         (sin (theta tau))))
 
 
   ;; To set up for solving for the derivatives, we lift off of the path
 
-  (pec (let ((U d:dt)
-             (mu:N->M (compose (m/point S2-spherical)
-                               (up (af/literal-function 'f↑theta)
-                                   (af/literal-function 'f↑phi))
-                               (m/chart the-real-line))))
-         (let* ((basis-over-mu (cm/basis->basis-over-map mu:N->M S2-spherical-basis))
-                (oneform-basis (b/basis->oneform-basis basis-over-mu))
-                (vector-basis (basis->vector-basis basis-over-mu))
-                (Cartan (Christoffel->Cartan G-S2-1))
-                (transported-vector-over-map
-                 (basis-components->vector-field
-                  (up (compose (osculating-path (up 'tau 'w↑0 'dw↑0/dt))
-                               (m/chart the-real-line))
-                      (compose (osculating-path (up 'tau 'w↑1 'dw↑1/dt))
-                               (m/chart the-real-line)))
-                  vector-basis)))
-           (s/mapr
-            (fn [w]
-              ((w
-                (((cov/covariant-derivative Cartan mu:N->M)
-                  U)
-                 transported-vector-over-map))
-               ((m/point the-real-line) 'tau)))
-            oneform-basis))))
+  (let ((U d:dt)
+        (mu:N->M (compose (m/point S2-spherical)
+                          (up (af/literal-function 'f↑theta)
+                              (af/literal-function 'f↑phi))
+                          (m/chart the-real-line))))
+    (let* ((basis-over-mu (cm/basis->basis-over-map mu:N->M S2-spherical-basis))
+           (oneform-basis (b/basis->oneform-basis basis-over-mu))
+           (vector-basis (basis->vector-basis basis-over-mu))
+           (Cartan (Christoffel->Cartan G-S2-1))
+           (transported-vector-over-map
+            (basis-components->vector-field
+             (up (compose (osculating-path (up 'tau 'w↑0 'dw↑0/dt))
+                          (m/chart the-real-line))
+                 (compose (osculating-path (up 'tau 'w↑1 'dw↑1/dt))
+                          (m/chart the-real-line)))
+             vector-basis)))
+      (s/mapr
+       (fn [w]
+         ((w
+           (((cov/covariant-derivative Cartan mu:N->M)
+             U)
+            transported-vector-over-map))
+          ((m/point the-real-line) 'tau)))
+       oneform-basis)))
 
   ;; Result:
   (up (+ dw↑0:dt
-         (* -1 (g/cos (f↑theta tau)) ((D f↑phi) tau) (g/sin (f↑theta tau)) w↑1))
-      (/ (+ (* (g/sin (f↑theta tau)) dw↑1:dt)
-            (* (g/cos (f↑theta tau)) ((D f↑phi) tau) w↑0)
-            (* (g/cos (f↑theta tau)) ((D f↑theta) tau) w↑1))
-         (g/sin (f↑theta tau))))
+         (* -1 (cos (f↑theta tau)) ((D f↑phi) tau) (sin (f↑theta tau)) w↑1))
+      (/ (+ (* (sin (f↑theta tau)) dw↑1:dt)
+            (* (cos (f↑theta tau)) ((D f↑phi) tau) w↑0)
+            (* (cos (f↑theta tau)) ((D f↑theta) tau) w↑1))
+         (sin (f↑theta tau))))
 
 
   ;; Loaded solve by (load "/usr/local/scmutils/src/solve/linreduce")
@@ -505,10 +504,10 @@
      2 2))
 
   ;; ;; Result:
-  (up (* (w↑1 tau) (g/sin (f↑theta tau)) (g/cos (f↑theta tau)) ((D f↑phi) tau))
-      (/ (+ (* -1 (w↑1 tau) (g/cos (f↑theta tau)) ((D f↑theta) tau))
-            (* -1 (g/cos (f↑theta tau)) ((D f↑phi) tau) (w↑0 tau)))
-         (g/sin (f↑theta tau))))
+  (up (* (w↑1 tau) (sin (f↑theta tau)) (cos (f↑theta tau)) ((D f↑phi) tau))
+      (/ (+ (* -1 (w↑1 tau) (cos (f↑theta tau)) ((D f↑theta) tau))
+            (* -1 (cos (f↑theta tau)) ((D f↑phi) tau) (w↑0 tau)))
+         (sin (f↑theta tau))))
 
 
   (let [U d:dt
@@ -544,11 +543,11 @@
      (S2-spherical 'dimension)))
   ;; ;; Result:
   (up
-   (* w↑1 (g/cos (f↑theta tau)) (g/sin (f↑theta tau)) ((D f↑phi) tau))
+   (* w↑1 (cos (f↑theta tau)) (sin (f↑theta tau)) ((D f↑phi) tau))
    (/
-    (+ (* -1 w↑0 (g/cos (f↑theta tau)) ((D f↑phi) tau))
-       (* -1 w↑1 ((D f↑theta) tau) (g/cos (f↑theta tau))))
-    (g/sin (f↑theta tau))))
+    (+ (* -1 w↑0 (cos (f↑theta tau)) ((D f↑phi) tau))
+       (* -1 w↑1 ((D f↑theta) tau) (cos (f↑theta tau))))
+    (sin (f↑theta tau))))
 
   ;; Computing parallel transport without the embedding
   (let-coordinates [t m/the-real-line
@@ -592,13 +591,13 @@
      (b/basis->oneform-basis basis-over-mu)))
   ;; ;; Result:
   (up
-   (+ (* -1 (w↑1 tau) ((D mu↑phi) tau) (g/cos (mu↑theta tau)) (g/sin (mu↑theta tau)))
+   (+ (* -1 (w↑1 tau) ((D mu↑phi) tau) (cos (mu↑theta tau)) (sin (mu↑theta tau)))
       ((D w↑0) tau))
    (/
-    (+ (* (w↑1 tau) (g/cos (mu↑theta tau)) ((D mu↑theta) tau))
-       (* (w↑0 tau) ((D mu↑phi) tau) (g/cos (mu↑theta tau)))
-       (* ((D w↑1) tau) (g/sin (mu↑theta tau))))
-    (g/sin (mu↑theta tau))))
+    (+ (* (w↑1 tau) (cos (mu↑theta tau)) ((D mu↑theta) tau))
+       (* (w↑0 tau) ((D mu↑phi) tau) (cos (mu↑theta tau)))
+       (* ((D w↑1) tau) (sin (mu↑theta tau))))
+    (sin (mu↑theta tau))))
 
   ;; These are the equations of the coordinates of a vector being
   ;; parallel transported along the path defined by f.
@@ -660,7 +659,7 @@
   ((dw0 (o/commutator Gu Gv))
    (initial-state (up 'theta0 'phi0) d:dw1))
   ;; ;; Result:
-  (* -1 (expt (g/sin theta0) 2))
+  (* -1 (expt (sin theta0) 2))
 
 
   (is (= 1 (simplify
@@ -713,10 +712,10 @@
              ((dtheta w) m) ((dphi w) m))))))
 
 
-  (pec ((dw0 (o/commutator Gu Gv))
-        (initial-state (up 'Theta0 'Phi0) d:dphi)))
+  ((dw0 (o/commutator Gu Gv))
+   (initial-state (up 'Theta0 'Phi0) d:dphi))
   ;; ;; Result:
-  (* -1 (expt (g/sin Theta0) 2))
+  (* -1 (expt (sin Theta0) 2))
 
 
   (is  (= 1 (simplify
