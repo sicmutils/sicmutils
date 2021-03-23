@@ -103,7 +103,7 @@
     (let-coordinates [[x y] R2-rect]
       (let [f (ff/literal-oneform-field 'f R2-rect)]
         (is (ff/oneform-field? f))
-        (is (ff/form-field? f 1))
+        (is (ff/form-field? f))
         (is (ff/nform-field? f 1))
 
         (is (= '(down (f_0 (up x0 y0))

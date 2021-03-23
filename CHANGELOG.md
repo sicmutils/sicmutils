@@ -32,7 +32,6 @@
     - form fields now correctly multiply via `*` by using
       `sicmutils.calculus.form-field/wedge`, instead of composition.
 
-
   - maps between manifolds, in `sicmutils.calculus.map`:
 
     - new function: `pushforward-function`
