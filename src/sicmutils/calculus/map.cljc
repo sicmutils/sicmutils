@@ -18,6 +18,7 @@
 ;;
 
 (ns sicmutils.calculus.map
+  "Various definitions and utilities for working with maps between manifolds."
   (:require [sicmutils.abstract.function :as af]
             [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.form-field :as ff]
@@ -66,7 +67,9 @@
                  ~(v/freeze v-on-N))]
       (vf/procedure->vector-field v-on-M name))))
 
-(def differential differential-of-map)
+(def ^{:doc "Alias for [[differential-of-map]]."}
+  differential
+  differential-of-map)
 
 ;; For a long time we were confused between the concepts of differential and
 ;; pushforward. The resolution seems to be that the differential takes the

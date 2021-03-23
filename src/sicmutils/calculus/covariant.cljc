@@ -61,7 +61,8 @@
 	         (s/mapr (vector-field-Lie-derivative X) Y)
 
            :else (u/unsupported "Can't take the Lie derivative of that yet")))
-   `(~'Lie-derivative ~(v/freeze X))))
+   `(~'Lie-derivative
+     ~(v/freeze X))))
 
 (defmethod g/Lie-derivative [::vf/vector-field] [V]
   (vector-field-Lie-derivative V))
@@ -161,19 +162,24 @@
 
 ;; ### Covariant Vector Definition
 
-(defn has-argument-types? [op]
-  ;; TODO fill this in; this should return true IF the argument types are filled
-  ;; up in the operator's context.
-  ;;
-  ;; TODO maybe move to operator?
-  )
+(defn- has-argument-types?
+  "TODO Not yet implemented!
 
-(defn argument-types [t]
-  ;; TODO GET the arg types!
-  )
+  TODO fill this in; this should return true IF the argument types are filled
+  up in the operator's context.
 
-(defn- covariant-derivative-vector
-  [Cartan]
+  TODO maybe move to operator?"
+  [op]
+  (u/unsupported "has-argument-types? not yet implemented."))
+
+(defn- argument-types
+  "TODO Not yet implemented!
+
+  TODO get the argument types from the context."
+  [t]
+  (u/unsupported "argument-types not yet implemented."))
+
+(defn- covariant-derivative-vector [Cartan]
   (let [basis (Cartan->basis Cartan)
         Cartan-forms (Cartan->forms Cartan)
         vector-basis (b/basis->vector-basis basis)
@@ -190,8 +196,7 @@
              `((~'nabla ~(v/freeze V))
                ~(v/freeze U)))))))))
 
-(defn- covariant-derivative-form
-  [Cartan]
+(defn- covariant-derivative-form [Cartan]
   (fn [V]
     (fn [tau]
       (let [k (ff/get-rank tau)
@@ -211,7 +216,9 @@
                    ~(v/freeze tau))]
         (ff/procedure->nform-field op k name)))))
 
-(defn covariant-derivative-argument-types [Cartan]
+(defn- covariant-derivative-argument-types
+  "TODO Not yet implemented!"
+  [Cartan]
   (let [basis (Cartan->basis Cartan)
 	      vector-basis (b/basis->vector-basis basis)
 	      oneform-basis (b/basis->oneform-basis basis)
@@ -219,8 +226,9 @@
     (fn [V]
       (let [CV (Cartan-forms V)]
 	      (fn [T]
-	        (let [arg-types (argument-types T)]
-	          (comment
+          (u/unsupported "covariant-derivative-argument-types not yet implemented.")
+	        (comment
+            (let [arg-types (argument-types T)]
               (define (the-derivative . args)
 	              (assert (fix:= (length args) (length arg-types)))
 	              (let ((VT
@@ -269,16 +277,17 @@
 						                                                        (w (list-ref args i)))
 						                                                oneform-basis)))))))
 			                       arg-types (iota (length arg-types))))))
-		              (g:+ VT corrections)))
-	            (declare-argument-types! the-derivative arg-types)
-	            the-derivative)))))))
+		              (g:+ VT corrections))))
+	          (declare-argument-types! the-derivative arg-types)
+	          the-derivative))))))
 
 (defn- covariant-derivative-function
-  "TODO this is NOT done!, full this iN!!!"
+  "TODO Not yet implemented!"
   [Cartan]
   (fn [X]
     (fn [f]
       (fn [& args]
+        (u/unsupported "Covariant derivative of a function not yet implemented.")
         (comment
           (let [types (map (fn [arg]
 		                         (cond (vector-field? arg) vector-field?
@@ -302,8 +311,7 @@
 	                    (apply (((covariant-derivative-argument-types Cartan) X) f)
 		                         args)))))))))
 
-(defn- covariant-derivative-ordinary
-  [Cartan]
+(defn- covariant-derivative-ordinary [Cartan]
   {:pre [(Cartan? Cartan)]}
   (fn [X]
     (let [op (fn nabla_X [V]

@@ -10,6 +10,31 @@
   - form fields and vector fields do their own zero?, zero-like now
   - structures handle the 0-arity case now
 
+  - vector field:
+
+    - new basis-components->vector-field, vector-field->basis-components, zero-like, zero?
+
+  - form field:
+
+    - nform-field?, zero?, zero-like, basis-components->oneform-field,
+      oneform-field->basis-components, function->oneform-field and alias
+      differential-of-function,
+    - they now multiply by wedge product!
+    - Alt, alt-wedge
+
+  - map:
+
+    - gains pushforward-function
+    - differential becomes differential-of-map, aliased back as `differential`
+
+  - covariant:
+
+    - vector-field-Lie-derivative handles structures now
+    - Cartan?, Christoffel?, Cartan->Christoffel, symmetrize-Christoffel, symmetrize-Cartan, Cartan->Cartan-over-map
+    - geodesic-equation, parallel-transport-equation
+    - TODO working on has-argument-types?, argument-types, covariant-derivative-argument-types, covariant-derivative-function
+
+
 - #335 implements `g/make-rectangular`, `g/make-polar` `g/real-part` and
   `g/imag-part` for clojure's Map data structure. Maps are treated as sparse
   vectors, any missing key on either side of `make-rectangular` or

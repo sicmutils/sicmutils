@@ -23,7 +23,10 @@
 
   A form-field of rank n is an operator that takes n vector fields to a
   real-valued function on the manifold. A one-form field takes a single vector
-  field."
+  field.
+
+  The namespace also contains two definitions of the [[wedge]]
+  product ([[alt-wedge]] is the second), plus the [[exterior-derivative]]."
   (:require [sicmutils.abstract.function :as af]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.manifold :as m]
@@ -417,7 +420,9 @@
 
 ;; Alternative definition in terms of alternation.
 
-(defn Alt [form]
+(defn Alt
+  "Returns the alternation of the supplied differential `form`."
+  [form]
   (let [n (get-rank form)]
     (if (zero? n)
       form
@@ -433,7 +438,7 @@
         (procedure->nform-field
          alternation n `(~'Alt ~(v/freeze form)))))))
 
-(defn tensor-product2
+(defn- tensor-product2
   ([t1] t1)
   ([t1 t2]
    (let [n1 (get-rank t1)
@@ -452,7 +457,7 @@
                  ~(v/freeze t1)
                  ~(v/freeze t2))))))))
 
-(defn w2
+(defn- w2
   ([form1] form1)
   ([form1 form2]
    (let [n1 (get-rank form1)
