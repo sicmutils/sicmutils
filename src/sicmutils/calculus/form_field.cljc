@@ -45,6 +45,7 @@
 ;; real-valued function on the manifold. A one-form field takes a single vector
 ;; field.
 
+(derive ::oneform-field ::form-field)
 (derive ::form-field ::o/operator)
 
 (declare ff:zero? ff:zero-like)
@@ -108,10 +109,16 @@
   `f` should be a function from a vector field to a smooth real-valued function
   `g` of a manifold."
   ([f]
-   (procedure->nform-field
-    f 1 'unnamed-1form-field))
+   (let [name 'unnamed-1form-field]
+     (procedure->oneform-field f name)))
   ([f name]
-   (procedure->nform-field f 1 name)))
+   (o/make-operator f name
+                    {:subtype ::oneform-field
+                     :zero? ff:zero?
+                     :zero-like ff:zero-like
+                     :arity [:exactly 1]
+                     :rank 1
+                     :arguments [::vf/vector-field]})))
 
 (defn ^:no-doc oneform-field-procedure
   "Takes:
