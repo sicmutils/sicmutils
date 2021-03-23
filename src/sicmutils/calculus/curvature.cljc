@@ -35,8 +35,8 @@
 
 (defn Riemann-curvature [nabla]
   (fn [u v]
-    (- (o/commutator (nabla u) (nabla v))
-       (nabla (o/commutator u v)))))
+    (g/- (o/commutator (nabla u) (nabla v))
+         (nabla (o/commutator u v)))))
 
 ;; The traditional Riemann tensor R^i_jkl:
 
@@ -65,9 +65,9 @@
 
 (defn torsion-vector [nabla]
   (fn [X Y]
-    (+ ((nabla X) Y)
-       (* -1 ((nabla Y) X))
-       (* -1 (o/commutator X Y)))))
+    (g/+ ((nabla X) Y)
+         (g/* -1 ((nabla Y) X))
+         (g/* -1 (o/commutator X Y)))))
 
 ;; The torsion tensor T^i_jk
 
@@ -78,7 +78,6 @@
       {:arguments [::ff/oneform-field
                    ::vf/vector-field
                    ::vf/vector-field]})))
-
 
 ;; Components of the curvature tensor R^i_{jkl}
 

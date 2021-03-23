@@ -20,6 +20,8 @@
 (ns sicmutils.calculus.curvature-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
+            [sicmutils.abstract.function :as af]
+            [sicmutils.abstract.number :as an]
             [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.coordinate :refer [let-coordinates]
              #?@(:cljs [:include-macros true])]
@@ -28,8 +30,7 @@
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.map :as cm]
             [sicmutils.calculus.vector-field :as vf]
-            [sicmutils.abstract.function :as af]
-            [sicmutils.abstract.number :as an]
+            [sicmutils.mechanics.lagrange :refer [osculating-path]]
             [sicmutils.expression :as x]
             [sicmutils.function :refer [compose]]
             [sicmutils.generic :as g :refer [+ - * /]]
@@ -287,9 +288,7 @@
         ))
     ))
 
-
 (comment
-
   ;; Testing equation 3 on MTW p272
   (define s0
     (simplify
@@ -445,30 +444,31 @@
 
   ;; To set up for solving for the derivatives, we lift off of the path
 
-  (let ((U d:dt)
-        (mu:N->M (compose (m/point S2-spherical)
-                          (up (af/literal-function 'f↑theta)
-                              (af/literal-function 'f↑phi))
-                          (m/chart the-real-line))))
-    (let* ((basis-over-mu (cm/basis->basis-over-map mu:N->M S2-spherical-basis))
-           (oneform-basis (b/basis->oneform-basis basis-over-mu))
-           (vector-basis (basis->vector-basis basis-over-mu))
-           (Cartan (Christoffel->Cartan G-S2-1))
-           (transported-vector-over-map
-            (basis-components->vector-field
-             (up (compose (osculating-path (up 'tau 'w↑0 'dw↑0/dt))
-                          (m/chart the-real-line))
-                 (compose (osculating-path (up 'tau 'w↑1 'dw↑1/dt))
-                          (m/chart the-real-line)))
-             vector-basis)))
-      (s/mapr
-       (fn [w]
-         ((w
-           (((cov/covariant-derivative Cartan mu:N->M)
-             U)
-            transported-vector-over-map))
-          ((m/point the-real-line) 'tau)))
-       oneform-basis)))
+  (let [U d:dt
+        mu:N->M (compose (m/point S2-spherical)
+                         (up (af/literal-function 'f↑theta)
+                             (af/literal-function 'f↑phi))
+                         (m/chart the-real-line))
+        basis-over-mu (cm/basis->basis-over-map mu:N->M S2-spherical-basis)
+        oneform-basis (b/basis->oneform-basis basis-over-mu)
+        vector-basis (b/basis->vector-basis basis-over-mu)
+        Cartan (cov/Christoffel->Cartan G-S2-1)
+        transported-vector-over-map
+        (vf/basis-components->vector-field
+         (up (compose (osculating-path (up 'tau 'w↑0 'dw↑0:dt))
+                      (m/chart the-real-line))
+             (compose (osculating-path (up 'tau 'w↑1 'dw↑1:dt))
+                      (m/chart the-real-line)))
+         vector-basis)]
+    (let*
+        (s/mapr
+         (fn [w]
+           ((w
+             (((cov/covariant-derivative Cartan mu:N->M)
+               U)
+              transported-vector-over-map))
+            ((m/point the-real-line) 'tau)))
+         oneform-basis)))
 
   ;; Result:
   (up (+ dw↑0:dt
@@ -487,20 +487,19 @@
         w↑1 (af/literal-function 'w↑1)]
     (solve
      (fn [v]
-       (let ((dw↑0/dt (ref v 0))
-             (dw↑1/dt (ref v 1)))
-         (up
-          (+ (* -1
-                (w↑1 tau)
-                (g/sin (theta tau))
-                (g/cos (theta tau))
-                ((D phi) tau))
-             dw↑0/dt)
-          (+ (/ (* (w↑0 tau) (g/cos (theta tau)) ((D phi) tau))
-                (g/sin (theta tau)))
-             (/ (* (w↑1 tau) ((D theta) tau) (g/cos (theta tau)))
-                (g/sin (theta tau)))
-             dw↑1/dt))))
+       (let [dw↑0:dt (ref v 0)
+             dw↑1:dt (ref v 1)]
+         (up (+ (* -1
+                   (w↑1 tau)
+                   (g/sin (theta tau))
+                   (g/cos (theta tau))
+                   ((D phi) tau))
+                dw↑0:dt)
+             (+ (/ (* (w↑0 tau) (g/cos (theta tau)) ((D phi) tau))
+                   (g/sin (theta tau)))
+                (/ (* (w↑1 tau) ((D theta) tau) (g/cos (theta tau)))
+                   (g/sin (theta tau)))
+                dw↑1:dt))))
      2 2))
 
   ;; ;; Result:
@@ -599,6 +598,11 @@
        (* ((D w↑1) tau) (sin (mu↑theta tau))))
     (sin (mu↑theta tau))))
 
+  )
+
+(deftest final-tests
+  ;; NOTE: Working from here on out!
+
   ;; These are the equations of the coordinates of a vector being
   ;; parallel transported along the path defined by f.
   ;;
@@ -617,114 +621,111 @@
   ;; to be transported, relative to the coordinate directions in the
   ;; original manifold.  The right-hand side of the composite
   ;; differential equation is a vector field on this manifold.
+  (let [R4 (m/make-manifold m/Rn 4)
+        states (m/coordinate-system-at R4 :rectangular :origin)]
+    (let-coordinates [[theta phi w0 w1] states]
+      (let [initial-state-d:dphi
+            ((m/point states) (up 'theta0 'phi0 0 1))
 
-  (define R4 (m/make-manifold m/Rn 4))
-  (define states (m/coordinate-system-at R4 :rectangular :origin))
-  (define-coordinates (up theta phi w0 w1) states)
+            initial-state-d:dtheta
+            ((m/point states) (up 'theta0 'phi0 1 0))
 
-  (define initial-state-d:dphi
-    ((m/point states) (up 'theta0 'phi0 0 1)))
-  (define initial-state-d:dtheta
-    ((m/point states) (up 'theta0 'phi0 1 0)))
+            ;; Assuming that the paths are integral curves of a vector field v,
+            ;; we supply the vector field:
+            G (fn [v]
+                (let [alphadot (dtheta v)
+                      betadot (dphi v)]
+                  (+ v
+                     (* (compose (* g/sin g/cos) theta)
+                        betadot w1 d:dw0)
+                     (* -1
+                        (compose (/ g/cos g/sin) theta)
+                        (+ (* w0 betadot)
+                           (* w1 alphadot))
+                        d:dw1))))
 
-  ;; Assuming that the paths are integral curves of a vector field v,
-  ;; we supply the vector field:
-  (define G (fn [v]
-              (let [alphadot (dtheta v)
-                    betadot (dphi v)]
-                (+ v
-                   (* (compose (* sin cos) theta)
-                      betadot w1 d:dw0)
-                   (* -1
-                      (compose (/ cos sin) theta)
-                      (+ (* w0 betadot)
-                         (* w1 alphadot))
-                      d:dw1)))))
+            Gu (G d:dtheta)
+            Gv (G d:dphi)
 
-  (define Gu (G d:dtheta))
-  (define Gv (G d:dphi))
+            initial-state
+            (fn [[theta0 phi0] w]
+              (let [dummy
+                    ((m/point states)
+                     (up theta0 phi0 'foo 'bar))]
+                ((m/point states)
+                 (up theta0 phi0
+                     ((dw0 w) dummy)
+                     ((dw1 w) dummy)))))]
+        (is (= '(* -1 (expt (sin theta0) 2))
+               (simplify
+                ((dw0 (o/commutator Gu Gv))
+                 (initial-state (up 'theta0 'phi0) d:dw1)))))
 
-  (define (initial-state initial-coords w)
-    (let ((theta0 (ref initial-coords 0))
-          (phi0 (ref initial-coords 1)))
-      (let ((dummy
-             ((m/point states)
-              (up theta0 phi0 'foo 'bar))))
-        ((m/point states)
-         (up theta0 phi0
-             ((dw0 w) dummy)
-             ((dw1 w) dummy))))))
+        ;; Gee, this gets the right answer.
+        (is (= 1 (simplify
+                  ((dw1 (o/commutator Gu Gv))
+                   (initial-state (up 'theta0 'phi0) d:dw0)))))))
 
+    ;; NOW, a duplicate! Note that it's the same, except we have a second set of
+    ;; coordinates.
+    ;;
+    ;; To integrate these equations of the coordinates of the vector
+    ;; being transported along a path (mu↑theta(tau), mu↑phi(tau)), defined
+    ;; by differential equations we need to make a state space that
+    ;; represents both the path and the coordinates of the vector being
+    ;; transported.  The states are s=(sigma, w)=((theta, phi), (w0, w1))
+    ;; and the differential equations for the path are Dsigma(tau) =
+    ;; b(sigma(tau)).  The differential equations for the coordinates of
+    ;; the vector are driven by this path.
 
-  ((dw0 (o/commutator Gu Gv))
-   (initial-state (up 'theta0 'phi0) d:dw1))
-  ;; ;; Result:
-  (* -1 (expt (sin theta0) 2))
+    ;; To represent these states we make a new manifold with 4
+    ;; coordinates.  The first two coordinates are tha coordinates of the
+    ;; path.  The second two coordinates are the components of the vector
+    ;; to be transported, relative to the coordinate directions in the
+    ;; original manifold.  The right-hand side of the composite
+    ;; differential equation is a vector field on this manifold.
+    (let [M (m/make-manifold m/Rn 2)
+          M-rect (m/coordinate-system-at M :rectangular :origin)]
+      (let-coordinates [[theta phi] M-rect
+                        [Theta Phi w0 w1] states]
+        (let [initial-state-d:dphi
+              ((m/point states) (up 'theta0 'phi0 0 1))
 
+              initial-state-d:dtheta
+              ((m/point states) (up 'theta0 'phi0 1 0))
 
-  (is (= 1 (simplify
-            ((dw1 (o/commutator Gu Gv))
-             (initial-state (up 'theta0 'phi0) d:dw0)))))
-                                        ; ; Result:
-  1
+              ;; Assuming that the paths are integral curves of a vector field v,
+              ;; we supply the vector field:
+              G (fn [v]
+                  (let [alphadot (dTheta v)
+                        betadot (dPhi v)]
+                    (+ v
+                       (* (compose (* g/sin g/cos) Theta)
+                          betadot w1 d:dw0)
+                       (* -1
+                          (compose (/ g/cos g/sin) Theta)
+                          (+ (* w0 betadot)
+                             (* w1 alphadot))
+                          d:dw1))))
 
-  ;; Gee, this gets the right answer.
+              Gu (G d:dTheta)
+              Gv (G d:dPhi)
 
-  ;; To integrate these equations of the coordinates of the vector
-  ;; being transported along a path (mu↑theta(tau), mu↑phi(tau)), defined
-  ;; by differential equations we need to make a state space that
-  ;; represents both the path and the coordinates of the vector being
-  ;; transported.  The states are s=(sigma, w)=((theta, phi), (w0, w1))
-  ;; and the differential equations for the path are Dsigma(tau) =
-  ;; b(sigma(tau)).  The differential equations for the coordinates of
-  ;; the vector are driven by this path.
+              initial-state
+              (fn [[Theta0 Phi0] w]
+                (let [m ((m/point M-rect) (up Theta0 Phi0))]
+                  ((m/point states)
+                   (up Theta0 Phi0
+                       ((dtheta w) m) ((dphi w) m)))))]
+          (is (= '(* -1 (expt (sin Theta0) 2))
+                 (simplify
+                  ((dw0 (o/commutator Gu Gv))
+                   (initial-state (up 'Theta0 'Phi0) d:dphi)))))
 
-  ;; To represent these states we make a new manifold with 4
-  ;; coordinates.  The first two coordinates are tha coordinates of the
-  ;; path.  The second two coordinates are the components of the vector
-  ;; to be transported, relative to the coordinate directions in the
-  ;; original manifold.  The right-hand side of the composite
-  ;; differential equation is a vector field on this manifold.
-
-  (define-coordinates (up theta phi) M-rect)
-  (define-coordinates (up Theta Phi w0 w1) states)
-
-  ;; Assuming that the paths are integral curves of a vector field v,
-  ;; we supply the vector field:
-  (define (G v)
-    (let ((alphadot (dTheta v)) (betadot (dPhi v)))
-      (+ v
-         (* (compose (* sin cos) Theta) betadot w1 d:dw0)
-         (* -1
-            (compose (/ cos sin) Theta)
-            (+ (* w0 betadot) (* w1 alphadot))
-            d:dw1))))
-
-  (define Gu (G d:dTheta))
-  (define Gv (G d:dPhi))
-
-  (define (initial-state initial-coords w)
-    (let ((Theta0 (ref initial-coords 0))
-          (Phi0 (ref initial-coords 1)))
-      (let ((m ((m/point M-rect) (up Theta0 Phi0))))
-        ((m/point states)
-         (up Theta0 Phi0
-             ((dtheta w) m) ((dphi w) m))))))
-
-
-  ((dw0 (o/commutator Gu Gv))
-   (initial-state (up 'Theta0 'Phi0) d:dphi))
-  ;; ;; Result:
-  (* -1 (expt (sin Theta0) 2))
-
-
-  (is  (= 1 (simplify
-             ((dw1 (o/commutator Gu Gv))
-              (initial-state (up 'Theta0 'Phi0) d:dtheta)))))
-
-  ;; Gee, this gets the right answer.
-
-
+          ;; Gee, this gets the right answer.
+          (is (= 1 (simplify
+                    ((dw1 (o/commutator Gu Gv))
+                     (initial-state (up 'theta0 'phi0) d:dtheta)))))))))
   ;;----------------------------------------------------------------
   ;; try to improve this
   ;;
@@ -738,5 +739,4 @@
   ;;
   ;; let w be an arbitrary vector over the map
   ;; w(f)(t) = d:dtheta (f)(gamma(t)) a_0(t) + d:dphi (f)(gamma(t)) a_1(t)
-
   )
