@@ -23,6 +23,7 @@
             [sicmutils.calculus.coordinate :as cc]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.manifold :as m]
+            [sicmutils.calculus.metric :as metric]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.generic :as g]
             [sicmutils.operator :as o]
@@ -58,11 +59,9 @@
       vector-basis)
      basis)))
 
-(declare metric:invert)
-
 (defn metric->Christoffel-2 [metric basis]
   {:pre [(b/coordinate-basis? basis)]}
-  (let [gi (metric:invert metric basis)
+  (let [gi (metric/invert metric basis)
         vector-basis (b/basis->vector-basis basis)
         oneform-basis (b/basis->oneform-basis basis)]
     (cov/make-Christoffel
