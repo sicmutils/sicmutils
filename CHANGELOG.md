@@ -5,7 +5,10 @@
 - #328:
 
   - fixes the joint context bug for operators
-  -
+  - operators can now specify zero?, zero-like and friends in their contexts.
+  - form fields multiply with wedge
+  - form fields and vector fields do their own zero?, zero-like now
+  - structures handle the 0-arity case now
 
 - #335 implements `g/make-rectangular`, `g/make-polar` `g/real-part` and
   `g/imag-part` for clojure's Map data structure. Maps are treated as sparse
