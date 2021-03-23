@@ -17,7 +17,7 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(ns sicmutils.util.permute
+(ns sicmutils.util.permute-test
   (:require [clojure.test :refer [is deftest testing]]
             [same :refer [ish?]]
             [sicmutils.util.permute :as permute]))
