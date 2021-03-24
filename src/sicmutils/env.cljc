@@ -75,6 +75,7 @@
             [sicmutils.mechanics.rotation]
             [sicmutils.calculus.basis]
             [sicmutils.calculus.covariant]
+            [sicmutils.calculus.curvature]
             [sicmutils.calculus.derivative :as d]
             [sicmutils.calculus.frame]
             [sicmutils.calculus.form-field]
@@ -323,6 +324,9 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   vector-basis->dual
   make-constant-vector-field
   Jacobian]
+ [sicmutils.calculus.curvature
+  Riemann-curvature Riemann Ricci torsion-vector torsion
+  curvature-components]
  [sicmutils.calculus.map
   basis->basis-over-map
   differential

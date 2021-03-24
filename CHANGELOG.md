@@ -2,13 +2,38 @@
 
 ## [unreleased]
 
+- #337:
+
+  - adds `sicmutils.calculus.curvature`, with these new functions and many tests
+    from the classic "Gravitation" book:
+
+    `Riemann-curvature`, `Riemann`, `Ricci`, `torsion-vector`, `torsion` and
+    `curvature-components`
+
+  - If you combine `Operator` instances with non-equal `:subtype` fields, the
+    returned operator now keeps the parent subtype (or throws if one is not a
+    subtype of the other).
+
+  - `Operator` instances now ignore any `identity?`-passing operator on the left
+    or right side of operator-operator multiplication. Contexts are still
+    appropriately merged.
+
+  - Similarly, `Operator` addition ignores `zero?` operators on the left or
+    right side, and subtraction ignores `zero?` operators on the right right.
+
+  - form fields now have NO identity operator, since they multiply by wedge, not
+    composition.
+
 - #328 adds many utilities for "Functional Differential Geometry".
 
-  - Closes #249; operators now verify compatible contexts on multiplication
+  - Closes #249; operators now verify compatible contexts on multiplication.
+
   - `Operator` instances can now provides custom `zero?`, `one?`, `identity?`,
     `zero-like`, `one-like` and `identity-like` implementations by setting a
     function of a single (operator-typed) argument to a keyword like `:zero?` in
-    their context.
+    their context. the identity operator returns `true` for `identity?`, and
+    `false` for `one?` so that it isn't stripped by the `g/*` function.
+
   - structures implement the 0-arity case of IFn now.
 
   - vector fields, in `sicmutils.calculus.vector-field`:

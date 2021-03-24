@@ -22,6 +22,7 @@
             [clojure.test.check.generators :as gen]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]
              #?@(:cljs [:include-macros true])]
+            [same :refer [ish?]]
             [sicmutils.calculus.derivative :refer [D]]
             [sicmutils.complex :refer [complex I]]
             [sicmutils.collection :as collection]

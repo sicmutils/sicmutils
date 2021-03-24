@@ -35,14 +35,10 @@
 
 (def ^{:private true
        :doc "Simplifier that acts on associative products and sums, and collects
-  products into exponents. Any operator named `identity` is removed (we can't
-  verify that the operator does in fact _act_ like a proper `identity`.)
-
-  Operator multiplication is NOT associative, so only adjacent products are
-  collected."}
+  products into exponents. Operator multiplication is NOT associative, so only
+  adjacent products are collected."}
   simplify-operator-name
   (rule-simplifier
-   (rules/constant-elimination '* 'identity)
    (rules/associative '+ '*)
    rules/exponent-contract
    (rules/unary-elimination '+ '*)))
@@ -229,6 +225,17 @@
     (.-context ^Operator op)
     (u/illegal (str "non-operator supplied: " op))))
 
+(defn ^:no-doc with-context
+  "Returns a copy of the supplied operator with `ctx` substituted for its
+  context."
+  [op ctx]
+  (if (operator? op)
+    (let [op ^Operator op]
+      (->Operator (.-o op) (.-arity op) (.-name op)
+                  ctx
+                  (.-m op)))
+    (u/illegal (str "non-operator supplied: " op))))
+
 (defn make-operator
   "Returns an [[Operator]] wrapping the supplied procedure `f` with the name
   `name`.
@@ -259,17 +266,29 @@
 
 (defn- joint-context
   "Merges type context maps of the two operators. Where the maps have keys in
-  common, they must agree; disjoint keys become part of the new joint context."
+  common, they must agree; disjoint keys become part of the new joint context.
+
+  The exception is the :subtype key; if the values aren't
+  equal, [[joint-context]] chooses the parent if one derives from the other, or
+  throws if not."
   [o p]
   {:pre [(operator? o)
          (operator? p)]}
   (reduce-kv (fn [joint-ctx k v]
                (if-let [cv (k joint-ctx)]
-                 (if (= cv v)
-                   joint-ctx
-                   (u/illegal
-                    (str "incompatible operator context: "
-                         (context o) (context p))))
+                 (cond (= v cv)  joint-ctx
+
+                       (and (= k :subtype) (isa? cv v))
+                       (assoc joint-ctx k v)
+
+                       (and (= k :subtype) (isa? v cv))
+                       joint-ctx
+
+                       :else
+                       (u/illegal
+                        (str "incompatible operator context: "
+                             (context o) (context p)
+                             " at key: " k)))
                  (assoc joint-ctx k v)))
              (context o)
              (context p)))
@@ -338,10 +357,15 @@
   "Subtract one operator from another. Produces an operator which computes the
   difference of applying the supplied operators."
   [o p]
-  (->Operator #(g/sub (apply o %&) (apply p %&))
-              (f/joint-arity [(arity o) (arity p)])
-              `(~'- ~(name o) ~(name p))
-              (joint-context o p)))
+  (let [ctx (joint-context o p)]
+    (if (v/zero? p)
+      (with-context o ctx)
+      (->Operator (fn [& xs]
+                    (g/sub (apply o xs)
+                           (apply p xs)))
+                  (f/joint-arity [(arity o) (arity p)])
+                  `(~'- ~(name o) ~(name p))
+                  ctx))))
 
 (defn- f-o [f o] (combine-f-op g/sub '- f o))
 (defn- o-f [o f] (combine-op-f g/sub '- o f))
@@ -350,10 +374,16 @@
   "Add two operators. Produces an operator which adds the result of applying the
   given operators."
   [o p]
-  (->Operator #(g/add (apply o %&) (apply p %&))
-              (f/joint-arity [(f/arity o) (f/arity p)])
-              `(~'+ ~(name o) ~(name p))
-              (joint-context o p)))
+  (let [ctx (joint-context o p)]
+    (cond (v/zero? o) (with-context p ctx)
+          (v/zero? p) (with-context o ctx)
+          :else
+          (->Operator (fn [& xs]
+                        (g/add (apply o xs)
+                               (apply p xs)))
+                      (f/joint-arity [(f/arity o) (f/arity p)])
+                      `(~'+ ~(name o) ~(name p))
+                      ctx))))
 
 (defn- f+o [f o] (combine-f-op g/add '+ f o))
 (defn- o+f [o f] (combine-op-f g/add '+ o f))
@@ -363,10 +393,14 @@
   ([] identity)
   ([o] o)
   ([o p]
-   (->Operator (f/compose o p)
-               (arity p)
-               `(~'* ~(name o) ~(name p))
-               (joint-context o p))))
+   (let [ctx (joint-context o p)]
+     (cond (v/identity? o) (with-context p ctx)
+           (v/identity? p) (with-context o ctx)
+           :else
+           (->Operator (f/compose o p)
+                       (arity p)
+                       `(~'* ~(name o) ~(name p))
+                       ctx)))))
 
 (defn- f*o
   "Multiply an operator by a non-operator on the left. The non-operator acts on
