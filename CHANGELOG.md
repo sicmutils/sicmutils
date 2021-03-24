@@ -26,11 +26,14 @@
 
 - #328 adds many utilities for "Functional Differential Geometry".
 
-  - Closes #249; operators now verify compatible contexts on multiplication
+  - Closes #249; operators now verify compatible contexts on multiplication.
+
   - `Operator` instances can now provides custom `zero?`, `one?`, `identity?`,
     `zero-like`, `one-like` and `identity-like` implementations by setting a
     function of a single (operator-typed) argument to a keyword like `:zero?` in
-    their context.
+    their context. the identity operator returns `true` for `identity?`, and
+    `false` for `one?` so that it isn't stripped by the `g/*` function.
+
   - structures implement the 0-arity case of IFn now.
 
   - vector fields, in `sicmutils.calculus.vector-field`:

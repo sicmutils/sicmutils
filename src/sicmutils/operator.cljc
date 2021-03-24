@@ -225,7 +225,7 @@
     (.-context ^Operator op)
     (u/illegal (str "non-operator supplied: " op))))
 
-(defn- with-context
+(defn ^:no-doc with-context
   "Returns a copy of the supplied operator with `ctx` substituted for its
   context."
   [op ctx]
@@ -268,7 +268,9 @@
   "Merges type context maps of the two operators. Where the maps have keys in
   common, they must agree; disjoint keys become part of the new joint context.
 
-  The exception is the :subtype key, which "
+  The exception is the :subtype key; if the values aren't
+  equal, [[joint-context]] chooses the parent if one derives from the other, or
+  throws if not."
   [o p]
   {:pre [(operator? o)
          (operator? p)]}
