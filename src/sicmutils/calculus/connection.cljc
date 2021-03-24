@@ -23,6 +23,7 @@
             [sicmutils.calculus.coordinate :as cc]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.manifold :as m]
+            [sicmutils.calculus.metric :as metric]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.generic :as g]
             [sicmutils.operator :as o]
@@ -35,135 +36,101 @@
 ;; We reserve *Christoffel* and Christoffel? for Christoffel type 2
 
 (defn make-Christoffel-1 [symbols basis]
-  (list '*Christoffel-1* symbols basis))
-
-(declare coordinate-basis?)
+  {:type ::Christoffel-1
+   :symbols symbols
+   :basis basis})
 
 (defn metric->Christoffel-1 [metric basis]
-  {:pre [(coordinate-basis? basis)]}
+  {:pre [(b/coordinate-basis? basis)]}
   (let [vector-basis (b/basis->vector-basis basis)]
     (make-Christoffel-1
      (s/mapr
       (fn [e_k]
-		    (s/mapr
+        (s/mapr
          (fn [e_j]
-			     (s/mapr
+           (s/mapr
             (fn [e_i]
-				      (* (/ 1 2)
-                 (- (+ (e_k (metric e_i e_j))
-						           (e_j (metric e_i e_k)))
-						        (e_i (metric e_j e_k)))))
-				    vector-basis))
-			   vector-basis))
-	    vector-basis)
+              (g/* (g// 1 2)
+                   (g/- (g/+ (e_k (metric e_i e_j))
+                             (e_j (metric e_i e_k)))
+                        (e_i (metric e_j e_k)))))
+            vector-basis))
+         vector-basis))
+      vector-basis)
      basis)))
 
-(comment
-  (def two-sphere R2-rect)
-  (install-coordinates two-sphere (up 'theta 'phi))
-
-  ;; probably has to use with-coordinates...
-  (defn g-sphere [R]
-    (fn [u v]
-      (* (square R)
-         (+ (* (dtheta u) (dtheta v))
-	          (* (compose (square sin) theta)
-	             (dphi u)
-	             (dphi v))))))
-
-  (pec
-   ((Christoffel->symbols
-     (metric->Christoffel-1 (g-sphere 'R)
-			                      (coordinate-system->basis two-sphere)))
-    ((two-sphere '->point) (s/up 'theta0 'phi0))))
-  ;; Result:
-  (down
-   (down
-    (down 0 0) (down 0 (* (* (cos theta0) (sin theta0)) (expt R 2))))
-   (down
-    (down 0 (* (* (cos theta0) (sin theta0)) (expt R 2)))
-    (down (* (* -1 (cos theta0) (sin theta0)) (expt R 2)) 0))))
-
-(declare metric:invert)
-
 (defn metric->Christoffel-2 [metric basis]
-  #_{:pre [(coordinate-basis? basis)]}
-  (let [gi (metric:invert metric basis)
-        vector-basis  (b/basis->vector-basis basis)
+  {:pre [(b/coordinate-basis? basis)]}
+  (let [gi (metric/invert metric basis)
+        vector-basis (b/basis->vector-basis basis)
         oneform-basis (b/basis->oneform-basis basis)]
     (cov/make-Christoffel
      (s/mapr
       (fn [e_k]
-		    (s/mapr
+        (s/mapr
          (fn [e_j]
-			     (s/mapr
+           (s/mapr
             (fn [w_i]
-					    (b/contract
-					     (fn [e_m w_m]
-					       (* (gi w_i w_m)
-					          (* (/ 1 2)
-						           (- (+ (e_k (metric e_m e_j))
-						                 (e_j (metric e_m e_k)))
-						              (e_m (metric e_j e_k))))))
-					     basis))
-				    oneform-basis))
-			   vector-basis))
-		  vector-basis)
+              (b/contract
+               (fn [e_m w_m]
+                 (g/* (gi w_i w_m)
+                      (g/* (g// 1 2)
+                           (g/- (g/+ (e_k (metric e_m e_j))
+                                     (e_j (metric e_m e_k)))
+                                (e_m (metric e_j e_k))))))
+               basis))
+            oneform-basis))
+         vector-basis))
+      vector-basis)
      basis)))
 
-
-(comment
-  (pec ((Christoffel->symbols
-         (metric->Christoffel-2 (g-sphere 'R)
-			                          (coordinate-system->basis two-sphere)))
-        ((two-sphere '->point) (up 'theta0 'phi0))))
-  ;; Result:
-  (down
-   (down (up 0 0) (up 0 (/ (cos theta0) (sin theta0))))
-   (down (up 0 (/ (cos theta0) (sin theta0)))
-         (up (* -1 (sin theta0) (cos theta0)) 0))))
-
-(declare literal-Christoffel-names
-         coordinate-system-dimension)
-
-(comment
-  (defn literal-Christoffel-names [name scripts n]
-    (define (Gijk i j k)
-      (define (tex s)
-        (cond ((eq? s 'up) "^")
-	            ((eq? s 'down) "_")
-	            (else (error "Bad scripts"))))
-      (string->symbol
-       (string-append (symbol->string name)
-		                  (tex (car scripts))
-		                  (number->string i)
-		                  (number->string j)
-		                  (tex (caddr scripts))
-		                  (number->string k))))
-    (assert (eq? (car scripts) (cadr scripts)))
-    (s:generate n (car scripts)
-                (fn (i)
-                  (s:generate n (cadr scripts)
-	                            (fn (j)
-	                              (s:generate n (caddr scripts)
-	                                          (fn (k)
-	                                            (Gijk i j k)))))))))
+(defn- literal-Christoffel-names [name scripts n]
+  {:pre [(= (first scripts)
+            (second scripts))]}
+  (letfn [(tex [s]
+            (cond (= s ::s/up) "↑"
+                  (= s ::s/down) "_"
+                  :else
+                  (u/illegal "Bad scripts")))
+          (Gijk [i j k]
+            (symbol
+             (str name
+                  (tex (nth scripts 0))
+                  i j
+                  (tex (nth scripts 2))
+                  k)))]
+    (s/generate
+     n (nth scripts 0)
+     (fn [i]
+       (s/generate
+        n (nth scripts 1)
+        (fn [j]
+          (s/generate
+           n (nth scripts 2)
+           (fn [k]
+             (Gijk i j k)))))))))
 
 (defn literal-Christoffel-1 [name coordsys]
-  (let [n (coordinate-system-dimension coordsys)]
+  (let [n (:dimension (m/manifold coordsys))]
     (make-Christoffel-1
      (s/mapr (fn [name]
-		           (m/literal-manifold-function name coordsys))
-	           (literal-Christoffel-names name '(down down down) n))
+               (m/literal-manifold-function name coordsys))
+             (literal-Christoffel-names
+              name [::s/down ::s/down ::s/down] n))
      (b/coordinate-system->basis coordsys))))
 
 (defn literal-Christoffel-2 [name coordsys]
-  (let [n (coordinate-system-dimension coordsys)]
+  (let [n (:dimension (m/manifold coordsys))]
     (cov/make-Christoffel
      (s/mapr (fn [name]
-		           (m/literal-manifold-function name coordsys))
-	           (literal-Christoffel-names name '(down down up) n))
+               (m/literal-manifold-function name coordsys))
+             (literal-Christoffel-names
+              name [::s/down ::s/down ::s/up] n))
      (b/coordinate-system->basis coordsys))))
+
+(defn literal-Cartan [name coordsys]
+  (cov/Christoffel->Cartan
+   (literal-Christoffel-2 name coordsys)))
 
 ;; Connections for non-coordinate basis -- MTW p.210
 
@@ -173,54 +140,55 @@
   (b/contract
    (fn [e_l w_l]
      (g/* (metric e_k e_l)
-	        (w_l (o/commutator e_i e_j))))
+          (w_l (o/commutator e_i e_j))))
    basis))
 
 (defn metric->connection-1 [metric basis]
-  (let [vector-basis  (b/basis->vector-basis basis)
-	      oneform-basis (b/basis->oneform-basis basis)]
+  (let [vector-basis (b/basis->vector-basis basis)
+        oneform-basis (b/basis->oneform-basis basis)]
     (cov/make-Christoffel
      (s/mapr
       (fn [e_k]
-	      (s/mapr
-	       (fn [e_j]
-	         (s/mapr
-	          (fn [e_i]
-	            (* (/ 1 2)
-                 (+ (- (+ (e_k (metric e_i e_j))
-			                    (e_j (metric e_i e_k)))
-			                 (e_i (metric e_j e_k)))
-			              (- (+ (structure-constant e_i e_j e_k basis metric)
-			                    (structure-constant e_i e_k e_j basis metric))
-			                 (structure-constant e_j e_k e_i basis metric)))))
-	          vector-basis))
-	       vector-basis))
+        (s/mapr
+         (fn [e_j]
+           (s/mapr
+            (fn [e_i]
+              (g/* (g// 1 2)
+                   (g/+ (g/- (g/+ (e_k (metric e_i e_j))
+                                  (e_j (metric e_i e_k)))
+                             (e_i (metric e_j e_k)))
+                        (g/- (g/+ (structure-constant e_i e_j e_k basis metric)
+                                  (structure-constant e_i e_k e_j basis metric))
+                             (structure-constant e_j e_k e_i basis metric)))))
+            vector-basis))
+         vector-basis))
       vector-basis)
      basis)))
 
 (defn metric->connection-2 [metric basis]
-  (let [vector-basis   (b/basis->vector-basis basis)
-	      oneform-basis  (b/basis->oneform-basis basis)
-	      inverse-metric (metric:invert metric basis)]
+  (let [vector-basis (b/basis->vector-basis basis)
+        oneform-basis (b/basis->oneform-basis basis)
+        inverse-metric (metric:invert metric basis)]
     (cov/make-Christoffel
      (s/mapr
       (fn [e_k]
-	      (s/mapr
-	       (fn [e_j]
-	         (s/mapr
-	          (fn [w_i]
-	            (b/contract
-	             (fn [e_m w_m]
-		             (* (inverse-metric w_i w_m)
-		                (* (/ 1 2)
-                       (+ (- (+ (e_k (metric e_m e_j))
-				                        (e_j (metric e_m e_k)))
-				                     (e_m (metric e_j e_k)))
-			                    (- (+ (structure-constant e_m e_j e_k basis metric)
-				                        (structure-constant e_m e_k e_j basis metric))
-				                     (structure-constant e_j e_k e_m basis metric))))))
-	             basis))
-	          oneform-basis))
-	       vector-basis))
+        (s/mapr
+         (fn [e_j]
+           (s/mapr
+            (fn [w_i]
+              (b/contract
+               (fn [e_m w_m]
+                 (g/* (inverse-metric w_i w_m)
+                      (g/*
+                       (g// 1 2)
+                       (g/+ (g/- (g/+ (e_k (metric e_m e_j))
+                                      (e_j (metric e_m e_k)))
+                                 (e_m (metric e_j e_k)))
+                            (g/- (g/+ (structure-constant e_m e_j e_k basis metric)
+                                      (structure-constant e_m e_k e_j basis metric))
+                                 (structure-constant e_j e_k e_m basis metric))))))
+               basis))
+            oneform-basis))
+         vector-basis))
       vector-basis)
      basis)))
