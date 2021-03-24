@@ -210,8 +210,10 @@
                        delta [d:dr d:dtheta]]
                    (is (= 0 (simplify
                              ((curvature alpha beta gamma delta)
-                              spherical-point)))))))))))))
+                              spherical-point))))))))))))))
 
+
+(deftest big-test
   (testing "MTW p205 spherical flat lorentz"
     (let [spherical-Lorentz m/R4-rect]
       (let-coordinates [[t r theta phi] spherical-Lorentz]
@@ -250,103 +252,10 @@
                 (b/make-basis
                  (orthonormal-spherical-Lorentz-vector-basis c-2)
                  (orthonormal-spherical-Lorentz-oneform-basis c-2)))]
-          (is (= '(down (up 1 0 0 0)
-                        (up 0 1 0 0)
-                        (up 0 0 1 0)
-                        (up 0 0 0 1))
-                 (simplify
-                  ((s/mapr (orthonormal-spherical-Lorentz-oneform-basis 'c↑2)
-                           (orthonormal-spherical-Lorentz-vector-basis 'c↑2))
-                   spherical-Lorentz-point))))
-
-          (is (= -1 (simplify
-                     (((spherical-Lorentz-metric 'c↑2)
-                       (nth (orthonormal-spherical-Lorentz-vector-basis 'c↑2) 0)
-                       (nth (orthonormal-spherical-Lorentz-vector-basis 'c↑2) 0))
-                      spherical-Lorentz-point))))
-
-          (is (= 1 (simplify
-                    (((spherical-Lorentz-metric 'c↑2)
-                      (nth (orthonormal-spherical-Lorentz-vector-basis 'c↑2) 1)
-                      (nth (orthonormal-spherical-Lorentz-vector-basis 'c↑2) 1))
-                     spherical-Lorentz-point))))
-
-          (is (= 1 (simplify
-                    (((spherical-Lorentz-metric 'c↑2)
-                      (nth (orthonormal-spherical-Lorentz-vector-basis 'c↑2) 2)
-                      (nth (orthonormal-spherical-Lorentz-vector-basis 'c↑2) 2))
-                     spherical-Lorentz-point))))
-
-          (is (= 1 (simplify
-                    (((spherical-Lorentz-metric 'c↑2)
-                      (nth (orthonormal-spherical-Lorentz-vector-basis 'c↑2) 3)
-                      (nth (orthonormal-spherical-Lorentz-vector-basis 'c↑2) 3))
-                     spherical-Lorentz-point))))
-
-          (is (= '(down
-                   (down (down 0 0 0 0) (down 0 0 0 0) (down 0 0 0 0) (down 0 0 0 0))
-                   (down (down 0 0 0 0) (down 0 0 0 0) (down 0 0 0 0) (down 0 0 0 0))
-                   (down (down 0 0 0 0) (down 0 0 (/ 1 r) 0) (down 0 (/ -1 r) 0 0) (down 0 0 0 0))
-                   (down (down 0 0 0 0)
-                         (down 0 0 0 (/ 1 r))
-                         (down 0 0 0 (/ (cos theta) (* r (sin theta))))
-                         (down 0 (/ -1 r) (/ (* -1 (cos theta)) (* r (sin theta))) 0)))
-                 (simplify
-                  ((cov/Christoffel->symbols
-                    (conn/metric->connection-1
-                     (spherical-Lorentz-metric 'c↑2)
-                     (orthonormal-spherical-Lorentz-basis 'c↑2)))
-                   spherical-Lorentz-point))))
-
-          (let [foo (g/simplify
-                     ((cov/Christoffel->symbols
-                       (conn/metric->connection-2
-                        (spherical-Lorentz-metric 'c↑2)
-                        (orthonormal-spherical-Lorentz-basis 'c↑2)))
-                      spherical-Lorentz-point))]
-            (is (= '(down
-                     (down (up 0 0 0 0) (up 0 0 0 0) (up 0 0 0 0) (up 0 0 0 0))
-                     (down (up 0 0 0 0) (up 0 0 0 0) (up 0 0 0 0) (up 0 0 0 0))
-                     (down (up 0 0 0 0) (up 0 0 (/ 1 r) 0) (up 0 (/ -1 r) 0 0) (up 0 0 0 0))
-                     (down (up 0 0 0 0)
-                           (up 0 0 0 (/ 1 r))
-                           (up 0 0 0 (/ (cos theta) (* r (sin theta))))
-                           (up 0 (/ -1 r) (/ (* -1 (cos theta)) (* r (sin theta))) 0)))
-                   (v/freeze foo)))
-
-            ;; The last two are essentially the same.  Is this correct?
-            ;;
-            ;; Check answers from MTW p.213
-            ;; t r theta phi
-            ;; 0 1 2     3
-            (is (= '(/ (cos theta) (* r (sin theta)))
-                   (v/freeze
-                    (get-in foo [3 2 3]))))
-
-            (is (= '(/ (* -1 (cos theta)) (* r (sin theta)))
-                   (v/freeze
-                    (get-in foo [3 3 2]))))
-
-            (is (= '(/ 1 r)
-                   (v/freeze
-                    (get-in foo [2 1 2]))))
-
-            (is (= '(/ 1 r)
-                   (v/freeze
-                    (get-in foo [3 1 3]))))
-
-            (is (= '(/ -1 r)
-                   (v/freeze
-                    (get-in foo [2 2 1]))))
-
-            (is (= '(/ -1 r)
-                   (v/freeze
-                    (get-in foo [3 3 1])))))
-
           (let [orthonormal-spherical-Lorentz-second-connection
                 (fn [c-2]
-                  (cov/make-Christoffel
-                   (let [zero m/zero-manifold-function]
+                  (let [zero m/zero-manifold-function]
+                    (cov/make-Christoffel
                      (down
                       (down (up zero zero zero zero)
                             (up zero zero zero zero)
@@ -362,22 +271,27 @@
                             (up zero zero zero zero))
                       (down (up zero zero zero zero)
                             (up zero zero zero (/ 1 r))
-                            (up zero zero zero (/ (g/cos theta) (* r (g/sin theta))))
+                            (up zero zero zero (/ (g/cos theta)
+                                                  (* r (g/sin theta))))
                             (up zero
                                 (/ -1 r)
-                                (/ (* -1 (g/cos theta)) (* r (g/sin theta)))
-                                zero))))
-                   (orthonormal-spherical-Lorentz-basis c-2)))]
+                                (/ (* -1 (g/cos theta))
+                                   (* r (g/sin theta)))
+                                zero)))
+                     (orthonormal-spherical-Lorentz-basis c-2))))]
 
+            ;; TODO had to add covariant derivative!
+            #_
             (testing "look at curvature:"
               (doall
                (for [alpha [dt dr dtheta dphi]
-                     beta [d:dt d:dr d:dtheta]
-                     gamma [d:dt d:dr d:dtheta]
-                     delta [d:dt d:dr d:dtheta]]
+                     beta [d:dt d:dr d:dtheta d:dphi]
+                     gamma [d:dt d:dr d:dtheta d:dphi]
+                     delta [d:dt d:dr d:dtheta d:dphi]]
                  (is (= 0 (simplify
                            (((curv/Riemann
-                              (cov/Christoffel->Cartan
-                               (orthonormal-spherical-Lorentz-second-connection 'c↑2)))
+                              (cov/covariant-derivative
+                               (cov/Christoffel->Cartan
+                                (orthonormal-spherical-Lorentz-second-connection 'c↑2))))
                              alpha beta gamma delta)
                             spherical-Lorentz-point)))))))))))))
