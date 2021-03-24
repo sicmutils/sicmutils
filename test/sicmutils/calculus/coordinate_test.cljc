@@ -87,59 +87,6 @@
         (is (= '(sqrt (+ (expt x0 2) (expt y0 2))) (simplify (r (R2-rect-chi-inverse (up 'x0 'y0))))))
         (is (= '(atan y0 x0) (simplify (theta (R2-rect-chi-inverse (up 'x0 'y0))))))))))
 
-(deftest various-manifold-operations
-  ;; These comprise the first block of test material in manifold.scm of
-  ;; scmutils.
-  (let-coordinates [[x y] R2-rect
-                    [r theta] R2-polar]
-    (let [mr ((m/point R2-rect) (up 'x0 'y0))
-          mp ((m/point R2-polar) (up 'r0 'theta0))
-          circular (- (* x d:dy) (* y d:dx))
-          g-polar (fn [u v]
-                    (+ (* (dr u) (dr v))
-                       (* (* r (dtheta u)) (* r (dtheta v)))))
-          g-rect (fn [u v]
-                   (+ (* (dx u) (dx v))
-                      (* (dy u) (dy v))))
-          residual (- g-polar g-rect)
-          vp (vf/literal-vector-field 'v R2-polar)
-          vr (vf/literal-vector-field 'v R2-rect)]
-      (is (= '(+ (* 3 x0) (* -2 y0))
-             (simplify
-              ((circular (+ (* 2 x) (* 3 y))) mr))))
-
-      (is (= 1 (simplify ((circular theta) mr))))
-      (is (= 0 (simplify ((dr circular) mr))))
-      (is (= 1 (((ff/d r) d:dr) mr)))
-      (is (= 1 ((dr d:dr) mr)))
-
-      (is (= '(v↑0 (up (sqrt (+ (expt x0 2) (expt y0 2))) (atan y0 x0)))
-             (simplify
-              ((dr vp) mr))))
-
-      (is (= '(/ (+ (* x0 (v↑0 (up x0 y0))) (* y0 (v↑1 (up x0 y0))))
-                 (sqrt (+ (expt x0 2) (expt y0 2))))
-             (simplify
-              ((dr vr) mr))))
-
-      (is (= '(v↑0 (up (sqrt (+ (expt x0 2) (expt y0 2))) (atan y0 x0)))
-             (simplify
-              (((ff/d r) vp) mr))))
-
-      (is (= '(/ (+ (* x0 (v↑0 (up x0 y0))) (* y0 (v↑1 (up x0 y0))))
-                 (sqrt (+ (expt x0 2) (expt y0 2))))
-             (simplify
-              (((ff/d r) vr) mr))))
-
-      (is (= '(/ (+ (* x0 (v↑0 (up x0 y0))) (* y0 (v↑1 (up x0 y0))))
-                 (sqrt (+ (expt x0 2) (expt y0 2))))
-             (simplify (((ff/d r) vr) mr))))
-
-      (is (= 0 (simplify ((residual vr vr) mr))))
-      (is (= 0 (simplify ((residual vp vp) mr))))
-      (is (= 0 (simplify ((residual vp vp) mp))))
-      (is (= 0 (simplify ((residual vr vr) mp)))))))
-
 (deftest literal-tests
   ;; These come from the bottom of manifold.scm.
   ;;

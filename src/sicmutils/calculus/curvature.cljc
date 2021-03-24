@@ -35,43 +35,56 @@
 
 (defn Riemann-curvature [nabla]
   (fn [u v]
-    (- (o/commutator (nabla u) (nabla v))
-       (nabla (o/commutator u v)))))
+    (g/- (o/commutator (nabla u) (nabla v))
+         (nabla (o/commutator u v)))))
 
 ;; The traditional Riemann tensor R^i_jkl:
 
 (defn Riemann [nabla]
-  (fn [w x u v]
-    (w (((Riemann-curvature nabla) u v) x))))
+  (letfn [(Riemann-tensor [w x u v]
+            (w (((Riemann-curvature nabla) u v) x)))]
+    (with-meta Riemann-tensor
+      {:arguments
+       [::ff/oneform-field
+        ::vf/vector-field
+        ::vf/vector-field
+        ::vf/vector-field]})))
 
 (defn Ricci [nabla basis]
-  (fn [u v]
-    (b/contract
-     (fn [ei wi]
-       ((Riemann nabla) wi u ei v))
-     basis)))
+  (letfn [(Ricci-tensor [u v]
+            (b/contract
+             (fn [ei wi]
+               ((Riemann nabla) wi u ei v))
+             basis))]
+    (with-meta Ricci-tensor
+      {:arguments
+       [::vf/vector-field
+        ::vf/vector-field]})))
 
 ;; Hawking and Ellis page 34.
 
 (defn torsion-vector [nabla]
   (fn [X Y]
-    (+ ((nabla X) Y)
-       (* -1 ((nabla Y) X))
-       (* -1 (o/commutator X Y)))))
+    (g/+ ((nabla X) Y)
+         (g/* -1 ((nabla Y) X))
+         (g/* -1 (o/commutator X Y)))))
 
 ;; The torsion tensor T^i_jk
 
 (defn torsion [nabla]
-  (fn [w x y]
-    (w ((torsion-vector nabla) x y))))
-
+  (letfn [(the-torsion [w x y]
+            (w ((torsion-vector nabla) x y)))]
+    (with-meta the-torsion
+      {:arguments [::ff/oneform-field
+                   ::vf/vector-field
+                   ::vf/vector-field]})))
 
 ;; Components of the curvature tensor R^i_{jkl}
 
 (defn curvature-components [nabla coord-sys]
   (let [d:dxs (vf/coordinate-system->vector-basis coord-sys)
         dxs   (ff/coordinate-system->oneform-basis coord-sys)
-        m     ((m/point coord-sys) (s/up 'x 'y 'z))]
+        point ((m/point coord-sys) (s/up 'x 'y 'z))]
     ((s/mapr
       (fn [dx]
         (s/mapr
@@ -86,4 +99,4 @@
             d:dxs))
          d:dxs))
       dxs)
-     m)))
+     point)))

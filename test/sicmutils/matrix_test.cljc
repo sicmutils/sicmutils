@@ -615,13 +615,55 @@
                               [(g/conjugate c)
                                (g/conjugate d)])
                    (g/conjugate
-                    (m/by-rows [a b] [c d]))))))
+                    (m/by-rows [a b] [c d])))))
+
+  (checking "g/make-rectangular, g/make-polar" 100
+            [a sg/real b sg/real
+             c sg/real d sg/real]
+            (let [M (m/by-rows [a b] [c d])]
+              (is (= (m/fmap #(g/make-rectangular % %) M)
+                     (g/make-rectangular M M)))
+
+              (is (= (m/fmap #(g/make-polar % %) M)
+                     (g/make-polar M M)))))
+
+  (testing "incompatible shapes throw for g/make-*"
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                 (g/make-rectangular (m/by-rows [1 2 3])
+                                     (m/by-rows [1 2]))))
+
+    (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                 (g/make-polar (m/by-rows [1 2 3])
+                               (m/by-rows [1 2])))))
+
+  (checking "g/real-part, g/imag-part pass through to values" 100
+            [a sg/complex b sg/complex
+             c sg/complex d sg/complex]
+            (let [M (m/by-rows [a b] [c d])]
+              (is (= (m/fmap g/real-part M)
+                     (g/real-part M)))
+
+              (is (= (m/fmap g/imag-part M)
+                     (g/imag-part M)))
+
+              (is (= M (g/make-rectangular
+                        (g/real-part M)
+                        (g/imag-part M)))
+                  "g/make-rectangular rebuilds the original matrix from its
+                  parts."))))
 
 (defspec p+q=q+p
   (gen/let [n (gen/choose 1 10)]
     (prop/for-all [p (sg/square-matrix n)
                    q (sg/square-matrix n)]
                   (= (g/+ p q) (g/+ q p)))))
+
+(defspec make-rectangular-imag-real-round-trip
+  (gen/let [n (gen/choose 1 10)]
+    (prop/for-all [M (sg/square-matrix n sg/complex)]
+                  (= M (g/make-rectangular
+                        (g/real-part M)
+                        (g/imag-part M))))))
 
 
 (defspec pq*r=p*qr
@@ -815,9 +857,9 @@
 
     (testing "invert-hilbert-matrix"
       (let [N 3
-            H (apply s/up (for [i (range 1 (inc N))]
-                            (apply s/up (for [j (range 1 (inc N))]
-                                          (g/divide 1 (g/+ i j -1))))))]
+            H (s/up* (for [i (range 1 (inc N))]
+                       (s/up* (for [j (range 1 (inc N))]
+                                (g/divide 1 (g/+ i j -1))))))]
         (is (= (s/down (s/down 9 -36 30)
                        (s/down -36 192 -180)
                        (s/down 30 -180 180))

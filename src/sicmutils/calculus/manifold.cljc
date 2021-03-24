@@ -404,8 +404,8 @@
   Also aliased as [[literal-manifold-function]]."
   [sym coordinate-system]
   (let [n (:dimension (manifold coordinate-system))
-        domain (apply s/up (repeat n 0))
-        range 0]
+        domain (s/up* (repeat n 0))
+        range  0]
     (vary-meta
      (f/compose (af/literal-function sym domain range)
                 (chart coordinate-system))

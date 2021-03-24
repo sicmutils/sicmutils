@@ -2,6 +2,224 @@
 
 ## [unreleased]
 
+- #337:
+
+  - adds `sicmutils.calculus.curvature`, with these new functions and many tests
+    from the classic "Gravitation" book:
+
+    `Riemann-curvature`, `Riemann`, `Ricci`, `torsion-vector`, `torsion` and
+    `curvature-components`
+
+  - If you combine `Operator` instances with non-equal `:subtype` fields, the
+    returned operator now keeps the parent subtype (or throws if one is not a
+    subtype of the other).
+
+  - `Operator` instances now ignore any `identity?`-passing operator on the left
+    or right side of operator-operator multiplication. Contexts are still
+    appropriately merged.
+
+  - Similarly, `Operator` addition ignores `zero?` operators on the left or
+    right side, and subtraction ignores `zero?` operators on the right right.
+
+  - form fields now have NO identity operator, since they multiply by wedge, not
+    composition.
+
+- #328 adds many utilities for "Functional Differential Geometry".
+
+  - Closes #249; operators now verify compatible contexts on multiplication.
+
+  - `Operator` instances can now provides custom `zero?`, `one?`, `identity?`,
+    `zero-like`, `one-like` and `identity-like` implementations by setting a
+    function of a single (operator-typed) argument to a keyword like `:zero?` in
+    their context. the identity operator returns `true` for `identity?`, and
+    `false` for `one?` so that it isn't stripped by the `g/*` function.
+
+  - structures implement the 0-arity case of IFn now.
+
+  - vector fields, in `sicmutils.calculus.vector-field`:
+
+    - new functions! `basis-components->vector-field`, `vector-field->basis-components`
+
+    - vector fields now implement `v/zero?` and `v/zero-like` by returning
+      proper vector fields.
+
+  - form fields, in `sicmutils.calculus.vector-field`:
+
+    - new functions: `nform-field?`, `basis-components->oneform-field`,
+    `oneform-field->basis-components` and `function->oneform-field` (aliased as
+    `differential-of-function`)
+
+    - `Alt`, `alt-wedge` provide alternate wedge product definitions
+
+    - form fields now implement `v/zero?` and `v/zero-like` by returning
+      proper form fields that retain their rank.
+
+    - form fields now correctly multiply via `*` by using
+      `sicmutils.calculus.form-field/wedge`, instead of composition.
+
+  - maps between manifolds, in `sicmutils.calculus.map`:
+
+    - new function: `pushforward-function`
+    - `differential` becomes `differential-of-map`, aliased back as `differential`
+
+  - `sicmutils.calculus.covariant`:
+
+    - New functions: `Cartan?`, `Christoffel?`, `Cartan->Christoffel`,
+      `symmetrize-Christoffel`, `symmetrize-Cartan`, `Cartan->Cartan-over-map`,
+      `geodesic-equation`, `parallel-transport-equation`
+
+    - `vector-field-Lie-derivative` handles structures now
+
+    - Functions in progress: `has-argument-types?`, `argument-types`,
+      `covariant-derivative-argument-types`, `covariant-derivative-function`.
+
+- #335 implements `g/make-rectangular`, `g/make-polar` `g/real-part` and
+  `g/imag-part` for clojure's Map data structure. Maps are treated as sparse
+  vectors, any missing key on either side of `make-rectangular` or
+  `make-polar`is treated as a 0 (rather than an error because the keys don't
+  match, as in vectors).
+
+- #334 adds implementations of `g/add` and the `sicmutils.value.Value` protocol
+  for clojure's Set data structure. Addition is defined as set union, and
+  `(zero-like <set>)` returns the empty set.
+
+- #334 implements `g/add`, `g/negate` and `g/sub` for Clojure's Map data
+  structure. Map addition is defined as a merge using `g/add` on clashing
+  values; `g/sub` is the same, but any values on the right side not on the left
+  side are negated.
+
+  Maps can also be multiplied with scalars (commutatively) or divided (scalar on
+  the right side only) by scalars. This, plus the commutative group property
+  declared above, mean that Clojure's maps are sparse vector spaces over
+  anything that responds true to `sicmutils.value/scalar?`... currently anything
+  in the numeric tower up to complex, along with symbolic expressions and
+  `Differential` instances.
+
+## 0.17.0
+
+> (If you have any questions about how to use any of the following, please ask us
+> at our [Github Discussions](https://github.com/sicmutils/sicmutils/discussions)
+> page!)
+
+This release starts the work of porting all of GJS and JW's "Functional
+Differential Geometry" to SICMUtils. The Differential Geometry section below
+describes the many new manifolds, coordinate systems and functions for
+interacting with these that we've gained.
+
+The main big change in 0.17.0 that `simplify` no longer changes the type of its
+input; simplified expressions _remain_ expressions.
+
+`solve-linear`, `solve-linear-left` and `solve-linear-right` round out the
+stable of generics ported from scmutils.
+
+They're not fully installed yet, but we've laid the groundwork for a new literal
+boolean type. This can represent equalities and inequalities, and will be
+excellent for equation solving.
+
+Enjoy the release!
+
+### New Functions, Functionality
+
+- #330 adds `g/real-part` and `g/imag-part` implementations for
+  `sicmutils.structure.Structure` and `sicmutils.matrix.Matrix` instances. These
+  pass through to the entries in the structure or matrix. #331 adds similar
+  implementations for `g/make-rectangular` and `g/make-polar`.
+
+- #327 adds `sicmutils.structure/sumr`, also aliased into `sicmutils.env` Given
+  some function `f` and any number of isomorphic `structures`, `sumr` returns
+  the sum of the results of applying `f` to each associated set of entries in
+  each `structure`.
+
+- #319 adds
+
+  - symbolic boolean implementations for `sym:=`, `sym:and`, `sym:or` and
+    `sym:not` with infix, latex and JavaScript renderers.
+  - `sym:derivative`, for purely symbolic derivatives
+
+  The boolean operators will act just like `=`, `and` and `or` on booleans, and
+  appropriately respond if just one side is a boolean. If both sides are
+  symbolic, These return a form like `(= a b)`, `(and a b)` or `(or a b)`.
+
+  The functions currently live in `sicmutils.numsymb` only; access them via
+  `(numsymb/symbolic-operator <sym>)`, where `<sym>` is one of `'=`, `'and`,
+  `'or`, `'not` or `'derivative`.
+
+- #304 aliases `sicmutils.operator/anticommutator`, `sicmutils.util/bigint?` and
+  into `sicmutils.env`
+
+  - implements `v/=` properly for sequences, `Differential`, `Complex`,
+    `Structure` and `Matrix` instances
+
+  - in `sicmutils.env`, `v/=` now overrides `clojure.core/=`. `v/=` should act
+    identically to `clojure.core/=` everywhere; the difference is that its
+    behavior is customizable, so we can make `Differential` instances equal to
+    numbers, or complex numbers with a 0 imaginary part equal to real numbers
+    with the same real part.
+
+    `v/=` may not drop recursively down into, say, Clojure maps. Please open an
+    issue if you find a case like this!
+
+  - BIG CHANGE: `Literal` and `Structure` instances now KEEP their type under
+    `g/simplify`. If you want to get the expression back out of its `Literal`
+    wrapper, use `sicmutils.expression/expression-of`, also aliased into
+    `sicmutils.env`.
+
+    This means that you can no longer make comparisons like this:
+
+```clojure
+;; this worked before, and was used all over the tests (probably not in much
+;; user code!)
+(clojure.core/= '(* 3 x)
+                (simplify (+ 'x 'x 'x)))
+;;=> false
+```
+
+  Instead, use `v/=` (which is now aliased into `sicmutils.env`):
+
+```clojure
+;; `v/=` will do the right thing by unwrapping the literal expression on the
+;; right:
+(v/= '(+ x y) (+ 'x 'y))
+;;=> true
+```
+
+- #305 adds `g/solve-linear` and `g/solve-linear-left` implementations between
+  `sicmutils.structure/Structure` instances.
+
+- #207:
+
+  - adds missing implementations of `g/floor`, `g/ceiling`, `g/integer-part` and
+    `g/fractional-part` for functions, both literal and abstract.
+
+  - adds `g/solve-linear`, `g/solve-linear-left`, `g/solve-linear-right`.
+    `(g/solve-linear-right a b)` returns `x` such that `a = x*b`, while
+    `g/solve-linear` (and its alias, `g/solve-linear-left`) returns `x` such
+    that `a*x = b`. These functions are implemented for:
+
+    - `sicmutils.series.{Series, PowerSeries}`
+    - all numeric types
+    - functions, operators
+    - `sicmutils.modint.ModInt`
+    - `sicmutils.differential.Differential`, so you can differentiate through
+      this operation
+
+- #309: `sicmutils.util/bigint` is aliased as `sicmutils.env/bigint` in
+  Clojurescript only. This is available natively in Clojure.
+
+- #308 and #310 add:
+
+  - `sicmutils.ratio/{numerator,denominator,ratio?,rationalize}` and are now
+    aliased into `sicmutils.env` in Clojurescript. These are available natively
+    in Clojure. `sicmutils.complex/complex?` is aliased into `sicmutils.env` for
+    both platforms.
+
+  - Proper superscript support in `->infix` and `->TeX` renderers.
+
+- #306: Added the mathematical constants `phi` and `e` bound to, respectively,
+  `sicmutils.env/{phi,euler}`.
+
+### Differential Geometry
+
 - #326 is a large PR that marks the start of a big push toward full
   implementation of the ideas in "Functional Differential Geometry". Here is the
   full list of changes:
@@ -46,32 +264,18 @@
     - `R3-rect`, `R3-cyl`, `R3-spherical`,
     - `R4-rect`, `R4-cyl`,
     - `spacetime-rect`, `spacetime-spherical`
-    -
 
-- #327 adds `sicmutils.structure/sumr`, also aliased into `sicmutils.env` Given
-  some function `f` and any number of isomorphic `structures`, `sumr` returns
-  the sum of the results of applying `f` to each associated set of entries in
-  each `structure`.
+### Behavior changes, bug fixes
+
+- #329 fixes a bug where the simplifier couldn't handle expressions like `(sqrt
+  (literal-number 2))`, where literal numbers with no symbols were nested inside
+  of symbolic expressions.
 
 - #321 changes the default `TeX` rendering style for `down` tuples back to
   horizontal, undoing #283. @kloimhardt made a solid case that because `down`
   tuples represent row vectors, it's not helpful for building knowledge and
   intuition to only distinguish these with differently-shaped braces.
   Intuition-builders win!
-
-- #319: adds
-
-  - symbolic boolean implementations for `sym:=`, `sym:and`, `sym:or` and
-    `sym:not` with infix, latex and JavaScript renderers.
-  - `sym:derivative`, for purely symbolic derivatives
-
-  The boolean operators will act just like `=`, `and` and `or` on booleans, and
-  appropriately respond if just one side is a boolean. If both sides are
-  symbolic, These return a form like `(= a b)`, `(and a b)` or `(or a b)`.
-
-  The functions currently live in `sicmutils.numsymb` only; access them via
-  `(numsymb/symbolic-operator <sym>)`, where `<sym>` is one of `'=`, `'and`,
-  `'or`, `'not` or `'derivative`.
 
 - #320: `Operator` gains a new simplifier for its `name` field; the simplifier
   applies the associative rule to products and sums of operators, collapses
@@ -117,9 +321,6 @@ sicmutils.env> (series/exp-series D)
 
 - #304:
 
-  - aliases `sicmutils.operator/anticommutator`, `sicmutils.util/bigint?` and
-    into `sicmutils.env`
-
   - implements `v/=` properly for sequences, `Differential`, `Complex`,
     `Structure` and `Matrix` instances
 
@@ -156,53 +357,18 @@ sicmutils.env> (series/exp-series D)
 ;;=> true
 ```
 
-- #305 adds `g/solve-linear` and `g/solve-linear-left` implementations between
-  `sicmutils.structure/Structure` instances.
-
-- #207:
-
-  - fixes a bug where `sicmutils.function/compose` would fail when provided with
-    no arguments. Now it appropriately returns `identity`.
-
-  - adds missing implementations of `g/floor`, `g/ceiling`, `g/integer-part` and
-    `g/fractional-part` for functions, both literal and abstract.
-
-  - adds `g/solve-linear`, `g/solve-linear-left`, `g/solve-linear-right`.
-    `(g/solve-linear-right a b)` returns `x` such that `a = x*b`, while
-    `g/solve-linear` (and its alias, `g/solve-linear-left`) returns `x` such
-    that `a*x = b`. These functions are implemented for:
-
-    - `sicmutils.series.{Series, PowerSeries}`
-    - all numeric types
-    - functions, operators
-    - `sicmutils.modint.ModInt`
-    - `sicmutils.differential.Differential`, so you can differentiate through
-      this operation
+- #207 fixes a bug where `sicmutils.function/compose` would fail when provided
+  with no arguments. Now it appropriately returns `identity`.
 
 - #310: `g/make-rectangular` and `g/make-polar` now return non-Complex numbers
   on the JVM if you pass `0` for the (respectively) imaginary or angle
   components. Previously this behavior only occurred on an integer 0; now it
   happens with 0.0 too, matching CLJS.
 
-- #309: `sicmutils.util/bigint` is aliased as `sicmutils.env/bigint` in
-  Clojurescript only. This is available natively in Clojure.
-
-- #308 and #310 add:
-
-  - `sicmutils.ratio/{numerator,denominator,ratio?,rationalize}` and are now
-    aliased into `sicmutils.env` in Clojurescript. These are available natively
-    in Clojure. `sicmutils.complex/complex?` is aliased into `sicmutils.env` for
-    both platforms.
-
-  - Proper superscript support in `->infix` and `->TeX` renderers.
-
-  - `->infix` now renders any symbol named as an upper and lowercase greek
-    characters (`'alpha`, `'Phi` etc) as their proper unicode characters.
-    `'ldots` renders to '...', and `'ell` renders to a pretty "ℓ", matching the
-    TeX renderer.
-
-- #306: Added the mathematical constants `phi` and `e` bound to, respectively,
-  `sicmutils.env/{phi,euler}`.
+- #308 and #310: `->infix` now renders any symbol named as an upper and
+  lowercase greek characters (`'alpha`, `'Phi` etc) as their proper unicode
+  characters. `'ldots` renders to '...', and `'ell` renders to a pretty "ℓ",
+  matching the TeX renderer.
 
 ## 0.16.0
 

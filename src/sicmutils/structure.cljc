@@ -103,7 +103,7 @@
        (toString [_] (str "("
                           (orientation orientation->symbol)
                           " "
-                          (join " " (map str v))
+                          (join " " (map pr-str v))
                           ")"))
 
        Sequential
@@ -129,6 +129,8 @@
        (reduce [_ f start] (.reduce ^IReduce v f start))
 
        IFn
+       (invoke [_]
+               (Structure. orientation (mapv #(%) v)))
        (invoke [_ a]
                (Structure. orientation (mapv #(% a) v)))
        (invoke [_ a b]
@@ -176,7 +178,8 @@
       :cljs
       [Object
        (toString [_] (str "("
-                          (orientation orientation->symbol) " " (join " " (map str v))
+                          (orientation orientation->symbol)
+                          " " (join " " (map pr-str v))
                           ")"))
 
        IPrintWithWriter
@@ -220,6 +223,8 @@
        (-reduce [_ f start] (-reduce v f start))
 
        IFn
+       (-invoke [_]
+                (Structure. orientation (mapv #(%) v)))
        (-invoke [_ a]
                 (Structure. orientation (mapv #(% a) v)))
        (-invoke [_ a b]
@@ -739,10 +744,10 @@
   [s v]
   (same v (map #(g/* s %) v)))
 
-(defn- compatible-for-contraction?
+(defn ^:no-doc compatible-for-contraction?
   "Returns `true` if `s` and `t` are
 
-  - of the same orientation
+  - of opposite orientation
   - equal in length
   - are full of elements also compatible for contraction (also true if either
     pair is NOT a structure)
@@ -904,8 +909,25 @@
 (defmethod g/abs [::structure] [a]
   (g/sqrt (dot-product a a)))
 
-(defmethod g/conjugate [::structure] [a]
-  (mapr g/conjugate a))
+;; NOTE: `g/make-rectangular` and `g/make-polar` _should_ check that both
+;; dimensions match all the way down, but they currently don't. Use with that in
+;; mind!
+
+(defmethod g/make-rectangular [::up ::up] [a b]
+  (mapr g/make-rectangular a b))
+
+(defmethod g/make-rectangular [::down ::down] [a b]
+  (mapr g/make-rectangular a b))
+
+(defmethod g/make-polar [::up ::up] [a b]
+  (mapr g/make-polar a b))
+
+(defmethod g/make-polar [::down ::down] [a b]
+  (mapr g/make-polar a b))
+
+(defmethod g/real-part [::structure] [m] (mapr g/real-part m))
+(defmethod g/imag-part [::structure] [m] (mapr g/imag-part m))
+(defmethod g/conjugate [::structure] [a] (mapr g/conjugate a))
 
 (defmethod g/transpose [::structure] [a] (transpose a))
 (defmethod g/dimension [::structure] [a] (dimension a))

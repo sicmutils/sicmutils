@@ -87,24 +87,28 @@
            R3-rect-point ((point R3-rect) (up 'x0 'y0 'z0))]
        (is (= :sicmutils.calculus.vector-field/vector-field (v/kind V)))
        (is (= :sicmutils.operator/operator (v/kind (e/Lie-derivative V))))
-       (is (= :sicmutils.calculus.form-field/form-field (v/kind theta)))
+       (is (= :sicmutils.calculus.form-field/oneform-field (v/kind theta)))
        (is (= 1 (:rank (o/context theta))))
        (is (= 2 (:rank (o/context omega))))
+
        #_(is (e/= 'a
                   (simplify (((d ((e/Lie-derivative V) theta))
                               X Y)
                              R3-rect-point))))
+
        #_(is (e/= 'a
                   (simplify ((((e/Lie-derivative V) (d theta))
                               X Y)
                              R3-rect-point))))
+
        ;; if you look at the LH and RH of the subtraction, you will observe that
        ;; this is nontrivial :)
        (is (zero?
-            (simplify (((- ((e/Lie-derivative V) (d theta))
-                           (d ((e/Lie-derivative V) theta)))
-                        X Y)
-                       R3-rect-point))))
+            (simplify
+             (((- ((e/Lie-derivative V) (d theta))
+                  (d ((e/Lie-derivative V) theta)))
+               X Y)
+              R3-rect-point))))
        (is (zero?
             (simplify (((- ((e/Lie-derivative V) (d omega))
                            (d ((e/Lie-derivative V) omega)))

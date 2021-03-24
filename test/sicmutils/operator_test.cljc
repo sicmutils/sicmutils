@@ -57,10 +57,10 @@
       (checking " identity-like" 100 [n sg/real]
                 (is (= (g/sin n) (f n)))))
 
-    (testing "one? zero? identity? always return false (for now!)"
-      (is (not (v/zero? (v/zero-like x2))))
+    (testing "one? zero? identity? return true appropriately"
+      (is (v/zero? (v/zero-like x2)))
       (is (not (v/one? (v/one-like x2))))
-      (is (not (v/identity? (v/identity-like x2)))))
+      (is (v/identity? (v/identity-like x2))))
 
     (testing "v/numerical?"
       (is (not (v/numerical? x2))))
@@ -360,17 +360,59 @@
           q (o/make-operator identity 'q {:subtype ::x :color :blue})
           r (o/make-operator identity 'r {:subtype ::x :color :green})]
       (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-                   ((+ o p) inc)))
-      (is (= {:subtype ::y} (o/context (* o p))))
+                   (g/+ o p)))
+
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (g/* o p)))
+
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (g/+ q r)))
+
+      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
+                   (g/+ q p)))
+
       (is (= 2 (((+ o o) inc) 0)))
       (is (= 1 (((* o o) inc) 0)))
       (is (= {:subtype ::x} (o/context (+ o o))))
       (is (= {:subtype ::y} (o/context (* p p))))
-      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-                   ((+ q r) inc)))
-      (is (= {:subtype ::x :color :blue} (o/context (+ q o))))
-      (is (thrown? #?(:clj IllegalArgumentException :cljs js/Error)
-                   (+ q p))))))
+      (is (= {:subtype ::x :color :blue}
+             (o/context (+ q o))))))
+
+  (testing "subtypes combine by choosing the parent"
+    (derive ::cake ::o/operator)
+    (derive ::face ::cake)
+    (let [o (o/make-operator identity 'o {:subtype ::cake})
+          p (o/make-operator identity 'p {:subtype ::face})]
+      (is (= {:subtype ::cake}
+             (o/context (+ o p))
+             (o/context (+ p o))))
+
+      (is (= {:subtype ::cake}
+             (o/context (- o p))
+             (o/context (- p o))))
+
+      (is (= {:subtype ::cake}
+             (o/context (* o p))
+             (o/context (* p o))))))
+
+  (testing "*, -, + between operators simplifies"
+    (is (= (o/procedure D)
+           (o/procedure (* o/identity D))
+           (o/procedure (* D o/identity)))
+        "* ignores identity")
+
+    (is (= (o/procedure D)
+           (o/procedure (+ D (v/zero-like D)))
+           (o/procedure (+ (v/zero-like D) D)))
+        "+ ignores zeros")
+
+    (is (= (o/procedure D)
+           (o/procedure (- D (v/zero-like D))))
+        "- ignores zeros on right")
+
+    (is (not= (o/procedure D)
+              (o/procedure (- (v/zero-like D) D)))
+        "- does NOT ignore zero on left")))
 
     ;;; more testing to come as we implement multivariate literal functions that
     ;;; rely on operations on structures....

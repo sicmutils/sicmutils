@@ -74,7 +74,7 @@
   #?@(:clj
       [Object
        (equals [this that] (m:= this that))
-       (toString [_] (str v))
+       (toString [_] (pr-str v))
 
        Sequential
 
@@ -137,7 +137,7 @@
 
       :cljs
       [Object
-       (toString [_] (str v))
+       (toString [_] (pr-str v))
 
        IPrintWithWriter
        (-pr-writer [x writer _]
@@ -855,8 +855,15 @@
 
 (defmethod g/invert [::matrix] [m] (invert m))
 
-(defmethod g/conjugate [::matrix] [m]
-  (fmap g/conjugate m))
+(defmethod g/make-rectangular [::matrix ::matrix] [a b]
+  (elementwise g/make-rectangular a b))
+
+(defmethod g/make-polar [::matrix ::matrix] [a b]
+  (elementwise g/make-polar a b))
+
+(defmethod g/real-part [::matrix] [m] (fmap g/real-part m))
+(defmethod g/imag-part [::matrix] [m] (fmap g/imag-part m))
+(defmethod g/conjugate [::matrix] [m]  (fmap g/conjugate m))
 
 (defmethod g/transpose [::matrix] [m] (transpose m))
 (defmethod g/trace [::square-matrix] [m] (trace m))

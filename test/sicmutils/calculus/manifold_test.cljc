@@ -136,7 +136,7 @@
 
   (checking "R2-rect->polar" 100 [x sg/real
                                   y sg/real]
-            (when-not (and (zero? x) (zero? y))
+            (when-not (and (v/zero? x) (v/zero? y))
               (let [r     (g/abs (up x y))
                     theta (g/atan y x)]
                 (is (= (up r theta)
@@ -216,16 +216,13 @@
                        (/ 1 (sqrt (+ (expt x 2) (expt y 2) 1))))]
         (rep-roundtrips? S2-gnomonic point rep))
 
-      (comment
-        ;; TODO this is broken until we get the simplifier fine with expressions
-        ;; like `(sqrt 2)`.
-        (is (= '(up (/ (cos theta) (sqrt 2))
-                    (/ (sin theta) (sqrt 2))
-                    (/ 1 (sqrt 2)))
-               (s-freeze
-                (m/manifold-point-representation
-                 ((m/point S2-gnomonic)
-                  (up (g/cos 'theta) (g/sin 'theta))))))))
+      (is (= '(up (/ (cos theta) (sqrt 2))
+                  (/ (sin theta) (sqrt 2))
+                  (/ 1 (sqrt 2)))
+             (s-freeze
+              (m/manifold-point-representation
+               ((m/point m/S2-gnomonic)
+                (up (g/cos 'theta) (g/sin 'theta)))))))
 
       ;; The unit circle on the plane represents the intersection of S2 and z
       ;; = (/ 1 (sqrt 2))

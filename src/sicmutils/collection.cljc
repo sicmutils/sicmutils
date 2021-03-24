@@ -20,7 +20,8 @@
 (ns sicmutils.collection
   "This namespace contains implementations of various SICMUtils protocols for
   native Clojure collections."
-  (:require [sicmutils.differential :as d]
+  (:require [clojure.set :as cs]
+            [sicmutils.differential :as d]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
@@ -29,6 +30,7 @@
      (:import (clojure.lang PersistentVector
                             IPersistentVector
                             IPersistentMap
+                            IPersistentSet
                             ISeq
                             LazySeq))))
 
@@ -60,7 +62,7 @@
   ;; look it up), so they can't respond the same way as a structure via
   ;; arity. (the `2` arity takes an additional default value.)
   f/IArity
-  (arity [v] [:between 1 2])
+  (arity [_] [:between 1 2])
 
   ;; Vectors are functors, so they can be perturbed if any of their elements are
   ;; perturbed. [[d/replace-tag]] and [[d/extract-tangent]] pass the buck down
@@ -116,6 +118,43 @@
      (derive PersistentArrayMap ::map)
      (derive PersistentTreeMap ::map)))
 
+(defmethod g/negate [::map] [m]
+  (u/map-vals g/negate m))
+
+(defmethod g/add [::map ::map] [a b]
+  (merge-with g/add a b))
+
+(defmethod g/sub [::map ::map] [a b]
+  (merge-with g/add a (u/map-vals g/negate b)))
+
+(defmethod g/mul [::map ::v/scalar] [m x]
+  (u/map-vals #(g/mul % x) m))
+
+(defmethod g/mul [::v/scalar ::map] [x m]
+  (u/map-vals #(g/mul x %) m))
+
+(defmethod g/div [::map ::v/scalar] [m x]
+  (u/map-vals #(g/div % x) m))
+
+(defn- combine [f m1 m2 l-default]
+  (letfn [(merge-entry [m e]
+			      (let [k (key e)
+                  v (val e)]
+			        (assoc m k (f (get m k l-default) v))))]
+    (reduce merge-entry m1 (seq m2))))
+
+(defmethod g/make-rectangular [::map ::map] [m1 m2]
+  (combine g/make-rectangular m1 m2 0))
+
+(defmethod g/make-polar [::map ::map] [m1 m2]
+  (combine g/make-polar m1 m2 0))
+
+(defmethod g/real-part [::map] [m]
+  (u/map-vals g/real-part m))
+
+(defmethod g/imag-part [::map] [m]
+  (u/map-vals g/imag-part m))
+
 (defmethod g/simplify [::map] [m]
   (u/map-vals g/simplify m))
 
@@ -150,9 +189,42 @@
    (kind [m] (:type m (type m)))
 
    f/IArity
-   (arity [m] [:between 1 2])
+   (arity [_] [:between 1 2])
 
    d/IPerturbed
    (perturbed? [m] (boolean (some d/perturbed? (vals m))))
    (replace-tag [m old new] (u/map-vals #(d/replace-tag % old new) m))
    (extract-tangent [m tag] (u/map-vals #(d/extract-tangent % tag) m))))
+
+
+;; ## Sets
+;;
+;; SICMUtils treats Clojure's set data structure as a monoid, with set union as
+;; the addition operation and the empty set as the zero element.
+
+#?(:clj
+   (derive IPersistentSet ::set)
+
+   :cljs
+   (do
+     (derive PersistentHashSet ::set)
+     (derive PersistentTreeSet ::set)))
+
+(defmethod g/add [::set ::set] [a b]
+  (cs/union a b))
+
+(#?@(:clj [do] :cljs [doseq [klass [PersistentHashSet PersistentTreeSet]]])
+ (extend-type #?(:clj IPersistentSet :cljs klass)
+   v/Value
+   (zero? [s] (empty? s))
+   (one? [_] false)
+   (identity? [_] false)
+   (zero-like [_] #{})
+   (one-like [s] (u/unsupported (str "one-like: " s)))
+   (identity-like [s] (u/unsupported (str "identity-like: " s)))
+   (exact? [_] false)
+   (freeze [s] (u/unsupported (str "freeze: " s)))
+   (kind [s] (type s))
+
+   f/IArity
+   (arity [_] [:between 1 2])))

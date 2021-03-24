@@ -54,8 +54,12 @@
   "Returns a reducer over the function f which will exit early
   if done? becomes true."
   [done? f]
-  (let [rf #(let [c (f %1 %2)]
-              (if (done? c) (reduced c) c))]
+  (let [rf (fn
+             ([] (f))
+             ([u] (f u))
+             ([u v]
+              (let [c (f u v)]
+                (if (done? c) (reduced c) c))))]
     (partial reduce rf)))
 
 (defn ^:private native-gcd [l r]
@@ -258,26 +262,34 @@
   "Knuth's algorithm 4.6.1E.
   This can take a long time, unfortunately, and so we bail if it seems to
   be taking too long."
-  [u v]
-  {:pre [(p/polynomial? u)
-         (p/polynomial? v)]}
-  (let [clock (us/stopwatch)
-        arity (p/check-same-arity u v)]
-    (cond
-      (not (and (every? v/integral? (p/coefficients u))
-                (every? v/integral? (p/coefficients v)))) (v/one-like u)
-      (v/zero? u) v
-      (v/zero? v) u
-      (v/one? u) u
-      (v/one? v) v
-      (= u v) u
-      (= arity 1) (g/abs (gcd1 u v))
-      :else (binding [*poly-gcd-bail-out* (maybe-bail-out "polynomial GCD" clock *poly-gcd-time-limit*)]
-              (g/abs
-               (gcd-continuation-chain u v
-                                       with-trivial-constant-gcd-check
-                                       with-optimized-variable-order
-                                       #(inner-gcd 0 %1 %2)))))))
+  ([] 0)
+  ([u] u)
+  ([u v]
+   (cond (v/zero? u)   (g/abs v)
+         (v/zero? v)   (g/abs u)
+         (v/one? u)    u
+         (v/one? v)    v
+         (v/number? u) (if (v/number? v)
+                         (g/gcd u v)
+                         (u/illegal "Can't yet handle GCD of numbers and polynomial."))
+         (v/number? v) (u/illegal "Can't yet handle GCD of numbers and polynomial.")
+         :else
+         (let [clock (us/stopwatch)
+               arity (p/check-same-arity u v)]
+           (cond
+             (not (and (every? v/integral? (p/coefficients u))
+                       (every? v/integral? (p/coefficients v))))
+             (v/one-like u)
+             (= u v) u
+             (= arity 1) (g/abs (gcd1 u v))
+             :else
+             (binding [*poly-gcd-bail-out*
+                       (maybe-bail-out "polynomial GCD" clock *poly-gcd-time-limit*)]
+               (g/abs
+                (gcd-continuation-chain u v
+                                        with-trivial-constant-gcd-check
+                                        with-optimized-variable-order
+                                        #(inner-gcd 0 %1 %2)))))))))
 
 (defmethod g/gcd [::p/polynomial ::p/polynomial] [u v] (gcd u v))
 

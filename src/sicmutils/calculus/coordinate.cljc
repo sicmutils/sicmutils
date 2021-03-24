@@ -31,10 +31,11 @@
   described by `coordinate-system`."
   [coordinate-system]
   (let [prototype (m/coordinate-prototype coordinate-system)]
-    (s/map-chain (fn [_ chain _]
-                   (fn [point]
-                     (-> (m/point->coords coordinate-system point)
-                         (get-in chain))))
+    (s/map-chain (fn [coord chain _]
+                   (-> (fn [point]
+                         (-> (m/point->coords coordinate-system point)
+                             (get-in chain)))
+                       (with-meta {:name coord})))
                  prototype)))
 
 (defn quotify-coordinate-prototype
