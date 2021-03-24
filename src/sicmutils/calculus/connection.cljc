@@ -168,7 +168,7 @@
 (defn metric->connection-2 [metric basis]
   (let [vector-basis (b/basis->vector-basis basis)
         oneform-basis (b/basis->oneform-basis basis)
-        inverse-metric (metric:invert metric basis)]
+        inverse-metric (metric/invert metric basis)]
     (cov/make-Christoffel
      (s/mapr
       (fn [e_k]
