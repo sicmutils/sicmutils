@@ -69,7 +69,7 @@
       ;; now, write them differently with torsion...
       (let [nabla (cov/covariant-derivative
                    (cov/Christoffel->Cartan
-                    (conn/literal-Christoffel-2 'C R3-rect)))
+                    (conn/literal-Christoffel-2 'C R4-rect)))
             R  (curv/Riemann nabla)
             T  (curv/torsion-vector nabla)
             TT (fn [omega x y]
