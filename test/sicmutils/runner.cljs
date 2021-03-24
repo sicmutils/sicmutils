@@ -8,6 +8,7 @@
             sicmutils.abstract.number-test
 
             sicmutils.calculus.basis-test
+            sicmutils.calculus.connection-test
             sicmutils.calculus.coordinate-test
             sicmutils.calculus.covariant-test
             sicmutils.calculus.curvature-test
@@ -15,6 +16,7 @@
             sicmutils.calculus.form-field-test
             sicmutils.calculus.manifold-test
             sicmutils.calculus.map-test
+            sicmutils.calculus.metric-test
             sicmutils.calculus.vector-field-test
 
             sicmutils.env.sci-test
@@ -110,6 +112,7 @@
            'sicmutils.abstract.number-test
 
            'sicmutils.calculus.basis-test
+           'sicmutils.calculus.connection-test
            'sicmutils.calculus.coordinate-test
            'sicmutils.calculus.covariant-test
            'sicmutils.calculus.curvature-test
@@ -117,6 +120,7 @@
            'sicmutils.calculus.form-field-test
            'sicmutils.calculus.manifold-test
            'sicmutils.calculus.map-test
+           'sicmutils.calculus.metric-test
            'sicmutils.calculus.vector-field-test
 
            'sicmutils.env.sci-test

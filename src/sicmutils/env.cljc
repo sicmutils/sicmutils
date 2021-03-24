@@ -74,12 +74,15 @@
             [sicmutils.mechanics.rigid]
             [sicmutils.mechanics.rotation]
             [sicmutils.calculus.basis]
+            [sicmutils.calculus.connection]
+            [sicmutils.calculus.coordinate]
             [sicmutils.calculus.covariant]
             [sicmutils.calculus.curvature]
             [sicmutils.calculus.derivative :as d]
-            [sicmutils.calculus.frame]
             [sicmutils.calculus.form-field]
+            [sicmutils.calculus.frame]
             [sicmutils.calculus.manifold]
+            [sicmutils.calculus.metric]
             [sicmutils.calculus.map]
             [sicmutils.calculus.coordinate :as cc]
             [sicmutils.calculus.vector-field]))
@@ -277,6 +280,26 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   ->infix
   ->TeX
   ->JavaScript]
+
+ ;; Calculus Namespaces
+
+ [sicmutils.calculus.basis
+  basis? coordinate-basis? make-basis
+  coordinate-system->basis
+  basis->oneform-basis
+  basis->vector-basis
+  basis->dimension
+  vector-basis->dual
+  make-constant-vector-field
+  Jacobian]
+
+ [sicmutils.calculus.connection
+  ;; TODO add.
+  ]
+ [sicmutils.calculus.curvature
+  Riemann-curvature Riemann Ricci torsion-vector torsion
+  curvature-components]
+
  [sicmutils.calculus.covariant
   covariant-derivative
   interior-product
@@ -284,14 +307,25 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   Christoffel->Cartan
   make-Christoffel
   ]
+
+ [sicmutils.calculus.curvature
+  ;; TODO add.
+  ]
+
  [sicmutils.calculus.derivative
   derivative D Div Grad Curl Lap taylor-series]
+
  [sicmutils.calculus.form-field
   d
   components->oneform-field
   coordinate-system->oneform-basis
   literal-oneform-field
   wedge]
+
+ [sicmutils.calculus.frame
+  ;; TODO add.
+  ]
+
  [sicmutils.calculus.manifold
   make-manifold coordinate-system-at
   manifold-type
@@ -315,18 +349,11 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   S2p S2p-spherical S2p-tilted S2p-stereographic S2p-Riemann S2p-gnomonic
   S3 S3-spherical S3-tilted S3-stereographic S3-gnomonic
   SO3-type SO3 Euler-angles alternate-angles]
- [sicmutils.calculus.basis
-  basis? coordinate-basis? make-basis
-  coordinate-system->basis
-  basis->oneform-basis
-  basis->vector-basis
-  basis->dimension
-  vector-basis->dual
-  make-constant-vector-field
-  Jacobian]
- [sicmutils.calculus.curvature
-  Riemann-curvature Riemann Ricci torsion-vector torsion
-  curvature-components]
+
+ [sicmutils.calculus.metric
+  ;; TODO add.
+  ]
+
  [sicmutils.calculus.map
   basis->basis-over-map
   differential
@@ -335,6 +362,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   literal-manifold-map
   form-field->form-field-over-map
   vector-field->vector-field-over-map]
+
  [sicmutils.calculus.vector-field
   components->vector-field
   coordinatize
@@ -342,6 +370,9 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   literal-vector-field
   vector-field->components
   coordinate-system->vector-basis]
+
+ ;; Mechanics Namespaces
+
  [sicmutils.mechanics.lagrange
   ->L-state
   ->local
