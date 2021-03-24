@@ -86,6 +86,7 @@
    'sicmutils.calculus.basis                   (ns-publics 'sicmutils.calculus.basis)
    'sicmutils.calculus.coordinate              (ns-publics 'sicmutils.calculus.coordinate)
    'sicmutils.calculus.covariant               (ns-publics 'sicmutils.calculus.covariant)
+   'sicmutils.calculus.curvature               (ns-publics 'sicmutils.calculus.curvature)
    'sicmutils.calculus.derivative              (ns-publics 'sicmutils.calculus.derivative)
    'sicmutils.calculus.form-field              (ns-publics 'sicmutils.calculus.form-field)
    'sicmutils.calculus.frame                   (ns-publics 'sicmutils.calculus.frame)

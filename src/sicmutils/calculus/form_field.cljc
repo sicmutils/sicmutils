@@ -45,17 +45,38 @@
 ;; real-valued function on the manifold. A one-form field takes a single vector
 ;; field.
 
+(derive ::oneform-field ::form-field)
 (derive ::form-field ::o/operator)
 
-(declare ff:zero? ff:zero-like)
+(defn ff:zero
+  "Returns a form field that returns, for any supplied vector field `vf`, a
+  manifold function [[manifold/zero-manifold-function]] that maps every input
+  manifold `point` to the scalar value 0."
+  [vf]
+  m/zero-manifold-function)
+
+(defn get-rank
+  "Returns the rank of the supplied differential form `f`. Functions are treated
+  as differential forms of rank 0.
+
+  Throws for any non differential form supplied."
+  [f]
+  (cond (o/operator? f)
+        (or (:rank (o/context f))
+            (u/illegal
+             (str "operator, but not a differential form: " f)))
+
+        (f/function? f) 0
+        :else (u/illegal
+               (str "not a differential form: " f))))
 
 (defn form-field?
   "Returns true if the supplied `f` is a form field operator, false otherwise."
   [ff]
   (and (o/operator? ff)
-       (-> (o/context ff)
-           (:subtype)
-           (= ::form-field))))
+       (let [subtype (:subtype
+                      (o/context ff))]
+         (isa? subtype ::form-field))))
 
 (defn nform-field?
   "Returns true if the supplied `f` is an [form field of rank
@@ -65,8 +86,7 @@
   real-valued function on the manifold."
   [f n]
   (and (form-field? f)
-       (= n (:rank
-             (o/context f)))))
+       (= n (get-rank f))))
 
 (defn oneform-field?
   "Returns true if the supplied `f` is
@@ -77,6 +97,39 @@
   field to a real-valued function on the manifold."
   [f]
   (nform-field? f 1))
+
+(defn- ff:zero-like
+  "Given some form field `op`, returns a form field with the same context and
+  its procedure replaced by `ff:zero`.
+
+  The returned form field responds `true` to `v/zero?`."
+  [op]
+  {:pre [(form-field? op)]}
+  (o/make-operator ff:zero
+                   'ff:zero
+                   (o/context op)))
+
+(defn- ff:zero?
+  "Returns true if the supplied form field `op` is a form field with a procedure
+  equal to `ff:zero`, false otherwise."
+  [op]
+  (and (form-field? op)
+       (= (o/procedure op) ff:zero)))
+
+(letfn [(one-like [_]
+          (u/unsupported
+           "form fields don't have an identity."))
+        (id-like [_]
+          (u/unsupported
+           "form fields don't have a multiplicative identity."))
+        (identity? [_] false)]
+  (let [defaults {:zero? ff:zero?
+                  :zero-like ff:zero-like
+                  :one-like one-like
+                  :identity? identity?
+                  :identity-like id-like}]
+    (defn- ff-context [m]
+      (merge defaults m))))
 
 (defn ^:no-doc procedure->nform-field
   "Accepts a function `f` and an optional symbolic `name`, and returns an n-form
@@ -94,12 +147,11 @@
      (f)
      (let [args (into [] (repeat n ::vf/vector-field))]
        (o/make-operator f name
-                        {:subtype ::form-field
-                         :zero? ff:zero?
-                         :zero-like ff:zero-like
-                         :arity [:exactly n]
-                         :rank n
-                         :arguments args})))))
+                        (ff-context
+                         {:subtype ::form-field
+                          :arity [:exactly n]
+                          :rank n
+                          :arguments args}))))))
 
 (defn ^:no-doc procedure->oneform-field
   "Accepts a function `f` and an optional symbolic `name`, and returns a one-form
@@ -108,10 +160,15 @@
   `f` should be a function from a vector field to a smooth real-valued function
   `g` of a manifold."
   ([f]
-   (procedure->nform-field
-    f 1 'unnamed-1form-field))
+   (let [name 'unnamed-1form-field]
+     (procedure->oneform-field f name)))
   ([f name]
-   (procedure->nform-field f 1 name)))
+   (o/make-operator f name
+                    (ff-context
+                     {:subtype ::oneform-field
+                      :arity [:exactly 1]
+                      :rank 1
+                      :arguments [::vf/vector-field]}))))
 
 (defn ^:no-doc oneform-field-procedure
   "Takes:
@@ -121,9 +178,7 @@
   - the `coordinate-system`
 
   And returns a procedure (not yet an operator!) that takes a structure of vector fields
-  and produces a new structure of functions of manifold points.
-
-  TODO flesh this out, please!"
+  and produces a new structure of functions of manifold points."
   [components coordinate-system]
   (fn [vf-components]
     (s/mapr (fn [vf]
@@ -181,46 +236,6 @@
                (m/point coordinate-system))))
 
 ;; ### API
-
-(defn ff:zero
-  "Returns a form field that returns, for any supplied vector field `vf`, a
-  manifold function [[manifold/zero-manifold-function]] that maps every input
-  manifold `point` to the scalar value 0."
-  [vf]
-  m/zero-manifold-function)
-
-(defn- ff:zero-like
-  "Given some form field `op`, returns a form field with the same context and
-  its procedure replaced by `ff:zero`.
-
-  The returned form field responds `true` to `v/zero?`."
-  [op]
-  {:pre [(form-field? op)]}
-  (o/make-operator ff:zero
-                   'ff:zero
-                   (o/context op)))
-
-(defn- ff:zero?
-  "Returns true if the supplied form field `op` is a form field with a procedure
-  equal to `ff:zero`, false otherwise."
-  [op]
-  (and (form-field? op)
-       (= (o/procedure op) ff:zero)))
-
-(defn get-rank
-  "Returns the rank of the supplied differential form `f`. Functions are treated
-  as differential forms of rank 0.
-
-  Throws for any non differential form supplied."
-  [f]
-  (cond (o/operator? f)
-        (or (:rank (o/context f))
-            (u/illegal
-             (str "operator, but not a differential form: " f)))
-
-        (f/function? f) 0
-        :else (u/illegal
-               (str "not a differential form: " f))))
 
 (defn literal-oneform-field
   "Given a symbolic name `sym` and a `coordinate-system`, returns a one-form field
