@@ -31,9 +31,7 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]))
 
-;; A metric induces a torsion-free connection
-
-;; We reserve *Christoffel* and Christoffel? for Christoffel type 2
+;; A metric induces a torsion-free connection.
 
 (defn make-Christoffel-1 [symbols basis]
   {:type ::Christoffel-1
@@ -84,29 +82,25 @@
       vector-basis)
      basis)))
 
-(defn- literal-Christoffel-names [name scripts n]
-  {:pre [(= (first scripts)
-            (second scripts))]}
+(defn- literal-Christoffel-names
+  [name [s0 s1 s2 :as scripts] n]
+  {:pre [(= s0 s1)]}
   (letfn [(tex [s]
             (cond (= s ::s/up) "↑"
                   (= s ::s/down) "_"
                   :else
-                  (u/illegal "Bad scripts")))
+                  (u/illegal "Bad scripts: " scripts)))
           (Gijk [i j k]
             (symbol
-             (str name
-                  (tex (nth scripts 0))
-                  i j
-                  (tex (nth scripts 2))
-                  k)))]
+             (str name (tex s0) i j (tex s2) k)))]
     (s/generate
-     n (nth scripts 0)
+     n s0
      (fn [i]
        (s/generate
-        n (nth scripts 1)
+        n s1
         (fn [j]
           (s/generate
-           n (nth scripts 2)
+           n s2
            (fn [k]
              (Gijk i j k)))))))))
 

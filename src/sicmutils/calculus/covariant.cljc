@@ -162,22 +162,14 @@
 
 ;; ### Covariant Vector Definition
 
-(defn- has-argument-types?
-  "TODO Not yet implemented!
+(defn- argument-types [t]
+  (if (o/operator? t)
+    (:arguments (o/context t))
+    (:arguments (meta t) [])))
 
-  TODO fill this in; this should return true IF the argument types are filled
-  up in the operator's context.
-
-  TODO maybe move to operator?"
-  [op]
-  (u/unsupported "has-argument-types? not yet implemented."))
-
-(defn- argument-types
-  "TODO Not yet implemented!
-
-  TODO get the argument types from the context."
-  [t]
-  (u/unsupported "argument-types not yet implemented."))
+(defn- has-argument-types? [op]
+  (boolean
+   (seq (argument-types op))))
 
 (defn- covariant-derivative-vector [Cartan]
   (let [basis (Cartan->basis Cartan)
@@ -217,7 +209,6 @@
         (ff/procedure->nform-field op k name)))))
 
 (defn- covariant-derivative-argument-types
-  "TODO Not yet implemented!"
   [Cartan]
   (let [basis (Cartan->basis Cartan)
 	      vector-basis (b/basis->vector-basis basis)
@@ -226,88 +217,87 @@
     (fn [V]
       (let [CV (Cartan-forms V)]
 	      (fn [T]
-          (u/unsupported "covariant-derivative-argument-types not yet implemented.")
-	        (comment
-            (let [arg-types (argument-types T)]
-              (define (the-derivative . args)
-	              (assert (fix:= (length args) (length arg-types)))
-	              (let ((VT
-		                   (let lp ((types arg-types) (args args) (targs '()) (factors '()))
-		                        (if (null? types)
-			                        (g:* (V (apply T (reverse targs)))
-				                           (g:*:n factors))
-			                        (contract
-			                         (lambda (e w)
-			                                 (cond ((eq? (car types) vector-field?)
-				                                      (assert (vector-field? (car args)))
-				                                      (lp (cdr types)
-					                                        (cdr args)
-					                                        (cons e targs)
-					                                        (cons (w (car args)) factors)))
-				                                     ((eq? (car types) oneform-field?)
-				                                      (assert (oneform-field? (car args)))
-				                                      (lp (cdr types)
-					                                        (cdr args)
-					                                        (cons w targs)
-					                                        (cons ((car args) e) factors)))
-				                                     (else (error "Bad arg types"))))
-			                         basis))))
-		                  (corrections
-		                   (g:+:n
-		                    (map (lambda (type i)
-			                               (cond ((eq? type oneform-field?) ;positive
-				                                    (g:*
-				                                     (g:* (s:map/r (lambda (e)
-						                                                       ((list-ref args i) e))
-						                                               vector-basis)
-					                                        CV)
-				                                     (s:map/r
-				                                      (lambda (w)
-					                                            (apply T (list-with-substituted-coord args i w)))
-				                                      oneform-basis)))
-				                                   ((eq? type vector-field?) ;negative
-				                                    (g:negate
-				                                     (g:*
-				                                      (s:map/r
-				                                       (lambda (e)
-					                                             (apply T (list-with-substituted-coord args i e)))
-				                                       vector-basis)
-				                                      (g:* CV
-					                                         (s:map/r (lambda (w)
-						                                                        (w (list-ref args i)))
-						                                                oneform-basis)))))))
-			                       arg-types (iota (length arg-types))))))
-		              (g:+ VT corrections))))
-	          (declare-argument-types! the-derivative arg-types)
-	          the-derivative))))))
+          (let [arg-types (argument-types T)]
+            (letfn [(the-derivative [& args]
+                      (assert (= (count args) (count arg-types)))
+                      (let [VT (letfn [(lp [types arg-types
+                                            args args
+                                            targs []
+                                            factors []]
+		                                     (if (empty? types)
+			                                     (g/* (V (apply T targs))
+				                                        (apply g/* factors))
+			                                     (b/contract
+			                                      (fn [e w]
+			                                        (cond (isa? (first types) ::vf/vector-field)
+				                                            (do (assert (vf/vector-field? (first args)))
+				                                                (lp (rest types)
+					                                                  (rest args)
+					                                                  (conj targs e)
+					                                                  (conj factors (w (first args)))))
+
+				                                            (isa? (first types) ::ff/oneform-field)
+				                                            (do (assert (ff/oneform-field? (first args)))
+				                                                (lp (rest types)
+					                                                  (rest args)
+					                                                  (conj targs w)
+					                                                  (conj factors ((first args) e))))
+				                                            :else (u/illegal "Bad arg types")))
+			                                      basis)))])
+		                        corrections
+		                        (apply g/+
+		                               (map (fn [type i]
+			                                    (cond (isa? type ::ff/oneform-field) ;; positive
+				                                        (g/*
+				                                         (g/* (s/mapr (fn [e]
+						                                                    ((nth args i) e))
+						                                                  vector-basis)
+					                                            CV)
+				                                         (s/mapr
+				                                          (fn [w]
+                                                    ;; TODO more efficient...
+					                                          (apply T (assoc (into [] args) i w)))
+				                                          oneform-basis))
+				                                        (isa? type ::vf/vector-field) ;; negative
+				                                        (g/negate
+				                                         (g/*
+				                                          (s/mapr
+				                                           (fn [e]
+					                                           (apply T (assoc args i e)))
+				                                           vector-basis)
+				                                          (g/* CV
+					                                             (s/mapr (fn [w]
+						                                                     (w (nth args i)))
+						                                                   oneform-basis))))))
+			                                  arg-types (range (count arg-types))))]
+		                    (g/+ VT corrections)))]
+              (with-meta the-derivative
+                {:arguments arg-types}))))))))
 
 (defn- covariant-derivative-function
-  "TODO Not yet implemented!"
   [Cartan]
   (fn [X]
     (fn [f]
       (fn [& args]
-        (u/unsupported "Covariant derivative of a function not yet implemented.")
-        (comment
-          (let [types (map (fn [arg]
-		                         (cond (vector-field? arg) vector-field?
-		                               (oneform-field? arg) oneform-field?
-		                               (manifold-point? arg) manifold-point?
-		                               :else false))
-	                         args)]
-            (cond (and (= (count types) 1)
-		                   (= (first types) manifold-point?))
-	                (do (declare-argument-types! f types)
-	                    ((X f) (car args)))
+        (let [types (map (fn [arg]
+		                       (cond (vf/vector-field? arg) ::vf/vector-field
+		                             (ff/oneform-field? arg) ::ff/oneform-field
+		                             (manifold/manifold-point? arg) ::manifold/manifold-point
+		                             :else false))
+	                       args)]
+          (cond (and (= (count types) 1)
+		                 (isa? (first types) ::manifold/manifold-point))
+	              (let [f (with-meta f {:arguments types})]
+                  ((X f) (first args)))
 
-	                (some (fn [type]
-		                      (not (or (= type vector-field?)
-			                             (= type oneform-field?))))
-		                    types)
-	                (u/illegal "Bad function or arguments to covariant derivative")
+	              (some (fn [type]
+		                    (not (or (isa? type ::vf/vector-field)
+			                           (isa? type ::ff/oneform-field))))
+		                  types)
+	              (u/illegal "Bad function or arguments to covariant derivative")
 
-	                :else
-	                (do (declare-argument-types! f types)
+	              :else
+	              (do (let [f (with-meta f {:arguments types})]
 	                    (apply (((covariant-derivative-argument-types Cartan) X) f)
 		                         args)))))))))
 

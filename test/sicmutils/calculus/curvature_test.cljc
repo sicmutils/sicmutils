@@ -418,122 +418,119 @@
 (deftest hidden-solve-tests
   (testing "these tests depend on a solve function that we don't have yet.
   Porting the form, not the tests."
+    (comment
 
-    ))
-(comment
+      ;; Loaded solve by (load "/usr/local/scmutils/src/solve/linreduce")
+      (let [tau 'tau
+            theta (af/literal-function 'f↑theta)
+            phi (af/literal-function 'f↑phi)
+            w↑0 (af/literal-function 'w↑0)
+            w↑1 (af/literal-function 'w↑1)]
+        (solve
+         (fn [v]
+           (let [dw↑0:dt (ref v 0)
+                 dw↑1:dt (ref v 1)]
+             (up (+ (* -1
+                       (w↑1 tau)
+                       (g/sin (theta tau))
+                       (g/cos (theta tau))
+                       ((D phi) tau))
+                    dw↑0:dt)
+                 (+ (/ (* (w↑0 tau) (g/cos (theta tau)) ((D phi) tau))
+                       (g/sin (theta tau)))
+                    (/ (* (w↑1 tau) ((D theta) tau) (g/cos (theta tau)))
+                       (g/sin (theta tau)))
+                    dw↑1:dt))))
+         2 2))
 
-  ;; Loaded solve by (load "/usr/local/scmutils/src/solve/linreduce")
-  (let [tau 'tau
-        theta (af/literal-function 'f↑theta)
-        phi (af/literal-function 'f↑phi)
-        w↑0 (af/literal-function 'w↑0)
-        w↑1 (af/literal-function 'w↑1)]
-    (solve
-     (fn [v]
-       (let [dw↑0:dt (ref v 0)
-             dw↑1:dt (ref v 1)]
-         (up (+ (* -1
-                   (w↑1 tau)
-                   (g/sin (theta tau))
-                   (g/cos (theta tau))
-                   ((D phi) tau))
-                dw↑0:dt)
-             (+ (/ (* (w↑0 tau) (g/cos (theta tau)) ((D phi) tau))
-                   (g/sin (theta tau)))
-                (/ (* (w↑1 tau) ((D theta) tau) (g/cos (theta tau)))
-                   (g/sin (theta tau)))
-                dw↑1:dt))))
-     2 2))
-
-  ;; ;; Result:
-  (up (* (w↑1 tau) (sin (f↑theta tau)) (cos (f↑theta tau)) ((D f↑phi) tau))
-      (/ (+ (* -1 (w↑1 tau) (cos (f↑theta tau)) ((D f↑theta) tau))
-            (* -1 (cos (f↑theta tau)) ((D f↑phi) tau) (w↑0 tau)))
-         (sin (f↑theta tau))))
+      ;; ;; Result:
+      (up (* (w↑1 tau) (sin (f↑theta tau)) (cos (f↑theta tau)) ((D f↑phi) tau))
+          (/ (+ (* -1 (w↑1 tau) (cos (f↑theta tau)) ((D f↑theta) tau))
+                (* -1 (cos (f↑theta tau)) ((D f↑phi) tau) (w↑0 tau)))
+             (sin (f↑theta tau))))
 
 
-  (let [U d:dt
-        mu:N->M (compose
-                 (m/point S2-spherical)
-                 (up (af/literal-function 'f↑theta)
-                     (af/literal-function 'f↑phi))
-                 (m/chart the-real-line))]
-    (solve
-     (fn [v]
-       (let [dw↑0:dt (ref v 0)
-             dw↑1:dt (ref v 1)
-             basis-over-mu (cm/basis->basis-over-map mu:N->M S2-spherical-basis)
-             oneform-basis (b/basis->oneform-basis basis-over-mu)
-             vector-basis (b/basis->vector-basis basis-over-mu)
-             Cartan (cov/Christoffel->Cartan G-S2-1)
-             transported-vector-over-map
-             (vf/basis-components->vector-field
-              (up (compose (osculating-path (up 'tau 'w↑0 dw↑0:dt))
-                           (m/chart the-real-line))
-                  (compose (osculating-path (up 'tau 'w↑1 dw↑1:dt))
-                           (m/chart the-real-line)))
-              vector-basis)]
-         (s/mapr
-          (fn [w]
-            ((w
-              (((cov/covariant-derivative Cartan mu:N->M)
-                U)
-               transported-vector-over-map))
-             ((m/point the-real-line) 'tau)))
-          oneform-basis)))
-     (S2-spherical 'dimension)
-     (S2-spherical 'dimension)))
-  ;; ;; Result:
-  (up
-   (* w↑1 (cos (f↑theta tau)) (sin (f↑theta tau)) ((D f↑phi) tau))
-   (/
-    (+ (* -1 w↑0 (cos (f↑theta tau)) ((D f↑phi) tau))
-       (* -1 w↑1 ((D f↑theta) tau) (cos (f↑theta tau))))
-    (sin (f↑theta tau))))
+      (let [U d:dt
+            mu:N->M (compose
+                     (m/point S2-spherical)
+                     (up (af/literal-function 'f↑theta)
+                         (af/literal-function 'f↑phi))
+                     (m/chart the-real-line))]
+        (solve
+         (fn [v]
+           (let [dw↑0:dt (ref v 0)
+                 dw↑1:dt (ref v 1)
+                 basis-over-mu (cm/basis->basis-over-map mu:N->M S2-spherical-basis)
+                 oneform-basis (b/basis->oneform-basis basis-over-mu)
+                 vector-basis (b/basis->vector-basis basis-over-mu)
+                 Cartan (cov/Christoffel->Cartan G-S2-1)
+                 transported-vector-over-map
+                 (vf/basis-components->vector-field
+                  (up (compose (osculating-path (up 'tau 'w↑0 dw↑0:dt))
+                               (m/chart the-real-line))
+                      (compose (osculating-path (up 'tau 'w↑1 dw↑1:dt))
+                               (m/chart the-real-line)))
+                  vector-basis)]
+             (s/mapr
+              (fn [w]
+                ((w
+                  (((cov/covariant-derivative Cartan mu:N->M)
+                    U)
+                   transported-vector-over-map))
+                 ((m/point the-real-line) 'tau)))
+              oneform-basis)))
+         (S2-spherical 'dimension)
+         (S2-spherical 'dimension)))
+      ;; ;; Result:
+      (up
+       (* w↑1 (cos (f↑theta tau)) (sin (f↑theta tau)) ((D f↑phi) tau))
+       (/
+        (+ (* -1 w↑0 (cos (f↑theta tau)) ((D f↑phi) tau))
+           (* -1 w↑1 ((D f↑theta) tau) (cos (f↑theta tau))))
+        (sin (f↑theta tau))))
 
-  ;; Computing parallel transport without the embedding
-  (let-coordinates [t m/the-real-line
-                    [theta phi] M-rect]
-    (let [M-basis (b/coordinate-system->basis M-rect)
-          G-S2-1 (S2-Christoffel M-basis theta)]
-      ))
-  ;; Parallel transport of vector w over path mu
+      ;; Computing parallel transport without the embedding
+      (let-coordinates [t m/the-real-line
+                        [theta phi] M-rect]
+        (let [M-basis (b/coordinate-system->basis M-rect)
+              G-S2-1 (S2-Christoffel M-basis theta)]
+          ))
+      ;; Parallel transport of vector w over path mu
 
-  (define mu:N->M
-    (compose (m/point M-rect)
-             (up (af/literal-function 'mu↑theta)
-                 (af/literal-function 'mu↑phi))
-             (m/chart the-real-line)))
+      (define mu:N->M
+        (compose (m/point M-rect)
+                 (up (af/literal-function 'mu↑theta)
+                     (af/literal-function 'mu↑phi))
+                 (m/chart the-real-line)))
 
-  (define basis-over-mu
-    (cm/basis->basis-over-map mu:N->M M-basis))
+      (define basis-over-mu
+        (cm/basis->basis-over-map mu:N->M M-basis))
 
-  (define w
-    (basis-components->vector-field
-     (up (compose (af/literal-function 'w↑0)
-                  (m/chart the-real-line))
-         (compose (af/literal-function 'w↑1)
-                  (m/chart the-real-line)))
-     (basis->vector-basis basis-over-mu)))
+      (define w
+        (basis-components->vector-field
+         (up (compose (af/literal-function 'w↑0)
+                      (m/chart the-real-line))
+             (compose (af/literal-function 'w↑1)
+                      (m/chart the-real-line)))
+         (basis->vector-basis basis-over-mu)))
 
-  (let [Cartan (Christoffel->Cartan G-S2-1)]
-    (s/mapr
-     (fn [omega]
-       ((omega
-         (((cov/covariant-derivative Cartan mu:N->M) d:dt) w))
-        ((m/point the-real-line) 'tau)))
-     (b/basis->oneform-basis basis-over-mu)))
-  ;; ;; Result:
-  (up
-   (+ (* -1 (w↑1 tau) ((D mu↑phi) tau) (cos (mu↑theta tau)) (sin (mu↑theta tau)))
-      ((D w↑0) tau))
-   (/
-    (+ (* (w↑1 tau) (cos (mu↑theta tau)) ((D mu↑theta) tau))
-       (* (w↑0 tau) ((D mu↑phi) tau) (cos (mu↑theta tau)))
-       (* ((D w↑1) tau) (sin (mu↑theta tau))))
-    (sin (mu↑theta tau))))
+      (let [Cartan (Christoffel->Cartan G-S2-1)]
+        (s/mapr
+         (fn [omega]
+           ((omega
+             (((cov/covariant-derivative Cartan mu:N->M) d:dt) w))
+            ((m/point the-real-line) 'tau)))
+         (b/basis->oneform-basis basis-over-mu)))
+      ;; ;; Result:
+      (up
+       (+ (* -1 (w↑1 tau) ((D mu↑phi) tau) (cos (mu↑theta tau)) (sin (mu↑theta tau)))
+          ((D w↑0) tau))
+       (/
+        (+ (* (w↑1 tau) (cos (mu↑theta tau)) ((D mu↑theta) tau))
+           (* (w↑0 tau) ((D mu↑phi) tau) (cos (mu↑theta tau)))
+           (* ((D w↑1) tau) (sin (mu↑theta tau))))
+        (sin (mu↑theta tau)))))))
 
-  )
 
 (deftest final-tests
   ;; NOTE: Working from here on out!
