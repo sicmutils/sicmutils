@@ -36,7 +36,9 @@
 ;; on the manifold.
 
 (defn embedding-map->metric-components [n xi->rectangular]
-  (let [h (D xi->rectangular)]
+  (let [h   (D xi->rectangular)
+        ref (fn [f k]
+              (f/compose #(get % k) f))]
     (if (= n 1)
       (down (down (g/dot-product h h)))
       (s/generate
@@ -45,8 +47,8 @@
          (s/generate
           n ::s/down
           (fn [j]
-            (g/dot-product (nth h i)
-                           (nth h j)))))))))
+            (g/dot-product (ref h i)
+                           (ref h j)))))))))
 
 (defn coordinate-system->metric-components [coordsys]
   (let [n (:dimension (m/manifold coordsys))
@@ -300,11 +302,11 @@
 
 (def S2-metric
   (let [[theta phi] (coord/coordinate-functions m/S2-spherical)
-        [dtheta dphi] (ff/coordinate-system->oneform-basis m/S2-spherical)
-        the-metric (fn [v1 v2]
-                     (g/+ (g/* (dtheta v1) (dtheta v2))
-	                        (g/* (g/expt (g/sin theta) 2)
-	                             (dphi v1) (dphi v2))))]
-    (with-meta the-metric
-      {:arguments [::vf/vector-field
-                   ::vf/vector-field]})))
+        [dtheta dphi] (ff/coordinate-system->oneform-basis m/S2-spherical)]
+    (-> (fn the-metric [v1 v2]
+          (g/+ (g/* (dtheta v1) (dtheta v2))
+	             (g/* (g/expt (g/sin theta) 2)
+	                  (dphi v1) (dphi v2))))
+        (with-meta {:arguments
+                    [::vf/vector-field
+                     ::vf/vector-field]}))))

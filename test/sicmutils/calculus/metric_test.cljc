@@ -33,6 +33,7 @@
             [sicmutils.matrix :as matrix]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :as s :refer [up down]]
+            [sicmutils.util.aggregate :as ua]
             [sicmutils.value :as v]))
 
 (use-fixtures :each hermetic-simplify-fixture)
@@ -48,17 +49,18 @@
                          (fn [u v]
                            (* (g/square R)
                               (+ (* (dtheta u) (dtheta v))
-                                 (* (compose (g/square sin) theta)
+                                 (* (compose (g/square g/sin) theta)
                                     (dphi u)
                                     (dphi v))))))
               u (vf/literal-vector-field 'u two-sphere)
               v (vf/literal-vector-field 'v two-sphere)]
-          (is (= '(* (+ (* (v↑0 (up theta0 phi0))
-                           (u↑0 (up theta0 phi0)))
-                        (* (expt (sin theta0) 2)
-                           (v↑1 (up theta0 phi0))
-                           (u↑1 (up theta0 phi0))))
-                     (expt R 2))
+          (is (= '(+ (* (expt R 2)
+                        (expt (sin theta0) 2)
+                        (u↑1 (up theta0 phi0))
+                        (v↑1 (up theta0 phi0)))
+                     (* (expt R 2)
+                        (u↑0 (up theta0 phi0))
+                        (v↑0 (up theta0 phi0))))
                  (simplify
                   (((g-sphere 'R) u v)
                    ((m/point two-sphere)
@@ -66,7 +68,7 @@
 
   (testing "Example: Lorentz metric on R↑4"
     (let [SR m/R4-rect]
-      (let-coordinates [[t x y z] R4-rect]
+      (let-coordinates [[t x y z] SR]
         (let [g-Lorentz (fn [c]
                           (fn [u v]
                             (+ (* (dx u) (dx v))
@@ -76,7 +78,11 @@
                                   (dt u) (dt v)))))
               u (vf/literal-vector-field 'u SR)
               v (vf/literal-vector-field 'v SR)]
-          (is (= '1
+          (is (= '(+ (* -1 (expt c 2)
+                        (u↑0 (up t0 x0 y0 z0)) (v↑0 (up t0 x0 y0 z0)))
+                     (* (u↑1 (up t0 x0 y0 z0)) (v↑1 (up t0 x0 y0 z0)))
+                     (* (u↑2 (up t0 x0 y0 z0)) (v↑2 (up t0 x0 y0 z0)))
+                     (* (u↑3 (up t0 x0 y0 z0)) (v↑3 (up t0 x0 y0 z0))))
                  (simplify
                   (((g-Lorentz 'c) u v)
                    ((m/point SR) (up 't0 'x0 'y0 'z0))))))))))
@@ -92,59 +98,59 @@
                         (* g_11 (dy u) (dy v)))))
             u (vf/literal-vector-field 'u R2-rect)
             v (vf/literal-vector-field 'v R2-rect)]
-        (is (= '(+ (* (u↑0 (up x0 y0)) (v↑0 (up x0 y0)) a)
-                   (* (+ (* (v↑0 (up x0 y0)) (u↑1 (up x0 y0)))
-                         (* (u↑0 (up x0 y0)) (v↑1 (up x0 y0))))
-                      b)
-                   (* (v↑1 (up x0 y0)) (u↑1 (up x0 y0)) c))
-               (((g-R2 'a 'b 'c) u v)
-                ((m/point R2-rect) (up 'x0 'y0))))))))
+        (is (= '(+ (* a (u↑0 (up x0 y0)) (v↑0 (up x0 y0)))
+                   (* b (u↑0 (up x0 y0)) (v↑1 (up x0 y0)))
+                   (* b (v↑0 (up x0 y0)) (u↑1 (up x0 y0)))
+                   (* c (v↑1 (up x0 y0)) (u↑1 (up x0 y0))))
+               (simplify
+                (((g-R2 'a 'b 'c) u v)
+                 ((m/point R2-rect) (up 'x0 'y0)))))))))
 
   (testing "metric examples"
     (is (= '(down (down 1 0 0)
                   (down 0 (expt r 2) 0)
                   (down 0 0 (* (expt r 2) (expt (sin theta) 2))))
-           (v/freeze
-            ((cm/coordinate-system->metric-components R3-spherical)
+           (simplify
+            ((cm/coordinate-system->metric-components m/R3-spherical)
              (up 'r 'theta 'phi)))))
 
     (is (= '(down (down 1 0 0)
                   (down 0 (expt r 2) 0)
                   (down 0 0 (* (expt r 2) (expt (sin theta) 2))))
-           (v/freeze
+           (simplify
             (s/mapr
              (fn [v1]
                (s/mapr
                 (fn [v2]
-                  (((coordinate-system->metric R3-spherical) v1 v2)
-                   ((point R3-spherical) (up 'r 'theta 'phi))))
-                (coordinate-system->vector-basis R3-spherical)))
-             (coordinate-system->vector-basis R3-spherical)))))
+                  (((cm/coordinate-system->metric m/R3-spherical) v1 v2)
+                   ((m/point m/R3-spherical) (up 'r 'theta 'phi))))
+                (vf/coordinate-system->vector-basis m/R3-spherical)))
+             (vf/coordinate-system->vector-basis m/R3-spherical)))))
 
     (is (= '(up (up 1 0 0)
                 (up 0 (/ 1 (expt r 2)) 0)
                 (up 0 0 (/ 1 (* (expt r 2) (expt (sin theta) 2)))))
-           (v/freeze
+           (simplify
             (s/mapr
              (fn [w1]
                (s/mapr
                 (fn [w2]
-                  (((coordinate-system->inverse-metric m/R3-spherical) w1 w2)
-                   ((point R3-spherical) (up 'r 'theta 'phi))))
-                (coordinate-system->oneform-basis m/R3-spherical)))
-             (coordinate-system->oneform-basis m/R3-spherical))))))
+                  (((cm/coordinate-system->inverse-metric m/R3-spherical) w1 w2)
+                   ((m/point m/R3-spherical) (up 'r 'theta 'phi))))
+                (ff/coordinate-system->oneform-basis m/R3-spherical)))
+             (ff/coordinate-system->oneform-basis m/R3-spherical))))))
 
   (testing "more"
     (let-coordinates [[x y z] m/R3-rect]
-      (is (= '(+ (* (v↑0 (up x0 y0 z0)) (u↑0 (up x0 y0 z0)) (g_00 (up x0 y0 z0)))
+      (is (= '(+ (* (v↑0 (up x0 y0 z0)) (g_00 (up x0 y0 z0)) (u↑0 (up x0 y0 z0)))
                  (* (v↑0 (up x0 y0 z0)) (g_01 (up x0 y0 z0)) (u↑1 (up x0 y0 z0)))
                  (* (v↑0 (up x0 y0 z0)) (g_02 (up x0 y0 z0)) (u↑2 (up x0 y0 z0)))
-                 (* (u↑0 (up x0 y0 z0)) (v↑1 (up x0 y0 z0)) (g_01 (up x0 y0 z0)))
-                 (* (u↑0 (up x0 y0 z0)) (v↑2 (up x0 y0 z0)) (g_02 (up x0 y0 z0)))
-                 (* (v↑1 (up x0 y0 z0)) (u↑1 (up x0 y0 z0)) (g_11 (up x0 y0 z0)))
-                 (* (v↑1 (up x0 y0 z0)) (g_12 (up x0 y0 z0)) (u↑2 (up x0 y0 z0)))
-                 (* (v↑2 (up x0 y0 z0)) (u↑1 (up x0 y0 z0)) (g_12 (up x0 y0 z0)))
-                 (* (v↑2 (up x0 y0 z0)) (u↑2 (up x0 y0 z0)) (g_22 (up x0 y0 z0))))
+                 (* (u↑0 (up x0 y0 z0)) (g_01 (up x0 y0 z0)) (v↑1 (up x0 y0 z0)))
+                 (* (u↑0 (up x0 y0 z0)) (g_02 (up x0 y0 z0)) (v↑2 (up x0 y0 z0)))
+                 (* (u↑1 (up x0 y0 z0)) (v↑1 (up x0 y0 z0)) (g_11 (up x0 y0 z0)))
+                 (* (u↑1 (up x0 y0 z0)) (g_12 (up x0 y0 z0)) (v↑2 (up x0 y0 z0)))
+                 (* (u↑2 (up x0 y0 z0)) (v↑1 (up x0 y0 z0)) (g_12 (up x0 y0 z0)))
+                 (* (u↑2 (up x0 y0 z0)) (v↑2 (up x0 y0 z0)) (g_22 (up x0 y0 z0))))
              (simplify
               (((cm/literal-metric 'g R3-rect)
                 (vf/literal-vector-field 'u R3-rect)
@@ -161,10 +167,10 @@
                         (* g_11 (dy u) (dy v)))))
             omega (ff/literal-oneform-field 'omega R2-rect)
             theta (ff/literal-oneform-field 'theta R2-rect)]
-        (is (= '(/ (+ (* a (theta_1 (up x0 y0)) (omega_1 (up x0 y0)))
-                      (* -1 b (theta_1 (up x0 y0)) (omega_0 (up x0 y0)))
-                      (* -1 b (omega_1 (up x0 y0)) (theta_0 (up x0 y0)))
-                      (* c (omega_0 (up x0 y0)) (theta_0 (up x0 y0))))
+        (is (= '(/ (+ (* a (omega_1 (up x0 y0)) (theta_1 (up x0 y0)))
+                      (* -1 b (theta_0 (up x0 y0)) (omega_1 (up x0 y0)))
+                      (* -1 b (omega_0 (up x0 y0)) (theta_1 (up x0 y0)))
+                      (* c (theta_0 (up x0 y0)) (omega_0 (up x0 y0))))
                    (+ (* a c) (* -1 (expt b 2))))
                (simplify
                 (((cm/invert (g-R2 'a 'b 'c) R2-basis)
@@ -177,15 +183,17 @@
                 vector-basis [d:dx d:dy]
                 dual-basis [dx dy]
                 m ((m/point R2-rect) (up 'x0 'y0))]
-            (is (= (matrix/I 2)
-                   (matrix/generate
-                    2 2
-                    (fn [i k]
-                      (ua/generic-sum
-                       (fn [j]
-                         (* ((gi (nth dual-basis i) (nth dual-basis j)) m)
-                            ((g  (nth vector-basis j) (nth vector-basis k)) m)))
-                       0 2)))))))
+            (is (= '(matrix-by-rows
+                     (up 1 0) (up 0 1))
+                   (simplify
+                    (matrix/generate
+                     2 2
+                     (fn [i k]
+                       (ua/generic-sum
+                        (fn [j]
+                          (* ((gi (nth dual-basis i) (nth dual-basis j)) m)
+                             ((g (nth vector-basis j) (nth vector-basis k)) m)))
+                        0 2))))))))
 
         (testing "raise/lower"
           ;; Note: raise needs an extra argument -- the basis -- why?
@@ -193,24 +201,28 @@
                      (* b (v↑0 (up x0 y0)) (w↑1 (up x0 y0)))
                      (* b (v↑1 (up x0 y0)) (w↑0 (up x0 y0)))
                      (* c (v↑1 (up x0 y0)) (w↑1 (up x0 y0))))
-                 (v/freeze
+                 (simplify
                   ((((cm/lower (g-R2 'a 'b 'c))
                      (vf/literal-vector-field 'v R2-rect))
                     (vf/literal-vector-field 'w R2-rect))
-                   ((R2-rect '->point) (up 'x0 'y0))))))
+                   ((m/point R2-rect) (up 'x0 'y0))))))
 
           (is (= '(+ (* (v↑0 (up x0 y0)) (((partial 0) w) (up x0 y0)))
                      (* (v↑1 (up x0 y0)) (((partial 1) w) (up x0 y0))))
-                 ((((cm/raise (g-R2 'a 'b 'c) R2-basis)
-                    ((cm/lower (g-R2 'a 'b 'c)) (vf/literal-vector-field 'v R2-rect)))
-                   (compose (af/literal-function 'w '(-> (UP Real Real) Real))
-	                          (m/chart R2-rect)))
-                  ((m/point R2-rect) (up 'x0 'y0)))))
+                 (simplify
+                  ((((cm/raise (g-R2 'a 'b 'c) R2-basis)
+                     ((cm/lower (g-R2 'a 'b 'c)) (vf/literal-vector-field 'v R2-rect)))
+                    (compose (af/literal-function 'w '(-> (UP Real Real) Real))
+	                           (m/chart R2-rect)))
+                   ((m/point R2-rect) (up 'x0 'y0))))))
 
-          (is (= '(up (* (v↑0 (up x0 y0)) (((partial 0) w) (up x0 y0)))
-                      (* (v↑1 (up x0 y0)) (((partial 1) w) (up x0 y0))))
-                 ((((cm/sharpen (g-R2 'a 'b 'c) R2-basis ((m/point R2-rect) (up 'x0 'y0)))
-                    ((cm/lower (g-R2 'a 'b 'c)) (vf/literal-vector-field 'v R2-rect)))
-                   (compose (af/literal-function 'w '(-> (UP Real Real) Real))
-	                          (m/chart R2-rect)))
-                  ((m/point R2-rect) (up 'x0 'y0))))))))))
+          (is (= '(+ (* (v↑0 (up x0 y0)) (((partial 0) w) (up x0 y0)))
+                     (* (v↑1 (up x0 y0)) (((partial 1) w) (up x0 y0))))
+                 (simplify
+                  ((((cm/sharpen (g-R2 'a 'b 'c) R2-basis ((m/point R2-rect) (up 'x0 'y0)))
+                     ((cm/lower (g-R2 'a 'b 'c)) (vf/literal-vector-field 'v R2-rect)))
+                    (compose (af/literal-function 'w '(-> (UP Real Real) Real))
+	                           (m/chart R2-rect)))
+                   ((m/point R2-rect) (up 'x0 'y0)))))
+              "NOTE could this be right? The sum components are in an up-tuple
+               in the metric.scm example."))))))
