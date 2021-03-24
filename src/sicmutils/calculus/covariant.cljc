@@ -164,7 +164,7 @@
 
 (defn- argument-types [t]
   (if (o/operator? t)
-    (:arguments (o/context t))
+    (:arguments (o/context t) [])
     (:arguments (meta t) [])))
 
 (defn- has-argument-types? [op]
@@ -198,11 +198,12 @@
                  (g/- (V (apply tau vectors))
                       (ua/generic-sum
                        (fn [i]
-                         (apply tau (map-indexed (fn [j v]
-                                                   (if (= j i)
-                                                     (nabla_V v)
-                                                     v))
-                                                 vectors)))
+                         (apply tau (map-indexed
+                                     (fn [j v]
+                                       (if (= j i)
+                                         (nabla_V v)
+                                         v))
+                                     vectors)))
                        0 k)))
             name `((~'nabla ~(v/freeze V))
                    ~(v/freeze tau))]
@@ -218,6 +219,8 @@
       (let [CV (Cartan-forms V)]
 	      (fn [T]
           (let [arg-types (argument-types T)]
+            ;; TODO verify now that all args are the correct type, either one-ff
+            ;; or vf.
             (letfn [(the-derivative [& args]
                       (assert (= (count args) (count arg-types)))
                       (let [VT (letfn [(lp [types arg-types
@@ -227,6 +230,7 @@
 		                                     (if (empty? types)
 			                                     (g/* (V (apply T targs))
 				                                        (apply g/* factors))
+
 			                                     (b/contract
 			                                      (fn [e w]
 			                                        (cond (isa? (first types) ::vf/vector-field)
@@ -244,33 +248,36 @@
 					                                                  (conj factors ((first args) e))))
 				                                            :else (u/illegal "Bad arg types")))
 			                                      basis)))])
-		                        corrections
-		                        (apply g/+
-		                               (map (fn [type i]
-			                                    (cond (isa? type ::ff/oneform-field) ;; positive
-				                                        (g/*
-				                                         (g/* (s/mapr (fn [e]
-						                                                    ((nth args i) e))
-						                                                  vector-basis)
-					                                            CV)
-				                                         (s/mapr
-				                                          (fn [w]
-                                                    ;; TODO more efficient...
-					                                          (apply T (assoc (into [] args) i w)))
-				                                          oneform-basis))
-				                                        (isa? type ::vf/vector-field) ;; negative
-				                                        (g/negate
-				                                         (g/*
-				                                          (s/mapr
-				                                           (fn [e]
-					                                           (apply T (assoc args i e)))
-				                                           vector-basis)
-				                                          (g/* CV
-					                                             (s/mapr (fn [w]
-						                                                     (w (nth args i)))
-						                                                   oneform-basis))))))
-			                                  arg-types (range (count arg-types))))]
+		                        corrections (apply g/+
+		                                           (map-indexed
+                                                (fn [i type]
+			                                            (cond (isa? type ::ff/oneform-field) ;; positive
+				                                                (g/*
+				                                                 (g/* (s/mapr (fn [e]
+						                                                            ((nth args i) e))
+						                                                          vector-basis)
+					                                                    CV)
+				                                                 (s/mapr
+				                                                  (fn [w]
+                                                            ;; TODO more efficient...
+					                                                  (apply T (assoc (into [] args) i w)))
+				                                                  oneform-basis))
+
+				                                                (isa? type ::vf/vector-field) ;; negative
+				                                                (g/negate
+				                                                 (g/*
+				                                                  (s/mapr
+				                                                   (fn [e]
+					                                                   (apply T (assoc (into [] args) i e)))
+				                                                   vector-basis)
+				                                                  (g/* CV
+					                                                     (s/mapr (fn [w]
+						                                                             (w (nth args i)))
+						                                                           oneform-basis))))))
+			                                          arg-types))]
 		                    (g/+ VT corrections)))]
+              ;; TODO: note: Then we pass along the derivative with the SAME
+              ;; argument types.
               (with-meta the-derivative
                 {:arguments arg-types}))))))))
 
@@ -280,26 +287,34 @@
     (fn [f]
       (fn [& args]
         (let [types (map (fn [arg]
+                           ;; TODO map v/kind, do (apply v/argument-kind args)
 		                       (cond (vf/vector-field? arg) ::vf/vector-field
 		                             (ff/oneform-field? arg) ::ff/oneform-field
 		                             (manifold/manifold-point? arg) ::manifold/manifold-point
 		                             :else false))
 	                       args)]
           (cond (and (= (count types) 1)
+                     ;; TODO check if first arg is a manifold point.
 		                 (isa? (first types) ::manifold/manifold-point))
 	              (let [f (with-meta f {:arguments types})]
                   ((X f) (first args)))
 
 	              (some (fn [type]
+                        ;; TODO check the actual args here! Goal is to check
+                        ;; whether we have any arg that's not either of these.
+                        ;; SO, actually we want to check that every arg is
+                        ;; either a vector field or oneform.
 		                    (not (or (isa? type ::vf/vector-field)
 			                           (isa? type ::ff/oneform-field))))
 		                  types)
 	              (u/illegal "Bad function or arguments to covariant derivative")
 
 	              :else
-	              (do (let [f (with-meta f {:arguments types})]
-	                    (apply (((covariant-derivative-argument-types Cartan) X) f)
-		                         args)))))))))
+                ;; Now we know that they are all either a single-arg function of
+                ;; a point or multi-arg functions of vf or one-ff.
+	              (let [f (with-meta f {:arguments types})]
+	                (apply (((covariant-derivative-argument-types Cartan) X) f)
+		                     args))))))))
 
 (defn- covariant-derivative-ordinary [Cartan]
   {:pre [(Cartan? Cartan)]}
@@ -335,7 +350,8 @@
    (covariant-derivative-ordinary
     (Cartan->Cartan-over-map Cartan map))))
 
-(defn geodesic-equation [source-coordsys target-coordsys Cartan-on-target]
+(defn geodesic-equation
+  [source-coordsys target-coordsys Cartan-on-target]
   (fn [gamma]
     (fn [source-m]
       {:pre [(= 1 (:dimension
@@ -347,7 +363,8 @@
           (manifold/chart target-coordsys))
          source-m)))))
 
-(defn parallel-transport-equation [source-coordsys target-coordsys Cartan-on-target]
+(defn parallel-transport-equation
+  [source-coordsys target-coordsys Cartan-on-target]
   (fn [gamma]
     (fn [vector-over-gamma]
       (fn [source-m]

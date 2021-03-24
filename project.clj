@@ -52,6 +52,7 @@
   :profiles {:dev {:plugins [~cljsbuild
                              [lein-cloverage "1.2.1"]
                              [lein-doo "0.1.11"]]
+                   :jvm-opts ["-Xmx2048m"]
                    :repl-options {:nrepl-middleware
                                   [cider.piggieback/wrap-cljs-repl]}
                    :dependencies [[org.clojure/test.check "1.1.0"]
@@ -61,7 +62,7 @@
                                   [cider/piggieback "0.5.0"]
                                   [lein-doo "0.1.11"]
                                   [thheller/shadow-cljs "2.11.6"]]}
-             :test {:jvm-opts ["-Xmx512m"]
+             :test {:jvm-opts ["-Xmx2048m"]
                     :dependencies [[org.clojure/test.check "1.0.0"]
                                    [criterium "0.4.5"]]}}
   :aliases {"test-cljs"

@@ -20,113 +20,109 @@
 (ns sicmutils.calculus.metric
   (:require [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.coordinate :as coord]
+            [sicmutils.calculus.derivative :refer [D]]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.manifold :as m]
+            [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as matrix]
-            [sicmutils.structure :as s]))
+            [sicmutils.structure :as s :refer [up down]]
+            [sicmutils.value :as v]))
 
 ;; ## Metrics
 
 ;; A metric is a function that takes two vector fields and produces a function
 ;; on the manifold.
 
-(comment
-  (define (coordinate-system->metric-components coordsys)
-    (let* ((n (coordsys 'dimension))
-           (xi->x ;assumes internal rectangular representation
-            (compose manifold-point-representation
-                     (point coordsys))))
-      (embedding-map->metric-components n xi->x)))
+(defn embedding-map->metric-components [n xi->rectangular]
+  (let [h (D xi->rectangular)]
+    (if (= n 1)
+      (down (down (g/dot-product h h)))
+      (s/generate
+       n ::s/down
+       (fn [i]
+         (s/generate
+          n ::s/down
+          (fn [j]
+            (g/dot-product (nth h i)
+                           (nth h j)))))))))
 
-  (define (embedding-map->metric-components n xi->rectangular)
-    (let ((h (D xi->rectangular)))
-      (if (= n 1)
-        (down (down (dot-product h h)))
-        (s:generate n 'down
-                    (lambda (i)
-                            (s:generate n 'down
-                                        (lambda (j)
-                                                (dot-product (ref h i)
-                                                             (ref h j))))))))))
+(defn coordinate-system->metric-components [coordsys]
+  (let [n (:dimension (m/manifold coordsys))
+        ;; assumes internal rectangular representation
+        xi->x (f/compose m/manifold-point-representation
+                         (m/point coordsys))]
+    (embedding-map->metric-components n xi->x)))
 
-(comment
-  (define (coordinate-system->metric coordinate-system)
-    (let* ((basis (coordinate-system->basis coordinate-system))
-           (oneform-basis (basis->oneform-basis basis))
-           (->components
-            (coordinate-system->metric-components coordinate-system))
-           (Chi (chart coordinate-system)))
-      (define ((the-metric v1 v2) m)
-        (let ((gcoeffs (->components (Chi m))))
-          (* (* gcoeffs ((oneform-basis v1) m))
-             ((oneform-basis v2) m))))
-      (declare-argument-types! the-metric
-                               (list vector-field? vector-field?))
-      the-metric)))
+(defn coordinate-system->metric [coordinate-system]
+  (let [basis (b/coordinate-system->basis coordinate-system)
+        oneform-basis (b/basis->oneform-basis basis)
+        ->components (coordinate-system->metric-components
+                      coordinate-system)
+        Chi (m/chart coordinate-system)]
+    (letfn [(the-metric [v1 v2]
+              (fn [m]
+                (let [gcoeffs (->components (Chi m))]
+                  (g/* (g/* gcoeffs ((oneform-basis v1) m))
+                       ((oneform-basis v2) m)))))]
+      (with-meta the-metric
+        {:arguments [::vf/vector-field
+                     ::vf/vector-field]}))))
 
-
-(comment
-  (define (coordinate-system->inverse-metric coordinate-system)
-    (let* ((basis (coordinate-system->basis coordinate-system))
-           (vector-basis (basis->vector-basis basis))
-           (->components
-            (/ 1
-               (coordinate-system->metric-components coordinate-system)))
-           (Chi (chart coordinate-system)))
-      (define ((the-inverse-metric w1 w2) m)
-        (let ((gcoeffs (->components (Chi m))))
-          (* (* gcoeffs
-                (s/mapr (lambda (e) ((w1 e) m))
-                        vector-basis))
-             (s/mapr (lambda (e) ((w2 e) m))
-                     vector-basis))))
+(defn coordinate-system->inverse-metric [coordinate-system]
+  (let [basis (b/coordinate-system->basis coordinate-system)
+        vector-basis (b/basis->vector-basis basis)
+        ->components
+        (g// 1 (coordinate-system->metric-components coordinate-system))
+        Chi (m/chart coordinate-system)]
+    (letfn [(the-inverse-metric [w1 w2]
+              (fn [m]
+                (let [gcoeffs (->components (Chi m))]
+                  (g/* (g/* gcoeffs
+                            (s/mapr (fn [e] ((w1 e) m))
+                                    vector-basis))
+                       (s/mapr (fn [e] ((w2 e) m))
+                               vector-basis)))))]
       (with-meta the-inverse-metric
         {:arguments [::ff/one-form-field
                      ::ff/one-form-field]}))))
 
 ;; Symbolic metrics are often useful for testing.
 
-(comment
-  (define (make-metric name coordinate-system)
-    (define (gij i j)
-      (if (<= i j)
-        (literal-manifold-function
-         (string->symbol
-          (string-append (symbol->string name)
-                         "_"
-                         (number->string i)
-                         (number->string j)))
-         coordinate-system)
-        (gij j i)))
-    gij)
+(defn make-metric [name coordinate-system]
+  (fn gij [i j]
+    (if (<= i j)
+      (m/literal-manifold-function
+       (symbol (str name "_" i j))
+       coordinate-system)
+      (gij j i))))
 
-  (define (literal-metric name coordinate-system)
-    ;; Flat coordinate systems here only.
-    (let ((basis (coordinate-system->basis coordinate-system)))
-      (let ((oneform-basis (basis->oneform-basis basis))
-            (gij (make-metric name coordinate-system)))
-        (let ((n (s:dimension oneform-basis)))
-          (let ((gcoeffs
-                 (s:generate n 'down
-                             (lambda (i)
-                                     (s:generate n 'down
-                                                 (lambda (j)
-                                                         (gij i j)))))))
-            (define (the-metric v1 v2)
-              (* (* gcoeffs (oneform-basis v1))
-                 (oneform-basis v2)))
-            (declare-argument-types! the-metric
-                                     (list vector-field? vector-field?))
-            the-metric))))))
+(defn literal-metric [name coordinate-system]
+  ;; Flat coordinate systems here only.
+  (let [basis (b/coordinate-system->basis coordinate-system)
+        oneform-basis (b/basis->oneform-basis basis)
+        gij (make-metric name coordinate-system)
+        n (g/dimension oneform-basis)
+        gcoeffs (s/generate
+                 n ::s/down
+                 (fn [i]
+                   (s/generate
+                    n ::s/down
+                    (fn [j]
+                      (gij i j)))))]
+    (letfn [(the-metric [v1 v2]
+              (g/* (g/* gcoeffs (oneform-basis v1))
+                   (oneform-basis v2)))]
+      (with-meta the-metric
+        {:arguments [::vf/vector-field
+                     ::vf/vector-field]}))))
 
-(comment
-  (define (components->metric components basis)
-    (let ((oneform-basis (basis->oneform-basis basis)))
-      (define (the-metric v1 v2)
-        (* (oneform-basis v1) (* components (oneform-basis v2))))
-      the-metric)))
+(defn components->metric [components basis]
+  (let [oneform-basis (b/basis->oneform-basis basis)]
+    (fn the-metric [v1 v2]
+      (g/* (oneform-basis v1)
+           (g/* components (oneform-basis v2))))))
 
 (defn metric->components [metric basis]
   (let [vector-basis (b/basis->vector-basis basis)]
@@ -160,130 +156,131 @@
 
 ;; Over a map...
 
-(comment
-  (define (metric-over-map mu:N->M g-on-M)
-    (define (vector-field-over-map->vector-field V-over-mu n)
-      ;; This helper has no clear meaning.
-      (procedure->vector-field
-       (lambda (f)
-               (lambda (m)
-                       ;;(assert (= m (mu:N->M n)))
-                       ((V-over-mu f) n)))
-       `(vector-field-over-map->vector-field
-         ,(diffop-name V-over-mu))))
-    (define (the-metric v1 v2)
-      (lambda (n)
+(defn metric-over-map [mu:N->M g-on-M]
+  (letfn [(vector-field-over-map->vector-field [V-over-mu n]
+            ;; This helper has no clear meaning.
+            (vf/procedure->vector-field
+             (fn [f]
+               (fn [m]
+                 ;;(assert (= m (mu:N->M n)))
+                 ((V-over-mu f) n)))
+             `(~'vector-field-over-map->vector-field
+               ~(v/freeze V-over-mu))))
+          (the-metric [v1 v2]
+            (fn [n]
               ((g-on-M
                 (vector-field-over-map->vector-field v1 n)
                 (vector-field-over-map->vector-field v2 n))
-               (mu:N->M n))))
-    (declare-argument-types! the-metric
-                             (list vector-field? vector-field?))
-    the-metric))
+               (mu:N->M n))))]
+    (with-meta the-metric
+      {:arguments [::vf/vector-field
+                   ::vf/vector-field]})))
 
-(comment
-  ;;; Raising and lowering indices...
+;; Raising and lowering indices...
+;;
+;; To make a vector field into a one-form field
+;;  ie a (1,0) tensor into a (0,1) tensor
 
-;;; To make a vector field into a one-form field
-;;;  ie a (1,0) tensor into a (0,1) tensor
+(defn lower [metric]
+  (fn [u]
+    (letfn [(omega [v]
+              (metric v u))]
+      (ff/procedure->oneform-field
+       omega
+       `(~'lower
+         ~(v/freeze u)
+         ~(v/freeze metric))))))
 
-  (define ((lower metric) u)
-    (define (omega v)
-      (metric v u))
-    (procedure->oneform-field omega
-                              `(lower ,(diffop-name u)
-                                       ,(diffop-name metric))))
+(def vector-field->oneform-field lower)
+(def drop1 lower)
 
-  (define vector-field->oneform-field lower)
-  (define drop1 lower)
+;; To make a one-form field  into a vector field
+;;  ie a (0,1) tensor into a (1,0) tensor
 
+(defn raise [metric basis]
+  (let [gi (invert metric basis)]
+    (fn [omega]
+      (let [v (b/contract
+               (fn [e_i e-i]
+                 (g/* (gi omega e-i) e_i))
+               basis)]
+        (vf/procedure->vector-field
+         v
+         `(~'raise
+           ~(v/freeze omega)
+           ~(v/freeze metric)))))))
 
-;;; To make a one-form field  into a vector field
-;;;  ie a (0,1) tensor into a (1,0) tensor
+(def oneform-field->vector-field raise)
+(def raise1 raise)
 
-  (define (raise metric basis)
-    (let ((gi (metric:invert metric basis)))
-      (lambda (omega)
-              (define v
-                (contract (lambda (e_i e~i)
-                                  (* (gi omega e~i) e_i))
-                          basis))
-              (procedure->vector-field v
-                                       `(raise ,(diffop-name omega)
-                                                ,(diffop-name metric))))))
+;; For making a (2,0) tensor into a (0,2) tensor
 
-  (define oneform-field->vector-field raise)
-  (define raise1 raise)
+(defn drop2 [metric-tensor basis]
+  (fn [tensor]
+    (letfn [(omega [v1 v2]
+              (b/contract
+               (fn [e1 w1]
+                 (b/contract
+                  (fn [e2 w2]
+                    (g/* (metric-tensor v1 e1)
+                         (tensor w1 w2)
+                         (metric-tensor e2 v2)))
+                  basis))
+               basis))]
+      (with-meta omega
+        {:arguments [::vf/vector-field
+                     ::vf/vector-field]}))))
 
-;;; For making a (2,0) tensor into a (0,2) tensor
+;; For making a (0,2) tensor into a (2,0) tensor
 
-  (define ((drop2 metric-tensor basis) tensor)
-    (define (omega v1 v2)
-      (contract
-       (lambda (e1 w1)
-               (contract
-                (lambda (e2 w2)
-                        (* (metric-tensor v1 e1)
-                           (tensor w1 w2)
-                           (metric-tensor e2 v2)))
+(defn raise2 [metric-tensor basis]
+  (let [gi (invert metric-tensor basis)]
+    (fn [tensor02]
+      (letfn[(v2 [omega1 omega2]
+               (b/contract
+                (fn [e1 w1]
+                  (b/contract
+                   (fn [e2 w2]
+                     (g/* (gi omega1 w1)
+                          (tensor02 e1 e2)
+                          (gi w2 omega2)))
+                   basis))
+                basis))]
+        (with-meta v2
+          {:arguments [::ff/oneform-field
+                       ::ff/oneform-field]})))))
+
+;; To compute the trace of a (0,2) tensor
+
+(defn trace2down [metric-tensor basis]
+  (let [inverse-metric-tensor (invert metric-tensor basis)]
+    (fn [tensor02]
+      (let [f (b/contract
+               (fn [e1 w1]
+                 (b/contract
+                  (fn [e2 w2]
+                    (g/* (inverse-metric-tensor w1 w2)
+                         (tensor02 e1 e2)))
+                  basis))
+               basis)]
+        (with-meta f
+          {:arguments [::v/function]})))))
+
+;; To compute the trace of a (2,0) tensor
+
+(defn trace2up [metric-tensor basis]
+  (fn [tensor20]
+    (let [f (b/contract
+             (fn [e1 w1]
+               (b/contract
+                (fn [e2 w2]
+                  (g/* (metric-tensor e1 e2)
+                       (tensor20 w1 w2)))
                 basis))
-       basis))
-    (declare-argument-types! omega (list vector-field? vector-field?))
-    omega)
+             basis)]
+      (with-meta f
+        {:arguments [::v/function]}))))
 
-
-;;; For making a (0,2) tensor into a (2,0) tensor
-
-  (define (raise2 metric-tensor basis)
-    (let ((gi (metric:invert metric-tensor basis)))
-      (lambda (tensor02)
-              (define (v2 omega1 omega2)
-                (contract
-                 (lambda (e1 w1)
-                         (contract
-                          (lambda (e2 w2)
-                                  (* (gi omega1 w1)
-                                     (tensor02 e1 e2)
-                                     (gi w2 omega2)))
-                          basis))
-                 basis))
-              (declare-argument-types! v2 (list oneform-field? oneform-field?))
-              v2)))
-
-
-;;; To compute the trace of a (0,2) tensor
-
-  (define (trace2down metric-tensor basis)
-    (let ((inverse-metric-tensor
-           (metric:invert metric-tensor basis)))
-      (lambda (tensor02)
-              (define f
-                (contract
-                 (lambda (e1 w1)
-                         (contract
-                          (lambda (e2 w2)
-                                  (* (inverse-metric-tensor w1 w2)
-                                     (tensor02 e1 e2)))
-                          basis))
-                 basis))
-              (declare-argument-types! f (list function?))
-              f)))
-
-
-;;; To compute the trace of a (2,0) tensor
-
-  (define ((trace2up metric-tensor basis) tensor20)
-    (define f
-      (contract
-       (lambda (e1 w1)
-               (contract
-                (lambda (e2 w2)
-                        (* (metric-tensor e1 e2)
-                           (tensor20 w1 w2)))
-                basis))
-       basis))
-    (declare-argument-types! f (list function?))
-    f))
 
 ;; Unfortunately raise is very expensive because the matrix is
 ;; inverted for each manifold point.

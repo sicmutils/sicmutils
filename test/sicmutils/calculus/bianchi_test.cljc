@@ -119,14 +119,12 @@
                  (m/typical-point R3-rect))))
           "works in 10 seconds.")
 
-      (comment
-        ;; TODO needs has-argument-types!
-        (is (= 0 (simplify
-                  ((+ (((del V) R) omega X Y Z)
-                      (((del Z) R) omega X V Y)
-                      (((del Y) R) omega X Z V))
-                   (m/typical-point R3-rect))))
-            "second example."))
+      (is (= 0 (simplify
+                ((+ (((del V) R) omega X Y Z)
+                    (((del Z) R) omega X V Y)
+                    (((del Y) R) omega X Z V))
+                 (m/typical-point R3-rect))))
+          "second example.")
 
       ;; Bianchi identities:
       ;; According to Wikipedia:Torsion tensor (Bertschinger)
@@ -179,7 +177,6 @@
             Z (vf/literal-vector-field 'Z R3-rect)
             del (cov/covariant-derivative C)]
         (comment
-          ;; TODO get has-argument-types working
           (is (= 0 (simplify
                     (((Bianchi2 del) omega V X Y Z)
                      (m/typical-point R3-rect)))))))))
