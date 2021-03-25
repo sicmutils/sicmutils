@@ -39,10 +39,10 @@
 
 ;; Type Declarations
 
-(def ^:private orientation->symbol
+(def ^:no-doc orientation->symbol
   {::up 'up ::down 'down})
 
-(def ^:private orientation->separator
+(def ^:no-doc orientation->separator
   {::up "↑" ::down "_"})
 
 (def opposite-orientation

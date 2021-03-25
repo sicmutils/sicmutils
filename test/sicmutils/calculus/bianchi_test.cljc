@@ -42,29 +42,37 @@
        (f z x y))))
 
 (defn Bianchi1 [nabla]
-  (fn [w x y z]
+  (fn [omega x y z]
     (let [R (curv/Riemann-curvature nabla)
           T (curv/torsion-vector nabla)
           TT (curv/torsion nabla)]
-      ((- (cyclic-sum
-           (fn [x y z]
-             (w ((R x y) z))))
-          (cyclic-sum
-           (fn [x y z]
-             (+ (w (T (T x y) z))
-                (((nabla x) TT) w y z)))))
+      ((cyclic-sum
+        (fn [x y z]
+          (- (omega ((R x y) z))
+             (+ (omega (T (T x y) z))
+                (((nabla x) TT) omega y z)))))
        x y z))))
 
 (defn Bianchi2 [nabla]
-  (fn [w x y z v]
+  (fn [omega x y z v]
     (let [R (curv/Riemann-curvature nabla)
           RT (curv/Riemann nabla)
           T (curv/torsion-vector nabla)]
       ((cyclic-sum
         (fn [x y z]
-          (+ (w ((R (T x y) z) v))
-             (((nabla x) RT) w v y z))))
+          (+ (omega ((R (T x y) z) v))
+             (((nabla x) RT) omega v y z))))
        x y z))))
+
+;; TODO:
+;;
+;; - I have the first with and without torsion, from the book.
+;;
+;;   - 1 without torsion:
+;;       works in 107 seconds from the book version (TYPO!) with R4, 10 seconds with R3 from Sussman's example.
+;;
+;;   - 2 without torsion:
+;;       testing now in book, R4, no typo... I think.
 
 (deftest bianchi-identities
   (testing "bianchi identities from book!"
@@ -72,66 +80,84 @@
           X (vf/literal-vector-field 'X-rect R4-rect)
           Y (vf/literal-vector-field 'Y-rect R4-rect)
           Z (vf/literal-vector-field 'Z-rect R4-rect)
-          V (vf/literal-vector-field 'V-rect R4-rect)]
+          V (vf/literal-vector-field 'V-rect R4-rect)
+          nabla (cov/covariant-derivative
+                 (cov/Christoffel->Cartan
+                  (cov/symmetrize-Christoffel
+                   (conn/literal-Christoffel-2 'C R4-rect))))
+          R  (curv/Riemann nabla)]
+      (is (= 0 (simplify
+                (((curv/torsion nabla) omega X Y)
+                 (m/typical-point R4-rect))))
+          "fast! This is from page 129. GOOD!")
 
-      (let [nabla (cov/covariant-derivative
-                   (cov/Christoffel->Cartan
-                    (cov/symmetrize-Christoffel
-                     (conn/literal-Christoffel-2 'C R4-rect))))
-            R  (curv/Riemann nabla)]
-        (is (= 0 (simplify
-                  (((curv/torsion nabla) omega X Y)
-                   (m/typical-point R4-rect))))
-            "fast! This is from page 129.")
+      #_
+      (is (= 0 (simplify
+                (((cyclic-sum
+                   (fn [x y z]
+                     (R omega x y z)))
+                  X Y Z)
+                 (m/typical-point R4-rect))))
+          "107 seconds. eq 8.32, first identity. GOOD!")
 
-        #_
-        (is (= 0 (simplify
-                  (((cyclic-sum
-                     (fn [x y z]
-                       (R omega x y z)))
-                    X Y Z)
-                   (m/typical-point R4-rect))))
-            "woohoo, takes 107 seconds... eq 8.32, first identity.")
+      #_
+      (is (= 0 (simplify
+                (((cyclic-sum
+                   (fn [x y z]
+                     (((nabla x) R) omega V y z)))
+                  X Y Z)
+                 (m/typical-point R4-rect))))
+          "eq 8.33, second identity. NOTE: CHECK!"))
 
-        #_
-        (is (= 0 (simplify
-                  (((cyclic-sum
-                     (fn [x y z]
-                       (((nabla x) R) omega V y z)))
-                    X Y Z)
-                   (m/typical-point R4-rect))))
-            " eq 8.33, second identity."))
-
-      ;; now, write them differently with torsion...
-      (let [nabla (cov/covariant-derivative
+    (testing "now, write them differently with torsion..."
+      (let [omega (ff/literal-oneform-field 'omega-rect R4-rect)
+            X (vf/literal-vector-field 'X-rect R4-rect)
+            Y (vf/literal-vector-field 'Y-rect R4-rect)
+            Z (vf/literal-vector-field 'Z-rect R4-rect)
+            V (vf/literal-vector-field 'V-rect R4-rect)
+            nabla (cov/covariant-derivative
                    (cov/Christoffel->Cartan
                     (conn/literal-Christoffel-2 'C R4-rect)))
-            R  (curv/Riemann nabla)
-            T  (curv/torsion-vector nabla)
+            R (curv/Riemann nabla)
+            T (curv/torsion-vector nabla)
             TT (fn [omega x y]
                  (omega (T x y)))]
+
+        ;; TODO note that I had to change the y, z, x order. That means that I
+        ;; could INSTEAD have changed the order for the other bullshit... note
+        ;; to GJS.
         #_
         (is (= 0 (simplify
                   (((cyclic-sum
                      (fn [x y z]
-                       (- (R omega x y z)
+                       (- (R omega y z x)
                           (+ (omega (T (T x y) z))
                              (((nabla x) TT) omega y z)))))
                     X Y Z)
                    (m/typical-point R4-rect))))
-            "224 seconds, first bianchi identity, page 131. FAIL!")
+            "235 seconds, first bianchi identity, page 131. GOOD!")
 
+        (time
+         (def cakecheck
+           (simplify
+            (((cyclic-sum
+               (fn [x y z]
+                 (+ (R omega V (T x y) z)
+                    (((nabla x) R) omega V y z))))
+              X Y Z)
+             (m/typical-point R4-rect)))))
 
         #_
         (is (= 0 (simplify
                   (((cyclic-sum
                      (fn [x y z]
-                       (+ (((nabla x) R) omega V y z)
-                          (R omega V (T x y) z))))
+                       (+ (R omega V (T x y) z)
+                          (((nabla x) R) omega V y z))))
                     X Y Z)
                    (m/typical-point R4-rect))))
-            "second bianchi identity, page 131. FAIL!"))))
+            "second bianchi identity, page 131. NOTE: check!")))))
 
+(deftest gjs-style-bianchi-tests
   (testing "Bianchi identities from GJS"
     (comment
       "from GJS examples: weirdly it fails when I do this...."
@@ -180,8 +206,6 @@
         (is (= 0 (simplify
                   (((Bianchi1 del) omega X Y Z)
                    (m/typical-point R4-rect))))))
-
-
 
       (let [C (conn/literal-Cartan 'C R3-rect)
             omega (ff/literal-oneform-field 'omega R3-rect)

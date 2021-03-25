@@ -76,7 +76,8 @@
   (let [basis (b/coordinate-system->basis coordinate-system)
         vector-basis (b/basis->vector-basis basis)
         ->components
-        (g// 1 (coordinate-system->metric-components coordinate-system))
+        (g// 1 (coordinate-system->metric-components
+                coordinate-system))
         Chi (m/chart coordinate-system)]
     (letfn [(the-inverse-metric [w1 w2]
               (fn [m]
@@ -87,8 +88,8 @@
                        (s/mapr (fn [e] ((w2 e) m))
                                vector-basis)))))]
       (with-meta the-inverse-metric
-        {:arguments [::ff/one-form-field
-                     ::ff/one-form-field]}))))
+        {:arguments [::ff/oneform-field
+                     ::ff/oneform-field]}))))
 
 ;; Symbolic metrics are often useful for testing.
 
@@ -100,8 +101,9 @@
        coordinate-system)
       (gij j i))))
 
-(defn literal-metric [name coordinate-system]
-  ;; Flat coordinate systems here only.
+(defn literal-metric
+  "Flat coordinate systems here only."
+  [name coordinate-system]
   (let [basis (b/coordinate-system->basis coordinate-system)
         oneform-basis (b/basis->oneform-basis basis)
         gij (make-metric name coordinate-system)
@@ -137,14 +139,11 @@
 ;;; Given a metric and a basis, to compute the inverse metric
 
 (defn metric->inverse-components [metric basis]
-  (fn [m]
+  (fn the-coeffs [m]
     (let [g_ij ((metric->components metric basis) m)
           oneform-basis (b/basis->oneform-basis basis)
-          g-ij (matrix/s:inverse
-                (s/typical-object oneform-basis)
-                g_ij
-                (s/typical-object oneform-basis))]
-      g-ij)))
+          typical (s/typical-object oneform-basis)]
+      (matrix/s:inverse typical g_ij typical))))
 
 (defn invert [metric basis]
   (letfn [(the-inverse-metric [w1 w2]
@@ -159,20 +158,18 @@
 ;; Over a map...
 
 (defn metric-over-map [mu:N->M g-on-M]
-  (letfn [(vector-field-over-map->vector-field [V-over-mu n]
-            ;; This helper has no clear meaning.
+  (letfn [(make-fake-vector-field [V-over-mu n]
             (vf/procedure->vector-field
              (fn [f]
-               (fn [m]
-                 ;;(assert (= m (mu:N->M n)))
+               (fn [_]
                  ((V-over-mu f) n)))
-             `(~'vector-field-over-map->vector-field
+             `(~'make-fake-vector-field
                ~(v/freeze V-over-mu))))
           (the-metric [v1 v2]
             (fn [n]
               ((g-on-M
-                (vector-field-over-map->vector-field v1 n)
-                (vector-field-over-map->vector-field v2 n))
+                (make-fake-vector-field v1 n)
+                (make-fake-vector-field v2 n))
                (mu:N->M n))))]
     (with-meta the-metric
       {:arguments [::vf/vector-field
