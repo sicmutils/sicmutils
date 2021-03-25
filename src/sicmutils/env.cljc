@@ -82,7 +82,7 @@
             [sicmutils.calculus.form-field]
             [sicmutils.calculus.frame]
             [sicmutils.calculus.manifold]
-            [sicmutils.calculus.metric]
+            [sicmutils.calculus.metric :as cm]
             [sicmutils.calculus.map]
             [sicmutils.calculus.coordinate :as cc]
             [sicmutils.calculus.vector-field]))
@@ -198,6 +198,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
 (import-def series/power-series power-series)
 (import-def series/constant constant-series)
 (import-def series/sum series:sum)
+(import-def cm/invert metric:invert)
 
 (import-def us/seq-print seq:print)
 (import-def us/pprint seq:pprint)
@@ -286,45 +287,61 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
  [sicmutils.calculus.basis
   basis? coordinate-basis? make-basis
   coordinate-system->basis
+  basis->coordinate-system
   basis->oneform-basis
   basis->vector-basis
   basis->dimension
+  contract
   vector-basis->dual
   make-constant-vector-field
   Jacobian]
 
  [sicmutils.calculus.connection
-  ;; TODO add.
-  ]
- [sicmutils.calculus.curvature
-  Riemann-curvature Riemann Ricci torsion-vector torsion
-  curvature-components]
+  make-Christoffel-1
+  metric->Christoffel-1 metric->Christoffel-2
+  literal-Christoffel-1 literal-Christoffel-2
+  metric->connection-1 metric->connection-2
+  literal-Cartan
+  structure-constant]
 
  [sicmutils.calculus.covariant
   covariant-derivative
+  covariant-differential
   interior-product
-  Cartan-transform
+  make-Cartan Cartan? Cartan->forms Cartan->basis
+  make-Christoffel Christoffel? Christoffel->symbols Christoffel->basis
+  Cartan->Christoffel
   Christoffel->Cartan
-  make-Christoffel
-  ]
+  symmetrize-Christoffel
+  symmetrize-Cartan
+  Cartan-transform
+  Cartan->Cartan-over-map
+  geodesic-equation parallel-transport-equation]
 
  [sicmutils.calculus.curvature
-  ;; TODO add.
-  ]
+  Riemann-curvature Riemann Ricci torsion-vector torsion
+  curvature-components]
 
  [sicmutils.calculus.derivative
   derivative D Div Grad Curl Lap taylor-series]
 
  [sicmutils.calculus.form-field
-  d
+  form-field? nform-field? oneform-field?
+  ff:zero
   components->oneform-field
-  coordinate-system->oneform-basis
+  oneform-field->components
   literal-oneform-field
-  wedge]
+  coordinate-basis-oneform-field
+  coordinate-system->oneform-basis
+  basis-components->oneform-field
+  oneform-field->basis-components
+  function->oneform-field
+  wedge
+  Alt alt-wedge
+  exterior-derivative d]
 
  [sicmutils.calculus.frame
-  ;; TODO add.
-  ]
+  frame?]
 
  [sicmutils.calculus.manifold
   make-manifold coordinate-system-at
@@ -351,25 +368,41 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   SO3-type SO3 Euler-angles alternate-angles]
 
  [sicmutils.calculus.metric
-  ;; TODO add.
-  ]
+  coordinate-system->metric-components
+  coordinate-system->metric
+  coordinate-system->inverse-metric
+  make-metric
+  literal-metric
+  components->metric metric->components
+  metric->inverse-components metric-over-map
+  lower vector-field->oneform-field drop1
+  raise oneform-field->vector-field raise1
+  drop2 raise2 trace2down trace2up sharpen
+  S2-metric]
 
  [sicmutils.calculus.map
-  basis->basis-over-map
-  differential
-  pullback
+  pullback-function pushforward-function
+  differential-of-map differential
   pushforward-vector
   literal-manifold-map
+  basis->basis-over-map
+  vector-field->vector-field-over-map
   form-field->form-field-over-map
-  vector-field->vector-field-over-map]
+  basis->basis-over-map
+  pullback-form pullback-vector-field
+  pullback]
 
  [sicmutils.calculus.vector-field
+  vector-field?
   components->vector-field
-  coordinatize
-  evolution
-  literal-vector-field
   vector-field->components
-  coordinate-system->vector-basis]
+  vf:zero
+  literal-vector-field
+  coordinate-basis-vector-field
+  coordinate-system->vector-basis
+  basis-components->vector-field
+  vector-field->basis-components
+  coordinatize evolution]
 
  ;; Mechanics Namespaces
 
