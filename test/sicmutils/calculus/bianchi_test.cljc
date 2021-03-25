@@ -121,6 +121,7 @@
                    (m/typical-point R4-rect))))
             "224 seconds, first bianchi identity, page 131. FAIL!")
 
+
         #_
         (is (= 0 (simplify
                   (((cyclic-sum
@@ -156,6 +157,7 @@
                  (m/typical-point R3-rect))))
           "works in 10 seconds.")
 
+      #_
       (is (= 0 (simplify
                 ((+ (((del V) R) omega X Y Z)
                     (((del Z) R) omega X V Y)

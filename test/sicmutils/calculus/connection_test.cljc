@@ -212,8 +212,7 @@
                              ((curvature alpha beta gamma delta)
                               spherical-point))))))))))))))
 
-
-(deftest big-test
+(deftest ^:long spherical-flat-lorentz
   (testing "MTW p205 spherical flat lorentz"
     (let [spherical-Lorentz m/R4-rect]
       (let-coordinates [[t r theta phi] spherical-Lorentz]
@@ -280,18 +279,17 @@
                                 zero)))
                      (orthonormal-spherical-Lorentz-basis c-2))))]
 
-            ;; TODO had to add covariant derivative!
-            #_
-            (testing "look at curvature:"
-              (doall
-               (for [alpha [dt dr dtheta dphi]
-                     beta [d:dt d:dr d:dtheta d:dphi]
-                     gamma [d:dt d:dr d:dtheta d:dphi]
-                     delta [d:dt d:dr d:dtheta d:dphi]]
-                 (is (= 0 (simplify
-                           (((curv/Riemann
-                              (cov/covariant-derivative
-                               (cov/Christoffel->Cartan
-                                (orthonormal-spherical-Lorentz-second-connection 'c↑2))))
-                             alpha beta gamma delta)
-                            spherical-Lorentz-point)))))))))))))
+            #?(:clj
+               (testing "look at curvature:"
+                 (doall
+                  (for [alpha [dt dr dtheta dphi]
+                        beta [d:dt d:dr d:dtheta d:dphi]
+                        gamma [d:dt d:dr d:dtheta d:dphi]
+                        delta [d:dt d:dr d:dtheta d:dphi]]
+                    (is (= 0 (simplify
+                              (((curv/Riemann
+                                 (cov/covariant-derivative
+                                  (cov/Christoffel->Cartan
+                                   (orthonormal-spherical-Lorentz-second-connection 'c↑2))))
+                                alpha beta gamma delta)
+                               spherical-Lorentz-point))))))))))))))
