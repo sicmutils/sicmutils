@@ -40,6 +40,30 @@
 (def simplify
   (comp v/freeze g/simplify))
 
+(deftest basic-tests
+  (testing "Christoffel round-trip"
+    (let [Christoffel (conn/literal-Christoffel-2 'C m/R2-rect)
+          rt (fn [C]
+               (cov/Cartan->Christoffel
+                (cov/Christoffel->Cartan C)))
+          point ((m/point m/R2-rect) (s/up 'x 'y))]
+
+      (is (= ((cov/Christoffel->symbols
+               (cov/symmetrize-Christoffel Christoffel))
+              point)
+             ((cov/Christoffel->symbols
+               (cov/symmetrize-Christoffel (rt Christoffel)))
+              point))
+          "symmetrize works after round-tripping.")
+
+      (is (= ((cov/Christoffel->symbols Christoffel)
+              point)
+             ((cov/Christoffel->symbols (rt Christoffel))
+              point)
+             ((cov/Christoffel->symbols (rt (rt Christoffel)))
+              point))
+          "roundtripped Christoffel symbols have the same effect on a point."))))
+
 (deftest connection-tests
   (let [two-sphere m/R2-rect]
     (let-coordinates [[theta phi] two-sphere]
@@ -148,7 +172,8 @@
                                     (up (* -1 r) zero))))
                            (b/coordinate-system->basis polar))
               nabla (cov/covariant-derivative
-                     (cov/Christoffel->Cartan polar-Gamma))
+                     (cov/Christoffel->Cartan
+                      polar-Gamma))
               curvature (curv/Riemann nabla)]
           (testing "Now look at curvature:"
             (doall

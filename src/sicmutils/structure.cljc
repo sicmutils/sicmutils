@@ -897,6 +897,16 @@
 
 (defmethod g/div [::structure ::v/scalar] [a b] (structure*scalar a (g/invert b)))
 
+;; TODO this is super weird that this is how we want to be communicating...
+;; ANDDDD this is key!!
+;;
+;; TODO test that operators get pushed inside structures!!
+(defmethod g/mul [::o/operator ::structure] [op s]
+  (same s (map #(g/* op %) s)))
+
+(defmethod g/mul [::structure ::o/operator] [s op]
+  (same s (map #(g/* % op) s)))
+
 (defmethod g/square [::structure] [a] (dot-product a a))
 (defmethod g/cube [::structure] [a] (s:* a (s:* a a)))
 (defmethod g/expt [::structure ::v/integral] [a b] (expt a b))
