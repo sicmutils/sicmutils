@@ -385,7 +385,6 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   differential-of-map differential
   pushforward-vector
   literal-manifold-map
-  basis->basis-over-map
   vector-field->vector-field-over-map
   form-field->form-field-over-map
   basis->basis-over-map

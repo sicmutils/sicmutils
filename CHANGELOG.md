@@ -2,6 +2,20 @@
 
 ## [unreleased]
 
+- #338:
+
+  - structure / operator multiplication pushes into structures, rather than
+    converting a structure into an operator.
+
+  - covariant derivative now properly handles the case of functions (and
+    operators?) with argument types attached.
+
+  - add `covariant-differential` to `sicmutils.calculus.covariant`
+  - aliased everything into `sicmutils.env`
+  - adds `metric.cljc`
+  - adds `connection.cljc`
+
+
 - #337:
 
   - adds `sicmutils.calculus.curvature`, with these new functions and many tests

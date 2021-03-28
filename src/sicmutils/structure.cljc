@@ -897,10 +897,14 @@
 
 (defmethod g/div [::structure ::v/scalar] [a b] (structure*scalar a (g/invert b)))
 
-;; TODO this is super weird that this is how we want to be communicating...
-;; ANDDDD this is key!!
+;; NOTE: structures extend `::f/cofunction`, so when you multiply a function by
+;; a structure, the multiplication is deferred to multiplication between the
+;; structure and the function's return value.
 ;;
-;; TODO test that operators get pushed inside structures!!
+;; This is NOT the case with operator / structure multiplication. Operators push
+;; their multiplication inside of the structure; the return value is a structure
+;; of the same shape.
+
 (defmethod g/mul [::o/operator ::structure] [op s]
   (same s (map #(g/* op %) s)))
 

@@ -46,7 +46,7 @@
           rt (fn [C]
                (cov/Cartan->Christoffel
                 (cov/Christoffel->Cartan C)))
-          point ((m/point m/R2-rect) (s/up 'x 'y))]
+          point (m/typical-point m/R2-rect)]
 
       (is (= ((cov/Christoffel->symbols
                (cov/symmetrize-Christoffel Christoffel))
@@ -54,17 +54,15 @@
              ((cov/Christoffel->symbols
                (cov/symmetrize-Christoffel (rt Christoffel)))
               point))
-          "symmetrize works after round-tripping.")
+          "symmetrize-Christoffel behaves identically after round-tripping.")
 
-      (is (= ((cov/Christoffel->symbols Christoffel)
-              point)
-             ((cov/Christoffel->symbols (rt Christoffel))
-              point)
-             ((cov/Christoffel->symbols (rt (rt Christoffel)))
-              point))
+      (is (= ((cov/Christoffel->symbols Christoffel) point)
+             ((cov/Christoffel->symbols (rt Christoffel)) point)
+             ((cov/Christoffel->symbols (rt (rt Christoffel))) point))
           "roundtripped Christoffel symbols have the same effect on a point."))))
 
 (deftest connection-tests
+  ;; These tests come from connection.scm in scmutils, 2020 edition.
   (let [two-sphere m/R2-rect]
     (let-coordinates [[theta phi] two-sphere]
       (let [g-sphere (fn [R]
@@ -237,84 +235,86 @@
                              ((curvature alpha beta gamma delta)
                               spherical-point))))))))))))))
 
-(deftest ^:long spherical-flat-lorentz
-  (testing "MTW p205 spherical flat lorentz"
-    (let [spherical-Lorentz m/R4-rect]
-      (let-coordinates [[t r theta phi] spherical-Lorentz]
-        (let [spherical-Lorentz-basis
-              (b/coordinate-system->basis spherical-Lorentz)
+#?(:clj
+   ;; Takes quite a while, so we only install this test for clj, marked with
+   ;; a :long selector.
+   (deftest ^:long spherical-flat-lorentz
+     (testing "MTW p205 spherical flat lorentz"
+       (let [spherical-Lorentz m/R4-rect]
+         (let-coordinates [[t r theta phi] spherical-Lorentz]
+           (let [spherical-Lorentz-basis
+                 (b/coordinate-system->basis spherical-Lorentz)
 
-              spherical-Lorentz-metric
-              (fn [c-2]
-                (fn [v1 v2]
-                  (+ (* -1 c-2 (* (dt v1) (dt v2)))
-                     (* (dr v1) (dr v2))
-                     (* (g/square r)
-                        (+ (* (dtheta v1) (dtheta v2))
-                           (* (g/square (g/sin theta))
-                              (* (dphi v1) (dphi v2))))))))
+                 spherical-Lorentz-metric
+                 (fn [c-2]
+                   (fn [v1 v2]
+                     (+ (* -1 c-2 (* (dt v1) (dt v2)))
+                        (* (dr v1) (dr v2))
+                        (* (g/square r)
+                           (+ (* (dtheta v1) (dtheta v2))
+                              (* (g/square (g/sin theta))
+                                 (* (dphi v1) (dphi v2))))))))
 
-              spherical-Lorentz-point
-              ((m/point spherical-Lorentz) (up 't 'r 'theta 'phi))
+                 spherical-Lorentz-point
+                 ((m/point spherical-Lorentz) (up 't 'r 'theta 'phi))
 
-              orthonormal-spherical-Lorentz-vector-basis
-              (fn [c-2]
-                (down (* (/ 1 (g/sqrt c-2)) d:dt)
-                      d:dr
-                      (* (/ 1 r) d:dtheta)
-                      (* (/ 1 (* r (g/sin theta))) d:dphi)))
+                 orthonormal-spherical-Lorentz-vector-basis
+                 (fn [c-2]
+                   (down (* (/ 1 (g/sqrt c-2)) d:dt)
+                         d:dr
+                         (* (/ 1 r) d:dtheta)
+                         (* (/ 1 (* r (g/sin theta))) d:dphi)))
 
-              orthonormal-spherical-Lorentz-oneform-basis
-              (fn [c-2]
-                (let [orthonormal-spherical-Lorentz-vectors
-                      (orthonormal-spherical-Lorentz-vector-basis c-2)]
-                  (b/vector-basis->dual orthonormal-spherical-Lorentz-vectors
-                                        spherical-Lorentz)))
+                 orthonormal-spherical-Lorentz-oneform-basis
+                 (fn [c-2]
+                   (let [orthonormal-spherical-Lorentz-vectors
+                         (orthonormal-spherical-Lorentz-vector-basis c-2)]
+                     (b/vector-basis->dual orthonormal-spherical-Lorentz-vectors
+                                           spherical-Lorentz)))
 
-              orthonormal-spherical-Lorentz-basis
-              (fn [c-2]
-                (b/make-basis
-                 (orthonormal-spherical-Lorentz-vector-basis c-2)
-                 (orthonormal-spherical-Lorentz-oneform-basis c-2)))]
-          (let [orthonormal-spherical-Lorentz-second-connection
-                (fn [c-2]
-                  (let [zero m/zero-manifold-function]
-                    (cov/make-Christoffel
-                     (down
-                      (down (up zero zero zero zero)
-                            (up zero zero zero zero)
-                            (up zero zero zero zero)
-                            (up zero zero zero zero))
-                      (down (up zero zero zero zero)
-                            (up zero zero zero zero)
-                            (up zero zero zero zero)
-                            (up zero zero zero zero))
-                      (down (up zero zero zero zero)
-                            (up zero zero (/ 1 r) zero)
-                            (up zero (/ -1 r) zero zero)
-                            (up zero zero zero zero))
-                      (down (up zero zero zero zero)
-                            (up zero zero zero (/ 1 r))
-                            (up zero zero zero (/ (g/cos theta)
-                                                  (* r (g/sin theta))))
-                            (up zero
-                                (/ -1 r)
-                                (/ (* -1 (g/cos theta))
-                                   (* r (g/sin theta)))
-                                zero)))
-                     (orthonormal-spherical-Lorentz-basis c-2))))]
+                 orthonormal-spherical-Lorentz-basis
+                 (fn [c-2]
+                   (b/make-basis
+                    (orthonormal-spherical-Lorentz-vector-basis c-2)
+                    (orthonormal-spherical-Lorentz-oneform-basis c-2)))
 
-            #?(:clj
-               (testing "look at curvature:"
-                 (doall
-                  (for [alpha [dt dr dtheta dphi]
-                        beta [d:dt d:dr d:dtheta d:dphi]
-                        gamma [d:dt d:dr d:dtheta d:dphi]
-                        delta [d:dt d:dr d:dtheta d:dphi]]
-                    (is (= 0 (simplify
-                              (((curv/Riemann
-                                 (cov/covariant-derivative
-                                  (cov/Christoffel->Cartan
-                                   (orthonormal-spherical-Lorentz-second-connection 'c↑2))))
-                                alpha beta gamma delta)
-                               spherical-Lorentz-point))))))))))))))
+                 orthonormal-spherical-Lorentz-second-connection
+                 (fn [c-2]
+                   (let [zero m/zero-manifold-function]
+                     (cov/make-Christoffel
+                      (down
+                       (down (up zero zero zero zero)
+                             (up zero zero zero zero)
+                             (up zero zero zero zero)
+                             (up zero zero zero zero))
+                       (down (up zero zero zero zero)
+                             (up zero zero zero zero)
+                             (up zero zero zero zero)
+                             (up zero zero zero zero))
+                       (down (up zero zero zero zero)
+                             (up zero zero (/ 1 r) zero)
+                             (up zero (/ -1 r) zero zero)
+                             (up zero zero zero zero))
+                       (down (up zero zero zero zero)
+                             (up zero zero zero (/ 1 r))
+                             (up zero zero zero (/ (g/cos theta)
+                                                   (* r (g/sin theta))))
+                             (up zero
+                                 (/ -1 r)
+                                 (/ (* -1 (g/cos theta))
+                                    (* r (g/sin theta)))
+                                 zero)))
+                      (orthonormal-spherical-Lorentz-basis c-2))))]
+             (testing "look at curvature:"
+               (doall
+                (for [alpha [dt dr dtheta dphi]
+                      beta [d:dt d:dr d:dtheta d:dphi]
+                      gamma [d:dt d:dr d:dtheta d:dphi]
+                      delta [d:dt d:dr d:dtheta d:dphi]]
+                  (is (= 0 (simplify
+                            (((curv/Riemann
+                               (cov/covariant-derivative
+                                (cov/Christoffel->Cartan
+                                 (orthonormal-spherical-Lorentz-second-connection 'c↑2))))
+                              alpha beta gamma delta)
+                             spherical-Lorentz-point)))))))))))))

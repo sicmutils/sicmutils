@@ -31,6 +31,7 @@
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g :refer [+ - * / cube expt negate square]]
             [sicmutils.structure :as s]
+            [sicmutils.operator :as o]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
             [sicmutils.value :as v]))
@@ -880,6 +881,26 @@
     (is (= (s/up 1 2 -3)
            (/ (s/up (u/long 2) 4 -6)
               (u/long 2)))))
+
+  (testing "<structure> * <operator> pushes operator multiplication into the
+  structure (unlike <structure> * <function>!)"
+    (is (= (v/freeze
+            (s/up (s/down (* 1 o/identity)
+                          (* 2 o/identity))
+                  (s/down (* 4 o/identity)
+                          (* 5 o/identity))))
+           (v/freeze
+            (* (s/up (s/down 1 2)
+                     (s/down 4 5))
+               o/identity))))
+
+    (is (= (v/freeze
+            (s/up (s/down (* o/identity 1)
+                          (* o/identity 2))))
+           (v/freeze
+            (* o/identity
+               (s/up (s/down 1 2)))))
+        "operator*structure is not commutative."))
 
   (testing "s*t outer simple"
     (is (= (s/up (s/up 3 6)

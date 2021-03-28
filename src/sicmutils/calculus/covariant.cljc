@@ -58,7 +58,7 @@
              (ff/procedure->nform-field op k name))
 
            (s/structure? Y)
-	         (s/mapr (vector-field-Lie-derivative X) Y)
+           (s/mapr (vector-field-Lie-derivative X) Y)
 
            :else (u/unsupported "Bad argument: Lie Derivative")))
    `(~'Lie-derivative
@@ -92,28 +92,36 @@
    :forms forms
    :basis basis})
 
-(defn Cartan? [m]
-  (= (v/kind m) ::Cartan))
+(defn Cartan? [x]
+  (= (v/kind x) ::Cartan))
 
-(def Cartan->forms :forms)
-(def Cartan->basis :basis)
+(defn Cartan->forms [C]
+  (:forms C))
+
+(defn Cartan->basis [C]
+  (:basis C))
 
 (defn make-Christoffel
+  "Returns a data structure representing [Christoffel symbols of the second
+  kind](https://en.wikipedia.org/wiki/Christoffel_symbols#Christoffel_symbols_of_the_second_kind_(symmetric_definition))."
   [symbols basis]
   {:type ::Christoffel
    :symbols symbols
    :basis basis})
 
-(defn Christoffel? [m]
-  (= (v/kind m) ::Christoffel))
+(defn Christoffel? [x]
+  (= (v/kind x) ::Christoffel))
 
-(def Christoffel->symbols :symbols)
-(def Christoffel->basis :basis)
+(defn Christoffel->symbols [C]
+  (:symbols C))
+
+(defn Christoffel->basis [C]
+  (:basis C))
 
 (defn Cartan->Christoffel [Cartan]
   {:pre [(Cartan? Cartan)]}
   (let [basis (Cartan->basis Cartan)
-	      forms (Cartan->forms Cartan)]
+        forms (Cartan->forms Cartan)]
     (make-Christoffel
      (s/mapr forms (b/basis->vector-basis basis))
      basis)))
@@ -159,9 +167,9 @@
 (defn Cartan->Cartan-over-map [Cartan map]
   (let [basis (cm/basis->basis-over-map
                map (Cartan->basis Cartan))
-	      Cartan-forms
-	      (s/mapr (cm/form-field->form-field-over-map map)
-		            (Cartan->forms Cartan))]
+        Cartan-forms
+        (s/mapr (cm/form-field->form-field-over-map map)
+                (Cartan->forms Cartan))]
     (make-Cartan (f/compose Cartan-forms (cm/differential map))
                  basis)))
 
@@ -216,12 +224,12 @@
   function."
   [Cartan]
   (let [basis (Cartan->basis Cartan)
-	      vector-basis (b/basis->vector-basis basis)
-	      oneform-basis (b/basis->oneform-basis basis)
-	      Cartan-forms (Cartan->forms Cartan)]
+        vector-basis (b/basis->vector-basis basis)
+        oneform-basis (b/basis->oneform-basis basis)
+        Cartan-forms (Cartan->forms Cartan)]
     (fn [V]
       (let [CV (Cartan-forms V)]
-	      (fn [T]
+        (fn [T]
           (let [arg-types (argument-types T)]
             (assert
              (every? (fn [t]
@@ -229,60 +237,60 @@
                            (isa? t ::ff/oneform-field)))
                      arg-types))
             (letfn [(lp [types args targs factors]
-		                  (if (empty? types)
-			                  (g/* (V (apply T targs))
-				                     (apply g/* factors))
-			                  (b/contract
-			                   (fn [e w]
-			                     (cond (isa? (first types) ::vf/vector-field)
-				                         (do (assert (vf/vector-field? (first args)))
-				                             (lp (rest types)
-					                               (rest args)
-					                               (conj targs e)
-					                               (conj factors (w (first args)))))
+                      (if (empty? types)
+                        (g/* (V (apply T targs))
+                             (apply g/* factors))
+                        (b/contract
+                         (fn [e w]
+                           (cond (isa? (first types) ::vf/vector-field)
+                                 (do (assert (vf/vector-field? (first args)))
+                                     (lp (rest types)
+                                         (rest args)
+                                         (conj targs e)
+                                         (conj factors (w (first args)))))
 
                                  (isa? (first types) ::ff/oneform-field)
-				                         (do (assert (ff/oneform-field? (first args)))
-				                             (lp (rest types)
-					                               (rest args)
-					                               (conj targs w)
-					                               (conj factors ((first args) e))))))
-			                   basis)))
+                                 (do (assert (ff/oneform-field? (first args)))
+                                     (lp (rest types)
+                                         (rest args)
+                                         (conj targs w)
+                                         (conj factors ((first args) e))))))
+                         basis)))
                     (the-derivative [& args]
                       (assert (= (count args)
                                  (count arg-types)))
                       (let [argv (into [] args)
                             VT (lp arg-types argv [] [])
-		                        corrections (ua/generic-sum
-		                                     (map-indexed
+                            corrections (ua/generic-sum
+                                         (map-indexed
                                           (fn [i type]
-			                                      (cond
+                                            (cond
                                               ;; positive
                                               (isa? type ::ff/oneform-field)
-				                                      (g/*
-				                                       (g/* (s/mapr (fn [e]
-						                                                  ((nth argv i) e))
-						                                                vector-basis)
-					                                          CV)
-				                                       (s/mapr
-				                                        (fn [w]
-					                                        (apply T (assoc argv i w)))
-				                                        oneform-basis))
+                                              (g/*
+                                               (g/* (s/mapr (fn [e]
+                                                              ((nth argv i) e))
+                                                            vector-basis)
+                                                    CV)
+                                               (s/mapr
+                                                (fn [w]
+                                                  (apply T (assoc argv i w)))
+                                                oneform-basis))
 
                                               ;; negative
-				                                      (isa? type ::vf/vector-field)
-				                                      (g/negate
-				                                       (g/*
+                                              (isa? type ::vf/vector-field)
+                                              (g/negate
+                                               (g/*
                                                 (s/mapr
                                                  (fn [e]
-					                                         (apply T (assoc argv i e)))
-				                                         vector-basis)
-				                                        (g/* CV (s/mapr
+                                                   (apply T (assoc argv i e)))
+                                                 vector-basis)
+                                                (g/* CV (s/mapr
                                                          (fn [w]
-						                                               (w (nth argv i)))
-						                                             oneform-basis))))))
-			                                    arg-types))]
-		                    (g/+ VT corrections)))]
+                                                           (w (nth argv i)))
+                                                         oneform-basis))))))
+                                          arg-types))]
+                        (g/+ VT corrections)))]
               (with-meta the-derivative
                 {:arguments arg-types}))))))))
 
@@ -292,17 +300,17 @@
       (fn [& args]
         (let [types (apply v/argument-kind args)]
           (cond (and (= (count args) 1)
-		                 (manifold/manifold-point? (first args)))
-	              (let [f (with-meta f {:arguments types})]
+                     (manifold/manifold-point? (first args)))
+                (let [f (with-meta f {:arguments types})]
                   ((X f) (first args)))
 
-	              (every? (fn [arg] ;; either a vector field or oneform.
-		                      (or (vf/vector-field? arg)
+                (every? (fn [arg] ;; either a vector field or oneform.
+                          (or (vf/vector-field? arg)
                               (ff/oneform-field? arg)))
-		                    args)
+                        args)
                 (let [f (with-meta f {:arguments types})]
-	                (apply (((covariant-derivative-argument-types Cartan) X) f)
-		                     args))
+                  (apply (((covariant-derivative-argument-types Cartan) X) f)
+                         args))
 
                 :else
                 (u/illegal "Bad function or arguments to covariant derivative")))))))
@@ -318,7 +326,7 @@
                      (((covariant-derivative-form Cartan) X) V)
 
                      (has-argument-types? V)
-	                   (((covariant-derivative-argument-types Cartan) X) V)
+                     (((covariant-derivative-argument-types Cartan) X) V)
 
                      (f/function? V)
                      (((covariant-derivative-function Cartan) X) V)
@@ -354,7 +362,7 @@
                    (manifold/manifold source-coordsys)))]}
       (let [e (vf/coordinate-system->vector-basis source-coordsys)]
         (((((covariant-derivative Cartan-on-target gamma)
-	          e)
+            e)
            ((cm/differential gamma) e))
           (manifold/chart target-coordsys))
          source-m)))))
@@ -368,7 +376,7 @@
                      (manifold/manifold source-coordsys)))]}
         (let [e (vf/coordinate-system->vector-basis source-coordsys)]
           (((((covariant-derivative Cartan-on-target gamma)
-	            e);; d/dt
+              e);; d/dt
              vector-over-gamma)
             (manifold/chart target-coordsys))
            source-m))))))

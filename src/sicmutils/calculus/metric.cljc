@@ -35,7 +35,8 @@
 ;; A metric is a function that takes two vector fields and produces a function
 ;; on the manifold.
 
-(defn embedding-map->metric-components [n xi->rectangular]
+(defn embedding-map->metric-components
+  [n xi->rectangular]
   (let [h   (D xi->rectangular)
         ref (fn [f k]
               (f/compose #(get % k) f))]
@@ -93,7 +94,7 @@
 
 ;; Symbolic metrics are often useful for testing.
 
-(defn make-metric [name coordinate-system]
+(defn- make-metric [name coordinate-system]
   (fn gij [i j]
     (if (<= i j)
       (m/literal-manifold-function
@@ -136,9 +137,9 @@
                       vector-basis))
             vector-basis)))
 
-;;; Given a metric and a basis, to compute the inverse metric
-
-(defn metric->inverse-components [metric basis]
+(defn metric->inverse-components
+  "Given a metric and a basis, computes the inverse metric."
+  [metric basis]
   (fn the-coeffs [m]
     (let [g_ij ((metric->components metric basis) m)
           oneform-basis (b/basis->oneform-basis basis)
@@ -175,12 +176,12 @@
       {:arguments [::vf/vector-field
                    ::vf/vector-field]})))
 
-;; Raising and lowering indices...
-;;
-;; To make a vector field into a one-form field
-;;  ie a (1,0) tensor into a (0,1) tensor
+;; ### Raising and lowering indices
 
-(defn lower [metric]
+(defn lower
+  "To make a vector field into a one-form field, ie, a (1,0) tensor into a (0,1)
+  tensor."
+  [metric]
   (fn [u]
     (letfn [(omega [v]
               (metric v u))]
@@ -190,13 +191,18 @@
          ~(v/freeze u)
          ~(v/freeze metric))))))
 
-(def vector-field->oneform-field lower)
-(def drop1 lower)
+(def ^{:doc "Alias for [[lower]]."}
+  vector-field->oneform-field
+  lower)
 
-;; To make a one-form field  into a vector field
-;;  ie a (0,1) tensor into a (1,0) tensor
+(def ^{:doc "Alias for [[lower]]."}
+  drop1
+  lower)
 
-(defn raise [metric basis]
+(defn raise
+  "To make a one-form field into a vector field, ie, a (0,1) tensor into a (1,0)
+  tensor."
+  [metric basis]
   (let [gi (invert metric basis)]
     (fn [omega]
       (let [v (b/contract
@@ -209,12 +215,17 @@
            ~(v/freeze omega)
            ~(v/freeze metric)))))))
 
-(def oneform-field->vector-field raise)
-(def raise1 raise)
+(def ^{:doc "Alias for [[raise]]."}
+  oneform-field->vector-field
+  raise)
 
-;; For making a (2,0) tensor into a (0,2) tensor
+(def ^{:doc "Alias for [[raise]]."}
+  raise1
+  raise)
 
-(defn drop2 [metric-tensor basis]
+(defn drop2
+  "For making a (2,0) tensor into a (0,2) tensor."
+  [metric-tensor basis]
   (fn [tensor]
     (letfn [(omega [v1 v2]
               (b/contract
@@ -230,9 +241,9 @@
         {:arguments [::vf/vector-field
                      ::vf/vector-field]}))))
 
-;; For making a (0,2) tensor into a (2,0) tensor
-
-(defn raise2 [metric-tensor basis]
+(defn raise2
+  "For making a (0,2) tensor into a (2,0) tensor."
+  [metric-tensor basis]
   (let [gi (invert metric-tensor basis)]
     (fn [tensor02]
       (letfn[(v2 [omega1 omega2]
@@ -249,9 +260,9 @@
           {:arguments [::ff/oneform-field
                        ::ff/oneform-field]})))))
 
-;; To compute the trace of a (0,2) tensor
-
-(defn trace2down [metric-tensor basis]
+(defn trace2down
+  "Computes the trace of a (0,2) tensor."
+  [metric-tensor basis]
   (let [inverse-metric-tensor (invert metric-tensor basis)]
     (fn [tensor02]
       (let [f (b/contract
@@ -265,9 +276,9 @@
         (with-meta f
           {:arguments [::v/function]})))))
 
-;; To compute the trace of a (2,0) tensor
-
-(defn trace2up [metric-tensor basis]
+(defn trace2up
+  "Computes the trace of a (2,0) tensor"
+  [metric-tensor basis]
   (fn [tensor20]
     (let [f (b/contract
              (fn [e1 w1]
@@ -295,10 +306,10 @@
             vector-coeffs (g/* g-ij oneform-coeffs)]
 	      (s/sumr g/* vector-coeffs vector-basis)))))
 
-;;; Useful metrics
+;; ## Useful metrics
 
 (def S2-metric
-  (let [[theta phi] (coord/coordinate-functions m/S2-spherical)
+  (let [[theta phi]   (coord/coordinate-functions m/S2-spherical)
         [dtheta dphi] (ff/coordinate-system->oneform-basis m/S2-spherical)]
     (-> (fn the-metric [v1 v2]
           (g/+ (g/* (dtheta v1) (dtheta v2))
