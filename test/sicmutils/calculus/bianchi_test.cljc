@@ -124,7 +124,6 @@
 ;; +----------+----------+-----------+
 
 (deftest bianchi-identities
-  ;; TODO break this out and test the R1 case.
   (testing "Bianchi identities with symmetric (torsion-free) connection"
     (let [coordsys R2-rect
           nabla (cov/covariant-derivative
