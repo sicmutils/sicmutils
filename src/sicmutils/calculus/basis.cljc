@@ -33,7 +33,7 @@
   (let [vector-basis  (vf/coordinate-system->vector-basis coordinate-system)
         oneform-basis (ff/coordinate-system->oneform-basis coordinate-system)]
     {:type ::coordinate-basis
-     :dimension (:dimension coordinate-system)
+     :dimension (:dimension (m/manifold coordinate-system))
      :vector-basis vector-basis
      :oneform-basis oneform-basis
      :coordinate-system coordinate-system}))

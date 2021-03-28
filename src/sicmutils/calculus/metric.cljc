@@ -206,8 +206,8 @@
   (let [gi (invert metric basis)]
     (fn [omega]
       (let [v (b/contract
-               (fn [e_i e-i]
-                 (g/* (gi omega e-i) e_i))
+               (fn [vf-i ff-i]
+                 (g/* (gi omega ff-i) vf-i))
                basis)]
         (vf/procedure->vector-field
          v
