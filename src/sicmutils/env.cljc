@@ -307,6 +307,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
  [sicmutils.calculus.covariant
   covariant-derivative
   covariant-differential
+  Lie-D
   interior-product
   make-Cartan Cartan? Cartan->forms Cartan->basis
   make-Christoffel Christoffel? Christoffel->symbols Christoffel->basis
@@ -340,8 +341,9 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   Alt alt-wedge
   exterior-derivative d]
 
- [sicmutils.calculus.frame
-  frame?]
+ [sicmutils.calculus.frame frame?]
+
+ [sicmutils.calculus.hodge-star Hodge-star]
 
  [sicmutils.calculus.manifold
   make-manifold coordinate-system-at
@@ -390,6 +392,9 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   basis->basis-over-map
   pullback-form pullback-vector-field
   pullback]
+
+ [sicmutils.calculus.vector-calculus
+  divergence curl gradient Laplacian]
 
  [sicmutils.calculus.vector-field
   vector-field?

@@ -26,20 +26,20 @@
   (if (empty? xs)
     #{xs}
     (mapcat (fn [item]
-		          (map (fn [perm] (conj perm item))
-			             (permutations
+              (map (fn [perm] (conj perm item))
+                   (permutations
                     (disj xs item))))
-		        xs)))
+            xs)))
 
 (defn combinations [xs p]
   (cond (zero? p)   #{()}
-	      (empty? xs) ()
-	      :else (concat
+        (empty? xs) ()
+        :else (concat
                (map (fn [more]
-			                (conj more (first xs)))
-			              (combinations (rest xs)
+                      (conj more (first xs)))
+                    (combinations (rest xs)
                                   (dec p)))
-		           (combinations (rest xs) p))))
+               (combinations (rest xs) p))))
 
 (comment
   (is (= '[(a b c)
@@ -62,38 +62,38 @@
   [permuted-list original-list]
   (letfn [(lp1 [plist n]
             (if (empty? plist)
-	            n
+              n
               (let [bigger (rest (member (first plist) original-list))
-	                  more   (rest plist)]
+                    more   (rest plist)]
                 (lp2 n bigger more more 0))))
           (lp2 [n bigger more l increment]
-	          (if (empty? l)
-		          (lp1 more (+ n increment))
-		          (lp2 (rest l)
-		               (if (not (member (first l) bigger))
-			               (inc increment)
-			               increment))))]
+            (if (empty? l)
+              (lp1 more (+ n increment))
+              (lp2 (rest l)
+                   (if (not (member (first l) bigger))
+                     (inc increment)
+                     increment))))]
     (lp1 permuted-list 0)))
 
 (defn permutation-parity [permuted-list original-list]
   (if (same-set? permuted-list original-list)
     (if (even? (list-interchanges permuted-list original-list))
-	    1 -1)
+      1 -1)
     0))
 
 (defn permutation-interchanges [permuted-list]
   (letfn [(lp1 [plist n]
             (if (empty? plist)
-	            n
-	            (let [[x & xs] plist]
+              n
+              (let [[x & xs] plist]
                 (lp2 n xs xs 0))))
           (lp2 [n x xs l increment]
             (if (empty? l)
-		          (lp1 xs (+ n increment))
-		          (lp2 (rest l)
-		               (if (> (first l) x)
-			               increment
-			               (inc increment)))))]
+              (lp1 xs (+ n increment))
+              (lp2 (rest l)
+                   (if (> (first l) x)
+                     increment
+                     (inc increment)))))]
     (lp1 permuted-list 0)))
 
 (defn permute
@@ -115,16 +115,16 @@
   procedure and the inverse permutation procedure developed by the sort."
   [ulist <? cont]
   (let [n       (count ulist)
-	      lsource (map vector ulist (range n))
-	      ltarget (sort-by first (comparator <?) lsource)
-	      sorted  (map first ltarget)
-	      perm    (map second ltarget)
-	      iperm   (map (fn [i] (index-of perm i))
+        lsource (map vector ulist (range n))
+        ltarget (sort-by first (comparator <?) lsource)
+        sorted  (map first ltarget)
+        perm    (map second ltarget)
+        iperm   (map (fn [i] (index-of perm i))
                      (range n))]
     (cont ulist
-	        sorted
-	        (fn [l] (permute perm l))
-	        (fn [l] (permute iperm l)))))
+          sorted
+          (fn [l] (permute perm l))
+          (fn [l] (permute iperm l)))))
 
 (comment
   ;; For example:
@@ -148,14 +148,14 @@
            source xs
            answer []]
       (if (= i n)
-	      answer
-	      (if-let [entry (the-map i)]
+        answer
+        (if-let [entry (the-map i)]
           (recur (inc i)
-		             (rest source)
-		             (conj answer (nth xs entry)))
-	        (recur (inc i)
-		             (rest source)
-		             (conj answer (first source))))))))
+                 (rest source)
+                 (conj answer (nth xs entry)))
+          (recur (inc i)
+                 (rest source)
+                 (conj answer (first source))))))))
 
 (comment
   (is (= '(a e d b c)
@@ -175,8 +175,8 @@
 
 (defn number-of-combinations [n k]
   (quot (factorial n)
-	      (* (factorial (- n k))
-		       (factorial k))))
+        (* (factorial (- n k))
+           (factorial k))))
 
 (defn permutation-sequence
   "Produces an iterable sequence developing the permutations of the input sequence

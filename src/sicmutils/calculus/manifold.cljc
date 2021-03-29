@@ -29,6 +29,7 @@
   exploration and fun!"
   (:require #?(:cljs [goog.string :refer [format]])
             [sicmutils.abstract.function :as af]
+            [sicmutils.calculus.frame :as cf]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as matrix]
@@ -337,16 +338,20 @@
   coordinate system's manifold to the coordinate representation specified by the
   supplied `coordinate-system`."
   [coordinate-system]
-  (fn [point]
-    (point->coords coordinate-system point)))
+  (if (cf/frame? coordinate-system)
+    (cf/event->coords coordinate-system)
+    (fn [point]
+      (point->coords coordinate-system point))))
 
 (defn point
   "Given an [[ICoordinateSystem]], returns a function from coordinates in
   `coordinate-system`'s repesentation to the matching point on the manifold
   associated with `coordinate-system`."
   [coordinate-system]
-  (fn [coords]
-    (coords->point coordinate-system coords)))
+  (if (cf/frame? coordinate-system)
+    (coords->event coordinate-system)
+    (fn [coords]
+      (coords->point coordinate-system coords))))
 
 (defn typical-coords
   "Given an [[ICoordinateSystem]], returns a structure that matches
