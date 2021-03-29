@@ -1161,7 +1161,7 @@ codebase compatibility."}
 (def spacetime-rect
   (coordinate-system-at spacetime :rectangular :origin))
 
-(def spacetime-spherical
+(def spacetime-sphere
   (coordinate-system-at spacetime :spacetime-spherical :origin))
 
 ;; The surface of a sphere, specialized to two dimensions. See [[S2p]] for the 2

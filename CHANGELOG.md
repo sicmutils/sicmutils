@@ -301,7 +301,7 @@ Enjoy the release!
     - `R2-rect`, `R2-polar`,
     - `R3-rect`, `R3-cyl`, `R3-spherical`,
     - `R4-rect`, `R4-cyl`,
-    - `spacetime-rect`, `spacetime-spherical`
+    - `spacetime-rect`, `spacetime-sphere`
 
 ### Behavior changes, bug fixes
 

@@ -359,7 +359,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   R2 R2-rect R2-polar
   R3 R3-rect R3-cyl R3-spherical
   R4 R4-rect R4-cyl
-  spacetime spacetime-rect spacetime-spherical
+  spacetime spacetime-rect spacetime-sphere
   Sn
   S1 S1-circular S1-tilted S1-slope S1-gnomonic
   S2-type S2 S2-spherical S2-tilted S2-stereographic S2-Riemann S2-gnomonic
