@@ -2,6 +2,44 @@
 
 ## [unreleased]
 
+- From #338:
+
+  - `sicmutils.fdg.bianchi-test` verifies the Bianchi identities; this was a
+    challenge posed by GJS, and getting it working exposed a few bugs and
+    triggered the rest of the work in this PR. Thank you, GJS!
+
+  - `(* <structure> <operator>)` multiplication pushes operator multiplication
+    into the structure, rather than converting a structure into an operator.
+
+  - `covariant-derivative` now properly handles the case of functions with
+    argument types attached.
+
+  - added `covariant-differential` to `sicmutils.calculus.covariant`.
+
+  - aliased all functions from various namespaces in `sicmutils.calculus` into
+    `sicmutils.env`.
+
+  - adds `sicmutils.calculus.metric`, with the following functions exposed in
+    `sicmutils.env`:
+
+      - `coordinate-system->metric-components`, `coordinate-system->metric`,
+        `coordinate-system->inverse-metric`, `make-metric`, `literal-metric`,
+        `components->metric`, `metric->components`,
+        `metric->inverse-components`, `metric-over-map`, `lower`,
+        `vector-field->oneform-field`, `drop1`, `raise`,
+        `oneform-field->vector-field`, `raise1`, `drop2`, `raise2`,
+        `trace2down`, `trace2up`, `sharpen`, `S2-metric`
+
+      - `sicmutils.calculus.metric/invert` is exposed as `metric:invert` to
+        match the scmutils naming scheme.
+
+  - adds `sicmutils.calculus.connection`, with the following functions exposed
+    in `sicmutils.env`:
+
+    - `make-Christoffel-1`, `metric->Christoffel-1`, `metric->Christoffel-2`,
+      `literal-Christoffel-1`, `literal-Christoffel-2`, `metric->connection-1`,
+      `metric->connection-2`, `literal-Cartan`, `structure-constant`
+
 - #337:
 
   - adds `sicmutils.calculus.curvature`, with these new functions and many tests

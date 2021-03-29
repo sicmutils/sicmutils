@@ -39,10 +39,10 @@
 
 ;; Type Declarations
 
-(def ^:private orientation->symbol
+(def ^:no-doc orientation->symbol
   {::up 'up ::down 'down})
 
-(def ^:private orientation->separator
+(def ^:no-doc orientation->separator
   {::up "↑" ::down "_"})
 
 (def opposite-orientation
@@ -896,6 +896,20 @@
 (defmethod g/mul [::v/scalar ::structure] [a b] (scalar*structure a b))
 
 (defmethod g/div [::structure ::v/scalar] [a b] (structure*scalar a (g/invert b)))
+
+;; NOTE: structures extend `::f/cofunction`, so when you multiply a function by
+;; a structure, the multiplication is deferred to multiplication between the
+;; structure and the function's return value.
+;;
+;; This is NOT the case with operator / structure multiplication. Operators push
+;; their multiplication inside of the structure; the return value is a structure
+;; of the same shape.
+
+(defmethod g/mul [::o/operator ::structure] [op s]
+  (same s (map #(g/* op %) s)))
+
+(defmethod g/mul [::structure ::o/operator] [s op]
+  (same s (map #(g/* % op) s)))
 
 (defmethod g/square [::structure] [a] (dot-product a a))
 (defmethod g/cube [::structure] [a] (s:* a (s:* a a)))

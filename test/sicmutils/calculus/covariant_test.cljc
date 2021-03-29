@@ -43,7 +43,7 @@
 (def simplify
   (comp v/freeze g/simplify))
 
-(deftest lie-derivative-tests
+(deftest Lie-derivative-tests
   (testing "Lie derivative."
     (let-coordinates [[x y z]        R3-rect
                       [r theta zeta] R3-cyl]
