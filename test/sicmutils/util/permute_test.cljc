@@ -20,40 +20,47 @@
 (ns sicmutils.util.permute-test
   (:require [clojure.test :refer [is deftest testing]]
             [same :refer [ish?]]
-            [sicmutils.util.permute :as permute]))
+            [sicmutils.generic :as g]
+            [sicmutils.util.permute :as p]))
+
+(deftest misc-tests
+  (testing "factorial"
+    (is (= (apply g/* (range 1 8))
+           (p/factorial 7)))))
 
 (deftest permutation-test
-  (is (thrown? #?(:clj Exception :cljs js/Error)
-               (permute/permutation-sequence 0)))
+  (testing "permutation-sequence"
+    (is (thrown? #?(:clj Exception :cljs js/Error)
+                 (p/permutation-sequence 0)))
 
-  (is (= '[[a]]
-         (permute/permutation-sequence '[a])))
+    (is (= '[[a]]
+           (p/permutation-sequence '[a])))
 
-  (is (= '[[a b] [b a]]
-         (permute/permutation-sequence '(a b))))
+    (is (= '[[a b] [b a]]
+           (p/permutation-sequence '(a b))))
 
-  (is (= [[0 1 2]
-          [0 2 1]
-          [2 0 1]
-          [2 1 0]
-          [1 2 0]
-          [1 0 2]]
-         (permute/permutation-sequence [0 1 2])))
+    (is (= [[0 1 2]
+            [0 2 1]
+            [2 0 1]
+            [2 1 0]
+            [1 2 0]
+            [1 0 2]]
+           (p/permutation-sequence [0 1 2])))
 
-  (is (= [[[0 1 2] 1]
-          [[0 2 1] -1]
-          [[2 0 1] 1]
-          [[2 1 0] -1]
-          [[1 2 0] 1]
-          [[1 0 2] -1]]
-         (map vector
-              (permute/permutation-sequence (range 3))
-              (cycle [1 -1]))))
+    (is (= [[[0 1 2] 1]
+            [[0 2 1] -1]
+            [[2 0 1] 1]
+            [[2 1 0] -1]
+            [[1 2 0] 1]
+            [[1 0 2] -1]]
+           (map vector
+                (p/permutation-sequence (range 3))
+                (cycle [1 -1]))))
 
-  (is (= [[0 1 2 3] [0 1 3 2] [0 3 1 2] [3 0 1 2]
-          [3 0 2 1] [0 3 2 1] [0 2 3 1] [0 2 1 3]
-          [2 0 1 3] [2 0 3 1] [2 3 0 1] [3 2 0 1]
-          [3 2 1 0] [2 3 1 0] [2 1 3 0] [2 1 0 3]
-          [1 2 0 3] [1 2 3 0] [1 3 2 0] [3 1 2 0]
-          [3 1 0 2] [1 3 0 2] [1 0 3 2] [1 0 2 3]]
-         (permute/permutation-sequence (range 4)))))
+    (is (= [[0 1 2 3] [0 1 3 2] [0 3 1 2] [3 0 1 2]
+            [3 0 2 1] [0 3 2 1] [0 2 3 1] [0 2 1 3]
+            [2 0 1 3] [2 0 3 1] [2 3 0 1] [3 2 0 1]
+            [3 2 1 0] [2 3 1 0] [2 1 3 0] [2 1 0 3]
+            [1 2 0 3] [1 2 3 0] [1 3 2 0] [3 1 2 0]
+            [3 1 0 2] [1 3 0 2] [1 0 3 2] [1 0 2 3]]
+           (p/permutation-sequence (range 4))))))

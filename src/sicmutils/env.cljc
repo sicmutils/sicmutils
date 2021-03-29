@@ -63,6 +63,7 @@
             [sicmutils.util.def :as util.def
              #?@(:cljs [:refer [import-def import-vars]
                         :include-macros true])]
+            [sicmutils.util.permute]
             [sicmutils.util.stream :as us]
             [sicmutils.numerical.derivative]
             [sicmutils.numerical.elliptic]
@@ -263,8 +264,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   dot-product inner-product outer-product cross-product
   partial-derivative Lie-derivative
   solve-linear solve-linear-left solve-linear-right
-  simplify
-  factorial]
+  simplify]
  [sicmutils.structure
   compatible-shape
   down
@@ -471,6 +471,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   golden-section-min golden-section-max]
  [sicmutils.numerical.minimize minimize multidimensional-minimize]
  [sicmutils.util.aggregate sum]
+ [sicmutils.util.permute factorial]
  [sicmutils.util.stream vector:generate]
  [sicmutils.value = compare exact? zero? one? identity?
   zero-like one-like identity-like

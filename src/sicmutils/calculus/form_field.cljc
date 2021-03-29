@@ -36,7 +36,7 @@
             [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
-            [sicmutils.util.permute :as permute]
+            [sicmutils.util.permute :as permute :refer [factorial]]
             [sicmutils.value :as v]))
 
 ;; ## Form fields
@@ -395,8 +395,8 @@
        (g/* form1 form2)
        (let [n (+ n1 n2)
              k (/ 1
-                  (* (g/factorial n1)
-                     (g/factorial n2)))
+                  (* (factorial n1)
+                     (factorial n2)))
              w (fn [& args]
                  (assert (= (count args) n)
                          "Wrong number of args to wedge product")
@@ -444,7 +444,7 @@
       (letfn [(alternation [& args]
                 (assert (= (count args) n)
                         "Wrong number of args to alternation")
-                (g/* (/ 1 (g/factorial n))
+                (g/* (/ 1 (factorial n))
                      (apply g/+
                             (map (fn [permutation parity]
                                    (g/* parity (apply form permutation)))
@@ -477,9 +477,9 @@
   ([form1 form2]
    (let [n1 (get-rank form1)
          n2 (get-rank form2)]
-     (g/* (/ (g/factorial (+ n1 n2))
-             (* (g/factorial n1)
-                (g/factorial n2)))
+     (g/* (/ (factorial (+ n1 n2))
+             (* (factorial n1)
+                (factorial n2)))
           (Alt (tensor-product2 form1 form2))))))
 
 (defn alt-wedge

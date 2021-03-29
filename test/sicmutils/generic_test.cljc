@@ -371,8 +371,3 @@
   [float->a & {:keys [exclusions eq]}]
   (floating-point-unary-tests float->a :exclusions exclusions :eq (or eq =))
   (floating-point-binary-tests float->a float->a :exclusions exclusions :eq (or eq =)))
-
-(deftest misc-tests
-  (testing "factorial"
-    (is (= (apply g/* (range 1 8))
-           (g/factorial 7)))))
