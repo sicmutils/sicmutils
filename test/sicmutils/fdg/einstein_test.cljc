@@ -40,7 +40,8 @@
 
 (defn Einstein [coordinate-system metric-tensor]
   (let [basis      (e/coordinate-system->basis coordinate-system)
-        connection (e/literal-Cartan metric-tensor basis)
+        connection (e/Christoffel->Cartan
+                    (e/metric->Christoffel-2 metric-tensor basis))
         nabla      (e/covariant-derivative connection)
         Ricci-tensor (e/Ricci nabla basis)
         Ricci-scalar ((e/trace2down metric-tensor basis) Ricci-tensor)]
@@ -130,26 +131,40 @@
                      ::ff/oneform-field]}))))
 
 (deftest einstein-field-equations
-  (with-literal-functions [R rho p]
-    (let [basis  (e/coordinate-system->basis spacetime-sphere)
-          g      (FLRW-metric 'c 'k R)
-          T_ij   ((e/drop2 g basis) (Tperfect-fluid rho p 'c g))
-          [d:dt] (e/coordinate-system->vector-basis spacetime-sphere)
-          K (/ (* 8 'pi 'G)
-               (expt 'c 4))]
-      (is (= '(+ (* -8 :G :pi (rho t))
-                 (* -1 (expt :c 2) Lambda)
-                 (/ (* 3 k (expt :c 2)) (expt (R t) 2))
-                 (/ (* 3 (expt ((D R) t) 2)) (expt (R t) 2)))
-             ((((Einstein-field-equation spacetime-sphere K)
-                g 'Lambda T_ij)
-               d:dt d:dt)
-              ((point spacetime-sphere) (up 't 'r 'theta 'phi)))))))
+  (testing "first challenge"
+    (with-literal-functions [R rho p]
+      (let [basis  (e/coordinate-system->basis spacetime-sphere)
+            g      (FLRW-metric 'c 'k R)
+            T_ij   ((e/drop2 g basis) (Tperfect-fluid rho p 'c g))
+            [d:dt] (e/coordinate-system->vector-basis spacetime-sphere)
+            K (/ (* 8 'pi 'G)
+                 (expt 'c 4))]
+        ((((Einstein-field-equation spacetime-sphere K)
+           g 'Lambda T_ij)
+          d:dt d:dt)
+         ((point spacetime-sphere) (up 't 'r 'theta 'phi))))))
+
+  (testing "second challenge"
+    (with-literal-functions [R rho p]
+      (let [basis  (e/coordinate-system->basis spacetime-sphere)
+            g      (FLRW-metric 'c 'k R)
+            T_ij   ((e/drop2 g basis) (Tperfect-fluid rho p 'c g))
+            [d:dt] (e/coordinate-system->vector-basis spacetime-sphere)
+            K (/ (* 8 'pi 'G)
+                 (expt 'c 4))]
+        (is (= '(+ (* -8 G pi (rho t))
+                   (* -1 (expt c 2) Lambda)
+                   (/ (* 3 k (expt c 2)) (expt (R t) 2))
+                   (/ (* 3 (expt ((D R) t) 2)) (expt (R t) 2)))
+               ((((Einstein-field-equation spacetime-sphere K)
+                  g 'Lambda T_ij)
+                 d:dt d:dt)
+                ((point spacetime-sphere) (up 't 'r 'theta 'phi))))))))
 
   (with-literal-functions [R p rho]
     (let [basis    (e/coordinate-system->basis spacetime-sphere)
           g        (FLRW-metric 'c 'k R)
-          T_ij     ((e/drop2 g basis) (Tperfect-fluid rho p ':c g))
+          T_ij     ((e/drop2 g basis) (Tperfect-fluid rho p 'c g))
           [_ d:dr] (e/coordinate-system->vector-basis spacetime-sphere)]
       (is (= '(/ (+ (* -1 (expt c 4) Lambda (expt (R t) 2))
                     (* 8 G pi (p t) (expt (R t) 2))
@@ -168,10 +183,11 @@
       (let [metric (FLRW-metric 'c 'k R)
             basis (e/coordinate-system->basis spacetime-sphere)
             nabla (e/covariant-derivative
-                   (e/literal-Cartan metric basis))
+                   (e/Christoffel->Cartan
+                    (e/metric->Christoffel-2 metric basis)))
             es (e/basis->vector-basis basis)]
-        (is (= '[(/ (+ (* -3 (expt :c 2) ((D R) t) (rho t))
-                       (* -1 (expt :c 2) (R t) ((D rho) t))
+        (is (= '[(/ (+ (* -3 (expt c 2) ((D R) t) (rho t))
+                       (* -1 (expt c 2) (R t) ((D rho) t))
                        (* -3 ((D R) t) (p t)))
                     (R t))
                  0 0 0]
@@ -182,7 +198,7 @@
                              (e/contract
                               (fn [ei wi]
                                 (((nabla ei)
-                                  (Tperfect-fluid rho p ':c metric))
+                                  (Tperfect-fluid rho p 'c metric))
                                  wj
                                  wi))
                               basis)))

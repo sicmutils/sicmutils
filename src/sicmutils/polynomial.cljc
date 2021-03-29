@@ -458,7 +458,7 @@
 ;; from the point of view of a polynomial over a commutative ring. The
 ;; functions take polynomial inputs and return polynomials.
 
-(def ^:private operator-table
+(def ^:no-doc operator-table
   {'+ #(reduce g/add %&)
    '- (fn [arg & args]
         (if (some? args)
@@ -472,8 +472,8 @@
    ;;`'g/gcd gcd
    })
 
-(def ^:private operators-known
-  (into #{} (keys operator-table)))
+(def ^:no-doc operators-known
+  (u/keyset operator-table))
 
 (deftype PolynomialAnalyzer []
   a/ICanonicalize

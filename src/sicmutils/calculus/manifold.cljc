@@ -653,9 +653,9 @@ codebase compatibility."}
 	        (let [rep (manifold-point-representation point)]
 		        (let [[t x y z] rep]
 		          (let [r (g/sqrt
-                       (+ (g/square x)
-                          (g/square y)
-                          (g/square z)))]
+                       (g/+ (g/square x)
+                            (g/square y)
+                            (g/square z)))]
 			          (if (and (v/number? r)
                          (v/zero? r))
 			            (throw
