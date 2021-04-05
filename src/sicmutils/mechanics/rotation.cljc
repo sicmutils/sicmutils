@@ -19,9 +19,90 @@
 
 (ns sicmutils.mechanics.rotation
   (:refer-clojure :exclude [+ - * /])
-  (:require [sicmutils.generic :refer [cos sin + - * /]]
+  (:require [sicmutils.generic :as g :refer [cos sin + - * /]]
             [sicmutils.matrix :as matrix]
             [sicmutils.structure :as s :refer [up down]]))
+
+(defn- rotate-x-matrix-2 [c s]
+  (matrix/by-rows [1 0 0]
+                  [0 c (- s)]
+                  [0 s c]))
+
+(defn rotate-x-matrix
+  "Produce the matrix of a rotation of α radians about the x axis."
+  [α]
+  (rotate-x-matrix-2 (cos α) (sin α)))
+
+(def Rx-matrix rotate-x-matrix)
+
+(defn- rotate-y-matrix-2 [c s]
+  (matrix/by-rows  [c 0 s]
+                   [0 1 0]
+                   [(- s) 0 c]))
+
+(defn rotate-y-matrix
+  "Produce the matrix of a rotation of α radians about the y axis."
+  [α]
+  (rotate-y-matrix-2 (cos α) (sin α)))
+
+(def Ry-matrix rotate-y-matrix)
+
+(defn- rotate-z-matrix-2
+  "Produce the matrix of a rotation of α radians about the z axis."
+  [c s]
+  (matrix/by-rows [c (- s) 0]
+                  [s c 0]
+                  [0 0 1]))
+
+(defn rotate-z-matrix
+  "Produce the matrix of a rotation of α radians about the z axis."
+  [α]
+  (rotate-z-matrix-2 (cos α) (sin α)))
+
+(def Rz-matrix rotate-z-matrix)
+
+(defn angle-axis->rotation-matrix [theta [x y z]]
+  (let [colatitude (g/acos z)
+	      longitude (g/atan y x)]
+    (* (rotate-z-matrix longitude)
+	     (rotate-y-matrix colatitude)
+	     (rotate-z-matrix theta)
+	     (matrix/transpose (rotate-y-matrix colatitude))
+	     (matrix/transpose (rotate-z-matrix longitude)))))
+
+;; ## Rotation Tuples
+
+(defn- rotate-x-tuple-2 [c s]
+  (matrix/m->s
+   (s/literal-down 'l 3)
+	 (rotate-x-matrix-2 c s)
+	 (s/literal-up 'r 3)))
+
+(defn rotate-x-tuple [α]
+  (rotate-x-tuple-2 (cos α)
+                    (sin α)))
+
+(defn- rotate-y-tuple-2 [c s]
+  (matrix/m->s
+   (s/literal-down 'l 3)
+   (rotate-y-matrix-2 c s)
+   (s/literal-up 'r 3)))
+
+(defn rotate-y-tuple [α]
+  (rotate-y-tuple-2 (cos α)
+                    (sin α)))
+
+(defn- rotate-z-tuple-2 [c s]
+  (matrix/m->s
+   (s/literal-down 'l 3)
+   (rotate-z-matrix-2 c s)
+   (s/literal-up 'r 3)))
+
+(defn rotate-z-tuple [α]
+  (rotate-z-tuple-2 (cos α)
+                    (sin α)))
+
+;; ## Rotation procedures
 
 ;; XXX: R[xyz] should not return an up; they should return a struct
 ;; of the same shape they were given. But do rotations of covectors
@@ -58,62 +139,11 @@
           (+ (* s x) (* c y))
           z))))
 
-(defn- rotate-x-matrix-2
-  [c s]
-  (matrix/by-rows [1 0 0]
-                  [0 c (- s)]
-                  [0 s c]))
+;; Aliases to match scmutils.
 
-(defn rotate-x-matrix
-  "Produce the matrix of a rotation of α radians about the x axis."
-  [α]
-  (rotate-x-matrix-2 (cos α) (sin α)))
-
-(defn- rotate-y-matrix-2 [c s]
-  (matrix/by-rows  [c 0 s]
-                   [0 1 0]
-                   [(- s) 0 c]))
-
-(defn rotate-y-matrix
-  "Produce the matrix of a rotation of α radians about the y axis."
-  [α]
-  (rotate-y-matrix-2 (cos α) (sin α)))
-
-(defn rotate-y-tuple-2 [c s]
-  (matrix/m->s (s/literal-down 'l 3)
-               (rotate-y-matrix-2 c s)
-               (s/literal-up 'r 3)))
-
-(defn rotate-y-tuple [α]
-  (rotate-y-tuple-2 (cos α) (sin α)))
-
-(defn- rotate-z-matrix-2
-  "Produce the matrix of a rotation of α radians about the z axis."
-  [c s]
-  (matrix/by-rows [c (- s) 0]
-                  [s c 0]
-                  [0 0 1]))
-
-(defn rotate-z-matrix
-  "Produce the matrix of a rotation of α radians about the z axis."
-  [α]
-  (rotate-z-matrix-2 (cos α) (sin α)))
-
-(defn- rotate-x-tuple-2 [c s]
-  (matrix/m->s (s/literal-down 'l 3)
-               (rotate-x-matrix-2 c s)
-               (s/literal-up 'r 3)))
-
-(defn rotate-x-tuple [α]
-  (rotate-x-tuple-2 (cos α) (sin α)))
-
-(defn- rotate-z-tuple-2 [c s]
-  (matrix/m->s (s/literal-down 'l 3)
-               (rotate-z-matrix-2 c s)
-               (s/literal-up 'r 3)))
-
-(defn rotate-z-tuple [α]
-  (rotate-z-tuple-2 (cos α) (sin α)))
+(def rotate-x Rx)
+(def rotate-y Ry)
+(def rotate-z Rz)
 
 (defn Euler->M
   "Compute the rotation matrix from a set of Euler angles."
@@ -121,3 +151,8 @@
   (* (rotate-z-matrix φ)
      (rotate-x-matrix θ)
      (rotate-z-matrix ψ)))
+
+(defn wcross->w [A]
+  (up (get-in A [1 2])
+      (get-in A [2 0])
+      (get-in A [0 1])))

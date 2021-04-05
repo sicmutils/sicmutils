@@ -168,6 +168,9 @@
     (sqrt (expt :x (:? n even-integer?)))
     => (expt :x (:? #(/ (% 'n) 2)))
 
+    (sqrt (expt :x) (:? n odd-integer?))
+    => (* (sqrt :x) (expt :x (:? #(/ (- (% 'n) 1) 2))))
+
     (expt (sqrt :x) (:? n odd-integer?))
     => (* (sqrt :x) (expt :x (:? #(/ (- (% 'n) 1) 2))))
 
@@ -217,23 +220,18 @@
        (* :g1* (sqrt :b) :g2*))
     => (/ (* :f1* :f2* (sqrt (/ :a :b)))
           (* :g1* :g2*))
-
-
-    ;; others to follow
     )))
 
 (def sqrt-expand
   (rule-simplifier
    (ruleset
-
     ;; "distribute the radical sign across products and quotients.
     ;; but doing this may allow equal subexpressions within the
     ;; radicals to cancel in various ways. The companion rule
     ;; sqrt-contract reassembles what remains."
 
-    ;; Scmutils, in each of these expansions, will `asssume!`
+    ;; Scmutils, in each of these expansions, will `assume!`
     ;; that the expressions named :x and :y are non-negative
-
     (sqrt (* :x :y)) => (* (sqrt :x) (sqrt :y))
 
     (sqrt (* :x :y :ys*)) => (* (sqrt :x) (sqrt (* :y :ys*)))
@@ -244,41 +242,70 @@
 
     )))
 
+(defn sqrt-contract
+  ([] (sqrt-contract identity))
+  ([simplify]
+   (rule-simplifier
+    (ruleset
 
-(def sqrt-contract
-  (rule-simplifier
-   (ruleset
+     ;; scmutils NOTE: in scmutils, each of these rules checks to see whether,
+     ;; after sub-simplification, x and y are equal, and if so, the opportunity
+     ;; is taken to subsitute a simpler result.
+     ;;
+     ;; It could be that we don't need that, if there were a rule (for example)
+     ;; to replace (* (sqrt x) (sqrt x)) with x. I tend to think that running the
+     ;; simplifier on interior subexpressions is a dubious idea given how
+     ;; much "churn" there is already waiting for the rulesets to stabilize
 
-    ;; scmutils note: in scmutils, each of these rules checks to see whether,
-    ;; after sub-simplification, x and y are equal, and if so, the opportunity
-    ;; is taken to subsitute a simpler result.
-    ;;
-    ;; It could be that we don't need that, if there were a rule (for example)
-    ;; to replace (* (sqrt x) (sqrt x)) with x. I tend to think that running the
-    ;; simplifier on interior subexpressions is a dubious idea given how
-    ;; much "churn" there is already waiting for the rulesets to stabilize
+     ;; Scmutils, in each of these contractions, will `assume!` that the
+     ;; expressions named :x and :y are non-negative.
+     (* :a* (sqrt :x) :b* (sqrt :y) :c*)
+     => (:? (fn [m]
+              (let [xs (simplify (:x m))
+                    ys (simplify (:y m))]
+                (if (v/= xs ys)
+                  `(~'* ~@(:a* m) ~xs ~@(:b* m) ~@(:c* m))
+                  `(~'* ~@(:a* m) ~@(:b* m) ~@(:c* m)
+                    (~'sqrt (~'* ~xs ~ys)))))))
 
-    ;; Scmutils, in each of these contractions, will `asssume!`
-    ;; that the expressions named :x and :y are non-negative
+     (/ (sqrt :x) (sqrt :y))
+     => (:? (fn [m]
+              (let [xs (simplify (:x m))
+                    ys (simplify (:y m))]
+                (if (v/= xs ys)
+                  1
+                  (~'sqrt (~'/ ~xs ~ys))))))
 
-    (* :a* (sqrt :x) :b* (sqrt :y) :c*)
-    => (* :a* :b* :c* (sqrt (* :x :y)))
+     (/ (* :a* (sqrt :x) :b*) (sqrt :y))
+     => (:? (fn [m]
+              (let [xs (simplify (:x m))
+                    ys (simplify (:y m))]
+                (if (v/= xs ys)
+                  `(~'* ~@(:a* m) ~@(:b* m))
+                  `(~'* ~@(:a* m) ~@(:b* m)
+                    (~'sqrt (~'/ ~xs ~ys)))))))
 
-    (/ (sqrt :x) (sqrt :y))
-    => (sqrt (/ :x :y))
+     (/ (sqrt :x) (* :a* (sqrt :y) :b*))
+     => (:? (fn [m]
+              (let [xs (simplify (:x m))
+                    ys (simplify (:y m))]
+                (if (v/= xs ys)
+                  `(~'/ 1 (~'* ~@(:a* m) ~@(:b* m)))
+                  `(~'/ (~'sqrt (~'/ ~xs ~ys))
+                    (~'* ~@(:a* m) ~@(:b* m)))))))
 
-    (/ (* :a* (sqrt :x) :b*) (sqrt :y))
-    => (* :a* :b* (sqrt (/ :x :y)))
-
-    (/ (sqrt :x) (* :a* (sqrt :y) *b*))
-    => (/ (sqrt (/ :x :y)) (* :a* :b*))
-
-    (/ (* :a* (sqrt :x) :b*)
-       (* :c* (sqrt :y) :d*))
-    => (/ (* :a* :b* (sqrt (/ :x :y)))
-          (* :c* :d*))
-
-    )))
+     (/ (* :a* (sqrt :x) :b*)
+        (* :c* (sqrt :y) :d*))
+     => (:? (fn [m]
+              (let [xs (simplify (:x m))
+                    ys (simplify (:y m))]
+                (if (v/= xs ys)
+                  `(~'/
+                    (~'* ~@(:a* m) ~@(:b* m))
+                    (~'* ~@(:c* m) ~@(:d* m)))
+                  `(~'/
+                    (~'* ~@(:a* m) ~@(:b* m) (~'sqrt (~'/ ~xs ~ys)))
+                    (~'* ~@(:c* m) ~@(:d* m)))))))))))
 
 (def complex-trig
   ;; TODO: clearly more of these are needed.

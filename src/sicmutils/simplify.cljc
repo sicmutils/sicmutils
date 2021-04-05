@@ -150,26 +150,29 @@
    (comp rules/universal-reductions factor/root-out-squares)
    simplify-and-flatten))
 
+(declare simplify-expression)
+
 (defn ^:private simplify-expression-1
   "this is a chain of rule-simplifiers (i.e., each entry in the chain
   passes the expression through after the simplification of the step
   stabilizes.)"
   [x]
-  (-> x
-      (rules/canonicalize-partials)
-      (rules/trig->sincos)
-      (simplify-and-flatten)
-      (rules/complex-trig)
-      (sincos-simplifier)
-      (sin-sq->cos-sq-simplifier)
-      (trig-cleanup)
-      (rules/sincos->trig)
-      (rules/sqrt-expand)
-      (simplify-and-flatten)
-      (rules/sqrt-contract)
-      (square-root-simplifier)
-      (clear-square-roots-of-perfect-squares)
-      (simplify-and-flatten)))
+  (let [sqrt-contract (rules/sqrt-contract simplify-expression)]
+    (-> x
+        (rules/canonicalize-partials)
+        (rules/trig->sincos)
+        (simplify-and-flatten)
+        (rules/complex-trig)
+        (sincos-simplifier)
+        (sin-sq->cos-sq-simplifier)
+        (trig-cleanup)
+        (rules/sincos->trig)
+        (rules/sqrt-expand)
+        (simplify-and-flatten)
+        (sqrt-contract)
+        (square-root-simplifier)
+        (clear-square-roots-of-perfect-squares)
+        (simplify-and-flatten))))
 
 (def simplify-expression
   (simplify-until-stable simplify-expression-1 simplify-and-flatten))

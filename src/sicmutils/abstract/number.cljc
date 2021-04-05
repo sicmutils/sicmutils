@@ -156,6 +156,7 @@
 (defbinary g/sub '-)
 (defbinary g/mul '*)
 (defbinary g/div '/)
+(defbinary g/exact-divide '/)
 (defbinary g/modulo 'modulo)
 (defbinary g/remainder 'remainder)
 (defbinary g/expt 'expt)

@@ -447,7 +447,7 @@
   "The sequence of partial derivatives of p with respect to each
   indeterminate"
   [p]
-  (if (v/number? p)
+  (if (v/numerical? p)
     [1]
     (for [i (range (.-arity ^Polynomial p))]
       (partial-derivative p i))))

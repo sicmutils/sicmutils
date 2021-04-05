@@ -333,13 +333,19 @@
   (manifold [this]
     "Returns the manifold that this [[ICoordinateSystem]] is associated with."))
 
+(defn coordinate-system?
+  "Returns true if `x` implements [[ICoordinateSystem]], false otherwise."
+  [x]
+  (satisfies? ICoordinateSystem x))
+
 (defn chart
   "Given an [[ICoordinateSystem]], returns a function from a point on the
   coordinate system's manifold to the coordinate representation specified by the
   supplied `coordinate-system`."
   [coordinate-system]
   (if (cf/frame? coordinate-system)
-    (cf/event->coords coordinate-system)
+    (fn [event]
+      (cf/event->coords coordinate-system event))
     (fn [point]
       (point->coords coordinate-system point))))
 
@@ -349,7 +355,8 @@
   associated with `coordinate-system`."
   [coordinate-system]
   (if (cf/frame? coordinate-system)
-    (coords->event coordinate-system)
+    (fn [coords]
+      (cf/coords->event coordinate-system coords))
     (fn [coords]
       (coords->point coordinate-system coords))))
 

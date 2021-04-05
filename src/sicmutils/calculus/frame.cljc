@@ -17,78 +17,66 @@
 ;; along with this code; if not, see <http://www.gnu.org/licenses/>.
 ;;
 
-(ns sicmutils.calculus.frame)
+(ns sicmutils.calculus.frame
+  (:require [sicmutils.util :as u]
+            [sicmutils.value :as v]))
+
+;; ## Reference Frames, from frame_maker.scm.
+;;
+;; Every frame has a name, and a frame that it is built on (which may be false).
+;; Every frame owns coordinates that it may coerce to an absolute event or that
+;; it may export as its representation of an absolute event.
+
+(defprotocol IFrame
+  (coords->event [this coords])
+  (event->coords [this event])
+  (ancestor-frame [_])
+  (frame-name [_])
+  (params [_]))
 
 (defn frame?
-  "True if this coordinate system is actually a frame.
+  "Returns true if `x` implements [[IFrame]], false otherwise."
+  [x]
+  (satisfies? IFrame x))
 
-  FIXME: frames aren't implemented yet."
-  ;; Note: when we get around to doing so, it probably makes sense to have
-  ;; frames implement ICoordinateSystem in their own way, rather than the hacky
-  ;; polymorphism used in scmutils
-  [coordinate-system]
-  false)
+(defn make-event [e]
+  (vary-meta e assoc ::event? true))
 
-;; TODO get more functions in manifold.cljc working with frames!
+(defn event? [e]
+  (::event? (meta e) false))
 
-(declare event->coords coords->event)
+(defn frame-owner [coords]
+  (::owner (meta coords)))
 
-(comment
-  ;; from frame_maker.scm
-  ;;
-  ;; ## System code for making frames
-  ;;
-  ;; Every frame has a name, and a frame that it is built on (which may be #f).
-  ;; Every frame owns coordinates that it may coerce to an absolute event or that
-  ;; it may export as its representation of an absolute event.
+(defn claim [coords owner]
+  (if-let [other (frame-owner coords)]
+    (if (= other owner)
+      coords
+      (u/illegal (str "Someone else owns these coords: " coords owner)))
+    (vary-meta coords assoc ::owner owner)))
 
-  (define ((frame-maker c->e e->c) name ancestor-frame . params)
-    (define (coordinates->event coords)
-      (assert (eq? (frame-owner coords) this-frame))
-      (let ((event
-	           ((apply c->e ancestor-frame this-frame params) coords)))
-        (assert (event? event))
-        event))
+(defn frame-maker
+  "c->e takes ancestor-frame, this, and a dict of params."
+  [c->e e->c]
+  (fn call
+    ([name]
+     (call name nil {}))
+    ([name ancestor-frame]
+     (call name ancestor-frame {}))
+    ([name ancestor-frame params]
+     (reify IFrame
+       (ancestor-frame [_] ancestor-frame)
+       (frame-name [_] name)
+       (params [_] params)
 
-    (define (event->coordinates event)
-      (assert (event? event))
-      (let ((coords
-	           ((apply e->c ancestor-frame this-frame params) event)))
-        (assert (eq? (frame-owner coords) this-frame))
-        coords))
+       (coords->event [this coords]
+         (assert (= (frame-owner coords) this))
+         (let [event ((c->e ancestor-frame this params) coords)]
+           (assert (event? event))
+           event))
 
-    (define (this-frame m)
-      (case m
-        ((coords->event) coordinates->event)
-        ((event->coords) event->coordinates)
-        ((name) name)
-        ((ancestor-frame) ancestor-frame)
-        ((params) params)
-        ((manifold) #f)			;Kludge.  See frame? in manifold.scm
-        (else (error "Unknown message: " name m))))
-    this-frame)
-
-  (define (event->coords frame) (frame 'event->coords))
-  (define (coords->event frame) (frame 'coords->event))
-  (define (ancestor-frame frame) (frame 'ancestor-frame))
-
-  (define (make-event e)
-    (eq-put! e 'event #t)
-    e)
-
-  (define (event? e)
-    (eq-get e 'event))
-
-  (define (frame-owner coords)
-    (eq-get coords 'owner))
-
-  (define (claim! coords owner)
-    (let ((other (frame-owner coords)))
-      (if other
-	      (if (not (eq? other owner))
-	        (error "Someone else owns these coords" coords owner))
-	      (eq-put! coords 'owner owner))
-      coords))
-
-  (define (frame-params frame) (frame 'params))
-  (define (frame-name frame) (frame 'name)))
+       (event->coords [this event]
+         (assert (event? event))
+         (let [coords ((e->c ancestor-frame this params) event)]
+           (assert (= (frame-owner coords) this))
+           coords))))))

@@ -294,10 +294,10 @@
       (u/illegal (str "No g/mul implementation registered for kind " kind)))))
 
 (defgeneric square 1)
-(defmethod square :default [x] (expt x 2))
+(defmethod square :default [x] (* x x))
 
 (defgeneric cube 1)
-(defmethod cube :default [x] (expt x 3))
+(defmethod cube :default [x] (* x x x))
 
 (defgeneric exp 1
   "Returns the base-e exponential of `x`. Equivalent to `(expt e x)`, given

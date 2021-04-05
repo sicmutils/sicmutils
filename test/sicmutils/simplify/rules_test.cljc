@@ -91,11 +91,17 @@
            (r/sqrt-expand '(+ (sqrt (/ a b)) (sqrt (/ c b))))))
     (is (= '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
            (r/sqrt-expand '(- (sqrt (/ a b)) (sqrt (/ c b)))))))
-  (testing "sqrt-contract undoes expansion over division"
-    (is (= '(+ (sqrt (/ a b)) (sqrt (/ c b)))
-           (r/sqrt-contract '(+ (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b))))))
-    (is (= '(- (sqrt (/ a b)) (sqrt (/ c b)))
-           (r/sqrt-contract '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b))))))
-    )
 
-  )
+  (let [sqrt-contract (r/sqrt-contract identity)]
+    (testing "cancels square roots"
+      ((r/sqrt-contract identity)
+       '(* a (sqrt b) c (sqrt d) e)))
+
+    (testing "sqrt-contract undoes expansion over division"
+      (is (= '(+ (sqrt (/ a b)) (sqrt (/ c b)))
+             (sqrt-contract
+              '(+ (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b))))))
+
+      (is (= '(- (sqrt (/ a b)) (sqrt (/ c b)))
+             (sqrt-contract
+              '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))))))))

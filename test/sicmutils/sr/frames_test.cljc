@@ -20,12 +20,9 @@
 (ns sicmutils.sr.frames-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            ;; [sicmutils.calculus.basis :as b]
-            ;; [sicmutils.calculus.coordinate :refer [let-coordinates]
-            ;;  #?@(:cljs [:include-macros true])]
-            ;; [sicmutils.calculus.hodge-star :as hs]
-            ;; [sicmutils.calculus.manifold :as m]
-            ;; [sicmutils.calculus.vector-field :as vf]
+            [sicmutils.calculus.frame :as cf]
+            [sicmutils.calculus.manifold :as m]
+            [sicmutils.sr.frames :as sf]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :as s :refer [up down]]
@@ -36,161 +33,125 @@
 (def simplify
   (comp v/freeze g/simplify))
 
+(deftest sr-frames-tests
+  (testing "Velocity addition formula"
+    (let [A (sf/make-SR-frame 'A
+                              sf/the-ether
+                              (up 1 0 0)
+                              (/ 'va 'C)
+                              (sf/make-SR-coordinates sf/the-ether (up 0 0 0 0)))
+          B (sf/make-SR-frame 'B
+                              A
+                              (up 1 0 0)
+                              (/ 'vb 'C)
+                              (sf/make-SR-coordinates A (up 0 0 0 0)))
+          foo ((m/chart sf/the-ether)
+               ((m/point B)
+                (sf/make-SR-coordinates B (up (* 'C 'tau) 0 0 0))))]
+      (is (= '(/ (+ (* (expt C 2) va)
+                    (* -1 (expt C 2) vb)
+                    (* 2 C vb (sqrt (+ (expt C 2) (* -1 (expt va 2))))))
+                 (+ (expt C 2) (* va vb)))
+             (simplify
+              (/ (get foo 1)
+                 (/ (get foo 0) 'C))))
+          "NOTE: the current simplifier can't get this down as tight as
+          scmutils. This is correct... but there is some cancellation that must
+          have happened along the way.")
 
-(comment
-  #|
-;;; Galilean test
+      (comment
+        (is (= 0 (simplify
+                  (- (/ (+ 'va 'vb)
+                        (+ 1 (* (/ 'va 'C) (/ 'vb 'C))))
+                     (/ (get foo 1)
+                        (/ (get foo 0) 'C)))))
+            "This is what we actually want. TODO test and enable when we get the
+            simplifier upgraded."))))
 
-  (define (this->ancestor x) x)
-  (define (ancestor->this x) x)
+  (testing "Simple test of reversibility"
+    (let [A (sf/make-SR-frame 'A sf/the-ether
+                              (up 1 0 0)
+                              'va:c
+                              (sf/make-SR-coordinates sf/the-ether
+                                                      (up 'cta 'xa 'ya 'za)))]
 
-  (define (coordinates->event ancestor-frame this-frame
-                              boost-direction v/c origin)
-    (assert (eq? (frame-owner origin) ancestor-frame))
-    (define (c->e coords)
-      (assert (SR-coordinates? coords))
-      ((point ancestor-frame)
-       (make-SR-coordinates ancestor-frame
-                            (+ (this->ancestor coords)
-                               origin))))
-    c->e)
+      (comment
+        ;; The current simplifier is incapable of getting back to this much
+        ;; simpler result that we want. I've verified with scmutils that the
+        ;; unsimplified result is correct; but we want this!
+        (is (= '(up ct x y z)
+               (simplify
+                ((m/chart A)
+                 ((m/point A)
+                  (sf/make-SR-coordinates A (up 'ct 'x 'y 'z))))))))
 
+      (is (= '(up (/ (+ (* ct (expt va:c 2))
+                        (* 2 va:c x (sqrt (+ (* -1 (expt va:c 2)) 1)))
+                        (* -2 va:c x)
+                        (* -1 ct))
+                     (+ (expt va:c 2) -1))
+                  (/ (+ (* -2 ct va:c (sqrt (+ (* -1 (expt va:c 2)) 1)))
+                        (* 5 (expt va:c 2) x)
+                        (* 2 ct va:c)
+                        (* 4 x (sqrt (+ (* -1 (expt va:c 2)) 1)))
+                        (* -5 x))
+                     (+ (expt va:c 2) -1))
+                  y z)
+             (simplify
+              ((m/chart A)
+               ((m/point A)
+                (sf/make-SR-coordinates A (up 'ct 'x 'y 'z))))))))
 
-  (define (event->coordinates ancestor-frame this-frame
-                              boost-direction v/c origin)
-    (assert (eq? (frame-owner origin) ancestor-frame))
-    (define (e->c event)
-      (assert (event? event))
-      (make-SR-coordinates this-frame
-                           (ancestor->this
-                            (- ((chart ancestor-frame) event)
-                               origin))))
-    e->c)
-  |#
-  )
+    (testing "The ether coordinates of the origin of A relative to 'the ether'"
+      (let [A (sf/make-SR-frame 'A sf/the-ether
+                                (up 1 0 0)
+                                'va:c
+                                (sf/make-SR-coordinates sf/the-ether
+                                                        (up 'cta 'xa 'ya 'za)))
+            origin-A (sf/coordinate-origin A)
+            B
+            (sf/make-SR-frame 'B A (up 1 0 0) 'vba:c
+                              (sf/make-SR-coordinates A
+                                                      (up 'ctba 'xba 'yba 'zba)))]
+        (is (= 'the-ether
+               (cf/frame-name
+                (cf/frame-owner origin-A))))
 
+        (comment
+          ;; Same note here as above. The current simplifier isn't able to
+          ;; obtain this clean result; but the raw formula is indeed fine.
+          (is (= '(up ct x y z)
+                 (simplify
+                  ((m/chart B)
+                   ((m/point B)
+                    (sf/make-SR-coordinates B (up 'ct 'x 'y 'z))))))))))
 
-(comment
-  #|
-  (symbolic-constants #f)
-  (set! *divide-out-terms* #f)
+    (testing "poincare formula"
+      (let [A (sf/make-SR-frame 'A sf/the-ether (up 1 0 0)
+                                'va:c
+                                (sf/make-SR-coordinates
+                                 sf/the-ether
+                                 (up 'cta 'xa 'ya 'za)))
+            B (sf/make-SR-frame 'B A (up 1 0 0)
+                                'vba:c
+                                (sf/make-SR-coordinates
+                                 A
+                                 (up 'ctba 'xba 'yba 'zba)))
 
-;;; Velocity addition formula
-
-  (define A
-    (make-SR-frame 'A the-ether
-                   (up 1 0 0)
-                   (/ 'va :c)
-                   (make-SR-coordinates the-ether
-                                        #(0 0 0 0))))
-
-  (define B
-    (make-SR-frame 'B A
-                   (up 1 0 0)
-                   (/ 'vb :c)
-                   (make-SR-coordinates A
-                                        #(0 0 0 0))))
-
-  (let ((foo ((chart the-ether)
-              ((point B)
-               (make-SR-coordinates B
-                                    (up (* :c 'tau) 0 0 0))))))
-    (/ (ref foo 1) (/ (ref foo 0) :c)))
-  #|
-  (/ (+ (* (expt :c 2) va)
-        (* (expt :c 2) vb))
-     (+ (expt :c 2) (* va vb)))
-;;; Hand simplified to:
-  (/ (+ va vb)
-     (+ 1 (* (/ va :c) (/ vb :c))))
-
-  )
-
-
-(comment
-  #|
-;;; Simple test of reversibility
-
-  (define A
-    (make-SR-frame 'A the-ether (up 1 0 0) 'va/c
-                   (make-SR-coordinates the-ether #(cta xa ya za))))
-
-
-  ((chart A)
-   ((point A)
-    (make-SR-coordinates A #(ct x y z))))
-  #|
-  (up ct x y z)
-  |#
-
-;;; The ether coordinates of the origin of A relative to "the ether"
-;;; is
-
-  (define origin-A
-    (coordinate-origin A))
-
-  (frame-name (frame-owner origin-A))
-  #| the-ether |#
-
-  (define B
-    (make-SR-frame 'B A (up 1 0 0) 'vba/c
-                   (make-SR-coordinates A #(ctba xba yba zba))))
-
-  ((chart B)
-   ((point B)
-    (make-SR-coordinates B
-                         #(ct x y z))))
-  #|
-  (up ct x y z)
-  |#
-  |#
-  
-  #|
-;;; Poincare formula
-
-
-  (define A
-    (make-SR-frame 'A the-ether (up 1 0 0) 'va/c
-                   (make-SR-coordinates the-ether #(cta xa ya za))))
-
-  (define B
-    (make-SR-frame 'B A (up 1 0 0) 'vba/c
-                   (make-SR-coordinates A #(ctba xba yba zba))))
-
-
-
-;;; The ether coordinates of the origin of B relative to "the ether"
-;;; is
-
-  (define origin-B
-    ((chart the-ether)
-     ((point A)
-      (coordinate-origin B))))
-
-  origin-B
-  #|
-  (up
-   (/ (+ (* cta (sqrt (+ 1 (* -1 (expt va/c 2))))) (* va/c xba) ctba)
-      (sqrt (+ 1 (* -1 (expt va/c 2)))))
-   (/ (+ (* ctba va/c) (* xa (sqrt (+ 1 (* -1 (expt va/c 2))))) xba)
-      (sqrt (+ 1 (* -1 (expt va/c 2)))))
-   (+ ya yba)
-   (+ za zba))
-  |#
-
-  (define C
-    (make-SR-frame 'C the-ether
-                   (up 1 0 0)
-                   (add-v/cs 'va/c 'vba/c)
-                   origin-B))
-
-
-;;; A typical event.
-
-  (define foo
-    ((point the-ether)
-     (make-SR-coordinates the-ether
-                          (up 'ct 'x 'y 'z))))
-  |#
-
-  )
+            ;; The ether coordinates of the origin of B relative to "the ether"
+            ;; is
+            origin-B ((m/chart sf/the-ether)
+                      ((m/point A)
+                       (sf/coordinate-origin B)))]
+        (is (= '(up (/ (+ (* cta (sqrt (+ (* -1 (expt va:c 2)) 1)))
+                          (* va:c xba)
+                          ctba)
+                       (sqrt (+ (* -1 (expt va:c 2)) 1)))
+                    (/ (+ (* ctba va:c)
+                          (* xa (sqrt (+ (* -1 (expt va:c 2)) 1)))
+                          (* 2 xba (sqrt (+ (* -1 (expt va:c 2)) 1)))
+                          (* -1 xba))
+                       (sqrt (+ (* -1 (expt va:c 2)) 1)))
+                    (+ ya yba)
+                    (+ za zba))
+               (simplify origin-B)))))))

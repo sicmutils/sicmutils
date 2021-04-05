@@ -20,13 +20,15 @@
 (ns sicmutils.sr.boost-test
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
-            ;; [sicmutils.calculus.basis :as b]
-            ;; [sicmutils.calculus.coordinate :refer [let-coordinates]
-            ;;  #?@(:cljs [:include-macros true])]
-            ;; [sicmutils.calculus.hodge-star :as hs]
-            ;; [sicmutils.calculus.manifold :as m]
-            ;; [sicmutils.calculus.vector-field :as vf]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
+            [sicmutils.mechanics.rotation :as mr]
+            [sicmutils.sr.boost :as sb]
+            [sicmutils.function :as f]
+            [sicmutils.generators :as sg]
             [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.polynomial.gcd :as pg]
             [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.structure :as s :refer [up down]]
             [sicmutils.value :as v]))
@@ -36,43 +38,41 @@
 (def simplify
   (comp v/freeze g/simplify))
 
-
-(comment
+(deftest boost-tests
   (is (= 0 (simplify
-            (- (proper-space-interval
-                ((general-boost (up 'vx 'vy 'vz))
-                 (make-4tuple 'ct (up 'x 'y 'z))))
-               (proper-space-interval
-                (make-4tuple 'ct (up 'x 'y 'z))))))))
+            (- (sb/proper-space-interval
+                ((sb/general-boost (up 'vx 'vy 'vz))
+                 (sb/make-four-tuple 'ct (up 'x 'y 'z))))
+               (sb/proper-space-interval
+                (sb/make-four-tuple 'ct (up 'x 'y 'z)))))))
 
-(comment
-  (let [beta (up (/ 'v↑x :c)
-                 (/ 'v↑y :c)
-                 (/ 'v↑z :c))]
-    (is (= '(up 0 0 0 0)
-           (simplify
-            (- ((general-boost2 (up 1 0 0) 0) (up 'u0 'u1 'u2 'u3))
-               (up 'u0 'u1 'u2 'u3))))))
-  )
+  (checking "a 0-velocity boost in any direction does nothing" 100
+            [[vx vy vz] (gen/vector sg/real 3)]
+            (let [tuple (up 'u0 'u1 'u2 'u3)]
+              (is (= (up 0 0 0 0)
+                     (g/simplify
+                      (- ((sb/general-boost2 (up vx vy vz) 0) tuple)
+                         tuple))))))
 
-(comment
-  ;;; Check of the relation between boosts and rotations.
-
-  (let ((beta (up 'bx 'by 'bz))
-        (xi (make-4tuple 'ct (up 'x 'y 'z)))
-        (R (compose
-            (rotate-x 'theta)
-            (rotate-y 'phi)
-            (rotate-z 'psi)))
-        (R-inverse (compose
-                    (rotate-z (- 'psi))
-                    (rotate-y (- 'phi))
-                    (rotate-x (- 'theta)))))
-    (is (= '(up 0 0 0 0)
-           (simplify
-            (- ((general-boost beta) xi)
-               ((compose (extended-rotation R-inverse)
-                         (general-boost (R beta))
-                         (extended-rotation R))
-                xi))))))
-  )
+  (comment
+    ;; TODO: enable once GCD can handle expressions like this. The binding below
+    ;; is not sufficient.
+    (testing "Check of the relation between boosts and rotations."
+      (let [beta (up 'bx 'by 'bz)
+            xi (sb/make-four-tuple 'ct (up 'x 'y 'z))
+            R (f/compose
+               (mr/rotate-x 'theta)
+               (mr/rotate-y 'phi)
+               (mr/rotate-z 'psi))
+            R-inverse (f/compose
+                       (mr/rotate-z (- 'psi))
+                       (mr/rotate-y (- 'phi))
+                       (mr/rotate-x (- 'theta)))]
+        (binding [pg/*poly-gcd-time-limit* [100 :seconds]]
+          (is (= '(up 0 0 0 0)
+                 (simplify
+                  (- ((sb/general-boost beta) xi)
+                     ((f/compose (sb/extended-rotation R-inverse)
+                                 (sb/general-boost (R beta))
+                                 (sb/extended-rotation R))
+                      xi))))))))))

@@ -19,106 +19,109 @@
 
 (ns sicmutils.sr.frames
   (:refer-clojure :exclude [+ - * /])
-  (:require [sicmutils.generic :as g :refer [+ - * /]]))
+  (:require [sicmutils.calculus.frame :as cf]
+            [sicmutils.calculus.manifold :as m]
+            [sicmutils.sr.boost :as b]
+            [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.structure :as s]
+            [sicmutils.util :as u]))
 
-(comment
-  ;;;;              Special-relativity frames.
+;; ## Special-relativity frames
+;;
+;; A frame is defined by a Poincare transformation from a given background
+;; 4-space frame (the "ancestor-frame"). The transformation is specified by a
+;; boost magnitude and a unit-vector boost direction, relative to the ancestor
+;; frame, and the position of the origin of the frame being defined in the
+;; ancestor frame.
 
-;;; A frame is defined by a Poincare transformation from a given
-;;; background 4-space frame (the "ancestor-frame").  The
-;;; transformation is specified by a boost magnitude and a unit-vector
-;;; boost direction, relative to the ancestor frame, and the position
-;;; of the origin of the frame being defined in the ancestor frame.
+;; The events are absolute, in that it is always possible to compare them to
+;; determine if two are the same. They will be represented with coordinates
+;; relative to some arbitrary absolute frame,
+;; "the-ether".
+;;
+;; To keep us from going nuts, an SR frame has a name, which it uses to label
+;; coordinates in its frame.
 
-;;; The events are absolute, in that it is always possible to compare
-;;; them to determine if two are the same.  They will be represented
-;;; with coordinates relative to some arbitrary absolute frame,
-;;; "the-ether".
+(defn make-SR-coordinates [frame four-tuple]
+  {:pre [(s/up? four-tuple)
+         (= (count four-tuple) 4)]}
+  (-> four-tuple
+      (vary-meta assoc ::SR-coordinates? true)
+      (cf/claim frame)))
 
-;;; To keep us from going nuts, an SR frame has a name, which it uses
-;;; to label coordinates in its frame.
+(defn SR-coordinates? [coords]
+  (::SR-coordinates? (meta coords) false))
 
-;;; ...
-;;; Implementation of the coordinates uses a put/get table.
+(defn SR-name [coords]
+  (cf/frame-name
+   (cf/frame-owner coords)))
 
-  (define (make-SR-coordinates frame 4tuple)
-    (assert (vector? 4tuple))
-    (assert (fix:= (vector-length 4tuple) 4))
-    (eq-put! 4tuple 'SR-coordinates #t)
-    (claim! 4tuple frame)
-    4tuple)
+;; ### SR frames
 
-  (define (SR-coordinates? coords)
-    (eq-get coords 'SR-coordinates))
+(defn- coordinates->event
+  [ancestor-frame this-frame
+   {:keys [boost-direction vc origin]}]
+  {:pre [(= (cf/frame-owner origin) ancestor-frame)]}
+  (fn c->e [coords]
+    {:pre [(SR-coordinates? coords)]}
+    ((m/point ancestor-frame)
+     (make-SR-coordinates ancestor-frame
+                          (+ ((b/general-boost2 boost-direction vc)
+                              coords)
+                             origin)))))
 
-  (define (SR-name coords)
-    ((frame-owner coords) 'name))
-  
-;;; SR frames
-
-  (define (coordinates->event ancestor-frame this-frame
-                              boost-direction v/c origin)
-    (assert (eq? (frame-owner origin) ancestor-frame))
-    (define (c->e coords)
-      (assert (SR-coordinates? coords))
-      ((point ancestor-frame)
-       (make-SR-coordinates ancestor-frame
-                            (+ ((general-boost2 boost-direction v/c)
-                                coords)
-                               origin))))
-    c->e)
-
-
-  (define (event->coordinates ancestor-frame this-frame
-                              boost-direction v/c origin)
-    (assert (eq? (frame-owner origin) ancestor-frame))
-    (define (e->c event)
-      (assert (event? event))
-      (make-SR-coordinates this-frame
-                           ((general-boost2 (- boost-direction) v/c)
-                            (- ((chart ancestor-frame) event)
-                               origin))))
-    e->c)
-  )
-
-(comment
-
-  (define (boost-direction frame)
-    (list-ref (frame-params frame) 0))
-
-  (define (v/c frame)
-    (list-ref (frame-params frame) 1))
-
-  (define (coordinate-origin frame)
-    (list-ref (frame-params frame) 2))
+(defn- event->coordinates
+  [ancestor-frame this-frame
+   {:keys [boost-direction vc origin]}]
+  {:pre [(= (cf/frame-owner origin) ancestor-frame)]}
+  (fn e->c [event]
+    {:pre [(cf/event? event)]}
+    (let [coords ((b/general-boost2 (- boost-direction) vc)
+                  (- ((m/chart ancestor-frame) event)
+                     origin))]
+      (make-SR-coordinates this-frame coords))))
 
 
-  (define make-SR-frame
-    (frame-maker coordinates->event event->coordinates))
+(let [make (cf/frame-maker coordinates->event event->coordinates)]
+  (defn make-SR-frame [name ancestor-frame boost-direction v-over-c origin]
+    (make name ancestor-frame
+          {:boost-direction boost-direction
+           :vc v-over-c
+           :origin origin})))
 
-  ;; The background frame
-  (define ((base-frame-point ancestor-frame this-frame) coords)
-    (assert (SR-coordinates? coords))
-    (assert (eq? this-frame (frame-owner coords)))
-    (make-event coords)
-    coords)
+;; ### The background frame
 
-  (define ((base-frame-chart ancestor-frame this-frame) event)
-    (assert (event? event))
-    (make-SR-coordinates this-frame event))
+(defn base-frame-point [ancestor-frame this-frame _]
+  (fn [coords]
+    {:pre [(SR-coordinates? coords)
+           (= this-frame (cf/frame-owner coords))]}
+    (cf/make-event coords)))
 
-  (define the-ether
-    ((frame-maker base-frame-point base-frame-chart)
-     'the-ether 'the-ether))
+(defn base-frame-chart [ancestor-frame this-frame _]
+  (fn [event]
+    {:pre [(cf/event? event)]}
+    (make-SR-coordinates this-frame event)))
 
-  )
+(def the-ether
+  ((cf/frame-maker base-frame-point base-frame-chart)
+   'the-ether 'the-ether))
 
-(comment
-  (define (add-v/cs v1/c v2/c)
-    (/ (+ v1/c v2/c)
-       (+ 1 (* v1/c v2/c))))
+(defn boost-direction [frame]
+  (:boost-direction (cf/params frame)))
 
-  (define (add-velocities v1 v2)
-    (/ (+ v1 v2)
-       (+ 1 (* (/ v1 :c) (/ v2 :c)))))
-  )
+(defn v:c [frame]
+  (:vc (cf/params frame)))
+
+(defn coordinate-origin [frame]
+  (:origin (cf/params frame)))
+
+(defn add-v:cs [v1:c v2:c]
+  (/ (+ v1:c v2:c)
+     (+ 1 (* v1:c v2:c))))
+
+(defn add-velocities
+  "velocities must be in meters/second, since we don't yet have units support."
+  [v1 v2]
+  (/ (+ v1 v2)
+     (+ 1 (* (/ v1 'C)
+             (/ v2 'C)))))

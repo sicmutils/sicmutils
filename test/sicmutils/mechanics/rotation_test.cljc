@@ -45,3 +45,26 @@
   (testing "function - rotate about x axis"
     (is (= (up 0 0 1) ((r/Rx 'pi-over-2) (up 0 1 0))))
     (is (= (up 'x (- 'z) 'y) ((r/Rx 'pi-over-2) (up 'x 'y 'z))))))
+
+(comment
+  ;; TODO check that these are identical.
+  (defn rotate-x-2 [c s]
+    (let [tuple (rotate-x-tuple-2 c s)]
+      (fn [v] (* tuple v))))
+
+  (defn rotate-x [angle]
+    (rotate-x-2 (cos angle) (sin angle)))
+
+  (defn rotate-y-2 [c s]
+    (let [tuple (rotate-y-tuple-2 c s)]
+      (fn [v] (* tuple v))))
+
+  (defn rotate-y [angle]
+    (rotate-y-2 (cos angle) (sin angle)))
+
+  (defn rotate-z-2 [c s]
+    (let [tuple (rotate-z-tuple-2 c s)]
+      (fn [v] (* tuple v))))
+
+  (defn rotate-z [angle]
+    (rotate-z-2 (cos angle) (sin angle))))
