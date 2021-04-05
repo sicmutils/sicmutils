@@ -399,7 +399,8 @@
                      (factorial n2)))
              w (fn [& args]
                  (assert (= (count args) n)
-                         "Wrong number of args to wedge product")
+                         (str "Wrong number of args to wedge product: "
+                              (count args) " vs required " n))
                  ;; "Error in Singer" comment from GJS.
                  (g/* k (apply
                          g/+ (map (fn [permutation parity]
@@ -425,8 +426,12 @@
   See Spivak p275 v1 of 'Differential Geometry' to see the correct definition.
   The key is that the wedge of the coordinate basis forms had better be the
   volume element."
-  [& fs]
-  (reduce wedge2 fs))
+  ([] (constantly 1))
+  ([f] f)
+  ([f & fs]
+   (reduce (fn [r l]
+             (wedge2 l r))
+           (reverse (cons f fs)))))
 
 ;; One-form fields multiply by [[wedge]].
 

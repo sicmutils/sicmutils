@@ -27,10 +27,10 @@
             [sicmutils.structure :as s]
             [sicmutils.util.permute :as permute]))
 
-;; NOTE: has hodge-star.scm, gram-schmidt.scm
+;; This namespace holds functions from hodge-star.scm and gram-schmidt.scm.
 
 ;; ## Hodge-star dual
-
+;;
 ;; spec may be a coordinate system with an orthonormal basis
 ;;             an orthonormal basis
 ;;             a basis
@@ -38,7 +38,8 @@
 ;; if the spec is a basis that needs to be orthonormalized,
 ;; the optional orthonormalize? argument must be a coordinate system
 
-(declare list-difference)
+(defn list-difference [l1 l2]
+  (remove (into #{} l2) l1))
 
 (defn Gram-Schmidt [vector-basis metric]
   (letfn [(make-positive [x]
@@ -75,35 +76,30 @@
 (defn Hodge-star
   "TODO orthonormalize? takes a coordinate system, sort of weird.
 
-  ;; orthonormalize? must be a coordinate system... these options are super weird!
+  orthonormalize? must be a coordinate system... these options are super weird!
   "
   [metric spec & {:keys [orthonormalize?]
                   :or {orthonormalize? false}}]
   (let [basis (if (b/basis? spec)
                 (if orthonormalize?
-                  spec
                   ;; orthonormalize? must be a coordinate system...
-                  (orthonormalize spec metric orthonormalize?))
+                  (orthonormalize spec metric orthonormalize?)
+                  spec)
                 ;; spec must be a coordinate system if it's not a basis.
                 (if orthonormalize?
-                  (b/coordinate-system->basis spec)
                   (orthonormalize (b/coordinate-system->basis spec)
                                   metric
-                                  spec)))
-        vector-basis (b/basis->vector-basis basis)
-        on-vector-basis (flatten vector-basis)
-        basis-check     (matrix/by-rows*
-                         (map (fn [ei]
-                                (map (fn [ej]
-                                       (metric ei ej))
-                                     on-vector-basis))
-                              on-vector-basis))
-        ;; TODO could just be matrix/diagonal
-        bsigns (map (fn [i]
-                      (get-in basis-check [i i]))
-                    (b/basis->dimension basis))
-        on-oneform-basis (flatten (b/basis->oneform-basis basis))]
-
+                                  spec)
+                  (b/coordinate-system->basis spec)))
+        on-vector-basis  (flatten (b/basis->vector-basis basis))
+        on-oneform-basis (flatten (b/basis->oneform-basis basis))
+        basis-check (matrix/by-rows*
+                     (map (fn [ei]
+                            (map (fn [ej]
+                                   (metric ei ej))
+                                 on-vector-basis))
+                          on-vector-basis))
+        bsigns (matrix/diagonal basis-check)]
     (fn the-star [pform-field]
       (assert (or (f/function? pform-field)
                   (ff/form-field? pform-field)))

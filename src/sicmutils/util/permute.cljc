@@ -54,7 +54,8 @@
            (c d e)]
          (combinations '[a b c d e] 3))))
 
-(declare same-set? member)
+(defn same-set? [x1 x2]
+  (= (set x1) (set x2)))
 
 (defn list-interchanges
   " Returns the number of interchanges required to generate the permuted list from
@@ -63,14 +64,16 @@
   (letfn [(lp1 [plist n]
             (if (empty? plist)
               n
-              (let [bigger (rest (member (first plist) original-list))
+              (let [fp     (first plist)
+                    bigger (rest (drop-while #(not= % fp) original-list))
                     more   (rest plist)]
                 (lp2 n bigger more more 0))))
           (lp2 [n bigger more l increment]
             (if (empty? l)
               (lp1 more (+ n increment))
-              (lp2 (rest l)
-                   (if (not (member (first l) bigger))
+              (lp2 n bigger more
+                   (rest l)
+                   (if-not (some #{(first l)} bigger)
                      (inc increment)
                      increment))))]
     (lp1 permuted-list 0)))

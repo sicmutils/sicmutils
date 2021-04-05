@@ -283,13 +283,15 @@
   the supplied function `f`.
 
   The entry in the `i`th row and `j`-th column is `(f i j)`."
-  [r c f]
-  (->Matrix r c
-            (mapv (fn [i]
-                    (mapv (fn [j]
-                            (f i j))
-                          (range c)))
-                  (range r))))
+  ([n f]
+   (generate n n f))
+  ([r c f]
+   (->Matrix r c
+             (mapv (fn [i]
+                     (mapv (fn [j]
+                             (f i j))
+                           (range c)))
+                   (range r)))))
 
 (defn literal-matrix
   "Generates a `nrows` x `ncols` matrix of symbolic entries, each prefixed by

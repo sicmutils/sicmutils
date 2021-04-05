@@ -274,7 +274,7 @@
                     ys (simplify (:y m))]
                 (if (v/= xs ys)
                   1
-                  (~'sqrt (~'/ ~xs ~ys))))))
+                  `(~'sqrt (~'/ ~xs ~ys))))))
 
      (/ (* :a* (sqrt :x) :b*) (sqrt :y))
      => (:? (fn [m]
