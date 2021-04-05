@@ -201,7 +201,7 @@
 
 ;; ### Covariant Vector Definition
 
-(defn- argument-types [t]
+(defn ^:no-doc argument-types [t]
   (if (o/operator? t)
     (:arguments (o/context t) [])
     (:arguments (meta t) [])))
