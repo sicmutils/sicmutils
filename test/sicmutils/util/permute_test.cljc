@@ -19,11 +19,58 @@
 
 (ns sicmutils.util.permute-test
   (:require [clojure.test :refer [is deftest testing]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
             [same :refer [ish?]]
+            [sicmutils.generators :as sg]
             [sicmutils.generic :as g]
             [sicmutils.util.permute :as p]))
 
 (deftest misc-tests
+  (testing "combinations"
+    (checking "empty input always returns empty output" 100
+              [p (gen/fmap inc gen/nat)]
+              (is (= [] (p/combinations [] p))))
+
+    (checking "p == 0 always returns a singleton with the empty set." 100
+              [xs (gen/vector gen/any-equatable)]
+              (is (= [[]] (p/combinations xs 0))))
+
+    (is (= '((a b c)
+             (a b d)
+             (a b e)
+             (a c d)
+             (a c e)
+             (a d e)
+             (b c d)
+             (b c e)
+             (b d e)
+             (c d e))
+           (p/combinations
+            '[a b c d e] 3))))
+
+  (testing "sort-and-permute"
+    (is (= [[0 2 0 0 1 2 0 0]
+            [0 0 0 0 0 1 2 2]
+            [0 0 0 0 0 1 2 2]
+            [0 2 0 0 1 2 0 0]]
+           (p/sort-and-permute [0 2 0 0 1 2 0 0]
+                               <
+                               (fn [unsorted sorted permuter unpermuter]
+                                 [unsorted
+                                  sorted
+                                  (permuter unsorted)
+                                  (unpermuter sorted)])))))
+
+  (testing "subpermute"
+    (is (= ['a 'e 'd 'b 'c]
+           (p/subpermute '[a b c d e]
+                         {1 4
+                          4 2
+                          2 3
+                          3 1}))))
+
   (testing "factorial"
     (is (= (apply g/* (range 1 8))
            (p/factorial 7)))))

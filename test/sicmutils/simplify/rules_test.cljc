@@ -93,9 +93,15 @@
            (r/sqrt-expand '(- (sqrt (/ a b)) (sqrt (/ c b)))))))
 
   (let [sqrt-contract (r/sqrt-contract identity)]
-    (testing "cancels square roots"
-      ((r/sqrt-contract identity)
-       '(* a (sqrt b) c (sqrt d) e)))
+    (testing "cancels square roots if the values are equal"
+      (is (= '(* a c e (sqrt (* b d)))
+             (sqrt-contract
+              '(* a (sqrt b) c (sqrt d) e)))
+          "square roots get pushed to the end.")
+
+      (is (= '(* a b c e)
+             (sqrt-contract
+              '(* a (sqrt b) c (sqrt b) e)))))
 
     (testing "sqrt-contract undoes expansion over division"
       (is (= '(+ (sqrt (/ a b)) (sqrt (/ c b)))

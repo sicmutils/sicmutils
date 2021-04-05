@@ -32,27 +32,14 @@
             xs)))
 
 (defn combinations [xs p]
-  (cond (zero? p)   #{()}
-        (empty? xs) ()
+  (cond (zero? p)   [[]]
+        (empty? xs) []
         :else (concat
                (map (fn [more]
                       (conj more (first xs)))
                     (combinations (rest xs)
                                   (dec p)))
                (combinations (rest xs) p))))
-
-(comment
-  (is (= '[(a b c)
-           (a b d)
-           (a b e)
-           (a c d)
-           (a c e)
-           (a d e)
-           (b c d)
-           (b c e)
-           (b d e)
-           (c d e)]
-         (combinations '[a b c d e] 3))))
 
 (defn same-set? [x1 x2]
   (= (set x1) (set x2)))
@@ -120,28 +107,14 @@
   (let [n       (count ulist)
         lsource (map vector ulist (range n))
         ltarget (sort-by first (comparator <?) lsource)
-        sorted  (map first ltarget)
-        perm    (map second ltarget)
+        sorted  (mapv first ltarget)
+        perm    (mapv second ltarget)
         iperm   (map (fn [i] (index-of perm i))
                      (range n))]
     (cont ulist
           sorted
           (fn [l] (permute perm l))
           (fn [l] (permute iperm l)))))
-
-(comment
-  ;; For example:
-  (is (= [[0 2 0 0 1 2 0 0]
-          [0 0 0 0 0 1 2 2]
-          [0 0 0 0 0 1 2 2]
-          [0 2 0 0 1 2 0 0]]
-         (sort-and-permute [0 2 0 0 1 2 0 0]
-                           <
-                           (fn [unsorted sorted permuter unpermuter]
-                             (list unsorted
-                                   sorted
-                                   (permuter unsorted)
-                                   (unpermuter sorted)))))))
 
 ;; Sometimes we want to permute some of the elements of a list, as follows:
 
@@ -159,14 +132,6 @@
           (recur (inc i)
                  (rest source)
                  (conj answer (first source))))))))
-
-(comment
-  (is (= '(a e d b c)
-         (subpermute '[a b c d e]
-                     {1 4
-                      4 2
-                      2 3
-                      3 1}))))
 
 (defn factorial
   "Returns the factorial of `n`, ie, the product of 1 to `n` (inclusive)."

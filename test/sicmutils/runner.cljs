@@ -14,9 +14,13 @@
             sicmutils.calculus.curvature-test
             sicmutils.calculus.derivative-test
             sicmutils.calculus.form-field-test
+            sicmutils.calculus.hodge-star-test
+            sicmutils.calculus.indexed-test
             sicmutils.calculus.manifold-test
             sicmutils.calculus.map-test
             sicmutils.calculus.metric-test
+            sicmutils.calculus.tensor-test
+            sicmutils.calculus.vector-calculus-test
             sicmutils.calculus.vector-field-test
 
             sicmutils.env.sci-test
@@ -118,9 +122,13 @@
            'sicmutils.calculus.curvature-test
            'sicmutils.calculus.derivative-test
            'sicmutils.calculus.form-field-test
+           'sicmutils.calculus.hodge-star-test
+           'sicmutils.calculus.indexed-test
            'sicmutils.calculus.manifold-test
            'sicmutils.calculus.map-test
            'sicmutils.calculus.metric-test
+           'sicmutils.calculus.tensor-test
+           'sicmutils.calculus.vector-calculus-test
            'sicmutils.calculus.vector-field-test
 
            'sicmutils.env.sci-test

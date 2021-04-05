@@ -247,17 +247,7 @@
   ([simplify]
    (rule-simplifier
     (ruleset
-
-     ;; scmutils NOTE: in scmutils, each of these rules checks to see whether,
-     ;; after sub-simplification, x and y are equal, and if so, the opportunity
-     ;; is taken to subsitute a simpler result.
-     ;;
-     ;; It could be that we don't need that, if there were a rule (for example)
-     ;; to replace (* (sqrt x) (sqrt x)) with x. I tend to think that running the
-     ;; simplifier on interior subexpressions is a dubious idea given how
-     ;; much "churn" there is already waiting for the rulesets to stabilize
-
-     ;; Scmutils, in each of these contractions, will `assume!` that the
+     ;; NOTE: Scmutils, in each of these contractions, will `assume!` that the
      ;; expressions named :x and :y are non-negative.
      (* :a* (sqrt :x) :b* (sqrt :y) :c*)
      => (:? (fn [m]

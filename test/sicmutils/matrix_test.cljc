@@ -266,9 +266,11 @@
   (checking "make-diagonal" 100
             [vs (gen/vector sg/real 1 20)]
             (let [M (m/make-diagonal vs)]
-              (is (m/square? M))
+              (is (m/diagonal? M))
+
               (is (= (g/dimension M)
                      (g/dimension vs)))
+
               (is (= vs (m/diagonal M)))
               (is (= vs (m/diagonal M)))))
 
@@ -344,6 +346,11 @@
                       [1 2 3]
                       [2 3 4])
            (m/generate 3 3 +)))
+
+    (is (= (m/generate 3 +)
+           (m/generate 3 3 +))
+        "Only filling in one dimension for generate returns a square matrix.")
+
     (is (v/zero? (m/by-rows [0 0]
                             [0 0])))))
 

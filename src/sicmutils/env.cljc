@@ -324,7 +324,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   curvature-components]
 
  [sicmutils.calculus.derivative
-  derivative D Div Grad Curl Lap taylor-series]
+  derivative D taylor-series]
 
  [sicmutils.calculus.form-field
   form-field? nform-field? oneform-field?
@@ -394,6 +394,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   pullback]
 
  [sicmutils.calculus.vector-calculus
+  Div Grad Curl Lap
   divergence curl gradient Laplacian]
 
  [sicmutils.calculus.vector-field
@@ -461,7 +462,12 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   symplectic-transform?
   symplectic-unit
   time-independent-canonical?]
- [sicmutils.mechanics.rotation Rx Ry Rz]
+ [sicmutils.mechanics.rotation
+  rotate-x-matrix rotate-y-matrix rotate-z-matrix
+  angle-axis->rotation-matrix
+  rotate-x-tuple rotate-y-tuple rotate-z-tuple
+  Rx Ry Rz rotate-x rotate-y rotate-z
+  Euler->M wcross->w]
  [sicmutils.numerical.ode
   evolve
   integrate-state-derivative
