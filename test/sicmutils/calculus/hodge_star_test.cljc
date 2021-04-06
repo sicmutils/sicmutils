@@ -263,12 +263,12 @@
                   (vf/literal-vector-field 'v R3-rect))
                  R3-point))))
 
-        (is (= '(+ (* -1 (u↑1 p) (((partial 0) gamma) p))
-                   (* (u↑1 p) (((partial 2) alpha) p))
-                   (* (u↑0 p) (((partial 1) gamma) p))
+        (is (= '(+ (* (u↑1 p) (((partial 2) alpha) p))
+                   (* -1 (u↑1 p) (((partial 0) gamma) p))
                    (* -1 (u↑0 p) (((partial 2) beta) p))
-                   (* (u↑2 p) (((partial 0) beta) p))
-                   (* -1 (u↑2 p) (((partial 1) alpha) p)))
+                   (* (u↑0 p) (((partial 1) gamma) p))
+                   (* -1 (u↑2 p) (((partial 1) alpha) p))
+                   (* (u↑2 p) (((partial 0) beta) p)))
                (present
                 (((E3-star (ff/d omega))
                   (vf/literal-vector-field 'u R3-rect))

@@ -82,6 +82,7 @@
             [sicmutils.calculus.derivative :as d]
             [sicmutils.calculus.form-field]
             [sicmutils.calculus.frame]
+            [sicmutils.calculus.indexed :as ci]
             [sicmutils.calculus.manifold]
             [sicmutils.calculus.metric :as cm]
             [sicmutils.calculus.map]
@@ -203,6 +204,9 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
 
 (import-def us/seq-print seq:print)
 (import-def us/pprint seq:pprint)
+
+(import-def ci/outer-product i:outer-product)
+(import-def ci/contract i:contract)
 
 (defn tex$
   "Returns a string containing a LaTeX representation of `expr`, wrapped in single
@@ -344,6 +348,12 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
  [sicmutils.calculus.frame frame?]
 
  [sicmutils.calculus.hodge-star Hodge-star]
+
+ [sicmutils.calculus.indexed
+  argument-types with-argument-types
+  index-types with-index-types
+  typed->indexed indexed->typed
+  typed->structure structure->typed]
 
  [sicmutils.calculus.manifold
   make-manifold coordinate-system-at

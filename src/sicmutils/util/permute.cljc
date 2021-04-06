@@ -32,8 +32,8 @@
             xs)))
 
 (defn combinations [xs p]
-  (cond (zero? p)   [[]]
-        (empty? xs) []
+  (cond (zero? p) (list ())
+        (empty? xs) ()
         :else (concat
                (map (fn [more]
                       (conj more (first xs)))

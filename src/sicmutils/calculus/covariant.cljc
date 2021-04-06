@@ -21,6 +21,7 @@
   (:require [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.derivative :refer [D]]
             [sicmutils.calculus.form-field :as ff]
+            [sicmutils.calculus.indexed :as ci]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.map :as cm]
             [sicmutils.calculus.manifold :as manifold]
@@ -201,15 +202,6 @@
 
 ;; ### Covariant Vector Definition
 
-(defn ^:no-doc argument-types [t]
-  (if (o/operator? t)
-    (:arguments (o/context t) [])
-    (:arguments (meta t) [])))
-
-(defn- has-argument-types? [op]
-  (boolean
-   (seq (argument-types op))))
-
 (defn- covariant-derivative-vector [Cartan]
   (let [basis (Cartan->basis Cartan)
         Cartan-forms (Cartan->forms Cartan)
@@ -256,7 +248,7 @@
     (fn [V]
       (let [CV (Cartan-forms V)]
         (fn [T]
-          (let [arg-types (argument-types T)]
+          (let [arg-types (ci/argument-types T)]
             (assert
              (every? (fn [t]
                        (or (isa? t ::vf/vector-field)
@@ -351,7 +343,7 @@
                      (ff/form-field? V)
                      (((covariant-derivative-form Cartan) X) V)
 
-                     (has-argument-types? V)
+                     (ci/has-argument-types? V)
                      (((covariant-derivative-argument-types Cartan) X) V)
 
                      (f/function? V)

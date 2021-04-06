@@ -20,49 +20,79 @@
 (ns sicmutils.calculus.indexed
   (:refer-clojure :exclude [+ - * /])
   (:require [sicmutils.calculus.basis :as b]
-            [sicmutils.calculus.covariant :as cov]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [+ - * /]]
+            [sicmutils.operator :as o]
             [sicmutils.matrix :as matrix]
             [sicmutils.structure :as s]
             [sicmutils.util :as u]
             [sicmutils.util.aggregate :as ua]
-            [sicmutils.util.permute :as permute]))
+            [sicmutils.util.permute :as permute]
+            [sicmutils.value :as v]))
 
 ;; ## Minimal support for Indexed Objects
 ;;
-;; e.g. the components of tensors relative to a basis.
+;; Indices here are the components of tensors relative to a basis.
+
+(defn- meta-k
+  ([f k]
+   (meta-k f k nil))
+  ([f k default]
+   (if (o/operator? f)
+     (k (o/context f) default)
+     (k (meta f) default))))
+
+(defn- with-kv [f k v]
+  (if (o/operator? f)
+    (o/with-context f (assoc (o/context f) k v))
+    (vary-meta f assoc k v)))
+
+;; argument-types are, for example,
 ;;
-;; TODO maybe move arg types here, if we don't need them in covariant. For sure!
+;;  [::ff/oneform-field ::vf/vector-field ::vf/vector-field]
+;;
+;; for a Christoffel-2: it takes one oneform field and two vector fields.
+
+(defn argument-types [f]
+  (meta-k f :arguments []))
+
+(defn ^:no-doc has-argument-types? [op]
+  (boolean
+   (seq (argument-types op))))
+
+(defn with-argument-types [f types]
+  (with-kv f :arguments (into [] types)))
 
 (defn index-types [f]
-  (:index-types (meta f)))
+  (meta-k f :index-types []))
 
-(defn has-index-types? [f]
+(defn ^:no-doc has-index-types? [f]
   (boolean
-   (index-types f)))
+   (seq (index-types f))))
 
 (defn with-index-types [f types]
-  {:pre [(f/function? f)]}
-  (vary-meta f assoc :index-types (into [] types)))
+  (with-kv f :index-types (into [] types)))
 
-;; index types are, for example
-;; ['up 'down 'down], for a Christoffel-2: it takes one oneform field and two
-;; vector fields.
-
+;; index types are, for example:
+;;
+;;  ['up 'down 'down]
+;;
+;; for a Christoffel-2: it takes one oneform field and two vector fields.
+;;
 ;; An argument-typed function of type (n . m) takes n oneform fields and m
-;; vector-fields, in that order, and produces a function on a manifold point. An
-;; indexed function of type (n . m) takes n+m indices and gives a function on a
-;; manifold point.
+;; vector-fields, in that order, and produces a function on a manifold point.
+;;
+;; An indexed function of type (n . m) takes n+m indices and gives a function on
+;; a manifold point.
 
-;; For each argument-typed function and basis there is an indexed function that
+;; For each argument-typed function and basis, there is an indexed function that
 ;; gives the function resulting from applying the argument-typed function to the
 ;; basis elements specified by the corresponding indices.
 
-(defn valid-arg-types?
+(defn- valid-arg-types?
   "Validates that:
 
   - The sequence is not empty
@@ -75,29 +105,8 @@
 		     (every? (some-fn one-ff? vf?) ts)
          (every? vf? (drop-while one-ff? ts)))))
 
-(defn valid-index-types?
-  "Validates that:
-
-  - The sequence is not empty
-  - every entry is either 'up or 'down
-  - all 'up entries come before 'down"
-  [ts]
-  (boolean
-   (and (seq ts)
-		    (every? #{'up 'down} ts)
-        (every? #{'down} (drop-while #{'up} ts)))))
-
-;; An argument-typed function of type (n . m) takes n oneform fields and m
-;; vector-fields, in that order, and produces a function on a manifold point. An
-;; indexed function of type (n . m) takes n+m indices and gives a function on a
-;; manifold point.
-
-;; For each argument-typed function and basis there is an indexed function that
-;; gives the function resulting from applying the argument-typed function to the
-;; basis elements specified by the corresponding indices.
-
 (defn typed->indexed [f basis]
-  (let [arg-types (cov/argument-types f)]
+  (let [arg-types (argument-types f)]
     (assert (valid-arg-types? arg-types)
 	          (str "Bad arg types: " arg-types))
     (let [vector-basis (b/basis->vector-basis basis)
@@ -121,6 +130,18 @@
                              indices)]
               (apply f args)))
           (with-index-types idx-types)))))
+
+(defn- valid-index-types?
+  "Validates that:
+
+  - The sequence is not empty
+  - every entry is either 'up or 'down
+  - all 'up entries come before 'down"
+  [ts]
+  (boolean
+   (and (seq ts)
+		    (every? #{'up 'down} ts)
+        (every? #{'down} (drop-while #{'up} ts)))))
 
 (defn- validate-typed-args! [index-types args]
   (assert (= (count index-types)
@@ -190,44 +211,49 @@
 	        (concat (repeat nup 'up)
                   (repeat ndp 'down)))))))
 
-(defn contract [T u d n]
-  (let [i-types (index-types T)]
-    (assert i-types "T not index typed!")
-    (let [{nu 'up nd 'down} (frequencies i-types)]
-      (assert (and (<= 0 u) (< u nu)
-		               (<= 0 d) (< d nd))
-	            "Contraction indices not in range")
-      (let [nuc (dec nu)
-            ndc (dec nd)]
-        (-> (fn contraction [args]
-	            (let [argv (into [] args)]
-                (ua/generic-sum
-                 (fn [i]
-		               (T (concat
-		                   (assoc (subvec argv 0 nuc) u i)
-		                   (assoc (subvec argv nuc) d i))))
-		             0 n)))
-	          (with-index-types
-              (concat (repeat nuc 'up)
-                      (repeat ndc 'down))))))))
+(letfn [(insertv [coll i v]
+          (let [l (subvec coll 0 i)
+                r (subvec coll i)]
+            (apply conj l v r)))]
+
+  (defn contract [T u d n]
+    (let [i-types (index-types T)]
+      (assert i-types "T not index typed!")
+      (let [{nu 'up nd 'down} (frequencies i-types)]
+        (assert (and (<= 0 u) (< u nu)
+		                 (<= 0 d) (< d nd))
+	              "Contraction indices not in range")
+        (let [nuc (dec nu)
+              ndc (dec nd)]
+          (-> (fn contraction [args]
+	              (let [argv (into [] args)]
+                  (ua/generic-sum
+                   (fn [i]
+		                 (T (concat
+                         (insertv (subvec argv 0 nuc) u i)
+                         (insertv (subvec argv nuc) d i))))
+		               0 n)))
+	            (with-index-types
+                (concat (repeat nuc 'up)
+                        (repeat ndc 'down)))))))))
 
 (defn typed->structure [T basis]
   (let [vector-basis  (b/basis->vector-basis basis)
 	      oneform-basis (b/basis->oneform-basis basis)]
-    (letfn [(iterate [arg-types argv]
+    (letfn [(lp [arg-types argv]
               (if (empty? arg-types)
 	              (apply T argv)
 	              (s/mapr (fn [e]
-                          (iterate (rest arg-types)
-                                   (conj argv e)))
+                          (lp (rest arg-types)
+                              (conj argv e)))
 		                    (cond (isa? (first arg-types) ::vf/vector-field)
                               vector-basis
 
                               (isa? (first arg-types) ::ff/oneform-field)
                               oneform-basis
 
-			                        :else (u/illegal "Bad arg-type!")))))])
-    (iterate (cov/argument-types T) [])))
+			                        :else (u/illegal "Bad arg-type!")))))]
+      (lp (argument-types T) []))))
 
 (defn structure->typed [coeff-functions basis]
   (let [vector-basis  (b/basis->vector-basis basis)
@@ -268,4 +294,4 @@
 				                              vector-basis)))))]
             (* (lp args arg-types)
 	             coeff-functions)))
-        (with-meta {:arguments arg-types}))))
+        (with-argument-types arg-types))))
