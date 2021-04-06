@@ -27,16 +27,12 @@
             [sicmutils.structure :as s]
             [sicmutils.util.permute :as permute]))
 
-;; This namespace holds functions from hodge-star.scm and gram-schmidt.scm.
-
 ;; ## Hodge-star dual
 ;;
-;; spec may be a coordinate system with an orthonormal basis
-;;             an orthonormal basis
-;;             a basis
+;; This namespace holds functions from hodge-star.scm and gram-schmidt.scm in
+;; scmutils.
 ;;
-;; if the spec is a basis that needs to be orthonormalized,
-;; the optional orthonormalize? argument must be a coordinate system
+;; ## Gram-Schmidt orthonormalization process
 
 (defn Gram-Schmidt [vector-basis metric]
   (letfn [(make-positive [x]
@@ -63,21 +59,25 @@
   (let [ovb (Gram-Schmidt (b/basis->vector-basis basis) metric)]
     (b/make-basis ovb (b/vector-basis->dual ovb coordinate-system))))
 
-(defn completely-antisymmetric
-  "From GJS: This may be needed... ugh!"
-  [indices]
-  (permute/permutation-parity
-   indices
-   (range (count indices))))
-
-(defn- list-difference [l1 l2]
+(defn- list-difference
+  "Returns a new list containing all elements in `l1` not present in `l2`.
+  Duplicates are allowed in the return value."
+  [l1 l2]
   (remove (into #{} l2) l1))
 
 (defn Hodge-star
-  "TODO orthonormalize? takes a coordinate system, sort of weird.
+  "Takes a `metric` and a `spec` and returns the [Hodge star
+  operator](https://en.wikipedia.org/wiki/Hodge_star_operator) (actually just a
+  function, but I suspect this should be a proper operator!)
 
-  orthonormalize? must be a coordinate system... these options are super weird!
-  "
+  `spec` may be:
+
+  - a coordinate system with an orthonormal basis
+  - an orthonormal basis
+  - a basis
+
+  if the spec is a basis that needs to be orthonormalized, the optional
+  `:orthonormalize?` keyword argument must be a coordinate system."
   [metric spec & {:keys [orthonormalize?]
                   :or {orthonormalize? false}}]
   (let [basis (if (b/basis? spec)

@@ -18,8 +18,14 @@
 ;;
 
 (ns sicmutils.calculus.vector-calculus
+  "This namespace contains vector calculus operators, in versions built on top
+  of [[derivative/D]] _and_ in Functional Differential Geometry style.
+
+  The former transform functions of scalars or vectors, while the latter take a
+  metric and basis."
   (:refer-clojure :exclude [+ - * /])
-  (:require [sicmutils.calculus.form-field :as ff]
+  (:require [sicmutils.calculus.covariant :as cov]
+            [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.hodge-star :as hs]
             [sicmutils.calculus.manifold :as cm]
             [sicmutils.calculus.metric :as m]
@@ -30,8 +36,8 @@
             [sicmutils.operator :as o]
             [sicmutils.structure :as s]))
 
-;; ## Traditional vector calculus operators, defined using `D` and in FDG
-;; ## appropriate manner.
+;; Traditional vector calculus operators, defined in two different styles. See
+;; the namespace comment for a basic sketch.
 
 (def ^{:doc "Operator that takes a function `f` and returns a new function that
   calculates the [Gradient](https://en.wikipedia.org/wiki/Gradient) of `f`.
@@ -45,7 +51,10 @@
                    (g/partial-derivative f [])))
       (o/make-operator 'Grad)))
 
-(defn gradient [metric basis]
+(defn gradient
+  "[[gradient]] implements equation (10.3) in Functional Differential Geometry,
+  defined on page 154."
+  [metric basis]
   (f/compose (m/raise metric basis) ff/d))
 
 (def ^{:doc "Operator that takes a function `f` and returns a function that
@@ -57,10 +66,21 @@
   (-> (f/compose g/trace Grad)
       (o/make-operator 'Div)))
 
-(defn divergence [metric orthonormal-basis]
-  (let [star (hs/Hodge-star metric orthonormal-basis)
-        flat (m/lower metric)]
-    (f/compose star ff/d star flat)))
+(defn divergence
+  "Both arities of [[divergence]] are defined on page 156 of Functional Differential Geometry."
+  ([Cartan]
+   (let [basis (cov/Cartan->basis Cartan)
+         nabla (cov/covariant-derivative Cartan)]
+     (fn [v]
+       (fn [point]
+         (b/contract (fn [ei wi]
+                       ((wi ((nabla ei) v)) point))
+                     basis)))))
+
+  ([metric orthonormal-basis]
+   (let [star (hs/Hodge-star metric orthonormal-basis)
+         flat (m/lower metric)]
+     (f/compose star ff/d star flat))))
 
 (def ^{:doc "Operator that takes a function `f` and returns a function that
   calculates the [Curl](https://en.wikipedia.org/wiki/Curl_(mathematics)) of `f`
@@ -78,7 +98,10 @@
                 (g/- (Dx fy) (Dy fx)))))
       (o/make-operator 'Curl)))
 
-(defn curl [metric orthonormal-basis]
+(defn curl
+  "[[curl]] implements equation (10.7) of Functional Differential Geometry,
+  defined on page 155."
+  [metric orthonormal-basis]
   (let [star  (hs/Hodge-star metric orthonormal-basis)
         sharp (m/raise metric orthonormal-basis)
         flat  (m/lower metric)]

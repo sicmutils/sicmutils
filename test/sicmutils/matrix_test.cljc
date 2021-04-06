@@ -351,6 +351,9 @@
            (m/generate 3 3 +))
         "Only filling in one dimension for generate returns a square matrix.")
 
+    (is (not (m/diagonal?
+              (m/generate 3 3 +))))
+
     (is (v/zero? (m/by-rows [0 0]
                             [0 0])))))
 

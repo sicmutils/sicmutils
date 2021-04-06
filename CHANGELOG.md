@@ -15,9 +15,89 @@
     `claim`, `coords->event`, `event->coords`, `ancestor-frame`, `frame-name`,
     `frame-owner` and `frame-maker`.
 
-  - `sicmutils.calculus.hodge-star` TODO finish. This namespace aliases the
-    following functions into `sicmutils.env`: `Gram-Schmidt`, `orthonormalize`,
+  - `sicmutils.calculus.hodge-star` implements the Hodge star operator from
+    chapter 10 of Functional Differential Geometry, plus Gram Schmidt
+    orthonormalization. This namespace aliases the following functions into
+    `sicmutils.env`: `Gram-Schmidt`, `orthonormalize`,
     `completely-antisymmetric` and `Hodge-star`.
+
+  - `sicmutils.calculus.indexed` ports over the scmutils work on indexed objects
+    and typed functions. This namespace aliases the following functions into
+    `sicmutils.env`: `argument-types`, `with-argument-types`, `index-types`,
+    `with-index-types`, `typed->indexed`, `indexed->typed`, `typed->structure`,
+    `structure->typed`, `i:outer-product` and `i:contract`.
+
+  - `sicmutils.calculus.manifold` gains `coordinate-system?`, which
+    (predictably) returns true if its argument is a coordinate system, false
+    otherwise. `chart` and `point` also take relativistic reference frames in
+    addition to coordinate systems; the returned function converts to and from
+    coordinates and events, rather than coordinates and manifold points.
+
+  - `Div`, `Grad`, `Curl` and `Lap` move from `sicmutils.calculus.derivative` to
+    `sicmutils.calculus.vector-calculus`. This namespace also contains versions
+    of these operators from Functional Differential Geometry. This namespace
+    aliases the following functions into `sicmutils.env`: `divergence`, `curl`,
+    `gradient` and `Laplacian` (along with the others mentioned).
+
+  - `sicmutils.matrix` changes:
+
+    - `generate` has a new 2-arity version; if you supply a single dimension the
+      returned matrix is square.
+
+    - `diagonal?` returns true if its argument is a diagonal matrix, false
+      otherwise.
+
+  - In `sicmutils.mechanics.rotation`:
+
+    - gains aliases for `R{xyz}` in `rotate-x`, `rotate-y` and `rotate-z`.
+
+    - `R{x,y,z}-matrix` now alias `rotate-{x,y,z}-matrix`.
+
+    - Added new functions `angle-axis->rotation-matrix` and the mysterious,
+      undocumented `wcross->w` from scmutils
+
+    - `rotate-{x,y,z}-tuple` are now aliased into `sicmutils.env`.
+
+  - `Operator` instances now ignore the right operator in operator-operator
+    addition if the left operator passes a `v/zero?` test. Contexts are still
+    appropriately merged.
+
+  - in `sicmutils.simplify.rules`, the `sqrt-contract` ruleset now takes a
+    simplifier argument and attempts to use it to simplify expressions internal
+    to a square root. As an example, if two square roots in a product simplify
+    to the same expression, we can drop the wrapping square root; otherwise
+    multiplication is pushed under the root as before.
+
+    - Added a missing rule in `simplify-square-roots` that handles roots of
+      exponents with odd powers.
+
+  - lots of new namespaces available in `sicmutils.env.sci`, soon to be deployed
+    to Nextjournal: `sicmutils.calculus.{hodge-star, indexed, vector-calculus}`,
+    and `sicmutils.sr.{boost,frames}`.
+
+  - `sicmutils.sr.boost` describes boosts from special relativity, covered in
+    chapter 11 of Functional Differential Geometry. This namespace aliases the
+    following functions into `sicmutils.env`: `make-four-tuple`,
+    `four-tuple->ct`, `four-tuple->space`, `proper-time-interval`,
+    `proper-space-interval`, `general-boost`, `general-boost2` and
+    `extended-rotation`.
+
+  - `sicmutils.sr.frames` implements relativistic reference frames from special
+    relativity, covered in chapter 11 of Functional Differential Geometry. This
+    namespace aliases the following functions into `sicmutils.env`:
+    `make-SR-coordinates`, `SR-coordinates?`, `SR-name`, `make-SR-frame`,
+    `the-ether`, `boost-direction`, `v:c`, `coordinate-origin`, `add-v:cs` and
+    `add-velocities`.
+
+  - A new namespace, `sicmutils.util.permute`:
+
+    - `factorial` moved here from `sicmutils.generic`. It's still aliased into
+      `sicmutils.env`.
+
+    - new functions: `permutations`, `combinations`, `cartesian-product`,
+      `list-interchanges`, `permutation-parity`, `permutation-interchanges`,
+      `permute`, `sort-and-permute`, `subpermute`, `number-of-permutations`,
+      `number-of-combinations`. See the tests for usage examples.
 
 - From #338:
 

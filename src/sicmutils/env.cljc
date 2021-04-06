@@ -376,6 +376,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   literal-manifold-function
   zero-manifold-function one-manifold-function
   constant-manifold-function
+  coordinate-system?
   Rn
   R1 R1-rect the-real-line
   R2 R2-rect R2-polar

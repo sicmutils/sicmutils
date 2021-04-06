@@ -63,7 +63,10 @@
 ;; this one works for zero v:c ... direction is a unit 3-vector, v:c is the
 ;; speed, a number.
 
-(defn general-boost2 [direction v:c]
+(defn general-boost2
+  "Takes a unit 3-vector `direction` (representing a direction) and a velocity
+  `v:c` normalized by `C`."
+  [direction v:c]
   (fn [four-tuple-prime]
     (let [delta-ct-prime (four-tuple->ct four-tuple-prime)
           delta-x-prime (four-tuple->space four-tuple-prime)
@@ -80,7 +83,7 @@
 ;; ## extended rotations
 
 ;; Boosts are linear functions of incremental vectors. To be parallel we take
-;; rotations to functions as well rather than as multipliers.
+;; rotations to functions as well, rather than as multipliers.
 
 (defn extended-rotation [R]
   (fn [xi-p]

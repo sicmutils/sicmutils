@@ -168,7 +168,7 @@
     (sqrt (expt :x (:? n even-integer?)))
     => (expt :x (:? #(/ (% 'n) 2)))
 
-    (sqrt (expt :x) (:? n odd-integer?))
+    (sqrt (expt :x (:? n odd-integer?)))
     => (* (sqrt :x) (expt :x (:? #(/ (- (% 'n) 1) 2))))
 
     (expt (sqrt :x) (:? n odd-integer?))

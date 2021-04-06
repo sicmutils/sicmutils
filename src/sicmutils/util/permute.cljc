@@ -22,17 +22,30 @@
   #?(:clj
      (:import (clojure.lang APersistentVector))))
 
-(defn permutations [xs]
-  (if (empty? xs)
-    #{xs}
-    (mapcat (fn [item]
-              (map (fn [perm] (conj perm item))
-                   (permutations
-                    (disj xs item))))
-            xs)))
+(defn- delete-nth
+  "returns the sequence `xs` with its `n`th element dropped."
+  [xs n]
+  (concat (take n xs)
+          (drop (inc n) xs)))
 
-(defn combinations [xs p]
-  (cond (zero? p) (list ())
+(defn permutations
+  "Returns a lazy sequence of every possible arrangement of the elements of `xs`."
+  [xs]
+  (if (empty? xs)
+    '(())
+    (letfn [(f [i item]
+              (map (fn [perm]
+                     (cons item perm))
+                   (permutations
+                    (delete-nth xs i))))]
+      (sequence (comp (map-indexed f) cat)
+                xs))))
+
+(defn combinations
+  "Returns a lazy sequence of every possible set of `p` elements chosen from
+  `xs`."
+  [xs p]
+  (cond (zero? p) '(())
         (empty? xs) ()
         :else (concat
                (map (fn [more]
@@ -42,7 +55,15 @@
                (combinations (rest xs) p))))
 
 (defn cartesian-product
-  "TODO thank amalloy!"
+  "Accepts a sequence of collections `colls` and returns a lazy sequence of the
+  cartesian product of all collections.
+
+  The cartesian product of N collections is a sequences of sequences, each `N`
+  long, of every possible way of choosing `N` items where the first comes from
+  the first entry in `colls`, the second from the second entry and so on.
+
+  NOTE: This implementation comes from Alan Malloy at this [StackOverflow
+  post](https://stackoverflow.com/a/18248031). Thanks, Alan!"
   [colls]
   (if (empty? colls)
     '(())
@@ -51,8 +72,8 @@
       (cons x more))))
 
 (defn list-interchanges
-  " Returns the number of interchanges required to generate the permuted list from
-  the original list."
+  "Given a `permuted-list` and the `original-list`, returns the number of
+  interchanges required to generate the permuted list from the original list."
   [permuted-list original-list]
   (letfn [(lp1 [plist n]
             (if (empty? plist)
@@ -71,13 +92,24 @@
                      increment))))]
     (lp1 permuted-list 0)))
 
-(defn- same-set? [x1 x2]
+(defn- same-set?
+  "Returns true if `x1` and `x2` contain the same elements, false otherwise."
+  [x1 x2]
   (= (set x1) (set x2)))
 
-(defn permutation-parity [permuted-list original-list]
-  (if (same-set? permuted-list original-list)
+(defn permutation-parity
+  "Given a `permuted-list` and the `original-list`, returns the parity (1 for
+  even, -1 for odd) of the number of the number of interchanges required to
+  generate the permuted list from the original list.
+
+  If the two items "
+  [permuted-list original-list]
+  (if (and (= (count permuted-list)
+              (count original-list))
+           (same-set? permuted-list original-list))
     (if (even? (list-interchanges permuted-list original-list))
-      1 -1)
+      1
+      -1)
     0))
 
 (defn permutation-interchanges [permuted-list]
@@ -91,14 +123,14 @@
               (lp1 xs (+ n increment))
               (lp2 n x xs
                    (rest l)
-                   (if (> (first l) x)
+                   (if (>= (first l) x)
                      increment
                      (inc increment)))))]
     (lp1 permuted-list 0)))
 
 (defn permute
-  " Given a permutation (represented as a list of numbers), and a list to be
-  permuted, construct the list so permuted."
+  "Given a `permutation` (represented as a list of numbers), and a sequence `xs`
+  to be permuted, construct the list so permuted."
   [permutation xs]
   (map (fn [p] (nth xs p))
        permutation))
@@ -108,7 +140,7 @@
      :cljs (-indexOf v x)))
 
 (defn sort-and-permute
-  "cont = (lambda (ulist slist perm iperm) ...)
+  "cont = (fn [ulist slist perm iperm] ...)
 
   Given a short list and a comparison function, to sort the list by the
   comparison, returning the original list, the sorted list, the permutation
@@ -128,30 +160,31 @@
 
 ;; Sometimes we want to permute some of the elements of a list, as follows:
 
-(defn subpermute [xs the-map]
-  (let [n (count xs)]
-    (loop [i 0
-           source xs
-           answer []]
-      (if (= i n)
-        answer
-        (if-let [entry (the-map i)]
-          (recur (inc i)
-                 (rest source)
-                 (conj answer (nth xs entry)))
-          (recur (inc i)
-                 (rest source)
-                 (conj answer (first source))))))))
+(defn subpermute
+  "Given a sequence `xs` and a map `m` of replacement indices, returns a new
+  version of `xs` with the element at the position marked by each key in `m`
+  replaced by the element at each value in the original `xs`."
+  [m xs]
+  (reduce-kv (fn [acc k v]
+               (assoc acc k (get xs v)))
+             xs
+             m))
 
 (defn factorial
   "Returns the factorial of `n`, ie, the product of 1 to `n` (inclusive)."
   [n]
   (apply * (range 1 (inc n))))
 
-(defn number-of-permutations [n]
+(defn number-of-permutations
+  "Returns the number of possible ways of permuting a collection of `n` distinct
+  elements."
+  [n]
   (factorial n))
 
-(defn number-of-combinations [n k]
+(defn number-of-combinations
+  "Returns the number of possible ways of choosing `k` distinct elements from a
+  collection of `n` total items."
+  [n k]
   (quot (factorial n)
         (* (factorial (- n k))
            (factorial k))))

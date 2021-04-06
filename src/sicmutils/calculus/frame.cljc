@@ -28,11 +28,26 @@
 ;; it may export as its representation of an absolute event.
 
 (defprotocol IFrame
-  (coords->event [this coords])
-  (event->coords [this event])
-  (ancestor-frame [_])
-  (frame-name [_])
-  (params [_]))
+  (coords->event [this coords]
+    "Accepts a coordinate representation `coords` of some `event` and returns a
+ coordinate-free representation of the event.
+
+ `coords` must be owned this this reference frame; [[coords->event]] will throw
+ if not.")
+
+  (event->coords [this event]
+    "Accepts a reference frame and an `event`, and returns this reference
+    frame's coordinate representation of the supplied `event`.")
+
+  (ancestor-frame [_]
+    "Returns the ancestor [[IFrame]] instance of this frame, or nil if there is
+    no ancestor.")
+
+  (frame-name [_]
+    "Returns the symbolic name of the suppplied frame.")
+
+  (params [_]
+    "Returns the parameters registered with the supplied frame."))
 
 (defn frame?
   "Returns true if `x` implements [[IFrame]], false otherwise."
@@ -59,8 +74,8 @@
   (::owner (meta coords)))
 
 (defn claim
-  "Marks the supplied set of `coords` as being owned by `owner`. If `coords`
-  already has an owner (that is not equal to `owner`), throws."
+  "Marks (via metadata) the supplied set of `coords` as being owned by `owner`. If
+  `coords` already has an owner (that is not equal to `owner`), throws."
   [coords owner]
   (if-let [other (frame-owner coords)]
     (if (= other owner)

@@ -72,7 +72,7 @@
 
 ;; ## Rotation Tuples
 
-(defn- rotate-x-tuple-2 [c s]
+(defn ^:no-doc rotate-x-tuple-2 [c s]
   (matrix/m->s
    (s/literal-down 'l 3)
 	 (rotate-x-matrix-2 c s)
@@ -82,7 +82,7 @@
   (rotate-x-tuple-2 (cos α)
                     (sin α)))
 
-(defn- rotate-y-tuple-2 [c s]
+(defn ^:no-doc rotate-y-tuple-2 [c s]
   (matrix/m->s
    (s/literal-down 'l 3)
    (rotate-y-matrix-2 c s)
@@ -92,7 +92,7 @@
   (rotate-y-tuple-2 (cos α)
                     (sin α)))
 
-(defn- rotate-z-tuple-2 [c s]
+(defn ^:no-doc rotate-z-tuple-2 [c s]
   (matrix/m->s
    (s/literal-down 'l 3)
    (rotate-z-matrix-2 c s)
