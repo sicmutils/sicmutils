@@ -85,11 +85,12 @@
             (if (empty? plist)
               n
               (let [[x & xs] plist]
-                (lp2 n xs xs 0))))
+                (lp2 n x xs xs 0))))
           (lp2 [n x xs l increment]
             (if (empty? l)
               (lp1 xs (+ n increment))
-              (lp2 (rest l)
+              (lp2 n x xs
+                   (rest l)
                    (if (> (first l) x)
                      increment
                      (inc increment)))))]

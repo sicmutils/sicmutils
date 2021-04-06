@@ -76,18 +76,21 @@
             [sicmutils.mechanics.rotation]
             [sicmutils.calculus.basis]
             [sicmutils.calculus.connection]
-            [sicmutils.calculus.coordinate]
+            [sicmutils.calculus.coordinate :as cc]
             [sicmutils.calculus.covariant]
             [sicmutils.calculus.curvature]
             [sicmutils.calculus.derivative :as d]
             [sicmutils.calculus.form-field]
-            [sicmutils.calculus.frame]
+            [sicmutils.calculus.frame :as cf]
+            [sicmutils.calculus.hodge-star]
             [sicmutils.calculus.indexed :as ci]
             [sicmutils.calculus.manifold]
             [sicmutils.calculus.metric :as cm]
             [sicmutils.calculus.map]
-            [sicmutils.calculus.coordinate :as cc]
-            [sicmutils.calculus.vector-field]))
+            [sicmutils.calculus.vector-calculus]
+            [sicmutils.calculus.vector-field]
+            [sicmutils.sr.boost]
+            [sicmutils.sr.frames]))
 
 #?(:clj
    (defn sicmutils-repl-init
@@ -207,6 +210,8 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
 
 (import-def ci/outer-product i:outer-product)
 (import-def ci/contract i:contract)
+
+(import-def cf/params frame-params)
 
 (defn tex$
   "Returns a string containing a LaTeX representation of `expr`, wrapped in single
@@ -345,7 +350,10 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   Alt alt-wedge
   exterior-derivative d]
 
- [sicmutils.calculus.frame frame?]
+ [sicmutils.calculus.frame
+  frame? make-event event? claim
+  coords->event event->coords ancestor-frame frame-name
+  frame-owner frame-maker]
 
  [sicmutils.calculus.hodge-star Hodge-star]
 
@@ -383,7 +391,6 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   coordinate-system->metric-components
   coordinate-system->metric
   coordinate-system->inverse-metric
-  make-metric
   literal-metric
   components->metric metric->components
   metric->inverse-components metric-over-map
@@ -418,6 +425,19 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   basis-components->vector-field
   vector-field->basis-components
   coordinatize evolution]
+
+ ;; Special Relativity
+
+ [sicmutils.sr.boost
+  make-four-tuple
+  four-tuple->ct four-tuple->space
+  proper-time-interval proper-space-interval
+  general-boost general-boost2 extended-rotation]
+
+ [sicmutils.sr.frames
+  make-SR-coordinates SR-coordinates? SR-name make-SR-frame
+  the-ether boost-direction v:c coordinate-origin
+  add-v:cs add-velocities]
 
  ;; Mechanics Namespaces
 

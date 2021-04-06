@@ -23,7 +23,7 @@
     `sicmutils.env`:
 
       - `coordinate-system->metric-components`, `coordinate-system->metric`,
-        `coordinate-system->inverse-metric`, `make-metric`, `literal-metric`,
+        `coordinate-system->inverse-metric`, `literal-metric`,
         `components->metric`, `metric->components`,
         `metric->inverse-components`, `metric-over-map`, `lower`,
         `vector-field->oneform-field`, `drop1`, `raise`,

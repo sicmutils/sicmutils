@@ -91,13 +91,13 @@
 
 ;; ### The background frame
 
-(defn base-frame-point [ancestor-frame this-frame _]
+(defn- base-frame-point [ancestor-frame this-frame _]
   (fn [coords]
     {:pre [(SR-coordinates? coords)
            (= this-frame (cf/frame-owner coords))]}
     (cf/make-event coords)))
 
-(defn base-frame-chart [ancestor-frame this-frame _]
+(defn- base-frame-chart [ancestor-frame this-frame _]
   (fn [event]
     {:pre [(cf/event? event)]}
     (make-SR-coordinates this-frame event)))

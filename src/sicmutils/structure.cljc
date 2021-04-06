@@ -198,10 +198,10 @@
                    (write-all writer (.toString x)))
 
        ICollection
-       (-conj [_ item] (Structure. orientation (-conj v item)))
+       (-conj [_ item] (Structure. orientation (-conj v item) m))
 
        IEmptyableCollection
-       (-empty [_] (Structure. orientation []))
+       (-empty [_] (Structure. orientation [] m))
 
        ISequential
 
@@ -223,7 +223,7 @@
        (-lookup [_ k not-found] (-lookup v k not-found))
 
        IAssociative
-       (-assoc [_ k entry] (Structure. orientation (-assoc v k entry)))
+       (-assoc [_ k entry] (Structure. orientation (-assoc v k entry) m))
        (-contains-key? [_ k] (-contains-key? v k))
 
        IFind

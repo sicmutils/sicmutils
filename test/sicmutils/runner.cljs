@@ -81,6 +81,9 @@
             sicmutils.numerical.unimin.brent-test
             sicmutils.numerical.unimin.golden-test
 
+            sicmutils.sr.boost-test
+            sicmutils.sr.frames-test
+
             sicmutils.util-test
             sicmutils.util.aggregate-test
             sicmutils.util.permute-test
@@ -169,6 +172,9 @@
            'sicmutils.numerical.unimin.bracket-test
            'sicmutils.numerical.unimin.brent-test
            'sicmutils.numerical.unimin.golden-test
+
+           'sicmutils.sr.boost-test
+           'sicmutils.sr.frames-test
 
            'sicmutils.util-test
            'sicmutils.util.aggregate-test

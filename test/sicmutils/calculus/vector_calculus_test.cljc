@@ -203,8 +203,8 @@
                             (((partial 2) v↑0) (up r theta phi)))
                          (* r (sin theta)))
                       (/ (+ (* r (((partial 0) v↑1) (up r theta phi)))
-                            (* -1 (((partial 1) v↑0) (up r theta phi)))
-                            (v↑1 (up r theta phi)))
+                            (v↑1 (up r theta phi))
+                            (* -1 (((partial 1) v↑0) (up r theta phi))))
                          r))
                  (simplify
                   ((orthonormal-spherical-oneform-basis
@@ -268,9 +268,9 @@
                    SR-vector-basis))))
 
           (let [phi (m/literal-manifold-function 'phi SR)]
-            (is (= '(/ (+ (* -1 (expt c 2) (((expt (partial 3) 2) phi) (up t0 x0 y0 z0)))
+            (is (= '(/ (+ (* -1 (expt c 2) (((expt (partial 1) 2) phi) (up t0 x0 y0 z0)))
                           (* -1 (expt c 2) (((expt (partial 2) 2) phi) (up t0 x0 y0 z0)))
-                          (* -1 (expt c 2) (((expt (partial 1) 2) phi) (up t0 x0 y0 z0)))
+                          (* -1 (expt c 2) (((expt (partial 3) 2) phi) (up t0 x0 y0 z0)))
                           (((expt (partial 0) 2) phi) (up t0 x0 y0 z0)))
                        (expt c 2))
                    (simplify
