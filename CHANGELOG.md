@@ -18,8 +18,7 @@
   - `sicmutils.calculus.hodge-star` implements the Hodge star operator from
     chapter 10 of Functional Differential Geometry, plus Gram Schmidt
     orthonormalization. This namespace aliases the following functions into
-    `sicmutils.env`: `Gram-Schmidt`, `orthonormalize`,
-    `completely-antisymmetric` and `Hodge-star`.
+    `sicmutils.env`: `Gram-Schmidt`, `orthonormalize` and `Hodge-star`.
 
   - `sicmutils.calculus.indexed` ports over the scmutils work on indexed objects
     and typed functions. This namespace aliases the following functions into

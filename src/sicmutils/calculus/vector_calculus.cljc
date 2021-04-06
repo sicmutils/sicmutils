@@ -24,7 +24,8 @@
   The former transform functions of scalars or vectors, while the latter take a
   metric and basis."
   (:refer-clojure :exclude [+ - * /])
-  (:require [sicmutils.calculus.covariant :as cov]
+  (:require [sicmutils.calculus.basis :as b]
+            [sicmutils.calculus.covariant :as cov]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.hodge-star :as hs]
             [sicmutils.calculus.manifold :as cm]

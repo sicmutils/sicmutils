@@ -356,7 +356,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   frame-owner frame-maker]
 
  [sicmutils.calculus.hodge-star
-  Gram-Schmidt orthonormalize completely-antisymmetric
+  Gram-Schmidt orthonormalize
   Hodge-star]
 
  [sicmutils.calculus.indexed
