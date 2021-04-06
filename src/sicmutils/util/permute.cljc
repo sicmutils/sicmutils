@@ -41,8 +41,14 @@
                                   (dec p)))
                (combinations (rest xs) p))))
 
-(defn same-set? [x1 x2]
-  (= (set x1) (set x2)))
+(defn cartesian-product
+  "TODO thank amalloy!"
+  [colls]
+  (if (empty? colls)
+    '(())
+    (for [more (cartesian-product (rest colls))
+          x (first colls)]
+      (cons x more))))
 
 (defn list-interchanges
   " Returns the number of interchanges required to generate the permuted list from
@@ -64,6 +70,9 @@
                      (inc increment)
                      increment))))]
     (lp1 permuted-list 0)))
+
+(defn- same-set? [x1 x2]
+  (= (set x1) (set x2)))
 
 (defn permutation-parity [permuted-list original-list]
   (if (same-set? permuted-list original-list)

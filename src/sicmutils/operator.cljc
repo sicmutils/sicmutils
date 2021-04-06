@@ -388,12 +388,6 @@
 (defn- f+o [f o] (combine-f-op g/add '+ f o))
 (defn- o+f [o f] (combine-op-f g/add '+ o f))
 
-;; TODO get zero handling, MAYBE... if we have a zero on the left, why not just
-;; return it instead of dealing with the composition? Test!
-;;
-;; TODO in the operator-non-operator multiplication, THAT is where we can kill
-;; something that is not identity or zero... check indexed.cljc.
-
 (defn- o:*
   "Multiplication of operators is defined as their composition."
   ([] identity)

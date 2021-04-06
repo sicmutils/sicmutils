@@ -47,10 +47,10 @@
                             [::ff/oneform-field
                              ::ff/oneform-field
                              ::vf/vector-field]}))]
-      (is (= '(+ (* a (w2_1 (up x y)) (w1_0 (up x y)) (v1↑0 (up x y)))
-                 (* b (w2_0 (up x y)) (w1_1 (up x y)) (v1↑1 (up x y)))
-                 (* c (w2_1 (up x y)) (w1_1 (up x y)) (v1↑1 (up x y))))
-             (simplify
+      (is (= '(+ (* c (v1↑1 (up x y)) (w2_1 (up x y)) (w1_1 (up x y)))
+                 (* b (v1↑1 (up x y)) (w2_0 (up x y)) (w1_1 (up x y)))
+                 (* a (v1↑0 (up x y)) (w2_1 (up x y)) (w1_0 (up x y))))
+             (v/freeze
               (((ci/indexed->typed
                  (ci/typed->indexed T (b/coordinate-system->basis R2-rect))
                  (b/coordinate-system->basis R2-rect))
@@ -59,68 +59,68 @@
                 (vf/literal-vector-field 'v1 R2-rect))
                ((m/point R2-rect) (up 'x 'y))))))))
 
-  (let-coordinates [[x y] m/R2-rect]
-    (let [T1 (-> (fn [w1 w2 v1]
-                   (+ (* 'a (dx v1) (w1 d:dx) (w2 d:dy))
-                      (* 'b (dy v1) (w1 d:dy) (w2 d:dx))
-                      (* 'c (dy v1) (w1 d:dy) (w2 d:dy))))
-                 (with-meta {:arguments
-                             [::ff/oneform-field
-                              ::ff/oneform-field
-                              ::vf/vector-field]}))
-          iT1 (ci/typed->indexed T1 (b/coordinate-system->basis R2-rect))
-          T2 (-> (fn [w1 w2]
-                   (+ (* (w1 d:dx) (w2 d:dx))
-                      (* (w1 d:dy) (w2 d:dy))
-                      (* (w1 d:dy) (w2 d:dx))))
-                 (with-meta {:arguments [::ff/oneform-field
-                                         ::ff/oneform-field]}))
-          iT2 (ci/typed->indexed T2 (b/coordinate-system->basis R2-rect))
-          iT3 (ci/outer-product iT1 iT2)]
-
-      (testing "outer-product"
-        (is (= '(+ (* a (w1_0 (up x y)) (v1↑0 (up x y)) (w2_1 (up x y)) (w3_0 (up x y)) (w4_0 (up x y)))
-                   (* a (w1_0 (up x y)) (v1↑0 (up x y)) (w2_1 (up x y)) (w4_1 (up x y)) (w3_1 (up x y)))
-                   (* a (w1_0 (up x y)) (v1↑0 (up x y)) (w2_1 (up x y)) (w4_0 (up x y)) (w3_1 (up x y)))
-                   (* b (w2_0 (up x y)) (w1_1 (up x y)) (v1↑1 (up x y)) (w3_0 (up x y)) (w4_0 (up x y)))
-                   (* b (w2_0 (up x y)) (w1_1 (up x y)) (v1↑1 (up x y)) (w4_1 (up x y)) (w3_1 (up x y)))
-                   (* b (w2_0 (up x y)) (w1_1 (up x y)) (v1↑1 (up x y)) (w4_0 (up x y)) (w3_1 (up x y)))
-                   (* c (w2_1 (up x y)) (w1_1 (up x y)) (v1↑1 (up x y)) (w3_0 (up x y)) (w4_0 (up x y)))
-                   (* c (w2_1 (up x y)) (w1_1 (up x y)) (v1↑1 (up x y)) (w4_1 (up x y)) (w3_1 (up x y)))
-                   (* c (w2_1 (up x y)) (w1_1 (up x y)) (v1↑1 (up x y)) (w4_0 (up x y)) (w3_1 (up x y))))
-               (simplify
-                (((ci/indexed->typed iT3 (b/coordinate-system->basis R2-rect))
-                  (ff/literal-oneform-field 'w1 R2-rect)
-                  (ff/literal-oneform-field 'w2 R2-rect)
-                  (ff/literal-oneform-field 'w3 R2-rect)
-                  (ff/literal-oneform-field 'w4 R2-rect)
-                  (vf/literal-vector-field 'v1 R2-rect))
-                 ((m/point R2-rect) (up 'x 'y)))))))
-
-      (testing "contract"
-        (is (= '(+ (* a (w1_1 (up x y)))
-                   (* b (w1_0 (up x y)))
-                   (* c (w1_1 (up x y))))
-               (simplify
-                (((ci/indexed->typed (ci/contract iT1 0 0 2)
-                                     (b/coordinate-system->basis R2-rect))
-                  (ff/literal-oneform-field 'w1 R2-rect))
-                 ((m/point R2-rect) (up 'x 'y))))))
-
-        (is (= '(* c (w1_1 (up x y)))
-               (simplify
-                (((ci/indexed->typed (ci/contract iT1 1 0 2)
-                                     (b/coordinate-system->basis R2-rect))
-                  (ff/literal-oneform-field 'w1 R2-rect))
-                 ((m/point R2-rect) (up 'x 'y))))))
-
-        (is (= 0 (simplify
-                  (((ci/indexed->typed (ci/contract iT3 1 0 0)
-                                       (b/coordinate-system->basis R2-rect))
+  (testing "outer-product and contract"
+    (let-coordinates [[x y] m/R2-rect]
+      (let [T1 (-> (fn [w1 w2 v1]
+                     (+ (* 'a (dx v1) (w1 d:dx) (w2 d:dy))
+                        (* 'b (dy v1) (w1 d:dy) (w2 d:dx))
+                        (* 'c (dy v1) (w1 d:dy) (w2 d:dy))))
+                   (with-meta {:arguments
+                               [::ff/oneform-field
+                                ::ff/oneform-field
+                                ::vf/vector-field]}))
+            iT1 (ci/typed->indexed T1 (b/coordinate-system->basis R2-rect))
+            T2 (-> (fn [w1 w2]
+                     (+ (* (w1 d:dx) (w2 d:dx))
+                        (* (w1 d:dy) (w2 d:dy))
+                        (* (w1 d:dy) (w2 d:dx))))
+                   (with-meta {:arguments [::ff/oneform-field
+                                           ::ff/oneform-field]}))
+            iT2 (ci/typed->indexed T2 (b/coordinate-system->basis R2-rect))
+            iT3 (ci/outer-product iT1 iT2)]
+        (testing "outer-product"
+          (is (= '(+ (* a (w4_1 (up x y)) (w3_1 (up x y)) (w2_1 (up x y)) (v1↑0 (up x y)) (w1_0 (up x y)))
+                     (* a (w3_1 (up x y)) (w2_1 (up x y)) (w4_0 (up x y)) (v1↑0 (up x y)) (w1_0 (up x y)))
+                     (* a (w2_1 (up x y)) (w4_0 (up x y)) (w3_0 (up x y)) (v1↑0 (up x y)) (w1_0 (up x y)))
+                     (* b (v1↑1 (up x y)) (w4_1 (up x y)) (w3_1 (up x y)) (w1_1 (up x y)) (w2_0 (up x y)))
+                     (* b (v1↑1 (up x y)) (w3_1 (up x y)) (w1_1 (up x y)) (w2_0 (up x y)) (w4_0 (up x y)))
+                     (* b (v1↑1 (up x y)) (w1_1 (up x y)) (w2_0 (up x y)) (w4_0 (up x y)) (w3_0 (up x y)))
+                     (* c (v1↑1 (up x y)) (w4_1 (up x y)) (w3_1 (up x y)) (w2_1 (up x y)) (w1_1 (up x y)))
+                     (* c (v1↑1 (up x y)) (w3_1 (up x y)) (w2_1 (up x y)) (w1_1 (up x y)) (w4_0 (up x y)))
+                     (* c (v1↑1 (up x y)) (w2_1 (up x y)) (w1_1 (up x y)) (w4_0 (up x y)) (w3_0 (up x y))))
+                 (simplify
+                  (((ci/indexed->typed iT3 (b/coordinate-system->basis R2-rect))
                     (ff/literal-oneform-field 'w1 R2-rect)
                     (ff/literal-oneform-field 'w2 R2-rect)
-                    (ff/literal-oneform-field 'w3 R2-rect))
-                   ((m/point R2-rect) (up 'x 'y)))))))))
+                    (ff/literal-oneform-field 'w3 R2-rect)
+                    (ff/literal-oneform-field 'w4 R2-rect)
+                    (vf/literal-vector-field 'v1 R2-rect))
+                   ((m/point R2-rect) (up 'x 'y)))))))
+
+        (testing "contract"
+          (is (= '(+ (* a (w1_1 (up x y)))
+                     (* b (w1_0 (up x y)))
+                     (* c (w1_1 (up x y))))
+                 (simplify
+                  (((ci/indexed->typed (ci/contract iT1 0 0 2)
+                                       (b/coordinate-system->basis R2-rect))
+                    (ff/literal-oneform-field 'w1 R2-rect))
+                   ((m/point R2-rect) (up 'x 'y))))))
+
+          (is (= '(* c (w1_1 (up x y)))
+                 (simplify
+                  (((ci/indexed->typed (ci/contract iT1 1 0 2)
+                                       (b/coordinate-system->basis R2-rect))
+                    (ff/literal-oneform-field 'w1 R2-rect))
+                   ((m/point R2-rect) (up 'x 'y))))))
+
+          (is (= 0 (simplify
+                    (((ci/indexed->typed (ci/contract iT3 1 0 0)
+                                         (b/coordinate-system->basis R2-rect))
+                      (ff/literal-oneform-field 'w1 R2-rect)
+                      (ff/literal-oneform-field 'w2 R2-rect)
+                      (ff/literal-oneform-field 'w3 R2-rect))
+                     ((m/point R2-rect) (up 'x 'y))))))))))
 
   (testing "typed->structure"
     (let-coordinates [[x y] m/R2-rect]
@@ -138,9 +138,9 @@
                  ((m/point R2-rect) (up 'x 'y))))))
 
         (testing "Outer index is first argument.  Inner index is last argument."
-          (is (= '(+ (* a (w2_1 (up x y)) (w1_0 (up x y)) (v1↑0 (up x y)))
-                     (* b (w2_0 (up x y)) (w1_1 (up x y)) (v1↑1 (up x y)))
-                     (* c (w2_1 (up x y)) (w1_1 (up x y)) (v1↑1 (up x y))))
+          (is (= '(+ (* a (w2_1 (up x y)) (v1↑0 (up x y)) (w1_0 (up x y)))
+                     (* b (v1↑1 (up x y)) (w1_1 (up x y)) (w2_0 (up x y)))
+                     (* c (v1↑1 (up x y)) (w2_1 (up x y)) (w1_1 (up x y))))
                  (simplify
                   (((ci/structure->typed
                      (ci/typed->structure T (b/coordinate-system->basis R2-rect))

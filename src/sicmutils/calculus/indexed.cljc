@@ -22,11 +22,14 @@
   (:require [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.covariant :as cov]
             [sicmutils.calculus.form-field :as ff]
+            [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [+ - * /]]
             [sicmutils.matrix :as matrix]
             [sicmutils.structure :as s]
+            [sicmutils.util :as u]
+            [sicmutils.util.aggregate :as ua]
             [sicmutils.util.permute :as permute]))
 
 ;; ## Minimal support for Indexed Objects
@@ -36,7 +39,7 @@
 ;; TODO maybe move arg types here, if we don't need them in covariant. For sure!
 
 (defn index-types [f]
-  (::index-types (meta f)))
+  (:index-types (meta f)))
 
 (defn has-index-types? [f]
   (boolean
@@ -44,10 +47,10 @@
 
 (defn with-index-types [f types]
   {:pre [(f/function? f)]}
-  (vary-meta f assoc ::index-types types))
+  (vary-meta f assoc :index-types (into [] types)))
 
-;; argument-types are, for example
-;; (list up down down), for a Christoffel-2: it takes one oneform field and two
+;; index types are, for example
+;; ['up 'down 'down], for a Christoffel-2: it takes one oneform field and two
 ;; vector fields.
 
 ;; An argument-typed function of type (n . m) takes n oneform fields and m
@@ -84,6 +87,15 @@
 		    (every? #{'up 'down} ts)
         (every? #{'down} (drop-while #{'up} ts)))))
 
+;; An argument-typed function of type (n . m) takes n oneform fields and m
+;; vector-fields, in that order, and produces a function on a manifold point. An
+;; indexed function of type (n . m) takes n+m indices and gives a function on a
+;; manifold point.
+
+;; For each argument-typed function and basis there is an indexed function that
+;; gives the function resulting from applying the argument-typed function to the
+;; basis elements specified by the corresponding indices.
+
 (defn typed->indexed [f basis]
   (let [arg-types (cov/argument-types f)]
     (assert (valid-arg-types? arg-types)
@@ -97,7 +109,10 @@
 	                       arg-types)]
       (-> (fn indexed [indices]
             (assert (= (count indices)
-                       (count arg-types)))
+                       (count arg-types))
+                    (str "Wrong counts: indices - "
+                         (count indices)
+                         ", arg-types:  " (count arg-types)))
             (let [args (mapv (fn [t idx]
 		                           (if (isa? t ::vf/vector-field)
 			                           (get vector-basis idx)
@@ -107,75 +122,65 @@
               (apply f args)))
           (with-index-types idx-types)))))
 
+(defn- validate-typed-args! [index-types args]
+  (assert (= (count index-types)
+             (count args)))
+  (assert (every? true?
+                  (map (fn [index-type arg]
+		                     (or (and (= index-type 'up)
+                                  (ff/oneform-field? arg))
+			                       (and (= index-type 'down)
+                                  (vf/vector-field? arg))))
+		                   index-types
+                       args))
+	        "Args do not match indices"))
+
 (defn indexed->typed [indexed basis]
   (let [index-types (index-types indexed)]
     (assert (valid-index-types? index-types)
             (str "Bad index types: " index-types))
-    (let [vector-basis (b/basis->vector-basis basis)
+
+    (let [vector-basis  (b/basis->vector-basis basis)
           oneform-basis (b/basis->oneform-basis basis)
-          n (b/basis->dimension basis)
-          arg-types (mapv (fn [t]
-	                          (if (= t 'up)
-                              ::vf/vector-field
-                              ::ff/oneform-field))
+          n              (b/basis->dimension basis)
+          arg-types (mapv {'up ::ff/oneform-field
+                           'down ::vf/vector-field}
 	                        index-types)]
       (-> (fn typed [& args]
-            (assert (= (count index-types)
-                       (count args)))
-            (assert (every?
-                     (map (fn [index-type arg]
-		                        (or (and (= index-type 'up)
-                                     (ff/oneform-field? arg))
-			                          (and (= index-type 'down)
-                                     (vf/vector-field? arg))))
-		                      index-types
-                          args))
-	                  "Args do not match indices")
-
-            ;; TODO what the heck is this sum doing???
-            (let [sum (atom 0)]
-              (letfn [(aloop [args term indices]
-                        (if (empty? args)
-	                        (swap! sum (fn [v] (+ (* (indexed indices) term) v)))
-	                        (let [arg (first args)]
-		                        (let dloop ((i 0))
-		                             (if (< i n)
-		                               (begin
-			                              (aloop (rest args)
-			                                     (g:* (if (vf/vector-field? arg)
-					                                        ((get oneform-basis i) arg)
-                                                  (arg (get vector-basis i)))
-				                                        term)
-			                                     (conj indices i))
-			                              (dloop (inc i))))))))
-                      (dloop [i])])
-	            (aloop args 1 [])
-	            sum))
+            (validate-typed-args! index-types args)
+            (let [n-seq  (reverse (range n))
+                  combos (permute/cartesian-product
+                          (for [x args]
+                            (map (fn [i arg]
+                                   [i (if (vf/vector-field? arg)
+					                              ((get oneform-basis i) arg)
+                                        (arg (get vector-basis i)))])
+                                 n-seq
+                                 (repeat x))))]
+              (ua/generic-sum
+               (for [combo combos
+                     :let [indices      (map first combo)
+                           product-args (map peek combo)]]
+                 (apply *
+                        (indexed indices)
+                        (reverse product-args))))))
           (with-meta {:arguments arg-types})))))
-
-
-(declare outer-product contract)
-
-(defn count-occurrences [x xs]
-  (count
-   (filter #{x} xs)))
 
 (defn outer-product [T1 T2]
   (let [i1 (index-types T1)
         i2 (index-types T2)]
-    (assert i1 "T1 not index typed")
-    (assert i2 "T2 not index typed")
-    (let [nu1 (count-occurrences 'up i1)
-          nd1 (count-occurrences 'down i1)
-          nu2 (count-occurrences 'up i2)
-          nd2 (count-occurrences 'down i2)
+    (assert i1 "T1 not index typed!")
+    (assert i2 "T2 not index typed!")
+    (let [{nu1 'up nd1 'down} (frequencies i1)
+          {nu2 'up nd2 'down} (frequencies i2)
           nup (+ nu1 nu2)
           ndp (+ nd1 nd2)
-          np (+ nup ndp)
-          n1 (+ nup nd1)]
-      (letfn [(product [& args]
+          np  (+ nup ndp)
+          n1  (+ nup nd1)]
+      (letfn [(product [args]
                 (assert (= (count args) np)
-                        (str "Wrong number of args to outer-product: " (count args) " vs " np))
+                        (str "Wrong number of args to outer-product: "
+                             (count args) " vs " np))
                 (let [argv (into [] args)]
                   (* (T1 (into (subvec argv 0 nu1)
 			                         (subvec argv nup n1)))
@@ -185,83 +190,82 @@
 	        (concat (repeat nup 'up)
                   (repeat ndp 'down)))))))
 
-
-
 (defn contract [T u d n]
-  #_(let ((i-types (index-types T)))
-      (assert i-types "T not index typed")
-      (let ((nu (count-occurrences up i-types))
-	          (nd (count-occurrences down i-types)))
-        (assert (and (fix:<= 0 u) (fix:< u nu)
-		                 (fix:<= 0 d) (fix:< d nd))
-	              "Contraction indices not in range")
-        (let ((nuc (fix:- nu 1)) (ndc (fix:- nd 1)))
-	        (define (contraction args)
-	          (sigma (lambda (i)
-		                       (T (append
-		                           (list-with-inserted-coord (list-head args nuc) u i)
-		                           (list-with-inserted-coord (list-tail args nuc) d i))))
-		               0 (fix:- n 1)))
-	        (declare-index-types! contraction
-                                (append (make-list nuc up) (make-list ndc down)))
-	        contraction))))
-
-(declare typed->structure structure->typed)
+  (let [i-types (index-types T)]
+    (assert i-types "T not index typed!")
+    (let [{nu 'up nd 'down} (frequencies i-types)]
+      (assert (and (<= 0 u) (< u nu)
+		               (<= 0 d) (< d nd))
+	            "Contraction indices not in range")
+      (let [nuc (dec nu)
+            ndc (dec nd)]
+        (-> (fn contraction [args]
+	            (let [argv (into [] args)]
+                (ua/generic-sum
+                 (fn [i]
+		               (T (concat
+		                   (assoc (subvec argv 0 nuc) u i)
+		                   (assoc (subvec argv nuc) d i))))
+		             0 n)))
+	          (with-index-types
+              (concat (repeat nuc 'up)
+                      (repeat ndc 'down))))))))
 
 (defn typed->structure [T basis]
-  (let [vector-basis (b/basis->vector-basis basis)
+  (let [vector-basis  (b/basis->vector-basis basis)
 	      oneform-basis (b/basis->oneform-basis basis)]
-    #_#_(define (iterate arg-types argl)
-          (if (null? arg-types)
-	          (apply T (reverse argl))
-	          (s:map/r (lambda (e) (iterate (cdr arg-types) (cons e argl)))
-		                 (cond ((eq? (car arg-types) vector-field?) vector-basis)
-			                     ((eq? (car arg-types) oneform-field?) oneform-basis)
-			                     (else (error "Bad arg-type"))))))
-    (iterate (argument-types T) '())))
+    (letfn [(iterate [arg-types argv]
+              (if (empty? arg-types)
+	              (apply T argv)
+	              (s/mapr (fn [e]
+                          (iterate (rest arg-types)
+                                   (conj argv e)))
+		                    (cond (isa? (first arg-types) ::vf/vector-field)
+                              vector-basis
+
+                              (isa? (first arg-types) ::ff/oneform-field)
+                              oneform-basis
+
+			                        :else (u/illegal "Bad arg-type!")))))])
+    (iterate (cov/argument-types T) [])))
 
 (defn structure->typed [coeff-functions basis]
-  #_(let [vector-basis (b/basis->vector-basis basis)
-	        oneform-basis (b/basis->oneform-basis basis)
-	        arg-types (let lp ((cf coeff-functions))
-	                       (if (structure? cf)
-	                         (cons (let ((shape (s:opposite cf)))
-		                               (cond ((eq? shape 'up) vector-field?)
-			                                   ((eq? shape 'down) oneform-field?)
-			                                   (else (error "Bad Shape"))))
-		                             (lp (ref cf 0)))
-	                         '()))]
-      (define (indexed-function . args)
-        (assert (fix:= (length args) (length arg-types)))
-        (for-each (lambda (arg-type arg) (assert (arg-type arg)))
-		              arg-types args)
-        (g:* (let lp ((args args) (arg-types arg-types))
-	                (if (null? args)
-		                one-manifold-function
-		                (let ((arg (car args)) (arg-type (car arg-types)))
-		                  (cond ((eq? arg-type vector-field?)
-			                       (s:map/r (lambda (etilde)
-				                                      (g:* (etilde arg)
-					                                         (lp (cdr args)
-					                                             (cdr arg-types))))
-				                              oneform-basis))
-			                      ((eq? arg-type oneform-field?)
-			                       (s:map/r (lambda (e)
-				                                      (g:* (arg e)
-					                                         (lp (cdr args)
-					                                             (cdr arg-types))))
-				                              vector-basis))))))
-	           coeff-functions))
-      (declare-argument-types! indexed-function arg-types)
-      indexed-function))
+  (let [vector-basis  (b/basis->vector-basis basis)
+	      oneform-basis (b/basis->oneform-basis basis)
+	      arg-types     (loop [cf  coeff-functions
+                             acc []]
+	                      (if-not (s/structure? cf)
+                          acc
+                          (let [shape (s/opposite-orientation
+                                       (s/orientation cf))
+                                t (case shape
+                                    ::s/up ::vf/vector-field
+			                              ::s/down ::ff/oneform-field)]
+                            (recur (get cf 0)
+                                   (conj acc t)))))]
+    (-> (fn indexed-fn [& args]
+          (assert (= (count args) (count arg-types)))
+          (assert (every? true? (map (fn [arg arg-type]
+                                       (isa? (v/kind arg) arg-type))
+		                                 args arg-types)))
+          (letfn [(lp [args arg-types]
+                    (if (empty? args)
+		                  m/one-manifold-function
+		                  (let [arg (first args)
+                            arg-type (first arg-types)]
+		                    (cond (isa? arg-type ::vf/vector-field)
+			                        (s/mapr (fn [etilde]
+				                                (* (etilde arg)
+					                                 (lp (rest args)
+					                                     (rest arg-types))))
+				                              oneform-basis)
 
-(comment
-  (define (manifold-function-cofunction? x)
-    ;; f-quant returns true for functions AND procedures.
-    (or (function-quantity? x)
-        (numerical-quantity? x)))
-
-  ;; TODO get this one!
-  (defhandler '* (lambda (x y) zero-manifold-function) zero-manifold-function? manifold-function-cofunction?)
-  (defhandler '* (lambda (x y) zero-manifold-function) manifold-function-cofunction? zero-manifold-function?)
-  )
+                              (isa? arg-type ::ff/oneform-field)
+			                        (s/mapr (fn [e]
+				                                (* (arg e)
+					                                 (lp (rest args)
+					                                     (rest arg-types))))
+				                              vector-basis)))))]
+            (* (lp args arg-types)
+	             coeff-functions)))
+        (with-meta {:arguments arg-types}))))
