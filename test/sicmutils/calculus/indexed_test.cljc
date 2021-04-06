@@ -43,10 +43,9 @@
                   (+ (* 'a (dx v1) (w1 d:dx) (w2 d:dy))
                      (* 'b (dy v1) (w1 d:dy) (w2 d:dx))
                      (* 'c (dy v1) (w1 d:dy) (w2 d:dy))))
-                (with-meta {:arguments
-                            [::ff/oneform-field
-                             ::ff/oneform-field
-                             ::vf/vector-field]}))]
+                (ci/with-argument-types [::ff/oneform-field
+                                         ::ff/oneform-field
+                                         ::vf/vector-field]))]
       (is (= '(+ (* c (v1↑1 (up x y)) (w2_1 (up x y)) (w1_1 (up x y)))
                  (* b (v1↑1 (up x y)) (w2_0 (up x y)) (w1_1 (up x y)))
                  (* a (v1↑0 (up x y)) (w2_1 (up x y)) (w1_0 (up x y))))
@@ -65,17 +64,16 @@
                      (+ (* 'a (dx v1) (w1 d:dx) (w2 d:dy))
                         (* 'b (dy v1) (w1 d:dy) (w2 d:dx))
                         (* 'c (dy v1) (w1 d:dy) (w2 d:dy))))
-                   (with-meta {:arguments
-                               [::ff/oneform-field
-                                ::ff/oneform-field
-                                ::vf/vector-field]}))
+                   (ci/with-argument-types [::ff/oneform-field
+                                            ::ff/oneform-field
+                                            ::vf/vector-field]))
             iT1 (ci/typed->indexed T1 (b/coordinate-system->basis R2-rect))
             T2 (-> (fn [w1 w2]
                      (+ (* (w1 d:dx) (w2 d:dx))
                         (* (w1 d:dy) (w2 d:dy))
                         (* (w1 d:dy) (w2 d:dx))))
-                   (with-meta {:arguments [::ff/oneform-field
-                                           ::ff/oneform-field]}))
+                   (ci/with-argument-types [::ff/oneform-field
+                                            ::ff/oneform-field]))
             iT2 (ci/typed->indexed T2 (b/coordinate-system->basis R2-rect))
             iT3 (ci/outer-product iT1 iT2)]
         (testing "outer-product"
@@ -128,9 +126,9 @@
                     (+ (* 'a (dx v1) (w1 d:dx) (w2 d:dy))
                        (* 'b (dy v1) (w1 d:dy) (w2 d:dx))
                        (* 'c (dy v1) (w1 d:dy) (w2 d:dy))))
-                  (with-meta {:arguments [::vf/vector-field
-                                          ::ff/oneform-field
-                                          ::ff/oneform-field]}))]
+                  (ci/with-argument-types [::vf/vector-field
+                                           ::ff/oneform-field
+                                           ::ff/oneform-field]))]
         (is (= '(down (up (up 0 a) (up 0 0))
                       (up (up 0 0) (up b c)))
                (simplify

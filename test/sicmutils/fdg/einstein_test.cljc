@@ -21,6 +21,7 @@
   (:refer-clojure :exclude [+ - * /])
   (:require [clojure.test :refer [is deftest testing use-fixtures]]
             [sicmutils.calculus.form-field :as ff]
+            [sicmutils.calculus.indexed :as ci]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.env :as e :refer [+ - * / expt sin let-coordinates
                                          literal-function
@@ -50,18 +51,19 @@
              (* (/ 1 2)
                 Ricci-scalar
                 (metric-tensor v1 v2))))
-        (with-meta
-          {:arguments [::vf/vector-field
-                       ::vf/vector-field]}))))
+        (ci/with-argument-types
+          [::vf/vector-field
+           ::vf/vector-field]))))
 
 (defn Einstein-field-equation [coordinate-system K]
   (fn [metric-tensor Lambda stress-energy-tensor]
     (let [Einstein-tensor (Einstein coordinate-system metric-tensor)]
       (let [EFE-residuals (- (+ Einstein-tensor (* Lambda metric-tensor))
                              (* K stress-energy-tensor))]
-        (with-meta EFE-residuals
-          {:arguments [::vf/vector-field
-                       ::vf/vector-field]})))))
+        (ci/with-argument-types
+          EFE-residuals
+          [::vf/vector-field
+           ::vf/vector-field])))))
 
 ;; (define K (/ (* 8 :pi :G) (expt :c 4)))
 ;; (& 2.076115391974129e-43 (/ (expt second 2) (* kilogram meter)))
@@ -75,9 +77,10 @@
                  (* (dx v1) (dx v2))
                  (* (dy v1) (dy v2))
                  (* (dz v1) (dz v2))))]
-      (with-meta g
-        {:arguments [::vf/vector-field
-                     ::vf/vector-field]}))))
+      (ci/with-argument-types
+        g
+        [::vf/vector-field
+         ::vf/vector-field]))))
 
 (let-coordinates [[t r theta phi] spacetime-sphere]
   (defn Schwarzschild-metric [c G M]
@@ -90,9 +93,10 @@
                     (+ (* (dtheta v1) (dtheta v2))
                        (* (square (sin theta))
                           (dphi v1) (dphi v2))))))]
-      (with-meta g
-        {:arguments [::vf/vector-field
-                     ::vf/vector-field]})))
+      (ci/with-argument-types
+        g
+        [::vf/vector-field
+         ::vf/vector-field])))
 
   ;; Friedmann-Lemaître-Robertson-Walker metric
 
@@ -107,9 +111,10 @@
                     (+ (* (dtheta v1) (dtheta v2))
                        (* (square (sin theta))
                           (dphi v1) (dphi v2))))))]
-      (with-meta g
-        {:arguments [::vf/vector-field
-                     ::vf/vector-field]})))
+      (ci/with-argument-types
+        g
+        [::vf/vector-field
+         ::vf/vector-field])))
 
   ;; ## Stress-Energy tensors
   ;;
@@ -126,13 +131,13 @@
                     (w1 d:dt) (w2 d:dt))
                  (* (compose p t)
                     (inverse-metric w1 w2))))]
-      (with-meta T
-        {:arguments [::ff/oneform-field
-                     ::ff/oneform-field]}))))
+      (ci/with-argument-types
+        T
+        [::ff/oneform-field
+         ::ff/oneform-field]))))
 
 (comment
   (testing "These are too hard for now!"
-
     (deftest einstein-field-equations
       (testing "first challenge"
         (with-literal-functions [R rho p]

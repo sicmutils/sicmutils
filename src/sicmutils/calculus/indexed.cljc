@@ -185,7 +185,7 @@
                  (apply *
                         (indexed indices)
                         (reverse product-args))))))
-          (with-meta {:arguments arg-types})))))
+          (with-argument-types arg-types)))))
 
 (defn outer-product [T1 T2]
   (let [i1 (index-types T1)

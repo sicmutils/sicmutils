@@ -337,8 +337,9 @@
                                                          oneform-basis))))))
                                           arg-types))]
                         (g/+ VT corrections)))]
-              (with-meta the-derivative
-                {:arguments arg-types}))))))))
+              (ci/with-argument-types
+                the-derivative
+                arg-types))))))))
 
 (defn- covariant-derivative-function [Cartan]
   (fn [X]
@@ -347,14 +348,14 @@
         (let [types (apply v/argument-kind args)]
           (cond (and (= (count args) 1)
                      (manifold/manifold-point? (first args)))
-                (let [f (with-meta f {:arguments types})]
+                (let [f (ci/with-argument-types f types)]
                   ((X f) (first args)))
 
                 (every? (fn [arg] ;; either a vector field or oneform.
                           (or (vf/vector-field? arg)
                               (ff/oneform-field? arg)))
                         args)
-                (let [f (with-meta f {:arguments types})]
+                (let [f (ci/with-argument-types f types)]
                   (apply (((covariant-derivative-argument-types Cartan) X) f)
                          args))
 

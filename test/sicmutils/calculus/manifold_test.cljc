@@ -134,8 +134,8 @@
       (is (not (m/check-coordinates m/R2-polar (up 1 2 3))))
       (is (not (m/check-coordinates m/R2-polar 99)))))
 
-  (checking "R2-rect->polar" 100 [x sg/real
-                                  y sg/real]
+  (checking "R2-rect->polar" 100 [x (gen/fmap #(g/modulo % 1000) sg/real)
+                                  y (gen/fmap #(g/modulo % 1000) sg/real)]
             (when-not (and (v/zero? x) (v/zero? y))
               (let [r     (g/abs (up x y))
                     theta (g/atan y x)]
