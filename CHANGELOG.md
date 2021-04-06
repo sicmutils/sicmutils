@@ -2,6 +2,23 @@
 
 ## [unreleased]
 
+- From #339:
+
+  - `Structure` instances can now hold metadata.
+
+  - The new `sicmutils.calculus.covariant/Lie-D` can compute the Lie derivative
+    for coordinates.
+
+  - `sicmutils.calculus.frame` lets us create relativistic reference frames for
+    investigating special relativity problems. This namespace aliases the
+    following functions into `sicmutils.env`: 'frame?', `make-event`, `event?`,
+    `claim`, `coords->event`, `event->coords`, `ancestor-frame`, `frame-name`,
+    `frame-owner` and `frame-maker`.
+
+  - `sicmutils.calculus.hodge-star` TODO finish. This namespace aliases the
+    following functions into `sicmutils.env`: `Gram-Schmidt`, `orthonormalize`,
+    `completely-antisymmetric` and `Hodge-star`.
+
 - From #338:
 
   - `sicmutils.fdg.bianchi-test` verifies the Bianchi identities; this was a

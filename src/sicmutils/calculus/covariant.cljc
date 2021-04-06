@@ -88,7 +88,35 @@
 
 ;; Let's call this operation Lie-D (the Lie derivative for coordinates):
 
-(defn Lie-D [R]
+(defn Lie-D
+  "Takes a system derivative `R` and returns a operator that takes a function `F`
+  of coordinatized state and performs the operation described below, from
+  ODE.scm in scmutils:
+
+  Let `(sigma t)` be the state of a system at time `t`. Let the
+  (first-order) system of differential equations governing the evolution of
+  this state be:
+
+  ```clojure
+  ((D sigma) t) = (R (sigma t))
+  ```
+
+  ```clojure
+  (D sigma) = (compose R sigma)
+  ```
+
+  i.e. `R` is a system derivative.
+
+  Let `F` be any function of state, then a differential equation for the
+  evolution of `F`, as it is dragged along the integral curve sigma is:
+
+  ```clojure
+  (D (compose F sigma)) = (* (compose (D F) sigma) (D sigma))
+  = (compose (* (D F) R) sigma)
+  ```
+
+  Let's call this operation `Lie-D` (the Lie derivative for coordinates)."
+  [R]
   (-> (fn [F]
         (g/* (D F) R))
       (o/make-operator

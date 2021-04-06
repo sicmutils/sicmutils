@@ -39,16 +39,29 @@
   [x]
   (satisfies? IFrame x))
 
-(defn make-event [e]
+(defn make-event
+  "Marks the input event `e` as an event via its metadata. The return value will
+  return `true` when passed to [[event?]]."
+  [e]
   (vary-meta e assoc ::event? true))
 
-(defn event? [e]
+(defn event?
+  "Returns true if `e` is an event, false otherwise.
+
+  Make new events with [[make-event]]."
+  [e]
   (::event? (meta e) false))
 
-(defn frame-owner [coords]
+(defn frame-owner
+  "Returns the owning [[IFrame]] instance of the supplied coordinates `coords`,
+  nil if there's no owner otherwise."
+  [coords]
   (::owner (meta coords)))
 
-(defn claim [coords owner]
+(defn claim
+  "Marks the supplied set of `coords` as being owned by `owner`. If `coords`
+  already has an owner (that is not equal to `owner`), throws."
+  [coords owner]
   (if-let [other (frame-owner coords)]
     (if (= other owner)
       coords
@@ -56,7 +69,24 @@
     (vary-meta coords assoc ::owner owner)))
 
 (defn frame-maker
-  "c->e takes ancestor-frame, this, and a dict of params."
+  "Takes:
+
+  - `c->e`, a function mapping coordinates to events
+  - `e->c`, a function mapping events to coordinates
+
+  and returns a function that takes:
+
+  - a symbolic name
+  - an ancestor frame
+  - a dictionary of params
+
+  and returns instance of [[IFrame]].
+
+  Both `c->e` and `e->c` must accept three arguments:
+
+  - `ancestor-frame`
+  - the [[IFrame]] instance
+  - a map of parameters supplied to the returned function (possibly empty!)."
   [c->e e->c]
   (fn call
     ([name]

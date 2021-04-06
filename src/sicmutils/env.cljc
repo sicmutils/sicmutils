@@ -355,7 +355,9 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   coords->event event->coords ancestor-frame frame-name
   frame-owner frame-maker]
 
- [sicmutils.calculus.hodge-star Hodge-star]
+ [sicmutils.calculus.hodge-star
+  Gram-Schmidt orthonormalize completely-antisymmetric
+  Hodge-star]
 
  [sicmutils.calculus.indexed
   argument-types with-argument-types

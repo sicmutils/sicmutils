@@ -38,9 +38,6 @@
 ;; if the spec is a basis that needs to be orthonormalized,
 ;; the optional orthonormalize? argument must be a coordinate system
 
-(defn list-difference [l1 l2]
-  (remove (into #{} l2) l1))
-
 (defn Gram-Schmidt [vector-basis metric]
   (letfn [(make-positive [x]
             (g/sqrt (g/square x)))
@@ -72,6 +69,9 @@
   (permute/permutation-parity
    indices
    (range (count indices))))
+
+(defn- list-difference [l1 l2]
+  (remove (into #{} l2) l1))
 
 (defn Hodge-star
   "TODO orthonormalize? takes a coordinate system, sort of weird.
