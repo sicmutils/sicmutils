@@ -75,3 +75,17 @@
    (apply g/+ xs))
   ([f low high]
    (transduce (map f) g/+ (range low high))))
+
+(defn halt-at
+  "Returns a transducer that ends transduction when `pred` (applied to the
+  aggregation in progress) returns true for an aggregation step."
+  [pred]
+  (fn [rf]
+    (fn
+      ([] (rf))
+      ([result]
+       (rf result))
+      ([result input]
+       (if (pred result)
+         (reduced result)
+         (rf result input))))))

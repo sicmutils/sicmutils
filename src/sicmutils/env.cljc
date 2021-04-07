@@ -240,7 +240,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
  #?(:cljs [sicmutils.ratio
            ratio? rationalize numerator denominator])
  [sicmutils.util bigint? #?@(:cljs [bigint])]
- [sicmutils.function arity compose arg-shift arg-scale I]
+ [sicmutils.function arity compose arg-shift arg-scale]
  [sicmutils.modint chinese-remainder]
  [sicmutils.operator commutator anticommutator]
  [sicmutils.series binomial-series partial-sums]

@@ -132,8 +132,9 @@
   "Given a `permutation` (represented as a list of numbers), and a sequence `xs`
   to be permuted, construct the list so permuted."
   [permutation xs]
-  (map (fn [p] (nth xs p))
-       permutation))
+  (let [xs (vec xs)]
+    (map (fn [p] (get xs p))
+         permutation)))
 
 (defn- index-of [v x]
   #?(:clj (.indexOf ^APersistentVector v x)

@@ -746,6 +746,10 @@
   (v/zero-like
    (transpose s)))
 
+(def ^{:doc "Alias for [[compatible-zero]]."}
+  dual-zero
+  compatible-zero)
+
 (defn compatible-shape
   "Returns a structure compatible for multiplication with `s` down to a scalar,
   with the slots filled with gensyms."

@@ -75,9 +75,9 @@
     (checking "m^i matches simple implementation" 100
               [m (sg/modint)
                e (gen/fmap g/abs sg/native-integral)]
-              (let [i       (:i m)
-                    modulus (:m m)]
-                (is (= (:i (g/expt m e))
+              (let [i       (m/residue m)
+                    modulus (m/modulus m)]
+                (is (= (m/residue (g/expt m e))
                        (-> (g/expt (u/bigint i)
                                    (u/bigint e))
                            (g/modulo modulus))))))
@@ -113,8 +113,8 @@
             a2 (m/make 3 13)
             cr (m/chinese-remainder a1 a2)]
         (is (= 42 cr))
-        (is (= (:i a1) (mod cr (:m a1))))
-        (is (= (:i a2) (mod cr (:m a2))))))))
+        (is (= (m/residue a1) (mod cr (m/modulus a1))))
+        (is (= (m/residue a2) (mod cr (m/modulus a2))))))))
 
 (defn div-mul-inverse-test
   "Test that:
