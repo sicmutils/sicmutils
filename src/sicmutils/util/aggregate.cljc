@@ -78,7 +78,11 @@
 
 (defn halt-at
   "Returns a transducer that ends transduction when `pred` (applied to the
-  aggregation in progress) returns true for an aggregation step."
+  aggregation in progress) returns true for an aggregation step.
+
+  NOTE: This transducer should come first in a chain of transducers; it only
+  inspects the aggregate, never the value, so putting it first will prevent
+  unnecessary transformations of values if the aggregate signals completion."
   [pred]
   (fn [rf]
     (fn
