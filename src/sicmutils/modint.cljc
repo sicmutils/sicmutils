@@ -51,7 +51,7 @@
 
       :cljs
       [IEquiv
-       (-equiv [this that] (mod:= this thiat))
+       (-equiv [this that] (mod:= this that))
 
        Object
        (toString [_] (str "[" i " mod " m "]"))

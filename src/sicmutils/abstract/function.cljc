@@ -247,8 +247,6 @@
 
 (defn ^:no-doc symbolic-derivative? [expr]
   (and (sequential? expr)
-       ;; XXX GJS uses 'derivative here; should we? doesn't he just
-       ;; have to change it back to D when printing?
        (= (first expr) g/derivative-symbol)))
 
 (defn ^:no-doc iterated-symbolic-derivative? [expr]
