@@ -24,7 +24,7 @@
             [sicmutils.calculus.coordinate :refer [let-coordinates]
              #?@(:cljs [:include-macros true])]
             [sicmutils.calculus.covariant :as cov]
-            [sicmutils.calculus.derivative :as d :refer [D]]
+            [sicmutils.calculus.derivative :refer [D]]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-calculus :as vc]
             [sicmutils.abstract.function :as af]
@@ -51,13 +51,13 @@
              (up 1 0 0)
              (up 0 (cos y) 0)
              (up 0 0 (* -1 (sin z))))
-           (simplify ((d/Grad f) xyz))))
+           (simplify ((vc/Grad f) xyz))))
 
     (is (= '(up 0 (* -1 (sin y)) (* -1 (cos z)))
-           (simplify ((d/Lap f) xyz))))
+           (simplify ((vc/Lap f) xyz))))
 
     (is (= '(+ (cos y) (* -1 (sin z)) 1)
-           (simplify ((d/Div f) (s/up 'x 'y 'z)))))))
+           (simplify ((vc/Div f) (s/up 'x 'y 'z)))))))
 
 (deftest non-fdg-vector-operator-tests
   (testing "symbolic representations of Div, Curl, Grad, Lap are correct"
@@ -68,13 +68,13 @@
                   (((partial 1) F) (up x y z))
                   (((partial 2) F) (up x y z)))
              (simplify
-              ((d/Grad F) (s/up 'x 'y 'z)))))
+              ((vc/Grad F) (s/up 'x 'y 'z)))))
 
       (is (= '(+ (((partial 0) A↑0) (up x y z))
                  (((partial 1) A↑1) (up x y z))
                  (((partial 2) A↑2) (up x y z)))
              (simplify
-              ((d/Div A) (s/up 'x 'y 'z)))))
+              ((vc/Div A) (s/up 'x 'y 'z)))))
 
       (is (= '(up (+ (((partial 1) A↑2) (up x y z))
                      (* -1 (((partial 2) A↑1) (up x y z))))
@@ -83,13 +83,13 @@
                   (+ (((partial 0) A↑1) (up x y z))
                      (* -1 (((partial 1) A↑0) (up x y z)))))
              (simplify
-              ((d/Curl A) (s/up 'x 'y 'z)))))
+              ((vc/Curl A) (s/up 'x 'y 'z)))))
 
       (is (= '(+ (((expt (partial 0) 2) F) (up x y z))
                  (((expt (partial 1) 2) F) (up x y z))
                  (((expt (partial 2) 2) F) (up x y z)))
              (simplify
-              ((d/Lap F) (s/up 'x 'y 'z)))))))
+              ((vc/Lap F) (s/up 'x 'y 'z)))))))
 
   (testing "Div, Curl, Grad, Lap identities"
     (let [F (af/literal-function 'F '(-> (UP Real Real Real) Real))
@@ -98,30 +98,30 @@
                                          (UP Real Real Real)))]
       (is (= '(up 0 0 0)
              (simplify
-              ((d/Curl (d/Grad F)) (s/up 'x 'y 'z))))
+              ((vc/Curl (vc/Grad F)) (s/up 'x 'y 'z))))
           "Curl of the gradient is zero!")
 
       (is (= 0 (simplify
-                ((d/Div (d/Curl A)) (s/up 'x 'y 'z))))
+                ((vc/Div (vc/Curl A)) (s/up 'x 'y 'z))))
           "divergence of curl is 0.")
 
       (is (= 0 (simplify
-                ((- (d/Div (d/Grad F))
-                    (d/Lap F))
+                ((- (vc/Div (vc/Grad F))
+                    (vc/Lap F))
                  (s/up 'x 'y 'z))))
           "The Laplacian of a scalar field is the div of its gradient.")
 
       (is (= '(up 0 0 0)
              (simplify
-              ((- (d/Curl (d/Curl A))
-                  (- (d/Grad (d/Div A)) (d/Lap A)))
+              ((- (vc/Curl (vc/Curl A))
+                  (- (vc/Grad (vc/Div A)) (vc/Lap A)))
                (s/up 'x 'y 'z)))))
 
       (is (= 0 (simplify
-                ((- (d/Div (* F (d/Grad G)))
-                    (+ (* F (d/Lap G))
-                       (g/dot-product (d/Grad F)
-                                      (d/Grad G))))
+                ((- (vc/Div (* F (vc/Grad G)))
+                    (+ (* F (vc/Lap G))
+                       (g/dot-product (vc/Grad F)
+                                      (vc/Grad G))))
                  (s/up 'x 'y 'z))))))))
 
 (deftest vector-operator-tests
