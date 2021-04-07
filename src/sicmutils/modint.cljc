@@ -75,12 +75,17 @@
   (.-m ^ModInt x))
 
 (defn- mod:= [this that]
-  (if (modint? that)
-    (and (= (modulus this)
-            (modulus that))
-         (v/= (residue this)
-              (residue that)))
-    (v/= (residue this) that)))
+  (cond (modint? that)
+        (and (= (modulus this)
+                (modulus that))
+             (v/= (residue this)
+                  (residue that)))
+
+        (v/number? that)
+        (v/= (residue this)
+             (g/modulo that (modulus this)))
+
+        :else false))
 
 (defn make
   "Returns an instance of [[ModInt]] that represents integer `i` with integral
@@ -167,6 +172,9 @@
 
 (defn- div [a b]
   (mul a (invert b)))
+
+(defmethod v/= [::v/number ::modint] [l r] (mod:= r l))
+(defmethod v/= [::modint ::v/number] [l r] (mod:= l r))
 
 (defmethod g/integer-part [::modint] [a] (residue a))
 (defmethod g/fractional-part [::modint] [a] 0)

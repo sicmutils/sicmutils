@@ -581,7 +581,13 @@
   (checking "s/compatible-zero works" 100
             [s (sg/structure sg/real)]
             (is (v/zero? (g/* s (s/compatible-zero s))))
-            (is (v/zero? (g/* (s/compatible-zero s) s))))
+            (is (v/zero? (g/* (s/compatible-zero s) s)))
+
+            (is (v/zero? (g/* s (s/dual-zero s)))
+                "dual-zero is an alias for compatible-zero.")
+
+            (is (v/zero? (g/* (s/dual-zero s) s))
+                "dual-zero is an alias for compatible-zero."))
 
   (testing "compatible-shape"
     (let [o (s/compatible-shape (s/up 1 2))]

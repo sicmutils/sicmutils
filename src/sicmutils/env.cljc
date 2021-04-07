@@ -240,7 +240,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
  #?(:cljs [sicmutils.ratio
            ratio? rationalize numerator denominator])
  [sicmutils.util bigint? #?@(:cljs [bigint])]
- [sicmutils.function arity compose arg-shift arg-scale]
+ [sicmutils.function arity compose arg-shift arg-scale I]
  [sicmutils.modint chinese-remainder]
  [sicmutils.operator commutator anticommutator]
  [sicmutils.series binomial-series partial-sums]
@@ -276,6 +276,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   simplify]
  [sicmutils.structure
   compatible-shape
+  compatible-zero dual-zero
   down
   mapr sumr
   orientation
@@ -333,7 +334,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   curvature-components]
 
  [sicmutils.calculus.derivative
-  derivative D taylor-series]
+  derivative D D-as-matrix taylor-series]
 
  [sicmutils.calculus.form-field
   form-field? nform-field? oneform-field?
