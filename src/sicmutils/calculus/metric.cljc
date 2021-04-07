@@ -22,6 +22,7 @@
             [sicmutils.calculus.coordinate :as coord]
             [sicmutils.calculus.derivative :refer [D]]
             [sicmutils.calculus.form-field :as ff]
+            [sicmutils.calculus.indexed :as ci]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.function :as f]
@@ -69,9 +70,10 @@
                 (let [gcoeffs (->components (Chi m))]
                   (g/* (g/* gcoeffs ((oneform-basis v1) m))
                        ((oneform-basis v2) m)))))]
-      (with-meta the-metric
-        {:arguments [::vf/vector-field
-                     ::vf/vector-field]}))))
+      (ci/with-argument-types
+        the-metric
+        [::vf/vector-field
+         ::vf/vector-field]))))
 
 (defn coordinate-system->inverse-metric [coordinate-system]
   (let [basis (b/coordinate-system->basis coordinate-system)
@@ -88,9 +90,10 @@
                                     vector-basis))
                        (s/mapr (fn [e] ((w2 e) m))
                                vector-basis)))))]
-      (with-meta the-inverse-metric
-        {:arguments [::ff/oneform-field
-                     ::ff/oneform-field]}))))
+      (ci/with-argument-types
+        the-inverse-metric
+        [::ff/oneform-field
+         ::ff/oneform-field]))))
 
 ;; Symbolic metrics are often useful for testing.
 
@@ -119,9 +122,10 @@
     (letfn [(the-metric [v1 v2]
               (g/* (g/* gcoeffs (oneform-basis v1))
                    (oneform-basis v2)))]
-      (with-meta the-metric
-        {:arguments [::vf/vector-field
-                     ::vf/vector-field]}))))
+      (ci/with-argument-types
+        the-metric
+        [::vf/vector-field
+         ::vf/vector-field]))))
 
 (defn components->metric [components basis]
   (let [oneform-basis (b/basis->oneform-basis basis)]
@@ -152,9 +156,10 @@
                   g-ij (metric->inverse-components metric basis)]
               (g/* (g/* g-ij (s/mapr w1 vector-basis))
                    (s/mapr w2 vector-basis))))]
-    (with-meta the-inverse-metric
-      {:arguments [::ff/oneform-field
-                   ::ff/oneform-field]})))
+    (ci/with-argument-types
+      the-inverse-metric
+      [::ff/oneform-field
+       ::ff/oneform-field])))
 
 ;; Over a map...
 
@@ -172,9 +177,10 @@
                 (make-fake-vector-field v1 n)
                 (make-fake-vector-field v2 n))
                (mu:N->M n))))]
-    (with-meta the-metric
-      {:arguments [::vf/vector-field
-                   ::vf/vector-field]})))
+    (ci/with-argument-types
+      the-metric
+      [::vf/vector-field
+       ::vf/vector-field])))
 
 ;; ### Raising and lowering indices
 
@@ -237,9 +243,10 @@
                          (metric-tensor e2 v2)))
                   basis))
                basis))]
-      (with-meta omega
-        {:arguments [::vf/vector-field
-                     ::vf/vector-field]}))))
+      (ci/with-argument-types
+        omega
+        [::vf/vector-field
+         ::vf/vector-field]))))
 
 (defn raise2
   "For making a (0,2) tensor into a (2,0) tensor."
@@ -256,9 +263,10 @@
                           (gi w2 omega2)))
                    basis))
                 basis))]
-        (with-meta v2
-          {:arguments [::ff/oneform-field
-                       ::ff/oneform-field]})))))
+        (ci/with-argument-types
+          v2
+          [::ff/oneform-field
+           ::ff/oneform-field])))))
 
 (defn trace2down
   "Computes the trace of a (0,2) tensor."
@@ -273,8 +281,9 @@
                          (tensor02 e1 e2)))
                   basis))
                basis)]
-        (with-meta f
-          {:arguments [::v/function]})))))
+        (ci/with-argument-types
+          f
+          [::v/function])))))
 
 (defn trace2up
   "Computes the trace of a (2,0) tensor"
@@ -288,8 +297,9 @@
                        (tensor20 w1 w2)))
                 basis))
              basis)]
-      (with-meta f
-        {:arguments [::v/function]}))))
+      (ci/with-argument-types
+        f
+        [::v/function]))))
 
 
 ;; Unfortunately raise is very expensive because the matrix is
@@ -315,6 +325,6 @@
           (g/+ (g/* (dtheta v1) (dtheta v2))
 	             (g/* (g/expt (g/sin theta) 2)
 	                  (dphi v1) (dphi v2))))
-        (with-meta {:arguments
-                    [::vf/vector-field
-                     ::vf/vector-field]}))))
+        (ci/with-argument-types
+          [::vf/vector-field
+           ::vf/vector-field]))))

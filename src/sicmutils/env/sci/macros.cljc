@@ -84,7 +84,7 @@
          body))
 
 (defn- tag-as-macro [f]
-  (with-meta f {:sci/macro true}))
+  (vary-meta f assoc :sci/macro true))
 
 (def all
   {'literal-function       (tag-as-macro literal-function)

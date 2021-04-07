@@ -21,6 +21,7 @@
   (:require [sicmutils.calculus.basis :as b]
             [sicmutils.calculus.coordinate :as cc]
             [sicmutils.calculus.form-field :as ff]
+            [sicmutils.calculus.indexed :as ci]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.generic :as g]
@@ -43,12 +44,12 @@
 (defn Riemann [nabla]
   (letfn [(Riemann-tensor [w x u v]
             (w (((Riemann-curvature nabla) u v) x)))]
-    (with-meta Riemann-tensor
-      {:arguments
-       [::ff/oneform-field
-        ::vf/vector-field
-        ::vf/vector-field
-        ::vf/vector-field]})))
+    (ci/with-argument-types
+      Riemann-tensor
+      [::ff/oneform-field
+       ::vf/vector-field
+       ::vf/vector-field
+       ::vf/vector-field])))
 
 (defn Ricci [nabla basis]
   (letfn [(Ricci-tensor [u v]
@@ -56,10 +57,10 @@
              (fn [ei wi]
                ((Riemann nabla) wi u ei v))
              basis))]
-    (with-meta Ricci-tensor
-      {:arguments
-       [::vf/vector-field
-        ::vf/vector-field]})))
+    (ci/with-argument-types
+      Ricci-tensor
+      [::vf/vector-field
+       ::vf/vector-field])))
 
 ;; Hawking and Ellis page 34.
 
@@ -74,10 +75,11 @@
 (defn torsion [nabla]
   (letfn [(the-torsion [w x y]
             (w ((torsion-vector nabla) x y)))]
-    (with-meta the-torsion
-      {:arguments [::ff/oneform-field
-                   ::vf/vector-field
-                   ::vf/vector-field]})))
+    (ci/with-argument-types
+      the-torsion
+      [::ff/oneform-field
+       ::vf/vector-field
+       ::vf/vector-field])))
 
 ;; Components of the curvature tensor R^i_{jkl}
 

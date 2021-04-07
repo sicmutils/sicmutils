@@ -396,6 +396,7 @@
    (let [ctx (joint-context o p)]
      (cond (v/identity? o) (with-context p ctx)
            (v/identity? p) (with-context o ctx)
+           (v/zero? o)     (with-context o ctx)
            :else
            (->Operator (f/compose o p)
                        (arity p)

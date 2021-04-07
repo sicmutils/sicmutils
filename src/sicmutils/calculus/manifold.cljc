@@ -29,6 +29,7 @@
   exploration and fun!"
   (:require #?(:cljs [goog.string :refer [format]])
             [sicmutils.abstract.function :as af]
+            [sicmutils.calculus.frame :as cf]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.matrix :as matrix]
@@ -332,21 +333,32 @@
   (manifold [this]
     "Returns the manifold that this [[ICoordinateSystem]] is associated with."))
 
+(defn coordinate-system?
+  "Returns true if `x` implements [[ICoordinateSystem]], false otherwise."
+  [x]
+  (satisfies? ICoordinateSystem x))
+
 (defn chart
   "Given an [[ICoordinateSystem]], returns a function from a point on the
   coordinate system's manifold to the coordinate representation specified by the
   supplied `coordinate-system`."
   [coordinate-system]
-  (fn [point]
-    (point->coords coordinate-system point)))
+  (if (cf/frame? coordinate-system)
+    (fn [event]
+      (cf/event->coords coordinate-system event))
+    (fn [point]
+      (point->coords coordinate-system point))))
 
 (defn point
   "Given an [[ICoordinateSystem]], returns a function from coordinates in
   `coordinate-system`'s repesentation to the matching point on the manifold
   associated with `coordinate-system`."
   [coordinate-system]
-  (fn [coords]
-    (coords->point coordinate-system coords)))
+  (if (cf/frame? coordinate-system)
+    (fn [coords]
+      (cf/coords->event coordinate-system coords))
+    (fn [coords]
+      (coords->point coordinate-system coords))))
 
 (defn typical-coords
   "Given an [[ICoordinateSystem]], returns a structure that matches
@@ -653,9 +665,9 @@ codebase compatibility."}
 	        (let [rep (manifold-point-representation point)]
 		        (let [[t x y z] rep]
 		          (let [r (g/sqrt
-                       (+ (g/square x)
-                          (g/square y)
-                          (g/square z)))]
+                       (g/+ (g/square x)
+                            (g/square y)
+                            (g/square z)))]
 			          (if (and (v/number? r)
                          (v/zero? r))
 			            (throw
@@ -1161,7 +1173,7 @@ codebase compatibility."}
 (def spacetime-rect
   (coordinate-system-at spacetime :rectangular :origin))
 
-(def spacetime-spherical
+(def spacetime-sphere
   (coordinate-system-at spacetime :spacetime-spherical :origin))
 
 ;; The surface of a sphere, specialized to two dimensions. See [[S2p]] for the 2

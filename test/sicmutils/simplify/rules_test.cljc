@@ -23,10 +23,23 @@
 
 (deftest simplify-square-roots-test
   (let [s r/simplify-square-roots]
-    (is (= '(expt x 4) (s '(expt (sqrt x) 8))))
-    (is (= '(* (sqrt x) (expt x 3)) (s '(expt (sqrt x) 7))))
-    (is (= '(expt x 4) (s '(sqrt (expt x 8)))))
-    (is (= '(sqrt (expt x 7)) (s '(sqrt (expt x 7)))))
+    (testing "even powers"
+      (is (= '(expt x 4)
+             (s '(expt (sqrt x) 8)))
+          "sqrt inside of expt")
+
+      (is (= '(expt x 4)
+             (s '(sqrt (expt x 8))))
+          "expt inside of sqrt"))
+
+    (testing "odd powers"
+      (is (= '(* (sqrt x) (expt x 3))
+             (s '(expt (sqrt x) 7)))
+          "sqrt inside of expt")
+
+      (is (= '(* (sqrt x) (expt x 3))
+             (s '(sqrt (expt x 7))))
+          "expt inside of sqrt"))
 
     (testing "simplify across division boundary"
       (testing "no products, straight division"
@@ -91,11 +104,23 @@
            (r/sqrt-expand '(+ (sqrt (/ a b)) (sqrt (/ c b))))))
     (is (= '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
            (r/sqrt-expand '(- (sqrt (/ a b)) (sqrt (/ c b)))))))
-  (testing "sqrt-contract undoes expansion over division"
-    (is (= '(+ (sqrt (/ a b)) (sqrt (/ c b)))
-           (r/sqrt-contract '(+ (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b))))))
-    (is (= '(- (sqrt (/ a b)) (sqrt (/ c b)))
-           (r/sqrt-contract '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b))))))
-    )
 
-  )
+  (let [sqrt-contract (r/sqrt-contract identity)]
+    (testing "cancels square roots if the values are equal"
+      (is (= '(* a c e (sqrt (* b d)))
+             (sqrt-contract
+              '(* a (sqrt b) c (sqrt d) e)))
+          "square roots get pushed to the end.")
+
+      (is (= '(* a b c e)
+             (sqrt-contract
+              '(* a (sqrt b) c (sqrt b) e)))))
+
+    (testing "sqrt-contract undoes expansion over division"
+      (is (= '(+ (sqrt (/ a b)) (sqrt (/ c b)))
+             (sqrt-contract
+              '(+ (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b))))))
+
+      (is (= '(- (sqrt (/ a b)) (sqrt (/ c b)))
+             (sqrt-contract
+              '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))))))))

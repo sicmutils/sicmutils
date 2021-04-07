@@ -24,6 +24,7 @@
             [sicmutils.numerical.interpolate.polynomial :as ip]
             [sicmutils.generic :as g]
             [sicmutils.numsymb]
+            [sicmutils.polynomial.gcd :as pg]
             [sicmutils.simplify :as s :refer [hermetic-simplify-fixture]]
             [sicmutils.value :as v]))
 
@@ -56,13 +57,16 @@
             (ip/lagrange [['x_2 'y_2] ['x_1 'y_1] ['x_3 'y_3]] 'x)
             (ip/lagrange [['x_3 'y_3] ['x_2 'y_2] ['x_1 'y_1]] 'x)))))
 
-    (testing "symbolic incremental methods should be identical to the full
+    ;; This was giving cljs some trouble on CI, so here we are.
+    (binding [pg/*poly-gcd-time-limit* #?(:clj  [2 :seconds]
+                                          :cljs [6 :seconds])]
+      (testing "symbolic incremental methods should be identical to the full
   lagrange method at each point prefix."
-      (let [points [['x_1 'y_1] ['x_2 'y_2] ['x_3 'y_3] ['x_4 'y_4]]
-            diffs  (map diff
-                        (lagrange-incremental points 'x)
-                        (ip/neville-incremental* points 'x))]
-        (is (v/= [0 0 0 0] diffs))))))
+        (let [points [['x_1 'y_1] ['x_2 'y_2] ['x_3 'y_3] ['x_4 'y_4]]
+              diffs  (map diff
+                          (lagrange-incremental points 'x)
+                          (ip/neville-incremental* points 'x))]
+          (is (v/= [0 0 0 0] diffs)))))))
 
 (deftest performance-tests
   (let [points [[0 1] [2 1] [5 2] [8 10]]

@@ -234,7 +234,12 @@
   {'+ #(reduce g/add %&)
    '- (fn [arg & args]
         (if (some? args) (g/sub arg (reduce g/add args)) (g/negate arg)))
-   '* #(reduce g/mul %&)
+   '* (fn
+        ([] 1)
+        ([x] x)
+        ([x y] (g/mul x y))
+        ([x y & more]
+         (reduce g/mul (g/mul x y) more)))
    '/ (fn [arg & args]
         (if (some? args) (g/div arg (reduce g/mul args)) (g/invert arg)))
    'negate negate
@@ -245,7 +250,8 @@
    'gcd g/gcd
    })
 
-(def operators-known (set (keys operator-table)))           ;; XXX
+(def operators-known
+  (u/keyset operator-table))
 
 (deftype RationalFunctionAnalyzer [polynomial-analyzer]
   a/ICanonicalize

@@ -63,6 +63,7 @@
             [sicmutils.util.def :as util.def
              #?@(:cljs [:refer [import-def import-vars]
                         :include-macros true])]
+            [sicmutils.util.permute]
             [sicmutils.util.stream :as us]
             [sicmutils.numerical.derivative]
             [sicmutils.numerical.elliptic]
@@ -75,17 +76,21 @@
             [sicmutils.mechanics.rotation]
             [sicmutils.calculus.basis]
             [sicmutils.calculus.connection]
-            [sicmutils.calculus.coordinate]
+            [sicmutils.calculus.coordinate :as cc]
             [sicmutils.calculus.covariant]
             [sicmutils.calculus.curvature]
             [sicmutils.calculus.derivative :as d]
             [sicmutils.calculus.form-field]
-            [sicmutils.calculus.frame]
+            [sicmutils.calculus.frame :as cf]
+            [sicmutils.calculus.hodge-star]
+            [sicmutils.calculus.indexed :as ci]
             [sicmutils.calculus.manifold]
             [sicmutils.calculus.metric :as cm]
             [sicmutils.calculus.map]
-            [sicmutils.calculus.coordinate :as cc]
-            [sicmutils.calculus.vector-field]))
+            [sicmutils.calculus.vector-calculus]
+            [sicmutils.calculus.vector-field]
+            [sicmutils.sr.boost]
+            [sicmutils.sr.frames]))
 
 #?(:clj
    (defn sicmutils-repl-init
@@ -203,6 +208,11 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
 (import-def us/seq-print seq:print)
 (import-def us/pprint seq:pprint)
 
+(import-def ci/outer-product i:outer-product)
+(import-def ci/contract i:contract)
+
+(import-def cf/params frame-params)
+
 (defn tex$
   "Returns a string containing a LaTeX representation of `expr`, wrapped in single
   `$` to mark the string as an inline LaTeX form."
@@ -263,8 +273,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   dot-product inner-product outer-product cross-product
   partial-derivative Lie-derivative
   solve-linear solve-linear-left solve-linear-right
-  simplify
-  factorial]
+  simplify]
  [sicmutils.structure
   compatible-shape
   down
@@ -307,6 +316,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
  [sicmutils.calculus.covariant
   covariant-derivative
   covariant-differential
+  Lie-D
   interior-product
   make-Cartan Cartan? Cartan->forms Cartan->basis
   make-Christoffel Christoffel? Christoffel->symbols Christoffel->basis
@@ -323,7 +333,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   curvature-components]
 
  [sicmutils.calculus.derivative
-  derivative D Div Grad Curl Lap taylor-series]
+  derivative D taylor-series]
 
  [sicmutils.calculus.form-field
   form-field? nform-field? oneform-field?
@@ -341,7 +351,19 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   exterior-derivative d]
 
  [sicmutils.calculus.frame
-  frame?]
+  frame? make-event event? claim
+  coords->event event->coords ancestor-frame frame-name
+  frame-owner frame-maker]
+
+ [sicmutils.calculus.hodge-star
+  Gram-Schmidt orthonormalize
+  Hodge-star]
+
+ [sicmutils.calculus.indexed
+  argument-types with-argument-types
+  index-types with-index-types
+  typed->indexed indexed->typed
+  typed->structure structure->typed]
 
  [sicmutils.calculus.manifold
   make-manifold coordinate-system-at
@@ -354,12 +376,13 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   literal-manifold-function
   zero-manifold-function one-manifold-function
   constant-manifold-function
+  coordinate-system?
   Rn
   R1 R1-rect the-real-line
   R2 R2-rect R2-polar
   R3 R3-rect R3-cyl R3-spherical
   R4 R4-rect R4-cyl
-  spacetime spacetime-rect spacetime-spherical
+  spacetime spacetime-rect spacetime-sphere
   Sn
   S1 S1-circular S1-tilted S1-slope S1-gnomonic
   S2-type S2 S2-spherical S2-tilted S2-stereographic S2-Riemann S2-gnomonic
@@ -371,7 +394,6 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   coordinate-system->metric-components
   coordinate-system->metric
   coordinate-system->inverse-metric
-  make-metric
   literal-metric
   components->metric metric->components
   metric->inverse-components metric-over-map
@@ -391,6 +413,10 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   pullback-form pullback-vector-field
   pullback]
 
+ [sicmutils.calculus.vector-calculus
+  Div Grad Curl Lap
+  divergence curl gradient Laplacian]
+
  [sicmutils.calculus.vector-field
   vector-field?
   components->vector-field
@@ -402,6 +428,19 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   basis-components->vector-field
   vector-field->basis-components
   coordinatize evolution]
+
+ ;; Special Relativity
+
+ [sicmutils.sr.boost
+  make-four-tuple
+  four-tuple->ct four-tuple->space
+  proper-time-interval proper-space-interval
+  general-boost general-boost2 extended-rotation]
+
+ [sicmutils.sr.frames
+  make-SR-coordinates SR-coordinates? SR-name make-SR-frame
+  the-ether boost-direction v:c coordinate-origin
+  add-v:cs add-velocities]
 
  ;; Mechanics Namespaces
 
@@ -456,7 +495,12 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   symplectic-transform?
   symplectic-unit
   time-independent-canonical?]
- [sicmutils.mechanics.rotation Rx Ry Rz]
+ [sicmutils.mechanics.rotation
+  rotate-x-matrix rotate-y-matrix rotate-z-matrix
+  angle-axis->rotation-matrix
+  rotate-x-tuple rotate-y-tuple rotate-z-tuple
+  Rx Ry Rz rotate-x rotate-y rotate-z
+  Euler->M wcross->w]
  [sicmutils.numerical.ode
   evolve
   integrate-state-derivative
@@ -471,6 +515,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   golden-section-min golden-section-max]
  [sicmutils.numerical.minimize minimize multidimensional-minimize]
  [sicmutils.util.aggregate sum]
+ [sicmutils.util.permute factorial]
  [sicmutils.util.stream vector:generate]
  [sicmutils.value = compare exact? zero? one? identity?
   zero-like one-like identity-like

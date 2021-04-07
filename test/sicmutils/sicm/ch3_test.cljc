@@ -25,11 +25,12 @@
                      up down
                      literal-function]
              #?@(:cljs [:include-macros true])]
+            [sicmutils.examples.driven-pendulum :as driven]
+            [sicmutils.examples.top :as top]
             [sicmutils.mechanics.lagrange :as L]
             [sicmutils.mechanics.hamilton :as H]
-            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
-            [sicmutils.examples.driven-pendulum :as driven]
-            [sicmutils.examples.top :as top]))
+            [sicmutils.polynomial.gcd :as pg]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]))
 
 (use-fixtures :each hermetic-simplify-fixture)
 
@@ -122,22 +123,25 @@
                  (* 2 A C (expt (sin theta) 2)))
              (simplify (H top-state))))
 
-      (is (= '(up 1
-                  (up (/ p_theta A)
-                      (/ (+ (* -1 p_psi (cos theta)) p_phi) (* A (expt (sin theta) 2)))
-                      (/ (+ (* A p_psi (expt (sin theta) 2)) (* C p_psi (expt (cos theta) 2)) (* -1 C p_phi (cos theta)))
-                         (* A C (expt (sin theta) 2))))
-                  (down (/ (+ (* A gMR (expt (cos theta) 4))
-                              (* -2 A gMR (expt (cos theta) 2))
-                              (* -1 p_phi p_psi (expt (cos theta) 2))
-                              (* (expt p_phi 2) (cos theta))
-                              (* (expt p_psi 2) (cos theta))
-                              (* A gMR)
-                              (* -1 p_phi p_psi))
-                           (* A (expt (sin theta) 3)))
-                        0
-                        0))
-             (simplify (sysder top-state))))
+      ;; This was giving cljs some trouble on CI, so here we are.
+      (binding [pg/*poly-gcd-time-limit* #?(:clj  [2 :seconds]
+                                            :cljs [6 :seconds])]
+        (is (= '(up 1
+                    (up (/ p_theta A)
+                        (/ (+ (* -1 p_psi (cos theta)) p_phi) (* A (expt (sin theta) 2)))
+                        (/ (+ (* A p_psi (expt (sin theta) 2)) (* C p_psi (expt (cos theta) 2)) (* -1 C p_phi (cos theta)))
+                           (* A C (expt (sin theta) 2))))
+                    (down (/ (+ (* A gMR (expt (cos theta) 4))
+                                (* -2 A gMR (expt (cos theta) 2))
+                                (* -1 p_phi p_psi (expt (cos theta) 2))
+                                (* (expt p_phi 2) (cos theta))
+                                (* (expt p_psi 2) (cos theta))
+                                (* A gMR)
+                                (* -1 p_phi p_psi))
+                             (* A (expt (sin theta) 3)))
+                          0
+                          0))
+               (simplify (sysder top-state)))))
       (is (= (str "function(A, C, gMR, p_phi, p_psi, p_theta, theta) {\n"
                   "  var _0001 = Math.cos(theta);\n"
                   "  var _0004 = Math.sin(theta);\n"

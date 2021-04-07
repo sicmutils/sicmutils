@@ -22,6 +22,7 @@
   (:require [sicmutils.numerical.quadrature :as q]
             [sicmutils.numerical.minimize :as m]
             [sicmutils.calculus.derivative :refer [D partial]]
+            [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [cos sin + - * /]]
             [sicmutils.structure :refer [up down]]
             [sicmutils.function :as f :refer [compose]]))
@@ -128,10 +129,9 @@
   function (from time to local tuple)."
   ([q]
    (let [Dq (D q)]
-     (with-meta
-       (fn [t]
-         (up t (q t) (Dq t)))
-       {:arity [:exactly 1]})))
+     (-> (fn [t]
+           (up t (q t) (Dq t)))
+         (f/with-arity [:exactly 1]))))
   ([q n]
    (let [Dqs (->> q (iterate D) (take (- n 1)))]
      (fn [t]
@@ -160,22 +160,21 @@
   [ys xs]
   (let [n (count ys)]
     (assert (= (count xs) n))
-    (with-meta
-      (fn [x]
-        (reduce + 0
-                (for [i (range n)]
-                  (/ (reduce * 1
-                             (for [j (range n)]
-                               (if (= j i)
-                                 (nth ys i)
-                                 (- x (nth xs j)))))
-                     (let [xi (nth xs i)]
-                       (reduce * 1
+    (-> (fn [x]
+          (reduce + 0
+                  (for [i (range n)]
+                    (/ (reduce * 1
                                (for [j (range n)]
-                                 (cond (< j i) (- (nth xs j) xi)
-                                       (= j i) (if (odd? i) -1 1)
-                                       :else (- xi (nth xs j))))))))))
-      {:arity [:exactly 1]})))
+                                 (if (= j i)
+                                   (nth ys i)
+                                   (- x (nth xs j)))))
+                       (let [xi (nth xs i)]
+                         (reduce * 1
+                                 (for [j (range n)]
+                                   (cond (< j i) (- (nth xs j) xi)
+                                         (= j i) (if (odd? i) -1 1)
+                                         :else (- xi (nth xs j))))))))))
+        (f/with-arity [:exactly 1]))))
 
 (defn Lagrangian->acceleration
   [L]

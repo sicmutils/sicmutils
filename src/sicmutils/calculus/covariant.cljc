@@ -19,7 +19,9 @@
 
 (ns sicmutils.calculus.covariant
   (:require [sicmutils.calculus.basis :as b]
+            [sicmutils.calculus.derivative :refer [D]]
             [sicmutils.calculus.form-field :as ff]
+            [sicmutils.calculus.indexed :as ci]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.map :as cm]
             [sicmutils.calculus.manifold :as manifold]
@@ -66,6 +68,59 @@
 
 (defmethod g/Lie-derivative [::vf/vector-field] [V]
   (vector-field-Lie-derivative V))
+
+;; ## From ODE.scm:
+;;
+;; Let (sigma t) be the state of a system at time t.  Let the
+;; (first-order) system of differential equations governing the evolution of
+;; this state be:
+
+;; ((D sigma) t) = (R (sigma t))
+;; or  (D sigma) = (compose R sigma)
+
+;; i.e. R is a system derivative.
+
+;; Let F be any function of state, then a differential equation for the
+;; evolution of F, as it is dragged along the integral curve sigma is:
+
+;; (D (compose F sigma)) = (* (compose (D F) sigma) (D sigma))
+;; = (compose (* (D F) R) sigma)
+
+;; Let's call this operation Lie-D (the Lie derivative for coordinates):
+
+(defn Lie-D
+  "Takes a system derivative `R` and returns a operator that takes a function `F`
+  of coordinatized state and performs the operation described below, from
+  ODE.scm in scmutils:
+
+  Let `(sigma t)` be the state of a system at time `t`. Let the
+  (first-order) system of differential equations governing the evolution of
+  this state be:
+
+  ```clojure
+  ((D sigma) t) = (R (sigma t))
+  ```
+
+  ```clojure
+  (D sigma) = (compose R sigma)
+  ```
+
+  i.e. `R` is a system derivative.
+
+  Let `F` be any function of state, then a differential equation for the
+  evolution of `F`, as it is dragged along the integral curve sigma is:
+
+  ```clojure
+  (D (compose F sigma)) = (* (compose (D F) sigma) (D sigma))
+  = (compose (* (D F) R) sigma)
+  ```
+
+  Let's call this operation `Lie-D` (the Lie derivative for coordinates)."
+  [R]
+  (-> (fn [F]
+        (g/* (D F) R))
+      (o/make-operator
+       (list 'Lie-D (v/freeze R)))))
 
 ;; ## Interior Product, from interior-product.scm
 
@@ -175,15 +230,6 @@
 
 ;; ### Covariant Vector Definition
 
-(defn- argument-types [t]
-  (if (o/operator? t)
-    (:arguments (o/context t) [])
-    (:arguments (meta t) [])))
-
-(defn- has-argument-types? [op]
-  (boolean
-   (seq (argument-types op))))
-
 (defn- covariant-derivative-vector [Cartan]
   (let [basis (Cartan->basis Cartan)
         Cartan-forms (Cartan->forms Cartan)
@@ -230,7 +276,7 @@
     (fn [V]
       (let [CV (Cartan-forms V)]
         (fn [T]
-          (let [arg-types (argument-types T)]
+          (let [arg-types (ci/argument-types T)]
             (assert
              (every? (fn [t]
                        (or (isa? t ::vf/vector-field)
@@ -291,8 +337,9 @@
                                                          oneform-basis))))))
                                           arg-types))]
                         (g/+ VT corrections)))]
-              (with-meta the-derivative
-                {:arguments arg-types}))))))))
+              (ci/with-argument-types
+                the-derivative
+                arg-types))))))))
 
 (defn- covariant-derivative-function [Cartan]
   (fn [X]
@@ -301,14 +348,14 @@
         (let [types (apply v/argument-kind args)]
           (cond (and (= (count args) 1)
                      (manifold/manifold-point? (first args)))
-                (let [f (with-meta f {:arguments types})]
+                (let [f (ci/with-argument-types f types)]
                   ((X f) (first args)))
 
                 (every? (fn [arg] ;; either a vector field or oneform.
                           (or (vf/vector-field? arg)
                               (ff/oneform-field? arg)))
                         args)
-                (let [f (with-meta f {:arguments types})]
+                (let [f (ci/with-argument-types f types)]
                   (apply (((covariant-derivative-argument-types Cartan) X) f)
                          args))
 
@@ -325,7 +372,7 @@
                      (ff/form-field? V)
                      (((covariant-derivative-form Cartan) X) V)
 
-                     (has-argument-types? V)
+                     (ci/has-argument-types? V)
                      (((covariant-derivative-argument-types Cartan) X) V)
 
                      (f/function? V)
