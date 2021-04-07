@@ -26,6 +26,7 @@
             [sicmutils.calculus.derivative :as d :refer [D partial]]
             [sicmutils.complex :as c]
             [sicmutils.differential :as sd]
+            [sicmutils.expression :as x]
             [sicmutils.function :as f]
             [sicmutils.generic :as g :refer [acos asin atan cos sin tan
                                              cot sec csc
@@ -595,6 +596,74 @@
                     (g/simplify)))))))
 
 (deftest moved-from-structure-and-matrix
+  (testing "as-matrix, D-as-matrix"
+    (let [Hamiltonian2 '(-> (UP Real
+                                (UP Real Real)
+                                (DOWN Real Real))
+                            Real)
+          S (s/up 't (s/up 'x 'y) (s/down 'p_x 'p_y))
+          present (fn [expr]
+                    (-> (simplify expr)
+                        (x/substitute (v/freeze S) 'p)))]
+      (is (= '(matrix-by-rows
+               (up (((partial 0) H) p)
+                   (((partial 1 0) H) p)
+                   (((partial 1 1) H) p)
+                   (((partial 2 0) H) p)
+                   (((partial 2 1) H) p)))
+             (present
+              ((d/D-as-matrix (af/literal-function 'H Hamiltonian2))
+               S)))))
+
+    (let [C-general (af/literal-function
+                     'C '(-> (UP Real
+                                 (UP Real Real)
+                                 (DOWN Real Real))
+                             (UP Real
+                                 (UP Real Real)
+                                 (DOWN Real Real))))
+          S (s/up 't (s/up 'x 'y) (s/down 'px 'py))
+          present (fn [expr]
+                    (-> (simplify expr)
+                        (x/substitute (v/freeze S) 'p)))]
+      (is (= '(matrix-by-rows (up (((partial 0) C↑0) p)
+                                  (((partial 1 0) C↑0) p)
+                                  (((partial 1 1) C↑0) p)
+                                  (((partial 2 0) C↑0) p)
+                                  (((partial 2 1) C↑0) p))
+                              (up (((partial 0) C↑1↑0) p)
+                                  (((partial 1 0) C↑1↑0) p)
+                                  (((partial 1 1) C↑1↑0) p)
+                                  (((partial 2 0) C↑1↑0) p)
+                                  (((partial 2 1) C↑1↑0) p))
+                              (up (((partial 0) C↑1↑1) p)
+                                  (((partial 1 0) C↑1↑1) p)
+                                  (((partial 1 1) C↑1↑1) p)
+                                  (((partial 2 0) C↑1↑1) p)
+                                  (((partial 2 1) C↑1↑1) p))
+                              (up (((partial 0) C↑2_0) p)
+                                  (((partial 1 0) C↑2_0) p)
+                                  (((partial 1 1) C↑2_0) p)
+                                  (((partial 2 0) C↑2_0) p)
+                                  (((partial 2 1) C↑2_0) p))
+                              (up (((partial 0) C↑2_1) p)
+                                  (((partial 1 0) C↑2_1) p)
+                                  (((partial 1 1) C↑2_1) p)
+                                  (((partial 2 0) C↑2_1) p)
+                                  (((partial 2 1) C↑2_1) p)))
+             (present
+              ((matrix/as-matrix (D C-general)) S))))
+
+      (is (= '(matrix-by-rows (up 0 0 0 0 0)
+                              (up 0 0 0 0 0)
+                              (up 0 0 0 0 0)
+                              (up 0 0 0 0 0)
+                              (up 0 0 0 0 0))
+             (simplify
+              ((- (d/D-as-matrix C-general)
+                  (matrix/as-matrix (D C-general)))
+               S))))))
+
   (let [vs (s/up
             (s/up 'vx1 'vy1)
             (s/up 'vx2 'vy2))

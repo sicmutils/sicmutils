@@ -237,8 +237,9 @@
   (let [mul-check (if with-one?
                     multiplicative-monoid
                     multiplicative-semigroup)]
-    (additive-group opts generator type-name :commutative? true))
-  (multiplicative-semigroup opts generator type-name :commutative? commutative?))
+    (additive-group opts generator type-name :commutative? true)
+    (mul-check opts generator type-name :commutative? commutative?)
+    (mul-distributes-over-add opts generator type-name)))
 
 (defn field
   "A field is a type `a` that:

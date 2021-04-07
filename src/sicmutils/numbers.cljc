@@ -43,8 +43,9 @@
   #?(:cljs
      (:import (goog.math Long Integer))
      :clj
-     (:import [clojure.lang BigInt Ratio]
-              [java.math BigInteger])))
+     (:import (clojure.lang BigInt Ratio)
+              (java.math BigInteger)
+              (org.apache.commons.math3.util ArithmeticUtils))))
 
 ;; "Backstop" implementations that apply to anything that descends from
 ;; ::v/real.
@@ -175,7 +176,27 @@
 ;; type system.
 #?(:clj
    ;; Efficient, native GCD on the JVM.
-   (defmethod g/gcd [BigInteger BigInteger] [a b] (.gcd a b)))
+   (do (defmethod g/gcd [BigInteger BigInteger] [a b]
+         (.gcd ^BigInteger a
+               ^BigInteger b))
+
+       (defmethod g/gcd [Long Long] [a b]
+         (ArithmeticUtils/gcd ^long a ^long b))
+
+       (defmethod g/gcd [BigInteger Long] [a b]
+         (.gcd ^BigInteger a (biginteger b)))
+
+       (defmethod g/gcd [Long BigInteger] [a b]
+         (.gcd (biginteger a) b))
+
+       (defmethod g/gcd [Integer Integer] [a b]
+         (ArithmeticUtils/gcd ^int a ^int b))
+
+       (defmethod g/gcd [BigInteger Integer] [a b]
+         (.gcd ^BigInteger a (biginteger b)))
+
+       (defmethod g/gcd [Integer BigInteger] [a b]
+         (.gcd (biginteger a) b))))
 
 #?(:cljs
    (do (defmethod g/expt [::v/native-integral ::v/native-integral] [a b]

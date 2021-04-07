@@ -25,6 +25,7 @@
   metric and basis."
   (:refer-clojure :exclude [+ - * /])
   (:require [sicmutils.calculus.basis :as b]
+            [sicmutils.calculus.derivative :as d]
             [sicmutils.calculus.covariant :as cov]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.calculus.hodge-star :as hs]
@@ -90,13 +91,13 @@
   `f` must be a function from $\\mathbb{R}^3 \\to \\mathbb{R}^3$."}
   Curl
   (-> (fn [f-triple]
-        (let [[Dx Dy Dz] (map partial [0 1 2])
+        (let [[Dx Dy Dz] (map d/partial [0 1 2])
               fx (f/get f-triple 0)
               fy (f/get f-triple 1)
               fz (f/get f-triple 2)]
-          (s/up (g/- (Dy fz) (Dz fy))
-                (g/- (Dz fx) (Dx fz))
-                (g/- (Dx fy) (Dy fx)))))
+          (s/up (- (Dy fz) (Dz fy))
+                (- (Dz fx) (Dx fz))
+                (- (Dx fy) (Dy fx)))))
       (o/make-operator 'Curl)))
 
 (defn curl
@@ -114,7 +115,7 @@
   Laplacian](https://en.wikipedia.org/wiki/Laplace_operator#Vector_Laplacian) of
   `f` at its input point."}
   Lap
-  (-> (f/compose g/trace (g/* Grad Grad))
+  (-> (f/compose g/trace (* Grad Grad))
       (o/make-operator 'Lap)))
 
 (defn Laplacian [metric orthonormal-basis]

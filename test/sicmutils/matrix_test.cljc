@@ -247,14 +247,14 @@
   (testing "submatrix"
     (let [M (m/by-rows [1 2 3]
                        [4 5 6]
-                       [7 8 9])]
+                       [7 8 9])
+          SM (s/down (s/up 1 4 7)
+                     (s/up 2 5 8)
+                     (s/up 3 6 9))]
       (is (= (m/by-rows [1 2]
                         [4 5])
-             (m/submatrix M 0 1 0 1)))
-
-      (is (= (m/by-rows [1 2]
-                        [4 5])
-             (m/submatrix M 0 1 0 1)))))
+             (m/submatrix M 0 1 0 1)
+             (m/submatrix SM 0 1 0 1)))))
 
   (checking "make-zero" 100 [m (gen/choose 0 10)
                              n (gen/choose 0 10)]

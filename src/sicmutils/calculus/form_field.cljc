@@ -450,11 +450,11 @@
                 (assert (= (count args) n)
                         "Wrong number of args to alternation")
                 (g/* (/ 1 (factorial n))
-                     (apply g/+
-                            (map (fn [permutation parity]
-                                   (g/* parity (apply form permutation)))
-                                 (permute/permutation-sequence args)
-                                 (cycle [1 -1])))))]
+                     (ua/generic-sum
+                      (map (fn [permutation parity]
+                             (g/* parity (apply form permutation)))
+                           (permute/permutation-sequence args)
+                           (cycle [1 -1])))))]
         (procedure->nform-field
          alternation n `(~'Alt ~(v/freeze form)))))))
 

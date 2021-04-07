@@ -2,6 +2,28 @@
 
 ## [unreleased]
 
+- From #342:
+
+  - Added `sicmutils.calculus.derivative/D-as-matrix` and
+    `sicmutils.matrix/as-matrix`, ported from scmutils.
+
+  - converted `sicmutils.modint.ModInt` to a `deftype`; this allows `ModInt`
+    instances to be `=` to non-`ModInt` numbers on the right, if the right side
+    is equal to the residue plus any integer multiple of the modulus. `v/=`
+    gives us this behavior with numbers on the LEFT too, and `ModInt` on the
+    right.
+
+    - This change means that `:i` and `:m` won't return the residue and modulus
+      anymore. `sicmutils.modint` gains new `residue` and `modulus` functions to
+      access these attributes.
+
+  - The JVM version of sicmutils gains more efficient `gcd` implementations
+    for `Integer` and `Long` (in addition to the existing native `BigInteger`
+    `gcd`), thanks to our existing Apache Commons-Math dependency.
+
+  - `sicmutils.structure/dual-zero` aliases `compatible-zero` to match the
+    scmutils interface. Both are now aliased into `sicmutils.env`.
+
 - From #339:
 
   - `Structure` instances can now hold metadata.
