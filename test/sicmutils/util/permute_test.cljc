@@ -136,11 +136,8 @@
 
   (testing "subpermute"
     (is (= ['a 'e 'd 'b 'c]
-           (p/subpermute '[a b c d e]
-                         {1 4
-                          4 2
-                          2 3
-                          3 1}))))
+           (p/subpermute {1 4, 4 2, 2 3, 3 1}
+                         '[a b c d e]))))
 
   (testing "factorial"
     (is (= (apply g/* (range 1 8))
