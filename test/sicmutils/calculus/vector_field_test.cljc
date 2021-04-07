@@ -246,8 +246,6 @@
           (is (= '(up 0 0 1)
                  (simplify
                   ((d:dz (up x y z)) p))))
-          ;; suspicious. GJS has d:dz but I think d:dzeta was meant here (as
-          ;; above). TODO note to GJS.
 
           ;; "so introduce..."
           (let [e-theta (* (/ 1 r) d:dtheta)

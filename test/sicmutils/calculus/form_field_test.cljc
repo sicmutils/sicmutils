@@ -174,9 +174,7 @@
                    (* (ay (up x0 y0 z0)) (vy (up x0 y0 z0)))
                    (* (az (up x0 y0 z0)) (vz (up x0 y0 z0))))
                (simplify
-                ((a-oneform a-vector-field) mr)))
-            "NOTE: GJS has each product flipped. Does this matter, since these are
-          real-valued?")
+                ((a-oneform a-vector-field) mr))))
 
         (is (= '(down (ax (up x0 y0 z0))
                       (ay (up x0 y0 z0))
