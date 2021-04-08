@@ -2,31 +2,51 @@
 
 ## [unreleased]
 
-- From #342:
+## 0.18.0
 
-  - Added `sicmutils.calculus.derivative/D-as-matrix` and
-    `sicmutils.matrix/as-matrix`, ported from scmutils.
+> (If you have any questions about how to use any of the following, please ask us
+> at our [Github Discussions](https://github.com/sicmutils/sicmutils/discussions)
+> page!)
 
-  - converted `sicmutils.modint.ModInt` to a `deftype`; this allows `ModInt`
-    instances to be `=` to non-`ModInt` numbers on the right, if the right side
-    is equal to the residue plus any integer multiple of the modulus. `v/=`
-    gives us this behavior with numbers on the LEFT too, and `ModInt` on the
-    right.
+This release focused on porting over all of the material required to run every
+piece of code from Sussman and Wisdom's ["Functional Differential
+Geometry"](http://xahlee.info/math/i/functional_geometry_2013_sussman_14322.pdf).
+The namespaces are lightly documented; the situation is better than the original
+library, but will only get better as I work through the material and add
+commentary.
 
-    - This change means that `:i` and `:m` won't return the residue and modulus
-      anymore. `sicmutils.modint` gains new `residue` and `modulus` functions to
-      access these attributes.
+There is a huge amount of functionality and material here! We can run many
+examples from general and special relativity, and the tests are full of
+exercises from the classic ["Gravitation" book by Misner, Thorne and Wheeler
+(MTW)](https://www.amazon.com/Gravitation-Charles-W-Misner/dp/0691177791).
 
-  - The JVM version of sicmutils gains more efficient `gcd` implementations
-    for `Integer` and `Long` (in addition to the existing native `BigInteger`
-    `gcd`), thanks to our existing Apache Commons-Math dependency.
+Notable changes from the rest of the library:
 
-  - `sicmutils.structure/dual-zero` aliases `compatible-zero` to match the
-    scmutils interface. Both are now aliased into `sicmutils.env`.
+- `Operator` instances are slightly more efficient with their addition and
+  multiplication, handling `zero?` and `one?` cases appropriately
+
+- `Structure`s can now hold metadata
+
+- We've extended the SICMUtils generics to Clojure's Map and Set data
+  structures. These can now combine with `+`. Maps are treated as sparse
+  infinite-dimensional vector spaces, and can multiply with symbolic or numeric
+  scalars.
+
+- `ModInt` instances are now correctly equal to numbers (when those numbers mod
+  down to the `ModInt` instance's residue).
+
+### What's next?
+
+The next major change will be an overhaul of the simplifier to make it work fast
+enough to solve Einstein's field equations in a reasonable amount of time, maybe
+even in the browser. Polynomial GCD is slow, but
+[#341](https://github.com/sicmutils/sicmutils/pull/341) will make it fast.
+
+On to the detailed notes!
+
+### Functional Differential Geometry
 
 - From #339:
-
-  - `Structure` instances can now hold metadata.
 
   - The new `sicmutils.calculus.covariant/Lie-D` can compute the Lie derivative
     for coordinates.
@@ -60,38 +80,6 @@
     aliases the following functions into `sicmutils.env`: `divergence`, `curl`,
     `gradient` and `Laplacian` (along with the others mentioned).
 
-  - `sicmutils.matrix` changes:
-
-    - `generate` has a new 2-arity version; if you supply a single dimension the
-      returned matrix is square.
-
-    - `diagonal?` returns true if its argument is a diagonal matrix, false
-      otherwise.
-
-  - In `sicmutils.mechanics.rotation`:
-
-    - gains aliases for `R{xyz}` in `rotate-x`, `rotate-y` and `rotate-z`.
-
-    - `R{x,y,z}-matrix` now alias `rotate-{x,y,z}-matrix`.
-
-    - Added new functions `angle-axis->rotation-matrix` and the mysterious,
-      undocumented `wcross->w` from scmutils
-
-    - `rotate-{x,y,z}-tuple` are now aliased into `sicmutils.env`.
-
-  - `Operator` instances now ignore the right operator in operator-operator
-    addition if the left operator passes a `v/zero?` test. Contexts are still
-    appropriately merged.
-
-  - in `sicmutils.simplify.rules`, the `sqrt-contract` ruleset now takes a
-    simplifier argument and attempts to use it to simplify expressions internal
-    to a square root. As an example, if two square roots in a product simplify
-    to the same expression, we can drop the wrapping square root; otherwise
-    multiplication is pushed under the root as before.
-
-    - Added a missing rule in `simplify-square-roots` that handles roots of
-      exponents with odd powers.
-
   - lots of new namespaces available in `sicmutils.env.sci`, soon to be deployed
     to Nextjournal: `sicmutils.calculus.{hodge-star, indexed, vector-calculus}`,
     and `sicmutils.sr.{boost,frames}`.
@@ -110,24 +98,11 @@
     `the-ether`, `boost-direction`, `v:c`, `coordinate-origin`, `add-v:cs` and
     `add-velocities`.
 
-  - A new namespace, `sicmutils.util.permute`:
-
-    - `factorial` moved here from `sicmutils.generic`. It's still aliased into
-      `sicmutils.env`.
-
-    - new functions: `permutations`, `combinations`, `cartesian-product`,
-      `list-interchanges`, `permutation-parity`, `permutation-interchanges`,
-      `permute`, `sort-and-permute`, `subpermute`, `number-of-permutations`,
-      `number-of-combinations`. See the tests for usage examples.
-
 - From #338:
 
   - `sicmutils.fdg.bianchi-test` verifies the Bianchi identities; this was a
     challenge posed by GJS, and getting it working exposed a few bugs and
     triggered the rest of the work in this PR. Thank you, GJS!
-
-  - `(* <structure> <operator>)` multiplication pushes operator multiplication
-    into the structure, rather than converting a structure into an operator.
 
   - `covariant-derivative` now properly handles the case of functions with
     argument types attached.
@@ -161,40 +136,18 @@
 - #337:
 
   - adds `sicmutils.calculus.curvature`, with these new functions and many tests
-    from the classic "Gravitation" book:
-
-    `Riemann-curvature`, `Riemann`, `Ricci`, `torsion-vector`, `torsion` and
-    `curvature-components`
-
-  - If you combine `Operator` instances with non-equal `:subtype` fields, the
-    returned operator now keeps the parent subtype (or throws if one is not a
-    subtype of the other).
-
-  - `Operator` instances now ignore any `identity?`-passing operator on the left
-    or right side of operator-operator multiplication. Contexts are still
-    appropriately merged.
-
-  - Similarly, `Operator` addition ignores `zero?` operators on the left or
-    right side, and subtraction ignores `zero?` operators on the right right.
+    from the classic "Gravitation" book: `Riemann-curvature`, `Riemann`,
+    `Ricci`, `torsion-vector`, `torsion` and `curvature-components`
 
   - form fields now have NO identity operator, since they multiply by wedge, not
     composition.
 
 - #328 adds many utilities for "Functional Differential Geometry".
 
-  - Closes #249; operators now verify compatible contexts on multiplication.
-
-  - `Operator` instances can now provides custom `zero?`, `one?`, `identity?`,
-    `zero-like`, `one-like` and `identity-like` implementations by setting a
-    function of a single (operator-typed) argument to a keyword like `:zero?` in
-    their context. the identity operator returns `true` for `identity?`, and
-    `false` for `one?` so that it isn't stripped by the `g/*` function.
-
-  - structures implement the 0-arity case of IFn now.
-
   - vector fields, in `sicmutils.calculus.vector-field`:
 
-    - new functions! `basis-components->vector-field`, `vector-field->basis-components`
+    - new functions: `basis-components->vector-field`,
+      `vector-field->basis-components`
 
     - vector fields now implement `v/zero?` and `v/zero-like` by returning
       proper vector fields.
@@ -216,18 +169,116 @@
   - maps between manifolds, in `sicmutils.calculus.map`:
 
     - new function: `pushforward-function`
+
     - `differential` becomes `differential-of-map`, aliased back as `differential`
 
-  - `sicmutils.calculus.covariant`:
+  - `sicmutils.calculus.covariant` gains new functions: `Cartan?`,
+    `Christoffel?`, `Cartan->Christoffel`, `symmetrize-Christoffel`,
+    `symmetrize-Cartan`, `Cartan->Cartan-over-map`, `geodesic-equation`,
+    `parallel-transport-equation`.
 
-    - New functions: `Cartan?`, `Christoffel?`, `Cartan->Christoffel`,
-      `symmetrize-Christoffel`, `symmetrize-Cartan`, `Cartan->Cartan-over-map`,
-      `geodesic-equation`, `parallel-transport-equation`
+  - `sicmutils.calculus.covariant/vector-field-Lie-derivative` can now handle
+    structural inputs.
 
-    - `vector-field-Lie-derivative` handles structures now
+### New Functions, Functionality
 
-    - Functions in progress: `has-argument-types?`, `argument-types`,
-      `covariant-derivative-argument-types`, `covariant-derivative-function`.
+- From #342:
+
+  - Added `sicmutils.calculus.derivative/D-as-matrix` and
+    `sicmutils.matrix/as-matrix`, ported from scmutils.
+
+  - converted `sicmutils.modint.ModInt` to a `deftype`; this allows `ModInt`
+    instances to be `=` to non-`ModInt` numbers on the right, if the right side
+    is equal to the residue plus any integer multiple of the modulus. `v/=`
+    gives us this behavior with numbers on the LEFT too, and `ModInt` on the
+    right.
+
+    - This change means that `:i` and `:m` won't return the residue and modulus
+      anymore. `sicmutils.modint` gains new `residue` and `modulus` functions to
+      access these attributes.
+
+  - The JVM version of sicmutils gains more efficient `gcd` implementations
+    for `Integer` and `Long` (in addition to the existing native `BigInteger`
+    `gcd`), thanks to our existing Apache Commons-Math dependency.
+
+  - `sicmutils.structure/dual-zero` aliases `compatible-zero` to match the
+    scmutils interface. Both are now aliased into `sicmutils.env`.
+
+  - `Structure` instances can now hold metadata (#339).
+
+- From #339:
+
+  - In `sicmutils.mechanics.rotation`:
+
+    - gains aliases for `R{xyz}` in `rotate-x`, `rotate-y` and `rotate-z`.
+
+    - `R{x,y,z}-matrix` now alias `rotate-{x,y,z}-matrix`.
+
+    - Added new functions `angle-axis->rotation-matrix` and the mysterious,
+      undocumented `wcross->w` from scmutils
+
+    - `rotate-{x,y,z}-tuple` are now aliased into `sicmutils.env`.
+
+  - `Operator` instances now ignore the right operator in operator-operator
+    addition if the left operator passes a `v/zero?` test. Contexts are still
+    appropriately merged.
+
+  - in `sicmutils.simplify.rules`, the `sqrt-contract` ruleset now takes a
+    simplifier argument and attempts to use it to simplify expressions internal
+    to a square root. As an example, if two square roots in a product simplify
+    to the same expression, we can drop the wrapping square root; otherwise
+    multiplication is pushed under the root as before.
+
+    - Added a missing rule in `simplify-square-roots` that handles roots of
+      exponents with odd powers.
+
+  - `sicmutils.matrix` changes:
+
+    - `generate` has a new 2-arity version; if you supply a single dimension the
+      returned matrix is square.
+
+    - `diagonal?` returns true if its argument is a diagonal matrix, false
+      otherwise.
+
+  - A new namespace, `sicmutils.util.permute`:
+
+    - `factorial` moved here from `sicmutils.generic`. It's still aliased into
+      `sicmutils.env`.
+
+    - new functions: `permutations`, `combinations`, `cartesian-product`,
+      `list-interchanges`, `permutation-parity`, `permutation-interchanges`,
+      `permute`, `sort-and-permute`, `subpermute`, `number-of-permutations`,
+      `number-of-combinations`. See the tests for usage examples.
+
+- From #338:
+
+  - `(* <structure> <operator>)` multiplication pushes operator multiplication
+    into the structure, rather than converting a structure into an operator.
+
+- #337:
+
+  - If you combine `Operator` instances with non-equal `:subtype` fields, the
+    returned operator now keeps the parent subtype (or throws if one is not a
+    subtype of the other).
+
+  - `Operator` instances now ignore any `identity?`-passing operator on the left
+    or right side of operator-operator multiplication. Contexts are still
+    appropriately merged.
+
+  - Similarly, `Operator` addition ignores `zero?` operators on the left or
+    right side, and subtraction ignores `zero?` operators on the right right.
+
+- #328:
+
+  - Closes #249; operators now verify compatible contexts on multiplication.
+
+  - `Operator` instances can now provides custom `zero?`, `one?`, `identity?`,
+    `zero-like`, `one-like` and `identity-like` implementations by setting a
+    function of a single (operator-typed) argument to a keyword like `:zero?` in
+    their context. the identity operator returns `true` for `identity?`, and
+    `false` for `one?` so that it isn't stripped by the `g/*` function.
+
+  - structures implement the 0-arity case of IFn now.
 
 - #335 implements `g/make-rectangular`, `g/make-polar` `g/real-part` and
   `g/imag-part` for clojure's Map data structure. Maps are treated as sparse
