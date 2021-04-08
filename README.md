@@ -1,7 +1,7 @@
 # SICMUtils
 
 A Clojure(script) implementation of the
-[Scmutils](https://groups.csail.mit.edu/mac/users/gjs/6946/refman.txt) system
+[scmutils](https://groups.csail.mit.edu/mac/users/gjs/6946/refman.txt) system
 for math and physics investigations in the Clojure and Clojurescript languages.
 SICMUtils provides facilities for
 
@@ -204,7 +204,7 @@ To cite this repository:
   author = {Colin Smith and Sam Ritchie},
   title = {{SICMU}tils: {F}unctional {C}omputer {A}lgebra in {C}lojure},
   url = {http://github.com/sicmutils/sicmutils},
-  version = {0.17.0},
+  version = {0.18.0},
   year = {2016},
 }
 ```
