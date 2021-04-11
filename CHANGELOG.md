@@ -2,6 +2,8 @@
 
 ## [unreleased]
 
+- Efficient `symmetric-difference` implementation in `sicmutils.util.vector-set` (#346)
+
 ## 0.18.0
 
 > (If you have any questions about how to use any of the following, please ask us
