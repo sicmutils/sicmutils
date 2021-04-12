@@ -47,6 +47,7 @@
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number :as an]
             [sicmutils.complex]
+;;            [sicmutils.hestenic :as h]  ;; well, this sure doesn't work...
             [sicmutils.expression]
             [sicmutils.expression.render :as render]
             [sicmutils.function :as f]
