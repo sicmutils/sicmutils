@@ -40,6 +40,7 @@
   (quo [this otha])
   (dot [this otha])
   (wdg [this otha])
+  (eq? [this otha])
   (grade-part [this n]))
 
 (defprotocol IGradable
@@ -340,6 +341,9 @@
       this))
   (dot [this otha] this)
   (wdg [this otha] this)
+  (eq? [this otha]
+    (or (instance? (class this) otha)
+        (and (number? otha) (zero? otha))))
   (grade-part [this n] this))
 
 (defn zero-element []
@@ -574,6 +578,11 @@
       (wdg (asMV this) (asMV otha))
       (grade-part (prd this otha)
                   (+ (grade this) (grade otha)))))
+  (eq? [this otha]
+    (if (different-rung? this otha)
+      (eq? (asMV this) otha)
+      (and (= (coef this) (coef otha))
+           (= (basis this) (basis otha)))))
   (grade-part [this n]
     (if (= (grade this) n)
       this
@@ -614,6 +623,12 @@
       (wdg (asMV this) (asMV otha))
       (grade-part (prd this otha)
                   (+ (grade this) (grade otha)))))
+  (eq? [this otha]
+    (if (different-rung? this otha)
+      (eq? (asMV this) otha)
+      (and (= (grade this) (grade otha))
+           (every? true?
+                   (map eq? (bladoids this) (bladoids otha))))))
   (grade-part [this n]
     (if (= (grade this) n)
       this
@@ -643,6 +658,9 @@
     (do-unto-gradelings dot this (asMV otha)))
   (wdg [this otha]
     (do-unto-gradelings wdg this (asMV otha)))
+  (eq? [this otha]
+    (every? true?
+            (map eq? (gradelings this) (gradelings (asMV otha)))))
   (grade-part [this n]
     (let [grdl (filter (fn [g] (= (grade g) n))
                        (gradelings this))]
@@ -681,6 +699,13 @@
     (if (different-rung? this otha)
       (wdg (asMV this) (asMV otha))
       (grade-part (prd this otha) 2)))
+  (eq? [this otha]
+    (if (different-rung? this otha)
+      (eq? (asMV this) otha)
+      (let [thc (coefs this)
+            otc (coefs otha)]
+        (and (= (count thc) (count otc))
+             (every? true? (map == thc otc))))))
   (grade-part [this n]
     (if (= n 1)
       this
@@ -688,7 +713,7 @@
 
 
 ;;
-;;
+;; infect clojure/java's inbuilt numeric system with hestenicity
 ;;
 
 (extend-type java.lang.Number
@@ -737,10 +762,16 @@
     (zero-element))
   (wdg [this otha]
     (scl otha this))
+  (eq? [this otha]
+    (if-not (number? otha)
+      (eq? (asMV this) otha)
+      (== this otha)))
   (grade-part [this n]
     (if (= n 0)
       this
       (zero-element))))
+
+
 ;;
 ;; you know -- for kids.
 ;;
