@@ -166,7 +166,7 @@
 (deftest partial-diff-test
   (testing "partial derivative simplification rules"
     (let [f (af/literal-function 'f '(-> (UP Real Real) Real))]
-      (is (= '(((* (partial 1) (expt (partial 0) 2)) f) (up x y))
+      (is (= '(((* (expt (partial 0) 2) (partial 1)) f) (up x y))
              (simplify
               (((partial 0)
                 ((partial 1)
