@@ -3,7 +3,7 @@
 ;;
 ;;
 
-(ns sicmutils.hestenic
+(ns hestenic
   "the superabsorbent and lint-free world of geometric algebra (and on into
   geo'tric calculus)")
 
@@ -86,22 +86,22 @@
   (same-basis? [this otha]))
 
 
-(deftype Bladoid [cf bss]
+(deftype Bladoid [f_coef f_basis]
   IBladoid
-  (coef [_] cf)
-  (basis [_] bss)
+  (coef [_] f_coef)
+  (basis [_] f_basis)
   (square-sign [_]
-    (let [gr (count bss)
+    (let [gr (count f_basis)
           flormp (/ (* gr (- gr 1)) 2)]
       (if (even? flormp) +1 -1)))
   (same-basis? [this otha]
     (= (basis this) (basis otha)))
 
   IGradable
-  (grade [_] (count bss))
+  (grade [_] (count f_basis))
 
   Object
-  (toString [_] (str cf ":" bss)))
+  (toString [_] (str f_coef ":[" (clojure.string/join f_basis) "]")))
 
 
 (defn bladoid
@@ -113,22 +113,17 @@
    (Bladoid. c (vec (sort b)))))  ;; force sort to give back the same type.
 
 
-(defn- collapse [blds]
-  ;; assumes sortedness; sordidness optional
-  (loop [head (first blds)
-         neck (second blds)
-         trunk (rest blds)]
-    (cond (nil? head)
-          '()
-          (nil? neck)
-          (list head)
-          (same-basis? head neck)
-          (recur (sum head neck) (second trunk) (rest trunk))
-          :else
-          (conj (collapse trunk) head))))
+(defn- collapse [doids]
+  (map (partial reduce sum)
+       (partition-by basis doids)))
 
-(defn- confirm-grades
-  ([blds gra]
+
+(defn- confirm-grades!
+  ([blds]  ;; ar/1: infer grade from first bloadoid
+   (if (empty? blds)
+     blds
+     (confirm-grades! blds (grade (first blds)))))
+  ([blds gra]  ;; ar/2: with grade specified
    (if (empty? blds)
      blds
      (loop [head (first blds)
@@ -138,11 +133,7 @@
                                  head " but should be " gra)))
          (if (not (empty? body))
            (recur (first body) (rest body))))))
-   blds)
-  ([blds]
-   (if (empty? blds)
-     blds
-     (confirm-grades blds (grade (first blds))))))
+   blds))
 
 (defn- basis-prod [bas1 bas2]
   (let [ess1 (set bas1)
@@ -174,16 +165,13 @@
   (if (even? (order-swap-count basl basr)) +1 -1))
 
 (defn- sort-on-bases [bldds]
-  (sort (fn [bla blb] (compare (basis bla) (basis blb))) bldds))
+  (vec (sort-by basis bldds)))
 
 (defn- sort-on-grades [elmnts]
-  (sort-by grade elmnts))
+  (vec (sort-by grade elmnts)))
 
 (defn- same-grade? [this otha]
   (= (grade this) (grade otha)))
-
-(defn- same-rung? [this otha]
-  (instance? (class this) otha))
 
 (defn- different-rung? [this otha]
   (not (instance? (class this) otha)))
@@ -200,58 +188,35 @@
   (bladoid-with-basis [this b]))
 
 
-(deftype Gradeling [gr bldds]
+(deftype Gradeling [f_grade f_bladoids]
   IGradeling
-  (bladoids [_] bldds)
+  (bladoids [_] f_bladoids)
   (bladoid-with-basis [this b]
     (first (filter (fn [el] (= (basis el) b))
-                   (bladoids this))))
+                   f_bladoids)))
 
   IGradable
-  (grade [_] gr)
+  (grade [_] f_grade)
 
   Object
-  (toString [_] (str "g" gr "{"
-                     (reduce (fn [sofar bl]
-                               (str sofar (if (empty? sofar) "" " ") bl))
-                             "" bldds)
+  (toString [_] (str "g" f_grade "{"
+                     (clojure.string/join " " f_bladoids)
                      "}")))
 
 
+;; singin' them old-timey singletunes:
+
+(def the-empty-gradeling (Gradeling. -1 []))
+
 (defn gradeling [grade-or-bladoids]
-  (if
-      (integer? grade-or-bladoids)
-    (Gradeling. grade-or-bladoids ())
+  (if (integer? grade-or-bladoids)
+    (Gradeling. grade-or-bladoids [])
     (let [gra (if (empty? grade-or-bladoids)
                 -1
                 (grade (first grade-or-bladoids)))]
       (Gradeling. gra (collapse
-                       (sort
-                        (confirm-grades grade-or-bladoids gra)))))))
-
-(defn- gradeling-absorb-bladoid [grdl bl]
-  (let [gra (grade grdl)]
-    (if (< gra 0)
-      (Gradeling. (grade bl) (list bl))
-      (if (not= gra (grade bl))
-        (throw (Exception. (str "can't absorb grade" (grade bl)
-                                " blade into grade " gra
-                                "gradeling...")))
-        (if (bladoid-with-basis grdl (basis bl))
-          (Gradeling. gra (map (fn [blel]
-                                 (if (same-basis? bl blel)
-                                   ;; (sum bl blel)
-                                   ;; the foregoing can down-rung to zero, which
-                                   ;; upsets the surrounding/transient machinery
-                                   (Bladoid. (+ (coef blel) (coef bl))
-                                             (basis bl))
-                                   blel))
-                               (bladoids grdl)))
-          (Gradeling. gra (sort-on-bases (conj (bladoids grdl) bl))))))))
-
-(defn- gradeling-absorb-gradeling [gra grb]
-  (reduce gradeling-absorb-bladoid
-          gra (bladoids grb)))
+                       (sort-on-bases
+                        (confirm-grades! grade-or-bladoids gra)))))))
 
 
 ;;
@@ -264,20 +229,20 @@
   (gradeling-of-grade [this gra])
   (grades [this]))
 
-(deftype MV [grdlgs]
+(deftype MV [f_gradelings]
   IMV
-  (gradelings [_] grdlgs)
+  (gradelings [_] f_gradelings)
   (gradeling-of-grade [this gra]
     (first (filter (fn [grdl] (= (grade grdl) gra))
-                   (gradelings this))))
-  (grades [_] (map grade grdlgs))
+                   f_gradelings)))
+  (grades [_] (map grade f_gradelings))
 
   Object
   (toString [_] (str "MV["
-                     (reduce (fn [sofar gr]
-                               (str sofar (if (empty? sofar) "" " ") gr))
-                             "" grdlgs)
+                     (clojure.string/join " " f_gradelings)
                      "]")))
+
+(def the-empty-mv (MV. []))
 
 (defn mv [gradels]
   (MV. (sort-on-grades gradels)))
@@ -285,27 +250,30 @@
 
 ;;
 ;; Vect is, of course, a vector (meaning -- yes! -- a real geometric,
-;; mathematical vector, for gods' sake; not an 'array', per lexical cretinism).
+;; mathematical vector, for Zoroaster's sake; not an 'array', per
+;; lexical cretinism).
+;;
 ;; In a strict sense this is a redundant type-entity, since one of these
 ;; could always be represented as a Gradeling of grade one. But because
 ;; vectors have a vaunted position in GA -- they are rightly the generators
-;; of the whole algebra, y' see-- it's worth representing them explicitly.
+;; of the whole algebra, y' see-- it's very much worth representing them
+;; explicitly.
 ;;
 
 (defprotocol IVect
   (coefs [this]))
 
-(deftype Vect [cfs]
+(deftype Vect [f_coefs]
   IVect
-  (coefs [_] cfs)
+  (coefs [_] f_coefs)
 
   IGradable
   (grade [_] 1)
 
   Object
-  (toString [_] (str "v" cfs)))
+  (toString [_] (str "v(" (clojure.string/join " " f_coefs) ")")))
 
-(defn vect [& cs] (Vect. cs))
+(defn vect [& cs] (Vect. (vec cs)))
 
 
 
@@ -346,67 +314,89 @@
         (and (number? otha) (zero? otha))))
   (grade-part [this n] this))
 
-(defn zero-element []
-  (ZeroElement.))
+
+;; the incomparable nullful stylings of sarah and the singletones:
+
+(def the-zero-element (ZeroElement.))
 
 
 ;;
 ;; a shadowy cabal of utility-interior mathy bits.
 ;;
 
-(defn- bladoid-mult-bladoid [bll blr]
-  (let [basl (basis bll)
-        basr (basis blr)]
-    (Bladoid. (* (coef bll) (coef blr) (order-swap-parity basl basr))
+(defn- gradeling-absorb-bladoid [l-grdl r-doid]
+  (let [gra (grade l-grdl)]
+    (if (= gra -1)
+      (Gradeling. (grade r-doid) (vector r-doid))
+      (if (not= gra (grade r-doid))
+        (throw (Exception. (str "can't absorb grade" (grade r-doid)
+                                " blade into grade " gra
+                                "gradeling...")))
+        (if (bladoid-with-basis l-grdl (basis r-doid))
+          (Gradeling. gra (vec
+                           (map (fn [l-doid]
+                                  (if (same-basis? l-doid r-doid)
+                                    (Bladoid. (+ (coef l-doid) (coef r-doid))
+                                              (basis r-doid))
+                                    l-doid))
+                                (bladoids l-grdl))))
+          (Gradeling. gra (sort-on-bases
+                           (conj (bladoids l-grdl) r-doid))))))))
+
+(defn- gradeling-absorb-gradeling [l-grdl r-grdl]
+  (reduce gradeling-absorb-bladoid
+          l-grdl (bladoids r-grdl)))
+
+(defn- mv-absorb-gradeling [l-emvy r-grdl]
+  (if (gradeling-of-grade l-emvy (grade r-grdl))
+    (MV. (map (fn [l-grdl]
+                (if (same-grade? l-grdl r-grdl)
+                  (gradeling-absorb-gradeling l-grdl r-grdl)
+                  l-grdl))
+              (gradelings l-emvy)))
+    (MV. (sort-on-grades (conj (gradelings l-emvy) r-grdl)))))
+
+(defn- mv-absorb-bladoid [l-emvy r-doid]
+  (mv-absorb-gradeling l-emvy (asGradeling r-doid)))
+
+(defn- mv-absorb-mv [l-emvy r-emvy]
+  (reduce mv-absorb-gradeling
+          l-emvy (gradelings r-emvy)))
+
+(defn- bladoid-mult-bladoid [l-doid r-doid]
+  (let [basl (basis l-doid)
+        basr (basis r-doid)]
+    (Bladoid. (* (coef l-doid) (coef r-doid)
+                 (order-swap-parity basl basr))
               (basis-prod basl basr))))
 
-(defn- mv-absorb-gradeling [emvy gr]
-  (if (gradeling-of-grade emvy (grade gr))
-    (MV. (map (fn [grel]
-                (if (same-grade? grel gr)
-                  (gradeling-absorb-gradeling grel gr)
-                  grel))
-              (gradelings emvy)))
-    (MV. (sort-on-grades (conj (gradelings emvy) gr)))))
+(defn- bladoid-mult-gradeling [l-doid r-grdl]
+  (reduce (fn [acc-emvy r-doid]
+            (mv-absorb-bladoid acc-emvy (prd l-doid r-doid)))
+          the-empty-mv
+          (bladoids r-grdl)))
 
-(defn- mv-absorb-bladoid [emvy bl]
-  (mv-absorb-gradeling emvy (asGradeling bl)))
+(defn- gradeling-mult-gradeling [l-grdl r-grdl]
+  (reduce (fn [acc-emvy doid] (mv-absorb-mv
+                                acc-emvy
+                                (bladoid-mult-gradeling doid r-grdl)))
+          the-empty-mv
+          (bladoids l-grdl)))
 
-(defn- mv-absorb-mv [mva mvb]
-  (reduce mv-absorb-gradeling
-          mva (gradelings mvb)))
-
-(defn- bladoid-mult-gradeling [bl gr]
-  (reduce (fn [outmv bl_rt] (mv-absorb-bladoid outmv (prd bl bl_rt)))
-          (MV. '())
-          (bladoids gr)))
-
-(defn- gradeling-mult-gradeling [grl grr]
-  (reduce (fn [emvy bldlg] (mv-absorb-mv
-                            emvy
-                            (bladoid-mult-gradeling bldlg grr)))
-          (MV. '())
-          (bladoids grl)))
-
-(defn- mv-mult-gradeling [emvy rt_grdl]
-  (reduce (fn [out_mv lt_grdl]
+(defn- mv-mult-gradeling [l-emvy r-grdl]
+  (reduce (fn [acc-mv l-grdl]
             (mv-absorb-mv
-             out_mv
-             (gradeling-mult-gradeling lt_grdl rt_grdl)))
-          (MV. '())
-          (gradelings emvy)))
+             acc-mv
+             (gradeling-mult-gradeling l-grdl r-grdl)))
+          the-empty-mv
+          (gradelings l-emvy)))
 
-(defn- mv-map-biexploded-gradelings-and-sum [funq mvl mvr]
+(defn- mv-map-biexploded-gradelings-and-sum [funq l-emvy r-emvy]
   (reduce mv-absorb-mv
-          (MV. ())
-          (for [grl (gradelings mvl)
-                grr (gradelings mvr)]
-            (asMV (funq grl grr)))))
-
-(defn- do-unto-gradelings [funq mvl mvr]
-  (accordion-down
-   (mv-map-biexploded-gradelings-and-sum
-    funq mvl mvr)))
+          the-empty-mv
+          (for [l-grdl (gradelings l-emvy)
+                r-grdl (gradelings r-emvy)]
+            (asMV (funq l-grdl r-grdl)))))
 
 
 ;;
@@ -420,7 +410,7 @@
 
   IAsGradeling
   (asGradeling [this]
-    (Gradeling. (grade this) (list this)))
+    (Gradeling. (grade this) (vector this)))
 
   IAsMV
   (asMV [this]
@@ -434,7 +424,7 @@
 
   IAsMV
   (asMV [this]
-    (MV. (list this))))
+    (MV. [this])))
 
 
 (extend-type MV
@@ -446,10 +436,10 @@
 (extend-type Vect
   IAsGradeling
   (asGradeling [this]
-    (Gradeling. 1 (filter (fn [bl] (not= 0 (coef bl)))
-                          (map-indexed
-                           (fn [ind cf] (bladoid cf (vector ind)))
-                           (coefs this)))))
+    (Gradeling. 1 (vec (filter (fn [bl] (not= 0 (coef bl)))
+                               (map-indexed
+                                (fn [ind cf] (bladoid cf (vector ind)))
+                                (coefs this))))))
 
   IAsMV
   (asMV [this]
@@ -552,9 +542,9 @@
          (Bladoid. (+ (coef this) (coef otha)) (basis this))
          (if (same-grade? this otha)
            (Gradeling. (grade this)
-                       (sort-on-bases (list this otha)))
-           (MV. (sort-on-grades (list (asGradeling this)
-                                      (asGradeling otha)))))))))
+                       (sort-on-bases (vector this otha)))
+           (MV. (sort-on-grades (vector (asGradeling this)
+                                        (asGradeling otha)))))))))
   (neg [this] (Bladoid. (- (coef this)) (basis this)))
   (dif [this otha] (sum this (neg otha)))
   (prd [this otha]
@@ -586,7 +576,7 @@
   (grade-part [this n]
     (if (= (grade this) n)
       this
-      (zero-element))))
+      the-zero-element)))
 
 
 (extend-type Gradeling
@@ -600,7 +590,7 @@
       (accordion-down
        (if (same-grade? this otha)
          (gradeling-absorb-gradeling this otha)
-         (MV. (sort-on-grades (list this otha)))))))
+         (MV. (sort-on-grades (vector this otha)))))))
   (neg [this] (Gradeling. (grade this)
                           (map (fn [bl] (neg bl)) (bladoids this))))
   (dif [this otha] (sum this (neg otha)))
@@ -632,8 +622,14 @@
   (grade-part [this n]
     (if (= (grade this) n)
       this
-      (zero-element))))
+      the-zero-element)))
 
+
+
+(defn- mv-bimap-via-gradelings [funq mvl mvr]
+  (accordion-down
+   (mv-map-biexploded-gradelings-and-sum
+    funq mvl mvr)))
 
 (extend-type MV
   IHestenic
@@ -650,14 +646,14 @@
   (prd [this otha]
     (if (number? otha)
       (scl this otha)
-      (do-unto-gradelings prd this (asMV otha))))
+      (mv-bimap-via-gradelings prd this (asMV otha))))
   (inv [this])
   (quo [this otha]
     (prd this (asMV (inv otha))))
   (dot [this otha]
-    (do-unto-gradelings dot this (asMV otha)))
+    (mv-bimap-via-gradelings dot this (asMV otha)))
   (wdg [this otha]
-    (do-unto-gradelings wdg this (asMV otha)))
+    (mv-bimap-via-gradelings wdg this (asMV otha)))
   (eq? [this otha]
     (every? true?
             (map eq? (gradelings this) (gradelings (asMV otha)))))
@@ -665,23 +661,23 @@
     (let [grdl (filter (fn [g] (= (grade g) n))
                        (gradelings this))]
       (if (empty? grdl)
-        (zero-element)
+        the-zero-element
         (first grdl)))))
 
 
 (extend-type Vect
   IHestenic
   (scl [this s]
-    (Vect. (map (fn [co] (* co s))
-                (coefs this))))
+    (Vect. (vec (map (fn [co] (* co s))
+                     (coefs this)))))
   (sum [this otha]
     (if (different-rung? this otha)
       (sum (asMV this) (asMV otha))
-      (Vect. (map (fn [hoo hah] (+ hoo hah))
-                  (coefs this) (coefs otha)))))
+      (Vect. (vec (map (fn [hoo hah] (+ hoo hah))
+                       (coefs this) (coefs otha))))))
   (neg [this]
-    (Vect. (map (fn [co] (- co))
-                (coefs this))))
+    (Vect. (vec (map (fn [co] (- co))
+                     (coefs this)))))
   (dif [this otha]
     (sum this (neg otha)))
   (prd [this otha]
@@ -693,8 +689,8 @@
     (prd this (inv otha)))
   (dot [this otha]
     (reduce +
-            0 (map *
-                   (coefs this) (coefs otha))))
+            (map *
+                 (coefs this) (coefs otha))))
   (wdg [this otha]
     (if (different-rung? this otha)
       (wdg (asMV this) (asMV otha))
@@ -709,7 +705,7 @@
   (grade-part [this n]
     (if (= n 1)
       this
-      (zero-element))))
+      the-zero-element)))
 
 
 ;;
@@ -759,7 +755,7 @@
   (quo [this otha]
     (prd this (inv otha)))
   (dot [this otha]
-    (zero-element))
+    the-zero-element)
   (wdg [this otha]
     (scl otha this))
   (eq? [this otha]
@@ -769,7 +765,7 @@
   (grade-part [this n]
     (if (= n 0)
       this
-      (zero-element))))
+      the-zero-element)))
 
 
 ;;
