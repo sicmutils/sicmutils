@@ -18,7 +18,8 @@
 ;;
 
 (ns pattern.syntax
-  "Syntax for rules to get converted to matchers.")
+  "Syntax for rules to get converted to matchers."
+  (:require [sicmutils.util :as u]))
 
 ;; ## Syntax of patterns
 
@@ -53,6 +54,9 @@
   (or (and (keyword? pattern)
            (not (#{\* \$} (keyword-suffix pattern))))
 
+      (and (simple-symbol? pattern)
+           (u/re-matches? #"\?[^\?].*" (name pattern)))
+
       (and (sequential? pattern)
            (= (first pattern) :?))))
 
@@ -63,15 +67,22 @@
   (or (and (keyword? pattern)
            (= \* (keyword-suffix pattern)))
 
+      (and (simple-symbol? pattern)
+           (u/re-matches? #"\?\?[^\?].*" (name pattern)))
+
       (and (sequential? pattern)
            (= (first pattern) :??))))
 
 (defn reverse-segment?
   "Returns true if x is a REVERSED segment reference (i.e., it looks like `(:$$
-  ...)`) or is a keyword ending in `$`, false otherwise."
+  ...)`) or is a keyword ending in `$`, or a symbol starting with $$. false
+  otherwise."
   [pattern]
   (or (and (keyword? pattern)
            (= \$ (keyword-suffix pattern)))
+
+      (and (simple-symbol? pattern)
+           (u/re-matches? #"\$\$[^\$].*" (name pattern)))
 
       (and (sequential? pattern)
            (= (first pattern) :$$))))
@@ -79,7 +90,8 @@
 (defn variable-name
   "Returns the variable contained in a variable or segment reference form."
   [pattern]
-  (if (keyword? pattern)
+  (if (or (keyword? pattern)
+          (symbol? pattern))
     pattern
     (second pattern)))
 
@@ -91,7 +103,8 @@
   Multiple constraints are allowed."
   [pattern]
   (let [no-constraint (constantly true)]
-    (if (keyword? pattern)
+    (if (or (keyword? pattern)
+            (symbol? pattern))
       no-constraint
       (if-let [fs (seq (drop 2 pattern))]
         (apply every-pred fs)

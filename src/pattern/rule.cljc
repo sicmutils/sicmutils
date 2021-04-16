@@ -60,7 +60,11 @@
   "The value to return on failure can be overridden to distinguish idempotent
   success from actual failure, should that be important."
   ([pattern handler]
-   (let [match (m/pattern->combinators pattern)]
+   (let [match (m/pattern->combinators pattern)
+         ;; TODO tidy this up!
+         handler (if (fn? handler)
+                   handler
+                   (constantly handler))]
 	   (fn call
        ([data]
         (call data data))
@@ -76,21 +80,20 @@
   "Replace `pattern` with code that will construct the equivalent form with
   variable predicate values exposed to evaluation (see above)."
   [pattern]
-  (cond (keyword? pattern)   pattern
-        (symbol? pattern)    (list 'quote pattern)
-        (ps/unquote? pattern)  (ps/unquoted-form pattern)
-
-        (or (ps/element? pattern)
-            (ps/segment? pattern)
-            (ps/reverse-segment? pattern))
-
-        (let [[k sym & preds] pattern]
-          `(list ~k '~sym ~@preds))
+  (cond (keyword? pattern)    pattern
+        (symbol? pattern)     (list 'quote pattern)
+        (ps/unquote? pattern) (ps/unquoted-form pattern)
 
         ;; TODO if we have unquote splice, we'll have to do the same trick here
         ;; to flatten the pattern down.
         (sequential? pattern)
-        (cons 'list (map compile-pattern pattern))
+        (if (or (ps/element? pattern)
+                (ps/segment? pattern)
+                (ps/reverse-segment? pattern))
+          (let [[k sym & preds] pattern]
+            `(list ~k '~sym ~@preds))
+
+          (cons 'list (map compile-pattern pattern)))
 
         :else pattern))
 
@@ -175,7 +178,7 @@
                      (let [~frame-sym (if (map? result#)
                                         (merge ~frame-sym result#)
                                         ~frame-sym)]
-                       (~succeed ~skeleton-expr))))))))
+                       (succeed ~skeleton-expr))))))))
 
 (defmacro rule
   ([pattern consequent-fn]
@@ -213,23 +216,41 @@
 (defn in-order
   "Apply several rules in series, threading the results.
 
-  TODO use a fail token here? How do we do that?"
+  This one will only fail if ALL of the rules fail."
   [& rules]
-  (fn ([data]
-      (reduce #(%2 %1) data rules))))
+  (fn call
+    ([data] (call data data))
+    ([data fail-token]
+     (let [[acc fail?]
+           (reduce
+            (fn [[acc fail?] r]
+              (let [result (r acc sentinel)]
+                (if (= result sentinel)
+                  [acc fail?]
+                  [result false])))
+            [data true]
+            rules)]
+       (if fail? fail-token acc)))))
 
 (defn iterated
   "Apply one rule repeatedly until it doesn't match anymore.
 
-  TODO take some limit?"
+  The `fail-token` here only returns if we fail to match even a single time."
   [the-rule]
-  (fn [data]
-    (let [attempts (iterate the-rule data)]
-      (reduce (fn [l r]
-                (if (= l r)
-                  (reduced l)
-                  r))
-              attempts))))
+  (fn call
+    ([data]
+     (call data data))
+    ([data fail-token]
+     (let [attempts (iterate #(the-rule % sentinel)
+                             (the-rule data sentinel))]
+       (reduce (fn [l r]
+                 (if (= r sentinel)
+                   (reduced l)
+                   r))
+               fail-token
+               attempts)))))
+
+;; ## Expression Matchers
 
 (defn- try-subexpressions [the-rule expr]
   (if (sequential? expr)
@@ -243,8 +264,8 @@
   "Apply one rule to all subexpressions of the input, bottom-up."
   [the-rule]
   (fn on-expr [expression]
-    (let [subexpressions-done (try-subexpressions on-expr expression)]
-      (the-rule subexpressions-done))))
+    (the-rule
+     (try-subexpressions on-expr expression))))
 
 (defn iterated-on-subexpressions
   "Iterate one rule to convergence on all subexpressions of the input,
@@ -252,10 +273,7 @@
 
   Note that subexpressions of a result returned by one invocation of the rule
   may admit additional invocations, so we need to recur again after every
-  successful transformation.
-
-  TODO try and redo this using tree-seq! see how the compiler works for a good
-  example of how to do this right."
+  successful transformation."
   [the-rule]
   (fn on-expr [expr]
     (let [subexpressions-done (try-subexpressions on-expr expr)
@@ -286,12 +304,11 @@
   (rule-list rules))
 
 (defmacro ruleset
-  "Ruleset compiles rules, predicates and consequences (triplet-wise)
-  into a function which acts like a single rule (as rule would
-  produce) which acts by invoking the success continuation with the
-  consequence of the first successful rule whose patterns match and
-  satisfy the predicate. If no rules match, the failure continuation
-  is invoked.
+  "Ruleset compiles rules, predicates and consequences (triplet-wise) into a
+  function which acts like a single rule (as `rule` would produce) which acts by
+  invoking the success continuation with the consequence of the first successful
+  rule whose patterns match and satisfy the predicate. If no rules match, the
+  failure continuation is invoked.
 
   TODO note that currently we ONLY allow triplets, but we really should allow
   pairs... take an explicit list."

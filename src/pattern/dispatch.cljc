@@ -23,7 +23,7 @@
   (:require [sicmutils.util :as u]
             [pattern.rule :as r])
   #?(:clj
-     (:import (clojure.lang IObj))))
+     (:import (clojure.lang IFn IObj))))
 
 ;; ## Pattern Dispatch
 ;;
@@ -32,22 +32,113 @@
 ;; The operator tries the rules in order until the first matches, and
 ;; returns the value given by that one; if none match, it errors out.
 
-(declare po:apply)
+(declare try-rules)
 
 (deftype PatternOperator [rules m]
-  ;; TODO implement IFn with try-rules
-
   #?@(:clj
       [IObj
        (meta [_] m)
-       (withMeta [_ new-m] (PatternOperator. rules new-m))]
+       (withMeta [_ new-m] (PatternOperator. rules new-m))
+
+       IFn
+       (invoke [_]
+               (try-rules rules []))
+       (invoke [_ a]
+               (try-rules rules [a]))
+       (invoke [_ a b]
+               (try-rules rules [a b]))
+       (invoke [_ a b c]
+               (try-rules rules [a b c]))
+       (invoke [_ a b c d]
+               (try-rules rules [a b c d]))
+       (invoke [_ a b c d e]
+               (try-rules rules [a b c d e]))
+       (invoke [_ a b c d e f]
+               (try-rules rules [a b c d e f]))
+       (invoke [_ a b c d e f g]
+               (try-rules rules [a b c d e f g]))
+       (invoke [_ a b c d e f g h]
+               (try-rules rules [a b c d e f g h]))
+       (invoke [_ a b c d e f g h i]
+               (try-rules rules [a b c d e f g h i]))
+       (invoke [_ a b c d e f g h i j]
+               (try-rules rules [a b c d e f g h i j]))
+       (invoke [_ a b c d e f g h i j k]
+               (try-rules rules [a b c d e f g h i j k]))
+       (invoke [_ a b c d e f g h i j k l]
+               (try-rules rules [a b c d e f g h i j k l]))
+       (invoke [_ a b c d e f g h i j k l m-arg]
+               (try-rules rules [a b c d e f g h i j k l m-arg]))
+       (invoke [_ a b c d e f g h i j k l m-arg n]
+               (try-rules rules [a b c d e f g h i j k l m-arg n]))
+       (invoke [_ a b c d e f g h i j k l m-arg n o]
+               (try-rules rules [a b c d e f g h i j k l m-arg n o]))
+       (invoke [_ a b c d e f g h i j k l m-arg n o p]
+               (try-rules rules [a b c d e f g h i j k l m-arg n o p]))
+       (invoke [_ a b c d e f g h i j k l m-arg n o p q]
+               (try-rules rules [a b c d e f g h i j k l m-arg n o p q]))
+       (invoke [_ a b c d e f g h i j k l m-arg n o p q r]
+               (try-rules rules [a b c d e f g h i j k l m-arg n o p q r]))
+       (invoke [_ a b c d e f g h i j k l m-arg n o p q r s]
+               (try-rules rules [a b c d e f g h i j k l m-arg n o p q r s]))
+       (invoke [_ a b c d e f g h i j k l m-arg n o p q r s t]
+               (try-rules rules [a b c d e f g h i j k l m-arg n o p q r s t]))
+       (invoke [_ a b c d e f g h i j k l m-arg n o p q r s t rest]
+               (try-rules rules (into [a b c d e f g h i j k l m-arg n o p q r s t] rest)))
+       (applyTo [_ args] (try-rules rules args))]
 
       :cljs
       [IMeta
        (-meta [_] m)
 
        IWithMeta
-       (-with-meta [_ new-m] (PatternOperator. rules new-m))]))
+       (-with-meta [_ new-m] (PatternOperator. rules new-m))
+
+       IFn
+       (-invoke [_]
+                (try-rules rules []))
+       (-invoke [_ a]
+                (try-rules rules [a]))
+       (-invoke [_ a b]
+                (try-rules rules [a b]))
+       (-invoke [_ a b c]
+                (try-rules rules [a b c]))
+       (-invoke [_ a b c d]
+                (try-rules rules [a b c d]))
+       (-invoke [_ a b c d e]
+                (try-rules rules [a b c d e]))
+       (-invoke [_ a b c d e f]
+                (try-rules rules [a b c d e f]))
+       (-invoke [_ a b c d e f g]
+                (try-rules rules [a b c d e f g]))
+       (-invoke [_ a b c d e f g h]
+                (try-rules rules [a b c d e f g h]))
+       (-invoke [_ a b c d e f g h i]
+                (try-rules rules [a b c d e f g h i]))
+       (-invoke [_ a b c d e f g h i j]
+                (try-rules rules [a b c d e f g h i j]))
+       (-invoke [_ a b c d e f g h i j k]
+                (try-rules rules [a b c d e f g h i j k]))
+       (-invoke [_ a b c d e f g h i j k l]
+                (try-rules rules [a b c d e f g h i j k l]))
+       (-invoke [_ a b c d e f g h i j k l m-arg]
+                (try-rules rules [a b c d e f g h i j k l m-arg]))
+       (-invoke [_ a b c d e f g h i j k l m-arg n]
+                (try-rules rules [a b c d e f g h i j k l m-arg n]))
+       (-invoke [_ a b c d e f g h i j k l m-arg n o]
+                (try-rules rules [a b c d e f g h i j k l m-arg n o]))
+       (-invoke [_ a b c d e f g h i j k l m-arg n o p]
+                (try-rules rules [a b c d e f g h i j k l m-arg n o p]))
+       (-invoke [_ a b c d e f g h i j k l m-arg n o p q]
+                (try-rules rules [a b c d e f g h i j k l m-arg n o p q]))
+       (-invoke [_ a b c d e f g h i j k l m-arg n o p q r]
+                (try-rules rules [a b c d e f g h i j k l m-arg n o p q r]))
+       (-invoke [_ a b c d e f g h i j k l m-arg n o p q r s]
+                (try-rules rules [a b c d e f g h i j k l m-arg n o p q r s]))
+       (-invoke [_ a b c d e f g h i j k l m-arg n o p q r s t]
+                (try-rules rules [a b c d e f g h i j k l m-arg n o p q r s t]))
+       (-invoke [_ a b c d e f g h i j k l m-arg n o p q r s t rest]
+                (try-rules rules (concat [a b c d e f g h i j k l m-arg n o p q r s t] rest)))]))
 
 (defn operator? [op]
   (instance? PatternOperator op))
@@ -113,6 +204,13 @@
 
      (apply frob '(a b b b b b b c))
      (produces '(b b))))
+
+  (def factorial
+    (pattern-dispatch
+     (r/rule [0] 1)
+     (r/rule [(:? n pos?)]
+             (fn [frame]
+               (* (frame 'n) (factorial (dec (frame 'n))))))))
 
   (define-test (factorial-1)
     (interaction

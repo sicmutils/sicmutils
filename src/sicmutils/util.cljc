@@ -63,6 +63,12 @@
              (empty m)
              m))
 
+(defn re-matches?
+  "Returns true if s matches the regex pattern re, false otherwise."
+  [re s]
+  #?(:clj  (.matches (re-matcher re s))
+     :cljs (.test re s)))
+
 (defn bigint [x]
   #?(:clj (core-bigint x)
      :cljs (js/BigInt x)))

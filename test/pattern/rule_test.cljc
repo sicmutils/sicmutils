@@ -27,11 +27,18 @@
 (defn apply-rule [rule data]
   (rule data nil))
 
+(r/rule (?a ?b ??cs) => (a b c ?a ?b y z))
+
 (deftest rule-test
   (testing "simple"
     (let [R (r/rule ((:? a) (:? b) (:?? cs))
                     =>
                     (a b c (:? a) (:? b) y z))]
+      (is (= '(a b c 9 8 y z) (R '(9 8 7 6 5))))
+      (is (nil? (R '(9) nil)))))
+
+  (testing "new syntax"
+    (let [R (r/rule (?a ?b ??cs) => (a b c ?a ?b y z))]
       (is (= '(a b c 9 8 y z) (R '(9 8 7 6 5))))
       (is (nil? (R '(9) nil)))))
 
