@@ -40,7 +40,12 @@
   (testing "new syntax"
     (let [R (r/rule (?a ?b ??cs) => (a b c ?a ?b y z))]
       (is (= '(a b c 9 8 y z) (R '(9 8 7 6 5))))
-      (is (nil? (R '(9) nil)))))
+      (is (nil? (R '(9) nil))))
+
+    (is (= 2
+           ((r/make-rule [:? '?x odd?] (fn [m] (inc (m '?x))))
+            1))
+        "make an explicit rule, still a function."))
 
   (testing "simple2"
     (let [R (r/rule ((:? a) (:?? b) (:? a)) =>
