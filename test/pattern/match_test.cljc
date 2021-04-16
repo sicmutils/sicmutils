@@ -19,7 +19,8 @@
 
 (ns pattern.match-test
   (:require [clojure.test :refer [is deftest testing]]
-            [pattern.match :as m]))
+            [pattern.match :as m]
+            [pattern.syntax :as ps]))
 
 (defn receive [frame xs] [frame xs])
 
@@ -174,8 +175,8 @@
       (is (= {:x* [1 2 3 4]} (m/match xs [1 2 3 4])))
       (is (= {:x 2} (m/match xx [2 2])))
       (is (= {:x 5 :y 6} (m/match xy [5 6])))
-      (is (m/segment? :x*))
-      (is (m/segment? :y*))
+      (is (ps/segment? :x*))
+      (is (ps/segment? :y*))
       (is (= {:x* [1 2]} (m/match xs-xs [1 2 1 2])))
       (is (= {:x* [] :y* [1 2 3 4]} (m/match xs-ys [1 2 3 4])))
       (is (= '[{:x* [], :y* [1 2 3 4]}
@@ -314,5 +315,4 @@
       (assert-equal
        `(((stuff . ,items)))
        ((all-dictionaries matcher)
-        `(and ,@items)))))
-  )
+        `(and ,@items))))))

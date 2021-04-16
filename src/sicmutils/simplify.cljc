@@ -69,7 +69,9 @@
             *poly-analyzer* (poly-analyzer)]
     (f)))
 
-(def ^:private simplify-and-flatten #'*rf-analyzer*)
+(def ^:private
+  simplify-and-flatten
+  #'*rf-analyzer*)
 
 (defn ^:private simplify-until-stable
   [rule-simplify canonicalize]
@@ -79,7 +81,9 @@
         expression
         (let [canonicalized-expression (canonicalize new-expression)]
           (cond (= canonicalized-expression expression) expression
-                (v/zero? (*poly-analyzer* `(~'- ~expression ~canonicalized-expression))) canonicalized-expression
+                (v/zero?
+                 (*poly-analyzer*
+                  `(~'- ~expression ~canonicalized-expression))) canonicalized-expression
                 :else (recur canonicalized-expression)))))))
 
 (defn ^:private simplify-and-canonicalize

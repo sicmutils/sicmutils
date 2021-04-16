@@ -123,15 +123,21 @@
           (precedence<= [a b] (not (precedence> a b)))
           (parenthesize-if [b x]
             (if b (parenthesize x) x))
+
           (maybe-rename-function [f]
             (or (rename-functions f) f))
+
           (maybe-rewrite-negation [loc]
-            (or (rewrite-negation (z/node loc) #(z/replace loc %) (constantly nil))
-                loc))
+            (let [result (rewrite-negation (z/node loc))]
+              (if (identical? loc result)
+                loc
+                (z/replace loc result))))
+
           (maybe-rewrite-trig-squares [loc]
-            (or (and rewrite-trig-squares
-                     (rewrite-trig-powers (z/node loc) #(z/replace loc %)))
-                loc))
+            (if-let [result (and rewrite-trig-squares
+                                 (rewrite-trig-powers (z/node loc) nil))]
+              (z/replace loc result)
+              loc))
           (render-unary-node [op args]
             (let [a (first args)]
               (case op

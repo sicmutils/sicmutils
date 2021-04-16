@@ -20,7 +20,8 @@
 (ns pattern.dispatch
   "NOTE that this code is based on
   https://github.com/axch/rules/blob/master/pattern-dispatch.scm."
-  (:require [sicmutils.util :as u])
+  (:require [sicmutils.util :as u]
+            [pattern.rule :as r])
   #?(:clj
      (:import (clojure.lang IObj))))
 
@@ -71,22 +72,11 @@
               (str "No applicable operations: " rules data)))]
      (try-rules rules data fail)))
   ([rules data fail]
-   (let [sentinel #?(:cljs (NeverEquiv.)
-                     :clj (Object.))]
-     (loop [rules rules]
-       (if (empty? rules)
-         (fail)
-         ;; TODO is this right? A rule is supposed to take, what two things? A
-         ;; default?
-         ;;
-         ;; NOTE the rules in Alexey's system return `fail-token` when they
-         ;; fail. This is an optional thing that would definition be good to
-         ;; add!
-         (let [answer ((first rules) data sentinel)]
-           ;; Distinguish failure from idempotent success
-           (if (= answer sentinel)
-             (recur (rest rules))
-             answer)))))))
+   (let [result ((r/rule-list rules) data r/sentinel)]
+     (if (= result r/sentinel)
+       (fail)
+       result))))
+
 (comment
   (define-test (quad-test)
     (interaction

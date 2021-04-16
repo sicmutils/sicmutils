@@ -20,9 +20,10 @@
 (ns pattern.rule
   "Functions for writing and applying term-rewriting rules using the primitives
   defined in [[pattern.match]]."
-  (:require [pattern.match :as m]))
+  (:require [pattern.match :as m]
+            [pattern.syntax :as ps]))
 
-;; adapted from Scheme Rules:
+;; Adapted from Scheme Rules:
 
 ;; A rule is a pattern, a predicate and a handler. The pattern determines the
 ;; applicability of the rule, and the match bindings that enable said
@@ -57,14 +58,7 @@
 
 (defn make-rule
   "The value to return on failure can be overridden to distinguish idempotent
-  success from actual failure, should that be important.
-
-  TODO this is DIFFERENT than Alexey's stuff! The rule here does NOT take a
-  success continuation.
-
-  TODO figure out HOW actually the interpret-success could work... I really do
-  think that because it is ALWAYS unwrapped, and `or` always returns the final
-  thing, this is just doing nothing."
+  success from actual failure, should that be important."
   ([pattern handler]
    (let [match (m/pattern->combinators pattern)]
 	   (fn call
@@ -74,32 +68,22 @@
         (letfn [(cont [frame xs]
                   (and (empty? xs)
                        (handler frame)))]
-          ;; TODO delete these.
           (interpret-success
            (or (match {} [data] cont)
                (succeed fail-token)))))))))
 
-;; TODO the MAJOR change is that this thing does NOT take a success continuation
-;; anymore. Is that good?
-
-;;
-;; ### TODO NOTE! This is all from GJS now. NOW we have rules, predicates and
-;; ### skeletons, in GJS land.
-
 (defn- compile-pattern
   "Replace `pattern` with code that will construct the equivalent form with
-  variable predicate values exposed to evaluation (see above).
-
-  TODO make this extensible... this supposedly receives a QUOTED pattern, but do
-  we need that? Can't we just call `pattern->combinators`?"
+  variable predicate values exposed to evaluation (see above)."
   [pattern]
   (cond (keyword? pattern)   pattern
         (symbol? pattern)    (list 'quote pattern)
-        (m/unquote? pattern)  (m/unquoted-form pattern)
+        (ps/unquote? pattern)  (ps/unquoted-form pattern)
 
-        (or (m/element? pattern)
-            (m/segment? pattern)
-            (m/reverse-segment? pattern))
+        (or (ps/element? pattern)
+            (ps/segment? pattern)
+            (ps/reverse-segment? pattern))
+
         (let [[k sym & preds] pattern]
           `(list ~k '~sym ~@preds))
 
@@ -135,9 +119,9 @@
   NOTE: reverse segments don't appear in the final bit! just do the normal."
   [frame-sym skel]
   (letfn [(compile [elem]
-            (cond (or (m/element? elem)
-                      (m/segment? elem))
-                  (let [v (m/variable-name elem)]
+            (cond (or (ps/element? elem)
+                      (ps/segment? elem))
+                  (let [v (ps/variable-name elem)]
                     (lookup frame-sym v))
 
                   (sequential? elem)
@@ -149,7 +133,7 @@
             (let [[acc pending] (reduce
                                  (fn [[acc pending] item]
                                    (let [compiled (compile item)]
-                                     (if (m/segment? item)
+                                     (if (ps/segment? item)
                                        (if (empty? pending)
                                          [(conj acc compiled) []]
                                          [(conj acc pending compiled) []])
@@ -178,21 +162,20 @@
   whole thing fails."
   ([pattern consequent-fn]
    (let [pattern-expr (compile-pattern pattern)]
-     `(let [matcher# (m/matcher ~pattern-expr)]
-        (fn [data# success#]
-          (if-let [frame# (matcher# data#)]
-            (when-let [result# (~consequent-fn frame#)]
-              (success# result#)))))))
+     `(make-rule ~pattern-expr ~consequent-fn)))
 
   ([pattern predicate skeleton]
    (let [pattern-expr     (compile-pattern pattern)
          pred-expr        (compile-predicate predicate)
          frame-sym        (gensym)
          skeleton-expr    (compile-skeleton frame-sym skeleton)]
-     `(let [matcher#      (m/matcher ~pattern-expr ~pred-expr)]
-        (fn [data# success#]
-          (if-let [~frame-sym (matcher# data#)]
-            (success# ~skeleton-expr)))))))
+     `(make-rule ~pattern-expr
+                 (fn [~frame-sym]
+                   (when-let [result# (~pred-expr ~frame-sym)]
+                     (let [~frame-sym (if (map? result#)
+                                        (merge ~frame-sym result#)
+                                        ~frame-sym)]
+                       (~succeed ~skeleton-expr))))))))
 
 (defmacro rule
   ([pattern consequent-fn]
@@ -200,68 +183,7 @@
   ([pattern predicate? skeleton]
    (compile-rule pattern predicate? skeleton)))
 
-;; TODO make a `make-ruleset` function that can take a sequence of functions.
-;;
-;; TODO rewrite these to NOT use continuations anymore!!
-
-(defmacro ruleset
-  "Ruleset compiles rules, predicates and consequences (triplet-wise)
-  into a function which acts like a single rule (as rule would
-  produce) which acts by invoking the success continuation with the
-  consequence of the first successful rule whose patterns match and
-  satisfy the predicate. If no rules match, the failure continuation
-  is invoked.
-
-  TODO note that currently we ONLY allow triplets, but we really should allow
-  pairs... take an explicit list.
-
-  TODO this is really ONLY a thing because we want to use `try-rulesets` below,
-  which is the same as `in-order`.
-  "
-  [& patterns-and-consequences]
-  {:pre (zero? (mod (count patterns-and-consequences) 3))}
-  (let [rule-inputs (partition 3 patterns-and-consequences)
-        rules       (mapv #(apply compile-rule %) rule-inputs)]
-    `(let [rules# ~rules]
-       (fn [data# continue# fail#]
-         (or (some #(% data# continue#) rules#)
-             (fail# data#))))))
-
-;; TODO how can we cache these??
-
-(defn- try-rulesets
-  "Execute the supplied rulesets against expression in series. The first ruleset
-  to succeed in rewriting an expression will cause the success continuation to
-  be invoked and the process will stop. If no ruleset succeeds, the original
-  expression is returned.
-
-  TODO I think this is the same as `in-order` below. Use that instead!"
-  [[ruleset & rulesets] expression succeed]
-  (if ruleset
-    (ruleset expression succeed #(try-rulesets rulesets % succeed))
-    expression))
-
-(defn rule-simplifier
-  "Transform the supplied rulesets into a function of expressions which will
-  arrange to apply each of the rules in the ruleset to all the component parts
-  of the expression in depth order, then simplifies the result; the process is
-  continued until a fixed point of the simplification process is achieved.
-
-  TODO I think this is NOT true, on the fixed point comment!!"
-  [& rulesets]
-  (fn simplifier [expression]
-    (let [simplified (if (sequential? expression)
-                       (map simplifier expression)
-                       expression)]
-      (try-rulesets rulesets simplified simplifier))))
-
-
-;; TODO: do we want the top down stuff here too??
-;; https://github.com/axch/rules/blob/master/term-rewriting.scm
-
 ;; ## Alexey Combinators, Term Rewriting
-
-;; Term rewriting
 ;;
 ;; Rule combinators
 ;;
@@ -270,33 +192,31 @@
 ;; input and return the result of transforming it, where returning
 ;; the input itself signals match failure).
 
+(def ^:no-doc sentinel
+  #?(:cljs (NeverEquiv.)
+     :clj (Object.)))
+
 (defn rule-list
   "Apply several rules in series, returning the first success."
   [rules]
-  (fn [data]
-    (loop [rules rules]
-      (if (empty? rules)
-        data
-        ;; TODO can we use the fail token here explicitly? If we don't pass one
-        ;; we know it fails, so maybe no need.
-        (let [answer ((first rules) data)]
-          (if (= data answer)
-            (recur (rest rules))
-            answer))))))
+  (fn call
+    ([data] (call data data))
+    ([data fail-token]
+     (loop [rules rules]
+       (if (empty? rules)
+         fail-token
+         (let [answer ((first rules) data sentinel)]
+           (if (= answer sentinel)
+             (recur (rest rules))
+             answer)))))))
 
 (defn in-order
-  "Apply several rules in series, threading the results."
-  [& rules]
-  (fn [datum]
-    (reduce #(%2 %1) datum rules)
+  "Apply several rules in series, threading the results.
 
-    ;; TODO check that these are identical.
-    #_(loop [datum datum
-             rules the-rules]
-        (if (empty? rules)
-          datum
-          (recur ((first rules) datum)
-                 (rest the-rules))))))
+  TODO use a fail token here? How do we do that?"
+  [& rules]
+  (fn ([data]
+      (reduce #(%2 %1) data rules))))
 
 (defn iterated
   "Apply one rule repeatedly until it doesn't match anymore.
@@ -314,7 +234,7 @@
 (defn- try-subexpressions [the-rule expr]
   (if (sequential? expr)
     (let [subexpressions-tried (map the-rule expr)]
-      (if (every? (map = expr subexpressions-tried))
+      (if (every? true? (map = expr subexpressions-tried))
         expr
         subexpressions-tried))
     expr))
@@ -358,12 +278,39 @@
             (on-expr answer)))
         (on-expr answer)))))
 
-(defn rule-simplifier*
-  "Make a term-rewriting system from a list of rules. This is a facade for a
-  rule application strategy from the combinators above."
-  [the-rules]
+;; ## Our API
+;;
+;; The original, good stuff.
+
+(defn make-ruleset [rules]
+  (rule-list rules))
+
+(defmacro ruleset
+  "Ruleset compiles rules, predicates and consequences (triplet-wise)
+  into a function which acts like a single rule (as rule would
+  produce) which acts by invoking the success continuation with the
+  consequence of the first successful rule whose patterns match and
+  satisfy the predicate. If no rules match, the failure continuation
+  is invoked.
+
+  TODO note that currently we ONLY allow triplets, but we really should allow
+  pairs... take an explicit list."
+  [& patterns-and-consequences]
+  {:pre (zero? (mod (count patterns-and-consequences) 3))}
+  (let [rule-inputs (partition 3 patterns-and-consequences)
+        rules       (mapv #(apply compile-rule %) rule-inputs)]
+    `(rule-list ~rules)))
+
+(defn rule-simplifier
+  "Transform the supplied rules into a function of expressions which will
+  arrange to apply each of the rules in the ruleset to all the component parts
+  of the expression in depth order, then simplifies the result; the process is
+  continued until a fixed point of the simplification process is achieved."
+  [& the-rules]
   (iterated-on-subexpressions
    (rule-list the-rules)))
 
-(defn term-rewriting [& rules]
-  (rule-simplifier* rules))
+(defn term-rewriting
+  "Alias for `rule-simplifier`..."
+  [& rules]
+  (apply rule-simplifier rules))
