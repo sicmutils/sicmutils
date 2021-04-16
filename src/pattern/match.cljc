@@ -24,9 +24,31 @@
   See [[pattern.rule]] for a higher-level API.
 
   [[pattern.match]] is spiritually similar to Alexey
-  Radul's [Rules](https://github.com/axch/rules) library for Scheme.")
+  Radul's [Rules](https://github.com/axch/rules) library for Scheme."
+  (:require [pattern.syntax :as s]))
 
+;; ### Design notes:
+;;
+;; we probably do want to keep vector vs sequence matchers separate, etc...
+;; right now we just have a `list` matcher. We want a vector matcher. We don't
+;; need specific keyword matchers etc... For that, you can just use a predicate.
+;;
+;; `Map` matcher too! We definitely want a dictionary matcher.
+;;
+;; unquote DONE, and unquote-splice too. We have `unquote` now.
+;;
 ;; # Pattern Matcher
+;;
+;; This is the start of the pattern matching library. Here's the high level
+;; design:
+;;
+;; This namespace defines the contract for a "matcher combinator". The most
+;; primitive matcher type is a function, but then we can combine these into
+;; matchers on lists... well, a list matcher is really the only combinator right
+;; now.
+;;
+;; There are rule combinators of course!
+;;
 ;;
 ;; A match procedure takes a data item, a dictionary, and a success
 ;; continuation. The dictionary accumulates the assignments of match variables
@@ -49,11 +71,13 @@
 ;; the "datum"... which I think in this case is a data expression, just anything
 ;; at all.
 ;;
-;; TODO missing elements:
 ;;
-;; match:predicate
-
-;; ### Constraints
+;; ## Combinators
+;;
+;; TODO note constraints, and that this is the base set of pattern matcher
+;; combinators you can build other ones out of.
+;;
+;; TODO note ANY combinator can be an underscore, maybe?
 ;;
 ;; TODO note this too - a constraint is... well, just a predicate, I guess. This
 ;; is the predicate that always returns true.
@@ -113,7 +137,7 @@
                   (succeed frame xs))
              (succeed (assoc frame sym x) xs))))))))
 
-;; ## Lists and Segments
+;; ### Lists and Segments
 
 ;; Segment variables introduce some additional trouble. Unlike other matchers, a
 ;; segment variable is not tested against a fixed datum that it either matches
@@ -130,10 +154,7 @@
 ;; - Also, if the segment variable is the last matcher in its enclosing
 ;;   list (which actually happens quite often!) then the list matcher already
 ;;   knows how much data must be matched, and no search is needed.
-
-;; TODO note match:segment in matcher.scm Gotta go over this again and
-;; guarantee that it is actually doing the right thing.
-
+;;
 ;;
 ;; NOTE: The original does some clever stuff when we have an explicit LIST we're
 ;; using for matching. Instead of storing the actual prefix as a binding, the other systems store:
@@ -215,125 +236,98 @@
                       :else (succeed frame (next xs))))]
         ;; NOTE this `(first xs)` is the only weird part for me... why is the
         ;; list matcher living in a list?
+        ;;
+        ;; NOTE this is super weird! The whole thing overall needs a list of
+        ;; tokens, so it can't just MATCH ever.
         (step frame (first xs) matchers)))))
 
-;; ## Accessors
+;; ## Pattern Matching Compiler
+;;
+;; A comment in `rules` states: The compiler is a generic operator, allowing the
+;; syntax to be extended. NOTE that this last part is not yet true, but TODO
+;; make it true.
 
-(defn- keyword-suffix
-  "Returns the final character of the supplied keyword `kwd`."
-  [kwd]
-  (let [s (name kwd)
-        c (count s)]
-    (.charAt ^String s (dec c))))
-
-(defn restricted?
-  "TODO let's allow multiple restrictions, and combine them together with
-  every-pred. This has to happen in `restriction`."
-  [pattern]
-  (and (sequential? pattern)
-       (> (count pattern) 2)))
-
-(defn splice? [pattern]
-  (and (sequential? pattern)
-       (= (first pattern) :splice)))
-
-(defn spliced-form [pattern]
-  (second pattern))
-
-(defn element?
-  "Returns true if `pattern` is a variable reference (i.e., it looks like `(:?
-  ...)`) or is a simple keyword (not ending in `$` or `*`), false otherwise."
-  [pattern]
-  (or (and (keyword? pattern)
-           (not (#{\* \$} (keyword-suffix pattern))))
-
-      (and (sequential? pattern)
-           (= (first pattern) :?))))
-
-(defn element-with-restriction?
-  "Returns true if `pattern` is a variable reference and is also equipped with a
-  constraint on matched values, false otherwise."
-  [pattern]
-  (and (element? pattern)
-       (restricted? pattern)))
-
-(defn segment?
-  "Returns true if `pattern` is a segment reference (i.e., it looks like `(:??
-  ...)`) or is a keyword ending in `*`, false otherwise."
-  [pattern]
-  (or (and (keyword? pattern)
-           (= \* (keyword-suffix pattern)))
-
-      (and (sequential? pattern)
-           (= (first pattern) :??))))
-
-(defn reverse-segment?
-  "Returns true if x is a REVERSED segment reference (i.e., it looks like `(:$$
-  ...)`) or is a keyword ending in `$`, false otherwise."
-  [pattern]
-  (or (and (keyword? pattern)
-           (= \$ (keyword-suffix pattern)))
-
-      (and (sequential? pattern)
-           (= (first pattern) :$$))))
-
-(defn variable-name
-  "Returns the variable contained in a variable or segment reference form.
-
-  TODO should we always convert these to keywords? That would certainly make it
-  easier to look stuff up in frames..."
-  [pattern]
-  (if (keyword? pattern)
-    pattern
-    (second pattern)))
-
-(defn- restriction
-  "If `pattern` is a variable reference in a pattern with a constraint,
-  returns that constraint; else returns a stock function which enforces no
-  constraint at all.
-
-  Multiple constraints are allowed."
-  [pattern]
-  (if (keyword? pattern)
-    no-constraint
-    (if-let [fs (seq (drop 2 pattern))]
-      (apply every-pred fs)
-      no-constraint)))
-
-(defn pattern->matcher
+(defn pattern->combinators
   "Given a pattern (which is essentially a form consisting of constants mixed with
   pattern variables) returns a match combinator for the pattern.
 
   TODO this is a good place to open up dispatch, as Alexey does, and make new,
   extensible syntax for matchers."
   [pattern]
-  (cond (element? pattern)
-        (match-element (variable-name pattern)
-                       (restriction pattern))
+  (cond (s/element? pattern)
+        (match-element (s/variable-name pattern)
+                       (s/restriction pattern))
 
-        (segment? pattern)
-        (match-segment (variable-name pattern))
+        (s/segment? pattern)
+        (match-segment (s/variable-name pattern))
 
-        (reverse-segment? pattern)
-        (reverse-segment (variable-name pattern))
+        (s/reverse-segment? pattern)
+        (reverse-segment (s/variable-name pattern))
 
         (sequential? pattern)
         (if (empty? pattern)
           (match-eq pattern)
           (match-list
            ;; NOTE: The final element can go faster, that's why we do this.
-           (concat (map pattern->matcher (butlast pattern))
+           (concat (map pattern->combinators (butlast pattern))
                    (let [p (last pattern)]
-                     [(if (segment? p)
-                        (match-final-segment (variable-name p))
-                        (pattern->matcher p))]))))
+                     [(if (s/segment? p)
+                        (match-final-segment (s/variable-name p))
+                        (pattern->combinators p))]))))
 
         (fn? pattern) pattern
 
         :else (match-eq pattern)))
 
-;; ## Higher Level API
+;; ## Making toplevel matchers out of patterns
+;;
+;; What do we have to this point? We have a collection of matcher combinators,
+;; and a soon-to-be-open system for turning a pattern into a matcher. Rules
+;; BUILD on these, but we are still low level!
 
+;; This is something that's available
+
+(defn matcher
+  "Returns a function of the data that "
+  ([pattern] (matcher pattern no-constraint))
+  ([pattern pred]
+   (let [match   (pattern->combinators pattern)
+         success (fn [frame tail]
+                   (when-let [m (and (empty? tail)
+                                     (pred frame))]
+                     (if (map? m)
+                       (merge frame m)
+                       frame)))]
+     (fn [data]
+       (match {} [data] success)))))
+
+(defn foreach-matcher
+  "TODO Calls `f` with each frame (and optionally tail), for side effects."
+  [pattern]
+  (let [match (pattern->combinators pattern)]
+    (fn [data f & {:keys [include-tails?]}]
+      (letfn [(cont [frame xs]
+                (if include-tails?
+                  (f frame xs)
+                  (f frame)))]
+        (match {} [data] cont)))))
+
+(defn all-results-matcher
+  "Returns a function of `data`... TODO describe"
+  [pattern]
+  (let [match (pattern->combinators pattern)]
+    (fn [data & {:keys [include-tails?]}]
+      (let [results (atom [])
+            cont    (fn [frame xs]
+                      (if include-tails?
+                        (swap! results conj [frame xs])
+                        (swap! results conj frame))
+                      false)]
+        (match {} [data] cont)
+        @results))))
+
+;; ## Higher Level API
+;;
 (defn match
   "Convenience function for applying a match combinator to some data.
 
@@ -345,33 +339,7 @@
 
   If predicate is supplied, then the resulting frame of a match must satisfy
   this predicate. Otherwise we continue searching."
-  ([matcher data]
-   (match matcher data no-constraint))
-  ([matcher data predicate]
-   (let [receive (fn [frame data]
-                   (when-let [m (and (empty? data)
-                                     (predicate frame))]
-                     (if (map? m)
-                       (merge frame m)
-                       frame)))]
-     (matcher {} (list data) receive))))
-
-(defn foreach
-  "TODO Calls `f` with each frame (and optionally tail), for side effects."
-  [f matcher data & {:keys [include-tails?]}]
-  (matcher {}
-           data
-           (fn [frame xs]
-             (if include-tails?
-               (f frame xs)
-               (f frame))
-             false)))
-
-(defn all-results-matcher
-  ([matcher input & {:keys [include-tails?]}]
-   (let [results  (atom [])
-         callback (if include-tails?
-                    #(swap! results conj [%1 %2])
-                    #(swap! results conj %1))]
-     (foreach callback matcher input :include-tails? include-tails?)
-     @results)))
+  ([pattern data]
+   ((matcher pattern) data))
+  ([pattern data predicate]
+   ((matcher pattern predicate) data)))

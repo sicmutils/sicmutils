@@ -250,6 +250,7 @@
         l-empty? (and lseq? (empty? l))
         r-empty? (and rseq? (empty? r))
         raw-comp (delay (core-compare (hash l) (hash r)))]
+
     (cond (and l-empty? r-empty?) 0
           l-empty?                -1
           r-empty?                1

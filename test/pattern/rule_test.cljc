@@ -193,10 +193,20 @@
 
 (deftest new-tests
   (let [R (rule-1
-           ((:splice (pattern.match/match-eq '+)) () (:? a) (:? a))
+           ((:unquote (pattern.match/match-eq '+)) () (:? a) (:? a))
            =>
            (* 2 (:? a)))]
     (is (= '(* 2 x)
            (R '(+ () x x)))
-        "testing splice, splicing in an actual matcher vs a literal, and empty
+        "testing unquote, unquoting in an actual matcher vs a literal, and empty
         list matching.")))
+
+
+(comment
+  (let ((the-rule (rule '(foo (? x)) (succeed x))))
+    (define-each-check
+      (= 1 (the-rule '(foo 1)))
+      (success? (the-rule `(foo ,(make-success 2))))
+      (= 3 (success-value (the-rule `(foo ,(make-success 3)))))
+      (success? (the-rule (make-success 4))) ; Should return the input, not 4
+      )))

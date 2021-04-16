@@ -50,20 +50,28 @@
     (is (= [{:x 6.0} '(7.0)] ((m/match-element :x float?) {} '(6.0 7.0) receive))))
 
   (testing "match-segment"
-    (is (= [[{:x []} '(a b c)]
-            [{:x '[a]} '(b c)]
-            [{:x '[a b]} '(c)]
-            [{:x '[a b c]} nil]]
-           (m/all-results-matcher (m/match-segment :x)
-                                  '(a b c)
-                                  :include-tails? true)))
-    (is (= [[{:x []} '(a b c)]
-            [{:x '[a]} '(b c)]
-            [{:x '[a b]} '(c)]
-            [{:x '[a b c]} nil]]
-           (m/all-results-matcher (m/match-segment :x)
-                                  '[a b c]
-                                  :include-tails? true)))
+    (let [match (m/all-results-matcher (m/match-segment :x))]
+      (is (= '[[{:x []} [[a b c]]]
+               [{:x [[a b c]]} nil]]
+             (match '[a b c] :include-tails? true))
+          "The segment matcher does not work well on its own; it has to be
+          included inside of a list matcher."))
+
+    (let [match (m/all-results-matcher [:x*])]
+      (is (= '[[{:x* [a b c]} nil]]
+             (match '[a b c] :include-tails? true))
+          "A final segment in a list matcher matches the entire list, no scanning."))
+
+    (let [match (m/all-results-matcher
+                 (m/match-list [(m/match-segment :x)
+                                (m/match-segment :y)]))]
+      (is (= '[[{:x [], :y [a b c]} nil]
+               [{:x [a], :y [b c]} nil]
+               [{:x [a b], :y [c]} nil]
+               [{:x [a b c], :y []} nil]]
+             (match '[a b c] :include-tails? true))
+          "If you have TWO segment variables, they correctly scan."))
+
     (is (= {:x []} ((m/match-segment :x) {} '() (fn [frame _] frame))))
     (is (= {:x []} ((m/match-segment :x) {} [] (fn [frame _] frame)))))
 
@@ -76,8 +84,8 @@
       (is (= '[{:i 3 :xs [1.1 [1 3] 2.3] :ys [6.5 x [3 5]] :j 4 :zs [22]}
                {:i 3 :xs [1.1 [1 3] 2.3] :ys [6.5 x [3 5] 4] :j 22 :zs []}
                {:xs [1.1 [1 3] 2.3 3 6.5 x [3 5]] :i 4 :ys [] :j 22 :zs []}]
-             (m/all-results-matcher find-two-ints
-                                    '((1.1 [1 3] 2.3 3 6.5 x [3 5] 4 22)))))))
+             ((m/all-results-matcher find-two-ints)
+              '(1.1 [1 3] 2.3 3 6.5 x [3 5] 4 22))))))
 
   (testing "twin-segments"
     (let [xs-xs (m/match-list [(m/match-segment :x)
@@ -92,19 +100,21 @@
       (is (= {:x '[a b c]} (m/match xs-xs '(a b c a b c))))
       (is (not (m/match xs-xs '(a b c a b d))))
       (is (not (m/match xs-xs '(a b c a b c d e))))
-      (is (= [{:x [] :y '[a b c a b c d e]}
-              {:x '[a b c] :y '[d e]}]
-             (m/all-results-matcher xs-xs-etc '((a b c a b c d e)))))
-      (is (= [{:x [] :y '(a b a b a b a b)}
-              {:x '[a b] :y '[a b a b]}
-              {:x '[a b a b] :y '[]}]
-             (m/all-results-matcher xs-xs-etc
-                                    '((a b a b a b a b)))))
-      (is (= '[{:x [], :y [h k h k h k h k]}
-               {:x [h k], :y [h k h k]}
-               {:x [h k h k], :y []}]
-             (m/all-results-matcher xs-xs-etc
-                                    '[[h k h k h k h k]])))
+      (let [match (m/all-results-matcher xs-xs-etc)]
+        (is (= [{:x [] :y '[a b c a b c d e]}
+                {:x '[a b c] :y '[d e]}]
+               (match '(a b c a b c d e))))
+
+        (is (= [{:x [] :y '(a b a b a b a b)}
+                {:x '[a b] :y '[a b a b]}
+                {:x '[a b a b] :y '[]}]
+               (match '(a b a b a b a b))))
+
+        (is (= '[{:x [], :y [h k h k h k h k]}
+                 {:x [h k], :y [h k h k]}
+                 {:x [h k h k], :y []}]
+               (match '[h k h k h k h k]))))
+
       (is (= '[{:y [a b a b a b a b], :x [], :w []}
                {:y [a b a b], :x [a b], :w []}
                {:y [], :x [a b a b], :w []}
@@ -120,16 +130,15 @@
                {:y [a b], :x [], :w [a b a b a b]}
                {:y [b], :x [], :w [a b a b a b a]}
                {:y [], :x [], :w [a b a b a b a b]}]
-             (m/all-results-matcher etc-xs-xs-etc '((a b a b a b a b)))))))
+             ((m/all-results-matcher etc-xs-xs-etc) '(a b a b a b a b))))))
 
   (testing "example-from-6.945-notes"
     (is (= '[{y [b b b b b b] x []}
              {y [b b b b] x [b]}
              {y [b b] x [b b]}
              {y [] x [b b b]}]
-           (m/all-results-matcher
-            (m/pattern->matcher '(a (:?? x) (:?? y) (:?? x) c))
-            '((a b b b b b b c))))))
+           ((m/all-results-matcher '(a (:?? x) (:?? y) (:?? x) c))
+            '(a b b b b b b c)))))
 
   (testing "an expression"
     (let [expr (m/match-list [(m/match-list [(m/match-eq '*)
@@ -143,10 +152,10 @@
 
 (deftest match-compiler
   (testing "simple"
-    (let [match-x (m/pattern->matcher [:? :x])
-          match-xx (m/pattern->matcher [[:? :x] [:? :x]])
-          match-xy (m/pattern->matcher [[:? :x] [:? :y]])
-          match-x-ys-x (m/pattern->matcher [[:? :x] [:?? :ys] [:? :x]])]
+    (let [match-x (m/pattern->combinators [:? :x])
+          match-xx (m/pattern->combinators [[:? :x] [:? :x]])
+          match-xy (m/pattern->combinators [[:? :x] [:? :y]])
+          match-x-ys-x (m/pattern->combinators [[:? :x] [:?? :ys] [:? :x]])]
       (is (= '{:x 3} (m/match match-x 3)))
       (is (= '{:x 2} (m/match match-xx [2 2])))
       (is (not (m/match match-xx [2 3])))
@@ -157,11 +166,11 @@
 
 (deftest keyword-variables
   (testing "simple"
-    (let [xx (m/pattern->matcher [:x :x])
-          xy (m/pattern->matcher [:x :y])
-          xs (m/pattern->matcher [:x*])
-          xs-xs (m/pattern->matcher [:x* :x*])
-          xs-ys (m/pattern->matcher [:x* :y*])]
+    (let [xx [:x :x]
+          xy [:x :y]
+          xs [:x*]
+          xs-xs [:x* :x*]
+          xs-ys [:x* :y*]]
       (is (= {:x* [1 2 3 4]} (m/match xs [1 2 3 4])))
       (is (= {:x 2} (m/match xx [2 2])))
       (is (= {:x 5 :y 6} (m/match xy [5 6])))
@@ -174,44 +183,44 @@
                {:x* [1 2], :y* [3 4]}
                {:x* [1 2 3], :y* [4]}
                {:x* [1 2 3 4], :y* []}]
-             (m/all-results-matcher xs-ys '((1 2 3 4)))))
+             ((m/all-results-matcher xs-ys) '(1 2 3 4))))
       (is (= '[{:x* [], :y* [1 2 3 4]}
                {:x* [1], :y* [2 3 4]}
                {:x* [1 2], :y* [3 4]}
                {:x* [1 2 3], :y* [4]}
                {:x* [1 2 3 4], :y* []}]
-             (m/all-results-matcher xs-ys [[1 2 3 4]]))))))
+             ((m/all-results-matcher xs-ys) [1 2 3 4]))))))
 
 (deftest gjs-tests
   ;; these tests come from matcher.scm.
   (testing "element inside of list"
     (is (= [{'b 1} nil]
-           ((m/pattern->matcher '(a ((:? b) 2 3) 1 c))
+           ((m/pattern->combinators '(a ((:? b) 2 3) 1 c))
             {}
             '((a (1 2 3) 1 c))
             vector)))
 
     (is (= [{'b 1} nil]
-           ((m/pattern->matcher `(~'a ((:? ~'b ~number?) 2 3) 1 ~'c))
+           ((m/pattern->combinators `(~'a ((:? ~'b ~number?) 2 3) 1 ~'c))
             {}
             '((a (1 2 3) 1 c))
             vector))
         "match element with predicate inside of list")
 
-    (is (not ((m/pattern->matcher `(~'a ((:? ~'b ~symbol?) 2 3) 1 ~'c))
+    (is (not ((m/pattern->combinators `(~'a ((:? ~'b ~symbol?) 2 3) 1 ~'c))
               {}
               '((a (1 2 3) 1 c))
               vector))
         "match element inside list with failing predicate")
 
-    (is (not ((m/pattern->matcher '(a ((:? b) 2 3) (:? b) c))
+    (is (not ((m/pattern->combinators '(a ((:? b) 2 3) (:? b) c))
               {}
               '((a (1 2 3) 2 c))
               vector))
         "match element inside list, but fail the second match outside")
 
     (is (= [{'b 1} nil]
-           ((m/pattern->matcher '(a ((:? b) 2 3) (:? b) c))
+           ((m/pattern->combinators '(a ((:? b) 2 3) (:? b) c))
             {}
             '((a (1 2 3) 1 c))
             vector))
@@ -219,7 +228,7 @@
 
   (testing "segment and reverse segment"
     (letfn [(palindrome? [x]
-              ((m/pattern->matcher '((:?? x) (:$$ x)))
+              ((m/pattern->combinators '((:?? x) (:$$ x)))
                {}
                (list x)
                (fn [x y]
@@ -235,3 +244,75 @@
       "We can add new bindings to the map."))
 
 ;; TODO note splice, test it in rules!
+
+
+(comment
+  (define (id x) x)
+
+  (define-each-check
+
+    (equal?
+     '(succeed ((b 1)))
+     ((match:->combinators '(a ((? b) 2 3) 1 c))
+      '(a (1 2 3) 1 c)
+      '()
+      (fn (x) `(succeed ,x))))
+
+    (equal?
+     false
+     ((match:->combinators '(a ((? b) 2 3) (? b) c))
+      '(a (1 2 3) 2 c)
+      '()
+      (fn (x) `(succeed ,x))))
+
+    (equal?
+     '(succeed ((b 1)))
+     ((match:->combinators '(a ((? b) 2 3) (? b) c))
+      '(a (1 2 3) 1 c)
+      '()
+      (fn (x) `(succeed ,x))))
+
+    (equal?
+     '(((y . (b b b b b b)) (x . ()))
+       ((y . (b b b b)) (x . (b)))
+       ((y . (b b)) (x . (b b)))
+       ((y . ()) (x . (b b b))))
+     ((all-dictionaries
+       (match:->combinators '(a (?? x) (?? y) (?? x) c)))
+      '(a b b b b b b c)))
+
+    (not ((first-dictionary (match:->combinators '(a (?? x) (?? y) (?? x) c)))
+	        '(a b b b b b b a)))
+
+    (equal?
+     '((b . 1))
+     ((matcher '(a ((? b) 2 3) (? b) c))
+      '(a (1 2 3) 1 c))))
+
+  (define-test (smoke)
+    (define matcher
+      (match:->combinators '(+ (? a) (+ (? b) (? c)))))
+
+    (check (equal? '((c 4) (b 3) (a 2))
+		               (matcher '(+ 2 (+ 3 4)) '() id)))
+    (check (not (matcher '(+ 2 (+ 3 4 5)) '() id))))
+
+  (define-test (match-empty-list)
+    (assert-equal
+     '(()) ; One empty dictionary
+     ((all-dictionaries (match:->combinators '()))
+      '()))
+    (assert-equal
+     '() ; No dictionaries
+     ((all-dictionaries (match:->combinators '()))
+      '(foo))))
+
+  (define-test (obvious-tail)
+    (define matcher
+      (match:->combinators '(and (?? stuff))))
+    (let ((items (iota 10))) ; constant time, except building the test list
+      (assert-equal
+       `(((stuff . ,items)))
+       ((all-dictionaries matcher)
+        `(and ,@items)))))
+  )
