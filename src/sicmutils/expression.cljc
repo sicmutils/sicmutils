@@ -287,7 +287,7 @@
 (defn sorted? [xs]
   (or (not (sequential? xs))
       (every? (fn [[l r]]
-                (<= (sicmutils.expression/compare l r) 0))
+                (<= (compare l r) 0))
               (partition 2 1 xs))))
 
 (defn sort [xs]

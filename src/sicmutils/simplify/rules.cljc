@@ -78,8 +78,6 @@
     (ruleset
      ((:? :op op-set) :x) => :x)))
 
-;; TODO get syntax going to match constants that I specify.
-
 (defn constant-elimination
   "Takes an operation `op` and an identity element `constant` and returns a rule
   that eliminates instances of `constant` inside binary forms like `(<op> l

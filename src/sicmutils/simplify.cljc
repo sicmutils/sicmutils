@@ -124,25 +124,27 @@
        (+ :a1* :a2* :a3* (* :a (expt (sin :x) 2)))
 
        (+ :a1* (expt (cos :x) (:? n at-least-two?)) :a2* :a :a3*)
-       #(simplifies-to-zero? `(~'+ (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2)) ~(% :a)))
+       #(simplifies-to-zero?
+         `(~'+ (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2)) ~(% :a)))
        (+ :a1* :a2* :a3* (* :a (expt (sin :x) 2)))
 
        (+ :a1* :a :a2* (* :b1* (expt (cos :x) (:? n at-least-two?)) :b2*) :a3*)
-       #(simplifies-to-zero? `(~'+ (~'* ~@(% :b1*) ~@(% :b2*) (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2))) ~(% :a)))
+       #(simplifies-to-zero?
+         `(~'+ (~'* ~@(% :b1*) ~@(% :b2*) (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2))) ~(% :a)))
        (+ :a1* :a2* :a3* (* :a (expt (sin :x) 2)))
 
        (+ :a1* (* :b1* (expt (cos :x) (:? n at-least-two?)) :b2*) :a2* :a :a3*)
-       #(simplifies-to-zero? `(~'+ (~'* ~@(% :b1*) ~@(% :b2*) (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2))) ~(% :a)))
+       #(simplifies-to-zero?
+         `(~'+ (~'* ~@(% :b1*) ~@(% :b2*) (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2))) ~(% :a)))
        (+ :a1* :a2* :a3* (* :a (expt (sin :x) 2)))
 
-       ;; since computing GCDs of rational functions is expensive, it would be nice if the
-       ;; result of the computation done in simplifies-to-unity could be captured and reused
-       ;; in the substitution. Idea: provide a binding for the *return value* of the predicate
-       ;; in the scope of the substitution.
+       ;; TODO - the original pushes rcf:simplify inside this block.
        (atan :y :x)
-       #(not (simplifies-to-one? `(~'gcd ~(% :x) ~(% :y))))
-       (atan (/ :y (gcd :x :y)) (/ :x (gcd :x :y)))
-       ))
+       (fn [m]
+         (let [xy-gcd (*rf-analyzer* `(~'gcd ~(:x m) ~(:y m)))]
+           (when-not (v/one? xy-gcd)
+             {:gcd xy-gcd})))
+       (atan (/ :y :gcd) (/ :x :gcd))))
      simplify-and-flatten)))
 
 (def clear-square-roots-of-perfect-squares
