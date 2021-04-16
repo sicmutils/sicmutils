@@ -19,6 +19,7 @@
 
 (ns sicmutils.simplify.rules-test
   (:require [clojure.test :refer [is deftest testing]]
+            [pattern.rule :refer [rule-simplifier]]
             [sicmutils.simplify.rules :as r]))
 
 (deftest simplify-square-roots-test
@@ -124,3 +125,9 @@
       (is (= '(- (sqrt (/ a b)) (sqrt (/ c b)))
              (sqrt-contract
               '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))))))))
+
+(deftest new-tests
+  (let [rule (r/constant-promotion '* 0)
+        f    (rule-simplifier rule)]
+    (is (= 0 (f '(* x 0)))
+        "works")))

@@ -390,14 +390,14 @@
       (vector? s)))
 
 (defn up?
-  "Returns `true` if `s` is an up structure, false otherwise."
+  "Returns `true` if `s` is an `up` structure, false otherwise."
   [s]
   (or (vector? s)
       (and (instance? Structure s)
            (= ::up (.-orientation ^Structure s)))))
 
 (defn down?
-  "Returns `true` if `s` is a down structure, false otherwise."
+  "Returns `true` if `s` is a `down` structure, false otherwise."
   [s]
   (and (instance? Structure s)
        (= ::down (.-orientation ^Structure s))))
