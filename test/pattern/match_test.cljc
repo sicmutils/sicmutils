@@ -232,18 +232,22 @@
       (is (not (palindrome? '(a b c c a b)))))))
 
 (deftest new-tests
-  (testing "match-or"
-    (let [match (m/match-or (m/predicate odd?)
-                            (m/predicate #{12}))]
+  (let [match (m/matcher
+               (m/match-if odd? '?x '?y))]
+    (is (= {'?x 9} (match 9)))
+    (is (= {'?y 10} (match 10))))
+
+  (testing "match/or"
+    (let [match (m/or (m/predicate odd?)
+                      (m/predicate #{12}))]
       (is (= {} (match {} 12 identity)))
       (is (= {} (match {} 11 identity)))
       (is (not (match {} 8 identity)))))
 
-  (testing "match-and must match all and returns the frame from the final."
-    (let [match (m/match-and (m/predicate even?)
-                             (m/bind :x)
-                             (m/predicate #{12})
-                             )]
+  (testing "`and` must match all and returns the frame from the final."
+    (let [match (m/and (m/predicate even?)
+                       (m/bind :x)
+                       (m/predicate #{12}))]
       (is (= {:x 12} (match {} 12 identity)))
       (is (not (match {} 8 identity)))))
 

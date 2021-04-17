@@ -119,3 +119,100 @@
       (if-let [fs (seq (drop 2 pattern))]
         (apply every-pred fs)
         no-constraint))))
+
+;; ## Compiler Code
+
+(defn- splice-reduce [pred f xs]
+  (let [[acc pending] (reduce
+                       (fn [[acc pending] x]
+                         (if (pred x)
+                           (if (empty? pending)
+                             [(conj acc (f x)) []]
+                             [(conj acc pending (f x)) []])
+                           [acc (conj pending (f x))]))
+                       [[] []]
+                       xs)]
+    (if (empty? pending)
+      acc
+      (conj acc pending))))
+
+(defn compile-pattern
+  "Replace `pattern` with code that will construct the equivalent form with
+  variable predicate values exposed to evaluation (see above)."
+  [pattern]
+  (letfn [(compile-sequential [xs]
+            (let [acc (splice-reduce
+                       unquote-splice? compile-pattern xs)]
+              (into [] cat acc)))]
+
+    (cond (keyword? pattern) pattern
+          (symbol? pattern) (list 'quote pattern)
+
+          (or (unquote? pattern)
+              (unquote-splice? pattern))
+          (unquoted-form pattern)
+
+          (sequential? pattern)
+          (if (or (binding? pattern)
+                  (segment? pattern)
+                  (reverse-segment? pattern))
+            (let [[k sym & preds] pattern]
+              `(list ~k '~sym ~@preds))
+            (compile-sequential pattern))
+
+          :else pattern)))
+
+(defn compile-predicate
+  "TODO nothing happens!"
+  [pred]
+  pred)
+
+(defn- lookup [m x]
+  (let [f (if (symbol? x)
+            `(quote ~x)
+            x)]
+    (list f m)))
+
+(defn compile-skeleton
+  "Compiles a skeleton expression (written as a pattern), by returning a code
+  fragment which will replace instances of variable and segment references in
+  the skeleton with values provided by the frame referred to by `frame-sym`.
+
+  The form is meant to be evaluated in an environment where `frame-sym` is bound
+  to a mapping of pattern variables to their desired substitutions.
+
+  NOTE: The difference from the original stuff is, here, we have a nice
+  dictionary data structure, so the final function just takes that.
+
+  NOTE: reverse segments don't appear in the final bit! just do the normal.
+
+  NOTE: We can now do splice and unquote splices.
+
+  TODO it MIGHT be a problem that we can't distinguish types here, with
+  sequences - lists vs other types all get smashed together."
+  [frame-sym skel]
+  (letfn [(compile-sequential [xs]
+            (let [acc (splice-reduce (some-fn segment?
+                                              unquote-splice?)
+                                     compile xs)]
+              (cond (empty? acc) ()
+                    (= 1 (count acc)) (first acc)
+                    :else `(concat ~@acc))))
+
+          (compile [form]
+            (cond (or (binding? form)
+                      (segment? form))
+                  (let [v (variable-name form)]
+                    (lookup frame-sym v))
+
+                  (unquote? form)
+                  (unquoted-form form)
+
+                  (unquote-splice? form)
+                  (into [] (unquoted-form form))
+
+                  (sequential? form)
+                  (compile-sequential form)
+
+                  :else `'~form))]
+    (compile skel)))

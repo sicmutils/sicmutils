@@ -23,7 +23,7 @@
   (:require [clojure.zip :as z]
             [clojure.set :as set]
             [clojure.string :as s]
-            [pattern.rule :as R #?@(:cljs [:include-macros true])]
+            [pattern.rule :as R :refer [=>] #?@(:cljs [:include-macros true])]
             [sicmutils.expression :as x]
             [sicmutils.expression.compile :as compile]
             [sicmutils.ratio :as r]

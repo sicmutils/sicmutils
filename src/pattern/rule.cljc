@@ -84,101 +84,6 @@
          (or (match {} data handler)
              (succeed fail-token))))))))
 
-(defn splice-reduce [pred f xs]
-  (let [[acc pending] (reduce
-                       (fn [[acc pending] x]
-                         (if (pred x)
-                           (if (empty? pending)
-                             [(conj acc (f x)) []]
-                             [(conj acc pending (f x)) []])
-                           [acc (conj pending (f x))]))
-                       [[] []]
-                       xs)]
-    (if (empty? pending)
-      acc
-      (conj acc pending))))
-
-(defn- compile-pattern
-  "Replace `pattern` with code that will construct the equivalent form with
-  variable predicate values exposed to evaluation (see above)."
-  [pattern]
-  (letfn [(compile-sequential [xs]
-            (let [acc (splice-reduce
-                       ps/unquote-splice? compile-pattern xs)]
-              (into [] cat acc)))]
-
-    (cond (keyword? pattern) pattern
-          (symbol? pattern) (list 'quote pattern)
-
-          (or (ps/unquote? pattern)
-              (ps/unquote-splice? pattern))
-          (ps/unquoted-form pattern)
-
-          (sequential? pattern)
-          (if (or (ps/binding? pattern)
-                  (ps/segment? pattern)
-                  (ps/reverse-segment? pattern))
-            (let [[k sym & preds] pattern]
-              `(list ~k '~sym ~@preds))
-            (compile-sequential pattern))
-
-          :else pattern)))
-
-(defn compile-predicate [pred]
-  (if (= pred '=>)
-    `(constantly true)
-    pred))
-
-(defn- lookup [m x]
-  (let [f (if (symbol? x)
-            `(quote ~x)
-            x)]
-    (list f m)))
-
-(defn- compile-skeleton
-  "Compiles a skeleton expression (written as a pattern), by returning a code
-  fragment which will replace instances of variable and segment references in
-  the skeleton with values provided by the frame referred to by `frame-sym`.
-
-  The form is meant to be evaluated in an environment where `frame-sym` is bound
-  to a mapping of pattern variables to their desired substitutions.
-
-  NOTE: The difference from the original stuff is, here, we have a nice
-  dictionary data structure, so the final function just takes that.
-
-  NOTE: reverse segments don't appear in the final bit! just do the normal.
-
-  NOTE: We can now do splice and unquote splices.
-
-  TODO it MIGHT be a problem that we can't distinguish types here, with
-  sequences - lists vs other types all get smashed together."
-  [frame-sym skel]
-  (letfn [(compile-sequential [xs]
-            (let [acc (splice-reduce (some-fn ps/segment?
-                                              ps/unquote-splice?)
-                                     compile xs)]
-              (cond (empty? acc) ()
-                    (= 1 (count acc)) (first acc)
-                    :else `(concat ~@acc))))
-
-          (compile [form]
-            (cond (or (ps/binding? form)
-                      (ps/segment? form))
-                  (let [v (ps/variable-name form)]
-                    (lookup frame-sym v))
-
-                  (ps/unquote? form)
-                  (ps/unquoted-form form)
-
-                  (ps/unquote-splice? form)
-                  (into [] (ps/unquoted-form form))
-
-                  (sequential? form)
-                  (compile-sequential form)
-
-                  :else `'~form))]
-    (compile skel)))
-
 (defn- compile-rule
   "Rule takes a match pattern and substitution pattern, compiles each of these and
   returns a function which may be applied to a form and (optionally) a success
@@ -193,14 +98,14 @@
   TODO NOTE that if the consequent-fn in the two arg case returns falsey, the
   whole thing fails."
   ([pattern consequent-fn]
-   (let [pattern-expr (compile-pattern pattern)]
+   (let [pattern-expr (ps/compile-pattern pattern)]
      `(make-rule ~pattern-expr ~consequent-fn)))
 
   ([pattern predicate skeleton]
-   (let [pattern-expr     (compile-pattern pattern)
-         pred-expr        (compile-predicate predicate)
+   (let [pattern-expr     (ps/compile-pattern pattern)
+         pred-expr        (ps/compile-predicate predicate)
          frame-sym        (gensym)
-         skeleton-expr    (compile-skeleton frame-sym skeleton)]
+         skeleton-expr    (ps/compile-skeleton frame-sym skeleton)]
      `(make-rule ~pattern-expr
                  (fn [~frame-sym]
                    (when-let [result# (~pred-expr ~frame-sym)]

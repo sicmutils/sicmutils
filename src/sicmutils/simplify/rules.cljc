@@ -18,7 +18,7 @@
 ;;
 
 (ns sicmutils.simplify.rules
-  (:require [pattern.rule :refer [ruleset rule-simplifier]
+  (:require [pattern.rule :refer [=> ruleset rule-simplifier]
              #?@(:cljs [:include-macros true])]
             [sicmutils.complex :as c]
             [sicmutils.expression :as x]

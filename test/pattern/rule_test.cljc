@@ -20,7 +20,8 @@
 (ns pattern.rule-test
   (:require [clojure.test :as t :refer [is deftest testing]]
             [pattern.match :as m]
-            [pattern.rule :as r :refer [!=>] #?@(:cljs [:include-macros true])]
+            [pattern.rule :as r :refer [=> !=>]
+             #?@(:cljs [:include-macros true])]
             [sicmutils.ratio]))
 
 (defn apply-rule [rule data]
