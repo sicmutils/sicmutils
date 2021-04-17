@@ -106,8 +106,8 @@
   TODO NOTE that if the consequent-fn in the two arg case returns falsey, the
   whole thing fails."
   ([pattern consequent-fn]
-   (let [pattern-expr (ps/compile-pattern pattern)]
-     `(make-rule ~pattern-expr ~consequent-fn)))
+   `(make-rule ~(ps/compile-pattern pattern)
+               ~consequent-fn))
 
   ([pattern predicate skeleton]
    `(make-rule ~(ps/compile-pattern pattern)
@@ -117,8 +117,8 @@
 (defmacro rule
   ([pattern consequent-fn]
    (compile-rule pattern consequent-fn))
-  ([pattern predicate? skeleton]
-   (compile-rule pattern predicate? skeleton)))
+  ([pattern pred skeleton]
+   (compile-rule pattern pred skeleton)))
 
 ;; ## Alexey Combinators, Term Rewriting
 ;;

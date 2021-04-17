@@ -101,7 +101,7 @@
   "Returns the variable contained in a variable or segment reference form."
   [pattern]
   (if (or (keyword? pattern)
-          (symbol? pattern))
+          (simple-symbol? pattern))
     pattern
     (second pattern)))
 
@@ -114,7 +114,7 @@
   [pattern]
   (let [no-constraint (constantly true)]
     (if (or (keyword? pattern)
-            (symbol? pattern))
+            (simple-symbol? pattern))
       no-constraint
       (if-let [fs (seq (drop 2 pattern))]
         (apply every-pred fs)
@@ -188,8 +188,7 @@
 
   NOTE: We can now do splice and unquote splices.
 
-  TODO it MIGHT be a problem that we can't distinguish types here, with
-  sequences - lists vs other types all get smashed together."
+  NOTE: we keep types, AND we can do maps!"
   [skel]
   (let [frame-sym (gensym)]
     (letfn [(compile-sequential [xs]
@@ -211,8 +210,14 @@
                     (unquote-splice? form)
                     (into [] (unquoted-form form))
 
+                    (map? form)
+                    (u/map-vals compile form)
+
+                    (vector? form)
+                    `(vec ~(compile-sequential form))
+
                     (sequential? form)
-                    (compile-sequential form)
+                    `(seq ~(compile-sequential form))
 
                     :else `'~form))]
       `(fn [~frame-sym]

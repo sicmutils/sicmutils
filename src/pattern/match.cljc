@@ -27,7 +27,8 @@
   Radul's [Rules](https://github.com/axch/rules) library for Scheme."
   (:refer-clojure :exclude [sequence]
                   :rename {or core:or
-                           and core:and})
+                           and core:and
+                           not core:not})
   (:require [pattern.syntax :as s]))
 
 ;; ### Design notes:
@@ -171,8 +172,8 @@
 (defn match-when
   "Returns a matcher that passes its `frame` on to `success-pattern` if `pred`
   succeeds on its data input, fails otherwise."
-  [pred success-p]
-  (let [match (pattern->combinators success-p)]
+  [pred success-pattern]
+  (let [match (pattern->combinators success-pattern)]
     (fn [frame xs success]
       (when (pred xs)
         (match frame xs success)))))
@@ -197,7 +198,7 @@
   "Takes a sequence of patterns, and returns a matcher that will apply its
   arguments to each matcher in turn. Returns the value of the first pattern that
   succeeds."
-  ([] pass)
+  ([] fail)
   ([pattern] (pattern->combinators pattern))
   ([pattern & more]
    (let [matchers (map pattern->combinators (cons pattern more))]
@@ -225,6 +226,16 @@
                    (reduced acc)))
                frame
                matchers)))))
+
+(defn not
+  "Takes a `pattern` and returns a matcher that will apply its arguments to the
+  `pattern`. The returned pattern will succeed with the original frame if
+  `pattern` fails, and fail if `pattern` succeeds."
+  [pattern]
+  (let [match (pattern->combinators pattern)]
+    (fn [frame xs succeed]
+      (when-not (match frame xs succeed)
+        (succeed frame)))))
 
 ;; ### Lists and Segments
 

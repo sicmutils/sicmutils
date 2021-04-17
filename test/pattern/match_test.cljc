@@ -232,6 +232,11 @@
       (is (not (palindrome? '(a b c c a b)))))))
 
 (deftest new-tests
+  (let [match (m/matcher (m/or [:? 'x #{11}]
+                               (m/not [:? 'x odd?])))]
+    (is (= {'x 11} (match 11)))
+    (is (= {} (match 12))))
+
   (let [match (m/matcher
                (m/match-if odd? '?x '?y))]
     (is (= {'?x 9} (match 9)))

@@ -180,11 +180,15 @@
       (is (= '((expt cos 2) t) (R '(expt (cos t) 2))))
       (is (nil? (R '(expt x 2) nil))))))
 
-
 (deftest new-tests
   (let [R (r/rule (+ _ ?a ?a _) => ?a)]
     (is (= 2 (R '(+ () 2 2 3)))
         "wildcard ignores!"))
+
+  (let [R (r/rule (?a ?b (:? c odd?)) => {:key [?a]})]
+    (is (= {:key [1]}
+           (R [1 1 1]))
+        "We can fill in dictionaries on the right side."))
 
   (let [z 2
         R (r/rule
