@@ -190,29 +190,30 @@
 
   TODO it MIGHT be a problem that we can't distinguish types here, with
   sequences - lists vs other types all get smashed together."
-  [frame-sym skel]
-  (letfn [(compile-sequential [xs]
-            (let [acc (splice-reduce (some-fn segment?
-                                              unquote-splice?)
-                                     compile xs)]
-              (cond (empty? acc) ()
-                    (= 1 (count acc)) (first acc)
-                    :else `(concat ~@acc))))
+  [skel]
+  (let [frame-sym (gensym)]
+    (letfn [(compile-sequential [xs]
+              (let [acc (splice-reduce (some-fn segment? unquote-splice?)
+                                       compile xs)]
+                (cond (empty? acc) ()
+                      (= 1 (count acc)) (first acc)
+                      :else `(concat ~@acc))))
 
-          (compile [form]
-            (cond (or (binding? form)
-                      (segment? form))
-                  (let [v (variable-name form)]
-                    (lookup frame-sym v))
+            (compile [form]
+              (cond (or (binding? form)
+                        (segment? form))
+                    (let [v (variable-name form)]
+                      (lookup frame-sym v))
 
-                  (unquote? form)
-                  (unquoted-form form)
+                    (unquote? form)
+                    (unquoted-form form)
 
-                  (unquote-splice? form)
-                  (into [] (unquoted-form form))
+                    (unquote-splice? form)
+                    (into [] (unquoted-form form))
 
-                  (sequential? form)
-                  (compile-sequential form)
+                    (sequential? form)
+                    (compile-sequential form)
 
-                  :else `'~form))]
-    (compile skel)))
+                    :else `'~form))]
+      `(fn [~frame-sym]
+         ~(compile skel)))))

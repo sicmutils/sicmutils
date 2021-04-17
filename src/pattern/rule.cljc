@@ -24,6 +24,9 @@
             [pattern.syntax :as ps]
             [sicmutils.util :as u]))
 
+;; TODO what we WANT to do is change to a thing that fails...
+
+;;
 ;; Adapted from Scheme Rules:
 
 ;; A rule is a pattern, a predicate and a handler. The pattern determines the
@@ -60,6 +63,9 @@
 (def => (constantly true))
 (def !=> (constantly false))
 
+;; TODO NOTE that a rule is basically just a `matcher` wrapper with a
+;; consequence, that can `fail`. TODO we need to add the ability to fail.
+
 (defn make-rule
   "The value to return on failure can be overridden to distinguish idempotent
   success from actual failure, should that be important.
@@ -72,16 +78,18 @@
 
   TODO we already hint at this with `constantly handler`."
   ([pattern handler]
-   (let [match   (m/pattern->combinators pattern)
-         handler (if (fn? handler)
-                   handler
-                   (constantly handler))]
+   (make-rule pattern nil handler))
+  ([pattern pred handler]
+   (let [match (if pred
+                 (m/matcher pattern pred)
+                 (m/matcher pattern))]
 	   (fn call
        ([data]
         (call data data))
        ([data fail-token]
         (interpret-success
-         (or (match {} data handler)
+         (or (when-let [frame (match data)]
+               (handler frame))
              (succeed fail-token))))))))
 
 (defn- compile-rule
@@ -102,17 +110,9 @@
      `(make-rule ~pattern-expr ~consequent-fn)))
 
   ([pattern predicate skeleton]
-   (let [pattern-expr     (ps/compile-pattern pattern)
-         pred-expr        (ps/compile-predicate predicate)
-         frame-sym        (gensym)
-         skeleton-expr    (ps/compile-skeleton frame-sym skeleton)]
-     `(make-rule ~pattern-expr
-                 (fn [~frame-sym]
-                   (when-let [result# (~pred-expr ~frame-sym)]
-                     (let [~frame-sym (if (map? result#)
-                                        (merge ~frame-sym result#)
-                                        ~frame-sym)]
-                       (succeed ~skeleton-expr))))))))
+   `(make-rule ~(ps/compile-pattern pattern)
+               ~(ps/compile-predicate predicate)
+               ~(ps/compile-skeleton skeleton))))
 
 (defmacro rule
   ([pattern consequent-fn]
