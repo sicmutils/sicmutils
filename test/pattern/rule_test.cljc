@@ -19,15 +19,12 @@
 
 (ns pattern.rule-test
   (:require [clojure.test :as t :refer [is deftest testing]]
-            [pattern.rule :as r #?@(:cljs [:include-macros true])]
+            [pattern.match :as m]
+            [pattern.rule :as r :refer [!=>] #?@(:cljs [:include-macros true])]
             [sicmutils.ratio]))
-
-(def ^:private !=> (constantly false))
 
 (defn apply-rule [rule data]
   (rule data nil))
-
-(r/rule (?a ?b ??cs) => (a b c ?a ?b y z))
 
 (deftest rule-test
   (testing "simple"
@@ -182,13 +179,27 @@
       (is (= '((expt cos 2) t) (R '(expt (cos t) 2))))
       (is (nil? (R '(expt x 2) nil))))))
 
+
 (deftest new-tests
-  (let [R (r/rule
-           ((:unquote (pattern.match/match-eq '+)) () (:? a) (:? a))
-           =>
-           (* 2 (:? a)))]
-    (is (= '(* 2 x)
-           (R '(+ () x x)))
+  (let [R (r/rule (+ _ ?a ?a _) => ?a)]
+    (is (= 2 (R '(+ () 2 2 3)))
+        "wildcard ignores!"))
+
+  (let [z 2
+        R (r/rule
+           (~(m/eq '+) () ~(m/match-when odd? (m/bind '?a))
+            ?a ??b)
+           => (* ~@(z) ?a ??b))]
+    (is (= '(* 2 3 y z)
+           (R '(+ () 3 3 y z)))
+        "testing unquote, unquoting in TWO actual matchers vs a literal, empty
+        list matching and unquote splicing in the result."))
+
+  (let [z 2
+        R (r/rule
+           (~(m/eq '+) () ?a ?a ??b) => (* ~@(z) ?a ??b))]
+    (is (= '(* 2 x y z)
+           (R '(+ () x x y z)))
         "testing unquote, unquoting in an actual matcher vs a literal, and empty
         list matching.")))
 

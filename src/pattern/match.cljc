@@ -1,5 +1,5 @@
 ;;
-;; Copyright © 2017 Colin Smith.
+;; Copyright © 2021 Sam Ritchie.
 ;; This work is based on the Scmutils system of MIT/GNU Scheme:
 ;; Copyright © 2002 Massachusetts Institute of Technology
 ;;
@@ -25,6 +25,7 @@
 
   [[pattern.match]] is spiritually similar to Alexey
   Radul's [Rules](https://github.com/axch/rules) library for Scheme."
+  (:refer-clojure :exclude [sequence])
   (:require [pattern.syntax :as s]))
 
 ;; ### Design notes:
@@ -35,7 +36,8 @@
 ;;
 ;; `Map` matcher too! We definitely want a dictionary matcher.
 ;;
-;; unquote DONE, and unquote-splice too. We have `unquote` now.
+;; TODO: We ALSO want to convert all of the rules to `?x` syntax
+;; TODO: we ALSO want to remove `:??`, and make it `??` like the original.
 ;;
 ;; # Pattern Matcher
 ;;
@@ -82,60 +84,127 @@
 ;; TODO note this too - a constraint is... well, just a predicate, I guess. This
 ;; is the predicate that always returns true.
 
-(def ^{:doc "Predicate that returns `true` for any input."}
-  no-constraint
-  (constantly true))
+(defn fail
+  "Matcher which will fail for any input."
+  [_ _ _])
+
+(defn pass
+  "Matcher that succeeds (with no new bindings) for any input, passing along its
+  input frame."
+  [frame _ succeed]
+  (succeed frame))
+
+(defn with-frame
+  "Takes a `new-frame` of bindings and returns a matcher that will ignore its
+  input and always succeed by replacing the current map of bindings with
+  `new-frame`."
+  [new-frame]
+  (fn [_ _ succeed]
+    (succeed new-frame)))
+
+(defn update-frame
+  "Takes a function from `frame` to a new frame (or false) and any number of
+  arguments `args`, and returns a matcher that will ignore its input and
+
+  - succeed with `(apply f frame args)` if that value is truthy,
+  - fail otherwise."
+  [f & args]
+  (fn [frame _ succeed]
+    (when-let [new-frame (apply f frame args)]
+      (succeed new-frame))))
 
 (defn predicate
-  "Takes a predicate and returns a matcher that fails if the predicate fails when
-  applied to the first item in its datum argument, or succeeds with `(next xs)`
-  and no new bindings if the predicate passes.
-
-  TODO note that this applies to sequential stuff."
+  "Takes a predicate function `pred` and returns a matcher that succeeds (with no
+  new bindings) if its data input passes the predicate, fails otherwise."
   [pred]
   (fn predicate-match [frame xs succeed]
-    (and (sequential? xs)
-         (pred (first xs))
-         (succeed frame (next xs)))))
+    (and (pred xs)
+         (succeed frame))))
 
-(defn match-eq
-  "Returns a matcher which succeeds iff the head of the data is equal to thing.
-  The frame is not modified.
+(defn frame-predicate
+  "Takes a predicate function `pred` and returns a matcher that succeeds (with no
+  new bindings) if its data input passes the predicate, fails otherwise."
+  [pred]
+  (fn frame-pred [frame _ succeed]
+    (and (pred frame)
+         (succeed frame))))
 
-  NOTE that this is like match:equal. Also note eq-fn etc."
-  ([thing]
-   (match-eq thing =))
-  ([thing eq-fn]
+(defn eq
+  "Takes some input `x` and returns a matcher which succeeds if its data input is
+  equal to `x` (via `=` or the optional `eq-fn` argument). Fails otherwise.
+
+  The frame is not modified."
+  ([x] (eq x =))
+  ([x eq-fn]
    (predicate
-    (fn [x]
-      (eq-fn thing x)))))
+    (fn [other]
+      (eq-fn x other)))))
 
-(defn match-element
-  "If:
+(defn bind
+  "Takes a binding variable `sym` and an optional predicate `pred`, and returns a
+  matcher that binds its input to `sym` in the returned `frame`.
 
-  - there is more matchable data (with a first entry that satisfies the optional
-  constraint predicate), and
-  - the variable is not bound in the frame
+  The binding only occurs if `input` passes `pred`.
 
-  This combinator will succeed by
-
-  - consuming the next item in the data, and
-  - producing a frame in which the data seen is bound to the pattern variable.
-
-  If the variable is bound, then the value seen must match the binding to
-  succeed (the frame is not modified in this case)."
+  If `sym` is already present in `frame`, the matcher only succeeds if the
+  values are equal, fails otherwise."
   ([sym]
-   (match-element sym no-constraint))
-  ([sym predicate?]
-   (fn element-match [frame data succeed]
-     (when (and (sequential? data)
-                (seq data))
-       (let [[x & xs] data]
-         (when (predicate? x)
-           (if-let [binding (frame sym)]
-             (and (= binding x)
-                  (succeed frame xs))
-             (succeed (assoc frame sym x) xs))))))))
+   (bind sym (fn [_] true)))
+  ([sym pred]
+   (fn bind-match [frame data succeed]
+     (when (pred data)
+       (if-let [binding (frame sym)]
+         (and (= binding data)
+              (succeed frame))
+         (succeed (assoc frame sym data)))))))
+
+(defn match-when
+  "Returns a matcher that passes its `frame` on to `success-matcher` if `pred`
+  succeeds on its data input, fails otherwise."
+  [pred success-matcher]
+  (fn [frame xs success]
+    (when (pred xs)
+      (success-matcher frame xs success))))
+
+(defn match-if
+  "Returns a matcher that passes its `frame` on to `success-matcher` if `pred`
+  succeeds on its data input, `fail-matcher` otherwise."
+  [pred success-matcher fail-matcher]
+  (fn [frame xs success]
+    (if (pred xs)
+      (success-matcher frame xs success)
+      (fail-matcher frame xs success))))
+
+(defn match-or
+  "Takes a sequence of matchers, and returns a new matcher that will apply its
+  arguments to each matcher in turn. Returns the value of the first matcher that
+  succeeds."
+  ([] pass)
+  ([m] m)
+  ([m & ms]
+   (fn call [frame xs succeed]
+     (some #(% frame xs succeed)
+           (cons m ms)))))
+
+(defn match-and
+  "Takes a sequence of matchers, and returns a new matcher that will apply its
+  arguments to the first matcher;
+
+  If that match succeeds, the next matcher will be called with the new, returned
+  frame (and the original data and success continuation).
+
+  The returned matcher succeeds only of all matchers succeed, and returns the
+  value of the final matcher."
+  ([] pass)
+  ([m] m)
+  ([m & ms]
+   (fn [frame xs succeed]
+     (reduce (fn [acc matcher]
+               (if acc
+                 (matcher acc xs succeed)
+                 (reduced acc)))
+             frame
+             (cons m ms)))))
 
 ;; ### Lists and Segments
 
@@ -162,184 +231,235 @@
 ;; - a pointer to the beginning of the prefix
 ;; - a pointer to the END of the prefix
 
-(defn match-segment
-  "Takes a segment variable and binds successively longer prefixes to the symbol,
-  calling the continuation with each one to see if it succeeds.
+(defn as-segment-matcher [f]
+  (vary-meta f assoc ::segment? true))
 
-  If the segment is already present in the frame, it only succeeds if the
-  current prefix of `xs` matches the already bound prefix."
+(defn segment-matcher? [f]
+  (::segment? (meta f) false))
+
+(defn segment
+  "Takes a binding variable `sym` and returns a matcher that calls its success
+  continuation with successively longer prefixes of its (sequential) data input
+  bound to `sym` inside the frame.
+
+  If `sym` is already present in the frame, the returned matcher only succeeds
+  if the bound value is a prefix of the data argument `xs`.
+
+  NOTE: the returned matcher will call its success continuation with TWO
+  arguments; the new frame and the remaining elements in `xs`. This is a
+  different contract than all other matchers, making `segment` appropriate for
+  use inside `sequence`."
   [sym]
-  (fn segment-match [frame xs succeed]
-    (let [xs (or xs [])]
-      (when (sequential? xs)
-        (if-let [binding (frame sym)]
-          (let [binding-count (count binding)]
-            (when (= (take binding-count xs) binding)
-              (succeed frame (drop binding-count xs))))
-          (loop [prefix []
-                 suffix xs]
-            (or (succeed (assoc frame sym prefix) suffix)
-                (and (seq suffix)
-                     (recur (conj prefix (first suffix))
-                            (next suffix))))))))))
+  (as-segment-matcher
+   (fn segment-match [frame xs succeed]
+     (let [xs (or xs [])]
+       (when (sequential? xs)
+         (if-let [binding (frame sym)]
+           (let [binding-count (count binding)]
+             (when (= (take binding-count xs) binding)
+               (succeed frame (drop binding-count xs))))
+           (loop [prefix []
+                  suffix xs]
+             (or (succeed (assoc frame sym prefix) suffix)
+                 (and (seq suffix)
+                      (recur (conj prefix (first suffix))
+                             (next suffix)))))))))))
+
+(defn- entire-segment
+  "Similar to [[segment]], but matches the entire remaining sequential argument
+  `xs`. Fails if its input is not sequential, or `sym` is already bound to some
+  other variable or non-equal sequence.
+
+  Calls its continuation with the new frame and `nil`, always."
+  [sym]
+  (as-segment-matcher
+   (fn entire-segment-match [frame xs succeed]
+     (let [xs (or xs [])]
+       (when (sequential? xs)
+         (if-let [binding (frame sym)]
+           (when (= xs binding)
+             (succeed frame nil))
+           (succeed (assoc frame sym xs) nil)))))))
 
 (defn reverse-segment
-  "Succeeds if the symbol is ALREADY bound, and the next block matches the reverse
-  of the binding."
+  "Returns a matcher that takes a binding variable `sym`, and succeeds if it's
+  called with a sequential data argument with a prefix that is the REVERSE of
+  the sequence bound to `sym` in `frame`.
+
+  Fails if any of the following are true:
+
+  - `sym` is not bound in the frame
+  - `sym` is bound to something other than a vector prefix created by `segment`
+  - the data argument does not have a prefix matching the reverse of vector
+    bound to `sym`."
   [sym]
-  (fn reverse-segment-match [frame xs succeed]
-    (let [xs (or xs [])]
-      (when (sequential? xs)
-        (when-let [binding (frame sym)]
-          (let [binding-count (count binding)
-                reversed      (rseq binding)]
-            (when (= (take binding-count xs) reversed)
-              (succeed frame (drop binding-count xs)))))))))
+  (as-segment-matcher
+   (fn reverse-segment-match [frame xs succeed]
+     (let [xs (or xs [])]
+       (when (sequential? xs)
+         (when-let [binding (frame sym)]
+           (when (vector? binding)
+             (let [binding-count (count binding)
+                   reversed      (rseq binding)]
+               (when (= (take binding-count xs) reversed)
+                 (succeed frame (drop binding-count xs)))))))))))
 
-(defn- match-final-segment
-  "Version of `match-segment` that does no searching."
-  [sym]
-  (fn final-segment-match [frame xs succeed]
-    (let [xs (or xs [])]
-      (when (sequential? xs)
-        (if-let [binding (frame sym)]
-          (when (= xs binding)
-            (succeed frame nil))
-          (succeed (assoc frame sym xs) nil))))))
-
-(defn match-list
-  "Takes a sequence of matchers and returns a NEW matcher that will try them one
-  at a time.
-
-  Each matcher is called with a success continuation that attempts to match the
-  new frame and returned `xs` against the remaining matchers.
-
-  If the matcher list runs out, AND there are remaining items, the whole
-  returned matcher fails!
-
-  If the matchers, running all together, match everything, then the FULL success
-  continuation `succeed` is called with a single item dropped.
-
-  TODO tidy this up once I stare at use cases."
+(defn sequence*
+  "Version of [[sequence]] that takes an explicit sequence of `matchers`, vs the
+  multi-arity version. See [[sequence]] for documentation."
   [matchers]
-  (fn list-match [frame xs succeed]
+  (fn sequence-match [frame xs succeed]
     (when (sequential? xs)
       (letfn [(step [frame items matchers]
-                (cond matchers ((first matchers)
-                                frame
-                                items
-                                (fn [new-frame new-xs]
-                                  (step new-frame new-xs (next matchers))))
+                (letfn [(try-elem [matcher]
+                          (matcher frame
+                                   (first items)
+                                   (fn [new-frame]
+                                     (step new-frame
+                                           (next items)
+                                           (next matchers)))))
 
-                      (seq items) false
+                        (try-segment [matcher]
+                          (matcher frame
+                                   items
+                                   (fn [new-frame new-xs]
+                                     (step new-frame
+                                           new-xs
+                                           (next matchers)))))]
+                  (cond matchers (let [m (first matchers)]
+                                   (if (segment-matcher? m)
+                                     (try-segment m)
+                                     (and (seq items)
+                                          (try-elem m))))
 
-                      :else (succeed frame (next xs))))]
-        ;; NOTE this `(first xs)` is the only weird part for me... why is the
-        ;; list matcher living in a list?
-        ;;
-        ;; NOTE this is super weird! The whole thing overall needs a list of
-        ;; tokens, so it can't just MATCH ever.
-        (step frame (first xs) matchers)))))
+                        (seq items) false
+                        :else (succeed frame))))]
+        (step frame xs matchers)))))
+
+(defn sequence
+  "Takes a sequence of matchers and returns a new matcher that accepts a
+  sequential data input, and attempts to match successive items (or segments) in
+  the sequence with the supplied matchers.
+
+  The returned matcher succeeds if `matchers` can consume all elements, fails
+  otherwise (or of any of the supplied matchers fails on its argument).
+
+  On success, the returned matcher calls its success continuation with a frame
+  processed by all intermediate matchers."
+  [& matchers]
+  (sequence* matchers))
 
 ;; ## Pattern Matching Compiler
 ;;
-;; A comment in `rules` states: The compiler is a generic operator, allowing the
-;; syntax to be extended. NOTE that this last part is not yet true, but TODO
-;; make it true.
+;; This next section takes patterns described using the syntax in
+;; `pattern.syntax`, and compiles these into matcher combinators.
+;;
+;; TODO: Can we open this up and make the compiler generic and extensible?
+;;
+;; TODO continue docs from here.
 
 (defn pattern->combinators
   "Given a pattern (which is essentially a form consisting of constants mixed with
   pattern variables) returns a match combinator for the pattern.
 
   TODO this is a good place to open up dispatch, as Alexey does, and make new,
-  extensible syntax for matchers."
+  extensible pattern syntax."
   [pattern]
-  (cond (s/element? pattern)
-        (match-element (s/variable-name pattern)
-                       (s/restriction pattern))
+  (cond (s/binding? pattern)
+        (bind (s/variable-name pattern)
+              (s/restriction pattern))
 
         (s/segment? pattern)
-        (match-segment (s/variable-name pattern))
+        (segment (s/variable-name pattern))
 
         (s/reverse-segment? pattern)
         (reverse-segment (s/variable-name pattern))
 
-        (sequential? pattern)
-        (if (empty? pattern)
-          (match-eq pattern)
-          (match-list
-           ;; NOTE: The final element can go faster, that's why we do this.
-           (concat (map pattern->combinators (butlast pattern))
-                   (let [p (last pattern)]
-                     [(if (s/segment? p)
-                        (match-final-segment (s/variable-name p))
-                        (pattern->combinators p))]))))
+        (s/wildcard? pattern) pass
 
         (fn? pattern) pattern
 
-        :else (match-eq pattern)))
+        (sequential? pattern)
+        (if (empty? pattern)
+          (eq pattern)
+          (sequence*
+           (concat (map pattern->combinators (butlast pattern))
+                   (let [p (last pattern)]
+                     [(if (s/segment? p)
+                        (entire-segment (s/variable-name p))
+                        (pattern->combinators p))]))))
+
+        :else (eq pattern)))
 
 ;; ## Making toplevel matchers out of patterns
 ;;
 ;; What do we have to this point? We have a collection of matcher combinators,
 ;; and a soon-to-be-open system for turning a pattern into a matcher. Rules
 ;; BUILD on these, but we are still low level!
+;;
+;; TODO note that this is a higher level place for passing either patterns OR
+;; already built matchers. They are all the same. We have our low level
+;; combinators; now we want to build matchers.
 
 ;; This is something that's available
 
 (defn matcher
-  "Returns a function of the data that "
-  ([pattern] (matcher pattern no-constraint))
+  "Returns a function of the data that...
+
+  TODO could by (match-and match (update-frame f)), test that this is true.
+
+  TODO note that this is the place to bump up to a better API."
+  ([pattern]
+   (let [match (pattern->combinators pattern)]
+     (fn [data]
+       (match {} data identity))))
   ([pattern pred]
-   (let [match   (pattern->combinators pattern)
-         success (fn [frame tail]
-                   (when-let [m (and (empty? tail)
-                                     (pred frame))]
+   (let [match (pattern->combinators pattern)
+         success (fn [frame]
+                   (when-let [m (pred frame)]
                      (if (map? m)
                        (merge frame m)
                        frame)))]
      (fn [data]
-       (match {} [data] success)))))
+       (match {} data success)))))
+
+(defn match
+  "TODO note that this is a high level wrapper."
+  ([pattern data]
+   ((matcher pattern) data))
+  ([pattern data pred]
+   ((matcher pattern pred) data)))
 
 (defn foreach-matcher
-  "TODO Calls `f` with each frame (and optionally tail), for side effects."
-  [pattern]
+  "TODO note that this calls `f` with each frame, for side effects."
+  [pattern f]
   (let [match (pattern->combinators pattern)]
-    (fn [data f & {:keys [include-tails?]}]
-      (letfn [(cont [frame xs]
-                (if include-tails?
-                  (f frame xs)
-                  (f frame)))]
-        (match {} [data] cont)))))
+    (fn [data]
+      (let [cont (fn ([frame]
+                     (f frame)
+                     false)
+                   ([frame xs]
+                    (f frame xs)
+                    false))]
+        (match {} data cont)))))
+
+(defn foreach [pattern f data]
+  ((foreach-matcher pattern f) data))
 
 (defn all-results-matcher
   "Returns a function of `data`... TODO describe"
   [pattern]
   (let [match (pattern->combinators pattern)]
-    (fn [data & {:keys [include-tails?]}]
+    (fn [data]
       (let [results (atom [])
-            cont    (fn [frame xs]
-                      (if include-tails?
-                        (swap! results conj [frame xs])
-                        (swap! results conj frame))
-                      false)]
-        (match {} [data] cont)
+            cont (fn ([frame]
+                     (swap! results conj frame)
+                     false)
+                   ([frame xs]
+                    (swap! results conj [frame xs])
+                    false))]
+        (match {} data cont)
         @results))))
 
-;; ## Higher Level API
-;;
-(defn match
-  "Convenience function for applying a match combinator to some data.
-
-  Primes the process with an empty frame and supplies a continuation
-  which will:
-
-   return the pattern bindings if the match is successful,
-   nil otherwise.
-
-  If predicate is supplied, then the resulting frame of a match must satisfy
-  this predicate. Otherwise we continue searching."
-  ([pattern data]
-   ((matcher pattern) data))
-  ([pattern data predicate]
-   ((matcher pattern predicate) data)))
+(defn all-results [pattern data]
+  ((all-results-matcher pattern) data))

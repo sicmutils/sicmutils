@@ -21,7 +21,8 @@
   "Functions for writing and applying term-rewriting rules using the primitives
   defined in [[pattern.match]]."
   (:require [pattern.match :as m]
-            [pattern.syntax :as ps]))
+            [pattern.syntax :as ps]
+            [sicmutils.util :as u]))
 
 ;; Adapted from Scheme Rules:
 
@@ -56,12 +57,22 @@
     (::succeed x x)
     x))
 
+(def => (constantly true))
+(def !=> (constantly false))
+
 (defn make-rule
   "The value to return on failure can be overridden to distinguish idempotent
-  success from actual failure, should that be important."
+  success from actual failure, should that be important.
+
+  TODO this would be better if we could actually pass a skeleton into the result
+  instead of a function too. Then, we could compile the skeleton down HERE...
+  and splice in variables and stuff in the final bit.
+
+  TODO to do this, we'd need the `rule` macro to NOT build the function.
+
+  TODO we already hint at this with `constantly handler`."
   ([pattern handler]
-   (let [match (m/pattern->combinators pattern)
-         ;; TODO tidy this up!
+   (let [match   (m/pattern->combinators pattern)
          handler (if (fn? handler)
                    handler
                    (constantly handler))]
@@ -69,33 +80,49 @@
        ([data]
         (call data data))
        ([data fail-token]
-        (letfn [(cont [frame xs]
-                  (and (empty? xs)
-                       (handler frame)))]
-          (interpret-success
-           (or (match {} [data] cont)
-               (succeed fail-token)))))))))
+        (interpret-success
+         (or (match {} data handler)
+             (succeed fail-token))))))))
+
+(defn splice-reduce [pred f xs]
+  (let [[acc pending] (reduce
+                       (fn [[acc pending] x]
+                         (if (pred x)
+                           (if (empty? pending)
+                             [(conj acc (f x)) []]
+                             [(conj acc pending (f x)) []])
+                           [acc (conj pending (f x))]))
+                       [[] []]
+                       xs)]
+    (if (empty? pending)
+      acc
+      (conj acc pending))))
 
 (defn- compile-pattern
   "Replace `pattern` with code that will construct the equivalent form with
   variable predicate values exposed to evaluation (see above)."
   [pattern]
-  (cond (keyword? pattern)    pattern
-        (symbol? pattern)     (list 'quote pattern)
-        (ps/unquote? pattern) (ps/unquoted-form pattern)
+  (letfn [(compile-sequential [xs]
+            (let [acc (splice-reduce
+                       ps/unquote-splice? compile-pattern xs)]
+              (into [] cat acc)))]
 
-        ;; TODO if we have unquote splice, we'll have to do the same trick here
-        ;; to flatten the pattern down.
-        (sequential? pattern)
-        (if (or (ps/element? pattern)
-                (ps/segment? pattern)
-                (ps/reverse-segment? pattern))
-          (let [[k sym & preds] pattern]
-            `(list ~k '~sym ~@preds))
+    (cond (keyword? pattern) pattern
+          (symbol? pattern) (list 'quote pattern)
 
-          (cons 'list (map compile-pattern pattern)))
+          (or (ps/unquote? pattern)
+              (ps/unquote-splice? pattern))
+          (ps/unquoted-form pattern)
 
-        :else pattern))
+          (sequential? pattern)
+          (if (or (ps/binding? pattern)
+                  (ps/segment? pattern)
+                  (ps/reverse-segment? pattern))
+            (let [[k sym & preds] pattern]
+              `(list ~k '~sym ~@preds))
+            (compile-sequential pattern))
+
+          :else pattern)))
 
 (defn compile-predicate [pred]
   (if (= pred '=>)
@@ -119,35 +146,37 @@
   NOTE: The difference from the original stuff is, here, we have a nice
   dictionary data structure, so the final function just takes that.
 
-  NOTE: reverse segments don't appear in the final bit! just do the normal."
+  NOTE: reverse segments don't appear in the final bit! just do the normal.
+
+  NOTE: We can now do splice and unquote splices.
+
+  TODO it MIGHT be a problem that we can't distinguish types here, with
+  sequences - lists vs other types all get smashed together."
   [frame-sym skel]
-  (letfn [(compile [elem]
-            (cond (or (ps/element? elem)
-                      (ps/segment? elem))
-                  (let [v (ps/variable-name elem)]
+  (letfn [(compile-sequential [xs]
+            (let [acc (splice-reduce (some-fn ps/segment?
+                                              ps/unquote-splice?)
+                                     compile xs)]
+              (cond (empty? acc) ()
+                    (= 1 (count acc)) (first acc)
+                    :else `(concat ~@acc))))
+
+          (compile [form]
+            (cond (or (ps/binding? form)
+                      (ps/segment? form))
+                  (let [v (ps/variable-name form)]
                     (lookup frame-sym v))
 
-                  (sequential? elem)
-                  (compile-sequential elem)
+                  (ps/unquote? form)
+                  (ps/unquoted-form form)
 
-                  :else `'~elem))
+                  (ps/unquote-splice? form)
+                  (into [] (ps/unquoted-form form))
 
-          (compile-sequential [xs]
-            (let [[acc pending] (reduce
-                                 (fn [[acc pending] item]
-                                   (let [compiled (compile item)]
-                                     (if (ps/segment? item)
-                                       (if (empty? pending)
-                                         [(conj acc compiled) []]
-                                         [(conj acc pending compiled) []])
-                                       [acc (conj pending compiled)])))
-                                 [[] []]
-                                 xs)]
-              (cond (and (empty? acc)
-                         (empty? pending)) '()
-                    (empty? acc)     `(list ~@pending)
-                    (empty? pending) `(concat ~@acc)
-                    :else `(concat ~@(conj acc pending)))))]
+                  (sequential? form)
+                  (compile-sequential form)
+
+                  :else `'~form))]
     (compile skel)))
 
 (defn- compile-rule

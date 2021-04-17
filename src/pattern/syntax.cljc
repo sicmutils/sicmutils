@@ -42,12 +42,22 @@
 
 (defn unquote? [pattern]
   (and (sequential? pattern)
-       (= (first pattern) :unquote)))
+       (= (first pattern) 'clojure.core/unquote)))
+
+(defn unquote-splice? [pattern]
+  (and (sequential? pattern)
+       (= (first pattern)
+          'clojure.core/unquote-splicing)))
 
 (defn unquoted-form [pattern]
   (second pattern))
 
-(defn element?
+(defn wildcard?
+  "Returns true if `pattern` matches the wildcard `_`, false otherwise."
+  [pattern]
+  (= pattern '_))
+
+(defn binding?
   "Returns true if `pattern` is a variable reference (i.e., it looks like `(:?
   ...)`) or is a simple keyword (not ending in `$` or `*`), false otherwise."
   [pattern]

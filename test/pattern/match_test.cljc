@@ -22,66 +22,65 @@
             [pattern.match :as m]
             [pattern.syntax :as ps]))
 
-(defn receive [frame xs] [frame xs])
-
 (deftest matchers
-  (testing "match-eq"
-    (is (not (m/match (m/match-eq 'a) nil)))
-    (is (not (m/match (m/match-eq 'a) [])))
-    (is (= [{} nil] ((m/match-eq 'a) {} '(a) receive)))
-    (is (= [{} '(b c d e)] ((m/match-eq 'a) {} '(a b c d e) receive)))
-    (is (not ((m/match-eq 'a) {} '(e d c b a) receive))))
+  (testing "eq"
+    (is (not (m/match (m/eq 'a) nil)))
+    (is (not (m/match (m/eq 'a) [])))
 
-  (testing "match-element"
-    (is (= [{:x 'a} nil] ((m/match-element :x) {} '(a) receive)))
-    (is (= [{:x 'a} '(b)] ((m/match-element :x) {} '(a b) receive)))
-    (is (= [{:x '(a b)} '(c)] ((m/match-element :x) {} '((a b) c) receive))))
+    (is (= {} ((m/eq 'a) {} 'a identity))
+        "A successful match returns the bindings in play, NOT something falsey.")
 
-  (testing "match-element-constraint"
-    (is (= [{:x 6} nil] ((m/match-element :x integer?) {} '(6) receive)))
+    (is (not ((m/eq 'a) {} '(e d c b a) identity))
+        "This does not match a sequence."))
+
+  (testing "element"
+    (is (= {:x 'a} ((m/bind :x) {} 'a identity)))
+    (is (= {:x '(a b)} ((m/bind :x) {} '(a b) identity))))
+
+  (testing "element-constraint"
+    (is (= {:x 6} ((m/bind :x integer?) {} 6 identity)))
 
     ;; Clojurescript treats floats with no mantissa as integers.
     (let [expected #?(:clj nil
                       :cljs [{:x 6.0} nil])]
-      (is (= expected ((m/match-element :x integer?) {} '(6.0) receive))))
+      (is (= expected ((m/bind :x integer?) {} 6.0 identity))))
 
     ;; Both languages treat 6.1 as a float.
-    (is (= nil ((m/match-element :x integer?) {} '(6.1) receive)))
-    (is (= [{:x 6.0} nil] ((m/match-element :x float?) {} '(6.0) receive)))
-    (is (= [{:x 6.0} '(7.0)] ((m/match-element :x float?) {} '(6.0 7.0) receive))))
+    (is (nil? ((m/bind :x integer?) {} 6.1 identity)))
+    (is (= {:x 6.0} ((m/bind :x float?) {} 6.0 identity))))
 
-  (testing "match-segment"
-    (let [match (m/all-results-matcher (m/match-segment :x))]
-      (is (= '[[{:x []} [[a b c]]]
-               [{:x [[a b c]]} nil]]
-             (match '[a b c] :include-tails? true))
-          "The segment matcher does not work well on its own; it has to be
-          included inside of a list matcher."))
+  (testing "segment"
+    (is (= '[[{:x []} [a b c]]
+             [{:x [a]} (b c)]
+             [{:x [a b]} (c)]
+             [{:x [a b c]} nil]]
+           (m/all-results (m/segment :x) '[a b c])))
 
-    (let [match (m/all-results-matcher [:x*])]
-      (is (= '[[{:x* [a b c]} nil]]
-             (match '[a b c] :include-tails? true))
-          "A final segment in a list matcher matches the entire list, no scanning."))
+    (is (= '[{:x* [a b c]}]
+           (m/all-results [:x*] '[a b c]))
+        "A final segment in a list matcher matches the entire list, no scanning.")
 
     (let [match (m/all-results-matcher
-                 (m/match-list [(m/match-segment :x)
-                                (m/match-segment :y)]))]
-      (is (= '[[{:x [], :y [a b c]} nil]
-               [{:x [a], :y [b c]} nil]
-               [{:x [a b], :y [c]} nil]
-               [{:x [a b c], :y []} nil]]
-             (match '[a b c] :include-tails? true))
+                 (m/sequence
+                  (m/segment :x)
+                  (m/segment :y)))]
+      (is (= '[{:x [], :y [a b c]}
+               {:x [a], :y [b c]}
+               {:x [a b], :y [c]}
+               {:x [a b c], :y []}]
+             (match '[a b c]))
           "If you have TWO segment variables, they correctly scan."))
 
-    (is (= {:x []} ((m/match-segment :x) {} '() (fn [frame _] frame))))
-    (is (= {:x []} ((m/match-segment :x) {} [] (fn [frame _] frame)))))
+    (is (= {:x []} ((m/segment :x) {} '() (fn [frame _] frame))))
+    (is (= {:x []} ((m/segment :x) {} [] (fn [frame _] frame)))))
 
-  (testing "match-segment-constraint"
-    (let [find-two-ints (m/match-list [(m/match-segment :xs)
-                                       (m/match-element :i integer?)
-                                       (m/match-segment :ys)
-                                       (m/match-element :j integer?)
-                                       (m/match-segment :zs)])]
+  (testing "segment-constraint"
+    (let [find-two-ints (m/sequence
+                         (m/segment :xs)
+                         (m/bind :i integer?)
+                         (m/segment :ys)
+                         (m/bind :j integer?)
+                         (m/segment :zs))]
       (is (= '[{:i 3 :xs [1.1 [1 3] 2.3] :ys [6.5 x [3 5]] :j 4 :zs [22]}
                {:i 3 :xs [1.1 [1 3] 2.3] :ys [6.5 x [3 5] 4] :j 22 :zs []}
                {:xs [1.1 [1 3] 2.3 3 6.5 x [3 5]] :i 4 :ys [] :j 22 :zs []}]
@@ -89,15 +88,18 @@
               '(1.1 [1 3] 2.3 3 6.5 x [3 5] 4 22))))))
 
   (testing "twin-segments"
-    (let [xs-xs (m/match-list [(m/match-segment :x)
-                               (m/match-segment :x)])
-          xs-xs-etc (m/match-list [(m/match-segment :x)
-                                   (m/match-segment :x)
-                                   (m/match-segment :y)])
-          etc-xs-xs-etc (m/match-list [(m/match-segment :w)
-                                       (m/match-segment :x)
-                                       (m/match-segment :x)
-                                       (m/match-segment :y)])]
+    (let [xs-xs (m/sequence
+                 (m/segment :x)
+                 (m/segment :x))
+          xs-xs-etc (m/sequence
+                     (m/segment :x)
+                     (m/segment :x)
+                     (m/segment :y))
+          etc-xs-xs-etc (m/sequence
+                         (m/segment :w)
+                         (m/segment :x)
+                         (m/segment :x)
+                         (m/segment :y))]
       (is (= {:x '[a b c]} (m/match xs-xs '(a b c a b c))))
       (is (not (m/match xs-xs '(a b c a b d))))
       (is (not (m/match xs-xs '(a b c a b c d e))))
@@ -142,21 +144,22 @@
             '(a b b b b b b c)))))
 
   (testing "an expression"
-    (let [expr (m/match-list [(m/match-list [(m/match-eq '*)
-                                             (m/match-element :a)
-                                             (m/match-element :c)])
-                              (m/match-list [(m/match-eq '*)
-                                             (m/match-element :b)
-                                             (m/match-element :c)])])]
+    (let [expr (m/sequence
+                (m/sequence (m/eq '*)
+                            (m/bind :a)
+                            (m/bind :c))
+                (m/sequence (m/eq '*)
+                            (m/bind :b)
+                            (m/bind :c)))]
       (is (= '{:a 3 :b 4 :c x} (m/match expr '((* 3 x) (* 4 x)))))
       (is (not (m/match expr '((* 3 x) (* 4 y))))))))
 
 (deftest match-compiler
   (testing "simple"
-    (let [match-x (m/pattern->combinators [:? :x])
-          match-xx (m/pattern->combinators [[:? :x] [:? :x]])
-          match-xy (m/pattern->combinators [[:? :x] [:? :y]])
-          match-x-ys-x (m/pattern->combinators [[:? :x] [:?? :ys] [:? :x]])]
+    (let [match-x [:? :x]
+          match-xx [[:? :x] [:? :x]]
+          match-xy [[:? :x] [:? :y]]
+          match-x-ys-x [[:? :x] [:?? :ys] [:? :x]]]
       (is (= '{:x 3} (m/match match-x 3)))
       (is (= '{:x 2} (m/match match-xx [2 2])))
       (is (not (m/match match-xx [2 3])))
@@ -195,124 +198,73 @@
 (deftest gjs-tests
   ;; these tests come from matcher.scm.
   (testing "element inside of list"
-    (is (= [{'b 1} nil]
-           ((m/pattern->combinators '(a ((:? b) 2 3) 1 c))
-            {}
-            '((a (1 2 3) 1 c))
-            vector)))
+    (is (= {'b 1}
+           (m/match '(a ((:? b) 2 3) 1 c)
+                    '(a (1 2 3) 1 c))))
 
-    (is (= [{'b 1} nil]
-           ((m/pattern->combinators `(~'a ((:? ~'b ~number?) 2 3) 1 ~'c))
-            {}
-            '((a (1 2 3) 1 c))
-            vector))
+    (is (= {'b 1}
+           (m/match `(~'a ((:? ~'b ~number?) 2 3) 1 ~'c)
+                    '(a (1 2 3) 1 c)))
         "match element with predicate inside of list")
 
-    (is (not ((m/pattern->combinators `(~'a ((:? ~'b ~symbol?) 2 3) 1 ~'c))
-              {}
-              '((a (1 2 3) 1 c))
-              vector))
+    (is (nil?
+         (m/match `(~'a ((:? ~'b ~symbol?) 2 3) 1 ~'c)
+                  '(a (1 2 3) 1 c)))
         "match element inside list with failing predicate")
 
-    (is (not ((m/pattern->combinators '(a ((:? b) 2 3) (:? b) c))
-              {}
-              '((a (1 2 3) 2 c))
-              vector))
+    (is (not
+         (m/match '(a ((:? b) 2 3) (:? b) c)
+                  '(a (1 2 3) 2 c)))
         "match element inside list, but fail the second match outside")
 
-    (is (= [{'b 1} nil]
-           ((m/pattern->combinators '(a ((:? b) 2 3) (:? b) c))
-            {}
-            '((a (1 2 3) 1 c))
-            vector))
+    (is (= {'b 1}
+           (m/match '(a ((:? b) 2 3) (:? b) c)
+                    '(a (1 2 3) 1 c)))
         "match element inside list, repeated match outside"))
 
   (testing "segment and reverse segment"
     (letfn [(palindrome? [x]
               ((m/pattern->combinators '((:?? x) (:$$ x)))
                {}
-               (list x)
-               (fn [x y]
-                 (empty? y))))]
+               x
+               boolean))]
       (is (palindrome? '(a b c c b a)))
       (is (not (palindrome? '(a b c c a b)))))))
 
 (deftest new-tests
+  (testing "match-or"
+    (let [match (m/match-or (m/predicate odd?)
+                            (m/predicate #{12}))]
+      (is (= {} (match {} 12 identity)))
+      (is (= {} (match {} 11 identity)))
+      (is (not (match {} 8 identity)))))
+
+  (testing "match-and must match all and returns the frame from the final."
+    (let [match (m/match-and (m/predicate even?)
+                             (m/bind :x)
+                             (m/predicate #{12})
+                             )]
+      (is (= {:x 12} (match {} 12 identity)))
+      (is (not (match {} 8 identity)))))
+
   (is (= {'x '+, :y 'z}
-         (m/match (m/match-list [(m/match-element 'x)])
+         (m/match (m/sequence (m/bind 'x))
                   ['+]
                   (fn [m] {:y 'z})))
-      "We can add new bindings to the map."))
+      "We can add new bindings to the map.")
 
-;; TODO note splice, test it in rules!
+  (testing "match-empty-list"
+    (is (= [{}]
+           ((m/all-results-matcher ()) ()))
+        "empty dict!")
 
+    (is (= []
+           ((m/all-results-matcher ())
+            '(foo)))
+        "no match."))
 
-(comment
-  (define (id x) x)
-
-  (define-each-check
-
-    (equal?
-     '(succeed ((b 1)))
-     ((match:->combinators '(a ((? b) 2 3) 1 c))
-      '(a (1 2 3) 1 c)
-      '()
-      (fn (x) `(succeed ,x))))
-
-    (equal?
-     false
-     ((match:->combinators '(a ((? b) 2 3) (? b) c))
-      '(a (1 2 3) 2 c)
-      '()
-      (fn (x) `(succeed ,x))))
-
-    (equal?
-     '(succeed ((b 1)))
-     ((match:->combinators '(a ((? b) 2 3) (? b) c))
-      '(a (1 2 3) 1 c)
-      '()
-      (fn (x) `(succeed ,x))))
-
-    (equal?
-     '(((y . (b b b b b b)) (x . ()))
-       ((y . (b b b b)) (x . (b)))
-       ((y . (b b)) (x . (b b)))
-       ((y . ()) (x . (b b b))))
-     ((all-dictionaries
-       (match:->combinators '(a (?? x) (?? y) (?? x) c)))
-      '(a b b b b b b c)))
-
-    (not ((first-dictionary (match:->combinators '(a (?? x) (?? y) (?? x) c)))
-	        '(a b b b b b b a)))
-
-    (equal?
-     '((b . 1))
-     ((matcher '(a ((? b) 2 3) (? b) c))
-      '(a (1 2 3) 1 c))))
-
-  (define-test (smoke)
-    (define matcher
-      (match:->combinators '(+ (? a) (+ (? b) (? c)))))
-
-    (check (equal? '((c 4) (b 3) (a 2))
-		               (matcher '(+ 2 (+ 3 4)) '() id)))
-    (check (not (matcher '(+ 2 (+ 3 4 5)) '() id))))
-
-  (define-test (match-empty-list)
-    (assert-equal
-     '(()) ; One empty dictionary
-     ((all-dictionaries (match:->combinators '()))
-      '()))
-    (assert-equal
-     '() ; No dictionaries
-     ((all-dictionaries (match:->combinators '()))
-      '(foo))))
-
-  (define-test (obvious-tail)
-    (define matcher
-      (match:->combinators '(and (?? stuff))))
-    (let ((items (iota 10))) ; constant time, except building the test list
-      (assert-equal
-       `(((stuff . ,items)))
-       ((all-dictionaries matcher)
-        `(and ,@items))))))
+  (is (= [{'stuff '(0 1 2 3 4 5 6 7 8 9)}]
+         ((m/all-results-matcher '(and (:?? stuff)))
+          (cons 'and (range 10))))
+      "segments at the end of a list run in constant time, except building the
+        test list"))
