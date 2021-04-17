@@ -12,4 +12,5 @@
         nrepl/nrepl {:mvn/version "0.7.0"},
         cljsjs/complex {:mvn/version "2.0.11-0"},
         borkdude/sci {:mvn/version "0.2.1"},
-        cljsjs/bigfraction {:mvn/version "4.0.12-0"}}}
+        cljsjs/bigfraction {:mvn/version "4.0.12-0"}}
+ :aliases {:repl {:jvm-opts ["-Dsicmutils.debug_generics=true"]}}}
