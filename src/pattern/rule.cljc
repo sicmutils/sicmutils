@@ -62,7 +62,7 @@
 
 ;; This is how we record a MATCH failure.
 
-(import-def ps/return)
+(import-def ps/succeed)
 (import-def m/failure)
 (import-def m/failed?)
 
@@ -303,6 +303,13 @@
     (fn rec [expression]
       (r (try-subexpressions rec expression)))))
 
+(defn top-down
+  "NOTE: Actually top down AND bottom up!"
+  [the-rule]
+  (let [r (attempt the-rule)]
+    (fn rec [expr]
+      (r (try-subexpressions rec (r expr))))))
+
 (defn iterated-bottom-up
   "Iterate one rule to convergence on all subexpressions of the input,
   bottom up.
@@ -311,13 +318,16 @@
   may admit additional invocations, so we need to recur again after every
   successful transformation."
   [the-rule]
-  (let [r (attempt the-rule)]
-    (fn rec [expr]
-      (let [processed (try-subexpressions rec expr)
-            answer (r processed)]
-        (if (= answer processed)
-          answer
-          (rec answer))))))
+  (let [r   (attempt the-rule)
+        rec (atom nil)]
+    (letfn [(rec* [expr]
+              (let [processed (try-subexpressions @rec expr)
+                    answer (r processed)]
+                (if (= answer processed)
+                  answer
+                  (@rec answer))))]
+      (reset! rec (memoize rec*))
+      @rec)))
 
 (defn iterated-top-down
   "Iterate one rule to convergence on all subexpressions of the input, applying
@@ -362,9 +372,10 @@
   arrange to apply each of the rules in the ruleset to all the component parts
   of the expression in depth order, then simplifies the result; the process is
   continued until a fixed point of the simplification process is achieved."
-  [& the-rules]
+  [& rules]
+  ;; TODO CHECK!
   (iterated-bottom-up
-   (pipe* the-rules)))
+   (pipe* rules)))
 
 (defn term-rewriting
   "Alias for `rule-simplifier`..."

@@ -18,51 +18,75 @@
 ;;
 
 (ns pattern.syntax
-  "Syntax for rules to get converted to matchers."
+  "This namespace contains code to match and parse the default pattern and
+  skeleton syntax provided in the library."
   (:require [sicmutils.util :as u]))
 
-;; ## Syntax of patterns
+;; ### Notes
+;;
+;; The current version of the library declares the following syntax rules:
+;;
+;; - `_` is a wildcard matcher that succeeds with anything and introduces no new
+;;   bindings.
+;;
+;; - `:x` or `?x` trigger an unrestricted binding match. It will match anything
+;;   and introduce a new binding from that symbol to the matched value.
+;;
+;; - `(:? <binding> <predicates...>)` triggers a binding iff all of the
+;;   predicate functions appearing after the binding pass for the candidate
+;;
+;; - `(:?? <binding>)`, `??x` or `:x*` (a keyword ending with a *) inside of a
+;;   sequence matches a _segment_ of the list whose length isn't fixed. Segments
+;;   will attempt to succed with successively longer prefixes of the remaining
+;;   items in the list.
+;;
+;; - `(:$$ <binding>)`, `$$x` or `:x$` (a keyword ending with `$`) will only
+;;   match _after_ the same binding has already succeeded with a segment. If it
+;;   has, - this will match a segment equal to the _reverse_ of the
+;;   already-bound segment.
+;;
+;; - Any sequential entry, like a list or a vector, triggers a `sequence` match.
+;;   This will attempt to match a sequence, and only pass if its matcher
+;;   arguments are able to match all entries in the sequence.
+;;
+;; I'm planning on killing the keyword forms of the bindings, since that
+;; prevents us from matching keywords, of course. That is fine for `sicmutils`,
+;; because symbolic expressions never contain these, but the pattern matching
+;; code wants to be a lot more general!
+;;
+;;
+;; ## Non-Macro Syntax
 
-;; The syntax of patterns is given by a compiler that turns a pattern expression
-;; into a matcher combinator (which will often be a list matcher closed over
-;; other matchers).
-
-(defn- keyword-suffix
-  "Returns the final character of the supplied keyword `kwd`."
+(defn- suffix
+  "Returns the final character of the string, symbol or keyword."
   [kwd]
   (let [s (name kwd)
         c (count s)]
     (.charAt ^String s (dec c))))
 
 (defn restricted?
-  "Allows multiple restrictions!"
+  "Returns true if `pattern` is a binding pattern with restriction predicates,
+  false otherwise."
   [pattern]
   (and (sequential? pattern)
        (> (count pattern) 2)))
 
-(defn unquote? [pattern]
-  (and (sequential? pattern)
-       (= (first pattern) 'clojure.core/unquote)))
-
-(defn unquote-splice? [pattern]
-  (and (sequential? pattern)
-       (= (first pattern)
-          'clojure.core/unquote-splicing)))
-
-(defn unquoted-form [pattern]
-  (second pattern))
-
 (defn wildcard?
-  "Returns true if `pattern` matches the wildcard `_`, false otherwise."
+  "Returns true if `pattern` matches the wildcard character `_`, false otherwise."
   [pattern]
   (= pattern '_))
 
 (defn binding?
-  "Returns true if `pattern` is a variable reference (i.e., it looks like `(:?
-  ...)`) or is a simple keyword (not ending in `$` or `*`), false otherwise."
+  "Returns true if `pattern` is a binding variable reference, false otherwise.
+
+  A binding variable is either:
+
+  - A keyword not ending in `$` or `*` (these signal [[segment?]])
+  - A symbol starting with a single `?` character
+  - A sequence of the form `(:? <binding> ...)`."
   [pattern]
   (or (and (keyword? pattern)
-           (not (#{\* \$} (keyword-suffix pattern))))
+           (not (#{\* \$} (suffix pattern))))
 
       (and (simple-symbol? pattern)
            (u/re-matches? #"\?[^\?].*" (name pattern)))
@@ -71,11 +95,16 @@
            (= (first pattern) :?))))
 
 (defn segment?
-  "Returns true if `pattern` is a segment reference (i.e., it looks like `(:??
-  ...)`) or is a keyword ending in `*`, false otherwise."
+  "Returns true if `pattern` is a segment variable reference, false otherwise.
+
+  A segment binding variable is either:
+
+  - A keyword ending with `*`
+  - A symbol starting with `??`
+  - A sequence of the form `(:?? <binding>)`."
   [pattern]
   (or (and (keyword? pattern)
-           (= \* (keyword-suffix pattern)))
+           (= \* (suffix pattern)))
 
       (and (simple-symbol? pattern)
            (u/re-matches? #"\?\?[^\?].*" (name pattern)))
@@ -84,12 +113,17 @@
            (= (first pattern) :??))))
 
 (defn reverse-segment?
-  "Returns true if x is a REVERSED segment reference (i.e., it looks like `(:$$
-  ...)`) or is a keyword ending in `$`, or a symbol starting with $$. false
-  otherwise."
+  "Returns true if `pattern` is a reversed-segment variable reference, false
+  otherwise.
+
+  A reverse-segment binding variable is either:
+
+  - A keyword ending `$`
+  - A symbol starting with `$$`
+  - A sequence of the form `(:$$ <binding>)`."
   [pattern]
   (or (and (keyword? pattern)
-           (= \$ (keyword-suffix pattern)))
+           (= \$ (suffix pattern)))
 
       (and (simple-symbol? pattern)
            (u/re-matches? #"\$\$[^\$].*" (name pattern)))
@@ -98,7 +132,10 @@
            (= (first pattern) :$$))))
 
 (defn variable-name
-  "Returns the variable contained in a variable or segment reference form."
+  "Given a variable, segment or reverse segment binding form, returns the binding
+  variable.
+
+  NOTE that [[variable-name]] will not guard against incorrect inputs."
   [pattern]
   (if (or (keyword? pattern)
           (simple-symbol? pattern))
@@ -106,13 +143,14 @@
     (second pattern)))
 
 (defn restriction
-  "If `pattern` is a variable reference in a pattern with a constraint,
-  returns that constraint; else returns a stock function which enforces no
-  constraint at all.
+  "If `pattern` is a variable binding form in a pattern with restriction predicates,
+  returns a predicate that only returns true if all of the predicates pass for
+  its input, false otherwise.
 
-  Multiple constraints are allowed."
+  If `pattern` has no restrictions or is some other input type, returns a else
+  returns a predicate that will always return `true`."
   [pattern]
-  (let [no-constraint (constantly true)]
+  (let [no-constraint (fn [_] true)]
     (if (or (keyword? pattern)
             (simple-symbol? pattern))
       no-constraint
@@ -120,12 +158,63 @@
         (apply every-pred fs)
         no-constraint))))
 
-;; ## Compiler Code
+;; ## Pattern Compilation
+;;
+;; [[compile-pattern]] below allows a macro to take a pattern form with binding
+;; symbols unquoted. The disadvantage of a macro is that a user can't usually do
+;; things like splice in bindings that are in the current scope.
+;;
+;; To fix this, we handle `unquote` and `unquote-splicing` directly.
 
-(defn- splice-reduce [pred f xs]
+(defn unquote?
+  "Returns true if `pattern` is a form that should be included with no quoting
+  into the returned pattern, false otherwise."
+  [pattern]
+  (and (sequential? pattern)
+       (= (first pattern)
+          'clojure.core/unquote)))
+
+(defn unquote-splice?
+  "Returns true if `pattern` is a sequence form that should be spliced directly
+  into the returned pattern, false otherwise."
+  [pattern]
+  (and (sequential? pattern)
+       (= (first pattern)
+          'clojure.core/unquote-splicing)))
+
+(defn unquoted-form
+  "Given a `pattern` that responds `true` to [[unquote?]] or [[unquote-splice?]],
+  returns the form from that pattern."
+  [pattern]
+  (second pattern))
+
+(defn- splice-reduce
+  "Helper function for reducing over a sequence that might contain forms that need
+  to be spliced into the resulting sequence. This is a sort of helper for a
+  guarded `mapcat`.
+
+  Takes a sequence `xs` and mapping function `f` and returns a sequence of
+  sequences that, if concatenated together, would be identical to
+
+  ```clojure
+  (map f xs)
+  ```
+
+  Where any `x` such that `(splice? x)` returns true would have its sequential
+  value `(f x)` spliced into the result.
+
+  For example:
+
+  ```clojure
+  (let [f (fn [x] (if (odd? x)  [x x x] x))]
+    (splice-reduce odd? f (range 5)))
+
+  ;;=> [[0] [1 1 1] [2] [3 3 3] [4]]
+  ```"
+  [splice? f xs]
   (let [[acc pending] (reduce
                        (fn [[acc pending] x]
-                         (if (pred x)
+                         (if (splice? x)
                            (if (empty? pending)
                              [(conj acc (f x)) []]
                              [(conj acc pending (f x)) []])
@@ -137,18 +226,28 @@
       (conj acc pending))))
 
 (defn compile-pattern
-  "Replace `pattern` with code that will construct the equivalent form with
-  variable predicate values exposed to evaluation (see above).
+  "Given a pattern with unquoted binding forms and, potentially, `~` and `~@`
+  entries, returns a pattern appropriately quoted such that it can be evaluated
+  by the Clojure reader.
 
-  AND, also note what is actually going on..."
+  Changes:
+
+  - `(:? x) => (list :? 'x)`
+  - any unquoted symbol is quoted
+  - Any form unquoted like `~x` is left UNquoted
+  - Any form marked `~@(1 2 3)` is spliced in directly
+
+  These rules proceed recursively down into map, vector and sequential data
+  structures. (Recursion only pushes down into values for map-shaped patterns.)"
   [pattern]
   (letfn [(compile-sequential [xs]
             (let [acc (splice-reduce
                        unquote-splice? compile-pattern xs)]
-              (into [] cat acc)))]
+              (if (vector? xs)
+                (into [] cat acc)
+                (cons list (apply concat acc)))))]
 
-    (cond (keyword? pattern) pattern
-          (symbol? pattern) (list 'quote pattern)
+    (cond (symbol? pattern) (list 'quote pattern)
 
           (or (unquote? pattern)
               (unquote-splice? pattern))
@@ -162,40 +261,76 @@
               `(list ~k '~sym ~@preds))
             (compile-sequential pattern))
 
+          (map? pattern)
+          (u/map-vals compile-pattern pattern)
+
           :else pattern)))
 
-(defn- lookup [m x]
-  (let [f (if (symbol? x)
-            `(quote ~x)
-            x)]
-    (list f m)))
+(defn- apply-form
+  "Given symbols `f` representing a function and `m` representing its argument,
+  returns a form that represents function application.
 
-(defn return
-  "TODO note that this is how we return a form like false or nil."
+  Symbols are quoted, [[unquote?]] forms are included without quote and all
+  other forms are left untouched."
+  [f x]
+  (let [f (cond (symbol? f) `(quote ~f)
+                (unquote? f) (unquoted-form f)
+                :else f)]
+    (list f x)))
+
+;; ### Skeleton
+;;
+;; A Skeleton is a template form that we can transform into a function of a
+;; matcher's binding map, called a "consequence". The function should take the
+;; binding map and return a copy of the skeleton with:
+;;
+;; - all variable binding forms replaced by their entries in the binding map
+;; - same with any segment binding form, with the added note that these should
+;;   be spliced in
+;; - any `unquote` or `unquote-splicing` forms respected
+;;
+;; Any non-binding symbol will be quoted.
+;;
+;; ### Consequence Functions
+;;
+;; The contract for a "consequence" function is that it can return `false` or
+;; `nil` to signal failure. But what if the function wants to succeed with those
+;; values?
+;;
+;; Wrapping a return value with [[succeed]] will allow a successful return of
+;; those values. This only matters for skeleton compilation if the skeleton is
+;; identical to `nil` or `false`. In those cases, the returned function will
+;; produced `(succeed nil)` or `(succeed false)`.
+
+(defn succeed
+  "Wraps the argument `x` in a form that will always successfully return from a
+  consequence function, whatever its value.
+
+  Use [[succeed]] to return `nil` or `false` from a consequence function. For
+  all other return values, returning `(succeed x)` is identical to returning
+  `x`"
   [x]
-  {::return x})
+  {::succeed x})
 
-(defn unwrap [x]
+(defn ^:no-doc unwrap
+  "Given a form returned by a consequence function, unwraps the top level
+  `succeed` wrapper if present to return the final value."
+  [x]
   (if (map? x)
-    (::return x x)
+    (::succeed x x)
     x))
 
 (defn compile-skeleton
-  "Compiles a skeleton expression (written as a pattern), by returning a code
-  fragment which will replace instances of variable and segment references in
-  the skeleton with values provided by the frame referred to by `frame-sym`.
+  "Takes a skeleton expression `skel` and returns a form that will evaluate to a
+  function from a pattern matcher's binding map to a data structure of identical shape to `skel`, with
 
-  The form is meant to be evaluated in an environment where `frame-sym` is bound
-  to a mapping of pattern variables to their desired substitutions.
+  - all variable binding forms replaced by their entries in the binding map
+  - same with any segment binding form, with the added note that these should
+    be spliced in
+  - any `unquote` or `unquote-splicing` forms respected
 
-  NOTE: The difference from the original stuff is, here, we have a nice
-  dictionary data structure, so the final function just takes that.
-
-  NOTE: reverse segments don't appear in the final bit! just do the normal.
-
-  NOTE: We can now do splice and unquote splices.
-
-  NOTE: we keep types, AND we can do maps!"
+  NOTE: reverse-segment variables are NOT evaluated here; these currently only
+  apply when matching an already-bound segment variable."
   [skel]
   (let [frame-sym (gensym)]
     (letfn [(compile-sequential [xs]
@@ -209,7 +344,9 @@
               (cond (or (binding? form)
                         (segment? form))
                     (let [v (variable-name form)]
-                      (lookup frame-sym v))
+                      (apply-form v frame-sym))
+
+                    (symbol? form) (list 'quote form)
 
                     (unquote? form)
                     (unquoted-form form)
@@ -226,9 +363,9 @@
                     (sequential? form)
                     `(seq ~(compile-sequential form))
 
-                    :else `'~form))]
+                    :else form))]
       (if skel
         `(fn [~frame-sym]
            ~(compile skel))
         `(fn [_#]
-           (return ~skel))))))
+           (succeed ~skel))))))
