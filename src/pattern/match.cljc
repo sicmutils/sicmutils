@@ -25,7 +25,7 @@
 
   [[pattern.match]] is spiritually similar to Alexey
   Radul's [Rules](https://github.com/axch/rules) library for Scheme."
-  (:refer-clojure :exclude [sequence]
+  (:refer-clojure :exclude [sequence #?@(:cljs [or and not])]
                   :rename {or core:or
                            and core:and
                            not core:not})
@@ -247,9 +247,6 @@
 
 ;; ### Lists and Segments
 ;;
-;; TODO: tidy this, these comments below are copied from `rules` and friends and
-;; are out of date.
-;;
 ;; Segment variables introduce some additional trouble. Unlike other matchers, a
 ;; segment variable is not tested against a fixed datum that it either matches
 ;; or not, but against a list such that it may match any prefix. This means that
@@ -266,10 +263,22 @@
 ;;   list (which actually happens quite often!) then the list matcher already
 ;;   knows how much data must be matched, and no search is needed.
 ;;
-(defn as-segment-matcher [f]
+;; Segment matchers pass TWO arguments into their success continuation - the
+;; binding frame, and the remaining unmatched segment.
+;;
+;; The following two functions let us mark matcher combinators with this
+;; interface using their metadata.
+
+(defn as-segment-matcher
+  "Takes a matcher and returns `f` with its metadata modified such
+  that [[segment-matcher?]] will return `true` when applied to `f`."
+  [f]
   (vary-meta f assoc ::segment? true))
 
-(defn segment-matcher? [f]
+(defn- segment-matcher?
+  "Returns true if the supplied matcher `f` is a segment matcher, false
+  otherwise."
+  [f]
   (::segment? (meta f) false))
 
 (defn segment
@@ -386,20 +395,11 @@
   (sequence* patterns))
 
 ;; ## Pattern Matching Compiler
-;;
-;; This next section takes patterns described using the syntax in
-;; `pattern.syntax`, and compiles these into matcher combinators.
-;;
-;; TODO: Can we open this up and make the compiler generic and extensible?
-;;
-;; TODO continue docs from here.
 
 (defn pattern->combinators
-  "Given a pattern (which is essentially a form consisting of constants mixed with
-  pattern variables) returns a match combinator for the pattern.
-
-  TODO this is a good place to open up dispatch, as Alexey does, and make new,
-  extensible pattern syntax."
+  "Given a pattern (built using the syntax elements described in
+  `pattern.syntax`), returns a matcher combinator that will successfully match
+  data structures described by the input pattern, and fail otherwise."
   [pattern]
   (cond (s/binding? pattern)
         (bind (s/variable-name pattern)
@@ -427,7 +427,13 @@
 
         :else (eq pattern)))
 
+;; This concludes the matcher combinator section of our program. On to the next
+;; act: the "matcher"!
+;;
+;;
 ;; ## Top Level Matchers
+;;
+;; TODO continue docs from here.
 ;;
 ;; What do we have to this point? We have a collection of matcher combinators,
 ;; and a soon-to-be-open system for turning a pattern into a matcher. Rules

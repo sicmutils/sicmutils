@@ -245,7 +245,7 @@
                        unquote-splice? compile-pattern xs)]
               (if (vector? xs)
                 (into [] cat acc)
-                (cons list (apply concat acc)))))]
+                (cons `list (apply concat acc)))))]
 
     (cond (symbol? pattern) (list 'quote pattern)
 
