@@ -24,8 +24,8 @@
 
 (deftest matchers
   (testing "eq"
-    (is (not (m/match (m/eq 'a) nil)))
-    (is (not (m/match (m/eq 'a) [])))
+    (is (m/failed? (m/match (m/eq 'a) nil)))
+    (is (m/failed? (m/match (m/eq 'a) [])))
 
     (is (= {} ((m/eq 'a) {} 'a identity))
         "A successful match returns the bindings in play, NOT something falsey.")
@@ -71,8 +71,11 @@
              (match '[a b c]))
           "If you have TWO segment variables, they correctly scan."))
 
-    (is (= {:x []} ((m/segment :x) {} '() (fn [frame _] frame))))
-    (is (= {:x []} ((m/segment :x) {} [] (fn [frame _] frame)))))
+    (is (= {:x []}
+           ((m/segment :x) {} '() (fn [frame _] frame))))
+
+    (is (= {:x []}
+           ((m/segment :x) {} [] (fn [frame _] frame)))))
 
   (testing "segment-constraint"
     (let [find-two-ints (m/sequence
@@ -84,7 +87,8 @@
       (is (= '[{:i 3 :xs [1.1 [1 3] 2.3] :ys [6.5 x [3 5]] :j 4 :zs [22]}
                {:i 3 :xs [1.1 [1 3] 2.3] :ys [6.5 x [3 5] 4] :j 22 :zs []}
                {:xs [1.1 [1 3] 2.3 3 6.5 x [3 5]] :i 4 :ys [] :j 22 :zs []}]
-             ((m/all-results-matcher find-two-ints)
+             (m/all-results
+              find-two-ints
               '(1.1 [1 3] 2.3 3 6.5 x [3 5] 4 22))))))
 
   (testing "twin-segments"
@@ -101,8 +105,8 @@
                          (m/segment :x)
                          (m/segment :y))]
       (is (= {:x '[a b c]} (m/match xs-xs '(a b c a b c))))
-      (is (not (m/match xs-xs '(a b c a b d))))
-      (is (not (m/match xs-xs '(a b c a b c d e))))
+      (is (m/failed? (m/match xs-xs '(a b c a b d))))
+      (is (m/failed? (m/match xs-xs '(a b c a b c d e))))
       (let [match (m/all-results-matcher xs-xs-etc)]
         (is (= [{:x [] :y '[a b c a b c d e]}
                 {:x '[a b c] :y '[d e]}]
@@ -133,26 +137,31 @@
                {:y [a b], :x [], :w [a b a b a b]}
                {:y [b], :x [], :w [a b a b a b a]}
                {:y [], :x [], :w [a b a b a b a b]}]
-             ((m/all-results-matcher etc-xs-xs-etc) '(a b a b a b a b))))))
+             (m/all-results
+              etc-xs-xs-etc '(a b a b a b a b))))))
 
   (testing "example-from-6.945-notes"
     (is (= '[{y [b b b b b b] x []}
              {y [b b b b] x [b]}
              {y [b b] x [b b]}
              {y [] x [b b b]}]
-           ((m/all-results-matcher '(a (:?? x) (:?? y) (:?? x) c))
+           (m/all-results
+            '(a (:?? x) (:?? y) (:?? x) c)
             '(a b b b b b b c)))))
 
   (testing "an expression"
     (let [expr (m/sequence
-                (m/sequence (m/eq '*)
+                (m/sequence '*
                             (m/bind :a)
                             (m/bind :c))
-                (m/sequence (m/eq '*)
+                (m/sequence '*
                             (m/bind :b)
                             (m/bind :c)))]
-      (is (= '{:a 3 :b 4 :c x} (m/match expr '((* 3 x) (* 4 x)))))
-      (is (not (m/match expr '((* 3 x) (* 4 y))))))))
+      (is (= '{:a 3 :b 4 :c x}
+             (m/match expr '((* 3 x) (* 4 x)))))
+
+      (is (m/failed?
+           (m/match expr '((* 3 x) (* 4 y))))))))
 
 (deftest match-compiler
   (testing "simple"
@@ -162,11 +171,11 @@
           match-x-ys-x [[:? :x] [:?? :ys] [:? :x]]]
       (is (= '{:x 3} (m/match match-x 3)))
       (is (= '{:x 2} (m/match match-xx [2 2])))
-      (is (not (m/match match-xx [2 3])))
+      (is (m/failed? (m/match match-xx [2 3])))
       (is (= '{:x 2 :y 3} (m/match match-xy [2 3])))
       (is (= '{:x 2 :ys [3 4 5]} (m/match match-x-ys-x [2 3 4 5 2])))
-      (is (not (m/match match-x-ys-x [2 3 4 5 6])))
-      (is (not (m/match match-xy [2]))))))
+      (is (m/failed? (m/match match-x-ys-x [2 3 4 5 6])))
+      (is (m/failed? (m/match match-xy [2]))))))
 
 (deftest keyword-variables
   (testing "simple"
@@ -207,12 +216,12 @@
                     '(a (1 2 3) 1 c)))
         "match element with predicate inside of list")
 
-    (is (nil?
+    (is (m/failed?
          (m/match `(~'a ((:? ~'b ~symbol?) 2 3) 1 ~'c)
                   '(a (1 2 3) 1 c)))
         "match element inside list with failing predicate")
 
-    (is (not
+    (is (m/failed?
          (m/match '(a ((:? b) 2 3) (:? b) c)
                   '(a (1 2 3) 2 c)))
         "match element inside list, but fail the second match outside")
@@ -232,6 +241,11 @@
       (is (not (palindrome? '(a b c c a b)))))))
 
 (deftest new-tests
+  (let [match (m/matcher '(+ (:? _ #{11}) ?b))]
+    (is (= {'?b 12} (match '(+ 11 12))))
+    (is (m/failed?
+         (match '(+ 12 11)))))
+
   (let [match (m/matcher (m/or [:? 'x #{11}]
                                (m/not [:? 'x odd?])))]
     (is (= {'x 11} (match 11)))

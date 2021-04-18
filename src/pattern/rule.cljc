@@ -20,14 +20,16 @@
 (ns pattern.rule
   "Functions for writing and applying term-rewriting rules using the primitives
   defined in [[pattern.match]]."
-  (:require [pattern.match :as m]
+  (:refer-clojure :exclude [replace while])
+  (:require #?(:clj [potemkin :refer [import-def]])
+            [pattern.match :as m]
             [pattern.syntax :as ps]
-            [sicmutils.util :as u]))
+            [sicmutils.util :as u]
+            #?(:cljs
+               [sicmutils.util.def :as util.def
+                :refer-macros [import-def]])))
 
-;; TODO what we WANT to do is change to a thing that fails...
-
-;;
-;; Adapted from Scheme Rules:
+;; Adapted from Scheme Rules. TODO update!
 
 ;; A rule is a pattern, a predicate and a handler. The pattern determines the
 ;; applicability of the rule, and the match bindings that enable said
@@ -37,6 +39,8 @@
 ;; applied to the dictionary if it does. The input datum is used as the sentinel
 ;; value for failure because in the context of term rewriting, succeeding with
 ;; the input as the answer is equivalent to failing.
+;;
+;; TODO we are NOT doing this now, we are making it explicit.
 
 ;; The handler can reject a putative match by returning #f, which causes
 ;; backtracking into the matcher, and may cause the handler to be called again
@@ -52,45 +56,63 @@
 ;; value to the matcher combinators. It is then unwrapped by `interpret-success'
 ;; in the rule procedure.
 
-(defn succeed [x]
-  {::succeed x})
-
-(defn- interpret-success [x]
-  (if (map? x)
-    (::succeed x x)
-    x))
-
+;; Two predicates for rules.
 (def => (constantly true))
 (def !=> (constantly false))
 
-;; TODO NOTE that a rule is basically just a `matcher` wrapper with a
-;; consequence, that can `fail`. TODO we need to add the ability to fail.
+;; This is how we record a MATCH failure.
+
+(import-def ps/return)
+(import-def m/failure)
+(import-def m/failed?)
+
+(defn pattern*
+  "Function version of pattern builder."
+  ([form]
+   (m/matcher form))
+  ([form pred]
+   (if pred
+     (m/matcher form pred)
+     (m/matcher form))))
+
+(defmacro pattern
+  "Generates a pattern matcher from a template. TODO describe the language here!"
+  ([form]
+   `(m/matcher
+     ~(ps/compile-pattern form)))
+  ([form pred]
+   `(m/matcher
+     ~(ps/compile-pattern form)
+     ~@(when pred [pred]))))
+
+(defmacro consequence
+  "Generates a rule handler from a skeleton form. TODO describe the language
+  here!"
+  [form]
+  (ps/compile-skeleton form))
 
 (defn make-rule
-  "The value to return on failure can be overridden to distinguish idempotent
-  success from actual failure, should that be important.
+  "Accepts a `match` pattern and a handler...
 
-  TODO this would be better if we could actually pass a skeleton into the result
-  instead of a function too. Then, we could compile the skeleton down HERE...
-  and splice in variables and stuff in the final bit.
+  - if the match fails, returns `failure`.
+  - if the handler returns `nil` or `false`, returns `failure`.
+  - if you WANT to return `nil` or `false` explicitly, use [[return]].
 
-  TODO to do this, we'd need the `rule` macro to NOT build the function.
+  Basically we have an [[match/matcher]], and then the `handler` argument gets
+  fed the dictionary of matches if the match succeeds (might be empty!)
 
-  TODO we already hint at this with `constantly handler`."
-  ([pattern handler]
-   (make-rule pattern nil handler))
-  ([pattern pred handler]
-   (let [match (if pred
-                 (m/matcher pattern pred)
-                 (m/matcher pattern))]
-	   (fn call
-       ([data]
-        (call data data))
-       ([data fail-token]
-        (interpret-success
-         (or (when-let [frame (match data)]
-               (handler frame))
-             (succeed fail-token))))))))
+  TODO use [[consequence]] if you want."
+  [match handler]
+  (let [match (if (fn? match)
+                match
+                (m/matcher match))]
+    (fn [data]
+      (let [result (match data)]
+        (if (m/failed? result)
+          m/failure
+          (ps/unwrap
+           (or (handler result)
+               m/failure)))))))
 
 (defn- compile-rule
   "Rule takes a match pattern and substitution pattern, compiles each of these and
@@ -101,18 +123,18 @@
   bindings satisfy the supplied predicate, will call the continuation with the
   result of the substitution.
 
-  TODO note that in the two arg case, you give a function of the bindings.
+  TODO note that in the two arg case, you give a function of the bindings, and
+  that you can use [[consequence]] if you like.
 
   TODO NOTE that if the consequent-fn in the two arg case returns falsey, the
   whole thing fails."
-  ([pattern consequent-fn]
-   `(make-rule ~(ps/compile-pattern pattern)
+  ([p consequent-fn]
+   `(make-rule (pattern ~p)
                ~consequent-fn))
 
-  ([pattern predicate skeleton]
-   `(make-rule ~(ps/compile-pattern pattern)
-               ~(ps/compile-predicate predicate)
-               ~(ps/compile-skeleton skeleton))))
+  ([p pred skeleton]
+   `(make-rule (pattern ~p ~pred)
+               (consequence ~skeleton))))
 
 (defmacro rule
   ([pattern consequent-fn]
@@ -124,65 +146,134 @@
 ;;
 ;; Rule combinators
 ;;
-;; Various patterns of rule application captured as combinators that
-;; take rules and produce rules (to wit, procedures that accept one
-;; input and return the result of transforming it, where returning
-;; the input itself signals match failure).
+;; Various patterns of rule application captured as combinators that take rules
+;; and produce rules (to wit, procedures that accept one input and return the
+;; result of transforming it, where returning the input itself signals match
+;; failure).
 
-(def ^:no-doc sentinel
-  #?(:cljs (NeverEquiv.)
-     :clj (Object.)))
+(defn pass [data] data)
 
-(defn rule-list
+(defn fail [_] failure)
+
+(defn return
+  "Returns a rule that always replaces its input with `x`."
+  [x]
+  (fn [_] x))
+
+(defn branch
+  "Returns a rule that calls `succeed-r` with `(r data)` if successful, `fail-r`
+  with `data` if failed."
+  [r succeed-r fail-r]
+  (fn [data]
+    (let [result (r data)]
+      (if (failed? result)
+        (fail-r data)
+        (succeed-r result)))))
+
+(defn choice*
   "Apply several rules in series, returning the first success."
   [rules]
-  (fn call
-    ([data] (call data data))
-    ([data fail-token]
-     (loop [rules rules]
-       (if (empty? rules)
-         fail-token
-         (let [answer ((first rules) data sentinel)]
-           (if (= answer sentinel)
-             (recur (rest rules))
-             answer)))))))
+  (fn [data]
+    (loop [rules rules]
+      (if (empty? rules)
+        failure
+        (let [answer ((first rules) data)]
+          (if (failed? answer)
+            (recur (rest rules))
+            answer))))))
 
-(defn in-order
-  "Apply several rules in series, threading the results.
+(defn choice
+  "Apply several rules in series, returning the first success."
+  ([] fail)
+  ([r] r)
+  ([r & rs]
+   (choice* (cons r rs))))
 
-  This one will only fail if ALL of the rules fail."
-  [& rules]
-  (fn call
-    ([data] (call data data))
-    ([data fail-token]
-     (let [[acc fail?]
-           (reduce
-            (fn [[acc fail?] r]
-              (let [result (r acc sentinel)]
-                (if (= result sentinel)
-                  [acc fail?]
-                  [result false])))
-            [data true]
-            rules)]
-       (if fail? fail-token acc)))))
+(defn pipe*
+  "Apply several rules in series, threading the results. Takes a collection of
+  rules."
+  [rules]
+  (fn [data]
+    (reduce (fn [prev r]
+              (let [result (r prev)]
+                (if (failed? result)
+                  (reduced failure)
+                  result)))
+            data
+            rules)))
+
+(defn pipe
+  "Apply several rules in series, threading the results."
+  ([] pass)
+  ([r] r)
+  ([r & rs]
+   (pipe* (cons r rs))))
+
+(defn n-times
+  "Returns a rule that applies the rule `r` `n` times, failing out if any
+  application fails."
+  [n r]
+  (pipe* (repeat n r)))
+
+(defn attempt
+  "Returns a rule which will attempt `r` and return its input if `r` fails."
+  [r]
+  (choice r pass))
+
+(defn predicate
+  "Returns a rule that will pass the data on unchanged if `(f data)` returns true,
+  fail otherwise."
+  [f]
+  (fn [data]
+    (if (f data)
+      data
+      failure)))
+
+(defn guard
+  "Build a strategy which applies `s` to `t` iff `p` is true for `t`."
+  [f r]
+  (attempt
+   (pipe (predicate f) r)))
 
 (defn iterated
-  "Apply one rule repeatedly until it doesn't match anymore.
+  "Apply one rule repeatedly until it doesn't match anymore."
+  [r]
+  (fn [data]
+    (let [result (r data)]
+      (if (failed? result)
+        data
+        (recur result)))))
 
-  The `fail-token` here only returns if we fail to match even a single time."
-  [the-rule]
-  (fn call
-    ([data]
-     (call data data))
-    ([data fail-token]
-     (let [attempts (iterate #(the-rule % sentinel)
-                             (the-rule data sentinel))]
-       (reduce (fn [l r]
-                 (if (= r sentinel)
-                   (reduced l)
-                   r))
-               fail-token
-               attempts)))))
+(defn while
+  "Returns a new rule which repeatedly applies `r` until `f` returns `true`
+  between two successive values."
+  [f r]
+  (fn rec [data]
+    ((pipe (attempt r)
+           (fn [data*]
+             (if (f data data*)
+               (rec data*)
+               data*)))
+     data)))
+
+(defn until
+  "Returns a new rule which repeatedly applies `r` until `f` returns `false`
+  between two successive values."
+  [f r]
+  (fn [data]
+    (let [data* ((attempt r) data)]
+      (if (f data data*)
+        data*
+        (recur data*)))))
+
+(defn fixed-point
+  "Apply a rule until it returns its input."
+  [r]
+  (fn [data]
+    (let [result (r data)]
+      (if (= data result)
+        data
+        (recur result)))))
 
 ;; ## Expression Matchers
 
@@ -194,14 +285,14 @@
         subexpressions-tried))
     expr))
 
-(defn on-subexpressions
+(defn bottom-up
   "Apply one rule to all subexpressions of the input, bottom-up."
   [the-rule]
-  (fn on-expr [expression]
-    (the-rule
-     (try-subexpressions on-expr expression))))
+  (let [r (attempt the-rule)]
+    (fn on-expr [expression]
+      (r (try-subexpressions on-expr expression)))))
 
-(defn iterated-on-subexpressions
+(defn iterated-bottom-up
   "Iterate one rule to convergence on all subexpressions of the input,
   bottom up.
 
@@ -209,33 +300,36 @@
   may admit additional invocations, so we need to recur again after every
   successful transformation."
   [the-rule]
-  (fn on-expr [expr]
-    (let [subexpressions-done (try-subexpressions on-expr expr)
-          answer (the-rule subexpressions-done)]
-      (if (= answer subexpressions-done)
-        answer
-        (on-expr answer)))))
+  (let [r (attempt the-rule)]
+    (fn on-expr [expr]
+      (let [subexpressions-done (try-subexpressions on-expr expr)
+            answer (r subexpressions-done)]
+        (if (= answer subexpressions-done)
+          answer
+          (on-expr answer))))))
 
 (defn top-down
   "Iterate one rule to convergence on all subexpressions of the input, applying
   it on the way down as well as back up."
   [the-rule]
-  (fn on-expr [expr]
-    (let [answer (the-rule expr)]
-      (if (= answer expr)
-        (let [subexpressions-done (try-subexpressions on-expr expr)
-              answer (the-rule subexpressions-done)]
-          (if (= answer subexpressions-done)
-            answer
-            (on-expr answer)))
-        (on-expr answer)))))
+  (let [r (attempt the-rule)]
+    (fn on-expr [expr]
+      (let [answer (r expr)]
+        (if (= answer expr)
+          (let [subexpressions-done (try-subexpressions on-expr expr)
+                answer (r subexpressions-done)]
+            (if (= answer subexpressions-done)
+              answer
+              (on-expr answer)))
+          (on-expr answer))))))
 
 ;; ## Our API
 ;;
 ;; The original, good stuff.
 
 (defn make-ruleset [rules]
-  (rule-list rules))
+  (attempt
+   (choice* rules)))
 
 (defmacro ruleset
   "Ruleset compiles rules, predicates and consequences (triplet-wise) into a
@@ -250,7 +344,7 @@
   {:pre (zero? (mod (count patterns-and-consequences) 3))}
   (let [rule-inputs (partition 3 patterns-and-consequences)
         rules       (mapv #(apply compile-rule %) rule-inputs)]
-    `(rule-list ~rules)))
+    `(make-ruleset ~rules)))
 
 (defn rule-simplifier
   "Transform the supplied rules into a function of expressions which will
@@ -258,8 +352,8 @@
   of the expression in depth order, then simplifies the result; the process is
   continued until a fixed point of the simplification process is achieved."
   [& the-rules]
-  (iterated-on-subexpressions
-   (rule-list the-rules)))
+  (iterated-bottom-up
+   (choice* the-rules)))
 
 (defn term-rewriting
   "Alias for `rule-simplifier`..."

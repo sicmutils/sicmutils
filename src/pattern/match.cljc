@@ -41,6 +41,7 @@
 ;;
 ;; TODO: We ALSO want to convert all of the rules to `?x` syntax
 ;; TODO: we ALSO want to remove `:??`, and make it `??` like the original.
+;; TODO: wildcard matcher for sequences? Cool?
 ;;
 ;; # Pattern Matcher
 ;;
@@ -152,16 +153,20 @@
   The binding only occurs if `input` passes `pred`.
 
   If `sym` is already present in `frame`, the matcher only succeeds if the
-  values are equal, fails otherwise."
+  values are equal, fails otherwise.
+
+  TODO note, if sym is wildcard, will just pass with no bindings."
   ([sym]
    (bind sym (fn [_] true)))
   ([sym pred]
    (fn bind-match [frame data succeed]
      (when (pred data)
-       (if-let [binding (frame sym)]
-         (core:and (= binding data)
-                   (succeed frame))
-         (succeed (assoc frame sym data)))))))
+       (if (s/wildcard? sym)
+         (succeed frame)
+         (if-let [binding (frame sym)]
+           (core:and (= binding data)
+                     (succeed frame))
+           (succeed (assoc frame sym data))))))))
 
 ;; ### Matcher Combinators
 ;;
@@ -423,7 +428,7 @@
 
         :else (eq pattern)))
 
-;; ## Making toplevel matchers out of patterns
+;; ## Top Level Matchers
 ;;
 ;; What do we have to this point? We have a collection of matcher combinators,
 ;; and a soon-to-be-open system for turning a pattern into a matcher. Rules
@@ -431,20 +436,32 @@
 ;;
 ;; TODO note that this is a higher level place for passing either patterns OR
 ;; already built matchers. They are all the same. We have our low level
-;; combinators; now we want to build matchers.
+;; combinators; now we want to build matchers. These can fail!
+;;
+;; This is how we record a MATCH failure. Previously this was in `rule`. So
+;; good!
 
-;; This is something that's available
+(defrecord Failure [])
+
+(def failure (Failure.))
+
+(defn failed?
+  "Returns true if `x` is equivalent to the failure sentinel [[failure]], false
+  otherwise."
+  [x]
+  (instance? Failure x))
 
 (defn matcher
   "Returns a function of the data that...
 
   TODO could by (match-and match (update-frame f)), test that this is true.
 
-  TODO note that this is the place to bump up to a better API."
+  TODO note that this is where we can FAIL, now, if we don't match!!"
   ([pattern]
    (let [match (pattern->combinators pattern)]
      (fn [data]
-       (match {} data identity))))
+       (core:or (match {} data identity)
+                failure))))
   ([pattern pred]
    (let [match (pattern->combinators pattern)
          success (fn [frame]
@@ -453,10 +470,11 @@
                        (merge frame m)
                        frame)))]
      (fn [data]
-       (match {} data success)))))
+       (core:or (match {} data success)
+                failure)))))
 
 (defn match
-  "TODO note that this is a high level wrapper."
+  "TODO note that this is a high level wrapper!"
   ([pattern data]
    ((matcher pattern) data))
   ([pattern data pred]
@@ -465,16 +483,14 @@
 (defn foreach-matcher
   "TODO note that this calls `f` with each frame, for side effects."
   [pattern f]
-  (let [match (pattern->combinators pattern)]
-    (fn [data]
-      (let [cont (fn
-                   ([frame]
-                    (f frame)
-                    false)
-                   ([frame xs]
-                    (f frame xs)
-                    false))]
-        (match {} data cont)))))
+  (letfn [(cont
+            ([frame]
+             (f frame)
+             false)
+            ([frame xs]
+             (f frame xs)
+             false))]
+    (matcher pattern cont)))
 
 (defn foreach [pattern f data]
   ((foreach-matcher pattern f) data))

@@ -46,9 +46,11 @@
        :doc "Historical preference is to write `sin^2(x)` rather
        than `(sin(x))^2`."}
   rewrite-trig-powers
-  (let [ok? #(and ('#{sin cos tan} (% :T))
-                  (= 2 (% :N)))]
-    (R/rule (expt (:T :X) :N) ok? ((expt :T :N) :X))))
+  (let [ok? #(and ('#{sin cos tan} (% '?T))
+                  (= 2 (% '?N)))]
+    (R/choice
+     (R/rule (expt (?T ?X) ?N) ok? ((expt ?T ?N) ?X))
+     (R/return nil))))
 
 (def ^{:private true
        :doc "The simplifier returns sums of products; for negative summands the
@@ -135,7 +137,8 @@
 
           (maybe-rewrite-trig-squares [loc]
             (if-let [result (and rewrite-trig-squares
-                                 (rewrite-trig-powers (z/node loc) nil))]
+                                 (rewrite-trig-powers
+                                  (z/node loc)))]
               (z/replace loc result)
               loc))
           (render-unary-node [op args]

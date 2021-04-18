@@ -156,7 +156,7 @@
 			                     (* y (+ 1 2 -3) z))))
     (equal?
      '(/ (* r1 r2) (+ r1 r2))
-     ((in-order ->quotient-of-sums simplify-quotient)
+     ((pipe ->quotient-of-sums simplify-quotient)
       '(/ 1 (+ (/ 1 r1) (/ 1 r2))))))
 
   (define associate-addition
@@ -238,7 +238,7 @@
     (let ((items (iota 10))) ; linear
       (assert-equal
        items
-       ((iterated-on-subexpressions find-consecutive-dups)
+       ((iterated-bottom-up find-consecutive-dups)
         items))))
 
   (define-test (associativity-test)
@@ -248,7 +248,7 @@
 	         (items (cons '+ (make-list len (cons '+ sublist)))))
       (check (equal?
 	            (cons '+ (apply append (make-list len sublist)))
-	            ((iterated-on-subexpressions plus-assoc)
+	            ((iterated-bottom-up plus-assoc)
 	             items)))))
 
   (define-test (removing-duplicates)
@@ -258,13 +258,13 @@
     (let ((items (make-list 10 'foo))) ; quadratic + gc pressure
       (assert-equal
        '(foo)
-       ((iterated-on-subexpressions find-consecutive-dups)
+       ((iterated-bottom-up find-consecutive-dups)
         items)))
     (let* ((len 10) ; quadratic + gc pressure
 	         (items (append (iota len) (make-list len 'foo))))
       (assert-equal
        (append (iota len) '(foo))
-       ((iterated-on-subexpressions find-consecutive-dups)
+       ((iterated-bottom-up find-consecutive-dups)
         items))))
 
   (define-test (removing-duplicates-the-easy-way)
@@ -272,13 +272,13 @@
     (let ((items (cons 'or (make-list 10 'foo)))) ; linear
       (assert-equal
        '(or foo)
-       ((iterated-on-subexpressions or-idempotent)
+       ((iterated-bottom-up or-idempotent)
         items)))
     (let* ((len 10) ; linear
 	         (items (cons 'or (append (iota len) (make-list len 'foo)))))
       (assert-equal
        (cons 'or (append (iota len) '(foo)))
-       ((iterated-on-subexpressions or-idempotent)
+       ((iterated-bottom-up or-idempotent)
         items))))
 
   (define-test (commutativity-check-test)
@@ -300,7 +300,7 @@
       (check
        (equal?
         `(and ,@(iota len))
-        ((iterated-on-subexpressions (commutativity 'and)) items)))))
+        ((iterated-bottom-up (commutativity 'and)) items)))))
 
   (define-test (simplifying-sums)
     (let ((len 10)) ; linear

@@ -138,7 +138,9 @@
 
 (defn compile-pattern
   "Replace `pattern` with code that will construct the equivalent form with
-  variable predicate values exposed to evaluation (see above)."
+  variable predicate values exposed to evaluation (see above).
+
+  AND, also note what is actually going on..."
   [pattern]
   (letfn [(compile-sequential [xs]
             (let [acc (splice-reduce
@@ -162,16 +164,21 @@
 
           :else pattern)))
 
-(defn compile-predicate
-  "TODO nothing happens!"
-  [pred]
-  pred)
-
 (defn- lookup [m x]
   (let [f (if (symbol? x)
             `(quote ~x)
             x)]
     (list f m)))
+
+(defn return
+  "TODO note that this is how we return a form like false or nil."
+  [x]
+  {::return x})
+
+(defn unwrap [x]
+  (if (map? x)
+    (::return x x)
+    x))
 
 (defn compile-skeleton
   "Compiles a skeleton expression (written as a pattern), by returning a code
@@ -220,5 +227,8 @@
                     `(seq ~(compile-sequential form))
 
                     :else `'~form))]
-      `(fn [~frame-sym]
-         ~(compile skel)))))
+      (if skel
+        `(fn [~frame-sym]
+           ~(compile skel))
+        `(fn [_#]
+           (return ~skel))))))
