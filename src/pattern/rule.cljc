@@ -276,21 +276,32 @@
         (recur result)))))
 
 ;; ## Expression Matchers
+;;
+;; TODO add trace, check for more matchers!!
 
 (defn- try-subexpressions [the-rule expr]
-  (if (sequential? expr)
-    (let [subexpressions-tried (map the-rule expr)]
-      (if (every? true? (map = expr subexpressions-tried))
-        expr
-        subexpressions-tried))
-    expr))
+  (cond (sequential? expr)
+        (let [processed (map the-rule expr)]
+          (if (= expr processed)
+            expr
+            (if (vector? expr)
+              (vec processed)
+              processed)))
+
+        (map? expr)
+        (let [processed (u/map-vals the-rule expr)]
+          (if (= expr processed)
+            expr
+            processed))
+
+        :else expr))
 
 (defn bottom-up
   "Apply one rule to all subexpressions of the input, bottom-up."
   [the-rule]
   (let [r (attempt the-rule)]
-    (fn on-expr [expression]
-      (r (try-subexpressions on-expr expression)))))
+    (fn rec [expression]
+      (r (try-subexpressions rec expression)))))
 
 (defn iterated-bottom-up
   "Iterate one rule to convergence on all subexpressions of the input,
@@ -301,27 +312,27 @@
   successful transformation."
   [the-rule]
   (let [r (attempt the-rule)]
-    (fn on-expr [expr]
-      (let [subexpressions-done (try-subexpressions on-expr expr)
-            answer (r subexpressions-done)]
-        (if (= answer subexpressions-done)
+    (fn rec [expr]
+      (let [processed (try-subexpressions rec expr)
+            answer (r processed)]
+        (if (= answer processed)
           answer
-          (on-expr answer))))))
+          (rec answer))))))
 
-(defn top-down
+(defn iterated-top-down
   "Iterate one rule to convergence on all subexpressions of the input, applying
   it on the way down as well as back up."
   [the-rule]
   (let [r (attempt the-rule)]
-    (fn on-expr [expr]
+    (fn rec [expr]
       (let [answer (r expr)]
         (if (= answer expr)
-          (let [subexpressions-done (try-subexpressions on-expr expr)
-                answer (r subexpressions-done)]
-            (if (= answer subexpressions-done)
+          (let [processed (try-subexpressions rec expr)
+                answer (r processed)]
+            (if (= answer processed)
               answer
-              (on-expr answer)))
-          (on-expr answer))))))
+              (rec answer)))
+          (rec answer))))))
 
 ;; ## Our API
 ;;
@@ -353,7 +364,7 @@
   continued until a fixed point of the simplification process is achieved."
   [& the-rules]
   (iterated-bottom-up
-   (choice* the-rules)))
+   (pipe* the-rules)))
 
 (defn term-rewriting
   "Alias for `rule-simplifier`..."

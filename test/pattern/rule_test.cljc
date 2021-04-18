@@ -92,8 +92,11 @@
       (is (= '(8 7 6) (RS '(6 7 8))))
       (is (= '(* 2 5) (RS '(5 5))))
       (is (= '(* 2 f) (RS '(f f))))
-      (is (r/failed? (RS '(4))))
-      (is (r/failed? (RS '(5 6 7 8))))
+
+      (testing "failure acts as ID for rulesets"
+        (is (= '(4) (RS '(4))))
+        (is (= '(5 6 7 8) (RS '(5 6 7 8)))))
+
       (is (= [8 10] (RS '(10 8))))
       (is (= [6 8 10] (RS '(10 8 6))))))
 
@@ -165,7 +168,7 @@
           RS (r/rule-simplifier R)]
       (is (= '(b 4 3) (R '(a 3 4))))
       (is (= '(c 4 3.1) (R '(a 3.1 4))))
-      (is (r/failed? (R '(a "foo" 4))))
+      (is (= '(a "foo" 4) (R '(a "foo" 4))))
       (is (= 'success (R '(* (expt (cos y) 3)))))
       (is (= 4 (R '(* (expt (tan y) 4)))))
       (is (= 3 (R '(* (expt (sin z) 5)))))
@@ -233,7 +236,13 @@
     (is (= '(* 2 x y z)
            (R '(+ () x x y z)))
         "testing unquote, unquoting in an actual matcher vs a literal, and empty
-        list matching.")))
+        list matching."))
+
+  (let [R (r/bottom-up
+           (r/rule (:? _ integer? odd?) => "face!"))]
+    (is (= {:note [10 "face!" 12]}
+           (R {:note [10 11 12]}))
+        "Replacements can dive into vectors and dictionaries.")))
 
 
 (comment

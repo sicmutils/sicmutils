@@ -46,11 +46,9 @@
        :doc "Historical preference is to write `sin^2(x)` rather
        than `(sin(x))^2`."}
   rewrite-trig-powers
-  (let [ok? #(and ('#{sin cos tan} (% '?T))
-                  (= 2 (% '?N)))]
-    (R/choice
-     (R/rule (expt (?T ?X) ?N) ok? ((expt ?T ?N) ?X))
-     (R/return nil))))
+  (R/choice
+   (R/rule (expt ((:? f #{'sin 'cos 'tan}) ?x) 2) => ((expt (:? f) 2) ?x))
+   (R/return nil)))
 
 (def ^{:private true
        :doc "The simplifier returns sums of products; for negative summands the
@@ -58,8 +56,8 @@
   use a unary minus."}
   rewrite-negation
   (R/ruleset
-   (* -1 :X) => (u- :X)
-   (* -1 :X*) => (u- (* :X*))))
+   (* -1 ?x) => (u- ?x)
+   (* -1 ??x) => (u- (* ??x))))
 
 (defn- render-infix-ratio
   "renders a pair of the form `[numerator denominator]` as a infix ratio of the
