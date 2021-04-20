@@ -29,30 +29,23 @@
 ;; - `_` is a wildcard matcher that succeeds with anything and introduces no new
 ;;   bindings.
 ;;
-;; - `:x` or `?x` trigger an unrestricted binding match. It will match anything
-;;   and introduce a new binding from that symbol to the matched value.
+;; - `?x` triggers an unrestricted binding match. It will match anything and
+;;   introduce a new binding from that symbol to the matched value.
 ;;
 ;; - `(:? <binding> <predicates...>)` triggers a binding iff all of the
 ;;   predicate functions appearing after the binding pass for the candidate
 ;;
-;; - `(:?? <binding>)`, `??x` or `:x*` (a keyword ending with a *) inside of a
-;;   sequence matches a _segment_ of the list whose length isn't fixed. Segments
-;;   will attempt to succed with successively longer prefixes of the remaining
-;;   items in the list.
+;; - `(:?? <binding>)` or `??x` inside of a sequence matches a _segment_ of the
+;;   list whose length isn't fixed. Segments will attempt to succed with
+;;   successively longer prefixes of the remaining items in the list.
 ;;
-;; - `(:$$ <binding>)`, `$$x` or `:x$` (a keyword ending with `$`) will only
-;;   match _after_ the same binding has already succeeded with a segment. If it
-;;   has, - this will match a segment equal to the _reverse_ of the
-;;   already-bound segment.
+;; - `(:$$ <binding>)` or `$$x` will only match _after_ the same binding has
+;;   already succeeded with a segment. If it has, - this will match a segment
+;;   equal to the _reverse_ of the already-bound segment.
 ;;
 ;; - Any sequential entry, like a list or a vector, triggers a `sequence` match.
 ;;   This will attempt to match a sequence, and only pass if its matcher
 ;;   arguments are able to match all entries in the sequence.
-;;
-;; I'm planning on killing the keyword forms of the bindings, since that
-;; prevents us from matching keywords, of course. That is fine for `sicmutils`,
-;; because symbolic expressions never contain these, but the pattern matching
-;; code wants to be a lot more general!
 ;;
 ;;
 ;; ## Non-Macro Syntax
@@ -81,14 +74,10 @@
 
   A binding variable is either:
 
-  - A keyword not ending in `$` or `*` (these signal [[segment?]])
   - A symbol starting with a single `?` character
   - A sequence of the form `(:? <binding> ...)`."
   [pattern]
-  (or (and (keyword? pattern)
-           (not (#{\* \$} (suffix pattern))))
-
-      (and (simple-symbol? pattern)
+  (or (and (simple-symbol? pattern)
            (u/re-matches? #"\?[^\?].*" (name pattern)))
 
       (and (sequential? pattern)
@@ -99,14 +88,10 @@
 
   A segment binding variable is either:
 
-  - A keyword ending with `*`
   - A symbol starting with `??`
   - A sequence of the form `(:?? <binding>)`."
   [pattern]
-  (or (and (keyword? pattern)
-           (= \* (suffix pattern)))
-
-      (and (simple-symbol? pattern)
+  (or (and (simple-symbol? pattern)
            (u/re-matches? #"\?\?[^\?].*" (name pattern)))
 
       (and (sequential? pattern)
@@ -118,14 +103,10 @@
 
   A reverse-segment binding variable is either:
 
-  - A keyword ending `$`
   - A symbol starting with `$$`
   - A sequence of the form `(:$$ <binding>)`."
   [pattern]
-  (or (and (keyword? pattern)
-           (= \$ (suffix pattern)))
-
-      (and (simple-symbol? pattern)
+  (or (and (simple-symbol? pattern)
            (u/re-matches? #"\$\$[^\$].*" (name pattern)))
 
       (and (sequential? pattern)
@@ -137,8 +118,7 @@
 
   NOTE that [[variable-name]] will not guard against incorrect inputs."
   [pattern]
-  (if (or (keyword? pattern)
-          (simple-symbol? pattern))
+  (if (simple-symbol? pattern)
     pattern
     (second pattern)))
 
@@ -151,8 +131,7 @@
   returns a predicate that will always return `true`."
   [pattern]
   (let [no-constraint (fn [_] true)]
-    (if (or (keyword? pattern)
-            (simple-symbol? pattern))
+    (if (simple-symbol? pattern)
       no-constraint
       (if-let [fs (seq (drop 2 pattern))]
         (apply every-pred fs)

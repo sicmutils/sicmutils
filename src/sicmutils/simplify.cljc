@@ -116,6 +116,7 @@
 (def ^:private simplifies-to-one?
   #(-> % *rf-analyzer* v/one?))
 
+;; TODO move to rules!!
 (def trig-cleanup
   "This finds things like a - a cos^2 x and replaces them with a sin^2 x"
   (let [at-least-two? #(and (number? %) (>= % 2))]
@@ -123,32 +124,33 @@
      (rule/rule-simplifier
       (rule/ruleset
        ;;  ... + a + ... + cos^n x + ...   if a + cos^(n-2) x = 0: a sin^2 x
-       (+ :a1* :a :a2* (expt (cos :x) (:? n at-least-two?)) :a3*)
-       #(simplifies-to-zero? `(~'+ (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2)) ~(% :a)))
-       (+ :a1* :a2* :a3* (* :a (expt (sin :x) 2)))
-
-       (+ :a1* (expt (cos :x) (:? n at-least-two?)) :a2* :a :a3*)
+       (+ ??a1 ?a ??a2 (expt (cos ?x) (:? ?n at-least-two?)) ??a3)
        #(simplifies-to-zero?
-         `(~'+ (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2)) ~(% :a)))
-       (+ :a1* :a2* :a3* (* :a (expt (sin :x) 2)))
+         `(~'+ (~'expt (~'cos ~(% '?x)) ~(- (% '?n) 2)) ~(% '?a)))
+       (+ ??a1 ??a2 ??a3 (* ?a (expt (sin ?x) 2)))
 
-       (+ :a1* :a :a2* (* :b1* (expt (cos :x) (:? n at-least-two?)) :b2*) :a3*)
+       (+ ??a1 (expt (cos ?x) (:? ?n at-least-two?)) ??a2 ?a ??a3)
        #(simplifies-to-zero?
-         `(~'+ (~'* ~@(% :b1*) ~@(% :b2*) (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2))) ~(% :a)))
-       (+ :a1* :a2* :a3* (* :a (expt (sin :x) 2)))
+         `(~'+ (~'expt (~'cos ~(% '?x)) ~(- (% '?n) 2)) ~(% '?a)))
+       (+ ??a1 ??a2 ??a3 (* ?a (expt (sin ?x) 2)))
 
-       (+ :a1* (* :b1* (expt (cos :x) (:? n at-least-two?)) :b2*) :a2* :a :a3*)
+       (+ ??a1 ?a ??a2 (* ??b1 (expt (cos ?x) (:? ?n at-least-two?)) ??b2) ??a3)
        #(simplifies-to-zero?
-         `(~'+ (~'* ~@(% :b1*) ~@(% :b2*) (~'expt (~'cos ~(% :x)) ~(- (% 'n) 2))) ~(% :a)))
-       (+ :a1* :a2* :a3* (* :a (expt (sin :x) 2)))
+         `(~'+ (~'* ~@(% '??b1) ~@(% '??b2) (~'expt (~'cos ~(% '?x)) ~(- (% '?n) 2))) ~(% '?a)))
+       (+ ??a1 ??a2 ??a3 (* ?a (expt (sin ?x) 2)))
+
+       (+ ??a1 (* ??b1 (expt (cos ?x) (:? ?n at-least-two?)) ??b2) ??a2 ?a ??a3)
+       #(simplifies-to-zero?
+         `(~'+ (~'* ~@(% '??b1) ~@(% '??b2) (~'expt (~'cos ~(% '?x)) ~(- (% '?n) 2))) ~(% '?a)))
+       (+ ??a1 ??a2 ??a3 (* ?a (expt (sin ?x) 2)))
 
        ;; TODO - the original pushes rcf:simplify inside this block.
-       (atan :y :x)
+       (atan ?y ?x)
        (fn [m]
-         (let [xy-gcd (*rf-analyzer* `(~'gcd ~(:x m) ~(:y m)))]
+         (let [xy-gcd (*rf-analyzer* `(~'gcd ~(m '?x) ~(m '?y)))]
            (when-not (v/one? xy-gcd)
-             {:gcd xy-gcd})))
-       (atan (/ :y :gcd) (/ :x :gcd))))
+             {'?gcd xy-gcd})))
+       (atan (/ ?y ?gcd) (/ ?x ?gcd))))
      simplify-and-flatten)))
 
 (def clear-square-roots-of-perfect-squares

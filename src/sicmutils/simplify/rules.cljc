@@ -198,42 +198,28 @@
     => (* (expt (sin ?x) (:? #(- (% '?n) 2)))
           (- 1 (expt (cos ?x) 2))))))
 
-;; TODO consolidate these two into split-high-degree-trig by binding the op.
-(def ^:private split-high-degree-cosines
-  (ruleset
-   (* ??f1
-      (expt (cos ?x) (:? ?n more-than-two?))
-      ??f2)
-   => (* ??f1
-         (expt (cos ?x) 2)
-         (expt (cos ?x) (:? #(- (% '?n) 2)))
-         ??f2)
 
-   (+ ??a1
-      (expt (cos ?x) (:? ?n more-than-two?))
-      ??a2)
-   => (+ ??a1
-         (* (expt (cos ?x) 2)
-            (expt (cos ?x) (:? #(- (% '?n) 2))))
-         ??a2)))
 
-(def ^:private split-high-degree-sines
-  (ruleset
-   (* ??f1
-      (expt (sin ?x) (:? ?n more-than-two?))
-      ??f2)
-   => (* ??f1
-         (expt (sin ?x) 2)
-         (expt (sin ?x) (:? #(- (% '?n) 2)))
-         ??f2)
+(def split-high-degree-sincos
+  (letfn [(remaining [m]
+            (let [leftover (- (m '?n) 2)]
+              (if (= leftover 1)
+                (list (m '?op) (m '?x))
+                `(~'expt (~(m '?op) ~(m '?x)) ~leftover))))]
+    (ruleset
+     (* ??f1
+        (expt ((:? ?op #{'sin 'cos}) ?x) (:? ?n more-than-two?))
+        ??f2)
+     => (* ??f1
+           (expt (?op ?x) 2) (:? ~remaining)
+           ??f2)
 
-   (+ ??a1
-      (expt (sin ?x) (:? ?n more-than-two?))
-      ??a2)
-   => (+ ??a1
-         (* (expt (sin ?x) 2)
-            (expt (sin ?x) (:? #(- (% '?n) 2))))
-         ??a2)))
+     (+ ??a1
+        (expt ((:? ?op #{'sin 'cos}) ?x) (:? ?n more-than-two?))
+        ??a2)
+     => (+ ??a1
+           (* (expt (?op ?x) 2) (:? ~remaining))
+           ??a2))))
 
 (def simplify-square-roots
   (rule-simplifier
@@ -322,8 +308,6 @@
 
     )))
 
-;; TODO continue from here!
-
 (defn sqrt-contract
   ([] (sqrt-contract identity))
   ([simplify]
@@ -408,7 +392,7 @@
     (/ (+ ??terms) (:? ?d v/number?))
     => (+ (:?? #(map (fn [n] `(~'/ ~n ~(% '?d))) (% '??terms)))))))
 
-(def ^:private flush-obvious-ones
+(def flush-obvious-ones
   (ruleset
    (+ ??a1 (expt (sin ?x) 2) ??a2 (expt (cos ?x) 2) ??a3)
    => (+ 1 ??a1 ??a2 ??a3))
@@ -459,8 +443,8 @@
     (asin (sin ?x))          => ?x
     (sin (atan ?y ?x))       => (/ ?y (sqrt (+ (expt ?x 2) (expt ?y 2))))
     (cos (atan ?y ?x))       => (/ ?x (sqrt (+ (expt ?x 2) (expt ?y 2))))
-    (cos (asin ?t))          => (sqrt (- 1 (square ?t)))
-    )
+    (cos (asin ?t))          => (sqrt (- 1 (square ?t))))
+
    (ruleset
     (acos (cos ?x))          => ?x
     (atan (tan ?x))          => ?x
@@ -468,9 +452,9 @@
     (atan (* ?c (sin ?x)) (* ?c (cos ?x))) => ?x)))
 
 (def sincos-flush-ones
-  (rule-simplifier split-high-degree-cosines
-                   split-high-degree-sines
-                   flush-obvious-ones))
+  (rule-simplifier
+   split-high-degree-sincos
+   flush-obvious-ones))
 
 (defn universal-reductions [x]
   (triginv x))
