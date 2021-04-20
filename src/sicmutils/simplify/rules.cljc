@@ -76,24 +76,21 @@
   [& ops]
   (let [op-set (into #{} ops)]
     (ruleset
-     ((:? :op op-set) :x) => :x)))
+     ((:? _ op-set) ?x) => ?x)))
 
 (defn constant-elimination
   "Takes an operation `op` and an identity element `constant` and returns a rule
   that eliminates instances of `constant` inside binary forms like `(<op> l
   r)`."
   [op constant]
-  (ruleset ((:? :op #{op}) :l :r)
-           #(or (= constant (% :l))
-                (= constant (% :r)))
-           (:? (fn [{:keys [l r]}]
-                 (if (= constant l) r l)))))
+  (ruleset
+   (~op ~constant ?x) => (~op ?x)
+   (~op ?x ~constant) => (~op ?x)))
 
 (defn constant-promotion [op constant]
-  (ruleset ((:? :op #{op}) :l :r)
-           #(or (= constant (% :l))
-                (= constant (% :r)))
-           (:? (fn [_] constant))))
+  (ruleset
+   (~op _ ~constant) => ~constant
+   (~op ~constant _) => ~constant))
 
 (defn associative
   "Takes a sequence `ops` of operator symbols like `'+`, `'*` and returns a rule
@@ -110,16 +107,17 @@
   (let [op-set  (into #{} ops)
         flatten (fn [op]
                   (fn [term]
+                    ;; TODO we COULD use rules for this too :)
                     (if (and (sequential? term)
                              (= op (first term)))
                       (rest term)
                       [term])))]
     (ruleset
-     ((:? :op op-set) :a* (:op :b*) :c*)
+     ((:? ?op op-set) ??a (?op ??b) ??c)
      =>
-     (:op :a* (:?? (fn [{:keys [op b* c*] :as m}]
+     (?op ??a (:?? (fn [{op '?op, b '??b, c '??c}]
                      (mapcat (flatten op)
-                             (concat b* c*))))))))
+                             (concat b c))))))))
 
 
 ;; - return NEW bindings from the predicate!

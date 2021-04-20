@@ -1,5 +1,5 @@
 ;;
-;; Copyright © 2017 Colin Smith.
+;; Copyright © 2021 Sam Ritchie.
 ;; This work is based on the Scmutils system of MIT/GNU Scheme:
 ;; Copyright © 2002 Massachusetts Institute of Technology
 ;;
@@ -22,6 +22,7 @@
   defined in [[pattern.match]]."
   (:refer-clojure :exclude [replace while])
   (:require #?(:clj [potemkin :refer [import-def]])
+            [pattern.consequence :as c]
             [pattern.match :as m]
             [pattern.syntax :as ps]
             [sicmutils.util :as u]
@@ -62,7 +63,7 @@
 
 ;; This is how we record a MATCH failure.
 
-(import-def ps/succeed)
+(import-def c/succeed)
 (import-def m/failure)
 (import-def m/failed?)
 
@@ -89,7 +90,7 @@
   "Generates a rule handler from a skeleton form. TODO describe the language
   here!"
   [form]
-  (ps/compile-skeleton form))
+  (c/compile-skeleton form))
 
 (defn make-rule
   "Accepts a `match` pattern and a handler...
@@ -110,7 +111,7 @@
       (let [result (match data)]
         (if (m/failed? result)
           m/failure
-          (ps/unwrap
+          (c/unwrap
            (or (handler result)
                m/failure)))))))
 
