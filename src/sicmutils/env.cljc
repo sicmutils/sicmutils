@@ -175,9 +175,9 @@
 constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   -pi (g/- Math/PI))
 
-(def ^{:doc "The mathematical
-  constant [e](https://en.wikipedia.org/wiki/E_(mathematical_constant)),
-  sometimes known as Euler's Number."}
+(def ^{:doc "The mathematical constant known as the [Euler–Mascheroni
+  constant](https://en.wikipedia.org/wiki/Euler%E2%80%93Mascheroni_constant) and
+  sometimes as Euler's constant."}
   euler
   0.57721566490153286)
 
