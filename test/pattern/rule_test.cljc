@@ -102,14 +102,11 @@
 
   (testing "algebra-1"
     (let [RS (r/ruleset
-              (+ (:? a) (+ (:? b) (:? c))) =>
-              (+ (+ (:? a) (:? b) (:? c)))
+              (+ ?a (+ ?b ?c)) => (+ (+ ?a ?b ?c))
 
-              (+ (:? a)) =>
-              (:? a)
+              (+ ?a) => ?a
 
-              (* (:? a) (+ (:? b) (:?? c))) =>
-              (+ (* (:? a) (:? b)) (* (:? a) (:?? c))))
+              (* ?a (+ ?b ??c)) => (+ (* ?a ?b) (* ?a ??c)))
           S (r/rule-simplifier RS)]
       (is (= 3 (S '(+ 3))))
       (is (= '(+ 3 4 5) (S '(+ 3 (+ 4 5)))))
@@ -157,8 +154,8 @@
           subtract-from (fn [sym amount]
                           #(- (% sym) amount))
           R (r/ruleset
-             (a (:? x integer?) (:? y)) => (b (:? y) (:? x))
-             (a (:? x float?) (:? y)) => (c (:? y) (:? x))
+             (a (:? ?x integer?) ?y) => (b ?y ?x)
+             (a (:? ?x float?) ?y) => (c ?y ?x)
              (* (expt (cos (:? x)) (:? n more-than-two?))) => success
              (* (expt (tan (:? x)) (:? n #(> % 2)))) => (:? n)
              (* (expt (sin (:? x)) (:? n #(> % 2)))) => (:? #(- (% 'n) 2))
@@ -180,7 +177,7 @@
                      (expt (sin x) 2)))))))
 
   (testing "rearrangement"
-    (let [R (r/rule (expt (:T :X) :N) => ((expt :T :N) :X))]
+    (let [R (r/rule (expt (?t ?x) ?n) => ((expt ?t ?n) ?x))]
       (is (= '((expt sin 2) t) (R '(expt (sin t) 2))))
       (is (= '((expt cos 2) t) (R '(expt (cos t) 2))))
       (is (r/failed? (R '(expt x 2)))))))

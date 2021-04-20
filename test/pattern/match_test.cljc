@@ -1,21 +1,21 @@
-;
-; Copyright © 2017 Colin Smith.
-; This work is based on the Scmutils system of MIT/GNU Scheme:
-; Copyright © 2002 Massachusetts Institute of Technology
-;
-; This is free software;  you can redistribute it and/or modify
-; it under the terms of the GNU General Public License as published by
-; the Free Software Foundation; either version 3 of the License, or (at
-; your option) any later version.
-;
-; This software is distributed in the hope that it will be useful, but
-; WITHOUT ANY WARRANTY; without even the implied warranty of
-; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-; General Public License for more details.
-;
-; You should have received a copy of the GNU General Public License
-; along with this code; if not, see <http://www.gnu.org/licenses/>.
-;
+;;
+;; Copyright © 2017 Colin Smith.
+;; This work is based on the Scmutils system of MIT/GNU Scheme:
+;; Copyright © 2002 Massachusetts Institute of Technology
+;;
+;; This is free software;  you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This software is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this code; if not, see <http://www.gnu.org/licenses/>.
+;;
 
 (ns pattern.match-test
   (:require [clojure.test :refer [is deftest testing]]
@@ -56,8 +56,8 @@
              [{:x [a b c]} nil]]
            (m/all-results (m/segment :x) '[a b c])))
 
-    (is (= '[{:x* [a b c]}]
-           (m/all-results [:x*] '[a b c]))
+    (is (= '[{??x [a b c]}]
+           (m/all-results ['??x] '[a b c]))
         "A final segment in a list matcher matches the entire list, no scanning.")
 
     (let [match (m/all-results-matcher
@@ -179,29 +179,41 @@
 
 (deftest keyword-variables
   (testing "simple"
-    (let [xx [:x :x]
-          xy [:x :y]
-          xs [:x*]
-          xs-xs [:x* :x*]
-          xs-ys [:x* :y*]]
-      (is (= {:x* [1 2 3 4]} (m/match xs [1 2 3 4])))
-      (is (= {:x 2} (m/match xx [2 2])))
-      (is (= {:x 5 :y 6} (m/match xy [5 6])))
-      (is (ps/segment? :x*))
-      (is (ps/segment? :y*))
-      (is (= {:x* [1 2]} (m/match xs-xs [1 2 1 2])))
-      (is (= {:x* [] :y* [1 2 3 4]} (m/match xs-ys [1 2 3 4])))
-      (is (= '[{:x* [], :y* [1 2 3 4]}
-               {:x* [1], :y* [2 3 4]}
-               {:x* [1 2], :y* [3 4]}
-               {:x* [1 2 3], :y* [4]}
-               {:x* [1 2 3 4], :y* []}]
+    (let [xx '[?x ?x]
+          xy '[?x ?y]
+          xs '[??x]
+          xs-xs '[??x ??x]
+          xs-ys '[??x ??y]]
+      (is (= '{??x [1 2 3 4]}
+             (m/match xs [1 2 3 4])))
+
+      (is (= '{?x 2}
+             (m/match xx [2 2])))
+
+      (is (= '{?x 5 ?y 6}
+             (m/match xy [5 6])))
+
+      (is (ps/segment? '??x))
+      (is (ps/segment? '??y))
+
+      (is (= {'??x [1 2]}
+             (m/match xs-xs [1 2 1 2])))
+
+      (is (= '{??x [] ??y [1 2 3 4]}
+             (m/match xs-ys [1 2 3 4])))
+
+      (is (= '[{??x [], ??y [1 2 3 4]}
+               {??x [1], ??y [2 3 4]}
+               {??x [1 2], ??y [3 4]}
+               {??x [1 2 3], ??y [4]}
+               {??x [1 2 3 4], ??y []}]
              ((m/all-results-matcher xs-ys) '(1 2 3 4))))
-      (is (= '[{:x* [], :y* [1 2 3 4]}
-               {:x* [1], :y* [2 3 4]}
-               {:x* [1 2], :y* [3 4]}
-               {:x* [1 2 3], :y* [4]}
-               {:x* [1 2 3 4], :y* []}]
+
+      (is (= '[{??x [], ??y [1 2 3 4]}
+               {??x [1], ??y [2 3 4]}
+               {??x [1 2], ??y [3 4]}
+               {??x [1 2 3], ??y [4]}
+               {??x [1 2 3 4], ??y []}]
              ((m/all-results-matcher xs-ys) [1 2 3 4]))))))
 
 (deftest gjs-tests
