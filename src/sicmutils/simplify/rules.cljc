@@ -138,18 +138,20 @@
   [& ops]
   (let [op-set (into #{} ops)]
     (ruleset
-     ((:? :op op-set) :terms*)
-     #(not (x/sorted? (% :terms*)))
-     (:op (:?? #(x/sort (:terms* %)))))))
+     ((:? ?op op-set) ??xs)
+     #(not (x/sorted? ('??xs %)))
+     (?op (:?? #(x/sort ('??xs %)))))))
 
 (defn idempotent [& ops]
   (let [op-set (into #{} ops)]
     (ruleset
-     ((:? :op op-set) :a* :x :x :b*)
+     ((:? ?op op-set) ??pre ?x ?x ??post)
      =>
-     (:op (:?? (fn [m]
+     (?op (:?? (fn [m]
                  (dedupe
-                  (concat (:a* m) [(:x m)] (:b* m)))))))))
+                  (concat ('??pre m)
+                          [('?x m)]
+                          ('??post m)))))))))
 
 (def ^{:doc "Set of rules that collect adjacent products, exponents and nested
  exponents into exponent terms."}
