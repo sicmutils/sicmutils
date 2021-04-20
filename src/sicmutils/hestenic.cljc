@@ -113,6 +113,16 @@
    (Bladoid. c (vec (sort b)))))  ;; force sort to give back the same type.
 
 
+(defmethod print-method Bladoid [^Bladoid doid ^java.io.Writer w]
+  (.write w (str "#b(" (coef doid) " ["
+                 (clojure.string/join " " (basis doid))
+                 "])")))
+
+(defn parse-bladoid [[wgt bss]]
+  (prn wgt bss)
+  (bladoid wgt bss))
+
+
 (defn- collapse [doids]
   (map (partial reduce sum)
        (partition-by basis doids)))
@@ -199,9 +209,9 @@
   (grade [_] f_grade)
 
   Object
-  (toString [_] (str "g" f_grade "{"
+  (toString [_] (str "g" f_grade "("
                      (clojure.string/join " " f_bladoids)
-                     "}")))
+                     ")")))
 
 
 ;; singin' them old-timey singletunes:
@@ -217,6 +227,11 @@
       (Gradeling. gra (collapse
                        (sort-on-bases
                         (confirm-grades! grade-or-bladoids gra)))))))
+
+(defmethod print-method Gradeling [^Gradeling grdl ^java.io.Writer w]
+  (.write w (str "#g" (comment (grade grdl)) "("
+                 (clojure.string/join " " (bladoids grdl))
+                 ")")))
 
 
 ;;
@@ -241,6 +256,11 @@
   (toString [_] (str "MV["
                      (clojure.string/join " " f_gradelings)
                      "]")))
+
+(defmethod print-method MV [^MV emvy ^java.io.Writer w]
+  (.write w (str "#MV" "["
+                 (clojure.string/join " " (gradelings emvy))
+                 "]")))
 
 (def the-empty-mv (MV. []))
 
@@ -273,8 +293,16 @@
   Object
   (toString [_] (str "v(" (clojure.string/join " " f_coefs) ")")))
 
+
 (defn vect [& cs] (Vect. (vec cs)))
 
+(defmethod print-method Vect [^Vect veee ^java.io.Writer w]
+  (.write w (str "#v" "("
+                 (clojure.string/join " " (coefs veee))
+                 ")")))
+
+(defn parse-vect [coefficients-aplenty]
+  (apply vect coefficients-aplenty))
 
 
 ;;
