@@ -179,7 +179,7 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   constant [e](https://en.wikipedia.org/wiki/E_(mathematical_constant)),
   sometimes known as Euler's Number."}
   euler
-  0.57721566490153286)
+  (g/exp 1))
 
 (def ^{:doc "The mathematical
   constant [𝜑](https://en.wikipedia.org/wiki/Golden_ratio), also known as the
