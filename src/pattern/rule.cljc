@@ -349,9 +349,9 @@
 ;;
 ;; The original, good stuff.
 
-(defn make-ruleset [rules]
+(defn make-ruleset [& rules]
   (attempt
-   (choice* rules)))
+   (apply choice rules)))
 
 (defmacro ruleset
   "Ruleset compiles rules, predicates and consequences (triplet-wise) into a
@@ -366,7 +366,7 @@
   {:pre (zero? (mod (count patterns-and-consequences) 3))}
   (let [rule-inputs (partition 3 patterns-and-consequences)
         rules       (mapv #(apply compile-rule %) rule-inputs)]
-    `(make-ruleset ~rules)))
+    `(make-ruleset ~@rules)))
 
 (defn rule-simplifier
   "Transform the supplied rules into a function of expressions which will
@@ -376,7 +376,7 @@
   [& rules]
   ;; TODO CHECK!
   (iterated-bottom-up
-   (pipe* rules)))
+   (apply pipe rules)))
 
 (defn term-rewriting
   "Alias for `rule-simplifier`..."

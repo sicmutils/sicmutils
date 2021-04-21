@@ -84,10 +84,11 @@
 
 (deftest ruleset-test
   (testing "simple"
-    (let [RS (r/ruleset
-              ((:? a) (:? a)) => (* 2 (:? a))
-              ((:? a) (:? b)) => ((:? b) (:? a))
-              ((:? a) (:? b) (:? c)) => ((:? c) (:? b) (:? a)))]
+    (let [RS (r/attempt
+              (r/choice
+               (r/rule ((:? a) (:? a)) => (* 2 (:? a)))
+               (r/rule ((:? a) (:? b)) => ((:? b) (:? a)))
+               (r/rule ((:? a) (:? b) (:? c)) => ((:? c) (:? b) (:? a)))))]
       (is (= '(4 3) (RS '(3 4))))
       (is (= '(8 7 6) (RS '(6 7 8))))
       (is (= '(* 2 5) (RS '(5 5))))

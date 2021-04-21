@@ -19,13 +19,13 @@
 
 (ns sicmutils.simplify.rules-test
   (:require [clojure.test :refer [is deftest testing]]
-            [pattern.rule :refer [rule-simplifier]]
             [sicmutils.numbers]
             [sicmutils.ratio]
-            [sicmutils.simplify.rules :as r]))
+            [sicmutils.simplify.rules :as r]
+            [sicmutils.value :as v]))
 
 (deftest simplify-square-roots-test
-  (let [s r/simplify-square-roots]
+  (let [s (r/simplify-square-roots identity)]
     (testing "even powers"
       (is (= '(expt x 4)
              (s '(expt (sqrt x) 8)))
@@ -80,10 +80,14 @@
     (is (= 'x (d '(* 1 x))))
     (is (= '(* x y z) (d '(* 1 x y z))))
     (is (= '(*) (d '(* 1))))
-    (is (= '(+ (/ a 3) (/ b 3) (/ c 3)) (d '(/ (+ a b c) 3))))))
+    (is (= '(+ (* (/ 1 3) a)
+               (* (/ 1 3) b)
+               (* (/ 1 3) c))
+           (v/freeze
+            (d '(/ (+ a b c) 3)))))))
 
 (deftest sincos-flush-ones-test
-  (let [s r/sincos-flush-ones]
+  (let [s (r/sincos-flush-ones identity)]
     (is (= '(+ 1 a b c c d e f g)
            (s '(+ a b c (expt (sin x) 2) c d (expt (cos x) 2) e f g))))
 
@@ -104,41 +108,45 @@
 
 (deftest sqrt-expand-contract-test
   (testing "sqrt-expand works with division"
-    (is (= '(+ (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
-           (r/sqrt-expand '(+ (sqrt (/ a b)) (sqrt (/ c b))))))
-    (is (= '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
-           (r/sqrt-expand '(- (sqrt (/ a b)) (sqrt (/ c b)))))))
+    (let [expand (r/sqrt-expand identity)]
+      (is (= '(+ (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
+             (expand
+              '(+ (sqrt (/ a b)) (sqrt (/ c b))))))
+      (is (= '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
+             (expand
+              '(- (sqrt (/ a b)) (sqrt (/ c b))))))))
 
-  (let [sqrt-contract (r/sqrt-contract identity)]
+  (let [contract (r/sqrt-contract identity)]
     (testing "cancels square roots if the values are equal"
       (is (= '(* a (sqrt (* b d)) c e)
-             (sqrt-contract
+             (contract
               '(* a (sqrt b) c (sqrt d) e)))
           "square roots get pushed to the end.")
 
       (is (= '(* a b c e)
-             (sqrt-contract
+             (contract
               '(* a (sqrt b) c (sqrt b) e)))))
 
     (testing "sqrt-contract undoes expansion over division"
       (is (= '(+ (sqrt (/ a b)) (sqrt (/ c b)))
-             (sqrt-contract
-              '(+ (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b))))))
+             (contract
+              '(+ (/ (sqrt a) (sqrt b))
+                  (/ (sqrt c) (sqrt b))))))
 
       (is (= '(- (sqrt (/ a b)) (sqrt (/ c b)))
-             (sqrt-contract
-              '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))))))))
+             (contract
+              '(- (/ (sqrt a) (sqrt b))
+                  (/ (sqrt c) (sqrt b)))))))))
 
 (deftest new-tests
-  (let [r (rule-simplifier r/split-high-degree-sincos)]
+  (let [r r/split-high-degree-sincos]
     (is (= '(+ 1 2 (* (expt (cos x) 2)
                       (expt (cos x) 2)
                       (cos x)))
            (r '(+ 1 2 (expt (cos x) 5))))))
 
-  (let [rule (r/constant-promotion '* 0)
-        f    (rule-simplifier rule)]
-    (is (= 0 (f '(* x 0)))
+  (let [rule (r/constant-promotion '* 0)]
+    (is (= 0 (rule '(* x 0)))
         "works")))
 
 (comment

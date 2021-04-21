@@ -27,8 +27,6 @@
             [sicmutils.numsymb :as sym]
             [sicmutils.value :as v]))
 
-;; TODO try and get all `rule-simplifier` out of here. These are just rulesets.
-
 (defn assume!
   "see logic-utils.scm... to get this working."
   ([predicate-expr responsible-party]
@@ -187,9 +185,8 @@ y)))) )"}
   "Takes a sequence `ops` of operator symbols like `'+`, `'*` and returns a rule
   that strips these operations off of unary applications.
   ```clojure
-  (let [rule (unary-elimination '+ '*)
-        f    (rule-simplifier rule)]
-    (f '(+ x y (* z) (+ a))))
+  (let [rule (unary-elimination '+ '*)]
+    (rule '(+ x y (* z) (+ a))))
   ;;=> (+ x y z a)
   ```"
   [& ops]
@@ -216,10 +213,9 @@ y)))) )"}
   that collapses nested applications of each operation into a single list. (The
   associative property lets us strip parentheses.)
   ```clojure
-  (let [rule (associative '+ '*)
-        f    (rule-simplifier rule)]
-    (f '(+ x (+ y (+ z a) (* b (* c d))
-                (+ cake face)))))
+  (let [rule (associative '+ '*)]
+    (rule '(+ x (+ y (+ z a) (* b (* c d))
+              (+ cake face)))))
   ;;=> (+ x y z a (* b c d) cake face)
   ```"
   [& ops]
@@ -271,7 +267,8 @@ y)))) )"}
 (def ^{:doc "Set of rules that collect adjacent products, exponents and nested
  exponents into exponent terms."}
   exponent-contract
-  (ruleset
+  (rule-simplifier
+   (ruleset
    ;; nested exponent case.
    (expt (expt ?op (:? ?n v/integral?))
          (:? ?m v/integral?))
@@ -304,10 +301,11 @@ y)))) )"}
 
    ;; non-exponent pairs
    (* ??pre ?op ?op ??post)
-   => (* ??pre (expt ?op 2) ??post)))
+   => (* ??pre (expt ?op 2) ??post))))
 
 (defn logexp [simplify]
-  (ruleset
+  (rule-simplifier
+   (ruleset
    (exp (* (:? ?n v/integral?) (log ?x))) => (expt ?x ?n)
 
    (exp (log ?x)) => ?x
@@ -329,18 +327,20 @@ y)))) )"}
              'logexp2))))
    (exp (/ ?x 2))
 
-   (log (sqrt ?x)) => (* (/ 1 2) (log ?x))))
+   (log (sqrt ?x)) => (* (/ 1 2) (log ?x)))))
 
 (def magsimp
-  (ruleset
+  (rule-simplifier
+   (ruleset
    (magnitude (* ?x ?y ??ys))
    => (* (magnitude ?x) (magnitude (* ?y ??ys)))
 
    (magnitude (expt ?x (:? ?n even-integer?)))
-   => (expt ?x ?n)))
+   => (expt ?x ?n))))
 
 (defn miscsimp [simplify]
-  (ruleset
+  (rule-simplifier
+   (ruleset
    (expt _ 0) => 1
 
    (expt ?x 1) => ?x
@@ -380,76 +380,76 @@ y)))) )"}
    ;; a rare, expensive luxury
    (* ??fs1 (expt ?x ?y1) ??fs2 (expt ?x ?y2) ??fs3)
    =>
-   (* ??fs1 ??fs2 (expt ?x (+ ?y1 ?y2)) ??fs3)))
+   (* ??fs1 ??fs2 (expt ?x (+ ?y1 ?y2)) ??fs3))))
 
 ;; ## Square Root Simplification
 
 (defn simplify-square-roots [simplify]
   (rule-simplifier
    (ruleset
-    (expt (sqrt ?x) (:? ?n even-integer?))
-    => (expt ?x (:? #(g// (% '?n) 2)))
+   (expt (sqrt ?x) (:? ?n even-integer?))
+   => (expt ?x (:? #(g// (% '?n) 2)))
 
-    (sqrt (expt ?x (:? ?n even-integer?)))
-    (fn [m]
-      (and *sqrt-expt-simplify?*
-           (let [xs (simplify (m '?x))
-                 n  (m '?n)]
-	           (assume!
-              `(~'=
-                (~'sqrt (~'expt ~xs ~n))
-                (~'expt ~xs ~(g// n 2)))
-              'simsqrt1))))
-    (expt ?x (:? #(g// (% '?n) 2)))
+   (sqrt (expt ?x (:? ?n even-integer?)))
+   (fn [m]
+     (and *sqrt-expt-simplify?*
+          (let [xs (simplify (m '?x))
+                n  (m '?n)]
+	          (assume!
+             `(~'=
+               (~'sqrt (~'expt ~xs ~n))
+               (~'expt ~xs ~(g// n 2)))
+             'simsqrt1))))
+   (expt ?x (:? #(g// (% '?n) 2)))
 
-    (sqrt (expt ?x (:? ?n odd-positive-integer?)))
-    (fn [m]
-      (and *sqrt-expt-simplify?*
-	         (let [xs (simplify (m '?x))
-                 n  (m '?n)]
-	           (assume!
-              `(~'=
-                (~'sqrt (~'expt ~xs ~n))
-                (~'expt ~xs ~(g// (g/- n 1) 2)))
-              'simsqrt2))))
-    (* (sqrt ?x)
-       (expt ?x (:? #(g// (g/- (% '?n) 1) 2))))
+   (sqrt (expt ?x (:? ?n odd-positive-integer?)))
+   (fn [m]
+     (and *sqrt-expt-simplify?*
+	        (let [xs (simplify (m '?x))
+                n  (m '?n)]
+	          (assume!
+             `(~'=
+               (~'sqrt (~'expt ~xs ~n))
+               (~'expt ~xs ~(g// (g/- n 1) 2)))
+             'simsqrt2))))
+   (* (sqrt ?x)
+      (expt ?x (:? #(g// (g/- (% '?n) 1) 2))))
 
-    (expt (sqrt ?x) (:? ?n odd-integer?))
-    => (* (sqrt ?x)
-          (expt ?x (:? #(g// (g/- (% '?n) 1) 2))))
+   (expt (sqrt ?x) (:? ?n odd-integer?))
+   => (* (sqrt ?x)
+         (expt ?x (:? #(g// (g/- (% '?n) 1) 2))))
 
-    (/ ?x (sqrt ?x)) => (sqrt ?x)
+   (/ ?x (sqrt ?x)) => (sqrt ?x)
 
-    (/ (sqrt ?x) ?x) => (/ 1 (sqrt ?x))
+   (/ (sqrt ?x) ?x) => (/ 1 (sqrt ?x))
 
-    (/ (* ??u ?x ??v) (sqrt ?x))
-    =>
-    (* ??u (sqrt ?x) ??v)
+   (/ (* ??u ?x ??v) (sqrt ?x))
+   =>
+   (* ??u (sqrt ?x) ??v)
 
-    (/ (* ??u (sqrt ?x) ??v) ?x)
-    =>
-    (/ (* ??u ??v) (sqrt ?x))
+   (/ (* ??u (sqrt ?x) ??v) ?x)
+   =>
+   (/ (* ??u ??v) (sqrt ?x))
 
-    (/ ?x (* ??u (sqrt ?x) ??v))
-    =>
-    (/ (sqrt ?x) (* ??u ??v))
+   (/ ?x (* ??u (sqrt ?x) ??v))
+   =>
+   (/ (sqrt ?x) (* ??u ??v))
 
-    (/ (sqrt ?x) (* ??u ?x ??v))
-    =>
-    (/ 1 (* ??u (sqrt ?x) ??v))
+   (/ (sqrt ?x) (* ??u ?x ??v))
+   =>
+   (/ 1 (* ??u (sqrt ?x) ??v))
 
-    (/ (* ??p ?x ??q)
-       (* ??u (sqrt ?x) ??v))
-    =>
-    (/ (* ??p (sqrt ?x) ??q)
-       (* ??u ??v))
+   (/ (* ??p ?x ??q)
+      (* ??u (sqrt ?x) ??v))
+   =>
+   (/ (* ??p (sqrt ?x) ??q)
+      (* ??u ??v))
 
-    (/ (* ??p (sqrt ?x) ??q)
-       (* ??u ?x ??v))
-    =>
-    (/ (* ??p ??q)
-       (* ??u (sqrt ?x) ??v)))))
+   (/ (* ??p (sqrt ?x) ??q)
+      (* ??u ?x ??v))
+   =>
+   (/ (* ??p ??q)
+      (* ??u (sqrt ?x) ??v)))))
 
 (defn non-negative-factors [simplify x y id]
   (let [xs (simplify x)
@@ -464,34 +464,34 @@ y)))) )"}
 (defn sqrt-expand [simplify]
   (rule-simplifier
    (ruleset
-    (sqrt (* ?x ?y))
-    (fn [m]
-      (and *sqrt-factor-simplify?*
-	         (non-negative-factors simplify (m '?x) (m '?y) 'e1)))
-    (* (sqrt ?x) (sqrt ?y))
+   (sqrt (* ?x ?y))
+   (fn [m]
+     (and *sqrt-factor-simplify?*
+	        (non-negative-factors simplify (m '?x) (m '?y) 'e1)))
+   (* (sqrt ?x) (sqrt ?y))
 
-    (sqrt (* ?x ?y ??ys))
-    (fn [m]
-      (and *sqrt-factor-simplify?*
-	         (non-negative-factors simplify (m '?x) (m '?y) 'e2)))
-    (* (sqrt ?x) (sqrt (* ?y ??ys)))
+   (sqrt (* ?x ?y ??ys))
+   (fn [m]
+     (and *sqrt-factor-simplify?*
+	        (non-negative-factors simplify (m '?x) (m '?y) 'e2)))
+   (* (sqrt ?x) (sqrt (* ?y ??ys)))
 
-    (sqrt (/ ?x ?y))
-    (fn [m]
-      (and *sqrt-factor-simplify?*
-	         (non-negative-factors simplify (m '?x) (m '?y) 'e3)))
-    (/ (sqrt ?x) (sqrt ?y))
+   (sqrt (/ ?x ?y))
+   (fn [m]
+     (and *sqrt-factor-simplify?*
+	        (non-negative-factors simplify (m '?x) (m '?y) 'e3)))
+   (/ (sqrt ?x) (sqrt ?y))
 
-    (sqrt (/ ?x ?y ??ys))
-    (fn [m]
-      (and *sqrt-factor-simplify?*
-	         (non-negative-factors simplify (m '?x) (m '?y) 'e4)))
-    (/ (sqrt ?x) (sqrt (* ?y ??ys))))))
+   (sqrt (/ ?x ?y ??ys))
+   (fn [m]
+     (and *sqrt-factor-simplify?*
+	        (non-negative-factors simplify (m '?x) (m '?y) 'e4)))
+   (/ (sqrt ?x) (sqrt (* ?y ??ys))))))
 
 (defn sqrt-contract [simplify]
   (let [if-false (fn [] false)]
-    (r/rule-simplifier
-     (r/choice
+    (rule-simplifier
+     (r/make-ruleset
       (r/rule
        (* ??a (sqrt ?x) ??b (sqrt ?y) ??c)
        (fn [m]
@@ -565,91 +565,96 @@ y)))) )"}
 ;; ## Log / Exp
 
 (def specfun->logexp
-  (ruleset
-   (sqrt ?x) => (exp (* (/ 1 2) (log ?x)))
+  (rule-simplifier
+   (ruleset
+    (sqrt ?x) => (exp (* (/ 1 2) (log ?x)))
 
-   (atan ?z)
-   =>
-   (/ (- (log (+ 1 (* (complex 0.0 1.0) ?z)))
-         (log (- 1 (* (complex 0.0 1.0) ?z))))
-      (complex 0.0 2.0))
+    (atan ?z)
+    =>
+    (/ (- (log (+ 1 (* (complex 0.0 1.0) ?z)))
+          (log (- 1 (* (complex 0.0 1.0) ?z))))
+       (complex 0.0 2.0))
 
-   (asin ?z)
-   =>
-   (* (complex 0.0 -1.0)
-      (log (+ (* (complex 0.0 1.0) ?z)
-              (sqrt (- 1 (expt ?z 2))))))
+    (asin ?z)
+    =>
+    (* (complex 0.0 -1.0)
+       (log (+ (* (complex 0.0 1.0) ?z)
+               (sqrt (- 1 (expt ?z 2))))))
 
-   (acos ?z)
-   =>
-   (* (complex 0.0 -1.0)
-      (log (+ ?z (* (complex 0.0 1.0)
-                    (sqrt (- 1 (expt ?z 2)))))))
+    (acos ?z)
+    =>
+    (* (complex 0.0 -1.0)
+       (log (+ ?z (* (complex 0.0 1.0)
+                     (sqrt (- 1 (expt ?z 2)))))))
 
-   (sinh ?u) => (/ (- (exp ?u) (exp (* -1 ?u))) 2)
+    (sinh ?u) => (/ (- (exp ?u) (exp (* -1 ?u))) 2)
 
-   (cosh ?u) => (/ (+ (exp ?u) (exp (* -1 ?u))) 2)
+    (cosh ?u) => (/ (+ (exp ?u) (exp (* -1 ?u))) 2)
 
-   (expt ?x (:? ?y non-integer?)) => (exp (* ?y (log ?x)))))
+    (expt ?x (:? ?y non-integer?)) => (exp (* ?y (log ?x))))))
 
 (def logexp->specfun
-  (ruleset
-   (exp (* -1 (log ?x))) => (expt ?x -1)
+  (rule-simplifier
+   (ruleset
+    (exp (* -1 (log ?x))) => (expt ?x -1)
 
-   (exp (* (/ 1 2) (log ?x))) => (sqrt ?x)
+    (exp (* (/ 1 2) (log ?x))) => (sqrt ?x)
 
-   (exp (* (/ -1 2) (log ?x))) => (/ 1 (sqrt ?x))
+    (exp (* (/ -1 2) (log ?x))) => (/ 1 (sqrt ?x))
 
-   (exp (* (/ 3 2) (log ?x))) => (expt (sqrt ?x) 3)
+    (exp (* (/ 3 2) (log ?x))) => (expt (sqrt ?x) 3)
 
-   (exp (* (/ -3 2) (log ?x))) => (expt (sqrt ?x) -3)
+    (exp (* (/ -3 2) (log ?x))) => (expt (sqrt ?x) -3)
 
-   (exp (* ??n1 (log ?x) ??n2))
-   =>
-   (expt ?x (* ??n1 ??n2))))
+    (exp (* ??n1 (log ?x) ??n2))
+    =>
+    (expt ?x (* ??n1 ??n2)))))
 
 (defn log-contract [simplify]
-  (ruleset
-   (+ ??x1 (log ?x2) ??x3 (log ?x4) ??x5)
-   =>
-   (+ ??x1 ??x3 ??x5 (log (* ?x2 ?x4)))
+  (rule-simplifier
+   (ruleset
+    (+ ??x1 (log ?x2) ??x3 (log ?x4) ??x5)
+    =>
+    (+ ??x1 ??x3 ??x5 (log (* ?x2 ?x4)))
 
-   (- (log ?x) (log ?y))
-   =>
-   (log (/ ?x ?y))
+    (- (log ?x) (log ?y))
+    =>
+    (log (/ ?x ?y))
 
-   (+ ??x1
-      (* ??f1 (log ?x) ??f2)
-      ??x2
-      (* ??f3 (log ?y) ??f4)
-      ??x3)
-   (fn [m]
-     (let [s1 (simplify `(~'* ~@(m '??f1) ~@(m '??f2)))
-           s2 (simplify `(~'* ~@(m '??f3) ~@(m '??f4)))]
-       (when (v/exact-zero? (simplify `(~'- ~s1 ~s2)))
-         {'??s1 s1})))
-   (+ (* (log (* ?x ?y)) ??s1)
-      ??x1 ??x2 ??x3)))
+    (+ ??x1
+       (* ??f1 (log ?x) ??f2)
+       ??x2
+       (* ??f3 (log ?y) ??f4)
+       ??x3)
+    (fn [m]
+      (let [s1 (simplify `(~'* ~@(m '??f1) ~@(m '??f2)))
+            s2 (simplify `(~'* ~@(m '??f3) ~@(m '??f4)))]
+        (when (v/exact-zero? (simplify `(~'- ~s1 ~s2)))
+          {'??s1 s1})))
+    (+ (* (log (* ?x ?y)) ??s1)
+       ??x1 ??x2 ??x3))))
 
 (def log-expand
-  (ruleset
-   (log (* ?x1 ?x2 ??xs))
-   =>
-   (+ (log ?x1) (log (* ?x2 ??xs)))
+  (rule-simplifier
+   (ruleset
+    (log (* ?x1 ?x2 ??xs))
+    =>
+    (+ (log ?x1) (log (* ?x2 ??xs)))
 
-   (log (/ ?x1 ?x2))
-   =>
-   (- (log ?x1) (log ?x2))
+    (log (/ ?x1 ?x2))
+    =>
+    (- (log ?x1) (log ?x2))
 
-   (log (expt ?x ?e))
-   =>
-   (* ?e (log ?x))))
+    (log (expt ?x ?e))
+    =>
+    (* ?e (log ?x)))))
 
 (def log-extra
-  (ruleset
-   (* (:? ?n v/integral?) ??f1 (log ?x) ??f2)
-   =>
-   (* ??f1 (log (expt ?x ?n)) ??f2)))
+  (rule-simplifier
+   (ruleset
+    (* (:? ?n v/integral?) ??f1 (log ?x) ??f2)
+    =>
+    (* ??f1 (log (expt ?x ?n)) ??f2))))
 
 ;; ## Partials
 
@@ -740,24 +745,9 @@ y)))) )"}
     => (/ (* ??n1 (tan ?x) ??n2)
           (* ??d1 ??d2)))))
 
-(def triginv
-  (rule-simplifier
-   (ruleset
-    (sin (asin :x))          => :x
-    (asin (sin :x))          => :x
-    (sin (atan :y :x))       => (/ :y (sqrt (+ (expt :x 2) (expt :y 2))))
-    (cos (atan :y :x))       => (/ :x (sqrt (+ (expt :x 2) (expt :y 2))))
-    (cos (asin :t))          => (sqrt (- 1 (square :t)))
-    )
-   (ruleset
-    (acos (cos :x))          => :x
-    (atan (tan :x))          => :x
-    (atan (sin :x) (cos :x)) => :x
-    )))
-
 (defn triginv [simplify]
-  (rule-simplifier
-   (r/choice
+  (r/rule-simplifier
+   (r/make-ruleset
     (r/rule
      (atan (* ?c ?y) (* ?c ?x)) => (atan ?y ?x))
 
@@ -776,7 +766,6 @@ y)))) )"}
                     (note-that!
                      (meta-conj note :rules 'aggressive-atan-1))
                     '(/ pi 4)))
-
                 (if (and (v/number? ys)
                          (v/number? xs))
                   (g/atan ys xs)
@@ -788,78 +777,78 @@ y)))) )"}
                             xv (simplify `(~'/ ~xs ~s))]
                         (note-that!
                          (meta-conj note :rules 'aggressive-atan-2))
-                        `(~'atan ~yv ~xv))))))))))
+                        `(~'atan ~yv ~xv)))))))))))
 
-    (ruleset
-     (sin (asin ?x)) => ?x
-     (asin (sin ?x))
-     (fn [m]
-       (and *inverse-simplify?*
-            (let [xs (simplify (m '?x))]
-              (assume!
-               `(~'= (~'asin (~'sin ~xs)) ~xs) 'asin-sin))))
-     ?x
+   (ruleset
+    (sin (asin ?x)) => ?x
+    (asin (sin ?x))
+    (fn [m]
+      (and *inverse-simplify?*
+           (let [xs (simplify (m '?x))]
+             (assume!
+              `(~'= (~'asin (~'sin ~xs)) ~xs) 'asin-sin))))
+    ?x
 
-     (cos (acos ?x)) => ?x
-     (acos (cos ?x))
-     (fn [m]
-       (and *inverse-simplify?*
-            (let [xs (simplify (m '?x))]
-              (assume!
-               `(~'= (~'acos (~'cos ~xs)) ~xs) 'acos-cos))))
-     ?x
+    (cos (acos ?x)) => ?x
+    (acos (cos ?x))
+    (fn [m]
+      (and *inverse-simplify?*
+           (let [xs (simplify (m '?x))]
+             (assume!
+              `(~'= (~'acos (~'cos ~xs)) ~xs) 'acos-cos))))
+    ?x
 
-     (tan (atan ?x)) => ?x
-     (atan (tan ?x))
-     (fn [m]
-       (and *inverse-simplify?*
-            (let [xs (simplify (m '?x))]
-              (assume!
-               `(~'= (~'atan (~'tan ~xs)) ~xs) 'atan-tan))))
-     ?x
+    (tan (atan ?x)) => ?x
+    (atan (tan ?x))
+    (fn [m]
+      (and *inverse-simplify?*
+           (let [xs (simplify (m '?x))]
+             (assume!
+              `(~'= (~'atan (~'tan ~xs)) ~xs) 'atan-tan))))
+    ?x
 
-     (sin (acos ?x)) => (sqrt (- 1 (expt ?x 2)))
-     (cos (asin ?y)) => (sqrt (- 1 (expt ?y 2)))
-     (tan (asin ?y)) => (/ ?y (sqrt (- 1 (expt ?y 2))))
-     (tan (acos ?x)) => (/ (sqrt (- 1 (expt ?x 2))) ?x)
+    (sin (acos ?x)) => (sqrt (- 1 (expt ?x 2)))
+    (cos (asin ?y)) => (sqrt (- 1 (expt ?y 2)))
+    (tan (asin ?y)) => (/ ?y (sqrt (- 1 (expt ?y 2))))
+    (tan (acos ?x)) => (/ (sqrt (- 1 (expt ?x 2))) ?x)
 
-     (atan (sin ?x) (cos ?x))
-     (fn [m]
-       (and *inverse-simplify?*
-            (let [xs (simplify (m '?x))]
-              (assume!
-               `(~'= (~'atan (~'sin ~xs) (cos ~xs)) ~xs) 'atan-sin-cos))))
-     ?x
+    (atan (sin ?x) (cos ?x))
+    (fn [m]
+      (and *inverse-simplify?*
+           (let [xs (simplify (m '?x))]
+             (assume!
+              `(~'= (~'atan (~'sin ~xs) (cos ~xs)) ~xs) 'atan-sin-cos))))
+    ?x
 
-     (asin (cos ?x))
-     (fn [m]
-       (and *inverse-simplify?*
-            (let [xs (simplify (m '?x))]
-              (assume!
-               `(~'=
-                 (~'asin (~'cos ~xs))
-                 (~'- (~'* (~'/ 1 2) ~'pi) ~xs))
-               'asin-cos))))
-     (- (* (/ 1 2) pi) ?x)
+    (asin (cos ?x))
+    (fn [m]
+      (and *inverse-simplify?*
+           (let [xs (simplify (m '?x))]
+             (assume!
+              `(~'=
+                (~'asin (~'cos ~xs))
+                (~'- (~'* (~'/ 1 2) ~'pi) ~xs))
+              'asin-cos))))
+    (- (* (/ 1 2) pi) ?x)
 
-     (acos (sin ?x))
-     (fn [m]
-       (and *inverse-simplify?*
-            (let [xs (simplify (m '?x))]
-              (assume!
-               `(~'=
-                 (~'acos (~'sin ~xs))
-                 (~'- (~'* (~'/ 1 2) ~'pi) ~xs))
-               'acos-sin))))
-     (- (* (/ 1 2) pi) ?x)
+    (acos (sin ?x))
+    (fn [m]
+      (and *inverse-simplify?*
+           (let [xs (simplify (m '?x))]
+             (assume!
+              `(~'=
+                (~'acos (~'sin ~xs))
+                (~'- (~'* (~'/ 1 2) ~'pi) ~xs))
+              'acos-sin))))
+    (- (* (/ 1 2) pi) ?x)
 
-     (sin (atan ?a ?b))
-     =>
-     (/ ?a (sqrt (+ (expt ?a 2) (expt ?b 2))))
+    (sin (atan ?a ?b))
+    =>
+    (/ ?a (sqrt (+ (expt ?a 2) (expt ?b 2))))
 
-     (cos (atan ?a ?b))
-     =>
-     (/ ?b (sqrt (+ (expt ?a 2) (expt ?b 2))))))))
+    (cos (atan ?a ?b))
+    =>
+    (/ ?b (sqrt (+ (expt ?a 2) (expt ?b 2)))))))
 
 (defn special-trig
   "TODO check that we can actually handle these damned symbols for 2pi etc!"
@@ -911,155 +900,161 @@ y)))) )"}
                (simplify
                 (sym:div (sym:+ x (sym:div 'pi 4))
                          'pi))))]
-      (ruleset
-       (sin (:? _ zero-mod-pi?))   =>  0
-       (sin (:? _ pi-over-2-mod-2pi?))  => +1
-       (sin (:? _ -pi-over-2-mod-2pi?)) => -1
+      (rule-simplifier
+       (ruleset
+        (sin (:? _ zero-mod-pi?))   =>  0
+        (sin (:? _ pi-over-2-mod-2pi?))  => +1
+        (sin (:? _ -pi-over-2-mod-2pi?)) => -1
 
-       (cos (:? _ pi-over-2-mod-pi?))   =>  0
-       (cos (:? _ zero-mod-2pi?))  => +1
-       (cos (:? _ pi-mod-2pi?))    => -1
+        (cos (:? _ pi-over-2-mod-pi?))   =>  0
+        (cos (:? _ zero-mod-2pi?))  => +1
+        (cos (:? _ pi-mod-2pi?))    => -1
 
-       (tan (:? _ zero-mod-pi?))   =>  0
-       (tan (:? _ pi-over-4-mod-pi?))   => +1
-       (tan (:? _ -pi-over-4-mod-pi?))  => -1))))
+        (tan (:? _ zero-mod-pi?))   =>  0
+        (tan (:? _ pi-over-4-mod-pi?))   => +1
+        (tan (:? _ -pi-over-4-mod-pi?))  => -1)))))
 
 ;;; sin is odd, and cos is even.  we canonicalize by moving the sign
 ;;; out of the first term of the argument.
 
 (def angular-parity
-  (ruleset
-   (cos (:? ?n negative-number?))
-   =>
-   (cos (:? #(- (% '?n))))
+  (rule-simplifier
+   (ruleset
+    (cos (:? ?n negative-number?))
+    =>
+    (cos (:? #(- (% '?n))))
 
-   (cos (* (:? ?n negative-number?) ??x))
-   =>
-   (cos (* (:? #(- (% '?n))) ??x))
+    (cos (* (:? ?n negative-number?) ??x))
+    =>
+    (cos (* (:? #(- (% '?n))) ??x))
 
-   (cos (+ (* (:? ?n negative-number?) ??x) ??y))
-   =>
-   (cos (- (* (:? #(- (% '?n))) ??x) ??y))
+    (cos (+ (* (:? ?n negative-number?) ??x) ??y))
+    =>
+    (cos (- (* (:? #(- (% '?n))) ??x) ??y))
 
-   (sin (:? ?n negative-number?))
-   =>
-   (- (sin (:? #(- (% '?n)))))
+    (sin (:? ?n negative-number?))
+    =>
+    (- (sin (:? #(- (% '?n)))))
 
-   (sin (* (:? ?n negative-number?) ??x))
-   =>
-   (- (sin (* (:? #(- (% '?n))) ??x)))
+    (sin (* (:? ?n negative-number?) ??x))
+    =>
+    (- (sin (* (:? #(- (% '?n))) ??x)))
 
-   (sin (+ (* (:? ?n negative-number?) ??x) ??y))
-   =>
-   (- (sin (- (* (:? #(- (% '?n))) ??x) ??y)))))
+    (sin (+ (* (:? ?n negative-number?) ??x) ??y))
+    =>
+    (- (sin (- (* (:? #(- (% '?n))) ??x) ??y))))))
 
 (def expand-multiangle
   (letfn [(exact-integer>3? [x]
             (and (v/integral? x)
                  (v/exact? x)
                  (> x 3)))]
-    (ruleset
-     (sin (* 2 ?x ??y))
-     =>
-     (* 2 (sin (* ?x ??y)) (cos (* ?x ??y)))
+    (rule-simplifier
+     (ruleset
+      (sin (* 2 ?x ??y))
+      =>
+      (* 2 (sin (* ?x ??y)) (cos (* ?x ??y)))
 
-     (cos (* 2 ?x ??y))
-     =>
-     (- (* 2 (expt (cos (* ?x ??y)) 2)) 1)
+      (cos (* 2 ?x ??y))
+      =>
+      (- (* 2 (expt (cos (* ?x ??y)) 2)) 1)
 
-     (sin (* 3 ?x ??y))
-     =>
-     (+ (* 3 (sin (* ?x ??y))) (* -4 (expt (sin (* ?x ??y)) 3)))
+      (sin (* 3 ?x ??y))
+      =>
+      (+ (* 3 (sin (* ?x ??y))) (* -4 (expt (sin (* ?x ??y)) 3)))
 
-     (cos (* 3 ?x ??y))
-     =>
-     (+ (* 4 (expt (cos (* ?x ??y)) 3)) (* -3 (cos (* ?x ??y))))
+      (cos (* 3 ?x ??y))
+      =>
+      (+ (* 4 (expt (cos (* ?x ??y)) 3)) (* -3 (cos (* ?x ??y))))
 
-     ;; at least one f
-     (sin (* (:? ?n exact-integer>3?) ?f ??fs))
-     =>
-     (+ (* (sin (* (:? #(g/- (% '?n) 1)) ?f ??fs)) (cos (* ?f ??fs)))
-        (* (cos (* (:? #(g/- (% '?n) 1)) ?f ??fs)) (sin (* ?f ??fs))))
+      ;; at least one f
+      (sin (* (:? ?n exact-integer>3?) ?f ??fs))
+      =>
+      (+ (* (sin (* (:? #(g/- (% '?n) 1)) ?f ??fs)) (cos (* ?f ??fs)))
+         (* (cos (* (:? #(g/- (% '?n) 1)) ?f ??fs)) (sin (* ?f ??fs))))
 
-     ;; at least one y
-     (sin (+ ?x ?y ??ys))
-     =>
-     (+ (* (sin ?x) (cos (+ ?y ??ys)))
-        (* (cos ?x) (sin (+ ?y ??ys))))
+      ;; at least one y
+      (sin (+ ?x ?y ??ys))
+      =>
+      (+ (* (sin ?x) (cos (+ ?y ??ys)))
+         (* (cos ?x) (sin (+ ?y ??ys))))
 
-     ;; at least one f
-     (cos (* (? n exact-integer>3?) ?f ??fs))
-     =>
-     (- (* (cos (* (:? #(g/- (% '?n) 1)) ?f ??fs)) (cos (* ?f ??fs)))
-        (* (sin (* (:? #(g/- (% '?n) 1)) ?f ??fs)) (sin (* ?f ??fs))))
+      ;; at least one f
+      (cos (* (? n exact-integer>3?) ?f ??fs))
+      =>
+      (- (* (cos (* (:? #(g/- (% '?n) 1)) ?f ??fs)) (cos (* ?f ??fs)))
+         (* (sin (* (:? #(g/- (% '?n) 1)) ?f ??fs)) (sin (* ?f ??fs))))
 
-     ;; at least one y
-     (cos (+ ?x ?y ??ys))
-     =>
-     (- (* (cos ?x) (cos (+ ?y ??ys)))
-        (* (sin ?x) (sin (+ ?y ??ys)))))))
+      ;; at least one y
+      (cos (+ ?x ?y ??ys))
+      =>
+      (- (* (cos ?x) (cos (+ ?y ??ys)))
+         (* (sin ?x) (sin (+ ?y ??ys))))))))
 
 (def trig-sum-to-product
-  (ruleset
-   (+ ??a (sin ?x) ??b (sin ?y) ??c )
-   =>
-   (+ (* 2 (sin (/ (+ ?x ?y) 2)) (cos (/ (- ?x ?y) 2))) ??a ??b ??c)
+  (rule-simplifier
+   (ruleset
+    (+ ??a (sin ?x) ??b (sin ?y) ??c )
+    =>
+    (+ (* 2 (sin (/ (+ ?x ?y) 2)) (cos (/ (- ?x ?y) 2))) ??a ??b ??c)
 
-   (+ ??a (sin ?x) ??b (* -1 (sin ?y)) ??c )
-   =>
-   (+ (* 2 (sin (/ (- ?x ?y) 2)) (cos (/ (+ ?x ?y) 2))) ??a ??b ??c)
+    (+ ??a (sin ?x) ??b (* -1 (sin ?y)) ??c )
+    =>
+    (+ (* 2 (sin (/ (- ?x ?y) 2)) (cos (/ (+ ?x ?y) 2))) ??a ??b ??c)
 
-   (+ ??a (* -1 (sin ?y)) ??b (sin ?x) ??c )
-   =>
-   (+ (* 2 (sin (/ (- ?x ?y) 2)) (cos (/ (+ ?x ?y) 2))) ??a ??b ??c)
+    (+ ??a (* -1 (sin ?y)) ??b (sin ?x) ??c )
+    =>
+    (+ (* 2 (sin (/ (- ?x ?y) 2)) (cos (/ (+ ?x ?y) 2))) ??a ??b ??c)
 
-   (+ ??a (cos ?x) ??b (cos ?y) ??c )
-   =>
-   (+ (* 2 (cos (/ (+ ?x ?y) 2)) (cos (/ (- ?x ?y) 2))) ??a ??b ??c)
+    (+ ??a (cos ?x) ??b (cos ?y) ??c )
+    =>
+    (+ (* 2 (cos (/ (+ ?x ?y) 2)) (cos (/ (- ?x ?y) 2))) ??a ??b ??c)
 
-   (+ ??a (cos ?x) ??b (* -1 (cos ?y)) ??c )
-   =>
-   (+ (* -2 (sin (/ (+ ?x ?y) 2)) (sin (/ (- ?x ?y) 2))) ??a ??b ??c)
+    (+ ??a (cos ?x) ??b (* -1 (cos ?y)) ??c )
+    =>
+    (+ (* -2 (sin (/ (+ ?x ?y) 2)) (sin (/ (- ?x ?y) 2))) ??a ??b ??c)
 
-   (+ ??a (* -1 (cos ?y)) ??b (cos ?x) ??c )
-   =>
-   (+ (* -2 (sin (/ (+ ?x ?y) 2)) (sin (/ (- ?x ?y) 2))) ??a ??b ??c)))
+    (+ ??a (* -1 (cos ?y)) ??b (cos ?x) ??c )
+    =>
+    (+ (* -2 (sin (/ (+ ?x ?y) 2)) (sin (/ (- ?x ?y) 2))) ??a ??b ??c))))
 
 (def trig-product-to-sum
-  (ruleset
-   (* ??u (sin ?x) ??v (sin ?y) ??w)
-   =>
-   (* (/ 1 2) (- (cos (- ?x ?y)) (cos (+ ?x ?y))) ??u ??v ??w)
+  (rule-simplifier
+   (ruleset
+    (* ??u (sin ?x) ??v (sin ?y) ??w)
+    =>
+    (* (/ 1 2) (- (cos (- ?x ?y)) (cos (+ ?x ?y))) ??u ??v ??w)
 
-   (* ??u (cos ?x) ??v (cos ?y) ??w)
-   =>
-   (* (/ 1 2) (+ (cos (- ?x ?y)) (cos (+ ?x ?y))) ??u ??v ??w)
+    (* ??u (cos ?x) ??v (cos ?y) ??w)
+    =>
+    (* (/ 1 2) (+ (cos (- ?x ?y)) (cos (+ ?x ?y))) ??u ??v ??w)
 
-   (* ??u (sin ?x) ??v (cos ?y) ??w)
-   =>
-   (* (/ 1 2) (+ (sin (+ ?x ?y)) (sin (- ?x ?y))) ??u ??v ??w)
+    (* ??u (sin ?x) ??v (cos ?y) ??w)
+    =>
+    (* (/ 1 2) (+ (sin (+ ?x ?y)) (sin (- ?x ?y))) ??u ??v ??w)
 
-   (* ??u (cos ?y) ??v (sin ?x) ??w)
-   =>
-   (* (/ 1 2) (+ (sin (+ ?x ?y)) (sin (- ?x ?y))) ??u ??v ??w)))
+    (* ??u (cos ?y) ??v (sin ?x) ??w)
+    =>
+    (* (/ 1 2) (+ (sin (+ ?x ?y)) (sin (- ?x ?y))) ??u ??v ??w))))
 
 (def contract-expt-trig
   (letfn [(exact-integer>1? [x]
             (and (v/integral? x)
                  (v/exact? x)
                  (> x 1)))]
-    (ruleset
-     (expt (sin ?x) (:? ?n exact-integer>1?))
-     =>
-     (* (/ 1 2)
-        (expt (sin ?x) (:? #(- (% '?n) 2)))
-        (- 1 (cos (* 2 ?x))))
+    (rule-simplifier
+     (ruleset
+      (expt (sin ?x) (:? ?n exact-integer>1?))
+      =>
+      (* (/ 1 2)
+         (expt (sin ?x) (:? #(- (% '?n) 2)))
+         (- 1 (cos (* 2 ?x))))
 
-     (expt (cos ?x) (:? ?n exact-integer>1?))
-     =>
-     (* (/ 1 2)
-        (expt (cos ?x) (:? #(- (% '?n) 2)))
-        (+ 1 (cos (* 2 ?x)))))))
+      (expt (cos ?x) (:? ?n exact-integer>1?))
+      =>
+      (* (/ 1 2)
+         (expt (cos ?x) (:? #(- (% '?n) 2)))
+         (+ 1 (cos (* 2 ?x))))))))
 
 (defn half-angle [simplify]
   (letfn [(sin-half-angle-formula [theta]
@@ -1086,32 +1081,33 @@ y)))) )"}
                              (~'* 4 ~'pi))))))
                'cos-half-angle-formula)
               `(~'sqrt (~'/ (~'+ 1 (~'cos ~thetas)) 2))))]
-    (r/make-ruleset
-     [(r/rule
-       (sin (* (/ 1 2) ?x ??y))
-       (fn [m]
-         (and *half-angle-simplify?*
-              (sin-half-angle-formula
-               `(~'* ~(m '?x) ~@(m '??y))))))
+    (rule-simplifier
+     (r/make-ruleset
+      [(r/rule
+        (sin (* (/ 1 2) ?x ??y))
+        (fn [m]
+          (and *half-angle-simplify?*
+               (sin-half-angle-formula
+                `(~'* ~(m '?x) ~@(m '??y))))))
 
-      (r/rule
-       (sin (/ ?x 2))
-       (fn [m]
-         (and *half-angle-simplify?*
-              (sin-half-angle-formula (m '?x)))))
+       (r/rule
+        (sin (/ ?x 2))
+        (fn [m]
+          (and *half-angle-simplify?*
+               (sin-half-angle-formula (m '?x)))))
 
-      (r/rule
-       (cos (* (/ 1 2) ?x ??y))
-       (fn [m]
-         (and *half-angle-simplify?*
-              (cos-half-angle-formula
-               `(~'* ~(m '?x) ~@(m '??y))))))
+       (r/rule
+        (cos (* (/ 1 2) ?x ??y))
+        (fn [m]
+          (and *half-angle-simplify?*
+               (cos-half-angle-formula
+                `(~'* ~(m '?x) ~@(m '??y))))))
 
-      (r/rule
-       (cos (/ ?x 2))
-       (fn [m]
-         (and *half-angle-simplify?*
-              (cos-half-angle-formula (m '?x)))))])))
+       (r/rule
+        (cos (/ ?x 2))
+        (fn [m]
+          (and *half-angle-simplify?*
+               (cos-half-angle-formula (m '?x)))))]))))
 
 (def sin-sq->cos-sq
   (rule-simplifier
@@ -1133,158 +1129,163 @@ y)))) )"}
               (if (v/one? leftover)
                 (list (m '?op) (m '?x))
                 `(~'expt (~(m '?op) ~(m '?x)) ~leftover))))]
-    (ruleset
-     (* ??f1
-        (expt ((:? ?op #{'sin 'cos}) ?x) (:? ?n more-than-two?))
-        ??f2)
-     => (* ??f1
-           (expt (?op ?x) 2)
-           (:? ~remaining)
-           ??f2)
+    (rule-simplifier
+     (ruleset
+      (* ??f1
+         (expt ((:? ?op #{'sin 'cos}) ?x) (:? ?n more-than-two?))
+         ??f2)
+      => (* ??f1
+            (expt (?op ?x) 2)
+            (:? ~remaining)
+            ??f2)
 
-     (+ ??a1
-        (expt ((:? ?op #{'sin 'cos}) ?x) (:? ?n more-than-two?))
-        ??a2)
-     => (+ ??a1
-           (* (expt (?op ?x) 2)
-              (:? ~remaining))
-           ??a2))))
+      (+ ??a1
+         (expt ((:? ?op #{'sin 'cos}) ?x) (:? ?n more-than-two?))
+         ??a2)
+      => (+ ??a1
+            (* (expt (?op ?x) 2)
+               (:? ~remaining))
+            ??a2)))))
 
 (defn flush-obvious-ones [simplify]
   ;; TODO can we count an order here of sin vs cos??
-  (ruleset
-   (+ ??a1 (expt (sin ?x) 2)
-      ??a2 (expt (cos ?x) 2)
-      ??a3)
-   => (+ 1 ??a1 ??a2 ??a3)
+  (rule-simplifier
+   (ruleset
+    (+ ??a1 (expt (sin ?x) 2)
+       ??a2 (expt (cos ?x) 2)
+       ??a3)
+    => (+ 1 ??a1 ??a2 ??a3)
 
-   (+ ??a1 (expt (cos ?x) 2)
-      ??a2 (expt (sin ?x) 2)
-      ??a3)
-   => (+ ??a1 ??a2 ??a3 1)
+    (+ ??a1 (expt (cos ?x) 2)
+       ??a2 (expt (sin ?x) 2)
+       ??a3)
+    => (+ ??a1 ??a2 ??a3 1)
 
-   (+ ??a1
-	    (* (?? f1) (expt (sin (? x)) 2) (?? f2))
-	    ??a2
-	    (* (?? f3) (expt (cos (? x)) 2) (?? f4))
-	    ??a3)
-   (fn [m]
-     (let [s1 (simplify `(~'* ~@(m '??f1) ~@(m '??f2)))
-	         s2 (simplify `(~'* ~@(m '??f3) ~@(m '??f4)))]
-       (when (v/exact-zero?
-              (simplify `(~'- ~s1 ~s2)))
-	       {'??s1 s1})))
-   (+ ??a1 ??a2 ??a3 ??s1)
+    (+ ??a1
+	     (* (?? f1) (expt (sin (? x)) 2) (?? f2))
+	     ??a2
+	     (* (?? f3) (expt (cos (? x)) 2) (?? f4))
+	     ??a3)
+    (fn [m]
+      (let [s1 (simplify `(~'* ~@(m '??f1) ~@(m '??f2)))
+	          s2 (simplify `(~'* ~@(m '??f3) ~@(m '??f4)))]
+        (when (v/exact-zero?
+               (simplify `(~'- ~s1 ~s2)))
+	        {'??s1 s1})))
+    (+ ??a1 ??a2 ??a3 ??s1)
 
-   (+ ??a1
-	    (* (?? f1) (expt (cos (? x)) 2) (?? f2))
-	    ??a2
-	    (* (?? f3) (expt (sin (? x)) 2) (?? f4))
-	    ??a3)
-   (fn [m]
-     (let [s1 (simplify `(~'* ~@(m '??f1) ~@(m '??f2)))
-	         s2 (simplify `(~'* ~@(m '??f3) ~@(m '??f4)))]
-       (when (v/exact-zero?
-              (simplify `(~'- ~s1 ~s2)))
-	       {'??s1 s1})))
-   (+ ??a1 ??a2 ??a3 ??s1)))
+    (+ ??a1
+	     (* (?? f1) (expt (cos (? x)) 2) (?? f2))
+	     ??a2
+	     (* (?? f3) (expt (sin (? x)) 2) (?? f4))
+	     ??a3)
+    (fn [m]
+      (let [s1 (simplify `(~'* ~@(m '??f1) ~@(m '??f2)))
+	          s2 (simplify `(~'* ~@(m '??f3) ~@(m '??f4)))]
+        (when (v/exact-zero?
+               (simplify `(~'- ~s1 ~s2)))
+	        {'??s1 s1})))
+    (+ ??a1 ??a2 ??a3 ??s1))))
 
 (defn sincos-flush-ones [simplify]
-  (rule-simplifier
+  (r/pipe
    split-high-degree-sincos
    (flush-obvious-ones simplify)))
 
 (defn sincos-random [simplify]
-  (ruleset
-   (+ ??a1 ?a ??a2 (expt (cos ?x) (:? ?n at-least-two?)) ??a3)
-   (fn [{a '?a x '?x n '?n}]
-     (v/exact-zero?
-      (simplify `(~'+ ~a (~'expt (~'cos ~x) ~(g/- n 2))))))
-   (+ ??a1 ??a2 ??a3 (* (expt (sin ?x) 2) ?a))
+  (rule-simplifier
+   (ruleset
+    (+ ??a1 ?a ??a2 (expt (cos ?x) (:? ?n at-least-two?)) ??a3)
+    (fn [{a '?a x '?x n '?n}]
+      (v/exact-zero?
+       (simplify `(~'+ ~a (~'expt (~'cos ~x) ~(g/- n 2))))))
+    (+ ??a1 ??a2 ??a3 (* (expt (sin ?x) 2) ?a))
 
-   (+ ??a1 (expt (cos ?x) (:? ?n at-least-two?)) ??a2 ?a ??a3)
-   (fn [{a '?a x '?x n '?n}]
-     (v/exact-zero?
-      (simplify `(~'+ ~a (~'expt (~'cos ~x) ~(g/- n 2))))))
-   (+ ??a1 ??a2 ??a3 (* (expt (sin ?x) 2) ?a))
+    (+ ??a1 (expt (cos ?x) (:? ?n at-least-two?)) ??a2 ?a ??a3)
+    (fn [{a '?a x '?x n '?n}]
+      (v/exact-zero?
+       (simplify `(~'+ ~a (~'expt (~'cos ~x) ~(g/- n 2))))))
+    (+ ??a1 ??a2 ??a3 (* (expt (sin ?x) 2) ?a))
 
-   (+ ??a1 ?a ??a2 (expt (sin ?x) (:? ?n at-least-two?)) ??a3)
-   (fn [{a '?a x '?x n '?n}]
-     (v/exact-zero?
-      (simplify `(~'+ ~a (~'expt (~'sin ~x) ~(g/- n 2))))))
-   (+ ??a1 ??a2 ??a3 (* (expt (cos ?x) 2) ?a))
+    (+ ??a1 ?a ??a2 (expt (sin ?x) (:? ?n at-least-two?)) ??a3)
+    (fn [{a '?a x '?x n '?n}]
+      (v/exact-zero?
+       (simplify `(~'+ ~a (~'expt (~'sin ~x) ~(g/- n 2))))))
+    (+ ??a1 ??a2 ??a3 (* (expt (cos ?x) 2) ?a))
 
-   (+ ??a1 (expt (sin ?x) (:? ?n at-least-two?)) ??a2 ?a ??a3)
-   (fn [{a '?a x '?x n '?n}]
-     (v/exact-zero?
-      (simplify `(~'+ ~a (~'expt (~'sin ~x) ~(g/- n 2))))))
-   (+ ??a1 ??a2 ??a3 (* (expt (cos ?x) 2) ?a))
+    (+ ??a1 (expt (sin ?x) (:? ?n at-least-two?)) ??a2 ?a ??a3)
+    (fn [{a '?a x '?x n '?n}]
+      (v/exact-zero?
+       (simplify `(~'+ ~a (~'expt (~'sin ~x) ~(g/- n 2))))))
+    (+ ??a1 ??a2 ??a3 (* (expt (cos ?x) 2) ?a))
 
-   (+ ??a1
-      ?a
-      ??a2
-      (* ??b1 (expt (cos ?x) (:? ?n at-least-two?)) ??b2)
-      ??a3)
-   (fn [{a '?a x '?x n '?n b1 '??b1 b2 '??b2}]
-     (v/exact-zero?
-      (simplify `(~'+ (~'* ~@b1 ~@b2 (~'expt (~'cos ~x) ~(g/- n 2))) ~a))))
-   (+ ??a1 ??a2 ??a3 (* ?a (expt (sin ?x) 2)))
-
-   (+ ??a1
-      ?a
-      ??a2
-      (* ??b1 (expt (sin ?x) (:? ?n at-least-two?)) ??b2)
-      ??a3)
-   (fn [{a '?a x '?x n '?n b1 '??b1 b2 '??b2}]
-     (v/exact-zero?
-      (simplify `(~'+ (~'* ~@b1 ~@b2 (~'expt (~'sin ~x) ~(g/- n 2))) ~a))))
-   (+ ??a1 ??a2 ??a3 (* ?a (expt (cos ?x) 2)))
-
-
-   ( (+ ??a1
-        (* ??b1 (expt (cos ?x) (:? ?n at-least-two?)) ??b2)
-        ??a2
-        ?a
-        ??a3)
+    (+ ??a1
+       ?a
+       ??a2
+       (* ??b1 (expt (cos ?x) (:? ?n at-least-two?)) ??b2)
+       ??a3)
     (fn [{a '?a x '?x n '?n b1 '??b1 b2 '??b2}]
       (v/exact-zero?
        (simplify `(~'+ (~'* ~@b1 ~@b2 (~'expt (~'cos ~x) ~(g/- n 2))) ~a))))
-    (+ ??a1 ??a2 ??a3 (* ?a (expt (sin ?x) 2))) )
+    (+ ??a1 ??a2 ??a3 (* ?a (expt (sin ?x) 2)))
 
-   ( (+ ??a1
-        (* ??b1 (expt (sin ?x) (:? ?n at-least-two?)) ??b2)
-        ??a2
-        ?a
-        ??a3)
+    (+ ??a1
+       ?a
+       ??a2
+       (* ??b1 (expt (sin ?x) (:? ?n at-least-two?)) ??b2)
+       ??a3)
     (fn [{a '?a x '?x n '?n b1 '??b1 b2 '??b2}]
       (v/exact-zero?
        (simplify `(~'+ (~'* ~@b1 ~@b2 (~'expt (~'sin ~x) ~(g/- n 2))) ~a))))
-    (+ ??a1 ??a2 ??a3 (* ?a (expt (cos ?x) 2))))))
+    (+ ??a1 ??a2 ??a3 (* ?a (expt (cos ?x) 2)))
+
+
+    ( (+ ??a1
+         (* ??b1 (expt (cos ?x) (:? ?n at-least-two?)) ??b2)
+         ??a2
+         ?a
+         ??a3)
+     (fn [{a '?a x '?x n '?n b1 '??b1 b2 '??b2}]
+       (v/exact-zero?
+        (simplify `(~'+ (~'* ~@b1 ~@b2 (~'expt (~'cos ~x) ~(g/- n 2))) ~a))))
+     (+ ??a1 ??a2 ??a3 (* ?a (expt (sin ?x) 2))) )
+
+    ( (+ ??a1
+         (* ??b1 (expt (sin ?x) (:? ?n at-least-two?)) ??b2)
+         ??a2
+         ?a
+         ??a3)
+     (fn [{a '?a x '?x n '?n b1 '??b1 b2 '??b2}]
+       (v/exact-zero?
+        (simplify `(~'+ (~'* ~@b1 ~@b2 (~'expt (~'sin ~x) ~(g/- n 2))) ~a))))
+     (+ ??a1 ??a2 ??a3 (* ?a (expt (cos ?x) 2)))))))
 
 ;; we can eliminate sin and cos in favor of complex exponentials.
 
 (def sincos->exp1
   (let [i  '(complex 0.0 1.0)
         -i '(complex 0.0 -1.0)]
-    (ruleset
-     (sin ?x)
-     => (/ (- (exp (* ~i ?x)) (exp (* ~-i ?x)))
-           (complex 0.0 2.0))
+    (rule-simplifier
+     (ruleset
+      (sin ?x)
+      => (/ (- (exp (* ~i ?x)) (exp (* ~-i ?x)))
+            (complex 0.0 2.0))
 
-     (cos ?x)
-     => (/ (+ (exp (* ~i ?x)) (exp (* ~-i ?x)))
-           2))))
+      (cos ?x)
+      => (/ (+ (exp (* ~i ?x)) (exp (* ~-i ?x)))
+            2)))))
 
 (def sincos->exp2
   (let [i '(complex 0.0 1.0)]
-    (ruleset
-     (sin ?x)
-     => (/ (- (exp (* ~i ?x)) (/ 1 (exp (* ~i ?x))))
-           (complex 0.0 2.0))
+    (rule-simplifier
+     (ruleset
+      (sin ?x)
+      => (/ (- (exp (* ~i ?x)) (/ 1 (exp (* ~i ?x))))
+            (complex 0.0 2.0))
 
-     (cos ?x)
-     => (/ (+ (exp (* ~i ?x)) (/ 1 (exp (* ~i ?x))))
-           2))))
+      (cos ?x)
+      => (/ (+ (exp (* ~i ?x)) (/ 1 (exp (* ~i ?x))))
+            2)))))
 
 ;; under favorable conditions, we can replace the trig functions.
 
@@ -1304,75 +1305,77 @@ y)))) )"}
               (let [im (g/imag-part (m '?c1))]
                 (when (g/negative? im)
                   {'?im im})))]
-      (ruleset
-       (exp (:? ?c1 imaginary-number?))
-       pos-pred
-       (+ (cos ?im)
-          (* ~i (sin ?im)))
+      (rule-simplifier
+       (ruleset
+        (exp (:? ?c1 imaginary-number?))
+        pos-pred
+        (+ (cos ?im)
+           (* ~i (sin ?im)))
 
-       (exp (:? ?c1 imaginary-number?))
-       neg-pred
-       (+ (cos (:? #(- (% '?im))))
-          (* ~-i (sin (:? #(- (% '?im))))))
+        (exp (:? ?c1 imaginary-number?))
+        neg-pred
+        (+ (cos (:? #(- (% '?im))))
+           (* ~-i (sin (:? #(- (% '?im))))))
 
-       (exp (* (:? ?c1 imaginary-number?) (?? f)))
-       pos-pred
-       (+ (cos (* ?im ??f))
-          (* ~i (sin (* ?im ??f))))
+        (exp (* (:? ?c1 imaginary-number?) (?? f)))
+        pos-pred
+        (+ (cos (* ?im ??f))
+           (* ~i (sin (* ?im ??f))))
 
-       (exp (* (:? ?c1 imaginary-number?) (?? f)))
-       neg-pred
-       (* (exp (:? #(g/real-part (% '?c1))))
-          (+ (cos (* (:? #(- (% '?im))) ??f))
-             (* ~-i (sin (* (:? #(- (% '?im))) ??f)))))
+        (exp (* (:? ?c1 imaginary-number?) (?? f)))
+        neg-pred
+        (* (exp (:? #(g/real-part (% '?c1))))
+           (+ (cos (* (:? #(- (% '?im))) ??f))
+              (* ~-i (sin (* (:? #(- (% '?im))) ??f)))))
 
-       (exp (? c1 complex-number?))
-       pos-pred
-       (* (exp (:? #(g/real-part (% '?c1))))
-          (+ (cos ?im)
-             (* ~i (sin ?im))))
+        (exp (? c1 complex-number?))
+        pos-pred
+        (* (exp (:? #(g/real-part (% '?c1))))
+           (+ (cos ?im)
+              (* ~i (sin ?im))))
 
-       (exp (? c1 complex-number?))
-       neg-pred
-       (* (exp (:? #(g/real-part (% '?c1))))
-          (+ (cos (:? #(- (% '?im))))
-             (* ~-i (sin (:? #(- (% '?im)))))))
+        (exp (? c1 complex-number?))
+        neg-pred
+        (* (exp (:? #(g/real-part (% '?c1))))
+           (+ (cos (:? #(- (% '?im))))
+              (* ~-i (sin (:? #(- (% '?im)))))))
 
-       (exp (* (? c1 complex-number?) (?? f)))
-       pos-pred
-       (* (exp (:? #(g/real-part (% '?c1))))
-          (+ (cos (* ?im ??f))
-             (* ~i (sin (* ?im ??f)))))
+        (exp (* (? c1 complex-number?) (?? f)))
+        pos-pred
+        (* (exp (:? #(g/real-part (% '?c1))))
+           (+ (cos (* ?im ??f))
+              (* ~i (sin (* ?im ??f)))))
 
-       (exp (* (? c1 complex-number?) (?? f)))
-       neg-pred
-       (* (exp (:? #(g/real-part (% '?c1))))
-          (+ (cos (* (:? #(- (% '?im))) ??f))
-             (* ~-i (sin (* (:? #(- (% '?im))) ??f)))))))))
+        (exp (* (? c1 complex-number?) (?? f)))
+        neg-pred
+        (* (exp (:? #(g/real-part (% '?c1))))
+           (+ (cos (* (:? #(- (% '?im))) ??f))
+              (* ~-i (sin (* (:? #(- (% '?im))) ??f))))))))))
 
 (def exp-contract
-  (ruleset
-   (* ??x1 (exp ?x2) ??x3 (exp ?x4) ??x5)
-   =>
-   (* ??x1 ??x3 ??x5 (exp (+ ?x2 ?x4)))
+  (rule-simplifier
+   (ruleset
+    (* ??x1 (exp ?x2) ??x3 (exp ?x4) ??x5)
+    =>
+    (* ??x1 ??x3 ??x5 (exp (+ ?x2 ?x4)))
 
-   (expt (exp ?x) (? p)) => (exp (* ?p ?x))
+    (expt (exp ?x) (? p)) => (exp (* ?p ?x))
 
-   (/ (exp ?x) (exp ?y)) => (exp (- ?x ?y))
+    (/ (exp ?x) (exp ?y)) => (exp (- ?x ?y))
 
-   (/ (* ??x1 (exp ?x) ??x2) (exp ?y))
-   =>
-   (* ??x1 ??x2 (exp (- ?x ?y)))
+    (/ (* ??x1 (exp ?x) ??x2) (exp ?y))
+    =>
+    (* ??x1 ??x2 (exp (- ?x ?y)))
 
-   (/ (exp ?x) (* (?? y1) (exp ?y) (?? y2)))
-   =>
-   (/ (exp (- ?x ?y)) (* ??y1 ??y2))
+    (/ (exp ?x) (* (?? y1) (exp ?y) (?? y2)))
+    =>
+    (/ (exp (- ?x ?y)) (* ??y1 ??y2))
 
-   (/ (* ??x1 (exp ?x) ??x2)
-      (* (?? y1) (exp ?y) (?? y2)))
-   =>
-   (/ (* ??x1 ??x2 (exp (- ?x ?y)))
-      (* ??y1 ??y2))))
+    (/ (* ??x1 (exp ?x) ??x2)
+       (* (?? y1) (exp ?y) (?? y2)))
+    =>
+    (/ (* ??x1 ??x2 (exp (- ?x ?y)))
+       (* ??y1 ??y2)))))
 
 (def exp-expand
   (let [i '(complex 0.0 1.0)
@@ -1380,50 +1383,51 @@ y)))) )"}
         exact-integer? (fn [x]
                          (and (v/integral? x)
                               (v/exact? x)))]
-    (ruleset
-     (exp (- ?x1)) => (/ 1 (exp ?x1))
+    (rule-simplifier
+     (ruleset
+      (exp (- ?x1)) => (/ 1 (exp ?x1))
 
-     (exp (- ?x1 ?x2)) => (/ (exp ?x1) (exp ?x2))
+      (exp (- ?x1 ?x2)) => (/ (exp ?x1) (exp ?x2))
 
-     (exp (+ ?x1 ?x2 ??xs))
-     =>
-     (* (exp ?x1) (exp (+ ?x2 ??xs)))
+      (exp (+ ?x1 ?x2 ??xs))
+      =>
+      (* (exp ?x1) (exp (+ ?x2 ??xs)))
 
-     (exp (* (:? ?x imaginary-integer? #(> (g/imag-part %) 1))
-             ??factors))
-     =>
-     (expt (exp (* ~i ??factors))
-           (:? #(g/imag-part (% '?x))))
+      (exp (* (:? ?x imaginary-integer? #(> (g/imag-part %) 1))
+              ??factors))
+      =>
+      (expt (exp (* ~i ??factors))
+            (:? #(g/imag-part (% '?x))))
 
-     (exp (* (:? ?x imaginary-integer? #(< (g/imag-part %) -1))
-             ??factors))
-     =>
-     (expt (exp (* ~-i ??factors))
-           (:? #(g/- (g/imag-part (% '?x)))))
+      (exp (* (:? ?x imaginary-integer? #(< (g/imag-part %) -1))
+              ??factors))
+      =>
+      (expt (exp (* ~-i ??factors))
+            (:? #(g/- (g/imag-part (% '?x)))))
 
-     (exp (* (:? ?n exact-integer? #(> % 1))
-             ??factors))
-     =>
-     (expt (exp (* ??factors)) ?n)
+      (exp (* (:? ?n exact-integer? #(> % 1))
+              ??factors))
+      =>
+      (expt (exp (* ??factors)) ?n)
 
-     (exp (* (:? ?n exact-integer? #(< % -1))
-             ??factors))
-     =>
-     (expt (exp (* -1 ??factors))
-           (:? #(- (% '?n))))
+      (exp (* (:? ?n exact-integer? #(< % -1))
+              ??factors))
+      =>
+      (expt (exp (* -1 ??factors))
+            (:? #(- (% '?n))))
 
-     (exp (:? ?x complex-number?))
-     =>
-     (* (exp (:? #(g/real-part (% '?x))))
-        (exp (:? #(g/* (g/imag-part (% '?x)) ~i))))
+      (exp (:? ?x complex-number?))
+      =>
+      (* (exp (:? #(g/real-part (% '?x))))
+         (exp (:? #(g/* (g/imag-part (% '?x)) ~i))))
 
-     (exp (* (:? ?x complex-number?)
-             ??factors))
-     =>
-     (* (exp (* (:? #(g/real-part (% '?x)))
-                ??factors))
-        (exp (* (:? #(g/* (g/imag-part (% '?x)) ~i))
-                ??factors))))))
+      (exp (* (:? ?x complex-number?)
+              ??factors))
+      =>
+      (* (exp (* (:? #(g/real-part (% '?x)))
+                 ??factors))
+         (exp (* (:? #(g/* (g/imag-part (% '?x)) ~i))
+                 ??factors)))))))
 
 (def complex-trig
   (rule-simplifier
@@ -1441,23 +1445,24 @@ y)))) )"}
              (mod (% '?n) 4))))))
 
 (def complex-rules
-  (ruleset
-   (make-rectangular (cos ?theta) (sin ?theta))
-   => (exp (* (complex 0.0 1.0) ?theta))
+  (rule-simplifier
+   (ruleset
+    (make-rectangular (cos ?theta) (sin ?theta))
+    => (exp (* (complex 0.0 1.0) ?theta))
 
-   (real-part (make-rectangular ?x _)) => ?x
-   (imag-part (make-rectangular _ ?y)) => ?y
+    (real-part (make-rectangular ?x _)) => ?x
+    (imag-part (make-rectangular _ ?y)) => ?y
 
-   (magnitude (make-rectangular ?x ?y))
-   => (sqrt (+ (expt ?x 2) (expt ?y 2)))
+    (magnitude (make-rectangular ?x ?y))
+    => (sqrt (+ (expt ?x 2) (expt ?y 2)))
 
-   (angle (make-rectangular ?x ?y)) => (atan ?y ?x)
+    (angle (make-rectangular ?x ?y)) => (atan ?y ?x)
 
-   (real-part (make-polar ?m ?a)) => (* ?m (cos ?a))
-   (imag-part (make-polar ?m ?a)) => (* ?m (sin ?a))
+    (real-part (make-polar ?m ?a)) => (* ?m (cos ?a))
+    (imag-part (make-polar ?m ?a)) => (* ?m (sin ?a))
 
-   (magnitude (make-polar ?m _)) => ?m
-   (angle (make-polar _ ?a)) => ?a))
+    (magnitude (make-polar ?m _)) => ?m
+    (angle (make-polar _ ?a)) => ?a)))
 
 (def divide-numbers-through
   (rule-simplifier
