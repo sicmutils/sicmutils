@@ -78,7 +78,7 @@
   - A sequence of the form `(:? <binding> ...)`."
   [pattern]
   (or (and (simple-symbol? pattern)
-           (u/re-matches? #"\?[^\?].*" (name pattern)))
+           (u/re-matches? #"^\?[^\?].*" (name pattern)))
 
       (and (sequential? pattern)
            (= (first pattern) :?))))
@@ -92,7 +92,7 @@
   - A sequence of the form `(:?? <binding>)`."
   [pattern]
   (or (and (simple-symbol? pattern)
-           (u/re-matches? #"\?\?[^\?].*" (name pattern)))
+           (u/re-matches? #"^\?\?[^\?].*" (name pattern)))
 
       (and (sequential? pattern)
            (= (first pattern) :??))))
@@ -107,7 +107,7 @@
   - A sequence of the form `(:$$ <binding>)`."
   [pattern]
   (or (and (simple-symbol? pattern)
-           (u/re-matches? #"\$\$[^\$].*" (name pattern)))
+           (u/re-matches? #"^\$\$[^\$].*" (name pattern)))
 
       (and (sequential? pattern)
            (= (first pattern) :$$))))

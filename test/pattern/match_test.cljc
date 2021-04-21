@@ -42,7 +42,7 @@
 
     ;; Clojurescript treats floats with no mantissa as integers.
     (let [expected #?(:clj nil
-                      :cljs [{:x 6.0} nil])]
+                      :cljs {:x 6.0})]
       (is (= expected ((m/bind :x integer?) {} 6.0 identity))))
 
     ;; Both languages treat 6.1 as a float.
