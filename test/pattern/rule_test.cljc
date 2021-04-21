@@ -38,10 +38,9 @@
       (is (= '(a b c 9 8 y z) (R '(9 8 7 6 5))))
       (is (r/failed? (R '(9)))))
 
-    (is (= 2
-           ((r/make-rule [:? '?x odd?]
-                         (fn [m] (inc (m '?x))))
-            1))
+    (is (= 2 ((r/rule* [:? '?x odd?]
+                       (fn [m] (inc (m '?x))))
+              1))
         "make an explicit rule, still a function."))
 
   (testing "simple2"

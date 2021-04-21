@@ -95,14 +95,13 @@
   - all variable binding forms replaced by their entries in the binding map
   - same with any segment binding form, with the added note that these should
     be spliced in
-  - any `unquote` or `unquote-splicing` forms respected
-
-  NOTE: reverse-segment variables are NOT evaluated here; these currently only
-  apply when matching an already-bound segment variable. But they should be!"
+  - any `unquote` or `unquote-splicing` forms respected"
   [skel]
   (let [frame-sym (gensym)]
     (letfn [(compile-sequential [xs]
-              (let [acc (ps/splice-reduce (some-fn ps/segment? ps/unquote-splice?)
+              (let [acc (ps/splice-reduce (some-fn ps/segment?
+                                                   ps/reverse-segment?
+                                                   ps/unquote-splice?)
                                           compile xs)]
                 (cond (empty? acc) ()
                       (= 1 (count acc)) (first acc)
@@ -115,7 +114,7 @@
                       (apply-form v frame-sym))
 
                     (ps/reverse-segment? form)
-                    (let [v (ps/variable-name form)]
+                    (let [v (ps/reverse-segment-name form)]
                       (list `rseq (apply-form v frame-sym)))
 
                     (symbol? form) (list 'quote form)
