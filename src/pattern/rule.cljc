@@ -79,10 +79,10 @@
 (defmacro pattern
   "Generates a pattern matcher from a template. TODO describe the language here!"
   ([form]
-   `(m/matcher
+   `(pattern*
      ~(ps/compile-pattern form)))
   ([form pred]
-   `(m/matcher
+   `(pattern*
      ~(ps/compile-pattern form)
      ~@(when pred [pred]))))
 
@@ -92,8 +92,10 @@
   [form]
   (c/compile-skeleton form))
 
-(defn make-rule
-  "Accepts a `match` pattern and a handler...
+(defn rule*
+  "Function version of [[rule]].
+
+  Accepts a `match` pattern and a handler...
 
   - if the match fails, returns `failure`.
   - if the handler returns `nil` or `false`, returns `failure`.
@@ -130,12 +132,12 @@
   TODO NOTE that if the consequent-fn in the two arg case returns falsey, the
   whole thing fails."
   ([p consequent-fn]
-   `(make-rule (pattern ~p)
-               ~consequent-fn))
+   `(rule* (pattern ~p)
+           ~consequent-fn))
 
   ([p pred skeleton]
-   `(make-rule (pattern ~p ~pred)
-               (consequence ~skeleton))))
+   `(rule* (pattern ~p ~pred)
+           (consequence ~skeleton))))
 
 (defmacro rule
   ([pattern consequent-fn]
@@ -232,7 +234,7 @@
 
 (defn predicate
   "Returns a rule that will pass the data on unchanged if `(f data)` returns true,
-  fail otherwise."
+  fails otherwise."
   [f]
   (fn [data]
     (if (f data)
@@ -284,6 +286,18 @@
       (if (= data result)
         data
         (recur result)))))
+
+(defn trace
+  "Returns a rule that calls `f` with its input and output values."
+  ([r]
+   (trace r prn))
+  ([r f]
+   (let [id (gensym "t_")]
+     (fn [data]
+       (f {:id id, :in data})
+       (let [result (r data)]
+         (f {:id id, :out result})
+         result)))))
 
 ;; ## Expression Matchers
 ;;
@@ -361,7 +375,9 @@
 ;;
 ;; The original, good stuff.
 
-(defn make-ruleset [& rules]
+(defn ruleset*
+  "Function version of ruleset. These really want to be rules that can fail."
+  [& rules]
   (attempt
    (apply choice rules)))
 
@@ -375,7 +391,7 @@
   {:pre (zero? (mod (count patterns-and-consequences) 3))}
   (let [rule-inputs (partition 3 patterns-and-consequences)
         rules       (mapv #(apply compile-rule %) rule-inputs)]
-    `(make-ruleset ~@rules)))
+    `(ruleset* ~@rules)))
 
 (defn rule-simplifier
   "Transform the supplied rules into a function of expressions which will
