@@ -40,6 +40,8 @@
   (quo [this otha])
   (dot [this otha])
   (wdg [this otha])
+  (lcn [this otha])
+  (rcn [this otha])
   (eq? [this otha])
   (grade-part [this n]))
 
@@ -337,6 +339,8 @@
       this))
   (dot [this otha] this)
   (wdg [this otha] this)
+  (lcn [this otha] this)
+  (rcn [this otha] this)
   (eq? [this otha]
     (or (instance? (class this) otha)
         (and (number? otha) (zero? otha))))
@@ -596,6 +600,20 @@
       (wdg (asMV this) (asMV otha))
       (grade-part (prd this otha)
                   (+ (grade this) (grade otha)))))
+  (lcn [this otha]
+    (if (different-rung? this otha)
+      (lcn (asMV this) (asMV otha))
+      (let [out-grade (- (grade otha) (grade this))]
+        (if (neg? out-grade)
+          the-zero-element
+          (grade-part (prd this otha) out-grade)))))
+  (rcn [this otha]
+    (if (different-rung? this otha)
+      (lcn (asMV this) (asMV otha))
+      (let [out-grade (- (grade this) (grade otha))]
+        (if (neg? out-grade)
+          the-zero-element
+          (grade-part (prd this otha) out-grade)))))
   (eq? [this otha]
     (if (different-rung? this otha)
       (eq? (asMV this) otha)
@@ -641,6 +659,20 @@
       (wdg (asMV this) (asMV otha))
       (grade-part (prd this otha)
                   (+ (grade this) (grade otha)))))
+  (lcn [this otha]
+    (if (different-rung? this otha)
+      (lcn (asMV this) (asMV otha))
+      (let [out-grade (- (grade otha) (grade this))]
+        (if (neg? out-grade)
+          the-zero-element
+          (grade-part (prd this otha) out-grade)))))
+  (rcn [this otha]
+    (if (different-rung? this otha)
+      (lcn (asMV this) (asMV otha))
+      (let [out-grade (- (grade this) (grade otha))]
+        (if (neg? out-grade)
+          the-zero-element
+          (grade-part (prd this otha) out-grade)))))
   (eq? [this otha]
     (if (different-rung? this otha)
       (eq? (asMV this) otha)
@@ -682,6 +714,10 @@
     (mv-bimap-via-gradelings dot this (asMV otha)))
   (wdg [this otha]
     (mv-bimap-via-gradelings wdg this (asMV otha)))
+  (lcn [this otha]
+    (mv-bimap-via-gradelings (fn [a b] (lcn a b)) this (asMV otha)))
+  (rcn [this otha]
+    (mv-bimap-via-gradelings (fn [a b] (rcn a b)) this (asMV otha)))
   (eq? [this otha]
     (every? true?
             (map eq? (gradelings this) (gradelings (asMV otha)))))
@@ -723,6 +759,14 @@
     (if (different-rung? this otha)
       (wdg (asMV this) (asMV otha))
       (grade-part (prd this otha) 2)))
+  (lcn [this otha]
+    (if (different-rung? this otha)
+      (lcn (asMV this) otha)
+      (dot this otha)))
+  (rcn [this otha]
+    (if (different-rung? this otha)
+      (lcn (asMV this) otha)
+      (dot this otha)))
   (eq? [this otha]
     (if (different-rung? this otha)
       (eq? (asMV this) otha)
@@ -786,6 +830,10 @@
     the-zero-element)
   (wdg [this otha]
     (scl otha this))
+  (lcn [this otha]
+    the-zero-element)  ;; this represents Hestenes's nullful definition
+  (rcn [this otha]
+    the-zero-element)  ;; ditto. ("Ditto, you provincial putz?")
   (eq? [this otha]
     (if-not (number? otha)
       (eq? (asMV this) otha)
