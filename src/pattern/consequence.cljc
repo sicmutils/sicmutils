@@ -70,7 +70,7 @@
   Symbols are quoted, [[unquote?]] forms are included without quote and all
   other forms are left untouched."
   [f x]
-  (let [f (cond (symbol? f) `(quote ~f)
+  (let [f (cond (simple-symbol? f) `(quote ~f)
                 (ps/unquote? f) (ps/unquoted-form f)
                 :else f)]
     (list f x)))

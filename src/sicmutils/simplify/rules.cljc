@@ -119,10 +119,6 @@
                      (mapcat (flatten op)
                              (concat b c))))))))
 
-
-;; - return NEW bindings from the predicate!
-;; move this sorted stuff to exprression, plus a `sort` function
-
 (defn commutative
   "Flipping one at a time is bubble sort
   (rule `(,operator (?? a) (? y) (? x) (?? b))
@@ -191,35 +187,7 @@
    (* ??pre ?op ?op ??post)
    => (* ??pre (expt ?op 2) ??post)))
 
-(def sin-sq->cos-sq
-  (rule-simplifier
-   (ruleset
-    (expt (sin ?x) (:? ?n at-least-two?))
-    => (* (expt (sin ?x) (:? #(- (% '?n) 2)))
-          (- 1 (expt (cos ?x) 2))))))
-
-
-
-(def split-high-degree-sincos
-  (letfn [(remaining [m]
-            (let [leftover (- (m '?n) 2)]
-              (if (= leftover 1)
-                (list (m '?op) (m '?x))
-                `(~'expt (~(m '?op) ~(m '?x)) ~leftover))))]
-    (ruleset
-     (* ??f1
-        (expt ((:? ?op #{'sin 'cos}) ?x) (:? ?n more-than-two?))
-        ??f2)
-     => (* ??f1
-           (expt (?op ?x) 2) (:? ~remaining)
-           ??f2)
-
-     (+ ??a1
-        (expt ((:? ?op #{'sin 'cos}) ?x) (:? ?n more-than-two?))
-        ??a2)
-     => (+ ??a1
-           (* (expt (?op ?x) 2) (:? ~remaining))
-           ??a2))))
+;; ## Square Root Simplification
 
 (def simplify-square-roots
   (rule-simplifier
@@ -266,27 +234,7 @@
        (* ??u ?x ??v))
     =>
     (/ (* ??p ??q)
-       (* ??u (sqrt ?x) ??v))
-
-    ;; Following are the new rules we added to approach
-    ;; the simplification of the time-invariant-canonical
-    ;; test.
-
-    ;; TODO check these. If they are the SAME, a and b, then totally just
-    ;; combine them! These seem like they should belong in sqrt-contract. And in
-    ;; fact they probably ARE there.
-
-    ;; ... (sqrt a) ... (sqrt b) ... => ... (sqrt a b)
-    (* ??f1 (sqrt ?a) ??f2 (sqrt ?b) ??f3)
-    => (* ??f1 ??f2 ??f3 (sqrt (* ?a ?b)))
-
-    ;; (/ (* ... (sqrt a) ...)
-    ;;    (* ... (sqrt b) ...)  => ... (sqrt (/ a b)) ... / ... ...
-    (/ (* ??f1 (sqrt ?a) ??f2)
-       (* ??g1 (sqrt ?b) ??g2))
-    => (/ (* ??f1 ??f2 (sqrt (/ ?a ?b)))
-          (* ??g1 ??g2))
-    )))
+       (* ??u (sqrt ?x) ??v)))))
 
 (def sqrt-expand
   (rule-simplifier
@@ -304,9 +252,7 @@
 
     (sqrt (/ ?x ?y)) => (/ (sqrt ?x) (sqrt ?y))
 
-    (sqrt (/ ?x ?y ??ys)) => (/ (sqrt ?x) (sqrt (* ?y ??ys)))
-
-    )))
+    (sqrt (/ ?x ?y ??ys)) => (/ (sqrt ?x) (sqrt (* ?y ??ys))))))
 
 (defn sqrt-contract
   ([] (sqrt-contract identity))
@@ -365,99 +311,7 @@
                     (~'* ~@('??a m) (~'sqrt (~'/ ~xs ~ys)) ~@('??b m))
                     (~'* ~@('??c m) ~@('??d m)))))))))))
 
-(def complex-trig
-  ;; TODO: clearly more of these are needed.
-  (rule-simplifier
-   (ruleset
-    (cos (* ?z (complex 0.0 1.0)))
-    => (cosh ?z)
-
-    (sin (* ?z (complex 0.0 1.0)))
-    => (* (complex 0.0 1.0) (sinh ?z))
-
-    ;; Does this really belong here?
-    ;; It works by reducing n mod 4 and then indexing into [1 i -1 -i].
-    (expt (complex 0.0 1.0) (:? ?n v/integral?))
-    => (:? #([1 '(complex 0 1) -1 '(complex 0 -1)] (mod (% '?n) 4))))))
-
-(def divide-numbers-through
-  (rule-simplifier
-   (ruleset
-    (* 1 ?factor) => ?factor
-    (* 1 ??factors) => (* ??factors)
-
-    (/ (:? ?n v/number?) (:? ?d v/number?))
-    => (:? #(g// (% '?n) (% '?d)))
-
-    (/ (+ ??terms) (:? ?d v/number?))
-    => (+ (:?? #(map (fn [n] `(~'/ ~n ~(% '?d))) (% '??terms)))))))
-
-(def flush-obvious-ones
-  (ruleset
-   (+ ??a1 (expt (sin ?x) 2) ??a2 (expt (cos ?x) 2) ??a3)
-   => (+ 1 ??a1 ??a2 ??a3))
-  ;; are sines always before cosines after we poly simplify?
-  ;; they are in scmutils, so we should be alert for this.
-  ;;
-  ;; TODO they should NOT be!!
-  ;;
-  ;; in scmutils, there are a couple of others that involve rcf:simplify, which
-  ;; we dont' have, and we don't know if pcf:simplify is an acceptable
-  ;; substitute here; and we don't have a method for pasting the value of a
-  ;; predicate into a rule, so this is far from complete.
-  ;;
-  ;; TODO we do now, and this comment is totally out of date.
-  )
-
-(def trig->sincos
-  (rule-simplifier
-   (ruleset
-    ;; GJS has other rules: to map cot, sec and csc to sin/cos, but
-    ;; I don't think we need those since we transform those to sin/cos
-    ;; in the env namespace.
-    (tan ?x) => (/ (sin ?x) (cos ?x)))))
-
-;; note the difference in interface between rulesets and rule simplifiers.
-;; rulesets return nil when they're not applicable (unless you specify a
-;; custom fail continuation). Rule-simplifiers pass expressions through.
-
-(def sincos->trig
-  (rule-simplifier
-   (ruleset
-    ;; undoes the effect of trig->sincos
-    (/ (sin ?x) (cos ?x))
-    => (tan ?x)
-
-    (/ (sin ?x) (* ??d1 (cos ?x) ??d2))
-    => (/ (tan ?x) (* ??d1 ??d2))
-
-    (/ (* ??n1 (sin ?x) ??n2)
-       (* ??d1 (cos ?x) ??d2))
-    => (/ (* ??n1 (tan ?x) ??n2)
-          (* ??d1 ??d2)))))
-
-(def triginv
-  (rule-simplifier
-   (ruleset
-    (sin (asin ?x))          => ?x
-    (asin (sin ?x))          => ?x
-    (sin (atan ?y ?x))       => (/ ?y (sqrt (+ (expt ?x 2) (expt ?y 2))))
-    (cos (atan ?y ?x))       => (/ ?x (sqrt (+ (expt ?x 2) (expt ?y 2))))
-    (cos (asin ?t))          => (sqrt (- 1 (square ?t))))
-
-   (ruleset
-    (acos (cos ?x))          => ?x
-    (atan (tan ?x))          => ?x
-    (atan (sin ?x) (cos ?x)) => ?x
-    (atan (* ?c (sin ?x)) (* ?c (cos ?x))) => ?x)))
-
-(def sincos-flush-ones
-  (rule-simplifier
-   split-high-degree-sincos
-   flush-obvious-ones))
-
-(defn universal-reductions [x]
-  (triginv x))
+;; ## Partials
 
 (def canonicalize-partials
   (rule-simplifier
@@ -507,3 +361,140 @@
       (pos? (compare (vec ('??i m))
                      (vec ('??j m)))))
     (((* ??xs (partial ??j) ??ys (partial ??i) ??zs) ?f) ??args))))
+
+;; ## Trigonometric Rules
+
+(def trig->sincos
+  (rule-simplifier
+   (ruleset
+    (tan ?x) => (/ (sin ?x) (cos ?x))
+
+    (cot ?x) => (/ (cos ?x) (sin ?x))
+
+    (sec ?x) => (/ 1 (cos ?x))
+
+    (csc ?x) => (/ 1 (sin ?x))
+
+    (atan (/ ?y ?x)) => (atan ?y ?x)
+
+    (atan ?y) => (atan ?y 1))))
+
+(def sincos->trig
+  (rule-simplifier
+   (ruleset
+    (/ (sin ?x) (cos ?x)) => (tan ?x)
+
+    (/ (* ??n1 (sin ?x) ??n2) (cos ?x))
+    => (* ??n1 (tan ?x) ??n2)
+
+    (/ (sin ?x) (* ??d1 (cos ?x) ??d2))
+    => (/ (tan ?x) (* ??d1 ??d2))
+
+    (/ (* ??n1 (sin ?x) ??n2)
+       (* ??d1 (cos ?x) ??d2))
+    => (/ (* ??n1 (tan ?x) ??n2)
+          (* ??d1 ??d2)))))
+
+(def triginv
+  (rule-simplifier
+   (ruleset
+    (sin (asin ?x))    => ?x
+    (asin (sin ?x))    => ?x
+    (sin (atan ?y ?x)) => (/ ?y (sqrt (+ (expt ?x 2) (expt ?y 2))))
+    (cos (atan ?y ?x)) => (/ ?x (sqrt (+ (expt ?x 2) (expt ?y 2))))
+    (cos (asin ?t))    => (sqrt (- 1 (square ?t))))
+
+   (ruleset
+    (acos (cos ?x))          => ?x
+    (atan (tan ?x))          => ?x
+    (atan (sin ?x) (cos ?x)) => ?x
+    (atan (* ?c (sin ?x)) (* ?c (cos ?x))) => ?x)))
+
+(def sin-sq->cos-sq
+  (rule-simplifier
+   (ruleset
+    (expt (sin ?x) (:? ?n at-least-two?))
+    => (* (expt (sin ?x) (:? #(- (% '?n) 2)))
+          (- 1 (expt (cos ?x) 2))))))
+
+(def cos-sq->sin-sq
+  (rule-simplifier
+   (ruleset
+    (expt (cos ?x) (:? ?n at-least-two?))
+    => (* (expt (cos ?x) (:? #(- (% '?n) 2)))
+          (- 1 (expt (sin ?x) 2))))))
+
+(def split-high-degree-sincos
+  (letfn [(remaining [m]
+            (let [leftover (- (m '?n) 2)]
+              (if (v/one? leftover)
+                (list (m '?op) (m '?x))
+                `(~'expt (~(m '?op) ~(m '?x)) ~leftover))))]
+    (ruleset
+     (* ??f1
+        (expt ((:? ?op #{'sin 'cos}) ?x) (:? ?n more-than-two?))
+        ??f2)
+     => (* ??f1
+           (expt (?op ?x) 2)
+           (:? ~remaining)
+           ??f2)
+
+     (+ ??a1
+        (expt ((:? ?op #{'sin 'cos}) ?x) (:? ?n more-than-two?))
+        ??a2)
+     => (+ ??a1
+           (* (expt (?op ?x) 2)
+              (:? ~remaining))
+           ??a2))))
+
+(def flush-obvious-ones
+  (ruleset
+   (+ ??a1 (expt (sin ?x) 2) ??a2 (expt (cos ?x) 2) ??a3)
+   => (+ 1 ??a1 ??a2 ??a3))
+  ;; are sines always before cosines after we poly simplify?
+  ;; they are in scmutils, so we should be alert for this.
+  ;;
+  ;; TODO they should NOT be!!
+  ;;
+  ;; in scmutils, there are a couple of others that involve rcf:simplify, which
+  ;; we dont' have, and we don't know if pcf:simplify is an acceptable
+  ;; substitute here; and we don't have a method for pasting the value of a
+  ;; predicate into a rule, so this is far from complete.
+  ;;
+  ;; TODO we do now, and this comment is totally out of date.
+  )
+
+(def sincos-flush-ones
+  (rule-simplifier
+   split-high-degree-sincos
+   flush-obvious-ones))
+
+(def complex-trig
+  ;; TODO: clearly more of these are needed.
+  (rule-simplifier
+   (ruleset
+    (cos (* ?z (complex 0.0 1.0)))
+    => (cosh ?z)
+
+    (sin (* ?z (complex 0.0 1.0)))
+    => (* (complex 0.0 1.0) (sinh ?z))
+
+    ;; Does this really belong here?
+    ;; It works by reducing n mod 4 and then indexing into [1 i -1 -i].
+    (expt (complex 0.0 1.0) (:? ?n v/integral?))
+    => (:? #([1 '(complex 0 1) -1 '(complex 0 -1)] (mod (% '?n) 4))))))
+
+(def divide-numbers-through
+  (rule-simplifier
+   (ruleset
+    (* 1 ?factor) => ?factor
+    (* 1 ??factors) => (* ??factors)
+
+    (/ (:? ?n v/number?) (:? ?d v/number?))
+    => (:? #(g// (% '?n) (% '?d)))
+
+    (/ (+ ??terms) (:? ?d v/number?))
+    => (+ (:?? #(map (fn [n] `(~'/ ~n ~(% '?d))) (% '??terms)))))))
+
+(defn universal-reductions [x]
+  (triginv x))

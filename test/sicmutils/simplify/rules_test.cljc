@@ -20,6 +20,8 @@
 (ns sicmutils.simplify.rules-test
   (:require [clojure.test :refer [is deftest testing]]
             [pattern.rule :refer [rule-simplifier]]
+            [sicmutils.numbers]
+            [sicmutils.ratio]
             [sicmutils.simplify.rules :as r]))
 
 (deftest simplify-square-roots-test
@@ -84,12 +86,13 @@
   (let [s r/sincos-flush-ones]
     (is (= '(+ 1 a b c c d e f g)
            (s '(+ a b c (expt (sin x) 2) c d (expt (cos x) 2) e f g))))
-    (is (= '(+ (* (expt (cos x) 2) (expt (cos x) 1)) c (expt (sin x) 2) d e)
-           (s '(+ c (expt (sin x) 2)  d (expt (cos x) 3) e ))))
-    (is (= '(+ (* (expt (sin x) 2) (expt (sin x) 1) (expt (sin x) 2))
-               (* (expt (cos x) 2) (expt (cos x) 1))
-               c d e)
-           (s '(+ c (expt (sin x) 5)  d (expt (cos x) 3) e ))))))
+
+    (is (= '(+ c (expt (sin x) 2) d (* (expt (cos x) 2) (cos x)) e)
+           (s '(+ c (expt (sin x) 2) d (expt (cos x) 3) e))))
+
+    (is (= '(+ c (* (expt (sin x) 2) (expt (sin x) 2) (sin x))
+               d (* (expt (cos x) 2) (cos x)) e)
+           (s '(+ c (expt (sin x) 5) d (expt (cos x) 3) e))))))
 
 (deftest sin-sq->cos-sq-test
   (let [s r/sin-sq->cos-sq]
@@ -108,7 +111,7 @@
 
   (let [sqrt-contract (r/sqrt-contract identity)]
     (testing "cancels square roots if the values are equal"
-      (is (= '(* a c e (sqrt (* b d)))
+      (is (= '(* a (sqrt (* b d)) c e)
              (sqrt-contract
               '(* a (sqrt b) c (sqrt d) e)))
           "square roots get pushed to the end.")
@@ -127,6 +130,12 @@
               '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))))))))
 
 (deftest new-tests
+  (let [r (rule-simplifier r/split-high-degree-sincos)]
+    (is (= '(+ 1 2 (* (expt (cos x) 2)
+                      (expt (cos x) 2)
+                      (cos x)))
+           (r '(+ 1 2 (expt (cos x) 5))))))
+
   (let [rule (r/constant-promotion '* 0)
         f    (rule-simplifier rule)]
     (is (= 0 (f '(* x 0)))
