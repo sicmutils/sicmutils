@@ -56,6 +56,13 @@
              [{:x [a b c]} nil]]
            (m/all-results (m/segment :x) '[a b c])))
 
+    (is (= '[[{} [a b c]]
+             [{} (b c)]
+             [{} (c)]
+             [{} nil]]
+           (m/all-results (m/segment '_) '[a b c]))
+        "Segments respect wildcards by not binding.")
+
     (is (= '[{??x [a b c]}]
            (m/all-results ['??x] '[a b c]))
         "A final segment in a list matcher matches the entire list, no scanning.")
@@ -146,7 +153,7 @@
              {y [b b] x [b b]}
              {y [] x [b b b]}]
            (m/all-results
-            '(a (:?? x) (:?? y) (:?? x) c)
+            '(a (?? x) (?? y) (?? x) c)
             '(a b b b b b b c)))))
 
   (testing "an expression"
@@ -171,10 +178,10 @@
 
 (deftest match-compiler
   (testing "simple"
-    (let [match-x [:? :x]
-          match-xx [[:? :x] [:? :x]]
-          match-xy [[:? :x] [:? :y]]
-          match-x-ys-x [[:? :x] [:?? :ys] [:? :x]]]
+    (let [match-x ['? :x]
+          match-xx [['? :x] ['? :x]]
+          match-xy [['? :x] ['? :y]]
+          match-x-ys-x [['? :x] ['?? :ys] ['? :x]]]
       (is (= '{:x 3} (m/match match-x 3)))
       (is (= '{:x 2} (m/match match-xx [2 2])))
       (is (m/failed? (m/match match-xx [2 3])))
@@ -226,32 +233,32 @@
   ;; these tests come from matcher.scm.
   (testing "element inside of list"
     (is (= {'b 1}
-           (m/match '(a ((:? b) 2 3) 1 c)
+           (m/match '(a ((? b) 2 3) 1 c)
                     '(a (1 2 3) 1 c))))
 
     (is (= {'b 1}
-           (m/match `(~'a ((:? ~'b ~number?) 2 3) 1 ~'c)
+           (m/match `(~'a ((~'? ~'b ~number?) 2 3) 1 ~'c)
                     '(a (1 2 3) 1 c)))
         "match element with predicate inside of list")
 
     (is (m/failed?
-         (m/match `(~'a ((:? ~'b ~symbol?) 2 3) 1 ~'c)
+         (m/match `(~'a ((~'? ~'b ~symbol?) 2 3) 1 ~'c)
                   '(a (1 2 3) 1 c)))
         "match element inside list with failing predicate")
 
     (is (m/failed?
-         (m/match '(a ((:? b) 2 3) (:? b) c)
+         (m/match '(a ((? b) 2 3) (? b) c)
                   '(a (1 2 3) 2 c)))
         "match element inside list, but fail the second match outside")
 
     (is (= {'b 1}
-           (m/match '(a ((:? b) 2 3) (:? b) c)
+           (m/match '(a ((? b) 2 3) (? b) c)
                     '(a (1 2 3) 1 c)))
         "match element inside list, repeated match outside"))
 
   (testing "segment and reverse segment"
     (letfn [(palindrome? [x]
-              ((m/pattern->combinators '((:?? x) (:$$ x)))
+              ((m/pattern->combinators '((?? x) ($$ x)))
                {}
                x
                boolean))]
@@ -263,13 +270,13 @@
     (is (= {'?x 10 '?y {'?x 10}}
            ((m/matcher '?x (m/matcher '?y)) 10))))
 
-  (let [match (m/matcher '(+ (:? _ #{11}) ?b))]
+  (let [match (m/matcher '(+ (? _ #{11}) ?b))]
     (is (= {'?b 12} (match '(+ 11 12))))
     (is (m/failed?
          (match '(+ 12 11)))))
 
-  (let [match (m/matcher (m/or [:? 'x #{11}]
-                               (m/not [:? 'x odd?])))]
+  (let [match (m/matcher (m/or ['? 'x #{11}]
+                               (m/not ['? 'x odd?])))]
     (is (= {'x 11} (match 11)))
     (is (= {} (match 12))))
 
@@ -309,7 +316,7 @@
         "no match."))
 
   (is (= [{'stuff '(0 1 2 3 4 5 6 7 8 9)}]
-         ((m/all-results-matcher '(and (:?? stuff)))
+         ((m/all-results-matcher '(and (?? stuff)))
           (cons 'and (range 10))))
       "segments at the end of a list run in constant time, except building the
         test list"))

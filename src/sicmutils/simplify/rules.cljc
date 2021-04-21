@@ -76,7 +76,7 @@
   [& ops]
   (let [op-set (into #{} ops)]
     (ruleset
-     ((:? _ op-set) ?x) => ?x)))
+     ((? _ op-set) ?x) => ?x)))
 
 (defn constant-elimination
   "Takes an operation `op` and an identity element `constant` and returns a rule
@@ -113,11 +113,11 @@
                       (rest term)
                       [term])))]
     (ruleset
-     ((:? ?op op-set) ??a (?op ??b) ??c)
+     ((? ?op op-set) ??a (?op ??b) ??c)
      =>
-     (?op ??a (:?? (fn [{op '?op, b '??b, c '??c}]
-                     (mapcat (flatten op)
-                             (concat b c))))))))
+     (?op ??a (?? (fn [{op '?op, b '??b, c '??c}]
+                    (mapcat (flatten op)
+                            (concat b c))))))))
 
 (defn commutative
   "Flipping one at a time is bubble sort
@@ -134,53 +134,53 @@
   [& ops]
   (let [op-set (into #{} ops)]
     (ruleset
-     ((:? ?op op-set) ??xs)
+     ((? ?op op-set) ??xs)
      #(not (x/sorted? (% '??xs)))
-     (?op (:?? #(x/sort (% '??xs)))))))
+     (?op (?? #(x/sort (% '??xs)))))))
 
 (defn idempotent [& ops]
   (let [op-set (into #{} ops)]
     (ruleset
-     ((:? ?op op-set) ??pre ?x ?x ??post)
+     ((? ?op op-set) ??pre ?x ?x ??post)
      =>
-     (?op (:?? (fn [m]
-                 (dedupe
-                  (concat (m '??pre)
-                          [(m '?x)]
-                          (m '??post)))))))))
+     (?op (?? (fn [m]
+                (dedupe
+                 (concat (m '??pre)
+                         [(m '?x)]
+                         (m '??post)))))))))
 
 (def ^{:doc "Set of rules that collect adjacent products, exponents and nested
  exponents into exponent terms."}
   exponent-contract
   (ruleset
    ;; nested exponent case.
-   (expt (expt ?op (:? ?n v/integral?))
-         (:? ?m v/integral?))
-   => (expt ?op (:? #(g/+ (% '?n) (% '?m))))
+   (expt (expt ?op (? ?n v/integral?))
+         (? ?m v/integral?))
+   => (expt ?op (? #(g/+ (% '?n) (% '?m))))
 
    ;; adjacent pairs of exponents
    (* ??pre
-      (expt ?op (:? ?n v/integral?))
-      (expt ?op (:? ?m v/integral?))
+      (expt ?op (? ?n v/integral?))
+      (expt ?op (? ?m v/integral?))
       ??post)
    => (* ??pre
-         (expt ?op (:? #(g/+ (% '?n) (% '?m))))
+         (expt ?op (? #(g/+ (% '?n) (% '?m))))
          ??post)
 
    ;; exponent on right, non-expt on left
    (* ??pre
-      ?op (expt ?op (:? ?n v/integral?))
+      ?op (expt ?op (? ?n v/integral?))
       ??post)
    => (* ??pre
-         (expt ?op (:? #(g/+ (% '?n) 1)))
+         (expt ?op (? #(g/+ (% '?n) 1)))
          ??post)
 
    ;; exponent on left, non-expt on right
    (* ??pre
-      (expt ?op (:? ?n v/integral?)) ?op
+      (expt ?op (? ?n v/integral?)) ?op
       ??post)
    => (* ??pre
-         (expt ?op (:? #(g/+ (% '?n) 1)))
+         (expt ?op (? #(g/+ (% '?n) 1)))
          ??post)
 
    ;; non-exponent pairs
@@ -192,17 +192,17 @@
 (def simplify-square-roots
   (rule-simplifier
    (ruleset
-    (expt (sqrt ?x) (:? ?n even-integer?))
-    => (expt ?x (:? #(/ (% '?n) 2)))
+    (expt (sqrt ?x) (? ?n even-integer?))
+    => (expt ?x (? #(/ (% '?n) 2)))
 
-    (sqrt (expt ?x (:? ?n even-integer?)))
-    => (expt ?x (:? #(/ (% '?n) 2)))
+    (sqrt (expt ?x (? ?n even-integer?)))
+    => (expt ?x (? #(/ (% '?n) 2)))
 
-    (sqrt (expt ?x (:? ?n odd-integer?)))
-    => (* (sqrt ?x) (expt ?x (:? #(/ (dec (% '?n)) 2))))
+    (sqrt (expt ?x (? ?n odd-integer?)))
+    => (* (sqrt ?x) (expt ?x (? #(/ (dec (% '?n)) 2))))
 
-    (expt (sqrt ?x) (:? ?n odd-integer?))
-    => (* (sqrt ?x) (expt ?x (:? #(/ (dec (% '?n)) 2))))
+    (expt (sqrt ?x) (? ?n odd-integer?))
+    => (* (sqrt ?x) (expt ?x (? #(/ (dec (% '?n)) 2))))
 
     (/ ?x (sqrt ?x)) => (sqrt ?x)
 
@@ -262,7 +262,7 @@
      ;; NOTE: Scmutils, in each of these contractions, will `assume!` that the
      ;; expressions named ?x and ?y are non-negative.
      (* ??a (sqrt ?x) ??b (sqrt ?y) ??c)
-     => (:? (fn [m]
+     => (? (fn [m]
               (let [xs (simplify ('?x m))
                     ys (simplify ('?y m))]
                 (if (v/= xs ys)
@@ -272,7 +272,7 @@
                     ~@('??b m) ~@('??c m))))))
 
      (/ (sqrt ?x) (sqrt ?y))
-     => (:? (fn [m]
+     => (? (fn [m]
               (let [xs (simplify ('?x m))
                     ys (simplify ('?y m))]
                 (if (v/= xs ys)
@@ -280,7 +280,7 @@
                   `(~'sqrt (~'/ ~xs ~ys))))))
 
      (/ (* ??a (sqrt ?x) ??b) (sqrt ?y))
-     => (:? (fn [m]
+     => (? (fn [m]
               (let [xs (simplify ('?x m))
                     ys (simplify ('?y m))]
                 (if (v/= xs ys)
@@ -290,7 +290,7 @@
                     ~@('??b m))))))
 
      (/ (sqrt ?x) (* ??a (sqrt ?y) ??b))
-     => (:? (fn [m]
+     => (? (fn [m]
               (let [xs (simplify ('?x m))
                     ys (simplify ('?y m))]
                 (if (v/= xs ys)
@@ -300,7 +300,7 @@
 
      (/ (* ??a (sqrt ?x) ??b)
         (* ??c (sqrt ?y) ??d))
-     => (:? (fn [m]
+     => (? (fn [m]
               (let [xs (simplify ('?x m))
                     ys (simplify ('?y m))]
                 (if (v/= xs ys)
@@ -413,15 +413,15 @@
 (def sin-sq->cos-sq
   (rule-simplifier
    (ruleset
-    (expt (sin ?x) (:? ?n at-least-two?))
-    => (* (expt (sin ?x) (:? #(- (% '?n) 2)))
+    (expt (sin ?x) (? ?n at-least-two?))
+    => (* (expt (sin ?x) (? #(- (% '?n) 2)))
           (- 1 (expt (cos ?x) 2))))))
 
 (def cos-sq->sin-sq
   (rule-simplifier
    (ruleset
-    (expt (cos ?x) (:? ?n at-least-two?))
-    => (* (expt (cos ?x) (:? #(- (% '?n) 2)))
+    (expt (cos ?x) (? ?n at-least-two?))
+    => (* (expt (cos ?x) (? #(- (% '?n) 2)))
           (- 1 (expt (sin ?x) 2))))))
 
 (def split-high-degree-sincos
@@ -432,19 +432,19 @@
                 `(~'expt (~(m '?op) ~(m '?x)) ~leftover))))]
     (ruleset
      (* ??f1
-        (expt ((:? ?op #{'sin 'cos}) ?x) (:? ?n more-than-two?))
+        (expt ((? ?op #{'sin 'cos}) ?x) (? ?n more-than-two?))
         ??f2)
      => (* ??f1
            (expt (?op ?x) 2)
-           (:? ~remaining)
+           (? ~remaining)
            ??f2)
 
      (+ ??a1
-        (expt ((:? ?op #{'sin 'cos}) ?x) (:? ?n more-than-two?))
+        (expt ((? ?op #{'sin 'cos}) ?x) (? ?n more-than-two?))
         ??a2)
      => (+ ??a1
            (* (expt (?op ?x) 2)
-              (:? ~remaining))
+              (? ~remaining))
            ??a2))))
 
 (def flush-obvious-ones
@@ -481,8 +481,8 @@
 
     ;; Does this really belong here?
     ;; It works by reducing n mod 4 and then indexing into [1 i -1 -i].
-    (expt (complex 0.0 1.0) (:? ?n v/integral?))
-    => (:? #([1 '(complex 0 1) -1 '(complex 0 -1)] (mod (% '?n) 4))))))
+    (expt (complex 0.0 1.0) (? ?n v/integral?))
+    => (? #([1 '(complex 0 1) -1 '(complex 0 -1)] (mod (% '?n) 4))))))
 
 (def divide-numbers-through
   (rule-simplifier
@@ -490,11 +490,11 @@
     (* 1 ?factor) => ?factor
     (* 1 ??factors) => (* ??factors)
 
-    (/ (:? ?n v/number?) (:? ?d v/number?))
-    => (:? #(g// (% '?n) (% '?d)))
+    (/ (? ?n v/number?) (? ?d v/number?))
+    => (? #(g// (% '?n) (% '?d)))
 
-    (/ (+ ??terms) (:? ?d v/number?))
-    => (+ (:?? #(map (fn [n] `(~'/ ~n ~(% '?d))) (% '??terms)))))))
+    (/ (+ ??terms) (? ?d v/number?))
+    => (+ (?? #(map (fn [n] `(~'/ ~n ~(% '?d))) (% '??terms)))))))
 
 (defn universal-reductions [x]
   (triginv x))

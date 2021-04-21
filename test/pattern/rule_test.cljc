@@ -26,9 +26,9 @@
 
 (deftest rule-test
   (testing "simple"
-    (let [R (r/rule ((:? a) (:? b) (:?? cs))
+    (let [R (r/rule ((? a) (? b) (?? cs))
                     =>
-                    (a b c (:? a) (:? b) y z))]
+                    (a b c (? a) (? b) y z))]
       (is (= '(a b c 9 8 y z)
              (R '(9 8 7 6 5))))
       (is (r/failed? (R '(9))))))
@@ -38,22 +38,22 @@
       (is (= '(a b c 9 8 y z) (R '(9 8 7 6 5))))
       (is (r/failed? (R '(9)))))
 
-    (is (= 2 ((r/rule* [:? '?x odd?]
+    (is (= 2 ((r/rule* ['? '?x odd?]
                        (fn [m] (inc (m '?x))))
               1))
         "make an explicit rule, still a function."))
 
   (testing "simple2"
-    (let [R (r/rule ((:? a) (:?? b) (:? a)) =>
-                    (2 (:? a) (:?? b)))]
+    (let [R (r/rule ((? a) (?? b) (? a)) =>
+                    (2 (? a) (?? b)))]
       (is (= '(2 a x y z) (R '(a x y z a))))
       (is (= '(2 a) (R '(a a))))
       (is (= '(2 a b) (R '(a b a))))))
 
   (testing "simple3"
-    (let [R (r/rule (+ (:? a)) => (:? a))
-          notR (r/rule (+ (:? a)) !=> (:? a))
-          evenR (r/rule (+ (:? a)) #(even? ('a %)) (:? a))]
+    (let [R (r/rule (+ (? a)) => (? a))
+          notR (r/rule (+ (? a)) !=> (? a))
+          evenR (r/rule (+ (? a)) #(even? ('a %)) (? a))]
       (is (= 3 (R '(+ 3))))
       (is (r/failed? (notR '(+ 3))))
       (is (r/failed? (notR '(+ 8))))
@@ -61,7 +61,7 @@
       (is (= 8 (evenR '(+ 8))))))
 
   (testing "two"
-    (let [R (r/rule ((:? a) (:? b)) => ((:? b) (:? a)))]
+    (let [R (r/rule ((? a) (? b)) => ((? b) (? a)))]
       (is (= [20 10] (R [10 20])))
       (is (r/failed? (R [10 20 30])))
       (is (r/failed? (R [10])))
@@ -70,8 +70,8 @@
       (is (r/failed? (R "")))))
 
   (testing "simple3"
-    (let [R (r/rule (+ (:?? b1) (:? a) (:?? b2) (:? a) (:?? b3)) =>
-                    (+ (* 2 (:? a)) (:?? b1) (:?? b2) (:?? b3)))]
+    (let [R (r/rule (+ (?? b1) (? a) (?? b2) (? a) (?? b3)) =>
+                    (+ (* 2 (? a)) (?? b1) (?? b2) (?? b3)))]
       (is (= '(+ (* 2 a) b c d e) (R '(+ a b c d a e))))
       (is (= '(+ (* 2 a) b c d e) (R '(+ a a b c d e))))
       (is (= '(+ (* 2 a) b c d e) (R '(+ b c d e a a))))
@@ -84,9 +84,9 @@
 (deftest ruleset-test
   (testing "simple"
     (let [RS (r/ruleset
-              ((:? a) (:? a)) => (* 2 (:? a))
-              ((:? a) (:? b)) => ((:? b) (:? a))
-              ((:? a) (:? b) (:? c)) => ((:? c) (:? b) (:? a)))]
+              ((? a) (? a)) => (* 2 (? a))
+              ((? a) (? b)) => ((? b) (? a))
+              ((? a) (? b) (? c)) => ((? c) (? b) (? a)))]
       (is (= '(4 3) (RS '(3 4))))
       (is (= '(8 7 6) (RS '(6 7 8))))
       (is (= '(* 2 5) (RS '(5 5))))
@@ -118,14 +118,14 @@
 
   (testing "associative (multiple rulesets)"
     (let [R1 (r/ruleset
-              (+ (:?? as) (+ (:?? bs)) (:?? cs)) =>
-              (+ (:?? as) (:?? bs) (:?? cs)))
+              (+ (?? as) (+ (?? bs)) (?? cs)) =>
+              (+ (?? as) (?? bs) (?? cs)))
           R2 (r/ruleset
-              (* (:?? as) (* (:?? bs)) (:?? cs)) =>
-              (* (:?? as) (:?? bs) (:?? cs))
+              (* (?? as) (* (?? bs)) (?? cs)) =>
+              (* (?? as) (?? bs) (?? cs))
 
-              (* (:?? as) 1 (:?? bs)) =>
-              (* (:?? as) (:?? bs)))
+              (* (?? as) 1 (?? bs)) =>
+              (* (?? as) (?? bs)))
           S1 (r/rule-simplifier R1)
           S2 (r/rule-simplifier R2)
           S12 (r/rule-simplifier R1 R2)]
@@ -153,14 +153,14 @@
           subtract-from (fn [sym amount]
                           #(- (% sym) amount))
           R (r/ruleset
-             (a (:? ?x integer?) ?y) => (b ?y ?x)
-             (a (:? ?x float?) ?y) => (c ?y ?x)
-             (* (expt (cos (:? x)) (:? n more-than-two?))) => success
-             (* (expt (tan (:? x)) (:? n #(> % 2)))) => (:? n)
-             (* (expt (sin (:? x)) (:? n #(> % 2)))) => (:? #(- (% 'n) 2))
-             (* (expt (bzz (:? x)) (:? n #(> % 2)))) => (:? (subtract-from 'n -2))
-             (expt (sin (:? x)) (:? n at-least-two?)) => (* (expt (sin (:? x)) (:? #(- (% 'n) 2)))
-                                                            (- 1 (expt (cos (:? x)) 2))))
+             (a (? ?x integer?) ?y) => (b ?y ?x)
+             (a (? ?x float?) ?y) => (c ?y ?x)
+             (* (expt (cos (? x)) (? n more-than-two?))) => success
+             (* (expt (tan (? x)) (? n #(> % 2)))) => (? n)
+             (* (expt (sin (? x)) (? n #(> % 2)))) => (? #(- (% 'n) 2))
+             (* (expt (bzz (? x)) (? n #(> % 2)))) => (? (subtract-from 'n -2))
+             (expt (sin (? x)) (? n at-least-two?)) => (* (expt (sin (? x)) (? #(- (% 'n) 2)))
+                                                          (- 1 (expt (cos (? x)) 2))))
           RS (r/rule-simplifier R)]
       (is (= '(b 4 3) (R '(a 3 4))))
       (is (= '(c 4 3.1) (R '(a 3.1 4))))
@@ -211,7 +211,7 @@
     (is (= 2 (R '(+ () 2 2 3)))
         "wildcard ignores!"))
 
-  (let [R (r/rule (?a ?b (:? c odd?)) => {:key [?a]})]
+  (let [R (r/rule (?a ?b (? c odd?)) => {:key [?a]})]
     (is (= {:key [1]}
            (R [1 1 1]))
         "We can fill in dictionaries on the right side."))
@@ -235,13 +235,13 @@
         list matching."))
 
   (let [R (r/bottom-up
-           (r/rule (:? _ integer? odd?) => "face!"))]
+           (r/rule (? _ integer? odd?) => "face!"))]
     (is (= {:note [10 "face!" 12]}
            (R {:note [10 11 12]}))
         "Replacements can dive into vectors and dictionaries."))
 
   (let [R (r/attempt
-           (r/rule (??pre (:? ?x odd?) $$pre) => [??pre "Palindrome!" $$pre]))]
+           (r/rule (??pre (? ?x odd?) $$pre) => [??pre "Palindrome!" $$pre]))]
     (is (= [1 2 3 "Palindrome!" 3 2 1]
            (R [1 2 3 11 3 2 1]))
         "Splicing of reverse segments works.")))

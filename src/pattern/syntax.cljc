@@ -32,14 +32,14 @@
 ;; - `?x` triggers an unrestricted binding match. It will match anything and
 ;;   introduce a new binding from that symbol to the matched value.
 ;;
-;; - `(:? <binding> <predicates...>)` triggers a binding iff all of the
-;;   predicate functions appearing after the binding pass for the candidate
+;; - `(? <binding> <predicates...>)` triggers a binding iff all of the predicate
+;;   functions appearing after the binding pass for the candidate
 ;;
-;; - `(:?? <binding>)` or `??x` inside of a sequence matches a _segment_ of the
+;; - `(?? <binding>)` or `??x` inside of a sequence matches a _segment_ of the
 ;;   list whose length isn't fixed. Segments will attempt to succed with
 ;;   successively longer prefixes of the remaining items in the list.
 ;;
-;; - `(:$$ <binding>)` or `$$x` will only match _after_ the same binding has
+;; - `($$ <binding>)` or `$$x` will only match _after_ the same binding has
 ;;   already succeeded with a segment. If it has, - this will match a segment
 ;;   equal to the _reverse_ of the already-bound segment.
 ;;
@@ -75,13 +75,13 @@
   A binding variable is either:
 
   - A symbol starting with a single `?` character
-  - A sequence of the form `(:? <binding> ...)`."
+  - A sequence of the form `(? <binding> ...)`."
   [pattern]
   (or (and (simple-symbol? pattern)
            (u/re-matches? #"^\?[^\?].*" (name pattern)))
 
       (and (sequential? pattern)
-           (= (first pattern) :?))))
+           (= (first pattern) '?))))
 
 (defn segment?
   "Returns true if `pattern` is a segment variable reference, false otherwise.
@@ -89,13 +89,13 @@
   A segment binding variable is either:
 
   - A symbol starting with `??`
-  - A sequence of the form `(:?? <binding>)`."
+  - A sequence of the form `(?? <binding>)`."
   [pattern]
   (or (and (simple-symbol? pattern)
            (u/re-matches? #"^\?\?[^\?].*" (name pattern)))
 
       (and (sequential? pattern)
-           (= (first pattern) :??))))
+           (= (first pattern) '??))))
 
 (defn reverse-segment?
   "Returns true if `pattern` is a reversed-segment variable reference, false
@@ -110,7 +110,7 @@
            (u/re-matches? #"^\$\$[^\$].*" (name pattern)))
 
       (and (sequential? pattern)
-           (= (first pattern) :$$))))
+           (= (first pattern) '$$))))
 
 (defn variable-name
   "Given a variable or segment binding form, returns the binding variable.
@@ -219,7 +219,7 @@
 
   Changes:
 
-  - `(:? x) => (list :? 'x)`
+  - `(? x) => (list '? 'x)`
   - any unquoted symbol is quoted
   - Any form unquoted like `~x` is left UNquoted
   - Any form marked `~@(1 2 3)` is spliced in directly
@@ -245,7 +245,7 @@
                   (segment? pattern)
                   (reverse-segment? pattern))
             (let [[k sym & preds] pattern]
-              `(list ~k '~sym ~@preds))
+              `(list '~k '~sym ~@preds))
             (compile-sequential pattern))
 
           (map? pattern)

@@ -47,7 +47,7 @@
        than `(sin(x))^2`."}
   rewrite-trig-powers
   (R/choice
-   (R/rule (expt ((:? f #{'sin 'cos 'tan}) ?x) 2) => ((expt (:? f) 2) ?x))
+   (R/rule (expt ((? f #{'sin 'cos 'tan}) ?x) 2) => ((expt (? f) 2) ?x))
    (R/return nil)))
 
 (def ^{:private true

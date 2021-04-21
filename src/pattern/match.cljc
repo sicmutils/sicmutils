@@ -301,6 +301,9 @@
   If `sym` is already present in the frame, the returned matcher only succeeds
   if the bound value is a prefix of the data argument `xs`.
 
+  If `sym` matches the wildcard symbol `_`, the behavior is the same, but no new
+  binding is introduced.
+
   NOTE: the returned matcher will call its success continuation with TWO
   arguments; the new frame and the remaining elements in `xs`. This is a
   different contract than all other matchers, making `segment` appropriate for
@@ -310,21 +313,29 @@
    (fn segment-match [frame xs succeed]
      (let [xs (core:or xs [])]
        (when (sequential? xs)
-         (if-let [binding (frame sym)]
+         (if-let [binding (core:and
+                           (core:not (s/wildcard? sym))
+                           (frame sym))]
            (let [binding-count (count binding)]
              (when (= (take binding-count xs) binding)
                (succeed frame (drop binding-count xs))))
            (loop [prefix []
                   suffix xs]
-             (core:or (succeed (assoc frame sym prefix) suffix)
-                      (core:and (seq suffix)
-                                (recur (conj prefix (first suffix))
-                                       (next suffix)))))))))))
+             (let [new-frame (if (s/wildcard? sym)
+                               frame
+                               (assoc frame sym prefix))]
+               (core:or (succeed new-frame suffix)
+                        (core:and (seq suffix)
+                                  (recur (conj prefix (first suffix))
+                                         (next suffix))))))))))))
 
 (defn- entire-segment
   "Similar to [[segment]], but matches the entire remaining sequential argument
   `xs`. Fails if its input is not sequential, or `sym` is already bound to some
   other variable or non-equal sequence.
+
+  If `sym` matches the wildcard symbol `_`, succeeds if `xs` is a sequence and
+  introduces NO new bindings.
 
   Calls its continuation with the new frame and `nil`, always."
   [sym]
@@ -332,10 +343,12 @@
    (fn entire-segment-match [frame xs succeed]
      (let [xs (core:or xs [])]
        (when (sequential? xs)
-         (if-let [binding (frame sym)]
-           (when (= xs binding)
-             (succeed frame nil))
-           (succeed (assoc frame sym xs) nil)))))))
+         (if (s/wildcard? sym)
+           (succeed frame nil)
+           (if-let [binding (frame sym)]
+             (when (= xs binding)
+               (succeed frame nil))
+             (succeed (assoc frame sym xs) nil))))))))
 
 (defn reverse-segment
   "Returns a matcher that takes a binding variable `sym`, and succeeds if it's

@@ -63,7 +63,7 @@
 
 (comment
   (let [cake 10]
-    (+ ?x ?y ~cake (:? (fn [m] (m '?z))))))
+    (+ ?x ?y ~cake (? (fn [m] (m '?z))))))
 
 ;; Into a consequence function like:
 
