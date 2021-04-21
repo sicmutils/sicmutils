@@ -18,6 +18,8 @@
 ;;
 
 (ns pattern.consequence-test
+  #?(:cljs (:require-macros
+            [pattern.consequence-test :refer [consequence]]))
   (:require [clojure.test :refer [is deftest testing]]
             [clojure.walk :as w]
             [pattern.consequence :as c]

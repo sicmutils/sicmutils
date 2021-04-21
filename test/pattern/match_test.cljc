@@ -19,25 +19,68 @@
 
 (ns pattern.match-test
   (:require [clojure.test :refer [is deftest testing]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
             [pattern.match :as m]
             [pattern.syntax :as ps]))
 
-(deftest matchers
-  (testing "eq"
-    (is (m/failed? (m/match (m/eq 'a) nil)))
-    (is (m/failed? (m/match (m/eq 'a) [])))
+(def gen-frame
+  (gen/map gen/keyword
+           gen/any-equatable
+           {:max-elements 4}))
 
+(deftest basic-matcher-tests
+  (checking "fail, always fails" 100 [x gen/any-equatable]
+            (is (nil? (m/fail {} x identity))))
+
+  (checking "pass always returns existing frame"
+            100 [frame gen-frame
+                 x gen/any]
+            (is (= frame (m/pass frame x identity))))
+
+  (checking "with-frame always subs new frame."
+            100 [new-frame gen-frame
+                 x gen/any]
+            (is (= new-frame
+                   ((m/with-frame new-frame) {} x identity))))
+
+  (checking "update-frame always succeeds, merges frames"
+            100 [ma gen-frame
+                 mb gen-frame
+                 x gen/any]
+            (is (= (merge ma mb)
+                   ((m/update-frame merge mb) ma x identity))))
+
+  (checking "predicate gates based on a fn" 100 [x gen/nat]
+            (if (even? x)
+              (is (= {} ((m/predicate even?) {} x identity)))
+              (is (false? ((m/predicate even?) {} x identity)))))
+
+  (checking "frame-predicate gates based on a fn of a frame" 100
+            [x gen/any
+             v gen/nat]
+            (let [match (m/frame-predicate (comp even? :k))]
+              (if (even? v)
+                (is (= {:k v} (match {:k v} x identity)))
+                (is (false? (match {:k v} x identity))))))
+
+  (testing "combinator eq"
     (is (= {} ((m/eq 'a) {} 'a identity))
         "A successful match returns the bindings in play, NOT something falsey.")
 
     (is (not ((m/eq 'a) {} '(e d c b a) identity))
-        "This does not match a sequence."))
+        "'a does not match the sequence."))
 
-  (testing "element"
+  (testing "matcher version of eq"
+    (is (m/failed? (m/match (m/eq 'a) nil)))
+    (is (m/failed? (m/match (m/eq 'a) []))))
+
+  (testing "m/bind"
     (is (= {:x 'a} ((m/bind :x) {} 'a identity)))
     (is (= {:x '(a b)} ((m/bind :x) {} '(a b) identity))))
 
-  (testing "element-constraint"
+  (testing "bind with constraint"
     (is (= {:x 6} ((m/bind :x integer?) {} 6 identity)))
 
     ;; Clojurescript treats floats with no mantissa as integers.
@@ -47,8 +90,9 @@
 
     ;; Both languages treat 6.1 as a float.
     (is (nil? ((m/bind :x integer?) {} 6.1 identity)))
-    (is (= {:x 6.0} ((m/bind :x float?) {} 6.0 identity))))
+    (is (= {:x 6.0} ((m/bind :x float?) {} 6.0 identity)))))
 
+(deftest matchers
   (testing "segment"
     (is (= '[[{:x []} [a b c]]
              [{:x [a]} (b c)]
@@ -171,10 +215,48 @@
            (m/match expr '((* 3 x) (* 4 y))))))))
 
 (deftest matcher-combinator-tests
-  (testing "match-if"
+  (testing "match-if branches"
     (let [m (m/match-if odd? '?odd '?even)]
       (is (= {'?odd 11} (m {} 11 identity)))
-      (is (= {'?even 12} (m {} 12 identity))))))
+      (is (= {'?even 12} (m {} 12 identity)))))
+
+  (testing "match-if without else matches match-when"
+    (let [m-if (m/match-if odd? '?odd)
+          m-when (m/match-when odd? '?odd)]
+      (is (= {'?odd 11}
+             (m-if {} 11 identity)
+             (m-when {} 11 identity)))
+
+      (is (nil? (m-if {} 12 identity)))
+      (is (nil? (m-when {} 12 identity)))))
+
+  (checking "(or) always fails" 100
+            [m gen-frame
+             x gen/any-equatable]
+            (is (nil? ((m/or) m x identity))))
+
+  (checking "(or r) always matches r" 100
+            [m gen-frame
+             x gen/any-equatable]
+            (is (= m ((m/or m/pass) m x identity)))
+            (is (nil? ((m/or m/fail) m x identity))))
+
+  (checking "(and) always passes" 100
+            [m gen-frame
+             x gen/any-equatable]
+            (is (= m ((m/and) m x identity))))
+
+  (checking "(and r) always matches r" 100
+            [m gen-frame
+             x gen/any-equatable]
+            (is (= m ((m/and m/pass) m x identity)))
+            (is (nil? ((m/and m/fail) m x identity))))
+
+  (checking "(not r) does the opposite of r" 100
+            [m gen-frame
+             x gen/any-equatable]
+            (is (nil? ((m/not m/pass) m x identity)))
+            (is (= m ((m/not m/fail) m x identity)))))
 
 (deftest match-compiler
   (testing "simple"
@@ -266,6 +348,10 @@
       (is (not (palindrome? '(a b c c a b)))))))
 
 (deftest new-tests
+  (testing "final segment with an ignored binding"
+    (is (= '{?a 1, ?b 2}
+           (m/match '[?a ?b (?? _)] [1 2 3 4]))))
+
   (testing "using a new matcher as a predicate works"
     (is (= {'?x 10 '?y {'?x 10}}
            ((m/matcher '?x (m/matcher '?y)) 10))))
