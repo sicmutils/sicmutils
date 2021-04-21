@@ -113,13 +113,21 @@
            (= (first pattern) :$$))))
 
 (defn variable-name
-  "Given a variable, segment or reverse segment binding form, returns the binding
-  variable.
+  "Given a variable or segment binding form, returns the binding variable.
 
   NOTE that [[variable-name]] will not guard against incorrect inputs."
   [pattern]
   (if (simple-symbol? pattern)
     pattern
+    (second pattern)))
+
+(defn reverse-segment-name
+  "Given a REVERSE-segment name, either extracts the symbol from a pattern
+  like `(:$$ x)`, or transforms symbols like `$$x` into `??x`."
+  [pattern]
+  (if (simple-symbol? pattern)
+    (symbol
+     (str "??" (subs (name pattern) 2)))
     (second pattern)))
 
 (defn restriction

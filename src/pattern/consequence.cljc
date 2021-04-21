@@ -98,7 +98,7 @@
   - any `unquote` or `unquote-splicing` forms respected
 
   NOTE: reverse-segment variables are NOT evaluated here; these currently only
-  apply when matching an already-bound segment variable."
+  apply when matching an already-bound segment variable. But they should be!"
   [skel]
   (let [frame-sym (gensym)]
     (letfn [(compile-sequential [xs]
@@ -113,6 +113,10 @@
                         (ps/segment? form))
                     (let [v (ps/variable-name form)]
                       (apply-form v frame-sym))
+
+                    (ps/reverse-segment? form)
+                    (let [v (ps/variable-name form)]
+                      (list `rseq (apply-form v frame-sym)))
 
                     (symbol? form) (list 'quote form)
 

@@ -239,7 +239,13 @@
            (r/rule (:? _ integer? odd?) => "face!"))]
     (is (= {:note [10 "face!" 12]}
            (R {:note [10 11 12]}))
-        "Replacements can dive into vectors and dictionaries.")))
+        "Replacements can dive into vectors and dictionaries."))
+
+  (let [R (r/attempt
+           (r/rule (??pre (:? ?x odd?) $$pre) => [??pre "Palindrome!" $$pre]))]
+    (is (= [1 2 3 "Palindrome!" 3 2 1]
+           (R [1 2 3 11 3 2 1]))
+        "Splicing of reverse segments works.")))
 
 
 (comment

@@ -428,7 +428,7 @@
         (segment (s/variable-name pattern))
 
         (s/reverse-segment? pattern)
-        (reverse-segment (s/variable-name pattern))
+        (reverse-segment (s/reverse-segment-name pattern))
 
         (s/wildcard? pattern) pass
 
