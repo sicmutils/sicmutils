@@ -21,16 +21,19 @@
   (:require [pattern.syntax :as ps]
             [sicmutils.util :as u]))
 
-;; ### Consequence Functions
+;; ## Consequence Functions
 ;;
-;; The contract for a "consequence" function is that it can return `false` or
-;; `nil` to signal failure. But what if the function wants to succeed with those
-;; values?
+;; A consequence is a function from a binding dictionary (produced by a matcher)
+;; to a successful result or a failure. A "rule" (see `pattern.rule`) is built
+;; out of a matcher (from `pattern.match`) and a consequence function.
+;;
+;; The contract for a "consequence" function is that it can return `false`,
+;; `nil` or [[pattern.match/failure]] to signal failure. But what if the
+;; function wants to succeed with `false` or `nil`?
 ;;
 ;; Wrapping a return value with [[succeed]] will allow a successful return of
-;; those values. This only matters for skeleton compilation if the skeleton is
-;; identical to `nil` or `false`. In those cases, the returned function will
-;; produced `(succeed nil)` or `(succeed false)`.
+;; `false` or `nil`; a rule using a consequence function uses [[unwrap]] to
+;; retrieve the value before returning it.
 
 (defn succeed
   "Wraps the argument `x` in a form that will always successfully return from a
@@ -50,25 +53,34 @@
     (::succeed x x)
     x))
 
-;; ### Skeleton
+;; ### Consequence Skeletons
 ;;
-;; A Skeleton is a template form that we can transform into a function of a
-;; matcher's binding map, called a "consequence". The function should take the
-;; binding map and return a copy of the skeleton with:
+;; A Skeleton is a template of the form that we'd like to return from a
+;; consequence function, with pattern-matching variables like `?x` and `??x` in
+;; place of binding map lookups.
 ;;
-;; - all variable binding forms replaced by their entries in the binding map
-;; - same with any segment binding form, with the added note that these should
-;;   be spliced in
-;; - any `unquote` or `unquote-splicing` forms respected
-;;
-;; Any non-binding symbol will be quoted.
+;; [[compile-skeleton]] transforms an expression like
+
+(comment
+  (let [cake 10]
+    (+ ?x ?y ~cake (:? (fn [m] (m '?z))))))
+
+;; Into a consequence function like:
+
+(comment
+  (let [cake 10]
+    (fn [m]
+      (list '+ (m '?x) (m '?y) cake ((fn [m] (m '?z)) m)))))
+
+;; See [[compile-skeleton]] for the full set of transformation rules.
 
 (defn- apply-form
-  "Given symbols `f` representing a function and `m` representing its argument,
+  "Given symbols `f` representing a function and `x` representing its argument,
   returns a form that represents function application.
 
-  Symbols are quoted, [[unquote?]] forms are included without quote and all
-  other forms are left untouched."
+  - Symbols are quoted
+  - [[unquote?]] forms are included without quote
+  - all other forms are left untouched."
   [f x]
   (let [f (cond (simple-symbol? f) `(quote ~f)
                 (ps/unquote? f) (ps/unquoted-form f)
@@ -77,7 +89,8 @@
 
 (defn compile-skeleton
   "Takes a skeleton expression `skel` and returns a form that will evaluate to a
-  function from a pattern matcher's binding map to a data structure of identical shape to `skel`, with
+  function from a pattern matcher's binding map to a data structure of identical
+  shape to `skel`, with:
 
   - all variable binding forms replaced by their entries in the binding map
   - same with any segment binding form, with the added note that these should
@@ -126,7 +139,3 @@
            ~(compile skel))
         `(fn [_#]
            (succeed ~skel))))))
-
-(comment
-  (= [] ((consequence []) {}))
-  (= () ((consequence ()) {})))

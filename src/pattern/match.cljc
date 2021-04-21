@@ -31,17 +31,10 @@
                            not core:not})
   (:require [pattern.syntax :as s]))
 
-;; ### Design notes:
-;;
-;; TODO: We ALSO want to convert all of the rules to `?x` syntax
-;; TODO: we ALSO want to remove `:??`, and make it `??` like the original.
-;; TODO: wildcard matcher for sequences? Cool?
-;; TODO: add a dictionary matcher.
-;;
 ;; # Pattern Matching
 ;;
 ;; The library is built out of a few stacked ideas: matcher combinators,
-;; matchers and rules.
+;; matchers, consequences and rules.
 ;;
 ;; ### Matcher Combinators
 ;;
@@ -61,19 +54,26 @@
 ;; On failure, a matcher returns a special `failure` singleton object. You can
 ;; check for this object using [[fail?]].
 ;;
+;; ### Consequence Functions
+;;
+;; A consequence is a function from the binding map returned by a matcher to a
+;; final form. A consequence can fail by returning `false`, `nil` or the special
+;; `failure` singleton.
+;;
 ;; ### Rule
 ;;
 ;; A rule is a function of `data` built from a pair of:
 ;;
 ;; - a matcher
-;; - a "consequence" function.
+;; - a consequence function.
 ;;
 ;; If the matcher fails on the rule's input, the whole rule returns `failure`.
 ;; If the match succeeds, the rule calls the consequence function with the
-;; matcher's binding map. If THIS function succeeds (returns truthy), the rule
-;; returns that value.
+;; matcher's binding map. If THIS function succeeds, the rule returns that
+;; value.
 ;;
-;; If it returns `nil` or `false`, the `rule` fails with `failure`.
+;; If the consequence function returns `nil` or `false` (or `failure`), the
+;; whole `rule` fails with `failure`.
 ;;
 ;; ## Combinators
 
@@ -89,7 +89,7 @@
 ;; combinator that take another matcher can take a pattern instead.
 ;;
 ;;
-;; ### Basic Matchers
+;; ### Basic Matcher Combinators
 
 (defn fail
   "Matcher which will fail for any input."
@@ -172,8 +172,21 @@
 
 ;; ### Matcher Combinators
 ;;
-;; TODO describe combinators, and note that we can take patterns in any spot
-;; that one of these functions takes a matcher.
+;; This section introduces functions that are able to build new matcher
+;; combinators out of the primitive matcher combinators defined above.
+;;
+;; Each of the following functions can take EITHER a matcher combinator or
+;; a "pattern". The pattern syntax is described in `pattern.syntax`.
+;;
+;; As an example, you might provide the symbol `'?x` instead of an
+;; explicit `(bind '?x)`:
+
+(comment
+  (let [m (match-if odd? '?odd '?even)]
+    [(m {} 11 identity)
+     (m {} 12 identity)])
+  ;;=> [{'?odd 11} {'?even 12]}]
+  )
 
 (declare pattern->combinators)
 
@@ -248,23 +261,22 @@
 ;; ### Lists and Segments
 ;;
 ;; Segment variables introduce some additional trouble. Unlike other matchers, a
-;; segment variable is not tested against a fixed datum that it either matches
-;; or not, but against a list such that it may match any prefix. This means that
-;; in general, segment variables must search, trying one match and possibly
-;; backtracking.
+;; segment variable is not tested against a fixed input, but against a sequence
+;; such that it may match any prefix. This means that in general, segment
+;; variables must search, trying one match and possibly backtracking.
 ;;
-;; There are, however, two circumstances when the search can be avoided:
+;; There are two circumstances when the search can be avoided:
 ;;
 ;; - if the variable is already bound, the bound value needs to be checked
-;;   against the data, but no guessing as to how much data to consume is
-;;   required.
+;;   against the input data, and will either fail or succeed.
 ;;
-;; - Also, if the segment variable is the last matcher in its enclosing
-;;   list (which actually happens quite often!) then the list matcher already
-;;   knows how much data must be matched, and no search is needed.
+;; - If the segment variable is the last matcher in its enclosing list (which
+;;   actually happens quite often!) then the segment matcher can match the
+;;   entire remaining segment, no search required.
 ;;
-;; Segment matchers pass TWO arguments into their success continuation - the
-;; binding frame, and the remaining unmatched segment.
+;; This requires a different interface for the continutation. Segment matchers
+;; pass TWO arguments into their success continuation - the binding frame, and
+;; the remaining unmatched segment.
 ;;
 ;; The following two functions let us mark matcher combinators with this
 ;; interface using their metadata.
@@ -395,13 +407,20 @@
   (sequence* patterns))
 
 ;; ## Pattern Matching Compiler
+;;
+;; The next function transforms a pattern (as defined by `pattern.syntax`) into
+;; a matcher combinator. Any function you pass to [[pattern->combinators]] is
+;; returned, so it's appropriate to pass other matcher combinators as pattern
+;; elements.
 
 (defn pattern->combinators
   "Given a pattern (built using the syntax elements described in
   `pattern.syntax`), returns a matcher combinator that will successfully match
   data structures described by the input pattern, and fail otherwise."
   [pattern]
-  (cond (s/binding? pattern)
+  (cond (fn? pattern) pattern
+
+        (s/binding? pattern)
         (bind (s/variable-name pattern)
               (s/restriction pattern))
 
@@ -412,8 +431,6 @@
         (reverse-segment (s/variable-name pattern))
 
         (s/wildcard? pattern) pass
-
-        (fn? pattern) pattern
 
         (sequential? pattern)
         (if (empty? pattern)
@@ -433,22 +450,27 @@
 ;;
 ;; ## Top Level Matchers
 ;;
-;; TODO continue docs from here.
+;; Once you've built up a combinator out of smaller matcher combinators, you can
+;; turn your combinator into a "matcher". This is a function from a data object
+;; to either:
 ;;
-;; What do we have to this point? We have a collection of matcher combinators,
-;; and a soon-to-be-open system for turning a pattern into a matcher. Rules
-;; BUILD on these, but we are still low level!
+;; - the binding map, if successful
+;; - if failed, a special `failure` singleton object.
 ;;
-;; TODO note that this is a higher level place for passing either patterns OR
-;; already built matchers. They are all the same. We have our low level
-;; combinators; now we want to build matchers. These can fail!
+;; This interface will become important in `sicmutils.rule`, for building up
+;; groups of rules that can, say, search for the first successful matcher of
+;; many, or accumulate binding maps from matchers run in sequence until one
+;; fails.
 ;;
-;; This is how we record a MATCH failure. Previously this was in `rule`. So
-;; good!
+;; The next few functions define this explicit `failure` singleton.
+
 
 (defrecord Failure [])
 
-(def failure (Failure.))
+(def ^{:doc "Singleton object representing the failure of a matcher to match its
+  input. Check for failure with [[failed?]]"}
+  failure
+  (Failure.))
 
 (defn failed?
   "Returns true if `x` is equivalent to the failure sentinel [[failure]], false
@@ -457,11 +479,23 @@
   (instance? Failure x))
 
 (defn matcher
-  "Returns a function of the data that...
+  "Takes a `pattern` or matcher combinator, and returns a function from a data
+  object to either:
 
-  TODO could by (match-and match (update-frame f)), test that this is true.
+  - A successful map of bindings extracted by matching the supplied `pattern` or
+    combinator to the input data
+  - An explicit `failure` object
 
-  TODO note that this is where we can FAIL, now, if we don't match!!"
+  Check for failure with [[failed?]].
+
+  Optionally, you can supply a predicate `pred`. `pred` takes the map of
+  bindings from a successful match and returns either:
+
+  - `nil`, `false` or the explicit `failure` object to force a match failure,
+    potentially causing a backtrack back into the data
+  - a map of NEW bindings to merge into the binding map (and signal success)
+
+  Any other truthy value signals success with no new bindings."
   ([pattern]
    (let [match (pattern->combinators pattern)]
      (fn [data]
@@ -471,22 +505,39 @@
    (let [match (pattern->combinators pattern)
          success (fn [frame]
                    (when-let [m (pred frame)]
-                     (if (map? m)
-                       (merge frame m)
-                       frame)))]
+                     (when (and m (not (failed? m)))
+                       (if (map? m)
+                         (merge frame m)
+                         frame))))]
      (fn [data]
        (core:or (match {} data success)
                 failure)))))
 
 (defn match
-  "TODO note that this is a high level wrapper!"
+  "Convenience function that creates a matcher from the supplied `pattern` (and
+  optional predicate `pred`) and immediately applies it to `data`.
+
+  Equivalent to:
+
+  ```clojure
+  ((matcher pattern pred) data)
+  ```"
   ([pattern data]
    ((matcher pattern) data))
-  ([pattern data pred]
+  ([pattern pred data]
    ((matcher pattern pred) data)))
 
 (defn foreach-matcher
-  "TODO note that this calls `f` with each frame, for side effects."
+  "Takes a `pattern` and side-effecting callback function `f`, and returns a
+  matcher that calls `f` with a map of bindings for every possible match of
+  `pattern` to its input data.
+
+  For a convenience function that applies the matcher to data immediately,
+  see [[foreach]].
+
+  NOTE: If you pass a segment matcher, `f` must accept two arguments - the
+  binding map, and the sequence of all remaining items that the segment
+  matcher rejected."
   [pattern f]
   (letfn [(cont
             ([frame]
@@ -497,11 +548,29 @@
              false))]
     (matcher pattern cont)))
 
-(defn foreach [pattern f data]
+(defn foreach
+  "Convenience function that creates a [[foreach-matcher]] from the supplied
+  `pattern` and callback `f` and immediately applies it to `data`.
+
+  Equivalent to:
+
+  ```clojure
+  ((foreach-matcher pattern pred) data)
+  ```"
+  [pattern f data]
   ((foreach-matcher pattern f) data))
 
 (defn all-results-matcher
-  "Returns a function of `data`... TODO describe"
+  "Takes a `pattern` and callback function `f`, and returns a matcher that takes a
+  `data` argument and returns a sequence of every possible match of `pattern` to
+  the data.
+
+  For a convenience function that applies the matcher to data immediately,
+  see [[all-results]].
+
+  NOTE: If you pass a segment matcher, `f` must accept two arguments - the
+  binding map, and the sequence of all remaining items that the segment
+  matcher rejected."
   [pattern]
   (let [match (pattern->combinators pattern)]
     (fn [data]
@@ -516,5 +585,14 @@
         (match {} data cont)
         @results))))
 
-(defn all-results [pattern data]
+(defn all-results
+  "Convenience function that creates an [[all-results-matcher]] from the supplied
+  `pattern` and immediately applies it to `data`.
+
+  Equivalent to:
+
+  ```clojure
+  ((all-results-matcher pattern pred) data)
+  ```"
+  [pattern data]
   ((all-results-matcher pattern) data))

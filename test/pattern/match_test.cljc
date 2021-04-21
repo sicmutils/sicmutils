@@ -1,5 +1,5 @@
 ;;
-;; Copyright © 2017 Colin Smith.
+;; Copyright © 2021 Sam Ritchie.
 ;; This work is based on the Scmutils system of MIT/GNU Scheme:
 ;; Copyright © 2002 Massachusetts Institute of Technology
 ;;
@@ -163,6 +163,12 @@
       (is (m/failed?
            (m/match expr '((* 3 x) (* 4 y))))))))
 
+(deftest matcher-combinator-tests
+  (testing "match-if"
+    (let [m (m/match-if odd? '?odd '?even)]
+      (is (= {'?odd 11} (m {} 11 identity)))
+      (is (= {'?even 12} (m {} 12 identity))))))
+
 (deftest match-compiler
   (testing "simple"
     (let [match-x [:? :x]
@@ -253,6 +259,10 @@
       (is (not (palindrome? '(a b c c a b)))))))
 
 (deftest new-tests
+  (testing "using a new matcher as a predicate works"
+    (is (= {'?x 10 '?y {'?x 10}}
+           ((m/matcher '?x (m/matcher '?y)) 10))))
+
   (let [match (m/matcher '(+ (:? _ #{11}) ?b))]
     (is (= {'?b 12} (match '(+ 11 12))))
     (is (m/failed?
@@ -284,8 +294,8 @@
 
   (is (= {'x '+, :y 'z}
          (m/match (m/sequence (m/bind 'x))
-                  ['+]
-                  (fn [m] {:y 'z})))
+                  (fn [m] {:y 'z})
+                  ['+]))
       "We can add new bindings to the map.")
 
   (testing "match-empty-list"
