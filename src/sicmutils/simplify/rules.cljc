@@ -18,12 +18,112 @@
 ;;
 
 (ns sicmutils.simplify.rules
-  (:require [pattern.rule :refer [=> ruleset rule-simplifier]
+  (:require [pattern.rule :as r :refer [=> ruleset rule-simplifier]
              #?@(:cljs [:include-macros true])]
             [sicmutils.complex :as c]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
+            [sicmutils.numsymb :as sym]
             [sicmutils.value :as v]))
+
+(defn assume!
+  "see logic-utils.scm... to get this working."
+  ([predicate-expr responsible-party]
+   true)
+  ([predicate-expr responsible-party if-false]
+   true))
+
+(def ^{:dynamic true
+       :doc " allows (log (exp x)) => x.
+
+can confuse x=(x0+n*2pi)i with x0."}
+  *log-exp-simplify?*
+  true)
+
+(def ^{:dynamic true
+       :doc "Allows (x^a)^b => x^(a*b).
+
+This is dangerous, because can lose or gain a root, e.g.
+x = (x^(1/2))^2 != ((x^2)^1/2)=+-x"}
+  *exponent-product-simplify?*
+  true)
+
+(def ^{:dynamic true
+       :doc " Traditionally sqrt(x) is the positive square root but x^(1/2) is
+both positive and negative roots.
+
+This confuses these, potentially losing a root."}
+  *expt-half->sqrt?*
+  true)
+
+(def ^{:dynamic true
+       :doc "If x is real then (sqrt (square x)) = (abs x).
+
+  This is hard to work with, but we usually want to allow (sqrt (square x)) =>
+  x, but this is not necessarily good if x is negative."}
+  *sqrt-expt-simplify?*
+  true)
+
+(def ^{:dynamic true
+       :doc "If x, y are real non-negative then
+(* (sqrt x) (sqrt y)) = (sqrt (* x y))
+but this is not true for negative factors."}
+  *sqrt-factor-simplify?*
+  true)
+
+(def ^{:dynamic true
+       :doc "allows (atan y x) => (atan (/ y d) (/ x d)) where d=(gcd x y).
+
+OK if d is a number (gcd is always positive) but may lose quadrant if gcd can be
+negative for some values of its variables."}
+  *aggressive-atan-simplify?*
+  true)
+
+(def ^{:dynamic true
+       :doc "allows (asin (sin x)) => x, etc.
+
+loses multivalue info, as in log-exp"}
+  *inverse-simplify?*
+  true)
+
+(def ^{:dynamic true
+       :doc "Allows reduction of sin, cos of rational multiples of :pi"}
+  *sin-cos-simplify?*
+  true)
+
+(def ^{:dynamic true
+       :doc "Allow half-angle reductions.  Sign of result is hairy!"}
+  *half-angle-simplify?*
+  true)
+
+(def ^{:dynamic true
+       :doc "wierd case: ((d magnitude) (square x)) => 1"}
+  *ignore-zero?*
+  true)
+
+(def ^{:dynamic true
+       :doc "allows commutation of partial derivatives.
+
+ Only ok if components selected by partials are unstructured (e.g. real)"}
+  *commute-partials?*
+  true)
+
+(def ^{:dynamic true
+       :doc "allows division through by numbers
+
+e.g. (/ (+ (* 4 x) 5) 3) => (+ (* 4/3 x) 5/3)"}
+  *divide-numbers-through-simplify?*
+  true)
+
+(def ^{:dynamic true
+       :doc "Transforms products of trig functions into functions of sums
+of angles.
+
+e.g. (* (sin x) (cos y)) ==> (+ (* 1/2 (sin (+ x y))) (* 1/2 (sin (+ x (* -1
+y)))) )"}
+
+  *trig-product-to-sum-simplify?*
+  false)
 
 (defn- negative-number? [x]
   (and (v/number? x)
@@ -48,18 +148,26 @@
 (defn non-integer? [x]
   (not (v/integral? x)))
 
-(defn- even-integer? [x]
+(defn even-integer? [x]
   (and (v/integral? x)
        (v/zero? (g/modulo x 2))))
 
-(defn- odd-integer? [x]
+(defn odd-integer? [x]
   (and (v/integral? x)
        (not (v/zero? (g/modulo x 2)))))
 
-(defn- more-than-two? [x]
+(defn even-positive-integer? [x]
+  (and (even-integer? x)
+       (> x 1)))
+
+(defn odd-positive-integer? [x]
+  (and (odd-integer? x)
+       (> x 2)))
+
+(defn more-than-two? [x]
   (and (v/number? x) (> x 2)))
 
-(defn- at-least-two? [x]
+(defn at-least-two? [x]
   (and (v/number? x) (>= x 2)))
 
 ;; Ported from Alexey's Rules.
@@ -187,236 +295,312 @@
    (* ??pre ?op ?op ??post)
    => (* ??pre (expt ?op 2) ??post)))
 
-(def logexp
+(defn logexp [simplify]
   (ruleset
-   (exp (* (:? n v/integral?) (log :x))) => (expt :x :n)
+   (exp (* (:? ?n v/integral?) (log ?x))) => (expt ?x ?n)
 
-   (exp (log :x)) => :x
+   (exp (log ?x)) => ?x
 
-   (log (exp :x)) => :x
+   (log (exp ?x))
+   (fn [m]
+     (and *log-exp-simplify?*
+          (let [xs (simplify (m '?x))]
+            (assume!
+             `(~'= (~'log (~'exp ~xs)) ~xs) 'logexp1))))
+   ?x
 
-   (sqrt (exp :x)) => (exp (/ :x 2))
+   (sqrt (exp ?x))
+   (fn [m]
+     (and *sqrt-expt-simplify?*
+          (let [xs (simplify (m '?x))]
+	          (assume!
+             `(~'= (~'sqrt (~'exp ~xs)) (~'exp (~'/ ~xs 2)))
+             'logexp2))))
+   (exp (/ ?x 2))
 
-   (log (sqrt :x)) => (* (/ 1 2) (log :x))))
+   (log (sqrt ?x)) => (* (/ 1 2) (log ?x))))
 
 (def magsimp
   (ruleset
-   (magnitude (* :x :y :ys*))
-   =>
-   (* (magnitude :x) (magnitude (* :y :ys*)))
+   (magnitude (* ?x ?y ??ys))
+   => (* (magnitude ?x) (magnitude (* ?y ??ys)))
 
-   (magnitude (expt :x (:? n even-integer?)))
-   =>
-   (expt :x :n)))
+   (magnitude (expt ?x (:? ?n even-integer?)))
+   => (expt ?x ?n)))
 
-(def miscsimp
-  ;; should really be one-like!
+(defn miscsimp [simplify]
   (ruleset
-   (expt :x 0) => 1
+   (expt _ 0) => 1
 
-   (expt :x 1) => :x
+   (expt ?x 1) => ?x
 
-   #_
-   (let ((a (rcf:simplify a)) (b (rcf:simplify b)))
-     (or (and (integer? a) (integer? b))
-         (and (even-integer? b)
-              (integer? (rcf:simplify (symb:* a b))))
-         (and exponent-product-simplify?
-              (assume! `(= (expt (expt ,x ,a) ,b)
-                           (expt ,x (symb:* ,a ,b)))
-                       'exponent-product))))
-   (expt (expt :x :a) :b)
-   =>
-   (expt :x (:? #(g/* (:a %) (:b %))))
+   (expt (expt ?x ?a) ?b)
+   (fn [m]
+     (let [a (simplify (m '?a))
+           b (simplify (m '?b))
+           x (m '?x)
+           sym:* (sym/symbolic-operator '*)]
+       (or (and (v/integral? a) (v/integral? b))
 
-   ;; gated on ^1/2->sqrt?
-   (expt :x (/ 1 2)) => (sqrt :x)
+           (and (even-integer? b)
+                (v/integral? (simplify (sym:* a b))))
 
-   ;; a rare, expensive luxury
-   (* :fs1* :x :fs2* (expt :x :y) :fs3*)
-   =>
-   (* :f1* :f2* (expt :x (+ 1 :y)) :fs3*)
+           (and *exponent-product-simplify?*
+                (assume!
+                 `(~'= (~'expt (~'expt ~x ~a) ~b)
+                   (~'expt ~x (~sym:* ~a ~b)))
+                 'exponent-product)))))
+   (expt ?x (:? #(g/* (% '?a) (% '?b))))
 
-   ;; a rare, expensive luxury
-   (* :fs1* (expt :x :y) :fs2* :x :fs3*)
-   =>
-   (* :f1* (expt :x (+ 1 :y)) :f2* :fs3*)
+   (expt ?x (/ 1 2))
+   (fn [_] *expt-half->sqrt?*)
+   (sqrt ?x)
 
    ;; a rare, expensive luxury
-   (* :fs1* (expt :x :y1) :fs2* (expt :x :y2) :fs3*)
+   (* ??fs1* ?x ??fs2 (expt ?x ?y) ??fs3)
    =>
-   (* :fs1* :fs2* (expt :x (+ :y1 :y2)) :fs3*)))
+   (* ??fs1 ??fs2 (expt ?x (+ 1 ?y)) ??fs3)
+
+   ;; a rare, expensive luxury
+   (* ??fs1 (expt ?x ?y) ??fs2 ?x ??fs3)
+   =>
+   (* ??fs1 (expt ?x (+ 1 ?y)) ??fs2 ??fs3)
+
+   ;; a rare, expensive luxury
+   (* ??fs1 (expt ?x ?y1) ??fs2 (expt ?x ?y2) ??fs3)
+   =>
+   (* ??fs1 ??fs2 (expt ?x (+ ?y1 ?y2)) ??fs3)))
 
 ;; ## Square Root Simplification
 
 (def simplify-square-roots
-  (rule-simplifier
-   (ruleset
-    (expt (sqrt ?x) (:? ?n even-integer?))
-    => (expt ?x (:? #(/ (% '?n) 2)))
+  ;; TODO wire in simplify.
+  (let [simplify identity]
+    (rule-simplifier
+     (ruleset
+      (expt (sqrt ?x) (:? ?n even-integer?))
+      => (expt ?x (:? #(g// (% '?n) 2)))
 
-    (sqrt (expt ?x (:? ?n even-integer?)))
-    => (expt ?x (:? #(/ (% '?n) 2)))
+      (sqrt (expt ?x (:? ?n even-integer?)))
+      (fn [m]
+        (and *sqrt-expt-simplify?*
+             (let [xs (simplify (m '?x))
+                   n  (m '?n)]
+	             (assume!
+                `(~'=
+                  (~'sqrt (~'expt ~xs ~n))
+                  (~'expt ~xs ~(g// n 2)))
+                'simsqrt1))))
+      (expt ?x (:? #(g// (% '?n) 2)))
 
-    (sqrt (expt ?x (:? ?n odd-integer?)))
-    => (* (sqrt ?x) (expt ?x (:? #(/ (dec (% '?n)) 2))))
+      (sqrt (expt ?x (:? ?n odd-positive-integer?)))
+      (fn [m]
+        (and *sqrt-expt-simplify?*
+	           (let [xs (simplify (m '?x))
+                   n  (m '?n)]
+	             (assume!
+                `(~'=
+                  (~'sqrt (~'expt ~xs ~n))
+                  (~'expt ~xs ~(g// (g/- n 1) 2)))
+                'simsqrt2))))
+      (* (sqrt ?x)
+         (expt ?x (:? #(g// (g/- (% '?n) 1) 2))))
 
-    (expt (sqrt ?x) (:? ?n odd-integer?))
-    => (* (sqrt ?x) (expt ?x (:? #(/ (dec (% '?n)) 2))))
+      (expt (sqrt ?x) (:? ?n odd-integer?))
+      => (* (sqrt ?x)
+            (expt ?x (:? #(g// (g/- (% '?n) 1) 2))))
 
-    (/ ?x (sqrt ?x)) => (sqrt ?x)
+      (/ ?x (sqrt ?x)) => (sqrt ?x)
 
-    (/ (sqrt ?x) ?x) => (/ 1 (sqrt ?x))
+      (/ (sqrt ?x) ?x) => (/ 1 (sqrt ?x))
 
-    (/ (* ??u ?x ??v) (sqrt ?x))
-    =>
-    (* ??u (sqrt ?x) ??v)
+      (/ (* ??u ?x ??v) (sqrt ?x))
+      =>
+      (* ??u (sqrt ?x) ??v)
 
-    (/ (* ??u (sqrt ?x) ??v) ?x)
-    =>
-    (/ (* ??u ??v) (sqrt ?x))
+      (/ (* ??u (sqrt ?x) ??v) ?x)
+      =>
+      (/ (* ??u ??v) (sqrt ?x))
 
-    (/ ?x (* ??u (sqrt ?x) ??v))
-    =>
-    (/ (sqrt ?x) (* ??u ??v))
+      (/ ?x (* ??u (sqrt ?x) ??v))
+      =>
+      (/ (sqrt ?x) (* ??u ??v))
 
-    (/ (sqrt ?x) (* ??u ?x ??v))
-    =>
-    (/ 1 (* ??u (sqrt ?x) ??v))
+      (/ (sqrt ?x) (* ??u ?x ??v))
+      =>
+      (/ 1 (* ??u (sqrt ?x) ??v))
 
-    (/ (* ??p ?x ??q)
-       (* ??u (sqrt ?x) ??v))
-    =>
-    (/ (* ??p (sqrt ?x) ??q)
-       (* ??u ??v))
+      (/ (* ??p ?x ??q)
+         (* ??u (sqrt ?x) ??v))
+      =>
+      (/ (* ??p (sqrt ?x) ??q)
+         (* ??u ??v))
 
-    (/ (* ??p (sqrt ?x) ??q)
-       (* ??u ?x ??v))
-    =>
-    (/ (* ??p ??q)
-       (* ??u (sqrt ?x) ??v)))))
+      (/ (* ??p (sqrt ?x) ??q)
+         (* ??u ?x ??v))
+      =>
+      (/ (* ??p ??q)
+         (* ??u (sqrt ?x) ??v))))))
+
+(defn non-negative-factors [simplify x y id]
+  (let [xs (simplify x)
+	      ys (simplify y)]
+    (and (assume! `(~'non-negative? ~xs) id (fn [] false))
+         (assume! `(~'non-negative? ~ys) id (fn [] false)))))
+
+;; distribute the radical sign across products and quotients. but doing this
+;; may allow equal subexpressions within the radicals to cancel in various
+;; ways. The companion rule sqrt-contract reassembles what remains.
 
 (def sqrt-expand
-  (rule-simplifier
-   (ruleset
-    ;; "distribute the radical sign across products and quotients.
-    ;; but doing this may allow equal subexpressions within the
-    ;; radicals to cancel in various ways. The companion rule
-    ;; sqrt-contract reassembles what remains."
+  (let [simplify identity]
+    (rule-simplifier
+     (ruleset
+      (sqrt (* ?x ?y))
+      (fn [m]
+        (and *sqrt-factor-simplify?*
+	           (non-negative-factors (m '?x) (m '?y) 'e1)))
+      (* (sqrt ?x) (sqrt ?y))
 
-    ;; Scmutils, in each of these expansions, will `assume!`
-    ;; that the expressions named ?x and ?y are non-negative
-    (sqrt (* ?x ?y)) => (* (sqrt ?x) (sqrt ?y))
+      (sqrt (* ?x ?y ??ys))
+      (fn [m]
+        (and *sqrt-factor-simplify?*
+	           (non-negative-factors (m '?x) (m '?y) 'e2)))
+      (* (sqrt ?x) (sqrt (* ?y ??ys)))
 
-    (sqrt (* ?x ?y ??ys)) => (* (sqrt ?x) (sqrt (* ?y ??ys)))
+      (sqrt (/ ?x ?y))
+      (fn [m]
+        (and *sqrt-factor-simplify?*
+	           (non-negative-factors (m '?x) (m '?y) 'e3)))
+      (/ (sqrt ?x) (sqrt ?y))
 
-    (sqrt (/ ?x ?y)) => (/ (sqrt ?x) (sqrt ?y))
-
-    (sqrt (/ ?x ?y ??ys)) => (/ (sqrt ?x) (sqrt (* ?y ??ys))))))
+      (sqrt (/ ?x ?y ??ys))
+      (fn [m]
+        (and *sqrt-factor-simplify?*
+	           (non-negative-factors (m '?x) (m '?y) 'e4)))
+      (/ (sqrt ?x) (sqrt (* ?y ??ys)))))))
 
 (defn sqrt-contract
   ([] (sqrt-contract identity))
   ([simplify]
-   (rule-simplifier
-    (ruleset
-     ;; NOTE: Scmutils, in each of these contractions, will `assume!` that the
-     ;; expressions named ?x and ?y are non-negative.
-     (* ??a (sqrt ?x) ??b (sqrt ?y) ??c)
-     => (:? (fn [m]
-              (let [xs (simplify ('?x m))
-                    ys (simplify ('?y m))]
-                (if (v/= xs ys)
-                  `(~'* ~@('??a m) ~xs ~@('??b m) ~@('??c m))
-                  `(~'* ~@('??a m)
-                    (~'sqrt (~'* ~xs ~ys))
-                    ~@('??b m) ~@('??c m))))))
+   (let [if-false (fn [] false)]
+     (r/rule-simplifier
+      (r/choice
+       (r/rule
+        (* ??a (sqrt ?x) ??b (sqrt ?y) ??c)
+        (fn [m]
+          (let [xs (simplify (m '?x))
+                ys (simplify (m '?y))]
+            (if (v/= xs ys)
+              (and (assume! `(~'non-negative? ~xs) 'c1 if-false)
+                   `(~'* ~@(m '??a) ~xs ~@(m '??b) ~@(m '??c)))
+              (and (assume! `(~'non-negative? ~xs) 'c1 if-false)
+                   (assume! `(~'non-negative? ~ys) 'c1 if-false)
+                   `(~'* ~@(m '??a)
+                     (~'sqrt (~'* ~xs ~ys))
+                     ~@(m '??b) ~@(m '??c)))))))
 
-     (/ (sqrt ?x) (sqrt ?y))
-     => (:? (fn [m]
-              (let [xs (simplify ('?x m))
-                    ys (simplify ('?y m))]
-                (if (v/= xs ys)
-                  1
-                  `(~'sqrt (~'/ ~xs ~ys))))))
+       (r/rule
+        (/ (sqrt ?x) (sqrt ?y))
+        (fn [m]
+          (let [xs (simplify (m '?x))
+                ys (simplify (m '?y))]
+            (if (v/= xs ys)
+              (and (assume! `(~'non-negative? ~xs) 'c2 if-false)
+                   1)
+              (and (assume! `(~'non-negative? ~xs) 'c2 if-false)
+                   (assume! `(~'non-negative? ~ys) 'c2 if-false)
+                   `(~'sqrt (~'/ ~xs ~ys)))))))
 
-     (/ (* ??a (sqrt ?x) ??b) (sqrt ?y))
-     => (:? (fn [m]
-              (let [xs (simplify ('?x m))
-                    ys (simplify ('?y m))]
-                (if (v/= xs ys)
-                  `(~'* ~@('??a m) ~@('??b m))
-                  `(~'* ~@('??a m)
-                    (~'sqrt (~'/ ~xs ~ys))
-                    ~@('??b m))))))
+       (r/rule
+        (/ (* ??a (sqrt ?x) ??b) (sqrt ?y))
+        (fn [m]
+          (let [xs (simplify (m '?x))
+                ys (simplify (m '?y))]
+            (if (v/= xs ys)
+              (and (assume! `(~'non-negative? ~xs) 'c3 if-false)
+                   `(~'* ~@(m '??a) ~@(m '??b)))
+              (and (assume! `(~'non-negative? ~xs) 'c3 if-false)
+                   (assume! `(~'non-negative? ~ys) 'c3 if-false)
+                   `(~'* ~@(m '??a)
+                     (~'sqrt (~'/ ~xs ~ys))
+                     ~@(m '??b)))))))
 
-     (/ (sqrt ?x) (* ??a (sqrt ?y) ??b))
-     => (:? (fn [m]
-              (let [xs (simplify ('?x m))
-                    ys (simplify ('?y m))]
-                (if (v/= xs ys)
-                  `(~'/ 1 (~'* ~@('??a m) ~@('??b m)))
-                  `(~'/ (~'sqrt (~'/ ~xs ~ys))
-                    (~'* ~@('??a m) ~@('??b m)))))))
+       (r/rule
+        (/ (sqrt ?x) (* ??a (sqrt ?y) ??b))
+        (fn [m]
+          (let [xs (simplify (m '?x))
+                ys (simplify (m '?y))]
+            (if (v/= xs ys)
+              (and (assume! `(~'non-negative? ~xs) 'c4 if-false)
+                   `(~'/ 1 (~'* ~@(m '??a) ~@(m '??b))))
+              (and (assume! `(~'non-negative? ~xs) 'c4 if-false)
+                   (assume! `(~'non-negative? ~ys) 'c4 if-false)
+                   `(~'/ (~'sqrt (~'/ ~xs ~ys))
+                     (~'* ~@(m '??a) ~@(m '??b))))))))
 
-     (/ (* ??a (sqrt ?x) ??b)
-        (* ??c (sqrt ?y) ??d))
-     => (:? (fn [m]
-              (let [xs (simplify ('?x m))
-                    ys (simplify ('?y m))]
-                (if (v/= xs ys)
-                  `(~'/
-                    (~'* ~@('??a m) ~@('??b m))
-                    (~'* ~@('??c m) ~@('??d m)))
-                  `(~'/
-                    (~'* ~@('??a m) (~'sqrt (~'/ ~xs ~ys)) ~@('??b m))
-                    (~'* ~@('??c m) ~@('??d m)))))))))))
+       (r/rule
+        (/ (* ??a (sqrt ?x) ??b)
+           (* ??c (sqrt ?y) ??d))
+        (fn [m]
+          (let [xs (simplify (m '?x))
+                ys (simplify (m '?y))]
+            (if (v/= xs ys)
+              (and (assume! `(~'non-negative? ~xs) 'c5 if-false)
+                   `(~'/
+                     (~'* ~@(m '??a) ~@(m '??b))
+                     (~'* ~@(m '??c) ~@(m '??d))))
+              (and (assume! `(~'non-negative? ~xs) 'c5 if-false)
+                   (assume! `(~'non-negative? ~ys) 'c5 if-false)
+                   `(~'/
+                     (~'* ~@(m '??a) (~'sqrt (~'/ ~xs ~ys)) ~@(m '??b))
+                     (~'* ~@(m '??c) ~@(m '??d)))))))))))))
 
 ;; ## Log / Exp
 
 (def specfun->logexp
   (ruleset
-   (sqrt :x) => (exp (* (/ 1 2) (log :x)))
+   (sqrt ?x) => (exp (* (/ 1 2) (log ?x)))
 
-   (atan :z)
+   (atan ?z)
    =>
-   (/ (- (log (+ 1 (* (complex 0 1) :z)))
-         (log (- 1 (* (complex 0 1) :z))))
-      (complex 0 2))
+   (/ (- (log (+ 1 (* (complex 0.0 1.0) ?z)))
+         (log (- 1 (* (complex 0.0 1.0) ?z))))
+      (complex 0.0 2.0))
 
-   (asin :z)
+   (asin ?z)
    =>
-   (* (complex 0 -1)
-      (log (+ (* (complex 0 1) :z)
-              (sqrt (- 1 (expt :z 2))))))
+   (* (complex 0.0 -1.0)
+      (log (+ (* (complex 0.0 1.0) ?z)
+              (sqrt (- 1 (expt ?z 2))))))
 
-   (acos :z)
+   (acos ?z)
    =>
-   (* (complex 0 -1)
-      (log (+ :z (* (complex 0 1)
-                    (sqrt (- 1 (expt :z 2)))))))
+   (* (complex 0.0 -1.0)
+      (log (+ ?z (* (complex 0.0 1.0)
+                    (sqrt (- 1 (expt ?z 2)))))))
 
-   (sinh :u) => (/ (- (exp :u) (exp (* -1 :u))) 2)
+   (sinh ?u) => (/ (- (exp ?u) (exp (* -1 ?u))) 2)
 
-   (cosh :u) => (/ (+ (exp :u) (exp (* -1 :u))) 2)
+   (cosh ?u) => (/ (+ (exp ?u) (exp (* -1 ?u))) 2)
 
-   (expt :x (:? y non-integer?)) => (exp (* :y (log :x)))))
+   (expt ?x (:? ?y non-integer?)) => (exp (* ?y (log ?x)))))
 
 (def logexp->specfun
   (ruleset
-   (exp (* -1 (log :x))) => (expt :x -1)
+   (exp (* -1 (log ?x))) => (expt ?x -1)
 
-   (exp (* (/ 1 2) (log :x1))) => (sqrt :x1)
+   (exp (* (/ 1 2) (log ?x))) => (sqrt ?x)
 
-   (exp (* (/ -1 2) (log :x1))) => (/ 1 (sqrt :x1))
+   (exp (* (/ -1 2) (log ?x))) => (/ 1 (sqrt ?x))
 
-   (exp (* (/ 3 2) (log :x1))) => (expt (sqrt :x1) 3)
+   (exp (* (/ 3 2) (log ?x))) => (expt (sqrt ?x) 3)
 
-   (exp (* (/ -3 2) (log :x1))) => (expt (sqrt :x1) -3)
+   (exp (* (/ -3 2) (log ?x))) => (expt (sqrt ?x) -3)
 
-   (exp (* :n1* (log :x) :n2*))
+   (exp (* ??n1 (log ?x) ??n2))
    =>
-   (expt :x (* :n1* :n2*))))
-
+   (expt ?x (* ??n1 ??n2))))
 
 (comment
   (def log-contract
@@ -1176,7 +1360,8 @@
     ;; Does this really belong here?
     ;; It works by reducing n mod 4 and then indexing into [1 i -1 -i].
     (expt (complex 0.0 1.0) (:? ?n v/integral?))
-    => (:? #([1 '(complex 0 1) -1 '(complex 0 -1)] (mod (% '?n) 4))))))
+    => (:? #([1 '(complex 0.0 1.0) -1 '(complex 0.0 -1.0)]
+             (mod (% '?n) 4))))))
 
 (comment
   (define complex-rules
