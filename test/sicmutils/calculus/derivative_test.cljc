@@ -489,7 +489,7 @@
                     (/ (tan x) y))
              (simplify ((D f3) 'x 'y))))
       (is (= '(down (/ (sin y) (expt (cos x) 2))
-                    (/ (* (sin x) (cos y)) (cos x)))
+                    (* (tan x) (cos y)))
              (simplify ((D f4) 'x 'y))))
       (is (= '(down
                (/ 1 (* (expt (cos x) 2) (sin y)))
