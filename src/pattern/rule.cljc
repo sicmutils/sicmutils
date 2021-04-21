@@ -216,10 +216,19 @@
   [n r]
   (pipe* (repeat n r)))
 
+(defn attempt? [f]
+  (::attempt? (meta f)))
+
+(defn as-attempt [f]
+  (vary-meta f assoc ::attempt? true))
+
 (defn attempt
   "Returns a rule which will attempt `r` and return its input if `r` fails."
   [r]
-  (choice r pass))
+  (if (attempt? r)
+    r
+    (as-attempt
+     (choice r pass))))
 
 (defn predicate
   "Returns a rule that will pass the data on unchanged if `(f data)` returns true,
@@ -334,39 +343,39 @@
   "Iterate one rule to convergence on all subexpressions of the input, applying
   it on the way down as well as back up."
   [the-rule]
-  (let [r (attempt the-rule)]
-    (fn rec [expr]
-      (let [answer (r expr)]
-        (if (= answer expr)
-          (let [processed (try-subexpressions rec expr)
-                answer (r processed)]
-            (if (= answer processed)
-              answer
-              (rec answer)))
-          (rec answer))))))
+  (let [r   (attempt the-rule)
+        rec (atom nil)]
+    (letfn [(rec* [expr]
+              (let [answer (r expr)]
+                (if (= answer expr)
+                  (let [processed (try-subexpressions @rec expr)
+                        answer (r processed)]
+                    (if (= answer processed)
+                      answer
+                      (@rec answer)))
+                  (@rec answer))))]
+      (reset! rec (memoize rec*))
+      @rec)))
 
 ;; ## Our API
 ;;
 ;; The original, good stuff.
 
-(defn make-ruleset [rules]
+(defn make-ruleset [& rules]
   (attempt
-   (choice* rules)))
+   (apply choice rules)))
 
 (defmacro ruleset
   "Ruleset compiles rules, predicates and consequences (triplet-wise) into a
   function which acts like a single rule (as `rule` would produce) which acts by
   invoking the success continuation with the consequence of the first successful
   rule whose patterns match and satisfy the predicate. If no rules match, the
-  failure continuation is invoked.
-
-  TODO note that currently we ONLY allow triplets, but we really should allow
-  pairs... take an explicit list."
+  failure continuation is invoked."
   [& patterns-and-consequences]
   {:pre (zero? (mod (count patterns-and-consequences) 3))}
   (let [rule-inputs (partition 3 patterns-and-consequences)
         rules       (mapv #(apply compile-rule %) rule-inputs)]
-    `(make-ruleset ~rules)))
+    `(make-ruleset ~@rules)))
 
 (defn rule-simplifier
   "Transform the supplied rules into a function of expressions which will
@@ -374,9 +383,8 @@
   of the expression in depth order, then simplifies the result; the process is
   continued until a fixed point of the simplification process is achieved."
   [& rules]
-  ;; TODO CHECK!
   (iterated-bottom-up
-   (pipe* rules)))
+   (apply pipe (map attempt rules))))
 
 (defn term-rewriting
   "Alias for `rule-simplifier`..."
