@@ -30,14 +30,22 @@
 
 (deftest consequence-tests
   (testing "consequence preserves empty containers with correct type"
-    (is (= `(vec ()) (c/compile-skeleton 'm [])))
     (is (= [] ((r/consequence []) {})))
-
-    (is (= () (c/compile-skeleton 'm ())))
     (is (= () ((r/consequence ()) {})))
+    (is (= {} ((r/consequence {}) {})))
 
-    (is (= {} (c/compile-skeleton 'm {})))
-    (is (= {} ((r/consequence {}) {}))))
+    (testing "succeed wrappers are applied where appropriate"
+      (is (= (r/succeed nil)
+             ((r/consequence nil) {})))
+
+      (is (= (r/succeed false)
+             ((r/consequence false) {})))
+
+      (is (= (r/succeed false)
+             ((r/consequence ?x) {'?x false})))
+
+      (is (= (r/succeed nil)
+             ((r/consequence ?x) {})))))
 
   (is (= '(+ 10 12)
          ((r/consequence (+ ?b ?a)) {'?b 10 '?a 12}))
@@ -163,6 +171,12 @@
         list matching.")))
 
   (testing "Rules can return `false` or `nil` without failing."
+    (let [id-rule (r/rule ?r => ?r)]
+      (is (false? (id-rule false)))
+      (is (nil? (id-rule nil)))
+      (is (not (r/failed? (id-rule false))))
+      (is (not (r/failed? (r/return false)))))
+
     (is (false?
          ((r/rule (+ ?a ?b) => false) '(+ 1 2))))
 

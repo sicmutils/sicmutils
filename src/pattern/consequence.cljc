@@ -147,5 +147,6 @@
 
                   :else form))]
     (if skel
-      (compile skel)
+      `(let [r# ~(compile skel)]
+         (or r# (succeed r#)))
       `(succeed ~skel))))
