@@ -21,9 +21,37 @@
   - Passing a matcher combinator to `pattern.match/matcher` to generate a
     matcher object. This is a function from some `data` input to a map of
     bindings on success, or an explicit `pattern.match/failure` object on
-    failure.
+    failure. Test for failure with `pattern.match/failed?`.
 
-- Efficient `symmetric-difference` implementation in `sicmutils.util.vector-set` (#346)
+  - A combination of a matcher and a "consequence function" is called a "rule".
+    A consequence is a function that takes a binding map and either returns a
+    new result or fails by returning `nil` or `false`. (Don't worry, you can
+    succeed with these values too by wrapping them in `sicmutils.rule/succeed`.)
+
+    Rules are the heart of the whole simplification mechanism in sicmutils! To
+    learn about how to build these, see the documentation for `pattern*`,
+    `pattern`, `consequence`, `template`, `rule*`and `rule`.
+
+  - `pattern.rule` gives you some starter rules, and many combinators you can
+    use to build more and more powerful and complex sets of rules. These are
+    `pass`, `fail`, `predicate`, `return`, `branch`, `choice*`, `choice`,
+    `pipe*`, `pipe`, `n-times`, `attempt`, `guard`, `iterated`, `while`,
+    `until`, `fixed-point` and `trace`.
+
+  - Rules are nice for rewriting entire expressions recursively, from the bottom
+    up or top down. This is called "term rewriting". A big motivation for this
+    rewrite was to make it easy to build custom term rewriters for types like
+    abstract matrices or abstract up and down structures. You can use your rules
+    to rewrite structures recursively with `bottom-up`, `top-down`,
+    `iterated-bottom-up` and `iterated-top-down`. `ruleset*`, `ruleset`,
+    `rule-simplifier` and `term-rewriting` capture some common patterns the
+    library uses to go from rules => term rewriters.
+
+  - If you want ideas about how to use the pattern matching library to rewrite
+    expressions, see `sicmutils.simplify.rules` for many examples.
+
+- Efficient `symmetric-difference` implementation in `sicmutils.util.vector-set`
+  (#346)
 
 ## 0.18.0
 
