@@ -179,6 +179,12 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   constant [e](https://en.wikipedia.org/wiki/E_(mathematical_constant)),
   sometimes known as Euler's Number."}
   euler
+  (Math/exp 1))
+
+(def ^{:doc "The mathematical constant known as the [Euler–Mascheroni
+  constant](https://en.wikipedia.org/wiki/Euler%E2%80%93Mascheroni_constant) and
+  sometimes as Euler's constant."}
+  euler-gamma
   0.57721566490153286)
 
 (def ^{:doc "The mathematical
