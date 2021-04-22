@@ -19,7 +19,41 @@
 
 (ns sicmutils.simplify.rules-test
   (:require [clojure.test :refer [is deftest testing]]
-            [sicmutils.simplify.rules :as r]))
+            [pattern.rule :refer [rule-simplifier]]
+            [sicmutils.numbers]
+            [sicmutils.ratio]
+            [sicmutils.simplify.rules :as r]
+            [sicmutils.simplify :as s]))
+
+(deftest algebraic-tests
+  (testing "unary elimination"
+    (let [rule (r/unary-elimination '+ '*)
+          f    (rule-simplifier rule)]
+      (is (= '(+ x y z a)
+             (f '(+ x y (* z) (+ a)))))))
+
+  (testing "associative"
+    (let [rule (r/associative '+ '*)
+          f    (rule-simplifier rule)]
+      (is (= '(+ x y z a (* b c d) cake face)
+             (f '(+ x (+ y (+ z a) (* b (* c d))
+                         (+ cake face))))))))
+
+  (testing "constant elimination"
+    (let [rule (r/constant-elimination '* 1)
+          f    (rule-simplifier rule)]
+      (is (= '(* x)
+             (f '(* x))
+             (f '(* x 1))
+             (f '(* 1 x))))))
+
+  (testing "constant promotion"
+    (let [rule (r/constant-promotion '* 0)
+          f    (rule-simplifier rule)]
+      (is (= 0
+             (f 0)
+             (f '(* x 0))
+             (f '(* 0 x)))))))
 
 (deftest simplify-square-roots-test
   (let [s r/simplify-square-roots]
@@ -71,33 +105,6 @@
                       (* y z x))))
             "sqrt on top")))))
 
-(deftest divide-numbers-through-test
-  (let [d r/divide-numbers-through]
-    (is (= #sicm/ratio 1/2 (d '(/ 1 2))))
-    (is (= 'x (d '(* 1 x))))
-    (is (= '(* x y z) (d '(* 1 x y z))))
-    (is (= '(*) (d '(* 1))))
-    (is (= '(+ (/ a 3) (/ b 3) (/ c 3)) (d '(/ (+ a b c) 3))))))
-
-(deftest sincos-flush-ones-test
-  (let [s r/sincos-flush-ones]
-    (is (= '(+ 1 a b c c d e f g)
-           (s '(+ a b c (expt (sin x) 2) c d (expt (cos x) 2) e f g))))
-    (is (= '(+ (* (expt (cos x) 2) (expt (cos x) 1)) c (expt (sin x) 2) d e)
-           (s '(+ c (expt (sin x) 2)  d (expt (cos x) 3) e ))))
-    (is (= '(+ (* (expt (sin x) 2) (expt (sin x) 1) (expt (sin x) 2))
-               (* (expt (cos x) 2) (expt (cos x) 1))
-               c d e)
-           (s '(+ c (expt (sin x) 5)  d (expt (cos x) 3) e ))))))
-
-(deftest sin-sq->cos-sq-test
-  (let [s r/sin-sq->cos-sq]
-    (is (= '(+ 3 x
-               (* (* (* (expt (sin x) 1)
-                        (- 1 (expt (cos x) 2)))
-                     (- 1 (expt (cos x) 2))) (- 1 (expt (cos x) 2))))
-           (s '(+ 3 x (expt (sin x) 7)))))))
-
 (deftest sqrt-expand-contract-test
   (testing "sqrt-expand works with division"
     (is (= '(+ (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
@@ -107,7 +114,7 @@
 
   (let [sqrt-contract (r/sqrt-contract identity)]
     (testing "cancels square roots if the values are equal"
-      (is (= '(* a c e (sqrt (* b d)))
+      (is (= '(* a (sqrt (* b d)) c e)
              (sqrt-contract
               '(* a (sqrt b) c (sqrt d) e)))
           "square roots get pushed to the end.")
@@ -124,3 +131,57 @@
       (is (= '(- (sqrt (/ a b)) (sqrt (/ c b)))
              (sqrt-contract
               '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))))))))
+
+(deftest divide-numbers-through-test
+  (let [d r/divide-numbers-through]
+    (is (= #sicm/ratio 1/2 (d '(/ 1 2))))
+    (is (= 'x (d '(* 1 x))))
+    (is (= '(* x y z) (d '(* 1 x y z))))
+    (is (= '(*) (d '(* 1))))
+    (is (= '(+ (/ a 3) (/ b 3) (/ c 3)) (d '(/ (+ a b c) 3))))))
+
+(deftest sincos-flush-ones-test
+  (let [s r/sincos-flush-ones]
+    (is (= '(+ 1 a b c c d e f g)
+           (s '(+ a b c (expt (sin x) 2) c d (expt (cos x) 2) e f g))))
+
+    (is (= '(+ c (expt (sin x) 2) d (* (expt (cos x) 2) (cos x)) e)
+           (s '(+ c (expt (sin x) 2) d (expt (cos x) 3) e))))
+
+    (is (= '(+ c (* (expt (sin x) 2) (expt (sin x) 2) (sin x))
+               d (* (expt (cos x) 2) (cos x)) e)
+           (s '(+ c (expt (sin x) 5) d (expt (cos x) 3) e))))))
+
+(deftest trig-tests
+  (testing "the eight covered cases from sincos-random"
+    (let [rule (r/sincos-random s/*rf-analyzer*)]
+      (is (= '(+ 2 3 (* (- (expt (sin x) 2)) (expt (cos x) 2)))
+             (rule '(+ 2 (- (expt (sin x) 2)) 3 (expt (sin x) 4)))
+             (rule '(+ 2 (expt (sin x) 4) 3 (- (expt (sin x) 2))))))
+
+      (is (= '(+ 2 3 (* (- (expt (cos x) 2)) (expt (sin x) 2)))
+             (rule '(+ 2 (- (expt (cos x) 2)) 3 (expt (cos x) 4)))
+             (rule '(+ 2 (expt (cos x) 4) 3 (- (expt (cos x) 2))))))
+
+      (is (= '(+ 2 3 (* (- (* (expt (sin x) 2) z)) (expt (cos x) 2)))
+             (rule '(+ 2 (- (* (expt (sin x) 2) z)) 3 (* z (expt (sin x) 4))))
+             (rule '(+ 2 (* z (expt (sin x) 4)) 3 (- (* (expt (sin x) 2) z))))))
+
+      (is (= '(+ 2 3 (* (- (* (expt (cos x) 2) z)) (expt (sin x) 2)))
+             (rule '(+ 2 (- (* (expt (cos x) 2) z)) 3 (* z (expt (cos x) 4))))
+             (rule '(+ 2 (* z (expt (cos x) 4)) 3 (- (* (expt (cos x) 2) z))))))))
+
+  (testing "high degree cosines unwrap the (expt ... 1) remainder."
+    (let [r (rule-simplifier r/split-high-degree-sincos)]
+      (is (= '(+ 1 2 (* (expt (cos x) 2)
+                        (expt (cos x) 2)
+                        (cos x)))
+             (r '(+ 1 2 (expt (cos x) 5))))))))
+
+(deftest sin-sq->cos-sq-test
+  (let [s r/sin-sq->cos-sq]
+    (is (= '(+ 3 x
+               (* (* (* (expt (sin x) 1)
+                        (- 1 (expt (cos x) 2)))
+                     (- 1 (expt (cos x) 2))) (- 1 (expt (cos x) 2))))
+           (s '(+ 3 x (expt (sin x) 7)))))))

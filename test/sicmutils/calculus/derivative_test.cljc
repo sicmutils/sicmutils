@@ -166,7 +166,7 @@
 (deftest partial-diff-test
   (testing "partial derivative simplification rules"
     (let [f (af/literal-function 'f '(-> (UP Real Real) Real))]
-      (is (= '(((* (partial 1) (expt (partial 0) 2)) f) (up x y))
+      (is (= '(((* (expt (partial 0) 2) (partial 1)) f) (up x y))
              (simplify
               (((partial 0)
                 ((partial 1)
@@ -489,7 +489,7 @@
                     (/ (tan x) y))
              (simplify ((D f3) 'x 'y))))
       (is (= '(down (/ (sin y) (expt (cos x) 2))
-                    (/ (* (sin x) (cos y)) (cos x)))
+                    (* (tan x) (cos y)))
              (simplify ((D f4) 'x 'y))))
       (is (= '(down
                (/ 1 (* (expt (cos x) 2) (sin y)))
