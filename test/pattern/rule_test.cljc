@@ -20,9 +20,21 @@
 (ns pattern.rule-test
   (:require [clojure.test :as t :refer [is deftest testing]]
             [pattern.match :as m]
+            [pattern.consequence :as c]
             [pattern.rule :as r :refer [=> !=>]
              #?@(:cljs [:include-macros true])]
             [sicmutils.ratio]))
+
+(deftest consequence-tests
+  (testing "consequence preserves empty containers with correct type"
+    (is (= `(vec ()) (c/compile-skeleton 'm [])))
+    (is (= [] ((r/consequence []) {})))
+
+    (is (= () (c/compile-skeleton 'm ())))
+    (is (= () ((r/consequence ()) {})))
+
+    (is (= {} (c/compile-skeleton 'm {})))
+    (is (= {} ((r/consequence {}) {})))))
 
 (deftest rule-test
   (testing "simple"

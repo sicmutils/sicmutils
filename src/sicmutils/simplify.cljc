@@ -20,7 +20,6 @@
 (ns sicmutils.simplify
   (:require [clojure.pprint :as pp]
             [clojure.set :as set]
-            [pattern.rule :as rule]
             [sicmutils.expression.analyze :as a]
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
@@ -40,7 +39,8 @@
   (fn [x]
     (try (f x)
          (catch #?(:clj TimeoutException :cljs js/Error) _
-           (log/warn (str "simplifier timed out: must have been a complicated expression"))
+           (log/warn
+            (str "simplifier timed out: must have been a complicated expression"))
            x))))
 
 (defn ^:private poly-analyzer
@@ -83,7 +83,8 @@
           (cond (= canonicalized-expression expression) expression
                 (v/zero?
                  (*poly-analyzer*
-                  `(~'- ~expression ~canonicalized-expression))) canonicalized-expression
+                  (list '- expression canonicalized-expression)))
+                canonicalized-expression
                 :else (recur canonicalized-expression)))))))
 
 (defn ^:private simplify-and-canonicalize
@@ -106,56 +107,16 @@
   (simplify-and-canonicalize
    rules/simplify-square-roots simplify-and-flatten))
 
-;; looks like we might have the modules inverted: rulesets will need some functions from the
-;; simplification library, so this one has to go here. Not ideal the way we have split things
-;; up, but at least things are beginning to simplify adequately.
-
-(def ^:private simplifies-to-zero?
-  #(-> % *poly-analyzer* v/zero?))
-
-(def ^:private simplifies-to-one?
-  #(-> % *rf-analyzer* v/one?))
-
-;; TODO move to rules!!
 (def trig-cleanup
-  "This finds things like a - a cos^2 x and replaces them with a sin^2 x"
-  (let [at-least-two? #(and (number? %) (>= % 2))]
-    (simplify-until-stable
-     (rule/rule-simplifier
-      (rule/ruleset
-       ;;  ... + a + ... + cos^n x + ...   if a + cos^(n-2) x = 0: a sin^2 x
-       (+ ??a1 ?a ??a2 (expt (cos ?x) (? ?n at-least-two?)) ??a3)
-       #(simplifies-to-zero?
-         `(~'+ (~'expt (~'cos ~(% '?x)) ~(- (% '?n) 2)) ~(% '?a)))
-       (+ ??a1 ??a2 ??a3 (* ?a (expt (sin ?x) 2)))
-
-       (+ ??a1 (expt (cos ?x) (? ?n at-least-two?)) ??a2 ?a ??a3)
-       #(simplifies-to-zero?
-         `(~'+ (~'expt (~'cos ~(% '?x)) ~(- (% '?n) 2)) ~(% '?a)))
-       (+ ??a1 ??a2 ??a3 (* ?a (expt (sin ?x) 2)))
-
-       (+ ??a1 ?a ??a2 (* ??b1 (expt (cos ?x) (? ?n at-least-two?)) ??b2) ??a3)
-       #(simplifies-to-zero?
-         `(~'+ (~'* ~@(% '??b1) ~@(% '??b2) (~'expt (~'cos ~(% '?x)) ~(- (% '?n) 2))) ~(% '?a)))
-       (+ ??a1 ??a2 ??a3 (* ?a (expt (sin ?x) 2)))
-
-       (+ ??a1 (* ??b1 (expt (cos ?x) (? ?n at-least-two?)) ??b2) ??a2 ?a ??a3)
-       #(simplifies-to-zero?
-         `(~'+ (~'* ~@(% '??b1) ~@(% '??b2) (~'expt (~'cos ~(% '?x)) ~(- (% '?n) 2))) ~(% '?a)))
-       (+ ??a1 ??a2 ??a3 (* ?a (expt (sin ?x) 2)))
-
-       ;; TODO - the original pushes rcf:simplify inside this block.
-       (atan ?y ?x)
-       (fn [m]
-         (let [xy-gcd (*rf-analyzer* `(~'gcd ~(m '?x) ~(m '?y)))]
-           (when-not (v/one? xy-gcd)
-             {'?gcd xy-gcd})))
-       (atan (/ ?y ?gcd) (/ ?x ?gcd))))
-     simplify-and-flatten)))
+  ;; This finds things like a - a cos^2 x and replaces them with a sin^2 x.
+  (simplify-until-stable
+   (rules/sincos-random *rf-analyzer*)
+   simplify-and-flatten))
 
 (def clear-square-roots-of-perfect-squares
   (simplify-and-canonicalize
-   (comp rules/universal-reductions factor/root-out-squares)
+   (comp rules/universal-reductions
+         factor/root-out-squares)
    simplify-and-flatten))
 
 (declare simplify-expression)

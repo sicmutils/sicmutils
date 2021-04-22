@@ -96,49 +96,46 @@
   - same with any segment binding form, with the added note that these should
     be spliced in
   - any `unquote` or `unquote-splicing` forms respected"
-  [skel]
-  (let [frame-sym (gensym)]
-    (letfn [(compile-sequential [xs]
-              (let [acc (ps/splice-reduce (some-fn ps/segment?
-                                                   ps/reverse-segment?
-                                                   ps/unquote-splice?)
-                                          compile xs)]
-                (cond (empty? acc) ()
-                      (= 1 (count acc)) (first acc)
-                      :else `(concat ~@acc))))
+  [frame-sym skel]
+  (letfn [(compile-sequential [xs]
+            (let [acc (ps/splice-reduce (some-fn ps/segment?
+                                                 ps/reverse-segment?
+                                                 ps/unquote-splice?)
+                                        compile xs)]
+              (cond (empty? acc) ()
+                    (= 1 (count acc)) (first acc)
+                    :else `(concat ~@acc))))
 
-            (compile [form]
-              (cond (or (ps/binding? form)
-                        (ps/segment? form))
-                    (let [v (ps/variable-name form)]
-                      (apply-form v frame-sym))
+          (compile [form]
+            (cond (or (ps/binding? form)
+                      (ps/segment? form))
+                  (let [v (ps/variable-name form)]
+                    (apply-form v frame-sym))
 
-                    (ps/reverse-segment? form)
-                    (let [v (ps/reverse-segment-name form)]
-                      (list `rseq (apply-form v frame-sym)))
+                  (ps/reverse-segment? form)
+                  (let [v (ps/reverse-segment-name form)]
+                    (list `rseq (apply-form v frame-sym)))
 
-                    (symbol? form) (list 'quote form)
+                  (symbol? form) (list 'quote form)
 
-                    (ps/unquote? form)
-                    (ps/unquoted-form form)
+                  (ps/unquote? form)
+                  (ps/unquoted-form form)
 
-                    (ps/unquote-splice? form)
-                    (into [] (ps/unquoted-form form))
+                  (ps/unquote-splice? form)
+                  (into [] (ps/unquoted-form form))
 
-                    (map? form)
-                    (u/map-vals compile form)
+                  (map? form)
+                  (u/map-vals compile form)
 
-                    (vector? form)
-                    `(vec ~(compile-sequential form))
+                  (vector? form)
+                  `(vec ~(compile-sequential form))
 
-                    (sequential? form)
-                    (if (empty? form)
-                      form
-                      `(seq ~(compile-sequential form)))
+                  (sequential? form)
+                  (if (empty? form)
+                    form
+                    `(seq ~(compile-sequential form)))
 
-                    :else form))]
-      (if skel
-        `(fn [~frame-sym]
-           ~(compile skel))
-        `(fn [_#]
-           (succeed ~skel))))))
+                  :else form))]
+    (if skel
+      (compile skel)
+      `(succeed ~skel))))

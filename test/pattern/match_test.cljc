@@ -92,7 +92,7 @@
     (is (nil? ((m/bind :x integer?) {} 6.1 identity)))
     (is (= {:x 6.0} ((m/bind :x float?) {} 6.0 identity)))))
 
-(deftest matchers
+(deftest seq-matcher-tests
   (testing "segment"
     (is (= '[[{:x []} [a b c]]
              [{:x [a]} (b c)]
@@ -122,11 +122,28 @@
              (match '[a b c]))
           "If you have TWO segment variables, they correctly scan."))
 
-    (is (= {:x []}
-           ((m/segment :x) {} '() (fn [frame _] frame))))
+    (testing "segment matches empty segment for lists, vectors."
+      (is (= [{}] ((m/all-results-matcher ()) ()))
+          "empty dict!")
 
-    (is (= {:x []}
-           ((m/segment :x) {} [] (fn [frame _] frame)))))
+      (is (= [] ((m/all-results-matcher ()) '(foo)))
+          "no match.")
+
+      (is (= {:x []}
+             ((m/segment :x) {} () (fn [frame _] frame))))
+
+      (is (= {:x []}
+             ((m/segment :x) {} [] (fn [frame _] frame))))))
+
+  (testing "final segment with an ignored binding"
+    (is (= '{?a 1, ?b 2}
+           (m/match '[?a ?b (?? _)] [1 2 3 4]))))
+
+  (is (= [{'stuff '(0 1 2 3 4 5 6 7 8 9)}]
+         ((m/all-results-matcher '(and (?? stuff)))
+          (cons 'and (range 10))))
+      "segments at the end of a list run in constant time, except building the
+        test list")
 
   (testing "segment-constraint"
     (let [find-two-ints (m/sequence
@@ -135,14 +152,15 @@
                          (m/segment :ys)
                          (m/bind :j integer?)
                          (m/segment :zs))]
-      (is (= '[{:i 3 :xs [1.1 [1 3] 2.3] :ys [6.5 x [3 5]] :j 4 :zs [22]}
-               {:i 3 :xs [1.1 [1 3] 2.3] :ys [6.5 x [3 5] 4] :j 22 :zs []}
+      (is (= '[{:xs [1.1 [1 3] 2.3] :i 3 :ys [6.5 x [3 5]] :j 4 :zs [22]}
+               {:xs [1.1 [1 3] 2.3] :i 3 :ys [6.5 x [3 5] 4] :j 22 :zs []}
                {:xs [1.1 [1 3] 2.3 3 6.5 x [3 5]] :i 4 :ys [] :j 22 :zs []}]
              (m/all-results
               find-two-ints
-              '(1.1 [1 3] 2.3 3 6.5 x [3 5] 4 22))))))
+              '(1.1 [1 3] 2.3 3 6.5 x [3 5] 4 22)))
+          "segments accomplish searches")))
 
-  (testing "twin-segments"
+  (testing "twin, equal-binding segments"
     (let [xs-xs (m/sequence
                  (m/segment :x)
                  (m/segment :x))
@@ -155,9 +173,14 @@
                          (m/segment :x)
                          (m/segment :x)
                          (m/segment :y))]
-      (is (= {:x '[a b c]} (m/match xs-xs '(a b c a b c))))
-      (is (m/failed? (m/match xs-xs '(a b c a b d))))
-      (is (m/failed? (m/match xs-xs '(a b c a b c d e))))
+      (is (= {:x '[a b c]}
+             (m/match xs-xs '(a b c a b c)))
+          "find two equal segments")
+
+      (testing "equal segments don't exist"
+        (is (m/failed? (m/match xs-xs '(a b c a b d))))
+        (is (m/failed? (m/match xs-xs '(a b c a b c d e)))))
+
       (let [match (m/all-results-matcher xs-xs-etc)]
         (is (= [{:x [] :y '[a b c a b c d e]}
                 {:x '[a b c] :y '[d e]}]
@@ -216,6 +239,11 @@
 
 (deftest matcher-combinator-tests
   (testing "match-if branches"
+    (let [match (m/matcher
+                 (m/match-if odd? '?x '?y))]
+      (is (= {'?x 9} (match 9)))
+      (is (= {'?y 10} (match 10))))
+
     (let [m (m/match-if odd? '?odd '?even)]
       (is (= {'?odd 11} (m {} 11 identity)))
       (is (= {'?even 12} (m {} 12 identity)))))
@@ -235,22 +263,47 @@
              x gen/any-equatable]
             (is (nil? ((m/or) m x identity))))
 
-  (checking "(or r) always matches r" 100
+  (testing "m/or unit tests"
+    (let [match (m/matcher (m/or ['? 'x #{11}]
+                                 (m/not ['? 'x odd?])))]
+      (is (= {'x 11} (match 11)))
+      (is (= {} (match 12))))
+
+    (let [match (m/or (m/predicate odd?)
+                      (m/predicate #{12}))]
+      (is (= {} (match {} 12 identity)))
+      (is (= {} (match {} 11 identity)))
+      (is (not (match {} 8 identity)))))
+
+  (checking "(or r) always matches r, more args" 100
             [m gen-frame
              x gen/any-equatable]
             (is (= m ((m/or m/pass) m x identity)))
-            (is (nil? ((m/or m/fail) m x identity))))
+            (is (nil? ((m/or m/fail) m x identity)))
+
+            (is (= m ((m/or m/fail m/fail m/fail m/pass) m x identity)))
+            (is (nil? ((m/or m/fail m/fail m/fail m/fail) m x identity))))
 
   (checking "(and) always passes" 100
             [m gen-frame
              x gen/any-equatable]
             (is (= m ((m/and) m x identity))))
 
-  (checking "(and r) always matches r" 100
+  (checking "(and r) always matches r, more args" 100
             [m gen-frame
              x gen/any-equatable]
             (is (= m ((m/and m/pass) m x identity)))
-            (is (nil? ((m/and m/fail) m x identity))))
+            (is (nil? ((m/and m/fail) m x identity)))
+
+            (is (= m ((m/and m/pass m/pass m/pass) m x identity)))
+            (is (nil? ((m/and m/fail m/pass m/pass) m x identity))))
+
+  (testing "`and` must match all and returns the frame from the final."
+    (let [match (m/and (m/predicate even?)
+                       (m/bind :x)
+                       (m/predicate #{12}))]
+      (is (= {:x 12} (match {} 12 identity)))
+      (is (not (match {} 8 identity)))))
 
   (checking "(not r) does the opposite of r" 100
             [m gen-frame
@@ -271,45 +324,6 @@
       (is (= '{:x 2 :ys [3 4 5]} (m/match match-x-ys-x [2 3 4 5 2])))
       (is (m/failed? (m/match match-x-ys-x [2 3 4 5 6])))
       (is (m/failed? (m/match match-xy [2]))))))
-
-(deftest keyword-variables
-  (testing "simple"
-    (let [xx '[?x ?x]
-          xy '[?x ?y]
-          xs '[??x]
-          xs-xs '[??x ??x]
-          xs-ys '[??x ??y]]
-      (is (= '{??x [1 2 3 4]}
-             (m/match xs [1 2 3 4])))
-
-      (is (= '{?x 2}
-             (m/match xx [2 2])))
-
-      (is (= '{?x 5 ?y 6}
-             (m/match xy [5 6])))
-
-      (is (ps/segment? '??x))
-      (is (ps/segment? '??y))
-
-      (is (= {'??x [1 2]}
-             (m/match xs-xs [1 2 1 2])))
-
-      (is (= '{??x [] ??y [1 2 3 4]}
-             (m/match xs-ys [1 2 3 4])))
-
-      (is (= '[{??x [], ??y [1 2 3 4]}
-               {??x [1], ??y [2 3 4]}
-               {??x [1 2], ??y [3 4]}
-               {??x [1 2 3], ??y [4]}
-               {??x [1 2 3 4], ??y []}]
-             ((m/all-results-matcher xs-ys) '(1 2 3 4))))
-
-      (is (= '[{??x [], ??y [1 2 3 4]}
-               {??x [1], ??y [2 3 4]}
-               {??x [1 2], ??y [3 4]}
-               {??x [1 2 3], ??y [4]}
-               {??x [1 2 3 4], ??y []}]
-             ((m/all-results-matcher xs-ys) [1 2 3 4]))))))
 
 (deftest gjs-tests
   ;; these tests come from matcher.scm.
@@ -347,62 +361,88 @@
       (is (palindrome? '(a b c c b a)))
       (is (not (palindrome? '(a b c c a b)))))))
 
-(deftest new-tests
-  (testing "final segment with an ignored binding"
-    (is (= '{?a 1, ?b 2}
-           (m/match '[?a ?b (?? _)] [1 2 3 4]))))
+(deftest syntax-tests
+  (testing "pattern-shaped inputs"
+    (let [xx '[?x ?x]
+          xy '[?x ?y]
+          xs '[??x]
+          xs-xs '[??x ??x]
+          xs-ys '[??x ??y]]
+      (is (= '{??x [1 2 3 4]}
+             (m/match xs [1 2 3 4])))
 
+      (is (= '{?x 2}
+             (m/match xx [2 2])))
+
+      (is (= '{?x 5 ?y 6}
+             (m/match xy [5 6])))
+
+      (is (ps/segment? '??x))
+      (is (ps/segment? '??y))
+
+      (is (= {'??x [1 2]}
+             (m/match xs-xs [1 2 1 2])))
+
+      (is (= '{??x [] ??y [1 2 3 4]}
+             (m/match xs-ys [1 2 3 4])))
+
+      (is (= '[{??x [], ??y [1 2 3 4]}
+               {??x [1], ??y [2 3 4]}
+               {??x [1 2], ??y [3 4]}
+               {??x [1 2 3], ??y [4]}
+               {??x [1 2 3 4], ??y []}]
+             ((m/all-results-matcher xs-ys) '(1 2 3 4))))
+
+      (is (= '[{??x [], ??y [1 2 3 4]}
+               {??x [1], ??y [2 3 4]}
+               {??x [1 2], ??y [3 4]}
+               {??x [1 2 3], ??y [4]}
+               {??x [1 2 3 4], ??y []}]
+             ((m/all-results-matcher xs-ys) [1 2 3 4])))))
+
+  (testing "predicates can return new bindings"
+    (is (= {'x '+, :y 'z}
+           (m/match (m/sequence (m/bind 'x))
+                    (fn [m] {:y 'z})
+                    ['+]))
+        "We can add new bindings to the map."))
+
+  (testing "wildcards are ignored"
+    (let [match (m/matcher '(+ (? _ #{11}) ?b))]
+      (is (= {'?b 12} (match '(+ 11 12))))
+      (is (m/failed?
+           (match '(+ 12 11))))))
+
+  (testing "restrictions"
+    (let [pattern ['? 'x odd? #(> % 12)]
+          f (ps/restriction ['? 'x odd? #(> % 12)])]
+      (is (ps/restricted? pattern)
+          "Any extra entries in a binding pattern are treated as restriction
+          predicates.")
+      (is (f 13)
+          "inputs pass if they match all predicates.")
+
+      (is (not (f 11))
+          "odd but not > 12.")))
+
+  (testing "compile-pattern preserves container types"
+    (is  (= `(list '~'?x :one '~'?y '~'?z)
+            (ps/compile-pattern '(?x :one ?y ?z))))
+
+    (is  (= ['(quote ?x) :one '(quote ?y) '(quote ?z)]
+            (ps/compile-pattern '[?x :one ?y ?z])))
+
+    (is  (= {:a '(quote ?a)
+             :b ['(quote ??b)]
+             :c "see"}
+            (ps/compile-pattern {:a '?a :b ['??b] :c "see"})))))
+
+(deftest matcher-tests
   (testing "using a new matcher as a predicate works"
     (is (= {'?x 10 '?y {'?x 10}}
            ((m/matcher '?x (m/matcher '?y)) 10))))
 
-  (let [match (m/matcher '(+ (? _ #{11}) ?b))]
-    (is (= {'?b 12} (match '(+ 11 12))))
-    (is (m/failed?
-         (match '(+ 12 11)))))
+  (testing "foreach"
+    ;; test with segment, with non-segment.
 
-  (let [match (m/matcher (m/or ['? 'x #{11}]
-                               (m/not ['? 'x odd?])))]
-    (is (= {'x 11} (match 11)))
-    (is (= {} (match 12))))
-
-  (let [match (m/matcher
-               (m/match-if odd? '?x '?y))]
-    (is (= {'?x 9} (match 9)))
-    (is (= {'?y 10} (match 10))))
-
-  (testing "match/or"
-    (let [match (m/or (m/predicate odd?)
-                      (m/predicate #{12}))]
-      (is (= {} (match {} 12 identity)))
-      (is (= {} (match {} 11 identity)))
-      (is (not (match {} 8 identity)))))
-
-  (testing "`and` must match all and returns the frame from the final."
-    (let [match (m/and (m/predicate even?)
-                       (m/bind :x)
-                       (m/predicate #{12}))]
-      (is (= {:x 12} (match {} 12 identity)))
-      (is (not (match {} 8 identity)))))
-
-  (is (= {'x '+, :y 'z}
-         (m/match (m/sequence (m/bind 'x))
-                  (fn [m] {:y 'z})
-                  ['+]))
-      "We can add new bindings to the map.")
-
-  (testing "match-empty-list"
-    (is (= [{}]
-           ((m/all-results-matcher ()) ()))
-        "empty dict!")
-
-    (is (= []
-           ((m/all-results-matcher ())
-            '(foo)))
-        "no match."))
-
-  (is (= [{'stuff '(0 1 2 3 4 5 6 7 8 9)}]
-         ((m/all-results-matcher '(and (?? stuff)))
-          (cons 'and (range 10))))
-      "segments at the end of a list run in constant time, except building the
-        test list"))
+    ))

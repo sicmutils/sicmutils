@@ -18,7 +18,7 @@
 ;;
 
 (ns sicmutils.simplify.rules
-  (:require [pattern.rule :refer [=> ruleset rule-simplifier]
+  (:require [pattern.rule :as r :refer [=> ruleset rule-simplifier]
              #?@(:cljs [:include-macros true])]
             [sicmutils.complex :as c]
             [sicmutils.expression :as x]
@@ -263,53 +263,50 @@
      ;; expressions named ?x and ?y are non-negative.
      (* ??a (sqrt ?x) ??b (sqrt ?y) ??c)
      => (? (fn [m]
-              (let [xs (simplify ('?x m))
-                    ys (simplify ('?y m))]
-                (if (v/= xs ys)
-                  `(~'* ~@('??a m) ~xs ~@('??b m) ~@('??c m))
-                  `(~'* ~@('??a m)
-                    (~'sqrt (~'* ~xs ~ys))
-                    ~@('??b m) ~@('??c m))))))
+             (let [xs (simplify ('?x m))
+                   ys (simplify ('?y m))
+                   form (if (v/= xs ys)
+                          xs
+                          (r/template
+                           (sqrt (* ~xs ~ys))))]
+               (r/template m (* ??a ~form ??b ??c)))))
 
      (/ (sqrt ?x) (sqrt ?y))
      => (? (fn [m]
-              (let [xs (simplify ('?x m))
-                    ys (simplify ('?y m))]
-                (if (v/= xs ys)
-                  1
-                  `(~'sqrt (~'/ ~xs ~ys))))))
+             (let [xs (simplify ('?x m))
+                   ys (simplify ('?y m))]
+               (if (v/= xs ys)
+                 1
+                 (r/template
+                  (sqrt (/ ~xs ~ys)))))))
 
      (/ (* ??a (sqrt ?x) ??b) (sqrt ?y))
      => (? (fn [m]
-              (let [xs (simplify ('?x m))
-                    ys (simplify ('?y m))]
-                (if (v/= xs ys)
-                  `(~'* ~@('??a m) ~@('??b m))
-                  `(~'* ~@('??a m)
-                    (~'sqrt (~'/ ~xs ~ys))
-                    ~@('??b m))))))
+             (let [xs (simplify ('?x m))
+                   ys (simplify ('?y m))]
+               (if (v/= xs ys)
+                 (r/template m (* ??a ??b))
+                 (r/template m (* ??a (sqrt (/ ~xs ~ys)) ??b))))))
 
      (/ (sqrt ?x) (* ??a (sqrt ?y) ??b))
      => (? (fn [m]
-              (let [xs (simplify ('?x m))
-                    ys (simplify ('?y m))]
-                (if (v/= xs ys)
-                  `(~'/ 1 (~'* ~@('??a m) ~@('??b m)))
-                  `(~'/ (~'sqrt (~'/ ~xs ~ys))
-                    (~'* ~@('??a m) ~@('??b m)))))))
+             (let [xs (simplify ('?x m))
+                   ys (simplify ('?y m))]
+               (if (v/= xs ys)
+                 (r/template m (/ 1 (* ??a ??b)))
+                 (r/template m (/ (sqrt (/ ~xs ~ys))
+                                  (* ??a ??b)))))))
 
      (/ (* ??a (sqrt ?x) ??b)
         (* ??c (sqrt ?y) ??d))
      => (? (fn [m]
-              (let [xs (simplify ('?x m))
-                    ys (simplify ('?y m))]
-                (if (v/= xs ys)
-                  `(~'/
-                    (~'* ~@('??a m) ~@('??b m))
-                    (~'* ~@('??c m) ~@('??d m)))
-                  `(~'/
-                    (~'* ~@('??a m) (~'sqrt (~'/ ~xs ~ys)) ~@('??b m))
-                    (~'* ~@('??c m) ~@('??d m)))))))))))
+             (let [xs (simplify ('?x m))
+                   ys (simplify ('?y m))]
+               (if (v/= xs ys)
+                 (r/template m (/ (* ??a ??b)
+                                  (* ??c ??d)))
+                 (r/template m (/ (* ??a (sqrt (/ ~xs ~ys)) ??b)
+                                  (* ??c ??d)))))))))))
 
 ;; ## Partials
 
@@ -428,8 +425,8 @@
   (letfn [(remaining [m]
             (let [leftover (- (m '?n) 2)]
               (if (v/one? leftover)
-                (list (m '?op) (m '?x))
-                `(~'expt (~(m '?op) ~(m '?x)) ~leftover))))]
+                (r/template m (?op ?x))
+                (r/template m (expt (?op ?x) ~leftover)))))]
     (ruleset
      (* ??f1
         (expt ((? ?op #{'sin 'cos}) ?x) (? ?n more-than-two?))
@@ -469,6 +466,52 @@
    split-high-degree-sincos
    flush-obvious-ones))
 
+(defn sincos-random [simplify]
+  (let [simplifies-to-zero? (comp v/zero? simplify)
+        ops #{'cos 'sin}
+        flip {'cos 'sin, 'sin 'cos}]
+    (rule-simplifier
+     (ruleset
+      ;;  ... + a + ... + cos^n x + ...   if a + cos^(n-2) x = 0: a sin^2 x
+      (+ ??a1 ?a ??a2 (expt ((? ?op ops) ?x) (? ?n at-least-two?)) ??a3)
+      (fn [{n '?n op '?op :as m}]
+        (when (simplifies-to-zero?
+               (r/template m (+ ?a (expt (?op ?x) ~(g/- n 2)))))
+          {'?other-op (flip op)}))
+      (+ ??a1 ??a2 ??a3 (* ?a (expt (?other-op ?x) 2)))
+
+      (+ ??a1 (expt ((? ?op ops) ?x) (? ?n at-least-two?)) ??a2 ?a ??a3)
+      (fn [{n '?n op '?op :as m}]
+        (when (simplifies-to-zero?
+               (r/template m (+ (expt (?op ?x) ~(g/- n 2)) ?a)))
+          {'?other-op (flip op)}))
+      (+ ??a1 ??a2 ??a3 (* ?a (expt (?other-op ?x) 2)))
+
+      (+ ??a1 ?a ??a2 (* ??b1 (expt ((? ?op ops) ?x) (? ?n at-least-two?)) ??b2)
+         ??a3)
+      (fn [{n '?n op '?op :as m}]
+        (when (simplifies-to-zero?
+               (r/template m (+ (* ??b1 ??b2 (expt (?op ?x) ~(g/- n 2))) ?a)))
+          {'?other-op (flip op)}))
+      (+ ??a1 ??a2 ??a3 (* ?a (expt (?other-op ?x) 2)))
+
+      (+ ??a1 (* ??b1 (expt ((? ?op ops) ?x) (? ?n at-least-two?)) ??b2) ??a2 ?a
+         ??a3)
+      (fn [{n '?n op '?op :as m}]
+        (when (simplifies-to-zero?
+               (r/template m (+ (* ??b1 ??b2 (expt (?op ?x) ~(g/- n 2))) ?a)))
+          {'?other-op (flip op)}))
+      (+ ??a1 ??a2 ??a3 (* ?a (expt (?other-op ?x) 2)))
+
+      ;; TODO - delete in favor of the triginv version coming!
+      (atan ?y ?x)
+      (fn [m]
+        (let [xy-gcd (simplify
+                      (r/template m (gcd ?x ?y)))]
+          (when-not (v/one? xy-gcd)
+            {'?gcd xy-gcd})))
+      (atan (/ ?y ?gcd) (/ ?x ?gcd))))))
+
 (def complex-trig
   ;; TODO: clearly more of these are needed.
   (rule-simplifier
@@ -494,7 +537,9 @@
     => (? #(g// (% '?n) (% '?d)))
 
     (/ (+ ??terms) (? ?d v/number?))
-    => (+ (?? #(map (fn [n] `(~'/ ~n ~(% '?d))) (% '??terms)))))))
+    => (+ (?? (fn [{terms '??terms :as m}]
+                (map #(r/template m (/ ~% ?d))
+                     terms)))))))
 
 (defn universal-reductions [x]
   (triginv x))

@@ -1,7 +1,5 @@
 (ns sicmutils.runner
   (:require [doo.runner :refer-macros [doo-tests]]
-
-            pattern.consequence-test
             pattern.match-test
             pattern.rule-test
 
@@ -113,8 +111,7 @@
             sicmutils.structure-test
             sicmutils.value-test))
 
-(doo-tests 'pattern.consequence-test
-           'pattern.match-test
+(doo-tests 'pattern.match-test
            'pattern.rule-test
 
            'sicmutils.abstract.function-test

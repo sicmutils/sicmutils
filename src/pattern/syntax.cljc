@@ -50,13 +50,6 @@
 ;;
 ;; ## Non-Macro Syntax
 
-(defn- suffix
-  "Returns the final character of the string, symbol or keyword."
-  [kwd]
-  (let [s (name kwd)
-        c (count s)]
-    (.charAt ^String s (dec c))))
-
 (defn restricted?
   "Returns true if `pattern` is a binding pattern with restriction predicates,
   false otherwise."

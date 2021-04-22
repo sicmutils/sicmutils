@@ -111,7 +111,17 @@
   NOTE: reverse-segment variables are NOT evaluated here; these currently only
   apply when matching an already-bound segment variable."
   [form]
-  (c/compile-skeleton form))
+  (let [sym (gensym)]
+    `(fn [~sym]
+       ~(c/compile-skeleton sym form))))
+
+(defmacro template
+  ([form]
+   (c/compile-skeleton (gensym) form))
+  ([m form]
+   (let [sym (gensym)]
+     `(let [~sym ~m]
+        ~(c/compile-skeleton sym form)))))
 
 (defn rule*
   "Functional version of [[rule]]. See [[rule]] for documentation."
