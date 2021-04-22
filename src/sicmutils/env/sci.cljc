@@ -82,6 +82,7 @@
    'sicmutils.rational-function                (ns-publics 'sicmutils.rational-function)
    'sicmutils.series                           (ns-publics 'sicmutils.series)
    'sicmutils.simplify                         (ns-publics 'sicmutils.simplify)
+   'sicmutils.simplify.rules                   (ns-publics 'sicmutils.simplify.rules)
    'sicmutils.structure                        (ns-publics 'sicmutils.structure)
    'sicmutils.util                             (ns-publics 'sicmutils.util)
    'sicmutils.value                            (ns-publics 'sicmutils.value)
