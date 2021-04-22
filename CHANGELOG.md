@@ -2,6 +2,27 @@
 
 ## [unreleased]
 
+- #349 introduces a new pattern matching system, built out of matcher
+  combinators. All of the rules in `sicmutils.simplify.rules` now use the new
+  syntax offered by the library. Some notes:
+
+  - `pattern.match` defines a number of "matcher combinators"; these are
+    functions that take a map of bindings, a data input and a success
+    continuation and either succeed by calling their continuation, or fail. Out
+    of the box, the library provides `fail`, `pass`, `with-frame`,
+    `update-frame`, `predicate`, `frame-predicate`, `eq`, `bind`, `match-when`,
+    `match-if`, `or`, `and`, `not`, `segment` and `sequence`.
+
+  - Additionally, any combinator that takes another combinator can ALSO take a
+    pattern form like `'?x`. See `pattern.syntax` for the full, rich range of
+    syntax allowed. These are all functions, so you'll have to quote your
+    symbols at this stage.
+
+  - Passing a matcher combinator to `pattern.match/matcher` to generate a
+    matcher object. This is a function from some `data` input to a map of
+    bindings on success, or an explicit `pattern.match/failure` object on
+    failure.
+
 - Efficient `symmetric-difference` implementation in `sicmutils.util.vector-set` (#346)
 
 ## 0.18.0

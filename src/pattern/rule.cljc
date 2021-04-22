@@ -18,8 +18,9 @@
 ;;
 
 (ns pattern.rule
-  "Functions for writing and applying term-rewriting rules using the primitives
-  defined in [[pattern.match]]."
+  "This namespace provides an API for building rules out of the matchers and
+  matcher combinators declared in [[pattern.match]], along with a series of
+  combinators for building advanced term-rewriting systems."
   (:refer-clojure :exclude [replace while])
   (:require #?(:clj [potemkin :refer [import-def]])
             [pattern.consequence :as c]

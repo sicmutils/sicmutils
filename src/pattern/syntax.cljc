@@ -18,8 +18,8 @@
 ;;
 
 (ns pattern.syntax
-  "This namespace contains code to match and parse the default pattern and
-  skeleton syntax provided in the library."
+  "The syntax namespace defines the default syntax for patterns corresponding to
+  the matcher combinators defined in [[pattern.match]]."
   (:require [sicmutils.util :as u]))
 
 ;; ### Notes

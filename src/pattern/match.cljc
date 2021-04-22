@@ -23,8 +23,10 @@
   6.945](http://groups.csail.mit.edu/mac/users/gjs/6.945/).
   See [[pattern.rule]] for a higher-level API.
 
-  [[pattern.match]] is spiritually similar to Alexey
-  Radul's [Rules](https://github.com/axch/rules) library for Scheme."
+  [[pattern.match]] and [[pattern.rule]] are spiritually similar to Alexey
+  Radul's [Rules](https://github.com/axch/rules) library for Scheme, and the
+  pattern matching system described in GJS and Hanson's [Software Design for
+  Flexibility](https://mitpress.mit.edu/books/software-design-flexibility)."
   (:refer-clojure :exclude [sequence #?@(:cljs [or and not])]
                   :rename {or core:or
                            and core:and
@@ -183,10 +185,9 @@
 
 (comment
   (let [m (match-if odd? '?odd '?even)]
-    [(m {} 11 identity)
-     (m {} 12 identity)])
-  ;;=> [{'?odd 11} {'?even 12]}]
-  )
+    (= [{'?odd 11} {'?even 12}]
+       [(m {} 11 identity)
+        (m {} 12 identity)])))
 
 (declare pattern->combinators)
 
@@ -552,14 +553,15 @@
   binding map, and the sequence of all remaining items that the segment
   matcher rejected."
   [pattern f]
-  (letfn [(cont
-            ([frame]
-             (f frame)
-             false)
-            ([frame xs]
-             (f frame xs)
-             false))]
-    (matcher pattern cont)))
+  (let [match (pattern->combinators pattern)
+        cont (fn ([frame]
+                 (f frame)
+                 false)
+               ([frame xs]
+                (f frame xs)
+                false))]
+    (fn [data]
+      (match {} data cont))))
 
 (defn foreach
   "Convenience function that creates a [[foreach-matcher]] from the supplied
