@@ -29,6 +29,23 @@
 (defn eval [form]
   (sci/eval-form (sci/fork es/context) form))
 
+(deftest pattern-tests
+  (is (= ['(+ 2 1) "done!"]
+         (eval
+          '(do (require '[pattern.rule :as r :refer [=>]])
+               (let [R (r/ruleset
+                        (+ 10 _) => "done!"
+                        (+ ?a ?b) => (+ ?b ?a))]
+                 [(R '(+ 1 2))
+                  (R (R '(+ 11 10)))])))))
+
+  (is (= '(+ 6)
+         (eval
+          '(do (require '[pattern.rule :as r :refer [=>]])
+               (let [R (r/term-rewriting
+                        (r/rule (+ ?a ?b ??c) => (+ ?b ??c)))]
+                 (R '(+ 1 2 3 4 5 6))))))))
+
 (deftest basic-sci-tests
   (is (= [:at-least 0]
          (eval '(arity
