@@ -1512,5 +1512,6 @@ y)))) )"}
               sqrt? (sim-root e3)
               :else e3)))))
 
-(defn universal-reductions [x]
-  (triginv x))
+(defn universal-reductions [_]
+  (fn [x]
+    (triginv x)))
