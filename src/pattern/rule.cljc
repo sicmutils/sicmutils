@@ -357,7 +357,7 @@
 (defn iterated
   "Similar to `clojure.core/iterate` for rule application.
 
-  Takes a rule `r` and returns a new rule that will the first non-failing
+  Takes a rule `r` and returns a new rule that will return the last non-failing
   result of the sequence `[data (r data) (r (r data)) ...]`
 
   This might be `data` itself if `r` fails on first application. This means that

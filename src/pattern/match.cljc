@@ -106,7 +106,7 @@
   input and always succeed by replacing the current map of bindings with
   `new-frame`."
   [new-frame]
-  (fn [_ _ succeed]
+  (fn [frame data succeed]
     (succeed new-frame)))
 
 (defn update-frame

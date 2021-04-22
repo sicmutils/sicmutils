@@ -443,6 +443,24 @@
            ((m/matcher '?x (m/matcher '?y)) 10))))
 
   (testing "foreach"
-    ;; test with segment, with non-segment.
+    (let [acc (atom [])]
+      (m/foreach '(??pre ??mid $$pre)
+                 (fn [x] (swap! acc conj x))
+                 [1 2 3 4 5 4 3 2 1])
+      (is (= '[{??pre [1], ??mid [2 3 4 5 4 3 2]}
+               {??pre [1 2], ??mid [3 4 5 4 3]}
+               {??pre [1 2 3], ??mid [4 5 4]}
+               {??pre [1 2 3 4], ??mid [5]}]
+             @acc)
+          "foreach triggers a side effect for each possible match."))
 
-    ))
+    (let [acc (atom [])]
+      (m/foreach (m/segment '??pre)
+                 (fn [x tail] (swap! acc conj [x tail]))
+                 [1 2 3])
+      (is (= '[[{??pre []} [1 2 3]]
+               [{??pre [1]} (2 3)]
+               [{??pre [1 2]} (3)]
+               [{??pre [1 2 3]} nil]]
+             @acc)
+          "foreach can handle segment matchers too."))))

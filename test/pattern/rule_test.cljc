@@ -37,9 +37,24 @@
     (is (= () ((r/consequence ()) {})))
 
     (is (= {} (c/compile-skeleton 'm {})))
-    (is (= {} ((r/consequence {}) {})))))
+    (is (= {} ((r/consequence {}) {}))))
+
+  (is (= '(+ 10 12)
+         ((r/consequence (+ ?b ?a)) {'?b 10 '?a 12}))
+      "consequences build functions."))
 
 (deftest rule-tests
+  (testing "pattern* builds a matcher"
+    (is (= {'?x 10} ((r/pattern* '?x) 10)))
+
+    (is (= ((r/pattern* '?x) 10)
+           ((r/pattern* '?x =>) 10))
+        "=> always passes")
+
+    (is (r/failed?
+         ((r/pattern* '?x (comp odd? '?x)) 10))
+        "predicate acts on the binding map."))
+
   (checking "pass, => always succeed" 100
             [x gen/any-equatable]
             (is (= x (r/pass x)))
@@ -50,7 +65,7 @@
             (is (r/failed? (r/fail x)))
             (is (r/failed? ((r/rule ?x !=> ?x) x))))
 
-  (testing "simple"
+  (testing "simple rule test"
     (let [R (r/rule ((? a) (? b) (?? cs))
                     =>
                     (a b c (? a) (? b) y z))]
@@ -58,18 +73,9 @@
              (R '(9 8 7 6 5))))
       (is (r/failed? (R '(9))))))
 
-  (testing "new syntax"
-    (let [R (r/rule (?a ?b ??cs) => (a b c ?a ?b y z))]
-      (is (= '(a b c 9 8 y z) (R '(9 8 7 6 5))))
-      (is (r/failed? (R '(9)))))
-
-    (is (= 2 ((r/rule* ['? '?x odd?]
-                       (fn [m] (inc (m '?x))))
-              1))
-        "make an explicit rule, still a function."))
-
   (testing "simple2"
-    (let [R (r/rule ((? a) (?? b) (? a)) =>
+    (let [R (r/rule ((? a) (?? b) (? a))
+                    =>
                     (2 (? a) (?? b)))]
       (is (= '(2 a x y z) (R '(a x y z a))))
       (is (= '(2 a) (R '(a a))))
@@ -104,9 +110,178 @@
       (is (r/failed? (R '(+ a))))
       (is (r/failed? (R '(+ a b c d e))))
       (is (= '(+ (* 2 b) a a b a) (R '(+ b a b a b a))))
-      (is (= '(+ (* 2 a) b b a b) (R '(+ a b a b a b)))))))
+      (is (= '(+ (* 2 a) b b a b) (R '(+ a b a b a b))))))
 
-(deftest ruleset-test
+  (testing "2-arity form"
+    (let [R (r/rule (?a ?b ??cs)
+                    (r/consequence
+                     {:c [??cs]
+                      :b ?b}))]
+      (is (= {:c [3], :b 2}
+             (R '(1 2 3)))
+          "r/consequence builds a function of a binding map"))
+
+    (let [R (r/rule
+             (?a ?b ??cs)
+             (fn [m]
+               (r/template m {:c [??cs]
+                              :b ?b})))]
+      (is (= {:c [3], :b 2}
+             (R '(1 2 3)))
+          "r/template does this too!")))
+
+  (testing "wildcards are ignored"
+    (let [R (r/rule (+ _ ?a ?a _) => ?a)]
+      (is (= 2 (R '(+ () 2 2 3)))))
+
+    (let [R (r/rule (+ ?a (?? _) ?b) => (+ ?a ?b))]
+      (is (= '(+ 1 2)
+             (R '(+ 1 9 9 9 9 9 2)))
+          "wildcard on sequence.")))
+
+  (testing "Rules can fill in dictionaries on the right side."
+    (let [R (r/rule (?a ?b (? c odd?)) => {:key [?a]})]
+      (is (= {:key [1]}
+             (R [1 1 1])))))
+
+  (testing "testing unquote, unquoting in TWO actual matchers vs a literal,
+        empty list matching and unquote splicing in the result."
+    (let [z 2
+          R (r/rule
+             (~(m/eq '+) () ~(m/match-when odd? (m/bind '?a))
+              ?a ??b)
+             => (* ~@(z) ?a ??b))]
+      (is (= '(* 2 3 y z)
+             (R '(+ () 3 3 y z)))))
+
+    (let [z 2
+          R (r/rule
+             (~(m/eq '+) () ?a ?a ??b) => (* ~@(z) ?a ??b))]
+      (is (= '(* 2 x y z)
+             (R '(+ () x x y z)))
+          "testing unquote, unquoting in an actual matcher vs a literal, and empty
+        list matching.")))
+
+  (testing "Rules can return `false` or `nil` without failing."
+    (is (false?
+         ((r/rule (+ ?a ?b) => false) '(+ 1 2))))
+
+    (is (nil?
+         ((r/rule (+ ?a ?b) => nil) '(+ 1 2))))
+
+    (is (not
+         (r/failed?
+          ((r/rule (+ ?a ?b) => false) '(+ 1 2))))
+        "You do NOT fail for returning false.")
+
+    (is (r/failed?
+         ((r/rule (+ ?a ?b) !=> false) '(+ 1 2)))
+        "You do fail for failing your predicate with `!=>`.")
+
+    (is (r/failed?
+         ((r/rule (+ ?a ?b) => ~r/failure) '(+ 1 2)))
+        "Or if you splice in failure and return it!")
+    )
+
+  (testing "new syntax"
+    (let [R (r/rule (?a ?b ??cs) => (a b c ?a ?b y z))]
+      (is (= '(a b c 9 8 y z) (R '(9 8 7 6 5))))
+      (is (r/failed? (R '(9)))))
+
+    (is (= 2 ((r/rule* ['? '?x odd?]
+                       (fn [m] (inc (m '?x))))
+              1))
+        "make an explicit rule, still a function.")))
+
+(deftest combinator-tests
+  (testing "pipe, predicate"
+    (let [R (r/pipe
+             (r/predicate odd?)
+             (r/rule ?x => (+ ?x (? #(inc (% '?x))) ?x))
+             (r/rule (+ ?x ??tail) => {:x ?x :tail [??tail]}))]
+      (is (= {:x 11 :tail [12 11]}
+             (R 11)))
+      (is (r/failed? (R 12)))))
+
+  (checking "return returns anything" 100
+            [x gen/nat
+             if-t gen/any-equatable
+             if-f gen/any-equatable]
+            (is (= (if (even? x) if-t if-f)
+                   ((r/branch (r/predicate even?)
+                              (r/return if-t)
+                              (r/return if-f))
+                    x))))
+
+  (checking "n-times" 100 [n (gen/choose 0 50)
+                           x gen/small-integer]
+            (let [R (r/n-times n (r/rule ?x => (? #(inc (% '?x)))))]
+              (is (= (+ n x)
+                     (R x)))))
+
+  (checking "guard " 100 [x gen/small-integer]
+            (let [inc-rule (r/rule ?x => (? #(inc (% '?x))))
+                  R (r/guard odd? inc-rule)]
+              (is (even? (R x))
+                  "inc if odd, else leave alone")))
+
+  (checking "iterated" 100
+            [x (gen/choose 0 50)]
+            (let [inc-if-under-100 (r/rule ?x
+                                           #(< (% '?x) 100)
+                                           (? #(inc (% '?x))))
+                  R (r/iterated inc-if-under-100)]
+              (is (= 100 (R x)))))
+
+  (checking "while, until" 100
+            [x (gen/choose 0 50)]
+            (let [inc (r/rule ?x => (? #(inc (% '?x))))]
+              (is (= 101  ((r/while (fn [l _] (< l 100)) inc) x)))
+              (is (= 100 ((r/while (fn [_ r] (< r 100)) inc) x)))
+
+              (is (= 102  ((r/until (fn [l _] (> l 100)) inc) x)))
+              (is (= 101 ((r/until (fn [_ r] (> r 100)) inc) x)))))
+
+  (checking "fixed-point" 100
+            [x (gen/choose 0 50)]
+            (let [R (r/rule ?x => (? #(min 100 (inc (% '?x)))))]
+              (is (= 100 ((r/fixed-point R) x))
+                  "rule stops changing at 100")))
+
+  (testing "trace"
+    (let [R-inc (r/rule ?x => (? #(inc (% '?x))))
+          acc (atom [])
+          f #(swap! acc conj %)
+          R (r/n-times 5 (r/trace R-inc f))]
+      (is (= 10 (R 5))
+          "the rule succeeds.")
+
+      (is (= [5 6 6 7 7 8 8 9 9 10]
+             (map (some-fn :in :out) @acc))
+          "gather alternating in, out values captured from the rule!")))
+
+  (testing "bottom-up, top down"
+    (let [R (r/rule (? _ integer? odd?) => "face!")]
+      (is (= {:note [10 "face!" 12]}
+             ((r/bottom-up R) {:note [10 11 12]})
+             ((r/top-down R) {:note [10 11 12]}))
+          "Replacements can dive into vectors and dictionaries.")))
+
+  (let [R (r/attempt
+           (r/rule (??pre (? ?x odd?) $$pre) => [??pre "Palindrome!" $$pre]))]
+    (is (= [1 2 3 "Palindrome!" 3 2 1]
+           (R [1 2 3 11 3 2 1]))
+        "Splicing of reverse segments works.")
+
+    (is (= 12 (R 12))
+        "attempt rule returns identity when it doesn't match"))
+
+  (testing "iterated-top-down"
+    (let [R (r/iterated-top-down
+             (r/rule (?a ?b ?c) => ?c))]
+      (is (= 3 (R [1 2 [1 2 [1 2 [1 2 3]]]]))))))
+
+(deftest ruleset-tests
   (testing "simple"
     (let [RS (r/ruleset
               ((? a) (? a)) => (* 2 (? a))
@@ -127,9 +302,7 @@
   (testing "algebra-1"
     (let [RS (r/ruleset
               (+ ?a (+ ?b ?c)) => (+ (+ ?a ?b ?c))
-
               (+ ?a) => ?a
-
               (* ?a (+ ?b ??c)) => (+ (* ?a ?b) (* ?a ??c)))
           S (r/rule-simplifier RS)]
       (is (= 3 (S '(+ 3))))
@@ -186,7 +359,7 @@
              (* (expt (bzz (? x)) (? n #(> % 2)))) => (? (subtract-from 'n -2))
              (expt (sin (? x)) (? n at-least-two?)) => (* (expt (sin (? x)) (? #(- (% 'n) 2)))
                                                           (- 1 (expt (cos (? x)) 2))))
-          RS (r/rule-simplifier R)]
+          RS (r/term-rewriting R)]
       (is (= '(b 4 3) (R '(a 3 4))))
       (is (= '(c 4 3.1) (R '(a 3.1 4))))
       (is (= '(a "foo" 4) (R '(a "foo" 4))))
@@ -205,68 +378,3 @@
       (is (= '((expt sin 2) t) (R '(expt (sin t) 2))))
       (is (= '((expt cos 2) t) (R '(expt (cos t) 2))))
       (is (r/failed? (R '(expt x 2)))))))
-
-(deftest new-tests
-  (is (false?
-       ((r/rule (+ ?a ?b) => false) '(+ 1 2)))
-      "You can return false or nil.")
-
-  (is (nil?
-       ((r/rule (+ ?a ?b) => nil) '(+ 1 2)))
-      "You can return false or nil.")
-
-  (is (not
-       (r/failed?
-        ((r/rule (+ ?a ?b) => false) '(+ 1 2))))
-      "You do NOT fail for returning false.")
-
-  (is (r/failed?
-       ((r/rule (+ ?a ?b) !=> false) '(+ 1 2)))
-      "You do fail for failing your predicate with `!=>`.")
-
-  (is (r/failed?
-       ((r/rule (+ ?a ?b) => ~r/failure) '(+ 1 2)))
-      "Or if you splice in failure and return it!")
-
-  (is (= '(+ 10 12)
-         ((r/consequence (+ ?b ?a)) {'?b 10 '?a 12}))
-      "consequences build functions.")
-
-  (let [R (r/rule (+ _ ?a ?a _) => ?a)]
-    (is (= 2 (R '(+ () 2 2 3)))
-        "wildcard ignores!"))
-
-  (let [R (r/rule (?a ?b (? c odd?)) => {:key [?a]})]
-    (is (= {:key [1]}
-           (R [1 1 1]))
-        "We can fill in dictionaries on the right side."))
-
-  (let [z 2
-        R (r/rule
-           (~(m/eq '+) () ~(m/match-when odd? (m/bind '?a))
-            ?a ??b)
-           => (* ~@(z) ?a ??b))]
-    (is (= '(* 2 3 y z)
-           (R '(+ () 3 3 y z)))
-        "testing unquote, unquoting in TWO actual matchers vs a literal, empty
-        list matching and unquote splicing in the result."))
-
-  (let [z 2
-        R (r/rule
-           (~(m/eq '+) () ?a ?a ??b) => (* ~@(z) ?a ??b))]
-    (is (= '(* 2 x y z)
-           (R '(+ () x x y z)))
-        "testing unquote, unquoting in an actual matcher vs a literal, and empty
-        list matching."))
-
-  (let [R (r/bottom-up
-           (r/rule (? _ integer? odd?) => "face!"))]
-    (is (= {:note [10 "face!" 12]}
-           (R {:note [10 11 12]}))
-        "Replacements can dive into vectors and dictionaries."))
-
-  (let [R (r/attempt
-           (r/rule (??pre (? ?x odd?) $$pre) => [??pre "Palindrome!" $$pre]))]
-    (is (= [1 2 3 "Palindrome!" 3 2 1]
-           (R [1 2 3 11 3 2 1]))
-        "Splicing of reverse segments works.")))
