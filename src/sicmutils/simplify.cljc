@@ -143,7 +143,8 @@
         (simplify-and-flatten))))
 
 (def simplify-expression
-  (simplify-until-stable simplify-expression-1 simplify-and-flatten))
+  (-> simplify-expression-1
+      (simplify-until-stable simplify-and-flatten)))
 
 (defn only-if
   "returns a function that will apply f to its argument x if `bool`, else returns x."
