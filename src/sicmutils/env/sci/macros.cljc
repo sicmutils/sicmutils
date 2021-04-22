@@ -20,12 +20,59 @@
 (ns sicmutils.env.sci.macros
   "This namespace contains reimplementations of various macros from sicmutils,
   defined in the form required by SCI."
-  (:require [sicmutils.abstract.function :as af]
+  (:require [pattern.consequence :as pc]
+            [pattern.rule :as r]
+            [pattern.syntax :as ps]
+            [sicmutils.abstract.function :as af]
             [sicmutils.calculus.coordinate :as cc]
             [sicmutils.calculus.manifold :as m]
             [sicmutils.calculus.vector-field :as vf]
             [sicmutils.calculus.form-field :as ff]
             [sicmutils.util :as u]))
+
+;; ## Pattern Matching Macros
+
+(defn pattern
+  "Originally defined in `pattern.rule`."
+  ([_ _ form]
+   `(r/pattern*
+     ~(ps/compile-pattern form)))
+  ([_ _ form pred]
+   `(r/pattern*
+     ~(ps/compile-pattern form)
+     ~@(when pred [pred]))))
+
+(defn consequence
+  "Originally defined in `pattern.rule`."
+  [_ _ form]
+  (let [sym (gensym)]
+    `(fn [~sym]
+       ~(pc/compile-skeleton sym form))))
+
+(defn template
+  "Originally defined in `pattern.rule`."
+  ([_ _ form]
+   (pc/compile-skeleton (gensym) form))
+  ([_ _ m form]
+   (let [sym (gensym)]
+     `(let [~sym ~m]
+        ~(pc/compile-skeleton sym form)))))
+
+(defn rule
+  ([_ _ pattern consequent-fn]
+   (r/compile-rule pattern consequent-fn))
+  ([_ _ pattern pred skeleton]
+   (r/compile-rule pattern pred skeleton)))
+
+(defn ruleset
+  "Originally defined in `pattern.rule`."
+  [_ _ & patterns-and-consequences]
+  {:pre (zero? (mod (count patterns-and-consequences) 3))}
+  (let [inputs (partition 3 patterns-and-consequences)
+        rules  (map #(apply r/compile-rule %) inputs)]
+    `(r/ruleset* ~@rules)))
+
+;; ## SICMUtils Macros
 
 (defn literal-function
   "Originally defined in `sicmutils.env`."
@@ -92,8 +139,17 @@
    'let-coordinates        (tag-as-macro let-coordinates)
    'using-coordinates      (tag-as-macro using-coordinates)})
 
+(def pattern-macros
+  {'pattern     (tag-as-macro pattern)
+   'consequence (tag-as-macro consequence)
+   'template    (tag-as-macro template)
+   'rule        (tag-as-macro rule)
+   'ruleset     (tag-as-macro ruleset)})
+
 (def ns-bindings
-  {'sicmutils.env all
+  {'pattern.rule pattern-macros
+
+   'sicmutils.env all
 
    'sicmutils.abstract.function
    (select-keys all ['with-literal-functions])
