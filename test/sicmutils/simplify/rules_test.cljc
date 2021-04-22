@@ -22,7 +22,38 @@
             [pattern.rule :refer [rule-simplifier]]
             [sicmutils.numbers]
             [sicmutils.ratio]
-            [sicmutils.simplify.rules :as r]))
+            [sicmutils.simplify.rules :as r]
+            [sicmutils.simplify :as s]))
+
+(deftest algebraic-tests
+  (testing "unary elimination"
+    (let [rule (r/unary-elimination '+ '*)
+          f    (rule-simplifier rule)]
+      (is (= '(+ x y z a)
+             (f '(+ x y (* z) (+ a)))))))
+
+  (testing "associative"
+    (let [rule (r/associative '+ '*)
+          f    (rule-simplifier rule)]
+      (is (= '(+ x y z a (* b c d) cake face)
+             (f '(+ x (+ y (+ z a) (* b (* c d))
+                         (+ cake face))))))))
+
+  (testing "constant elimination"
+    (let [rule (r/constant-elimination '* 1)
+          f    (rule-simplifier rule)]
+      (is (= '(* x)
+             (f '(* x))
+             (f '(* x 1))
+             (f '(* 1 x))))))
+
+  (testing "constant promotion"
+    (let [rule (r/constant-promotion '* 0)
+          f    (rule-simplifier rule)]
+      (is (= 0
+             (f 0)
+             (f '(* x 0))
+             (f '(* 0 x)))))))
 
 (deftest simplify-square-roots-test
   (let [s r/simplify-square-roots]
@@ -74,34 +105,6 @@
                       (* y z x))))
             "sqrt on top")))))
 
-(deftest divide-numbers-through-test
-  (let [d r/divide-numbers-through]
-    (is (= #sicm/ratio 1/2 (d '(/ 1 2))))
-    (is (= 'x (d '(* 1 x))))
-    (is (= '(* x y z) (d '(* 1 x y z))))
-    (is (= '(*) (d '(* 1))))
-    (is (= '(+ (/ a 3) (/ b 3) (/ c 3)) (d '(/ (+ a b c) 3))))))
-
-(deftest sincos-flush-ones-test
-  (let [s r/sincos-flush-ones]
-    (is (= '(+ 1 a b c c d e f g)
-           (s '(+ a b c (expt (sin x) 2) c d (expt (cos x) 2) e f g))))
-
-    (is (= '(+ c (expt (sin x) 2) d (* (expt (cos x) 2) (cos x)) e)
-           (s '(+ c (expt (sin x) 2) d (expt (cos x) 3) e))))
-
-    (is (= '(+ c (* (expt (sin x) 2) (expt (sin x) 2) (sin x))
-               d (* (expt (cos x) 2) (cos x)) e)
-           (s '(+ c (expt (sin x) 5) d (expt (cos x) 3) e))))))
-
-(deftest sin-sq->cos-sq-test
-  (let [s r/sin-sq->cos-sq]
-    (is (= '(+ 3 x
-               (* (* (* (expt (sin x) 1)
-                        (- 1 (expt (cos x) 2)))
-                     (- 1 (expt (cos x) 2))) (- 1 (expt (cos x) 2))))
-           (s '(+ 3 x (expt (sin x) 7)))))))
-
 (deftest sqrt-expand-contract-test
   (testing "sqrt-expand works with division"
     (is (= '(+ (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
@@ -129,197 +132,56 @@
              (sqrt-contract
               '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))))))))
 
-(deftest new-tests
-  (let [r (rule-simplifier r/split-high-degree-sincos)]
-    (is (= '(+ 1 2 (* (expt (cos x) 2)
-                      (expt (cos x) 2)
-                      (cos x)))
-           (r '(+ 1 2 (expt (cos x) 5))))))
+(deftest divide-numbers-through-test
+  (let [d r/divide-numbers-through]
+    (is (= #sicm/ratio 1/2 (d '(/ 1 2))))
+    (is (= 'x (d '(* 1 x))))
+    (is (= '(* x y z) (d '(* 1 x y z))))
+    (is (= '(*) (d '(* 1))))
+    (is (= '(+ (/ a 3) (/ b 3) (/ c 3)) (d '(/ (+ a b c) 3))))))
 
-  (let [rule (r/constant-promotion '* 0)
-        f    (rule-simplifier rule)]
-    (is (= 0 (f '(* x 0)))
-        "works")))
+(deftest sincos-flush-ones-test
+  (let [s r/sincos-flush-ones]
+    (is (= '(+ 1 a b c c d e f g)
+           (s '(+ a b c (expt (sin x) 2) c d (expt (cos x) 2) e f g))))
 
-(comment
-  ;; TODO note that there are lots more simplifiers we can grab to run these tests!
+    (is (= '(+ c (expt (sin x) 2) d (* (expt (cos x) 2) (cos x)) e)
+           (s '(+ c (expt (sin x) 2) d (expt (cos x) 3) e))))
 
-  (define (assert-unchanged datum rule)
-    (assert-eq datum (rule datum)))
+    (is (= '(+ c (* (expt (sin x) 2) (expt (sin x) 2) (sin x))
+               d (* (expt (cos x) 2) (cos x)) e)
+           (s '(+ c (expt (sin x) 5) d (expt (cos x) 3) e))))))
 
-  (define-each-check
-    (equal?
-     '(+ (* w x) (* x y) (* x z))
-     (simplify-algebra '(* (+ y (+ z w)) x)))
+(deftest trig-tests
+  (testing "the eight covered cases from sincos-random"
+    (let [rule (r/sincos-random s/*rf-analyzer*)]
+      (is (= '(+ 2 3 (* (- (expt (sin x) 2)) (expt (cos x) 2)))
+             (rule '(+ 2 (- (expt (sin x) 2)) 3 (expt (sin x) 4)))
+             (rule '(+ 2 (expt (sin x) 4) 3 (- (expt (sin x) 2))))))
 
-    (equal?
-     '(* 3 x)
-     (simplify-algebra '(+ (* 3 (+ x 1)) -3)))
+      (is (= '(+ 2 3 (* (- (expt (cos x) 2)) (expt (sin x) 2)))
+             (rule '(+ 2 (- (expt (cos x) 2)) 3 (expt (cos x) 4)))
+             (rule '(+ 2 (expt (cos x) 4) 3 (- (expt (cos x) 2))))))
 
-    (equal? 0 (simplify-algebra '(+)))
-    (equal? true (simplify-logic '(and)))
-    (equal? false (simplify-logic '(or)))
-    (equal?
-     '(* 3 x)
-     (simplify-algebra '(+ (* 3 (+ x 1)) -3
-			                     (* y (+ 1 2 -3) z))))
-    (equal?
-     '(/ (* r1 r2) (+ r1 r2))
-     ((pipe ->quotient-of-sums simplify-quotient)
-      '(/ 1 (+ (/ 1 r1) (/ 1 r2))))))
+      (is (= '(+ 2 3 (* (- (* (expt (sin x) 2) z)) (expt (cos x) 2)))
+             (rule '(+ 2 (- (* (expt (sin x) 2) z)) 3 (* z (expt (sin x) 4))))
+             (rule '(+ 2 (* z (expt (sin x) 4)) 3 (- (* (expt (sin x) 2) z))))))
 
-  (define associate-addition
-    (rule '(+ (? a) (+ (? b) (? c)))
-	        `(+ (+ ,a ,b) ,c)))
+      (is (= '(+ 2 3 (* (- (* (expt (cos x) 2) z)) (expt (sin x) 2)))
+             (rule '(+ 2 (- (* (expt (cos x) 2) z)) 3 (* z (expt (cos x) 4))))
+             (rule '(+ 2 (* z (expt (cos x) 4)) 3 (- (* (expt (cos x) 2) z))))))))
 
-  (define-test (rule-smoke)
-    (assert-equal
-     '(+ (+ 2 3) 4)
-     (associate-addition '(+ 2 (+ 3 4)))))
+  (testing "high degree cosines unwrap the (expt ... 1) remainder."
+    (let [r (rule-simplifier r/split-high-degree-sincos)]
+      (is (= '(+ 1 2 (* (expt (cos x) 2)
+                        (expt (cos x) 2)
+                        (cos x)))
+             (r '(+ 1 2 (expt (cos x) 5))))))))
 
-  (define-test (rule-that-can-refuse)
-    (define sort-numbers
-      (rule '(+ (? a) (? b))
-	          (and (> a b)
-		             `(+ ,b ,a))))
-    (assert-equal
-     '(+ 2 3)
-     (sort-numbers '(+ 3 2)))
-    (assert-unchanged '(+ 2 3) sort-numbers))
-  (define-test (parametric-rule-smoke)
-    (assert-equal
-     false
-     (simplify-ors '(or))))
-
-  (define-test (negation-pushing-smoke)
-    (assert-equal
-     '(and (not a) (not b))
-     (simplify-negations '(not (or a b)))))
-
-  (define-test (or-pushing)
-    (assert-equal
-     '(and (or (not (< -1/4 (- x2 x1)))
-	             (and (not (< (- x2 x1) 1/4)) (not (< (- x2 x1) 0)))
-	             (and (< (- x2 x1) 1/4) (not (< (- x2 x1) 0)))
-	             (and (< -1/4 (- x2 x1)) (< (- x2 x1) 0)))
-	         (or (< (- x2 x1) 0)
-	             (and (not (< (- x2 x1) 1/4)) (not (< (- x2 x1) 0)))
-	             (and (< (- x2 x1) 1/4) (not (< (- x2 x1) 0)))
-	             (and (< -1/4 (- x2 x1)) (< (- x2 x1) 0))))
-     (push-or-through-and
-      '(or (and (not (< -1/4 (- x2 x1)))
-	              (< (- x2 x1) 0))
-	         (and (not (< (- x2 x1) 1/4))
-	              (not (< (- x2 x1) 0)))
-	         (and (< (- x2 x1) 1/4)
-	              (not (< (- x2 x1) 0)))
-	         (and (< -1/4 (- x2 x1))
-	              (< (- x2 x1) 0))))))
-
-  (define-test (cnf)
-    (assert-true
-     (->conjunctive-normal-form
-      '(or (and (not (< -1/4 (- x2 x1)))
-	              (< (- x2 x1) 0))
-	         (and (not (< (- x2 x1) 1/4))
-	              (not (< (- x2 x1) 0)))
-	         (and (< (- x2 x1) 1/4)
-	              (not (< (- x2 x1) 0)))
-	         (and (< -1/4 (- x2 x1))
-	              (< (- x2 x1) 0))))))
-
-  (define-test (more-cnf)
-    (assert-equal
-     '(and (or a b)
-	         (or a (not b))
-	         (or b (not a))
-	         (or (not a) (not b)))
-     (->conjunctive-normal-form
-      '(and (or a b)
-	          (or a (not b))
-	          (or (not a) b)
-	          (or (not a) (not b))))))
-
-  (define-test (scanning-for-duplicates)
-    (define find-consecutive-dups
-      (rule '((?? stuff1) (? x) (? x) (?? stuff2))
-	          `(,@stuff1 ,x ,@stuff2)))
-    (let ((items (iota 10))) ; linear
-      (assert-equal
-       items
-       ((iterated-bottom-up find-consecutive-dups)
-        items))))
-
-  (define-test (associativity-test)
-    (define plus-assoc (associativity '+))
-    (let* ((sublist '(1 2 3))
-	         (len 10) ; linear (I think)
-	         (items (cons '+ (make-list len (cons '+ sublist)))))
-      (check (equal?
-	            (cons '+ (apply append (make-list len sublist)))
-	            ((iterated-bottom-up plus-assoc)
-	             items)))))
-
-  (define-test (removing-duplicates)
-    (define find-consecutive-dups
-      (rule '((?? stuff1) (? x) (? x) (?? stuff2))
-	          `(,@stuff1 ,x ,@stuff2)))
-    (let ((items (make-list 10 'foo))) ; quadratic + gc pressure
-      (assert-equal
-       '(foo)
-       ((iterated-bottom-up find-consecutive-dups)
-        items)))
-    (let* ((len 10) ; quadratic + gc pressure
-	         (items (append (iota len) (make-list len 'foo))))
-      (assert-equal
-       (append (iota len) '(foo))
-       ((iterated-bottom-up find-consecutive-dups)
-        items))))
-
-  (define-test (removing-duplicates-the-easy-way)
-    (define or-idempotent (idempotence 'or))
-    (let ((items (cons 'or (make-list 10 'foo)))) ; linear
-      (assert-equal
-       '(or foo)
-       ((iterated-bottom-up or-idempotent)
-        items)))
-    (let* ((len 10) ; linear
-	         (items (cons 'or (append (iota len) (make-list len 'foo)))))
-      (assert-equal
-       (cons 'or (append (iota len) '(foo)))
-       ((iterated-bottom-up or-idempotent)
-        items))))
-
-  (define-test (commutativity-check-test)
-    (let* ((len 10) ; linear
-	         (items `(and ,@(iota len))))
-      (check (eq? items ((commutativity 'and) items)))))
-
-  (define-test (commutativity-rule-test)
-    (let* ((len 10) ; N log N
-	         (items `(and ,@(reverse (iota len)))))
-      (check
-       (equal?
-        `(and ,@(iota len))
-        ((commutativity 'and) items)))))
-
-  (define-test (commutativity-test)
-    (let* ((len 10) ; linear
-	         (items `(and ,@(reverse (iota len)))))
-      (check
-       (equal?
-        `(and ,@(iota len))
-        ((iterated-bottom-up (commutativity 'and)) items)))))
-
-  (define-test (simplifying-sums)
-    (let ((len 10)) ; linear
-      (check (equal? len (simplify-sums `(+ ,@(make-list len 1)))))))
-
-  (define-test (simplifying-ands)
-    (let* ((len 10) ; TODO quadratic, presumably because of checking
-           ;; for (and ... (? a) ... (not (? a)) ...)
-	         (items `(and ,@(iota len) ,@(make-list len 'foo))))
-      (check
-       (equal?
-        `(and ,@(iota len) foo)
-        (simplify-ands items))))))
+(deftest sin-sq->cos-sq-test
+  (let [s r/sin-sq->cos-sq]
+    (is (= '(+ 3 x
+               (* (* (* (expt (sin x) 1)
+                        (- 1 (expt (cos x) 2)))
+                     (- 1 (expt (cos x) 2))) (- 1 (expt (cos x) 2))))
+           (s '(+ 3 x (expt (sin x) 7)))))))

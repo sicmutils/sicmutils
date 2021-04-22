@@ -100,22 +100,53 @@
      ~@(when pred [pred]))))
 
 (defmacro consequence
-  "Accepts a skeleton expression `skel` and returns a function from a pattern
+  "Accepts a skeleton expression `form` and returns a function from a pattern
   matcher's binding map to a data structure of identical shape to `skel`, with:
 
-  - all variable binding forms replaced by their entries in the binding map
-  - same with any segment binding form, with the added note that these should
-    be spliced in
-  - any `unquote` or `unquote-splicing` forms respected
+  - all variable binding forms like `?x` replaced by their entries in the
+    binding map
+  - same with any segment or reverse-segment binding form like `??x` or `$$x`,
+    with the added note that these will be spliced in
+  - any `unquote` or `unquote-splicing` forms respected.
 
-  NOTE: reverse-segment variables are NOT evaluated here; these currently only
-  apply when matching an already-bound segment variable."
+  Compared to [[template]], these two forms are equivalent:
+
+  ```clojure
+  (fn [m] (template m <form>))
+  (consequence <form>)
+  ```"
   [form]
   (let [sym (gensym)]
     `(fn [~sym]
        ~(c/compile-skeleton sym form))))
 
 (defmacro template
+  "Provided with a single `form`, [[template]] is similar to Clojure's `unquote`
+  facility, except that symbols are not prefixed by namespace. For example:
+
+  ```clojure
+  (let [x 10]
+    (template (+ ~x y z ~@(4 5))))
+  ;;=> (+ 10 y z 4 5)
+  ```
+
+  When you provide a binding map `m`, [[template]] returns its input form, but
+  replaces any:
+
+  - variable binding form like `?x`
+  - segment binding form like `??x`
+  - reverse-segment binding form, like `$$x`
+
+  with the appropriate entry in `m`. (`m` can be a symbol referencing a binding
+  map in the environment.)
+
+  Splices and unquote splices are respected. For example:
+
+  ```clojure
+  (let [m {'?x 10 '?y 12 '??z [1 2 3]}]
+    (template m (+ ?x ?y ??z ~m ~@(1 2))))
+  ;;=> (+ 10 12 1 2 3 {?x 10, ?y 12, ??z [1 2 3]} 1 2)
+  ```"
   ([form]
    (c/compile-skeleton (gensym) form))
   ([m form]

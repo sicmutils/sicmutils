@@ -65,12 +65,12 @@
   (let [cake 10]
     (+ ?x ?y ~cake (? (fn [m] (m '?z))))))
 
-;; Into a consequence function like:
+;; Into a form like the following, meant to be evaluated in an environment where
+;; `m` is bound to some map of bindings (the user provides this symbol):
 
 (comment
   (let [cake 10]
-    (fn [m]
-      (list '+ (m '?x) (m '?y) cake ((fn [m] (m '?z)) m)))))
+    (list '+ (m '?x) (m '?y) cake ((fn [m] (m '?z)) m))))
 
 ;; See [[compile-skeleton]] for the full set of transformation rules.
 
@@ -88,14 +88,19 @@
     (list f x)))
 
 (defn compile-skeleton
-  "Takes a skeleton expression `skel` and returns a form that will evaluate to a
-  function from a pattern matcher's binding map to a data structure of identical
-  shape to `skel`, with:
+  "Takes:
 
-  - all variable binding forms replaced by their entries in the binding map
+  - a symbol `frame-sym` meant to reference a map of bindings
+  - a skeleton expression `skel`
+
+  and returns an unevaluated body that, when evaluated, will produce a form
+  structure of identical shape to `skel`, with:
+
+  - all variable binding forms replaced by forms that look up the binding in a
+    map bound to `frame-sym`
   - same with any segment binding form, with the added note that these should
     be spliced in
-  - any `unquote` or `unquote-splicing` forms respected"
+  - any `unquote` or `unquote-splicing` forms respected."
   [frame-sym skel]
   (letfn [(compile-sequential [xs]
             (let [acc (ps/splice-reduce (some-fn ps/segment?

@@ -19,6 +19,9 @@
 
 (ns pattern.rule-test
   (:require [clojure.test :as t :refer [is deftest testing]]
+            [clojure.test.check.generators :as gen]
+            [com.gfredericks.test.chuck.clojure-test :refer [checking]
+             #?@(:cljs [:include-macros true])]
             [pattern.match :as m]
             [pattern.consequence :as c]
             [pattern.rule :as r :refer [=> !=>]
@@ -36,7 +39,17 @@
     (is (= {} (c/compile-skeleton 'm {})))
     (is (= {} ((r/consequence {}) {})))))
 
-(deftest rule-test
+(deftest rule-tests
+  (checking "pass, => always succeed" 100
+            [x gen/any-equatable]
+            (is (= x (r/pass x)))
+            (is (= x ((r/rule ?x => ?x) x))))
+
+  (checking "fail, !=> always fail" 100
+            [x gen/any-equatable]
+            (is (r/failed? (r/fail x)))
+            (is (r/failed? ((r/rule ?x !=> ?x) x))))
+
   (testing "simple"
     (let [R (r/rule ((? a) (? b) (?? cs))
                     =>
@@ -257,13 +270,3 @@
     (is (= [1 2 3 "Palindrome!" 3 2 1]
            (R [1 2 3 11 3 2 1]))
         "Splicing of reverse segments works.")))
-
-
-(comment
-  (let ((the-rule (rule '(foo (? x)) (succeed x))))
-    (define-each-check
-      (= 1 (the-rule '(foo 1)))
-      (success? (the-rule `(foo ,(make-success 2))))
-      (= 3 (success-value (the-rule `(foo ,(make-success 3)))))
-      (success? (the-rule (make-success 4))) ; Should return the input, not 4
-      )))

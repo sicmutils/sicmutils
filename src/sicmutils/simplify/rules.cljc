@@ -62,11 +62,10 @@
 (defn- at-least-two? [x]
   (and (v/number? x) (>= x 2)))
 
-;; Ported from Alexey's Rules.
-
 (defn unary-elimination
   "Takes a sequence `ops` of operator symbols like `'+`, `'*` and returns a rule
   that strips these operations off of unary applications.
+
   ```clojure
   (let [rule (unary-elimination '+ '*)
         f    (rule-simplifier rule)]
@@ -87,7 +86,18 @@
    (~op ~constant ?x) => (~op ?x)
    (~op ?x ~constant) => (~op ?x)))
 
-(defn constant-promotion [op constant]
+(defn constant-promotion
+  "Takes an operation `op` and an identity element `constant` and returns a rule
+  that turns binary forms with `constant` on either side into `constant`.
+
+  This rule is useful for commutative annihalators like:
+
+  ```clojure
+  (* 0 <anything>) => 0
+  (and false <anything>) => false
+  (or true <anything>) => true
+  ```"
+  [op constant]
   (ruleset
    (~op _ ~constant) => ~constant
    (~op ~constant _) => ~constant))
@@ -96,6 +106,7 @@
   "Takes a sequence `ops` of operator symbols like `'+`, `'*` and returns a rule
   that collapses nested applications of each operation into a single list. (The
   associative property lets us strip parentheses.)
+
   ```clojure
   (let [rule (associative '+ '*)
         f    (rule-simplifier rule)]
@@ -119,19 +130,7 @@
                     (mapcat (flatten op)
                             (concat b c))))))))
 
-(defn commutative
-  "Flipping one at a time is bubble sort
-  (rule `(,operator (?? a) (? y) (? x) (?? b))
-        (and (expr<? x y)
-             `(,operator ,@a ,x ,y ,@b)))
-  Finding a pair out of order and sorting is still quadratic,
-  because the matcher matches N times, and each requires
-  constructing the segments so they can be handed to the handler
-  (laziness would help).
-  (rule `(,operator (?? a) (? y) (? x) (?? b))
-        (and (expr<? x y)
-             `(,operator ,@(sort `(,@a ,x ,y ,@b) expr<?))))"
-  [& ops]
+(defn commutative [& ops]
   (let [op-set (into #{} ops)]
     (ruleset
      ((? ?op op-set) ??xs)
@@ -471,46 +470,43 @@
         ops #{'cos 'sin}
         flip {'cos 'sin, 'sin 'cos}]
     (rule-simplifier
-     (ruleset
-      ;;  ... + a + ... + cos^n x + ...   if a + cos^(n-2) x = 0: a sin^2 x
-      (+ ??a1 ?a ??a2 (expt ((? ?op ops) ?x) (? ?n at-least-two?)) ??a3)
-      (fn [{n '?n op '?op :as m}]
-        (when (simplifies-to-zero?
-               (r/template m (+ ?a (expt (?op ?x) ~(g/- n 2)))))
-          {'?other-op (flip op)}))
-      (+ ??a1 ??a2 ??a3 (* ?a (expt (?other-op ?x) 2)))
+     (letfn [(pred [{n '?n op '?op :as m}]
+               (when (simplifies-to-zero?
+                      (r/template m (+ ?a (expt (?op ?x) ~(g/- n 2)))))
+                 {'?other-op (flip op)}))]
+       (ruleset
+        ;;  ... + a + ... + cos^n x + ...   if a + cos^(n-2) x = 0: a sin^2 x
+        (+ ??a1 ?a ??a2 (expt ((? ?op ops) ?x) (? ?n at-least-two?)) ??a3)
+        pred
+        (+ ??a1 ??a2 ??a3 (* ?a (expt (?other-op ?x) 2)))
 
-      (+ ??a1 (expt ((? ?op ops) ?x) (? ?n at-least-two?)) ??a2 ?a ??a3)
-      (fn [{n '?n op '?op :as m}]
-        (when (simplifies-to-zero?
-               (r/template m (+ (expt (?op ?x) ~(g/- n 2)) ?a)))
-          {'?other-op (flip op)}))
-      (+ ??a1 ??a2 ??a3 (* ?a (expt (?other-op ?x) 2)))
+        (+ ??a1 (expt ((? ?op ops) ?x) (? ?n at-least-two?)) ??a2 ?a ??a3)
+        pred
+        (+ ??a1 ??a2 ??a3 (* ?a (expt (?other-op ?x) 2)))))
 
-      (+ ??a1 ?a ??a2 (* ??b1 (expt ((? ?op ops) ?x) (? ?n at-least-two?)) ??b2)
-         ??a3)
-      (fn [{n '?n op '?op :as m}]
-        (when (simplifies-to-zero?
-               (r/template m (+ (* ??b1 ??b2 (expt (?op ?x) ~(g/- n 2))) ?a)))
-          {'?other-op (flip op)}))
-      (+ ??a1 ??a2 ??a3 (* ?a (expt (?other-op ?x) 2)))
+     (letfn [(pred [{n '?n op '?op :as m}]
+               (when (simplifies-to-zero?
+                      (r/template m (+ ?a (* ??b1 ??b2 (expt (?op ?x) ~(g/- n 2))))))
+                 {'?other-op (flip op)}))]
+       (ruleset
+        (+ ??a1 ?a ??a2 (* ??b1 (expt ((? ?op ops) ?x) (? ?n at-least-two?)) ??b2)
+           ??a3)
+        pred
+        (+ ??a1 ??a2 ??a3 (* ?a (expt (?other-op ?x) 2)))
 
-      (+ ??a1 (* ??b1 (expt ((? ?op ops) ?x) (? ?n at-least-two?)) ??b2) ??a2 ?a
-         ??a3)
-      (fn [{n '?n op '?op :as m}]
-        (when (simplifies-to-zero?
-               (r/template m (+ (* ??b1 ??b2 (expt (?op ?x) ~(g/- n 2))) ?a)))
-          {'?other-op (flip op)}))
-      (+ ??a1 ??a2 ??a3 (* ?a (expt (?other-op ?x) 2)))
+        (+ ??a1 (* ??b1 (expt ((? ?op ops) ?x) (? ?n at-least-two?)) ??b2) ??a2 ?a
+           ??a3)
+        pred
+        (+ ??a1 ??a2 ??a3 (* ?a (expt (?other-op ?x) 2)))))
 
-      ;; TODO - delete in favor of the triginv version coming!
-      (atan ?y ?x)
-      (fn [m]
-        (let [xy-gcd (simplify
-                      (r/template m (gcd ?x ?y)))]
-          (when-not (v/one? xy-gcd)
-            {'?gcd xy-gcd})))
-      (atan (/ ?y ?gcd) (/ ?x ?gcd))))))
+     ;; TODO - delete in favor of the triginv version coming!
+     (r/rule (atan ?y ?x)
+             (fn [m]
+               (let [xy-gcd (simplify
+                             (r/template m (gcd ?x ?y)))]
+                 (when-not (v/one? xy-gcd)
+                   {'?gcd xy-gcd})))
+             (atan (/ ?y ?gcd) (/ ?x ?gcd))))))
 
 (def complex-trig
   ;; TODO: clearly more of these are needed.
