@@ -451,35 +451,43 @@ y)))) )"}
 
 (defn simplify-square-roots [simplify]
   (rule-simplifier
+   (r/ruleset*
+    (r/rule
+     (expt (sqrt ?x) (? ?n even-integer?))
+     => (expt ?x (? #(g// (% '?n) 2))))
+
+    ;; TODO collect these together and guard them both?
+    (r/guard
+     (fn [_] *sqrt-expt-simplify?*)
+     (r/rule
+      (sqrt (expt ?x (? ?n even-integer?)))
+      (fn [{x '?x n '?n}]
+        (let [xs (simplify x)
+              half-n (g// n 2)]
+          (when (assume!
+                 (r/template
+                  (= (sqrt (expt ~xs ~n))
+                     (expt ~xs ~half-n)))
+                 'simsqrt1)
+            {'?new-n half-n})))
+      (expt ?x ?new-n)))
+
+    (r/guard
+     (fn [_] *sqrt-expt-simplify?*)
+     (r/rule
+      (sqrt (expt ?x (? ?n odd-positive-integer?)))
+      (fn [{x '?x n '?n}]
+        (let [xs (simplify x)
+              half-dec-n (g// (g/- n 1) 2)]
+          (when (assume!
+                 (r/template
+                  (= (sqrt (expt ~xs ~n))
+                     (expt ~xs ~half-dec-n)))
+                 'simsqrt2)
+            {'?new-n half-dec-n})))
+      (* (sqrt ?x) (expt ?x ?new-n)))))
+
    (ruleset
-    (expt (sqrt ?x) (? ?n even-integer?))
-    => (expt ?x (? #(g// (% '?n) 2)))
-
-    (sqrt (expt ?x (? ?n even-integer?)))
-    (fn [m]
-      (and *sqrt-expt-simplify?*
-           (let [xs (simplify (m '?x))
-                 n  (m '?n)]
-             (assume!
-              (r/template
-               (= (sqrt (expt ~xs ~n))
-                  (expt ~xs ~(g// n 2))))
-              'simsqrt1))))
-    (expt ?x (? #(g// (% '?n) 2)))
-
-    (sqrt (expt ?x (? ?n odd-positive-integer?)))
-    (fn [m]
-      (and *sqrt-expt-simplify?*
-           (let [xs (simplify (m '?x))
-                 n (m '?n)]
-             (assume!
-              (r/template
-               (= (sqrt (expt ~xs ~n))
-                  (expt ~xs ~(g// (g/- n 1) 2))))
-              'simsqrt2))))
-    (* (sqrt ?x)
-       (expt ?x (? #(g// (g/- (% '?n) 1) 2))))
-
     (expt (sqrt ?x) (? ?n odd-integer?))
     => (* (sqrt ?x)
           (expt ?x (? #(g// (g/- (% '?n) 1) 2))))
@@ -522,36 +530,36 @@ y)))) )"}
     (and (assume! `(~'non-negative? ~xs) id (fn [] false))
          (assume! `(~'non-negative? ~ys) id (fn [] false)))))
 
-;; distribute the radical sign across products and quotients. but doing this may
-;; allow equal subexpressions within the radicals to cancel in various ways. The
-;; companion rule sqrt-contract reassembles what remains.
+(defn sqrt-expand
+  "distribute the radical sign across products and quotients. The companion rule
+  sqrt-contract reassembles what remains.
 
-(defn sqrt-expand [simplify]
-  (rule-simplifier
-   (ruleset
-    (sqrt (* ?x ?y))
-    (fn [m]
-      (and *sqrt-factor-simplify?*
-           (non-negative-factors simplify (m '?x) (m '?y) 'e1)))
-    (* (sqrt ?x) (sqrt ?y))
+  NOTE that doing this may allow equal subexpressions within the radicals to
+  cancel in various ways."
+  [simplify]
+  (letfn [(pred [label]
+            (fn [{x '?x y '?y}]
+              (non-negative-factors
+               simplify x y label)))]
+    (rule-simplifier
+     (r/guard
+      (fn [_] *sqrt-factor-simplify?*)
+      (ruleset
+       (sqrt (* ?x ?y))
+       (pred 'e1)
+       (* (sqrt ?x) (sqrt ?y))
 
-    (sqrt (* ?x ?y ??ys))
-    (fn [m]
-      (and *sqrt-factor-simplify?*
-           (non-negative-factors simplify (m '?x) (m '?y) 'e2)))
-    (* (sqrt ?x) (sqrt (* ?y ??ys)))
+       (sqrt (* ?x ?y ??ys))
+       (pred 'e2)
+       (* (sqrt ?x) (sqrt (* ?y ??ys)))
 
-    (sqrt (/ ?x ?y))
-    (fn [m]
-      (and *sqrt-factor-simplify?*
-           (non-negative-factors simplify (m '?x) (m '?y) 'e3)))
-    (/ (sqrt ?x) (sqrt ?y))
+       (sqrt (/ ?x ?y))
+       (pred 'e3)
+       (/ (sqrt ?x) (sqrt ?y))
 
-    (sqrt (/ ?x ?y ??ys))
-    (fn [m]
-      (and *sqrt-factor-simplify?*
-           (non-negative-factors simplify (m '?x) (m '?y) 'e4)))
-    (/ (sqrt ?x) (sqrt (* ?y ??ys))))))
+       (sqrt (/ ?x ?y ??ys))
+       (pred 'e4)
+       (/ (sqrt ?x) (sqrt (* ?y ??ys))))))))
 
 (defn sqrt-contract [simplify]
   (let [if-false (fn [] false)]
@@ -559,73 +567,73 @@ y)))) )"}
      (r/ruleset*
       (r/rule
        (* ??a (sqrt ?x) ??b (sqrt ?y) ??c)
-       (fn [m]
-         (let [xs (simplify (m '?x))
-               ys (simplify (m '?y))]
+       (fn [{x '?x y '?y :as m}]
+         (let [xs (simplify x)
+               ys (simplify y)]
            (if (v/= xs ys)
              (and (assume! `(~'non-negative? ~xs) 'c1 if-false)
-                  `(~'* ~@(m '??a) ~xs ~@(m '??b) ~@(m '??c)))
+                  (r/template
+                   m (* ??a ~xs ??b ??c)))
              (and (assume! `(~'non-negative? ~xs) 'c1 if-false)
                   (assume! `(~'non-negative? ~ys) 'c1 if-false)
-                  `(~'* ~@(m '??a)
-                    (~'sqrt (~'* ~xs ~ys))
-                    ~@(m '??b) ~@(m '??c)))))))
+                  (r/template
+                   m (* ??a (sqrt (* ~xs ~ys)) ??b ??b)))))))
 
       (r/rule
        (/ (sqrt ?x) (sqrt ?y))
-       (fn [m]
-         (let [xs (simplify (m '?x))
-               ys (simplify (m '?y))]
+       (fn [{x '?x y '?y}]
+         (let [xs (simplify x)
+               ys (simplify y)]
            (if (v/= xs ys)
              (and (assume! `(~'non-negative? ~xs) 'c2 if-false)
                   1)
              (and (assume! `(~'non-negative? ~xs) 'c2 if-false)
                   (assume! `(~'non-negative? ~ys) 'c2 if-false)
-                  `(~'sqrt (~'/ ~xs ~ys)))))))
+                  (r/template (sqrt (/ ~xs ~ys))))))))
 
       (r/rule
        (/ (* ??a (sqrt ?x) ??b) (sqrt ?y))
-       (fn [m]
-         (let [xs (simplify (m '?x))
-               ys (simplify (m '?y))]
+       (fn [{x '?x y '?y :as m}]
+         (let [xs (simplify x)
+               ys (simplify y)]
            (if (v/= xs ys)
              (and (assume! `(~'non-negative? ~xs) 'c3 if-false)
-                  `(~'* ~@(m '??a) ~@(m '??b)))
+                  (r/template m (* ??a ??b)))
              (and (assume! `(~'non-negative? ~xs) 'c3 if-false)
                   (assume! `(~'non-negative? ~ys) 'c3 if-false)
-                  `(~'* ~@(m '??a)
-                    (~'sqrt (~'/ ~xs ~ys))
-                    ~@(m '??b)))))))
+                  (r/template
+                   m (* ??a (sqrt (/ ~xs ~ys)) ??b)))))))
 
       (r/rule
        (/ (sqrt ?x) (* ??a (sqrt ?y) ??b))
-       (fn [m]
-         (let [xs (simplify (m '?x))
-               ys (simplify (m '?y))]
+       (fn [{x '?x y '?y :as m}]
+         (let [xs (simplify x)
+               ys (simplify y)]
            (if (v/= xs ys)
              (and (assume! `(~'non-negative? ~xs) 'c4 if-false)
-                  `(~'/ 1 (~'* ~@(m '??a) ~@(m '??b))))
+                  (r/template m (/ 1 (* ??a ??b))))
              (and (assume! `(~'non-negative? ~xs) 'c4 if-false)
                   (assume! `(~'non-negative? ~ys) 'c4 if-false)
-                  `(~'/ (~'sqrt (~'/ ~xs ~ys))
-                    (~'* ~@(m '??a) ~@(m '??b))))))))
+                  (r/template
+                   m (/ (sqrt (/ ~xs ~ys))
+                        (* ??a ??b))))))))
 
       (r/rule
        (/ (* ??a (sqrt ?x) ??b)
           (* ??c (sqrt ?y) ??d))
-       (fn [m]
-         (let [xs (simplify (m '?x))
-               ys (simplify (m '?y))]
+       (fn [{x '?x y '?y :as m}]
+         (let [xs (simplify x)
+               ys (simplify y)]
            (if (v/= xs ys)
              (and (assume! `(~'non-negative? ~xs) 'c5 if-false)
-                  `(~'/
-                    (~'* ~@(m '??a) ~@(m '??b))
-                    (~'* ~@(m '??c) ~@(m '??d))))
+                  (r/template
+                   m (/ (* ??a ??b)
+                        (* ??c ??d))))
              (and (assume! `(~'non-negative? ~xs) 'c5 if-false)
                   (assume! `(~'non-negative? ~ys) 'c5 if-false)
-                  `(~'/
-                    (~'* ~@(m '??a) (~'sqrt (~'/ ~xs ~ys)) ~@(m '??b))
-                    (~'* ~@(m '??c) ~@(m '??d))))))))))))
+                  (r/template
+                   m (/ (* ??a (sqrt (/ ~xs ~ys)) ??b)
+                        (* ??c ??d))))))))))))
 
 ;; ## Log / Exp
 
