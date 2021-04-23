@@ -54,34 +54,107 @@
       (is (= 0
              (f 0)
              (f '(* x 0))
-             (f '(* 0 x)))))))
+             (f '(* 0 x))))))
+
+  (testing "commutative"
+    (let [rule (r/commutative '+ '*)
+          f    (rule-simplifier rule)]
+      (is (= '(* 2 3 a b c (+ a b c))
+             (f '(* c a b (+ c a b) 3 2)))
+          "sort by numbers, symbols, expressions ")
+
+      (let [expr '(* c a b (+ c a b))]
+        (is (= (f (f expr))
+               (f expr))
+            "commutative rule is idempotent"))))
+
+  (testing "idempotent"
+    (let [rule (r/idempotent 'and 'or)
+          f    (rule-simplifier rule)]
+      (is (= '(and a b (or b c d) c d)
+             (f '(and a b b
+                      (or b c c c d d d d)
+                      (or b c c c d d d d)
+                      c c c d)))
+          "duplicates are removed from arg lists."))))
 
 (deftest exponent-contract-tests
-  )
+  (let [contract (rule-simplifier
+                  r/exponent-contract)]
+    (is (= '(expt (expt x 2) 7)
+           (r/exponent-contract
+            '(expt (expt (expt x 2) 3) 4)))
+        "by default, applies a single step")
+
+    (is (= '(expt x 9)
+           (contract
+            '(expt (expt (expt x 2) 3) 4)))
+        "nested exponents")
+
+    (is (= '(* (expt x 3))
+           (contract
+            '(* x x x)))
+        "non-exponent groups")
+
+    (is (= '(* y (expt x 7))
+           (contract
+            '(* y x (expt x 2) x (expt x 2) x)))
+        "expts with singletons mixed in")))
 
 (deftest logexp-tests
-  )
+  (let [rule (fn [] (r/logexp s/*rf-analyzer*))]
+    (is (= '(expt x 3)
+           ((rule) '(exp (* 3 (log x)))))
+        "(log x) in the power cancels out the e base.")
+
+    (is (= 'x ((rule) '(exp (log x))))
+        "These always get simplified.")
+
+    (binding [r/*log-exp-simplify?* true]
+      (is (= '(+ x y)
+             ((rule) '(log (exp (+ x y)))))
+          "when simplification is on, we can cancel log/exp forms."))
+
+    (binding [r/*log-exp-simplify?* false]
+      (is (= '(log (exp (+ x y)))
+             ((rule) '(log (exp (+ x y)))))
+          "else, acts as identity."))
+
+    (binding [r/*sqrt-expt-simplify?* true]
+      (is (= '(exp (/ (+ x y) 2))
+             ((rule) '(sqrt (exp (+ x y)))))
+          "when sqrt/expt simplification is on, we assume that the value under
+          the root is positive, and push the sqrt inside of exp."))
+
+    (binding [r/*sqrt-expt-simplify?* false]
+      (is (= '(sqrt (exp (+ x y)))
+             ((rule) '(sqrt (exp (+ x y)))))
+          "else, acts as identity."))
+
+    (is (= '(* (/ 1 2) (log x))
+           ((rule) '(log (sqrt x))))
+        "Drop the internal sqrt down as a 1/2 exponent.")))
 
 (deftest magnitude-tests
   (is (= '(expt x 10)
-         (r/magsimp '(magnitude (expt x 10))))
+         (r/magnitude '(magnitude (expt x 10))))
       "even powers")
 
   (is (= '(* (magnitude x) (expt x 10))
-         (r/magsimp '(magnitude (expt x 11))))
+         (r/magnitude '(magnitude (expt x 11))))
       "odd powers")
 
   (is (= '(magnitude x)
-         (r/magsimp '(magnitude (expt x 1))))
+         (r/magnitude '(magnitude (expt x 1))))
       "power == 1")
 
   (is (= '(* (magnitude x) (expt x -4))
-         (r/magsimp '(magnitude (expt x -3))))
+         (r/magnitude '(magnitude (expt x -3))))
       "mag of negative exponent")
 
   (is (= '(* 1 2 (magnitude y)
              (* (magnitude x) (expt x 10)))
-         (r/magsimp
+         (r/magnitude
           '(magnitude (* 1 -2 y (expt x 11)))))
       "real numbers and integers get their magnitudes applied, odd exponents
       pulled apart."))

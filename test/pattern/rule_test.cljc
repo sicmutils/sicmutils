@@ -233,9 +233,10 @@
               (is (= (+ n x)
                      (R x)))))
 
-  (checking "guard " 100 [x gen/small-integer]
+  (checking "guard" 100 [x gen/small-integer]
             (let [inc-rule (r/rule ?x => (? #(inc (% '?x))))
-                  R (r/guard odd? inc-rule)]
+                  R (r/attempt
+                     (r/guard odd? inc-rule))]
               (is (even? (R x))
                   "inc if odd, else leave alone")))
 

@@ -202,17 +202,20 @@ y)))) )"}
      ((? _ op-set) ?x) => ?x)))
 
 (defn constant-elimination
-  "Takes an operation `op` and an identity element `constant` and returns a rule
-  that eliminates instances of `constant` inside binary forms like `(<op> l
-  r)`."
+  "Takes an operator symbol `op` and an identity element `constant` and returns a
+  rule that eliminates instances of `constant` inside binary forms like
+
+  ```clojure
+  (<op> l r)
+  ```"
   [op constant]
   (ruleset
    (~op ~constant ?x) => (~op ?x)
    (~op ?x ~constant) => (~op ?x)))
 
 (defn constant-promotion
-  "Takes an operation `op` and an identity element `constant` and returns a rule
-  that turns binary forms with `constant` on either side into `constant`.
+  "Takes an operator symbol `op` and an identity element `constant` and returns a
+  rule that turns binary forms with `constant` on either side into `constant`.
 
   This rule is useful for commutative annihalators like:
 
@@ -227,26 +230,23 @@ y)))) )"}
    (~op ~constant _) => ~constant))
 
 (defn associative
-  "Takes a sequence `ops` of operator symbols like `'+`, `'*` and returns a rule
-  that collapses nested applications of each operation into a single list. (The
-  associative property lets us strip parentheses.)
+  "Takes any number of operator symbols `ops` like `'+`, `'*` and returns a rule
+  that collapses nested applications of each operation into a single
+  sequence. (The associative property lets us strip parentheses.)
 
   ```clojure
   (let [rule (associative '+ '*)
         f    (rule-simplifier rule)]
-    (f '(+ x (+ y (+ z a) (* b (* c d))
-                (+ cake face)))))
-  ;;=> (+ x y z a (* b c d) cake face)
+    (= (+ x y z a (* b c d) cake face)
+       (f '(+ x (+ y (+ z a) (* b (* c d))
+                   (+ cake face))))))
   ```"
   [& ops]
   (let [op-set  (into #{} ops)
         flatten (fn [op]
-                  (fn [term]
-                    ;; TODO we COULD use rules for this too :)
-                    (if (and (sequential? term)
-                             (= op (first term)))
-                      (rest term)
-                      [term])))]
+                  (r/ruleset
+                   (~op ??xs) => [??xs]
+                   ?x         => [?x]))]
     (ruleset
      ((? ?op op-set) ??a (?op ??b) ??c)
      =>
@@ -254,23 +254,42 @@ y)))) )"}
                     (mapcat (flatten op)
                             (concat b c))))))))
 
-(defn commutative [& ops]
+(defn commutative
+  "Takes any number of operator symbols `ops` like `'+`, `'*` and returns a rule
+  that sorts the argument list of any multiple-arity call to any of the supplied
+  operators. Sorting is accomplished with [[sicmutils.expression/sort]].
+
+  For example:
+
+  ```clojure
+  (let [rule (commutative '* '+)]
+    (= '(* 2 3 a b c (+ c a b))
+       (rule '(* c a b (+ c a b) 3 2))))
+  ```"
+  [& ops]
   (let [op-set (into #{} ops)]
     (ruleset
      ((? ?op op-set) ??xs)
-     #(not (x/sorted? (% '??xs)))
-     (?op (?? #(x/sort (% '??xs)))))))
+     => (?op (?? #(x/sort (% '??xs)))))))
 
-(defn idempotent [& ops]
+(defn idempotent
+  "Returns a simplifier that will remove consecutive duplicate arguments to any
+  of the operations supplied as `ops`. Acts as identity otherwise.
+
+  ```clojure
+  (let [rule (idempotent 'and)]
+    (= '(and a b c d)
+       (rule '(and a b b c c c d))))
+  ```"
+  [& ops]
   (let [op-set (into #{} ops)]
     (ruleset
      ((? ?op op-set) ??pre ?x ?x ??post)
      =>
      (?op (?? (fn [m]
                 (dedupe
-                 (concat (m '??pre)
-                         [(m '?x)]
-                         (m '??post)))))))))
+                 (r/template
+                  m (??pre ?x ??post)))))))))
 
 (def ^{:doc "Set of rules that collect adjacent products, exponents and nested
  exponents into exponent terms."}
@@ -314,7 +333,15 @@ y)))) )"}
   "Returns a rule simplifier that attempts to simplify nested exp and log forms.
 
   You can tune the behavior of this simplifier with [[*log-exp-simplify?*]]
-  and [[*sqrt-expt-simplify?*]]."
+  and [[*sqrt-expt-simplify?*]].
+
+  NOTE: [[logexp]] returns a `rule-simplifier`, which memoizes its traversal
+  through the supplied expression. This means that if you try to
+  customize [[logexp]] with dynamic binding variables AFTER passing an
+  expression into it, you may get a memoized result which used the previous
+  dynamic binding.
+
+  This is a problem we should address!"
   [simplify]
   (rule-simplifier
    (r/ruleset*
@@ -338,7 +365,7 @@ y)))) )"}
           x))))
 
     (r/guard
-     (fn [] *sqrt-expt-simplify?*)
+     (fn [_] *sqrt-expt-simplify?*)
      (r/rule (sqrt (exp ?x))
              (fn [{x '?x}]
                (let [xs (simplify x)]
@@ -353,67 +380,72 @@ y)))) )"}
      (log (sqrt ?x)) => (* (/ 1 2) (log ?x))))))
 
 (def ^{:doc "Rule simplifier for forms that contain `magnitude` entries."}
-  magsimp
+  magnitude
   (rule-simplifier
    (ruleset
+    (magnitude (? ?n v/real?))
+    => (? (comp g/magnitude '?n))
+
     (magnitude (* ??xs))
     => (* (?? (fn [{xs '??xs}]
-                (map (fn [x]
-                       (if (v/real? x)
-                         (g/magnitude x)
-                         (list 'magnitude x)))
+                (map #(list 'magnitude %)
                      xs))))
 
+    (magnitude (expt ?x 1))
+    => (magnitude ?x)
+
+    (magnitude (expt ?x (? ?n even-integer?)))
+    => (expt ?x ?n)
+
     (magnitude (expt ?x (? ?n v/integral?)))
-    => (? (fn [{x '?x n '?n}]
-            (cond (v/one? n) (list 'magnitude x)
-                  (even? n)  (r/template (expt ~x ~n))
-                  :else (r/template (* (magnitude x)
-                                       (expt ~x ~(g/- n 1))))))))))
+    => (* (magnitude ?x) (expt ?x (? #(g/- (% '?n) 1)))))))
 
-(defn miscsimp [simplify]
-  (rule-simplifier
-   (ruleset
-    (expt _ 0) => 1
+(defn miscsimp
+  "TODO break these apart into more rulesets, AND note that we have some
+  similarities to [[exponent-contract]] above."
+  [simplify]
+  (let [sym:* (sym/symbolic-operator '*)]
+    (rule-simplifier
+     (ruleset
+      (expt _ 0)  => 1
+      (expt ?x 1) => ?x
 
-    (expt ?x 1) => ?x
+      (expt (expt ?x ?a) ?b)
+      (fn [m]
+        (let [a (simplify (m '?a))
+              b (simplify (m '?b))
+              x (m '?x)]
+          ;; TODO stick a times b in as a variable.
+          (or (and (v/integral? a)
+                   (v/integral? b))
 
-    (expt (expt ?x ?a) ?b)
-    (fn [m]
-      (let [a (simplify (m '?a))
-            b (simplify (m '?b))
-            x (m '?x)
-            sym:* (sym/symbolic-operator '*)]
-        (or (and (v/integral? a) (v/integral? b))
+              (and (even-integer? b)
+                   (v/integral?
+                    (simplify (sym:* a b))))
 
-            (and (even-integer? b)
-                 (v/integral? (simplify (sym:* a b))))
+              (and *exponent-product-simplify?*
+                   (assume!
+                    (r/template
+                     (= (expt (expt ~x ~a) ~b)
+                        (expt ~x ~(sym:* a b))))
+                    'exponent-product)))))
+      (expt ?x (? #(g/* (% '?a) (% '?b))))
 
-            (and *exponent-product-simplify?*
-                 (assume!
-                  `(~'= (~'expt (~'expt ~x ~a) ~b)
-                    (~'expt ~x (~sym:* ~a ~b)))
-                  'exponent-product)))))
-    (expt ?x (? #(g/* (% '?a) (% '?b))))
+      (expt ?x (/ 1 2))
+      (fn [_] *expt-half->sqrt?*)
+      (sqrt ?x)
 
-    (expt ?x (/ 1 2))
-    (fn [_] *expt-half->sqrt?*)
-    (sqrt ?x)
+      ;; TODO comment!
 
-    ;; a rare, expensive luxury
-    (* ??fs1* ?x ??fs2 (expt ?x ?y) ??fs3)
-    =>
-    (* ??fs1 ??fs2 (expt ?x (+ 1 ?y)) ??fs3)
+      ;; a rare, expensive luxury
+      (* ??fs1* ?x ??fs2 (expt ?x ?y) ??fs3)
+      => (* ??fs1 ??fs2 (expt ?x (+ 1 ?y)) ??fs3)
 
-    ;; a rare, expensive luxury
-    (* ??fs1 (expt ?x ?y) ??fs2 ?x ??fs3)
-    =>
-    (* ??fs1 (expt ?x (+ 1 ?y)) ??fs2 ??fs3)
+      (* ??fs1 (expt ?x ?y) ??fs2 ?x ??fs3)
+      => (* ??fs1 (expt ?x (+ 1 ?y)) ??fs2 ??fs3)
 
-    ;; a rare, expensive luxury
-    (* ??fs1 (expt ?x ?y1) ??fs2 (expt ?x ?y2) ??fs3)
-    =>
-    (* ??fs1 ??fs2 (expt ?x (+ ?y1 ?y2)) ??fs3))))
+      (* ??fs1 (expt ?x ?y1) ??fs2 (expt ?x ?y2) ??fs3)
+      => (* ??fs1 ??fs2 (expt ?x (+ ?y1 ?y2)) ??fs3)))))
 
 ;; ## Square Root Simplification
 
@@ -1528,7 +1560,7 @@ y)))) )"}
             mag?     (contains? syms 'magnitude)
             e0       (misc x)
             e1       (if logexp? (le e0) e0)
-            e2       (if mag? (magsimp e1) e1)
+            e2       (if mag? (magnitude e1) e1)
             e3       (if (and sincos?
                               *sin-cos-simplify?*)
                        (st e2)
@@ -1538,6 +1570,15 @@ y)))) )"}
               :else e3)))))
 
 (defn universal-reductions [simplify]
-  (let [ti (triginv simplify)]
-    (fn [x]
-      (ti x))))
+  (let [misc (miscsimp simplify)
+        le   (logexp simplify)
+        ti   (triginv simplify)]
+    (fn [expr]
+      (let [syms     (x/variables-in expr)
+            invtrig? (occurs-in? #{'asin 'acos 'atan} syms)
+            logexp?  (occurs-in? #{'log 'exp} syms)
+            mag?     (contains? syms 'magnitude)]
+        (cond-> (misc expr)
+          logexp? (le)
+          mag? (magnitude)
+          invtrig? (ti))))))
