@@ -700,9 +700,10 @@ y)))) )"}
        (* ??f3 (log ?y) ??f4)
        ??x3)
     (fn [m]
-      (let [s1 (simplify `(~'* ~@(m '??f1) ~@(m '??f2)))
-            s2 (simplify `(~'* ~@(m '??f3) ~@(m '??f4)))]
-        (when (v/exact-zero? (simplify `(~'- ~s1 ~s2)))
+      (let [s1 (simplify (r/template m (* ??f1 ??f2)))
+            s2 (simplify (r/template m (* ??f3 ??f4)))]
+        (when (v/exact-zero?
+               (simplify (list '- s1 s2)))
           {'??s1 s1})))
     (+ (* (log (* ?x ?y)) ??s1)
        ??x1 ??x2 ??x3))))
@@ -840,7 +841,7 @@ y)))) )"}
                 (if (and (v/number? ys)
                          (v/number? xs))
                   (g/atan ys xs)
-                  (let [s (simplify `(~'gcd ~ys ~xs))]
+                  (let [s (simplify (list 'gcd ys xs))]
                     (if (v/= s 1)
                       false ;; do nothing
                       (let [note `(~'assuming (~'positive? ~s))
@@ -857,7 +858,9 @@ y)))) )"}
       (and *inverse-simplify?*
            (let [xs (simplify (m '?x))]
              (assume!
-              `(~'= (~'asin (~'sin ~xs)) ~xs) 'asin-sin))))
+              (r/template
+               (= (asin (sin ~xs)) ~xs))
+              'asin-sin))))
     ?x
 
     (cos (acos ?x)) => ?x
@@ -866,7 +869,9 @@ y)))) )"}
       (and *inverse-simplify?*
            (let [xs (simplify (m '?x))]
              (assume!
-              `(~'= (~'acos (~'cos ~xs)) ~xs) 'acos-cos))))
+              (r/template
+               (= (acos (cos ~xs)) ~xs))
+              'acos-cos))))
     ?x
 
     (tan (atan ?x)) => ?x
@@ -875,7 +880,9 @@ y)))) )"}
       (and *inverse-simplify?*
            (let [xs (simplify (m '?x))]
              (assume!
-              `(~'= (~'atan (~'tan ~xs)) ~xs) 'atan-tan))))
+              (r/template
+               (= (atan (tan ~xs)) ~xs))
+              'atan-tan))))
     ?x
 
     (sin (acos ?x)) => (sqrt (- 1 (expt ?x 2)))
@@ -888,7 +895,9 @@ y)))) )"}
       (and *inverse-simplify?*
            (let [xs (simplify (m '?x))]
              (assume!
-              `(~'= (~'atan (~'sin ~xs) (cos ~xs)) ~xs) 'atan-sin-cos))))
+              (r/template
+               (= (atan (sin ~xs) (cos ~xs)) ~xs))
+              'atan-sin-cos))))
     ?x
 
     (asin (cos ?x))
@@ -896,9 +905,9 @@ y)))) )"}
       (and *inverse-simplify?*
            (let [xs (simplify (m '?x))]
              (assume!
-              `(~'=
-                (~'asin (~'cos ~xs))
-                (~'- (~'* (~'/ 1 2) ~'pi) ~xs))
+              (r/template
+               (= (asin (cos ~xs))
+                  (- (* (/ 1 2) pi) ~xs)))
               'asin-cos))))
     (- (* (/ 1 2) pi) ?x)
 
@@ -907,9 +916,9 @@ y)))) )"}
       (and *inverse-simplify?*
            (let [xs (simplify (m '?x))]
              (assume!
-              `(~'=
-                (~'acos (~'sin ~xs))
-                (~'- (~'* (~'/ 1 2) ~'pi) ~xs))
+              (r/template
+               (= (acos (sin ~xs))
+                  (- (* (/ 1 2) pi) ~xs)))
               'acos-sin))))
     (- (* (/ 1 2) pi) ?x)
 
@@ -1131,27 +1140,27 @@ y)))) )"}
   (letfn [(sin-half-angle-formula [theta]
             (let [thetas (simplify theta)]
               (assume!
-               `(~'non-negative?
-                 (~'+
-                  (~'* 2 ~'pi)
-                  (~'* -1 ~thetas)
-                  (~'* 4 ~'pi
-                   (~'floor (~'/ ~thetas (~'* 4 ~'pi))))))
+               (r/template
+                (non-negative?
+                 (+ (* 2 pi)
+                    (* -1 ~thetas)
+                    (* 4 pi (floor (/ ~thetas (* 4 pi)))))))
                'sin-half-angle-formula)
-              `(~'sqrt (/ (- 1 (~'cos ~thetas)) 2))))
+              (r/template
+               (sqrt (/ (- 1 (cos ~theta)) 2)))))
 
           (cos-half-angle-formula [theta]
             (let [thetas (simplify theta)]
               (assume!
-               `(~'non-negative?
-                 (~'+
-                  ~'pi
-                  ~thetas
-                  (~'* 4 ~'pi
-                   (~'floor (~'/ (~'- ~'pi ~thetas)
-                             (~'* 4 ~'pi))))))
+               (r/template
+                (non-negative?
+                 (+ pi ~thetas
+                    (* 4 pi (floor
+                             (/ (- pi ~thetas)
+                                (* 4 pi)))))))
                'cos-half-angle-formula)
-              `(~'sqrt (~'/ (~'+ 1 (~'cos ~thetas)) 2))))]
+              (r/template
+               (sqrt (/ (+ 1 (cos ~theta)) 2)))))]
     (rule-simplifier
      (r/ruleset*
       [(r/rule
@@ -1159,7 +1168,7 @@ y)))) )"}
         (fn [m]
           (and *half-angle-simplify?*
                (sin-half-angle-formula
-                `(~'* ~(m '?x) ~@(m '??y))))))
+                (r/template m (* ?x ??y))))))
 
        (r/rule
         (sin (/ ?x 2))
@@ -1172,7 +1181,7 @@ y)))) )"}
         (fn [m]
           (and *half-angle-simplify?*
                (cos-half-angle-formula
-                `(~'* ~(m '?x) ~@(m '??y))))))
+                (r/template m (* ?x ??y))))))
 
        (r/rule
         (cos (/ ?x 2))
@@ -1195,11 +1204,12 @@ y)))) )"}
           (- 1 (expt (sin ?x) 2))))))
 
 (def split-high-degree-sincos
-  (letfn [(remaining [m]
-            (let [leftover (- (m '?n) 2)]
-              (if (v/one? leftover)
-                (list (m '?op) (m '?x))
-                `(~'expt (~(m '?op) ~(m '?x)) ~leftover))))]
+  (letfn [(remaining [{n '?n :as m}]
+            (let [n-2 (g/- n 2)]
+              (if (v/one? n-2)
+                (r/template m (?op ?x))
+                (r/template
+                 m (expt (?op ?x) ~n-2)))))]
     (rule-simplifier
      (ruleset
       (* ??f1
@@ -1520,7 +1530,7 @@ y)))) )"}
     (/ (+ ??terms)
        (? ?d v/number?))
     => (+ (?? #(map (fn [n]
-                      `(~'/ ~n ~(% '?d)))
+                      (r/template % (/ ~n ?d)))
                     (% '??terms))))
 
     (/ (* (? ?n v/number?) ??factors)
@@ -1553,40 +1563,25 @@ y)))) )"}
    (empty?
     (cs/intersection syms all))))
 
-(defn universal-reductions* [simplify]
+(defn universal-reductions [simplify]
   (let [misc     (miscsimp simplify)
         le       (logexp simplify)
         st       (special-trig simplify)
         ti       (triginv simplify)
         sim-root (simplify-square-roots simplify)]
-    (fn [x]
-      (let [syms     (x/variables-in x)
+    (fn [expr]
+      (let [syms     (x/variables-in expr)
             logexp?  (occurs-in? #{'log 'exp} syms)
             sincos?  (occurs-in? #{'sin 'cos} syms)
             invtrig? (occurs-in? #{'asin 'acos 'atan} syms)
+            logexp?  (occurs-in? #{'log 'exp} syms)
             sqrt?    (contains? syms 'sqrt)
             mag?     (contains? syms 'magnitude)
-            e0       (misc x)
-            e1       (if logexp? (le e0) e0)
-            e2       (if mag? (magnitude e1) e1)
-            e3       (if (and sincos?
-                              *sin-cos-simplify?*)
-                       (st e2)
-                       e2)]
-        (cond (and sincos? invtrig?) (sim-root (ti e3))
-              sqrt? (sim-root e3)
-              :else e3)))))
-
-(defn universal-reductions [simplify]
-  (let [misc (miscsimp simplify)
-        le   (logexp simplify)
-        ti   (triginv simplify)]
-    (fn [expr]
-      (let [syms     (x/variables-in expr)
-            invtrig? (occurs-in? #{'asin 'acos 'atan} syms)
-            logexp?  (occurs-in? #{'log 'exp} syms)
-            mag?     (contains? syms 'magnitude)]
-        (cond-> (misc expr)
-          logexp? (le)
-          mag? (magnitude)
-          invtrig? (ti))))))
+            expr'    (cond-> (misc expr)
+                       logexp? (le)
+                       mag? (magnitude)
+                       invtrig? (ti)
+                       (and sincos? *sin-cos-simplify?*) (st))]
+        (cond (and sincos? invtrig?) (sim-root (ti expr'))
+              sqrt? (sim-root expr')
+              :else expr')))))
