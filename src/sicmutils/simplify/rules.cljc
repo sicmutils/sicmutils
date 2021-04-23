@@ -18,6 +18,7 @@
 ;;
 
 (ns sicmutils.simplify.rules
+  (:refer-clojure :exclude [even? odd?])
   (:require [clojure.set :as cs]
             [pattern.rule :as r :refer [=> ruleset rule-simplifier]
              #?@(:cljs [:include-macros true])]
@@ -157,13 +158,19 @@ y)))) )"}
 (defn non-integer? [x]
   (not (v/integral? x)))
 
+(defn even? [x]
+  (v/zero? (g/modulo x 2)))
+
+(defn odd? [x]
+  (v/one? (g/modulo x 2)))
+
 (defn- even-integer? [x]
   (and (v/integral? x)
-       (v/zero? (g/modulo x 2))))
+       (even? x)))
 
 (defn odd-integer? [x]
   (and (v/integral? x)
-       (not (v/zero? (g/modulo x 2)))))
+       (odd? x)))
 
 (defn even-positive-integer? [x]
   (and (even-integer? x)
@@ -172,10 +179,6 @@ y)))) )"}
 (defn odd-positive-integer? [x]
   (and (odd-integer? x)
        (> x 2)))
-
-(defn- odd-integer? [x]
-  (and (v/integral? x)
-       (not (v/zero? (g/modulo x 2)))))
 
 (defn- more-than-two? [x]
   (and (v/number? x) (> x 2)))
@@ -307,40 +310,66 @@ y)))) )"}
    (* ??pre ?op ?op ??post)
    => (* ??pre (expt ?op 2) ??post)))
 
-(defn logexp [simplify]
+(defn logexp
+  "Returns a rule simplifier that attempts to simplify nested exp and log forms.
+
+  You can tune the behavior of this simplifier with [[*log-exp-simplify?*]]
+  and [[*sqrt-expt-simplify?*]]."
+  [simplify]
+  (rule-simplifier
+   (r/ruleset*
+    (r/rule
+     (exp (* (? ?n v/integral?) (log ?x)))
+     => (expt ?x ?n))
+
+    (r/rule
+     (exp (log ?x)) => ?x)
+
+    (r/guard
+     (fn [_] *log-exp-simplify?*)
+     (r/rule
+      (log (exp ?x))
+      (fn [{x '?x}]
+        (let [xs (simplify x)]
+          (assume!
+           (r/template
+            (= (log (exp ~xs)) ~xs))
+           'logexp1)
+          x))))
+
+    (r/guard
+     (fn [] *sqrt-expt-simplify?*)
+     (r/rule (sqrt (exp ?x))
+             (fn [{x '?x}]
+               (let [xs (simplify x)]
+                 (assume!
+                  (r/template
+                   (= (sqrt (exp ~xs))
+                      (exp (/ ~xs 2))))
+                  'logexp2)
+                 (r/template (exp (/ ~x 2)))))))
+
+    (r/rule
+     (log (sqrt ?x)) => (* (/ 1 2) (log ?x))))))
+
+(def ^{:doc "Rule simplifier for forms that contain `magnitude` entries."}
+  magsimp
   (rule-simplifier
    (ruleset
-    (exp (* (? ?n v/integral?) (log ?x))) => (expt ?x ?n)
+    (magnitude (* ??xs))
+    => (* (?? (fn [{xs '??xs}]
+                (map (fn [x]
+                       (if (v/real? x)
+                         (g/magnitude x)
+                         (list 'magnitude x)))
+                     xs))))
 
-    (exp (log ?x)) => ?x
-
-    (log (exp ?x))
-    (fn [m]
-      (and *log-exp-simplify?*
-           (let [xs (simplify (m '?x))]
-             (assume!
-              `(~'= (~'log (~'exp ~xs)) ~xs) 'logexp1))))
-    ?x
-
-    (sqrt (exp ?x))
-    (fn [m]
-      (and *sqrt-expt-simplify?*
-           (let [xs (simplify (m '?x))]
-             (assume!
-              `(~'= (~'sqrt (~'exp ~xs)) (~'exp (~'/ ~xs 2)))
-              'logexp2))))
-    (exp (/ ?x 2))
-
-    (log (sqrt ?x)) => (* (/ 1 2) (log ?x)))))
-
-(def magsimp
-  (rule-simplifier
-   (ruleset
-    (magnitude (* ?x ?y ??ys))
-    => (* (magnitude ?x) (magnitude (* ?y ??ys)))
-
-    (magnitude (expt ?x (? ?n even-integer?)))
-    => (expt ?x ?n))))
+    (magnitude (expt ?x (? ?n v/integral?)))
+    => (? (fn [{x '?x n '?n}]
+            (cond (v/one? n) (list 'magnitude x)
+                  (even? n)  (r/template (expt ~x ~n))
+                  :else (r/template (* (magnitude x)
+                                       (expt ~x ~(g/- n 1))))))))))
 
 (defn miscsimp [simplify]
   (rule-simplifier

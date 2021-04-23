@@ -85,7 +85,7 @@
   ([form]
    (m/matcher form))
   ([form pred]
-   (if pred
+   (if (and pred (not= pred =>))
      (m/matcher form pred)
      (m/matcher form))))
 

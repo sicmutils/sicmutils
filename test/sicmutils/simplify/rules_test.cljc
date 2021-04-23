@@ -56,6 +56,36 @@
              (f '(* x 0))
              (f '(* 0 x)))))))
 
+(deftest exponent-contract-tests
+  )
+
+(deftest logexp-tests
+  )
+
+(deftest magnitude-tests
+  (is (= '(expt x 10)
+         (r/magsimp '(magnitude (expt x 10))))
+      "even powers")
+
+  (is (= '(* (magnitude x) (expt x 10))
+         (r/magsimp '(magnitude (expt x 11))))
+      "odd powers")
+
+  (is (= '(magnitude x)
+         (r/magsimp '(magnitude (expt x 1))))
+      "power == 1")
+
+  (is (= '(* (magnitude x) (expt x -4))
+         (r/magsimp '(magnitude (expt x -3))))
+      "mag of negative exponent")
+
+  (is (= '(* 1 2 (magnitude y)
+             (* (magnitude x) (expt x 10)))
+         (r/magsimp
+          '(magnitude (* 1 -2 y (expt x 11)))))
+      "real numbers and integers get their magnitudes applied, odd exponents
+      pulled apart."))
+
 (deftest simplify-square-roots-test
   (let [s (r/simplify-square-roots  s/*rf-analyzer*)]
     (testing "even powers"
