@@ -167,8 +167,10 @@
                           (rules/occurs-in? #{'sqrt} syms))
           logexp? (rules/occurs-in? #{'log 'exp} syms)
           sincos? (rules/occurs-in? #{'sin 'cos} syms)
-          partials? (rules/occurs-in? #{'partial} syms)
-          simple
+
+          ;; NOTE added this since other stuff gets transformed TO this.
+          other-trig? (rules/occurs-in? #{'tan 'cot 'sec 'csc} syms)
+          partials? (rules/occurs-in? #{'partial} syms) simple
           (comp (only-if rules/*divide-numbers-through-simplify?*
                          rules/divide-numbers-through)
 
@@ -181,7 +183,7 @@
                                clear-square-roots-of-perfect-squares
                                (-> sqrt-contract
                                    (simplify-until-stable simplify-and-flatten))))
-                (only-if sincos?
+                (only-if (or sincos? other-trig?)
                          (comp (-> (comp universal-reductions rules/sincos->trig)
                                    (simplify-and-canonicalize simplify-and-flatten))
                                (-> rules/angular-parity

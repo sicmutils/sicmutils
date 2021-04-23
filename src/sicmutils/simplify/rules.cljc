@@ -99,7 +99,7 @@ loses multivalue info, as in log-exp"}
 (def ^{:dynamic true
        :doc "Allows reduction of sin, cos of rational multiples of :pi"}
   *sin-cos-simplify?*
-  false)
+  true)
 
 (def ^{:dynamic true
        :doc "Allow half-angle reductions.  Sign of result is hairy!"}
@@ -123,7 +123,7 @@ loses multivalue info, as in log-exp"}
 
 e.g. (/ (+ (* 4 x) 5) 3) => (+ (* 4/3 x) 5/3)"}
   *divide-numbers-through-simplify?*
-  true)
+  false)
 
 (def ^{:dynamic true
        :doc "Transforms products of trig functions into functions of sums
@@ -577,7 +577,7 @@ y)))) )"}
              (and (assume! `(~'non-negative? ~xs) 'c1 if-false)
                   (assume! `(~'non-negative? ~ys) 'c1 if-false)
                   (r/template
-                   m (* ??a (sqrt (* ~xs ~ys)) ??b ??b)))))))
+                   m (* ??a (sqrt (* ~xs ~ys)) ??b ??c)))))))
 
       (r/rule
        (/ (sqrt ?x) (sqrt ?y))
