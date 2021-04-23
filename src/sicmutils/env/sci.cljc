@@ -63,7 +63,11 @@
  right to expose to a user by default. Each value is the sym->var map for the
  corresponding namespace."}
   ns->publics
-  {'sicmutils.complex                          (ns-publics 'sicmutils.complex)
+  {'pattern.consequence                        (ns-publics 'pattern.consequence)
+   'pattern.match                              (ns-publics 'pattern.match)
+   'pattern.rule                               (ns-publics 'pattern.rule)
+   'pattern.syntax                             (ns-publics 'pattern.syntax)
+   'sicmutils.complex                          (ns-publics 'sicmutils.complex)
    'sicmutils.differential                     (ns-publics 'sicmutils.differential)
    'sicmutils.env                              (ns-publics 'sicmutils.env)
    'sicmutils.expression                       (ns-publics 'sicmutils.expression)
@@ -78,6 +82,7 @@
    'sicmutils.rational-function                (ns-publics 'sicmutils.rational-function)
    'sicmutils.series                           (ns-publics 'sicmutils.series)
    'sicmutils.simplify                         (ns-publics 'sicmutils.simplify)
+   'sicmutils.simplify.rules                   (ns-publics 'sicmutils.simplify.rules)
    'sicmutils.structure                        (ns-publics 'sicmutils.structure)
    'sicmutils.util                             (ns-publics 'sicmutils.util)
    'sicmutils.value                            (ns-publics 'sicmutils.value)

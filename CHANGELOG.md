@@ -2,6 +2,9 @@
 
 ## [unreleased]
 
+- #354 adds SCI support for all macros and functions in the new pattern matching
+  namespaces, and adds these to the namespaces exposed via `sicmutils.env.sci`.
+
 - #349 introduces a new pattern matching system, built out of matcher
   combinators. All of the rules in `sicmutils.simplify.rules` now use the new
   syntax offered by the library. Some notes:

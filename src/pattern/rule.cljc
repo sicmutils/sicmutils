@@ -169,7 +169,7 @@
            (or (handler result)
                m/failure)))))))
 
-(defn- compile-rule
+(defn ^:no-doc compile-rule
   "Returns compiled, macro-ready input for [[rule*]] based on the contract
   described by [[rule]]."
   ([p consequent-fn]
