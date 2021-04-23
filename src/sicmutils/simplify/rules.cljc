@@ -411,33 +411,33 @@ y)))) )"}
       (expt ?x 1) => ?x
 
       (expt (expt ?x ?a) ?b)
-      (fn [m]
-        (let [a (simplify (m '?a))
-              b (simplify (m '?b))
-              x (m '?x)]
-          ;; TODO stick a times b in as a variable.
-          (or (and (v/integral? a)
-                   (v/integral? b))
+      (fn [{a '?a b '?b x '?x}]
+        (let [as (simplify a)
+              bs (simplify b)]
+          (when (or (and (v/integral? as)
+                         (v/integral? bs))
 
-              (and (even-integer? b)
-                   (v/integral?
-                    (simplify (sym:* a b))))
+                    (and (even-integer? bs)
+                         (v/integral?
+                          (simplify (sym:* as bs))))
 
-              (and *exponent-product-simplify?*
-                   (assume!
-                    (r/template
-                     (= (expt (expt ~x ~a) ~b)
-                        (expt ~x ~(sym:* a b))))
-                    'exponent-product)))))
-      (expt ?x (? #(g/* (% '?a) (% '?b))))
+                    (and *exponent-product-simplify?*
+                         (assume!
+                          (r/template
+                           (= (expt (expt ~x ~as) ~bs)
+                              (expt ~x ~(sym:* as bs))))
+                          'exponent-product)))
+            {'?ab (g/* a b)})))
+      (expt ?x ?ab)
 
       (expt ?x (/ 1 2))
       (fn [_] *expt-half->sqrt?*)
       (sqrt ?x)
 
-      ;; TODO comment!
-
-      ;; a rare, expensive luxury
+      ;; Collect duplicate terms into exponents. TODO this is missing the case
+      ;; where non-exponent duplicates get collected into exponents.
+      ;;
+      ;; GJS notes: "a rare, expensive luxury."
       (* ??fs1* ?x ??fs2 (expt ?x ?y) ??fs3)
       => (* ??fs1 ??fs2 (expt ?x (+ 1 ?y)) ??fs3)
 
