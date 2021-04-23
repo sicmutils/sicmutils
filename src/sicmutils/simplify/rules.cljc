@@ -1558,7 +1558,7 @@ y)))) )"}
     =>
     (* (? #(g/invert (% '?d))) ?n))))
 
-(defn occurs-in? [syms all]
+(defn ^:no-doc occurs-in? [syms all]
   (not
    (empty?
     (cs/intersection syms all))))
