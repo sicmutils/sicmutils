@@ -23,7 +23,8 @@
             [sicmutils.numbers]
             [sicmutils.ratio]
             [sicmutils.simplify.rules :as r]
-            [sicmutils.simplify :as s]))
+            [sicmutils.simplify :as s]
+            [sicmutils.value :as v]))
 
 (deftest algebraic-tests
   (testing "unary elimination"
@@ -56,7 +57,7 @@
              (f '(* 0 x)))))))
 
 (deftest simplify-square-roots-test
-  (let [s r/simplify-square-roots]
+  (let [s (r/simplify-square-roots  s/*rf-analyzer*)]
     (testing "even powers"
       (is (= '(expt x 4)
              (s '(expt (sqrt x) 8)))
@@ -107,12 +108,13 @@
 
 (deftest sqrt-expand-contract-test
   (testing "sqrt-expand works with division"
-    (is (= '(+ (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
-           (r/sqrt-expand '(+ (sqrt (/ a b)) (sqrt (/ c b))))))
-    (is (= '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
-           (r/sqrt-expand '(- (sqrt (/ a b)) (sqrt (/ c b)))))))
+    (let [expand (r/sqrt-expand  s/*rf-analyzer*)]
+      (is (= '(+ (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
+             (expand '(+ (sqrt (/ a b)) (sqrt (/ c b))))))
+      (is (= '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
+             (expand '(- (sqrt (/ a b)) (sqrt (/ c b))))))))
 
-  (let [sqrt-contract (r/sqrt-contract identity)]
+  (let [sqrt-contract (r/sqrt-contract  s/*rf-analyzer*)]
     (testing "cancels square roots if the values are equal"
       (is (= '(* a (sqrt (* b d)) c e)
              (sqrt-contract
@@ -138,10 +140,15 @@
     (is (= 'x (d '(* 1 x))))
     (is (= '(* x y z) (d '(* 1 x y z))))
     (is (= '(*) (d '(* 1))))
-    (is (= '(+ (/ a 3) (/ b 3) (/ c 3)) (d '(/ (+ a b c) 3))))))
+
+    (is (= '(+ (* (/ 1 3) a)
+               (* (/ 1 3) b)
+               (* (/ 1 3) c))
+           (v/freeze
+            (d '(/ (+ a b c) 3)))))))
 
 (deftest sincos-flush-ones-test
-  (let [s r/sincos-flush-ones]
+  (let [s (r/sincos-flush-ones s/*rf-analyzer*)]
     (is (= '(+ 1 a b c c d e f g)
            (s '(+ a b c (expt (sin x) 2) c d (expt (cos x) 2) e f g))))
 

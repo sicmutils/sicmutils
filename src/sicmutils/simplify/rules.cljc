@@ -1151,43 +1151,39 @@ y)))) )"}
 
 (defn flush-obvious-ones [simplify]
   ;; TODO can we count an order here of sin vs cos??
-  (rule-simplifier
-   (ruleset
-    (+ ??a1 (expt (sin ?x) 2)
-       ??a2 (expt (cos ?x) 2)
-       ??a3)
-    => (+ 1 ??a1 ??a2 ??a3)
+  (letfn [(pred [m]
+            (let [s1 (simplify (r/template m (* ??f1 ??f2)))
+                  s2 (simplify (r/template m (* ??f3 ??f4)))]
+              (when (v/exact-zero?
+                     (simplify (list '- s1 s2)))
+                {'?s1 s1})))]
+    (rule-simplifier
+     (ruleset
+      (+ ??a1 (expt (sin ?x) 2)
+         ??a2 (expt (cos ?x) 2)
+         ??a3)
+      => (+ 1 ??a1 ??a2 ??a3)
 
-    (+ ??a1 (expt (cos ?x) 2)
-       ??a2 (expt (sin ?x) 2)
-       ??a3)
-    => (+ ??a1 ??a2 ??a3 1)
+      (+ ??a1 (expt (cos ?x) 2)
+         ??a2 (expt (sin ?x) 2)
+         ??a3)
+      => (+ ??a1 ??a2 ??a3 1)
 
-    (+ ??a1
-       (* (?? f1) (expt (sin (? x)) 2) (?? f2))
-       ??a2
-       (* (?? f3) (expt (cos (? x)) 2) (?? f4))
-       ??a3)
-    (fn [m]
-      (let [s1 (simplify `(~'* ~@(m '??f1) ~@(m '??f2)))
-            s2 (simplify `(~'* ~@(m '??f3) ~@(m '??f4)))]
-        (when (v/exact-zero?
-               (simplify `(~'- ~s1 ~s2)))
-          {'??s1 s1})))
-    (+ ??a1 ??a2 ??a3 ??s1)
+      (+ ??a1
+         (* ??f1 (expt (sin (? x)) 2) ??f2)
+         ??a2
+         (* ??f3 (expt (cos (? x)) 2) ??f4)
+         ??a3)
+      pred
+      (+ ??a1 ??a2 ??a3 ?s1)
 
-    (+ ??a1
-       (* (?? f1) (expt (cos (? x)) 2) (?? f2))
-       ??a2
-       (* (?? f3) (expt (sin (? x)) 2) (?? f4))
-       ??a3)
-    (fn [m]
-      (let [s1 (simplify `(~'* ~@(m '??f1) ~@(m '??f2)))
-            s2 (simplify `(~'* ~@(m '??f3) ~@(m '??f4)))]
-        (when (v/exact-zero?
-               (simplify `(~'- ~s1 ~s2)))
-          {'??s1 s1})))
-    (+ ??a1 ??a2 ??a3 ??s1))))
+      (+ ??a1
+         (* ??f1 (expt (cos (? x)) 2) ??f2)
+         ??a2
+         (* ??f3 (expt (sin (? x)) 2) ??f4)
+         ??a3)
+      pred
+      (+ ??a1 ??a2 ??a3 ?s1)))))
 
 (defn sincos-flush-ones [simplify]
   (r/pipe
@@ -1294,36 +1290,36 @@ y)))) )"}
         (+ (cos (? #(- (% '?im))))
            (* ~-i (sin (? #(- (% '?im))))))
 
-        (exp (* (? ?c1 imaginary-number?) (?? f)))
+        (exp (* (? ?c1 imaginary-number?) ??f))
         pos-pred
         (+ (cos (* ?im ??f))
            (* ~i (sin (* ?im ??f))))
 
-        (exp (* (? ?c1 imaginary-number?) (?? f)))
+        (exp (* (? ?c1 imaginary-number?) ??f))
         neg-pred
         (* (exp (? #(g/real-part (% '?c1))))
            (+ (cos (* (? #(- (% '?im))) ??f))
               (* ~-i (sin (* (? #(- (% '?im))) ??f)))))
 
-        (exp (? c1 complex-number?))
+        (exp (? ?c1 complex-number?))
         pos-pred
         (* (exp (? #(g/real-part (% '?c1))))
            (+ (cos ?im)
               (* ~i (sin ?im))))
 
-        (exp (? c1 complex-number?))
+        (exp (? ?c1 complex-number?))
         neg-pred
         (* (exp (? #(g/real-part (% '?c1))))
            (+ (cos (? #(- (% '?im))))
               (* ~-i (sin (? #(- (% '?im)))))))
 
-        (exp (* (? c1 complex-number?) (?? f)))
+        (exp (* (? ?c1 complex-number?) ??f))
         pos-pred
         (* (exp (? #(g/real-part (% '?c1))))
            (+ (cos (* ?im ??f))
               (* ~i (sin (* ?im ??f)))))
 
-        (exp (* (? c1 complex-number?) (?? f)))
+        (exp (* (? ?c1 complex-number?) ??f))
         neg-pred
         (* (exp (? #(g/real-part (% '?c1))))
            (+ (cos (* (? #(- (% '?im))) ??f))
@@ -1344,12 +1340,12 @@ y)))) )"}
     =>
     (* ??x1 ??x2 (exp (- ?x ?y)))
 
-    (/ (exp ?x) (* (?? y1) (exp ?y) (?? y2)))
+    (/ (exp ?x) (* ??y1 (exp ?y) ??y2))
     =>
     (/ (exp (- ?x ?y)) (* ??y1 ??y2))
 
     (/ (* ??x1 (exp ?x) ??x2)
-       (* (?? y1) (exp ?y) (?? y2)))
+       (* ??y1 (exp ?y) ??y2))
     =>
     (/ (* ??x1 ??x2 (exp (- ?x ?y)))
        (* ??y1 ??y2)))))
