@@ -30,7 +30,8 @@
             [sicmutils.value :as v]))
 
 (defn assume!
-  "see logic-utils.scm... to get this working."
+  "see logic-utils.scm... to get this working. AND share with the implementation
+  we already have in `factor`, stick these somewhere common and add a gate."
   ([predicate-expr responsible-party]
    true)
   ([predicate-expr responsible-party if-false]
