@@ -58,7 +58,8 @@
                    (a/monotonic-symbol-generator "-r-")))
 
 (def ^:dynamic *rf-analyzer*
-  (memoize (unless-timeout (rational-function-analyzer))))
+  (unless-timeout
+   (memoize (rational-function-analyzer))))
 
 (def ^:dynamic *poly-analyzer*
   (memoize (poly-analyzer)))
