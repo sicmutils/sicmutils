@@ -32,7 +32,7 @@
   #?(:clj
      (:import [java.util.concurrent TimeoutException])))
 
-(defn ^:private unless-timeout
+(defn- unless-timeout
   "Returns a function that invokes f, but catches TimeoutException;
   if that exception is caught, then x is returned in lieu of (f x)."
   [f]
@@ -43,14 +43,14 @@
             (str "simplifier timed out: must have been a complicated expression"))
            x))))
 
-(defn ^:private poly-analyzer
+(defn- poly-analyzer
   "An analyzer capable of simplifying sums and products, but unable to
   cancel across the fraction bar"
   []
   (a/make-analyzer (poly/->PolynomialAnalyzer)
                    (a/monotonic-symbol-generator "-s-")))
 
-(defn ^:private rational-function-analyzer
+(defn- rational-function-analyzer
   "An analyzer capable of simplifying expressions built out of rational
   functions."
   []
@@ -69,31 +69,30 @@
             *poly-analyzer* (poly-analyzer)]
     (f)))
 
-(def ^:private
-  simplify-and-flatten
+(def ^:private simplify-and-flatten
   #'*rf-analyzer*)
 
-(defn ^:private simplify-until-stable
+(defn- simplify-until-stable
   [rule-simplify canonicalize]
-  (fn [expression]
-    (let [new-expression (rule-simplify expression)]
-      (if (= expression new-expression)
-        expression
-        (let [canonicalized-expression (canonicalize new-expression)]
-          (cond (= canonicalized-expression expression) expression
+  (fn [expr]
+    (let [new-expr (rule-simplify expr)]
+      (if (= expr new-expr)
+        expr
+        (let [canonicalized-expr (canonicalize new-expr)]
+          (cond (= canonicalized-expr expr) expr
                 (v/zero?
                  (*poly-analyzer*
-                  (list '- expression canonicalized-expression)))
-                canonicalized-expression
-                :else (recur canonicalized-expression)))))))
+                  (list '- expr canonicalized-expr)))
+                canonicalized-expr
+                :else (recur canonicalized-expr)))))))
 
-(defn ^:private simplify-and-canonicalize
+(defn- simplify-and-canonicalize
   [rule-simplify canonicalize]
-  (fn [expression]
-    (let [new-expression (rule-simplify expression)]
-      (if (= expression new-expression)
-        expression
-        (canonicalize new-expression)))))
+  (fn [expr]
+    (let [new-expr (rule-simplify expr)]
+      (if (= expr new-expr)
+        expr
+        (canonicalize new-expr)))))
 
 (def ^:private sin-sq->cos-sq-simplifier
   (-> rules/sin-sq->cos-sq
@@ -107,8 +106,9 @@
   (-> (rules/simplify-square-roots *rf-analyzer*)
       (simplify-and-canonicalize simplify-and-flatten)))
 
-;; This finds things like a - a cos^2 x and replaces them with a sin^2 x.
-(def trig-cleanup
+(def ^{:doc
+       "This finds things like a - a cos^2 x and replaces them with a sin^2 x."}
+  trig-cleanup
   (-> (rules/sincos-random *rf-analyzer*)
       (simplify-until-stable simplify-and-flatten)))
 
@@ -117,9 +117,7 @@
             factor/root-out-squares)
       (simplify-and-canonicalize simplify-and-flatten)))
 
-(declare simplify-expression)
-
-(defn ^:private simplify-expression-1
+(defn- simplify-expression-1
   "this is a chain of rule-simplifiers (i.e., each entry in the chain
   passes the expression through after the simplification of the step
   stabilizes.)"
@@ -165,6 +163,7 @@
           sqrt? (rules/occurs-in? #{'sqrt} syms)
           full-sqrt? (and rules/*sqrt-factor-simplify?*
                           (rules/occurs-in? #{'sqrt} syms))
+
           logexp? (rules/occurs-in? #{'log 'exp} syms)
           sincos? (rules/occurs-in? #{'sin 'cos} syms)
 
