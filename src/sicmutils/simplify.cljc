@@ -109,7 +109,8 @@
 (def ^{:doc
        "This finds things like a - a cos^2 x and replaces them with a sin^2 x."}
   trig-cleanup
-  (-> (rules/sincos-random *rf-analyzer*)
+  (-> (comp (rules/universal-reductions *rf-analyzer*)
+            (rules/sincos-random *rf-analyzer*))
       (simplify-until-stable simplify-and-flatten)))
 
 (def clear-square-roots-of-perfect-squares

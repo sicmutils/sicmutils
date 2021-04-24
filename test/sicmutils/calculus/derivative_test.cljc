@@ -586,8 +586,9 @@
 
   (testing "eq. 5.291"
     (let [V  (fn [[xi eta]]
-               (g/sqrt (+ (g/square (+ xi 'R_0))
-                          (g/square eta))))
+               (g/sqrt
+                (+ (g/square (+ xi 'R_0))
+                   (g/square eta))))
           x  (s/up 0 0)
           dx (s/up 'xi 'eta)]
       (is (= '(R_0 xi (/ (expt eta 2)

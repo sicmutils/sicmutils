@@ -378,8 +378,8 @@
               ((m/point m/S3-gnomonic)
                (up 'x 'y 'z))))))
 
-    (is (= '(sqrt (/ (+ (expt x 2) (expt y 2) (expt z 2))
-                     (+ (expt x 2) (expt y 2) (expt z 2)
+    (is (= '(/ (sqrt (+ (expt x 2) (expt y 2) (expt z 2)))
+               (sqrt (+ (expt x 2) (expt y 2) (expt z 2)
                         (* -2 (sqrt (+ (expt x 2) (expt y 2) (expt z 2) 1)))
                         2)))
            (s-freeze
