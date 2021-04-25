@@ -33,7 +33,8 @@
   an expression with respect to an analyzer is therefore effected by a
   round-trip to and from the canonical form."
   (:require [sicmutils.expression :as x]
-            [sicmutils.numsymb :as sym]))
+            [sicmutils.numsymb :as sym]
+            [sicmutils.value :as v]))
 
 (defn- make-vcompare
   "Returns
@@ -147,7 +148,10 @@
                                          expr)
                         :else expr))
                 (base-simplify [expr]
-                  (expression-> backend expr #(->expression backend %1 %2) vless?))]
+                  ;; TODO NOTE that this was so important!
+                  (let [cont #(v/freeze
+                               (->expression backend %1 %2))]
+                    (expression-> backend expr cont vless?)))]
           (-> expr analyze base-simplify backsubstitute))))))
 
 (defn monotonic-symbol-generator
