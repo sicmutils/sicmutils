@@ -125,6 +125,7 @@
    'sicmutils.sr.boost                         (ns-publics 'sicmutils.sr.boost)
    'sicmutils.sr.frames                        (ns-publics 'sicmutils.sr.frames)
    'sicmutils.util.aggregate                   (ns-publics 'sicmutils.util.aggregate)
+   'sicmutils.util.logic                       (ns-publics 'sicmutils.util.logic)
    'sicmutils.util.stream                      (ns-publics 'sicmutils.util.stream)})
 
 (def ^{:doc "SCI namespace map generated from `ns->publics`. Consumers wishing

@@ -30,6 +30,9 @@
             [sicmutils.util.logic :as ul]
             [sicmutils.value :as v]))
 
+;; TODO move the various sets of rules out into subpackages after we're done
+;; here, with their OWN tests. Group them better into better rulesets!!
+
 (def ^{:dynamic true
        :doc " allows (log (exp x)) => x.
 
