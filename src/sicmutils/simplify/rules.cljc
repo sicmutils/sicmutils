@@ -27,15 +27,8 @@
             [sicmutils.expression :as x]
             [sicmutils.generic :as g]
             [sicmutils.numsymb :as sym]
+            [sicmutils.util.logic :as ul]
             [sicmutils.value :as v]))
-
-(defn assume!
-  "see logic-utils.scm... to get this working. AND share with the implementation
-  we already have in `factor`, stick these somewhere common and add a gate."
-  ([predicate-expr responsible-party]
-   true)
-  ([predicate-expr responsible-party if-false]
-   true))
 
 (def ^{:dynamic true
        :doc " allows (log (exp x)) => x.
@@ -349,7 +342,7 @@ y)))) )"}
       (log (exp ?x))
       (fn [{x '?x}]
         (let [xs (simplify x)]
-          (and (assume!
+          (and (ul/assume!
                 (r/template
                  (= (log (exp ~xs)) ~xs))
                 'logexp1)
@@ -360,7 +353,7 @@ y)))) )"}
      (r/rule (sqrt (exp ?x))
              (fn [{x '?x}]
                (let [xs (simplify x)]
-                 (and (assume!
+                 (and (ul/assume!
                        (r/template
                         (= (sqrt (exp ~xs))
                            (exp (/ ~xs 2))))
@@ -413,7 +406,7 @@ y)))) )"}
                           (simplify (sym:* as bs))))
 
                     (and *exponent-product-simplify?*
-                         (assume!
+                         (ul/assume!
                           (r/template
                            (= (expt (expt ~x ~as) ~bs)
                               (expt ~x ~(sym:* as bs))))
@@ -457,7 +450,7 @@ y)))) )"}
        (fn [{x '?x n '?n}]
          (let [xs (simplify x)
                half-n (g// n 2)]
-           (when (assume!
+           (when (ul/assume!
                   (r/template
                    (= (sqrt (expt ~xs ~n))
                       (expt ~xs ~half-n)))
@@ -470,7 +463,7 @@ y)))) )"}
        (fn [{x '?x n '?n}]
          (let [xs (simplify x)
                half-dec-n (g// (g/- n 1) 2)]
-           (when (assume!
+           (when (ul/assume!
                   (r/template
                    (= (sqrt (expt ~xs ~n))
                       (expt ~xs ~half-dec-n)))
@@ -521,9 +514,9 @@ y)))) )"}
   (let [xs (simplify x)
         ys (simplify y)]
     (if (v/= xs ys)
-      (assume! `(~'non-negative? ~xs) id (fn [] false))
-      (and (assume! `(~'non-negative? ~xs) id (fn [] false))
-           (assume! `(~'non-negative? ~ys) id (fn [] false))))))
+      (ul/assume! `(~'non-negative? ~xs) id (fn [] false))
+      (and (ul/assume! `(~'non-negative? ~xs) id (fn [] false))
+           (ul/assume! `(~'non-negative? ~ys) id (fn [] false))))))
 
 (defn sqrt-expand
   "distribute the radical sign across products and quotients. The companion rule
@@ -541,6 +534,8 @@ y)))) )"}
     ;; TODO test that IF the two sides are equal in some of these cases, we can
     ;; just pull out a NON square root... why not, since we have `simplify` at
     ;; hand, AND since we do it below? YES, get this done!
+    ;;
+    ;; TODO rename the assumptions here.
     (r/attempt
      (r/guard
       (fn [_] *sqrt-factor-simplify?*)
@@ -567,12 +562,12 @@ y)))) )"}
         non-negative!
         (fn
           ([xs sym]
-           (assume! `(~'non-negative? ~xs) sym if-false))
+           (ul/assume! `(~'non-negative? ~xs) sym if-false))
           ([xs ys sym]
            ;; TODO use non-negative-factors above, and duplicate the checks
            ;; above.
-           (and (assume! `(~'non-negative? ~xs) sym if-false)
-                (assume! `(~'non-negative? ~ys) sym if-false))))]
+           (and (ul/assume! `(~'non-negative? ~xs) sym if-false)
+                (ul/assume! `(~'non-negative? ~ys) sym if-false))))]
 
     (rule-simplifier
      (r/ruleset*
@@ -834,7 +829,7 @@ y)))) )"}
                (if (g/negative? ys)
                  '(- (/ (* 3 pi) 4))
                  '(/ pi 4))
-               (and (assume!
+               (and (ul/assume!
                      (list 'positive? xs)
                      'aggressive-atan-1)
                     '(/ pi 4)))
@@ -843,7 +838,7 @@ y)))) )"}
                (sym:atan ys xs)
                (let [s (simplify (list 'gcd ys xs))]
                  (when-not (v/one? s)
-                   (and (assume!
+                   (and (ul/assume!
                          (list 'positive? s)
                          'aggressive-atan-2)
                         (let [yv (simplify (list '/ ys s))
@@ -872,7 +867,7 @@ y)))) )"}
      (asin (sin ?x))
      (fn [{x '?x}]
        (let [xs (simplify x)]
-         (assume!
+         (ul/assume!
           (r/template
            (= (asin (sin ~xs)) ~xs))
           'asin-sin)))
@@ -881,7 +876,7 @@ y)))) )"}
      (acos (cos ?x))
      (fn [{x '?x}]
        (let [xs (simplify x)]
-         (assume!
+         (ul/assume!
           (r/template
            (= (acos (cos ~xs)) ~xs))
           'acos-cos)))
@@ -890,7 +885,7 @@ y)))) )"}
      (atan (tan ?x))
      (fn [{x '?x}]
        (let [xs (simplify x)]
-         (assume!
+         (ul/assume!
           (r/template
            (= (atan (tan ~xs)) ~xs))
           'atan-tan)))
@@ -899,7 +894,7 @@ y)))) )"}
      (atan (sin ?x) (cos ?x))
      (fn [{x '?x}]
        (let [xs (simplify x)]
-         (assume!
+         (ul/assume!
           (r/template
            (= (atan (sin ~xs) (cos ~xs)) ~xs))
           'atan-sin-cos)))
@@ -908,7 +903,7 @@ y)))) )"}
      (asin (cos ?x))
      (fn [{x '?x}]
        (let [xs (simplify x)]
-         (assume!
+         (ul/assume!
           (r/template
            (= (asin (cos ~xs))
               (- (* (/ 1 2) pi) ~xs)))
@@ -918,7 +913,7 @@ y)))) )"}
      (acos (sin ?x))
      (fn [{x '?x}]
        (let [xs (simplify x)]
-         (assume!
+         (ul/assume!
           (r/template
            (= (acos (sin ~xs))
               (- (* (/ 1 2) pi) ~xs)))
@@ -1123,7 +1118,7 @@ of the first term of the argument."}
 (defn half-angle [simplify]
   (letfn [(sin-half-angle-formula [theta]
             (let [thetas (simplify theta)]
-              (and (assume!
+              (and (ul/assume!
                     (r/template
                      (non-negative?
                       (+ (* 2 pi)
@@ -1135,7 +1130,7 @@ of the first term of the argument."}
 
           (cos-half-angle-formula [theta]
             (let [thetas (simplify theta)]
-              (and (assume!
+              (and (ul/assume!
                     (r/template
                      (non-negative?
                       (+ pi ~thetas

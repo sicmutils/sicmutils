@@ -27,10 +27,11 @@
                   #?@(:cljs [:exclude [bigint double long int]]))
   (:require #?(:clj [clojure.math.numeric-tower :as nt])
             #?(:cljs goog.math.Integer)
-            #?(:cljs goog.math.Long))
+            #?(:cljs goog.math.Long)
+            [taoensso.timbre :as log])
   #?(:clj
-     (:import [clojure.lang BigInt]
-              [java.util.concurrent TimeUnit TimeoutException])))
+     (:import (clojure.lang BigInt)
+              (java.util.concurrent TimeUnit TimeoutException))))
 
 (defn counted
   "Takes a function and returns a pair of:

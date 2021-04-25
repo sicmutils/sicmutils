@@ -19,7 +19,6 @@
 
 (ns sicmutils.polynomial.factor
   (:require [clojure.walk :as w]
-            #?(:cljs [goog.string :refer [format]])
             [sicmutils.value :as v]
             [sicmutils.expression.analyze :as a]
             [sicmutils.generic :as g]
@@ -27,7 +26,7 @@
             [sicmutils.numsymb :as sym]
             [sicmutils.polynomial :as poly]
             [sicmutils.polynomial.gcd :refer [gcd gcd-seq]]
-            [taoensso.timbre :as log]))
+            [sicmutils.util.logic :as ul]))
 
 (defn split
   "We're not entirely certain what this algorithm does, but it would be nice
@@ -105,10 +104,6 @@
          (a/known-operation? poly-analyzer o)))
      (a/monotonic-symbol-generator "-f-"))))
 
-(defn ^:private assume!
-  [thing context]
-  (log/warn (format "Assuming %s in %s" thing context)))
-
 (defn- process-sqrt [expr]
   (let [fact-exp (factor (first (sym/operands expr)))
         expt     (sym/symbolic-operator 'expt)
@@ -119,8 +114,11 @@
            odds 1
            evens 1]
       (cond (nil? factors)
-            (do (if (not (and (number? evens) (= evens 1)))
-                  (assume! `(~'non-negative? ~evens) 'root-out-squares))
+            (do (when-not (and (number? evens)
+                               (= evens 1))
+                  (ul/assume!
+                   `(~'non-negative? ~evens)
+                   'root-out-squares))
                 (* (sym/sqrt odds) evens))
 
             (sym/expt? (first factors))
