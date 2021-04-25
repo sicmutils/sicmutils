@@ -129,28 +129,33 @@
                    (doall (map add-symbol! expr))))
 
                 (add-symbol! [expr]
-                  (if (and (sequential? expr)
-                           (not (= (first expr) 'quote)))
-                    ;; in a transaction, probe and maybe update the expr->var->expr maps
-                    (#?(:clj dosync :cljs identity)
-                     (if-let [existing-expr (@expr->var expr)]
-                       existing-expr
-                       (let [var (symbol-generator)]
-                         (alter expr->var assoc expr var)
-                         (alter var->expr assoc var expr)
-                         var)))
-                    expr))
+                  (let [expr-k (v/freeze expr)]
+                    (if (and (sequential? expr)
+                             (not= (first expr) 'quote))
+                      ;; in a transaction, probe and maybe update the
+                      ;; expr->var->expr maps.
+                      ;;
+                      ;; NOTE: Make sure to use the FROZEN version of the
+                      ;; expression as the key.
+                      (#?(:clj dosync :cljs identity)
+                       (if-let [existing-expr (@expr->var expr-k)]
+                         existing-expr
+                         (let [var (symbol-generator)]
+                           (alter expr->var assoc expr-k var)
+                           (alter var->expr assoc var expr)
+                           var)))
+                      expr)))
 
                 (backsubstitute [expr]
                   (cond (sequential? expr) (map backsubstitute expr)
-                        (symbol? expr) (if-let [w (@var->expr expr)]
+                        (symbol? expr) (if-let [w (@var->expr (v/freeze expr))]
                                          (backsubstitute w)
                                          expr)
                         :else expr))
+
                 (base-simplify [expr]
                   ;; TODO NOTE that this was so important!
-                  (let [cont #(v/freeze
-                               (->expression backend %1 %2))]
+                  (let [cont #(->expression backend %1 %2)]
                     (expression-> backend expr cont vless?)))]
           (-> expr analyze base-simplify backsubstitute))))))
 

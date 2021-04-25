@@ -821,39 +821,35 @@ y)))) )"}
 
 (defn triginv [simplify]
   (r/rule-simplifier
-   (r/ruleset*
-    (r/rule
-     (atan (* ?c ?y) (* ?c ?x)) => (atan ?y ?x))
-
-    (let [sym:atan (sym/symbolic-operator 'atan)]
-      (r/guard
-       (fn [_] *aggressive-atan-simplify?*)
-       (r/rule
-        (atan ?y ?x)
-        (fn [{x '?x y '?y}]
-          (let [xs (simplify x)
-                ys (simplify y)]
-            (if (v/= ys xs)
-              (if (v/number? ys)
-                (if (g/negative? ys)
-                  '(- (/ (* 3 pi) 4))
-                  '(/ pi 4))
-                (and (assume!
-                      (list 'positive? xs)
-                      'aggressive-atan-1)
-                     '(/ pi 4)))
-              (if (and (v/number? ys)
-                       (v/number? xs))
-                (sym:atan ys xs)
-                (let [s (simplify (list 'gcd ys xs))]
-                  (when-not (v/one? s)
-                    (and (assume!
-                          (list 'positive? s)
-                          'aggressive-atan-2)
-                         (let [yv (simplify (list '/ ys s))
-                               xv (simplify (list '/ xs s))]
-                           (r/template
-                            (atan ~yv ~xv))))))))))))))
+   (let [sym:atan (sym/symbolic-operator 'atan)]
+     (r/guard
+      (fn [_] *aggressive-atan-simplify?*)
+      (r/rule
+       (atan ?y ?x)
+       (fn [{x '?x y '?y}]
+         (let [xs (simplify x)
+               ys (simplify y)]
+           (if (v/= ys xs)
+             (if (v/number? ys)
+               (if (g/negative? ys)
+                 '(- (/ (* 3 pi) 4))
+                 '(/ pi 4))
+               (and (assume!
+                     (list 'positive? xs)
+                     'aggressive-atan-1)
+                    '(/ pi 4)))
+             (if (and (v/number? ys)
+                      (v/number? xs))
+               (sym:atan ys xs)
+               (let [s (simplify (list 'gcd ys xs))]
+                 (when-not (v/one? s)
+                   (and (assume!
+                         (list 'positive? s)
+                         'aggressive-atan-2)
+                        (let [yv (simplify (list '/ ys s))
+                              xv (simplify (list '/ xs s))]
+                          (r/template
+                           (atan ~yv ~xv)))))))))))))
 
    (ruleset
     (sin (asin ?x)) => ?x

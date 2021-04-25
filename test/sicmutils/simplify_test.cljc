@@ -126,6 +126,12 @@
   (is (= '(atan -1) (trig-cleanup '(atan -1 1))))
   (is (= '(atan 1 -1) (trig-cleanup '(atan 1 -1))))
   (is (= '(atan y x) (trig-cleanup '(atan y x))))
+
+  (is (= 'z (g/simplify
+             (g/atan
+              (g/* 'x (g/sin 'z) 'y)
+              (g/* 'y (g/cos 'z) 'x)))))
+
   (is (= '(atan 1 -1) (trig-cleanup '(atan x (* -1 x)))))
   (is (= '(atan -1) (trig-cleanup '(atan (* -1 x) x)))))
 
