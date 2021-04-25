@@ -100,22 +100,22 @@
       (simplify-and-canonicalize simplify-and-flatten)))
 
 (def ^:private sincos-simplifier
-  (-> (rules/sincos-flush-ones *rf-analyzer*)
+  (-> (rules/sincos-flush-ones #'*rf-analyzer*)
       (simplify-and-canonicalize simplify-and-flatten)))
 
 (def ^:private square-root-simplifier
-  (-> (rules/simplify-square-roots *rf-analyzer*)
+  (-> (rules/simplify-square-roots #'*rf-analyzer*)
       (simplify-and-canonicalize simplify-and-flatten)))
 
 (def ^{:doc
        "This finds things like a - a cos^2 x and replaces them with a sin^2 x."}
   trig-cleanup
-  (-> (comp (rules/universal-reductions *rf-analyzer*)
-            (rules/sincos-random *rf-analyzer*))
+  (-> (comp (rules/universal-reductions #'*rf-analyzer*)
+            (rules/sincos-random #'*rf-analyzer*))
       (simplify-until-stable simplify-and-flatten)))
 
 (def clear-square-roots-of-perfect-squares
-  (-> (comp (rules/universal-reductions *rf-analyzer*)
+  (-> (comp (rules/universal-reductions #'*rf-analyzer*)
             factor/root-out-squares)
       (simplify-and-canonicalize simplify-and-flatten)))
 
@@ -124,8 +124,8 @@
   passes the expression through after the simplification of the step
   stabilizes.)"
   [x]
-  (let [sqrt-contract (rules/sqrt-contract *rf-analyzer*)
-        sqrt-expand (rules/sqrt-expand *rf-analyzer*)]
+  (let [sqrt-contract (rules/sqrt-contract #'*rf-analyzer*)
+        sqrt-expand (rules/sqrt-expand #'*rf-analyzer*)]
     (-> x
         (rules/canonicalize-partials)
         (rules/trig->sincos)
@@ -153,12 +153,12 @@
     f
     identity))
 
-(let [universal-reductions (rules/universal-reductions *rf-analyzer*)
-      sqrt-contract (rules/sqrt-contract *rf-analyzer*)
-      sqrt-expand   (rules/sqrt-expand *rf-analyzer*)
-      log-contract (rules/log-contract *rf-analyzer*)
-      sincos-random (rules/sincos-random *rf-analyzer*)
-      sincos-flush-ones (rules/sincos-flush-ones *rf-analyzer*)]
+(let [universal-reductions (rules/universal-reductions #'*rf-analyzer*)
+      sqrt-contract (rules/sqrt-contract #'*rf-analyzer*)
+      sqrt-expand   (rules/sqrt-expand #'*rf-analyzer*)
+      log-contract (rules/log-contract #'*rf-analyzer*)
+      sincos-random (rules/sincos-random #'*rf-analyzer*)
+      sincos-flush-ones (rules/sincos-flush-ones #'*rf-analyzer*)]
 
   (defn new-simplify [expr]
     (let [syms (x/variables-in expr)
@@ -231,8 +231,6 @@
                 (only-if partials?
                          (-> rules/canonicalize-partials
                              (simplify-and-canonicalize simplify-and-flatten)))
-
-                simplify-expression
                 simplify-and-flatten)]
       (simple expr))))
 
