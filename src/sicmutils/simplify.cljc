@@ -228,6 +228,10 @@
                 (-> rules/trig->sincos
                     (simplify-and-canonicalize simplify-and-flatten))
 
+                ;; TODO note that I've added this... check if we need more from
+                ;; the older simplifier above.
+                rules/complex-trig
+
                 (only-if partials?
                          (-> rules/canonicalize-partials
                              (simplify-and-canonicalize simplify-and-flatten)))

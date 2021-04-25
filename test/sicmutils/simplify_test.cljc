@@ -145,6 +145,10 @@
          (expression->string c/I)))
   (is (= "1" (expression->string
               ((g/+ (g/square g/sin) (g/square g/cos)) 'x))))
+
+  (prn (expression->string
+        ((g/+ (g/square g/sin) (g/square g/tan)) 'x)))
+
   (is (= "(/ (+ (* -1 (expt (cos x) 4)) 1) (expt (cos x) 2))"
          (expression->string
           ((g/+ (g/square g/sin) (g/square g/tan)) 'x)))))
