@@ -21,7 +21,7 @@
   (:require [sicmutils.util :as u]
             [stopwatch.core :as sw])
   #?(:clj
-     (:import [java.util.concurrent TimeUnit TimeoutException])))
+     (:import (java.util.concurrent TimeUnit TimeoutException))))
 
 (defprotocol IStopwatch
   (running? [this])

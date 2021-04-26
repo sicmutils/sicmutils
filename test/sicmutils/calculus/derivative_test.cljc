@@ -586,14 +586,16 @@
 
   (testing "eq. 5.291"
     (let [V  (fn [[xi eta]]
-               (g/sqrt (+ (g/square (+ xi 'R_0))
-                          (g/square eta))))
+               (g/sqrt
+                (+ (g/square (+ xi 'R_0))
+                   (g/square eta))))
           x  (s/up 0 0)
           dx (s/up 'xi 'eta)]
-      (is (v/= '[R_0 xi (/ (expt eta 2) (* 2 R_0))]
-               (->> (d/taylor-series V x dx)
-                    (take 3)
-                    (g/simplify)))))))
+      (is (= '(R_0 xi (/ (expt eta 2)
+                         (* 2 R_0)))
+             (->> (d/taylor-series V x dx)
+                  (take 3)
+                  (simplify)))))))
 
 (deftest moved-from-structure-and-matrix
   (testing "as-matrix, D-as-matrix"
@@ -743,8 +745,8 @@
 
     (testing "f -> Series"
       (let [F (fn [k] (series/series
-                       (fn [t] (g/* k t))
-                       (fn [t] (g/* k k t))))]
+                      (fn [t] (g/* k t))
+                      (fn [t] (g/* k k t))))]
         (is (= '((* q z) (* (expt q 2) z) 0 0) (simp4 ((F 'q) 'z))))
         (is (= '(z (* 2 q z) 0 0) (simp4 (((D F) 'q) 'z)))))))
 

@@ -30,7 +30,7 @@
 
 (deftest ^:long smoke
   (binding [pg/*poly-gcd-time-limit* #?(:clj  [2 :seconds]
-                                        :cljs [6 :seconds])]
+                                        :cljs [15 :seconds])]
     ;; this test is :long because of the simplification. Remove this
     ;; tag when we fix that.
     (is (= 11 (count (rigid-rotation/evolver 1 0.1 1 1.2 2 0.1 0.1 0.1 1 1 1))))

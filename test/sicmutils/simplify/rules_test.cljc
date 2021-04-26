@@ -19,11 +19,12 @@
 
 (ns sicmutils.simplify.rules-test
   (:require [clojure.test :refer [is deftest testing]]
-            [pattern.rule :refer [rule-simplifier]]
+            [pattern.rule :as pr :refer [rule-simplifier]]
             [sicmutils.numbers]
             [sicmutils.ratio]
             [sicmutils.simplify.rules :as r]
-            [sicmutils.simplify :as s]))
+            [sicmutils.simplify :as s]
+            [sicmutils.value :as v]))
 
 (deftest algebraic-tests
   (testing "unary elimination"
@@ -53,10 +54,113 @@
       (is (= 0
              (f 0)
              (f '(* x 0))
-             (f '(* 0 x)))))))
+             (f '(* 0 x))))))
+
+  (testing "commutative"
+    (let [rule (r/commutative '+ '*)
+          f    (rule-simplifier rule)]
+      (is (= '(* 2 3 a b c (+ a b c))
+             (f '(* c a b (+ c a b) 3 2)))
+          "sort by numbers, symbols, expressions ")
+
+      (let [expr '(* c a b (+ c a b))]
+        (is (= (f (f expr))
+               (f expr))
+            "commutative rule is idempotent"))))
+
+  (testing "idempotent"
+    (let [rule (r/idempotent 'and 'or)
+          f    (rule-simplifier rule)]
+      (is (= '(and a b (or b c d) c d)
+             (f '(and a b b
+                      (or b c c c d d d d)
+                      (or b c c c d d d d)
+                      c c c d)))
+          "duplicates are removed from arg lists."))))
+
+(deftest exponent-contract-tests
+  (let [contract (rule-simplifier
+                  r/exponent-contract)]
+    (is (= '(expt (expt x 2) 7)
+           (r/exponent-contract
+            '(expt (expt (expt x 2) 3) 4)))
+        "by default, applies a single step")
+
+    (is (= '(expt x 9)
+           (contract
+            '(expt (expt (expt x 2) 3) 4)))
+        "nested exponents")
+
+    (is (= '(* (expt x 3))
+           (contract
+            '(* x x x)))
+        "non-exponent groups")
+
+    (is (= '(* y (expt x 7))
+           (contract
+            '(* y x (expt x 2) x (expt x 2) x)))
+        "expts with singletons mixed in")))
+
+(deftest logexp-tests
+  (let [rule (fn [] (r/logexp s/*rf-analyzer*))]
+    (is (= '(expt x 3)
+           ((rule) '(exp (* 3 (log x)))))
+        "(log x) in the power cancels out the e base.")
+
+    (is (= 'x ((rule) '(exp (log x))))
+        "These always get simplified.")
+
+    (binding [r/*log-exp-simplify?* true]
+      (is (= '(+ x y)
+             ((rule) '(log (exp (+ x y)))))
+          "when simplification is on, we can cancel log/exp forms."))
+
+    (binding [r/*log-exp-simplify?* false]
+      (is (= '(log (exp (+ x y)))
+             ((rule) '(log (exp (+ x y)))))
+          "else, acts as identity."))
+
+    (binding [r/*sqrt-expt-simplify?* true]
+      (is (= '(exp (/ (+ x y) 2))
+             ((rule) '(sqrt (exp (+ x y)))))
+          "when sqrt/expt simplification is on, we assume that the value under
+          the root is positive, and push the sqrt inside of exp."))
+
+    (binding [r/*sqrt-expt-simplify?* false]
+      (is (= '(sqrt (exp (+ x y)))
+             ((rule) '(sqrt (exp (+ x y)))))
+          "else, acts as identity."))
+
+    (is (= '(* (/ 1 2) (log x))
+           ((rule) '(log (sqrt x))))
+        "Drop the internal sqrt down as a 1/2 exponent.")))
+
+(deftest magnitude-tests
+  (is (= '(expt x 10)
+         (r/magnitude '(magnitude (expt x 10))))
+      "even powers")
+
+  (is (= '(* (magnitude x) (expt x 10))
+         (r/magnitude '(magnitude (expt x 11))))
+      "odd powers")
+
+  (is (= '(magnitude x)
+         (r/magnitude '(magnitude (expt x 1))))
+      "power == 1")
+
+  (is (= '(* (magnitude x) (expt x -4))
+         (r/magnitude '(magnitude (expt x -3))))
+      "mag of negative exponent")
+
+  (is (= '(* 1 2 (magnitude y)
+             (* (magnitude x) (expt x 10)))
+         (r/magnitude
+          '(magnitude (* 1 -2 y (expt x 11)))))
+      "real numbers and integers get their magnitudes applied, odd exponents
+      pulled apart."))
 
 (deftest simplify-square-roots-test
-  (let [s r/simplify-square-roots]
+  (let [s (r/simplify-square-roots  s/*rf-analyzer*)]
     (testing "even powers"
       (is (= '(expt x 4)
              (s '(expt (sqrt x) 8)))
@@ -107,12 +211,13 @@
 
 (deftest sqrt-expand-contract-test
   (testing "sqrt-expand works with division"
-    (is (= '(+ (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
-           (r/sqrt-expand '(+ (sqrt (/ a b)) (sqrt (/ c b))))))
-    (is (= '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
-           (r/sqrt-expand '(- (sqrt (/ a b)) (sqrt (/ c b)))))))
+    (let [expand (r/sqrt-expand  s/*rf-analyzer*)]
+      (is (= '(+ (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
+             (expand '(+ (sqrt (/ a b)) (sqrt (/ c b))))))
+      (is (= '(- (/ (sqrt a) (sqrt b)) (/ (sqrt c) (sqrt b)))
+             (expand '(- (sqrt (/ a b)) (sqrt (/ c b))))))))
 
-  (let [sqrt-contract (r/sqrt-contract identity)]
+  (let [sqrt-contract (r/sqrt-contract  s/*rf-analyzer*)]
     (testing "cancels square roots if the values are equal"
       (is (= '(* a (sqrt (* b d)) c e)
              (sqrt-contract
@@ -138,10 +243,50 @@
     (is (= 'x (d '(* 1 x))))
     (is (= '(* x y z) (d '(* 1 x y z))))
     (is (= '(*) (d '(* 1))))
-    (is (= '(+ (/ a 3) (/ b 3) (/ c 3)) (d '(/ (+ a b c) 3))))))
+
+    (is (= '(+ (* (/ 1 3) a)
+               (* (/ 1 3) b)
+               (* (/ 1 3) c))
+           (v/freeze
+            (d '(/ (+ a b c) 3)))))))
+
+(deftest triginv-tests
+  (testing "arctan"
+    (let [triginv (r/triginv s/*rf-analyzer*)]
+      (is (= '(atan y x)
+             (triginv '(atan y x))))
+
+      (is (= '(/ pi 4)
+             (v/freeze
+              (triginv '(atan 1 1)))))
+
+      (is (= '(/ pi 4)
+             (v/freeze
+              (triginv '(atan x x)))))
+
+      (is (= '(- (/ (* 3 pi) 4))
+             (v/freeze
+              (triginv '(atan -1 -1)))))
+
+      (is (= '(atan -1)
+             (triginv '(atan -1 1))))
+
+      (is (= '(atan -1)
+             (triginv '(atan (* -1 x) x))))
+
+      (is (= '(atan 1 -1)
+             (triginv '(atan 1 -1))))
+
+      (is (= '(atan 1 -1)
+             (triginv '(atan x (* -1 x)))))
+
+      (is (= 'z (triginv
+                 '(atan
+                   (* x (sin z) y)
+                   (* y (cos z) x))))))))
 
 (deftest sincos-flush-ones-test
-  (let [s r/sincos-flush-ones]
+  (let [s (r/sincos-flush-ones s/*rf-analyzer*)]
     (is (= '(+ 1 a b c c d e f g)
            (s '(+ a b c (expt (sin x) 2) c d (expt (cos x) 2) e f g))))
 
@@ -185,3 +330,16 @@
                         (- 1 (expt (cos x) 2)))
                      (- 1 (expt (cos x) 2))) (- 1 (expt (cos x) 2))))
            (s '(+ 3 x (expt (sin x) 7)))))))
+
+(deftest partials-test
+  (let [full-rule (pr/pipe
+                   r/canonicalize-partials
+                   (rule-simplifier r/exponent-contract))
+        expr '(((partial 0) ((partial 1) ((partial 0) f))) (up x y z))]
+    (is (= '(((* (partial 0) (partial 0) (partial 1)) f) (up x y z))
+           (r/canonicalize-partials expr))
+        "This rule only expand and orders the partials.")
+
+    (is (= '(((* (expt (partial 0) 2) (partial 1)) f) (up x y z))
+           (full-rule expr))
+        "The full rule collects products into exponents.")))

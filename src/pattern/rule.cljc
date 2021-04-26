@@ -85,7 +85,7 @@
   ([form]
    (m/matcher form))
   ([form pred]
-   (if pred
+   (if (and pred (not= pred =>))
      (m/matcher form pred)
      (m/matcher form))))
 
@@ -348,12 +348,9 @@
 
 (defn guard
   "Takes a predicate function `f` and a rule `r`, and returns a new rule that will
-  return `(r data)` if `(f data)` is true, `data` otherwise.
-
-  NOTE that the returned rule will never fail."
+  return `(r data)` if `(f data)` is true, fail otherwise."
   [f r]
-  (attempt
-   (pipe (predicate f) r)))
+  (pipe (predicate f) r))
 
 (defn iterated
   "Similar to `clojure.core/iterate` for rule application.

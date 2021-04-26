@@ -26,7 +26,9 @@
   (:refer-clojure :rename {compare core-compare
                            sort core-sort}
                   :exclude [sorted? #?@(:cljs [compare sort])])
-  (:require [clojure.walk :as w]
+  (:require [clojure.pprint :as pp]
+            [clojure.walk :as w]
+            [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -295,3 +297,31 @@
   (if (sequential? xs)
     (core-sort compare xs)
     xs))
+
+;; ## Printing
+
+(defn expression->stream
+  "Renders an expression through the simplifier and onto the stream."
+  ([expr stream]
+   (-> (v/freeze
+        (g/simplify expr))
+       (pp/write :stream stream)))
+  ([expr stream options]
+   (let [opt-seq (->> (assoc options :stream stream)
+                      (apply concat))
+         simple (v/freeze
+                 (g/simplify expr))]
+     (apply pp/write simple opt-seq))))
+
+(defn expression->string
+  "Returns a string representation of a frozen, simplified version of the supplied
+  expression `expr`."
+  [expr]
+  (pr-str
+   (v/freeze (g/simplify expr))))
+
+(defn print-expression [expr]
+  (pp/pprint
+   (v/freeze (g/simplify expr))))
+
+(def pe print-expression)

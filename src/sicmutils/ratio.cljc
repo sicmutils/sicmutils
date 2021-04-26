@@ -40,7 +40,7 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v]
             #?(:cljs ["fraction.js/bigfraction.js" :as Fraction]))
-  #?(:clj (:import [clojure.lang BigInt Ratio])))
+  #?(:clj (:import (clojure.lang BigInt Ratio))))
 
 (def ^:no-doc ratiotype #?(:clj Ratio :cljs Fraction))
 (derive ratiotype ::v/real)

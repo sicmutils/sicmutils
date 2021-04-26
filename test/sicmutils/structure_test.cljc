@@ -28,6 +28,7 @@
             [sicmutils.abstract.number]
             [sicmutils.complex :as c]
             [sicmutils.function :as f]
+            [sicmutils.expression :as x]
             [sicmutils.generators :as sg]
             [sicmutils.generic :as g :refer [+ - * / cube expt negate square]]
             [sicmutils.structure :as s]
@@ -83,7 +84,11 @@
     (is (= ::s/up (v/kind (s/up 1 2))))
     (is (= ::s/down (v/kind (s/down (s/up 1 2)
                                     (s/up 2 3))))
-        "Kind only depends on the outer wrapper, not on the contents.")))
+        "Kind only depends on the outer wrapper, not on the contents."))
+
+  (testing "string rep"
+    (is (= "(up sin cos tan)" (x/expression->string
+                               (s/up g/sin g/cos g/tan))))))
 
 (defn arity-check
   "Takes a constructor function `build` and a `descriptor` string, and executes a
