@@ -314,8 +314,8 @@
      (apply pp/write simple opt-seq))))
 
 (defn expression->string
-  "Renders an expression through the simplifier and into a string,
-  which is returned."
+  "Returns a string representation of a frozen, simplified version of the supplied
+  expression `expr`."
   [expr]
   (pr-str
    (v/freeze (g/simplify expr))))

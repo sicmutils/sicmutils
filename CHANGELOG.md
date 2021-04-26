@@ -2,6 +2,42 @@
 
 ## [unreleased]
 
+- #353 introduces a powerful new simplifier, ported from the `new-simplify`
+  procedure in `simplify/rules.scm` of the scmutils library. There are now a
+  BUNCH of new rulesets and rule simplifiers in `sicmutils.simplify.rules`!
+
+  The next step with these is to massage them into separate bundles of rules
+  that users can mix and match into custom simplifiers for objects like abstract
+  matrices, abstract bra and ket structures, up and down, booleans (for
+  representing equations and inequalities) and so on.
+
+  Additional changes:
+
+  - `expression->stream`, `expression->string`, `print-expression`, `pe` move
+    from `sicmutils.simplify` to `sicmutils.expression`, and are now aliased in
+    `sicmutils.env`.
+
+  - `pattern.rule/guard` now if its rule argument fails; previously it wrapped
+    the result in `attempt`, and would return its original input on failure.
+
+  - The new `sicmutils.util.logic` namespace holds an `assume!` function that
+    allows rules to log assumptions when some simplification like `(sqrt (square
+    x))` might have to choose one of multiple possible simplifications
+    (`(non-negative? x)`, in this example).
+
+    This function simply logs the assumption for now, instead of performing any
+    checks. now. Turn off assumption logging with the dynamic variable
+    `*log-assumptions?*` in that namespace.
+
+  - fixed a heisenbug in `sicmutils.expression.analyze/make-analyzer` where, in
+    Clojurescript, using expressions containing a `js/BigInt` as a hashmap key
+    caused certain simplifications to fail. (This is vague, but the bug was
+    _really_ subtle.) The fix was to make sure we freeze keys in the symbol
+    cache. This is now noted in the function body.
+
+  - new `sicmutils.value/almost-integral?` returns true if its argument is VERY
+    close to an integral value, false otherwise.
+
 - #354 adds SCI support for all macros and functions in the new pattern matching
   namespaces, and adds these to the namespaces exposed via `sicmutils.env.sci`.
 

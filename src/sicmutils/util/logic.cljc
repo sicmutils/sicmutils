@@ -27,8 +27,12 @@
   true)
 
 (defn assume!
-  "Log an assumption. NOTE that if-false is not used right now. Currently this
-  always returns true."
+  "Log an assumption.
+
+  NOTE that `if-false` is not used right now. Currently this always returns true.
+
+  NOTE: what this WILL do is check if the assumption is correct, to the extent
+  that this is possible, and fail if it's provably false."
   ([assumption context]
    (assume! assumption context nil))
   ([assumption context if-false]

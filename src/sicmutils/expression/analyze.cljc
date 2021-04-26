@@ -154,7 +154,6 @@
                         :else expr))
 
                 (base-simplify [expr]
-                  ;; TODO NOTE that this was so important!
                   (let [cont #(->expression backend %1 %2)]
                     (expression-> backend expr cont vless?)))]
           (-> expr analyze base-simplify backsubstitute))))))
