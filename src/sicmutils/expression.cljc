@@ -322,6 +322,6 @@
 
 (defn print-expression [expr]
   (pp/pprint
-   (expression->string expr)))
+   (v/freeze (g/simplify expr))))
 
 (def pe print-expression)

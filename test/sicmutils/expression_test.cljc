@@ -164,6 +164,16 @@
     ))
 
 (deftest string-form-test
+  (let [expr (g/+ 'x 'x)]
+    (is (re-matches
+         #"\(\* 2 x\)\r?\n"
+         (with-out-str
+           (e/print-expression expr))))
+
+    (is (= (str (e/expression->string expr) "\n")
+           (with-out-str
+             (e/print-expression expr)))))
+
   (is (= "+" (e/expression->string g/+)))
   (is (= "nil" (e/expression->string nil)))
   (is (= "(up nil 3 (+ x 2))" (e/expression->string [nil 3 (g/+ 2 'x)])))
