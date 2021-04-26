@@ -213,4 +213,4 @@
 (defmethod g/simplify [Symbol] [a] a)
 (defmethod g/simplify [::x/numeric] [a]
   (literal-number
-   (s/new-simplify (v/freeze a))))
+   (s/simplify-expression (v/freeze a))))

@@ -26,9 +26,7 @@
             [sicmutils.generic :as g]
             [sicmutils.matrix :as m]
             [sicmutils.simplify :refer [hermetic-simplify-fixture
-                                        simplify-expression
-                                        expression->string
-                                        trig-cleanup]]
+                                        simplify-expression]]
             [sicmutils.structure :as s]
             [sicmutils.value :as v :refer [=]]))
 
@@ -109,50 +107,6 @@
   (is (= '(1 (complex 0.0 1.0) -1 (complex 0 -1) 1 (complex 0 1) -1 (complex 0 -1))
          (for [n (range 8)]
            (simplify-expression `(~'expt (~'complex 0.0 1.0) ~n))))))
-
-(deftest arc-tan-cleanup
-  (is (= '(* (/ 1 4) pi)
-         (v/freeze
-          (trig-cleanup '(atan 1 1)))))
-
-  (is (= '(* (/ 1 4) pi)
-         (v/freeze
-          (trig-cleanup '(atan x x)))))
-
-  (is (= '(* (/ -3 4) pi)
-         (v/freeze
-          (trig-cleanup '(atan -1 -1)))))
-
-  (is (= '(atan -1) (trig-cleanup '(atan -1 1))))
-  (is (= '(atan 1 -1) (trig-cleanup '(atan 1 -1))))
-  (is (= '(atan y x) (trig-cleanup '(atan y x))))
-
-  (is (= 'z (g/simplify
-             (g/atan
-              (g/* 'x (g/sin 'z) 'y)
-              (g/* 'y (g/cos 'z) 'x)))))
-
-  (is (= '(atan 1 -1) (trig-cleanup '(atan x (* -1 x)))))
-  (is (= '(atan -1) (trig-cleanup '(atan (* -1 x) x)))))
-
-(deftest string-form-test
-  (is (= "(up sin cos tan)" (expression->string (s/up g/sin g/cos g/tan))))
-  (is (= "+" (expression->string g/+)))
-  (is (= "nil" (expression->string nil)))
-  (is (= "(up nil 3 (+ x 2))" (expression->string [nil 3 (g/+ 2 'x)])))
-  (is (= #?(:clj "(complex 0.0 1.0)"
-            :cljs "(complex 0 1)")
-         (expression->string c/I)))
-
-  (is (= "1" (expression->string
-              ((g/+ (g/square g/sin) (g/square g/cos)) 'x))))
-
-  (is (#{"(/ (+ (* -1 (expt (cos x) 4)) 1N) (expt (cos x) 2))"
-         "(/ (+ (* -1 (expt (cos x) 4)) 1) (expt (cos x) 2))"}
-       (expression->string
-        ((g/+ (g/square g/sin) (g/square g/tan)) 'x)))
-      "This expression evaluates to one or the other, depending on what's been
-      evaluated."))
 
 (deftest more-trig
   (is (= '(tan x) (g/simplify (g/tan 'x))))

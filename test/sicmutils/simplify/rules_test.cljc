@@ -250,6 +250,41 @@
            (v/freeze
             (d '(/ (+ a b c) 3)))))))
 
+(deftest triginv-tests
+  (testing "arctan"
+    (let [triginv (r/triginv s/*rf-analyzer*)]
+      (is (= '(atan y x)
+             (triginv '(atan y x))))
+
+      (is (= '(/ pi 4)
+             (v/freeze
+              (triginv '(atan 1 1)))))
+
+      (is (= '(/ pi 4)
+             (v/freeze
+              (triginv '(atan x x)))))
+
+      (is (= '(- (/ (* 3 pi) 4))
+             (v/freeze
+              (triginv '(atan -1 -1)))))
+
+      (is (= '(atan -1)
+             (triginv '(atan -1 1))))
+
+      (is (= '(atan -1)
+             (triginv '(atan (* -1 x) x))))
+
+      (is (= '(atan 1 -1)
+             (triginv '(atan 1 -1))))
+
+      (is (= '(atan 1 -1)
+             (triginv '(atan x (* -1 x)))))
+
+      (is (= 'z (triginv
+                 '(atan
+                   (* x (sin z) y)
+                   (* y (cos z) x))))))))
+
 (deftest sincos-flush-ones-test
   (let [s (r/sincos-flush-ones s/*rf-analyzer*)]
     (is (= '(+ 1 a b c c d e f g)

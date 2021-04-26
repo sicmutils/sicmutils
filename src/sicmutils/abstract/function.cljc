@@ -36,7 +36,7 @@
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
-     (:import [clojure.lang IFn])))
+     (:import (clojure.lang IFn))))
 
 ;; ## Abstract Function
 ;;

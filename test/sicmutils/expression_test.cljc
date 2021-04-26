@@ -163,5 +163,18 @@
     ;; TODO add more tests as we start to explore this function.
     ))
 
-(deftest is-literal-test
-  )
+(deftest string-form-test
+  (is (= "+" (e/expression->string g/+)))
+  (is (= "nil" (e/expression->string nil)))
+  (is (= "(up nil 3 (+ x 2))" (e/expression->string [nil 3 (g/+ 2 'x)])))
+  (is (= "1" (e/expression->string
+              ((g/+ (g/square g/sin)
+                    (g/square g/cos))
+               'x))))
+
+  (is (#{"(/ (+ (* -1 (expt (cos x) 4)) 1N) (expt (cos x) 2))"
+         "(/ (+ (* -1 (expt (cos x) 4)) 1) (expt (cos x) 2))"}
+       (e/expression->string
+        ((g/+ (g/square g/sin) (g/square g/tan)) 'x)))
+      "This expression evaluates to one or the other, depending on what's been
+      evaluated."))

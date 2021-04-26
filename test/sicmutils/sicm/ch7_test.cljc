@@ -26,7 +26,7 @@
                      up down
                      sin cos square cube exp]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.simplify :refer [pe hermetic-simplify-fixture]]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :refer [within]]))
 
 (use-fixtures :each hermetic-simplify-fixture)
