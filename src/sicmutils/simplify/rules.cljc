@@ -1,5 +1,5 @@
 ;;
-;; Copyright © 2017 Colin Smith.
+;; Copyright © 2021 Sam Ritchie.
 ;; This work is based on the Scmutils system of MIT/GNU Scheme:
 ;; Copyright © 2002 Massachusetts Institute of Technology
 ;;
@@ -1528,24 +1528,25 @@ out of the first term of the argument."}
     => (* (complex 0.0 1.0) (sinh ?z)))))
 
 (def complex-rules
-  (rule-simplifier
-   (ruleset
-    (make-rectangular (cos ?theta) (sin ?theta))
-    => (exp (* (complex 0.0 1.0) ?theta))
+  (let [ctor '(? ?op #{complex make-rectangular})]
+    (rule-simplifier
+     (ruleset
+      (~ctor (cos ?theta) (sin ?theta))
+      => (exp (* (complex 0.0 1.0) ?theta))
 
-    (real-part (make-rectangular ?x _)) => ?x
-    (imag-part (make-rectangular _ ?y)) => ?y
+      (real-part (~ctor ?re _)) => ?re
+      (imag-part (~ctor _ ?im)) => ?im
 
-    (magnitude (make-rectangular ?x ?y))
-    => (sqrt (+ (expt ?x 2) (expt ?y 2)))
+      (magnitude (~ctor ?re ?im))
+      => (sqrt (+ (expt ?re 2) (expt ?im 2)))
 
-    (angle (make-rectangular ?x ?y)) => (atan ?y ?x)
+      (angle (~ctor ?re ?im)) => (atan ?im ?re)
 
-    (real-part (make-polar ?m ?a)) => (* ?m (cos ?a))
-    (imag-part (make-polar ?m ?a)) => (* ?m (sin ?a))
+      (real-part (make-polar ?m ?a)) => (* ?m (cos ?a))
+      (imag-part (make-polar ?m ?a)) => (* ?m (sin ?a))
 
-    (magnitude (make-polar ?m _)) => ?m
-    (angle (make-polar _ ?a)) => ?a)))
+      (magnitude (make-polar ?m _)) => ?m
+      (angle (make-polar _ ?a)) => ?a))))
 
 (def divide-numbers-through
   (rule-simplifier
