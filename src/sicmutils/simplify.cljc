@@ -67,12 +67,14 @@
    (poly-analyzer)))
 
 (defn hermetic-simplify-fixture
-  [f]
+  "Returns the result of executing the supplied `thunk` in an environment where
+  the [[*rf-analyzer*]] and [[*poly-analyzer*]] are not memoized."
+  [thunk]
   (binding [*rf-analyzer*   (rational-function-analyzer)
             *poly-analyzer* (poly-analyzer)]
-    (f)))
+    (thunk)))
 
-(defn simplify-and-flatten [expr]
+(defn- simplify-and-flatten [expr]
   (*rf-analyzer* expr))
 
 (defn- simplify-until-stable
@@ -97,13 +99,13 @@
         expr
         (canonicalize new-expr)))))
 
-(def clear-square-roots-of-perfect-squares
+(def ^:private clear-square-roots-of-perfect-squares
   (-> (comp (rules/universal-reductions #'*rf-analyzer*)
             factor/root-out-squares)
       (simplify-and-canonicalize simplify-and-flatten)))
 
-(defn only-if
-  "returns a function that will apply f to its argument x if `bool`, else returns x."
+(defn- only-if
+  "If the supplied `bool` is true, returns `f`, else returns `identity`."
   [bool f]
   (if bool
     f
@@ -111,7 +113,7 @@
 
 (let [universal-reductions (rules/universal-reductions #'*rf-analyzer*)
       sqrt-contract (rules/sqrt-contract #'*rf-analyzer*)
-      sqrt-expand   (rules/sqrt-expand #'*rf-analyzer*)
+      sqrt-expand (rules/sqrt-expand #'*rf-analyzer*)
       log-contract (rules/log-contract #'*rf-analyzer*)
       sincos-random (rules/sincos-random #'*rf-analyzer*)
       sincos-flush-ones (rules/sincos-flush-ones #'*rf-analyzer*)]
@@ -125,11 +127,8 @@
                           (rules/occurs-in? #{'sqrt} syms))
 
           logexp? (rules/occurs-in? #{'log 'exp} syms)
-          sincos? (rules/occurs-in? #{'sin 'cos} syms)
-
-          ;; NOTE added this since other stuff gets transformed TO this.
-          other-trig? (rules/occurs-in? #{'tan 'cot 'sec 'csc} syms)
-          partials?   (rules/occurs-in? #{'partial} syms) simple
+          trig? (rules/occurs-in? #{'sin 'cos 'tan 'cot 'sec 'csc} syms)
+          partials? (rules/occurs-in? #{'partial} syms) simple
           (comp (only-if rules/*divide-numbers-through-simplify?*
                          rules/divide-numbers-through)
 
@@ -142,8 +141,10 @@
                                (-> sqrt-contract
                                    (simplify-until-stable simplify-and-flatten))))
 
-                (only-if (or sincos? other-trig?)
+                (only-if trig?
                          (comp (-> (comp universal-reductions rules/sincos->trig)
+                                   (simplify-and-canonicalize simplify-and-flatten))
+                               (-> rules/complex-trig
                                    (simplify-and-canonicalize simplify-and-flatten))
                                (-> rules/angular-parity
                                    (simplify-and-canonicalize simplify-and-flatten))
@@ -155,7 +156,7 @@
                                    (simplify-and-canonicalize simplify-and-flatten))
 
                                (only-if rules/*trig-product-to-sum-simplify?*
-                                        (-> rules/trig-product-to-sum
+                                        (-> rules/trig:product->sum
                                             (simplify-and-canonicalize simplify-and-flatten)))
 
                                (-> universal-reductions
@@ -185,17 +186,17 @@
                                    sqrt-expand))
                     (simplify-until-stable simplify-and-flatten))
 
-                (only-if sincos?
+                (only-if trig?
                          (-> rules/angular-parity
                              (simplify-and-canonicalize simplify-and-flatten)))
 
                 (-> rules/trig->sincos
                     (simplify-and-canonicalize simplify-and-flatten))
 
-                ;; TODO note that I've added this... check if we need more from
-                ;; the older simplifier above.
-                rules/complex-trig
-
+                ;; TODO this should happen at the END, only a single time, after
+                ;; everything else is done. It's not right to get operator
+                ;; multiplication going and then attempt to canonicalize the
+                ;; expression, even if it sort of works.
                 (only-if partials?
                          (-> rules/canonicalize-partials
                              (simplify-and-canonicalize simplify-and-flatten)))

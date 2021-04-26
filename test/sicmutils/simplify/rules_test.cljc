@@ -19,7 +19,7 @@
 
 (ns sicmutils.simplify.rules-test
   (:require [clojure.test :refer [is deftest testing]]
-            [pattern.rule :refer [rule-simplifier]]
+            [pattern.rule :as pr :refer [rule-simplifier]]
             [sicmutils.numbers]
             [sicmutils.ratio]
             [sicmutils.simplify.rules :as r]
@@ -330,3 +330,16 @@
                         (- 1 (expt (cos x) 2)))
                      (- 1 (expt (cos x) 2))) (- 1 (expt (cos x) 2))))
            (s '(+ 3 x (expt (sin x) 7)))))))
+
+(deftest partials-test
+  (let [full-rule (pr/pipe
+                   r/canonicalize-partials
+                   (rule-simplifier r/exponent-contract))
+        expr '(((partial 0) ((partial 1) ((partial 0) f))) (up x y z))]
+    (is (= '(((* (partial 0) (partial 0) (partial 1)) f) (up x y z))
+           (r/canonicalize-partials expr))
+        "This rule only expand and orders the partials.")
+
+    (is (= '(((* (expt (partial 0) 2) (partial 1)) f) (up x y z))
+           (full-rule expr))
+        "The full rule collects products into exponents.")))

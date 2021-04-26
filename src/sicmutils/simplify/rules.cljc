@@ -18,6 +18,19 @@
 ;;
 
 (ns sicmutils.simplify.rules
+  "This namespace contains many sets of algebraic simplification rules you can use
+  to build simplifiers for algebraic structures.
+
+  [[rules]] currently holds a mix of:
+
+  - rulesets ported from the scmutils library
+  - more fine-grained, tuneable rulesets like [[associative]]
+    and [[constant-elimination]] designed to help you build lightweight custom
+    term-rewriting simplifiers.
+
+  NOTE: Expect this namespace to be broken out into more fine-grained
+  namespaces. There are TODO entries throughout the docstrings left as tips for
+  how to proceed here."
   (:refer-clojure :exclude [even? odd?])
   (:require [clojure.set :as cs]
             [pattern.match :as pm]
@@ -30,119 +43,192 @@
             [sicmutils.util.logic :as ul]
             [sicmutils.value :as v]))
 
-;; TODO move the various sets of rules out into subpackages after we're done
-;; here, with their OWN tests. Group them better into better rulesets!!
+;; ## Simplifier Configuration Variables
+;;
+;; SICMUtils uses a number of dynamic variables to tune the behavior of the
+;; simplifier without having to thread explicit maps of options through the
+;; rulesets. This design is not optimal; in a future version, we'll move any
+;; rules that depend on these out to their own rulesets, and move the
+;; configuration variables over to [[sicmutils.simplify]].
 
 (def ^{:dynamic true
-       :doc " allows (log (exp x)) => x.
+       :doc "If true, allows the following simplification to proceed:
 
-can confuse x=(x0+n*2pi)i with x0."}
+```clojure
+(log (exp x)) => x.
+```
+
+Because `exp(i*x) == exp(i*(x+n*2pi))` for all integral `n`, this setting can
+confuse `x` with `x+n*2pi`."}
   *log-exp-simplify?*
   true)
 
 (def ^{:dynamic true
-       :doc "Allows (x^a)^b => x^(a*b).
+       :doc "Allows `(x^a)^b => x^(a*b)`.
 
-This is dangerous, because can lose or gain a root, e.g.
-x = (x^(1/2))^2 != ((x^2)^1/2)=+-x"}
+This is dangerous, because can lose or gain a root:
+
+```
+x = (x^(1/2))^2 != ((x^2)^1/2)=+-x
+```
+"}
   *exponent-product-simplify?*
   true)
 
 (def ^{:dynamic true
-       :doc " Traditionally sqrt(x) is the positive square root but x^(1/2) is
-both positive and negative roots.
+       :doc " Traditionally, `sqrt(x)` is the positive square root, but
+`x^(1/2)` is both positive and negative roots.
 
-This confuses these, potentially losing a root."}
+Setting [[*expt-half->sqrt?*]] to `true` maps `x^(1/2)` to `sqrt(x)`,
+potentially losing a root."}
   *expt-half->sqrt?*
   true)
 
 (def ^{:dynamic true
-       :doc "If x is real then (sqrt (square x)) = (abs x).
+       :doc "If x is real, then `(sqrt (square x)) = (abs x)`.
 
-  This is hard to work with, but we usually want to allow (sqrt (square x)) =>
-  x, but this is not necessarily good if x is negative."}
+  Setting [[*sqrt-expt-simplify?*]] to `true` allows `(sqrt (square x)) = x`,
+  potentially causing a problem if `x` is in fact negative."}
   *sqrt-expt-simplify?*
   true)
 
 (def ^{:dynamic true
-       :doc "If x, y are real non-negative then
+       :doc "If `x` and `y` are real and non-negative, then
+
+```
 (* (sqrt x) (sqrt y)) = (sqrt (* x y))
-but this is not true for negative factors."}
+```
+
+This is not true for negative factors. Setting [[*sqrt-factor-simplify?*]] to
+true enables this simplification, causing a problem if `x` or `y` are in fact
+negative."}
   *sqrt-factor-simplify?*
   true)
 
 (def ^{:dynamic true
-       :doc "allows (atan y x) => (atan (/ y d) (/ x d)) where d=(gcd x y).
+       :doc "When `true`, allows:
 
-OK if d is a number (gcd is always positive) but may lose quadrant if gcd can be
-negative for some values of its variables."}
+```
+(atan y x) => (atan (/ y d) (/ x d))
+```
+
+where `d=(gcd x y)`.
+
+This is fine if `d` is a number (Numeric `gcd` is always positive), but may lose
+quadrant information if `d` is a symbolic expression that can be negative for
+some values of its variables."}
   *aggressive-atan-simplify?*
   true)
 
 (def ^{:dynamic true
-       :doc "allows (asin (sin x)) => x, etc.
+       :doc "When `true`, allows trigonometric inverse functions to simplify:
 
-loses multivalue info, as in log-exp"}
+```
+(asin (sin x)) => x
+```
+
+Because trigonometric functions like `sin` and `cos` are cyclic, this can lose
+multi-value info (as with [[*log-exp-simplify*]])."}
   *inverse-simplify?*
   true)
 
 (def ^{:dynamic true
-       :doc "Allows reduction of sin, cos of rational multiples of :pi"}
+       :doc "When `true`, allows arguments of `sin`, `cos` and `tan` that are
+  rational multiples of `'pi` to be reduced. See [[trig:special]] for these
+  rules."}
   *sin-cos-simplify?*
   true)
 
 (def ^{:dynamic true
-       :doc "Allow half-angle reductions. Sign of result is hairy!
+       :doc "When `true`, enables the half-angle reductions described in [[half-angle]].
 
-TODO: change this to more than half angle... use the routine from the book."}
+Note from GJS: 'Sign of result is hairy!'"}
   *half-angle-simplify?*
   true)
 
 (def ^{:dynamic true
-       :doc "allows commutation of partial derivatives.
+       :doc "When true, allows commutation of partial derivatives so that partial derivatives appear in order.
 
- Only ok if components selected by partials are unstructured (e.g. real)"}
+For example:
+
+```clojure
+(((* (partial 2 1) (partial 1 1)) FF) (up t (up x y) (down p_x p_y)))
+```
+
+Since the partial indices in the outer derivative are lexically greater than
+those of the inner, we canonicalize by swapping the order:
+
+```clojure
+(((* (partial 1 1) (partial 2 1)) FF) (up t (up x y) (down p_x p_y)))
+```
+
+When the components selected by the partials are unstructured (e.g. real), this
+is okay due to the 'equality of mixed partials'."}
   *commute-partials?*
   true)
 
 (def ^{:dynamic true
-       :doc "allows division through by numbers
+       :doc "When `true`, allows division through the numerator by numbers in
+       the denominator:
 
-e.g. (/ (+ (* 4 x) 5) 3) => (+ (* 4/3 x) 5/3)"}
+```
+(/ (+ (* 4 x) 5) 3) => (+ (* 4/3 x) 5/3)
+```
+
+This setting is `false` by default."}
   *divide-numbers-through-simplify?*
   false)
 
 (def ^{:dynamic true
-       :doc "Transforms products of trig functions into functions of sums
-of angles.
+       :doc "Transforms products of trig functions into functions of sums of
+       angles.
 
-e.g. (* (sin x) (cos y)) ==> (+ (* 1/2 (sin (+ x y))) (* 1/2 (sin (+ x (* -1
-y)))) )"}
+For example:
 
+```
+(* (sin x) (cos y))
+;;=>
+ (+ (* 1/2 (sin (+ x y)))
+    (* 1/2 (sin (+ x (* -1 y)))) )
+```"}
   *trig-product-to-sum-simplify?*
   false)
+
+;; ## Binding Predicates
+;;
+;; The following predicates are used to restrict bindings in the rules that
+;; follow. Bindings can take multiple predicates, but it reads a bit better to
+;; have them tightened up into a single predicate.
 
 (defn- negative-number? [x]
   (and (v/number? x)
        (g/negative? x)))
 
-(defn- complex-number? [z]
-  (and (c/complex? z)
-       (not (v/zero? (g/real-part z)))
-       (not (v/zero? (g/imag-part z)))))
-
-(defn- imaginary-number? [z]
+(defn- imaginary-number?
+  "Returns true if `z` is a complex number with nonzero imaginary part and zero
+  real part, false otherwise."
+  [z]
   (and (c/complex? z)
        (not (v/zero? z))
        (v/zero? (g/real-part z))))
 
-(defn- imaginary-integer? [z]
+(defn- complex-number?
+  "Returns true if `z` is a complex number with nonzero real AND imaginary parts,
+  false otherwise."
+  [z]
   (and (c/complex? z)
-       (not (v/zero? z))
-       (v/zero? (g/real-part z))
-       (v/integral? (g/imag-part z))))
+       (not (v/zero? (g/real-part z)))
+       (not (v/zero? (g/imag-part z)))))
 
-(defn non-integer? [x]
+(defn- imaginary-integer?
+  "Returns true if `z` is an imaginary number with an integral (or VERY close to
+  integral) imaginary part, false otherwise."
+  [z]
+  (and (imaginary-number? z)
+       (v/almost-integral?
+        (g/imag-part z))))
+
+(defn not-integral? [x]
   (not (v/integral? x)))
 
 (defn even? [x]
@@ -159,10 +245,6 @@ y)))) )"}
   (and (v/integral? x)
        (odd? x)))
 
-(defn even-positive-integer? [x]
-  (and (even-integer? x)
-       (> x 1)))
-
 (defn odd-positive-integer? [x]
   (and (odd-integer? x)
        (> x 2)))
@@ -172,6 +254,8 @@ y)))) )"}
 
 (defn- at-least-two? [x]
   (and (v/number? x) (>= x 2)))
+
+;; ## Rule Sets
 
 (defn unary-elimination
   "Takes a sequence `ops` of operator symbols like `'+`, `'*` and returns a rule
@@ -388,14 +472,22 @@ y)))) )"}
     => (* (magnitude ?x) (expt ?x (? #(g/- (% '?n) 1)))))))
 
 (defn miscsimp
-  "TODO break these apart into more rulesets, AND note that we have some
-  similarities to [[exponent-contract]] above."
+  "Simplifications for various exponent forms (assuming commutative multiplication).
+
+  NOTE that we have some similarities to [[exponent-contract]] above - that
+  function works for non-commutative multiplication - AND that this needs a new
+  name."
   [simplify]
   (let [sym:* (sym/symbolic-operator '*)]
     (rule-simplifier
      (ruleset
       (expt _ 0)  => 1
       (expt ?x 1) => ?x
+
+      ;; e^{ni} == 0,i,-1 or -i.
+      (expt (complex 0.0 1.0) (? ?n v/integral?))
+      => (? #([1 '(complex 0.0 1.0) -1 '(complex 0.0 -1.0)]
+              (mod (% '?n) 4)))
 
       (expt (expt ?x ?a) ?b)
       (fn [{a '?a b '?b x '?x}]
@@ -421,8 +513,11 @@ y)))) )"}
       (fn [_] *expt-half->sqrt?*)
       (sqrt ?x)
 
-      ;; Collect duplicate terms into exponents. TODO this is missing the case
-      ;; where non-exponent duplicates get collected into exponents.
+      ;; Collect duplicate terms into exponents.
+      ;;
+      ;; TODO this is missing the case where non-exponent duplicates get
+      ;; collected into exponents. At least note this; in the current library,
+      ;; like terms are collected by the polynomial simplifier.
       ;;
       ;; GJS notes: "a rare, expensive luxury."
       (* ??fs1* ?x ??fs2 (expt ?x ?y) ??fs3)
@@ -512,33 +607,33 @@ y)))) )"}
        (* ??u (sqrt ?x) ??v)))))
 
 (defn non-negative-factors!
-  "TODO note that I now check if the two sides are equal."
-  [simplify x y id]
-  (let [xs (simplify x)
-        ys (simplify y)]
-    (if (v/= xs ys)
-      (ul/assume! `(~'non-negative? ~xs) id (fn [] false))
-      (and (ul/assume! `(~'non-negative? ~xs) id (fn [] false))
-           (ul/assume! `(~'non-negative? ~ys) id (fn [] false))))))
+  "Takes a `simplify` function, two simplified expressions `x` and `y` and a symbolic
+  identifier `id` and registers an assumption that both sides are
+  non-negative (just one side if they end up equal after simplification).
+
+  Returns the conjuction of both assumptions."
+  ([simplify x id]
+   (ul/assume! `(~'non-negative? ~x) id (fn [] false)))
+  ([simplify x y id]
+   (and (ul/assume! `(~'non-negative? ~x) id (fn [] false))
+        (ul/assume! `(~'non-negative? ~y) id (fn [] false)))))
 
 (defn sqrt-expand
-  "distribute the radical sign across products and quotients. The companion rule
-  sqrt-contract reassembles what remains.
+  "Returns a rule simplifier that distributes the radical sign across products and
+  quotients. The companion rule [[sqrt-contract]] reassembles what remains.
 
   NOTE that doing this may allow equal subexpressions within the radicals to
-  cancel in various ways."
+  cancel in various ways.
+
+  Turn this simplifier on and off with [[*sqrt-factor-simplify?*]]."
   [simplify]
   (letfn [(pred [label]
             (fn [{x '?x y '?y}]
-              (non-negative-factors! simplify x y label)))]
-    ;; TODO test that the dynamic variable actually gates access, and that this
-    ;; is working like we want!
-    ;;
-    ;; TODO test that IF the two sides are equal in some of these cases, we can
-    ;; just pull out a NON square root... why not, since we have `simplify` at
-    ;; hand, AND since we do it below? YES, get this done!
-    ;;
-    ;; TODO rename the assumptions here.
+              (let [xs (simplify x)
+                    ys (simplify y)]
+                (if (v/= xs ys)
+                  (non-negative-factors! simplify xs label)
+                  (non-negative-factors! simplify xs ys label)))))]
     (r/attempt
      (r/guard
       (fn [_] *sqrt-factor-simplify?*)
@@ -561,17 +656,7 @@ y)))) )"}
         (/ (sqrt ?x) (sqrt (* ?y ??ys)))))))))
 
 (defn sqrt-contract [simplify]
-  (let [if-false (fn [] false)
-        non-negative!
-        (fn
-          ([xs sym]
-           (ul/assume! `(~'non-negative? ~xs) sym if-false))
-          ([xs ys sym]
-           ;; TODO use non-negative-factors above, and duplicate the checks
-           ;; above.
-           (and (ul/assume! `(~'non-negative? ~xs) sym if-false)
-                (ul/assume! `(~'non-negative? ~ys) sym if-false))))]
-
+  (let [non-negative! (partial non-negative-factors! simplify)]
     (rule-simplifier
      (r/ruleset*
       (r/rule
@@ -665,7 +750,7 @@ y)))) )"}
 
     (cosh ?u) => (/ (+ (exp ?u) (exp (* -1 ?u))) 2)
 
-    (expt ?x (? ?y non-integer?)) => (exp (* ?y (log ?x))))))
+    (expt ?x (? ?y not-integral?)) => (exp (* ?y (log ?x))))))
 
 (def logexp->specfun
   (rule-simplifier
@@ -754,28 +839,22 @@ y)))) )"}
     => ((* (partial ??i) (expt (partial ??j) ?m) ??more) ?f)
 
     ((expt (partial ??i) ?n) ((* (expt (partial ??j) ?m) ??more) ?f))
-    => ((* (expt (partial ??i) ?n) (expt (partial ??j) ?m) ??more) ?f)
+    => ((* (expt (partial ??i) ?n) (expt (partial ??j) ?m) ??more) ?f))
 
-    #_
-    (comment
-      ;; example:
+   (r/guard
+    (fn [_] *commute-partials?*)
+    ;; See [[*commute-partials?*]] above for a description of this
+    ;; transformation.
+    ;;
+    ;; TODO in the predicate, implement `symb:elementary-access?` and make sure
+    ;; that this only sorts if we can prove that we go all the way to the botom.
+    (r/rule
+     (((* ??xs (partial ??i) ??ys (partial ??j) ??zs) ?f) ??args)
 
-      (((* (partial 2 1) (partial 1 1)) FF) (up t (up x y) (down p_x p_y)))
-
-      ;; since the partial indices in the outer derivative are lexically greater
-      ;; than those of the inner, we canonicalize by swapping the order. This is
-      ;; the "equality of mixed partials."
-      )
-    (((* ??xs (partial ??i) ??ys (partial ??j) ??zs) ?f) ??args)
-    (fn [m]
-      ;; TODO implement `symb:elementary-access?` and make sure that this only
-      ;; sorts if we can prove that we go all the way to the botom.
-      ;;
-      ;; TODO move this to its own rule with a guard.
-      (and *commute-partials?*
-           (pos? (compare (vec ('??i m))
-                          (vec ('??j m))))))
-    (((* ??xs (partial ??j) ??ys (partial ??i) ??zs) ?f) ??args))))
+     (fn [{i '??i j '??j}]
+       (pos?
+        (compare (vec i) (vec j))))
+     (((* ??xs (partial ??j) ??ys (partial ??i) ??zs) ?f) ??args)))))
 
 ;; ## Trigonometric Rules
 ;;
@@ -812,10 +891,6 @@ y)))) )"}
        (* ??d1 (cos ?x) ??d2))
     => (/ (* ??n1 (tan ?x) ??n2)
           (* ??d1 ??d2)))))
-
-(comment
-  ;; TODO this is busted in the original scmutils: -0.7853981633974483
-  ((triginv sicmutils.simplify/*rf-analyzer*) '(atan -1 1)))
 
 (defn triginv [simplify]
   (r/rule-simplifier
@@ -923,74 +998,81 @@ y)))) )"}
           'acos-sin)))
      (- (* (/ 1 2) pi) ?x)))))
 
-(defn special-trig
-  "TODO check that we can actually handle these damned symbols for 2pi etc!"
+(defn trig:special
+  "TODO consolidate the symbolic checkers here with the constructor
+  simplifications in [[trig:special]]. "
   [simplify]
-  (let [sym:+ (sym/symbolic-operator '+)
-        sym:- (sym/symbolic-operator '-)
-        sym:* (sym/symbolic-operator '*)
+  (let [sym:+   (sym/symbolic-operator '+)
+        sym:-   (sym/symbolic-operator '-)
+        sym:*   (sym/symbolic-operator '*)
         sym:div (sym/symbolic-operator '/)]
     (letfn [(zero-mod-pi? [x]
-              (v/integral?
-               (simplify (sym:div x 'pi))))
+              (or (sym/zero-mod-pi? x)
+                  (or (v/integral?
+                       (simplify (sym:div x 'pi))))))
 
             (pi-over-2-mod-2pi? [x]
-              (v/integral?
-               (simplify
-                (sym:div (sym:- x (sym:div 'pi 2))
-                         (sym:* 2 'pi)))))
+              (or (sym/pi-over-2-mod-2pi? x)
+                  (v/integral?
+                   (simplify
+                    (sym:div (sym:- x (sym:div 'pi 2))
+                             (sym:* 2 'pi))))))
 
             (-pi-over-2-mod-2pi? [x]
-              (v/integral?
-               (simplify
-                (sym:div (sym:+ x (sym:div 'pi 2))
-                         (sym:* 2 'pi)))))
+              (or (sym/-pi-over-2-mod-2pi? x)
+                  (v/integral?
+                   (simplify
+                    (sym:div (sym:+ x (sym:div 'pi 2))
+                             (sym:* 2 'pi))))))
 
             (pi-over-2-mod-pi? [x]
-              (v/integral?
-               (simplify
-                (sym:div (sym:- x (sym:div 'pi 2))
-                         'pi))))
+              (or (sym/pi-over-2-mod-pi? x)
+                  (v/integral?
+                   (simplify
+                    (sym:div (sym:- x (sym:div 'pi 2))
+                             'pi)))))
 
             (zero-mod-2pi? [x]
-              (v/integral?
-               (simplify
-                (sym:div x (sym:* 2 'pi)))))
+              (or (sym/zero-mod-2pi? x)
+                  (v/integral?
+                   (simplify
+                    (sym:div x (sym:* 2 'pi))))))
 
             (pi-mod-2pi? [x]
-              (v/integral?
-               (simplify
-                (sym:div (sym:- x 'pi)
-                         (sym:* 2 'pi)))))
+              (or (sym/pi-mod-2pi? x)
+                  (v/integral?
+                   (simplify
+                    (sym:div (sym:- x 'pi)
+                             (sym:* 2 'pi))))))
 
             (pi-over-4-mod-pi? [x]
-              (v/integral?
-               (simplify
-                (sym:div (sym:- x (sym:div 'pi 4)) 'pi))))
+              (or (sym/pi-over-4-mod-pi? x)
+                  (v/integral?
+                   (simplify
+                    (sym:div (sym:- x (sym:div 'pi 4)) 'pi)))))
 
             (-pi-over-4-mod-pi? [x]
-              (v/integral?
-               (simplify
-                (sym:div (sym:+ x (sym:div 'pi 4))
-                         'pi))))]
+              (or (sym/-pi-over-4-mod-pi? x)
+                  (v/integral?
+                   (simplify
+                    (sym:div (sym:+ x (sym:div 'pi 4))
+                             'pi)))))]
       (rule-simplifier
        (ruleset
-        (sin (? _ zero-mod-pi?))   =>  0
-        (sin (? _ pi-over-2-mod-2pi?))  => +1
+        (sin (? _ zero-mod-pi?)) => 0
+        (sin (? _ pi-over-2-mod-2pi?)) => +1
         (sin (? _ -pi-over-2-mod-2pi?)) => -1
 
-        (cos (? _ pi-over-2-mod-pi?))   =>  0
-        (cos (? _ zero-mod-2pi?))  => +1
-        (cos (? _ pi-mod-2pi?))    => -1
+        (cos (? _ pi-over-2-mod-pi?)) => 0
+        (cos (? _ zero-mod-2pi?)) => +1
+        (cos (? _ pi-mod-2pi?)) => -1
 
-        (tan (? _ zero-mod-pi?))   =>  0
-        (tan (? _ pi-over-4-mod-pi?))   => +1
-        (tan (? _ -pi-over-4-mod-pi?))  => -1)))))
+        (tan (? _ zero-mod-pi?)) => 0
+        (tan (? _ pi-over-4-mod-pi?)) => +1
+        (tan (? _ -pi-over-4-mod-pi?)) => -1)))))
 
-
-
-(def ^{:doc "sin is odd, and cos is even. we canonicalize by moving the sign out
-of the first term of the argument."}
+(def ^{:doc "`sin` is odd, and `cos` is even. we canonicalize by moving the sign
+out of the first term of the argument."}
   angular-parity
   (rule-simplifier
    (ruleset
@@ -1031,31 +1113,31 @@ of the first term of the argument."}
       (cos (* 3 ?x ??y))
       => (+ (* 4 (expt (cos (* ?x ??y)) 3)) (* -3 (cos (* ?x ??y))))
 
-      ;; at least one f
+      ;; at least one f:
       (sin (* (? ?n exact-integer>3?) ?f ??fs))
       => (+ (* (sin (* (? #(g/- (% '?n) 1)) ?f ??fs))
                (cos (* ?f ??fs)))
             (* (cos (* (? #(g/- (% '?n) 1)) ?f ??fs))
                (sin (* ?f ??fs))))
 
-      ;; at least one y
+      ;; at least one y:
       (sin (+ ?x ?y ??ys))
       => (+ (* (sin ?x) (cos (+ ?y ??ys)))
             (* (cos ?x) (sin (+ ?y ??ys))))
 
-      ;; at least one f
+      ;; at least one f:
       (cos (* (? n exact-integer>3?) ?f ??fs))
       => (- (* (cos (* (? #(g/- (% '?n) 1)) ?f ??fs))
                (cos (* ?f ??fs)))
             (* (sin (* (? #(g/- (% '?n) 1)) ?f ??fs))
                (sin (* ?f ??fs))))
 
-      ;; at least one y
+      ;; at least one y:
       (cos (+ ?x ?y ??ys))
       => (- (* (cos ?x) (cos (+ ?y ??ys)))
             (* (sin ?x) (sin (+ ?y ??ys))))))))
 
-(def trig-sum-to-product
+(def trig:sum->product
   (rule-simplifier
    (ruleset
     (+ ??a (sin ?x) ??b (sin ?y) ??c )
@@ -1082,7 +1164,7 @@ of the first term of the argument."}
     => (+ (* -2 (sin (/ (+ ?x ?y) 2)) (sin (/ (- ?x ?y) 2)))
           ??a ??b ??c))))
 
-(def trig-product-to-sum
+(def trig:product->sum
   (rule-simplifier
    (ruleset
     (* ??u (sin ?x) ??v (sin ?y) ??w)
@@ -1143,27 +1225,28 @@ of the first term of the argument."}
                     'cos-half-angle-formula)
                    (r/template
                     (sqrt (/ (+ 1 (cos ~theta)) 2))))))]
-    (rule-simplifier
+    (r/attempt
      (r/guard
       (fn [_] *half-angle-simplify?*)
-      (r/ruleset*
-       (r/rule
-        (sin (* (/ 1 2) ?x ??y))
-        #(sin-half-angle-formula
-          (r/template % (* ?x ??y))))
+      (rule-simplifier
+       (r/ruleset*
+        (r/rule
+         (sin (* (/ 1 2) ?x ??y))
+         #(sin-half-angle-formula
+           (r/template % (* ?x ??y))))
 
-       (r/rule
-        (sin (/ ?x 2))
-        #(sin-half-angle-formula (% '?x)))
+        (r/rule
+         (sin (/ ?x 2))
+         #(sin-half-angle-formula (% '?x)))
 
-       (r/rule
-        (cos (* (/ 1 2) ?x ??y))
-        #(cos-half-angle-formula
-          (r/template % (* ?x ??y))))
+        (r/rule
+         (cos (* (/ 1 2) ?x ??y))
+         #(cos-half-angle-formula
+           (r/template % (* ?x ??y))))
 
-       (r/rule
-        (cos (/ ?x 2))
-        #(cos-half-angle-formula (% '?x))))))))
+        (r/rule
+         (cos (/ ?x 2))
+         #(cos-half-angle-formula (% '?x)))))))))
 
 (def sin-sq->cos-sq
   (rule-simplifier
@@ -1202,10 +1285,7 @@ of the first term of the argument."}
             (* (expt (?op ?x) 2) (? ~remaining))
             ??a2)))))
 
-(defn flush-obvious-ones
-  "TODO: test that this ONLY catches sin and cos in opposite order, NOT the same
-  stuff or anything random."
-  [simplify]
+(defn flush-obvious-ones [simplify]
   (let [?op      (pm/bind '?op #{'sin 'cos})
         ?flipped (pm/or (pm/and 'cos (pm/frame-predicate
                                       #(= 'sin (% '?op))))
@@ -1387,7 +1467,7 @@ of the first term of the argument."}
        (* ??y1 ??y2)))))
 
 (def exp-expand
-  (let [i '(complex 0.0 1.0)
+  (let [i  '(complex 0.0 1.0)
         -i '(complex 0.0 -1.0)
         exact-integer? (fn [x]
                          (and (v/integral? x)
@@ -1445,13 +1525,7 @@ of the first term of the argument."}
     => (cosh ?z)
 
     (sin (* ?z (complex 0.0 1.0)))
-    => (* (complex 0.0 1.0) (sinh ?z))
-
-    ;; Does this really belong here?
-    ;; It works by reducing n mod 4 and then indexing into [1 i -1 -i].
-    (expt (complex 0.0 1.0) (? ?n v/integral?))
-    => (? #([1 '(complex 0.0 1.0) -1 '(complex 0.0 -1.0)]
-            (mod (% '?n) 4))))))
+    => (* (complex 0.0 1.0) (sinh ?z)))))
 
 (def complex-rules
   (rule-simplifier
@@ -1520,10 +1594,12 @@ of the first term of the argument."}
    (empty?
     (cs/intersection syms all))))
 
-(defn universal-reductions [simplify]
+(defn universal-reductions
+  "Returns a rule simplifier of rules that are almost always helpful."
+  [simplify]
   (let [misc     (miscsimp simplify)
         le       (logexp simplify)
-        st       (special-trig simplify)
+        st       (trig:special simplify)
         ti       (triginv simplify)
         sim-root (simplify-square-roots simplify)]
     (fn [expr]

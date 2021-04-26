@@ -487,6 +487,26 @@
   [^double ε]
   (fn [^double x ^double y] (< (Math/abs (- x y)) ε)))
 
+(def ^:no-doc relative-integer-tolerance (* 100 machine-epsilon))
+(def ^:no-doc absolute-integer-tolerance 1e-20)
+
+(defn almost-integral?
+  "Returns true if `x` is either:
+
+  - [[integral?]],
+  - a floating point number either < [[absolute-integer-tolerance]] (if near
+    zero) or within [[relative-integer-tolerance]] of the closest integer,
+
+  false otherwise."
+  [x]
+  (or (integral? x)
+      (and (float? x)
+           (let [x (double x)
+                 z (Math/round x)]
+             (if (zero? z)
+               (< (Math/abs x) absolute-integer-tolerance)
+               (< (Math/abs (/ (- x z) z)) relative-integer-tolerance))))))
+
 (def twopi (* 2 Math/PI))
 
 (defn principal-value [cuthigh]
