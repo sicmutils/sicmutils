@@ -96,8 +96,8 @@
                           (x/substitute '(up x0 y0) 'p)))]
         (is (= '(+ (* -1 (((partial 0) f) p) (v↑0 p) (G↑0_01 p) (w↑1 p))
                    (* (((partial 0) f) p) (v↑0 p) (w↑1 p) (G↑0_10 p))
-                   (* (((partial 0) f) p) (v↑1 p) (w↑0 p) (G↑0_01 p))
-                   (* -1 (((partial 0) f) p) (v↑1 p) (w↑0 p) (G↑0_10 p))
+                   (* (((partial 0) f) p) (G↑0_01 p) (v↑1 p) (w↑0 p))
+                   (* -1 (((partial 0) f) p) (G↑0_10 p) (v↑1 p) (w↑0 p))
                    (* -1 (v↑0 p) (w↑1 p) (((partial 1) f) p) (G↑1_01 p))
                    (* (v↑0 p) (w↑1 p) (((partial 1) f) p) (G↑1_10 p))
                    (* (v↑1 p) (w↑0 p) (((partial 1) f) p) (G↑1_01 p))
@@ -332,14 +332,14 @@
             oneform-basis (b/basis->oneform-basis basis-over-mu)
             vector-basis (b/basis->vector-basis basis-over-mu)
             Cartan (cov/Christoffel->Cartan G-S2-1)]
-        (is (= '(up (+ (* -1 (expt ((D f↑phi) tau) 2)
+        (is (= '(up (+ (* -1
                           (sin (f↑theta tau))
-                          (cos (f↑theta tau)))
+                          (cos (f↑theta tau))
+                          (expt ((D f↑phi) tau) 2))
                        (((expt D 2) f↑theta) tau))
-                    (/ (+ (* 2 ((D f↑phi) tau) (cos (f↑theta tau)) ((D f↑theta) tau))
+                    (/ (+ (* 2 (cos (f↑theta tau)) ((D f↑phi) tau) ((D f↑theta) tau))
                           (* (sin (f↑theta tau)) (((expt D 2) f↑phi) tau)))
                        (sin (f↑theta tau))))
-
                (simplify
                 (s/mapr
                  (fn [w]
@@ -357,19 +357,15 @@
                      (compose (af/literal-function 'w↑1)
                               (m/chart the-real-line)))
                  vector-basis)]
-            (is (= '(up (+ (* -1 ((D f↑phi) tau)
+            (is (= '(up (+ (* -1
                               (sin (f↑theta tau))
                               (cos (f↑theta tau))
+                              ((D f↑phi) tau)
                               (w↑1 tau))
                            ((D w↑0) tau))
-                        (/ (+ (* ((D f↑phi) tau)
-                                 (cos (f↑theta tau))
-                                 (w↑0 tau))
-                              (* (cos (f↑theta tau))
-                                 ((D f↑theta) tau)
-                                 (w↑1 tau))
-                              (* (sin (f↑theta tau))
-                                 ((D w↑1) tau)))
+                        (/ (+ (* (cos (f↑theta tau)) ((D f↑phi) tau) (w↑0 tau))
+                              (* (cos (f↑theta tau)) ((D f↑theta) tau) (w↑1 tau))
+                              (* (sin (f↑theta tau)) ((D w↑1) tau)))
                            (sin (f↑theta tau))))
                    (simplify
                     (s/mapr
@@ -390,12 +386,9 @@
                     (osculating-path (up 'tau 'w↑1 'dw↑1:dt))
                     (m/chart the-real-line)))
                vector-basis)]
-          (is (= '(up (+ (* -1 w↑1
-                            ((D f↑phi) tau)
-                            (sin (f↑theta tau))
-                            (cos (f↑theta tau)))
+          (is (= '(up (+ (* -1 w↑1 (sin (f↑theta tau)) (cos (f↑theta tau)) ((D f↑phi) tau))
                          dw↑0:dt)
-                      (/ (+ (* w↑0 ((D f↑phi) tau) (cos (f↑theta tau)))
+                      (/ (+ (* w↑0 (cos (f↑theta tau)) ((D f↑phi) tau))
                             (* w↑1 (cos (f↑theta tau)) ((D f↑theta) tau))
                             (* dw↑1:dt (sin (f↑theta tau))))
                          (sin (f↑theta tau))))

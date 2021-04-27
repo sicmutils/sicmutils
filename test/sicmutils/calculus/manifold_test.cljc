@@ -334,20 +334,19 @@
   (roundtrips? m/S3-tilted (up 'a 'b 'c))
 
   (testing "S3-{spherical,tilted}"
-    (is (= '(up (atan (sqrt (+ (* (expt (sin b) 2)
-                                  (expt (sin c) 2)
-                                  (expt (cos a) 2))
-                               (* (expt (cos c) 2)
-                                  (expt (sin b) 2))
-                               (expt (cos b) 2)))
-                      (* (sin a) (sin b) (sin c)))
-                (atan (sqrt (+ (* (expt (sin a) 2)
-                                  (expt (cos c) 2)
-                                  (expt (sin b) 2))
-                               (expt (cos a) 2)))
-                      (* (cos b) (sin a)))
-                (atan (* -1 (cos a))
-                      (* (sin a) (cos c) (sin b))))
+    (is (= '(up (atan
+                 (sqrt
+                  (+ (* (expt (sin b) 2) (expt (sin c) 2) (expt (cos a) 2))
+                     (* (expt (sin c) 2) (expt (cos b) 2))
+                     (expt (cos c) 2)))
+                 (* (sin a) (sin b) (sin c)))
+                (atan
+                 (sqrt
+                  (+ (* (expt (sin a) 2) (expt (cos c) 2) (expt (sin b) 2))
+                     (expt (cos a) 2)))
+                 (* (sin a) (cos b)))
+                (atan
+                 (* -1 (cos a)) (* (sin a) (cos c) (sin b))))
            (s-freeze
             ((compose (m/chart m/S3-spherical)
                       (m/point m/S3-tilted))
@@ -402,10 +401,8 @@
              (up 'theta 'phi 'psi)))))
 
     (is (= '(up (asin (* (sin theta) (cos psi)))
-                (atan (+ (* (cos theta) (sin phi) (cos psi))
-                         (* (cos phi) (sin psi)))
-                      (+ (* (cos theta) (cos phi) (cos psi))
-                         (* -1 (sin phi) (sin psi))))
+                (atan (+ (* (sin phi) (cos theta) (cos psi)) (* (cos phi) (sin psi)))
+                      (+ (* (cos theta) (cos phi) (cos psi)) (* -1 (sin phi) (sin psi))))
                 (atan (* -1 (sin theta) (sin psi)) (cos theta)))
            (s-freeze
             ((f/compose (m/chart m/alternate-angles)

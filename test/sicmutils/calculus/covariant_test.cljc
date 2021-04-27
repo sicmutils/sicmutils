@@ -107,14 +107,14 @@
                       (-> (simplify expr)
                           (x/substitute '(up x0 y0) 'p)))]
 
-        (is (= '(+ (* (X↑0 p) (((partial 0) f) p) (((partial 0) Y↑0) p))
-                   (* (X↑0 p) (((partial 1) f) p) (((partial 0) Y↑1) p))
-                   (* -1 (Y↑0 p) (((partial 0) f) p) (((partial 0) X↑0) p))
+        (is (= '(+ (* -1 (Y↑0 p) (((partial 0) f) p) (((partial 0) X↑0) p))
                    (* -1 (Y↑0 p) (((partial 1) f) p) (((partial 0) X↑1) p))
-                   (* -1 (((partial 0) f) p) (Y↑1 p) (((partial 1) X↑0) p))
                    (* (((partial 0) f) p) (X↑1 p) (((partial 1) Y↑0) p))
-                   (* -1 (Y↑1 p) (((partial 1) f) p) (((partial 1) X↑1) p))
-                   (* (((partial 1) f) p) (X↑1 p) (((partial 1) Y↑1) p)))
+                   (* (((partial 0) f) p) (((partial 0) Y↑0) p) (X↑0 p))
+                   (* -1 (((partial 0) f) p) (Y↑1 p) (((partial 1) X↑0) p))
+                   (* (X↑1 p) (((partial 1) f) p) (((partial 1) Y↑1) p))
+                   (* (((partial 1) f) p) (X↑0 p) (((partial 0) Y↑1) p))
+                   (* -1 (((partial 1) f) p) (Y↑1 p) (((partial 1) X↑1) p)))
                (present
                 ((((g/Lie-derivative X) Y) f) R2-rect-point))))
 
@@ -206,9 +206,9 @@
                    (* (((partial 0) f) p) (((partial 0) Y↑0) p) (X↑0 p))
                    (* -1 (((partial 0) f) p) (Y↑1 p) (((partial 1) X↑0) p))
                    (* (((partial 0) f) p) (((partial 1) Y↑0) p) (X↑1 p))
-                   (* -1 (Y↑1 p) (((partial 1) f) p) (((partial 1) X↑1) p))
-                   (* (((partial 1) f) p) (((partial 0) Y↑1) p) (X↑0 p))
-                   (* (((partial 1) f) p) (((partial 1) Y↑1) p) (X↑1 p)))
+                   (* (((partial 1) f) p) (X↑0 p) (((partial 0) Y↑1) p))
+                   (* -1 (((partial 1) f) p) (Y↑1 p) (((partial 1) X↑1) p))
+                   (* (((partial 1) f) p) (X↑1 p) (((partial 1) Y↑1) p)))
                (present
                 ((D (fn [t]
                       (- ((Y f) ((phiX t) m_0))

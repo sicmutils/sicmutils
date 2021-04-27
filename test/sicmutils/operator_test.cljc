@@ -256,11 +256,13 @@
               (((* (+ D I) (- D I)) f) 'x)))))
 
   (testing "that Operators compose correctly with functions"
-    (is (v/= '(+ (* -1 (((expt D 2) f) x) ((D g) (+ ((D f) x) (f x))))
-                 (* -1 ((D f) x) ((D g) (+ ((D f) x) (f x))))
-                 (((expt D 2) f) x)
-                 (((expt D 3) f) x))
-             (g/simplify ((D ((* (- D g) (+ D I)) f)) 'x)))))
+    (is (= '(+ (* -1 (((expt D 2) f) x) ((D g) (+ (f x) ((D f) x))))
+               (* -1 ((D f) x) ((D g) (+ (f x) ((D f) x))))
+               (((expt D 2) f) x)
+               (((expt D 3) f) x))
+           (v/freeze
+            (g/simplify
+             ((D ((* (- D g) (+ D I)) f)) 'x))))))
 
   (testing "that basic arithmetic operations work on multivariate literal functions"
     (is (= '(down (* 2 (((partial 0) ff) x y))

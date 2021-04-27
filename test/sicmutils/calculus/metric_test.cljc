@@ -142,15 +142,15 @@
 
   (testing "more"
     (let-coordinates [[x y z] m/R3-rect]
-      (is (= '(+ (* (v↑0 (up x0 y0 z0)) (g_00 (up x0 y0 z0)) (u↑0 (up x0 y0 z0)))
-                 (* (v↑0 (up x0 y0 z0)) (g_01 (up x0 y0 z0)) (u↑1 (up x0 y0 z0)))
-                 (* (v↑0 (up x0 y0 z0)) (g_02 (up x0 y0 z0)) (u↑2 (up x0 y0 z0)))
+      (is (= '(+ (* (g_00 (up x0 y0 z0)) (u↑0 (up x0 y0 z0)) (v↑0 (up x0 y0 z0)))
                  (* (u↑0 (up x0 y0 z0)) (g_01 (up x0 y0 z0)) (v↑1 (up x0 y0 z0)))
                  (* (u↑0 (up x0 y0 z0)) (g_02 (up x0 y0 z0)) (v↑2 (up x0 y0 z0)))
-                 (* (u↑1 (up x0 y0 z0)) (v↑1 (up x0 y0 z0)) (g_11 (up x0 y0 z0)))
-                 (* (u↑1 (up x0 y0 z0)) (g_12 (up x0 y0 z0)) (v↑2 (up x0 y0 z0)))
-                 (* (u↑2 (up x0 y0 z0)) (v↑1 (up x0 y0 z0)) (g_12 (up x0 y0 z0)))
-                 (* (u↑2 (up x0 y0 z0)) (v↑2 (up x0 y0 z0)) (g_22 (up x0 y0 z0))))
+                 (* (v↑0 (up x0 y0 z0)) (g_01 (up x0 y0 z0)) (u↑1 (up x0 y0 z0)))
+                 (* (v↑0 (up x0 y0 z0)) (g_02 (up x0 y0 z0)) (u↑2 (up x0 y0 z0)))
+                 (* (v↑1 (up x0 y0 z0)) (u↑1 (up x0 y0 z0)) (g_11 (up x0 y0 z0)))
+                 (* (v↑1 (up x0 y0 z0)) (g_12 (up x0 y0 z0)) (u↑2 (up x0 y0 z0)))
+                 (* (v↑2 (up x0 y0 z0)) (u↑1 (up x0 y0 z0)) (g_12 (up x0 y0 z0)))
+                 (* (v↑2 (up x0 y0 z0)) (u↑2 (up x0 y0 z0)) (g_22 (up x0 y0 z0))))
              (simplify
               (((cm/literal-metric 'g R3-rect)
                 (vf/literal-vector-field 'u R3-rect)
@@ -168,9 +168,9 @@
             omega (ff/literal-oneform-field 'omega R2-rect)
             theta (ff/literal-oneform-field 'theta R2-rect)]
         (is (= '(/ (+ (* a (omega_1 (up x0 y0)) (theta_1 (up x0 y0)))
-                      (* -1 b (theta_0 (up x0 y0)) (omega_1 (up x0 y0)))
-                      (* -1 b (omega_0 (up x0 y0)) (theta_1 (up x0 y0)))
-                      (* c (theta_0 (up x0 y0)) (omega_0 (up x0 y0))))
+                      (* -1 b (omega_1 (up x0 y0)) (theta_0 (up x0 y0)))
+                      (* -1 b (theta_1 (up x0 y0)) (omega_0 (up x0 y0)))
+                      (* c (omega_0 (up x0 y0)) (theta_0 (up x0 y0))))
                    (+ (* a c) (* -1 (expt b 2))))
                (simplify
                 (((cm/invert (g-R2 'a 'b 'c) R2-basis)
