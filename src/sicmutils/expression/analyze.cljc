@@ -75,8 +75,8 @@
   way:
 
   If both inputs to the comparator are in `var-set,` or both are not, then the
-  results are as core compare would return. But if one is in `var-set` and the
-  other is not, then the other will always compare greater.
+  results are as `clojure.core/compare` would return. But if one is in `var-set`
+  and the other is not, then the other will always compare greater.
 
   In this way, expressions produced by the simplifier will have simple variables
   sorted earlier than expressions involving those variables."
@@ -124,7 +124,8 @@
   - A version of `x` converted to the canonical form represented by `analyzer`
   - A (sorted) sequence of variables found in `x`
 
-  `compare-fn` is used to sort variables. Defaults to `clojure.core/compare`.")
+  `compare-fn` is used to sort variables. Defaults
+  to [[clojure.core/compare]].")
 
   (->expression [analyzer b variables]
     "Convert a canonical form `b` back to S-expression form.
@@ -157,9 +158,9 @@
         ref-set #?(:clj ref-set :cljs reset!)
         expr->var (ref {})
         var->expr (ref {})
-        vless-fn  (atom compare)]
-    (letfn [(vless? [v1 v2]
-              (@vless-fn v1 v2))
+        compare-fn (atom compare)]
+    (letfn [(v-compare [v1 v2]
+              (@compare-fn v1 v2))
 
             (unquoted-list? [expr]
               (and (sequential? expr)
@@ -167,7 +168,7 @@
 
             ;; Prepare for new analysis
             (new-analysis! []
-              (reset! vless-fn compare)
+              (reset! compare-fn compare)
               (#?(:clj dosync :cljs identity)
                (ref-set expr->var {})
                (ref-set var->expr {}))
@@ -190,7 +191,7 @@
 
             (analyze [expr]
               (let [vcompare (make-vcompare (x/variables-in expr))]
-                (reset! vless-fn vcompare))
+                (reset! compare-fn vcompare))
               (ianalyze expr))
 
 
@@ -230,7 +231,8 @@
                 (add-symbol! new)))
 
             (backsubstitute [expr]
-              (cond (sequential? expr) (doall (map backsubstitute expr))
+              (cond (sequential? expr) (doall
+                                        (map backsubstitute expr))
                     (symbol? expr)     (if-let [w (@var->expr (v/freeze expr))]
                                          (backsubstitute w)
                                          expr)
@@ -241,7 +243,7 @@
                 (expression-> backend
                               expr
                               #(->expression backend %1 %2)
-                              vless?)
+                              v-compare)
                 expr))
 
             (analyze-expression [expr]
