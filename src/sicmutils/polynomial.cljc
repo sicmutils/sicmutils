@@ -478,7 +478,7 @@
 (deftype PolynomialAnalyzer []
   a/ICanonicalize
   (expression-> [this expr cont]
-    (a/expression-> this expr cont compare))
+    (a/expression-> this expr cont x/compare))
 
   (expression-> [this expr cont v-compare]
     ;; Convert an expression into Flat Polynomial canonical form. The expression
