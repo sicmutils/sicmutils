@@ -108,6 +108,12 @@
                      (inc increment)))))]
     (lp1 permuted-list 0)))
 
+(defn- same-set?
+  "Returns true if `x1` and `x2` contain the same elements, false otherwise."
+  [x1 x2]
+  (= (sort-by hash x1)
+     (sort-by hash x2)))
+
 (defn permutation-parity
   "If a single `permuted-list` is supplied, returns the parity of the number of
   interchanges required to sort the permutation.
@@ -124,8 +130,7 @@
   ([permuted-list original-list]
    (if (and (= (count permuted-list)
                (count original-list))
-            (= (sort permuted-list)
-               (sort original-list)))
+            (same-set? permuted-list original-list))
      (if (even? (list-interchanges permuted-list original-list))
        1
        -1)

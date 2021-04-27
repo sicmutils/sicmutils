@@ -128,13 +128,14 @@
        (write-all
         writer
         "#sicm/complex "
-        (str [(obj/get a "re")
-              (obj/get a "im")])))))
+        (str [(obj/get x "re")
+              (obj/get x "im")])))))
 
-(defmethod print-method Complex [^Complex v ^java.io.Writer w]
-  (.write w (str "#sicm/complex "
-                 [(.getReal v)
-                  (.getImaginary v)])))
+#?(:clj
+   (defmethod print-method Complex [^Complex v ^java.io.Writer w]
+     (.write w (str "#sicm/complex "
+                    [(.getReal v)
+                     (.getImaginary v)]))))
 
 (extend-type Complex
   v/Numerical
