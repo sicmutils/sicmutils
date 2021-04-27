@@ -42,6 +42,7 @@
                  [hiccup "1.0.5"]
                  [nrepl "0.7.0"]
                  [potemkin "0.4.5"]]
+  :global-vars {*warn-on-reflection* true}
   :jvm-opts ["-Djava.util.logging.config.file=logging.properties"]
   :repl-options {:prompt (fn [ns] (str "[" ns "] > "))
                  :welcome (sicmutils.env/sicmutils-repl-init)

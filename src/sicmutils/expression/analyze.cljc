@@ -36,6 +36,38 @@
             [sicmutils.numsymb :as sym]
             [sicmutils.value :as v]))
 
+;; ## General Recursive Simplifier Maker
+;;
+;; Given a set of operations, this procedure makes a recursive simplifier that
+;; simplifies expressions involving these operations, treating other
+;; combinations as atomic.
+;;
+;; To break an expression up into manipulable and nonmanipulable parts with
+;; respect to a set of algebraic operators. This is done by the introduction of
+;; auxiliary variables.
+;;
+;; For example, the equation
+;;    I = Is (exp((V2 - V3)/Vt) - 1) ; I, V2, V3
+;; can be broken into three equations
+;;    I + Is = Is*X                  ; I, X
+;;    V2/Vt - V3/Vt = Y              ; V2, V3, Y
+;;    X = (exp Y)                    ; X, Y
+;;
+;; where X and Y are new variables. The first two parts contain only addition,
+;; subtraction, multiplication, and division and the third is not expressible in
+;; terms of those operations.
+;;
+;;
+;; ### Implementation
+;;
+;; Exponential expressions with non-integer exponents must become
+;; kernels, because they cannot become polynomial exponentials.
+
+(def ^:dynamic *inhibit-expt-simplify*
+  true)
+
+;; ### Utilities
+
 (defn- make-vcompare
   "Returns
   a [Comparator](https://docs.oracle.com/javase/8/docs/api/java/util/Comparator.html)
@@ -51,9 +83,36 @@
   [var-set]
   (fn [v w]
     (cond
-      (var-set v) (if (var-set w) (compare v w) -1)
+      (var-set v) (if (var-set w)
+                    (compare v w)
+                    -1)
       (var-set w) 1
       :else (compare v w))))
+
+;; TODO write a test that generates 1000 of these and makes sure they sort! And then shows that gensyms do not, maybe?
+
+(defn monotonic-symbol-generator
+  "Returns a function which generates a sequence of symbols with the given
+  `prefix` with the property that later symbols will sort after earlier symbols.
+
+  This is important for the stability of the simplifier. (If we just used
+  `clojure.core/gensym`, then a temporary symbol like `G__1000` will sort
+  earlier than `G__999`. This will trigger errors at unpredictable times,
+  whenever `clojure.core/gensym` returns two symbols that cross an
+  order-of-magnitude boundary.)"
+  [prefix]
+  (let [count (atom -1)]
+    (fn [] (symbol
+           #?(:clj
+              (format "%s%016x" prefix (swap! count inc))
+
+              :cljs
+              (let [i (swap! count inc)
+                    suffix (-> (.toString i 16)
+                               (.padStart 16 "0"))]
+                (str prefix suffix)))))))
+
+;; TODO note this, this is a new thing!
 
 (defprotocol ICanonicalize
   "[[ICanonicalize]] captures the methods exposed by a SICMUtils analyzer backend."
@@ -95,86 +154,131 @@
   [backend symbol-generator]
   (let [ref #?(:clj ref :cljs atom)
         alter #?(:clj alter :cljs swap!)
+        ref-set #?(:clj ref-set :cljs reset!)
         expr->var (ref {})
-        var->expr (ref {})]
-    (fn [expr]
-      (let [vless? (make-vcompare (x/variables-in expr))]
-        (letfn [(analyze [expr]
-                  (if (and (sequential? expr)
-                           (not (= (first expr) 'quote)))
-                    (let [analyzed-expr (map analyze expr)]
-                      (if (and (known-operation? backend (sym/operator analyzed-expr))
-                               (or (not (= 'expt (sym/operator analyzed-expr)))
-                                   (integer? (second (sym/operands analyzed-expr)))))
-                        analyzed-expr
-                        (if-let [existing-expr (@expr->var analyzed-expr)]
-                          existing-expr
-                          (new-kernels analyzed-expr))))
-                    expr))
-                (new-kernels [expr]
-                  ;; use doall to force the variable-binding side effects of
-                  ;; base-simplify
-                  (let [simplified-expr (doall (map base-simplify expr))]
-                    (if-let [v (sym/symbolic-operator (sym/operator simplified-expr))]
-                      (let [w (apply v (sym/operands simplified-expr))]
-                        (if (and (sequential? w)
-                                 (= (sym/operator w) (sym/operator simplified-expr)))
-                          (add-symbols! w)
-                          (analyze w)))
-                      (add-symbols! simplified-expr))))
+        var->expr (ref {})
+        vless-fn  (atom compare)]
+    (letfn [(vless? [v1 v2]
+              (@vless-fn v1 v2))
 
-                (add-symbols! [expr]
-                  (add-symbol!
-                   ;; FORCE the side effect of binding all symbols.
-                   (doall (map add-symbol! expr))))
+            (unquoted-list? [expr]
+              (and (sequential? expr)
+                   (not (= (first expr) 'quote))))
 
-                (add-symbol! [expr]
-                  (let [expr-k (v/freeze expr)]
-                    (if (and (sequential? expr)
-                             (not= (first expr) 'quote))
-                      ;; in a transaction, probe and maybe update the
-                      ;; expr->var->expr maps.
-                      ;;
-                      ;; NOTE: Make sure to use the FROZEN version of the
-                      ;; expression as the key.
-                      (#?(:clj dosync :cljs identity)
-                       (if-let [existing-expr (@expr->var expr-k)]
-                         existing-expr
-                         (let [var (symbol-generator)]
-                           (alter expr->var assoc expr-k var)
-                           (alter var->expr assoc var expr)
-                           var)))
-                      expr)))
+            ;; Prepare for new analysis
+            (new-analysis! []
+              (reset! vless-fn compare)
+              (#?(:clj dosync :cljs identity)
+               (ref-set expr->var {})
+               (ref-set var->expr {}))
+              nil)
 
-                (backsubstitute [expr]
-                  (cond (sequential? expr) (map backsubstitute expr)
-                        (symbol? expr) (if-let [w (@var->expr (v/freeze expr))]
+            (ianalyze [expr]
+              (if (unquoted-list? expr)
+                (let [analyzed-expr (doall (map ianalyze expr))]
+                  (if (and (known-operation? backend (sym/operator analyzed-expr))
+                           (not (and *inhibit-expt-simplify*
+                                     (sym/expt? analyzed-expr)
+                                     (not (v/integral?
+                                           (second
+                                            (sym/operands analyzed-expr)))))))
+                    analyzed-expr
+                    (if-let [existing-expr (@expr->var analyzed-expr)]
+                      existing-expr
+                      (new-kernels analyzed-expr))))
+                expr))
+
+            (analyze [expr]
+              (let [vcompare (make-vcompare (x/variables-in expr))]
+                (reset! vless-fn vcompare))
+              (ianalyze expr))
+
+
+            ;; NOTE: use `doall` to force the variable-binding side effects
+            ;; of `base-simplify`
+            (new-kernels [expr]
+              (let [simplified-expr (doall (map base-simplify expr))
+                    op (sym/operator simplified-expr)]
+                (if-let [v (sym/symbolic-operator op)]
+                  (let [w (apply v (sym/operands simplified-expr))]
+                    (if (and (sequential? w)
+                             (= (sym/operator w) op))
+                      (add-symbols! w)
+                      (ianalyze w)))
+                  (add-symbols! simplified-expr))))
+
+            (add-symbol! [expr]
+              (if (unquoted-list? expr)
+                ;; in a transaction, probe and maybe update the
+                ;; expr->var->expr maps
+                ;;
+                ;; NOTE: Make sure to use the FROZEN version of the
+                ;; expression as the key.
+                (let [expr-k (v/freeze expr)]
+                  (#?(:clj dosync :cljs identity)
+                   (if-let [existing-expr (@expr->var expr)]
+                     existing-expr
+                     (let [var (symbol-generator)]
+                       (alter expr->var assoc expr-k var)
+                       (alter var->expr assoc var expr)
+                       var))))
+                expr))
+
+            (add-symbols! [expr]
+              ;; NOTE: FORCE the side effect of binding all symbols.
+              (let [new (doall (map add-symbol! expr))]
+                (add-symbol! new)))
+
+            (backsubstitute [expr]
+              (cond (sequential? expr) (doall (map backsubstitute expr))
+                    (symbol? expr)     (if-let [w (@var->expr (v/freeze expr))]
                                          (backsubstitute w)
                                          expr)
-                        :else expr))
+                    :else expr))
 
-                (base-simplify [expr]
-                  (let [cont #(->expression backend %1 %2)]
-                    (expression-> backend expr cont vless?)))]
-          (-> expr analyze base-simplify backsubstitute))))))
+            (base-simplify [expr]
+              (if (unquoted-list? expr)
+                (expression-> backend
+                              expr
+                              #(->expression backend %1 %2)
+                              vless?)
+                expr))
 
-(defn monotonic-symbol-generator
-  "Returns a function which generates a sequence of symbols with the given
-  `prefix` with the property that later symbols will sort after earlier symbols.
+            (analyze-expression [expr]
+              (binding [sym/*incremental-simplifier* false]
+                (base-simplify
+                 (analyze expr))))
 
-  This is important for the stability of the simplifier. (If we just used
-  `clojure.core/gensym`, then a temporary symbol like `G__1000` will sort
-  earlier than `G__999`. This will trigger errors at unpredictable times,
-  whenever `clojure.core/gensym` returns two symbols that cross an
-  order-of-magnitude boundary.)"
-  [prefix]
-  (let [count (atom -1)]
-    (fn [] (symbol
-           #?(:clj
-              (format "%s%016x" prefix (swap! count inc))
+            ;; Simplify relative to existing tables
+            (simplify-expression [expr]
+              (backsubstitute
+               (analyze-expression expr)))
 
-              :cljs
-              (let [i (swap! count inc)
-                    suffix (-> (.toString i 16)
-                               (.padStart 16 "0"))]
-                (str prefix suffix)))))))
+            ;; Default simplifier
+            (simplify [expr]
+              (new-analysis!)
+              (simplify-expression expr))]
+
+      {:simplify simplify
+       :simplify-expression simplify-expression
+       :initializer new-analysis!
+       :analyze-expression analyze-expression
+       :get-var->expr (fn [] @var->expr)
+       :get-expr->var (fn [] @expr->var)})))
+
+;; These functions allow you to take different pieces of the analyzer apart.
+
+(defn default-simplifier [analyzer]
+  (:simplify analyzer))
+
+(defn expression-simplifier [analyzer]
+  (:simplify-expression analyzer))
+
+(defn initializer [analyzer]
+  (:initializer analyzer))
+
+(defn expression-analyzer [analyzer]
+  (:analyze-expression analyzer))
+
+(defn auxiliary-variable-fetcher [analyzer]
+  (:get-var->expr analyzer))
