@@ -30,7 +30,7 @@
             #?(:cljs [goog.object :as obj])
             #?(:cljs ["complex.js" :as Complex]))
   #?(:clj
-     (:import [org.apache.commons.math3.complex Complex ComplexFormat])))
+     (:import (org.apache.commons.math3.complex Complex ComplexFormat))))
 
 (def ^{:doc "A [[Complex]] value equal to 0 (south pole on the Riemann Sphere)."}
   ZERO

@@ -229,12 +229,12 @@
           nabla (cov/covariant-derivative Cartan mu:N->M)
           nablau (nabla d:dt)
           nablan (nabla d:dn)
-          s0->s12-subs {'(((* (partial 1) (expt (partial 0) 2)) f↑theta) (up tau 0)) 'xidotdot
-                        '(((* (partial 1) (expt (partial 0) 2)) f↑phi) (up tau 0)) 'etadotdot
+          s0->s12-subs {'(((* (expt (partial 0) 2) (partial 1)) f↑theta) (up tau 0)) 'xidotdot
+                        '(((* (expt (partial 0) 2) (partial 1)) f↑phi) (up tau 0)) 'etadotdot
                         '(((expt (partial 0) 2) f↑phi) (up tau 0)) 'phidotdot
                         '(((expt (partial 0) 2) f↑theta) (up tau 0)) 'thetadotdot
-                        '(((* (partial 1) (partial 0)) f↑phi) (up tau 0)) 'etadot
-                        '(((* (partial 1) (partial 0)) f↑theta) (up tau 0)) 'xidot
+                        '(((* (partial 0) (partial 1)) f↑phi) (up tau 0)) 'etadot
+                        '(((* (partial 0) (partial 1)) f↑theta) (up tau 0)) 'xidot
                         '(((partial 1) f↑theta) (up tau 0)) 'xi
                         '(((partial 1) f↑phi) (up tau 0)) 'eta
                         '(((partial 0) f↑theta) (up tau 0)) 'thetadot

@@ -140,9 +140,10 @@
       (is (= 3 (e/dimension A))))))
 
 (deftest pe
-  (is (re-matches #"\(\* 2 x\)\r?\n"
-                  (with-out-str
-                    (e/print-expression (+ 'x 'x))))))
+  (is (re-matches
+       #"\(\* 2 x\)\r?\n"
+       (with-out-str
+         (e/print-expression (+ 'x 'x))))))
 
 (deftest pv
   (let [π Math/PI

@@ -183,47 +183,43 @@
 
 ;; ## Trig Functions
 
-(def ^:private relative-integer-tolerance (* 100 v/machine-epsilon))
-(def ^:private absolute-integer-tolerance 1e-20)
-
-(defn- almost-integer? [x]
-  (or (integer? x)
-      (and (float? x)
-           (let [x (double x)
-                 z (Math/round x)]
-             (if (zero? z)
-               (< (Math/abs x) absolute-integer-tolerance)
-               (< (Math/abs (/ (- x z) z)) relative-integer-tolerance))))))
-
 (def ^:private pi Math/PI)
 (def ^:private pi-over-4 (/ pi 4))
 (def ^:private two-pi (* 2 pi))
 (def ^:private pi-over-2 (* 2 pi-over-4))
 
 (defn ^:private n:zero-mod-pi? [x]
-  (almost-integer? (/ x pi)))
-(def ^:private symb:zero-mod-pi? #{'-pi 'pi '-two-pi 'two-pi})
+  (v/almost-integral? (/ x pi)))
+
 (defn ^:private n:pi-over-2-mod-2pi? [x]
-  (almost-integer? (/ (- x pi-over-2 two-pi))))
-(def ^:private symb:pi-over-2-mod-2pi? #{'pi-over-2})
+  (v/almost-integral? (/ (- x pi-over-2 two-pi))))
+
 (defn ^:private n:-pi-over-2-mod-2pi? [x]
-  (almost-integer? (/ (+ x pi-over-2) two-pi)))
-(def ^:private symb:-pi-over-2-mod-2pi? #{'-pi-over-2})
+  (v/almost-integral? (/ (+ x pi-over-2) two-pi)))
+
 (defn ^:private n:pi-mod-2pi? [x]
-  (almost-integer? (/ (- x pi) two-pi)))
-(def ^:private symb:pi-mod-2pi? #{'-pi 'pi})
+  (v/almost-integral? (/ (- x pi) two-pi)))
+
 (defn ^:private n:pi-over-2-mod-pi? [x]
-  (almost-integer? (/ (- x pi-over-2) pi)))
-(def ^:private symb:pi-over-2-mod-pi? #{'-pi-over-2 'pi-over-2})
+  (v/almost-integral? (/ (- x pi-over-2) pi)))
+
 (defn ^:private n:zero-mod-2pi? [x]
-  (almost-integer? (/ x two-pi)))
-(def ^:private symb:zero-mod-2pi? #{'-two-pi 'two-pi})
+  (v/almost-integral? (/ x two-pi)))
+
 (defn ^:private n:-pi-over-4-mod-pi? [x]
-  (almost-integer? (/ (+ x pi-over-4) pi)))
-(def ^:private symb:-pi-over-4-mod-pi? #{'-pi-over-4})
+  (v/almost-integral? (/ (+ x pi-over-4) pi)))
+
 (defn ^:private n:pi-over-4-mod-pi? [x]
-  (almost-integer? (/ (- x pi-over-4) pi)))
-(def ^:private symb:pi-over-4-mod-pi? #{'pi-over-4 '+pi-over-4})
+  (v/almost-integral? (/ (- x pi-over-4) pi)))
+
+(def ^:no-doc zero-mod-pi? #{'-pi 'pi '-two-pi 'two-pi})
+(def ^:no-doc pi-over-2-mod-2pi? #{'pi-over-2})
+(def ^:no-doc -pi-over-2-mod-2pi? #{'-pi-over-2})
+(def ^:no-doc pi-mod-2pi? #{'-pi 'pi})
+(def ^:no-doc pi-over-2-mod-pi? #{'-pi-over-2 'pi-over-2})
+(def ^:no-doc zero-mod-2pi? #{'-two-pi 'two-pi})
+(def ^:no-doc -pi-over-4-mod-pi? #{'-pi-over-4})
+(def ^:no-doc pi-over-4-mod-pi? #{'pi-over-4 '+pi-over-4})
 
 (defn- sin
   "Implementation of sine that attempts to apply optimizations at the call site.
@@ -236,9 +232,9 @@
                               (n:pi-over-2-mod-2pi? x) 1
                               (n:-pi-over-2-mod-2pi? x) -1
                               :else (Math/sin x)))
-        (symbol? x) (cond (symb:zero-mod-pi? x) 0
-                          (symb:pi-over-2-mod-2pi? x) 1
-                          (symb:-pi-over-2-mod-2pi? x) -1
+        (symbol? x) (cond (zero-mod-pi? x) 0
+                          (pi-over-2-mod-2pi? x) 1
+                          (-pi-over-2-mod-2pi? x) -1
                           :else (list 'sin x))
         :else (list 'sin x)))
 
@@ -253,9 +249,9 @@
                               (n:zero-mod-2pi? x) 1
                               (n:pi-mod-2pi? x) -1
                               :else (Math/cos x)))
-        (symbol? x) (cond (symb:pi-over-2-mod-pi? x) 0
-                          (symb:zero-mod-2pi? x) +1
-                          (symb:pi-mod-2pi? x) -1
+        (symbol? x) (cond (pi-over-2-mod-pi? x) 0
+                          (zero-mod-2pi? x) +1
+                          (pi-mod-2pi? x) -1
                           :else (list 'cos x))
         :else (list 'cos x)))
 
@@ -271,10 +267,10 @@
                               (n:-pi-over-4-mod-pi? x) -1
                               (n:pi-over-2-mod-pi? x) (u/illegal "Undefined: tan")
                               :else (Math/tan x)))
-        (symbol? x) (cond (symb:zero-mod-pi? x) 0
-                          (symb:pi-over-4-mod-pi? x) 1
-                          (symb:-pi-over-4-mod-pi? x) -1
-                          (symb:pi-over-2-mod-pi? x) (u/illegal "Undefined: tan")
+        (symbol? x) (cond (zero-mod-pi? x) 0
+                          (pi-over-4-mod-pi? x) 1
+                          (-pi-over-4-mod-pi? x) -1
+                          (pi-over-2-mod-pi? x) (u/illegal "Undefined: tan")
                           :else (list 'tan x))
         :else (list 'tan x)))
 

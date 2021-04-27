@@ -47,14 +47,14 @@
             [sicmutils.abstract.function :as af #?@(:cljs [:include-macros true])]
             [sicmutils.abstract.number :as an]
             [sicmutils.complex]
-            [sicmutils.expression]
+            [sicmutils.expression :as x]
             [sicmutils.expression.render :as render]
             [sicmutils.function :as f]
             [sicmutils.generic :as g]
             [sicmutils.modint]
             [sicmutils.operator :as o]
             [sicmutils.ratio]
-            [sicmutils.simplify :as simp]
+            [sicmutils.simplify]
             [sicmutils.structure :as structure]
             [sicmutils.value :as v]
             [sicmutils.matrix :as matrix]
@@ -95,7 +95,7 @@
 #?(:clj
    (defn sicmutils-repl-init
      []
-     (set! nrepl.middleware.print/*print-fn* simp/expression->stream)))
+     (set! nrepl.middleware.print/*print-fn* x/expression->stream)))
 
 (defmacro bootstrap-repl!
   "Bootstraps a repl or Clojure namespace by requiring all public vars
@@ -127,8 +127,6 @@
 
 (defmacro using-coordinates [& args]
   `(cc/using-coordinates ~@args))
-
-(import-def simp/print-expression)
 
 (defn ref
   "A shim so that ref can act like nth in SICM contexts, as clojure core ref
@@ -179,6 +177,12 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   constant [e](https://en.wikipedia.org/wiki/E_(mathematical_constant)),
   sometimes known as Euler's Number."}
   euler
+  (Math/exp 1))
+
+(def ^{:doc "The mathematical constant known as the [Euler–Mascheroni
+  constant](https://en.wikipedia.org/wiki/Euler%E2%80%93Mascheroni_constant) and
+  sometimes as Euler's constant."}
+  euler-gamma
   0.57721566490153286)
 
 (def ^{:doc "The mathematical
@@ -237,13 +241,14 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
 (import-vars
  [sicmutils.abstract.number literal-number]
  [sicmutils.complex complex complex?]
- #?(:cljs [sicmutils.ratio
-           ratio? rationalize numerator denominator])
- [sicmutils.util bigint? #?@(:cljs [bigint])]
  [sicmutils.function arity compose arg-shift arg-scale I]
  [sicmutils.modint chinese-remainder]
  [sicmutils.operator commutator anticommutator]
+ #?(:cljs [sicmutils.ratio
+           ratio? rationalize numerator denominator])
  [sicmutils.series binomial-series partial-sums]
+ [sicmutils.util bigint? #?@(:cljs [bigint])]
+
  [sicmutils.generic
   * + - / divide
   negate
@@ -286,7 +291,9 @@ constant [Pi](https://en.wikipedia.org/wiki/Pi)."}
   up?
   vector->down vector->up
   literal-down literal-up]
- [sicmutils.expression expression-of]
+ [sicmutils.expression
+  expression-of
+  expression->stream expression->string print-expression pe]
  [sicmutils.expression.render
   ->infix
   ->TeX

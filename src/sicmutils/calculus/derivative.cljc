@@ -393,14 +393,14 @@
   Single-argument functions don't transform their arguments."
   ([f] (multivariate f []))
   ([f selectors]
-   (let [d #(euclidean % selectors)]
+   (let [d #(euclidean % selectors)
+         df (d f)
+         df* (d (fn [args] (apply f args)))]
      (-> (fn
            ([] (constantly 0))
-           ([x] ((d f) x))
+           ([x] (df x))
            ([x & more]
-            (let [arg-structure (matrix/seq-> (cons x more))]
-              ((d (fn [args] (apply f args)))
-               arg-structure))))
+            (df* (matrix/seq-> (cons x more)))))
          (f/with-arity (f/arity f) {:from ::multivariate})))))
 
 ;; ## Generic [[g/partial-derivative]] Installation

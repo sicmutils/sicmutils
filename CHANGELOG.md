@@ -2,7 +2,95 @@
 
 ## [unreleased]
 
-- Efficient `symmetric-difference` implementation in `sicmutils.util.vector-set` (#346)
+- #353 introduces a powerful new simplifier, ported from the `new-simplify`
+  procedure in `simplify/rules.scm` of the scmutils library. There are now a
+  BUNCH of new rulesets and rule simplifiers in `sicmutils.simplify.rules`!
+
+  The next step with these is to massage them into separate bundles of rules
+  that users can mix and match into custom simplifiers for objects like abstract
+  matrices, abstract bra and ket structures, up and down, booleans (for
+  representing equations and inequalities) and so on.
+
+  Additional changes:
+
+  - `expression->stream`, `expression->string`, `print-expression`, `pe` move
+    from `sicmutils.simplify` to `sicmutils.expression`, and are now aliased in
+    `sicmutils.env`.
+
+  - `pattern.rule/guard` now if its rule argument fails; previously it wrapped
+    the result in `attempt`, and would return its original input on failure.
+
+  - The new `sicmutils.util.logic` namespace holds an `assume!` function that
+    allows rules to log assumptions when some simplification like `(sqrt (square
+    x))` might have to choose one of multiple possible simplifications
+    (`(non-negative? x)`, in this example).
+
+    This function simply logs the assumption for now, instead of performing any
+    checks. now. Turn off assumption logging with the dynamic variable
+    `*log-assumptions?*` in that namespace.
+
+  - fixed a heisenbug in `sicmutils.expression.analyze/make-analyzer` where, in
+    Clojurescript, using expressions containing a `js/BigInt` as a hashmap key
+    caused certain simplifications to fail. (This is vague, but the bug was
+    _really_ subtle.) The fix was to make sure we freeze keys in the symbol
+    cache. This is now noted in the function body.
+
+  - new `sicmutils.value/almost-integral?` returns true if its argument is VERY
+    close to an integral value, false otherwise.
+
+- #354 adds SCI support for all macros and functions in the new pattern matching
+  namespaces, and adds these to the namespaces exposed via `sicmutils.env.sci`.
+
+- #349 introduces a new pattern matching system, built out of matcher
+  combinators. All of the rules in `sicmutils.simplify.rules` now use the new
+  syntax offered by the library. Some notes:
+
+  - `pattern.match` defines a number of "matcher combinators"; these are
+    functions that take a map of bindings, a data input and a success
+    continuation and either succeed by calling their continuation, or fail. Out
+    of the box, the library provides `fail`, `pass`, `with-frame`,
+    `update-frame`, `predicate`, `frame-predicate`, `eq`, `bind`, `match-when`,
+    `match-if`, `or`, `and`, `not`, `segment` and `sequence`.
+
+  - Additionally, any combinator that takes another combinator can ALSO take a
+    pattern form like `'?x`. See `pattern.syntax` for the full, rich range of
+    syntax allowed. These are all functions, so you'll have to quote your
+    symbols at this stage.
+
+  - Passing a matcher combinator to `pattern.match/matcher` to generate a
+    matcher object. This is a function from some `data` input to a map of
+    bindings on success, or an explicit `pattern.match/failure` object on
+    failure. Test for failure with `pattern.match/failed?`.
+
+  - A combination of a matcher and a "consequence function" is called a "rule".
+    A consequence is a function that takes a binding map and either returns a
+    new result or fails by returning `nil` or `false`. (Don't worry, you can
+    succeed with these values too by wrapping them in `sicmutils.rule/succeed`.)
+
+    Rules are the heart of the whole simplification mechanism in sicmutils! To
+    learn about how to build these, see the documentation for `pattern*`,
+    `pattern`, `consequence`, `template`, `rule*`and `rule`.
+
+  - `pattern.rule` gives you some starter rules, and many combinators you can
+    use to build more and more powerful and complex sets of rules. These are
+    `pass`, `fail`, `predicate`, `return`, `branch`, `choice*`, `choice`,
+    `pipe*`, `pipe`, `n-times`, `attempt`, `guard`, `iterated`, `while`,
+    `until`, `fixed-point` and `trace`.
+
+  - Rules are nice for rewriting entire expressions recursively, from the bottom
+    up or top down. This is called "term rewriting". A big motivation for this
+    rewrite was to make it easy to build custom term rewriters for types like
+    abstract matrices or abstract up and down structures. You can use your rules
+    to rewrite structures recursively with `bottom-up`, `top-down`,
+    `iterated-bottom-up` and `iterated-top-down`. `ruleset*`, `ruleset`,
+    `rule-simplifier` and `term-rewriting` capture some common patterns the
+    library uses to go from rules => term rewriters.
+
+  - If you want ideas about how to use the pattern matching library to rewrite
+    expressions, see `sicmutils.simplify.rules` for many examples.
+
+- Efficient `symmetric-difference` implementation in `sicmutils.util.vector-set`
+  (#346)
 
 ## 0.18.0
 

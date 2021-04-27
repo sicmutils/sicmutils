@@ -296,11 +296,10 @@
   to produce the representation. The representation is cached in the point."
   [manifold-point coordinate-system thunk]
   (let [reps (:coordinate-representations manifold-point)]
-    (if-let [rep (@reps coordinate-system)]
-      rep
-      (let [rep (g/simplify (thunk))]
-        (swap! reps assoc coordinate-system rep)
-        rep))))
+    (or (@reps coordinate-system)
+        (let [rep (g/simplify (thunk))]
+          (swap! reps assoc coordinate-system rep)
+          rep))))
 
 ;; ## Coordinate System Protocol
 

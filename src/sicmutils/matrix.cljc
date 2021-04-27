@@ -35,7 +35,7 @@
             [sicmutils.util.aggregate :as ua]
             [sicmutils.value :as v])
   #?(:clj
-     (:import [clojure.lang Associative AFn IFn Sequential])))
+     (:import (clojure.lang Associative AFn IFn Sequential))))
 
 (declare fmap identity-like identity? m:=)
 

@@ -31,7 +31,10 @@
   #?(:clj
      (:import (sicmutils.polynomial Polynomial))))
 
-(def ^:dynamic *poly-gcd-time-limit* [1000 :millis])
+(def ^:dynamic *poly-gcd-time-limit*
+  #?(:clj [1000 :millis]
+     :cljs [8000 :millis]))
+
 (def ^:dynamic *poly-gcd-cache-enable* true)
 (def ^:dynamic *poly-gcd-debug* false)
 (def ^:private ^:dynamic *poly-gcd-bail-out* (fn []))

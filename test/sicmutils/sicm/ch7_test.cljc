@@ -26,7 +26,7 @@
                      up down
                      sin cos square cube exp]
              #?@(:cljs [:include-macros true])]
-            [sicmutils.simplify :refer [pe hermetic-simplify-fixture]]
+            [sicmutils.simplify :refer [hermetic-simplify-fixture]]
             [sicmutils.value :refer [within]]))
 
 (use-fixtures :each hermetic-simplify-fixture)
@@ -85,9 +85,9 @@
     (is (= '(down
              (up (+ (* 2 x) (* 2 y))
                  (+ (* -3 (expt x 2)) (* 6 x y) (* -3 (expt y 2)))
-                 (exp (+ x y)))
+                 (* (exp x) (exp y)))
              (up (+ (* 2 x) (* 2 y))
                  (+ (* 3 (expt x 2)) (* -6 x y) (* 3 (expt y 2)))
-                 (exp (+ x y))))
+                 (* (exp x) (exp y))))
            (e/freeze
             (simplify ((D g) 'x 'y)))))))

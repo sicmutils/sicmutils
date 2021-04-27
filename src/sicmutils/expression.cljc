@@ -23,9 +23,12 @@
 
   Also included is an implementation of a [[Literal]] type that forms the basis
   for [[sicmutils.abstract.number/literal-number]]."
-  (:refer-clojure :rename {compare core-compare}
-                  #?@(:cljs [:exclude [compare]]))
-  (:require [clojure.walk :as w]
+  (:refer-clojure :rename {compare core-compare
+                           sort core-sort}
+                  :exclude [sorted? #?@(:cljs [compare sort])])
+  (:require [clojure.pprint :as pp]
+            [clojure.walk :as w]
+            [sicmutils.generic :as g]
             [sicmutils.util :as u]
             [sicmutils.value :as v])
   #?(:clj
@@ -249,6 +252,7 @@
         l-empty? (and lseq? (empty? l))
         r-empty? (and rseq? (empty? r))
         raw-comp (delay (core-compare (hash l) (hash r)))]
+
     (cond (and l-empty? r-empty?) 0
           l-empty?                -1
           r-empty?                1
@@ -282,3 +286,42 @@
           rseq? 1
 
           :else @raw-comp)))
+
+(defn sorted? [xs]
+  (or (not (sequential? xs))
+      (every? (fn [[l r]]
+                (<= (compare l r) 0))
+              (partition 2 1 xs))))
+
+(defn sort [xs]
+  (if (sequential? xs)
+    (core-sort compare xs)
+    xs))
+
+;; ## Printing
+
+(defn expression->stream
+  "Renders an expression through the simplifier and onto the stream."
+  ([expr stream]
+   (-> (v/freeze
+        (g/simplify expr))
+       (pp/write :stream stream)))
+  ([expr stream options]
+   (let [opt-seq (->> (assoc options :stream stream)
+                      (apply concat))
+         simple (v/freeze
+                 (g/simplify expr))]
+     (apply pp/write simple opt-seq))))
+
+(defn expression->string
+  "Returns a string representation of a frozen, simplified version of the supplied
+  expression `expr`."
+  [expr]
+  (pr-str
+   (v/freeze (g/simplify expr))))
+
+(defn print-expression [expr]
+  (pp/pprint
+   (v/freeze (g/simplify expr))))
+
+(def pe print-expression)

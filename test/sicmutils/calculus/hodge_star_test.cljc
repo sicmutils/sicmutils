@@ -365,8 +365,7 @@
 
         (is (= 0 (simplify
                   ((+ (L3-star (ff/wedge dx dy dt)) 1)
-                   R3-point))))
-        ))))
+                   R3-point))))))))
 
 (deftest one-plus-one-minkowski-tests
   (testing "Now for a 1-1 Minkowski space with c"
