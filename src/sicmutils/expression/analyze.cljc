@@ -217,7 +217,7 @@
                 ;; expression as the key.
                 (let [expr-k (v/freeze expr)]
                   (#?(:clj dosync :cljs identity)
-                   (if-let [existing-expr (@expr->var expr)]
+                   (if-let [existing-expr (@expr->var expr-k)]
                      existing-expr
                      (let [var (symbol-generator)]
                        (alter expr->var assoc expr-k var)
@@ -233,7 +233,7 @@
             (backsubstitute [expr]
               (cond (sequential? expr) (doall
                                         (map backsubstitute expr))
-                    (symbol? expr)     (if-let [w (@var->expr (v/freeze expr))]
+                    (symbol? expr)     (if-let [w (@var->expr expr)]
                                          (backsubstitute w)
                                          expr)
                     :else expr))
